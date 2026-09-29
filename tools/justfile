@@ -23,13 +23,23 @@ export PATH := if path_exists(local_tools / "bin") == "true" { local_tools / "bi
 # The Rust projects, in the order they are installed. `project` is a
 # library: it has nothing to install, and it goes into `cartridge`'s
 # binaries, which are compiled with it.
+#
+# They are one Cargo workspace —`Cargo.toml`, here—, with one `Cargo.lock`
+# and one `target/`, but each is still tested and installed on its own: the
+# `*-test` recipes run `cargo test` standing in the project, which tests
+# only that one, and `cargo install --locked --path` takes the workspace's
+# lock.
 rust_projects := "protocol gunter ditto voodoo lz2 rm2k-render project cartridge rm2k-snes-audio"
 
+# The directories the projects live in, one per layer: each project is
+# `<layer>/<name>`, and the recipes find it by its name.
+rust_layers := "snes rm2k rm2k-snes"
+
 # The event opcodes: their number and their layout. The declaration lives in
-# `protocol/events.toml` and belongs neither to the compiler nor to the
+# `snes/protocol/events.toml` and belongs neither to the compiler nor to the
 # interpreter; from it the two Python modules and the two `.inc` files of
 # `tools/runtime/` are generated, and the music's Rust module for
-# `rm2k-snes-audio/`, all committed. There are two declarations:
+# `rm2k-snes/rm2k-snes-audio/`, all committed. There are two declarations:
 # the event bytecode and the music stream the SPC700 reads.
 #
 # The event one takes `--jump-table`: that produces `run_code`'s dispatch
@@ -38,12 +48,12 @@ rust_projects := "protocol gunter ditto voodoo lz2 rm2k-render project cartridge
 #
 # `--check` is what the suite runs: it fails if any of them is stale.
 protocol *args:
-  protocol protocol/events.toml \
+  protocol snes/protocol/events.toml \
       --python port/event_opcodes.py --asm runtime/event_opcodes.inc \
       --jump-table {{args}}
-  protocol protocol/music.toml \
+  protocol snes/protocol/music.toml \
       --python audio/music_opcodes.py --asm runtime/music_opcodes.inc \
-      --rust rm2k-snes-audio/src/music_opcodes.rs {{args}}
+      --rust rm2k-snes/rm2k-snes-audio/src/music_opcodes.rs {{args}}
 
 # The tools' Python tests, the ones in `tests/`: those that need neither the
 # game, nor its data, nor a built cartridge. Those that do are among A Blurred
@@ -55,11 +65,19 @@ protocol *args:
 test *args:
   pytest {{args}}
 
+# Every Rust project's tests at once, the whole workspace, in the debug
+# profile: the release one is `lto` and a single codegen unit, and compiling
+# every test binary that way costs more than the tests save. The ones that
+# need a game or a SoundFont are skipped the same way as in each project's
+# recipe, unless `DITTO_CORPUS` or `SOUNDFONT` are set.
+rust-test *args:
+  cargo test --workspace {{args}}
+
 # The generator's tests: the errors it must give for a broken declaration,
 # and the exact shape of the text it emits. They need neither the game nor
 # the ROM.
 protocol-test:
-  cd protocol && cargo test
+  cd snes/protocol && cargo test
 
 # Gunter: the BRR codec and the SoundFont reader, and **what builds the ROM's
 # samples**. Its tests are samples generated inside the test —silence, ramp,
@@ -67,11 +85,11 @@ protocol-test:
 # the game nor a soundfont. That the real samples come out right is enforced
 # by any ROM, because they travel inside the `.sfc`.
 gunter-test:
-  cd gunter && cargo test
+  cd snes/gunter && cargo test
 
 # .ldb/.lmu/.lmt ⇄ JSON in Rust. It does not replace `rpgmaker/lcf.py` or the
 # converter yet: it lives alongside them. See DITTO.md, at the root, which is
-# what ties Ditto to the port; inside `ditto/` there is not a single reference
+# what ties Ditto to the port; inside `rm2k/ditto/` there is not a single reference
 # to us, on purpose.
 #
 # The game it is measured against **is passed by whoever runs it**, in
@@ -86,7 +104,7 @@ gunter-test:
 # runs quietly; and without a corpus it measures nothing, so instead of
 # skipping it refuses.
 ditto-test:
-  cd ditto && cargo test
+  cd rm2k/ditto && cargo test
 
 ditto-round-trip:
   #!/usr/bin/env sh
@@ -95,7 +113,7 @@ ditto-round-trip:
     echo "ditto-round-trip needs a game: DITTO_CORPUS=<folder with RPG_RT.ldb, RPG_RT.lmt and the Map*.lmu>." >&2
     exit 1
   fi
-  cd ditto
+  cd rm2k/ditto
   cargo test --release -- --include-ignored --nocapture
 
 # Voodoo: from an indexed PNG to tiles, tilemap and CGRAM, in Rust. It is what
@@ -105,14 +123,14 @@ ditto-round-trip:
 # Its tests are images generated inside the test, plus the error messages,
 # so they do not need the game.
 voodoo-test:
-  cd voodoo && cargo test
+  cd snes/voodoo && cargo test
 
 # LZ2: Nintendo's LC_LZ2, which the converter uses to compress the tiles and
 # grids the ROM decompresses when loading a map —see `port/compress.py`—.
 # Its tests do not need the game; the ones that run every block of the
 # cartridge through the reference are the port's.
 lz2-test:
-  cd lz2 && cargo test --release
+  cd snes/lz2 && cargo test --release
 
 # rm2k-render: a map's tile layers, and the other drawings of its ChipSet
 # animation, as PNGs —see `render/render_map.py`, which is what calls it—.
@@ -123,20 +141,20 @@ lz2-test:
 # against the hashes of what the Python that drew them until 2026-09-29 gave
 # for the same input: they need neither the game nor the RTP.
 render-test:
-  cd rm2k-render && cargo test --release
+  cd rm2k/rm2k-render && cargo test --release
 
 # The project library: finding `rm2k-snes.toml`, reading its settings with
 # errors that name the key, the machine's flags and the disk cache's key.
 # Its tests build their projects inside the test, so they need no game.
 project-test:
-  cd project && cargo test
+  cd rm2k-snes/project && cargo test
 
 # `rm2k-snes-assemble`, `rm2k-snes-space` and `rm2k-snes-cartridges`: the
 # bank packing, the memory map, the checksum and the symbols are tested on
 # files made inside the test. That the ROMs come out right is enforced by
 # the game's suite, which runs them; building a real cartridge needs a game.
 cartridge-test:
-  cd cartridge && cargo test
+  cd rm2k-snes/cartridge && cargo test
 
 # rm2k-snes-audio: the music, from each song's MIDI and the SoundFont to
 # `musicdata.inc` —see `port/snes_convert.py`, which is what calls it—. It
@@ -149,13 +167,13 @@ cartridge-test:
 # know where one is. Without the variable, those two are skipped with a
 # message.
 audio-test:
-  cd rm2k-snes-audio && cargo test --release
+  cd rm2k-snes/rm2k-snes-audio && cargo test --release
 
 # --- Installation ----------------------------------------------------------
-# `protocol/`, `gunter/`, `ditto/`, `voodoo/`, `lz2/`, `rm2k-render/`,
-# `project/`, `cartridge/` and `rm2k-snes-audio/` are separate projects, and the port consumes
-# them **from the PATH**, the way it consumes a libretro core: no script or
-# test of the game calls `cargo`. They are installed once and stay.
+# The Rust projects, in `snes/`, `rm2k/` and `rm2k-snes/`, are separate
+# projects, and the port consumes them **from the PATH**, the way it
+# consumes a libretro core: no script or test of the game calls `cargo`.
+# They are installed once and stay.
 #
 # And the Python scripts that get executed, into the same `bin/`, so the
 # game's `justfile` calls them by name like the Rust ones. They go **as
@@ -242,12 +260,16 @@ _install root *projects:
   # not install.
   find "{{root}}/bin" -maxdepth 1 -type l \( -name 'rm2k-snes-*' -o -name 'abl-*' \) -delete
   for p in {{projects}}; do
+    dir=""
+    for layer in {{rust_layers}}; do
+      if [ -f "$layer/$p/Cargo.toml" ]; then dir="$layer/$p"; fi
+    done
     # A library has nothing to install: it goes into the binaries that use it.
-    if [ ! -f "$p/src/main.rs" ] && [ ! -d "$p/src/bin" ] && ! grep -q '^\[\[bin\]\]' "$p/Cargo.toml"; then
+    if [ ! -f "$dir/src/main.rs" ] && [ ! -d "$dir/src/bin" ] && ! grep -q '^\[\[bin\]\]' "$dir/Cargo.toml"; then
       echo "$p is a library: it is compiled into the binaries that use it"
       continue
     fi
-    cargo install --locked --path "$p" --root "{{root}}"
+    cargo install --locked --path "$dir" --root "{{root}}"
   done
   ln -sfn "{{justfile_directory()}}/port/snes_convert.py" "{{root}}/bin/rm2k-snes-convert"
   ln -sfn "{{justfile_directory()}}/port/patches.py" "{{root}}/bin/rm2k-snes-patches"

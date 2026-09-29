@@ -2,7 +2,7 @@
 son autotiles: bloques de bordes que el motor combina según los vecinos. El
 editor guarda en el mapa el ID de la combinación ya calculada, así que para
 renderizar hay que pre-generar las 1419 combinaciones posibles en un atlas de
-32x45 e indexarlo por ID. `tools/rm2k-render/src/chipset.rs` es un puerto de
+32x45 e indexarlo por ID. `tools/rm2k/rm2k-render/src/chipset.rs` es un puerto de
 `lmu2png/src/chipset.cpp` de EasyRPG Tools, que es donde están todos los
 offsets mágicos.
 

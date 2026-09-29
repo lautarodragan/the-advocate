@@ -3,7 +3,7 @@
 There are two bytecodes in this port: the event one, which
 `tools/port/events.py` emits and the ROM interprets, and the music stream,
 which `rm2k-snes-audio` writes and `irq_music` reads. They are
-declared by `tools/protocol/`, which belongs to neither side, and from there
+declared by `tools/snes/protocol/`, which belongs to neither side, and from there
 the files in `GENERADOS` are generated. The generator is a Rust binary
 installed with `just -f tools/justfile install` and used from the PATH,
 so these cases need it installed; the generated output is committed, so
@@ -49,7 +49,7 @@ GENERADOS = [
 # and reports it as stale. The music stream has a third end, in Rust: the
 # compiler that writes it.
 BANDERAS = {"events": ["--jump-table"],
-            "music": ["--rust", os.path.join(project.tools(), "rm2k-snes-audio",
+            "music": ["--rust", os.path.join(project.tools(), "rm2k-snes", "rm2k-snes-audio",
                                              "src", "music_opcodes.rs")]}
 
 
@@ -63,7 +63,7 @@ def test_the_generated_files_are_up_to_date(nombre, modulo, inc, py):
     """Regenerating changes nothing: otherwise the tree has two truths."""
     hecho = subprocess.run(
         ["protocol",
-         os.path.join(project.tools(), "protocol", nombre + ".toml"),
+         os.path.join(project.tools(), "snes", "protocol", nombre + ".toml"),
          "--python", os.path.join(project.root(), py),
          "--asm", os.path.join(project.root(), inc), "--check"]
         + BANDERAS.get(nombre, []),
@@ -110,11 +110,11 @@ def test_no_opcode_in_the_rom_is_undeclared(runtime_source):
     # And that no hand-written one has reappeared in the ROM itself.
     propios = set(re.findall(r"^(OP_[A-Z0-9_]+)\s*=", fuente, re.M))
     assert not propios, (
-        "tools/runtime/ declares %s by hand: that goes in tools/protocol/"
+        "tools/runtime/ declares %s by hand: that goes in tools/snes/protocol/"
         % ", ".join(sorted(propios)))
     sin_declarar = usados - todos
     assert not sin_declarar, (
-        "tools/runtime/ compares against %s, which is not declared in tools/protocol/"
+        "tools/runtime/ compares against %s, which is not declared in tools/snes/protocol/"
         % ", ".join(sorted(sin_declarar)))
 
 

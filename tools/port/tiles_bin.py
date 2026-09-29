@@ -4,7 +4,7 @@ It takes an 8-bit indexed PNG whose indices are CGRAM entries —on a 4bpp
 layer, `index >> 4` is the palette— and returns tiles, tilemap and CGRAM.
 **It decides nothing visible**: which colors stay and which palette each
 cell goes in was decided by the allocator before writing the image: see
-"`tools/voodoo/` no decide colores" in `AGENTS.md`.
+"`tools/snes/voodoo/` no decide colores" in `AGENTS.md`.
 
 This module is still called `tiles_bin` because it names **what it
 produces** —tiles— and not who produces them.
@@ -23,7 +23,7 @@ import tempfile
 
 MISSING = """`voodoo` is missing, the converter from images to tiles.
 
-It is a Rust binary that lives in `tools/voodoo/` and is installed as a
+It is a Rust binary that lives in `tools/snes/voodoo/` and is installed as a
 system tool:
 
     just -f tools/justfile install"""

@@ -6,7 +6,7 @@ type: feature
 
 Del hito 4 del mundo (2026-09-27): los cinco temas del capítulo comparten
 muestras con temas que ya estaban, y eso cambió qué copias hace
-`copies`, en `tools/rm2k-snes-audio/src/bank.rs`. Sin MSU-1 bajaron 43 pares (tema, instrumento) de 15
+`copies`, en `tools/rm2k-snes/rm2k-snes-audio/src/bank.rs`. Sin MSU-1 bajaron 43 pares (tema, instrumento) de 15
 temas y subieron 51. Con sólo jackalstg2 bajaban 36. taro escuchó el antes y
 el después y los aceptó, así que no hubo que frenar el capítulo, pero **va a
 volver a pasar con cada tema que se sume**.

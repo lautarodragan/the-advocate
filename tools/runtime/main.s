@@ -50,7 +50,7 @@
 
 .include "registers.s"
 .include "far_ram.s"
-; The two bytecodes this ROM reads, generated from tools/protocol/: the events
+; The two bytecodes this ROM reads, generated from tools/snes/protocol/: the events
 ; one, which `run_code` interprets, and the music stream, which
 ; `irq_music` reads. Each one is declared by a file that belongs neither to
 ; the side that emits the bytes nor to the side that reads them.

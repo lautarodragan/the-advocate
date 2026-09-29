@@ -10,7 +10,7 @@
 ; jumps within the program bank. As long as they are all in `CODE` that holds,
 ; and `test_la_entrada_k_de_la_tabla_salta_al_manejador_del_opcode_k` guards it.
 ;
-; A new opcode touches two places: its number in tools/protocol/events.toml
+; A new opcode touches two places: its number in tools/snes/protocol/events.toml
 ; —which, when regenerated with `just protocolo`, yields its entry in the
 ; dispatch table— and its `.proc op_x` in whichever file it belongs to, named
 ; after the opcode in lowercase. The dispatch is not touched: if the handler is
@@ -75,7 +75,7 @@ other:
     rts
 .endproc
 
-; Entry k is the handler for opcode k. tools/protocol/ emits it from
+; Entry k is the handler for opcode k. tools/snes/protocol/ emits it from
 ; events.toml, so a new opcode does not touch this: the handler for `OP_X`
 ; has to be called `op_x`, and if it is missing it does not assemble. It has to
 ; be in `run_code`'s bank, which is where the `jmp` reads it from, and so

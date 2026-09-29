@@ -5,7 +5,7 @@ Qué pieza hace qué y dónde está su porqué. Todo lo demás vive en el códig
 El audio lo maneja el **SPC700**, un procesador aparte con sus 64 KB de ARAM;
 el 65816 no toca el DSP, sólo le habla al SPC700 por cuatro puertos. **La
 lógica vive en el compilador de música**, `rm2k-snes-audio` —un proyecto de
-Rust en `tools/rm2k-snes-audio/`, que el conversor corre por el PATH—: decide
+Rust en `tools/rm2k-snes/rm2k-snes-audio/`, que el conversor corre por el PATH—: decide
 qué nota va a qué voz, con qué muestra y con qué envolvente, y la consola sólo
 reproduce. Las rutas de abajo que terminan en `.rs` son de su `src/`.
 
@@ -23,7 +23,7 @@ reproduce. Las rutas de abajo que terminan en `.rs` son de su `src/`.
 * **El stream es por nota**: notas, releases, cambios de volumen o de altura,
   y esperas, que el 65816 expande a las mismas escrituras que antes iban en el
   stream. El formato está en "the per-note format" de `stream.rs` y los
-  opcodes en `tools/protocol/music.toml`; `irq_music` (`tools/runtime/music.s`)
+  opcodes en `tools/snes/protocol/music.toml`; `irq_music` (`tools/runtime/music.s`)
   corre un cuadro de música por cuadro de video.
 * **Las ocho voces son de todos los canales** y se reparten nota a nota: una
   nota toma una voz libre o le roba a otra por prioridad. Ver `assign`,

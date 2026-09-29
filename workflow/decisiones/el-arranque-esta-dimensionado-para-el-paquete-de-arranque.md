@@ -4,7 +4,7 @@
 arranque**, no para la ARAM llena: `BOOT_FRAMES` (en `tools/runtime/far_ram.s`)
 cubre la carga del mapa, el driver y el directorio por el IPL, y ese
 paquete, con margen. **Y el conversor se corta si no entra**: la cuenta es
-`boot_frames` en `tools/rm2k-snes-audio/src/emit.rs`, y la compara el conversor.
+`boot_frames` en `tools/rm2k-snes/rm2k-snes-audio/src/emit.rs`, y la compara el conversor.
 
 Reemplaza a "el arranque está dimensionado para el techo de ARAM", que lo
 dejaba en 112 cuadros —1,9 s de mapa congelado al encender— para que llenar

@@ -29,9 +29,10 @@ rom/pruebas/snapshots/
 .ripgreprc
 .vscode
 
-# El target de Ditto: binarios y dependencias compiladas.
-tools/ditto/target/
-tools/ditto/.idea/
+# El target del workspace de Rust: los binarios y las dependencias compiladas
+# de todos los crates de `tools/`, que comparten uno solo.
+tools/target/
+tools/rm2k/ditto/.idea/
 # Las herramientas de un worktree: `install-local`, ver `tools/justfile`. El
 # destino lo elige quien las usa: ABL, `rom/.herramientas-locales/`; las
 # recetas de `tools/justfile`, `tools/.local-tools/`.

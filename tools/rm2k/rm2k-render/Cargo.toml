@@ -1,0 +1,21 @@
+[package]
+name = "rm2k-render"
+version = "0.1.0"
+edition = "2021"
+description = "Draws the tile layers of an RPG Maker 2000 map, and the other drawings of its ChipSet animation, from the map and its ChipSet"
+
+[lib]
+name = "rm2k_render"
+path = "src/lib.rs"
+
+[[bin]]
+name = "rm2k-render"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+png = "0.17"
+serde_json = "1"
+
+[dev-dependencies]
+sha2 = "0.10"

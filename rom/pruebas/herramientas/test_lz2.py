@@ -1,7 +1,7 @@
 """El compresor LZ2 contra la referencia, sobre **todos** los bloques que la ROM
 descomprime al cargar un mapa, en todos los cartuchos.
 
-`tools/lz2/` tiene sus propias pruebas, en inglés y sin nada de este juego;
+`tools/snes/lz2/` tiene sus propias pruebas, en inglés y sin nada de este juego;
 éstas son las del port: que cada bloque que el conversor dejó en `crudos/` —ver
 `write_raw` en materials.py— vuelva igual pasando por el binario y por
 `pruebas/arnes/lz2.py`, que está escrita aparte a propósito. Lo que la ROM hace

@@ -694,7 +694,7 @@ NPC_STILL = 0xFF        # in +9: this NPC doesn't walk
 #
 # The number isn't that since 2026-09-06, and not by choice: the row is
 # sixteen bytes, so the cap takes two kilobytes of the eight bank 0 of RAM
-# has, and the RAM ran out —see `STACK` in tools/cartridge/src/banks.rs—. **The
+# has, and the RAM ran out —see `STACK` in tools/rm2k-snes/cartridge/src/banks.rs—. **The
 # map with the most rows in the whole game has 99**, measured over the 328, so
 # 104 leaves five of headroom and gives back 368 bytes. It can't fall short
 # silently: the converter stops if any map goes over.

@@ -3,12 +3,12 @@
 Cada página de evento que se puede compilar viaja en el cartucho como
 **bytecode**, y ese bytecode tiene tres dueños que no se pisan:
 
-    tools/protocol/events.toml    lo declara: cada opcode, su número y los bytes que lleva
-    tools/port/events.py          lo emite: `_compilar`, un caso por comando de RM2k
-    tools/runtime/interpreter*.s  lo ejecuta: `run_code` y un `.proc op_*` por opcode
+    tools/snes/protocol/events.toml  lo declara: cada opcode, su número y los bytes que lleva
+    tools/port/events.py             lo emite: `_compilar`, un caso por comando de RM2k
+    tools/runtime/interpreter*.s     lo ejecuta: `run_code` y un `.proc op_*` por opcode
 
-De `tools/protocol/events.toml` salen generados `tools/port/event_opcodes.py` y
-`tools/runtime/event_opcodes.inc`; ver `tools/protocol/README.md`, que está en inglés porque
+De `tools/snes/protocol/events.toml` salen generados `tools/port/event_opcodes.py` y
+`tools/runtime/event_opcodes.inc`; ver `tools/snes/protocol/README.md`, que está en inglés porque
 ahí adentro no se sabe nada de este juego. **Un opcode nuevo se declara ahí y en
 ningún otro lado**: antes el número lo elegía el compilador y le llegaba al
 intérprete adentro de `mapdata.inc`, y así dos ramas eligieron el mismo sin que

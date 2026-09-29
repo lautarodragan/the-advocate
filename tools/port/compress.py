@@ -6,7 +6,7 @@ stays within 20% of zlib on the tiles and within 10 KB on the grids, and its
 repeat with an absolute address into the output is what an `mvn` does in one
 go. The decompressor is `lz2_decompress`, in `tools/runtime/decompress.s`.
 
-The compressor is a separate project, `tools/lz2/`, in Rust and in English,
+The compressor is a separate project, `tools/snes/lz2/`, in Rust and in English,
 by the rule in AGENTS.md: it does not need to know anything about this game.
 And in Rust rather than here because it is an optimal parser —the shortest
 encoding the format allows, with a suffix array— and in Python it would take
@@ -25,7 +25,7 @@ import tempfile
 
 MISSING = """`lz2` is missing, the compressor of the tiles and the grids.
 
-It is a Rust binary that lives in `tools/lz2/` and is installed as a system
+It is a Rust binary that lives in `tools/snes/lz2/` and is installed as a system
 tool:
 
     just -f tools/justfile install"""
