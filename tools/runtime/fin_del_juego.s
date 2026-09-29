@@ -4,7 +4,7 @@
 ;
 ; `Scene_End`: the End Game command in the pause menu. Two windows over black
 ; —the question, and "Yes" and "No" with the System's bar— that come whole,
-; already drawn, from tools/port/fin_del_juego.py: the tiles, the tilemap rows
+; already drawn, from tools/port/end_game.py: the tiles, the tilemap rows
 ; that have something in them, and two palettes, one per highlighted command.
 ; Moving the cursor means uploading the other palette; the why is in the header
 ; of fin_del_juego.py.

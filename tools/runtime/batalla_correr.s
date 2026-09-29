@@ -6,7 +6,7 @@
 ; It runs **its own frame loop**, like `ranuras_pantalla` and like the shop:
 ; `vueltas` does not advance while it is shown, so the battle costs no tick,
 ; however long the player takes. See `OP_BATTLE`
-; in tools/port/eventos.py.
+; in tools/port/events.py.
 .proc batalla_correr
 .a8
 .i16

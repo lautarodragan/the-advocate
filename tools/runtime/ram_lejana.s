@@ -390,7 +390,7 @@ BAF_HAY   = $04             ; the slot is taken
 ; other: see `ba_mostrar_oculto`.
 BAF_OCULTO = $08
 
-; The three results and the three commands, in the order of `tools/port/batalla.py`.
+; The three results and the three commands, in the order of `tools/port/battle.py`.
 BA_VICTORIA = 0
 BA_HUIDA_R  = 1
 BA_DERROTA  = 2
@@ -902,7 +902,7 @@ VIEW_ROWS = 29
 
 ; The message window: 256x80 flush with the bottom of a 224-line screen, that
 ; is, the ten cell rows going from 18 to 27. The same numbers are in
-; `tools/port/ventana.py`, which is where they come from: 80 high and flush
+; `tools/port/window.py`, which is where they come from: 80 high and flush
 ; with the bottom, the way RM2k places it.
 VENTANA_FILA  = 18
 VENTANA_FILAS = 10

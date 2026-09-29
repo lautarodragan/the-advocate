@@ -224,7 +224,7 @@ con_plano:
 MSG_CHARS = 5
 
 ; Where the text starts inside the window, in pixels. It is `Window`'s
-; `border_x`, the same one `tools/port/ventana.py` uses.
+; `border_x`, the same one `tools/port/window.py` uses.
 VENTANA_BORDE = 8
 
 ; The glyph's row falls two pixels below the cell's edge, and that does not

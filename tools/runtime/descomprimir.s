@@ -6,7 +6,7 @@
 ; animation, and the grid travel in the cartridge in LC_LZ2, Nintendo's format,
 ; and are decompressed into WRAM when the map loads, with the screen off inside
 ; the fade. The format and the reason for this one and not another are in
-; tools/port/comprimir.py; the compressor is `tools/lz2/`.
+; tools/port/compress.py; the compressor is `tools/lz2/`.
 ;
 ; Each command in the stream is a header —what it is and how many bytes it
 ; makes— and its operand. Almost everything is done with `mvn`:
@@ -23,7 +23,7 @@
 ;
 ; The increasing fill (3), which is the only one an `mvn` does not do, and the
 ; one-byte word **are not read**: the converter does not emit them and checks
-; it —see `lo_que_la_rom_no_lee` in tools/port/comprimir.py—. Reading them
+; it —see `what_the_rom_does_not_read` in tools/port/compress.py—. Reading them
 ; would be a path no test runs.
 ;
 ; `mvn` carries both banks **inside the instruction**. The output's is one of

@@ -10,7 +10,7 @@
 ; that applies.
 ;
 ; The rules —damage, hit, critical, variance, turn order, escape— come from
-; easyrpg-player and are written twice: here and in `tools/port/batalla.py`,
+; easyrpg-player and are written twice: here and in `tools/port/battle.py`,
 ; which is what lets `rom/pruebas/rpgmaker/test_batalla.py` predict the exact
 ; number each HP will have. The screen is text, on black.
 ;

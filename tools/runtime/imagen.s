@@ -3,7 +3,7 @@
 ; --- the ShowPicture picture ------------------------------------------------
 ;
 ; Six 32x32 objects with a sprite palette all to themselves, and a fade that is
-; a tint of those fifteen colors frame by frame. See `tools/port/imagen.py`,
+; a tint of those fifteen colors frame by frame. See `tools/port/picture.py`,
 ; which is where it is written where each pixel lands and what color it is,
 ; and OP_PICTURE in eventos.py.
 ;

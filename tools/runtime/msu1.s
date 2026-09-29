@@ -229,7 +229,7 @@ no:
 ; by byte through `S9xGetPPU`, which serves the MSU-1.
 ;
 ; What is inside and in what format is decided by the converter: see
-; tools/port/msu_datos.py and docs/port/msu-datos.md. Today it is the battle
+; tools/port/msu_data.py and docs/port/msu-datos.md. Today it is the battle
 ; backgrounds, and **the ROM still carries its own**: this replaces them only
 ; if there is an MSU-1 and the `.msu` is this cartridge's.
 ;
