@@ -37,8 +37,8 @@ SUSTAIN = 64
 # and CC98 select an NRPN, and from then on CC6 no longer belongs to the RPN.
 _DATA_MSB, _DATA_LSB = 6, 38
 _NRPN_LSB, _NRPN_MSB, _RPN_LSB, _RPN_MSB = 98, 99, 100, 101
-_CRUDOS = {VOLUME, PAN, EXPRESSION, SUSTAIN, _DATA_MSB, _DATA_LSB,
-           _NRPN_LSB, _NRPN_MSB, _RPN_LSB, _RPN_MSB}
+_RAW_CONTROLLERS = {VOLUME, PAN, EXPRESSION, SUSTAIN, _DATA_MSB, _DATA_LSB,
+                    _NRPN_LSB, _NRPN_MSB, _RPN_LSB, _RPN_MSB}
 BEND_RANGE = 2          # semitones, GM's as long as nobody changes it
 
 
@@ -130,7 +130,7 @@ def _track(data, pos, end, notes, tempos, programs, raw):
         elif kind == 0xD0:
             pos += 1                    # channel aftertouch
         elif kind == CONTROL:
-            if data[pos] in _CRUDOS:
+            if data[pos] in _RAW_CONTROLLERS:
                 raw.append((time, channel, data[pos], data[pos + 1]))
             pos += 2
         elif kind == BEND_STATUS:
@@ -169,38 +169,38 @@ def _controls(raw, notes):
             rpn = number in (_RPN_MSB, _RPN_LSB)
             # Unselected, both are 127: the "null" RPN. Measured with
             # fluidsynth: a CC101 at 0 without its CC100 does not touch the range.
-            actual = param.get(channel, (rpn, 127, 127))
-            if actual[0] != rpn:
-                actual = (rpn, 127, 127)
-            msb = value if number in (_RPN_MSB, _NRPN_MSB) else actual[1]
-            lsb = value if number in (_RPN_LSB, _NRPN_LSB) else actual[2]
+            selected = param.get(channel, (rpn, 127, 127))
+            if selected[0] != rpn:
+                selected = (rpn, 127, 127)
+            msb = value if number in (_RPN_MSB, _NRPN_MSB) else selected[1]
+            lsb = value if number in (_RPN_LSB, _NRPN_LSB) else selected[2]
             param[channel] = (rpn, msb, lsb)
         elif param.get(channel) == (True, 0, 0):
             # RPN 0, the bend range. **No cap**: `3D-Galax` asks for 95
             # semitones and fluidsynth honors them —measured—; a GS
             # synthesizer would cap it at 24. We follow fluidsynth, which is
             # what we compare against and where the MSU-1 track comes from.
-            entero = int(semitones.get(channel, BEND_RANGE))
-            fraccion = semitones.get(channel, BEND_RANGE) - entero
+            whole = int(semitones.get(channel, BEND_RANGE))
+            fraction = semitones.get(channel, BEND_RANGE) - whole
             if number == _DATA_MSB:
-                semitones[channel] = value + fraccion
+                semitones[channel] = value + fraction
             else:
-                semitones[channel] = entero + value / 100.0
+                semitones[channel] = whole + value / 100.0
     if down or pedal:
         # A note released with the pedal down keeps sounding until it goes
         # up, or until the same key is played again. If it never goes up,
         # until the end of the song.
-        final = max((n.end for n in notes), default=0)
+        song_end = max((n.end for n in notes), default=0)
         for channel, time in down.items():
-            pedal.setdefault(channel, []).append((time, final))
-        siguiente = {}
+            pedal.setdefault(channel, []).append((time, song_end))
+        next_start = {}
         for note in sorted(notes, key=lambda n: -n.start):
-            clave = (note.channel, note.pitch)
-            for baja, sube in pedal.get(note.channel, ()):
-                if baja < note.end < sube:
-                    note.end = min(sube, siguiente.get(clave, sube))
+            key = (note.channel, note.pitch)
+            for down_at, up_at in pedal.get(note.channel, ()):
+                if down_at < note.end < up_at:
+                    note.end = min(up_at, next_start.get(key, up_at))
                     break
-            siguiente[clave] = note.start
+            next_start[key] = note.start
     return controls
 
 

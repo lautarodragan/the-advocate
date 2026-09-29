@@ -34,3 +34,5 @@ ejecutable corrido por su nombre desde /tmp con `--project`.
   `rm2k-snes-volume-ceilings --project rom --help` se cortaba: arreglado en
   su propio commit.
 - `audio/muestras_brr.py` → `audio/brr_samples.py`, con sus nombres.
+- `audio/sdsp.py` y `audio/midi.py`: los nombres; los archivos ya estaban
+  en inglés.

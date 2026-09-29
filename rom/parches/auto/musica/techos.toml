@@ -1,5 +1,5 @@
 # El techo de volumen de cada tema del `release`: el aire con que
-# `build_varios` le arma el stream, en vez de `sdsp.AIRE`.
+# `build_varios` le arma el stream, en vez de `sdsp.HEADROOM`.
 #
 # **No se edita a mano**: lo escribe `just techos`, que toca cada
 # tema en la ROM y le da el aire más alto que no recorta. El porqué,

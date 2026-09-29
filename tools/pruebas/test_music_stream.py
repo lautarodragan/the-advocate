@@ -163,7 +163,7 @@ def test_the_synth_bass_releases_as_the_soundfont_says():
                     {0: BAJO_SINTETICO}, _SoundFontBank())
     gain = _registers(salen, 0)[sdsp.V_GAIN][-1]
     assert gain & 0xE0 == sdsp.GAIN_LINEAR_DECREASE, "GAIN $%02X" % gain
-    segundos = 64 * sdsp.PERIODO[gain & 0x1F] / float(sdsp.SAMPLE_RATE)
+    segundos = 64 * sdsp.PERIOD[gain & 0x1F] / float(sdsp.SAMPLE_RATE)
     assert segundos < 0.1, "the release lasts %.3f s" % segundos
 
 
@@ -195,7 +195,7 @@ def test_a_long_release_reaches_zero_where_the_soundfont_is_near_40_db():
            "env_key_to_hold": 0, "env_key_to_decay": 0}
     _adsr1, _adsr2, gain = sdsp.envelope(sf2, 60)
     assert gain & 0xE0 == sdsp.GAIN_EXP_DECREASE, "GAIN $%02X" % gain
-    hasta_cero = (sdsp.PASOS_HASTA_CERO * sdsp.PERIODO[gain & 0x1F]
+    hasta_cero = (sdsp.STEPS_TO_ZERO * sdsp.PERIOD[gain & 0x1F]
                   / float(sdsp.SAMPLE_RATE))
     assert 0.3 < hasta_cero < 0.55, "reaches zero in %.3f s" % hasta_cero
 

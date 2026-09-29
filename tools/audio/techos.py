@@ -16,7 +16,7 @@ This is how it comes out:
    the ceiling, each song's with the full headroom is double.
 2. **Each whole song on the title screen**, in snes9x without MSU-1, and its
    peak. Each one's headroom is the highest that keeps that peak `MARGEN`
-   below the cap, without going past `sdsp.AIRE`: the ones that do not clip
+   below the cap, without going past `sdsp.HEADROOM`: the ones that do not clip
    stay as they were.
 3. **The table is written, `release` is rebuilt and measured again**. Each
    voice's volume is rounded to an integer, so the arithmetic is
@@ -57,7 +57,7 @@ if __name__ == "__main__":
 
 # Half the usual headroom: measured on 2026-09-26, with 0.25 none of the 32
 # songs of `release` clips, and the loudest one stays 3.9 dB below the cap.
-AIRE_DE_MEDIDA = sdsp.AIRE / 2
+AIRE_DE_MEDIDA = sdsp.HEADROOM / 2
 
 # What the measured ROM is called: the game's, in its project file.
 NOMBRE_DE_LA_ROM = settings.value("rom", "name", kind=str)
@@ -223,7 +223,7 @@ def escribir(techos, medido, huellas, ruta=None):
     ruta = ruta or snes_music.ruta_de_techos()
     lineas = [
         "# The volume ceiling of each song of `release`: the headroom",
-        "# `build_varios` builds its stream with, instead of `sdsp.AIRE`.",
+        "# `build_varios` builds its stream with, instead of `sdsp.HEADROOM`.",
         "#",
         "# **Not edited by hand**: `just techos` writes it, playing each song",
         "# in the ROM and giving it the highest headroom that does not clip.",
@@ -298,9 +298,9 @@ def main():
                  % (AIRE_DE_MEDIDA, ", ".join(recortan)))
     techos = {}
     for nombre, fila in a_medias.items():
-        entero = fila["pico"] * sdsp.AIRE / AIRE_DE_MEDIDA
-        techos[nombre] = min(sdsp.AIRE, math.floor(
-            1000 * sdsp.AIRE * TOPE * MARGEN / max(entero, 1)) / 1000.0)
+        entero = fila["pico"] * sdsp.HEADROOM / AIRE_DE_MEDIDA
+        techos[nombre] = min(sdsp.HEADROOM, math.floor(
+            1000 * sdsp.HEADROOM * TOPE * MARGEN / max(entero, 1)) / 1000.0)
 
     for vuelta in range(4):
         escribir(techos, {n: dict(f, lufs=0.0) for n, f in a_medias.items()},

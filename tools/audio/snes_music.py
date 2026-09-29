@@ -499,7 +499,7 @@ VOCES_DE_EFECTOS = (SE_VOZ2, SE_VOZ)
 # `workflow/tasks/todo/la-calidad-de-la-musica.md` recorded it (variant 07).
 # It is one more `OP_RELEASE_GAIN` in the stream: the driver does not change.
 RAMPA = sdsp.GAIN_LINEAR_DECREASE | 26
-assert 64 * sdsp.PERIODO[RAMPA & 0x1F] <= sdsp.SAMPLE_RATE // TICKS_PER_SECOND
+assert 64 * sdsp.PERIOD[RAMPA & 0x1F] <= sdsp.SAMPLE_RATE // TICKS_PER_SECOND
 
 
 class _Voz:
@@ -518,9 +518,9 @@ def _cuadros_del_release(gain):
     """How many frames a voice released with that GAIN takes to go silent,
     from the top: the linear one drops 1/64 per step, and the exponential
     one reaches zero in `PASOS_HASTA_CERO` —see `sdsp`—."""
-    periodo = sdsp.PERIODO[gain & 0x1F] or 0
+    periodo = sdsp.PERIOD[gain & 0x1F] or 0
     pasos = (64 if gain & 0xE0 == sdsp.GAIN_LINEAR_DECREASE
-             else sdsp.PASOS_HASTA_CERO)
+             else sdsp.STEPS_TO_ZERO)
     return int(pasos * periodo * TICKS_PER_SECOND / sdsp.SAMPLE_RATE) + 1
 
 
@@ -1227,7 +1227,7 @@ class Preparacion(collections.namedtuple(
 
 
 def build_events(notes, voices, programs, banco, controls=(), reparto=None,
-                 aire=sdsp.AIRE):
+                 aire=sdsp.HEADROOM):
     """The writes to the DSP, frame by frame.
 
     Each channel has its group of voices —since step 5, all eight for
@@ -1252,11 +1252,11 @@ def build_events(notes, voices, programs, banco, controls=(), reparto=None,
     the sample if it is a hit shorter than the note—). It is where the
     amount of lost note-time comes from.
 
-    `aire` is the ceiling of this song's voices, `sdsp.AIRE`'s or a lower
+    `aire` is the ceiling of this song's voices, `sdsp.HEADROOM`'s or a lower
     one: see `leer_techos`.
     """
     frames = collections.defaultdict(Frame)
-    techo = aire / sdsp.AIRE
+    techo = aire / sdsp.HEADROOM
     bank, index_of, drum_index = banco.voces, banco.melodicas, banco.golpes
 
     estado = collections.defaultdict(lambda: dict(midi.DEFAULTS))
@@ -1931,7 +1931,7 @@ def leer_tema(name, game_dir=None):
 
 # --- each song's volume ceiling ---------------------------------------------
 
-# The headroom of each song that would clip with `sdsp.AIRE`'s: option B of
+# The headroom of each song that would clip with `sdsp.HEADROOM`'s: option B of
 # step 5 of `workflow/tasks/todo/la-calidad-de-la-musica.md`, chosen by taro
 # on 2026-09-26. The DSP adds up the eight voices and saturates the sum to
 # 16 bits before the master volume, so the only thing that prevents clipping
@@ -1943,7 +1943,7 @@ def leer_tema(name, game_dir=None):
 # **It is not written by hand**: `tools/audio/techos.py` (`just techos`)
 # measures it by playing each song in the ROM, and what remains is versioned
 # data, like the decisions in `rom/parches/auto/`. A song that is not in the
-# table goes with `sdsp.AIRE`. Every change to the mix —the samples, the
+# table goes with `sdsp.HEADROOM`. Every change to the mix —the samples, the
 # envelopes, the allocation— makes it stale, and `test_musica_techos.py`
 # enforces that.
 def ruta_de_techos():
@@ -2180,7 +2180,7 @@ def _armar_tema(contexto, i):
                 "sonidos": [], "escrituras": [],
                 "segundos": 0.0, "resumen": {}}
     reparto = []
-    aire = aire_de_medida or techos.get(nombre, sdsp.AIRE)
+    aire = aire_de_medida or techos.get(nombre, sdsp.HEADROOM)
     del_tema = banco.del_tema(suya)
     frames = build_events(leido["notas"], leido["voces"],
                           leido["programas"], del_tema,

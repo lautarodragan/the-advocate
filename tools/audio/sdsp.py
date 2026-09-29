@@ -48,13 +48,13 @@ FLG_BASE = 0x20         # echo off; the five low bits are the noise
 #
 # What the DSP can do, and why the translation is not direct: each phase
 # advances one step every so many samples out of the 32,000 per second, and
-# how many is given by `PERIODO` for the 5-bit rate number (0 is "never").
+# how many is given by `PERIOD` for the 5-bit rate number (0 is "never").
 # The attack is linear and reaches the top in 64 steps; decay, sustain and
 # exponential GAIN subtract 1/256 of the level per step; linear GAIN
 # subtracts 1/64.
-PERIODO = [None, 2048, 1536, 1280, 1024, 768, 640, 512, 384, 320, 256, 192,
-           160, 128, 96, 80, 64, 48, 40, 32, 24, 20, 16, 12, 10, 8, 6, 5, 4, 3,
-           2, 1]
+PERIOD = [None, 2048, 1536, 1280, 1024, 768, 640, 512, 384, 320, 256, 192,
+          160, 128, 96, 80, 64, 48, 40, 32, 24, 20, 16, 12, 10, 8, 6, 5, 4, 3,
+          2, 1]
 
 # The DSP's ADSR release cannot be configured: on writing KOF the envelope
 # drops to zero in about 8 ms, which sounds like an abrupt cut. That is why
@@ -72,82 +72,85 @@ GAIN_EXP_DECREASE = 0xA0        # bits 5-6: exponential
 # continuing at -26 dB—, so it is made to reach zero where the SoundFont is
 # at about -40 dB, which is "no longer audible". Measured by the prototype in
 # `workflow/tasks/todo/la-calidad-de-la-musica.md`.
-PASOS_HASTA_CERO = 790
-HASTA_DB = 40.0
+STEPS_TO_ZERO = 790
+DOWN_TO_DB = 40.0
 # A release shorter than this uses linear GAIN: the fastest exponential takes
 # 25 ms to reach zero and is not enough for the bass's 30 ms.
-RELEASE_LINEAL = 0.1
+LINEAR_RELEASE = 0.1
 # An attack shorter than this is instantaneous (A = 15): the fastest of the
 # others, A = 14, already takes 4 ms.
-ATAQUE_INSTANTANEO = 0.004
+INSTANT_ATTACK = 0.004
 # And below how much the note is considered to die out on its own while held:
 # then there is no sustain level to imitate, but a decay to follow.
-SOSTENIDO_MUDO_DB = 30.0
+MUTED_SUSTAIN_DB = 30.0
 
 # dB an exponential step drops: 20·log10(256/255).
-_DB_POR_PASO = 20 * math.log10(256 / 255.0)
+_DB_PER_STEP = 20 * math.log10(256 / 255.0)
 
 
-def _segundos(timecents):
+def _seconds(timecents):
     """The SoundFont's timecents: 1200 per octave, 0 is one second and
     -12000 is "nothing"."""
     return 2.0 ** (timecents / 1200.0) if timecents > -12000 else 0.0
 
 
-def _tasa_cerca(segundos, duracion, tasas):
-    """From `tasas`, the one that makes the phase last closest to `segundos`
-    on a logarithmic scale. `duracion(tasa)` says how long it lasts with it."""
-    return min(tasas, key=lambda r: abs(math.log(max(duracion(r), 1e-9)
-                                                 / max(segundos, 1e-9))))
+def _closest_rate(seconds, duration, rates):
+    """From `rates`, the one that makes the phase last closest to `seconds`
+    on a logarithmic scale. `duration(rate)` says how long it lasts with it."""
+    return min(rates, key=lambda r: abs(math.log(max(duration(r), 1e-9)
+                                                 / max(seconds, 1e-9))))
 
 
-def _hasta_cero(r):
+def _time_to_zero(r):
     """How long an exponential decrease at rate `r` takes to reach zero."""
-    return PASOS_HASTA_CERO * PERIODO[r] / float(SAMPLE_RATE)
+    return STEPS_TO_ZERO * PERIOD[r] / float(SAMPLE_RATE)
 
 
 def envelope(sf2, key):
     """(ADSR1, ADSR2, release GAIN) for a note, from the volume envelope of
     its zone in the SoundFont: the dict with the `env_*` fields of `gunter
     sf2 --json`."""
-    ataque = _segundos(sf2["env_attack_timecents"]) + _segundos(
+    attack = _seconds(sf2["env_attack_timecents"]) + _seconds(
         sf2["env_hold_timecents"])
     # The decay shortens with the key, around middle C.
-    decae = _segundos(sf2["env_decay_timecents"]
-                      + sf2["env_key_to_decay"] * (60 - key))
-    sostenido_db = sf2["env_sustain_centibels"] / 10.0
-    suelta = _segundos(sf2["env_release_timecents"])
+    decay = _seconds(sf2["env_decay_timecents"]
+                     + sf2["env_key_to_decay"] * (60 - key))
+    sustain_db = sf2["env_sustain_centibels"] / 10.0
+    release = _seconds(sf2["env_release_timecents"])
 
     # Attack: A from 0 to 14 uses rate 2A+1 and rises in 64 steps.
-    if ataque < ATAQUE_INSTANTANEO:
+    if attack < INSTANT_ATTACK:
         ar = 15
     else:
-        ar = _tasa_cerca(ataque, lambda a: 64 * PERIODO[2 * a + 1]
-                         / float(SAMPLE_RATE), range(15))
+        ar = _closest_rate(attack, lambda a: 64 * PERIOD[2 * a + 1]
+                           / float(SAMPLE_RATE), range(15))
 
-    # The SoundFont drops 100 dB in `decae` seconds, in a straight line in dB.
-    if sostenido_db >= SOSTENIDO_MUDO_DB:
+    # The SoundFont drops 100 dB in `decay` seconds, in a straight line in dB.
+    if sustain_db >= MUTED_SUSTAIN_DB:
         # It dies out on its own: the sustain level at the very top —the decay
         # phase ends immediately— and the sustain goes down with the
         # SoundFont's decay, reaching zero where it reaches -40 dB.
         sl, dr = 7, 0
-        sr = _tasa_cerca(decae * HASTA_DB / 100.0, _hasta_cero, range(1, 32))
+        sr = _closest_rate(decay * DOWN_TO_DB / 100.0, _time_to_zero,
+                           range(1, 32))
     else:
         # It goes down to a level and stays: SL in eighths, and the decay
         # (rate 2D+16) with the SoundFont's slope. Above 1/8 the DSP's
         # decrease is exponential, so here the slope is what matters.
-        nivel = 10 ** (-sostenido_db / 20.0)
-        sl = max(0, min(7, int(round(8 * nivel)) - 1))
-        periodo = _DB_POR_PASO * SAMPLE_RATE / (100.0 / max(decae, 1e-3))
-        dr = _tasa_cerca(periodo, lambda d: PERIODO[2 * d + 16], range(8))
+        level = 10 ** (-sustain_db / 20.0)
+        sl = max(0, min(7, int(round(8 * level)) - 1))
+        period = _DB_PER_STEP * SAMPLE_RATE / (100.0 / max(decay, 1e-3))
+        dr = _closest_rate(period, lambda d: PERIOD[2 * d + 16], range(8))
         sr = 0
 
-    if suelta < RELEASE_LINEAL:
-        r = _tasa_cerca(suelta, lambda r: 64 * PERIODO[r] / float(SAMPLE_RATE),
-                        range(1, 32))
+    if release < LINEAR_RELEASE:
+        r = _closest_rate(release,
+                          lambda r: 64 * PERIOD[r] / float(SAMPLE_RATE),
+                          range(1, 32))
         gain = GAIN_LINEAR_DECREASE | r
     else:
-        r = _tasa_cerca(suelta * HASTA_DB / 100.0, _hasta_cero, range(1, 32))
+        r = _closest_rate(release * DOWN_TO_DB / 100.0, _time_to_zero,
+                          range(1, 32))
         gain = GAIN_EXP_DECREASE | r
     return (0x80 | (dr << 4) | ar, (sl << 5) | sr, gain)
 
@@ -206,9 +209,9 @@ def pitch_for(note, root, rate, length=None):
 # prevents clipping is each voice's ceiling, and MASTER only decides at what
 # level it comes out. With the drums playing again and the SoundFont's
 # sustains, 16 of the 22 songs clipped —the battle one, 309,040 samples—, so
-# on 2026-09-25 they were given **headroom**: each voice's ceiling AIRE times
-# the previous one (96 and 84) and MASTER that much higher, as far as it
-# goes: the register is signed and does not go past $7F.
+# on 2026-09-25 they were given **headroom**: each voice's ceiling HEADROOM
+# times the previous one (96 and 84) and MASTER that much higher, as far as
+# it goes: the register is signed and does not go past $7F.
 #
 # The prototype proposed 0.8 with MASTER at $78, which leaves the level the
 # same, and it was not enough: all 16 still clipped, hzbreach 107,218
@@ -219,11 +222,11 @@ def pitch_for(note, root, rate, length=None):
 # versioned —see `leer_techos` in snes_music.py—. What does not clip stays at
 # 0.5. Measured against A Blurred Line: an assumption of the engine, not data
 # from the game. See `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
-AIRE = 0.5
-MASTER = min(0x7F, int(round(0x60 / AIRE)))
-CEILING = int(round(96 * AIRE))
-CEILING_DRUM = int(round(84 * AIRE))    # percussion hits hard and is short:
-                                        # it can take more
+HEADROOM = 0.5
+MASTER = min(0x7F, int(round(0x60 / HEADROOM)))
+CEILING = int(round(96 * HEADROOM))
+CEILING_DRUM = int(round(84 * HEADROOM))    # percussion hits hard and is
+                                            # short: it can take more
 
 
 # How much each thing lowers the level, measured with fluidsynth and the
@@ -249,23 +252,23 @@ CEILING_DRUM = int(round(84 * AIRE))    # percussion hits hard and is short:
 # at 2 —the prototype's, what taro listened to—. Until 2026-09-26 it was 4,
 # which with the linear curve was almost never hit and with this one would
 # drown out the soft notes: 4 is velocity 37.
-VOLUMEN_PISO = 2
+VOLUME_FLOOR = 2
 
 
 def volume(velocity, ceiling=CEILING, cc7=100, cc11=127, pan=64):
     """Left and right of a voice, from 0 to 127 (the register is signed),
     with the note's velocity and its channel's controllers."""
-    amplitud = (ceiling * (velocity / 127.0) ** 2 * (cc7 / 100.0) ** 2
-                * (cc11 / 127.0) ** 2)
+    amplitude = (ceiling * (velocity / 127.0) ** 2 * (cc7 / 100.0) ** 2
+                 * (cc11 / 127.0) ** 2)
     # fluidsynth maps GM pan to an angle with 128 steps, not 127: 64 is the
     # exact center and 127 does not quite reach the right.
-    angulo = min(127, max(0, pan)) / 128.0 * math.pi / 2
-    centro = math.cos(math.pi / 4)
+    angle = min(127, max(0, pan)) / 128.0 * math.pi / 2
+    center = math.cos(math.pi / 4)
 
-    def lado(x):
+    def side(x):
         if x < 0.5:
             return 0
-        return max(VOLUMEN_PISO, min(0x7F, int(round(x))))
+        return max(VOLUME_FLOOR, min(0x7F, int(round(x))))
 
-    return (lado(amplitud * math.cos(angulo) / centro),
-            lado(amplitud * math.sin(angulo) / centro))
+    return (side(amplitude * math.cos(angle) / center),
+            side(amplitude * math.sin(angle) / center))
