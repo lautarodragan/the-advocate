@@ -21,7 +21,7 @@ What it prints, and where each thing comes from:
   banks `$7E`/`$7F` are not ROM.
 * **Gaps**: what is left over inside the used ones. With `banks.py`'s
   packing almost all of it is the end of the last one; see `resolve`.
-* **Bank 0**: the `.cfg`'s `ROM` area minus `CODE` and `TABLAS`, which share
+* **Bank 0**: the `.cfg`'s `ROM` area minus `CODE` and `TABLES`, which share
   it.
 * **Bank 1**: what the `.align $8000` in `cabecera.s` pads, which is what
   closes `FAR`. It is recognized by the source line and not by the position:
@@ -101,7 +101,7 @@ def measure(sfc):
         "free": len([b for b in data_banks if b > last]),
         "gaps": sum(gaps),
         "largest_gap": max(gaps, default=0),
-        "bank0": areas["ROM"] - used.get("CODE", 0) - used.get("TABLAS", 0),
+        "bank0": areas["ROM"] - used.get("CODE", 0) - used.get("TABLES", 0),
         "bank1": _far_padding(dbg),
         "bss": areas["RAM"] - used.get("BSS", 0),
         "zeropage": areas["ZP"] - used.get("ZEROPAGE", 0),

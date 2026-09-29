@@ -1315,7 +1315,7 @@ def pose_bank(images, characters, colors):
     """The twelve poses of each character that changes pose, for the cartridge.
 
     One block per character —twelve poses of 512 bytes, 6 KB— and not one for
-    all: each goes with `.bloque`, so no DMA of a pose crosses a bank. And
+    all: each goes with `.block`, so no DMA of a pose crosses a bank. And
     **from the whole ROM, not from the map**: maps 1 and 2 share Core, Manta
     and Kersh, and with one copy per map the boot-with-window ROM went over the
     cartridge by 19 KB. `emit` splits them into poses and emits each distinct
@@ -3275,14 +3275,14 @@ def map_table(maps, labels):
            "; and that the two uses with Y had to switch to X, because long",
            "; absolute indexed addressing only exists with X.",
            ";",
-           "; **Whole within one bank**, which is what `.bloque` asks for. In",
+           "; **Whole within one bank**, which is what `.block` asks for. In",
            "; LoROM what follows $03FFFF isn't bank 4's ROM but RAM, and the",
            "; first version of this landed at $03FFB1: the 144 bytes of the only",
            "; record were split in half and map 5 started black. The other maps",
            "; of the suite didn't see it because their table landed somewhere",
            "; else, which is exactly the kind of error that shows up when adding",
            "; a byte anywhere else.",
-           ".bloque %d" % (MAP_STRIDE * len(maps)),
+           ".block %d" % (MAP_STRIDE * len(maps)),
            "map_table:"]
     for number, map_info in enumerate(maps):
         fields = map_fields(map_info)
@@ -3322,7 +3322,7 @@ def map_table(maps, labels):
     # `op_location`.
     out += ["",
             "; Each map's RM2k id, in the order of `map_table`.",
-            ".bloque %d" % (2 * len(maps)),
+            ".block %d" % (2 * len(maps)),
             "map_rm2k:",
             "    .word " + ", ".join(str(m["id"]) for m in maps)]
     return "\n".join(out)
@@ -3385,7 +3385,7 @@ def anim_table(maps):
            "; for the same reason as `map_table`: it is 16 bytes per map, and",
            "; with the maps the tests ask for bank 0 went over by 361. Whole",
            "; within one bank, because what follows $xxFFFF isn't the next one's ROM.",
-           ".bloque %d" % (ANIM_STRIDE * len(maps)),
+           ".block %d" % (ANIM_STRIDE * len(maps)),
            "anim_table:"]
     for map_info in maps:
         animation = map_info["resumen"]["animacion"]
@@ -3545,9 +3545,9 @@ def animations_asm(animations, maps):
             cgram += cgram_word(color).to_bytes(2, "little")
     out.append(block("anim_battle_cgram", bytes(cgram)))
     # The pointer table, with labels: it can't come from `block()`, but it
-    # **is declared** with `.bloque` for the same reason as the page one —the
+    # **is declared** with `.block` for the same reason as the page one —the
     # ROM reads it with a 24-bit pointer and it can't straddle two banks—.
-    pointers = [".bloque %d" % (4 * first), "anim_battle_frames:"]
+    pointers = [".block %d" % (4 * first), "anim_battle_frames:"]
     for number in order:
         for k in range(len(animations[number]["cuadros"])):
             pointers.append("    .dword anim_battle_%d_%d" % (number, k))
@@ -3630,7 +3630,7 @@ def experience_asm(db, actors, n_actors):
            "EXP_LEVEL_MAX = %d" % X.LEVEL_MAX]
 
     def table(label, directive, values, width):
-        out.append(".bloque %d" % max(width, width * len(values)))
+        out.append(".block %d" % max(width, width * len(values)))
         out.append("%s:" % label)
         for i in range(0, len(values), 16):
             out.append("    %s %s" % (directive, ", ".join(
@@ -3994,7 +3994,7 @@ def scenes_asm(data, troops, db):
                      bytes(data.get("terreno_fondo") or [FLAT_BACKDROP])))
     out.append(block("backdrop_fallback",
                      bytes(data.get("respaldo_de") or [0])))
-    pointers = [".bloque %d" % (4 * max(1, len(backdrops))), "backdrop_dir:"]
+    pointers = [".block %d" % (4 * max(1, len(backdrops))), "backdrop_dir:"]
     for k in range(len(backdrops)):
         pointers.append("    .dword backdrop_%d" % k)
     if not backdrops:
@@ -4028,7 +4028,7 @@ def scenes_asm(data, troops, db):
     for b in battlers:
         planes += ((E.columns(b) + 1) * b["alto"]).to_bytes(2, "little")
     out.append(block("battler_plane", bytes(planes) or b"\x00\x00"))
-    pointers = [".bloque %d" % (4 * max(1, len(battlers))), "battler_dir:"]
+    pointers = [".block %d" % (4 * max(1, len(battlers))), "battler_dir:"]
     pointers += ["    .dword battler_%d" % k for k in range(len(battlers))]
     if not battlers:
         pointers.append("    .dword 0")
@@ -4083,11 +4083,11 @@ def block(label, data, per_line=16, align=None, fit=True):
     what was seen was a background shifted six pixels: it is an error that
     appears or disappears when adding a byte anywhere else in the cartridge.
 
-    `acomodar=False` is for what goes to TABLAS: that area lives entirely
+    `acomodar=False` is for what goes to TABLES: that area lives entirely
     inside bank 0 —it ends at $7FC0—, so nothing that falls there can cross,
     and declaring it emitted a computation that always came out zero.
     """
-    out = ([".align %d" % align if align else ".bloque %d" % len(data)]
+    out = ([".align %d" % align if align else ".block %d" % len(data)]
            if fit else [])
     out.append("%s:" % label)
     for i in range(0, len(data), per_line):
@@ -4108,7 +4108,7 @@ def page_table(map_info, number, evcode):
 
     It doesn't go through `block()` because its pointers are symbolic: they
     point inside the code block, which the linker places. But it **is
-    declared** with `.bloque`: the ROM walks it with `[page_ptr], y`, and a
+    declared** with `.block`: the ROM walks it with `[page_ptr], y`, and a
     table that crosses a bank continues at `$03:0000`, which in LoROM isn't
     ROM but the WRAM mirror. Without the declaration it really happened: when
     map 2's sprites grew with the events drawn with a tile, the table ended up
@@ -4117,7 +4117,7 @@ def page_table(map_info, number, evcode):
     started. The suite caught it in pixels without saying why; the
     emulator's RAM said it.
     """
-    out = [".bloque %d" % (PAGE_BYTES * len(map_info["pages"])),
+    out = [".block %d" % (PAGE_BYTES * len(map_info["pages"])),
            "pages_%d:" % number]
     # Which events have some page with its own route: the ROM's refresh only
     # looks at the pages of those, and doesn't spend a single read on the rest.
@@ -4294,7 +4294,7 @@ class Materials:
         there.
 
         The key includes the class and the placement, not only the content:
-        two blocks with the same bytes but a different `.bloque` or `.align`
+        two blocks with the same bytes but a different `.block` or `.align`
         aren't the same block for the linker.
         """
         data = bytes(data)
@@ -5138,13 +5138,13 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # `lda fade_ramp, x`. It comes from `events.fade_ramp()`:
         # writing it in tools/runtime/ too would be having two copies that can
         # get out of sync without anything noticing.
-        handle.write('.segment "TABLAS"\n'
+        handle.write('.segment "TABLES"\n'
                      '; The master brightness on each frame of the ramp, from\n'
                      '; black to full. Going down it is read backwards.\n'
                      'fade_ramp:\n    .byte %s\n\n'
                      % ",".join(str(v) for v in events.fade_ramp()))
         # The data goes in RODATA, which the linker spreads over the upper
-        # banks. What stays in TABLAS —that is, in bank 0— is what the ROM
+        # banks. What stays in TABLES —that is, in bank 0— is what the ROM
         # walks with a bare `lda tabla, x`, which addresses the data bank.
         # `map_table` is no longer among those: see `map_table`.
         handle.write('.segment "RODATA"\n')
@@ -5180,7 +5180,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # ROM uploads the same bytes from another place. It happens a lot: the
         # equal walking frames of the same CharSet, and the characters that
         # repeat across maps with another quantization that didn't change a
-        # pose. Each one with its `.bloque`, because it is uploaded by DMA.
+        # pose. Each one with its `.block`, because it is uploaded by DMA.
         pose_label, bank_poses = {}, []
         for data in banks:
             theirs = []
@@ -5375,7 +5375,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
                 "SCREEN_ROW = 8\n")
             for number, (name, _, _) in enumerate(rows):
                 handle.write("SCREEN_%s = %d\n" % (name, number))
-            handle.write(".bloque %d\nscreens_table:\n" % (8 * len(rows)))
+            handle.write(".block %d\nscreens_table:\n" % (8 * len(rows)))
             for _, label, data in rows:
                 handle.write("    .word .loword(%s)\n"
                              "    .byte ^%s\n"
@@ -5756,7 +5756,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # The tables that name them **don't go here**: the ROM reads them with
         # `lda slot_block_lo, x`, which addresses the data bank, so they
         # have to live in bank 0 together with the code. They are emitted
-        # further down, in the TABLAS segment.
+        # further down, in the TABLES segment.
         #
         # The palette goes padded up to the TITLE_MENU_CGRAM entries, which
         # is what the ROM uploads at once: if the text uses fewer colors, the
@@ -5770,7 +5770,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
                            b"".join(cgram_word(c).to_bytes(2, "little")
                                     for c in colors)) + "\n")
 
-        handle.write('\n.segment "TABLAS"\n')
+        handle.write('\n.segment "TABLES"\n')
         # The cell blocks of the slots screen are named by pointers, and the
         # three tables go in bank 0 because the ROM reads them with
         # `lda slot_block_lo, x`. The same for `slot_vram`, which says
@@ -5881,7 +5881,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         handle.write('.segment "RODATA"\n')
         empty = "$%04X, $%04X" % (entry(0, False, False),
                                   entry(0, False, False))
-        handle.write(".bloque %d\nslot_glyph_cells:\n    .word %s\n"
+        handle.write(".block %d\nslot_glyph_cells:\n    .word %s\n"
                      % (menus_mod.ITEM_CHARS * 4, ", ".join(
                          ", ".join("$%04X" % entry(c, False, False,
                                                    priority=1)
@@ -5894,7 +5894,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # The experience line, which the ROM draws with sprites: see
         # `MENU_EXP_X` in menus.py. The term is four tiles —two wide, top and
         # bottom— and the digits come from `slot_glyph_cells`.
-        handle.write(".bloque %d\nmenu_exp_finished:\n    .word %s\n" % (
+        handle.write(".block %d\nmenu_exp_finished:\n    .word %s\n" % (
             2 * len(menu["exp_termino"]), ", ".join(
                 "$%04X" % entry(c, False, False)
                 for c in menu["exp_termino"])))
@@ -5978,10 +5978,10 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
                    + menus_mod.level_text(db_slots, a)
                    + menus_mod.max_text(db_slots, a))
             strip += row.ljust(SLOT_TEXT_WIDTH).encode("ascii")
-        handle.write(".bloque %d\nslot_actor_text:\n    .byte %s\n"
+        handle.write(".block %d\nslot_actor_text:\n    .byte %s\n"
                      % (max(1, len(strip)),
                         ", ".join(str(b) for b in strip) or "0"))
-        handle.write('.segment "TABLAS"\n')
+        handle.write('.segment "TABLES"\n')
         # The item screen. `item_k` goes from the RM2k number to its place in
         # the ROM's tables, $FF if this ROM doesn't know it; the rest is per
         # place. `item_use`: bit 0 if it goes in white and A does something,
@@ -6030,13 +6030,13 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
 
         def bytes_asm(label, values, fmt="%d", declare=False):
             if declare:
-                handle.write(".bloque %d\n" % max(1, len(values)))
+                handle.write(".block %d\n" % max(1, len(values)))
             handle.write("%s:\n    .byte %s\n" % (label, ", ".join(
                 fmt % v for v in values) or "$FF"))
 
         def words_asm(label, values, fmt="%d", declare=False):
             if declare:
-                handle.write(".bloque %d\n" % max(2, 2 * len(values)))
+                handle.write(".block %d\n" % max(2, 2 * len(values)))
             handle.write("%s:\n    .word %s\n" % (label, ", ".join(
                 fmt % v for v in values) or "0"))
 
@@ -6046,7 +6046,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         bytes_asm("item_k", [k_of.get(n, 0xFF)
                              for n in range(events.ITEMS_N)],
                   declare=True)
-        handle.write('.segment "TABLAS"\n')
+        handle.write('.segment "TABLES"\n')
         words_asm("item_id", items)
         bytes_asm("item_use", [
             (1 if T.item_usable(db_items[n]) else 0)
@@ -6064,7 +6064,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         handle.write('.segment "RODATA"\n')
         words_asm("item_switch", [db_items[n].switch_id for n in items],
                   declare=True)
-        handle.write('.segment "TABLAS"\n')
+        handle.write('.segment "TABLES"\n')
         # What each item does in a battle: whether it goes in the list that is
         # offered and how much it heals. The rule for which ones go in is
         # `battle.item_usable_in_battle`, that is `Game_Party::IsItemUsable`
@@ -6098,7 +6098,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
             | (2 if db_items[n].state_set[:1] == [True] else 0)
             | (4 if db_items[n].uses else 0)
             for n in items], declare=True)
-        handle.write('.segment "TABLAS"\n')
+        handle.write('.segment "TABLES"\n')
         # The four text ones go **outside bank 0**, like `item_k` and for the
         # same reason: they don't fit there. With the ten maps of `abl` the
         # code area was at 32622 of 32704 —eighty-two free bytes— and the
@@ -6107,13 +6107,13 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # in thirteen places, none inside a per-frame loop.
         handle.write('.segment "RODATA"\n')
         for field, prefix in (("lo", "<"), ("hi", ">"), ("bk", "^")):
-            handle.write(".bloque %d\n" % max(1, len(item_texts_ofs)))
+            handle.write(".block %d\n" % max(1, len(item_texts_ofs)))
             handle.write("item_txt_%s:\n    .byte %s\n" % (field, ", ".join(
                 "%s(item_texts + %d)" % (prefix, ofs)
                 for ofs, _ in item_texts_ofs) or "0"))
         bytes_asm("item_txt_n", [n for _, n in item_texts_ofs],
                   declare=True)
-        handle.write('.segment "TABLAS"\n')
+        handle.write('.segment "TABLES"\n')
         words_asm("item_row_vram", [
             vram_cell(T.ITEM_LIST_Y // constants.CELL + 2 * f, 0)
             for f in range(T.ITEM_ROWS)])
@@ -6144,7 +6144,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
                               if db_items[n].type == lcf.ITEM_TYPE_WEAPON
                               else 0 for n in items], declare=True)
         # `item_actors` also goes outside bank 0 —it is read with
-        # `lda f:item_actors, x`—: it is 496 bytes, the fattest ones `TABLAS`
+        # `lda f:item_actors, x`—: it is 496 bytes, the fattest ones `TABLES`
         # had left, and bank 0 overflowed. It isn't a precaution: on
         # 2026-09-13 `just demo` stopped with "el área no
         # entra: 32719 bytes en 32704" and no case of the suite saw it.
@@ -6166,15 +6166,15 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
             for a in range(n_actors)
             for k in ("attack", "defense", "spirit", "agility")],
             declare=True)
-        handle.write('.segment "TABLAS"\n')
+        handle.write('.segment "TABLES"\n')
         handle.write('\n.segment "RODATA"\n')
-        handle.write(".bloque %d\n"
+        handle.write(".block %d\n"
                      % (2 * n_actors * constants.EQUIPMENT_SLOTS))
         handle.write("equipment_initial:\n    .word %s\n" % ", ".join(
             str(db.actors[a].initial_equipment[r] if a in db.actors else 0)
             for a in range(n_actors)
             for r in range(constants.EQUIPMENT_SLOTS)))
-        handle.write('\n.segment "TABLAS"\n')
+        handle.write('\n.segment "TABLES"\n')
         words_asm("actor_txt", [actor_text.get(a, 0xFFFF)
                                 for a in range(n_actors)], "$%04X")
         words_asm("eq_param_pos", [pos(f, c) for f, c in P.EQ_PARAMS])
@@ -6284,7 +6284,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # `skill_effect` is `Algo::CalcSkillEffect` and `cost_of` is
         # `CalcSkillCost`.
         #
-        # They go **outside bank 0** and declared with `.bloque`, like
+        # They go **outside bank 0** and declared with `.block`, like
         # everything the battle reads with `lda f:`: the code's bank is full,
         # and a table split between two banks would be read wrong from the
         # middle on.
@@ -6658,7 +6658,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
                                            "tropa_fondo": {},
                                            "mapa_fondo": [0xFF] * len(maps)},
                                 used, db))
-        handle.write('.segment "TABLAS"\n')
+        handle.write('.segment "TABLES"\n')
         # The product of the hit computation has to fit in sixteen bits:
         # (100 - hit rate) times the sum of both agilities. With the minimum
         # hit rate of 70 that is 30 times 1998, and the agility cap is guarded
@@ -6811,7 +6811,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         bytes_asm("ba_command_gray", [
             1 if k in P.BA_COMMAND_UNDONE else 0
             for k in range(len(P.BA_COMMANDS))], declare=True)
-        handle.write('.segment "TABLAS"\n')
+        handle.write('.segment "TABLES"\n')
 
         glyphs = slots["items_glifos"]
         # Outside bank 0, like `item_k`: it is read with `lda f:`.
@@ -6834,7 +6834,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
                 chr(T.ITEM_FIRST_CHAR + n),
                 glyphs[T.ITEM_WHITE][chr(T.ITEM_FIRST_CHAR + n)])],
             "$%04X", declare=True)
-        handle.write('.segment "TABLAS"\n')
+        handle.write('.segment "TABLES"\n')
         handle.write("\n")
         # `font_color` goes in bank 0 and not with the rest of the window:
         # the ROM reads it with `lda font_color, y`, and that mode addresses
@@ -7127,7 +7127,7 @@ def sine_table():
            "; shake frame— for the same reason as `item_k`: it is 256 bytes",
            "; and the code's bank filled up.",
            '.segment "RODATA"',
-           ".bloque 256",
+           ".block 256",
            "sine_shake:"]
     values = events.SHAKE_SINE
     for i in range(0, 256, 16):
@@ -7135,7 +7135,7 @@ def sine_table():
                                             for v in values[i:i + 16]))
     # And back to bank 0: what follows —`route_after_step` and company— is read
     # with absolute indexed addressing and has to stay here.
-    out.append('.segment "TABLAS"')
+    out.append('.segment "TABLES"')
     return "\n".join(out) + "\n"
 
 
@@ -7244,7 +7244,7 @@ def npc_poses_asm(number, animated, global_index):
     blocks the linker places, like the pages' ones; two equal poses are the
     same block.
     """
-    out = [".bloque %d" % (3 * SPRITE_POSES * max(1, len(animated))),
+    out = [".block %d" % (3 * SPRITE_POSES * max(1, len(animated))),
            "npc_poses_%d:" % number]
     for pair in animated:
         for pose in range(SPRITE_POSES):
@@ -7264,7 +7264,7 @@ def actor_table_asm(number, actors, animated, global_index):
     a graphic carries twelve pointers at $FFFFFF, which is the sentinel
     `place_hero` looks at.
     """
-    out = [".bloque %d" % (ACTOR_BYTES * max(1, len(actors))),
+    out = [".block %d" % (ACTOR_BYTES * max(1, len(actors))),
            "actor_table_%d:" % number]
     for actor, palette, k, colors in actors:
         out.append("    .byte $%02X, $%02X" % (actor & 0xFF, palette & 0x07))
@@ -8095,7 +8095,7 @@ def main():
                 mask |= 1 << (palette.index(color) + 1)
         masks.append(mask)
     with open(args.output, "a") as handle:
-        handle.write('\n.segment "RODATA"\n.bloque %d\ntimer_mask:\n'
+        handle.write('\n.segment "RODATA"\n.block %d\ntimer_mask:\n'
                      '    .word %s\n'
                      % (2 * len(masks),
                         ", ".join("$%04X" % m for m in masks)))

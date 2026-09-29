@@ -24,7 +24,7 @@ def _libre_con_res(sfc, segmento, tmp_path, n):
     # daría "no se pasa" siempre.
     fuente.write_text('.segment "%s"%s\n.res %d%s\n' % (
         segmento, ": zeropage" if segmento == "ZEROPAGE" else "", n,
-        ", $00" if segmento == "TABLAS" else ""))
+        ", $00" if segmento == "TABLES" else ""))
     objeto = tmp_path / "relleno.o"
     subprocess.run(["ca65", "--cpu", "65816", str(fuente), "-o", str(objeto)],
                    check=True)
@@ -40,7 +40,7 @@ def _libre_con_res(sfc, segmento, tmp_path, n):
 
 
 @pytest.mark.parametrize("segmento,clave,n", [
-    ("TABLAS", "bank0", 40000),
+    ("TABLES", "bank0", 40000),
     ("BSS", "bss", 20000),
     ("ZEROPAGE", "zeropage", 1000),
 ])

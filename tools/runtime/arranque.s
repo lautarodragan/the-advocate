@@ -679,7 +679,7 @@ scrolls:
 
 ; From $2101 to $210C: objects, mode, mosaic and where each layer lives. All
 ; at zero, which is "nothing on".
-.segment "TABLAS"
+.segment "TABLES"
 
 ; What **has** to live in bank 0: it is read with `lda tabla, y`, and the
 ; 65816 has no absolute long indexed by Y —`long,X` yes, `long,Y` no—, or

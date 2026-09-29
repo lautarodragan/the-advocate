@@ -6,7 +6,7 @@ block of samples— has to fit **whole** in a bank, and when it does not fit in
 what is left of the current one, it has to be padded up to the next.
 
 Until 2026-09-16 that decision was taken by the assembler, with a directive of
-ours: `.bloque N` meant "what follows is N bytes long, pad if it does not
+ours: `.block N` meant "what follows is N bytes long, pad if it does not
 fit". It worked, but it tied the port to having an assembler of its own:
 `ld65` cannot pack variable-size blocks, and that is the only reason the
 directive existed. Whoever does know the sizes is the converter, because it
@@ -91,9 +91,9 @@ def _split(line, fitting):
 
 
 class _Piece:
-    """What the packing moves as one piece: a `.bloque`, a `.cruza` or what
+    """What the packing moves as one piece: a `.block`, a `.crossbank` or what
     starts with neither, with all its lines up to the next one. `fit_size` is
-    what it takes for the purpose of fitting —what the `.bloque` declares if
+    what it takes for the purpose of fitting —what the `.block` declares if
     it is more than what was emitted—, and `order` its place in the text,
     which breaks ties so that the packing always comes out the same."""
 
@@ -116,16 +116,16 @@ def resolve(paths, segment="RODATA", first_bank=FIRST_BANK):
     added up to ten banks in `release`. The pieces are not chosen by this
     module: the converter declares them, and there are three kinds.
 
-    * **A `.bloque N` of up to one bank** fits whole in one: almost all of
+    * **A `.block N` of up to one bank** fits whole in one: almost all of
       them are uploaded by DMA, and a DMA that crosses a bank reads the WRAM.
       It is the piece that gets packed, and it carries everything that
-      follows up to the next directive —the tables the `.bloque` measures
+      follows up to the next directive —the tables the `.block` measures
       together, and the one-byte labels after them—.
     * **One of more than a bank** —the text block— starts a bank and goes on
       into the following ones, split between operands, as the sequential
       packing used to decide: it is walked by code that jumps banks by hand.
       What is left over in its last bank is used by the others.
-    * **A `.cruza`** —the SPC700 driver, its samples, the music streams— can
+    * **A `.crossbank`** —the SPC700 driver, its samples, the music streams— can
       be split anywhere **between two consecutive banks**: `spc_block` and
       `advance` jump from `$FFFF` to the next bank's `$8000`, not to any
       bank. First it is tried whole in a gap; the ones that do not fit go at
@@ -142,14 +142,14 @@ def resolve(paths, segment="RODATA", first_bank=FIRST_BANK):
     between labels of different pieces, no `*`, no constants that use them.
     The constants (`X = …`) stay where they were. If some day the ROM read a
     piece assuming it is next to another, that would have to go in a single
-    `.bloque`: separate, the packing spreads them wherever they fit.
+    `.block`: separate, the packing spreads them wherever they fit.
 
     `paths` comes in the order the assembler reads them, which is that of
     the `.include`s. What a file sends to another segment —the bank 0
     tables— does not count.
 
-    **Every label of more than one byte has to be covered by a `.bloque`**,
-    or carry `.cruza` in front if it is walked by code that jumps banks by
+    **Every label of more than one byte has to be covered by a `.block`**,
+    or carry `.crossbank` in front if it is walked by code that jumps banks by
     hand. What is read with `lda f:tabla, x` or with `[ptr], y` does not
     jump: split, the second half is read from the next bank's `$0000`, which
     in LoROM is not ROM. The rule is enforced here, on every build, and not
@@ -159,7 +159,7 @@ def resolve(paths, segment="RODATA", first_bank=FIRST_BANK):
     """
     pieces, kept = [], []
     # The labels the packing could split: [name, how long it is, how much of
-    # that a `.bloque` covers, whether it carries `.cruza`]. The last one is
+    # that a `.block` covers, whether it carries `.crossbank`]. The last one is
     # the one gathering its bytes.
     labels, covers, crosses = [], 0, False
     for path in paths:
@@ -177,18 +177,18 @@ def resolve(paths, segment="RODATA", first_bank=FIRST_BANK):
             if current != segment or _CONSTANT.match(directive):
                 own.append(line)
                 continue
-            # An `.align` right after a `.bloque` or a `.cruza` belongs to the
+            # An `.align` right after a `.block` or a `.crossbank` belongs to the
             # same piece: the alignment is of what follows.
             just_opened = piece is not None and piece.align > 1 \
                 and len(piece.lines) == 1
-            if directive.startswith(".bloque "):
+            if directive.startswith(".block "):
                 covers = int(directive.split()[1])
                 if not just_opened:
                     piece = _Piece(len(pieces))
                     pieces.append(piece)
                 piece.asks = covers
                 continue
-            if directive == ".cruza":
+            if directive == ".crossbank":
                 crosses = True
                 if not just_opened:
                     piece = _Piece(len(pieces))
@@ -223,22 +223,22 @@ def resolve(paths, segment="RODATA", first_bank=FIRST_BANK):
             piece.lines.append(line)
             piece.size += size
         leaked = [l for l in own if l.split(";")[0].strip()
-                  .startswith((".bloque", ".cruza"))]
+                  .startswith((".block", ".crossbank"))]
         if leaked:
-            # A `.bloque` that reaches the assembler is a `ca65` error far
+            # A `.block` that reaches the assembler is a `ca65` error far
             # from here, which does not say which block or why. Same for
-            # `.cruza`.
+            # `.crossbank`.
             raise ValueError(
-                "%s left %d `.bloque` unresolved, the first one %r: it is outside "
+                "%s left %d `.block` unresolved, the first one %r: it is outside "
                 "%s, and there the packing cannot be computed"
                 % (path, len(leaked), leaked[0].strip(), segment))
         kept.append(own)
     loose = undeclared(labels)
     if loose:
         raise ValueError(
-            "%d label(s) in %s without a `.bloque` covering them, and the packing "
+            "%d label(s) in %s without a `.block` covering them, and the packing "
             "may split them across two banks: %s. If the ROM walks one "
-            "jumping banks by hand, put `.cruza` in front of it"
+            "jumping banks by hand, put `.crossbank` in front of it"
             % (len(loose), segment, ", ".join(loose)))
 
     banks = _pack(pieces)
@@ -408,7 +408,7 @@ def cfg():
         "ZEROPAGE: load = ZP,   type = zp;",
         "BSS:      load = RAM,  type = bss;",
         "CODE:     load = ROM,  type = ro;",
-        "TABLAS:   load = ROM,  type = ro;",
+        "TABLES:   load = ROM,  type = ro;",
         "HEADER:   load = HEAD, type = ro;",
         "VECTORS:  load = VECT, type = ro;",
         # The hand-written code that lives outside bank 0.

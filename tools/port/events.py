@@ -1061,7 +1061,7 @@ def sprite_associations(game_maps, extra=()):
 # Sixteen bits are enough because the block has to fit in a 32 KB bank:
 # `lda [msg_ptr], y` reads it with a pointer that increments one byte at a
 # time and does **not** carry into the bank byte, so `bloque()` emits it with
-# `.bloque`, which keeps it whole in one bank. If some day it does not fit,
+# `.block`, which keeps it whole in one bank. If some day it does not fit,
 # what has to grow is the pointer, not the operand.
 
 # TimerOperation. The parameters are (operation, where the seconds come from,

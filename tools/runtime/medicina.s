@@ -42,7 +42,7 @@
     txa
     asl a
     tax
-    lda f:item_id, x            ; in TABLAS, in bank 0: with `f:`
+    lda f:item_id, x            ; in TABLES, in bank 0: with `f:`
     sta MED_ID
     tax
     sep #$20

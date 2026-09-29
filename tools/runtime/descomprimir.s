@@ -38,7 +38,7 @@
 ; The stream is read with the data bank set to its own and `lda a:0, x`, through
 ; the fast mirror: the direct page is full and there is nowhere to put a 24-bit
 ; pointer. That is why each compressed block fits whole in one bank —the
-; converter declares it with `.bloque`—: X cannot go past $FFFF.
+; converter declares it with `.block`—: X cannot go past $FFFF.
 
 ; Decompresses a stream. Enters with an 8-bit A and 16-bit X and Y: X and A
 ; where the stream is —address and bank—, Y where the output goes inside bank

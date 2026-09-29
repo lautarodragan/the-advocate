@@ -1241,7 +1241,7 @@ word:
     sta a:.loword(SCN_CLEAN) + 66, y
     sta a:.loword(SCN_SCENE) + 64, y
     sta a:.loword(SCN_SCENE) + 66, y
-    ; The fallback does not cross a bank —it is a `.bloque`—, so the low
+    ; The fallback does not cross a bank —it is a `.block`—, so the low
     ; sixteen bits are enough.
     inc ED_FONT
     inc ED_FONT

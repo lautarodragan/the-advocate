@@ -2382,7 +2382,7 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
     `V_SRCN`. The sound effect lists in `packages` go by number.
     """
     def block(label, data, as_block=False):
-        # No `.bloque` except on the samples, and `.cruza` instead: the
+        # No `.block` except on the samples, and `.crossbank` instead: the
         # driver goes byte by byte through the ports —`spc_block` does the
         # bank jump by hand— and the stream is walked by `advance`, which
         # does the same jump, so they can end up split. The samples do carry
@@ -2390,7 +2390,7 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
         # jump banks, in exchange for being shorter. See `resolve` in
         # tools/assembly/banks.py, which does not let one through with
         # neither of the two.
-        out = ([".bloque %d" % len(data)] if as_block else [".cruza"]) \
+        out = ([".block %d" % len(data)] if as_block else [".crossbank"]) \
             + ["%s:" % label]
         for i in range(0, len(data), 16):
             out.append("    .byte " + ",".join("$%02X" % b for b in data[i:i + 16]))
@@ -2429,7 +2429,7 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
     # And each map's own song. Outside bank 0: it is read once per teleport,
     # with `lda f:map_song, x`.
     per_map = list(map_song) or [0xFF]
-    map_song_table = ".bloque %d\nmap_song:\n    .byte " % len(per_map) \
+    map_song_table = ".block %d\nmap_song:\n    .byte " % len(per_map) \
         + ", ".join("$%02X" % t for t in per_map)
     # And the music's sounds —`pack`'s: six bytes, the pitch, SRCN, ADSR1,
     # ADSR2 and the release GAIN—, those of every song in one table and
@@ -2444,7 +2444,7 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
     if len(body) > 0x8000:
         raise SystemExit("the music's sounds go over one bank: %d B"
                          % len(body))
-    map_song_table += ("\n.bloque %d\nsong_sounds:\n    .word "
+    map_song_table += ("\n.block %d\nsong_sounds:\n    .word "
                        % (2 * len(bases or [0]))
                        + ", ".join("%d" % b for b in bases or [0]) + "\n"
                        + block("music_sounds", bytes(body) or bytes(6),
@@ -2452,7 +2452,7 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
     # And the sound effects: seven bytes per entry of `Songs.sounds`.
     # Outside bank 0: `op_sound` reads them with `lda f:sound_table, x`.
     rows = list(sounds) or [(0xFF, 0, 0, 0, 0, 0xFF)]
-    se_table = ".bloque %d\nsound_table:\n" % (7 * len(rows)) + "\n".join(
+    se_table = ".block %d\nsound_table:\n" % (7 * len(rows)) + "\n".join(
         "    .byte $%02X, <%d, >%d, %d, %d, <%d, >%d" % (
             srcn, pitch, pitch, left, right, n_frames, n_frames)
         for srcn, pitch, left, right, n_frames, _e in rows)
@@ -2461,10 +2461,10 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
     # sample is a place several sound effects share, and `sound_play` asks
     # with this whether the one in the ARAM is its own. And each sound
     # effect's place, which is what the package uses to upload it.
-    se_table += "\n.bloque %d\nsound_effect:\n    .byte " % len(rows) \
+    se_table += "\n.block %d\nsound_effect:\n    .byte " % len(rows) \
         + ", ".join("$%02X" % row[5] for row in rows)
     se_places = list(effect_place) or [0xFF]
-    se_table += "\n.bloque %d\neffect_place:\n    .byte " % len(se_places) \
+    se_table += "\n.block %d\neffect_place:\n    .byte " % len(se_places) \
         + ", ".join("$%02X" % l for l in se_places)
 
     # The SPC700 directory, with all of them on the silence, and the silence
@@ -2583,9 +2583,9 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
             "; Where each song's stream starts, split into three tables\n"
             "; because they are read with an index: they go in bank 0 like\n"
             "; everything the CPU walks with `lda tabla, x`.\n"
-            '.segment "TABLAS"\n%s\n\n'
+            '.segment "TABLES"\n%s\n\n'
             '.segment "RODATA"\n%s\n%s\n%s\n%s\n'
-            '.bloque %d\nsample_table:\n%s\n%s\n%s\n%s\n%s\n'
+            '.block %d\nsample_table:\n%s\n%s\n%s\n%s\n%s\n'
             % (", ".join(t["nombre"] or "sin música" for t in songs)
                or "ninguno",
                len(songs), boot, title, game_over[0], game_over[1],

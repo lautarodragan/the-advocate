@@ -262,7 +262,7 @@ full:
 ; It lives outside bank 0 for the same reason as `hp_initial_set`: there are
 ; tens of bytes left there and this is over a hundred. It is entered with
 ; `jsl` and with the data bank at 0 —the menu runs that way— but it sets it
-; anyway, because everything it touches —`temp`, the `TABLAS` tables and the
+; anyway, because everything it touches —`temp`, the `TABLES` tables and the
 ; PPU registers— is bank 0 absolute, and depending on the caller for that has
 ; already cost one bug in this repo.
 .proc menu_hp_write
