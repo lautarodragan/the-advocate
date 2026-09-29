@@ -38,7 +38,7 @@
 ; bank 0 has no room to spare.
 .proc op_transition
     jsl f:transicion_poner
-    jmp correr_codigo::otro
+    jmp run_code::otro
 .endproc
 
 .segment "FAR"
@@ -78,12 +78,12 @@ mostrar:
     cmp #TRANSICION_CORTE
     beq corte
     lda vueltas
-    bra poner
+    bra put
 corte:
     lda vueltas
     sec
     sbc #(FUNDIDO_CUADROS - 1)
-poner:
+put:
     sta f:fundido_base
     rtl
 .endproc

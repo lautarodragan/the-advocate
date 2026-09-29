@@ -39,7 +39,7 @@ CARTEL_CAMBIO = FAR_CARTEL + 14
 
 ; And the tail of escapes of whatever text box is open: how many frames are
 ; left in the `\|` pause and whether it closes by itself when done —the `\^`—.
-; `msg_empezar` sets them reading the box's header and `eventos_tick` uses them
+; `msg_empezar` sets them reading the box's header and `events_tick` uses them
 ; up.
 ;
 ; **They go in far RAM for the same reason as the picture**: bank 0 has no
@@ -475,7 +475,7 @@ hay:
     bra con_celda
 evento:
     dec a                       ; the target is the event index plus one
-    jsr npc_de_evento
+    jsr event_npc
     cpy #$FFFF
     beq nada                    ; without a row there is nowhere to draw it
     lda npc_buf + 14, y

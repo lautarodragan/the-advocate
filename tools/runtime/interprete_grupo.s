@@ -4,9 +4,9 @@
 
 ; --- the interpreter: the party --------------------------------------------
 ;
-; Opcode handlers: the dispatch in `correr_codigo`, in interprete.s, jumps to
+; Opcode handlers: the dispatch in `run_code`, in interprete.s, jumps to
 ; each one with Y on its first operand, and each one goes back to the loop
-; with `jmp correr_codigo::otro` or ends the frame with `rts`.
+; with `jmp run_code::otro` or ends the frame with `rts`.
 ;
 ; Gold and items are in interprete_oro_e_items.s.
 
@@ -19,7 +19,7 @@
     phy
     jsr cambiar_grupo
     ply
-    jmp correr_codigo::otro     ; `bra` does not reach: the loop ended up far away
+    jmp run_code::otro     ; `bra` does not reach: the loop ended up far away
 
 .endproc
 
@@ -55,7 +55,7 @@
     jsr aplicar_tinte
 graf_no_lidera:
     ply
-    jmp correr_codigo::otro
+    jmp run_code::otro
 
 .endproc
 
@@ -64,21 +64,21 @@ graf_no_lidera:
 ; itself, with Y in hand.
 .proc op_heal
     jsl f:curar
-    jmp correr_codigo::otro
+    jmp run_code::otro
 
 .endproc
 
 ; `ChangeEquipment` and `ChangeSkills`: like `op_heal`, only the entry. The
-; bodies are `equipo_quitar` and `habilidad_cambiar`, outside bank 0.
+; bodies are `equipment_remove` and `skill_change`, outside bank 0.
 .proc op_equipment
-    jsl f:equipo_quitar
-    jmp correr_codigo::otro
+    jsl f:equipment_remove
+    jmp run_code::otro
 
 .endproc
 
 .proc op_skill
-    jsl f:habilidad_cambiar
-    jmp correr_codigo::otro
+    jsl f:skill_change
+    jmp run_code::otro
 
 .endproc
 

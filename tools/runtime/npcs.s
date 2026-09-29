@@ -123,7 +123,7 @@ listo:
 .i16
     stz salto_alto
     stz salto_alto + 1
-    jsr celda_del_evento        ; leaves its cell in celda_x/celda_y, and uses X
+    jsr event_cell        ; leaves its cell in celda_x/celda_y, and uses X
     lda ruta_ev + 7, x
     sta slot_cuadros            ; whether there is a step in progress
     rep #$20
@@ -142,7 +142,7 @@ listo:
     sta slot_dir                ; the direction of the step in progress
     lda ruta_ev + 10, x
     sta slot_paso
-    jsl f:npc_de_ranura + RAPIDO  ; `npc_de_evento`, remembered in the slot
+    jsl f:npc_de_ranura + RAPIDO  ; `event_npc`, remembered in the slot
     sty npc_fila
     cpy #$FFFF
     bne hay_fila
@@ -255,13 +255,13 @@ puesto:
 tiene_dir:
     ; And if it is the one facing the hero, where the turn says: its slot is
     ; free, because with a route running it does not turn. See
-    ; `giro_disparar`.
+    ; `turn_fire`.
     pha
-    lda f:GIRO_EV
+    lda f:TURN_EV
     cmp npc_buf + 8, y
     bne sin_giro
     pla
-    lda f:GIRO_DIR
+    lda f:TURN_DIR
     pha
 sin_giro:
     pla

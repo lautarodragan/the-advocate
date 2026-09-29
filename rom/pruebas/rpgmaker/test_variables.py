@@ -68,7 +68,7 @@ def test_la_rama_por_variable_que_no_se_cumple_no_corre(partida):
     """Y la otra mitad, que es la que se puede romper sin que nada se entere.
 
     Hasta el 2026-09-12 el `ConditionalBranch` por variable entraba **siempre**:
-    `comparar_var` dejaba la respuesta en las banderas y el `ply` que restaura
+    `compare_var` dejaba la respuesta en las banderas y el `ply` que restaura
     el cursor las pisaba con el cursor, que nunca es cero. Todo lo que había
     acá miraba la rama que sí se cumple, así que pasaba en verde, y la tanda
     tampoco lo veía: ningún caso de la tanda toma una rama por variable

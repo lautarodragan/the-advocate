@@ -1227,7 +1227,7 @@ afuera:
     sta BA_S1
 adentro:
     lda BA_S1
-    beq poner
+    beq put
     dec a
     jsr ba_ax
     lda BA_EJEC, x
@@ -1238,7 +1238,7 @@ adentro:
     cmp BA_S3
     sep #$20
 .a8
-    bcs poner                   ; the one above is greater or equal: it stays
+    bcs put                   ; the one above is greater or equal: it stays
                                 ; there
     lda BA_S1
     dec a
@@ -1248,7 +1248,7 @@ adentro:
     sta BA_EJEC, x
     dec BA_S1
     bra adentro
-poner:
+put:
     lda BA_S1
     jsr ba_ax
     lda BA_S2

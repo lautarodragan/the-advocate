@@ -23,27 +23,27 @@
 ; turned it: it was the sentinel that left `face_hero` out.
 ;
 ; Enters with Y pointing to the first command inside the bytecode.
-.proc ruta_para_evento
+.proc route_for_event
 .a8
 .i16
     phy
     lda ruta_blanco
     dec a
-    jsr giro_por_ruta           ; with a move route, the move route decides where it faces
+    jsr turn_per_route           ; with a move route, the move route decides where it faces
     ply
     lda ruta_blanco
     dec a
     sta temp                    ; the event's index
 
     ; First the slot that is already its own, and if not a free one. The two
-    ; searches were copied here and are exactly `ranura_del_evento` and
-    ; `ranura_libre`: calling them saves bank 0 and, the first one, brings along
+    ; searches were copied here and are exactly `event_slot` and
+    ; `free_slot`: calling them saves bank 0 and, the first one, brings along
     ; the `ruta_ev_tope` cap as a bonus.
     lda temp
-    jsr ranura_del_evento
+    jsr event_slot
     cpx #$FFFF
     bne reusada
-    jsr ranura_libre
+    jsr free_slot
     cpx #$FFFF
     bne puesta
     rts                         ; no room: the move route is lost
@@ -75,8 +75,8 @@ puesta:
     ; it is the one RM2k leaves to a forced move route. An event without a row
     ; —without a graphic— goes at 3, a default page's.
     phy                         ; Y is the bytecode cursor, and it is needed
-    lda temp                    ; afterwards: `npc_de_evento` overwrites it
-    jsr npc_de_evento           ; Y = its row, or $FFFF; A is lost
+    lda temp                    ; afterwards: `event_npc` overwrites it
+    jsr event_npc           ; Y = its row, or $FFFF; A is lost
     cpy #$FFFF
     beq sin_fila
     lda npc_buf + 13, y
@@ -87,7 +87,7 @@ con_velocidad:
     ply
     sta ruta_ev + 17, x
     lda temp
-    jsr capa_activa             ; its layer, once and not on every step
+    jsr active_layer             ; its layer, once and not on every step
     sta ruta_ev + 31, x
 reusada:
     lda ruta_ev + 18, x
@@ -123,7 +123,7 @@ reusada:
 ; the steps go back to back" was exact without knowing it. The converter emits
 ; the tables from `eventos.espera_tras_paso` and `espera_tras_giro`. They use Y
 ; and not X, because X is the slot of whoever asks.
-.proc tras_paso
+.proc after_step
 .a8
 .i16
     rep #$20
@@ -136,7 +136,7 @@ reusada:
     rts
 .endproc
 
-.proc tras_giro
+.proc after_turn
 .a8
 .i16
     rep #$20
@@ -153,7 +153,7 @@ reusada:
 ; `GetDirectionToCharacter`: the axis with more distance wins and on a tie the
 ; vertical; on the same cell, or with the hero further down, it faces down.
 ; Returns the direction in A.
-.proc hacia_el_heroe
+.proc toward_hero
 .a8
 .i16
     rep #$20
@@ -204,7 +204,7 @@ abajo:
 .endproc
 
 ; One frame of all the event move routes that are running.
-.proc mover_eventos
+.proc move_events
 .a8
 .i16
     stz rutas_movieron
@@ -215,7 +215,7 @@ otra:
     beq siguiente
     ; The one that already took its step tied to its parallel interpreter does not
     ; take it again: the mark is consumed here, so it lasts one frame. See
-    ; `un_paralelo`.
+    ; `one_parallel`.
     lda ruta_ev + 18, x
     and #$40
     beq no_movido
@@ -225,10 +225,10 @@ otra:
     bra siguiente
 no_movido:
     phx
-    jsr cuadro_de_ruta_ev
+    jsr ev_route_frame
     plx
     phx
-    jsr animar_ruta_ev
+    jsr animate_ev_route
     plx
     phx
     jsr refrescar_npc
@@ -255,13 +255,13 @@ siguiente:
 .endproc
 
 ; One frame of the move route of the slot X points to. It is the same program as
-; `paso_de_ruta` for the hero, and that is why both do the same with the same
+; `step_route` for the hero, and that is why both do the same with the same
 ; commands: if it were counted differently here, an event's move route would end
 ; on a different frame than the hero's and `ProceedWithMovement` would let the
 ; page go when it should not.
 ; The jumps in here go with `jmp` and not `bra`, for the same reason as in
-; `paso_de_ruta`: the body grew and the 127 bytes of reach fell short.
-.proc cuadro_de_ruta_ev
+; `step_route`: the body grew and the 127 bytes of reach fell short.
+.proc ev_route_frame
 .a8
 .i16
     stz ruta_ev + 6, x
@@ -272,7 +272,7 @@ siguiente:
     beq sin_paso
     ; The step advances by what the speed says, out of 256 per cell; +7 only says
     ; there is one in progress.
-    jsr paso_de_ranura
+    jsr step_slot
     rep #$20
 .a16
     lda ruta_ev + 22, x
@@ -295,7 +295,7 @@ no_negativo:
     bne moviendo
 con_ordenes:
     lda ruta_ev + 16, x
-    jsr tras_paso
+    jsr after_step
     sta ruta_ev + 9, x
 moviendo:
     lda #1
@@ -304,7 +304,7 @@ moviendo:
 sin_paso:
     lda ruta_ev + 13, x
     beq sin_salto
-    jsr salto_de_ranura
+    jsr slot_jump
     sta temp
     lda ruta_ev + 13, x
     sec
@@ -367,7 +367,7 @@ no_repite:
     bne congelada               ; the page one, finished: done
     lda ruta_ev + 27, x
     beq congelada               ; no page to go back to
-    jsr retomar_pagina
+    jsr resume_page
 congelada:
     jmp listo
 hay_orden:
@@ -383,7 +383,7 @@ hay_orden:
     cmp #23                     ; wait: this one and the RUTA_ESPERA - 1 after it,
     bne no_es_wait              ; plus the turn's if the frequency is low
     lda ruta_ev + 16, x
-    jsr tras_giro
+    jsr after_turn
     clc
     adc #(RUTA_ESPERA - 1)
     sta ruta_ev + 9, x
@@ -398,9 +398,9 @@ no_es_wait:
     ; `Move(GetDirection())`, that is, 21 and a `move_*` on the same frame. That
     ; is why the direction comes from here and it falls into `mover` without
     ; touching anything else: the turn, the step and what it costs are the usual.
-    ; `hacia_el_heroe` does not overwrite X, which is the slot.
-    jsr celda_del_evento
-    jsr hacia_el_heroe
+    ; `toward_hero` does not overwrite X, which is the slot.
+    jsr event_cell
+    jsr toward_hero
 :   jmp mover                   ; 0..3 are the move_*, and 9 already brings its own
 no_mueve:
     cmp #16
@@ -411,14 +411,14 @@ no_mueve:
     bne no_encara
     ; face_hero: the event's cell against the hero's, and on to `mirar` with the
     ; direction in A.
-    jsr celda_del_evento
-    jsr hacia_el_heroe
+    jsr event_cell
+    jsr toward_hero
     jmp mirar
 no_encara:
     ; Turning without moving is not compiled: it does not get here.
     cmp #24
     bne no_es_salto
-    jsr preparar_movil          ; who jumps, to collide with the others
+    jsr prepare_mover          ; who jumps, to collide with the others
     lda ruta_ev + 5, x
     dec a
     sta salto_orden             ; where the 24 is, in case it has to go back
@@ -520,7 +520,7 @@ mas_lenta:
     bra seguir
 ev_frecuencia:
     ; 30 raises the frequency and 31 lowers it, between 1 and 8. See `frecuencia`
-    ; in `paso_de_ruta`, which is the same for the hero: the frames standing still
+    ; in `step_route`, which is the same for the hero: the frames standing still
     ; after each command come from here, and the converter rejects 1.
     and #$01
     bne menos_frec
@@ -572,7 +572,7 @@ cambiar_grafico:
 
     lda ruta_ev + 0, x
     phx
-    jsr npc_de_evento           ; its row, which is what has to change
+    jsr event_npc           ; its row, which is what has to change
     plx
     cpy #$FFFF
     beq listo_graf              ; an event without a graphic has no row
@@ -582,7 +582,7 @@ cambiar_grafico:
     cmp #$FF
     bne con_grafico
     ; A CharSet without a single opaque pixel: the event disappears. It is the same
-    ; thing `esconder_npc` does, and it is 185 of the game's 437 commands 34
+    ; thing `hide_npc` does, and it is 185 of the game's 437 commands 34
     ; —`nobodyhere`—, so it is not the rare case but the most common one.
     lda #0
     sta npc_buf + 14, y
@@ -630,7 +630,7 @@ face:
 mirar:
     sta ruta_ev + 8, x          ; face_*: with frequency 8 it is instant and the
     lda ruta_ev + 16, x         ; next one follows; with another, it stands
-    jsr tras_giro               ; still for the turn's frames
+    jsr after_turn               ; still for the turn's frames
     bne giro_espera
     jmp otra_orden
 giro_espera:
@@ -649,24 +649,24 @@ mover:
     lda ruta_dir
     cmp #4
     bcc derecho                 ; the usual four face where they go
-    jsr encarar_diagonal        ; a diagonal has no pose of its own: see there
+    jsr face_diagonal        ; a diagonal has no pose of its own: see there
 derecho:
     sta ruta_ev + 8, x          ; move_* faces where it goes
 sin_girar:
     phx
-    jsr celda_del_evento        ; leaves its position in celda_x/celda_y
-    jsr preparar_movil          ; and who it is, to collide with the others
+    jsr event_cell        ; leaves its position in celda_x/celda_y
+    jsr prepare_mover          ; and who it is, to collide with the others
     lda ruta_ev + 12, x
     and #$01
-    sta atravesando             ; walk_everywhere: `puede_celda` looks at it
+    sta atravesando             ; walk_everywhere: `cell_allowed` looks at it
     stz atravesando + 1
     lda ruta_dir
     cmp #4
     bcc recto
-    jsr puede_celda_diag        ; the two L's: nobody looks at the diagonal cell
+    jsr cell_allowed_diag        ; the two L's: nobody looks at the diagonal cell
     bra probado
 recto:
-    jsr puede_celda
+    jsr cell_allowed
 probado:
     plx
     stz atravesando
@@ -689,13 +689,13 @@ reintenta:
 no_bloqueado:
     phx
     lda ruta_dir
-    jsr mover_celda_del_evento
+    jsr move_event_cell
     plx
     lda ruta_dir
     sta ruta_ev + 30, x         ; which way the step goes, which with the facing
     lda #1                      ; locked is not where it faces
     sta ruta_ev + 7, x          ; there is a step in progress
-    jsr paso_de_ranura
+    jsr step_slot
     rep #$20
 .a16
     lda #SALTO_PASO
@@ -713,7 +713,7 @@ listo:
 ; The forced move route ended on an event that has its own move route: the
 ; page's comes back, saved at +24 to +29, from the start and with the turn's
 ; wait. RM2k resumes it where it was; here it starts over.
-.proc retomar_pagina
+.proc resume_page
 .a8
 .i16
     lda ruta_ev + 24, x
@@ -733,13 +733,13 @@ listo:
     ora #$01
     sta ruta_ev + 18, x
     lda ruta_ev + 28, x
-    jsr tras_giro
+    jsr after_turn
     sta ruta_ev + 9, x
     rts
 .endproc
 
 ; The position of slot X's event, into celda_x/celda_y.
-.proc celda_del_evento
+.proc event_cell
 .a8
 .i16
     lda ruta_ev + 0, x
@@ -764,7 +764,7 @@ listo:
 ; changed on different frames.
 ; Puts the cell of slot X's event in `celda_x`, `celda_y`. The jump uses it,
 ; which moves it all at once instead of one step at a time.
-.proc mover_celda_a_evento
+.proc move_cell_to_event
 .a8
 .i16
     lda ruta_ev + 0, x
@@ -783,7 +783,7 @@ listo:
     rts
 .endproc
 
-.proc mover_celda_del_evento
+.proc move_event_cell
 .a8
 .i16
     sta ruta_dir
@@ -803,7 +803,7 @@ listo:
     ldx ruta_dir
     lda f:paso_dx, x
     beq sin_dx
-    jsr con_signo_16
+    jsr with_sign_16
 .a16
     clc                         ; returns with the accumulator in sixteen
     adc ev_pos_buf + 0, y
@@ -813,7 +813,7 @@ listo:
 sin_dx:
     lda f:paso_dy, x
     beq sin_dy
-    jsr con_signo_16
+    jsr with_sign_16
 .a16
     clc
     adc ev_pos_buf + 2, y
@@ -826,7 +826,7 @@ sin_dy:
 
 ; The signed byte A carries, extended to sixteen bits. It leaves with the
 ; accumulator **in sixteen**, which is where the ones adding cells want it.
-.proc con_signo_16
+.proc with_sign_16
 .a8
 .i16
     rep #$20

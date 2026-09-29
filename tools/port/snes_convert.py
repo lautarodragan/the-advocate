@@ -636,7 +636,7 @@ def pose_row(pose):
     """The three frames of the walking cycle for the direction of `pose`.
 
     An event that animates standing still changes column and **never row**: the
-    ROM builds its pose as `mirada_de_fila * 3 + columna` in `animar_quietos`,
+    ROM builds its pose as `facing_of_row * 3 + columna` in `animar_quietos`,
     so of the twelve it can only show these three.
     """
     return frozenset(range(pose // 3 * 3, pose // 3 * 3 + 3))
@@ -4130,7 +4130,7 @@ def page_table(map_info, number, evcode):
     # own route the five low ones are the route's flags, and 4 is "the
     # animation continues while still"—. The one telling them apart is the
     # ROM, which already knows whether the row walks: `npc_buf + 9` holds
-    # NPC_QUIETO or the bank of its twelve poses. See `grafico_de_pagina` in
+    # NPC_QUIETO or the bank of its twelve poses. See `page_graphic` in
     # tools/runtime/paginas_de_eventos.s.
     appear = map_info.get("aparecen", set())
     # And which ones have some automatic page that compiled: bit 7. The ROM's
@@ -4143,8 +4143,8 @@ def page_table(map_info, number, evcode):
     # none is left free in +13. The bit means "look at this event's pages in
     # the refresh", which is what both need; which is automatic and which is
     # parallel is said by the trigger of the one that wins. Without this,
-    # `elegir_paginas` doesn't even note which one is active —it filters by
-    # $E0— and `paralelos_tick` would have nowhere to get its code from.
+    # `pick_pages` doesn't even note which one is active —it filters by
+    # $E0— and `parallel_tick` would have nowhere to get its code from.
     with_autostart = {p["evento"] for p in map_info["paginas"]
                       if p["trigger"] in (events.TRIGGER_AUTOSTART,
                                           events.TRIGGER_PARALLEL) and p["codigo"]}
@@ -4212,7 +4212,7 @@ def page_table(map_info, number, evcode):
                        "tile, attributes, pose, passage" % oam)
         # +24..+27: the variable condition: the slot or $FF, how it is
         # compared —==, >=, <=, >, <, !=— and against what, signed. It is what
-        # `condiciones_ok` passes to `comparar_var`.
+        # `conditions_ok` passes to `compare_var`.
         variable = page.get("variable")
         if variable is None:
             out.append("    .byte $FF, 0 ; +24 no variable condition")
@@ -4222,7 +4222,7 @@ def page_table(map_info, number, evcode):
             out.append("    .byte %d, %d ; +24 the variable it asks for and the "
                        "comparison" % (slot, comparison))
             out.append("    .word %d ; +26 against what" % (against & 0xFFFF))
-        # +28: the item it asks to have, or 0: `condiciones_ok` looks at its
+        # +28: the item it asks to have, or 0: `conditions_ok` looks at its
         # count in `FAR_ITEMS`.
         out.append("    .word %-4d ; +28 the item it asks for, or 0" % page["item"])
         # +30 and +31: the turn toward the hero. Which entry of `npc_poses`
@@ -6383,7 +6383,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # like `LearnSkill`'s.
         #
         # The bits start with `rules.learned_skills`, which is what the LDB
-        # says at its initial level: `hab_inicial_poner` copies them on reset.
+        # says at its initial level: `initial_skills_set` copies them on reset.
         pairs = sorted(events.SKILL_SLOT.items(), key=lambda x: x[1])
         skill_pair_start, skill_pair_n = [], []
         for a in range(n_actors):
@@ -9394,7 +9394,7 @@ def convert_map(renderer, map_id, args):
                 # that is bit 4 and it doesn't overwrite the tile. Without
                 # separating them, an event that walks and appears with the
                 # page never appeared, because the row starts hidden when on
-                # loading the map no page qualifies. See `grafico_de_pagina` in
+                # loading the map no page qualifies. See `page_graphic` in
                 # tools/runtime/paginas_de_eventos.s.
                 npc["aparece"] = True
                 npc["cambia"] = False

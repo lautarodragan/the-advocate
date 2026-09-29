@@ -4,9 +4,9 @@
 
 ; --- the interpreter: the camera and the tint ------------------------------
 ;
-; Opcode handlers: the dispatch in `correr_codigo`, in interprete.s, jumps to
+; Opcode handlers: the dispatch in `run_code`, in interprete.s, jumps to
 ; each one with Y on its first operand, and each one goes back to the loop
-; with `jmp correr_codigo::otro` or ends the frame with `rts`.
+; with `jmp run_code::otro` or ends the frame with `rts`.
 
 ; `PanScreen`, in its two operations: move the camera away from the hero and
 ; bring it back. The offset comes signed and in 1/16 of a pixel, and the
@@ -78,7 +78,7 @@ pan_leer_paso:
     sty ev_cur
     rts
 pan_sin_espera:
-    jmp correr_codigo::otro
+    jmp run_code::otro
 
 .endproc
 
@@ -105,7 +105,7 @@ pan_sin_espera:
     ; caught—.
     lda #1
     sta tinte_pendiente
-    jmp correr_codigo::otro     ; `bra` does not reach: the loop is far away
+    jmp run_code::otro     ; `bra` does not reach: the loop is far away
 
 .endproc
 

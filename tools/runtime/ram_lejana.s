@@ -15,7 +15,7 @@ FAR_PAR_LISTA  = $2400      ; PARALELO_MAX entries of PAR_LISTA_BYTES
 ; The RM2k variables, one signed word per slot. How many there are is said by
 ; the converter —`VARIABLES_N`—, which gives a slot only to the ones named by
 ; the pages of the maps in the ROM; the bytecode talks in slots. They are read
-; and written with `var_leer` and `var_escribir`, and they travel in the save:
+; and written with `var_read` and `var_write`, and they travel in the save:
 ; `partida_tabla` copies them from here, which the DMA reaches just like bank
 ; 0 because WMADD is a seventeen-bit address.
 FAR_VARIABLES  = $2600
@@ -26,11 +26,11 @@ FAR_VARIABLES  = $2600
 FAR_ITEMS      = $2800
 ; And the equipment of each LDB actor, by actor number: five words —weapon,
 ; shield, armor, helmet, accessory— with the item number or 0. It starts with
-; the database's initial equipment, which `equipo_inicial_poner` copies on
+; the database's initial equipment, which `initial_equipment_set` copies on
 ; reset, and travels in the save.
 FAR_EQUIPO     = $2C00
 ; And the random state, two bytes before: a sixteen-bit xorshift, the same as
-; `azar_siguiente` in eventos.py, seeded on reset. It goes here and not in the
+; `random_next` in eventos.py, seeded on reset. It goes here and not in the
 ; direct page because the direct page ended up at 258 of 256 when that was
 ; tried; randomness is asked for rarely and the port does not notice.
 FAR_AZAR       = $25FE
@@ -102,7 +102,7 @@ ACTOR_GRAF_NINGUNO = $FF
 ; And which skills each actor knows, since 2026-09-21: one bit per (actor,
 ; skill) pair, with the slot the converter gave each pair —see
 ; `HABILIDAD_RANURA` in eventos.py—. It starts with what the LDB says for the
-; initial level, which `hab_inicial_poner` copies on reset, `ChangeSkills`
+; initial level, which `initial_skills_set` copies on reset, `ChangeSkills`
 ; sets and clears it, and it travels in the save. How many bytes it takes is
 ; said by `HAB_BYTES`, and the converter stops if they go past 256.
 ;
@@ -474,18 +474,18 @@ BA_EACC_NO_EFECTIVA = $80       ; the `eacc_peso` bit
 PAR_BYTES = 8
 ; And the eighth, which was spare, is the event's move route slot plus one,
 ; or zero if it has none: `ranura_anotar` sets it when one is given, and
-; `limpiar_paralelos` clears it when loading the map, next to `load_npcs`,
+; `clear_parallel` clears it when loading the map, next to `load_npcs`,
 ; which is where they are all freed. Within a map a slot is never released.
 ; It is what saves each parallel from looking for its own every frame: see
-; `un_paralelo`.
+; `one_parallel`.
 PAR_RANURA = 7
 
 ; And what the parallel list keeps for each one: the event (1), the pointer
 ; to its bytecode (3) and which page it came from (2). The last three are
 ; what used to be fetched again from the cartridge every frame and for every
-; parallel, with `pagina_desde_eleg`: twenty-four bytes of page header read
+; parallel, with `page_from_pick`: twenty-four bytes of page header read
 ; through the bank window, to answer the same as the time before. The list is
-; rebuilt whole in `aplicar_paginas`, that is, exactly when the active page
+; rebuilt whole in `apply_pages`, that is, exactly when the active page
 ; may have changed, so recording it there is the same answer and only once.
 ; Eight for the same reason as `PAR_BYTES`: the two spare ones are paid for
 ; in far RAM, of which there is plenty, and saved in bank 0 and in cycles.

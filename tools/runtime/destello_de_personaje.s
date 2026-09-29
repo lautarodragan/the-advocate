@@ -69,7 +69,7 @@ puesta:
     rts
 de_evento:
     dec a
-    jsr npc_de_evento
+    jsr event_npc
     cpy #$FFFF
     bne hay
     lda #$FF

@@ -4,9 +4,9 @@
 
 ; --- the interpreter: the button and the wait -------------------------------
 ;
-; Opcode handlers: the dispatch of `correr_codigo`, in interprete.s, jumps to
+; Opcode handlers: the dispatch of `run_code`, in interprete.s, jumps to
 ; each one with Y on its first operand, and each one goes back to the loop
-; with `jmp correr_codigo::otro` or cuts the frame short with `rts`.
+; with `jmp run_code::otro` or cuts the frame short with `rts`.
 
 ; `KeyInputProc`: which button the player pressed, stored in a variable. See
 ; OP_KEY in eventos.py, which is where the reason lives for why the waiting
@@ -49,7 +49,7 @@
     lda temp + 1                ; the flags, which carry the refresh bit
     xba
     lda temp
-    jsr var_escribir            ; with its refresh, if the flags ask for it
+    jsr var_write            ; with its refresh, if the flags ask for it
     sty ev_cur
     rts
 tecla_mirar:
@@ -72,7 +72,7 @@ tecla_leer:
     phy
     jsr tecla_valor
     ply
-    sta temp + 2                ; the value, which is where var_escribir takes it from
+    sta temp + 2                ; the value, which is where var_write takes it from
     stz temp + 3
     lda temp + 1
     and #TECLA_ESPERA
@@ -89,8 +89,8 @@ tecla_guardar:
     lda temp + 1
     xba
     lda temp
-    jsr var_escribir            ; `SetNeedRefreshForVarChange`, like ControlVars:
-    jmp correr_codigo::otro     ; the flags decide it. See `var_escribir`
+    jsr var_write            ; `SetNeedRefreshForVarChange`, like ControlVars:
+    jmp run_code::otro     ; the flags decide it. See `var_write`
 
 .endproc
 

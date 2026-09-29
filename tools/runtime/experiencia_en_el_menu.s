@@ -246,7 +246,7 @@ term_y:
     asl a
     tax
     lda f:menu_exp_termino, x
-    jsr poner
+    jsr put
 .a8
     plx
     inx
@@ -277,7 +277,7 @@ letra:
     rep #$20
 .a16
     lda f:ranura_glifo_celdas, x
-    jsr poner                   ; the top cell
+    jsr put                   ; the top cell
 .a8
     lda comp_fase
     clc
@@ -286,7 +286,7 @@ letra:
     rep #$20
 .a16
     lda f:ranura_glifo_celdas + 2, x
-    jsr poner                   ; and the bottom one
+    jsr put                   ; and the bottom one
 .a8
     plx
 siguiente:
@@ -303,7 +303,7 @@ siguiente:
 ; `comp_mask`, `comp_fase + 1`. Returns with an 8-bit A, and touches neither
 ; X nor Y.
 .a16
-poner:
+put:
     sep #$20
 .a8
     pha                         ; the tile's low byte

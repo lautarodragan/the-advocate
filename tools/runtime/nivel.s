@@ -675,10 +675,10 @@ sumar:
     adc temp
     bcs topar                   ; it wrapped around: the amount reaches $FFFF
     cmp 3, s
-    bcc poner
+    bcc put
 topar:
     lda 3, s
-poner:
+put:
     sta f:FAR_LARGO + FAR_HP, x
 listo:
     pla

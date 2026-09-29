@@ -357,7 +357,7 @@ def test_pisar(nombre, direccion):
                           tiene que frenarlo, y el héroe le camina quince
                           celdas por encima. Es el control del par, y no es de
                           adorno: sacándole el `cmp movil_capa` a
-                          `celda_bloqueada` —o sea haciendo que toda capa
+                          `cell_blocked` —o sea haciendo que toda capa
                           frene— da 29959 pixeles, 52,24%
 
     Del arnés: **es el único de este archivo que sostiene el pad**, y los 200

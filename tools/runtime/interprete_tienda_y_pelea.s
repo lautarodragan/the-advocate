@@ -4,11 +4,11 @@
 
 ; --- the interpreter: the shop and the battle ------------------------------
 ;
-; Opcode handlers: the dispatch of `correr_codigo`, in interprete.s, jumps to
+; Opcode handlers: the dispatch of `run_code`, in interprete.s, jumps to
 ; each one with Y on its first operand, and each one goes back to the loop
-; with `jmp correr_codigo::otro` or cuts the frame short with `rts`.
+; with `jmp run_code::otro` or cuts the frame short with `rts`.
 ;
-; At the end goes `pelea_arrancar`, which is not a handler: it is the battle
+; At the end goes `battle_start`, which is not a handler: it is the battle
 ; from start to finish, called by `op_battle` and by random encounters.
 
 ; `OpenShop`: type, set, how many and the list, two bytes per item. The shop
@@ -76,7 +76,7 @@ op_shop_done:
     jsr volver_al_mapa
     ply
     plb
-    jmp correr_codigo::otro
+    jmp run_code::otro
 
 .endproc
 
@@ -96,7 +96,7 @@ op_shop_done:
     sta f:BAT_LARGO + ESC_ORIGEN ; the background, the troop's and not the map's
     jsl f:game_over_anotar      ; whether losing is Game Over: see game_over.s
     phy                         ; the cursor: the destinations are read on return
-    jsr pelea_arrancar
+    jsr battle_start
     ply
     ; Y points at the troop; the three destinations come after it, one word
     ; each, in the order victory, escape, defeat, which is that of
@@ -123,12 +123,12 @@ op_shop_done:
     tay
     ; `BATALLA_PERDER`, that is $FFFF —the battle had no defeat handler,
     ; because in RM2k losing it is `Scene_Gameover`— never gets here:
-    ; `game_over_anotar` records it before fighting, and `pelea_arrancar` goes
+    ; `game_over_anotar` records it before fighting, and `battle_start` goes
     ; to the Game Over screen without coming back. See
     ; tools/runtime/game_over.s.
     sep #$20
 .a8
-    jmp correr_codigo::otro
+    jmp run_code::otro
 
 
 .endproc
@@ -144,7 +144,7 @@ op_shop_done:
     phy
     jsl f:ba_mostrar_oculto
     ply
-    jmp correr_codigo::otro
+    jmp run_code::otro
 .endproc
 
 ; A battle from start to finish, with the troop already set in `BA_TROPA`:
@@ -154,7 +154,7 @@ op_shop_done:
 ; It has been separate from `op_battle` since there are random encounters,
 ; which start it **without bytecode**: there, there is no cursor to save and
 ; no handlers to jump to. What is inside did not move.
-.proc pelea_arrancar
+.proc battle_start
 .a8
 .i16
     ; The map's song is saved and comes back at the end, which is RM2k's

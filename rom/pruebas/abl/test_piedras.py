@@ -193,8 +193,8 @@ def test_la_a_que_cierra_el_mensaje_no_le_habla_al_de_enfrente(partida):
     """El A que cierra un mensaje queda consumido: el héroe no lo ve.
 
     El mensaje es de un paralelo —el de la PC rota—, así que al cerrarlo no
-    queda ninguna página de primer plano corriendo y `eventos_tick` sigue de
-    largo hasta `probar_accion` en el mismo cuadro, con el flanco de A
+    queda ninguna página de primer plano corriendo y `events_tick` sigue de
+    largo hasta `try_action` en el mismo cuadro, con el flanco de A
     todavía ahí. En RM2k eso no pasa: el mensaje sigue "activo" unos ocho
     cuadros después de cerrarse, mientras se anima el cierre, y con un
     mensaje activo el héroe no busca eventos de acción (easyrpg

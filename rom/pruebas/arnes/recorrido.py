@@ -920,7 +920,7 @@ class Recorrido:
     # `Window_Selectable` arranca con el cursor ahí. Para las demás ramas hay
     # que bajar el cursor, y eso tiene tres trampas, las tres de tiempo:
     #
-    # * **la ventana no mira el pad mientras se compone**: `eleccion_tick`
+    # * **la ventana no mira el pad mientras se compone**: `choice_tick`
     #   contesta cero mientras `msg_abierto` esté apagado, que son de nueve a
     #   diecinueve vueltas según el texto. Un toque ahí no pasa;
     # * **un toque se puede perder** aunque caiga con la ventana lista: la ROM
@@ -980,7 +980,7 @@ class Recorrido:
                           "abajo: quedó en %d. %s"
                           % (opcion, n * INSISTIR, p.byte("eleg_sel"),
                              self.estado()))
-        # Mover el cursor recompone la ventana —ver `eleg_abrir`—, y una foto
+        # Mover el cursor recompone la ventana —ver `pick_open`—, y una foto
         # sacada a mitad de eso muestra el renglón viejo. `msg_estado` en 1 es
         # "componiendo". No hace falta para elegir: sólo para mirar.
         for _ in range(PASO_TOPE):
@@ -994,7 +994,7 @@ class Recorrido:
         comprueba que se eligió la opción marcada.
 
         Resuelta es que la ventana deje de estar lista: al elegir,
-        `eleccion_tick` apaga `eleg_activo` y `msg_abierto` en la misma vuelta.
+        `choice_tick` apaga `eleg_activo` y `msg_abierto` en la misma vuelta.
         Si la rama empieza con **otra** elección, `eleg_activo` se vuelve a
         prender enseguida, pero esa no está compuesta todavía, así que no se la
         confunde con la de antes ni se la contesta de paso.

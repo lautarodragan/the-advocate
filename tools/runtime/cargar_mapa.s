@@ -17,7 +17,7 @@
     sta mapa_actual             ; to know whether the next jump changes map
     sep #$20
 .a8
-    jsr giro_limpiar            ; the rows are going to be different
+    jsr turn_clear            ; the rows are going to be different
     jsr animacion_limpiar       ; and the battle animation does not carry on
     rep #$20
 .a16
@@ -194,9 +194,9 @@ puesto:
     ; nothing here —their event indices would point at other events— and the
     ; refresh is the one that turns `FLAG_AUTO` back on for the ones it
     ; applies to.
-    jsr limpiar_esperas
-    jsr limpiar_paralelos
-    jsr rutas_de_pagina         ; and the move routes of the active pages themselves
+    jsr clear_waits
+    jsr clear_parallel
+    jsr page_routes         ; and the move routes of the active pages themselves
     ; The actor table belongs to this map, so where the leader's poses fall
     ; changes when changing map even if the party is the same.
     jsr elegir_grafico_heroe

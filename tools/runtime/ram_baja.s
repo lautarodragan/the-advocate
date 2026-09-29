@@ -23,7 +23,7 @@ vueltas_congeladas: .res 2
 ev_flags:     .res EV_MAX
 esperando_n:  .res 1     ; how many are waiting, so as not to sweep 128 bytes for nothing
 ev_corriendo: .res 2     ; which event the running page belongs to, or $FFFF
-solo_auto:    .res 1     ; the short pass of `elegir_automaticas`
+solo_auto:    .res 1     ; the short pass of `pick_autostart`
 auto_n:       .res 1     ; how many events have an active autorun
 refresco_cuadro: .res 1  ; a refresh in the middle of a command left the long pass
 rp_ev_ant:    .res 2     ; the previous page's event, in the refresh
@@ -82,7 +82,7 @@ FUNDIDO_MISMO  = 3      ; a Teleport to the same one: just move the hero
 ; inside move routes —which carry two bytes of operand— the cut could land in
 ; the middle of one. The bytecode lives in the ROM and is not going anywhere.
 ; It does not go in the direct page, which is where `lda [ptr], y` needs it,
-; because there is no room left there: `orden_del_heroe` copies it to
+; because there is no room left there: `hero_command` copies it to
 ; `ruta_ptr` to read.
 ruta_heroe:  .res 3
 ; The frequency of the move route set on the hero, and the one the OP_ROUTE
@@ -299,7 +299,7 @@ ruta_ev:  .res RUTA_EV_MAX * RUTA_EV_STRIDE
 ; does not need to: a slot that was never taken has $FF at +0, so searching
 ; beyond it cannot find anything.
 ;
-; It exists because of `ranura_del_evento`, which runs **once per parallel
+; It exists because of `event_slot`, which runs **once per parallel
 ; event per frame** and always walked all twelve. In the Lazer Teeth HQ there
 ; are eleven events with a parallel page and **a single slot in use**: that was
 ; eleven walks of twelve to find one, and with that the loop overran the frame.
@@ -326,7 +326,7 @@ flash_slot: .res 2
 flash_ranura: .res 2
 flash_parcial: .res 2
 
-; The cell being queried, for `ptr_de_celda` and `puede_celda`. It goes here
+; The cell being queried, for `ptr_de_celda` and `cell_allowed`. It goes here
 ; and not in the direct page because it is read with absolute addressing,
 ; which is enough: only what is used as a pointer with `[dp], y` has to be in
 ; the direct page, and there are twelve bytes left there, counted.
@@ -367,7 +367,7 @@ celda_dir: .res 2
 graf_k:   .res 1
 graf_pal: .res 1
 ; What a diagonal step needs while it tries its two L's: the two components,
-; and the cell it starts from, because `puede_celda` works on
+; and the cell it starts from, because `cell_allowed` works on
 ; `celda_x`/`celda_y` and it has to be moved to the elbow and back.
 diag_v: .res 1
 diag_h: .res 1
@@ -435,12 +435,12 @@ atravesando: .res 2
 ; Who is trying a step or a jump, to collide with the others: the event's
 ; index, or MOVIL_HEROE. And the layer of its active page, or $FF if it has
 ; none, which is an event that is not there —`IsActive()`— and collides with
-; nobody. `preparar_movil` sets them for an event and `heroe_bloqueado` for the
-; hero, and `mover_eventos` gives them back to the hero when it finishes, so
+; nobody. `prepare_mover` sets them for an event and `hero_blocked` for the
+; hero, and `move_events` gives them back to the hero when it finishes, so
 ; outside an event's move route they always say "the hero".
 movil:       .res 1
 movil_capa:  .res 1
-; Which layer the page `leer_pagina` just read is on. It goes here and not
+; Which layer the page `read_page` just read is on. It goes here and not
 ; with the other `pg_*` because the direct page is full —257 bytes in 256 with
 ; this one inside— and it is read with absolute addressing, which is enough.
 pg_capa:     .res 1
@@ -451,7 +451,7 @@ pg_capa:     .res 1
 ; a move route or without one: it is what a forced move route on the event
 ; uses, as in RM2k.
 pg_flags:    .res 1
-pg_tile:     .res 1     ; +20..+23: what the page draws, see leer_pagina
+pg_tile:     .res 1     ; +20..+23: what the page draws, see read_page
 pg_attr:     .res 1
 pg_pose:     .res 1
 pg_pasa:     .res 1
@@ -468,12 +468,12 @@ pg_frec:     .res 1
 pg_vel:      .res 1
 pg_ruta:     .res 3
 pg_ruta_n:   .res 1
-; +24..+27, the condition on a variable, is not copied: `condiciones_ok` reads
+; +24..+27, the condition on a variable, is not copied: `conditions_ok` reads
 ; it from the table, which is the only one that looks at it. The BSS is full.
 ; That a switch or the party changed and which page is active on each event
-; has to be looked at again: `rutas_de_pagina`, at the start of the next frame.
+; has to be looked at again: `page_routes`, at the start of the next frame.
 refresco:    .res 1
-; What `rutas_de_pagina` gathers: the active page of each event with its own
+; What `page_routes` gathers: the active page of each event with its own
 ; move routes, by its offset in the table; $FFFF if the event has no move
 ; routes and $FFFE if it has them and no page qualifies.
 eleg_por_ev: .res EV_MAX * 2
@@ -482,7 +482,7 @@ slot_px:     .res 2
 slot_dir:    .res 1
 MOVIL_HEROE = $FF
 CAPA_HEROE  = 1
-; The cell it wants to enter, and what `celda_bloqueada` is looking at.
+; The cell it wants to enter, and what `cell_blocked` is looking at.
 dest_x:      .res 2
 ; Where `build_row` is: the column it builds, signed, and how many of the 64
 ; it has left.

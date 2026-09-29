@@ -587,7 +587,7 @@ vista_lista:
     jmp espera
 de_switch:
     ; A switch item: `ConsumeItemUse` if it has uses, the switch turned on and
-    ; straight to the map. `poner_switch` asks for the page refresh, which is
+    ; straight to the map. `set_switch` asks for the page refresh, which is
     ; the `SetNeedRefresh(true)` over there.
     lda item_uso, x
     and #2
@@ -622,7 +622,7 @@ sin_gastar:
     sep #$20
 .a8
     lda #1
-    jsr poner_switch
+    jsr set_switch
     lda #1
     rts
 

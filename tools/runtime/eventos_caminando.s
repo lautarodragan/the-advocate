@@ -9,7 +9,7 @@
 
 ; One frame of the walk cycle for slot X. It is `animate_hero`, letter for
 ; letter, on purpose: the hero and the events walk with the same count.
-.proc animar_ruta_ev
+.proc animate_ev_route
 .a8
 .i16
     ; `Game_Character::UpdateAnimation`, without the turn in place. +10 is the
@@ -77,7 +77,7 @@ quieta:
 ; The NPC table row of the event in A, in Y, or $FFFF if it has none. Every
 ; row carries its event index, and the indices are unique, so at most one
 ; matches. An event without a graphic has no row and returns $FFFF.
-.proc npc_de_evento
+.proc event_npc
 .a8
 .i16
     sta temp
@@ -107,11 +107,11 @@ listo:
 ; follow it. Enters with the event index in `temp`.
 ;
 ; If the event has a move route slot it is enough to cut its step and its jump:
-; `mover_eventos` runs later in this same frame and `refrescar_npc` leaves it
+; `move_events` runs later in this same frame and `refrescar_npc` leaves it
 ; on the new cell, with the pose it had. If it has none —an event nobody sent
 ; walking— it is not given one: no slot is taken for this, and its row is moved
 ; by hand, without touching its tile, which is its page's pose.
-.proc plantar_evento
+.proc plant_event
 .a8
 .i16
     ldx #$0000
@@ -132,7 +132,7 @@ buscar:
 
     ; No slot. If it has no graphic either there is nothing to move.
     lda temp
-    jsr npc_de_evento
+    jsr event_npc
     cpy #$FFFF
     beq listo
     sty npc_fila

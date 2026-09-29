@@ -743,7 +743,7 @@ cerrar:
     ; The equipment may have changed: the common events that only look at it
     ; run now, with the data bank still at 0. See `COMUNES_DEL_EQUIPO` in
     ; eventos.py.
-    jsl f:comunes_del_equipo
+    jsl f:equipment_commons
     plb
     jsl f:menu_exp_cerrar       ; what the menu sprites changed
     jsr volver_al_mapa

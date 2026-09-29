@@ -159,9 +159,9 @@ def _tropa():
     """Una página de tropa corriendo adentro de la pelea: la de Detect Aura.
 
     Es la cadena más honda, y por construcción: la pelea
-    se abre desde un manejador de `correr_codigo` —`op_battle`—, cruza al banco 1,
+    se abre desde un manejador de `run_code` —`op_battle`—, cruza al banco 1,
     y desde ahí vuelve al banco 0 por `ba_t_pagina` a correr **otra vez**
-    `correr_codigo`, con el contexto del mapa guardado en la pila. Ver
+    `run_code`, con el contexto del mapa guardado en la pila. Ver
     `pruebas/rpgmaker/test_tropa.py`, que recorre lo mismo mirando qué hace.
     """
     una = partida("tropa-talan-aura", pila=True)

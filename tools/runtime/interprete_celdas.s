@@ -26,39 +26,39 @@
 ; One of the two writes: the variable, as an offset, with the coordinate and
 ; the refresh in the top two bits. `temp` is the character's x and `temp + 2`
 ; its y. Enters and leaves with a 16-bit A.
-.macro CELDA_ESCRIBIR
-.local refrescar, ya, es_y, poner
+.macro CELL_WRITE
+.local do_refresh, already, is_y, put
     lda [cod_ptr], y
     iny
     iny
-    bmi refrescar               ; CELDA_REFRESCO, bit 15
-ya:
+    bmi do_refresh               ; CELDA_REFRESCO, bit 15
+already:
     bit #CELDA_Y
-    bne es_y
-    and #CELDA_VARIABLE
+    bne is_y
+    and #CELL_VARIABLE
     tax
     lda temp
-    bra poner
-refrescar:
+    bra put
+do_refresh:
     pha
     sep #$20
     lda #1
     sta f:refresco
     rep #$20
     pla
-    bra ya
-es_y:
-    and #CELDA_VARIABLE
+    bra already
+is_y:
+    and #CELL_VARIABLE
     tax
     lda temp + 2
-poner:
+put:
     sta f:FAR_LARGO + FAR_VARIABLES, x
 .endmacro
 
 ; One of the two comparisons: two variables, as offsets, and the target if
 ; they are not equal. If it fails, it leaves Y on the target and jumps to `fin`.
-.macro CELDA_PROBAR fin
-.local falla
+.macro CELL_TEST fin
+.local fails
     lda [cod_ptr], y            ; the left one
     tax
     lda f:FAR_LARGO + FAR_VARIABLES, x
@@ -69,13 +69,13 @@ poner:
     tax
     lda f:FAR_LARGO + FAR_VARIABLES, x
     cmp temp
-    bne falla
+    bne fails
     iny                         ; it holds: skip the right one and the target
     iny
     iny
     iny
     bra :+
-falla:
+fails:
     iny
     iny
     lda [cod_ptr], y            ; the target, absolute within the page
@@ -86,18 +86,18 @@ falla:
 
 ; What is left of a write without the top two bits: the variable's offset,
 ; which with 256 slots goes up to 510.
-CELDA_VARIABLE = $01FF
-.assert CELDA_Y = $4000 && CELDA_REFRESCO = $8000, error, "celda_probar reads the refresh from the N bit and the coordinate from bit 14"
+CELL_VARIABLE = $01FF
+.assert CELDA_Y = $4000 && CELDA_REFRESCO = $8000, error, "cell_test reads the refresh from the N bit and the coordinate from bit 14"
 
-.proc celda_probar
+.proc cell_test
 .a8
 .i16
-    jsr celda_probar_cerca
+    jsr cell_test_near
     rtl
 .endproc
 
 ; The same, for callers in bank 1: returns with `rts`.
-.proc celda_probar_cerca
+.proc cell_test_near
 .a8
 .i16
     rep #$20
@@ -122,10 +122,10 @@ heroe:
     sta temp + 2
 escribir:
     ; All inline and without `jsr`: it runs forty times per frame.
-    CELDA_ESCRIBIR
-    CELDA_ESCRIBIR
-    CELDA_PROBAR listo
-    CELDA_PROBAR listo
+    CELL_WRITE
+    CELL_WRITE
+    CELL_TEST listo
+    CELL_TEST listo
 listo:
     sep #$20
 .a8
@@ -134,27 +134,27 @@ listo:
 
 ; --- the parallels that go no further than their `OP_CELL_TEST` --------------
 ;
-; `paralelos_tick` runs the list of parallels one at a time, and each one pays
+; `parallel_tick` runs the list of parallels one at a time, and each one pays
 ; for finding its state, saving it and returning: almost one line per page.
 ; But most of the race's —forty per lap— start with `OP_CELL_TEST`, are not
 ; in the middle of anything, fail the condition and end there. Those are run
 ; here back to back, from `par_i`, up to the first one that is not like that;
-; what each one does is exactly the shortcut of `un_paralelo`: its condition,
+; what each one does is exactly the shortcut of `one_parallel`: its condition,
 ; and since what follows is the `OP_DONE`, nothing else.
 ;
 ; It stops, without having touched anything of that one, at the first one that:
 ;   * does not start with `OP_CELL_TEST`;
 ;   * has the state of another page, a wait, or the page half run;
-;   * moves —has a move route slot—: its step is taken by `un_paralelo`;
+;   * moves —has a move route slot—: its step is taken by `one_parallel`;
 ; and before starting if there is a message or a choice on screen, because
-; then it matters whose it is (see `un_paralelo`). Returns with carry at 0 and
+; then it matters whose it is (see `one_parallel`). Returns with carry at 0 and
 ; `par_i` on that one, or on `par_n` if it reached the end.
 ;
 ; If one's condition holds —or what follows is not the `OP_DONE`— it has
 ; already run its first instruction, with whatever it writes: it returns with
 ; carry at 1, Y on the next one and `cod_ptr`, `pag_ofs`, `par_dir` and
-; `par_ev` set, so that `un_paralelo_seguir` continues with its interpreter.
-.proc paralelos_celda
+; `par_ev` set, so that `one_parallel_continue` continues with its interpreter.
+.proc parallel_cell
 .a8
 .i16
     lda f:msg_abierto
@@ -204,7 +204,7 @@ otro:
     lda f:FAR_LARGO + FAR_PAR_ESTADO + PAR_RANURA, x
     bne no                      ; it moves
     ldy #1
-    jsr celda_probar_cerca
+    jsr cell_test_near
     lda [cod_ptr], y
     bne sigue                   ; did not end at its `OP_DONE`
     inc par_i

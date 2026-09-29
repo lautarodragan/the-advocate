@@ -4,9 +4,9 @@
 
 ; --- the interpreter: gold and items ---------------------------------------
 ;
-; Opcode handlers: the `correr_codigo` dispatch, in interprete.s, jumps to
+; Opcode handlers: the `run_code` dispatch, in interprete.s, jumps to
 ; each one with Y on its first operand, and each one returns to the loop
-; with `jmp correr_codigo::otro` or ends the frame with `rts`.
+; with `jmp run_code::otro` or ends the frame with `rts`.
 
 ; `ChangeGold`: adds or subtracts and clamps to [0, ORO_MAX], which is what
 ; `Game_Party::GainGold` does. The amount takes three bytes because RM2k's cap
@@ -92,7 +92,7 @@ oro_tope:
     sta oro + 2
 oro_listo:
     ply
-    jmp correr_codigo::otro
+    jmp run_code::otro
 
 .endproc
 
@@ -146,7 +146,7 @@ item_guardar:
     sta WMDATA
     lda #1
     sta refresco
-    jmp correr_codigo::otro
+    jmp run_code::otro
 
 .endproc
 

@@ -4,9 +4,9 @@
 
 ; --- the interpreter: move routes and places --------------------------------
 ;
-; Opcode handlers: the dispatch in `correr_codigo`, in interprete.s, jumps to
+; Opcode handlers: the dispatch in `run_code`, in interprete.s, jumps to
 ; each one with Y on its first operand, and each one goes back to the loop
-; with `jmp correr_codigo::otro` or ends the frame with `rts`.
+; with `jmp run_code::otro` or ends the frame with `rts`.
 
 ; A forced move route from MoveEvent. The first operand says on whom: 0 is the
 ; hero, and any other number is the event's index in the map's table plus
@@ -48,7 +48,7 @@
     stz ruta_espera
     lda ruta_frec_op
     sta ruta_frec
-    ; The pointer, like an event's in `ruta_para_evento`: the addition carries
+    ; The pointer, like an event's in `route_for_event`: the addition carries
     ; nothing into the bank byte because the code block fits whole in one.
     rep #$20
 .a16
@@ -66,7 +66,7 @@
     ; command it is on, and the page's cursor skips over the commands.
 op_route_event:
     phy
-    jsr ruta_para_evento
+    jsr route_for_event
     ply
 saltear_ruta:
     rep #$20
@@ -77,7 +77,7 @@ saltear_ruta:
     tay
     sep #$20
 .a8
-    jmp correr_codigo::otro
+    jmp run_code::otro
 
 .endproc
 
@@ -111,9 +111,9 @@ saltear_ruta:
 .a8
     phy
 lugar_plantar:                  ; with Y already on the stack: see `op_place_var`
-    jsr plantar_evento
+    jsr plant_event
     ply
-    jmp correr_codigo::otro
+    jmp run_code::otro
 
 .endproc
 
@@ -129,7 +129,7 @@ lugar_plantar:                  ; with Y already on the stack: see `op_place_var
 ; —the minigame on map 11 computes them beforehand— but it is the same rule
 ; and costs nothing.
 ;
-; `var_leer` does not touch X or `temp`, so the row offset is computed only
+; `var_read` does not touch X or `temp`, so the row offset is computed only
 ; once and survives both reads.
 .proc op_place_var
 .a8
@@ -155,13 +155,13 @@ lugar_plantar:                  ; with Y already on the stack: see `op_place_var
     sep #$20
 .a8
     lda temp + 1
-    jsr var_leer                ; returns with M at sixteen
+    jsr var_read                ; returns with M at sixteen
 .a16
     pha
     sep #$20
 .a8
     lda temp + 2
-    jsr var_leer
+    jsr var_read
 .a16
     sta ev_pos_buf + 2, x
     pla
@@ -213,12 +213,12 @@ lugar_plantar:                  ; with Y already on the stack: see `op_place_var
 .a8
     lda trueque_a
     sta temp
-    jsr plantar_evento
+    jsr plant_event
     lda trueque_b
     sta temp
-    jsr plantar_evento
+    jsr plant_event
     ply
-    jmp correr_codigo::otro
+    jmp run_code::otro
 
 .endproc
 
@@ -229,13 +229,13 @@ lugar_plantar:                  ; with Y already on the stack: see `op_place_var
 ; the hero's nor any event's: it is `Game_Map::IsAnyMovePending`, and not a
 ; wait for the event that was just sent walking.
 .proc op_wait_routes
-    jsr hay_rutas
+    jsr any_routes
     beq op_wait_routes_next
     dey                         ; the cursor goes back to the opcode
     sty ev_cur
     rts
 op_wait_routes_next:
-    jmp correr_codigo::otro
+    jmp run_code::otro
 
 .endproc
 
@@ -246,11 +246,11 @@ op_wait_routes_next:
 ;
 ; What it does **not** do, and it is what sets it apart from `MoveTo`: the
 ; step and the jump in progress finish, and which way each one faces stays
-; where the route left it. `hay_rutas` still watches them, so a
+; where the route left it. `any_routes` still watches them, so a
 ; `ProceedWithMovement` right after it waits the frames the step has left.
 ;
 ; And whoever had its page's own route goes back to it with
-; `retomar_pagina`, which is the same routine that runs when a forced one
+; `resume_page`, which is the same routine that runs when a forced one
 ; ends by itself: cancelling it and finishing it cannot be told apart, which
 ; is exactly the kind of difference nobody sees until the scene comes out
 ; different.
@@ -272,7 +272,7 @@ parar_otra:
     bne parar_siguiente         ; the page's one is not forced
     lda ruta_ev + 27, x         ; does it have its own route to go back to?
     beq parar_sin_pagina
-    jsr retomar_pagina
+    jsr resume_page
     bra parar_siguiente
 parar_sin_pagina:
     stz ruta_ev + 4, x
@@ -290,7 +290,7 @@ parar_siguiente:
 .a8
     bcc parar_otra
     ply
-    jmp correr_codigo::otro
+    jmp run_code::otro
 
 .endproc
 

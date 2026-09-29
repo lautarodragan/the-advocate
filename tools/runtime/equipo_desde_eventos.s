@@ -11,7 +11,7 @@
 ; `ChangeEquipment` that removes what is in a slot: the actor —or 0 for the
 ; whole party, as in `curar`— and the slot, 0 to 4. Returns with Y past it.
 ; Clobbers A, X and `temp`.
-.proc equipo_quitar
+.proc equipment_remove
 .a8
 .i16
     lda [cod_ptr], y            ; the actor
@@ -30,12 +30,12 @@ ranura:
     bcs listo
     lda grupo, x
     phx
-    jsr equipo_quitar_actor
+    jsr equipment_remove_actor
     plx
     inx
     bra ranura
 uno:
-    jsr equipo_quitar_actor
+    jsr equipment_remove_actor
 listo:
     ply
     rtl
@@ -46,7 +46,7 @@ listo:
 ; back to the inventory —`Game_Party::AddItem`, capped at ITEM_MAX—. The
 ; two-handed weapon business does not apply: removing never leaves two things
 ; where one fits. Clobbers X and `temp`.
-.proc equipo_quitar_actor
+.proc equipment_remove_actor
 .a8
 .i16
     rep #$20
@@ -95,7 +95,7 @@ listo:
 ; nothing if it was already known and `UnlearnSkill` nothing if it was not,
 ; and with a bit both come for free. Returns with Y past the operands.
 ; Clobbers A, X and `temp`.
-.proc habilidad_cambiar
+.proc skill_change
 .a8
 .i16
     rep #$20
@@ -104,7 +104,7 @@ listo:
     iny
     iny
     sta temp + 2
-    jsr hab_apuntar
+    jsr skill_point
     sep #$20
 .a8
     lda [cod_ptr], y            ; 1 learns, 0 forgets
@@ -113,22 +113,22 @@ listo:
     beq olvidar
     lda f:FAR_LARGO + FAR_HAB, x
     ora temp
-    bra poner
+    bra put
 olvidar:
     lda temp
     eor #$FF
     and f:FAR_LARGO + FAR_HAB, x
-poner:
+put:
     sta f:FAR_LARGO + FAR_HAB, x
     rtl
 .endproc
 
 ; `IsSkillLearned` for the `ConditionalBranch` branch: the pair's slot in
 ; `temp + 2`, and returns with Z=0 if it is known. Clobbers A, X and `temp`.
-.proc hab_sabe
+.proc skill_known
 .a8
 .i16
-    jsr hab_apuntar
+    jsr skill_point
     lda f:FAR_LARGO + FAR_HAB, x
     and temp
     rtl                         ; `rtl` does not touch the flags: the `and`
@@ -137,7 +137,7 @@ poner:
 
 ; The pair's slot in `temp + 2` → X at its byte of `FAR_HAB`, and its bit in
 ; `temp`. Returns with 8-bit A.
-.proc hab_apuntar
+.proc skill_point
 .a8
 .i16
     rep #$20
@@ -170,12 +170,12 @@ poner:
 ; their switch turning on, does not go through here: the converter pastes the
 ; body after the `ControlSwitches`.
 ;
-; They run through `correr_codigo`, as one more parallel event, with the
-; interpreter's context saved and restored as in `paralelos_tick`; their body
+; They run through `run_code`, as one more parallel event, with the
+; interpreter's context saved and restored as in `parallel_tick`; their body
 ; neither waits nor opens messages, so it finishes within the same call. It
 ; must be entered with the data bank at 0, which is where `switches` and the
 ; interpreter keep their things.
-.proc comunes_del_equipo
+.proc equipment_commons
 .a8
 .i16
     ldx #0
@@ -256,7 +256,7 @@ apagado:
 ; level: the converter's `hab_inicial` table copied into `FAR_HAB`. It runs at
 ; reset, before loading the saved game, which overwrites it. It is few bytes
 ; and goes one at a time: a DMA would cost more code than the loop.
-.proc hab_inicial_poner
+.proc initial_skills_set
 .a8
 .i16
     ldx #0

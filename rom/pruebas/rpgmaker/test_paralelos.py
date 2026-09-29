@@ -2,12 +2,12 @@
 
 El HQ de los Lazer Teeth —el mapa 11— tiene muchos eventos con página
 paralela, y hasta el 2026-09-13 cada uno volvía a resolver su página activa en
-cada cuadro: `un_paralelo` llamaba a `pagina_desde_eleg`, que lee del cartucho los
+cada cuadro: `one_parallel` llamaba a `page_from_pick`, que lee del cartucho los
 veinticuatro bytes de la cabecera de la página por la ventana de banco. Con el
 décimo paralelo el lazo se pasaba del cuadro y el mapa caía a 30 fps de golpe
 —no hay 45: perder el vblank cuesta el cuadro entero—.
 
-Ahora la página de cada paralelo viaja **en la lista**, que `aplicar_paginas`
+Ahora la página de cada paralelo viaja **en la lista**, que `apply_pages`
 rehace entera. O sea que la respuesta se calcula donde RM2k la calcula, en
 `Game_Map::Refresh`, y no una vez por paralelo y por cuadro.
 
@@ -16,7 +16,7 @@ segunda: **la lista tiene que seguir cambiando cuando cambia la página activa.*
 Si un evento deja de tener página paralela y se queda en la lista, su página
 vieja sigue corriendo para siempre; si una página se vuelve paralela con el mapa
 ya cargado y nadie la anota, no arranca nunca. Antes había una red de más
-—`un_paralelo` volvía a preguntar qué página era y si era paralela— y esa red ya
+—`one_parallel` volvía a preguntar qué página era y si era paralela— y esa red ya
 no está, así que esto es lo único que lo cuida.
 """
 

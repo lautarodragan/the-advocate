@@ -76,7 +76,7 @@ subir:
 ; bridge, live here: bank 0 has no room to spare. They do not depend on the
 ; data bank —the battle's runs with $7E—, so everything goes with `f:`.
 
-; The two flashes and the map down to black. From `pelea_arrancar`, with the
+; The two flashes and the map down to black. From `battle_start`, with the
 ; map on screen. It leaves the screen on with brightness zero: the load that
 ; follows does not write VRAM.
 .proc pelea_fundir_entrando
@@ -133,7 +133,7 @@ destello_de_pelea:
     .byte $E0|31, $E0|27, $E0|24, $E0|21, $E0|18
     .byte $E0|15, $E0|12, $E0|9,  $E0|6,  $E0|3
 
-; The battle down to black, in a mosaic. From `pelea_arrancar`, with the
+; The battle down to black, in a mosaic. From `battle_start`, with the
 ; battle already over and still on screen. If the battle never turned
 ; anything on —a troop the cartridge does not carry, or a party with nobody
 ; standing, which loses without fighting— the screen is already black since

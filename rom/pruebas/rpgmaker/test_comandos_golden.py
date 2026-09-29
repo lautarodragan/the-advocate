@@ -392,7 +392,7 @@ ANIMACIONES = (
     # más cargados.
     ("animacion-dibujo", (1, 15, 33, 37, 41, 47)),
     # La misma sobre un **evento**, que en la ROM es otro camino: el héroe sale
-    # de `hero_x` y el evento de su fila de NPC, por `npc_de_evento`. Es sobre
+    # de `hero_x` y el evento de su fila de NPC, por `event_npc`. Es sobre
     # Manta, que está pegada al borde izquierdo: la caja arranca en -18 y
     # `emit_object` la recorta. El objetivo es ella y no Kersh a propósito:
     # Kersh es el líder, comparte paleta con el héroe, y el destello del

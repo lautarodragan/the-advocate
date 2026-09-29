@@ -8,8 +8,8 @@ cuando el descuento llega a cero. Un salto en el aire no es "estar quieto"
 lee ni la ruta ni el pad, y `IsAnyMovePending` lo sigue dando por pendiente:
 `MoveRouteFinished` se prende recién adentro de `UpdateMovement`.
 
-Nuestro `move_hero` llamaba a `paso_de_ruta` sólo mientras `ruta_i < ruta_n`, y
-`paso_de_ruta` era el único que bajaba `ruta_salto`. Con el salto como última
+Nuestro `move_hero` llamaba a `step_route` sólo mientras `ruta_i < ruta_n`, y
+`step_route` era el único que bajaba `ruta_salto`. Con el salto como última
 orden el contador ya estaba al final en el cuadro siguiente, así que nadie
 volvía a tocar el descuento: el héroe quedaba flotando a mitad del arco para
 siempre. taro lo vio en el mapa 11, cuando Talan salta del susto y se queda
@@ -21,7 +21,7 @@ el salto.
 
 Los eventos no lo tenían, y la razón está medida en
 `test_una_ruta_de_evento_que_termina_en_salto_no_se_cuelga`: a ellos
-`mover_eventos` les llama a `cuadro_de_ruta_ev` una vez por cuadro pase lo que
+`move_events` les llama a `ev_route_frame` una vez por cuadro pase lo que
 pase, sin mirar el contador de órdenes, que es justo lo que el héroe no hacía.
 """
 
@@ -38,7 +38,7 @@ def sin_ruta_ni_mensaje(una, cuadros):
 def salto_de_los_eventos(una):
     """Lo que le queda al salto de cada ranura de ruta de evento ocupada.
 
-    Es el byte +13 de `ruta_ev`, el mismo que mira `hay_rutas` para saber que un
+    Es el byte +13 de `ruta_ev`, el mismo que mira `any_routes` para saber que un
     evento sigue en el aire.
     """
     base = una.simbolos["ruta_ev"]
@@ -76,7 +76,7 @@ def test_un_proceed_with_movement_espera_el_salto_del_heroe(partida):
     Es `IsAnyMovePending`, que para el jugador es
     `IsMoveRouteOverwritten() && !IsMoveRouteFinished()` y `MoveRouteFinished`
     se prende adentro de `UpdateMovement`, o sea al terminar el salto.
-    `hay_rutas` no miraba `ruta_salto`, así que la página seguía con el héroe
+    `any_routes` no miraba `ruta_salto`, así que la página seguía con el héroe
     todavía en el aire.
     """
     una = partida(caso="salto-final-espera")
@@ -86,7 +86,7 @@ def test_un_proceed_with_movement_espera_el_salto_del_heroe(partida):
             volando += 1
             assert una.corriendo_una_pagina(), (
                 "la página soltó el control con el héroe a %d del piso: "
-                "`hay_rutas` no está mirando el salto" % una.byte("ruta_salto"))
+                "`any_routes` no está mirando el salto" % una.byte("ruta_salto"))
         elif volando:
             break
         una.correr(1)
@@ -145,8 +145,8 @@ def test_una_ruta_de_evento_que_termina_en_salto_no_se_cuelga(partida):
     """El mismo agujero en los eventos, que no lo tienen.
 
     Está acá y no en un comentario porque es lo único que sostiene que el
-    arreglo del héroe no tenga que repetirse del otro lado: `mover_eventos`
-    llama a `cuadro_de_ruta_ev` para toda ranura ocupada, sin mirar si le
+    arreglo del héroe no tenga que repetirse del otro lado: `move_events`
+    llama a `ev_route_frame` para toda ranura ocupada, sin mirar si le
     quedan órdenes, así que el descuento del salto baja igual. Si alguien algún
     día le pone la guarda que tenía `move_hero`, esto se pone en rojo.
     """

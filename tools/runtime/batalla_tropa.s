@@ -493,7 +493,7 @@ listo:
 .i16
     ; A wait in the page —that of a `ShakeScreen` that waits, which the
     ; converter emits as OP_DELAY— is counted here, one frame per tick, which
-    ; is what `eventos_tick` does with the map's.
+    ; is what `events_tick` does with the map's.
     rep #$20
 .a16
     lda BA_PAG_ESPERA

@@ -1080,7 +1080,7 @@ def test_con_una_pista_de_msu_la_pelea_anota_el_tema_del_mapa(partida,
 
     Así que acá se pone el estado que deja una pista sonando —las dos banderas,
     escritas a mano— y se mira qué anota la pelea. Sin el arreglo de
-    `pelea_arrancar` anota $FF.
+    `battle_start` anota $FF.
     """
     una = en_el_droide(partida, con_musica)
     tema = una.palabra("tema_actual")

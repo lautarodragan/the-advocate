@@ -127,7 +127,7 @@ grupo_listo:
     ; screens with each other; that file has the rest of the numbers. Verified
     ; on 2026-09-16 by removing these two lines: of five runs, four red.
     stz ev_activo
-    jsr limpiar_esperas
+    jsr clear_waits
     stz ruta_n                  ; no forced move route pending
     stz ruta_i
     stz ruta_espera
@@ -143,7 +143,7 @@ grupo_listo:
     stz atravesando + 1
     stz tinte_pendiente
     ; And the message window. `msg_abierto` with garbage leaves the page
-    ; blocked forever: `eventos_tick` believes there is a message on screen
+    ; blocked forever: `events_tick` believes there is a message on screen
     ; and waits for an A that no longer closes anything. It is measured
     ; —without this `stz`, `snes-cerrar` fails on all twelve runs, and on
     ; snes9x as well as on bsnes—.
@@ -152,7 +152,7 @@ grupo_listo:
     stz msg_estado
     stz msg_subir
     ; The two that say who opened the message. With garbage, `par_ev` would
-    ; make the foreground record any owner at all and `un_paralelo` would skip
+    ; make the foreground record any owner at all and `one_parallel` would skip
     ; forever the event that had that number: it is one of the errors
     ; `test_cores.py` sees and a golden does not, because bsnes starts WRAM
     ; with garbage and snes9x at zero.
@@ -239,15 +239,15 @@ grupo_listo:
     sta ranura                  ; none loaded; RAM starts with garbage
     ; The random seed, and the variables at zero: far RAM also starts with
     ; garbage, and a loaded save overwrites them afterwards.
-    jsr limpiar_variables
-    jsr equipo_inicial_poner
+    jsr clear_variables
+    jsr initial_equipment_set
     jsl f:hp_inicial_poner
-    jsl f:hab_inicial_poner
+    jsl f:initial_skills_set
     jsr actor_graf_limpiar
     jsr clima_limpiar
     jsr se_limpiar
     jsr musica_limpiar
-    jsr giro_limpiar
+    jsr turn_clear
     jsr aram_limpiar
     jsr animacion_limpiar
     lda #0                      ; RAM starts with garbage
@@ -400,11 +400,11 @@ loop:
     ; of them decides whether something moves or when, so the difference is
     ; one frame in what is seen and not in what happens; moving them is
     ; another change, with its goldens.
-    jsr eventos_de_mapa         ; `UpdateMapEvents`: refresh, automatic and
+    jsr map_events         ; `UpdateMapEvents`: refresh, automatic and
                                 ; parallels, **before** the hero
     jsr animar_quietos          ; the ones that animate without moving, before
                                 ; the routes: if one grabs one, it wins the slot
-    jsr mover_eventos           ; and the events' forced move routes, which are
+    jsr move_events           ; and the events' forced move routes, which are
                                 ; the part of `UpdateMapEvents` that walks
                                 ; —`Game_Character::Update()` from
                                 ; `Game_Event::Update`, `game_event.cpp:608`—.
@@ -430,9 +430,9 @@ loop:
     ; frame and not on the next. It was above `move_hero` until 2026-09-20,
     ; and that cost every touch a frame: the queue sweep had already passed
     ; when `advance_step` filled it.
-    jsr eventos_tick
+    jsr events_tick
     ; And the `Teleport` a parallel may have requested, if the foreground did
-    ; not handle it: `eventos_tick` looks at `salto_hay` only after running
+    ; not handle it: `events_tick` looks at `salto_hay` only after running
     ; one of its pages, and with the foreground idle it leaves earlier. In
     ; RM2k the pending jump is handled after `Game_Map::Update`, whatever runs
     ; (`Scene_Map::UpdateStage2`). They are the race's 126 exits —each car,
@@ -440,7 +440,7 @@ loop:
     ; page jumped from a parallel.
     lda salto_hay
     beq sin_salto_pendiente
-    jsr eventos_atender_salto
+    jsr events_handle_jump
 sin_salto_pendiente:
     jsr tinte_de_evento        ; the tint the interpreter may have requested, right
                                 ; after it: otherwise it would apply a frame late

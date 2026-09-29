@@ -3,11 +3,11 @@
 ; Whether the neighboring cell in the direction A carries exists, that is,
 ; whether it does not fall off the map. Returns A nonzero if it exists.
 ;
-; It is split from `puede_celda` for a reason of reach and not of design:
+; It is split from `cell_allowed` for a reason of reach and not of design:
 ; together, the `beq` of the first check ended up 130 bytes from the exit and
 ; the assembler balked. `sep`/`rep` do not touch Z or C, so the result of the
 ; sixteen-bit comparison survives the width change.
-.proc celda_vecina_existe
+.proc cell_neighbor_exists
 .a8
 .i16
     cmp #DIR_UP
@@ -70,12 +70,12 @@ no:
 ; compiles that happens **only once**, on map 117, and for that one time it
 ; has to be modeled: without it, that move route would last eight frames too
 ; long.
-.proc puede_celda
+.proc cell_allowed
 .a8
 .i16
     sta celda_dir
     stz celda_dir + 1
-    jsr celda_vecina_existe
+    jsr cell_neighbor_exists
     bne :+
     jmp no                      ; too far for a short branch
 :
@@ -179,10 +179,10 @@ entra:
     sep #$20
 .a8
     lda f:paso_dx, x
-    jsr sumar_a_dest_x
+    jsr add_a_to_dest_x
     lda f:paso_dy, x
-    jsr sumar_a_dest_y
-    jsr celda_bloqueada
+    jsr add_a_to_dest_y
+    jsr cell_blocked
     bne no
     lda #1
     rts
@@ -202,9 +202,9 @@ no:
 ; the corner between two walls cannot be crossed diagonally, and it can be
 ; passed if there is a way around.
 ;
-; Each leg is a call to `puede_celda`, that is, the same two faces and the
+; Each leg is a call to `cell_allowed`, that is, the same two faces and the
 ; same check of who is standing where as a straight step.
-.proc puede_celda_diag
+.proc cell_allowed_diag
 .a8
 .i16
     sec
@@ -229,36 +229,36 @@ no:
 .a8
 
     lda diag_v                  ; the vertical L: up and then sideways
-    jsr puede_celda
+    jsr cell_allowed
     beq otra_ele
     lda diag_v
-    jsr celda_al_codo
+    jsr cell_to_elbow
     lda diag_h
-    jsr puede_celda
+    jsr cell_allowed
     bne si
 otra_ele:
-    jsr celda_al_origen         ; the horizontal L: sideways and then up
+    jsr cell_to_origin         ; the horizontal L: sideways and then up
     lda diag_h
-    jsr puede_celda
+    jsr cell_allowed
     beq no
     lda diag_h
-    jsr celda_al_codo
+    jsr cell_to_elbow
     lda diag_v
-    jsr puede_celda
+    jsr cell_allowed
     bne si
 no:
-    jsr celda_al_origen
+    jsr cell_to_origin
     lda #0
     rts
 si:
-    jsr celda_al_origen
+    jsr cell_to_origin
     lda #1
     rts
 .endproc
 
 ; The cell becomes the origin plus the step of the direction A carries: the
 ; elbow of the L, where the second leg starts.
-.proc celda_al_codo
+.proc cell_to_elbow
 .a8
 .i16
     rep #$20
@@ -305,7 +305,7 @@ sin_y:
 .endproc
 
 ; And the cell goes back to being the origin.
-.proc celda_al_origen
+.proc cell_to_origin
 .a8
 .i16
     rep #$20
@@ -331,7 +331,7 @@ sin_y:
 ; +8: twenty of the twenty-six move routes with diagonals in this game start
 ; **with** the diagonal, without turning first, so RUTA_EV_SIN_MIRAR is still
 ; there and the real pose is its page's, which lives in the NPC's row.
-.proc encarar_diagonal
+.proc face_diagonal
 .a8
 .i16
     lda ruta_ev + 8, x
@@ -339,7 +339,7 @@ sin_y:
     bne con_pose
     phx
     lda ruta_ev + 0, x
-    jsr npc_de_evento
+    jsr event_npc
     plx
     cpy #$FFFF
     beq sin_fila
@@ -379,7 +379,7 @@ queda:
 .endproc
 
 ; They add the signed byte A carries to dest_x / dest_y.
-.proc sumar_a_dest_x
+.proc add_a_to_dest_x
 .a8
 .i16
     rep #$20
@@ -397,7 +397,7 @@ positivo:
     rts
 .endproc
 
-.proc sumar_a_dest_y
+.proc add_a_to_dest_y
 .a8
 .i16
     rep #$20

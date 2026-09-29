@@ -175,7 +175,7 @@ pass_entrar:
 
 ; The two components of each diagonal, indexed by the direction minus four:
 ; first the vertical and then the horizontal. From here come the two L shapes
-; that `puede_celda_diag` tests and the two poses `encarar_diagonal` compares.
+; that `cell_allowed_diag` tests and the two poses `face_diagonal` compares.
 ; They are RUTA_DIAGONALES in eventos.py.
 diag_vert:
     .byte DIR_UP, DIR_DOWN, DIR_DOWN, DIR_UP

@@ -4,9 +4,9 @@
 
 ; --- the interpreter: teleport ---------------------------------------------
 ;
-; Opcode handlers: the dispatch in `correr_codigo`, in interprete.s, jumps
+; Opcode handlers: the dispatch in `run_code`, in interprete.s, jumps
 ; to each one with Y on its first operand, and each one returns to the loop
-; with `jmp correr_codigo::otro` or ends the frame with `rts`.
+; with `jmp run_code::otro` or ends the frame with `rts`.
 
 .proc op_teleport
     rep #$20
@@ -41,13 +41,13 @@ saltar:
 
 
 ; `MemorizeLocation` and `RecallToLocation`: like `op_heal`, only the entry
-; point. The body is `lugar_recordado`, outside bank 0, and it returns with
+; point. The body is `remembered_place`, outside bank 0, and it returns with
 ; carry set if there is a transfer to do, with the destination already in
 ; `salto_*`: the transfer finishes here, like the one in `op_teleport`.
 .proc op_location
-    jsl f:lugar_recordado
+    jsl f:remembered_place
     bcs saltar
-    jmp correr_codigo::otro
+    jmp run_code::otro
 saltar:
     jmp op_teleport::saltar
 

@@ -162,15 +162,15 @@ listo:
     phx
     tay
     jsr msu_esperar
-    bcs falla                   ; still busy: let the SPC700 play
+    bcs fails                   ; still busy: let the SPC700 play
     tya
     sta MSU_PISTA
     stz MSU_PISTA + 1
     jsr msu_esperar             ; and now, for it to finish opening it
-    bcs falla
+    bcs fails
     lda MSU_ESTADO
     and #$08                    ; the track is not on the card
-    bne falla
+    bne fails
     plx
     lda #MSU_VOLUMEN_MAX
     sta MSU_VOLUMEN
@@ -179,7 +179,7 @@ listo:
     lda #1
     sta f:MSU_SUENA
     rts
-falla:
+fails:
     ; The song plays through the SPC700 and needs its samples, which the
     ; package did not upload because it counted on the track —see
     ; `tema_por_msu`—: they are uploaded by `tema_asegurar`, which is what

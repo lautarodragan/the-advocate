@@ -1,6 +1,6 @@
 """El refresco completo, con una automática corriendo, mira todas las páginas.
 
-`elegir_con_filtro` hace las dos pasadas del refresco: la corta, que mira sólo
+`pick_with_filter` hace las dos pasadas del refresco: la corta, que mira sólo
 los eventos con automáticas, y la completa, que mira además los que tienen ruta
 propia o gráfico por página. Decidía cuál era con un `ldx solo_auto` con X en
 16 bits, que se llevaba también `auto_n`, el byte de al lado. Con alguna

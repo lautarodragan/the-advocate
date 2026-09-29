@@ -4,9 +4,9 @@
 
 ; --- the interpreter: pictures, animation and weather ----------------------
 ;
-; Opcode handlers: the dispatch in `correr_codigo`, in interprete.s, jumps to
+; Opcode handlers: the dispatch in `run_code`, in interprete.s, jumps to
 ; each one with Y on its first operand, and each one goes back to the loop
-; with `jmp correr_codigo::otro` or ends the frame with `rts`.
+; with `jmp run_code::otro` or ends the frame with `rts`.
 
 ; The three for the sign. `OP_PICTURE` shows it already with its tone
 ; —`Game_Pictures::Show` leaves `time_left` at zero—, `OP_PICTURE_MOVE` starts
@@ -34,7 +34,7 @@ img_poner_sat:
     sta f:CARTEL_PASO
     sta f:CARTEL_PASOS
     jsr imagen_paleta
-    jmp correr_codigo::otro
+    jmp run_code::otro
 
 .endproc
 
@@ -71,7 +71,7 @@ img_mover_ya:
     lda #0
     sta f:CARTEL_PASO
     jsr imagen_paleta
-    jmp correr_codigo::otro
+    jmp run_code::otro
 img_mover_rampa:
     ldx #$0000
 img_mover_desde:
@@ -83,14 +83,14 @@ img_mover_desde:
     lda #0
     sta f:CARTEL_PASO
 img_mover_fin:
-    jmp correr_codigo::otro
+    jmp run_code::otro
 
 .endproc
 
 .proc op_picture_erase
     lda #0
     sta f:CARTEL_ACTIVA
-    jmp correr_codigo::otro
+    jmp run_code::otro
 
 .endproc
 
@@ -140,7 +140,7 @@ img_mover_fin:
     tay
     sep #$20
 .a8
-    jmp correr_codigo::otro
+    jmp run_code::otro
 
 .endproc
 
@@ -157,7 +157,7 @@ img_mover_fin:
     phy
     jsr clima_poner
     ply
-    jmp correr_codigo::otro
+    jmp run_code::otro
 
 .endproc
 

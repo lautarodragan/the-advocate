@@ -7,7 +7,7 @@
 ; title— a fade out and the title screen. It is reached by three paths:
 ;
 ;   losing a battle with no defeat handler: `op_battle` records the defeat
-;                destination with `game_over_anotar`, and `pelea_arrancar`
+;                destination with `game_over_anotar`, and `battle_start`
 ;                asks `game_over_si_perdio` as soon as the battle finishes
 ;                fading to black. The map is not loaded again: in RM2k the
 ;                battle is erased and the image appears, without going
@@ -90,7 +90,7 @@ PANTALLA_MAPA = $7C00
     rtl
 .endproc
 
-; `pelea_arrancar`, with the battle already faded to black: if it was lost and
+; `battle_start`, with the battle already faded to black: if it was lost and
 ; the defeat destination is `BATALLA_PERDER`, it does not return. Otherwise it
 ; carries on as usual.
 .proc game_over_si_perdio

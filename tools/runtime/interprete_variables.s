@@ -4,9 +4,9 @@
 
 ; --- the interpreter: switches and variables -------------------------------
 ;
-; Opcode handlers: the dispatch in `correr_codigo`, in interprete.s, jumps to
+; Opcode handlers: the dispatch in `run_code`, in interprete.s, jumps to
 ; each one with Y on its first operand, and each one goes back to the loop
-; with `jmp correr_codigo::otro` or ends the frame with `rts`.
+; with `jmp run_code::otro` or ends the frame with `rts`.
 ;
 ; The timer is in interprete_cronometro.s, and the conditions on a variable
 ; in interprete_condiciones.s.
@@ -47,7 +47,7 @@
     bra var_aplicar
 var_de_variable:
     lda [cod_ptr], y            ; the slot it comes from
-    jsr var_leer
+    jsr var_read
 .a16
     sta temp + 2
     sep #$20
@@ -89,7 +89,7 @@ var_al_azar:
     ; a + x mod (b - a + 1), with x the next step of the xorshift and the
     ; modulo done with the hardware's eight-bit divider: the converter does
     ; not let through a range wider than 255.
-    jsr azar_siguiente
+    jsr random_next
     sta WRDIVL                  ; the dividend, sixteen bits
     lda [cod_ptr], y            ; a
     sta temp + 2
@@ -125,7 +125,7 @@ var_aplicar:
     and #<~VAR_REFRESCO
     beq var_pone
     lda temp
-    jsr var_leer                ; A = what it had, sixteen bits
+    jsr var_read                ; A = what it had, sixteen bits
 .a16
     pha
     sep #$20
@@ -156,14 +156,14 @@ var_pone:
     lda temp + 1                ; the operation, which carries the refresh bit
     xba
     lda temp
-    jsr var_escribir            ; and the refresh, if the operation asks for
+    jsr var_write            ; and the refresh, if the operation asks for
                                 ; it: the pages that look at this variable may
-    ply                         ; change. See `var_escribir`
+    ply                         ; change. See `var_write`
     iny                         ; a and b, four bytes
     iny
     iny
     iny
-    jmp correr_codigo::otro
+    jmp run_code::otro
 
 var_de_personaje:
     ; Class 6: a character's coordinates, in cells. `a` is the target —0 the
@@ -229,10 +229,10 @@ var_personaje_listo:
 .endproc
 
 ; Two class-6 `ControlVars` and two `ConditionalBranch` on variable equality,
-; fused into one: see `celda_probar`, which lives in bank 1.
+; fused into one: see `cell_test`, which lives in bank 1.
 .proc op_cell_test
-    jsl f:celda_probar + RAPIDO   ; see MEMSEL
-    jmp correr_codigo::otro
+    jsl f:cell_test + RAPIDO   ; see MEMSEL
+    jmp run_code::otro
 .endproc
 
 .proc op_switch
@@ -247,9 +247,9 @@ var_personaje_listo:
     lda [cod_ptr], y            ; and whether it goes on or off
     iny
     phy
-    jsr poner_switch
+    jsr set_switch
     ply
-    jmp correr_codigo::otro     ; `bra` does not reach: the loop is far away
+    jmp run_code::otro     ; `bra` does not reach: the loop is far away
 
 .endproc
 

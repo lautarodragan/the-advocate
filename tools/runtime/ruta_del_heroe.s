@@ -9,7 +9,7 @@
 ; transfers both bytes of the accumulator even when A is eight-bit. It is the
 ; trap noted at the top of main.s, and here it already made the move route
 ; read garbage and stop at the first step.
-.proc orden_del_heroe
+.proc hero_command
 .a8
 .i16
     rep #$20
@@ -35,9 +35,9 @@
 ; The jumps in here go with `jmp` and not `bra`: the body went from seven
 ; commands to fifteen and a `bra`'s 127 bytes of reach fell short three times
 ; in a row. It is the same trap that had already cut twice in the chain of
-; `cmp` that was `correr_codigo`'s dispatch before the table, and it is fixed
+; `cmp` that was `run_code`'s dispatch before the table, and it is fixed
 ; the same way.
-.proc paso_de_ruta
+.proc step_route
 .a8
 .i16
     ; A `wait` in progress takes the whole frame and does not look at the move
@@ -56,12 +56,12 @@ otra_orden:
     bcc hay_orden
     jmp listo                   ; the move route is over; `bcs` no longer reaches
 hay_orden:
-    jsr orden_del_heroe
+    jsr hero_command
 
     cmp #23                     ; wait: this one and the RUTA_ESPERA - 1 after it,
     bne no_es_wait              ; plus the turn's if the frequency is low
     lda ruta_frec
-    jsr tras_giro
+    jsr after_turn
     clc
     adc #(RUTA_ESPERA - 1)
     sta ruta_espera
@@ -156,7 +156,7 @@ face:
     sbc #12
     sta hero_dir                ; face_*: with frequency 8 it is instant and the
     lda ruta_frec               ; next one follows; with another, it stands
-    jsr tras_giro               ; still for the turn's frames
+    jsr after_turn               ; still for the turn's frames
     bne giro_espera
     jmp otra_orden
 giro_espera:
@@ -190,7 +190,7 @@ giro_espera:
 grafico_heroe:
     lda #$FF
     sta hero_pose_vram          ; the pose in VRAM is no longer its own
-    jsr orden_del_heroe         ; the operand, which is left consumed
+    jsr hero_command         ; the operand, which is left consumed
     jsr hero_poses_de_grafico
     bcc heroe_sin_grafico
     jmp otra_orden
@@ -208,7 +208,7 @@ heroe_sin_grafico:
 ; it sounds the same as a `PlaySound`'s, with MSU-1 or without. It does not
 ; cost a frame: the next command runs in this one.
 sonido_heroe:
-    jsr orden_del_heroe         ; the low byte: leaves Y there and `ruta_ptr` set
+    jsr hero_command         ; the low byte: leaves Y there and `ruta_ptr` set
     inc ruta_i                  ; and the cursor, past the high one
     rep #$20
 .a16
@@ -260,7 +260,7 @@ ver_si_arranco:
     jmp otra_orden
 arranco:
     ; The step started, and it is noted that the move route started it:
-    ; `hay_rutas` needs this to know the last step of a move route still
+    ; `any_routes` needs this to know the last step of a move route still
     ; counts.
     lda #1
     sta ruta_paso
@@ -273,18 +273,18 @@ velocidad:
     ; frequency when the move route ends and not the speed.
     cmp #29
     beq vel_menos
-    jsr hero_vel_leer
+    jsr hero_speed_read
     cmp #6
     bcs vel_guardar
     inc a
     bra vel_guardar
 vel_menos:
-    jsr hero_vel_leer
+    jsr hero_speed_read
     cmp #2
     bcc vel_guardar
     dec a
 vel_guardar:
-    jsr hero_vel_escribir
+    jsr hero_speed_write
     jmp otra_orden
 .endproc
 
@@ -303,12 +303,12 @@ vel_guardar:
 ;
 ; The jump does not need that care and that is why it is looked at bare: the
 ; only one that sets `ruta_salto` to something other than zero is
-; `armar_salto_heroe`, and only `paso_de_ruta` calls it, so a hero's jump is
+; `armar_salto_heroe`, and only `step_route` calls it, so a hero's jump is
 ; always from a move route. None comes from the pad. It was missing, and a
 ; `ProceedWithMovement` right after a jump let the page go with the hero still
 ; up in the air: there, `MoveRouteFinished` gets set inside `UpdateMovement`,
 ; that is, on landing.
-.proc hay_rutas
+.proc any_routes
 .a8
 .i16
     lda ruta_espera

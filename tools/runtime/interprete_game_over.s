@@ -4,9 +4,9 @@
 
 ; --- the interpreter: Game Over --------------------------------------------
 ;
-; Opcode handlers: the dispatch in `correr_codigo`, in interprete.s, jumps to
+; Opcode handlers: the dispatch in `run_code`, in interprete.s, jumps to
 ; each one with Y on its first operand, and each one goes back to the loop
-; with `jmp correr_codigo::otro` or ends the frame with `rts`.
+; with `jmp run_code::otro` or ends the frame with `rts`.
 
 ; `ReturntoTitleScreen` and `GameOver`: the first goes back to boot —the
 ; title screen, if the ROM has one— and the second goes through the Game Over
@@ -23,7 +23,7 @@
 ; Before that, what `CommandGameOver` and `CommandReturnToTitleScreen` ask
 ; for: **that no message is open**. If one is, they wait, like `op_message`
 ; does with someone else's. The foreground never gets here with one open
-; —`eventos_tick` does not call it—; a parallel one does, and without this the
+; —`events_tick` does not call it—; a parallel one does, and without this the
 ; restart would swallow the message another one is showing.
 .proc op_return_to_title
     lda #0

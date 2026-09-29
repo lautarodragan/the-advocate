@@ -43,7 +43,7 @@ def poner(una, actor, habilidad, valor):
 # --- las habilidades --------------------------------------------------------
 
 def test_los_bits_arrancan_con_lo_que_dice_el_ldb(partida):
-    """`hab_inicial_poner`: el control de las dos de abajo. Sin él, una ROM
+    """`initial_skills_set`: el control de las dos de abajo. Sin él, una ROM
     que no copiara nada y dejara `FAR_HAB` en cero daría "no la sabe" para la
     147 por el motivo equivocado."""
     una = partida(caso="habilidades-cambiar")

@@ -722,12 +722,12 @@ igual:
     clv
     lda f:MUS_BIT
     and f:MUS_VISTAS
-    bne ya
+    bne already
     lda f:MUS_BIT
     ora f:MUS_VISTAS
     sta f:MUS_VISTAS
     sep #$40                    ; V
-ya:
+already:
     rts
 .endproc
 

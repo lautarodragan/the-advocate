@@ -150,7 +150,7 @@ efectivo_listo:
 .endproc
 
 ; Turns on the switch in `BA_T0`, which is the LDB's `switch_id` as is, like
-; `item_switch` does with its own. It does not call `poner_switch`: that lives
+; `item_switch` does with its own. It does not call `set_switch`: that lives
 ; in bank 0 and the battle runs with the data bank at $7E, so the mask is
 ; built here with a shift instead of being read from a cartridge table.
 .proc ba_switch

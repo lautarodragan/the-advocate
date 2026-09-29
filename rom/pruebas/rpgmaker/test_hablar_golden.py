@@ -72,7 +72,7 @@ HABLADAS = (
      (200, 420, 620, 900, 1200)),
     # Parallel Process: los dos autos y los dos que los reubican del mapa 9,
     # mirados a lo largo de cuatro segundos. Verificado que da rojo sin
-    # `paralelos_tick`: 232 pixeles en el cuadro 2. Los nueve del mapa 8 no
+    # `parallel_tick`: 232 pixeles en el cuadro 2. Los nueve del mapa 8 no
     # los mira ningún caso.
     ("autos9", "hablar-autos9", (900,), (2, 20, 60, 120, 240)),
 )
@@ -121,14 +121,14 @@ EVENTO_QUE_GIRA = 13
 def _giro_ev(caso):
     """Qué evento quedó girado hacia el héroe tras hablarle, o `None`.
 
-    `GIRO_EV` es el único estado del giro que no depende de una fila de
+    `TURN_EV` es el único estado del giro que no depende de una fila de
     `npc_buf`: vale $FF mientras nadie gire. Se mira acá y no sólo en la
     golden porque una golden nueva no puede dar rojo antes del arreglo, y
     esto sí: ver "Una golden caza regresiones" en AGENTS.md.
     """
     p = partida(caso)
     p.correr(60, apretar_a=(25,))
-    quien = p.consola.ram(en_la_wram(p.simbolos["GIRO_EV"]), 1)[0]
+    quien = p.consola.ram(en_la_wram(p.simbolos["TURN_EV"]), 1)[0]
     return None if quien == 0xFF else quien
 
 

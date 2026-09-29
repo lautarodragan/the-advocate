@@ -114,7 +114,7 @@ cerrar:
 ; The hero's jump: consumes the move commands up to `end_jump`, adds up what
 ; they contribute and puts it on the other side at once. How long it lasts
 ; does not depend on the distance: `remaining_step` goes down from 256 to 0 by
-; `salto_del_heroe` per frame, whether it jumps one cell or five; at speed 4
+; `hero_jump` per frame, whether it jumps one cell or five; at speed 4
 ; it is eleven frames.
 .proc armar_salto_heroe
 .a8
@@ -125,7 +125,7 @@ buscar:
     lda ruta_i
     cmp ruta_n
     bcs sin_fin
-    jsr orden_del_heroe
+    jsr hero_command
     cmp #25
     beq con_fin
     jsr acumular_salto
@@ -194,7 +194,7 @@ sin_girar:
     ; sees it jumping and calls `UpdateMovement`. SALTO_PASO is 256 and does
     ; not fit in a byte: `256 - s` in eight bits is the two's complement of
     ; `s`, which is never zero.
-    jsr salto_del_heroe
+    jsr hero_jump
     eor #$FF
     inc a
     sta ruta_salto
@@ -209,10 +209,10 @@ sin_girar:
 ; redraws it where it belongs. The cell already moved at the start, so the
 ; only thing that happens here is the pixels.
 ;
-; It lives outside `paso_de_ruta` —and `move_hero` calls it— because in RM2k
+; It lives outside `step_route` —and `move_hero` calls it— because in RM2k
 ; the one that lowers the jump is `Game_Character::Update`, which checks
 ; `IsJumping()` **before** asking whether move commands are left, and the one
-; that turns it off is `UpdateMovement`. While it was inside `paso_de_ruta`,
+; that turns it off is `UpdateMovement`. While it was inside `step_route`,
 ; a jump that was the last move command of the move route was lowered by
 ; nobody: `move_hero` only went in there with `ruta_i < ruta_n`, and with the
 ; jump at the end the counter was already at its limit on the next frame. The
@@ -229,7 +229,7 @@ sin_girar:
     ; `ruta_salto - s` without storing `s` anywhere: `~s + 1` with the carry
     ; set is the subtraction, and the carry comes out clear if there was a
     ; borrow.
-    jsr salto_del_heroe
+    jsr hero_jump
     eor #$FF
     sec
     adc ruta_salto
@@ -503,7 +503,7 @@ con_fin:
     sta atravesando
     stz atravesando + 1
     phx
-    jsr celda_del_evento        ; its cell, which `puede_caer` needs
+    jsr event_cell        ; its cell, which `puede_caer` needs
     jsr salto_a_celdas
     rep #$20
 .a16
@@ -527,9 +527,9 @@ con_fin:
     inc salto_trabado           ; there was an `end_jump` and the cell is taken
     rts
 se_puede:
-    ; The target cell, which `celda_del_evento` left in celda_x/celda_y.
+    ; The target cell, which `event_cell` left in celda_x/celda_y.
     phx
-    jsr mover_celda_a_evento
+    jsr move_cell_to_event
     plx
     lda salto_dx
     sta ruta_ev + 14, x
@@ -544,7 +544,7 @@ se_puede:
     plx
     sta ruta_ev + 8, x
 sin_girar:
-    jsr salto_de_ranura
+    jsr slot_jump
     sta temp
     lda #0                      ; 256 minus this frame's, in eight bits
     sec
@@ -698,7 +698,7 @@ mira_el_paso:
     sta dest_y
     sep #$20
 .a8
-    jsr celda_bloqueada
+    jsr cell_blocked
     bne no
     lda #1
     rts

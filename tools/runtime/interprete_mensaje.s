@@ -4,12 +4,12 @@
 
 ; --- the interpreter: the message and the choice ----------------------------
 ;
-; Opcode handlers: the dispatch in `correr_codigo`, in interprete.s, jumps to
+; Opcode handlers: the dispatch in `run_code`, in interprete.s, jumps to
 ; each one with Y on its first operand, and each one goes back to the loop
-; with `jmp correr_codigo::otro` or ends the frame with `rts`.
+; with `jmp run_code::otro` or ends the frame with `rts`.
 
 ; Opens the message window and ends the frame. The cursor is already on the
-; next command —the loop's `iny`— but `eventos_tick` does not call here again
+; next command —the loop's `iny`— but `events_tick` does not call here again
 ; until the player presses A.
 ;
 ; The operand is the offset of the text box inside the `mensajes` block, 16
@@ -24,7 +24,7 @@
     ; interpreter that is `!is_active` (easyrpg `game_interpreter.cpp:928` and
     ; `window_message.h:216`); returning false leaves the cursor where it was,
     ; so the opcode is retried the next frame. The foreground does not need the
-    ; check —with a message open `eventos_tick` does not even call it— and
+    ; check —with a message open `events_tick` does not even call it— and
     ; that is why `par_ev` decides.
     lda par_ev
     cmp #$FF
@@ -79,7 +79,7 @@ abrir:
 
 ; `ShowChoice`: opens the window with the options and ends the frame, like a
 ; message. The difference is that the page **does not resume where it left
-; off**: when the player chooses, `eleccion_tick` sets the cursor to the
+; off**: when the player chooses, `choice_tick` sets the cursor to the
 ; destination of the highlighted option. That is why `ev_cur` is not saved
 ; here: what is saved is where the table is, which is where both come from,
 ; the box that is drawn and the destination.
@@ -95,7 +95,7 @@ abrir:
                                 ; zero, and the first option is highlighted
     lda #1
     sta eleg_activo
-    jsr eleg_abrir
+    jsr pick_open
     rts
 
 

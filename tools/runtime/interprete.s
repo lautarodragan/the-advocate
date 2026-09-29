@@ -2,11 +2,11 @@
 
 ; --- the event interpreter: the loop and the dispatch ------------------------
 ;
-; `correr_codigo` reads one opcode per pass and jumps to its handler. Each
+; `run_code` reads one opcode per pass and jumps to its handler. Each
 ; handler is its own `.proc op_*` and lives in one of the `interprete_*.s`
 ; files that main.s includes after this one, one per family. Since the dispatch
 ; goes through a table, the code does not care where each one is, with one
-; condition: it has to stay in `correr_codigo`'s bank, because `jmp (tabla, x)`
+; condition: it has to stay in `run_code`'s bank, because `jmp (tabla, x)`
 ; jumps within the program bank. As long as they are all in `CODE` that holds,
 ; and `test_la_entrada_k_de_la_tabla_salta_al_manejador_del_opcode_k` guards it.
 ;
@@ -20,13 +20,13 @@
 ;
 ; Y is the bytecode cursor and has to survive the whole loop, so every `jsr`
 ; that leaves from here saves it before going. The routines it calls use X and
-; Y for their own purposes —poner_switch indexes the switch bitmap,
+; Y for their own purposes —set_switch indexes the switch bitmap,
 ; aplicar_tinte walks three palettes— and none of them has any reason to know
 ; they mean something else here. Without this, the first OP_SWITCH left Y
 ; holding the switch number divided by eight, and what got read as the next
 ; opcode was some byte from the middle of the page: the loop stopped there and
 ; the rest did not run.
-.proc correr_codigo
+.proc run_code
 .a8
 .i16
     ldy ev_cur                  ; where the previous frame left off
@@ -52,7 +52,7 @@ otro:
     ; X reaches each handler clobbered —it holds the opcode times two— and so
     ; does A, with B at zero; none of them reads them before writing them. The
     ; chain did not touch them, and that was checked by following branches and
-    ; `jsr`s from each handler and from the three callers of `correr_codigo`
+    ; `jsr`s from each handler and from the three callers of `run_code`
     ; on return.
     asl a
     xba
@@ -62,10 +62,10 @@ otro:
     ; `jmp (abs, x)` reads the table from the program bank, which is where it
     ; is: the data bank is the bytecode's (see `op_shop`) and an
     ; `lda tabla, x` would read something else.
-    jmp (manejadores_de_opcode, x)
+    jmp (opcode_handlers, x)
 .endproc
 
-.assert EVENT_OPCODE_COUNT <= 128, error, "correr_codigo's asl is done in 8 bits"
+.assert EVENT_OPCODE_COUNT <= 128, error, "run_code's asl is done in 8 bits"
 
 ; OP_DONE, and any number that is not an opcode: the page ends.
 .proc op_done
@@ -78,7 +78,7 @@ otro:
 ; Entry k is the handler for opcode k. tools/protocol/ emits it from
 ; events.toml, so a new opcode does not touch this: the handler for `OP_X`
 ; has to be called `op_x`, and if it is missing it does not assemble. It has to
-; be in `correr_codigo`'s bank, which is where the `jmp` reads it from, and so
+; be in `run_code`'s bank, which is where the `jmp` reads it from, and so
 ; does each handler: an `.addr` is sixteen bits.
-manejadores_de_opcode:
+opcode_handlers:
     EVENT_HANDLERS

@@ -11,7 +11,7 @@
 ; doors, and the button ones need a button to press.
 
 ; The fields of the page at pag_ofs, into variables.
-.proc leer_pagina
+.proc read_page
 .a8
 .i16
     ldy pag_ofs
@@ -101,39 +101,39 @@
 ; one. With events times pages it cost more than a frame, and a frame lost on
 ; a switch delays everything that comes after by a frame.
 ; `Game_Map::Refresh` whole: choose the active pages and apply them.
-.proc rutas_de_pagina
+.proc page_routes
 .a8
 .i16
-    jsr elegir_paginas
-    jmp aplicar_paginas
+    jsr pick_pages
+    jmp apply_pages
 .endproc
 
-; Like `elegir_paginas`, but looking **only** at events with autostart pages.
+; Like `pick_pages`, but looking **only** at events with autostart pages.
 ;
 ; It is what the refresh from inside the command loop runs, and it is the
 ; only thing that refresh needs to do on the spot: what the next command may
 ; end up looking at is which event has an active autostart. On map 2 that is
 ; four pages out of sixty-three, against the twenty-three the full one looks
 ; at. The full one runs anyway, at the start of the next frame.
-.proc elegir_automaticas
+.proc pick_autostart
 .a8
 .i16
     lda #1
     sta solo_auto
-    jmp elegir_con_filtro
+    jmp pick_with_filter
 .endproc
 
 ; The first half: which page stays active in each event, and along the way
 ; each one's `FLAG_AUTO`.
-.proc elegir_paginas
+.proc pick_pages
 .a8
 .i16
     stz solo_auto
-    jmp elegir_con_filtro
+    jmp pick_with_filter
 .endproc
 
 ; The body of both, with `solo_auto` saying which one it is.
-.proc elegir_con_filtro
+.proc pick_with_filter
 .a8
 .i16
     ; `FLAG_AUTO` is not cleared with a separate loop but on each event's first
@@ -211,7 +211,7 @@ con_filtro:
     bne mirar_pagina
     jmp siguiente               ; the walk grew and no longer fits in a beq
 mirar_pagina:
-    jsr leer_pagina
+    jsr read_page
     ; The first page of an event with autostart pages clears its `FLAG_AUTO`:
     ; the last of its pages that meets its conditions sets it again, further
     ; down. An event's pages come together, so checking whether it changed is
@@ -241,7 +241,7 @@ ya_apagada:
     ; `ClearWaitingForegroundExecution` that `RefreshPage` does when it finds
     ; none. Leaving it set, the page that had just finished started again: in
     ; the opening cutscene that restarted the whole scene at frame 692.
-    jsr desmarcar_esperando     ; the waiting one, with its count
+    jsr unmark_waiting     ; the waiting one, with its count
     stz ev_flags, x             ; and the autostart one, whose count already went down
     bra no_es_auto
 .a16
@@ -249,7 +249,7 @@ mismo_ev16:
     sep #$20
 .a8
 no_es_auto:
-    jsr condiciones_ok
+    jsr conditions_ok
     beq no_cumple
     ; It qualifies, so for now it is its event's active page. If the event
     ; has autostart pages, this is where it is decided whether the active one
@@ -280,7 +280,7 @@ sigue_apagada:
     ora #FLAG_AUTO
     sta ev_flags, x
     inc auto_n
-    jsr marcar_esperando        ; still autostart: the mark comes back
+    jsr mark_waiting        ; still autostart: the mark comes back
     bra sin_auto
 no_gana_una_auto:
     ; The winner is not autostart, so the event **stops** waiting. It is
@@ -288,10 +288,10 @@ no_gana_una_auto:
     ; active one; by marking and not unmarking, an event's page 0 left the
     ; mark set even if page 1 won. It is the `ClearWaitingForegroundExecution`
     ; that `Game_Event::RefreshPage` does when it changes page.
-    jsr desmarcar_esperando
+    jsr unmark_waiting
 sin_auto:
     ; The active page is noted for all three cases, not only for the route or
-    ; graphic ones: `arrancar_esperando` reads it from here instead of walking
+    ; graphic ones: `start_waiting` reads it from here instead of walking
     ; the map's pages again. On map 2 that is sixty-three pages for each page
     ; that starts, and the frame was lost. The second pass, which is the one
     ; that touches routes and graphics, skips the ones without those bits.
@@ -368,14 +368,14 @@ sin_paginas:
 ; on map 2. That is why the mid-command refresh leaves it for the start of
 ; the next frame, where nothing changes: what it touches is not seen until it
 ; is drawn.
-.proc aplicar_paginas
+.proc apply_pages
 .a8
 .i16
     ; The turn first, with the new pages already chosen and before the rows
-    ; are rewritten: see `giro_revisar` and `giro_reponer`.
-    jsr giro_revisar
+    ; are rewritten: see `turn_check` and `turn_restore`.
+    jsr turn_check
     ; The pointer to the pages is rebuilt here and not inherited from
-    ; `elegir_paginas`: a whole frame may have passed between the two.
+    ; `pick_pages`: a whole frame may have passed between the two.
     ldx mapa_ofs
     rep #$20
 .a16
@@ -414,9 +414,9 @@ cada_evento:
     sta pag_ofs
     sep #$20
 .a8
-    jsr leer_pagina
+    jsr read_page
     ; If the winner is parallel, the event goes into the list that
-    ; `paralelos_tick` runs. It is built here and not every frame because
+    ; `parallel_tick` runs. It is built here and not every frame because
     ; which page is active only changes on a refresh, and walking the hundred
     ; and twenty events every frame is exactly what this refresh exists to
     ; avoid.
@@ -427,16 +427,16 @@ cada_evento:
     ora pg_cod + 1
     ora pg_cod + 2
     beq no_es_paralela          ; did not compile: nothing to run
-    jsr anotar_paralelo
+    jsr record_parallel
 no_es_paralela:
     lda pg_flags
     and #$60
     bne con_ruta_o_grafico
     jmp proximo                 ; autostart only: the note is for something else
 con_ruta_o_grafico:
-    jsr grafico_de_pagina       ; what the page draws, to the NPC's row
+    jsr page_graphic       ; what the page draws, to the NPC's row
     lda rp_ev
-    jsr ranura_del_evento       ; X = its slot, or $FFFF
+    jsr event_slot       ; X = its slot, or $FFFF
     lda pg_flags
     and #$01
     beq sin_ruta
@@ -454,8 +454,8 @@ con_ruta_o_grafico:
     bra cargar
 nueva:
     lda rp_ev
-    jsr giro_por_ruta
-    jsr ranura_libre
+    jsr turn_per_route
+    jsr free_slot
     cpx #$FFFF
     bne :+
     jmp proximo                 ; no room: it stays still
@@ -477,35 +477,35 @@ nueva:
 cargar:
     phx
     lda rp_ev
-    jsr giro_por_ruta           ; with a route, the route decides where it faces
+    jsr turn_per_route           ; with a route, the route decides where it faces
     plx
-    jsr cargar_pagina_en_ranura
+    jsr load_page_into_slot
     jmp proximo
 sin_ruta:
     cpx #$FFFF
     bne :+
     jmp proximo
 :
-    jsr quitar_pagina_de_ranura
+    jsr remove_page_from_slot
     jmp proximo
 .a16
 esconder16:
     sep #$20
 .a8
     lda rp_ev
-    jsr esconder_npc
+    jsr hide_npc
     jmp proximo
 .a16
 sin_activa16:
     sep #$20
 .a8
     lda rp_ev
-    jsr ranura_del_evento
+    jsr event_slot
     cpx #$FFFF
     bne :+
     jmp proximo
 :
-    jsr quitar_pagina_de_ranura
+    jsr remove_page_from_slot
 proximo:
     rep #$20
 .a16
@@ -525,10 +525,10 @@ sin_paginas:
 ; and `UpdateMapEvents` —`game_map.cpp:1259` and `:1274`, against the
 ; `game_player->Update()` at `:1288`—.
 ;
-; It is split from `eventos_tick` precisely for that: the foreground falls on
+; It is split from `events_tick` precisely for that: the foreground falls on
 ; the other side of the hero, and that way what a step queues is handled in
 ; the same frame. See the main loop.
-.proc eventos_de_mapa
+.proc map_events
 .a8
 .i16
     ; The pending refresh, before everything: it is when `Game_Map::Update`
@@ -538,7 +538,7 @@ sin_paginas:
     beq sin_refresco            ; did the short pass and left this one owed
     stz refresco
     stz refresco_cuadro
-    jsr rutas_de_pagina         ; which also rebuilds each event's `FLAG_AUTO`:
+    jsr page_routes         ; which also rebuilds each event's `FLAG_AUTO`:
                                 ; the active page changed
 sin_refresco:
     ; `Game_Event::CheckEventAutostart`, which hangs off
@@ -553,14 +553,14 @@ sin_refresco:
     ; frame right where something expensive landed, like the `snes-pan` tint.
     lda auto_n
     beq sin_automaticas
-    jsr esperar_automaticas
+    jsr wait_autostart
 sin_automaticas:
     ; The parallels, which are the other half of `UpdateMapEvents`
     ; —`game_event.cpp:590`—: they run before the hero, before the message and
     ; before the foreground. That is, a parallel event keeps running with a
     ; text box open and with another page in progress, which is exactly what
     ; it exists for.
-    jmp paralelos_tick
+    jmp parallel_tick
 .endproc
 
 ; One frame of the foreground interpreter, from the main loop:
@@ -575,7 +575,7 @@ sin_automaticas:
 ; A teleport is handled here and not inside the interpreter: calling
 ; `cargar_mapa` from there would be recursion, and two maps pointing at each
 ; other would make it infinite. The jump cap stays for the same reason.
-.proc eventos_tick
+.proc events_tick
 .a8
 .i16
     rep #$20
@@ -603,7 +603,7 @@ sin_espera:
     ; not close it, it resolves it.
     lda eleg_activo
     beq sin_eleccion
-    jsr eleccion_tick
+    jsr choice_tick
     bne sin_mensaje             ; it chose: the page goes on this same frame
     rts
 sin_eleccion:
@@ -655,7 +655,7 @@ espera_boton:
                                 ; the window does not write a single byte of VRAM
     ; And the edge is consumed, like B's in the choice. If the message was a
     ; parallel's there is no page to go on, so this same frame falls into
-    ; `probar_accion` with A still "just pressed" and talked to whatever event
+    ; `try_action` with A still "just pressed" and talked to whatever event
     ; the hero had in front of him. In RM2k the message stays active some eight
     ; more frames, while the close animates (easyrpg
     ; `window_message.cpp:379-403`), and with a message active the hero does
@@ -666,7 +666,7 @@ espera_boton:
     sta pad_a_ant
 sigue:
     ; And the page goes on **in this same frame**, falling into the usual
-    ; `jsr correr_codigo`. Closing here and resuming the next frame would cost
+    ; `jsr run_code`. Closing here and resuming the next frame would cost
     ; a frame to every page that closes a message.
     bra sin_mensaje
 no_avanza:
@@ -710,12 +710,12 @@ sin_mensaje:
     bne nada                    ; it was already held: not an edge
     lda step_left
     bne nada                    ; no talking in the middle of a step
-    ; The hero's forced move route is checked inside: see `probar_accion`.
-    jsr probar_accion
+    ; The hero's forced move route is checked inside: see `try_action`.
+    jsr try_action
     beq nada
     ; It marked an event: it starts this same frame.
 hay_esperando:
-    jsr arrancar_esperando
+    jsr start_waiting
     beq nada                    ; none had a page to run with
 
 corriendo:
@@ -726,15 +726,15 @@ corriendo:
     lda #ARRANQUES_MAX
     sta arranques
 seguir_corriendo:
-    jsr correr_codigo
+    jsr run_code
     ; If the page ended and it was the turning event's, it goes back to its
     ; pose: the `UpdateFacing` of `OnFinishForegroundEvent`.
     lda ev_activo
     bne sin_fin_de_giro
-    lda f:GIRO_EV
+    lda f:TURN_EV
     cmp ev_corriendo
     bne sin_fin_de_giro
-    jsr giro_deshacer
+    jsr turn_undo
 sin_fin_de_giro:
     ; The pending refresh, **on leaving the interpreter**: it is the
     ; `if (Game_Map::GetNeedRefresh()) Game_Map::Refresh();` at the end of
@@ -747,7 +747,7 @@ sin_fin_de_giro:
     ; EasyRPG also refreshes **before each command**, at the top of the loop.
     ; Here it is not needed and it is expensive: none of the existing opcodes
     ; reads which page of an event is active —the only one that reads it is
-    ; `arrancar_esperando`, which runs right below here—. Doing it per
+    ; `start_waiting`, which runs right below here—. Doing it per
     ; command, the opening cutscene lost five frames: its pages turn on
     ; switches by the heap. The day an opcode appears that does read it, this
     ; goes back into the loop.
@@ -756,7 +756,7 @@ sin_fin_de_giro:
     stz refresco
     lda #1
     sta refresco_cuadro         ; the full one, at the start of the next frame
-    jsr elegir_automaticas
+    jsr pick_autostart
 sin_refresco_aca:
     lda salto_hay
     bne hubo_salto
@@ -766,7 +766,7 @@ sin_refresco_aca:
     beq nada
     dec arranques
     beq nada                    ; the frame's budget ran out
-    jsr arrancar_esperando
+    jsr start_waiting
     bne seguir_corriendo
     rts
 hubo_salto:
@@ -795,7 +795,7 @@ hubo_salto:
     ; X and not A precisely for that: X is already sixteen, so copying and
     ; comparing does not cost the `rep`/`sep` it would through the
     ; accumulator. And it is not a matter of elegance: with the four extra
-    ; bytes, the `beq nada` in `eventos_tick` went past the 128 a relative
+    ; bytes, the `beq nada` in `events_tick` went past the 128 a relative
     ; branch reaches.
     ldx salto_mapa
     stx fundido_mapa
@@ -834,11 +834,11 @@ nada:
     rts
 .endproc
 
-; The half of `eventos_tick` that handles a pending jump, for the main loop:
+; The half of `events_tick` that handles a pending jump, for the main loop:
 ; the `Teleport` of a parallel with the foreground idle. With a global name
 ; because `arranque.s` comes earlier in the assembly, and `ca65` does not
-; resolve `eventos_tick::hubo_salto` forward.
-eventos_atender_salto = eventos_tick::hubo_salto
+; resolve `events_tick::hubo_salto` forward.
+events_handle_jump = events_tick::hubo_salto
 
 ; --- the parallel interpreters ----------------------------------------------
 ; `Game_Map::UpdateMapEvents`: each event with a parallel page has **its own
@@ -860,7 +860,7 @@ eventos_atender_salto = eventos_tick::hubo_salto
 ; RM2k rebuilds the interpreter (`Game_Event::Setup`), so it starts from
 ; zero. Without that, a refresh in the middle of a wait left it halfway
 ; running another page's code.
-.proc limpiar_paralelos
+.proc clear_parallel
 .a8
 .i16
     stz par_n
@@ -882,7 +882,7 @@ borrar:
 ; The bank window pointed at the list entry A carries. It is the same
 ; arithmetic for writing it and for reading it, and it was copied on both
 ; sides.
-.proc par_lista_apuntar
+.proc pair_list_point
 .a8
 .i16
     rep #$20
@@ -902,8 +902,8 @@ borrar:
 
 ; Notes event `rp_ev` in the map's list of parallels, with the page that just
 ; won: it enters with that page's `pg_*` and with `pag_ofs` at its offset,
-; which is how `aplicar_paginas` has it read.
-.proc anotar_paralelo
+; which is how `apply_pages` has it read.
+.proc record_parallel
 .a8
 .i16
     lda par_n
@@ -911,7 +911,7 @@ borrar:
     bcc hay_lugar
     rts                         ; the converter cuts off before this happens
 hay_lugar:
-    jsr par_lista_apuntar
+    jsr pair_list_point
     lda rp_ev
     sta WMDATA
     lda pg_cod
@@ -929,7 +929,7 @@ hay_lugar:
 .endproc
 
 ; One frame of each event with a parallel page.
-.proc paralelos_tick
+.proc parallel_tick
 .a8
 .i16
     lda par_n
@@ -956,13 +956,13 @@ hay:
     stz par_i
 lazo:
     ; First the ones that are resolved without an interpreter:
-    ; `paralelos_celda`, in bank 1, runs straight through the ones that start
+    ; `parallel_cell`, in bank 1, runs straight through the ones that start
     ; with `OP_CELL_TEST` and go no further, and stops at the first one that
     ; is not like that. With carry at 1 it stopped at one whose condition was
     ; met: it goes on from Y, with its interpreter.
-    jsl f:paralelos_celda + RAPIDO  ; see MEMSEL
+    jsl f:parallel_cell + RAPIDO  ; see MEMSEL
     bcc lento
-    jsr un_paralelo_seguir
+    jsr one_parallel_continue
     bra siguiente
 lento:
     lda par_i
@@ -984,7 +984,7 @@ lento:
     lda f:FAR_LARGO + FAR_PAR_LISTA + 4, x
     sta pag_ofs                 ; straight to the interpreter's cursor, which is
     lda f:FAR_LARGO + FAR_PAR_LISTA + 0, x
-    and #$00FF                  ; all `un_paralelo` was going to do with it
+    and #$00FF                  ; all `one_parallel` was going to do with it
     asl a
     asl a
     asl a                       ; times PAR_BYTES: where its state lands
@@ -995,7 +995,7 @@ lento:
     sta par_ev                  ; which event it belongs to
     lda f:FAR_LARGO + FAR_PAR_LISTA + 3, x
     sta cod_ptr + 2
-    jsr un_paralelo
+    jsr one_parallel
 siguiente:
     inc par_i
     lda par_i
@@ -1034,11 +1034,11 @@ listos:
 ; Here the page is **not** chosen again nor read from the cartridge. That was
 ; what cost the frame in the Lazer Teeth HQ —eleven parallels, and the tenth
 ; went over— and it could not give a different answer: the list and what it
-; carries are rebuilt by `aplicar_paginas`, which is `Game_Map::Refresh`,
+; carries are rebuilt by `apply_pages`, which is `Game_Map::Refresh`,
 ; that is, the only moment the active page changes. Nor is there any need to
 ; ask whether the page is parallel and whether it compiled: if it were not,
 ; the event would not be on the list.
-.proc un_paralelo
+.proc one_parallel
 .a8
 .i16
     ; With a message on screen a parallel keeps running —that is what it
@@ -1094,7 +1094,7 @@ esperando:
 .a8
     ; And whether it is running, which is what its step looks at: a route of
     ; its own does not read new commands with the page in progress
-    ; (`cuadro_de_ruta_ev`).
+    ; (`ev_route_frame`).
     lda f:FAR_LARGO + FAR_PAR_ESTADO + 4, x
     sta ev_activo
     jmp dar_el_paso             ; this frame goes by waiting
@@ -1119,7 +1119,7 @@ empezar:
     ; **The `OP_CELL_TEST` shortcut.** A page that starts with it —those of
     ; the race cars, the lights on map 11— almost always fails the condition
     ; and ends right there: its condition is evaluated here, without going
-    ; through `correr_codigo`, and if what follows is the `OP_DONE` the page
+    ; through `run_code`, and if what follows is the `OP_DONE` the page
     ; is over and its state is already as it has to stay —no wait and not
     ; running—, so it is not saved. It is exactly the interpreter's first
     ; round and its second; if what follows is something else, the
@@ -1129,14 +1129,14 @@ empezar:
     cmp #OP_CELL_TEST
     bne desde_cero
     ldy #1
-    jsl f:celda_probar + RAPIDO   ; see MEMSEL
+    jsl f:cell_test + RAPIDO   ; see MEMSEL
     lda [cod_ptr], y
     bne seguir                  ; it is not the OP_DONE
     stz ev_activo               ; what `op_done` would do
     jmp dar_el_paso
 desde_cero:
     ldy #0
-::un_paralelo_seguir:
+::one_parallel_continue:
 seguir:
     rep #$20
 .a16
@@ -1154,7 +1154,7 @@ corriendo:
     sta ev_corriendo            ; whose page it is, for a MoveEvent of its own
     sep #$20
 .a8
-    jsr correr_codigo
+    jsr run_code
     rep #$20
 .a16
     ldx par_dir
@@ -1180,7 +1180,7 @@ dar_el_paso:
     ; Maker the four cars move.
     ;
     ; The slot comes from the mark `ranura_anotar` leaves, and not from
-    ; looking it up with `ranura_del_evento`: the lookup walked every used slot
+    ; looking it up with `event_slot`: the lookup walked every used slot
     ; for each parallel on every frame, and in the race, with five cars moving
     ; and forty parallels, it was thirty lines of the frame's 262.
     ldx par_dir
@@ -1199,16 +1199,16 @@ dar_el_paso:
     sep #$20
 .a8
     phx
-    jsr cuadro_de_ruta_ev
+    jsr ev_route_frame
     plx
     phx
-    jsr animar_ruta_ev
+    jsr animate_ev_route
     plx
     phx
     jsr refrescar_npc
     plx
     lda ruta_ev + 18, x
-    ora #$40                    ; it already took its step: `mover_eventos` skips it
+    ora #$40                    ; it already took its step: `move_events` skips it
     sta ruta_ev + 18, x
 sin_ranura:
     rts
@@ -1225,7 +1225,7 @@ sin_ranura:
 ; `SetupFromPage` for the graphic, and it is what opens this game's doors:
 ; the page with the rubble tile appears where there was nothing before.
 ; Enters with the active page's `pg_*` and the event in `rp_ev`.
-.proc grafico_de_pagina
+.proc page_graphic
 .a8
 .i16
     ; Bit 5 says the row follows the page, and it means two things depending
@@ -1255,7 +1255,7 @@ sin_ranura:
     rts                         ; its row does not follow the page
 hay_algo:
     lda rp_ev
-    jsr npc_de_evento
+    jsr event_npc
     cpy #$FFFF
     bne hay_fila
     rts                         ; no row: nothing to draw
@@ -1317,7 +1317,7 @@ sin_tocar_el_tile:
     sep #$20
 .a8
     phy
-    jsr giro_reponer            ; if it is the turning one, it turns again
+    jsr turn_restore            ; if it is the turning one, it turns again
     ply
     jmp acomodar_npc
 listo:
@@ -1326,10 +1326,10 @@ listo:
 
 ; Hides the row of the event in A, if it has one: it is not drawn and its tile
 ; imposes nothing on the cell.
-.proc esconder_npc
+.proc hide_npc
 .a8
 .i16
-    jsr npc_de_evento
+    jsr event_npc
     cpy #$FFFF
     beq listo
     lda #0
@@ -1340,14 +1340,14 @@ listo:
     rts
 .endproc
 
-.proc ranura_del_evento
+.proc event_slot
 .a8
 .i16
     sta otro_ev
     ; From the highest one used downward, and not from zero upward: that way
     ; the stop is `X == 0`, which `tax` leaves in Z for free, and there is no
     ; need for a sixteen-bit limit in RAM —there is none—. An event has at
-    ; most one slot —it is only given one when `ranura_del_evento` found none
+    ; most one slot —it is only given one when `event_slot` found none
     ; for it— so the order does not change the answer.
     lda ruta_ev_tope
     rep #$20
@@ -1382,7 +1382,7 @@ no_tiene:
 .endproc
 
 ; A free move route slot: X, or $FFFF if none is left.
-.proc ranura_libre
+.proc free_slot
 .a8
 .i16
     ldx #$0000
@@ -1427,7 +1427,7 @@ ya_estaba:
 ; The move route of the page just read, into slot X, from the start. It is
 ; also saved separately —+24 to +29— to go back to it when a forced move
 ; route on the same event ends.
-.proc cargar_pagina_en_ranura
+.proc load_page_into_slot
 .a8
 .i16
     lda pg_ruta
@@ -1462,14 +1462,14 @@ ya_estaba:
     sep #$20
 .a8
     lda pg_frec
-    jsr tras_giro               ; `SetMaxStopCountForTurn` before the first one
+    jsr after_turn               ; `SetMaxStopCountForTurn` before the first one
     sta ruta_ev + 9, x
     rts
 .endproc
 
 ; The new page of the event in slot X has no route: it is left with no
 ; commands and no page to go back to.
-.proc quitar_pagina_de_ranura
+.proc remove_page_from_slot
 .a8
 .i16
     lda ruta_ev + 18, x
@@ -1493,7 +1493,7 @@ listo:
 .endproc
 
 ; How much the step of slot X advances per frame, into `temp`, sixteen bits.
-.proc paso_de_ranura
+.proc step_slot
 .a8
 .i16
     lda ruta_ev + 17, x
@@ -1514,7 +1514,7 @@ listo:
 .endproc
 
 ; How much the jump of slot X advances per frame, in A.
-.proc salto_de_ranura
+.proc slot_jump
 .a8
 .i16
     lda ruta_ev + 17, x
@@ -1535,11 +1535,11 @@ listo:
 ; How much the hero's jump advances per frame, in A: RM2k's
 ; `jump_speed[move_speed - 1]`, with the speed the last route left him. Keeps
 ; X.
-.proc salto_del_heroe
+.proc hero_jump
 .a8
 .i16
     phx
-    jsr hero_vel_leer
+    jsr hero_speed_read
     rep #$20
 .a16
     and #$00FF
@@ -1553,11 +1553,11 @@ listo:
 .endproc
 
 ; The layer of the active page of the event whose index comes in A, or $FF if
-; it has none. It is the same pass as `encolar_por_accion`: the last page
+; it has none. It is the same pass as `queue_by_action`: the last page
 ; whose conditions are met wins. Keeps X and Y; clobbers `pag_*` and `pg_*`,
 ; which nobody has half used when this runs —it is called from a step, not
 ; from inside a page search—.
-.proc capa_activa
+.proc active_layer
 .a8
 .i16
     phx
@@ -1595,8 +1595,8 @@ recorrer:
     sep #$20
 .a8
     bne siguiente
-    jsr leer_pagina
-    jsr condiciones_ok
+    jsr read_page
+    jsr conditions_ok
     beq siguiente
     lda pg_capa
     sta capa_hallada
@@ -1628,7 +1628,7 @@ sin_paginas:
 ; Whether the event whose index comes in A is walking through walls: it has a
 ; move route slot and the slot carries the bit. Returns A nonzero if so.
 ; Clobbers X.
-.proc atraviesa_el_evento
+.proc event_crossable
 .a8
 .i16
     sta otro_ev
@@ -1668,7 +1668,7 @@ siguiente:
 ; What is not modeled is `overlap_forbidden` —17 pages in the game— and the
 ; conflict of an event with a tile graphic against its own block. Clobbers X
 ; and Y.
-.proc celda_bloqueada
+.proc cell_blocked
 .a8
 .i16
     lda movil_capa
@@ -1677,14 +1677,14 @@ siguiente:
     lda movil
     cmp #MOVIL_HEROE
     beq es_heroe
-    jsr atraviesa_el_evento
+    jsr event_crossable
     bne libre_cerca
     bra recorrer
 es_heroe:
     ; **`atravesando` and not `ruta_atraviesa`**, which is the divergence
     ; declared in workflow/divergencias/atravesar-paredes-vale-mientras-dura-la-ruta.md:
     ; the flag command 36 leaves holds while the step is given by the forced
-    ; move route —there `paso_de_ruta` copies it to `atravesando`— and not for
+    ; move route —there `step_route` copies it to `atravesando`— and not for
     ; walking with the pad, which leaves it at zero. Reading the sticky one,
     ; any page that turned on 36 and did not turn it off left the hero walking
     ; over **every** event for the rest of the game, and walls still stopped
@@ -1737,10 +1737,10 @@ misma_x:
     beq siguiente8              ; not with itself
     sta otro_ev
     phy
-    jsr atraviesa_el_evento
+    jsr event_crossable
     bne no_choca
     lda otro_ev
-    jsr capa_activa
+    jsr active_layer
     cmp movil_capa
     bne no_choca
     ply
@@ -1784,19 +1784,19 @@ libre:
     rts
 .endproc
 
-; `celda_bloqueada` for the hero: the destination cell is already in dest_x/dest_y.
-.proc heroe_bloqueado
+; `cell_blocked` for the hero: the destination cell is already in dest_x/dest_y.
+.proc hero_blocked
 .a8
 .i16
     lda #MOVIL_HEROE
     sta movil
     lda #CAPA_HEROE
     sta movil_capa
-    jmp celda_bloqueada
+    jmp cell_blocked
 .endproc
 
 ; `movil` and `movil_capa` from the move route slot X points at. Keeps X.
-.proc preparar_movil
+.proc prepare_mover
 .a8
 .i16
     lda ruta_ev + 0, x
@@ -1808,20 +1808,20 @@ libre:
 
 ; Are the conditions of the page just read met? Returns with Z=0 if so.
 ; A switch at 0 means "this page does not require it".
-.proc condiciones_ok
+.proc conditions_ok
 .a8
 .i16
     rep #$20
 .a16
     lda pg_sa
     beq mirar_b
-    jsr switch_encendido
-    beq falla
+    jsr switch_on
+    beq fails
 mirar_b:
     lda pg_sb
     beq cumple
-    jsr switch_encendido
-    beq falla
+    jsr switch_on
+    beq fails
 cumple:
     sep #$20
 .a8
@@ -1835,8 +1835,8 @@ mirar_var:
     ; from a copy —the BSS is full—: +28 the item or 0, and +24 the slot or $FF
     ; for "requires none", +25 how it compares and +26 against what. It is the
     ; same signed comparison as
-    ; `ConditionalBranch`, `comparar_var`, with the same six codes: RM2k uses
-    ; `CheckOperator` for both. Clobbers X and Y, as `switch_encendido`
+    ; `ConditionalBranch`, `compare_var`, with the same six codes: RM2k uses
+    ; `CheckOperator` for both. Clobbers X and Y, as `switch_on`
     ; already did.
     ldy pag_ofs
     rep #$20
@@ -1882,9 +1882,9 @@ sin_item:
     sep #$20
 .a8
     pla
-    jsr var_leer                ; A = the variable, sixteen bits
+    jsr var_read                ; A = the variable, sixteen bits
 .a16
-    jsr comparar_var
+    jsr compare_var
 .a8
     beq falla8
 cumple8:
@@ -1898,7 +1898,7 @@ sin_usar:
 .a8
     lda #1                      ; Z=0
     rts
-falla:
+fails:
 .a16
     ; it arrives at sixteen; the `sep` below shrinks it
     sep #$20
@@ -1908,7 +1908,7 @@ falla:
 .endproc
 
 ; Is the switch whose number comes in A on? Returns with Z=0 if so.
-.proc switch_encendido
+.proc switch_on
 .a16
 .i16
     pha
@@ -1933,7 +1933,7 @@ falla:
 ; marks are worth nothing, and their event indexes would point at other
 ; events. The map load calls it **before** the refresh, which is what turns
 ; `FLAG_AUTO` back on for the ones it applies to.
-.proc limpiar_esperas
+.proc clear_waits
 .a8
 .i16
     ldx #$0000
@@ -1957,9 +1957,9 @@ falla:
 
 ; Every event with an active autostart page goes back to waiting. It is
 ; `Game_Event::CheckEventAutostart`, which runs once per frame and for all of
-; them. `eventos_tick` calls it before the interpreter, and only if `auto_n`
+; them. `events_tick` calls it before the interpreter, and only if `auto_n`
 ; says there is one.
-.proc esperar_automaticas
+.proc wait_autostart
 .a8
 .i16
     ldx #$0000
@@ -1967,7 +1967,7 @@ mirar:
     lda ev_flags, x
     and #FLAG_AUTO
     beq siguiente
-    jsr marcar_esperando
+    jsr mark_waiting
 siguiente:
     inx
     cpx ev_total
@@ -1981,7 +1981,7 @@ siguiente:
 ; It exists so that starting a page does not cost a walk through all the
 ; map's pages. The refresh already resolved it; resolving it again here was
 ; doing the same work twice, and the second time landed on any old frame.
-.proc pagina_desde_eleg
+.proc page_from_pick
 .a8
 .i16
     stz elegida_hay
@@ -2017,7 +2017,7 @@ anotada:
     lda f:mapa_tabla + M_PTR_PAGINAS + 2, x
     sta pag_ptr + 2
     plx
-    jsr leer_pagina
+    jsr read_page
     lda pg_trigger
     sta elegida_trigger
     rep #$20
@@ -2040,7 +2040,7 @@ anotada:
 ; The page is resolved **here**, not when the event was marked: between the
 ; one and the other a refresh may have happened and another one may be
 ; active.
-.proc arrancar_esperando
+.proc start_waiting
 .a8
 .i16
     ldx #$0000
@@ -2063,7 +2063,7 @@ encontrado:
     sta ev_flags, x
     dec esperando_n
     phx
-    jsr pagina_desde_eleg
+    jsr page_from_pick
     bne con_pagina
     rep #$20
 .a16
@@ -2071,7 +2071,7 @@ encontrado:
     sta ev_buscado
     sep #$20
 .a8
-    jsr buscar_pagina_de_evento
+    jsr seek_event_page
 con_pagina:
     plx
     lda elegida_hay
@@ -2106,8 +2106,8 @@ buscar_mas:
     rts
 .endproc
 
-; The opposite of `marcar_esperando`, with the same count.
-.proc desmarcar_esperando
+; The opposite of `mark_waiting`, with the same count.
+.proc unmark_waiting
 .a8
 .i16
     cpx #EV_MAX
@@ -2127,7 +2127,7 @@ no:
 ; `Game_Event::ScheduleForegroundExecution`: one bit per event, not a queue.
 ; Marking it twice does not queue it twice, which is what was needed so that
 ; each frame's sweep can re-mark without fear.
-.proc marcar_esperando
+.proc mark_waiting
 .a8
 .i16
     cpx #EV_MAX

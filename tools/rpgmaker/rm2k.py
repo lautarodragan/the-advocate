@@ -334,7 +334,7 @@ def tile_name(chipset, index):
 # table, the ROM cannot know which one is active, so it neither changes
 # graphic nor blocks. "variable" since the night of 2026-09-10: the page
 # carries the slot, the comparison and the value, and the ROM checks them in
-# `condiciones_ok`. The timer is missing, which only one page of the game
+# `conditions_ok`. The timer is missing, which only one page of the game
 # asks for, page 81 of map 312.
 SUPPORTED_CONDITIONS = ("switch_a", "switch_b", "actor", "variable", "item")
 # And the ones the port **can never meet**. The item one was for a day:

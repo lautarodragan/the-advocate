@@ -24,7 +24,7 @@ eleg_cancel: .res 1     ; which option the B button picks, plus one; 0 is "canno
 eleg_tabla:  .res 2     ; where the choice's table starts, inside the page:
                         ; for each option, the frame and the destination
 eleg_flancos: .res 1    ; the buttons just pressed this frame. It does not
-                        ; use `temp` because `eventos_tick` has it busy.
+                        ; use `temp` because `events_tick` has it busy.
 ; The title screen menu. These are two bytes of its own and not the `eleg_`
 ; ones even though the cursor movement is the same: the interpreter's choice
 ; lives inside an event page and this one runs before there is a map, so
@@ -137,7 +137,7 @@ elegida_hay: .res 1     ; whether some page of the current event won
 elegida_trigger: .res 1 ; and what triggers it, to run only the automatic ones
 ; And which layer it is on, which is what decides which of the two cells
 ; triggers it with the action button: the one in front asks for the hero's
-; layer and its own asks for any other. See `probar_accion`.
+; layer and its own asks for any other. See `try_action`.
 elegida_capa: .res 1
 ; Which of the two is being looked at: 1 the hero's, 0 the one in front.
 accion_propia: .res 1
@@ -153,7 +153,7 @@ saltos_restantes: .res 1 ; how many teleport chains are still allowed
 ; is, the ones that happen without the player getting control back: two maps
 ; that point at each other would hang forever. It does not count the ones in
 ; a save, which can be as many as they like. See where it is refilled, in
-; `eventos_tick`.
+; `events_tick`.
 ;
 ; It was 8 until 2026-09-27, and Boss Wick's lair proved it wrong: from the
 ; neighbor's door on 37 back to there it is twelve jumps between maps without
@@ -231,7 +231,7 @@ ev_esperando: .res 2    ; how many frames are left of the current wait
 ruta_n:      .res 1
 ruta_i:      .res 1
 ; Whether the step the hero has in progress was started by the forced route
-; and not by the pad. `hay_rutas` needs it: the last step of a route still
+; and not by the pad. `any_routes` needs it: the last step of a route still
 ; counts as a pending route even when no commands are left, and a pad step
 ; never counts. Without this, `ProceedWithMovement` would stop waiting eight
 ; frames early, or would wait too long because the player started walking.

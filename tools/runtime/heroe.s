@@ -38,7 +38,7 @@ quieto:
     ; the move command counter: in RM2k jumping is not standing still
     ; —`IsStopping()` is `!(IsMoving() || IsJumping())`— so `Update` brings
     ; the jump down without going through `UpdateNextMovementAction`. With
-    ; this inside `paso_de_ruta`, which is only called with
+    ; this inside `step_route`, which is only called with
     ; `ruta_i < ruta_n`, a jump that was the route's last command was brought
     ; down by nobody. See `salto_avanzar_heroe`.
     lda ruta_salto
@@ -53,10 +53,10 @@ sin_salto:
     ; A pending `wait` is also route, even when no commands are left: a route
     ; that **ends** in `wait` —there are 21 in the game, the first on map 1—
     ; leaves `ruta_i` equal to `ruta_n` with `ruta_espera` loaded, and without
-    ; this nobody brought it down: `paso_de_ruta` is the only one that counts
+    ; this nobody brought it down: `step_route` is the only one that counts
     ; it down. In RM2k the `wait` is one more command and the route still
     ; belongs to the hero until it is done. It stayed stuck forever, and
-    ; `hay_rutas` and the action button, which look at it, answered "there is
+    ; `any_routes` and the action button, which look at it, answered "there is
     ; a route" until the next one.
     lda ruta_espera
     bne con_ruta
@@ -64,7 +64,7 @@ sin_salto:
     cmp ruta_n
     bcs sin_ruta
 con_ruta:
-    jsr paso_de_ruta
+    jsr step_route
     rts
 sin_ruta:
     ; The menu request, in the order of `UpdateNextMovementAction`: with a
@@ -91,10 +91,10 @@ menu_sin_pagina:
     ; page to emit them. Without this, defeat handed control back to the map
     ; with the whole party at zero HP, and from then on every battle was lost
     ; by itself before opening —`batalla_correr` answers defeat with nobody
-    ; standing—. `pelea_arrancar` collects it: see
+    ; standing—. `battle_start` collects it: see
     ; tools/runtime/game_over.s.
     jsl f:game_over_siempre
-    jmp pelea_arrancar
+    jmp battle_start
 sin_encuentro:
     jsr acceso_leer
     bpl menu_sin_pedido         ; bit 7 is the request
@@ -130,7 +130,7 @@ menu_sin_pedido:
     lda #DIR_UP
     sta hero_dir
     jsr try_up
-    bra tras_paso
+    bra after_step
 no_arriba:
     lda pad
     and #PAD_DOWN
@@ -138,7 +138,7 @@ no_arriba:
     lda #DIR_DOWN
     sta hero_dir
     jsr try_down
-    bra tras_paso
+    bra after_step
 no_abajo:
     lda pad
     and #PAD_LEFT
@@ -146,7 +146,7 @@ no_abajo:
     lda #DIR_LEFT
     sta hero_dir
     jsr try_left
-    bra tras_paso
+    bra after_step
 no_izquierda:
     lda pad
     and #PAD_RIGHT
@@ -154,7 +154,7 @@ no_izquierda:
     lda #DIR_RIGHT
     sta hero_dir
     jsr try_right
-tras_paso:
+after_step:
     ; A step that really started —`step_left` says so— is an RM2k step:
     ; `IncSteps` and `UpdateEncounterSteps`, which there run after `Move()`
     ; and only if the hero moved. It goes in the pad branch and not inside
@@ -195,7 +195,7 @@ no_derecha:
     sta dest_y
     sep #$20
 .a8
-    jsr heroe_bloqueado         ; someone standing there stops it like a wall
+    jsr hero_blocked         ; someone standing there stops it like a wall
     bne no8
     rep #$20
 .a16
@@ -242,7 +242,7 @@ no8:
     sta dest_y
     sep #$20
 .a8
-    jsr heroe_bloqueado         ; someone standing there stops it like a wall
+    jsr hero_blocked         ; someone standing there stops it like a wall
     bne no8
     rep #$20
 .a16
@@ -287,7 +287,7 @@ no8:
     sta dest_y
     sep #$20
 .a8
-    jsr heroe_bloqueado         ; someone standing there stops it like a wall
+    jsr hero_blocked         ; someone standing there stops it like a wall
     bne no8
     rep #$20
 .a16
@@ -334,7 +334,7 @@ no8:
     sta dest_y
     sep #$20
 .a8
-    jsr heroe_bloqueado         ; someone standing there stops it like a wall
+    jsr hero_blocked         ; someone standing there stops it like a wall
     bne no8
     rep #$20
 .a16
@@ -682,7 +682,7 @@ alta:
     ; pixels are **recomputed** from the destination cell and not
     ; accumulated: with half a pixel per frame there is nothing whole to add.
     ; `step_dx` and `step_dy` are the step's direction, -1, 0 or 1.
-    jsr anim_cuadros_del_heroe  ; incidentally leaves X at the speed minus one
+    jsr hero_anim_frames  ; incidentally leaves X at the speed minus one
     lda step_left
     sec
     sbc paso_medio_por_vel, x
@@ -752,7 +752,7 @@ y_listo:
     ; zero when any step ends, and `ForceMoveRoute` already set the route's
     ; limit.
     lda ruta_frec
-    jsr tras_paso
+    jsr after_step
     sta ruta_espera
     bra sigue
 sin_ruta:
@@ -760,7 +760,7 @@ sin_ruta:
     ; those —a touch page whose only command is the `Teleport`— so it has no
     ; path of its own: it goes through the interpreter, like any other
     ; teleport.
-    jsr probar_contacto
+    jsr try_touch
 sigue:
     rts
 .endproc
@@ -793,7 +793,7 @@ caminando:
     ; out with the new one. Counting down from the limit, as before, the new
     ; one only took effect one frame later: one frame off from RM2k.
     inc anim_timer
-    jsr anim_cuadros_del_heroe
+    jsr hero_anim_frames
     cmp anim_timer
     beq cambia
     bcs listo                   ; the count has not reached the limit yet

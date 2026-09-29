@@ -134,7 +134,7 @@ mudo:
 .assert TITULO_MENU_VRAM + TITULO_MENU_TILES * 16 <= PANTALLA_MAPA, error, "the title menu tiles overwrite the image tilemap"
 
 ; The menu loop. Up and down move the cursor on the **edge** and wrap around,
-; the same as `eleccion_tick` with ShowChoice: it is RM2k's
+; the same as `choice_tick` with ShowChoice: it is RM2k's
 ; `Window_Selectable::Update` with a single column, and holding down does not
 ; move one line per frame.
 .proc titulo_lazo

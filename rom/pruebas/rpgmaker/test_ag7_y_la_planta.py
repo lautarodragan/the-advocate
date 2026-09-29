@@ -118,7 +118,7 @@ def test_cambiar_el_arma_y_cerrar_el_menu_cambia_la_habilidad(partida):
 def test_con_el_switch_apagado_cerrar_el_menu_no_toca_nada(partida):
     """El evento es paralelo **con el switch 150**: apagado no corre, y cerrar
     el menú no le cambia nada a nadie. Es lo que distingue al camino de
-    `comunes_del_equipo` de uno que corriera el cuerpo siempre."""
+    `equipment_commons` de uno que corriera el cuerpo siempre."""
     una = partida(caso="ag7-componentes")
     una.correr(HASTA_EL_SWITCH)
     assert not una.corriendo_una_pagina(), "la página de prueba no terminó"

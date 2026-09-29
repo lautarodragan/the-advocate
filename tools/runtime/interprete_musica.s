@@ -4,9 +4,9 @@
 
 ; --- the interpreter: music and sound effects ------------------------------
 ;
-; Opcode handlers: the dispatch in `correr_codigo`, in interprete.s, jumps
+; Opcode handlers: the dispatch in `run_code`, in interprete.s, jumps
 ; to each one with Y on its first operand, and each one returns to the loop
-; with `jmp correr_codigo::otro` or ends the frame with `rts`.
+; with `jmp run_code::otro` or ends the frame with `rts`.
 
 ; `PlayBGM`. The operand is the song's index in `Temas`, and the cartridge
 ; carries the ones that fit in ARAM: the first `TEMA_TOTAL`. A higher index is
@@ -22,17 +22,17 @@ tocar:
     jsr music_start
     ply
 otro_tema:
-    jmp correr_codigo::otro
+    jmp run_code::otro
 
 .endproc
 
 ; `MemorizeBGM` and `PlayMemorizedBGM`: only the entry point. The body is
-; `tema_recordado`, outside bank 0, and it returns with carry set and the song
+; `remembered_song`, outside bank 0, and it returns with carry set and the song
 ; in A if it has to be played, which is the same thing a `PlayBGM` would do.
 .proc op_memorized_bgm
-    jsl f:tema_recordado
+    jsl f:remembered_song
     bcs tocar
-    jmp correr_codigo::otro
+    jmp run_code::otro
 tocar:
     jmp op_bgm::tocar
 
@@ -70,11 +70,11 @@ fundir:
     lda #1
     sta bgm_fundido
     plp
-    jmp correr_codigo::otro
+    jmp run_code::otro
 fundir_nada:
     iny
     iny
-    jmp correr_codigo::otro
+    jmp run_code::otro
 
 .endproc
 
@@ -82,6 +82,6 @@ fundir_nada:
 ; end of `music_tick`, after whatever the music writes in the frame.
 .proc op_sound
     jsr sonido_de_codigo
-    jmp correr_codigo::otro
+    jmp run_code::otro
 
 .endproc

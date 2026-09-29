@@ -154,19 +154,19 @@ ba_t_armar:
     plb
     rtl
 
-; `correr_codigo` for whoever lives outside bank 0 and has already set up the
-; context: `comunes_del_equipo`, in equipo_desde_eventos.s.
+; `run_code` for whoever lives outside bank 0 and has already set up the
+; context: `equipment_commons`, in equipo_desde_eventos.s.
 correr_codigo_largo:
-    jsr correr_codigo
+    jsr run_code
     rtl
 
 ; A stretch of the troop page that the battle has half run: until it asks for
 ; a message or finishes. It is `Game_Interpreter_Battle`, and **it is the same
-; interpreter as the maps'**, `correr_codigo`: what changes is where the
+; interpreter as the maps'**, `run_code`: what changes is where the
 ; context comes from.
 ;
 ; The map's is saved on the stack and restored at the end, as in
-; `paralelos_tick`, and it is not a precaution: a battle is opened from
+; `parallel_tick`, and it is not a precaution: a battle is opened from
 ; **inside** the interpreter —`op_battle`— and on return it keeps reading the
 ; map's page with the `cod_ptr` and the Y it had. The troop's lives in far RAM
 ; between one stretch and the next, because a message holds it up for several
@@ -203,7 +203,7 @@ ba_t_pagina:
     sta par_ev
     lda #1
     sta ev_activo
-    jsr correr_codigo
+    jsr run_code
     lda ev_activo
     sta f:BAT_LARGO + BA_PAG_ACT
     rep #$20

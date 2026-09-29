@@ -4,9 +4,9 @@
 
 ; --- the interpreter: conditions and the jump ------------------------------
 ;
-; Opcode handlers: the dispatch in `correr_codigo`, in interprete.s, jumps to
+; Opcode handlers: the dispatch in `run_code`, in interprete.s, jumps to
 ; each one with Y on its first operand, and each one goes back to the loop
-; with `jmp correr_codigo::otro` or ends the frame with `rts`.
+; with `jmp run_code::otro` or ends the frame with `rts`.
 
 ; `ConditionalBranch` with a switch condition. The operands are the number
 ; (two bytes), the polarity —copied as is from RM2k, where 0 means "it has to
@@ -37,9 +37,9 @@
     ; --- the switch ---
     rep #$20
 .a16
-    phy                         ; the cursor: `switch_encendido` clobbers X and Y
+    phy                         ; the cursor: `switch_on` clobbers X and Y
     lda [cod_ptr], y            ; the number, 16 bits
-    jsr switch_encendido        ; Z=1 off, Z=0 on
+    jsr switch_on        ; Z=1 off, Z=0 on
     beq si_apagado
     lda #$0001
     bra si_tengo
@@ -138,7 +138,7 @@ si_oro_usa_ge:
     ; `GetItemCount(id) > 0`, the same question as the page condition on an
     ; item and read from the same place: a byte of `FAR_ITEMS` indexed by the
     ; RM2k number. `GetEquippedItemCount` does not come in because there is no
-    ; equipment, which is what `condiciones_ok` already takes for granted.
+    ; equipment, which is what `conditions_ok` already takes for granted.
     ;
     ; The polarity is the switch's —0 is "has to have it"— so it decides with
     ; the same `eor` and without an extra branch.
@@ -166,7 +166,7 @@ si_decide:
     iny
     iny
     iny                         ; Y -> the next opcode
-    jmp correr_codigo::otro
+    jmp run_code::otro
 si_no_cumple:
     iny                         ; Y -> the target
     rep #$20
@@ -175,7 +175,7 @@ si_no_cumple:
     tay
     sep #$20
 .a8
-    jmp correr_codigo::otro
+    jmp run_code::otro
 
 .endproc
 
@@ -202,11 +202,11 @@ si_no_cumple:
 .a8
     iny
     iny                         ; Y -> the target
-    ; `var_leer` does not touch Y, so the cursor is not saved.
+    ; `var_read` does not touch Y, so the cursor is not saved.
     lda temp + 1
     beq si_var_contra_constante
     lda temp + 2
-    jsr var_leer
+    jsr var_read
 .a16
     sta temp + 2
     sep #$20
@@ -215,10 +215,10 @@ si_var_contra_constante:
     pla                         ; the comparison
     bne si_var_otra
     ; "Equal", which is the one almost all of them use —the 40 pages of each
-    ; lap of the race do it every frame— goes without `comparar_var`: a
+    ; lap of the race do it every frame— goes without `compare_var`: a
     ; sixteen-bit subtraction is enough.
     lda temp
-    jsr var_leer                ; A = the variable, sixteen bits
+    jsr var_read                ; A = the variable, sixteen bits
 .a16
     cmp temp + 2
     sep #$20
@@ -228,12 +228,12 @@ si_var_contra_constante:
 si_var_otra:
     sta temp + 1
     lda temp
-    jsr var_leer                ; A = the variable, sixteen bits
+    jsr var_read                ; A = the variable, sixteen bits
 .a16
-    jsr comparar_var
+    jsr compare_var
 .a8
     cmp #0                      ; the answer, in A: the flags are from
-                                ; `comparar_var`'s last computation
+                                ; `compare_var`'s last computation
     bne si_var_sigue
 si_var_no:
     rep #$20
@@ -242,11 +242,11 @@ si_var_no:
     tay
     sep #$20
 .a8
-    jmp correr_codigo::otro
+    jmp run_code::otro
 si_var_sigue:
     iny
     iny
-    jmp correr_codigo::otro
+    jmp run_code::otro
 
 .endproc
 
@@ -325,7 +325,7 @@ sia_eq_otra:
     ; questions carry the item, so `temp + 2` brings it and the actor is not
     ; needed. See `HABILIDAD_RANURA` in eventos.py.
 sia_habilidad:
-    jsl f:hab_sabe
+    jsl f:skill_known
     bne sia_si
 sia_no:
     rep #$20
@@ -334,11 +334,11 @@ sia_no:
     tay
     sep #$20
 .a8
-    jmp correr_codigo::otro
+    jmp run_code::otro
 sia_si:
     iny
     iny                         ; Y -> the next opcode
-    jmp correr_codigo::otro
+    jmp run_code::otro
 
 .endproc
 
@@ -351,7 +351,7 @@ sia_si:
     tay
     sep #$20
 .a8
-    jmp correr_codigo::otro
+    jmp run_code::otro
 
 .endproc
 

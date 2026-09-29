@@ -4,9 +4,9 @@
 
 ; --- the interpreter: the map's tiles --------------------------------------
 ;
-; Opcode handlers: the dispatch in `correr_codigo`, in interprete.s, jumps
+; Opcode handlers: the dispatch in `run_code`, in interprete.s, jumps
 ; to each one with Y on its first operand, and each one returns to the loop
-; with `jmp correr_codigo::otro` or ends the frame with `rts`.
+; with `jmp run_code::otro` or ends the frame with `rts`.
 
 ; `TileSubstitution`: from now on, where the grid says such-and-such block,
 ; another one is drawn. The instruction carries **several** pairs because RM2k
@@ -88,7 +88,7 @@ sub_listo:
     sta sub_refresco            ; frame: see `sub_refresco`
     sep #$20
 .a8
-    jmp correr_codigo::otro
+    jmp run_code::otro
 
 .endproc
 
@@ -132,13 +132,13 @@ sub_listo:
     ; By variable: what came in the opcode is two slots, and they are read now
     ; —it is the `ValueOrVariable` of `CommandStoreTerrainID`—.
     lda celda_x
-    jsr var_leer                ; returns with M at sixteen
+    jsr var_read                ; returns with M at sixteen
 .a16
     sta celda_x
     sep #$20
 .a8
     lda celda_y
-    jsr var_leer
+    jsr var_read
 .a16
     sta celda_y
     sep #$20
@@ -184,14 +184,14 @@ terreno_afuera:
     ldx mapa_ofs
     lda f:mapa_tabla + M_TERRENO_FUERA, x
 terreno_puesto:
-    sta temp + 2                ; `var_escribir` takes it from here
+    sta temp + 2                ; `var_write` takes it from here
     stz temp + 3
     lda temp                    ; the mode, which carries the refresh bit:
     xba                         ; `ptr_de_celda` and `celda_sustituida` do
     lda temp + 1                ; not touch `temp`
-    jsr var_escribir            ; with its refresh, if the mode asks for it
+    jsr var_write            ; with its refresh, if the mode asks for it
     ply
-    jmp correr_codigo::otro
+    jmp run_code::otro
 
 .endproc
 
@@ -199,6 +199,6 @@ terreno_puesto:
 ; outside bank 0, which reads its operands and advances the cursor itself.
 .proc op_encounter_steps
     jsl f:encuentro_pasos
-    jmp correr_codigo::otro
+    jmp run_code::otro
 
 .endproc

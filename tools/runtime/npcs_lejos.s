@@ -244,9 +244,9 @@ grande:
 ; --- the move route slots -----------------------------------------------------
 
 ; Move route slot X —in bytes, times RUTA_EV_STRIDE— has just become event
-; A's: it is noted in its parallel state, `PAR_RANURA`, so that `un_paralelo`
+; A's: it is noted in its parallel state, `PAR_RANURA`, so that `one_parallel`
 ; does not have to search for it. It belongs to the two places that hand out
-; a slot —`ruta_para_evento` and `aplicar_paginas`—, and lives here because
+; a slot —`route_for_event` and `apply_pages`—, and lives here because
 ; of bank 0. Does not touch A, X or Y.
 .proc ranura_anotar
     php
@@ -283,7 +283,7 @@ grande:
 .assert RUTA_EV_STRIDE = 32, error, "ranura_anotar divides by RUTA_EV_STRIDE with five lsr"
 
 ; The `npc_buf` row of the event of move route slot X, in Y, or $FFFF if it
-; has none. It is `npc_de_evento` for `refrescar_npc`, which asks for it for
+; has none. It is `event_npc` for `refrescar_npc`, which asks for it for
 ; every event that moves and on every frame: the search walks the rows from
 ; the first one, and on a map with forty events it was four lines for each.
 ;

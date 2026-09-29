@@ -7,7 +7,7 @@
 ; in Lashe City is of the second kind, and taro asked for it on 2026-09-07.
 ;
 ; The ones that walk already do this: their move route slot carries the counter
-; and `.proc animar_ruta_ev` advances it. The still ones have no slot, and there
+; and `.proc animate_ev_route` advances it. The still ones have no slot, and there
 ; is nowhere to keep a counter for them: the NPC's row has no free byte —+11 is
 ; the jump height— and the BSS is full. So the column comes from the game
 ; clock, the same as the ChipSet animation: `vueltas` divided by how many
@@ -19,7 +19,7 @@
 ; workflow/divergencias/la-fase-de-los-quietos-que-animan.md, and all it changes
 ; is which of the four steps of the cycle each event enters on.
 ;
-; It runs before `mover_eventos` on purpose: if a forced move route grabs one of
+; It runs before `move_events` on purpose: if a forced move route grabs one of
 ; these, the slot overwrites its pose afterwards and wins, since it is the one
 ; that carries the real counter.
 .proc animar_quietos
@@ -83,7 +83,7 @@ otra:
     sta temp + 3
     ; The pose: where its page faces times three, plus the column. With a
     ; fixed facing —which is what `animation_type` 3 asks for— nobody turns it.
-    jsr mirada_de_fila          ; its page's, or the turn's
+    jsr facing_of_row          ; its page's, or the turn's
     sta temp + 2
     asl a
     clc

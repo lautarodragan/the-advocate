@@ -4,9 +4,9 @@
 
 ; --- the interpreter: the shake and the flashes ----------------------------
 ;
-; Opcode handlers: the `correr_codigo` dispatch, in interprete.s, jumps to
+; Opcode handlers: the `run_code` dispatch, in interprete.s, jumps to
 ; each one with Y on its first operand, and each one returns to the loop
-; with `jmp correr_codigo::otro` or ends the frame with `rts`.
+; with `jmp run_code::otro` or ends the frame with `rts`.
 
 ; `ShakeScreen`: `ShakeOnce`, which does not reset the position so that two
 ; shakes in a row chain smoothly, or `ShakeEnd` with zero frames. It does not
@@ -30,7 +30,7 @@ con_cuadros:
     iny
     sep #$20
 .a8
-    jmp correr_codigo::otro
+    jmp run_code::otro
 
 .endproc
 
@@ -39,7 +39,7 @@ con_cuadros:
 ; it.
 .proc op_flash_screen
     jsr destello_de_codigo
-    jmp correr_codigo::otro
+    jmp run_code::otro
 
 .endproc
 
@@ -58,7 +58,7 @@ con_cuadros:
     tay
     sep #$20
 .a8
-    jmp correr_codigo::otro
+    jmp run_code::otro
 
 .endproc
 

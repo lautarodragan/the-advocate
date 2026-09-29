@@ -204,7 +204,7 @@ def test_el_game_over_vuelve_al_juego(partida):
 #
 # En una página, `op_battle` anota el destino de la derrota y `BATTLE_LOSE`
 # la manda a la pantalla de Game Over. El encuentro al azar arranca la pelea
-# **sin bytecode** —`pelea_arrancar` desde `move_hero`—, así que no hay
+# **sin bytecode** —`battle_start` desde `move_hero`—, así que no hay
 # `op_battle` que anote nada: si nadie más lo hace, perder devuelve el control
 # al mapa.
 #

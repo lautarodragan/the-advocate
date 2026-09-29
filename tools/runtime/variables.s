@@ -4,8 +4,8 @@
 ;
 ; They live in far RAM, and are read and written with long indexed addressing
 ; —`lda f:FAR_LARGO + FAR_VARIABLES, x`—, which does not depend on the data
-; bank. `var_leer` returns in a 16-bit A **and leaves M at sixteen**;
-; `var_escribir` takes the value from `temp + 2`. Neither of them touches X, Y
+; bank. `var_read` returns in a 16-bit A **and leaves M at sixteen**;
+; `var_write` takes the value from `temp + 2`. Neither of them touches X, Y
 ; or `temp`: callers count on that —see `op_place_var`—, and that is why the
 ; `phx`/`plx`.
 ;
@@ -15,7 +15,7 @@
 ; workflow/tasks/*/carrera-2-a-sesenta-cuadros.md.
 
 ; A: the slot. Returns its value in a 16-bit A, and M at sixteen.
-.proc var_leer
+.proc var_read
 .a8
 .i16
     phx
@@ -42,7 +42,7 @@
 ;
 ; Until 2026-09-27 the bit came in the slot, and that capped the variables at
 ; 128: see VAR_RANURA_MAX in eventos.py.
-.proc var_escribir
+.proc var_write
 .a8
 .i16
     xba                         ; the flags
@@ -65,18 +65,18 @@ sin_refresco:
     rts
 .endproc
 
-.assert VAR_REFRESCO = $80, error, "var_escribir checks VAR_REFRESCO with the N flag"
+.assert VAR_REFRESCO = $80, error, "var_write checks VAR_REFRESCO with the N flag"
 
 ; Turns the switch in temp on or off according to A.
 ;
 ; **Clobbers X and Y**, and a caller from the interpreter has to save Y, which
 ; is the bytecode cursor: that is why the `phy`/`ply` in `op_switch`. Without
-; it the `correr_codigo` loop keeps reading from the byte left in Y —an offset
+; it the `run_code` loop keeps reading from the byte left in Y —an offset
 ; into the switch table— so the page is cut off at its first command and the
 ; event does nothing. The two pages in the game that do something start by
 ; turning switches on, so the symptom is "no page runs" and not "this page
 ; fails".
-.proc poner_switch
+.proc set_switch
 .a8
 .i16
     pha
@@ -114,7 +114,7 @@ apagar:
 ; and the menu and saving allowed. Runs at reset, before loading the saved
 ; game. They live back to back in far RAM, so it is a single pass through the
 ; port.
-.proc limpiar_variables
+.proc clear_variables
 .a8
 .i16
     rep #$20
@@ -144,7 +144,7 @@ otra:
 ; Every actor's initial equipment into `FAR_EQUIPO`: a DMA from the
 ; converter's table to the WRAM window. Runs at reset, before loading the
 ; saved game, which overwrites it.
-.proc equipo_inicial_poner
+.proc initial_equipment_set
 .a8
 .i16
     rep #$20
@@ -172,7 +172,7 @@ otra:
 
 ; The hero's speed, in A. Only A: whoever asks for it is in the middle of a
 ; step with X and Y in use.
-.proc hero_vel_leer
+.proc hero_speed_read
 .a8
 .i16
     rep #$20
@@ -187,7 +187,7 @@ otra:
 .endproc
 
 ; A: the new speed.
-.proc hero_vel_escribir
+.proc hero_speed_write
 .a8
 .i16
     pha
@@ -206,10 +206,10 @@ otra:
 ; How many frames each frame of the walk animation lasts at the hero's speed:
 ; `anim_por_vel`, which is `GetStationaryAnimFrames`. At speed 4 it is the
 ; usual six.
-.proc anim_cuadros_del_heroe
+.proc hero_anim_frames
 .a8
 .i16
-    jsr hero_vel_leer
+    jsr hero_speed_read
     rep #$20
 .a16
     and #$00FF
@@ -227,7 +227,7 @@ otra:
 ; the code: ==, >=, <=, >, <, != in that order. Returns in eight bits with
 ; A = 1 and Z=0 if it holds, A = 0 and Z=1 if not. Clobbers `temp + 1` to
 ; `temp + 3`.
-.proc comparar_var
+.proc compare_var
 .a16
 .i16
     sec
@@ -288,10 +288,10 @@ menor:
 .endproc
 
 ; The xorshift step: x ^= x << 7; x ^= x >> 9; x ^= x << 8. Returns with the
-; new value in a 16-bit A, and M at sixteen. It is `azar_siguiente` from
+; new value in a 16-bit A, and M at sixteen. It is `random_next` from
 ; eventos.py, instruction by instruction. Uses `temp + 2` as scratch: its
 ; caller —`op_var`— has not loaded it yet.
-.proc azar_siguiente
+.proc random_next
 .a8
 .i16
     rep #$20
@@ -360,14 +360,14 @@ menor:
 
 ; Composes the window for the highlighted option. The box comes from the
 ; table, at `eleg_tabla + eleg_sel * 4`; the destination is two bytes further
-; on and `eleccion_tick` reads it.
+; on and `choice_tick` reads it.
 ;
 ; Calling `msg_empezar` again with the window already open is what moves the
 ; cursor: `msg_abierto` is not cleared, so the window does not flicker, and the
 ; composer overwrites what was there line by line. One option's line is five
 ; or six characters, that is, a couple of frames: it looks like a cursor
 ; moving, not like a window being rebuilt.
-.proc eleg_abrir
+.proc pick_open
 .a8
 .i16
     lda eleg_sel
@@ -397,7 +397,7 @@ menor:
 ;
 ; Covered by `rom/pruebas/rpgmaker/test_elegir.py`, which can press any
 ; button.
-.proc eleccion_tick
+.proc choice_tick
 .a8
 .i16
     lda msg_abierto
@@ -417,7 +417,7 @@ abierta:
 sube_una:
     dec a
     sta eleg_sel
-    jsr eleg_abrir
+    jsr pick_open
     lda #0
     rts
 no_arriba:
@@ -431,7 +431,7 @@ no_arriba:
     lda #0                      ; and from the last one, down does too
 baja_una:
     sta eleg_sel
-    jsr eleg_abrir
+    jsr pick_open
     lda #0
     rts
 no_abajo:

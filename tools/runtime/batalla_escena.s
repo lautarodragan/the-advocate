@@ -757,7 +757,7 @@ fondo_listo:
     jsr esc_dp_tomar
     lda #0
     sta ESC_K
-poner:
+put:
     lda ESC_K
     cmp BA_NENE
     bcs puestos
@@ -767,7 +767,7 @@ poner:
     beq :+
     jsr escena_poner
 :   inc ESC_K
-    bra poner
+    bra put
 puestos:
     jsr esc_dp_devolver
 

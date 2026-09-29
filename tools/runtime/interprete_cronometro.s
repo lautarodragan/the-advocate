@@ -4,9 +4,9 @@
 
 ; --- the interpreter: the timer --------------------------------------------
 ;
-; Opcode handlers: the dispatch of `correr_codigo`, in interprete.s, jumps to
+; Opcode handlers: the dispatch of `run_code`, in interprete.s, jumps to
 ; each one with Y on its first operand, and each one goes back to the loop
-; with `jmp correr_codigo::otro` or ends the frame with `rts`.
+; with `jmp run_code::otro` or ends the frame with `rts`.
 
 ; The timer: set, start or stop. The five operand bytes are fixed even though
 ; each operation uses two, so the cursor advances the same in all three.
@@ -39,7 +39,7 @@ no_pone:
     ; zero, like `Game_Party::SetTimer`.
     lda [cod_ptr], y            ; the slot
     phy
-    jsr var_leer                ; 16-bit A
+    jsr var_read                ; 16-bit A
 .a16
     ply
     cmp #0                      ; the variable's sign, which `ply` overwrote
@@ -81,6 +81,6 @@ timer_fin:
     tay                         ; was consumed by the operation's `iny`
     sep #$20
 .a8
-    jmp correr_codigo::otro
+    jmp run_code::otro
 
 .endproc

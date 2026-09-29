@@ -12,7 +12,7 @@
 ; counters.
 
 ; Is there an event at (celda_x, celda_y)? Returns its index in A, or $FF.
-.proc evento_en_celda
+.proc event_in_cell
 .a8
 .i16
     ldy #$0000
@@ -58,7 +58,7 @@ no_hay:
 ; —the highest-numbered one whose conditions hold wins— and it is resolved
 ; **at the moment of using it**, not when the event was flagged, which is what
 ; `Game_Map::Update` does when it pushes the event that was waiting.
-.proc buscar_pagina_de_evento
+.proc seek_event_page
 .a8
 .i16
     ldx mapa_ofs
@@ -77,7 +77,7 @@ no_hay:
     stz elegida_hay
 
 recorrer:
-    jsr leer_pagina
+    jsr read_page
     rep #$20
 .a16
     lda pg_evento
@@ -85,7 +85,7 @@ recorrer:
     sep #$20
 .a8
     bne siguiente               ; not the event we are looking at
-    jsr condiciones_ok
+    jsr conditions_ok
     beq siguiente
     lda pg_trigger
     sta elegida_trigger
@@ -101,7 +101,7 @@ recorrer:
     sta elegida + 2
     lda #1
     sta elegida_hay
-    ; And its turn, +30 and +31: see `giro_disparar` and `giro_revisar`.
+    ; And its turn, +30 and +31: see `turn_fire` and `turn_check`.
     rep #$20
 .a16
     lda pag_ofs
@@ -111,10 +111,10 @@ recorrer:
     sep #$20
 .a8
     lda [pag_ptr], y
-    sta f:ELEG_K
+    sta f:PICK_K
     iny
     lda [pag_ptr], y
-    sta f:ELEG_POSE
+    sta f:PICK_POSE
 
 siguiente:
     rep #$20
@@ -139,10 +139,10 @@ sin_paginas:
 
 ; The firing by action button or by touch: looks up the event's active page
 ; and, if it has the requested trigger and it compiled, flags the event.
-.proc encolar_por_accion
+.proc queue_by_action
 .a8
 .i16
-    jsr buscar_pagina_de_evento
+    jsr seek_event_page
     lda elegida_hay
     beq no
     lda elegida_trigger
@@ -175,8 +175,8 @@ sin_capa:
     ora elegida + 2
     beq no                      ; the active page could not be compiled
     ldx ev_buscado
-    jsr marcar_esperando
-    jsr giro_disparar           ; and it turns toward the hero, if it turns
+    jsr mark_waiting
+    jsr turn_fire           ; and it turns toward the hero, if it turns
     lda #1
     rts
 no:
@@ -186,10 +186,10 @@ no:
 
 ; The cell given in (celda_x, celda_y): if there is an event and its active
 ; page is fired by the button, it gets queued. Returns A nonzero if it queued.
-.proc accion_en_celda
+.proc action_in_cell
 .a8
 .i16
-    jsr evento_en_celda
+    jsr event_in_cell
     cmp #$FF
     beq no
     rep #$20
@@ -198,7 +198,7 @@ no:
     sta ev_buscado
     sep #$20
 .a8
-    jmp encolar_por_accion
+    jmp queue_by_action
 no:
     lda #0
     rts
@@ -224,7 +224,7 @@ no:
 ; What is not modeled, on either side: an event that fires twice before
 ; running comes in here twice and only once in RM2k, which flags it with a
 ; bit.
-.proc probar_contacto
+.proc try_touch
 .a8
 .i16
     rep #$20
@@ -237,7 +237,7 @@ no:
 .a8
     lda #TRIGGER_TOCA_HEROE
     sta trigger_buscado
-    jsr accion_en_celda
+    jsr action_in_cell
     ldx #TRIGGER_ACCION
     stx trigger_buscado         ; left as the action button expects it
     rts
@@ -245,7 +245,7 @@ no:
 
 ; The action button, from the main loop. Returns A nonzero if it queued
 ; something.
-.proc probar_accion
+.proc try_action
 .a8
 .i16
     ; With a live forced route of the hero there is no talking: it is the
@@ -253,7 +253,7 @@ no:
     ; before looking at the button. The `IsStopping()` the caller checks
     ; —`step_left`— is not enough, because between two steps of a route, in a
     ; `wait` and in the air, `step_left` is zero. These are the three hero
-    ; things from `hay_rutas` without the step one, which was already checked
+    ; things from `any_routes` without the step one, which was already checked
     ; there. It goes here and not next to that one because there the `beq
     ; nada` above no longer reached.
     ;
@@ -290,7 +290,7 @@ no:
     sta celda_y
     sep #$20
 .a8
-    jsr accion_en_celda
+    jsr action_in_cell
     beq mirar_adelante
     rts                         ; queued the one under the hero
 mirar_adelante:
@@ -337,7 +337,7 @@ no_izquierda:
     sep #$20
 .a8
 mirar:
-    jmp accion_en_celda
+    jmp action_in_cell
 con_ruta:
     lda #0
     rts

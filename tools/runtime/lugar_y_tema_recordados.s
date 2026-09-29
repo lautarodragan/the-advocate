@@ -11,10 +11,10 @@
 ; hundred—.
 ;
 ; Variables are read and written **directly in far RAM**, with
-; `f:FAR_LARGO + FAR_VARIABLES`, and not with `var_leer` and `var_escribir`:
+; `f:FAR_LARGO + FAR_VARIABLES`, and not with `var_read` and `var_write`:
 ; those are called with `jsr` and do not cross banks. Writing this way is the
 ; same as through the window —it is the same RAM— and the refresh is flagged
-; the same way as in `var_escribir`.
+; the same way as in `var_write`.
 
 ; `MemorizeLocation` and `RecallToLocation`: the hero's location in three
 ; variables —the map, x and y—, and the jump to whatever they say. The
@@ -34,7 +34,7 @@
 ; up the same `ReserveTeleport`. To a map the cartridge does not carry **it
 ; does not jump, and the page continues**: jumping anywhere would be worse,
 ; and ending the page would leave the player not knowing why.
-.proc lugar_recordado
+.proc remembered_place
 .a8
 .i16
     lda [cod_ptr], y            ; the mode
@@ -143,13 +143,13 @@ leer:
 ; in between it does not change. With nothing memorized ($FF) it does nothing,
 ; where RM2k would silence the music; no page in the game plays a memorized
 ; song without having memorized it earlier in the same page.
-.proc tema_recordado
+.proc remembered_song
 .a8
 .i16
     lda [cod_ptr], y
     iny
     cmp #0                      ; explicit: so it is written down what is being tested
-    bne poner
+    bne put
     lda tema_actual + 1
     beq recordar
     lda #$FF                    ; none is playing
@@ -160,7 +160,7 @@ anotar:
     sta f:TEMA_RECORDADO
     clc
     rtl
-poner:
+put:
     lda f:TEMA_RECORDADO
     cmp #TEMA_TOTAL
     bcs nada                    ; none, or one the cartridge does not carry

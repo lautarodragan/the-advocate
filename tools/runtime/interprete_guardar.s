@@ -4,9 +4,9 @@
 
 ; --- the interpreter: saving and the permissions ---------------------------
 ;
-; Opcode handlers: the `correr_codigo` dispatch, in interprete.s, jumps to
+; Opcode handlers: the `run_code` dispatch, in interprete.s, jumps to
 ; each one with Y on its first operand, and each one returns to the loop
-; with `jmp correr_codigo::otro` or ends the frame with `rts`.
+; with `jmp run_code::otro` or ends the frame with `rts`.
 
 ; `OpenSaveMenu`: the slot screen in save mode, and the save goes to whichever
 ; slot the player picks. No operands. See `OP_SAVE` in tools/port/events.py.
@@ -42,7 +42,7 @@
 cancelado:
     jsr volver_al_mapa
     ply
-    jmp correr_codigo::otro
+    jmp run_code::otro
 
 .endproc
 
@@ -84,6 +84,6 @@ acceso_prohibir:
 acceso_listo:
     jsr acceso_escribir
     ply
-    jmp correr_codigo::otro
+    jmp run_code::otro
 
 .endproc

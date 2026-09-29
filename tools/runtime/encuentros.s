@@ -507,7 +507,7 @@ afuera:
     rts
 .endproc
 
-; The encounters' xorshift step: the same as `azar_siguiente` and `ba_azar`,
+; The encounters' xorshift step: the same as `random_next` and `ba_azar`,
 ; on `ENC_SEM`, which has **its own seed**. Walking does not advance the
 ; map's randomness: a random `ControlVars` has to give the same result with
 ; and without encounters. It is `eventos.Encuentros._azar`.

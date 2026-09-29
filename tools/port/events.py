@@ -1206,7 +1206,7 @@ TRIGGERS = (TRIGGER_ACTION, TRIGGER_TOUCH_HERO, TRIGGER_AUTOSTART,
 # `SetFacing(GetDirectionToCharacter(GetPlayer()))` of
 # `Game_Event::ScheduleForegroundExecution`. Since 2026-09-11 it is done, on
 # both sides —before, it answered facing wherever it was—. The rules, which
-# the ROM follows in `giro_disparar` and company:
+# the ROM follows in `turn_fire` and company:
 #
 # * It turns if its page turns —a CharSet and an animation that does not fix
 #   the direction, `pagina["gira"]`— and it has no route: with a route, the
@@ -1609,7 +1609,7 @@ COND_GOLD = 3
 # 2026-09-10— so the line above is stale: the item branch is
 # `GetItemCount(id) > 0`, exactly the same question as the page condition by
 # item, which the ROM already answers by reading `FAR_ITEMS`. Equipment does
-# not count, as in `condiciones_ok`: `GetEquippedItemCount` asks for
+# not count, as in `conditions_ok`: `GetEquippedItemCount` asks for
 # equipment, which there is none.
 COND_ITEM = 4
 COND_ACTOR = 5
@@ -1915,7 +1915,7 @@ BATTLE_LOSE = 0xFFFF
 # hero and on each event, and what cancelling means is written only once: it
 # is **the same as what happens when the route ends on its own** —whoever had
 # a page route of its own goes back to it, whoever did not stands still— and
-# that is why the ROM calls `retomar_pagina`.
+# that is why the ROM calls `resume_page`.
 #
 # What it **does not** touch, same as `CancelMoveRoute`: the step or jump in
 # progress are finished, and where each one faces stays where the route left
@@ -2576,7 +2576,7 @@ COMMON_EVENTS = {}            # RM2k common event -> its commands
 # enough to run it **when they change**: when the switch turns on —the
 # converter pastes the body after the `ControlSwitches` that turns it on, like
 # a `CallEvent`— and when closing the menu, which is where the equipment is
-# changed —the ROM runs it from `menu_pantalla`, see `comunes_del_equipo` in
+# changed —the ROM runs it from `menu_pantalla`, see `equipment_commons` in
 # tools/runtime/equipo_desde_eventos.s—. It is what the droid tutorial says:
 # "these abilities become available once you equip a particular component and
 # exit the menu".
@@ -3048,7 +3048,7 @@ class Troops:
 # --- the troops' event pages -------------------------------------------------
 #
 # `Game_Interpreter_Battle`: each troop brings its pages, and the battle runs
-# them **with the same interpreter as the maps**, `correr_codigo`, so they are
+# them **with the same interpreter as the maps**, `run_code`, so they are
 # compiled with the same `compile_page`. The only thing that changes is
 # what is accepted: see `TROOP_COMMANDS`.
 #
@@ -3654,7 +3654,7 @@ def _patch(pieces, open_at, dest):
 CELL_DEST_A = 10
 CELL_DEST_B = 16
 # The top two bits of each `OP_CELL_TEST` write, over the variable's offset:
-# y instead of x, and the refresh. See `celda_probar` in
+# y instead of x, and the refresh. See `cell_test` in
 # tools/runtime/interprete_celdas.s.
 CELL_Y = 0x4000
 CELL_REFRESH = 0x8000
@@ -3671,7 +3671,7 @@ def fadable_cells(commands):
     characters touch: the forty of each lap of the race, the lights of map 11
     and some two hundred more in the game. Fused, it runs in a single turn of
     the interpreter instead of four, and it is what keeps the race at 60
-    frames: see `celda_probar` in tools/runtime/interprete_celdas.s.
+    frames: see `cell_test` in tools/runtime/interprete_celdas.s.
 
     Only the shape is looked at here; whether the operands compile is said
     by `_cell_test_piece`, which is the one that emits.
@@ -5000,7 +5000,7 @@ def _compile(cmd, map_index, messages=None, extra=(),
                 # And the hero diagonally: the ROM does not know how to do it
                 # and none of the game's 26 routes with diagonals is the
                 # hero's. Without this cut the ROM would go left —the `mover`
-                # of `paso_de_ruta` falls into `try_left` by elimination—.
+                # of `step_route` falls into `try_left` by elimination—.
                 raise CannotCompile()
             if command == ROUTE_CHANGE_GRAPHIC:
                 # The only command with an operand: after 34 goes the
