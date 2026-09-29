@@ -61,8 +61,8 @@ def flags_parser():
     parser.add_argument("--measure-headroom", type=float, metavar="HEADROOM",
                         help="the same headroom for every song, instead of "
                              "the volume ceiling table: it is what "
-                             "`tools/audio/ceilings.py` builds the ROM where it "
-                             "measures each song's peak with. It goes to "
+                             "`rm2k-snes-volume-ceilings` builds the ROM where "
+                             "it measures each song's peak with. It goes to "
                              "`rm2k-snes-audio` as the job's "
                              "`measuring_headroom`")
     parser.add_argument("--enemy-hp", action="store_true",

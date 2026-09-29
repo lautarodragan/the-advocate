@@ -988,10 +988,10 @@ def main():
                                    kind=list))
     # The music itself is `rm2k-snes-audio`'s: it gets what was decided
     # here —the songs, the sound effects, the packages—, and writes
-    # `musicdata.inc`, `musica.json` —what `tools/audio/msu.py` and the
-    # volume ceilings read of each song— and `audio.json`, what the rest of
-    # this function needs from the music. The job stays next to them, so
-    # the music of a cartridge can be rebuilt alone.
+    # `musicdata.inc`, `musica.json` —what `rm2k-snes-msu` and
+    # `rm2k-snes-volume-ceilings` read of each song— and `audio.json`, what
+    # the rest of this function needs from the music. The job stays next to
+    # them, so the music of a cartridge can be rebuilt alone.
     # Each package's sound effects go by number and not by SRCN: several
     # share the directory's place, which is its business.
     job = {
