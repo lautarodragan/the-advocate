@@ -19,7 +19,7 @@ camino que se prueba.
 import pytest
 
 from port import animation, events
-from port.snes_convert import animation_frame
+from port.battle_animations import animation_frame
 from render.render_map import Renderer
 from rpgmaker.resources import GAME_DIR
 
