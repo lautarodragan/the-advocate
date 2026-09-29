@@ -3,10 +3,10 @@
 toda la tanda, y `test-special`, con lo que no entra en ella.
 Ninguna prueba arma: corren contra lo que deja esto —ver `tanda.rom`—.
 
-    python3 tools/ensamblado/cartuchos.py            arma lo que haga falta
-    python3 tools/ensamblado/cartuchos.py release    sólo ése, con sus pistas
-                                                     de MSU-1: `just build`
-    python3 tools/ensamblado/cartuchos.py --lista    qué caso va en qué cartucho
+    rm2k-snes-cartridges            arma lo que haga falta
+    rm2k-snes-cartridges release    sólo ése, con sus pistas de MSU-1:
+                                    `just build`
+    rm2k-snes-cartridges --lista    qué caso va en qué cartucho
 
 Un caso nuevo es un archivo en `pruebas/casos/` y nada más: entra solo en
 `release` y se corre con `tanda.partida("<nombre>")`. Empieza con un

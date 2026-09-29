@@ -29,7 +29,7 @@ cada tema. Los del juego entero son más de doscientos, y la mayoría no suena
 en ningún mapa convertido. Un `<rom>-N.pcm` que ya no es de ningún tema se
 borra: `just entregar` copia a la tarjeta todos los que encuentre.
 
-    python3 tools/audio/msu.py rom/build/release/abl.sfc
+    rm2k-snes-msu rom/build/release/abl.sfc
 
 No hace falta correrlo a mano: `just build release` lo corre siempre —ver
 `pistas` en `cartuchos.py`—, porque la ROM que se juega lleva sus pistas.

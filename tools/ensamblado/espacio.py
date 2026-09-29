@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Cuánto espacio le queda a cada cartucho: lo imprime y no lo escribe.
 
-    python3 tools/ensamblado/espacio.py                  todos los cartuchos
-    python3 tools/ensamblado/espacio.py release          sólo ése
-    python3 tools/ensamblado/espacio.py DIR/abl.sfc      una ROM armada aparte
+    rm2k-snes-space                  todos los cartuchos
+    rm2k-snes-space release          sólo ése
+    rm2k-snes-space DIR/abl.sfc      una ROM armada aparte
 
 Es `just espacio`. Todo sale de lo que dejó el armado al lado de la ROM —el
 `.dbg` de `ld65` y el `memoria.cfg` del conversor—, así que no relinkea ni

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Mide el techo de cada tema y escribe `parches/auto/musica/techos.toml`.
 
-    python3 tools/audio/techos.py            mide, escribe la tabla y rearma
-                                             `release` con ella: `just techos`
-    python3 tools/audio/techos.py --medir    sólo mide el `release` que está
-                                             armado, y no escribe nada
+    rm2k-snes-volume-ceilings            mide, escribe la tabla y rearma
+                                         `release` con ella: `just techos`
+    rm2k-snes-volume-ceilings --medir    sólo mide el `release` que está
+                                         armado, y no escribe nada
 
 El porqué de la tabla está en `leer_techos` (tools/audio/snes_music.py). Esto
 es cómo sale:

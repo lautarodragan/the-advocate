@@ -3,8 +3,8 @@
 lo juegue: `just entregar "<qué mirar>"`. La regla es la de "Sub-agentes" en
 AGENTS.md; esto es esa regla escrita una sola vez.
 
-    python3 tools/ensamblado/entregar.py "qué mirar"
-    python3 tools/ensamblado/entregar.py "qué mirar" --actualizar-msu
+    abl-entregar "qué mirar"
+    abl-entregar "qué mirar" --actualizar-msu
 
 El build lleva `abl.sfc`, `abl.sfc.dbg`, `abl.msu`, el `rom/src/` del commit
 y un `LEEME.txt`. Las pistas de MSU-1 no: van a `/shared/msu/`, y sólo con

@@ -9,12 +9,15 @@ cada cosa está en la carpeta de su responsabilidad.
 De abajo hacia arriba. Una carpeta importa sólo de las que tiene abajo, nunca de
 una de su misma fila ni de más arriba.
 
+    comun/       el caché en disco del conversor (cache_disco), el reparto de
+                 lo puro en procesos bifurcados (paralelo) y el arranque de
+                 los scripts que se instalan en el PATH (ejecutable). No
+                 importa nada de acá, y lo puede importar cualquiera
+
     rpgmaker/    el juego como datos: el volcado a JSON de data/ (lcf), los
                  códigos de comando de RM2k (event_codes) y sus reglas
                  (rm2k). Ninguna regla del formato vive acá: data/ viene
                  resuelto. Tiene su propio README
-    comun/       el caché en disco del conversor (cache_disco) y el reparto de
-                 lo puro en procesos bifurcados (paralelo)
     ensamblado/  el mapa de memoria (bancos), el que arma la ROM (ensamblar) y
                  qué ROMs hay y con qué flags (cartuchos, que usa `just build`)
     emulador/    el core de libretro desde Python (retro), y el parche de
@@ -41,7 +44,8 @@ en inglés y sin una mención a este juego (ver AGENTS.md):
     lz2/         el LC_LZ2 de Nintendo, con un parser óptimo
 
 Se instalan con `just herramientas` y se usan desde el PATH: ningún `.py` de
-acá los compila ni los busca en `target/`.
+acá los compila ni los busca en `target/`. Los scripts de Python que se
+ejecutan también: ver "Los que se ejecutan".
 
 ## `port/` no está partido todavía
 
@@ -71,15 +75,27 @@ Un `import lcf` suelto falla, y es a propósito: si también anduviera, el mismo
 módulo se podría cargar dos veces con dos nombres, y lo que uno le cambia al
 otro —`snes_convert` le cambia `DECORAR_TRANSLUCIDO` a `lcf`— no llegaría.
 
-Los scripts se corren por su ruta, desde donde sea:
+## Los que se ejecutan
 
-    python3 tools/port/snes_convert.py --help
-    python3 tools/ensamblado/ensamblar.py --help
-    python3 tools/audio/msu.py --help
+Los scripts que se corren son ejecutables —hashbang y `chmod +x`— y `just
+herramientas` los instala como symlinks en el mismo `bin/` que los proyectos
+de Rust. El `justfile` los llama por su nombre y no sabe dónde están:
 
-Los que importan paquetes —`snes_convert` y `msu`— cambian, sólo si corren
-como script, la carpeta que Python les pone al frente del `sys.path` por
-`tools/`. Las pruebas ponen `tools/` ellas mismas.
+    rm2k-snes-cartridges        ensamblado/cartuchos.py
+    rm2k-snes-assemble          ensamblado/ensamblar.py
+    rm2k-snes-space             ensamblado/espacio.py
+    rm2k-snes-convert           port/snes_convert.py
+    rm2k-snes-patches           port/parches.py
+    rm2k-snes-msu               audio/msu.py
+    rm2k-snes-volume-ceilings   audio/techos.py
+    abl-entregar                ensamblado/entregar.py
+
+El porqué de los nombres está en la receta. Uno nuevo se agrega ahí, y el
+`.py` lleva el mismo arranque que los demás: corrido como script, pone
+`tools/` en el `sys.path` —resolviendo el symlink con `realpath`, porque
+`__file__` es la ruta del PATH— y, si el directorio actual es otro checkout
+con su propia copia, corre ésa (`comun/ejecutable.py`). Las pruebas ponen
+`tools/` en el camino ellas mismas, desde `pytest.ini`.
 
 ## El parche de bsnes
 

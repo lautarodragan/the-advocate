@@ -7,7 +7,7 @@ Las pruebas del ROM. En Python. Usan libretro para correr el rom.
     just pruebas -k menu          lo de siempre de pytest pasa tal cual
     PROCESOS=0 just pruebas ...   en serie, para --pdb o -s
 
-Cuántas son y cuántas pasan lo dice la corrida; `python3 -m pytest pruebas
+Cuántas son y cuántas pasan lo dice la corrida; `pytest pruebas
 --collect-only -q` las lista sin correrlas.
 
 ## Carpetas
