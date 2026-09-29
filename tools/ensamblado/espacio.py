@@ -1,33 +1,35 @@
 #!/usr/bin/env python3
-"""Cuánto espacio le queda a cada cartucho: lo imprime y no lo escribe.
+"""How much space each cartridge has left: it prints it and does not write
+it down.
 
-    rm2k-snes-space                  todos los cartuchos
-    rm2k-snes-space release          sólo ése
-    rm2k-snes-space DIR/abl.sfc      una ROM armada aparte
+    rm2k-snes-space                  every cartridge
+    rm2k-snes-space release          only that one
+    rm2k-snes-space DIR/abl.sfc      a ROM built separately
 
-Es `just espacio`. Todo sale de lo que dejó el armado al lado de la ROM —el
-`.dbg` de `ld65` y el `memoria.cfg` del conversor—, así que no relinkea ni
-ensambla nada. Hasta el 2026-09-27 esto se medía a mano, linkeando un `.res N`
-contra el `.o` de la receta (ver "Trampas del entorno" en AGENTS.md), y los
-números que quedaban escritos envejecían solos.
+It is `just espacio`. Everything comes from what the build left next to the
+ROM —`ld65`'s `.dbg` and the converter's `memoria.cfg`—, so it neither
+relinks nor assembles anything. Until 2026-09-27 this was measured by hand,
+linking a `.res N` against the recipe's `.o` (see "Trampas del entorno" in
+AGENTS.md), and the numbers that got written down went stale on their own.
 
-Lo que imprime, y de dónde sale cada cosa:
+What it prints, and where each thing comes from:
 
-* **Bancos de datos**: los `BANKnn` desde `bancos.PRIMER_BANCO`, contra los que
-  entran en el `.cfg`. Un banco "usado" es uno que tiene algo; los "libres"
-  son los que vienen detrás del último usado. **Es el número que manda**, y
-  no un porcentaje: el acomodo deja huecos, y los bancos `$7E`/`$7F` no son
-  ROM.
-* **Huecos**: lo que sobra adentro de los usados. Con el acomodo de
-  `bancos.py` casi todo es el final del último; ver `resolver`.
-* **Banco 0**: el área `ROM` del `.cfg` menos `CODE` y `TABLAS`, que la
-  comparten.
-* **Banco 1**: lo que rellena el `.align $8000` de `cabecera.s`, que es lo
-  que cierra `FAR`. Se reconoce por la línea del fuente y no por la posición:
-  si `FAR` llenara el banco justo, no habría relleno y daría cero.
-* **BSS y ZEROPAGE**: sus áreas del `.cfg` menos lo que ocupan.
-* **Textos**: `MENSAJES_BYTES` contra `MENSAJES_TOPE`, que emite el conversor
-  al lado del bloque; ver `eventos.MENSAJES_PASO`.
+* **Data banks**: the `BANKnn` from `bancos.PRIMER_BANCO`, against the ones
+  that fit in the `.cfg`. A "used" bank is one that has something; the
+  "free" ones are those that come after the last used one. **It is the
+  number that matters**, and not a percentage: the packing leaves gaps, and
+  banks `$7E`/`$7F` are not ROM.
+* **Gaps**: what is left over inside the used ones. With `bancos.py`'s
+  packing almost all of it is the end of the last one; see `resolver`.
+* **Bank 0**: the `.cfg`'s `ROM` area minus `CODE` and `TABLAS`, which share
+  it.
+* **Bank 1**: what the `.align $8000` in `cabecera.s` pads, which is what
+  closes `FAR`. It is recognized by the source line and not by the position:
+  if `FAR` filled the bank exactly, there would be no padding and it would
+  give zero.
+* **BSS and ZEROPAGE**: their `.cfg` areas minus what they take.
+* **Texts**: `MENSAJES_BYTES` against `MENSAJES_TOPE`, which the converter
+  emits next to the block; see `eventos.MENSAJES_PASO`.
 """
 
 import argparse
@@ -35,8 +37,8 @@ import os
 import re
 import sys
 
-# `realpath` y no `abspath`: `just herramientas` instala este script en el PATH
-# como symlink, y lo que importa es dónde está el archivo de verdad.
+# `realpath` and not `abspath`: `just herramientas` installs this script on
+# the PATH as a symlink, and what matters is where the real file is.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 from comun import ambiente                              # noqa: E402
@@ -48,7 +50,7 @@ CAMPO = re.compile(r'(\w+)=("[^"]*"|[^,\s]+)')
 
 
 def _registros(dbg, clase):
-    """Las líneas `clase` del `.dbg`, como diccionarios."""
+    """The `clase` lines of the `.dbg`, as dictionaries."""
     with open(dbg) as archivo:
         for linea in archivo:
             if linea.startswith(clase + "\t"):
@@ -56,7 +58,7 @@ def _registros(dbg, clase):
 
 
 def _areas(cfg):
-    """{área: tamaño} del `MEMORY` de un `.cfg` de `ld65`."""
+    """{area: size} from the `MEMORY` of an `ld65` `.cfg`."""
     with open(cfg) as archivo:
         texto = archivo.read()
     return {nombre: int(tam, 16) for nombre, tam in
@@ -65,7 +67,7 @@ def _areas(cfg):
 
 
 def _relleno_de_far(dbg):
-    """Cuánto rellena el `.align $8000` de `cabecera.s`, en bytes."""
+    """How much the `.align $8000` in `cabecera.s` pads, in bytes."""
     with open(os.path.join(proyecto.runtime(), "cabecera.s")) as archivo:
         lineas = [n + 1 for n, l in enumerate(archivo)
                   if l.split(";")[0].strip().startswith(".align")]
@@ -81,7 +83,7 @@ def _relleno_de_far(dbg):
 
 
 def medir(sfc):
-    """Lo que imprime `mostrar`, como diccionario, para la ROM `sfc`."""
+    """What `mostrar` prints, as a dictionary, for the ROM `sfc`."""
     dbg = sfc + ".dbg"
     areas = _areas(os.path.join(os.path.dirname(sfc), "memoria.cfg"))
     usado = {s["name"]: int(s["size"], 0) for s in _registros(dbg, "seg")}
@@ -114,22 +116,22 @@ def _b(n):
 
 def mostrar(nombre, sfc):
     m = medir(sfc)
-    # Una ROM armada aparte se nombra por su ruta; un cartucho, por su nombre.
+    # A ROM built separately is named by its path; a cartridge, by its name.
     print(nombre if os.path.isfile(nombre)
           else "%s  (%s)" % (nombre, os.path.relpath(sfc, proyecto.raiz())))
-    print("  bancos de datos  %d de %d usados, $%02X-$%02X; %d libres detrás"
+    print("  data banks       %d of %d used, $%02X-$%02X; %d free after them"
           % (m["ultimo"] - m["primero"] + 1, m["bancos"], m["primero"],
              m["ultimo"], m["libres"]))
-    print("  huecos           %s en los usados, el mayor de %s"
+    print("  gaps             %s in the used ones, the largest %s"
           % (_b(m["huecos"]), _b(m["hueco_mayor"])))
-    print("  banco 0          %s" % _b(m["banco0"]))
-    print("  banco 1          %s" % _b(m["banco1"]))
+    print("  bank 0           %s" % _b(m["banco0"]))
+    print("  bank 1           %s" % _b(m["banco1"]))
     print("  BSS              %s" % _b(m["bss"]))
     print("  ZEROPAGE         %s" % _b(m["zeropage"]))
     if m["textos"] is None:
-        print("  textos           la ROM no dice cuánto miden")
+        print("  texts            the ROM does not say how long they are")
     else:
-        print("  textos           %s de %s; quedan %s"
+        print("  texts            %s of %s; %s left"
               % (_b(m["textos"]), _b(m["textos_tope"]),
                  _b(m["textos_tope"] - m["textos"])))
 
@@ -140,9 +142,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     proyecto.argumento(parser)
     ambiente.argumentos(parser, "test_cartridges")
-    parser.add_argument("cuales", nargs="*", metavar="CARTUCHO",
-                        help="un cartucho de cartuchos.py o la ruta de una "
-                             "ROM armada; sin nada, todos los cartuchos")
+    parser.add_argument("cuales", nargs="*", metavar="CARTRIDGE",
+                        help="a cartridge from cartuchos.py or the path of a "
+                             "built ROM; with nothing, every cartridge")
     args = parser.parse_args()
     ambiente.desde_argumentos(args, "test_cartridges")
     primero = True
@@ -150,13 +152,13 @@ def main():
         if cual in cartuchos.CARTUCHOS:
             porque = cartuchos.viejo(cual)
             if porque:
-                sys.exit("%s: %s; `just espacio` lo arma antes"
+                sys.exit("%s: %s; `just espacio` builds it first"
                          % (cual, porque))
             sfc = cartuchos.rom_de(cual)
         elif os.path.isfile(cual):
             sfc = os.path.abspath(cual)
         else:
-            sys.exit("%r no es un cartucho (%s) ni una ROM armada"
+            sys.exit("%r is neither a cartridge (%s) nor a built ROM"
                      % (cual, ", ".join(cartuchos.CARTUCHOS)))
         if not primero:
             print()

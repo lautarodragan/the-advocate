@@ -1,56 +1,58 @@
 #!/usr/bin/env python3
-"""Las pistas de MSU-1 del cartucho, desde los MIDI del juego.
+"""The cartridge's MSU-1 tracks, from the game's MIDIs.
 
-El MSU-1 no es hardware de la Super Nintendo: es una extensión que soportan el
-FX Pak Pro y los emuladores, con la música en archivos PCM al lado de la ROM.
-Todo tema tiene pista —el número lo da `pista_msu`, en snes_music.py—, y con
-MSU-1 la ROM calla el SPC700 y la toca; sin MSU-1 la firma no está y todo
-suena como siempre. Ver
-`workflow/tasks/done/audio-msu-1.md`, y para los fondos de batalla que viajan
-en el `.msu`, `docs/port/msu-datos.md`.
+MSU-1 is not Super Nintendo hardware: it is an extension supported by the FX
+Pak Pro and by emulators, with the music in PCM files next to the ROM. Every
+song has a track —the number comes from `pista_msu`, in snes_music.py—, and
+with MSU-1 the ROM silences the SPC700 and plays the track; without MSU-1 the
+signature is not there and everything sounds as always. See
+`workflow/tasks/done/audio-msu-1.md`, and for the battle backgrounds that
+travel in the `.msu`, `docs/port/msu-datos.md`.
 
-Una pista es `<rom>-<número>.pcm`: la firma "MSU1", el punto de loop en
-muestras —cuatro bytes— y el audio crudo, estéreo de 16 bits con signo a
-44,1 kHz. Y al lado tiene que estar `<rom>.msu`, que es lo que enciende el
-MSU-1. Ése no lo escribe esto sino el conversor, con los fondos de batalla que
-el MSU-1 le sirve a la ROM —ver `port/msu_datos.py`—; para las pistas puede
-estar vacío.
+A track is `<rom>-<number>.pcm`: the "MSU1" signature, the loop point in
+samples —four bytes— and the raw audio, signed 16-bit stereo at 44.1 kHz.
+And next to it there has to be `<rom>.msu`, which is what turns MSU-1 on.
+That one is not written by this but by the converter, with the battle
+backgrounds MSU-1 serves to the ROM —see `port/msu_datos.py`—; for the
+tracks it can be empty.
 
-El audio sale de renderizar el MIDI con fluidsynth y **el mismo soundfont con
-el que el juego sonaba en la PC**, que es el que ya usa `snes_samples.py` para
-sacar las muestras del SPC700: la idea no es cambiar el arreglo sino dejar de
-sintetizarlo con ocho voces y muestras recortadas. Un tema que en el juego es
-un WAV —el SPC700 no lo toca: sale mudo— tiene pista igual, decodificado con
-ffmpeg como un reemplazo.
+The audio comes from rendering the MIDI with fluidsynth and **the same
+soundfont the game sounded with on the PC**, which is the one
+`snes_samples.py` already uses to get the SPC700 samples: the idea is not to
+change the arrangement but to stop synthesizing it with eight voices and
+trimmed samples. A song that in the game is a WAV —the SPC700 does not play
+it: it comes out silent— gets a track anyway, decoded with ffmpeg like a
+replacement.
 
-**Se arman las pistas de los temas del cartucho, y nada más**: las que dice
-el `musica.json` que el conversor deja al lado de la ROM, con el número de
-cada tema. Los del juego entero son más de doscientos, y la mayoría no suena
-en ningún mapa convertido. Un `<rom>-N.pcm` que ya no es de ningún tema se
-borra: `just entregar` copia a la tarjeta todos los que encuentre.
+**The tracks of the cartridge's songs are built, and nothing more**: the
+ones listed in the `musica.json` the converter leaves next to the ROM, with
+each song's number. The whole game has more than two hundred, and most of
+them play in no converted map. A `<rom>-N.pcm` that no longer belongs to any
+song is deleted: `just entregar` copies every one it finds to the card.
 
     rm2k-snes-msu rom/build/release/abl.sfc
 
-No hace falta correrlo a mano: `just build release` lo corre siempre —ver
-`pistas` en `cartuchos.py`—, porque la ROM que se juega lleva sus pistas.
-Que estén al lado de la ROM no cambia las pruebas: el arnés le esconde las
-pistas al core, ver `retro.Consola`.
+There is no need to run it by hand: `just build release` always runs it
+—see `pistas` in `cartuchos.py`—, because the ROM that is played carries its
+tracks. Their being next to the ROM does not change the tests: the harness
+hides the tracks from the core, see `retro.Consola`.
 
-**Una pista puede salir de un archivo de audio en vez del MIDI.** Si en el
-directorio de reemplazos —`/extras/msu` si no se dice otro— hay un
-`<tema>.mp3`, `.ogg`, `.flac` o `.wav`, la pista es ese audio, decodificado
-con ffmpeg: por ejemplo `escape_newyork.mp3`. Es sólo para el MSU-1: sin él
-el tema sigue sonando por el SPC700 desde el MIDI. Los reemplazos viven en
-`/extras` y no en el repo por la misma razón que el arte del juego: la música
-no es nuestra para redistribuir.
+**A track can come from an audio file instead of the MIDI.** If the
+replacements directory —`/extras/msu` unless another is given— has a
+`<song>.mp3`, `.ogg`, `.flac` or `.wav`, the track is that audio, decoded
+with ffmpeg: for example `escape_newyork.mp3`. It is only for MSU-1: without
+it the song keeps playing through the SPC700 from the MIDI. The replacements
+live in `/extras` and not in the repo for the same reason as the game's art:
+the music is not ours to redistribute.
 
-**Una pista que ya está no se vuelve a renderizar.** Cuesta un minuto y medio
-para las del cartucho y no depende de él: depende del MIDI, del soundfont, del
-sintetizador y de cómo se normaliza, y todo eso entra en la clave —ver
-`clave_de_la_pista`—. Lo guardado en `rom/build/cache/msu/` es el sha256 del
-`.pcm`, no el `.pcm`: las pistas pesan cientos de megas y ya están en el
-disco, al lado de la ROM; guardarlas sería tener dos copias de lo mismo.
-Con `SIN_CACHE=1` se rehacen todas, que es como se comprueba que salen iguales.
+**A track that already exists is not rendered again.** It costs a minute and
+a half for the cartridge's and does not depend on it: it depends on the MIDI,
+the soundfont, the synthesizer and how it is normalized, and all of that goes
+into the key —see `clave_de_la_pista`—. What is stored in
+`rom/build/cache/msu/` is the sha256 of the `.pcm`, not the `.pcm`: the
+tracks weigh hundreds of megabytes and are already on disk, next to the ROM;
+storing them would mean two copies of the same thing. With `SIN_CACHE=1` they
+are all redone, which is how one checks that they come out the same.
 """
 import argparse
 import glob
@@ -65,11 +67,11 @@ import wave
 
 import numpy
 
-# Corrido como script, Python pone en el `sys.path` la carpeta de este archivo
-# y no `tools/`, que es de donde se importan los paquetes: ver el mismo
-# arranque en `port/snes_convert.py`.
-# `realpath` y no `abspath`: `just herramientas` lo instala en el PATH como
-# symlink, y la carpeta que sirve es la del archivo de verdad.
+# Run as a script, Python puts this file's folder on `sys.path` and not
+# `tools/`, which is where the packages are imported from: see the same
+# startup in `port/snes_convert.py`.
+# `realpath` and not `abspath`: `just herramientas` installs it on the PATH as
+# a symlink, and the folder that works is the real file's.
 if __name__ == "__main__":
     sys.path[0] = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
@@ -80,45 +82,46 @@ from comun import cache_disco                               # noqa: E402
 from comun import proyecto                                  # noqa: E402
 from rpgmaker import recursos                               # noqa: E402
 
-# La ganancia de fluidsynth. Con 1.0 los temas con muchas voces saturan, así
-# que se renderiza bajo y después se normaliza: el pico de la pista queda en
-# `PICO`, que es casi la escala entera. Sin esto la pista sonaba a un cuarto
-# del volumen de la música del SPC700 —medido: pico 4632 contra 17012— y el
-# cambio de un tema a otro daba un salto de volumen.
+# fluidsynth's gain. With 1.0 the songs with many voices saturate, so it is
+# rendered low and then normalized: the track's peak ends up at `PICO`, which
+# is almost full scale. Without this the track played at a quarter of the
+# SPC700 music's volume —measured: peak 4632 against 17012— and switching
+# from one song to another gave a jump in volume.
 GANANCIA = 0.6
 PICO = 0.97
 
 _fluidsynth = None
 _ffmpeg = None
 
-# Con qué extensiones se buscan los reemplazos, en este orden. Dónde, lo dice
-# `--reemplazos`: ver `comun/ambiente.py`.
+# Which extensions the replacements are looked for with, in this order.
+# Where is set by `--reemplazos`: see `comun/ambiente.py`.
 EXTENSIONES = (".mp3", ".ogg", ".flac", ".wav")
 
 
 def huella_de_fluidsynth():
-    """Qué sintetizador produjo la pista: el binario del PATH y su versión.
+    """Which synthesizer produced the track: the binary on the PATH and its
+    version.
 
-    Va el binario porque es lo que produce los bytes —la misma razón por la
-    que `muestras_brr.version()` lleva el de `gunter`— y va el texto de
-    `--version` porque el grueso de la síntesis vive en `libfluidsynth`, que
-    el binario no contiene: actualizar la biblioteca sin que cambie el
-    ejecutable tiene que caducar las pistas igual.
+    The binary goes in because it is what produces the bytes —the same reason
+    `muestras_brr.version()` carries `gunter`'s— and the `--version` text goes
+    in because the bulk of the synthesis lives in `libfluidsynth`, which the
+    binary does not contain: updating the library without the executable
+    changing has to expire the tracks all the same.
     """
     global _fluidsynth
     if _fluidsynth is None:
         ruta = shutil.which("fluidsynth")
         if ruta is None:
-            sys.exit("falta fluidsynth: en Arch, pacman -S fluidsynth")
+            sys.exit("fluidsynth is missing: on Arch, pacman -S fluidsynth")
         h = hashlib.sha256()
         with open(ruta, "rb") as f:
             for bloque in iter(lambda: f.read(1 << 20), b""):
                 h.update(bloque)
-        # **Sólo el stdout.** Por el stderr salen los avisos de PipeWire y de
-        # ALSA de una caja sin placa de sonido, y adentro va la dirección de
-        # un puntero: con ASLR cambia en cada corrida y la clave no repetía
-        # nunca. Medido: dos corridas seguidas daban dos claves distintas y no
-        # se saltó una sola pista.
+        # **Only stdout.** stderr carries the PipeWire and ALSA warnings of a
+        # box without a sound card, and inside them goes a pointer address:
+        # with ASLR it changes on every run and the key never repeated.
+        # Measured: two runs in a row gave two different keys and not a
+        # single track was skipped.
         version = subprocess.run(["fluidsynth", "--version"],
                                  stdout=subprocess.PIPE,
                                  stderr=subprocess.DEVNULL, text=True)
@@ -128,13 +131,13 @@ def huella_de_fluidsynth():
 
 
 def huella_de_ffmpeg():
-    """Qué decodificador produjo la pista de un reemplazo: el binario del
-    PATH y su versión, por lo mismo que `huella_de_fluidsynth`."""
+    """Which decoder produced a replacement's track: the binary on the PATH
+    and its version, for the same reason as `huella_de_fluidsynth`."""
     global _ffmpeg
     if _ffmpeg is None:
         ruta = shutil.which("ffmpeg")
         if ruta is None:
-            sys.exit("falta ffmpeg: en Arch, pacman -S ffmpeg")
+            sys.exit("ffmpeg is missing: on Arch, pacman -S ffmpeg")
         h = hashlib.sha256()
         with open(ruta, "rb") as f:
             for bloque in iter(lambda: f.read(1 << 20), b""):
@@ -148,8 +151,8 @@ def huella_de_ffmpeg():
 
 
 def reemplazo(directorio, nombre):
-    """El archivo de audio que reemplaza al MIDI de este tema, o None. Sin
-    directorio de reemplazos, ninguno."""
+    """The audio file that replaces this song's MIDI, or None. Without a
+    replacements directory, none."""
     if directorio is None:
         return None
     for extension in EXTENSIONES:
@@ -160,8 +163,8 @@ def reemplazo(directorio, nombre):
 
 
 def clave_del_reemplazo(audio, pico=PICO):
-    """Como `clave_de_la_pista`, para una pista que sale de un archivo de
-    audio: un reemplazo, o un tema que en el juego es un WAV."""
+    """Like `clave_de_la_pista`, for a track that comes from an audio file: a
+    replacement, or a song that in the game is a WAV."""
     with open(audio, "rb") as f:
         crudo = f.read()
     return cache_disco.clave(cache_disco.version_de("audio/msu.py"),
@@ -169,20 +172,21 @@ def clave_del_reemplazo(audio, pico=PICO):
 
 
 def decodificar(audio, salida):
-    """Un archivo de audio a WAV de 44,1 kHz estéreo de 16 bits, con ffmpeg."""
+    """An audio file to 44.1 kHz 16-bit stereo WAV, with ffmpeg."""
     subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-i", audio,
                     "-ar", "44100", "-ac", "2", "-c:a", "pcm_s16le", salida],
                    check=True)
 
 
 def clave_de_la_pista(midi, soundfont, ganancia, pico=PICO):
-    """Todo lo que cambia los bytes de la pista, como una clave.
+    """Everything that changes the track's bytes, as a key.
 
-    El MIDI, el soundfont y el sintetizador son de dónde sale el audio; la
-    ganancia y el pico, cómo se escala; y `version_de` es el código de acá,
-    que es el que normaliza y arma el archivo. **El número de pista no va**:
-    no cambia ni una muestra, sólo el nombre del archivo, y por eso con una
-    sola demo renumerar dejó de rehacer nada.
+    The MIDI, the soundfont and the synthesizer are where the audio comes
+    from; the gain and the peak, how it is scaled; and `version_de` is the
+    code here, which is what normalizes and builds the file. **The track
+    number does not go in**: it does not change a single sample, only the
+    file name, and that is why with a single demo renumbering stopped
+    redoing anything.
     """
     with open(midi, "rb") as f:
         crudo = f.read()
@@ -194,7 +198,7 @@ def clave_de_la_pista(midi, soundfont, ganancia, pico=PICO):
 
 
 def huella_del_archivo(ruta):
-    """El sha256 de un archivo ya escrito, o None si no está."""
+    """The sha256 of an already written file, or None if it is not there."""
     h = hashlib.sha256()
     try:
         with open(ruta, "rb") as f:
@@ -206,22 +210,22 @@ def huella_del_archivo(ruta):
 
 
 def render(midi, salida, soundfont, ganancia=GANANCIA):
-    """El MIDI a WAV de 44,1 kHz estéreo, con fluidsynth."""
+    """The MIDI to 44.1 kHz stereo WAV, with fluidsynth."""
     subprocess.run(["fluidsynth", "-ni", "-r", "44100", "-g", str(ganancia),
                     "-F", salida, soundfont, midi],
                    check=True, stdout=subprocess.DEVNULL)
 
 
 def pista(wav, salida, loop=0, pico=PICO):
-    """El WAV como pista de MSU-1, normalizado, con su punto de loop."""
+    """The WAV as an MSU-1 track, normalized, with its loop point."""
     con = wave.open(wav)
     if (con.getnchannels(), con.getsampwidth(), con.getframerate()) != (2, 2, 44100):
-        raise SystemExit("%s no es estéreo de 16 bits a 44100" % wav)
-    # Con numpy y no muestra por muestra: son la misma cuenta —el producto en
-    # doble precisión, truncado hacia el cero como `int()`, y recortado—, y
-    # las pistas salen iguales byte por byte. En Python puro era casi todo el
-    # tiempo de rehacer una pista. El `int32` es por el -32768, cuyo valor
-    # absoluto no entra en 16 bits.
+        raise SystemExit("%s is not 16-bit stereo at 44100" % wav)
+    # With numpy and not sample by sample: it is the same arithmetic —the
+    # product in double precision, truncated towards zero like `int()`, and
+    # clipped—, and the tracks come out byte for byte the same. In pure Python
+    # it was almost all the time spent redoing a track. The `int32` is because
+    # of -32768, whose absolute value does not fit in 16 bits.
     datos = numpy.frombuffer(con.readframes(con.getnframes()), dtype="<i2")
     alto = int(numpy.abs(datos.astype(numpy.int32)).max()) or 1
     escala = pico * 32767.0 / alto
@@ -236,37 +240,38 @@ def pista(wav, salida, loop=0, pico=PICO):
 
 
 def pistas_del_cartucho(rom):
-    """[(nombre, número)] de los temas del cartucho que tienen pista, en orden
-    de número: del `musica.json` que el conversor deja al lado de la ROM."""
+    """[(name, number)] of the cartridge's songs that have a track, in order
+    of number: from the `musica.json` the converter leaves next to the ROM."""
     ruta = os.path.join(os.path.dirname(os.path.abspath(rom)), "musica.json")
     try:
         with open(ruta, encoding="utf-8") as archivo:
             temas = json.load(archivo)["temas"]
     except OSError:
-        sys.exit("no está %s: las pistas son las de los temas del cartucho, "
-                 "así que primero hay que armarlo" % ruta)
-    # Por número y no por nombre: dos temas que difieren sólo en mayúsculas
-    # son el mismo archivo, y dos hilos escribiendo la misma pista se pisan.
+        sys.exit("%s is missing: the tracks are those of the cartridge's "
+                 "songs, so it has to be built first" % ruta)
+    # By number and not by name: two songs that differ only in case are the
+    # same file, and two threads writing the same track clobber each other.
     por_numero = {t["pista"]: t["nombre"] for t in temas if t.get("pista")}
     return [(por_numero[n], n) for n in sorted(por_numero)]
 
 
 def armar(rom, game_dir=None, soundfont=None, ganancia=GANANCIA,
           reemplazos=None, charlar=True):
-    """Deja al lado de `rom` el `.msu` y una pista por tema del cartucho, y
-    borra las que ya no son de ningún tema.
+    """Leaves next to `rom` the `.msu` and one track per song of the
+    cartridge, and deletes the ones that no longer belong to any song.
 
-    Devuelve cuántas pistas rehízo y cuántas ya estaban. `charlar` en falso
-    calla las que ya estaban: `cartuchos.py` la llama en cada `just pruebas`.
+    Returns how many tracks it redid and how many were already there.
+    `charlar` false silences the ones already there: `cartuchos.py` calls it
+    on every `just pruebas`.
     """
     game_dir = game_dir or recursos.GAME_DIR
     soundfont = soundfont or snes_samples.SOUNDFONT
     reemplazos = reemplazos or ambiente.reemplazos_msu()
     base = os.path.splitext(rom)[0]
-    # El archivo que enciende el MSU-1. Lo escribe el conversor con sus datos,
-    # así que acá se crea sólo si falta —una ROM suelta, armada a mano—, y
-    # vacío: sin la firma que espera, la ROM lee los fondos de sí misma. El
-    # modo "ab" no lo trunca si ya está.
+    # The file that turns MSU-1 on. The converter writes it with its data, so
+    # here it is created only if missing —a loose ROM, built by hand—, and
+    # empty: without the signature it expects, the ROM reads the backgrounds
+    # from itself. Mode "ab" does not truncate it if it is already there.
     abierto = open(base + ".msu", "ab")
     abierto.close()
     pistas = pistas_del_cartucho(rom)
@@ -275,10 +280,10 @@ def armar(rom, game_dir=None, soundfont=None, ganancia=GANANCIA,
         numero = vieja[len(base) + 1:-len(".pcm")]
         if numero.isdigit() and int(numero) not in numeros:
             os.remove(vieja)
-            print("pista %s: ya no es de ningún tema, borrada" % numero)
-    # Las pistas a la vez, en hilos: cada una escribe su archivo, lo pesado
-    # corre en fluidsynth o ffmpeg y en numpy, y una por una eran lo que más
-    # tardaba un build en frío. Lo que se imprime sigue en orden.
+            print("track %s: no longer belongs to any song, deleted" % numero)
+    # The tracks at once, in threads: each one writes its own file, the heavy
+    # part runs in fluidsynth or ffmpeg and in numpy, and one by one they were
+    # what took longest in a cold build. What is printed stays in order.
     import concurrent.futures
     with concurrent.futures.ThreadPoolExecutor(os.cpu_count() or 1) as hilos:
         hechos = [hilos.submit(_una_pista, base, nombre, numero, game_dir,
@@ -290,7 +295,7 @@ def armar(rom, game_dir=None, soundfont=None, ganancia=GANANCIA,
             if linea is None:
                 estaban += 1
                 if charlar:
-                    print("pista %d: %-22s ya estaba -> %s-%d.pcm"
+                    print("track %d: %-22s already there -> %s-%d.pcm"
                           % (numero, nombre, base, numero))
             else:
                 hechas += 1
@@ -300,15 +305,15 @@ def armar(rom, game_dir=None, soundfont=None, ganancia=GANANCIA,
 
 def _una_pista(base, nombre, numero, game_dir, soundfont, ganancia,
                reemplazos):
-    """Una pista de `armar`. Devuelve la línea que la cuenta, o None si ya
-    estaba."""
+    """One track of `armar`. Returns the line that reports it, or None if it
+    was already there."""
     salida = "%s-%d.pcm" % (base, numero)
     audio = reemplazo(reemplazos, nombre)
     midi = None
     if not audio:
         fuente = snes_music.ruta_del_tema(nombre, game_dir)
         if not fuente:
-            sys.exit("no encuentro la música de %s" % nombre)
+            sys.exit("cannot find the music for %s" % nombre)
         if fuente.lower().endswith(".mid"):
             midi = fuente
         else:
@@ -317,14 +322,14 @@ def _una_pista(base, nombre, numero, game_dir, soundfont, ganancia,
         clave = clave_del_reemplazo(audio)
     else:
         clave = clave_de_la_pista(midi, soundfont, ganancia)
-    # La pista que ya está, si la escribió este mismo código con estas
-    # mismas fuentes. Lo guardado es el sha256 del `.pcm`, así que una
-    # corrida cortada a la mitad —el `.pcm` se escribe de una sola vez, y
-    # pesa decenas de megas— no se da por buena: no coincide y se rehace.
+    # The track that is already there, if this same code wrote it with these
+    # same sources. What is stored is the sha256 of the `.pcm`, so a run cut
+    # off halfway —the `.pcm` is written in one go, and weighs tens of
+    # megabytes— is not taken as good: it does not match and is redone.
     guardado = cache_disco.leer("msu", clave)
-    # El `is not None` no sobra: sin caché `leer` da `None`, y un `.pcm`
-    # que no está da `None` también, así que compararlos sin más daría
-    # "ya estaba" justo cuando no hay nada.
+    # The `is not None` is not redundant: without a cache `leer` gives
+    # `None`, and a missing `.pcm` gives `None` too, so comparing them
+    # plainly would say "already there" exactly when there is nothing.
     if guardado is not None and guardado == huella_del_archivo(salida):
         return None
     temporal = salida + ".wav"
@@ -332,21 +337,21 @@ def _una_pista(base, nombre, numero, game_dir, soundfont, ganancia,
         decodificar(audio, temporal)
     else:
         render(midi, temporal, soundfont, ganancia)
-    # Se escribe al lado y se reemplaza, en vez de pisar el `.pcm` en su
-    # lugar: truncarlo le cambiaría el contenido a quien lo tenga abierto
-    # —un emulador tocándolo— o enlazado con otro nombre.
+    # It is written alongside and replaced, instead of overwriting the `.pcm`
+    # in place: truncating it would change the content for whoever has it
+    # open —an emulator playing it— or linked under another name.
     muestras, escala = pista(temporal, salida + ".nuevo")
     os.replace(salida + ".nuevo", salida)
     os.remove(temporal)
     cache_disco.guardar("msu", clave, huella_del_archivo(salida))
-    return ("pista %d: %-22s %6.1f s, %d MB, normalizada x%.2f -> %s%s"
+    return ("track %d: %-22s %6.1f s, %d MB, normalized x%.2f -> %s%s"
             % (numero, nombre, muestras / 44100.0,
                os.path.getsize(salida) // (1 << 20), escala, salida,
-               "  (de %s)" % audio if audio else ""))
+               "  (from %s)" % audio if audio else ""))
 
 
-# Lo de la máquina que usa: el RTP, porque un tema puede salir de ahí; y el
-# caché, donde se recuerda qué pistas ya están.
+# What it uses from the machine: the RTP, because a song can come from there;
+# and the cache, where it remembers which tracks are already there.
 DEL_AMBIENTE = ("game_dir", "rtp_dir", "soundfont", "reemplazos", "cache")
 
 
@@ -354,8 +359,8 @@ def main():
     proyecto.desde_la_linea_de_comandos()
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("rom", help="la ROM: las pistas van al lado, con su "
-                                    "nombre y el número de pista")
+    parser.add_argument("rom", help="the ROM: the tracks go next to it, with "
+                                    "its name and the track number")
     proyecto.argumento(parser)
     ambiente.argumentos(parser, *DEL_AMBIENTE)
     parser.add_argument("--ganancia", type=float, default=GANANCIA)

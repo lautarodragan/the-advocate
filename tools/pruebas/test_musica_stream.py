@@ -1,15 +1,17 @@
-"""El stream de música que arma `snes_music`: a qué voz va cada nota, cuándo
-se suelta y con qué envolvente.
+"""The music stream `snes_music` builds: which voice each note goes to, when
+it is released and with which envelope.
 
-No corren ninguna ROM: las notas y el banco se arman a mano, del tamaño justo
-para que pase lo que se quiere mirar, y lo que se mira es lo que el stream le
-escribe al DSP —el stream por nota empaquetado y decodificado, que tiene que
-dar `escrituras`: lo mismo que la ROM le va a mandar—, con `_salen`. Las de las envolventes leen el SoundFont de verdad, por `gunter` del
-PATH: lo que cobran es justamente que los números salgan de ahí.
+They run no ROM: the notes and the bank are built by hand, just big enough
+for what we want to look at to happen, and what is looked at is what the
+stream writes to the DSP —the per-note stream packed and decoded, which has
+to give `escrituras`: the same the ROM will send it—, with `_salen`. The
+envelope ones read the real SoundFont, through `gunter` from the PATH: what
+they enforce is precisely that the numbers come from there.
 
-**Ese SoundFont lo pasa el que corre, en `SOUNDFONT`**, igual que Ditto
-recibe su corpus en `DITTO_CORPUS`: las herramientas no saben dónde está en
-ninguna máquina. Sin la variable, esas dos se saltean con un mensaje.
+**That SoundFont is passed by whoever runs them, in `SOUNDFONT`**, the same
+way Ditto receives its corpus in `DITTO_CORPUS`: the tools do not know where
+it is on any machine. Without the variable, those two are skipped with a
+message.
 """
 
 import math
@@ -27,12 +29,12 @@ PIANO, BAJO_SINTETICO, BOMBO, SIN_MUESTRA = 0, 38, 36, 35
 class _Muestra:
     def __init__(self, program):
         self.program, self.root, self.rate = program, 60, 16000
-        self.frames = self.rate         # un segundo: lo que suena un golpe
+        self.frames = self.rate         # one second: how long a hit sounds
 
 
 class _Banco:
-    """Lo que `build_events` le pide al banco: el piano y el bombo, y nada
-    para la tecla 35."""
+    """What `build_events` asks of the bank: the piano and the kick drum, and
+    nothing for key 35."""
 
     def __init__(self):
         self.voces = [_Muestra(PIANO), _Muestra(BOMBO)]
@@ -44,7 +46,7 @@ class _Banco:
 
 
 class _BancoDelSoundFont(_Banco):
-    """El mismo banco, con las envolventes de `Banco`: las del SoundFont."""
+    """The same bank, with `Banco`'s envelopes: the SoundFont's."""
 
     envolvente = snes_music.Banco.envolvente
 
@@ -62,8 +64,8 @@ def _nota(start, end, channel=0, pitch=60):
 
 
 def _salen(frames, largo):
-    """Lo que el tema le escribe al DSP, (cuadro, registro, valor): el stream
-    por nota empaquetado y decodificado, que tiene que dar `escrituras`."""
+    """What the song writes to the DSP, (frame, register, value): the per-note
+    stream packed and decoded, which has to give `escrituras`."""
     stream, sonidos = snes_music.pack(frames, largo, snes_music.init_writes())
     salen = snes_music.decodificar(stream, sonidos)
     assert salen == snes_music.escrituras(frames, largo,
@@ -78,10 +80,10 @@ def _armar(notas, voces, programas=None, banco=None):
 
 
 def _leer(salen):
-    """Por voz, los cuadros de sus KON y los de sus releases —ADSR1 en cero,
-    que es lo que le pasa el mando a GAIN—, en orden. Un ADSR1 en cero con el
-    GAIN de `RAMPA` no es un release sino la rampa antes de un robo, y no
-    cuenta."""
+    """Per voice, the frames of its KONs and of its releases —ADSR1 at zero,
+    which is what hands control to GAIN—, in order. An ADSR1 at zero with the
+    `RAMPA` GAIN is not a release but the ramp before a steal, and does not
+    count."""
     kon, apagada, gain = {}, [], {}
     for cuadro, registro, valor in salen:
         if registro == sdsp.KON:
@@ -100,31 +102,31 @@ def _leer(salen):
 
 
 def test_la_nota_robada_no_suelta_a_la_que_le_robo_la_voz():
-    """Un canal con una voz: la segunda nota le roba la voz a la primera a
-    mitad de camino y dura más que ella. El release de la primera —cuadro
-    100— caía sobre la segunda, que se apagaba cien cuadros antes de su fin:
-    329 notas de `escape_newyork` hasta el 2026-09-25."""
+    """One channel with one voice: the second note steals the voice from the
+    first halfway through and lasts longer than it. The first one's release
+    —frame 100— landed on the second, which went silent a hundred frames
+    before its end: 329 notes of `escape_newyork` until 2026-09-25."""
     salen = _armar([_nota(0, 100), _nota(50, 200)], {0: [0]})
     kon, release = _leer(salen)
     assert kon[0] == [0, 50]
     assert release[0] == [200], (
-        "la voz 0 se suelta en %s: la segunda nota termina en 200" % release[0])
+        "voice 0 is released at %s: the second note ends at 200" % release[0])
 
 
 def test_la_nota_robada_en_el_cuadro_en_que_termina_no_escribe_su_release():
-    """Termina en 100 y otra arranca en 100 en la misma voz: la ladrona
-    rearma el ADSR detrás del release, así que el release no hace nada y no
-    va."""
+    """It ends at 100 and another starts at 100 on the same voice: the
+    stealing note re-arms the ADSR after the release, so the release does
+    nothing and is left out."""
     kon, release = _leer(_armar([_nota(0, 100), _nota(100, 150)], {0: [0]}))
     assert kon[0] == [0, 100]
     assert release[0] == [150]
 
 
 def test_una_nota_sin_muestra_no_ocupa_una_voz():
-    """La batería con dos voces: un bombo en la 6, una tecla que el banco no
-    trae y otro bombo que se superpone al primero. Si la tecla sin muestra
-    ocupa la 7, el segundo bombo le roba la 6 al primero, que sigue sonando,
-    mientras la 7 está callada."""
+    """The drums with two voices: a kick drum on 6, a key the bank does not
+    have, and another kick drum overlapping the first. If the key without a
+    sample takes 7, the second kick steals 6 from the first, which is still
+    sounding, while 7 is silent."""
     notas = [_nota(0, 30, midi.DRUM_CHANNEL, BOMBO),
              _nota(5, 100, midi.DRUM_CHANNEL, SIN_MUESTRA),
              _nota(10, 40, midi.DRUM_CHANNEL, BOMBO)]
@@ -133,7 +135,7 @@ def test_una_nota_sin_muestra_no_ocupa_una_voz():
 
 
 def _registros(salen, voz):
-    """Lo que cada registro de la voz fue recibiendo, en orden."""
+    """What each of the voice's registers received, in order."""
     escrito = {}
     for _cuadro, registro, valor in salen:
         if registro >> 4 == voz and registro & 0x0F < 8:
@@ -143,50 +145,50 @@ def _registros(salen, voz):
 
 @pytest.fixture
 def soundfont():
-    """El SoundFont de `SOUNDFONT`, fijado para `snes_music`; sin él, la
-    prueba se saltea."""
+    """The SoundFont from `SOUNDFONT`, set for `snes_music`; without it, the
+    test is skipped."""
     ruta = os.environ.get("SOUNDFONT")
     if not ruta:
-        pytest.skip("hace falta un SoundFont de verdad: SOUNDFONT=<el .sf2>")
+        pytest.skip("a real SoundFont is needed: SOUNDFONT=<the .sf2>")
     ambiente.fijar(soundfont=ruta)
 
 
 @pytest.mark.usefixtures("soundfont")
 def test_el_bajo_sintetico_se_suelta_en_lo_que_dice_el_soundfont():
-    """El bajo sintético (38) del SoundFont se suelta en 30 ms. Con las
-    familias de `sdsp` —las de antes del 2026-09-25— arrastraba 2,4 s de cola
-    con GAIN exponencial; ahora el release es GAIN lineal, porque la
-    exponencial más rápida no llega a cero en menos de 25 ms."""
+    """The SoundFont's synth bass (38) is released in 30 ms. With `sdsp`'s
+    families —the ones from before 2026-09-25— it dragged a 2.4 s tail with
+    exponential GAIN; now the release is linear GAIN, because the fastest
+    exponential does not reach zero in less than 25 ms."""
     salen = _armar([_nota(0, 30, pitch=36)], {0: [0]},
                     {0: BAJO_SINTETICO}, _BancoDelSoundFont())
     gain = _registros(salen, 0)[sdsp.V_GAIN][-1]
     assert gain & 0xE0 == sdsp.GAIN_LINEAR_DECREASE, "GAIN $%02X" % gain
     segundos = 64 * sdsp.PERIODO[gain & 0x1F] / float(sdsp.SAMPLE_RATE)
-    assert segundos < 0.1, "el release dura %.3f s" % segundos
+    assert segundos < 0.1, "the release lasts %.3f s" % segundos
 
 
 @pytest.mark.usefixtures("soundfont")
 def test_el_piano_decae_distinto_en_cada_tecla_y_hasta_callarse():
-    """El piano (0) del SoundFont no tiene sostenido —1440 centibels: decae
-    hasta el silencio— y su decaimiento se acorta con la tecla. Así que el
-    nivel de sostenido del DSP va arriba de todo (SL = 7, la fase de
-    decaimiento termina en el acto) y la tasa de sostenido cambia entre un do
-    grave y uno agudo. Las familias le daban el mismo ADSR a todas las teclas."""
+    """The SoundFont's piano (0) has no sustain —1440 centibels: it decays to
+    silence— and its decay gets shorter with the key. So the DSP's sustain
+    level goes at the very top (SL = 7, the decay phase ends immediately) and
+    the sustain rate changes between a low C and a high one. The families
+    gave the same ADSR to every key."""
     salen = _armar([_nota(0, 30, pitch=36), _nota(40, 70, pitch=84)],
                     {0: [0]}, {0: PIANO}, _BancoDelSoundFont())
     adsr2 = _registros(salen, 0)[sdsp.V_ADSR2]
-    assert len(adsr2) == 2, "ADSR2 recibió %s" % adsr2
+    assert len(adsr2) == 2, "ADSR2 received %s" % adsr2
     grave, agudo = adsr2
     assert grave >> 5 == 7 and agudo >> 5 == 7, "ADSR2 %s" % adsr2
-    # Tasa más alta es más rápida: la nota aguda se apaga antes.
+    # A higher rate is faster: the high note fades out sooner.
     assert agudo & 0x1F > grave & 0x1F, "ADSR2 %s" % adsr2
 
 
 def test_un_release_largo_llega_a_cero_donde_el_soundfont_anda_por_40_db():
-    """La caída exponencial del DSP no es exponencial por debajo de 1/8: si
-    se la hiciera coincidir en pendiente con la del SoundFont, se apagaría
-    mucho antes que él. Un release de un segundo —100 dB en un segundo— va
-    hasta cero en ~0,4 s."""
+    """The DSP's exponential decrease is not exponential below 1/8: if its
+    slope were matched to the SoundFont's, it would fade out much sooner than
+    the SoundFont. A one-second release —100 dB in one second— goes to zero
+    in ~0.4 s."""
     sf2 = {"env_delay_timecents": -12000, "env_attack_timecents": -12000,
            "env_hold_timecents": -12000, "env_decay_timecents": 0,
            "env_sustain_centibels": 0, "env_release_timecents": 0,
@@ -195,14 +197,14 @@ def test_un_release_largo_llega_a_cero_donde_el_soundfont_anda_por_40_db():
     assert gain & 0xE0 == sdsp.GAIN_EXP_DECREASE, "GAIN $%02X" % gain
     hasta_cero = (sdsp.PASOS_HASTA_CERO * sdsp.PERIODO[gain & 0x1F]
                   / float(sdsp.SAMPLE_RATE))
-    assert 0.3 < hasta_cero < 0.55, "llega a cero en %.3f s" % hasta_cero
+    assert 0.3 < hasta_cero < 0.55, "reaches zero in %.3f s" % hasta_cero
 
 
-# --- el reparto de las voces ------------------------------------------------
+# --- voice allocation ------------------------------------------------------
 
 def _repartir(notas, programas=None):
-    """Las notas con las voces de `assign` —las ocho para todos—: lo que
-    salió y a qué voz fue cada una."""
+    """The notes with the voices from `assign` —all eight for everyone—: what
+    came out and which voice each one went to."""
     reparto = []
     programas = programas or {c: PIANO for c in range(16)
                               if c != midi.DRUM_CHANNEL}
@@ -212,28 +214,28 @@ def _repartir(notas, programas=None):
 
 
 def test_un_acorde_suena_entero_aunque_haya_mas_canales_que_voces():
-    """Siete canales melódicos y la batería, que se turnan, y el canal 0
-    toca un acorde de cuatro. Con el reparto fijo por canal —hasta el
-    2026-09-26— la batería se llevaba dos voces, los seis canales más
-    ocupados una cada uno, el séptimo ninguna, y del acorde sonaba una nota:
-    en `escape_newyork` eran los acordes de las cuerdas y del polysynth, y el
-    clavinet y la onda cuadrada, que no sonaban nunca."""
+    """Seven melodic channels and the drums, taking turns, and channel 0
+    plays a four-note chord. With the fixed per-channel allocation —until
+    2026-09-26— the drums took two voices, the six busiest channels one each,
+    the seventh none, and only one note of the chord sounded: in
+    `escape_newyork` those were the string and polysynth chords, and the
+    clavinet and the square wave, which never sounded."""
     notas = [_nota(100 * c, 100 * c + 50, c) for c in range(7)]
     notas += [_nota(700, 750, midi.DRUM_CHANNEL, BOMBO)]
     notas += [_nota(800, 900, 0, 60 + k) for k in (0, 4, 7, 12)]
     salen, reparto = _repartir(notas)
     sin_voz = [(n.channel, n.pitch) for n, v, _r, _f in reparto if v is None]
-    assert not sin_voz, "notas sin voz con voces libres: %s" % sin_voz
+    assert not sin_voz, "notes without a voice while voices were free: %s" % sin_voz
     kon, _release = _leer(salen)
     en_el_acorde = [v for v, cuadros in kon.items() if 800 in cuadros]
     assert len(en_el_acorde) == 4, (
-        "del acorde de cuatro suenan %d voces: %s" % (len(en_el_acorde),
+        "of the four-note chord %d voices sound: %s" % (len(en_el_acorde),
                                                        sorted(en_el_acorde)))
 
 
 def test_ninguna_nota_se_queda_sin_voz_si_hay_una_libre():
-    """Un tema al azar, con más polifonía que voces a ratos: una nota que no
-    consigue voz sólo puede ser una que llega con las ocho sostenidas."""
+    """A random song, with more polyphony than voices at times: a note that
+    gets no voice can only be one that arrives with all eight held."""
     import random
     azar = random.Random(5)
     notas = []
@@ -246,12 +248,12 @@ def test_ninguna_nota_se_queda_sin_voz_si_hay_una_libre():
         notas.append(nota)
     _salen_, reparto = _repartir(notas)
     assert any(v is None for _n, v, _r, _f in reparto), (
-        "el caso no llega a pasar de ocho voces: no prueba nada")
+        "the case never goes past eight voices: it tests nothing")
 
     def sostenida(n, v, robada, fin, t):
-        # Quién sostiene una voz en `t`: arrancó antes, no terminó y no se la
-        # robaron. Un golpe la suelta con el fin de la nota o el de la
-        # muestra, lo que llegue antes: es el cuarto campo de `reparto`.
+        # Who holds a voice at `t`: it started before, has not ended and was
+        # not stolen from. A hit releases it at the end of the note or of the
+        # sample, whichever comes first: that is the fourth field of `reparto`.
         return (v is not None and n.start <= t < fin
                 and (robada is None or robada > t))
     for nota, voz, _r, _f in reparto:
@@ -260,15 +262,16 @@ def test_ninguna_nota_se_queda_sin_voz_si_hay_una_libre():
         t = nota.start
         ocupadas = {v for n, v, r, f in reparto if sostenida(n, v, r, f, t)}
         assert len(ocupadas) == sdsp.VOICES, (
-            "la nota de las %d del canal %d no sonó con %d voces sostenidas"
+            "the note at %d on channel %d did not sound with %d voices held"
             % (t, nota.channel, len(ocupadas)))
 
 
 def test_se_le_roba_a_la_mas_debil_y_no_a_la_ultima_de_un_canal():
-    """Las ocho sostenidas: el canal 0 con siete notas, una de ellas suave, y
-    el canal 1 con una sola, la más suave de todas. La nota nueva del canal 2
-    le roba la voz a la suave del canal 0: robarle al canal 1 lo dejaría
-    mudo. Es la regla del prototipo, la de la variante que taro escuchó."""
+    """All eight held: channel 0 with seven notes, one of them soft, and
+    channel 1 with just one, the softest of all. The new note on channel 2
+    steals the voice from channel 0's soft one: stealing from channel 1 would
+    leave it mute. It is the prototype's rule, the one from the variant taro
+    listened to."""
     notas = [_nota(0, 500, 0, 60 + k) for k in range(6)]
     suave = midi.Note(0, 0, 70, 40)
     suave.end = 500
@@ -278,23 +281,23 @@ def test_se_le_roba_a_la_mas_debil_y_no_a_la_ultima_de_un_canal():
     _salen_, reparto = _repartir(notas + [suave, solita, nueva])
     voz = {id(n): (v, r) for n, v, r, _f in reparto}
     assert voz[id(nueva)][0] == voz[id(suave)][0], (
-        "la nota nueva tomó la voz %s y la suave del canal 0 era la %s"
+        "the new note took voice %s and channel 0's soft one was %s"
         % (voz[id(nueva)][0], voz[id(suave)][0]))
     assert voz[id(suave)][1] == 100 and voz[id(solita)][1] is None
 
 
 def test_la_voz_de_arriba_del_acorde_no_llega_ultima_a_su_cuadro():
-    """Once notas en el mismo cuadro, todas con la misma velocidad: cinco
-    golpes —dos bombos, dos cajas y el charles—, tres canales de una nota y
-    el acorde de tres del canal 0. Primero van los golpes, uno por familia;
-    después lo melódico, la nota más fuerte de cada canal antes que la
-    segunda de cualquiera; al final los golpes repetidos. Afuera quedan el
-    segundo bombo, la segunda caja y la nota de abajo del acorde.
+    """Eleven notes in the same frame, all with the same velocity: five hits
+    —two kick drums, two snares and the hi-hat—, three one-note channels and
+    channel 0's three-note chord. The hits go first, one per family; then the
+    melodic part, each channel's loudest note before anyone's second; the
+    repeated hits last. Left out are the second kick, the second snare and
+    the bottom note of the chord.
 
-    Hasta el 2026-09-26 el orden era la velocidad y, a la par, el más grave
-    primero: la voz de arriba del acorde —la melodía— llegaba última y no
-    conseguía voz, porque no se le roba a una nota que arrancó en el mismo
-    cuadro. En el de batalla eran 214 de las 536 notas de su melodía."""
+    Until 2026-09-26 the order was velocity and, on a tie, lowest first: the
+    top voice of the chord —the melody— arrived last and got no voice,
+    because a note that started in the same frame is not stolen from. In the
+    battle song it was 214 of the 536 notes of its melody."""
     class _BancoConBateria(_Banco):
         def __init__(self):
             super().__init__()
@@ -318,34 +321,34 @@ def test_la_voz_de_arriba_del_acorde_no_llega_ultima_a_su_cuadro():
 
 
 def test_la_voz_que_suena_se_baja_un_cuadro_antes_de_robarla():
-    """Una voz, dos notas: la segunda le roba la voz a la primera mientras
-    suena. En el cuadro de antes la voz tiene que bajar con la rampa —ADSR1
-    en cero y GAIN `RAMPA`, 12 ms lineales—, porque el KON la pone en cero de
-    golpe y eso es un clic. La tercera nota llega con la voz callada hace
-    rato: ésa no necesita rampa."""
+    """One voice, two notes: the second steals the voice from the first while
+    it sounds. In the frame before, the voice has to come down with the ramp
+    —ADSR1 at zero and GAIN `RAMPA`, 12 ms linear—, because KON drops it to
+    zero at once and that is a click. The third note arrives with the voice
+    silent for a while: that one needs no ramp."""
     salen = _armar([_nota(0, 100), _nota(50, 120), _nota(400, 450)], {0: [0]})
     escrito = _escrituras(salen, 0)
     gain = [(c, v) for c, r, v in escrito if r == sdsp.V_GAIN]
     assert (49, snes_music.RAMPA) in gain, (
-        "la voz 0 no baja con la rampa antes del robo del cuadro 50: %s" % gain)
+        "voice 0 does not come down with the ramp before the steal at frame 50: %s" % gain)
     assert (49, sdsp.V_ADSR1, 0) in escrito, (
-        "sin ADSR1 en cero el GAIN de la rampa no manda")
+        "without ADSR1 at zero the ramp's GAIN is not in control")
     assert not [c for c, v in gain if v == snes_music.RAMPA and c > 49], (
-        "la tercera nota llega con la voz callada y no necesita rampa: %s"
+        "the third note arrives with the voice silent and needs no ramp: %s"
         % gain)
 
 
 def test_la_cola_de_un_release_tambien_se_baja_antes_de_reusar_la_voz():
-    """La primera nota ya se soltó, pero su cola sigue sonando cuando la
-    segunda toma la voz —el GAIN de `_Banco` es exponencial y lento—: la
-    rampa va igual."""
+    """The first note has already been released, but its tail is still
+    sounding when the second takes the voice —`_Banco`'s GAIN is exponential
+    and slow—: the ramp goes in anyway."""
     salen = _armar([_nota(0, 40), _nota(60, 100)], {0: [0]})
     gain = [(c, v) for c, r, v in _escrituras(salen, 0) if r == sdsp.V_GAIN]
     assert gain[:2] == [(40, sdsp.GAIN_EXP_DECREASE | 12),
                         (59, snes_music.RAMPA)], gain
 
 
-# --- velocidad y controladores ----------------------------------------------
+# --- velocity and controllers ----------------------------------------------
 
 def _control(cuadro, numero, valor, canal=0):
     return midi.Control(cuadro, canal, numero, valor)
@@ -359,7 +362,7 @@ def _armar_con(notas, controles, voces=None):
 
 
 def _escrituras(salen, voz):
-    """(cuadro, registro de la voz, valor) de cada escritura, en orden."""
+    """(frame, voice register, value) of each write, in order."""
     out = []
     for cuadro, registro, valor in salen:
         if registro >> 4 == voz and registro & 0x0F < 8:
@@ -368,10 +371,11 @@ def _escrituras(salen, voz):
 
 
 def test_la_velocidad_baja_el_volumen_al_cuadrado():
-    """fluidsynth atenúa 40·log10(127/v) dB —medido: 64 da -11,9 dB—, o sea
-    la amplitud al cuadrado. Hasta el 2026-09-26 la ROM la convertía lineal:
-    una nota con velocidad 64 sonaba a la mitad del techo en vez de a un
-    cuarto, y los colchones, que van con velocidad baja, tapaban la melodía."""
+    """fluidsynth attenuates by 40·log10(127/v) dB —measured: 64 gives
+    -11.9 dB—, that is, the amplitude squared. Until 2026-09-26 the ROM
+    converted it linearly: a note with velocity 64 played at half the volume
+    ceiling instead of a quarter, and the pads, which go at low velocity,
+    drowned out the melody."""
     nota = midi.Note(0, 0, 60, 64)
     nota.end = 30
     vol = _registros(_armar_con([nota], []), 0)
@@ -381,11 +385,11 @@ def test_la_velocidad_baja_el_volumen_al_cuadrado():
 
 
 def test_el_volumen_del_canal_cambia_a_la_nota_que_ya_sonaba():
-    """Un CC7 a mitad de una nota le reescribe el volumen a su voz en ese
-    cuadro, a los dos lados: es el fundido del final de `escape_newyork`, que
-    hasta el 2026-09-26 no se oía porque el lector tiraba los CC. Y en 50
-    —la mitad de los 100 de GM— baja la amplitud a un cuarto, igual que la
-    velocidad."""
+    """A CC7 in the middle of a note rewrites its voice's volume in that
+    frame, on both sides: it is the fade at the end of `escape_newyork`,
+    which until 2026-09-26 could not be heard because the reader dropped the
+    CCs. And at 50 —half of GM's 100— it lowers the amplitude to a quarter,
+    the same as velocity."""
     nota = midi.Note(0, 0, 60, 127)
     nota.end = 100
     escrito = _escrituras(_armar_con([nota], [_control(40, midi.VOLUME, 50)]),
@@ -398,8 +402,8 @@ def test_el_volumen_del_canal_cambia_a_la_nota_que_ya_sonaba():
 
 
 def test_la_expresion_y_el_volumen_se_multiplican():
-    """CC11 en 64 y CC7 en 127 antes de la nota: 40·log10 cada uno, como
-    fluidsynth. El volumen se mide contra 100, así que 127 sube."""
+    """CC11 at 64 and CC7 at 127 before the note: 40·log10 each, like
+    fluidsynth. The volume is measured against 100, so 127 raises it."""
     nota = midi.Note(10, 0, 60, 127)
     nota.end = 50
     salen = _armar_con([nota], [_control(0, midi.EXPRESSION, 64),
@@ -409,10 +413,10 @@ def test_la_expresion_y_el_volumen_se_multiplican():
 
 
 def test_el_paneo_reparte_la_nota_entre_los_dos_lados():
-    """CC10 en 0 es todo a la izquierda: la derecha en cero y la izquierda
-    1,41 veces el techo, porque el centro es el que queda en el techo —el
-    seno y coseno de fluidsynth, medido: +3 dB y silencio—. En 32, +2,3 dB
-    y -5,3 dB."""
+    """CC10 at 0 is fully left: the right at zero and the left 1.41 times the
+    volume ceiling, because the center is what sits at the ceiling
+    —fluidsynth's sine and cosine, measured: +3 dB and silence—. At 32,
+    +2.3 dB and -5.3 dB."""
     izquierda = midi.Note(10, 0, 60, 127)
     izquierda.end = 50
     medio = midi.Note(60, 0, 60, 127)
@@ -428,8 +432,8 @@ def test_el_paneo_reparte_la_nota_entre_los_dos_lados():
 
 
 def test_el_bend_mueve_la_altura_antes_y_durante_la_nota():
-    """Un bend antes de la nota la toca desafinada desde el principio —así
-    arrancan las de `dcbest`— y uno durante le reescribe la altura a la voz."""
+    """A bend before the note plays it detuned from the start —that is how
+    `dcbest`'s begin— and one during it rewrites the voice's pitch."""
     nota = midi.Note(10, 0, 60, 127)
     nota.end = 100
     salen = _armar_con([nota], [_control(0, midi.BEND, 1.0),
@@ -447,8 +451,8 @@ def test_el_bend_mueve_la_altura_antes_y_durante_la_nota():
 
 
 def test_un_control_no_toca_la_voz_de_otro_canal_ni_la_de_la_bateria():
-    """El CC7 del canal 0 no cambia la voz del canal 1, y el bend de la
-    batería no mueve el golpe: en General MIDI la nota elige el instrumento."""
+    """Channel 0's CC7 does not change channel 1's voice, and the drums' bend
+    does not move the hit: in General MIDI the note picks the instrument."""
     melodia = midi.Note(0, 0, 60, 127)
     melodia.end = 100
     otra = midi.Note(0, 1, 60, 127)
@@ -467,10 +471,10 @@ def test_un_control_no_toca_la_voz_de_otro_canal_ni_la_de_la_bateria():
             if r == sdsp.V_PITCH_L] == [0]
 
 
-# --- el lector ---------------------------------------------------------------
+# --- the reader --------------------------------------------------------------
 
 def _midi(tmp_path, eventos):
-    """Un MIDI de una pista, formato 0, 96 ticks por negra, con `eventos`
+    """A one-track MIDI, format 0, 96 ticks per quarter note, with `eventos`
     (delta, bytes)."""
 
     def varlen(n):
@@ -494,9 +498,10 @@ def _bend(fraccion_del_rango, canal=0):
 
 
 def test_el_lector_aplica_el_rango_del_bend_sólo_con_el_rpn_0_entero(tmp_path):
-    """El rango se elige con CC101 y CC100 en cero y llega por CC6. Un CC101
-    solo no alcanza —medido con fluidsynth: `dcbest` manda CC101 y CC6 en 64
-    sin CC100, y su bend sigue en 2 semitonos—."""
+    """The range is selected with CC101 and CC100 at zero and arrives through
+    CC6. A CC101 alone is not enough —measured with fluidsynth: `dcbest`
+    sends CC101 and CC6 at 64 without CC100, and its bend stays at 2
+    semitones—."""
     ruta = _midi(tmp_path, [
         (0, bytes([0xB0, 101, 0])), (0, bytes([0xB0, 6, 64])),
         (0, _bend(0.5)),
@@ -509,8 +514,8 @@ def test_el_lector_aplica_el_rango_del_bend_sólo_con_el_rpn_0_entero(tmp_path):
 
 
 def test_el_lector_alarga_las_notas_que_suelta_con_el_pedal_abajo(tmp_path):
-    """CC64: la nota que se suelta con el pedal abajo sigue hasta que el pedal
-    sube. Es el piano del título, `Fantasia_Of_The_Wind`."""
+    """CC64: the note released with the pedal down goes on until the pedal
+    comes up. It is the title screen's piano, `Fantasia_Of_The_Wind`."""
     ruta = _midi(tmp_path, [
         (0, bytes([0xB0, 64, 127])),
         (0, bytes([0x90, 60, 100])), (96, bytes([0x80, 60, 0])),

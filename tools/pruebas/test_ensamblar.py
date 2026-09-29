@@ -1,9 +1,9 @@
-"""Lo que `tools/ensamblado/ensamblar.py` hace además de llamar a `ca65` + `ld65`.
+"""What `tools/ensamblado/ensamblar.py` does besides calling `ca65` + `ld65`.
 
-Lo grande —que la ROM salga igual que la de antes— lo cobran todas las pruebas
-que arman un cartucho. Esto es lo chico, que un error ahí no rompe ninguna
-imagen: un checksum mal escrito lo nota un flash cart y no un emulador, y un
-símbolo que falta se nota recién en la prueba que lo pide.
+The big part —that the ROM comes out the same as before— is enforced by every
+test that builds a cartridge. This is the small part, where an error breaks
+no image: a badly written checksum is noticed by a flash cart and not by an
+emulator, and a missing symbol only shows up in the test that asks for it.
 """
 
 import pytest
@@ -26,7 +26,7 @@ def test_el_checksum_y_su_complemento_no_mueven_la_suma():
 def test_una_cabecera_sin_los_cuatro_bytes_de_siempre_es_un_error():
     rom = bytearray(4 * 1024 * 1024)
     rom[5] = 1
-    with pytest.raises(ValueError, match="no se asentó"):
+    with pytest.raises(ValueError, match="did not settle"):
         ensamblar.checksum(rom)
 
 
@@ -47,7 +47,7 @@ def test_los_simbolos_salen_con_su_scope_y_su_signo(tmp_path):
 
 
 def test_no_arma_con_un_inc_generado_al_lado_de_la_fuente(tmp_path):
-    """`ca65` lo leería antes que el del cartucho, sin avisar."""
+    """`ca65` would read it before the cartridge's, without a warning."""
     (tmp_path / "main.s").write_text("")
     (tmp_path / "mapdata.inc").write_text("")
     with pytest.raises(RuntimeError, match="mapdata.inc"):

@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
-"""Del MIDI a notas y voces: lo que no depende del chip.
+"""From MIDI to notes and voices: what does not depend on the chip.
 
-Cuánto dura cada nota y cuántas suenan a la vez. Hasta el 2026-09-26 también
-repartía un presupuesto de voces entre canales —`share_voices`—, que se fue
-con el reparto fijo: ver `assign` en `snes_music.py`.
+How long each note lasts and how many play at once. Until 2026-09-26 it also
+split a voice budget among channels —`share_voices`—, which went away with
+the fixed assignment: see `assign` in `snes_music.py`.
 """
 
 import collections
 
-# Un tick por cuadro: es la unidad en la que el port cuenta el tiempo.
+# One tick per frame: it is the unit in which the port counts time.
 TICKS_PER_SECOND = 60
 
 def note_time(notes):
-    """Cuánto tiempo suena cada cantidad de notas a la vez, en cuadros."""
+    """How long each number of simultaneous notes plays, in frames."""
     edges = collections.Counter()
     for note in notes:
         if note.end > note.start:
@@ -30,7 +30,7 @@ def note_time(notes):
 
 
 def timeline(notes, tempos, division):
-    """Pasa las notas de ticks de MIDI a cuadros, con el tempo aplicado."""
+    """Converts the notes from MIDI ticks to frames, with the tempo applied."""
     marks = [(0, 0.0, sorted(tempos)[0][1])]
     for tick, us in sorted(tempos)[1:]:
         last_tick, last_second, last_us = marks[-1]

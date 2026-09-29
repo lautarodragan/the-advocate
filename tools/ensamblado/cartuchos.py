@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
-"""Los cartuchos del juego, los que declara su archivo de proyecto en
-`[cartridges]`: `release`, la ROM que se juega y la que corre casi toda la
-tanda, y los demás, con lo que no entra en ella.
-Ninguna prueba arma: corren contra lo que deja esto —ver `tanda.rom`—.
+"""The game's cartridges, the ones its project file declares in
+`[cartridges]`: `release`, the ROM that is played and that runs almost the
+whole suite, and the others, with what does not fit in it.
+No test builds anything: they run against what this leaves —see `tanda.rom`—.
 
-    rm2k-snes-cartridges            arma lo que haga falta
-    rm2k-snes-cartridges release    sólo ése, con sus pistas de MSU-1:
+    rm2k-snes-cartridges            builds whatever is needed
+    rm2k-snes-cartridges release    only that one, with its MSU-1 tracks:
                                     `just build`
-    rm2k-snes-cartridges --lista    qué caso va en qué cartucho
+    rm2k-snes-cartridges --lista    which case goes in which cartridge
 
-Un caso nuevo es un archivo en `rom/pruebas/casos/` y nada más: entra solo en
-`release` y se corre con `tanda.partida("<nombre>")`. Empieza con un
-`Teleport` al mapa donde tiene que correr: el de arranque —`start_map`— es
-el 4, el enrutador del juego, cuya cinemática no espera a nadie.
+A new case is a file in `rom/pruebas/casos/` and nothing else: it goes into
+`release` on its own and is run with `tanda.partida("<name>")`. It starts
+with a `Teleport` to the map where it has to run: the starting one
+—`start_map`— is map 4, the game's router, whose cutscene waits for nobody.
 
-Un cartucho nuevo es una tabla más en `[cartridges]`, y nada de acá.
+A new cartridge is one more table in `[cartridges]`, and nothing here.
 """
 
 import argparse
@@ -26,8 +26,8 @@ import os
 import subprocess
 import sys
 
-# `realpath` y no `abspath`: `just herramientas` instala este script en el PATH
-# como symlink, y lo que importa es dónde está el archivo de verdad.
+# `realpath` and not `abspath`: `just herramientas` installs this script on
+# the PATH as a symlink, and what matters is where the real file is.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 from audio import muestras_brr                          # noqa: E402
@@ -38,8 +38,8 @@ from ensamblado import ensamblar                        # noqa: E402
 from port import tiles_bin                              # noqa: E402
 from port import comprimir                              # noqa: E402
 
-# `--proyecto` se lee antes que nada: este módulo lee el archivo de proyecto
-# al importarse, y el `parse_args` de `main` llega tarde.
+# `--proyecto` is read before anything else: this module reads the project
+# file when imported, and `main`'s `parse_args` comes too late.
 if __name__ == "__main__":
     proyecto.desde_la_linea_de_comandos()
 
@@ -47,57 +47,59 @@ RAIZ = proyecto.raiz()
 CASOS = proyecto.casos()
 FUENTE = proyecto.runtime()
 
-# **Qué lleva cada cartucho es del juego, y está en su archivo de proyecto**
-# —`proyecto.archivo_de_proyecto()`, con los porqués de cada valor como
-# comentarios—: qué mapas entran, cuáles se excluyen, qué cartuchos hay y qué
-# casos lleva cada uno. Hasta el 2026-09-29 estaba escrito acá. Lo que queda
-# en este archivo es el mecanismo que lo lee y arma; los nombres de módulo
-# —`MENOR_A`, `CARTUCHOS`, `FUERA`…— son los de antes, porque la tanda los lee.
+# **What each cartridge carries belongs to the game, and is in its project
+# file** —`proyecto.archivo_de_proyecto()`, with the reasons for each value as
+# comments—: which maps go in, which are excluded, which cartridges exist and
+# which cases each one carries. Until 2026-09-29 it was written here. What
+# remains in this file is the mechanism that reads it and builds; the module
+# names —`MENOR_A`, `CARTUCHOS`, `FUERA`…— are the old ones, because the
+# suite reads them.
 #
-# **Los mapas son valores del archivo y no flags del conversor**, a propósito:
-# al conversor le sigue llegando la lista entera en `--mapas`. Éste es el único
-# que lo llama; `test_horneados` y `test_parches` necesitan la lista sin
-# correrlo; y como el sello lleva los flags y no `rom/data/`, un árbol que
-# cambie qué mapas entran deja viejo al cartucho sólo si la lista viaja
-# expandida.
+# **The maps are values in the file and not converter flags**, on purpose:
+# the converter still receives the whole list in `--mapas`. This is the only
+# one that calls it; `test_horneados` and `test_parches` need the list
+# without running it; and since the stamp carries the flags and not
+# `rom/data/`, a tree that changes which maps go in makes the cartridge stale
+# only if the list travels expanded.
 MENOR_A = perillas.valor("maps", "below", tipo=int)
 EXCLUIDOS = frozenset(perillas.valor("maps", "excluded", tipo=list))
 AGREGADOS = tuple(perillas.valor("maps", "added", tipo=list))
 
 
 def el_mapa_de_debug():
-    """El id del mapa de debug: el único mapa nuevo de
-    `rom/parches/manual/nuevos/` —ver `fork.nuevos`—. Sale de ahí y no del
-    archivo de proyecto para no escribir el número dos veces."""
+    """The debug map's id: the only new map in
+    `rom/parches/manual/nuevos/` —see `fork.nuevos`—. It comes from there and
+    not from the project file so as not to write the number twice."""
     from rpgmaker import fork
     nuevos = sorted(fork.nuevos())
     if len(nuevos) != 1:
-        sys.exit("el mapa de debug es el único mapa nuevo de %s, y hay %d: %s"
+        sys.exit("the debug map is the only new map in %s, and there are %d: %s"
                  % (fork.carpeta_nuevos(), len(nuevos), nuevos))
     return nuevos[0]
 
 
-# El mapa de debug, que el juego no tiene, entra detrás de los agregados.
+# The debug map, which the game does not have, goes after the added ones.
 CON_MAPA_DE_DEBUG = perillas.valor("debug", "debug_map", tipo=bool)
 MAPA_DE_DEBUG = el_mapa_de_debug()
 if CON_MAPA_DE_DEBUG:
     AGREGADOS += (MAPA_DE_DEBUG,)
 
-# Los HP de los enemigos en la pelea: pasa `--hp-de-enemigos` al conversor en
-# todos los cartuchos.
+# The enemies' HP in battle: passes `--hp-de-enemigos` to the converter in
+# every cartridge.
 CON_HP_DE_ENEMIGOS = perillas.valor("debug", "enemy_hp", tipo=bool)
 _DE_TODOS = ["--hp-de-enemigos"] if CON_HP_DE_ENEMIGOS else []
 
 
 def mapas_de_la_regla(menor_a=MENOR_A, excluidos=EXCLUIDOS,
                       agregados=AGREGADOS):
-    """Los mapas del juego en el orden en que van a `--mapas`: los de la regla
-    de menor a mayor, y después los agregados. **El orden es el de la tabla de
-    la ROM**, así que cambiarlo la mueve: ver `orden_de_mapas` en
-    snes_convert.py.
+    """The game's maps in the order they go to `--mapas`: the ones from the
+    rule in ascending order, and then the added ones. **The order is that of
+    the ROM's table**, so changing it moves the table: see `orden_de_mapas`
+    in snes_convert.py.
 
-    El árbol es el del volcado de `rom/data/`, que es el que lee el conversor: por
-    eso la ruta cae adentro de `rom/data/` y no del juego —ver `lcf.volcado`—."""
+    The tree is the one in the `rom/data/` dump, which is what the converter
+    reads: that is why the path falls inside `rom/data/` and not inside the
+    game —see `lcf.volcado`—."""
     from rpgmaker import lcf
     arbol = lcf.TreeMap(os.path.join(proyecto.data(), "RPG_RT.lmt"))
     de_la_regla = [m for m in range(1, menor_a)
@@ -107,26 +109,26 @@ def mapas_de_la_regla(menor_a=MENOR_A, excluidos=EXCLUIDOS,
 
 MAPAS_DEL_JUEGO = mapas_de_la_regla()
 
-# Y los que sólo existen por la tanda. `parches.revisar` los lee de acá para no
-# pedirles parche versionado.
+# And the ones that only exist for the suite. `parches.revisar` reads them
+# from here so as not to require a versioned patch for them.
 MAPAS_DE_PRUEBA = tuple(perillas.valor("maps", "test", tipo=list))
 
 MAPAS = MAPAS_DEL_JUEGO + MAPAS_DE_PRUEBA
 
-# El cartucho que se juega: el que lleva la ROM con el nombre del juego, sus
-# pistas de MSU-1, y todos los casos. El archivo lo tiene que declarar.
+# The cartridge that is played: the one that carries the ROM with the game's
+# name, its MSU-1 tracks, and all the cases. The file has to declare it.
 RELEASE = "release"
 
-# Cómo se llaman sus archivos: `<nombre>.sfc`, y al lado el `.msu` y las
-# pistas `<nombre>-N.pcm`. Los de los demás cartuchos se llaman `prueba`.
+# What its files are called: `<name>.sfc`, and next to it the `.msu` and the
+# `<name>-N.pcm` tracks. The other cartridges' files are called `prueba`.
 NOMBRE_DE_LA_ROM = perillas.valor("rom", "name", tipo=str)
 
 
 def _cartucho(nombre):
-    """(los flags del conversor, los casos o None si son todos) de un
-    cartucho del archivo. Los flags salen en el orden de siempre —el grupo, el
-    mapa de arranque, los mapas, los gráficos, lo demás—, porque van al sello
-    tal cual."""
+    """(the converter flags, the cases or None if it is all of them) of a
+    cartridge in the file. The flags come out in the usual order —the party,
+    the starting map, the maps, the graphics, the rest—, because they go into
+    the stamp as is."""
     def clave(k, tipo):
         return perillas.valor("cartridges", nombre, k, tipo=tipo)
     arranque = clave("start_map", int)
@@ -134,13 +136,13 @@ def _cartucho(nombre):
     mapas = clave("maps", (str, list))
     if isinstance(mapas, str):
         if mapas != "game":
-            sys.exit("%s: maps de %s es una lista o \"game\", y es %r"
+            sys.exit("%s: maps of %s is a list or \"game\", and it is %r"
                      % (proyecto.archivo_de_proyecto(), nombre, mapas))
         mapas = MAPAS
     casos = clave("cases", (str, list))
     if isinstance(casos, str):
         if casos != "all":
-            sys.exit("%s: cases de %s es una lista o \"all\", y es %r"
+            sys.exit("%s: cases of %s is a list or \"all\", and it is %r"
                      % (proyecto.archivo_de_proyecto(), nombre, casos))
         casos = None
     flags = ((["--grupo"] + [str(a) for a in grupo] if grupo else [])
@@ -155,30 +157,31 @@ def _cartucho(nombre):
 CARTUCHOS = {nombre: _cartucho(nombre)
              for nombre in perillas.valor("cartridges", tipo=dict)}
 if RELEASE not in CARTUCHOS or CARTUCHOS[RELEASE][1] is not None:
-    sys.exit("%s: falta [cartridges.%s], con cases = \"all\""
+    sys.exit("%s: missing [cartridges.%s], with cases = \"all\""
              % (proyecto.archivo_de_proyecto(), RELEASE))
 
-# Los casos que `release` no lleva, porque ahí cambiarían las imágenes de los
-# demás.
+# The cases `release` does not carry, because there they would change the
+# others' images.
 FUERA = set(perillas.valor("cartridges", RELEASE, "excluded_cases",
                            tipo=list))
 
-# La página 0 es la de la partida de verdad, salvo con el mapa de debug, que es
-# la que lleva ahí: ver `[cases]` en el archivo.
+# Page 0 is the real game's, except with the debug map, whose entry is what
+# goes there: see `[cases]` in the file.
 LA_PARTIDA_DE_VERDAD = perillas.valor("cases", "real_game", tipo=str)
 ENTRADA_AL_MAPA_DE_DEBUG = perillas.valor("cases", "debug_map_entry",
                                           tipo=str)
 
 
 def primero(con_mapa_de_debug=CON_MAPA_DE_DEBUG):
-    """El caso de la página 0: lo que corre "Begin the Story"."""
+    """The case on page 0: what "Begin the Story" runs."""
     return (ENTRADA_AL_MAPA_DE_DEBUG if con_mapa_de_debug
             else LA_PARTIDA_DE_VERDAD)
 
 
 def fuera(con_mapa_de_debug=CON_MAPA_DE_DEBUG):
-    """Los casos que `release` no lleva. Sin el mapa, tampoco su entrada: su
-    `Teleport` lleva a un mapa que no está, y el conversor se planta."""
+    """The cases `release` does not carry. Without the map, not its entry
+    either: its `Teleport` leads to a map that is not there, and the converter
+    balks."""
     return FUERA | (set() if con_mapa_de_debug
                     else {ENTRADA_AL_MAPA_DE_DEBUG})
 
@@ -187,45 +190,48 @@ PRIMERO = primero()
 
 
 def huella():
-    """De qué depende un cartucho, además de sus flags y sus casos.
+    """What a cartridge depends on, besides its flags and its cases.
 
-    Lo que cambie la ROM y no esté acá la deja vieja en silencio: por eso
-    entran los binarios y `rom/parches/manual/`, que la cambian sin tocar ningún
-    fuente.
-    `rom/data/` no, que lo regenera `just datos`. Se mira el contenido y no la fecha, que `git checkout` cambia.
+    Whatever changes the ROM and is not here leaves it silently stale: that
+    is why the binaries and `rom/parches/manual/` go in, since they change it
+    without touching any source.
+    `rom/data/` does not, since `just datos` regenerates it. The content is
+    looked at and not the date, which `git checkout` changes.
     """
     h = hashlib.sha256()
     for ruta in archivos_de_la_huella():
         with open(ruta, "rb") as archivo:
             h.update(archivo.read())
-    # Y el techo de cada tema, que cambia los streams: por sus valores y no
-    # por el archivo, porque `just techos` lo reescribe con lo que midió —el
-    # pico, la huella de la mezcla— después de armar, y eso no cambia la ROM.
+    # And each song's volume ceiling, which changes the streams: by its values
+    # and not by the file, because `just techos` rewrites it with what it
+    # measured —the peak, the mix fingerprint— after building, and that does
+    # not change the ROM.
     from audio import snes_music
     h.update(repr(sorted(snes_music.leer_techos().items())).encode())
     return h.hexdigest()[:16]
 
 
 def archivos_de_la_huella(fuente=FUENTE):
-    """Los archivos que lee `huella`, en orden. `fuente` es un parámetro sólo
-    para que una prueba pueda pasarle un árbol armado a mano."""
-    # Todo `tools/runtime/`, y no sólo lo que `main.s` incluye hoy: un archivo que
-    # se agrega y se incluye en el mismo cambio tiene que dejar viejo al cartucho.
+    """The files `huella` reads, in order. `fuente` is a parameter only so
+    that a test can pass it a tree built by hand."""
+    # All of `tools/runtime/`, and not only what `main.s` includes today: a file
+    # that is added and included in the same change has to make the cartridge
+    # stale.
     partes = (sorted(r for r in glob.glob(os.path.join(fuente, "**"),
                                           recursive=True) if os.path.isfile(r))
               + ensamblar.binarios()
               + [tiles_bin.binario(), muestras_brr.binario(),
                  comprimir.binario()])
-    # Menos las pruebas de las herramientas, que no arman nada: con ellas
-    # adentro, editar una prueba dejaba viejos a todos los cartuchos.
+    # Except the tools' tests, which build nothing: with them inside, editing
+    # a test made every cartridge stale.
     pruebas = os.path.join(proyecto.herramientas(), "pruebas", "")
     partes += sorted(r for r in glob.glob(os.path.join(proyecto.herramientas(),
                                                        "*", "*.py"))
                      if not r.startswith(pruebas))
     partes += sorted(glob.glob(os.path.join(proyecto.parches_manual(), "*",
                                             "*")))
-    # Y el archivo de proyecto, entero: lo leen el conversor y la música, y
-    # no sólo lo que llega a los flags del sello.
+    # And the project file, whole: the converter and the music read it, and
+    # not only what reaches the stamp's flags.
     partes.append(proyecto.archivo_de_proyecto())
     return partes
 
@@ -236,9 +242,9 @@ def todos_los_casos():
 
 
 def casos_de(nombre, con_mapa_de_debug=CON_MAPA_DE_DEBUG):
-    """Los casos del cartucho, en el orden de sus páginas. `con_mapa_de_debug`
-    es un parámetro sólo para que una prueba mire la entrega limpia sin
-    armarla."""
+    """The cartridge's cases, in the order of its pages. `con_mapa_de_debug`
+    is a parameter only so that a test can look at the clean delivery without
+    building it."""
     casos = CARTUCHOS[nombre][1]
     if casos is None:
         cero = primero(con_mapa_de_debug)
@@ -248,17 +254,19 @@ def casos_de(nombre, con_mapa_de_debug=CON_MAPA_DE_DEBUG):
 
 
 def sin_titulo(nombre):
-    """Si el cartucho arranca sin pantalla de título, directo en el mapa."""
+    """Whether the cartridge starts without a title screen, straight on the
+    map."""
     return "--sin-titulo" in CARTUCHOS[nombre][0]
 
 
 def donde_esta(caso):
-    """Los cartuchos que llevan el caso: primero el que lleva todos, después
-    los demás por nombre.
+    """The cartridges that carry the case: first the one that carries all of
+    them, then the rest by name.
 
-    **No sale del orden de `CARTUCHOS`**, a propósito: un caso que está en
-    dos —`parado-tapado`— corre en el primero, y con el diccionario en otro
-    orden corría en el chico y movía su golden sin que nadie tocara el caso.
+    **It does not come from the order of `CARTUCHOS`**, on purpose: a case
+    that is in two —`parado-tapado`— runs in the first, and with the
+    dictionary in another order it ran in the small one and moved its golden
+    without anyone touching the case.
     """
     return sorted((n for n in CARTUCHOS if caso in casos_de(n)),
                   key=lambda n: (CARTUCHOS[n][1] is not None, n))
@@ -273,14 +281,14 @@ def _contenido(casos):
 
 
 def sello(nombre, fuentes=None):
-    """Lo que tiene que decir el sello del cartucho para que esté al día."""
+    """What the cartridge's stamp has to say for it to be up to date."""
     flags, _casos = CARTUCHOS[nombre]
     return "%s\n%r" % (fuentes or huella(),
                        (flags, _contenido(casos_de(nombre))))
 
 
 def directorio(nombre):
-    """Lo que las pruebas escriben no va acá sino a `rom/pruebas/snapshots/`."""
+    """What the tests write does not go here but to `rom/pruebas/snapshots/`."""
     if nombre == RELEASE:
         return os.path.join(proyecto.build(), RELEASE)
     return os.path.join(ambiente.cartuchos_de_prueba(),
@@ -288,17 +296,18 @@ def directorio(nombre):
 
 
 def rom_de(nombre):
-    # El MSU-1 busca sus pistas por el nombre del `.sfc`.
+    # The MSU-1 looks for its tracks by the `.sfc`'s name.
     return os.path.join(directorio(nombre),
                         NOMBRE_DE_LA_ROM + ".sfc" if nombre == RELEASE
                         else "prueba.sfc")
 
 
 def msu_de(nombre):
-    """El `.msu` del cartucho: lo escribe el conversor, con los fondos de
-    batalla que el MSU-1 le sirve a la ROM —ver tools/port/msu_datos.py—, y es
-    también lo que enciende el MSU-1 para las pistas. Al lado del `.sfc` y con
-    su nombre, que es donde lo buscan el emulador y el FX Pak."""
+    """The cartridge's `.msu`: the converter writes it, with the battle
+    backgrounds the MSU-1 serves to the ROM —see tools/port/msu_datos.py—,
+    and it is also what turns on the MSU-1 for the tracks. Next to the `.sfc`
+    and with its name, which is where the emulator and the FX Pak look for
+    it."""
     return os.path.splitext(rom_de(nombre))[0] + ".msu"
 
 
@@ -307,39 +316,41 @@ def _archivo(nombre, que):
 
 
 def viejo(nombre, fuentes=None):
-    """Por qué el cartucho no sirve, o None si está al día."""
+    """Why the cartridge is no good, or None if it is up to date."""
     if nombre not in CARTUCHOS:
-        return "no existe"
+        return "does not exist"
     try:
         with open(_archivo(nombre, "sello.txt")) as archivo:
             sellado = archivo.read()
     except OSError:
-        return "no está armado"
+        return "is not built"
     if sellado != sello(nombre, fuentes):
-        return "se armó con otros fuentes, otros flags u otros casos"
-    # Lo escribe el conversor junto con la ROM y no entra en el sello: sin él
-    # el cartucho andaría, pero la prueba del MSU-1 no tendría qué leer.
+        return "was built with other sources, other flags or other cases"
+    # The converter writes it along with the ROM and it does not go into the
+    # stamp: without it the cartridge would work, but the MSU-1 test would
+    # have nothing to read.
     if not os.path.isfile(msu_de(nombre)):
-        return "no tiene su .msu"
+        return "does not have its .msu"
     return None
 
 
 def manifiesto(nombre):
-    """(los casos, si cada uno empieza con un `Teleport`), por página."""
+    """(the cases, whether each one starts with a `Teleport`), per page."""
     casos = casos_de(nombre)
     return casos, [_salta(texto) for _n, texto in _contenido(casos)]
 
 
 def _salta(texto):
-    """Si el caso empieza con un `Teleport`: el arnés espera la llegada, y
-    mirar si la ROM está fundiendo no alcanza, porque hay mapas que funden
-    solos al entrar."""
+    """Whether the case starts with a `Teleport`: the harness waits for the
+    arrival, and looking at whether the ROM is fading is not enough, because
+    there are maps that fade on their own when entered."""
     comandos = json.loads(texto).get("event_commands") or [{}]
     return comandos[0].get("code") == "Teleport"
 
 
 def armar(nombre, fuentes):
-    """Convierte y ensambla el cartucho, si no está al día. Dice si lo armó."""
+    """Converts and assembles the cartridge, if it is not up to date. Says
+    whether it built it."""
     if not viejo(nombre, fuentes):
         return False
     convertir(nombre, directorio(nombre), rom_de(nombre))
@@ -349,21 +360,23 @@ def armar(nombre, fuentes):
 
 
 def convertir(nombre, destino, sfc, extra=()):
-    """Convierte y ensambla el cartucho en `destino`, sin sello y aunque esté
-    al día. `extra` son flags de más para el conversor: `tools/audio/techos.py`
-    arma así una copia de `release` con otro volumen, sin tocar la de verdad."""
+    """Converts and assembles the cartridge in `destino`, without a stamp and
+    even if it is up to date. `extra` are extra flags for the converter:
+    that is how `tools/audio/techos.py` builds a copy of `release` with
+    another volume, without touching the real one."""
     flags, _casos = CARTUCHOS[nombre]
     os.makedirs(destino, exist_ok=True)
     log = os.path.join(destino, "conversor.log")
-    # Los casos van al final: detrás de un `--caso`, cualquier flag del
-    # cartucho sería de ese caso, y el conversor lo rechaza.
+    # The cases go at the end: after a `--caso`, any cartridge flag would
+    # belong to that case, and the converter rejects it.
     de_casos = []
     for k, caso in enumerate(casos_de(nombre)):
         de_casos += (["--caso"] if k else []) + [
             "--comandos-de-prueba",
             os.path.relpath(os.path.join(CASOS, caso + ".json"), RAIZ)]
-    # Con `--proyecto`, porque corre parado en la raíz del repo —ver
-    # `ensamblar.RAIZ`— y desde ahí no encontraría el archivo buscándolo.
+    # With `--proyecto`, because it runs standing in the repo root —see
+    # `ensamblar.RAIZ`— and from there it would not find the file by
+    # searching.
     orden = ([sys.executable, os.path.join(proyecto.herramientas(), "port",
                                            "snes_convert.py"),
               "--proyecto", proyecto.directorio(),
@@ -376,14 +389,14 @@ def convertir(nombre, destino, sfc, extra=()):
         archivo.write(hecho.stdout + hecho.stderr)
     if hecho.returncode:
         sys.stderr.write(hecho.stdout[-3000:] + hecho.stderr)
-        sys.exit("%s: el conversor falló; todo está en %s" % (nombre, log))
+        sys.exit("%s: the converter failed; everything is in %s" % (nombre, log))
     ensamblar.ensamblar(os.path.join(FUENTE, "main.s"),
                         destino, sfc, sfc + ".sym")
 
 
-# Lo de la máquina que necesita el conversor, que corre en otro proceso y lo
-# recibe por flags; y lo que suma éste: dónde van los cartuchos de prueba, y
-# los reemplazos de las pistas de MSU-1.
+# What the converter needs from the machine, since it runs in another
+# process and receives it by flags; and what this one adds: where the test
+# cartridges go, and the replacements for the MSU-1 tracks.
 AL_CONVERSOR = ("game_dir", "rtp_dir", "soundfont", "cache")
 DEL_AMBIENTE = AL_CONVERSOR + ("test_cartridges", "reemplazos")
 
@@ -393,15 +406,15 @@ def main():
     proyecto.argumento(parser)
     ambiente.argumentos(parser, *DEL_AMBIENTE)
     parser.add_argument("--lista", action="store_true",
-                        help="qué caso va en qué cartucho, sin armar nada")
-    parser.add_argument("nombres", nargs="*", metavar="CARTUCHO",
-                        help="sólo éstos; sin nombres, todos. Es lo que usa "
-                             "`just build release`")
+                        help="which case goes in which cartridge, without building anything")
+    parser.add_argument("nombres", nargs="*", metavar="CARTRIDGE",
+                        help="only these; without names, all of them. It is what "
+                             "`just build release` uses")
     args = parser.parse_args()
     ambiente.desde_argumentos(args, *DEL_AMBIENTE)
     for nombre in args.nombres:
         if nombre not in CARTUCHOS:
-            sys.exit("no hay un cartucho %r: los que hay son %s"
+            sys.exit("there is no cartridge %r: the ones there are %s"
                      % (nombre, ", ".join(CARTUCHOS)))
     if args.lista:
         for nombre in CARTUCHOS:
@@ -410,42 +423,44 @@ def main():
         return
     fuentes = huella()
     nombres = args.nombres or list(CARTUCHOS)
-    # Los cartuchos y las pistas se arman a la vez, en hilos: cada uno escribe
-    # en su directorio, y lo pesado corre en subprocesos —el conversor,
-    # `ca65`, fluidsynth—. Lo que comparten es el caché en disco, que escribe
-    # aparte y renombra. Lo que se imprime sigue en el orden de siempre.
+    # The cartridges and the tracks are built at the same time, in threads:
+    # each one writes in its own directory, and the heavy work runs in
+    # subprocesses —the converter, `ca65`, fluidsynth—. What they share is the
+    # disk cache, which writes aside and renames. What is printed stays in the
+    # usual order.
     #
-    # Las pistas, **detrás de `release`** y no a la par: son las de sus
-    # temas, que el conversor deja en su `musica.json`. Mientras tanto se
-    # arman los demás cartuchos.
+    # The tracks, **after `release`** and not alongside it: they are its
+    # songs', which the converter leaves in its `musica.json`. Meanwhile the
+    # other cartridges get built.
     with concurrent.futures.ThreadPoolExecutor(len(nombres) + 1) as hilos:
         armados = {nombre: hilos.submit(armar, nombre, fuentes)
                    for nombre in nombres}
         hechas = (hilos.submit(pistas, armados[RELEASE])
                   if RELEASE in nombres else None)
         for nombre in nombres:
-            print("%s: %s" % (nombre, "armado" if armados[nombre].result()
-                              else "al día"))
+            print("%s: %s" % (nombre, "built" if armados[nombre].result()
+                              else "up to date"))
             if nombre == RELEASE:
                 print(hechas.result())
 
 
 def pistas(armado=None):
-    """Las pistas de MSU-1 al lado de la ROM que se juega: `release` las lleva
-    siempre, así que no hay otra manera de tener la ROM con pistas.
+    """The MSU-1 tracks next to the ROM that is played: `release` always
+    carries them, so there is no other way to have the ROM with tracks.
 
-    Van fuera del sello y se miran aunque la ROM esté al día: cuáles son lo
-    dice el cartucho —su `musica.json`—, pero cómo suena cada una depende del
-    MIDI, del soundfont y del sintetizador, y `msu.armar` ya sabe cuáles están
-    —ver `clave_de_la_pista`—. Que estén al lado no cambia
-    la tanda: el arnés le esconde las pistas al core, ver `retro.Consola`.
-    Devuelve la línea que lo cuenta, que `main` imprime en su lugar.
+    They go outside the stamp and are checked even if the ROM is up to date:
+    which ones they are is said by the cartridge —its `musica.json`—, but how
+    each one sounds depends on the MIDI, the soundfont and the synthesizer,
+    and `msu.armar` already knows which ones are there —see
+    `clave_de_la_pista`—. Having them next to it does not change the suite:
+    the harness hides the tracks from the core, see `retro.Consola`.
+    Returns the line that reports it, which `main` prints in its place.
     """
     if armado is not None:
-        armado.result()         # el `musica.json` que dice cuáles son
-    from audio import msu       # fluidsynth y ffmpeg, sólo para `release`
+        armado.result()         # the `musica.json` that says which ones
+    from audio import msu       # fluidsynth and ffmpeg, only for `release`
     hechas, estaban = msu.armar(rom_de(RELEASE), charlar=False)
-    return ("%s: pistas de MSU-1, %d hechas y %d que ya estaban"
+    return ("%s: MSU-1 tracks, %d made and %d that were already there"
             % (RELEASE, hechas, estaban))
 
 

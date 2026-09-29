@@ -1,30 +1,32 @@
-"""Los efectos de sonido de calidad, que la ROM lee del `.msu` con MSU-1.
+"""The high-quality sound effects, which the ROM reads from the `.msu` with MSU-1.
 
-Con MSU-1 y el tema sonando por su pista, el SPC700 no toca música: la ARAM
-queda para los efectos. Pero la ROM no puede llevar una versión de calidad
-de cada efecto para cada paquete —medido el 2026-09-26, los 92 efectos de
-`release` enteros a 22 kHz eran 1,1 MB, y el paquete del mapa 3 solo pedía
-291 KB contra los 62 de la ARAM—, así que las lleva el `.msu`, que no tiene
-tope, y la ROM las sube a la ARAM por el puerto de datos del MSU-1 al cargar
-cada paquete. Sin MSU-1, o con un `.msu` que no es el de este cartucho, usa
-los suyos: los de siempre, que reparte `snes_music`. El mecanismo es el de
-los fondos de batalla —ver docs/port/msu-datos.md— y el diseño con sus
-números, la tarea `efectos-de-calidad-con-msu-1.md`.
+With MSU-1 and the song playing from its track, the SPC700 plays no music:
+the ARAM is left for the sound effects. But the ROM cannot carry a
+high-quality version of every sound effect for every package —measured on
+2026-09-26, the 92 sound effects of `release`, whole at 22 kHz, came to
+1.1 MB, and the package of map 3 alone asked for 291 KB against the ARAM's
+62—, so the `.msu` carries them, which has no cap, and the ROM uploads them
+to the ARAM through the MSU-1 data port when loading each package. Without
+MSU-1, or with a `.msu` that is not this cartridge's, it uses its own: the
+usual ones, which `snes_music` distributes. The mechanism is the same as the
+battle backgrounds' —see docs/port/msu-datos.md— and the design with its
+numbers, the task `efectos-de-calidad-con-msu-1.md`.
 
-**Cada paquete tiene su versión de cada efecto**, a la tasa que le entra.
-Una sola por efecto —la que le entra a su peor paquete— dejaba a 4,7 kHz los
-efectos que el mapa 3 comparte con otros diez paquetes que tienen lugar de
-sobra: el mismo día, 48 de los 159 pares (paquete, efecto) de `release`
-perdían. Lo que cuesta es que la ROM vuelve a subir los efectos en cada
-paquete aunque ya estuvieran en la ARAM, porque no tiene dónde anotar qué
-versión quedó: ver `se_msu_preparar` en tools/runtime/efectos_con_msu.s.
+**Each package has its own version of each sound effect**, at the rate that
+fits it. A single one per sound effect —the one that fits its worst
+package— left at 4.7 kHz the sound effects that map 3 shares with ten other
+packages that have room to spare: that same day, 48 of the 159 (package,
+sound effect) pairs of `release` lost out. What it costs is that the ROM
+uploads the sound effects again on every package even if they were already
+in the ARAM, because it has nowhere to record which version was left: see
+`se_msu_preparar` in tools/runtime/efectos_con_msu.s.
 
-**Enteros siempre, y a la tasa más alta que entre**: la misma para todos los
-efectos del paquete —`TASAS`, de la de los WAV para abajo— salvo que la del
-cartucho sea mayor. Un efecto que el cartucho ya lleva entero no queda peor
-que sin MSU-1: su tasa es el piso. Uno que el cartucho lleva recortado puede
-quedar a menos tasa que allá, pero entero: es lo que pidió taro primero, la
-longitud.
+**Always whole, and at the highest rate that fits**: the same for all the
+sound effects of the package —`TASAS`, from the WAVs' rate downwards— unless
+the cartridge's is higher. A sound effect the cartridge already carries
+whole ends up no worse than without MSU-1: its rate is the floor. One the
+cartridge carries trimmed may end up at a lower rate than there, but whole:
+it is what taro asked for first, the length.
 """
 
 import collections
@@ -33,26 +35,26 @@ from audio import muestras_brr
 from audio import snes_music
 from audio import snes_samples
 
-# Las tasas entre las que se elige, de mayor a menor. 22.050 Hz es la de los
-# WAV del RTP, así que no se remuestrea; una fija para todos los efectos de un
-# paquete, y escalonada para que la misma versión sirva a más de un paquete
-# —el caché del BRR la codifica una vez—.
+# The rates to choose from, highest to lowest. 22,050 Hz is the rate of the
+# RTP's WAVs, so there is no resampling; one fixed rate for all the sound
+# effects of a package, and stepped so that the same version serves more than
+# one package —the BRR cache encodes it once—.
 TASAS = (22050, 20000, 18000, 16000, 14000, 12000, 11025, 10000, 9000, 8000,
          7500, 7000, 6500, 6000, 5500, 5000, 4500, 4000, 3500, 3000)
-# Lo que se deja libre en cada paquete, como la música: `ARAM_MARGEN`.
+# What is left free in each package, as with the music: `ARAM_MARGEN`.
 MARGEN = snes_music.ARAM_MARGEN
 
 
-# `rate` y no `tasa`: así la lee `snes_music.altura_de_efecto`, igual que a
-# un `Efecto`.
+# `rate` and not `tasa`: that is how `snes_music.altura_de_efecto` reads it,
+# the same as an `Efecto`.
 Version = collections.namedtuple("Version", "nombre rate data")
 
 
 def armar(nombre, tasa, game_dir):
-    """El efecto entero, sin bucle, a `tasa` —o a la de su WAV, si es menor—,
-    en BRR. Es lo que hace `snes_music.build_efecto` con un efecto de
-    `se_enteros()`, y la normalización es la misma: suena igual de fuerte que el
-    de la ROM."""
+    """The whole sound effect, without a loop, at `tasa` —or at its WAV's rate,
+    if lower—, in BRR. It is what `snes_music.build_efecto` does with a sound
+    effect from `se_enteros()`, and the normalization is the same: it sounds
+    as loud as the ROM's."""
     crudo, fuente = snes_music.leer_wav(nombre.split("@")[0], game_dir)
     tasa = min(tasa, fuente)
     salen = max(muestras_brr.BLOQUE_MUESTRAS,
@@ -63,22 +65,22 @@ def armar(nombre, tasa, game_dir):
 
 
 def _pesa(largo, fuente, tasa):
-    """Lo que ocupa en BRR un efecto de `largo` muestras a `fuente` Hz,
-    entero a `tasa`: la misma cuenta que `armar`, sin armarlo."""
+    """What a sound effect of `largo` samples at `fuente` Hz takes up in BRR,
+    whole at `tasa`: the same arithmetic as `armar`, without building it."""
     tasa = min(tasa, fuente)
     salen = max(16, int(round(largo * tasa / float(fuente))) // 16 * 16)
     return salen // 16 * muestras_brr.BLOQUE_BYTES
 
 
 def tasas(paquetes, efectos, libre, game_dir):
-    """{nombre del paquete: {efecto: tasa}}: a qué tasa va cada efecto de cada
-    paquete en el `.msu`.
+    """{package name: {sound effect: rate}}: at which rate each sound effect
+    of each package goes in the `.msu`.
 
-    `paquetes` son (nombre, efectos, bytes de la música que sí se sube con
-    MSU-1): la de los temas del paquete que no tienen pista. `efectos` es
-    `banco.efectos` —{nombre: (SRCN, Efecto)}—, de donde sale el piso de cada
-    uno: la tasa del cartucho si allá va entero. `libre` es lo que hay en la
-    ARAM para muestras.
+    `paquetes` are (name, sound effects, bytes of the music that does get
+    uploaded with MSU-1): that of the package's songs that have no track.
+    `efectos` is `banco.efectos` —{name: (SRCN, Efecto)}—, which gives each
+    one's floor: the cartridge's rate if it goes whole there. `libre` is what
+    the ARAM has for samples.
     """
     wavs = {}
     salida = {}
@@ -99,7 +101,8 @@ def tasas(paquetes, efectos, libre, game_dir):
             if sum(_pesa(*wavs[e], elegida[e]) for e in suyos) <= hay:
                 break
         else:
-            print("  efectos de calidad: el paquete %s no entra ni a %d Hz; "
-                  "los que no entren no suenan con MSU-1" % (nombre, TASAS[-1]))
+            print("  high-quality sound effects: package %s does not fit even at "
+                  "%d Hz; the ones that do not fit do not play with MSU-1"
+                  % (nombre, TASAS[-1]))
         salida[nombre] = elegida
     return salida
