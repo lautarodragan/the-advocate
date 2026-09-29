@@ -22,6 +22,7 @@ import pytest
 from render import render_map
 from rpgmaker import resources
 from port import snes_convert
+from port import obj_extras
 from port import sprites
 
 from datos import DEMO
@@ -91,7 +92,7 @@ def test_los_digitos_entran_en_una_paleta_que_ya_existe():
     ren = render_map.Renderer(JUEGO)
     sys_img = ventana_mod.skin(JUEGO, ren.database.system_name)
     palettes = paletas_de(13)
-    _tiles, _base, cual = snes_convert.timer_digits(
+    _tiles, _base, cual = obj_extras.timer_digits(
         sys_img, bytes(32 * 64), palettes)
     assert len(palettes) == sprites.OBJ_PALETTES, \
         "el cronómetro se agregó una paleta teniendo dónde entrar"
@@ -105,7 +106,7 @@ def test_si_de_verdad_no_entra_lo_dice():
     ren = render_map.Renderer(JUEGO)
     sys_img = ventana_mod.skin(JUEGO, ren.database.system_name)
     with pytest.raises(SystemExit):
-        snes_convert.timer_digits(sys_img, bytes(32 * 64), paletas_de(15))
+        obj_extras.timer_digits(sys_img, bytes(32 * 64), paletas_de(15))
 
 
 def test_el_cronometro_no_cae_en_la_ranura_de_un_lider():
@@ -128,7 +129,7 @@ def test_el_cronometro_no_cae_en_la_ranura_de_un_lider():
     sys_img = ventana_mod.skin(JUEGO, ren.database.system_name)
     # Dos paletas con lugar de sobra; la primera es la del líder.
     palettes = [[(1, 1, k) for k in range(4)], [(2, 2, k) for k in range(4)]]
-    _tiles, _base, cual = snes_convert.timer_digits(
+    _tiles, _base, cual = obj_extras.timer_digits(
         sys_img, bytes(32 * 64), palettes, leader_owned={0})
     assert cual == 1, \
         "el cronómetro se metió en la paleta %d, que es de un líder: la ROM " \
@@ -150,7 +151,7 @@ def test_las_gotas_no_caen_en_la_paleta_del_cronometro():
     lo que se prueba es el mecanismo.
     """
     palettes = [[(1, 1, k) for k in range(4)], [(2, 2, k) for k in range(4)]]
-    _tiles, base, cual = snes_convert.rain_drops(
+    _tiles, base, cual = obj_extras.rain_drops(
         bytes(32 * 64), palettes, timer_base=64, timer_pal=0)
     assert base, "las gotas no entraron en ninguna paleta"
     assert cual != 0, \
