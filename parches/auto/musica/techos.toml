@@ -3,10 +3,10 @@
 #
 # **No se edita a mano**: lo escribe `just techos`, que toca cada
 # tema en la ROM y le da el aire más alto que no recorta. El porqué,
-# en `leer_techos` (tools/audio/snes_music.py); cómo se mide, en
-# tools/audio/techos.py. `test_musica_techos.py` falla si algún tema
-# recorta o si la mezcla de alguno ya no es la que se midió: la
-# huella. Cualquier cambio de la mezcla —las muestras, las
+# en `leer_techos`, que es donde el conversor la lee; cómo se mide,
+# en `rm2k-snes-volume-ceilings`. `test_musica_techos.py` falla si
+# algún tema recorta o si la mezcla de alguno ya no es la que se
+# midió: la huella. Cualquier cambio de la mezcla —las muestras, las
 # envolventes, el reparto— pide volver a correr `just techos`.
 #
 # Por tema: `aire`, el techo; `pico`, en dB contra el tope, y `lufs`,

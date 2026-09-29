@@ -1,7 +1,7 @@
 # Las decisiones artísticas del mapa 95: qué se pierde al pasarlo a la
 # SNES. Lo escribe el conversor y lo regenera `just parches`, que es lo
 # que hay que correr cuando un cambio lo mueve; `just parches --check`
-# —y la tanda— fallan si quedó viejo. Ver tools/port/parches.py.
+# —y la tanda— fallan si quedó viejo. Ver `rm2k-snes-patches`.
 
 mapa = 95
 nombre = "Into The Machine"

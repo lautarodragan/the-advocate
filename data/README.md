@@ -2,7 +2,7 @@
 
 Esto es *A Blurred Line* volcado de los formatos binarios de RPG Maker 2000 a
 JSON y a texto plano. Lo escribe **Ditto** (`just datos`), y **es lo que lee el
-port**: `tools/rpgmaker/lcf.py` sale de acá y de ningún otro lado, así que el conversor,
+port**: el lector de las herramientas, `lcf`, sale de acá y de ningún otro lado, así que el conversor,
 la referencia en Python y las pruebas están todos mirando estos archivos y no
 los `.lmu`. El porqué de esa decisión está en `DITTO.md`, en la raíz.
 
@@ -36,7 +36,7 @@ La diferencia es qué tanto hay que saber para leerlo:
   nombres puestos**. Leerlo pide el esquema del formato, que publica
   `ditto schema`.
 
-Hasta el 2026-09-20 el versionado era el exacto, y `tools/rpgmaker/lcf.py`
+Hasta el 2026-09-20 el versionado era el exacto, y `lcf`
 llevaba el esquema al lado para poder entenderlo. Eso era el formato viviendo
 del lado del que lee; hoy lo resuelve el que lo tiene. Perder los nombres de acá
 es aceptado a propósito y el camino de vuelta está pensado: si el proceso entero
@@ -83,12 +83,12 @@ columna de su celda.
 **El texto es cp1252**, y un par de mensajes que el autor nunca tocó siguen en
 Shift-JIS: en el JSON salen como caracteres raros y vuelven al binario
 idénticos. Decodificarlos adivinando le costaría a Ditto la vuelta exacta, que
-es lo único que lo hace útil, así que el que adivina es `tools/rpgmaker/lcf.py`.
+es lo único que lo hace útil, así que el que adivina es `lcf`.
 
 ## De dónde salen los nombres
 
 De **liblcf**, que es donde EasyRPG declara el formato en un juego de tablas
-CSV. `tools/ditto/src/schema/` se genera de ahí y está versionado, y de ahí
+CSV. El esquema de Ditto se genera de ahí y está versionado, y de ahí
 salen tanto los nombres del volcado exacto como los defaults y los números que
 están escritos acá. Ningún número de este directorio se escribió de memoria: ya
 pasó una vez que tres códigos de comando se pusieron así y estaban mal, y de
