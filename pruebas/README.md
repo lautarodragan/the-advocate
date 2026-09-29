@@ -7,7 +7,7 @@ Las pruebas del ROM. En Python. Usan libretro para correr el rom.
     just pruebas -k menu          lo de siempre de pytest pasa tal cual
     PROCESOS=0 just pruebas ...   en serie, para --pdb o -s
 
-Cuántas son y cuántas pasan lo dice la corrida; `python3 -m pytest pruebas
+Cuántas son y cuántas pasan lo dice la corrida; `pytest pruebas
 --collect-only -q` las lista sin correrlas.
 
 ## Carpetas
@@ -269,6 +269,9 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `herramientas/test_destello_paleta.py`: la paleta de sprite de los líderes
 * `herramientas/test_timer_paleta.py`: el cronómetro y sus paletas
 * `herramientas/test_indice.py`: que esta lista esté al día
+* `herramientas/test_lado_de_abl.py`: que el lado de ABL —el `justfile`,
+  `parches/`, `data/` y las pruebas nuevas— no nombre `tools/`, y que el
+  `justfile` no nombre Python
 
 ## Casos
 

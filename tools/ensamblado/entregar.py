@@ -1,9 +1,10 @@
+#!/usr/bin/env python3
 """Deja el `release` armado en `/shared/builds/<fecha>-<commit>/` para que taro
 lo juegue: `just entregar "<qué mirar>"`. La regla es la de "Sub-agentes" en
 AGENTS.md; esto es esa regla escrita una sola vez.
 
-    python3 tools/ensamblado/entregar.py "qué mirar"
-    python3 tools/ensamblado/entregar.py "qué mirar" --actualizar-msu
+    abl-entregar "qué mirar"
+    abl-entregar "qué mirar" --actualizar-msu
 
 El build lleva `abl.sfc`, `abl.sfc.dbg`, `abl.msu`, el `rom/src/` del commit
 y un `LEEME.txt`. Las pistas de MSU-1 no: van a `/shared/msu/`, y sólo con
@@ -20,7 +21,17 @@ import subprocess
 import sys
 import textwrap
 
-RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Corrido como script, deja `tools/` en el camino de los imports en vez de la
+# carpeta de este archivo; y desde el PATH, si el directorio actual es otro
+# checkout, corre el de ahí: ver `comun/ejecutable.py`.
+if __name__ == "__main__":
+    sys.path[0] = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    from comun import ejecutable
+    ejecutable.usar_el_del_checkout(__file__)
+
+# `realpath` y no `abspath`: `just herramientas` instala este script en el PATH
+# como symlink, y lo que importa es dónde está el archivo de verdad.
+RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 RELEASE = os.path.join(RAIZ, "rom", "build", "release")
 SHARED = os.environ.get("SHARED", "/shared")
 BUILDS = os.path.join(SHARED, "builds")

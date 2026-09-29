@@ -18,7 +18,7 @@ escribe ahí y nunca acá, así que se computa cuando haga falta.
     nuevos/MapNNNN.json    un mapa que el juego **no tiene**, con su nodo del
     nuevos/MapNNNN.tiles   árbol adentro, y sus dos capas
 
-Lo que lo hace cumplir es `tools/rpgmaker/fork.py`, y lo miran las pruebas
+Lo que lo hace cumplir es `fork`, del conversor, y lo miran las pruebas
 `pruebas/herramientas/test_fork_mapas.py`.
 
 ## Las tres reglas, que son el mismo miedo
@@ -51,7 +51,7 @@ De ahí salen su nombre, su padre, su música y sus encuentros; `lcf.TreeMap`
 lo suma a los del juego.
 
 Hoy es uno: el **900**, el mapa de debug, donde arranca "Begin the Story"
-mientras `CON_MAPA_DE_DEBUG` esté prendido en `tools/ensamblado/cartuchos.py`.
+mientras `CON_MAPA_DE_DEBUG` esté prendido en `rm2k-snes-cartridges`.
 Un cuarto con el chipset del mapa 10, seis puertas con su cartel y un NPC por
 compañero, que elige la rama que aplican las puertas. Lo que pone cada puerta
 está en los `Comment` de su página, al lado de cada comando: es lo que hay que

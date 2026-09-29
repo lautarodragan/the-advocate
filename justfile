@@ -92,32 +92,50 @@ voodoo-pruebas:
 lz2-pruebas:
   cd tools/lz2 && cargo test --release
 
-# Arma la ROM: `ca65` + `ld65`, más el checksum y la tabla de símbolos que
-# leen las pruebas. Lo usan todas las recetas que ensamblan `main.s`, y también
-# `pruebas/arnes/consola.py`. El mapa de memoria lo escribe el conversor al lado de
-# los `.inc`. Ver tools/ensamblado/ensamblar.py.
-ensamblar := "python3 tools/ensamblado/ensamblar.py"
-
 # Dónde instala `just herramientas`. En el contenedor `/usr/local` está en el
 # PATH; desde el host conviene `CARGO_ROOT=~/.cargo`, el default de cargo.
 cargo_root := env_var_or_default("CARGO_ROOT", "/usr/local")
-# --- Las herramientas de Rust ----------------------------------------------
+# --- Las herramientas ------------------------------------------------------
 # `tools/protocol/`, `tools/gunter/`, `tools/ditto/`, `tools/voodoo/` y
 # `tools/lz2/` son proyectos aparte, y el port los consume **desde el PATH**,
-# como consume python3 o un core de libretro: ningún script ni prueba de este
-# juego llama a `cargo`. Se instalan una vez y quedan.
+# como consume un core de libretro: ningún script ni prueba de este juego
+# llama a `cargo`. Se instalan una vez y quedan.
+#
+# Y los scripts de Python que se ejecutan, al mismo `bin/`, para que este
+# archivo los llame por su nombre como a los de Rust. Van **como symlinks y no
+# como copias**: una copia quedaría vieja al editar el `.py`, y la tanda
+# correría otra versión que la del árbol. El symlink apunta al checkout desde
+# el que se corrió esto, pero corrido adentro de otro checkout —el worktree de
+# un sub-agente— cada script corre la copia de ése: ver
+# `tools/comun/ejecutable.py`. Si el checkout del symlink se borra, hay que
+# volver a correr esto desde otro.
+#
+# Los nombres siguen al repo donde va a vivir cada programa cuando las
+# herramientas se separen de ABL: `rm2k-snes-` y en inglés los de la suite,
+# que va a ser un repo en inglés; `abl-` y en castellano el que se queda con
+# el juego. El prefijo es porque el `bin/` es compartido: un `espacio` o un
+# `parches` suelto no dice qué es y puede chocar con cualquier cosa.
 herramientas:
   cargo install --locked --path tools/protocol --root {{cargo_root}}
   cargo install --locked --path tools/gunter --root {{cargo_root}}
   cargo install --locked --path tools/ditto --root {{cargo_root}}
   cargo install --locked --path tools/voodoo --root {{cargo_root}}
   cargo install --locked --path tools/lz2 --root {{cargo_root}}
+  mkdir -p "{{cargo_root}}/bin"
+  ln -sfn "{{justfile_directory()}}/tools/ensamblado/cartuchos.py" "{{cargo_root}}/bin/rm2k-snes-cartridges"
+  ln -sfn "{{justfile_directory()}}/tools/ensamblado/ensamblar.py" "{{cargo_root}}/bin/rm2k-snes-assemble"
+  ln -sfn "{{justfile_directory()}}/tools/ensamblado/espacio.py" "{{cargo_root}}/bin/rm2k-snes-space"
+  ln -sfn "{{justfile_directory()}}/tools/port/snes_convert.py" "{{cargo_root}}/bin/rm2k-snes-convert"
+  ln -sfn "{{justfile_directory()}}/tools/port/parches.py" "{{cargo_root}}/bin/rm2k-snes-patches"
+  ln -sfn "{{justfile_directory()}}/tools/audio/msu.py" "{{cargo_root}}/bin/rm2k-snes-msu"
+  ln -sfn "{{justfile_directory()}}/tools/audio/techos.py" "{{cargo_root}}/bin/rm2k-snes-volume-ceilings"
+  ln -sfn "{{justfile_directory()}}/tools/ensamblado/entregar.py" "{{cargo_root}}/bin/abl-entregar"
 
 # --- Super Nintendo --------------------------------------------------------
-# El port. El toolchain son tres cosas: python, un core de libretro y las
-# herramientas del PATH —`ca65` + `ld65` arman la ROM y `gunter` sus muestras—. La
-# ROM se corre desde Python cuadro a cuadro (tools/emulador/retro.py), sin emulador con
-# ventana ni servidor X.
+# El port. El toolchain son dos cosas: un core de libretro y las herramientas
+# del PATH —las de `just herramientas` convierten el juego, `ca65` + `ld65`
+# arman la ROM y `gunter` sus muestras—. La ROM se corre cuadro a cuadro desde
+# el arnés de las pruebas, sin emulador con ventana ni servidor X.
 #
 # Las herramientas se instalan con `just herramientas` y no se compilan acá;
 # si falta alguna, el que la busca dice cuál y cómo tenerla.
@@ -141,7 +159,7 @@ herramientas:
 # se arman antes, en serie, y sólo si cambió algo de lo que los arma. **Después
 # corren en paralelo**, con pytest-xdist: ver `procesos`.
 pruebas *args: _xdist cartuchos
-  python3 -m pytest pruebas {{xdist}} {{args}}
+  pytest pruebas {{xdist}} {{args}}
 
 # Las mismas, de a una carpeta: `rpgmaker` —lo que el motor tiene que hacer
 # igual que RM2k—, `abl` —lo propio del juego— y `herramientas` —las que no
@@ -150,13 +168,13 @@ pruebas *args: _xdist cartuchos
 # Van en paralelo igual que `pruebas`: hasta `herramientas`, que no corre
 # ninguna ROM, gana.
 pruebas-rpgmaker *args: _xdist cartuchos
-  python3 -m pytest pruebas/rpgmaker {{xdist}} {{args}}
+  pytest pruebas/rpgmaker {{xdist}} {{args}}
 
 pruebas-abl *args: _xdist cartuchos
-  python3 -m pytest pruebas/abl {{xdist}} {{args}}
+  pytest pruebas/abl {{xdist}} {{args}}
 
 pruebas-herramientas *args: _xdist cartuchos
-  python3 -m pytest pruebas/herramientas {{xdist}} {{args}}
+  pytest pruebas/herramientas {{xdist}} {{args}}
 
 # Cuántos procesos de pytest corren las pruebas a la vez. **`PROCESOS=0` es en
 # serie**, en un solo proceso y sin xdist: es lo que hay que usar para depurar
@@ -183,18 +201,18 @@ xdist := if procesos == "0" { "" } else { "-n " + procesos + " --dist worksteal"
 _xdist:
   #!/usr/bin/env sh
   [ "{{procesos}}" = 0 ] && exit 0
-  python3 -c 'import xdist' 2>/dev/null && exit 0
-  echo "las pruebas corren en paralelo con pytest-xdist, y este python3 no lo tiene." >&2
+  pytest -p xdist --help >/dev/null 2>&1 && exit 0
+  echo "las pruebas corren en paralelo con pytest-xdist, y este pytest no lo tiene." >&2
   echo "en Arch: pacman -S python-pytest-xdist; con pip: pip install pytest-xdist." >&2
   echo "para correrlas en serie sin instalarlo: PROCESOS=0 just pruebas" >&2
   exit 1
 
 # Todos los cartuchos: `release` y los de la tanda. Es lo que corre `just
 # pruebas` antes, y cada uno se rearma sólo si cambió algo de lo que lo arma.
-# Qué va en cada uno y por qué está en `tools/ensamblado/cartuchos.py`;
+# Qué va en cada uno y por qué está en el fuente de `rm2k-snes-cartridges`;
 # `--lista` lo imprime.
 cartuchos *args:
-  python3 tools/ensamblado/cartuchos.py {{args}}
+  rm2k-snes-cartridges {{args}}
 
 # **Cuánto espacio le queda a cada cartucho**: bancos de datos libres y los
 # huecos entre ellos, banco 0, banco 1, BSS, ZEROPAGE y el bloque de textos.
@@ -209,8 +227,8 @@ cartuchos *args:
 # Imprime el espacio libre de cada cartucho.
 espacio *args:
   #!/usr/bin/env sh
-  for a in {{args}}; do [ -f "$a" ] && exec python3 tools/ensamblado/espacio.py {{args}}; done
-  python3 tools/ensamblado/cartuchos.py {{args}} >/dev/null && python3 tools/ensamblado/espacio.py {{args}}
+  for a in {{args}}; do [ -f "$a" ] && exec rm2k-snes-space {{args}}; done
+  rm2k-snes-cartridges {{args}} >/dev/null && rm2k-snes-space {{args}}
 
 # **Las decisiones artísticas del conversor, versionadas**: qué color se
 # fusionó con cuál en cada mapa porque la CGRAM no daba para los dos, y a qué
@@ -218,19 +236,20 @@ espacio *args:
 # escribe el conversor al lado de cada ROM que arma, y esto copia a `parches/`
 # —que es lo que va a git— **los de `abl` y de ningún otro**: la decisión
 # versionada es la del ROM jugable, y los cartuchos de prueba se adaptan como
-# puedan. Regla de taro, 2026-09-21; el porqué está en `tools/port/parches.py`.
+# puedan. Regla de taro, 2026-09-21; el porqué está en el fuente de
+# `rm2k-snes-patches`.
 #
 # Regenerarlos es deliberado, igual que con las goldens: si fuera automático o
 # lo hiciera la tanda, dejarían de avisar nada. Lo que se mira es el diff.
 parches: (build "release")
-  python3 tools/port/parches.py rom/build/release
+  rm2k-snes-patches rom/build/release
 
 # Y la verificación, que es lo que corre la tanda: falla diciendo **qué
 # decisión cambió** —"la animación 82 se dibujaba a 64x50 y ahora se dibuja a
 # 64x49"—, no que el archivo difiere. Sin argumentos mira todos los cartuchos
 # de `cartuchos.py`, porque lo versionado tiene que salir igual en todos.
 parches-check *builds:
-  python3 tools/port/parches.py {{builds}} --check
+  rm2k-snes-patches {{builds}} --check
 
 # **El techo de volumen de cada tema**, medido: arma una copia de `release`
 # con todos los temas a medio volumen, toca cada uno entero en snes9x, le da el
@@ -239,10 +258,10 @@ parches-check *builds:
 # deliberado como `parches`: lo que se mira es el diff de la tabla, y hay que
 # correrlo con cada cambio de la mezcla —las muestras, las envolventes, el
 # reparto—, que es cuando `test_musica_techos.py` avisa que quedó vieja. El
-# porqué, en `leer_techos` de tools/audio/snes_music.py. `--medir` sólo mide
-# el `release` armado, sin escribir nada: recortes, pico y LUFS por tema.
+# porqué, en `leer_techos`, que es donde el conversor la lee. `--medir` sólo
+# mide el `release` armado, sin escribir nada: recortes, pico y LUFS por tema.
 techos *args:
-  python3 tools/audio/techos.py {{args}}
+  rm2k-snes-volume-ceilings {{args}}
 
 # Arma un cartucho por nombre, si no está al día:
 #
@@ -251,16 +270,16 @@ techos *args:
 #     test-special   lo que no entra en ella, en `rom/build/tests/special`
 #
 # `just pruebas` los arma todos antes de correr. Qué lleva cada uno, y por
-# qué, en `tools/ensamblado/cartuchos.py`: los flags de `release` también viven
-# ahí, porque la ROM que se juega es la que prueba la tanda.
+# qué, en el fuente de `rm2k-snes-cartridges`: los flags de `release` también
+# viven ahí, porque la ROM que se juega es la que prueba la tanda.
 #
 # **`release` lleva siempre sus pistas de MSU-1** al lado de `abl.sfc`: el
 # `abl.msu` que lo enciende y un `abl-N.pcm` por tema del cartucho —el número
-# lo da `pista_msu`, en tools/audio/snes_music.py—. Sin la
-# extensión la ROM suena como siempre, por el SPC700. El `.msu` lo escribe el
-# conversor, y lo llevan los dos cartuchos: son los fondos de batalla que la
-# ROM lee por el MSU-1 si está —ver tools/port/msu_datos.py—. Las
-# renderiza `tools/audio/msu.py` con fluidsynth, y sólo las que cambiaron: una
+# lo da `pista_msu`, del conversor—. Sin la extensión la ROM suena como
+# siempre, por el SPC700. El `.msu` lo escribe el conversor, y lo llevan los
+# dos cartuchos: son los fondos de batalla que la ROM lee por el MSU-1 si
+# está —ver `docs/port/msu-datos.md`—. Las renderiza `rm2k-snes-msu` con
+# fluidsynth, y sólo las que cambiaron: una
 # pista depende del MIDI, del soundfont, del sintetizador y de cómo se
 # normaliza, no del cartucho. Con `SIN_CACHE=1` se rehacen todas.
 #
@@ -276,7 +295,7 @@ techos *args:
 #
 # Arma una ROM por nombre: release o test-special.
 build cual:
-  python3 tools/ensamblado/cartuchos.py {{cual}}
+  rm2k-snes-cartridges {{cual}}
 
 # **Le deja a taro el `release` en `/shared/builds/<fecha>-<commit>/`**: el
 # `abl.sfc`, su `.dbg`, un `LEEME.txt` con lo que se le pasa como qué mirar, y
@@ -296,7 +315,7 @@ build cual:
 #
 # Entrega el release en /shared/builds/ para que taro lo juegue.
 entregar que_mirar *args: (build "release")
-  python3 tools/ensamblado/entregar.py {{quote(que_mirar)}} {{args}}
+  abl-entregar {{quote(que_mirar)}} {{args}}
 
 # Es para que taro vea y escuche un build sin correrlo. Las jugadas son partes
 # del nombre de las pruebas de `pruebas/abl/test_recorrido_golden.py`
@@ -310,4 +329,4 @@ entregar que_mirar *args: (build "release")
 #
 # Un video con sonido de una ROM ya armada, jugando las jugadas del recorrido.
 video cual salida +jugadas:
-  python3 -O pruebas/arnes/video.py rom/build/{{cual}} {{salida}} {{jugadas}}
+  pruebas/arnes/video.py rom/build/{{cual}} {{salida}} {{jugadas}}

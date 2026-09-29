@@ -23,13 +23,13 @@ paletas 8 a 15, o sea los índices 128 a 255, y en 8 bits el fondo llega hasta e
 255: quedarse abajo evita pisarlos.
 
 Uso:
-    python3 tools/port/snes_convert.py --map-id 7 -o rom/build/inc/mapdata.inc
+    rm2k-snes-convert --map-id 7 -o rom/build/inc/mapdata.inc
 
 Con una página de prueba, que es la lista de comandos de RM2k de un archivo
 de `pruebas/casos/`; varias en un cartucho, cada una detrás de un `--caso`, y
 los flags del cartucho antes del primero. El arnés elige cuál corre con
 `Partida(caso=k)`:
-    python3 tools/port/snes_convert.py -o … --map-id 6 \
+    rm2k-snes-convert -o … --map-id 6 \
         --comandos-de-prueba pruebas/casos/pan.json \
         --caso --comandos-de-prueba pruebas/casos/pan-vuelve.json
 """
@@ -51,8 +51,14 @@ import numpy
 # importan los paquetes. Se la reemplaza en vez de sumar `tools/` al lado: con
 # las dos, un `import eventos` suelto andaría y cargaría una segunda copia del
 # módulo, distinta de `port.eventos`.
+# `realpath` y no `abspath`: `just herramientas` lo instala en el PATH como
+# symlink, y la carpeta que sirve es la del archivo de verdad.
 if __name__ == "__main__":
-    sys.path[0] = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sys.path[0] = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    # Y si el directorio actual es otro checkout, corre el de ahí: ver
+    # `comun/ejecutable.py`.
+    from comun import ejecutable
+    ejecutable.usar_el_del_checkout(__file__)
 
 from ensamblado import bancos
 from port import tiles_bin

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Mide el techo de cada tema y escribe `parches/auto/musica/techos.toml`.
 
-    python3 tools/audio/techos.py            mide, escribe la tabla y rearma
-                                             `release` con ella: `just techos`
-    python3 tools/audio/techos.py --medir    sólo mide el `release` que está
-                                             armado, y no escribe nada
+    rm2k-snes-volume-ceilings            mide, escribe la tabla y rearma
+                                         `release` con ella: `just techos`
+    rm2k-snes-volume-ceilings --medir    sólo mide el `release` que está
+                                         armado, y no escribe nada
 
 El porqué de la tabla está en `leer_techos` (tools/audio/snes_music.py). Esto
 es cómo sale:
@@ -38,8 +38,16 @@ import tempfile
 import wave
 from multiprocessing import Pool
 
-RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# `realpath` y no `abspath`: `just herramientas` instala este script en el PATH
+# como symlink, y lo que importa es dónde está el archivo de verdad.
+RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 sys.path.insert(0, os.path.join(RAIZ, "tools"))
+
+# Desde el PATH, si el directorio actual es otro checkout, corre el de ahí:
+# ver `comun/ejecutable.py`.
+if __name__ == "__main__":
+    from comun import ejecutable                        # noqa: E402
+    ejecutable.usar_el_del_checkout(__file__)
 
 from audio import sdsp, snes_music                      # noqa: E402
 
@@ -210,10 +218,10 @@ def escribir(techos, medido, huellas, ruta=snes_music.TECHOS):
         "#",
         "# **No se edita a mano**: lo escribe `just techos`, que toca cada",
         "# tema en la ROM y le da el aire más alto que no recorta. El porqué,",
-        "# en `leer_techos` (tools/audio/snes_music.py); cómo se mide, en",
-        "# tools/audio/techos.py. `test_musica_techos.py` falla si algún tema",
-        "# recorta o si la mezcla de alguno ya no es la que se midió: la",
-        "# huella. Cualquier cambio de la mezcla —las muestras, las",
+        "# en `leer_techos`, que es donde el conversor la lee; cómo se mide,",
+        "# en `rm2k-snes-volume-ceilings`. `test_musica_techos.py` falla si",
+        "# algún tema recorta o si la mezcla de alguno ya no es la que se",
+        "# midió: la huella. Cualquier cambio de la mezcla —las muestras, las",
         "# envolventes, el reparto— pide volver a correr `just techos`.",
         "#",
         "# Por tema: `aire`, el techo; `pico`, en dB contra el tope, y `lufs`,",

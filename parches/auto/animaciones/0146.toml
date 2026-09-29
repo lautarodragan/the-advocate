@@ -1,7 +1,7 @@
 # La decisión artística de la animación 146: **a qué tamaño se dibuja**
 # en la consola. Lo escribe el conversor y lo regenera `just parches`,
 # que es lo que hay que correr cuando un cambio lo mueve; `just parches
-# --check` —y la tanda— fallan si quedó viejo. Ver tools/port/parches.py.
+# --check` —y la tanda— fallan si quedó viejo. Ver `rm2k-snes-patches`.
 
 animacion = 146
 nombre = "Fortitude -5"

@@ -50,13 +50,13 @@ porqué de la decisión está en `DITTO.md` y lo que hay adentro, en
 ## Cómo se arma
 
 **Hace falta `python`, un core de libretro y `ca65` + `ld65`**, más las
-herramientas de Rust del repo —las lista `tools/README.md`—, que **se consumen
-desde el PATH**: se instalan una vez y ningún script ni prueba de este juego
-llama a `cargo`. El porqué está en `AGENTS.md`. `ca65` y `ld65` salen de
+herramientas del repo —los proyectos de Rust y los scripts de Python que se
+ejecutan, que lista `tools/README.md`—, que **se consumen desde el PATH**: se
+instalan una vez, y ningún script ni prueba de este juego llama a `cargo`. El porqué está en `AGENTS.md`. `ca65` y `ld65` salen de
 cc65, que no viene empaquetado en todas las distribuciones y se compila de sus
 fuentes: ver "Referencias".
 
-    just herramientas     # instala las herramientas de Rust
+    just herramientas     # instala las herramientas en el PATH
     just cartuchos        # arma las ROMs: release y las de prueba
     just pruebas          # la tanda entera; arma antes lo que haga falta
 

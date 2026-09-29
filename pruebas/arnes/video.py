@@ -1,3 +1,4 @@
+#!/usr/bin/env -S python3 -O
 """Un video con sonido de una ROM jugando, para que taro la vea sin correrla.
 
 No trae una jugada propia: juega **las del recorrido**, llamando a las funciones
@@ -7,7 +8,7 @@ esperan por RAM, no por cuadros contados: ver `recorrido.py`. Lo que se graba
 se toma de `retro.Consola.correr`, parcheado desde acá: cada cuadro de hardware
 va a ffmpeg y su audio a un wav, y al final se juntan.
 
-    python3 -O pruebas/arnes/video.py rom/build/release salida.mp4 apertura talan
+    pruebas/arnes/video.py rom/build/release salida.mp4 apertura talan
 
 Las jugadas se nombran por lo que tienen después de `test_`, sin tener que
 escribir el nombre entero: `apertura` es `test_la_apertura_termina_...`.
@@ -15,10 +16,10 @@ escribir el nombre entero: `apertura` es `test_la_apertura_termina_...`.
 su primer cuadro de texto y su evento paralelo sigue, que es como se escuchan la
 lluvia y los truenos sin nada encima.
 
-**Se corre con `python3 -O`, y es a propósito.** Las jugadas son pruebas, y
-algunas verifican cosas que sólo valen a la velocidad del recorrido: con
-`--leer` el cronómetro de Talan ya bajó de 10:00 cuando la prueba lo mira, y el
-`assert` cortaba el video ahí. `-O` saca los `assert`; un atasco de verdad
+**Se corre con `python3 -O` —lo pone el hashbang—, y es a propósito.** Las
+jugadas son pruebas, y algunas verifican cosas que sólo valen a la velocidad
+del recorrido: con `--leer` el cronómetro de Talan ya bajó de 10:00 cuando la
+prueba lo mira, y el `assert` cortaba el video ahí. `-O` saca los `assert`; un atasco de verdad
 —`Trabado`— se sigue levantando, porque no es un `assert`.
 
 **Suena con el MSU-1, si el build tiene pistas**, al revés que las pruebas: el

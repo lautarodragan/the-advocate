@@ -1,8 +1,9 @@
+#!/usr/bin/env python3
 """Cuánto espacio le queda a cada cartucho: lo imprime y no lo escribe.
 
-    python3 tools/ensamblado/espacio.py                  todos los cartuchos
-    python3 tools/ensamblado/espacio.py release          sólo ése
-    python3 tools/ensamblado/espacio.py DIR/abl.sfc      una ROM armada aparte
+    rm2k-snes-space                  todos los cartuchos
+    rm2k-snes-space release          sólo ése
+    rm2k-snes-space DIR/abl.sfc      una ROM armada aparte
 
 Es `just espacio`. Todo sale de lo que dejó el armado al lado de la ROM —el
 `.dbg` de `ld65` y el `memoria.cfg` del conversor—, así que no relinkea ni
@@ -34,8 +35,16 @@ import os
 import re
 import sys
 
-RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# `realpath` y no `abspath`: `just herramientas` instala este script en el PATH
+# como symlink, y lo que importa es dónde está el archivo de verdad.
+RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 sys.path.insert(0, os.path.join(RAIZ, "tools"))
+
+# Desde el PATH, si el directorio actual es otro checkout, corre el de ahí:
+# ver `comun/ejecutable.py`.
+if __name__ == "__main__":
+    from comun import ejecutable                        # noqa: E402
+    ejecutable.usar_el_del_checkout(__file__)
 
 from ensamblado import bancos                           # noqa: E402
 from ensamblado import ensamblar                        # noqa: E402

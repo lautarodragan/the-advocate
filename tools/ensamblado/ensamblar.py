@@ -1,6 +1,7 @@
+#!/usr/bin/env python3
 """Arma la ROM: `ca65` + `ld65`, el checksum de la cabecera y los símbolos.
 
-    python3 tools/ensamblado/ensamblar.py rom/src/main.s -I rom/build/release \\
+    rm2k-snes-assemble rom/src/main.s -I rom/build/release \\
         -o rom/build/release/abl.sfc --simbolos …/abl.sfc.sym
 
 Hasta el 2026-09-16 esto lo hacía `w65`, un ensamblador nuestro. `ca65` y `ld65`
@@ -31,6 +32,14 @@ import shutil
 import subprocess
 import sys
 
+# Corrido como script, deja `tools/` en el camino de los imports en vez de la
+# carpeta de este archivo; y desde el PATH, si el directorio actual es otro
+# checkout, corre el de ahí: ver `comun/ejecutable.py`.
+if __name__ == "__main__":
+    sys.path[0] = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+    from comun import ejecutable
+    ejecutable.usar_el_del_checkout(__file__)
+
 # Los que escribe el conversor. Si alguno aparece junto a la fuente, tapa al del
 # directorio que se pasa con -I.
 GENERADOS = ("mapdata.inc", "musicdata.inc")
@@ -41,7 +50,9 @@ CHECKSUM = 0x7FDE
 COMPLEMENTO = 0x7FDC
 
 # La raíz del repo: `ca65` y `ld65` corren parados acá, con rutas relativas.
-RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# `realpath` y no `abspath`: `just herramientas` instala este script en el PATH
+# como symlink, y lo que importa es dónde está el archivo de verdad.
+RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 FALTA = """falta `%s`, del proyecto cc65.
 
