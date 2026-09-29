@@ -6,7 +6,7 @@
 ; trigger is met. It is what makes the characters' battle systems work
 ; —Detect Aura turns on switch 134 and the troop page that watches it says
 ; what color the aura is—. The code is the maps' code and runs in the same
-; interpreter, through the `ba_t_pagina` bridge; what is here decides **when**.
+; interpreter, through the `bt_t_page` bridge; what is here decides **when**.
 ;
 ; The rule comes from easyrpg and not from memory: `ScheduleNextPage` tries the
 ; pages in order and starts the first one that is met and **has not run this
@@ -14,11 +14,11 @@
 ; turn" part is cleared by `NextTurn`, which is when the party finished giving
 ; its commands. And there are three moments: before asking for the commands,
 ; before each action and after the last one —see the callers of
-; `ba_pag_probar`—.
+; `bt_page_test`—.
 
 ; The pages of this battle's troop, from `BA_TROPA_K`. A troop the cartridge
 ; does not carry has none.
-.proc ba_pag_armar
+.proc bt_page_build
 .a8
 .i16
     stz BA_PAG_N
@@ -32,7 +32,7 @@
     lda BA_TROPA_K
     cmp #$FF
     beq listo
-    jsr ba_ax
+    jsr bt_ax
     lda f:tropa_pag_n, x
     sta BA_PAG_N
     rep #$20
@@ -44,13 +44,13 @@
     sta BA_PAG_INI
     sep #$20
 .a8
-    jsr ba_pag_turno
+    jsr bt_page_turn
 listo:
     rts
 .endproc
 
 ; `ResetPagesExecuted`: none has run yet this turn.
-.proc ba_pag_turno
+.proc bt_page_turn
 .a8
 .i16
     ldx #0
@@ -68,12 +68,12 @@ otra:
 ;
 ; First `CheckBattleEndConditions`: with one whole side down the battle ends
 ; and none runs. Clobbers `BA_S0`, `BA_T*`, A, X and Y.
-.proc ba_pag_probar
+.proc bt_page_test
 .a8
 .i16
     lda BA_PAG_N
     beq no
-    jsr ba_enemigo_vivo
+    jsr bt_enemy_alive
     cmp #$FF
     beq no
     lda #0
@@ -82,7 +82,7 @@ alguien:
     lda BA_PAG_I
     cmp BA_NACT
     bcs no                      ; nobody in the party standing
-    jsr ba_vivo
+    jsr bt_alive
     bne hay_grupo
     inc BA_PAG_I
     bra alguien
@@ -93,17 +93,17 @@ otra:
     lda BA_PAG_I
     cmp BA_PAG_N
     bcs no
-    jsr ba_ax
+    jsr bt_ax
     lda BA_PAG_HECHA, x
     bne siguiente
-    jsr ba_pag_cumple
+    jsr bt_page_met
     bne esta
 siguiente:
     inc BA_PAG_I
     bra otra
 esta:
     lda BA_PAG_I
-    jsr ba_ax
+    jsr bt_ax
     lda #1
     sta BA_PAG_HECHA, x
     rep #$20
@@ -133,7 +133,7 @@ no:
 ; triggers the ROM knows how to check —RM2k's; the three from 2003 do not
 ; exist in this game—. Leaves in `BA_PAG_G` its place in the `tpag_*` tables
 ; and returns with Z=0 if it is met. Clobbers `BA_T*`, `temp`, A, X and Y.
-.proc ba_pag_cumple
+.proc bt_page_met
 .a8
 .i16
     rep #$20
@@ -156,7 +156,7 @@ no:
     asl a
     tax
     lda f:tpag_sw_a, x
-    jsr ba_pag_switch
+    jsr bt_page_switch
 .a8
     bne sin_a
     jmp no
@@ -170,7 +170,7 @@ sin_a:
     asl a
     tax
     lda f:tpag_sw_b, x
-    jsr ba_pag_switch
+    jsr bt_page_switch
 .a8
     bne sin_b
     jmp no
@@ -205,7 +205,7 @@ sin_var:
     bne con_cabecera
     jmp si
 con_cabecera:
-    jsr ba_pag_cabecera
+    jsr bt_page_header
     lda BA_PAG_FL
     and #TPAG_TURNO
     beq sin_turno
@@ -228,7 +228,7 @@ con_cabecera:
     bra turno_si
 con_multiplo:
     sta temp + 2
-    jsr ba_div                  ; the remainder, in `comp_and`
+    jsr bt_div                  ; the remainder, in `comp_and`
     lda comp_and
     bne no_turno
 turno_si:
@@ -252,8 +252,8 @@ sin_turno:
     bcs no
     clc
     adc #BA_GRUPO_MAX
-    jsr ba_x
-    jsr ba_pag_hp
+    jsr bt_x
+    jsr bt_page_hp
     beq no
 sin_enemigo:
     lda BA_PAG_FL
@@ -274,7 +274,7 @@ busca_actor:
     lda BA_T0 + 1
     cmp BA_NACT
     bcs no
-    jsr ba_x
+    jsr bt_x
     lda BA_UNO + BA_FLAGS, x
     and #BAF_HAY
     beq otro_actor
@@ -285,7 +285,7 @@ otro_actor:
     inc BA_T0 + 1
     bra busca_actor
 actor_hallado:
-    jsr ba_pag_hp
+    jsr bt_page_hp
     beq no
 si:
     lda #1
@@ -302,7 +302,7 @@ no:
 ; points— into `BA_COND`. It is read with the data bank at that of
 ; `tropa_codigo`, which fits whole in one bank, and written with `f:`.
 ; Clobbers A, X and Y. See `eventos.cabecera_de_tropa`.
-.proc ba_pag_cabecera
+.proc bt_page_header
 .a8
 .i16
     rep #$20
@@ -332,7 +332,7 @@ otro:
     rts
 .endproc
 
-; Whether the HP of the combatant at offset X —the one from `ba_x`— are
+; Whether the HP of the combatant at offset X —the one from `bt_x`— are
 ; between `BA_PCT_MIN` and `BA_PCT_MAX` percent, counted the way
 ; `AreConditionsMet` counts them: `100 * hp / hp_max`, integer. Without
 ; dividing: the quotient being at least `min` is `min * hp_max <= 100 * hp`,
@@ -340,7 +340,7 @@ otro:
 ; go past sixteen bits —a hundred times a boss's HP— and so they go in
 ; twenty-four. Returns with A8 and Z=0 if it is. Clobbers `BA_T1`, `BA_T2`
 ; and `temp`.
-.proc ba_pag_hp
+.proc bt_page_hp
 .a8
 .i16
     stx BA_T1
@@ -349,7 +349,7 @@ otro:
     rep #$20
 .a16
     lda BA_UNO + BA_HP, x
-    jsr ba_mul24
+    jsr bt_mul24
     lda BA_P24
     sta BA_P_HP
     lda BA_P24 + 1
@@ -362,7 +362,7 @@ otro:
 .a16
     ldx BA_T1
     lda BA_UNO + BA_HPMAX, x
-    jsr ba_mul24
+    jsr bt_mul24
     lda BA_P_HP
     sec
     sbc BA_P24
@@ -378,7 +378,7 @@ otro:
 .a16
     ldx BA_T1
     lda BA_UNO + BA_HPMAX, x
-    jsr ba_mul24
+    jsr bt_mul24
     lda BA_P_HP
     sec
     sbc BA_P24
@@ -394,9 +394,9 @@ no:
     rts
 .endproc
 
-; A16 times the byte in `BA_T2`, in twenty-four bits, in `BA_P24`: `ba_mul`
+; A16 times the byte in `BA_T2`, in twenty-four bits, in `BA_P24`: `bt_mul`
 ; without losing what goes past sixteen. Clobbers `temp`.
-.proc ba_mul24
+.proc bt_mul24
 .a16
 .i16
     sta temp
@@ -436,10 +436,10 @@ no:
 ; `ShowHiddenMonster`: the enemy at place A8 of the troop stops being hidden
 ; and starts counting for everything —target, victory, actions—, which is what
 ; `SetHidden(false)` does. One that was not hidden does not change: the
-; command revives nobody. It is drawn by `escena_tick`, which puts in the scene
+; command revives nobody. It is drawn by `scene_tick`, which puts in the scene
 ; everyone who is alive and not shown. It is called by `op_show_enemy` from
 ; the interpreter, with the data bank at 0: the battle's is set here.
-.proc ba_mostrar_oculto
+.proc bt_show_hidden
 .a8
 .i16
     phb
@@ -452,7 +452,7 @@ no:
     bcs listo
     clc
     adc #BA_GRUPO_MAX
-    jsr ba_x
+    jsr bt_x
     lda BA_UNO + BA_FLAGS, x
     bit #BAF_OCULTO
     beq listo
@@ -467,7 +467,7 @@ listo:
 ; A16 the switch number; returns with A8 and Z=0 if it is on. It is the same
 ; bitmap the map looks at, `switches`, in low RAM, which with the data bank at
 ; $7E is in its usual place. Clobbers X and Y.
-.proc ba_pag_switch
+.proc bt_page_switch
 .a16
 .i16
     pha
@@ -488,7 +488,7 @@ listo:
 ; One stretch of the running page, and what follows: if it asked for a
 ; message, to the screen; if it finished, the next one; and if none is left,
 ; the battle carries on where it was —`BA_PAG_VUELTA`—.
-.proc ba_pag_paso
+.proc bt_page_step
 .a8
 .i16
     ; A wait in the page —that of a `ShakeScreen` that waits, which the
@@ -516,7 +516,7 @@ otro_tramo:
     stz ev_esperando
     sep #$20
 .a8
-    jsl f:ba_t_pagina
+    jsl f:bt_t_page
     rep #$20
 .a16
     lda ev_esperando
@@ -533,16 +533,16 @@ otro_tramo:
                                 ; that does not happen with the commands in
                                 ; `TROPA_COMANDOS`, but if it did, the next
                                 ; frame carries on
-    jsr ba_pag_probar
+    jsr bt_page_test
     bne otro_tramo              ; the next one, in this same frame
     lda BA_PAG_VUELTA
     bne a_las_ordenes
-    jmp ba_ejecutar
+    jmp bt_execute
 a_las_ordenes:
     lda #BA_M_ORDEN
     sta BA_MODO
 a_la_pantalla:
-    jmp ba_componer
+    jmp bt_compose
 .endproc
 
 ; The page's message, in the party's lines: see `BA_PAG_MSG_FILA0` in
@@ -551,7 +551,7 @@ a_la_pantalla:
 ; with the ASCII minus 32— and writes it with the screen's glyphs, cut at
 ; `BA_PAG_MSG_ANCHO`. The block fits in one bank —the converter guarantees
 ; it—, so the pointer is advanced with Y and the bank stays fixed.
-.proc ba_pag_mensaje
+.proc bt_page_message
 .a8
 .i16
     rep #$20
@@ -577,7 +577,7 @@ renglon:
     rep #$20
 .a16
     lda #BA_PAG_MSG_DX
-    jsr ba_ir
+    jsr bt_go
     sep #$20
 .a8
     lda [msg_ptr], y            ; the length
@@ -596,7 +596,7 @@ letra:
     clc
     adc #ITEM_PRIMER_CARACTER
     phy
-    jsl f:ba_t_glifo
+    jsl f:bt_t_glyph
     ply
 no_entra:
     iny

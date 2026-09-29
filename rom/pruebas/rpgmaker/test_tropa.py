@@ -8,7 +8,7 @@ apaga el 134. Después usa `Absorb Aura`, que prende el 135, y la página de és
 le enseña las técnicas del enemigo, cuenta cuántas veces absorbió cada una y
 apaga el 135. Es lo que pasa en RM2k, y lo que cuándo corre cada página está
 copiado de `Scene_Battle_Rpg2k` y `Game_Interpreter_Battle` de easyrpg: ver
-`ba_pag_probar` en runtime/batalla_tropa.s.
+`bt_page_test` en runtime/batalla_tropa.s.
 
 **Lo que se espera no se escribe a mano: se lee de la página del LDB**, con
 un recorrido de sus comandos que no comparte nada con el compilador —el texto

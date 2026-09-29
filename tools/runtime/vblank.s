@@ -68,12 +68,12 @@ sin_tira:
     ; of the five— and it happens once every two frames. It goes **before**
     ; `vram_drenar` for the same reason as `anim_flush`: what it takes has to
     ; come out of this vblank's budget, and three lines further down `vq_tope`
-    ; is already reset for the next one. See `animacion_dibujo_dma`.
-    lda f:ANIMB_SUBIR
+    ; is already reset for the next one. See `anim_drawing_dma`.
+    lda f:ANIMB_UPLOAD
     beq sin_anim_cuadro
     lda #0
-    sta f:ANIMB_SUBIR
-    jsr animacion_dibujo_dma
+    sta f:ANIMB_UPLOAD
+    jsr anim_drawing_dma
 sin_anim_cuadro:
     jsr vram_drenar             ; the poses this OAM already takes as uploaded
     lda #VQ_POR_CUADRO
@@ -123,10 +123,10 @@ sin_flash:
     ; thirty-two bytes and goes separately from the map's three: the picture's
     ; entry falls above `SPRITE_CGRAM`, that is, outside what `subir_paletas`
     ; uploads.
-    lda f:CARTEL_LISTO
+    lda f:PICTURE_READY
     beq sin_imagen
     lda #0
-    sta f:CARTEL_LISTO
+    sta f:PICTURE_READY
     lda #(128 + 16 * IMAGEN_PAL)
     sta CGADD
     rep #$20
@@ -157,7 +157,7 @@ sin_imagen:
     sta CGADD
     rep #$20
 .a16
-    lda f:ANIMB_SOMBRA
+    lda f:ANIMB_SHADOW
     clc
     adc #.loword(cgram_sombra)
     sta A1T0L

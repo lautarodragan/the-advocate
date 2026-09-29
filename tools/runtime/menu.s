@@ -561,7 +561,7 @@ sin_cara:
     pla
     pha
     jsr actor_de
-    jsl f:texto_nivel           ; the current one: it goes up by fighting
+    jsl f:text_level           ; the current one: it goes up by fighting
     lda #RANURA_NIVEL_CIFRAS
     jsr ranura_texto_escribir
 
@@ -580,7 +580,7 @@ sin_cara:
     pla
     pha
     jsr actor_de
-    jsl f:texto_maximo          ; the one for its current level, like the level
+    jsl f:text_max          ; the one for its current level, like the level
     lda #MENU_MAX_CIFRAS
     jsr ranura_texto_escribir
 
@@ -590,7 +590,7 @@ sin_cara:
     sta temp + 2                ; the row
     jsr actor_de
     sta temp                    ; the actor
-    jsl f:menu_hp_escribir
+    jsl f:menu_hp_write
 siguiente:
     pla
     inc a
@@ -711,7 +711,7 @@ no_items:
     ; End Game: its screen, in `fin_del_juego.s`. "Yes" does not return —it
     ; ends in the reset—; "No" and B return to the menu with the cursor on the
     ; option, like `Scene::Pop`.
-    jsl f:fin_pantalla
+    jsl f:ending_screen
     lda #MENU_FIN
     sta titulo_sel
     jmp armar
@@ -770,7 +770,7 @@ mover:
 ; windows and bar on BG1, which belong to `eleccion_de_actor.s`. `eleg_cancel`
 ; says what for: at 1, to choose whom to equip, and A returns with the row; at
 ; 0, for the medicine `k` in `eleg_flancos`, and A uses it on the row
-; —`medicina_usar`— and **stays**, with that row's HP repainted, which is what
+; —`medicine_use`— and **stays**, with that row's HP repainted, which is what
 ; `UpdateItem` does. B returns with $FF. `render_objetivo` in titulo.py is the
 ; reference.
 ;
@@ -838,7 +838,7 @@ mira_a:
     rts
 medicina:
     jsr actor_de_la_fila
-    jsl f:medicina_usar
+    jsl f:medicine_use
     beq espera                  ; it did not work: RM2k plays a sound and does nothing
     ; The row's HP, in the next vblank: the use took away the current value.
     jsr wait_vblank
@@ -846,7 +846,7 @@ medicina:
     sta temp
     lda titulo_sel
     sta temp + 2
-    jsl f:menu_hp_escribir
+    jsl f:menu_hp_write
     jsl f:objetivo_cuantos      ; and how many are left
     jmp espera
 

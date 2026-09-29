@@ -8,74 +8,74 @@
 ; battlers, which the cartridge carries once each. The why, the format and
 ; the budget are in tools/port/scene.py.
 ;
-; It runs from `batalla_correr` with the data bank at $7E, so the PPU
+; It runs from `battle_run` with the data bank at $7E, so the PPU
 ; registers and the cartridge's tables all go with `f:`, and the state here
 ; is named with a sixteen-bit address, like `FAR_BATALLA`.
 ;
 ; **$7E6600 to $7E67FF belongs to this**: the range was reserved in advance
 ; on 2026-09-21, when splitting work among tasks that touched far RAM.
-ESC_ORIGEN   = $6600    ; 1: a random encounter started the battle
+SCN_ORIGIN   = $6600    ; 1: a random encounter started the battle
 ; The number of this battle's background among the game's, or FONDO_LISO.
-; It is the one read from the `.msu`; the ROM's is ESC_RESPALDO. See "Qué
+; It is the one read from the `.msu`; the ROM's is SCN_FALLBACK. See "Qué
 ; fondos hay" in tools/port/scene.py.
-ESC_FONDO    = $6601
-ESC_VIS      = $6602    ; one bit per enemy: still drawn
-ESC_PAL_N    = $6603    ; how many battler palettes were handed out
-ESC_PAL_BAT  = $6604    ; 8 bytes: which battler each one holds
-ESC_E_BAT    = $6610    ; 8 bytes: each enemy's battler, or $FF
-ESC_E_PAL    = $6618    ; 8 bytes: its palette, 0 to 7
-ESC_E_X      = $6620    ; 8 bytes: its corner in the scene
-ESC_E_Y      = $6628
+SCN_BACKDROP    = $6601
+SCN_VIS      = $6602    ; one bit per enemy: still drawn
+SCN_PAL_N    = $6603    ; how many battler palettes were handed out
+SCN_PAL_BAT  = $6604    ; 8 bytes: which battler each one holds
+SCN_E_BAT    = $6610    ; 8 bytes: each enemy's battler, or $FF
+SCN_E_PAL    = $6618    ; 8 bytes: its palette, 0 to 7
+SCN_E_X      = $6620    ; 8 bytes: its corner in the scene
+SCN_E_Y      = $6628
 ; What is left to upload to VRAM of an enemy that was just erased: whole tile
-; rows of the scene, `ESC_SUB_BUDGET` bytes per vblank.
-ESC_SUB_N    = $6630    ; word: how many tile rows are left; 0 is none
-ESC_SUB_FILA = $6632    ; word: the next one
-ESC_SUB_COL  = $6634    ; word: the first tile column
-ESC_SUB_LARGO = $6636   ; word: how many bytes each row is
+; rows of the scene, `SCN_SUB_BUDGET` bytes per vblank.
+SCN_SUB_N    = $6630    ; word: how many tile rows are left; 0 is none
+SCN_SUB_ROW = $6632    ; word: the next one
+SCN_SUB_COL  = $6634    ; word: the first tile column
+SCN_SUB_LENGTH = $6636   ; word: how many bytes each row is
 ; How many frames composing took, counted with `boot_cuadros`: the ROM does
 ; not read it; the tests read it, and so does whoever wants to measure it with
 ; the emulator.
-ESC_CUADROS  = $6638
-ESC_T0       = $663A    ; scratch
-ESC_E        = $663C    ; the enemy being placed or erased
-ESC_I        = $663D
+SCN_FRAMES  = $6638
+SCN_T0       = $663A    ; scratch
+SCN_E        = $663C    ; the enemy being placed or erased
+SCN_I        = $663D
 ; The rectangle a battler is clipped to when placed: pixel rows [Y0, Y1)
 ; and tile columns [C0, C1) of the scene, in words.
-ESC_CLIP_Y0  = $6640
-ESC_CLIP_Y1  = $6642
-ESC_CLIP_C0  = $6644
-ESC_CLIP_C1  = $6646
+SCN_CLIP_Y0  = $6640
+SCN_CLIP_Y1  = $6642
+SCN_CLIP_C0  = $6644
+SCN_CLIP_C1  = $6646
 ; Where the walk is in the drawing order, and where the troop starts in the
-; `miembro_*` tables. See `esc_por_orden`.
-ESC_K        = $6648
-ESC_INI      = $6649
+; `miembro_*` tables. See `scn_by_command`.
+SCN_K        = $6648
+SCN_INIT      = $6649
 ; 1 if this battle's background comes from the MSU-1 and not from the
-; cartridge: see `esc_llenar`. The tests read it too, to know which path
+; cartridge: see `scn_fill`. The tests read it too, to know which path
 ; ran.
-ESC_MSU      = $664A
-; Which of the ROM's backgrounds is drawn without MSU-1: ESC_FONDO's if the
-; cartridge carries it, the replacement if not. Only valid with ESC_FONDO
+SCN_MSU      = $664A
+; Which of the ROM's backgrounds is drawn without MSU-1: SCN_BACKDROP's if the
+; cartridge carries it, the replacement if not. Only valid with SCN_BACKDROP
 ; set.
-ESC_RESPALDO = $664B
-; What was on the direct page that gets borrowed: see `esc_dp_tomar`.
-ESC_DP_GUARDA = $6680
-ESC_DP_BYTES = 48
+SCN_FALLBACK = $664B
+; What was on the direct page that gets borrowed: see `scn_dp_take`.
+SCN_DP_SAVE = $6680
+SCN_DP_BYTES = 48
 
 ; The clean background and the composed scene, 32 KB each, in WRAM bank
 ; $7F, which nobody used: everything else in the ROM lives in $7E —far RAM
 ; goes up to $7E67FF— and no `WMADDH` is written with anything but zero. The
 ; clean one is what lets an enemy be erased without reading anything from
-; the cartridge again: see `escena_tick`.
-ESC_LIMPIO   = $7F0000
-ESC_ESCENA   = $7F8000
+; the cartridge again: see `scene_tick`.
+SCN_CLEAN   = $7F0000
+SCN_SCENE   = $7F8000
 ; How many scene bytes are uploaded per vblank when an enemy is erased. The
 ; NTSC vblank allows about six kilobytes of DMA and `pant_subir` already
 ; takes the text's 1,792 in the same vblank; two more leave some margin.
-ESC_SUB_BUDGET = 2048
+SCN_SUB_BUDGET = 2048
 
 ; --- the borrowed direct page ---
 ;
-; The `escena_poner` loop reads the battler with `[puntero], y` —its bank
+; The `scene_set` loop reads the battler with `[puntero], y` —its bank
 ; changes with each battler— and that only exists with the direct page. The
 ; game's is full, so a page of `pal_buf`, which the battle does not use, is
 ; borrowed, and what it held **is saved and restored**: the battle does not
@@ -103,16 +103,16 @@ ED_P67 = $1E
 ED_FX  = $20    ; where the row starts in the scene
 ED_FY  = $22    ; and in the battler
 ED_COLS = $24   ; how many tile columns
-ED_CUENTA = $26
-ED_FILAS = $28
+ED_COUNT = $26
+ED_ROWS = $28
 ED_YY  = $2A    ; the scene's pixel row
-ED_PASO = $2C   ; how long one row of a plane is
+ED_STEP = $2C   ; how long one row of a plane is
 ED_N   = $2E    ; how many columns the battler has
-; And those of `esc_doblar`, which runs before anybody is placed.
-ED_FUENTE = $00 ; the 24-bit pointer to the fallback, which advances
-ED_PALABRAS = $04 ; how many two-plane words of the tile pair are left
+; And those of `scn_double`, which runs before anybody is placed.
+ED_FONT = $00 ; the 24-bit pointer to the fallback, which advances
+ED_WORDS = $04 ; how many two-plane words of the tile pair are left
 
-.proc esc_dp_tomar
+.proc scn_dp_take
 .a8
 .i16
     rep #$20
@@ -123,12 +123,12 @@ ED_PALABRAS = $04 ; how many two-plane words of the tile pair are left
     ldy #0
 guarda:
     lda a:$0000, x              ; low RAM: in bank $7E it is the same
-    sta ESC_DP_GUARDA, y
+    sta SCN_DP_SAVE, y
     inx
     inx
     iny
     iny
-    cpy #ESC_DP_BYTES
+    cpy #SCN_DP_BYTES
     bcc guarda
     lda #.loword(pal_buf + $FF)
     and #$FF00
@@ -138,7 +138,7 @@ guarda:
     rts
 .endproc
 
-.proc esc_dp_devolver
+.proc scn_dp_return
 .a8
 .i16
     rep #$20
@@ -150,13 +150,13 @@ guarda:
     tax
     ldy #0
 repone:
-    lda ESC_DP_GUARDA, y
+    lda SCN_DP_SAVE, y
     sta a:$0000, x
     inx
     inx
     iny
     iny
-    cpy #ESC_DP_BYTES
+    cpy #SCN_DP_BYTES
     bcc repone
     sep #$20
 .a8
@@ -166,7 +166,7 @@ repone:
 ; --- placing a battler ---
 ;
 ; The inner loop, once for each shift: a battler that does not start on a
-; tile edge is shifted `CORRE` bits to the right, and the `lsr`s are unrolled
+; tile edge is shifted `RUNS` bits to the right, and the `lsr`s are unrolled
 ; because they are half the cost. Per tile column and pixel row: five reads
 ; from the battler —the mask and four planes—, each one sixteen bits to also
 ; bring in the column to the left, and four words of the scene, which are
@@ -174,21 +174,21 @@ repone:
 ; skipped entirely.
 ;
 ; With 16-bit A, X and Y: X is the offset in the scene and Y in the
-; battler. See `escena_poner`, which is the one that sets all this up.
-.macro ESC_LAZO CORRE
-.local fila, col, vacia, otro_tile, puesta
-fila:
+; battler. See `scene_set`, which is the one that sets all this up.
+.macro SCN_LOOP RUNS
+.local row, col, empty, other_tile, set2
+row:
     ldx ED_FX
     ldy ED_FY
     lda ED_COLS
-    sta ED_CUENTA
+    sta ED_COUNT
 col:
     lda [ED_M], y
-    .repeat CORRE
+    .repeat RUNS
     lsr a
     .endrepeat
     and #$00FF
-    beq vacia
+    beq empty
     sta ED_TM
     xba
     ora ED_TM
@@ -199,53 +199,53 @@ col:
     ; byte, which is garbage from the shift: that way ED_T0 ends up with
     ; planes 0 and 1 together and ED_T2 with 2 and 3.
     lda [ED_P0], y
-    .repeat CORRE
+    .repeat RUNS
     lsr a
     .endrepeat
     sta ED_T0
     lda [ED_P1], y
-    .repeat CORRE
+    .repeat RUNS
     lsr a
     .endrepeat
     sta ED_T1
     lda [ED_P2], y
-    .repeat CORRE
+    .repeat RUNS
     lsr a
     .endrepeat
     sta ED_T2
     lda [ED_P3], y
-    .repeat CORRE
+    .repeat RUNS
     lsr a
     .endrepeat
     sta ED_T3
     ; background AND NOT mask OR battler, on the drawing's planes
-    lda f:ESC_ESCENA, x
+    lda f:SCN_SCENE, x
     and ED_NM
     ora ED_T0
-    sta f:ESC_ESCENA, x
-    lda f:ESC_ESCENA + 16, x
+    sta f:SCN_SCENE, x
+    lda f:SCN_SCENE + 16, x
     and ED_NM
     ora ED_T2
-    sta f:ESC_ESCENA + 16, x
+    sta f:SCN_SCENE + 16, x
     ; and on the palette's, which are the mask or nothing:
     ; ((background ^ palette) & mask) ^ background
-    lda f:ESC_ESCENA + 32, x
+    lda f:SCN_SCENE + 32, x
     eor ED_P45
     and ED_MM
-    eor f:ESC_ESCENA + 32, x
-    sta f:ESC_ESCENA + 32, x
-    lda f:ESC_ESCENA + 48, x
+    eor f:SCN_SCENE + 32, x
+    sta f:SCN_SCENE + 32, x
+    lda f:SCN_SCENE + 48, x
     eor ED_P67
     and ED_MM
-    eor f:ESC_ESCENA + 48, x
-    sta f:ESC_ESCENA + 48, x
-vacia:
+    eor f:SCN_SCENE + 48, x
+    sta f:SCN_SCENE + 48, x
+empty:
     dey                         ; the column to the right: see `battler_bytes`
     txa
     clc
     adc #64                     ; the next tile
     tax
-    dec ED_CUENTA
+    dec ED_COUNT
     beq :+
     jmp col                     ; with seven `lsr`s the body does not fit in a `bne`
 :
@@ -253,98 +253,98 @@ vacia:
     ; scene, two bytes, unless it moves to another tile row.
     lda ED_FY
     clc
-    adc ED_PASO
+    adc ED_STEP
     sta ED_FY
     lda ED_YY
     and #7
     cmp #7
-    beq otro_tile
+    beq other_tile
     lda ED_FX
     inc a
     inc a
-    bra puesta
-otro_tile:
+    bra set2
+other_tile:
     lda ED_FX
     clc
     adc #(ESCENA_COLUMNAS * 64 - 14)
-puesta:
+set2:
     sta ED_FX
     inc ED_YY
-    dec ED_FILAS
+    dec ED_ROWS
     beq :+
-    jmp fila
+    jmp row
 :   rts
 .endmacro
 
 .a16
 .i16
-esc_lazo_0: ESC_LAZO 0
-esc_lazo_1: ESC_LAZO 1
-esc_lazo_2: ESC_LAZO 2
-esc_lazo_3: ESC_LAZO 3
-esc_lazo_4: ESC_LAZO 4
-esc_lazo_5: ESC_LAZO 5
-esc_lazo_6: ESC_LAZO 6
-esc_lazo_7: ESC_LAZO 7
-esc_lazos:
-    .addr esc_lazo_0, esc_lazo_1, esc_lazo_2, esc_lazo_3
-    .addr esc_lazo_4, esc_lazo_5, esc_lazo_6, esc_lazo_7
-; Each enemy's bit in `ESC_VIS`.
-esc_bits:
+scn_loop_0: SCN_LOOP 0
+scn_loop_1: SCN_LOOP 1
+scn_loop_2: SCN_LOOP 2
+scn_loop_3: SCN_LOOP 3
+scn_loop_4: SCN_LOOP 4
+scn_loop_5: SCN_LOOP 5
+scn_loop_6: SCN_LOOP 6
+scn_loop_7: SCN_LOOP 7
+scn_loops:
+    .addr scn_loop_0, scn_loop_1, scn_loop_2, scn_loop_3
+    .addr scn_loop_4, scn_loop_5, scn_loop_6, scn_loop_7
+; Each enemy's bit in `SCN_VIS`.
+scn_bits:
     .byte $01, $02, $04, $08, $10, $20, $40, $80
 .a8
 
-; `ESC_E` = the enemy that comes `ESC_K`-th in the drawing order, which is
+; `SCN_E` = the enemy that comes `SCN_K`-th in the drawing order, which is
 ; RM2k's and not the troop's: easyrpg's `Sprite_Battler::ResetZ` sorts by
 ; the battler's bottom edge, and with equal edges the one with the lower
 ; place ends up on top. The converter computes the order: `miembro_orden`.
 ; It clobbers X.
-.proc esc_por_orden
+.proc scn_by_command
 .a8
 .i16
     rep #$20
 .a16
-    lda ESC_K
+    lda SCN_K
     clc
-    adc ESC_INI
+    adc SCN_INIT
     and #$00FF
     tax
     sep #$20
 .a8
     lda f:miembro_orden, x
-    sta ESC_E
+    sta SCN_E
     rts
 .endproc
 
-; A8: `ESC_E`'s bit in `ESC_VIS`. It clobbers X.
-.proc esc_bit
+; A8: `SCN_E`'s bit in `SCN_VIS`. It clobbers X.
+.proc scn_bit
 .a8
 .i16
     rep #$20
 .a16
-    lda ESC_E
+    lda SCN_E
     and #$00FF
     tax
     sep #$20
 .a8
-    lda f:esc_bits, x
+    lda f:scn_bits, x
     rts
 .endproc
 
-; Enemy `ESC_E` onto the scene in `ESC_ESCENA`, clipped to `ESC_CLIP_*`.
+; Enemy `SCN_E` onto the scene in `SCN_SCENE`, clipped to `ESC_CLIP_*`.
 ; With the direct page already borrowed. If it has no battler, or if the
 ; clip leaves it out, it does nothing.
-.proc escena_poner
+.proc scene_set
 .a8
 .i16
     rep #$20
 .a16
-    lda ESC_E
+    lda SCN_E
     and #$00FF
     tax
     sep #$20
 .a8
-    lda ESC_E_BAT, x
+    lda SCN_E_BAT, x
     cmp #$FF
     bne hay
     rts
@@ -373,76 +373,76 @@ hay:
     asl a
     tax
     lda f:battler_plano, x
-    sta ESC_T0
+    sta SCN_T0
     lda ED_M
     clc
-    adc ESC_T0
+    adc SCN_T0
     sta ED_P0
-    adc ESC_T0                  ; there is no carry: the battler does not cross a bank
+    adc SCN_T0                  ; there is no carry: the battler does not cross a bank
     sta ED_P1
-    adc ESC_T0
+    adc SCN_T0
     sta ED_P2
-    adc ESC_T0
+    adc SCN_T0
     sta ED_P3
     tyx
     lda f:battler_n, x
     and #$00FF
     sta ED_N
     inc a
-    sta ED_PASO
+    sta ED_STEP
     lda f:battler_alto, x
     and #$00FF
-    sta ED_FILAS                ; not clipped yet
+    sta ED_ROWS                ; not clipped yet
 
     ; --- the palette: planes 4 to 7 of each battler pixel ---
-    lda ESC_E
+    lda SCN_E
     and #$00FF
     tax
-    lda ESC_E_PAL, x
+    lda SCN_E_PAL, x
     and #$0007
-    sta ESC_T0
+    sta SCN_T0
     lda #0
-    lsr ESC_T0
+    lsr SCN_T0
     bcc :+
     ora #$00FF                  ; bit 0 is plane 4
-:   lsr ESC_T0
+:   lsr SCN_T0
     bcc :+
     ora #$FF00                  ; bit 1, plane 5
 :   sta ED_P45
     lda #$FF00                  ; plane 7 is palette 8 onward
-    lsr ESC_T0
+    lsr SCN_T0
     bcc :+
     ora #$00FF                  ; and bit 2, plane 6
 :   sta ED_P67
 
     ; --- the columns: how many, from which, and how far the clip allows ---
-    lda ESC_E_X, x
+    lda SCN_E_X, x
     and #$00FF
-    sta ESC_T0
+    sta SCN_T0
     and #7
-    sta ED_CUENTA               ; the shift, borrowed for a moment
+    sta ED_COUNT               ; the shift, borrowed for a moment
     lda ED_N
-    ldy ED_CUENTA
+    ldy ED_COUNT
     beq :+
     inc a                       ; shifted, it takes one more column
 :   sta ED_COLS
-    lda ESC_T0
+    lda SCN_T0
     lsr a
     lsr a
     lsr a
-    sta ESC_T0                  ; the battler's first tile column
+    sta SCN_T0                  ; the battler's first tile column
     ; The right one, capped at the clip and at the scene's edge.
     clc
     adc ED_COLS
-    cmp ESC_CLIP_C1
+    cmp SCN_CLIP_C1
     bcc :+
-    lda ESC_CLIP_C1
+    lda SCN_CLIP_C1
 :   sta ED_COLS                 ; now it is the final column, not how many
     ; The left one: the battler's or the clip's.
-    lda ESC_T0
-    cmp ESC_CLIP_C0
+    lda SCN_T0
+    cmp SCN_CLIP_C0
     bcs :+
-    lda ESC_CLIP_C0
+    lda SCN_CLIP_C0
 :   sta ED_FX                   ; the first column touched, borrowed
     lda ED_COLS
     sec
@@ -455,49 +455,49 @@ hay:
     ; The battler column it starts at, which is the one that gives Y.
     lda ED_FX
     sec
-    sbc ESC_T0
-    sta ESC_T0                  ; battler columns that are skipped
+    sbc SCN_T0
+    sta SCN_T0                  ; battler columns that are skipped
     lda ED_N
     sec
-    sbc ESC_T0
+    sbc SCN_T0
     sta ED_FY                   ; its place in the row: see `battler_bytes`
 
     ; --- the rows ---
-    lda ESC_E_Y, x
+    lda SCN_E_Y, x
     and #$00FF
     sta ED_YY
     clc
-    adc ED_FILAS
-    cmp ESC_CLIP_Y1
+    adc ED_ROWS
+    cmp SCN_CLIP_Y1
     bcc :+
-    lda ESC_CLIP_Y1
-:   sta ED_FILAS                ; the final row
+    lda SCN_CLIP_Y1
+:   sta ED_ROWS                ; the final row
     lda ED_YY
-    cmp ESC_CLIP_Y0
+    cmp SCN_CLIP_Y0
     bcs :+
-    lda ESC_CLIP_Y0
-:   sta ESC_T0                  ; the first one
-    lda ED_FILAS
+    lda SCN_CLIP_Y0
+:   sta SCN_T0                  ; the first one
+    lda ED_ROWS
     sec
-    sbc ESC_T0
+    sbc SCN_T0
     bcs :+
     jmp afuera
 :   bne :+
     jmp afuera
-:   sta ED_FILAS
+:   sta ED_ROWS
     ; The battler rows that are skipped, times the length of each.
-    lda ESC_T0
+    lda SCN_T0
     sec
     sbc ED_YY
     tay
-    lda ESC_T0
+    lda SCN_T0
     sta ED_YY
     lda ED_FY
 salta_fila:
     cpy #0
     beq filas_listas
     clc
-    adc ED_PASO
+    adc ED_STEP
     dey
     bra salta_fila
 filas_listas:
@@ -525,14 +525,14 @@ filas_listas:
     sta ED_FX
 
     ; --- the matching loop, which returns with everything in sixteen bits ---
-    lda ESC_E
+    lda SCN_E
     and #$00FF
     tay
-    lda ESC_E_X, y
+    lda SCN_E_X, y
     and #7
     asl a
     tax
-    jsr (esc_lazos, x)
+    jsr (scn_loops, x)
     sep #$20
 .a8
     rts
@@ -550,19 +550,19 @@ afuera:
 ; 32 KB of tiles, the tilemap, the background's colors and one palette per
 ; distinct battler. Leaves in `BA_ESCENA` a 0 if there is something to show
 ; and $FF if not.
-.proc escena_subir
+.proc scene_upload
 .a8
 .i16
     lda f:boot_cuadros
-    sta ESC_CUADROS
+    sta SCN_FRAMES
     lda #0
-    sta ESC_CUADROS + 1
-    sta ESC_VIS
-    sta ESC_PAL_N
+    sta SCN_FRAMES + 1
+    sta SCN_VIS
+    sta SCN_PAL_N
     rep #$20
 .a16
     lda #0
-    sta ESC_SUB_N
+    sta SCN_SUB_N
     sep #$20
 .a8
 
@@ -572,8 +572,8 @@ afuera:
     ; troop can fight with the place's: it is `Game_Map::SetupBattle`. See
     ; `escena_de_la_rom` in tools/port/snes_convert.py.
     lda #FONDO_LISO
-    sta ESC_FONDO
-    lda ESC_ORIGEN
+    sta SCN_BACKDROP
+    lda SCN_ORIGIN
     beq de_la_tropa
 del_lugar:
     rep #$20
@@ -585,7 +585,7 @@ del_lugar:
     lda f:escena_mapa_fondo, x
     cmp #FONDO_DEL_LUGAR
     bne fondo_elegido
-    jsr esc_terreno             ; the terrain under the hero, in A
+    jsr scn_terrain             ; the terrain under the hero, in A
     cmp #FONDO_TERRENOS
     bcs sin_fondo
     rep #$20
@@ -612,7 +612,7 @@ de_la_tropa:
 fondo_elegido:
     cmp #FONDOS_JUEGO
     bcs sin_fondo               ; FONDO_LISO, or a cartridge with no backgrounds
-    sta ESC_FONDO
+    sta SCN_BACKDROP
     rep #$20
 .a16
     and #$00FF
@@ -620,14 +620,14 @@ fondo_elegido:
     sep #$20
 .a8
     lda f:fondo_respaldo, x     ; its own if the ROM carries it, or the replacement
-    sta ESC_RESPALDO
+    sta SCN_FALLBACK
 sin_fondo:
     lda #0
-    sta ESC_ORIGEN              ; only `encuentro_probar` sets it
+    sta SCN_ORIGIN              ; only `encounter_test` sets it
 
     ; --- the troop's battlers, and one palette for each distinct one ---
     lda #0
-    sta ESC_E
+    sta SCN_E
     lda BA_TROPA_K
     cmp #$FF
     bne con_tropa
@@ -640,77 +640,77 @@ con_tropa:
     sep #$20
 .a8
     lda f:tropa_ini, x
-    sta ESC_I                   ; the first member
-    sta ESC_INI                 ; and again, for `esc_por_orden`
+    sta SCN_I                   ; the first member
+    sta SCN_INIT                 ; and again, for `scn_by_command`
 otro_enemigo:
-    lda ESC_E
+    lda SCN_E
     cmp BA_NENE
     bcc :+
     jmp repartidos
 :   rep #$20
 .a16
-    lda ESC_E
+    lda SCN_E
     and #$00FF
     tay                         ; Y: the enemy
     clc
-    adc ESC_I
+    adc SCN_I
     and #$00FF
     tax                         ; X: the member
     sep #$20
 .a8
     lda f:miembro_x, x
-    sta ESC_E_X, y
+    sta SCN_E_X, y
     lda f:miembro_y, x
-    sta ESC_E_Y, y
+    sta SCN_E_Y, y
     lda f:miembro_battler, x
-    sta ESC_E_BAT, y
+    sta SCN_E_BAT, y
     cmp #$FF
     beq siguiente
     ; Does that battler already have a palette? The limit, as a word for `cpx`.
     pha
     rep #$20
 .a16
-    lda ESC_PAL_N
+    lda SCN_PAL_N
     and #$00FF
-    sta ESC_T0
+    sta SCN_T0
     sep #$20
 .a8
     pla
     ldx #0
 busca_pal:
-    cpx ESC_T0
+    cpx SCN_T0
     beq pal_nueva
-    cmp ESC_PAL_BAT, x
+    cmp SCN_PAL_BAT, x
     beq pal_lista
     inx
     bra busca_pal
 pal_nueva:
-    sta ESC_PAL_BAT, x
-    inc ESC_PAL_N
+    sta SCN_PAL_BAT, x
+    inc SCN_PAL_N
 pal_lista:
     txa
-    sta ESC_E_PAL, y
-    ; And the drawn bit, which is what `escena_tick` looks at. A hidden one
-    ; is not drawn: it gets its palette, and `escena_tick` places it when it
+    sta SCN_E_PAL, y
+    ; And the drawn bit, which is what `scene_tick` looks at. A hidden one
+    ; is not drawn: it gets its palette, and `scene_tick` places it when it
     ; appears.
-    lda ESC_E
+    lda SCN_E
     clc
     adc #BA_GRUPO_MAX
-    jsr ba_x
+    jsr bt_x
     lda BA_UNO + BA_FLAGS, x
     and #BAF_OCULTO
     bne siguiente
-    jsr esc_bit
-    ora ESC_VIS
-    sta ESC_VIS
+    jsr scn_bit
+    ora SCN_VIS
+    sta SCN_VIS
 siguiente:
-    inc ESC_E
+    inc SCN_E
     jmp otro_enemigo
 repartidos:
-    lda ESC_FONDO
+    lda SCN_BACKDROP
     cmp #$FF
     bne hay_escena
-    lda ESC_VIS
+    lda SCN_VIS
     bne hay_escena
     jmp sin_escena              ; neither background nor battlers: on black, as before
 hay_escena:
@@ -718,58 +718,58 @@ hay_escena:
     sta BA_ESCENA
 
     ; --- where the background comes from: the MSU-1 if present and it is this cartridge's ---
-    sta ESC_MSU
-    lda ESC_FONDO
+    sta SCN_MSU
+    lda SCN_BACKDROP
     cmp #$FF
     beq sin_msu                 ; the plain one is not read from anywhere
     jsr msu_datos_validos
-    sta ESC_MSU
+    sta SCN_MSU
 sin_msu:
 
     ; --- the background: its colors and both buffers ---
-    lda ESC_MSU
+    lda SCN_MSU
     pha
-    jsr esc_fondo
+    jsr scn_backdrop
     ; If it started from the `.msu` and some seek did not make it in time,
     ; what was already read from there is the high-quality background and
     ; what follows the light one: they share neither colors nor tiles.
     ; Everything again from the ROM, which does not fail.
     pla
-    cmp #0                      ; `pla` leaves Z from what it pulled, not from ESC_MSU
+    cmp #0                      ; `pla` leaves Z from what it pulled, not from SCN_MSU
     beq fondo_listo
-    lda ESC_MSU
+    lda SCN_MSU
     bne fondo_listo
-    jsr esc_fondo
+    jsr scn_backdrop
 fondo_listo:
 
     ; --- the battlers, in drawing order: the later one covers ---
     rep #$20
 .a16
     lda #0
-    sta ESC_CLIP_Y0
-    sta ESC_CLIP_C0
+    sta SCN_CLIP_Y0
+    sta SCN_CLIP_C0
     lda #ESCENA_ALTO
-    sta ESC_CLIP_Y1
+    sta SCN_CLIP_Y1
     lda #ESCENA_COLUMNAS
-    sta ESC_CLIP_C1
+    sta SCN_CLIP_C1
     sep #$20
 .a8
-    jsr esc_dp_tomar
+    jsr scn_dp_take
     lda #0
-    sta ESC_K
+    sta SCN_K
 put:
-    lda ESC_K
+    lda SCN_K
     cmp BA_NENE
     bcs puestos
-    jsr esc_por_orden
-    jsr esc_bit                 ; only the visible ones: not a hidden one
-    and ESC_VIS
+    jsr scn_by_command
+    jsr scn_bit                 ; only the visible ones: not a hidden one
+    and SCN_VIS
     beq :+
-    jsr escena_poner
-:   inc ESC_K
+    jsr scene_set
+:   inc SCN_K
     bra put
 puestos:
-    jsr esc_dp_devolver
+    jsr scn_dp_return
 
     ; --- the composed scene, to VRAM ---
     lda #$80
@@ -778,13 +778,13 @@ puestos:
 .a16
     lda #ESCENA_VRAM
     sta f:VMADDL
-    lda #.loword(ESC_ESCENA)
+    lda #.loword(SCN_SCENE)
     sta f:A1T0L
     lda #(ESCENA_TILES * 64)
     sta f:DAS0L
     sep #$20
 .a8
-    lda #^ESC_ESCENA
+    lda #^SCN_SCENE
     sta f:A1B0
     lda #$01                    ; two registers: VMDATAL and VMDATAH
     sta f:DMAP0
@@ -822,7 +822,7 @@ puestos:
     lda #ESCENA_MAPA
     sta f:VMADDL
     lda #0
-    sta ESC_T0                  ; the tile that goes in the cell
+    sta SCN_T0                  ; the tile that goes in the cell
     ldx #0
 celda:
     cpx #ESCENA_TILES
@@ -831,11 +831,11 @@ celda:
     bra celda_pone
 celda_escena:
 .a16
-    lda ESC_T0
+    lda SCN_T0
 celda_pone:
 .a16
     sta f:VMDATAL
-    inc ESC_T0
+    inc SCN_T0
     inx
     cpx #(32 * 32)
     bcc celda
@@ -845,10 +845,10 @@ celda_pone:
     ; --- and a sixteen-color palette per battler, from 8 on ---
 colores_battlers:
     lda #0
-    sta ESC_I
+    sta SCN_I
 otra_paleta:
-    lda ESC_I
-    cmp ESC_PAL_N
+    lda SCN_I
+    cmp SCN_PAL_N
     bcs listo
     asl a
     asl a
@@ -859,10 +859,10 @@ otra_paleta:
     sta f:CGADD
     rep #$20
 .a16
-    lda ESC_I
+    lda SCN_I
     and #$00FF
     tax
-    lda ESC_PAL_BAT, x
+    lda SCN_PAL_BAT, x
     and #$00FF
     asl a
     asl a
@@ -877,14 +877,14 @@ otra_paleta:
     sep #$20
 .a8
     lda #^battler_cgram
-    jsr esc_dma_cgram
-    inc ESC_I
+    jsr scn_dma_cgram
+    inc SCN_I
     bra otra_paleta
 listo:
     lda f:boot_cuadros
     sec
-    sbc ESC_CUADROS
-    sta ESC_CUADROS
+    sbc SCN_FRAMES
+    sta SCN_FRAMES
     rts
 sin_escena:
 .a8
@@ -896,10 +896,10 @@ sin_escena:
 ; The terrain of the cell the hero is on, in A: what `StoreTerrainID` would
 ; answer —see `op_terrain`, which is where this comes from—, for the
 ; background of a battle on a map that does not name its own. It runs when
-; the battle starts, before `esc_llenar` overwrites the upper half of $7F,
+; the battle starts, before `scn_fill` overwrites the upper half of $7F,
 ; which may belong to the grid. `celda_sustituida` is in bank 0, so its
 ; lookup is copied here.
-.proc esc_terreno
+.proc scn_terrain
 .a8
 .i16
     ldx mapa_ofs
@@ -921,42 +921,42 @@ buscar:
 hallada:
     lda sub_valor, y
 sustituida:
-    sta ESC_T0
+    sta SCN_T0
     lda f:mapa_tabla + M_PTR_BLOQUE_TERRENO, x
     sta celdas_ptr
     sep #$20
 .a8
     lda f:mapa_tabla + M_PTR_BLOQUE_TERRENO + 2, x
     sta celdas_ptr + 2
-    ldy ESC_T0
+    ldy SCN_T0
     lda [celdas_ptr], y
 listo:
     rts
 .endproc
 
-; The background of `ESC_FONDO`, from wherever `ESC_MSU` says: its colors
+; The background of `SCN_BACKDROP`, from wherever `SCN_MSU` says: its colors
 ; and both buffers. If a `.msu` seek does not make it in time, it leaves
-; ESC_MSU at 0 and goes on from the ROM: see who calls it.
+; SCN_MSU at 0 and goes on from the ROM: see who calls it.
 ;
-; From the ROM, `esc_llenar` leaves only the fixed planes in both buffers,
-; and `esc_doblar` enlarges the fallback into both at once. If the first came
-; from the `.msu` and the second did not, `esc_doblar` overwrites the bottom
+; From the ROM, `scn_fill` leaves only the fixed planes in both buffers,
+; and `scn_double` enlarges the fallback into both at once. If the first came
+; from the `.msu` and the second did not, `scn_double` overwrites the bottom
 ; half of every tile of the first; it does not matter, because
-; `escena_subir` redoes everything from the ROM.
-.proc esc_fondo
+; `scene_upload` redoes everything from the ROM.
+.proc scn_backdrop
 .a8
 .i16
-    jsr esc_colores
+    jsr scn_colors
     lda #0
-    jsr esc_llenar
+    jsr scn_fill
     lda #$80
-    jsr esc_llenar
-    lda ESC_MSU
+    jsr scn_fill
+    lda SCN_MSU
     bne listo
-    lda ESC_FONDO
+    lda SCN_BACKDROP
     cmp #$FF
     beq listo                   ; the plain one is already there: it is zeros
-    jsl f:esc_doblar + RAPIDO   ; from the fast mirror: see MEMSEL
+    jsl f:scn_double + RAPIDO   ; from the fast mirror: see MEMSEL
 listo:
     rts
 .endproc
@@ -964,22 +964,22 @@ listo:
 ; The background's colors, from entry ESCENA_CGRAM: the high-quality one's
 ; 96 if it comes from the `.msu`, the light one's 16 if it comes from the
 ; ROM. Nothing with the plain one.
-.proc esc_colores
+.proc scn_colors
 .a8
 .i16
-    lda ESC_FONDO
+    lda SCN_BACKDROP
     cmp #$FF
     bne hay
     rts
 hay:
     lda #ESCENA_CGRAM
     sta f:CGADD
-    lda ESC_MSU
+    lda SCN_MSU
     beq de_la_rom
     ; From the `.msu`: its color entry is the background's second one.
     rep #$20
 .a16
-    lda ESC_FONDO
+    lda SCN_BACKDROP
     and #$00FF
     asl a
     asl a
@@ -998,14 +998,14 @@ hay:
     sep #$20
 .a8
     lda #$22                    ; CGDATA
-    jmp esc_dma_msu
+    jmp scn_dma_msu
 no_la_encontro:
     lda #0
-    sta ESC_MSU
+    sta SCN_MSU
 de_la_rom:
     rep #$20
 .a16
-    lda ESC_RESPALDO
+    lda SCN_FALLBACK
     and #$00FF
     asl a
     asl a
@@ -1021,11 +1021,11 @@ de_la_rom:
     sep #$20
 .a8
     lda #^fondo_cgram
-    jmp esc_dma_cgram
+    jmp scn_dma_cgram
 .endproc
 
 ; The DMA to CGRAM with source and length already set: A the source bank.
-.proc esc_dma_cgram
+.proc scn_dma_cgram
 .a8
 .i16
     sta f:A1B0
@@ -1042,7 +1042,7 @@ de_la_rom:
 ; `.msu` already seeked: A is the destination B-bus register. The source is
 ; $2001 **fixed** —bit 3 of DMAP—: it is a register that advances by itself,
 ; not memory.
-.proc esc_dma_msu
+.proc scn_dma_msu
 .a8
 .i16
     sta f:BBAD0
@@ -1061,23 +1061,23 @@ de_la_rom:
     rts
 .endproc
 
-; One of the scene's two buffers, with `ESC_FONDO`'s background or with
+; One of the scene's two buffers, with `SCN_BACKDROP`'s background or with
 ; zeros: A is the middle byte of its address, 0 the clean one and $80 the
 ; composed one. Through the WRAM window, which is the only way to copy from
 ; ROM to RAM by DMA; the bank is $7F, so WMADDH is 1.
-.proc esc_llenar
+.proc scn_fill
 .a8
 .i16
     sta f:WMADDM
-    sta ESC_T0 + 1              ; and again, for the ROM path
+    sta SCN_T0 + 1              ; and again, for the ROM path
     lda #0
-    sta ESC_T0
+    sta SCN_T0
     sta f:WMADDL
     lda #1
     sta f:WMADDH
     lda #$80                    ; WMDATA
     sta f:BBAD0
-    lda ESC_FONDO
+    lda SCN_BACKDROP
     cmp #$FF
     bne con_fondo
     ; The plain background: the same zero 32,768 times, with the source fixed.
@@ -1097,7 +1097,7 @@ de_la_rom:
     sta f:MDMAEN
     rts
 con_fondo:
-    lda ESC_MSU
+    lda SCN_MSU
     beq de_la_rom
     ; From the `.msu`, the 32 KB at once: the start of the tiles is sought
     ; every time, because the stream already advanced to the end with the
@@ -1106,7 +1106,7 @@ con_fondo:
     ; frames.
     rep #$20
 .a16
-    lda ESC_FONDO
+    lda SCN_BACKDROP
     and #$00FF
     asl a
     asl a
@@ -1125,17 +1125,17 @@ con_fondo:
     sep #$20
 .a8
     lda #$80                    ; WMDATA
-    jmp esc_dma_msu
+    jmp scn_dma_msu
 no_la_encontro:
     ; The MSU-1 did not finish seeking in time: this buffer comes from the
-    ; ROM, and `escena_subir` redoes the rest from there.
+    ; ROM, and `scene_upload` redoes the rest from there.
     lda #0
-    sta ESC_MSU
+    sta SCN_MSU
 de_la_rom:
     ; From the ROM, only planes 4 to 7 go here, which are the same on every
     ; pixel of the fallback: the 32 bytes of `respaldo_alto` in the top half
     ; of every tile, rewinding the source and moving WMADD on each one.
-    ; `esc_doblar` fills the bottom half afterwards. See "El respaldo
+    ; `scn_double` fills the bottom half afterwards. See "El respaldo
     ; liviano" in tools/port/scene.py.
     lda #0
     sta f:DMAP7                 ; one byte at a time, the source advancing
@@ -1145,7 +1145,7 @@ de_la_rom:
     sta f:A1B7
     rep #$20
 .a16
-    lda ESC_T0
+    lda SCN_T0
     clc
     adc #RESPALDO_TILE          ; the top half of the first tile
     tax
@@ -1174,8 +1174,8 @@ tile:
     rts
 .endproc
 
-; The fallback of `ESC_RESPALDO`, enlarged to double size in both buffers:
-; the bottom half of every tile, which is its planes 0 to 3. `esc_llenar`
+; The fallback of `SCN_FALLBACK`, enlarged to double size in both buffers:
+; the bottom half of every tile, which is its planes 0 to 3. `scn_fill`
 ; already put the top ones there.
 ;
 ; It is CPU and not DMA because each small pixel is two across, and in
@@ -1189,11 +1189,11 @@ tile:
 ;
 ; It is entered with `jsl` through the fast mirror, and runs with the data
 ; bank at $7F, so the buffers go with `a:`.
-.proc esc_doblar
+.proc scn_double
 .a8
 .i16
-    jsr esc_dp_tomar
-    lda ESC_RESPALDO
+    jsr scn_dp_take
+    lda SCN_FALLBACK
     rep #$20
 .a16
     and #$00FF
@@ -1201,57 +1201,57 @@ tile:
     asl a                       ; times 4: the row of `fondo_dir`
     tax
     lda f:fondo_dir, x
-    sta ED_FUENTE
+    sta ED_FONT
     sep #$20
 .a8
     lda f:fondo_dir + 2, x
     ora #^RAPIDO                ; the fallback, through the fast mirror
-    sta ED_FUENTE + 2
+    sta ED_FONT + 2
     phb
-    lda #^ESC_LIMPIO
+    lda #^SCN_CLEAN
     pha
     plb
-    .assert ^ESC_ESCENA = ^ESC_LIMPIO, error, "the scene buffers changed bank"
-    .assert RESPALDO_ESCALA = 2, error, "esc_doblar only enlarges to double size"
+    .assert ^SCN_SCENE = ^SCN_CLEAN, error, "the scene buffers changed bank"
+    .assert RESPALDO_ESCALA = 2, error, "scn_double only enlarges to double size"
     rep #$20
 .a16
     ldy #0                      ; the pair's left tile, in the buffers
 par:
     lda #8
-    sta ED_PALABRAS
+    sta ED_WORDS
 palabra:
     ; The front byte gives the left tile's row; the back one, the right
     ; one's. Each, through the table, is the whole two-plane word.
-    lda [ED_FUENTE]
+    lda [ED_FONT]
     and #$00FF
     asl a
     tax
     lda f:respaldo_doble + RAPIDO, x
-    sta a:.loword(ESC_LIMPIO), y
-    sta a:.loword(ESC_LIMPIO) + 2, y
-    sta a:.loword(ESC_ESCENA), y
-    sta a:.loword(ESC_ESCENA) + 2, y
-    lda [ED_FUENTE]
+    sta a:.loword(SCN_CLEAN), y
+    sta a:.loword(SCN_CLEAN) + 2, y
+    sta a:.loword(SCN_SCENE), y
+    sta a:.loword(SCN_SCENE) + 2, y
+    lda [ED_FONT]
     xba
     and #$00FF
     asl a
     tax
     lda f:respaldo_doble + RAPIDO, x
-    sta a:.loword(ESC_LIMPIO) + 64, y
-    sta a:.loword(ESC_LIMPIO) + 66, y
-    sta a:.loword(ESC_ESCENA) + 64, y
-    sta a:.loword(ESC_ESCENA) + 66, y
+    sta a:.loword(SCN_CLEAN) + 64, y
+    sta a:.loword(SCN_CLEAN) + 66, y
+    sta a:.loword(SCN_SCENE) + 64, y
+    sta a:.loword(SCN_SCENE) + 66, y
     ; The fallback does not cross a bank —it is a `.bloque`—, so the low
     ; sixteen bits are enough.
-    inc ED_FUENTE
-    inc ED_FUENTE
+    inc ED_FONT
+    inc ED_FONT
     ; The next two rows: four bytes further on. Those of planes 2/3 start at
     ; 16, which is exactly where the fourth of 0/1 ends.
     iny
     iny
     iny
     iny
-    dec ED_PALABRAS
+    dec ED_WORDS
     bne palabra
     ; The next pair: the 128 bytes of the two tiles, minus the 32 already
     ; advanced.
@@ -1264,14 +1264,14 @@ palabra:
     sep #$20
 .a8
     plb
-    jsr esc_dp_devolver
+    jsr scn_dp_return
     rtl
 .endproc
 
 ; --- erasing a dead enemy, and placing one that appears ---
 ;
 ; Once per frame, from the battle loop and **inside the vblank**, right after
-; `ba_t_subir`. If rows of a just-erased enemy were left un-uploaded, it
+; `bt_t_upload`. If rows of a just-erased enemy were left un-uploaded, it
 ; uploads the ones that fit and returns. Otherwise, it looks for a dead one
 ; that is still visible and erases it —or one that appeared and is not
 ; visible, and places it, by the same path—: the cells it covered go back to
@@ -1282,7 +1282,7 @@ palabra:
 ;
 ; RM2k makes it disappear with a fade; here it goes all at once, in the
 ; frames it takes to upload.
-.proc escena_tick
+.proc scene_tick
 .a8
 .i16
     lda BA_ESCENA
@@ -1292,29 +1292,29 @@ palabra:
 hay:
     rep #$20
 .a16
-    lda ESC_SUB_N
+    lda SCN_SUB_N
     beq buscar
     jmp subir
 buscar:
     sep #$20
 .a8
     lda #0
-    sta ESC_E
+    sta SCN_E
 otro:
-    lda ESC_E
+    lda SCN_E
     cmp BA_NENE
     bcc :+
     rts
 :   ; Is it drawn?
-    jsr esc_bit
-    sta ESC_T0
-    and ESC_VIS
+    jsr scn_bit
+    sta SCN_T0
+    and SCN_VIS
     beq no_dibujado
     ; And dead?
-    lda ESC_E
+    lda SCN_E
     clc
     adc #BA_GRUPO_MAX
-    jsr ba_x
+    jsr bt_x
     rep #$20
 .a16
     lda BA_UNO + BA_HP, x
@@ -1322,7 +1322,7 @@ otro:
 .a8
     beq borrar
 siguiente:
-    inc ESC_E
+    inc SCN_E
     bra otro
 no_dibujado:
     ; And is it in the battle? It is one that was hidden and
@@ -1332,115 +1332,115 @@ no_dibujado:
     ; battler has nothing to place.
     rep #$20
 .a16
-    lda ESC_E
+    lda SCN_E
     and #$00FF
     tax
     sep #$20
 .a8
-    lda ESC_E_BAT, x
+    lda SCN_E_BAT, x
     cmp #$FF
     beq siguiente
-    lda ESC_E
+    lda SCN_E
     clc
     adc #BA_GRUPO_MAX
-    jsr ba_vivo
+    jsr bt_alive
     beq siguiente
-    lda ESC_T0
-    ora ESC_VIS
-    sta ESC_VIS
+    lda SCN_T0
+    ora SCN_VIS
+    sta SCN_VIS
     bra repintar
 
 borrar:
-    lda ESC_T0
+    lda SCN_T0
     eor #$FF
-    and ESC_VIS
-    sta ESC_VIS
+    and SCN_VIS
+    sta SCN_VIS
 repintar:
     ; The rectangle, in tiles: the columns it touches and the whole rows.
     rep #$20
 .a16
-    lda ESC_E
+    lda SCN_E
     and #$00FF
     tax
-    lda ESC_E_BAT, x
+    lda SCN_E_BAT, x
     and #$00FF
     tay
-    lda ESC_E_X, x
+    lda SCN_E_X, x
     and #$00FF
-    sta ESC_T0
+    sta SCN_T0
     lsr a
     lsr a
     lsr a
-    sta ESC_CLIP_C0
-    sta ESC_SUB_COL
+    sta SCN_CLIP_C0
+    sta SCN_SUB_COL
     tyx
     lda f:battler_n, x
     and #$00FF
-    sta ESC_CLIP_C1             ; while we are at it
-    lda ESC_T0
+    sta SCN_CLIP_C1             ; while we are at it
+    lda SCN_T0
     and #7
     beq :+
-    inc ESC_CLIP_C1             ; shifted, it takes one more
-:   lda ESC_CLIP_C1
+    inc SCN_CLIP_C1             ; shifted, it takes one more
+:   lda SCN_CLIP_C1
     clc
-    adc ESC_CLIP_C0
+    adc SCN_CLIP_C0
     cmp #ESCENA_COLUMNAS
     bcc :+
     lda #ESCENA_COLUMNAS
-:   sta ESC_CLIP_C1
+:   sta SCN_CLIP_C1
     sec
-    sbc ESC_CLIP_C0
+    sbc SCN_CLIP_C0
     asl a
     asl a
     asl a
     asl a
     asl a
     asl a
-    sta ESC_SUB_LARGO           ; bytes per tile row
+    sta SCN_SUB_LENGTH           ; bytes per tile row
     lda f:battler_alto, x
     and #$00FF
-    sta ESC_T0
-    lda ESC_E
+    sta SCN_T0
+    lda SCN_E
     and #$00FF
     tax
-    lda ESC_E_Y, x
+    lda SCN_E_Y, x
     and #$00FF
     pha
     and #$00F8
-    sta ESC_CLIP_Y0             ; from the first row of its first tile
+    sta SCN_CLIP_Y0             ; from the first row of its first tile
     lsr a
     lsr a
     lsr a
-    sta ESC_SUB_FILA
+    sta SCN_SUB_ROW
     pla
     clc
-    adc ESC_T0
+    adc SCN_T0
     clc
     adc #7
     and #$00F8
-    sta ESC_CLIP_Y1             ; to the last row of its last tile
+    sta SCN_CLIP_Y1             ; to the last row of its last tile
     sec
-    sbc ESC_CLIP_Y0
+    sbc SCN_CLIP_Y0
     lsr a
     lsr a
     lsr a
-    sta ESC_SUB_N
+    sta SCN_SUB_N
 
     ; --- the cells, from the clean background ---
     ; Tile row by tile row with `mvn`, which copies inside bank $7F and
     ; leaves the data bank there: it is saved and restored.
-    lda ESC_SUB_FILA
-    sta ESC_T0
-    lda ESC_SUB_N
-    sta ESC_I                   ; and ESC_I + 1: used as a word here
+    lda SCN_SUB_ROW
+    sta SCN_T0
+    lda SCN_SUB_N
+    sta SCN_I                   ; and SCN_I + 1: used as a word here
 copia:
-    lda ESC_T0
+    lda SCN_T0
     xba                         ; row * 256...
     lsr a
     lsr a
     lsr a                       ; ...over eight: row * 32 tiles
     clc
-    adc ESC_SUB_COL
+    adc SCN_SUB_COL
     asl a
     asl a
     asl a
@@ -1449,65 +1449,65 @@ copia:
     asl a                       ; times 64 bytes
     tax
     clc
-    adc #.loword(ESC_ESCENA)
+    adc #.loword(SCN_SCENE)
     tay
-    lda ESC_SUB_LARGO
+    lda SCN_SUB_LENGTH
     dec a                       ; `mvn` copies A + 1
     phb
-    mvn #^ESC_LIMPIO, #^ESC_ESCENA
+    mvn #^SCN_CLEAN, #^SCN_SCENE
     plb
-    inc ESC_T0
-    dec ESC_I
+    inc SCN_T0
+    dec SCN_I
     bne copia
 
     ; --- and the ones still alive on top, clipped to those cells ---
     sep #$20
 .a8
-    lda ESC_E
+    lda SCN_E
     pha
-    jsr esc_dp_tomar
+    jsr scn_dp_take
     lda #0
-    sta ESC_K
+    sta SCN_K
 reponer:
-    lda ESC_K
+    lda SCN_K
     cmp BA_NENE
     bcs repuestos
-    jsr esc_por_orden
-    jsr esc_bit
-    and ESC_VIS
+    jsr scn_by_command
+    jsr scn_bit
+    and SCN_VIS
     beq :+
-    jsr escena_poner
-:   inc ESC_K
+    jsr scene_set
+:   inc SCN_K
     bra reponer
 repuestos:
-    jsr esc_dp_devolver
+    jsr scn_dp_return
     pla
-    sta ESC_E
+    sta SCN_E
     rts
 
     ; --- upload what fits in this vblank ---
 subir:
 .a16
     lda #0
-    sta ESC_T0                  ; how many bytes so far
-fila:
-    lda ESC_T0
+    sta SCN_T0                  ; how many bytes so far
+row:
+    lda SCN_T0
     clc
-    adc ESC_SUB_LARGO
-    cmp #(ESC_SUB_BUDGET + 1)
+    adc SCN_SUB_LENGTH
+    cmp #(SCN_SUB_BUDGET + 1)
     bcc :+
-    lda ESC_T0
+    lda SCN_T0
     bne listo                   ; one was already uploaded and the next does not fit
-    lda ESC_SUB_LARGO
-:   sta ESC_T0
+    lda SCN_SUB_LENGTH
+:   sta SCN_T0
     ; The tile row: `(row * 32 + column)` tiles from the base.
-    lda ESC_SUB_FILA
+    lda SCN_SUB_ROW
     xba
     lsr a
     lsr a
     lsr a
     clc
-    adc ESC_SUB_COL
+    adc SCN_SUB_COL
     asl a
     asl a
     asl a
@@ -1520,15 +1520,15 @@ fila:
     pla
     asl a                       ; times 64 bytes
     clc
-    adc #.loword(ESC_ESCENA)
+    adc #.loword(SCN_SCENE)
     sta f:A1T0L
-    lda ESC_SUB_LARGO
+    lda SCN_SUB_LENGTH
     sta f:DAS0L
     sep #$20
 .a8
     lda #$80
     sta f:VMAIN
-    lda #^ESC_ESCENA
+    lda #^SCN_SCENE
     sta f:A1B0
     lda #$01
     sta f:DMAP0
@@ -1538,9 +1538,9 @@ fila:
     sta f:MDMAEN
     rep #$20
 .a16
-    inc ESC_SUB_FILA
-    dec ESC_SUB_N
-    bne fila
+    inc SCN_SUB_ROW
+    dec SCN_SUB_N
+    bne row
 listo:
     sep #$20
 .a8
@@ -1550,7 +1550,7 @@ listo:
 ; BG1 with the scene, after `ranura_ppu_prender` has set up BG2 and turned
 ; the screen on. If this battle has no scene it touches nothing and the
 ; screen stays on black, as before 2026-09-13.
-.proc escena_prender
+.proc scene_on
 .a8
 .i16
     lda BA_ESCENA
@@ -1579,7 +1579,7 @@ listo:
 ; changes, so without this they would come back with a battler's colors.
 ; With the screen off: `volver_de_batalla`, in bank 0, calls it with the
 ; data bank at 0.
-.proc escena_cgram_reponer
+.proc scene_cgram_restore
 .a8
 .i16
     lda #128

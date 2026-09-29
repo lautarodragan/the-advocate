@@ -3,7 +3,7 @@
 ; ===========================================================================
 ;
 ; It is about two kilobytes of code and bank 0 had three hundred bytes left,
-; so it lives here, in RODATA, and is entered with `jsl batalla_correr`. What
+; so it lives here, in RODATA, and is entered with `jsl battle_run`. What
 ; that forces is in the comment on the `ba_t_*` bridges, in bank 0: from here
 ; you cannot return with `jsr`, because `jsr` does not change the program
 ; bank.
@@ -248,7 +248,7 @@ partida_tabla:
     .word FAR_HAB, HAB_BYTES
     ; And the experience and level of each actor that can fight. **It goes
     ; last on purpose**: the slot screen reads the leader's level from SRAM
-    ; counting from the end of the save —`EXP_NIVEL_EN_SRAM`—, and a line
+    ; counting from the end of the save —`EXP_LEVEL_IN_SRAM`—, and a line
     ; added after it would shift it.
     .word FAR_EXP, EXP_K * 4
     .word 0, 0

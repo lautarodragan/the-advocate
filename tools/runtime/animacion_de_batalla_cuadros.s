@@ -27,7 +27,7 @@
 ; The whole buffer at zero and no frame built. Called by `cargar_mapa`, with
 ; the screen off; it is needed at least once after power-on, because WRAM
 ; starts out with garbage on the console —and in bsnes—.
-.proc anim_buf_limpiar
+.proc anim_buf_clear
 .a8
 .i16
     php
@@ -47,9 +47,9 @@ borra:
     rtl
 .endproc
 
-; Builds in `ANIMB_BUF` frame `ANIMB_CUADRO` of the animation in row
-; `ANIMB_FILA`. Clobbers A, X, Y and `temp`.
-.proc anim_cuadro_armar
+; Builds in `ANIMB_BUF` frame `ANIMB_FRAME` of the animation in row
+; `ANIMB_ROW`. Clobbers A, X, Y and `temp`.
+.proc anim_frame_build
 .a8
 .i16
     phb
@@ -95,11 +95,11 @@ sin_anterior:
     ; uploaded the frame straight from the cartridge.
     rep #$20
 .a16
-    lda f:ANIMB_FILA
+    lda f:ANIMB_ROW
     tax
     lda f:anim_batalla_tabla + 4, x
     clc
-    adc f:ANIMB_CUADRO
+    adc f:ANIMB_FRAME
     asl a
     asl a
     tax

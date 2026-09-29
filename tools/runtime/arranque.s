@@ -166,7 +166,7 @@ grupo_listo:
     rep #$20
 .a16
     lda #0
-    sta f:FAR_MSG_PAUSA         ; `stz` has no long mode
+    sta f:FAR_MSG_PAUSE         ; `stz` has no long mode
     sep #$20
 .a8
     sta f:FAR_MSG_AUTO
@@ -229,7 +229,7 @@ grupo_listo:
     sta brillo
     stz bgm_fundido             ; and the same with the song's
     jsl f:transicion_de_arranque    ; and the teleport, with fade
-    jsl f:encuentro_arranque    ; the encounters' random seed
+    jsl f:encounter_boot    ; the encounters' random seed
 
     ; If the cartridge has a saved game, it is loaded here: the switches it
     ; carries decide which page is active on each event, so they have to be
@@ -241,7 +241,7 @@ grupo_listo:
     ; garbage, and a loaded save overwrites them afterwards.
     jsr clear_variables
     jsr initial_equipment_set
-    jsl f:hp_inicial_poner
+    jsl f:hp_initial_set
     jsl f:initial_skills_set
     jsr actor_graf_limpiar
     jsr clima_limpiar
@@ -249,10 +249,10 @@ grupo_listo:
     jsr musica_limpiar
     jsr turn_clear
     jsr aram_limpiar
-    jsr animacion_limpiar
+    jsr battle_anim_clear
     lda #0                      ; RAM starts with garbage
-    sta f:CARTEL_ACTIVA
-    sta f:CARTEL_LISTO
+    sta f:PICTURE_ACTIVE
+    sta f:PICTURE_READY
     sta f:GO_ESPERA             ; the harness looks at it: see game_over.s
     ; The slot screen's flag too: with $55 the harness would see it open from
     ; the reset. That is what happened on 2026-09-10 with the two counters
@@ -340,7 +340,7 @@ cargar:
     ; reached after the title.
 .ifdef PANTALLA_TITULO
     ldx #(PANTALLA_TITULO * PANTALLA_FILA)
-    jsl f:pantalla_descomprimir
+    jsl f:screen_decompress
 .endif
 
     ; And we wait for boot to last what it always lasts: BOOT_CUADROS.
@@ -444,9 +444,9 @@ loop:
 sin_salto_pendiente:
     jsr tinte_de_evento        ; the tint the interpreter may have requested, right
                                 ; after it: otherwise it would apply a frame late
-    jsr animacion_tick          ; the battle animation, before the
+    jsr battle_anim_tick          ; the battle animation, before the
                                 ; flashes it triggers
-    jsr animacion_dibujo_tick   ; and its drawing, right after: both advance the
+    jsr anim_drawing_tick   ; and its drawing, right after: both advance the
                                 ; same RM2k clock and the drawing lasts longer
     jsr flashes_tick            ; and the flashes, in the same place
     jsr sacudida_tick           ; and one of the screen shake

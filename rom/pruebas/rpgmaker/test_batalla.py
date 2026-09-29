@@ -579,7 +579,7 @@ def test_la_pelea_prende_el_tema_de_batalla_del_ldb(partida):
         "la pelea dice estar tocando el tema %d y el de batalla es el %d"
         % (una.palabra("tema_actual"), tema))
     assert not una.byte("music_apagada"), \
-        "la pelea arrancó callada: `batalla_bgm` no llegó a prender el tema"
+        "la pelea arrancó callada: `battle_bgm` no llegó a prender el tema"
     faltan = sorted(set(una.muestras_del_tema(tema)) - una.muestras_en_la_aram())
     assert not faltan, (
         "el tema de batalla suena con las muestras %s sin subir de las %s que "
@@ -632,7 +632,7 @@ def test_al_terminar_vuelve_lo_que_sonaba_en_el_mapa(partida, con_musica):
     El mapa 2 **no trae música**, así que sin un tema sonando lo que
     tiene que volver es el silencio —y eso no distingue nada: al salir se
     recarga el paquete del mapa, y recargarlo ya calla—. Con un tema puesto el
-    caso mide de verdad: si el `batalla_bgm` del final no estuviera, el mapa
+    caso mide de verdad: si el `battle_bgm` del final no estuviera, el mapa
     quedaría mudo después de cada pelea.
 
     Y además el tema del mapa tiene que volver **con sus muestras**: el
@@ -885,7 +885,7 @@ def test_el_elixir_levanta_a_un_caido_en_la_pelea(partida):
     arrancar en Core**, que es al único que el elixir le sirve. Después, turno
     por turno, el mismo HP que el modelo, con Core pidiendo órdenes desde el
     segundo, y al ganar Core cobra la experiencia de la tropa entera, que es lo
-    que `ba_exp_repartir` le da a los que quedaron en pie.
+    que `bt_exp_allocate` le da a los que quedaron en pie.
     """
     from port import experience
     from batalla import exp_y_nivel
@@ -971,7 +971,7 @@ def test_el_segundo_elixir_sobre_el_mismo_caido_no_hace_nada(partida):
     paran en él. Al ejecutar, el primero lo levanta y el segundo encuentra a
     uno en pie: `ko_only`, y `vExecute` sale sin efecto. El blanco no se
     reapunta y el elixir se gasta igual —se gastó al elegirlo—. Es la rama
-    "en pie y `ko_only`" de `ba_item_usar`, que jugando sólo pasa así.
+    "en pie y `ko_only`" de `bt_item_use`, que jugando sólo pasa así.
     """
     una = partida(caso="elixir-en-la-pelea")
     una.poner_grupo(*GRUPO)

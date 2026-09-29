@@ -93,8 +93,8 @@ op_shop_done:
     sep #$20
 .a8
     lda #0
-    sta f:BAT_LARGO + ESC_ORIGEN ; the background, the troop's and not the map's
-    jsl f:game_over_anotar      ; whether losing is Game Over: see game_over.s
+    sta f:BAT_LARGO + SCN_ORIGIN ; the background, the troop's and not the map's
+    jsl f:game_over_record      ; whether losing is Game Over: see game_over.s
     phy                         ; the cursor: the destinations are read on return
     jsr battle_start
     ply
@@ -123,7 +123,7 @@ op_shop_done:
     tay
     ; `BATALLA_PERDER`, that is $FFFF —the battle had no defeat handler,
     ; because in RM2k losing it is `Scene_Gameover`— never gets here:
-    ; `game_over_anotar` records it before fighting, and `battle_start` goes
+    ; `game_over_record` records it before fighting, and `battle_start` goes
     ; to the Game Over screen without coming back. See
     ; tools/runtime/game_over.s.
     sep #$20
@@ -134,7 +134,7 @@ op_shop_done:
 .endproc
 
 ; `ShowHiddenMonster`, which only exists in a troop page: the member in that
-; position stops being hidden. `ba_mostrar_oculto` does it, in the battle's
+; position stops being hidden. `bt_show_hidden` does it, in the battle's
 ; bank, which is where its state lives.
 .proc op_show_enemy
 .a8
@@ -142,7 +142,7 @@ op_shop_done:
     lda [cod_ptr], y
     iny
     phy
-    jsl f:ba_mostrar_oculto
+    jsl f:bt_show_hidden
     ply
     jmp run_code::otro
 .endproc
@@ -171,7 +171,7 @@ op_shop_done:
     plb
     ; **The MSU-1 first.** With a CD track playing, `music_start` leaves the
     ; SPC700 silent on purpose —`music_apagada` at 1— and looking only at that
-    ; recorded $FF: at the end of the battle `batalla_bgm` silenced the map's
+    ; recorded $FF: at the end of the battle `battle_bgm` silenced the map's
     ; music instead of restoring it. It is the same question as
     ; `mapa_tema_callar`, and it is answered the same way.
     lda f:MSU_SUENA
@@ -196,11 +196,11 @@ anotado:
     ; **With the map already black**: the load takes from half a second to a
     ; second and a half, and it is the entry transition that hides it. See
     ; `fundido_de_pelea.s`.
-    jsl f:pelea_fundir_entrando
+    jsl f:battle_fade_in
     ldx #BA_PAQUETE
-    jsr batalla_audio_cargar
+    jsr battle_audio_load
     lda #BA_TEMA
-    jsr batalla_bgm
+    jsr battle_bgm
     plb
     ; The data bank, at $7E: that is what lets the battle code use absolute
     ; addressing on its state without losing low RAM, which in that bank is at
@@ -209,7 +209,7 @@ anotado:
     lda #$7E
     pha
     plb
-    jsl f:batalla_correr
+    jsl f:battle_run
     plb
     ; The edges that closed the battle belong to it, as in the shop and the
     ; menu: otherwise, the A that closed the last message would open whatever
@@ -224,21 +224,21 @@ anotado:
     phb
     phk
     plb                         ; bank 0, for the same reason as on entry
-    jsl f:pelea_fundir_saliendo ; the battle to black, which hides the load
+    jsl f:battle_fade_out ; the battle to black, which hides the load
     ; And if it was lost and losing is Game Over, there is no coming back from
     ; here: the screen appears from the battle's black, without going through
     ; the map, as in RM2k.
-    jsl f:game_over_si_perdio
+    jsl f:game_over_if_lost
     ldx mapa_actual             ; and the map's audio goes back to the SPC700
-    jsr batalla_audio_cargar
+    jsr battle_audio_load
     lda f:BAT_LARGO + BA_TEMA_ANT
-    jsr batalla_bgm             ; the map's song, or the silence there was
+    jsr battle_bgm             ; the map's song, or the silence there was
     plb
     jsr volver_de_batalla
     phb
     phk
     plb
-    jsr pelea_fundir_al_mapa    ; and the map from black, with `flush_video`
+    jsr battle_fade_to_map    ; and the map from black, with `flush_video`
     plb
     rts
 .endproc

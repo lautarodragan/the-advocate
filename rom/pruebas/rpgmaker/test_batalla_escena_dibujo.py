@@ -70,7 +70,7 @@ def _esperada(una, base, tropa, vivos):
     battler es la del orden en que aparece en la tropa **entera**, vivos o no:
     se reparte al empezar la pelea y no se mueve.
     """
-    limpio = _bufer(una, "ESC_LIMPIO")
+    limpio = _bufer(una, "SCN_CLEAN")
     miembros = base.troops[tropa].members
     posiciones = base.troops[tropa].positions
     claves, puestos = [], []
@@ -103,15 +103,15 @@ def _colores(una):
         return (w & 31, (w >> 5) & 31, (w >> 10) & 31)
 
     colores = {}
-    fondo = _byte(una, "ESC_RESPALDO")
+    fondo = _byte(una, "SCN_FALLBACK")
     # Los del respaldo liviano, que es el que la tanda ve: corre sin MSU-1.
-    # ESC_FONDO es el número del fondo en el juego, que indexa el `.msu`; el
-    # de la ROM es ESC_RESPALDO.
+    # SCN_BACKDROP es el número del fondo en el juego, que indexa el `.msu`; el
+    # de la ROM es SCN_FALLBACK.
     base = en_la_rom(s["fondo_cgram"]) + fondo * scene.FALLBACK_COLORS * 2
     for i in range(scene.FALLBACK_COLORS):
         colores[scene.CGRAM_BASE + i] = color(base + 2 * i)
-    for j in range(_byte(una, "ESC_PAL_N")):
-        b = _byte(una, "ESC_PAL_BAT", j)
+    for j in range(_byte(una, "SCN_PAL_N")):
+        b = _byte(una, "SCN_PAL_BAT", j)
         base = en_la_rom(s["battler_cgram"]) + b * 32
         for c in range(16):
             colores[(scene.BATTLER_PALETTE + j) * 16 + c] = color(base + 2 * c)
@@ -146,17 +146,17 @@ def _esperar(una, tope=400):
 
 def _hasta_subido(una, enemigo, tope=60):
     """Los cuadros que hagan falta para que la ROM borre al enemigo y suba sus
-    celdas: el bit de `ESC_VIS` apagado y nada pendiente."""
+    celdas: el bit de `SCN_VIS` apagado y nada pendiente."""
     for _ in range(tope):
         una.consola.run(1)
-        vis = _byte(una, "ESC_VIS")
-        pendiente = _byte(una, "ESC_SUB_N") | _byte(una, "ESC_SUB_N", 1)
+        vis = _byte(una, "SCN_VIS")
+        pendiente = _byte(una, "SCN_SUB_N") | _byte(una, "SCN_SUB_N", 1)
         if not vis & (1 << enemigo) and not pendiente:
             una.consola.run(2)
             return
     raise AssertionError(
-        "el enemigo %d murió y la ROM no lo borró en %d cuadros: ESC_VIS "
-        "quedó en $%02X" % (enemigo, tope, _byte(una, "ESC_VIS")))
+        "el enemigo %d murió y la ROM no lo borró en %d cuadros: SCN_VIS "
+        "quedó en $%02X" % (enemigo, tope, _byte(una, "SCN_VIS")))
 
 
 def en_sector_27(partida):
@@ -188,9 +188,9 @@ def test_escena_un_encuentro_al_azar_hereda_el_fondo_del_mapa(partida):
     8bpp prueba también que la ROM lo agrandó bien desde 4bpp y al doble.
     """
     una = en_sector_27(partida)
-    assert _byte(una, "ESC_FONDO") != 0xFF, "la pelea al azar quedó sin fondo"
+    assert _byte(una, "SCN_BACKDROP") != 0xFF, "la pelea al azar quedó sin fondo"
     fondo = scene.light_backdrop("ABLBackdropSJ03", GAME_DIR)
-    limpio = _bufer(una, "ESC_LIMPIO")
+    limpio = _bufer(una, "SCN_CLEAN")
     assert _distintos(limpio, fondo["indices"]) == 0, \
         "el fondo de la pelea no es el de Sector 27"
 
@@ -206,7 +206,7 @@ def test_escena_compuesta_es_la_del_juego(partida):
     base = datos.base()
     n = len(base.troops[TROPA_100].members)
     _limpio, esperada = _esperada(una, base, TROPA_100, set(range(n)))
-    compuesta = _bufer(una, "ESC_ESCENA")
+    compuesta = _bufer(una, "SCN_SCENE")
     assert _distintos(compuesta, esperada) == 0, (
         "la escena que compuso la ROM difiere de la del juego en %d pixeles"
         % _distintos(compuesta, esperada))
@@ -219,7 +219,7 @@ def test_escena_compuesta_es_la_del_juego(partida):
 def test_escena_un_enemigo_muerto_desaparece(partida):
     """Las celdas que tapaba vuelven a ser las del fondo, y los otros dos siguen.
 
-    Se lo mata escribiendo sus HP en cero, que es lo que ve `escena_tick`: la
+    Se lo mata escribiendo sus HP en cero, que es lo que ve `scene_tick`: la
     pelea del droide de abajo lo mata peleando. El del medio es el que más
     obliga: los otros dos lo tocan por los dos lados, así que borrarlo es
     volver a poner a ambos recortados a sus celdas, y en el orden de la tropa.
@@ -234,7 +234,7 @@ def test_escena_un_enemigo_muerto_desaparece(partida):
     _hasta_subido(una, muerto)
     limpio, esperada = _esperada(una, base, TROPA_100,
                                  set(range(n)) - {muerto})
-    compuesta = _bufer(una, "ESC_ESCENA")
+    compuesta = _bufer(una, "SCN_SCENE")
     assert _distintos(compuesta, esperada) == 0, (
         "después de borrar al enemigo %d la escena difiere de la del juego en "
         "%d pixeles" % (muerto, _distintos(compuesta, esperada)))
@@ -263,8 +263,8 @@ def test_escena_el_droide_muerto_peleando_desaparece(partida):
             [(modelo.COMMAND_ATTACK, 0)] * len(esperado.living(esperado.actors)))
     assert pelea.byte("BA_RESULT") == modelo.VICTORY
     _hasta_subido(una, 0)
-    limpio = _bufer(una, "ESC_LIMPIO")
-    assert _distintos(_bufer(una, "ESC_ESCENA"), limpio) == 0, \
+    limpio = _bufer(una, "SCN_CLEAN")
+    assert _distintos(_bufer(una, "SCN_SCENE"), limpio) == 0, \
         "el droide murió y la escena no volvió a ser el fondo"
     assert _pantalla_distinta(una, limpio, RENGLON * 2) == 0, \
         "el droide murió y en la pantalla se sigue viendo"
@@ -285,7 +285,7 @@ def test_escena_una_pelea_del_lugar_usa_el_fondo_del_mapa(partida):
     """`EnemyEncounter` con el fondo "del lugar" —el parámetro `[2]` en 0—:
     `Game_Map::SetupBattle`, el del mapa donde se pelea, igual que un
     encuentro al azar. El caso `pelea-113` pelea así en el 60, que nombra
-    `SJBackdropABL01`: `ESC_FONDO` queda con su número, que es el que se
+    `SJBackdropABL01`: `SCN_BACKDROP` queda con su número, que es el que se
     leería del `.msu`, y sin MSU-1 se dibuja su respaldo, porque los
     encuentros al azar del 60 lo piden y la ROM lo lleva.
 
@@ -298,18 +298,18 @@ def test_escena_una_pelea_del_lugar_usa_el_fondo_del_mapa(partida):
     una = partida(caso="pelea-113")
     _esperar(una, tope=600)
     una.consola.run(3)
-    assert _byte(una, "ESC_FONDO") == juego.index(del_mapa), (
+    assert _byte(una, "SCN_BACKDROP") == juego.index(del_mapa), (
         "la pelea del lugar en el 60 eligió el fondo %d y el del mapa es %r, "
-        "el %d" % (_byte(una, "ESC_FONDO"), del_mapa, juego.index(del_mapa)))
+        "el %d" % (_byte(una, "SCN_BACKDROP"), del_mapa, juego.index(del_mapa)))
     suyo = scene.light_backdrop(del_mapa, GAME_DIR)
-    assert _distintos(_bufer(una, "ESC_LIMPIO"), suyo["indices"]) == 0, (
+    assert _distintos(_bufer(una, "SCN_CLEAN"), suyo["indices"]) == 0, (
         "sin MSU-1 la pelea del lugar en el 60 no tiene el respaldo de %r"
         % del_mapa)
 
 
 # Una pelea del lugar en el 7, que no tiene encuentros al azar y no nombra
 # fondo: el del terreno, y el 7 es todo de uno solo —la rama de
-# `M_TERRENO_PLANO` en `esc_terreno`—, que la ROM no lleva porque ninguna
+# `M_TERRENO_PLANO` en `scn_terrain`—, que la ROM no lleva porque ninguna
 # pelea del cartucho lo pide de antemano.
 PELEA_EN_7 = "pelea-113-en-7"
 
@@ -317,7 +317,7 @@ PELEA_EN_7 = "pelea-113-en-7"
 def test_escena_una_pelea_cuyo_fondo_no_esta_usa_el_reemplazo(partida):
     """Lo único que en `release` cae en el reemplazo: una tropa del lugar en
     un mapa sin encuentros, donde el fondo sale del terreno bajo el héroe y
-    el conversor no puede saber cuál será. `ESC_FONDO` es el del terreno —el
+    el conversor no puede saber cuál será. `SCN_BACKDROP` es el del terreno —el
     que se leería del `.msu`— y sin MSU-1 se dibuja el de
     `scene.replacement()`, no negro. Ver "Qué fondos hay" en scene.py."""
     from port import events
@@ -333,12 +333,12 @@ def test_escena_una_pelea_cuyo_fondo_no_esta_usa_el_reemplazo(partida):
     una = partida(caso=PELEA_EN_7)
     _esperar(una, tope=600)
     una.consola.run(3)
-    assert _byte(una, "ESC_FONDO") == juego.index(suyo), (
+    assert _byte(una, "SCN_BACKDROP") == juego.index(suyo), (
         "la pelea del lugar en el 7 eligió el fondo %d y el terreno del mapa "
-        "pide %r, el %d" % (_byte(una, "ESC_FONDO"), suyo, juego.index(suyo)))
-    respaldo = _byte(una, "ESC_RESPALDO")
+        "pide %r, el %d" % (_byte(una, "SCN_BACKDROP"), suyo, juego.index(suyo)))
+    respaldo = _byte(una, "SCN_FALLBACK")
     reemplazo = scene.light_backdrop(scene.replacement(), GAME_DIR)
-    assert _distintos(_bufer(una, "ESC_LIMPIO"), reemplazo["indices"]) == 0, (
+    assert _distintos(_bufer(una, "SCN_CLEAN"), reemplazo["indices"]) == 0, (
         "sin MSU-1 la pelea del lugar en el 7 no tiene el fondo de reemplazo "
-        "(ESC_RESPALDO en %d): o %r entró en la ROM y la prueba necesita otro "
+        "(SCN_FALLBACK en %d): o %r entró en la ROM y la prueba necesita otro "
         "mapa, o el reemplazo no anda" % (respaldo, suyo))

@@ -38,7 +38,7 @@
     sta obj_grande
     jsr timer_oam
     jsr imagen_oam              ; and the picture behind it: see `imagen_oam`
-    jsr animacion_dibujo_oam    ; and the battle animation behind the picture:
+    jsr anim_drawing_oam    ; and the battle animation behind the picture:
                                 ; `Priority_BattleAnimation` is 110 against
                                 ; `Priority_PictureOld`'s 120
 

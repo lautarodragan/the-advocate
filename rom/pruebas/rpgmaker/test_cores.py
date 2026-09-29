@@ -57,9 +57,9 @@ del frontend.
     planta        tres turnos de la pelea de la tropa 113, a fuerza de A: la
                   elección de los enemigos, que pesa sus acciones en
                   `BA_HAB_LISTA`, y el SP del arma en `BA_ARMA_SP`, que
-                  `ba_armar` escribe al empezar cada pelea y el reset no toca.
+                  `bt_build` escribe al empezar cada pelea y el reset no toca.
     game-over     la pantalla de Game Over después de perder una pelea: el
-                  destino de la derrota que anota `game_over_anotar`, el
+                  destino de la derrota que anota `game_over_record`, el
                   flujo que se descomprime en el banco $7F —el mismo que
                   bsnes enciende con basura— y los registros del PPU que la
                   pelea dejó puestos.
@@ -254,7 +254,7 @@ def test_escena_de_la_pelea():
         donde = s["BA_UNO"] + (s["BA_GRUPO_MAX"] + 1) * s["BA_BYTES"]
         una.consola.write_ram(en_la_wram(donde), [0, 0])
         una.consola.run(60)
-        assert una.consola.ram(en_la_wram(s["ESC_VIS"]), 1)[0] == 0b101, \
+        assert una.consola.ram(en_la_wram(s["SCN_VIS"]), 1)[0] == 0b101, \
             "el enemigo del medio no se borró: la prueba no mide lo que dice"
         imagenes.append(una.imagen())
     iguales("escena", *imagenes)

@@ -20,7 +20,7 @@
 buscar:
     lda flash_ev, x
     cmp #FLASH_LIBRE
-    beq puesta
+    beq set2
     rep #$20
 .a16
     txa
@@ -33,7 +33,7 @@ buscar:
     bcc buscar
     rts                         ; no slot: this flash is lost
 
-puesta:
+set2:
     lda [cod_ptr], y            ; the target
     sta flash_ev + 0, x
     iny

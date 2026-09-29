@@ -206,7 +206,7 @@ corta:
     ; around: the block table no longer lives in bank 0 —with several maps it
     ; does not fit— so it is read with a 24-bit pointer, and that mode only
     ; indexes by Y.
-fila:
+row:
     lda [celdas_ptr]            ; this cell's block
     jsr celda_sustituida
     asl a
@@ -236,7 +236,7 @@ fila:
     jsr ptr_mas                 ; to the next block row
 misma:
     dec tira_resta
-    bne fila
+    bne row
     rts
 .endproc
 

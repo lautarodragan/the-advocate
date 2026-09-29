@@ -7,7 +7,7 @@
 ; `vueltas` does not advance while it is shown, so the battle costs no tick,
 ; however long the player takes. See `OP_BATTLE`
 ; in tools/port/events.py.
-.proc batalla_correr
+.proc battle_run
 .a8
 .i16
     rep #$20
@@ -25,22 +25,22 @@
     sta BA_ORDEN
     sta BA_ACTOR
     sta BA_I
-    jsr ba_armar
+    jsr bt_build
     lda BA_NENE
     bne hay_tropa
     rtl                         ; a troop this cartridge does not carry
 hay_tropa:
     lda #0
     sta BA_ACTOR
-    jsr ba_actor_siguiente
+    jsr bt_next_actor
     cmp #$FF
     bne hay_grupo
     lda #BA_DERROTA             ; nobody standing: lost without fighting
     sta BA_RESULT
     rtl
 hay_grupo:
-    jsr ba_chance_huir
-    jsr ba_pag_armar
+    jsr bt_flee_chance
+    jsr bt_page_build
     ; Turn off the screen, from here: the three registers go through `f:`
     ; because the data bank is $7E and absolute ones would land in RAM.
     lda #$80
@@ -48,11 +48,11 @@ hay_grupo:
     lda #0
     sta f:HDMAEN
     sta f:TM
-    jsl f:ba_t_banco
+    jsl f:bt_t_bank
     ; And the scene: the background with the monsters, composed here and
     ; uploaded to BG1. It goes with the screen off because it is 32 KB of VRAM
     ; plus the tilemap and the palettes.
-    jsr escena_subir
+    jsr scene_upload
     lda #BA_M_ORDEN
     sta BA_MODO
     ; Before the first command, the pages already met: it is the `eCheckEvents`
@@ -61,34 +61,34 @@ hay_grupo:
     ; page that only turns on a switch, and this way the battle opens already
     ; asking for commands, as it opened before those pages ran. One that shows
     ; a message opens with the message up.
-    jsr ba_pag_probar
+    jsr bt_page_test
     beq sin_pagina_al_empezar
     lda #1
     sta BA_PAG_VUELTA
-    jsr ba_pag_paso
+    jsr bt_page_step
 sin_pagina_al_empezar:
-    jsr ba_componer
-    jsl f:ba_t_subir
+    jsr bt_compose
+    jsl f:bt_t_upload
     ; Turn the screen on **in black**, which the entry transition shows:
     ; `ranura_ppu_prender` writes full brightness, so it is called inside a
     ; vblank and in the same vblank it is brought down to zero —not a single
     ; line gets drawn—. See `fundido_de_pelea.s`.
-    jsl f:ba_t_vblank
-    jsl f:ba_t_ppu
+    jsl f:bt_t_vblank
+    jsl f:bt_t_ppu
     lda #0
     sta f:INIDISP
-    jsr escena_prender
-    jsr pelea_fundir_mostrando
+    jsr scene_on
+    jsr battle_fade_showing
     lda #1
     sta menu_abierto
 
 espera:
-    jsl f:ba_t_vblank
-    jsl f:ba_t_pad                ; the controller before the DMA, as in the
+    jsl f:bt_t_vblank
+    jsl f:bt_t_pad                ; the controller before the DMA, as in the
                                   ; shop
-    jsl f:ba_t_subir
-    jsr ba_sacudir              ; the shake, before the vblank ends
-    jsr escena_tick             ; still in the vblank: an enemy that died
+    jsl f:bt_t_upload
+    jsr bt_shake              ; the shake, before the vblank ends
+    jsr scene_tick             ; still in the vblank: an enemy that died
     lda pad
     eor pad_ant
     and pad
@@ -143,7 +143,7 @@ o_no_der:
     lda BA_ORDEN
     cmp #BA_ORDEN_ATACAR
     bne o_no_ataca
-    jsr ba_enemigo_vivo
+    jsr bt_enemy_alive
     cmp #$FF
     beq espera5
     sta BA_BLANCO
@@ -156,14 +156,14 @@ o_no_ataca:
     lda #0
     sta BA_T0
     lda #BA_DEFENDER
-    jsr ba_anotar
+    jsr bt_record
     jmp siguiente_actor
 o_no_defiende:
     cmp #BA_ORDEN_USAR
     bne o_no_usa
     ; `Use Item`: the list of what can be used. Empty, nothing happens, which
     ; is what the pause menu does with a command that leads nowhere.
-    jsr ba_items_lista
+    jsr bt_items_list
     lda BA_ITEM_N
     beq espera5
     lda #0
@@ -178,7 +178,7 @@ o_no_usa:
     ; The skill list of whoever is giving the command. Empty —Talan, who is
     ; level 1— nothing happens, which is what the menu does with a command that
     ; leads nowhere.
-    jsr ba_hab_lista
+    jsr bt_skill_list
     lda BA_HAB_N
     beq espera5
     lda #0
@@ -191,17 +191,17 @@ o_no_habilidad:
     beq o_huye
     jmp espera
 o_huye:
-    jsr ba_huir
+    jsr bt_flee
     beq o_no_huyo
     lda #BA_HUIDA_R
     sta BA_RESULT
     lda #BA_MSG_HUYO
     sta BA_MTIPO
-    jsr ba_mostrar
+    jsr bt_show
     rep #$20
 .a16
     lda #BA_SE_HUIR             ; the escape_se of `Scene_Battle_Rpg2k`
-    jsl f:ba_t_sonido
+    jsl f:bt_t_sound
 .a8
     lda #BA_M_FIN
     sta BA_MODO
@@ -210,7 +210,7 @@ o_no_huyo:
     lda #0
     sta BA_T0
     lda #BA_HUIR
-    jsr ba_anotar
+    jsr bt_record
     jmp siguiente_actor
 espera2:
     jmp espera
@@ -252,7 +252,7 @@ b_mira_a:
 b_ataca:
     lda #BA_ATACAR
 b_anota:
-    jsr ba_anotar
+    jsr bt_record
     jmp siguiente_actor         ; the two modes below ended up in between
 
     ; --- choosing which item ---
@@ -288,14 +288,14 @@ i_mira_a:
     beq espera4
     ; Whom to give it to: the first in the party it is good for —standing for
     ; a potion, fallen for an elixir—. If it is good for nobody, A does not get
-    ; past the list: see `ba_item_sirve_sobre`.
+    ; past the list: see `bt_item_usable_on`.
     lda #0
     sta BA_ACTOR2
 busca_vivo:
     lda BA_ACTOR2
     cmp BA_NACT
     bcs espera4
-    jsr ba_item_sirve_sobre
+    jsr bt_item_usable_on
     bne hay_blanco_act
     inc BA_ACTOR2
     bra busca_vivo
@@ -345,24 +345,24 @@ a_mira_a:
     lda BA_ITEM_BLA
     sta BA_T0
     lda #BA_HABILIDAD
-    jsr ba_anotar
+    jsr bt_record
     jmp siguiente_actor
 a_es_item:
     ; The command is recorded and **the item is spent right away**, which is
     ; what RM2k does on choosing it: otherwise the last one of an item could be
     ; handed out to two actors in the same turn.
     lda BA_ITEM_SEL
-    jsr ba_item_de_lista
+    jsr bt_item_from_list
     pha
     lda BA_ACTOR
-    jsr ba_ax
+    jsr bt_ax
     pla
     sta BA_ACC_ITEM, x
-    jsr ba_item_gastar
+    jsr bt_item_consume
     lda BA_ITEM_BLA
     sta BA_T0
     lda #BA_ITEM
-    jsr ba_anotar
+    jsr bt_record
     jmp siguiente_actor
 
     ; --- choosing which skill ---
@@ -427,12 +427,12 @@ h_mira_a:
     ; a greyed-out skill. The cost is deducted **when it executes** and not
     ; here: `Skill::vStart` runs when its turn comes.
     lda BA_HAB_SEL
-    jsr ba_hab_de_lista
+    jsr bt_skill_from_list
     sta BA_S0
-    jsr ba_hab_alcanza
+    jsr bt_skill_reaches
     beq espera6
     lda BA_ACTOR
-    jsr ba_ax
+    jsr bt_ax
     lda BA_S0
     sta BA_ACC_HAB, x
     ; A switch skill **asks for no target**, whatever its `scope` points at:
@@ -444,7 +444,7 @@ h_mira_a:
     ; Nor do the ones on many or on oneself, whose target is decided by the
     ; scope: only `enemy` and `ally` ask for it —`batalla.pide_blanco`—.
     lda BA_S0
-    jsr ba_ax
+    jsr bt_ax
     lda f:hab_tipo, x
     cmp #BA_HAB_TIPO_SWITCH
     beq h_sin_blanco
@@ -457,16 +457,16 @@ h_sin_blanco:
     lda BA_ACTOR
     sta BA_T0
     lda #BA_HABILIDAD
-    jsr ba_anotar
+    jsr bt_record
     jmp siguiente_actor
 h_con_blanco:
     ; Whom it targets: bit 6 of `hab_afecta` is `SkillTargetsEnemies`.
     lda BA_S0
-    jsr ba_ax
+    jsr bt_ax
     lda f:hab_afecta, x
     and #$40
     beq h_a_un_aliado
-    jsr ba_enemigo_vivo
+    jsr bt_enemy_alive
     cmp #$FF
     beq espera7
     sta BA_BLANCO
@@ -483,7 +483,7 @@ h_busca_vivo:
     bcs espera7                 ; cannot happen: whoever gives the command is
                                 ; alive
     lda BA_ACTOR2
-    jsr ba_vivo
+    jsr bt_alive
     bne h_hay_blanco
     inc BA_ACTOR2
     bra h_busca_vivo
@@ -498,7 +498,7 @@ h_hay_blanco:
 
 siguiente_actor:
     ; On to the next one; if none is left, the turn starts.
-    jsr ba_actor_siguiente
+    jsr bt_next_actor
     cmp #$FF
     beq arranca_turno
     lda #0
@@ -507,7 +507,7 @@ siguiente_actor:
     sta BA_MODO
     jmp recomponer
 arranca_turno:
-    jsr ba_empezar_turno
+    jsr bt_start_turn
     jmp espera
 
     ; --- a message on screen ---
@@ -526,13 +526,13 @@ modo_mensaje:
     lda BA_SE2
     ldx #$FFFF
     stx BA_SE2
-    jsl f:ba_t_sonido
+    jsl f:bt_t_sound
 .a8
 sin_segundo:
     lda BA_ESPERA
     bne espera3
 pasa:
-    jsr ba_ejecutar
+    jsr bt_execute
 espera3:
     jmp espera
 
@@ -559,7 +559,7 @@ modo_pagina:
     sep #$20
 .a8
 p_sigue:
-    jsr ba_pag_paso
+    jsr bt_page_step
     jmp espera
 
     ; --- the battle is over ---
@@ -568,7 +568,7 @@ modo_fin:
     beq espera3
     ; Victory has more than one page: "N EXP", and one for each actor who
     ; leveled up.
-    jsr ba_vic_siguiente
+    jsr bt_vic_next
     beq cerrar
     jmp recomponer
 cerrar:
@@ -581,7 +581,7 @@ guarda:
     cmp BA_NACT
     bcs guardados
     lda BA_S0
-    jsr ba_x
+    jsr bt_x
     rep #$20
 .a16
     lda BA_UNO + BA_HP, x
@@ -591,7 +591,7 @@ guarda:
     sep #$20
 .a8
     lda BA_UNO + BA_NUMERO, x
-    jsr ba_ax
+    jsr bt_ax
     rep #$20
 .a16
     txa
@@ -609,7 +609,7 @@ guardados:
     rtl
 
 recomponer:
-    jsr ba_componer
+    jsr bt_compose
     jmp espera
 
 ; Z=0 if A was just pressed. It is the same one as the shop's: `pad_a` and its
@@ -654,7 +654,7 @@ ba_blanco_act_arriba:
 mira_arriba_act:
     beq nada_act
     dec a
-    sta BA_ACTOR2               ; `ba_item_sirve_sobre` clobbers `BA_S0`
+    sta BA_ACTOR2               ; `bt_item_usable_on` clobbers `BA_S0`
     jsr ba_blanco_act_sirve
     bne pone_act
     lda BA_ACTOR2
@@ -687,10 +687,10 @@ ba_blanco_act_sirve:
     cmp #BA_ORDEN_HABILIDAD
     beq sirve_hab
     pla
-    jmp ba_item_sirve_sobre
+    jmp bt_item_usable_on
 sirve_hab:
     pla
-    jmp ba_vivo
+    jmp bt_alive
 
 ; The target cursor, to the living enemy above or below. If no living one is
 ; left in that direction, it stays where it is.
@@ -702,7 +702,7 @@ mira_arriba:
     sta BA_S0
     clc
     adc #BA_GRUPO_MAX
-    jsr ba_vivo
+    jsr bt_alive
     bne pone
     lda BA_S0
     bra mira_arriba
@@ -715,7 +715,7 @@ mira_abajo:
     sta BA_S0
     clc
     adc #BA_GRUPO_MAX
-    jsr ba_vivo
+    jsr bt_alive
     bne pone
     lda BA_S0
     bra mira_abajo
@@ -733,10 +733,10 @@ nada:
 ; and the battlers, which is what `Spriteset_Battle` runs with
 ; `GetShakeOffsetX`; the windows stay still, and here so does the text, which
 ; is BG2.
-.proc ba_sacudir
+.proc bt_shake
 .a8
 .i16
-    jsl f:ba_t_sacudida
+    jsl f:bt_t_shake
     lda BA_ESCENA
     cmp #$FF
     beq listo

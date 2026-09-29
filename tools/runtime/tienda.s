@@ -56,7 +56,7 @@ TI_VENDIDO = 6
     rts
 de_venta:
     pla
-    jsl f:ba_t_lista
+    jsl f:bt_t_list
     rts
 .endproc
 
@@ -186,7 +186,7 @@ dividir:
     lda temp + 3
     clc
     adc #$30
-    jsl f:ba_t_glifo
+    jsl f:bt_t_glyph
     rep #$20
 .a16
     lda comp_or01
@@ -318,7 +318,7 @@ listo:
 .a8
     phx
     stz temp + 1
-    jsl f:ba_t_texto
+    jsl f:bt_t_text
     rep #$20
 .a16
     lda #(TI_PRINCIPAL_MSG_POS + 128)
@@ -329,7 +329,7 @@ listo:
 .a8
 uno:
     stz temp + 1
-    jsl f:ba_t_texto
+    jsl f:bt_t_text
     rts
 .endproc
 
@@ -340,7 +340,7 @@ uno:
     lda #TI_ROJO
     sta temp + 1
     ldx #TI_TEXTO_MONEDA
-    jsl f:ba_t_texto
+    jsl f:bt_t_text
     rts
 .endproc
 
@@ -366,7 +366,7 @@ venta:
 .i16
     lda #255
     sta comp_dup + 3
-    jsl f:ba_t_limpiar
+    jsl f:bt_t_clear
     ; --- the message: greeting, re-greeting, or the mode's ---
     lda comp_col
     rep #$20
@@ -432,7 +432,7 @@ cerca_12209:
     lda #TI_ROJO
     sta temp + 1
     ldx #TI_TEXTO_TENGO
-    jsl f:ba_t_texto
+    jsl f:bt_t_text
     jsr ti_item
     jsr eq_inv_apuntar
     lda WMDATA
@@ -447,7 +447,7 @@ cerca_12209:
     lda #2
     sta comp_dup + 2
     stz temp + 1
-    jsl f:ba_t_numero
+    jsl f:bt_t_number
     rep #$20
 .a16
     lda #TI_LLEVO_POS
@@ -457,7 +457,7 @@ cerca_12209:
     lda #TI_ROJO
     sta temp + 1
     ldx #TI_TEXTO_LLEVO
-    jsl f:ba_t_texto
+    jsl f:bt_t_text
     jsr ti_item
     jsr ti_llevados
     rep #$20
@@ -469,7 +469,7 @@ cerca_12209:
     lda #2
     sta comp_dup + 2
     stz temp + 1
-    jsl f:ba_t_numero
+    jsl f:bt_t_number
 sin_oro:
     lda comp_col
     cmp #TI_CUANTOS_COMPRA
@@ -478,11 +478,11 @@ sin_oro:
     beq cuantos
     ; The two "done" leave the middle window empty, like RM2k.
     cmp #TI_COMPRADO
-    beq vacia
+    beq empty
     cmp #TI_VENDIDO
-    beq vacia
+    beq empty
     jmp lista
-vacia:
+empty:
     rts
 
     ; --- the quantity: the item, "x" and how many, and the total ---
@@ -504,7 +504,7 @@ cuantos:
 .a8
     stz temp + 1
     lda #$78                    ; 'x'
-    jsl f:ba_t_glifo
+    jsl f:bt_t_glyph
     rep #$20
 .a16
     lda #TI_CUANTOS_NUM_POS
@@ -516,7 +516,7 @@ cuantos:
     stz comp_dup + 1
     lda #2
     sta comp_dup + 2
-    jsl f:ba_t_numero
+    jsl f:bt_t_number
     jsr ti_item
     jsr ti_precio
     jsr ti_por_cuantos          ; ti_num = price * quantity
@@ -645,7 +645,7 @@ color_listo:
     pla
     sta temp + 1
     pha
-    jsl f:ba_t_texto
+    jsl f:bt_t_text
     pla
     sta temp + 1
     plx
@@ -681,14 +681,14 @@ cuenta:
     sep #$20
 .a8
     lda #$3A
-    jsl f:ba_t_glifo
+    jsl f:bt_t_glyph
     jsr eq_inv_apuntar
     lda WMDATA
     sta comp_dup
     stz comp_dup + 1
     lda #2
     sta comp_dup + 2
-    jsl f:ba_t_numero
+    jsl f:bt_t_number
 lista_siguiente:
     ; The next row, if the mode's list has it: `ti_filas` does not touch the
     ; stack.
@@ -759,7 +759,7 @@ tres:
 ti_renglon1:
     jsr ti_texto_de
     stz temp + 1
-    jsl f:ba_t_texto
+    jsl f:bt_t_text
     rts
 
 ; Each mode's message: 0 is "the greeting or the re-greeting".
@@ -930,7 +930,7 @@ quita:
 
 ; `oro` plus the 24 bits of `comp_or01`, capped at ORO_MAX: the adding half of
 ; `Game_Party::GainGold`. The shop's selling and the victory use it
-; —`ba_vic_empezar`—; `op_gold` has its own because it lives in bank 0.
+; —`bt_vic_start`—; `op_gold` has its own because it lives in bank 0.
 .proc oro_sumar
 .a8
 .i16
@@ -973,7 +973,7 @@ listo:
 .proc ti_lista_venta
 .a8
 .i16
-    jsl f:ba_t_armar
+    jsl f:bt_t_build
     lda eleg_n
     sta comp_mask
     lda comp_base
@@ -1231,7 +1231,7 @@ con_barra:
     sta A1B0
     rep #$20
 .a16
-fila:
+row:
     lda temp
     sta VMADDL
     clc
@@ -1251,7 +1251,7 @@ fila:
     rep #$20
 .a16
     dey
-    bne fila
+    bne row
     sep #$20
 .a8
 sin_barra:
@@ -1302,16 +1302,16 @@ empieza:
     jsl f:items_banco_subir
     jsr ti_pantalla_subir
     jsr ti_componer
-    jsl f:ba_t_subir
+    jsl f:bt_t_upload
     jsr ti_ventanas
     lda #(RANURA_VRAM / 4096 * 16 + TI_MARCO_VRAM / 4096)
     jsl f:pantalla_ppu_prender  ; BG2 and BG1, the windows with their base
     lda #1
     sta menu_abierto
 espera:
-    jsl f:ba_t_vblank
-    jsl f:ba_t_pad                ; the controller before the DMA: see the equipment screen
-    jsl f:ba_t_subir
+    jsl f:bt_t_vblank
+    jsl f:bt_t_pad                ; the controller before the DMA: see the equipment screen
+    jsl f:bt_t_upload
     jsr ti_ventanas
     lda pad
     eor pad_ant

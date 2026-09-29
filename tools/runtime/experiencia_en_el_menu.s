@@ -76,7 +76,7 @@ MENU_EXP_SPRITES = 128
     stz comp_char
     lda #MENU_EXP_Y
     sta comp_fase
-fila:
+row:
     lda comp_char
     cmp grupo_n
     bcs filas_listas
@@ -88,7 +88,7 @@ fila:
     adc #MENU_ACTOR_ALTO
     sta comp_fase
     inc comp_char
-    bra fila
+    bra row
 filas_listas:
     ; The leftover ones, below the screen, and the small table at zero: an
     ; eight-bit x and the small size for all of them.
@@ -109,7 +109,7 @@ tabla_chica:
     dex
     bne tabla_chica
 
-    jsl f:ba_t_ppu              ; the screen, on with BG2 alone
+    jsl f:bt_t_ppu              ; the screen, on with BG2 alone
     lda #$12                    ; and the sprites on top
     sta TM
     plb

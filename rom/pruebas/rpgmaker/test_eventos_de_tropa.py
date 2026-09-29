@@ -59,16 +59,16 @@ def ocultos_de_la_rom(una, cuantos):
 
 
 def dibujados(una):
-    return una.consola.ram(una.simbolos["ESC_VIS"], 1)[0]
+    return una.consola.ram(una.simbolos["SCN_VIS"], 1)[0]
 
 
 def pintado(una):
     """Cuántos bytes de la escena compuesta difieren del fondo limpio: los dos
-    búferes de 32 KB del banco $7F —`ESC_ESCENA` y `ESC_LIMPIO`—. Es lo que
+    búferes de 32 KB del banco $7F —`SCN_SCENE` y `SCN_CLEAN`—. Es lo que
     tapan los battlers que están dibujados, **en los pixeles** y no en el bit
-    de `ESC_VIS`, que podría decir una cosa y la escena otra."""
-    limpio = una.consola.ram(una.simbolos["ESC_LIMPIO"] & 0x1FFFF, 0x8000)
-    escena = una.consola.ram(una.simbolos["ESC_ESCENA"] & 0x1FFFF, 0x8000)
+    de `SCN_VIS`, que podría decir una cosa y la escena otra."""
+    limpio = una.consola.ram(una.simbolos["SCN_CLEAN"] & 0x1FFFF, 0x8000)
+    escena = una.consola.ram(una.simbolos["SCN_SCENE"] & 0x1FFFF, 0x8000)
     return sum(1 for a, b in zip(limpio, escena) if a != b)
 
 

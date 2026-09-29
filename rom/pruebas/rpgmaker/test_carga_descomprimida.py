@@ -228,7 +228,7 @@ def test_lo_cargado_es_lo_que_el_conversor_dice_en_cada_mapa(nucleo):
 # --- la grilla y la pelea -----------------------------------------------------
 #
 # La mitad alta del banco $7F es a la vez el final de las grillas de más de 32
-# KB y `ESC_ESCENA`, la escena compuesta de la pelea: pelear la pisa, y
+# KB y `SCN_SCENE`, la escena compuesta de la pelea: pelear la pisa, y
 # `volver_de_batalla` vuelve a descomprimir la grilla. El mapa 52 es el de la
 # grilla más grande, 40.000 B, y el caso `pelea-en-52` pelea ahí contra el
 # droide con Kersh, que lo gana.

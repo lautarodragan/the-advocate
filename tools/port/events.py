@@ -689,7 +689,7 @@ CHANGE_HERO_TITLE = 10620
 # `tools/runtime/encuentros.s`— and Dalia's trip to Tasgarde asked for it, the
 # automatic `DaliaGoingToTasgarde` on map 66, which turns them off before
 # forcing the hero's route. It compiles to OP_ENCOUNTER_STEPS: see
-# `encuentro_pasos`.
+# `encounter_steps`.
 CHANGE_ENCOUNTER_STEPS = 11740
 
 ACCEPTED_UNDONE = {
@@ -1813,7 +1813,7 @@ def rain_pixels(x, y):
 # single one at a time —`Game_Screen::ShowBattleAnimation` replaces the
 # previous one— and it advances once per frame **before** the flashes, which
 # is where `Game_Screen::Update` puts it. With "wait", the page waits for as
-# long as it lasts: two frames per animation frame. See `animacion_tick` in
+# long as it lasts: two frames per animation frame. See `battle_anim_tick` in
 # tools/runtime/animacion_de_batalla.s.
 #
 # The flash is not exactly RM2k's: there the power is
@@ -3053,7 +3053,7 @@ class Troops:
 # what is accepted: see `TROOP_COMMANDS`.
 #
 # When each one runs is decided by the ROM and it is copied from
-# `Scene_Battle_Rpg2k`; see `ba_pag_probar` in tools/runtime/batalla_tropa.s.
+# `Scene_Battle_Rpg2k`; see `bt_page_test` in tools/runtime/batalla_tropa.s.
 
 # The battle's three branch commands, with their map twin. Of the six
 # questions of `CommandConditionalBranchBattle` the game uses **only two** —the
@@ -3068,7 +3068,7 @@ BATTLE_BRANCH_KINDS = (COND_SWITCH, COND_VARIABLE)
 
 # `ShowHiddenMonster`, which only exists in battle: the troop member in that
 # place —from 0, in troop order— stops being hidden. See OP_SHOW_ENEMY and
-# `ba_mostrar_oculto`.
+# `bt_show_hidden`.
 SHOW_HIDDEN_MONSTER = 13150
 
 # What a troop page can do in this port. **It is a list of the ones that do,
@@ -3079,7 +3079,7 @@ SHOW_HIDDEN_MONSTER = 13150
 #
 # `PlaySound` sounds in the battle's audio package if its effect fits there
 # —see `TroopPages.compile`—, and `ShakeScreen` moves the scene: see
-# `ba_sacudir`. Its wait, an OP_DELAY, is counted by `ba_pag_paso`.
+# `bt_shake`. Its wait, an OP_DELAY, is counted by `bt_page_step`.
 #
 # The ones left out that the game uses, in case someone wants to add them:
 # `ChangeHP` and `FullHeal` —in battle HP lives in `BA_UNO` and `FAR_HP` is
@@ -3114,7 +3114,7 @@ TROOP_PAGES_MAX = 32
 # The triggers that carry a **header**: the turn and HP numbers do not go in
 # per-page tables in bank 1 —which no longer has room for ten bytes for each
 # of the five hundred— but in front of the page's code, in `tropa_codigo`,
-# which is in RODATA. See `troop_header` and `ba_pag_cabecera`.
+# which is in RODATA. See `troop_header` and `bt_page_header`.
 TROOP_WITH_HEADER = (TROOP_TRIGGER_TURN | TROOP_TRIGGER_ENEMY
                      | TROOP_TRIGGER_ACTOR)
 TROOP_HEADER_BYTES = 10
@@ -3210,7 +3210,7 @@ def troop_trigger(page):
     if "turn" in page.active:
         base, mult = c["turn_b"], c["turn_a"]
         if not (0 <= base <= 0xFFFF and 0 <= mult < 0x8000):
-            return None     # `ba_div` requires the divisor below 32768
+            return None     # `bt_div` requires the divisor below 32768
     enemy, e_min, e_max = 0, 0, 0
     if "enemy_hp" in page.active:
         enemy, e_min, e_max = (c["enemy_id"], c["enemy_hp_min"],

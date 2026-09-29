@@ -322,7 +322,7 @@ en_el_banco:
     ; The escape queue starts clean before reading the header: a garbage pause
     ; there would leave the page stuck forever.
     lda #0
-    sta f:FAR_MSG_PAUSA         ; `stz` has no long mode
+    sta f:FAR_MSG_PAUSE         ; `stz` has no long mode
     sep #$20
 .a8
     sta f:FAR_MSG_AUTO
@@ -353,7 +353,7 @@ en_el_banco:
     rep #$20
 .a16
     lda RDMPYL
-    sta f:FAR_MSG_PAUSA
+    sta f:FAR_MSG_PAUSE
     sep #$20
 .a8
 sin_pausa:
@@ -647,7 +647,7 @@ mas:
     ldy #0
     lda #(TEXTO_OFS_Y * 2)
     sta comp_fila               ; two at a time: it is the index into `tabla_fila_buf`
-fila:
+row:
     rep #$20
 .a16
     lda comp_fila
@@ -714,7 +714,7 @@ otra_fila:
     adc #2
     sta comp_fila
     cmp #((TEXTO_OFS_Y + FUENTE_PRE_FILAS) * 2)
-    bcc fila
+    bcc row
     rts
 .endproc
 

@@ -190,7 +190,7 @@ def name_text(db, actor, cols=None):
 def level_text(db, actor, level=None):
     """The two digits of the level, as RM2k says them: right-aligned. Without
     `level`, the starting one; the ROM composes the current one with the
-    same, `texto_nivel`."""
+    same, `text_level`."""
     if level is None:
         level = level_of(db.actors[actor]) if actor in db.actors else 0
     return ("%*d" % (LEVEL_DIGITS, level))[-LEVEL_DIGITS:]
@@ -200,7 +200,7 @@ def max_text(db, actor, level=None):
     """The actor's max HP after its slash: "/168". They go next to the
     current HP, which the ROM writes with the same glyphs. Without `level`,
     those of the starting one; the ROM composes those of the current one,
-    `texto_maximo`."""
+    `text_max`."""
     maximum = (param_of(db.actors[actor], "maxhp", level)
                if actor in db.actors else 0)
     return ("/%d" % maximum).ljust(MENU_MAX_DIGITS)[:MENU_MAX_DIGITS]
@@ -761,7 +761,7 @@ def menu_hp(db, actor, hp=None):
 def _paste_hp(paste, menu, row, how_much):
     """The HP digits of a party row, right-aligned.
 
-    It is what the ROM does in `menu_hp_escribir`, with the same cells and in
+    It is what the ROM does in `menu_hp_write`, with the same cells and in
     the same columns; what is left over on the left stays blank.
     """
     digits = digits_of(how_much, MENU_HP_DIGITS)
@@ -1133,7 +1133,7 @@ def render_menu(sys_img, db, slots, party, gold, chosen=0,
 # the left: there is no item.
 #
 # A uses the medicine on the marked row and the screen stays, with that row's
-# HP and the quantity up to date: see `medicina_usar` in
+# HP and the quantity up to date: see `medicine_use` in
 # tools/runtime/medicina.s. This draws the HP passed in `hp`, so after healing
 # it is enough to pass the new ones.
 TARGET_LEFT = 104

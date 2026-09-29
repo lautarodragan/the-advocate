@@ -281,7 +281,7 @@ otra:
 .a8
     lda #4
     sta vq_filas
-fila:
+row:
     rep #$20
 .a16
     lda vq_dest
@@ -307,7 +307,7 @@ fila:
     sep #$20
 .a8
     dec vq_filas
-    bne fila
+    bne row
     inc vq_hechas
     rep #$20
 .a16

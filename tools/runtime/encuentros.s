@@ -30,8 +30,8 @@
 ; addresses from $0000 to $1FFF **are** bank 0's.
 
 ; The seed for the encounters' randomness, at reset. It is a different one from
-; the map's and from the battle's: see `enc_azar`.
-.proc encuentro_arranque
+; the map's and from the battle's: see `enc_random`.
+.proc encounter_boot
 .a8
 .i16
     phb
@@ -49,7 +49,7 @@
 .endproc
 
 ; The current map's record, or that this map has no encounters.
-.proc encuentro_mapa
+.proc encounter_map
 .a8
 .i16
     phx
@@ -118,12 +118,12 @@ con_base:
 ;
 ; On a map with no troops or areas it does nothing, which is what
 ; `eventos.Encuentros.poner_pasos` does: with no zones there is no encounter
-; to turn on. Nor does it outlast the map, as in RM2k: `encuentro_mapa` puts
+; to turn on. Nor does it outlast the map, as in RM2k: `encounter_map` puts
 ; the map's back on each load.
 ;
 ; It is entered with `jsl` from the interpreter, with Y on the operand and the
 ; bytecode's data bank; it returns with Y past the ten bytes.
-.proc encuentro_pasos
+.proc encounter_steps
 .a8
 .i16
     phb
@@ -171,7 +171,7 @@ saltear:
 ; The `SetTotalEncounterRate(0)` of `Game_Player::MoveTo`: a teleport —a door,
 ; a `Teleport`, a `ChangeEventLocation` on the hero— erases the distance
 ; walked. It does not touch `ENC_BASE`: the map may be the same one.
-.proc encuentro_mover
+.proc encounter_move
 .a8
 .i16
     phb
@@ -186,7 +186,7 @@ saltear:
 .endproc
 
 ; One hero step. Enters and leaves with an 8-bit accumulator.
-.proc encuentro_paso
+.proc encounter_step
 .a8
 .i16
     phx
@@ -269,7 +269,7 @@ izquierda:
 con_umbral:
 .a16
     sta temp
-    jsr enc_azar
+    jsr enc_random
     cmp temp
     bcc salio
     sep #$20
@@ -298,7 +298,7 @@ fin:
 ; It is `PrepareEncounter`: if no zone covers the cell, the pending one is
 ; consumed and nothing happens, which is what it does over there by returning
 ; `false`.
-.proc encuentro_probar
+.proc encounter_test
 .a8
 .i16
     phx
@@ -320,7 +320,7 @@ pendiente:
 con_registro:
 .a8
     ; The map's range of zones: its own and one per area.
-    jsr enc_zonas
+    jsr enc_zones
     ; First pass: how many troops cover the hero's cell.
     rep #$20
 .a16
@@ -331,7 +331,7 @@ contar:
     lda temp
     cmp temp + 2
     bcs contadas
-    jsr enc_tapa
+    jsr enc_covers
     bcc sin_tapar
     sep #$20
 .a8
@@ -360,7 +360,7 @@ hay_tropas:
     ; good old long division, by hand, because the 65816 does not divide and
     ; the battle's lives in another bank.
     sta comp_and + 2
-    jsr enc_azar
+    jsr enc_random
     sta comp_or23
     lda #0
     sta comp_or23 + 2
@@ -384,7 +384,7 @@ sin_restar:
     ; Second pass: the one whose turn it is.
     sep #$20
 .a8
-    jsr enc_zonas
+    jsr enc_zones
     rep #$20
 .a16
 elegir:
@@ -392,7 +392,7 @@ elegir:
     lda temp
     cmp temp + 2
     bcs no_hay16                ; cannot happen: the total came from these zones
-    jsr enc_tapa
+    jsr enc_covers
     bcc sigue_eligiendo
     sep #$20
 .a8
@@ -428,7 +428,7 @@ es_de_esta:
     sep #$20
 .a8
     lda #1
-    sta ESC_ORIGEN              ; the battle background, the map's
+    sta SCN_ORIGIN              ; the battle background, the map's
     bra fin
 no_hay16:
 .a16
@@ -447,7 +447,7 @@ fin:
 
 ; From which zone to which zone the map's go: `temp` the first and `temp + 2`
 ; one past the last. Enters with an 8-bit accumulator and leaves the same.
-.proc enc_zonas
+.proc enc_zones
 .a8
 .i16
     lda ENC_REG
@@ -481,7 +481,7 @@ fin:
 ; set if so, and with X at the zone number, which is what the one-byte tables
 ; index by. The rectangle is **half-open** —`l <= x < r`—, which is what
 ; easyrpg's `Rect::IsOutOfBounds` says with the hero as a one-cell rectangle.
-.proc enc_tapa
+.proc enc_covers
 .a16
 .i16
     lda temp
@@ -507,11 +507,11 @@ afuera:
     rts
 .endproc
 
-; The encounters' xorshift step: the same as `random_next` and `ba_azar`,
+; The encounters' xorshift step: the same as `random_next` and `bt_random`,
 ; on `ENC_SEM`, which has **its own seed**. Walking does not advance the
 ; map's randomness: a random `ControlVars` has to give the same result with
 ; and without encounters. It is `eventos.Encuentros._azar`.
-.proc enc_azar
+.proc enc_random
 .a16
 .i16
     lda ENC_SEM

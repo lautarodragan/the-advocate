@@ -3460,7 +3460,7 @@ def frame_without_gaps(data):
     The frames are **almost all transparency**, so storing them whole was
     paying for zeros: what was measured is in the task
     `la-compresion-de-mapas-y-graficos.md`. What ends up in VRAM doesn't
-    change: `anim_cuadro_armar` rebuilds the 2 KB in far RAM and the vblank
+    change: `anim_frame_build` rebuilds the 2 KB in far RAM and the vblank
     uploads them whole, as before.
     """
     out = bytearray()
@@ -3849,7 +3849,7 @@ def fallback_bytes(info):
     They store the index **within their palette**: the ROM adds the planes of
     `CGRAM_BASE` separately, see `fallback_height`.
 
-    **The bytes don't go in tile order**, but in the one `esc_doblar` enlarges
+    **The bytes don't go in tile order**, but in the one `scn_double` enlarges
     them in without doing any arithmetic. Each small tile becomes four large
     ones, and the ROM fills them two neighbors of the same row at a time —the
     pair that comes from the same row of eight small pixels—, pair by pair in
@@ -3899,7 +3899,7 @@ def fallback_height():
 
 
 def fallback_double():
-    """The table `esc_doblar` enlarges the fallback with: for each byte of
+    """The table `scn_double` enlarges the fallback with: for each byte of
     `fallback_bytes`, a word with its two nibbles duplicated bit by bit, the
     high one in the low byte. Each nibble is four pixels of one plane, and
     duplicated they are the eight of a row of that plane in a large tile."""
@@ -4935,9 +4935,9 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         "; rom/src/ turns itself off with that. It lives alone in VRAM —it\n"
         "; shares with no map, because while it is shown there is no map\n"
         "; loaded— so its addresses are fixed and don't come from the\n"
-        "; `vram_layout` layout. The image is uploaded by `pantalla_subir`,\n"
+        "; `vram_layout` layout. The image is uploaded by `screen_upload`,\n"
         "; from its row in `pantallas_tabla`: the tiles from $0000 and the\n"
-        "; tilemap at PANTALLA_MAPA.\n"
+        "; tilemap at SCREEN_MAP.\n"
         "TITULO_TILES   = %d\n"
         "; The menu, on BG2 at four bits per pixel: its tile bank, how many\n"
         "; options it has and which is selected on entering. The cursor isn't\n"
@@ -4953,7 +4953,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         ";   $0000 .. $3E00   the image's 496 tiles, at 8bpp\n"
         ";   $4400 .. $4800   the menu's tilemap\n"
         ";   $5000 ..         the menu's tiles, at 4bpp\n"
-        ";   $7C00 .. $8000   the image's, PANTALLA_MAPA of game_over.s\n"
+        ";   $7C00 .. $8000   the image's, SCREEN_MAP of game_over.s\n"
         "TITULO_MENU_CGRAM = %d\n"
         "TITULO_MENU_TILES = %d\n"
         "TITULO_MENU_VRAM  = $5000\n"
@@ -5352,11 +5352,11 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         #
         # Each one is an LZ2 stream with the tiles, the tilemap and the
         # colors, and its row in `pantallas_tabla`, which is what
-        # `pantalla_subir` reads: see tools/port/fullscreen.py. Without
+        # `screen_upload` reads: see tools/port/fullscreen.py. Without
         # a Game Over image, GAME_OVER_TILES at 0 and the ROM goes back to the
         # title without a screen, as until 2026-09-28; without a title screen,
         # TITULO_TILES at 0 and no row. Without either of them PANTALLA_FILA
-        # isn't defined, and `pantalla_subir` isn't assembled.
+        # isn't defined, and `screen_upload` isn't assembled.
         handle.write("\n; --- the full screens ---\n")
         handle.write("GAME_OVER_TILES = %d\n"
                      % (0 if game_over is None else game_over["tiles"]))
@@ -5371,7 +5371,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
             handle.write(
                 "; Each screen's row in `pantallas_tabla`: where its stream is,\n"
                 "; how many bytes of tiles and colors it brings, and from which\n"
-                "; CGRAM color they go. See `pantalla_subir`.\n"
+                "; CGRAM color they go. See `screen_upload`.\n"
                 "PANTALLA_FILA = 8\n")
             for number, (name, _, _) in enumerate(rows):
                 handle.write("PANTALLA_%s = %d\n" % (name, number))
@@ -5686,7 +5686,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # And the line for a fallen one an item revived: the dead state's
         # `message_recovery`, which goes stuck to the name —"Core has
         # revived!"—. It isn't a term but a piece of the state's data, so it
-        # goes separately and with its own index. See `ba_mensaje`.
+        # goes separately and with its own index. See `bt_message`.
         revived_text = new_text(P.revived_text(db))
         # The second line of the victory, empty if it fits in one: it goes
         # separately so as not to shift the indices of `BATTLE_TERMS`.
@@ -5842,7 +5842,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
                T.MENU_ACTOR_COLS, T.MENU_ACTOR_ROWS, T.MENU_PARTY_ROWS,
                n_actors,
                # And how many cells from the first of the actor's block the
-               # hundreds of its HP fall, which is what `menu_hp_escribir`
+               # hundreds of its HP fall, which is what `menu_hp_write`
                # adds to `menu_fila_vram`.
                T.MENU_HP_DIGITS,
                T.MENU_HP_ROW * 32 + T.MENU_HP_COL - T.MENU_ACTOR_COL,
@@ -6088,7 +6088,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # state, which is the first of `state_set` and what revives a fallen
         # one, 4 if using it spends one, which is `uses` nonzero—. The other
         # states of `state_set` don't go: outside battle this port has no
-        # states, so removing them is never useful. See `medicina_usar`.
+        # states, so removing them is never useful. See `medicine_use`.
         bytes_asm("item_cura_sp_rate", [db_items[n].recover_sp_rate
                                         for n in items], declare=True)
         words_asm("item_cura_sp", [min(db_items[n].recover_sp, 0xFFFF)
@@ -6269,7 +6269,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
              if a in db.actors else 0) & 0xFFFF
             for a in range(n_actors)], declare=True)
         # And the SP, which are state since 2026-09-13 for the same reason as
-        # the HP: the skills spend them. See `hp_inicial_poner` in
+        # the HP: the skills spend them. See `hp_initial_set` in
         # tools/runtime/banco1.s.
         words_asm("actor_spmax", [
             (rules.param_of(db.actors[a], "maxsp")
@@ -6416,7 +6416,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         bytes_asm("hab_inicial", bits, "$%02X", declare=True)
         # And at which level the LDB's learning table teaches each pair, or 0
         # if it doesn't —the ones only a `ChangeSkills` gives—: on leveling
-        # up, `exp_sumar` sets the bits of the pairs whose level it just
+        # up, `exp_add` sets the bits of the pairs whose level it just
         # passed, which is `LearnLevelSkills(old_level + 1, new_level)`.
         bytes_asm("hab_par_nivel", [B.level_learned(db, a, h)
                                     if a in db.actors else 0
@@ -6428,7 +6428,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
             and B.level_learned(db, a, h) > 0 and h in whole_skill_text
             else 0xFFFF for (a, h), _r in pairs], "$%04X", declare=True)
         # 254 and not 256: `eacc_skill` uses $FF for the attack and
-        # `ba_accion_enemiga` answers $FE when it has none left.
+        # `bt_enemy_action` answers $FE when it has none left.
         if len(rom_skills) > 254:
             raise SystemExit("the cartridge's skills are %d and `hab_par_k` "
                              "is one byte" % len(rom_skills))
@@ -6463,7 +6463,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
                                  "adds it in sixteen bits" % (n, exp))
         words_asm("tropa_exp", troop_exp, declare=True)
         # And the gold, the same: `battle.troop_gold`. The victory tells
-        # it with `ba_vic_numero`, which reaches five digits.
+        # it with `bt_vic_number`, which reaches five digits.
         troop_gold = [B.troop_gold(db, n) for n in used]
         for n, gold in zip(used, troop_gold):
             if gold > 0xFFFF:
@@ -6498,7 +6498,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # compile: skipping them doesn't change the order of the others. Per
         # troop, where they start and how many there are; per page, its
         # trigger and where its code is inside `tropa_codigo`, which
-        # deduplicates them. See `events.TroopPages` and `ba_pag_probar`
+        # deduplicates them. See `events.TroopPages` and `bt_page_test`
         # in tools/runtime/batalla_tropa.s.
         #
         # **The small tables go to bank 1, `FAR`; the two big blocks —the code
@@ -6601,13 +6601,13 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         words_asm("enemigo_txt", [enemy_text[e] for e in rom_enemies],
                   declare=True)
         # Each one's experience and gold, which the victory subtracts from the
-        # troop's for each enemy that stayed hidden: see `ba_sin_ocultos`.
+        # troop's for each enemy that stayed hidden: see `bt_no_hidden`.
         words_asm("enemigo_exp", [db.enemies[e].exp for e in rom_enemies],
                   declare=True)
         words_asm("enemigo_oro", [db.enemies[e].gold for e in rom_enemies],
                   declare=True)
         # What it drops on dying: the LDB item, or 0 if it drops nothing, and
-        # the chance as a percentage. See `ba_vic_botin` and
+        # the chance as a percentage. See `bt_vic_drop` and
         # `battle.roll_drops`. Every item that can be dropped is in
         # `items`: see `drop_items`, which adds it.
         for e in rom_enemies:
@@ -6624,7 +6624,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # starts and how many there are—. Per action, the skill as a `k` of the
         # `hab_*` tables or $FF for the attack, and its `rating` with bit 7 set
         # if it isn't `effective`: it counts for the maximum and then weighs
-        # zero. See `ba_accion_enemiga` in tools/runtime/batalla.s.
+        # zero. See `bt_enemy_action` in tools/runtime/batalla.s.
         eacc_start, eacc_skill, eacc_weight = [], [], []
         for e in rom_enemies:
             if len(rom_actions[e]) > B.ACTIONS_MAX:
@@ -6736,7 +6736,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         #
         # Sixteen bits, and "there is none" is $FFFF: with the 328 maps of the
         # whole game the index doesn't fit in a byte, same as `mapa_actual`.
-        # See `batalla_audio_cargar`.
+        # See `battle_audio_load`.
         handle.write(
             "BA_TEMA           = $%02X\n"
             "BA_TEMA_FIN       = $%02X\n"
@@ -8245,7 +8245,7 @@ def main():
                      + (["pelea"] if palettes_needed else []))
     # And the Game Over screen's, last: its song alone and no sound effects.
     # The ROM uploads it with the screen black, before the fade in —see
-    # `game_over_negro` in tools/runtime/game_over.s—, and with a package of
+    # `game_over_black` in tools/runtime/game_over.s—, and with a package of
     # its own it uploads only that: arriving with `tema_asegurar` would
     # rebuild the whole map package behind it, which is one more second of
     # black. For the allocation it is a one-song package, which doesn't lower

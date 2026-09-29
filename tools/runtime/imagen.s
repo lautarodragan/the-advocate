@@ -26,16 +26,16 @@
 .proc imagen_tick
 .a8
 .i16
-    lda f:CARTEL_ACTIVA
+    lda f:PICTURE_ACTIVE
     beq listo
-    lda f:CARTEL_PASOS
+    lda f:PICTURE_STEPS
     beq listo                   ; shown and still
-    lda f:CARTEL_PASO
-    cmp f:CARTEL_PASOS
+    lda f:PICTURE_STEP
+    cmp f:PICTURE_STEPS
     bcs listo                   ; the ramp has already arrived
-    lda f:CARTEL_PASO           ; `inc` has no long form
+    lda f:PICTURE_STEP           ; `inc` has no long form
     inc a
-    sta f:CARTEL_PASO
+    sta f:PICTURE_STEP
     jsr imagen_tono_ahora
     beq listo                   ; the same tone as the previous frame
     jmp imagen_paleta
@@ -53,48 +53,48 @@ listo:
 .a8
 .i16
     lda #0
-    sta f:CARTEL_CAMBIO
+    sta f:PICTURE_CHANGE
     ldx #$0000
 canal:
-    lda f:CARTEL_HASTA, x
-    cmp f:CARTEL_DESDE, x
+    lda f:PICTURE_TO, x
+    cmp f:PICTURE_FROM, x
     bcc baja
     sec
-    sbc f:CARTEL_DESDE, x
+    sbc f:PICTURE_FROM, x
     jsr imagen_parte
     clc
-    adc f:CARTEL_DESDE, x
+    adc f:PICTURE_FROM, x
     bra guardar
 baja:
-    lda f:CARTEL_DESDE, x
+    lda f:PICTURE_FROM, x
     sec
-    sbc f:CARTEL_HASTA, x
+    sbc f:PICTURE_TO, x
     jsr imagen_parte
     eor #$FF                    ; `desde - parte` without a variable in between:
     sec                         ; ones' complement plus the carry is the minus
-    adc f:CARTEL_DESDE, x
+    adc f:PICTURE_FROM, x
 guardar:
-    cmp f:CARTEL_TONO, x
+    cmp f:PICTURE_TONE, x
     beq igual
-    sta f:CARTEL_TONO, x
+    sta f:PICTURE_TONE, x
     lda #1
-    sta f:CARTEL_CAMBIO
+    sta f:PICTURE_CHANGE
 igual:
     inx
     cpx #3
     bne canal
-    lda f:CARTEL_CAMBIO
+    lda f:PICTURE_CHANGE
     rts
 .endproc
 
-; A = A * CARTEL_PASO / CARTEL_PASOS, with the hardware multiplier and
+; A = A * PICTURE_STEP / PICTURE_STEPS, with the hardware multiplier and
 ; divider. The product reaches 200 * 255 and fits in sixteen bits; the
 ; quotient does not go past 200, so the low byte is enough.
 .proc imagen_parte
 .a8
 .i16
     sta WRMPYA
-    lda f:CARTEL_PASO
+    lda f:PICTURE_STEP
     sta WRMPYB
     nop                         ; eight cycles until the product is ready
     nop
@@ -106,7 +106,7 @@ igual:
     sta WRDIVL                  ; the dividend, sixteen bits
     sep #$20
 .a8
-    lda f:CARTEL_PASOS
+    lda f:PICTURE_STEPS
     sta WRDIVB                  ; starts it: the quotient takes sixteen cycles
     nop
     nop
@@ -145,13 +145,13 @@ igual:
     pha
     lda #TINTE_NEUTRO
     sta tinte_s
-    lda f:CARTEL_TONO + 0
+    lda f:PICTURE_TONE + 0
     ldx #.loword(tabla_r)
     jsr tabla_canal
-    lda f:CARTEL_TONO + 1
+    lda f:PICTURE_TONE + 1
     ldx #.loword(tabla_g)
     jsr tabla_canal
-    lda f:CARTEL_TONO + 2
+    lda f:PICTURE_TONE + 2
     ldx #.loword(tabla_b)
     jsr tabla_canal
     rep #$20
@@ -178,7 +178,7 @@ copia:
     pla
     sta tinte_s
     lda #1
-    sta f:CARTEL_LISTO
+    sta f:PICTURE_READY
     jsr restaurar_tablas
     ply
     rts
@@ -196,18 +196,18 @@ copia:
 .proc imagen_oam
 .a8
 .i16
-    lda f:CARTEL_ACTIVA
+    lda f:PICTURE_ACTIVE
     bne hay
     rts
 hay:
     lda #$02
     sta obj_grande              ; the picture's objects are 32x32
     lda #0
-    sta f:CARTEL_I
+    sta f:PICTURE_I
 cada:
     rep #$20
 .a16
-    lda f:CARTEL_I
+    lda f:PICTURE_I
     and #$00FF
     asl a
     asl a
@@ -222,12 +222,12 @@ cada:
     ; And which tile. A 32x32 object reads four tiles from four consecutive
     ; rows of the name grid, which is sixteen wide: so four objects fit in one
     ; row of blocks and the fifth starts 64 tiles further on.
-    lda f:CARTEL_I
+    lda f:PICTURE_I
     and #$0003
     asl a
     asl a                       ; the object's four across
     sta temp
-    lda f:CARTEL_I
+    lda f:PICTURE_I
     and #$00FC
     asl a
     asl a
@@ -249,9 +249,9 @@ cada:
     ora #($30 | (IMAGEN_PAL * 2))
     sta obj_attr
     jsr emit_object
-    lda f:CARTEL_I
+    lda f:PICTURE_I
     inc a
-    sta f:CARTEL_I
+    sta f:PICTURE_I
     cmp #IMAGEN_OBJETOS
     beq salir
     jmp cada

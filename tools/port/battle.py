@@ -661,7 +661,7 @@ class TroopPage:
                     <= c["enemy_hp_max"]):
                 return False
         if "actor_hp" in self.active:
-            # Only if it is in the party, like the ROM: see `ba_pag_cumple`.
+            # Only if it is in the party, like the ROM: see `bt_page_met`.
             matching = [a for a in battle.actors if a.number == c["actor_id"]]
             if not matching:
                 return False
@@ -839,7 +839,7 @@ class Battle:
         """`CheckBattleEndAndScheduleEvents` until none is left: with a whole
         side out nothing runs; otherwise, the first page that is met and has
         not run this turn, and then again from the first. The ROM does it in
-        `ba_pag_probar`."""
+        `bt_page_test`."""
         while self.living(self.enemies) and self.living(self.actors):
             for i, page in enumerate(self.pages):
                 if i not in self.done_pages and page.met(self):
@@ -1073,7 +1073,7 @@ class Battle:
     def experience(self):
         """`Game_EnemyParty::GetExp` on winning: that of the dead, which are
         all except those that stayed hidden. The ROM subtracts these from the
-        troop's: `ba_sin_ocultos`."""
+        troop's: `bt_no_hidden`."""
         return sum(e.exp for e in self.enemies if not e.hidden)
 
     def gold(self):

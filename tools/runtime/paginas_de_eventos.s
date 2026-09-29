@@ -621,10 +621,10 @@ sin_eleccion:
     ; and not after the edge.
     rep #$20
 .a16
-    lda f:FAR_MSG_PAUSA
+    lda f:FAR_MSG_PAUSE
     beq sin_pausa
     dec a
-    sta f:FAR_MSG_PAUSA
+    sta f:FAR_MSG_PAUSE
     sep #$20
 .a8
     rts

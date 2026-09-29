@@ -247,8 +247,8 @@ def hab_id(una, k):
 
 # --- perder sin pelear ------------------------------------------------------
 #
-# Con todo el grupo en cero HP, `batalla_correr` contesta derrota antes de abrir
-# la pantalla —el `ba_actor_siguiente` que devuelve $FF—, así que las pruebas
+# Con todo el grupo en cero HP, `battle_run` contesta derrota antes de abrir
+# la pantalla —el `bt_next_actor` que devuelve $FF—, así que las pruebas
 # de Game Over y de `FullHeal` no dependen de ningún tiro de dado.
 
 # Cuántos ticks se le dan a la página `pelea-82-curar` para perder la pelea y

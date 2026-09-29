@@ -107,7 +107,7 @@ def troop_exp(db, troop):
     """`Game_EnemyParty::GetExp`: that of each **dead** enemy. A victory has
     them all dead except the ones that stayed hidden, so this is the sum of
     the whole troop, up to `ENEMIES_MAX` like the battle, and the ROM
-    subtracts the hidden ones' when winning: see `ba_sin_ocultos` and
+    subtracts the hidden ones' when winning: see `bt_no_hidden` and
     `battle.Battle.experience`."""
     return sum(db.enemies[e].exp
                for e in db.troops[troop].members[:ENEMIES_MAX])

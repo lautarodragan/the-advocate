@@ -34,14 +34,14 @@ def test_symbols_come_out_with_their_scope_and_sign(tmp_path):
     dbg = tmp_path / "x.dbg"
     dbg.write_text(
         'scope\tid=0,name="",mod=0,size=10\n'
-        'scope\tid=1,name="batalla_correr",mod=0,type=scope,size=5,parent=0\n'
-        'sym\tid=0,name="enc_azar",addrsize=absolute,scope=0,val=0x19FDD,seg=1,type=lab\n'
+        'scope\tid=1,name="battle_run",mod=0,type=scope,size=5,parent=0\n'
+        'sym\tid=0,name="enc_random",addrsize=absolute,scope=0,val=0x19FDD,seg=1,type=lab\n'
         'sym\tid=1,name="espera",addrsize=absolute,scope=1,val=0x1993E,seg=1,type=lab\n'
         'sym\tid=2,name="IMAGEN_X",addrsize=absolute,scope=0,val=0xFFFFFFF3,type=equ\n'
         'sym\tid=3,name="afuera",addrsize=absolute,scope=0,type=imp\n')
     assert assemble.symbols(str(dbg)) == {
-        "enc_azar": 0x19FDD,
-        "batalla_correr::espera": 0x1993E,
+        "enc_random": 0x19FDD,
+        "battle_run::espera": 0x1993E,
         "IMAGEN_X": -13,
     }
 

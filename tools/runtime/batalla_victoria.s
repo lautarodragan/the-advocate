@@ -1,7 +1,7 @@
 .segment "FAR"
 
 ; The window's lines: the party's, which is what it covers.
-BA_VIC_RENGLONES = BA_GRUPO_MAX
+BT_VIC_LINES = BA_GRUPO_MAX
 
 ; --- what the victory tells ---------------------------------------------------
 ;
@@ -16,7 +16,7 @@ BA_VIC_RENGLONES = BA_GRUPO_MAX
 ;
 ; In RM2k it is the usual message window, at the bottom, **covering the
 ; party**; here it is the party's four lines, like the message of a troop page
-; (`ba_pag_mensaje`), and the bottom line is left empty.
+; (`bt_page_message`), and the bottom line is left empty.
 ;
 ; Since 2026-09-27 the first page also tells the gold —"<gold_recieved_a>
 ; <n><gold><gold_recieved_b>"— and one line per item the enemies dropped
@@ -26,12 +26,12 @@ BA_VIC_RENGLONES = BA_GRUPO_MAX
 ; another page, just like an actor's skills.
 
 ; On winning, before showing anything: notes each one's level, hands out the
-; experience —which levels up and teaches, see `exp_sumar`—, gives the gold
+; experience —which levels up and teaches, see `exp_add`—, gives the gold
 ; and rolls the loot, and leaves the first page ready. It is the order of
 ; `ProcessSceneActionVictory`, which builds the message and gives everything
 ; to the party in the same sub-state; of the three, only the loot rolls
 ; randomness. Clobbers `BA_S0` to `BA_S2`, `BA_T*`, A, X and Y.
-.proc ba_vic_empezar
+.proc bt_vic_start
 .a8
 .i16
     stz BA_S0
@@ -39,18 +39,18 @@ ranura:
     lda BA_S0
     cmp #BA_GRUPO_MAX
     bcs anotadas
-    jsr ba_vic_nivel
+    jsr bt_vic_level
     pha
     lda BA_S0
-    jsr ba_ax
+    jsr bt_ax
     pla
     sta BA_VIC_ANTES, x
     inc BA_S0
     bra ranura
 anotadas:
-    jsr ba_exp_repartir
-    jsr ba_vic_oro
-    jsr ba_vic_botin
+    jsr bt_exp_allocate
+    jsr bt_vic_gold
+    jsr bt_vic_drop
     lda #$FF
     sta BA_VIC_ACTOR
     stz BA_VIC_SALTEAR
@@ -60,7 +60,7 @@ anotadas:
 
 ; The troop's gold, to the party: `Game_Party::GainGold`, capped at ORO_MAX.
 ; It does not check whether the troop gives zero: adding zero changes nothing.
-.proc ba_vic_oro
+.proc bt_vic_gold
 .a8
 .i16
     lda BA_TROPA_K
@@ -72,8 +72,8 @@ anotadas:
     asl a
     tax
     lda f:tropa_oro, x
-    ldy #2                      ; the gold: see `ba_sin_ocultos`
-    jsr ba_sin_ocultos
+    ldy #2                      ; the gold: see `bt_no_hidden`
+    jsr bt_no_hidden
     sta comp_or01
     sep #$20
 .a8
@@ -88,7 +88,7 @@ listo:
 ; does not give its experience or its gold, because `GetExp` and `GetMoney`
 ; add up **the dead** and a hidden one did not die. Y = 0 the experience, 2
 ; the gold. Returns with A16. Clobbers `BA_T0`, `BA_T2`, X and Y.
-.proc ba_sin_ocultos
+.proc bt_no_hidden
 .a16
 .i16
     sta BA_T2
@@ -101,16 +101,16 @@ otro:
     bcs listo
     clc
     adc #BA_GRUPO_MAX
-    jsr ba_x
+    jsr bt_x
     lda BA_UNO + BA_FLAGS, x
     and #BAF_OCULTO
     beq siguiente
     lda BA_TROPA_K
-    jsr ba_ax
+    jsr bt_ax
     lda f:tropa_ini, x
     clc
     adc BA_T0
-    jsr ba_ax
+    jsr bt_ax
     lda f:tropa_miembro, x      ; the enemy, as a place in the tables
     rep #$20
 .a16
@@ -142,14 +142,14 @@ listo:
 .endproc
 
 ; What the enemies drop: `Game_EnemyParty::GenerateDrops`. For each one, in
-; troop order, if it has an item it **rolls** `ba_pct` with its chance —the
+; troop order, if it has an item it **rolls** `bt_pct` with its chance —the
 ; hundred percent one too, which is what `Rand::ChanceOf` does—, and if it
 ; comes up the item goes to the inventory, capped at ITEM_MAX like
 ; `Game_Party::AddItem`, and its `k` to `BA_BOTIN_K` so the page can tell it.
 ; The order of the rolls is that of `batalla.tirar_el_botin`. Everyone in the
 ; troop is dead —which is what `IsDead` asks for— except those still hidden.
 ; Clobbers `BA_S0` to `BA_S2`, `BA_T*`, A, X and Y.
-.proc ba_vic_botin
+.proc bt_vic_drop
 .a8
 .i16
     stz BA_BOTIN_N
@@ -165,19 +165,19 @@ hay:
     lda BA_S0
     clc
     adc #BA_GRUPO_MAX
-    jsr ba_x
+    jsr bt_x
     lda BA_UNO + BA_FLAGS, x
     and #BAF_OCULTO
     beq a_la_vista
     jmp siguiente
 a_la_vista:
-    ; The enemy, as a place in the tables: the same path as `ba_armar`.
+    ; The enemy, as a place in the tables: the same path as `bt_build`.
     lda BA_TROPA_K
-    jsr ba_ax
+    jsr bt_ax
     lda f:tropa_ini, x
     clc
     adc BA_S0
-    jsr ba_ax
+    jsr bt_ax
     lda f:tropa_miembro, x
     sta BA_S2
     rep #$20
@@ -191,9 +191,9 @@ a_la_vista:
 .a8
     beq siguiente               ; leaves nothing: no roll
     lda BA_S2
-    jsr ba_ax
+    jsr bt_ax
     lda f:enemigo_botin_pct, x
-    jsr ba_pct
+    jsr bt_pct
     beq siguiente
     ldx BA_S1
     lda FAR_ITEMS, x
@@ -205,7 +205,7 @@ lleno:
     lda f:item_k, x             ; the converter enforces that it is carried
     pha
     lda BA_BOTIN_N
-    jsr ba_ax
+    jsr bt_ax
     pla
     sta BA_BOTIN_K, x
     inc BA_BOTIN_N
@@ -216,17 +216,17 @@ siguiente:
 
 ; The current level of the actor in party slot A8, or 0 if the slot is empty
 ; or its actor has no experience. Clobbers X.
-.proc ba_vic_nivel
+.proc bt_vic_level
 .a8
 .i16
     cmp BA_NACT
     bcs nada
-    jsr ba_x
+    jsr bt_x
     lda BA_UNO + BA_FLAGS, x
     and #BAF_HAY
     beq nada
     lda BA_UNO + BA_NUMERO, x
-    jsr ba_ax
+    jsr bt_ax
     lda f:actor_exp_k, x
     cmp #$FF
     beq nada
@@ -247,14 +247,14 @@ nada:
 
 ; A8 nonzero —and Z at 0— if the actor in slot A8 leveled up in this victory.
 ; Clobbers X and `BA_T0`.
-.proc ba_vic_subio
+.proc bt_vic_level_up
 .a8
 .i16
     pha
-    jsr ba_vic_nivel
+    jsr bt_vic_level
     sta BA_T0
     pla
-    jsr ba_ax
+    jsr bt_ax
     lda BA_VIC_ANTES, x
     beq no                      ; no experience, or nobody
     cmp BA_T0
@@ -269,7 +269,7 @@ no:
 ; A on the end screen: if another page is left, it sets it up and returns A8
 ; nonzero; if not, 0, and the battle closes. A defeat or an escape have no
 ; pages. Clobbers X and `BA_T0`.
-.proc ba_vic_siguiente
+.proc bt_vic_next
 .a8
 .i16
     lda BA_RESULT
@@ -291,7 +291,7 @@ busca:
     cmp BA_NACT
     bcs ninguna
     sta BA_VIC_ACTOR
-    jsr ba_vic_subio
+    jsr bt_vic_level_up
     cmp #0                      ; `jsr` does not keep the flags from the `lda` inside
     bne hay
     lda BA_VIC_ACTOR
@@ -305,8 +305,8 @@ ninguna:
 .endproc
 
 ; Z at 0 if what the screen shows is a victory: the battle ended won and the
-; message is the victory's. `ba_componer` asks it before drawing the party.
-.proc ba_vic_en_pantalla
+; message is the victory's. `bt_compose` asks it before drawing the party.
+.proc bt_vic_on_screen
 .a8
 .i16
     lda BA_MTIPO
@@ -325,10 +325,10 @@ si:
     rts
 .endproc
 
-; The current page on the party's lines. `ba_componer` calls it with `jmp`, so
+; The current page on the party's lines. `bt_compose` calls it with `jmp`, so
 ; its `rts` is the composer's: the bottom line, the battle message's, is left
 ; empty. Clobbers `BA_S0` to `BA_S4`, `BA_T*`, A, X and Y.
-.proc ba_vic_mensaje
+.proc bt_vic_message
 .a8
 .i16
     stz temp + 1                ; white
@@ -337,7 +337,7 @@ si:
     lda #BA_PAG_MSG_POS0
     sta BA_T1
     lda #BA_PAG_MSG_DX
-    jsr ba_ir
+    jsr bt_go
     sep #$20
 .a8
     lda BA_VIC_ACTOR
@@ -345,7 +345,7 @@ si:
     beq primera
     jmp de_un_actor
 primera:
-    ; The lines of the victory message, four per page: see `ba_vic_linea`,
+    ; The lines of the victory message, four per page: see `bt_vic_line`,
     ; which counts the ones already shown.
     stz BA_VIC_MAS
     lda BA_VIC_SALTEAR
@@ -354,18 +354,18 @@ primera:
     stz BA_S4
     ; The victory term, on the lines the converter split it into —see
     ; `pantallas.renglones_de_la_victoria`—.
-    jsr ba_vic_linea
+    jsr bt_vic_line
     bcc sin_v1
     ldx #BA_TXT_VICTORIA
-    jsr ba_termino
+    jsr bt_finished
 sin_v1:
     lda #BA_VIC_TERMINO_N       ; not with `.if`: the constant comes later
     cmp #2
     bcc un_renglon
-    jsr ba_vic_linea
+    jsr bt_vic_line
     bcc un_renglon
     ldx #BA_TXT_VICTORIA2
-    jsr ba_termino
+    jsr bt_finished
 un_renglon:
     ; And the experience, if any: easyrpg's `if (exp > 0)`. The gold goes the
     ; same way, `if (money > 0)`.
@@ -382,54 +382,54 @@ con_tropa:
     tax
     lda f:tropa_exp, x
     ldy #0                      ; without those that stayed hidden
-    jsr ba_sin_ocultos
+    jsr bt_no_hidden
     sep #$20                    ; `sep` does not touch Z
 .a8
     beq sin_exp
-    jsr ba_vic_linea
+    jsr bt_vic_line
     bcc sin_exp
     rep #$20
 .a16
     ldx BA_S1
     lda f:tropa_exp, x
     ldy #0
-    jsr ba_sin_ocultos
+    jsr bt_no_hidden
     sta BA_T0
     sep #$20
 .a8
-    jsr ba_vic_numero
+    jsr bt_vic_number
     ldx #BA_TXT_EXP_RECIBIDA
-    jsr ba_termino
+    jsr bt_finished
 sin_exp:
     rep #$20
 .a16
     ldx BA_S1
     lda f:tropa_oro, x
     ldy #2
-    jsr ba_sin_ocultos
+    jsr bt_no_hidden
     sep #$20
 .a8
     beq sin_oro
-    jsr ba_vic_linea
+    jsr bt_vic_line
     bcc sin_oro
     ldx #BA_TXT_ORO_A
-    jsr ba_termino
+    jsr bt_finished
     lda #$20
-    jsl f:ba_t_glifo
+    jsl f:bt_t_glyph
     rep #$20
 .a16
     ldx BA_S1
     lda f:tropa_oro, x
     ldy #2
-    jsr ba_sin_ocultos
+    jsr bt_no_hidden
     sta BA_T0
     sep #$20
 .a8
-    jsr ba_vic_numero
+    jsr bt_vic_number
     ldx #BA_TXT_MONEDA
-    jsr ba_termino
+    jsr bt_finished
     ldx #BA_TXT_ORO_B
-    jsr ba_termino
+    jsr bt_finished
 sin_oro:
     ; And one line per item, in the order they came up.
     stz BA_S0
@@ -437,10 +437,10 @@ item:
     lda BA_S0
     cmp BA_BOTIN_N
     bcs listos
-    jsr ba_vic_linea
+    jsr bt_vic_line
     bcc otro_item
     lda BA_S0
-    jsr ba_ax
+    jsr bt_ax
     lda BA_BOTIN_K, x
     rep #$20
 .a16
@@ -455,9 +455,9 @@ item:
     lda #255
     sta comp_dup + 3
     stz temp + 1
-    jsl f:ba_t_texto
+    jsl f:bt_t_text
     ldx #BA_TXT_OBTENIDO
-    jsr ba_termino
+    jsr bt_finished
 otro_item:
     inc BA_S0
     bra item
@@ -471,24 +471,24 @@ de_un_actor:
     lda BA_VIC_SALTEAR
     bne sin_nivel
     lda BA_VIC_ACTOR
-    jsr ba_nombre
+    jsr bt_name
     lda #$20
-    jsl f:ba_t_glifo
+    jsl f:bt_t_glyph
     ldx #BA_TXT_NIVEL
-    jsr ba_termino
+    jsr bt_finished
     lda #$20
-    jsl f:ba_t_glifo
+    jsl f:bt_t_glyph
     lda BA_VIC_ACTOR
-    jsr ba_vic_nivel
+    jsr bt_vic_level
     rep #$20
 .a16
     and #$00FF
     sta BA_T0
     sep #$20
 .a8
-    jsr ba_vic_numero
+    jsr bt_vic_number
     ldx #BA_TXT_SUBIO
-    jsr ba_termino
+    jsr bt_finished
     bra habilidades
 sin_nivel:
     stz BA_S3                   ; the continuation starts on the top one
@@ -500,21 +500,21 @@ habilidades:
     ; **It says every one the table teaches at those levels**, and RM2k only
     ; the ones it did not know —`LearnSkill` does not announce it if it was
     ; already there—: the two differ only if a `ChangeSkills` taught it one
-    ; earlier that a level teaches later, and in ABL none does. `exp_sumar`
+    ; earlier that a level teaches later, and in ABL none does. `exp_add`
     ; already set the bits, so here there is no way to know which were there.
     stz BA_VIC_MAS
     lda BA_VIC_SALTEAR
     sta BA_VIC_SIG
     stz BA_S4                   ; the ones already seen, written or skipped
     lda BA_VIC_ACTOR
-    jsr ba_vic_nivel
+    jsr bt_vic_level
     sta BA_S2                   ; up to which level
     lda BA_VIC_ACTOR
-    jsr ba_ax
+    jsr bt_ax
     lda BA_VIC_ANTES, x
     sta BA_S0                   ; the level being looked at, from the previous one + 1
     lda BA_VIC_ACTOR
-    jsr ba_x
+    jsr bt_x
     lda BA_UNO + BA_NUMERO, x
     sta BA_S0 + 1               ; the LDB actor
 nivel:
@@ -524,7 +524,7 @@ nivel:
     rts                         ; the current one has been looked at already
 otro_nivel:
     inc BA_S0
-    ; The actor's pairs: `hab_par_ini` and `hab_par_n`, like `aprender_del_nivel`.
+    ; The actor's pairs: `hab_par_ini` and `hab_par_n`, like `learn_from_level`.
     lda BA_S0 + 1
     rep #$20
 .a16
@@ -536,7 +536,7 @@ otro_nivel:
     sep #$20
 .a8
     lda BA_S0 + 1
-    jsr ba_ax
+    jsr bt_ax
     lda f:hab_par_n, x
     sta BA_S2 + 1               ; how many it has left
     beq nivel
@@ -551,7 +551,7 @@ par:
     beq siguiente               ; shown on an earlier page
     bcc siguiente
     lda BA_S3
-    cmp #BA_VIC_RENGLONES
+    cmp #BT_VIC_LINES
     bcc entra
     lda #1                      ; does not fit: goes on in another page
     sta BA_VIC_MAS
@@ -562,7 +562,7 @@ entra:
     lda BA_S3
     cmp #1
     beq arriba                  ; the first one of a continuation
-    jsr ba_vic_renglon
+    jsr bt_vic_text_line
 arriba:
     rep #$20
 .a16
@@ -573,9 +573,9 @@ arriba:
     tax
     sep #$20
 .a8
-    jsr ba_termino
+    jsr bt_finished
     ldx #BA_TXT_APRENDIO
-    jsr ba_termino
+    jsr bt_finished
 siguiente:
     rep #$20
 .a16
@@ -595,9 +595,9 @@ listo:
 ; position set, or C at 0 if it was shown on an earlier page —the first
 ; `BA_VIC_SALTEAR`— or it does not fit, and then `BA_VIC_MAS` is left set. It
 ; keeps the count in `BA_S4`, the ones seen, and `BA_S3`, the ones written,
-; which `ba_vic_mensaje` zeroes. It is the same count as an actor's skills,
+; which `bt_vic_message` zeroes. It is the same count as an actor's skills,
 ; further down.
-.proc ba_vic_linea
+.proc bt_vic_line
 .a8
 .i16
     inc BA_S4
@@ -606,7 +606,7 @@ listo:
     beq no                      ; shown on an earlier page
     bcc no
     lda BA_S3
-    cmp #BA_VIC_RENGLONES
+    cmp #BT_VIC_LINES
     bcc entra
     lda #1                      ; does not fit: goes on in another page
     sta BA_VIC_MAS
@@ -617,7 +617,7 @@ entra:
     inc BA_VIC_SIG
     lda BA_S3
     beq arriba                  ; the page's first one is already set
-    jsr ba_vic_renglon
+    jsr bt_vic_text_line
 arriba:
     inc BA_S3
     sec
@@ -625,7 +625,7 @@ arriba:
 .endproc
 
 ; The line below the one being written, from its start.
-.proc ba_vic_renglon
+.proc bt_vic_text_line
 .a8
 .i16
     rep #$20
@@ -635,7 +635,7 @@ arriba:
     adc #BA_FILA_BYTES
     sta BA_T1
     lda #BA_PAG_MSG_DX
-    jsr ba_ir
+    jsr bt_go
     sep #$20
 .a8
     rts
@@ -643,7 +643,7 @@ arriba:
 
 ; `BA_T0` without leading spaces, up to five digits: a troop's experience does
 ; not fit in `pant_numero`'s three. Clobbers A, X, Y and `BA_T0`.
-.proc ba_vic_numero
+.proc bt_vic_number
 .a8
 .i16
     stz BA_T2                   ; whether a digit has been written already
@@ -671,7 +671,7 @@ cifra:
     clc
     adc #$30
     phx
-    jsl f:ba_t_glifo
+    jsl f:bt_t_glyph
     plx
 cero_adelante:
     inx
@@ -681,7 +681,7 @@ cero_adelante:
     lda BA_T0                   ; the units, always
     clc
     adc #$30
-    jsl f:ba_t_glifo
+    jsl f:bt_t_glyph
     rts
 potencias:
     .word 10000, 1000, 100, 10

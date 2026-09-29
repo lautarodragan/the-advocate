@@ -374,7 +374,7 @@ flujo:
 ; so no output crosses a bank; the second comes right after the first, and may
 ; have nothing more than its $FF.
 ;
-; Battle overwrites $7F's half —it is `ESC_ESCENA`—, so `volver_de_batalla`
+; Battle overwrites $7F's half —it is `SCN_SCENE`—, so `volver_de_batalla`
 ; decompresses it again. See the decision in
 ; workflow/decisiones/la-grilla-vive-en-la-wram.md.
 .proc lz2_grilla

@@ -60,10 +60,10 @@ graf_no_lidera:
 .endproc
 
 ; `FullHeal`, and `ChangeHP` when it adds. Only the entry is here: the body is
-; `curar`, outside bank 0, and it reads its operands and advances the cursor
+; `heal`, outside bank 0, and it reads its operands and advances the cursor
 ; itself, with Y in hand.
 .proc op_heal
-    jsl f:curar
+    jsl f:heal
     jmp run_code::otro
 
 .endproc

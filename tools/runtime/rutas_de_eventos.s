@@ -45,10 +45,10 @@
     bne reusada
     jsr free_slot
     cpx #$FFFF
-    bne puesta
+    bne set2
     rts                         ; no room: the move route is lost
 
-puesta:
+set2:
     lda temp
     sta ruta_ev + 0, x
     jsl f:ranura_anotar + RAPIDO

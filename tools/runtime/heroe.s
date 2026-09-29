@@ -82,18 +82,18 @@ menu_sin_pagina:
     ; The encounter left pending is collected here: with no page running, no
     ; message open and no forced move route, which is the order of
     ; `Game_Player::UpdateNextMovementAction` —the encounter goes **before**
-    ; the menu request—. `encuentro_probar` leaves the troop in `BA_TROPA`.
-    jsl f:encuentro_probar
+    ; the menu request—. `encounter_test` leaves the troop in `BA_TROPA`.
+    jsl f:encounter_test
     cmp #0                      ; the `plx` over there left its own flags
     beq sin_encuentro
     ; And losing it is Game Over, just like a page battle with no defeat
     ; handler: a random encounter **never** brings them, because there is no
     ; page to emit them. Without this, defeat handed control back to the map
     ; with the whole party at zero HP, and from then on every battle was lost
-    ; by itself before opening —`batalla_correr` answers defeat with nobody
+    ; by itself before opening —`battle_run` answers defeat with nobody
     ; standing—. `battle_start` collects it: see
     ; tools/runtime/game_over.s.
-    jsl f:game_over_siempre
+    jsl f:game_over_always
     jmp battle_start
 sin_encuentro:
     jsr acceso_leer
@@ -162,7 +162,7 @@ after_step:
     ; count**: there it returns earlier, through `IsMoveRouteOverwritten`.
     lda step_left
     beq no_derecha
-    jsl f:encuentro_paso
+    jsl f:encounter_step
 no_derecha:
     rts
 .endproc

@@ -18,7 +18,7 @@
     sep #$20
 .a8
     jsr turn_clear            ; the rows are going to be different
-    jsr animacion_limpiar       ; and the battle animation does not carry on
+    jsr battle_anim_clear       ; and the battle animation does not carry on
     rep #$20
 .a16
     stz sub_n                   ; and the tile substitutions are lost when
@@ -26,8 +26,8 @@
     sep #$20
 .a8
     lda #0                      ; and the picture is erased: it is the
-    sta f:CARTEL_ACTIVA         ; `erase_on_map_change` of Game_Pictures, and
-    sta f:CARTEL_LISTO          ; besides, its tiles belong to a single map
+    sta f:PICTURE_ACTIVE         ; `erase_on_map_change` of Game_Pictures, and
+    sta f:PICTURE_READY          ; besides, its tiles belong to a single map
     jsr paquete_cargar          ; the map's audio, during the fade
     rep #$20
 .a16
@@ -48,8 +48,8 @@
     phx
     sep #$20
 .a8
-    jsr animacion_dibujo_mapa   ; enters and leaves with the accumulator at eight
-    jsl f:encuentro_mapa        ; and every how many steps there is an encounter here
+    jsr anim_drawing_map   ; enters and leaves with the accumulator at eight
+    jsl f:encounter_map        ; and every how many steps there is an encounter here
     rep #$20
 .a16
     plx
@@ -303,7 +303,7 @@ puesto:
 ; `volver_al_mapa` is enough for the shop, the menu and the slots because all
 ; three write nothing but `RANURA_VRAM` and `RANURA_MAP`, chosen to fall
 ; inside BG1's tile bank in every layout. The battle scene is not:
-; `escena_subir` uploads **32 KB**, that is words $4000 to $8000, plus its
+; `scene_upload` uploads **32 KB**, that is words $4000 to $8000, plus its
 ; tilemap at $3800 and 64 bytes at word 0. In the layouts of `vram_layout`
 ; that takes out, besides BG1's bank:
 ;
@@ -333,12 +333,12 @@ puesto:
 .i16
     lda #$80
     sta INIDISP                 ; what follows writes VRAM by DMA
-    jsl f:escena_cgram_reponer  ; the palettes the battlers took
+    jsl f:scene_cgram_restore  ; the palettes the battlers took
     jsr load_sprite             ; the pose bank, the object palette and OBSEL
     jsr poses_npc_olvidar
     jsr load_ventana
     ; The grid, which the scene overwrote in the middle of bank $7F —it is
-    ; `ESC_ESCENA`— if the map has more than 32 KB of grid. It is
+    ; `SCN_SCENE`— if the map has more than 32 KB of grid. It is
     ; decompressed again in full, which is simpler than tracking where the
     ; second stream starts and costs the same as entering the map. Before
     ; `fill_window`, which reads it.
@@ -458,7 +458,7 @@ TEMA_DEL_MAPA = $7E6100
 ; `MSU_SUENA` is checked first, which is the same thing `op_fade_bgm` does.
 ;
 ; If it has to change, it is silenced here, with the screen already black: the
-; MSU-1 stops and the SPC700 releases the voices, as in `batalla_bgm`.
+; MSU-1 stops and the SPC700 releases the voices, as in `battle_bgm`.
 .proc mapa_tema_callar
 .a8
 .i16
@@ -488,7 +488,7 @@ cambia_ya:
     pha
     jsr msu_parar
     lda #$FF
-    jsr batalla_bgm             ; silence: the voices release
+    jsr battle_bgm             ; silence: the voices release
     pla
     rts
 .endproc
@@ -607,7 +607,7 @@ listo:
     stz step_left               ; a step halfway along is cut short
     stz moving
     jsr menu_olvidar            ; and a menu request too: `MoveTo`
-    jsl f:encuentro_mover       ; and the distance walked, which is the other thing it erases
+    jsl f:encounter_move       ; and the distance walked, which is the other thing it erases
     jsr follow_camera
     jsr fill_window             ; the camera jumped: the tilemap is filled again
     jsr init_hero_ptr

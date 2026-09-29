@@ -6,8 +6,8 @@
 ; nobody is left alive everyone counts, which is the `or list(quienes)` of
 ; `batalla.Batalla._promedio`. The result goes in `BA_T1`, capped at
 ; `BA_AGI_TOPE`: through memory and not the accumulator, for the same reason
-; as `ba_param`.
-.proc ba_promedio
+; as `bt_param`.
+.proc bt_average
 .a8
 .i16
     sta BA_S6
@@ -45,11 +45,11 @@ suma:
     lda BA_S5
     beq cuenta
     lda BA_S0
-    jsr ba_vivo
+    jsr bt_alive
     beq siguiente
 cuenta:
     lda BA_S0
-    jsr ba_x
+    jsr bt_x
     rep #$20
 .a16
     lda BA_UNO + BA_AGI, x
@@ -80,7 +80,7 @@ hay:
     sta temp + 2
     lda BA_T0
     sta temp
-    jsr ba_div
+    jsr bt_div
     cmp #(BA_AGI_TOPE + 1)
     bcc listo
     lda #BA_AGI_TOPE
@@ -98,11 +98,11 @@ listo:
 ;
 ; The rounding is `(2a + b) / (2b)`, which is `RoundTo` with integers and no
 ; floats: see `batalla.Batalla._chance_de_huir`.
-.proc ba_chance_huir
+.proc bt_flee_chance
 .a8
 .i16
     lda #0
-    jsr ba_promedio
+    jsr bt_average
     rep #$20
 .a16
     lda BA_T1
@@ -113,7 +113,7 @@ grupo_hay:
     sep #$20
 .a8
     lda #1
-    jsr ba_promedio
+    jsr bt_average
     rep #$20
 .a16
     lda BA_T1
@@ -121,14 +121,14 @@ grupo_hay:
     lda #200
     sta BA_T2
     lda BA_S2
-    jsr ba_mul                  ; 200 times the troop's average
+    jsr bt_mul                  ; 200 times the troop's average
     clc
     adc BA_S1
     sta temp
     lda BA_S1
     asl a
     sta temp + 2
-    jsr ba_div                  ; A16 = the base
+    jsr bt_div                  ; A16 = the base
     sta BA_S3
     lda #150
     sec
@@ -148,11 +148,11 @@ chance_lista:
 
 ; `TryEscape`: roll against the chance and, if it fails, it goes up by ten.
 ; Returns with A8 at 1 if the escape worked.
-.proc ba_huir
+.proc bt_flee
 .a8
 .i16
     lda BA_HUIDA
-    jsr ba_pct
+    jsr bt_pct
     bne salio
     lda BA_HUIDA
     clc
@@ -170,7 +170,7 @@ salio:
 .endproc
 
 ; The first living actor from `BA_ACTOR` on, or A8 at $FF if none is left.
-.proc ba_actor_siguiente
+.proc bt_next_actor
 .a8
 .i16
 busca:
@@ -178,7 +178,7 @@ busca:
     cmp BA_NACT
     bcs ninguno
     lda BA_ACTOR
-    jsr ba_vivo
+    jsr bt_alive
     bne hay
     inc BA_ACTOR
     bra busca
@@ -191,7 +191,7 @@ ninguno:
 .endproc
 
 ; The first living enemy, in A8, or $FF.
-.proc ba_enemigo_vivo
+.proc bt_enemy_alive
 .a8
 .i16
     lda #0
@@ -203,7 +203,7 @@ busca:
     lda BA_S0
     clc
     adc #BA_GRUPO_MAX
-    jsr ba_vivo
+    jsr bt_alive
     bne hay
     inc BA_S0
     bra busca
@@ -219,19 +219,19 @@ ninguno:
 ; pushes it onto the execution list. The order it is pushed in **matters**:
 ; the tie-break of the turn order is stable, so the party goes first and then
 ; the troop, as in `batalla.Batalla.jugar_turno`.
-.proc ba_anotar
+.proc bt_record
 .a8
 .i16
     sta BA_S1
     lda BA_ACTOR
     asl a
-    jsr ba_ax
+    jsr bt_ax
     lda BA_S1
     sta BA_ACC, x
     lda BA_T0
     sta BA_ACC + 1, x
     lda BA_NACC
-    jsr ba_ax
+    jsr bt_ax
     lda BA_ACTOR
     sta BA_EJEC, x
     inc BA_NACC
@@ -241,7 +241,7 @@ ninguno:
 
 ; The message in `BA_MTIPO` on screen, for `BA_MSG_CUADROS` frames or until
 ; someone presses A.
-.proc ba_mostrar
+.proc bt_show
 .a8
 .i16
     ; Whatever sound effect was left pending does not outlive the message that
@@ -256,7 +256,7 @@ ninguno:
     sta BA_MODO
     lda #BA_MSG_CUADROS
     sta BA_ESPERA
-    jsr ba_componer
+    jsr bt_compose
     rts
 .endproc
 
@@ -275,11 +275,11 @@ ninguno:
 ; `GetFailureSe` —dodge_se—, hitting an actor is actor_damaged_se and an
 ; enemy enemy_damaged_se, unless it kills it, which is the enemy_death_se of
 ; `ProcessBattleActionDeath`.
-.proc ba_sonido_del_golpe
+.proc bt_hit_sound
 .a8
 .i16
     lda BA_MBLA
-    jsr ba_x                    ; X: the target's offset
+    jsr bt_x                    ; X: the target's offset
     rep #$20
 .a16
     lda BA_MDANO
@@ -324,7 +324,7 @@ anotado:
     lda BA_SE2
     ldx #$FFFF
     stx BA_SE2
-    jsl f:ba_t_sonido
+    jsl f:bt_t_sound
 .a8
     rts
 del_enemigo:
@@ -332,14 +332,14 @@ del_enemigo:
     rep #$20
 .a16
     lda #BA_SE_ATAQUE
-    jsl f:ba_t_sonido
+    jsl f:bt_t_sound
 .a8
     rts
 .endproc
 
 ; The turn, with the party's commands already recorded: the troop's, the
 ; execution order, and on to executing.
-.proc ba_empezar_turno
+.proc bt_start_turn
 .a8
 .i16
     ; `NextTurn`: with the party's commands given, the turn goes up
@@ -350,12 +350,12 @@ del_enemigo:
     inc BA_TURNO
     sep #$20
 .a8
-    jsr ba_pag_turno
+    jsr bt_page_turn
     lda #0
     sta BA_S0
 limpia:
     lda BA_S0
-    jsr ba_x
+    jsr bt_x
     lda BA_UNO + BA_FLAGS, x
     and #(BAF_HAY | BAF_ACTOR | BAF_OCULTO) ; without BAF_DEF: defending lasts
                                 ; one turn
@@ -364,11 +364,11 @@ limpia:
     lda BA_S0
     cmp #BA_COMB_MAX
     bcc limpia
-    jsr ba_acciones_enemigas
-    jsr ba_orden_ejecucion
+    jsr bt_enemy_actions
+    jsr bt_exec_order
     lda #0
     sta BA_I
-    jmp ba_ejecutar
+    jmp bt_execute
 .endproc
 
 ; A victory's experience, handed out: `ProcessSceneActionVictory` gives **the
@@ -376,9 +376,9 @@ limpia:
 ; the ones that are not dead—, it does not split it among them. The sum comes
 ; precomputed per troop in `tropa_exp`: every enemy in a victory is dead,
 ; which is what `Game_EnemyParty::GetExp` asks for. It runs on winning, from
-; `ba_vic_empezar`, before showing anything. It clobbers `BA_S0`, `BA_T*`, A
+; `bt_vic_start`, before showing anything. It clobbers `BA_S0`, `BA_T*`, A
 ; and X.
-.proc ba_exp_repartir
+.proc bt_exp_allocate
 .a8
 .i16
     lda BA_RESULT
@@ -393,8 +393,8 @@ limpia:
     asl a
     tax
     lda f:tropa_exp, x
-    ldy #0                      ; the experience: see `ba_sin_ocultos`
-    jsr ba_sin_ocultos
+    ldy #0                      ; the experience: see `bt_no_hidden`
+    jsr bt_no_hidden
     sta BA_T1
     sep #$20
 .a8
@@ -403,7 +403,7 @@ otro:
     lda BA_S0
     cmp BA_NACT
     bcs listo
-    jsr ba_x
+    jsr bt_x
     lda BA_UNO + BA_FLAGS, x
     and #BAF_HAY
     beq siguiente
@@ -414,7 +414,7 @@ otro:
 .a8
     beq siguiente               ; dead: `Exists()` leaves it out
     lda BA_UNO + BA_NUMERO, x
-    jsr exp_sumar
+    jsr exp_add
 siguiente:
     inc BA_S0
     bra otro
@@ -424,10 +424,10 @@ listo:
 
 ; The end of the turn: either the battle is over, or commands are asked for
 ; again.
-.proc ba_fin_de_turno
+.proc bt_end_of_turn
 .a8
 .i16
-    jsr ba_enemigo_vivo
+    jsr bt_enemy_alive
     cmp #$FF
     bne siguen
     lda #BA_VICTORIA
@@ -439,16 +439,16 @@ listo:
     ; practice it starts over; that they are two constants and not one is
     ; because the data is the game's and not ours.
     lda #BA_TEMA_FIN
-    jsl f:ba_t_bgm
-    jsr ba_vic_empezar
-    jsr ba_mostrar
+    jsl f:bt_t_bgm
+    jsr bt_vic_start
+    jsr bt_show
     lda #BA_M_FIN
     sta BA_MODO
     rts
 siguen:
     lda #0
     sta BA_ACTOR
-    jsr ba_actor_siguiente
+    jsr bt_next_actor
     cmp #$FF
     bne otro_turno
     lda #BA_DERROTA
@@ -456,7 +456,7 @@ siguen:
     lda #BA_MSG_DERROTA
     sta BA_MTIPO
 termina:
-    jsr ba_mostrar
+    jsr bt_show
     lda #BA_M_FIN
     sta BA_MODO
     rts
@@ -470,51 +470,51 @@ otro_turno:
     ; `ProcessSceneActionFightAutoEscape`. What already ran this turn does not
     ; come back —the recorded ones are cleared only when the next one
     ; starts—, so this only finds what became true after the last action.
-    jsr ba_pag_probar
+    jsr bt_page_test
     beq sin_pagina
     lda #1
     sta BA_PAG_VUELTA
-    jmp ba_pag_paso
+    jmp bt_page_step
 sin_pagina:
-    jsr ba_componer
+    jsr bt_compose
     rts
 .endproc
 
 ; The next action, skipping the ones who died along the way.
-.proc ba_ejecutar
+.proc bt_execute
 .a8
 .i16
     ; Before each action, and also after the last one, the troop pages whose
     ; conditions hold: it is the `ePreAction` of `ProcessSceneActionBattle`,
     ; with its `CheckBattleEndAndScheduleEvents`. That is how the Detect Aura
     ; page runs right after Talan finishes using it and before the next one
-    ; acts. When they finish, `ba_pag_paso` comes back here, and what already
+    ; acts. When they finish, `bt_page_step` comes back here, and what already
     ; ran this turn does not run again.
     ;
     ; It goes before `otra` and not inside it: skipping one who died changes
     ; nothing a page looks at, which is also why easyrpg takes the dead off
     ; the list before checking and not after.
-    jsr ba_pag_probar
+    jsr bt_page_test
     beq otra
     stz BA_PAG_VUELTA
-    jmp ba_pag_paso
+    jmp bt_page_step
 otra:
     lda BA_I
     cmp BA_NACC
     bcc hay
-    jmp ba_fin_de_turno
+    jmp bt_end_of_turn
 hay:
     lda BA_I
-    jsr ba_ax
+    jsr bt_ax
     lda BA_EJEC, x
     sta BA_MQUIEN
     inc BA_I
     lda BA_MQUIEN
-    jsr ba_vivo
+    jsr bt_alive
     beq otra
     lda BA_MQUIEN
     asl a
-    jsr ba_ax
+    jsr bt_ax
     lda BA_ACC, x
     sta BA_S1                   ; the command
     lda BA_ACC + 1, x
@@ -537,47 +537,47 @@ ataca:
     ; Attack. If the target died before its turn came, it is retargeted to the
     ; first living one on that side, as `Game_BattleAlgorithm` does.
     lda BA_MBLA
-    jsr ba_vivo
+    jsr bt_alive
     bne pega
     lda BA_MBLA
     cmp #BA_GRUPO_MAX
     bcs busca_enemigo
     lda #0
     sta BA_ACTOR
-    jsr ba_actor_siguiente
+    jsr bt_next_actor
     cmp #$FF
     beq otra
     sta BA_MBLA
     bra pega
 busca_enemigo:
-    jsr ba_enemigo_vivo
+    jsr bt_enemy_alive
     cmp #$FF
     beq otra
     clc
     adc #BA_GRUPO_MAX
     sta BA_MBLA
 pega:
-    jsr ba_atacar
+    jsr bt_attack
     lda #BA_MSG_ATAQUE
     sta BA_MTIPO
-    jsr ba_mostrar              ; which clears the pending one, so it goes first
-    jmp ba_sonido_del_golpe
+    jsr bt_show              ; which clears the pending one, so it goes first
+    jmp bt_hit_sound
 usa_una_habilidad:
     ; A dead target **is not retargeted**, as with an item: `Skill`'s
     ; `IsTargetValid` discards it and the action is lost. With one that
     ; targets the party that is what happens if the one about to be healed was
     ; killed first.
     lda BA_MBLA
-    jsr ba_vivo
+    jsr bt_alive
     beq otra_hab
-    jsr ba_hab_usar
+    jsr bt_skill_use
     lda #BA_MSG_HAB
     sta BA_MTIPO
-    jsr ba_mostrar
+    jsr bt_show
     rep #$20
 .a16
     lda #BA_SE_ITEM             ; the same as an item: RM2k has no other
-    jsl f:ba_t_sonido
+    jsl f:bt_t_sound
 .a8
     rts
 otra_hab:
@@ -585,28 +585,28 @@ otra_hab:
 usa_un_item:
     ; An item does not miss and nobody dodges it, so it rolls no dice; and a
     ; dead target **is not retargeted**, which is the opposite of an attack.
-    jsr ba_item_usar
+    jsr bt_item_use
     lda #BA_MSG_ITEM
     sta BA_MTIPO
-    jsr ba_mostrar
+    jsr bt_show
     rep #$20
 .a16
     lda #BA_SE_ITEM
-    jsl f:ba_t_sonido
+    jsl f:bt_t_sound
 .a8
     rts
 defiende:
     lda BA_MQUIEN
-    jsr ba_x
+    jsr bt_x
     lda BA_UNO + BA_FLAGS, x
     ora #BAF_DEF
     sta BA_UNO + BA_FLAGS, x
     lda #BA_MSG_DEFIENDE
     sta BA_MTIPO
-    jmp ba_mostrar
+    jmp bt_show
 no_huyo:
     lda #BA_MSG_NO_HUYO
     sta BA_MTIPO
-    jmp ba_mostrar
+    jmp bt_show
 .endproc
 

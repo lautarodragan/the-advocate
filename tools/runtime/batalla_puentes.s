@@ -16,7 +16,7 @@
 ;
 ; **The battle code does not live in bank 0**: it is about two kilobytes and
 ; bank 0 had three hundred bytes left. It lives in RODATA —see
-; `batalla_correr`, in `batalla_correr.s`— and is entered with `jsl`. From
+; `battle_run`, in `batalla_correr.s`— and is entered with `jsl`. From
 ; there it cannot come back here with `jsr`, which does not change the program
 ; bank, so the bank 0 routines the battle needs are called through these
 ; four-byte bridges. The data bank is still 0 on both sides, so a bridge does
@@ -31,70 +31,70 @@
 ;
 ; `phk` here pushes the bank of this code, which is 0 because the `jsl`
 ; arrives with a $00xxxx address.
-ba_t_vblank:
+bt_t_vblank:
     phb
     phk
     plb
     jsr wait_vblank
     plb
     rtl
-ba_t_pad:
+bt_t_pad:
     phb
     phk
     plb
     jsr read_pad
     plb
     rtl
-ba_t_subir:
+bt_t_upload:
     phb
     phk
     plb
     jsr pant_subir
     plb
     rtl
-ba_t_limpiar:
+bt_t_clear:
     phb
     phk
     plb
     jsr pant_limpiar
     plb
     rtl
-ba_t_texto:
+bt_t_text:
     phb
     phk
     plb
     jsr pant_texto
     plb
     rtl
-ba_t_numero:
+bt_t_number:
     phb
     phk
     plb
     jsr pant_numero
     plb
     rtl
-ba_t_glifo:
+bt_t_glyph:
     phb
     phk
     plb
     jsr pant_glifo
     plb
     rtl
-ba_t_banco:
+bt_t_bank:
     phb
     phk
     plb
     jsl f:items_banco_subir
     plb
     rtl
-ba_t_ppu:
+bt_t_ppu:
     phb
     phk
     plb
     jsr ranura_ppu_prender
     plb
     rtl
-ba_t_param:
+bt_t_param:
     phb
     phk
     plb
@@ -103,32 +103,32 @@ ba_t_param:
     rtl
 ; The two for audio, which are from this round: a sound effect —A16 the index
 ; into `sonido_tabla`, $FFFF none— and the song, with A8.
-ba_t_sonido:
+bt_t_sound:
     phb
     phk
     plb
     jsr sonido_tocar
     plb
     rtl
-ba_t_bgm:
+bt_t_bgm:
     phb
     phk
     plb
-    jsr batalla_bgm
+    jsr battle_bgm
     plb
     rtl
-; And the audio package in X, which is `batalla_audio_cargar`: the Game Over
+; And the audio package in X, which is `battle_audio_load`: the Game Over
 ; screen uses it, which uploads its own. See tools/runtime/game_over.s.
-ba_t_audio:
+bt_t_audio:
     phb
     phk
     plb
-    jsr batalla_audio_cargar
+    jsr battle_audio_load
     plb
     rtl
 ; One frame of the screen shake, which in RM2k belongs to `Game_Screen` and
 ; keeps running in battle: a `ShakeScreen` in a troop page starts it.
-ba_t_sacudida:
+bt_t_shake:
     phb
     phk
     plb
@@ -139,14 +139,14 @@ ba_t_sacudida:
 ; And the two for the shop and the equipment, which also live outside: the
 ; inventory item list and building it. `ti_lista_venta` and `eq_de_lista` call
 ; them.
-ba_t_lista:
+bt_t_list:
     phb
     phk
     plb
     jsr item_de_lista
     plb
     rtl
-ba_t_armar:
+bt_t_build:
     phb
     phk
     plb
@@ -156,7 +156,7 @@ ba_t_armar:
 
 ; `run_code` for whoever lives outside bank 0 and has already set up the
 ; context: `equipment_commons`, in equipo_desde_eventos.s.
-correr_codigo_largo:
+run_code_long:
     jsr run_code
     rtl
 
@@ -175,7 +175,7 @@ correr_codigo_largo:
 ; `par_ev` at `PAR_PELEA` is what tells `op_message` that the message belongs
 ; to the battle. The opcodes that run here are only those in
 ; `TROPA_COMANDOS`, in eventos.py: no other one knows there is no map.
-ba_t_pagina:
+bt_t_page:
     phb
     phk
     plb
@@ -244,14 +244,14 @@ ba_t_pagina:
 ; With `BA_PAQUETE` at $FFFF —a ROM with no battles— there is nothing to load;
 ; it cannot happen, because this is reached from `op_battle`, but the opcode
 ; exists in every ROM's bytecode.
-.proc batalla_audio_cargar
+.proc battle_audio_load
 .a8
 .i16
     cpx #$FFFF
     beq listo
     phx
     lda #$FF
-    jsr batalla_bgm             ; silence, so nothing stays pinned
+    jsr battle_bgm             ; silence, so nothing stays pinned
     plx
     rep #$20
 .a16
@@ -274,7 +274,7 @@ listo:
 ; first ones have none and a `PlayBGM` turns it on—, so coming back from a
 ; battle to a silent map has to really silence it and not leave the battle
 ; song playing.
-.proc batalla_bgm
+.proc battle_bgm
 .a8
 .i16
     cmp #$FF

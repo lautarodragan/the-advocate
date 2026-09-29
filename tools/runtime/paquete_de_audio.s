@@ -664,7 +664,7 @@ listo:
 ;
 ; It exists because there was a bug here that no git conflict flagged: when
 ; the index became sixteen bits, `paquete_cargar` stopped reading the package
-; from A to read it from `mapa_actual`, and `batalla_audio_cargar` —which came
+; from A to read it from `mapa_actual`, and `battle_audio_load` —which came
 ; from the other branch— kept passing it in A. The two branches merged clean
 ; because they touched different lines, and from then on the battle loaded
 ; the map's package: the battle song played with six samples not uploaded and

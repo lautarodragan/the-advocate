@@ -11,7 +11,7 @@ other:
     the colors, two bytes each
 
 The ROM decompresses it whole into WRAM and uploads it with three DMAs: see
-`pantalla_subir` in tools/runtime/game_over.s, which reads from
+`screen_upload` in tools/runtime/game_over.s, which reads from
 `pantallas_tabla` where each stream is and how long each part is.
 
 **Why compressed, and not a light one in the ROM with the quality one in the

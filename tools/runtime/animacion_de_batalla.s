@@ -3,7 +3,7 @@
 ; --- the battle animation -----------------------------------------------------
 ;
 ; `OP_ANIMATION` leaves the timeline here: where the next entry is —in the
-; bytecode—, how many are left, and the clock. `animacion_tick` runs once per
+; bytecode—, how many are left, and the clock. `battle_anim_tick` runs once per
 ; frame before the flashes and fires the tick's entries: a sound effect, a
 ; screen flash or one on the target event. The animation's drawing is not
 ; done.
@@ -26,16 +26,16 @@ ANIM_T     = $7E30E6
 ; is `FAR_ARAM_DE`, at $3100. It started at $30E8 and overwrote them: the ROM
 ; stopped detecting the MSU-1 and the title music went silent. No test saw it
 ; —the suite compares pixels— and taro found it by listening.
-FAR_CARTEL    = $7E30EC
-CARTEL_ACTIVA = FAR_CARTEL + 0
-CARTEL_TONO   = FAR_CARTEL + 1  ; r, g, b, with 100 neutral like the tint
-CARTEL_DESDE  = FAR_CARTEL + 4
-CARTEL_HASTA  = FAR_CARTEL + 7
-CARTEL_PASO   = FAR_CARTEL + 10
-CARTEL_PASOS  = FAR_CARTEL + 11
-CARTEL_LISTO  = FAR_CARTEL + 12 ; a new palette is waiting for vblank
-CARTEL_I      = FAR_CARTEL + 13
-CARTEL_CAMBIO = FAR_CARTEL + 14
+FAR_PICTURE    = $7E30EC
+PICTURE_ACTIVE = FAR_PICTURE + 0
+PICTURE_TONE   = FAR_PICTURE + 1  ; r, g, b, with 100 neutral like the tint
+PICTURE_FROM  = FAR_PICTURE + 4
+PICTURE_TO  = FAR_PICTURE + 7
+PICTURE_STEP   = FAR_PICTURE + 10
+PICTURE_STEPS  = FAR_PICTURE + 11
+PICTURE_READY  = FAR_PICTURE + 12 ; a new palette is waiting for vblank
+PICTURE_I      = FAR_PICTURE + 13
+PICTURE_CHANGE = FAR_PICTURE + 14
 
 ; And the tail of escapes of whatever text box is open: how many frames are
 ; left in the `\|` pause and whether it closes by itself when done —the `\^`—.
@@ -47,22 +47,22 @@ CARTEL_CAMBIO = FAR_CARTEL + 14
 ; byte fit and three are needed. Here there are five spare, left between the
 ; picture —which ends at $30FA— and `FAR_ARAM_DE`, at $3100. They are read
 ; once per frame and never indexed, so the long addressing does not show.
-FAR_MSG_PAUSA = $7E30FB         ; word: up to PAUSAS_MAX times CUADROS_DE_PAUSA
+FAR_MSG_PAUSE = $7E30FB         ; word: up to PAUSAS_MAX times CUADROS_DE_PAUSA
 FAR_MSG_AUTO  = $7E30FD
 
-.proc animacion_limpiar
+.proc battle_anim_clear
 .a8
 .i16
     lda #0
     sta f:ANIM_N
-    sta f:ANIMB_ACTIVA          ; and the drawing, which goes on its own
-    sta f:ANIMB_SUBIR
+    sta f:ANIMB_ACTIVE          ; and the drawing, which goes on its own
+    sta f:ANIMB_UPLOAD
     sta f:ANIMB_PAL
-    sta f:ANIMB_HAY             ; until `cargar_mapa` says otherwise
+    sta f:ANIMB_HAS             ; until `cargar_mapa` says otherwise
     rts
 .endproc
 
-.proc animacion_tick
+.proc battle_anim_tick
 .a8
 .i16
     lda f:ANIM_N
@@ -154,19 +154,19 @@ listo:
 ; picture's ($30EC to $30FA) and the audio package's tables ($3100 to $35FF):
 ; on 2026-09-12 an agent overwrote the MSU-1 for not looking at this RAM's
 ; map.
-ANIMB_HAY    = $7E3600          ; this map draws animations
+ANIMB_HAS    = $7E3600          ; this map draws animations
 ANIMB_TILE   = $7E3601          ; the box's first tile, word
 ANIMB_ATTR   = $7E3603          ; vhoopppN already built for the four objects
 ANIMB_VRAM   = $7E3604          ; where the frame's DMA goes, in words
 ANIMB_CGADD  = $7E3606          ; its palette's CGRAM entry
-ANIMB_SOMBRA = $7E3607          ; and its offset in `cgram_sombra`, word
-ANIMB_ACTIVA = $7E3609          ; one is being drawn
-ANIMB_FILA   = $7E360A          ; its row in `anim_batalla_tabla`, word
-ANIMB_BLANCO = $7E360C          ; what it goes on; $FF is the screen
+ANIMB_SHADOW = $7E3607          ; and its offset in `cgram_sombra`, word
+ANIMB_ACTIVE = $7E3609          ; one is being drawn
+ANIMB_ROW   = $7E360A          ; its row in `anim_batalla_tabla`, word
+ANIMB_TARGET = $7E360C          ; what it goes on; $FF is the screen
 ANIMB_T      = $7E360D          ; the tick, word
-ANIMB_CUADRO = $7E360F          ; the current frame, word
+ANIMB_FRAME = $7E360F          ; the current frame, word
 ANIMB_N      = $7E3611          ; how many frames it has, word
-ANIMB_SUBIR  = $7E3613          ; a frame is waiting for vblank
+ANIMB_UPLOAD  = $7E3613          ; a frame is waiting for vblank
 ANIMB_PAL    = $7E3614          ; and a palette
 ANIMB_I      = $7E3615          ; which of the four objects is being built
 ANIMB_PREV   = $7E3616          ; three bytes: the last frame built in
@@ -175,15 +175,15 @@ ANIMB_PREV   = $7E3616          ; three bytes: the last frame built in
 ; This map's layout, when loading it. The byte is 0 —"nothing is drawn here"—
 ; or bit 7 set with the 64-tile block and the palette, three bits each.
 ; See `animaciones_asm` in snes_convert.py.
-.proc animacion_dibujo_mapa
+.proc anim_drawing_map
 .a8
 .i16
-    jsl f:anim_buf_limpiar      ; with the screen off, where it does not show
+    jsl f:anim_buf_clear      ; with the screen off, where it does not show
     lda #0
-    sta f:ANIMB_ACTIVA
-    sta f:ANIMB_SUBIR
+    sta f:ANIMB_ACTIVE
+    sta f:ANIMB_UPLOAD
     sta f:ANIMB_PAL
-    sta f:ANIMB_HAY
+    sta f:ANIMB_HAS
     rep #$20
 .a16
     lda mapa_actual
@@ -194,7 +194,7 @@ ANIMB_PREV   = $7E3616          ; three bytes: the last frame built in
     bne hay
     rts
 hay:
-    sta f:ANIMB_HAY
+    sta f:ANIMB_HAS
     and #$07                    ; the palette
     sta temp
     asl a
@@ -207,7 +207,7 @@ hay:
     and #$00FF
     clc
     adc #256                    ; the lower 128 entries, at two bytes
-    sta f:ANIMB_SOMBRA
+    sta f:ANIMB_SHADOW
     sep #$20
 .a8
     lda temp
@@ -222,7 +222,7 @@ hay:
     asl a
     ora #$30                    ; priority 3: in front of both layers
     sta temp + 1
-    lda f:ANIMB_HAY
+    lda f:ANIMB_HAS
     lsr a
     lsr a
     lsr a
@@ -267,12 +267,12 @@ hay:
 ; the new one replaces whatever was there, like the timeline. If this map does
 ; not draw, or the number has no drawing, nothing happens: the sounds and the
 ; flashes go on the same.
-.proc animacion_dibujo_empezar
+.proc anim_drawing_start
 .a8
 .i16
     lda #0
-    sta f:ANIMB_ACTIVA
-    lda f:ANIMB_HAY
+    sta f:ANIMB_ACTIVE
+    lda f:ANIMB_HAS
     beq no
     lda temp
     cmp #ANIM_B_MAX
@@ -292,7 +292,7 @@ hay:
     asl a
     asl a
     asl a                       ; times ANIM_B_STRIDE
-    sta f:ANIMB_FILA
+    sta f:ANIMB_ROW
     tax
     sep #$20
 .a8
@@ -304,14 +304,14 @@ hay:
     lda #0
     sta f:ANIMB_T
     lda #$FFFF
-    sta f:ANIMB_CUADRO          ; none yet: the first tick uploads 0
+    sta f:ANIMB_FRAME          ; none yet: the first tick uploads 0
     sep #$20
 .a8
     lda temp + 1
-    sta f:ANIMB_BLANCO
+    sta f:ANIMB_TARGET
     lda #1
-    sta f:ANIMB_ACTIVA
-    jmp animacion_dibujo_paleta
+    sta f:ANIMB_ACTIVE
+    jmp anim_drawing_palette
 no:
     rts
 .endproc
@@ -320,16 +320,16 @@ no:
 ; the cartridge: they are neither tinted nor flashed, which is what RM2k does
 ; —the map's tone goes to the tilemap, the characters, the panorama and the
 ; shadows, and not to the animations—. `flush_video` uploads them in vblank.
-.proc animacion_dibujo_paleta
+.proc anim_drawing_palette
 .a8
 .i16
     rep #$20
 .a16
-    lda f:ANIMB_FILA
+    lda f:ANIMB_ROW
     asl a
     asl a                       ; times 32: sixteen words per animation
     tax
-    lda f:ANIMB_SOMBRA
+    lda f:ANIMB_SHADOW
     tay
 copia:
     sep #$20
@@ -351,14 +351,14 @@ copia:
 .endproc
 
 ; One frame of the drawing. It runs once per frame, right after
-; `animacion_tick`, and **the frame drawn comes from the tick before advancing
+; `battle_anim_tick`, and **the frame drawn comes from the tick before advancing
 ; it**: on tick 0 frame 0 is drawn, which is the same one on which RM2k's
 ; frame 1 `timing` fires. Two console frames per animation frame, which is
 ; `BattleAnimation`'s `num_frames = GetRealFrames() * 2`.
-.proc animacion_dibujo_tick
+.proc anim_drawing_tick
 .a8
 .i16
-    lda f:ANIMB_ACTIVA
+    lda f:ANIMB_ACTIVE
     bne hay
     rts
 hay:
@@ -371,21 +371,21 @@ hay:
     sep #$20
 .a8
     lda #0
-    sta f:ANIMB_ACTIVA
+    sta f:ANIMB_ACTIVE
     rts
 sigue:
 .a16
-    cmp f:ANIMB_CUADRO
+    cmp f:ANIMB_FRAME
     beq igual
-    sta f:ANIMB_CUADRO
+    sta f:ANIMB_FRAME
     sep #$20
 .a8
     lda #1
-    sta f:ANIMB_SUBIR           ; the next vblank sends it to VRAM
+    sta f:ANIMB_UPLOAD           ; the next vblank sends it to VRAM
     ; And it is built now, out here: the vblank only copies. There is no race
     ; with the DMA because the loop uploads what is pending before calling
     ; this again.
-    jsl f:anim_cuadro_armar + RAPIDO   ; from the fast mirror: see MEMSEL
+    jsl f:anim_frame_build + RAPIDO   ; from the fast mirror: see MEMSEL
     rep #$20
 .a16
 igual:
@@ -401,10 +401,10 @@ igual:
 ; and it is taken out of the pose budget, the same as a step of the ChipSet
 ; animation: four poses out of the five, and only on the animation's even
 ; frames.
-.proc animacion_dibujo_dma
+.proc anim_drawing_dma
 .a8
 .i16
-    ; From far RAM and not from the cartridge: `anim_cuadro_armar` already
+    ; From far RAM and not from the cartridge: `anim_frame_build` already
     ; built the frame when the tick chose it.
     rep #$20
 .a16
@@ -449,14 +449,14 @@ queda:
 ;
 ; They cost **eight of the thirty-four tiles per line** on the 64 lines they
 ; take up: two objects four tiles wide on each one.
-.proc animacion_dibujo_oam
+.proc anim_drawing_oam
 .a8
 .i16
-    lda f:ANIMB_ACTIVA
+    lda f:ANIMB_ACTIVE
     bne hay
     rts
 hay:
-    lda f:ANIMB_BLANCO
+    lda f:ANIMB_TARGET
     cmp #ANIM_B_PANTALLA
     beq pantalla
     ; On the target: the center of its cell and its feet, which is
@@ -519,7 +519,7 @@ restar_ancla:
     ; The table's anchor, which already has `Animation::Position`'s shift
     ; baked in. The two bytes are read one at a time: the word at +1 carries
     ; X low and Y high.
-    lda f:ANIMB_FILA
+    lda f:ANIMB_ROW
     tax
     lda f:anim_batalla_tabla + 1, x
     and #$00FF

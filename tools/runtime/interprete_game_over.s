@@ -45,7 +45,7 @@
 game_over_ya:
     xba                         ; and Z, from whichever it was: 0 is back to the title
     beq al_titulo
-    jml f:game_over_desde_el_mapa
+    jml f:game_over_from_map
 al_titulo:
     jml f:reset
 

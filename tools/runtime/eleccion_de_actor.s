@@ -324,7 +324,7 @@ borra:
 filas:
     sty temp + 2                ; how much the source advances per row
     ldx #OBJETIVO_BARRA_FILAS
-fila:
+row:
     sta A1T0L
     pha
     lda temp
@@ -344,7 +344,7 @@ fila:
     clc
     adc temp + 2
     dex
-    bne fila
+    bne row
     sep #$20
 .a8
     rtl

@@ -4,7 +4,7 @@
 ; `lluvia_azar`, but on `BA_SEM`, which has **its own seed**: fighting does
 ; not advance the map's randomness, so a random `ControlVars` gives the same
 ; with a battle in between and without one.
-.proc ba_azar
+.proc bt_random
 .a16
 .i16
     lda BA_SEM
@@ -48,7 +48,7 @@
 ; **The divisor has to be less than 32768**: the remainder comes in through a
 ; `rol` and a larger one would overflow off the top. None of the ones used
 ; comes close.
-.proc ba_div
+.proc bt_div
 .a16
 .i16
     stz comp_and
@@ -72,14 +72,14 @@ no_entra:
 ; A16 = n; returns with A16 = a number from 0 to n, inclusive. It is easyrpg's
 ; `Rand::GetRandomNumber(0, n)` with our randomness: see
 ; `batalla.Azar.hasta`.
-.proc ba_hasta
+.proc bt_until
 .a16
 .i16
     inc a
     sta temp + 2
-    jsr ba_azar
+    jsr bt_random
     sta temp
-    jsr ba_div
+    jsr bt_div
     lda comp_and
     rts
 .endproc
@@ -87,14 +87,14 @@ no_entra:
 ; A8 = the percentage; returns with A8 at 1 if it came up and Z set
 ; accordingly. It is `Rand::PercentChance(int)`: `GetRandomNumber(0, 99) <
 ; rate`.
-.proc ba_pct
+.proc bt_pct
 .a8
 .i16
     sta BA_T2
     rep #$20
 .a16
     lda #99
-    jsr ba_hasta
+    jsr bt_until
     sta BA_T0
     lda BA_T2
     and #$00FF
@@ -117,7 +117,7 @@ no:
 ; so a bare `sta WRMPYA` would write to WRAM and the product would come from a
 ; register nobody touched. It cost an afternoon and it looked like every hit
 ; missed.
-.proc ba_mul
+.proc bt_mul
 .a16
 .i16
     sta temp
@@ -158,7 +158,7 @@ no:
 ; A8 to X, with the upper byte at zero. It exists so as not to write `ldx` on
 ; a one-byte variable: with sixteen-bit indexes it would take the next byte
 ; along, which is the trap AGENTS.md names.
-.proc ba_ax
+.proc bt_ax
 .a8
 .i16
     rep #$20
@@ -172,7 +172,7 @@ no:
 
 ; A8 = the combatant; X = its offset inside `BA_UNO`. It is 40 bytes, that is
 ; thirty-two plus eight: two shifts and an add, no table.
-.proc ba_x
+.proc bt_x
 .a8
 .i16
     rep #$20
@@ -194,10 +194,10 @@ no:
 
 ; A8 = the combatant; Z=0 if it is alive, that is, if the slot exists and it
 ; has HP left. **It does not use `pl*`**: the usual trap.
-.proc ba_vivo
+.proc bt_alive
 .a8
 .i16
-    jsr ba_x
+    jsr bt_x
     lda BA_UNO + BA_FLAGS, x
     and #BAF_HAY
     beq no
@@ -230,7 +230,7 @@ no:
 ; value plus what each piece adds, capped to [1, 999]. `comp_col + 1` at zero
 ; is "nothing is being chosen", the simple path of `eq_efectivo`. **Clobbers
 ; X.**
-.proc ba_param
+.proc bt_param
 .a8
 .i16
     sta comp_or01 + 2
@@ -239,7 +239,7 @@ no:
     lda BA_S0
     sta comp_char
     stz comp_char + 1
-    jsl f:ba_t_param
+    jsl f:bt_t_param
     rep #$20
 .a16
     lda comp_dup
@@ -254,7 +254,7 @@ no:
 ; read directly because the battle runs with the data bank at $7E, and the cost
 ; comes from `item_sp`, which is zero for anything that is not a weapon.
 ; Clobbers X and `BA_T0`.
-.proc ba_sp_del_arma
+.proc bt_weapon_sp
 .a8
 .i16
     rep #$20
@@ -278,7 +278,7 @@ no:
     lda f:item_k, x
     cmp #$FF
     beq nada8                   ; an item the cartridge does not carry
-    jsr ba_ax
+    jsr bt_ax
     lda f:item_sp, x
     rts
 .a16
@@ -290,14 +290,14 @@ nada8:
     rts
 .endproc
 
-.proc ba_armar
+.proc bt_build
 .a8
 .i16
     ; All slots empty: the screen and the sweeps look at `BAF_HAY`.
     lda #0
 otra_ranura:
     pha
-    jsr ba_x
+    jsr bt_x
     lda #0
     sta BA_UNO + BA_FLAGS, x
     pla
@@ -339,9 +339,9 @@ hay_ranura:
 con_actor:
     sta BA_S0                 ; the actor from the LDB
     ldy #0
-    jsl f:nivel_param
+    jsl f:level_param
     stx BA_S2                 ; the max HP for its level
-    ; All of its data into the scratch words: `ba_param` clobbers X, so first
+    ; All of its data into the scratch words: `bt_param` clobbers X, so first
     ; it is gathered and then written with X set, all at once.
     rep #$20
 .a16
@@ -356,7 +356,7 @@ con_actor:
     sep #$20
 .a8
     lda #0
-    jsr ba_param
+    jsr bt_param
     rep #$20
 .a16
     lda BA_T2
@@ -364,7 +364,7 @@ con_actor:
     sep #$20
 .a8
     lda #1
-    jsr ba_param
+    jsr bt_param
     rep #$20
 .a16
     lda BA_T2
@@ -372,7 +372,7 @@ con_actor:
     sep #$20
 .a8
     lda #3
-    jsr ba_param
+    jsr bt_param
     rep #$20
 .a16
     lda BA_T2
@@ -380,7 +380,7 @@ con_actor:
     sep #$20
 .a8
     lda BA_S1
-    jsr ba_x
+    jsr bt_x
     rep #$20
 .a16
     lda BA_S2
@@ -407,17 +407,17 @@ con_actor:
     sta BA_UNO + BA_FLAGS, x
     ; And what the skills need: the SP —which come from the saved game, like
     ; the HP— and the spirit, which until 2026-09-13 was not read because no
-    ; formula asked for it. It goes in a second pass because `ba_param`
+    ; formula asked for it. It goes in a second pass because `bt_param`
     ; clobbers X and it has to be set again.
     lda #2
-    jsr ba_param                ; the spirit, `eq_parametro` like the others
+    jsr bt_param                ; the spirit, `eq_parametro` like the others
     rep #$20
 .a16
     sep #$20
 .a8
     lda BA_S0
     ldy #1
-    jsl f:nivel_param
+    jsl f:level_param
     stx BA_S3                 ; the max SP for its level
     rep #$20
 .a16
@@ -430,7 +430,7 @@ con_actor:
     sep #$20
 .a8
     lda BA_S1
-    jsr ba_x
+    jsr bt_x
     rep #$20
 .a16
     lda BA_S4
@@ -455,10 +455,10 @@ con_actor:
 .a8
     ; And what attacking costs it, which does not change in the equipment
     ; while the battle lasts: `batalla.sp_del_arma`.
-    jsr ba_sp_del_arma
+    jsr bt_weapon_sp
     pha
     lda BA_S1
-    jsr ba_ax
+    jsr bt_ax
     pla
     sta f:BA_ARMA_SP, x
     inc BA_NACT
@@ -470,7 +470,7 @@ grupo_listo:
     ; --- the troop ---
     ; The bytecode carries the RM2k number, so it has to be looked up. A troop
     ; this cartridge does not carry is a battle with no enemies, and
-    ; `batalla_correr` wins it by itself: it is the same thing the converter
+    ; `battle_run` wins it by itself: it is the same thing the converter
     ; does with a song that did not fit.
     lda #$FF
     sta BA_TROPA_K
@@ -566,7 +566,7 @@ hay_ranura_ene:
     lda BA_S1
     clc
     adc #BA_GRUPO_MAX
-    jsr ba_x
+    jsr bt_x
     rep #$20
 .a16
     lda BA_S4
@@ -592,12 +592,12 @@ hay_ranura_ene:
     ; `invisible`, which `Game_Enemy` copies in `SetHidden` when set up.
     phx
     lda BA_TROPA_K
-    jsr ba_ax
+    jsr bt_ax
     lda f:tropa_ocultos, x
     sta BA_T0
     lda BA_S1
-    jsr ba_ax
-    lda f:esc_bits, x
+    jsr bt_ax
+    lda f:scn_bits, x
     and BA_T0
     plx
     cmp #0                      ; `plx` overwrote Z: the AGENTS.md trap
@@ -609,7 +609,7 @@ a_la_vista:
 con_flags:
     sta BA_UNO + BA_FLAGS, x
     ; The skill data: the SP, the spirit and the four bases. It uses them
-    ; —since 2026-09-27, see `ba_accion_enemiga`— and **receives them**:
+    ; —since 2026-09-27, see `bt_enemy_action`— and **receives them**:
     ; Mental Hack lowers its defense and spirit, and that needs the base and
     ; the modifier.
     rep #$20
@@ -660,7 +660,7 @@ tropa_lista:
 ;
 ; The source in `BA_MQUIEN` and the target in `BA_MBLA`. Leaves the damage in
 ; `BA_MDANO`, with $FFFF if the hit missed, and lowers the target's HP.
-.proc ba_atacar
+.proc bt_attack
 .a8
 .i16
     ; `Normal::vStart`: the weapon's SP, before anything else and without
@@ -670,12 +670,12 @@ tropa_lista:
     lda BA_MQUIEN
     cmp #BA_GRUPO_MAX
     bcs sin_arma
-    jsr ba_ax
+    jsr bt_ax
     lda f:BA_ARMA_SP, x
     sta BA_T2
     stz BA_T2 + 1
     lda BA_MQUIEN
-    jsr ba_x
+    jsr bt_x
     rep #$20
 .a16
     lda BA_UNO + BA_SP, x
@@ -689,7 +689,7 @@ sp_cobrado:
 .a8
 sin_arma:
     lda BA_MQUIEN
-    jsr ba_x
+    jsr bt_x
     rep #$20
 .a16
     txa
@@ -697,7 +697,7 @@ sin_arma:
     sep #$20
 .a8
     lda BA_MBLA
-    jsr ba_x
+    jsr bt_x
     rep #$20
 .a16
     txa
@@ -723,7 +723,7 @@ agi_hay:
     lda BA_UNO + BA_AGI, x
     clc
     adc BA_S2
-    jsr ba_mul                  ; (100 - hit) * (agiF + agiB)
+    jsr bt_mul                  ; (100 - hit) * (agiF + agiB)
     sta BA_S3
     lda BA_S2
     asl a
@@ -735,7 +735,7 @@ agi_hay:
     adc temp + 2
     dec a
     sta temp
-    jsr ba_div
+    jsr bt_div
     sta BA_S3
     lda #100
     sec
@@ -745,17 +745,17 @@ agi_hay:
 acierto_listo:
     sep #$20
 .a8
-    jsr ba_pct
+    jsr bt_pct
     sta BA_S4                   ; 1 if it hit
     beq crit_cero
     lda BA_S0
-    jsr ba_ax
+    jsr bt_ax
     lda BA_UNO + BA_CRIT, x
     bra crit_tira
 crit_cero:
     lda #0
 crit_tira:
-    jsr ba_pct
+    jsr bt_pct
     sta BA_S5                   ; 1 if it was critical
     lda BA_S4
     bne pega
@@ -815,12 +815,12 @@ sin_critico:
     sta temp
     lda #10
     sta temp + 2
-    jsr ba_div
+    jsr bt_div
     bne ajuste_listo
     lda #1
 ajuste_listo:
     sta BA_S3
-    jsr ba_hasta                ; A16 is still the adjustment
+    jsr bt_until                ; A16 is still the adjustment
     clc
     adc BA_S2
     sta BA_S2
@@ -875,7 +875,7 @@ hp_listo:
 ; --- the turn -------------------------------------------------------------
 
 ; The enemies' actions: `CreateEnemyActions`. Each living one chooses what to
-; do —`ba_accion_enemiga`— and then against whom, which is the order of
+; do —`bt_enemy_action`— and then against whom, which is the order of
 ; `MakeAttack` and `MakeSkillAction` and the contract with
 ; `batalla.acciones_de_los_enemigos`:
 ;
@@ -883,13 +883,13 @@ hp_listo:
 ;   roll**;
 ; * one with `ally` scope: a random living enemy, **one roll**;
 ; * `self`, `enemies` and `party`: no roll. It is recorded on its user, and
-;   the scope decides whom it falls on: see `ba_hab_usar`.
+;   the scope decides whom it falls on: see `bt_skill_use`.
 ;
 ; It goes before the execution order, which is how `SelectNextActor` calls
 ; it. If no living actor is left it stops and the remaining enemies are left
 ; without an action, which is the model's `break`: without that the two sides
 ; would roll a different number of times.
-.proc ba_acciones_enemigas
+.proc bt_enemy_actions
 .a8
 .i16
     lda #BA_GRUPO_MAX
@@ -901,19 +901,19 @@ otro:
     rts
 sigue:
     lda BA_S0
-    jsr ba_vivo
+    jsr bt_alive
     bne vive
     jmp siguiente
 vive:
     ; The living actors, in a list, to pick one.
     lda #0
-    jsr ba_vivos_del_lado
+    jsr bt_alive_on_side
     lda BA_S1
     bne hay_actores
     rts                         ; nobody left to hit
 hay_actores:
     lda BA_S0
-    jsr ba_accion_enemiga
+    jsr bt_enemy_action
     sta BA_T1                   ; the action: a `k`, or attack, or nothing
     cmp #BA_EACC_NADA
     bne con_accion
@@ -921,7 +921,7 @@ hay_actores:
 con_accion:
     cmp #BA_EACC_ATACAR
     beq a_un_actor
-    jsr ba_ax
+    jsr bt_ax
     lda f:hab_alcance, x
     cmp #BA_ALCANCE_ENEMIGO
     beq a_un_actor
@@ -931,14 +931,14 @@ con_accion:
     bra anotar
 a_uno_suyo:
     lda #BA_GRUPO_MAX
-    jsr ba_vivos_del_lado
+    jsr bt_alive_on_side
 a_un_actor:
     rep #$20
 .a16
     lda BA_S1
     and #$00FF
     dec a
-    jsr ba_hasta
+    jsr bt_until
     tax
     sep #$20
 .a8
@@ -946,12 +946,12 @@ a_un_actor:
 anotar:
     sta BA_T0                   ; the chosen target
     lda BA_S0
-    jsr ba_ax
+    jsr bt_ax
     lda BA_T1
-    sta BA_ACC_HAB, x           ; the `k`, which `ba_hab_usar` reads from here
+    sta BA_ACC_HAB, x           ; the `k`, which `bt_skill_use` reads from here
     lda BA_S0
     asl a
-    jsr ba_ax                   ; two bytes of action per combatant
+    jsr bt_ax                   ; two bytes of action per combatant
     lda BA_T1
     cmp #BA_EACC_ATACAR
     beq es_ataque
@@ -964,7 +964,7 @@ orden_lista:
     lda BA_T0
     sta BA_ACC + 1, x
     lda BA_NACC
-    jsr ba_ax
+    jsr bt_ax
     lda BA_S0
     sta BA_EJEC, x
     inc BA_NACC
@@ -975,7 +975,7 @@ siguiente:
 
 ; The living ones of a side —A8 = 0 the party, `BA_GRUPO_MAX` the troop— in
 ; `BA_CAND`, and how many in `BA_S1`. Clobbers `BA_S2`, A and X.
-.proc ba_vivos_del_lado
+.proc bt_alive_on_side
 .a8
 .i16
     sta BA_S2
@@ -991,10 +991,10 @@ busca:
     lda BA_S2
     cmp BA_S2 + 1
     bcs listo
-    jsr ba_vivo
+    jsr bt_alive
     beq no_vive
     lda BA_S1
-    jsr ba_ax
+    jsr bt_ax
     lda BA_S2
     sta BA_CAND, x
     inc BA_S1
@@ -1021,12 +1021,12 @@ listo:
 ; Clobbers `BA_S3` to `BA_S6`, `BA_T0`, `BA_T2`, A and X; not `BA_S0` or
 ; `BA_S1`.
 .assert ACCIONES_MAX <= BA_HAB_MAX, error, "an enemy's actions do not fit in BA_HAB_LISTA"
-.proc ba_accion_enemiga
+.proc bt_enemy_action
 .a8
 .i16
     ; --- which enemy of the tables it is: `tropa_miembro` of its place ---
     sta BA_S3
-    jsr ba_x
+    jsr bt_x
     lda BA_UNO + BA_NUMERO, x
     sta BA_T0                   ; its place in the troop
     rep #$20
@@ -1036,13 +1036,13 @@ listo:
     sep #$20
 .a8
     lda BA_TROPA_K
-    jsr ba_ax
+    jsr bt_ax
     lda f:tropa_ini, x
     clc
     adc BA_T0
-    jsr ba_ax
+    jsr bt_ax
     lda f:tropa_miembro, x
-    jsr ba_ax
+    jsr bt_ax
     lda f:enemigo_acc_n, x
     sta BA_S5                   ; how many actions
     lda f:enemigo_acc_ini, x
@@ -1056,13 +1056,13 @@ posibles:
     bcs vistas
     clc
     adc BA_S5 + 1
-    jsr ba_ax
+    jsr bt_ax
     lda f:eacc_peso, x
     sta BA_T0
     lda f:eacc_hab, x
     cmp #BA_EACC_ATACAR
     beq posible
-    jsr ba_hab_costo            ; can its SP pay for it?
+    jsr bt_skill_cost            ; can its SP pay for it?
     sta BA_T0 + 1
     rep #$20
 .a16
@@ -1083,7 +1083,7 @@ posible:
     sta BA_S6
 anotar_peso:
     lda BA_T2
-    jsr ba_ax
+    jsr bt_ax
     lda BA_T0
     sta BA_HAB_LISTA, x
     inc BA_T2
@@ -1097,7 +1097,7 @@ pesos:
     lda BA_T2
     cmp BA_S5
     bcs pesadas
-    jsr ba_ax
+    jsr bt_ax
     lda BA_HAB_LISTA, x
     beq sin_peso                ; impossible
     bmi sin_peso8               ; not effective
@@ -1137,14 +1137,14 @@ alguna:
     lda BA_S4
     and #$00FF
     dec a
-    jsr ba_hasta
+    jsr bt_until
     sep #$20
 .a8
     sta BA_T0                   ; `which`, less than the sum
     stz BA_T2
 por_peso:
     lda BA_T2
-    jsr ba_ax
+    jsr bt_ax
     lda BA_T0
     sec
     sbc BA_HAB_LISTA, x
@@ -1159,7 +1159,7 @@ elegida:
     lda BA_S3 + 1
     clc
     adc BA_S5 + 1
-    jsr ba_ax
+    jsr bt_ax
     lda f:eacc_hab, x
     rts
 .endproc
@@ -1169,7 +1169,7 @@ elegida:
 ; `std::sort` does on a list that already comes stacked in the order it was
 ; pushed. It is `CreateExecutionOrder`. **One roll per action**, in that same
 ; order: first the party and then the troop.
-.proc ba_orden_ejecucion
+.proc bt_exec_order
 .a8
 .i16
     lda #0
@@ -1179,9 +1179,9 @@ tira:
     cmp BA_NACC
     bcs tirados
     lda BA_S0
-    jsr ba_ax
+    jsr bt_ax
     lda BA_EJEC, x
-    jsr ba_x
+    jsr bt_x
     rep #$20
 .a16
     txa
@@ -1191,7 +1191,7 @@ tira:
     lsr a
     clc
     adc #3
-    jsr ba_hasta
+    jsr bt_until
     sta BA_T0
     ldx BA_S1
     lda BA_UNO + BA_AGI, x
@@ -1213,10 +1213,10 @@ afuera:
     cmp BA_NACC
     bcs ordenado
     lda BA_S0
-    jsr ba_ax
+    jsr bt_ax
     lda BA_EJEC, x
     sta BA_S2                   ; the one being placed
-    jsr ba_x
+    jsr bt_x
     rep #$20
 .a16
     lda BA_UNO + BA_SORT, x
@@ -1229,9 +1229,9 @@ adentro:
     lda BA_S1
     beq put
     dec a
-    jsr ba_ax
+    jsr bt_ax
     lda BA_EJEC, x
-    jsr ba_x
+    jsr bt_x
     rep #$20
 .a16
     lda BA_UNO + BA_SORT, x
@@ -1242,7 +1242,7 @@ adentro:
                                 ; there
     lda BA_S1
     dec a
-    jsr ba_ax
+    jsr bt_ax
     lda BA_EJEC, x
     inx
     sta BA_EJEC, x
@@ -1250,7 +1250,7 @@ adentro:
     bra adentro
 put:
     lda BA_S1
-    jsr ba_ax
+    jsr bt_ax
     lda BA_S2
     sta BA_EJEC, x
     inc BA_S0
@@ -1269,7 +1269,7 @@ ordenado:
 
 ; `BA_T1` = A16 + `BA_S0` times what a line measures: where line number
 ; `BA_S0` of the list starting at A16 begins.
-.proc ba_fila
+.proc bt_row
 .a16
 .i16
     sta BA_T2
@@ -1289,7 +1289,7 @@ ordenado:
 .endproc
 
 ; The write cursor at column A16 of line `BA_T1`.
-.proc ba_ir
+.proc bt_go
 .a16
 .i16
     clc
@@ -1303,20 +1303,20 @@ ordenado:
 ; A8 = the combatant, `BA_T1` = where its line starts, and bit 0 of
 ; `BA_CONMAX` says whether the max HP go too —that is, whether it belongs to
 ; the party—.
-.proc ba_renglon
+.proc bt_line
 .a8
 .i16
     sta BA_S4
     ; A hidden enemy has no line until it appears: in RM2k it is not on the
     ; screen, and here its line is what says it is there.
-    jsr ba_x
+    jsr bt_x
     lda BA_UNO + BA_FLAGS, x
     and #BAF_OCULTO
     beq a_la_vista
     rts
 a_la_vista:
     lda BA_S4
-    jsr ba_vivo
+    jsr bt_alive
     beq muerto
     lda #0
     bra variante
@@ -1325,13 +1325,13 @@ muerto:
 variante:
     sta temp + 1
     lda BA_S4
-    jsr ba_x
+    jsr bt_x
     rep #$20
 .a16
     txa
     sta BA_S5                   ; its offset, which `pant_texto` overwrites
     lda #BA_NOMBRE_DX
-    jsr ba_ir
+    jsr bt_go
     sep #$20
 .a8
     lda #BA_NOMBRE_ANCHO
@@ -1343,7 +1343,7 @@ variante:
     tax
     sep #$20
 .a8
-    jsl f:ba_t_texto
+    jsl f:bt_t_text
 .if ::BA_HP_ENEMIGOS = 0
     ; An enemy does not show its HP, as in RM2k: the line is only its name.
     ; With `[debug] enemy_hp` in the project file they show, for debugging.
@@ -1360,16 +1360,16 @@ con_hp:
     rep #$20
 .a16
     lda #BA_HP_DX
-    jsr ba_ir
+    jsr bt_go
     sep #$20
 .a8
     ldx #BA_TXT_HP
-    jsl f:ba_t_texto
+    jsl f:bt_t_text
     ; and the number, three digits, capped at 999 as in the reference
     rep #$20
 .a16
     lda #BA_HP_NUM_DX
-    jsr ba_ir
+    jsr bt_go
     ldx BA_S5
     lda BA_UNO + BA_HP, x
     cmp #1000
@@ -1381,7 +1381,7 @@ hp_cabe:
 .a8
     lda #3
     sta comp_dup + 2
-    jsl f:ba_t_numero
+    jsl f:bt_t_number
     lda BA_CONMAX
     and #$01
     bne con_maximo
@@ -1390,15 +1390,15 @@ con_maximo:
     rep #$20
 .a16
     lda #BA_BARRA_DX
-    jsr ba_ir
+    jsr bt_go
     sep #$20
 .a8
     lda #$2F                    ; the slash between the HP and their maximum
-    jsl f:ba_t_glifo
+    jsl f:bt_t_glyph
     rep #$20
 .a16
     lda #BA_HPMAX_DX
-    jsr ba_ir
+    jsr bt_go
     ldx BA_S5
     lda BA_UNO + BA_HPMAX, x
     cmp #1000
@@ -1410,23 +1410,23 @@ max_cabe:
 .a8
     lda #3
     sta comp_dup + 2
-    jsl f:ba_t_numero
+    jsl f:bt_t_number
     rts
 .endproc
 
 ; The ">" cursor at the start of line `BA_T1`.
-.proc ba_cursor
+.proc bt_cursor
 .a8
 .i16
     stz temp + 1
     rep #$20
 .a16
     lda #BA_CURSOR_DX
-    jsr ba_ir
+    jsr bt_go
     sep #$20
 .a8
     lda #$3E                    ; the cursor
-    jsl f:ba_t_glifo
+    jsl f:bt_t_glyph
     rts
 .endproc
 
@@ -1434,7 +1434,7 @@ max_cabe:
 ; is what easyrpg does when building the damage message, which sticks the
 ; number to the name without padding; `pant_numero` pads, so it has to be told
 ; the exact width.
-.proc ba_numero_justo
+.proc bt_number_exact
 .a8
 .i16
     rep #$20
@@ -1455,15 +1455,15 @@ ancho_listo:
                                 ; travels
     sta comp_dup + 2
     stz temp + 1
-    jsl f:ba_t_numero
+    jsl f:bt_t_number
     rts
 .endproc
 
 ; The name of combatant A8 wherever `eleg_tabla` says, in full.
-.proc ba_nombre
+.proc bt_name
 .a8
 .i16
-    jsr ba_x
+    jsr bt_x
     rep #$20
 .a16
     lda BA_UNO + BA_TXT, x
@@ -1473,27 +1473,27 @@ ancho_listo:
     lda #255
     sta comp_dup + 3
     stz temp + 1
-    jsl f:ba_t_texto
+    jsl f:bt_t_text
     rts
 .endproc
 
 ; A game term —X already set— wherever `eleg_tabla` says, in full.
-.proc ba_termino
+.proc bt_finished
 .a8
 .i16
     lda #255
     sta comp_dup + 3
     stz temp + 1
-    jsl f:ba_t_texto
+    jsl f:bt_t_text
     rts
 .endproc
 
 ; The message's two lines, according to `BA_MTIPO`. Victory does not go
-; through here: it goes in the party's lines, see `ba_vic_mensaje`. All the
+; through here: it goes in the party's lines, see `bt_vic_message`. All the
 ; words come from the LDB —`attacking`, `enemy_damaged`, `defeat`...— and are
 ; put together as in `game_message_terms.cpp`: the name stuck to the term, and
 ; in the damage one the number in the middle. None of them is ours.
-.proc ba_mensaje
+.proc bt_message
 .a8
 .i16
     rep #$20
@@ -1503,7 +1503,7 @@ ancho_listo:
     lda #BA_MSG_POS1
     sta BA_T1
     lda #BA_MSG_DX
-    jsr ba_ir
+    jsr bt_go
     sep #$20
 .a8
     lda BA_MTIPO
@@ -1531,30 +1531,30 @@ huyo:
 no_huyo:
     ldx #BA_TXT_NO_HUYO
 solo:
-    jsr ba_termino
+    jsr bt_finished
     rts
 defiende:
     lda BA_MQUIEN
-    jsr ba_nombre
+    jsr bt_name
     ldx #BA_TXT_DEFIENDE
-    jsr ba_termino
+    jsr bt_finished
     rts
 ataque:
     lda BA_MQUIEN
-    jsr ba_nombre
+    jsr bt_name
     ldx #BA_TXT_ATACA
-    jsr ba_termino
+    jsr bt_finished
     ; The second line: the result on the target.
     rep #$20
 .a16
     lda #BA_MSG_POS2
     sta BA_T1
     lda #BA_MSG_DX
-    jsr ba_ir
+    jsr bt_go
     sep #$20
 .a8
     lda BA_MBLA
-    jsr ba_nombre
+    jsr bt_name
     rep #$20
 .a16
     lda BA_MDANO
@@ -1566,14 +1566,14 @@ ataque:
 pego:
     ; `<name> <damage> health lost.`
     lda #$20                    ; the space between the name and the number
-    jsl f:ba_t_glifo
+    jsl f:bt_t_glyph
     rep #$20
 .a16
     lda BA_MDANO
     sta BA_T0
     sep #$20
 .a8
-    jsr ba_numero_justo
+    jsr bt_number_exact
     lda BA_MBLA
     cmp #BA_GRUPO_MAX
     bcs es_enemigo
@@ -1582,16 +1582,16 @@ pego:
 es_enemigo:
     ldx #BA_TXT_DANO_ENEMIGO
 dice:
-    jsr ba_termino
+    jsr bt_finished
     rts
 item:
     ; `<who> <item> used.`, which is
     ; `source.GetName() + " " + item.name + terms.use_item` from
     ; `GetItemStartMessage2k`.
     lda BA_MQUIEN
-    jsr ba_nombre
+    jsr bt_name
     lda #$20
-    jsl f:ba_t_glifo
+    jsl f:bt_t_glyph
     lda #255
     sta comp_dup + 3
     stz temp + 1
@@ -1606,20 +1606,20 @@ item:
     tax
     sep #$20
 .a8
-    jsl f:ba_t_texto
+    jsl f:bt_t_text
     ldx #BA_TXT_USO
-    jsr ba_termino
+    jsr bt_finished
     ; `<target> HP <n> Recovered`, which is `GetHpSpRecoveredMessage`.
     rep #$20
 .a16
     lda #BA_MSG_POS2
     sta BA_T1
     lda #BA_MSG_DX
-    jsr ba_ir
+    jsr bt_go
     sep #$20
 .a8
     lda BA_MBLA
-    jsr ba_nombre
+    jsr bt_name
     lda BA_MREVIVIO
     beq recupero
     ; Revived: `<target> has revived!`, the dead state's `message_recovery`,
@@ -1628,31 +1628,31 @@ item:
     ; the one for the states it removed —`ProcessBattleActionStateEffects`—,
     ; and of those the port only knows the dead one.
     ldx #BA_TXT_REVIVIO
-    jsr ba_termino
+    jsr bt_finished
     rts
 recupero:
     lda #$20
-    jsl f:ba_t_glifo
+    jsl f:bt_t_glyph
     ldx #BA_TXT_HP
-    jsr ba_termino
+    jsr bt_finished
     lda #$20
-    jsl f:ba_t_glifo
+    jsl f:bt_t_glyph
     rep #$20
 .a16
     lda BA_MCURA
     sta BA_T0
     sep #$20
 .a8
-    jsr ba_numero_justo
+    jsr bt_number_exact
     ldx #BA_TXT_RECUPERO
-    jsr ba_termino
+    jsr bt_finished
     rts
 habilidad:
     ; `<who><using_message1>` on top and `<using_message2>` below, which is
     ; `GetSkillFirstStartMessage2k` and its sibling. Both lines come from the
     ; LDB, like everything this screen writes.
     lda BA_MQUIEN
-    jsr ba_nombre
+    jsr bt_name
     lda #255
     sta comp_dup + 3
     stz temp + 1
@@ -1666,13 +1666,13 @@ habilidad:
     tax
     sep #$20
 .a8
-    jsl f:ba_t_texto
+    jsl f:bt_t_text
     rep #$20
 .a16
     lda #BA_MSG_POS2
     sta BA_T1
     lda #BA_MSG_DX
-    jsr ba_ir
+    jsr bt_go
     lda BA_MHAB
     and #$00FF
     asl a
@@ -1681,7 +1681,7 @@ habilidad:
     tax
     sep #$20
 .a8
-    jsr ba_termino
+    jsr bt_finished
     rts
 fallo:
     lda BA_MBLA
@@ -1692,6 +1692,6 @@ fallo:
 falla_enemigo:
     ldx #BA_TXT_SIN_DANO_ENEMIGO
 falla_dice:
-    jsr ba_termino
+    jsr bt_finished
     rts
 .endproc

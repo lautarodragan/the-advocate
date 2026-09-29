@@ -19,7 +19,7 @@
 ; Outside battle this port keeps no states, so reviving one is the `SetHp(1)`
 ; of `RemoveStates`, and the other states in `state_set` remove nothing:
 ; `was_used` is only set if the actor had the state.
-.proc medicina_usar
+.proc medicine_use
 .a8
 .i16
     phb
@@ -91,11 +91,11 @@ puede:
     ; The maximums for their current level, like `FullHeal`.
     lda MED_ACTOR
     ldy #0
-    jsl f:nivel_param
+    jsl f:level_param
     stx MED_HP_MAX
     lda MED_ACTOR
     ldy #1
-    jsl f:nivel_param
+    jsl f:level_param
     stx MED_SP_MAX
     ; `hp_change = recover_hp_rate * GetMaxHp() / 100 + recover_hp`, and the
     ; same with SP. Capped at $FFFF, which means "more than what is missing".

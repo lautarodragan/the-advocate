@@ -254,7 +254,7 @@ MSU_DATOS   = $2001             ; read: the next byte
 ; cycles, and since `MSU1_ReadStatus` does not catch up, it clears at the end
 ; of the frame in which they elapse: each seek costs one or two frames.
 ; Measured on 2026-09-26 in the droid battle playing from the title: the
-; background comes from the `.msu`, with `ESC_CUADROS` at 11 against 4 in
+; background comes from the `.msu`, with `SCN_FRAMES` at 11 against 4 in
 ; snes9x. See "Cuánto tarda" in docs/port/msu-datos.md.
 ;
 ; On the FX Pak, seeking outside its 16 KB buffer means reading the SD card

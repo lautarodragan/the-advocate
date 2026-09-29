@@ -105,8 +105,8 @@ def _pelea(tmp_path, nombre, nucleo, msu, lugar=SECTOR_27, antes=0,
     # y bsnes pasan el mismo color de 15 bits a 24 de distinta manera —98 y
     # 99—, y esta prueba corre en los dos contra la misma golden.
     imagen = una.consola.image().convert("RGB").point(lambda v: v & 0xF8)
-    limpio = una.consola.ram(en_la_wram(s["ESC_LIMPIO"]), scene.TILES * 64)
-    return (tanda.quince_bits(imagen), byte("ESC_MSU"), byte("ESC_FONDO"),
+    limpio = una.consola.ram(en_la_wram(s["SCN_CLEAN"]), scene.TILES * 64)
+    return (tanda.quince_bits(imagen), byte("SCN_MSU"), byte("SCN_BACKDROP"),
             imagen, bytes(limpio))
 
 
@@ -150,7 +150,7 @@ def test_msu_cada_camino_dibuja_su_fondo(tmp_path, nucleo):
     assert de_donde == 0, "sin MSU-1, la ROM dice que leyó el fondo del .msu"
     assert limpio == _fondo_8bpp(liviano=True), (
         "sin MSU-1 el fondo de la WRAM no es el respaldo liviano agrandado a "
-        "8bpp y al doble: `esc_llenar` o `esc_doblar` no andan")
+        "8bpp y al doble: `scn_fill` o `scn_double` no andan")
     tanda.golden("msu-datos-rom", imagen)
 
     con, de_donde, _fondo, imagen, limpio = _pelea(tmp_path, "con", nucleo,

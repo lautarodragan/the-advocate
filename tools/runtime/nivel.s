@@ -18,7 +18,7 @@
 ; A16 —less than a thousand— into three digits from 0 to 9, at
 ; `EXP_TEXTO + 5`, `+ 6` and `+ 7`. Clobbers A and X; enters and leaves with a
 ; 16-bit A.
-.proc tres_cifras
+.proc three_digits
 .a16
 .i16
     ldx #0
@@ -57,7 +57,7 @@ unidades:
 
 ; `msg_ptr` to actor A's cartridge strip, offset by X bytes: the same as bank
 ; 0's `ranura_texto_de`, for those with no slot. Clobbers A.
-.proc tira_del_cartucho
+.proc cartridge_strip
 .a8
 .i16
     rep #$20
@@ -83,7 +83,7 @@ unidades:
 .endproc
 
 ; `msg_ptr` to `EXP_TEXTO`.
-.proc apuntar_texto
+.proc point_text
 .a8
 .i16
     rep #$20
@@ -98,13 +98,13 @@ unidades:
 .endproc
 
 ; Level A8 as "%2d" in `EXP_TEXTO`: the tens digit or a space, and the units.
-.proc nivel_a_texto
+.proc level_to_text
 .a8
 .i16
     rep #$20
 .a16
     and #$00FF
-    jsr tres_cifras
+    jsr three_digits
     sep #$20
 .a8
     lda f:EXP_TEXTO + 6
@@ -122,29 +122,29 @@ decena:
 .endproc
 
 ; Actor A's current level.
-.proc texto_nivel
+.proc text_level
 .a8
 .i16
     pha
-    jsr actor_nivel_de
+    jsr actor_level_of
     cmp #$FF
     bne tiene
     pla
     ldx #RANURA_TEXTO_NIVEL
-    jmp tira_del_cartucho
+    jmp cartridge_strip
 tiene:
-    jsr nivel_a_texto
+    jsr level_to_text
     pla
-    jmp apuntar_texto
+    jmp point_text
 .endproc
 
-EXP_NIVEL_EN_SRAM = SRAM_BANCO * $10000 + SRAM_DATOS + PARTIDA_BYTES - EXP_K * 4 + EXP_NIVEL
+EXP_LEVEL_IN_SRAM = SRAM_BANCO * $10000 + SRAM_DATOS + PARTIDA_BYTES - EXP_K * 4 + EXP_NIVEL
 
 ; The level actor A had **in the saved game in slot `ranura`**, read from its
 ; SRAM: the slots screen shows each save as it was left, not as the current
 ; one is. `FAR_EXP` is the last line of `partida_tabla`, so in the slot it
 ; falls `EXP_K * 4` bytes before the end.
-.proc texto_nivel_guardado
+.proc text_level_saved
 .a8
 .i16
     pha
@@ -159,7 +159,7 @@ EXP_NIVEL_EN_SRAM = SRAM_BANCO * $10000 + SRAM_DATOS + PARTIDA_BYTES - EXP_K * 4
     bne tiene
     pla
     ldx #RANURA_TEXTO_NIVEL
-    jmp tira_del_cartucho
+    jmp cartridge_strip
 tiene:
     rep #$20
 .a16
@@ -179,33 +179,33 @@ tiene:
     pla
     sep #$20
 .a8
-    lda f:EXP_NIVEL_EN_SRAM, x
-    jsr nivel_a_texto
+    lda f:EXP_LEVEL_IN_SRAM, x
+    jsr level_to_text
     pla
-    jmp apuntar_texto
+    jmp point_text
 .endproc
 
 ; The maximum HP for actor A's current level, as "/%d" padded to
 ; `MENU_MAX_CIFRAS` with spaces: `titulo.texto_de_maximo`.
-.proc texto_maximo
+.proc text_max
 .a8
 .i16
     pha
-    jsr actor_nivel_de
+    jsr actor_level_of
     cmp #$FF
     bne tiene
     pla
     ldx #RANURA_TEXTO_MAX
-    jmp tira_del_cartucho
+    jmp cartridge_strip
 tiene:
     pla
     phy
     ldy #0
-    jsl f:nivel_param
+    jsl f:level_param
     rep #$20
 .a16
     txa
-    jsr tres_cifras
+    jsr three_digits
     sep #$20
 .a8
     ldx #0
@@ -240,7 +240,7 @@ relleno:
     bra relleno
 completo:
     ply
-    jmp apuntar_texto
+    jmp point_text
 .endproc
 
 ; An actor's current HP, in its row of the party panel: three right-aligned
@@ -259,13 +259,13 @@ completo:
 ; drawn two pixels from the top edge of their cell. `titulo._pegar_hp` is the
 ; reference, with the same columns.
 ;
-; It lives outside bank 0 for the same reason as `hp_inicial_poner`: there are
+; It lives outside bank 0 for the same reason as `hp_initial_set`: there are
 ; tens of bytes left there and this is over a hundred. It is entered with
 ; `jsl` and with the data bank at 0 —the menu runs that way— but it sets it
 ; anyway, because everything it touches —`temp`, the `TABLAS` tables and the
 ; PPU registers— is bank 0 absolute, and depending on the caller for that has
 ; already cost one bug in this repo.
-.proc menu_hp_escribir
+.proc menu_hp_write
 .a8
 .i16
     phb
@@ -367,7 +367,7 @@ listo:
 ; actor with no slot answers $FF, and the one asking knows that for that actor
 ; the cartridge's value holds, which is its starting level forever. Clobbers
 ; X; reads with `f:`, so the data bank does not matter.
-.proc actor_nivel_de
+.proc actor_level_of
 .a8
 .i16
     rep #$20
@@ -406,7 +406,7 @@ listo:
 ; An actor with no experience slot —one that cannot join the party— never
 ; levels up, and its values come from the tables for its initial level, which
 ; are the usual ones.
-.proc nivel_param
+.proc level_param
 .a8
 .i16
     rep #$20
@@ -503,7 +503,7 @@ listo:
 ; reason: a skill costs its `sp_cost`. It is two identical DMAs and not a loop
 ; because writing it twice costs less than a loop with a table, and this lives
 ; in RODATA, where the cartridge has room to spare.
-.proc hp_inicial_poner
+.proc hp_initial_set
 .a8
 .i16
     rep #$20
@@ -582,19 +582,19 @@ listo:
 ; equipment's states: here there is none of that to clear, because outside
 ; battle states do not exist —the battle builds them and throws them away—
 ; and a fallen actor is just an actor with zero HP, so filling them already
-; revives it. With an amount it is `ChangeHP`; see `curar_actor`.
+; revives it. With an amount it is `ChangeHP`; see `heal_actor`.
 ;
 ; Entered from `op_heal` with Y on the operand: the actor, or 0 for the whole
 ; party —the `GetActors` of `game_interpreter.cpp:1539`, see `actor_de_blanco`
 ; in eventos.py— and the amount, 16 bits. Returns with Y after it. It lives
-; **outside bank 0** for the same reason as `hp_inicial_poner`, and that is
+; **outside bank 0** for the same reason as `hp_initial_set`, and that is
 ; why everything it touches goes with `f:` or is in the direct page. Clobbers
 ; A, X and `temp`.
 ;
-; It does not reuse `hp_inicial_poner` on purpose: that one fills all 61
+; It does not reuse `hp_initial_set` on purpose: that one fills all 61
 ; actors at once, and `FullHeal [0, 0]` is the party and nobody else.
 ; `test_full_heal_del_grupo_no_cura_a_los_de_afuera` catches it.
-.proc curar
+.proc heal
 .a8
 .i16
     lda [cod_ptr], y            ; the actor
@@ -620,7 +620,7 @@ ranura:
     bcs listo
     lda grupo, x
     phx
-    jsr curar_actor
+    jsr heal_actor
     plx
     inx
     bra ranura
@@ -628,7 +628,7 @@ listo:
     ply
     rtl
 uno:
-    jsr curar_actor
+    jsr heal_actor
     ply
     rtl
 .endproc
@@ -641,19 +641,19 @@ uno:
 ; battle is the same— and whatever goes past the maximum is capped, which is
 ; the `SetHp` inside. Not the SP.
 ;
-; The maximums are those of its current level, `nivel_param`, and they live on
+; The maximums are those of its current level, `level_param`, and they live on
 ; the stack meanwhile: `temp` is the amount and `temp + 2` the actor from
-; `curar`.
-.proc curar_actor
+; `heal`.
+.proc heal_actor
 .a8
 .i16
     pha                         ; the actor
     ldy #0
-    jsl f:nivel_param
+    jsl f:level_param
     phx                         ; the maximum HP
     lda 3, s
     ldy #1
-    jsl f:nivel_param
+    jsl f:level_param
     phx                         ; and the SP: stack = SP, HP, actor
     lda 5, s
     rep #$20
@@ -696,8 +696,8 @@ listo:
 ; was, so whoever hands it out can add it to several.
 ;
 ; And for each level gained, `LearnLevelSkills` for that level: see
-; `aprender_del_nivel`.
-.proc exp_sumar
+; `learn_from_level`.
+.proc exp_add
 .a8
 .i16
     rep #$20
@@ -803,7 +803,7 @@ sube:
     lda FAR_EXP + EXP_NIVEL, x
     ply                         ; the actor, without taking it off the stack
     phy
-    jsr aprender_del_nivel
+    jsr learn_from_level
     bra subir
 listo:
     plx
@@ -817,7 +817,7 @@ listo:
 ; is taught at a level just reached, as in RM2k. Runs in battle, but
 ; everything it touches goes with `f:` or through the stack. Clobbers A, X
 ; and Y.
-.proc aprender_del_nivel
+.proc learn_from_level
 .a8
 .i16
     pha                         ; the level

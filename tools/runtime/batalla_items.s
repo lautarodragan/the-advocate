@@ -9,7 +9,7 @@
 ; which is the model `rom/pruebas/rpgmaker/test_batalla.py` uses to predict
 ; the exact HP; the converter emits the result in `item_batalla`,
 ; `item_cura_rate`, `item_cura_hp` and `item_medicina`, which is the same one
-; `medicina_usar` uses.
+; `medicine_use` uses.
 ;
 ; All of this runs with the data bank at $7E, so **the inventory is read with
 ; absolute addressing**: `FAR_ITEMS` lives in that bank and in it the
@@ -18,7 +18,7 @@
 ; The list of what can be used: one `k` per byte in `BA_ITEM_LISTA` and how
 ; many in `BA_ITEM_N`. It walks the items the ROM knows in the converter's
 ; order, which is RM2k's number order, like `Game_Party`.
-.proc ba_items_lista
+.proc bt_items_list
 .a8
 .i16
     lda #0
@@ -29,7 +29,7 @@ otro:
     cmp #ITEMS_ROM
     bcs listo
     lda BA_S0
-    jsr ba_ax
+    jsr bt_ax
     lda f:item_batalla, x
     beq siguiente
     lda BA_S0
@@ -45,7 +45,7 @@ otro:
     lda FAR_ITEMS, x            ; how many there are in the inventory
     beq siguiente
     lda BA_ITEM_N
-    jsr ba_ax
+    jsr bt_ax
     lda BA_S0
     sta BA_ITEM_LISTA, x
     inc BA_ITEM_N
@@ -60,10 +60,10 @@ listo:
 .endproc
 
 ; The `k` at place A of the list. Only A and X.
-.proc ba_item_de_lista
+.proc bt_item_from_list
 .a8
 .i16
-    jsr ba_ax
+    jsr bt_ax
     lda BA_ITEM_LISTA, x
     rts
 .endproc
@@ -71,7 +71,7 @@ listo:
 ; One less in the inventory of the `k` in A. It is what RM2k does when it is
 ; chosen and not when it is used: otherwise the last one of an item could be
 ; handed out to two actors in the same turn.
-.proc ba_item_gastar
+.proc bt_item_consume
 .a8
 .i16
     rep #$20
@@ -99,12 +99,12 @@ listo:
 ; capped against what the target is missing, which is easyrpg's `ChangeHp`.
 ; The product fits in a word because the converter stops if any actor has
 ; more than 655 HP.
-.proc ba_item_cura
+.proc bt_item_heal
 .a8
 .i16
     sta BA_S3                   ; the `k`
     lda BA_MBLA
-    jsr ba_x
+    jsr bt_x
     rep #$20
 .a16
     txa
@@ -112,18 +112,18 @@ listo:
     sep #$20
 .a8
     lda BA_S3
-    jsr ba_ax
+    jsr bt_ax
     lda f:item_cura_rate, x
     sta BA_T2                   ; the product's byte
     ldx BA_S4
     rep #$20
 .a16
     lda BA_UNO + BA_HPMAX, x
-    jsr ba_mul                  ; rate * hp_max, in a word
+    jsr bt_mul                  ; rate * hp_max, in a word
     sta temp
     lda #100
     sta temp + 2
-    jsr ba_div
+    jsr bt_div
     sta BA_S5
     lda BA_S3
     and #$00FF
@@ -158,13 +158,13 @@ topado:
 ; existed: spending a potion on a dead actor is not something anybody wants
 ; to do. If it is of use to nobody —an elixir with everyone standing—, A does
 ; not get past the list, like an empty command. It clobbers `BA_S0` and X.
-.proc ba_item_sirve_sobre
+.proc bt_item_usable_on
 .a8
 .i16
     sta BA_S0
     cmp BA_NACT
     bcs no
-    jsr ba_x
+    jsr bt_x
     lda BA_UNO + BA_FLAGS, x
     and #BAF_HAY
     beq no
@@ -175,8 +175,8 @@ topado:
 .a8
     beq caido
     lda BA_ITEM_SEL
-    jsr ba_item_de_lista
-    jsr ba_ax
+    jsr bt_item_from_list
+    jsr bt_ax
     lda f:item_medicina, x
     and #MED_KO_ONLY
     beq si
@@ -185,8 +185,8 @@ no:
     rts
 caido:
     lda BA_ITEM_SEL
-    jsr ba_item_de_lista
-    jsr ba_ax
+    jsr bt_item_from_list
+    jsr bt_ax
     lda f:item_medicina, x
     and #MED_LEVANTA
     beq no
@@ -205,28 +205,28 @@ si:
 ; It is `batalla.efecto_de_item`, branch by branch:
 ;
 ; * standing and `ko_only`: nothing, `SetIsSuccess` with no effect;
-; * standing: the heal from `ba_item_cura`;
+; * standing: the heal from `bt_item_heal`;
 ; * fallen and the item does not remove death: nothing, because
 ;   `ApplyHpEffect` does not touch a dead actor;
 ; * fallen and it removes it: the `SetHp(1)` of `RemoveStates` and then the
 ;   `ChangeHp(hp - 1)` of `ApplyStateEffect`, that is `max(1, heal)` with the
 ;   heal capped against the whole maximum. It is the same thing
-;   `medicina_usar` does from the menu.
+;   `medicine_use` does from the menu.
 ;
 ; `BA_MREVIVIO` tells the message which of the two lines below goes.
-.proc ba_item_usar
+.proc bt_item_use
 .a8
 .i16
     stz BA_MREVIVIO
     lda BA_MQUIEN
-    jsr ba_ax
+    jsr bt_ax
     lda BA_ACC_ITEM, x
     sta BA_MITEM
-    jsr ba_ax
+    jsr bt_ax
     lda f:item_medicina, x
     sta BA_S2                   ; its flags
     lda BA_MBLA
-    jsr ba_x
+    jsr bt_x
     rep #$20
 .a16
     lda BA_UNO + BA_HP, x
@@ -237,10 +237,10 @@ si:
     and #MED_KO_ONLY
     bne nada
     lda BA_MITEM
-    jsr ba_item_cura
+    jsr bt_item_heal
 .a16
     sta BA_MCURA
-    ldx BA_S4                   ; the target's offset, from `ba_item_cura`
+    ldx BA_S4                   ; the target's offset, from `bt_item_heal`
     lda BA_UNO + BA_HP, x
     clc
     adc BA_MCURA
@@ -254,7 +254,7 @@ caido:
     and #MED_LEVANTA
     beq nada
     lda BA_MITEM
-    jsr ba_item_cura            ; with zero HP, the cap is the whole maximum
+    jsr bt_item_heal            ; with zero HP, the cap is the whole maximum
 .a16
     cmp #0
     bne levanta

@@ -451,7 +451,7 @@ sin_decenas:
 .a8
 .i16
     lda #0
-fila:
+row:
     pha
     clc
     adc eleg_sel
@@ -464,7 +464,7 @@ fila:
     pla
     inc a
     cmp #ITEM_FILAS
-    bcc fila
+    bcc row
     rts
 termina:
     pla
@@ -561,7 +561,7 @@ mira_a:
     ; `SetIndex(min(index, item_max - 1))` over there, and the view follows it.
     jsr items_armar_lista
     lda eleg_n
-    beq vacia
+    beq empty
     lda titulo_sel
     cmp eleg_n
     bcc cursor_listo
@@ -569,7 +569,7 @@ mira_a:
     dec a
     sta titulo_sel
     bra cursor_listo
-vacia:
+empty:
     stz titulo_sel
 cursor_listo:
     lda titulo_sel

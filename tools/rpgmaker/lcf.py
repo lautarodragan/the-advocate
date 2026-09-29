@@ -539,7 +539,7 @@ class Item:
     outside battle" and `ko_only` "only on a dead one". `state_set` are the
     states it removes, one per LDB state from 1, which is the dead one: it is
     what decides whether it revives a fallen one. See
-    `battle.item_usable_in_battle` and `medicina_usar` in
+    `battle.item_usable_in_battle` and `medicine_use` in
     tools/runtime/medicina.s.
     """
 

@@ -52,7 +52,7 @@
 ; there and only there —see the end of `flush_video`—. The OAM is built once
 ; before, because the one in the PPU is the battle's; it is the same thing
 ; `cargar_lo_pedido` does.
-.proc pelea_fundir_al_mapa
+.proc battle_fade_to_map
 .a8
 .i16
     jsr build_oam
@@ -79,7 +79,7 @@ subir:
 ; The two flashes and the map down to black. From `battle_start`, with the
 ; map on screen. It leaves the screen on with brightness zero: the load that
 ; follows does not write VRAM.
-.proc pelea_fundir_entrando
+.proc battle_fade_in
 .a8
 .i16
     ; Nothing has been turned on yet. It is cleared here and we do not trust
@@ -98,8 +98,8 @@ subir:
 otro_destello:
     ldx #0
 destello:
-    jsl f:ba_t_vblank           ; `wait_vblank`: touches neither X nor Y
-    lda f:destello_de_pelea, x
+    jsl f:bt_t_vblank           ; `wait_vblank`: touches neither X nor Y
+    lda f:battle_flash, x
     sta f:COLDATA
     inx
     cpx #10
@@ -111,7 +111,7 @@ destello:
     ; frame on the brightness that was already there.
     ldx #(FUNDIDO_RAMPA - 2)
 bajar:
-    jsl f:ba_t_vblank
+    jsl f:bt_t_vblank
     lda #$30
     sta f:CGWSEL                ; color math off, as `ppu_reset` leaves it
     lda #0
@@ -129,7 +129,7 @@ bajar:
 ; channels on. It is `Flash::Update`'s curve: the level starts at 31 and on
 ; each frame loses `level / frames_left`, that is 31 * (10 - k) / 10,
 ; truncated as easyrpg truncates it when making the color.
-destello_de_pelea:
+battle_flash:
     .byte $E0|31, $E0|27, $E0|24, $E0|21, $E0|18
     .byte $E0|15, $E0|12, $E0|9,  $E0|6,  $E0|3
 
@@ -137,8 +137,8 @@ destello_de_pelea:
 ; battle already over and still on screen. If the battle never turned
 ; anything on —a troop the cartridge does not carry, or a party with nobody
 ; standing, which loses without fighting— the screen is already black since
-; `pelea_fundir_entrando` and there is nothing to turn off.
-.proc pelea_fundir_saliendo
+; `battle_fade_in` and there is nothing to turn off.
+.proc battle_fade_out
 .a8
 .i16
     lda f:PELEA_PRENDIDA
@@ -147,7 +147,7 @@ destello_de_pelea:
     sta f:PELEA_PRENDIDA
     ldx #(FUNDIDO_RAMPA - 2)
 bajar:
-    jsl f:ba_t_vblank
+    jsl f:bt_t_vblank
     lda f:fundido_rampa, x
     sta f:INIDISP
     eor #$0F                    ; the mosaic, tied to brightness: see above
@@ -165,16 +165,16 @@ listo:
     rtl
 .endproc
 
-; The battle from black, in a mosaic. From `batalla_correr`, with the scene
+; The battle from black, in a mosaic. From `battle_run`, with the scene
 ; already uploaded and the screen on at brightness zero.
-.proc pelea_fundir_mostrando
+.proc battle_fade_showing
 .a8
 .i16
     lda #1
     sta f:PELEA_PRENDIDA
     ldx #0
 subir:
-    jsl f:ba_t_vblank           ; `wait_vblank`, which does not touch X
+    jsl f:bt_t_vblank           ; `wait_vblank`, which does not touch X
     lda f:fundido_rampa, x
     sta f:INIDISP
     eor #$0F

@@ -158,7 +158,7 @@ ENC_UMB   = $79C0
 ; branches: the map above ends at the battle, which does not go past $3CFF.
 FAR_EXP     = $6200
 EXP_NIVEL   = 3             ; the level, the fourth byte
-; And, at the end of the same place, eight bytes where `texto_nivel` and its
+; And, at the end of the same place, eight bytes where `text_level` and its
 ; siblings compose the level and the maximum the menu writes: they are
 ; numbers from the save and no longer strips from the cartridge. The slots
 ; reach 128 before stepping on them, and the converter stops much earlier:
@@ -197,7 +197,7 @@ BA_PAG_ESPERA = $7A12           ; word: frames left in the wait of the
                                 ; running page
 BA_PCT_MIN    = $7A14           ; the HP range, in percent, that is checked
 BA_PCT_MAX    = $7A15
-BA_P24        = $7A16           ; three bytes: what `ba_mul24` leaves
+BA_P24        = $7A16           ; three bytes: what `bt_mul24` leaves
 BA_P_HP       = $7A19           ; three bytes: a hundred times the HP checked
 BA_PAG_FL     = $7A1C           ; the triggers of the page being tested
 ; And its header, copied from in front of its code: `eventos.cabecera_de_tropa`,
@@ -218,7 +218,7 @@ BA_COND_AMAX  = 9
 ; $6800 to $68FF belongs to this, reserved on 2026-09-21 when splitting.
 ; **It does not travel in the save**: it lasts as long as one A press in the
 ; actor choice. It is named with a sixteen-bit address because
-; `medicina_usar` runs with the data bank at $7E.
+; `medicine_use` runs with the data bank at $7E.
 FAR_MED       = $6800
 MED_ACTOR     = FAR_MED + 0     ; the actor, by LDB number
 MED_BANDERAS  = FAR_MED + 1     ; the item's `item_medicina` bits
@@ -231,14 +231,14 @@ MED_SP        = FAR_MED + 11    ; word: the `sp_change`
 MED_P         = FAR_MED + 13    ; four bytes: the product, and the quotient
 MED_R         = FAR_MED + 17    ; word: the remainder
 MED_ID        = FAR_MED + 19    ; word: the item's RM2k number
-; The `item_medicina` bits, which the converter emits. `medicina_usar` writes
+; The `item_medicina` bits, which the converter emits. `medicine_use` writes
 ; them by number; the battle, which reads them since 2026-09-26, by name.
 MED_KO_ONLY   = $01             ; only on a fallen one
 MED_LEVANTA   = $02             ; removes the dead state: revives the fallen one
 
 ; What `par_ev` holds while a troop page runs: neither the foreground ($FF)
 ; nor a map event, which are fewer than EV_MAX. It is what tells
-; `op_message` that the message belongs to the battle. See `ba_t_pagina`.
+; `op_message` that the message belongs to the battle. See `bt_t_page`.
 PAR_PELEA = $FE
 .assert EV_MAX < PAR_PELEA, error, "PAR_PELEA must not be an event"
 
@@ -297,7 +297,7 @@ BA_CONMAX  = FAR_BATALLA + 40
 BA_TEMA_ANT = FAR_BATALLA + 41
 BA_SE2      = FAR_BATALLA + 42     ; word
 ; Whether there is a scene in BG1 —0— or this battle goes on black —$FF—: no
-; background and no battler. See `escena_subir`.
+; background and no battler. See `scene_upload`.
 BA_ESCENA   = FAR_BATALLA + 44
 ; And at which place in `tropa_id` this battle's troop landed, which is what
 ; `escena_tropa_fondo` indexes. $FF: the cartridge does not carry it.
@@ -350,7 +350,7 @@ BA_COMB_MAX = BA_GRUPO_MAX + BA_ENEMIGOS_MAX
 ; It was 18 until 2026-09-13, which is when the SP came in along with the
 ; four parameter modifiers that two of the party's seven skills move. 40 is
 ; also convenient: the offset comes out of five `asl` and an addition, see
-; `ba_x`.
+; `bt_x`.
 BA_BYTES  = 40
 BA_HP     = 0               ; word
 BA_HPMAX  = 2
@@ -358,7 +358,7 @@ BA_HPMAX  = 2
 ; game_battler.cpp's `AdjustParam`: `clamp(base + modifier, 1, 999)`. The
 ; base and the modifier live further down and are stored whole because a
 ; modifier that survives the clamp cannot be recovered from the subtraction;
-; `ba_mod` recomputes them.
+; `bt_mod` recomputes them.
 BA_ATK    = 4
 BA_DEF    = 6
 BA_AGI    = 8
@@ -384,10 +384,10 @@ BAF_ACTOR = $02             ; it belongs to the party
 BAF_HAY   = $04             ; the slot is taken
 ; A hidden enemy —`invisible` in the troop— takes its place but **does not
 ; have `BAF_HAY`**: that way everything that looks at who is there
-; —`ba_vivo`, and with it the target, the actions, the victory and the
+; —`bt_alive`, and with it the target, the actions, the victory and the
 ; scene— skips it without knowing anything about hidden ones, which is what
 ; `Exists()` does in easyrpg. `ShowHiddenMonster` swaps one bit for the
-; other: see `ba_mostrar_oculto`.
+; other: see `bt_show_hidden`.
 BAF_OCULTO = $08
 
 ; The three results and the three commands, in the order of `tools/port/battle.py`.
@@ -460,7 +460,7 @@ BA_ALCANCE_UNO      = 2
 BA_ALCANCE_ALIADO   = 3
 BA_ALCANCE_GRUPO    = 4
 ; An enemy action that is not a skill: the basic attack, in `eacc_hab`, and
-; what `ba_accion_enemiga` answers when it has none left. See
+; what `bt_enemy_action` answers when it has none left. See
 ; `batalla.accion_del_enemigo`.
 BA_EACC_ATACAR = $FF
 BA_EACC_NADA   = $FE
@@ -677,8 +677,8 @@ FUNDIDO_ANTES = $7E7862          ; word
 ;
 ; The 2 KB of the frame the vblank uploads to the box. The cartridge does not
 ; store them whole —only the tiles that are not all zero, see
-; `cuadro_sin_vacios` in snes_convert.py— and `anim_cuadro_armar` rebuilds
-; them here, outside the vblank. The DMA in `animacion_dibujo_dma` comes from
+; `cuadro_sin_vacios` in snes_convert.py— and `anim_frame_build` rebuilds
+; them here, outside the vblank. The DMA in `anim_drawing_dma` comes from
 ; here and not from the cartridge.
 ;
 ; $7000 to $77FF belongs to this, reserved on 2026-09-26. **It does not
@@ -694,7 +694,7 @@ ANIMB_BUF = $7E7000
 ;   $7F0000  the load buffer: each tile block is decompressed here and
 ;            uploaded to VRAM with the same DMA as before. It is valid only
 ;            while loading; the battle scene uses all of bank $7F —see
-;            `ESC_LIMPIO`—, and nothing here has to outlive it
+;            `SCN_CLEAN`—, and nothing here has to outlive it
 ;   $7F6000  the drawings of the map's ChipSet animation, which `anim_subir`
 ;            uploads every time the clock changes: **they live as long as
 ;            one is on the map**, and that is why they go above the buffer
@@ -712,7 +712,7 @@ LZ2_BANCO      = $7E7804        ; the output bank
 ; $7E7810 to $7E781F, reserved on 2026-09-26: the "N EXP" and "Level up!"
 ; pages of `batalla_victoria.s`. Like `FAR_BATALLA`, they are named with a
 ; sixteen-bit address because the battle reads them, with the data bank at
-; $7E. `ba_vic_empezar` writes all of them on winning and nobody reads them
+; $7E. `bt_vic_start` writes all of them on winning and nobody reads them
 ; before, so there is no need to set them to anything at startup.
 BA_VIC        = $7810
 BA_VIC_ACTOR  = BA_VIC + 0      ; whose page it is, or $FF the first
@@ -730,7 +730,7 @@ BA_VIC_FIN    = BA_VIC + 8
 ;
 ; $7E79E0 to $7E79FF, reserved on 2026-09-27: the items the victory won, so
 ; its page can list them. Like `BA_VIC`, with a sixteen-bit address, and
-; `ba_vic_botin` writes them on winning before anyone reads them.
+; `bt_vic_drop` writes them on winning before anyone reads them.
 BA_BOTIN      = $79E0
 BA_BOTIN_N    = BA_BOTIN + 0    ; how many
 BA_BOTIN_K    = BA_BOTIN + 1    ; the `k` of each one, in troop order:
@@ -839,12 +839,12 @@ TEMA_RECORDADO = $7E7940
 ; --- the weapons' SP, and the target of multi-target skills -----------------
 ;
 ; $7E7960 to $7E797F, reserved on 2026-09-27 for Lashe City milestone 4.
-; `ba_armar` builds it at the start of each battle, so it does not travel in
+; `bt_build` builds it at the start of each battle, so it does not travel in
 ; the save and there is no need to set it on reset.
 BA_ARMA_SP = $7E7960            ; BA_GRUPO_MAX bytes: what attacking costs
                                 ; each party place, `batalla.sp_del_arma`
 BA_HAB_I   = $7E7964            ; which combatant a multi-target skill is on:
-                                ; `ba_hab_usar` calls `ba_hab_uno` for each
+                                ; `bt_skill_use` calls `bt_skill_one` for each
                                 ; one, and that one clobbers the `BA_S*`
 .assert BA_HAB_I < $7E7980, error, "milestone 4 overflows its range in far RAM"
 
@@ -876,7 +876,7 @@ GO_CUADROS = $7E7A34            ; how many frames each fade level lasts
 ; in workflow/decisiones/la-grilla-vive-en-la-wram.md;
 ; `test_reservas_de_la_wram.py` fails if another symbol lands inside.
 ;
-; It shares the $7F half with `ESC_ESCENA`: the battle overwrites it, and
+; It shares the $7F half with `SCN_SCENE`: the battle overwrites it, and
 ; `volver_de_batalla` decompresses the whole grid again.
 GRILLA      = $7E8000
 GRILLA_FIN  = $7F0000

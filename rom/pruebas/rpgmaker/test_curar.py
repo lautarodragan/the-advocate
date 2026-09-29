@@ -6,7 +6,7 @@ pierde por diseño, y su manejador de derrota llama a `FullHeal`. Ése
 **compilaba a nada** desde `ced9464`, de cuando los HP no bajaban nunca fuera
 de pelea; al día siguiente `9527063` los hizo estado y nadie volvió a mirarlo.
 Así que Talan seguía en cero, el primer encuentro al azar se daba por perdido
-sin abrirse —"nadie en pie", `batalla_correr`— y `move_hero` volvía al título.
+sin abrirse —"nadie en pie", `battle_run`— y `move_hero` volvía al título.
 La demo no pasaba de ahí.
 
 Ninguna prueba corría un `FullHeal` después de perder, que es exactamente lo
@@ -52,7 +52,7 @@ def test_full_heal_del_grupo_no_cura_a_los_de_afuera(partida):
     """`GetActors(0, …)` es el grupo y nadie más: uno de afuera sigue en cero.
 
     Sin esto, una ROM que llenara a los 61 actores —que es lo que hace
-    `hp_inicial_poner`, y reusarla era la tentación— pasaría la de arriba.
+    `hp_initial_set`, y reusarla era la tentación— pasaría la de arriba.
     """
     una = perdida_y_curada(partida)
     afuera = [a for a in range(1, 13) if a not in grupo_de(una)]
@@ -68,7 +68,7 @@ def test_el_encuentro_de_despues_no_reinicia(partida):
     2026-09-28, pasando por la pantalla de Game Over, que no reinicia hasta
     que se aprieta: por eso se miran las dos cosas—.
 
-    `ENC_PIDE` es lo que `encuentro_paso` prende cuando sale uno; se lo prende
+    `ENC_PIDE` es lo que `encounter_step` prende cuando sale uno; se lo prende
     a mano para no depender de caminar ni de un tiro de dado. Visto en rojo
     antes del arreglo: la ROM se reiniciaba a los pocos cuadros.
     """

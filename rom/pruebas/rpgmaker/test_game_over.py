@@ -17,8 +17,8 @@ demás es estado: que la ROM espere la tecla, se reinicie y vuelva a correr.
 Sin estas pruebas, el `jml reset` sería exactamente lo que AGENTS.md llama "un
 camino que ninguna prueba ejecuta".
 
-**Cómo se pierde sin pelear**: con todo el grupo en cero HP, `batalla_correr`
-contesta derrota antes de abrir la pantalla —el `ba_actor_siguiente` que
+**Cómo se pierde sin pelear**: con todo el grupo en cero HP, `battle_run`
+contesta derrota antes de abrir la pantalla —el `bt_next_actor` que
 devuelve $FF, "nadie en pie: se pierde sin pelear"—. Así la prueba no depende
 de ningún tiro de dado.
 
@@ -210,7 +210,7 @@ def test_el_game_over_vuelve_al_juego(partida):
 #
 # Lo que eso deja puesto es lo que taro reportó jugando: el grupo vuelve al
 # mapa con todos en cero HP, `modo_fin` los guarda así en `FAR_HP`, y de ahí en
-# más **cada pelea se pierde sola antes de abrirse**, porque `batalla_correr`
+# más **cada pelea se pierde sola antes de abrirse**, porque `battle_run`
 # contesta derrota con nadie en pie. O sea que los tres síntomas —no hay Game
 # Over, el grupo queda en cero, y toda pelea siguiente se pierde— son este solo
 # defecto.

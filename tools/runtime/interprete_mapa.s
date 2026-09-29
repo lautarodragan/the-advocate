@@ -195,10 +195,10 @@ terreno_puesto:
 
 .endproc
 
-; `ChangeEncounterSteps`: only the entry point. The body is `encuentro_pasos`,
+; `ChangeEncounterSteps`: only the entry point. The body is `encounter_steps`,
 ; outside bank 0, which reads its operands and advances the cursor itself.
 .proc op_encounter_steps
-    jsl f:encuentro_pasos
+    jsl f:encounter_steps
     jmp run_code::otro
 
 .endproc

@@ -3,13 +3,13 @@
 ; --- equipment and skills from an event -------------------------------------
 ;
 ; The bodies of OP_EQUIPMENT and OP_SKILL, and what the "knows the skill"
-; branch asks. They live here for the same reason as `curar`: they are entered
+; branch asks. They live here for the same reason as `heal`: they are entered
 ; with `jsl` from the interpreter, with Y on the operand and **the bytecode's
 ; data bank**, so everything they touch goes through `f:` or is on the direct
 ; page.
 
 ; `ChangeEquipment` that removes what is in a slot: the actor —or 0 for the
-; whole party, as in `curar`— and the slot, 0 to 4. Returns with Y past it.
+; whole party, as in `heal`— and the slot, 0 to 4. Returns with Y past it.
 ; Clobbers A, X and `temp`.
 .proc equipment_remove
 .a8
@@ -23,7 +23,7 @@
     phy
     lda temp + 2
     bne uno
-    ; Up to `grupo_n`: see `curar`, which took the same care.
+    ; Up to `grupo_n`: see `heal`, which took the same care.
     ldx #0
 ranura:
     cpx grupo_n
@@ -227,7 +227,7 @@ hay:
     lda #$FF
     sta par_ev                  ; neither a map's parallel event nor a
                                 ; battle page
-    jsl f:correr_codigo_largo
+    jsl f:run_code_long
     pla
     sta par_ev
     pla

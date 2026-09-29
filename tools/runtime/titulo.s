@@ -11,8 +11,8 @@
 ; palettes of sixteen because the sprites need their own; here there are no
 ; sprites.
 ;
-; The image comes compressed, and `pantalla_subir` uploads it, the same routine
-; as the Game Over one: the tiles from $0000 and its tilemap at PANTALLA_MAPA.
+; The image comes compressed, and `screen_upload` uploads it, the same routine
+; as the Game Over one: the tiles from $0000 and its tilemap at SCREEN_MAP.
 ; The VRAM layout is in mapdata.inc, next to TITULO_MENU_VRAM. On the way out,
 ; `cargar_mapa` restores the bases and overwrites everything.
 ;
@@ -59,14 +59,14 @@ mudo:
     stz HDMAEN                  ; without the message window on top
 
     ; --- the image, with all of CGRAM ---
-    ; `pantalla_subir` uploads it, the Game Over one: the tiles from $0000,
-    ; the tilemap at PANTALLA_MAPA and the colors —the menu's below and the
+    ; `screen_upload` uploads it, the Game Over one: the tiles from $0000,
+    ; the tilemap at SCREEN_MAP and the colors —the menu's below and the
     ; image's above, in the same stream: see tools/port/fullscreen.py—.
     ; It leaves the screen off, BG1 in mode 3, and TM, the window and color
     ; math at zero.
     ;
     ; **It does not decompress it**: the boot did that, while waiting out its
-    ; BOOT_CUADROS, and `PANTALLA_BUFFER` has held it since. Decompressing it
+    ; BOOT_CUADROS, and `SCREEN_BUFFER` has held it since. Decompressing it
     ; here is nine more frames of black before the title, and another nine
     ; when coming back from the slot screen —measured on 2026-09-28—. It works
     ; because nothing that runs on the title writes bank $7F: not its loop,
@@ -76,13 +76,13 @@ mudo:
     ; rebuilds them.
 .ifdef ::PANTALLA_TITULO        ; no title screen, no row
     ldx #(PANTALLA_TITULO * PANTALLA_FILA)
-    jsl f:pantalla_subir
+    jsl f:screen_upload
 .endif
 
     ; --- the menu tiles ---
     ; They go on BG2, which in mode 3 has four bits per pixel, so they cost
     ; half. Tile 0 is transparent and covers almost the whole screen: it is
-    ; what lets the image below show. `VMAIN` is the one `pantalla_subir` left.
+    ; what lets the image below show. `VMAIN` is the one `screen_upload` left.
     rep #$20
 .a16
     lda #TITULO_MENU_VRAM
@@ -107,7 +107,7 @@ mudo:
     lda #(TITULO_MENU_MAP / 1024 * 4)
     sta BG2SC                   ; 32x32 tilemap: the two low bits at zero
     ; The two tile bases, in steps of 4096 words: BG1 in the low nibble —at
-    ; zero, where `pantalla_subir` put the image— and BG2 in the high one.
+    ; zero, where `screen_upload` put the image— and BG2 in the high one.
     lda #(TITULO_MENU_VRAM / 4096 * 16)
     sta BG12NBA
     stz BG2HOFS
@@ -127,11 +127,11 @@ mudo:
     sta INIDISP                 ; and the screen on, at full brightness
     rts
 .endproc
-; What `pantalla_subir` puts in VRAM must not overwrite the menu's: the image's
+; What `screen_upload` puts in VRAM must not overwrite the menu's: the image's
 ; tiles, at 32 words each, go below the menu's tilemap, and the menu's tiles,
 ; at 16, end before the image's tilemap.
 .assert TITULO_TILES * 32 <= TITULO_MENU_MAP, error, "the title tiles overwrite the menu tilemap"
-.assert TITULO_MENU_VRAM + TITULO_MENU_TILES * 16 <= PANTALLA_MAPA, error, "the title menu tiles overwrite the image tilemap"
+.assert TITULO_MENU_VRAM + TITULO_MENU_TILES * 16 <= SCREEN_MAP, error, "the title menu tiles overwrite the image tilemap"
 
 ; The menu loop. Up and down move the cursor on the **edge** and wrap around,
 ; the same as `choice_tick` with ShowChoice: it is RM2k's

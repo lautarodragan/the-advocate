@@ -25,7 +25,7 @@
 ;
 ; `titulo_sel` is the highlighted command while it is shown: the menu puts it
 ; back on End Game on return, as it does with the other screens.
-.proc fin_pantalla
+.proc ending_screen
 .a8
 .i16
     phb
@@ -89,7 +89,7 @@
     lda #$01
     sta DMAP0
     sta MDMAEN
-    jsr fin_paleta
+    jsr ending_palette
 
     ; --- the PPU: BG2 alone, like `ranura_ppu_prender` ---
     lda #(RANURA_MAP / 1024 * 4)
@@ -107,8 +107,8 @@
     sta INIDISP
 
 espera:
-    jsl f:ba_t_vblank
-    jsl f:ba_t_pad
+    jsl f:bt_t_vblank
+    jsl f:bt_t_pad
     ; Up and down switch commands, and with two it does not matter which: there
     ; is no cap, as in `Window_Selectable`, which wraps around.
     lda pad
@@ -121,7 +121,7 @@ espera:
     lda titulo_sel
     eor #1
     sta titulo_sel
-    jsr fin_paleta              ; still in the vblank
+    jsr ending_palette              ; still in the vblank
     bra espera
 mira_a:
     lda pad_a
@@ -164,7 +164,7 @@ pantalla:
     ldx #0
 baja:
     phx
-    jsl f:ba_t_vblank
+    jsl f:bt_t_vblank
     plx
     lda f:fin_rampa, x
     sta INIDISP
@@ -182,7 +182,7 @@ tema:
     lda bgm_fundido
     beq callado
     phx
-    jsl f:ba_t_vblank
+    jsl f:bt_t_vblank
     plx
     dex
     bne tema
@@ -194,13 +194,13 @@ callado:
     sta f:MSU_SUENA
     sta MSU_CONTROL
     lda #$FF
-    jsl f:ba_t_bgm
+    jsl f:bt_t_bgm
     jml f:reset
 .endproc
 
 ; The palette for command `titulo_sel` into entries 0 to 15. With the screen
 ; off or inside the vblank.
-.proc fin_paleta
+.proc ending_palette
 .a8
 .i16
     stz CGADD

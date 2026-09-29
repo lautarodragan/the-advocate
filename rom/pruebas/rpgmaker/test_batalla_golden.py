@@ -108,7 +108,7 @@ BATALLAS = (
 def test_batalla(nombre, caso, cuantos, toques, en):
     """`batalla`: la pantalla de la pelea.
 
-    **La pelea no cuesta ningún tick**: `batalla_correr` corre su propio lazo y
+    **La pelea no cuesta ningún tick**: `battle_run` corre su propio lazo y
     `vueltas` no avanza mientras dura, así que todo acá va en cuadros de
     hardware, los toques incluidos.
 

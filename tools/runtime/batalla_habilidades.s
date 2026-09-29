@@ -18,10 +18,10 @@
 ; out of phase on the next roll every time a skill that does no damage went
 ; through here.
 ;
-; The normal attack has its own written inside `ba_atacar` with the variance
+; The normal attack has its own written inside `bt_attack` with the variance
 ; at four; this one was split out for the skills, which carry their own in the
 ; LDB.
-.proc ba_varianza
+.proc bt_variance
 .a16
 .i16
     sta BA_T0
@@ -35,16 +35,16 @@
     rep #$20
 .a16
     lda BA_T0
-    jsr ba_mul                  ; the variance times the effect
+    jsr bt_mul                  ; the variance times the effect
     sta temp
     lda #10
     sta temp + 2
-    jsr ba_div
+    jsr bt_div
     bne ajuste_listo
     lda #1                      ; `max(1, ...)`
 ajuste_listo:
     sta BA_T1
-    jsr ba_hasta                ; A16 is still the adjustment
+    jsr bt_until                ; A16 is still the adjustment
     clc
     adc BA_T0
     sta BA_T0
@@ -72,7 +72,7 @@ sin_varianza:
 ;
 ;   BA_S4 = the target's offset inside `BA_UNO`
 ;   BA_S5 = the modifier's, BA_S6 = the base's, BA_T1 = the effective one's
-.proc ba_mod
+.proc bt_mod
 .a8
 .i16
     rep #$20
@@ -153,7 +153,7 @@ efectivo_listo:
 ; `item_switch` does with its own. It does not call `set_switch`: that lives
 ; in bank 0 and the battle runs with the data bank at $7E, so the mask is
 ; built here with a shift instead of being read from a cartridge table.
-.proc ba_switch
+.proc bt_switch
 .a8
 .i16
     rep #$20
@@ -186,11 +186,11 @@ mascara_lista:
 ; The effect of skill `BA_MHAB` from `BA_MQUIEN` on `BA_MBLA`, **without the
 ; variance**: `Algo::CalcSkillEffect`. Leaves the result in `BA_MEFECTO`,
 ; already clamped below at zero.
-.proc ba_hab_efecto
+.proc bt_skill_effect
 .a8
 .i16
     lda BA_MQUIEN
-    jsr ba_x
+    jsr bt_x
     rep #$20
 .a16
     txa
@@ -198,7 +198,7 @@ mascara_lista:
     sep #$20
 .a8
     lda BA_MBLA
-    jsr ba_x
+    jsr bt_x
     rep #$20
 .a16
     txa
@@ -214,7 +214,7 @@ mascara_lista:
 .a8
     ; + physical_rate * atk / 20
     lda BA_MHAB
-    jsr ba_ax
+    jsr bt_ax
     lda f:hab_fis, x
     sta BA_T2
     beq sin_fisico
@@ -222,11 +222,11 @@ mascara_lista:
     rep #$20
 .a16
     lda BA_UNO + BA_ATK, x
-    jsr ba_mul
+    jsr bt_mul
     sta temp
     lda #20
     sta temp + 2
-    jsr ba_div
+    jsr bt_div
     clc
     adc BA_S2
     sta BA_S2
@@ -235,7 +235,7 @@ mascara_lista:
 sin_fisico:
     ; + magical_rate * spi / 40
     lda BA_MHAB
-    jsr ba_ax
+    jsr bt_ax
     lda f:hab_mag, x
     sta BA_T2
     beq sin_magico
@@ -243,11 +243,11 @@ sin_fisico:
     rep #$20
 .a16
     lda BA_UNO + BA_SPI, x
-    jsr ba_mul
+    jsr bt_mul
     sta temp
     lda #40
     sta temp + 2
-    jsr ba_div
+    jsr bt_div
     clc
     adc BA_S2
     sta BA_S2
@@ -258,7 +258,7 @@ sin_magico:
     ; are subtracted. `SkillTargetsEnemies` is bit 6 of `hab_afecta` and bit 7
     ; is `ignore_defense`.
     lda BA_MHAB
-    jsr ba_ax
+    jsr bt_ax
     lda f:hab_afecta, x
     sta BA_S3
     and #$40
@@ -267,7 +267,7 @@ sin_magico:
     and #$80
     bne sin_resta
     lda BA_MHAB
-    jsr ba_ax
+    jsr bt_ax
     lda f:hab_fis, x
     sta BA_T2
     beq sin_resta_fis
@@ -275,11 +275,11 @@ sin_magico:
     rep #$20
 .a16
     lda BA_UNO + BA_DEF, x
-    jsr ba_mul
+    jsr bt_mul
     sta temp
     lda #40
     sta temp + 2
-    jsr ba_div
+    jsr bt_div
     sta BA_T0
     lda BA_S2
     sec
@@ -289,7 +289,7 @@ sin_magico:
 .a8
 sin_resta_fis:
     lda BA_MHAB
-    jsr ba_ax
+    jsr bt_ax
     lda f:hab_mag, x
     sta BA_T2
     beq sin_resta
@@ -297,11 +297,11 @@ sin_resta_fis:
     rep #$20
 .a16
     lda BA_UNO + BA_SPI, x
-    jsr ba_mul
+    jsr bt_mul
     sta temp
     lda #80
     sta temp + 2
-    jsr ba_div
+    jsr bt_div
     sta BA_T0
     lda BA_S2
     sec
@@ -324,7 +324,7 @@ no_negativo:
     ; is 0 and not -1. The roll is made anyway, because otherwise the two
     ; sides would drift out of phase.
     lda #0
-    jsr ba_pct
+    jsr bt_pct
     beq sin_critico
     rep #$20
 .a16
@@ -343,11 +343,11 @@ sin_critico:
 ; The target's HP move by `BA_MEFECTO`. Healing does not kill —the
 ; `max(-(cur_hp - 1), hp_effect)` of `vExecute`— and damage is halved for one
 ; who is defending, with C++ division, which **truncates toward zero**.
-.proc ba_hab_hp
+.proc bt_skill_hp
 .a8
 .i16
     lda BA_MBLA
-    jsr ba_x
+    jsr bt_x
     rep #$20
 .a16
     txa
@@ -404,11 +404,11 @@ cabe:
 ; And the SP, the same but with no defense that counts. None of the seven uses
 ; it; it is here because `vExecute` does it and because the roll before it has
 ; already been made.
-.proc ba_hab_sp
+.proc bt_skill_sp
 .a8
 .i16
     lda BA_MBLA
-    jsr ba_x
+    jsr bt_x
     rep #$20
 .a16
     lda BA_UNO + BA_SP, x
@@ -429,22 +429,22 @@ sp_cabe:
 .endproc
 
 ; The skill `BA_MQUIEN` chose, on `BA_MBLA`. Leaves the message ready.
-.proc ba_hab_usar
+.proc bt_skill_use
 .a8
 .i16
     lda BA_MQUIEN
-    jsr ba_ax
+    jsr bt_ax
     lda BA_ACC_HAB, x
     sta BA_MHAB
     ; --- `vStart`: the cost, before anything and without rolling ---
-    jsr ba_hab_costo
+    jsr bt_skill_cost
     sta BA_T2
     stz BA_T2 + 1               ; the subtraction below is 16 bits and
                                 ; `hab_sp` is 8: without this the high byte
                                 ; is whatever the last one through here left,
                                 ; and SP ended up at zero
     lda BA_MQUIEN
-    jsr ba_x
+    jsr bt_x
     rep #$20
 .a16
     lda BA_UNO + BA_SP, x
@@ -458,7 +458,7 @@ sp_ok:
 .a8
     ; --- a switch skill turns on its switch and does nothing else ---
     lda BA_MHAB
-    jsr ba_ax
+    jsr bt_ax
     lda f:hab_tipo, x
     cmp #BA_HAB_TIPO_SWITCH
     bne no_es_switch
@@ -474,7 +474,7 @@ sp_ok:
     sta BA_MEFECTO
     sep #$20
 .a8
-    jmp ba_switch
+    jmp bt_switch
 no_es_switch:
     ; --- on whom: `batalla.blancos_de_la_habilidad` ---
     ;
@@ -483,19 +483,19 @@ no_es_switch:
     ; screen order and **each with its own rolls**. The message gets the last
     ; one.
     lda BA_MHAB
-    jsr ba_ax
+    jsr bt_ax
     lda f:hab_alcance, x
     cmp #BA_ALCANCE_UNO
     bne no_es_uno
     lda BA_MQUIEN
     sta BA_MBLA
-    jmp ba_hab_uno
+    jmp bt_skill_one
 no_es_uno:
     cmp #BA_ALCANCE_ENEMIGOS
     beq de_a_muchos
     cmp #BA_ALCANCE_GRUPO
     beq de_a_muchos
-    jmp ba_hab_uno
+    jmp bt_skill_one
 de_a_muchos:
     ; The side: the opposing one with `enemies`, its own with `party`. That
     ; the source is in the party is `BA_MQUIEN < BA_GRUPO_MAX`.
@@ -520,11 +520,11 @@ primero_listo:
     sta f:BA_HAB_I
 otro_blanco:
     lda f:BA_HAB_I
-    jsr ba_vivo
+    jsr bt_alive
     beq no_cae
     lda f:BA_HAB_I
     sta BA_MBLA
-    jsr ba_hab_uno
+    jsr bt_skill_one
 no_cae:
     lda f:BA_HAB_I
     inc a
@@ -538,20 +538,20 @@ listos:
 .endproc
 
 ; `vExecute` on target `BA_MBLA`: the effect, the variance and the hit rolls.
-; Called by `ba_hab_usar`, once or once per target.
-.proc ba_hab_uno
+; Called by `bt_skill_use`, once or once per target.
+.proc bt_skill_one
 .a8
 .i16
-    jsr ba_hab_efecto
+    jsr bt_skill_effect
     ; the variance, with the skill's `variance`
     lda BA_MHAB
-    jsr ba_ax
+    jsr bt_ax
     lda f:hab_var, x
     sta BA_S5
     rep #$20
 .a16
     lda BA_MEFECTO
-    jsr ba_varianza
+    jsr bt_variance
     ; the damage cap, which is the same as an attack's
     cmp #(BA_DANO_MAX + 1)
     bcc efecto_cabe
@@ -563,7 +563,7 @@ efecto_cabe:
     ; If it targets enemies the effect is negative: `SetIsPositive` is
     ; `SkillTargetsAllies`, and `vExecute` flips the sign when it is not.
     lda BA_MHAB
-    jsr ba_ax
+    jsr bt_ax
     lda f:hab_afecta, x
     sta BA_S3                   ; what it touches, which is not read again
     and #$40
@@ -579,7 +579,7 @@ efecto_cabe:
 es_positivo:
     ; the hit rate, which all seven carry at 100
     lda BA_MHAB
-    jsr ba_ax
+    jsr bt_ax
     lda f:hab_hit, x
     sta BA_S0                   ; the hit rate, which survives the `jsr`s
     ; --- the HP ---
@@ -587,9 +587,9 @@ es_positivo:
     and #$01
     beq sin_hp
     lda BA_S0
-    jsr ba_pct
+    jsr bt_pct
     beq sin_hp
-    jsr ba_hab_hp
+    jsr bt_skill_hp
 sin_hp:
     ; --- the SP ---
     ;
@@ -600,13 +600,13 @@ sin_hp:
     and #$02
     beq sin_sp
     lda BA_S0
-    jsr ba_pct
+    jsr bt_pct
     beq sin_sp
-    jsr ba_hab_sp
+    jsr bt_skill_sp
 sin_sp:
     ; --- the four parameters, in `vExecute`'s order ---
     lda BA_MBLA
-    jsr ba_x
+    jsr bt_x
     rep #$20
 .a16
     txa
@@ -617,7 +617,7 @@ sin_sp:
     and #$04
     beq sin_atk
     lda BA_S0
-    jsr ba_pct
+    jsr bt_pct
     beq sin_atk
     rep #$20
 .a16
@@ -629,13 +629,13 @@ sin_sp:
     sta BA_T1
     sep #$20
 .a8
-    jsr ba_mod
+    jsr bt_mod
 sin_atk:
     lda BA_S3
     and #$08
     beq sin_def
     lda BA_S0
-    jsr ba_pct
+    jsr bt_pct
     beq sin_def
     rep #$20
 .a16
@@ -647,13 +647,13 @@ sin_atk:
     sta BA_T1
     sep #$20
 .a8
-    jsr ba_mod
+    jsr bt_mod
 sin_def:
     lda BA_S3
     and #$10
     beq sin_spi
     lda BA_S0
-    jsr ba_pct
+    jsr bt_pct
     beq sin_spi
     rep #$20
 .a16
@@ -665,13 +665,13 @@ sin_def:
     sta BA_T1
     sep #$20
 .a8
-    jsr ba_mod
+    jsr bt_mod
 sin_spi:
     lda BA_S3
     and #$20
     beq sin_agi
     lda BA_S0
-    jsr ba_pct
+    jsr bt_pct
     beq sin_agi
     rep #$20
 .a16
@@ -683,7 +683,7 @@ sin_spi:
     sta BA_T1
     sep #$20
 .a8
-    jsr ba_mod
+    jsr bt_mod
 sin_agi:
     rts
 .endproc
@@ -701,11 +701,11 @@ sin_agi:
 ; A8 = the LDB actor number of combatant `BA_ACTOR`. It is what indexes
 ; `hab_par_ini`, `hab_par_n` and `actor_hab_txt`, which are by actor number
 ; and not by place in the party.
-.proc ba_actor_ldb
+.proc bt_actor_ldb
 .a8
 .i16
     lda BA_ACTOR
-    jsr ba_x
+    jsr bt_x
     lda BA_UNO + BA_NUMERO, x
     rts
 .endproc
@@ -716,13 +716,13 @@ sin_agi:
 ; offer, that is, with a `k` in `hab_par_k`. An actor's pairs are contiguous
 ; and in skill-number order, so the list comes out in `LearnSkill` order.
 ; Clobbers `BA_S1`, `BA_S2`, `BA_T0` and X.
-.proc ba_hab_lista
+.proc bt_skill_list
 .a8
 .i16
     lda #0
     sta BA_HAB_N
-    jsr ba_actor_ldb
-    jsr ba_ax
+    jsr bt_actor_ldb
+    jsr bt_ax
     lda f:hab_par_n, x
     beq listo
     sta BA_S1                   ; how many pairs it has left to look at
@@ -766,7 +766,7 @@ otro:
     beq siguiente               ; it knows it and the battle does not offer it
     pha
     lda BA_HAB_N
-    jsr ba_ax
+    jsr bt_ax
     pla
     sta BA_HAB_LISTA, x
     inc BA_HAB_N
@@ -783,33 +783,33 @@ listo:
 .endproc
 
 ; The `k` at place A8 in the list. Only A and X.
-.proc ba_hab_de_lista
+.proc bt_skill_from_list
 .a8
 .i16
-    jsr ba_ax
+    jsr bt_ax
     lda BA_HAB_LISTA, x
     rts
 .endproc
 
 ; The SP cost of the `k` in A8, in A8. `Algo::CalcSkillCost`: the plain
 ; `sp_cost`, which is what RM2k does.
-.proc ba_hab_costo
+.proc bt_skill_cost
 .a8
 .i16
-    jsr ba_ax
+    jsr bt_ax
     lda f:hab_sp, x
     rts
 .endproc
 
 ; Whether combatant `BA_ACTOR` can pay for the `k` in A8: Z=0 if so. **It does
 ; not use the flag a `pl*` leaves**: the usual trap.
-.proc ba_hab_alcanza
+.proc bt_skill_reaches
 .a8
 .i16
-    jsr ba_hab_costo
+    jsr bt_skill_cost
     sta BA_T2
     lda BA_ACTOR
-    jsr ba_x
+    jsr bt_x
     rep #$20
 .a16
     lda BA_T2
@@ -828,12 +828,12 @@ no:
 .endproc
 
 ; The whole screen, in `texto_buf`.
-.proc ba_componer
+.proc bt_compose
 .a8
 .i16
     lda #255
     sta comp_dup + 3
-    jsl f:ba_t_limpiar
+    jsl f:bt_t_clear
     ; --- the enemies, or the item list while one is being chosen ---
     ;
     ; They go on the same lines on purpose: while choosing what to use, what
@@ -870,7 +870,7 @@ enemigo:
     rep #$20
 .a16
     lda #BA_ENEMIGO_POS0
-    jsr ba_fila
+    jsr bt_row
     sep #$20
 .a8
     lda BA_MODO
@@ -879,13 +879,13 @@ enemigo:
     lda BA_S0
     cmp BA_BLANCO
     bne sin_cursor_ene
-    jsr ba_cursor
+    jsr bt_cursor
 sin_cursor_ene:
     stz BA_CONMAX               ; an enemy does not show its maximum
     lda BA_S0
     clc
     adc #BA_GRUPO_MAX
-    jsr ba_renglon
+    jsr bt_line
     inc BA_S0
     bra enemigo
 enemigos_listos:
@@ -893,10 +893,10 @@ enemigos_listos:
     ;
     ; Unless there is a message from a troop page, which goes on its lines: in
     ; RM2k the battle's message window covers the party's. See
-    ; `ba_pag_mensaje`. And the same with what the victory reports.
-    jsr ba_vic_en_pantalla
+    ; `bt_page_message`. And the same with what the victory reports.
+    jsr bt_vic_on_screen
     beq sin_victoria
-    jmp ba_vic_mensaje
+    jmp bt_vic_message
 sin_victoria:
     lda BA_MODO
     cmp #BA_M_PAGINA
@@ -908,7 +908,7 @@ sin_victoria:
     sep #$20
 .a8
     beq con_grupo
-    jmp ba_pag_mensaje
+    jmp bt_page_message
 con_grupo:
     lda #0
     sta BA_S0
@@ -919,7 +919,7 @@ actor:
     rep #$20
 .a16
     lda #BA_GRUPO_POS0
-    jsr ba_fila
+    jsr bt_row
     sep #$20
 .a8
     lda BA_MODO
@@ -936,12 +936,12 @@ cursor_en_el_que_ordena:
     cmp BA_ACTOR
     bne sin_cursor_act
 pone_cursor_act:
-    jsr ba_cursor
+    jsr bt_cursor
 sin_cursor_act:
     lda #1
     sta BA_CONMAX
     lda BA_S0
-    jsr ba_renglon
+    jsr bt_line
     inc BA_S0
     bra actor
 actores_listos:
@@ -956,7 +956,7 @@ actores_listos:
 no_es_pagina:
     cmp #BA_M_MENSAJE
     bcc ordenes
-    jmp ba_mensaje
+    jmp bt_message
 ordenes:
     lda #0
     sta BA_S0
@@ -969,7 +969,7 @@ hay_orden:
     ; Which line this one falls on: since 2026-09-13 there are five and they
     ; go on two.
     lda BA_S0
-    jsr ba_ax
+    jsr bt_ax
     rep #$20
 .a16
     txa
@@ -986,7 +986,7 @@ hay_orden:
     cmp #BA_M_ORDEN
     bne en_gris
     lda BA_S0
-    jsr ba_ax
+    jsr bt_ax
     lda f:ba_orden_gris, x
     bne en_gris
     ; And the skill command of an actor who knows none —Talan, who is level
@@ -994,7 +994,7 @@ hay_orden:
     lda BA_S0
     cmp #BA_ORDEN_HABILIDAD
     bne sin_gris_orden
-    jsr ba_hab_lista            ; what it knows now: see `FAR_HAB`
+    jsr bt_skill_list            ; what it knows now: see `FAR_HAB`
     lda BA_HAB_N
     beq en_gris
 sin_gris_orden:
@@ -1026,16 +1026,16 @@ pone_variante:
     lda BA_T2
     sec
     sbc #2
-    jsr ba_ir
+    jsr bt_go
     sep #$20
 .a8
     lda #$3E                    ; the cursor
-    jsl f:ba_t_glifo
+    jsl f:bt_t_glyph
 sin_cursor_orden:
     rep #$20
 .a16
     lda BA_T2
-    jsr ba_ir
+    jsr bt_go
     sep #$20
 .a8
     lda BA_S1
@@ -1068,7 +1068,7 @@ sin_cursor_orden:
 texto_de_la_habilidad:
 .a8
 .i16
-    jsr ba_actor_ldb
+    jsr bt_actor_ldb
     rep #$20
 .a16
     and #$00FF
@@ -1080,7 +1080,7 @@ texto_puesto:
 .a16
     sep #$20
 .a8
-    jsl f:ba_t_texto
+    jsl f:bt_t_text
     inc BA_S0
     jmp orden
 ordenes_listas:
@@ -1105,7 +1105,7 @@ hay_item:
     rep #$20
 .a16
     lda #BA_ENEMIGO_POS0
-    jsr ba_fila
+    jsr bt_row
     sep #$20
 .a8
     ; The cursor, only while the item is being chosen: while choosing the
@@ -1116,7 +1116,7 @@ hay_item:
     lda BA_S6
     cmp BA_ITEM_SEL
     bne sin_cursor_item
-    jsr ba_cursor
+    jsr bt_cursor
 sin_cursor_item:
     lda #0
     bra variante_item
@@ -1128,13 +1128,13 @@ variante_item:
     rep #$20
 .a16
     lda #BA_NOMBRE_DX
-    jsr ba_ir
+    jsr bt_go
     sep #$20
 .a8
     lda #BA_NOMBRE_ANCHO
     sta comp_dup + 3
     lda BA_S6
-    jsr ba_item_de_lista
+    jsr bt_item_from_list
     sta BA_S1                   ; the `k`
     rep #$20
 .a16
@@ -1146,12 +1146,12 @@ variante_item:
     tax
     sep #$20
 .a8
-    jsl f:ba_t_texto
+    jsl f:bt_t_text
     ; and how many there are, with the colon in front
     rep #$20
 .a16
     lda #BA_ITEM_CUENTA_DX
-    jsr ba_ir
+    jsr bt_go
     sep #$20
 .a8
     lda BA_MODO
@@ -1164,7 +1164,7 @@ cuenta_blanca:
 cuenta_variante:
     sta temp + 1
     lda #$3A                    ; the colon
-    jsl f:ba_t_glifo
+    jsl f:bt_t_glyph
     lda BA_S1
     rep #$20
 .a16
@@ -1184,7 +1184,7 @@ cuenta_variante:
 .a8
     lda #2
     sta comp_dup + 2
-    jsl f:ba_t_numero
+    jsl f:bt_t_number
     inc BA_S0
     jmp fila_item
 items_listos:
@@ -1197,7 +1197,7 @@ items_listos:
     ; top, and below two columns with the name on the left and the SP cost on
     ; the right, with a dash in front. It reads **by rows**, which is what the capture shows.
 la_lista_hab:
-    jsr ba_hab_lista
+    jsr bt_skill_list
     lda BA_HAB_N
     bne hay_alguna
     jmp hab_listas
@@ -1216,7 +1216,7 @@ hay_alguna:
     lda #255
     sta comp_dup + 3
     lda BA_HAB_SEL
-    jsr ba_hab_de_lista
+    jsr bt_skill_from_list
     rep #$20
 .a16
     and #$00FF
@@ -1226,7 +1226,7 @@ hay_alguna:
     tax
     sep #$20
 .a8
-    jsl f:ba_t_texto
+    jsl f:bt_t_text
 hab_en_gris:
     lda #0
     sta BA_S3                   ; the place in the list
@@ -1253,7 +1253,7 @@ hay_lugar_hab:
     rep #$20
 .a16
     lda #BA_HAB_POS0
-    jsr ba_fila
+    jsr bt_row
     lda BA_S4
     and #$00FF
     beq columna_cero
@@ -1268,13 +1268,13 @@ columna_puesta:
     ; This skill's `k`, and whether it can be paid for: one that cannot goes
     ; in gray, which is what RM2k does with one that cannot be used.
     lda BA_S3
-    jsr ba_hab_de_lista
+    jsr bt_skill_from_list
     sta BA_S6
     lda BA_MODO
     cmp #BA_M_HAB
     bne gris_hab                ; choosing the target, the whole list in gray
     lda BA_S6
-    jsr ba_hab_alcanza
+    jsr bt_skill_reaches
     bne se_puede
 gris_hab:
     lda #1
@@ -1294,11 +1294,11 @@ variante_hab:
     rep #$20
 .a16
     lda BA_S5
-    jsr ba_ir
+    jsr bt_go
     sep #$20
 .a8
     lda #$3E
-    jsl f:ba_t_glifo
+    jsl f:bt_t_glyph
 sin_cursor_hab:
     ; the name
     lda BA_S2
@@ -1308,7 +1308,7 @@ sin_cursor_hab:
     lda BA_S5
     clc
     adc #BA_HAB_NOMBRE_DX
-    jsr ba_ir
+    jsr bt_go
     sep #$20
 .a8
     lda #BA_HAB_NOMBRE_ANCHO
@@ -1323,30 +1323,30 @@ sin_cursor_hab:
     tax
     sep #$20
 .a8
-    jsl f:ba_t_texto
+    jsl f:bt_t_text
     ; the dash and the cost
     rep #$20
 .a16
     lda BA_S5
     clc
     adc #BA_HAB_GUION_DX
-    jsr ba_ir
+    jsr bt_go
     sep #$20
 .a8
     lda BA_S2
     sta temp + 1
     lda #$2D                    ; the dash
-    jsl f:ba_t_glifo
+    jsl f:bt_t_glyph
     rep #$20
 .a16
     lda BA_S5
     clc
     adc #BA_HAB_COSTO_DX
-    jsr ba_ir
+    jsr bt_go
     sep #$20
 .a8
     lda BA_S6
-    jsr ba_hab_costo
+    jsr bt_skill_cost
     rep #$20
 .a16
     and #$00FF
@@ -1357,7 +1357,7 @@ sin_cursor_hab:
     sta comp_dup + 2
     lda BA_S2
     sta temp + 1
-    jsl f:ba_t_numero
+    jsl f:bt_t_number
     inc BA_S3
     jmp fila_hab
 hab_listas:

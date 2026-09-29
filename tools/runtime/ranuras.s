@@ -175,7 +175,7 @@ sin_grupo:
     sta DMAP0
     lda #$18
     sta BBAD0
-fila:
+row:
     sty VMADDL
     lda temp
     sta DAS0L
@@ -191,7 +191,7 @@ fila:
     lda #$01
     sta MDMAEN
     dec temp + 2
-    bne fila
+    bne row
     rts
 .endproc
 
@@ -421,7 +421,7 @@ las_caras_listas:
     sep #$20
 .a8
     pla
-    jsl f:texto_nivel_guardado  ; the one from the slot's save, not the current one
+    jsl f:text_level_saved  ; the one from the slot's save, not the current one
     lda #RANURA_NIVEL_CIFRAS
     jsr ranura_texto_escribir
 listo:
