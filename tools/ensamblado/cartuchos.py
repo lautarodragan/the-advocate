@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Los cartuchos del juego: `release`, la ROM que se juega y la que corre casi
-toda la tanda, y `test-special`, con lo que no entra en ella.
+"""Los cartuchos del juego, los que declara su archivo de proyecto en
+`[cartridges]`: `release`, la ROM que se juega y la que corre casi toda la
+tanda, y los demás, con lo que no entra en ella.
 Ninguna prueba arma: corren contra lo que deja esto —ver `tanda.rom`—.
 
     rm2k-snes-cartridges            arma lo que haga falta
@@ -10,8 +11,10 @@ Ninguna prueba arma: corren contra lo que deja esto —ver `tanda.rom`—.
 
 Un caso nuevo es un archivo en `rom/pruebas/casos/` y nada más: entra solo en
 `release` y se corre con `tanda.partida("<nombre>")`. Empieza con un
-`Teleport` al mapa donde tiene que correr: el de arranque es el 4, el
-enrutador del juego, cuya cinemática no espera a nadie.
+`Teleport` al mapa donde tiene que correr: el de arranque —`start_map`— es
+el 4, el enrutador del juego, cuya cinemática no espera a nadie.
+
+Un cartucho nuevo es una tabla más en `[cartridges]`, y nada de acá.
 """
 
 import argparse

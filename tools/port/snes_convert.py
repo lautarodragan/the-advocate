@@ -5531,7 +5531,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # medio de conversor por caso. Tuvo un hermano, `--relleno-de-mensajes`,
         # que hacía lo mismo con el bloque de textos; ése se fue el 2026-09-20
         # porque el empujón lo puede dar un caso —ver el cartucho `test-special` en
-        # tools/ensamblado/cartuchos.py— y éste no, porque lo que corre no es un
+        # el archivo de proyecto— y éste no, porque lo que corre no es un
         # texto sino un índice.
         #
         # **Van acá y no al principio, que es donde estaban hasta el
@@ -7216,8 +7216,8 @@ def parser_de_flags():
     parser.add_argument("--hp-de-enemigos", action="store_true",
                         help="la pelea muestra los HP de los enemigos, que "
                              "RM2k no muestra nunca: para depurar. Lo pide "
-                             "`CON_HP_DE_ENEMIGOS` en "
-                             "tools/ensamblado/cartuchos.py")
+                             "`[debug] enemy_hp` del archivo de "
+                             "proyecto")
     parser.add_argument("--sin-timer", action="store_true",
                         help="los dígitos del cronómetro —once glifos de la "
                              "imagen de System al final del banco de sprites, "

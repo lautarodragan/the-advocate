@@ -660,7 +660,7 @@ BA_CURSOR_COL = 0
 BA_NOMBRE_COL = 2
 BA_NOMBRE_ANCHO = 14
 # **Los HP de un enemigo no se ven**, como en RM2k: su renglón es sólo el
-# nombre. Con `CON_HP_DE_ENEMIGOS` (tools/ensamblado/cartuchos.py) vuelven, en
+# nombre. Con `[debug] enemy_hp` del archivo de proyecto vuelven, en
 # estas mismas columnas, para depurar.
 BA_HP_COL = 18
 BA_HP_NUM = 21                  # tres cifras

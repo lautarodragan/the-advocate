@@ -109,7 +109,8 @@ salen las peleas del mundo.
 nombran las tropas, los de los mapas con encuentros al azar y los de los
 terrenos de esos mapas cuando no nombran ninguno —ver "Qué fondos hay" en
 `tools/port/escena.py`—. Sin MSU-1, una pelea cuyo fondo la ROM no lleva usa
-**el de reemplazo**, `escena.REEMPLAZO` —por qué ése, en su comentario—:
+**el de reemplazo**, `[battle] fallback_backdrop` del archivo de proyecto
+—por qué ése, en su comentario—:
 `fondo_respaldo` dice, por número de fondo, cuál de la ROM se dibuja. Lo
 pidió taro el 2026-09-27, porque las peleas del mundo salían en negro, y
 negro confunde; el mismo día pidió que la ROM llevara todos los de

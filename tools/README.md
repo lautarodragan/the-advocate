@@ -124,6 +124,33 @@ un directorio suyo, y éste, en `tools/.herramientas-locales/`.
 Cada uno lo pone adelante en el PATH de sus recetas: ver la receta, y
 "Sub-agentes" en AGENTS.md.
 
+## Lo que decide el juego: el archivo de proyecto
+
+**Lo que es de un juego no está escrito en las herramientas**: qué mapas y
+qué casos lleva cada cartucho, cómo se llama la ROM, el título de su
+cabecera y las firmas de sus partidas, qué efectos van enteros, qué temas
+van aparte, qué CharSet pesa al repartir paletas. Lo declara el juego en su
+raíz, en `rm2k-snes.toml` —el de A Blurred Line es `rom/rm2k-snes.toml`—, y
+se lee con `comun/perillas.py`: `perillas.valor("maps", "below", tipo=int)`.
+
+* **Una clave que falta es un error**, con su nombre, y no un valor por
+  omisión: un default en una herramienta sería el valor de ABL, y otro juego
+  se armaría con él sin avisar. Lo cobra `pruebas/test_perillas.py`, y del
+  lado de ABL `test_perillas_repetidas.py`, que falla si un `.py` de acá
+  vuelve a escribir un valor del archivo.
+* **Se lee al usarlo, no al importar**: el conversor y lo que usa se tienen
+  que poder importar sin un juego, que es lo que hacen las pruebas de acá.
+  La excepción es `ensamblado/cartuchos.py`, que es el orquestador del juego
+  y lo lee entero al cargarse.
+* **Lo que el runtime necesita** —el título, la firma de la SRAM— le llega
+  como `.define` en el `mapdata.inc` que emite el conversor: el runtime no
+  lee TOML.
+* **Las claves van en inglés**, porque son la interfaz de las herramientas;
+  los comentarios, en el idioma del juego.
+* **Lo que no va**: dónde está el juego en la máquina —eso es del ambiente,
+  ver `comun/proyecto.py`— y los límites del motor que se midieron sobre ABL,
+  que se quedan en el código con un comentario que lo dice.
+
 ## `tools/justfile`
 
 Las recetas de las herramientas —generar el bytecode, correr sus pruebas,

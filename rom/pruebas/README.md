@@ -279,11 +279,11 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 **Cómo se agrega un caso**: un archivo en `pruebas/casos/`, y la prueba lo
 pide por el nombre. Entra solo en `release`, **apagado**: la partida de
 verdad corre la página 0, que es el caso `mapa-de-debug` —o `nada`, sin el
-mapa de debug—, y el arnés elige los demás —ver `PRIMERO` en
-`tools/ensamblado/cartuchos.py`—. `tanda.partida(None)` elige `nada`, que es
+mapa de debug—, y el arnés elige los demás —ver `[cases]` en
+`rm2k-snes.toml`—. `tanda.partida(None)` elige `nada`, que es
 el juego como arranca sin el mapa. Empieza con un `Teleport`
-a su mapa y a su celda: el mapa de arranque es el 4, cuya cinemática corre
-sola. Para el grupo de la tanda en un mapa sin nada más están los
+a su mapa y a su celda: el mapa de arranque —`start_map` de `release`— es
+el 4, cuya cinemática corre sola. Para el grupo de la tanda en un mapa sin nada más están los
 `grupo-11-en-<mapa>`, y para el del juego los `en-<mapa>`, con la celda donde
 el héroe caía cuando ese mapa era el de arranque de su cartucho.
 
@@ -300,7 +300,10 @@ que `just pruebas` corre antes; `just build <cual>` arma uno solo:
 * `test-special`, lo que no entra en `release` o cuida una disposición del
   cartucho
 
-Qué lleva cada uno, y por qué, en `tools/ensamblado/cartuchos.py`.
+Qué lleva cada uno, y por qué, en `[cartridges]` de `rm2k-snes.toml`, el
+archivo de proyecto: **un cartucho nuevo es una tabla más ahí**, con su
+mapa de arranque, su grupo, sus mapas, sus flags y sus casos, y
+`rm2k-snes-cartridges` lo arma sin tocar código.
 
 Los encuentros de prueba son un flag de `test-special` y no un
 `ChangeEncounterSteps`: el encuentro de la tanda cuenta con ocho pasos en

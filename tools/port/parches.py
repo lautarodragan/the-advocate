@@ -424,9 +424,9 @@ def escribir_usos(destino, usos):
 
 
 def mapas_de_prueba():
-    """Los mapas que sólo existen por la tanda. Salen de `cartuchos.py`, que es
-    donde se decide qué mapas lleva cada cartucho; acá no se escriben otra
-    vez."""
+    """Los mapas que sólo existen por la tanda. Los declara el archivo de
+    proyecto, `[maps] test`, y los lee `cartuchos.py`; acá no se escriben
+    otra vez."""
     from ensamblado import cartuchos
     return set(cartuchos.MAPAS_DE_PRUEBA)
 

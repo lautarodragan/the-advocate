@@ -157,7 +157,7 @@ def nuevos():
     que es de donde salen su nombre, su padre, su música y sus encuentros. Así
     que lo trae él: el campo `arbol` del JSON es el nodo entero, en la misma
     vista resuelta que el volcado, y `lcf.TreeMap` lo suma. Hoy es uno solo,
-    el mapa de debug: ver `tools/ensamblado/cartuchos.py`.
+    el mapa de debug: ver `el_mapa_de_debug` en `tools/ensamblado/cartuchos.py`.
 
     Lo validado se recuerda igual que en `mapas`, y por lo mismo: cada
     `lcf.Map` pregunta acá.
