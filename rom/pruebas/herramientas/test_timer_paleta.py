@@ -21,7 +21,10 @@ import pytest
 
 from render import render_map
 from rpgmaker import resources
-from port import snes_convert
+# Por los ganchos que pone en `lcf` al importarse: los mapas se leen como
+# los lee el conversor.
+from port import snes_convert                            # noqa: F401
+from port import game_scan
 from port import obj_extras
 from port import sprites
 
@@ -43,7 +46,7 @@ GRUPO = [10]
 def descartados(paletas):
     """Qué eventos del mapa 2 no se dibujan con tantas paletas de sprite."""
     ren = render_map.Renderer(JUEGO)
-    lideres = snes_convert.possible_leaders(ren, DEMO, GRUPO)
+    lideres = game_scan.possible_leaders(ren, DEMO, GRUPO)
     game_map = ren.load_map(os.path.join(JUEGO, "Map%04d.lmu" % MAPA))
     _npcs, fuera, _reparto = sprites.drawable_npcs(
         ren, game_map, lideres, paletas, [])
@@ -69,7 +72,7 @@ def test_no_se_descarta_ningun_grafico(partida=None):
 def test_la_puerta_que_core_rompe_tiene_paleta(partida=None):
     """Y en particular la del evento 30, que es la que taro perdió jugando."""
     ren = render_map.Renderer(JUEGO)
-    lideres = snes_convert.possible_leaders(ren, DEMO, GRUPO)
+    lideres = game_scan.possible_leaders(ren, DEMO, GRUPO)
     game_map = ren.load_map(os.path.join(JUEGO, "Map%04d.lmu" % MAPA))
     npcs, _fuera, reparto = sprites.drawable_npcs(
         ren, game_map, lideres, sprites.OBJ_PALETTES - 2, [])
