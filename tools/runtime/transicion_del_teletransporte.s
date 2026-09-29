@@ -2,37 +2,40 @@
 .a8
 .i16
 
-; --- la transición del teletransporte ---------------------------------------
+; --- the teleport transition -------------------------------------------------
 ;
-; RM2k borra y vuelve a mostrar la pantalla en cada teletransporte con la
-; transición que diga el sistema, y `ChangeScreenTransitions` la cambia de ahí
-; en más. La ROM hace tres, y el conversor ya decidió cuál va —ver
-; `CHANGE_SCREEN_TRANSITIONS` en tools/port/eventos.py—:
+; RM2k erases and shows the screen again on every teleport with whatever
+; transition the system says, and `ChangeScreenTransitions` changes it from
+; then on. The ROM does three, and the converter has already decided which one
+; goes —see `CHANGE_SCREEN_TRANSITIONS` in tools/port/eventos.py—:
 ;
-;   el fundido   el de siempre, `fundido_tick`: el brillo maestro sobre
-;                `fundido_rampa`. Es también lo que va para las que la consola
-;                no hace, como el zoom
-;   el mosaico   el mismo fundido, y además el registro MOSAIC atado al brillo:
-;                tamaño 16 con brillo 0, tamaño 1 con brillo 15, que es lo que
-;                hace la pelea —ver `fundido_de_pelea.s`, que explica por qué
-;                el mosaico también oscurece, y en RM2k no: la carga tiene que
-;                caer adentro del negro—
-;   el corte     sólo para borrar: el fundido arrancado en su último cuadro
-;                de ida, así que el primer cuadro ya es negro y carga el mapa,
-;                y la vuelta es la de siempre. Lo pone `fundido_desde`
+;   the fade     the usual one, `fundido_tick`: the master brightness over
+;                `fundido_rampa`. It is also what goes for the ones the
+;                console does not do, like the zoom
+;   the mosaic   the same fade, plus the MOSAIC register tied to the
+;                brightness: size 16 at brightness 0, size 1 at brightness
+;                15, which is what the battle does —see `fundido_de_pelea.s`,
+;                which explains why the mosaic also darkens, and in RM2k it
+;                does not: the load has to fall inside the black—
+;   the cut      only for erasing: the fade started at its last outgoing
+;                frame, so the first frame is already black and loads the
+;                map, and the way back is the usual one. `fundido_desde` sets
+;                it
 ;
-; El mosaico del PPU es de los fondos y nada más: **los sprites no se
-; pixelan**, y en RM2k sí, porque allá se pixela la pantalla entera. Con el
-; brillo bajando a la vez casi no se nota; está en
+; The PPU's mosaic is for the backgrounds and nothing else: **sprites do not
+; get pixelated**, and in RM2k they do, because there the whole screen gets
+; pixelated. With the brightness going down at the same time it is barely
+; noticeable; it is in
 ; workflow/divergencias/las-transiciones-del-teletransporte.md.
 ;
-; No hay que tocar `fundido_tick` para esto: el mosaico se deduce de lo que el
-; fundido ya lleva —si hay uno, si la carga sigue pendiente y el brillo de este
-; cuadro— y se escribe en el vblank, al lado del brillo, en `fundido_mosaico`.
+; `fundido_tick` does not need to be touched for this: the mosaic is deduced
+; from what the fade already carries —whether there is one, whether the load is
+; still pending, and this frame's brightness— and written in the vblank, next
+; to the brightness, in `fundido_mosaico`.
 
-; `ChangeScreenTransitions`: cuál —0 borrar, 1 mostrar— y la transición. En el
-; banco 0 queda sólo el salto, porque el despacho pide el manejador acá y el
-; banco 0 no tiene lugar de sobra.
+; `ChangeScreenTransitions`: which one —0 erase, 1 show— and the transition.
+; Only the jump stays in bank 0, because the dispatch wants the handler here and
+; bank 0 has no room to spare.
 .proc op_transition
     jsl f:transicion_poner
     jmp correr_codigo::otro
@@ -40,16 +43,16 @@
 
 .segment "FAR"
 
-; Lo de `op_transition`: con Y en el primer operando, y vuelve con Y después
-; del último. El bytecode se lee con `[cod_ptr], y`, que no depende del banco
-; de datos, y la RAM lejana con `f:`.
+; The body of `op_transition`: with Y at the first operand, and it returns with
+; Y past the last one. The bytecode is read with `[cod_ptr], y`, which does not
+; depend on the data bank, and far RAM with `f:`.
 .proc transicion_poner
 .a8
 .i16
-    lda [cod_ptr], y            ; cuál: 0 borrar, 1 mostrar
+    lda [cod_ptr], y            ; which: 0 erase, 1 show
     iny
-    lsr a                       ; al carry
-    lda [cod_ptr], y            ; la transición
+    lsr a                       ; into the carry
+    lda [cod_ptr], y            ; the transition
     iny
     bcs mostrar
     sta f:TRANSICION_BORRAR
@@ -59,15 +62,15 @@ mostrar:
     rtl
 .endproc
 
-; El byte de `vueltas` desde el que cuenta el fundido que arranca, a
-; `fundido_base`. Desde `empezar_fundido`.
+; The byte of `vueltas` from which the fade being started counts, into
+; `fundido_base`. From `empezar_fundido`.
 ;
-; Con el corte para borrar arranca `FUNDIDO_CUADROS - 1` ticks atrás: el
-; primer `fundido_tick` cae en el último cuadro de la ida, que ya está pasado
-; `FUNDIDO_CARGA` —así que carga el mapa ahí mismo— y en el negro del medio.
-; Es `TransitionCutOut`, que en RM2k dura un cuadro, seguido del mostrar de
-; siempre. `fundido_tick` no se entera de nada.
-.assert FUNDIDO_CARGA < FUNDIDO_CUADROS, error, "el corte tiene que caer pasada la carga"
+; With the cut for erasing it starts `FUNDIDO_CUADROS - 1` ticks back: the
+; first `fundido_tick` lands on the last frame of the outgoing half, which is
+; already past `FUNDIDO_CARGA` —so it loads the map right there— and in the
+; black in the middle. It is `TransitionCutOut`, which lasts one frame in RM2k,
+; followed by the usual show. `fundido_tick` knows nothing about it.
+.assert FUNDIDO_CARGA < FUNDIDO_CUADROS, error, "the cut has to land past the load"
 .proc fundido_desde
 .a8
 .i16
@@ -85,12 +88,12 @@ poner:
     rtl
 .endproc
 
-; Las dos en el fundido, desde el reset: la RAM lejana arranca con basura en
-; bsnes, y el primer teletransporte saldría en mosaico si cayera justo.
-; Cualquier valor que no sea TRANSICION_MOSAICO ni TRANSICION_CORTE es el
-; fundido.
-.assert TRANSICION_MOSAICO <> 0, error, "el cero tiene que ser el fundido"
-.assert TRANSICION_CORTE <> 0, error, "el cero tiene que ser el fundido"
+; Both set to the fade, from reset: far RAM starts with garbage in bsnes, and
+; the first teleport would come out as a mosaic if it happened to land that
+; way. Any value that is neither TRANSICION_MOSAICO nor TRANSICION_CORTE is the
+; fade.
+.assert TRANSICION_MOSAICO <> 0, error, "zero has to be the fade"
+.assert TRANSICION_CORTE <> 0, error, "zero has to be the fade"
 .proc transicion_de_arranque
 .a8
 .i16
@@ -100,15 +103,14 @@ poner:
     rtl
 .endproc
 
-; El mosaico de este cuadro. Desde `flush_video`, en el vblank y justo antes de
-; escribir el brillo, así que los dos cambian en el mismo cuadro.
+; This frame's mosaic. From `flush_video`, in the vblank and right before
+; writing the brightness, so both change on the same frame.
 ;
-; Mientras la carga del mapa esté pendiente —`fundido_que` distinto de cero—
-; el fundido está borrando la pantalla; después la está mostrando. Sin fundido,
-; o con uno que no sea en mosaico, lo apaga: se escribe en cada cuadro, así
-; que nadie más tiene que acordarse de apagarlo. `fundido`, `fundido_que` y
-; `brillo` viven en la BSS del banco 0, y se leen con `f:` para no depender del
-; banco de datos.
+; While the map load is pending —`fundido_que` nonzero— the fade is erasing the
+; screen; afterwards it is showing it. With no fade, or with one that is not a
+; mosaic, it turns it off: it is written every frame, so nobody else has to
+; remember to turn it off. `fundido`, `fundido_que` and `brillo` live in bank
+; 0's BSS, and are read with `f:` so as not to depend on the data bank.
 .proc fundido_mosaico
 .a8
 .i16
@@ -124,12 +126,12 @@ mirar:
     cmp #TRANSICION_MOSAICO
     bne apagado
     lda f:brillo
-    eor #$0F                    ; el tamaño, al revés que el brillo
+    eor #$0F                    ; the size, the reverse of the brightness
     asl a
     asl a
     asl a
     asl a
-    ora #$03                    ; BG1 y BG2: el mapa y la capa de encima
+    ora #$03                    ; BG1 and BG2: the map and the layer above
     bra escribir
 apagado:
     lda #0

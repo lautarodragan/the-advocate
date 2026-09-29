@@ -1,14 +1,14 @@
 .segment "CODE"
 
-; La orden siguiente de la ruta del héroe, en A, y el cursor ya pasado. Se
-; lleva Y y pisa `ruta_ptr`, que es de la vuelta de los eventos y no está viva
-; mientras camina el héroe: `lda [ptr], y` sólo lee de la página directa, y
-; `ruta_heroe` no entra ahí.
+; The next command of the hero's move route, in A, and the cursor already
+; advanced. Clobbers Y and overwrites `ruta_ptr`, which belongs to the events'
+; pass and is not live while the hero walks: `lda [ptr], y` only reads from the
+; direct page, and `ruta_heroe` does not fit there.
 ;
-; El índice pasa a Y por A de dieciséis bits y limpiando el alto: `tay`
-; transfiere los dos bytes del acumulador aunque A esté en ocho. Es la trampa
-; que está anotada arriba de main.s, y acá ya hizo que la ruta leyera basura y
-; se cortara al primer paso.
+; The index goes to Y through a sixteen-bit A with the high byte cleared: `tay`
+; transfers both bytes of the accumulator even when A is eight-bit. It is the
+; trap noted at the top of main.s, and here it already made the move route
+; read garbage and stop at the first step.
 .proc orden_del_heroe
 .a8
 .i16
@@ -28,22 +28,22 @@
     rts
 .endproc
 
-; Un comando de la ruta forzada. Girar no consume cuadro y se sigue con el
-; siguiente; esperar sí; y moverse arranca un paso de una celda, que después
-; camina `advance_step` como cualquier otro. Un movimiento bloqueado se saltea:
-; RM2k reintentaría para siempre y una prueba colgada no dice nada.
-; Los saltos de acá adentro van con `jmp` y no con `bra`: el cuerpo pasó de
-; siete órdenes a quince y los 127 bytes de alcance de un `bra` se quedaron
-; cortos tres veces seguidas. Es la misma trampa que ya había cortado dos veces
-; en la cadena de `cmp` que era el despacho de `correr_codigo` antes de la
-; tabla, y se saca igual.
+; One command of the forced move route. Turning does not use up a frame and it
+; goes on with the next; waiting does; and moving starts a one-cell step, which
+; `advance_step` then walks like any other. A blocked move is skipped: RM2k
+; would retry forever and a hung test says nothing.
+; The jumps in here go with `jmp` and not `bra`: the body went from seven
+; commands to fifteen and a `bra`'s 127 bytes of reach fell short three times
+; in a row. It is the same trap that had already cut twice in the chain of
+; `cmp` that was `correr_codigo`'s dispatch before the table, and it is fixed
+; the same way.
 .proc paso_de_ruta
 .a8
 .i16
-    ; Un `wait` en curso se lleva el cuadro entero y no mira la ruta. Son
-    ; RUTA_ESPERA cuadros y no uno: es `SetMaxStopCountForWait` de RM2k, que con
-    ; la frecuencia 8 da veinte.
-    ; El salto en curso no se mira acá sino en `move_hero`: ver
+    ; A `wait` in progress takes the whole frame and does not look at the move
+    ; route. It is RUTA_ESPERA frames and not one: it is RM2k's
+    ; `SetMaxStopCountForWait`, which with frequency 8 gives twenty.
+    ; The jump in progress is not looked at here but in `move_hero`: see
     ; `salto_avanzar_heroe`.
     lda ruta_espera
     beq sin_espera
@@ -54,12 +54,12 @@ otra_orden:
     lda ruta_i
     cmp ruta_n
     bcc hay_orden
-    jmp listo                   ; se terminó la ruta; `bcs` ya no llega
+    jmp listo                   ; the move route is over; `bcs` no longer reaches
 hay_orden:
     jsr orden_del_heroe
 
-    cmp #23                     ; wait: éste y los RUTA_ESPERA - 1 que siguen,
-    bne no_es_wait              ; más los del giro si la frecuencia es baja
+    cmp #23                     ; wait: this one and the RUTA_ESPERA - 1 after it,
+    bne no_es_wait              ; plus the turn's if the frequency is low
     lda ruta_frec
     jsr tras_giro
     clc
@@ -69,72 +69,74 @@ hay_orden:
 no_es_wait:
     cmp #12
     bcs no_es_mover
-    jmp mover                   ; 0..3 son los move_*
+    jmp mover                   ; 0..3 are the move_*
 no_es_mover:
     cmp #16
-    bcc face                    ; 12..15 son los face_*
-    ; Girar sin moverse no se compila, y encarar al héroe —la 21— e ir hacia
-    ; él —la 9— no se compilan **sobre el héroe**: ver `RUTA_ORDENES` en
-    ; eventos.py. Acá no llegan. La 9 además caería en `mover` de arriba, que
-    ; con una dirección que no es 0..3 manda al héroe a la izquierda por
-    ; descarte, que es la misma trampa que las diagonales.
+    bcc face                    ; 12..15 are the face_*
+    ; Turning without moving is not compiled, and facing the hero —21— and
+    ; going toward him —9— are not compiled **on the hero**: see
+    ; `RUTA_ORDENES` in eventos.py. They do not get here. 9 would also fall
+    ; into `mover` above, which with a direction that is not 0..3 sends the
+    ; hero left by elimination, which is the same trap as the diagonals.
     cmp #24
     bne no_es_salto
     jsr armar_salto_heroe
     lda ruta_salto
     bne salto_arranco
-    jmp otra_orden              ; no se pudo caer ahí: se saltea
+    jmp otra_orden              ; it could not land there: skipped
 salto_arranco:
     jmp listo
 no_es_salto:
     cmp #25
     bne no_es_fin
-    jmp otra_orden              ; el par ya lo consumió el `begin_jump`
+    jmp otra_orden              ; the `begin_jump` already consumed the pair
 no_es_fin:
     cmp #28
-    bcc otra_orden              ; 26 y 27 no llegan sobre el héroe
+    bcc otra_orden              ; 26 and 27 do not reach the hero
     cmp #30
     bcs no_es_velocidad
-    jmp velocidad               ; 28 y 29: la velocidad, que queda
+    jmp velocidad               ; 28 and 29: the speed, which stays
 no_es_velocidad:
     cmp #32
-    bcc frecuencia              ; 30 y 31: la frecuencia de la ruta
+    bcc frecuencia              ; 30 and 31: the move route's frequency
     cmp #34
     bne no_es_grafico_heroe
-    jmp grafico_heroe           ; la 34, la única con operando; queda lejos
+    jmp grafico_heroe           ; 34, the only one with an operand; it is far
 no_es_grafico_heroe:
     cmp #35
     bne no_es_sonido_heroe
-    jmp sonido_heroe            ; la 35, con su operando; queda lejos
+    jmp sonido_heroe            ; 35, with its operand; it is far
 no_es_sonido_heroe:
     cmp #36
-    bcc otra_orden              ; 32 y 33, los switches, no llegan: el
-                                ; conversor los rechaza
+    bcc otra_orden              ; 32 and 33, the switches, do not get here: the
+                                ; converter rejects them
     cmp #38
-    bcc atravesar               ; 36 y 37
+    bcc atravesar               ; 36 and 37
     cmp #40
     bcs otra_orden
-    ; 38 para la animación y 39 la sigue, así que la resta va al revés.
+    ; 38 stops the animation and 39 resumes it, so the subtraction goes the
+    ; other way around.
     sec
     sbc #38
     eor #$01
     sta ruta_anim_para
     jmp otra_orden
 atravesar:
-    ; 36 prende y 37 apaga, así que el bit de abajo invertido es el valor.
+    ; 36 turns it on and 37 off, so the low bit inverted is the value.
     and #$01
     eor #$01
     sta ruta_atraviesa
     jmp otra_orden
 frecuencia:
-    ; 30 sube la frecuencia de la ruta y 31 la baja, topando en 8 y en 1: es
-    ; `increase/decrease_movement_frequence`. De ella salen los cuadros quieto
-    ; tras cada orden, así que se lee de `ruta_frec` y no de otro lado.
+    ; 30 raises the move route's frequency and 31 lowers it, capped at 8 and
+    ; at 1: it is `increase/decrease_movement_frequence`. The frames standing
+    ; still after each command come from it, so it is read from `ruta_frec`
+    ; and not from anywhere else.
     ;
-    ; Con la 1 la espera tras un paso son 256 cuadros y no entran en el byte de
-    ; `ruta_tras_paso`; que no se llegue lo garantiza el conversor, que rechaza
-    ; la ruta entera. Acá se topa igual en 1, como RM2k, por si ese guard
-    ; alguna vez falla.
+    ; With 1 the wait after a step is 256 frames and does not fit in
+    ; `ruta_tras_paso`'s byte; the converter guarantees it is never reached,
+    ; since it rejects the whole move route. Here it is capped at 1 anyway,
+    ; like RM2k, in case that guard ever fails.
     and #$01
     bne frec_menos
     lda ruta_frec
@@ -152,9 +154,9 @@ frec_listo:
 face:
     sec
     sbc #12
-    sta hero_dir                ; face_*: con la frecuencia 8 es instantáneo y
-    lda ruta_frec               ; sigue el que viene; con otra, se queda
-    jsr tras_giro               ; quieto los cuadros del giro
+    sta hero_dir                ; face_*: with frequency 8 it is instant and the
+    lda ruta_frec               ; next one follows; with another, it stands
+    jsr tras_giro               ; still for the turn's frames
     bne giro_espera
     jmp otra_orden
 giro_espera:
@@ -162,71 +164,71 @@ giro_espera:
     sta ruta_espera
     jmp listo
 
-; `change_graphic` **sobre el héroe**: la 34 con su operando, el índice del
-; gráfico en la tabla del mapa, igual que sobre un evento.
+; `change_graphic` **on the hero**: 34 with its operand, the graphic's index in
+; the map's table, same as on an event.
 ;
-; Sale barata porque las dos tablas de poses tienen la misma forma: una entrada
-; de `npc_poses` son doce punteros de tres bytes a las poses del personaje, y
-; los doce que la tabla de actores le da al líder están escritos igual. O sea
-; que alcanza con apuntar `hero_poses` treinta y seis bytes adentro de
-; `npc_poses` y `place_hero` sigue sin enterarse.
+; It comes cheap because the two pose tables have the same shape: an entry of
+; `npc_poses` is twelve three-byte pointers to the character's poses, and the
+; twelve that the actor table gives the leader are written the same way. So it
+; is enough to point `hero_poses` thirty-six bytes into `npc_poses` and
+; `place_hero` still does not notice.
 ;
-; Dos cosas que **no** se hacen y que son lo que costaría de más:
+; Two things that are **not** done and that are what it would cost extra:
 ;
-; * `hero_cgram` se apaga. Los quince colores del líder los sube
-;   `aplicar_tinte` **en la fila que dice `hero_pal`**, así que dejarlo puesto
-;   con la paleta nueva le escribiría los colores de Talan encima a la paleta
-;   del gráfico al que se cambió. Mientras el cambio está puesto, el héroe se
-;   dibuja con la paleta del gráfico nuevo, que ya vive en CGRAM con el resto
-;   de los sprites del mapa.
-; * No sobrevive al cambio de mapa: `elegir_grafico_heroe` corre al cargar y lo
-;   repone. No es pereza —las poses viven en el banco de sprites **del mapa**,
-;   así que el gráfico de allá no existe acá—.
-;   La página del `EV0047` del mapa 8, que es la que pidió todo esto, cambia a
-;   `Crown7` justo antes de teletransportarse y vuelve a `Future1` justo
-;   después, así que en el juego no se nota.
+; * `hero_cgram` is turned off. The leader's fifteen colors are uploaded by
+;   `aplicar_tinte` **into the row `hero_pal` says**, so leaving it set with
+;   the new palette would write Talan's colors over the palette of the graphic
+;   it changed to. While the change is in place, the hero is drawn with the new
+;   graphic's palette, which already lives in CGRAM with the rest of the map's
+;   sprites.
+; * It does not survive a map change: `elegir_grafico_heroe` runs on load and
+;   restores it. It is not laziness —the poses live in **the map's** sprite
+;   bank, so the graphic from there does not exist here—.
+;   The page of map 8's `EV0047`, which is the one that asked for all this,
+;   changes to `Crown7` right before teleporting and back to `Future1` right
+;   after, so in the game it is not noticeable.
 grafico_heroe:
     lda #$FF
-    sta hero_pose_vram          ; la pose que hay en VRAM ya no es la suya
-    jsr orden_del_heroe         ; el operando, que queda consumido
+    sta hero_pose_vram          ; the pose in VRAM is no longer its own
+    jsr orden_del_heroe         ; the operand, which is left consumed
     jsr hero_poses_de_grafico
     bcc heroe_sin_grafico
     jmp otra_orden
 heroe_sin_grafico:
-    ; Un CharSet sin un solo pixel opaco —`nobodyhere`— o uno que no entró en
-    ; las ocho paletas de sprite: el héroe deja de dibujarse, que es lo que
-    ; `place_hero` hace con el puntero de poses en cero y lo mismo que le pasa
-    ; a un evento con la fila escondida.
+    ; A CharSet without a single opaque pixel —`nobodyhere`— or one that did
+    ; not fit in the eight sprite palettes: the hero stops being drawn, which
+    ; is what `place_hero` does with the pose pointer at zero and the same that
+    ; happens to an event with its row hidden.
     stz hero_poses + 2
     stz hero_cgram + 2
     jmp otra_orden
 
-; `play_sound_effect`: la 35, con el índice del efecto detrás, en dos bytes. Es
-; el mismo índice de `OP_SOUND` y va por el mismo camino, `sonido_tocar`, así
-; que suena igual que el de un `PlaySound`, con MSU-1 o sin él. No cuesta un
-; cuadro: la orden que sigue corre en éste.
+; `play_sound_effect`: 35, with the sound effect's index after it, in two bytes.
+; It is the same index as `OP_SOUND` and goes the same way, `sonido_tocar`, so
+; it sounds the same as a `PlaySound`'s, with MSU-1 or without. It does not
+; cost a frame: the next command runs in this one.
 sonido_heroe:
-    jsr orden_del_heroe         ; el byte bajo: deja Y ahí y `ruta_ptr` puesto
-    inc ruta_i                  ; y el cursor, pasado el alto
+    jsr orden_del_heroe         ; the low byte: leaves Y there and `ruta_ptr` set
+    inc ruta_i                  ; and the cursor, past the high one
     rep #$20
 .a16
     lda [ruta_ptr], y
-    jsr sonido_tocar            ; con A de dieciséis; vuelve con A de ocho
+    jsr sonido_tocar            ; with 16-bit A; returns with 8-bit A
 .a8
     jmp otra_orden
 
 
 mover:
-    ; Acá no llegan las diagonales: el conversor rechaza la página que le dé
-    ; una al héroe —ver MOVE_EVENT en `eventos.traducir`— porque la ROM sólo
-    ; las camina sobre eventos, y ninguna de las 26 rutas del juego que las
-    ; usan es del héroe. Sin ese corte, el descarte de abajo mandaría al héroe
-    ; hacia la izquierda.
-    sta hero_dir                ; move_* mira hacia donde va
-    ; Atravesando paredes las dos caras dan que sí. Es el
-    ; `if (self.GetThrough()) return true;` de `Game_Map::CheckOrMakeWayEx`, y
-    ; se prende sólo alrededor de este paso: `can_leave` y `can_enter` los usa
-    ; también la caminata con el pad, que no lo mira.
+    ; Diagonals do not get here: the converter rejects the page that gives one
+    ; to the hero —see MOVE_EVENT in `eventos.traducir`— because the ROM only
+    ; walks them on events, and none of the game's 26 move routes that use
+    ; them is the hero's. Without that cut, the elimination below would send
+    ; the hero to the left.
+    sta hero_dir                ; move_* faces where it goes
+    ; Going through walls, both sides say yes. It is
+    ; `Game_Map::CheckOrMakeWayEx`'s `if (self.GetThrough()) return true;`,
+    ; and it is turned on only around this step: `can_leave` and `can_enter`
+    ; are also used by the pad walking, which does not look at it.
     lda ruta_atraviesa
     beq sin_atravesar
     lda #1
@@ -254,20 +256,21 @@ ver_si_arranco:
     stz atravesando
     stz atravesando + 1
     lda step_left
-    bne arranco                 ; bloqueado: se saltea y se prueba el siguiente
+    bne arranco                 ; blocked: skipped and the next one is tried
     jmp otra_orden
 arranco:
-    ; El paso arrancó, y queda anotado que lo arrancó la ruta: `hay_rutas` lo
-    ; necesita para saber que el último paso de una ruta todavía cuenta.
+    ; The step started, and it is noted that the move route started it:
+    ; `hay_rutas` needs this to know the last step of a move route still
+    ; counts.
     lda #1
     sta ruta_paso
 listo:
     rts
 velocidad:
-    ; `increase_movement_speed` y `decrease_movement_speed`, topadas en 6 y 1
-    ; como `MoveRouteSpeedUp`. Sobre el héroe la ROM las ignoraba; ahora
-    ; cambian el paso, y lo cambian para siempre: RM2k repone la frecuencia al
-    ; terminar la ruta y la velocidad no.
+    ; `increase_movement_speed` and `decrease_movement_speed`, capped at 6 and
+    ; 1 like `MoveRouteSpeedUp`. On the hero the ROM used to ignore them; now
+    ; they change the pace, and change it for good: RM2k restores the
+    ; frequency when the move route ends and not the speed.
     cmp #29
     beq vel_menos
     jsr hero_vel_leer
@@ -285,38 +288,40 @@ vel_guardar:
     jmp otra_orden
 .endproc
 
-; Si queda alguna ruta forzada sin terminar, la del héroe incluida. Devuelve A
-; distinto de cero si la hay. Es `Game_Map::IsAnyMovePending`, que es a lo que
-; espera `ProceedWithMovement`.
+; Whether any forced move route is left unfinished, the hero's included.
+; Returns A nonzero if there is. It is `Game_Map::IsAnyMovePending`, which is
+; what `ProceedWithMovement` waits for.
 ;
-; Del héroe cuentan tres cosas, y la última no es obvia: que le queden órdenes,
-; que esté en el aire, y que tenga un paso en curso **que haya arrancado la
-; ruta**. Lo último hace falta porque el último paso de una ruta sigue siendo la
-; ruta aunque ya no queden órdenes —sin eso la página seguiría ocho cuadros
-; antes de tiempo—, y tiene que ser sólo el de la ruta porque, terminada ésta,
-; el jugador puede ponerse a caminar mientras otra ruta sigue corriendo, y un
-; paso del pad no es una ruta pendiente.
+; For the hero three things count, and the last one is not obvious: that it
+; has commands left, that it is in the air, and that it has a step in progress
+; **that the move route started**. The last one is needed because a move
+; route's last step is still the move route even when no commands are left
+; —without it the page would go on eight frames early—, and it has to be only
+; the move route's because, once it is over, the player can start walking
+; while another move route is still running, and a step from the pad is not a
+; pending move route.
 ;
-; El salto no necesita ese cuidado y por eso se mira pelado: el único que pone
-; `ruta_salto` en algo distinto de cero es `armar_salto_heroe`, y a ése lo llama
-; sólo `paso_de_ruta`, así que un salto del héroe es siempre de una ruta. Del
-; pad no sale ninguno. Faltaba, y un `ProceedWithMovement` pegado detrás de un
-; salto soltaba la página con el héroe todavía arriba: allá `MoveRouteFinished`
-; se prende adentro de `UpdateMovement`, o sea al aterrizar.
+; The jump does not need that care and that is why it is looked at bare: the
+; only one that sets `ruta_salto` to something other than zero is
+; `armar_salto_heroe`, and only `paso_de_ruta` calls it, so a hero's jump is
+; always from a move route. None comes from the pad. It was missing, and a
+; `ProceedWithMovement` right after a jump let the page go with the hero still
+; up in the air: there, `MoveRouteFinished` gets set inside `UpdateMovement`,
+; that is, on landing.
 .proc hay_rutas
 .a8
 .i16
     lda ruta_espera
-    bne si                      ; el héroe está en medio de un `wait`
+    bne si                      ; the hero is in the middle of a `wait`
     lda ruta_salto
-    bne si                      ; o está en el aire
+    bne si                      ; or is in the air
     lda ruta_i
     cmp ruta_n
-    bcc si                      ; al héroe le quedan órdenes
+    bcc si                      ; the hero has commands left
     lda ruta_paso
     beq de_eventos
     lda step_left
-    bne si                      ; y el paso que está dando es de la ruta
+    bne si                      ; and the step it is taking is the move route's
 
 de_eventos:
     ldx #$0000
@@ -326,16 +331,16 @@ otra:
     beq siguiente
     lda ruta_ev + 18, x
     and #$01
-    bne siguiente               ; la ruta propia de la página no se espera
-    lda ruta_ev + 7, x          ; un paso en curso
+    bne siguiente               ; the page's own move route is not waited for
+    lda ruta_ev + 7, x          ; a step in progress
     bne si
-    lda ruta_ev + 9, x          ; o una espera
+    lda ruta_ev + 9, x          ; or a wait
     bne si
-    lda ruta_ev + 13, x         ; o un salto
+    lda ruta_ev + 13, x         ; or a jump
     bne si
     lda ruta_ev + 5, x
     cmp ruta_ev + 4, x
-    bcc si                      ; le quedan órdenes
+    bcc si                      ; it has commands left
 siguiente:
     rep #$20
 .a16
@@ -353,4 +358,3 @@ si:
     lda #1
     rts
 .endproc
-
