@@ -1496,11 +1496,11 @@ def gotas_de_lluvia(tiles, palettes, de_lider=(), timer_base=None,
 
 
 def cartel_de_imagen(info, tiles, palettes, base_previa=None):
-    """The `ShowPicture` sign at the end of the sprite bank: its tiles and **a
+    """The `ShowPicture` picture at the end of the sprite bank: its tiles and **a
     whole palette just for it**.
 
     It shares a palette with nobody, unlike the timer and the drops, and not
-    for lack of room: the sign's fade is a tint of its fifteen CGRAM entries
+    for lack of room: the picture's fade is a tint of its fifteen CGRAM entries
     frame by frame, so a character put in that palette would fade out and back
     in with it.
 
@@ -1512,7 +1512,7 @@ def cartel_de_imagen(info, tiles, palettes, base_previa=None):
     skip them.
 
     Returns (tiles, base, palette number), or (tiles, 0, 0) if the map already
-    uses the eight sprite palettes: then this map doesn't draw the sign.
+    uses the eight sprite palettes: then this map doesn't draw the picture.
     """
     if len(palettes) >= OBJ_PALETTES:
         return bytes(tiles), 0, 0
@@ -1558,7 +1558,7 @@ def animacion_de_mapa(tiles, palettes, usadas=0):
     """The battle animation box at the end of the sprite bank: its 64 tiles
     and **a whole palette just for it**.
 
-    It shares a palette with nobody for the same reason as the sign: the
+    It shares a palette with nobody for the same reason as the picture: the
     fifteen colors belong to the animation, are uploaded when it starts and
     overwritten when another starts, and a character put there would change
     color with it. And it goes **above `SPRITE_CGRAM`**, that is outside the
@@ -1570,14 +1570,14 @@ def animacion_de_mapa(tiles, palettes, usadas=0):
     via DMA frame by frame, from the cartridge. See `animacion.py`.
 
     Returns (tiles, base, palette number), or (tiles, 0, 0) if the map already
-    uses the eight sprite palettes. `usadas` are the ones the sign already
+    uses the eight sprite palettes. `usadas` are the ones the picture already
     took.
     """
     cual = len(palettes) + usadas
     if cual >= OBJ_PALETTES:
         return bytes(tiles), 0, 0
     tiles = bytearray(tiles)
-    # After everything else: the timer, the drops and the sign already grew
+    # After everything else: the timer, the drops and the picture already grew
     # `tiles` to cover theirs, so the end of the bank is the length. Rounded up
     # to a **row of blocks**, which is what the arithmetic of 32x32 objects
     # needs whole.
@@ -3660,7 +3660,7 @@ def escena_de_la_rom(db, tropas, mapas, tree, encuentros, game_dir):
 
     It is the other half of tools/port/escena.py: there is how a backdrop or
     a battler is converted, here **which ones**. Backdrops are named by their
-    number in the game —see "Qué fondos hay" there—, and a battle asks for its
+    number in the game —see "Which backdrops there are" there—, and a battle asks for its
     own in three ways:
 
     * **an `EnemyEncounter` that names it**, and then it belongs to the troop
@@ -3722,7 +3722,7 @@ def escena_de_la_rom(db, tropas, mapas, tree, encuentros, game_dir):
                               for t in range(max(terrenos, default=0) + 1)]
 
     # The ROM's: all the ones asked for, in the order they are asked for —see
-    # "Qué fondos hay" in escena.py—. A map with encounters that asks for the
+    # "Which backdrops there are" in escena.py—. A map with encounters that asks for the
     # one of the place asks for those of all the terrains of its blocks, which
     # are the ones the hero can stand on, substitutions included. A map
     # without encounters that asks for it anyway —because some troop fights
@@ -4228,7 +4228,7 @@ def tabla_de_paginas(mapa, numero, evcodigo):
         # the poses of its graphic are in, or $FF if the page doesn't turn,
         # and its pose. When triggered, the ROM uploads the one facing the
         # hero; on a refresh, a change to a page that doesn't turn or has
-        # another graphic undoes the turn. See GIRO in eventos.py.
+        # another graphic undoes the turn. See TURN in eventos.py.
         grafico = pagina.get("grafico")
         k = (mapa.get("giro_k", {}).get(tuple(grafico[:2]))
              if pagina.get("gira") and grafico and pagina["evento"] in
@@ -4661,7 +4661,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                     "%d fit" % (mapa["id"], nombre, cuantos,
                                 layout[nombre][1]))
 
-    # Where the sign ended up: the map of the table that took its tiles, and
+    # Where the picture ended up: the map of the table that took its tiles, and
     # at which tile and with which palette. It comes from the already
     # converted maps and not from a variable that has to be passed around: the
     # one that has it is the only one with a nonzero `imagen_base`.
@@ -4714,10 +4714,10 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "ANIM_ENTRADA = %d\n"
         "ANIM_SONIDO  = %d\n"
         "ANIM_DESTELLO = %d\n"
-        "; The ShowPicture sign: where its corner falls on the console's\n"
+        "; The ShowPicture picture: where its corner falls on the console's\n"
         "; screen and how many 32x32 objects it measures.\n"
         "; The coordinates already come scaled from 320x240 to 256x224 and X\n"
-        "; can be negative: the \"1 year earlier\" sign goes off the left\n"
+        "; can be negative: the \"1 year earlier\" picture goes off the left\n"
         "; edge, which is what RM2k shows. See tools/port/imagen.py.\n"
         "; The flags of `KeyInputProc`, which go in the second byte of\n"
         # `rom/src/` on purpose: it goes into the `.inc`, which isn't touched
@@ -4739,7 +4739,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "TECLA_VALOR_IZQUIERDA = %d\n"
         "TECLA_VALOR_ABAJO    = %d\n"
         "; Which tile of its sprite bank it starts at and with which palette.\n"
-        "; They are globals and not in the map record because the sign is\n"
+        "; They are globals and not in the map record because the picture is\n"
         "; **a single one per ROM** and lives in a single map: the two fields\n"
         "; took the last free bytes of MAPA_STRIDE, and growing the record\n"
         "; for that would have been expensive for nothing. That no other map\n"
@@ -4769,7 +4769,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         "; The variables: how many slots this ROM carries —at least one,\n"
         "; because a zero length would close the save table—, the ControlVars\n"
         "; operand classes the ROM distinguishes, the sum, and the random\n"
-        "; seed. See 'las variables de RM2k' in eventos.py.\n"
+        "; seed. See 'RM2k's variables' in eventos.py.\n"
         "VARIABLES_N   = %d\n"
         "VAR_SUMAR     = %d\n"
         "VAR_VARIABLE  = %d\n"
@@ -5287,11 +5287,11 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             handle.write("MENSAJES_BYTES = %d\nMENSAJES_TOPE = %d\n"
                          % (len(ventana["mensajes"]),
                             0x10000 * eventos.MENSAJES_PASO))
-        # --- the ShowPicture sign ---
+        # --- the ShowPicture picture ---
         #
         # Its fifteen colors as they came out of `imagen.convertir`, in the
         # order the tiles index them. They go in a global block and not in the
-        # map table because the sign is a single one per ROM; what does belong
+        # map table because the picture is a single one per ROM; what does belong
         # to the map is which tile and which palette it ended up in, which
         # goes in the record.
         #
@@ -5300,7 +5300,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # once: the DMA starts at the palette's entry, not one further on, and
         # subtracting one here is exactly the kind of computation that is
         # written right on one side and wrong on the other.
-        handle.write("\n; --- the ShowPicture sign ---\n")
+        handle.write("\n; --- the ShowPicture picture ---\n")
         colores = ([(0, 0, 0)] + list(cartel["paleta"])) if cartel else [(0, 0, 0)]
         handle.write(bloque("imagen_cgram",
                             b"".join(cgram_word(c).to_bytes(2, "little")
@@ -5446,7 +5446,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # is BG2 at 4bpp.
         #
         # Its name and its level are **not** blocks: the ROM composes them with
-        # glyphs, see "lo que depende del actor" in menus.py. That is what
+        # glyphs, see "what depends on the actor" in menus.py. That is what
         # keeps the bank from growing with the number of actors.
         bloque_de_cara = {}
         for actor in sorted(ranuras["caras"]):
@@ -6101,7 +6101,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # The four text ones go **outside bank 0**, like `item_k` and for the
         # same reason: they don't fit there. With the ten maps of `abl` the
         # code area was at 32622 of 32704 —eighty-two free bytes— and the
-        # `ShowPicture` sign didn't fit. They are read with
+        # `ShowPicture` picture didn't fit. They are read with
         # `lda f:item_txt_lo, x`, which costs one byte and one cycle per read
         # in thirteen places, none inside a per-frame loop.
         handle.write('.segment "RODATA"\n')
@@ -7058,7 +7058,7 @@ def eventos_movibles(game_map, indice_de_mapa, asociaciones=()):
     if len(animados) > ANIMA_QUIETO_MAX:
         animados = set()
     # And the ones that turn toward the hero when it talks to them: the events
-    # with some action or touch page that compiled and turns —see GIRO in
+    # with some action or touch page that compiled and turns —see TURN in
     # eventos.py—, with the graphics of **all** their pages that turn. The
     # twelve poses of each go to the cartridge, which is where the ROM takes
     # the one facing the hero from; the refresh compares the pages' graphics
@@ -7496,13 +7496,13 @@ def main():
     # the other.
     args.mapas_por_personaje = mapas_por_personaje(renderer, todos,
                                                    args.game_dir)
-    # The `ShowPicture` sign, one per ROM: see `eventos.Imagenes`. The first
+    # The `ShowPicture` picture, one per ROM: see `eventos.Imagenes`. The first
     # map of the table that shows it keeps it, which is the order `convertir`
     # walks them in.
     args.imagenes = eventos.Imagenes(args.game_dir)
     args.imagenes.mapa = None
     # And the slots `ChangeSpriteAssociation` reserves in the graphics table
-    # of **all** maps, for the same reason as the sign: the graphic it gives
+    # of **all** maps, for the same reason as the picture: the graphic it gives
     # an actor crosses the teleport, so its index has to mean the same in both
     # maps. See `eventos.asociaciones_de`.
     #
@@ -7610,10 +7610,10 @@ def main():
         if args.grafico_de_prueba and mapa["id"] in mapas_de_prueba(args):
             for charset, index in graficos_de_prueba(args.grafico_de_prueba):
                 graficos.indice(charset, index)
-        # **Only the map that took its tiles can show the sign.** The sprite
+        # **Only the map that took its tiles can show the picture.** The sprite
         # bank belongs to each map, so from another one the six objects would
         # read whatever was in those tiles. It doesn't happen today —the "1
-        # year earlier" sign is shown by a single page— and that is why this
+        # year earlier" picture is shown by a single page— and that is why this
         # stops instead of choosing: the day two maps show the same one, it
         # has to be decided whether its tiles go in both, and the converter
         # can't make that decision alone.
@@ -7624,7 +7624,7 @@ def main():
                 if codigo and any(codigo[i] == eventos.OP_PICTURE
                                   for i, _c in eventos.recorrer_codigo(codigo)):
                     sys.exit(
-                        "map %d: shows the sign %r and its tiles ended up in "
+                        "map %d: shows the picture %r and its tiles ended up in "
                         "map %d; the ROM carries it in a single one. See "
                         "`cartel_de_imagen`."
                         % (mapa["id"], args.imagenes.nombre,
@@ -9414,7 +9414,7 @@ def convertir(renderer, map_id, args):
     # its own would also turn the others that use it; the one that turns
     # moves to this one while its page lasts. It is a single one because only
     # the event the hero triggered turns, and there is one at a time. The
-    # ones that walk or animate don't need it: they have their own. See GIRO
+    # ones that walk or animate don't need it: they have their own. See TURN
     # in eventos.py.
     quietos_que_giran = [npc for npc in npcs
                          if npc["evento"] in giran
@@ -9472,7 +9472,7 @@ def convertir(renderer, map_id, args):
         if not lluvia_base:
             print("  map %d: WARNING, the raindrops don't fit in the "
                   "sprite palettes and it doesn't rain here" % map_id)
-    # The `ShowPicture` sign, if its own belongs to this map. The slot is
+    # The `ShowPicture` picture, if its own belongs to this map. The slot is
     # chosen by `Imagenes.elegir` **in the order of the map table**, which is
     # this same loop.
     imagen_base, imagen_pal = 0, 0
@@ -9485,18 +9485,18 @@ def convertir(renderer, map_id, args):
             tiles, imagen_base, imagen_pal = cartel_de_imagen(
                 info, tiles, palettes, lluvia_base or timer_base)
             if not imagen_base:
-                sys.exit("map %d: the sign %r doesn't fit: the map already uses "
+                sys.exit("map %d: the picture %r doesn't fit: the map already uses "
                          "the %d sprite palettes and the fade needs a whole "
                          "one. See `cartel_de_imagen`."
                          % (map_id, registro.nombre, OBJ_PALETTES))
-            print("  map %d: the sign %r, %d objects in %d tiles from "
+            print("  map %d: the picture %r, %d objects in %d tiles from "
                   "%d, palette %d" % (map_id, registro.nombre,
                                       info["objetos"],
                                       imagen.tiles_reservados(info),
                                       imagen_base, imagen_pal))
     # And the battle animation box, if some page of this map can show one that
     # is drawn. It goes last because it takes the end of the bank and the
-    # palette left free after the sign. The criterion for it to fit is a
+    # palette left free after the picture. The criterion for it to fit is a
     # computation and the converter emits it: if there is no palette or no
     # VRAM, **this map doesn't draw animations** and says so.
     anim_base, anim_pal = 0, 0

@@ -199,8 +199,8 @@ fila:
 ;
 ; The name, the level and the max HP **are not baked** into one block of
 ; cells per actor: they are composed one letter per cell, with the glyphs in
-; `ranura_glifo_celdas`. The reason is in "lo que depende del actor" in
-; titulo.py and is the same one that already holds for the gold and for the
+; `ranura_glifo_celdas`. The reason is in "what depends on the actor" in
+; menus.py and is the same one that already holds for the gold and for the
 ; item screen: the tile bank is a single one and deduplicated, so a block per
 ; actor made it grow with every one who could be in the party.
 

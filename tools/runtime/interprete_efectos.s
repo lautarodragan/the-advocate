@@ -20,7 +20,7 @@ img_poner:
     lda [cod_ptr], y
     cpx #3
     bcs img_poner_sat           ; the fourth operand is the saturation, which
-    sta f:CARTEL_TONO, x        ; is not stored: the sign's is always neutral
+    sta f:CARTEL_TONO, x        ; is not stored: the picture's is always neutral
     sta f:CARTEL_DESDE, x
     sta f:CARTEL_HASTA, x
 img_poner_sat:

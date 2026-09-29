@@ -51,3 +51,105 @@ way. When a term is missing, pick one, use it consistently, and add it here.
 | parche | patch | a file under `parches/` |
 | volcado | dump | the JSON dump of the game |
 | verificado | verified | always names what was run |
+| armar, armado | build, built | |
+| al día / viejo | up to date / stale | a cartridge against its inputs |
+| arnés | harness | the test harness |
+| cobrar (una regla) | enforce; catch (a bug) | "the suite caught it" |
+| acomodo de bancos | bank packing | |
+| hueco / relleno / pieza | gap / padding / piece | |
+| presupuesto | budget | |
+| tope | cap | |
+| intérprete | interpreter | the event bytecode interpreter |
+| rutina | routine | |
+| llamador | caller | |
+| pila | stack | |
+| se lleva X | clobbers X | registers |
+| escritorio (variables prestadas) | scratch space | |
+| lazo | loop | |
+| refresco | refresh | |
+| sombra | shadow | a RAM copy of a register |
+| espejo rápido | fast mirror | |
+| trampa (el stub de LZ2) | trampoline | |
+| flujo | stream | LZ2, audio |
+| bitácora | log | |
+| celda | cell | a text cell |
+| grilla | grid | |
+| renglón | line | |
+| cuadro de texto | text box | "frame" is only the hardware frame |
+| marco (de ventana) | border | not "frame" |
+| desplazamiento | offset | |
+| autocierre | auto-close | |
+| flanco | edge | a button edge |
+| cruceta | D-pad | |
+| enrutador | router | map 4 |
+| mapa de arranque | boot map | |
+| página de prueba | test page | |
+| página automática / paralela | autostart / parallel page | |
+| evento común | common event | |
+| orden (de pelea o de menú) | command | also "orden 34" = command 34 |
+| elección | choice | |
+| manejador | handler | |
+| quieto | still | an event that doesn't move |
+| giro / ranura de giro | turn / turn slot | TURN in `eventos.py` |
+| ele / pata / codo | L-shape / leg / elbow | a diagonal step |
+| cartel (ShowPicture) | picture | not "sign", which is the arithmetic sign |
+| fondo de batalla | battle backdrop | |
+| respaldo (liviano) | (light) fallback | |
+| escena | scene | the battle scene |
+| combatiente | combatant | |
+| blanco | target | |
+| alcance | scope | of a skill |
+| tiro / azar | roll / randomness | |
+| acierto | hit rate | |
+| caído | fallen | |
+| huida | escape | |
+| oculto | hidden | |
+| botín | drop | |
+| página de tropa | troop page | |
+| disparador | trigger | |
+| posada / tienda / saludo | inn / shop / greeting | |
+| pantalla de ranuras | slot screen | |
+| ayuda | help window | |
+| barra | bar | the cursor bar |
+| RAM lejana | far RAM | |
+| ROM jugable | playable ROM | |
+| deuda | debt | |
+| hablante | speaker | |
+| cola (de escapes, del release) | tail | |
+| umbral | threshold | |
+| sacudida | shake | |
+| fusión / volteo / espejado | merge / flip / mirrored | |
+| degradé | gradient | |
+| trama / damero | dither / checkerboard | |
+| hornear | bake | |
+| podar | prune | |
+| receta (del fork) | recipe | |
+| pasabilidad | passability | |
+| asignador | allocator | |
+| capa de abajo / de arriba | lower / upper layer | |
+| reparto (de paletas, de CGRAM) | split | "layout" is only for VRAM |
+| prestar paleta | lend a palette | |
+| corrida (de tiles) | run | |
+| dibujo (de una animación) | drawing | |
+| banco de poses | pose bank | |
+| tira | strip | |
+| paquete de audio | audio package | |
+| tema de salida / tema aparte | exit song / separate song | |
+| efecto entero | whole sound effect | |
+| aire | headroom | |
+| recortar / pico | clip / peak | |
+| reemplazo | replacement | |
+| replegado / pasabajos | aliasing / low-pass | |
+| reparto de voces / repartir | voice allocation / allocate | |
+| robar una voz / víctima | steal / victim | |
+| golpe | hit | a drum hit |
+| rampa | ramp | |
+| sostenido / decaimiento | sustain / decay | |
+| altura | pitch | |
+| paneo | pan | |
+| nota raíz / do central | root key / middle C | |
+| disparo (KON) | key-on | |
+| terna | triplet | |
+| vuelta (de `techos`) | round | not "tick" |
+| vuelta (de la carrera) | lap | |
+| testigo | token, marker | by context |

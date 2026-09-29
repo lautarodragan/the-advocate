@@ -1,7 +1,7 @@
 """An image brought down to N 15-bit colors, or to a full screen at 8 bpp.
 
 `reducir` and `convertir` were born for the title screen, and today the
-signs, the animations, the battle backdrops and the full screens use them
+pictures, the animations, the battle backdrops and the full screens use them
 too.
 """
 

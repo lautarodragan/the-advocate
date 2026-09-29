@@ -119,8 +119,8 @@ sin_flash:
 .a8
     bcc otro_flash
 
-    ; And the sign's palette, if the ramp rebuilt it this frame. It is
-    ; thirty-two bytes and goes separately from the map's three: the sign's
+    ; And the picture's palette, if the ramp rebuilt it this frame. It is
+    ; thirty-two bytes and goes separately from the map's three: the picture's
     ; entry falls above `SPRITE_CGRAM`, that is, outside what `subir_paletas`
     ; uploads.
     lda f:CARTEL_LISTO
@@ -147,7 +147,7 @@ sin_flash:
 sin_imagen:
 
     ; And the battle animation's palette, if one just started. It is the same
-    ; thirty-two bytes as the sign's and for the same reason: its entry falls
+    ; thirty-two bytes as the picture's and for the same reason: its entry falls
     ; above `SPRITE_CGRAM` and `subir_paletas` does not touch it.
     lda f:ANIMB_PAL
     beq sin_anim_pal

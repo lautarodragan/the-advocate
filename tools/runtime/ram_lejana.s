@@ -58,12 +58,12 @@ ACCESO_SIN_ESCAPAR = $04
 ACCESO_PEDIDO      = $80
 ; --- the battle: its state in far RAM -------------------------------------------
 ;
-; **Far RAM has a map and it has to be respected.** On 2026-09-12 the sign
+; **Far RAM has a map and it has to be respected.** On 2026-09-12 the picture
 ; was put at $30E8, which was where the MSU-1 state lived, and the ROM stopped
 ; detecting the chip: the music went silent and no test saw it. From $2000 to
 ; $30FA everything is taken —the parallel interpreters, the variables, the
 ; inventory, the equipment, the weather, the sound effects, the rotation, the
-; sign— and from $3100 to $3600 goes the ARAM allocation. So this starts at
+; picture— and from $3100 to $3600 goes the ARAM allocation. So this starts at
 ; $3700, which is the first place where nobody is.
 ;
 ; The HP of each LDB actor, one word per actor number. **They are real state

@@ -11,7 +11,7 @@ abajo.
 
 La ROM lleva los fondos que piden las peleas del cartucho, y **livianos**:
 128x64 en 4bpp y 16 colores, que la ROM agranda al doble, contra los 256x128
-en 8bpp y 96 colores del `.msu` —ver "El respaldo liviano" en
+en 8bpp y 96 colores del `.msu` —ver "The light fallback" en
 `tools/port/escena.py`—. Así se ve a ojo de qué lado salió el fondo, y cada
 uno cuesta en la ROM un octavo de lo que pesa en el `.msu`. Una pelea cuyo
 fondo la ROM no lleva usa, sin MSU-1, uno de reemplazo.
@@ -78,7 +78,7 @@ bytes; si coinciden, `esc_llenar` y los colores de `escena_subir` —en
 
 **La firma es del contenido, no del commit**: un `.msu` de otro build con los
 mismos fondos se acepta, y está bien, porque son los mismos bytes en las
-mismas posiciones. (El respaldo liviano no cambió el `.msu`: el de calidad
+mismas posiciones. (El respaldo liviano, "The light fallback", no cambió el `.msu`: el de calidad
 es el de antes, byte por byte, y con él la firma.) Lo que **no** cubre: un `.msu` con la cabecera intacta y
 los datos dañados. La ROM no puede hashear 32 KB por fondo al empezar cada
 pelea.
@@ -107,7 +107,7 @@ salen las peleas del mundo.
 
 **La ROM lleva todos los que las peleas del cartucho pueden pedir**: los que
 nombran las tropas, los de los mapas con encuentros al azar y los de los
-terrenos de esos mapas cuando no nombran ninguno —ver "Qué fondos hay" en
+terrenos de esos mapas cuando no nombran ninguno —ver "Which backdrops there are" en
 `tools/port/escena.py`—. Sin MSU-1, una pelea cuyo fondo la ROM no lleva usa
 **el de reemplazo**, `[battle] fallback_backdrop` del archivo de proyecto
 —por qué ése, en su comentario—:
