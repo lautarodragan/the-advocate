@@ -49,8 +49,9 @@ nombrado tiene que existir: lo cobra `test_indice.py`.
 * `test_musica_stream.py`: el stream que arma el conversor: a qué voz va cada
   nota, cuándo se suelta y con qué envolvente
 * `test_proyecto.py`: que dónde está cada cosa —la raíz, las carpetas del
-  repo, los valores por omisión del ambiente— lo sepa sólo
-  `comun/proyecto.py`
+  repo— lo sepa sólo `comun/proyecto.py`, que ninguna herramienta lea el
+  ambiente por su cuenta, y que ninguna sepa de A Blurred Line: ni una
+  variable `ABL_*`, ni `rom/` como ruta
 * `test_perillas.py`: que el lector del archivo de proyecto,
   `comun/perillas.py`, falle con el nombre de la clave en vez de caer en un
   valor por omisión
