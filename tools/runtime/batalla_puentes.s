@@ -10,7 +10,7 @@
 ;
 ; Las reglas —daño, acierto, crítico, varianza, orden de turnos, huida— salen
 ; de easyrpg-player y están escritas dos veces: acá y en `tools/port/batalla.py`,
-; que es lo que le permite a `pruebas/rpgmaker/test_batalla.py` predecir el número
+; que es lo que le permite a `rom/pruebas/rpgmaker/test_batalla.py` predecir el número
 ; exacto que cada HP va a tener. La pantalla es de texto, sobre negro.
 ;
 ; **El código de la pelea no vive en el banco 0**: son unos dos kilobytes y en
@@ -117,7 +117,7 @@ ba_t_bgm:
     plb
     rtl
 ; Y el paquete de audio de X, que es `batalla_audio_cargar`: lo usa la pantalla
-; de Game Over, que sube el suyo. Ver rom/src/game_over.s.
+; de Game Over, que sube el suyo. Ver tools/runtime/game_over.s.
 ba_t_audio:
     phb
     phk

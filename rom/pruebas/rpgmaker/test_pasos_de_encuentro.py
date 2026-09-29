@@ -4,7 +4,7 @@ Es `Game_Map::SetEncounterSteps`: cambia el `encounter_steps` del mapa hasta
 que se cargue otro. En la ROM son dos cosas que salen del mismo número —la
 chance del paso, `ENC_BASE`, y en qué paso se cruza cada fila de la tabla,
 `ENC_UMB`— y el conversor las calcula las dos: ver `encuentro_pasos` en
-rom/src/encuentros.s y `Encuentros.poner_pasos`, que es el modelo.
+runtime/encuentros.s y `Encuentros.poner_pasos`, que es el modelo.
 
 Lo pidió el viaje de Dalia a Tasgarde (la automática 14 del mundo, el 66), que
 los pone en cero antes de forzarle una ruta al héroe. Los tres casos van en el

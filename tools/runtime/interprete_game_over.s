@@ -11,7 +11,7 @@
 ; `ReturntoTitleScreen` y `GameOver`: el primero vuelve al arranque —la
 ; pantalla de título, si la ROM la lleva— y el segundo pasa antes por la
 ; pantalla de Game Over, que es lo mismo que perder una pelea sin manejador de
-; derrota: ver rom/src/game_over.s. Los dos con `jml`: no hay a dónde volver.
+; derrota: ver tools/runtime/game_over.s. Los dos con `jml`: no hay a dónde volver.
 ;
 ; Comparten todo menos el final, y A alto dice cuál es: `op_return_to_title`
 ; carga 0 y se saltea el `lda #1` con el byte de un `bit` absoluto, que se

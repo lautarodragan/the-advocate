@@ -2,9 +2,14 @@
 # regenerar lo versionado y entregar. Las herramientas que usan se instalan
 # aparte y se consumen desde el PATH, por su nombre: este archivo no sabe
 # dónde viven ni en qué están escritas.
+#
+# **Las recetas corren paradas en este directorio**, la raíz de ABL, se las
+# llame desde acá, desde más abajo o desde la raíz del repo —cuyo `justfile`
+# importa éste—: las rutas de acá, como `build/release` o `pruebas`, son
+# relativas a él.
 
-# Dónde instala las herramientas de un worktree `just herramientas-locales`:
-# adentro del checkout, ignorado por git. Si existe, su `bin/` va **adelante
+# Dónde le pide ABL a `herramientas-locales` las herramientas de un worktree:
+# en este directorio, ignorado por git. Si existe, su `bin/` va **adelante
 # en el PATH de toda receta**, y lo que no esté ahí sale del global. En el
 # checkout principal no existe.
 #
@@ -22,7 +27,7 @@ export PATH := if path_exists(locales / "bin") == "true" { locales / "bin" + ":"
 # **`unpack` escribe las dos vistas y no una**, en la misma corrida: `data/` es
 # la *vista resuelta* —todos los campos escritos, los defaults ya aplicados y
 # los enums en número—, y el *volcado exacto* —defaults omitidos, enums por
-# nombre, la forma del binario— sale a `rom/build/ditto-exacto/`, que no se
+# nombre, la forma del binario— sale a `build/ditto-exacto/`, que no se
 # versiona. El exacto es el único que `ditto pack` puede volver a escribir, y
 # es el que hay que mirar para ver el juego con los nombres puestos.
 #
@@ -51,7 +56,7 @@ ditto-volcado DIR="/extras/volcado-ditto":
 #
 # Usa el `ditto` del PATH, como `datos`, y no compila nada. Las pruebas de
 # Ditto miden lo mismo sobre el corpus que se les pase; ésta es la de ABL,
-# sobre su juego. Lo que arma va a `rom/build/ditto-vuelta/` y se rehace
+# sobre su juego. Lo que arma va a `build/ditto-vuelta/` y se rehace
 # entero en cada corrida.
 datos-vuelta:
   #!/usr/bin/env sh
@@ -81,7 +86,7 @@ datos-vuelta:
   [ "$iguales" -gt 0 ] && [ "$distintos" -eq 0 ]
 
 # **Un worktree sin su `bin/` no corre herramientas.** Correría los scripts
-# del checkout principal —los del global—, que arman en el `rom/build/` del
+# del checkout principal —los del global—, que arman en el `build/` del
 # principal: pisaría sus cartuchos, quizás con una tanda corriendo ahí, sin
 # enterarse. Así que toda receta que corre un script de las herramientas
 # depende de ésta, y en un worktree sin `.herramientas-locales/bin/` se
@@ -122,7 +127,7 @@ _herramientas_del_checkout:
 #
 # Las de estado se apoyan en la tabla de símbolos que deja `ensamblar`, así
 # que ninguna dirección de RAM está escrita a mano: renombrar una variable en
-# `rom/src/` hace fallar la prueba diciendo qué símbolo falta.
+# `runtime/` hace fallar la prueba diciendo qué símbolo falta.
 #
 # Las pruebas no arman nada: corren contra los cartuchos de `cartuchos`, que
 # se arman antes, en serie, y sólo si cambió algo de lo que los arma. **Después
@@ -236,8 +241,8 @@ techos *args: _herramientas_del_checkout
 # Arma un cartucho por nombre, si no está al día:
 #
 #     release        la ROM que taro juega y la que corre casi toda la tanda,
-#                    en `rom/build/release/abl.sfc`
-#     test-special   lo que no entra en ella, en `rom/build/tests/special`
+#                    en `build/release/abl.sfc`
+#     test-special   lo que no entra en ella, en `build/tests/special`
 #
 # `just pruebas` los arma todos antes de correr. Qué lleva cada uno, y por
 # qué, en el fuente de `rm2k-snes-cartridges`: los flags de `release` también
@@ -269,7 +274,7 @@ build cual: _herramientas_del_checkout
 
 # **Le deja a taro el `release` en `/shared/builds/<fecha>-<commit>/`**: el
 # `abl.sfc`, su `.dbg`, un `LEEME.txt` con lo que se le pasa como qué mirar, y
-# el `rom/src/` del commit, que es lo que deja a Mesen2 mostrar el fuente
+# el `runtime/` del commit, que es lo que deja a Mesen2 mostrar el fuente
 # abriendo la ROM desde ahí. Borra los builds viejos menos el anterior. La
 # regla es la de "Sub-agentes" en AGENTS.md; se escribió porque a mano se
 # repetía seguido y se equivocaba.

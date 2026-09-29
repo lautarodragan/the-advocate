@@ -688,7 +688,7 @@ sin_agi:
 ; `Game_BattleAlgorithm::Skill` con lo que este port sabe hacer. Qué sabe cada
 ; actor al empezar, cuánto cuesta y cuánto hace **no se decide acá**: sale de
 ; `batalla.habilidades_de`, `batalla.costo_de` y `batalla.efecto_habilidad`,
-; que es el modelo con el que `pruebas/rpgmaker/test_batalla.py` predice el número
+; que es el modelo con el que `rom/pruebas/rpgmaker/test_batalla.py` predice el número
 ; exacto, y el conversor lo emite en `hab_par_*` y `hab_*`. Lo que sabe
 ; **ahora** es `FAR_HAB`, que `ChangeSkills` mueve.
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Arma la ROM: `ca65` + `ld65`, el checksum de la cabecera y los símbolos.
 
-    rm2k-snes-assemble rom/src/main.s -I rom/build/release \\
+    rm2k-snes-assemble tools/runtime/main.s -I rom/build/release \\
         -o rom/build/release/abl.sfc --simbolos …/abl.sfc.sym
 
 Hasta el 2026-09-16 esto lo hacía `w65`, un ensamblador nuestro. `ca65` y `ld65`
@@ -13,9 +13,9 @@ hacen lo mismo salvo tres cosas, y son las que viven acá:
 * **La tabla de símbolos, en el formato que leen las pruebas**: una línea por
   símbolo, `nombre valor`, con el valor en decimal. `ld65` la da en su archivo
   de depuración, que trae mucho más.
-* **Negarse a armar con un `.inc` generado en `rom/src/`.** `ca65` busca
+* **Negarse a armar con un `.inc` generado en `tools/runtime/`.** `ca65` busca
   los `.include` primero en el directorio del archivo que incluye y recién
-  después en los `-I`, así que uno viejo en `rom/src/` taparía al del cartucho
+  después en los `-I`, así que uno viejo en `tools/runtime/` taparía al del cartucho
   sin decir nada: la ROM saldría con los datos de otro.
 
 Lo que **no** tiene equivalente es un control que hacía `w65`: que cada salto

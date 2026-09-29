@@ -8,7 +8,7 @@ esperan por RAM, no por cuadros contados: ver `recorrido.py`. Lo que se graba
 se toma de `retro.Consola.correr`, parcheado desde acá: cada cuadro de hardware
 va a ffmpeg y su audio a un wav, y al final se juntan.
 
-    pruebas/arnes/video.py rom/build/release salida.mp4 apertura talan
+    pruebas/arnes/video.py build/release salida.mp4 apertura talan
 
 Las jugadas se nombran por lo que tienen después de `test_`, sin tener que
 escribir el nombre entero: `apertura` es `test_la_apertura_termina_...`.
@@ -159,7 +159,7 @@ def grabar(build, salida, jugadas, leer=None, msu=True):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("build", help="el directorio de la ROM: rom/build/release")
+    parser.add_argument("build", help="el directorio de la ROM: build/release")
     parser.add_argument("salida", help="el .mp4")
     parser.add_argument("jugadas", nargs="+",
                         help="parte del nombre de una jugada de "

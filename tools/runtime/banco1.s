@@ -31,7 +31,7 @@
 ; segmento propio esto iba detrás de los datos generados: caía en un banco
 ; distinto con cada cartucho, y un relleno calculado a ojo tenía que evitar que
 ; la pelea quedara partida. Lo que garantiza que entre lo cobra
-; `pruebas/herramientas/test_bancos.py`, sobre la tabla de símbolos.
+; `rom/pruebas/herramientas/test_bancos.py`, sobre la tabla de símbolos.
 .segment "FAR"
 
 ; --- lo que no hace falta que viva en el banco 0 ---------------------------

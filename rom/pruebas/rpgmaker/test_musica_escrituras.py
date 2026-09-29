@@ -3,7 +3,7 @@ cuadro por cuadro.
 
 El stream de música es por nota desde el 2026-09-26 —ver "el formato por
 nota" en `tools/audio/snes_music.py`— y lo expande `music_frame`
-(rom/src/musica.s) a escrituras al DSP. La propiedad que sostiene el formato
+(runtime/musica.s) a escrituras al DSP. La propiedad que sostiene el formato
 es que esas escrituras sean **exactamente** las de `snes_music.escrituras`:
 mismo registro, mismo valor, mismo orden y mismo cuadro. Hay dos redes:
 

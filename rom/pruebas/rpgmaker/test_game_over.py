@@ -9,7 +9,7 @@ Tracks.
 Compilan con el destino de la derrota puesto en `eventos.BATALLA_PERDER`
 —$FFFF, un destino imposible adentro de una página—; la ROM lo anota antes de
 pelear y, si se pierde, muestra la pantalla y al apretar A se va con un `jml
-reset`. Ver rom/src/game_over.s.
+reset`. Ver runtime/game_over.s.
 
 Lo que se ve se mira contra una golden, `game-over`, que es la misma para los
 tres caminos —la pelea de página, el encuentro al azar y el comando—; lo

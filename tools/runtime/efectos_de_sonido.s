@@ -170,7 +170,7 @@ voz_7:
     ; `sep #$10` / `tax`, que le borraba la parte alta a Y; y antes, con un
     ; `and #$000F` de dieciséis bits que borraba B, y desde 854dba9 (la voz 7)
     ; y 8c9c182 (la 6) toda escritura de la música a las voces de la batería
-    ; llegaba al DSP como cero. Lo cobra pruebas/rpgmaker/test_bateria_suena.py.
+    ; llegaba al DSP como cero. Lo cobra rom/pruebas/rpgmaker/test_bateria_suena.py.
     xba
     sta f:SE_SOMBRA - SE_REG, x ; a la sombra
     xba                         ; B = el valor, para `enviar`

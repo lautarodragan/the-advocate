@@ -146,7 +146,7 @@ def hero_start(passable, width, height, blocked=()):
 #
 # El reloj es el contador de cuadros del sistema, que no se reinicia al cambiar
 # de mapa. Acá ese reloj es el tick, que en la ROM es `vueltas` —ver
-# `Partida` en pruebas/arnes/consola.py, que es quien lo lee—. La fase absoluta contra el juego
+# `Partida` en rom/pruebas/arnes/consola.py, que es quien lo lee—. La fase absoluta contra el juego
 # original no significa nada, porque nuestro arranque no dura lo mismo; lo que
 # tiene que coincidir es la cadencia y que los dos lados miren el mismo tick.
 # Las dos familias, con cuántos dibujos tiene cada una. El orden es el de las

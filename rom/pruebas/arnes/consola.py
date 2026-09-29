@@ -8,7 +8,7 @@ dos redes distintas y se complementan: la de pixeles dice "la pantalla es
 exactamente ésta", ésta dice "y además llegaste adonde tenías que llegar".
 
 Lo que hace posible preguntar es que `tools/ensamblado/ensamblar.py` deja al lado de la ROM
-la tabla de símbolos que sale de `rom/src/` de verdad, con las direcciones de la
+la tabla de símbolos que sale de `runtime/` de verdad, con las direcciones de la
 RAM **y** las constantes del ensamblador:
 
     mapa_actual 90
@@ -16,7 +16,7 @@ RAM **y** las constantes del ensamblador:
     FLAG_AUTO 2
 
 Por eso acá no hay ninguna dirección escrita a mano. Si alguien renombra una
-variable en `rom/src/`, el test falla diciendo qué símbolo falta, que es
+variable en `runtime/`, el test falla diciendo qué símbolo falta, que es
 exactamente lo que se quiere: ruidoso y en el lugar. Una constante copiada a
 mano se desfasaría en silencio y leería la dirección de al lado.
 """
@@ -41,7 +41,7 @@ NUCLEO = os.environ.get(
 # El cuadro que se ve en pantalla muestra el estado de la vuelta ANTERIOR del
 # lazo principal: `flush_video` sube el OAM que armó `build_oam` la vuelta
 # pasada, y por eso está al principio del lazo y no al final. De ahí sale este
-# +1, que no es un ajuste sino una consecuencia del orden del lazo, en rom/src/arranque.s.
+# +1, que no es un ajuste sino una consecuencia del orden del lazo, en runtime/arranque.s.
 #
 # Con eso, para ver al héroe con N pixeles de avance hay que correr N/2 + 1
 # cuadros desde que se aprieta: se mueve WALK_SPEED = 2 por cuadro. Medido en el
@@ -85,7 +85,7 @@ class Simbolos:
         except KeyError:
             raise SimboloDesconocido(
                 "la ROM no tiene el símbolo %r (mirá %s). Si lo renombraste en "
-                "rom/src/, renombralo también acá: la tabla se genera del "
+                "runtime/, renombralo también acá: la tabla se genera del "
                 "assembler, así que un nombre que no está es un nombre que ya "
                 "no existe." % (nombre, self.ruta)) from None
 
@@ -542,7 +542,7 @@ class Partida:
     # --- las preguntas -----------------------------------------------------
     #
     # Cada símbolo se nombra en un solo lugar, acá. Un test dice `.mapa()`, no
-    # `"mapa_actual"`, así que renombrar la variable en `rom/src/` se arregla en
+    # `"mapa_actual"`, así que renombrar la variable en `runtime/` se arregla en
     # una línea y no en veinte.
 
     def byte(self, nombre):
@@ -942,13 +942,13 @@ class Partida:
     def temas_de_salida(self, indice):
         """Los temas de salida del paquete `indice`: los que el mapa prende
         sólo para irse, que se suben si hay lugar. Ver `extra_de_salida` en
-        rom/src/paquete_de_audio.s."""
+        runtime/paquete_de_audio.s."""
         return self._listas_del_paquete(indice)[2]
 
     def temas_aparte(self, indice):
         """Los temas aparte del paquete `indice`: los que su `PlayBGM` sube
         solos con los efectos del paquete. Ver `extra_aparte` en
-        rom/src/paquete_de_audio.s."""
+        runtime/paquete_de_audio.s."""
         return self._listas_del_paquete(indice)[3]
 
     def _listas_del_paquete(self, indice):
@@ -1070,7 +1070,7 @@ def en_la_wram(direccion):
     """De una dirección larga del banco $7E al desplazamiento que pide
     `retro.Consola.ram`.
 
-    Las de la RAM lejana están escritas de las dos maneras en `rom/src/ram_lejana.s` —unas
+    Las de la RAM lejana están escritas de las dos maneras en `runtime/ram_lejana.s` —unas
     con el banco adelante (`$7E3100`) y otras sin él (`$2600`)—, así que el
     símbolo se enmascara en vez de suponerse.
     """
@@ -1099,7 +1099,7 @@ class DelCartucho:
     """Los bytes del cartucho desde `direccion`, como una secuencia. En LoROM
     el byte que sigue a $xxFFFF está en $(xx+1)8000, que en el archivo es el
     siguiente, así que alcanza con el desplazamiento: es el salto de banco de
-    `advance` en rom/src/musica.s, visto desde el archivo."""
+    `advance` en runtime/musica.s, visto desde el archivo."""
 
     def __init__(self, rom, direccion):
         self.rom, self.base = rom, en_la_rom(direccion)

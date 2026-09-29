@@ -83,7 +83,7 @@ OPCIONES = {
     # Y la entropía va al máximo a propósito, que es la razón por la que este
     # core vale la pena: bsnes llena la WRAM de basura al encender, como la
     # consola de verdad, y snes9x la deja en cero. Comentando las dos líneas
-    # que inicializan `ruta_n`/`ruta_i` en rom/src/ —el error que taro encontró
+    # que inicializan `ruta_n`/`ruta_i` en tools/runtime/ —el error que taro encontró
     # jugando y que la tanda no vio— sobre 20 corridas del mapa 7: con "None"
     # difieren 0, con "Low" 3 y con "High" 11. Con la ROM sana, 20 corridas de
     # 20 dan el mismo cuadro, así que esto no vuelve inestable a la tanda: sólo
@@ -382,7 +382,7 @@ class Consola:
         """Palabras de la VRAM, desde la **dirección de palabra** del PPU.
 
         Se pide en palabras y no en bytes porque así es como el 65816 le habla
-        al PPU: `VMADDL` es una dirección de palabra, y los símbolos de `rom/src/`
+        al PPU: `VMADDL` es una dirección de palabra, y los símbolos de `tools/runtime/`
         —`VRAM_ABOVE_MAP`, `M_VRAM_MAP`— están escritos en esas unidades. Pedirla
         en bytes obligaría a que cada quien se acuerde del por dos.
 

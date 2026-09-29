@@ -15,7 +15,7 @@ propio repositorio, lo de acá se quedaría y lo de allá se iría con él.
 
 Hasta el 2026-09-14 el conversor a SNES leía los binarios de RM2k **cada vez**,
 con un lector propio en Python —el `tools/rpgmaker/lcf.py` de entonces—, y el volcado a
-`data/*.json`
+`rom/data/*.json`
 era un camino paralelo con su propio decodificador. Dos caminos para el mismo
 formato, y los dos con los defaults escritos a mano.
 
@@ -35,15 +35,15 @@ El formato de RM2k se lee **una sola vez**, en Ditto, y de ahí sale el JSON que
 el resto del toolchain consume. No se lee el binario en cada build ni se
 mantienen dos decodificadores.
 
-**Ya pasó.** Desde el 2026-09-14, `data/` es el volcado de Ditto y
+**Ya pasó.** Desde el 2026-09-14, `rom/data/` es el volcado de Ditto y
 `tools/rpgmaker/lcf.py` lo lee: el conversor, la referencia en Python y las pruebas
 están todas mirando esos archivos, y ningún `.lmu` se abre para armar una ROM.
 Los tres pasos, decididos con taro:
 
 1. Que Ditto **omita los defaults** al serializar y emita **la estructura de
-   `data/`**. Hecho; es la sección de abajo.
+   `rom/data/`**. Hecho; es la sección de abajo.
 2. **Volcar los JSON una vez y versionarlos.** Hecho: `just datos` escribe
-   `data/`, y el volcado que ganó fue el de Ditto —lo eligió taro—.
+   `rom/data/`, y el volcado que ganó fue el de Ditto —lo eligió taro—.
 3. Que **`tools/rpgmaker/lcf.py` los lea**, con sus 51 consumidores intactos. Hecho, y
    los 51 quedaron intactos.
 
@@ -55,7 +55,7 @@ para poder leer. Es la sección que sigue.
 
 `ditto unpack` emite **dos árboles con la misma forma, en la misma corrida**:
 
-* la **vista resuelta**, que es `data/`: todos los campos escritos, con su
+* la **vista resuelta**, que es `rom/data/`: todos los campos escritos, con su
   default ya aplicado, y los enums como el número que guarda el binario. No
   hace falta saber nada del formato para leerla, y eso es todo lo que se le
   pide;
@@ -99,10 +99,10 @@ queriendo decir de dónde salen los PNG y los MIDI, que no se mudaron.
 
 **Lo que sí cambió de fondo: los defaults ya no se escriben en `lcf.py`.** Y
 desde el 2026-09-20 tampoco se leen de ningún lado: vienen aplicados en
-`data/`, que es la vista resuelta.
+`rom/data/`, que es la vista resuelta.
 
 Entre el 14 y el 20, en el medio, estuvo el paso que hoy se ve como una escala:
-`data/` era el volcado exacto y `lcf.py` llevaba el esquema del formato al lado
+`rom/data/` era el volcado exacto y `lcf.py` llevaba el esquema del formato al lado
 para entenderlo —`ditto_schema.json`, con el chunk, el default, el enum y el
 `PersistIfDefault` de cada campo—. Primero ese esquema lo scrapeaba un
 `gen_ditto_schema.py` con expresiones regulares sobre el código Rust de Ditto
@@ -125,7 +125,7 @@ los chunks crudos de `db.fields`, que ya no existen porque no hay binario.
 * `tools/port/eventos.py` y `tools/destraba.py` armaban los eventos comunes leyendo
   el chunk 0x19 de la base y el 0x16 de cada uno; ahora es `db.common_events`,
   que la capa arma.
-* `pruebas/herramientas/test_encuentros.py` leía los terrenos y el `terrain_set` de las
+* `rom/pruebas/herramientas/test_encuentros.py` leía los terrenos y el `terrain_set` de las
   tropas igual; ahora salen de `db.decode()`.
 
 `db.terminos` —los términos por número de chunk, que es como los pide la
@@ -165,7 +165,7 @@ seis mapas—. La prueba ahora mide eso, que es lo que hay que cuidar.
 
 `ditto unpack <juego> <dir>` escribe el árbol y `ditto pack <dir> <juego>` lo
 vuelve a armar. La estructura es la que pidió taro, que es la que ya tiene
-`data/`: `maps.json` con el árbol, un archivo por mapa en `maps/`, las capas de
+`rom/data/`: `maps.json` con el árbol, un archivo por mapa en `maps/`, las capas de
 tiles aparte en `maps/Map0001.tiles`, y las 15 secciones de la base en `db/`.
 El porqué de cada decisión está en `tools/ditto/README.md`, en inglés; acá va lo que
 es de este repo.
@@ -174,10 +174,10 @@ Los pesos, sobre el mismo juego:
 
     17.569.229   el .ldb como un solo JSON, omitiendo defaults
     25.675.888   el .ldb como un solo JSON, como estaba antes
-    19.445.521   el volcado exacto entero, 674 archivos: lo que data/ fue
+    19.445.521   el volcado exacto entero, 674 archivos: lo que rom/data/ fue
                  entre el 2026-09-14 y el 2026-09-20, y lo que hoy sale a
                  rom/build/ditto-exacto/
-    30.902.519   la vista resuelta, los mismos 674 archivos: lo que hoy es data/
+    30.902.519   la vista resuelta, los mismos 674 archivos: lo que hoy es rom/data/
     16.121.259   el volcado que reemplazó, el de tools/export_json.py
 
 O sea: omitir los defaults saca **un tercio** del `.ldb` suelto, y el volcado
@@ -191,7 +191,7 @@ concreto, el 8, pasó de 439.222 bytes como un JSON suelto a 99.915 de JSON más
 Ese 21% se pagó a propósito. El volcado viejo —`tools/export_json.py`, con su
 lector de binarios `lcf_bin.py` y el esquema que `gen_schema.py` sacaba de
 liblcf— **se borró el 2026-09-14**, 3.133 líneas: quedó sin dueño el día que
-`data/` pasó a ser el volcado de Ditto, y lo único que aportaba era esa lectura
+`rom/data/` pasó a ser el volcado de Ditto, y lo único que aportaba era esa lectura
 más corta. Tener dos lectores del mismo formato, cada uno con sus defaults
 escritos a mano, es exactamente el bug que abre este archivo.
 
@@ -273,7 +273,7 @@ Ese `.inc` mezcla tres cosas y sólo una puede volverse binario opaco:
 
 1. **Datos** —tilemaps, tablas de NPCs, bytecode de eventos—: el 98% de las
    líneas, y candidatos a `.incbin`.
-2. **Constantes** (`MAPA_STRIDE = 128`, `OP_TELEPORT = $02`), que `rom/src/` usa
+2. **Constantes** (`MAPA_STRIDE = 128`, `OP_TELEPORT = $02`), que `tools/runtime/` usa
    como símbolos y tienen que seguir siendo texto.
 3. **Referencias a símbolos del ensamblador** (`.loword(fuente_pre0)`), que
    dependen de dónde caiga el código y sólo las resuelve `ld65`.

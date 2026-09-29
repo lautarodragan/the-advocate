@@ -6,7 +6,7 @@
 ; que recuperan HP, y desde el 2026-09-26 las que levantan a un caído. Qué
 ; entra en la lista y cuánto cura no se decide acá sino en
 ; `batalla.item_usable_en_batalla` y `batalla.efecto_de_item`, que es el
-; modelo con el que `pruebas/rpgmaker/test_batalla.py` predice el HP exacto; el
+; modelo con el que `rom/pruebas/rpgmaker/test_batalla.py` predice el HP exacto; el
 ; conversor emite el resultado en `item_batalla`, `item_cura_rate`,
 ; `item_cura_hp` e `item_medicina`, que es la misma de `medicina_usar`.
 ;

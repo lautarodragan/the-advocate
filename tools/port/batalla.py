@@ -3,7 +3,7 @@
 Es el hermano de `pantallas.py` para la pelea: acá viven las fórmulas —daño,
 acierto, crítico, varianza, orden de turnos, huida— y la máquina de turnos, y
 la ROM las copia. Que los dos lados hagan la misma cuenta es lo que le permite
-a `pruebas/rpgmaker/test_batalla.py` predecir **el número exacto** que la consola va a
+a `rom/pruebas/rpgmaker/test_batalla.py` predecir **el número exacto** que la consola va a
 poner en cada HP, en vez de conformarse con "bajó".
 
 **Ningún número de acá se escribió de memoria.** Todos salen de
@@ -44,7 +44,7 @@ Tres cosas **no** son de RM2k, y las tres son a propósito:
 * **Lo que no está.** Estados, atributos, filas y el ataque doble. Y de las
   páginas de evento de la tropa, que la ROM corre desde el 2026-09-21, el
   modelo sabe **cuándo corren y a quién sacan a la pelea** —`PaginaDeTropa`—
-  y nada más: lo demás que hacen lo cobra `pruebas/rpgmaker/test_tropa.py`
+  y nada más: lo demás que hacen lo cobra `rom/pruebas/rpgmaker/test_tropa.py`
   leyendo la página del LDB, y ninguna de las que compilan tira azar de la
   pelea. Lo que sí cambia el azar es quién pelea, y por eso está: un enemigo
   que aparece a mitad de pelea elige acción desde el turno que sigue. Acá lo

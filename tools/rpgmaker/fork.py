@@ -1,12 +1,12 @@
-"""`parches/manual/`: lo nuestro, que manda sobre el volcado de `data/`.
+"""`rom/parches/manual/`: lo nuestro, que manda sobre el volcado de `rom/data/`.
 
-`data/` es el juego tal como lo escribió su autor —el volcado de Ditto, que es
+`rom/data/` es el juego tal como lo escribió su autor —el volcado de Ditto, que es
 derivado y se regenera entero con `just datos`—. Un **fork** es un archivo
-nuestro que el pipeline usa **en lugar** del de `data/`: no describe cambios,
+nuestro que el pipeline usa **en lugar** del de `rom/data/`: no describe cambios,
 es el archivo entero. Hoy lo pide el mapa 11, al que le rediseñamos el
 minijuego de las piedras; el porqué está en
 `workflow/done/el-mapa-11-se-rediseno.md` y el qué, en
-`parches/manual/README.md`.
+`rom/parches/manual/README.md`.
 
 Tres cosas que este módulo hace cumplir, y las tres son el mismo miedo:
 
@@ -19,8 +19,8 @@ Tres cosas que este módulo hace cumplir, y las tres son el mismo miedo:
 * **un fork de mapa reemplaza a uno que existe.** Un nombre mal escrito no
   hace nada, en silencio, y eso es peor que un error.
 
-Y una que **no** hace: el fork no toca el juego original ni `data/`. `unpack`
-escribe en `data/` y nunca acá, así que el diff contra el original se computa
+Y una que **no** hace: el fork no toca el juego original ni `rom/data/`. `unpack`
+escribe en `rom/data/` y nunca acá, así que el diff contra el original se computa
 cuando haga falta y no se pierde nunca.
 
 Los mapas que el juego no tiene van aparte, en `nuevos/`, con la regla dada
@@ -29,7 +29,7 @@ vuelta —no pueden pisar uno que exista— y su nodo del árbol adentro: ver
 
 Los ChipSets van aparte y **se suman**, no reemplazan: el mapa 11 estrena uno
 propio para poder duplicarle tiles sin tocarle un pixel a los otros seis mapas
-que comparten el 10. Un id que ya esté en `data/db/chipsets.json` es un error,
+que comparten el 10. Un id que ya esté en `rom/data/db/chipsets.json` es un error,
 porque un fork que pisa una entrada de la base envejece sin avisar el día que
 `just datos` la cambie.
 
@@ -106,7 +106,7 @@ def _validar():
     for entrada in sorted(os.listdir(MAPAS)):
         base, extension = os.path.splitext(entrada)
         if extension not in (".json", ".tiles"):
-            raise ForkRoto("%s: en parches/manual/mapas/ sólo van .json y "
+            raise ForkRoto("%s: en rom/parches/manual/mapas/ sólo van .json y "
                            ".tiles" % entrada)
         if not (base.startswith("Map") and base[3:].isdigit()):
             raise ForkRoto("%s: el nombre tiene que ser MapNNNN" % entrada)
@@ -125,7 +125,7 @@ def _validar():
         original = os.path.join(DEL_JUEGO, base + ".json")
         if not os.path.isfile(original):
             raise ForkRoto(
-                "el fork nombra al mapa %d y en data/ no hay ninguno: un fork "
+                "el fork nombra al mapa %d y en rom/data/ no hay ninguno: un fork "
                 "reemplaza un mapa del juego, no agrega uno" % map_id)
         with open(pareja[0], encoding="utf-8") as handle:
             adentro = json.load(handle).get("id")
@@ -153,7 +153,7 @@ def nuevos():
     con el nombre mal escrito pasaría por mapa nuevo, y un mapa nuevo con el
     id de uno del juego lo taparía sin avisar.
 
-    Un mapa que no existe tampoco tiene nodo en el árbol —`data/maps.json`—,
+    Un mapa que no existe tampoco tiene nodo en el árbol —`rom/data/maps.json`—,
     que es de donde salen su nombre, su padre, su música y sus encuentros. Así
     que lo trae él: el campo `arbol` del JSON es el nodo entero, en la misma
     vista resuelta que el volcado, y `lcf.TreeMap` lo suma. Hoy es uno solo,
@@ -190,7 +190,7 @@ def _validar_nuevos():
     for entrada in sorted(os.listdir(NUEVOS)):
         base, extension = os.path.splitext(entrada)
         if extension not in (".json", ".tiles"):
-            raise ForkRoto("%s: en parches/manual/nuevos/ sólo van .json y "
+            raise ForkRoto("%s: en rom/parches/manual/nuevos/ sólo van .json y "
                            ".tiles" % entrada)
         if not (base.startswith("Map") and base[3:].isdigit()):
             raise ForkRoto("%s: el nombre tiene que ser MapNNNN" % entrada)
@@ -206,9 +206,9 @@ def _validar_nuevos():
                                                 for p in falta)))
         if os.path.isfile(os.path.join(DEL_JUEGO, base + ".json")):
             raise ForkRoto(
-                "el mapa nuevo %d ya existe en data/: un mapa nuevo no pisa "
+                "el mapa nuevo %d ya existe en rom/data/: un mapa nuevo no pisa "
                 "uno del juego; si es para cambiarlo, es un fork y va en "
-                "parches/manual/mapas/" % map_id)
+                "rom/parches/manual/mapas/" % map_id)
         with open(pareja[0], encoding="utf-8") as handle:
             datos = json.load(handle)
         nodo = datos.get("arbol")
@@ -234,7 +234,7 @@ def chipsets():
     for entrada in sorted(os.listdir(CHIPSETS)):
         base, extension = os.path.splitext(entrada)
         if extension != ".json" or not base.isdigit():
-            raise ForkRoto("%s: en parches/manual/chipsets/ van NNNN.json"
+            raise ForkRoto("%s: en rom/parches/manual/chipsets/ van NNNN.json"
                            % entrada)
         with open(os.path.join(CHIPSETS, entrada), encoding="utf-8") as handle:
             datos = json.load(handle)

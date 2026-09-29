@@ -14,11 +14,11 @@ una de su misma fila ni de más arriba.
                  bifurcados (paralelo). No importa nada de `tools/`, y
                  cualquiera de las de arriba lo puede importar
 
-    rpgmaker/    el juego como datos: el volcado a JSON de data/ (lcf), lo
+    rpgmaker/    el juego como datos: el volcado a JSON de rom/data/ (lcf), lo
                  nuestro que manda sobre él (fork), los códigos de comando de
                  RM2k (event_codes), sus reglas y la geometría de sus imágenes
                  (rm2k), y dónde están el juego y el RTP (recursos). Ninguna
-                 regla del formato vive acá: data/ viene resuelto. Tiene su
+                 regla del formato vive acá: rom/data/ viene resuelto. Tiene su
                  propio README
     ensamblado/  el mapa de memoria (bancos), el que arma la ROM (ensamblar) y
                  qué ROMs hay y con qué flags (cartuchos, que usa `just build`)
@@ -109,25 +109,28 @@ de Rust. El `justfile` los llama por su nombre y no sabe dónde están:
 El porqué de los nombres está en `tools/justfile`. Uno nuevo se agrega en
 `_instalar`, y el `.py` busca sus paquetes resolviendo el symlink con
 `realpath`, porque `__file__` es la ruta del PATH: sube hasta `tools/` y no
-más. **Dónde está todo lo demás** —la raíz, `data/`, `parches/`, el motor,
+más. **Dónde está todo lo demás** —la raíz, `rom/data/`, `rom/parches/`, el motor,
 `rom/build/`, los casos, y los valores por omisión de `ABL_GAME_DIR` y las
 otras variables— lo contesta `comun/proyecto.py`, y nadie más: lo cobra
 `pruebas/test_proyecto.py`. Las pruebas ponen `tools/`
-en el camino ellas mismas, desde `pytest.ini`: las de A Blurred Line, desde el
-de la raíz, y las de las herramientas —`pruebas/`, las que no necesitan el
-juego—, desde el de acá. Ver `pruebas/README.md`.
+en el camino ellas mismas, desde `pytest.ini`: las de A Blurred Line, desde
+`rom/pytest.ini`, y las de las herramientas —`pruebas/`, las que no necesitan
+el juego—, desde el de acá. Ver `pruebas/README.md`.
 
 Un worktree que modifica las herramientas usa las suyas con `just -f
-tools/justfile herramientas-locales`, que arma un `bin/` propio en la raíz
-del checkout; los dos `justfile` lo ponen adelante en el PATH: ver la
-receta, y "Sub-agentes" en AGENTS.md.
+tools/justfile herramientas-locales <destino>`, que arma un `bin/` propio
+adonde le diga el que lo va a usar: el `justfile` del juego busca el suyo en
+un directorio suyo, y éste, en `tools/.herramientas-locales/`.
+Cada uno lo pone adelante en el PATH de sus recetas: ver la receta, y
+"Sub-agentes" en AGENTS.md.
 
 ## `tools/justfile`
 
 Las recetas de las herramientas —generar el bytecode, correr sus pruebas,
 instalar— viven en `tools/justfile`, y las de A
-Blurred Line en el de la raíz, que nombra este directorio una sola vez: para
-decir cómo se instalan las herramientas de un worktree. Desde la raíz
+Blurred Line en `rom/justfile`, que nombra este directorio una sola vez: para
+decir cómo se instalan las herramientas de un worktree. El `justfile` de la
+raíz importa el de ABL y no éste. Desde la raíz
 se corren con `just -f tools/justfile <receta>`; parado acá, con `just
 <receta>`. Las dos formas corren la receta parada en `tools/`.
 
@@ -138,7 +141,7 @@ bsnes no expone la WRAM —`retro_get_memory_data` devuelve nulo para todos los
 ids— y el reloj de las pruebas le pregunta a la ROM en qué vuelta del lazo va,
 que vive en `vueltas`, en la WRAM. Sin el parche, lo que corre bajo bsnes cae
 a contar cuadros de hardware, que sirve mientras la ROM no se atrase. Y sin
-bsnes no hay con qué contestar lo que `pruebas/rpgmaker/test_cores.py` existe
+bsnes no hay con qué contestar lo que `rom/pruebas/rpgmaker/test_cores.py` existe
 para contestar.
 
 El parche expone sólo `RETRO_MEMORY_SYSTEM_RAM` y deja el resto como está: el

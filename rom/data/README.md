@@ -22,7 +22,7 @@ los `.lmu`, el que está mal es esto. Y el que manda después de regenerar es el
 ## Esto es la vista resuelta, y hay otra
 
 `just datos` escribe **dos** árboles con la misma forma, en la misma corrida.
-Éste es la **vista resuelta**, y el otro —`rom/build/ditto-exacto/`, que no se
+Éste es la **vista resuelta**, y el otro —`build/ditto-exacto/`, que no se
 versiona— es el **volcado exacto**. Cuál es cuál lo dice `ditto.json`.
 
 La diferencia es qué tanto hay que saber para leerlo:

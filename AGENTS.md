@@ -11,14 +11,16 @@ fuentes mejores, y hay que ir a ellas antes que a este archivo:
                      archivo: para no rehacerlas ni contradecirlas
     divergencias/    dónde la ROM no hace lo que RM2k hace, con lo medido
     tasks/wishlist/  lo que nos gustaría hacer y nadie está haciendo
-    justfile         qué se puede correr; los comentarios explican el porqué.
-                     El de la raíz es de ABL; el de las herramientas es
-                     `tools/justfile`, y se corre con `just -f tools/justfile`
+    rom/justfile     qué se puede correr; los comentarios explican el porqué.
+                     Es el de ABL, y el `justfile` de la raíz sólo lo
+                     importa: `just cartuchos` anda desde la raíz o desde
+                     `rom/`. El de las herramientas es `tools/justfile`, y
+                     se corre con `just -f tools/justfile`
     README.md        qué es el proyecto, cómo se arma, y los porqués de
                      arquitectura que no tienen línea de código donde vivir
     docs/            RM2k, la consola, cómo funciona el port hoy, y los
                      estudios fechados: su README dice qué va en cada carpeta
-    data/README.md   el volcado a JSON visto desde adentro de data/
+    rom/data/        el volcado a JSON; su README lo ve desde adentro
     DITTO.md         qué es Ditto, por qué existe acá y en qué estado está
                      la idea de que los JSON sean la fuente de verdad
     git log          los mensajes son largos a propósito: son el registro
@@ -119,7 +121,7 @@ la decisión. **Los mensajes de commit siguen en castellano también para esos
 directorios**: son del repo.
 
 Y **lo que esas herramientas generan va en inglés también**, aunque caiga en
-`tools/` o en `rom/src/`: es su salida, no fuente de este árbol, y dice arriba
+`tools/` o en `tools/runtime/`: es su salida, no fuente de este árbol, y dice arriba
 que es generada y de dónde. El 2026-09-14 la regla era la contraria —"el idioma
 del árbol donde cae"— y duró un día: al generalizar el generador para el
 segundo bytecode quedó claro que hacerlo hablar castellano lo ata a este repo.
@@ -181,7 +183,7 @@ Y lo que **no** arregla: sólo sirve para `blame`. Para `git log` y `git diff`
 no hay equivalente, así que para rastrear cuándo cambió algo sigue valiendo
 `git log -S '<texto>'`, que busca por contenido y por eso ignora el ruido solo.
 
-**`rom/src/` atraviesa el corte de `main.s` sólo con
+**`tools/runtime/` atraviesa el corte de `main.s` sólo con
 `git blame -C --diff-algorithm=histogram <archivo>`.** El 2026-09-25 `main.s`
 se partió en un archivo por subsistema, y el corte **no** está en
 `.git-blame-ignore-revs` porque no sirve: ignorar un commit le pasa la culpa
@@ -195,6 +197,16 @@ en las líneas únicas, **cada línea sale con el mismo commit que daba el
 --follow` no cruza el corte; `git log -S` sí, porque busca en todos los
 archivos.
 
+**La mudanza de `rom/src/` a `tools/runtime/`, el 2026-09-29, no cuesta
+nada**: fue un commit de `git mv` solo, sin tocar una línea, y `blame` sigue
+los renombres sin opciones. Con las de arriba, cada línea de
+`tools/runtime/` sale con el mismo commit que daba en `rom/src/` antes de
+mudarse: medido sobre `main.s`, `heroe.s`, `interprete.s`, `batalla.s`,
+`registros.s`, `paquete_de_audio.s` y `event_opcodes.inc`, cuatro mil
+líneas. Con `data/`, `parches/` y `pruebas/`, que se mudaron adentro de
+`rom/` en el mismo commit, alcanza el `blame` sin opciones: medido sobre
+`rom/pruebas/arnes/consola.py`.
+
 Los IDE que no dejan pasarle opciones a `blame` —el annotate de JetBrains—
 necesitan configuración del lado del host: ver `docs/jetbrains.md`.
 
@@ -206,7 +218,7 @@ es contra qué.
 
 Hasta ese día se comparaba contra una **referencia en Python** que hacía lo
 mismo que la ROM. Hoy se compara contra **capturas congeladas** —las goldens de
-`pruebas/golden/tanda/`, que son lo que la ROM dibujaba el día que la tanda
+`rom/pruebas/golden/tanda/`, que son lo que la ROM dibujaba el día que la tanda
 estaba en verde—. De ahí salen tres obligaciones, y una de ellas es nueva.
 
 **Cambiar una golden es un acto deliberado.** Va a git, se mira, y el commit
@@ -221,7 +233,7 @@ recorrido con un tinte pegado**, y dos de ellas **pasaban** —una con 10,3% de
 diferencia bajo un tope del 15%—. Lo que contrapesa esto es que taro juega.
 
 **Y hay una clase de error que ninguna golden puede ver, porque el emulador que
-la sacó tampoco la ve.** Para eso está `pruebas/rpgmaker/test_cores.py`: corre el mismo
+la sacó tampoco la ve.** Para eso está `rom/pruebas/rpgmaker/test_cores.py`: corre el mismo
 cartucho en **snes9x y en bsnes** y compara las dos capturas entre sí. bsnes
 arranca la WRAM con basura y snes9x en cero, así que una diferencia significa
 que la ROM depende de memoria sin inicializar. Da rojo **cuatro de cada cinco
@@ -282,7 +294,7 @@ Las herramientas llegan a `/extras` y a `/shared` por sus valores por
 omisión —`ABL_GAME_DIR`, `ABL_RTP_DIR`, `ABL_SOUNDFONT`, `SHARED` y los
 reemplazos de MSU-1—, y ésos viven todos en `tools/comun/proyecto.py`, junto
 con dónde está cada carpeta del repo. Si el ambiente cambia, se cambia ahí;
-el `justfile` de la raíz repite el del juego, porque no importa Python.
+`rom/justfile` repite el del juego, porque no importa Python.
 
 **`ca65` y `ld65` se compilan acá adentro, y eso fue una decisión.** No están
 empaquetados en Arch, y hasta el 2026-09-15 la regla era no compilar fuentes de
@@ -311,7 +323,7 @@ alterado es lo mismo que cobra cualquier regresión: las goldens y
 
 **Los repos de `/extras/ref` están clonados adentro y no son los del host.**
 `liblcf` es de donde sale el esquema de Ditto —y con él los defaults que
-`data/` trae ya aplicados— y de donde salen los códigos de comando de RM2k
+`rom/data/` trae ya aplicados— y de donde salen los códigos de comando de RM2k
 (`tools/rpgmaker/event_codes.json`): salen de ahí y de ningún otro lado, porque la primera
 versión del filtro de puertas los puso de memoria y tres estaban mal. Si hace
 falta algo que no se consigue desde acá, se le pide a taro que lo copie a
@@ -342,7 +354,7 @@ y se tira.
 
 ## Trampas del entorno
 
-**`rom/src/` es un solo ensamblado partido en muchos `.s`.** `main.s` los
+**`tools/runtime/` es un solo ensamblado partido en muchos `.s`.** `main.s` los
 pega con `.include`, y el orden de esa lista es el orden en la ROM: partir es
 gratis, mover no. Lo que eso implica —cada archivo hereda los anchos y el
 segmento del anterior, las anónimas se resuelven sobre el texto pegado— lo
@@ -351,14 +363,15 @@ archivo. Hasta el 2026-09-25 era un solo archivo; se partió byte por byte
 igual, y por eso hay rutinas que quedaron en el archivo del vecino: moverlas
 es un cambio de ROM, y va en su propio commit.
 
-**Un `.inc` generado nunca va en `rom/src/`.** `ca65` busca los
+**Un `.inc` generado nunca va en `tools/runtime/`.** `ca65` busca los
 `.include` primero en el directorio del archivo que incluye y recién después en
-los `-I`, así que un `mapdata.inc` en `rom/src/` taparía al del cartucho sin
+los `-I`, así que un `mapdata.inc` en `tools/runtime/` taparía al del cartucho sin
 avisar: la ROM saldría con los datos de otro. Hasta el 2026-09-16 la receta
-`convert` escribía justo ahí —era "estado global", y así se terminó mirando el
+`convert` escribía justo ahí —en `rom/src/`, donde vivía el runtime hasta el
+2026-09-29; era "estado global", y así se terminó mirando el
 mapa 6 creyendo que era la demo del hito 12—; hoy cada cartucho escribe el suyo
 en su directorio de `rom/build/`, y `tools/ensamblado/ensamblar.py` se niega a armar si
-encuentra uno en `rom/src/`. **Las
+encuentra uno en `tools/runtime/`. **Las
 ROMs salen de una receta, no de un `ca65` suelto.**
 
 **Cuánto le sobra al banco 0 depende de qué cartucho se arme.** Las tablas que
@@ -391,14 +404,14 @@ se cachea se verifique con `SIN_CACHE=1`: las dos ROMs tienen que ser byte por
 byte iguales. Ver `tools/comun/cache_disco.py`.
 
 **Mientras corren las pruebas no se toca ningún fuente.** `huella()` cubre
-todo `rom/src/`, los `.py` de `tools/` y los binarios de `ca65` y `ld65`: tocar
+todo `tools/runtime/`, los `.py` de `tools/` y los binarios de `ca65` y `ld65`: tocar
 cualquiera de ésos a mitad de una corrida mezcla dos versiones y el resultado no
 dice nada.
 
 Lo que **ya no hace falta** es aislarse en un worktree para eso. Hasta el
 2026-09-16 existía `just hitos-foto`, que sacaba una foto del árbol con
 `git stash create` porque la tanda corría recetas que pisaban
-`rom/src/mapdata.inc`, que entonces era estado global. Desde el 9f las
+`rom/src/mapdata.inc` —el runtime vivía ahí—, que entonces era estado global. Desde el 9f las
 pruebas no arman nada: corren contra los cartuchos que arma `just cartuchos`
 antes —`release` y los de `rom/build/tests/`—, y el arnés se
 niega a correr contra uno viejo. Dos corridas a la vez sólo se pisan si las
@@ -446,9 +459,9 @@ Lo que hay que hacer siempre:
   toca lo que taro deja adentro, como la partida de su emulador.
 
   **Al lado va `abl.sfc.dbg`**, con el que Mesen2 muestra nuestros nombres de
-  rutina en el depurador, **y el `rom/src/` del commit**, sacado con `git
+  rutina en el depurador, **y el `tools/runtime/` del commit**, sacado con `git
   archive`: Mesen2 busca el fuente subiendo de carpeta desde el `.dbg`, así
-  que con `rom/src/` al lado lo muestra también desde `/shared/builds/`. Los
+  que con `tools/runtime/` al lado lo muestra también desde `/shared/builds/`. Los
   `.inc` que genera el conversor no van —pesan ~15 MB— y lo que cae en ellos
   se ve sólo desensamblado. Por eso la receta **se niega con cambios sin
   commitear** en lo que entra en la ROM: el build se nombra por un commit y
@@ -492,7 +505,7 @@ Lo que hay que hacer siempre:
   tardan, y matarlas por impaciencia arruina la corrida.
 * **Repartirles los números de antemano.** Todo lo que se elige tomando "el
   siguiente libre" —un opcode, un índice en una tupla de
-  `pruebas/*/test_*_golden.py`, una dirección de la RAM lejana— lo va a elegir cada agente
+  `rom/pruebas/*/test_*_golden.py`, una dirección de la RAM lejana— lo va a elegir cada agente
   mirando su copia, y dos van a elegir el mismo sin que git vea nada. Sale más
   barato decirle a cada uno cuál le toca al lanzarlo que descubrirlo mergeando:
   el 2026-09-13 pasó con las tres cosas a la vez, y una colisión de opcodes
@@ -502,18 +515,22 @@ Lo que hay que hacer siempre:
   nombre obvio: el 2026-09-15 dos escribieron un `comparar.sh` cada uno en el
   mismo lugar. Uno pisa al otro y el pisado no se entera. `<scratchpad>/<lo que
   hace>/…` alcanza.
-* **Que corra `just -f tools/justfile herramientas-locales` al empezar.** El
+* **Que corra `just -f tools/justfile herramientas-locales
+  rom/.herramientas-locales` al empezar**, desde la raíz del worktree. El
   global —`just -f tools/justfile herramientas`— apunta al checkout
   principal, y sus scripts arman en el `rom/build/` de ése: por eso, en un
   worktree sin su `bin/`, las recetas que corren herramientas —`cartuchos`,
-  `pruebas`, `build`…— **se niegan** y dicen qué correr. Arma un `bin/` en
-  la raíz del worktree con los ocho scripts, y los dos `justfile` lo ponen
-  adelante en el PATH. **Un proyecto de Rust se le pasa sólo si el agente
-  lo va a modificar** —`just -f tools/justfile herramientas-locales lz2`—:
-  compilar cuesta, y sin nombres no compila nada. Y **todo se corre por
-  `just`**: un comando suelto no ve ese `bin/` y usa el global. Es de taro,
-  el 2026-09-29, y reemplazó a un re-exec implícito que los scripts hacían
-  solos.
+  `pruebas`, `build`…— **se niegan** y dan el comando entero, con rutas
+  absolutas. Arma un `bin/` en el destino con los ocho scripts, y
+  `rom/justfile` lo pone adelante en el PATH. **El destino es obligatorio**
+  porque ninguno de los dos lados sabe dónde vive el otro: `rom/justfile`
+  busca el suyo en `rom/`, y `tools/justfile` el suyo en `tools/`, que es
+  el que usa `protocolo`. **Un proyecto de Rust se le pasa sólo si el
+  agente lo va a modificar** —`… herramientas-locales
+  rom/.herramientas-locales lz2`—: compilar cuesta, y sin nombres no
+  compila nada. Y **todo se corre por `just`**: un comando suelto no ve ese
+  `bin/` y usa el global. Es de taro, el 2026-09-29, y reemplazó a un
+  re-exec implícito que los scripts hacían solos.
 * **Pedirle que no deje nada esperando cuando termina.** Un sub-agente puede
   lanzar los suyos, y ésos **no aparecen** en la lista del que los mandó. 
   Lo mismo con los `sleep` largos para esperar

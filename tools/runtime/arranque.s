@@ -119,7 +119,7 @@ grupo_listo:
     ; daba verde con esto adentro, y en hardware real habría fallado igual que
     ; en mednafen. Está medido: con estas dos sin inicializar a mano y diez
     ; corridas por core, snes9x da 0 de 10 en rojo y bsnes 2 de 10. Contra eso
-    ; existe `pruebas/rpgmaker/test_cores.py`, que corre la misma ROM en snes9x y en
+    ; existe `rom/pruebas/rpgmaker/test_cores.py`, que corre la misma ROM en snes9x y en
     ; bsnes —éste con `bsnes_entropy=High`— y compara las dos pantallas entre
     ; sí; ese archivo tiene el resto de los números. Verificado el 2026-09-16
     ; sacando estas dos líneas: de cinco corridas, cuatro en rojo.

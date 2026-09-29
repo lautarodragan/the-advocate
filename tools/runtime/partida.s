@@ -35,7 +35,7 @@ SRAM_RANURAS = 4
 ; siguiente empieza a pisar el final de la anterior. Hoy son 159, y crecen cada
 ; vez que se agrega un campo a la partida —ya pasó con la música—. El
 ; ensamblador no lo puede cortar, así que lo cuida
-; `pruebas/rpgmaker/test_guardar.py::test_las_cuatro_ranuras_entran_en_la_sram`.
+; `rom/pruebas/rpgmaker/test_guardar.py::test_las_cuatro_ranuras_entran_en_la_sram`.
 SRAM_STRIDE = 2048
 
 ; Y dentro de cada ranura, contando desde su base. `SRAM_MAGIA` sigue siendo

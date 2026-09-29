@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Mide el techo de cada tema y escribe `parches/auto/musica/techos.toml`.
+"""Mide el techo de cada tema y escribe `rom/parches/auto/musica/techos.toml`.
 
     rm2k-snes-volume-ceilings            mide, escribe la tabla y rearma
                                          `release` con ella: `just techos`

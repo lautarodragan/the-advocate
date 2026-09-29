@@ -27,7 +27,7 @@ from rpgmaker import rm2k
 
 # Los números de los opcodes, sus largos y su layout. **No se declaran acá**:
 # salen de `tools/protocol/events.toml`, que es de los dos lados —de esto y del
-# intérprete en rom/src/interprete*.s— y de ninguno. Ver tools/protocol/README.md.
+# intérprete en tools/runtime/interprete*.s— y de ninguno. Ver tools/protocol/README.md.
 from port.event_opcodes import *   # noqa: F401,F403
 from port.event_opcodes import OPCODE_SIZE, opcode_size  # noqa: F401
 
@@ -509,7 +509,7 @@ IGNORABLES = {
 #
 # PlayBGM cambia el tema que suena, y ya no es de éstos: se hace, ver OP_BGM.
 # Cada mapa sube a la ARAM su paquete de audio, con los temas que sus páginas
-# pueden prender —`paquete_cargar`, en rom/src/paquete_de_audio.s—, y el
+# pueden prender —`paquete_cargar`, en tools/runtime/paquete_de_audio.s—, y el
 # presupuesto de cada muestra es el de su peor paquete: ver
 # `workflow/decisiones/un-solo-banco-de-muestras.md`. Sólo se acepta sin
 # hacerse cuando se compila sin registro de temas.
@@ -546,7 +546,7 @@ WEATHER_EFFECTS = 11070
 #
 # Lo que costaba hacerlo era la ARAM. Los efectos van en el paquete de audio de
 # cada mapa, junto con sus temas —`paquete_cargar`, en
-# rom/src/paquete_de_audio.s—, con el mismo presupuesto por paquete que las
+# tools/runtime/paquete_de_audio.s—, con el mismo presupuesto por paquete que las
 # muestras de la música: `workflow/decisiones/un-solo-banco-de-muestras.md`. El
 # que no entra en su paquete no suena.
 #
@@ -666,7 +666,7 @@ CHANGE_HERO_TITLE = 10620
 # Diecinueve apariciones en nueve mapas, y trece de ellas lo ponen en **cero**,
 # que en RM2k es apagarlos. Hasta el 2026-09-27 se dejaba afuera porque "no
 # hay encuentros al azar"; los hay desde el 2026-09-13 —ver
-# `rom/src/encuentros.s`— y lo pidió el viaje de Dalia a Tasgarde, la
+# `tools/runtime/encuentros.s`— y lo pidió el viaje de Dalia a Tasgarde, la
 # automática `DaliaGoingToTasgarde` del mapa 66, que los apaga antes de
 # forzarle la ruta al héroe. Compila a OP_ENCOUNTER_STEPS: ver
 # `encuentro_pasos`.
@@ -712,7 +712,7 @@ class Temas:
         # Y quién pide qué: el conversor pone en `mapa` el índice del mapa que
         # está compilando, y cada tema y cada efecto quedan anotados en el
         # suyo, en el orden en que aparecen. Es lo que arma el paquete de
-        # audio de cada mapa: ver `paquete_cargar` en rom/src/paquete_de_audio.s.
+        # audio de cada mapa: ver `paquete_cargar` en tools/runtime/paquete_de_audio.s.
         # Y a qué mapas de la ROM salta cada uno —`destinos`, índices de la
         # tabla de mapas—, que es de dónde sale qué tema puede venir sonando
         # al cargar un paquete: ver `temas_heredados` en snes_convert.py.
@@ -773,7 +773,7 @@ class Temas:
         mapa se deja enseguida. Así que no tiene por qué caber en la ARAM
         con esos efectos: va en el paquete **aparte**, se sube si hay lugar,
         y si no lo sube su `PlayBGM` —ver `extra_de_salida` en
-        rom/src/paquete_de_audio.s—. Es del 2026-09-26."""
+        tools/runtime/paquete_de_audio.s—. Es del 2026-09-26."""
         return [t for t, sale in self.salidas.get(mapa, {}).items() if sale]
 
     def sonido(self, nombre, volumen, tempo, balance, al_paquete=True):
@@ -925,11 +925,11 @@ def asociaciones_de(game_maps, extra=()):
 #
 # OP_SHAKE: fuerza (byte), velocidad (byte), cuadros (word):
 #     `ShakeOnce`. Con cero cuadros es `ShakeEnd`: la
-#     pantalla vuelve a su lugar. La cuenta es `sacudida_tick` en rom/src/camara.s.
+#     pantalla vuelve a su lugar. La cuenta es `sacudida_tick` en tools/runtime/camara.s.
 #
 # OP_FLASH_SCREEN: r, g, b, fuerza (byte cada uno, 0..31) y cuadros
 #     (byte): `FlashOnce`, el destello de la pantalla
-#     entera. La cuenta es `destello_tick` en rom/src/destello_de_pantalla.s.
+#     entera. La cuenta es `destello_tick` en tools/runtime/destello_de_pantalla.s.
 #
 # OP_IF: tipo (byte), operando (word), polaridad (byte),
 #     destino (word):
@@ -951,7 +951,7 @@ def asociaciones_de(game_maps, extra=()):
 # OP_SAVE: sin operandos: la partida a la SRAM del cartucho.
 #     Es `OpenSaveMenu`, pero sin menú: hay una sola ranura
 #     y el evento la pisa. Lo que se guarda lo dice
-#     `partida_tabla` en rom/src/banco1.s, que es el único lugar donde
+#     `partida_tabla` en tools/runtime/banco1.s, que es el único lugar donde
 #     está escrito. No cuesta un cuadro: en RM2k el menú
 #     bloquea, y acá no hay nada que mirar.
 #
@@ -1093,7 +1093,7 @@ BRILLO_MAX = 15
 # la tabla `fades` de `Game_System::GetTransition`. El juego la usa en la
 # guarida de Boss Wick: zoom (16) para ir a los vidcasts, mosaico (17) adentro,
 # y fundido (0) al volver. Es estado que cruza el teletransporte, y en RM2k
-# viaja en la partida; acá no —ver `TRANSICION_BORRAR` en rom/src/ram_lejana.s—.
+# viaja en la partida; acá no —ver `TRANSICION_BORRAR` en tools/runtime/ram_lejana.s—.
 #
 # La ROM hace dos: **el mosaico**, con el registro MOSAIC del PPU atado a la
 # rampa del brillo —como el de la pelea, `fundido_de_pelea.s`, y por lo mismo:
@@ -1751,7 +1751,7 @@ def lluvia_pixeles(x, y):
 # vez —`Game_Screen::ShowBattleAnimation` reemplaza la anterior— y avanza una
 # vez por cuadro **antes** que los destellos, que es donde `Game_Screen::Update`
 # la pone. Con "esperar", la página espera lo que dura: dos cuadros por cuadro
-# de la animación. Ver `animacion_tick` en rom/src/animacion_de_batalla.s.
+# de la animación. Ver `animacion_tick` en tools/runtime/animacion_de_batalla.s.
 #
 # El destello no es el de RM2k exacto: allá la fuerza es
 # `min((7 - (d + 1) / 2) * potencia / 6, 31)` durante diez cuadros, a
@@ -2491,7 +2491,7 @@ COMUNES = {}            # evento común de RM2k -> sus comandos
 # con correrlo **cuando cambian**: al prenderse el switch —el conversor pega
 # el cuerpo detrás del `ControlSwitches` que lo prende, como un `CallEvent`— y
 # al cerrar el menú, que es donde se cambia el equipo —la ROM lo corre desde
-# `menu_pantalla`, ver `comunes_del_equipo` en rom/src/equipo_desde_eventos.s—.
+# `menu_pantalla`, ver `comunes_del_equipo` en tools/runtime/equipo_desde_eventos.s—.
 # Es lo que dice el tutorial del droide: "these abilities become available
 # once you equip a particular component and exit the menu".
 #
@@ -2955,7 +2955,7 @@ class Tropas:
 # acepta: ver `TROPA_COMANDOS`.
 #
 # Cuándo corre cada una lo decide la ROM y está copiado de
-# `Scene_Battle_Rpg2k`; ver `ba_pag_probar` en rom/src/batalla_tropa.s.
+# `Scene_Battle_Rpg2k`; ver `ba_pag_probar` en tools/runtime/batalla_tropa.s.
 
 # Los tres comandos de rama de la pelea, con su gemelo del mapa. De las seis
 # preguntas de `CommandConditionalBranchBattle` el juego usa **sólo dos** —el
@@ -3026,7 +3026,7 @@ def cabecera_de_tropa(disparo):
     """Los diez bytes que van delante del código de una página que mira el
     turno o los HP: la base y el múltiplo del turno, de a palabra, y el lugar
     del enemigo, el actor y sus tramos, de a byte. Vacía si no mira nada de
-    eso. El orden es el de `BA_COND` en rom/src/ram_lejana.s."""
+    eso. El orden es el de `BA_COND` en tools/runtime/ram_lejana.s."""
     if not disparo.flags & TROPA_CON_CABECERA:
         return b""
     d = disparo
@@ -3226,7 +3226,7 @@ class PaginasDeTropa:
 # pasa nada, que es lo que hace `PrepareEncounter` al volver `false`.
 #
 # **Dos simplificaciones, las dos medidas sobre el juego entero** y cobradas
-# por `pruebas/herramientas/test_encuentros.py`, que es lo que evita que se vuelvan mentira
+# por `rom/pruebas/herramientas/test_encuentros.py`, que es lo que evita que se vuelvan mentira
 # el día que alguien toque los datos:
 #
 # * **el terreno no cambia nada**: los once tags de terreno que pisan los 53
@@ -3335,7 +3335,7 @@ class Encuentros:
     """El estado de los encuentros de una partida, igual de los dos lados.
 
     Lo usan las pruebas; la ROM hace lo mismo con las tablas que emite el
-    conversor. Quien lo cambie tiene que cambiar `rom/src/` en el mismo
+    conversor. Quien lo cambie tiene que cambiar `tools/runtime/` en el mismo
     commit: si no, el modelo y la consola dejan de ser el mismo programa.
     """
 
@@ -3425,7 +3425,7 @@ def tropa_de_encuentro(cmd):
       en el destino de la derrota. La ROM lo anota antes de pelear y, si se
       pierde, muestra la pantalla de Game Over y de ahí vuelve al arranque
       —o sea a la pantalla de título, con la partida guardada esperando en la
-      SRAM—: ver rom/src/game_over.s y lo que todavía no hace en
+      SRAM—: ver tools/runtime/game_over.s y lo que todavía no hace en
       `workflow/divergencias/lo-que-la-pantalla-de-game-over-no-modela.md`.
       Lo que no se hace es lo de antes del 2026-09-13, que era no compilar la
       página: costaba 15, entre ellas el jefe de los Rat Tracks.
@@ -3547,7 +3547,7 @@ CELDA_DESTINO_A = 10
 CELDA_DESTINO_B = 16
 # Los dos bits de arriba de cada escritura de `OP_CELL_TEST`, sobre el
 # desplazamiento de la variable: la y en vez de la x, y el refresco. Ver
-# `celda_probar` en rom/src/interprete_celdas.s.
+# `celda_probar` en tools/runtime/interprete_celdas.s.
 CELDA_Y = 0x4000
 CELDA_REFRESCO = 0x8000
 
@@ -3563,7 +3563,7 @@ def celdas_fundibles(comandos):
     las cuarenta de cada vuelta de la carrera, las luces del mapa 11 y unas
     doscientas más del juego. Fundido corre en una sola vuelta del intérprete
     en vez de cuatro, y es lo que deja la carrera a 60 cuadros: ver
-    `celda_probar` en rom/src/interprete_celdas.s.
+    `celda_probar` en tools/runtime/interprete_celdas.s.
 
     Acá se mira sólo la forma; si los operandos compilan lo dice
     `_pieza_de_celdas`, que es la que emite.
@@ -4415,12 +4415,12 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
     if cmd.code == GAME_OVER:
         # `CommandGameOver`: la pantalla de Game Over y, al apretar, el título.
         # Es la misma que perder una pelea sin manejador —ver
-        # `BATALLA_PERDER`—: rom/src/game_over.s.
+        # `BATALLA_PERDER`—: tools/runtime/game_over.s.
         return bytes([OP_GAME_OVER])
     if cmd.code == RETURN_TO_TITLE:
         # `ReturntoTitleScreen`: lo mismo sin la pantalla, o sea volver al
         # arranque, que en `release` es la pantalla de título. Lo pide el fin
-        # de la demo, en el fork del mapa 66 (`parches/manual/`). Hasta el
+        # de la demo, en el fork del mapa 66 (`rom/parches/manual/`). Hasta el
         # 2026-09-28 compartía el opcode con `GameOver`, cuando ninguno de
         # los dos dibujaba nada.
         return bytes([OP_RETURN_TO_TITLE])
@@ -4470,7 +4470,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         # no lo podía producir ningún caso, y modelarlo igual habría sido
         # escribir un camino que nada ejecuta.
         #
-        # Esa razón dejó de valer con `pruebas/arnes/recorrido.py`, que juega el
+        # Esa razón dejó de valer con `rom/pruebas/arnes/recorrido.py`, que juega el
         # juego de verdad y puede apretar cualquier botón en cualquier cuadro,
         # y con `--tocar` de las dos mitades de la tanda, que aprieta una
         # dirección en un cuadro anotado como ya se apretaba A.
@@ -4883,7 +4883,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
                 # sale de la tabla de actores, pero las doce poses del actor
                 # están escritas con la misma forma que una entrada de
                 # `npc_poses`, así que la ROM cambia el puntero y listo: ver
-                # `grafico_heroe` en rom/src/ruta_del_heroe.s. Son +29 páginas del juego, y entre
+                # `grafico_heroe` en tools/runtime/ruta_del_heroe.s. Son +29 páginas del juego, y entre
                 # ellas las tres del `EV0047` del mapa 8, con el que no se
                 # podía interactuar.
                 if graficos is None or len(extras) < 2:
@@ -5339,7 +5339,7 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
                 "ruta_propia": ruta_propia(page),
                 # Lo que dibuja la página y lo que su tile le impone a la
                 # celda: ver `rm2k.collect_npcs`, y `pasa_con_evento` en
-                # rom/src/heroe.s, que es quien los aplica.
+                # tools/runtime/heroe.s, que es quien los aplica.
                 "grafico": grafico,
                 "tile_pasa": (rm2k.pasabilidad_del_tile(game_map, grafico[0],
                                                         page.layer)

@@ -832,7 +832,7 @@ NPC_FILA_APARTE = $7E7980           ; NPC_STRIDE bytes
 
 ; --- la pantalla de Game Over --------------------------------------------------
 ;
-; $7E7A30 a $7E7A3F, reservado el 2026-09-28. Ver rom/src/game_over.s.
+; $7E7A30 a $7E7A3F, reservado el 2026-09-28. Ver tools/runtime/game_over.s.
 GO_PIERDE  = $7E7A30            ; palabra: el destino de la derrota de la pelea
                                 ; que se está peleando; $FFFF es Game Over
 GO_ESPERA  = $7E7A32            ; 1 mientras la pantalla espera la tecla: es lo

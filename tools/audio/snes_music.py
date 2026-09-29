@@ -173,7 +173,7 @@ def pista_msu(nombre, game_dir=GAME_DIR):
 # Los tres de la ARAM existen por el paquete de audio de cada mapa: las
 # muestras se suben mientras la música suena, así que el driver tiene que
 # poder recibirlas sin dejar de atender al DSP. Ver `paquete_cargar` en
-# rom/src/paquete_de_audio.s. El puntero y la cuenta viven en $00-$03 de la página cero, que la
+# tools/runtime/paquete_de_audio.s. El puntero y la cuenta viven en $00-$03 de la página cero, que la
 # ROM de arranque usa y deja libre.
 #
 # La música sigue mandando comandos 0 sin tocar el puerto 2: quien sube a la
@@ -398,7 +398,7 @@ SE_DE_TROPA_AL_PAQUETE = {"Thunder9"}
 # **Los temas aparte**: {id del mapa: nombres}. Un tema aparte no va con los
 # otros temas del paquete de su mapa: lo sube su `PlayBGM`, **él solo con los
 # efectos del paquete**, y lo demás se suelta hasta el próximo `PlayBGM` —ver
-# `extra_aparte` en rom/src/paquete_de_audio.s—. Tampoco se lo hereda a los
+# `extra_aparte` en tools/runtime/paquete_de_audio.s—. Tampoco se lo hereda a los
 # mapas a los que se sale de ahí: ver `temas_heredados` en snes_convert.py.
 # Es un tema de salida que no se va, y por eso lo dice esta lista y no una
 # regla: que nunca suene al mismo tiempo que los otros temas del mapa, ni al
@@ -1048,7 +1048,7 @@ def lugares_de_efectos(paquetes, nombres):
     lugares como efectos tiene el paquete más cargado.
 
     La ROM no puede saber de la entrada qué efecto hay: lo anota al subirlo
-    (`FAR_EFECTO_EN`, en rom/src/paquete_de_audio.s).
+    (`FAR_EFECTO_EN`, en tools/runtime/paquete_de_audio.s).
     """
     toca = {n: set() for n in nombres}
     for suyos in paquetes:
@@ -1130,7 +1130,7 @@ class Banco:
     —de ése sobra— sino por la numeración: el SRCN que el stream escribe es el índice de la muestra en
     el cartucho, así que dos temas que tocan piano apuntan a la misma. Pero
     **no se sube entero**: a la ARAM van de a paquetes, uno por mapa —ver
-    `paquete_cargar` en rom/src/paquete_de_audio.s—, así que lo que tiene que
+    `paquete_cargar` en tools/runtime/paquete_de_audio.s—, así que lo que tiene que
     entrar en los 64 KB no es el banco sino cada paquete, con sus efectos.
 
     Por eso el presupuesto es por paquete: el paso 6 de
@@ -1519,7 +1519,7 @@ def escrituras(frames, length, init):
     stream mismo —un `OP_DSP registro valor` de tres bytes por escritura—. El
     formato por nota de `pack` tiene que expandirse a exactamente esto, cuadro
     por cuadro: lo verifica `build_varios` con cada tema que arma, y en la ROM
-    `pruebas/rpgmaker/test_musica_escrituras.py`.
+    `rom/pruebas/rpgmaker/test_musica_escrituras.py`.
 
     Los registros del DSP son simples cerrojos: vuelto a escribir el mismo valor
     no pasa nada. Así que se lleva la cuenta de qué tiene cada uno y se saltean
@@ -1591,7 +1591,7 @@ def escrituras(frames, length, init):
 # Ahora son eventos, y el 65816 los expande (`music_frame`) a **las mismas
 # escrituras, cuadro por cuadro**: el formato no puede cambiar cómo suena. Lo
 # verifica `build_varios` con cada tema que arma, y en la ROM
-# `pruebas/rpgmaker/test_musica_escrituras.py`.
+# `rom/pruebas/rpgmaker/test_musica_escrituras.py`.
 #
 # Un tema es su stream y su tabla de *sonidos*: todo lo que una nota le
 # escribe a su voz salvo el volumen —altura, muestra, ADSR— más el GAIN con que
@@ -1808,7 +1808,7 @@ def pack(frames, length, init):
 
 def decodificar(stream, sonidos):
     """El modelo del decodificador del 65816 —`music_frame`, en
-    rom/src/musica.s—, paso por paso: lo que el stream escribe, (cuadro,
+    tools/runtime/musica.s—, paso por paso: lo que el stream escribe, (cuadro,
     registro, valor), hasta su `OP_END`. Tiene que dar lo mismo que
     `escrituras`.
 
@@ -1992,7 +1992,7 @@ def leer_tema(name, game_dir=GAME_DIR):
 #
 # **No se escribe a mano**: lo mide `tools/audio/techos.py` (`just techos`)
 # tocando cada tema en la ROM, y lo que queda es un dato versionado, como las
-# decisiones de `parches/auto/`. Un tema que no está en la tabla va con
+# decisiones de `rom/parches/auto/`. Un tema que no está en la tabla va con
 # `sdsp.AIRE`. Cada cambio de la mezcla —las muestras, las envolventes, el
 # reparto— la deja vieja, y eso lo cobra `test_musica_techos.py`.
 TECHOS = os.path.join(proyecto.parches_auto(), "musica", "techos.toml")
@@ -2146,7 +2146,7 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), paquetes=None,
         paquetes = [(nombre, [i], []) for i, nombre in enumerate(nombres)]
     # Qué tiene que entrar junto: cada paquete con sus efectos; cada tema de
     # salida solo —lo sube su `PlayBGM`, callando lo demás: ver
-    # `extra_de_salida` en rom/src/paquete_de_audio.s—; y cada paquete con
+    # `extra_de_salida` en tools/runtime/paquete_de_audio.s—; y cada paquete con
     # el tema que puede venir sonando, sin sus efectos.
     # Y los mismos con lo que ocupan de verdad los efectos, que es con lo
     # que reparten las copias que no le bajan a nadie: ver `copias`.
@@ -2340,7 +2340,7 @@ def muestras_del_tema(tema):
 
 # Lo que cuesta subir al SPC700, en cuadros, para la cuenta del arranque. Las
 # muestras de un paquete van de a ternas por el comando 3 del driver —ver
-# `subir_muestra` en rom/src/paquete_de_audio.s—: medido en la ROM el
+# `subir_muestra` en tools/runtime/paquete_de_audio.s—: medido en la ROM el
 # 2026-09-26, de 1,33 a 1,42 cuadros por KB en dieciocho paquetes, y acá va
 # un poco más. El driver y el directorio van byte a byte por el IPL, que
 # medía 1,4. Y cargar el mapa, sin audio y sin descomprimir, son unos 8
@@ -2401,7 +2401,7 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
     **paquetes**, uno por mapa —`paquetes`, en el orden de la tabla de mapas,
     cada uno con sus temas, las muestras de sus efectos y sus temas de
     salida—, y el directorio
-    arranca con todas apuntando al silencio. Ver `paquete_cargar` en rom/src/paquete_de_audio.s.
+    arranca con todas apuntando al silencio. Ver `paquete_cargar` en tools/runtime/paquete_de_audio.s.
 
     `tema_de_mapa` es el tema que prende cada mapa al entrar, en el mismo
     orden, o $FF si entrar no cambia lo que suena. Ver `mapa_tema_callar`.
@@ -2540,7 +2540,7 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
                                  range(len(temas)))] or [[[]]])
     # Cada paquete, cuatro listas: sus temas, las muestras de sus efectos,
     # sus temas de salida y sus temas aparte —ver `extra_de_salida` y
-    # `extra_aparte` en rom/src/paquete_de_audio.s—.
+    # `extra_aparte` en tools/runtime/paquete_de_audio.s—.
     paquetes = [tuple(p) + ((),) * (4 - len(p)) for p in paquetes] or \
         [([], [], [], [])]
     bloque_paquetes = listas("paquetes", [[list(t), list(m), list(s),
@@ -2564,13 +2564,13 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
             "TEMA_TITULO      = $%02X\n"
             "; Y el de la pantalla de Game Over —`gameover_music`— con su\n"
             "; paquete, que va detrás de todos: el tema solo. $FF y $FFFF si\n"
-            "; esta ROM no lleva la pantalla. Ver rom/src/game_over.s.\n"
+            "; esta ROM no lleva la pantalla. Ver tools/runtime/game_over.s.\n"
             "TEMA_GAME_OVER   = $%02X\n"
             "PAQUETE_GAME_OVER = $%04X\n"
             "; El volumen general con que suena el tema y los dos registros\n"
             "; del DSP donde va. Los emite `sdsp.py`, que es de donde salen:\n"
             "; el stream ya los escribe al arrancar, y un `FadeOutBGM` los\n"
-            "; vuelve a escribir bajándolos. Escribirlos también en rom/src/\n"
+            "; vuelve a escribir bajándolos. Escribirlos también en tools/runtime/\n"
             "; serían dos lados que se pueden equivocar igual.\n"
             "TEMA_VOLUMEN     = $%02X\n"
             "DSP_MVOL_L       = $%02X\n"

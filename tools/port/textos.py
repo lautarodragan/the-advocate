@@ -5,7 +5,7 @@ pensando en una ventana de 320 px. La de acá es más angosta
 —`constantes.COLUMNAS` caracteres por renglón—, y hasta esto lo que no entraba
 se truncaba.
 
-`reajustar` recibe los renglones de **un** cuadro, tal como están en `data/`, y
+`reajustar` recibe los renglones de **un** cuadro, tal como están en `rom/data/`, y
 devuelve uno o más cuadros que entran. Es una función pura: el mismo cuadro da
 siempre el mismo resultado, y eso es lo que permite aplicarla en cada build en
 vez de guardar su salida.
@@ -335,7 +335,7 @@ def _reajustar(lineas, columnas, renglones):
 
 def reajustar_comandos(comandos, columnas=constantes.COLUMNAS,
                        renglones=constantes.LINEAS):
-    """Una lista de comandos de `data/` —diccionarios, como están en el JSON—
+    """Una lista de comandos de `rom/data/` —diccionarios, como están en el JSON—
     con cada cuadro de texto rearmado.
 
     Un `ShowMessage` con sus `ShowMessage_2` se reemplaza por uno o más cuadros

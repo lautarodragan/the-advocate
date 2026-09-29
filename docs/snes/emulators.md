@@ -78,12 +78,12 @@ that `ld65` leaves next to each ROM (`rom/build/release/abl.sfc.dbg`,
   many `listo` labels show up as `listo`, `listo_2`, `listo_3`… The
   macro-local `LOCAL-MACRO_SYMBOL-*` names are skipped, since Mesen2
   rejects the dash.
-- **The source shows when Mesen2 finds `rom/src/` above the `.dbg`.** The
-  `.dbg` names each file relative to the repo root (`rom/src/main.s`,
+- **The source shows when Mesen2 finds `tools/runtime/` above the `.dbg`.** The
+  `.dbg` names each file relative to the repo root (`tools/runtime/main.s`,
   `rom/build/release/mapdata.inc`) and Mesen2 looks for that path next to
   the `.dbg`, then one folder up, and so on until it finds it. That works
   opening `rom/build/release/abl.sfc` in the clone, and also from a build
-  handed over with `just entregar`, which puts the commit's `rom/src/` next
+  handed over with `just entregar`, which puts the commit's `tools/runtime/` next
   to the ROM. The generated `mapdata.inc` and `musicdata.inc` are not copied
   (~15 MB), so code that lands in them only shows as disassembly there.
   *Ctrl+Q* in the code window switches between disassembly and source.

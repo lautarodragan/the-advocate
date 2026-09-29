@@ -454,7 +454,7 @@ listo:
 ; tools/audio/snes_music.py y el encabezado de tools/protocol/music.toml— y
 ; acá se expande a las escrituras al DSP que manda `dsp_musica`: exactamente
 ; las de `escrituras`, cuadro por cuadro, y lo cobra
-; pruebas/rpgmaker/test_musica_escrituras.py. Se lee hasta toparse con una
+; rom/pruebas/rpgmaker/test_musica_escrituras.py. Se lee hasta toparse con una
 ; espera, que cierra el cuadro: dispara las voces que recibieron nota, y el
 ; cuadro siguiente abre bajando ese disparo. Al llegar al final vuelve a
 ; empezar.

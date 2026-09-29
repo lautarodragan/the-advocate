@@ -395,7 +395,7 @@ menor:
 ; es el `Input::IsTriggered` de allá. Sostener abajo no baja de a un renglón por
 ; cuadro.
 ;
-; Lo cubre `pruebas/rpgmaker/test_elegir.py`, que puede apretar cualquier
+; Lo cubre `rom/pruebas/rpgmaker/test_elegir.py`, que puede apretar cualquier
 ; botón.
 .proc eleccion_tick
 .a8

@@ -2,7 +2,7 @@
 el 2026-09-26, y desde entonces las que el reparto le da primero— les llegue.
 
 Esas dos voces las comparte la música con los efectos de sonido, así que
-`dsp_musica` (rom/src/efectos_de_sonido.s) no manda sus escrituras derecho al
+`dsp_musica` (runtime/efectos_de_sonido.s) no manda sus escrituras derecho al
 DSP: las guarda primero en la sombra de la voz —`SE_SOMBRA` para la 7,
 `SE2_SOMBRA` para la 6—, que es lo que se le devuelve cuando el efecto
 termina, y recién después las manda si la voz no tiene efecto. El valor que va

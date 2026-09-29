@@ -1,7 +1,7 @@
 """El mundo, el mapa 66: el que estrena el quinto reparto de VRAM
 (`LAYOUT_VENTANA_FONDO_TECHO`, 544 tiles de fondo) y el único de `release`
 con el fondo en dos flujos de LZ2 —527 tiles de 8bpp son más que el buffer de
-carga: ver `lz2_fondo` en rom/src/descomprimir.s—.
+carga: ver `lz2_fondo` en runtime/descomprimir.s—.
 
 Se llega como llega el juego, a la celda del `Teleport [66, 71, 29]` de la
 despedida del 64, pero con `ir_al_mapa`: la despedida la juega

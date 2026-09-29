@@ -205,7 +205,7 @@ par_ev:      .res 1     ; de qué evento es, para moverlo detrás del intérpret
 ; Acá normalmente coinciden, y se separan cuando una vuelta se pasa del cuadro.
 ;
 ; Lo leen las pruebas por la WRAM para saber **qué tick** están mirando —ver
-; `Partida` en pruebas/arnes/consola.py—, así que con esto deja de importar si
+; `Partida` en rom/pruebas/arnes/consola.py—, así que con esto deja de importar si
 ; la ROM llegó tarde. Lo tarde que llega lo dice
 ; `cuadros_perdidos`, que es otra pregunta.
 vueltas:     .res 2

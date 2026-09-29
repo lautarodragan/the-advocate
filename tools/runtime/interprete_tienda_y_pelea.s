@@ -123,7 +123,7 @@ op_shop_done:
     ; `BATALLA_PERDER`, o sea $FFFF —la pelea no traía manejador de derrota,
     ; porque en RM2k perderla es `Scene_Gameover`— no llega nunca acá: lo
     ; anota `game_over_anotar` antes de pelear, y `pelea_arrancar` se va a la
-    ; pantalla de Game Over sin volver. Ver rom/src/game_over.s.
+    ; pantalla de Game Over sin volver. Ver tools/runtime/game_over.s.
     sep #$20
 .a8
     jmp correr_codigo::otro

@@ -41,9 +41,9 @@ porque la decisión es un rectángulo::
 La clave
 --------
 
-Un archivo por situación del juego: ``parches/auto/mapas/<id>.toml`` para las
+Un archivo por situación del juego: ``rom/parches/auto/mapas/<id>.toml`` para las
 capas de un mapa, con una sección por capa, y
-``parches/auto/animaciones/<n>.toml`` para las animaciones de batalla. **El id
+``rom/parches/auto/animaciones/<n>.toml`` para las animaciones de batalla. **El id
 del mapa es del juego y no del cartucho**: no se mueve cuando cambia la lista
 de mapas de la ROM, ni cuando cambia el orden interno del conversor, ni cuando
 cambia el algoritmo del asignador. Los colores se escriben por su valor —RGB de
@@ -136,12 +136,12 @@ from comun import proyecto                                  # noqa: E402
 # Dónde viven los versionados, relativo a la raíz del repo: las funciones
 # reciben la raíz —`proyecto.raiz()`, o un directorio temporal en las
 # pruebas— y esto es lo que se le suma. Sale de `proyecto` para que mover
-# `parches/` no haya que repetirlo acá.
+# `rom/parches/` no haya que repetirlo acá.
 _AUTO = os.path.relpath(proyecto.parches_auto(), proyecto.raiz())
 DIRECTORIO = os.path.join(_AUTO, "mapas")
 
 # Dónde los deja cada cartucho al armarse, relativo al directorio del build.
-# Es la forma del build, no dónde está `parches/` en el repo: por eso no sale
+# Es la forma del build, no dónde está `rom/parches/` en el repo: por eso no sale
 # de `proyecto`, y no se mueve con él.
 EN_BUILD = os.path.join("parches", "auto", "mapas")
 
@@ -551,7 +551,7 @@ def _lados(par):
 # Las clases de decisión que hay escritas, cada una con su directorio, la
 # clave con que se identifica —que es siempre algo **del juego**— y cómo se
 # cuenta qué cambió. Agregar una clase es agregar una fila acá y su `texto`:
-# la verificación, el copiado a `parches/` y los mensajes salen de ésta.
+# la verificación, el copiado a `rom/parches/` y los mensajes salen de ésta.
 Clase = collections.namedtuple(
     "Clase", "nombre articulo directorio en_build clave leer diferencias")
 
@@ -724,7 +724,7 @@ def _tiene_parches(build):
 
 
 def _copiar(raiz, build, clase):
-    """Lo que decidió el ROM jugable, a `parches/`, y afuera lo que ya no está."""
+    """Lo que decidió el ROM jugable, a `rom/parches/`, y afuera lo que ya no está."""
     destino = os.path.join(raiz, clase.directorio)
     os.makedirs(destino, exist_ok=True)
     carpeta = os.path.join(build, clase.en_build)

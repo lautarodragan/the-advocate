@@ -5,7 +5,7 @@ el del mapa: la ARAM casi entera cada vez, que tarda de medio segundo a uno y
 medio según el cartucho. Hasta el 2026-09-26 eso se veía como la pantalla
 congelada —el mapa al entrar, la pelea al salir—; desde ese día la transición
 de RM2k apaga la pantalla antes de cargar y la prende después. Ver
-`rom/src/fundido_de_pelea.s`.
+`runtime/fundido_de_pelea.s`.
 
 Lo que se cobra es exactamente eso: **cada cuadro en el que el paquete avanza
 se ve negro**. Que el paquete avanza lo dicen `PAQ_DEST` y `PAQ_S` —dónde va

@@ -280,7 +280,7 @@ def cuadros_hasta_reiniciar(una, tope=900):
 def en_el_game_over(una):
     """Si la pantalla de Game Over está a la vista, esperando la tecla: es
     `GO_ESPERA`, que la ROM prende al terminar el fundido de entrada. Ver
-    rom/src/game_over.s."""
+    runtime/game_over.s."""
     return una.consola.ram(en_la_wram(una.simbolos["GO_ESPERA"]), 1)[0] != 0
 
 

@@ -85,7 +85,7 @@ menu_sin_pagina:
     ; que los emita. Sin esto la derrota devolvía el control al mapa con todo
     ; el grupo en cero HP, y de ahí en más cada pelea se perdía sola antes de
     ; abrirse —`batalla_correr` contesta derrota con nadie en pie—. Lo cobra
-    ; `pelea_arrancar`: ver rom/src/game_over.s.
+    ; `pelea_arrancar`: ver tools/runtime/game_over.s.
     jsl f:game_over_siempre
     jmp pelea_arrancar
 sin_encuentro:

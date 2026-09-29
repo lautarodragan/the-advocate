@@ -2,10 +2,10 @@
 
 Antes de ese módulo, once `.py` calculaban la raíz del repo subiendo tres
 carpetas desde `__file__`, y otros tantos armaban a mano `data/`,
-`parches/manual/` o `rom/src/` a partir de ella. Cuando el motor se mude a
-`tools/runtime/`, y `data/`, `parches/` y `pruebas/` adentro de `rom/`, cada
-uno de ésos sería un lugar más para buscar; con esto, mudar una carpeta es
-cambiar una línea de `proyecto.py`. Ver
+`parches/manual/` o `rom/src/` a partir de ella. El 2026-09-29 el motor se
+mudó a `tools/runtime/`, y `data/`, `parches/` y `pruebas/` adentro de
+`rom/`: cada uno de ésos habría sido un lugar más para buscar, y con esto
+fue cambiar unas líneas de `proyecto.py`. Ver
 `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 
 Mira los `.py` de `tools/` —los paquetes y sus pruebas—, y falla si alguno:
@@ -15,7 +15,7 @@ Mira los `.py` de `tools/` —los paquetes y sus pruebas—, y falla si alguno:
   cómo un script que se ejecuta pone sus paquetes en el `sys.path` antes de
   poder importar nada, y eso incluye a `proyecto`;
 * **arma una ruta del repo a mano**: un `os.path.join` que empieza por una
-  carpeta de la raíz —`"data"`, `"rom/src"`…—, o que la pega detrás de la
+  carpeta de la raíz —`"data"`, `"tools/runtime"`…—, o que la pega detrás de la
   raíz —`RAIZ`, `proyecto.raiz()`—. Detrás de otra cosa no cuenta:
   `pruebas/` adentro de `tools/` es otra carpeta;
 * **lee una variable de ambiente de las que dicen dónde está algo**, o
@@ -50,8 +50,8 @@ DE_AMBIENTE = {"ABL_GAME_DIR", "ABL_RTP_DIR", "ABL_SOUNDFONT", "ABL_CACHE",
 
 # Lo que se permite, con su porqué: (archivo relativo a `tools/`, pedazo).
 PERMITIDOS = {
-    # La forma del directorio de cada cartucho, que imita la de `parches/`:
-    # no es dónde está `parches/` en el repo, y no se mueve con él.
+    # La forma del directorio de cada cartucho, que imita la de `rom/parches/`:
+    # no es dónde está `rom/parches/` en el repo, y no se mueve con él.
     ("port/parches.py", "parches"),
 }
 
@@ -165,7 +165,7 @@ def test_nadie_mas_sabe_donde_esta_cada_cosa():
     '    os.path.realpath(__file__))))\n',
     'REPO = os.path.join(os.path.dirname(__file__), "..", "..")\n',
     'DATOS = os.path.join(RAIZ, "data", "maps")\n',
-    'MAIN = os.path.join(RAIZ, "rom/src/main.s")\n',
+    'MAIN = os.path.join(RAIZ, "tools/runtime/main.s")\n',
     'JUEGO = os.environ.get("ABL_GAME_DIR", "/extras/abl-rm")\n',
     'REEMPLAZOS = "/extras/msu"\n',
 ])

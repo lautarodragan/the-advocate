@@ -1,11 +1,11 @@
 # tools/rpgmaker/
 
-El juego de RPG Maker 2000 como datos: el volcado a JSON de `data/`, las
+El juego de RPG Maker 2000 como datos: el volcado a JSON de `rom/data/`, las
 tablas del formato y las reglas de RM2k que el port tiene que imitar. Es la
 capa de más abajo de `tools/` —ver `tools/README.md`—: no importa de ninguna
 otra.
 
-    lcf.py              el juego, leído del volcado de `data/`
+    lcf.py              el juego, leído del volcado de `rom/data/`
     event_codes.json    generado: los nombres de los comandos de evento
     event_codes.py      lo carga y lo expone como `EVENT_CODES`
     rm2k.py             las reglas del juego original: pasabilidad, autotiles,
@@ -13,13 +13,13 @@ otra.
 
 ## Acá no vive ninguna regla del formato, y eso fue una decisión
 
-`lcf.py` lee `data/`, que desde el 2026-09-20 es la **vista resuelta** que
+`lcf.py` lee `rom/data/`, que desde el 2026-09-20 es la **vista resuelta** que
 emite Ditto: todos los campos escritos, con su default ya aplicado, y los enums
 en número. Así que `campo` son tres líneas y un campo que falte es un
-`KeyError` —que es lo que se quiere: quiere decir que `data/` quedó viejo, no
+`KeyError` —que es lo que se quiere: quiere decir que `rom/data/` quedó viejo, no
 que valga cero—.
 
-Hasta ese día `data/` era el volcado exacto —defaults omitidos, enums por
+Hasta ese día `rom/data/` era el volcado exacto —defaults omitidos, enums por
 nombre— y para entenderlo hacían falta acá adentro un `ditto_schema.json` con
 los defaults y las tablas de enums, y un `ditto_schema.py` que lo cargara. Eran
 111 KB de esquema del formato viviendo del lado del que lee, y se fueron con
@@ -31,7 +31,7 @@ Lo único que sigue siendo criterio de acá es **adivinar la codificación de un
 texto** —ver `lcf.texto`—, que es lo contrario de una regla del formato: el
 formato no dice en qué juego de caracteres está una cadena.
 
-Y una cosa más, que no viene de `data/`: los 183 casos de `pruebas/casos/*.json`
+Y una cosa más, que no viene de `rom/data/`: los 183 casos de `rom/pruebas/casos/*.json`
 los escribimos nosotros, en la taquigrafía que se puede escribir a mano —el
 comando por su nombre y sólo los campos que dicen algo—. Los lee
 `lcf.comandos_escritos`, que no es `lcf.comandos`: el único dato de afuera que
@@ -85,5 +85,5 @@ las dos se separan, el juego camina distinto.
 
 Por eso **lo que sólo usa una prueba no vive acá**: `puede_pasar` —si desde una
 celda se puede dar un paso a la de al lado— se mudó a
-`pruebas/arnes/recorrido.py` el 2026-09-20, que era su único llamador. El rumbo
+`rom/pruebas/arnes/recorrido.py` el 2026-09-20, que era su único llamador. El rumbo
 es que en Python quede lo de las pruebas y el resto se vaya a Rust.

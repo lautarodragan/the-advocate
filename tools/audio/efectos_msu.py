@@ -17,7 +17,7 @@ efectos que el mapa 3 comparte con otros diez paquetes que tienen lugar de
 sobra: el mismo día, 48 de los 159 pares (paquete, efecto) de `release`
 perdían. Lo que cuesta es que la ROM vuelve a subir los efectos en cada
 paquete aunque ya estuvieran en la ARAM, porque no tiene dónde anotar qué
-versión quedó: ver `se_msu_preparar` en rom/src/efectos_con_msu.s.
+versión quedó: ver `se_msu_preparar` en tools/runtime/efectos_con_msu.s.
 
 **Enteros siempre, y a la tasa más alta que entre**: la misma para todos los
 efectos del paquete —`TASAS`, de la de los WAV para abajo— salvo que la del

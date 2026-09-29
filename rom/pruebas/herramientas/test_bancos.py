@@ -12,7 +12,7 @@ def test_el_codigo_a_mano_entra_en_el_banco_1():
     """`FAR` va entero en el banco 1, y lo generado arranca pegado al 2.
 
     El ensamblador no puede cuidarlo: `.controlar` se evalúa antes de que haya
-    direcciones. Si el código a mano de `rom/src/` pasara de 32 KB, el
+    direcciones. Si el código a mano de `runtime/` pasara de 32 KB, el
     `.alinear $8000` del final empujaría lo generado al banco 3 sin decir nada,
     y los `jsr` que cruzaran del 1 al 2 saltarían a cualquier lado. Así que se
     mira el resultado: **lo primero que hay pasando el banco 1 tiene que estar

@@ -27,7 +27,7 @@ porque la grilla cruza de banco y los bancos no son contiguos: pasarse del
 
 Desde el 2026-09-26 la grilla viaja en el cartucho en LZ2 y se descomprime
 entera al cargar el mapa en `$7E8000`, siguiendo en `$7F8000` si pasa de 32 KB
-(`GRILLA` en `rom/src/ram_lejana.s`, `lz2_grilla` en `descomprimir.s`). La
+(`GRILLA` en `tools/runtime/ram_lejana.s`, `lz2_grilla` en `descomprimir.s`). La
 mitad alta de dos bancos seguidos de la WRAM tiene la forma de dos bancos de
 LoROM, así que los lectores no cambiaron: antes el puntero apuntaba al
 cartucho, ahora a la WRAM. La pelea pisa la mitad del `$7F`, y
@@ -40,5 +40,5 @@ con los dibujos de la animación del ChipSet: viajan en LZ2, se descomprimen a
 quedan en `$7F6000` mientras dure el mapa, porque se suben cada vez que cambia
 el reloj. El formato y el compresor: `tools/port/comprimir.py` y `tools/lz2/`.
 Lo que queda en la VRAM y en la WRAM después de cargar lo compara
-`pruebas/rpgmaker/test_carga_descomprimida.py` contra lo que el conversor deja
+`rom/pruebas/rpgmaker/test_carga_descomprimida.py` contra lo que el conversor deja
 sin comprimir en `rom/build/<cartucho>/crudos/`.

@@ -6,7 +6,8 @@ existe el directorio de las herramientas, ni que están escritas en Python;
 sabe que hay una suite de ejecutables en el PATH. La regla es de taro, el
 2026-09-28, y esto es su prueba: un grep.
 
-**Qué es el lado de ABL**, para esta prueba:
+**Qué es el lado de ABL**, para esta prueba, con las rutas desde su raíz
+—`rom/`, tres carpetas arriba de este archivo—:
 
 * `justfile`, entero, salvo las recetas de `RECETAS_QUE_NOMBRAN_TOOLS`. Las
   que arman, prueban o instalan las herramientas están en `tools/justfile`,
@@ -22,8 +23,8 @@ sabe que hay una suite de ejecutables en el PATH. La regla es de taro, el
   que la lista diga siempre la verdad. Agregarle un archivo es deshacer la
   regla, y eso se habla con taro antes.
 
-Lo que **no** es el lado de ABL, y por qué: `rom/src/` y `tools/` son el
-motor y las herramientas, del otro lado. `README.md`, `AGENTS.md`, `docs/` y
+Lo que **no** es el lado de ABL, y por qué: `tools/`, con el runtime adentro, es el
+motor y las herramientas, del otro lado. El `justfile` de la raíz, `README.md`, `AGENTS.md`, `docs/` y
 `workflow/` describen el repo entero, las dos mitades, y se parten con él.
 
 **Qué es "nombrar `tools/`"**: la ruta escrita (`tools/…`), el nombre del

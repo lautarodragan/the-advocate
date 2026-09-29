@@ -1,6 +1,6 @@
 # Las recetas de las herramientas: generar el bytecode, correr sus pruebas
-# —las de Python y las de cada proyecto de Rust— e instalar la suite. Las de A Blurred Line están en el
-# `justfile` de la raíz, que no sabe que este directorio existe.
+# —las de Python y las de cada proyecto de Rust— e instalar la suite. Las de A Blurred Line están en
+# su propio `justfile`, que no sabe que este directorio existe.
 #
 # Desde la raíz se llama con `just -f tools/justfile <receta>`; desde adentro
 # de `tools/`, con `just <receta>`, porque `just` usa el `justfile` más
@@ -24,7 +24,7 @@ proyectos_de_rust := "protocol gunter ditto voodoo lz2"
 
 # Los opcodes de los eventos: su número y su layout. La declaración está en
 # `protocol/events.toml` y no es ni del compilador ni del intérprete; de ahí
-# salen generados los dos módulos de Python y los dos `.inc` de `rom/src/`,
+# salen generados los dos módulos de Python y los dos `.inc` de `tools/runtime/`,
 # todos commiteados. Hay dos declaraciones: el bytecode de los eventos y el
 # stream de música que lee el SPC700.
 #
@@ -112,7 +112,7 @@ lz2-pruebas:
 # quedan.
 #
 # Y los scripts de Python que se ejecutan, al mismo `bin/`, para que el
-# `justfile` de la raíz los llame por su nombre como a los de Rust. Van **como
+# `justfile` del juego los llame por su nombre como a los de Rust. Van **como
 # symlinks y no como copias**: una copia quedaría vieja al editar el `.py`, y
 # la tanda correría otra versión que la del árbol. Apuntan al checkout desde
 # el que se corrió esto: si ése se borra, hay que volver a correrlo desde otro.

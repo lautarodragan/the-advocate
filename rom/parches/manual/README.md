@@ -67,7 +67,7 @@ agregando una entrada nueva no hay nada que pueda quedar viejo.
 **Y su imagen no se versiona: se arma.** El arte del juego no es nuestro para
 redistribuir —no está en el repo, ver `docs/rpgmaker/rtp.md`—, así que el fork
 guarda la **receta**: qué bloque de autotile y qué tile alto se copian adónde.
-El PNG sale a `rom/build/parches-manual/ChipSet/`, que es un directorio de build como
+El PNG sale a `build/parches-manual/ChipSet/`, que es un directorio de build como
 cualquier otro.
 
 Duplicar un tile del ChipSet **no cuesta tiles en el cartucho**: Voodoo

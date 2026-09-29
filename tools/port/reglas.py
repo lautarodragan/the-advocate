@@ -80,7 +80,7 @@ def parametros(db, actor, equipo, nivel=None):
 
 # Los términos del LDB que la pantalla usa, en el orden en que el conversor los
 # emite. Los nombres son los de liblcf —`fields.csv`, struct `Terms`— y no de
-# memoria: ver data/README.md. Hasta el 2026-09-20 eran los números de chunk
+# memoria: ver rom/data/README.md. Hasta el 2026-09-20 eran los números de chunk
 # de `ldb/chunks.h`, con el nombre al lado en un comentario; hoy el nombre es
 # el dato y el comentario es lo que dice el término en el juego.
 BA_TERMINOS = (

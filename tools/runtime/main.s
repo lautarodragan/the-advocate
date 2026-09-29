@@ -40,7 +40,7 @@
 ; Lo que se queda escrito acá es lo que no es un subsistema: dónde entran los
 ; `.inc` generados —los dos bytecodes y los datos del cartucho—. Un archivo
 ; nuevo se agrega a la lista en el lugar que le toca en la ROM; la huella de
-; `tools/ensamblado/cartuchos.py` ya cubre todo `rom/src/`.
+; `tools/ensamblado/cartuchos.py` ya cubre todo `tools/runtime/`.
 ; ---------------------------------------------------------------------------
 
 .p816
