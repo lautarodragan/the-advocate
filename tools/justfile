@@ -31,7 +31,7 @@ export PATH := if path_exists(local_tools / "bin") == "true" { local_tools / "bi
 # `*-test` recipes run `cargo test` standing in the project, which tests
 # only that one, and `cargo install --locked --path` takes the workspace's
 # lock.
-rust_projects := "protocol gunter ditto rules voodoo lz2 rm2k-render project cartridge rm2k-snes-audio battle"
+rust_projects := "protocol gunter ditto rules voodoo lz2 rm2k-render project cartridge rm2k-snes-audio battle events"
 
 # The directories the projects live in, one per layer: each project is
 # `<layer>/<name>`, and the recipes find it by its name.
@@ -52,7 +52,7 @@ rust_layers := "snes rm2k rm2k-snes"
 protocol *args:
   protocol snes/protocol/events.toml \
       --python port/event_opcodes.py --asm runtime/event_opcodes.inc \
-      --jump-table {{args}}
+      --rust rm2k-snes/events/src/opcodes.rs --jump-table {{args}}
   protocol snes/protocol/music.toml \
       --python audio/music_opcodes.py --asm runtime/music_opcodes.inc \
       --rust rm2k-snes/rm2k-snes-audio/src/music_opcodes.rs {{args}}
