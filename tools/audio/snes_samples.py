@@ -51,10 +51,10 @@ from common import disk_cache
 # see `__getattr__` and `common/environment.py`.
 
 
-def __getattr__(nombre):
-    if nombre == "SOUNDFONT":
+def __getattr__(name):
+    if name == "SOUNDFONT":
         return environment.soundfont()
-    raise AttributeError("module %r has no attribute %r" % (__name__, nombre))
+    raise AttributeError("module %r has no attribute %r" % (__name__, name))
 
 
 BLOCK = brr_samples.BLOCK_SAMPLES    # 16 samples per BRR block
@@ -106,12 +106,12 @@ class Voice:
 # the rounds of the allocation, across the test cartridges and the demo.
 
 _version = None
-_huellas = {}
-_tambores = {}
-_voces = {}
+_fingerprints = {}
+_drums = {}
+_voices = {}
 
 
-def _version_de_la_preparacion():
+def _preparation_version():
     """Which version of the code produced the stored voice.
 
     It covers this file —the resampling, the normalization and the budget
@@ -127,7 +127,7 @@ def _version_de_la_preparacion():
     return _version
 
 
-def huella_del_soundfont(ruta):
+def soundfont_fingerprint(path):
     """The SoundFont's content, not its path.
 
     `--soundfont` can point to another bank, and a bank can change without
@@ -137,16 +137,16 @@ def huella_del_soundfont(ruta):
     It is public because `msu.py` renders with **the same soundfont** and its
     key needs the same fingerprint, for the same reason.
     """
-    if ruta not in _huellas:
+    if path not in _fingerprints:
         h = hashlib.sha256()
-        with open(ruta, "rb") as f:
-            for bloque in iter(lambda: f.read(1 << 20), b""):
-                h.update(bloque)
-        _huellas[ruta] = h.hexdigest()
-    return _huellas[ruta]
+        with open(path, "rb") as f:
+            for chunk in iter(lambda: f.read(1 << 20), b""):
+                h.update(chunk)
+        _fingerprints[path] = h.hexdigest()
+    return _fingerprints[path]
 
 
-def _cacheada(memoria, clave, partes, hacer):
+def _cached(memo, cache_key, parts, make):
     """A voice, from the process's memory, from disk or freshly made.
 
     What is stored goes inside a one-element tuple because **`None` is a
@@ -155,52 +155,52 @@ def _cacheada(memoria, clave, partes, hacer):
     `None` when there is nothing. Without the wrapper, an already computed
     "does not exist" would be computed again on every run.
     """
-    if clave in memoria:
-        return memoria[clave]
-    en_disco = disk_cache.key(_version_de_la_preparacion(), *partes)
-    guardado = disk_cache.read("muestras", en_disco)
-    if guardado is None:
-        guardado = (hacer(),)
-        disk_cache.write("muestras", en_disco, guardado)
-    memoria[clave] = guardado[0]
-    return guardado[0]
+    if cache_key in memo:
+        return memo[cache_key]
+    on_disk = disk_cache.key(_preparation_version(), *parts)
+    stored = disk_cache.read("muestras", on_disk)
+    if stored is None:
+        stored = (make(),)
+        disk_cache.write("muestras", on_disk, stored)
+    memo[cache_key] = stored[0]
+    return stored[0]
 
 
 # How far the low-pass reaches before lowering the rate, as a fraction of
 # half the new rate: a bit below, because the filter's roll-off is not
 # vertical and what goes past half aliases. And how many cycles of the cutoff
 # frequency its kernel spans: more is a steeper roll-off and a longer filter.
-CORTE = 0.9
-CICLOS = 12
+CUTOFF = 0.9
+CYCLES = 12
 
 
-def _pasabajos(muestras, fraccion, circular=False, despues=()):
-    """`muestras` without what goes past `fraccion` of its rate (in cycles per
+def _low_pass(samples, fraction, circular=False, after=()):
+    """`samples` without what goes past `fraction` of its rate (in cycles per
     sample), as floats: a Blackman-windowed sinc.
 
     `circular` is for the loop: the signal repeats, so the filter sees it as
-    periodic and the loop point is not left with a step. `despues` is what
+    periodic and the loop point is not left with a step. `after` is what
     follows the signal —the loop, after the attack—, so that the end of the
     attack is filtered with what really plays next and not against zeros."""
     import numpy as np
-    x = np.asarray(muestras, dtype=float)
-    mitad = max(8, int(math.ceil(CICLOS / (2.0 * fraccion))))
-    n = np.arange(-mitad, mitad + 1)
-    nucleo = 2 * fraccion * np.sinc(2 * fraccion * n) * np.blackman(len(n))
-    nucleo /= nucleo.sum()
+    x = np.asarray(samples, dtype=float)
+    half = max(8, int(math.ceil(CYCLES / (2.0 * fraction))))
+    n = np.arange(-half, half + 1)
+    kernel = 2 * fraction * np.sinc(2 * fraction * n) * np.blackman(len(n))
+    kernel /= kernel.sum()
     if circular:
-        largo = len(x)
-        doblado = np.zeros(largo)
-        np.add.at(doblado, n % largo, nucleo)
-        return np.fft.irfft(np.fft.rfft(x) * np.fft.rfft(doblado), largo)
-    cola = np.asarray(list(despues), dtype=float)
-    if len(cola):
-        cola = np.tile(cola, int(math.ceil(mitad / float(len(cola)))) + 1)
-    return np.convolve(np.concatenate([x, cola[:mitad]]), nucleo,
+        length = len(x)
+        folded = np.zeros(length)
+        np.add.at(folded, n % length, kernel)
+        return np.fft.irfft(np.fft.rfft(x) * np.fft.rfft(folded), length)
+    tail = np.asarray(list(after), dtype=float)
+    if len(tail):
+        tail = np.tile(tail, int(math.ceil(half / float(len(tail)))) + 1)
+    return np.convolve(np.concatenate([x, tail[:half]]), kernel,
                        mode="same")[:len(x)]
 
 
-def resample(samples, count, circular=False, despues=()):
+def resample(samples, count, circular=False, after=()):
     """Changes a signal's length: low-pass if the rate goes down, and then
     linear interpolation.
 
@@ -213,15 +213,15 @@ def resample(samples, count, circular=False, despues=()):
     instrument. It is step 6 of
     `workflow/tasks/todo/la-calidad-de-la-musica.md`, with what was measured.
 
-    `circular` and `despues` are those of `_pasabajos`.
+    `circular` and `after` are those of `_low_pass`.
     """
     if count <= 0 or not len(samples):
         return []
     if count == len(samples):
         return list(samples)
     if count < len(samples):
-        samples = _pasabajos(samples, CORTE * 0.5 * count / len(samples),
-                             circular, despues)
+        samples = _low_pass(samples, CUTOFF * 0.5 * count / len(samples),
+                            circular, after)
 
     step = (len(samples) - 1) / float(count)
     out = []
@@ -265,11 +265,11 @@ def plan_rate(attack_frames, loop_frames, source_rate, budget):
 
 
 def build_voice(soundfont, program, budget, key=REFERENCE_KEY):
-    """An instrument from the SoundFont in BRR, cached. See `_cacheada`."""
-    return _cacheada(_voces, (soundfont, program, budget, key),
-                     (huella_del_soundfont(soundfont), "program",
-                      str(program), str(budget), str(key)),
-                     lambda: _build_voice(soundfont, program, budget, key))
+    """An instrument from the SoundFont in BRR, cached. See `_cached`."""
+    return _cached(_voices, (soundfont, program, budget, key),
+                   (soundfont_fingerprint(soundfont), "program",
+                    str(program), str(budget), str(key)),
+                   lambda: _build_voice(soundfont, program, budget, key))
 
 
 def _build_voice(soundfont, program, budget, key):
@@ -308,10 +308,10 @@ def _build_voice(soundfont, program, budget, key):
 
     attack_out = int(round(attack_frames * ratio / BLOCK)) * BLOCK
 
-    lazo = sample.pcm[sample.loop_start:sample.loop_end] if looped else ()
-    audio = resample(sample.pcm[:attack_frames], attack_out, despues=lazo)
+    loop_pcm = sample.pcm[sample.loop_start:sample.loop_end] if looped else ()
+    audio = resample(sample.pcm[:attack_frames], attack_out, after=loop_pcm)
     if looped:
-        audio += resample(lazo, loop_out, circular=True)
+        audio += resample(loop_pcm, loop_out, circular=True)
     audio = normalize(audio)
 
     data = brr_samples.encode(
@@ -322,11 +322,11 @@ def _build_voice(soundfont, program, budget, key):
 
 
 def build_drum(soundfont, note, budget, seconds=DRUM_SECONDS):
-    """A percussion hit in BRR, cached. See `_cacheada`."""
-    return _cacheada(_tambores, (soundfont, note, budget, seconds),
-                     (huella_del_soundfont(soundfont), "drum", str(note),
-                      str(budget), repr(seconds)),
-                     lambda: _build_drum(soundfont, note, budget, seconds))
+    """A percussion hit in BRR, cached. See `_cached`."""
+    return _cached(_drums, (soundfont, note, budget, seconds),
+                   (soundfont_fingerprint(soundfont), "drum", str(note),
+                    str(budget), repr(seconds)),
+                   lambda: _build_drum(soundfont, note, budget, seconds))
 
 
 def _build_drum(soundfont, note, budget, seconds):

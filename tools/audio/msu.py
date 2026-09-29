@@ -192,7 +192,7 @@ def clave_de_la_pista(midi, soundfont, ganancia, pico=PICO):
         crudo = f.read()
     return disk_cache.key(disk_cache.version_of("audio/msu.py"),
                           huella_de_fluidsynth(),
-                          snes_samples.huella_del_soundfont(soundfont),
+                          snes_samples.soundfont_fingerprint(soundfont),
                           "%.17g %.17g" % (ganancia, pico),
                           crudo)
 

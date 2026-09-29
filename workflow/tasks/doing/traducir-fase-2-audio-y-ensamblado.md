@@ -36,3 +36,4 @@ ejecutable corrido por su nombre desde /tmp con `--project`.
 - `audio/muestras_brr.py` → `audio/brr_samples.py`, con sus nombres.
 - `audio/sdsp.py` y `audio/midi.py`: los nombres; los archivos ya estaban
   en inglés.
+- `audio/snes_samples.py`: los nombres.
