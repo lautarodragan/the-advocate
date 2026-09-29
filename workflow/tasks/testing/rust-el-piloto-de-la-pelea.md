@@ -2,7 +2,7 @@
 name: "Rust: el piloto del conversor, las tablas de pelea"
 description: "El primer dominio del conversor en Rust: el crate rm2k-snes-battle con las tablas de experiencia y encuentros (battle_tables.py), llamado por el Python por el PATH, con las ROMs byte por byte iguales"
 type: refactor
-assignee: Surubí
+assignee: taro
 ---
 
 Paso 4 del camino a Rust, con lo que se charló con taro el 2026-09-29:
@@ -104,3 +104,29 @@ necesita para ver el mismo árbol.
   `rm2k-snes-assemble` arma —el global o el del worktree—, no del
   conversor: rearmado con el global, el `.dbg` es el mismo con el prefijo
   `.claude/worktrees/<agente>/` en cada `name=`, y nada más.
+- Después de mergear `main` (el renombre a Adeleine), otra vez con
+  `NO_CACHE=1 just cartuchos` sobre el árbol mergeado: los `.sfc`, `.msu`,
+  `.pcm` y `.inc` iguales a los de antes de empezar. Difieren los `.toml`
+  de `parches/auto/battlers/`, que traen `adeleine.` en su comentario (es
+  de `main`), y el `.dbg`, en el tamaño de `far_ram.s`: el commit de prosa
+  le cambió un comentario.
+- `just pruebas` (874) y `just -f tools/justfile test` (83) en verde sobre
+  el árbol mergeado; `cargo test -p rm2k-snes-battle -p
+  rm2k-snes-cartridge` en verde.
+
+## Al mergear
+
+Instalar en el global `battle` —el binario nuevo— y `cartridge`, porque
+la huella de los cartuchos ahora incluye `rm2k-snes-battle`:
+
+    just -f tools/justfile install battle cartridge
+
+Sin `battle` instalado, el conversor se niega y dice qué correr. Hay un
+`.py` nuevo, `port/stage.py`, pero no es un ejecutable: no hace falta
+`install-scripts`.
+
+## Para taro
+
+Nada para jugar: las ROMs salen byte por byte iguales. Lo que hay que
+mirar es la forma, en el README del crate, antes de que la copie el
+próximo dominio.
