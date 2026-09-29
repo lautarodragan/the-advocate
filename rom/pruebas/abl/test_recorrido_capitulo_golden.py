@@ -33,9 +33,9 @@ Las llegadas a los mapas nuevos tienen golden de la tanda en
 import datos
 from batalla import grupo_de
 
-from test_recorrido_lashe_golden import CON_ARDEN
-from test_recorrido_lashe_wick_golden import FUNDIDO, MOSAICO, transiciones
-from test_recorrido_sorbe_golden import (
+from tramo_lashe import CON_ARDEN
+from tramo_wick import FUNDIDO, MOSAICO, transiciones
+from tramo_sorbe import (
     ARDEN, CONTO_LA_HISTORIA, DALIA, DALIA_LLEGO, EL_MUNDO, ENTRADA_A_TASGARDE,
     RECHAZO_A_WICK, TALAN, TOBILLO_CURADO, en_pelea_hace, jugar, sin_encuentros)
 

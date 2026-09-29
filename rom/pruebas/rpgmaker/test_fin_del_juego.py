@@ -16,10 +16,10 @@ from consola import TITULO_AIRE
 import datos
 from dibujo import comparar_pantalla
 from menu import abrir, con_grupo
+from menu import comparar as comparar_menu
 from tanda import golden
-from test_game_over import TITULO_QUIETO, cuadros_hasta_volver
-from test_menu_dibujo import comparar as comparar_menu
-from batalla import cuadros_hasta_reiniciar
+from batalla import (TITULO_QUIETO, cuadros_hasta_reiniciar,
+                     cuadros_hasta_volver)
 
 MENU_FIN = 4
 

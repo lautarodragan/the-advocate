@@ -20,60 +20,13 @@ from port import batalla as modelo
 from port import experiencia
 from port import pantallas
 from port import reglas
-from port import menus
 
-from batalla import GRUPO, Pelea, en_el_droide
-from consola import en_la_rom, en_la_wram
+from batalla import (ARDEN, GRUPO, Pelea, en_el_droide, paginas, poner_exp,
+                     primera_pagina)
 import datos
-from test_experiencia_dibujo import ARDEN, poner_exp
 
 TROPA_DROIDE = 82
 KERSH, CORE, MANTA = GRUPO
-
-
-def glifos(una):
-    """Las dos celdas de cada letra blanca, al carácter: la tabla
-    `item_glifo_celdas` del cartucho, cuatro bytes por letra. Las dos, porque
-    hay letras que comparten la de arriba —la "h" y la "b"—."""
-    with open(una.sfc, "rb") as archivo:
-        rom = archivo.read()
-    base = en_la_rom(una.simbolos["item_glifo_celdas"])
-    de = {}
-    for n in range(menus.ITEM_CARACTERES):
-        b = rom[base + 4 * n:base + 4 * n + 4]
-        de.setdefault((b[0] | (b[1] << 8), b[2] | (b[3] << 8)),
-                      chr(menus.ITEM_PRIMER_CARACTER + n))
-    return de
-
-
-def renglones(una, fila0, cuantos):
-    """Los renglones de texto de la pantalla de la pelea desde la fila
-    `fila0` del tilemap, de a dos filas cada uno, sin los espacios del final.
-    Una celda que no es ninguna letra sale como '#'."""
-    de = glifos(una)
-    buf = una.consola.ram(en_la_wram(una.simbolos["texto_buf"]), 64 * 28)
-    salida = []
-    for r in range(cuantos):
-        fila = fila0 + 2 * r
-        letras = []
-        for col in range(32):
-            i = fila * 64 + 2 * col
-            celda = (buf[i] | (buf[i + 1] << 8),
-                     buf[i + 64] | (buf[i + 65] << 8))
-            letras.append(" " if celda == (0, 0) else de.get(celda, "#"))
-        salida.append("".join(letras).rstrip())
-    return salida
-
-
-def ventana(una):
-    """Lo que dice la ventana de la victoria: los cuatro renglones del grupo,
-    desde la columna del mensaje, y los dos de abajo, que tienen que quedar
-    vacíos."""
-    arriba = renglones(una, pantallas.BA_PAG_MSG_FILA0, 4)
-    abajo = renglones(una, pantallas.BA_MSG_FILA1, 2)
-    col = pantallas.BA_PAG_MSG_COL
-    assert all(r[:col].strip() == "" for r in arriba), arriba
-    return [r[col:] for r in arriba], abajo
 
 
 def ganar_hasta_el_fin(una, grupo):
@@ -88,32 +41,6 @@ def ganar_hasta_el_fin(una, grupo):
                     if pelea.hp_del_combatiente(k) > 0)
         pelea.turno(vivos)
     raise AssertionError("la pelea no terminó")
-
-
-def paginas(una, pelea, tope=10):
-    """Cada página de la victoria —sus cuatro renglones— hasta que la pelea
-    se cierra, apretando A entre una y otra."""
-    vistas = []
-    for _ in range(tope):
-        if not pelea.abierta():
-            return vistas
-        assert pelea.modo() == "FIN"
-        arriba, abajo = ventana(una)
-        assert abajo == ["", ""], \
-            "el renglón del mensaje de la pelea tendría que estar vacío: %r" \
-            % abajo
-        vistas.append([r for r in arriba if r] if any(arriba) else [])
-        pelea.tocar_cuadros()
-        for _ in range(10):
-            if not pelea.abierta():
-                break
-            una.consola.correr(1)
-    raise AssertionError("la victoria no se cerró en %d páginas" % tope)
-
-
-def primera_pagina(term, exp):
-    return (pantallas.renglones_de_la_victoria(term["victoria"])
-            + [pantallas.renglon_de_experiencia(term, exp)])
 
 
 def pagina_de_nivel(term, base, actor, antes, despues):

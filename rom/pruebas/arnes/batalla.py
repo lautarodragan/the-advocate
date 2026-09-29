@@ -1,14 +1,18 @@
 """La pelea de la consola, manejada desde afuera, y lo que las pruebas de
 pelea comparten: el droide del mapa 2, el grupo de la intro, el modelo de
-`port.batalla` y perder sin pelear.
+`port.batalla`, perder sin pelear, la experiencia, los textos de la pantalla y
+volver del Game Over.
 
 **Todo en cuadros de hardware**: la pelea corre su propio lazo y `vueltas` no
 avanza mientras dura.
 """
 
 from port import batalla as modelo
+from port import eventos
+from port import menus
+from port import pantallas
 
-from consola import en_la_rom, en_la_wram
+from consola import EMPEZAR, en_la_rom, en_la_wram
 import datos
 from tanda import LINKAGE
 
@@ -327,3 +331,195 @@ def sabe(una, actor, habilidad):
     r = datos.ranuras_de_habilidad()[(actor, habilidad)]
     octeto = una.consola.ram(una.simbolos["FAR_HAB"] + (r >> 3), 1)[0]
     return bool(octeto & (1 << (r & 7)))
+
+
+# --- la experiencia -----------------------------------------------------------
+#
+# Lo que la pelea deja al terminar: la experiencia y el nivel de cada actor,
+# en `FAR_EXP`. Vivía en `test_experiencia_dibujo.py` hasta el 2026-09-29, y
+# de ahí lo importaban la victoria y los HP del menú de la pelea.
+
+def rom_de(una):
+    with open(una.sfc, "rb") as archivo:
+        return archivo.read()
+
+
+def ranura_exp(una, actor):
+    """La ranura de `FAR_EXP` del actor, leída de `actor_exp_k`, o None.
+
+    Se lee del cartucho y no se recalcula con `experiencia_ranuras`: depende
+    de qué actores pueden entrar al grupo en **este** cartucho, y rehacer esa
+    cuenta acá sería una segunda manera de contestar lo mismo.
+    """
+    k = rom_de(una)[en_la_rom(una.simbolos["actor_exp_k"]) + actor]
+    return None if k == 0xFF else k
+
+
+def exp_y_nivel(una, actor):
+    k = ranura_exp(una, actor)
+    assert k is not None, "el actor %d no tiene ranura de experiencia" % actor
+    b = una.consola.ram(una.simbolos["FAR_EXP"] + 4 * k, 4)
+    return b[0] | (b[1] << 8) | (b[2] << 16), b[3]
+
+
+def poner_exp(una, actor, exp, nivel):
+    k = ranura_exp(una, actor)
+    una.consola.escribir_ram(una.simbolos["FAR_EXP"] + 4 * k,
+                             [exp & 0xFF, (exp >> 8) & 0xFF, exp >> 16, nivel])
+
+
+# El actor con que se prueba aprender habilidades al subir de nivel: ver "las
+# habilidades del nivel" en `test_experiencia_dibujo.py`.
+#
+# El que sirve es Arden, el actor 15: arranca en el 3 y aprende la 148 en el 4,
+# la 140 en el 5, la 139 en el 6 y la 255 en el 7. De los tres de la intro
+# ninguno aprende nada nuevo después de su nivel de arranque.
+ARDEN = 15
+
+
+# --- lo que la pelea escribe ------------------------------------------------
+#
+# Los textos de la pantalla de la pelea, leídos de la ROM y de la RAM: el
+# mensaje de una página de la tropa, que vivía en `test_tropa.py`, y la
+# ventana de la victoria, que vivía en `test_victoria.py`, hasta el
+# 2026-09-29. Los usan también los eventos de tropa.
+
+def mensaje_en_pantalla(una, pelea):
+    """Los renglones del mensaje de página que la ROM tiene puesto, leídos del
+    cartucho en el desplazamiento que dejó `op_message`."""
+    desplazamiento = pelea.palabra(una.simbolos["BA_PAG_MSG"])
+    assert desplazamiento != 0xFFFF, "no hay ningún mensaje de página"
+    with open(una.sfc, "rb") as archivo:
+        rom = archivo.read()
+    i = en_la_rom(una.simbolos["mensajes_tropa"]) + desplazamiento
+    cuantos = rom[i] & eventos.CABECERA_LINEAS
+    i += 1
+    renglones = []
+    for _ in range(cuantos):
+        largo = rom[i]
+        renglones.append("".join(chr(b + 32) for b in rom[i + 1:i + 1 + largo]))
+        i += 1 + largo
+    return renglones
+
+
+def glifos(una):
+    """Las dos celdas de cada letra blanca, al carácter: la tabla
+    `item_glifo_celdas` del cartucho, cuatro bytes por letra. Las dos, porque
+    hay letras que comparten la de arriba —la "h" y la "b"—."""
+    with open(una.sfc, "rb") as archivo:
+        rom = archivo.read()
+    base = en_la_rom(una.simbolos["item_glifo_celdas"])
+    de = {}
+    for n in range(menus.ITEM_CARACTERES):
+        b = rom[base + 4 * n:base + 4 * n + 4]
+        de.setdefault((b[0] | (b[1] << 8), b[2] | (b[3] << 8)),
+                      chr(menus.ITEM_PRIMER_CARACTER + n))
+    return de
+
+
+def renglones(una, fila0, cuantos):
+    """Los renglones de texto de la pantalla de la pelea desde la fila
+    `fila0` del tilemap, de a dos filas cada uno, sin los espacios del final.
+    Una celda que no es ninguna letra sale como '#'."""
+    de = glifos(una)
+    buf = una.consola.ram(en_la_wram(una.simbolos["texto_buf"]), 64 * 28)
+    salida = []
+    for r in range(cuantos):
+        fila = fila0 + 2 * r
+        letras = []
+        for col in range(32):
+            i = fila * 64 + 2 * col
+            celda = (buf[i] | (buf[i + 1] << 8),
+                     buf[i + 64] | (buf[i + 65] << 8))
+            letras.append(" " if celda == (0, 0) else de.get(celda, "#"))
+        salida.append("".join(letras).rstrip())
+    return salida
+
+
+def ventana(una):
+    """Lo que dice la ventana de la victoria: los cuatro renglones del grupo,
+    desde la columna del mensaje, y los dos de abajo, que tienen que quedar
+    vacíos."""
+    arriba = renglones(una, pantallas.BA_PAG_MSG_FILA0, 4)
+    abajo = renglones(una, pantallas.BA_MSG_FILA1, 2)
+    col = pantallas.BA_PAG_MSG_COL
+    assert all(r[:col].strip() == "" for r in arriba), arriba
+    return [r[col:] for r in arriba], abajo
+
+
+def paginas(una, pelea, tope=10):
+    """Cada página de la victoria —sus cuatro renglones— hasta que la pelea
+    se cierra, apretando A entre una y otra."""
+    vistas = []
+    for _ in range(tope):
+        if not pelea.abierta():
+            return vistas
+        assert pelea.modo() == "FIN"
+        arriba, abajo = ventana(una)
+        assert abajo == ["", ""], \
+            "el renglón del mensaje de la pelea tendría que estar vacío: %r" \
+            % abajo
+        vistas.append([r for r in arriba if r] if any(arriba) else [])
+        pelea.tocar_cuadros()
+        for _ in range(10):
+            if not pelea.abierta():
+                break
+            una.consola.correr(1)
+    raise AssertionError("la victoria no se cerró en %d páginas" % tope)
+
+
+def primera_pagina(term, exp):
+    return (pantallas.renglones_de_la_victoria(term["victoria"])
+            + [pantallas.renglon_de_experiencia(term, exp)])
+
+
+# --- volver del Game Over ---------------------------------------------------
+#
+# El reinicio que sigue a la pantalla de Game Over, hasta que el juego vuelve
+# a correr. Vivía en `test_game_over.py` hasta el 2026-09-29; lo usa también
+# End Game, que termina en el mismo reinicio.
+
+# Cuántos cuadros de hardware se le dan al arranque de después del Game Over
+# para volver al lazo. El arranque son BOOT_CUADROS y encima la subida al
+# SPC700, que no se cuenta en cuadros: el doble es paciencia de sobra.
+VOLVER_TOPE = 600
+
+# Y los que se le dan al título después del reinicio para estar quieto, como
+# en `test_titulo_golden.py`.
+TITULO_QUIETO = 170
+
+
+def pasar_el_titulo(una):
+    """`BOOT_CUADROS` y, con pantalla de título, "Begin the Story".
+
+    **El Game Over vuelve al título**, que es lo que hace RM2k
+    —`Scene_Gameover` termina en `Scene_Title`—, y ahí el juego no corre
+    hasta que alguien elige. En un cartucho sin título el arranque va directo
+    al mapa y esto es sólo esperar el arranque.
+    """
+    una.consola.correr(una.simbolos["BOOT_CUADROS"])
+    if una.titulo is not None:
+        una.pasar_el_titulo(EMPEZAR)
+
+
+def cuadros_hasta_volver(una, tope=VOLVER_TOPE):
+    """Cuántos cuadros pasan, desde el reinicio, hasta que el lazo vuelve a
+    correr. `None` si no volvió: eso es el cuelgue.
+
+    Se mira que `vueltas` **suba**, que es lo único que dice que el arranque
+    terminó: `mapa_actual` ya vale lo suyo mucho antes —`cargar_mapa` corre
+    antes de la subida al SPC700— así que preguntarle a él da verde con la ROM
+    clavada. Es exactamente lo que pasaba acá hasta el 2026-09-13.
+
+    Con pantalla de título se la pasa primero —ver `pasar_el_titulo`—: si el
+    arranque se colgara antes, los toques caen en nada y `vueltas` no sube
+    igual.
+    """
+    if una.titulo is not None:
+        pasar_el_titulo(una)
+    for n in range(tope):
+        antes = una.palabra("vueltas")
+        una.consola.correr(1)
+        if una.palabra("vueltas") > antes:
+            return n
+    return None

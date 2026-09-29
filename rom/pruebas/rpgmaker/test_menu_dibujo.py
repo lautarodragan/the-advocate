@@ -10,19 +10,8 @@ mitad de un paso.
 
 from consola import TITULO_AIRE
 import datos
-from dibujo import comparar_pantalla, pixeles_distintos
-from menu import GRUPO, ORO, abrir, con_grupo
-
-
-def comparar(una, elegida, guardar=True, nombre="menu", hp=None):
-    from port import menus
-    from rpgmaker.recursos import GAME_DIR
-    db, skin = datos.base(), datos.skin()
-    esperada = menus.render_menu(skin, db, una.simbolos["SRAM_RANURAS"],
-                                  GRUPO, ORO, elegida, guardar, db.font_id,
-                                  None, GAME_DIR, hp)
-    comparar_pantalla(una, esperada, nombre,
-                      "el menú con el cursor en la %d" % elegida)
+from dibujo import pixeles_distintos
+from menu import GRUPO, ORO, abrir, comparar, con_grupo
 
 
 def test_el_menu_se_ve_como_la_referencia_y_no_cuenta_ticks(partida):

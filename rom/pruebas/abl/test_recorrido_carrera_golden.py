@@ -55,7 +55,7 @@ from consola import en_la_rom, en_la_wram
 from batalla import grupo_de
 from recorrido import TELEPORT, Trabado
 
-from test_recorrido_lashe_golden import CON_ARDEN, CON_SALDRA
+from tramo_lashe import CON_ARDEN, CON_SALDRA
 
 # La celda del `Teleport [49, 1, 26]` del 36, por donde el juego entra.
 LA_LARGADA = (49, 1, 26)

@@ -35,13 +35,13 @@ RAM.
 
 from batalla import grupo_de
 
-from test_recorrido_lashe_golden import (
+from tramo_lashe import (
     AG7, ARDEN, AUTO_ROJO, CON_ARDEN, CON_SALDRA, EL_SUSURRO_DE_ARDEN,
     LOS_SIGUE_LA_AGENCY, QUEDARSE, SALDRA, SE_VAN, SECTOR_32, SECTOR_33,
     SECTOR_34, SECTOR_35, SECTORES, TALAN, TIENE_EL_AUTO, VIO_A_LOS_GUARDIAS,
     VIO_EL_VIDCAST, el_hq_por_el_cano, ir_al_sector, irse_lleva_a_la_carrera,
     la_tienda_y_los_guardias, llegar_al_36, subir_al_auto)
-from test_recorrido_lashe_planta_golden import ROBO_EL_IDOL, de_stash_a_ag7
+from tramo_planta import ROBO_EL_IDOL, de_stash_a_ag7
 
 AG7_EN_EL_GRUPO = 150
 

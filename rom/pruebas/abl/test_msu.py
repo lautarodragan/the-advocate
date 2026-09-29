@@ -12,7 +12,6 @@ es pedirle el MSU-1 a la de `release/`: si con él el audio no cambiara, que
 sin él sea igual a la referencia no probaría nada.
 """
 
-import glob
 import json
 import os
 import shutil
@@ -28,17 +27,11 @@ import tanda
 from consola import (EMPEZAR, NUCLEO, SEGUIR, TITULO_AIRE, Partida,
                      en_la_rom, en_la_wram, indice_del_tema)
 from ensamblado import cartuchos
+from msu import pistas_de
 
 # Del encendido: a esta altura el tema del título ya suena, y con el MSU-1 lo
 # toca la pista. Medido en snes9x y en bsnes.
 CUADROS = 600
-
-
-def pistas_de(base):
-    """{número: ruta} de los `<base>-N.pcm` que hay al lado de la ROM."""
-    return {int(ruta[len(base) + 1:-len(".pcm")]): ruta
-            for ruta in glob.glob(glob.escape(base) + "-*.pcm")
-            if ruta[len(base) + 1:-len(".pcm")].isdigit()}
 
 
 def _con_msu(sfc):

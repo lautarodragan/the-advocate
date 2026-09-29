@@ -29,7 +29,8 @@ sólo de las pruebas.
                            herramientas, y tienen su índice aparte
     pruebas/arnes/         consola, tanda, recorrido y video; y lo que
                            comparten varias pruebas: menu, batalla, datos,
-                           dibujo y piedras. Ninguna prueba importa de otra
+                           dibujo, piedras, msu, y los `tramo_*` que juegan
+                           varios recorridos. Ninguna prueba importa de otra
     pruebas/casos/         las páginas de prueba, una por archivo
     pruebas/golden/        las capturas congeladas: `tanda/` y `playthrough/`
     pruebas/snapshots/     lo que dejó la última corrida en rojo, para mirar
@@ -50,9 +51,10 @@ cambia qué hacer cuando se pone rojo:
 * **`_golden`**: contra las capturas congeladas de `pruebas/golden/` —`tanda.golden`,
   o `Recorrido.foto` en las que juegan—. La captura en rojo queda en
   `pruebas/snapshots/tanda/` o `snapshots/playthrough/<tramo>/`, con el mismo
-  nombre que su golden: se miran lado a lado. Si el render cambió a
-  propósito, **cambiar la golden es un acto deliberado**: va a git, se mira, y
-  el commit dice por qué. Si no, es una regresión. Ver `golden/tanda/LEEME.md`.
+  nombre que su golden: se miran lado a lado. Una foto del recorrido sin
+  golden falla, salvo que esté en `golden/playthrough/pendientes.txt`. Si el
+  render cambió a propósito, **cambiar la golden es un acto deliberado**: va
+  a git, se mira, y el commit dice por qué. Si no, es una regresión. Ver `golden/tanda/LEEME.md`.
 * **`_dibujo`**: contra lo que dibuja `tools/port/` —`titulo.render_*`,
   `pantallas.*`, `escena.*`—, casi siempre por `arnes/dibujo.py`. La captura y
   la esperada quedan en `pruebas/snapshots/pantallas/`, y el que está mal
@@ -276,6 +278,9 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `herramientas/test_destello_paleta.py`: la paleta de sprite de los líderes
 * `herramientas/test_timer_paleta.py`: el cronómetro y sus paletas
 * `herramientas/test_indice.py`: que esta lista esté al día
+* `herramientas/test_goldens_del_recorrido.py`: que cada tramo con goldens
+  del recorrido, o con fotos en `golden/playthrough/pendientes.txt`, lo juegue
+  alguna prueba
 * `herramientas/test_perillas_repetidas.py`: que ninguna herramienta vuelva
   a escribir un valor que ya declara `rm2k-snes.toml`
 * `herramientas/test_lado_de_abl.py`: que el lado de ABL —`justfile`,

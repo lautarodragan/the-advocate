@@ -41,24 +41,23 @@ Las del 69, con su reparto propio de VRAM, tienen golden de la tanda en
 """
 
 from batalla import grupo_de
-from consola import en_la_wram
 
-from test_recorrido_lashe_golden import CON_ARDEN
+from tramo_lashe import CON_ARDEN
+from tramo_sorbe import (
+    ARDEN, CONTO_LA_HISTORIA, DALIA, DALIA_LLEGO, DUMMY, EL_AUTO, EL_MUNDO,
+    ENTRADA_A_TASGARDE, LA_CASA_DE_VAGO, LA_MONTANA, RECHAZO_A_WICK, SORBE,
+    TALAN, TOBILLO_CURADO, en_pelea_hace, jugar, sin_encuentros)
 
-# La rama de Wick: el 162 es "le dijo que no", y con él la llegada al mundo
-# prende el 239 y Talan renguea hasta la casa de Vago.
-RECHAZO_A_WICK = 162
+# Con `RECHAZO_A_WICK`, la llegada al mundo prende el 239 y Talan renguea
+# hasta la casa de Vago.
 RENGO = 239
 
-TALAN, ARDEN, DUMMY, DALIA, EL_AUTO = 14, 15, 10, 21, 22
 
-EL_MUNDO, SORBE, LA_MONTANA, LA_CASA_DE_VAGO = 66, 69, 76, 81
 LA_OFICINA, LA_FABRICA, AFUERA_DE_LA_FABRICA = 82, 83, 84
 TASGARDE = 74
 
 LLEGA_AL_MUNDO = (71, 29)
 ENTRADA_A_SORBE = (75, 10)
-ENTRADA_A_TASGARDE = (93, 4)
 
 # En Sorbe: la vieja, la celda del guardia y la salida a la montaña.
 LA_VIEJA = (16, 21)
@@ -68,77 +67,9 @@ PERMISO_DEL_GUARDIA = 268
 # En la montaña, el evento de contacto donde ataca Vago.
 VAGO_ATACA = (24, 8)
 DESPUES_DE_LA_MONTANA = 265
-# En la casa de Vago: el tobillo curado, y la historia contada.
-TOBILLO_CURADO = 267
-CONTO_LA_HISTORIA = 252
 # En la oficina del director, y afuera de la fábrica.
 TERMINO_LA_OFICINA = 275
 EL_TRANSPORTE = (9, 13)
-# El viaje de Dalia: lo prende la automática 14 al terminar.
-DALIA_LLEGO = 278
-
-BOTON_CADA = 9       # cuadros de hardware entre toques de A en una pelea
-
-
-def sin_encuentros(p):
-    """El mapa los vuelve a prender en cada carga: se apagan después de
-    llegar."""
-    p.consola.escribir_ram(en_la_wram(p.simbolos["ENC_BASE"]), [0, 0])
-
-
-def jugar(r, que, hasta, tope=60000, fotos=None, momentos=None):
-    """Juega de a un cuadro de hardware hasta que `hasta(partida)`: pasa cada
-    mensaje con A cuando terminó de componerse, y en una pelea toca A cada
-    `BOTON_CADA` cuadros —que pasa los mensajes y elige atacar—.
-
-    De a cuadros y no de a ticks porque la pelea no hace correr `vueltas`, y
-    una espera por ticks se planta ahí. `fotos` es {nombre: cond}: la primera
-    vez que un mensaje está compuesto con `cond(partida)` verdadera, se saca
-    esa foto antes de cerrarlo. `momentos` es lo mismo en cualquier cuadro,
-    haya mensaje o no."""
-    p = r.p
-    pendientes = dict(fotos or {})
-    momentos = dict(momentos or {})
-    for cuadro in range(tope):
-        if hasta(p):
-            return r
-        for nombre, cond in list(momentos.items()):
-            if cond(p):
-                r.foto(nombre, asentar=False)
-                del momentos[nombre]
-        if p.byte("menu_abierto"):
-            p.consola.apretar(*(("a",) if cuadro % BOTON_CADA < 2 else ()))
-            p._un_cuadro()
-            continue
-        if p.byte("msg_abierto") and p.byte("msg_estado") != 1:
-            for nombre, cond in list(pendientes.items()):
-                if cond(p):
-                    r.foto(nombre, asentar=False)
-                    del pendientes[nombre]
-            p.consola.apretar("a")
-            p._un_cuadro()
-            p._un_cuadro()
-            p.consola.apretar()
-            for _ in range(60):
-                if not p.byte("msg_abierto"):
-                    break
-                p._un_cuadro()
-            continue
-        p.consola.apretar()
-        p._un_cuadro()
-    raise AssertionError("jugando %s no se llegó en %d cuadros. %s"
-                         % (que, tope, r.estado()))
-
-
-def en_pelea_hace(cuadros):
-    """Una condición de `momentos`: la pelea lleva `cuadros` de hardware
-    abierta, que es cuando la escena ya está dibujada."""
-    visto = [0]
-
-    def cond(p):
-        visto[0] = visto[0] + 1 if p.byte("menu_abierto") else 0
-        return visto[0] >= cuadros
-    return cond
 
 
 def test_sorbe_la_curacion_y_el_viaje_de_dalia(recorrido):

@@ -1,0 +1,183 @@
+# Las fotos del recorrido que todavía no tienen golden, una por renglón, con
+# su ruta desde esta carpeta: `<tramo>/<NN>-<hito>.png`, el mismo nombre que
+# tendría su golden. La lee `recorrido.pendientes`.
+#
+# Una foto sin golden **falla**, salvo que esté acá: así "todavía no la
+# aprobó nadie" se distingue de "la golden se borró". Y una que está acá y
+# ya tiene golden también falla, para que la lista no quede vieja: aprobar
+# una es agregar su golden y sacarla de acá en el mismo commit. Al revés,
+# una golden o un renglón que ninguna foto de su tramo usa falla al terminar
+# la prueba del tramo. Ver `Recorrido.foto` y `Recorrido.verificar_el_tramo`.
+#
+# El número es el orden de aparición en la jugada: una foto nueva metida en
+# el medio corre las de atrás, y acá hay que renumerar igual que las goldens.
+#
+# Las que había el 2026-09-29, cuando se armó la lista, son todas las que ese
+# día no tenían golden: estar acá no las aprueba ni las rechaza.
+
+# abl/test_mapa_de_debug.py:
+# sin golden a propósito, dice su docstring: la que cuenta
+# es la del mapa mismo, `mapa-de-debug-llegada`, en la tanda
+debug-auto-ag7/01-el-pad-con-auto.png
+debug-auto-arden/01-el-pad-con-auto.png
+debug-auto-saldra/01-el-pad-con-auto.png
+debug-auto-solo/01-el-pad-con-auto.png
+debug-callejones-ag7/01-los-callejones.png
+debug-callejones-arden/01-los-callejones.png
+debug-callejones-saldra/01-los-callejones.png
+debug-callejones-solo/01-los-callejones.png
+debug-carrera-ag7/01-la-largada.png
+debug-carrera-arden/01-la-largada.png
+debug-carrera-saldra/01-la-largada.png
+debug-mundo/01-el-mundo.png
+debug-normal/01-la-apertura.png
+debug-pad/01-talan-despierto.png
+
+# abl/test_recorrido_carrera_golden.py:
+# sus capturas **no están bendecidas**, dice su docstring: son
+# para que taro las mire
+carrera-cinco-choques/01-el-cartel-1.png
+carrera-cinco-choques/02-el-cartel-2.png
+carrera-cinco-choques/03-la-largada.png
+carrera-cinco-choques/04-de-vuelta-en-el-49.png
+carrera-cinco-choques/05-maneja-saldra.png
+carrera-cinco-choques/06-la-despedida.png
+carrera-cinco-choques/07-llega-al-mundo.png
+carrera-cinco-choques/08-sorbe-village.png
+carrera-entera/01-el-cartel-1.png
+carrera-entera/02-el-cartel-2.png
+carrera-entera/03-la-largada.png
+carrera-entera/04-llega-al-52.png
+carrera-entera/05-llega-al-54.png
+carrera-entera/06-llega-al-51.png
+carrera-entera/07-el-premio.png
+carrera-entera/08-la-despedida.png
+carrera-entera/09-llega-al-mundo.png
+carrera-entera/10-sorbe-village.png
+
+# abl/test_recorrido_capitulo_golden.py:
+# sus capturas **no están bendecidas**, dice su docstring: son
+# para que taro las mire
+el-capitulo/01-tasgarde.png
+el-capitulo/02-el-laboratorio.png
+el-capitulo/03-la-historia-de-eisen-89.png
+el-capitulo/04-la-historia-de-eisen-93.png
+el-capitulo/05-into-the-machine.png
+el-capitulo/06-la-escotilla.png
+el-capitulo/07-el-final-de-la-historia-100.png
+el-capitulo/08-el-final-de-la-historia-101.png
+el-capitulo/09-el-final-de-la-historia-102.png
+el-capitulo/10-vago-y-talan.png
+el-capitulo/11-el-puente.png
+el-capitulo/12-debajo-del-puente.png
+el-capitulo/13-la-pelea-debajo-del-puente.png
+el-capitulo/14-del-otro-lado.png
+el-capitulo/15-el-bosque.png
+el-capitulo/16-el-fin-de-la-demo.png
+el-capitulo/17-el-titulo-despues-del-fin.png
+
+# abl/test_recorrido_lashe_golden.py:
+# sus capturas **no están bendecidas**, dice su docstring: son
+# para que taro las mire
+lashe-fin/01-irse-o-quedarse.png
+lashe-fin/02-la-carrera.png
+lashe-guardias/01-la-tienda.png
+lashe-guardias/02-despues-de-los-guardias.png
+lashe-hq/01-arriba-del-cano.png
+lashe-hq/02-el-hq-vacio.png
+lashe-hq/03-de-vuelta-en-la-calle.png
+lashe-pad/01-el-pad-de-talan.png
+lashe-sectores/01-el-36-la-primera-vez.png
+lashe-sectores/02-sector-35.png
+lashe-sectores/03-sector-34.png
+lashe-sectores/04-sector-33.png
+lashe-sectores/05-sector-32.png
+
+# abl/test_recorrido_lashe_cierre_golden.py:
+# sus capturas **no están bendecidas**, dice su docstring: son
+# para que taro las mire
+lashe-cierre-arden/01-arriba-del-cano.png
+lashe-cierre-arden/02-el-hq-vacio.png
+lashe-cierre-arden/03-de-vuelta-en-la-calle.png
+lashe-cierre-arden/04-irse-o-quedarse.png
+lashe-cierre-arden/05-la-carrera.png
+lashe-cierre-saldra/01-la-tienda.png
+lashe-cierre-saldra/02-despues-de-los-guardias.png
+lashe-cierre-saldra/03-irse-o-quedarse.png
+lashe-cierre-saldra/04-la-carrera.png
+lashe-cierre-solo/01-la-escena-de-stash.png
+lashe-cierre-solo/02-afuera-de-la-planta.png
+lashe-cierre-solo/03-el-piso-1.png
+lashe-cierre-solo/04-caido-en-el-piso-0.png
+lashe-cierre-solo/05-el-cuarto-del-chip.png
+lashe-cierre-solo/06-el-tunel.png
+lashe-cierre-solo/07-el-tutorial.png
+lashe-cierre-solo/08-ag7-en-el-grupo.png
+lashe-cierre-solo/09-irse-o-quedarse.png
+lashe-cierre-solo/10-la-carrera.png
+
+# abl/test_recorrido_lashe_planta_golden.py:
+# sus capturas **no están bendecidas**, dice su docstring: son
+# para que taro las mire
+lashe-planta-arden/01-cerrado.png
+lashe-planta-soborno/01-la-escena-de-stash.png
+lashe-planta/01-la-escena-de-stash.png
+lashe-planta/02-afuera-de-la-planta.png
+lashe-planta/03-el-piso-1.png
+lashe-planta/04-caido-en-el-piso-0.png
+lashe-planta/05-el-cuarto-del-chip.png
+lashe-planta/06-el-tunel.png
+lashe-planta/07-el-tutorial.png
+lashe-planta/08-ag7-en-el-grupo.png
+
+# abl/test_recorrido_lashe_wick_golden.py:
+# sus capturas **no están bendecidas**, dice su docstring: son
+# para que taro las mire
+lashe-wick-acepta/01-la-guarida.png
+lashe-wick-acepta/02-el-mosaico-de-los-vidcasts.png
+lashe-wick-acepta/03-el-video-de-seguridad.png
+lashe-wick-acepta/04-el-favor.png
+lashe-wick-acepta/05-el-cirujano.png
+lashe-wick-acepta/06-de-vuelta-en-el-37.png
+lashe-wick-rechaza/01-la-guarida.png
+lashe-wick-rechaza/02-el-mosaico-de-los-vidcasts.png
+lashe-wick-rechaza/03-el-video-de-seguridad.png
+lashe-wick-rechaza/04-el-favor.png
+lashe-wick-rechaza/05-de-vuelta-en-el-37.png
+
+# abl/test_recorrido_sorbe_golden.py:
+# sus capturas **no están bendecidas**, dice su docstring: son
+# para que taro las mire
+sorbe-y-la-curacion/01-llega-al-mundo.png
+sorbe-y-la-curacion/02-sorbe.png
+sorbe-y-la-curacion/03-la-vieja.png
+sorbe-y-la-curacion/04-la-montana.png
+sorbe-y-la-curacion/05-la-pelea-con-vago.png
+sorbe-y-la-curacion/06-la-curacion.png
+sorbe-y-la-curacion/07-meanwhile-in-lashe-city.png
+sorbe-y-la-curacion/08-la-oficina.png
+sorbe-y-la-curacion/09-la-fabrica.png
+sorbe-y-la-curacion/10-afuera-de-la-fabrica.png
+sorbe-y-la-curacion/11-el-auto-de-dalia.png
+sorbe-y-la-curacion/12-tasgarde.png
+
+# abl/test_recorrido_vipers_golden.py:
+# sus capturas **no están bendecidas**, dice su docstring: son
+# para que taro las mire
+vipers/01-la-calle.png
+vipers/02-en-el-techo.png
+vipers/03-el-techo-del-hq.png
+vipers/04-adentro-del-hq.png
+vipers/05-el-hotplate.png
+vipers/06-de-vuelta-en-la-calle.png
+vipers/07-caminando-por-la-calle.png
+
+# abl/test_recorrido_vipers_otras_ramas_golden.py:
+# sus capturas **no están bendecidas**, dice su docstring: son
+# para que taro las mire
+vipers-el-idol/01-el-mapa-14.png
+vipers-el-idol/02-el-mapa-16.png
+vipers-la-reja/01-la-reja-con-don-t-bother-marcado.png
+vipers-la-reja/02-afuera-de-la-reja.png
+vipers-otras-ramas/01-la-eleccion-con-el-no-marcado.png
+vipers-otras-ramas/02-afuera-de-la-reja.png

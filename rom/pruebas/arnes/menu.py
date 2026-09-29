@@ -8,6 +8,9 @@ avanza, así que `Partida.correr` esperaría un tick que no llega. Los toques so
 `Partida.tocar_cuadros`, y no `Partida.tocar_ticks`, por lo mismo.
 """
 
+import datos
+from dibujo import comparar_pantalla
+
 # El grupo y el oro con que se abre el menú en las pruebas que lo comparan
 # contra `menus.render_menu`: tienen que ser los mismos de los dos lados.
 GRUPO = (14, 11)
@@ -31,3 +34,17 @@ def con_grupo(una):
     una.poner_grupo(*GRUPO)
     una.poner_oro(ORO)
     return una
+
+
+def comparar(una, elegida, guardar=True, nombre="menu", hp=None):
+    """El menú en pantalla contra `menus.render_menu` con `GRUPO` y `ORO`,
+    y el cursor en `elegida`. Vivía en `test_menu_dibujo.py` hasta el
+    2026-09-29; lo usa también End Game, que vuelve al menú."""
+    from port import menus
+    from rpgmaker.recursos import GAME_DIR
+    db, skin = datos.base(), datos.skin()
+    esperada = menus.render_menu(skin, db, una.simbolos["SRAM_RANURAS"],
+                                  GRUPO, ORO, elegida, guardar, db.font_id,
+                                  None, GAME_DIR, hp)
+    comparar_pantalla(una, esperada, nombre,
+                      "el menú con el cursor en la %d" % elegida)

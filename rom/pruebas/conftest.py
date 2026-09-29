@@ -18,6 +18,7 @@ es la clase de error que este repo ya cobró con `mapdata.inc`.
 """
 
 import os
+import sys
 
 import pytest
 
@@ -90,6 +91,42 @@ def _capturas_distintas(request):
         "pruebas/conftest.py con su porqué."
         % (len(capturas), request.node.name,
            ", ".join(n for n, _h in capturas)), pytrace=False)
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    """Deja el resultado de cada fase en el item, como `rep_setup`,
+    `rep_call`…, para que un fixture sepa en su cierre si la prueba pasó: es
+    la receta de la documentación de pytest. Lo usa `_tramos_completos`."""
+    resultado = yield
+    reporte = resultado.get_result()
+    setattr(item, "rep_" + reporte.when, reporte)
+
+
+@pytest.fixture(autouse=True)
+def _tramos_completos(request):
+    """Al terminar una prueba que jugó un tramo con fotos, que cada golden y
+    cada pendiente del tramo haya sido una foto: ver
+    `Recorrido.verificar_el_tramo`. Sólo si la prueba pasó.
+
+    Mira `sys.modules` en vez de importar `recorrido`, por lo mismo que los
+    fixtures de más abajo: si nadie lo importó, nadie armó un `Recorrido`, y
+    las pruebas que no juegan no pagan el import.
+    """
+    modulo = sys.modules.get("recorrido")
+    if modulo is not None:
+        del modulo.ABIERTOS[:]
+    yield
+    modulo = sys.modules.get("recorrido")
+    if modulo is None:
+        return
+    abiertos = list(modulo.ABIERTOS)
+    del modulo.ABIERTOS[:]
+    llamada = getattr(request.node, "rep_call", None)
+    if llamada is None or not llamada.passed:
+        return
+    for r in abiertos:
+        r.verificar_el_tramo()
 
 
 @pytest.fixture

@@ -11,39 +11,10 @@ suba cuando tiene que subir.
 from port import batalla as modelo
 from port import experiencia
 
-from consola import en_la_rom
-from batalla import GRUPO, TROPA_DROIDE, Pelea, en_el_droide
+from batalla import (ARDEN, GRUPO, TROPA_DROIDE, Pelea, en_el_droide,
+                     exp_y_nivel, poner_exp, ranura_exp)
 import datos
 from dibujo import diferencia
-
-
-def rom_de(una):
-    with open(una.sfc, "rb") as archivo:
-        return archivo.read()
-
-
-def ranura_exp(una, actor):
-    """La ranura de `FAR_EXP` del actor, leída de `actor_exp_k`, o None.
-
-    Se lee del cartucho y no se recalcula con `experiencia_ranuras`: depende
-    de qué actores pueden entrar al grupo en **este** cartucho, y rehacer esa
-    cuenta acá sería una segunda manera de contestar lo mismo.
-    """
-    k = rom_de(una)[en_la_rom(una.simbolos["actor_exp_k"]) + actor]
-    return None if k == 0xFF else k
-
-
-def exp_y_nivel(una, actor):
-    k = ranura_exp(una, actor)
-    assert k is not None, "el actor %d no tiene ranura de experiencia" % actor
-    b = una.consola.ram(una.simbolos["FAR_EXP"] + 4 * k, 4)
-    return b[0] | (b[1] << 8) | (b[2] << 16), b[3]
-
-
-def poner_exp(una, actor, exp, nivel):
-    k = ranura_exp(una, actor)
-    una.consola.escribir_ram(una.simbolos["FAR_EXP"] + 4 * k,
-                             [exp & 0xFF, (exp >> 8) & 0xFF, exp >> 16, nivel])
 
 
 def ganar_al_droide(una, caidos=(), niveles=None, grupo=GRUPO):
@@ -256,10 +227,7 @@ def test_full_heal_llena_hasta_el_maximo_del_nivel_de_ahora(partida):
 # la tabla de aprendizaje del LDB enseña en cada nivel que pasa:
 # `LearnLevelSkills(old_level + 1, new_level)`.
 #
-# El que sirve es Arden, el actor 15: arranca en el 3 y aprende la 148 en el 4,
-# la 140 en el 5, la 139 en el 6 y la 255 en el 7. De los tres de la intro
-# ninguno aprende nada nuevo después de su nivel de arranque.
-ARDEN = 15
+# El que sirve es Arden: ver `ARDEN` en `arnes/batalla.py`.
 
 
 def test_subir_de_nivel_ensena_las_habilidades_de_cada_nivel_que_pasa(partida):
