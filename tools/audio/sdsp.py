@@ -1,33 +1,33 @@
-"""El chip de sonido de la Super Nintendo: registros, envolventes y volumen.
+"""The Super Nintendo's sound chip: registers, envelopes and volume.
 
-El S-DSP no sintetiza nada por su cuenta: reproduce muestras. Ocho voces, cada
-una leyendo una muestra de la memoria del SPC700 a la velocidad que se le pida,
-con envolvente ADSR y volumen por canal. La altura de la nota sale de la
-velocidad de lectura, así que una sola muestra sirve para todas las notas.
+The S-DSP synthesizes nothing on its own: it plays samples. Eight voices,
+each reading a sample from the SPC700's memory at whatever speed it is
+asked, with an ADSR envelope and per-channel volume. The pitch of the note
+comes from the reading speed, so a single sample serves for every note.
 
-Así que el timbre es la muestra, y las muestras salen de un SoundFont de
-General MIDI: las arma snes_samples.py.
+So the timbre is the sample, and the samples come from a General MIDI
+SoundFont: snes_samples.py builds them.
 
-Las envolventes también salen del SoundFont: `envelope` traduce las de cada
-zona a lo que el ADSR y el GAIN del DSP saben hacer.
+The envelopes also come from the SoundFont: `envelope` translates each
+zone's into what the DSP's ADSR and GAIN can do.
 """
 
 import math
 
 VOICES = 8
-SAMPLE_RATE = 32000     # a lo que lee el DSP con paso 1:1
-CYCLE = 32              # muestras por ciclo de las ondas del banco
+SAMPLE_RATE = 32000     # what the DSP reads at with a 1:1 step
+CYCLE = 32              # samples per cycle of the bank's waves
 MAX_PITCH = 0x3FFF
 
-# --- registros --------------------------------------------------------------
-# Los de cada voz están de a 16: la voz v usa v*$10 + el número de abajo.
+# --- registers --------------------------------------------------------------
+# The per-voice ones come in groups of 16: voice v uses v*$10 + the number below.
 V_VOL_L, V_VOL_R = 0x00, 0x01
 V_PITCH_L, V_PITCH_H = 0x02, 0x03
 V_SRCN = 0x04
 V_ADSR1, V_ADSR2 = 0x05, 0x06
 V_GAIN = 0x07
 
-# Los globales viven en las columnas $x C y $x D.
+# The global ones live in columns $x C and $x D.
 MVOL_L, MVOL_R = 0x0C, 0x1C
 EVOL_L, EVOL_R = 0x2C, 0x3C
 KON, KOF = 0x4C, 0x5C
@@ -35,107 +35,107 @@ FLG = 0x6C
 PMON, NON, EON = 0x2D, 0x3D, 0x4D
 DIR = 0x5D
 
-FLG_BASE = 0x20         # eco apagado; los cinco bits bajos son el ruido
+FLG_BASE = 0x20         # echo off; the five low bits are the noise
 
 
-# --- las envolventes --------------------------------------------------------
+# --- the envelopes ----------------------------------------------------------
 #
-# Salen del SoundFont, generadores 33 a 40, que `gunter sf2 --json` devuelve
-# por zona —ver `muestras_brr.envolvente`—. Hasta el 2026-09-25 salían de
-# ocho familias elegidas a ojo cuando el banco era sintético, y lo que más
-# difería era el release: el bajo sintético y la sierra se sueltan en 30 ms en
-# el SF2 y acá arrastraban 2,4 s de cola.
+# They come from the SoundFont, generators 33 to 40, which `gunter sf2 --json`
+# returns per zone —see `muestras_brr.envolvente`—. Until 2026-09-25 they
+# came from eight families picked by eye when the bank was synthetic, and
+# what differed most was the release: the synthetic bass and the saw release
+# in 30 ms in the SF2 and here they dragged a 2.4 s tail.
 #
-# Lo que el DSP sabe hacer, y por eso la traducción no es directa: cada fase
-# avanza un paso cada tantas muestras de las 32.000 por segundo, y cuántas lo
-# dice `PERIODO` por el número de tasa de 5 bits (0 es "nunca"). El ataque es
-# lineal y llega arriba en 64 pasos; el decaimiento, el sostenido y el GAIN
-# exponencial restan 1/256 del nivel por paso; el GAIN lineal resta 1/64.
+# What the DSP can do, and why the translation is not direct: each phase
+# advances one step every so many samples out of the 32,000 per second, and
+# how many is given by `PERIODO` for the 5-bit rate number (0 is "never").
+# The attack is linear and reaches the top in 64 steps; decay, sustain and
+# exponential GAIN subtract 1/256 of the level per step; linear GAIN
+# subtracts 1/64.
 PERIODO = [None, 2048, 1536, 1280, 1024, 768, 640, 512, 384, 320, 256, 192,
            160, 128, 96, 80, 64, 48, 40, 32, 24, 20, 16, 12, 10, 8, 6, 5, 4, 3,
            2, 1]
 
-# El release del ADSR del DSP no se puede configurar: al escribir KOF la
-# envolvente cae a cero en unos 8 ms, que se oye como un corte seco. Por eso
-# soltar una nota no se hace con KOF sino apagando el bit de ADSR —con lo que
-# manda GAIN— y pidiéndole una caída, cuya velocidad sí se elige. La
-# envolvente sigue desde donde estaba, así que la nota se apaga en vez de
-# cortarse.
-GAIN_LINEAR_DECREASE = 0x80     # bit 7: modo propio; bits 5-6: lineal
-GAIN_EXP_DECREASE = 0xA0        # bits 5-6: exponencial
+# The DSP's ADSR release cannot be configured: on writing KOF the envelope
+# drops to zero in about 8 ms, which sounds like an abrupt cut. That is why
+# releasing a note is not done with KOF but by clearing the ADSR bit —so
+# GAIN takes over— and asking it for a decrease, whose speed can be chosen.
+# The envelope continues from where it was, so the note fades out instead of
+# being cut.
+GAIN_LINEAR_DECREASE = 0x80     # bit 7: custom mode; bits 5-6: linear
+GAIN_EXP_DECREASE = 0xA0        # bits 5-6: exponential
 
-# **La caída exponencial del DSP no es exponencial hasta el final**: por
-# debajo de 1/8 del nivel resta de a uno, y desde arriba llega a cero en unos
-# 790 pasos. Hacerla coincidir en pendiente con la del SoundFont la apaga
-# antes de tiempo —el piano se callaba a los 1,4 s en vez de seguir a
-# -26 dB—, así que se la hace llegar a cero donde el SoundFont anda por
-# -40 dB, que es "ya no se oye". Lo midió el prototipo de
+# **The DSP's exponential decrease is not exponential all the way down**:
+# below 1/8 of the level it subtracts one at a time, and from the top it
+# reaches zero in about 790 steps. Matching its slope to the SoundFont's
+# silences it too early —the piano went quiet at 1.4 s instead of
+# continuing at -26 dB—, so it is made to reach zero where the SoundFont is
+# at about -40 dB, which is "no longer audible". Measured by the prototype in
 # `workflow/tasks/todo/la-calidad-de-la-musica.md`.
 PASOS_HASTA_CERO = 790
 HASTA_DB = 40.0
-# Un release más corto que esto va con GAIN lineal: la exponencial más rápida
-# tarda 25 ms en llegar a cero y no alcanza para los 30 ms del bajo.
+# A release shorter than this uses linear GAIN: the fastest exponential takes
+# 25 ms to reach zero and is not enough for the bass's 30 ms.
 RELEASE_LINEAL = 0.1
-# Un ataque más corto que esto es instantáneo (A = 15): el más rápido de los
-# otros, A = 14, ya tarda 4 ms.
+# An attack shorter than this is instantaneous (A = 15): the fastest of the
+# others, A = 14, already takes 4 ms.
 ATAQUE_INSTANTANEO = 0.004
-# Y por debajo de cuánto se considera que la nota se apaga sola mientras se
-# la mantiene: entonces no hay nivel de sostenido que imitar, sino una caída
-# que seguir.
+# And below how much the note is considered to die out on its own while held:
+# then there is no sustain level to imitate, but a decay to follow.
 SOSTENIDO_MUDO_DB = 30.0
 
-# dB que baja un paso exponencial: 20·log10(256/255).
+# dB an exponential step drops: 20·log10(256/255).
 _DB_POR_PASO = 20 * math.log10(256 / 255.0)
 
 
 def _segundos(timecents):
-    """Los timecents del SoundFont: 1200 por octava, 0 es un segundo y
-    -12000 es "nada"."""
+    """The SoundFont's timecents: 1200 per octave, 0 is one second and
+    -12000 is "nothing"."""
     return 2.0 ** (timecents / 1200.0) if timecents > -12000 else 0.0
 
 
 def _tasa_cerca(segundos, duracion, tasas):
-    """De `tasas`, la que hace durar a la fase lo más parecido a `segundos`
-    en escala logarítmica. `duracion(tasa)` dice cuánto dura con esa."""
+    """From `tasas`, the one that makes the phase last closest to `segundos`
+    on a logarithmic scale. `duracion(tasa)` says how long it lasts with it."""
     return min(tasas, key=lambda r: abs(math.log(max(duracion(r), 1e-9)
                                                  / max(segundos, 1e-9))))
 
 
 def _hasta_cero(r):
-    """Cuánto tarda una caída exponencial de tasa `r` en llegar a cero."""
+    """How long an exponential decrease at rate `r` takes to reach zero."""
     return PASOS_HASTA_CERO * PERIODO[r] / float(SAMPLE_RATE)
 
 
 def envelope(sf2, key):
-    """(ADSR1, ADSR2, GAIN del release) para una nota, desde la envolvente de
-    volumen de su zona en el SoundFont: el dict con los `env_*` de `gunter
+    """(ADSR1, ADSR2, release GAIN) for a note, from the volume envelope of
+    its zone in the SoundFont: the dict with the `env_*` fields of `gunter
     sf2 --json`."""
     ataque = _segundos(sf2["env_attack_timecents"]) + _segundos(
         sf2["env_hold_timecents"])
-    # El decaimiento se acorta con la tecla, alrededor del do central.
+    # The decay shortens with the key, around middle C.
     decae = _segundos(sf2["env_decay_timecents"]
                       + sf2["env_key_to_decay"] * (60 - key))
     sostenido_db = sf2["env_sustain_centibels"] / 10.0
     suelta = _segundos(sf2["env_release_timecents"])
 
-    # Ataque: A de 0 a 14 usa la tasa 2A+1 y sube en 64 pasos.
+    # Attack: A from 0 to 14 uses rate 2A+1 and rises in 64 steps.
     if ataque < ATAQUE_INSTANTANEO:
         ar = 15
     else:
         ar = _tasa_cerca(ataque, lambda a: 64 * PERIODO[2 * a + 1]
                          / float(SAMPLE_RATE), range(15))
 
-    # El SoundFont baja 100 dB en `decae` segundos, en línea recta en dB.
+    # The SoundFont drops 100 dB in `decae` seconds, in a straight line in dB.
     if sostenido_db >= SOSTENIDO_MUDO_DB:
-        # Se apaga sola: el nivel de sostenido arriba de todo —la fase de
-        # decaimiento termina en el acto— y el sostenido baja con la caída
-        # del SoundFont, hasta cero donde ella llega a -40 dB.
+        # It dies out on its own: the sustain level at the very top —the decay
+        # phase ends immediately— and the sustain goes down with the
+        # SoundFont's decay, reaching zero where it reaches -40 dB.
         sl, dr = 7, 0
         sr = _tasa_cerca(decae * HASTA_DB / 100.0, _hasta_cero, range(1, 32))
     else:
-        # Baja hasta un nivel y se queda: SL en octavos, y el decaimiento
-        # (tasa 2D+16) con la pendiente del SoundFont. Arriba de 1/8 la caída
-        # del DSP sí es exponencial, así que acá la pendiente es lo que vale.
+        # It goes down to a level and stays: SL in eighths, and the decay
+        # (rate 2D+16) with the SoundFont's slope. Above 1/8 the DSP's
+        # decrease is exponential, so here the slope is what matters.
         nivel = 10 ** (-sostenido_db / 20.0)
         sl = max(0, min(7, int(round(8 * nivel)) - 1))
         periodo = _DB_POR_PASO * SAMPLE_RATE / (100.0 / max(decae, 1e-3))
@@ -152,17 +152,17 @@ def envelope(sf2, key):
     return (0x80 | (dr << 4) | ar, (sl << 5) | sr, gain)
 
 
-# --- notas ------------------------------------------------------------------
+# --- notes ------------------------------------------------------------------
 
 def pitch(note, length=CYCLE):
-    """El paso de lectura para que una onda de un ciclo dé esa nota.
+    """The reading step for a one-cycle wave to give that note.
 
-    El DSP avanza `pitch/4096` muestras por cada muestra de salida a 32 kHz, así
-    que una onda de `length` muestras suena a `32000 * pitch / 4096 / length`.
-    Despejando sale la cuenta de abajo.
+    The DSP advances `pitch/4096` samples for each output sample at 32 kHz, so
+    a wave of `length` samples sounds at `32000 * pitch / 4096 / length`.
+    Solving for pitch gives the arithmetic below.
 
-    El registro tiene 14 bits, o sea que el paso máximo es 4x: con 32 muestras
-    por ciclo, unos 4 kHz. Arriba de eso se baja la nota de octava.
+    The register has 14 bits, so the maximum step is 4x: with 32 samples per
+    cycle, about 4 kHz. Above that the note is dropped an octave.
     """
     while True:
         hertz = 440.0 * 2.0 ** ((note - 69) / 12.0)
@@ -173,17 +173,18 @@ def pitch(note, length=CYCLE):
 
 
 def pitch_for(note, root, rate, length=None):
-    """El paso de lectura para tocar una nota con una muestra grabada.
+    """The reading step to play a note with a recorded sample.
 
-    Con las ondas de un ciclo la cuenta salía del largo del ciclo. Con una
-    grabación sale de otro lado: la muestra suena en su afinación original
-    cuando el DSP la lee a la misma tasa a la que se grabó, y de ahí se
-    transpone por la diferencia de semitonos contra su nota de referencia.
+    With one-cycle waves the arithmetic came from the cycle length. With a
+    recording it comes from elsewhere: the sample sounds at its original
+    tuning when the DSP reads it at the same rate it was recorded at, and
+    from there it is transposed by the difference in semitones against its
+    reference note.
 
-    El registro tiene 14 bits, o sea cuatro veces la tasa base como máximo.
-    Guardando a 10 kHz eso da unas dos octavas y media por encima de la nota
-    grabada, de sobra; cuando no alcanza se baja una octava, que desafina menos
-    que quedarse en el tope.
+    The register has 14 bits, that is, at most four times the base rate.
+    Storing at 10 kHz that gives about two and a half octaves above the
+    recorded note, plenty; when it is not enough the note is dropped an
+    octave, which is less out of tune than sticking at the cap.
     """
     while True:
         step = rate * 4096.0 / SAMPLE_RATE * 2.0 ** ((note - root) / 12.0)
@@ -193,70 +194,71 @@ def pitch_for(note, root, rate, length=None):
         note -= 12
 
 
-# El DSP suma las ocho voces y recién después aplica el volumen general, sin
-# limitar en el medio: si la suma se pasa, recorta y suena sucio. Con ondas que
-# llegan a 0x6000 y hasta media docena de voces a la vez, el techo por voz tiene
-# que quedar bastante abajo. Los dos números salen de medir el pico del WAV
-# grabado, no de la teoría: la teoría supone que todas las voces pican juntas y
-# en fase, que no pasa nunca.
+# The DSP adds up the eight voices and only then applies the master volume,
+# with no limiting in between: if the sum overflows, it clips and sounds
+# dirty. With waves that reach 0x6000 and up to half a dozen voices at once,
+# the per-voice ceiling has to stay quite low. Both numbers come from
+# measuring the peak of the recorded WAV, not from theory: theory assumes all
+# voices peak together and in phase, which never happens.
 #
-# **Y el recorte es antes del volumen general**: la suma de las voces se
-# satura a 16 bits y recién después se multiplica por MASTER, así que lo que
-# evita el recorte es el techo de cada voz, y MASTER sólo decide a qué nivel
-# sale. Con la batería sonando otra vez y los sostenidos del SoundFont
-# recortaban 16 de los 22 temas —el de batalla, 309.040 muestras—, así que el
-# 2026-09-25 se les dio **aire**: el techo de cada voz AIRE veces el de antes
-# (96 y 84) y MASTER otro tanto más alto, hasta donde llega: el registro tiene
-# signo y no pasa de $7F.
+# **And the clipping happens before the master volume**: the sum of the
+# voices saturates at 16 bits and only then is multiplied by MASTER, so what
+# prevents clipping is each voice's ceiling, and MASTER only decides at what
+# level it comes out. With the drums playing again and the SoundFont's
+# sustains, 16 of the 22 songs clipped —the battle one, 309,040 samples—, so
+# on 2026-09-25 they were given **headroom**: each voice's ceiling AIRE times
+# the previous one (96 and 84) and MASTER that much higher, as far as it
+# goes: the register is signed and does not go past $7F.
 #
-# El prototipo proponía 0,8 con MASTER en $78, que deja el nivel igual, y no
-# alcanzó: los 16 seguían recortando, hzbreach 107.218 muestras. Con 0,5
-# recortan cinco, a lo sumo 858 muestras (hzbreach), y el nivel baja unos
-# 3,6 dB donde antes no recortaba —`escape_newyork` sale a -17,3 LUFS—.
-# **Y es el techo, no el de todos**: desde el 2026-09-26 el tema que con 0,5
-# recortaría va con uno más bajo, el suyo, medido y versionado —ver
-# `leer_techos` en snes_music.py—. Lo que no recorta queda en 0,5.
-# Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
-# Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
+# The prototype proposed 0.8 with MASTER at $78, which leaves the level the
+# same, and it was not enough: all 16 still clipped, hzbreach 107,218
+# samples. With 0.5 five clip, at most 858 samples (hzbreach), and the level
+# drops about 3.6 dB where it did not clip before —`escape_newyork` comes out
+# at -17.3 LUFS—. **And it is the ceiling, not everyone's**: since 2026-09-26
+# the song that would clip at 0.5 gets a lower one, its own, measured and
+# versioned —see `leer_techos` in snes_music.py—. What does not clip stays at
+# 0.5. Measured against A Blurred Line: an assumption of the engine, not data
+# from the game. See `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 AIRE = 0.5
 MASTER = min(0x7F, int(round(0x60 / AIRE)))
 CEILING = int(round(96 * AIRE))
-CEILING_DRUM = int(round(84 * AIRE))    # la percusión pega fuerte y dura
-                                        # poco: aguanta más
+CEILING_DRUM = int(round(84 * AIRE))    # percussion hits hard and is short:
+                                        # it can take more
 
 
-# Cuánto baja cada cosa, medido con fluidsynth y el SoundFont —que es contra
-# lo que se compara y de donde salen las pistas de MSU-1—, relativo a una nota
-# con velocidad 127 y los controladores en su valor de GM:
+# How much each thing lowers the level, measured with fluidsynth and the
+# SoundFont —which is what we compare against and where the MSU-1 tracks come
+# from—, relative to a note with velocity 127 and the controllers at their GM
+# value:
 #
-# * **la velocidad, 40·log10(127/v) dB**, o sea la amplitud al cuadrado.
-#   La especificación de SF2 la define como una curva cóncava de 96 dB, que
-#   no es exactamente esto; fluidsynth da esto, y se sigue a fluidsynth.
-#   Medido: 64 da -11,9 dB, 29 da -25,7. Hasta el 2026-09-26 era lineal —29
-#   daba -12,8— y la mezcla salía corrida hacia los colchones, que en los
-#   MIDI van con velocidad baja;
-# * **el volumen (CC7) y la expresión (CC11), igual**: 40·log10 cada uno.
-#   CC7 se mide contra 100, que es su valor por omisión en GM: un canal en
-#   127 suena 4 dB **más fuerte** que uno que no dice nada, y así sale acá;
-# * **el paneo (CC10), seno y coseno**, con el centro en -3 dB de cada lado
-#   respecto de un paneo total: 0 da +3 dB a la izquierda, 32 da +2,3 y
-#   -5,3. El centro se deja en el techo, así que un paneo total pasa del
-#   techo en 1,41: es lo que hace fluidsynth.
+# * **velocity, 40·log10(127/v) dB**, that is, the amplitude squared. The
+#   SF2 specification defines it as a 96 dB concave curve, which is not
+#   exactly this; fluidsynth gives this, and we follow fluidsynth.
+#   Measured: 64 gives -11.9 dB, 29 gives -25.7. Until 2026-09-26 it was
+#   linear —29 gave -12.8— and the mix came out skewed towards the pads,
+#   which in the MIDIs have low velocity;
+# * **volume (CC7) and expression (CC11), the same**: 40·log10 each. CC7 is
+#   measured against 100, its GM default: a channel at 127 sounds 4 dB
+#   **louder** than one that says nothing, and that is how it comes out here;
+# * **pan (CC10), sine and cosine**, with the center at -3 dB on each side
+#   relative to a hard pan: 0 gives +3 dB on the left, 32 gives +2.3 and
+#   -5.3. The center is left at the ceiling, so a hard pan exceeds the
+#   ceiling by 1.41: that is what fluidsynth does.
 #
-# El piso: una nota que el cálculo no deja en cero se oye al menos con 2
-# —el del prototipo, lo que taro escuchó—. Hasta el 2026-09-26 era 4, que
-# con la curva lineal casi nunca se tocaba y con ésta taparía a las notas
-# suaves: 4 es la velocidad 37.
+# The floor: a note the calculation does not leave at zero is heard at least
+# at 2 —the prototype's, what taro listened to—. Until 2026-09-26 it was 4,
+# which with the linear curve was almost never hit and with this one would
+# drown out the soft notes: 4 is velocity 37.
 VOLUMEN_PISO = 2
 
 
 def volume(velocity, ceiling=CEILING, cc7=100, cc11=127, pan=64):
-    """Izquierda y derecha de una voz, de 0 a 127 (el registro tiene signo),
-    con la velocidad de la nota y los controladores de su canal."""
+    """Left and right of a voice, from 0 to 127 (the register is signed),
+    with the note's velocity and its channel's controllers."""
     amplitud = (ceiling * (velocity / 127.0) ** 2 * (cc7 / 100.0) ** 2
                 * (cc11 / 127.0) ** 2)
-    # fluidsynth lleva el paneo de GM a un ángulo con 128 pasos, no 127: el
-    # 64 es el centro exacto y el 127 no llega del todo a la derecha.
+    # fluidsynth maps GM pan to an angle with 128 steps, not 127: 64 is the
+    # exact center and 127 does not quite reach the right.
     angulo = min(127, max(0, pan)) / 128.0 * math.pi / 2
     centro = math.cos(math.pi / 4)
 
