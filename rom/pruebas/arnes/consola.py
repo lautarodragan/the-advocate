@@ -28,7 +28,7 @@ import lugares                                  # antes que nada
 from common import settings
 from common import project
 from emulator import retro
-from assembly import bancos
+from assembly import banks
 
 RAIZ = project.root()
 # Lo que las pruebas dejan para mirar. Lo toman de acá los pedazos del arnés
@@ -1020,9 +1020,9 @@ class Partida:
 # --- la pila, marcada para poder medirla ------------------------------------
 #
 # La pila arranca en `$1FFF` —el `ldx #$1FFF` / `txs` del `reset`— y crece hacia
-# abajo, hacia la BSS. Lo que se le reserva es `bancos.PILA`, así que el byte más
-# bajo que le toca es `TOPE_DE_LA_PILA - PILA`. Los dos números salen del mapa de
-# memoria y no están copiados: si `PILA` cambia, la medición cambia con él.
+# abajo, hacia la BSS. Lo que se le reserva es `banks.STACK`, así que el byte más
+# bajo que le toca es `TOPE_DE_LA_PILA - STACK`. Los dos números salen del mapa de
+# memoria y no están copiados: si `STACK` cambia, la medición cambia con él.
 TOPE_DE_LA_PILA = 0x2000
 
 
@@ -1045,9 +1045,9 @@ def marcar_la_pila(consola):
     pero todavía no ejecutó una instrucción, así que todo lo que aparezca abajo
     de `$2000` lo escribió la ROM.
     """
-    fondo = TOPE_DE_LA_PILA - bancos.PILA
+    fondo = TOPE_DE_LA_PILA - banks.STACK
     consola.write_ram(fondo, bytes(marca_de(fondo + i)
-                                   for i in range(bancos.PILA)))
+                                   for i in range(banks.STACK)))
 
 
 def hondura_de_la_pila(consola):
@@ -1061,8 +1061,8 @@ def hondura_de_la_pila(consola):
     llegó, no que la ROM no use la pila. Quien mida tiene que cobrar eso: es la
     forma de que esta medición pase en vacío.
     """
-    fondo = TOPE_DE_LA_PILA - bancos.PILA
-    crudo = consola.ram(fondo, bancos.PILA)
+    fondo = TOPE_DE_LA_PILA - banks.STACK
+    crudo = consola.ram(fondo, banks.STACK)
     for i, byte in enumerate(crudo):
         if byte != marca_de(fondo + i):
             return TOPE_DE_LA_PILA - (fondo + i)

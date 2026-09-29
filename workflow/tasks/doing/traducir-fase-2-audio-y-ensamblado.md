@@ -55,3 +55,4 @@ ejecutable corrido por su nombre desde /tmp con `--project`.
 - `tools/ensamblado/` → `tools/assembly/`, y no `tools/build/`: ver el
   commit. Los comentarios de `tools/runtime/*.s` que la citan quedan con la
   ruta vieja, por lo mismo que el de `efectos_con_msu.s`.
+- `assembly/bancos.py` → `assembly/banks.py`, con sus nombres.

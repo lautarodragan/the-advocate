@@ -20,7 +20,7 @@ one in its own row or above.
                  (rm2k), and where the game and the RTP are (resources). No
                  rule of the format lives here: rom/data/ comes resolved. It
                  has its own README
-    assembly/    the memory map (bancos), what builds the ROM (ensamblar), and
+    assembly/    the memory map (banks), what builds the ROM (ensamblar), and
                  which ROMs exist and with which flags (cartuchos, used by
                  `just build`)
     emulator/    the libretro core from Python (retro), and the bsnes-libretro

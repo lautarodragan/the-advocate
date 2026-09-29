@@ -1,8 +1,8 @@
-"""Cuánto baja la pila de verdad, contra lo que `PILA` le reserva.
+"""Cuánto baja la pila de verdad, contra lo que `STACK` le reserva.
 
 Es la red que le faltaba al mapa de memoria. La pila arranca en `$1FFF`, crece
 hacia abajo y abajo está la BSS: si una cadena de llamadas se pasa de
-`bancos.PILA`, la pila **se come la BSS** y no lo ve ninguna de las otras dos
+`banks.STACK`, la pila **se come la BSS** y no lo ve ninguna de las otras dos
 redes. Las goldens no lo distinguen —un byte pisado de `npc_buf` puede no
 cambiar un pixel en el cuadro que la golden congeló— y `test_cores.py` tampoco,
 porque snes9x y bsnes se corromperían igual: la comparación entre los dos daría
@@ -32,7 +32,7 @@ más honda que existe en la ROM. Por eso el umbral no está pegado al tope.
 
 import pytest
 
-from assembly import bancos
+from assembly import banks
 
 from consola import hondura_de_la_pila
 from tanda import consola_cruda, correr_hardware, encender, partida
@@ -42,7 +42,7 @@ from tanda import consola_cruda, correr_hardware, encender, partida
 # pisó algo, y lo que se quiere es enterarse mientras queda lugar para decidir.
 # Con el umbral a la mitad, el día que se ponga roja quedan todavía tantos bytes
 # de pila sin usar como bytes reservados hay del otro lado del umbral.
-UMBRAL = bancos.PILA // 2
+UMBRAL = banks.STACK // 2
 
 # Los A que pelean hasta ganar, en cuadros de hardware porque adentro de la
 # pelea no hay ticks. Es la misma lista de `test_batalla_golden.py`, y sobran a
@@ -207,7 +207,7 @@ CAMINOS = (
 @pytest.mark.parametrize("nombre,camino", CAMINOS,
                          ids=[c[0] for c in CAMINOS])
 def test_la_pila_no_pasa_del_umbral(nombre, camino):
-    """Cada camino hondo, medido contra la mitad de lo que `PILA` reserva."""
+    """Cada camino hondo, medido contra la mitad de lo que `STACK` reserva."""
     usado = hondura_de_la_pila(camino())
     assert usado, (
         "el camino %r dice no haber bajado la pila ni un byte, y eso no puede "
@@ -215,13 +215,13 @@ def test_la_pila_no_pasa_del_umbral(nombre, camino):
         "la pila. Ver consola.marcar_la_pila." % nombre)
     assert usado <= UMBRAL, (
         "el camino %r bajó la pila %s bytes, y el umbral es %d —la mitad de "
-        "PILA, que reserva %d—. La pila crece hacia la BSS, así que pasarse de "
+        "STACK, que reserva %d—. La pila crece hacia la BSS, así que pasarse de "
         "%d la pisa sin que ninguna golden ni test_cores.py lo vean. Hay dos "
-        "salidas: subir PILA en tools/assembly/bancos.py, que le saca esos "
+        "salidas: subir STACK en tools/assembly/banks.py, que le saca esos "
         "bytes a la BSS, o mover la pila a la RAM lejana, que es lo que ya hace "
         "la pelea con su banco de datos."
         # "al menos" cuando la zona marcada quedó tocada hasta el último byte:
         # ahí la pila ya se pasó de lo reservado y lo que hay debajo es BSS, que
         # nadie marcó, así que no se puede decir cuánto más bajó.
-        % (nombre, ("al menos %d" % usado) if usado >= bancos.PILA else usado,
-           UMBRAL, bancos.PILA, bancos.PILA))
+        % (nombre, ("al menos %d" % usado) if usado >= banks.STACK else usado,
+           UMBRAL, banks.STACK, banks.STACK))

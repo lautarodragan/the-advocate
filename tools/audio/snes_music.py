@@ -2387,8 +2387,8 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
         # bank jump by hand— and the stream is walked by `advance`, which
         # does the same jump, so they can end up split. The samples do carry
         # it: `subir_a_aram` walks them with a 24-bit pointer that does not
-        # jump banks, in exchange for being shorter. See `resolver` in
-        # tools/assembly/bancos.py, which does not let one through with
+        # jump banks, in exchange for being shorter. See `resolve` in
+        # tools/assembly/banks.py, which does not let one through with
         # neither of the two.
         out = ([".bloque %d" % len(data)] if as_block else [".cruza"]) \
             + ["%s:" % label]

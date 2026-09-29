@@ -14,13 +14,13 @@ AGENTS.md), and the numbers that got written down went stale on their own.
 
 What it prints, and where each thing comes from:
 
-* **Data banks**: the `BANKnn` from `bancos.PRIMER_BANCO`, against the ones
+* **Data banks**: the `BANKnn` from `banks.FIRST_BANK`, against the ones
   that fit in the `.cfg`. A "used" bank is one that has something; the
   "free" ones are those that come after the last used one. **It is the
   number that matters**, and not a percentage: the packing leaves gaps, and
   banks `$7E`/`$7F` are not ROM.
-* **Gaps**: what is left over inside the used ones. With `bancos.py`'s
-  packing almost all of it is the end of the last one; see `resolver`.
+* **Gaps**: what is left over inside the used ones. With `banks.py`'s
+  packing almost all of it is the end of the last one; see `resolve`.
 * **Bank 0**: the `.cfg`'s `ROM` area minus `CODE` and `TABLAS`, which share
   it.
 * **Bank 1**: what the `.align $8000` in `cabecera.s` pads, which is what
@@ -43,7 +43,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 from common import environment                              # noqa: E402
 from common import project                              # noqa: E402
-from assembly import bancos                           # noqa: E402
+from assembly import banks                           # noqa: E402
 from assembly import ensamblar                        # noqa: E402
 
 CAMPO = re.compile(r'(\w+)=("[^"]*"|[^,\s]+)')
@@ -87,11 +87,11 @@ def medir(sfc):
     dbg = sfc + ".dbg"
     areas = _areas(os.path.join(os.path.dirname(sfc), "memoria.cfg"))
     usado = {s["name"]: int(s["size"], 0) for s in _registros(dbg, "seg")}
-    datos = [b for b in range(bancos.PRIMER_BANCO, bancos.BANCOS)
-             if bancos.segmento_de(b) in areas]
-    ocupados = [b for b in datos if usado.get(bancos.segmento_de(b))]
-    ultimo = max(ocupados) if ocupados else bancos.PRIMER_BANCO - 1
-    huecos = [bancos.BANCO - usado.get(bancos.segmento_de(b), 0)
+    datos = [b for b in range(banks.FIRST_BANK, banks.BANKS)
+             if banks.segment_of(b) in areas]
+    ocupados = [b for b in datos if usado.get(banks.segment_of(b))]
+    ultimo = max(ocupados) if ocupados else banks.FIRST_BANK - 1
+    huecos = [banks.BANK_SIZE - usado.get(banks.segment_of(b), 0)
               for b in datos if b <= ultimo]
     simbolos = ensamblar.simbolos(dbg)
     return {

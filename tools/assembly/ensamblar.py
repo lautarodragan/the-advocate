@@ -23,7 +23,7 @@ What has **no** equivalent is a check `w65` used to do: that each jump reaches
 its label with the registers at the width the label declares.
 
 The memory map is not here: the converter writes it, `memoria.cfg`, next to
-the `.inc` files. See `tools/assembly/bancos.py`.
+the `.inc` files. See `tools/assembly/banks.py`.
 """
 
 import argparse

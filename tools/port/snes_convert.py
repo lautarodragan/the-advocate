@@ -56,7 +56,7 @@ import numpy
 if __name__ == "__main__":
     sys.path[0] = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
-from assembly import bancos
+from assembly import banks
 from port import tiles_bin
 from port import comprimir
 from rpgmaker import event_codes
@@ -1322,7 +1322,7 @@ def banco_de_poses(images, personajes, colores):
     pose only once; the map carries its animated characters in order and
     `emit` translates.
     """
-    bancos = {}
+    banks = {}
     for charset, index in personajes:
         # With the lookup from `build_characters`, which is that of the palette
         # it ended up packed in: a pose uploaded on the fly is drawn with the
@@ -1333,8 +1333,8 @@ def banco_de_poses(images, personajes, colores):
             for tile in pose_tiles(images[charset], index, pose, lookup,
                                    mapping):
                 datos += tile
-        bancos[(charset, index)] = bytes(datos)
-    return bancos
+        banks[(charset, index)] = bytes(datos)
+    return banks
 
 
 # The timer: eleven 8x16 glyphs in the System, starting at (32, 32). Ten digits
@@ -5157,7 +5157,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # dodge it that the lending didn't look at: adding Lashe City 33,36 to
         # the demo stopped there. One extra bank is 6 KB of cartridge; a stop
         # is a map that doesn't fit.
-        indice_global, bancos, indice_por_mapa = {}, [], []
+        indice_global, banks, indice_por_mapa = {}, [], []
         for mapa in mapas:
             propio = {}
             for par, datos in (mapa["sprite"][8].items()
@@ -5168,8 +5168,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                         print("  map %d: %s:%d goes with a pose bank of its "
                               "own, quantized differently than in another map"
                               % (mapa["id"], par[0], par[1]))
-                    indice_global[clave] = len(bancos)
-                    bancos.append(datos)
+                    indice_global[clave] = len(banks)
+                    banks.append(datos)
                 propio[par] = indice_global[clave]
             indice_por_mapa.append(propio)
         handle.write("; --- the poses of the characters that change pose, "
@@ -5182,7 +5182,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # repeat across maps with another quantization that didn't change a
         # pose. Each one with its `.bloque`, because it is uploaded by DMA.
         etiqueta_de_pose, poses_de_banco = {}, []
-        for datos in bancos:
+        for datos in banks:
             suyas = []
             for pose in range(SPRITE_POSES):
                 bytes_ = datos[pose * POSE_BYTES:(pose + 1) * POSE_BYTES]
@@ -5193,8 +5193,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             poses_de_banco.append(suyas)
         handle.write("\n")
         print("  poses: %d distinct out of %d, %.1f KB less"
-              % (len(etiqueta_de_pose), SPRITE_POSES * len(bancos),
-                 (SPRITE_POSES * len(bancos) - len(etiqueta_de_pose))
+              % (len(etiqueta_de_pose), SPRITE_POSES * len(banks),
+                 (SPRITE_POSES * len(banks) - len(etiqueta_de_pose))
                  * POSE_BYTES / 1024.0))
         indice_por_mapa = [{par: poses_de_banco[g] for par, g in propio.items()}
                            for propio in indice_por_mapa]
@@ -6943,7 +6943,7 @@ NPC_QUIETO = 0xFF        # in +9: this NPC doesn't walk
 #
 # The number isn't that since 2026-09-06, and not by choice: the row is
 # sixteen bytes, so the cap takes two kilobytes of the eight bank 0 of RAM
-# has, and the RAM ran out —see `PILA` in tools/assembly/bancos.py—. **The
+# has, and the RAM ran out —see `STACK` in tools/assembly/banks.py—. **The
 # map with the most rows in the whole game has 99**, measured over the 328, so
 # 104 leaves five of headroom and gives back 368 bytes. It can't fall short
 # silently: the converter stops if any map goes over.
@@ -8353,15 +8353,15 @@ def main():
 
     # **And only here is the bank packing decided**, with both files already
     # written: it spreads everything both send to RODATA, and the banks end up
-    # at the end of the last one. See `tools/assembly/bancos.py`.
-    piezas, usados = bancos.resolver([musica, args.output])
+    # at the end of the last one. See `tools/assembly/banks.py`.
+    piezas, usados = banks.resolve([musica, args.output])
     print("bank packing: %d piece(s) in %d bank(s)" % (piezas, usados))
     # And the memory map for `ld65`, next to it: it comes from here and not
     # from a hand-written file so that which bank the data starts at is
-    # written only once, in `bancos.PRIMER_BANCO`.
+    # written only once, in `banks.FIRST_BANK`.
     with open(os.path.join(os.path.dirname(os.path.abspath(args.output)),
                            "memoria.cfg"), "w") as handle:
-        handle.write(bancos.cfg())
+        handle.write(banks.cfg())
     for i, tema in enumerate(hechos):
         # The percentage of notes that reach the stream goes here and not
         # hidden: it is what is heard as "it's missing voices", and until
@@ -9449,7 +9449,7 @@ def convertir(renderer, map_id, args):
     if len(palettes) > tope_de_paletas:
         sys.exit("the map uses %d characters in %d palettes and there are %d "
                  "sprite ones" % (len(personajes), len(palettes), tope_de_paletas))
-    bancos = banco_de_poses(images, animados, colores)
+    banks = banco_de_poses(images, animados, colores)
     indice_animado = {p: k for k, p in enumerate(animados)}
     # The table of command 34: for each graphic a route asks for, which entry
     # of `npc_poses` it is in and with which palette. $FF in the entry is
@@ -9570,7 +9570,7 @@ def convertir(renderer, map_id, args):
     giro_tile = (block_tile(where["giro"][0]) if "giro" in where
                  else GIRO_NINGUNO)
     sprite = (tiles, palettes, where, table, actores, timer_base, timer_pal,
-              animados, bancos, ruta_graficos, lluvia_base, lluvia_pal,
+              animados, banks, ruta_graficos, lluvia_base, lluvia_pal,
               giro_tile, imagen_base, imagen_pal, anim_base, anim_pal)
 
     # The collision: one byte per 16x16 cell with the four direction bits

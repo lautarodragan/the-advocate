@@ -15,99 +15,99 @@ segment per bank, `BANKnn`, which is what an `ld65` `.cfg` with one area per
 bank expects.
 
 **The only thing this module assumes about the memory map is which bank the
-generated data starts in**, `PRIMER_BANCO`. The `.cfg` knows the rest.
+generated data starts in**, `FIRST_BANK`. The `.cfg` knows the rest.
 """
 
 import re
 
-BANCO = 0x8000
+BANK_SIZE = 0x8000
 
 # How much each operand of the byte-emitting directives takes.
-ANCHOS = {".byte": 1, ".word": 2, ".addr": 2, ".dword": 4}
+WIDTHS = {".byte": 1, ".word": 2, ".addr": 2, ".dword": 4}
 
 
-def _operandos(resto):
+def _operand_count(rest):
     """How many operands a comma-separated list has.
 
     Commas inside a string do not separate. The converter does not emit
     strings today, but the rule is the assembler's and it is cheaper to
     respect it than to find out the day it emits them.
     """
-    resto = resto.split(";")[0].strip()
-    if not resto:
+    rest = rest.split(";")[0].strip()
+    if not rest:
         return 0
-    cuantos, comillas = 1, False
-    for c in resto:
+    count, quoted = 1, False
+    for c in rest:
         if c == '"':
-            comillas = not comillas
-        elif c == "," and not comillas:
-            cuantos += 1
-    return cuantos
+            quoted = not quoted
+        elif c == "," and not quoted:
+            count += 1
+    return count
 
 
-def _tamano(linea):
+def _size(line):
     """How many bytes a line takes, or None if it takes none."""
-    partes = linea.strip().split(None, 1)
-    if not partes:
+    parts = line.strip().split(None, 1)
+    if not parts:
         return 0
-    if partes[0] == ".res":
+    if parts[0] == ".res":
         # The ones this very module leaves, in case someone runs it twice.
-        return int(partes[1].split(";")[0].strip())
-    ancho = ANCHOS.get(partes[0])
-    if ancho is None:
+        return int(parts[1].split(";")[0].strip())
+    width = WIDTHS.get(parts[0])
+    if width is None:
         return 0
-    return ancho * _operandos(partes[1] if len(partes) > 1 else "")
+    return width * _operand_count(parts[1] if len(parts) > 1 else "")
 
 
 # The bank where the generated data starts. Bank 0 is the code and the
 # tables, and bank 1 is `FAR`, the hand-written code that lives outside bank 0.
-PRIMER_BANCO = 2
+FIRST_BANK = 2
 
 
-def segmento_de(banco):
-    """The name of the segment pinned at the start of `banco`."""
-    return "BANK%02X" % banco
+def segment_of(bank):
+    """The name of the segment pinned at the start of `bank`."""
+    return "BANK%02X" % bank
 
 
-def _partir(linea, entran):
-    """Splits a data line into the first `entran` bytes and the rest.
+def _split(line, fitting):
+    """Splits a data line into the first `fitting` bytes and the rest.
 
     It can only be done between operands: a word split across two banks is
     not a word. If the cut falls in the middle of one, it is an error.
     """
-    codigo, _, comentario = linea.partition(";")
-    directiva, resto = codigo.strip().split(None, 1)
-    ancho = ANCHOS[directiva]
-    if entran % ancho:
+    code, _, comment = line.partition(";")
+    directive, rest = code.strip().split(None, 1)
+    width = WIDTHS[directive]
+    if fitting % width:
         raise ValueError("the end of the bank falls in the middle of a "
-                         "%d-byte operand: %r" % (ancho, linea.strip()))
-    operandos = [o.strip() for o in resto.split(",")]
-    cuantos = entran // ancho
-    cola = ("  ; " + comentario.strip()) if comentario.strip() else ""
-    primera = ("    %s %s%s" % (directiva, ", ".join(operandos[:cuantos]), cola)
-               if cuantos else None)
-    segunda = "    %s %s" % (directiva, ", ".join(operandos[cuantos:]))
-    return primera, segunda, (len(operandos) - cuantos) * ancho
+                         "%d-byte operand: %r" % (width, line.strip()))
+    operands = [o.strip() for o in rest.split(",")]
+    count = fitting // width
+    tail = ("  ; " + comment.strip()) if comment.strip() else ""
+    first = ("    %s %s%s" % (directive, ", ".join(operands[:count]), tail)
+             if count else None)
+    second = "    %s %s" % (directive, ", ".join(operands[count:]))
+    return first, second, (len(operands) - count) * width
 
 
-class _Unidad:
+class _Piece:
     """What the packing moves as one piece: a `.bloque`, a `.cruza` or what
-    starts with neither, with all its lines up to the next one. `medida` is
+    starts with neither, with all its lines up to the next one. `fit_size` is
     what it takes for the purpose of fitting —what the `.bloque` declares if
-    it is more than what was emitted—, and `orden` its place in the text,
+    it is more than what was emitted—, and `order` its place in the text,
     which breaks ties so that the packing always comes out the same."""
 
-    def __init__(self, orden, cruza=False, pide=0):
-        self.orden, self.cruza, self.pide = orden, cruza, pide
-        self.lineas, self.tamano, self.alinear = [], 0, 1
+    def __init__(self, order, crosses=False, asks=0):
+        self.order, self.crosses, self.asks = order, crosses, asks
+        self.lines, self.size, self.align = [], 0, 1
 
     @property
-    def medida(self):
-        return max(self.pide, self.tamano)
+    def fit_size(self):
+        return max(self.asks, self.size)
 
 
-def resolver(rutas, segmento="RODATA", primer_banco=PRIMER_BANCO):
-    """Splits into banks what those files send to `segmento`.
+def resolve(paths, segment="RODATA", first_bank=FIRST_BANK):
+    """Splits into banks what those files send to `segment`.
 
     **It is first-fit decreasing**, since 2026-09-27: each piece goes to the
     first bank where it fits, from the largest to the smallest. Until that day
@@ -135,8 +135,8 @@ def resolver(rutas, segmento="RODATA", primer_banco=PRIMER_BANCO):
 
     **To move the pieces they have to be taken out of their place**, because
     in `ca65` a segment is filled in the order of the text: what is left of
-    `segmento` in each file is deleted, and all the banks are written at the
-    end of the last of `rutas`, in order. It can be done because
+    `segment` in each file is deleted, and all the banks are written at the
+    end of the last of `paths`, in order. It can be done because
     `musicdata.inc` and `mapdata.inc` come before all the code in `main.s`,
     and nothing that moves depends on its place: there are no subtractions
     between labels of different pieces, no `*`, no constants that use them.
@@ -144,7 +144,7 @@ def resolver(rutas, segmento="RODATA", primer_banco=PRIMER_BANCO):
     piece assuming it is next to another, that would have to go in a single
     `.bloque`: separate, the packing spreads them wherever they fit.
 
-    `rutas` comes in the order the assembler reads them, which is that of
+    `paths` comes in the order the assembler reads them, which is that of
     the `.include`s. What a file sends to another segment —the bank 0
     tables— does not count.
 
@@ -153,200 +153,200 @@ def resolver(rutas, segmento="RODATA", primer_banco=PRIMER_BANCO):
     hand. What is read with `lda f:tabla, x` or with `[ptr], y` does not
     jump: split, the second half is read from the next bank's `$0000`, which
     in LoROM is not ROM. The rule is enforced here, on every build, and not
-    on the day the cut lands on one: see `sin_declarar`.
+    on the day the cut lands on one: see `undeclared`.
 
     Returns how many pieces it packed and into how many banks.
     """
-    unidades, quedan = [], []
+    pieces, kept = [], []
     # The labels the packing could split: [name, how long it is, how much of
     # that a `.bloque` covers, whether it carries `.cruza`]. The last one is
     # the one gathering its bytes.
-    etiquetas, cubre, cruza = [], 0, False
-    for ruta in rutas:
-        with open(ruta) as handle:
-            lineas = handle.read().splitlines()
-        suyas, actual, unidad, abierta = [], None, None, None
-        for linea in lineas:
-            directiva = linea.split(";")[0].strip()
-            if directiva.startswith(".segment"):
-                actual = directiva.split(None, 1)[1].strip().strip('"')
-                unidad, abierta = None, None
-                if actual != segmento:
-                    suyas.append(linea)
+    labels, covers, crosses = [], 0, False
+    for path in paths:
+        with open(path) as handle:
+            lines = handle.read().splitlines()
+        own, current, piece, current_label = [], None, None, None
+        for line in lines:
+            directive = line.split(";")[0].strip()
+            if directive.startswith(".segment"):
+                current = directive.split(None, 1)[1].strip().strip('"')
+                piece, current_label = None, None
+                if current != segment:
+                    own.append(line)
                 continue
-            if actual != segmento or _CONSTANTE.match(directiva):
-                suyas.append(linea)
+            if current != segment or _CONSTANT.match(directive):
+                own.append(line)
                 continue
             # An `.align` right after a `.bloque` or a `.cruza` belongs to the
             # same piece: the alignment is of what follows.
-            recien = unidad is not None and unidad.alinear > 1 \
-                and len(unidad.lineas) == 1
-            if directiva.startswith(".bloque "):
-                cubre = int(directiva.split()[1])
-                if not recien:
-                    unidad = _Unidad(len(unidades))
-                    unidades.append(unidad)
-                unidad.pide = cubre
+            just_opened = piece is not None and piece.align > 1 \
+                and len(piece.lines) == 1
+            if directive.startswith(".bloque "):
+                covers = int(directive.split()[1])
+                if not just_opened:
+                    piece = _Piece(len(pieces))
+                    pieces.append(piece)
+                piece.asks = covers
                 continue
-            if directiva == ".cruza":
-                cruza = True
-                if not recien:
-                    unidad = _Unidad(len(unidades))
-                    unidades.append(unidad)
-                unidad.cruza = True
+            if directive == ".cruza":
+                crosses = True
+                if not just_opened:
+                    piece = _Piece(len(pieces))
+                    pieces.append(piece)
+                piece.crosses = True
                 continue
-            if directiva.startswith(".align "):
+            if directive.startswith(".align "):
                 # This one stays: aligning is not packing banks, and `ca65`
                 # knows how to do it. Here it only has to be counted, and since
                 # the segment is the bank, the padding depends on what comes
                 # before it in the bank.
-                if unidad is None or unidad.lineas:
-                    unidad = _Unidad(len(unidades))
-                    unidades.append(unidad)
-                unidad.alinear = int(directiva.split()[1])
-                unidad.lineas.append(linea)
+                if piece is None or piece.lines:
+                    piece = _Piece(len(pieces))
+                    pieces.append(piece)
+                piece.align = int(directive.split()[1])
+                piece.lines.append(line)
                 continue
-            if unidad is None:
-                if not directiva:
-                    suyas.append(linea)
+            if piece is None:
+                if not directive:
+                    own.append(line)
                     continue
-                unidad = _Unidad(len(unidades))
-                unidades.append(unidad)
-            if _ETIQUETA.match(directiva):
-                abierta = [directiva.split(":")[0], 0, cubre, cruza]
-                etiquetas.append(abierta)
-                cruza = False
-            tamano = _tamano(linea)
-            cubre = max(0, cubre - tamano)
-            if abierta:
-                abierta[1] += tamano
-            unidad.lineas.append(linea)
-            unidad.tamano += tamano
-        colados = [l for l in suyas if l.split(";")[0].strip()
-                   .startswith((".bloque", ".cruza"))]
-        if colados:
+                piece = _Piece(len(pieces))
+                pieces.append(piece)
+            if _LABEL.match(directive):
+                current_label = [directive.split(":")[0], 0, covers, crosses]
+                labels.append(current_label)
+                crosses = False
+            size = _size(line)
+            covers = max(0, covers - size)
+            if current_label:
+                current_label[1] += size
+            piece.lines.append(line)
+            piece.size += size
+        leaked = [l for l in own if l.split(";")[0].strip()
+                  .startswith((".bloque", ".cruza"))]
+        if leaked:
             # A `.bloque` that reaches the assembler is a `ca65` error far
             # from here, which does not say which block or why. Same for
             # `.cruza`.
             raise ValueError(
                 "%s left %d `.bloque` unresolved, the first one %r: it is outside "
                 "%s, and there the packing cannot be computed"
-                % (ruta, len(colados), colados[0].strip(), segmento))
-        quedan.append(suyas)
-    sueltas = sin_declarar(etiquetas)
-    if sueltas:
+                % (path, len(leaked), leaked[0].strip(), segment))
+        kept.append(own)
+    loose = undeclared(labels)
+    if loose:
         raise ValueError(
             "%d label(s) in %s without a `.bloque` covering them, and the packing "
             "may split them across two banks: %s. If the ROM walks one "
             "jumping banks by hand, put `.cruza` in front of it"
-            % (len(sueltas), segmento, ", ".join(sueltas)))
+            % (len(loose), segment, ", ".join(loose)))
 
-    bancos = _acomodar(unidades)
-    entran = BANCOS - BANCOS_RESERVADOS - primer_banco
-    if len(bancos) > entran:
+    banks = _pack(pieces)
+    fitting = BANKS - RESERVED_BANKS - first_bank
+    if len(banks) > fitting:
         # Without this the one complaining is `ld65`, with an "Internal error:
         # Invalid file offset for memory area HEAD", which does not say that
         # space ran out.
         raise ValueError("the data needs %d banks and %d fit: from $%02X to "
-                         "$%02X" % (len(bancos), entran, primer_banco,
-                                    primer_banco + entran - 1))
-    for k, (_usado, lineas) in enumerate(bancos):
-        quedan[-1].append('.segment "%s"' % segmento_de(primer_banco + k))
-        quedan[-1].extend(lineas)
-    for ruta, suyas in zip(rutas, quedan):
-        with open(ruta, "w") as handle:
-            handle.write("\n".join(suyas) + "\n")
-    return len(unidades), len(bancos)
+                         "$%02X" % (len(banks), fitting, first_bank,
+                                    first_bank + fitting - 1))
+    for k, (_used, lines) in enumerate(banks):
+        kept[-1].append('.segment "%s"' % segment_of(first_bank + k))
+        kept[-1].extend(lines)
+    for path, own in zip(paths, kept):
+        with open(path, "w") as handle:
+            handle.write("\n".join(own) + "\n")
+    return len(pieces), len(banks)
 
 
-def _relleno(usado, alinear):
-    return (alinear - usado % alinear) % alinear
+def _padding(used, align):
+    return (align - used % align) % align
 
 
-def _acomodar(unidades):
-    """The banks, as [used, lines], with the pieces inside. See `resolver`,
+def _pack(pieces):
+    """The banks, as [used, lines], with the pieces inside. See `resolve`,
     which says what each kind is."""
-    bancos = []
-    grandes = [u for u in unidades if not u.cruza and u.medida > BANCO]
-    enteras = [u for u in unidades if not u.cruza and u.medida <= BANCO]
-    cruzan = [u for u in unidades if u.cruza]
+    banks = []
+    large = [u for u in pieces if not u.crosses and u.fit_size > BANK_SIZE]
+    whole = [u for u in pieces if not u.crosses and u.fit_size <= BANK_SIZE]
+    crossing = [u for u in pieces if u.crosses]
 
-    def cabe(banco, u):
+    def fits(bank, u):
         # A lone label takes space too: at the end of a bank it would point
         # to the address after `$FFFF`, which is not the ROM.
-        return (banco[0] + _relleno(banco[0], u.alinear) + max(1, u.medida)
-                <= BANCO)
+        return (bank[0] + _padding(bank[0], u.align) + max(1, u.fit_size)
+                <= BANK_SIZE)
 
-    def poner(u):
-        for banco in bancos:
-            if cabe(banco, u):
-                banco[0] += _relleno(banco[0], u.alinear) + u.tamano
-                banco[1].extend(u.lineas)
+    def place(u):
+        for bank in banks:
+            if fits(bank, u):
+                bank[0] += _padding(bank[0], u.align) + u.size
+                bank[1].extend(u.lines)
                 return True
         return False
 
     # The large ones first, each from a new bank: what is left over in their
     # last bank is used by the others.
-    for u in grandes:
-        bancos.append([0, []])
-        _volcar(bancos, u.lineas)
-    por_tamano = lambda u: (-u.medida, u.orden)
-    for u in sorted(enteras, key=por_tamano):
-        if not poner(u):
-            bancos.append([0, []])
-            poner(u)
-    cadena = [u for u in sorted(cruzan, key=por_tamano)
-              if u.medida > BANCO or not poner(u)]
-    if cadena and not bancos:
-        bancos.append([0, []])
-    for u in sorted(cadena, key=lambda u: u.orden):
-        _volcar(bancos, u.lineas)
-    return bancos
+    for u in large:
+        banks.append([0, []])
+        _spill(banks, u.lines)
+    by_size = lambda u: (-u.fit_size, u.order)
+    for u in sorted(whole, key=by_size):
+        if not place(u):
+            banks.append([0, []])
+            place(u)
+    chain = [u for u in sorted(crossing, key=by_size)
+             if u.fit_size > BANK_SIZE or not place(u)]
+    if chain and not banks:
+        banks.append([0, []])
+    for u in sorted(chain, key=lambda u: u.order):
+        _spill(banks, u.lines)
+    return banks
 
 
-def _volcar(bancos, lineas):
-    """Writes `lineas` from the end of the last bank, splitting between
+def _spill(banks, lines):
+    """Writes `lines` from the end of the last bank, splitting between
     operands and continuing in new banks: it is the old sequential packing,
     for what can or has to cross."""
-    for linea in lineas:
-        banco = bancos[-1]
-        directiva = linea.split(";")[0].strip()
+    for line in lines:
+        bank = banks[-1]
+        directive = line.split(";")[0].strip()
         # A full bank is left behind before writing anything else, labels
         # included: a label at the end of a bank would point to the address
         # after `$FFFF`, which is not the ROM.
-        if banco[0] == BANCO and directiva:
-            bancos.append([0, []])
-            banco = bancos[-1]
-        if directiva.startswith(".align "):
-            banco[0] += _relleno(banco[0], int(directiva.split()[1]))
-            banco[1].append(linea)
+        if bank[0] == BANK_SIZE and directive:
+            banks.append([0, []])
+            bank = banks[-1]
+        if directive.startswith(".align "):
+            bank[0] += _padding(bank[0], int(directive.split()[1]))
+            bank[1].append(line)
             continue
-        tamano = _tamano(linea)
-        while banco[0] + tamano > BANCO:
-            primera, linea, tamano = _partir(linea, BANCO - banco[0])
-            if primera:
-                banco[1].append(primera)
-            bancos.append([0, []])
-            banco = bancos[-1]
-        banco[0] += tamano
-        banco[1].append(linea)
+        size = _size(line)
+        while bank[0] + size > BANK_SIZE:
+            first, line, size = _split(line, BANK_SIZE - bank[0])
+            if first:
+                bank[1].append(first)
+            banks.append([0, []])
+            bank = banks[-1]
+        bank[0] += size
+        bank[1].append(line)
 
 
-_CONSTANTE = re.compile(r"^[A-Za-z_]\w*\s*=")
+_CONSTANT = re.compile(r"^[A-Za-z_]\w*\s*=")
 
 
-_ETIQUETA = re.compile(r"^[A-Za-z_]\w*:")
+_LABEL = re.compile(r"^[A-Za-z_]\w*:")
 
 
-def sin_declarar(etiquetas):
+def undeclared(labels):
     """The ones that can be split without anyone having asked for it.
 
     A single-byte one is never split, and that is why it is let through: the
     converter emits empty tables with one byte of padding, and one that grows
     is caught the day it grows.
     """
-    return [nombre for nombre, mide, cubierto, cruza in etiquetas
-            if mide > 1 and cubierto < mide and not cruza]
+    return [name for name, length, covered, crosses in labels
+            if length > 1 and covered < length and not crosses]
 
 
 # --- the memory map, for `ld65` ----------------------------------------------
@@ -354,8 +354,8 @@ def sin_declarar(etiquetas):
 # 4 MB LoROM: 128 banks of 32 KB, each seen at `$8000-$FFFF` of its number.
 # The last two in the file are not used: on the console, banks `$7E` and `$7F`
 # **are** the WRAM, and data there would be read as RAM.
-BANCOS = 128
-BANCOS_RESERVADOS = 2
+BANKS = 128
+RESERVED_BANKS = 2
 
 # The stack starts at `$1FFF` and grows downwards, towards the BSS: the two
 # share the low 8 KB. This is what it is given, and the lowest byte it gets is
@@ -376,7 +376,7 @@ BANCOS_RESERVADOS = 2
 # 49). What does belong here is where the cap comes from: the deepest chain is
 # the battles, which cross into bank 1 with `jsl` and come back through the
 # bridges.
-PILA = 128
+STACK = 128
 
 
 def cfg():
@@ -392,19 +392,19 @@ def cfg():
     of its area, which is already aligned to that—, but `ld65` requires a
     segment to declare at least the alignment of the `.align`s it carries.
     """
-    memoria = [
+    memory = [
         # The RAM does not go into the file: it is laid out by address, not
         # by offset.
         'ZP:   start = $0000, size = $0100, type = rw, file = "";',
         'RAM:  start = $0100, size = $%04X, type = rw, file = "";'
-        % (0x1F00 - PILA),
+        % (0x1F00 - STACK),
         # Bank 0: the code and the tables, and the header and the vectors at
         # the end, where the console looks for them.
         "ROM:  start = $008000, size = $7FC0, fill = yes;",
         "HEAD: start = $00FFC0, size = $0020, fill = yes;",
         "VECT: start = $00FFE0, size = $0020, fill = yes;",
     ]
-    segmentos = [
+    segments = [
         "ZEROPAGE: load = ZP,   type = zp;",
         "BSS:      load = RAM,  type = bss;",
         "CODE:     load = ROM,  type = ro;",
@@ -412,20 +412,20 @@ def cfg():
         "HEADER:   load = HEAD, type = ro;",
         "VECTORS:  load = VECT, type = ro;",
         # The hand-written code that lives outside bank 0.
-        "FAR:      load = %s, type = ro, align = $8000;" % segmento_de(1),
+        "FAR:      load = %s, type = ro, align = $8000;" % segment_of(1),
     ]
-    for banco in range(1, BANCOS - BANCOS_RESERVADOS):
-        memoria.append("%s: start = $%02X8000, size = $8000, fill = yes;"
-                       % (segmento_de(banco), banco))
-        if banco >= PRIMER_BANCO:
-            segmentos.append("%s: load = %s, type = ro, align = $8000, "
-                             "optional = yes;"
-                             % (segmento_de(banco), segmento_de(banco)))
+    for bank in range(1, BANKS - RESERVED_BANKS):
+        memory.append("%s: start = $%02X8000, size = $8000, fill = yes;"
+                      % (segment_of(bank), bank))
+        if bank >= FIRST_BANK:
+            segments.append("%s: load = %s, type = ro, align = $8000, "
+                            "optional = yes;"
+                            % (segment_of(bank), segment_of(bank)))
     # The two reserved ones go into the file anyway, as zeros: the cartridge
     # is 4 MB, which is what the header says and what flash carts expect.
-    memoria.append("RESERVADO: start = $%02X8000, size = $%X, fill = yes;"
-                   % (BANCOS - BANCOS_RESERVADOS, 0x8000 * BANCOS_RESERVADOS))
-    return ("# Generated by tools/assembly/bancos.py: the ROM's memory map.\n"
+    memory.append("RESERVADO: start = $%02X8000, size = $%X, fill = yes;"
+                  % (BANKS - RESERVED_BANKS, 0x8000 * RESERVED_BANKS))
+    return ("# Generated by tools/assembly/banks.py: the ROM's memory map.\n"
             "MEMORY {\n%s\n}\nSEGMENTS {\n%s\n}\n"
-            % ("\n".join("    " + m for m in memoria),
-               "\n".join("    " + s for s in segmentos)))
+            % ("\n".join("    " + m for m in memory),
+               "\n".join("    " + s for s in segments)))
