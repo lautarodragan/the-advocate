@@ -46,8 +46,11 @@ GENERADOS = [
 ]
 # What each one needs on top, as in the `protocol` recipe of tools/justfile:
 # without this `--check` compares against an `.inc` without the dispatch table
-# and reports it as stale.
-BANDERAS = {"events": ["--jump-table"]}
+# and reports it as stale. The music stream has a third end, in Rust: the
+# compiler that writes it.
+BANDERAS = {"events": ["--jump-table"],
+            "music": ["--rust", os.path.join(project.tools(), "rm2k-snes-audio",
+                                             "src", "music_opcodes.rs")]}
 
 
 def declared(modulo):
