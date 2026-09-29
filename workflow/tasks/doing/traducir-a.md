@@ -31,3 +31,10 @@ de tocar nada.
 - Líneas 1–2580 (de la cabecera hasta la ventana de mensaje): hecho. Los
   `.sfc`, `.msu`, `.pcm`, `.inc` y `.dbg` salen iguales: en este tramo no hay
   comentarios que vayan al `.inc`.
+- Líneas 2581–4042 (de `convert_ventana` a `bloque`): hecho. `.sfc`, `.msu`
+  y `.pcm` iguales; cambian los dos `mapdata.inc` —sólo en comentarios— y
+  los `.dbg` —sólo en números de línea y tamaños—.
+- **Un comentario del `.inc` queda en castellano porque es dato**: el
+  `; --- N: mapa M 'nombre' ---` de `mapa_tabla`, que `mapas_de` en
+  `rom/pruebas/arnes/consola.py` lee con una regex que espera "mapa". Lo
+  dice un comentario al lado.

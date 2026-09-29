@@ -2615,14 +2615,14 @@ VENTANA_TEXTO_COLS = 30
 
 
 def _columnas():
-    """Cuántos caracteres entran en una línea. Vive en `ventana.py` con el
-    resto de la geometría, y el porqué del número está ahí."""
+    """How many characters fit on a line. It lives in `ventana.py` with the
+    rest of the geometry, and the reason for the number is there."""
     from port import ventana as ventana_mod
     return constantes.COLUMNAS
 
 
 def _quince(imagen):
-    """Los pixeles de una imagen RGBA como colores de 15 bits, sobre negro."""
+    """The pixels of an RGBA image as 15-bit colors, over black."""
     from PIL import Image
     llana = Image.alpha_composite(
         Image.new("RGBA", imagen.size, (0, 0, 0, 255)), imagen).convert("RGB")
@@ -2630,26 +2630,26 @@ def _quince(imagen):
 
 
 def convert_ventana(sys_img, font_id=None):
-    """La ventana de mensaje: tiles, paleta, celdas y lo que la fuente necesita.
+    """The message window: tiles, palette, cells and what the font needs.
 
-    La imagen la arma `ventana.py`, que sigue las reglas de easyrpg-player y
-    está verificada contra una captura del juego original corriendo en
+    The image is built by `ventana.py`, which follows easyrpg-player's rules
+    and is verified against a capture of the original game running in
     EasyRPG.
-    Acá se la corta en celdas de 8x8 y se separa lo fijo de lo que la ROM
-    compone.
+    Here it is cut into 8x8 cells and the fixed part is separated from what
+    the ROM composes.
 
-    La paleta lleva los colores de la ventana vacía **más** los del texto y la
-    sombra, aunque la ventana vacía no los use: son los que la ROM va a
-    escribir. El índice 0 queda libre a propósito, que es el transparente de
-    BG2 y ningún tile de la ventana lo usa.
+    The palette carries the colors of the empty window **plus** those of the
+    text and the shadow, even though the empty window doesn't use them: they
+    are the ones the ROM is going to write. Index 0 is left free on purpose,
+    which is BG2's transparent and no window tile uses it.
 
-    Devuelve un dict con:
-        tiles     los de la ventana vacía, deduplicados
-        cram      las 16 palabras de la paleta
-        celdas    el tilemap de 32x10, con los tiles de texto ya numerados
-        fondo     los 240 tiles del área de texto, sin texto, en orden
-        color     el índice de paleta de cada una de las 12 filas del glifo
-        sombra    el índice de la sombra
+    Returns a dict with:
+        tiles     those of the empty window, deduplicated
+        cram      the 16 words of the palette
+        celdas    the 32x10 tilemap, with the text tiles already numbered
+        fondo     the 240 tiles of the text area, without text, in order
+        color     the palette index of each of the glyph's 12 rows
+        sombra    the index of the shadow
     """
     from port import fuente as fuente_mod
     from port import ventana as ventana_mod
@@ -2660,10 +2660,10 @@ def convert_ventana(sys_img, font_id=None):
     pixeles = _quince(vacia)
     ancho, alto = vacia.width, vacia.height
 
-    # Los colores del texto salen del bloque de 16x16 del System, y son los que
-    # `Font::Render` usa como máscara. Cada fila del glifo toma uno solo —está
-    # medido: el degradé es horizontal-uniforme— así que son doce colores, no
-    # un bloque, y la sombra es uno solo.
+    # The text colors come from the System's 16x16 block, and they are the
+    # ones `Font::Render` uses as a mask. Each row of the glyph takes a single
+    # one —it is measured: the gradient is horizontally uniform— so they are
+    # twelve colors, not a block, and the shadow is a single one.
     bloque = ventana_mod.color_de_texto(sys_img, 0)
     sombra_img = ventana_mod.color_de_sombra(sys_img)
     ox, oy = ventana_mod.TEXTO_OFS
@@ -2673,14 +2673,14 @@ def convert_ventana(sys_img, font_id=None):
                 for px in range(fuente_mod.ANCHO)}
         if len(fila) != 1:
             raise SystemExit(
-                "la fila %d del color de texto tiene %d colores distintos; la "
-                "ROM la compone con uno solo" % (py, len(fila)))
+                "row %d of the text color has %d distinct colors; the "
+                "ROM composes it with a single one" % (py, len(fila)))
         color_fila.append(fila.pop())
     sombra = tuple(v >> 3 for v in sombra_img.getpixel((0, 0))[:3])
 
     colores = sorted(set(pixeles) | set(color_fila) | {sombra})
     if len(colores) > COLORS_PER_PALETTE - 1:
-        raise SystemExit("la ventana usa %d colores y entran %d"
+        raise SystemExit("the window uses %d colors and %d fit"
                          % (len(colores), COLORS_PER_PALETTE - 1))
     indice = {c: i + 1 for i, c in enumerate(colores)}
 
@@ -2688,15 +2688,15 @@ def convert_ventana(sys_img, font_id=None):
         return tuple(tuple(indice[pixeles[(ty * 8 + y) * ancho + tx * 8 + x]]
                            for x in range(8)) for y in range(8))
 
-    # Las celdas que no llevan texto se deduplican como siempre; las del área de
-    # texto se numeran de corrido a partir de ahí.
+    # The cells without text are deduplicated as always; the ones in the text
+    # area are numbered consecutively from there.
     tiles, celdas = {}, []
     for ty in range(alto // 8):
         fila = []
         for tx in range(ancho // 8):
             if (VENTANA_TEXTO_FILA <= ty < VENTANA_TEXTO_FILA + VENTANA_TEXTO_FILAS
                     and VENTANA_TEXTO_COL <= tx < VENTANA_TEXTO_COL + VENTANA_TEXTO_COLS):
-                fila.append(None)       # se numera abajo, cuando se sepa cuántos
+                fila.append(None)       # numbered below, once it is known how many
                 continue
             celda = celda_de(tx, ty)
             if celda not in tiles:
@@ -2713,23 +2713,23 @@ def convert_ventana(sys_img, font_id=None):
             celdas[ty][tx] = base + n * VENTANA_TEXTO_COLS + m
             fondo.append(celda_de(tx, ty))
     if base + len(fondo) > 256:
-        raise SystemExit("la ventana necesita %d tiles y el banco tiene 256"
+        raise SystemExit("the window needs %d tiles and the bank has 256"
                          % (base + len(fondo)))
 
     datos = b"".join(pack_tile(celda, planes=4)
                      for celda, _ in sorted(tiles.items(), key=lambda kv: kv[1]))
     cram = [0] + [cgram_word(c) for c in colores]
     cram += [0] * (COLORS_PER_PALETTE - len(cram))
-    # El fondo arranca donde termina esto, así que si la ventana creciera se le
-    # metería encima y la ROM dibujaría el texto con un color del mapa. Se mira
-    # el índice más alto que se usa de verdad —el de la sombra o el de alguna
-    # fila del glifo— y no cuántas palabras son distintas de cero: un color
-    # negro tiene palabra cero y no se contaría.
+    # The background starts where this ends, so if the window grew it would
+    # step on it and the ROM would draw the text with a map color. The highest
+    # index really used is checked —the shadow's or that of some row of the
+    # glyph— and not how many words are nonzero: a black color has word zero
+    # and wouldn't be counted.
     alto = max([indice[c] for c in color_fila] + [indice[sombra]])
     if alto >= CGRAM_RESERVADAS:
         raise SystemExit(
-            "la ventana de mensaje usa la entrada %d de CGRAM y el fondo "
-            "arranca en la %d: subí CGRAM_RESERVADAS" % (alto, CGRAM_RESERVADAS))
+            "the message window uses CGRAM entry %d and the background "
+            "starts at %d: raise CGRAM_RESERVADAS" % (alto, CGRAM_RESERVADAS))
     return {"tiles": datos, "cram": cram, "celdas": celdas,
             "base": base,
             "fondo": b"".join(pack_tile(c, planes=4) for c in fondo),
@@ -2738,13 +2738,13 @@ def convert_ventana(sys_img, font_id=None):
 
 
 def fuente_bytes(font_id):
-    """Los 95 glifos ASCII, doce filas de seis bits cada uno.
+    """The 95 ASCII glyphs, twelve rows of six bits each.
 
-    Es la misma tabla que `tools/port/fuente.py`, que se genera desde
-    easyrpg-player, pero **con los bits dados vuelta**: allá el bit 0 es el
-    pixel de la izquierda y en el formato de tiles de la consola el de la
-    izquierda es el bit 7. Darlos vuelta acá y no en la ROM sale gratis: es una
-    tabla de 1140 bytes que se genera una vez.
+    It is the same table as `tools/port/fuente.py`, which is generated from
+    easyrpg-player, but **with the bits reversed**: there bit 0 is the
+    leftmost pixel and in the console's tile format the leftmost is bit 7.
+    Reversing them here and not in the ROM comes for free: it is a 1140-byte
+    table generated once.
     """
     from port import fuente as fuente_mod
     out = bytearray()
@@ -2758,26 +2758,25 @@ def fuente_bytes(font_id):
     return bytes(out)
 
 
-# Los glifos de la ventana ya compuestos, para cada una de las cuatro fases en
-# que puede caer un carácter: la x es `VENTANA_BORDE + 6 * columna`, así que
-# módulo 8 da 0, 6, 4 o 2 y nunca otra cosa. Por glifo y fase van las filas
-# de celda de `FUENTE_PRE_FILAS` que toca —las doce del glifo desde
-# `TEXTO_OFS_Y`, y una más de sombra— y por fila las dos celdas que puede
-# pisar, cada una con tres palabras: qué se conserva del buffer, y qué se
-# prende en los planos 0-1 y en los 2-3. La ROM hace
-# `buf = buf & conservar | prender`, que es lo que antes calculaba en cada
-# fila con `pintar`, dos veces —sombra y glifo— y con un corrimiento de a un
-# bit. Ver `componer_char`.
+# The window glyphs already composed, for each of the four phases a character
+# can land on: x is `VENTANA_BORDE + 6 * column`, so modulo 8 it gives 0, 6, 4
+# or 2 and never anything else. Per glyph and phase go the cell rows of
+# `FUENTE_PRE_FILAS` it touches —the glyph's twelve from `TEXTO_OFS_Y`, and
+# one more of shadow— and per row the two cells it can step on, each with
+# three words: what is kept from the buffer, and what is set in planes 0-1
+# and in 2-3. The ROM does `buf = buf & conservar | prender`, which is what it
+# used to compute on each row with `pintar`, twice —shadow and glyph— and with
+# a one-bit-at-a-time shift. See `componer_char`.
 #
-# La sombra y el glifo van ya combinados, con la regla del orden de
-# `Font::Render`: en una fila cae el glifo de dos filas más arriba y la sombra
-# del de tres, corrida un pixel, y donde se pisan gana el glifo.
+# The shadow and the glyph come already combined, with the ordering rule of
+# `Font::Render`: on a row lands the glyph from two rows up and the shadow
+# from three, shifted one pixel, and where they overlap the glyph wins.
 FUENTE_PRE_FILAS = FUENTE_ALTO + 1
 FUENTE_PRE_CHAR = FUENTE_PRE_FILAS * 2 * 6
 
 
 def fuente_prerender(fuente, colores, sombra):
-    """Las cuatro tablas, una por fase (0, 2, 4 y 6), en ese orden."""
+    """The four tables, one per phase (0, 2, 4 and 6), in that order."""
     n = len(fuente) // FUENTE_ALTO
     tablas = []
     for fase in (0, 2, 4, 6):
@@ -2811,18 +2810,18 @@ def fuente_prerender(fuente, colores, sombra):
 
 def build_blocks(game_map, tilemap, above_tilemap, passable, width, height,
                  chipset=None):
-    """El mapa como índices a bloques de 16x16, con su tabla.
+    """The map as indices into 16x16 blocks, with its table.
 
-    Devuelve (celdas, tabla de bloques, pasabilidad por bloque, combinaciones).
-    Las celdas van fila por fila, que es como las recorre la ROM.
+    Returns (cells, block table, passability per block, combinations). The
+    cells go row by row, which is how the ROM walks them.
 
-    Las **combinaciones** son `(tile de abajo, tile de arriba) -> bloque`, con
-    los ids de RM2k y no con nada de la consola. No participan de la clave del
-    bloque, así que no cambian un solo byte de lo que sale: son lo que
-    `TileSubstitution` necesita para saber a qué bloque va a dar un tile que se
-    sustituye por otro, porque el bytecode habla de tiles y la ROM de bloques.
-    Un bloque es exactamente una celda de 16x16 de RM2k, así que la
-    correspondencia existe.
+    The **combinations** are `(lower tile, upper tile) -> block`, with the
+    RM2k ids and nothing from the console. They don't take part in the block's
+    key, so they don't change a single byte of the output: they are what
+    `TileSubstitution` needs to know which block a tile substituted by another
+    ends up in, because the bytecode talks about tiles and the ROM about
+    blocks. A block is exactly one RM2k 16x16 cell, so the correspondence
+    exists.
     """
     blocks, cells, combos = {}, [], {}
     for by in range(height):
@@ -2833,11 +2832,11 @@ def build_blocks(game_map, tilemap, above_tilemap, passable, width, height,
                    tuple(above_tilemap[by * 2 + dy][bx * 2 + dx]
                          for dy in (0, 1) for dx in (0, 1)),
                    passable[by * width + bx],
-                   # El terreno entra en la clave por lo mismo que la
-                   # pasabilidad: dos celdas que se dibujan igual pueden venir
-                   # de tiles con distinto terreno, y la ROM lo lee por bloque.
-                   # No parte un bloque de más en este juego, donde el terreno
-                   # de todos los ChipSets es 1.
+                   # The terrain goes into the key for the same reason as the
+                   # passability: two cells drawn the same can come from tiles
+                   # with different terrain, and the ROM reads it per block.
+                   # It doesn't split any extra block in this game, where the
+                   # terrain of every ChipSet is 1.
                    rm2k.terreno_de(chipset, abajo) if chipset else 1)
             if key not in blocks:
                 blocks[key] = len(blocks)
@@ -2847,8 +2846,8 @@ def build_blocks(game_map, tilemap, above_tilemap, passable, width, height,
                               blocks[key])
 
     if len(blocks) > MAX_BLOCKS:
-        raise SystemExit("el mapa usa %d bloques distintos y la tabla no puede "
-                         "pasar de %d" % (len(blocks), MAX_BLOCKS))
+        raise SystemExit("the map uses %d distinct blocks and the table can't "
+                         "go over %d" % (len(blocks), MAX_BLOCKS))
 
     table = bytearray(BLOCK_BYTES * len(blocks))
     pass_bytes = bytearray(len(blocks))
@@ -2860,42 +2859,42 @@ def build_blocks(game_map, tilemap, above_tilemap, passable, width, height,
                   number * BLOCK_BYTES + i * 2 + 2] = cell.to_bytes(2, "little")
         pass_bytes[number] = permisos
         if not 0 <= terreno <= 0xFF:
-            raise SystemExit("un tile con terreno %d y la tabla de la ROM "
-                             "lleva un byte por bloque" % terreno)
+            raise SystemExit("a tile with terrain %d and the ROM's table "
+                             "carries one byte per block" % terreno)
         terreno_bytes[number] = terreno
     return cells, table, pass_bytes, terreno_bytes, combos
 
 
-# Cuántos pares de bloques puede tener puestos a la vez la tabla de
-# sustituciones de la ROM. Es `SUB_MAX` en tools/runtime/ram_baja.s y está escrito de los dos
-# lados a propósito —el conversor tiene que poder negarse **antes** de emitir
-# un mapa que no entre—; la prueba `test_sustitucion.py` compara los dos.
+# How many block pairs the ROM's substitution table can hold at once. It is
+# `SUB_MAX` in tools/runtime/ram_baja.s and it is written on both sides on
+# purpose —the converter has to be able to refuse **before** emitting a map
+# that doesn't fit—; the test `test_sustitucion.py` compares the two.
 SUB_MAX = 8
 
 
 class Sustituciones:
-    """`TileSubstitution` traducido de tiles de RM2k a bloques de la ROM.
+    """`TileSubstitution` translated from RM2k tiles to ROM blocks.
 
-    RM2k sustituye por **número de tile**: todas las celdas del mapa que
-    dibujen el tile viejo pasan a dibujar el nuevo. En la ROM no hay tiles de
-    RM2k, hay bloques de 16x16 que llevan las dos capas y la pasabilidad
-    juntas, así que una sustitución de RM2k son tantos pares de bloques como
-    combinaciones de (abajo, arriba) del mapa lleven ese tile. Cuáles son se
-    sabe al convertir, que es por qué esto vive acá y no en `eventos.py`.
+    RM2k substitutes by **tile number**: every cell of the map that draws the
+    old tile starts drawing the new one. In the ROM there are no RM2k tiles,
+    there are 16x16 blocks that carry both layers and the passability
+    together, so an RM2k substitution is as many block pairs as (lower, upper)
+    combinations of the map carry that tile. Which ones they are is known when
+    converting, which is why this lives here and not in `eventos.py`.
 
-    El bloque de destino puede no existir —nadie dibujó esa combinación en
-    ningún lado del mapa— y entonces se arma: las cuatro celdas de 8x8 de la
-    capa que cambia salen de otro bloque que ya dibuje el tile nuevo, las de
-    la otra capa salen del bloque de origen, y la pasabilidad se recalcula con
-    las mismas reglas de RM2k. De ahí sale el único límite de verdad que esto
-    tiene: **el tile nuevo tiene que estar dibujado en alguna celda del mapa**,
-    en su capa. Si no está, sus 8x8 no entraron en la VRAM y no hay con qué
-    dibujarlo; la página no compila y se dice por qué.
+    The destination block may not exist —nobody drew that combination
+    anywhere in the map— and then it is built: the four 8x8 cells of the layer
+    that changes come from another block that already draws the new tile,
+    those of the other layer come from the source block, and the passability
+    is recomputed with the same RM2k rules. That is where the only real limit
+    of this comes from: **the new tile has to be drawn in some cell of the
+    map**, on its layer. If it isn't, its 8x8s didn't go into VRAM and there
+    is nothing to draw it with; the page doesn't compile and it says why.
 
-    Los bloques se arman todos **antes** de compilar ninguna página, y no a
-    medida que aparecen los comandos: las sustituciones se encadenan —prender
-    es 80→80A y apagar es 80A→80— así que el bloque que necesita una lo crea
-    otra, y en qué orden se compilan las páginas no puede decidir qué compila.
+    All the blocks are built **before** compiling any page, and not as the
+    commands show up: substitutions chain —turning on is 80→80A and turning
+    off is 80A→80— so the block one needs is created by another, and the
+    order the pages are compiled in can't decide what compiles.
     """
 
     def __init__(self, mapa, flags, chipset):
@@ -2903,40 +2902,43 @@ class Sustituciones:
         self.flags = flags
         self.chipset = chipset
         self.combos = mapa["combos"]
-        # Las cuatro celdas de 8x8 con que se dibuja cada tile de RM2k, por
-        # capa. Salen de los bloques que ya hay: un tile que el mapa no dibuja
-        # en ningún lado no está acá y no se puede sustituir hacia él.
+        # The four 8x8 cells each RM2k tile is drawn with, per layer. They come
+        # from the blocks that already exist: a tile the map doesn't draw
+        # anywhere isn't here and can't be substituted into.
         self.celdas = ({}, {})
         for (bajo, alto), bloque in self.combos.items():
-            # **La mitad de abajo sólo sirve si el tile de arriba de ese bloque
-            # no se hornea en ella.** Un tile de la capa alta **sin** el bit
-            # "Above" no se dibuja en BG2 sino encima del fondo —es lo que
-            # decide `draw_tiles`, y por eso hay tiles altos cuya mitad de BG2
-            # sale vacía—, así que la mitad de abajo de ese bloque es la
-            # composición de los dos y no el tile de abajo solo. Copiarla para
-            # armar otra combinación dibujaría el tile alto del vecino.
+            # **The lower half is only usable if the upper tile of that block
+            # isn't baked into it.** An upper-layer tile **without** the
+            # "Above" bit isn't drawn on BG2 but over the background —that is
+            # what `draw_tiles` decides, and that is why there are upper tiles
+            # whose BG2 half comes out empty—, so the lower half of that block
+            # is the composition of the two and not the lower tile alone.
+            # Copying it to build another combination would draw the
+            # neighbor's upper tile.
             if not self._hornea(alto):
                 self.celdas[0].setdefault(bajo, self._mitad(bloque, 0))
             self.celdas[1].setdefault(alto, self._mitad(bloque, 1))
-        # Los bloques que alguna sustitución del mapa usa como clave, que es
-        # lo que va a ocupar lugar en la tabla de la RAM.
+        # The blocks some substitution of the map uses as a key, which is what
+        # is going to take room in the RAM table.
         self.claves = set()
-        # Y los bloques por contenido, para deduplicar los que se arman igual
-        # que `build_blocks` deduplica los del mapa. No es por ahorrar lugar:
-        # dos combinaciones que ya comparten bloque —los dos autotiles de agua
-        # del mapa 6 dibujan lo mismo— tienen que seguir compartiéndolo después
-        # de sustituir, o la sustitución mandaría un solo bloque a dos lados y
-        # no se podría expresar.
+        # And the blocks by content, to deduplicate the ones built the same way
+        # `build_blocks` deduplicates the map's. It isn't to save room: two
+        # combinations that already share a block —the two water autotiles of
+        # map 6 draw the same thing— have to keep sharing it after
+        # substituting, or the substitution would send a single block to two
+        # places and couldn't be expressed.
         self.por_bytes = {}
         for bloque in range(len(mapa["pass"])):
             self.por_bytes.setdefault(self._huella(bloque), bloque)
 
     def _hornea(self, alto):
-        """Si ese tile de la capa alta se hornea en el fondo en vez de ir a BG2.
+        """Whether that upper-layer tile is baked into the background instead
+        of going to BG2.
 
-        Es la cuenta de `draw_tiles`: un tile alto va por encima del héroe
-        —o sea a BG2— sólo con el bit `Above` puesto, y sin él se dibuja
-        pegado al fondo. El tile vacío no dibuja nada y no hornea nada.
+        It is `draw_tiles`'s computation: an upper tile goes above the hero
+        —that is, to BG2— only with the `Above` bit set, and without it it is
+        drawn stuck to the background. The empty tile draws nothing and bakes
+        nothing.
         """
         return (alto != rm2k.UPPER_BASE
                 and not self.flags[alto] & rm2k.PASS_ABOVE)
@@ -2951,15 +2953,15 @@ class Sustituciones:
                 self.mapa["pass"][bloque], self.mapa["terreno"][bloque])
 
     def _combo(self, capa_alta, viejo, nuevo):
-        """Los ids de RM2k del tile que sale y del que entra."""
+        """The RM2k ids of the tile that goes out and the one that comes in."""
         base = rm2k.UPPER_BASE if capa_alta else rm2k.LOWER_BASE
         return base + viejo, base + nuevo
 
     def pares(self, capa_alta, viejo, nuevo):
-        """Los `(bloque viejo, bloque nuevo)` de una sustitución, o None.
+        """The `(old block, new block)` pairs of a substitution, or None.
 
-        None es "esta página no compila", que es lo que `eventos.py` espera de
-        un comando que no se puede hacer.
+        None is "this page doesn't compile", which is what `eventos.py`
+        expects from a command that can't be done.
         """
         if not (0 <= viejo < rm2k.TILES_POR_CAPA
                 and 0 <= nuevo < rm2k.TILES_POR_CAPA):
@@ -2974,27 +2976,28 @@ class Sustituciones:
             destino[capa] = nuevo_id
             nuevo_bloque = self.combos.get(tuple(destino))
             if nuevo_bloque is None:
-                return None     # lo tenía que haber creado `cerrar`
+                return None     # `cerrar` should have created it
             if vistos.setdefault(bloque, nuevo_bloque) != nuevo_bloque:
-                # Dos combinaciones distintas que dibujan igual y tienen los
-                # mismos permisos comparten bloque, y ahí la sustitución no se
-                # puede expresar: el bloque tendría que ir a dos lados. No
-                # pasa con ningún ChipSet del juego —dibujar igual quiere decir
-                # ser el mismo tile— pero si pasara, sustituir sería cambiar
-                # celdas que RM2k no toca.
+                # Two distinct combinations that draw the same and have the
+                # same permissions share a block, and there the substitution
+                # can't be expressed: the block would have to go two ways. It
+                # doesn't happen with any ChipSet of the game —drawing the
+                # same means being the same tile— but if it did, substituting
+                # would change cells RM2k doesn't touch.
                 return None
             salida.append((bloque, nuevo_bloque))
         if len(salida) > 0xFF:
-            return None         # el operando de la cuenta es de un byte
+            return None         # the count operand is one byte
         self.claves.update(par[0] for par in salida)
         return salida
 
     def cerrar(self, triples):
-        """Arma los bloques que van a hacer falta, y devuelve qué no se pudo.
+        """Builds the blocks that are going to be needed, and returns what
+        couldn't be done.
 
-        `triples` son los `(capa alta, viejo, nuevo)` de todas las
-        `TileSubstitution` del mapa. Se repite hasta que ninguna crea un bloque
-        nuevo, porque el bloque que crea una es el origen de la siguiente.
+        `triples` are the `(upper layer, old, new)` of all the map's
+        `TileSubstitution`s. It repeats until none creates a new block,
+        because the block one creates is the source of the next.
         """
         faltan = []
         while True:
@@ -3021,12 +3024,12 @@ class Sustituciones:
                 return faltan
 
     def _crear(self, combinacion):
-        """El bloque de una combinación que el mapa no dibuja en ningún lado.
+        """The block of a combination the map doesn't draw anywhere.
 
-        None es "esta combinación no se puede armar sin volver a dibujar el
-        mapa". Pasa cuando el tile de arriba se hornea en el fondo: ahí las dos
-        mitades del bloque no son independientes y no hay de dónde sacar la de
-        abajo. Ver `_hornea`.
+        None is "this combination can't be built without drawing the map
+        again". It happens when the upper tile is baked into the background:
+        then the two halves of the block aren't independent and there is
+        nowhere to take the lower one from. See `_hornea`.
         """
         if combinacion in self.combos:
             return self.combos[combinacion]
@@ -3042,8 +3045,8 @@ class Sustituciones:
             numero = len(self.mapa["pass"])
             if numero >= MAX_BLOCKS:
                 raise SystemExit(
-                    "el mapa %d se pasa de %d bloques armando los que "
-                    "`TileSubstitution` necesita"
+                    "map %d goes over %d blocks building the ones "
+                    "`TileSubstitution` needs"
                     % (self.mapa["id"], MAX_BLOCKS))
             self.mapa["bloques"] += huella[0]
             self.mapa["pass"].append(huella[1])
@@ -3054,10 +3057,10 @@ class Sustituciones:
 
 
 def triples_de_sustitucion(game_map, casos, map_id):
-    """Los `(capa alta, viejo, nuevo)` de todas las `TileSubstitution` que
-    pueden llegar a correr en este mapa: las de sus eventos y las de los casos
-    de prueba que arrancan acá —que viven en el mapa de arranque pero se
-    compilan con el contexto de éste, ver `mapa_del_caso`—."""
+    """The `(upper layer, old, new)` of all the `TileSubstitution`s that can
+    end up running in this map: those of its events and those of the test
+    cases that start here —which live in the boot map but are compiled with
+    this one's context, see `mapa_del_caso`—."""
     triples = []
     listas = [pagina.commands
               for evento in game_map.events for pagina in evento.pages]
@@ -3073,117 +3076,117 @@ def triples_de_sustitucion(game_map, casos, map_id):
     return triples
 
 
-# El registro de un mapa en la tabla. El paso es potencia de dos para que pasar
-# de índice a desplazamiento sean corrimientos y no una multiplicación, y sobra
-# lugar a propósito: agregar un campo no tiene que mover nada de lo que ya está.
+# A map's record in the table. The stride is a power of two so that going from
+# index to offset is shifts and not a multiplication, and there is room to
+# spare on purpose: adding a field must not move anything already there.
 #
-# Los punteros van de a cuatro bytes aunque midan tres. El byte que sobra no se
-# usa; lo que se gana es que la parte baja de cada puntero caiga siempre en una
-# dirección par, que es como se la lee con el acumulador en 16 bits.
+# The pointers go four bytes at a time even though they are three. The spare
+# byte is unused; what is gained is that the low part of each pointer always
+# lands on an even address, which is how it is read with the accumulator in 16
+# bits.
 MAPA_STRIDE = 128
 MAPA_ESCALARES = [
-    ("MAP_BW", "ancho en celdas de 16x16"),
-    ("MAP_BH", "alto en celdas de 16x16"),
-    ("CAM_MAX_X", "hasta dónde llega la cámara sin salirse"),
+    ("MAP_BW", "width in 16x16 cells"),
+    ("MAP_BH", "height in 16x16 cells"),
+    ("CAM_MAX_X", "how far the camera reaches without going out"),
     ("CAM_MAX_Y", ""),
-    ("HERO_MAX_X", "hasta dónde llega el héroe"),
+    ("HERO_MAX_X", "how far the hero reaches"),
     ("HERO_MAX_Y", ""),
-    ("HERO_START_X", "dónde arranca, en pixeles"),
+    ("HERO_START_X", "where it starts, in pixels"),
     ("HERO_START_Y", ""),
-    ("VRAM_TILES", "el reparto de la VRAM, en palabras"),
-    # Dónde va el tilemap del fondo. La base de la capa de encima no tiene
-    # campo: es el nibble alto de BG12NBA_VALUE, y el registro está lleno.
+    ("VRAM_TILES", "the VRAM layout, in words"),
+    # Where the background tilemap goes. The upper layer's base has no field:
+    # it is the high nibble of BG12NBA_VALUE, and the record is full.
     ("VRAM_MAP", ""),
     ("VRAM_SPRITE", ""),
-    ("VRAM_VENTANA", "0 si esta ROM no lleva ventana de mensaje"),
-    ("VRAM_VENTANA_MAP", "y su tilemap propio de 32x32"),
-    ("MAP_TILES", "cuántos tiles de fondo, para el DMA"),
-    ("MAP_CGRAM", "cuántas palabras de CGRAM"),
+    ("VRAM_VENTANA", "0 if this ROM carries no message window"),
+    ("VRAM_VENTANA_MAP", "and its own 32x32 tilemap"),
+    ("MAP_TILES", "how many background tiles, for the DMA"),
+    ("MAP_CGRAM", "how many CGRAM words"),
     ("ABOVE_TILES", ""),
     ("ABOVE_CGRAM", ""),
     ("SPRITE_TILES", ""),
     ("SPRITE_CGRAM", ""),
-    ("NPC_COUNT", "cuántos NPCs con CharSet"),
-    ("EV_COUNT", "cuántos eventos tiene el mapa, con o sin gráfico"),
-    ("TIMER_BASE", "el primer tile de los dígitos del cronómetro, 0 si no hay"),
-    ("LLUVIA_BASE", "el primer tile de las gotas de lluvia, 0 si no hay"),
-    ("ACTOR_COUNT", "cuántos candidatos a líder del grupo"),
-    ("PAGINA_COUNT", "cuántas páginas de evento hay que resolver"),
-    ("RUTA_GRAFICO_COUNT", "cuántos gráficos distintos pide la orden 34"),
+    ("NPC_COUNT", "how many NPCs with a CharSet"),
+    ("EV_COUNT", "how many events the map has, with or without a graphic"),
+    ("TIMER_BASE", "the first tile of the timer digits, 0 if there are none"),
+    ("LLUVIA_BASE", "the first tile of the raindrops, 0 if there are none"),
+    ("ACTOR_COUNT", "how many party leader candidates"),
+    ("PAGINA_COUNT", "how many event pages have to be resolved"),
+    ("RUTA_GRAFICO_COUNT", "how many distinct graphics command 34 asks for"),
 ]
 MAPA_BYTES = [
-    ("OBSEL_VALUE", "objetos de 8x8 y 32x32, y la página de sus tiles"),
-    ("BG12NBA_VALUE", "las páginas de tiles de BG1 y BG2"),
-    ("ABOVE_FIRST", "en qué entrada de CGRAM arranca la capa de encima"),
-    ("TIMER_PAL", "la paleta de sprite de los dígitos del cronómetro"),
-    ("LLUVIA_PAL", "la paleta de sprite de las gotas de lluvia"),
-    # Un byte y no un escalar porque el registro está en sus 128 justos. El
-    # tile de un bloque es siempre múltiplo de cuatro y menor que 512.
-    ("GIRO_TILE4", "el tile de la ranura de giro sobre cuatro, o $FF"),
-    # El terreno, que es lo que `StoreTerrainID` contesta. Los dos son bytes
-    # porque el terreno de RM2k es un índice de `Data.terrains` y no pasa de
-    # 255, y porque el registro de mapa está en sus 128 justos.
-    ("TERRENO_FUERA", "el terreno de una celda fuera del mapa"),
-    ("TERRENO_PLANO", "el terreno de todo el mapa, o 0 si hay tabla"),
+    ("OBSEL_VALUE", "8x8 and 32x32 objects, and the page of their tiles"),
+    ("BG12NBA_VALUE", "the tile pages of BG1 and BG2"),
+    ("ABOVE_FIRST", "which CGRAM entry the upper layer starts at"),
+    ("TIMER_PAL", "the sprite palette of the timer digits"),
+    ("LLUVIA_PAL", "the sprite palette of the raindrops"),
+    # A byte and not a scalar because the record is at exactly its 128. A
+    # block's tile is always a multiple of four and less than 512.
+    ("GIRO_TILE4", "the tile of the turn slot divided by four, or $FF"),
+    # The terrain, which is what `StoreTerrainID` answers. Both are bytes
+    # because RM2k's terrain is an index into `Data.terrains` and doesn't go
+    # over 255, and because the map record is at exactly its 128.
+    ("TERRENO_FUERA", "the terrain of a cell outside the map"),
+    ("TERRENO_PLANO", "the terrain of the whole map, or 0 if there is a table"),
 ]
 MAPA_PUNTEROS = ["map_tiles", "map_cgram", "above_tiles", "above_cgram",
                  "sprite_tiles", "sprite_cgram", "map_celdas", "map_bloques",
                  "bloque_pass", "bloque_terreno", "npc_table", "actor_table",
                  "paginas", "ev_pos", "npc_poses", "ruta_grafico",
-                 # La animación del ChipSet: las dos corridas de tiles y sus
-                 # dibujos. Ver `anim_bytes`.
+                 # The ChipSet animation: the two tile runs and their
+                 # drawings. See `anim_bytes`.
                  "anim_tiles"]
 MAPA_PTR_PASO = 4
-# Dónde arrancan los punteros: justo después de los escalares y de los bytes,
-# redondeado al paso. **Se calcula y no se escribe a mano**, porque escrito a
-# mano ya falló: agregar un escalar más dejó `ABOVE_FIRST` y el primer puntero
-# en el mismo desplazamiento, la ROM leyó el byte de la paleta como puntero a
-# los tiles del mapa y la pantalla salió de un color plano.
+# Where the pointers start: right after the scalars and the bytes, rounded up
+# to the stride. **It is computed and not written by hand**, because written by
+# hand it already failed: adding one more scalar left `ABOVE_FIRST` and the
+# first pointer at the same offset, the ROM read the palette byte as a pointer
+# to the map tiles and the screen came out a flat color.
 #
-# Es de las que no puede ver ninguna de las dos puntas: el ensamblador ve dos
-# nombres distintos con el mismo valor, que es legal, y la comparación pixel a
-# pixel dice "todo mal" sin decir dónde. La única defensa es que el número
-# salga de los datos.
+# It is one of those neither end can see: the assembler sees two different
+# names with the same value, which is legal, and the pixel-by-pixel comparison
+# says "all wrong" without saying where. The only defense is for the number to
+# come from the data.
 MAPA_PTR_BASE = (-(-(len(MAPA_ESCALARES) * 2 + len(MAPA_BYTES))
                    // MAPA_PTR_PASO) * MAPA_PTR_PASO)
 assert MAPA_PTR_BASE + len(MAPA_PUNTEROS) * MAPA_PTR_PASO <= MAPA_STRIDE, \
-    "el registro de mapa no entra en %d bytes" % MAPA_STRIDE
+    "the map record doesn't fit in %d bytes" % MAPA_STRIDE
 
-# Una página de evento: a qué evento pertenece, qué la activa, y dónde está su
-# código. Las páginas de un mismo evento van seguidas y en orden, que es lo que
-# le permite a la ROM elegir la última que cumple sus condiciones en una sola
-# pasada, sin llevar una tabla por evento.
+# An event page: which event it belongs to, what activates it, and where its
+# code is. The pages of one event go together and in order, which is what lets
+# the ROM choose the last one that meets its conditions in a single pass,
+# without carrying a table per event.
 PAGINA_BYTES = 32
-# Sin ranura de giro: el mapa no tiene ningún quieto que se dé vuelta.
+# No turn slot: the map has no still event that turns around.
 GIRO_NINGUNO = 0xFFFF
-# Un candidato a líder: id, paleta, **sus quince colores** y doce punteros de 24
-# bits a sus poses. Los colores van adentro de la tabla y no en un bloque aparte
-# porque son pocos actores por mapa y así la ROM los sube con un DMA desde donde
-# ya está parada; ver `elegir_grafico_heroe`.
+# A leader candidate: id, palette, **its fifteen colors** and twelve 24-bit
+# pointers to its poses. The colors go inside the table and not in a separate
+# block because there are few actors per map and that way the ROM uploads them
+# with one DMA from where it already is; see `elegir_grafico_heroe`.
 #
-# Están porque los líderes **comparten una ranura de CGRAM**: lidera uno a la
-# vez, así que reservarle una paleta a cada uno es tenerla ocupada por alguien
-# que no está en pantalla. La ROM sube los del que lidera al cambiar el grupo y
-# al cargar el mapa. Ver `npcs_dibujables`.
+# They are there because leaders **share a CGRAM slot**: one leads at a time,
+# so reserving a palette for each is having it taken by someone who isn't on
+# screen. The ROM uploads the leader's when the party changes and when the map
+# loads. See `npcs_dibujables`.
 ACTOR_COLORES = 2 * OBJ_COLORS
 ACTOR_BYTES = 2 + ACTOR_COLORES + 3 * 12
 
-# Un bit por switch. El juego consulta hasta el 1003 en las condiciones de
-# página, así que con 1024 alcanza y sobra: son 128 bytes de RAM.
+# One bit per switch. The game checks up to 1003 in page conditions, so 1024
+# is more than enough: it is 128 bytes of RAM.
 SWITCH_BYTES = 128
 
-# Cuántos gráficos distintos puede pedir la orden 34 en un mapa. La tabla se
-# copia a la RAM al cargar el mapa, como la de NPCs, así que el tope cuesta
-# bytes de los ocho kilos del banco 0 —dos por gráfico— y no puede ser
-# generoso porque sí. **El mapa que más pide de todo el juego pide seis**,
-# medido sobre los 328; ocho deja dos de aire y son dieciséis bytes. El
-# conversor corta si algún mapa se pasa, así que no puede quedar corto en
-# silencio.
+# How many distinct graphics command 34 can ask for in a map. The table is
+# copied to RAM when the map loads, like the NPC one, so the cap costs bytes
+# from bank 0's eight kilobytes —two per graphic— and can't be generous just
+# because. **The map that asks for the most in the whole game asks for six**,
+# measured over the 328; eight leaves two of slack and is sixteen bytes. The
+# converter stops if any map goes over, so it can't fall short silently.
 RUTA_GRAF_MAX = 8
 
 
 def campos_del_mapa(mapa):
-    """Los valores del registro de un mapa, en el orden en que se emiten."""
+    """The values of a map's record, in the order they are emitted."""
     tilemap, above, sprite = mapa["tilemap"], mapa["above"], mapa["sprite"]
     collision, layout = mapa["collision"], mapa["layout"]
     height, width = len(tilemap), len(tilemap[0])
@@ -3202,8 +3205,8 @@ def campos_del_mapa(mapa):
         "ABOVE_TILES": len(above[0]) // 32,
         "ABOVE_CGRAM": len(above[1]) // 2,
         "SPRITE_TILES": len(sprite[0]) // 32 if sprite else 0,
-        # Una más que los colores: el índice 0 del sprite es transparente y
-        # también ocupa su lugar en CGRAM.
+        # One more than the colors: sprite index 0 is transparent and also
+        # takes its place in CGRAM.
         "SPRITE_CGRAM": COLORS_PER_PALETTE * len(sprite[1]) if sprite else 0,
         "NPC_COUNT": len(sprite[3]) if sprite else 0,
         "EV_COUNT": len(mapa["ev_pos"]) // EV_STRIDE,
@@ -3226,13 +3229,14 @@ def campos_del_mapa(mapa):
 
 
 def desplazamientos():
-    """Los nombres de los campos del registro, para que tools/runtime/ no los repita.
+    """The names of the record's fields, so that tools/runtime/ doesn't repeat
+    them.
 
-    Que el conversor emita los desplazamientos y la ROM sólo los nombre es lo
-    que hace imposible que se desincronicen: si acá se agrega un campo, allá no
-    hay ningún número que actualizar.
+    The converter emitting the offsets and the ROM only naming them is what
+    makes it impossible for them to get out of sync: if a field is added here,
+    there is no number to update there.
     """
-    out = ["; Dónde cae cada campo dentro del registro de un mapa."]
+    out = ["; Where each field falls inside a map's record."]
     usado = 0
     for nombre, _ in MAPA_ESCALARES:
         out.append("M_%-14s = %d" % (nombre, usado))
@@ -3247,39 +3251,42 @@ def desplazamientos():
 
 
 def tabla_de_mapas(mapas, etiquetas):
-    """La tabla que la ROM recorre para saber qué cargar.
+    """The table the ROM walks to know what to load.
 
-    `etiquetas` dice, por mapa, a qué bloque apunta cada puntero. Antes esto no
-    existía y el nombre se rearmaba acá con `"%s_%d" % (nombre, numero)`, o sea
-    con la misma cuenta que lo había emitido: dos lugares calculando el mismo
-    nombre y ninguna manera de que un bloque fuera de más de un mapa.
+    `etiquetas` says, per map, which block each pointer points to. This didn't
+    exist before and the name was rebuilt here with `"%s_%d" % (nombre,
+    numero)`, that is with the same computation that had emitted it: two
+    places computing the same name and no way for a block to belong to more
+    than one map.
     """
     out = ['.segment "RODATA"',
-           "; La tabla de mapas: un registro de %d bytes por mapa, con todo lo"
+           "; The map table: one record of %d bytes per map, with everything"
            % MAPA_STRIDE,
-           "; que la ROM necesita para cargarlo. Los punteros son de 24 bits",
-           "; porque los datos viven repartidos por todos los bancos.",
+           "; the ROM needs to load it. The pointers are 24 bits because the",
+           "; data lives spread over all the banks.",
            ";",
-           "; **Vive en RODATA y se lee con `lda f:mapa_tabla + campo, x`.**",
-           "; Son 144 bytes por mapa, y en el banco 0 —donde la tabla tiene que",
-           "; estar si se la recorre con el registro de banco de datos— eso",
-           "; alcanzaba para catorce mapas y nada más: con Lashe City entera son",
-           "; 33 y el banco se pasaba por 3739 bytes. Es la tercera tabla que se",
-           "; muda por la misma razón; el precio es un byte por instrucción y",
-           "; que los dos usos con Y hayan tenido que pasar a X, porque el",
-           "; direccionamiento absoluto largo indexado sólo existe con X.",
+           "; **It lives in RODATA and is read with `lda f:mapa_tabla + campo, x`.**",
+           "; It is 144 bytes per map, and in bank 0 —where the table has to be",
+           "; if it is walked with the data bank register— that was enough for",
+           "; fourteen maps and no more: with the whole of Lashe City it is 33",
+           "; and the bank went over by 3739 bytes. It is the third table that",
+           "; moves for the same reason; the price is one byte per instruction",
+           "; and that the two uses with Y had to switch to X, because long",
+           "; absolute indexed addressing only exists with X.",
            ";",
-           "; **Entera en un banco**, que es lo que pide el `.bloque`. En LoROM",
-           "; lo que sigue a $03FFFF no es la ROM del banco 4 sino la RAM, y la",
-           "; primera versión de esto cayó en $03FFB1: los 144 bytes del único",
-           "; registro se partían al medio y el mapa 5 arrancaba en negro. Los",
-           "; demás mapas de la tanda no lo veían porque su tabla caía en otro",
-           "; lado, que es exactamente la clase de error que aparece al agregar",
-           "; un byte en cualquier otra parte.",
+           "; **Whole within one bank**, which is what `.bloque` asks for. In",
+           "; LoROM what follows $03FFFF isn't bank 4's ROM but RAM, and the",
+           "; first version of this landed at $03FFB1: the 144 bytes of the only",
+           "; record were split in half and map 5 started black. The other maps",
+           "; of the suite didn't see it because their table landed somewhere",
+           "; else, which is exactly the kind of error that shows up when adding",
+           "; a byte anywhere else.",
            ".bloque %d" % (MAPA_STRIDE * len(mapas)),
            "mapa_tabla:"]
     for numero, mapa in enumerate(mapas):
         campos = campos_del_mapa(mapa)
+        # Stays in Spanish: `mapas_de` in rom/pruebas/arnes/consola.py reads
+        # the table order from this line with a regex that expects "mapa".
         out.append("    ; --- %d: mapa %d %r ---" % (numero, mapa["id"],
                                                      mapa["nombre"]))
         usado = 0
@@ -3293,10 +3300,10 @@ def tabla_de_mapas(mapas, etiquetas):
                        % (campos[nombre], usado, nombre, comentario))
             usado += 1
         relleno = MAPA_PTR_BASE - usado
-        # Sin relleno no va la línea: un `.byte` sin operandos es un error
-        # para `ca65`.
+        # Without padding the line doesn't go: a `.byte` without operands is an
+        # error for `ca65`.
         if relleno:
-            out.append("    .byte %s ; +%d  relleno hasta los punteros"
+            out.append("    .byte %s ; +%d  padding up to the pointers"
                        % (",".join(["$00"] * relleno), usado))
         usado += relleno
         for nombre in MAPA_PUNTEROS:
@@ -3307,34 +3314,34 @@ def tabla_de_mapas(mapas, etiquetas):
         assert usado <= MAPA_STRIDE, usado
         if usado < MAPA_STRIDE:
             out.append("    .byte " + ",".join(["$00"] * (MAPA_STRIDE - usado)))
-    # Y el id de RM2k de cada mapa, por índice: `MemorizeLocation` lo escribe
-    # en una variable y `RecallToLocation` lo busca, porque en las variables
-    # el mapa es el de RM2k —cualquier otra página las lee—. Va aparte y no
-    # como escalar del registro porque el registro está en sus 128 justos.
-    # Ver `op_location`.
+    # And each map's RM2k id, by index: `MemorizeLocation` writes it into a
+    # variable and `RecallToLocation` looks it up, because in variables the map
+    # is RM2k's —any other page reads them—. It goes separately and not as a
+    # record scalar because the record is at exactly its 128. See
+    # `op_location`.
     out += ["",
-            "; El id de RM2k de cada mapa, en el orden de `mapa_tabla`.",
+            "; Each map's RM2k id, in the order of `mapa_tabla`.",
             ".bloque %d" % (2 * len(mapas)),
             "mapa_rm2k:",
             "    .word " + ", ".join(str(m["id"]) for m in mapas)]
     return "\n".join(out)
 
 
-# El bloque de la animación del ChipSet: los dibujos, uno detrás del otro y en
-# el orden de la VRAM —agua 0, 1, 2; animados 0 a 3—, sin cabecera.
+# The ChipSet animation block: the drawings, one after the other and in VRAM
+# order —water 0, 1, 2; animated 0 to 3—, with no header.
 #
-# Dónde cae cada uno y a qué dirección de VRAM va no está adentro del bloque
-# sino en `anim_tabla`, una entrada por mapa. Es para que la ROM no tenga que
-# leer nada del cartucho para animar: la página directa está llena, así que un
-# `lda [puntero], y` no tenía dónde vivir, y la alternativa —traer la cabecera
-# por DMA a la WRAM— pedía cuarenta bytes de BSS que tampoco había. Con la tabla
-# armada acá, la ROM indexa y dispara el DMA.
+# Where each one lands and which VRAM address it goes to isn't inside the
+# block but in `anim_tabla`, one entry per map. It is so the ROM doesn't have
+# to read anything from the cartridge to animate: the direct page is full, so
+# an `lda [puntero], y` had nowhere to live, and the alternative —bringing the
+# header into WRAM by DMA— asked for forty bytes of BSS that weren't there
+# either. With the table built here, the ROM indexes and fires the DMA.
 ANIM_STRIDE = 16
 ANIM_FAM_STRIDE = ANIM_STRIDE // 2
 
 
 def anim_bytes(animacion):
-    """Los dibujos del mapa, uno detrás del otro. Vacío si no anima nada."""
+    """The map's drawings, one after the other. Empty if nothing animates."""
     datos = bytearray()
     for familia, _ in FAMILIAS:
         corrida = animacion.get(familia)
@@ -3345,52 +3352,53 @@ def anim_bytes(animacion):
 
 
 def anim_tabla(mapas):
-    """Una entrada por mapa, con las dos corridas ya resueltas.
+    """One entry per map, with both runs already resolved.
 
-    Por familia, y en el orden en que la ROM las mira:
+    Per family, and in the order the ROM looks at them:
 
-        +0 word  dirección de VRAM, en palabras
-        +2 word  desplazamiento del dibujo 0 adentro del bloque
-        +4 word  cuántos bytes mide un dibujo
-        +6 byte  cuántos tiles son; 0 si esta familia no anima en este mapa
-        +7 byte  relleno, para que la entrada de cada familia sea de ocho
+        +0 word  VRAM address, in words
+        +2 word  offset of drawing 0 inside the block
+        +4 word  how many bytes a drawing is
+        +6 byte  how many tiles it is; 0 if this family doesn't animate in this map
+        +7 byte  padding, so each family's entry is eight
 
-    La dirección de VRAM sale de acá y no de una cuenta en la consola porque
-    acá están las dos mitades: el reparto de la VRAM del mapa y en qué tile de
-    su banco arranca la corrida.
+    The VRAM address comes from here and not from a computation on the console
+    because both halves are here: the map's VRAM layout and which tile of its
+    bank the run starts at.
 
-    El relleno de la segunda familia —el byte +15 de la entrada— lleva **si el
-    mapa tiene algún evento quieto con animación continua**. Va acá porque es
-    lo mismo que el resto: algo por mapa que la ROM mira una vez por cuadro y
-    que en el registro del mapa ya no entraba. Sin él, `animar_quietos` tendría
-    que recorrer las cuarenta filas de NPC en todos los mapas.
+    The padding of the second family —byte +15 of the entry— carries **whether
+    the map has some still event with continuous animation**. It goes here
+    because it is the same as the rest: something per map that the ROM looks
+    at once per frame and that no longer fit in the map record. Without it,
+    `animar_quietos` would have to walk the forty NPC rows in every map.
     """
     out = ['.segment "RODATA"',
-           "; La animación del ChipSet, una entrada de %d bytes por mapa."
+           "; The ChipSet animation, one entry of %d bytes per map."
            % ANIM_STRIDE,
-           # `rom/src/` y no `tools/runtime/`, a propósito: va al `.inc`, y lo
-           # que se emite no se toca todavía. Ver las-herramientas-se-separan-de-abl.md.
-           "; Ver `anim_tabla` en tools/port/snes_convert.py y `anim_flush` en rom/src/animacion_del_chipset.s.",
+           # `rom/src/` and not `tools/runtime/`, on purpose: it goes into the
+           # `.inc`, and what is emitted isn't touched yet. See
+           # las-herramientas-se-separan-de-abl.md.
+           "; See `anim_tabla` in tools/port/snes_convert.py and `anim_flush` in rom/src/animacion_del_chipset.s.",
            ";",
-           "; **Vive en RODATA y se lee con `lda f:anim_tabla + campo, x`**, por",
-           "; lo mismo que `mapa_tabla`: son 16 bytes por mapa, y con los mapas",
-           "; que piden las pruebas el banco 0 se pasaba por 361. Entera en un",
-           "; banco, porque lo que sigue a $xxFFFF no es la ROM del siguiente.",
+           "; **It lives in RODATA and is read with `lda f:anim_tabla + campo, x`**,",
+           "; for the same reason as `mapa_tabla`: it is 16 bytes per map, and",
+           "; with the maps the tests ask for bank 0 went over by 361. Whole",
+           "; within one bank, because what follows $xxFFFF isn't the next one's ROM.",
            ".bloque %d" % (ANIM_STRIDE * len(mapas)),
            "anim_tabla:"]
     for mapa in mapas:
         animacion = mapa["resumen"]["animacion"]
-        out.append("    ; --- mapa %d %r ---" % (mapa["id"], mapa["nombre"]))
+        out.append("    ; --- map %d %r ---" % (mapa["id"], mapa["nombre"]))
         desplazamiento = 0
         for familia, cuantos in FAMILIAS:
             corrida = animacion.get(familia)
             tiles = corrida["tiles"] if corrida else 0
             vram = (mapa["layout"]["tiles"][0]
                     + (corrida["base"] if corrida else 0) * BYTES_PER_TILE // 2)
-            out.append("    .word %-6d ; VRAM de %s" % (vram, familia))
-            out.append("    .word %-6d ; el dibujo 0, adentro del bloque"
+            out.append("    .word %-6d ; VRAM of %s" % (vram, familia))
+            out.append("    .word %-6d ; drawing 0, inside the block"
                        % desplazamiento)
-            out.append("    .word %-6d ; bytes por dibujo"
+            out.append("    .word %-6d ; bytes per drawing"
                        % (tiles * BYTES_PER_TILE))
             relleno = 0
             if familia == FAMILIAS[-1][0]:
@@ -3399,19 +3407,19 @@ def anim_tabla(mapas):
                                              if mapa["sprite"] else ())) else 0
             out.append("    .byte %d, %d   ; %d tile(s)%s"
                        % (tiles, relleno, tiles,
-                          ", y el mapa tiene quietos que animan"
+                          ", and the map has still events that animate"
                           if relleno else ""))
             desplazamiento += tiles * BYTES_PER_TILE * cuantos
     return "\n".join(out)
 
 
 def animaciones_de_la_rom(mapas, renderer):
-    """Las animaciones de batalla que el bytecode ya emitido muestra, por
-    número de RM2k, cada una convertida por `animacion.py`.
+    """The battle animations the already emitted bytecode shows, by RM2k
+    number, each one converted by `animacion.py`.
 
-    Se recorre el bytecode y no los comandos, que es lo que hace que sea la
-    verdad y no una conjetura: lo que cuenta es lo que quedó emitido, después
-    de que el filtro de páginas decidiera cuáles entran. Es la misma regla de
+    The bytecode is walked and not the commands, which is what makes it the
+    truth and not a guess: what counts is what ended up emitted, after the
+    page filter decided which ones go in. It is the same rule as
     `eventos.blancos_de_ruta`.
     """
     numeros = set()
@@ -3431,27 +3439,28 @@ def animaciones_de_la_rom(mapas, renderer):
 
 
 def cuadro_de_animacion(cuadro):
-    """Los 2 KB de un cuadro de animación de batalla tal como quedan en la VRAM:
-    los 64 tiles de 4bpp de la caja, en orden."""
+    """The 2 KB of a battle animation frame as they end up in VRAM: the box's
+    64 4bpp tiles, in order."""
     datos = bytearray(animacion_mod.TILES * 32)
     for tile, celda in animacion_mod.celdas(cuadro).items():
         datos[tile * 32:(tile + 1) * 32] = pack_tile(celda, planes=4)
     return bytes(datos)
 
 
-# El fin de un cuadro sin sus tiles vacíos: ningún tile de la caja llega a 64.
+# The end of a frame without its empty tiles: no tile of the box reaches 64.
 CUADRO_FIN = 0xFF
 
 
 def cuadro_sin_vacios(datos):
-    """Un cuadro de `cuadro_de_animacion` como lo guarda el cartucho: sólo sus
-    tiles que no son todo cero, cada uno con su número delante, y `CUADRO_FIN`.
+    """A frame from `cuadro_de_animacion` as the cartridge stores it: only its
+    tiles that aren't all zero, each with its number in front, and
+    `CUADRO_FIN`.
 
-    Los cuadros son **casi todos transparencia**, así que guardarlos enteros
-    era pagar ceros: lo medido está en la tarea
-    `la-compresion-de-mapas-y-graficos.md`. Lo que queda en la VRAM no cambia:
-    `anim_cuadro_armar` rearma los 2 KB en la RAM lejana y el vblank los sube
-    enteros, como antes.
+    The frames are **almost all transparency**, so storing them whole was
+    paying for zeros: what was measured is in the task
+    `la-compresion-de-mapas-y-graficos.md`. What ends up in VRAM doesn't
+    change: `anim_cuadro_armar` rebuilds the 2 KB in far RAM and the vblank
+    uploads them whole, as before.
     """
     out = bytearray()
     for tile in range(animacion_mod.TILES):
@@ -3464,50 +3473,50 @@ def cuadro_sin_vacios(datos):
 
 
 def animaciones_asm(animaciones, mapas):
-    """Las animaciones de batalla del cartucho, listas para el `.inc`.
+    """The cartridge's battle animations, ready for the `.inc`.
 
-    Cuatro cosas:
+    Four things:
 
-      `anim_batalla_de`      por número de RM2k, qué entrada le toca, o $FF.
-                             Va por número y no por un índice nuestro para que
-                             ninguna de las dos puntas tenga que llevar un
-                             contador que la otra adivine.
-      `anim_batalla_tabla`   por entrada: cuántos cuadros, dónde cae su ancla
-                             adentro de la caja y en qué cuadro arranca.
-      `anim_batalla_cuadros` por cuadro, el puntero de 24 bits a sus tiles sin
-                             los vacíos: ver `cuadro_sin_vacios`. Uno por
-                             cuadro y no un bloque seguido por animación, que
-                             es de cuando cada cuadro medía 2 KB y 28 no
-                             entraban en un banco.
-      `anim_batalla_cgram`   sus dieciséis colores, que la ROM sube cuando la
-                             animación empieza.
-      `anim_batalla_reparto` por mapa, dónde y con qué paleta se dibuja acá, o
-                             0 si este mapa no dibuja animaciones.
+      `anim_batalla_de`      by RM2k number, which entry it gets, or $FF.
+                             It goes by number and not by an index of ours so
+                             that neither end has to carry a counter the other
+                             must guess.
+      `anim_batalla_tabla`   per entry: how many frames, where its anchor
+                             falls inside the box and which frame it starts at.
+      `anim_batalla_cuadros` per frame, the 24-bit pointer to its tiles
+                             without the empty ones: see `cuadro_sin_vacios`.
+                             One per frame and not a contiguous block per
+                             animation, which dates from when each frame was
+                             2 KB and 28 didn't fit in a bank.
+      `anim_batalla_cgram`   its sixteen colors, which the ROM uploads when the
+                             animation starts.
+      `anim_batalla_reparto` per map, where and with which palette it is drawn
+                             here, or 0 if this map doesn't draw animations.
     """
     orden = sorted(animaciones)
     entrada = {numero: k for k, numero in enumerate(orden)}
     tope = (max(orden) + 1) if orden else 1
     out = [
-        "\n; --- el dibujo de las animaciones de batalla ---",
+        "\n; --- the drawing of the battle animations ---",
         ";",
-        "; La caja es una sola para toda la ROM y el porqué está en",
-        "; tools/port/animacion.py: cuatro objetos de 32x32 en una fila de bloques",
-        "; de la grilla de nombres, que es lo máximo que entra en la VRAM de",
-        "; sprites que le queda libre al mapa 2. Lo que cambia por mapa es",
-        "; dónde cae esa fila y con qué paleta, y eso va en",
-        "; `anim_batalla_reparto`, un byte por mapa.",
+        "; The box is a single one for the whole ROM and the reason is in",
+        "; tools/port/animacion.py: four 32x32 objects in one row of blocks",
+        "; of the name grid, which is the most that fits in the sprite VRAM",
+        "; map 2 has left free. What changes per map is where that row lands",
+        "; and with which palette, and that goes in `anim_batalla_reparto`,",
+        "; one byte per map.",
         "ANIM_B_CAJA   = %d" % animacion_mod.CAJA,
         "ANIM_B_OBJ    = %d" % animacion_mod.OBJ,
         "ANIM_B_OBJETOS = %d" % animacion_mod.OBJETOS,
         "ANIM_B_TILES  = %d" % animacion_mod.TILES,
         "ANIM_B_BYTES  = %d" % (animacion_mod.TILES * 32),
         "ANIM_B_STRIDE = 8",
-        "; Hasta qué número de animación llega `anim_batalla_de`: el bytecode",
-        "; lleva el número de RM2k tal cual y uno más grande no está en la",
-        "; tabla, así que la ROM lo compara antes de leerla.",
+        "; How high an animation number `anim_batalla_de` reaches: the bytecode",
+        "; carries the RM2k number as is and a larger one isn't in the table,",
+        "; so the ROM compares it before reading it.",
         "ANIM_B_MAX    = %d" % tope,
-        "; El centro de la pantalla, que es donde caen las de alcance",
-        "; `Scope_screen`: `DrawAt(screen_width / 2, screen_height / 2)`.",
+        "; The center of the screen, which is where the ones with scope",
+        "; `Scope_screen` land: `DrawAt(screen_width / 2, screen_height / 2)`.",
         "ANIM_B_CENTRO_X = %d" % (animacion_mod.PANTALLA[0] // 2),
         "ANIM_B_CENTRO_Y = %d" % (animacion_mod.PANTALLA[1] // 2),
         "ANIM_B_SIN      = $%02X" % eventos.ANIM_SIN_DIBUJO,
@@ -3519,8 +3528,9 @@ def animaciones_asm(animaciones, mapas):
     primero = 0
     for numero in orden:
         info = animaciones[numero]
-        # El ancla **como la quiere la ROM**: con la corrida de
-        # `Animation::Position` ya horneada, así que la consola sólo resta.
+        # The anchor **as the ROM wants it**: with the shift of
+        # `Animation::Position` already baked in, so the console only
+        # subtracts.
         ax, ay = animacion_mod.ancla_rom(info)
         tabla += bytes([len(info["cuadros"]), ax & 0xFF, ay & 0xFF, 0,
                         primero & 0xFF, primero >> 8, 0, 0])
@@ -3533,9 +3543,9 @@ def animaciones_asm(animaciones, mapas):
         for color in colores:
             cgram += cgram_word(color).to_bytes(2, "little")
     out.append(bloque("anim_batalla_cgram", bytes(cgram)))
-    # La tabla de punteros, con etiquetas: no puede salir de `bloque()`, pero
-    # **sí se declara** con `.bloque` por lo mismo que la de páginas —la ROM la
-    # lee con un puntero de 24 bits y no puede quedar a caballo de dos bancos—.
+    # The pointer table, with labels: it can't come from `bloque()`, but it
+    # **is declared** with `.bloque` for the same reason as the page one —the
+    # ROM reads it with a 24-bit pointer and it can't straddle two banks—.
     punteros = [".bloque %d" % (4 * primero), "anim_batalla_cuadros:"]
     for numero in orden:
         for k in range(len(animaciones[numero]["cuadros"])):
@@ -3550,46 +3560,47 @@ def animaciones_asm(animaciones, mapas):
     for mapa in mapas:
         sprite = mapa["sprite"]
         base, pal = (sprite[15], sprite[16]) if sprite else (0, 0)
-        # El bit 7 es "acá se dibuja", y abajo van el bloque de 64 tiles y la
-        # paleta, de tres bits cada uno. En un byte porque el registro de mapa
-        # está en sus 128 justos: ver MAPA_STRIDE.
+        # Bit 7 is "drawn here", and below go the 64-tile block and the
+        # palette, three bits each. In one byte because the map record is at
+        # exactly its 128: see MAPA_STRIDE.
         reparto.append((0x80 | ((base // 64) << 3) | pal) if base else 0)
     out.append(bloque("anim_batalla_reparto", bytes(reparto)))
     return "\n".join(out) + "\n"
 
 
 def experiencia_ranuras(db, actores):
-    """Los actores que llevan experiencia y nivel, en el orden de su ranura.
+    """The actors that carry experience and level, in the order of their slot.
 
-    Son los que pueden entrar al grupo —`ranuras["actores"]`—, porque sólo
-    ellos pelean y la experiencia sólo se gana peleando: el juego no usa
-    `ChangeExp` ni `ChangeLevel` en ningún mapa. Tener ranura propia y no una
-    por número de actor es lo que hace que la partida crezca en cuatro bytes
-    por actor que pelea y no por cada uno de los sesenta del LDB. **Siempre al
-    menos una**, aunque sea de nadie: con cero el DMA del reset copiaría 64 KB.
+    They are the ones that can join the party —`ranuras["actores"]`—, because
+    only they fight and experience is only gained by fighting: the game
+    doesn't use `ChangeExp` or `ChangeLevel` in any map. Having a slot of their
+    own and not one per actor number is what makes the save grow by four bytes
+    per actor that fights and not for each of the sixty in the LDB. **Always at
+    least one**, even if it belongs to nobody: with zero the reset DMA would
+    copy 64 KB.
     """
     return sorted(a for a in actores if a in db.actors) or [None]
 
 
 def experiencia_asm(db, actores, actores_n):
-    """Las tablas de la experiencia y del nivel: ver `port.experiencia`.
+    """The experience and level tables: see `port.experiencia`.
 
-    Deja el segmento en RODATA, que es donde lo encuentra quien la llama.
+    It leaves the segment in RODATA, which is where its caller finds it.
 
-    Por ranura de `experiencia_ranuras`:
+    Per slot of `experiencia_ranuras`:
 
-        exp_inicial    cuatro bytes: la experiencia de arranque, de 24 bits,
-                       y el nivel. Es lo que el reset copia a `FAR_EXP`.
-        exp_nivel_max  `GetMaxLevel()`, un byte.
-        exp_curva      dónde arranca su fila en `exp_tabla`, palabra.
-        nivel_fila     seis palabras: dónde arranca en `nivel_params` cada
-                       curva de parámetro, en el orden de `lcf.CURVAS`.
+        exp_inicial    four bytes: the starting experience, 24 bits, and the
+                       level. It is what the reset copies to `FAR_EXP`.
+        exp_nivel_max  `GetMaxLevel()`, one byte.
+        exp_curva      where its row starts in `exp_tabla`, a word.
+        nivel_fila     six words: where each parameter curve starts in
+                       `nivel_params`, in the order of `lcf.CURVAS`.
 
-    `exp_tabla` es `MakeExpList` de cada curva distinta —cuatro bytes por
-    nivel, `NIVEL_MAX` niveles— y `nivel_params` las seis curvas de cada
-    ranura, `NIVEL_MAX` palabras cada una. Todo va fuera del banco 0: se lee
-    al ganar una pelea, al armarla y en la pantalla de equipo, nunca por
-    cuadro.
+    `exp_tabla` is `MakeExpList` of each distinct curve —four bytes per level,
+    `NIVEL_MAX` levels— and `nivel_params` the six curves of each slot,
+    `NIVEL_MAX` words each. Everything goes outside bank 0: it is read when
+    winning a battle, when setting it up and on the equipment screen, never
+    per frame.
     """
     ranuras_exp = experiencia_ranuras(db, actores)
     k_de = {a: k for k, a in enumerate(ranuras_exp) if a is not None}
@@ -3611,8 +3622,8 @@ def experiencia_asm(db, actores, actores_n):
             valores = (valores + [0] * X.NIVEL_MAX)[:X.NIVEL_MAX]
             params += [v & 0xFFFF for v in valores]
     if 4 * len(ranuras_exp) > 0x200:
-        raise SystemExit("%d actores con experiencia no entran en los 512 "
-                         "bytes de FAR_EXP" % len(ranuras_exp))
+        raise SystemExit("%d actors with experience don't fit in the 512 "
+                         "bytes of FAR_EXP" % len(ranuras_exp))
     out = ['.segment "RODATA"',
            "EXP_K = %d" % len(ranuras_exp),
            "EXP_NIVEL_MAX = %d" % X.NIVEL_MAX]
@@ -3635,49 +3646,51 @@ def experiencia_asm(db, actores, actores_n):
     return "\n".join(out) + "\n"
 
 
-# Lo que va en las tablas de fondo en vez de un número de fondo: el liso —sin
-# fondo, que es ceros— y "el del lugar", que la ROM resuelve al empezar la
-# pelea con el mapa y el terreno. Ver `escena_de_la_rom`.
+# What goes in the backdrop tables instead of a backdrop number: the plain one
+# —no backdrop, which is zeros— and "the one of the place", which the ROM
+# resolves when the battle starts with the map and the terrain. See
+# `escena_de_la_rom`.
 FONDO_LISO = 0xFF
 FONDO_DEL_LUGAR = 0xFE
 
 
 def escena_de_la_rom(db, tropas, mapas, tree, encuentros, game_dir):
-    """Qué fondos y qué battlers lleva el cartucho, y quién usa cada uno.
+    """Which backdrops and which battlers the cartridge carries, and who uses
+    each one.
 
-    Es la otra mitad de tools/port/escena.py: allá está cómo se convierte un
-    fondo o un battler, acá **cuáles**. Los fondos se nombran por su número
-    en el juego —ver "Qué fondos hay" allá—, y una pelea pide el suyo de tres
-    maneras:
+    It is the other half of tools/port/escena.py: there is how a backdrop or
+    a battler is converted, here **which ones**. Backdrops are named by their
+    number in the game —see "Qué fondos hay" there—, and a battle asks for its
+    own in three ways:
 
-    * **un `EnemyEncounter` que lo nombra**, y entonces es de la tropa —así
-      funcionaba la escena horneada—. Si dos lo pidieran distinto para la
-      misma tropa gana el primero, como en `Tropas.pedir`;
-    * **un encuentro al azar en un mapa que lo hereda**, que es
-      `TreeMap.map_background`: las áreas de los Back Alleys no traen fondo y
-      lo sacan de su mapa;
-    * **el del terreno que pisa el héroe**, si el mapa no nombra ninguno: el
-      mundo, el 66. Ése lo resuelve la ROM al empezar la pelea, con
-      `fondo_terreno`. Y un `EnemyEncounter` con el fondo "del lugar" hace lo
-      mismo que un encuentro al azar: `FONDO_DEL_LUGAR`.
+    * **an `EnemyEncounter` that names it**, and then it belongs to the troop
+      —that is how the baked scene worked—. If two asked for it differently
+      for the same troop the first one wins, as in `Tropas.pedir`;
+    * **a random encounter in a map that inherits it**, which is
+      `TreeMap.map_background`: the Back Alleys areas bring no backdrop and
+      take it from their map;
+    * **the one of the terrain the hero is standing on**, if the map names
+      none: the world, 66. The ROM resolves that one when the battle starts,
+      with `fondo_terreno`. And an `EnemyEncounter` with the backdrop "of the
+      place" does the same as a random encounter: `FONDO_DEL_LUGAR`.
 
-    Un fondo entra **en la ROM**, liviano, si alguna pelea del cartucho lo
-    pide; si alguna puede caer en uno que no está —una tropa del lugar en un
-    mapa sin encuentros—, entra también `escena.reemplazo()`, y `respaldo_de`
-    dice cuál de la ROM usa cada fondo del juego. **En el `.msu` van todos**:
-    `calidad` son sus bytes, por número.
+    A backdrop goes **into the ROM**, light, if some battle of the cartridge
+    asks for it; if some can land on one that isn't there —a troop of the
+    place in a map without encounters—, `escena.reemplazo()` goes in too, and
+    `respaldo_de` says which one of the ROM each backdrop of the game uses.
+    **All of them go in the `.msu`**: `calidad` is their bytes, by number.
 
-    Un battler entra si lo usa alguna tropa del cartucho, **una vez** aunque lo
-    usen cuatro, y es la imagen con su tono: la GiantRat y la HairyVermin son
-    el mismo `BLmouse` y dos battlers.
+    A battler goes in if some troop of the cartridge uses it, **once** even if
+    four use it, and it is the image with its hue: the GiantRat and the
+    HairyVermin are the same `BLmouse` and two battlers.
     """
     E = escena_mod
     juego = E.fondos_del_juego(eventos.fondos_nombrados(game_dir), tree,
                                db.terrain_backdrops, game_dir)
     numero_de = {nombre.lower(): k for k, nombre in enumerate(juego)}
     if len(juego) >= FONDO_DEL_LUGAR:
-        raise SystemExit("el juego tiene %d fondos de batalla y el número de "
-                         "uno es un byte, con $%02X y $FF reservados"
+        raise SystemExit("the game has %d battle backdrops and the number of "
+                         "one is a byte, with $%02X and $FF reserved"
                          % (len(juego), FONDO_DEL_LUGAR))
     datos = {"juego": juego, "fondos": [], "battlers": [], "battler_de": {},
              "tropa_fondo": {}, "mapa_fondo": [], "respaldo_de": [],
@@ -3692,9 +3705,9 @@ def escena_de_la_rom(db, tropas, mapas, tree, encuentros, game_dir):
     for n in tropas.ids:
         fondo = tropas.fondos.get(n)
         datos["tropa_fondo"][n] = numero(fondo) if fondo else FONDO_LISO
-    # El del mapa, para los encuentros al azar y para las tropas que pelean
-    # con el del lugar. Sólo en los mapas donde alguna pelea lo puede mirar:
-    # sin eso, cualquier cartucho pediría el reemplazo.
+    # The map's, for random encounters and for the troops that fight with the
+    # one of the place. Only in the maps where some battle can look at it:
+    # without that, any cartridge would ask for the replacement.
     por_mapa = (encuentros or {}).get("por_mapa") or [0xFF] * len(mapas)
     del_lugar = FONDO_DEL_LUGAR in datos["tropa_fondo"].values()
     for mapa, registro in zip(mapas, por_mapa):
@@ -3708,12 +3721,13 @@ def escena_de_la_rom(db, tropas, mapas, tree, encuentros, game_dir):
                               else FONDO_LISO
                               for t in range(max(terrenos, default=0) + 1)]
 
-    # Los de la ROM: todos los que se piden, en el orden en que se piden —ver
-    # "Qué fondos hay" en escena.py—. Un mapa con encuentros que pide el del
-    # lugar pide los de todos los terrenos de sus bloques, que son los que el
-    # héroe puede pisar, con las sustituciones incluidas. Un mapa sin
-    # encuentros que igual lo pide —porque alguna tropa pelea con el del
-    # lugar, y no se sabe dónde— no: si su terreno no está, va el reemplazo.
+    # The ROM's: all the ones asked for, in the order they are asked for —see
+    # "Qué fondos hay" in escena.py—. A map with encounters that asks for the
+    # one of the place asks for those of all the terrains of its blocks, which
+    # are the ones the hero can stand on, substitutions included. A map
+    # without encounters that asks for it anyway —because some troop fights
+    # with the one of the place, and it isn't known where— doesn't: if its
+    # terrain isn't there, the replacement goes.
     def de_los_terrenos(mapa):
         return [datos["terreno_fondo"][t]
                 if t < len(datos["terreno_fondo"]) else FONDO_LISO
@@ -3742,7 +3756,7 @@ def escena_de_la_rom(db, tropas, mapas, tree, encuentros, game_dir):
     lugar = {k: i for i, k in enumerate(suyos)}
     reemplazo = lugar.get(numero_de[E.reemplazo().lower()], 0)
     datos["respaldo_de"] = [lugar.get(k, reemplazo) for k in range(len(juego))]
-    # Los de calidad, para el `.msu`: todos, estén o no en la ROM.
+    # The quality ones, for the `.msu`: all of them, whether in the ROM or not.
     datos["calidad"] = en_paralelo(
         lambda nombre: fondo_bytes(E.fondo(nombre, game_dir)), juego)
     battler_k = {}
@@ -3766,19 +3780,19 @@ def escena_de_la_rom(db, tropas, mapas, tree, encuentros, game_dir):
 
 
 def usos_de_los_parches(mapas, db, tree):
-    """Quién pide cada animación y cada battler del cartucho: por clase de
-    parche, `{clave: [origen, ...]}`, donde el origen es el id del mapa cuya
-    página o cuyo encuentro al azar lo pide, o `"caso"` si lo pide una página
-    de prueba.
+    """Who asks for each animation and each battler of the cartridge: per
+    patch class, `{key: [origin, ...]}`, where the origin is the id of the map
+    whose page or random encounter asks for it, or `"caso"` if a test page
+    asks for it.
 
-    Es lo que deja a `parches.revisar` saber qué no es del juego en la ROM que
-    se juega, que lleva también los mapas y las páginas de la tanda: una
-    animación que sólo pide un caso, o un battler que sólo aparece en un mapa
-    de prueba, no se versiona. Se recorre el bytecode, como en
-    `animaciones_de_la_rom`, así que cuenta lo que quedó emitido. Una tropa
-    que alguien pidió y ninguna página emitida nombra —una página que se cayó
-    después de pedirla— no tiene origen, y `revisar` la trata como del juego:
-    la duda va para el lado de pedir el parche.
+    It is what lets `parches.revisar` know what isn't the game's in the ROM
+    that is played, which also carries the suite's maps and pages: an
+    animation only a case asks for, or a battler that only shows up in a test
+    map, isn't versioned. The bytecode is walked, as in
+    `animaciones_de_la_rom`, so it counts what ended up emitted. A troop
+    someone asked for and no emitted page names —a page that fell out after
+    asking for it— has no origin, and `revisar` treats it as the game's: the
+    doubt leans toward asking for the patch.
     """
     E = escena_mod
     animaciones = collections.defaultdict(set)
@@ -3813,9 +3827,9 @@ def usos_de_los_parches(mapas, db, tree):
 
 
 def fondo_bytes(info):
-    """Un fondo de batalla como lo lee la consola: `(tiles, colores)`, sus 512
-    tiles de 8bpp en el orden del tilemap y sus `COLORES` colores de 15 bits,
-    rellenos con negro."""
+    """A battle backdrop as the console reads it: `(tiles, colors)`, its 512
+    8bpp tiles in tilemap order and its `COLORES` 15-bit colors, padded with
+    black."""
     E = escena_mod
     tiles_ = bytearray()
     for celda in E.tiles(info["indices"]):
@@ -3829,24 +3843,24 @@ def fondo_bytes(info):
 
 
 def respaldo_bytes(info):
-    """El respaldo liviano de un fondo, como lo lleva la ROM: `(bytes,
-    colores)`, sus 4 KB de 128x64 en 4bpp y sus `RESPALDO_COLORES` colores.
-    Guardan el índice **dentro de su paleta**: la ROM les pone los planos de
-    `CGRAM_BASE` aparte, ver `respaldo_alto`.
+    """The light fallback of a backdrop, as the ROM carries it: `(bytes,
+    colors)`, its 4 KB of 128x64 at 4bpp and its `RESPALDO_COLORES` colors.
+    They store the index **within their palette**: the ROM adds the planes of
+    `CGRAM_BASE` separately, see `respaldo_alto`.
 
-    **Los bytes no van en el orden de los tiles**, sino en el que los agranda
-    `esc_doblar` sin hacer cuentas. Cada tile chico se vuelve cuatro grandes,
-    y la ROM los llena de a dos vecinos de la misma fila —el par que sale de
-    la misma fila de ocho pixeles chicos—, par por par en el orden de la
-    escena. De cada par, fila grande por fila grande de a dos (las dos salen
-    de la misma fila chica) y los planos 0/1 antes que los 2/3.
+    **The bytes don't go in tile order**, but in the one `esc_doblar` enlarges
+    them in without doing any arithmetic. Each small tile becomes four large
+    ones, and the ROM fills them two neighbors of the same row at a time —the
+    pair that comes from the same row of eight small pixels—, pair by pair in
+    the scene's order. Of each pair, large row by large row two at a time (both
+    come from the same small row) and planes 0/1 before 2/3.
 
-    Y dentro de eso, **cada byte lleva medio byte de dos planos**: de la fila
-    chica que da los planos `p` y `p+1`, el primero lleva el nibble alto de
-    los dos —los cuatro pixeles de la izquierda, que van al tile grande de la
-    izquierda— y el segundo los dos nibbles bajos. Así cada byte, duplicado
-    bit a bit con `respaldo_doble`, es ya la palabra de dos planos de una fila
-    de un tile grande, y la ROM la escribe entera sin separar los planos.
+    And within that, **each byte carries half a byte of two planes**: of the
+    small row that gives planes `p` and `p+1`, the first carries the high
+    nibble of both —the four leftmost pixels, which go to the left large
+    tile— and the second the two low nibbles. That way each byte, duplicated
+    bit by bit with `respaldo_doble`, is already the two-plane word of a row
+    of a large tile, and the ROM writes it whole without separating the planes.
     """
     E = escena_mod
     liviano = info["respaldo"]
@@ -3856,13 +3870,13 @@ def respaldo_bytes(info):
     columnas = E.RESPALDO_ANCHO // E.CELDA
     tiles_ = bytearray()
     for fila_grande in range(E.TILES_Y):
-        mitad = fila_grande % E.RESPALDO_ESCALA     # arriba o abajo del chico
+        mitad = fila_grande % E.RESPALDO_ESCALA     # above or below the small one
         for columna in range(columnas):
             chico = chicos[(fila_grande // E.RESPALDO_ESCALA) * columnas
                            + columna]
-            for par in (0, 16):                     # planos 0/1 y 2/3
-                for k in range(4):                  # las filas grandes 2k, 2k+1
-                    fila = mitad * 4 + k            # la fila chica
+            for par in (0, 16):                     # planes 0/1 and 2/3
+                for k in range(4):                  # the large rows 2k, 2k+1
+                    fila = mitad * 4 + k            # the small row
                     p0, p1 = chico[par + 2 * fila], chico[par + 2 * fila + 1]
                     tiles_.append((p0 & 0xF0) | (p1 >> 4))
                     tiles_.append(((p0 & 0x0F) << 4) | (p1 & 0x0F))
@@ -3875,19 +3889,19 @@ def respaldo_bytes(info):
 
 
 def respaldo_alto():
-    """La mitad de arriba de un tile de 8bpp del respaldo: los planos 4 a 7,
-    que son los de `CGRAM_BASE` en todos los pixeles. Es lo que la ROM pega
-    detrás de cada tile de 4bpp."""
+    """The upper half of an 8bpp tile of the fallback: planes 4 to 7, which
+    are those of `CGRAM_BASE` in every pixel. It is what the ROM appends
+    after each 4bpp tile."""
     E = escena_mod
     lleno = [[E.CGRAM_BASE] * E.CELDA for _ in range(E.CELDA)]
     return pack_tile(lleno, planes=8)[E.RESPALDO_PLANOS * 8:]
 
 
 def respaldo_doble():
-    """La tabla con la que `esc_doblar` agranda el respaldo: por cada byte de
-    `respaldo_bytes`, una palabra con sus dos nibbles duplicados bit a bit,
-    el alto en el byte bajo. Cada nibble son cuatro pixeles de un plano, y
-    duplicado son los ocho de una fila de ese plano en un tile grande."""
+    """The table `esc_doblar` enlarges the fallback with: for each byte of
+    `respaldo_bytes`, a word with its two nibbles duplicated bit by bit, the
+    high one in the low byte. Each nibble is four pixels of one plane, and
+    duplicated they are the eight of a row of that plane in a large tile."""
     def doble(nibble):
         return sum(0b11 << (2 * b) for b in range(4) if nibble >> b & 1)
     return b"".join((doble(s >> 4) | doble(s & 0xF) << 8).to_bytes(2, "little")
@@ -3895,47 +3909,51 @@ def respaldo_doble():
 
 
 def escenas_asm(datos, tropas, db):
-    """La escena de batalla del cartucho, lista para el `.inc`.
+    """The cartridge's battle scene, ready for the `.inc`.
 
-    Los fondos y los battlers **por separado**, que la ROM compone al empezar
-    la pelea: el porqué y el formato están en tools/port/escena.py. Lo que se
-    emite:
+    The backdrops and the battlers **separately**, which the ROM composes when
+    the battle starts: the reason and the format are in tools/port/escena.py.
+    What is emitted:
 
-      `escena_tropa_fondo`  por índice de tropa —el orden de `tropa_id`—, el
-                            número del fondo que nombra su `EnemyEncounter`,
-                            `FONDO_DEL_LUGAR` o `FONDO_LISO`.
-      `escena_mapa_fondo`   por índice de mapa, el de sus encuentros al azar:
-                            un número, `FONDO_DEL_LUGAR` —el del terreno— o
+      `escena_tropa_fondo`  per troop index —the order of `tropa_id`—, the
+                            number of the backdrop its `EnemyEncounter` names,
+                            `FONDO_DEL_LUGAR` or `FONDO_LISO`.
+      `escena_mapa_fondo`   per map index, that of its random encounters: a
+                            number, `FONDO_DEL_LUGAR` —the terrain's— or
                             `FONDO_LISO`.
-      `fondo_terreno`       por terreno, el número de su fondo o `FONDO_LISO`.
-      `fondo_respaldo`      por número de fondo, cuál de la ROM lo reemplaza
-                            sin MSU-1: el suyo, o el de `escena.reemplazo()`.
-      `fondo_dir`           por fondo de la ROM, el puntero de 24 bits a los
-                            4 KB de su respaldo liviano, en el orden de
+      `fondo_terreno`       per terrain, the number of its backdrop or
+                            `FONDO_LISO`.
+      `fondo_respaldo`      per backdrop number, which one of the ROM replaces
+                            it without MSU-1: its own, or that of
+                            `escena.reemplazo()`.
+      `fondo_dir`           per ROM backdrop, the 24-bit pointer to the 4 KB
+                            of its light fallback, in the order of
                             `respaldo_bytes`.
-      `fondo_cgram`         sus 16 colores, que van a la CGRAM desde la 32.
+      `fondo_cgram`         its 16 colors, which go to CGRAM from 32 on.
 
-    Dónde está cada fondo en el `.msu` lo emite `escribir_msu`, por número.
-      `respaldo_alto`       los planos 4 a 7 que la ROM le pega a cada tile.
-      `battler_*`           por battler: cuántos bytes mide una fila de un
-                            plano, cuántas filas, cuánto mide un plano, dónde
-                            están sus bytes y sus quince colores.
-      `miembro_*`           por miembro de tropa —el orden de `tropa_miembro`—,
-                            qué battler es, dónde cae su esquina y cuál de la
-                            tropa va en ese lugar del orden de dibujo.
+    Where each backdrop is in the `.msu` is emitted by `escribir_msu`, by
+    number.
+      `respaldo_alto`       planes 4 to 7, which the ROM appends to each tile.
+      `battler_*`           per battler: how many bytes a row of one plane is,
+                            how many rows, how big a plane is, where its bytes
+                            are and its fifteen colors.
+      `miembro_*`           per troop member —the order of `tropa_miembro`—,
+                            which battler it is, where its corner falls and
+                            which one of the troop goes in that place of the
+                            drawing order.
 
-    El tilemap no se emite: son los 512 tiles en orden y la ROM lo arma con un
-    lazo. Emitirlo serían 2 KB de cartucho para escribir 0, 1, 2...
+    The tilemap isn't emitted: it is the 512 tiles in order and the ROM builds
+    it with a loop. Emitting it would be 2 KB of cartridge to write 0, 1, 2...
     """
     E = escena_mod
     fondos, battlers = datos["fondos"], datos["battlers"]
     out = [
-        "\n; --- la escena de la batalla: los fondos y los battlers ---",
+        "\n; --- the battle scene: the backdrops and the battlers ---",
         ";",
-        "; Van por separado y la ROM los compone en una capa de 8bpp de",
-        "; 256x128, que son los siete renglones de texto de arriba. El porqué",
-        "; está en tools/port/escena.py; acá sólo viajan los bytes.",
-        "; Los fondos del juego, que el .msu lleva todos, y los de la ROM.",
+        "; They go separately and the ROM composes them in an 8bpp layer of",
+        "; 256x128, which is the seven text lines at the top. The reason is",
+        "; in tools/port/escena.py; only the bytes travel here.",
+        "; The game's backdrops, which the .msu carries all of, and the ROM's.",
         "FONDOS_JUEGO    = %d" % len(datos.get("juego", ())),
         "ESCENA_FONDOS   = %d" % len(fondos),
         "FONDO_LISO      = $%02X" % FONDO_LISO,
@@ -3951,7 +3969,7 @@ def escenas_asm(datos, tropas, db):
         "ESCENA_CGRAM    = %d" % E.CGRAM_BASE,
         "ESCENA_VRAM     = $%04X" % E.VRAM_TILES,
         "ESCENA_MAPA     = $%04X" % E.VRAM_MAPA,
-        "; El respaldo liviano de la ROM: 4bpp y una sola paleta. Ver",
+        "; The ROM's light fallback: 4bpp and a single palette. See",
         "; tools/port/escena.py.",
         "RESPALDO_COLORES = %d" % E.RESPALDO_COLORES,
         "RESPALDO_TILE   = %d" % (E.RESPALDO_PLANOS * 8),
@@ -3959,11 +3977,11 @@ def escenas_asm(datos, tropas, db):
                                   * E.RESPALDO_PLANOS // 8),
         "RESPALDO_ESCALA = %d" % E.RESPALDO_ESCALA,
         "ESCENA_BAT_PALETA = %d" % E.BATTLER_PALETA,
-        "; El tile con el que se tapa lo que queda abajo de la escena. Cae",
-        "; **fuera** del bloque de tiles: 512 tiles de 8bpp son las 16.384",
-        "; palabras que van de ESCENA_VRAM al final de la VRAM, así que el 512",
-        "; da la vuelta y cae en la palabra 0, que mientras dura la pelea es",
-        "; VRAM del mapa y no la usa nadie.",
+        "; The tile that covers what is left below the scene. It falls",
+        "; **outside** the tile block: 512 8bpp tiles are the 16,384 words",
+        "; that go from ESCENA_VRAM to the end of VRAM, so 512 wraps around",
+        "; and lands on word 0, which during the battle is map VRAM that",
+        "; nobody uses.",
         "ESCENA_BLANCO   = %d" % E.TILES,
     ]
     usadas = [n for n in tropas if n in db.troops]
@@ -3986,20 +4004,21 @@ def escenas_asm(datos, tropas, db):
     out.append(bloque("fondo_cgram", cgram or b"\x00\x00"))
     out.append(bloque("respaldo_alto", respaldo_alto()))
     out.append(bloque("respaldo_doble", respaldo_doble()))
-    # Dónde está cada fondo de calidad en el `.msu` y la firma que la ROM
-    # espera encontrar al principio no van acá: el `.msu` lleva también los
-    # efectos de sonido, que salen del audio, y ése se arma después. Ver
+    # Where each quality backdrop is in the `.msu` and the signature the ROM
+    # expects to find at the start don't go here: the `.msu` also carries the
+    # sound effects, which come from the audio, and that is built later. See
     # `msu_asm`.
-    # Sesenta y cuatro ceros: el tile transparente con el que se tapa lo que
-    # queda abajo de la escena, y de paso el origen fijo del DMA que llena de
-    # cero el fondo liso.
+    # Sixty-four zeros: the transparent tile that covers what is left below
+    # the scene, and incidentally the fixed source of the DMA that fills the
+    # plain backdrop with zero.
     out.append(bloque("escena_cero", bytes(64)))
-    # Cada respaldo en un bloque, que no cruza de banco porque la ROM lo lee
-    # con `[puntero]` y le suma al puntero sólo los dieciséis bits de abajo.
+    # Each fallback in a block, which doesn't cross a bank because the ROM
+    # reads it with `[puntero]` and adds to the pointer only the low sixteen
+    # bits.
     for k, (tiles_, _colores) in enumerate(bytes_de):
         out.append(bloque("fondo_%d" % k, tiles_))
-    # Los battlers: sus tablas y después sus bytes, cada uno en un bloque que
-    # no cruza de banco porque la ROM lo lee con `[puntero], y`.
+    # The battlers: their tables and then their bytes, each in a block that
+    # doesn't cross a bank because the ROM reads it with `[puntero], y`.
     out.append(bloque("battler_n", bytes(
         E.columnas(b) for b in battlers) or b"\x00"))
     out.append(bloque("battler_alto", bytes(
@@ -4033,8 +4052,9 @@ def escenas_asm(datos, tropas, db):
             x, y = (E.posicion(centro, battlers[k]) if k != 0xFF else (0, 0))
             miembro_x.append(x)
             miembro_y.append(y)
-        # Y en qué orden se dibujan, que no es el de la tropa: ver
-        # `escena.orden_de_dibujo`. Va por miembro, con el lugar en la tropa.
+        # And the order they are drawn in, which isn't the troop's: see
+        # `escena.orden_de_dibujo`. It goes per member, with the place in the
+        # troop.
         miembro_orden += E.orden_de_dibujo([c for _e, c in suyos], infos)
     out.append(bloque("miembro_battler", bytes(miembro_b) or b"\xFF"))
     out.append(bloque("miembro_x", bytes(miembro_x) or b"\x00"))
@@ -4046,26 +4066,25 @@ def escenas_asm(datos, tropas, db):
 
 
 def bloque(label, data, per_line=16, alinear=None, acomodar=True):
-    """Un bloque de datos con su declaración de acomodo.
+    """A data block with its placement declaration.
 
-    Cada bloque se declara antes de emitirlo: casi todos se suben por DMA, y un
-    DMA que cruce de banco lee basura de la mitad para adelante. La grilla de
-    celdas no se sube por DMA sino que se recorre con un puntero, así que no le
-    hace falta el banco entero: sólo que sus palabras no queden partidas entre
-    el final de un banco y el principio del siguiente.
+    Each block is declared before emitting it: almost all are uploaded by DMA,
+    and a DMA that crosses a bank reads garbage from the middle onward. The
+    cell grid isn't uploaded by DMA but walked with a pointer, so it doesn't
+    need the whole bank: only that its words don't end up split between the
+    end of one bank and the start of the next.
 
-    Lo mismo vale para una tabla que se recorre con `[ptr], y` o con
-    `lda f:tabla, x`: tiene que quedar entera de un lado, y que sus punteros
-    sean simbólicos no alcanza. Partida, la ROM lee la segunda mitad desde el
-    `$0000` del banco siguiente, que en LoROM es el espejo de la WRAM. Así
-    quedó la tabla de páginas de evento a caballo de `$02FFFF` el día que los
-    sprites de un mapa crecieron, y lo que se vio fue un fondo corrido seis
-    pixeles: es un error que aparece o desaparece al agregar un byte en
-    cualquier otra parte del cartucho.
+    The same holds for a table walked with `[ptr], y` or with
+    `lda f:tabla, x`: it has to stay whole on one side, and its pointers being
+    symbolic isn't enough. Split, the ROM reads the second half from `$0000`
+    of the next bank, which in LoROM is the WRAM mirror. That is how the event
+    page table ended up straddling `$02FFFF` the day a map's sprites grew, and
+    what was seen was a background shifted six pixels: it is an error that
+    appears or disappears when adding a byte anywhere else in the cartridge.
 
-    `acomodar=False` es para lo que va a TABLAS: esa área vive entera adentro
-    del banco 0 —termina en $7FC0—, así que nada de lo que caiga ahí puede
-    cruzar, y declararlo emitía una cuenta que siempre daba cero.
+    `acomodar=False` is for what goes to TABLAS: that area lives entirely
+    inside bank 0 —it ends at $7FC0—, so nothing that falls there can cross,
+    and declaring it emitted a computation that always came out zero.
     """
     out = ([".align %d" % alinear if alinear else ".bloque %d" % len(data)]
            if acomodar else [])
