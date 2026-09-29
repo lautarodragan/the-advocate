@@ -27,8 +27,26 @@ tiene el plan de seis pasos y las preguntas con sus opciones.
   con dos raíces (el paso 5 del plan). Después, lo estable como ejecutables
   en el PATH. **Submódulos de git, nunca**: a taro no le gustan. Además, hoy
   no hay una buena forma de asociar un mismo ambiente de trabajo a dos repos.
-  Queda por resolver cómo consigue ABL la versión del motor en ensamblador si
-  no es por submódulo.
+- **El motor viaja con las herramientas, con la misma versión.** Lo decidió
+  taro el 2026-09-29. Conceptualmente es el RPG_RT.exe de RM2k, con una
+  diferencia: no se puede distribuir ensamblado, porque se ensambla junto con
+  los `.inc` de cada juego, que definen constantes y flags de las que depende
+  el código. Por eso se distribuye como fuente adentro del paquete de la
+  suite: como archivos de datos del paquete y, cuando el que ensambla sea de
+  Rust, embebido en ese binario, que lo escribe al directorio de build antes
+  de llamar a `ca65`. La idea de taro es que un `pacman -S` alcance, sin git
+  ni descargas.
+  - **No se versiona aparte:** el conversor y el motor comparten un contrato
+    (el formato de los `.inc` y los opcodes de `tools/protocol/`), así que un
+    motor viejo necesita también el conversor de su época.
+  - **El juego declara con qué versión de la suite se arma**, en su archivo de
+    proyecto (el del paso 3), y las herramientas se niegan a armar con otra.
+    Es lo que ata las goldens de ABL a una versión del motor.
+  - **Un administrador de versiones al estilo nvm o rustup queda para cuando
+    haya más de un juego**, y va a instalar suites enteras, no runtimes
+    sueltos.
+  - Lo que un juego quiera apartarse de RM2k sigue yendo por flags, que
+    pasan al archivo de proyecto.
 - **ABL sólo conoce ejecutables del PATH, no `tools/`.** Es la idea de taro
   para el primer paso: el `justfile` no sabe que existe Python, y los `.py`
   que se ejecutan pasan a ser ejecutables de verdad, con hashbang y
