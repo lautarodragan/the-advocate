@@ -35,7 +35,7 @@ import math
 
 from audio import muestras_brr
 from common import environment
-from common import cache_disco
+from common import disk_cache
 
 # The Windows software synthesizer, which is what this game was composed and
 # listened to with. Microsoft licensed a reduced subset of the Sound Canvas
@@ -121,9 +121,9 @@ def _version_de_la_preparacion():
     """
     global _version
     if _version is None:
-        _version = cache_disco.clave(muestras_brr.version(),
-                                     cache_disco.version_de(
-                                         "audio/snes_samples.py"))
+        _version = disk_cache.key(muestras_brr.version(),
+                                  disk_cache.version_of(
+                                      "audio/snes_samples.py"))
     return _version
 
 
@@ -151,17 +151,17 @@ def _cacheada(memoria, clave, partes, hacer):
 
     What is stored goes inside a one-element tuple because **`None` is a
     legitimate result** —there is no such hit in the bank, or what fits in the
-    budget does not even reach one block— and `cache_disco.leer` returns
+    budget does not even reach one block— and `disk_cache.read` returns
     `None` when there is nothing. Without the wrapper, an already computed
     "does not exist" would be computed again on every run.
     """
     if clave in memoria:
         return memoria[clave]
-    en_disco = cache_disco.clave(_version_de_la_preparacion(), *partes)
-    guardado = cache_disco.leer("muestras", en_disco)
+    en_disco = disk_cache.key(_version_de_la_preparacion(), *partes)
+    guardado = disk_cache.read("muestras", en_disco)
     if guardado is None:
         guardado = (hacer(),)
-        cache_disco.guardar("muestras", en_disco, guardado)
+        disk_cache.write("muestras", en_disco, guardado)
     memoria[clave] = guardado[0]
     return guardado[0]
 

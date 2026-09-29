@@ -124,7 +124,7 @@ def msu_replacements():
 
 
 def cache():
-    """The converter's disk cache: see `common/cache_disco.py`."""
+    """The converter's disk cache: see `common/disk_cache.py`."""
     return _values.get("cache") or os.path.join(project.build(), "cache")
 
 

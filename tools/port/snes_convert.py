@@ -1781,14 +1781,14 @@ def _version_capas():
     global _VERSION_CAPAS
     if _VERSION_CAPAS is None:
         import PIL
-        from common import cache_disco
-        _VERSION_CAPAS = (cache_disco.version_de("port/snes_convert.py",
-                                                 "port/asignador.py",
-                                                 "rpgmaker/rm2k.py",
-                                                 "render/render_map.py",
-                                                 "rpgmaker/recursos.py",
-                                                 "common/project.py",
-                                                 "render/chipset.py")
+        from common import disk_cache
+        _VERSION_CAPAS = (disk_cache.version_of("port/snes_convert.py",
+                                                "port/asignador.py",
+                                                "rpgmaker/rm2k.py",
+                                                "render/render_map.py",
+                                                "rpgmaker/recursos.py",
+                                                "common/project.py",
+                                                "render/chipset.py")
                           + tiles_bin.version()
                           + " Pillow " + PIL.__version__)
     return _VERSION_CAPAS
@@ -1818,14 +1818,14 @@ def capas_convertidas(renderer, game_map):
     Verified with `SIN_CACHE=1` and with the cache deleted: the `.sfc` is the
     same byte for byte.
     """
-    from common import cache_disco
+    from common import disk_cache
     insumos = renderer.insumos_de_capas(game_map)
     en_disco = None
     if insumos is not None:
-        en_disco = cache_disco.clave(_version_capas(), *insumos)
+        en_disco = disk_cache.key(_version_capas(), *insumos)
         if en_disco in _capas_en_memoria:
             return _capas_en_memoria[en_disco]
-        hecho = cache_disco.leer("capas", en_disco)
+        hecho = disk_cache.read("capas", en_disco)
         if hecho is not None:
             _capas_en_memoria[en_disco] = hecho
             return hecho
@@ -1834,7 +1834,7 @@ def capas_convertidas(renderer, game_map):
         return None
     hecho = _convert_layers(base, above_img, variantes)
     if en_disco is not None:
-        cache_disco.guardar("capas", en_disco, hecho)
+        disk_cache.write("capas", en_disco, hecho)
         _capas_en_memoria[en_disco] = hecho
     return hecho
 

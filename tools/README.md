@@ -9,8 +9,8 @@ loose: each thing lives in the folder of its responsibility.
 From the bottom up. A folder imports only from the ones below it, never from
 one in its own row or above.
 
-    common/       where everything is (proyecto), the converter's disk cache
-                 (cache_disco), and spreading pure work across forked
+    common/      where everything is (project), the converter's disk cache
+                 (disk_cache), and spreading pure work across forked
                  processes (paralelo). It imports nothing from `tools/`, and
                  any of the ones above may import it
 

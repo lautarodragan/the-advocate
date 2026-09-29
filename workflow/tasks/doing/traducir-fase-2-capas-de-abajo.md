@@ -28,3 +28,4 @@ un `-c`) se buscan aparte con grep.
 2. `proyecto.py` → `project.py`, con `--proyecto` → `--project`.
 3. `perillas.py` → `settings.py`.
 4. `ambiente.py` → `environment.py`, con `--reemplazos` → `--replacements` y `--compartido` → `--shared`.
+5. `cache_disco.py` → `disk_cache.py`.

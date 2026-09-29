@@ -40,7 +40,7 @@ import subprocess
 import tempfile
 import wave
 
-from common import cache_disco
+from common import disk_cache
 
 FALTA = """`gunter`, the SPC700 sample codec, is missing.
 
@@ -153,12 +153,12 @@ def codificar(muestras, loop_block=None):
     if hecha is not None:
         return hecha
 
-    en_disco = cache_disco.clave(version(), str(loop_block),
-                                 " ".join(str(x) for x in clave[0]))
-    hecha = cache_disco.leer("brr", en_disco)
+    en_disco = disk_cache.key(version(), str(loop_block),
+                              " ".join(str(x) for x in clave[0]))
+    hecha = disk_cache.read("brr", en_disco)
     if hecha is None:
         hecha = _codificar(muestras, loop_block)
-        cache_disco.guardar("brr", en_disco, hecha)
+        disk_cache.write("brr", en_disco, hecha)
     _codificadas[clave] = hecha
     return hecha
 

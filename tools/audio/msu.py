@@ -78,7 +78,7 @@ if __name__ == "__main__":
 from audio import snes_music                                # noqa: E402
 from audio import snes_samples                              # noqa: E402
 from common import environment                                  # noqa: E402
-from common import cache_disco                               # noqa: E402
+from common import disk_cache                               # noqa: E402
 from common import project                                  # noqa: E402
 from rpgmaker import recursos                               # noqa: E402
 
@@ -167,8 +167,8 @@ def clave_del_reemplazo(audio, pico=PICO):
     replacement, or a song that in the game is a WAV."""
     with open(audio, "rb") as f:
         crudo = f.read()
-    return cache_disco.clave(cache_disco.version_de("audio/msu.py"),
-                             huella_de_ffmpeg(), "%.17g" % pico, crudo)
+    return disk_cache.key(disk_cache.version_of("audio/msu.py"),
+                          huella_de_ffmpeg(), "%.17g" % pico, crudo)
 
 
 def decodificar(audio, salida):
@@ -190,11 +190,11 @@ def clave_de_la_pista(midi, soundfont, ganancia, pico=PICO):
     """
     with open(midi, "rb") as f:
         crudo = f.read()
-    return cache_disco.clave(cache_disco.version_de("audio/msu.py"),
-                             huella_de_fluidsynth(),
-                             snes_samples.huella_del_soundfont(soundfont),
-                             "%.17g %.17g" % (ganancia, pico),
-                             crudo)
+    return disk_cache.key(disk_cache.version_of("audio/msu.py"),
+                          huella_de_fluidsynth(),
+                          snes_samples.huella_del_soundfont(soundfont),
+                          "%.17g %.17g" % (ganancia, pico),
+                          crudo)
 
 
 def huella_del_archivo(ruta):
@@ -326,7 +326,7 @@ def _una_pista(base, nombre, numero, game_dir, soundfont, ganancia,
     # same sources. What is stored is the sha256 of the `.pcm`, so a run cut
     # off halfway —the `.pcm` is written in one go, and weighs tens of
     # megabytes— is not taken as good: it does not match and is redone.
-    guardado = cache_disco.leer("msu", clave)
+    guardado = disk_cache.read("msu", clave)
     # The `is not None` is not redundant: without a cache `leer` gives
     # `None`, and a missing `.pcm` gives `None` too, so comparing them
     # plainly would say "already there" exactly when there is nothing.
@@ -343,7 +343,7 @@ def _una_pista(base, nombre, numero, game_dir, soundfont, ganancia,
     muestras, escala = pista(temporal, salida + ".nuevo")
     os.replace(salida + ".nuevo", salida)
     os.remove(temporal)
-    cache_disco.guardar("msu", clave, huella_del_archivo(salida))
+    disk_cache.write("msu", clave, huella_del_archivo(salida))
     return ("track %d: %-22s %6.1f s, %d MB, normalized x%.2f -> %s%s"
             % (numero, nombre, muestras / 44100.0,
                os.path.getsize(salida) // (1 << 20), escala, salida,
