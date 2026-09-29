@@ -15,6 +15,7 @@ members = [
     "rm2k/ditto",
     "rm2k/ditto/xtask",
     "rm2k/rm2k-render",
+    "rm2k-snes/battle",
     "rm2k-snes/cartridge",
     "rm2k-snes/project",
     "rm2k-snes/rm2k-snes-audio",

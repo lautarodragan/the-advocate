@@ -220,7 +220,14 @@ fn everything_that_builds_the_rom_is_in_the_fingerprint() {
     let bin = dir.join("bin");
     fs::create_dir_all(&bin).unwrap();
     for tool in [
-        "ca65", "ld65", "voodoo", "lz2", "rm2k-render", "rm2k-snes-audio", "rm2k-snes-assemble",
+        "ca65",
+        "ld65",
+        "voodoo",
+        "lz2",
+        "rm2k-render",
+        "rm2k-snes-audio",
+        "rm2k-snes-battle",
+        "rm2k-snes-assemble",
     ] {
         let path = bin.join(tool);
         fs::write(&path, tool).unwrap();
@@ -237,6 +244,7 @@ fn everything_that_builds_the_rom_is_in_the_fingerprint() {
     assert!(files.contains(&bin.join("rm2k-snes-assemble")));
     assert!(files.contains(&bin.join("rm2k-render")));
     assert!(files.contains(&bin.join("rm2k-snes-audio")));
+    assert!(files.contains(&bin.join("rm2k-snes-battle")));
     assert!(files.contains(&dir.join("rm2k-snes.toml")));
     assert!(files.contains(&dir.join("patches/manual/nuevos/Map0900.json")));
     // The real runtime too: the fingerprint of the cartridges reads it.

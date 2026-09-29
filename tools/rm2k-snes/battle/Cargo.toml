@@ -1,0 +1,20 @@
+[package]
+name = "rm2k-snes-battle"
+version = "0.1.0"
+edition = "2021"
+description = "An rm2k-snes game's battle tables: experience and level per actor, and each map's random encounters"
+
+[lib]
+name = "rm2k_snes_battle"
+path = "src/lib.rs"
+
+[[bin]]
+name = "rm2k-snes-battle"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+serde_json = "1"
+
+[dev-dependencies]
+sha2 = "0.10"
