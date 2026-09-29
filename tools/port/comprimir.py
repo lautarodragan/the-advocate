@@ -27,7 +27,7 @@ FALTA = """falta `lz2`, el compresor de los tiles y las grillas.
 Es un binario de Rust que vive en `tools/lz2/` y se instala como herramienta
 del sistema:
 
-    just herramientas"""
+    just -f tools/justfile herramientas"""
 
 # Lo más largo que puede salir de un flujo: la repetición nombra la posición
 # de la salida con dieciséis bits. Es del formato, no nuestro.

@@ -5,7 +5,7 @@ e interpreta la ROM, y el stream de música, que escribe
 `tools/audio/snes_music.py` y lee `irq_musica`. Los declara `tools/protocol/`,
 que no es de ninguno de los dos lados, y de ahí salen generados los archivos
 de `GENERADOS`. El
-generador es un binario de Rust que se instala con `just herramientas` y se usa
+generador es un binario de Rust que se instala con `just -f tools/justfile herramientas` y se usa
 desde el PATH, así que estos casos lo necesitan instalado; lo generado está
 commiteado, así que **compilar la ROM no necesita ni eso**.
 
@@ -40,7 +40,7 @@ GENERADOS = [
      "tools/audio/music_opcodes.py"),
 ]
 MAIN = os.path.join(REPO, "rom", "src", "main.s")
-# Lo que cada uno pide de más, igual que en la receta `protocolo` del justfile:
+# Lo que cada uno pide de más, igual que en la receta `protocolo` de tools/justfile:
 # sin esto el `--check` compara contra un `.inc` sin la tabla del despacho y lo
 # da por viejo.
 BANDERAS = {"events": ["--jump-table"]}
@@ -62,7 +62,7 @@ def test_los_generados_estan_al_dia(nombre, modulo, inc, py):
         + BANDERAS.get(nombre, []),
         capture_output=True, text=True)
     assert hecho.returncode != 2, (
-        "el generador no pudo correr —¿falta `just herramientas`?—:\n%s"
+        "el generador no pudo correr —¿falta `just -f tools/justfile herramientas`?—:\n%s"
         % hecho.stderr)
     assert hecho.returncode == 0, (
         "hay un generado desactualizado:\n%s%s" % (hecho.stdout, hecho.stderr))

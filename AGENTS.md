@@ -11,7 +11,9 @@ fuentes mejores, y hay que ir a ellas antes que a este archivo:
                      archivo: para no rehacerlas ni contradecirlas
     divergencias/    dónde la ROM no hace lo que RM2k hace, con lo medido
     tasks/wishlist/  lo que nos gustaría hacer y nadie está haciendo
-    justfile         qué se puede correr; los comentarios explican el porqué
+    justfile         qué se puede correr; los comentarios explican el porqué.
+                     El de la raíz es de ABL; el de las herramientas es
+                     `tools/justfile`, y se corre con `just -f tools/justfile`
     README.md        qué es el proyecto, cómo se arma, y los porqués de
                      arquitectura que no tienen línea de código donde vivir
     docs/            RM2k, la consola, cómo funciona el port hoy, y los
@@ -97,9 +99,9 @@ Hasta el 2026-09-16 hubo otro más, `w65/`, el ensamblador de 65816. Lo reemplaz
 `ca65` y `ld65`, del proyecto cc65: ver "Dónde corre esto".
 
 **Se consumen desde el PATH, no desde `target/release`.** Se instalan con
-`just herramientas` —`cargo install --locked --path …`— y a partir de ahí son
-herramientas del sistema, como `python3` o un core de libretro: **ningún script
-ni prueba de este juego llama a `cargo`**. Es de taro, el 2026-09-15, y lo que
+`just -f tools/justfile herramientas` —`cargo install --locked --path …`— y a
+partir de ahí son herramientas del sistema, como `python3` o un core de
+libretro: **ningún script ni prueba de este juego llama a `cargo`**. Es de taro, el 2026-09-15, y lo que
 evita es que cada corrida de la tanda quede atada al toolchain de Rust.
 
 `CARGO_ROOT` dice dónde instalan; por omisión `/usr/local`, que acá está en el
@@ -494,16 +496,18 @@ Lo que hay que hacer siempre:
   nombre obvio: el 2026-09-15 dos escribieron un `comparar.sh` cada uno en el
   mismo lugar. Uno pisa al otro y el pisado no se entera. `<scratchpad>/<lo que
   hace>/…` alcanza.
-* **Que corra `just herramientas-locales` al empezar.** El global —`just
-  herramientas`— apunta al checkout principal, y sus scripts arman en el
-  `rom/build/` de ése: por eso, en un worktree sin su `bin/`, las recetas que
-  corren herramientas —`cartuchos`, `pruebas`, `build`…— **se niegan** y
-  dicen qué correr. Arma un `bin/` en el worktree con los ocho scripts, y el
-  `justfile` lo pone adelante en el PATH. **Un proyecto de Rust se le pasa sólo si el agente lo va a
-  modificar** —`just herramientas-locales lz2`—: compilar cuesta, y sin
-  nombres no compila nada. Y **todo se corre por `just`**: un comando suelto
-  no ve ese `bin/` y usa el global. Es de taro, el 2026-09-29, y reemplazó a
-  un re-exec implícito que los scripts hacían solos.
+* **Que corra `just -f tools/justfile herramientas-locales` al empezar.** El
+  global —`just -f tools/justfile herramientas`— apunta al checkout
+  principal, y sus scripts arman en el `rom/build/` de ése: por eso, en un
+  worktree sin su `bin/`, las recetas que corren herramientas —`cartuchos`,
+  `pruebas`, `build`…— **se niegan** y dicen qué correr. Arma un `bin/` en
+  la raíz del worktree con los ocho scripts, y los dos `justfile` lo ponen
+  adelante en el PATH. **Un proyecto de Rust se le pasa sólo si el agente
+  lo va a modificar** —`just -f tools/justfile herramientas-locales lz2`—:
+  compilar cuesta, y sin nombres no compila nada. Y **todo se corre por
+  `just`**: un comando suelto no ve ese `bin/` y usa el global. Es de taro,
+  el 2026-09-29, y reemplazó a un re-exec implícito que los scripts hacían
+  solos.
 * **Pedirle que no deje nada esperando cuando termina.** Un sub-agente puede
   lanzar los suyos, y ésos **no aparecen** en la lista del que los mandó. 
   Lo mismo con los `sleep` largos para esperar
@@ -558,9 +562,10 @@ Así que al mergear una rama de sub-agente:
 
 * **Correr `just pruebas` y la tanda sobre el árbol mergeado**, no sobre las
   ramas. Que cada una viniera en verde no dice nada del merge.
-* **Reinstalar en el global sólo lo de Rust que la rama tocó**: `just
-  herramientas lz2`, desde el checkout principal. Lo de Python no hace
-  falta, porque el global apunta a ese checkout y el merge ya lo trajo.
+* **Reinstalar en el global sólo lo de Rust que la rama tocó**: `just -f
+  tools/justfile herramientas lz2`, desde el checkout principal. Lo de
+  Python no hace falta, porque el global apunta a ese checkout y el merge ya
+  lo trajo.
 * **Un rojo heredado se bisecta, no se hereda.** Si una prueba está en rojo y
   nadie la rompió, apareció en algún lado: `git log -S` para saber cuándo nació
   y correrla en los padres del merge sospechoso. Cuesta veinte minutos.

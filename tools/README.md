@@ -40,8 +40,8 @@ en inglés y sin una mención a este juego (ver AGENTS.md):
     voodoo/      Voodoo: de una imagen a tiles, paletas y tilemap
     lz2/         el LC_LZ2 de Nintendo, con un parser óptimo
 
-Se instalan con `just herramientas` y se usan desde el PATH: ningún `.py` de
-acá los compila ni los busca en `target/`. Los scripts de Python que se
+Se instalan con `just -f tools/justfile herramientas` y se usan desde el
+PATH: ningún `.py` de acá los compila ni los busca en `target/`. Los scripts de Python que se
 ejecutan también: ver "Los que se ejecutan".
 
 ## `port/` no está partido todavía
@@ -87,14 +87,24 @@ de Rust. El `justfile` los llama por su nombre y no sabe dónde están:
     rm2k-snes-volume-ceilings   audio/techos.py
     abl-entregar                ensamblado/entregar.py
 
-El porqué de los nombres está en la receta. Uno nuevo se agrega en
+El porqué de los nombres está en `tools/justfile`. Uno nuevo se agrega en
 `_instalar`, y el `.py` busca sus paquetes resolviendo el symlink con
 `realpath`, porque `__file__` es la ruta del PATH. Las pruebas ponen `tools/`
 en el camino ellas mismas, desde `pytest.ini`.
 
-Un worktree que modifica las herramientas usa las suyas con `just
-herramientas-locales`, que arma un `bin/` propio y el `justfile` lo pone
-adelante en el PATH: ver la receta, y "Sub-agentes" en AGENTS.md.
+Un worktree que modifica las herramientas usa las suyas con `just -f
+tools/justfile herramientas-locales`, que arma un `bin/` propio en la raíz
+del checkout; los dos `justfile` lo ponen adelante en el PATH: ver la
+receta, y "Sub-agentes" en AGENTS.md.
+
+## `tools/justfile`
+
+Las recetas de las herramientas —generar el bytecode, correr las pruebas de
+los proyectos de Rust, instalar— viven en `tools/justfile`, y las de A
+Blurred Line en el de la raíz, que nombra este directorio una sola vez: para
+decir cómo se instalan las herramientas de un worktree. Desde la raíz
+se corren con `just -f tools/justfile <receta>`; parado acá, con `just
+<receta>`. Las dos formas corren la receta parada en `tools/`.
 
 ## El parche de bsnes
 

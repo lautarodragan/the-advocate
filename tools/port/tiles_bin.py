@@ -26,7 +26,7 @@ FALTA = """falta `voodoo`, el conversor de imágenes a tiles.
 Es un binario de Rust que vive en `tools/voodoo/` y se instala como herramienta
 del sistema:
 
-    just herramientas"""
+    just -f tools/justfile herramientas"""
 
 
 def binario():
