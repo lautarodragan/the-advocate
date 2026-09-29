@@ -51,6 +51,13 @@ ejecutables `rm2k-snes-*` andando desde `/tmp`.
    runtime las sigue llamando en castellano hasta la última área, que puede
    usar los nombres de Python como guía.
 7. `animacion` → `animation` y `textos` → `texts`.
+8. `batalla` → `battle`, el modelo de la pelea contra el que comparan las
+   pruebas: `Batalla` → `Battle`, `Combatiente` → `Combatant`, `Azar` →
+   `Rng`, con sus atributos y métodos también del lado de las pruebas de
+   ABL (`esperado.jugar_turno` → `esperado.play_turn`). Tres cosas que
+   ningún renombre por import ve y cobraron las tandas: el alias local `B =
+   batalla_mod` de snes_convert, un `**extra` del arnés que le pasa
+   `paginas=` a `Battle`, y un `getattr(enemigo, "botin_item")`.
 
 Lo que el conversor escribe al `.inc` cita rutas de `tools/port/` en sus
 comentarios (`; See tools/port/imagen.py.`): esas quedan con el nombre

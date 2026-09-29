@@ -16,7 +16,7 @@ renglones esperados salen de `pantallas.renglon_de_*`, que es el armado de
 niveles y las habilidades salen de `experience.add_exp` y del LDB, no de acá.
 """
 
-from port import batalla as modelo
+from port import battle as modelo
 from port import experience
 from port import pantallas
 from port import rules
@@ -140,7 +140,7 @@ def test_las_habilidades_que_no_entran_siguen_en_otra_pagina(partida):
 # Tres Crazed Marauder, que dan 95 de oro cada uno y sueltan una Healing
 # Draught-HP con chance 35: tres tiros de botín, uno por enemigo. **La semilla
 # la elige el modelo**: se escribe en `BA_SEM` al abrir la pelea, y es la
-# primera con la que `batalla.Batalla` gana sin que caiga nadie y alguno suelta
+# primera con la que `battle.Battle` gana sin que caiga nadie y alguno suelta
 # su ítem y otro no. Así la prueba pasa por los dos lados del tiro y no depende
 # de que la semilla de fábrica caiga en uno. Los tres enemigos arrancan con 1
 # HP, en la ROM y en el modelo, para que la pelea dure lo que dura un golpe.
@@ -151,20 +151,20 @@ HEALING_DRAUGHT = 257
 
 
 def modelo_de_los_merodeadores(base, semilla):
-    esperado = modelo.Batalla(
-        [modelo.actor_de(base, a) for a in GRUPO],
-        [modelo.enemigo_de(base, e, n)
+    esperado = modelo.Battle(
+        [modelo.actor_of(base, a) for a in GRUPO],
+        [modelo.enemy_of(base, e, n)
          for n, e in enumerate(base.troops[TROPA_MERODEADORES].members)],
         semilla)
-    for enemigo in esperado.enemigos:
+    for enemigo in esperado.enemies:
         enemigo.hp = 1
     return esperado
 
 
 def jugar_el_modelo(esperado, tope=10):
     for _ in range(tope):
-        vivos = len(esperado.vivos(esperado.actores))
-        if esperado.jugar_turno([(modelo.ORDEN_ATACAR, 0)] * vivos) is not None:
+        vivos = len(esperado.living(esperado.actors))
+        if esperado.play_turn([(modelo.COMMAND_ATTACK, 0)] * vivos) is not None:
             return esperado
     return esperado
 
@@ -174,9 +174,9 @@ def semilla_con_botin_a_medias(base):
     salen todos iguales."""
     for semilla in range(1, 4000):
         esperado = jugar_el_modelo(modelo_de_los_merodeadores(base, semilla))
-        if (esperado.resultado == modelo.VICTORIA
-                and len(esperado.vivos(esperado.actores)) == len(GRUPO)
-                and 0 < len(esperado.botin) < 3):
+        if (esperado.result == modelo.VICTORY
+                and len(esperado.living(esperado.actors)) == len(GRUPO)
+                and 0 < len(esperado.drops) < 3):
             return semilla, esperado
     raise AssertionError("ninguna semilla deja el botín a medias")
 
@@ -187,7 +187,7 @@ def test_la_tropa_del_botin_es_la_que_se_espera():
     assert base.troops[TROPA_MERODEADORES].members == [MERODEADOR] * 3
     e = base.enemies[MERODEADOR]
     assert (e.gold, e.drop_id, e.drop_prob) == (95, HEALING_DRAUGHT, 35)
-    assert modelo.oro_de_la_tropa(base, TROPA_MERODEADORES) == 285
+    assert modelo.troop_gold(base, TROPA_MERODEADORES) == 285
 
 
 def a_los_merodeadores(partida, semilla, tope=600):
@@ -230,17 +230,17 @@ def test_la_victoria_da_el_oro_y_los_items_y_los_cuenta(partida):
                     if pelea.hp_del_combatiente(k) > 0)
         pelea.turno(vivos)
     assert pelea.modo() == "FIN"
-    assert pelea.byte("BA_RESULT") == modelo.VICTORIA
+    assert pelea.byte("BA_RESULT") == modelo.VICTORY
     assert una.oro() == oro_antes + 285
-    assert una.item(HEALING_DRAUGHT) == items_antes + len(esperado.botin), \
-        "el modelo soltó %d ítems con la semilla %d" % (len(esperado.botin),
+    assert una.item(HEALING_DRAUGHT) == items_antes + len(esperado.drops), \
+        "el modelo soltó %d ítems con la semilla %d" % (len(esperado.drops),
                                                         semilla)
     ganada = experience.troop_exp(base, TROPA_MERODEADORES)
     vistas = paginas(una, pelea)
     assert vistas[:2] == [
         primera_pagina(term, ganada) + [pantallas.renglon_de_oro(term, 285)],
         [pantallas.renglon_de_item(term, base.items[i].name)
-         for i in esperado.botin],
+         for i in esperado.drops],
     ]
 
 
@@ -258,6 +258,6 @@ def test_el_item_que_sale_no_pasa_del_tope(partida):
             break
         pelea.turno(len(GRUPO))
     assert pelea.modo() == "FIN"
-    assert esperado.botin
+    assert esperado.drops
     assert una.item(HEALING_DRAUGHT) == tope
-    assert pelea.byte("BA_BOTIN_N") == len(esperado.botin)
+    assert pelea.byte("BA_BOTIN_N") == len(esperado.drops)

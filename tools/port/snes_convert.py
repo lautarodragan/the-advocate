@@ -80,7 +80,7 @@ from port import menus as menus_mod
 from port import fullscreen
 from port import end_game as fin_mod
 from port import pantallas as pantallas_mod
-from port import batalla as batalla_mod
+from port import battle as batalla_mod
 from port import experience as X
 from port import scene as escena_mod
 from port import color as color_mod
@@ -5697,7 +5697,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         texto_enemigo = {e: texto_nuevo(menus_mod.texto_de_item(
             db.enemies[e].name, P.BA_NOMBRE_ANCHO)) for e in enemigos_rom}
         # And the skills': the ones some actor that can join the party knows,
-        # **at their LDB level** —see `batalla.habilidades_de`—, sorted by
+        # **at their LDB level** —see `battle.skills_of`—, sorted by
         # number, which is the order the menu puts them in. With the intro's
         # party they are seven: 129, 130, 131, 143, 144, 146 and 150.
         #
@@ -5709,11 +5709,11 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         #
         # And the ones some enemy of the cartridge's troops uses, since
         # 2026-09-27: `ShortCircuit`, from the ones at the recycling plant. See
-        # `batalla.acciones_de_enemigo`.
-        acciones_rom = {e: B.acciones_de_enemigo(db, e) for e in enemigos_rom}
+        # `battle.actions_of_enemy`.
+        acciones_rom = {e: B.actions_of_enemy(db, e) for e in enemigos_rom}
         habilidades_rom = sorted(
             {h for (a, h) in events.SKILL_SLOT
-             if a in ranuras["actores"] and B.habilidad_usable(db.skills[h])}
+             if a in ranuras["actores"] and B.skill_usable(db.skills[h])}
             | {skill.id for lista in acciones_rom.values()
                for _r, skill, _ef in lista if skill is not None})
         texto_hab = {h: texto_nuevo(menus_mod.texto_de_item(
@@ -5729,7 +5729,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # `hab_par_aprende_txt`.
         ensenadas = {h for (a, h) in events.SKILL_SLOT
                      if a in ranuras["actores"] and a in db.actors
-                     and B.nivel_en_que_aprende(db, a, h)
+                     and B.level_learned(db, a, h)
                      > X.initial_level(db.actors[a])}
         texto_hab_entero = {
             h: texto_nuevo(menus_mod.texto_de_item(db.skills[h].name, 255))
@@ -5746,7 +5746,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # not the LDB's `command_skill`. It goes trimmed like the other four
         # commands.
         texto_hab_orden = {a: texto_nuevo(P.texto_de_orden(
-            B.nombre_de_orden_habilidad(db, a))) for a in ranuras["actores"]}
+            B.skill_command_name(db, a))) for a in ranuras["actores"]}
         handle.write(bloque("item_textos", bytes(item_textos) or b"\x00")
                      + "\n")
         if len(bloques_ranura) > 255:
@@ -6067,7 +6067,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write('.segment "TABLAS"\n')
         # What each item does in a battle: whether it goes in the list that is
         # offered and how much it heals. The rule for which ones go in is
-        # `batalla.item_usable_en_batalla`, that is `Game_Party::IsItemUsable`
+        # `battle.item_usable_in_battle`, that is `Game_Party::IsItemUsable`
         # with the battle open plus what this port knows how to do; the
         # computation of how much it heals is
         # `Game_BattleAlgorithm::Item::vExecute`.
@@ -6076,7 +6076,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # them here. The battle reads them with `lda f:item_batalla, x`.
         handle.write('.segment "RODATA"\n')
         bytes_asm("item_batalla", [
-            1 if B.item_usable_en_batalla(db_items[n]) else 0 for n in items],
+            1 if B.item_usable_in_battle(db_items[n]) else 0 for n in items],
             declarar=True)
         bytes_asm("item_cura_rate", [db_items[n].recover_hp_rate
                                      for n in items], declarar=True)
@@ -6138,7 +6138,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                                   for p in db_items[n].points],
                   declarar=True)
         # And what attacking with each one costs: the weapons' `sp_cost`, zero
-        # for the rest —`batalla.sp_del_arma`—. The battle reads it once per
+        # for the rest —`battle.weapon_sp_of`—. The battle reads it once per
         # actor when it is set up.
         bytes_asm("item_sp", [db_items[n].sp_cost
                               if db_items[n].type == lcf.ITEM_TYPE_WEAPON
@@ -6280,8 +6280,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         #
         # One row per skill the cartridge carries, in the order of
         # `habilidades_rom`, which is by RM2k number. The fields are those of
-        # `lcf.Skill` and the computations that use them are in `batalla.py`:
-        # `efecto_habilidad` is `Algo::CalcSkillEffect` and `costo_de` is
+        # `lcf.Skill` and the computations that use them are in `battle.py`:
+        # `skill_effect` is `Algo::CalcSkillEffect` and `cost_of` is
         # `CalcSkillCost`.
         #
         # They go **outside bank 0** and declared with `.bloque`, like
@@ -6290,13 +6290,13 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # middle on.
         lugar_hab = {h: k for k, h in enumerate(habilidades_rom)}
         # That all the ones that reach here are of the kind the battle knows
-        # how to offer is guaranteed by `batalla.habilidad_usable`, which is
-        # the filter `habilidades_de` applies on both sides. It is checked
+        # how to offer is guaranteed by `battle.skill_usable`, which is
+        # the filter `skills_of` applies on both sides. It is checked
         # again in case they were ever emitted from somewhere else: a
         # multi-target scope or a three-digit cost would be drawn wrong
         # silently.
         for h in habilidades_rom:
-            if not B.habilidad_usable(db.skills[h]):
+            if not B.skill_usable(db.skills[h]):
                 raise SystemExit(
                     "skill %d —type %d, scope %d, %d SP— isn't one of the "
                     "ones this battle knows how to offer" % (h, db.skills[h].type,
@@ -6346,7 +6346,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             for h in habilidades_rom], "$%02X", declarar=True)
         # And the scope as is, `rpg::Skill::Scope`: 0 one enemy, 1 all, 2
         # oneself, 3 one ally, 4 the whole party. Since 2026-09-27 the battle
-        # knows all five: see `batalla.blancos_de_la_habilidad`.
+        # knows all five: see `battle.skill_targets`.
         bytes_asm("hab_alcance", [db.skills[h].scope for h in habilidades_rom],
                   declarar=True)
         # The parallel common events that only look at the equipment,
@@ -6418,14 +6418,14 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # if it doesn't —the ones only a `ChangeSkills` gives—: on leveling
         # up, `exp_sumar` sets the bits of the pairs whose level it just
         # passed, which is `LearnLevelSkills(old_level + 1, new_level)`.
-        bytes_asm("hab_par_nivel", [B.nivel_en_que_aprende(db, a, h)
+        bytes_asm("hab_par_nivel", [B.level_learned(db, a, h)
                                     if a in db.actors else 0
                                     for (a, h), _r in pares], declarar=True)
         # And the name the victory tells it by —"<skill> acquired!"—, or $FFFF
         # if it isn't learned by leveling up from the starting one.
         words_asm("hab_par_aprende_txt", [
             texto_hab_entero[h] if a in ranuras["actores"]
-            and B.nivel_en_que_aprende(db, a, h) > 0 and h in texto_hab_entero
+            and B.level_learned(db, a, h) > 0 and h in texto_hab_entero
             else 0xFFFF for (a, h), _r in pares], "$%04X", declarar=True)
         # 254 and not 256: `eacc_hab` uses $FF for the attack and
         # `ba_accion_enemiga` answers $FE when it has none left.
@@ -6462,9 +6462,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                 raise SystemExit("troop %d gives %d experience and the ROM "
                                  "adds it in sixteen bits" % (n, exp))
         words_asm("tropa_exp", exp_tropa, declarar=True)
-        # And the gold, the same: `batalla.oro_de_la_tropa`. The victory tells
+        # And the gold, the same: `battle.troop_gold`. The victory tells
         # it with `ba_vic_numero`, which reaches five digits.
-        oro_tropa = [B.oro_de_la_tropa(db, n) for n in usadas]
+        oro_tropa = [B.troop_gold(db, n) for n in usadas]
         for n, oro in zip(usadas, oro_tropa):
             if oro > 0xFFFF:
                 raise SystemExit("troop %d gives %d gold and the ROM adds it "
@@ -6608,7 +6608,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                   declarar=True)
         # What it drops on dying: the LDB item, or 0 if it drops nothing, and
         # the chance as a percentage. See `ba_vic_botin` and
-        # `batalla.tirar_el_botin`. Every item that can be dropped is in
+        # `battle.roll_drops`. Every item that can be dropped is in
         # `items`: see `items_del_botin`, which adds it.
         for e in enemigos_rom:
             if db.enemies[e].drop_id and db.enemies[e].drop_id not in k_de:
@@ -6620,17 +6620,17 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         bytes_asm("enemigo_botin_pct", [db.enemies[e].drop_prob
                                         for e in enemigos_rom], declarar=True)
         # What each enemy can do on its turn: its list from
-        # `batalla.acciones_de_enemigo`, contiguous in `eacc_*` —where it
+        # `battle.actions_of_enemy`, contiguous in `eacc_*` —where it
         # starts and how many there are—. Per action, the skill as a `k` of the
         # `hab_*` tables or $FF for the attack, and its `rating` with bit 7 set
         # if it isn't `efectiva`: it counts for the maximum and then weighs
         # zero. See `ba_accion_enemiga` in tools/runtime/batalla.s.
         eacc_ini, eacc_hab, eacc_peso = [], [], []
         for e in enemigos_rom:
-            if len(acciones_rom[e]) > B.ACCIONES_MAX:
+            if len(acciones_rom[e]) > B.ACTIONS_MAX:
                 raise SystemExit("enemy %d brings %d actions and the ROM "
                                  "weighs %d: see `batalla.ACCIONES_MAX`"
-                                 % (e, len(acciones_rom[e]), B.ACCIONES_MAX))
+                                 % (e, len(acciones_rom[e]), B.ACTIONS_MAX))
             eacc_ini.append(len(eacc_hab))
             for rating, skill, efectiva in acciones_rom[e]:
                 if not 0 < rating < 0x80:
@@ -6644,7 +6644,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             raise SystemExit("the actions of the cartridge's enemies are %d "
                              "and `enemigo_acc_ini` is one byte"
                              % len(eacc_hab))
-        handle.write("ACCIONES_MAX = %d\n" % B.ACCIONES_MAX)
+        handle.write("ACCIONES_MAX = %d\n" % B.ACTIONS_MAX)
         bytes_asm("enemigo_acc_ini", eacc_ini, declarar=True)
         bytes_asm("enemigo_acc_n", [len(acciones_rom[e]) for e in enemigos_rom],
                   declarar=True)
@@ -6711,7 +6711,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "TPAG_ACTOR        = $%02X\n"
             "TPAG_CON_CABECERA = $%02X\n"
             "TPAG_CABECERA     = %d\n"
-            % (len(usadas), B.BATALLA_SEMILLA, texto_batalla,
+            % (len(usadas), B.BATTLE_SEED, texto_batalla,
                pos(P.BA_ENEMIGO_FILA0, 0), pos(P.BA_GRUPO_FILA0, 0),
                pos(P.BA_MSG_FILA1, 0), pos(P.BA_MSG_FILA2, 0), 2 * 64,
                P.BA_CURSOR_COL * 2, P.BA_NOMBRE_COL * 2, P.BA_NOMBRE_ANCHO,

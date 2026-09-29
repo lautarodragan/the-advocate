@@ -9,10 +9,10 @@ def learned_skills(db, number, level=None):
     """The skills this actor **knows**, usable or not, sorted.
 
     It is plain `Game_Actor::LearnLevelSkills`: the ones with a level lower
-    than or equal to its own. It is separate from `habilidades_de` because
+    than or equal to its own. It is separate from `skills_of` because
     they are two different questions and mixing them up is paid on one side
     only: the battle menu can only offer the ones this port knows how to run
-    —that is the `habilidad_usable` filter— but `IsSkillLearned`, which is
+    —that is the `skill_usable` filter— but `IsSkillLearned`, which is
     what the `ConditionalBranch` branch asks, filters nothing.
 
     Both come from here so they cannot drift apart: the branch and the menu

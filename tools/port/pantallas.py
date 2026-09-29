@@ -654,7 +654,7 @@ def pantalla_tienda(db, tipo, juego, vende, oro, inventario, equipos, modo,
 # over black —those, until their windows arrived—.
 #
 # What **is** RM2k's are the words —all from the LDB, none made up— and the
-# math, which lives in `batalla.py`.
+# math, which lives in `battle.py`.
 #
 # One thing on this screen is not in RM2k and is a decision:
 #
@@ -687,7 +687,7 @@ BA_ORDEN_ANCHO = 10
 # capture of the real game, from 2026-09-12, Manta's menu says
 # Attack / Slicing / Defend / Use Item. `Escape` is not there —escaping is a
 # party command, from another menu— and here it goes fifth; it is the
-# simplification `batalla.py` declares.
+# simplification `battle.py` declares.
 (BA_ORDEN_ATACAR, BA_ORDEN_HABILIDAD, BA_ORDEN_DEFENDER, BA_ORDEN_USAR,
  BA_ORDEN_HUIR) = range(5)
 # Per command: which term names it, which line it goes on and in which column.

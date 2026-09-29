@@ -8,7 +8,7 @@ cartucho, así que lo que se cobra acá es que la ROM la lea bien, sume bien y
 suba cuando tiene que subir.
 """
 
-from port import batalla as modelo
+from port import battle as modelo
 from port import experience
 
 from batalla import (ARDEN, GRUPO, TROPA_DROIDE, Pelea, en_el_droide,
@@ -30,21 +30,21 @@ def ganar_al_droide(una, caidos=(), niveles=None, grupo=GRUPO):
     """
     niveles = niveles or {}
     base = datos.base()
-    esperado = modelo.Batalla(
-        [modelo.actor_de(base, a, nivel=niveles.get(a)) for a in grupo],
-        [modelo.enemigo_de(base, e, n)
+    esperado = modelo.Battle(
+        [modelo.actor_of(base, a, level=niveles.get(a)) for a in grupo],
+        [modelo.enemy_of(base, e, n)
          for n, e in enumerate(base.troops[TROPA_DROIDE].members)])
-    for quien in esperado.actores:
-        quien.hp = min(quien.hp_max, modelo.actor_de(base, quien.numero).hp)
-        if quien.numero in caidos:
+    for quien in esperado.actors:
+        quien.hp = min(quien.hp_max, modelo.actor_of(base, quien.number).hp)
+        if quien.number in caidos:
             quien.hp = 0
-        una.poner_hp(quien.numero, quien.hp)
+        una.poner_hp(quien.number, quien.hp)
     pelea = Pelea(una).abrir()
-    while esperado.resultado is None:
-        pelea.turno(len(esperado.vivos(esperado.actores)))
-        esperado.jugar_turno(
-            [(modelo.ORDEN_ATACAR, 0)] * len(esperado.vivos(esperado.actores)))
-    assert esperado.resultado == modelo.VICTORIA
+    while esperado.result is None:
+        pelea.turno(len(esperado.living(esperado.actors)))
+        esperado.play_turn(
+            [(modelo.COMMAND_ATTACK, 0)] * len(esperado.living(esperado.actors)))
+    assert esperado.result == modelo.VICTORY
     pelea.cerrar()
     return esperado
 
@@ -82,7 +82,7 @@ def test_ganar_da_la_experiencia_de_la_tropa_a_los_vivos(partida):
     esperado = ganar_al_droide(una, caidos=(GRUPO[1],))
     ganada = experience.troop_exp(base, TROPA_DROIDE)
     assert ganada > 0
-    vivos = {c.numero for c in esperado.actores if c.vivo}
+    vivos = {c.number for c in esperado.actors if c.alive}
     assert vivos and vivos != set(GRUPO), \
         "el caso necesita que alguien caiga y alguien quede en pie"
     for actor in GRUPO:
@@ -149,7 +149,7 @@ def test_ganar_sube_de_nivel_y_puede_subir_varios(partida):
     poner_exp(una, manta, 83, 2)
     esperado = ganar_al_droide(una, niveles={manta: 2})
     ganada = experience.troop_exp(base, TROPA_DROIDE)
-    assert {kersh, manta} <= {c.numero for c in esperado.actores if c.vivo}
+    assert {kersh, manta} <= {c.number for c in esperado.actors if c.alive}
     assert experience.add_exp(base.actors[manta], 2, 83, ganada)[0] == 4, \
         "el caso quiere dos niveles de una vez para Manta"
     for actor, nivel, exp in ((kersh, nivel_k, lista[nivel_k] - 50),
@@ -180,7 +180,7 @@ def test_la_pelea_usa_los_parametros_del_nivel_de_ahora(partida):
 
     Se le pone el nivel 30 a Kersh y se abre la pelea: los seis parámetros que
     la pelea arma —HP y SP máximos, ataque, defensa, espíritu y agilidad—
-    tienen que ser los de `batalla.actor_de` con ese nivel, y distintos de
+    tienen que ser los de `battle.actor_of` con ese nivel, y distintos de
     los del 20, que si no el caso no distingue nada. Los cuatro del medio
     pasan por `eq_parametro`, que es también la de la pantalla de equipo.
     """
@@ -192,11 +192,11 @@ def test_la_pelea_usa_los_parametros_del_nivel_de_ahora(partida):
     s = una.simbolos
     d = s["BA_UNO"]
     campos = {"hp_max": d + s["BA_HPMAX"], "sp_max": d + s["BA_SPMAX"],
-              "ataque": d + s["BA_ATK"], "defensa": d + s["BA_DEF"],
-              "espiritu": d + s["BA_SPI"], "agilidad": d + s["BA_AGI"]}
+              "attack": d + s["BA_ATK"], "defense": d + s["BA_DEF"],
+              "spirit": d + s["BA_SPI"], "agility": d + s["BA_AGI"]}
     de_la_rom = {k: pelea.palabra(v) for k, v in campos.items()}
-    en_30 = modelo.actor_de(base, kersh, nivel=30)
-    en_20 = modelo.actor_de(base, kersh)
+    en_30 = modelo.actor_of(base, kersh, level=30)
+    en_20 = modelo.actor_of(base, kersh)
     esperado = {k: getattr(en_30, k) for k in campos}
     assert de_la_rom == esperado
     assert all(esperado[k] != getattr(en_20, k) for k in campos), \
@@ -214,10 +214,10 @@ def test_full_heal_llena_hasta_el_maximo_del_nivel_de_ahora(partida):
     actor = next(a for a in grupo_de(una) if ranura_exp(una, a) is not None)
     poner_exp(una, actor, experience.exp_list(base.actors[actor])[29], 30)
     una.correr(DESPUES_DE_PERDER)
-    en_30 = modelo.actor_de(base, actor, nivel=30)
+    en_30 = modelo.actor_of(base, actor, level=30)
     assert (una.hp(actor),
             una.sp(actor)) == (en_30.hp_max, en_30.sp_max)
-    assert en_30.hp_max != modelo.actor_de(base, actor).hp_max
+    assert en_30.hp_max != modelo.actor_of(base, actor).hp_max
 
 
 # --- las habilidades del nivel ----------------------------------------------
@@ -251,7 +251,7 @@ def test_subir_de_nivel_ensena_las_habilidades_de_cada_nivel_que_pasa(partida):
         assert not sabe(una, ARDEN, ensena[nivel]), \
             "Arden no tendría que saber todavía la %d" % ensena[nivel]
     esperado = ganar_al_droide(una, grupo=grupo, niveles={ARDEN: 3})
-    assert ARDEN in {c.numero for c in esperado.actores if c.vivo}
+    assert ARDEN in {c.number for c in esperado.actors if c.alive}
     ganada = experience.troop_exp(base, TROPA_DROIDE)
     assert experience.add_exp(arden, 3, lista[5] - 50, ganada) \
         == (6, lista[5] - 50 + ganada)

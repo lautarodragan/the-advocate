@@ -508,7 +508,7 @@ class Skill:
         for name in SKILL_FIELDS:
             setattr(self, name, field(data, name))
         # Its number, which an enemy's action list needs to name it: see
-        # `batalla.acciones_de_enemigo`.
+        # `battle.actions_of_enemy`.
         self.id = field(data, "id")
 
     @property
@@ -539,7 +539,7 @@ class Item:
     outside battle" and `ko_only` "only on a dead one". `state_set` are the
     states it removes, one per LDB state from 1, which is the dead one: it is
     what decides whether it revives a fallen one. See
-    `batalla.item_usable_en_batalla` and `medicina_usar` in
+    `battle.item_usable_in_battle` and `medicina_usar` in
     tools/runtime/medicina.s.
     """
 
@@ -583,7 +583,7 @@ class Enemy:
             setattr(self, name, field(data, name))
         self.critical_hit_chance = field(data, "critical_hit_chance") or 30
         # What it can do on its turn, in the LDB's order: see
-        # `batalla.acciones_de_enemigo`.
+        # `battle.actions_of_enemy`.
         self.actions = [EnemyAction(a) for _, a in
                         sorted(by_id(list_field(data, "actions")).items())]
 

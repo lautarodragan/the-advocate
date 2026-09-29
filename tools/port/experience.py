@@ -1,6 +1,6 @@
 """Experience and level of the actors, as RM2k does them.
 
-It is the sibling of `batalla.py` for what happens **after** the battle: how
+It is the sibling of `battle.py` for what happens **after** the battle: how
 much experience it gives, when a level goes up and which parameters are
 left. The ROM does the same math, and the tests demand the same number on
 both sides.
@@ -108,6 +108,6 @@ def troop_exp(db, troop):
     them all dead except the ones that stayed hidden, so this is the sum of
     the whole troop, up to `ENEMIES_MAX` like the battle, and the ROM
     subtracts the hidden ones' when winning: see `ba_sin_ocultos` and
-    `batalla.Batalla.experiencia`."""
+    `battle.Battle.experience`."""
     return sum(db.enemies[e].exp
                for e in db.troops[troop].members[:ENEMIES_MAX])

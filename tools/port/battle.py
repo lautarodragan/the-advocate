@@ -32,7 +32,7 @@ Three things are **not** RM2k's, and all three are on purpose:
 * **The randomness.** RPG_RT draws from a generator we cannot reproduce.
   Here the randomness is the same sixteen-bit xorshift the port already uses
   for `ControlVars` —`events.next_random`—, but with **its own seed**:
-  `BATALLA_SEMILLA`. Having its own and not sharing `FAR_AZAR` is what keeps
+  `BATTLE_SEED`. Having its own and not sharing `FAR_AZAR` is what keeps
   a battle from advancing the map's randomness: a random `ControlVars` gives
   the same with or without a battle in between.
 
@@ -41,12 +41,12 @@ Three things are **not** RM2k's, and all three are on purpose:
   that matters, and so it uses **division rounding up**: truncating
   `100 - x` toward zero is the same as subtracting the ceiling of `x`, so
   the integer math gives exactly the same as the floating one. See
-  `acierto_por_agilidad`.
+  `hit_rate_by_agility`.
 
 * **What is missing.** States, attributes, rows and the double attack. And
   of the troop's event pages, which the ROM runs since 2026-09-21, the model
   knows **when they run and whom they bring into the battle**
-  —`PaginaDeTropa`— and nothing else: the rest of what they do is checked by
+  —`TroopPage`— and nothing else: the rest of what they do is checked by
   `rom/pruebas/rpgmaker/test_tropa.py` reading the page from the LDB, and
   none of the ones that compile draws battle randomness. What does change
   the randomness is who fights, and that is why it is here: an enemy that
@@ -62,14 +62,14 @@ from port.constants import ENEMIES_MAX
 # The seed of the battle's randomness. It differs from `AZAR_SEMILLA` on
 # purpose: see above. The value means nothing, it only has to be nonzero —the
 # xorshift gets stuck at zero— and be the same on both sides.
-BATALLA_SEMILLA = 0x2B1D
+BATTLE_SEED = 0x2B1D
 
 # How many fit in a battle. The party is RM2k's, four; the enemies,
 # `constants.ENEMIES_MAX`.
-GRUPO_MAX = 4
+PARTY_MAX = 4
 
 # The three outcomes, in the order the bytecode carries their destinations.
-VICTORIA, HUIDA, DERROTA = 0, 1, 2
+VICTORY, ESCAPE, DEFEAT = 0, 1, 2
 
 # The commands the player can give: `command_attack`, `command_defend` and
 # `battle_escape` from the LDB. Attacking asks for a target; the other two do
@@ -78,21 +78,21 @@ VICTORIA, HUIDA, DERROTA = 0, 1, 2
 # In RM2k escaping is a **party** command, from a menu that comes before
 # handing out the commands; here it is a per-actor command and it is resolved
 # the moment it is chosen. If it succeeds, the battle ends there; if not,
-# that actor is left with `ORDEN_HUIR`, which in the turn does nothing but
+# that actor is left with `COMMAND_ESCAPE`, which in the turn does nothing but
 # say so. It is a declared simplification: it saves a whole mode of the ROM's
 # machine and leaves both sides with a single list of actions.
-ORDEN_ATACAR, ORDEN_DEFENDER, ORDEN_HUIR = 0, 1, 2
+COMMAND_ATTACK, COMMAND_DEFEND, COMMAND_ESCAPE = 0, 1, 2
 # And using an item, since 2026-09-13: `Game_BattleAlgorithm::Item`. It goes
 # fourth and not among the others so as not to renumber what was already
 # there.
-ORDEN_ITEM = 3
+COMMAND_ITEM = 3
 # And a skill, `Game_BattleAlgorithm::Skill`. It goes fifth for the same
 # reason: on screen it shows second —the original puts it between Attack and
 # Defend— but the number is the command's and not the column's.
-ORDEN_HABILIDAD = 4
+COMMAND_SKILL = 4
 
 
-def item_usable_en_batalla(item):
+def item_usable_in_battle(item):
     """Whether this item goes in the list the battle offers.
 
     `Game_Party::IsItemUsable` with `in_battle`: a medicine —`type` 0 in
@@ -102,7 +102,7 @@ def item_usable_en_batalla(item):
     And of those, this port offers **only the ones that recover HP**, with
     one more condition for the `ko_only` ones: that they revive, that is,
     that they remove the dead state, because a `ko_only` that does not revive
-    is of no use to anyone —see `efecto_de_item`—. What is left out and why:
+    is of no use to anyone —see `item_effect`—. What is left out and why:
 
     * the SP ones: **SP is already state since 2026-09-13**, so this went
       from impossible to debt —what is missing is `recover_sp` on the item
@@ -114,19 +114,19 @@ def item_usable_en_batalla(item):
     since 2026-09-26: reviving is removing the dead state, and this port's
     battle has no other state than that one, which is having zero HP.
     """
-    return (item.type == TIPO_MEDICINA and not item.occasion_field1
+    return (item.type == KIND_MEDICINE and not item.occasion_field1
             and (item.recover_hp or item.recover_hp_rate)
-            and (levanta(item) or not item.ko_only))
+            and (revives(item) or not item.ko_only))
 
 
-def levanta(item):
+def revives(item):
     """Whether the item removes the dead state: the first of its
     `state_set`, which is state 1. It is the `MED_LEVANTA` bit of
     `item_medicina`."""
     return item.state_set[:1] == [True]
 
 
-def curacion(item, blanco):
+def healing(item, target):
     """How much this item heals on this target.
 
     `Game_BattleAlgorithm::Item::vExecute`:
@@ -136,50 +136,50 @@ def curacion(item, blanco):
     and then `Game_Battler::ChangeHp` caps it at what is missing up to the
     maximum. The division is integer on both sides, like all of them here.
     """
-    hp = item.recover_hp_rate * blanco.hp_max // 100 + item.recover_hp
-    return max(0, min(hp, blanco.hp_max - blanco.hp))
+    hp = item.recover_hp_rate * target.hp_max // 100 + item.recover_hp
+    return max(0, min(hp, target.hp_max - target.hp))
 
 
-def efecto_de_item(item, blanco):
+def item_effect(item, target):
     """The HP the target of a medicine is left with: `vExecute` and what
     `ApplyAll` does afterwards, branch by branch.
 
     * standing and `ko_only`: nothing —`SetIsSuccess` with no effect—;
-    * standing: the `curacion`;
+    * standing: the `healing`;
     * down and the item does not revive: nothing, because `ApplyHpEffect`
       does not touch a dead one. Until 2026-09-26 both sides revived it by
       adding the heal to the zero HP, and no test saw it because a downed
       one could not be chosen;
     * down and it revives: `RemoveStates`'s `SetHp(1)` and then
-      `ApplyStateEffect`'s `ChangeHp(hp - 1)`, that is `max(1, curacion)`.
+      `ApplyStateEffect`'s `ChangeHp(hp - 1)`, that is `max(1, healing)`.
       It is the same as `Game_Battler::UseItem` from the menu.
 
     Returns `(hp, levantado)`.
     """
-    if blanco.vivo:
+    if target.alive:
         if item.ko_only:
-            return blanco.hp, False
-        return blanco.hp + curacion(item, blanco), False
-    if not levanta(item):
-        return blanco.hp, False
-    return max(1, curacion(item, blanco)), True
+            return target.hp, False
+        return target.hp + healing(item, target), False
+    if not revives(item):
+        return target.hp, False
+    return max(1, healing(item, target)), True
 
 
 # `Item::Type_medicine`, which in liblcf is 0. This repo's JSON dump numbers
 # them differently —there medicines are 6— so the number comes from
 # `lcf.Item.type`, which is the LDB's.
-TIPO_MEDICINA = 6
+KIND_MEDICINE = 6
 
 # The cap of a parameter, like `Game_Actor::GetAtk` and its siblings.
 PARAM_MAX = 999
 # And the damage's: `Game_BattleAlgorithm::MaxDamageValue()` for RM2k.
-DANO_MAX = 999
+DAMAGE_MAX = 999
 
 
-def habilidad_usable(skill):
+def skill_usable(skill):
     """Whether this battle knows how to offer this skill.
 
-    It is the sibling of `item_usable_en_batalla` and, like that one, **cuts
+    It is the sibling of `item_usable_in_battle` and, like that one, **cuts
     down to what this port does** and declares it instead of doing it wrong:
 
     * the type has to be `normal` or `switch`. `teleport` and `escape` do
@@ -191,7 +191,7 @@ def habilidad_usable(skill):
     taro asked that AG7 not lose any of its skills—. The multi-target ones,
     `enemies` and `party`, repeat the effect on each living target on that
     side, in screen order, and `self` is the one using it: see
-    `Batalla.blancos_de_la_habilidad`. Until that day they were left out, and
+    `Battle.skill_targets`. Until that day they were left out, and
     with them `Gamble for Credits`, Arden's only one.
     """
     from rpgmaker import lcf
@@ -199,7 +199,7 @@ def habilidad_usable(skill):
             and skill.sp_cost <= 99)
 
 
-def pide_blanco(skill):
+def needs_target(skill):
     """Whether the menu asks for whom when choosing it: only the
     single-target ones —`enemy` and `ally`— and not switch ones, which
     `Scene_Battle::AssignSkill` records on the one using it. Not the
@@ -211,7 +211,7 @@ def pide_blanco(skill):
                                 lcf.SKILL_SCOPE_ALLY))
 
 
-def habilidad_efectiva_sola(skill):
+def skill_works_alone(skill):
     """`EnemyAi::IsSkillEffectiveOn` for a living target, without states.
 
     One that targets enemies always is; one that targets its own side, only
@@ -232,27 +232,27 @@ def habilidad_efectiva_sola(skill):
 
 # What an enemy can do: `lcf::rpg::EnemyAction`, one per row of its LDB list,
 # as `(rating, habilidad, efectiva)`. The skill is the `lcf.Skill` or None for
-# the basic attack; `efectiva` is `habilidad_efectiva_sola`, which the AI
+# the basic attack; `efectiva` is `skill_works_alone`, which the AI
 # looks at **after** taking the maximum.
-ACCION_KIND_BASICA, ACCION_KIND_HABILIDAD = 0, 1
-ACCION_BASICA_ATACAR = 0
-ACCION_CONDICION_SIEMPRE = 0
+ACTION_KIND_BASIC, ACTION_KIND_SKILL = 0, 1
+ACTION_BASIC_ATTACK = 0
+ACTION_CONDITION_ALWAYS = 0
 # How many actions an enemy can carry: the ROM weighs them in `BA_HAB_LISTA`,
 # which is that long. The converter stops if one carries more.
-ACCIONES_MAX = 16
+ACTIONS_MAX = 16
 # The rating of the action set when the enemy has none left: with a single
 # one it does not matter which, because nothing is rolled.
-ACCION_RATING_SOLA = 50
+ACTION_RATING_ALONE = 50
 
 
-def acciones_de_enemigo(db, enemy_id):
+def actions_of_enemy(db, enemy_id):
     """The enemy's actions this port knows how to do, in LDB order.
 
     It is the list `EnemyAi::SelectEnemyAiActionRpgRtCompat` walks, **cut
     down to what exists here** —and what is cut is declared—:
 
     * the basic attack (`kind` 0, `basic` 0) and the skills the battle knows
-      how to do (`kind` 1, see `habilidad_usable`), **except switch ones**:
+      how to do (`kind` 1, see `skill_usable`), **except switch ones**:
       the AI rolls a target for them by their scope and the battle records
       them on the one using them, so two different paths for a single one in
       the game are not worth it;
@@ -269,26 +269,26 @@ def acciones_de_enemigo(db, enemy_id):
     2026-09-27.
     """
     from rpgmaker import lcf
-    lista = []
-    for accion in db.enemies[enemy_id].actions:
-        if accion.condition_type != ACCION_CONDICION_SIEMPRE \
-                or accion.switch_on or accion.switch_off:
+    values = []
+    for action in db.enemies[enemy_id].actions:
+        if action.condition_type != ACTION_CONDITION_ALWAYS \
+                or action.switch_on or action.switch_off:
             continue
-        if accion.kind == ACCION_KIND_BASICA \
-                and accion.basic == ACCION_BASICA_ATACAR:
-            lista.append((accion.rating, None, True))
+        if action.kind == ACTION_KIND_BASIC \
+                and action.basic == ACTION_BASIC_ATTACK:
+            values.append((action.rating, None, True))
             continue
-        if accion.kind != ACCION_KIND_HABILIDAD:
+        if action.kind != ACTION_KIND_SKILL:
             continue
-        skill = db.skills.get(accion.skill_id)
+        skill = db.skills.get(action.skill_id)
         if skill is None or skill.type != lcf.SKILL_TYPE_NORMAL \
-                or not habilidad_usable(skill):
+                or not skill_usable(skill):
             continue
-        lista.append((accion.rating, skill, habilidad_efectiva_sola(skill)))
-    return lista or [(ACCION_RATING_SOLA, None, True)]
+        values.append((action.rating, skill, skill_works_alone(skill)))
+    return values or [(ACTION_RATING_ALONE, None, True)]
 
 
-def sp_del_arma(db, equipo):
+def weapon_sp_of(db, equipment):
     """What attacking costs with what it has equipped:
     `CalculateWeaponSpCost`.
 
@@ -300,13 +300,13 @@ def sp_del_arma(db, equipo):
     there are none.
     """
     from rpgmaker import lcf
-    arma = db.items.get(equipo[0]) if equipo and equipo[0] else None
-    if arma is None or arma.type != lcf.ITEM_TYPE_WEAPON:
+    weapon = db.items.get(equipment[0]) if equipment and equipment[0] else None
+    if weapon is None or weapon.type != lcf.ITEM_TYPE_WEAPON:
         return 0
-    return arma.sp_cost
+    return weapon.sp_cost
 
 
-def habilidades_de(db, numero, nivel=None):
+def skills_of(db, number, level=None):
     """The skills this actor knows, in the order the menu puts them.
 
     `Game_Actor::LearnLevelSkills` walks the LDB's learning table and learns
@@ -321,22 +321,22 @@ def habilidades_de(db, numero, nivel=None):
     first one is learned at 3.
 
     The ones this port does not know how to offer are left out: see
-    `habilidad_usable`.
+    `skill_usable`.
     """
-    return [s for s in rules.learned_skills(db, numero, nivel)
-            if habilidad_usable(db.skills[s])]
+    return [s for s in rules.learned_skills(db, number, level)
+            if skill_usable(db.skills[s])]
 
 
-def nivel_en_que_aprende(db, numero, skill):
+def level_learned(db, number, skill):
     """At which level this actor learns this skill: the lowest of the rows
     of its table that name it. `LearnLevelSkills` learns it at the first one
     it reaches and `LearnSkill` does not repeat it. 0 if the table does not
     name it: that one is only taught by a `ChangeSkills`."""
-    return min((nivel for nivel, s in db.actors[numero].skills if s == skill),
+    return min((level for level, s in db.actors[number].skills if s == skill),
                default=0)
 
 
-def nombre_de_orden_habilidad(db, numero):
+def skill_command_name(db, number):
     """What this actor's skill command is called in the menu.
 
     `Game_Actor::GetSkillName`: the actor's `skill_name` if it has
@@ -344,13 +344,13 @@ def nombre_de_orden_habilidad(db, numero):
     Skill"—. The four actors of the intro have it set: "AgentTrain",
     "Telepathy", "Slicing" and "Special".
     """
-    actor = db.actors[numero]
+    actor = db.actors[number]
     if actor.rename_skill and actor.skill_name:
         return actor.skill_name
     return rules.battle_terms(db)["habilidad"]
 
 
-def costo_de(skill):
+def cost_of(skill):
     """`Algo::CalcSkillCost`: in RM2k, plain `sp_cost`.
 
     `sp_percent` is RM2k3's and `half_sp_cost` is a state, and there are no
@@ -359,7 +359,7 @@ def costo_de(skill):
     return skill.sp_cost
 
 
-def varianza_ajustar(base, var, azar):
+def apply_variance(base, var, rng):
     """`Algo::VarianceAdjustEffect`.
 
         adj = max(1, var * base / 10); base += rand(0, adj) - adj / 2
@@ -369,12 +369,12 @@ def varianza_ajustar(base, var, azar):
     the next roll every time a switch skill or a zero hit went through here.
     """
     if var > 0 and base > 0:
-        ajuste = max(1, var * base // 10)
-        return base + azar.hasta(ajuste) - ajuste // 2
+        adjust = max(1, var * base // 10)
+        return base + rng.up_to(adjust) - adjust // 2
     return base
 
 
-def efecto_habilidad(fuente, blanco, skill, critico=False):
+def skill_effect(source, target, skill, critical=False):
     """`Algo::CalcSkillEffect` **without the variance**, which is applied
     separately.
 
@@ -391,19 +391,19 @@ def efecto_habilidad(fuente, blanco, skill, critico=False):
     divisions are of non-negative numbers, so Python's integer division
     gives the same as C++'s.
     """
-    efecto = skill.power
-    efecto += skill.physical_rate * fuente.ataque // 20
-    efecto += skill.magical_rate * fuente.espiritu // 40
+    effect = skill.power
+    effect += skill.physical_rate * source.attack // 20
+    effect += skill.magical_rate * source.spirit // 40
     if skill.targets_enemies and not skill.ignore_defense:
-        efecto -= skill.physical_rate * blanco.defensa // 40
-        efecto -= skill.magical_rate * blanco.espiritu // 80
-    efecto = max(0, efecto)
-    if critico:
-        efecto *= 3
-    return efecto
+        effect -= skill.physical_rate * target.defense // 40
+        effect -= skill.magical_rate * target.spirit // 80
+    effect = max(0, effect)
+    if critical:
+        effect *= 3
+    return effect
 
 
-def _mitad(n):
+def _half(n):
     """C++'s division by two, which **truncates toward zero**.
 
     It is needed because `AdjustDamageForDefend` divides a skill's effect,
@@ -415,7 +415,7 @@ def _mitad(n):
     return -((-n) // 2) if n < 0 else n // 2
 
 
-def cambio_de_modificador(mod, base, delta):
+def modifier_change(mod, base, delta):
     """`Game_Battler::CanChangeAtkModifier` and its three siblings.
 
         nuevo = clamp(mod + delta, -base / 2, base)
@@ -424,120 +424,120 @@ def cambio_de_modificador(mod, base, delta):
     is half the base parameter: an enemy cannot be left with less than half
     its attack no matter how many skills are thrown at it.
     """
-    nuevo = max(-(base // 2), min(base, mod + delta))
-    return nuevo - mod
+    new = max(-(base // 2), min(base, mod + delta))
+    return new - mod
 
 
-class Azar:
+class Rng:
     """The battle's xorshift, with its own seed.
 
-    `hasta(n)` returns a number from 0 to n **inclusive**, which is the range
+    `last(n)` returns a number from 0 to n **inclusive**, which is the range
     of easyrpg's `Rand::GetRandomNumber(0, n)`. The remainder is not uniform
     and it does not matter that it is not: what matters is that the ROM gets
     exactly the same, and the ROM does this same math with the hardware
     divider.
     """
 
-    def __init__(self, semilla=BATALLA_SEMILLA):
-        self.estado = semilla
+    def __init__(self, seed=BATTLE_SEED):
+        self.state = seed
 
-    def hasta(self, n):
-        self.estado = events.next_random(self.estado)
-        return self.estado % (n + 1) if n >= 0 else 0
+    def up_to(self, n):
+        self.state = events.next_random(self.state)
+        return self.state % (n + 1) if n >= 0 else 0
 
-    def porciento(self, tanto):
+    def percent(self, percent):
         """`Rand::PercentChance(int)`: `GetRandomNumber(0, 99) < rate`.
 
-        **It is always rolled**, even if `tanto` is zero: it is what
+        **It is always rolled**, even if `percent` is zero: it is what
         `Normal::vExecute` does with the critical, and if it were not rolled
         here the two sides would drift out of phase on the next roll.
         """
-        return self.hasta(99) < tanto
+        return self.up_to(99) < percent
 
 
-class Combatiente:
+class Combatant:
     """One of those who fight, on whichever side.
 
-    `es_actor` decides two things and is not cosmetic: which side it counts
+    `is_actor` decides two things and is not cosmetic: which side it counts
     on when choosing a target, and whether the critical exists
     —`CalcCriticalHitChance` sets it to zero when both are of the same
     kind—.
     """
 
-    def __init__(self, nombre, hp_max, ataque, defensa, agilidad, acierto,
-                 critico=0, es_actor=True, numero=0, espiritu=0, sp_max=0,
-                 habilidades=(), acciones=None, sp_arma=0):
-        self.nombre = nombre
+    def __init__(self, name, hp_max, attack, defense, agility, hit_rate,
+                 critical=0, is_actor=True, number=0, spirit=0, sp_max=0,
+                 skills=(), actions=None, weapon_sp=0):
+        self.name = name
         self.hp_max = hp_max
         self.hp = hp_max
         # The four **base** parameters: what a skill modifies is the
         # `*_modificador` next to them, and what the math uses is the sum of
         # both, clamped. See `Game_Battler::GetAtk` and `AdjustParam`.
-        self.ataque_base = ataque
-        self.defensa_base = defensa
-        self.espiritu_base = espiritu
-        self.agilidad_base = agilidad
-        self.mod_ataque = 0
-        self.mod_defensa = 0
-        self.mod_espiritu = 0
-        self.mod_agilidad = 0
-        self.acierto = acierto
-        self.critico = critico          # in percent, already an integer
-        self.es_actor = es_actor
-        self.numero = numero            # the LDB actor, or the place in the troop
+        self.base_attack = attack
+        self.base_defense = defense
+        self.base_spirit = spirit
+        self.base_agility = agility
+        self.mod_attack = 0
+        self.mod_defense = 0
+        self.mod_spirit = 0
+        self.mod_agility = 0
+        self.hit_rate = hit_rate
+        self.critical = critical          # in percent, already an integer
+        self.is_actor = is_actor
+        self.number = number            # the LDB actor, or the place in the troop
         # The SP and what it knows how to do with them. The skills are those
-        # of an actor's menu; an enemy's are in `acciones`, which is its LDB
-        # list —see `acciones_de_enemigo`— and an actor's is not used.
+        # of an actor's menu; an enemy's are in `actions`, which is its LDB
+        # list —see `actions_of_enemy`— and an actor's is not used.
         # Without a list, it attacks: it is what every enemy did until
         # 2026-09-27.
         self.sp_max = sp_max
         self.sp = sp_max
-        self.habilidades = list(habilidades)
-        self.acciones = (list(acciones) if acciones is not None
-                         else [(ACCION_RATING_SOLA, None, True)])
-        # What attacking costs it: `sp_del_arma`. Zero for an enemy.
-        self.sp_arma = sp_arma
-        self.defendiendo = False
-        self.orden = 0
+        self.skills = list(skills)
+        self.actions = (list(actions) if actions is not None
+                        else [(ACTION_RATING_ALONE, None, True)])
+        # What attacking costs it: `weapon_sp_of`. Zero for an enemy.
+        self.weapon_sp = weapon_sp
+        self.defending = False
+        self.command = 0
         # A hidden enemy —`invisible` in the troop— is there but does not
         # fight: `Exists()` is `!IsHidden() && !IsDead()`. A page's
         # `ShowHiddenMonster` brings it into the battle: see
-        # `PaginaDeTropa`.
-        self.oculto = False
+        # `TroopPage`.
+        self.hidden = False
         # What it gives when it dies: `Game_EnemyParty::GetExp` and
         # `GetMoney`.
         self.exp = 0
-        self.oro = 0
+        self.gold = 0
 
     @property
-    def vivo(self):
+    def alive(self):
         """`Exists()`: it has HP left and is not hidden. Everything that
         chooses a target, hands out actions or decides victory looks at
         this, so a hidden one counts for nothing until it appears —which is
         what the ROM does by leaving it without `BAF_HAY`—."""
-        return self.hp > 0 and not self.oculto
+        return self.hp > 0 and not self.hidden
 
     # The four parameters as a computation sees them: `AdjustParam` from
     # game_battler.cpp, that is `clamp(base + modificador, 1, 999)`. Without
     # states there is neither half nor double.
     @property
-    def ataque(self):
-        return max(1, min(PARAM_MAX, self.ataque_base + self.mod_ataque))
+    def attack(self):
+        return max(1, min(PARAM_MAX, self.base_attack + self.mod_attack))
 
     @property
-    def defensa(self):
-        return max(1, min(PARAM_MAX, self.defensa_base + self.mod_defensa))
+    def defense(self):
+        return max(1, min(PARAM_MAX, self.base_defense + self.mod_defense))
 
     @property
-    def espiritu(self):
-        return max(1, min(PARAM_MAX, self.espiritu_base + self.mod_espiritu))
+    def spirit(self):
+        return max(1, min(PARAM_MAX, self.base_spirit + self.mod_spirit))
 
     @property
-    def agilidad(self):
-        return max(1, min(PARAM_MAX, self.agilidad_base + self.mod_agilidad))
+    def agility(self):
+        return max(1, min(PARAM_MAX, self.base_agility + self.mod_agility))
 
 
-def actor_de(db, numero, equipo=None, nivel=None):
+def actor_of(db, number, equipment=None, level=None):
     """The combatant of an LDB actor, with whatever it has equipped.
 
     The parameters come from `rules.equipped_params`, which is the same function
@@ -552,35 +552,35 @@ def actor_de(db, numero, equipo=None, nivel=None):
 
     The level is the LDB's `initial_level` and not 1: see `rules.level_of`.
     Until 2026-09-13 it was 1 and Kersh fought with 40 HP and attack 17
-    instead of 168 and 80. With `nivel`, whatever it reached: see
+    instead of 168 and 80. With `level`, whatever it reached: see
     `port.experience`.
     """
-    actor = db.actors[numero]
-    if equipo is None:
-        equipo = list(actor.initial_equipment)
-    ataque, defensa, espiritu, agilidad = rules.equipped_params(db, numero,
-                                                               equipo, nivel)
-    critico = (100 // actor_critico_cada(db, numero)) \
-        if actor_tiene_critico(db, numero) else 0
-    quien = Combatiente(actor.name, rules.param_of(actor, "maxhp", nivel),
-                        ataque, defensa, agilidad, 90, critico, True, numero,
-                        espiritu, rules.param_of(actor, "maxsp", nivel),
-                        habilidades_de(db, numero, nivel),
-                        sp_arma=sp_del_arma(db, equipo))
-    return quien
+    actor = db.actors[number]
+    if equipment is None:
+        equipment = list(actor.initial_equipment)
+    attack, defense, spirit, agility = rules.equipped_params(db, number,
+                                                               equipment, level)
+    critical = (100 // actor_critical_every(db, number)) \
+        if actor_has_critical(db, number) else 0
+    who = Combatant(actor.name, rules.param_of(actor, "maxhp", level),
+                    attack, defense, agility, 90, critical, True, number,
+                    spirit, rules.param_of(actor, "maxsp", level),
+                    skills_of(db, number, level),
+                    weapon_sp=weapon_sp_of(db, equipment))
+    return who
 
 
-def actor_tiene_critico(db, numero):
+def actor_has_critical(db, number):
     """The actor's `critical_hit`, from the LDB. In ABL none has it."""
-    return bool(getattr(db.actors[numero], "critical_hit", False))
+    return bool(getattr(db.actors[number], "critical_hit", False))
 
 
-def actor_critico_cada(db, numero):
-    return getattr(db.actors[numero], "critical_hit_chance", 30) or 30
+def actor_critical_every(db, number):
+    return getattr(db.actors[number], "critical_hit_chance", 30) or 30
 
 
-def enemigo_de(db, enemy_id, lugar, oculto=False):
-    """The combatant of an LDB enemy; `oculto` is the `invisible` of its
+def enemy_of(db, enemy_id, place, hidden=False):
+    """The combatant of an LDB enemy; `hidden` is the `invisible` of its
     place in the troop.
 
     The hit chance is `Game_Enemy::GetHitChance`: 70 for one with `miss` set
@@ -588,37 +588,37 @@ def enemigo_de(db, enemy_id, lugar, oculto=False):
     and truncated, which with the default 30 gives 3.
     """
     e = db.enemies[enemy_id]
-    critico = (100 // (e.critical_hit_chance or 30)) if e.critical_hit else 0
-    quien = Combatiente(e.name, e.max_hp, e.attack, e.defense, e.agility,
-                        e.hit, critico, False, lugar, e.spirit, e.max_sp,
-                        acciones=acciones_de_enemigo(db, enemy_id))
+    critical = (100 // (e.critical_hit_chance or 30)) if e.critical_hit else 0
+    who = Combatant(e.name, e.max_hp, e.attack, e.defense, e.agility,
+                    e.hit, critical, False, place, e.spirit, e.max_sp,
+                    actions=actions_of_enemy(db, enemy_id))
     # What it drops when it dies: the item and its chance in percent. See
-    # `botin`.
-    quien.botin_item = e.drop_id
-    quien.botin_chance = e.drop_prob
-    quien.oculto = oculto
-    quien.exp = e.exp
-    quien.oro = e.gold
-    return quien
+    # `drops`.
+    who.drop_item = e.drop_id
+    who.drop_chance = e.drop_prob
+    who.hidden = hidden
+    who.exp = e.exp
+    who.gold = e.gold
+    return who
 
 
-def enemigos_de_la_tropa(db, tropa):
+def troop_enemies(db, troop):
     """The combatants of a troop, in their order and with their hidden ones,
     up to `ENEMIES_MAX` like the battle."""
-    t = db.troops[tropa]
-    return [enemigo_de(db, e, n, oculto)
-            for n, (e, oculto) in enumerate(
+    t = db.troops[troop]
+    return [enemy_of(db, e, n, hidden)
+            for n, (e, hidden) in enumerate(
                 list(zip(t.members, t.hidden))[:ENEMIES_MAX])]
 
 
-def _turnos(turno, base, multiplo):
+def _turns(turn, base, multiple):
     """`Game_Battle::CheckTurns(turns, base, multiple)`."""
-    if multiplo == 0:
-        return turno >= base and turno == base
-    return turno >= base and (turno - base) % multiplo == 0
+    if multiple == 0:
+        return turn >= base and turn == base
+    return turn >= base and (turn - base) % multiple == 0
 
 
-class PaginaDeTropa:
+class TroopPage:
     """An event page of the troop, **with what the model needs**: when it is
     met —`AreConditionsMet`, RM2k's six triggers— and whom it brings into
     the battle. Of its commands it runs only `ShowHiddenMonster`, the
@@ -628,92 +628,92 @@ class PaginaDeTropa:
     closes—. The rest —messages, skills, variables, sounds— does not change
     who fights nor draws battle randomness, and is not modeled.
 
-    The switches are the battle's, `Batalla.estado`, which starts with the
+    The switches are the battle's, `Battle.state`, which starts with the
     ones passed in: the ROM reads them from the map.
     """
 
-    def __init__(self, pagina):
-        self.activos = list(pagina.active)
-        self.c = pagina.condition
-        self.comandos = list(pagina.commands)
+    def __init__(self, page):
+        self.active = list(page.active)
+        self.c = page.condition
+        self.commands = list(page.commands)
 
-    def cumple(self, batalla):
-        if not self.activos:
+    def met(self, battle):
+        if not self.active:
             return False
         c = self.c
-        if "switch_a" in self.activos and not batalla.estado.get(
+        if "switch_a" in self.active and not battle.state.get(
                 c["switch_a_id"]):
             return False
-        if "switch_b" in self.activos and not batalla.estado.get(
+        if "switch_b" in self.active and not battle.state.get(
                 c["switch_b_id"]):
             return False
-        if "variable" in self.activos:
+        if "variable" in self.active:
             raise NotImplementedError("a page on a variable: the model has no "
                                       "variables")
-        if "turn" in self.activos and not _turnos(
-                batalla.turno, c["turn_b"], c["turn_a"]):
+        if "turn" in self.active and not _turns(
+                battle.turn, c["turn_b"], c["turn_a"]):
             return False
-        if "enemy_hp" in self.activos:
-            if c["enemy_id"] >= len(batalla.enemigos):
+        if "enemy_hp" in self.active:
+            if c["enemy_id"] >= len(battle.enemies):
                 return False
-            e = batalla.enemigos[c["enemy_id"]]
+            e = battle.enemies[c["enemy_id"]]
             if not (c["enemy_hp_min"] <= 100 * e.hp // e.hp_max
                     <= c["enemy_hp_max"]):
                 return False
-        if "actor_hp" in self.activos:
+        if "actor_hp" in self.active:
             # Only if it is in the party, like the ROM: see `ba_pag_cumple`.
-            suyos = [a for a in batalla.actores if a.numero == c["actor_id"]]
-            if not suyos:
+            matching = [a for a in battle.actors if a.number == c["actor_id"]]
+            if not matching:
                 return False
-            a = suyos[0]
+            a = matching[0]
             if not (c["actor_hp_min"] <= 100 * a.hp // a.hp_max
                     <= c["actor_hp_max"]):
                 return False
         return True
 
-    def correr(self, batalla):
+    def run(self, battle):
         """The commands, with the switch branches resolved: a branch that is
         not taken skips everything nested deeper than it."""
-        saltear_desde = None        # the indent of the branch not taken
-        for cmd in self.comandos:
-            if saltear_desde is not None:
-                if cmd.indent > saltear_desde:
+        skip_from = None        # the indent of the branch not taken
+        for cmd in self.commands:
+            if skip_from is not None:
+                if cmd.indent > skip_from:
                     continue
-                if cmd.code == 23310 and cmd.indent == saltear_desde:
-                    saltear_desde = None    # the `else` of the one not taken
+                if cmd.code == 23310 and cmd.indent == skip_from:
+                    skip_from = None    # the `else` of the one not taken
                     continue
-                saltear_desde = None
+                skip_from = None
             p = cmd.parameters
             if cmd.code == 13310:
                 if p[0] != 0:
                     raise NotImplementedError("a battle branch that is not "
                                               "on a switch")
-                prendido = bool(batalla.estado.get(p[1]))
-                if prendido != (p[2] == 0):
-                    saltear_desde = cmd.indent
+                lit = bool(battle.state.get(p[1]))
+                if lit != (p[2] == 0):
+                    skip_from = cmd.indent
             elif cmd.code == 23310:
                 # The `else` of a branch that was taken: it is skipped.
-                saltear_desde = cmd.indent
+                skip_from = cmd.indent
             elif cmd.code == events.CONTROL_SWITCHES:
                 if p[0] != 0 or p[1] != p[2] or p[3] not in (0, 1):
                     raise NotImplementedError("a ControlSwitches the model "
                                               "does not know")
-                batalla.estado[p[1]] = p[3] == 0
+                battle.state[p[1]] = p[3] == 0
             elif cmd.code == events.SHOW_HIDDEN_MONSTER:
-                if p[0] < len(batalla.enemigos):
-                    batalla.enemigos[p[0]].oculto = False
+                if p[0] < len(battle.enemies):
+                    battle.enemies[p[0]].hidden = False
 
 
-def oro_de_la_tropa(db, tropa):
+def troop_gold(db, troop):
     """`Game_EnemyParty::GetMoney`: the `gold` of each **dead** enemy, which
     in a victory is all of them except those that stayed hidden —as in
     `experience.troop_exp`—, up to `ENEMIES_MAX`. It is the sum of
     the whole troop; the ROM subtracts the hidden ones' when winning. It
     rolls nothing."""
-    return sum(db.enemies[e].gold for e in db.troops[tropa].members[:ENEMIES_MAX])
+    return sum(db.enemies[e].gold for e in db.troops[troop].members[:ENEMIES_MAX])
 
 
-def acierto_por_agilidad(base, agi_fuente, agi_blanco):
+def hit_rate_by_agility(base, agi_source, agi_target):
     """`CalcToHitAgiAdjustment` from algo.cpp.
 
         to_hit = 100 - (100 - to_hit) * (1 + (tgt_agi / src_agi - 1) / 2)
@@ -726,12 +726,12 @@ def acierto_por_agilidad(base, agi_fuente, agi_blanco):
     one point of hit chance every so often, which is exactly the kind of
     difference that is not seen until a hit misses.
     """
-    fuente = max(1, agi_fuente)
-    resta = (100 - base) * (fuente + agi_blanco)
-    return 100 - -(-resta // (2 * fuente))
+    source = max(1, agi_source)
+    subtract = (100 - base) * (source + agi_target)
+    return 100 - -(-subtract // (2 * source))
 
 
-def dano_normal(fuente, blanco, critico, azar):
+def normal_damage(source, target, critical, rng):
     """`CalcNormalAttackEffect` and `VarianceAdjustEffect` with variance 4.
 
         dmg = max(0, atk / 2 - def / 4)
@@ -741,19 +741,19 @@ def dano_normal(fuente, blanco, critico, azar):
     Rows, weapon attributes and the charged attack are not here: this port
     has none of the three.
     """
-    dano = max(0, fuente.ataque // 2 - blanco.defensa // 4)
-    if critico:
-        dano *= 3
-    return varianza_ajustar(dano, 4, azar)
+    damage = max(0, source.attack // 2 - target.defense // 4)
+    if critical:
+        damage *= 3
+    return apply_variance(damage, 4, rng)
 
 
-def ajustar_por_defensa(dano, blanco):
+def adjust_for_defense(damage, target):
     """`AdjustDamageForDefend`: whoever defends takes half. The "strong
     defense" is a state and there are no states."""
-    return _mitad(dano) if blanco.defendiendo else dano
+    return _half(damage) if target.defending else damage
 
 
-class Batalla:
+class Battle:
     """A battle, turn by turn. It is easyrpg's `Scene_Battle_Rpg2k` with
     what this port does.
 
@@ -762,7 +762,7 @@ class Batalla:
 
     1. the player chooses the command of each living actor (no roll);
     2. each living enemy chooses what to do and against whom
-       —`CreateEnemyActions`, see `accion_del_enemigo`—: **one roll for the
+       —`CreateEnemyActions`, see `enemy_action`—: **one roll for the
        action if it has more than one possible, and one for the target if
        the action asks for one**;
     3. `CreateExecutionOrder`: **one roll per combatant that acts**, for its
@@ -772,41 +772,41 @@ class Batalla:
        attack rolls **three times**: hit, critical and variance, and the
        critical one is rolled even if the chance is zero;
     5. on winning, **one roll per enemy with an item**, in troop order: see
-       `tirar_el_botin`.
+       `roll_drops`.
 
     Step 2 going before step 3 is not a detail: it is the order of
     `SelectNextActor`, which calls `CreateEnemyActions()` and then
     `CreateExecutionOrder()`.
     """
 
-    def __init__(self, actores, enemigos, semilla=BATALLA_SEMILLA,
-                 paginas=(), switches=None):
-        self.actores = list(actores)
-        self.enemigos = list(enemigos)
-        self.azar = Azar(semilla)
-        self.turno = 0
-        # The troop's pages —see `PaginaDeTropa`—, those that already ran
+    def __init__(self, actors, enemies, seed=BATTLE_SEED,
+                 pages=(), switches=None):
+        self.actors = list(actors)
+        self.enemies = list(enemies)
+        self.rng = Rng(seed)
+        self.turn = 0
+        # The troop's pages —see `TroopPage`—, those that already ran
         # this turn —`executed`— and the switches they look at.
-        self.paginas = list(paginas)
-        self.hechas = set()
-        self.estado = dict(switches or {})
-        self.resultado = None
-        self.huida_chance = self._chance_de_huir()
-        self.registro = []          # what happened, for a test to count
+        self.pages = list(pages)
+        self.done_pages = set()
+        self.state = dict(switches or {})
+        self.result = None
+        self.escape_chance = self._escape_chance()
+        self.log = []          # what happened, for a test to count
         # The switches a `switch` skill turned on: `Skill::vExecute` does
         # `SetAffectedSwitch(skill.switch_id)` and `Scene_Battle` actually
         # turns it on. Here the number is collected, which is what the test
         # compares against the ROM's bit.
         self.switches = []
-        # The items the enemies dropped on losing: see `tirar_el_botin`.
-        self.botin = []
+        # The items the enemies dropped on losing: see `roll_drops`.
+        self.drops = []
 
     # --- escaping --------------------------------------------------------
-    def _promedio(self, quienes):
-        vivos = [c for c in quienes if c.vivo] or list(quienes)
-        return sum(c.agilidad for c in vivos) // max(1, len(vivos))
+    def _average(self, whom):
+        n_alive = [c for c in whom if c.alive] or list(whom)
+        return sum(c.agility for c in n_alive) // max(1, len(n_alive))
 
-    def _chance_de_huir(self):
+    def _escape_chance(self):
         """`Scene_Battle::InitEscapeChance`:
 
             base = round(100 * enemies_agi / party_agi)
@@ -816,51 +816,51 @@ class Batalla:
         it is `(2a + b) // (2b)`, which is the same with integers and without
         floats.
         """
-        enemigos = self._promedio(self.enemigos)
-        grupo = max(1, self._promedio(self.actores))
-        base = (2 * 100 * enemigos + grupo) // (2 * grupo)
+        enemies = self._average(self.enemies)
+        party = max(1, self._average(self.actors))
+        base = (2 * 100 * enemies + party) // (2 * party)
         return max(0, min(100, 150 - base))
 
-    def huir(self):
+    def flee(self):
         """`TryEscape`: it rolls against the chance and, if it fails, the
         chance goes up ten.
 
         Returns True if it escaped. `first_strike` is not here: the two
         battles of the intro have it at zero.
         """
-        if self.azar.porciento(self.huida_chance):
-            self.resultado = HUIDA
+        if self.rng.percent(self.escape_chance):
+            self.result = ESCAPE
             return True
-        self.huida_chance = min(100, self.huida_chance + 10)
+        self.escape_chance = min(100, self.escape_chance + 10)
         return False
 
     # --- the troop's pages ---------------------------------------------------
-    def revisar_paginas(self):
+    def check_pages(self):
         """`CheckBattleEndAndScheduleEvents` until none is left: with a whole
         side out nothing runs; otherwise, the first page that is met and has
         not run this turn, and then again from the first. The ROM does it in
         `ba_pag_probar`."""
-        while self.vivos(self.enemigos) and self.vivos(self.actores):
-            for i, pagina in enumerate(self.paginas):
-                if i not in self.hechas and pagina.cumple(self):
-                    self.hechas.add(i)
-                    pagina.correr(self)
+        while self.living(self.enemies) and self.living(self.actors):
+            for i, page in enumerate(self.pages):
+                if i not in self.done_pages and page.met(self):
+                    self.done_pages.add(i)
+                    page.run(self)
                     break
             else:
                 return
 
-    def empezar(self):
+    def start(self):
         """Before the first commands, on turn 0: the `eCheckEvents` of
         `ProcessSceneActionFightAutoEscape`."""
-        self.revisar_paginas()
+        self.check_pages()
 
     # --- the turn ----------------------------------------------------------
-    def vivos(self, quienes):
-        return [c for c in quienes if c.vivo]
+    def living(self, whom):
+        return [c for c in whom if c.alive]
 
-    def accion_del_enemigo(self, enemigo):
+    def enemy_action(self, enemy):
         """What this enemy does: `SelectEnemyAiActionRpgRtCompat`, with the
-        list from `acciones_de_enemigo`. Returns `(rating, habilidad,
+        list from `actions_of_enemy`. Returns `(rating, habilidad,
         efectiva)` or None if it has no possible one left.
 
         1. The possible ones are those `IsActionValid` allows: the attack
@@ -881,28 +881,28 @@ class Batalla:
         as it was before enemies chose. RPG_RT draws from another generator
         anyway.
         """
-        pesos = [(r, s, ef) for r, s, ef in enemigo.acciones
-                 if s is None or enemigo.sp >= costo_de(s)]
-        if not pesos:
+        weights = [(r, s, ef) for r, s, ef in enemy.actions
+                   if s is None or enemy.sp >= cost_of(s)]
+        if not weights:
             return None
-        maximo = max(r for r, _s, _ef in pesos)
-        pesos = [(max(0, r - maximo + 10) if ef else 0, (r, s, ef))
-                 for r, s, ef in pesos]
-        pesos = [(p, a) for p, a in pesos if p > 0]
-        if not pesos:
+        top = max(r for r, _s, _ef in weights)
+        weights = [(max(0, r - top + 10) if ef else 0, (r, s, ef))
+                   for r, s, ef in weights]
+        weights = [(p, a) for p, a in weights if p > 0]
+        if not weights:
             return None
-        if len(pesos) == 1:
-            return pesos[0][1]
-        cual = self.azar.hasta(sum(p for p, _a in pesos) - 1)
-        for peso, accion in pesos:
-            cual -= peso
-            if cual < 0:
-                return accion
+        if len(weights) == 1:
+            return weights[0][1]
+        which = self.rng.up_to(sum(p for p, _a in weights) - 1)
+        for weight, action in weights:
+            which -= weight
+            if which < 0:
+                return action
         raise AssertionError("cannot happen: `cual` is less than the sum")
 
-    def acciones_de_los_enemigos(self):
+    def enemy_actions(self):
         """`CreateEnemyActions`: each living enemy chooses its action
-        —`accion_del_enemigo`— and then its target, which is the order of
+        —`enemy_action`— and then its target, which is the order of
         `MakeAttack` and `MakeSkillAction`:
 
         * attacking, or a skill with `enemy` scope: a random living actor,
@@ -917,65 +917,65 @@ class Batalla:
         left without an action: without that the two sides would roll a
         different number of times."""
         from rpgmaker import lcf
-        acciones = []
-        for enemigo in self.vivos(self.enemigos):
-            blancos = self.vivos(self.actores)
-            if not blancos:
+        actions = []
+        for enemy in self.living(self.enemies):
+            targets = self.living(self.actors)
+            if not targets:
                 break
-            accion = self.accion_del_enemigo(enemigo)
-            if accion is None:
+            action = self.enemy_action(enemy)
+            if action is None:
                 continue
-            _rating, skill, _ef = accion
+            _rating, skill, _ef = action
             if skill is None:
-                blanco = blancos[self.azar.hasta(len(blancos) - 1)]
-                acciones.append((enemigo, ORDEN_ATACAR, blanco))
+                target = targets[self.rng.up_to(len(targets) - 1)]
+                actions.append((enemy, COMMAND_ATTACK, target))
                 continue
             if skill.scope == lcf.SKILL_SCOPE_ENEMY:
-                blanco = blancos[self.azar.hasta(len(blancos) - 1)]
+                target = targets[self.rng.up_to(len(targets) - 1)]
             elif skill.scope == lcf.SKILL_SCOPE_ALLY:
                 # Among the ones the skill affects, which are all the living
                 # ones: one that is not `efectiva` weighed zero and does not
                 # get here.
-                suyos = self.vivos(self.enemigos)
-                blanco = suyos[self.azar.hasta(len(suyos) - 1)]
+                matching = self.living(self.enemies)
+                target = matching[self.rng.up_to(len(matching) - 1)]
             else:
-                blanco = enemigo
-            acciones.append((enemigo, ORDEN_HABILIDAD, (skill, blanco)))
-        return acciones
+                target = enemy
+            actions.append((enemy, COMMAND_SKILL, (skill, target)))
+        return actions
 
-    def orden_de_ejecucion(self, acciones):
+    def execution_order(self, actions):
         """`CreateExecutionOrder`: `agi + rand(0, agi / 4 + 3)`, from highest
         to lowest and with a **stable** order, which is what `std::sort` does
         on a list that already comes in the order it was stacked."""
-        for quien, _orden, _blanco in acciones:
-            quien.orden = quien.agilidad + self.azar.hasta(
-                quien.agilidad // 4 + 3)
-        return sorted(range(len(acciones)),
-                      key=lambda i: -acciones[i][0].orden)
+        for who, _command, _target in actions:
+            who.command = who.agility + self.rng.up_to(
+                who.agility // 4 + 3)
+        return sorted(range(len(actions)),
+                      key=lambda i: -actions[i][0].command)
 
-    def atacar(self, fuente, blanco):
+    def attack(self, source, target):
         """A normal attack, with its three rolls. Returns (hit, critical,
         damage).
 
         Before anything, and without rolling, it charges the weapon's SP:
-        `Normal::vStart` —see `sp_del_arma`—. It is charged even if the hit
+        `Normal::vStart` —see `weapon_sp_of`—. It is charged even if the hit
         misses, and with SP at zero it attacks anyway: RM2k does not gray out
         `Attack`."""
-        fuente.sp = max(0, fuente.sp - fuente.sp_arma)
-        acierto = acierto_por_agilidad(fuente.acierto, fuente.agilidad,
-                                       blanco.agilidad)
-        pego = self.azar.porciento(acierto)
-        critico = self.azar.porciento(fuente.critico if pego else 0)
-        if not pego:
+        source.sp = max(0, source.sp - source.weapon_sp)
+        hit_rate = hit_rate_by_agility(source.hit_rate, source.agility,
+                                       target.agility)
+        hit = self.rng.percent(hit_rate)
+        critical = self.rng.percent(source.critical if hit else 0)
+        if not hit:
             # The critical roll was made anyway, but the hit missed.
             return False, False, 0
-        dano = dano_normal(fuente, blanco, critico, self.azar)
-        dano = ajustar_por_defensa(dano, blanco)
-        dano = max(-DANO_MAX, min(DANO_MAX, dano))
-        blanco.hp = max(0, blanco.hp - dano)
-        return True, critico, dano
+        damage = normal_damage(source, target, critical, self.rng)
+        damage = adjust_for_defense(damage, target)
+        damage = max(-DAMAGE_MAX, min(DAMAGE_MAX, damage))
+        target.hp = max(0, target.hp - damage)
+        return True, critical, damage
 
-    def usar_habilidad(self, fuente, skill, blanco):
+    def use_skill(self, source, skill, target):
         """`Game_BattleAlgorithm::Skill`, with what this port knows how to
         do.
 
@@ -994,7 +994,7 @@ class Batalla:
         5. one roll against the hit chance **for each thing the skill
            affects**, in the order HP, SP, attack, defense, spirit, agility.
 
-        Steps 3 to 5 go **once per target**: see `blancos_de_la_habilidad`.
+        Steps 3 to 5 go **once per target**: see `skill_targets`.
 
         What is not here: states, attributes, absorbing and reviving. Of
         AG7's, three touch states —BioWarfare, HeadButt and RemoveStatus—:
@@ -1002,16 +1002,16 @@ class Batalla:
         critical, and HeadButt hits without leaving the state.
         """
         from rpgmaker import lcf
-        fuente.sp = max(0, fuente.sp - costo_de(skill))
+        source.sp = max(0, source.sp - cost_of(skill))
         if skill.type == lcf.SKILL_TYPE_SWITCH:
             self.switches.append(skill.switch_id)
-            self.registro.append((self.turno, fuente.nombre, fuente.nombre,
-                                  True, False, 0, fuente.hp))
+            self.log.append((self.turn, source.name, source.name,
+                             True, False, 0, source.hp))
             return
-        for uno in self.blancos_de_la_habilidad(fuente, skill, blanco):
-            self._habilidad_sobre(fuente, skill, uno)
+        for one in self.skill_targets(source, skill, target):
+            self._skill_on(source, skill, one)
 
-    def blancos_de_la_habilidad(self, fuente, skill, blanco):
+    def skill_targets(self, source, skill, target):
         """Whom it falls on, in the order `vExecute` walks them:
         `AlgorithmBase::Start` with the scope's `party_target`, which is
         `GetBattlers` in screen order skipping the ones `IsTargetValid`
@@ -1022,84 +1022,84 @@ class Batalla:
         its own, **each with its rolls**: the critical, the variance and the
         hit rolls are repeated per target."""
         from rpgmaker import lcf
-        propios, contrarios = ((self.actores, self.enemigos) if fuente.es_actor
-                               else (self.enemigos, self.actores))
+        own, opponents = ((self.actors, self.enemies) if source.is_actor
+                          else (self.enemies, self.actors))
         if skill.scope == lcf.SKILL_SCOPE_SELF:
-            return [fuente]
+            return [source]
         if skill.scope == lcf.SKILL_SCOPE_ENEMIES:
-            return self.vivos(contrarios)
+            return self.living(opponents)
         if skill.scope == lcf.SKILL_SCOPE_PARTY:
-            return self.vivos(propios)
-        return [blanco]
+            return self.living(own)
+        return [target]
 
-    def _habilidad_sobre(self, fuente, skill, blanco):
-        """`vExecute` on one target: see `usar_habilidad`."""
+    def _skill_on(self, source, skill, target):
+        """`vExecute` on one target: see `use_skill`."""
         # `CalcSkillToHit`: the skill's `hit`, which all seven have at 100.
         # The `failure_message == 3` path is not taken —none has it— and it
         # is declared as what is missing.
-        acierto = skill.hit
-        critico = self.azar.porciento(0)
-        efecto = efecto_habilidad(fuente, blanco, skill, critico)
-        efecto = varianza_ajustar(efecto, skill.variance, self.azar)
-        efecto = max(-DANO_MAX, min(DANO_MAX, efecto))
-        positivo = not skill.targets_enemies
-        if not positivo:
-            efecto = -efecto
-        if skill.affect_hp and self.azar.porciento(acierto):
-            if positivo:
+        hit_rate = skill.hit
+        critical = self.rng.percent(0)
+        effect = skill_effect(source, target, skill, critical)
+        effect = apply_variance(effect, skill.variance, self.rng)
+        effect = max(-DAMAGE_MAX, min(DAMAGE_MAX, effect))
+        positive = not skill.targets_enemies
+        if not positive:
+            effect = -effect
+        if skill.affect_hp and self.rng.percent(hit_rate):
+            if positive:
                 # A heal does not kill: `max(-(cur_hp - 1), hp_effect)`.
-                hp = max(-(blanco.hp - 1), efecto)
+                hp = max(-(target.hp - 1), effect)
             else:
-                hp = ajustar_por_defensa(efecto, blanco)
-            blanco.hp = max(0, min(blanco.hp_max, blanco.hp + hp))
-        if skill.affect_sp and self.azar.porciento(acierto):
-            blanco.sp = max(0, min(blanco.sp_max, blanco.sp + efecto))
-        for afecta, mod, base in (
-                (skill.affect_attack, "mod_ataque", "ataque_base"),
-                (skill.affect_defense, "mod_defensa", "defensa_base"),
-                (skill.affect_spirit, "mod_espiritu", "espiritu_base"),
-                (skill.affect_agility, "mod_agilidad", "agilidad_base")):
-            if not afecta:
+                hp = adjust_for_defense(effect, target)
+            target.hp = max(0, min(target.hp_max, target.hp + hp))
+        if skill.affect_sp and self.rng.percent(hit_rate):
+            target.sp = max(0, min(target.sp_max, target.sp + effect))
+        for affects, mod, base in (
+                (skill.affect_attack, "mod_attack", "base_attack"),
+                (skill.affect_defense, "mod_defense", "base_defense"),
+                (skill.affect_spirit, "mod_spirit", "base_spirit"),
+                (skill.affect_agility, "mod_agility", "base_agility")):
+            if not affects:
                 continue
-            if not self.azar.porciento(acierto):
+            if not self.rng.percent(hit_rate):
                 continue
-            delta = cambio_de_modificador(getattr(blanco, mod),
-                                          getattr(blanco, base), efecto)
-            setattr(blanco, mod, getattr(blanco, mod) + delta)
-        self.registro.append((self.turno, fuente.nombre, blanco.nombre,
-                              True, critico, -efecto, blanco.hp))
+            delta = modifier_change(getattr(target, mod),
+                                    getattr(target, base), effect)
+            setattr(target, mod, getattr(target, mod) + delta)
+        self.log.append((self.turn, source.name, target.name,
+                         True, critical, -effect, target.hp))
 
     # --- victory ---------------------------------------------------------
-    def experiencia(self):
+    def experience(self):
         """`Game_EnemyParty::GetExp` on winning: that of the dead, which are
         all except those that stayed hidden. The ROM subtracts these from the
         troop's: `ba_sin_ocultos`."""
-        return sum(e.exp for e in self.enemigos if not e.oculto)
+        return sum(e.exp for e in self.enemies if not e.hidden)
 
-    def oro(self):
-        """`GetMoney`, like `experiencia`."""
-        return sum(e.oro for e in self.enemigos if not e.oculto)
+    def gold(self):
+        """`GetMoney`, like `experience`."""
+        return sum(e.gold for e in self.enemies if not e.hidden)
 
-    def tirar_el_botin(self):
+    def roll_drops(self):
         """`Game_EnemyParty::GenerateDrops`: for each enemy, in troop order,
         **one roll if it has an item** —`ChanceOf(drop_prob, 100)`, which is
         `GetRandomNumber(1, 100) <= rate` and with our randomness gives the
-        same as `porciento`— and none if not. The one with chance 100 is
-        rolled anyway. `jugar_turno` calls it on winning, which is when
+        same as `percent`— and none if not. The one with chance 100 is
+        rolled anyway. `play_turn` calls it on winning, which is when
         `ProcessSceneActionVictory` does it; returns the items won in order,
         one per enemy that dropped its own."""
-        ganados = []
-        for enemigo in self.enemigos:
-            if enemigo.oculto:
+        earned = []
+        for enemy in self.enemies:
+            if enemy.hidden:
                 continue        # it did not die: `IsDead` is false
-            item = getattr(enemigo, "botin_item", 0)
-            if item > 0 and self.azar.porciento(enemigo.botin_chance):
-                ganados.append(item)
-        return ganados
+            item = getattr(enemy, "drop_item", 0)
+            if item > 0 and self.rng.percent(enemy.drop_chance):
+                earned.append(item)
+        return earned
 
-    def jugar_turno(self, ordenes):
-        """A whole turn. `ordenes` is, per living actor and in party order,
-        `(ORDEN_ATACAR, lugar_del_enemigo)` or `(ORDEN_DEFENDER, 0)`.
+    def play_turn(self, commands):
+        """A whole turn. `commands` is, per living actor and in party order,
+        `(COMMAND_ATTACK, lugar_del_enemigo)` or `(COMMAND_DEFEND, 0)`.
 
         Returns the outcome if the battle ended, or None.
 
@@ -1107,90 +1107,90 @@ class Batalla:
         —`ePreAction`—, and the recorded ones are cleared at the start, which
         is `NextTurn`. The ones before the commands of the next turn are the
         same as those after the last action, so no extra pass is needed: see
-        `empezar` for those of turn 0.
+        `start` for those of turn 0.
         """
-        self.turno += 1
-        self.hechas = set()
-        for quien in self.actores + self.enemigos:
-            quien.defendiendo = False
-        acciones = []
-        for actor, (orden, blanco) in zip(self.vivos(self.actores), ordenes):
-            if orden == ORDEN_ITEM:
-                # Here `blanco` is `(item, lugar_del_actor)`: the LDB item and
+        self.turn += 1
+        self.done_pages = set()
+        for who in self.actors + self.enemies:
+            who.defending = False
+        actions = []
+        for actor, (command, target) in zip(self.living(self.actors), commands):
+            if command == COMMAND_ITEM:
+                # Here `target` is `(item, lugar_del_actor)`: the LDB item and
                 # whom it is given to.
-                item, quien = blanco
-                acciones.append((actor, orden, (item, self.actores[quien])))
+                item, who = target
+                actions.append((actor, command, (item, self.actors[who])))
                 continue
-            if orden == ORDEN_HABILIDAD:
+            if command == COMMAND_SKILL:
                 # And here `(skill, lugar)`: the LDB skill and the target's
                 # place, in the list of the side its `scope` points to.
-                skill, quien = blanco
-                lado = (self.enemigos if skill.targets_enemies
-                        else self.actores)
+                skill, who = target
+                side = (self.enemies if skill.targets_enemies
+                        else self.actors)
                 # A switch one asks for no target: `Scene_Battle::AssignSkill`
                 # records it on the one using it, wherever its `scope`
                 # points. The same for multi-target and self ones, whose
-                # target the scope says: see `blancos_de_la_habilidad`.
-                destino = lado[quien] if pide_blanco(skill) else actor
-                acciones.append((actor, orden, (skill, destino)))
+                # target the scope says: see `skill_targets`.
+                dest = side[who] if needs_target(skill) else actor
+                actions.append((actor, command, (skill, dest)))
                 continue
-            acciones.append((actor, orden,
-                             self.enemigos[blanco] if orden == ORDEN_ATACAR
-                             else None))
-        acciones += self.acciones_de_los_enemigos()
-        for i in self.orden_de_ejecucion(acciones):
-            self.revisar_paginas()
-            quien, orden, blanco = acciones[i]
-            if not quien.vivo:
+            actions.append((actor, command,
+                            self.enemies[target] if command == COMMAND_ATTACK
+                            else None))
+        actions += self.enemy_actions()
+        for i in self.execution_order(actions):
+            self.check_pages()
+            who, command, target = actions[i]
+            if not who.alive:
                 continue
-            if orden == ORDEN_DEFENDER:
+            if command == COMMAND_DEFEND:
                 # `Defend` marks the defender **when its turn comes**, not when
                 # choosing: an enemy that acts before hits it in full. It is
                 # RM2k's behavior.
-                quien.defendiendo = True
+                who.defending = True
                 continue
-            if orden == ORDEN_HUIR:
+            if command == COMMAND_ESCAPE:
                 continue
-            if orden == ORDEN_HABILIDAD:
+            if command == COMMAND_SKILL:
                 # A dead target **is not retargeted**, as with an item:
                 # `Skill`'s `IsTargetValid` discards it and the action is
                 # lost.
-                skill, blanco = blanco
-                if not blanco.vivo:
+                skill, target = target
+                if not target.alive:
                     continue
-                self.usar_habilidad(quien, skill, blanco)
+                self.use_skill(who, skill, target)
                 continue
-            if orden == ORDEN_ITEM:
+            if command == COMMAND_ITEM:
                 # An item cannot miss and nobody dodges it: it rolls nothing.
                 # The target is **not** retargeted, which is the opposite of
                 # an attack: `Game_BattleAlgorithm::Item` goes to the one
                 # chosen, and if it changed along the way the item is spent
-                # anyway and does whatever `efecto_de_item` says with it as it
+                # anyway and does whatever `item_effect` says with it as it
                 # is now. A revived one does not act this turn —it had no
-                # command— and next turn it asks again, which is `vivos` when
+                # command— and next turn it asks again, which is `n_alive` when
                 # handing them out.
-                item, blanco = blanco
-                antes = blanco.hp
-                blanco.hp, _levantado = efecto_de_item(item, blanco)
-                self.registro.append((self.turno, quien.nombre, blanco.nombre,
-                                      True, False, antes - blanco.hp,
-                                      blanco.hp))
+                item, target = target
+                before = target.hp
+                target.hp, _revived = item_effect(item, target)
+                self.log.append((self.turn, who.name, target.name,
+                                 True, False, before - target.hp,
+                                 target.hp))
                 continue
-            if not blanco.vivo:
+            if not target.alive:
                 # `Game_BattleAlgorithm` retargets another one on the same
                 # side when the target died before its turn came.
-                lado = self.enemigos if not blanco.es_actor else self.actores
-                candidatos = self.vivos(lado)
-                if not candidatos:
+                side = self.enemies if not target.is_actor else self.actors
+                candidates = self.living(side)
+                if not candidates:
                     continue
-                blanco = candidatos[0]
-            pego, critico, dano = self.atacar(quien, blanco)
-            self.registro.append((self.turno, quien.nombre, blanco.nombre,
-                                  pego, critico, dano, blanco.hp))
-        self.revisar_paginas()
-        if not self.vivos(self.enemigos):
-            self.resultado = VICTORIA
-            self.botin = self.tirar_el_botin()
-        elif not self.vivos(self.actores):
-            self.resultado = DERROTA
-        return self.resultado
+                target = candidates[0]
+            hit, critical, damage = self.attack(who, target)
+            self.log.append((self.turn, who.name, target.name,
+                             hit, critical, damage, target.hp))
+        self.check_pages()
+        if not self.living(self.enemies):
+            self.result = VICTORY
+            self.drops = self.roll_drops()
+        elif not self.living(self.actors):
+            self.result = DEFEAT
+        return self.result

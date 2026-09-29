@@ -17,7 +17,7 @@ enemigos, uno por enemigo.
 """
 
 from port import scene
-from port import batalla as modelo
+from port import battle as modelo
 from rpgmaker.resources import GAME_DIR
 
 from consola import en_la_rom, en_la_wram
@@ -257,11 +257,11 @@ def test_escena_el_droide_muerto_peleando_desaparece(partida):
     una = en_el_droide(partida)
     pelea = Pelea(una).abrir()
     esperado = modelo_de(datos.base())
-    while esperado.resultado is None:
-        pelea.turno(len(esperado.vivos(esperado.actores)))
-        esperado.jugar_turno(
-            [(modelo.ORDEN_ATACAR, 0)] * len(esperado.vivos(esperado.actores)))
-    assert pelea.byte("BA_RESULT") == modelo.VICTORIA
+    while esperado.result is None:
+        pelea.turno(len(esperado.living(esperado.actors)))
+        esperado.play_turn(
+            [(modelo.COMMAND_ATTACK, 0)] * len(esperado.living(esperado.actors)))
+    assert pelea.byte("BA_RESULT") == modelo.VICTORY
     _hasta_subido(una, 0)
     limpio = _bufer(una, "ESC_LIMPIO")
     assert _distintos(_bufer(una, "ESC_ESCENA"), limpio) == 0, \

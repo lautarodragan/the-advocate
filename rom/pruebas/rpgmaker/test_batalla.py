@@ -8,7 +8,7 @@ cuesta ningún tick —ver `OP_BATTLE` en tools/port/events.py—. Lo que pasa a
 se mira desde acá.
 
 **Lo que hace fuerte a este archivo** es que no se conforma con "bajó": el
-modelo de `tools/port/batalla.py` juega la misma pelea con el mismo azar y las
+modelo de `tools/port/battle.py` juega la misma pelea con el mismo azar y las
 mismas fórmulas, y la prueba exige que la consola dé **el número exacto** en
 cada HP, turno por turno. Si la ROM y el modelo se separan en un tiro de dado
 o en una división, el primer turno ya no coincide.
@@ -23,7 +23,7 @@ Acá se pelea la primera. La tropa de cuatro enemigos la ejercitan los casos
 """
 
 from port import rules
-from port import batalla as modelo
+from port import battle as modelo
 
 from batalla import (DROIDE, GRUPO, TROPA_DROIDE, Pelea, en_el_droide, hab_id,
                      modelo_de)
@@ -32,7 +32,7 @@ import datos
 from tanda import LINKAGE
 
 # Las habilidades que el grupo de la intro sabe, por si alguna prueba quiere
-# nombrarlas. Salen de `batalla.habilidades_de`, que es lo que decide el orden.
+# nombrarlas. Salen de `battle.skills_of`, que es lo que decide el orden.
 FURY_PUNCH, MINDSHIELD, HEALING_SYRINGE, AGENCY_BADGE = 129, 143, 131, 146
 # La Potion del LDB: cincuenta HP planos, que es el ítem de curar más barato
 # y el único que hace falta para cobrar la cuenta.
@@ -141,7 +141,7 @@ def test_la_pelea_del_droide_se_abre_con_la_tropa_del_juego(partida):
 
     Los parámetros del enemigo salen del LDB y los del grupo de
     `eq_parametro`, la misma función que la pantalla de equipo. Que coincidan
-    con `batalla.py` es lo que hace que el resto de este archivo signifique
+    con `battle.py` es lo que hace que el resto de este archivo signifique
     algo: si la ROM peleara con otros números, los turnos también darían otra
     cosa y no se sabría cuál de las dos está mal.
     """
@@ -151,14 +151,14 @@ def test_la_pelea_del_droide_se_abre_con_la_tropa_del_juego(partida):
     esperado = modelo_de(base)
     assert pelea.byte("BA_NACT") == 3
     assert pelea.byte("BA_NENE") == 1
-    for k, quien in enumerate(esperado.actores + [None] + esperado.enemigos):
+    for k, quien in enumerate(esperado.actors + [None] + esperado.enemies):
         if quien is None:
             continue
         d = una.simbolos["BA_UNO"] + k * una.simbolos["BA_BYTES"]
         assert pelea.palabra(d + 0) == quien.hp, "los HP del %d" % k
-        assert pelea.palabra(d + 4) == quien.ataque, "el ataque del %d" % k
-        assert pelea.palabra(d + 6) == quien.defensa, "la defensa del %d" % k
-        assert pelea.palabra(d + 8) == quien.agilidad, "la agilidad del %d" % k
+        assert pelea.palabra(d + 4) == quien.attack, "el ataque del %d" % k
+        assert pelea.palabra(d + 6) == quien.defense, "la defensa del %d" % k
+        assert pelea.palabra(d + 8) == quien.agility, "la agilidad del %d" % k
 
 
 def test_la_chance_de_huir_es_la_de_rm2k(partida):
@@ -166,14 +166,14 @@ def test_la_chance_de_huir_es_la_de_rm2k(partida):
     lados. Con el droide da cero: es cinco veces más ágil que el grupo."""
     una = en_el_droide(partida)
     pelea = Pelea(una).abrir()
-    assert pelea.byte("BA_HUIDA") == modelo_de(datos.base()).huida_chance
+    assert pelea.byte("BA_HUIDA") == modelo_de(datos.base()).escape_chance
 
 
 def test_la_pelea_entera_da_los_mismos_hp_que_el_modelo(partida):
     """El corazón de todo esto: turno por turno, el mismo número.
 
     Los tres actores atacan al droide y la consola tiene que llegar al mismo HP
-    que `batalla.Batalla` en cada uno de los doce valores. Ahí adentro están el
+    que `battle.Battle` en cada uno de los doce valores. Ahí adentro están el
     orden de turnos, los tres tiros de cada golpe —acierto, crítico y
     varianza—, el daño con `atk / 2 - def / 4`, la mitad del que se defiende y
     el reapuntado del blanco muerto. **Si cualquiera de esos se separa, el
@@ -187,28 +187,28 @@ def test_la_pelea_entera_da_los_mismos_hp_que_el_modelo(partida):
     pelea = Pelea(una).abrir()
     esperado = modelo_de(datos.base())
     for turno in range(1, 8):
-        pelea.turno(len(esperado.vivos(esperado.actores)))
-        esperado.jugar_turno(
-            [(modelo.ORDEN_ATACAR, 0)] * len(esperado.vivos(esperado.actores)))
+        pelea.turno(len(esperado.living(esperado.actors)))
+        esperado.play_turn(
+            [(modelo.COMMAND_ATTACK, 0)] * len(esperado.living(esperado.actors)))
         de_la_rom = ([pelea.hp_del_combatiente(k)
                       for k in range(len(GRUPO))]
                      + [pelea.hp_del_combatiente(
                          una.simbolos["BA_GRUPO_MAX"])])
-        del_modelo = [c.hp for c in esperado.actores] + [esperado.enemigos[0].hp]
+        del_modelo = [c.hp for c in esperado.actors] + [esperado.enemies[0].hp]
         assert de_la_rom == del_modelo, \
             "turno %d: la consola dejó %r y el modelo %r" % (
                 turno, de_la_rom, del_modelo)
-        if esperado.resultado is not None:
+        if esperado.result is not None:
             break
-    assert esperado.resultado == modelo.VICTORIA, \
+    assert esperado.result == modelo.VICTORY, \
         "la pelea de banco tendría que terminar en victoria"
     assert pelea.modo() == "FIN"
-    assert pelea.byte("BA_RESULT") == modelo.VICTORIA
+    assert pelea.byte("BA_RESULT") == modelo.VICTORY
 
 
 # --- las habilidades ---------------------------------------------------------
 #
-# Todas comparan contra `batalla.Batalla.usar_habilidad`, que es
+# Todas comparan contra `battle.Battle.use_skill`, que es
 # `Game_BattleAlgorithm::Skill` de easyrpg. Lo que hace fuerte a esta tanda es
 # lo mismo que al resto del archivo: no se conforma con "bajó", exige **el
 # número exacto**, y el número sale de un modelo que consume el azar en el
@@ -217,11 +217,11 @@ def test_la_pelea_entera_da_los_mismos_hp_que_el_modelo(partida):
 
 
 def habilidades(base, actor):
-    return modelo.habilidades_de(base, actor)
+    return modelo.skills_of(base, actor)
 
 
 def test_cada_actor_sabe_las_habilidades_de_su_nivel(partida):
-    """`actor_hab`, contra `batalla.habilidades_de`.
+    """`actor_hab`, contra `battle.skills_of`.
 
     Kersh 131 y 146, Core 129 y 150, Manta 130, 143, 144 y 150: las que el LDB
     dice que se aprenden en un nivel menor o igual al suyo. Con nivel 1 **las
@@ -281,24 +281,24 @@ def test_una_habilidad_de_dano_da_el_mismo_hp_y_los_mismos_sp(partida):
         pelea.ordenar(("habilidad", 0, 0))
         pelea.ordenar(("defender",))
         pelea.correr_turno()
-        esperado.jugar_turno([(modelo.ORDEN_DEFENDER, 0),
-                              (modelo.ORDEN_HABILIDAD, (fury, 0)),
-                              (modelo.ORDEN_DEFENDER, 0)])
+        esperado.play_turn([(modelo.COMMAND_DEFEND, 0),
+                            (modelo.COMMAND_SKILL, (fury, 0)),
+                            (modelo.COMMAND_DEFEND, 0)])
         de_la_rom = ([pelea.hp_del_combatiente(k)
                       for k in range(len(GRUPO))]
                      + [pelea.hp_del_combatiente(
                          una.simbolos["BA_GRUPO_MAX"])])
-        del_modelo = [c.hp for c in esperado.actores] + [
-            esperado.enemigos[0].hp]
+        del_modelo = [c.hp for c in esperado.actors] + [
+            esperado.enemies[0].hp]
         assert de_la_rom == del_modelo, \
             "turno %d: la consola dejó %r y el modelo %r" % (
                 turno, de_la_rom, del_modelo)
-        assert pelea.sp_del_combatiente(1) == esperado.actores[1].sp, \
+        assert pelea.sp_del_combatiente(1) == esperado.actors[1].sp, \
             "turno %d: los SP de Core, %d contra %d" % (
-                turno, pelea.sp_del_combatiente(1), esperado.actores[1].sp)
-        if esperado.resultado is not None:
+                turno, pelea.sp_del_combatiente(1), esperado.actors[1].sp)
+        if esperado.result is not None:
             break
-    assert esperado.actores[1].sp < esperado.actores[1].sp_max, \
+    assert esperado.actors[1].sp < esperado.actors[1].sp_max, \
         "si la habilidad no costara SP este caso no distinguiría el costo"
 
 
@@ -324,19 +324,19 @@ def test_una_habilidad_de_switch_prende_su_switch(partida):
     assert pelea.switch(switch), \
         "MindShield tenía que prender el switch %d" % switch
     esperado = modelo_de(base)
-    esperado.jugar_turno([(modelo.ORDEN_DEFENDER, 0),
-                          (modelo.ORDEN_DEFENDER, 0),
-                          (modelo.ORDEN_HABILIDAD,
-                           (base.skills[MINDSHIELD], 0))])
+    esperado.play_turn([(modelo.COMMAND_DEFEND, 0),
+                        (modelo.COMMAND_DEFEND, 0),
+                        (modelo.COMMAND_SKILL,
+                         (base.skills[MINDSHIELD], 0))])
     assert esperado.switches == [switch]
-    assert pelea.sp_del_combatiente(2) == esperado.actores[2].sp, \
+    assert pelea.sp_del_combatiente(2) == esperado.actors[2].sp, \
         "los SP de Manta, %d contra %d" % (pelea.sp_del_combatiente(2),
-                                           esperado.actores[2].sp)
+                                           esperado.actors[2].sp)
     # Y el azar **no se movió**: una de switch vuelve antes de cualquier tiro.
     # Si la ROM tirara un dado de más, los HP del turno siguiente no darían.
     de_la_rom = ([pelea.hp_del_combatiente(k) for k in range(len(GRUPO))]
                  + [pelea.hp_del_combatiente(una.simbolos["BA_GRUPO_MAX"])])
-    del_modelo = [c.hp for c in esperado.actores] + [esperado.enemigos[0].hp]
+    del_modelo = [c.hp for c in esperado.actors] + [esperado.enemies[0].hp]
     assert de_la_rom == del_modelo, \
         "la consola dejó %r y el modelo %r" % (de_la_rom, del_modelo)
 
@@ -355,23 +355,23 @@ def test_una_habilidad_que_cura_apunta_al_grupo(partida):
     una.poner_hp(GRUPO[1], lastimado)
     pelea = Pelea(una).abrir()
     esperado = modelo_de(base)
-    esperado.actores[1].hp = lastimado
+    esperado.actors[1].hp = lastimado
     assert pelea.hp_del_combatiente(1) == lastimado, \
         "la pelea tenía que arrancar con Core lastimado"
     pelea.ordenar(("habilidad", 0, 1))
     pelea.ordenar(("defender",))
     pelea.ordenar(("defender",))
     pelea.correr_turno()
-    esperado.jugar_turno([(modelo.ORDEN_HABILIDAD,
-                           (base.skills[HEALING_SYRINGE], 1)),
-                          (modelo.ORDEN_DEFENDER, 0),
-                          (modelo.ORDEN_DEFENDER, 0)])
-    assert pelea.hp_del_combatiente(1) == esperado.actores[1].hp, \
+    esperado.play_turn([(modelo.COMMAND_SKILL,
+                         (base.skills[HEALING_SYRINGE], 1)),
+                        (modelo.COMMAND_DEFEND, 0),
+                        (modelo.COMMAND_DEFEND, 0)])
+    assert pelea.hp_del_combatiente(1) == esperado.actors[1].hp, \
         "los HP de Core: la consola %d y el modelo %d" % (
-            pelea.hp_del_combatiente(1), esperado.actores[1].hp)
-    assert esperado.actores[1].hp > lastimado, \
+            pelea.hp_del_combatiente(1), esperado.actors[1].hp)
+    assert esperado.actors[1].hp > lastimado, \
         "si la habilidad no curara nada el caso no distinguiría"
-    assert pelea.sp_del_combatiente(0) == esperado.actores[0].sp
+    assert pelea.sp_del_combatiente(0) == esperado.actors[0].sp
 
 
 def test_una_habilidad_modifica_los_parametros_del_blanco(partida):
@@ -398,19 +398,19 @@ def test_una_habilidad_modifica_los_parametros_del_blanco(partida):
     pelea.ordenar(("defender",))
     pelea.ordenar(("defender",))
     pelea.correr_turno()
-    esperado.jugar_turno([(modelo.ORDEN_HABILIDAD,
-                           (base.skills[AGENCY_BADGE], 0)),
-                          (modelo.ORDEN_DEFENDER, 0),
-                          (modelo.ORDEN_DEFENDER, 0)])
-    droide = esperado.enemigos[0]
-    for nombre, campo, valor in (("ataque", "BA_ATK", droide.ataque),
-                                 ("defensa", "BA_DEF", droide.defensa),
-                                 ("agilidad", "BA_AGI", droide.agilidad)):
+    esperado.play_turn([(modelo.COMMAND_SKILL,
+                         (base.skills[AGENCY_BADGE], 0)),
+                        (modelo.COMMAND_DEFEND, 0),
+                        (modelo.COMMAND_DEFEND, 0)])
+    droide = esperado.enemies[0]
+    for nombre, campo, valor in (("ataque", "BA_ATK", droide.attack),
+                                 ("defensa", "BA_DEF", droide.defense),
+                                 ("agilidad", "BA_AGI", droide.agility)):
         de_la_rom = pelea.palabra(del_droide + s[campo])
         assert de_la_rom == valor, \
             "el %s del droide: la consola %d y el modelo %d" % (
                 nombre, de_la_rom, valor)
-    assert droide.ataque < antes, \
+    assert droide.attack < antes, \
         "Agency Badge tiene que bajarle el ataque: si no, el caso no " \
         "distingue entre aplicar el modificador y no aplicarlo"
 
@@ -426,10 +426,10 @@ def test_ganar_sigue_por_el_victory_handler(partida):
     una = en_el_droide(partida)
     pelea = Pelea(una).abrir()
     esperado = modelo_de(datos.base())
-    while esperado.resultado is None:
-        pelea.turno(len(esperado.vivos(esperado.actores)))
-        esperado.jugar_turno(
-            [(modelo.ORDEN_ATACAR, 0)] * len(esperado.vivos(esperado.actores)))
+    while esperado.result is None:
+        pelea.turno(len(esperado.living(esperado.actors)))
+        esperado.play_turn(
+            [(modelo.COMMAND_ATTACK, 0)] * len(esperado.living(esperado.actors)))
     quedaron = [pelea.hp_del_combatiente(k) for k in range(len(GRUPO))]
     pelea.cerrar()
     assert [una.hp(a) for a in GRUPO] == quedaron, \
@@ -478,7 +478,7 @@ def test_perder_sigue_por_el_defeat_handler(partida):
             if pelea.modo() in ("ORDEN", "FIN"):
                 break
             pelea.tocar_cuadros()
-    assert pelea.byte("BA_RESULT") == modelo.DERROTA, \
+    assert pelea.byte("BA_RESULT") == modelo.DEFEAT, \
         "con un HP cada uno la pelea se pierde"
     pelea.cerrar()
     mensajes = 0
@@ -610,12 +610,12 @@ def test_ganar_prende_el_tema_de_la_victoria(partida):
     pelea = Pelea(una).abrir()
     esperado = modelo_de(datos.base())
     antes = None
-    while esperado.resultado is None:
+    while esperado.result is None:
         antes = cursor_del_stream(una)
-        pelea.turno(len(esperado.vivos(esperado.actores)))
-        esperado.jugar_turno(
-            [(modelo.ORDEN_ATACAR, 0)] * len(esperado.vivos(esperado.actores)))
-    assert pelea.byte("BA_RESULT") == modelo.VICTORIA
+        pelea.turno(len(esperado.living(esperado.actors)))
+        esperado.play_turn(
+            [(modelo.COMMAND_ATTACK, 0)] * len(esperado.living(esperado.actors)))
+    assert pelea.byte("BA_RESULT") == modelo.VICTORY
     assert una.palabra("tema_actual") == una.simbolos["BA_TEMA_FIN"], \
         "al ganar tiene que sonar el battle_end_music del LDB"
     assert not una.byte("music_apagada")
@@ -647,10 +647,10 @@ def test_al_terminar_vuelve_lo_que_sonaba_en_el_mapa(partida, con_musica):
     assert una.palabra("tema_actual") == una.simbolos["BA_TEMA"], \
         "la pelea tiene que tapar el tema del mapa"
     esperado = modelo_de(datos.base())
-    while esperado.resultado is None:
-        pelea.turno(len(esperado.vivos(esperado.actores)))
-        esperado.jugar_turno(
-            [(modelo.ORDEN_ATACAR, 0)] * len(esperado.vivos(esperado.actores)))
+    while esperado.result is None:
+        pelea.turno(len(esperado.living(esperado.actors)))
+        esperado.play_turn(
+            [(modelo.COMMAND_ATTACK, 0)] * len(esperado.living(esperado.actors)))
     pelea.cerrar()
     # Y hay que dejarla terminar: reponer el paquete del mapa son **65 cuadros
     # medidos**, porque son cincuenta kilobytes que viajan al SPC700 por los
@@ -729,7 +729,7 @@ def test_el_golpe_suena_con_el_efecto_que_le_toca(partida):
     espera su turno.
 
     Lo que se compara no es circular: `BA_MDANO` y `BA_MBLA` son la mecánica,
-    que el resto de este archivo ya cobra contra `batalla.py` número por
+    que el resto de este archivo ya cobra contra `battle.py` número por
     número; lo que se mide acá es la elección del efecto, que es lo nuevo.
     """
     una = en_el_droide(partida)
@@ -763,7 +763,7 @@ def test_el_golpe_suena_con_el_efecto_que_le_toca(partida):
 # --- usar un ítem ----------------------------------------------------------
 #
 # `Use Item`. Lo que se mide acá es lo mismo que en el
-# resto del archivo: **el número exacto**. `batalla.curacion` dice cuánto
+# resto del archivo: **el número exacto**. `battle.healing` dice cuánto
 # tendría que curar y la consola tiene que dejar ese HP, ni uno más.
 
 def en_el_droide_con_pocion(partida):
@@ -792,7 +792,7 @@ def en_el_droide_con_pocion(partida):
 
 def test_la_lista_de_items_es_la_que_se_puede_usar(partida):
     """`Game_Party::IsItemUsable` con la pelea abierta, más lo que este port
-    sabe hacer: ver `batalla.item_usable_en_batalla`.
+    sabe hacer: ver `battle.item_usable_in_battle`.
 
     La lista la arma la ROM recorriendo el inventario, y lo que se compara es
     contra la misma regla en Python. Si la ROM ofreciera un ítem que no cura
@@ -807,7 +807,7 @@ def test_la_lista_de_items_es_la_que_se_puede_usar(partida):
     assert pelea.modo() == "ITEM", "A sobre `Use Item` abre la lista"
     base = datos.base()
     esperados = [n for n in sorted(base.items)
-                 if modelo.item_usable_en_batalla(base.items[n])]
+                 if modelo.item_usable_in_battle(base.items[n])]
     # De ésos, los que hay en el inventario.
     hay = [n for n in esperados if una.item(n)]
     assert hay, "el caso no puso ningún ítem usable: no mide nada"
@@ -831,7 +831,7 @@ def test_usar_una_pocion_cura_lo_que_dice_el_modelo(partida):
     pelea = Pelea(una).abrir()
     base = datos.base()
     esperado = modelo_de(base)
-    for quien in esperado.actores:
+    for quien in esperado.actors:
         quien.hp = quien.hp_max - 20
     antes = una.item(POCION)
     # El primer actor usa la poción sobre sí mismo; los otros dos atacan.
@@ -856,14 +856,14 @@ def test_usar_una_pocion_cura_lo_que_dice_el_modelo(partida):
         if pelea.modo() in ("ORDEN", "FIN"):
             break
         pelea.tocar_cuadros()
-    esperado.jugar_turno(
-        [(modelo.ORDEN_ITEM, (base.items[POCION], 0)),
-         (modelo.ORDEN_ATACAR, 0), (modelo.ORDEN_ATACAR, 0)])
+    esperado.play_turn(
+        [(modelo.COMMAND_ITEM, (base.items[POCION], 0)),
+         (modelo.COMMAND_ATTACK, 0), (modelo.COMMAND_ATTACK, 0)])
     de_la_rom = [pelea.hp_del_combatiente(k) for k in range(len(GRUPO))]
-    del_modelo = [c.hp for c in esperado.actores]
+    del_modelo = [c.hp for c in esperado.actors]
     assert de_la_rom == del_modelo, (
         "la consola dejó %r y el modelo %r" % (de_la_rom, del_modelo))
-    assert de_la_rom[0] == esperado.actores[0].hp_max, (
+    assert de_la_rom[0] == esperado.actors[0].hp_max, (
         "la poción cura cincuenta sobre cuarenta de máximo: tiene que topar")
 
 
@@ -872,7 +872,7 @@ def test_usar_una_pocion_cura_lo_que_dice_el_modelo(partida):
 # El `Pungent Elixir-LIFE`: `ko_only`, con el estado de muerto en su
 # `state_set` y el 25% de los HP. Lo que se cobra es la tarea entera —
 # workflow/tasks/*/el-elixir-en-la-pelea.md—: que el cursor se pare en el
-# caído, que el HP sea el de `batalla.efecto_de_item`, que el levantado vuelva
+# caído, que el HP sea el de `battle.item_effect`, que el levantado vuelva
 # a pedir órdenes y que cobre la experiencia al ganar.
 
 ELIXIR = 115
@@ -896,10 +896,10 @@ def test_el_elixir_levanta_a_un_caido_en_la_pelea(partida):
     base = datos.base()
     una.poner_hp(GRUPO[1], 0)
     esperado = modelo_de(base)
-    esperado.actores[1].hp = 0
+    esperado.actors[1].hp = 0
     antes = exp_y_nivel(una, GRUPO[1])
     assert una.item(ELIXIR) == 1, "el caso no puso el elixir"
-    assert modelo.item_usable_en_batalla(base.items[ELIXIR])
+    assert modelo.item_usable_in_battle(base.items[ELIXIR])
     pelea = Pelea(una).abrir()
     assert pelea.hp_del_combatiente(1) == 0, "Core tenía que entrar caído"
     # Kersh: `Use Item`, el elixir —el único de la lista— y a quién.
@@ -922,20 +922,20 @@ def test_el_elixir_levanta_a_un_caido_en_la_pelea(partida):
     assert una.item(ELIXIR) == 0, "el elixir se gasta al elegirlo"
     pelea.ordenar(("atacar", 0))
     pelea.correr_turno()
-    esperado.jugar_turno([(modelo.ORDEN_ITEM, (base.items[ELIXIR], 1)),
-                          (modelo.ORDEN_ATACAR, 0)])
-    levantado = max(1, 25 * esperado.actores[1].hp_max // 100)
-    assert esperado.actores[1].hp == levantado or not esperado.actores[1].vivo
+    esperado.play_turn([(modelo.COMMAND_ITEM, (base.items[ELIXIR], 1)),
+                        (modelo.COMMAND_ATTACK, 0)])
+    levantado = max(1, 25 * esperado.actors[1].hp_max // 100)
+    assert esperado.actors[1].hp == levantado or not esperado.actors[1].alive
     de_la_rom = [pelea.hp_del_combatiente(k) for k in range(len(GRUPO))]
-    del_modelo = [c.hp for c in esperado.actores]
+    del_modelo = [c.hp for c in esperado.actors]
     assert de_la_rom == del_modelo, (
         "turno 1: la consola dejó %r y el modelo %r" % (de_la_rom, del_modelo))
     assert de_la_rom[1] > 0, "el elixir no levantó a Core"
     # Desde acá, los tres atacan: Core tiene que pedir orden.
     turno = 1
-    while esperado.resultado is None:
+    while esperado.result is None:
         turno += 1
-        vivos = esperado.vivos(esperado.actores)
+        vivos = esperado.living(esperado.actors)
         if turno == 2:
             assert len(vivos) == 3
             pelea.ordenar(("atacar", 0))
@@ -946,14 +946,14 @@ def test_el_elixir_levanta_a_un_caido_en_la_pelea(partida):
             pelea.turno(len(vivos) - 1)
         else:
             pelea.turno(len(vivos))
-        esperado.jugar_turno([(modelo.ORDEN_ATACAR, 0)] * len(vivos))
+        esperado.play_turn([(modelo.COMMAND_ATTACK, 0)] * len(vivos))
         de_la_rom = [pelea.hp_del_combatiente(k) for k in range(len(GRUPO))]
-        del_modelo = [c.hp for c in esperado.actores]
+        del_modelo = [c.hp for c in esperado.actors]
         assert de_la_rom == del_modelo, (
             "turno %d: la consola dejó %r y el modelo %r"
             % (turno, de_la_rom, del_modelo))
-    assert esperado.resultado == modelo.VICTORIA
-    assert esperado.actores[1].vivo, (
+    assert esperado.result == modelo.VICTORY
+    assert esperado.actors[1].alive, (
         "el caso necesita a Core en pie al ganar: si no, no mide la experiencia")
     pelea.cerrar()
     ganada = experience.troop_exp(base, TROPA_DROIDE)
@@ -981,7 +981,7 @@ def test_el_segundo_elixir_sobre_el_mismo_caido_no_hace_nada(partida):
     base = datos.base()
     una.poner_hp(GRUPO[1], 0)
     esperado = modelo_de(base)
-    esperado.actores[1].hp = 0
+    esperado.actors[1].hp = 0
     pelea = Pelea(una).abrir()
     for quien in (0, 2):
         pelea.esperar("ORDEN")
@@ -998,13 +998,13 @@ def test_el_segundo_elixir_sobre_el_mismo_caido_no_hace_nada(partida):
         pelea.tocar_cuadros()
     assert una.item(ELIXIR) == 0, "los dos elixires se gastan al elegirlos"
     pelea.correr_turno()
-    esperado.jugar_turno([(modelo.ORDEN_ITEM, (base.items[ELIXIR], 1)),
-                          (modelo.ORDEN_ITEM, (base.items[ELIXIR], 1))])
+    esperado.play_turn([(modelo.COMMAND_ITEM, (base.items[ELIXIR], 1)),
+                        (modelo.COMMAND_ITEM, (base.items[ELIXIR], 1))])
     de_la_rom = [pelea.hp_del_combatiente(k) for k in range(len(GRUPO))]
-    del_modelo = [c.hp for c in esperado.actores]
+    del_modelo = [c.hp for c in esperado.actors]
     assert de_la_rom == del_modelo, (
         "la consola dejó %r y el modelo %r" % (de_la_rom, del_modelo))
-    levantado = max(1, 25 * esperado.actores[1].hp_max // 100)
+    levantado = max(1, 25 * esperado.actors[1].hp_max // 100)
     assert del_modelo[1] in (levantado, 0) and de_la_rom[1] != 2 * levantado, (
         "el segundo elixir no tiene que curar al que el primero levantó")
 
@@ -1016,7 +1016,7 @@ def test_el_menu_va_en_el_orden_del_original(partida):
     Attack / Slicing / Defend / Use Item. La habilidad va
     **segunda**. `Escape` no
     está en el original —huir es una orden del grupo— y acá va quinta, que es
-    la simplificación que `batalla.py` declara.
+    la simplificación que `battle.py` declara.
 
     Lo que se cobra es el recorrido del cursor: que llegue hasta la quinta, que
     vuelva, y que A sobre la segunda abra la lista de habilidades y B la
@@ -1052,7 +1052,7 @@ def test_un_actor_sin_habilidades_no_abre_la_lista(partida):
     probar lo que dice probar.
     """
     base = datos.base()
-    assert not modelo.habilidades_de(base, 14), \
+    assert not modelo.skills_of(base, 14), \
         "Talan tenía que no saber ninguna: si supiera, este caso no distingue"
     una = partida(caso=LINKAGE)
     una.poner_grupo(14, 12, 13)

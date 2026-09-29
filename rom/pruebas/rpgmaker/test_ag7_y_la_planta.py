@@ -1,7 +1,7 @@
 """El hito 4 de Lashe City: AG7-17 en la pelea, y los enemigos de la planta.
 
 Tres cosas que la pelea no hacía hasta el 2026-09-27, y las tres se miran
-acá contra el número exacto de `port.batalla`, como el resto de las peleas:
+acá contra el número exacto de `port.battle`, como el resto de las peleas:
 
 * **los enemigos eligen qué hacer** —`EnemyAi`, con el `rating` de cada
   acción— y usan habilidades: el Tangle Wire de la tropa 113 tira
@@ -21,7 +21,7 @@ AG7— en el piso 1 de la planta, y prenden el 150 con el `ControlSwitches` de
 siempre: `ag7-componentes` para lo del menú y `pelea-113` para pelear.
 """
 
-from port import batalla as modelo
+from port import battle as modelo
 
 from batalla import Pelea, hab_id, sabe
 import datos
@@ -153,12 +153,12 @@ def modelo_de_la_planta(base, equipo_de_ag7=None):
     equipo = list(base.actors[AG7].initial_equipment)
     if equipo_de_ag7:
         equipo[0] = equipo_de_ag7
-    ag7 = modelo.actor_de(base, AG7, equipo)
+    ag7 = modelo.actor_of(base, AG7, equipo)
     pares = habilidades_del_evento_37()
-    ag7.habilidades = sorted(pares[p] for p in equipo if p in pares)
-    return modelo.Batalla(
-        [modelo.actor_de(base, TALAN), ag7],
-        [modelo.enemigo_de(base, e, n)
+    ag7.skills = sorted(pares[p] for p in equipo if p in pares)
+    return modelo.Battle(
+        [modelo.actor_of(base, TALAN), ag7],
+        [modelo.enemy_of(base, e, n)
          for n, e in enumerate(base.troops[TROPA].members)])
 
 
@@ -170,8 +170,8 @@ def estado(pelea, una):
 
 
 def estado_del_modelo(m):
-    return ([c.hp for c in m.actores + m.enemigos]
-            + [m.actores[1].sp, m.enemigos[0].sp])
+    return ([c.hp for c in m.actors + m.enemies]
+            + [m.actors[1].sp, m.enemies[0].sp])
 
 
 def test_la_tropa_es_la_que_se_espera():
@@ -179,20 +179,20 @@ def test_la_tropa_es_la_que_se_espera():
     no las deje pasando por el camino equivocado."""
     base = datos.base()
     assert base.troops[TROPA].members == [TANGLE_WIRE, GIANT_RAT]
-    acciones = modelo.acciones_de_enemigo(base, TANGLE_WIRE)
+    acciones = modelo.actions_of_enemy(base, TANGLE_WIRE)
     assert [(r, s and s.id) for r, s, _ef in acciones] == [
         (50, None), (50, SHORT_CIRCUIT)]
     # Y los tres de la planta que la traen con menos rating no la usan nunca:
     # diez puntos por debajo de la mejor pesan cero.
     for enemigo in (62, 65, 66):
-        batalla = modelo.Batalla([], [modelo.enemigo_de(base, enemigo, 0)])
+        batalla = modelo.Battle([], [modelo.enemy_of(base, enemigo, 0)])
         for _ in range(20):
-            _r, skill, _ef = batalla.accion_del_enemigo(batalla.enemigos[0])
+            _r, skill, _ef = batalla.enemy_action(batalla.enemies[0])
             assert skill is None
 
 
 def test_el_tangle_wire_usa_short_circuit_y_deja_el_hp_del_modelo(partida):
-    """Turno por turno contra `batalla.Batalla`: los dos se defienden dos
+    """Turno por turno contra `battle.Battle`: los dos se defienden dos
     turnos —para darle tiempo al Tangle Wire— y después AG7 le pega a la rata,
     y muerta ella, al Tangle Wire. Adentro están la elección del enemigo —un
     tiro para la acción, porque el Tangle Wire tiene dos de peso, y otro para
@@ -204,32 +204,32 @@ def test_el_tangle_wire_usa_short_circuit_y_deja_el_hp_del_modelo(partida):
     pelea = a_la_pelea(una)
     base = datos.base()
     esperado = modelo_de_la_planta(base)
-    assert esperado.actores[1].sp_arma == 1
+    assert esperado.actors[1].weapon_sp == 1
     for turno in range(1, 12):
         ordenes, del_modelo = [], []
-        for quien in esperado.vivos(esperado.actores):
-            if quien.numero == AG7 and turno > 2:
+        for quien in esperado.living(esperado.actors):
+            if quien.number == AG7 and turno > 2:
                 # El blanco es el lugar en la tropa para el modelo y en la
                 # lista de los vivos para el cursor.
-                vivos = [n for n, e in enumerate(esperado.enemigos) if e.vivo]
-                blanco = 1 if esperado.enemigos[1].vivo else 0
+                vivos = [n for n, e in enumerate(esperado.enemies) if e.alive]
+                blanco = 1 if esperado.enemies[1].alive else 0
                 ordenes.append(("atacar", vivos.index(blanco)))
-                del_modelo.append((modelo.ORDEN_ATACAR, blanco))
+                del_modelo.append((modelo.COMMAND_ATTACK, blanco))
             else:
                 ordenes.append(("defender",))
-                del_modelo.append((modelo.ORDEN_DEFENDER, 0))
+                del_modelo.append((modelo.COMMAND_DEFEND, 0))
         for orden in ordenes:
             pelea.ordenar(orden)
         pelea.correr_turno()
-        esperado.jugar_turno(del_modelo)
+        esperado.play_turn(del_modelo)
         assert estado(pelea, una) == estado_del_modelo(esperado), \
             "turno %d: la consola dejó %r y el modelo %r" % (
                 turno, estado(pelea, una), estado_del_modelo(esperado))
-        if esperado.resultado is not None:
+        if esperado.result is not None:
             break
-    assert esperado.enemigos[0].sp < esperado.enemigos[0].sp_max, \
+    assert esperado.enemies[0].sp < esperado.enemies[0].sp_max, \
         "el Tangle Wire no usó ShortCircuit: el caso no mide la habilidad"
-    assert esperado.actores[1].sp < esperado.actores[1].sp_max, \
+    assert esperado.actors[1].sp < esperado.actors[1].sp_max, \
         "AG7 no pagó el SP del arma: el caso no mide el costo"
 
 
@@ -260,16 +260,16 @@ def test_bombs_away_pega_a_los_dos_enemigos(partida):
     base = datos.base()
     esperado = modelo_de_la_planta(base, GRENADE_LAUNCHER)
     bombs = base.skills[BOMBS_AWAY]
-    assert esperado.actores[1].habilidades == [BOMBS_AWAY]
-    antes = [c.hp for c in esperado.enemigos]
+    assert esperado.actors[1].skills == [BOMBS_AWAY]
+    antes = [c.hp for c in esperado.enemies]
     pelea.ordenar(("defender",))
     pelea.ordenar(("habilidad", 0))
     pelea.correr_turno()
-    esperado.jugar_turno([(modelo.ORDEN_DEFENDER, 0),
-                          (modelo.ORDEN_HABILIDAD, (bombs, 0))])
+    esperado.play_turn([(modelo.COMMAND_DEFEND, 0),
+                        (modelo.COMMAND_SKILL, (bombs, 0))])
     assert estado(pelea, una) == estado_del_modelo(esperado), \
         "la consola dejó %r y el modelo %r" % (estado(pelea, una),
                                                estado_del_modelo(esperado))
-    assert all(c.hp < hp for c, hp in zip(esperado.enemigos, antes)), \
+    assert all(c.hp < hp for c, hp in zip(esperado.enemies, antes)), \
         "BombsAway tenía que pegarle a los dos"
-    assert esperado.actores[1].sp == 60 - bombs.sp_cost
+    assert esperado.actors[1].sp == 60 - bombs.sp_cost
