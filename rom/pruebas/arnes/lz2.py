@@ -1,5 +1,5 @@
 """El descompresor de referencia del LC_LZ2, contra el que se prueba todo lo
-demás: el compresor de `tools/lz2/` y `lz2_decompress` de la ROM.
+demás: el compresor de `tools/snes/lz2/` y `lz2_decompress` de la ROM.
 
 Escrito aparte a propósito, desde el formato y no desde el binario: si los dos
 lados salieran del mismo código, un error en la lectura del formato daría cero

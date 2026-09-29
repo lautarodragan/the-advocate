@@ -83,3 +83,56 @@ Commits: el workspace; la mudanza, sólo `git mv` y rutas; la prueba; lo de
 - `tools/justfile`: las recetas de probar siguen paradas en cada crate
   (`cargo test` en un miembro prueba sólo ése), y hay una nueva,
   `rust-test`, que prueba el workspace entero en debug.
+
+### Las capas
+
+- La mudanza fue un commit de sólo `git mv` y las rutas que dejaban de
+  valer: los miembros, la dependencia de `rm2k-snes-audio` en `gunter`,
+  los `cd` de las recetas, las rutas de `protocol`, `test_protocol.py` y el
+  `.idea/` de ditto. `_install` busca cada proyecto por su nombre en las
+  carpetas de `rust_layers`, así que `install lz2` sigue siendo `install
+  lz2`.
+- `suite::tools()` de `project` contaba un directorio hacia arriba desde el
+  crate y ahora cuenta dos. Es el único `CARGO_MANIFEST_DIR` que llega a
+  `tools/`; los demás usos de `env!` son `CARGO_BIN_EXE_*` y
+  `CARGO_TARGET_TMPDIR`, que no dependen de dónde esté el crate. Como una
+  mudanza más lo rompería sin error de compilación, lleva una prueba: que
+  desde ahí se llegue a `runtime/main.s`.
+- `tools/tests/test_layers.py` lee `cargo metadata --no-deps`. Probado que
+  falla con `rm2k-project = { workspace = true }` en `gunter` —heredada del
+  workspace, para ver que `cargo metadata` le da la ruta igual— y `lz2`
+  como dev-dependency de `ditto`; y el grep de `rm2k-snes.toml`, con el
+  `source.rs` de `rm2k-render` de antes.
+- `rm2k-render layers --map N` pide `--data <dir>`; nadie usaba `--map`
+  —el conversor usa `--request`, `render/render_map.py`—. Con el `toml`
+  del crate salen del lock `toml` 0.9, `toml_datetime` 0.7 y `winnow` 0.7.
+
+### Verificación
+
+- `cargo build --release` y `cargo test` del workspace: 251 pruebas, las
+  mismas que daban los nueve por separado en `main`, más la de
+  `suite::tools()`, 252; 3 ignoradas en los dos casos.
+- `NO_CACHE=1 just cartuchos` con los nueve instalados en el `bin/` local:
+  los 999 archivos de `rom/build/` —`.sfc`, `.msu`, `.pcm`, `.inc`, `.sym`
+  y demás— iguales a los que salen acá con los binarios de `main`. Los dos
+  `.dbg` difieren, y sólo en dos cosas medidas: los binarios de `main`
+  estaban instalados desde otro árbol y nombran los `.inc` con ruta
+  absoluta, y los comentarios que la prosa cambió en `tools/runtime/*.s`
+  cambian el tamaño que el `.dbg` anota de cada fuente.
+- `just -f tools/justfile test`, `rust-test` y `protocol --check`.
+
+### Tiempos
+
+Compilar e instalar en limpio los ocho crates con binario, con el loop de
+`_install`, en esta máquina y con el registro ya bajado:
+
+- antes, nueve proyectos con su `target/` cada uno: 188 s;
+- después, el workspace: 172 s.
+
+Poco, porque lo que cuesta es el `lto` con una sola unidad de código, que
+se hace por binario igual; lo que se ahorra es recompilar las
+dependencias: se compilan 80 crates en vez de 206. Y no todas se
+comparten, porque `cargo install --path` compila un paquete por vez y las
+features se unifican por paquete: `clap` con y sin `derive`, `toml` y
+`serde_json` con y sin `preserve_order`. Recompilar después de tocar un
+crate es lo que más baja: las dependencias ya están en `tools/target/`.

@@ -6,7 +6,7 @@ para el agua y otra para los tiles animados. Una celda que cambiara con las dos
 dibujos y no dos corridas, así que **Voodoo la rechaza** y el conversor no arma
 la ROM. RM2k la dibuja sin problema.
 
-Ver "Animations" en `tools/voodoo/README.md`.
+Ver "Animations" en `tools/snes/voodoo/README.md`.
 
 # Medido
 

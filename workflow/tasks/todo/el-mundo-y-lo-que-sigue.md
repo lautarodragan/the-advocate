@@ -378,7 +378,7 @@ el banco 0 se acaba.
 Lo que hay que repartir si van en paralelo: el reparto de VRAM nuevo va
 **último** en `LAYOUTS` y los dos (el del 1 y el del 2) lo tocan, así que
 conviene el mismo agente o uno detrás del otro; un opcode para
-`ChangeEncounterSteps` en `tools/protocol/events.toml`, el del 2.
+`ChangeEncounterSteps` en `tools/snes/protocol/events.toml`, el del 2.
 
 # Lo que taro contestó (2026-09-27)
 

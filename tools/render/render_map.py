@@ -34,7 +34,7 @@ from render import chipset_recipe
 
 MISSING = """`rm2k-render` is missing, the one that draws a map's layers.
 
-It is a Rust binary that lives in `tools/rm2k-render/` and is installed as
+It is a Rust binary that lives in `tools/rm2k/rm2k-render/` and is installed as
 a system tool:
 
     just -f tools/justfile install rm2k-render"""

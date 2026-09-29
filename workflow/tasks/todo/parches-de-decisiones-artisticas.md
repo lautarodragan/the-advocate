@@ -48,7 +48,7 @@ escrito y las dos últimas todavía no:
 * los **quince colores de cada battler** en la escena de la pelea
   (`tools/port/escena.py`) — escritos, por imagen y tono;
 * las **voces que se caen de un MIDI** y las **muestras recortadas** cuando no
-  entran en la ARAM (`tools/rm2k-snes-audio/`);
+  entran en la ARAM (`tools/rm2k-snes/rm2k-snes-audio/`);
 * **`DECORAR_TRANSLUCIDO`**: un CharSet translúcido reemplazado por otro
   gráfico.
 

@@ -33,7 +33,7 @@ de implementar hay que volver a medir: los números de abajo son del día.
 # De qué está hecho
 
 **El stream no son notas: son escrituras crudas al DSP.** Tiene tres opcodes
-(`tools/protocol/music.toml`): `OP_DSP registro valor` (3 B), `OP_WAIT cuadros`
+(`tools/snes/protocol/music.toml`): `OP_DSP registro valor` (3 B), `OP_WAIT cuadros`
 (2 B) y `OP_END`. Cada nota es la preparación entera de una voz —volumen
 izquierdo y derecho, altura en dos bytes, muestra, ADSR1, ADSR2— y después un
 `KON`; soltarla es apagar el ADSR1 y escribir el GAIN. `pack` saltea lo que no

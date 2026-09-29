@@ -609,7 +609,7 @@ def convert(grid, palette, variants, others, summary):
     # The cells that change from one drawing to another get their own tiles in
     # one contiguous run per family, after the still ones: Voodoo does that,
     # since it is the one that numbers them. See "Animations" in
-    # tools/voodoo/README.md.
+    # tools/snes/voodoo/README.md.
     tile_data, cgram, tilemap, runs = tiles_bin.convert(
         pictures[0][1], 8, len(grid[0]), animations=animations,
         max_tiles=MAX_TILES)

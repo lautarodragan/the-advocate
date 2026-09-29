@@ -1,7 +1,7 @@
 # El `.msu`: datos que el MSU-1 le sirve a la ROM
 
 El MSU-1 tiene dos partes: las pistas de audio (`<rom>-N.pcm`, ver
-`rm2k-snes-msu`, en `tools/rm2k-snes-audio/src/tracks.rs`) y un **puerto de datos** que lee el `<rom>.msu` como un
+`rm2k-snes-msu`, en `tools/rm2k-snes/rm2k-snes-audio/src/tracks.rs`) y un **puerto de datos** que lee el `<rom>.msu` como un
 flujo. Hasta el 2026-09-25 el `.msu` iba vacío y sólo servía para encender el
 MSU-1. Desde ese día lleva **los fondos de batalla**, que empezaron como
 piloto, y desde el 2026-09-27 **todos los del juego**, estén o no en los mapas

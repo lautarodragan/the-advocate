@@ -42,7 +42,7 @@ El primer mapa de verdad es el 1.
 versionar de verdad: se puede ver qué cambió, revisarlo y editarlo a mano. Y
 **es de donde el port lee el juego**: `tools/rpgmaker/lcf.py` sale de acá, así
 que el conversor y las pruebas están mirando estos archivos y no los binarios.
-Quién lo escribe es **Ditto** (`tools/ditto/`), que además sabe volver: `ditto
+Quién lo escribe es **Ditto** (`tools/rm2k/ditto/`), que además sabe volver: `ditto
 pack` rearma los archivos del juego byte por byte desde el volcado exacto, que
 la misma corrida deja en `rom/build/ditto-exacto/` y que no se versiona. El
 porqué de la decisión está en `DITTO.md` y lo que hay adentro, en
@@ -126,7 +126,7 @@ declararse con `.block`** para no quedar partida entre dos bancos: ver
 etiqueta de RODATA sin declarar, y lo que cruza a propósito —el stream de la
 música, lo que se sube al SPC700— lleva `.crossbank`: el reparto lo hace
 `rm2k-snes-assemble` antes de `ca65`, ver `resolve` en
-`tools/cartridge/src/banks.rs`.
+`tools/rm2k-snes/cartridge/src/banks.rs`.
 
 ## Lo que falta
 

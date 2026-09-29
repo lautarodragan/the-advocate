@@ -126,7 +126,7 @@ Qué se corrió para cada columna:
    la pantalla es la misma y ahorra ROM. Cambia la ROM, así que va con las
    goldens del título a la vista.
 3. **El modo sin deduplicar en Voodoo**, que es el que destraba la mayoría: 4,
-   7 a 11 y al final `pack_tile`. Es trabajo en `tools/voodoo/`, en inglés, y
+   7 a 11 y al final `pack_tile`. Es trabajo en `tools/snes/voodoo/`, en inglés, y
    para los sprites va junto con las paletas de objeto.
 4. **Compartir tiles entre paletas**, para ranuras e ítems. Es lo que menos
    rinde: la cuenta de tiles casi no se mueve y el apilado de bloques en una

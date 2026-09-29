@@ -21,7 +21,7 @@ one in its own row or above.
                  rule of the format lives here: rom/data/ comes resolved. It
                  has its own README
     assembly/    only `entregar`, which is A Blurred Line's and not the
-                 suite's: what builds the ROM is `cartridge/`, in Rust
+                 suite's: what builds the ROM is `rm2k-snes/cartridge/`, in Rust
     emulator/    the libretro core from Python (retro), and the bsnes-libretro
                  patch that exposes the WRAM
 
@@ -53,26 +53,53 @@ one in its own row or above.
                  pointer, as ca65 reads them)
 
 And the Rust projects, which are not layers of the port but separate tools,
-in English and without a single mention of this game (see AGENTS.md):
+in English and without a single mention of this game (see AGENTS.md). They
+have layers of their own, one folder each:
 
-    ditto/       reads and writes the RPG Maker 2000 formats
-    protocol/    declares a bytecode and generates the constants for both sides
-    gunter/      Gunter: BRR codec and SoundFont reader
-    voodoo/      Voodoo: from an image to tiles, palettes and tilemap
-    lz2/         Nintendo's LC_LZ2, with an optimal parser
-    rm2k-render/ an RPG Maker 2000 map's tile layers, as pictures
-    project/     `rm2k-project`, the library: which game, its settings, the
+    snes/        the console's formats, knowing nothing of RPG Maker
+      protocol/  declares a bytecode and generates the constants for both
+                 sides; generic, but its constants are for the 65816
+                 assembler
+      gunter/    Gunter: BRR codec and SoundFont reader
+      voodoo/    Voodoo: from an image to tiles, palettes and tilemap
+      lz2/       Nintendo's LC_LZ2, with an optimal parser
+
+    rm2k/        RPG Maker 2000's, knowing nothing of the console
+      ditto/     reads and writes its formats
+      rm2k-render/  a map's tile layers, as pictures
+
+    rm2k-snes/   what joins the two: an RPG Maker game made into a cartridge
+      project/   `rm2k-project`, the library: which game, its settings, the
                  machine's flags and the disk cache's key
-    cartridge/   `rm2k-snes-cartridges`, `rm2k-snes-assemble` and
+      cartridge/ `rm2k-snes-cartridges`, `rm2k-snes-assemble` and
                  `rm2k-snes-space`: which cartridges there are and building
                  them, the bank packing, ca65 + ld65, and the space left
-    rm2k-snes-audio/  a game's music for the SPC700: the shared sample bank,
-                 a stream per song, an audio package per map; the converter
-                 runs it, and it uses `gunter` as a library
+      rm2k-snes-audio/  a game's music for the SPC700: the shared sample
+                 bank, a stream per song, an audio package per map; the
+                 converter runs it, and it uses `gunter` as a library
 
-They are installed with `just -f tools/justfile install` and used from
-the PATH: no `.py` here builds them or looks for them in `target/`. The same
-goes for the Python scripts that get executed: see "The ones that run".
+`rm2k-snes/` may depend on the other two; `snes/` and `rm2k/` on nothing
+outside themselves —not on each other, and not on `rm2k-snes/`—. So either
+can go on its own, to a game that is not for the console or a console game
+that is not from RPG Maker. `tests/test_layers.py` enforces it, from `cargo
+metadata`; and since a crate can also know the layer above without
+depending on it, by reading its files, it also fails if anything in
+`snes/` or `rm2k/` names `rm2k-snes.toml`, the project file.
+
+They are one Cargo workspace, `Cargo.toml` here: one `Cargo.lock` and one
+`target/`, so what they share is compiled once and at one version. The
+build profiles are the workspace's too, because Cargo ignores a member's;
+`ditto` and `protocol` keep optimizing for size there. They are still
+separate projects, installed and tested one by one:
+
+    just -f tools/justfile install lz2    one, with `cargo install --locked
+                                          --path`, from the workspace's lock
+    just -f tools/justfile lz2-test       one project's tests
+    just -f tools/justfile rust-test      all of them, `cargo test --workspace`
+
+They are used from the PATH: no `.py` here builds them or looks for them in
+`target/`. The same goes for the Python scripts that get executed: see "The
+ones that run".
 
 ## Cycles
 
@@ -126,9 +153,10 @@ are:
     abl-entregar                assembly/entregar.py
 
 and next to them the ones that are Rust binaries —`rm2k-snes-cartridges`,
-`rm2k-snes-assemble` and `rm2k-snes-space`, from `cartridge/`, which find
+`rm2k-snes-assemble` and `rm2k-snes-space`, from `rm2k-snes/cartridge/`, which find
 the runtime through the checkout they were installed from; and
-`rm2k-snes-msu` and `rm2k-snes-volume-ceilings`, from `rm2k-snes-audio/`—.
+`rm2k-snes-msu` and `rm2k-snes-volume-ceilings`, from
+`rm2k-snes/rm2k-snes-audio/`—.
 
 The reason for the names is in `tools/justfile`. A new one is added in
 `_install`, and the `.py` finds its packages by resolving the symlink with
@@ -167,7 +195,7 @@ Line's is `rom/rm2k-snes.toml`—, and it is read with `common/settings.py`:
 * **It is read when used, not at import**: the converter and what it uses
   must be importable without a game, which is what the tests here do.
   `rm2k-snes-cartridges`, the game's orchestrator, reads the whole file when
-  it starts; it is the Rust library `project/` that reads it there.
+  it starts; it is the Rust library `rm2k-snes/project/` that reads it there.
 * **What the runtime needs** —the title, the SRAM signature— reaches it as a
   `.define` in the `mapdata.inc` the converter emits: the runtime does not
   read TOML.

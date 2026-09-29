@@ -616,7 +616,7 @@ FAR_FLASH_PAL = $7E6900         ; FLASH_MAX * 32
 ; --- the music decoder, in far RAM -------------------------------------------
 ;
 ; The state of `music_frame`, which expands the per-note stream into DSP
-; writes: see "the per-note format" in tools/rm2k-snes-audio/src/stream.rs. It is read
+; writes: see "the per-note format" in tools/rm2k-snes/rm2k-snes-audio/src/stream.rs. It is read
 ; and written by `irq_music`, which lands at any point in the main code, so
 ; it is reached with long addressing and never through the WMADD window.
 ;
@@ -786,7 +786,7 @@ EX_END      = $7E78CF
 ; SE_PLACES of the SPC700 directory that the sound effects share, with the
 ; number of the sound effect recorded there, or $FF. Several sound effects go
 ; to the same place —the ones that are never in the same package: see
-; `effect_places` in tools/rm2k-snes-audio/src/bank.rs— and the directory does
+; `effect_places` in tools/rm2k-snes/rm2k-snes-audio/src/bank.rs— and the directory does
 ; not say which one is there. See `record_effect` in audio_package.s.
 ; `aram_clear` sets it to $FF; it does not travel in the save.
 FAR_EFFECT_IN = $7E78D0
@@ -893,7 +893,7 @@ GRID_HIGH = $7F8000
 ;
 ; It is sized for the startup map's package, and **the converter stops if it
 ; does not fit**: the estimate, on the high side, is `boot_frames` in
-; tools/rm2k-snes-audio/src/emit.rs. Measured on 2026-09-26: `release`'s work ends on
+; tools/rm2k-snes/rm2k-snes-audio/src/emit.rs. Measured on 2026-09-26: `release`'s work ends on
 ; frame 30 and the estimate gives 34. It was 112 until that day, meant for
 ; uploading a full ARAM through the IPL; see
 ; workflow/decisiones/el-arranque-esta-dimensionado-para-el-paquete-de-arranque.md.

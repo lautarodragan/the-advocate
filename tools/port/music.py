@@ -24,7 +24,7 @@ AUDIO = "rm2k-snes-audio"
 
 AUDIO_MISSING = """`rm2k-snes-audio` is missing, the one that compiles the music.
 
-It is a Rust binary that lives in `tools/rm2k-snes-audio/` and is installed
+It is a Rust binary that lives in `tools/rm2k-snes/rm2k-snes-audio/` and is installed
 as a system tool:
 
     just -f tools/justfile install rm2k-snes-audio"""

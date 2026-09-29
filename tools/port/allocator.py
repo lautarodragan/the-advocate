@@ -4,8 +4,8 @@
 Everything here **changes what is seen**: merging one color into another,
 deciding which colors go together in a palette, measuring how much an image
 moves if a color is taken out of it. It is the artistic half of the graphics
-pipeline, and that is why it is not in `tools/voodoo/`, which only converts
-what already fits and never touches a pixel: see "`tools/voodoo/` no decide
+pipeline, and that is why it is not in `tools/snes/voodoo/`, which only converts
+what already fits and never touches a pixel: see "`tools/snes/voodoo/` no decide
 colores" in `AGENTS.md`.
 
 Its users are `map_layers.py` —`split_above`, `build_palette`—,

@@ -27,9 +27,9 @@ from port.constants import COLUMNS, LINES, EQUIPMENT_SLOTS
 from rpgmaker import rm2k
 
 # The opcodes' numbers, lengths and layout. **They are not declared here**:
-# they come from `tools/protocol/events.toml`, which belongs to both sides —this
+# they come from `tools/snes/protocol/events.toml`, which belongs to both sides —this
 # one and the interpreter in tools/runtime/interpreter*.s— and to neither. See
-# tools/protocol/README.md.
+# tools/snes/protocol/README.md.
 from port.event_opcodes import *   # noqa: F401,F403
 from port.event_opcodes import OPCODE_SIZE, opcode_size  # noqa: F401
 
@@ -898,7 +898,7 @@ def sprite_associations(game_maps, extra=()):
 # One per command, with the operands already resolved: the ROM does not look
 # at the LCF again nor knows its numbers.
 #
-# **The numbers and layouts are in `tools/protocol/events.toml`**, not here:
+# **The numbers and layouts are in `tools/snes/protocol/events.toml`**, not here:
 # this is what there is to know about each one that a declaration cannot say.
 #
 # OP_SWITCH: id (word), value (byte)
@@ -5306,7 +5306,7 @@ class PartyState:
 
 # How much each opcode takes is derived from its declared arguments, so
 # `OPCODE_SIZE` and `opcode_size` come from `opcodes.py`, generated from
-# `tools/protocol/events.toml`. They used to be written by hand, and there
+# `tools/snes/protocol/events.toml`. They used to be written by hand, and there
 # were two copies —one here and another in the converter—: this one kept the
 # old OP_ROUTE when the new one added the frequency, and that was twelve
 # suite cases in red.

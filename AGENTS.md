@@ -91,15 +91,23 @@ de punta a punta: código, comentarios, nombres de pruebas y README. Desde el
 2026-09-19 viven adentro de `tools/`, al lado de los paquetes de Python del
 port —ver `tools/README.md`—:
 
-    tools/ditto/     lee y escribe los formatos de RPG Maker 2000
-    tools/protocol/  declara un bytecode y genera las constantes de sus dos lados
-    tools/gunter/    Gunter: códec BRR y lector de SoundFont
-    tools/voodoo/    Voodoo: de una imagen a tiles, paletas y tilemap
-    tools/lz2/       el LC_LZ2 de Nintendo, con el que se comprimen los mapas
-    tools/rm2k-render/  las capas de un mapa de RM2k, dibujadas desde su ChipSet
-    tools/project/   la biblioteca: qué juego, sus perillas, los flags de la máquina
-    tools/cartridge/ los cartuchos: el reparto en bancos, ca65 + ld65, el espacio
-    tools/rm2k-snes-audio/  la música: del MIDI y el SoundFont a musicdata.inc
+    tools/snes/        los formatos de la consola, sin saber de RPG Maker
+      protocol/        declara un bytecode y genera las constantes de sus dos lados
+      gunter/          Gunter: códec BRR y lector de SoundFont
+      voodoo/          Voodoo: de una imagen a tiles, paletas y tilemap
+      lz2/             el LC_LZ2 de Nintendo, con el que se comprimen los mapas
+    tools/rm2k/        los de RPG Maker 2000, sin saber de la consola
+      ditto/           lee y escribe sus formatos
+      rm2k-render/     las capas de un mapa, dibujadas desde su ChipSet
+    tools/rm2k-snes/   los que unen las dos cosas
+      project/         la biblioteca: qué juego, sus perillas, los flags de la máquina
+      cartridge/       los cartuchos: el reparto en bancos, ca65 + ld65, el espacio
+      rm2k-snes-audio/ la música: del MIDI y el SoundFont a musicdata.inc
+
+Las capas sólo dependen hacia abajo —`rm2k-snes/` de las otras dos, y
+ésas de nada de las demás—, y lo cuida `tools/tests/test_layers.py`. Los
+nueve son un solo workspace de Cargo, con el `Cargo.lock` y el `target/`
+en `tools/`.
 
 Hasta el 2026-09-16 hubo otro más, `w65/`, el ensamblador de 65816. Lo reemplazaron
 `ca65` y `ld65`, del proyecto cc65: ver "Dónde corre esto".
@@ -132,13 +140,13 @@ segundo bytecode quedó claro que hacerlo hablar castellano lo ata a este repo.
 
 Las pruebas de esos proyectos no dependen del juego. Ditto recibe el corpus por
 `DITTO_CORPUS`, y sin esa variable las que lo necesitan se saltean con un
-mensaje; `tools/rm2k-snes-audio/` recibe el SoundFont por `SOUNDFONT`, igual;
-y `tools/protocol/`, `tools/gunter/`, `tools/voodoo/`, `tools/lz2/` y
-`tools/rm2k-render/` no necesitan nada.
+mensaje; `tools/rm2k-snes/rm2k-snes-audio/` recibe el SoundFont por `SOUNDFONT`, igual;
+y `tools/snes/protocol/`, `tools/snes/gunter/`, `tools/snes/voodoo/`, `tools/snes/lz2/` y
+`tools/rm2k/rm2k-render/` no necesitan nada.
 
-### `tools/voodoo/` no decide colores, y eso no se arregla
+### `tools/snes/voodoo/` no decide colores, y eso no se arregla
 
-`tools/voodoo/` convierte una imagen **que ya entra**: recibe PNG indexados cuyos
+`tools/snes/voodoo/` convierte una imagen **que ya entra**: recibe PNG indexados cuyos
 índices son entradas de CGRAM, y si la imagen rompe el formato, dice dónde y no
 la arregla. Qué colores se pierden y cómo se agrupan en paletas lo decide el
 asignador, `tools/port/allocator.py`, que corre **antes** y deja lo que decidió como
@@ -151,9 +159,9 @@ cualquier decisión de ésas deshace el diseño, aunque sea cómodo.
 
 ## El número de un opcode se elige en la declaración
 
-En `tools/protocol/` y en ningún otro lado. Hay dos declaraciones:
-`tools/protocol/events.toml`, el bytecode que interpreta `run_code`, y
-`tools/protocol/music.toml`, el stream que lee `irq_music`. Los dos caen en el mismo
+En `tools/snes/protocol/` y en ningún otro lado. Hay dos declaraciones:
+`tools/snes/protocol/events.toml`, el bytecode que interpreta `run_code`, y
+`tools/snes/protocol/music.toml`, el stream que lee `irq_music`. Los dos caen en el mismo
 espacio de símbolos del ensamblador, así que dos opcodes de bytecodes distintos
 pueden compartir **número** pero no **nombre** —por eso `OP_FIN` se llama
 `OP_DONE`: `OP_END` ya era del stream de música—, y eso lo cuida una prueba.
