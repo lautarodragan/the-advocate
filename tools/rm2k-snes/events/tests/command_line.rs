@@ -10,7 +10,10 @@ fn here() -> PathBuf {
 }
 
 fn scratch(name: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!("rm2k-snes-events-cli-{name}-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!(
+        "rm2k-snes-events-cli-{name}-{}",
+        std::process::id()
+    ));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     dir
@@ -32,8 +35,14 @@ fn both_calls_write_their_answer() {
     for (command, request) in [("scan", "scan.json"), ("compile", "compile.json")] {
         let out = dir.join(command);
         let done = run(command, &here().join("game"), &here().join(request), &out);
-        assert!(done.status.success(), "{}", String::from_utf8_lossy(&done.stderr));
-        let answer: Value = serde_json::from_str(&std::fs::read_to_string(out.join("events.json")).unwrap()).unwrap();
+        assert!(
+            done.status.success(),
+            "{}",
+            String::from_utf8_lossy(&done.stderr)
+        );
+        let answer: Value =
+            serde_json::from_str(&std::fs::read_to_string(out.join("events.json")).unwrap())
+                .unwrap();
         assert_eq!(answer["maps"].as_array().unwrap().len(), 3);
     }
     std::fs::remove_dir_all(&dir).unwrap();
@@ -42,7 +51,12 @@ fn both_calls_write_their_answer() {
 #[test]
 fn a_request_that_is_not_there_is_a_wrong_call() {
     let dir = scratch("usage");
-    let done = run("scan", &here().join("game"), &dir.join("nowhere.json"), &dir.join("out"));
+    let done = run(
+        "scan",
+        &here().join("game"),
+        &dir.join("nowhere.json"),
+        &dir.join("out"),
+    );
     assert_eq!(done.status.code(), Some(2));
     assert!(String::from_utf8_lossy(&done.stderr).starts_with("rm2k-snes-events: "));
     std::fs::remove_dir_all(&dir).unwrap();
@@ -52,7 +66,8 @@ fn a_request_that_is_not_there_is_a_wrong_call() {
 fn a_text_the_font_does_not_have_is_a_no() {
     let dir = scratch("font");
     let mut request: Value =
-        serde_json::from_str(&std::fs::read_to_string(here().join("compile.json")).unwrap()).unwrap();
+        serde_json::from_str(&std::fs::read_to_string(here().join("compile.json")).unwrap())
+            .unwrap();
     request["test_commands"] = serde_json::json!([
         {"code": 10110, "indent": 0, "string": "¡Olé!", "parameters": []}
     ]);

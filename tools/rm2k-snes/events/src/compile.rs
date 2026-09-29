@@ -2426,3 +2426,123 @@ pub fn page_debts(commands: &[Command], picture: Option<&Picture>) -> Result<Vec
     }
     Ok(out.into_iter().collect())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn cmd(code: i32, parameters: &[i32], string: &str) -> Command {
+        Command::new(code, 0, string, parameters.to_vec())
+    }
+
+    /// A page compiled with nothing but songs, in package 0.
+    fn with_songs(
+        commands: &[Command],
+        songs: &mut Songs,
+        map_index: &dyn Fn(i64) -> Option<usize>,
+    ) -> Option<Vec<u8>> {
+        let game = Game::default();
+        let indices = Indices::default();
+        let sound = SoundSettings::default();
+        songs.current = Some(Package::Map(0));
+        let mut ctx = Ctx {
+            game: &game,
+            indices: &indices,
+            sound: &sound,
+            map_index,
+            messages: None,
+            songs: Some(songs),
+            graphics: None,
+            picture: None,
+            troops: None,
+        };
+        compile_page(&mut ctx, commands, None, 0, 0).unwrap()
+    }
+
+    #[test]
+    fn a_destination_that_does_not_fit_a_byte_is_not_truncated() {
+        // The game has 328 maps: 300 is one the old one-byte operand could
+        // not name, and 300 & 0xFF is 44.
+        let code = with_songs(
+            &[cmd(TELEPORT, &[7, 12, 34], "")],
+            &mut Songs::default(),
+            &|_| Some(300),
+        );
+        assert_eq!(code.unwrap(), [OP_TELEPORT, 44, 1, 12, 0, 34, 0, OP_DONE]);
+    }
+
+    #[test]
+    fn a_teleport_notes_the_song_it_carries() {
+        // The jump right after a `PlayBGM` takes that song along, and the one
+        // that is not, whatever is playing.
+        let mut songs = Songs::default();
+        let map_index = |m: i64| match m {
+            20 => Some(1),
+            30 => Some(2),
+            _ => None,
+        };
+        let page = [
+            cmd(TELEPORT, &[20, 1, 1], ""),
+            cmd(PLAY_BGM, &[0, 100, 100, 50], "K"),
+            cmd(TELEPORT, &[30, 1, 1], ""),
+        ];
+        assert!(with_songs(&page, &mut songs, &map_index).is_some());
+        assert_eq!(
+            songs.jumps,
+            [(Package::Map(0), vec![(1, vec![None]), (2, vec![Some(0)])])]
+        );
+    }
+
+    #[test]
+    fn a_song_is_an_exit_one_only_if_every_playbgm_of_it_is() {
+        // Only the first: an effect in the middle, a jump to the same map, no
+        // jump, and a song that leaves in one page and not in another.
+        let map_index = |m: i64| match m {
+            3 => Some(0),
+            4 => Some(1),
+            _ => None,
+        };
+        let bgm = |name: &str| cmd(PLAY_BGM, &[0, 100, 100, 50], name);
+        let wait = cmd(WAIT, &[10], "");
+        let to_4 = cmd(TELEPORT, &[4, 9, 9], "");
+        let to_3 = cmd(TELEPORT, &[3, 9, 9], "");
+        let mut songs = Songs::default();
+        for page in [
+            vec![
+                bgm("leaves"),
+                wait.clone(),
+                cmd(CONTROL_SWITCHES, &[0, 15, 15, 0], ""),
+                to_4.clone(),
+            ],
+            vec![
+                bgm("sounds"),
+                cmd(PLAY_SOUND, &[100, 100, 50], "Thunder9"),
+                to_4.clone(),
+            ],
+            vec![bgm("back"), wait.clone(), to_3],
+            vec![bgm("stays"), wait.clone()],
+            vec![bgm("twice"), to_4],
+            vec![bgm("twice"), wait],
+        ] {
+            assert!(with_songs(&page, &mut songs, &map_index).is_some());
+        }
+        let exits: Vec<&str> = songs.exits[0]
+            .1
+            .iter()
+            .filter(|(_, is_exit)| *is_exit)
+            .map(|(s, _)| songs.names[*s].as_str())
+            .collect();
+        assert_eq!(exits, ["leaves"]);
+    }
+
+    #[test]
+    fn a_free_inn_is_only_the_heal() {
+        // With the price at zero `CommandShowInn` shows nothing and rests.
+        let code = with_songs(
+            &[cmd(SHOW_INN, &[0, 0, 0], "")],
+            &mut Songs::default(),
+            &|_| None,
+        );
+        assert_eq!(code.unwrap(), [OP_HEAL, 0, 0, 0, OP_DONE]);
+    }
+}

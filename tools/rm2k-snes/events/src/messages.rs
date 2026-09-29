@@ -227,4 +227,26 @@ mod tests {
         assert_eq!(m.add(&s(&["C"])).ok(), Some(1));
         assert_eq!(m.bytes(), [1, 1, 33, 0, 1, 1, 35]);
     }
+    #[test]
+    fn two_boxes_with_the_same_text_and_another_tail_are_two() {
+        // One waits for the player and the other does not.
+        let mut m = Messages::new(1, WINDOW);
+        let bare = m.add(&s(&["Ready?"])).ok().unwrap();
+        let tailed = m.add(&s(&["Ready?\\|\\^"])).ok().unwrap();
+        assert_ne!(bare, tailed);
+        assert_eq!(m.data[bare], 1);
+        assert_eq!(m.data[tailed], 1 | HEADER_AUTO_CLOSE | 1 << 4);
+        assert_eq!(m.add(&s(&["Ready?\\|\\^"])).ok(), Some(tailed));
+    }
+
+    #[test]
+    fn the_tail_comes_off_before_the_line_is_trimmed() {
+        // The other way around a full line would eat its own tail, and the
+        // box would wait for a key RM2k does not ask for.
+        let mut m = Messages::new(1, WINDOW);
+        let full = "x".repeat(WINDOW.columns);
+        let at = m.add(&[format!("{full}\\|\\^")]).ok().unwrap();
+        assert_eq!(m.data[at], 1 | HEADER_AUTO_CLOSE | 1 << 4);
+        assert_eq!(m.data[at + 1] as usize, WINDOW.columns);
+    }
 }

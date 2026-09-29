@@ -54,22 +54,36 @@ fn canonical(v: &Value) -> String {
                 .collect();
             format!("{{{}}}", fields.join(","))
         }
-        Value::Array(a) => format!("[{}]", a.iter().map(canonical).collect::<Vec<_>>().join(",")),
+        Value::Array(a) => format!(
+            "[{}]",
+            a.iter().map(canonical).collect::<Vec<_>>().join(",")
+        ),
         other => other.to_string(),
     }
 }
 
 fn sha256(v: &Value) -> String {
-    Sha256::digest(canonical(v).as_bytes()).iter().map(|b| format!("{b:02x}")).collect()
+    Sha256::digest(canonical(v).as_bytes())
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
 }
 
 /// The songs a package's jumps can carry are a set on the Python side: they
 /// are compared sorted, with "whatever is playing" first.
 fn sorted_jumps(answer: &mut Value) {
-    let Some(jumps) = answer.pointer_mut("/songs/jumps").and_then(Value::as_array_mut) else { return };
+    let Some(jumps) = answer
+        .pointer_mut("/songs/jumps")
+        .and_then(Value::as_array_mut)
+    else {
+        return;
+    };
     for package in jumps {
         for dest in package[1].as_array_mut().unwrap() {
-            dest[1].as_array_mut().unwrap().sort_by_key(|s| s.as_i64().unwrap_or(-1));
+            dest[1]
+                .as_array_mut()
+                .unwrap()
+                .sort_by_key(|s| s.as_i64().unwrap_or(-1));
         }
     }
 }
@@ -82,9 +96,17 @@ fn check(which: &str, answer: Value) {
     let got = answer.as_object().unwrap();
     let mut keys: Vec<&String> = got.keys().collect();
     keys.sort();
-    assert_eq!(keys, expected.keys().collect::<Vec<_>>(), "the parts of the answer");
+    assert_eq!(
+        keys,
+        expected.keys().collect::<Vec<_>>(),
+        "the parts of the answer"
+    );
     for (part, hash) in expected {
-        assert_eq!(sha256(&got[part]), hash.as_str().unwrap(), "{which}: {part}");
+        assert_eq!(
+            sha256(&got[part]),
+            hash.as_str().unwrap(),
+            "{which}: {part}"
+        );
     }
 }
 

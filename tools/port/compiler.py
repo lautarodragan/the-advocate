@@ -169,12 +169,17 @@ def apply_indices(answer):
     return [tuple(p) for p in answer["associations"]]
 
 
+def compiled_pages(answer, map_id):
+    """{(event, page): code} of the pages of that map that compile, by
+    index, each compiled on its own: with a text block, songs and graphics
+    of its own, and without a picture or troops."""
+    return {(e, p): bytes.fromhex(code)
+            for e, p, code in map_entry(answer, map_id)["compiled"]}
+
+
 def compiling_pages(answer, map_id):
     """`(event, page)` of the pages of that map that compile, by index."""
-    for entry in answer["maps"]:
-        if entry["id"] == map_id:
-            return {tuple(p) for p in entry["leaders"]}
-    raise KeyError("map %d is not in the scan" % map_id)
+    return set(compiled_pages(answer, map_id))
 
 
 def map_entry(answer, map_id):
@@ -233,7 +238,8 @@ def compile_cartridge(dump, maps, cases, test_commands, extra_variables,
                       encounter_troops):
     """The second call: every page of the cartridge. `maps` are the
     converter's `map_info`s, in the cartridge's order, with their
-    `game_map` and their `sustituciones`; `cases` are `(map, commands)`."""
+    `game_map` and their `sustituciones`; `cases` are `(map, commands)`.
+    A test page that does not compile comes back as None."""
     req = request(dump, [m["id"] for m in maps], test_commands,
                   extra_variables, test_event_map)
     req["names"] = names([m["game_map"] for m in maps])
@@ -245,7 +251,15 @@ def compile_cartridge(dump, maps, cases, test_commands, extra_variables,
         name: settings.value("sound_effects", name, kind=list)
         for name in ("per_map", "route_effects_left_out",
                      "troop_effects_in_package")}
-    req["cases"] = [{"map": run_map, "commands": [command(c) for c in cmds]}
+    # Each test page turns itself off first: it is a convention of the
+    # harness and not of the case —see `events.TEST_SWITCH`—, and an
+    # automatic page that does not turn off repeats forever.
+    turn_off = lcf.EventCommand(
+        events.CONTROL_SWITCHES, 0, "",
+        [events.SWITCH_SINGLE, events.TEST_SWITCH, events.TEST_SWITCH,
+         events.SWITCH_ON])
+    req["cases"] = [{"map": run_map,
+                     "commands": [command(c) for c in [turn_off] + list(cmds)]}
                     for run_map, cmds in cases]
     req["test_graphics"] = {str(m): [list(g) for g in graphics]
                             for m, graphics in test_graphics.items()}

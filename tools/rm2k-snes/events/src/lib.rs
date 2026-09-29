@@ -11,8 +11,9 @@
 //!
 //! * [`scan`]: the indices of the whole game —variable slots, skill bits,
 //!   the graphics actors can be given—, which pages of each map compile
-//!   —for the party—, and each map's pages compiled without songs —for who
-//!   walks and which graphics a route changes to—;
+//!   and to what, each on its own —for the party—, and each map's pages
+//!   compiled without songs —for who walks and which graphics a route
+//!   changes to—;
 //! * [`compile`]: the real thing, with everything.
 //!
 //! The opcodes' numbers are not here: they come from the protocol's
@@ -52,10 +53,6 @@ use std::rc::Rc;
 /// The file the answer is written to.
 pub const ANSWER_FILE: &str = "events.json";
 
-/// The switch the test page turns itself off with: the last of the ROM's
-/// bitmap.
-pub const TEST_SWITCH: i32 = 1023;
-
 /// What the cartridge decided, and what the project changed on top of the
 /// dump.
 #[derive(Debug, Clone, Default)]
@@ -76,7 +73,9 @@ pub struct Request {
     pub substitutions: BTreeMap<i32, SubstitutionTable>,
     pub picture: Option<Picture>,
     pub sound: SoundSettings,
-    /// Each test page and the map it runs in.
+    /// Each test page and the map it runs in, compiled with that map's
+    /// context and as its event 0. What the caller puts in front of it —the
+    /// switch a test page turns itself off with— comes in the commands.
     pub cases: Vec<(i32, Vec<Command>)>,
     /// Graphics the test pages ask for in the maps where they run.
     pub test_graphics: BTreeMap<i32, Vec<(String, i32)>>,
@@ -419,10 +418,12 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
     let sound = SoundSettings::default();
     let mut out = Vec::new();
     for map in &maps {
-        // Which pages compile, each with registries of its own: it is only
-        // a yes or a no. Every page, whatever triggers it.
+        // Which pages compile, and to what, each on its own: with a text
+        // block, songs and graphics of its own. Every page, whatever
+        // triggers it: it is what the party's scan asks, and what a test
+        // asks about one page of the game.
         let me = MapEvents::new(map, None);
-        let mut leaders = Vec::new();
+        let mut compiled = Vec::new();
         for (e, event) in map.events.iter().enumerate() {
             for (p, page) in event.pages.iter().enumerate() {
                 let mut messages = Messages::new(1, request.window());
@@ -439,10 +440,10 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
                     picture: None,
                     troops: None,
                 };
-                if compile_page(&mut ctx, &page.commands, Some(me.for_event(event.id)), 0, 0)?
-                    .is_some()
+                if let Some(code) =
+                    compile_page(&mut ctx, &page.commands, Some(me.for_event(event.id)), 0, 0)?
                 {
-                    leaders.push(json!([e, p]));
+                    compiled.push(json!([e, p, hex(&code)]));
                 }
             }
         }
@@ -466,7 +467,7 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
         let pages = map_pages(&mut ctx, &map, &me)?;
         out.push(json!({
             "id": map.id,
-            "leaders": leaders,
+            "compiled": compiled,
             "pages": pages,
             "graphics": graphics.pairs,
         }));
@@ -557,13 +558,6 @@ pub fn compile(game: &Game, request: &Request) -> Result<Value> {
             if *run_map != map.id {
                 continue;
             }
-            let mut body = vec![Command::new(
-                CONTROL_SWITCHES,
-                0,
-                "",
-                vec![0, TEST_SWITCH, TEST_SWITCH, 0],
-            )];
-            body.extend(case.iter().cloned());
             let mut ctx = Ctx {
                 game,
                 indices: &indices,
@@ -577,15 +571,14 @@ pub fn compile(game: &Game, request: &Request) -> Result<Value> {
             };
             let code = compile_page(
                 &mut ctx,
-                &body,
+                case,
                 Some(MapEvents::new(&map, Some(subs.clone())).for_event(0)),
                 0,
                 0,
             )?;
-            let Some(code) = code else {
-                return Err(Bad::answer(format!("test page {c} does not compile")));
-            };
-            cases_out[c] = Some(hex(&code));
+            // One that does not compile is null: what to do about it is the
+            // caller's.
+            cases_out[c] = code.map(|code| hex(&code));
         }
         // The debts: what the automatic pages that compile accept without
         // doing. With the text block and nothing else.

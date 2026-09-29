@@ -200,6 +200,17 @@
    "map": 1,
    "commands": [
     {
+     "code": 10210,
+     "indent": 0,
+     "string": "",
+     "parameters": [
+      0,
+      1023,
+      1023,
+      0
+     ]
+    },
+    {
      "code": 10110,
      "indent": 0,
      "string": "Test page",
@@ -249,6 +260,17 @@
   {
    "map": 3,
    "commands": [
+    {
+     "code": 10210,
+     "indent": 0,
+     "string": "",
+     "parameters": [
+      0,
+      1023,
+      1023,
+      0
+     ]
+    },
     {
      "code": 10810,
      "indent": 0,

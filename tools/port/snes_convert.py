@@ -334,8 +334,12 @@ def main():
                                  compiled["messages"]["count"])
     songs = compiler.songs(compiled)
     troops = compiler.troops(compiled)
-    test_party = {k: bytes.fromhex(code)
-                  for k, code in enumerate(compiled["cases"])}
+    test_party = {}
+    for k, code in enumerate(compiled["cases"]):
+        if code is None:
+            sys.exit("%s: the test page doesn't compile"
+                     % args.cases[k].test_commands)
+        test_party[k] = bytes.fromhex(code)
 
     for map_info in maps:
         entry = compiler.map_entry(compiled, map_info["id"])
