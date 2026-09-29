@@ -507,7 +507,7 @@ def cuadros_hasta_volver(una, tope=VOLVER_TOPE):
     correr. `None` si no volvió: eso es el cuelgue.
 
     Se mira que `vueltas` **suba**, que es lo único que dice que el arranque
-    terminó: `mapa_actual` ya vale lo suyo mucho antes —`cargar_mapa` corre
+    terminó: `mapa_actual` ya vale lo suyo mucho antes —`load_map` corre
     antes de la subida al SPC700— así que preguntarle a él da verde con la ROM
     clavada. Es exactamente lo que pasaba acá hasta el 2026-09-13.
 

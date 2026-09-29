@@ -33,7 +33,7 @@ MAPAS = cartuchos.MAPAS
 
 
 def horneados_de(renderer, map_id):
-    game_map = renderer.cargar_mapa(
+    game_map = renderer.load_map(
         os.path.join(GAME_DIR, "Map%04d.lmu" % map_id))
     return game_map, snes_convert.eventos_horneables(renderer, game_map)
 
@@ -57,7 +57,7 @@ def test_lo_que_se_hornea_tapa_la_celda_entera():
         game_map, horneados = horneados_de(renderer, map_id)
         if not horneados:
             continue
-        atlas = renderer.atlas_por_nombre(game_map.chipset_filename)
+        atlas = renderer.atlas_by_name(game_map.chipset_filename)
         assert not any(snes_convert._alfas_del_tile(atlas, 0)), \
             "mapa %d: el tile 0 de la capa alta dibuja algo, así que la celda " \
             "vacía donde se hornea no estaba vacía" % map_id

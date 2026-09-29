@@ -34,3 +34,4 @@ un `-c`) se buscan aparte con grep.
 8. `rpgmaker/fork.py`, sus nombres.
 9. `rpgmaker/lcf.py` y `rpgmaker/event_codes.py`, sus nombres, con los atributos en castellano de las clases del juego.
 10. `rpgmaker/rm2k.py`, sus nombres, y los dos atributos que el render le pone al mapa: `chipset_nombre` → `chipset_filename` y `pasabilidad_tiles` → `passability_table`.
+11. `render/render_map.py` y `render/chipset.py`, sus nombres.

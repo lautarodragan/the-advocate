@@ -249,7 +249,7 @@ DITHER_SUFFIX = "~trama"
 # flashed too. See `convertir` in snes_convert.py.
 COPY_SUFFIX = "~aparte"
 
-# Which dither. The options are in `render_map.TRAMAS`; it is chosen by
+# Which dither. The options are in `render_map.DITHERS`; it is chosen by
 # looking at a CRT TV, which is where this shows.
 DITHER_PATTERN = os.environ.get("TRAMA_PATRON", "cinco_de_ocho")
 

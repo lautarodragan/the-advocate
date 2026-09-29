@@ -288,14 +288,14 @@ class ChipsetAtlas:
 
     # --- usage -------------------------------------------------------------
 
-    def render_tile(self, dst, tile_x, tile_y, tile, paso_agua=0,
-                    paso_animado=0):
+    def render_tile(self, dst, tile_x, tile_y, tile, water_step=0,
+                    animated_step=0):
         """Draws the tile with the ID the map layer carries at (tile_x, tile_y).
 
         The two steps are the ChipSet's two animations, which run at
-        different cadences and over different tile families: `paso_agua`
+        different cadences and over different tile families: `water_step`
         —0, 1 or 2— picks the drawing of the water autotiles and
-        `paso_animado` —0 to 3— that of the "animated tiles". Which one is
+        `animated_step` —0 to 3— that of the "animated tiles". Which one is
         due at each tick is said by rm2k.py's `animated_step` and, for the
         water, `WATER_CYCLE` with `WATER_FRAMES_SLOW`; here only the atlas
         cell is picked.
@@ -308,10 +308,10 @@ class ChipsetAtlas:
             index = tile - TERRAIN + 0x0213
         elif tile >= ANIMATED:
             index = (0x0207 + (((tile - ANIMATED) // 50) << 2)
-                     + paso_animado % 4)
+                     + animated_step % 4)
         else:
             index = ((tile // 50 // 20) * 141 + tile % 50
-                     + (paso_agua % 3) * 47)
+                     + (water_step % 3) * 47)
 
         blit(dst, tile_x * TILE, tile_y * TILE, self.atlas,
               (index & 0x1F) * TILE, (index >> 5) * TILE, TILE, TILE)

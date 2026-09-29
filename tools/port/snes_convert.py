@@ -795,11 +795,11 @@ def eventos_horneables(renderer, game_map):
 
     The tile below being animated **doesn't rule it out**: the cell is baked
     into every drawing of the animation, because what is touched is the map
-    layer and `capas_animadas` renders all of them from there. What is lost is
+    layer and `animated_layers` renders all of them from there. What is lost is
     the animation the opaque tile already covered.
     """
-    atlas = renderer.atlas_por_nombre(getattr(game_map, "chipset_filename",
-                                              None))
+    atlas = renderer.atlas_by_name(getattr(game_map, "chipset_filename",
+                                           None))
     flags = getattr(game_map, "passability_table", None)
     if atlas is None or flags is None:
         return {}
@@ -1646,7 +1646,7 @@ def mapas_por_personaje(renderer, map_ids, game_dir):
     """How many maps of the ROM each (CharSet, index) appears in."""
     cuenta = collections.Counter()
     for otro in map_ids:
-        gm = renderer.cargar_mapa(os.path.join(game_dir, "Map%04d.lmu" % otro))
+        gm = renderer.load_map(os.path.join(game_dir, "Map%04d.lmu" % otro))
         suyos = set()
         for evento in gm.events:
             for pagina in evento.pages:
@@ -1776,7 +1776,7 @@ def _version_capas():
 
     What does **not** go in, on purpose: `rpgmaker/lcf.py`. What it reads from
     the dump —the two layers, the size, the ChipSet's passability— goes in by
-    its value in `insumos_de_capas`, so a change in how it is read only
+    its value in `layer_inputs`, so a change in how it is read only
     matters if what is read changes, and then the key changes by itself.
     """
     global _VERSION_CAPAS
@@ -1811,7 +1811,7 @@ def capas_convertidas(renderer, game_map):
     drawing the 29 maps of `abl` with their animations is 24 of the 65 s of a
     warm build. With the key from the inputs, a warm build draws none.
 
-    What is lost is exactly that virtue, and that is why `insumos_de_capas`
+    What is lost is exactly that virtue, and that is why `layer_inputs`
     lives next to `render_layers` and says what it reads: now the list is
     maintained by hand, and if it falls short the cache answers stale without
     anything failing.
@@ -1820,7 +1820,7 @@ def capas_convertidas(renderer, game_map):
     same byte for byte.
     """
     from common import disk_cache
-    insumos = renderer.insumos_de_capas(game_map)
+    insumos = renderer.layer_inputs(game_map)
     en_disco = None
     if insumos is not None:
         en_disco = disk_cache.key(_version_capas(), *insumos)
@@ -1830,7 +1830,7 @@ def capas_convertidas(renderer, game_map):
         if hecho is not None:
             _capas_en_memoria[en_disco] = hecho
             return hecho
-    base, above_img, variantes = renderer.capas_animadas(game_map)
+    base, above_img, variantes = renderer.animated_layers(game_map)
     if base is None:
         return None
     hecho = _convert_layers(base, above_img, variantes)
@@ -1879,7 +1879,7 @@ def _capas_de_un_mapa(map_id):
     try:
         # Quiet: whatever it has to say, `convertir` says it, in order.
         with open(os.devnull, "w") as nulo, contextlib.redirect_stdout(nulo):
-            game_map = renderer.cargar_mapa(
+            game_map = renderer.load_map(
                 os.path.join(args.game_dir, "Map%04d.lmu" % map_id))
             separar_del_heroe(renderer, game_map, args,
                               comandos_de_casos(args, map_id))
@@ -9148,7 +9148,7 @@ def pide_pagina_de_prueba(args):
 
 def convertir(renderer, map_id, args):
     """A whole map: tiles, colors, sprites, collision and blocks."""
-    game_map = renderer.cargar_mapa(
+    game_map = renderer.load_map(
         os.path.join(args.game_dir, "Map%04d.lmu" % map_id))
     if args.casos and map_id == orden_de_mapas(args)[args.inicial]:
         # The test page's event goes **first**: the ROM walks the events from

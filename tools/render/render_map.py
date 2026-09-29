@@ -3,7 +3,7 @@
 The two tile layers resolved against their ChipSet, with the drawings of the
 water animation and of the animated tiles, and the CharSets placed on top of
 them. It is what the converter cuts into tiles: see
-`Renderer.capas_animadas`. No panorama and no events: the converter takes
+`Renderer.animated_layers`. No panorama and no events: the converter takes
 care of the events.
 """
 
@@ -31,7 +31,7 @@ def load_image(path):
     return image.convert("RGBA")
 
 
-def _capa(tiles):
+def _layer_bytes(tiles):
     """A tile layer as bytes, to put it in a cache key.
 
     Four bytes per tile and not one: a tile ID goes up to 10143, so `bytes()`
@@ -62,14 +62,14 @@ def build_passability(chipset):
     return flags
 
 
-def draw_tiles(image, atlas, game_map, flags, pass_upper, pasos=(0, 0)):
+def draw_tiles(image, atlas, game_map, flags, pass_upper, steps=(0, 0)):
     """Draws the tiles of both layers that fall in the requested pass.
 
     A lower-layer tile with flags 0x30 and an upper-layer one with 0x10 are
     drawn above the player; the rest, below. It is what decides whether an
     event is covered by the roof or stands on top of it.
 
-    `pasos` are the two of the ChipSet's animation —water and animated
+    `steps` are the two of the ChipSet's animation —water and animated
     tiles—, which pick which drawing of each family is painted. See
     `render_tile`.
     """
@@ -78,11 +78,11 @@ def draw_tiles(image, atlas, game_map, flags, pass_upper, pasos=(0, 0)):
         for x in range(game_map.width):
             lower_tile = game_map.lower_layer[row + x]
             if bool(flags[lower_tile] & 0x30) == pass_upper:
-                atlas.render_tile(image, x, y, lower_tile, *pasos)
+                atlas.render_tile(image, x, y, lower_tile, *steps)
 
             upper_tile = game_map.upper_layer[row + x]
             if bool(flags[upper_tile] & 0x10) == pass_upper:
-                atlas.render_tile(image, x, y, upper_tile, *pasos)
+                atlas.render_tile(image, x, y, upper_tile, *steps)
 
 
 # The dithers a translucent event is drawn with, and which pixel drops out.
@@ -90,7 +90,7 @@ def draw_tiles(image, atlas, game_map, flags, pass_upper, pasos=(0, 0)):
 # that comes closest. The rest are here to be able to compare on a real TV,
 # which is where this is decided: a CRT's scan blurs **along the line**, so
 # alternating columns blend and the checkerboard does not.
-TRAMAS = {
+DITHERS = {
     "damero":        lambda x, y: (x + y) % 2 == 1,
     "columnas":      lambda x, y: x % 2 == 1,
     "filas":         lambda x, y: y % 2 == 1,
@@ -102,45 +102,46 @@ TRAMAS = {
 class Charsets:
     """Cache of CharSets, which repeat a lot among a map's events."""
 
-    def __init__(self, search_dirs, atlas_por_nombre=None, fondo_de_mapa=None):
+    def __init__(self, search_dirs, atlas_by_name=None,
+                 lower_layer_image=None):
         self.search_dirs = search_dirs
         self.images = {}
-        self.atlas_por_nombre = atlas_por_nombre
-        self.fondo_de_mapa = fondo_de_mapa
+        self.atlas_by_name = atlas_by_name
+        self.lower_layer_image = lower_layer_image
 
     def get(self, name):
         if name not in self.images:
-            base, donde = rm2k.baked_parts(name)
+            base, where = rm2k.baked_parts(name)
             if name.endswith(rm2k.COPY_SUFFIX):
                 self.images[name] = self.get(name[:-len(rm2k.COPY_SUFFIX)])
-            elif donde is not None:
-                self.images[name] = self._horneado(base, *donde)
+            elif where is not None:
+                self.images[name] = self._baked(base, *where)
             elif name.endswith(rm2k.DITHER_SUFFIX):
-                self.images[name] = self._tramado(
+                self.images[name] = self._dithered(
                     name[:-len(rm2k.DITHER_SUFFIX)])
             elif name.startswith(rm2k.TILE_PREFIX):
-                self.images[name] = self._de_tile(name)
+                self.images[name] = self._from_tile(name)
             else:
                 path = find_resource(self.search_dirs, "CharSet", name)
                 self.images[name] = load_image(path) if path else None
         return self.images[name]
 
-    def _tramado(self, name):
+    def _dithered(self, name):
         """The CharSet of a translucent event: the same one, with part of its
-        pixels transparent. See `rm2k.DITHER_SUFFIX` and `TRAMAS`."""
+        pixels transparent. See `rm2k.DITHER_SUFFIX` and `DITHERS`."""
         base = self.get(name)
         if base is None:
             return None
         image = base.convert("RGBA")
         pix = image.load()
-        cae = TRAMAS[rm2k.DITHER_PATTERN]
+        drops = DITHERS[rm2k.DITHER_PATTERN]
         for y in range(image.height):
             for x in range(image.width):
-                if cae(x, y):
+                if drops(x, y):
                     pix[x, y] = (0, 0, 0, 0)
         return image
 
-    def _horneado(self, base, map_id, tile_x, tile_y):
+    def _baked(self, base, map_id, tile_x, tile_y):
         """The CharSet of a translucent event, with the blend already computed.
 
         RM2k draws it at 160 out of 255 over whatever is behind. Since the
@@ -159,15 +160,16 @@ class Charsets:
         pixel's position inside its frame.
         """
         sheet = self.get(base)
-        fondo = self.fondo_de_mapa(map_id) if self.fondo_de_mapa else None
-        if sheet is None or fondo is None:
+        background = (self.lower_layer_image(map_id)
+                      if self.lower_layer_image else None)
+        if sheet is None or background is None:
             return sheet
         image = sheet.convert("RGBA")
         pix = image.load()
-        atras = fondo.load()
+        behind = background.load()
         ox = tile_x * TILE + rm2k.OFFSET_X
         oy = tile_y * TILE + rm2k.OFFSET_Y
-        alfa = rm2k.TRANSLUCENT_OPACITY
+        alpha = rm2k.TRANSLUCENT_OPACITY
         for y in range(image.height):
             fy = oy + y % rm2k.SPRITE_HEIGHT
             for x in range(image.width):
@@ -175,28 +177,28 @@ class Charsets:
                 if not a:
                     continue
                 fx = ox + x % rm2k.SPRITE_WIDTH
-                if 0 <= fx < fondo.width and 0 <= fy < fondo.height:
-                    br, bg, bb = atras[fx, fy][:3]
+                if 0 <= fx < background.width and 0 <= fy < background.height:
+                    br, bg, bb = behind[fx, fy][:3]
                 else:
                     br = bg = bb = 0        # outside the map the console sees black
-                pix[x, y] = ((r * alfa + br * (255 - alfa)) // 255,
-                             (g * alfa + bg * (255 - alfa)) // 255,
-                             (b * alfa + bb * (255 - alfa)) // 255, 255)
+                pix[x, y] = ((r * alpha + br * (255 - alpha)) // 255,
+                             (g * alpha + bg * (255 - alpha)) // 255,
+                             (b * alpha + bb * (255 - alpha)) // 255, 255)
         return image
 
-    def _de_tile(self, name):
+    def _from_tile(self, name):
         """A made-up CharSet with a tile from the chipset's upper page in the
         twelve poses of character 0, resting on the cell: a character's frame
         is 24x32 and is drawn at (x - 4, y - 16), so the 16x16 tile goes at
         (4, 16) of each frame. It is how RM2k draws an event without a
         CharSet, only as a sprite, so that it moves and
         changes place like any other."""
-        _, chipset, indice = name.split(":", 2)
-        atlas = self.atlas_por_nombre(chipset) if self.atlas_por_nombre else None
+        _, chipset, index = name.split(":", 2)
+        atlas = self.atlas_by_name(chipset) if self.atlas_by_name else None
         if atlas is None:
             return None
         tile = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
-        atlas.render_tile(tile, 0, 0, UPPER + int(indice))
+        atlas.render_tile(tile, 0, 0, UPPER + int(index))
         image = Image.new("RGBA", (288, 256), (0, 0, 0, 0))
         for pose in range(12):
             image.paste(tile, ((pose % 3) * 24 + 4, (pose // 3) * 32 + 16))
@@ -218,33 +220,33 @@ class Renderer:
         # and go first in the search: they are the ones that win when they
         # exist.
         self.search_dirs.insert(0, chipset_del_fork.imagenes(
-            lambda carpeta, nombre: find_resource(self.search_dirs, carpeta,
-                                                  nombre)))
-        self.charsets = Charsets(self.search_dirs, self.atlas_por_nombre,
-                                 self.fondo_de_mapa)
+            lambda folder, name: find_resource(self.search_dirs, folder,
+                                               name)))
+        self.charsets = Charsets(self.search_dirs, self.atlas_by_name,
+                                 self.lower_layer_image)
         self.atlases = {}
-        self.fondos = {}
-        self.huellas = {}
+        self.lower_layers = {}
+        self.fingerprints = {}
         self.missing_chipsets = set()
 
-    def fondo_de_mapa(self, map_id):
+    def lower_layer_image(self, map_id):
         """A map's lower layer, to bake the translucent ones.
 
         It is cached because a map with several translucent events would ask
         for it once per event, and rendering the layers of a big map is not
         free.
         """
-        if map_id not in self.fondos:
-            game_map = self.cargar_mapa(
+        if map_id not in self.lower_layers:
+            game_map = self.load_map(
                 os.path.join(self.game_dir, "Map%04d.lmu" % map_id))
-            self.fondos[map_id] = self.render_layers(game_map)[0]
-        return self.fondos[map_id]
+            self.lower_layers[map_id] = self.render_layers(game_map)[0]
+        return self.lower_layers[map_id]
 
     def atlas(self, chipset):
         """ChipSets repeat between maps and expanding them is not free."""
-        return self.atlas_por_nombre(chipset.filename)
+        return self.atlas_by_name(chipset.filename)
 
-    def atlas_por_nombre(self, filename):
+    def atlas_by_name(self, filename):
         if filename not in self.atlases:
             path = find_resource(self.search_dirs, "ChipSet", filename)
             if not path:
@@ -252,11 +254,11 @@ class Renderer:
             self.atlases[filename] = ChipsetAtlas(load_image(path)) if path else None
         return self.atlases[filename]
 
-    def insumos_de_capas(self, game_map):
+    def layer_inputs(self, game_map):
         """Everything that goes into a map's drawn layers, without drawing them.
 
         It is a list of parts for a cache key, and it exists so that whoever
-        caches what comes out of `capas_animadas` can ask **before** paying
+        caches what comes out of `animated_layers` can ask **before** paying
         for the drawing. It returns `None` when the ChipSet is missing: then
         there is no input that counts and the caller has to take the usual
         path, which is the one that knows how to fail.
@@ -274,15 +276,16 @@ class Renderer:
         builds the key adds them.
         """
         chipset = self.database.chipsets[game_map.chipset_id]
-        imagen = self.huella_de_chipset(chipset.filename)
-        if imagen is None:
+        image = self.chipset_fingerprint(chipset.filename)
+        if image is None:
             return None
         return [b"mapa %dx%d" % (game_map.width, game_map.height),
-                _capa(game_map.lower_layer), _capa(game_map.upper_layer),
+                _layer_bytes(game_map.lower_layer),
+                _layer_bytes(game_map.upper_layer),
                 bytes(chipset.passable_lower), bytes(chipset.passable_upper),
-                imagen]
+                image]
 
-    def huella_de_chipset(self, filename):
+    def chipset_fingerprint(self, filename):
         """The sha256 of the ChipSet file that wins the search, or `None`.
 
         The bytes and not the path: whether the file comes from the game or
@@ -293,16 +296,17 @@ class Renderer:
         quite a few fewer ChipSets than maps, and reading the file once per
         map would add nothing.
         """
-        if filename not in self.huellas:
+        if filename not in self.fingerprints:
             path = find_resource(self.search_dirs, "ChipSet", filename)
             if path is None:
-                self.huellas[filename] = None
+                self.fingerprints[filename] = None
             else:
                 with open(path, "rb") as f:
-                    self.huellas[filename] = hashlib.sha256(f.read()).digest()
-        return self.huellas[filename]
+                    self.fingerprints[filename] = hashlib.sha256(
+                        f.read()).digest()
+        return self.fingerprints[filename]
 
-    def cargar_mapa(self, path):
+    def load_map(self, path):
         """The map, with its chipset's name set: `collect_npcs` needs it for
         the events that are drawn with a tile."""
         game_map = lcf.Map(path)
@@ -313,7 +317,7 @@ class Renderer:
         game_map.passability_table = build_passability(chipset)
         return game_map
 
-    def render_layers(self, game_map, pasos=(0, 0)):
+    def render_layers(self, game_map, steps=(0, 0)):
         """The map in two separate layers, as RM2k orders them.
 
         The lower one is opaque and goes behind the hero; the upper one
@@ -329,15 +333,15 @@ class Renderer:
         size = (game_map.width * TILE, game_map.height * TILE)
 
         base = Image.new("RGBA", size, (0, 0, 0, 255))
-        draw_tiles(base, atlas, game_map, flags, pass_upper=False, pasos=pasos)
+        draw_tiles(base, atlas, game_map, flags, pass_upper=False, steps=steps)
         above = Image.new("RGBA", size, (0, 0, 0, 0))
-        draw_tiles(above, atlas, game_map, flags, pass_upper=True, pasos=pasos)
+        draw_tiles(above, atlas, game_map, flags, pass_upper=True, steps=steps)
         return base, above
 
-    def capas_animadas(self, game_map):
+    def animated_layers(self, game_map):
         """The map's layers and the other drawings of the ChipSet's animation.
 
-        Returns `(base, encima, variantes)`, with `variantes` in the shape
+        Returns `(base, above, variants)`, with `variants` in the shape
         `snes_convert._convert_layers` asks for: per family, the drawings
         that are **not** 0, which is `base`.
 
@@ -355,19 +359,19 @@ class Renderer:
         base, above = self.render_layers(game_map)
         if base is None:
             return None, None, {}
-        tiene = {"agua": False, "animado": False}
+        has = {"agua": False, "animado": False}
         for tile in list(game_map.lower_layer) + list(game_map.upper_layer):
             if tile < ANIMATED:
-                tiene["agua"] = True
+                has["agua"] = True
             elif tile < TERRAIN:
-                tiene["animado"] = True
-        variantes = {}
-        for familia, dibujos in rm2k.ANIMATED_FAMILIES:
-            if not tiene[familia]:
+                has["animado"] = True
+        variants = {}
+        for family, drawings in rm2k.ANIMATED_FAMILIES:
+            if not has[family]:
                 continue
-            variantes[familia] = [
+            variants[family] = [
                 self.render_layers(
                     game_map,
-                    (d, 0) if familia == "agua" else (0, d))[0]
-                for d in range(1, dibujos)]
-        return base, above, variantes
+                    (d, 0) if family == "agua" else (0, d))[0]
+                for d in range(1, drawings)]
+        return base, above, variants

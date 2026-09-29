@@ -139,7 +139,7 @@ class Mundo:
     def lmu(self, map_id):
         """El mapa del juego original, con lo que `rm2k` necesita colgado."""
         if ("lmu", map_id) not in self.cache:
-            self.cache[("lmu", map_id)] = self.renderer.cargar_mapa(
+            self.cache[("lmu", map_id)] = self.renderer.load_map(
                 os.path.join(self.game_dir, "Map%04d.lmu" % map_id))
         return self.cache[("lmu", map_id)]
 
