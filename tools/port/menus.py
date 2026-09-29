@@ -1,5 +1,5 @@
-"""Los menús: las ranuras de guardado, el menú de pausa, la pantalla de ítems
-y la de elegir a quién, con la fuente y los marcos que comparten.
+"""The menus: the save slots, the pause menu, the item screen and the
+choose-whom screen, with the font and the frames they share.
 """
 
 import collections
@@ -14,114 +14,114 @@ from port.paleta import NEGRO
 from port.reglas import nivel_de, parametro_de
 
 
-# --- la pantalla de ranuras --------------------------------------------------
+# --- the slot screen ---------------------------------------------------------
 #
-# La usan las dos puntas: "Resume the Story" en el título, y el save point de
-# Lashe City. Es una pantalla propia y no una capa encima del título, así que
-# tiene la VRAM para ella sola y todo puede ir en 4bpp.
+# Both ends use it: "Resume the Story" on the title, and the Lashe City save
+# point. It is a screen of its own and not a layer over the title, so it has
+# VRAM all to itself and everything can go at 4bpp.
 #
-# **El texto que no depende de la partida está pre-renderizado**, incluidas
-# las dos variantes de cada ranura —vacía y ocupada— y el término del nivel.
-# Lo que sí depende de ella —el nombre del líder y su nivel— se compone de a
-# una letra por celda con glifos sueltos, como los dígitos del cronómetro; ver
-# "lo que depende del actor" acá abajo. Hasta el 2026-09-20 se horneaba
-# también, con un bloque por actor, y eso hacía que el banco creciera con cada
-# actor que pudiera estar en el grupo.
+# **The text that does not depend on the save is pre-rendered**, including
+# the two variants of each slot —empty and taken— and the level term. What
+# does depend on it —the leader's name and level— is composed one letter per
+# cell with loose glyphs, like the timer digits; see "what depends on the
+# actor" below. Until 2026-09-20 it was baked too, with one block per actor,
+# and that made the bank grow with every actor that could be in the party.
 #
-# Lo que la ROM sí hace en caliente es **elegir qué bloque de celdas escribe en
-# cada fila**: por ranura hay cuatro —vacía o llena, con cursor o sin él— y
-# mover el cursor es reescribir dos filas de 96 celdas. No hay tilemap completo
-# por combinación porque serían 64.
-# La fila mide **48 pixeles, seis celdas**, que es lo que mide una cara del
-# FaceSet: `Window_SaveFile::Refresh` en easyrpg dibuja, por archivo, el nombre
-# del archivo, el del líder, el nivel y los puntos de vida, y las caras de
-# hasta cuatro del grupo a 48x48. Acá van tres líneas de texto a la izquierda y
-# hasta tres caras a la derecha: la cuarta no entra en 256 pixeles sin comerse
-# el borde, que en un televisor de tubo no se ve. Cuatro filas de 48 más la
-# cabecera terminan en la línea 216 de las 224.
-RANURA_Y = 24                   # dónde arranca la primera fila, en pixeles
-# Y cada cuánto va la siguiente. **Múltiplo de 8 a propósito**: cada fila se
-# sube al tilemap como un bloque de celdas enteras, así que si el salto no
-# cayera en una celda el texto de una fila se escribiría en el bloque de la
-# siguiente y se cortaría.
+# What the ROM does do on the fly is **choose which block of cells it writes
+# on each row**: per slot there are four —empty or full, with cursor or
+# without— and moving the cursor is rewriting two rows of 96 cells. There is
+# no full tilemap per combination because there would be 64.
+# The row is **48 pixels, six cells**, which is the size of a FaceSet face:
+# `Window_SaveFile::Refresh` in easyrpg draws, per file, the file name, the
+# leader's, the level and the hit points, and the faces of up to four of the
+# party at 48x48. Here there are three lines of text on the left and up to
+# three faces on the right: the fourth does not fit in 256 pixels without
+# eating the border, which is not visible on a CRT. Four rows of 48 plus the
+# header end at line 216 of the 224.
+RANURA_Y = 24                   # where the first row starts, in pixels
+# And how far apart the next one is. **A multiple of 8 on purpose**: each row
+# is uploaded to the tilemap as a block of whole cells, so if the step did not
+# land on a cell the text of one row would be written into the next row's
+# block and get cut.
 RANURA_SALTO = 48
-RANURA_FILAS = 6                # celdas de 8 px de alto que ocupa cada una
-RANURA_X = 56                   # dónde arranca el texto
-LINEA = 16                      # cada cuánto va una línea de texto en la fila
+RANURA_FILAS = 6                # 8 px tall cells each one takes
+RANURA_X = 56                   # where the text starts
+LINEA = 16                      # how far apart the text lines in the row are
 CABECERA_Y = 4
 CABECERA_FILAS = 2
-# Qué dice una ranura sin partida. RM2k no tiene un término para esto —su menú
-# muestra el hueco vacío— así que el texto es nuestro y por eso se escribe acá
-# y no se saca del LDB, para que se vea que lo inventamos.
-# Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
-# Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
+# What a slot without a save says. RM2k has no term for this —its menu shows
+# the empty gap— so the text is ours, and that is why it is written here and
+# not taken from the LDB, so it shows that we made it up.
+# Measured against A Blurred Line: an assumption of the engine, not a fact of
+# the game. See `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 VACIA = "- Empty -"
-# Las caras: dónde va la primera, en celdas desde el borde izquierdo, y cada
-# cuántas la siguiente. Seis de ancho por seis de alto, pegadas.
+# The faces: where the first one goes, in cells from the left edge, and how
+# far apart the next one is. Six wide by six tall, touching.
 CARA = 48
 CARA_CELDAS = CARA // CELL      # 6
-CARA_COL = 14                   # o sea x = 112
-CARA_PASO = CARA_CELDAS         # pegadas: 112, 160, 208
+CARA_COL = 14                   # that is x = 112
+CARA_PASO = CARA_CELDAS         # touching: 112, 160, 208
 CARAS_MAX = 3
-# El nombre del líder, en la segunda línea: siete celdas de ancho, desde el
-# borde del texto hasta donde arranca la primera cara.
+# The leader's name, on the second line: seven cells wide, from the edge of
+# the text to where the first face starts.
 NOMBRE_COL = RANURA_X // CELL   # 7
 NOMBRE_COLS = CARA_COL - NOMBRE_COL     # 7
-NOMBRE_FILA = LINEA // CELL     # 2: la segunda línea arranca en y+16
-# Y la tercera línea, el nivel: las dos cifras que van detrás del término
-# "L ", que sí se hornea porque es el mismo para todos.
+NOMBRE_FILA = LINEA // CELL     # 2: the second line starts at y+16
+# And the third line, the level: the two digits after the term "L ", which
+# is baked because it is the same for everyone.
 NIVEL_FILA = 2 * LINEA // CELL  # 4
-NIVEL_CIFRAS = 2                # "%2d", que es lo que muestra RM2k
-# En qué celda arranca el número: la que sigue al término, que mide dos
-# caracteres de la fuente. No es `RANURA_X + 12` redondeado a mano porque el
-# término sale del LDB y su ancho es el de la fuente.
+NIVEL_CIFRAS = 2                # "%2d", which is what RM2k shows
+# Which cell the number starts at: the one after the term, which is two font
+# characters wide. It is not `RANURA_X + 12` rounded by hand because the term
+# comes from the LDB and its width is the font's.
 NIVEL_COL = (RANURA_X + 2 * fuente.ANCHO) // CELL       # 8
-# Y con qué paleta van las caras: la 0 es del texto, y cada cara lleva la suya
-# desde la 1. Son las paletas de BG2 a 4bpp, que en la consola son ocho.
+# And which palette the faces use: 0 is the text's, and each face carries its
+# own from 1. They are the palettes of BG2 at 4bpp, which are eight on the
+# console.
 CARAS_PALETAS_MAX = 7
-# Cuántos tiles entran en el banco de la pantalla: el conversor lo comprueba
-# contra el reparto de VRAM, ver RANURA_MAP allá.
+# How many tiles fit in the screen's bank: the converter checks it against
+# the VRAM layout, see RANURA_MAP there.
 RANURA_TILES_MAX = 448
 
-# --- lo que depende del actor, compuesto con glifos ---------------------------
+# --- what depends on the actor, composed with glyphs ---------------------------
 #
-# El nombre, el nivel y los HP máximos **se componen de a una letra por celda**
-# y no se hornean en un bloque por actor. El porqué es que el banco es uno
-# solo y está deduplicado: horneados, el texto de cada actor sumaba unos siete
-# tiles que no comparte con nadie, así que el banco crecía con cada actor que
-# pudiera estar en el grupo y el juego entero no entraba. Con glifos el texto
-# cuesta una vez —las letras que los nombres usan— y lo único que sigue
-# creciendo por actor son las caras.
+# The name, the level and the max HP **are composed one letter per cell** and
+# not baked into one block per actor. The reason is that the bank is a single
+# one and deduplicated: baked, each actor's text added some seven tiles it
+# shares with nobody, so the bank grew with every actor that could be in the
+# party and the whole game did not fit. With glyphs the text costs once —the
+# letters the names use— and the only thing that keeps growing per actor is
+# the faces.
 #
-# Es lo mismo que ya hacen los dígitos del oro, los HP de ahora y la pantalla
-# de ítems. El precio es el mismo que pagan ellos y está declarado: las letras
-# van a 8 pixeles de paso y no a los 6 de la fuente, así que el texto que
-# depende del actor sale un poco más ancho que antes. Lo que no depende de él
-# —"File 1", "- Empty -", el término del nivel, "Normal", "HP"— se sigue
-# horneando con la fuente, o sea que sale igual que siempre.
+# It is the same the gold digits, the current HP and the item screen already
+# do. The price is the same they pay and it is declared: the letters go at an
+# 8-pixel pitch and not at the font's 6, so the text that depends on the
+# actor comes out a bit wider than before. What does not depend on it —"File
+# 1", "- Empty -", the level term, "Normal", "HP"— is still baked with the
+# font, so it comes out the same as always.
 #
-# Los glifos se dibujan **en la misma celda y con el mismo corrimiento que los
-# dígitos del oro** —uno en x, dos en y—, así que las diez cifras salen de acá
-# y la pantalla no lleva dos juegos de dígitos.
-GLIFO_COL = 3                   # la columna donde se dibuja el glifo suelto
-GLIFO_FILA = 25                 # y su fila; las dos son cualesquiera
-GLIFO_DX = 1                    # centrado en la celda: 6 px de fuente en 8
+# The glyphs are drawn **in the same cell and with the same offset as the
+# gold digits** —one in x, two in y—, so the ten digits come from here and the
+# screen does not carry two sets of digits.
+GLIFO_COL = 3                   # the column where the loose glyph is drawn
+GLIFO_FILA = 25                 # and its row; both are arbitrary
+GLIFO_DX = 1                    # centered in the cell: 6 px of font in 8
 GLIFO_DY = 2
 
 
 def _bloque_de_celdas(capa, fila0, filas, tiles, donde, indice, col0=0,
                       cols=COLS, paleta=0):
-    """Las celdas de un rectángulo de `capa`, agregando tiles nuevos.
+    """The cells of a rectangle of `capa`, adding new tiles.
 
-    Devuelve la lista de palabras del tilemap, de a `cols` por fila: el índice
-    del tile con los tres bits de `paleta` encima. Los tiles se comparten con
-    todo lo demás de la pantalla: el banco es uno solo y los bloques lo
-    indexan, así que deduplicar por separado daría índices que no coinciden.
-    Se deduplican por sus índices y no por sus colores, así que un tile con el
-    mismo dibujo en dos paletas es uno solo.
+    Returns the list of tilemap words, `cols` per row: the tile index with
+    the three bits of `paleta` on top. The tiles are shared with everything
+    else on the screen: there is a single bank and the blocks index it, so
+    deduplicating separately would give indices that do not match. They are
+    deduplicated by their indices and not by their colors, so a tile with the
+    same drawing in two palettes is a single one.
 
-    `indice` va de color de 15 bits a índice de paleta; lo que no esté ahí es
-    un error y no un color parecido, para que un color de más se note.
+    `indice` maps a 15-bit color to a palette index; what is not there is an
+    error and not a similar color, so that an extra color gets noticed.
     """
     px = capa.load()
     celdas = []
@@ -148,25 +148,27 @@ def _bloque_de_celdas(capa, fila0, filas, tiles, donde, indice, col0=0,
 
 
 def _texto_de_ranura(numero, db, llena):
-    """Las dos primeras líneas de una ranura, con los términos del juego. La
-    segunda de una ranura llena es el nombre del líder, que va aparte porque
-    depende de la partida; la tercera es el nivel, que se escribe en dos
-    colores y también va aparte."""
+    """The first two lines of a slot, with the game's terms. The second of a
+    full slot is the leader's name, which goes separately because it depends
+    on the save; the third is the level, which is written in two colors and
+    also goes separately."""
     if not llena:
         return ["%s %d" % (db.term_file, numero + 1), VACIA]
     return ["%s %d" % (db.term_file, numero + 1), ""]
 
 
 def _escribir_termino_nivel(destino, sys_img, x, y, db, font_id):
-    """El término del nivel, como `Window_SaveFile::Refresh`: `lvl_short`
-    completado a dos caracteres y en el color 1 del sistema. En el ABL es "L ".
-    Los puntos de vida que RM2k pone al lado no van: este port no los tiene.
+    """The level term, like `Window_SaveFile::Refresh`: `lvl_short` padded
+    to two characters and in system color 1. In ABL it is "L ". The hit
+    points RM2k puts next to it do not go: this port does not have them.
 
-    Está copiado de la captura de EasyRPG del 2026-09-10, no del código solo.
+    It is copied from the EasyRPG capture of 2026-09-10, not from the code
+    alone.
 
-    **El número no va acá**: lo compone la ROM con glifos, porque es lo único
-    de esta línea que depende del actor —con Kersh de líder dice 20 y con Core
-    15—. El término sí se hornea, que es el mismo para todos.
+    **The number does not go here**: the ROM composes it with glyphs,
+    because it is the only thing on this line that depends on the actor
+    —with Kersh as leader it says 20 and with Core 15—. The term is baked,
+    since it is the same for everyone.
     """
     from port import ventana as ventana_mod
     ventana_mod.dibujar_linea(destino, sys_img, x, y,
@@ -175,38 +177,40 @@ def _escribir_termino_nivel(destino, sys_img, x, y, db, font_id):
 
 
 def texto_de_nombre(db, actor, cols=None):
-    """El nombre del actor como la ROM lo compone: una letra por celda, con
-    las que la fuente no tiene vueltas '?' y rellenado con espacios.
+    """The actor's name as the ROM composes it: one letter per cell, with the
+    ones the font lacks turned into '?' and padded with spaces.
 
-    El relleno no es adorno: la ROM escribe siempre las mismas celdas, así
-    que lo que sobra a la derecha tiene que borrar lo que hubiera."""
+    The padding is not decoration: the ROM always writes the same cells, so
+    what is left over on the right has to erase whatever was there."""
     cols = MENU_NOMBRE_COLS if cols is None else cols
     nombre = db.actors[actor].name if actor in db.actors else ""
     return texto_de_item(nombre, cols).ljust(cols)
 
 
 def texto_de_nivel(db, actor, nivel=None):
-    """Las dos cifras del nivel, como las dice RM2k: alineadas a la derecha.
-    Sin `nivel`, el de arranque; la ROM compone el de ahora con lo mismo,
-    `texto_nivel`."""
+    """The two digits of the level, as RM2k says them: right-aligned. Without
+    `nivel`, the starting one; the ROM composes the current one with the
+    same, `texto_nivel`."""
     if nivel is None:
         nivel = nivel_de(db.actors[actor]) if actor in db.actors else 0
     return ("%*d" % (NIVEL_CIFRAS, nivel))[-NIVEL_CIFRAS:]
 
 
 def texto_de_maximo(db, actor, nivel=None):
-    """Los HP máximos del actor detrás de su barra: "/168". Van al lado de los
-    HP de ahora, que la ROM escribe con los mismos glifos. Sin `nivel`, los
-    del de arranque; la ROM compone los del de ahora, `texto_maximo`."""
+    """The actor's max HP after its slash: "/168". They go next to the
+    current HP, which the ROM writes with the same glyphs. Without `nivel`,
+    those of the starting one; the ROM composes those of the current one,
+    `texto_maximo`."""
     maximo = (parametro_de(db.actors[actor], "maxhp", nivel)
               if actor in db.actors else 0)
     return ("/%d" % maximo).ljust(MENU_MAX_CIFRAS)[:MENU_MAX_CIFRAS]
 
 
 def texto_de_exp(db, actor, nivel=None, exp=None):
-    """La experiencia como la escribe `DrawActorExp`: `"%6d/%6d"`, la de ahora
-    y la que pide el nivel que sigue —`GetNextExp`—, o guiones en el tope.
-    Sin `nivel` ni `exp`, los de arranque, como `texto_de_nivel`."""
+    """The experience as `DrawActorExp` writes it: `"%6d/%6d"`, the current
+    one and the one the next level asks for —`GetNextExp`—, or dashes at the
+    cap. Without `nivel` or `exp`, the starting ones, like
+    `texto_de_nivel`."""
     a = db.actors[actor]
     if nivel is None:
         nivel = experiencia.nivel_inicial(a)
@@ -219,15 +223,16 @@ def texto_de_exp(db, actor, nivel=None, exp=None):
 
 
 def glifos_de(db, actores, otras=""):
-    """Qué letras necesita el banco: las de lo que se compone, más las diez
-    cifras, que van siempre porque el oro y los HP de ahora las usan, y las
-    de `otras` —los nombres de las medicinas, que escribe la elección de
-    actor: ver `OBJETIVO_VENTANAS`—.
+    """Which letters the bank needs: those of what is composed, plus the ten
+    digits, which always go because the gold and the current HP use them,
+    and those of `otras` —the names of the medicines, which the actor choice
+    writes: see `OBJETIVO_VENTANAS`—.
 
-    Sale de los textos mismos y no de un alfabeto escrito a mano: un cartucho
-    con tres actores no paga las letras de los otros."""
+    It comes from the texts themselves and not from an alphabet written by
+    hand: a cartridge with three actors does not pay for the others'
+    letters."""
     letras = set("0123456789 ") | set(otras)
-    letras |= set("/-")         # los de la experiencia, que los tiene siempre
+    letras |= set("/-")         # the experience's, which it always has
     for actor in actores:
         letras |= set(texto_de_nombre(db, actor) + texto_de_nivel(db, actor)
                       + texto_de_maximo(db, actor))
@@ -235,12 +240,12 @@ def glifos_de(db, actores, otras=""):
 
 
 def cara_de(db, actor, game_dir):
-    """La cara del actor, 48x48 en RGBA, o None si no tiene.
+    """The actor's face, 48x48 in RGBA, or None if it has none.
 
-    Va por `render_map.load_image` y no por `Image.open`, como el skin: en
-    RM2k el índice 0 de la paleta es transparente también en un FaceSet, y en
-    `ABLFaces` es un rojo que ocupa casi toda la cara. Dibujado opaco, cada
-    cara era un cuadrado rojo con un muñeco adentro.
+    It goes through `render_map.load_image` and not `Image.open`, like the
+    skin: in RM2k palette index 0 is transparent in a FaceSet too, and in
+    `ABLFaces` it is a red that fills almost the whole face. Drawn opaque,
+    each face was a red square with a figure inside.
     """
     import os
     from render import render_map
@@ -255,23 +260,25 @@ def cara_de(db, actor, game_dir):
 
 
 def _paleta_de_cara(cara):
-    """Quince colores para una cara, y de cada color de la imagen a cuál va.
+    """Fifteen colors for a face, and where each color of the image goes.
 
-    Las caras del ABL usan entre 22 y 29 colores de 15 bits, y en una paleta de
-    4bpp entran 15. El índice 0 es el transparente, y el negro va ahí: sobre el
-    fondo negro de la pantalla da lo mismo y no gasta una entrada.
+    ABL's faces use between 22 and 29 15-bit colors, and a 4bpp palette fits
+    15. Index 0 is the transparent one, and black goes there: over the
+    screen's black background it makes no difference and does not spend an
+    entry.
 
-    La reducción es `asignador.merge_least_visible` y **no** `reducir`, que es lo
-    que usa la imagen del título. `reducir` se queda con los quince colores más
-    usados y manda el resto al más cercano, y en 48x48 píxeles eso arrasa: en
-    una cara hay un puñado de tonos de piel que cubren casi todo y una docena de
-    detalles de dos o tres píxeles cada uno —el brillo de un ojo, el filo de un
-    mechón—, así que los quince ganadores eran quince variantes del mismo tono y
-    la cara quedaba plana. taro lo reportó como "Talan y Core se ven grises".
+    The reduction is `asignador.merge_least_visible` and **not** `reducir`,
+    which is what the title image uses. `reducir` keeps the fifteen most
+    used colors and sends the rest to the nearest, and at 48x48 pixels that
+    flattens everything: a face has a handful of skin tones covering almost
+    all of it and a dozen details of two or three pixels each —the glint of
+    an eye, the edge of a lock of hair—, so the fifteen winners were fifteen
+    variants of the same tone and the face came out flat. taro reported it
+    as "Talan and Core look gray".
 
-    En el título la diferencia no existe —son 240 colores de 369, y los que se
-    fusionan casi no aparecen— y cuesta el cuadrático, así que allá sigue
-    `reducir`.
+    On the title the difference does not exist —it is 240 colors out of
+    369, and the ones merged barely appear— and it costs the quadratic, so
+    `reducir` stays there.
     """
     pixeles_de_cara = [(r >> 3, g >> 3, b >> 3) if a else NEGRO
                        for r, g, b, a in cara.get_flattened_data()]
@@ -291,17 +298,18 @@ def _paleta_de_cara(cara):
 
 
 def _cara_prestada(colores, indice_cara, paletas):
-    """A qué paleta de las que ya hay se cuelga una cara que no consiguió la
-    suya, y de cada color de la cara a qué índice de esa paleta va.
+    """Which of the existing palettes a face that did not get its own hangs
+    on to, and for each color of the face which index of that palette it
+    goes to.
 
-    Se elige la paleta a la que menos colores le faltan —contando colores
-    distintos y no píxeles, que es lo que se puede saber acá sin volver a
-    recorrer la imagen— y cada color va al más cercano por luma, que es
-    exactamente lo que hace `cabe` en el conversor con los sprites.
+    The palette missing the fewest colors is chosen —counting distinct
+    colors and not pixels, which is what can be known here without walking
+    the image again— and each color goes to the nearest by luma, which is
+    exactly what `cabe` does in the converter with the sprites.
 
-    Las dos primeras paletas son las del texto y no se tocan: pintarle la cara
-    encima al texto lo dejaría ilegible, que es peor que una cara con el tono
-    cambiado.
+    The first two palettes are the text's and are not touched: painting the
+    face over the text would make it illegible, which is worse than a face
+    with its tone changed.
     """
     candidatas = list(range(2, len(paletas)))
     cual = min(candidatas,
@@ -318,190 +326,188 @@ def _cara_prestada(colores, indice_cara, paletas):
     return cual, {c: donde[colores[k]] for c, k in indice_cara.items()}
 
 
-# --- el menú de pausa ---------------------------------------------------------
+# --- the pause menu ----------------------------------------------------------
 #
-# Es `Scene_Menu` de RM2k en 256x224 y no en 320x240, así que la geometría es
-# nuestra y no la de allá: la columna de órdenes a la izquierda, el oro abajo
-# a la izquierda y el grupo a la derecha, **sin las ventanas** —fondo negro,
-# como la pantalla de ranuras— y sin lo que no entra: el título del actor, la
-# experiencia y los SP. Del grupo se ve la cara, el nombre, el nivel, el
-# estado y los HP. Es cosmético y está declarado: se ve bien o no se ve bien,
-# y eso lo dice taro jugando.
+# It is RM2k's `Scene_Menu` at 256x224 and not 320x240, so the geometry is
+# ours and not theirs: the command column on the left, the gold at the bottom
+# left and the party on the right, **without the windows** —black background,
+# like the slot screen— and without what does not fit: the actor's title, the
+# experience and the SP. Of the party one sees the face, the name, the level,
+# the status and the HP. It is cosmetic and declared: it looks right or it
+# does not, and taro says which by playing.
 #
-# Vive en el **mismo banco de tiles y la misma paleta** que la pantalla de
-# ranuras: las caras son las mismas, y la pantalla de guardar se abre desde
-# el menú. Todo va alineado a celdas de 8 para que los bloques valgan en
-# cualquier fila.
+# It lives in the **same tile bank and the same palette** as the slot screen:
+# the faces are the same, and the save screen is opened from the menu.
+# Everything is aligned to 8-pixel cells so the blocks work on any row.
 MENU_OPCIONES = 5
-MENU_OPC_Y = 8                  # la primera orden, en pixeles
-MENU_OPC_SALTO = 16             # y cada cuánto va la siguiente
-MENU_OPC_COL = 3                # el texto de la orden, x = 24
-MENU_OPC_COLS = 9               # hasta x = 96, donde empieza el grupo
-MENU_CURSOR_COL = 1             # el ">", x = 8
-# Qué órdenes hacen algo. Las otras se dibujan en el color de "no se puede",
-# que es el 3 del sistema, como RM2k dibuja "Save" cuando está prohibido: hoy
-# es sólo técnicas. Usar ítems abre la pantalla de ítems desde el 2026-09-11.
-# La 3, guardar, depende de `ChangeSaveAccess`. La 4, End Game, abre la
-# pantalla de fin_del_juego.py desde el 2026-09-28: hasta ahí iba en gris
-# porque "terminar el juego pide volver al título sin reiniciar el SPC700", y
-# eso dejó de hacer falta cuando el Game Over empezó a volver al título con un
-# reinicio.
+MENU_OPC_Y = 8                  # the first command, in pixels
+MENU_OPC_SALTO = 16             # and how far apart the next one is
+MENU_OPC_COL = 3                # the command's text, x = 24
+MENU_OPC_COLS = 9               # up to x = 96, where the party starts
+MENU_CURSOR_COL = 1             # the ">", x = 8
+# Which commands do something. The others are drawn in the "cannot" color,
+# which is system color 3, the way RM2k draws "Save" when it is forbidden:
+# today that is only techniques. Using items opens the item screen since
+# 2026-09-11. Number 3, saving, depends on `ChangeSaveAccess`. Number 4, End
+# Game, opens the fin_del_juego.py screen since 2026-09-28: until then it was
+# gray because "ending the game requires going back to the title without
+# resetting the SPC700", and that stopped being needed when Game Over started
+# going back to the title with a reset.
 MENU_ITEMS = 0
 MENU_EQUIPO = 2
 MENU_GUARDAR = 3
 MENU_FIN = 4
 MENU_HECHAS = (MENU_ITEMS, MENU_EQUIPO, MENU_GUARDAR, MENU_FIN)
-# El oro, abajo a la izquierda: hasta seis cifras **de a una celda cada una**
-# —no a los 6 pixeles de la fuente, para que la ROM las escriba de a una sin
-# rearmar tiles— y el término de la moneda detrás, en el color 1.
+# The gold, at the bottom left: up to six digits **one cell each** —not at the
+# font's 6 pixels, so the ROM writes them one at a time without rebuilding
+# tiles— and the currency term after them, in color 1.
 MENU_ORO_Y = 200
 MENU_ORO_COL = 3
 MENU_ORO_CIFRAS = 6
 MENU_MONEDA_COL = MENU_ORO_COL + MENU_ORO_CIFRAS    # 9, x = 72
 MENU_MONEDA_COLS = 3
-# El grupo: una fila de siete celdas por actor, con la cara a la izquierda y
-# el texto al lado. Cuatro filas son 224 pixeles justos.
+# The party: a row of seven cells per actor, with the face on the left and
+# the text beside it. Four rows are exactly 224 pixels.
 MENU_ACTOR_COL = 12             # x = 96
 MENU_ACTOR_COLS = COLS - MENU_ACTOR_COL
 MENU_ACTOR_FILAS = 7
 MENU_TEXTO_X = MENU_ACTOR_COL * CELL + CARA + 8     # 152
-MENU_ESTADO_DX = 42             # "Normal" va a 42 del nivel, como en RM2k
+MENU_ESTADO_DX = 42             # "Normal" goes 42 from the level, as in RM2k
 MENU_FILAS_GRUPO = 4
-# Los HP de ahora: tres cifras **de a una celda cada una**, por lo mismo que
-# el oro —que la ROM las escriba de a una sin rearmar tiles—. Van en la
-# tercera línea de la fila del actor, o sea las filas 4 y 5 del bloque, que es
-# donde las cifras del oro caen alineadas: las dos se dibujan a dos pixeles
-# del borde de arriba de su celda. El máximo va detrás, con la barra, y ése sí
-# se hornea: no cambia nunca.
-MENU_HP_CIFRAS = 3              # ningún actor del juego pasa de 999
-MENU_HP_COL = 21                # x = 168, pegado al "HP" de la izquierda
-MENU_HP_FILA = 4                # la tercera línea, adentro del bloque
+# The current HP: three digits **one cell each**, for the same reason as the
+# gold —so the ROM writes them one at a time without rebuilding tiles—. They
+# go on the third line of the actor's row, that is rows 4 and 5 of the block,
+# which is where the gold digits land aligned: both are drawn two pixels from
+# the top edge of their cell. The maximum goes after, with the slash, and
+# that one is baked: it never changes.
+MENU_HP_CIFRAS = 3              # no actor in the game goes past 999
+MENU_HP_COL = 21                # x = 168, right after the "HP" on the left
+MENU_HP_FILA = 4                # the third line, inside the block
 MENU_MAX_X = (MENU_HP_COL + MENU_HP_CIFRAS) * CELL      # 192
-# Y dónde caen, adentro de la fila del actor, las tres tiras que dependen de
-# él y que la ROM compone con glifos: el nombre en la primera línea, las dos
-# cifras del nivel detrás del término en la segunda, y el máximo detrás de los
-# HP de ahora en la tercera. Ver "lo que depende del actor" allá arriba.
+# And where, inside the actor's row, the three strips that depend on it and
+# that the ROM composes with glyphs land: the name on the first line, the two
+# level digits after the term on the second, and the maximum after the
+# current HP on the third. See "what depends on the actor" up there.
 MENU_NOMBRE_COL = MENU_TEXTO_X // CELL                  # 19
 MENU_NOMBRE_COLS = COLS - MENU_NOMBRE_COL               # 13
 MENU_NOMBRE_FILA = 0
 MENU_NIVEL_COL = (MENU_TEXTO_X + 2 * fuente.ANCHO) // CELL      # 20
 MENU_NIVEL_FILA = LINEA // CELL                         # 2
 MENU_MAX_COL = MENU_MAX_X // CELL                       # 24
-MENU_MAX_CIFRAS = 4             # la barra y hasta tres cifras: "/168"
-# La experiencia, que es la tercera línea de `Window_MenuStatus`: el término
-# —"Ex" en el ABL— en el color 1, y a doce pixeles la de ahora y la del nivel
-# que sigue, en seis cifras cada una con la barra en el medio, `"%6d/%6d"`
-# como `DrawActorExp`. Con el nivel en el tope las dos son guiones, que es lo
-# que el comentario de easyrpg dice que hace el RPG_RT.
+MENU_MAX_CIFRAS = 4             # the slash and up to three digits: "/168"
+# The experience, which is the third line of `Window_MenuStatus`: the term
+# —"Ex" in ABL— in color 1, and twelve pixels on the current one and the next
+# level's, six digits each with the slash in between, `"%6d/%6d"` like
+# `DrawActorExp`. With the level at the cap both are dashes, which is what
+# easyrpg's comment says RPG_RT does.
 #
-# **Va en sprites, no en el tilemap**, y es la única línea de esta pantalla
-# que no está en la grilla. No entraba en ningún otro lado: RM2k pone los HP a
-# la derecha del nivel y la experiencia debajo, en dos columnas que en 256
-# pixeles no caben, y una cuarta línea de celdas no cabe en los 56 pixeles de
-# la fila. En sprites va donde haga falta: doce pixeles debajo de los HP, que
-# es el paso de la fuente, y a los seis pixeles de la fuente y no a los ocho
-# de las celdas —a ocho, las trece letras se salían de la pantalla—. Los
-# tiles son los glifos del banco mismo: los sprites leen la VRAM desde
-# `RANURA_VRAM`, así que el tile de un glifo es el mismo número.
+# **It goes in sprites, not in the tilemap**, and it is the only line on this
+# screen that is not on the grid. It did not fit anywhere else: RM2k puts the
+# HP to the right of the level and the experience below, in two columns that
+# do not fit in 256 pixels, and a fourth line of cells does not fit in the
+# row's 56 pixels. In sprites it goes wherever needed: twelve pixels below
+# the HP, which is the font's pitch, and at the font's six pixels and not the
+# cells' eight —at eight, the thirteen letters went off the screen—. The
+# tiles are the bank's own glyphs: the sprites read VRAM from `RANURA_VRAM`,
+# so a glyph's tile is the same number.
 #
-# Doce y no dieciséis pixeles debajo de los HP deja un pixel de aire arriba y
-# dos abajo, y en la cuarta fila la sombra de las cifras cae justo en la
-# última línea de la pantalla.
+# Twelve and not sixteen pixels below the HP leaves one pixel of space above
+# and two below, and on the fourth row the digits' shadow lands exactly on
+# the last line of the screen.
 MENU_EXP_X = MENU_TEXTO_X
-MENU_EXP_Y = 2 + 2 * LINEA + 11         # donde arranca la letra, en la fila
+MENU_EXP_Y = 2 + 2 * LINEA + 11         # where the letter starts, in the row
 MENU_EXP_NUM_DX = 12
 MENU_EXP_CIFRAS = 6
 MENU_EXP_LETRAS = 2 * MENU_EXP_CIFRAS + 1
-MENU_EXP_TERM_CELDAS = 2        # "Ex": doce pixeles, en dos celdas de ancho
+MENU_EXP_TERM_CELDAS = 2        # "Ex": twelve pixels, two cells wide
 
 
-# --- la pantalla de ítems -----------------------------------------------------
+# --- the item screen ---------------------------------------------------------
 #
-# `Scene_Item`: arriba la descripción del ítem marcado y abajo la lista del
-# inventario con cuántos hay. En RM2k la lista va en dos columnas de 144
-# pixeles; acá no entran y va en **una**, con la cantidad a la derecha, y la
-# descripción se parte en dos renglones.
+# `Scene_Item`: on top the description of the marked item and below the
+# inventory list with how many there are. In RM2k the list goes in two
+# 144-pixel columns; here they do not fit and it goes in **one**, with the
+# quantity on the right, and the description is split into two lines.
 #
-# El texto no va ya dibujado sino **de a una letra por celda**: la pantalla
-# lleva su propio banco de tiles con cada carácter de la fuente en dos celdas
-# —blanco y gris—, y nombres y descripciones van como texto en la ROM, que
-# escribe dos palabras del tilemap por letra. El primer intento dibujaba el
-# texto de cada ítem en el banco compartido con las ranuras y el menú, y con
-# una docena de ítems ya no entraba: cuatro ROMs de la tanda dejaron de
-# armarse. Así el costo no depende de cuántos ítems haya, y el precio es que
-# las letras van a 8 pixeles y no a los 6 de la fuente, como las cifras del
-# oro del menú. Es cosmético y está declarado.
+# The text does not go pre-drawn but **one letter per cell**: the screen
+# carries its own tile bank with each font character in two cells —white and
+# gray—, and names and descriptions go as text in the ROM, which writes two
+# tilemap words per letter. The first attempt drew each item's text into the
+# bank shared with the slots and the menu, and with a dozen items it no longer
+# fit: four of the suite's ROMs stopped building. This way the cost does not
+# depend on how many items there are, and the price is that the letters go at
+# 8 pixels and not the font's 6, like the menu's gold digits. It is cosmetic
+# and declared.
 ITEM_DESC_Y = 8
 ITEM_DESC_COL = 1
-ITEM_DESC_ANCHO = 30            # letras por renglón, una por celda
+ITEM_DESC_ANCHO = 30            # letters per line, one per cell
 ITEM_DESC_RENGLONES = 2
-# La lista arranca una celda más abajo y tiene una fila menos que hasta el
-# 2026-09-28, cuando llegaron las ventanas —ver `ITEM_VENTANAS`—: con once
-# filas desde el 48 la última tocaba el marco de abajo, y la de arriba quedaba
-# pegada al de la ventana. Así las dos ventanas dejan el mismo aire que RM2k.
+# The list starts one cell lower and has one row less than until 2026-09-28,
+# when the windows arrived —see `ITEM_VENTANAS`—: with eleven rows from 48 the
+# last one touched the bottom frame, and the top one was stuck to the
+# window's. This way both windows leave the same spacing as RM2k.
 ITEM_LISTA_Y = 56
-ITEM_FILAS = 10                 # 56 + 10 * 16 = 216, y el marco en 222
+ITEM_FILAS = 10                 # 56 + 10 * 16 = 216, and the frame at 222
 ITEM_CURSOR_COL = 1
-ITEM_NOMBRE_COL = 3             # x = 24, como las órdenes del menú
-ITEM_NOMBRE_ANCHO = 20          # el nombre más largo del juego
+ITEM_NOMBRE_COL = 3             # x = 24, like the menu's commands
+ITEM_NOMBRE_ANCHO = 20          # the longest name in the game
 ITEM_DOS_PUNTOS_COL = 27
-ITEM_CIFRAS_COL = 28            # dos cifras, 28 y 29
-ITEM_PRIMER_CARACTER = 32       # los que tiene la fuente: del espacio
-ITEM_CARACTERES = 95            # a la tilde, que es lo que usan los ítems
-# Las variantes de la fuente: el índice es lo que la ROM lleva en `temp + 1`,
-# y también su paleta. La 2 es el color 2 del sistema, el de "sube" de
-# `Window_EquipStatus`, y la usa sólo la pantalla de equipo para el valor
-# nuevo de un parámetro, así que trae **sólo las cifras**: la fuente entera en
-# un color más eran unos 150 tiles, y el banco de la pelea no los tiene —ver
-# `ITEMS_TILES_MAX`—. La 3 es el color 1, el rojo de los términos de
-# `Window_EquipStatus` y `Window_EquipLeft`, y ésa sí va **entera**: medido el
-# 2026-09-28, la fuente en ese color son diez tiles más y no ciento y pico,
-# porque los tiles se deduplican por índice y el degradé del rojo cae en los
-# mismos índices que el del blanco. Sólo las letras de los términos eran
-# treinta y cinco: con menos letras el orden de la paleta —por frecuencia— sale
-# otro y ya no coincide.
+ITEM_CIFRAS_COL = 28            # two digits, 28 and 29
+ITEM_PRIMER_CARACTER = 32       # the ones the font has: from the space
+ITEM_CARACTERES = 95            # to the tilde, which is what the items use
+# The font variants: the index is what the ROM carries in `temp + 1`, and
+# also its palette. Number 2 is system color 2, `Window_EquipStatus`'s "goes
+# up" one, and only the equipment screen uses it for a parameter's new value,
+# so it carries **only the digits**: the whole font in one more color was
+# about 150 tiles, and the battle's bank does not have them —see
+# `ITEMS_TILES_MAX`—. Number 3 is color 1, the red of the terms of
+# `Window_EquipStatus` and `Window_EquipLeft`, and that one does go **whole**:
+# measured on 2026-09-28, the font in that color is ten more tiles and not a
+# hundred-odd, because tiles are deduplicated by index and the red's gradient
+# lands on the same indices as the white's. Only the letters of the terms
+# were thirty-five: with fewer letters the palette order —by frequency— comes
+# out different and no longer matches.
 ITEM_BLANCO, ITEM_GRIS, ITEM_SUBE, ITEM_ROJO = range(4)
 ITEM_SUBE_CARACTERES = "0123456789 "
-# Hasta dónde puede crecer el banco de la fuente: la pelea lo sube y después
-# escribe el tilemap de su escena en la palabra $3800 de la VRAM, que es el
-# tile 384 contando desde `RANURA_VRAM`. Lo que pase de ahí lo pisaría.
+# How far the font bank can grow: the battle uploads it and then writes its
+# scene's tilemap at VRAM word $3800, which is tile 384 counting from
+# `RANURA_VRAM`. Whatever goes past there would be overwritten.
 ITEMS_TILES_MAX = (0x3800 - 0x2000) // 16
 
-# Las ventanas de la pantalla, como `Scene_Item`: la de la ayuda arriba y la
-# de la lista abajo, cada una con el fondo estirado y el marco del System —
-# `ventana.ventana`, la misma que la del mensaje—. RM2k las pega una contra
-# la otra, así que el separador son los dos marcos juntos: cuatro pixeles.
-# La de la ayuda es más alta que la de RM2k —32— porque acá la descripción va
-# en dos renglones.
+# The screen's windows, like `Scene_Item`: the help one on top and the list
+# one below, each with the stretched background and the System's frame
+# —`ventana.ventana`, the same as the message's—. RM2k puts them right
+# against each other, so the separator is the two frames together: four
+# pixels. The help one is taller than RM2k's —32— because here the
+# description goes on two lines.
 #
-# Van en **BG1**, que en esta pantalla estaba apagado, y el texto sigue en
-# BG2 como antes: así el texto no tiene que saber nada de las ventanas, y la
-# descripción, que se sube de a filas enteras, no borra el marco. Los glifos
-# ya llevan el bit de prioridad —ver `item_glifo_celdas` en el conversor—, así
-# que el texto queda arriba de la franja del fondo que lo cruza, como en RM2k.
-# En 8bpp un pixel es directamente su entrada de CGRAM: los colores del marco
-# van desde `ITEM_MARCO_CGRAM`, después de las cuatro paletas del texto, y el
-# negro es el 0, el transparente, que deja ver el color de fondo, que es
-# negro.
+# They go on **BG1**, which was off on this screen, and the text stays on BG2
+# as before: that way the text does not have to know anything about the
+# windows, and the description, which is uploaded in whole rows, does not
+# erase the frame. The glyphs already carry the priority bit —see
+# `item_glifo_celdas` in the converter—, so the text stays above the band of
+# the background that crosses it, as in RM2k. At 8bpp a pixel is directly its
+# CGRAM entry: the frame's colors go from `ITEM_MARCO_CGRAM`, after the four
+# text palettes, and black is 0, the transparent one, which lets the backdrop
+# color show through, which is black.
 ITEM_AYUDA_ALTO = 48
 ITEM_VENTANAS = ((0, 0, ANCHO, ITEM_AYUDA_ALTO),
                  (0, ITEM_AYUDA_ALTO, ANCHO, ALTO - ITEM_AYUDA_ALTO))
 ITEM_MARCO_CGRAM = 4 * MENU_CGRAM
-# Los tiles del marco van en el banco de la fuente, detrás de ella: la base de
-# BG1 es la misma que la de BG2, y un tile de 8bpp mide lo que dos de 4bpp.
-# Todo tiene que caber antes del tilemap de BG1, que va en $3800 —donde la
-# pelea pone el de su escena, así que ahí no hay nada de esta pantalla—.
+# The frame's tiles go in the font's bank, after it: BG1's base is the same as
+# BG2's, and an 8bpp tile is the size of two 4bpp ones. Everything has to fit
+# before BG1's tilemap, which goes at $3800 —where the battle puts its
+# scene's, so nothing of this screen is there—.
 ITEM_MARCO_MAPA = 0x3800
-# El cursor de la lista es el del System —la barra roja de RM2k— y no el ">":
-# cuatro pixeles más ancho que el texto de cada lado, que es lo que deja RM2k.
+# The list's cursor is the System's —RM2k's red bar— and not the ">": four
+# pixels wider than the text on each side, which is what RM2k leaves.
 ITEM_BARRA_X = ITEM_NOMBRE_COL * CELL - 4
 ITEM_BARRA_ANCHO = (ITEM_CIFRAS_COL + 2 - ITEM_NOMBRE_COL) * CELL + 8
 
 
 def ventanas_items(sys_img, barra=None):
-    """Las ventanas de la pantalla de ítems, en RGBA y del tamaño de la
-    pantalla: lo que dibuja BG1. Con `barra`, el cursor en esa fila de la
-    lista."""
+    """The item screen's windows, in RGBA and the size of the screen: what
+    BG1 draws. With `barra`, the cursor on that row of the list."""
     from PIL import Image
     from port import ventana as ventana_mod
     fuera = Image.new("RGBA", (ANCHO, ALTO), (0, 0, 0, 0))
@@ -515,37 +521,37 @@ def ventanas_items(sys_img, barra=None):
 
 
 def capas_items(sys_img):
-    """Lo que `marcos` necesita de la pantalla de ítems: las ventanas sin
-    cursor, y con el cursor en cada fila de la lista junto con la primera
-    fila de celdas que ocupa."""
+    """What `marcos` needs from the item screen: the windows without a
+    cursor, and with the cursor on each row of the list together with the
+    first cell row it takes."""
     return (ventanas_items(sys_img),
             [(ventanas_items(sys_img, k), ITEM_LISTA_Y // CELL + 2 * k)
              for k in range(ITEM_FILAS)])
 
 
 def marcos(sys_img, primer_tile, pantallas, cgram=None, tope=256):
-    """Las ventanas de varias pantallas como las sube la ROM: tiles de 8bpp,
-    un tilemap de 32x28 por pantalla, sus cursores y los colores.
+    """The windows of several screens as the ROM uploads them: 8bpp tiles,
+    one 32x28 tilemap per screen, their cursors and the colors.
 
-    `pantallas` es una lista de `(ventanas, barras)`, como las da
-    `capas_items`: la imagen del tamaño de la pantalla sin cursor, y la de
-    cada lugar del cursor con la primera fila de celdas que ocupa y, si no
-    son dos, cuántas. Los tiles y
-    los colores son **uno solo para todas**: las pantallas no están abiertas a
-    la vez y suben sus tiles al mismo lugar de la VRAM, así que cada una sube
-    el juego entero y el tilemap de cada una lo indexa igual.
+    `pantallas` is a list of `(ventanas, barras)`, as `capas_items` gives
+    them: the screen-sized image without a cursor, and that of each cursor
+    position with the first cell row it takes and, if it is not two, how
+    many. The tiles and the colors are **a single set for all**: the screens
+    are never open at the same time and upload their tiles to the same place
+    in VRAM, so each one uploads the whole set and each one's tilemap indexes
+    it the same way.
 
-    `primer_tile` es el número de tile de 8bpp del primero, contado desde la
-    base de BG1. Devuelve `(tiles, colores, mapas)`: `tiles[i][y][x]` es la
-    entrada de CGRAM de ese pixel; `colores` los de 15 bits desde `cgram`
-    —`ITEM_MARCO_CGRAM` si no se dice—, que no pueden pasar de `tope`; y `mapas[p]` es `(mapa, barras)` de la pantalla `p`,
-    con `mapa` las palabras del tilemap fila por fila y `barras[k]` las dos
-    filas de celdas del cursor `k` con el cursor encima, que es lo que la ROM
-    copia sobre `mapa` para pintarlo.
+    `primer_tile` is the 8bpp tile number of the first one, counted from
+    BG1's base. Returns `(tiles, colores, mapas)`: `tiles[i][y][x]` is the
+    CGRAM entry of that pixel; `colores` the 15-bit ones from `cgram`
+    —`ITEM_MARCO_CGRAM` if not given—, which cannot go past `tope`; and
+    `mapas[p]` is `(mapa, barras)` of screen `p`, with `mapa` the tilemap
+    words row by row and `barras[k]` the two cell rows of cursor `k` with
+    the cursor on top, which is what the ROM copies over `mapa` to paint it.
 
-    Los tiles se deduplican también espejados, con los bits de volteo del
-    tilemap: el marco es simétrico, y sin eso las ventanas y el cursor no
-    entraban en lo que queda de VRAM —ver `_controlar_marco_de_items`—.
+    The tiles are also deduplicated mirrored, with the tilemap's flip bits:
+    the frame is symmetric, and without that the windows and the cursor did
+    not fit in what is left of VRAM —see `_controlar_marco_de_items`—.
     """
     cgram = ITEM_MARCO_CGRAM if cgram is None else cgram
     imagenes = [imagen for fondo, barras in pantallas
@@ -559,7 +565,8 @@ def marcos(sys_img, primer_tile, pantallas, cgram=None, tope=256):
                 cuenta[(r, g, b)] += 1
     colores = sorted(cuenta, key=lambda c: (-cuenta[c], c))
     if cgram + len(colores) > tope:
-        raise SystemExit("las ventanas usan %d colores y desde %d entran %d"
+        raise SystemExit("the windows use %d colors and from %d there is room "
+                         "for %d"
                          % (len(colores), cgram, tope - cgram))
     indice = {c: cgram + i for i, c in enumerate(colores)}
     vacio = tuple(tuple([0] * CELL) for _ in range(CELL))
@@ -603,32 +610,32 @@ def marcos(sys_img, primer_tile, pantallas, cgram=None, tope=256):
 
 
 def item_usable(item):
-    """Si el ítem va en blanco y A hace algo con él en el mapa: es
-    `Game_Party::IsItemUsable` fuera de batalla. Los de switch con
-    `occasion_field2`, y las medicinas, que abren la elección de actor. Los
-    libros, los materiales y los especiales todavía no: van en gris."""
+    """Whether the item goes in white and A does something with it on the
+    map: it is `Game_Party::IsItemUsable` outside battle. The switch ones
+    with `occasion_field2`, and the medicines, which open the actor choice.
+    Books, materials and specials not yet: they go in gray."""
     from rpgmaker import lcf
     return ((item.type == lcf.ITEM_TIPO_SWITCH and item.occasion_field2)
             or item.type == lcf.ITEM_TIPO_MEDICINA)
 
 
 def item_pide_actor(item):
-    """Si usarlo abre `Scene_ActorTarget`: las medicinas."""
+    """Whether using it opens `Scene_ActorTarget`: the medicines."""
     from rpgmaker import lcf
     return item.type == lcf.ITEM_TIPO_MEDICINA
 
 
 def texto_de_item(texto, ancho):
-    """Lo que la pantalla puede escribir: los caracteres que la fuente tiene,
-    con un '?' en lugar de los otros, y cortado al ancho."""
+    """What the screen can write: the characters the font has, with a '?'
+    instead of the others, and cut to the width."""
     return "".join(c if ITEM_PRIMER_CARACTER <= ord(c)
                    < ITEM_PRIMER_CARACTER + ITEM_CARACTERES else "?"
                    for c in texto)[:ancho]
 
 
 def partir_descripcion(texto, ancho=ITEM_DESC_ANCHO):
-    """La descripción en dos renglones, cortada en un espacio. Lo que no
-    entra en dos se pierde."""
+    """The description in two lines, cut at a space. What does not fit in
+    two is lost."""
     renglones, actual = [], ""
     for palabra in texto.split(" "):
         candidato = (actual + " " + palabra) if actual else palabra
@@ -643,20 +650,21 @@ def partir_descripcion(texto, ancho=ITEM_DESC_ANCHO):
 
 
 def lista_de_items(items, inventario):
-    """Los ítems que muestra la pantalla, en orden de número como
-    `Game_Party`: los que hay y que la ROM conoce."""
+    """The items the screen shows, in number order like `Game_Party`: the
+    ones there are and that the ROM knows."""
     return [i for i in sorted(items) if inventario.get(i, 0) > 0]
 
 
 def pantalla_items(sys_img, font_id=None):
-    """El banco de la pantalla de ítems: cada carácter de la fuente en dos
-    celdas, una arriba de la otra, en blanco, en gris y en rojo, y las cifras
-    además en el color de "sube" —ver `ITEM_SUBE`—.
+    """The item screen's bank: each font character in two cells, one above
+    the other, in white, in gray and in red, and the digits also in the
+    "goes up" color —see `ITEM_SUBE`—.
 
-    Devuelve `(tiles, paletas, glifos)`: `paletas[v]` y `glifos[v][caracter]`
-    —las dos palabras del tilemap— por variante: 0 el texto, 1 el gris, 2 el
-    de "sube", que sólo tiene `ITEM_SUBE_CARACTERES`, y 3 el rojo. El espacio
-    son dos celdas en blanco: es el que borra el cursor.
+    Returns `(tiles, paletas, glifos)`: `paletas[v]` and
+    `glifos[v][caracter]` —the two tilemap words— per variant: 0 the text, 1
+    the gray, 2 the "goes up" one, which only has `ITEM_SUBE_CARACTERES`,
+    and 3 the red. The space is two blank cells: it is the one the cursor
+    erases.
     """
     from PIL import Image
     from port import ventana as ventana_mod
@@ -671,10 +679,10 @@ def pantalla_items(sys_img, font_id=None):
             ventana_mod.dibujar_linea(una, sys_img, 1, 2, c,
                                       color=colores[gris], font_id=font_id)
             capas.append((gris, n, una))
-    # Los colores de cada juego, con numpy: es una imagen del tamaño de la
-    # pantalla por carácter y por color, con la letra en una esquina, y
-    # recorrerlas pixel por pixel era casi todo lo que costaba esta pantalla.
-    # El orden en que se cuentan no importa: la paleta sale ordenada.
+    # The colors of each set, with numpy: it is one screen-sized image per
+    # character and per color, with the letter in a corner, and walking them
+    # pixel by pixel was almost all this screen cost. The order they are
+    # counted in does not matter: the palette comes out sorted.
     vistos = [collections.Counter() for _ in colores]
     for gris, _, una in capas:
         pixeles = numpy.asarray(una).reshape(-1, 4)
@@ -687,8 +695,8 @@ def pantalla_items(sys_img, font_id=None):
     paletas, indices = [], []
     for cuenta in vistos:
         if len(cuenta) > 15:
-            raise SystemExit("la fuente de la pantalla de ítems usa %d colores "
-                             "y en 4bpp entran 15" % len(cuenta))
+            raise SystemExit("the item screen's font uses %d colors and 4bpp "
+                             "fits 15" % len(cuenta))
         paleta = [NEGRO] + sorted(cuenta, key=lambda c: (-cuenta[c], c))
         paletas.append(paleta)
         indices.append({color: i for i, color in enumerate(paleta)})
@@ -699,26 +707,26 @@ def pantalla_items(sys_img, font_id=None):
         glifos[gris][chr(ITEM_PRIMER_CARACTER + n)] = _bloque_de_celdas(
             una, 0, 2, tiles, donde, indices[gris], 0, 1, gris)
     if len(tiles) > ITEMS_TILES_MAX:
-        raise SystemExit("la fuente de la pantalla de ítems junta %d tiles y "
-                         "en su banco entran %d" % (len(tiles),
-                                                    ITEMS_TILES_MAX))
+        raise SystemExit("the item screen's font gathers %d tiles and its "
+                         "bank fits %d" % (len(tiles), ITEMS_TILES_MAX))
     return tiles, paletas, glifos
 
 
 def _escribir_menu_fila(destino, sys_img, db, font_id):
-    """El texto de una fila del grupo que **no depende del actor**: el término
-    del nivel, el estado y el de los HP.
+    """The text of a party row that **does not depend on the actor**: the
+    level term, the status and the HP term.
 
-    Es un bloque solo para las cuatro filas y para todos los actores, y ésa es
-    la diferencia con antes: el nombre, el número del nivel y el máximo —lo
-    único que cambiaba de un actor a otro— los compone la ROM con glifos, así
-    que este bloque no se multiplica por la cantidad de actores.
+    It is a single block for the four rows and for all actors, and that is
+    the difference with before: the name, the level number and the maximum
+    —the only things that changed from one actor to another— are composed by
+    the ROM with glyphs, so this block is not multiplied by the number of
+    actors.
 
-    Los HP de ahora tampoco van acá, y ése es el arreglo del 2026-09-13: este
-    bloque se hornea al convertir y se sube tal cual, así que el número que
-    llevara adentro no podía cambiar nunca. taro lo reportó jugando —"el hp se
-    reduce en batalla, pero en el menú siempre se muestra en 40"—; los 40 son
-    el máximo de Talan, que es quien lidera la intro.
+    The current HP does not go here either, and that is the fix of
+    2026-09-13: this block is baked when converting and uploaded as is, so
+    whatever number it carried could never change. taro reported it while
+    playing —"HP goes down in battle, but the menu always shows 40"—; the 40
+    is the maximum of Talan, who leads the intro.
     """
     from port import ventana as ventana_mod
 
@@ -733,27 +741,28 @@ def _escribir_menu_fila(destino, sys_img, db, font_id):
 
 
 def cifras_de(valor, cuantas):
-    """Las cifras de un número topado a `cuantas`, sin ceros adelante.
+    """The digits of a number capped at `cuantas`, without leading zeros.
 
-    Es `cifras_del_oro` generalizada: la usan el oro del menú y los HP de cada
-    actor, que la ROM escribe con los mismos bloques de una celda.
+    It is `cifras_del_oro` generalized: the menu's gold and each actor's HP
+    use it, which the ROM writes with the same one-cell blocks.
     """
     return [int(c) for c in str(max(0, min(valor, 10 ** cuantas - 1)))]
 
 
 def hp_de_menu(db, actor, hp=None):
-    """Los HP que la fila del actor tiene que mostrar: los de `hp` si están,
-    y si no los máximos de su nivel, que es con lo que arranca la partida."""
+    """The HP the actor's row has to show: those in `hp` if present, and
+    otherwise the maximum for its level, which is what the game starts
+    with."""
     if hp is not None and actor in hp:
         return hp[actor]
     return parametro_de(db.actors[actor], "maxhp")
 
 
 def _pegar_hp(pegar, menu, fila, cuanto):
-    """Las cifras de los HP de una fila del grupo, alineadas a la derecha.
+    """The HP digits of a party row, right-aligned.
 
-    Es lo que la ROM hace en `menu_hp_escribir`, con las mismas celdas y en
-    las mismas columnas; lo que sobra a la izquierda queda en blanco.
+    It is what the ROM does in `menu_hp_escribir`, with the same cells and in
+    the same columns; what is left over on the left stays blank.
     """
     cifras = cifras_de(cuanto, MENU_HP_CIFRAS)
     _pegar_texto(pegar, menu, "".join(str(c) for c in cifras),
@@ -762,36 +771,36 @@ def _pegar_hp(pegar, menu, fila, cuanto):
 
 
 def cifras_del_oro(oro):
-    """Las cifras que se escriben, sin ceros adelante: el 0 es "0"."""
+    """The digits that get written, without leading zeros: 0 is "0"."""
     return cifras_de(oro, MENU_ORO_CIFRAS)
 
 
 def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
                      game_dir=None, letras=""):
-    """Los tiles de la pantalla de ranuras, sus paletas y sus bloques de celdas.
+    """The slot screen's tiles, its palettes and its cell blocks.
 
-    Devuelve `(tiles, paletas, cabeceras, filas, caras, menu)`:
+    Returns `(tiles, paletas, cabeceras, filas, caras, menu)`:
 
-    * `paletas[0]` es la del texto, `paletas[1]` la de las órdenes
-      deshabilitadas del menú, y las que siguen, una por cara.
-    * `cabeceras[modo]` son las celdas del título de la pantalla, con `modo` 0
-      para cargar y 1 para guardar. Los dos textos salen del LDB
-      —`load_game_message` y `save_game_message`, que en el ABL dicen "Load
-      which slot?" y "Save in which slot?"—.
-    * `filas[ranura][llena][cursor]` son las celdas de una fila entera, con
-      las celdas de las caras, del nombre y del nivel en blanco.
-    * `caras[actor]` son las 36 celdas de la cara, con su paleta puesta, para
-      los `actores` que tienen una. La ROM la escribe encima de la fila según
-      el grupo que la partida guardó, y `render_ranuras` hace lo mismo.
+    * `paletas[0]` is the text's, `paletas[1]` that of the menu's disabled
+      commands, and the ones after, one per face.
+    * `cabeceras[modo]` are the cells of the screen's title, with `modo` 0
+      for loading and 1 for saving. Both texts come from the LDB
+      —`load_game_message` and `save_game_message`, which in ABL say "Load
+      which slot?" and "Save in which slot?"—.
+    * `filas[ranura][llena][cursor]` are the cells of a whole row, with the
+      face, name and level cells blank.
+    * `caras[actor]` are the 36 cells of the face, with its palette set, for
+      the `actores` that have one. The ROM writes it over the row according
+      to the party the save stored, and `render_ranuras` does the same.
 
-    * `menu` son los bloques del menú de pausa, que comparte banco y paleta:
-      `opciones[orden][deshabilitada]`, `cursor`, `moneda`, `fila` —el texto
-      de una fila del grupo, uno solo para todas— y `glifos[letra]`, las dos
-      celdas de cada letra que la ROM compone. Las diez cifras están ahí: son
-      las que escriben el oro y los HP.
+    * `menu` are the pause menu's blocks, which shares bank and palette:
+      `opciones[orden][deshabilitada]`, `cursor`, `moneda`, `fila` —the text
+      of a party row, a single one for all— and `glifos[letra]`, the two
+      cells of each letter the ROM composes. The ten digits are there: they
+      are the ones that write the gold and the HP.
 
-    Todas las variantes se dibujan antes de deduplicar, por lo mismo de siempre:
-    el banco de tiles es uno solo.
+    All the variants are drawn before deduplicating, for the usual reason:
+    there is a single tile bank.
     """
     from PIL import Image
     from port import ventana as ventana_mod
@@ -804,7 +813,7 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
             ventana_mod.dibujar_linea(destino, sys_img, x, y, texto,
                                       font_id=font_id)
 
-    # Primero todas las capas de texto, para poder juntar los colores de una vez.
+    # First all the text layers, so the colors can be gathered at once.
     capas = []
     for modo, texto in enumerate((db.term_load_message, db.term_save_message)):
         una = capa()
@@ -820,14 +829,14 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
                 for n, linea in enumerate(_texto_de_ranura(numero, db, llena)):
                     escribir(una, RANURA_X, y + 2 + n * LINEA, linea)
                 if llena:
-                    # El término del nivel va en la fila y no en la capa del
-                    # actor: es el mismo para todos, y una ranura sin partida
-                    # no lo muestra.
+                    # The level term goes in the row and not in the actor's
+                    # layer: it is the same for everyone, and a slot without a
+                    # save does not show it.
                     _escribir_termino_nivel(una, sys_img, RANURA_X,
                                             y + 2 + 2 * LINEA, db, font_id)
                 capas.append(("fila", (numero, llena, cursor), una))
-    # Las del menú de pausa, en el mismo banco. Todas en la fila de más arriba
-    # que les toca: los bloques valen en cualquier otra porque van alineados.
+    # The pause menu's, in the same bank. Each on the topmost row it gets: the
+    # blocks work on any other because they are aligned.
     from port import ventana as ventana_mod
     for orden, texto in enumerate(db.term_menu):
         for deshabilitada in (0, 1):
@@ -853,9 +862,9 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
     una = capa()
     _escribir_menu_fila(una, sys_img, db, font_id)
     capas.append(("menu_fila", None, una))
-    # El término de la experiencia, suelto como un glifo: lo dibujan sprites.
-    # Hasta dos letras, que son los doce pixeles que `DrawActorExp` le deja
-    # antes de las cifras.
+    # The experience term, loose like a glyph: sprites draw it. Up to two
+    # letters, which are the twelve pixels `DrawActorExp` leaves it before
+    # the digits.
     una = capa()
     ventana_mod.dibujar_linea(una, sys_img, GLIFO_COL * CELL,
                               GLIFO_FILA * CELL + GLIFO_DY,
@@ -863,9 +872,9 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
                               font_id=font_id)
     capas.append(("menu_exp_termino", None, una))
 
-    # Las órdenes deshabilitadas van en **su propia paleta**, la 1: el color 3
-    # del sistema es un degradé que, sumado a los del texto, da 18 colores, y
-    # en 4bpp entran 15. Le cuesta una paleta a las caras.
+    # The disabled commands go in **their own palette**, number 1: system
+    # color 3 is a gradient that, added to the text's, gives 18 colors, and
+    # 4bpp fits 15. It costs the faces one palette.
     def gris(clase, clave):
         return clase == "menu_opcion" and clave[1]
 
@@ -875,10 +884,10 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
         for r, g, b, a in una.get_flattened_data():
             if a:
                 cuenta[(r >> 3, g >> 3, b >> 3)] += 1
-    for cuantos, que in ((len(vistos), "el texto de las ranuras y el menú"),
-                         (len(vistos_gris), "las órdenes deshabilitadas")):
+    for cuantos, que in ((len(vistos), "the text of the slots and the menu"),
+                         (len(vistos_gris), "the disabled commands")):
         if cuantos > 15:
-            raise SystemExit("%s usa %d colores y en 4bpp entran 15"
+            raise SystemExit("%s uses %d colors and 4bpp fits 15"
                              % (que, cuantos))
     paleta = [NEGRO] + sorted(vistos, key=lambda c: (-vistos[c], c))
     indice = {color: i for i, color in enumerate(paleta)}
@@ -927,11 +936,11 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
             filas[numero][llena][cursor] = _bloque_de_celdas(
                 una, fila0, RANURA_FILAS, tiles, donde, indice)
 
-    # Y las caras, cada una con su paleta, pegadas arriba a la izquierda de la
-    # primera fila para cortarlas en celdas con la misma función.
+    # And the faces, each with its palette, pasted at the top left of the
+    # first row to cut them into cells with the same function.
     paletas, caras = [paleta, paleta_gris], {}
-    # A qué caras hubo que prestarles paleta: sale en el informe del conversor,
-    # igual que con los sprites.
+    # Which faces had to borrow a palette: it shows in the converter's
+    # report, same as with the sprites.
     prestadas_cara = set()
     for actor in actores:
         cara = cara_de(db, actor, game_dir)
@@ -939,17 +948,18 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
             continue
         colores, indice_cara = _paleta_de_cara(cara)
         if len(paletas) > CARAS_PALETAS_MAX:
-            # No queda paleta de BG2: **se le presta una**, que es la misma
-            # regla que `cabe` corre con los sprites y la misma razón de taro
-            # —si no podemos incluir a todos, el proyecto entero se cae—. Cada
-            # color de la cara va al más cercano por luma de la paleta que menos
-            # le falte, y la cara se ve con colores que no son los suyos.
+            # No BG2 palette left: **one is lent to it**, which is the same
+            # rule `cabe` runs with the sprites and the same reason of taro's
+            # —if we cannot include everyone, the whole project falls apart—.
+            # Each color of the face goes to the nearest by luma in the
+            # palette it is missing the fewest from, and the face shows with
+            # colors that are not its own.
             #
-            # Hizo falta al meter Lashe City entera: las caras son una paleta
-            # cada una, quedan seis, y desde el mapa 20 pueden entrar al grupo
-            # Arden, Saldra, el Gang Member de los Rat Tracks y AG7-17, o sea
-            # ocho. La alternativa era dejar afuera los Rat Tracks B2 y toda la
-            # cadena del auto, que son el camino de la historia.
+            # It was needed when putting in the whole of Lashe City: the faces
+            # are one palette each, six are left, and from map 20 on Arden,
+            # Saldra, the Rat Tracks Gang Member and AG7-17 can join the party,
+            # that is eight. The alternative was leaving out Rat Tracks B2 and
+            # the whole car chain, which are the path of the story.
             cual, indice_cara = _cara_prestada(colores, indice_cara, paletas)
             prestadas_cara.add(actor)
         else:
@@ -961,18 +971,18 @@ def pantalla_ranuras(sys_img, db, ranuras, font_id=None, actores=(),
             una, RANURA_Y // CELL, CARA_CELDAS, tiles, donde, indice_cara,
             CARA_COL, CARA_CELDAS, cual)
     if prestadas_cara:
-        print("  caras sin paleta propia, dibujadas con una ajena: %s"
+        print("  faces without a palette of their own, drawn with another's: %s"
               % ", ".join(db.actors[a].name for a in sorted(prestadas_cara)))
     if len(tiles) > RANURA_TILES_MAX:
         raise SystemExit(
-            "la pantalla de ranuras y el menú juntan %d tiles y en su banco "
-            "entran %d" % (len(tiles), RANURA_TILES_MAX))
+            "the slot screen and the menu gather %d tiles and their bank "
+            "fits %d" % (len(tiles), RANURA_TILES_MAX))
     return tiles, paletas, cabeceras, filas, caras, menu
 
 
 def _pintor(fuera, tiles, paletas):
-    """Una función que pega un bloque de celdas sobre `fuera`, como lo hace
-    la ROM: tile y paleta de cada palabra del tilemap."""
+    """A function that pastes a block of cells onto `fuera`, as the ROM does:
+    tile and palette of each tilemap word."""
     px = fuera.load()
 
     def pegar(celdas, fila0, col0=0, cols=COLS):
@@ -992,9 +1002,9 @@ def _pintor(fuera, tiles, paletas):
 
 
 def _pegar_sprite(fuera, tiles, paletas, palabra, x, y):
-    """Un tile de 8x8 en cualquier pixel, como un sprite: lo transparente deja
-    ver lo que había. La paleta es la de la palabra, que la ROM copia a la de
-    los sprites."""
+    """An 8x8 tile at any pixel, like a sprite: what is transparent lets
+    what was there show through. The palette is the word's, which the ROM
+    copies to the sprites'."""
     px = fuera.load()
     celda = tiles[palabra & 0x3FF]
     paleta = paletas[(palabra >> 10) & 7]
@@ -1006,9 +1016,9 @@ def _pegar_sprite(fuera, tiles, paletas, palabra, x, y):
 
 
 def _pegar_exp(fuera, tiles, paletas, menu, fila, texto):
-    """La línea de la experiencia de una fila del grupo, en sprites: el
-    término y las trece letras de `texto`, a seis pixeles. Es lo que hace
-    `menu_exp_pintar` en la ROM; los espacios no llevan sprite."""
+    """The experience line of a party row, in sprites: the term and the
+    thirteen letters of `texto`, at six pixels. It is what `menu_exp_pintar`
+    does in the ROM; spaces get no sprite."""
     y = fila * MENU_ACTOR_FILAS * CELL + MENU_EXP_Y - GLIFO_DY
     for n, palabra in enumerate(menu["exp_termino"]):
         _pegar_sprite(fuera, tiles, paletas, palabra,
@@ -1024,16 +1034,17 @@ def _pegar_exp(fuera, tiles, paletas, menu, fila, texto):
 
 
 def _pegar_texto(pegar, menu, texto, fila, col):
-    """Un texto compuesto de a una letra por celda, como lo escribe la ROM."""
+    """A text composed one letter per cell, as the ROM writes it."""
     for n, letra in enumerate(texto):
         pegar(menu["glifos"][letra], fila, col + n, 1)
 
 
 def _pegar_fila_de_actor(pegar, menu, caras, db, fila, actor, hp=None,
                          niveles=None):
-    """Una fila del panel del grupo: el bloque fijo, la cara y las tres tiras
-    que dependen del actor. Es lo que hace `menu_grupo_pintar`, en el mismo
-    orden, y por eso lo comparten el menú y la elección de actor."""
+    """A row of the party panel: the fixed block, the face and the three
+    strips that depend on the actor. It is what `menu_grupo_pintar` does, in
+    the same order, and that is why the menu and the actor choice share
+    it."""
     fila0 = fila * MENU_ACTOR_FILAS
     pegar(menu["fila"], fila0, MENU_ACTOR_COL, MENU_ACTOR_COLS)
     if actor in caras:
@@ -1051,20 +1062,21 @@ def _pegar_fila_de_actor(pegar, menu, caras, db, fila, actor, hp=None,
 def render_menu(sys_img, db, ranuras, grupo, oro, elegida=0,
                 guardar_permitido=True, font_id=None, actores=None,
                 game_dir=None, hp=None, niveles=None, exps=None):
-    """El menú de pausa como lo tiene que mostrar la consola.
+    """The pause menu as the console has to show it.
 
-    `grupo` son los actores en orden, `oro` el oro, `elegida` la orden con el
-    cursor y `guardar_permitido` lo que dejó `ChangeSaveAccess`. `actores` es
-    la lista de la ROM —los que pueden entrar al grupo, `miembros_posibles`
-    en el conversor—, que decide el banco de tiles; sin ella, el grupo.
-    Se arma con los mismos bloques que sube la ROM, como `render_ranuras`.
+    `grupo` are the actors in order, `oro` the gold, `elegida` the command
+    with the cursor and `guardar_permitido` what `ChangeSaveAccess` left.
+    `actores` is the ROM's list —those who can join the party,
+    `miembros_posibles` in the converter—, which decides the tile bank;
+    without it, the party. It is built with the same blocks the ROM uploads,
+    like `render_ranuras`.
 
-    `hp` es lo que la partida tiene en `FAR_HP`, de actor a HP: sin ella se
-    supone que están llenos, que es con lo que arranca. Va aparte del bloque
-    del actor porque el bloque se hornea y esto cambia con cada pelea.
-    `niveles`, de actor a nivel, es lo mismo para el nivel y el máximo: sin
-    ella, los de arranque. `exps`, de actor a experiencia, lo mismo para la
-    línea de la experiencia, que mira además el nivel.
+    `hp` is what the save has in `FAR_HP`, from actor to HP: without it they
+    are assumed full, which is what the game starts with. It goes apart from
+    the actor's block because the block is baked and this changes with every
+    battle. `niveles`, from actor to level, is the same for the level and the
+    maximum: without it, the starting ones. `exps`, from actor to experience,
+    the same for the experience line, which also looks at the level.
     """
     from PIL import Image
     actores = sorted(set(actores if actores is not None else grupo))
@@ -1089,8 +1101,9 @@ def render_menu(sys_img, db, ranuras, grupo, oro, elegida=0,
         if actor in actores:
             _pegar_fila_de_actor(pegar, menu, caras, db, fila, actor, hp,
                                  niveles)
-    # La experiencia va encima de todo, como los sprites sobre el fondo, y
-    # sólo en el menú: `Window_ActorTarget` no la muestra.
+    # The experience goes on top of everything, like sprites over the
+    # background, and only in the menu: `Window_ActorTarget` does not show
+    # it.
     for fila, actor in enumerate(list(grupo)[:MENU_FILAS_GRUPO]):
         if actor in actores:
             _pegar_exp(fuera, tiles, paletas, menu, fila, texto_de_exp(
@@ -1099,31 +1112,30 @@ def render_menu(sys_img, db, ranuras, grupo, oro, elegida=0,
     return fuera
 
 
-# La elección de actor, `Scene_ActorTarget`: el panel del grupo del menú, y
-# como en RM2k, tres ventanas del System en BG1 —como las de ítems y equipo,
-# ver `ITEM_VENTANAS`— y la barra roja sobre la fila marcada. RM2k pone a la
-# izquierda la ayuda con el nombre del ítem y debajo "Owned Items" en rojo con
-# la cantidad, y a la derecha el grupo. Acá la columna de la izquierda llega
-# hasta x = 104: las caras del banco miden 48 pero lo que se ve de ellas
-# arranca doce pixeles adentro, en x = 108, así que la ventana del grupo
-# puede empezar a la izquierda de la fila del menú (x = 96) sin taparlas. En
-# 104 entran once letras de 8 pixeles, y el nombre va en dos renglones: once
-# es lo que pide "Sandwich-HP".
+# The actor choice, `Scene_ActorTarget`: the menu's party panel, and as in
+# RM2k, three System windows on BG1 —like the item and equipment ones, see
+# `ITEM_VENTANAS`— and the red bar over the marked row. RM2k puts the help
+# with the item's name on the left and "Owned Items" in red with the quantity
+# below it, and the party on the right. Here the left column reaches x = 104:
+# the bank's faces are 48 wide but what shows of them starts twelve pixels in,
+# at x = 108, so the party window can start left of the menu row (x = 96)
+# without covering them. At 104 eleven 8-pixel letters fit, and the name goes
+# on two lines: eleven is what "Sandwich-HP" needs.
 #
-# El nombre se escribe con los glifos del banco del menú —a una letra por
-# celda, como el nombre del actor—, así que el banco lleva también las letras
-# de las medicinas. "Owned Items" no: va **horneado en BG1**, en rojo y a los
-# seis pixeles de la fuente, porque a ocho sus once letras llenan la ventana y
-# no queda lugar para la cantidad, y porque el rojo no tiene paleta libre en
-# BG2. La cantidad sí, con los glifos, a la derecha.
+# The name is written with the menu bank's glyphs —one letter per cell, like
+# the actor's name—, so the bank also carries the medicines' letters. "Owned
+# Items" does not: it is **baked into BG1**, in red and at the font's six
+# pixels, because at eight its eleven letters fill the window and leave no
+# room for the quantity, and because the red has no free palette on BG2. The
+# quantity does, with the glyphs, on the right.
 #
-# Para elegir a quién equipar la pantalla es la misma sin las dos ventanas de
-# la izquierda: no hay ítem.
+# To choose whom to equip, the screen is the same without the two windows on
+# the left: there is no item.
 #
-# A usa la medicina sobre la fila marcada y la pantalla se queda, con los HP de
-# esa fila y la cantidad al día: ver `medicina_usar` en tools/runtime/medicina.s.
-# Esto dibuja los HP que se le pasen en `hp`, así que después de curar alcanza
-# con pasarle los nuevos.
+# A uses the medicine on the marked row and the screen stays, with that row's
+# HP and the quantity up to date: see `medicina_usar` in
+# tools/runtime/medicina.s. This draws the HP passed in `hp`, so after healing
+# it is enough to pass the new ones.
 OBJETIVO_IZQ = 104
 OBJETIVO_NOMBRE_ALTO = 48
 OBJETIVO_CUANTOS_ALTO = 32
@@ -1133,35 +1145,35 @@ OBJETIVO_VENTANAS = ((0, 0, OBJETIVO_IZQ, OBJETIVO_NOMBRE_ALTO),
                       OBJETIVO_CUANTOS_ALTO),
                      OBJETIVO_GRUPO)
 OBJETIVO_NOMBRE_COL = 1
-OBJETIVO_NOMBRE_FILA = 1        # y = 8, y el segundo renglón en y = 24
+OBJETIVO_NOMBRE_FILA = 1        # y = 8, and the second line at y = 24
 OBJETIVO_NOMBRE_ANCHO = (OBJETIVO_IZQ - 8) // CELL - OBJETIVO_NOMBRE_COL  # 11
 OBJETIVO_CUANTOS_FILA = (OBJETIVO_NOMBRE_ALTO + 8) // CELL                # 7
 OBJETIVO_CUANTOS_COL = OBJETIVO_NOMBRE_COL + OBJETIVO_NOMBRE_ANCHO - 2    # 10
-# La barra va sobre las tres líneas de texto de la fila, como en RM2k, y no
-# sobre la cara: cuatro pixeles antes del texto y hasta cuatro del borde, y
-# desde dos pixeles adentro de la fila, para no tocar el marco de arriba.
-# Termina en 48, en el borde de una celda, y no en 50, que es donde termina
-# la tercera línea: con la punta de abajo a mitad de celda eran 64 tiles, lo
-# que entra justo antes del tilemap, y así son 60. Lo que queda afuera es la
-# sombra de las letras de los HP.
+# The bar goes over the row's three lines of text, as in RM2k, and not over
+# the face: four pixels before the text and up to four from the edge, and
+# from two pixels inside the row, so as not to touch the top frame. It ends at
+# 48, on a cell boundary, and not at 50, which is where the third line ends:
+# with the bottom tip mid-cell it was 64 tiles, which is exactly what fits
+# before the tilemap, and this way it is 60. What is left out is the shadow of
+# the HP letters.
 OBJETIVO_BARRA = (MENU_TEXTO_X - 4, 2, ANCHO - MENU_TEXTO_X, 3 * LINEA - 2)
-# Los colores de BG1 van en 128..143: son los de la paleta 0 de los sprites,
-# que en esta pantalla están apagados, y que `menu_exp_cerrar` repone al
-# cerrar el menú. En 0..127 no hay lugar: son las paletas del banco del menú.
+# BG1's colors go in 128..143: they are those of sprite palette 0, which on
+# this screen are off, and which `menu_exp_cerrar` restores on closing the
+# menu. There is no room in 0..127: they are the menu bank's palettes.
 OBJETIVO_CGRAM = 128
 OBJETIVO_COLORES_MAX = 16
-# Los tiles y el tilemap de BG1, detrás del tilemap del menú ($3C00..$4000):
-# BG1 tiene su propia base en $4000, así que no tocan el banco de BG2. Lo que
-# importa es que todo quede en el banco de BG1 de los repartos, que es lo que
-# `load_map` repone al volver: ver `_controlar_objetivo` en el conversor.
+# BG1's tiles and tilemap, after the menu's tilemap ($3C00..$4000): BG1 has
+# its own base at $4000, so they do not touch BG2's bank. What matters is that
+# everything stays in the layouts' BG1 bank, which is what `load_map`
+# restores on the way back: see `_controlar_objetivo` in the converter.
 OBJETIVO_VRAM = 0x4000
 OBJETIVO_MAPA = 0x4800
 
 
 def nombre_en_renglones(nombre, ancho=OBJETIVO_NOMBRE_ANCHO, renglones=2):
-    """El nombre partido en renglones de `ancho`, por palabras; una palabra
-    que no entra se corta donde llega. Rellenados con espacios, que son los
-    que borran lo que hubiera."""
+    """The name split into lines of `ancho`, by words; a word that does not
+    fit is cut where it reaches. Padded with spaces, which are what erase
+    whatever was there."""
     salida, linea = [], ""
     for palabra in nombre.strip().split():
         while len(palabra) > ancho:
@@ -1183,9 +1195,9 @@ def nombre_en_renglones(nombre, ancho=OBJETIVO_NOMBRE_ANCHO, renglones=2):
 
 
 def ventanas_objetivo(sys_img, db, con_item=True, barra=None, font_id=None):
-    """Las ventanas de la elección de actor, en RGBA y del tamaño de la
-    pantalla: lo que dibuja BG1. Con `con_item`, las dos de la izquierda con
-    "Owned Items"; con `barra`, el cursor en esa fila del grupo."""
+    """The actor choice's windows, in RGBA and the size of the screen: what
+    BG1 draws. With `con_item`, the two on the left with "Owned Items"; with
+    `barra`, the cursor on that party row."""
     from PIL import Image
     from port import ventana as ventana_mod
     fuera = Image.new("RGBA", (ANCHO, ALTO), (0, 0, 0, 0))
@@ -1206,15 +1218,15 @@ def ventanas_objetivo(sys_img, db, con_item=True, barra=None, font_id=None):
 
 
 def lcf_termino_poseidos(db):
-    """"Owned Items": `possessed_items` de los términos del LDB."""
+    """"Owned Items": `possessed_items` from the LDB terms."""
     from rpgmaker import lcf
     return lcf.to_string(db.terminos["possessed_items"])
 
 
 def capas_objetivo(sys_img, db, font_id=None):
-    """Lo que `marcos` necesita de la elección de actor: con ítem y sin ítem,
-    cada una sin cursor y con el cursor en cada fila del grupo, desde la
-    primera fila de celdas de la fila del actor."""
+    """What `marcos` needs from the actor choice: with an item and without,
+    each without a cursor and with the cursor on each party row, from the
+    first cell row of the actor's row."""
     return [(ventanas_objetivo(sys_img, db, con_item, None, font_id),
              [(ventanas_objetivo(sys_img, db, con_item, k, font_id),
                k * MENU_ACTOR_FILAS, MENU_ACTOR_FILAS)
@@ -1223,22 +1235,23 @@ def capas_objetivo(sys_img, db, font_id=None):
 
 
 def objetivo_compacto(mapas):
-    """Lo que la ROM guarda de los tilemaps de `marcos(capas_objetivo(...))`,
-    que es mucho menos que lo que `marcos` devuelve.
+    """What the ROM stores of the tilemaps of
+    `marcos(capas_objetivo(...))`, which is much less than what `marcos`
+    returns.
 
-    * **Un solo tilemap**, el con ítem: el de sin ítem es el mismo con las
-      celdas de las dos ventanas de la izquierda en cero —las columnas de
-      `OBJETIVO_IZQ` para la izquierda, hasta el fondo de la de "Owned
-      Items"—, y la ROM las borra al subirlo.
-    * **La barra, sólo donde cambia**: el rectángulo que cubre lo que difiere
-      entre cada fila del grupo con barra y sin ella, igual para las cuatro
-      filas, y que tiene que ser igual con ítem y sin ítem.
+    * **A single tilemap**, the with-item one: the without-item one is the
+      same with the cells of the two left windows at zero —the columns left
+      of `OBJETIVO_IZQ`, down to the bottom of the "Owned Items" one—, and
+      the ROM erases them when uploading it.
+    * **The bar, only where it changes**: the rectangle covering what differs
+      between each party row with the bar and without it, the same for the
+      four rows, and which has to be the same with and without an item.
 
-    Devuelve `(mapa, barras, fila0, filas, col0, cols, borrar_filas,
-    borrar_cols)`: `barras[k]` son las `filas` por `cols` palabras de la fila
-    `k` del grupo, desde la fila `fila0` de la fila del actor y la columna
-    `col0`. Si algo de eso no vale, es un error y no un tilemap distinto: la
-    ROM supone las dos cosas.
+    Returns `(mapa, barras, fila0, filas, col0, cols, borrar_filas,
+    borrar_cols)`: `barras[k]` are the `filas` by `cols` words of party row
+    `k`, from row `fila0` of the actor's row and column `col0`. If any of
+    that does not hold, it is an error and not a different tilemap: the ROM
+    assumes both things.
     """
     (con, barras_con), (sin, barras_sin) = mapas
     borrar_cols = OBJETIVO_IZQ // CELL
@@ -1246,9 +1259,8 @@ def objetivo_compacto(mapas):
     esperado = [0 if (i // COLS < borrar_filas and i % COLS < borrar_cols)
                 else p for i, p in enumerate(con)]
     if esperado != sin:
-        raise SystemExit("el tilemap sin ítem de la elección de actor no es "
-                         "el con ítem con las ventanas de la izquierda "
-                         "borradas")
+        raise SystemExit("the actor choice's without-item tilemap is not the "
+                         "with-item one with the left windows erased")
     distintas = set()
     for k, barra in enumerate(barras_con):
         base = con[k * MENU_ACTOR_FILAS * COLS:
@@ -1260,8 +1272,8 @@ def objetivo_compacto(mapas):
     col0 = min(c for _, c in distintas)
     cols = max(c for _, c in distintas) + 1 - col0
     if col0 < borrar_cols:
-        raise SystemExit("la barra de la elección de actor llega a la "
-                         "columna %d, que es de las ventanas del ítem" % col0)
+        raise SystemExit("the actor choice's bar reaches column %d, which "
+                         "belongs to the item windows" % col0)
 
     def recorte(barra):
         return [barra[(fila0 + f) * COLS + col0 + c]
@@ -1269,20 +1281,20 @@ def objetivo_compacto(mapas):
 
     barras = [recorte(b) for b in barras_con]
     if barras != [recorte(b) for b in barras_sin]:
-        raise SystemExit("la barra de la elección de actor no es la misma con "
-                         "ítem y sin ítem")
+        raise SystemExit("the actor choice's bar is not the same with and "
+                         "without an item")
     return con, barras, fila0, filas, col0, cols, borrar_filas, borrar_cols
 
 
 def render_objetivo(sys_img, db, ranuras, grupo, elegida=0, font_id=None,
                     actores=None, game_dir=None, hp=None, item=None,
                     cantidad=0):
-    """La elección de actor como la tiene que mostrar la consola.
+    """The actor choice as the console has to show it.
 
-    Comparte el panel del grupo con el menú, así que también le escribe los
-    HP: los pinta `menu_grupo_pintar`, que es la misma rutina de los dos
-    lados. `item` es la medicina que se usa, con `cantidad` las que quedan;
-    sin ella es la elección de a quién equipar.
+    It shares the party panel with the menu, so it also writes the HP:
+    `menu_grupo_pintar` paints them, which is the same routine on both
+    sides. `item` is the medicine being used, with `cantidad` how many are
+    left; without it, it is the choice of whom to equip.
     """
     from PIL import Image
     actores = sorted(set(actores if actores is not None else grupo))
@@ -1307,12 +1319,12 @@ def render_objetivo(sys_img, db, ranuras, grupo, elegida=0, font_id=None,
 
 def render_items(sys_img, db, inventario, elegida=0, arriba=0, font_id=None,
                  items=None):
-    """La pantalla de ítems como la tiene que mostrar la consola.
+    """The item screen as the console has to show it.
 
-    `inventario` va de número de ítem a cuántos hay; `items` son los que la
-    ROM conoce —sin ella, los del inventario—; `elegida` es el lugar del
-    cursor en la lista y `arriba` el primero que se ve. Se arma con las mismas
-    celdas que escribe la ROM.
+    `inventario` maps item number to how many there are; `items` are the
+    ones the ROM knows —without it, the inventory's—; `elegida` is the
+    cursor's position in the list and `arriba` the first visible one. It is
+    built with the same cells the ROM writes.
     """
     from PIL import Image
     items = sorted(items if items is not None
@@ -1320,7 +1332,7 @@ def render_items(sys_img, db, inventario, elegida=0, arriba=0, font_id=None,
     tiles, paletas, glifos = pantalla_items(sys_img, font_id)
     fuera = Image.new("RGB", (ANCHO, ALTO), (0, 0, 0))
     lista = lista_de_items(items, inventario)
-    # El cursor es parte de las ventanas: ver `ITEM_BARRA_X`.
+    # The cursor is part of the windows: see `ITEM_BARRA_X`.
     ventanas = ventanas_items(sys_img, elegida - arriba if lista else None)
     fuera.paste(ventanas, (0, 0), ventanas)
     pegar = _pintor(fuera, tiles, paletas)
@@ -1349,17 +1361,18 @@ def render_items(sys_img, db, inventario, elegida=0, arriba=0, font_id=None,
 
 def render_ranuras(sys_img, db, ranuras, llenas, elegida, modo=0, font_id=None,
                    grupos=None, game_dir=None, niveles=None):
-    """La pantalla de ranuras como la tiene que mostrar la consola.
+    """The slot screen as the console has to show it.
 
-    `llenas` es una secuencia de booleanos, una por ranura; `elegida`, dónde
-    está el cursor; `modo`, 0 para cargar y 1 para guardar; `grupos`, por
-    ranura llena, los actores del grupo guardado, que ponen el nombre del
-    primero y las caras de hasta CARAS_MAX; `niveles`, por ranura, el nivel
-    que el líder tenía en esa partida —sin ella, el de arranque—.
+    `llenas` is a sequence of booleans, one per slot; `elegida`, where the
+    cursor is; `modo`, 0 for loading and 1 for saving; `grupos`, per full
+    slot, the actors of the saved party, which set the first one's name and
+    the faces of up to CARAS_MAX; `niveles`, per slot, the level the leader
+    had in that save —without it, the starting one—.
 
-    Se arma con **los mismos bloques de celdas que la ROM sube**, no volviendo a
-    dibujar el texto ni pegando la cara: si se dibujara acá con la fuente y
-    allá con los tiles, quedaría afuera justo el paso que puede salir mal.
+    It is built with **the same cell blocks the ROM uploads**, not drawing
+    the text again nor pasting the face: if it were drawn here with the font
+    and there with the tiles, exactly the step that can go wrong would be
+    left out.
     """
     from PIL import Image
     grupos = grupos or {}
@@ -1378,9 +1391,9 @@ def render_ranuras(sys_img, db, ranuras, llenas, elegida, modo=0, font_id=None,
         if not llena:
             continue
         grupo = list(grupos.get(numero, ()))
-        # El nombre del líder y su nivel, compuestos con glifos encima de la
-        # fila, y las caras, que sí son bloques. Un actor sin cara no dibuja
-        # nada, que es lo que hace `DrawFace` con un nombre vacío.
+        # The leader's name and level, composed with glyphs over the row, and
+        # the faces, which are blocks. An actor without a face draws nothing,
+        # which is what `DrawFace` does with an empty name.
         if grupo and grupo[0] in actores:
             _pegar_texto(pegar, menu,
                          texto_de_nombre(db, grupo[0], NOMBRE_COLS),

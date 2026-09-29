@@ -1,13 +1,14 @@
-"""La batalla por turnos de RM2k, modelada con las mismas reglas que la ROM.
+"""RM2k's turn-based battle, modeled with the same rules as the ROM.
 
-Es el hermano de `pantallas.py` para la pelea: acá viven las fórmulas —daño,
-acierto, crítico, varianza, orden de turnos, huida— y la máquina de turnos, y
-la ROM las copia. Que los dos lados hagan la misma cuenta es lo que le permite
-a `rom/pruebas/rpgmaker/test_batalla.py` predecir **el número exacto** que la consola va a
-poner en cada HP, en vez de conformarse con "bajó".
+It is the sibling of `pantallas.py` for the battle: the formulas —damage,
+hit, critical, variance, turn order, escape— and the turn machine live here,
+and the ROM copies them. Both sides doing the same math is what lets
+`rom/pruebas/rpgmaker/test_batalla.py` predict **the exact number** the
+console is going to put in each HP, instead of settling for "it went down".
 
-**Ningún número de acá se escribió de memoria.** Todos salen de
-easyrpg-player, que está clonado en `/extras/ref`, y cada uno dice de dónde:
+**None of the numbers here was written from memory.** They all come from
+easyrpg-player, which is cloned in `/extras/ref`, and each one says where
+from:
 
     src/algo.cpp                CalcNormalAttackEffect, CalcNormalAttackToHit,
                                 CalcCriticalHitChance, VarianceAdjustEffect,
@@ -20,93 +21,98 @@ easyrpg-player, que está clonado en `/extras/ref`, y cada uno dice de dónde:
     src/algo.cpp                CalcSkillEffect, CalcSkillToHit, CalcSkillCost,
                                 VarianceAdjustEffect
     src/game_battlealgorithm.cpp  Skill::vStart, Skill::vExecute
-    src/game_battler.cpp        CanChangeAtkModifier y sus hermanas, AdjustParam
+    src/game_battler.cpp        CanChangeAtkModifier and its siblings, AdjustParam
     src/game_actor.cpp          LearnSkill, LearnLevelSkills,
                                 CalculateWeaponSpCost
     src/enemyai.cpp             SelectEnemyAiActionRpgRtCompat, MakeSkillAction,
                                 IsSkillEffectiveOn
 
-Tres cosas **no** son de RM2k, y las tres son a propósito:
+Three things are **not** RM2k's, and all three are on purpose:
 
-* **El azar.** RPG_RT tira de un generador que no podemos reproducir. Acá el
-  azar es el mismo xorshift de dieciséis bits que el port ya usa para
-  `ControlVars` —`eventos.azar_siguiente`—, pero con **semilla propia**:
-  `BATALLA_SEMILLA`. Tener la suya y no compartir `FAR_AZAR` es lo que hace que
-  pelear no le corra el azar al mapa: un `ControlVars` al azar da lo mismo
-  con una pelea en el medio y sin ella.
+* **The randomness.** RPG_RT draws from a generator we cannot reproduce.
+  Here the randomness is the same sixteen-bit xorshift the port already uses
+  for `ControlVars` —`eventos.azar_siguiente`—, but with **its own seed**:
+  `BATALLA_SEMILLA`. Having its own and not sharing `FAR_AZAR` is what keeps
+  a battle from advancing the map's randomness: a random `ControlVars` gives
+  the same with or without a battle in between.
 
-* **Las divisiones.** Donde easyrpg hace la cuenta en punto flotante y la
-  trunca al devolverla, acá es entera. En el ajuste por agilidad eso importa y
-  por eso va con **división hacia arriba**: truncar `100 - x` hacia cero es lo
-  mismo que restarle el techo de `x`, así que la cuenta entera da exactamente
-  lo mismo que la flotante. Ver `acierto_por_agilidad`.
+* **The divisions.** Where easyrpg does the math in floating point and
+  truncates it on return, here it is integer. In the agility adjustment
+  that matters, and so it uses **division rounding up**: truncating
+  `100 - x` toward zero is the same as subtracting the ceiling of `x`, so
+  the integer math gives exactly the same as the floating one. See
+  `acierto_por_agilidad`.
 
-* **Lo que no está.** Estados, atributos, filas y el ataque doble. Y de las
-  páginas de evento de la tropa, que la ROM corre desde el 2026-09-21, el
-  modelo sabe **cuándo corren y a quién sacan a la pelea** —`PaginaDeTropa`—
-  y nada más: lo demás que hacen lo cobra `rom/pruebas/rpgmaker/test_tropa.py`
-  leyendo la página del LDB, y ninguna de las que compilan tira azar de la
-  pelea. Lo que sí cambia el azar es quién pelea, y por eso está: un enemigo
-  que aparece a mitad de pelea elige acción desde el turno que sigue. Acá lo
-  que importa es que las fórmulas que sí están son las de verdad y no una
-  aproximación.
+* **What is missing.** States, attributes, rows and the double attack. And
+  of the troop's event pages, which the ROM runs since 2026-09-21, the model
+  knows **when they run and whom they bring into the battle**
+  —`PaginaDeTropa`— and nothing else: the rest of what they do is checked by
+  `rom/pruebas/rpgmaker/test_tropa.py` reading the page from the LDB, and
+  none of the ones that compile draws battle randomness. What does change
+  the randomness is who fights, and that is why it is here: an enemy that
+  appears mid-battle chooses an action from the following turn on. What
+  matters here is that the formulas that are here are the real ones and not
+  an approximation.
 """
 
 from port import eventos
 from port import reglas
 from port.constantes import ENEMIGOS_MAX
 
-# La semilla del azar de la batalla. Es otra que `AZAR_SEMILLA` a propósito:
-# ver arriba. El valor no significa nada, sólo tiene que ser distinto de cero
-# —el xorshift se queda clavado en el cero— y ser el mismo de los dos lados.
+# The seed of the battle's randomness. It differs from `AZAR_SEMILLA` on
+# purpose: see above. The value means nothing, it only has to be nonzero —the
+# xorshift gets stuck at zero— and be the same on both sides.
 BATALLA_SEMILLA = 0x2B1D
 
-# Cuántos caben en una pelea. El grupo es el de RM2k, cuatro; los enemigos,
+# How many fit in a battle. The party is RM2k's, four; the enemies,
 # `constantes.ENEMIGOS_MAX`.
 GRUPO_MAX = 4
 
-# Los tres resultados, en el orden en que el bytecode lleva sus destinos.
+# The three outcomes, in the order the bytecode carries their destinations.
 VICTORIA, HUIDA, DERROTA = 0, 1, 2
 
-# Las órdenes que el jugador puede dar: `command_attack`, `command_defend` y
-# `battle_escape` del LDB. Atacar pide blanco; las otras dos, no.
+# The commands the player can give: `command_attack`, `command_defend` and
+# `battle_escape` from the LDB. Attacking asks for a target; the other two do
+# not.
 #
-# En RM2k huir es una orden **del grupo**, de un menú que va antes de repartir
-# las órdenes; acá es una orden de cada actor y se resuelve en el momento en
-# que se elige. Si sale, la pelea termina ahí; si no, ese actor se queda con
-# `ORDEN_HUIR`, que en el turno no hace nada más que decirlo. Es una
-# simplificación declarada: ahorra un modo entero de la máquina de la ROM y
-# deja a los dos lados con una sola lista de acciones.
+# In RM2k escaping is a **party** command, from a menu that comes before
+# handing out the commands; here it is a per-actor command and it is resolved
+# the moment it is chosen. If it succeeds, the battle ends there; if not,
+# that actor is left with `ORDEN_HUIR`, which in the turn does nothing but
+# say so. It is a declared simplification: it saves a whole mode of the ROM's
+# machine and leaves both sides with a single list of actions.
 ORDEN_ATACAR, ORDEN_DEFENDER, ORDEN_HUIR = 0, 1, 2
-# Y usar un ítem, desde el 2026-09-13: `Game_BattleAlgorithm::Item`. Va como
-# cuarta y no entre las otras para no renumerar lo que ya estaba.
+# And using an item, since 2026-09-13: `Game_BattleAlgorithm::Item`. It goes
+# fourth and not among the others so as not to renumber what was already
+# there.
 ORDEN_ITEM = 3
-# Y una habilidad, `Game_BattleAlgorithm::Skill`. Va quinta por lo mismo: en la
-# pantalla aparece segunda —el original la pone entre Attack y Defend— pero el
-# número es el de la orden y no el de la columna.
+# And a skill, `Game_BattleAlgorithm::Skill`. It goes fifth for the same
+# reason: on screen it shows second —the original puts it between Attack and
+# Defend— but the number is the command's and not the column's.
 ORDEN_HABILIDAD = 4
 
 
 def item_usable_en_batalla(item):
-    """Si este ítem entra en la lista que la pelea ofrece.
+    """Whether this item goes in the list the battle offers.
 
-    `Game_Party::IsItemUsable` con `in_battle`: una medicina —`type` 0 en
-    liblcf, que el volcado a JSON llama 6— se puede usar salvo que esté
-    marcada `occasion_field1`, "sólo fuera de batalla".
+    `Game_Party::IsItemUsable` with `in_battle`: a medicine —`type` 0 in
+    liblcf, which the JSON dump calls 6— can be used unless it is marked
+    `occasion_field1`, "only outside battle".
 
-    Y de esas, este port ofrece **sólo las que recuperan HP**, con una
-    condición más para las `ko_only`: que levanten, o sea que saquen el estado
-    de muerto, porque una `ko_only` que no levanta no le sirve a nadie —ver
-    `efecto_de_item`—. Lo que queda afuera y por qué:
+    And of those, this port offers **only the ones that recover HP**, with
+    one more condition for the `ko_only` ones: that they revive, that is,
+    that they remove the dead state, because a `ko_only` that does not revive
+    is of no use to anyone —see `efecto_de_item`—. What is left out and why:
 
-    * las de SP: **los SP ya son estado desde el 2026-09-13**, así que esto
-      pasó de imposible a deuda —falta el `recover_sp` del lado del ítem, que
-      es la misma cuenta que la de HP—;
-    * las que suben un parámetro para siempre: no hay estados de eso.
+    * the SP ones: **SP is already state since 2026-09-13**, so this went
+      from impossible to debt —what is missing is `recover_sp` on the item
+      side, which is the same math as HP's—;
+    * the ones that raise a parameter permanently: there is no state for
+      that.
 
-    Las `ko_only` —Phoenix Down, Pungent Elixir, Jumper Cable— entran desde el
-    2026-09-26: levantar es sacar el estado de muerto, y la pelea de este port
-    no tiene más estados que ése, que es tener cero HP.
+    The `ko_only` ones —Phoenix Down, Pungent Elixir, Jumper Cable— are in
+    since 2026-09-26: reviving is removing the dead state, and this port's
+    battle has no other state than that one, which is having zero HP.
     """
     return (item.type == TIPO_MEDICINA and not item.occasion_field1
             and (item.recover_hp or item.recover_hp_rate)
@@ -114,40 +120,41 @@ def item_usable_en_batalla(item):
 
 
 def levanta(item):
-    """Si el ítem saca el estado de muerto: el primero de su `state_set`, que
-    es el estado 1. Es el bit `MED_LEVANTA` de `item_medicina`."""
+    """Whether the item removes the dead state: the first of its
+    `state_set`, which is state 1. It is the `MED_LEVANTA` bit of
+    `item_medicina`."""
     return item.state_set[:1] == [True]
 
 
 def curacion(item, blanco):
-    """Cuánto cura este ítem sobre este blanco.
+    """How much this item heals on this target.
 
     `Game_BattleAlgorithm::Item::vExecute`:
 
         hp = recover_hp_rate * GetMaxHp() / 100 + recover_hp
 
-    y después `Game_Battler::ChangeHp` lo topa contra lo que falta para el
-    máximo. La división es entera de los dos lados, como todas las de acá.
+    and then `Game_Battler::ChangeHp` caps it at what is missing up to the
+    maximum. The division is integer on both sides, like all of them here.
     """
     hp = item.recover_hp_rate * blanco.hp_max // 100 + item.recover_hp
     return max(0, min(hp, blanco.hp_max - blanco.hp))
 
 
 def efecto_de_item(item, blanco):
-    """Los HP con los que queda el blanco de una medicina: `vExecute` y lo que
-    `ApplyAll` hace después, rama por rama.
+    """The HP the target of a medicine is left with: `vExecute` and what
+    `ApplyAll` does afterwards, branch by branch.
 
-    * en pie y `ko_only`: nada —`SetIsSuccess` sin efecto—;
-    * en pie: la `curacion`;
-    * caído y el ítem no levanta: nada, porque `ApplyHpEffect` no toca a un
-      muerto. Hasta el 2026-09-26 los dos lados lo levantaban sumándole la
-      cura a los cero HP, y ninguna prueba lo veía porque no se podía elegir a
-      un caído;
-    * caído y levanta: el `SetHp(1)` de `RemoveStates` y después el
-      `ChangeHp(hp - 1)` de `ApplyStateEffect`, o sea `max(1, curacion)`. Es lo
-      mismo que `Game_Battler::UseItem` desde el menú.
+    * standing and `ko_only`: nothing —`SetIsSuccess` with no effect—;
+    * standing: the `curacion`;
+    * down and the item does not revive: nothing, because `ApplyHpEffect`
+      does not touch a dead one. Until 2026-09-26 both sides revived it by
+      adding the heal to the zero HP, and no test saw it because a downed
+      one could not be chosen;
+    * down and it revives: `RemoveStates`'s `SetHp(1)` and then
+      `ApplyStateEffect`'s `ChangeHp(hp - 1)`, that is `max(1, curacion)`.
+      It is the same as `Game_Battler::UseItem` from the menu.
 
-    Devuelve `(hp, levantado)`.
+    Returns `(hp, levantado)`.
     """
     if blanco.vivo:
         if item.ko_only:
@@ -158,34 +165,34 @@ def efecto_de_item(item, blanco):
     return max(1, curacion(item, blanco)), True
 
 
-# `Item::Type_medicine`, que en liblcf es el 0. El volcado a JSON de este repo
-# numera distinto —ahí las medicinas son el 6— así que el número sale de
-# `lcf.Item.type`, que es el del LDB.
+# `Item::Type_medicine`, which in liblcf is 0. This repo's JSON dump numbers
+# them differently —there medicines are 6— so the number comes from
+# `lcf.Item.type`, which is the LDB's.
 TIPO_MEDICINA = 6
 
-# El tope de un parámetro, como `Game_Actor::GetAtk` y sus hermanas.
+# The cap of a parameter, like `Game_Actor::GetAtk` and its siblings.
 PARAM_MAX = 999
-# Y el del daño: `Game_BattleAlgorithm::MaxDamageValue()` para RM2k.
+# And the damage's: `Game_BattleAlgorithm::MaxDamageValue()` for RM2k.
 DANO_MAX = 999
 
 
 def habilidad_usable(skill):
-    """Si esta pelea sabe ofrecer esta habilidad.
+    """Whether this battle knows how to offer this skill.
 
-    Es el hermano de `item_usable_en_batalla` y, como aquél, **recorta a lo que
-    este port hace** y lo declara en vez de hacerlo mal:
+    It is the sibling of `item_usable_en_batalla` and, like that one, **cuts
+    down to what this port does** and declares it instead of doing it wrong:
 
-    * el tipo tiene que ser `normal` o `switch`. `teleport` y `escape` no
-      existen acá, y `subskill` es de RM2k3;
-    * y el costo tiene que entrar en dos cifras, que es lo que la lista
-      escribe. Ninguna del juego llega a 100.
+    * the type has to be `normal` or `switch`. `teleport` and `escape` do
+      not exist here, and `subskill` is RM2k3's;
+    * and the cost has to fit in two digits, which is what the list writes.
+      None in the game reaches 100.
 
-    **Los cinco alcances entran desde el 2026-09-27** —el hito 4 de Lashe
-    City: taro pidió que AG7 no perdiera ninguna de sus habilidades—. Los de a
-    muchos, `enemies` y `party`, repiten el efecto sobre cada blanco vivo del
-    lado, en el orden de la pantalla, y `self` es el que la usa: ver
-    `Batalla.blancos_de_la_habilidad`. Hasta ese día quedaban afuera, y con
-    ellos `Gamble for Credits`, la única de Arden.
+    **All five scopes are in since 2026-09-27** —milestone 4 of Lashe City:
+    taro asked that AG7 not lose any of its skills—. The multi-target ones,
+    `enemies` and `party`, repeat the effect on each living target on that
+    side, in screen order, and `self` is the one using it: see
+    `Batalla.blancos_de_la_habilidad`. Until that day they were left out, and
+    with them `Gamble for Credits`, Arden's only one.
     """
     from rpgmaker import lcf
     return (skill.type in (lcf.SKILL_TIPO_NORMAL, lcf.SKILL_TIPO_SWITCH)
@@ -193,10 +200,11 @@ def habilidad_usable(skill):
 
 
 def pide_blanco(skill):
-    """Si al elegirla el menú pide a quién: sólo las de a uno —`enemy` y
-    `ally`— y que no sean de switch, que `Scene_Battle::AssignSkill` anota
-    sobre el que la usa. Las de a muchos y `self` tampoco: su blanco lo
-    decide el alcance."""
+    """Whether the menu asks for whom when choosing it: only the
+    single-target ones —`enemy` and `ally`— and not switch ones, which
+    `Scene_Battle::AssignSkill` records on the one using it. Not the
+    multi-target ones nor `self` either: their target is decided by the
+    scope."""
     from rpgmaker import lcf
     return (skill.type != lcf.SKILL_TIPO_SWITCH
             and skill.scope in (lcf.SKILL_SCOPE_ENEMIGO,
@@ -204,16 +212,17 @@ def pide_blanco(skill):
 
 
 def habilidad_efectiva_sola(skill):
-    """`EnemyAi::IsSkillEffectiveOn` para un blanco vivo, sin estados.
+    """`EnemyAi::IsSkillEffectiveOn` for a living target, without states.
 
-    Una que apunta a enemigos siempre lo es; una que apunta al propio bando,
-    sólo si toca algo que exista acá: HP, SP o alguno de los cuatro
-    parámetros. Las que sólo curan o ponen estados —`RemoveStatus`, de AG7—
-    no hacen nada sobre nadie, porque no hay estados, y la IA del enemigo las
-    descarta.
+    One that targets enemies always is; one that targets its own side, only
+    if it touches something that exists here: HP, SP or one of the four
+    parameters. The ones that only heal or set states —`RemoveStatus`, AG7's—
+    do nothing on anyone, because there are no states, and the enemy AI
+    discards them.
 
-    No depende del blanco porque un vivo sin estados es igual a cualquier
-    otro: por eso lo contesta el conversor y la ROM no lo mira.
+    It does not depend on the target because a living one without states is
+    the same as any other: that is why the converter answers it and the ROM
+    does not look at it.
     """
     return (skill.apunta_a_enemigos
             or any((skill.affect_hp, skill.affect_sp, skill.affect_attack,
@@ -221,42 +230,43 @@ def habilidad_efectiva_sola(skill):
                     skill.affect_agility)))
 
 
-# Lo que un enemigo puede hacer: `lcf::rpg::EnemyAction`, de a uno por renglón
-# de su lista del LDB, como `(rating, habilidad, efectiva)`. La habilidad es
-# el `lcf.Skill` o None para el ataque básico; `efectiva` es
-# `habilidad_efectiva_sola`, que la IA mira **después** de sacar el máximo.
+# What an enemy can do: `lcf::rpg::EnemyAction`, one per row of its LDB list,
+# as `(rating, habilidad, efectiva)`. The skill is the `lcf.Skill` or None for
+# the basic attack; `efectiva` is `habilidad_efectiva_sola`, which the AI
+# looks at **after** taking the maximum.
 ACCION_KIND_BASICA, ACCION_KIND_HABILIDAD = 0, 1
 ACCION_BASICA_ATACAR = 0
 ACCION_CONDICION_SIEMPRE = 0
-# Cuántas acciones puede traer un enemigo: la ROM las pesa en `BA_HAB_LISTA`,
-# que mide eso. El conversor corta si alguno trae más.
+# How many actions an enemy can carry: the ROM weighs them in `BA_HAB_LISTA`,
+# which is that long. The converter stops if one carries more.
 ACCIONES_MAX = 16
-# El rating de la acción que se pone cuando al enemigo no le queda ninguna:
-# con una sola da igual cuál, porque no se tira nada.
+# The rating of the action set when the enemy has none left: with a single
+# one it does not matter which, because nothing is rolled.
 ACCION_RATING_SOLA = 50
 
 
 def acciones_de_enemigo(db, enemy_id):
-    """Las acciones del enemigo que este port sabe hacer, en el orden del LDB.
+    """The enemy's actions this port knows how to do, in LDB order.
 
-    Es la lista que `EnemyAi::SelectEnemyAiActionRpgRtCompat` recorre,
-    **recortada a lo que existe acá** —y lo que se recorta, se declara—:
+    It is the list `EnemyAi::SelectEnemyAiActionRpgRtCompat` walks, **cut
+    down to what exists here** —and what is cut is declared—:
 
-    * el ataque básico (`kind` 0, `basic` 0) y las habilidades que la pelea
-      sabe hacer (`kind` 1, ver `habilidad_usable`), **menos las de switch**:
-      la IA les tira un blanco por su alcance y la pelea las anota sobre el
-      que las usa, así que dos caminos distintos para una sola del juego no
-      valen la pena;
-    * con la condición "siempre". Las demás —turno, HP, SP, cantidad de
-      enemigos, nivel y cansancio del grupo— no se miran: la acción sale de la
-      lista, igual que si su condición no se cumpliera;
-    * sin los switches que prende o apaga al elegirse (`switch_on`,
-      `switch_off`): ninguna del juego que el cartucho lleva los usa, y la
-      acción que los trae sale de la lista.
+    * the basic attack (`kind` 0, `basic` 0) and the skills the battle knows
+      how to do (`kind` 1, see `habilidad_usable`), **except switch ones**:
+      the AI rolls a target for them by their scope and the battle records
+      them on the one using them, so two different paths for a single one in
+      the game are not worth it;
+    * with the "always" condition. The others —turn, HP, SP, number of
+      enemies, party level and fatigue— are not looked at: the action drops
+      out of the list, just as if its condition were not met;
+    * without the switches it turns on or off when chosen (`switch_on`,
+      `switch_off`): none in the game the cartridge carries uses them, and
+      an action that has them drops out of the list.
 
-    Lo demás —defenderse, cargar, huir, transformarse, el ataque doble— sale
-    de la lista. Si no queda ninguna, queda el ataque básico solo, que es lo
-    que la pelea hacía con todos hasta el 2026-09-27.
+    The rest —defending, charging, escaping, transforming, the double
+    attack— drops out of the list. If none is left, the basic attack alone
+    remains, which is what the battle did with every enemy until
+    2026-09-27.
     """
     from rpgmaker import lcf
     lista = []
@@ -279,13 +289,15 @@ def acciones_de_enemigo(db, enemy_id):
 
 
 def sp_del_arma(db, equipo):
-    """Lo que cuesta atacar con lo que tiene puesto: `CalculateWeaponSpCost`.
+    """What attacking costs with what it has equipped:
+    `CalculateWeaponSpCost`.
 
-    Es el `sp_cost` de las armas —`ForEachEquipment<true, false>`, o sea sin
-    las armaduras aunque traigan uno: el escudo NetLauncher de AG7 dice 4 y
-    no lo cobra— y `Normal::vStart` lo descuenta antes del acierto, topado en
-    cero. La única ranura con arma es la 0: la segunda arma, en la del
-    escudo, es de RM2k3. `half_sp_cost` es un estado, y no hay.
+    It is the weapons' `sp_cost` —`ForEachEquipment<true, false>`, that is
+    without the armor even if it carries one: AG7's NetLauncher shield says 4
+    and does not charge it— and `Normal::vStart` deducts it before the hit
+    roll, floored at zero. The only slot with a weapon is 0: the second
+    weapon, in the shield slot, is RM2k3's. `half_sp_cost` is a state, and
+    there are none.
     """
     from rpgmaker import lcf
     arma = db.items.get(equipo[0]) if equipo and equipo[0] else None
@@ -295,40 +307,42 @@ def sp_del_arma(db, equipo):
 
 
 def habilidades_de(db, numero, nivel=None):
-    """Las habilidades que este actor sabe, en el orden en que el menú las pone.
+    """The skills this actor knows, in the order the menu puts them.
 
-    `Game_Actor::LearnLevelSkills` recorre la tabla de aprendizaje del LDB y
-    aprende las de nivel menor o igual al suyo; `LearnSkill` las mete en
-    `data.skills` y **ordena la lista por número**, así que ése es el orden que
-    la pantalla muestra —y el que la captura del original confirma: Manta ve
-    Mental Hack, MindShield, MindProbe y MindBlast, o sea 130, 143, 144, 150—.
+    `Game_Actor::LearnLevelSkills` walks the LDB's learning table and learns
+    the ones with a level lower than or equal to its own; `LearnSkill` puts
+    them in `data.skills` and **sorts the list by number**, so that is the
+    order the screen shows —and the one the capture of the original
+    confirms: Manta sees Mental Hack, MindShield, MindProbe and MindBlast,
+    that is 130, 143, 144, 150—.
 
-    El nivel es el `initial_level` del LDB, como todo lo demás desde el
-    2026-09-13: con el 1 que el port tenía mockeado no se sabía ninguna, porque
-    la primera se aprende en el 3.
+    The level is the LDB's `initial_level`, like everything else since
+    2026-09-13: with the 1 the port had mocked none was known, because the
+    first one is learned at 3.
 
-    Las que este port no sabe ofrecer no entran: ver `habilidad_usable`.
+    The ones this port does not know how to offer are left out: see
+    `habilidad_usable`.
     """
     return [s for s in reglas.aprendidas_de(db, numero, nivel)
             if habilidad_usable(db.skills[s])]
 
 
 def nivel_en_que_aprende(db, numero, skill):
-    """En qué nivel aprende este actor esta habilidad: el más bajo de los
-    renglones de su tabla que la nombran. `LearnLevelSkills` la aprende en el
-    primero que alcanza y `LearnSkill` no la repite. 0 si la tabla no la
-    nombra: ésa sólo la enseña un `ChangeSkills`."""
+    """At which level this actor learns this skill: the lowest of the rows
+    of its table that name it. `LearnLevelSkills` learns it at the first one
+    it reaches and `LearnSkill` does not repeat it. 0 if the table does not
+    name it: that one is only taught by a `ChangeSkills`."""
     return min((nivel for nivel, s in db.actors[numero].skills if s == skill),
                default=0)
 
 
 def nombre_de_orden_habilidad(db, numero):
-    """Cómo se llama la orden de habilidades de este actor en el menú.
+    """What this actor's skill command is called in the menu.
 
-    `Game_Actor::GetSkillName`: el `skill_name` del actor si tiene puesto
-    `rename_skill`, y si no el `command_skill` del LDB —"Tech Skill"—. Los
-    cuatro actores de la intro lo tienen puesto: "AgentTrain", "Telepathy",
-    "Slicing" y "Special".
+    `Game_Actor::GetSkillName`: the actor's `skill_name` if it has
+    `rename_skill` set, and otherwise the LDB's `command_skill` —"Tech
+    Skill"—. The four actors of the intro have it set: "AgentTrain",
+    "Telepathy", "Slicing" and "Special".
     """
     actor = db.actors[numero]
     if actor.rename_skill and actor.skill_name:
@@ -337,10 +351,10 @@ def nombre_de_orden_habilidad(db, numero):
 
 
 def costo_de(skill):
-    """`Algo::CalcSkillCost`: en RM2k el `sp_cost` a secas.
+    """`Algo::CalcSkillCost`: in RM2k, plain `sp_cost`.
 
-    El `sp_percent` es de RM2k3 y `half_sp_cost` es un estado, y no hay
-    estados.
+    `sp_percent` is RM2k3's and `half_sp_cost` is a state, and there are no
+    states.
     """
     return skill.sp_cost
 
@@ -350,9 +364,9 @@ def varianza_ajustar(base, var, azar):
 
         adj = max(1, var * base / 10); base += rand(0, adj) - adj / 2
 
-    **Sólo tira si `var > 0` y `base > 0`**, que es lo que dice el `if`; sin
-    esa condición los dos lados se irían de fase en el tiro siguiente cada vez
-    que una habilidad de switch o un golpe de cero pasara por acá.
+    **It only rolls if `var > 0` and `base > 0`**, which is what the `if`
+    says; without that condition the two sides would drift out of phase on
+    the next roll every time a switch skill or a zero hit went through here.
     """
     if var > 0 and base > 0:
         ajuste = max(1, var * base // 10)
@@ -361,20 +375,21 @@ def varianza_ajustar(base, var, azar):
 
 
 def efecto_habilidad(fuente, blanco, skill, critico=False):
-    """`Algo::CalcSkillEffect` **sin la varianza**, que se aplica aparte.
+    """`Algo::CalcSkillEffect` **without the variance**, which is applied
+    separately.
 
         effect  = power
         effect += physical_rate * atk / 20
         effect += magical_rate  * spi / 40
-        si apunta a enemigos y no ignora la defensa:
+        if it targets enemies and does not ignore defense:
             effect -= physical_rate * def / 40
-            effect -= magical_rate  * spi_del_blanco / 80
+            effect -= magical_rate  * target_spi / 80
         effect = max(0, effect)
-        si es crítico: effect *= 3
+        if critical: effect *= 3
 
-    Las filas y los atributos no están —este port no tiene ninguno de los
-    dos—. Todas las divisiones son de números no negativos, así que la entera
-    de Python da lo mismo que la de C++.
+    Rows and attributes are not here —this port has neither—. All the
+    divisions are of non-negative numbers, so Python's integer division
+    gives the same as C++'s.
     """
     efecto = skill.power
     efecto += skill.physical_rate * fuente.ataque // 20
@@ -389,37 +404,38 @@ def efecto_habilidad(fuente, blanco, skill, critico=False):
 
 
 def _mitad(n):
-    """La división por dos de C++, que **trunca hacia cero**.
+    """C++'s division by two, which **truncates toward zero**.
 
-    Hace falta porque `AdjustDamageForDefend` divide el efecto de una
-    habilidad, que puede ser negativo: en C++ -25/2 es -12 y en Python
-    -25 // 2 es -13. Un punto de daño de diferencia que sólo aparece cuando
-    alguien se defiende de una habilidad, o sea la clase de discrepancia que
-    tarda semanas en verse.
+    It is needed because `AdjustDamageForDefend` divides a skill's effect,
+    which can be negative: in C++ -25/2 is -12 and in Python -25 // 2 is -13.
+    One point of damage of difference that only shows up when someone
+    defends against a skill, that is, the kind of discrepancy that takes
+    weeks to be seen.
     """
     return -((-n) // 2) if n < 0 else n // 2
 
 
 def cambio_de_modificador(mod, base, delta):
-    """`Game_Battler::CanChangeAtkModifier` y sus tres hermanas.
+    """`Game_Battler::CanChangeAtkModifier` and its three siblings.
 
         nuevo = clamp(mod + delta, -base / 2, base)
 
-    y devuelve `nuevo - mod`, o sea cuánto se movió de verdad. El tope de
-    bajada es la mitad del parámetro base: un enemigo no puede quedar con
-    menos de la mitad de su ataque por más habilidades que le tiren.
+    and returns `nuevo - mod`, that is how much it actually moved. The floor
+    is half the base parameter: an enemy cannot be left with less than half
+    its attack no matter how many skills are thrown at it.
     """
     nuevo = max(-(base // 2), min(base, mod + delta))
     return nuevo - mod
 
 
 class Azar:
-    """El xorshift de la batalla, con su propia semilla.
+    """The battle's xorshift, with its own seed.
 
-    `hasta(n)` devuelve un número de 0 a n **inclusive**, que es el rango de
-    `Rand::GetRandomNumber(0, n)` de easyrpg. El resto no es uniforme y no
-    importa que no lo sea: lo que importa es que la ROM saque exactamente lo
-    mismo, y la ROM hace esta misma cuenta con el divisor del hardware.
+    `hasta(n)` returns a number from 0 to n **inclusive**, which is the range
+    of easyrpg's `Rand::GetRandomNumber(0, n)`. The remainder is not uniform
+    and it does not matter that it is not: what matters is that the ROM gets
+    exactly the same, and the ROM does this same math with the hardware
+    divider.
     """
 
     def __init__(self, semilla=BATALLA_SEMILLA):
@@ -432,19 +448,20 @@ class Azar:
     def porciento(self, tanto):
         """`Rand::PercentChance(int)`: `GetRandomNumber(0, 99) < rate`.
 
-        **Se tira siempre**, aunque `tanto` sea cero: es lo que hace
-        `Normal::vExecute` con el crítico, y si acá no se tirara los dos lados
-        se irían de fase en el tiro siguiente.
+        **It is always rolled**, even if `tanto` is zero: it is what
+        `Normal::vExecute` does with the critical, and if it were not rolled
+        here the two sides would drift out of phase on the next roll.
         """
         return self.hasta(99) < tanto
 
 
 class Combatiente:
-    """Uno de los que pelean, del lado que sea.
+    """One of those who fight, on whichever side.
 
-    `es_actor` decide dos cosas y no es cosmético: de qué lado cuenta para
-    elegir blanco, y que el crítico exista —`CalcCriticalHitChance` lo pone en
-    cero cuando los dos son del mismo tipo—.
+    `es_actor` decides two things and is not cosmetic: which side it counts
+    on when choosing a target, and whether the critical exists
+    —`CalcCriticalHitChance` sets it to zero when both are of the same
+    kind—.
     """
 
     def __init__(self, nombre, hp_max, ataque, defensa, agilidad, acierto,
@@ -453,9 +470,9 @@ class Combatiente:
         self.nombre = nombre
         self.hp_max = hp_max
         self.hp = hp_max
-        # Los cuatro parámetros **base**: lo que una habilidad modifica es el
-        # `*_modificador` de al lado, y lo que las cuentas usan es la suma de
-        # los dos, topada. Ver `Game_Battler::GetAtk` y `AdjustParam`.
+        # The four **base** parameters: what a skill modifies is the
+        # `*_modificador` next to them, and what the math uses is the sum of
+        # both, clamped. See `Game_Battler::GetAtk` and `AdjustParam`.
         self.ataque_base = ataque
         self.defensa_base = defensa
         self.espiritu_base = espiritu
@@ -465,42 +482,44 @@ class Combatiente:
         self.mod_espiritu = 0
         self.mod_agilidad = 0
         self.acierto = acierto
-        self.critico = critico          # en por ciento, ya entero
+        self.critico = critico          # in percent, already an integer
         self.es_actor = es_actor
-        self.numero = numero            # el actor del LDB, o el lugar en la tropa
-        # Los SP y lo que sabe hacer con ellos. Las habilidades son las del
-        # menú de un actor; las de un enemigo están en `acciones`, que es su
-        # lista del LDB —ver `acciones_de_enemigo`— y la de un actor no se
-        # usa. Sin lista, ataca: es lo que hacía todo enemigo hasta el
+        self.numero = numero            # the LDB actor, or the place in the troop
+        # The SP and what it knows how to do with them. The skills are those
+        # of an actor's menu; an enemy's are in `acciones`, which is its LDB
+        # list —see `acciones_de_enemigo`— and an actor's is not used.
+        # Without a list, it attacks: it is what every enemy did until
         # 2026-09-27.
         self.sp_max = sp_max
         self.sp = sp_max
         self.habilidades = list(habilidades)
         self.acciones = (list(acciones) if acciones is not None
                          else [(ACCION_RATING_SOLA, None, True)])
-        # Lo que le cuesta atacar: `sp_del_arma`. Cero para un enemigo.
+        # What attacking costs it: `sp_del_arma`. Zero for an enemy.
         self.sp_arma = sp_arma
         self.defendiendo = False
         self.orden = 0
-        # Un enemigo oculto —`invisible` en la tropa— está pero no pelea:
-        # `Exists()` es `!IsHidden() && !IsDead()`. Lo saca a la pelea el
-        # `ShowHiddenMonster` de una página: ver `PaginaDeTropa`.
+        # A hidden enemy —`invisible` in the troop— is there but does not
+        # fight: `Exists()` is `!IsHidden() && !IsDead()`. A page's
+        # `ShowHiddenMonster` brings it into the battle: see
+        # `PaginaDeTropa`.
         self.oculto = False
-        # Lo que da al morir: `Game_EnemyParty::GetExp` y `GetMoney`.
+        # What it gives when it dies: `Game_EnemyParty::GetExp` and
+        # `GetMoney`.
         self.exp = 0
         self.oro = 0
 
     @property
     def vivo(self):
-        """`Exists()`: le quedan HP y no está oculto. Todo lo que elige blanco,
-        reparte acciones o decide la victoria mira esto, así que un oculto no
-        cuenta para nada hasta que aparece —que es lo que hace la ROM al
-        dejarlo sin `BAF_HAY`—."""
+        """`Exists()`: it has HP left and is not hidden. Everything that
+        chooses a target, hands out actions or decides victory looks at
+        this, so a hidden one counts for nothing until it appears —which is
+        what the ROM does by leaving it without `BAF_HAY`—."""
         return self.hp > 0 and not self.oculto
 
-    # Los cuatro parámetros como los ve una cuenta: `AdjustParam` de
-    # game_battler.cpp, o sea `clamp(base + modificador, 1, 999)`. Sin estados
-    # no hay ni mitad ni doble.
+    # The four parameters as a computation sees them: `AdjustParam` from
+    # game_battler.cpp, that is `clamp(base + modificador, 1, 999)`. Without
+    # states there is neither half nor double.
     @property
     def ataque(self):
         return max(1, min(PARAM_MAX, self.ataque_base + self.mod_ataque))
@@ -519,20 +538,22 @@ class Combatiente:
 
 
 def actor_de(db, numero, equipo=None, nivel=None):
-    """El combatiente de un actor del LDB, con lo que tenga puesto.
+    """The combatant of an LDB actor, with whatever it has equipped.
 
-    Los parámetros salen de `reglas.parametros`, que es la misma función que
-    usa la pantalla de equipo: el del nivel más lo que suma cada pieza, topado
-    en [1, 999]. Los HP son los del nivel y no llevan equipo, como
-    `Game_Actor::GetMaxHp` en RM2k, donde el equipo no toca los HP.
+    The parameters come from `reglas.parametros`, which is the same function
+    the equipment screen uses: the level's plus what each piece adds,
+    clamped to [1, 999]. The HP are the level's and carry no equipment, like
+    `Game_Actor::GetMaxHp` in RM2k, where equipment does not touch HP.
 
-    El acierto es 90: `Game_Actor::GetHitChance` con un arma sin `hit` propio.
-    **El `hit` del arma no se lee**, y es deuda declarada: ningún arma del ABL
-    lo baja, pero el día que una lo haga esto se equivoca en silencio.
+    The hit chance is 90: `Game_Actor::GetHitChance` with a weapon without
+    its own `hit`. **The weapon's `hit` is not read**, and it is declared
+    debt: no weapon in ABL lowers it, but the day one does this will be
+    wrong silently.
 
-    El nivel es el `initial_level` del LDB y no el 1: ver `reglas.nivel_de`.
-    Hasta el 2026-09-13 era el 1 y Kersh peleaba con 40 HP y ataque 17 en vez
-    de 168 y 80. Con `nivel`, el que haya subido: ver `port.experiencia`.
+    The level is the LDB's `initial_level` and not 1: see `reglas.nivel_de`.
+    Until 2026-09-13 it was 1 and Kersh fought with 40 HP and attack 17
+    instead of 168 and 80. With `nivel`, whatever it reached: see
+    `port.experiencia`.
     """
     actor = db.actors[numero]
     if equipo is None:
@@ -550,7 +571,7 @@ def actor_de(db, numero, equipo=None, nivel=None):
 
 
 def actor_tiene_critico(db, numero):
-    """`critical_hit` del actor, del LDB. En el ABL ninguno lo tiene."""
+    """The actor's `critical_hit`, from the LDB. In ABL none has it."""
     return bool(getattr(db.actors[numero], "critical_hit", False))
 
 
@@ -559,19 +580,20 @@ def actor_critico_cada(db, numero):
 
 
 def enemigo_de(db, enemy_id, lugar, oculto=False):
-    """El combatiente de un enemigo del LDB; `oculto` es el `invisible` de su
-    lugar en la tropa.
+    """The combatant of an LDB enemy; `oculto` is the `invisible` of its
+    place in the troop.
 
-    El acierto es `Game_Enemy::GetHitChance`: 70 el que tiene `miss` puesto y
-    90 el que no. El crítico, `GetCriticalHitChance` por cien y truncado, que
-    con el 30 de fábrica da 3.
+    The hit chance is `Game_Enemy::GetHitChance`: 70 for one with `miss` set
+    and 90 otherwise. The critical, `GetCriticalHitChance` times a hundred
+    and truncated, which with the default 30 gives 3.
     """
     e = db.enemies[enemy_id]
     critico = (100 // (e.critical_hit_chance or 30)) if e.critical_hit else 0
     quien = Combatiente(e.name, e.max_hp, e.attack, e.defense, e.agility,
                         e.hit, critico, False, lugar, e.spirit, e.max_sp,
                         acciones=acciones_de_enemigo(db, enemy_id))
-    # Lo que deja al morir: el ítem y su chance en por ciento. Ver `botin`.
+    # What it drops when it dies: the item and its chance in percent. See
+    # `botin`.
     quien.botin_item = e.drop_id
     quien.botin_chance = e.drop_prob
     quien.oculto = oculto
@@ -581,8 +603,8 @@ def enemigo_de(db, enemy_id, lugar, oculto=False):
 
 
 def enemigos_de_la_tropa(db, tropa):
-    """Los combatientes de una tropa, en su orden y con sus ocultos, hasta
-    `ENEMIGOS_MAX` como la pelea."""
+    """The combatants of a troop, in their order and with their hidden ones,
+    up to `ENEMIGOS_MAX` like the battle."""
     t = db.troops[tropa]
     return [enemigo_de(db, e, n, oculto)
             for n, (e, oculto) in enumerate(
@@ -597,17 +619,17 @@ def _turnos(turno, base, multiplo):
 
 
 class PaginaDeTropa:
-    """Una página de evento de la tropa, **con lo que el modelo necesita**:
-    cuándo se cumple —`AreConditionsMet`, los seis disparadores de RM2k— y a
-    quién saca a la pelea. De sus comandos corre sólo `ShowHiddenMonster`, los
-    `ControlSwitches` de un switch y las ramas de pelea por switch, que es lo
-    que hace falta para saber si un `ShowHiddenMonster` adentro de una rama
-    corre —el del Rat King va adentro de una, que la propia página cierra—.
-    Lo demás —mensajes, habilidades, variables, sonidos— no cambia quién pelea
-    ni tira azar de la pelea, y no se modela.
+    """An event page of the troop, **with what the model needs**: when it is
+    met —`AreConditionsMet`, RM2k's six triggers— and whom it brings into
+    the battle. Of its commands it runs only `ShowHiddenMonster`, the
+    single-switch `ControlSwitches` and the battle branches on a switch,
+    which is what is needed to know whether a `ShowHiddenMonster` inside a
+    branch runs —the Rat King's is inside one, which the page itself
+    closes—. The rest —messages, skills, variables, sounds— does not change
+    who fights nor draws battle randomness, and is not modeled.
 
-    Los switches son los de la batalla, `Batalla.estado`, que empieza con los
-    que se le pasen: la ROM los lee del mapa.
+    The switches are the battle's, `Batalla.estado`, which starts with the
+    ones passed in: the ROM reads them from the map.
     """
 
     def __init__(self, pagina):
@@ -626,8 +648,8 @@ class PaginaDeTropa:
                 c["switch_b_id"]):
             return False
         if "variable" in self.activos:
-            raise NotImplementedError("una página por variable: el modelo no "
-                                      "lleva variables")
+            raise NotImplementedError("a page on a variable: the model has no "
+                                      "variables")
         if "turn" in self.activos and not _turnos(
                 batalla.turno, c["turn_b"], c["turn_a"]):
             return False
@@ -639,7 +661,7 @@ class PaginaDeTropa:
                     <= c["enemy_hp_max"]):
                 return False
         if "actor_hp" in self.activos:
-            # Sólo si está en el grupo, como la ROM: ver `ba_pag_cumple`.
+            # Only if it is in the party, like the ROM: see `ba_pag_cumple`.
             suyos = [a for a in batalla.actores if a.numero == c["actor_id"]]
             if not suyos:
                 return False
@@ -650,32 +672,32 @@ class PaginaDeTropa:
         return True
 
     def correr(self, batalla):
-        """Los comandos, con las ramas por switch resueltas: una rama que no
-        se toma saltea todo lo que tiene más adentro que ella."""
-        saltear_desde = None        # la sangría de la rama que no se tomó
+        """The commands, with the switch branches resolved: a branch that is
+        not taken skips everything nested deeper than it."""
+        saltear_desde = None        # the indent of the branch not taken
         for cmd in self.comandos:
             if saltear_desde is not None:
                 if cmd.indent > saltear_desde:
                     continue
                 if cmd.code == 23310 and cmd.indent == saltear_desde:
-                    saltear_desde = None    # el `else` de la que no se tomó
+                    saltear_desde = None    # the `else` of the one not taken
                     continue
                 saltear_desde = None
             p = cmd.parameters
             if cmd.code == 13310:
                 if p[0] != 0:
-                    raise NotImplementedError("una rama de pelea que no es "
-                                              "por switch")
+                    raise NotImplementedError("a battle branch that is not "
+                                              "on a switch")
                 prendido = bool(batalla.estado.get(p[1]))
                 if prendido != (p[2] == 0):
                     saltear_desde = cmd.indent
             elif cmd.code == 23310:
-                # El `else` de una rama que sí se tomó: se saltea.
+                # The `else` of a branch that was taken: it is skipped.
                 saltear_desde = cmd.indent
             elif cmd.code == eventos.CONTROL_SWITCHES:
                 if p[0] != 0 or p[1] != p[2] or p[3] not in (0, 1):
-                    raise NotImplementedError("un ControlSwitches que el "
-                                              "modelo no sabe")
+                    raise NotImplementedError("a ControlSwitches the model "
+                                              "does not know")
                 batalla.estado[p[1]] = p[3] == 0
             elif cmd.code == eventos.SHOW_HIDDEN_MONSTER:
                 if p[0] < len(batalla.enemigos):
@@ -683,24 +705,26 @@ class PaginaDeTropa:
 
 
 def oro_de_la_tropa(db, tropa):
-    """`Game_EnemyParty::GetMoney`: el `gold` de cada enemigo **muerto**, que
-    en una victoria son todos menos los que siguieron ocultos —como en
-    `experiencia.exp_de_la_tropa`—, hasta `ENEMIGOS_MAX`. Es la suma de la
-    tropa entera; lo de los ocultos lo resta la ROM al ganar. No tira azar."""
+    """`Game_EnemyParty::GetMoney`: the `gold` of each **dead** enemy, which
+    in a victory is all of them except those that stayed hidden —as in
+    `experiencia.exp_de_la_tropa`—, up to `ENEMIGOS_MAX`. It is the sum of
+    the whole troop; the ROM subtracts the hidden ones' when winning. It
+    rolls nothing."""
     return sum(db.enemies[e].gold for e in db.troops[tropa].members[:ENEMIGOS_MAX])
 
 
 def acierto_por_agilidad(base, agi_fuente, agi_blanco):
-    """`CalcToHitAgiAdjustment` de algo.cpp.
+    """`CalcToHitAgiAdjustment` from algo.cpp.
 
         to_hit = 100 - (100 - to_hit) * (1 + (tgt_agi / src_agi - 1) / 2)
 
-    que es lo mismo que restarle a 100 el producto por `(src + tgt) / (2 src)`.
-    easyrpg lo hace en `float` y devuelve un `int`, o sea que trunca hacia cero
-    el resultado entero: `trunc(100 - x)` es `100 - ceil(x)` mientras el
-    resultado sea positivo, y por eso acá la división es **hacia arriba**. Sin
-    eso los dos lados se separan en un punto de acierto cada tanto, que es
-    justo la clase de diferencia que no se ve hasta que un golpe falla.
+    which is the same as subtracting from 100 the product by
+    `(src + tgt) / (2 src)`. easyrpg does it in `float` and returns an
+    `int`, that is, it truncates the result toward zero: `trunc(100 - x)` is
+    `100 - ceil(x)` while the result is positive, and that is why the
+    division here **rounds up**. Without that the two sides drift apart by
+    one point of hit chance every so often, which is exactly the kind of
+    difference that is not seen until a hit misses.
     """
     fuente = max(1, agi_fuente)
     resta = (100 - base) * (fuente + agi_blanco)
@@ -708,14 +732,14 @@ def acierto_por_agilidad(base, agi_fuente, agi_blanco):
 
 
 def dano_normal(fuente, blanco, critico, azar):
-    """`CalcNormalAttackEffect` y `VarianceAdjustEffect` con varianza 4.
+    """`CalcNormalAttackEffect` and `VarianceAdjustEffect` with variance 4.
 
         dmg = max(0, atk / 2 - def / 4)
-        crítico: * 3
-        varianza: adj = max(1, 4 * dmg / 10); dmg += rand(0, adj) - adj / 2
+        critical: * 3
+        variance: adj = max(1, 4 * dmg / 10); dmg += rand(0, adj) - adj / 2
 
-    Las filas, los atributos del arma y el ataque cargado no están: este port
-    no tiene ninguna de las tres.
+    Rows, weapon attributes and the charged attack are not here: this port
+    has none of the three.
     """
     dano = max(0, fuente.ataque // 2 - blanco.defensa // 4)
     if critico:
@@ -724,33 +748,34 @@ def dano_normal(fuente, blanco, critico, azar):
 
 
 def ajustar_por_defensa(dano, blanco):
-    """`AdjustDamageForDefend`: el que se defiende recibe la mitad. La "defensa
-    fuerte" es un estado y no hay estados."""
+    """`AdjustDamageForDefend`: whoever defends takes half. The "strong
+    defense" is a state and there are no states."""
     return _mitad(dano) if blanco.defendiendo else dano
 
 
 class Batalla:
-    """Una pelea, turno por turno. Es `Scene_Battle_Rpg2k` de easyrpg con lo
-    que este port hace.
+    """A battle, turn by turn. It is easyrpg's `Scene_Battle_Rpg2k` with
+    what this port does.
 
-    El lazo de un turno, en el orden en que consume azar —y ese orden es el
-    contrato con la ROM—:
+    The loop of a turn, in the order it consumes randomness —and that order
+    is the contract with the ROM—:
 
-    1. el jugador elige la orden de cada actor vivo (no tira azar);
-    2. cada enemigo vivo elige qué hacer y contra quién —`CreateEnemyActions`,
-       ver `accion_del_enemigo`—: **un tiro para la acción si tiene más de
-       una posible, y uno para el blanco si la acción lo pide**;
-    3. `CreateExecutionOrder`: **un tiro por combatiente que actúa**, para su
-       `agi + rand(0, agi / 4 + 3)`, y después se ordena de mayor a menor con
-       un orden estable;
-    4. se ejecutan en ese orden, salteando a los que hayan muerto en el
-       camino. Cada ataque tira **tres veces**: acierto, crítico y varianza, y
-       el del crítico se tira aunque la probabilidad sea cero;
-    5. al ganar, **un tiro por enemigo con ítem**, en el orden de la tropa:
-       ver `tirar_el_botin`.
+    1. the player chooses the command of each living actor (no roll);
+    2. each living enemy chooses what to do and against whom
+       —`CreateEnemyActions`, see `accion_del_enemigo`—: **one roll for the
+       action if it has more than one possible, and one for the target if
+       the action asks for one**;
+    3. `CreateExecutionOrder`: **one roll per combatant that acts**, for its
+       `agi + rand(0, agi / 4 + 3)`, and then they are sorted from highest
+       to lowest with a stable order;
+    4. they run in that order, skipping those that died along the way. Each
+       attack rolls **three times**: hit, critical and variance, and the
+       critical one is rolled even if the chance is zero;
+    5. on winning, **one roll per enemy with an item**, in troop order: see
+       `tirar_el_botin`.
 
-    Que el punto 2 vaya antes que el 3 no es un detalle: es el orden de
-    `SelectNextActor`, que llama a `CreateEnemyActions()` y después a
+    Step 2 going before step 3 is not a detail: it is the order of
+    `SelectNextActor`, which calls `CreateEnemyActions()` and then
     `CreateExecutionOrder()`.
     """
 
@@ -760,23 +785,23 @@ class Batalla:
         self.enemigos = list(enemigos)
         self.azar = Azar(semilla)
         self.turno = 0
-        # Las páginas de la tropa —ver `PaginaDeTropa`—, las que ya corrieron
-        # en este turno —`executed`— y los switches que miran.
+        # The troop's pages —see `PaginaDeTropa`—, those that already ran
+        # this turn —`executed`— and the switches they look at.
         self.paginas = list(paginas)
         self.hechas = set()
         self.estado = dict(switches or {})
         self.resultado = None
         self.huida_chance = self._chance_de_huir()
-        self.registro = []          # lo que pasó, para que una prueba lo cuente
-        # Los switches que una habilidad de tipo `switch` prendió:
-        # `Skill::vExecute` hace `SetAffectedSwitch(skill.switch_id)` y
-        # `Scene_Battle` lo prende de verdad. Acá se junta el número, que es lo
-        # que la prueba compara contra el bit de la ROM.
+        self.registro = []          # what happened, for a test to count
+        # The switches a `switch` skill turned on: `Skill::vExecute` does
+        # `SetAffectedSwitch(skill.switch_id)` and `Scene_Battle` actually
+        # turns it on. Here the number is collected, which is what the test
+        # compares against the ROM's bit.
         self.switches = []
-        # Los ítems que soltaron los enemigos al perder: ver `tirar_el_botin`.
+        # The items the enemies dropped on losing: see `tirar_el_botin`.
         self.botin = []
 
-    # --- la huida ---------------------------------------------------------
+    # --- escaping --------------------------------------------------------
     def _promedio(self, quienes):
         vivos = [c for c in quienes if c.vivo] or list(quienes)
         return sum(c.agilidad for c in vivos) // max(1, len(vivos))
@@ -784,11 +809,12 @@ class Batalla:
     def _chance_de_huir(self):
         """`Scene_Battle::InitEscapeChance`:
 
-            base = redondear(100 * agi_enemigos / agi_grupo)
-            chance = recortar(150 - base, 0, 100)
+            base = round(100 * enemies_agi / party_agi)
+            chance = clamp(150 - base, 0, 100)
 
-        El redondeo de easyrpg es `RoundTo`, o sea al entero más cercano; acá
-        es `(2a + b) // (2b)`, que es lo mismo con enteros y sin flotantes.
+        easyrpg's rounding is `RoundTo`, that is to the nearest integer; here
+        it is `(2a + b) // (2b)`, which is the same with integers and without
+        floats.
         """
         enemigos = self._promedio(self.enemigos)
         grupo = max(1, self._promedio(self.actores))
@@ -796,10 +822,11 @@ class Batalla:
         return max(0, min(100, 150 - base))
 
     def huir(self):
-        """`TryEscape`: se tira contra la chance y, si falla, sube diez.
+        """`TryEscape`: it rolls against the chance and, if it fails, the
+        chance goes up ten.
 
-        Devuelve True si se escapó. `first_strike` no está: las dos peleas de
-        la intro lo traen en cero.
+        Returns True if it escaped. `first_strike` is not here: the two
+        battles of the intro have it at zero.
         """
         if self.azar.porciento(self.huida_chance):
             self.resultado = HUIDA
@@ -807,12 +834,12 @@ class Batalla:
         self.huida_chance = min(100, self.huida_chance + 10)
         return False
 
-    # --- las páginas de la tropa ----------------------------------------------
+    # --- the troop's pages ---------------------------------------------------
     def revisar_paginas(self):
-        """`CheckBattleEndAndScheduleEvents` hasta que no quede ninguna: con
-        un lado entero afuera no corre nada; si no, la primera página que se
-        cumpla y no haya corrido en este turno, y después otra vez desde la
-        primera. La ROM lo hace en `ba_pag_probar`."""
+        """`CheckBattleEndAndScheduleEvents` until none is left: with a whole
+        side out nothing runs; otherwise, the first page that is met and has
+        not run this turn, and then again from the first. The ROM does it in
+        `ba_pag_probar`."""
         while self.vivos(self.enemigos) and self.vivos(self.actores):
             for i, pagina in enumerate(self.paginas):
                 if i not in self.hechas and pagina.cumple(self):
@@ -823,35 +850,36 @@ class Batalla:
                 return
 
     def empezar(self):
-        """Antes de las primeras órdenes, en el turno 0: el `eCheckEvents` de
+        """Before the first commands, on turn 0: the `eCheckEvents` of
         `ProcessSceneActionFightAutoEscape`."""
         self.revisar_paginas()
 
-    # --- el turno ---------------------------------------------------------
+    # --- the turn ----------------------------------------------------------
     def vivos(self, quienes):
         return [c for c in quienes if c.vivo]
 
     def accion_del_enemigo(self, enemigo):
-        """Qué hace este enemigo: `SelectEnemyAiActionRpgRtCompat`, con la
-        lista de `acciones_de_enemigo`. Devuelve `(rating, habilidad,
-        efectiva)` o None si no le queda ninguna posible.
+        """What this enemy does: `SelectEnemyAiActionRpgRtCompat`, with the
+        list from `acciones_de_enemigo`. Returns `(rating, habilidad,
+        efectiva)` or None if it has no possible one left.
 
-        1. Son posibles las que `IsActionValid` deja: el ataque siempre, una
-           habilidad si le alcanzan los SP (`IsSkillUsable`);
-        2. cada posible pesa `max(0, rating - máximo + 10)`: **con diez puntos
-           menos que la mejor, una acción no sale nunca**. Por eso de los
-           cuatro enemigos de la planta que traen `ShortCircuit` sólo la usa
-           el Tangle Wire, que la tiene en 50 como el ataque; el Scrapped
-           Droid (10), el Trash Hauler y el Junkbot (30) nunca;
-        3. y después pesa cero la que no es `efectiva` —el máximo ya se sacó
-           contándola, que es lo que hace easyrpg—;
-        4. se tira `rand(0, suma - 1)` y se elige por pesos, en el orden de la
-           lista.
+        1. The possible ones are those `IsActionValid` allows: the attack
+           always, a skill if it has enough SP (`IsSkillUsable`);
+        2. each possible one weighs `max(0, rating - maximum + 10)`: **with
+           ten points less than the best, an action never comes up**. That is
+           why of the four plant enemies that carry `ShortCircuit` only the
+           Tangle Wire uses it, which has it at 50 like the attack; the
+           Scrapped Droid (10), the Trash Hauler and the Junkbot (30) never;
+        3. and then the one that is not `efectiva` weighs zero —the maximum
+           was already taken counting it, which is what easyrpg does—;
+        4. `rand(0, sum - 1)` is rolled and one is chosen by weight, in list
+           order.
 
-        **Con una sola acción de peso no se tira**, y eso no es de RM2k: es
-        la misma distribución y deja el azar de las peleas que ya estaban
-        —enemigos que sólo atacan— exactamente como era antes de que los
-        enemigos eligieran. RPG_RT tira de otro generador de todos modos.
+        **With a single action of weight there is no roll**, and that is not
+        RM2k's: it is the same distribution and it leaves the randomness of
+        the battles that already existed —enemies that only attack— exactly
+        as it was before enemies chose. RPG_RT draws from another generator
+        anyway.
         """
         pesos = [(r, s, ef) for r, s, ef in enemigo.acciones
                  if s is None or enemigo.sp >= costo_de(s)]
@@ -870,24 +898,24 @@ class Batalla:
             cual -= peso
             if cual < 0:
                 return accion
-        raise AssertionError("no puede pasar: `cual` es menor que la suma")
+        raise AssertionError("cannot happen: `cual` is less than the sum")
 
     def acciones_de_los_enemigos(self):
-        """`CreateEnemyActions`: cada enemigo vivo elige su acción
-        —`accion_del_enemigo`— y después su blanco, que es el orden de
-        `MakeAttack` y `MakeSkillAction`:
+        """`CreateEnemyActions`: each living enemy chooses its action
+        —`accion_del_enemigo`— and then its target, which is the order of
+        `MakeAttack` and `MakeSkillAction`:
 
-        * atacar, o una habilidad de alcance `enemy`: un actor vivo al azar,
-          `GetRandomActiveBattler`, **un tiro**;
-        * una de alcance `ally`: un enemigo vivo al azar —`GetRandomSkillTarget`
-          entre los que la habilidad afecta, que sin estados son todos—, **un
-          tiro**;
-        * `self`, `enemies` y `party`: sin tiro, porque el blanco lo dice el
-          alcance. Se anota el que la usa.
+        * attacking, or a skill with `enemy` scope: a random living actor,
+          `GetRandomActiveBattler`, **one roll**;
+        * one with `ally` scope: a random living enemy —`GetRandomSkillTarget`
+          among the ones the skill affects, which without states are all of
+          them—, **one roll**;
+        * `self`, `enemies` and `party`: no roll, because the scope says the
+          target. The one using it is recorded.
 
-        Si no queda ningún actor vivo se corta y los enemigos que faltaban se
-        quedan sin acción: sin eso los dos lados tirarían distinta cantidad
-        de veces."""
+        If no living actor is left it stops and the remaining enemies are
+        left without an action: without that the two sides would roll a
+        different number of times."""
         from rpgmaker import lcf
         acciones = []
         for enemigo in self.vivos(self.enemigos):
@@ -905,8 +933,9 @@ class Batalla:
             if skill.scope == lcf.SKILL_SCOPE_ENEMIGO:
                 blanco = blancos[self.azar.hasta(len(blancos) - 1)]
             elif skill.scope == lcf.SKILL_SCOPE_ALIADO:
-                # Entre los que la habilidad afecta, que son todos los vivos:
-                # una que no es `efectiva` pesó cero y no llega acá.
+                # Among the ones the skill affects, which are all the living
+                # ones: one that is not `efectiva` weighed zero and does not
+                # get here.
                 suyos = self.vivos(self.enemigos)
                 blanco = suyos[self.azar.hasta(len(suyos) - 1)]
             else:
@@ -915,9 +944,9 @@ class Batalla:
         return acciones
 
     def orden_de_ejecucion(self, acciones):
-        """`CreateExecutionOrder`: `agi + rand(0, agi / 4 + 3)`, de mayor a
-        menor y con un orden **estable**, que es lo que hace `std::sort` sobre
-        una lista que ya viene en el orden en que se apiló."""
+        """`CreateExecutionOrder`: `agi + rand(0, agi / 4 + 3)`, from highest
+        to lowest and with a **stable** order, which is what `std::sort` does
+        on a list that already comes in the order it was stacked."""
         for quien, _orden, _blanco in acciones:
             quien.orden = quien.agilidad + self.azar.hasta(
                 quien.agilidad // 4 + 3)
@@ -925,19 +954,20 @@ class Batalla:
                       key=lambda i: -acciones[i][0].orden)
 
     def atacar(self, fuente, blanco):
-        """Un ataque normal, con sus tres tiros. Devuelve (pegó, crítico,
-        daño).
+        """A normal attack, with its three rolls. Returns (hit, critical,
+        damage).
 
-        Antes de todo, y sin tirar, cobra el SP del arma: `Normal::vStart`
-        —ver `sp_del_arma`—. Se cobra aunque el golpe falle, y con los SP en
-        cero se ataca igual: RM2k no pone en gris el `Attack`."""
+        Before anything, and without rolling, it charges the weapon's SP:
+        `Normal::vStart` —see `sp_del_arma`—. It is charged even if the hit
+        misses, and with SP at zero it attacks anyway: RM2k does not gray out
+        `Attack`."""
         fuente.sp = max(0, fuente.sp - fuente.sp_arma)
         acierto = acierto_por_agilidad(fuente.acierto, fuente.agilidad,
                                        blanco.agilidad)
         pego = self.azar.porciento(acierto)
         critico = self.azar.porciento(fuente.critico if pego else 0)
         if not pego:
-            # El tiro del crítico se hizo igual, pero el golpe falló.
+            # The critical roll was made anyway, but the hit missed.
             return False, False, 0
         dano = dano_normal(fuente, blanco, critico, self.azar)
         dano = ajustar_por_defensa(dano, blanco)
@@ -946,28 +976,30 @@ class Batalla:
         return True, critico, dano
 
     def usar_habilidad(self, fuente, skill, blanco):
-        """`Game_BattleAlgorithm::Skill`, con lo que este port sabe hacer.
+        """`Game_BattleAlgorithm::Skill`, with what this port knows how to
+        do.
 
-        El orden en que consume azar **es el contrato con la ROM**, y sale de
-        `vExecute` leído de arriba abajo:
+        The order it consumes randomness in **is the contract with the ROM**,
+        and it comes from `vExecute` read top to bottom:
 
-        1. el costo se descuenta **antes de todo** —`vStart`— y no tira azar;
-        2. una habilidad de tipo `switch` prende su switch y **termina ahí**:
-           `vExecute` devuelve antes de cualquier tiro;
-        3. el crítico: `Rand::PercentChance(crit_chance)`, **siempre**, aunque
-           la chance sea cero. Y para una habilidad del LDB siempre lo es,
-           porque `CalcCriticalHitChance` recibe `easyrpg_critical_hit_chance`,
-           que por defecto vale 0 y no -1;
-        4. la varianza, si el efecto quedó mayor que cero;
-        5. un tiro contra el acierto **por cada cosa que la habilidad afecta**,
-           en el orden HP, SP, ataque, defensa, espíritu, agilidad.
+        1. the cost is deducted **before anything** —`vStart`— and rolls
+           nothing;
+        2. a `switch` skill turns its switch on and **ends there**:
+           `vExecute` returns before any roll;
+        3. the critical: `Rand::PercentChance(crit_chance)`, **always**, even
+           if the chance is zero. And for an LDB skill it always is, because
+           `CalcCriticalHitChance` receives `easyrpg_critical_hit_chance`,
+           which defaults to 0 and not -1;
+        4. the variance, if the effect ended up greater than zero;
+        5. one roll against the hit chance **for each thing the skill
+           affects**, in the order HP, SP, attack, defense, spirit, agility.
 
-        Del 3 al 5 van **una vez por blanco**: ver `blancos_de_la_habilidad`.
+        Steps 3 to 5 go **once per target**: see `blancos_de_la_habilidad`.
 
-        Lo que no está: los estados, los atributos, el absorber y revivir. De
-        las de AG7, tres tocan estados —BioWarfare, HeadButt y RemoveStatus—:
-        la primera y la última no hacen nada más que cobrar sus SP y tirar el
-        crítico, y HeadButt pega sin dejar el estado.
+        What is not here: states, attributes, absorbing and reviving. Of
+        AG7's, three touch states —BioWarfare, HeadButt and RemoveStatus—:
+        the first and the last do nothing but charge their SP and roll the
+        critical, and HeadButt hits without leaving the state.
         """
         from rpgmaker import lcf
         fuente.sp = max(0, fuente.sp - costo_de(skill))
@@ -980,15 +1012,15 @@ class Batalla:
             self._habilidad_sobre(fuente, skill, uno)
 
     def blancos_de_la_habilidad(self, fuente, skill, blanco):
-        """Sobre quiénes cae, en el orden en que `vExecute` los recorre:
-        `AlgorithmBase::Start` con el `party_target` del alcance, que es
-        `GetBattlers` en el orden de la pantalla salteando a los que
-        `IsTargetValid` descarta —los muertos—.
+        """Whom it falls on, in the order `vExecute` walks them:
+        `AlgorithmBase::Start` with the scope's `party_target`, which is
+        `GetBattlers` in screen order skipping the ones `IsTargetValid`
+        discards —the dead—.
 
-        `enemy` y `ally` caen sobre el que se eligió; `self`, sobre el que la
-        usa; `enemies` y `party`, sobre cada vivo del lado contrario o del
-        propio, **cada uno con sus tiros**: el crítico, la varianza y los del
-        acierto se repiten por blanco."""
+        `enemy` and `ally` fall on the one chosen; `self`, on the one using
+        it; `enemies` and `party`, on each living one of the opposite side or
+        its own, **each with its rolls**: the critical, the variance and the
+        hit rolls are repeated per target."""
         from rpgmaker import lcf
         propios, contrarios = ((self.actores, self.enemigos) if fuente.es_actor
                                else (self.enemigos, self.actores))
@@ -1001,10 +1033,10 @@ class Batalla:
         return [blanco]
 
     def _habilidad_sobre(self, fuente, skill, blanco):
-        """`vExecute` sobre un blanco: ver `usar_habilidad`."""
-        # `CalcSkillToHit`: el `hit` de la habilidad, que las siete traen en
-        # 100. El camino del `failure_message == 3` no se toma —ninguna lo
-        # tiene— y está declarado como lo que falta.
+        """`vExecute` on one target: see `usar_habilidad`."""
+        # `CalcSkillToHit`: the skill's `hit`, which all seven have at 100.
+        # The `failure_message == 3` path is not taken —none has it— and it
+        # is declared as what is missing.
         acierto = skill.hit
         critico = self.azar.porciento(0)
         efecto = efecto_habilidad(fuente, blanco, skill, critico)
@@ -1015,7 +1047,7 @@ class Batalla:
             efecto = -efecto
         if skill.affect_hp and self.azar.porciento(acierto):
             if positivo:
-                # Una cura no mata: `max(-(cur_hp - 1), hp_effect)`.
+                # A heal does not kill: `max(-(cur_hp - 1), hp_effect)`.
                 hp = max(-(blanco.hp - 1), efecto)
             else:
                 hp = ajustar_por_defensa(efecto, blanco)
@@ -1037,45 +1069,45 @@ class Batalla:
         self.registro.append((self.turno, fuente.nombre, blanco.nombre,
                               True, critico, -efecto, blanco.hp))
 
-    # --- la victoria ------------------------------------------------------
+    # --- victory ---------------------------------------------------------
     def experiencia(self):
-        """`Game_EnemyParty::GetExp` al ganar: la de los muertos, que son
-        todos menos los que siguieron ocultos. La ROM le resta éstos a la de
-        la tropa: `ba_sin_ocultos`."""
+        """`Game_EnemyParty::GetExp` on winning: that of the dead, which are
+        all except those that stayed hidden. The ROM subtracts these from the
+        troop's: `ba_sin_ocultos`."""
         return sum(e.exp for e in self.enemigos if not e.oculto)
 
     def oro(self):
-        """`GetMoney`, igual que `experiencia`."""
+        """`GetMoney`, like `experiencia`."""
         return sum(e.oro for e in self.enemigos if not e.oculto)
 
     def tirar_el_botin(self):
-        """`Game_EnemyParty::GenerateDrops`: por cada enemigo, en el orden de
-        la tropa, **un tiro si tiene ítem** —`ChanceOf(drop_prob, 100)`, que
-        es `GetRandomNumber(1, 100) <= rate` y con nuestro azar da lo mismo
-        que `porciento`— y ninguno si no. El de chance 100 se tira igual. Lo
-        llama `jugar_turno` al ganar, que es cuando lo hace
-        `ProcessSceneActionVictory`; devuelve los ítems ganados en orden, uno
-        por enemigo que soltó el suyo."""
+        """`Game_EnemyParty::GenerateDrops`: for each enemy, in troop order,
+        **one roll if it has an item** —`ChanceOf(drop_prob, 100)`, which is
+        `GetRandomNumber(1, 100) <= rate` and with our randomness gives the
+        same as `porciento`— and none if not. The one with chance 100 is
+        rolled anyway. `jugar_turno` calls it on winning, which is when
+        `ProcessSceneActionVictory` does it; returns the items won in order,
+        one per enemy that dropped its own."""
         ganados = []
         for enemigo in self.enemigos:
             if enemigo.oculto:
-                continue        # no murió: `IsDead` es falso
+                continue        # it did not die: `IsDead` is false
             item = getattr(enemigo, "botin_item", 0)
             if item > 0 and self.azar.porciento(enemigo.botin_chance):
                 ganados.append(item)
         return ganados
 
     def jugar_turno(self, ordenes):
-        """Un turno entero. `ordenes` es, por actor vivo y en el orden del
-        grupo, `(ORDEN_ATACAR, lugar_del_enemigo)` o `(ORDEN_DEFENDER, 0)`.
+        """A whole turn. `ordenes` is, per living actor and in party order,
+        `(ORDEN_ATACAR, lugar_del_enemigo)` or `(ORDEN_DEFENDER, 0)`.
 
-        Devuelve el resultado si la pelea terminó, o None.
+        Returns the outcome if the battle ended, or None.
 
-        Las páginas de la tropa corren **antes de cada acción y después de la
-        última** —`ePreAction`—, y las anotadas se borran al empezar, que es
-        `NextTurn`. Las de antes de las órdenes del turno que viene son las
-        mismas que las de después de la última, así que no hace falta otra
-        vuelta: ver `empezar` para las del turno 0.
+        The troop's pages run **before each action and after the last one**
+        —`ePreAction`—, and the recorded ones are cleared at the start, which
+        is `NextTurn`. The ones before the commands of the next turn are the
+        same as those after the last action, so no extra pass is needed: see
+        `empezar` for those of turn 0.
         """
         self.turno += 1
         self.hechas = set()
@@ -1084,21 +1116,21 @@ class Batalla:
         acciones = []
         for actor, (orden, blanco) in zip(self.vivos(self.actores), ordenes):
             if orden == ORDEN_ITEM:
-                # Acá `blanco` es `(item, lugar_del_actor)`: el ítem del LDB y
-                # a quién se le da.
+                # Here `blanco` is `(item, lugar_del_actor)`: the LDB item and
+                # whom it is given to.
                 item, quien = blanco
                 acciones.append((actor, orden, (item, self.actores[quien])))
                 continue
             if orden == ORDEN_HABILIDAD:
-                # Y acá `(skill, lugar)`: la habilidad del LDB y el lugar del
-                # blanco, en la lista del lado al que apunta su `scope`.
+                # And here `(skill, lugar)`: the LDB skill and the target's
+                # place, in the list of the side its `scope` points to.
                 skill, quien = blanco
                 lado = (self.enemigos if skill.apunta_a_enemigos
                         else self.actores)
-                # Una de switch no pide blanco: `Scene_Battle::AssignSkill` la
-                # anota sobre el que la usa, apunte a donde apunte su `scope`.
-                # Lo mismo las de a muchos y las de uno mismo, cuyo blanco lo
-                # dice el alcance: ver `blancos_de_la_habilidad`.
+                # A switch one asks for no target: `Scene_Battle::AssignSkill`
+                # records it on the one using it, wherever its `scope`
+                # points. The same for multi-target and self ones, whose
+                # target the scope says: see `blancos_de_la_habilidad`.
                 destino = lado[quien] if pide_blanco(skill) else actor
                 acciones.append((actor, orden, (skill, destino)))
                 continue
@@ -1112,29 +1144,31 @@ class Batalla:
             if not quien.vivo:
                 continue
             if orden == ORDEN_DEFENDER:
-                # `Defend` marca al que se defiende **cuando le toca**, no al
-                # elegir: un enemigo que actúe antes le pega entero. Es lo de
-                # RM2k.
+                # `Defend` marks the defender **when its turn comes**, not when
+                # choosing: an enemy that acts before hits it in full. It is
+                # RM2k's behavior.
                 quien.defendiendo = True
                 continue
             if orden == ORDEN_HUIR:
                 continue
             if orden == ORDEN_HABILIDAD:
-                # El blanco muerto **no se reapunta**, como con un ítem: el
-                # `IsTargetValid` de `Skill` lo descarta y la acción se pierde.
+                # A dead target **is not retargeted**, as with an item:
+                # `Skill`'s `IsTargetValid` discards it and the action is
+                # lost.
                 skill, blanco = blanco
                 if not blanco.vivo:
                     continue
                 self.usar_habilidad(quien, skill, blanco)
                 continue
             if orden == ORDEN_ITEM:
-                # Un ítem no puede fallar ni lo esquiva nadie: no tira azar.
-                # El blanco **no** se reapunta, que es lo contrario de un
-                # ataque: `Game_BattleAlgorithm::Item` va al que se eligió, y
-                # si cambió en el camino el ítem se gasta igual y hace lo que
-                # `efecto_de_item` diga con él como esté ahora. Un levantado
-                # no actúa en este turno —no tenía orden— y en el que viene
-                # vuelve a pedir, que es `vivos` al repartirlas.
+                # An item cannot miss and nobody dodges it: it rolls nothing.
+                # The target is **not** retargeted, which is the opposite of
+                # an attack: `Game_BattleAlgorithm::Item` goes to the one
+                # chosen, and if it changed along the way the item is spent
+                # anyway and does whatever `efecto_de_item` says with it as it
+                # is now. A revived one does not act this turn —it had no
+                # command— and next turn it asks again, which is `vivos` when
+                # handing them out.
                 item, blanco = blanco
                 antes = blanco.hp
                 blanco.hp, _levantado = efecto_de_item(item, blanco)
@@ -1143,8 +1177,8 @@ class Batalla:
                                       blanco.hp))
                 continue
             if not blanco.vivo:
-                # `Game_BattleAlgorithm` reapunta a otro del mismo lado cuando
-                # el blanco murió antes de que le tocara.
+                # `Game_BattleAlgorithm` retargets another one on the same
+                # side when the target died before its turn came.
                 lado = self.enemigos if not blanco.es_actor else self.actores
                 candidatos = self.vivos(lado)
                 if not candidatos:
