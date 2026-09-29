@@ -375,7 +375,7 @@ SALTO_POR_VELOCIDAD = (8, 12, 16, 24, 32, 64)
 RUTA_DIAGONALES = {4: (0, 1), 5: (2, 1), 6: (2, 3), 7: (0, 3)}
 
 
-# The route commands we know how to walk, in a single place.
+# The move commands we know how to walk, in a single place.
 RUTA_ORDENES = (set(RUTA_MIRAR) | set(RUTA_MOVER)
                 | {RUTA_ESPERAR, RUTA_SALTO_INICIO, RUTA_SALTO_FIN,
                    RUTA_ATRAVESAR_ON, RUTA_ATRAVESAR_OFF,
@@ -1951,7 +1951,7 @@ HALT_ALL_MOVEMENT = 11350
 # workflow/tasks/wishlist/panorama-del-mapa-2.md.
 #
 # It is dropped **when compiling**: it emits nothing and the ROM does not
-# find out, like route commands 26 and 27.
+# find out, like move commands 26 and 27.
 #
 # It appears **only once in the whole game**: seven commands in a single
 # page, the Hover-Tram ride on map 13, where the afternoon landscape runs
@@ -1961,7 +1961,7 @@ HALT_ALL_MOVEMENT = 11350
 CHANGE_PBG = 11720
 
 # `ChangeSpriteAssociation`: actor (byte) and which graphic of the map's table
-# (byte). It is the same as a route's command 34 but on an **actor**, and the
+# (byte). It is the same as move command 34 but on an **actor**, and the
 # two differences come from there:
 #
 # * **It survives the map change**, because in RM2k it belongs to the actor
@@ -4401,7 +4401,7 @@ def _compilar_imagen(cmd, imagenes):
 def indice_de_sonido(temas, indice_de_mapa, nombre, volumen, tempo, balance,
                      de_ruta=False):
     """The `Temas.sonidos` index of an effect asked for on the map being
-    compiled: `PlaySound`'s and, with `de_ruta`, that of a route's command
+    compiled: `PlaySound`'s and, with `de_ruta`, that of move command
     35.
 
     The ones that on some map sound with another sample —map 1's whole

@@ -35,3 +35,27 @@ Cada grupo de archivos va en su commit, y se verifica con tres cosas:
   `imagen`, `msu_datos`, `paleta`, `pantalla_completa`, `reglas`, `textos`,
   `tiles_bin`, `titulo`, `ventana`. `event_opcodes.py` es generado y ya
   estaba en inglés.
+* La pelea, los menús y las pantallas: `batalla`, `escena`, `menus`,
+  `pantallas`, `parches`.
+* `eventos`, que es casi la mitad del alcance.
+
+## Lo que quedó en castellano a propósito
+
+* **Los comentarios que `parches.py` escribe adentro de los `.toml`** de
+  `rom/parches/auto/`. Son lo versionado del juego: traducirlos acá deja
+  esos archivos viejos en cada comentario hasta el próximo `just parches`,
+  que reescribiría los de `rom/` —fuera del alcance—. `--check` compara lo
+  parseado, así que no falla por eso. Es una decisión para taro: si van en
+  inglés, es cambiar esas líneas y correr `just parches`, en un commit
+  propio.
+* Todo lo que es dato: los términos del LDB, "- Empty -", ">", "Yes" y
+  "No" de repuesto de End Game, las claves de los diccionarios y de los
+  `.toml`, el "(OFF)" de RM2k, el centinela `FONDO_DEL_LUGAR`, los nombres
+  de clase de `pantalla_ranuras` ("cabecera", "menu_opcion"…).
+
+## Lo que quedó colgando
+
+* `docs/port/msu-datos.md` cita dos secciones de `escena.py` por su título
+  en castellano ("El respaldo liviano", "Qué fondos hay"); ahora se llaman
+  "The light fallback" y "Which backdrops there are, and which ones the
+  cartridge carries". `docs/` no es de esta fase.
