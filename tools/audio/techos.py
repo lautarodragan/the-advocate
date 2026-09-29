@@ -46,7 +46,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 from audio import sdsp, snes_music                      # noqa: E402
 from common import ambiente                              # noqa: E402
-from common import perillas                              # noqa: E402
+from common import settings                              # noqa: E402
 from common import project                              # noqa: E402
 
 # Half the usual headroom: measured on 2026-09-26, with 0.25 none of the 32
@@ -54,7 +54,7 @@ from common import project                              # noqa: E402
 AIRE_DE_MEDIDA = sdsp.AIRE / 2
 
 # What the measured ROM is called: the game's, in its project file.
-NOMBRE_DE_LA_ROM = perillas.valor("rom", "name", tipo=str)
+NOMBRE_DE_LA_ROM = settings.value("rom", "name", kind=str)
 
 # How far the peak is allowed to go: 0.5 dB below the cap. What it absorbs is
 # the rounding of each voice's volume to an integer, which makes the peak not

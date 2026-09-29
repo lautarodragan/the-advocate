@@ -79,7 +79,7 @@ the reason is in tools/audio/efectos_msu.py.
 import hashlib
 import struct
 
-from common import perillas
+from common import settings
 
 VERSION = 2
 FIRMA = 8
@@ -149,7 +149,7 @@ def magia():
     them: it compares the signature at the front, which covers them. They are
     read when used and not on import, so the converter can be imported
     without a game."""
-    return perillas.ascii("rom", "msu_data_signature", largo=4).encode()
+    return settings.ascii("rom", "msu_data_signature", length=4).encode()
 
 
 def firma_de(cuerpo):

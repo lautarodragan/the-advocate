@@ -26,7 +26,7 @@ import textwrap
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 from common import ambiente                              # noqa: E402
-from common import perillas                              # noqa: E402
+from common import settings                              # noqa: E402
 from common import project                              # noqa: E402
 
 # `--project` se lee antes que nada: este módulo lee el archivo de proyecto
@@ -49,7 +49,7 @@ def _msu():
 
 # Cómo se llaman los archivos de la ROM: `abl.sfc`, `abl.msu`, `abl-N.pcm`.
 # Lo dice el archivo de proyecto; en la prosa de acá se lee "abl".
-NOMBRE = perillas.valor("rom", "name", tipo=str)
+NOMBRE = settings.value("rom", "name", kind=str)
 SFC = NOMBRE + ".sfc"
 DBG = SFC + ".dbg"
 PISTAS = NOMBRE + "-*.pcm"

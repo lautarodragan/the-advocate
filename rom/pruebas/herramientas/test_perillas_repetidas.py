@@ -18,7 +18,7 @@ el archivo sólo los usa.
 import ast
 import os
 
-from common import perillas, project
+from common import settings, project
 
 # Los que el archivo usa como palabra clave de su propio formato, y el nombre
 # del cartucho que se juega, que las herramientas exigen: es su contrato, no
@@ -57,7 +57,7 @@ def _del_archivo():
     """Los textos del archivo que valen como valor, no como nombre de clave
     de las herramientas: las claves de las secciones fijas —`[rom]`,
     `name`…— no cuentan, porque ésas sí las escriben las herramientas."""
-    datos = {k: v for k, v in perillas.leer().items()
+    datos = {k: v for k, v in settings.load().items()
              if k not in TABLAS_SIN_MIRAR}
     fijas = set()
 

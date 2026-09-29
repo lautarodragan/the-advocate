@@ -1,9 +1,9 @@
 """That the project file reader fails clearly instead of falling back to a
-default: see `common/perillas.py`. On files built here, not on the game's."""
+default: see `common/settings.py`. On files built here, not on the game's."""
 
 import pytest
 
-from common import perillas
+from common import settings
 
 
 @pytest.fixture
@@ -15,38 +15,38 @@ def archivo(tmp_path):
 
 
 def test_lee_una_clave_anidada(archivo):
-    assert perillas.valor("rom", "name", ruta=archivo) == "juego"
-    assert perillas.valor("maps", "below", tipo=int, ruta=archivo) == 3
+    assert settings.value("rom", "name", path=archivo) == "juego"
+    assert settings.value("maps", "below", kind=int, path=archivo) == 3
 
 
 def test_una_clave_que_falta_dice_cual(archivo):
-    with pytest.raises(perillas.FaltaUnaClave, match=r"missing key rom\.title"):
-        perillas.valor("rom", "title", ruta=archivo)
-    with pytest.raises(perillas.FaltaUnaClave, match=r"missing key audio$"):
-        perillas.valor("audio", "se", ruta=archivo)
+    with pytest.raises(settings.MissingKey, match=r"missing key rom\.title"):
+        settings.value("rom", "title", path=archivo)
+    with pytest.raises(settings.MissingKey, match=r"missing key audio$"):
+        settings.value("audio", "se", path=archivo)
 
 
 def test_un_tipo_equivocado_tambien_falla(archivo):
-    with pytest.raises(perillas.FaltaUnaClave, match="must be int"):
-        perillas.valor("rom", "name", tipo=int, ruta=archivo)
+    with pytest.raises(settings.MissingKey, match="must be int"):
+        settings.value("rom", "name", kind=int, path=archivo)
     # `True` is an `int` to Python, and a boolean setting placed where a
     # number goes is an error in the file.
-    with pytest.raises(perillas.FaltaUnaClave, match="must be int"):
-        perillas.valor("maps", "debug", tipo=int, ruta=archivo)
-    assert perillas.valor("maps", "debug", tipo=bool, ruta=archivo) is True
+    with pytest.raises(settings.MissingKey, match="must be int"):
+        settings.value("maps", "debug", kind=int, path=archivo)
+    assert settings.value("maps", "debug", kind=bool, path=archivo) is True
 
 
 def test_un_texto_que_va_a_la_rom_se_mide(tmp_path):
     ruta = tmp_path / "rm2k-snes.toml"
     ruta.write_text('[rom]\nfirma = "ABLS"\ncorta = "ABL"\nacento = "ÁBLS"\n')
     ruta = str(ruta)
-    assert perillas.ascii("rom", "firma", largo=4, ruta=ruta) == "ABLS"
-    with pytest.raises(perillas.FaltaUnaClave, match="have 4 characters"):
-        perillas.ascii("rom", "corta", largo=4, ruta=ruta)
-    with pytest.raises(perillas.FaltaUnaClave, match="ASCII"):
-        perillas.ascii("rom", "acento", largo=4, ruta=ruta)
-    with pytest.raises(perillas.FaltaUnaClave, match="1 to 2"):
-        perillas.ascii("rom", "firma", hasta=2, ruta=ruta)
+    assert settings.ascii("rom", "firma", length=4, path=ruta) == "ABLS"
+    with pytest.raises(settings.MissingKey, match="have 4 characters"):
+        settings.ascii("rom", "corta", length=4, path=ruta)
+    with pytest.raises(settings.MissingKey, match="ASCII"):
+        settings.ascii("rom", "acento", length=4, path=ruta)
+    with pytest.raises(settings.MissingKey, match="1 to 2"):
+        settings.ascii("rom", "firma", max_length=2, path=ruta)
 
 
 def test_las_herramientas_se_importan_sin_un_juego(tmp_path):
@@ -68,7 +68,7 @@ def test_las_herramientas_se_importan_sin_un_juego(tmp_path):
         "project.directory()\n")
     vacio = tmp_path / "vacio"
     vacio.mkdir()
-    entorno = dict(os.environ, PYTHONPATH=perillas.project.tools())
+    entorno = dict(os.environ, PYTHONPATH=settings.project.tools())
     hecho = subprocess.run([sys.executable, "-c", codigo], cwd=vacio,
                            env=entorno, capture_output=True, text=True)
     assert hecho.returncode == 1, hecho.stderr[-2000:]

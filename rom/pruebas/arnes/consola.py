@@ -25,7 +25,7 @@ import os
 import re
 
 import lugares                                  # antes que nada
-from common import perillas
+from common import settings
 from common import project
 from emulador import retro
 from ensamblado import bancos
@@ -66,7 +66,7 @@ EFECTO = 0x100
 # `cmp #` inmediatos, y `guardar_partida` la escribe igual. Sale del archivo
 # de proyecto, de donde la saca el conversor. Lo que sí es símbolo es dónde
 # va, `SRAM_MAGIA`.
-MAGIA = perillas.ascii("rom", "sram_signature", largo=4).encode()
+MAGIA = settings.ascii("rom", "sram_signature", length=4).encode()
 
 
 class SimboloDesconocido(KeyError):

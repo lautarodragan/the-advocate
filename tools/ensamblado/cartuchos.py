@@ -32,7 +32,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 from audio import muestras_brr                          # noqa: E402
 from common import ambiente                              # noqa: E402
-from common import perillas                              # noqa: E402
+from common import settings                              # noqa: E402
 from common import project                              # noqa: E402
 from ensamblado import ensamblar                        # noqa: E402
 from port import tiles_bin                              # noqa: E402
@@ -61,9 +61,9 @@ FUENTE = project.runtime()
 # without running it; and since the stamp carries the flags and not
 # `rom/data/`, a tree that changes which maps go in makes the cartridge stale
 # only if the list travels expanded.
-MENOR_A = perillas.valor("maps", "below", tipo=int)
-EXCLUIDOS = frozenset(perillas.valor("maps", "excluded", tipo=list))
-AGREGADOS = tuple(perillas.valor("maps", "added", tipo=list))
+MENOR_A = settings.value("maps", "below", kind=int)
+EXCLUIDOS = frozenset(settings.value("maps", "excluded", kind=list))
+AGREGADOS = tuple(settings.value("maps", "added", kind=list))
 
 
 def el_mapa_de_debug():
@@ -79,14 +79,14 @@ def el_mapa_de_debug():
 
 
 # The debug map, which the game does not have, goes after the added ones.
-CON_MAPA_DE_DEBUG = perillas.valor("debug", "debug_map", tipo=bool)
+CON_MAPA_DE_DEBUG = settings.value("debug", "debug_map", kind=bool)
 MAPA_DE_DEBUG = el_mapa_de_debug()
 if CON_MAPA_DE_DEBUG:
     AGREGADOS += (MAPA_DE_DEBUG,)
 
 # The enemies' HP in battle: passes `--hp-de-enemigos` to the converter in
 # every cartridge.
-CON_HP_DE_ENEMIGOS = perillas.valor("debug", "enemy_hp", tipo=bool)
+CON_HP_DE_ENEMIGOS = settings.value("debug", "enemy_hp", kind=bool)
 _DE_TODOS = ["--hp-de-enemigos"] if CON_HP_DE_ENEMIGOS else []
 
 
@@ -111,7 +111,7 @@ MAPAS_DEL_JUEGO = mapas_de_la_regla()
 
 # And the ones that only exist for the suite. `parches.revisar` reads them
 # from here so as not to require a versioned patch for them.
-MAPAS_DE_PRUEBA = tuple(perillas.valor("maps", "test", tipo=list))
+MAPAS_DE_PRUEBA = tuple(settings.value("maps", "test", kind=list))
 
 MAPAS = MAPAS_DEL_JUEGO + MAPAS_DE_PRUEBA
 
@@ -121,7 +121,7 @@ RELEASE = "release"
 
 # What its files are called: `<name>.sfc`, and next to it the `.msu` and the
 # `<name>-N.pcm` tracks. The other cartridges' files are called `prueba`.
-NOMBRE_DE_LA_ROM = perillas.valor("rom", "name", tipo=str)
+NOMBRE_DE_LA_ROM = settings.value("rom", "name", kind=str)
 
 
 def _cartucho(nombre):
@@ -130,7 +130,7 @@ def _cartucho(nombre):
     the starting map, the maps, the graphics, the rest—, because they go into
     the stamp as is."""
     def clave(k, tipo):
-        return perillas.valor("cartridges", nombre, k, tipo=tipo)
+        return settings.value("cartridges", nombre, k, kind=tipo)
     arranque = clave("start_map", int)
     grupo = clave("party", list)
     mapas = clave("maps", (str, list))
@@ -155,21 +155,21 @@ def _cartucho(nombre):
 
 
 CARTUCHOS = {nombre: _cartucho(nombre)
-             for nombre in perillas.valor("cartridges", tipo=dict)}
+             for nombre in settings.value("cartridges", kind=dict)}
 if RELEASE not in CARTUCHOS or CARTUCHOS[RELEASE][1] is not None:
     sys.exit("%s: missing [cartridges.%s], with cases = \"all\""
              % (project.project_file(), RELEASE))
 
 # The cases `release` does not carry, because there they would change the
 # others' images.
-FUERA = set(perillas.valor("cartridges", RELEASE, "excluded_cases",
-                           tipo=list))
+FUERA = set(settings.value("cartridges", RELEASE, "excluded_cases",
+                           kind=list))
 
 # Page 0 is the real game's, except with the debug map, whose entry is what
 # goes there: see `[cases]` in the file.
-LA_PARTIDA_DE_VERDAD = perillas.valor("cases", "real_game", tipo=str)
-ENTRADA_AL_MAPA_DE_DEBUG = perillas.valor("cases", "debug_map_entry",
-                                          tipo=str)
+LA_PARTIDA_DE_VERDAD = settings.value("cases", "real_game", kind=str)
+ENTRADA_AL_MAPA_DE_DEBUG = settings.value("cases", "debug_map_entry",
+                                          kind=str)
 
 
 def primero(con_mapa_de_debug=CON_MAPA_DE_DEBUG):

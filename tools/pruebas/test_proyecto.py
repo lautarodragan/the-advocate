@@ -237,7 +237,7 @@ def test_la_red_de_abl_ve_cada_forma(fuente):
     '"""Lee `rom/data/`."""\n',
     'parser.add_argument("x", help="rom/build/release")\n',
     'sys.exit("pasame `rom/build/release` y no dos")\n',
-    'perillas.valor("rom", "name")\n',
+    'settings.value("rom", "name")\n',
     'AVISO = os.environ.get("SIN_CACHE")\n',
 ])
 def test_la_prosa_y_la_seccion_rom_no_son_abl(fuente):

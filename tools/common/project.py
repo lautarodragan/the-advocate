@@ -129,16 +129,16 @@ def from_command_line(argv=None):
 
 
 def project_file():
-    """`rm2k-snes.toml`: the game's settings. `common/perillas.py` reads it."""
+    """`rm2k-snes.toml`: the game's settings. `common/settings.py` reads it."""
     return os.path.join(directory(), FILENAME)
 
 
 def _path(key):
     """A path from `[paths]`: the file declares it, relative to itself. How
     the game is laid out inside belongs to the game, not to the tools."""
-    from common import perillas      # inside: `perillas` imports this one
+    from common import settings      # inside: `settings` imports this one
     return os.path.normpath(os.path.join(
-        directory(), perillas.valor("paths", key, tipo=str)))
+        directory(), settings.value("paths", key, kind=str)))
 
 
 def build():

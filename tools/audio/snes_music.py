@@ -22,7 +22,7 @@ from audio import muestras_brr
 from audio import sdsp
 from audio import snes_samples
 from audio import spc700
-from common import perillas
+from common import settings
 from common import project
 from common.paralelo import en_paralelo
 from rpgmaker import recursos
@@ -293,13 +293,13 @@ def se_enteros():
     one takes beyond the usual has to fit in what the music leaves free in
     each package it is in, except for those in `se_enteros_pagados`: see
     `_enteros_entran`. From `[sound_effects.whole]`."""
-    return dict(perillas.valor("sound_effects", "whole", tipo=dict))
+    return dict(settings.value("sound_effects", "whole", kind=dict))
 
 
 def se_enteros_pagados():
     """The whole ones that, if they do not fit in the free space, lower the
     music's rate. From `[sound_effects] paid_by_music`."""
-    return set(perillas.valor("sound_effects", "paid_by_music", tipo=list))
+    return set(settings.value("sound_effects", "paid_by_music", kind=list))
 
 
 def se_del_mapa():
@@ -309,7 +309,7 @@ def se_del_mapa():
     of the other packages —see `lugares_de_efectos`—. From
     `[sound_effects] per_map`."""
     return {(a["effect"], a["map"]): a["sample"]
-            for a in perillas.valor("sound_effects", "per_map", tipo=list)}
+            for a in settings.value("sound_effects", "per_map", kind=list)}
 
 
 def se_de_ruta_sin_paquete():
@@ -318,15 +318,15 @@ def se_de_ruta_sin_paquete():
     tools/port/eventos.py— and that **do not fit** in their map's audio
     package. From `[sound_effects] route_effects_left_out`."""
     return {m["map"]: None if m["effects"] == "all" else set(m["effects"])
-            for m in perillas.valor("sound_effects", "route_effects_left_out",
-                                    tipo=list)}
+            for m in settings.value("sound_effects", "route_effects_left_out",
+                                    kind=list)}
 
 
 def se_de_tropa_al_paquete():
     """The sound effects of troop pages that **do** go in the battle's audio
     package. From `[sound_effects] troop_effects_in_package`."""
-    return set(perillas.valor("sound_effects", "troop_effects_in_package",
-                              tipo=list))
+    return set(settings.value("sound_effects", "troop_effects_in_package",
+                              kind=list))
 
 
 def temas_aparte():
@@ -337,7 +337,7 @@ def temas_aparte():
     you exit to —see `temas_heredados` in snes_convert.py—. From
     `[music] apart_themes`."""
     return {m["map"]: set(m["themes"])
-            for m in perillas.valor("music", "apart_themes", tipo=list)}
+            for m in settings.value("music", "apart_themes", kind=list)}
 
 
 class Efecto:
@@ -811,7 +811,7 @@ def se_de_siempre():
     """Up to how many directory entries the first round of `copias` goes:
     the ones the sound effects took when each had its own, and not today's.
     The game measured it: `[music] effect_slots_of_first_copies`."""
-    return perillas.valor("music", "effect_slots_of_first_copies", tipo=int)
+    return settings.value("music", "effect_slots_of_first_copies", kind=int)
 
 
 def copias(claves_de, grupos, efectos, de_siempre, reales=None,

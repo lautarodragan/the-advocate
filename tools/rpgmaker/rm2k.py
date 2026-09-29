@@ -11,7 +11,7 @@ these numbers was written from memory.
 
 import os
 
-from common import perillas
+from common import settings
 from rpgmaker import lcf
 
 CELL = 8
@@ -304,8 +304,8 @@ def sin_trama():
     """The CharSets that are drawn **opaque even though their page says
     translucent**, lowercase: a deliberate divergence from RM2k that the game
     decides, in `[graphics] opaque` of the project file."""
-    return frozenset(n.lower() for n in perillas.valor(
-        "graphics", "opaque", tipo=list))
+    return frozenset(n.lower() for n in settings.value(
+        "graphics", "opaque", kind=list))
 
 
 def decorar_translucido(nombre, map_id, x, y):

@@ -137,8 +137,8 @@ cases each cartridge carries, what the ROM is called, the title in its
 header and the signatures of its save files, which sound effects go whole,
 which songs go separately, which CharSet weighs most when splitting
 palettes. The game declares it at its root, in `rm2k-snes.toml` —A Blurred
-Line's is `rom/rm2k-snes.toml`—, and it is read with `common/perillas.py`:
-`perillas.valor("maps", "below", tipo=int)`.
+Line's is `rom/rm2k-snes.toml`—, and it is read with `common/settings.py`:
+`settings.value("maps", "below", kind=int)`.
 
 * **A missing key is an error**, with its name, and not a default value: a
   default in a tool would be ABL's value, and another game would be built

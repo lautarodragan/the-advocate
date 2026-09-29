@@ -161,7 +161,7 @@ signature.
 import collections
 import os
 
-from common import perillas
+from common import settings
 
 # The scene, in screen pixels: the top seven text lines.
 ANCHO, ALTO = 256, 128
@@ -205,7 +205,7 @@ def reemplazo():
     """The backdrop of the battles whose backdrop is not in the ROM: see
     "Which backdrops there are". The game chooses it, in
     `[battle] fallback_backdrop` of the project file, with its reason."""
-    return perillas.valor("battle", "fallback_backdrop", tipo=str)
+    return settings.value("battle", "fallback_backdrop", kind=str)
 
 # How many planes the cartridge stores per row of a battler: the mask and the
 # four of its drawing. The ROM sets the other four according to the palette.

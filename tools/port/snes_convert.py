@@ -88,7 +88,7 @@ from port import constantes
 from port import reglas
 from port import msu_datos
 from audio import efectos_msu
-from common import perillas
+from common import settings
 from common import project
 from common.paralelo import en_paralelo
 from audio import snes_music
@@ -628,7 +628,7 @@ def peso_de_grafico(charset):
     `[graphics.palette_weight]` of the project file, with its reasons. The
     `~trama` suffix of translucent ones doesn't count: the weight belongs to
     the drawing."""
-    pesos = perillas.valor("graphics", "palette_weight", tipo=dict)
+    pesos = settings.value("graphics", "palette_weight", kind=dict)
     return pesos.get((charset or "").split(rm2k.TRAMA_SUFIJO)[0], 0)
 
 
@@ -4618,8 +4618,8 @@ def identidad_de_la_rom():
     the header title, already padded with blanks, and the save signature in
     SRAM. They are `.define`s because they are text: `cabecera.s` and
     `partida.s` use them, and until 2026-09-29 they had them written in."""
-    titulo = perillas.ascii("rom", "title", hasta=TITULO_CABECERA)
-    firma = perillas.ascii("rom", "sram_signature", largo=4)
+    titulo = settings.ascii("rom", "title", max_length=TITULO_CABECERA)
+    firma = settings.ascii("rom", "sram_signature", length=4)
     return ("; Who the ROM is, from the project file: the header title and\n"
             "; the signature with which the SRAM says a slot holds a save of\n"
             "; this game.\n"
@@ -8265,9 +8265,9 @@ def main():
     herencia = temas_heredados(temas, tema_de_mapa, args.inicial,
                                tema_titulo, nombres_de_paquete,
                                [suyos for suyos, _e, _s in paquetes],
-                               apartes, no_se_dan=perillas.valor(
+                               apartes, no_se_dan=settings.value(
                                    "music", "jumps_that_never_happen",
-                                   tipo=list))
+                                   kind=list))
     driver, muestras, hechos, banco = snes_music.build_varios(
         pedidos, args.game_dir, pedidos_se, por_nombre, herencia,
         aire_de_medida=args.aire_de_medida)
