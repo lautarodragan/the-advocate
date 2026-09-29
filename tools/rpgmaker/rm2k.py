@@ -11,6 +11,7 @@ de estos números se escribió de memoria.
 
 import os
 
+from comun import perillas
 from rpgmaker import lcf
 
 CELL = 8
@@ -293,36 +294,28 @@ def sin_horneado(nombre):
     return parte_horneada(nombre)[0]
 
 
+def sin_trama():
+    """Los CharSets que se dibujan **opacos aunque su página diga
+    translúcida**, en minúsculas: una divergencia deliberada de RM2k que
+    decide el juego, en `[graphics] opaque` del archivo de proyecto."""
+    return frozenset(n.lower() for n in perillas.valor(
+        "graphics", "opaque", tipo=list))
+
+
 def decorar_translucido(nombre, map_id, x, y):
     """El nombre que lleva el gráfico de una página translúcida.
 
-    Tres salidas, y la primera manda: los de `SIN_TRAMA` se dibujan **opacos**
+    Tres salidas, y la primera manda: los de `sin_trama()` se dibujan **opacos**
     aunque su página diga translúcida —decisión de taro, ver la lista—, el
     resto va horneado contra el fondo de su celda, y `MODO_TRANSLUCIDO=trama`
     vuelve al damero para poder comparar los dos sobre el mismo árbol.
     """
-    if nombre.lower() in SIN_TRAMA:
+    if nombre.lower() in sin_trama():
         return nombre
     if MODO_TRANSLUCIDO == "trama":
         return nombre + TRAMA_SUFIJO
     return nombre_horneado(nombre, map_id, x, y)
 
-# Y los que se dibujan **opacos aunque su página diga translúcida**. Es una
-# divergencia deliberada de RM2k, decidida por taro el 2026-09-12, y la
-# referencia hace exactamente lo mismo: la comparación pixel a pixel sigue
-# midiendo, sólo que contra otra decisión.
-#
-# Por ahora hay uno solo, el save point. Se probaron los dos caminos para
-# dibujarlo semitransparente y los dos se cayeron: con la trama en una pantalla
-# moderna se ve el damero, y con el color math de la consola —que es
-# transparencia de verdad— el objeto deja de animar y el héroe se ve **a
-# través** del save point. taro eligió el tercero: opaco, sprite, animando, y
-# con su paleta de verdad. Lo que hace que valga la pena es que ahora la tiene:
-# contando sólo las poses que muestra son trece colores y le sobra lugar en una
-# paleta propia, mientras que antes pedía prestada la de otro y salía gris.
-#
-# En minúsculas: así los compara `decorar_translucido`.
-SIN_TRAMA = frozenset({"savept"})
 
 
 def nombre_de_tile(chipset, indice):

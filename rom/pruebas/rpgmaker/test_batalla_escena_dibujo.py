@@ -319,7 +319,7 @@ def test_escena_una_pelea_cuyo_fondo_no_esta_usa_el_reemplazo(partida):
     un mapa sin encuentros, donde el fondo sale del terreno bajo el héroe y
     el conversor no puede saber cuál será. `ESC_FONDO` es el del terreno —el
     que se leería del `.msu`— y sin MSU-1 se dibuja el de
-    `escena.REEMPLAZO`, no negro. Ver "Qué fondos hay" en escena.py."""
+    `escena.reemplazo()`, no negro. Ver "Qué fondos hay" en escena.py."""
     from port import eventos
     from rpgmaker import lcf, rm2k
     _tree, juego = _fondos_del_juego()
@@ -337,7 +337,7 @@ def test_escena_una_pelea_cuyo_fondo_no_esta_usa_el_reemplazo(partida):
         "la pelea del lugar en el 7 eligió el fondo %d y el terreno del mapa "
         "pide %r, el %d" % (_byte(una, "ESC_FONDO"), suyo, juego.index(suyo)))
     respaldo = _byte(una, "ESC_RESPALDO")
-    reemplazo = escena.fondo_liviano(escena.REEMPLAZO, GAME_DIR)
+    reemplazo = escena.fondo_liviano(escena.reemplazo(), GAME_DIR)
     assert _distintos(_bufer(una, "ESC_LIMPIO"), reemplazo["indices"]) == 0, (
         "sin MSU-1 la pelea del lugar en el 7 no tiene el fondo de reemplazo "
         "(ESC_RESPALDO en %d): o %r entró en la ROM y la prueba necesita otro "

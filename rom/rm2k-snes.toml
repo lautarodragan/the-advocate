@@ -35,6 +35,73 @@ sram_signature = "ABLS"
 # MSU-1—: cuatro caracteres ASCII al principio de la cabecera del archivo.
 msu_data_signature = "ABLD"
 
+# --- Los gráficos ------------------------------------------------------------
+[graphics]
+# Los que se dibujan **opacos aunque su página diga translúcida**. Es una
+# divergencia deliberada de RM2k, decidida por taro el 2026-09-12.
+#
+# Por ahora hay uno solo, el save point. Se probaron los dos caminos para
+# dibujarlo semitransparente y los dos se cayeron: con la trama en una pantalla
+# moderna se ve el damero, y con el color math de la consola —que es
+# transparencia de verdad— el objeto deja de animar y el héroe se ve **a
+# través** del save point. taro eligió el tercero: opaco, sprite, animando, y
+# con su paleta de verdad. Lo que hace que valga la pena es que ahora la tiene:
+# contando sólo las poses que muestra son trece colores y le sobra lugar en una
+# paleta propia, mientras que antes pedía prestada la de otro y salía gris.
+#
+# Por nombre de CharSet, sin distinguir mayúsculas.
+opaque = ["savept"]
+
+# Cuando un mapa tiene más personajes que paletas de sprite, el que llega
+# último **no se queda sin dibujar**: se le presta una ajena y se lo dibuja con
+# los colores de otro. Quién llega último era el orden de los eventos del mapa,
+# o sea el azar: en Lashe City el save point es el evento 66 de 68 y por eso
+# salía con la paleta de otro. taro lo describió como "en algún momento perdió
+# uno o dos colores y pasó de azul/celeste/blanco a gris", y no era la fusión:
+# era que no tenía paleta propia.
+#
+# Así que un CharSet puede pesar, y el que pesa se sirve primero; el que no
+# está, pesa 0. Es una tabla escrita a mano y corta a propósito: no hay una
+# medida automática de "cuánto se ve" que no sea inventarse una —un evento
+# decorativo puede estar en pantalla todo el juego y un personaje central
+# aparecer un minuto—, y una tabla de dos renglones se revisa de un vistazo. Lo
+# que la llena es lo que taro reporta jugando.
+[graphics.palette_weight]
+# El save point: está en cada ciudad, es con lo que se guarda la partida, y su
+# azul contra el blanco del brillo es todo lo que tiene.
+savept = 2
+# Los cuatro de Future1 —Talan, Core, Manta, Kersh—. Casi siempre son líderes,
+# y al líder ya se le fuerza paleta; esto los cubre en los mapas donde además
+# andan como NPC.
+Future1 = 1
+
+
+# --- La pelea ----------------------------------------------------------------
+[battle]
+# El fondo de las peleas cuyo fondo no está en la ROM: una tropa que pelea con
+# el fondo "del lugar" en un mapa sin encuentros al azar. Es el de los Rat
+# Tracks, una cueva de roca gris, porque no dice dónde se está: el del droide
+# es una sala con un monitor y la Tierra en una pantalla, y el de los Back
+# Alleys una calle con carteles. Una pelea en el bosque sobre roca se ve rara;
+# sobre una nave, equivocada. Lo piden los encuentros de los Rat Tracks, así
+# que en `release` no cuesta nada. No negro, porque "negro confunde", de taro.
+fallback_backdrop = "ABLBackdropSJ08"
+
+
+# --- La música ---------------------------------------------------------------
+[music]
+# Los saltos de páginas compiladas que no se pueden dar, como [mapa, destino].
+# La herencia de temas entre mapas no mira condiciones, y un salto que nunca
+# pasa le hace reservar lugar a un tema que nunca llega, a costa de los que sí.
+#
+# El 45 es el video de seguridad: el 19 copiado entero, con sus eventos. Su
+# página automática corre la escena del director apenas se entra y se va al
+# 40; el evento 4, que salta al 20, es el del 19 que vino con la copia, y
+# cuando el jugador podría tocarlo ya prendió el switch que lo apaga. Contado,
+# `Kfmus5` —que llega sonando al 45 por los vidcasts— heredaba en el 20 y le
+# bajaba cuatro golpes a `Lunar_Pyramid` y `wb3shop`, de 22 a 14 kHz.
+jumps_that_never_happen = [[45, 20]]
+
 # --- Los mapas ---------------------------------------------------------------
 #
 # Los mapas del juego que lleva `release`: **los de id menor a `below`, menos
