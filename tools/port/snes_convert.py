@@ -1,33 +1,33 @@
 #!/usr/bin/env python3
-"""Convierte un mapa de A Blurred Line a datos que consume el PPU de la SNES.
+"""Converts an A Blurred Line map into data the SNES PPU consumes.
 
-El reparto de colores en paletas y la fusión de los menos usados cuando no
-entran viven en `asignador.py`, y el reuso de tiles espejados en Voodoo. Lo
-que queda acá es lo que depende del hardware:
+Splitting colors into palettes, and merging the least used ones when they
+don't fit, lives in `asignador.py`, and reusing mirrored tiles in Voodoo.
+What is left here is what depends on the hardware:
 
-  * **El color es de 15 bits, cinco por canal.** De los 72 colores del render
-    de Map0007 sobreviven 60.
-  * **El fondo va en modo 3, con 8 bits por pixel.** Ahí cada pixel es un índice
-    directo a CGRAM y no hay paleta por tile, así que el problema de repartir
-    los colores en grupos simplemente no existe. Con 4 bits y 8 paletas,
-    Map0007 perdía 32 de sus 60 colores; con 8 bits no pierde ninguno.
+  * **Color is 15 bits, five per channel.** Of the 72 colors in the render of
+    Map0007, 60 survive.
+  * **The background goes in mode 3, at 8 bits per pixel.** There each pixel is
+    a direct index into CGRAM and there is no per-tile palette, so the problem
+    of splitting the colors into groups simply does not exist. With 4 bits and
+    8 palettes, Map0007 lost 32 of its 60 colors; with 8 bits it loses none.
 
-    Cuesta el doble de VRAM por tile, 64 bytes en vez de 32. Con 92 tiles son
-    5,8 KB de los 64 disponibles, así que no es una restricción real.
-  * **El formato de tile es por planos**, no por nibbles: cada bit de un pixel
-    vive en un mapa de bits distinto, de a pares y de a 16 bytes. Por eso un
-    tile de 4 bits es exactamente la primera mitad de uno de 8.
+    It costs twice the VRAM per tile, 64 bytes instead of 32. With 92 tiles
+    that is 5.8 KB of the 64 available, so it is not a real constraint.
+  * **The tile format is planar**, not packed in nibbles: each bit of a pixel
+    lives in a different bitmap, in pairs and 16 bytes at a time. That is why
+    a 4-bit tile is exactly the first half of an 8-bit one.
 
-Los índices se limitan a la mitad baja de CGRAM. Los sprites usan siempre las
-paletas 8 a 15, o sea los índices 128 a 255, y en 8 bits el fondo llega hasta el
-255: quedarse abajo evita pisarlos.
+Indices are kept to the lower half of CGRAM. Sprites always use palettes 8 to
+15, that is indices 128 to 255, and at 8 bits the background reaches up to
+255: staying low avoids stepping on them.
 
-Uso:
+Usage:
     rm2k-snes-convert --map-id 7 -o rom/build/inc/mapdata.inc
 
-Con una página de prueba, que es la lista de comandos de RM2k de un archivo
-de `rom/pruebas/casos/`; varias en un cartucho, cada una detrás de un `--caso`, y
-los flags del cartucho antes del primero. El arnés elige cuál corre con
+With a test page, which is the list of RM2k commands from a file in
+`rom/pruebas/casos/`; several in one cartridge, each one after a `--caso`, and
+the cartridge flags before the first. The harness picks which one runs with
 `Partida(caso=k)`:
     rm2k-snes-convert -o … --map-id 6 \
         --comandos-de-prueba rom/pruebas/casos/pan.json \
@@ -46,13 +46,13 @@ import zlib
 
 import numpy
 
-# Corrido como script —que es como lo corren las recetas—, Python pone en el
-# `sys.path` la carpeta de este archivo y no `tools/`, que es de donde se
-# importan los paquetes. Se la reemplaza en vez de sumar `tools/` al lado: con
-# las dos, un `import eventos` suelto andaría y cargaría una segunda copia del
-# módulo, distinta de `port.eventos`.
-# `realpath` y no `abspath`: `just herramientas` lo instala en el PATH como
-# symlink, y la carpeta que sirve es la del archivo de verdad.
+# Run as a script —which is how the recipes run it—, Python puts this file's
+# folder in `sys.path`, not `tools/`, which is where the packages are imported
+# from. It is replaced instead of adding `tools/` next to it: with both, a bare
+# `import eventos` would work and load a second copy of the module, distinct
+# from `port.eventos`.
+# `realpath` and not `abspath`: `just herramientas` installs it on the PATH as
+# a symlink, and the folder that matters is the one of the real file.
 if __name__ == "__main__":
     sys.path[0] = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
@@ -64,11 +64,11 @@ from port import eventos
 from rpgmaker import lcf
 from rpgmaker import rm2k
 
-# Los eventos translúcidos llevan su propio gráfico: ver
-# `rm2k.decorar_translucido` —horneado contra el fondo, tramado, u opaco—.
+# Translucent events carry their own graphic: see `rm2k.decorar_translucido`
+# —baked against the background, dithered, or opaque—.
 lcf.DECORAR_TRANSLUCIDO = rm2k.decorar_translucido
-# Y los cuadros de texto, rearmados para la ventana de la SNES: ver
-# `lcf.REAJUSTAR_TEXTOS` y `port/textos.py`.
+# And the text boxes, rebuilt for the SNES window: see
+# `lcf.REAJUSTAR_TEXTOS` and `port/textos.py`.
 from port import textos
 lcf.REAJUSTAR_TEXTOS = textos.reajustar_comandos
 from port import animacion as animacion_mod
@@ -100,125 +100,127 @@ from comun import ambiente
 from rpgmaker import recursos
 from rpgmaker.recursos import find_resource
 
-# El PPU direcciona 1024 tiles por capa: diez bits en cada celda del tilemap.
+# The PPU addresses 1024 tiles per layer: ten bits in each tilemap cell.
 MAX_TILES = 1024
 
-# CGRAM tiene 256 entradas. La mitad de arriba es de los sprites; la de abajo la
-# comparten el fondo, que va en 8 bits por pixel y direcciona CGRAM en directo,
-# y la capa que va por encima del héroe, que va en 4 bits y por lo tanto cuenta
-# su índice dentro de una paleta de 16.
+# CGRAM has 256 entries. The upper half belongs to the sprites; the lower half
+# is shared by the background, which goes at 8 bits per pixel and addresses
+# CGRAM directly, and the layer that goes above the hero, which goes at 4 bits
+# and therefore counts its index within a palette of 16.
 #
-# Dónde cae el corte entre las dos no es fijo: lo decide el conversor mapa por
-# mapa, en _convert_layers(). Con una paleta arriba el fondo tiene 111 colores;
-# con tres, 79. Antes eran dos siempre, y 27 mapas no entraban —los tres
-# primeros del juego entre ellos— mientras el fondo dejaba colores sin usar.
+# Where the split between the two falls is not fixed: the converter decides it
+# map by map, in _convert_layers(). With one palette above, the background has
+# 111 colors; with three, 79. It used to be two always, and 27 maps didn't fit
+# —the first three of the game among them— while the background left colors
+# unused.
 #
-# El tope de acá abajo no es una decisión de calidad sino la forma del hardware:
-# al fondo tiene que quedarle al menos una paleta. Cuántas se lleva de verdad la
-# capa de encima sale de lo que el fondo no necesita.
-BG_PALETTES = 8                          # la mitad baja de CGRAM, en paletas
+# The cap below is not a quality decision but the shape of the hardware: the
+# background has to keep at least one palette. How many the upper layer really
+# takes comes from what the background doesn't need.
+BG_PALETTES = 8                          # the lower half of CGRAM, in palettes
 MAX_ABOVE_PALETTES = BG_PALETTES - 1
-BYTES_PER_TILE = 64                      # 8 planos de bits, 8 filas cada uno
+BYTES_PER_TILE = 64                      # 8 bit planes, 8 rows each
 
 
 def above_split(palettes):
-    """En qué paleta arranca la capa de encima si se lleva tantas."""
+    """Which palette the upper layer starts at if it takes this many."""
     return BG_PALETTES - palettes
 
 
-# Las entradas de CGRAM que el fondo **no** puede usar, abajo de todo: la 0, que
-# es el color de fondo de la pantalla, y las siete de la ventana de mensaje.
+# The CGRAM entries the background **cannot** use, at the very bottom: entry 0,
+# which is the screen's backdrop color, and the seven of the message window.
 #
-# La ventana va en la **paleta 0** y no flotando debajo de la capa de encima, y
-# eso es lo que le devuelve al fondo todo lo que antes se tiraba. BG1 va a 8 bits
-# por pixel y direcciona CGRAM en directo: no necesita paletas de 16, le alcanza
-# con que nadie le pise las entradas. Poniendo la ventana abajo de todo, el fondo
-# queda contiguo desde la 8 hasta donde arranque la capa de encima, sin huecos.
+# The window goes in **palette 0** and not floating below the upper layer, and
+# that is what gives the background back everything that used to be thrown
+# away. BG1 goes at 8 bits per pixel and addresses CGRAM directly: it doesn't
+# need palettes of 16, it is enough that nobody steps on its entries. With the
+# window at the very bottom, the background is contiguous from 8 up to where
+# the upper layer starts, with no gaps.
 #
-# Antes la ventana iba en la paleta más baja de toda la ROM —`paleta_de_la
-# ventana`— y al fondo se le daba sólo el bloque de abajo. En la ROM de la
-# apertura eso lo dejaba en 47 colores mientras las paletas 4, 5 y 6 no las usaba
-# **nadie**: 57 entradas tiradas en el mapa 7. Los nueve mapas del PoC fusionaban
-# 97 colores entre todos y ahora fusionan 8.
+# The window used to go in the lowest palette of the whole ROM —`paleta_de_la
+# ventana`— and the background got only the block below. In the opening ROM
+# that left it at 47 colors while palettes 4, 5 and 6 were used by **nobody**:
+# 57 entries thrown away in map 7. The nine maps of the PoC merged 97 colors
+# among them and now they merge 8.
 #
-# Y hay una propiedad que sale gratis de ponerla abajo: `aplicar_tinte` tiñe
-# desde donde arranca el fondo, así que la ventana queda fuera del rango sin que
-# nadie tenga que acordarse. En RM2k el tono se aplica al mapa y no a la ventana.
-# **Ocho y no siete.** Contarlos con `sum(1 for w in cram if w)` da siete
-# porque uno de los colores de la ventana es negro puro y su palabra de CGRAM
-# es cero. Con siete, la ROM dibujaba el texto con un color que nadie había
-# subido y la tanda cobró 79 pixeles en los renglones de texto. Lo que manda es
-# el índice más alto que la ventana usa, y de eso se asegura `convert_ventana`.
+# And there is a property that comes for free from putting it at the bottom:
+# `aplicar_tinte` tints from where the background starts, so the window is
+# outside the range without anyone having to remember. In RM2k the tone is
+# applied to the map and not to the window.
+# **Eight and not seven.** Counting them with `sum(1 for w in cram if w)` gives
+# seven because one of the window colors is pure black and its CGRAM word is
+# zero. With seven, the ROM drew the text with a color nobody had uploaded and
+# the suite charged 79 pixels in the text lines. What rules is the highest
+# index the window uses, and `convert_ventana` makes sure of that.
 VENTANA_COLORES = 8
 CGRAM_RESERVADAS = 1 + VENTANA_COLORES
 
 
 def bg_budget(first):
-    """Los colores que le quedan al fondo debajo de la capa de encima.
+    """The colors left for the background below the upper layer.
 
-    No cuentan las de abajo de todo: el color de fondo de la pantalla y los de
-    la ventana de mensaje. Ver `CGRAM_RESERVADAS`.
+    The ones at the very bottom don't count: the screen's backdrop color and
+    the ones of the message window. See `CGRAM_RESERVADAS`.
     """
     return first * COLORS_PER_PALETTE - CGRAM_RESERVADAS
 
 
-# El orden de prioridades del modo 3, de adelante hacia atrás, es:
+# The priority order of mode 3, from front to back, is:
 #
-#     objetos 3 / BG1 1 / objetos 2 / BG2 1 / objetos 1 / BG1 0 / objetos 0
+#     objects 3 / BG1 1 / objects 2 / BG2 1 / objects 1 / BG1 0 / objects 0
 #
-# que es justo lo que hace falta: el mapa en BG1 con prioridad 0, el héroe y los
-# NPCs comunes en objetos con prioridad 1, la capa de encima en BG2 con
-# prioridad 1, y los eventos marcados "above" en objetos con prioridad 2. El
-# orden de RM2k sale del hardware sin trucos.
-PRIORITY_ABOVE = 1                       # para las celdas de BG2
+# which is exactly what is needed: the map in BG1 with priority 0, the hero and
+# the regular NPCs in objects with priority 1, the upper layer in BG2 with
+# priority 1, and the events marked "above" in objects with priority 2. The
+# RM2k order comes out of the hardware with no tricks.
+PRIORITY_ABOVE = 1                       # for the BG2 cells
 
-# Los tiles de la ventana viven en el banco que sigue al de la capa de encima,
-# y BG2 los alcanza con la misma base porque quedaron pegados: del índice 0 al
-# 255 cae el de encima y del 256 al 511 el de la ventana.
+# The window tiles live in the bank that follows the upper layer's, and BG2
+# reaches them with the same base because they ended up adjacent: indices 0 to
+# 255 are the upper layer's and 256 to 511 the window's.
 
-# El tamaño de la ventana en celdas. Es fijo: 256x80 pegada al pie de la
-# pantalla, los mismos números que `tools/port/ventana.py`.
+# The window size in cells. It is fixed: 256x80 stuck to the bottom of the
+# screen, the same numbers as `tools/port/ventana.py`.
 VENTANA_COLS_INC, VENTANA_FILAS_INC = 32, 10
 
-# El glifo, que es lo que la ROM compone. Los mismos números que
-# `tools/port/fuente.py`, que se genera desde easyrpg-player.
+# The glyph, which is what the ROM composes. The same numbers as
+# `tools/port/fuente.py`, which is generated from easyrpg-player.
 FUENTE_ANCHO, FUENTE_ALTO = 6, 12
 
-# Y las de los objetos, ya corridas a su lugar en el byte vhoopppN: la
-# prioridad son los bits 5 y 4, no los 0 y 1: escribir $20 creyendo que es
-# prioridad 1 da prioridad 2, y en el orden de más arriba ese lugar de más cruza
-# justo la capa de encima. No falla nada y el sprite se sigue viendo: sólo que
-# del lado equivocado de una capa, o sea tapando el techo por el que debería
-# caminar por debajo.
+# And the ones for objects, already shifted into place in the vhoopppN byte:
+# the priority is bits 5 and 4, not 0 and 1: writing $20 thinking it is
+# priority 1 gives priority 2, and in the order above that one extra place
+# crosses exactly the upper layer. Nothing fails and the sprite is still
+# visible: only on the wrong side of a layer, that is covering the roof it
+# should be walking under.
 #
-# Estos dos valores son los únicos del programa: la ROM recibe el del héroe en
-# HERO_PRIORITY y el de cada NPC viene armado en su byte de atributos. No se
-# escriben también en `tools/runtime/`: una segunda copia es un lugar más donde
-# equivocarse sin que nada lo note.
-OBJ_PRIORITY = 0x10                      # prioridad 1: debajo de BG2 1
-OBJ_PRIORITY_ABOVE = 0x20                # prioridad 2: por encima
+# These two values are the only ones in the program: the ROM gets the hero's
+# in HERO_PRIORITY and each NPC's comes built into its attribute byte. They are
+# not written in `tools/runtime/` too: a second copy is one more place to get
+# it wrong without anything noticing.
+OBJ_PRIORITY = 0x10                      # priority 1: below BG2 1
+OBJ_PRIORITY_ABOVE = 0x20                # priority 2: above it
 
-# El color 0 de CGRAM es el fondo: se ve donde ninguna capa dibuja, y también
-# donde un tile usa el índice 0. Negro, que es lo que RM2k dibuja donde el mapa
-# no tiene nada y más allá de sus bordes, y desde el 2026-09-05 eso se ve: la
-# sacudida de pantalla asoma lo que hay a los costados. Antes era magenta, un
-# centinela para el ojo —"si asoma dentro de la pantalla es que algo está
-# mal"—.
+# CGRAM color 0 is the backdrop: it shows where no layer draws, and also where
+# a tile uses index 0. Black, which is what RM2k draws where the map has
+# nothing and beyond its edges, and since 2026-09-05 that shows: the screen
+# shake reveals what is at the sides. It used to be magenta, a sentinel for the
+# eye —"if it shows inside the screen, something is wrong"—.
 BACKDROP = (0, 0, 0)
 
 
 def tiles_cuantizados(image):
-    """La imagen partida en celdas de 8x8 de colores de 15 bits, que es lo que
-    el PPU muestra: una grilla de filas de celdas, cada celda una tupla de
-    ocho filas de ocho colores. Un pixel transparente queda como None y va a
-    parar al índice 0 de la paleta, que el PPU no dibuja.
+    """The image split into 8x8 cells of 15-bit colors, which is what the PPU
+    shows: a grid of rows of cells, each cell a tuple of eight rows of eight
+    colors. A transparent pixel stays as None and ends up at index 0 of the
+    palette, which the PPU doesn't draw.
 
-    Con numpy: los colores y las celdas salen de arreglos, y cada celda
-    distinta se arma como tupla **una sola vez** —el mismo objeto en cada
-    lugar del mapa donde se repite—. Los mapas grandes son millones de
-    pixeles y unos pocos miles de celdas distintas, y armarlo pixel por pixel
-    en Python era lo más caro de convertir sus capas. `_colores_de` se apoya
-    en que las celdas repetidas son el mismo objeto.
+    With numpy: the colors and the cells come from arrays, and each distinct
+    cell is built as a tuple **only once** —the same object at every place of
+    the map where it repeats—. Large maps are millions of pixels and a few
+    thousand distinct cells, and building it pixel by pixel in Python was the
+    most expensive part of converting their layers. `_colores_de` relies on
+    repeated cells being the same object.
     """
     pixeles = numpy.asarray(image.convert("RGBA"))
     alto, ancho = len(pixeles) // CELL, len(pixeles[0]) // CELL
@@ -246,14 +248,15 @@ def tiles_cuantizados(image):
 
 
 def _colores_de(grillas):
-    """Cuántos pixeles de cada color hay en estas grillas, sin los
-    transparentes: un `Counter` con los colores **en el orden en que
-    aparecen**, recorriendo celda por celda y fila por fila, que es el orden
-    que tenía contándolos pixel por pixel.
+    """How many pixels of each color there are in these grids, without the
+    transparent ones: a `Counter` with the colors **in the order in which
+    they appear**, walking cell by cell and row by row, which is the order it
+    had when counting them pixel by pixel.
 
-    Cuenta cada celda distinta una vez y la multiplica por cuántas veces
-    está, y "distinta" es por identidad: las de `tiles_cuantizados` que se
-    repiten son el mismo objeto. Con otras grillas da lo mismo, más lento.
+    It counts each distinct cell once and multiplies it by how many times it
+    occurs, and "distinct" is by identity: the repeated cells from
+    `tiles_cuantizados` are the same object. With other grids it gives the
+    same result, slower.
     """
     veces = {}
     for grilla in grillas:
@@ -274,12 +277,12 @@ def _colores_de(grillas):
 
 
 def pack_tiles(tiles, planes=8):
-    """`pack_tile` de varios tiles a la vez: `tiles` es un arreglo de numpy
-    de (n, 8, 8) índices, y sale la lista de los n tiles empaquetados."""
+    """`pack_tile` for several tiles at once: `tiles` is a numpy array of
+    (n, 8, 8) indices, and out comes the list of the n packed tiles."""
     bits = (tiles[..., None] >> numpy.arange(planes, dtype=numpy.uint8)) & 1
-    # (n, y, x, plano) -> un byte por fila y plano, el pixel de la izquierda
-    # en el bit alto; y de ahí al orden del PPU: pares de planos, y adentro
-    # de cada par fila por fila.
+    # (n, y, x, plane) -> one byte per row and plane, the leftmost pixel in
+    # the high bit; and from there to the PPU order: pairs of planes, and
+    # within each pair row by row.
     filas = numpy.packbits(bits, axis=2, bitorder="big")[:, :, 0, :]
     ppu = filas.reshape(-1, CELL, planes // 2, 2).transpose(0, 2, 1, 3)
     datos = numpy.ascontiguousarray(ppu).reshape(len(tiles), planes * 8)
@@ -287,39 +290,41 @@ def pack_tiles(tiles, planes=8):
 
 
 def repartir_encima(grid, limite):
-    """Qué paletas se lleva la capa de encima, con `limite` como tope.
+    """Which palettes the upper layer takes, with `limite` as the cap.
 
-    Es la decisión, separada de la emisión: cuántas paletas usa esta capa es
-    lo que decide dónde arranca en CGRAM, y eso a su vez le dice al fondo hasta
-    dónde puede llegar. Por eso la toma `_convert_layers`, que es el único que
-    ve las dos capas, y `convert_above` recibe el resultado.
+    It is the decision, separate from the emission: how many palettes this
+    layer uses is what decides where it starts in CGRAM, and that in turn
+    tells the background how far it can go. That is why `_convert_layers`
+    makes it, being the only one that sees both layers, and `convert_above`
+    gets the result.
 
-    Si no alcanzan, fusiona. Devuelve (grilla, paletas, fusionados): la grilla
-    es otra si hubo que fusionar.
+    If they don't fit, it merges. Returns (grid, palettes, merged): the grid
+    is a different one if merging was needed.
     """
     sets = {tile_colors(t) for row in grid for t in row}
     sets = {s for s in sets if s}
     groups = asignador.try_pack(sets, limite) if sets else []
     merged = []
     if sets and groups is None:
-        # Repartiendo no entra. Hay dos motivos y se confundían en uno solo:
-        # que los colores sean muchos para las paletas concedidas, o que un
-        # tile suelto tenga más de 15, que no entra en ninguna paleta por
-        # muchas que se le den. El segundo no lo arregla ningún reparto.
+        # Splitting doesn't fit. There are two reasons and they used to be
+        # confused as one: that the colors are too many for the palettes
+        # granted, or that a single tile has more than 15, which fits in no
+        # palette however many it is given. No split fixes the second one.
         #
-        # Los dos los arregla lo mismo: fusionar el color menos usado con su
-        # vecino más cercano y reintentar.
+        # Both are fixed by the same thing: merging the least used color with
+        # its nearest neighbor and retrying.
         grid, groups, merged, _ = asignador.reduce_colors(grid, limite)
     return grid, [sorted(g) for g in groups], merged
 
 
 def imagen_encima(grid, palettes, above_first):
-    """La capa de encima como la deja el asignador: un PNG indexado.
+    """The upper layer as the allocator leaves it: an indexed PNG.
 
-    Sus índices son **entradas de CGRAM**: el color `k` de la paleta `i` de esta
-    capa es la entrada `(above_first + i) * 16 + k + 1`, y lo transparente es la
-    0. Así lo que se decidió —qué paleta lleva cada celda y dónde arranca cada
-    una— queda escrito en la imagen, y se puede mirar sin armar la ROM.
+    Its indices are **CGRAM entries**: color `k` of palette `i` of this layer
+    is entry `(above_first + i) * 16 + k + 1`, and transparent is 0. That way
+    what was decided —which palette each cell takes and where each one
+    starts— is written in the image, and can be looked at without building the
+    ROM.
     """
     columnas, filas = len(grid[0]), len(grid)
     ancho = columnas * CELL
@@ -330,8 +335,8 @@ def imagen_encima(grid, palettes, above_first):
             colors = tile_colors(tile)
             if not colors:
                 continue
-            # La primera paleta que tenga todos sus colores, que es la misma
-            # cuenta que hizo `repartir_encima` al armarlas.
+            # The first palette that has all its colors, which is the same
+            # count `repartir_encima` did when building them.
             i = next(i for i, pal in enumerate(palettes) if colors <= set(pal))
             base = (above_first + i) * COLORS_PER_PALETTE
             for y, line in enumerate(tile):
@@ -351,62 +356,63 @@ def imagen_encima(grid, palettes, above_first):
 
 
 def convert_above(grid, palettes, above_first, merged=0):
-    """La capa que va por encima del héroe: tiles de 4 bits y su tilemap.
+    """The layer that goes above the hero: 4-bit tiles and their tilemap.
 
-    Es mucho más chica que la de abajo —en Map0073 son 419 celdas de 900, con
-    siete colores— así que casi siempre entra en una o dos paletas. Las celdas
-    vacías apuntan al tile 0, que se deja transparente a propósito.
+    It is much smaller than the lower one —in Map0073 it is 419 cells of 900,
+    with seven colors— so it almost always fits in one or two palettes. Empty
+    cells point to tile 0, which is left transparent on purpose.
 
-    **No decide nada**: las paletas las eligió `repartir_encima`, y en cuál de
-    CGRAM arranca, `above_first`, lo eligió `_convert_layers`. Con eso se
-    escribe la imagen indexada y la convierte `tiles`.
+    **It decides nothing**: the palettes were chosen by `repartir_encima`, and
+    which CGRAM palette it starts at, `above_first`, was chosen by
+    `_convert_layers`. With that it writes the indexed image and `tiles`
+    converts it.
 
-    Devuelve (tiles, palabras de CGRAM, tilemap, primera paleta, fusionados,
-    la imagen del asignador).
+    Returns (tiles, CGRAM words, tilemap, first palette, merged, the
+    allocator's image).
     """
     png = imagen_encima(grid, palettes, above_first)
     tiles, cgram, tilemap, _ = tiles_bin.convertir(
         png, 4, len(grid[0]), prioridad=PRIORITY_ABOVE)
-    # Las paletas de esta capa, y nada más: el resto de la CGRAM de la imagen
-    # es de otras capas.
+    # The palettes of this layer, and nothing else: the rest of the image's
+    # CGRAM belongs to other layers.
     cram = cgram[2 * above_first * COLORS_PER_PALETTE:
                  2 * (above_first + len(palettes)) * COLORS_PER_PALETTE]
-    # Nunca cero: en la consola un DMA de tamaño cero transfiere 65536 bytes, no
-    # ninguno. Un mapa sin capa de encima mandaba una paleta vacía y arrasaba
-    # CGRAM entera, paletas de sprites incluidas. Se emite una paleta vacía.
+    # Never zero: on the console a DMA of size zero transfers 65536 bytes, not
+    # none. A map with no upper layer sent an empty palette and wiped the
+    # whole CGRAM, sprite palettes included. An empty palette is emitted.
     if not cram:
         cram = bytes(2 * COLORS_PER_PALETTE)
     return tiles, cram, tilemap, above_first, merged, png
 
 
-# --- el sprite del personaje ------------------------------------------------
+# --- the character sprite ---------------------------------------------------
 #
-# Un CharSet de RM2k son 4 personajes de ancho por 2 de alto; cada uno ocupa
-# 72x128 y tiene 12 poses de 24x32: 3 frames de caminata por 4 direcciones.
+# An RM2k CharSet is 4 characters wide by 2 high; each one takes 72x128 and has
+# 12 poses of 24x32: 3 walking frames for 4 directions.
 #
-# La SNES no tiene sprites de 24x32. El más chico que cubre esa pose es 32x32,
-# así que se rellena con transparente a los costados y se pierde una cuarta
-# parte de los tiles. La alternativa era partir cada pose en varios objetos de
-# 16x32, que gasta lo mismo y multiplica las entradas de OAM.
+# The SNES has no 24x32 sprites. The smallest one that covers that pose is
+# 32x32, so it is padded with transparency at the sides and a quarter of the
+# tiles is lost. The alternative was splitting each pose into several 16x32
+# objects, which spends the same and multiplies the OAM entries.
 #
-# Los sprites son siempre de 4 bits por pixel, sin excepción: no hay un modo 3
-# para ellos. O sea que Talan tiene que entrar en 15 colores, y son 36.
+# Sprites are always 4 bits per pixel, no exceptions: there is no mode 3 for
+# them. That is, Talan has to fit in 15 colors, and has 36.
 
 SPRITE_W, SPRITE_H = 24, 32
-OBJ_W = OBJ_H = 32                 # el tamaño real del objeto en pantalla
-OBJ_COLORS = 15                    # 4 bits por pixel, y el 0 es transparente
-COLORS_PER_PALETTE = 16            # lo que ocupa cada paleta de sprite en CGRAM
+OBJ_W = OBJ_H = 32                 # the real size of the object on screen
+OBJ_COLORS = 15                    # 4 bits per pixel, and 0 is transparent
+COLORS_PER_PALETTE = 16            # what each sprite palette takes in CGRAM
 SPRITE_POSES = 12
-POSE_INICIAL = 2 * 3 + 1           # mirando abajo, el frame del medio
-OBJ_PALETTES = 8                   # de la 8 a la 15, con cronómetro o sin él
+POSE_INICIAL = 2 * 3 + 1           # facing down, the middle frame
+OBJ_PALETTES = 8                   # 8 to 15, with or without the timer
 
-# La tabla de nombres de OAM tiene 16 tiles de ancho, así que un objeto de
-# 32x32 no ocupa 16 tiles seguidos sino un bloque de 4x4 dentro de esa grilla.
+# The OAM name table is 16 tiles wide, so a 32x32 object doesn't take 16 tiles
+# in a row but a 4x4 block inside that grid.
 OBJ_ROW = 16
 
 
 def pose_origin(index, pose):
-    """Dónde empieza una pose dentro del CharSet."""
+    """Where a pose starts inside the CharSet."""
     return ((index % 4) * SPRITE_W * 3 + (pose % 3) * SPRITE_W,
             (index // 4) * SPRITE_H * 4 + (pose // 3) * SPRITE_H)
 
@@ -415,26 +421,27 @@ TODAS_LAS_POSES = frozenset(range(SPRITE_POSES))
 
 
 def sprite_colors(image, index, poses=None):
-    """Los colores del personaje, con cuántos pixeles usa cada uno.
+    """The character's colors, with how many pixels each one uses.
 
-    `poses` son las que el evento puede llegar a mostrar. **Contar las doce
-    cuando se ve una es regalar entradas de CGRAM**: el save point de Lashe
-    City anima mirando para arriba y nada más, y sus doce poses juntas tienen
-    41 colores contra los 13 de esos tres cuadros. Los 26 de diferencia se
-    fusionaban todos, y lo primero que caía era el azul y el blanco del brillo
-    —pocos píxeles cada uno— contra los grises que cubren el resto del bloque.
+    `poses` are the ones the event can end up showing. **Counting all twelve
+    when one is seen gives away CGRAM entries**: the save point in Lashe City
+    animates facing up and nothing else, and its twelve poses together have
+    41 colors against the 13 of those three frames. The 26 of difference were
+    all merged, and the first to go were the blue and white of the glow —few
+    pixels each— against the grays that cover the rest of the block.
 
-    Quién puede mostrar qué lo decide `poses_del_mapa`, que es la misma pasada
-    que ya elegía a quién le van las doce poses al cartucho: la optimización
-    existía en tiles y en VRAM desde el 2026-09-05 y nunca había bajado al
-    conteo de colores. `None` es "las doce", que es lo que corresponde a quien
-    camina, anima quieto, gira hacia el héroe o cambia de gráfico con la 34.
+    Who can show what is decided by `poses_del_mapa`, which is the same pass
+    that already chose who gets all twelve poses in the cartridge: the
+    optimization existed in tiles and in VRAM since 2026-09-05 and had never
+    reached the color count. `None` is "all twelve", which is what fits
+    whoever walks, animates standing still, turns toward the hero or changes
+    graphic with command 34.
     """
     base_x = (index % 4) * SPRITE_W * 3
     base_y = (index // 4) * SPRITE_H * 4
-    # Con numpy y no pixel por pixel: el bloque del personaje a un arreglo,
-    # las poses por slicing, y cada color de 15 bits como un solo entero
-    # para contarlos con `unique`. Se leen millones de pixeles por ROM.
+    # With numpy and not pixel by pixel: the character's block to an array,
+    # the poses by slicing, and each 15-bit color as a single integer to
+    # count them with `unique`. Millions of pixels are read per ROM.
     bloque = numpy.asarray(image.crop((base_x, base_y,
                                        base_x + SPRITE_W * 3,
                                        base_y + SPRITE_H * 4)))
@@ -447,11 +454,11 @@ def sprite_colors(image, index, poses=None):
 
 
 def _contar_colores(pixeles):
-    """Un Counter de los colores de 15 bits de los pixeles RGBA opacos.
+    """A Counter of the 15-bit colors of the opaque RGBA pixels.
 
-    **Las claves van en el orden en que aparecen**, que es el que tenía el
-    `Counter` armado pixel por pixel: quien lo recorre —`merge_least_visible`
-    desempata por ese orden— tiene que ver lo mismo.
+    **The keys come in the order in which they appear**, which is the one the
+    `Counter` built pixel by pixel had: whoever walks it
+    —`merge_least_visible` breaks ties by that order— has to see the same.
     """
     opacos = pixeles[pixeles[:, 3] != 0, :3] >> 3
     codigos = ((opacos[:, 0].astype(numpy.int32) << 10)
@@ -465,50 +472,51 @@ def _contar_colores(pixeles):
     return counts
 
 
-# --- los NPCs ---------------------------------------------------------------
+# --- the NPCs ---------------------------------------------------------------
 #
-# Son los eventos del mapa que tienen CharSet, quietos en la pose que declara su
-# página. No se evalúan sus scripts. Cada uno es un objeto de OAM más.
+# They are the map events that have a CharSet, standing still in the pose their
+# page declares. Their scripts are not evaluated. Each one is one more OAM
+# object.
 #
-# Dos límites de la consola mandan acá. Uno es cuántos tiles de sprite entran en
-# VRAM: 512 direccionables, y cada pose son 16. El otro, más duro, es que en una
-# misma línea de pantalla no puede haber más de 34 tiles de 8x8 de sprite; un
-# objeto de 32x32 aporta 4, así que a partir de nueve personajes juntos la
-# consola empieza a no dibujar los últimos.
+# Two console limits rule here. One is how many sprite tiles fit in VRAM: 512
+# addressable, and each pose is 16. The other, harder, is that a single screen
+# line cannot have more than 34 8x8 sprite tiles; a 32x32 object contributes 4,
+# so from nine characters together onward the console starts not drawing the
+# last ones.
 
-BLOCKS_PER_ROW = 4              # bloques de 4x4 tiles que entran en la grilla
+BLOCKS_PER_ROW = 4              # 4x4-tile blocks that fit in the grid
 
 
 def block_tile(block):
-    """El número de tile donde arranca un bloque de 32x32."""
+    """The tile number where a 32x32 block starts."""
     return (block // BLOCKS_PER_ROW) * 64 + (block % BLOCKS_PER_ROW) * 4
 
 
 def paleta_del_personaje(image, index, tope=None, poses=None):
-    """La paleta de un personaje, y cómo mapear cada color a su índice.
+    """A character's palette, and how to map each color to its index.
 
-    Es la misma cuenta para la imagen que va a VRAM y para el banco de poses
-    del cartucho, y tiene que serlo: una pose subida en caliente se dibuja con
-    la paleta que ya está en CGRAM.
+    It is the same computation for the image that goes to VRAM and for the
+    cartridge's pose bank, and it has to be: a pose uploaded on the fly is
+    drawn with the palette already in CGRAM.
 
-    `tope` baja el número de colores por debajo de los quince, y existe para
-    hacerle lugar al cronómetro: sus dígitos son dos colores y el negro suele
-    estar ya, así que le alcanza con una entrada. **Quién lo paga y cuánto lo
-    decide `npcs_dibujables`**, que es el único que ve todas las paletas del
-    mapa; acá sólo se obedece. Si el conversor lo eligiera acá, dos llamadas
-    para el mismo personaje podrían dar paletas distintas y las poses del
-    cartucho no coincidirían con la CGRAM.
+    `tope` lowers the number of colors below fifteen, and exists to make room
+    for the timer: its digits are two colors and black is usually already
+    there, so one entry is enough. **Who pays for it and how much is decided
+    by `npcs_dibujables`**, which is the only one that sees all the palettes
+    of the map; here it is only obeyed. If the converter chose it here, two
+    calls for the same character could give different palettes and the
+    cartridge's poses wouldn't match the CGRAM.
 
-    `poses` son las que el evento puede mostrar: **los quince colores se
-    eligen mirando sólo ésas**, que es de donde sale casi toda la ganancia de
-    color del save point. Lo mismo que `tope`, lo decide `npcs_dibujables` y
-    acá sólo se obedece.
+    `poses` are the ones the event can show: **the fifteen colors are chosen
+    looking only at those**, which is where almost all of the save point's
+    color gain comes from. Same as `tope`, `npcs_dibujables` decides it and
+    here it is only obeyed.
 
-    El `mapping` que se devuelve cubre igual **todos** los colores del bloque
-    de doce poses, no sólo los de `poses`: los que quedaron afuera del conteo
-    van al más cercano de los que sobrevivieron. No es adorno defensivo —es lo
-    que hace que `pose_tiles` no se caiga con un KeyError si alguien pide una
-    pose de más—, y cuesta una cuenta por color.
+    The returned `mapping` still covers **all** the colors of the twelve-pose
+    block, not only those of `poses`: the ones left out of the count go to
+    the nearest of the survivors. It is not defensive decoration —it is what
+    keeps `pose_tiles` from dying with a KeyError if someone asks for one pose
+    too many—, and it costs one computation per color.
     """
     tope = OBJ_COLORS if tope is None else tope
     counts = sprite_colors(image, index, poses)
@@ -527,16 +535,16 @@ def paleta_del_personaje(image, index, tope=None, poses=None):
 
 
 def pose_tiles(image, index, pose, lookup, mapping):
-    """Los dieciséis tiles de una pose, por filas: cuatro filas de cuatro.
+    """The sixteen tiles of a pose, by rows: four rows of four.
 
-    Es el orden en que la PPU lee un objeto de 32x32 —cada fila son cuatro
-    tiles seguidos de la grilla de nombres, y las filas van de a dieciséis— y
-    por eso una pose se sube con cuatro DMA de 128 bytes.
+    It is the order in which the PPU reads a 32x32 object —each row is four
+    consecutive tiles of the name grid, and rows go sixteen apart— and that is
+    why a pose is uploaded with four DMAs of 128 bytes.
     """
     ox, oy = pose_origin(index, pose)
-    # Con numpy, como `sprite_colors`: la pose a un arreglo, cada color
-    # distinto traducido una sola vez, y los planos de bits de los dieciséis
-    # tiles juntos.
+    # With numpy, like `sprite_colors`: the pose to an array, each distinct
+    # color translated only once, and the bit planes of the sixteen tiles
+    # together.
     pixeles = numpy.asarray(image.crop((ox, oy, ox + SPRITE_W,
                                         oy + SPRITE_H)))
     rgb = pixeles[:, :, :3] >> 3
@@ -558,14 +566,14 @@ def pose_tiles(image, index, pose, lookup, mapping):
 
 
 def cambia_de_grafico(evento):
-    """Si alguna página del evento dibuja algo distinto de otra.
+    """Whether some page of the event draws something different from another.
 
-    Es lo que separa un descarte molesto de uno que rompe el juego. Un evento
-    decorativo de una sola página que no se dibuja se pierde y ya —el `CoreBlood`
-    del mapa 3, los cuatro `Link`—. Uno que **cambia de gráfico** es un mecanismo:
-    una puerta que se abre, una máquina que se enciende. Si no se dibuja, el
-    cambio no se ve nunca, y como el evento igual cierra el paso, lo que queda es
-    una pared invisible que el jugador esperaba que se abriera.
+    It is what separates an annoying discard from one that breaks the game. A
+    decorative single-page event that isn't drawn is just lost —the
+    `CoreBlood` of map 3, the four `Link`s—. One that **changes graphic** is a
+    mechanism: a door that opens, a machine that turns on. If it isn't drawn,
+    the change is never seen, and since the event still blocks the way, what is
+    left is an invisible wall the player expected to open.
     """
     graficos = {((getattr(p, "character_name", "") or "").strip(),
                  p.character_index) for p in evento.pages}
@@ -573,97 +581,102 @@ def cambia_de_grafico(evento):
 
 
 def aviso_de_descarte(texto, peligroso):
-    """Un evento que no se dibuja. Si es de los que rompen, corta la conversión.
+    """An event that isn't drawn. If it is one of those that break, it stops
+    the conversion.
 
-    **Y corta a propósito.** Esto era un `print` entre otros cincuenta, y el
-    2026-09-07 costó una tarde: `demo-apertura` se armó con el cronómetro, el
-    mapa 2 perdió el evento 30 —la celda del medio de la puerta que Core rompe—
-    y el aviso pasó de largo en la salida del build. taro llegó a la cinemática,
-    la puerta no cambió de tile y no pudo pasar.
+    **And it stops on purpose.** This was a `print` among fifty others, and on
+    2026-09-07 it cost an afternoon: `demo-apertura` was built with the timer,
+    map 2 lost event 30 —the middle cell of the door Core breaks— and the
+    warning went by unnoticed in the build output. taro reached the cutscene,
+    the door didn't change tile and he couldn't get through.
 
-    Es el mismo criterio que `entrar_en_panico` en la ROM: algo que no debería
-    pasar no se descarta en silencio. La diferencia es dónde se hace ruido. Un
-    descarte se decide **al convertir**, y para cuando la ROM corre el evento ya
-    no está en ninguna tabla: no queda nada que la consola pueda mirar. Hacerla
-    explotar al cargar el mapa sería lo mismo que no armar la ROM, pero más tarde
-    y sin poder decir cuál evento.
+    It is the same criterion as `entrar_en_panico` in the ROM: something that
+    shouldn't happen is not discarded silently. The difference is where the
+    noise is made. A discard is decided **when converting**, and by the time
+    the ROM runs the event is no longer in any table: there is nothing left
+    for the console to look at. Making it blow up when loading the map would be
+    the same as not building the ROM, but later and without being able to say
+    which event.
 
-    Cortar con **todos** los descartes tampoco sirve: hoy hay decorativos que no
-    entran en varios mapas, así que todas las recetas tendrían que pedir seguir y
-    el corte no protegería de nada. Por eso el tope es `cambia_de_grafico`, que
-    es exactamente la clase a la que pertenecía el evento 30.
+    Stopping on **all** discards doesn't work either: today there are
+    decorative ones that don't fit in several maps, so every recipe would have
+    to ask to continue and the stop wouldn't protect against anything. That is
+    why the cap is `cambia_de_grafico`, which is exactly the class event 30
+    belonged to.
 
-    No hay forma de pedirle que siga: hubo un `--descartar-eventos`, y se fue
-    en el paso 9e, cuando ningún cartucho descartaba ya nada que lo necesitara.
+    There is no way to ask it to continue: there was a `--descartar-eventos`,
+    and it went away in step 9e, when no cartridge discarded anything that
+    needed it anymore.
     """
     if not peligroso:
         print("  " + texto)
         return
     sys.exit(
         "%s\n\n"
-        "No se arma la ROM: ese evento **cambia de gráfico entre sus páginas**, o\n"
-        "sea que es un mecanismo y no un adorno. Sin dibujarse, el cambio no se ve\n"
-        "nunca, y como el evento igual cierra el paso y dispara, lo que queda es\n"
-        "una pared invisible donde el juego esperaba una puerta." % texto)
+        "The ROM is not built: that event **changes graphic between its pages**,\n"
+        "that is, it is a mechanism and not decoration. Without being drawn, the\n"
+        "change is never seen, and since the event still blocks the way and\n"
+        "triggers, what is left is an invisible wall where the game expected a door." % texto)
 
 
-# --- el peso de un gráfico --------------------------------------------------
+# --- the weight of a graphic ------------------------------------------------
 #
 def peso_de_grafico(charset):
-    """Cuánto pesa un CharSet a la hora de repartir las paletas de sprite: el
-    que pesa se sirve primero, y el que no pesa llega en el orden del mapa y
-    puede quedarse con la paleta de otro. Lo decide el juego, en
-    `[graphics.palette_weight]` del archivo de proyecto, con sus porqués. El
-    sufijo `~trama` de los translúcidos no cuenta: el peso es del dibujo."""
+    """How much a CharSet weighs when splitting the sprite palettes: the one
+    that weighs is served first, and the one that doesn't arrives in map order
+    and may end up with someone else's palette. The game decides it, in
+    `[graphics.palette_weight]` of the project file, with its reasons. The
+    `~trama` suffix of translucent ones doesn't count: the weight belongs to
+    the drawing."""
     pesos = perillas.valor("graphics", "palette_weight", tipo=dict)
     return pesos.get((charset or "").split(rm2k.TRAMA_SUFIJO)[0], 0)
 
 
 def fila_de_pose(pose):
-    """Los tres cuadros del ciclo de caminata de la dirección de `pose`.
+    """The three frames of the walking cycle for the direction of `pose`.
 
-    Un evento que anima quieto cambia de columna y **nunca de fila**: la ROM
-    arma su pose como `mirada_de_fila * 3 + columna` en `animar_quietos`, así
-    que de las doce sólo puede mostrar estas tres.
+    An event that animates standing still changes column and **never row**: the
+    ROM builds its pose as `mirada_de_fila * 3 + columna` in `animar_quietos`,
+    so of the twelve it can only show these three.
     """
     return frozenset(range(pose // 3 * 3, pose // 3 * 3 + 3))
 
 
 def poses_del_mapa(renderer, game_map, lideres, movibles=(), giran=(),
                    graficos_de_ruta=(), anima_quieto=()):
-    """Qué poses puede llegar a mostrar cada (CharSet, índice) en este mapa.
+    """Which poses each (CharSet, index) can end up showing in this map.
 
-    De acá sale la paleta de cada personaje: quince colores elegidos sobre lo
-    que se ve y no sobre las doce poses del bloque. La lista de quién necesita
-    las doce es **la misma** que ya decidía qué poses van al cartucho y a la
-    VRAM —ver `eventos_movibles` y el armado de `ranuras` en `convertir`—, y
-    tiene que serlo: una pose que la ROM sube y la paleta no contó se dibuja
-    con colores que no son los suyos.
+    Each character's palette comes from here: fifteen colors chosen over what
+    is seen and not over the twelve poses of the block. The list of who needs
+    all twelve is **the same** that already decided which poses go to the
+    cartridge and to VRAM —see `eventos_movibles` and how `ranuras` is built in
+    `convertir`—, and it has to be: a pose the ROM uploads and the palette
+    didn't count is drawn with colors that aren't its own.
 
-    Llevan las doce:
+    These take all twelve:
 
-    * los candidatos a líder, porque el héroe camina;
-    * los eventos de `movibles` que **caminan**;
-    * los gráficos de `giran`, porque el que se da vuelta hacia el héroe puede
-      terminar en cualquiera de las cuatro direcciones;
-    * los gráficos de la orden 34, que después del cambio siguen caminando.
+    * the leader candidates, because the hero walks;
+    * the events in `movibles` that **walk**;
+    * the graphics in `giran`, because one that turns toward the hero can end
+      up in any of the four directions;
+    * the graphics of command 34, which keep walking after the change.
 
-    El que **anima quieto** se queda con los tres cuadros de su dirección, que
-    es lo único que `animar_quietos` puede poner en pantalla: cambia de columna
-    y no de fila. Ahí está el save point de Lashe City, que taro vio gris: sus
-    doce poses tienen 41 colores y los tres cuadros que muestra, 13. `savept`
-    es un CharSet **editado** —el dibujo original de RPG Maker en casi todo el
-    bloque y un dibujo nuevo, con colores propios, en un rincón—, y en ésos las
-    doce poses no comparten paleta. En uno normal contar doce o contar tres da
-    casi lo mismo.
+    One that **animates standing still** keeps the three frames of its
+    direction, which is all `animar_quietos` can put on screen: it changes
+    column and not row. That is where the save point in Lashe City is, the one
+    taro saw gray: its twelve poses have 41 colors and the three frames it
+    shows, 13. `savept` is an **edited** CharSet —the original RPG Maker
+    drawing in almost all of the block and a new drawing, with its own colors,
+    in a corner—, and in those the twelve poses don't share a palette. In a
+    normal one counting twelve or counting three gives almost the same.
 
-    El resto se queda con la pose que declara su página, más la de cada página
-    si el gráfico las sigue: son exactamente las ranuras de VRAM que el mapa le
-    reserva, ni una más.
+    The rest keep the pose their page declares, plus each page's if the
+    graphic follows them: exactly the VRAM slots the map reserves for it, not
+    one more.
 
-    Un mismo (CharSet, índice) puede ser de un quieto y de uno que camina a la
-    vez —y entre mapas de la misma ROM, también—: se acumula la unión, que es
-    lo que hace que la cuenta no dependa del orden en que se recorran.
+    The same (CharSet, index) can belong to a still one and to a walking one
+    at once —and across maps of the same ROM, too—: the union accumulates,
+    which is what makes the count independent of the order they are walked in.
     """
     poses = {}
 
@@ -683,9 +696,9 @@ def poses_del_mapa(renderer, game_map, lideres, movibles=(), giran=(),
         sumar(tuple(par), TODAS_LAS_POSES)
     for npc in collect_npcs(game_map):
         clave = (npc["charset"], npc["index"])
-        # Anima quieto y no camina: los tres cuadros de su fila. Si además está
-        # en `giran` ya se llevó las doce más arriba, así que el giro no se
-        # queda sin colores.
+        # Animates standing still and doesn't walk: the three frames of its
+        # row. If it is also in `giran` it already took all twelve above, so
+        # the turn doesn't run out of colors.
         quieto_animado = (npc["evento"] in anima_quieto
                           and npc["evento"] in movibles)
         if quieto_animado:
@@ -698,10 +711,10 @@ def poses_del_mapa(renderer, game_map, lideres, movibles=(), giran=(),
         if npc["cambia"]:
             for grafico in npc["graficos"]:
                 if grafico is not None:
-                    # Un evento que camina y además cambia de gráfico pierde el
-                    # cambio —gana caminar, ver `convertir`—, pero el gráfico de
-                    # la página igual pide paleta acá, así que se le cuenta la
-                    # pose que declara.
+                    # An event that walks and also changes graphic loses the
+                    # change —walking wins, see `convertir`—, but the page's
+                    # graphic still asks for a palette here, so the pose it
+                    # declares is counted.
                     sumar(grafico[:2],
                           fila_de_pose(grafico[2]) if quieto_animado
                           else TODAS_LAS_POSES if npc["evento"] in movibles
@@ -709,40 +722,41 @@ def poses_del_mapa(renderer, game_map, lideres, movibles=(), giran=(),
     return poses
 
 
-# --- los eventos que se hornean en el mapa ----------------------------------
-# Un evento que se dibuja con **un tile opaco del ChipSet**, siempre el mismo y
-# siempre en la misma celda, no necesita dibujarse como evento: su tile se mete
-# en la capa alta del mapa y su fila del NPC nace escondida. El evento sigue
-# entero para su lógica —dispara, cierra el paso, es blanco de una página—; lo
-# que se ahorra es su objeto de OAM y su paso por `place_npc`, que es lo que
-# cuesta cuadros en el mapa más cargado del juego.
+# --- the events baked into the map ------------------------------------------
+# An event drawn with **an opaque ChipSet tile**, always the same and always in
+# the same cell, doesn't need to be drawn as an event: its tile goes into the
+# map's upper layer and its NPC row starts hidden. The event stays whole for
+# its logic —it triggers, blocks the way, is the target of a page—; what is
+# saved is its OAM object and its pass through `place_npc`, which is what
+# costs frames in the most loaded map of the game.
 #
-# **La pasabilidad no cambia, y eso es lo que permite esconder la fila.** Para
-# un tile de la capa alta sin el bit de "por encima del héroe",
-# `rm2k.passability_map` resuelve la celda con los bits de ese tile, que son
-# exactamente los que `rm2k.pasabilidad_del_tile` le hacía imponer a la fila del
-# evento; y `pasa_con_evento`, en tools/runtime/heroe.s, saltea las filas escondidas. O sea que
-# el horneado le pasa la misma respuesta de la tabla al mapa. Lo cuida
+# **Passability doesn't change, and that is what allows hiding the row.** For
+# an upper-layer tile without the "above the hero" bit,
+# `rm2k.passability_map` resolves the cell with that tile's bits, which are
+# exactly the ones `rm2k.pasabilidad_del_tile` made the event's row impose; and
+# `pasa_con_evento`, in tools/runtime/heroe.s, skips hidden rows. That is, the
+# baking hands the same table answer over to the map. It is guarded by
 # `rom/pruebas/herramientas/test_horneados.py`.
 #
-# Lo que **no** se ahorra todavía: su paleta de sprite y su ranura de VRAM. El
-# evento sigue entrando en el reparto de `npcs_dibujables` como si se dibujara,
-# a propósito: sacarlo de ahí le libera una paleta al mapa y con eso cambia lo
-# que se ve —los tiles que hoy se dibujan con una paleta ajena pasarían a tener
-# la suya, y el mapa 11 tiene uno—, y eso es una decisión aparte de ésta.
+# What is **not** saved yet: its sprite palette and its VRAM slot. The event
+# still enters the `npcs_dibujables` split as if it were drawn, on purpose:
+# taking it out of there frees a palette for the map and that changes what is
+# seen —the tiles that today are drawn with someone else's palette would get
+# their own, and map 11 has one—, and that is a separate decision from this
+# one.
 
-# Los comandos que mueven un evento de celda o le tocan el dibujo: un evento que
-# alguna página puede correr de lugar, cambiar de dibujo o hacer destellar no
-# está fijo, así que no se hornea. Se miran los comandos **crudos** y no las
-# páginas compiladas: es más conservador —cuenta también las páginas que este
-# port no compila— y no hace falta compilar nada para preguntarlo, que es lo que
-# deja tomar la decisión antes de dibujar las capas.
+# The commands that move an event to another cell or touch its drawing: an
+# event that some page can move, change drawing or flash is not fixed, so it
+# isn't baked. The **raw** commands are looked at and not the compiled pages:
+# it is more conservative —it also counts the pages this port doesn't
+# compile— and nothing needs compiling to ask, which is what lets the decision
+# be made before drawing the layers.
 COMANDOS_QUE_MUEVEN = (eventos.MOVE_EVENT, eventos.CHANGE_EVENT_LOCATION,
                        eventos.TRADE_EVENT_LOCATIONS, eventos.FLASH_SPRITE)
 
 
 def _alfas_del_tile(atlas, indice):
-    """El alfa de los 16x16 pixeles del tile `indice` de la capa alta."""
+    """The alpha of the 16x16 pixels of upper-layer tile `indice`."""
     from PIL import Image
     tile = Image.new("RGBA", (TILE, TILE), (0, 0, 0, 0))
     atlas.render_tile(tile, 0, 0, rm2k.UPPER_BASE + indice)
@@ -750,53 +764,54 @@ def _alfas_del_tile(atlas, indice):
 
 
 def eventos_horneables(renderer, game_map):
-    """Los eventos del mapa que se pueden hornear, como {evento: tile del mapa}.
+    """The map's events that can be baked, as {event: map tile}.
 
-    La regla es deliberadamente chica, porque lo que la sostiene es que **se vea
-    igual**; ante la duda el evento se sigue dibujando. Se piden las cinco
-    cosas:
+    The rule is deliberately small, because what holds it up is that **it
+    looks the same**; when in doubt the event keeps being drawn. All five
+    things are required:
 
-    * **se dibuja con un tile de la capa alta del ChipSet** —no con un CharSet—,
-      con el tile 0 afuera porque en RM2k es "sin gráfico";
-    * **el dibujo es fijo**: la primera página sin condición y **todas** las
-      páginas dibujando el mismo tile en la misma capa. Una puerta que se abre
-      con un switch cambia de tile, así que no entra; una que sólo cambia de
-      script, sí. Hasta el 2026-09-20 se pedía **una sola página**, y eso
-      dejaba afuera cuatro baldosas de luz del mapa 11 que dibujan las dos o
-      tres lo mismo;
-    * **el evento no se mueve ni cambia**: sin `move_type`, sin ruta propia en
-      ninguna página, sin animación continua en ninguna, y ninguna página del
-      mapa lo corre de lugar ni lo hace destellar (ver `COMANDOS_QUE_MUEVEN`);
-    * **el tile tapa la celda entera**: opaco en las 16x16, y sin el bit de "por
-      encima del héroe" —con él, metido en la capa alta se dibujaría por encima
-      del héroe y no por debajo, que es donde está el sprite de un evento de la
-      capa de abajo—;
-    * **la celda tiene lugar y no se abre**: el evento es de la capa de abajo,
-      la capa alta del mapa está vacía ahí, y el tile no agrega ningún bit de
-      paso que la tabla del mapa no tuviera. Si ya hay un tile dibujado,
-      hornear lo taparía; si el evento es de la capa del héroe o de la de
-      encima su sprite no va en la capa alta del mapa sin cambiar qué tapa a
-      qué; y si el tile abriera la celda, hornear dejaría un agujero que hasta
-      ahí sólo existía mientras la fila estaba a la vista.
+    * **it is drawn with a tile of the ChipSet's upper layer** —not with a
+      CharSet—, with tile 0 left out because in RM2k it is "no graphic";
+    * **the drawing is fixed**: the first page without a condition and **all**
+      pages drawing the same tile on the same layer. A door that opens with a
+      switch changes tile, so it doesn't qualify; one that only changes
+      script does. Until 2026-09-20 **a single page** was required, and that
+      left out four light tiles of map 11 whose two or three pages draw the
+      same thing;
+    * **the event doesn't move or change**: no `move_type`, no own route on any
+      page, no continuous animation on any, and no page of the map moves it or
+      makes it flash (see `COMANDOS_QUE_MUEVEN`);
+    * **the tile covers the whole cell**: opaque in all 16x16, and without the
+      "above the hero" bit —with it, placed in the upper layer it would be
+      drawn above the hero and not below, which is where the sprite of a
+      below-layer event is—;
+    * **the cell has room and doesn't open**: the event is on the below layer,
+      the map's upper layer is empty there, and the tile adds no passage bit
+      the map's table didn't have. If a tile is already drawn, baking would
+      cover it; if the event is on the hero's layer or the above one its
+      sprite doesn't go in the map's upper layer without changing what covers
+      what; and if the tile opened the cell, baking would leave a hole that
+      until then only existed while the row was visible.
 
-    Que el tile de abajo esté animado **no lo saca**: la celda se hornea en
-    todos los dibujos de la animación, porque lo que se toca es la capa del mapa
-    y `capas_animadas` los renderiza todos desde ahí. Lo que se pierde es la
-    animación que el tile opaco ya tapaba.
+    The tile below being animated **doesn't rule it out**: the cell is baked
+    into every drawing of the animation, because what is touched is the map
+    layer and `capas_animadas` renders all of them from there. What is lost is
+    the animation the opaque tile already covered.
     """
     atlas = renderer.atlas_por_nombre(getattr(game_map, "chipset_nombre", None))
     flags = getattr(game_map, "pasabilidad_tiles", None)
     if atlas is None or flags is None:
         return {}
-    # Que el tile 0 de la capa alta —el que lleva una celda vacía— no dibuje
-    # nada se comprueba y no se supone: es lo que hace que meterle el tile del
-    # evento no tape nada. En los ChipSets de este juego lo cumple; uno que no
-    # lo cumpla deja al mapa sin horneados en vez de cambiar lo que se ve.
+    # That tile 0 of the upper layer —the one an empty cell carries— draws
+    # nothing is checked, not assumed: it is what makes putting the event's
+    # tile there cover nothing. The ChipSets of this game satisfy it; one that
+    # doesn't leaves the map without baked events instead of changing what is
+    # seen.
     if any(_alfas_del_tile(atlas, 0)):
         return {}
-    # Los eventos que alguna página corre de lugar, hace destellar o manda a
-    # caminar. Va por el id de RM2k, que es lo que llevan los comandos, y lo
-    # traduce el mismo `eventos.Eventos` que usa la compilación.
+    # The events that some page moves, flashes or sends walking. It goes by
+    # the RM2k id, which is what the commands carry, and it is translated by
+    # the same `eventos.Eventos` the compilation uses.
     del_mapa = eventos.Eventos(game_map)
     tocados = set()
     for evento in game_map.events:
@@ -806,8 +821,8 @@ def eventos_horneables(renderer, game_map):
                     blanco = del_mapa.blanco(cmd.parameters[0])
                     if blanco:
                         tocados.add(blanco - 1)
-    # Y los que caminan solos: `move_type` en cualquier cosa que no sea quieto,
-    # o una ruta propia en alguna página.
+    # And the ones that walk on their own: `move_type` set to anything other
+    # than still, or an own route on some page.
     caminan = {numero for numero, evento in enumerate(game_map.events)
                if any(p.move_type or p.move_route.commands
                       for p in evento.pages)}
@@ -823,13 +838,13 @@ def eventos_horneables(renderer, game_map):
         paginas = game_map.events[numero].pages
         if paginas[0].condition.active:
             continue
-        # Todas sus páginas tienen que dibujar lo mismo, en la misma capa y sin
-        # animación continua, y no sólo la activa: la fila se esconde para toda
-        # la partida, así que lo que decide es lo que el evento **puede llegar
-        # a** dibujar. De acá sale gratis la mitad de
-        # `test_hornear_no_cambia_la_pasabilidad_de_la_celda`: con el mismo
-        # gráfico y la misma capa en todas, `pasabilidad_del_tile` da lo mismo
-        # en todas.
+        # All its pages have to draw the same thing, on the same layer and
+        # without continuous animation, and not only the active one: the row
+        # is hidden for the whole playthrough, so what decides is what the
+        # event **can end up** drawing. Half of
+        # `test_hornear_no_cambia_la_pasabilidad_de_la_celda` comes for free
+        # from this: with the same graphic and the same layer on all of them,
+        # `pasabilidad_del_tile` gives the same on all of them.
         if set(npc["graficos"]) != {npc["graficos"][0]} \
                 or npc["graficos"][0] is None:
             continue
@@ -839,27 +854,28 @@ def eventos_horneables(renderer, game_map):
             continue
         indice = int(base.rsplit(":", 1)[1])
         if not indice:
-            continue                    # el tile 0 es "sin gráfico"
+            continue                    # tile 0 is "no graphic"
         tile = rm2k.UPPER_BASE + indice
         if flags[tile] & rm2k.PASS_ABOVE:
-            continue                    # iría por encima del héroe
+            continue                    # it would go above the hero
         celda = npc["y"] * game_map.width + npc["x"]
         if game_map.upper_layer[celda] != rm2k.UPPER_BASE:
-            continue                    # la capa alta de la celda está ocupada
-        # **Y hornear no puede abrir la celda.** Hornear mete el tile en la
-        # capa alta, así que la tabla del mapa pasa a declarar los bits del
-        # tile donde antes declaraba los suyos. Cerrar de más no pasa —un
-        # evento sólido sobre piso libre es el caso normal, y la fila ya
-        # cerraba esa celda para todos—, pero **abrir** sí: un tile que se pisa
-        # sobre una celda que el mapa tiene cerrada es un agujero que hasta
-        # ahora sólo existía mientras la fila estaba a la vista.
+            continue                    # the cell's upper layer is taken
+        # **And baking cannot open the cell.** Baking puts the tile in the
+        # upper layer, so the map's table starts declaring the tile's bits
+        # where it used to declare its own. Closing too much doesn't happen
+        # —a solid event on free floor is the normal case, and the row already
+        # closed that cell for everyone—, but **opening** does: a walkable
+        # tile over a cell the map has closed is a hole that until now only
+        # existed while the row was visible.
         #
-        # El caso que lo trajo es el `MovinDoor` del mapa 2, que la regla
-        # aflojada alcanza: está en un rincón del mapa, fuera de cualquier
-        # cámara, y hornearlo movía la golden `puerta-izq-950` —113 pixeles, en
-        # una puerta a sesenta celdas de ahí, con los mismos switches puestos—.
-        # El mecanismo completo no se llegó a desarmar; lo que sí está medido
-        # es que ese horneado es lo único que cambia entre las dos ROMs.
+        # The case that brought it up is the `MovinDoor` of map 2, which the
+        # relaxed rule reaches: it is in a corner of the map, out of any
+        # camera, and baking it moved the golden `puerta-izq-950` —113 pixels,
+        # on a door sixty cells from there, with the same switches set—. The
+        # whole mechanism was never fully taken apart; what is measured is
+        # that this baking is the only thing that changes between the two
+        # ROMs.
         if npc["tile_pasa"] & ~rm2k.pasa_de_celda(
                 flags, game_map.lower_layer[celda],
                 game_map.upper_layer[celda]):
@@ -873,16 +889,17 @@ def eventos_horneables(renderer, game_map):
 
 
 def _mismo_reparto_de_cgram(sin, con):
-    """Si hornear no le movió a nadie más los colores con que se dibuja.
+    """Whether baking didn't move anyone else's colors they are drawn with.
 
-    Lo que el horneado le agrega al mapa son los colores del tile, y los colores
-    del fondo son un pozo común con un presupuesto: unos cuantos de más le hacen
-    fusionar —y entonces cambian pixeles de celdas que no tienen nada que ver— o
-    le sacan una paleta a la capa de encima, que empaqueta por tile y fusiona
-    mucho peor. Las dos cosas se ven acá: la capa de encima tiene que salir
-    idéntica, y el fondo con el mismo presupuesto y sin fusionar más que antes.
-    Que la paleta del fondo tenga colores nuevos, y por lo tanto otro orden, no
-    es un cambio: el tilemap sale con los índices de esa misma paleta.
+    What baking adds to the map are the tile's colors, and the background's
+    colors are a shared pool with a budget: a few extra make it merge —and
+    then pixels change in cells that have nothing to do with it— or take a
+    palette away from the upper layer, which packs per tile and merges much
+    worse. Both things show here: the upper layer has to come out identical,
+    and the background with the same budget and without merging more than
+    before. The background palette having new colors, and therefore another
+    order, is not a change: the tilemap comes out with the indices of that
+    same palette.
     """
     if con is None:
         return False
@@ -895,29 +912,29 @@ def _mismo_reparto_de_cgram(sin, con):
 
 def _hornear_si_no_mueve_la_cgram(renderer, game_map, map_id, sin_horneado,
                                   horneados):
-    """Hornea `horneados` y devuelve (capas, horneados): las horneadas si el
-    reparto de CGRAM no se movió, y si no las de `sin_horneado`, sin ninguno.
-    Ver `_mismo_reparto_de_cgram`."""
+    """Bakes `horneados` and returns (layers, baked): the baked ones if the
+    CGRAM split didn't move, and otherwise those of `sin_horneado`, with none.
+    See `_mismo_reparto_de_cgram`."""
     hornear_en_el_mapa(game_map, horneados)
     con_horneado = capas_convertidas(renderer, game_map)
     if _mismo_reparto_de_cgram(sin_horneado, con_horneado):
         return con_horneado, horneados
-    print("  mapa %d: hornear %d evento(s) le movía el reparto de "
-          "CGRAM, así que van dibujados" % (map_id, len(horneados)))
+    print("  map %d: baking %d event(s) moved its CGRAM split, "
+          "so they are drawn" % (map_id, len(horneados)))
     for celda, _tile in horneados.values():
         game_map.upper_layer[celda] = rm2k.UPPER_BASE
     return sin_horneado, {}
 
 
 def hornear_en_el_mapa(game_map, horneables):
-    """Mete el tile de cada evento horneado en la capa alta del mapa.
+    """Puts the tile of each baked event into the map's upper layer.
 
-    Se hace sobre el `game_map` y no sobre la imagen dibujada, y eso resuelve
-    tres cosas de una: las capas se dibujan desde acá —así que los dibujos de la
-    animación del ChipSet salen horneados también—, la clave del caché de las
-    capas lleva la capa alta, así que cambia sola, y la pasabilidad de la celda
-    la resuelve `passability_map` con los bits del tile, que son los mismos que
-    imponía la fila del evento.
+    It is done on the `game_map` and not on the drawn image, and that solves
+    three things at once: the layers are drawn from here —so the drawings of
+    the ChipSet animation come out baked too—, the layer cache key carries the
+    upper layer, so it changes by itself, and the cell's passability is
+    resolved by `passability_map` with the tile's bits, which are the same the
+    event's row imposed.
     """
     for celda, tile in horneables.values():
         game_map.upper_layer[celda] = tile
@@ -925,52 +942,51 @@ def hornear_en_el_mapa(game_map, horneables):
 
 def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
                     timer_colores=(), solo_aqui=None, poses=None):
-    """Los NPCs del mapa que se dibujan: todos los que tienen CharSet, y los
-    dibujados con un tile del chipset **que entren** en las paletas de sprite.
+    """The map's NPCs that are drawn: all the ones with a CharSet, and the ones
+    drawn with a chipset tile **that fit** in the sprite palettes.
 
-    Un evento con gráfico de tile es un personaje más para la consola, con su
-    paleta, y las paletas de sprite son ocho. Los
-    CharSets del juego usan quince colores cada uno y no comparten ninguna, así
-    que en un mapa con siete personajes de CharSet queda una sola paleta para
-    todos los tiles, y dos tiles que no compartan colores no entran. Pasó en el
-    mapa 8: nueve personajes en nueve paletas. Antes de esto los eventos de
-    tile directamente no se dibujaban en ningún mapa —la puerta del mapa 2 era
-    un portal negro—, así que dibujar los que entran y avisar de los que no es
-    estrictamente mejor.
+    An event with a tile graphic is one more character for the console, with
+    its palette, and there are eight sprite palettes. The game's CharSets use
+    fifteen colors each and share none, so in a map with seven CharSet
+    characters there is a single palette left for all the tiles, and two tiles
+    that don't share colors don't fit. It happened in map 8: nine characters in
+    nine palettes. Before this, tile events weren't drawn at all in any map
+    —the door of map 2 was a black portal—, so drawing the ones that fit and
+    warning about the ones that don't is strictly better.
 
-    La regla es una sola: primero se reparten los líderes posibles, los NPCs
-    con CharSet y los gráficos a los que las rutas cambian con la orden 34 —que
-    son un personaje más, con su paleta—, en el orden del mapa y con el mismo
-    primer-lugar-que-entre de `build_characters`; después los tiles, en el
-    orden del mapa, cada uno mientras quepa. Devuelve la lista de NPCs que se
-    dibujan y la de los (evento, tile) que quedaron afuera.
-    Un tile que quedó afuera no se dibuja, pero su evento sigue ahí: cierra el
-    paso y dispara igual.
+    There is a single rule: first the possible leaders are placed, the NPCs
+    with a CharSet and the graphics that routes change to with command 34
+    —which are one more character, with its palette—, in map order and with the
+    same first-place-that-fits as `build_characters`; then the tiles, in map
+    order, each one while it fits. Returns the list of NPCs that are drawn and
+    that of the (event, tile) left out.
+    A tile left out isn't drawn, but its event is still there: it blocks the
+    way and triggers all the same.
     """
     paletas = []
     paleta_de = {}
-    # A quiénes hubo que prestarles una paleta ajena. Salen en el informe del
-    # conversor: no rompen nada, pero se ven con colores que no son los suyos.
+    # Who had to be lent someone else's palette. They show up in the
+    # converter's report: they don't break anything, but they are seen with
+    # colors that aren't their own.
     prestadas = set()
-    # Las paletas de los líderes posibles. **Nadie más se mete ahí**, y no es
-    # por prolijidad: el destello de un evento —`FlashSprite`— en la consola es
-    # un tinte de CGRAM, así que tiñe la paleta entera y con ella todo lo que la
-    # comparta. RM2k, en cambio, lo aplica sobre la imagen del sprite; o sea
-    # que compartir la paleta del héroe es una diferencia real con RM2k y no un
-    # detalle de empaquetado.
+    # The palettes of the possible leaders. **Nobody else goes in there**, and
+    # not for tidiness: an event's flash —`FlashSprite`— on the console is a
+    # CGRAM tint, so it tints the whole palette and with it everything sharing
+    # it. RM2k, instead, applies it on the sprite image; that is, sharing the
+    # hero's palette is a real difference from RM2k and not a packing detail.
     #
-    # taro lo vio el 2026-09-07 en el Emitter Room: cuando Talan absorbe el
-    # enojo de Core y destella en rojo, dos tiles negros encima de unos cofres
-    # —invisibles, porque son todo negro— se ponían rojos con él. Compartían la
-    # paleta 0 con `Future1:0`.
+    # taro saw it on 2026-09-07 in the Emitter Room: when Talan absorbs Core's
+    # anger and flashes red, two black tiles above some chests —invisible,
+    # because they are all black— turned red with him. They shared palette 0
+    # with `Future1:0`.
     #
-    # Se protege al líder y no a "el que destella" porque el blanco de un
-    # destello puede ser cualquier evento y se decide en tiempo de ejecución; el
-    # héroe es el que destella en este juego y es el único que se puede saber
-    # acá. Si aparece un destello sobre otro evento, va a filtrar igual.
+    # The leader is protected and not "the one that flashes" because the target
+    # of a flash can be any event and is decided at run time; the hero is the
+    # one that flashes in this game and is the only one that can be known here.
+    # If a flash on another event shows up, it will leak all the same.
     de_lider = set()
-    # Qué poses puede mostrar cada gráfico, que es sobre lo que se eligen sus
-    # quince colores. Sin él son las doce de siempre.
+    # Which poses each graphic can show, which is what its fifteen colors are
+    # chosen over. Without it they are the usual twelve.
     poses = dict(poses or {})
 
     def cabe(charset, index, forzar, lider=False):
@@ -991,29 +1007,29 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
             paleta_de[(charset, index)] = len(paletas)
             paletas.append(list(palette))
             return True
-        # No hay paleta para él, así que **se le presta una**: cada color va al
-        # más cercano de los que hay. Se ve mal, pero se ve.
+        # There is no palette for it, so **one is lent to it**: each color goes
+        # to the nearest of the ones there are. It looks bad, but it shows.
         #
-        # Antes se lo descartaba, y taro cortó esa discusión con el argumento
-        # que la cierra: si no podemos incluir todos los eventos, el proyecto
-        # entero se cae. Y un sprite con colores raros es un error **visible**;
-        # uno invisible es una trampa, y ya nos costó una tarde con la puerta
-        # que Core rompe.
+        # It used to be discarded, and taro cut that discussion short with the
+        # argument that settles it: if we can't include all the events, the
+        # whole project falls apart. And a sprite with odd colors is a
+        # **visible** error; an invisible one is a trap, and it already cost us
+        # an afternoon with the door Core breaks.
         #
-        # Cuánto se ve depende del salto de color, no de cuántos pixeles
-        # cambian: la puerta del pad cambia el 42% de los suyos con un salto de
-        # 1 sobre 31 y queda casi igual, mientras que `Future3:1` cambia el 49%
-        # con saltos de 17 y sí se nota.
+        # How much it shows depends on the color jump, not on how many pixels
+        # change: the pad's door changes 42% of its own with a jump of 1 out
+        # of 31 and stays almost the same, while `Future3:1` changes 49% with
+        # jumps of 17 and it does show.
         cuenta = sprite_colors(renderer.charsets.get(charset), index)
         mejor = None
         for numero, existente in enumerate(paletas):
             if numero in de_lider:
-                continue        # ésas las pisa la ROM con los colores del líder
+                continue        # the ROM overwrites those with the leader's colors
             costo = sum(v for c, v in cuenta.items() if c not in existente)
             if mejor is None or costo < mejor[0]:
                 mejor = (costo, numero)
         if mejor is None:
-            return False        # no hay ni una paleta que no sea de líder
+            return False        # there isn't a single non-leader palette
         paleta_de[(charset, index)] = mejor[1]
         prestadas.add((charset, index))
         return True
@@ -1021,27 +1037,28 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
     npcs = collect_npcs(game_map)
 
     def claves(npc):
-        """Las (CharSet, índice) que el NPC puede llegar a dibujar: la de su
-        fila y, si el gráfico sigue a la página, las de todas sus páginas."""
+        """The (CharSet, index) pairs the NPC can end up drawing: its row's
+        and, if the graphic follows the page, those of all its pages."""
         salida = [(npc["charset"], npc["index"])]
         if npc["cambia"]:
             salida += [g[:2] for g in npc["graficos"] if g is not None]
         return salida
 
-    # Los líderes posibles, que son los que el héroe puede llegar a dibujar.
+    # The possible leaders, which are the ones the hero can end up drawing.
     #
-    # **Comparten una sola ranura de CGRAM**, porque lidera uno a la vez: la ROM
-    # le sube los quince colores del que esté liderando cuando cambia el grupo y
-    # al cargar el mapa. Antes se le reservaba una paleta a cada uno, y eso es
-    # una paleta ocupada por alguien que no está en pantalla: el mapa 8 —la
-    # calle a la que da el pad de Talan— pedía nueve de las ocho por eso, con
-    # Talan y Kersh reservados en una calle donde no aparece ninguno.
+    # **They share a single CGRAM slot**, because one leads at a time: the ROM
+    # uploads the fifteen colors of whoever is leading when the party changes
+    # and when loading the map. A palette used to be reserved for each, and
+    # that is a palette taken by someone who isn't on screen: map 8 —the street
+    # Talan's pad opens onto— asked for nine out of eight because of that, with
+    # Talan and Kersh reserved on a street where neither appears.
     #
-    # **Salvo el que además está como NPC en este mapa.** Ése se lleva paleta
-    # propia, porque su fila la usa al mismo tiempo que el héroe: compartiendo
-    # la ranura, con Talan liderando, el Kersh parado en el mapa se dibujaría
-    # con los colores de Talan. Pasa en los mapas 1 y 6 con Kersh y en el 3 con
-    # Talan; en los otros seis del PoC no pasa, y ahí es donde se gana.
+    # **Except the one that is also an NPC in this map.** That one gets its own
+    # palette, because its row uses it at the same time as the hero: sharing
+    # the slot, with Talan leading, the Kersh standing on the map would be
+    # drawn with Talan's colors. It happens in maps 1 and 6 with Kersh and in 3
+    # with Talan; in the other six of the PoC it doesn't, and that is where the
+    # gain is.
     de_npc = {c for npc in npcs for c in claves(npc)}
     vistos, ranura_lider, propios = set(), None, set()
     for actor in lideres:
@@ -1056,55 +1073,56 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
             if clave not in de_npc:
                 ranura_lider = paleta_de[clave]
         else:
-            # A la ranura compartida, y con **sus propios** colores: sus poses
-            # se empaquetan con su paleta ordenada, que es la que la ROM sube
-            # cuando le toca liderar.
+            # To the shared slot, and with **its own** colors: its poses are
+            # packed with its sorted palette, which is the one the ROM uploads
+            # when its turn to lead comes.
             paleta_de[clave] = ranura_lider
             propios.add(clave)
 
-    # Los CharSets de las páginas **ya no se fuerzan**. Se los forzaba para que
-    # un personaje nunca se quedara sin paleta, y el precio era que un mapa con
-    # más personajes que paletas no convertía: el 8 pedía nueve de las ocho y el
-    # Hover-Tram pide once. Con el préstamo de `cabe` eso ya no hace falta —el
-    # que no entra se dibuja con una ajena— y ningún mapa se cae por esto.
+    # The CharSets of the pages **are no longer forced**. They were forced so
+    # that a character never ran out of palette, and the price was that a map
+    # with more characters than palettes didn't convert: map 8 asked for nine
+    # out of eight and the Hover-Tram asks for eleven. With the lending in
+    # `cabe` that is no longer needed —whoever doesn't fit is drawn with
+    # someone else's— and no map fails because of this.
     #
-    # El único que sigue forzado es el líder: el héroe está en pantalla todo el
-    # tiempo y es a quien más se le notaría.
+    # The only one still forced is the leader: the hero is on screen all the
+    # time and is the one where it would show the most.
     #
-    # El orden es el del mapa, **salvo los que tienen peso**: ver `peso_de_grafico`.
+    # The order is the map's, **except the ones with weight**: see `peso_de_grafico`.
     for npc in sorted(npcs, key=lambda n: -peso_de_grafico(n["charset"])):
         for clave in claves(npc):
             if clave not in vistos and not clave[0].startswith(rm2k.TILE_PREFIX):
                 vistos.add(clave)
                 cabe(clave[0], clave[1], False)
-    # Y los de la orden 34, después de los NPCs y antes de los tiles.
-    # **Mientras quepan**, como los tiles y no como los CharSets de una página:
-    # forzarlos rompía tres mapas del juego —el 108, el 114 y el 207 pedían
-    # nueve paletas de las ocho— y romper un mapa que hoy convierte es peor que
-    # no dibujar un cambio de gráfico. El que no entra no se dibuja, que es lo
-    # mismo que ya pasa con una página cuyo gráfico no entró. Los transparentes
-    # ni siquiera piden paleta.
+    # And the ones from command 34, after the NPCs and before the tiles.
+    # **While they fit**, like the tiles and not like a page's CharSets: forcing
+    # them broke three maps of the game —108, 114 and 207 asked for nine
+    # palettes out of eight— and breaking a map that converts today is worse
+    # than not drawing a graphic change. The one that doesn't fit isn't drawn,
+    # which is the same that already happens with a page whose graphic didn't
+    # fit. Transparent ones don't even ask for a palette.
     for clave in graficos_de_ruta:
         if clave not in vistos and sprite_colors(
                 renderer.charsets.get(clave[0]), clave[1]):
             vistos.add(clave)
             cabe(clave[0], clave[1], False)
-    # El cronómetro **antes que los eventos dibujados con un tile del chipset**.
-    # Sus dos colores van a la primera paleta con lugar y quedan reservados ahí;
-    # `digitos_del_timer` después los encuentra puestos y no agrega nada.
+    # The timer **before the events drawn with a chipset tile**. Its two colors
+    # go to the first palette with room and are reserved there;
+    # `digitos_del_timer` later finds them in place and adds nothing.
     #
-    # El orden importa y hasta ahora era el revés por accidente. Un evento de
-    # tile entra "mientras quepa" —así está escrito unas líneas más abajo, y el
-    # que no entra no se dibuja—, mientras que el cronómetro es HUD y está en
-    # pantalla siempre. En el mapa 8 el tile 118 del chipset, que son dos
-    # colores, se metía en la paleta del save point y la dejaba en catorce: el
-    # cronómetro ya no entraba en ninguna y había que bajarle un color a un
-    # personaje entero para hacerle lugar. Sirviéndolo antes, no se fusiona
-    # nada y el tile se acomoda en otra paleta.
+    # The order matters and until now it was reversed by accident. A tile event
+    # goes in "while it fits" —that is how it is written a few lines below, and
+    # the one that doesn't fit isn't drawn—, while the timer is HUD and is on
+    # screen always. In map 8 chipset tile 118, which is two colors, went into
+    # the save point's palette and left it at fourteen: the timer no longer fit
+    # anywhere and a whole character had to lose a color to make room for it.
+    # Serving it first, nothing is merged and the tile settles in another
+    # palette.
     if timer_colores:
         for numero, existente in enumerate(paletas):
             if numero in de_lider:
-                continue        # ésas las pisa la ROM con los colores del líder
+                continue        # the ROM overwrites those with the leader's colors
             union = existente + [c for c in timer_colores if c not in existente]
             if len(union) <= OBJ_COLORS:
                 paletas[numero] = union
@@ -1119,8 +1137,9 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
                 entran.add(clave)
             else:
                 afuera.add(clave)
-        # Las que quedaron afuera no se dibujan, de ningún lado: la fila se
-        # esconde si es la suya, y la página que la pida sale sin gráfico.
+        # The ones left out aren't drawn, from anywhere: the row is hidden if
+        # it is its own, and the page that asks for it comes out with no
+        # graphic.
         npc["afuera"] = {c for c in claves(npc) if c in afuera}
         descartados += [(npc["evento"], c[0]) for c in sorted(npc["afuera"])]
         if (npc["charset"], npc["index"]) in afuera:
@@ -1128,33 +1147,34 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
             npc["tile_pasa"] = None
             if not npc["cambia"]:
                 continue
-            # La fila queda por las otras páginas, escondida, y sus campos
-            # pasan a la primera de ellas que entre: es la ranura con la que
-            # nace. Si ninguna entra, el evento no se dibuja nunca.
+            # The row stays for the other pages, hidden, and its fields move to
+            # the first of them that fits: it is the slot it starts with. If
+            # none fits, the event is never drawn.
             otra = next((g for g in npc["graficos"]
                          if g is not None and g[:2] not in afuera), None)
             if otra is None:
                 continue
             npc["charset"], npc["index"], npc["pose"] = otra
         salida.append(npc)
-    # Y por último, el cronómetro. Sus dígitos son dos colores y el negro suele
-    # estar ya en casi todas, así que le alcanza con **una entrada libre**; el
-    # problema aparece en un mapa que llene las ocho paletas a quince, que es el
-    # 8 —Lashe City, la calle a la que da el pad de Talan—.
+    # And last, the timer. Its digits are two colors and black is usually
+    # already in almost all of them, so **one free entry** is enough; the
+    # problem shows up in a map that fills the eight palettes to fifteen, which
+    # is 8 —Lashe City, the street Talan's pad opens onto—.
     #
-    # Ahí se le hace lugar bajando a un personaje de quince colores a catorce, y
-    # se elige **el que menos pixeles mueva**. Sólo se miran paletas de un
-    # personaje solo: bajar una que comparten dos obligaría a recuantizar a los
-    # dos contra la paleta nueva, y eso es bastante más código para un caso que
-    # no aparece. Tampoco se miran las de líder: la ROM las pisa.
+    # There room is made by lowering a fifteen-color character to fourteen,
+    # and **the one that moves the fewest pixels** is chosen. Only palettes of
+    # a single character are looked at: lowering one shared by two would force
+    # requantizing both against the new palette, and that is a lot more code
+    # for a case that doesn't come up. Leader ones aren't looked at either: the
+    # ROM overwrites them.
     #
-    # Medido en el mapa 8: `BLVehicles:5` mueve 105 pixeles de 4648, el 2,26%,
-    # con un salto de 4 sobre 31. El siguiente candidato cuesta 11,84%.
+    # Measured in map 8: `BLVehicles:5` moves 105 pixels of 4648, 2.26%, with a
+    # jump of 4 out of 31. The next candidate costs 11.84%.
     topes = {}
-    # Sólo si de verdad no tiene dónde: ni una paleta con lugar **ni una ranura
-    # libre**. Sin mirar las ranuras libres, esto le bajaba dos colores a
-    # `People4:5` en el mapa 5 —16,85% de sus pixeles— cuando el mapa usa cuatro
-    # paletas de las ocho y al cronómetro le sobraba una entera.
+    # Only if it really has nowhere to go: not a palette with room **nor a free
+    # slot**. Without looking at the free slots, this took two colors off
+    # `People4:5` in map 5 —16.85% of its pixels— when the map uses four
+    # palettes of the eight and the timer had a whole one to spare.
     if timer_colores and len(paletas) >= OBJ_PALETTES and not any(
             n not in de_lider
             and len(set(p) | set(timer_colores)) <= OBJ_COLORS
@@ -1167,14 +1187,15 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
             if n in de_lider or solos[n] != 1 or clave[0].startswith(
                     rm2k.TILE_PREFIX):
                 continue
-            # Los que están en otro mapa de la ROM van **últimos**, no afuera:
-            # el banco de poses es global, así que cuantizarlo distinto acá que
-            # allá le cuesta al cartucho un banco más, 6 KB. Hasta el
-            # 2026-09-12 quedaban excluidos y alcanzaba, porque en el mapa 8
-            # siempre había un candidato de un solo mapa; al servir primero a
-            # los gráficos con peso —el save point— el reparto se reacomodó, no
-            # quedó ninguno, y la ROM con cronómetro dejó de armarse. Seis kilos
-            # es peor que nada y mejor que no tener cronómetro.
+            # The ones in another map of the ROM go **last**, not out: the pose
+            # bank is global, so quantizing it differently here than there
+            # costs the cartridge one more bank, 6 KB. Until 2026-09-12 they
+            # were excluded and that was enough, because in map 8 there was
+            # always a single-map candidate; when the weighted graphics —the
+            # save point— started being served first the split rearranged
+            # itself, none was left, and the ROM with the timer stopped
+            # building. Six kilobytes is worse than nothing and better than not
+            # having a timer.
             ajeno = solo_aqui is not None and clave not in solo_aqui
             cuenta = sprite_colors(renderer.charsets.get(clave[0]), clave[1],
                                    poses.get(clave))
@@ -1189,59 +1210,59 @@ def npcs_dibujables(renderer, game_map, lideres, tope, graficos_de_ruta=(),
                 mejor = (costo, clave, n, nuevo_tope, sorted(set(m.values())))
         if mejor is not None:
             _costo, clave, n, nuevo_tope, paleta_nueva = mejor
-            print("  para que entre el cronómetro, %s:%d baja a %d colores "
-                  "(%.2f%% de sus pixeles)%s"
+            print("  to make room for the timer, %s:%d drops to %d colors "
+                  "(%.2f%% of its pixels)%s"
                   % (clave[0], clave[1], nuevo_tope, 100 * _costo[1],
-                     ", y con un banco de poses propio" if _costo[0] else ""))
+                     ", and with a pose bank of its own" if _costo[0] else ""))
             paletas[n] = paleta_nueva
             topes[clave] = nuevo_tope
 
-    # El reparto se devuelve para que `build_characters` lo use tal cual: un
-    # segundo primer-lugar-que-entre en otro orden puede dar otra cuenta, y
-    # dio: el mapa 8 entraba acá en ocho paletas y allá pedía nueve.
+    # The split is returned so `build_characters` uses it as is: a second
+    # first-place-that-fits in another order can give a different count, and
+    # it did: map 8 fit here in eight palettes and there asked for nine.
     return salida, descartados, (paletas, paleta_de, propios, de_lider,
                                  topes, prestadas, poses)
 
 
 def build_characters(images, personajes, ranuras, reparto):
-    """El banco de sprites que va a VRAM: una pose por ranura.
+    """The sprite bank that goes to VRAM: one pose per slot.
 
-    `personajes` es la lista de (charset, índice) que necesitan paleta, en el
-    orden en que se las reparte; `ranuras` la de (clave, charset, índice,
-    pose), un bloque de 16 tiles por cada una y en ese orden. Desde el
-    2026-09-05 acá va **una pose por ranura** y nada más: las doce de los que
-    caminan viven en el cartucho —ver `banco_de_poses`— y se suben en caliente.
-    Antes iban todas acá, y la escena de apertura pedía 768 tiles de los 512
-    que direcciona la PPU.
+    `personajes` is the list of (charset, index) that need a palette, in the
+    order they are handed out; `ranuras` that of (key, charset, index, pose), a
+    block of 16 tiles for each one and in that order. Since 2026-09-05 what
+    goes here is **one pose per slot** and nothing else: the twelve of the
+    walkers live in the cartridge —see `banco_de_poses`— and are uploaded on
+    the fly. They all used to go here, and the opening scene asked for 768
+    tiles of the 512 the PPU addresses.
 
-    **Las paletas no se deciden acá**: llegan en `reparto`, que es lo que
-    decidió `npcs_dibujables` para el mapa entero. Acá sólo se arma el índice
-    de cada color adentro de la suya. Hasta el 2026-09-17 había además un
-    reparto propio, primero-que-entre, para cuando no llegaba ninguno; no lo
-    usaba nadie, y un segundo reparto en otro orden ya había dado otra cuenta
-    —el mapa 8 entraba allá en ocho paletas y acá pedía nueve—.
+    **Palettes are not decided here**: they arrive in `reparto`, which is what
+    `npcs_dibujables` decided for the whole map. Here only the index of each
+    color inside its own is built. Until 2026-09-17 there was also a split of
+    its own, first-that-fits, for when none arrived; nobody used it, and a
+    second split in another order had already given a different count —map 8
+    fit there in eight palettes and here asked for nine—.
 
-    Devuelve (tiles, paletas, ubicación, paleta_de): ubicación mapea la clave
-    de la ranura a (bloque, paleta), y paleta_de cada (charset, índice) a su
-    paleta.
+    Returns (tiles, palettes, location, paleta_de): location maps the slot's
+    key to (block, palette), and paleta_de each (charset, index) to its
+    palette.
     """
     tiles = bytearray()
     colores = {}
     palettes = [list(p) for p in reparto[0]]
     paleta_de = dict(reparto[1])
-    # Los que comparten la ranura del líder: su `lookup` sale de **su** paleta y
-    # no de la de la ranura, porque la ROM va a subir sus colores ahí cuando le
-    # toque liderar. Ver `npcs_dibujables`.
+    # The ones that share the leader's slot: their `lookup` comes from **their**
+    # palette and not from the slot's, because the ROM will upload their colors
+    # there when their turn to lead comes. See `npcs_dibujables`.
     propios = set(reparto[2])
-    # Y a quién se le bajó el número de colores para que entrara el cronómetro.
-    # Tiene que ser el mismo número que usó `npcs_dibujables`: si acá se
-    # cuantizara con quince, las poses del cartucho no coincidirían con la
-    # paleta que la ROM sube a CGRAM.
+    # And who had their number of colors lowered so the timer would fit. It has
+    # to be the same number `npcs_dibujables` used: if here it were quantized
+    # with fifteen, the cartridge's poses wouldn't match the palette the ROM
+    # uploads to CGRAM.
     topes = dict(reparto[4])
-    # Y qué poses puede mostrar cada uno, que es sobre lo que se eligieron sus
-    # quince colores allá. Tiene que ser el mismo conjunto: con otro, la paleta
-    # que la ROM sube a CGRAM y los tiles que se empaquetan acá saldrían de dos
-    # cuentas distintas.
+    # And which poses each one can show, which is what their fifteen colors
+    # were chosen over there. It has to be the same set: with another one, the
+    # palette the ROM uploads to CGRAM and the tiles packed here would come
+    # from two different computations.
     poses_de = dict(reparto[6])
     for charset, index in personajes:
         if (charset, index) in colores:
@@ -1250,14 +1271,14 @@ def build_characters(images, personajes, ranuras, reparto):
             images[charset], index, topes.get((charset, index)),
             poses=poses_de.get((charset, index)))
         if (charset, index) not in paleta_de:
-            sys.exit("%s:%d no está en el reparto de paletas" % (charset, index))
+            sys.exit("%s:%d is not in the palette split" % (charset, index))
         if (charset, index) in propios:
             colores[(charset, index)] = (lookup, mapping)
             continue
         union = palettes[paleta_de[(charset, index)]]
-        # Los colores que no estén en la paleta que le tocó van al más cercano
-        # de los que hay. Pasa cuando el mapa se quedó sin paletas y
-        # `npcs_dibujables` le prestó una ajena: se ve mal, pero se ve.
+        # The colors that aren't in the palette it got go to the nearest of the
+        # ones there are. It happens when the map ran out of palettes and
+        # `npcs_dibujables` lent it someone else's: it looks bad, but it shows.
         lookup = {}
         for color in palette:
             if color in union:
@@ -1273,8 +1294,8 @@ def build_characters(images, personajes, ranuras, reparto):
         lookup, mapping = colores[(charset, index)]
         where[clave] = (block, paleta_de[(charset, index)])
         first = block_tile(block)
-        # El bloque no ocupa 16 tiles seguidos: es un cuadrado de 4x4 dentro
-        # de una grilla de 16 de ancho, así que hay que dejar el hueco.
+        # The block doesn't take 16 consecutive tiles: it is a 4x4 square inside
+        # a grid 16 wide, so the gap has to be left.
         needed = (first + 3 * OBJ_ROW + 4) * 32
         if len(tiles) < needed:
             tiles += bytes(needed - len(tiles))
@@ -1285,26 +1306,26 @@ def build_characters(images, personajes, ranuras, reparto):
     return bytes(tiles), palettes, where, paleta_de, colores
 
 
-# Una pose en el cartucho: los 16 tiles seguidos, por filas.
+# A pose in the cartridge: the 16 tiles in a row, by rows.
 POSE_BYTES = 16 * 32
 
 
 def banco_de_poses(images, personajes, colores):
-    """Las doce poses de cada personaje que cambia de pose, para el cartucho.
+    """The twelve poses of each character that changes pose, for the cartridge.
 
-    Un bloque por personaje —doce poses de 512 bytes, 6 KB— y no uno para
-    todos: cada uno va con `.bloque`, así que ningún DMA de una pose cruza de
-    banco. Y **de la ROM entera, no del mapa**: los mapas 1 y 2 comparten a
-    Core, a Manta y a Kersh, y con una copia por mapa la ROM del arranque con
-    ventana se pasaba del cartucho por 19 KB. `emit` los parte en poses y
-    emite cada pose distinta una sola vez; el mapa lleva sus personajes
-    animados en orden y `emit` traduce.
+    One block per character —twelve poses of 512 bytes, 6 KB— and not one for
+    all: each goes with `.bloque`, so no DMA of a pose crosses a bank. And
+    **from the whole ROM, not from the map**: maps 1 and 2 share Core, Manta
+    and Kersh, and with one copy per map the boot-with-window ROM went over the
+    cartridge by 19 KB. `emit` splits them into poses and emits each distinct
+    pose only once; the map carries its animated characters in order and
+    `emit` translates.
     """
     bancos = {}
     for charset, index in personajes:
-        # Con el lookup de `build_characters`, que es el de la paleta en la
-        # que quedó empaquetado: una pose subida en caliente se dibuja con la
-        # paleta que ya está en CGRAM.
+        # With the lookup from `build_characters`, which is that of the palette
+        # it ended up packed in: a pose uploaded on the fly is drawn with the
+        # palette already in CGRAM.
         lookup, mapping = colores[(charset, index)]
         datos = bytearray()
         for pose in range(SPRITE_POSES):
@@ -1315,23 +1336,24 @@ def banco_de_poses(images, personajes, colores):
     return bancos
 
 
-# El cronómetro: once glifos de 8x16 en el System, a partir de (32, 32). Diez
-# dígitos y los dos puntos, que es todo lo que `Sprite_Timer::Draw` dibuja.
+# The timer: eleven 8x16 glyphs in the System, starting at (32, 32). Ten digits
+# and the colon, which is all `Sprite_Timer::Draw` draws.
 TIMER_GLIFOS = 11
 TIMER_GLIFO_W, TIMER_GLIFO_H = 8, 16
 TIMER_ORIGEN = (32, 32)
-# Dónde se dibuja en pantalla. `Sprite_Timer` lo pone en
-# `menu_offset_x + 4` y `menu_offset_y + 4`, y con una pantalla más angosta que
-# el menú los dos desplazamientos dan cero.
+# Where it is drawn on screen. `Sprite_Timer` puts it at `menu_offset_x + 4`
+# and `menu_offset_y + 4`, and with a screen narrower than the menu both
+# offsets come out zero.
 TIMER_X, TIMER_Y = 4, 4
 
 
 def colores_del_timer(sys_img):
-    """Los colores que usan los once glifos del cronómetro.
+    """The colors the timer's eleven glyphs use.
 
-    Hace falta **antes** de repartir las paletas y no sólo al empaquetar los
-    dígitos: si un mapa llena las ocho, hay que decidir a quién bajarle un color
-    para hacerle lugar, y esa decisión cambia cómo se cuantiza a ese personaje.
+    It is needed **before** splitting the palettes and not only when packing
+    the digits: if a map fills all eight, someone has to be chosen to lose a
+    color to make room for it, and that decision changes how that character is
+    quantized.
     """
     colores = collections.Counter()
     for i in range(TIMER_GLIFOS):
@@ -1346,39 +1368,38 @@ def colores_del_timer(sys_img):
 
 def digitos_del_timer(sys_img, tiles, palettes, de_lider=(),
                      tope=OBJ_PALETTES):
-    """Los once glifos del cronómetro, al final del banco de sprites.
+    """The timer's eleven glyphs, at the end of the sprite bank.
 
-    Van como dos tiles de 8x8 apilados cada uno, y los once entran en una fila
-    de dieciséis: el glifo i ocupa el tile `base + i` y el `base + 16 + i`. La
-    base se redondea a una fila para que esa cuenta valga.
+    Each goes as two stacked 8x8 tiles, and all eleven fit in a row of
+    sixteen: glyph i takes tile `base + i` and `base + 16 + i`. The base is
+    rounded up to a row so that computation holds.
 
-    Devuelve (tiles, base, número de paleta). **No se lleva una paleta propia si
-    no hace falta**: son dos colores —negro y rojo puro— y entran de sobra en la
-    de cualquier personaje que tenga trece o menos, exactamente como entran los
-    eventos dibujados con un tile del chipset. Sólo se agrega una si ninguna
-    tiene lugar.
+    Returns (tiles, base, palette number). **It doesn't take a palette of its
+    own unless needed**: they are two colors —black and pure red— and fit
+    easily in that of any character with thirteen or fewer, exactly like the
+    events drawn with a chipset tile fit. One is added only if none has room.
 
-    Reservársela de entrada costaba una paleta de las ocho, y eso no es
-    contabilidad: `npcs_dibujables` decide con ese número **qué eventos se
-    dibujan**. El 2026-09-07, al armar `demo-apertura` con el cronómetro, el
-    mapa 2 perdió dos eventos, y uno era el del medio de la puerta que Core
-    rompe: taro llegó a la cinemática, la puerta no cambió de tile y no pudo
-    pasar. Un evento que no se dibuja **igual ocupa**, así que la pérdida no es
-    sólo visual.
+    Reserving it up front cost one palette of the eight, and that is not
+    bookkeeping: `npcs_dibujables` decides with that number **which events are
+    drawn**. On 2026-09-07, when building `demo-apertura` with the timer, map 2
+    lost two events, and one was the middle one of the door Core breaks: taro
+    reached the cutscene, the door didn't change tile and he couldn't get
+    through. An event that isn't drawn **still takes space**, so the loss is
+    not only visual.
     """
     colores = colores_del_timer(sys_img)
     if len(colores) > OBJ_COLORS:
-        raise SystemExit("los dígitos del cronómetro usan %d colores y entran %d"
+        raise SystemExit("the timer digits use %d colors and %d fit"
                          % (len(colores), OBJ_COLORS))
     quiere = sorted(colores)
-    # La primera paleta en la que entren sus colores sin fusionar nada. Es el
-    # mismo primer-ajuste de `build_characters` y por la misma razón.
+    # The first palette its colors fit in without merging anything. It is the
+    # same first-fit as `build_characters` and for the same reason.
     #
-    # **Menos las ranuras de líder.** Ésas las pisa la ROM con los quince
-    # colores del que esté liderando cada vez que cambia el grupo o se carga un
-    # mapa, así que un dígito metido ahí se quedaría sin su rojo en cuanto Talan
-    # le pase el liderazgo a Kersh. En los siete mapas de `demo-apertura` hoy no
-    # cae en ninguna, que es justo lo que hace que el error fuera invisible.
+    # **Except the leader slots.** The ROM overwrites those with the fifteen
+    # colors of whoever is leading every time the party changes or a map
+    # loads, so a digit put there would lose its red as soon as Talan hands
+    # the lead to Kersh. In the seven maps of `demo-apertura` it doesn't land
+    # in any today, which is exactly what made the error invisible.
     for numero, existente in enumerate(palettes):
         if numero in de_lider:
             continue
@@ -1390,20 +1411,20 @@ def digitos_del_timer(sys_img, tiles, palettes, de_lider=(),
     else:
         if len(palettes) >= tope:
             raise SystemExit(
-                "el cronómetro no entra: el mapa ya usa las %d paletas de "
-                "sprite que le tocan y ninguna tiene lugar para sus %d colores"
+                "the timer doesn't fit: the map already uses the %d sprite "
+                "palettes it gets and none has room for its %d colors"
                 % (tope, len(quiere)))
         paleta, cual = list(quiere), len(palettes)
         palettes.append(paleta)
     indice = {color: paleta.index(color) + 1 for color in quiere}
 
     tiles = bytearray(tiles)
-    # La base se redondea a una **fila de bloques**, 64 tiles, y no a una fila
-    # de la grilla: los bloques de 4x4 de la última fila de bloques ocupan
-    # cuatro filas de la grilla, y con la imagen de VRAM chica que hay desde
-    # las poses en caliente, redondear a 16 dejaba los glifos encima de la
-    # última fila del bloque del héroe. Ahí no se veía nada hasta que la pose
-    # del héroe subía y pisaba el 0 y los dos puntos.
+    # The base is rounded up to a **row of blocks**, 64 tiles, and not to a
+    # grid row: the 4x4 blocks of the last row of blocks take four grid rows,
+    # and with the small VRAM image there is since poses go on the fly,
+    # rounding to 16 left the glyphs on top of the last row of the hero's
+    # block. Nothing showed there until the hero's pose was uploaded and
+    # overwrote the 0 and the colon.
     base = -(-(len(tiles) // 32) // 64) * 64
     if (base + 16 + TIMER_GLIFOS) * 32 > len(tiles):
         tiles += bytes((base + 16 + TIMER_GLIFOS) * 32 - len(tiles))
@@ -1426,24 +1447,24 @@ def digitos_del_timer(sys_img, tiles, palettes, de_lider=(),
 
 def gotas_de_lluvia(tiles, palettes, de_lider=(), timer_base=None,
                    tope=OBJ_PALETTES, timer_pal=None):
-    """Los seis tiles de las gotas —arriba y abajo de la raya, en los tres
-    grises— y la paleta donde entran sus colores. Ver OP_WEATHER en eventos.py.
+    """The six raindrop tiles —above and below the streak, in the three
+    grays— and the palette their colors go in. See OP_WEATHER in eventos.py.
 
-    Es lo mismo que `digitos_del_timer`: los colores van en la primera paleta
-    de personaje con lugar, menos las de líder, y los tiles al final del
-    banco. Si el cronómetro está, en su misma fila de dieciséis, que le sobran
-    cinco lugares; si no, en una fila de bloques propia. El tono `t` arriba es
-    el tile `base + t` y abajo el `base + 16 + t`. Devuelve (tiles, base,
-    número de paleta).
+    It is the same as `digitos_del_timer`: the colors go in the first
+    character palette with room, except the leader ones, and the tiles at the
+    end of the bank. If the timer is there, in its same row of sixteen, which
+    has five places to spare; if not, in a row of blocks of its own. Tone `t`
+    above is tile `base + t` and below `base + 16 + t`. Returns (tiles, base,
+    palette number).
 
-    **Y tampoco en la del cronómetro.** La razón era que `subir_timer_pal`
-    volvía a subir esa paleta entera **sin teñir** —los dígitos van encima del
-    tinte, `Priority_Timer` es 140 y `Priority_Screen` 90—, y una gota metida
-    ahí se quedaba gris en una pantalla teñida; la lluvia sí se tiñe en RM2k,
-    `Priority_Weather` es 80. Desde el 2026-09-25 sube sólo las entradas de
-    los dígitos, así que una gota ya no se quedaría gris, salvo en un color
-    que compartiera con ellos. Se sigue evitando porque sacarlo puede mover
-    dónde caen las gotas, y eso no se midió.
+    **And not in the timer's either.** The reason was that `subir_timer_pal`
+    uploaded that whole palette again **untinted** —the digits go above the
+    tint, `Priority_Timer` is 140 and `Priority_Screen` 90—, and a drop put
+    there stayed gray on a tinted screen; rain is tinted in RM2k,
+    `Priority_Weather` is 80. Since 2026-09-25 it uploads only the digits'
+    entries, so a drop wouldn't stay gray anymore, except in a color it shared
+    with them. It is still avoided because removing it can move where the
+    drops land, and that wasn't measured.
     """
     quiere = [c for c in eventos.LLUVIA_COLORES]
     evitar = set(de_lider)
@@ -1451,9 +1472,9 @@ def gotas_de_lluvia(tiles, palettes, de_lider=(), timer_base=None,
         evitar.add(timer_pal)
     cual = _primer_lugar(palettes, evitar, quiere, tope)
     if cual is None:
-        # No hay lugar: este mapa no dibuja lluvia. No se le baja un color a
-        # nadie para hacerle lugar, como al cronómetro: eso cambiaría el
-        # reparto, y el reparto es lo que decide qué colores tiene cada mapa.
+        # No room: this map doesn't draw rain. Nobody loses a color to make
+        # room for it, unlike the timer: that would change the split, and the
+        # split is what decides which colors each map has.
         return bytes(tiles), 0, 0
     paleta = palettes[cual]
     tiles = bytearray(tiles)
@@ -1475,26 +1496,27 @@ def gotas_de_lluvia(tiles, palettes, de_lider=(), timer_base=None,
 
 
 def cartel_de_imagen(info, tiles, palettes, base_previa=None):
-    """El cartel del `ShowPicture` al final del banco de sprites: sus tiles y
-    **una paleta entera para él solo**.
+    """The `ShowPicture` sign at the end of the sprite bank: its tiles and **a
+    whole palette just for it**.
 
-    No comparte paleta con nadie, a diferencia del cronómetro y de las gotas, y
-    no es por falta de lugar: el fundido del cartel es un tinte de sus quince
-    entradas de CGRAM cuadro a cuadro, así que un personaje metido en esa
-    paleta se apagaría y se prendería con él.
+    It shares a palette with nobody, unlike the timer and the drops, and not
+    for lack of room: the sign's fade is a tint of its fifteen CGRAM entries
+    frame by frame, so a character put in that palette would fade out and back
+    in with it.
 
-    Y va **arriba de `SPRITE_CGRAM`**, o sea afuera del rango que recorren
-    `aplicar_tinte` y `subir_paletas`. Eso no es acomodar números: en RM2k las
-    imágenes tienen `affected_by_tint` apagado de fábrica —`Priority_PictureOld`
-    es 120 y `Priority_Screen` 90—, así que el tinte de pantalla no las toca.
-    Quedando fuera del rango, no hay que acordarse de saltearlas.
+    And it goes **above `SPRITE_CGRAM`**, that is outside the range
+    `aplicar_tinte` and `subir_paletas` walk. That is not shuffling numbers: in
+    RM2k pictures have `affected_by_tint` off by default
+    —`Priority_PictureOld` is 120 and `Priority_Screen` 90—, so the screen tint
+    doesn't touch them. Being outside the range, nobody has to remember to
+    skip them.
 
-    Devuelve (tiles, base, número de paleta), o (tiles, 0, 0) si el mapa ya usa
-    las ocho paletas de sprite: ahí este mapa no dibuja el cartel.
+    Returns (tiles, base, palette number), or (tiles, 0, 0) if the map already
+    uses the eight sprite palettes: then this map doesn't draw the sign.
     """
     if len(palettes) >= OBJ_PALETTES:
         return bytes(tiles), 0, 0
-    cual = len(palettes)        # la primera libre, sin agregarla a la lista
+    cual = len(palettes)        # the first free one, without adding it to the list
     tiles = bytearray(tiles)
     if base_previa:
         base = -(-(base_previa + 2 * 16) // 64) * 64
@@ -1510,16 +1532,16 @@ def cartel_de_imagen(info, tiles, palettes, base_previa=None):
 
 
 def mapa_muestra_animacion(game_map, renderer, comandos=()):
-    """Si alguna página de este mapa puede dibujar una animación de batalla.
+    """Whether some page of this map can draw a battle animation.
 
-    Se mira sobre los comandos crudos y no sobre el bytecode ya compilado, y a
-    propósito: la VRAM hay que reservarla al convertir el mapa y las páginas se
-    compilan después. Es un superconjunto —una página que al final no compile
-    deja 64 tiles reservados sin usar— y tiene que serlo: si el bytecode
-    mostrara una animación que el mapa no reservó, la ROM escribiría los tiles
-    encima de los de un personaje.
+    It is looked at on the raw commands and not on the already compiled
+    bytecode, and on purpose: VRAM has to be reserved when converting the map
+    and the pages are compiled afterwards. It is a superset —a page that in the
+    end doesn't compile leaves 64 tiles reserved and unused— and it has to be:
+    if the bytecode showed an animation the map didn't reserve, the ROM would
+    write the tiles on top of a character's.
 
-    `comandos` son los de las páginas de prueba, que no salen del mapa.
+    `comandos` are those of the test pages, which don't come from the map.
     """
     numeros = set()
     for cmd in list(comandos) + [cmd for evento in game_map.events
@@ -1533,31 +1555,32 @@ def mapa_muestra_animacion(game_map, renderer, comandos=()):
 
 
 def animacion_de_mapa(tiles, palettes, usadas=0):
-    """La caja de la animación de batalla al final del banco de sprites: sus
-    64 tiles y **una paleta entera para ella sola**.
+    """The battle animation box at the end of the sprite bank: its 64 tiles
+    and **a whole palette just for it**.
 
-    No comparte paleta con nadie por lo mismo que el cartel: los quince colores
-    son de la animación, se suben cuando empieza y se pisan cuando empieza otra,
-    y un personaje metido ahí cambiaría de color con ella. Y va **arriba de
-    `SPRITE_CGRAM`**, o sea afuera del rango que recorren `aplicar_tinte` y
-    `subir_paletas`, que además es lo fiel: en `Spriteset_Map::Update` el tono
-    del mapa va al tilemap, a los personajes, al panorama y a las sombras, y a
-    las animaciones no.
+    It shares a palette with nobody for the same reason as the sign: the
+    fifteen colors belong to the animation, are uploaded when it starts and
+    overwritten when another starts, and a character put there would change
+    color with it. And it goes **above `SPRITE_CGRAM`**, that is outside the
+    range `aplicar_tinte` and `subir_paletas` walk, which is also the faithful
+    thing: in `Spriteset_Map::Update` the map's tone goes to the tilemap, the
+    characters, the panorama and the shadows, and not to the animations.
 
-    Los tiles se reservan **en blanco**: lo que va adentro lo sube la ROM por
-    DMA cuadro a cuadro, desde el cartucho. Ver `animacion.py`.
+    The tiles are reserved **blank**: what goes inside is uploaded by the ROM
+    via DMA frame by frame, from the cartridge. See `animacion.py`.
 
-    Devuelve (tiles, base, número de paleta), o (tiles, 0, 0) si el mapa ya usa
-    las ocho paletas de sprite. `usadas` son las que ya se llevó el cartel.
+    Returns (tiles, base, palette number), or (tiles, 0, 0) if the map already
+    uses the eight sprite palettes. `usadas` are the ones the sign already
+    took.
     """
     cual = len(palettes) + usadas
     if cual >= OBJ_PALETTES:
         return bytes(tiles), 0, 0
     tiles = bytearray(tiles)
-    # Después de todo lo demás: el cronómetro, las gotas y el cartel ya
-    # agrandaron `tiles` hasta cubrir lo suyo, así que el final del banco es el
-    # largo. Redondeado a una **fila de bloques**, que es lo que la aritmética
-    # de los objetos de 32x32 necesita entera.
+    # After everything else: the timer, the drops and the sign already grew
+    # `tiles` to cover theirs, so the end of the bank is the length. Rounded up
+    # to a **row of blocks**, which is what the arithmetic of 32x32 objects
+    # needs whole.
     base = -(-(len(tiles) // 32) // 64) * 64
     if (base + animacion_mod.TILES) * 32 > len(tiles):
         tiles += bytes((base + animacion_mod.TILES) * 32 - len(tiles))
@@ -1566,21 +1589,21 @@ def animacion_de_mapa(tiles, palettes, usadas=0):
 
 def tope_de_paletas_del_mapa(renderer, game_map, lideres, graficos,
                              timer_colores, solos, poses, muestra_animacion):
-    """Cuántas paletas de sprite puede repartirse este mapa entre sus
-    personajes: las ocho, o **siete** si muestra animaciones de batalla.
+    """How many sprite palettes this map can split among its characters: all
+    eight, or **seven** if it shows battle animations.
 
-    La caja de la animación necesita una paleta entera para ella sola, y los
-    dos mapas de la intro —el 2 y el 3, que son los que la escena usa— llenaban
-    las ocho. Sacarle una a los personajes es lo que hace que la escena del
-    Emitter Room tenga dibujo; lo que cuesta son colores fusionados, y lo dice
-    el informe de cada mapa.
+    The animation box needs a whole palette just for it, and the two maps of
+    the intro —2 and 3, which are the ones the scene uses— filled all eight.
+    Taking one away from the characters is what gives the Emitter Room scene
+    its drawing; what it costs is merged colors, and each map's report says so.
 
-    **Salvo que con siete no entre el cronómetro**, que no es negociable: sin
-    sus dos colores no hay cronómetro en toda la ROM. Ahí se vuelve a ocho y
-    este mapa no dibuja animaciones, que es lo que le pasa al mapa 9.
+    **Unless the timer doesn't fit with seven**, which is not negotiable:
+    without its two colors there is no timer in the whole ROM. Then it goes
+    back to eight and this map doesn't draw animations, which is what happens
+    to map 9.
 
-    Vive suelta y no adentro de `convertir` porque es una decisión de reparto
-    y no un detalle de `convertir`.
+    It lives on its own and not inside `convertir` because it is a split
+    decision and not a detail of `convertir`.
     """
     if not muestra_animacion:
         return OBJ_PALETTES
@@ -1596,14 +1619,14 @@ def tope_de_paletas_del_mapa(renderer, game_map, lideres, graficos,
 
 
 def _primer_lugar(palettes, de_lider, colores, tope=OBJ_PALETTES):
-    """La primera paleta —menos las de líder— donde entran `colores` sin
-    fusionar nada, o una nueva si queda ranura; la agrega o la agranda y
-    devuelve su número, o None si no hay lugar.
+    """The first palette —except the leader ones— where `colores` fit without
+    merging anything, or a new one if a slot is left; it adds or grows it and
+    returns its number, or None if there is no room.
 
-    `tope` es cuántas paletas de sprite puede usar este mapa, que **no siempre
-    son las ocho**: un mapa que muestra animaciones de batalla reserva una para
-    la caja de la animación, y ni el cronómetro ni las gotas se la pueden
-    llevar. Ver `tope_de_paletas` en `convertir`.
+    `tope` is how many sprite palettes this map can use, which **isn't always
+    all eight**: a map that shows battle animations reserves one for the
+    animation box, and neither the timer nor the drops can take it. See
+    `tope_de_paletas` in `convertir`.
     """
     for numero, existente in enumerate(palettes):
         if numero in de_lider:
@@ -1619,7 +1642,7 @@ def _primer_lugar(palettes, de_lider, colores, tope=OBJ_PALETTES):
 
 
 def mapas_por_personaje(renderer, map_ids, game_dir):
-    """En cuántos mapas de la ROM aparece cada (CharSet, índice)."""
+    """How many maps of the ROM each (CharSet, index) appears in."""
     cuenta = collections.Counter()
     for otro in map_ids:
         gm = renderer.cargar_mapa(os.path.join(game_dir, "Map%04d.lmu" % otro))
@@ -1634,9 +1657,9 @@ def mapas_por_personaje(renderer, map_ids, game_dir):
 
 
 def hay_lluvia(map_ids, extra=()):
-    """Si alguna página de estos mapas pone lluvia: entonces cada mapa de la
-    ROM lleva las gotas, porque el clima sigue al cambiar de mapa. `extra`
-    son los comandos de las páginas de prueba."""
+    """Whether some page of these maps sets rain: then every map of the ROM
+    carries the drops, because the weather persists across map changes.
+    `extra` are the commands of the test pages."""
     def llueve(cmd):
         return (cmd.code == eventos.WEATHER_EFFECTS
                 and cmd.parameters[:1] == [eventos.CLIMA_LLUVIA])
@@ -1654,19 +1677,20 @@ def hay_lluvia(map_ids, extra=()):
 
 
 def npc_table(npcs, where, movibles=(), indice_animado=None, anima_quieto=()):
-    """Los NPCs listos para la ROM, ya ordenados como los dibuja RM2k.
+    """The NPCs ready for the ROM, already sorted the way RM2k draws them.
 
-    El orden de dibujado es primero por capa y recién después por Y: uno "below"
-    queda debajo del héroe aunque esté más adelante en pantalla. En la consola,
-    el objeto con índice más bajo de OAM es el que se ve encima, así que la
-    tabla va del frente hacia el fondo.
+    The drawing order is first by layer and only then by Y: a "below" one stays
+    below the hero even if it is further forward on screen. On the console,
+    the object with the lowest OAM index is the one shown on top, so the table
+    goes from front to back.
 
-    **Este orden inicial manda también después.** Los que caminan cambian de Y
-    y la ROM los reacomoda de a uno, con una inserción que respeta el orden de
-    los empatados: entre dos empatados sigue valiendo el de esta lista.
+    **This initial order also rules afterwards.** The walking ones change Y
+    and the ROM re-sorts them one at a time, with an insertion that respects
+    the order of ties: between two tied ones the order of this list still
+    holds.
 
-    Los de `movibles` llevan además en qué banco de poses del cartucho están
-    sus doce, para que la ROM las suba en caliente mientras caminan.
+    The ones in `movibles` also carry which cartridge pose bank their twelve
+    are in, so the ROM uploads them on the fly while they walk.
     """
     rows = []
     for npc in sorted(npcs, key=orden_de_dibujo, reverse=True):
@@ -1683,9 +1707,9 @@ def npc_table(npcs, where, movibles=(), indice_animado=None, anima_quieto=()):
             "poses": (indice_animado[(npc["charset"], npc["index"])]
                       if camina else None),
             "velocidad": npc.get("velocidad", 3),
-            # Los quietos con animación continua: su columna sale del reloj del
-            # juego. Los que caminan la llevan en su ranura de ruta, así que el
-            # flag no vale para ellos aunque su página también la pida.
+            # The still ones with continuous animation: their column comes from
+            # the game clock. The walking ones carry it in their route slot, so
+            # the flag doesn't apply to them even if their page asks for it too.
             "anima": npc["evento"] in anima_quieto,
             "visible": npc.get("visible", True),
             "tile_pasa": npc.get("tile_pasa"),
@@ -1693,21 +1717,20 @@ def npc_table(npcs, where, movibles=(), indice_animado=None, anima_quieto=()):
     return rows
 
 
-# --- conversión -------------------------------------------------------------
+# --- conversion -------------------------------------------------------------
 
 def build_palette(grid, bg_colors, otras=()):
-    """Los colores del mapa, en una sola tabla, fusionando sólo si sobran.
+    """The map's colors, in a single table, merging only if there are too many.
 
-    Con 8 bits por pixel el único límite es cuántas entradas de CGRAM quedan
-    libres debajo de la capa de encima. Map0007 usa 60, así que no se fusiona
-    nada; el camino de fusión existe para mapas más cargados y es
-    `asignador.reduce_colors`.
+    At 8 bits per pixel the only limit is how many CGRAM entries are left free
+    below the upper layer. Map0007 uses 60, so nothing is merged; the merge
+    path exists for more loaded maps and is `asignador.reduce_colors`.
 
-    `otras` son las grillas de los otros dibujos de la animación del ChipSet.
-    Cuentan para la paleta como el dibujo de siempre —el agua del mapa 5 trae
-    tres colores que no están en su paso 0, y sin ellos el paso 1 no se podría
-    escribir con esta paleta— y salen fusionadas con el mismo `mapping`, que
-    es lo que las deja comparables entre sí.
+    `otras` are the grids of the other drawings of the ChipSet animation. They
+    count for the palette like the usual drawing —the water of map 5 brings
+    three colors that aren't in its step 0, and without them step 1 couldn't
+    be written with this palette— and come out merged with the same
+    `mapping`, which is what keeps them comparable with each other.
     """
     counts = _colores_de((grid,) + tuple(otras))
     if len(counts) <= bg_colors:
@@ -1727,32 +1750,33 @@ _VERSION_CAPAS = None
 
 
 def _version_capas():
-    """Qué versión del código produjo lo que haya guardado bajo `capas`.
+    """Which version of the code produced whatever is stored under `capas`.
 
-    Son las siete piezas que participan del dibujo o de la conversión, más los
-    dos programas que no son fuentes de este árbol:
+    It is the seven pieces that take part in drawing or converting, plus the
+    two programs that aren't sources of this tree:
 
-    * `render/render_map.py` y `render/chipset.py` **dibujan** las capas y
-      expanden el ChipSet. Hasta el 2026-09-20 no hacían falta, porque la clave
-      eran los pixeles ya dibujados: cambiar el dibujo cambiaba la clave solo.
-      Desde que la clave sale de los insumos, la única forma de que un cambio
-      en el dibujo invalide lo guardado es ésta. `rpgmaker/recursos.py` va con
-      ellos porque es de donde `render_map` saca cómo encuentra el ChipSet, y
-      `comun/proyecto.py` porque es de donde salen los directorios en que lo
-      busca;
-    * `port/asignador.py` decide qué colores se pierden, `rpgmaker/rm2k.py`
-      tiene las constantes del reparto y de las familias animadas, y este
-      archivo hace el resto;
-    * **el binario de Voodoo**, que es el que emite los tiles: recompilarlo sin
-      tocar ningún `.py` tiene que invalidar lo guardado;
-    * **la versión de Pillow**, que es quien decodifica el PNG del ChipSet y
-      compone los tiles. Antes tampoco hacía falta, por lo mismo: los pixeles
-      que salían de Pillow *eran* la clave.
+    * `render/render_map.py` and `render/chipset.py` **draw** the layers and
+      expand the ChipSet. Until 2026-09-20 they weren't needed, because the
+      key was the already drawn pixels: changing the drawing changed the key
+      by itself. Since the key comes from the inputs, the only way for a change
+      in the drawing to invalidate what is stored is this one.
+      `rpgmaker/recursos.py` goes with them because it is where `render_map`
+      gets how it finds the ChipSet, and `comun/proyecto.py` because it is
+      where the directories it searches in come from;
+    * `port/asignador.py` decides which colors are lost, `rpgmaker/rm2k.py`
+      has the constants of the split and of the animated families, and this
+      file does the rest;
+    * **the Voodoo binary**, which is the one that emits the tiles:
+      recompiling it without touching any `.py` has to invalidate what is
+      stored;
+    * **the Pillow version**, which is what decodes the ChipSet's PNG and
+      composes the tiles. It wasn't needed before either, for the same reason:
+      the pixels that came out of Pillow *were* the key.
 
-    Lo que **no** entra, y es a propósito: `rpgmaker/lcf.py`. Lo que lee del
-    volcado —las dos capas, el tamaño, la pasabilidad del ChipSet— entra por su
-    valor en `insumos_de_capas`, así que un cambio en cómo se lee sólo importa
-    si cambia lo leído, y entonces la clave cambia sola.
+    What does **not** go in, on purpose: `rpgmaker/lcf.py`. What it reads from
+    the dump —the two layers, the size, the ChipSet's passability— goes in by
+    its value in `insumos_de_capas`, so a change in how it is read only
+    matters if what is read changes, and then the key changes by itself.
     """
     global _VERSION_CAPAS
     if _VERSION_CAPAS is None:
@@ -1771,27 +1795,28 @@ def _version_capas():
 
 
 def capas_convertidas(renderer, game_map):
-    """Las capas del mapa convertidas, recordadas en disco. `None` si no hay
+    """The map's layers converted, remembered on disk. `None` if there is no
     ChipSet.
 
-    Es lo más caro del conversor de punta a punta: **dibujar** las dos capas y
-    los dibujos de sus animaciones con Pillow, y después cuantizarlas, cortarlas
-    en tiles y repartir CGRAM.
+    It is the most expensive part of the converter end to end: **drawing** the
+    two layers and the drawings of their animations with Pillow, and then
+    quantizing them, cutting them into tiles and splitting CGRAM.
 
-    La clave sale de **los insumos** —el mapa, su ChipSet y la versión del
-    código que dibuja y convierte— y no del resultado. Hasta el 2026-09-20
-    salía de los pixeles ya dibujados, que tenía la virtud de que no había nada
-    que enumerar: lo que produjera las imágenes entraba solo. El costo era que
-    para preguntarle al caché había que dibujar igual, y dibujar los 29 mapas de
-    `abl` con sus animaciones son 24 de los 65 s de un build caliente. Con la
-    clave de los insumos, un build caliente no dibuja ninguno.
+    The key comes from **the inputs** —the map, its ChipSet and the version of
+    the code that draws and converts— and not from the result. Until
+    2026-09-20 it came from the already drawn pixels, which had the virtue that
+    there was nothing to enumerate: whatever produced the images went in by
+    itself. The cost was that to ask the cache you had to draw anyway, and
+    drawing the 29 maps of `abl` with their animations is 24 of the 65 s of a
+    warm build. With the key from the inputs, a warm build draws none.
 
-    Lo que se pierde es justamente esa virtud, y por eso `insumos_de_capas` vive
-    al lado de `render_layers` y dice qué lee: ahora la lista se mantiene a
-    mano, y si queda corta el caché contesta viejo sin que nada falle.
+    What is lost is exactly that virtue, and that is why `insumos_de_capas`
+    lives next to `render_layers` and says what it reads: now the list is
+    maintained by hand, and if it falls short the cache answers stale without
+    anything failing.
 
-    Verificado con `SIN_CACHE=1` y con el caché borrado: el `.sfc` es el mismo
-    byte por byte.
+    Verified with `SIN_CACHE=1` and with the cache deleted: the `.sfc` is the
+    same byte for byte.
     """
     from comun import cache_disco
     insumos = renderer.insumos_de_capas(game_map)
@@ -1814,23 +1839,23 @@ def capas_convertidas(renderer, game_map):
     return hecho
 
 
-# Las capas ya convertidas en esta corrida, con la clave del caché en disco.
-# Las llena `precalcular_capas` y funciona también con `SIN_CACHE=1`: no es un
-# caché entre corridas sino el mismo cálculo hecho antes y en paralelo.
+# The layers already converted in this run, keyed by the disk cache key.
+# `precalcular_capas` fills it and it also works with `SIN_CACHE=1`: it is not
+# a cache between runs but the same computation done earlier and in parallel.
 _capas_en_memoria = {}
 
 
 def precalcular_capas(renderer, map_ids, args):
-    """Las capas de todos los mapas, convertidas en paralelo antes de que
-    `convertir` las pida.
+    """The layers of all maps, converted in parallel before `convertir` asks
+    for them.
 
-    Es lo más caro de un build en frío —o de uno caliente después de tocar
-    este archivo, que invalida las capas guardadas— y cada mapa es
-    independiente, así que va un proceso por mapa. Los procesos se
-    bifurcan con todo el estado ya armado, preparan el mapa como `convertir`
-    y devuelven lo que calcularon con su clave; `convertir` después pregunta
-    por la misma clave. **Un mapa preparado distinto acá que allá no da una
-    ROM distinta**: da otra clave, y `convertir` la calcula como siempre.
+    It is the most expensive part of a cold build —or of a warm one after
+    touching this file, which invalidates the stored layers— and each map is
+    independent, so there is one process per map. The processes fork with all
+    the state already built, prepare the map like `convertir` does and return
+    what they computed with its key; `convertir` then asks for the same key.
+    **A map prepared differently here than there doesn't give a different
+    ROM**: it gives another key, and `convertir` computes it as always.
     """
     if len(map_ids) < 2:
         return
@@ -1847,11 +1872,11 @@ _para_precalcular = None
 
 
 def _capas_de_un_mapa(map_id):
-    """Lo que `precalcular_capas` hace en cada proceso: los mismos pasos que
-    `convertir` hasta sus dos llamadas a `capas_convertidas`."""
+    """What `precalcular_capas` does in each process: the same steps as
+    `convertir` up to its two calls to `capas_convertidas`."""
     renderer, args = _para_precalcular
     try:
-        # Callado: lo que tenga para decir lo dice `convertir`, en orden.
+        # Quiet: whatever it has to say, `convertir` says it, in order.
         with open(os.devnull, "w") as nulo, contextlib.redirect_stdout(nulo):
             game_map = renderer.cargar_mapa(
                 os.path.join(args.game_dir, "Map%04d.lmu" % map_id))
@@ -1863,82 +1888,83 @@ def _capas_de_un_mapa(map_id):
                 hornear_en_el_mapa(game_map, horneados)
                 capas_convertidas(renderer, game_map)
     except BaseException:
-        # Si falla, que falle en `convertir`, que sabe decir por qué.
+        # If it fails, let it fail in `convertir`, which can say why.
         pass
     return _capas_en_memoria
 
 
 def _convert_layers(base, above_img, variantes=None):
-    """Las dos capas juntas, que es la única forma de repartir CGRAM bien.
+    """Both layers together, which is the only way to split CGRAM well.
 
-    El corte entre el fondo y la capa de encima no lo puede decidir ninguna de
-    las dos por su cuenta, así que se decide acá y hay un solo lugar donde está
-    escrito. Antes cada llamador convertía una y después la otra, y que las tres
-    copias del orden coincidieran era cuestión de suerte.
+    The split between the background and the upper layer can't be decided by
+    either of them on its own, so it is decided here and there is a single
+    place where it is written. Each caller used to convert one and then the
+    other, and the three copies of the order matching was a matter of luck.
 
-    La regla es que el fondo tiene la primera opción: se queda con las paletas
-    que le hacen falta para los colores que realmente usa, porque va en 8 bits
-    y no puede repartirlos en grupos. La capa de encima se lleva las que sobren
-    —hasta las que pida, nunca más— y si no le alcanzan, fusiona.
+    The rule is that the background has first choice: it keeps the palettes
+    it needs for the colors it actually uses, because it goes at 8 bits and
+    can't split them into groups. The upper layer takes what is left —up to
+    what it asks for, never more— and if that isn't enough, it merges.
 
-    Va en ese orden y no al revés porque son 300 mapas cuya capa de encima pide
-    una o dos paletas contra un puñado que pediría siete: dejar que el de
-    encima se sirva primero le sacaría colores al fondo en todos para que unos
-    pocos no fusionen.
+    It goes in that order and not the reverse because there are 300 maps
+    whose upper layer asks for one or two palettes against a handful that
+    would ask for seven: letting the upper one be served first would take
+    colors from the background in all of them so that a few don't merge.
 
-    Hasta el 2026-09-07 la ventana de mensaje se llevaba además la paleta que
-    queda justo debajo de la capa de encima, y **la pagaba el fondo**. La
-    elección de a quién cobrarle era medida y no de gusto. El fondo va en 8
-    bits, así que sus paletas son un pozo común: una menos le saca 16 entradas
-    de CGRAM y lo obliga a fusionar sólo el excedente. La capa de encima va en
-    4 y empaqueta por tile, así que una paleta menos le puede costar muchísimo
-    más. En el mapa 1 —el que descubrió esto— el fondo usa 49 colores y la capa
-    de encima 64 justos en 4 paletas: quitándole una al fondo se fusionan 2
-    colores, y quitándosela a la capa de encima habría que fusionar 16.
+    Until 2026-09-07 the message window also took the palette right below the
+    upper layer, and **the background paid for it**. The choice of whom to
+    charge was measured and not a matter of taste. The background goes at 8
+    bits, so its palettes are a shared pool: one less takes 16 CGRAM entries
+    from it and forces it to merge only the excess. The upper layer goes at 4
+    and packs per tile, so one palette less can cost it much more. In map 1
+    —the one that uncovered this— the background uses 49 colors and the upper
+    layer exactly 64 in 4 palettes: taking one from the background merges 2
+    colors, and taking it from the upper layer would require merging 16.
 
-    Hoy la ventana vive en la paleta 0, abajo de todo —ver
-    `paleta_de_la_ventana`—, así que no le cobra a ninguna de las dos capas.
+    Today the window lives in palette 0, at the very bottom —see
+    `paleta_de_la_ventana`—, so it charges neither layer.
 
-    Devuelve (lo de convert(), lo de convert_above()).
+    Returns (what convert() returns, what convert_above() returns).
     """
     base_grid = tiles_cuantizados(base)
     above_grid = tiles_cuantizados(above_img)
-    # Los otros dibujos de la animación del ChipSet, cortados igual que el
-    # fondo. Ver `convert`.
+    # The other drawings of the ChipSet animation, cut the same as the
+    # background. See `convert`.
     grillas = {familia: [tiles_cuantizados(img) for img in imagenes]
                for familia, imagenes in (variantes or {}).items()}
 
-    # Lo que el fondo usa, y por lo tanto las paletas de 16 que necesita. El
-    # +1 es el color de fondo de la pantalla, que ocupa la entrada 0.
+    # What the background uses, and therefore the palettes of 16 it needs. The
+    # +1 is the screen's backdrop color, which takes entry 0.
     #
-    # Cuentan **todos los dibujos**: el agua del mapa 5 trae tres colores que no
-    # están en el dibujo que se ve al entrar, y si el reparto se decidiera sin
-    # ellos no habría dónde ponerlos cuando el agua se mueva.
+    # **All the drawings** count: the water of map 5 brings three colors that
+    # aren't in the drawing seen on entering, and if the split were decided
+    # without them there would be nowhere to put them when the water moves.
     usados = len(_colores_de([base_grid] + [g for gs in grillas.values()
                                             for g in gs]))
     pide = -(-(usados + CGRAM_RESERVADAS) // COLORS_PER_PALETTE)
     libres = max(1, min(MAX_ABOVE_PALETTES, BG_PALETTES - pide))
 
     above_grid, paletas_encima, fusionados = repartir_encima(above_grid, libres)
-    # Sin capa de encima no se reserva nada, pero el DMA igual manda una paleta
-    # vacía —ver `convert_above`—, así que el corte se cuenta como si hubiera
-    # una.
+    # Without an upper layer nothing is reserved, but the DMA still sends an
+    # empty palette —see `convert_above`—, so the split is counted as if there
+    # were one.
     primera = above_split(max(1, len(paletas_encima)))
     above = convert_above(above_grid, paletas_encima, primera, len(fusionados))
-    # El fondo llega **hasta donde arranca la capa de encima**, sin dejar
-    # paletas en el medio: va a 8 bits y no necesita alineación. La ventana no
-    # le cobra una paleta porque vive abajo de todo, adentro de
-    # `CGRAM_RESERVADAS`.
+    # The background reaches **up to where the upper layer starts**, without
+    # leaving palettes in between: it goes at 8 bits and needs no alignment.
+    # The window doesn't charge it a palette because it lives at the very
+    # bottom, inside `CGRAM_RESERVADAS`.
     tope = primera
     if tope < 1:
-        # Inalcanzable con los datos del juego —haría falta una capa de encima
-        # que pida las ocho paletas— pero si pasa, el fondo se quedaría sin
-        # ninguna y `bg_budget` daría un presupuesto negativo.
+        # Unreachable with the game's data —it would take an upper layer that
+        # asks for all eight palettes— but if it happens, the background would
+        # be left with none and `bg_budget` would give a negative budget.
         raise SystemExit(
-            "la capa de encima se llevó las ocho paletas y no queda ninguna "
-            "para el fondo")
-    # Y la paleta del fondo, con ese presupuesto y sobre **todos** sus dibujos.
-    # Se decide acá y `convert` la recibe, igual que la capa de encima.
+            "the upper layer took all eight palettes and none is left "
+            "for the background")
+    # And the background palette, with that budget and over **all** its
+    # drawings. It is decided here and `convert` gets it, same as the upper
+    # layer.
     presupuesto = bg_budget(tope)
     otras = [g for familia, _ in FAMILIAS for g in grillas.get(familia, ())]
     antes = len(_colores_de([base_grid]))
@@ -1947,77 +1973,77 @@ def _convert_layers(base, above_img, variantes=None):
     fondo = convert(base_grid, palette, grillas, otras,
                     {"colores": antes, "presupuesto": presupuesto,
                      "fusionados": len(merged)})
-    # Qué color se fusionó con cuál, en el orden en que se decidió, para que
-    # `port/parches.py` lo escriba. Va **junto al resumen del fondo y no
-    # adentro de la tupla de la capa de encima** aunque la mitad sea de ella:
-    # `_mismo_reparto_de_cgram` compara esa tupla entera, así que meterle un
-    # campo le cambiaría el criterio con que se decide el horneado, y esto no
-    # puede cambiar ni un byte de la ROM. Del resumen, en cambio, compara
-    # campo por campo, así que una clave más es inerte —y `fusionados`, que es
-    # uno de los que compara, sigue siendo el número de siempre—.
+    # Which color was merged with which, in the order it was decided, for
+    # `port/parches.py` to write it. It goes **with the background's summary
+    # and not inside the upper layer's tuple** even though half of it is the
+    # upper layer's: `_mismo_reparto_de_cgram` compares that whole tuple, so
+    # adding a field would change the criterion baking is decided by, and this
+    # can't change a single byte of the ROM. The summary, instead, it compares
+    # field by field, so one more key is inert —and `fusionados`, which is one
+    # of the ones it compares, is still the usual number—.
     fondo[3]["fusiones"] = {"fondo": list(merged), "encima": list(fusionados)}
     return fondo, above
 
 
 def paleta_de_la_ventana(primeras=None):
-    """En qué paleta va la ventana de mensaje: la **0**, siempre.
+    """Which palette the message window goes in: **0**, always.
 
-    Las celdas de la ventana se emiten una sola vez con los tres bits de paleta
-    adentro, así que la paleta tiene que ser una sola para toda la ROM. Antes se
-    tomaba la más baja de las capas de encima de todos los mapas —`min(primeras)
-    - 1`— y el fondo de **todos** quedaba apretado abajo de ella, aunque el mapa
-    tuviera media CGRAM libre arriba.
+    The window cells are emitted only once with the three palette bits
+    inside, so the palette has to be a single one for the whole ROM. It used
+    to take the lowest of the upper layers of all maps —`min(primeras) - 1`—
+    and the background of **all** of them was squeezed below it, even if the
+    map had half of CGRAM free above.
 
-    Poniéndola en la 0 el problema desaparece: la ventana ocupa las entradas 1 a
-    7 —la 0 es el color de fondo de la pantalla, que en una paleta de BG2 es el
-    transparente y la ventana no dibuja—, y el fondo queda contiguo desde la 8
-    hasta donde arranque la capa de encima de cada mapa. `primeras` ya no se usa
-    y queda para no romper a quien llame.
+    Putting it in 0 makes the problem go away: the window takes entries 1 to 7
+    —0 is the screen's backdrop color, which in a BG2 palette is transparent
+    and the window doesn't draw—, and the background is contiguous from 8 up
+    to where each map's upper layer starts. `primeras` is no longer used and
+    stays so as not to break callers.
     """
     return 0
 
 
-# Las dos familias de tiles que anima el ChipSet, con cuántos dibujos tiene
-# cada una y en el orden en que sus corridas van a la VRAM. Vive en rm2k.py
-# junto con la cadencia de cada una, que es lo que dice qué dibujo toca.
+# The two tile families the ChipSet animates, with how many drawings each one
+# has and in the order their runs go to VRAM. It lives in rm2k.py together with
+# each one's cadence, which is what says which drawing is due.
 FAMILIAS = rm2k.FAMILIAS_ANIMADAS
 
 
 def convert(grid, palette, variantes, otras, resumen):
-    """La grilla del mapa a tiles, paleta y tilemap.
+    """The map grid to tiles, palette and tilemap.
 
-    **No decide la paleta**: llega de `build_palette`, que la elige en
-    `_convert_layers` con el presupuesto que le dejó la capa de encima. `grid`
-    y `otras` son las grillas ya fusionadas con esa misma paleta; `variantes`
-    las originales, que sólo se usan para saber cuántos dibujos trae cada
-    familia. `resumen` trae lo que se midió antes de fusionar.
+    **It doesn't decide the palette**: it comes from `build_palette`, which
+    chooses it in `_convert_layers` with the budget the upper layer left.
+    `grid` and `otras` are the grids already merged with that same palette;
+    `variantes` the original ones, which are only used to know how many
+    drawings each family brings. `resumen` carries what was measured before
+    merging.
 
-    `variantes` son las grillas de los **otros** dibujos de la animación del
-    ChipSet, por familia: `{"agua": [g1, g2], "animado": [g1, g2, g3]}`. El
-    dibujo 0 es `grid`.
+    `variantes` are the grids of the **other** drawings of the ChipSet
+    animation, per family: `{"agua": [g1, g2], "animado": [g1, g2, g3]}`.
+    Drawing 0 is `grid`.
 
-    Las celdas que cambian de un dibujo a otro se llevan tiles propios, en una
-    **corrida contigua al final del banco**, y no comparten ninguno con las
-    celdas quietas. Animar es pisar el dato del tile en la VRAM sin tocar el
-    tilemap, así que un tile compartido con una celda quieta la haría cambiar a
-    ella también; y con la corrida contigua, un paso de la animación es un solo
-    DMA.
+    The cells that change from one drawing to another get their own tiles, in
+    a **contiguous run at the end of the bank**, and share none with the still
+    cells. Animating is overwriting the tile data in VRAM without touching the
+    tilemap, so a tile shared with a still cell would make it change too; and
+    with the contiguous run, one animation step is a single DMA.
 
-    Devuelve (datos de tiles, palabras de CGRAM, tilemap, resumen). Dónde caen
-    las corridas y los bytes de cada dibujo van en `resumen["animacion"]`.
+    Returns (tile data, CGRAM words, tilemap, summary). Where the runs land
+    and the bytes of each drawing go in `resumen["animacion"]`.
     """
-    # De vuelta a su familia, ya fusionadas con el mismo mapeo que `grid`, y con
-    # el dibujo 0 adelante: `dibujos[familia][d]` es la grilla del dibujo `d`.
+    # Back to their family, already merged with the same mapping as `grid`, and
+    # with drawing 0 first: `dibujos[familia][d]` is the grid of drawing `d`.
     dibujos, resto = {None: [grid]}, list(otras)
     for familia, _ in FAMILIAS:
         cuantas = len(variantes.get(familia, ()))
         dibujos[familia] = [grid] + resto[:cuantas]
         resto = resto[cuantas:]
 
-    # Lo que decidió el asignador, como imágenes indexadas: el color `k` de la
-    # paleta es la entrada `CGRAM_RESERVADAS + k`, y lo transparente es la 0.
-    # Una por dibujo, todas con la misma CGRAM: `tiles` corta si dos le dan
-    # distinto color a una entrada que alguna dibuja.
+    # What the allocator decided, as indexed images: color `k` of the palette
+    # is entry `CGRAM_RESERVADAS + k`, and transparent is 0. One per drawing,
+    # all with the same CGRAM: `tiles` stops if two give a different color to
+    # an entry that any of them draws.
     posicion = {color: CGRAM_RESERVADAS + k for k, color in enumerate(palette)}
     colores = [None] * 256
     for color, entrada in posicion.items():
@@ -2048,30 +2074,33 @@ def convert(grid, palette, variantes, otras, resumen):
         familias.append(familia)
         animaciones.append(pngs)
 
-    # Las celdas que cambian de un dibujo a otro se llevan tiles propios en una
-    # corrida contigua por familia, después de los quietos: eso lo hace
-    # Voodoo, que es quien numera. Ver "Animations" en tools/voodoo/README.md.
+    # The cells that change from one drawing to another get their own tiles in
+    # one contiguous run per family, after the still ones: Voodoo does that,
+    # since it is the one that numbers them. See "Animations" in
+    # tools/voodoo/README.md.
     tile_data, cgram, tilemap, corridas = tiles_bin.convertir(
         imagenes[0][1], 8, len(grid[0]), animaciones=animaciones,
         max_tiles=MAX_TILES)
     siguiente = len(tile_data) // BYTES_PER_TILE
 
-    # Y los otros dibujos de cada corrida, uno detrás del otro y en el orden de
-    # la VRAM: así subirlos es escribir la dirección y disparar el DMA.
+    # And the other drawings of each run, one after the other and in VRAM
+    # order: that way uploading them is writing the address and firing the
+    # DMA.
     animacion = {}
     for familia, (inicio, largo, bytes_de) in zip(familias, corridas):
         if not largo:
             continue
         cuantos = dict(FAMILIAS)[familia]
         if len(bytes_de) != cuantos:
-            raise SystemExit("la familia %r pide %d dibujos y llegaron %d"
+            raise SystemExit("family %r asks for %d drawings and %d arrived"
                              % (familia, cuantos, len(bytes_de)))
         animacion[familia] = {"base": inicio, "tiles": largo,
                               "dibujos": list(bytes_de)}
 
-    # CGRAM: el bloque del mapa lleva **sólo sus colores** y se sube a partir de
-    # `CGRAM_RESERVADAS`. Lo de abajo —el color de fondo de la pantalla y la
-    # paleta de la ventana— es de toda la ROM y lo sube `cgram_base`.
+    # CGRAM: the map's block carries **only its colors** and is uploaded
+    # starting at `CGRAM_RESERVADAS`. What is below —the screen's backdrop
+    # color and the window palette— belongs to the whole ROM and `cgram_base`
+    # uploads it.
     cram = [int.from_bytes(cgram[2 * e:2 * e + 2], "little")
             for e in range(CGRAM_RESERVADAS, CGRAM_RESERVADAS + len(palette))]
 
@@ -2088,98 +2117,97 @@ def convert(grid, palette, variantes, otras, resumen):
     return bytes(tile_data), cram, tilemap, summary
 
 
-# --- el mapa como bloques de 16x16 -----------------------------------------
-# El tilemap del PPU no pasa de 64x64 celdas, y encima hay que repartir la VRAM
-# con los tiles, así que la ventana que se le deja son 64x32: 512x256 pixeles
-# contra los 256x224 de la pantalla. Los mapas del juego llegan a 1000x80
-# celdas, o sea que el mapa entero no está nunca en la VRAM: la ROM va
-# redibujando la columna y la fila que entran mientras la cámara se mueve.
+# --- the map as 16x16 blocks ------------------------------------------------
+# The PPU tilemap doesn't go beyond 64x64 cells, and on top of that VRAM has to
+# be shared with the tiles, so the window left for it is 64x32: 512x256 pixels
+# against the 256x224 of the screen. The game's maps reach 1000x80 cells, so
+# the whole map is never in VRAM: the ROM keeps redrawing the column and the
+# row that come in while the camera moves.
 #
-# Lo que se guarda en la ROM tampoco es el tilemap expandido. Una celda de 16x16
-# de RM2k son cuatro celdas de 8x8 de la SNES, y es la unidad con la que el
-# juego fue dibujado: se repite muchísimo. Guardando un índice a una tabla de
-# bloques, el mapa más pesado pasa de 175 KB —más que la ROM entera— a 40.
+# What is stored in the ROM isn't the expanded tilemap either. An RM2k 16x16
+# cell is four SNES 8x8 cells, and it is the unit the game was drawn with: it
+# repeats a lot. Storing an index into a table of blocks, the heaviest map
+# goes from 175 KB —more than the whole ROM— to 40.
 #
-# El bloque lleva las dos capas juntas y la pasabilidad. Que la pasabilidad
-# entre en el bloque no es gratis: dos celdas que se dibujan igual podrían
-# tener permisos distintos si vinieran de tiles distintos del ChipSet, así que
-# va en la clave y se separan solas.
-WINDOW_W, WINDOW_H = 64, 32     # la ventana de tilemap que vive en la VRAM
-MAP_LAYOUT = 1                  # dos pantallas de 32x32 al lado, que es 64x32
-BLOCK_BYTES = 16                # cuatro celdas de BG1 y cuatro de BG2
+# The block carries both layers together and the passability. Passability
+# going into the block isn't free: two cells that are drawn the same could
+# have different permissions if they came from different ChipSet tiles, so it
+# goes in the key and they separate by themselves.
+WINDOW_W, WINDOW_H = 64, 32     # the tilemap window that lives in VRAM
+MAP_LAYOUT = 1                  # two 32x32 screens side by side, which is 64x32
+BLOCK_BYTES = 16                # four BG1 cells and four BG2 cells
 
-# --- el reparto de la VRAM --------------------------------------------------
-# Las 64 KB no se reparten como uno quiera: la base de los tiles de los sprites
-# va de a 16 KB, la de cada fondo de a 8 KB y la de cada tilemap de a 2 KB.
-# Cuál reparto toca lo decide el conversor y viaja en el .inc: la ROM no elige
-# nada.
+# --- the VRAM layout --------------------------------------------------------
+# The 64 KB can't be split any way one likes: the base of the sprite tiles
+# goes in steps of 16 KB, that of each background in steps of 8 KB and that of
+# each tilemap in steps of 2 KB. Which layout applies is decided by the
+# converter and travels in the .inc: the ROM chooses nothing.
 #
-# Todo mapa lleva la ventana de mensaje —desde el 2026-09-17 no es opcional; un
-# mapa sin ventana de texto no existe en la práctica— y hay tres repartos que
-# le hacen lugar. Hasta ese día había otros tres sin ella. La ventana necesita 8 KB
-# de tiles propios —el texto son 240 tiles y no hay forma de bajarlo, porque un
-# glifo de 6 px no se alinea a celdas de 8 y hay que componerlo pixel por
-# pixel— más **2 KB de tilemap propio**, y los 64 KB ya estaban repartidos al
-# 100%.
+# Every map carries the message window —since 2026-09-17 it isn't optional; a
+# map without a text window doesn't exist in practice— and there are three
+# layouts that make room for it. Until that day there were three others
+# without it. The window needs 8 KB of its own tiles —the text is 240 tiles
+# and there is no way to lower that, because a 6 px glyph doesn't align to
+# 8-pixel cells and it has to be composed pixel by pixel— plus **2 KB of its
+# own tilemap**, and the 64 KB were already 100% allocated.
 #
-# Lo que hace posible lo de los tiles es que `encima` y `ventana` queden
-# **pegados**: BG2 tiene una sola base y sus índices de tile son de 10 bits, así
-# que del 0 al 255 caen en el primer banco de 8 KB y del 256 al 511 en el que
-# sigue. Eso obliga a poner los sprites primero, porque la base de OBJ va de a
-# 16 KB y la de un fondo de a 8.
+# What makes the tiles part possible is that `encima` and `ventana` end up
+# **adjacent**: BG2 has a single base and its tile indices are 10 bits, so 0
+# to 255 fall in the first 8 KB bank and 256 to 511 in the next. That forces
+# putting the sprites first, because the OBJ base goes in steps of 16 KB and
+# a background's in steps of 8.
 #
-# Y el tilemap propio sale de recortarle tiles a los sprites, que es donde
-# sobran. Medido sobre los 318 mapas que convierten, el que más gasta usa **380
-# tiles de sprite**: 253 usan 192 o menos, 58 entre 193 y 256, y 7 entre 257 y
-# 380. Con 448 no se queda corto ninguno, y los 2 KB que se liberan caen en la
-# palabra $1C00, que es múltiplo de 1024 y por lo tanto una base válida de
-# tilemap.
+# And the tilemap of its own comes from trimming tiles from the sprites, which
+# is where they are left over. Measured over the 318 maps that convert, the
+# one that spends the most uses **380 sprite tiles**: 253 use 192 or fewer, 58
+# between 193 and 256, and 7 between 257 and 380. With 448 none falls short,
+# and the 2 KB freed land at word $1C00, which is a multiple of 1024 and
+# therefore a valid tilemap base.
 #
-#   sprites   $0000  14 KB  448 tiles de 4bpp   base de OBJ en 0
-#   ventana_map $1C00 2 KB  el tilemap de 32x32 de la ventana
-#   tiles     $2000  24 KB  384 tiles de 8bpp
-#   encima    $5000   8 KB  256 tiles           <- la base de BG2
-#   ventana   $6000   8 KB  256 tiles           <- los índices 256..511
+#   sprites   $0000  14 KB  448 4bpp tiles      OBJ base at 0
+#   ventana_map $1C00 2 KB  the window's 32x32 tilemap
+#   tiles     $2000  24 KB  384 8bpp tiles
+#   encima    $5000   8 KB  256 tiles           <- the BG2 base
+#   ventana   $6000   8 KB  256 tiles           <- indices 256..511
 #   tilemaps  $7000   8 KB
 #
-# El segundo cambia tiles de sprite por tiles de fondo, para los mapas que
-# gastan más fondo, y ahí los 2 KB no pueden salir de los sprites —esos mapas
-# usan hasta 320— sino del fondo: 480 tiles en vez de 512.
+# The second trades sprite tiles for background tiles, for the maps that
+# spend more background, and there the 2 KB can't come from the sprites —those
+# maps use up to 320— but from the background: 480 tiles instead of 512.
 #
 #   sprites     $0000   8 KB  256 tiles
-#   tiles       $1000  30 KB  480 tiles de 8bpp
+#   tiles       $1000  30 KB  480 8bpp tiles
 #   ventana_map $4C00   2 KB
 #   encima      $5000   8 KB
 #   ventana     $6000   8 KB
 #   tilemaps    $7000   8 KB
 #
-# Medido sobre los 318 mapas que convierten: 309 entran en el primero, 6 en el
-# segundo y 3 no entraban en ninguno —el 8, el 66 y el 250—. **El 8 ya no**:
-# el 2026-09-07, con la ventana mudada a la paleta 0, sus tiles de fondo bajaron
-# a 400 y entra en el segundo reparto. El número de arriba es de antes de eso y
-# no se volvió a medir sobre los 318.
+# Measured over the 318 maps that convert: 309 fit in the first, 6 in the
+# second and 3 didn't fit in either —8, 66 and 250—. **8 no longer**: on
+# 2026-09-07, with the window moved to palette 0, its background tiles went
+# down to 400 and it fits in the second layout. The number above is from
+# before that and wasn't measured again over the 318.
 #
-# El número viejo que estaba escrito acá era 2, y estaba mal por una razón que
-# vale la pena dejar dicha: `vram_layout` no comprobaba que los tiles de fondo
-# entraran en el banco del reparto elegido. `MAX_TILES` es 1024, que es el tope
-# del índice del tilemap y no el del banco, así que los mapas 66 y 250 —518 y
-# 620 tiles de fondo— se llevaban el reparto de 512 y se pasaban por arriba de
-# la capa de encima. Nunca se vio porque ninguna receta les pide una ventana.
-# El reparto de arriba daba 384 tiles de fondo, y el que le seguía cambiaba
-# sprites por fondo. Los dos le daban **256 tiles a la capa de encima**, y eso
-# medido es un despilfarro: sobre los 328 mapas que convierten, la mediana de
-# uso es **1 tile** y 326 entran en 128. Bajarla a 128 libera 4 KB, que en 8bpp
-# son 64 tiles de fondo más.
+# The old number written here was 2, and it was wrong for a reason worth
+# stating: `vram_layout` didn't check that the background tiles fit in the
+# bank of the chosen layout. `MAX_TILES` is 1024, which is the cap of the
+# tilemap index and not of the bank, so maps 66 and 250 —518 and 620
+# background tiles— took the 512 layout and spilled over the upper layer. It
+# was never seen because no recipe asks for a window for them.
+# The layout above gave 384 background tiles, and the one after it traded
+# sprites for background. Both gave **256 tiles to the upper layer**, and
+# measured that is a waste: over the 328 maps that convert, the median use is
+# **1 tile** and 326 fit in 128. Lowering it to 128 frees 4 KB, which at 8bpp
+# is 64 more background tiles.
 #
-# Hizo falta el 2026-09-07, cuando dibujar todos los eventos —ver `cabe`— llevó
-# al mapa 8 a 400 tiles de fondo y 347 de sprite, y no había reparto que le
-# diera los dos.
+# It was needed on 2026-09-07, when drawing all the events —see `cabe`— took
+# map 8 to 400 background tiles and 347 sprite ones, and there was no layout
+# that gave it both.
 #
-# El rompecabezas es de alineación y no de espacio: `BG12NBA` fija las bases de
-# BG1 y BG2 en múltiplos de 8 KB, `OBSEL` la de los objetos en múltiplos de
-# 16 KB, y los tilemaps en múltiplos de 1 KB. Los tilemaps se mudaron a $5800 y
-# $7800, que son los únicos dos huecos que quedan alineados en los cuatro
-# repartos.
+# The puzzle is one of alignment and not of space: `BG12NBA` fixes the BG1 and
+# BG2 bases at multiples of 8 KB, `OBSEL` that of the objects at multiples of
+# 16 KB, and the tilemaps at multiples of 1 KB. The tilemaps moved to $5800
+# and $7800, which are the only two gaps left aligned in the four layouts.
 LAYOUT_VENTANA = {"sprites": (0x0000, 448), "ventana_map": (0x1C00, 1),
                   "tiles": (0x2000, 448), "mapa": (0x5800, 1),
                   "encima": (0x6000, 128), "ventana": (0x6800, 256)}
@@ -2187,148 +2215,152 @@ LAYOUT_VENTANA_FONDO = {"sprites": (0x0000, 256), "tiles": (0x1000, 480),
                         "ventana_map": (0x4C00, 1), "mapa": (0x5800, 1),
                         "encima": (0x6000, 128), "ventana": (0x6800, 256)}
 
-# Y el tercero, que hace lo contrario del segundo: cambia tiles de fondo por
-# tiles de sprite. Lo pidió Delcentric Factory —el mapa 17, el camino al
-# auditorio—, que gasta **217 tiles de fondo y 475 de sprite** y no entraba en
-# ninguno de los dos: 28 ranuras de personaje son 448 tiles justos, y encima de
-# eso van los 8 glifos del cronómetro y las 19 gotas de lluvia. Son 27 tiles de
-# más sobre los 448 del primer reparto, y la lluvia no se puede sacar porque el
-# clima sigue al cambiar de mapa y la apertura llueve.
+# And the third, which does the opposite of the second: it trades background
+# tiles for sprite tiles. Delcentric Factory asked for it —map 17, the road to
+# the auditorium—, which spends **217 background tiles and 475 sprite ones**
+# and didn't fit in either of the two: 28 character slots are exactly 448
+# tiles, and on top of that go the 8 timer glyphs and the 19 raindrops. That
+# is 27 tiles too many over the 448 of the first layout, and the rain can't be
+# removed because the weather persists across map changes and it rains in the
+# opening.
 #
-#   sprites     $0000  16 KB  512 tiles de 4bpp   base de OBJ en 0
-#   tiles       $2000  24 KB  384 tiles de 8bpp   <- la base de BG1
-#   ventana_map $5000   2 KB  el tilemap de 32x32 de la ventana
-#   (libre)     $5400   2 KB
+#   sprites     $0000  16 KB  512 4bpp tiles      OBJ base at 0
+#   tiles       $2000  24 KB  384 8bpp tiles      <- the BG1 base
+#   ventana_map $5000   2 KB  the window's 32x32 tilemap
+#   (free)      $5400   2 KB
 #   tilemap     $5800   4 KB
-#   encima      $6000   8 KB  128 tiles           <- la base de BG2
-#   ventana     $6800   8 KB  256 tiles           <- los índices 128..383
+#   encima      $6000   8 KB  128 tiles           <- the BG2 base
+#   ventana     $6800   8 KB  256 tiles           <- indices 128..383
 #   tilemap     $7800   4 KB
 #
-# 512 es el tope del hardware y no una elección: el campo de nombre de OAM es
-# de nueve bits, y con el name select de `OBSEL` en cero las dos tablas quedan
-# pegadas, que es justo lo que `OBSEL_VALUE` emite. O sea que este reparto le da
-# a los sprites todo lo que la consola puede direccionar.
+# 512 is the hardware cap and not a choice: the OAM name field is nine bits,
+# and with `OBSEL`'s name select at zero both tables end up adjacent, which is
+# exactly what `OBSEL_VALUE` emits. That is, this layout gives the sprites all
+# the console can address.
 #
-# Los 2 KB libres de $5400 son el precio de la alineación: la base de BG1 va de
-# a 8 KB, así que bajar el fondo de 448 a 384 tiles libera 8 KB y la ventana
-# necesita 2. No se pueden usar para nada porque no hay nada más que ubicar.
+# The 2 KB free at $5400 are the price of alignment: the BG1 base goes in
+# steps of 8 KB, so lowering the background from 448 to 384 tiles frees 8 KB
+# and the window needs 2. They can't be used for anything because there is
+# nothing else to place.
 #
-# **Va último a propósito.** `vram_layout` devuelve el primero que entre, así
-# que ningún mapa que ya tenía reparto cambia de reparto por esto: sólo lo toman
-# los que en los otros dos no entraban.
+# **It goes last on purpose.** `vram_layout` returns the first one that fits,
+# so no map that already had a layout changes layout because of this: only
+# the ones that didn't fit in the other two take it.
 LAYOUT_VENTANA_SPRITE = {"sprites": (0x0000, 512), "tiles": (0x2000, 384),
                          "ventana_map": (0x5000, 1), "mapa": (0x5800, 1),
                          "encima": (0x6000, 128), "ventana": (0x6800, 256)}
 
-# Y el cuarto, el único que **muda el tilemap del mapa**: lo pidió `Sector 34
-# With Car`, el mapa 38, que gasta **476 tiles de fondo y 347 de sprite** y no
-# entraba en ninguno de los tres —le faltaban 28 de fondo en el primero y 91 de
-# sprite en el segundo—. En bytes sí entraba; lo que no dejaba era el tilemap
-# clavado en $5800, que cortaba el banco de BG1 en 448 tiles. Bajándolo a los
-# 2 KB que quedan libres entre los sprites y el fondo:
+# And the fourth, the only one that **moves the map's tilemap**: `Sector 34
+# With Car` asked for it, map 38, which spends **476 background tiles and 347
+# sprite ones** and didn't fit in any of the three —it lacked 28 background
+# tiles in the first and 91 sprite ones in the second—. In bytes it did fit;
+# what didn't allow it was the tilemap fixed at $5800, which cut the BG1 bank
+# at 448 tiles. Moving it down to the 2 KB left free between the sprites and
+# the background:
 #
-#   sprites     $0000  12 KB  384 tiles de 4bpp   base de OBJ en 0
-#   mapa        $1800   4 KB  el tilemap de BG1   <- acá abajo, y no en $5800
-#   tiles       $2000  30 KB  480 tiles de 8bpp   <- la base de BG1
-#   ventana_map $5C00   2 KB  el tilemap de 32x32 de la ventana
-#   encima      $6000   8 KB  128 tiles           <- la base de BG2
-#   ventana     $6800   8 KB  256 tiles           <- los índices 128..383
-#   tilemap     $7800   4 KB  el de la capa de encima, que no se mueve
+#   sprites     $0000  12 KB  384 4bpp tiles      OBJ base at 0
+#   mapa        $1800   4 KB  the BG1 tilemap     <- down here, not at $5800
+#   tiles       $2000  30 KB  480 8bpp tiles      <- the BG1 base
+#   ventana_map $5C00   2 KB  the window's 32x32 tilemap
+#   encima      $6000   8 KB  128 tiles           <- the BG2 base
+#   ventana     $6800   8 KB  256 tiles           <- indices 128..383
+#   tilemap     $7800   4 KB  the upper layer's, which doesn't move
 #
-# 480 es el techo con 347 sprites aunque el tilemap pudiera ir a cualquier lado
-# —medido enumerando todas las bases que el hardware permite—: el banco de BG1
-# arranca en $2000 porque los sprites pasan de $1000, y el tilemap de la
-# ventana necesita una base múltiplo de 1024 palabras detrás del fondo.
+# 480 is the ceiling with 347 sprites even if the tilemap could go anywhere
+# —measured by enumerating every base the hardware allows—: the BG1 bank
+# starts at $2000 because the sprites go past $1000, and the window's tilemap
+# needs a base that is a multiple of 1024 words after the background.
 #
-# Que el tilemap se mueva lo pagan `build_column` y `build_row`, que suman
-# `FAR_VRAM_MAPA` en vez de una constante, y el paso a la capa de encima de
-# `push_strips`, que enmascara en vez de sumar una distancia fija. Por eso
-# **las dos bases tienen que ser múltiplo de 2048 palabras**, y la del mapa no
-# puede ser cero: `col_addr` en cero quiere decir "no hay columna". Lo
-# comprueba `_controlar_repartos`.
+# The tilemap moving is paid for by `build_column` and `build_row`, which add
+# `FAR_VRAM_MAPA` instead of a constant, and by the step to the upper layer in
+# `push_strips`, which masks instead of adding a fixed distance. That is why
+# **both bases have to be multiples of 2048 words**, and the map's can't be
+# zero: `col_addr` at zero means "no column". `_controlar_repartos` checks it.
 #
-# **Va último a propósito**, por lo mismo que el anterior: ningún mapa que ya
-# entraba cambia de reparto.
+# **It goes last on purpose**, for the same reason as the previous one: no
+# map that already fit changes layout.
 LAYOUT_VENTANA_AMBOS = {"sprites": (0x0000, 384), "mapa": (0x1800, 1),
                         "tiles": (0x2000, 480), "ventana_map": (0x5C00, 1),
                         "encima": (0x6000, 128), "ventana": (0x6800, 256)}
 
-# Y el quinto, el techo de "+fondo": lo pidió el mundo, el mapa 66, que gasta
-# **527 tiles de fondo y 222 de sprite** y no entraba en ninguno de los cuatro
-# —el que más fondo da con 222 sprites son los 480 de "+fondo" y "+ambos"—.
-# Con 256 sprites el hardware da 544 (ver docs/port/vram.md, "Dónde está el
-# techo"), y "+fondo" se queda 64 por debajo sólo porque subirlo le cambiaría
-# el reparto a los mapas que ya lo usan. Es "+fondo" con la ventana_map y el
-# tilemap corridos detrás del fondo:
+# And the fifth, the ceiling of "+fondo": the world asked for it, map 66,
+# which spends **527 background tiles and 222 sprite ones** and didn't fit in
+# any of the four —the one that gives the most background with 222 sprites is
+# the 480 of "+fondo" and "+ambos"—. With 256 sprites the hardware gives 544
+# (see docs/port/vram.md, "Dónde está el techo"), and "+fondo" stays 64 below
+# only because raising it would change the layout of the maps that already
+# use it. It is "+fondo" with the ventana_map and the tilemap shifted behind
+# the background:
 #
-#   sprites     $0000   8 KB  256 tiles de 4bpp   base de OBJ en 0
-#   tiles       $1000  34 KB  544 tiles de 8bpp   <- la base de BG1
-#   ventana_map $5400   2 KB  el tilemap de 32x32 de la ventana
+#   sprites     $0000   8 KB  256 4bpp tiles      OBJ base at 0
+#   tiles       $1000  34 KB  544 8bpp tiles      <- the BG1 base
+#   ventana_map $5400   2 KB  the window's 32x32 tilemap
 #   tilemap     $5800   4 KB
-#   encima      $6000   8 KB  128 tiles           <- la base de BG2
-#   ventana     $6800   8 KB  256 tiles           <- los índices 128..383
+#   encima      $6000   8 KB  128 tiles           <- the BG2 base
+#   ventana     $6800   8 KB  256 tiles           <- indices 128..383
 #   tilemap     $7800   4 KB
 #
-# 544 tiles de 8bpp son 34 KB, más que el buffer de LZ2: por eso el fondo va
-# en dos flujos —ver `partes_comprimidas`—.
+# 544 8bpp tiles are 34 KB, more than the LZ2 buffer: that is why the
+# background goes in two streams —see `partes_comprimidas`—.
 #
-# **Va último a propósito**, por lo mismo que los dos anteriores.
+# **It goes last on purpose**, for the same reason as the two previous ones.
 LAYOUT_VENTANA_FONDO_TECHO = {"sprites": (0x0000, 256), "tiles": (0x1000, 544),
                               "ventana_map": (0x5400, 1), "mapa": (0x5800, 1),
                               "encima": (0x6000, 128), "ventana": (0x6800, 256)}
 
-# Y el sexto, el único que **muda la base de BG2**: lo pidió Sorbe Village, el
-# mapa 69, que gasta **329 tiles de fondo, 157 de encima y 283 de sprite**. Los
-# otros cinco le dan a la capa de encima 128 tiles, porque la ventana arranca
-# en el índice 128 de BG2 y el tilemap de encima está clavado en $7800. Con la
-# base de BG2 en $5000 la capa de encima tiene 256, y la ventana va detrás:
+# And the sixth, the only one that **moves the BG2 base**: Sorbe Village asked
+# for it, map 69, which spends **329 background tiles, 157 upper ones and 283
+# sprite ones**. The other five give the upper layer 128 tiles, because the
+# window starts at BG2 index 128 and the upper tilemap is fixed at $7800. With
+# the BG2 base at $5000 the upper layer has 256, and the window goes after it:
 #
-#   sprites     $0000  12 KB  384 tiles de 4bpp   base de OBJ en 0
-#   mapa        $1800   4 KB  el tilemap de BG1, como en "+ambos"
-#   tiles       $2000  24 KB  384 tiles de 8bpp   <- la base de BG1
-#   encima      $5000   8 KB  256 tiles           <- la base de BG2
-#   ventana     $6000   8 KB  256 tiles           <- los índices 256..511
-#   ventana_map $7000   2 KB  el tilemap de 32x32 de la ventana
-#   (libre)     $7400   2 KB
-#   tilemap     $7800   4 KB  el de la capa de encima, que no se mueve
+#   sprites     $0000  12 KB  384 4bpp tiles      OBJ base at 0
+#   mapa        $1800   4 KB  the BG1 tilemap, as in "+ambos"
+#   tiles       $2000  24 KB  384 8bpp tiles      <- the BG1 base
+#   encima      $5000   8 KB  256 tiles           <- the BG2 base
+#   ventana     $6000   8 KB  256 tiles           <- indices 256..511
+#   ventana_map $7000   2 KB  the window's 32x32 tilemap
+#   (free)      $7400   2 KB
+#   tilemap     $7800   4 KB  the upper layer's, which doesn't move
 #
-# Lo que cuesta es que la ventana arranca en el índice 256 y no en el 128, y
-# sus celdas llevan ese índice horneado: por eso hay **dos planos** de la
-# ventana, uno por cada base que usan los repartos —ver `ventana_bases`—, y
-# `estampar_ventana` elige el suyo mirando dónde quedó la ventana respecto de
-# la base de BG2.
+# What it costs is that the window starts at index 256 and not 128, and its
+# cells carry that index baked in: that is why there are **two layouts** of
+# the window, one for each base the VRAM layouts use —see `ventana_bases`—,
+# and `estampar_ventana` picks its own by looking at where the window ended up
+# relative to the BG2 base.
 #
-# **Va último a propósito**, por lo mismo que los anteriores: `vram_layout`
-# mira ahora también la capa de encima, y como todos los mapas que ya
-# convertían entraban en 128, ninguno cambia de reparto.
+# **It goes last on purpose**, for the same reason as the previous ones:
+# `vram_layout` now also looks at the upper layer, and since all the maps that
+# already converted fit in 128, none changes layout.
 LAYOUT_VENTANA_ENCIMA = {"sprites": (0x0000, 384), "mapa": (0x1800, 1),
                          "tiles": (0x2000, 384), "encima": (0x5000, 256),
                          "ventana": (0x6000, 256), "ventana_map": (0x7000, 1)}
 
-# En el orden en que `vram_layout` los prueba. **Se agrega al final**, nunca en
-# el medio: así un reparto nuevo no le cambia el suyo a ningún mapa.
+# In the order `vram_layout` tries them. **New ones are added at the end**,
+# never in the middle: that way a new layout doesn't change any map's.
 LAYOUTS = (("VENTANA", LAYOUT_VENTANA),
            ("VENTANA_FONDO", LAYOUT_VENTANA_FONDO),
            ("VENTANA_SPRITE", LAYOUT_VENTANA_SPRITE),
            ("VENTANA_AMBOS", LAYOUT_VENTANA_AMBOS),
            ("VENTANA_FONDO_TECHO", LAYOUT_VENTANA_FONDO_TECHO),
            ("VENTANA_ENCIMA", LAYOUT_VENTANA_ENCIMA))
-# Cuántas ranuras de partida guardada tiene el cartucho. El mismo número está
-# en `tools/runtime/partida.s` como `SRAM_RANURAS`, y la ROM lo comprueba: si no dieran iguales,
-# la pantalla mostraría un número de ranuras y la SRAM tendría otro.
+# How many save slots the cartridge has. The same number is in
+# `tools/runtime/partida.s` as `SRAM_RANURAS`, and the ROM checks it: if they
+# didn't match, the screen would show one number of slots and the SRAM would
+# have another.
 RANURAS = 4
 
-# Dónde viven, en palabras, el tilemap y los tiles de la pantalla de ranuras.
-# Los mismos números están en el `.inc` como RANURA_MAP y RANURA_VRAM.
+# Where the tilemap and the tiles of the slots screen live, in words. The same
+# numbers are in the `.inc` as RANURA_MAP and RANURA_VRAM.
 #
-# **No comparten con el menú del título**, aunque hasta el 2026-09-10 lo
-# hacían: el save point abre esta pantalla con un mapa cargado y al cerrarla
-# hay que reponer lo que pisó, y eso es barato sólo si lo que pisó es el banco
-# de tiles de BG1, que `load_map` vuelve a subir entero. Las direcciones del
-# menú —$4400 y $5000— caían en los sprites de un reparto sin ventana que ya no
-# existe: los NPCs volvían del menú con las poses rotas y el héroe también si
-# no era el del bloque 0. Las de acá están en la intersección del banco de BG1
-# de los cinco repartos, que es $2000..$4000:
+# **They don't share with the title menu**, although until 2026-09-10 they
+# did: the save point opens this screen with a map loaded and when closing it
+# whatever it overwrote has to be restored, and that is cheap only if what it
+# overwrote is the BG1 tile bank, which `load_map` uploads whole again. The
+# menu's addresses —$4400 and $5000— fell on the sprites of a layout without
+# a window that no longer exists: the NPCs came back from the menu with broken
+# poses and the hero too if it wasn't the one in block 0. The ones here are in
+# the intersection of the BG1 bank of the five layouts, which is $2000..$4000:
 #
 #   LAYOUT_VENTANA        $2000..$5800
 #   LAYOUT_VENTANA_FONDO  $1000..$4C00
@@ -2336,243 +2368,247 @@ RANURAS = 4
 #   LAYOUT_VENTANA_AMBOS  $2000..$5C00
 #   LAYOUT_VENTANA_FONDO_TECHO $1000..$5400
 #
-# La base de tiles de un BG va de a 4096 palabras y el tilemap de a 1024: los
-# tiles en $2000, que con las caras del grupo son unos 300 y pueden llegar a
-# 448 —hasta $3C00—, y el tilemap en $3C00. La pantalla de título los pisa —su
-# imagen llega a $3E00— y no importa: al volver de las ranuras el título se
-# sube entero. `_controlar_ranuras` lo comprueba contra los repartos de
-# verdad, para que mover uno no deje esto escrito mal.
+# A BG's tile base goes in steps of 4096 words and the tilemap in steps of
+# 1024: the tiles at $2000, which with the party's faces are about 300 and can
+# reach 448 —up to $3C00—, and the tilemap at $3C00. The title screen
+# overwrites them —its image reaches $3E00— and it doesn't matter: coming back
+# from the slots the title is uploaded whole. `_controlar_ranuras` checks it
+# against the real layouts, so that moving one doesn't leave this written
+# wrong.
 RANURA_VRAM = 0x2000
-# La fila de `ranura_actor_texto`: el nombre, las dos cifras del nivel y el
-# máximo de HP de un actor, uno detrás del otro. Mide una potencia de dos
-# aunque sobren bytes, para que el índice del actor salga de cinco `asl` y no
-# de una multiplicación escrita en ensamblador.
+# The row of `ranura_actor_texto`: an actor's name, the two digits of the
+# level and max HP, one after the other. Its size is a power of two even if
+# bytes are left over, so that the actor's index comes out of five `asl` and
+# not of a multiplication written in assembly.
 RANURA_TEXTO_ANCHO = 32
-RANURA_TEXTO_NIVEL = 16         # el nombre entra en trece, y sobran tres
+RANURA_TEXTO_NIVEL = 16         # the name fits in thirteen, and three are left over
 RANURA_TEXTO_MAX = RANURA_TEXTO_NIVEL + menus_mod.NIVEL_CIFRAS
 RANURA_MAP = 0x3C00
 
-# El tilemap de la capa de encima sí es fijo: el del fondo lo elige el reparto
-# —ver LAYOUT_VENTANA_AMBOS—.
+# The upper layer's tilemap is fixed: the background's is chosen by the layout
+# —see LAYOUT_VENTANA_AMBOS—.
 VRAM_ABOVE_MAP = 0x7800
 
-# Dónde arranca el banco de la ventana **contado desde la base de BG2**, que es
-# donde empieza la capa de encima. Sale del reparto y no de un número escrito:
-# con la capa de encima en 128 tiles, la ventana arranca en el índice 128 y no
-# en el 256, y escribirlo a mano fue lo primero que se rompió al mover el
-# reparto.
+# Where the window's bank starts **counted from the BG2 base**, which is where
+# the upper layer begins. It comes from the layout and not from a written
+# number: with the upper layer at 128 tiles, the window starts at index 128
+# and not 256, and writing it by hand was the first thing that broke when the
+# layout moved.
 def ventana_base(layout):
-    """El índice de BG2 del primer tile de la ventana en ese reparto."""
+    """The BG2 index of the window's first tile in that layout."""
     return (layout["ventana"][0] - layout["encima"][0]) // 16
 
 
-# Las bases que usan los repartos, en el orden de sus planos en el `.inc`: el
-# de la primera es `ventana_celdas` —el de siempre— y el de la segunda,
-# `ventana_celdas_256`. La ROM elige entre los dos con la distancia entre la
-# ventana y la base de BG2, así que **no puede haber una tercera** sin tocar
-# `estampar_ventana`; lo cobra `_controlar_repartos`.
+# The bases the layouts use, in the order of their layouts in the `.inc`: the
+# first one's is `ventana_celdas` —the usual one— and the second's,
+# `ventana_celdas_256`. The ROM picks between the two by the distance between
+# the window and the BG2 base, so **there can't be a third** without touching
+# `estampar_ventana`; `_controlar_repartos` enforces it.
 VENTANA_TILE_BASE = ventana_base(LAYOUT_VENTANA)
 VENTANA_BASES = (VENTANA_TILE_BASE, 256)
 
-# La tabla de bloques se lee con `lda tabla, x`, o sea que vive en el banco 0
-# junto con el código.
+# The block table is read with `lda tabla, x`, that is it lives in bank 0
+# together with the code.
 MAX_BLOCKS = 1024
 
 
 def vram_layout(tiles, sprites=0, encima=0):
-    """Qué reparto de VRAM le toca a un mapa, según lo que gasta.
+    """Which VRAM layout a map gets, according to what it spends.
 
-    Los tres números se miran en todos los repartos, y se devuelve el primero
-    que entre. La capa de encima se mira desde el sexto reparto, el que le da
-    256: con los cinco de antes entraba siempre, porque un mapa que se pasaba
-    de 128 no convertía.
+    The three numbers are checked in every layout, and the first one that
+    fits is returned. The upper layer is checked since the sixth layout, the
+    one that gives it 256: with the five before it always fit, because a map
+    that went over 128 didn't convert.
     """
-    # Los dos números se miran en los dos repartos. Antes se miraba el fondo en
-    # uno y los sprites en el otro, y eso dejaba pasar un mapa de 620 tiles de
-    # fondo a un banco de 512: ver el comentario de LAYOUT_VENTANA_FONDO.
+    # The two numbers are checked in both layouts. The background used to be
+    # checked in one and the sprites in the other, and that let a map with 620
+    # background tiles into a bank of 512: see the comment on
+    # LAYOUT_VENTANA_FONDO.
     for _nombre, layout in LAYOUTS:
         if (tiles <= layout["tiles"][1] and sprites <= layout["sprites"][1]
                 and encima <= layout["encima"][1]):
             return layout
     raise SystemExit(
-        "este mapa no puede llevar ventana de mensaje: gasta %d tiles de fondo, "
-        "%d de sprite y %d de encima, y no hay reparto que le deje 8 KB de "
-        "tiles más 2 KB de tilemap a la ventana" % (tiles, sprites, encima))
+        "this map can't carry a message window: it spends %d background tiles, "
+        "%d sprite tiles and %d upper tiles, and there is no layout that leaves "
+        "8 KB of tiles plus 2 KB of tilemap for the window" % (tiles, sprites, encima))
 
 
 def _controlar_ranuras(ranura_tiles):
-    """Que la pantalla de ranuras caiga en el banco de BG1 de todos los repartos.
+    """That the slots screen lands in the BG1 bank of every layout.
 
-    Es lo que hace que `volver_al_mapa` pueda reponer el mapa con `load_map` y
-    nada más; ver el comentario de RANURA_MAP.
+    It is what lets `volver_al_mapa` restore the map with `load_map` and
+    nothing else; see the comment on RANURA_MAP.
     """
     fin_tiles = RANURA_VRAM + ranura_tiles * 16
     fin_map = RANURA_MAP + 32 * 32
     if not (fin_tiles <= RANURA_MAP or fin_map <= RANURA_VRAM):
         raise SystemExit(
-            "los %d tiles de la pantalla de ranuras llegan a $%04X y pisan su "
-            "tilemap en $%04X" % (ranura_tiles, fin_tiles, RANURA_MAP))
+            "the %d tiles of the slots screen reach $%04X and overwrite its "
+            "tilemap at $%04X" % (ranura_tiles, fin_tiles, RANURA_MAP))
     for nombre, layout in LAYOUTS:
         base, cuantos = layout["tiles"]
         tope = base + cuantos * (BYTES_PER_TILE // 2)
-        for que, desde, hasta in (("los tiles", RANURA_VRAM, fin_tiles),
-                                  ("el tilemap", RANURA_MAP, fin_map)):
+        for que, desde, hasta in (("the tiles", RANURA_VRAM, fin_tiles),
+                                  ("the tilemap", RANURA_MAP, fin_map)):
             if desde < base or hasta > tope:
                 raise SystemExit(
-                    "la pantalla de ranuras pone %s en $%04X..$%04X y el "
-                    "banco de BG1 de LAYOUT_%s es $%04X..$%04X: al volver del "
-                    "menú `load_map` no lo repondría"
+                    "the slots screen puts %s at $%04X..$%04X and the "
+                    "BG1 bank of LAYOUT_%s is $%04X..$%04X: when coming back "
+                    "from the menu `load_map` wouldn't restore it"
                     % (que, desde, hasta, nombre, base, tope))
 
 
 def items_marco_primero(fuente):
-    """El primer tile de 8bpp de las ventanas de ítems y de equipo, contado
-    desde `RANURA_VRAM`, que es la base de BG1 y la de BG2: el primero libre
-    detrás de los `fuente` tiles de la fuente, que son de 4bpp y miden la
-    mitad."""
+    """The first 8bpp tile of the item and equipment windows, counted from
+    `RANURA_VRAM`, which is the BG1 base and the BG2 one: the first free one
+    after the `fuente` tiles of the font, which are 4bpp and half the size."""
     return (fuente + 1) // 2
 
 
 def _controlar_marco_de_items(fuente, marco):
-    """Que la fuente y las ventanas de las pantallas de ítems y de equipo, una
-    detrás de la otra, no lleguen al tilemap de BG1, y que todo quede en el banco de BG1 de
-    los repartos, como el resto de la pantalla —ver `_controlar_ranuras`—."""
+    """That the font and the windows of the item and equipment screens, one
+    after the other, don't reach the BG1 tilemap, and that everything stays
+    in the BG1 bank of the layouts, like the rest of the screen —see
+    `_controlar_ranuras`—."""
     fin = RANURA_VRAM + (items_marco_primero(fuente) + marco) * 32
     if fin > menus_mod.ITEM_MARCO_MAPA:
         raise SystemExit(
-            "la fuente de la pantalla de ítems (%d tiles de 4bpp) y las "
-            "ventanas de ítems y equipo (%d de 8bpp) llegan a $%04X y el tilemap de las ventanas "
-            "está en $%04X" % (fuente, marco, fin, menus_mod.ITEM_MARCO_MAPA))
+            "the item screen's font (%d 4bpp tiles) and the item and "
+            "equipment windows (%d 8bpp ones) reach $%04X and the windows' "
+            "tilemap is at $%04X" % (fuente, marco, fin, menus_mod.ITEM_MARCO_MAPA))
     fin_map = menus_mod.ITEM_MARCO_MAPA + 32 * 32
     for nombre, layout in LAYOUTS:
         base, cuantos = layout["tiles"]
         tope = base + cuantos * (BYTES_PER_TILE // 2)
         if RANURA_VRAM < base or fin_map > tope:
             raise SystemExit(
-                "las ventanas de ítems y equipo llegan a $%04X y el banco "
-                "de BG1 de LAYOUT_%s es $%04X..$%04X" % (fin_map, nombre, base,
-                                                          tope))
+                "the item and equipment windows reach $%04X and the BG1 "
+                "bank of LAYOUT_%s is $%04X..$%04X" % (fin_map, nombre, base,
+                                                       tope))
 
 
 def _controlar_objetivo(tiles):
-    """Que los tiles y el tilemap de las ventanas de la elección de actor
-    entren entre la base de su BG1 y su tilemap, y que todo caiga en el
-    banco de BG1 de todos los repartos, que es lo que `load_map` repone al
-    cerrar el menú —como `_controlar_ranuras`—, y fuera de lo que el menú
-    ya usa: sus tiles y su tilemap terminan en `RANURA_MAP` + 1024."""
+    """That the tiles and the tilemap of the actor-choice windows fit between
+    their BG1 base and their tilemap, and that everything lands in the BG1
+    bank of every layout, which is what `load_map` restores when closing the
+    menu —like `_controlar_ranuras`—, and outside what the menu already uses:
+    its tiles and its tilemap end at `RANURA_MAP` + 1024."""
     T = menus_mod
     fin_tiles = T.OBJETIVO_VRAM + tiles * 32
     fin_map = T.OBJETIVO_MAPA + 32 * 32
     if fin_tiles > T.OBJETIVO_MAPA:
         raise SystemExit(
-            "las ventanas de la elección de actor son %d tiles de 8bpp y "
-            "llegan a $%04X, y su tilemap está en $%04X"
+            "the actor-choice windows are %d 8bpp tiles and "
+            "reach $%04X, and their tilemap is at $%04X"
             % (tiles, fin_tiles, T.OBJETIVO_MAPA))
     if T.OBJETIVO_VRAM < RANURA_MAP + 32 * 32:
-        raise SystemExit("las ventanas de la elección de actor pisan el "
-                         "tilemap del menú")
+        raise SystemExit("the actor-choice windows overwrite the "
+                         "menu's tilemap")
     for nombre, layout in LAYOUTS:
         base, cuantos = layout["tiles"]
         tope = base + cuantos * (BYTES_PER_TILE // 2)
         if T.OBJETIVO_VRAM < base or fin_map > tope:
             raise SystemExit(
-                "las ventanas de la elección de actor van en $%04X..$%04X y "
-                "el banco de BG1 de LAYOUT_%s es $%04X..$%04X: al cerrar el "
-                "menú `load_map` no las repondría"
+                "the actor-choice windows go at $%04X..$%04X and "
+                "the BG1 bank of LAYOUT_%s is $%04X..$%04X: when closing the "
+                "menu `load_map` wouldn't restore them"
                 % (T.OBJETIVO_VRAM, fin_map, nombre, base, tope))
 
 
 def _controlar_tienda(tiles):
-    """Que los tiles de las ventanas de la tienda, desde la base de su BG1,
-    no lleguen más allá de lo que `load_map` repone al cerrar en ningún
-    reparto —como `_controlar_objetivo`—, ni a lo que usa la pantalla: la
-    fuente y el tilemap de BG2 terminan en `RANURA_MAP` + 1024. El tilemap es
-    el de ítems y equipo, que ya controla `_controlar_marco_de_items`."""
+    """That the tiles of the shop windows, from their BG1 base, don't reach
+    beyond what `load_map` restores when closing in any layout —like
+    `_controlar_objetivo`—, nor what the screen uses: the font and the BG2
+    tilemap end at `RANURA_MAP` + 1024. The tilemap is the item and equipment
+    one, which `_controlar_marco_de_items` already checks."""
     P = pantallas_mod
     fin_tiles = P.TI_VRAM + tiles * 32
     if P.TI_VRAM < RANURA_MAP + 32 * 32:
-        raise SystemExit("las ventanas de la tienda pisan el tilemap del "
-                         "texto")
+        raise SystemExit("the shop windows overwrite the text "
+                         "tilemap")
     for nombre, layout in LAYOUTS:
         base, cuantos = layout["tiles"]
         tope = base + cuantos * (BYTES_PER_TILE // 2)
         if P.TI_VRAM < base or fin_tiles > tope:
             raise SystemExit(
-                "las ventanas de la tienda son %d tiles de 8bpp, en "
-                "$%04X..$%04X, y el banco de BG1 de LAYOUT_%s es "
-                "$%04X..$%04X: al cerrar la tienda `load_map` no las "
-                "repondría" % (tiles, P.TI_VRAM, fin_tiles, nombre, base,
-                               tope))
+                "the shop windows are %d 8bpp tiles, at "
+                "$%04X..$%04X, and the BG1 bank of LAYOUT_%s is "
+                "$%04X..$%04X: when closing the shop `load_map` wouldn't "
+                "restore them" % (tiles, P.TI_VRAM, fin_tiles, nombre, base,
+                                  tope))
 
 
 def _controlar_repartos():
-    """Que cada reparto respete al hardware y a lo que la ROM supone de él.
+    """That each layout respects the hardware and what the ROM assumes of it.
 
-    Nada de esto depende del mapa, así que se mira una vez por conversión.
+    None of this depends on the map, so it is checked once per conversion.
     """
     for nombre, layout in LAYOUTS:
-        # En palabras: lo que ocupa cada cosa, y de a cuánto va su base. Los
-        # tiles de sprite y de la capa de encima son de 4bpp, 16 palabras.
+        # In words: what each thing takes, and the step its base goes in. The
+        # sprite and upper-layer tiles are 4bpp, 16 words.
         piezas = {
             "sprites": (layout["sprites"][1] * 16, 0x2000),
             "tiles": (layout["tiles"][1] * (BYTES_PER_TILE // 2), 0x1000),
             "encima": (layout["encima"][1] * 16, 0x1000),
             "ventana": (layout["ventana"][1] * 16, 1),
             "ventana_map": (32 * 32, 0x400),
-            # 2048 y no 1024, que es lo que pide `BG1SC`: `push_strips` pasa a
-            # la capa de encima enmascarando once bits. Ver `push_una_columna`.
+            # 2048 and not 1024, which is what `BG1SC` asks for: `push_strips`
+            # steps to the upper layer by masking eleven bits. See
+            # `push_una_columna`.
             "mapa": (WINDOW_W * WINDOW_H, 0x800),
         }
-        tramos = [("mapa de encima", VRAM_ABOVE_MAP, VRAM_ABOVE_MAP
+        tramos = [("upper map", VRAM_ABOVE_MAP, VRAM_ABOVE_MAP
                    + WINDOW_W * WINDOW_H)]
         for pieza, (largo, paso) in piezas.items():
             base = layout[pieza][0]
             if base % paso:
-                raise SystemExit("LAYOUT_%s: %s en $%04X, y su base va de a $%X "
-                                 "palabras" % (nombre, pieza, base, paso))
+                raise SystemExit("LAYOUT_%s: %s at $%04X, and its base goes in "
+                                 "steps of $%X words" % (nombre, pieza, base, paso))
             tramos.append((pieza, base, base + largo))
         if layout["mapa"][0] == 0:
-            raise SystemExit("LAYOUT_%s: el tilemap en $0000, y `col_addr` en "
-                             "cero quiere decir que no hay columna" % nombre)
+            raise SystemExit("LAYOUT_%s: the tilemap at $0000, and `col_addr` "
+                             "at zero means there is no column" % nombre)
         if ventana_base(layout) not in VENTANA_BASES:
-            raise SystemExit("LAYOUT_%s: la ventana arranca en el tile %d de "
-                             "BG2, y hay planos para %s: ver VENTANA_BASES"
+            raise SystemExit("LAYOUT_%s: the window starts at BG2 tile %d, "
+                             "and there are layouts for %s: see VENTANA_BASES"
                              % (nombre, ventana_base(layout), VENTANA_BASES))
-        # Y la ventana tiene que caer adentro de lo que BG2 alcanza desde su
-        # base: el índice del tilemap es de diez bits.
+        # And the window has to land inside what BG2 reaches from its base: the
+        # tilemap index is ten bits.
         if ventana_base(layout) + layout["ventana"][1] > 1024:
-            raise SystemExit("LAYOUT_%s: la ventana se pasa del índice 1023 "
-                             "de BG2" % nombre)
+            raise SystemExit("LAYOUT_%s: the window goes past BG2 index "
+                             "1023" % nombre)
         tramos.sort(key=lambda t: t[1])
         for (a, _, fin), (b, desde, _) in zip(tramos, tramos[1:]):
             if fin > desde:
-                raise SystemExit("LAYOUT_%s: %s termina en $%04X y %s arranca "
-                                 "en $%04X" % (nombre, a, fin, b, desde))
+                raise SystemExit("LAYOUT_%s: %s ends at $%04X and %s starts "
+                                 "at $%04X" % (nombre, a, fin, b, desde))
         if tramos[-1][2] > 0x8000:
-            raise SystemExit("LAYOUT_%s: %s se pasa de la VRAM"
+            raise SystemExit("LAYOUT_%s: %s goes past VRAM"
                              % (nombre, tramos[-1][0]))
 
 
-# La ventana de mensaje, partida en dos: lo que la ROM lleva hecho y lo que
-# compone en caliente.
+# The message window, split in two: what the ROM carries ready-made and what
+# it composes on the fly.
 #
-# **Por qué se compone en caliente.** Una página de mensaje ya compuesta son
-# unos 240 tiles de 4bpp, o sea 7,5 KB. El juego tiene 18.808 líneas de texto:
-# emitir una ventana por mensaje no entra ni cerca en un cartucho de 256 KB. La
-# salida es la de FF6 —la fuente en la ROM y el texto armado desde el 65816— y
-# es lo que hace `componer_mensaje` en tools/runtime/.
+# **Why it is composed on the fly.** A composed message page is about 240 4bpp
+# tiles, that is 7.5 KB. The game has 18,808 lines of text: emitting one
+# window per message doesn't come close to fitting in a 256 KB cartridge. The
+# way out is FF6's —the font in the ROM and the text built from the 65816— and
+# it is what `componer_mensaje` does in tools/runtime/.
 #
-# El reparto del banco de 256 tiles que tiene la ventana:
+# How the window's bank of 256 tiles is split:
 #
-#   0 .. 14       la ventana vacía, deduplicada: marco y fondo estirado
-#   15 .. 254     el área de texto, 30 columnas por 8 filas de celda
+#   0 .. 14       the empty window, deduplicated: frame and stretched background
+#   15 .. 254     the text area, 30 columns by 8 rows of cells
 #
-# Las 240 del área de texto **no se deduplican**: cada celda tiene su tile fijo,
-# porque la ROM las va a reescribir y no puede andar buscando repetidos. De ahí
-# sale el tope de 39 caracteres por línea: con 40 la sombra del último se pasa a
-# la columna 31 y harían falta 8 tiles más de los que hay. Truncar a 39 pierde
-# el 1,58% de los caracteres del juego contra el 1,09% de truncar a 40.
-VENTANA_TEXTO_FILA = 1           # la primera fila de celdas que lleva texto
+# The 240 of the text area **are not deduplicated**: each cell has its fixed
+# tile, because the ROM is going to rewrite them and can't go around looking
+# for repeats. That is where the cap of 39 characters per line comes from: with
+# 40 the shadow of the last one spills into column 31 and 8 more tiles than
+# there are would be needed. Truncating to 39 loses 1.58% of the game's
+# characters against 1.09% for truncating to 40.
+VENTANA_TEXTO_FILA = 1           # the first row of cells that carries text
 VENTANA_TEXTO_FILAS = 8
 VENTANA_TEXTO_COL = 1
 VENTANA_TEXTO_COLS = 30

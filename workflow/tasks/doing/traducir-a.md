@@ -16,3 +16,18 @@ módulos, funciones, variables, símbolos del runtime, flags—: eso es la fase
 importan. Los términos salen de `tools/GLOSSARY.md`.
 
 Alcance de esta parte: tools/port/snes_convert.py, entero.
+
+## Cómo se hace
+
+Por tramos del archivo, cada uno en su commit. Para cada tramo se compara el
+AST del archivo viejo contra el nuevo, con los docstrings y los strings
+sacados: tiene que dar igual, y los strings que cambian se listan y se miran
+a mano uno por uno. Después `SIN_CACHE=1 just cartuchos` y el sha256 de todo
+`rom/build/` menos el caché, los `.o` y el sello, contra la base tomada antes
+de tocar nada.
+
+## Avance
+
+- Líneas 1–2580 (de la cabecera hasta la ventana de mensaje): hecho. Los
+  `.sfc`, `.msu`, `.pcm`, `.inc` y `.dbg` salen iguales: en este tramo no hay
+  comentarios que vayan al `.inc`.
