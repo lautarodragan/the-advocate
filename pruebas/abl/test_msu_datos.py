@@ -37,7 +37,7 @@ import shutil
 import pytest
 
 from port import escena, eventos, msu_datos, snes_convert
-from render.render_map import GAME_DIR
+from rpgmaker.recursos import GAME_DIR
 from rpgmaker import lcf, rm2k
 
 import tanda

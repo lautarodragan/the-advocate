@@ -307,7 +307,7 @@ NIVELES_DEL_MENU = {14: 9, 11: 30}
 
 
 def referencias():
-    from render.render_map import GAME_DIR
+    from rpgmaker.recursos import GAME_DIR
     return datos.base(), datos.skin(), GAME_DIR
 
 

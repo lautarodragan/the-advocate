@@ -90,7 +90,7 @@ def test_el_menu_de_despues_de_la_pelea_muestra_esos_hp(partida):
     nadie escribía.
     """
     from port import titulo
-    from render.render_map import GAME_DIR
+    from rpgmaker.recursos import GAME_DIR
     from test_experiencia_dibujo import exp_y_nivel
     una = pelear(partida(caso="pelea-82-grupo-11-12"))
     quedo = hp_de(una)

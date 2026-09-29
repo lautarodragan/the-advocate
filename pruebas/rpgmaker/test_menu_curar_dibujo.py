@@ -61,7 +61,7 @@ def diferencia_con_la_eleccion(una, elegida, hp, sandwiches):
     """Cuántos pixeles, a 15 bits, difiere la pantalla de `render_objetivo`,
     con el sándwich y los que quedan de él al lado de "Owned Items"."""
     from port import titulo
-    from render.render_map import GAME_DIR
+    from rpgmaker.recursos import GAME_DIR
     db, skin = datos.base(), datos.skin()
     esperada = titulo.render_objetivo(skin, db, 4, (TALAN, ARDEN), elegida,
                                       db.font_id, None, GAME_DIR, hp,

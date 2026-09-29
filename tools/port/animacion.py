@@ -86,11 +86,12 @@ _CACHE = {}
 def hoja_de(renderer, anim):
     """La hoja de `Battle` de esta animación, o None si no tiene o no está."""
     from render import render_map
+    from rpgmaker import recursos
     nombre = anim.get("imagen") or ""
     if not nombre:
         return None
     carpeta = "Battle2" if anim.get("grande") else "Battle"
-    path = render_map.find_resource(renderer.search_dirs, carpeta, nombre)
+    path = recursos.find_resource(renderer.search_dirs, carpeta, nombre)
     return render_map.load_image(path) if path else None
 
 

@@ -16,7 +16,7 @@ from menu import GRUPO, ORO, abrir, con_grupo
 
 def comparar(una, elegida, guardar=True, nombre="menu", hp=None):
     from port import titulo
-    from render.render_map import GAME_DIR
+    from rpgmaker.recursos import GAME_DIR
     db, skin = datos.base(), datos.skin()
     esperada = titulo.render_menu(skin, db, una.simbolos["SRAM_RANURAS"],
                                   GRUPO, ORO, elegida, guardar, db.font_id,
@@ -184,7 +184,7 @@ def test_los_hp_del_menu_cambian_de_verdad():
     sostiene todo".
     """
     from port import titulo
-    from render.render_map import GAME_DIR
+    from rpgmaker.recursos import GAME_DIR
     db, skin = datos.base(), datos.skin()
     llena = titulo.render_menu(skin, db, 4, GRUPO, ORO, 0, True, db.font_id,
                                None, GAME_DIR)

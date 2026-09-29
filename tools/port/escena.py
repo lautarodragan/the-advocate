@@ -220,9 +220,10 @@ def _abrir(game_dir, carpeta, nombre, rtp=False):
     de la ROM son del juego. Los battlers siguen sin buscar ahí, para no
     cambiar cuáles entran sin mirarlo."""
     from render import render_map
-    lugares = [game_dir] + ([render_map.RTP_DIR] if rtp else [])
-    camino = render_map.find_resource(lugares, carpeta, nombre,
-                                      (".png", ".bmp", ".xyz"))
+    from rpgmaker import recursos
+    lugares = [game_dir] + ([recursos.RTP_DIR] if rtp else [])
+    camino = recursos.find_resource(lugares, carpeta, nombre,
+                                    (".png", ".bmp", ".xyz"))
     if camino is None:
         return None
     return render_map.load_image(camino)
@@ -329,7 +330,7 @@ def fondos_del_juego(nombrados, tree, terrenos, game_dir):
     juego ni en el RTP no entra: en RM2k esa pelea va sin fondo. Devuelve los
     nombres como los escribe el juego la primera vez, en ese orden.
     """
-    from render import render_map
+    from rpgmaker import recursos
     todos = set(nombrados)
     todos |= {nombre for tipo, nombre in tree.background.values()
               if tipo == 2 and nombre}
@@ -340,9 +341,9 @@ def fondos_del_juego(nombrados, tree, terrenos, game_dir):
     salida = []
     for clave in sorted(por_clave):
         nombre = por_clave[clave]
-        if render_map.find_resource([game_dir, render_map.RTP_DIR],
-                                    "Backdrop", nombre,
-                                    (".png", ".bmp", ".xyz")) is None:
+        if recursos.find_resource([game_dir, recursos.RTP_DIR],
+                                  "Backdrop", nombre,
+                                  (".png", ".bmp", ".xyz")) is None:
             print("  el fondo %r no está ni en el juego ni en el RTP" % nombre)
             continue
         salida.append(nombre)

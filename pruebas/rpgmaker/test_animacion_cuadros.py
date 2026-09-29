@@ -20,7 +20,8 @@ import pytest
 
 from port import animacion, eventos
 from port.snes_convert import cuadro_de_animacion
-from render.render_map import GAME_DIR, Renderer
+from render.render_map import Renderer
+from rpgmaker.recursos import GAME_DIR
 
 from consola import en_la_rom, en_la_wram
 from tanda import partida

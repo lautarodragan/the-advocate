@@ -5,7 +5,7 @@ página compilada, y los dos índices que arma el conversor —qué ranura le to
 a cada variable y a cada par (actor, habilidad)— con la misma cuenta que usó
 al armar el cartucho.
 
-Todo sale de `render_map.GAME_DIR`, que es `ABL_GAME_DIR` si está puesta.
+Todo sale de `recursos.GAME_DIR`, que es `ABL_GAME_DIR` si está puesta.
 
 **La base se lee una vez por proceso y se comparte**, y eso vale mientras
 nadie la modifique: ni las pruebas ni lo que llaman de `tools/port/` le
@@ -19,7 +19,7 @@ import json
 import os
 
 from ensamblado import cartuchos
-from render.render_map import GAME_DIR
+from rpgmaker.recursos import GAME_DIR
 
 
 # Los mapas de la apertura, en el orden en que se le pasan al conversor: el 4,

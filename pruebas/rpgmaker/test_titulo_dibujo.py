@@ -259,7 +259,7 @@ def test_la_pantalla_de_ranuras_muestra_el_grupo_guardado(partida):
     DummyHero no tiene cara, así que se ven las dos cosas y un hueco.
     """
     from port import titulo
-    from render.render_map import GAME_DIR
+    from rpgmaker.recursos import GAME_DIR
 
     una = con_el_control(partida)
     una.poner_grupo(14, 10)
@@ -337,7 +337,7 @@ def test_una_partida_de_otro_build_se_ve_vacia_y_no_carga(partida, como):
     salteando esa, en el switch: la partida corrida carga.
     """
     from port import titulo
-    from render.render_map import GAME_DIR
+    from rpgmaker.recursos import GAME_DIR
 
     una = con_el_control(partida)
     una.poner_grupo(14, 10)

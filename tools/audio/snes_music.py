@@ -22,7 +22,7 @@ from audio import sdsp
 from audio import snes_samples
 from audio import spc700
 from comun.paralelo import en_paralelo
-from render.render_map import GAME_DIR, find_resource
+from rpgmaker.recursos import GAME_DIR, find_resource
 
 TICKS_PER_SECOND = musica.TICKS_PER_SECOND
 
@@ -114,7 +114,7 @@ def numeros_de_pista(game_dir=GAME_DIR):
     """{nombre del tema en minúsculas: número de pista}, para todo `Music/` y
     los del RTP que nombra el `System`."""
     if game_dir not in _numeros_de_pista:
-        from render.render_map import RTP_DIR
+        from rpgmaker.recursos import RTP_DIR
         nombres = _nombres_de_musica(game_dir)
         del_rtp = _nombres_de_musica(RTP_DIR)
         ldb = os.path.join(game_dir, "RPG_RT.ldb")
@@ -132,7 +132,7 @@ def numeros_de_pista(game_dir=GAME_DIR):
 def ruta_del_tema(nombre, game_dir=GAME_DIR, extensiones=MUSICA_DE_PISTA):
     """El archivo del tema: el del juego y, si no está, el del RTP, que es
     como lo busca RM2k. `None` si no está en ninguno de los dos."""
-    from render.render_map import RTP_DIR
+    from rpgmaker.recursos import RTP_DIR
     return (find_resource([game_dir, RTP_DIR], "Music", nombre, extensiones)
             if nombre else None)
 
@@ -434,7 +434,7 @@ def leer_wav(nombre, game_dir=GAME_DIR):
     """Las muestras de un WAV mono como enteros de 16 bits con signo, y su
     tasa. None si no está o no es un WAV que se entienda."""
     import wave
-    from render.render_map import RTP_DIR
+    from rpgmaker.recursos import RTP_DIR
     ruta = find_resource([game_dir, RTP_DIR], "Sound", nombre,
                          (".wav", ".WAV"))
     if not ruta:

@@ -26,7 +26,7 @@ import pytest  # noqa: E402
 from port import event_opcodes  # noqa: E402
 from port import eventos  # noqa: E402
 from rpgmaker import lcf  # noqa: E402
-from render.render_map import GAME_DIR  # noqa: E402
+from rpgmaker.recursos import GAME_DIR  # noqa: E402
 from ensamblado import ensamblar  # noqa: E402
 from audio import music_opcodes  # noqa: E402
 from ensamblado import cartuchos  # noqa: E402

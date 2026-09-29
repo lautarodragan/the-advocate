@@ -88,8 +88,9 @@ from comun.paralelo import en_paralelo
 from audio import snes_music
 from port.asignador import CELL, tile_colors
 from rpgmaker.rm2k import collect_npcs, hero_start, passability_map
-from render.render_map import (GAME_DIR, REPO, RTP_DIR, Renderer, TILE,
-                               build_passability, find_resource, load_image)
+from render.render_map import (REPO, Renderer, TILE, build_passability,
+                               load_image)
+from rpgmaker.recursos import GAME_DIR, RTP_DIR, find_resource
 
 # El PPU direcciona 1024 tiles por capa: diez bits en cada celda del tilemap.
 MAX_TILES = 1024
@@ -1778,14 +1779,15 @@ _VERSION_CAPAS = None
 def _version_capas():
     """Qué versión del código produjo lo que haya guardado bajo `capas`.
 
-    Son las cinco piezas que participan del dibujo o de la conversión, más los
+    Son las seis piezas que participan del dibujo o de la conversión, más los
     dos programas que no son fuentes de este árbol:
 
     * `render/render_map.py` y `render/chipset.py` **dibujan** las capas y
       expanden el ChipSet. Hasta el 2026-09-20 no hacían falta, porque la clave
       eran los pixeles ya dibujados: cambiar el dibujo cambiaba la clave solo.
       Desde que la clave sale de los insumos, la única forma de que un cambio
-      en el dibujo invalide lo guardado es ésta;
+      en el dibujo invalide lo guardado es ésta. `rpgmaker/recursos.py` va con
+      ellos porque es de donde `render_map` saca cómo encuentra el ChipSet;
     * `port/asignador.py` decide qué colores se pierden, `rpgmaker/rm2k.py`
       tiene las constantes del reparto y de las familias animadas, y este
       archivo hace el resto;
@@ -1808,6 +1810,7 @@ def _version_capas():
                                                  "port/asignador.py",
                                                  "rpgmaker/rm2k.py",
                                                  "render/render_map.py",
+                                                 "rpgmaker/recursos.py",
                                                  "render/chipset.py")
                           + tiles_bin.version()
                           + " Pillow " + PIL.__version__)

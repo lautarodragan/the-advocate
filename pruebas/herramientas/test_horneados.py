@@ -20,7 +20,8 @@ No arranca ninguna ROM: mira al conversor.
 import os
 
 from port import snes_convert
-from render.render_map import GAME_DIR, Renderer, build_passability
+from render.render_map import Renderer, build_passability
+from rpgmaker.recursos import GAME_DIR
 from rpgmaker import rm2k
 
 from ensamblado import cartuchos
