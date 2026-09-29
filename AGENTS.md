@@ -96,6 +96,7 @@ port —ver `tools/README.md`—:
     tools/gunter/    Gunter: códec BRR y lector de SoundFont
     tools/voodoo/    Voodoo: de una imagen a tiles, paletas y tilemap
     tools/lz2/       el LC_LZ2 de Nintendo, con el que se comprimen los mapas
+    tools/rm2k-render/  las capas de un mapa de RM2k, dibujadas desde su ChipSet
 
 Hasta el 2026-09-16 hubo otro más, `w65/`, el ensamblador de 65816. Lo reemplazaron
 `ca65` y `ld65`, del proyecto cc65: ver "Dónde corre esto".
@@ -128,8 +129,8 @@ segundo bytecode quedó claro que hacerlo hablar castellano lo ata a este repo.
 
 Las pruebas de esos proyectos no dependen del juego. Ditto recibe el corpus por
 `DITTO_CORPUS`, y sin esa variable las que lo necesitan se saltean con un
-mensaje; `tools/protocol/`, `tools/gunter/`, `tools/voodoo/` y `tools/lz2/` no
-necesitan nada.
+mensaje; `tools/protocol/`, `tools/gunter/`, `tools/voodoo/`, `tools/lz2/` y
+`tools/rm2k-render/` no necesitan nada.
 
 ### `tools/voodoo/` no decide colores, y eso no se arregla
 

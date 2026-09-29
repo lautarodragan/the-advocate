@@ -55,6 +55,7 @@ in English and without a single mention of this game (see AGENTS.md):
     gunter/      Gunter: BRR codec and SoundFont reader
     voodoo/      Voodoo: from an image to tiles, palettes and tilemap
     lz2/         Nintendo's LC_LZ2, with an optimal parser
+    rm2k-render/ an RPG Maker 2000 map's tile layers, as pictures
 
 They are installed with `just -f tools/justfile install` and used from
 the PATH: no `.py` here builds them or looks for them in `target/`. The same
