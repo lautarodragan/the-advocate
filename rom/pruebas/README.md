@@ -101,7 +101,7 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `rpgmaker/test_terreno.py`: `StoreTerrainID`
 * `rpgmaker/test_cores.py`: snes9x contra bsnes, para la memoria sin
   inicializar —ver `AGENTS.md`, "La regla que sostiene todo"—
-* `rpgmaker/test_pila.py`: la hondura de la pila contra `bancos.PILA`, en
+* `rpgmaker/test_pila.py`: la hondura de la pila contra `banks.STACK`, en
   los caminos más hondos que se conocen
 
 **Eventos y comandos**

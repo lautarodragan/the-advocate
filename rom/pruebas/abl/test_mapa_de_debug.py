@@ -2,7 +2,7 @@
 puerta a cada punto clave del juego y un NPC por compañero.
 
 Es un mapa que el juego no tiene —`parches/manual/nuevos/Map0900.json`, ver
-`fork.new_maps`— y lo prende `CON_MAPA_DE_DEBUG` en cartuchos.py. Cada puerta
+`fork.new_maps`— y lo prende `WITH_DEBUG_MAP` en cartridges.py. Cada puerta
 es una página de contacto que pone el estado de alguien que jugó hasta ahí
 —switches, grupo, oro, ítems, la velocidad del héroe— y salta; de dónde sale
 cada número lo dicen los comentarios de esa página. Acá se cobra que cada una
@@ -34,15 +34,15 @@ import pytest
 
 from batalla import grupo_de, sabe
 import lugares
-from ensamblado import cartuchos
+from assembly import cartridges
 from recorrido import Recorrido
 from tanda import golden, partida
 
 pytestmark = pytest.mark.skipif(
-    not cartuchos.CON_MAPA_DE_DEBUG,
-    reason="release se arma sin el mapa de debug (CON_MAPA_DE_DEBUG)")
+    not cartridges.WITH_DEBUG_MAP,
+    reason="release se arma sin el mapa de debug (WITH_DEBUG_MAP)")
 
-EL_MAPA = cartuchos.MAPA_DE_DEBUG
+EL_MAPA = cartridges.DEBUG_MAP
 # El `Teleport` de la entrada, `pruebas/casos/mapa-de-debug.json`.
 LA_LLEGADA = (13, 9)
 # Las seis puertas, en la fila de abajo, de izquierda a derecha.
@@ -79,7 +79,7 @@ FOTOS = os.path.join(lugares.SNAPSHOTS, "playthrough")
 def entrar(mundo, fotos=None, companero=None):
     """La partida recién llegada al mapa de debug por "Begin the Story", con
     el compañero sumado si hay uno."""
-    p = partida(cartuchos.ENTRADA_AL_MAPA_DE_DEBUG)
+    p = partida(cartridges.DEBUG_MAP_ENTRY)
     r = Recorrido(p, mundo, fotos=fotos and os.path.join(FOTOS, fotos))
     if companero:
         sumar(r, companero)
@@ -144,12 +144,12 @@ def test_sin_el_mapa_de_debug_la_pagina_cero_es_la_del_juego():
     cobran las pruebas que juegan desde el título, que la eligen igual con el
     mapa puesto —ver `tanda.partida`—; y que la ROM salga byte por byte igual
     a la de antes del mapa se midió al agregarlo, no lo mira esta prueba."""
-    limpia = cartuchos.casos_de(cartuchos.RELEASE, con_mapa_de_debug=False)
-    assert limpia[0] == cartuchos.LA_PARTIDA_DE_VERDAD
-    assert cartuchos.ENTRADA_AL_MAPA_DE_DEBUG not in limpia
-    con = cartuchos.casos_de(cartuchos.RELEASE, con_mapa_de_debug=True)
-    assert con[0] == cartuchos.ENTRADA_AL_MAPA_DE_DEBUG
-    assert cartuchos.LA_PARTIDA_DE_VERDAD in con
+    limpia = cartridges.cases_of(cartridges.RELEASE, with_debug_map=False)
+    assert limpia[0] == cartridges.REAL_GAME
+    assert cartridges.DEBUG_MAP_ENTRY not in limpia
+    con = cartridges.cases_of(cartridges.RELEASE, with_debug_map=True)
+    assert con[0] == cartridges.DEBUG_MAP_ENTRY
+    assert cartridges.REAL_GAME in con
 
 
 def test_la_puerta_del_comienzo_normal_arranca_la_apertura(mundo):

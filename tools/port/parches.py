@@ -11,7 +11,7 @@ chose what**, and that is a patch.
 Until now those decisions were made silently and left no trace: if a change
 made a map lose two more colors, the only way to find out was to look at the
 ROM. Here they come out written, they are versioned, and the suite fails if
-what is committed does not match —the same as `just protocolo --check` does
+what is committed does not match —the same as `just protocol --check` does
 with the opcodes—. The point is that **the diff warns**: it is what the
 goldens do with the pixels, for the decisions.
 
@@ -437,10 +437,10 @@ def escribir_usos(destino, usos):
 
 def mapas_de_prueba():
     """The maps that only exist for the suite. The project file declares
-    them, `[maps] test`, and `cartuchos.py` reads them; they are not written
+    them, `[maps] test`, and `cartridges.py` reads them; they are not written
     again here."""
-    from ensamblado import cartuchos
-    return set(cartuchos.MAPAS_DE_PRUEBA)
+    from assembly import cartridges
+    return set(cartridges.TEST_MAPS)
 
 
 def de_prueba(build, clase, cual, prueba):
@@ -693,14 +693,14 @@ def main(argv=None):
         help="the directories of the built cartridges. Without --check it has "
              "to be the playable ROM's and nothing else: what is versioned is "
              "what `abl` decides. With --check and none given, those of all "
-             "the cartridges in `cartuchos.py`")
+             "the cartridges in `cartridges.py`")
     parser.add_argument("--check", action="store_true",
                         help="do not write: fail if what is versioned is stale")
     args = parser.parse_args(argv)
     environment.from_arguments(args, "test_cartridges")
     if not args.builds and args.check:
-        from ensamblado import cartuchos
-        args.builds = [cartuchos.directorio(n) for n in cartuchos.CARTUCHOS]
+        from assembly import cartridges
+        args.builds = [cartridges.directory(n) for n in cartridges.CARTRIDGES]
     builds = []
     for build in args.builds:
         if _tiene_parches(build):

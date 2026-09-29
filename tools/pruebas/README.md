@@ -1,11 +1,11 @@
 # The tools' tests
 
-    just -f tools/justfile pruebas               all of them; standing in tools/, `just pruebas`
-    just -f tools/justfile pruebas -k escapes    the usual pytest arguments pass through as is
+    just -f tools/justfile test               all of them; standing in tools/, `just test`
+    just -f tools/justfile test -k escapes    the usual pytest arguments pass through as is
 
 The Python ones: the converter, the assembly and the runtime, tested without
 the game. The Rust projects' tests each have their own recipe
-(`protocolo-pruebas`, `ditto-pruebas`…).
+(`protocol-test`, `ditto-test`…).
 
 **A test goes here if it does not read the game** —neither `ABL_GAME_DIR`,
 nor the RTP—, **nor `rom/data/`, nor `rom/parches/`, nor a built cartridge,
@@ -19,7 +19,7 @@ same name, each in its own language —`test_banks.py` here and
 
 They run no ROM and take less than a second, so they run serially and
 without xdist. ABL's suite does not run them, and they need nothing from
-ABL: that is why they do not depend on `cartuchos` either.
+ABL: that is why they do not depend on `cartridges` either.
 
 What they do use from outside: `test_protocol.py` runs `protocol` from the
 PATH, and `test_music_stream.py` reads the samples' SoundFont with
@@ -37,7 +37,7 @@ has to exist: `test_index.py` enforces it.
 * `test_protocol.py`: the bytecode: the declarations, the generated files
   up to date, that both ends say the same numbers and that the runtime does
   not use an undeclared opcode
-* `test_assemble.py`: `ensamblado/ensamblar.py`: the checksum, the header,
+* `test_assemble.py`: `assembly/assemble.py`: the checksum, the header,
   the `.dbg` symbols and which sources are included
 * `test_banks.py`: the bank packing the converter does, and the `.cfg`
   memory map

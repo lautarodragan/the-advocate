@@ -14,7 +14,7 @@ import os
 import pytest
 
 import tanda
-from ensamblado import cartuchos
+from assembly import cartridges
 from lz2 import descomprimir
 from port import comprimir
 from port.snes_convert import (CLASES_COMPRIMIDAS, LZ2_TOPE_FONDO,
@@ -28,7 +28,7 @@ def _crudos(nombre):
     return {os.path.basename(r): open(r, "rb").read() for r in rutas}
 
 
-@pytest.mark.parametrize("nombre", sorted(cartuchos.CARTUCHOS))
+@pytest.mark.parametrize("nombre", sorted(cartridges.CARTRIDGES))
 def test_cada_bloque_vuelve_igual_por_la_referencia(nombre):
     crudos = _crudos(nombre)
     clases = {r.split(".")[1] for r in crudos}

@@ -4,11 +4,11 @@ cuadro por cuadro.
 El stream de música es por nota desde el 2026-09-26 —ver "el formato por
 nota" en `tools/audio/snes_music.py`— y lo expande `music_frame`
 (runtime/musica.s) a escrituras al DSP. La propiedad que sostiene el formato
-es que esas escrituras sean **exactamente** las de `snes_music.escrituras`:
+es que esas escrituras sean **exactamente** las de `snes_music.writes`:
 mismo registro, mismo valor, mismo orden y mismo cuadro. Hay dos redes:
 
-* el conversor decodifica cada tema con `snes_music.decodificar`, el modelo
-  del decodificador, y se corta si no da `escrituras` (`verificar_formato`);
+* el conversor decodifica cada tema con `snes_music.decode`, el modelo
+  del decodificador, y se corta si no da `writes` (`check_format`);
 * y ésta, que cobra lo que el modelo no ve: el 65816. Toca cada tema entero
   en la ROM, anota lo que llega a `dsp_musica` —la bitácora, `MUS_BITACORA`,
   que la prueba prende— y lo compara contra el modelo corriendo sobre los

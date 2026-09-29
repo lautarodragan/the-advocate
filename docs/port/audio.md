@@ -26,15 +26,15 @@ muestra y con qué envolvente, y la consola sólo reproduce.
   corre un cuadro de música por cuadro de video.
 * **Las ocho voces son de todos los canales** y se reparten nota a nota: una
   nota toma una voz libre o le roba a otra por prioridad. Ver `assign`,
-  `_victima` y `_orden_del_cuadro` en `snes_music.py`.
+  `_victim` y `_frame_order` en `snes_music.py`.
 * **El volumen tiene un techo por tema**, medido y versionado en
-  `rom/parches/auto/musica/techos.toml` (`just techos`): ver `leer_techos`.
+  `rom/parches/auto/musica/techos.toml` (`just techos`): ver `read_ceilings`.
 * **Las muestras salen del SoundFont** con el que se compuso el juego
   (`tools/audio/snes_samples.py`; `ABL_SOUNDFONT` apunta a otro), y las pasa a
-  BRR Gunter, por `tools/audio/muestras_brr.py`.
+  BRR Gunter, por `tools/audio/brr_samples.py`.
 * **Un solo banco de muestras para todo el cartucho, subido de a paquetes, uno
-  por mapa**, y cada muestra con el presupuesto de su peor paquete: `Banco` y
-  `repartir` en `snes_music.py`, y el porqué en
+  por mapa**, y cada muestra con el presupuesto de su peor paquete: `Bank` y
+  `allocate` en `snes_music.py`, y el porqué en
   `workflow/decisiones/un-solo-banco-de-muestras.md`. Lo sube
   `paquete_cargar` (`tools/runtime/paquete_de_audio.s`) mientras la música suena;
   si el tema que viene sonando y el paquete nuevo no entran juntos, gana el
@@ -44,12 +44,12 @@ muestra y con qué envolvente, y la consola sólo reproduce.
   **lugares que comparten los efectos**: dos efectos que nunca van en el
   mismo paquete van al mismo lugar, así que alcanzan tantos como efectos
   tiene el paquete más cargado, y lo que queda del directorio es para las
-  copias. `lugares_de_efectos` en `snes_music.py`; la ROM anota qué efecto
+  copias. `effect_places` en `snes_music.py`; la ROM anota qué efecto
   subió a cada lugar en `FAR_EFECTO_EN` (`anotar_efecto`, en
   `tools/runtime/paquete_de_audio.s`).
 * **Los efectos de sonido** —`PlaySound`— le roban dos voces a la música
   mientras duran, las que el reparto llena primero con la percusión:
-  `tools/runtime/efectos_de_sonido.s` y `build_efectos` en `snes_music.py`. Los
+  `tools/runtime/efectos_de_sonido.s` y `build_sound_effects` en `snes_music.py`. Los
   que van enteros y a más tasa —`[sound_effects.whole]` del archivo de
   proyecto, `rm2k-snes.toml`— se acomodan en lo que la música
   deja libre en cada paquete, así que no le bajan la tasa a ningún
@@ -63,7 +63,7 @@ muestra y con qué envolvente, y la consola sólo reproduce.
   también el de los efectos. `bgm_fundido_tick`, en `tools/runtime/musica.s`.
 * **El MSU-1**: todo tema suena desde un PCM al lado de la ROM, y la ROM
   calla el SPC700 mientras tanto. El número de cada pista es el lugar del
-  tema en `Music/` del juego —`pista_msu` en `snes_music.py`—, así que no
+  tema en `Music/` del juego —`msu_track` en `snes_music.py`—, así que no
   depende del cartucho; las arma `tools/audio/msu.py`. Con MSU-1, el paquete no sube las muestras de los
   temas con pista, salvo que la pista haya faltado en la tarjeta:
   `tema_por_msu`, en `tools/runtime/paquete_de_audio.s`.
@@ -71,7 +71,7 @@ muestra y con qué envolvente, y la consola sólo reproduce.
   tienen también las voces 0 a 5; y si el `.msu` es el de este cartucho, los
   de cada paquete se suben de ahí, enteros y a la tasa que les entra ahora
   que la música no ocupa la ARAM —una versión por paquete—. Sin MSU-1, o con
-  otro `.msu`, lo de siempre. El reparto, en `tools/audio/efectos_msu.py`; la
+  otro `.msu`, lo de siempre. El reparto, en `tools/audio/msu_effects.py`; la
   ROM, en `tools/runtime/efectos_con_msu.s`.
 
 Qué prueba cubre qué: `rom/pruebas/rpgmaker/test_musica_*.py` corren la ROM

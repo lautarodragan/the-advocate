@@ -4,7 +4,7 @@ it is released and with which envelope.
 They run no ROM: the notes and the bank are built by hand, just big enough
 for what we want to look at to happen, and what is looked at is what the
 stream writes to the DSP —the per-note stream packed and decoded, which has
-to give `escrituras`: the same the ROM will send it—, with `_released`. The
+to give `writes`: the same the ROM will send it—, with `_released`. The
 envelope ones read the real SoundFont, through `gunter` from the PATH: what
 they enforce is precisely that the numbers come from there.
 
@@ -37,24 +37,24 @@ class _Bank:
     nothing for key 35."""
 
     def __init__(self):
-        self.voces = [_Sample(PIANO), _Sample(BOMBO)]
-        self.melodicas = {PIANO: 0}
-        self.golpes = {BOMBO: 1}
+        self.voices = [_Sample(PIANO), _Sample(BOMBO)]
+        self.melodic = {PIANO: 0}
+        self.hits = {BOMBO: 1}
 
-    def envolvente(self, program, key):
+    def envelope(self, program, key):
         return 0x8F, 0xE0, sdsp.GAIN_EXP_DECREASE | 12
 
 
 class _SoundFontBank(_Bank):
-    """The same bank, with `Banco`'s envelopes: the SoundFont's."""
+    """The same bank, with `Bank`'s envelopes: the SoundFont's."""
 
-    envolvente = snes_music.Banco.envolvente
+    envelope = snes_music.Bank.envelope
 
     def __init__(self):
         super().__init__()
-        self.voces.append(_Sample(BAJO_SINTETICO))
-        self.melodicas[BAJO_SINTETICO] = 2
-        self._envolventes = {}
+        self.voices.append(_Sample(BAJO_SINTETICO))
+        self.melodic[BAJO_SINTETICO] = 2
+        self._envelopes = {}
 
 
 def _note(start, end, channel=0, pitch=60):
@@ -65,11 +65,11 @@ def _note(start, end, channel=0, pitch=60):
 
 def _released(frames, largo):
     """What the song writes to the DSP, (frame, register, value): the per-note
-    stream packed and decoded, which has to give `escrituras`."""
+    stream packed and decoded, which has to give `writes`."""
     stream, sonidos = snes_music.pack(frames, largo, snes_music.init_writes())
-    salen = snes_music.decodificar(stream, sonidos)
-    assert salen == snes_music.escrituras(frames, largo,
-                                          snes_music.init_writes())
+    salen = snes_music.decode(stream, sonidos)
+    assert salen == snes_music.writes(frames, largo,
+                                      snes_music.init_writes())
     return salen
 
 
@@ -82,7 +82,7 @@ def _build(notas, voces, programas=None, banco=None):
 def _read(salen):
     """Per voice, the frames of its KONs and of its releases —ADSR1 at zero,
     which is what hands control to GAIN—, in order. An ADSR1 at zero with the
-    `RAMPA` GAIN is not a release but the ramp before a steal, and does not
+    `RAMP` GAIN is not a release but the ramp before a steal, and does not
     count."""
     kon, apagada, gain = {}, [], {}
     for cuadro, registro, valor in salen:
@@ -96,7 +96,7 @@ def _read(salen):
             gain[(cuadro, registro >> 4)] = valor
     release = {}
     for cuadro, voz in apagada:
-        if gain.get((cuadro, voz)) != snes_music.RAMPA:
+        if gain.get((cuadro, voz)) != snes_music.RAMP:
             release.setdefault(voz, []).append(cuadro)
     return kon, release
 
@@ -163,7 +163,7 @@ def test_the_synth_bass_releases_as_the_soundfont_says():
                     {0: BAJO_SINTETICO}, _SoundFontBank())
     gain = _registers(salen, 0)[sdsp.V_GAIN][-1]
     assert gain & 0xE0 == sdsp.GAIN_LINEAR_DECREASE, "GAIN $%02X" % gain
-    segundos = 64 * sdsp.PERIODO[gain & 0x1F] / float(sdsp.SAMPLE_RATE)
+    segundos = 64 * sdsp.PERIOD[gain & 0x1F] / float(sdsp.SAMPLE_RATE)
     assert segundos < 0.1, "the release lasts %.3f s" % segundos
 
 
@@ -195,7 +195,7 @@ def test_a_long_release_reaches_zero_where_the_soundfont_is_near_40_db():
            "env_key_to_hold": 0, "env_key_to_decay": 0}
     _adsr1, _adsr2, gain = sdsp.envelope(sf2, 60)
     assert gain & 0xE0 == sdsp.GAIN_EXP_DECREASE, "GAIN $%02X" % gain
-    hasta_cero = (sdsp.PASOS_HASTA_CERO * sdsp.PERIODO[gain & 0x1F]
+    hasta_cero = (sdsp.STEPS_TO_ZERO * sdsp.PERIOD[gain & 0x1F]
                   / float(sdsp.SAMPLE_RATE))
     assert 0.3 < hasta_cero < 0.55, "reaches zero in %.3f s" % hasta_cero
 
@@ -302,8 +302,8 @@ def test_the_top_voice_of_a_chord_is_not_last_to_its_frame():
         def __init__(self):
             super().__init__()
             for tecla in (35, 38, 40, 42):
-                self.golpes[tecla] = len(self.voces)
-                self.voces.append(_Sample(tecla))
+                self.hits[tecla] = len(self.voices)
+                self.voices.append(_Sample(tecla))
 
     notas = [_note(0, 30, midi.DRUM_CHANNEL, tecla)
              for tecla in (35, 36, 38, 40, 42)]
@@ -323,17 +323,17 @@ def test_the_top_voice_of_a_chord_is_not_last_to_its_frame():
 def test_a_sounding_voice_is_lowered_a_frame_before_stealing_it():
     """One voice, two notes: the second steals the voice from the first while
     it sounds. In the frame before, the voice has to come down with the ramp
-    —ADSR1 at zero and GAIN `RAMPA`, 12 ms linear—, because KON drops it to
+    —ADSR1 at zero and GAIN `RAMP`, 12 ms linear—, because KON drops it to
     zero at once and that is a click. The third note arrives with the voice
     silent for a while: that one needs no ramp."""
     salen = _build([_note(0, 100), _note(50, 120), _note(400, 450)], {0: [0]})
     escrito = _writes(salen, 0)
     gain = [(c, v) for c, r, v in escrito if r == sdsp.V_GAIN]
-    assert (49, snes_music.RAMPA) in gain, (
+    assert (49, snes_music.RAMP) in gain, (
         "voice 0 does not come down with the ramp before the steal at frame 50: %s" % gain)
     assert (49, sdsp.V_ADSR1, 0) in escrito, (
         "without ADSR1 at zero the ramp's GAIN is not in control")
-    assert not [c for c, v in gain if v == snes_music.RAMPA and c > 49], (
+    assert not [c for c, v in gain if v == snes_music.RAMP and c > 49], (
         "the third note arrives with the voice silent and needs no ramp: %s"
         % gain)
 
@@ -345,7 +345,7 @@ def test_a_release_tail_is_lowered_too_before_reusing_the_voice():
     salen = _build([_note(0, 40), _note(60, 100)], {0: [0]})
     gain = [(c, v) for c, r, v in _writes(salen, 0) if r == sdsp.V_GAIN]
     assert gain[:2] == [(40, sdsp.GAIN_EXP_DECREASE | 12),
-                        (59, snes_music.RAMPA)], gain
+                        (59, snes_music.RAMP)], gain
 
 
 # --- velocity and controllers ----------------------------------------------

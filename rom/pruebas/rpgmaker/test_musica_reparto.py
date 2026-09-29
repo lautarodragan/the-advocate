@@ -10,7 +10,7 @@ nunca, y sus programas ni siquiera entraban al banco. Las pruebas de
 armadas a mano; ésta, que el stream que sale del conversor para el tema de verdad
 tenga lo que la regla promete.
 
-No corre ninguna ROM: arma el tema con `build_varios`, solo, y lee sus
+No corre ninguna ROM: arma el tema con `build_all`, solo, y lee sus
 escrituras —las mismas que la ROM le manda al DSP, lo cobra
 `test_musica_escrituras.py`—.
 """
@@ -20,8 +20,8 @@ import collections
 
 def _tema():
     from audio import snes_music
-    _d, _v, temas, banco = snes_music.build_varios(["escape_newyork"])
-    return snes_music.leer_tema("escape_newyork"), temas[0], banco
+    _d, _v, temas, banco = snes_music.build_all(["escape_newyork"])
+    return snes_music.read_song("escape_newyork"), temas[0], banco
 
 
 def test_el_acorde_de_las_cuerdas_suena_entero():
@@ -55,10 +55,10 @@ def test_la_melodia_de_la_batalla_no_pierde_notas():
     cinco o seis golpes a la vez —dos bombos, dos cajas, el charles—, y con
     los dos bajos y los metales tomaban las ocho voces antes de que llegara
     la melodía, que por ser lo más agudo elegía última: no sonaban 214 de sus
-    536 notas. El orden de cada cuadro es `_orden_del_cuadro`."""
+    536 notas. El orden de cada cuadro es `_frame_order`."""
     from audio import snes_music
-    _d, _v, _temas, banco = snes_music.build_varios([BATALLA])
-    leido = snes_music.leer_tema(BATALLA)
+    _d, _v, _temas, banco = snes_music.build_all([BATALLA])
+    leido = snes_music.read_song(BATALLA)
     reparto = []
     snes_music.build_events(leido["notas"], leido["voces"],
                             leido["programas"], banco, leido["controles"],
@@ -88,7 +88,7 @@ def test_el_clavinet_y_la_onda_cuadrada_suenan():
             if registro < 0x80 and registro & 0x0F == sdsp.V_SRCN}
     for canal in (5, 7):
         programa = leido["programas"][canal]
-        assert programa in banco.melodicas, (
+        assert programa in banco.melodic, (
             "el programa %d del canal %d no está en el banco" % (programa, canal))
-        assert banco.melodicas[programa] in srcn, (
+        assert banco.melodic[programa] in srcn, (
             "ninguna voz toca el programa %d del canal %d" % (programa, canal))

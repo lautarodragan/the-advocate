@@ -8,7 +8,7 @@
 # importa éste—: las rutas de acá, como `build/release` o `pruebas`, son
 # relativas a él.
 
-# Dónde le pide ABL a `herramientas-locales` las herramientas de un worktree:
+# Dónde le pide ABL a `install-local` las herramientas de un worktree:
 # en este directorio, ignorado por git. Si existe, su `bin/` va **adelante
 # en el PATH de toda receta**, y lo que no esté ahí sale del global. En el
 # checkout principal no existe.
@@ -128,7 +128,7 @@ _herramientas_del_checkout:
   [ "$(git rev-parse --path-format=absolute --git-dir)" = "$(git rev-parse --path-format=absolute --git-common-dir)" ] && exit 0
   [ -d "{{locales}}/bin" ] && exit 0
   echo "este worktree no tiene sus herramientas. Corré primero, desde cualquier directorio:" >&2
-  echo "  just -f $(git rev-parse --show-toplevel)/tools/justfile herramientas-locales {{locales}}" >&2
+  echo "  just -f $(git rev-parse --show-toplevel)/tools/justfile install-local {{locales}}" >&2
   echo "sin eso, los scripts serían los del checkout principal, y armarían en su build/." >&2
   exit 1
 
@@ -152,7 +152,7 @@ _herramientas_del_checkout:
 # pixeles se queda ciega. El recuerdo de CORE y MANTA que no arrancaba daba
 # verde en la tanda entera. Qué prueba cubre qué, en `pruebas/README.md`.
 #
-# Las de estado se apoyan en la tabla de símbolos que deja `ensamblar`, así
+# Las de estado se apoyan en la tabla de símbolos que deja `assemble`, así
 # que ninguna dirección de RAM está escrita a mano: renombrar una variable en
 # `runtime/` hace fallar la prueba diciendo qué símbolo falta.
 #
@@ -212,7 +212,7 @@ _xdist:
 # Todos los cartuchos: `release` y los de la tanda. Es lo que corre `just
 # pruebas` antes, y cada uno se rearma sólo si cambió algo de lo que lo arma.
 # Qué va en cada uno y por qué está en el fuente de `rm2k-snes-cartridges`;
-# `--lista` lo imprime.
+# `--list` lo imprime.
 cartuchos *args: _herramientas_del_checkout
   rm2k-snes-cartridges {{al_armar}} {{args}}
 
@@ -260,7 +260,7 @@ parches-check *builds: _herramientas_del_checkout
 # deliberado como `parches`: lo que se mira es el diff de la tabla, y hay que
 # correrlo con cada cambio de la mezcla —las muestras, las envolventes, el
 # reparto—, que es cuando `test_musica_techos.py` avisa que quedó vieja. El
-# porqué, en `leer_techos`, que es donde el conversor la lee. `--medir` sólo
+# porqué, en `read_ceilings`, que es donde el conversor la lee. `--measure` sólo
 # mide el `release` armado, sin escribir nada: recortes, pico y LUFS por tema.
 techos *args: _herramientas_del_checkout
   rm2k-snes-volume-ceilings {{al_conversor}} {{args}}
@@ -277,7 +277,7 @@ techos *args: _herramientas_del_checkout
 #
 # **`release` lleva siempre sus pistas de MSU-1** al lado de `abl.sfc`: el
 # `abl.msu` que lo enciende y un `abl-N.pcm` por tema del cartucho —el número
-# lo da `pista_msu`, del conversor—. Sin la extensión la ROM suena como
+# lo da `msu_track`, del conversor—. Sin la extensión la ROM suena como
 # siempre, por el SPC700. El `.msu` lo escribe el conversor, y lo llevan los
 # dos cartuchos: son los fondos de batalla que la ROM lee por el MSU-1 si
 # está —ver `docs/port/msu-datos.md`—. Las renderiza `rm2k-snes-msu` con

@@ -11,7 +11,7 @@ by the rule in AGENTS.md: it does not need to know anything about this game.
 And in Rust rather than here because it is an optimal parser —the shortest
 encoding the format allows, with a suffix array— and in Python it would take
 minutes per build. It is used from the PATH, like `voodoo` and `gunter`: it
-is installed with `just herramientas` and no script calls `cargo`.
+is installed with `just install` and no script calls `cargo`.
 
 The reference it is tested against is a different one, on purpose: `lz2.py`
 in `rom/pruebas/arnes/`, written separately and without looking at the
@@ -28,7 +28,7 @@ FALTA = """`lz2` is missing, the compressor of the tiles and the grids.
 It is a Rust binary that lives in `tools/lz2/` and is installed as a system
 tool:
 
-    just -f tools/justfile herramientas"""
+    just -f tools/justfile install"""
 
 # The longest a stream can expand to: the repeat names the output position
 # with sixteen bits. It is the format's, not ours.

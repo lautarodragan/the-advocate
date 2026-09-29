@@ -26,7 +26,7 @@ from rpgmaker.resources import GAME_DIR
 import tanda
 from consola import (EMPEZAR, NUCLEO, SEGUIR, TITULO_AIRE, Partida,
                      en_la_rom, en_la_wram, indice_del_tema)
-from ensamblado import cartuchos
+from assembly import cartridges
 from msu import pistas_de
 
 # Del encendido: a esta altura el tema del título ya suena, y con el MSU-1 lo
@@ -41,7 +41,7 @@ def _con_msu(sfc):
 
 
 def test_las_pistas_de_release_no_llegan_al_core(tmp_path):
-    sfc = tanda.cartucho(cartuchos.RELEASE).sfc
+    sfc = tanda.cartucho(cartridges.RELEASE).sfc
     base = os.path.splitext(sfc)[0]
     assert os.path.exists(base + ".msu") and pistas_de(base), (
         "a %s le faltan sus pistas de MSU-1, así que esta prueba no compara "
@@ -56,7 +56,7 @@ def test_las_pistas_de_release_no_llegan_al_core(tmp_path):
         "sin ellas: o el core dejó de buscarlas, o el tema dejó de tener "
         "pista, y la comparación de abajo no prueba nada")
     # Por donde entran las pruebas, sin pedir nada: es lo que se protege.
-    assert bytes(tanda.encender(cartuchos.RELEASE, CUADROS).audio) == spc700, (
+    assert bytes(tanda.encender(cartridges.RELEASE, CUADROS).audio) == spc700, (
         "la consola de las pruebas encontró las pistas de MSU-1 de %s: la "
         "tanda está escuchando las pistas y no el SPC700. `retro.Console` "
         "tiene que darle al core un directorio sin ellas"
@@ -66,14 +66,14 @@ def test_las_pistas_de_release_no_llegan_al_core(tmp_path):
 # --- todo tema tiene su pista -----------------------------------------------
 #
 # Lo pidió taro el 2026-09-26: con MSU-1, **todos** los temas suenan desde su
-# pista. El número lo da `snes_music.pista_msu` y las pistas las arma
+# pista. El número lo da `snes_music.msu_track` y las pistas las arma
 # `tools/audio/msu.py` al lado de `release`; esto mira las tres cosas juntas
 # —el `musica.json` del conversor, la `tema_msu` de la ROM y los `.pcm`—,
 # porque cada una por separado puede estar bien y no coincidir con las otras.
 
 
 def test_todo_tema_tiene_su_pista():
-    uno = tanda.cartucho(cartuchos.RELEASE)
+    uno = tanda.cartucho(cartridges.RELEASE)
     base = os.path.splitext(uno.sfc)[0]
     with open(os.path.join(os.path.dirname(uno.sfc), "musica.json"),
               encoding="utf-8") as archivo:
@@ -86,7 +86,7 @@ def test_todo_tema_tiene_su_pista():
     for i, tema in enumerate(temas):
         # "(OFF)", o un nombre que no está ni en Music/ ni en el del RTP: no
         # hay de dónde sacar la pista, y el tema no suena ni por el SPC700.
-        if not snes_music.ruta_del_tema(tema["nombre"], GAME_DIR):
+        if not snes_music.song_path(tema["nombre"], GAME_DIR):
             continue
         numero = tema.get("pista")
         if not numero:
@@ -132,7 +132,7 @@ def _con_pistas(tmp_path, sin_pista=(), sin_tema_msu=(), caso=ARRANQUE,
 
     `caso=None` es la partida de verdad, la página 0; `titulo=False` la deja
     en la pantalla de título, sin elegir nada."""
-    uno = tanda.cartucho(cartuchos.RELEASE)
+    uno = tanda.cartucho(cartridges.RELEASE)
     base = os.path.splitext(uno.sfc)[0]
     with open(uno.sfc, "rb") as archivo:
         rom = bytearray(archivo.read())
@@ -351,7 +351,7 @@ AL_CARGAR = 120
 
 def _la_misma_rom(una, msu):
     """Otra consola con la ROM de `una`, con o sin sus pistas."""
-    uno = tanda.cartucho(cartuchos.RELEASE)
+    uno = tanda.cartucho(cartridges.RELEASE)
     k = uno.casos.index(ARRANQUE)
     return Partida(una.sfc, una.simbolos, una.mapas, caso=k,
                    salta=uno.saltan[k], msu=msu, titulo=uno.titulo)

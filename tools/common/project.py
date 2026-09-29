@@ -117,7 +117,7 @@ def from_command_line(argv=None):
     """Takes `--project` from the command line, if it is there.
 
     It goes at the start of each executable, before importing anything that
-    reads the project file —`cartuchos` reads it when imported—, so it cannot
+    reads the project file —`cartridges` reads it when imported—, so it cannot
     wait for its `main`'s `parse_args`: it reads only this flag and leaves
     the rest to it."""
     import argparse
@@ -168,6 +168,6 @@ def auto_patches():
 
 
 def cases():
-    """`[paths] cases`: the suite's cases, one JSON per case. `cartuchos.py`
+    """`[paths] cases`: the suite's cases, one JSON per case. `cartridges.py`
     reads them and puts them into the test pages."""
     return _path("cases")

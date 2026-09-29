@@ -19,7 +19,7 @@ cartucho para ese mapa.
 import pytest
 
 from consola import EMPEZAR, en_la_rom, en_la_wram
-from ensamblado import cartuchos
+from assembly import cartridges
 
 DUMMY_HERO = 10
 TALAN = 14
@@ -90,7 +90,7 @@ def _paletas_distintas(p):
 # la paleta 0 en negro, y cuáles son depende de por dónde se juegue. Los de la
 # escena, primero, para que el rojo diga de entrada dónde lo vio taro.
 MAPAS = [EL_MAPA_14, LA_GUARIDA_DE_WICK] + [
-    m for m in cartuchos.MAPAS_DEL_JUEGO
+    m for m in cartridges.GAME_MAPS
     if m not in (EL_MAPA_14, LA_GUARIDA_DE_WICK)]
 
 

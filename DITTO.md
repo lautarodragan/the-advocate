@@ -201,12 +201,12 @@ Ditto se mide contra un juego de verdad, en la carpeta que diga
 `DITTO_CORPUS`. Ni Ditto ni `tools/justfile` saben de ninguno: el juego se lo
 pasa el que corre.
 
-    DITTO_CORPUS=<juego> just -f tools/justfile ditto-pruebas        # una muestra de mapas
-    DITTO_CORPUS=<juego> just -f tools/justfile ditto-vuelta-entera  # todos, con el número impreso
+    DITTO_CORPUS=<juego> just -f tools/justfile ditto-test        # una muestra de mapas
+    DITTO_CORPUS=<juego> just -f tools/justfile ditto-round-trip  # todos, con el número impreso
 
 Sin la variable, las pruebas que necesitan un juego **se saltean con un
 mensaje** en vez de fallar; las que no lo necesitan —los defaults del
-esquema, y el corpus sintético— corren siempre. `ditto-vuelta-entera` sin
+esquema, y el corpus sintético— corren siempre. `ditto-round-trip` sin
 corpus no mide nada, así que se niega. Hasta el 2026-09-29 las dos recetas
 caían en `ABL_GAME_DIR`, que es cómo llama al juego el lado de ABL: eso ataba
 las herramientas a un juego.
@@ -286,7 +286,7 @@ no sólo como compensación.
 
 Es un sourcemap en el sentido literal: del offset del `.bin` a "el campo
 `trigger` de la página 2 del evento 12 del mapa 8". Con dos saltos y no uno
-—JSON → `.bin` → offset de ROM—, y el segundo lo aporta `tools/ensamblado/ensamblar.py`,
+—JSON → `.bin` → offset de ROM—, y el segundo lo aporta `tools/assembly/assemble.py`,
 que ya escribe un `.sym` con los símbolos del código: esto es su extensión a
 los datos.
 

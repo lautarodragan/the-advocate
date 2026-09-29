@@ -21,7 +21,7 @@ import subprocess
 import sys
 import textwrap
 
-# `realpath` y no `abspath`: `just herramientas` instala este script en el PATH
+# `realpath` y no `abspath`: `just install` instala este script en el PATH
 # como symlink, y lo que importa es dónde está el archivo de verdad.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
@@ -54,7 +54,7 @@ SFC = NOMBRE + ".sfc"
 DBG = SFC + ".dbg"
 PISTAS = NOMBRE + "-*.pcm"
 
-# Lo que entra en la ROM: lo que mira `cartuchos.huella()` más lo que lee el
+# Lo que entra en la ROM: lo que mira `cartridges.fingerprint()` más lo que lee el
 # conversor. Un cambio sin commitear ahí haría un build que no es el del commit
 # que lo nombra. `README.md`, `docs/` o un `.box.yml` suelto no entran.
 # Relativas a la raíz, porque son pathspecs de `git`.

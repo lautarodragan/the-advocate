@@ -13,7 +13,7 @@ valores de esta máquina. Sin ellas no hay de dónde sacarlo, así que una
 prueba corrida sin `just` corta diciendo cuál falta.
 
 Se importa antes que nada que lea el archivo de proyecto al importarse
-—`cartuchos` lo hace—: `conftest.py` y `video.py` lo importan primero.
+—`cartridges` lo hace—: `conftest.py` y `video.py` lo importan primero.
 """
 
 import os
@@ -29,7 +29,7 @@ project.use(ABL)
 
 # Lo que es sólo de las pruebas, y no lo lee ninguna herramienta: por eso no
 # está en el archivo de proyecto. Los casos sí, porque los lee
-# `rm2k-snes-cartridges`: son `cartuchos.CASOS`.
+# `rm2k-snes-cartridges`: son `cartridges.CASES`.
 #
 # Las capturas congeladas: `tanda/`, `playthrough/`…
 GOLDENS = os.path.join(PRUEBAS, "golden")

@@ -2,7 +2,7 @@
 """Builds the ROM: `ca65` + `ld65`, the header checksum and the symbols.
 
     rm2k-snes-assemble tools/runtime/main.s -I rom/build/release \\
-        -o rom/build/release/abl.sfc --simbolos …/abl.sfc.sym
+        -o rom/build/release/abl.sfc --symbols …/abl.sfc.sym
 
 Until 2026-09-16 this was done by `w65`, an assembler of ours. `ca65` and
 `ld65` do the same except for three things, and those are what live here:
@@ -23,7 +23,7 @@ What has **no** equivalent is a check `w65` used to do: that each jump reaches
 its label with the registers at the width the label declares.
 
 The memory map is not here: the converter writes it, `memoria.cfg`, next to
-the `.inc` files. See `tools/ensamblado/bancos.py`.
+the `.inc` files. See `tools/assembly/banks.py`.
 """
 
 import argparse
@@ -35,12 +35,12 @@ import sys
 
 # The ones the converter writes. If any shows up next to the source, it
 # shadows the one in the directory passed with -I.
-GENERADOS = ("mapdata.inc", "musicdata.inc")
+GENERATED = ("mapdata.inc", "musicdata.inc")
 
 # Where the checksum goes in the file: bank 0's `$FFDE`, and its complement at
 # `$FFDC`.
 CHECKSUM = 0x7FDE
-COMPLEMENTO = 0x7FDC
+COMPLEMENT = 0x7FDC
 
 # Run as a script, Python puts this file's folder on `sys.path` and not
 # `tools/`: see the same startup in `port/snes_convert.py`.
@@ -50,9 +50,9 @@ if __name__ == "__main__":
 from common import project                                  # noqa: E402
 
 # The repo root: `ca65` and `ld65` run from here, with relative paths.
-RAIZ = project.root()
+ROOT = project.root()
 
-FALTA = """`%s` is missing, from the cc65 project.
+MISSING = """`%s` is missing, from the cc65 project.
 
 It is not packaged in Arch; it is built once and stays on the PATH:
 
@@ -67,8 +67,8 @@ See "Dónde corre esto" in AGENTS.md."""
 INCLUDE = re.compile(r'^\s*\.include\s+"([^"]+)"', re.M)
 
 
-def fuentes(principal):
-    """`principal` and the `.s` files it includes, in the order `ca65` reads
+def sources(main_file):
+    """`main_file` and the `.s` files it includes, in the order `ca65` reads
     them.
 
     It is the ROM's hand-written source: what a test has to read to ask "does
@@ -77,38 +77,38 @@ def fuentes(principal):
     `.include` is looked up next to the file that does it, which is the first
     thing `ca65` tries.
     """
-    directorio = os.path.dirname(os.path.abspath(principal))
-    rutas = [principal]
-    with open(principal, encoding="utf-8") as archivo:
-        texto = archivo.read()
-    for nombre in INCLUDE.findall(texto):
-        if nombre.endswith(".s"):
-            rutas += fuentes(os.path.join(directorio, nombre))
-    return rutas
+    directory = os.path.dirname(os.path.abspath(main_file))
+    paths = [main_file]
+    with open(main_file, encoding="utf-8") as handle:
+        text = handle.read()
+    for name in INCLUDE.findall(text):
+        if name.endswith(".s"):
+            paths += sources(os.path.join(directory, name))
+    return paths
 
 
-def texto_de_la_fuente(principal):
-    """All the `fuentes` glued together, as if they were a single file."""
-    partes = []
-    for ruta in fuentes(principal):
-        with open(ruta, encoding="utf-8") as archivo:
-            partes.append(archivo.read())
-    return "".join(partes)
+def source_text(main_file):
+    """All the `sources` glued together, as if they were a single file."""
+    parts = []
+    for path in sources(main_file):
+        with open(path, encoding="utf-8") as handle:
+            parts.append(handle.read())
+    return "".join(parts)
 
 
-class FaltaCc65(RuntimeError):
+class MissingCc65(RuntimeError):
     """`ca65` or `ld65` is missing, with what to do to get them."""
 
 
-def binarios():
+def binaries():
     """The paths of `ca65` and `ld65` on the PATH."""
-    rutas = []
-    for nombre in ("ca65", "ld65"):
-        ruta = shutil.which(nombre)
-        if ruta is None:
-            raise FaltaCc65(FALTA % nombre)
-        rutas.append(ruta)
-    return rutas
+    paths = []
+    for name in ("ca65", "ld65"):
+        path = shutil.which(name)
+        if path is None:
+            raise MissingCc65(MISSING % name)
+        paths.append(path)
+    return paths
 
 
 def checksum(rom):
@@ -120,27 +120,27 @@ def checksum(rom):
     510, so the sum does not change when they are written and there is no
     need to iterate.
     """
-    antes = sum(rom) & 0xFFFF
-    rom[CHECKSUM:CHECKSUM + 2] = antes.to_bytes(2, "little")
-    rom[COMPLEMENTO:COMPLEMENTO + 2] = (antes ^ 0xFFFF).to_bytes(2, "little")
-    despues = sum(rom) & 0xFFFF
-    if despues != antes:
+    before = sum(rom) & 0xFFFF
+    rom[CHECKSUM:CHECKSUM + 2] = before.to_bytes(2, "little")
+    rom[COMPLEMENT:COMPLEMENT + 2] = (before ^ 0xFFFF).to_bytes(2, "little")
+    after = sum(rom) & 0xFFFF
+    if after != before:
         raise ValueError("the checksum did not settle: $%04X against $%04X, which "
                          "means the header did not carry $FFFF and $0000"
-                         % (despues, antes))
-    return antes
+                         % (after, before))
+    return before
 
 
-def _campos(linea):
+def _fields(line):
     """`sym\tid=0,name="x",val=0x1` → {"id": "0", "name": "x", "val": "0x1"}."""
-    campos = {}
-    for par in linea.rstrip("\n").split("\t", 1)[1].split(","):
-        clave, _, valor = par.partition("=")
-        campos[clave] = valor.strip('"')
-    return campos
+    fields = {}
+    for pair in line.rstrip("\n").split("\t", 1)[1].split(","):
+        key, _, value = pair.partition("=")
+        fields[key] = value.strip('"')
+    return fields
 
 
-def simbolos(dbg):
+def symbols(dbg):
     """The symbols in `ld65`'s debug file, as {name: value}.
 
     Labels inside a `.proc` come out as `proc::label`, the same as `w65` gave
@@ -148,49 +148,49 @@ def simbolos(dbg):
     constant —`IMAGEN_X`— is given back its sign.
     """
     scopes, syms = {}, []
-    with open(dbg) as archivo:
-        for linea in archivo:
-            if linea.startswith("scope\t"):
-                c = _campos(linea)
+    with open(dbg) as handle:
+        for line in handle:
+            if line.startswith("scope\t"):
+                c = _fields(line)
                 scopes[c["id"]] = (c["name"], c.get("parent"))
-            elif linea.startswith("sym\t"):
-                c = _campos(linea)
+            elif line.startswith("sym\t"):
+                c = _fields(line)
                 if c.get("type") in ("lab", "equ") and "val" in c:
                     syms.append(c)
-    tabla = {}
+    table = {}
     for c in syms:
-        partes, scope = [c["name"]], c.get("scope")
+        parts, scope = [c["name"]], c.get("scope")
         while scope is not None and scope in scopes:
-            nombre, scope = scopes[scope]
-            if nombre:
-                partes.insert(0, nombre)
-        valor = int(c["val"], 16)
-        if valor >= 1 << 31:
-            valor -= 1 << 32
-        tabla["::".join(partes)] = valor
-    return tabla
+            name, scope = scopes[scope]
+            if name:
+                parts.insert(0, name)
+        value = int(c["val"], 16)
+        if value >= 1 << 31:
+            value -= 1 << 32
+        table["::".join(parts)] = value
+    return table
 
 
-def _relativa(ruta):
-    """`ruta` relative to `RAIZ` if it is inside the repo; otherwise,
+def _relative(path):
+    """`path` relative to `ROOT` if it is inside the repo; otherwise,
     absolute."""
-    absoluta = os.path.abspath(ruta)
-    if os.path.commonpath([absoluta, RAIZ]) != RAIZ:
-        return absoluta
-    return os.path.relpath(absoluta, RAIZ)
+    absolute = os.path.abspath(path)
+    if os.path.commonpath([absolute, ROOT]) != ROOT:
+        return absolute
+    return os.path.relpath(absolute, ROOT)
 
 
-def ensamblar(fuente, incluir, rom, tabla=None):
-    """Builds `rom` from `fuente`, with the generated files and the `.cfg` in
-    `incluir`."""
-    directorio = os.path.dirname(os.path.abspath(fuente))
-    tapan = [n for n in GENERADOS if os.path.exists(os.path.join(directorio, n))]
-    if tapan:
+def assemble(source, include, rom, table=None):
+    """Builds `rom` from `source`, with the generated files and the `.cfg` in
+    `include`."""
+    directory = os.path.dirname(os.path.abspath(source))
+    shadowing = [n for n in GENERATED if os.path.exists(os.path.join(directory, n))]
+    if shadowing:
         raise RuntimeError(
             "%s has %s next to it, and `ca65` would read it before the one in %s: "
             "the ROM would come out with another cartridge's data. They are "
-            "generated; they can be deleted." % (fuente, " and ".join(tapan), incluir))
-    ca65, ld65 = binarios()
+            "generated; they can be deleted." % (source, " and ".join(shadowing), include))
+    ca65, ld65 = binaries()
     # Paths relative to the root and `cwd` there, because `ca65` writes each
     # source into the debug file just as it opened it —the `.include` joined
     # to the including file's directory, or to the `-I`—. With absolute paths
@@ -198,40 +198,40 @@ def ensamblar(fuente, incluir, rom, tabla=None):
     # host's clone: it looks for `file.Name` next to the `.dbg` and climbs up
     # folder by folder. See "Debugging with Mesen2" in
     # `docs/snes/emulators.md`.
-    fuente_r, incluir_r = _relativa(fuente), _relativa(incluir)
-    rom_r = _relativa(rom)
-    objeto, dbg = rom_r + ".o", rom_r + ".dbg"
-    subprocess.run([ca65, "-g", "--cpu", "65816", "-I", incluir_r, fuente_r,
-                    "-o", objeto], check=True, cwd=RAIZ)
-    subprocess.run([ld65, "-C", os.path.join(incluir_r, "memoria.cfg"),
-                    objeto, "-o", rom_r, "--dbgfile", dbg], check=True,
-                   cwd=RAIZ)
-    dbg = os.path.join(RAIZ, dbg)
-    with open(rom, "r+b") as archivo:
-        datos = bytearray(archivo.read())
-        checksum(datos)
-        archivo.seek(0)
-        archivo.write(datos)
-    if tabla:
-        with open(tabla, "w") as archivo:
-            for nombre, valor in sorted(simbolos(dbg).items()):
-                archivo.write("%s %d\n" % (nombre, valor))
-    print("%s -> %s (%d bytes)" % (fuente, rom, len(datos)))
+    source_r, include_r = _relative(source), _relative(include)
+    rom_r = _relative(rom)
+    obj, dbg = rom_r + ".o", rom_r + ".dbg"
+    subprocess.run([ca65, "-g", "--cpu", "65816", "-I", include_r, source_r,
+                    "-o", obj], check=True, cwd=ROOT)
+    subprocess.run([ld65, "-C", os.path.join(include_r, "memoria.cfg"),
+                    obj, "-o", rom_r, "--dbgfile", dbg], check=True,
+                   cwd=ROOT)
+    dbg = os.path.join(ROOT, dbg)
+    with open(rom, "r+b") as handle:
+        data = bytearray(handle.read())
+        checksum(data)
+        handle.seek(0)
+        handle.write(data)
+    if table:
+        with open(table, "w") as handle:
+            for name, value in sorted(symbols(dbg).items()):
+                handle.write("%s %d\n" % (name, value))
+    print("%s -> %s (%d bytes)" % (source, rom, len(data)))
     return rom
 
 
 def main():
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("fuente")
-    parser.add_argument("-I", dest="incluir", required=True,
+    parser.add_argument("source")
+    parser.add_argument("-I", dest="include", required=True,
                         help="where the generated .inc files and memoria.cfg are")
     parser.add_argument("-o", dest="rom", required=True)
-    parser.add_argument("--simbolos")
+    parser.add_argument("--symbols")
     args = parser.parse_args()
     try:
-        ensamblar(args.fuente, args.incluir, args.rom, args.simbolos)
-    except (FaltaCc65, RuntimeError) as error:
+        assemble(args.source, args.include, args.rom, args.symbols)
+    except (MissingCc65, RuntimeError) as error:
         sys.exit(str(error))
     except subprocess.CalledProcessError as error:
         sys.exit(error.returncode)

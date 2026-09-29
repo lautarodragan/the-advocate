@@ -7,7 +7,7 @@ corriendo. Son
 dos redes distintas y se complementan: la de pixeles dice "la pantalla es
 exactamente ésta", ésta dice "y además llegaste adonde tenías que llegar".
 
-Lo que hace posible preguntar es que `tools/ensamblado/ensamblar.py` deja al lado de la ROM
+Lo que hace posible preguntar es que `tools/assembly/assemble.py` deja al lado de la ROM
 la tabla de símbolos que sale de `runtime/` de verdad, con las direcciones de la
 RAM **y** las constantes del ensamblador:
 
@@ -28,7 +28,7 @@ import lugares                                  # antes que nada
 from common import settings
 from common import project
 from emulator import retro
-from ensamblado import bancos
+from assembly import banks
 
 RAIZ = project.root()
 # Lo que las pruebas dejan para mirar. Lo toman de acá los pedazos del arnés
@@ -57,7 +57,7 @@ WRAM = 0x20000
 # Cómo cuentan `muestras_en_la_aram` y `muestras_del_paquete` a un efecto de
 # sonido: este número más el del efecto. Una entrada del directorio no alcanza
 # para nombrarlo, porque varios efectos comparten lugar —ver
-# `lugares_de_efectos` en snes_music.py—, y ninguna entrada llega a 256, así
+# `effect_places` en snes_music.py—, y ninguna entrada llega a 256, así
 # que no se confunde con una muestra de la música.
 EFECTO = 0x100
 
@@ -74,7 +74,7 @@ class SimboloDesconocido(KeyError):
 
 
 class Simbolos:
-    """La tabla que deja `tools/ensamblado/ensamblar.py`, leída por nombre."""
+    """La tabla que deja `tools/assembly/assemble.py`, leída por nombre."""
 
     def __init__(self, ruta):
         self.ruta = ruta
@@ -907,7 +907,7 @@ class Partida:
         cartucho**.
 
         Es la misma tabla que mira `tema_asegurar`, y se lee de la ROM en vez
-        de recalcularla con `snes_music.muestras_del_tema`: recalcularla
+        de recalcularla con `snes_music.song_samples`: recalcularla
         sería una segunda manera de contestar la pregunta, y las dos se pueden
         equivocar igual. Un índice de desplazamientos de dos bytes por tema
         —`TEMA_TOTAL` de ellos— y detrás una lista por tema cerrada con $FF.
@@ -988,12 +988,12 @@ class Partida:
     def escrituras_del_tema(self, indice):
         """Lo que el stream del tema le escribe al DSP, (cuadro, registro,
         valor), una vuelta: sus bytes en el cartucho, decodificados con
-        `snes_music.decodificar`, que es el modelo de `music_frame`."""
+        `snes_music.decode`, que es el modelo de `music_frame`."""
         from audio import snes_music
         direccion, sonidos = self.stream_del_tema(indice)
         with open(self.sfc, "rb") as archivo:
             rom = archivo.read()
-        return snes_music.decodificar(DelCartucho(rom, direccion), sonidos)
+        return snes_music.decode(DelCartucho(rom, direccion), sonidos)
 
     def acceso(self):
         """El byte de permisos: bit 0 guardar prohibido, bit 1 el menú
@@ -1020,9 +1020,9 @@ class Partida:
 # --- la pila, marcada para poder medirla ------------------------------------
 #
 # La pila arranca en `$1FFF` —el `ldx #$1FFF` / `txs` del `reset`— y crece hacia
-# abajo, hacia la BSS. Lo que se le reserva es `bancos.PILA`, así que el byte más
-# bajo que le toca es `TOPE_DE_LA_PILA - PILA`. Los dos números salen del mapa de
-# memoria y no están copiados: si `PILA` cambia, la medición cambia con él.
+# abajo, hacia la BSS. Lo que se le reserva es `banks.STACK`, así que el byte más
+# bajo que le toca es `TOPE_DE_LA_PILA - STACK`. Los dos números salen del mapa de
+# memoria y no están copiados: si `STACK` cambia, la medición cambia con él.
 TOPE_DE_LA_PILA = 0x2000
 
 
@@ -1045,9 +1045,9 @@ def marcar_la_pila(consola):
     pero todavía no ejecutó una instrucción, así que todo lo que aparezca abajo
     de `$2000` lo escribió la ROM.
     """
-    fondo = TOPE_DE_LA_PILA - bancos.PILA
+    fondo = TOPE_DE_LA_PILA - banks.STACK
     consola.write_ram(fondo, bytes(marca_de(fondo + i)
-                                   for i in range(bancos.PILA)))
+                                   for i in range(banks.STACK)))
 
 
 def hondura_de_la_pila(consola):
@@ -1061,8 +1061,8 @@ def hondura_de_la_pila(consola):
     llegó, no que la ROM no use la pila. Quien mida tiene que cobrar eso: es la
     forma de que esta medición pase en vacío.
     """
-    fondo = TOPE_DE_LA_PILA - bancos.PILA
-    crudo = consola.ram(fondo, bancos.PILA)
+    fondo = TOPE_DE_LA_PILA - banks.STACK
+    crudo = consola.ram(fondo, banks.STACK)
     for i, byte in enumerate(crudo):
         if byte != marca_de(fondo + i):
             return TOPE_DE_LA_PILA - (fondo + i)

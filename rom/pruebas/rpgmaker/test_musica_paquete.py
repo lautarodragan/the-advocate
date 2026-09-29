@@ -108,7 +108,7 @@ def test_el_presupuesto_de_cada_muestra_es_el_de_su_peor_paquete():
 
     Es la opción A del paso 6 de `workflow/tasks/todo/la-calidad-de-la-musica.md`,
     y la única prueba de este archivo que **no** le pregunta a una ROM
-    corriendo: se le pide a `build_varios` el reparto con tres temas y la
+    corriendo: se le pide a `build_all` el reparto con tres temas y la
     ARAM achicada a mano, para que el paquete de dos de ellos no entre sin
     recortar y el del tercero sí.
 
@@ -125,10 +125,10 @@ def test_el_presupuesto_de_cada_muestra_es_el_de_su_peor_paquete():
     from audio import snes_music
 
     nombres = ["escape_newyork", "evilrhys", "Fantasia_Of_The_Wind"]
-    leidos = [snes_music.leer_tema(n) for n in nombres]
-    teclas = snes_music.zonas_mas_usadas(leidos)
-    claves = [snes_music.claves_del_tema(t, teclas) for t in leidos]
-    nativo = {k: len(snes_music._muestra(k, snes_music.NATIVA).data)
+    leidos = [snes_music.read_song(n) for n in nombres]
+    teclas = snes_music.most_used_zones(leidos)
+    claves = [snes_music.song_keys(t, teclas) for t in leidos]
+    nativo = {k: len(snes_music._sample(k, snes_music.NATIVE).data)
               for k in set().union(*claves)}
     apretados = claves[0] | claves[1]
     solo_del_tercero = claves[2] - apretados
@@ -143,15 +143,15 @@ def test_el_presupuesto_de_cada_muestra_es_el_de_su_peor_paquete():
     assert libre > sum(nativo[k] for k in claves[2]), (
         "el tercer tema entero no entra en la ARAM achicada: la prueba no "
         "distinguiría un paquete con lugar de uno lleno")
-    viejo = snes_music.ARAM_FIN
+    viejo = snes_music.ARAM_END
     try:
-        snes_music.ARAM_FIN = (snes_music.SAMPLES_ADDR + libre
-                               + 4 * len(nativo) + len(snes_music.SILENCIO))
-        _d, _v, temas, banco = snes_music.build_varios(
-            nombres, paquetes=[("lleno", [0, 1], []), ("holgado", [2], [])],
-            herencia=[("holgado", 0)])
+        snes_music.ARAM_END = (snes_music.SAMPLES_ADDR + libre
+                               + 4 * len(nativo) + len(snes_music.SILENCE))
+        _d, _v, temas, banco = snes_music.build_all(
+            nombres, packages=[("lleno", [0, 1], []), ("holgado", [2], [])],
+            inheritance=[("holgado", 0)])
     finally:
-        snes_music.ARAM_FIN = viejo
+        snes_music.ARAM_END = viejo
 
     assert [t["nombre"] for t in temas] == nombres
     for tema in temas:
@@ -160,17 +160,17 @@ def test_el_presupuesto_de_cada_muestra_es_el_de_su_peor_paquete():
             "muestras al banco" % (tema["nombre"], tema["resumen"]["notas"]))
 
     # Las muestras que toca cada tema: una clave puede tener copias —ver
-    # `snes_music.copias`—, así que se pregunta por las suyas.
+    # `snes_music.copies`—, así que se pregunta por las suyas.
     def suyas(tema):
-        return set(banco.asignacion[tema].values())
+        return set(banco.assignment[tema].values())
 
     lleno = suyas(0) | suyas(1)
-    assert banco.ocupa(lleno) <= banco.libre, (
+    assert banco.takes(lleno) <= banco.free, (
         "el paquete de los dos primeros ocupa %d B y hay %d"
-        % (banco.ocupa(lleno), banco.libre))
-    assert banco.ocupa(lleno) < sum(nativo[k] for k in apretados), (
+        % (banco.takes(lleno), banco.free))
+    assert banco.takes(lleno) < sum(nativo[k] for k in apretados), (
         "el paquete lleno no recortó nada: la ARAM no se achicó")
-    assert banco.ocupa(suyas(0) | suyas(2)) <= banco.libre, (
+    assert banco.takes(suyas(0) | suyas(2)) <= banco.free, (
         "el paquete del tercero no entra con el primero sonando")
     # Y ninguna muestra del tercero paga el paquete lleno, ni las que
     # comparte con los otros dos: ésas son copias —ver
@@ -178,8 +178,8 @@ def test_el_presupuesto_de_cada_muestra_es_el_de_su_peor_paquete():
     # puede recortarlas es la herencia, que es un grupo donde el tercero
     # está: con el primero sonando, entran los dos.
     for k in sorted(claves[2]):
-        suya = banco.asignacion[2][k]
-        assert banco.limita.get(suya) != "lleno", (
+        suya = banco.assignment[2][k]
+        assert banco.limited_by.get(suya) != "lleno", (
             "la muestra %s del tercero la limita el paquete lleno, donde no "
             "está" % (k,))
 
@@ -192,7 +192,7 @@ def test_un_programa_no_paga_un_paquete_donde_no_suena():
     programa en todo el cartucho y cada una tenía el presupuesto de su peor
     paquete, así que los 43 KB de efectos del mapa 3 dejaban la batería de
     `evilrhys` —el tema del mapa— y la de **todos** los temas a 10 kHz, y el
-    oboe a 7. `snes_music.copias` le da al tema de afuera su propia muestra.
+    oboe a 7. `snes_music.copies` le da al tema de afuera su propia muestra.
 
     Acá, sin ROM: `evilrhys` en un paquete con la ARAM achicada a la mitad
     de lo que ocuparían sus muestras enteras, y `lufsorr` —que comparte con
@@ -203,10 +203,10 @@ def test_un_programa_no_paga_un_paquete_donde_no_suena():
     from audio import snes_music
 
     nombres = ["evilrhys", "lufsorr"]
-    leidos = [snes_music.leer_tema(n) for n in nombres]
-    teclas = snes_music.zonas_mas_usadas(leidos)
-    claves = [snes_music.claves_del_tema(t, teclas) for t in leidos]
-    nativo = {k: len(snes_music._muestra(k, snes_music.NATIVA).data)
+    leidos = [snes_music.read_song(n) for n in nombres]
+    teclas = snes_music.most_used_zones(leidos)
+    claves = [snes_music.song_keys(t, teclas) for t in leidos]
+    nativo = {k: len(snes_music._sample(k, snes_music.NATIVE).data)
               for k in set().union(*claves)}
     compartidas = claves[0] & claves[1]
     assert compartidas, (
@@ -215,27 +215,27 @@ def test_un_programa_no_paga_un_paquete_donde_no_suena():
     libre = sum(nativo[k] for k in claves[0]) // 2
     assert libre > sum(nativo[k] for k in claves[1]), (
         "el segundo tema entero no entra en la ARAM achicada")
-    viejo = snes_music.ARAM_FIN
+    viejo = snes_music.ARAM_END
     try:
-        snes_music.ARAM_FIN = (snes_music.SAMPLES_ADDR + libre
+        snes_music.ARAM_END = (snes_music.SAMPLES_ADDR + libre
                                + 4 * (len(nativo) + len(compartidas))
-                               + len(snes_music.SILENCIO))
-        _d, _v, _temas, banco = snes_music.build_varios(
-            nombres, paquetes=[("lleno", [0], []), ("holgado", [1], [])])
+                               + len(snes_music.SILENCE))
+        _d, _v, _temas, banco = snes_music.build_all(
+            nombres, packages=[("lleno", [0], []), ("holgado", [1], [])])
     finally:
-        snes_music.ARAM_FIN = viejo
+        snes_music.ARAM_END = viejo
 
     recortadas = []
     for k in sorted(compartidas):
-        del_lleno = banco.claves.index(banco.asignacion[0][k])
-        del_otro = banco.claves.index(banco.asignacion[1][k])
-        assert len(banco.voces[del_lleno].data) < nativo[k], (
+        del_lleno = banco.keys.index(banco.assignment[0][k])
+        del_otro = banco.keys.index(banco.assignment[1][k])
+        assert len(banco.voices[del_lleno].data) < nativo[k], (
             "la muestra %s de `evilrhys` no se recortó: la ARAM no se "
             "achicó lo suficiente" % (k,))
-        if len(banco.voces[del_otro].data) < nativo[k]:
+        if len(banco.voices[del_otro].data) < nativo[k]:
             recortadas.append("%s (%d de %d B, la limita %s)" % (
-                k, len(banco.voces[del_otro].data), nativo[k],
-                banco.limita.get(banco.claves[del_otro], "nadie")))
+                k, len(banco.voices[del_otro].data), nativo[k],
+                banco.limited_by.get(banco.keys[del_otro], "nadie")))
     assert not recortadas, (
         "`lufsorr` paga el paquete lleno de `evilrhys`, donde no está: %s"
         % ", ".join(recortadas))
@@ -427,7 +427,7 @@ def test_el_tema_aparte_sube_con_los_efectos_del_paquete(partida):
     paquete**, sin los otros temas, y el paquete queda incompleto.
 
     El caso es el basural del 38: `golden_axe-turtlevillage2`, que es del
-    paquete, y después `vswar`, que es aparte ahí —ver `temas_aparte` en
+    paquete, y después `vswar`, que es aparte ahí —ver `separate_songs` en
     tools/audio/snes_music.py— y no entra al lado de `golden_axe`: si
     entrara, el caso no ejercitaría nada, y se pide antes. Con `vswar`
     sonando tienen que estar sus muestras y las de los efectos del paquete
@@ -481,11 +481,11 @@ def test_los_efectos_comparten_lugares_del_directorio():
 
     El SRCN es de un byte, así que el directorio llega a 255 entradas. Hasta
     el 2026-09-26 cada efecto del cartucho tenía la suya —92 en `release`,
-    `se_de_siempre`—, y `snes_music.copias` paraba por llenarlo: las muestras
+    `se_usual`—, y `snes_music.copies` paraba por llenarlo: las muestras
     que un paquete limitaba seguían limitando a los temas de afuera. Desde ese
     día los efectos comparten los `SE_LUGARES` del final —dos efectos que
     nunca van en el mismo paquete pueden ir al mismo lugar, ver
-    `snes_music.lugares_de_efectos`—, y lo que liberan es para las copias.
+    `snes_music.effect_places`—, y lo que liberan es para las copias.
 
     Hasta el 2026-09-27 esta prueba pedía además que el directorio no se
     llenara, o sea que las copias terminaran porque ninguna sumaba. Con el
@@ -507,8 +507,8 @@ def test_los_efectos_comparten_lugares_del_directorio():
     s = release.simbolos
     with open(release.sfc, "rb") as archivo:
         rom = archivo.read()
-    assert s["MUESTRAS_N"] <= snes_music.DIRECTORIO_MAX, s["MUESTRAS_N"]
-    assert s["SE_LUGARES"] < snes_music.se_de_siempre(), (
+    assert s["MUESTRAS_N"] <= snes_music.DIRECTORY_MAX, s["MUESTRAS_N"]
+    assert s["SE_LUGARES"] < snes_music.se_usual(), (
         "los efectos ocupan %d entradas del directorio, tantas como cuando "
         "cada uno tenía la suya: no comparten" % s["SE_LUGARES"])
     assert s["MUESTRAS_N"] == s["SE_PRIMERA"] + s["SE_LUGARES"]

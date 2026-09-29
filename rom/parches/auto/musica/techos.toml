@@ -1,9 +1,9 @@
 # El techo de volumen de cada tema del `release`: el aire con que
-# `build_varios` le arma el stream, en vez de `sdsp.AIRE`.
+# `build_all` le arma el stream, en vez de `sdsp.HEADROOM`.
 #
 # **No se edita a mano**: lo escribe `just techos`, que toca cada
 # tema en la ROM y le da el aire más alto que no recorta. El porqué,
-# en `leer_techos`, que es donde el conversor la lee; cómo se mide,
+# en `read_ceilings`, que es donde el conversor la lee; cómo se mide,
 # en `rm2k-snes-volume-ceilings`. `test_musica_techos.py` falla si
 # algún tema recorta o si la mezcla de alguno ya no es la que se
 # midió: la huella. Cualquier cambio de la mezcla —las muestras, las
@@ -12,7 +12,7 @@
 # Por tema: `aire`, el techo; `pico`, en dB contra el tope, y `lufs`,
 # el nivel, los dos medidos con ese aire; `hasta`, cuántos cuadros
 # desde que arranca hay que tocarlo para pasar por su pico; y
-# `huella`, la de `huella_de_la_mezcla`.
+# `huella`, la de `mix_fingerprint`.
 
 [medida]
 aire_de_medida = 0.25

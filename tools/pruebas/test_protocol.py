@@ -5,7 +5,7 @@ There are two bytecodes in this port: the event one, which
 which `tools/audio/snes_music.py` writes and `irq_musica` reads. They are
 declared by `tools/protocol/`, which belongs to neither side, and from there
 the files in `GENERADOS` are generated. The generator is a Rust binary
-installed with `just -f tools/justfile herramientas` and used from the PATH,
+installed with `just -f tools/justfile install` and used from the PATH,
 so these cases need it installed; the generated output is committed, so
 **building the ROM does not even need that**.
 
@@ -24,7 +24,7 @@ import pytest  # noqa: E402
 from port import event_opcodes  # noqa: E402
 from port import eventos  # noqa: E402
 from rpgmaker import lcf  # noqa: E402
-from ensamblado import ensamblar  # noqa: E402
+from assembly import assemble  # noqa: E402
 from audio import music_opcodes  # noqa: E402
 from common import project  # noqa: E402
 
@@ -46,7 +46,7 @@ GENERADOS = [
                             "music_opcodes.py"))),
 ]
 MAIN = os.path.join(project.runtime(), "main.s")
-# What each one needs on top, as in the `protocolo` recipe of tools/justfile:
+# What each one needs on top, as in the `protocol` recipe of tools/justfile:
 # without this `--check` compares against an `.inc` without the dispatch table
 # and reports it as stale.
 BANDERAS = {"events": ["--jump-table"]}
@@ -68,7 +68,7 @@ def test_the_generated_files_are_up_to_date(nombre, modulo, inc, py):
         + BANDERAS.get(nombre, []),
         capture_output=True, text=True)
     assert hecho.returncode != 2, (
-        "the generator could not run —is `just -f tools/justfile herramientas` missing?—:\n%s"
+        "the generator could not run —is `just -f tools/justfile install` missing?—:\n%s"
         % hecho.stderr)
     assert hecho.returncode == 0, (
         "a generated file is out of date:\n%s%s" % (hecho.stdout, hecho.stderr))
@@ -99,7 +99,7 @@ def test_no_opcode_in_the_rom_is_undeclared():
     ROM they are a single symbol space, and in fact that is why `OP_FIN` had
     to be called `OP_DONE` —`OP_END` already belonged to the music stream—.
     """
-    fuente = ensamblar.texto_de_la_fuente(MAIN)
+    fuente = assemble.source_text(MAIN)
     # Only the uses as an operand: bare names in comments do not count.
     usados = set(re.findall(r"#(OP_[A-Z0-9_]+)\b", fuente))
     assert usados, "not a single use of an opcode was found in tools/runtime/"

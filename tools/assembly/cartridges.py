@@ -7,7 +7,7 @@ No test builds anything: they run against what this leaves —see `tanda.rom`—
     rm2k-snes-cartridges            builds whatever is needed
     rm2k-snes-cartridges release    only that one, with its MSU-1 tracks:
                                     `just build`
-    rm2k-snes-cartridges --lista    which case goes in which cartridge
+    rm2k-snes-cartridges --list     which case goes in which cartridge
 
 A new case is a file in `rom/pruebas/casos/` and nothing else: it goes into
 `release` on its own and is run with `tanda.partida("<name>")`. It starts
@@ -26,15 +26,15 @@ import os
 import subprocess
 import sys
 
-# `realpath` and not `abspath`: `just herramientas` installs this script on
+# `realpath` and not `abspath`: `just install` installs this script on
 # the PATH as a symlink, and what matters is where the real file is.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
-from audio import muestras_brr                          # noqa: E402
+from audio import brr_samples                          # noqa: E402
 from common import environment                              # noqa: E402
 from common import settings                              # noqa: E402
 from common import project                              # noqa: E402
-from ensamblado import ensamblar                        # noqa: E402
+from assembly import assemble                        # noqa: E402
 from port import tiles_bin                              # noqa: E402
 from port import comprimir                              # noqa: E402
 
@@ -43,17 +43,15 @@ from port import comprimir                              # noqa: E402
 if __name__ == "__main__":
     project.from_command_line()
 
-RAIZ = project.root()
-CASOS = project.cases()
-FUENTE = project.runtime()
+ROOT = project.root()
+CASES = project.cases()
+RUNTIME = project.runtime()
 
 # **What each cartridge carries belongs to the game, and is in its project
 # file** —`project.project_file()`, with the reasons for each value as
 # comments—: which maps go in, which are excluded, which cartridges exist and
 # which cases each one carries. Until 2026-09-29 it was written here. What
-# remains in this file is the mechanism that reads it and builds; the module
-# names —`MENOR_A`, `CARTUCHOS`, `FUERA`…— are the old ones, because the
-# suite reads them.
+# remains in this file is the mechanism that reads it and builds.
 #
 # **The maps are values in the file and not converter flags**, on purpose:
 # the converter still receives the whole list in `--mapas`. This is the only
@@ -61,37 +59,37 @@ FUENTE = project.runtime()
 # without running it; and since the stamp carries the flags and not
 # `rom/data/`, a tree that changes which maps go in makes the cartridge stale
 # only if the list travels expanded.
-MENOR_A = settings.value("maps", "below", kind=int)
-EXCLUIDOS = frozenset(settings.value("maps", "excluded", kind=list))
-AGREGADOS = tuple(settings.value("maps", "added", kind=list))
+MAPS_BELOW = settings.value("maps", "below", kind=int)
+EXCLUDED_MAPS = frozenset(settings.value("maps", "excluded", kind=list))
+ADDED_MAPS = tuple(settings.value("maps", "added", kind=list))
 
 
-def el_mapa_de_debug():
+def debug_map_id():
     """The debug map's id: the only new map in
     `rom/parches/manual/nuevos/` —see `fork.new_maps`—. It comes from there and
     not from the project file so as not to write the number twice."""
     from rpgmaker import fork
-    nuevos = sorted(fork.new_maps())
-    if len(nuevos) != 1:
+    new_maps = sorted(fork.new_maps())
+    if len(new_maps) != 1:
         sys.exit("the debug map is the only new map in %s, and there are %d: %s"
-                 % (fork.new_maps_folder(), len(nuevos), nuevos))
-    return nuevos[0]
+                 % (fork.new_maps_folder(), len(new_maps), new_maps))
+    return new_maps[0]
 
 
 # The debug map, which the game does not have, goes after the added ones.
-CON_MAPA_DE_DEBUG = settings.value("debug", "debug_map", kind=bool)
-MAPA_DE_DEBUG = el_mapa_de_debug()
-if CON_MAPA_DE_DEBUG:
-    AGREGADOS += (MAPA_DE_DEBUG,)
+WITH_DEBUG_MAP = settings.value("debug", "debug_map", kind=bool)
+DEBUG_MAP = debug_map_id()
+if WITH_DEBUG_MAP:
+    ADDED_MAPS += (DEBUG_MAP,)
 
 # The enemies' HP in battle: passes `--hp-de-enemigos` to the converter in
 # every cartridge.
-CON_HP_DE_ENEMIGOS = settings.value("debug", "enemy_hp", kind=bool)
-_DE_TODOS = ["--hp-de-enemigos"] if CON_HP_DE_ENEMIGOS else []
+WITH_ENEMY_HP = settings.value("debug", "enemy_hp", kind=bool)
+_FOR_ALL = ["--hp-de-enemigos"] if WITH_ENEMY_HP else []
 
 
-def mapas_de_la_regla(menor_a=MENOR_A, excluidos=EXCLUIDOS,
-                      agregados=AGREGADOS):
+def rule_maps(below=MAPS_BELOW, excluded=EXCLUDED_MAPS,
+              added=ADDED_MAPS):
     """The game's maps in the order they go to `--mapas`: the ones from the
     rule in ascending order, and then the added ones. **The order is that of
     the ROM's table**, so changing it moves the table: see `orden_de_mapas`
@@ -101,19 +99,19 @@ def mapas_de_la_regla(menor_a=MENOR_A, excluidos=EXCLUIDOS,
     reads: that is why the path falls inside `rom/data/` and not inside the
     game —see `lcf.dump_dir`—."""
     from rpgmaker import lcf
-    arbol = lcf.TreeMap(os.path.join(project.data(), "RPG_RT.lmt"))
-    de_la_regla = [m for m in range(1, menor_a)
-                   if arbol.map_types.get(m) == 1 and m not in excluidos]
-    return tuple(de_la_regla + [m for m in agregados if m not in de_la_regla])
+    tree = lcf.TreeMap(os.path.join(project.data(), "RPG_RT.lmt"))
+    from_rule = [m for m in range(1, below)
+                 if tree.map_types.get(m) == 1 and m not in excluded]
+    return tuple(from_rule + [m for m in added if m not in from_rule])
 
 
-MAPAS_DEL_JUEGO = mapas_de_la_regla()
+GAME_MAPS = rule_maps()
 
 # And the ones that only exist for the suite. `parches.revisar` reads them
 # from here so as not to require a versioned patch for them.
-MAPAS_DE_PRUEBA = tuple(settings.value("maps", "test", kind=list))
+TEST_MAPS = tuple(settings.value("maps", "test", kind=list))
 
-MAPAS = MAPAS_DEL_JUEGO + MAPAS_DE_PRUEBA
+MAPS = GAME_MAPS + TEST_MAPS
 
 # The cartridge that is played: the one that carries the ROM with the game's
 # name, its MSU-1 tracks, and all the cases. The file has to declare it.
@@ -121,75 +119,75 @@ RELEASE = "release"
 
 # What its files are called: `<name>.sfc`, and next to it the `.msu` and the
 # `<name>-N.pcm` tracks. The other cartridges' files are called `prueba`.
-NOMBRE_DE_LA_ROM = settings.value("rom", "name", kind=str)
+ROM_NAME = settings.value("rom", "name", kind=str)
 
 
-def _cartucho(nombre):
+def _cartridge(name):
     """(the converter flags, the cases or None if it is all of them) of a
     cartridge in the file. The flags come out in the usual order —the party,
     the starting map, the maps, the graphics, the rest—, because they go into
     the stamp as is."""
-    def clave(k, tipo):
-        return settings.value("cartridges", nombre, k, kind=tipo)
-    arranque = clave("start_map", int)
-    grupo = clave("party", list)
-    mapas = clave("maps", (str, list))
-    if isinstance(mapas, str):
-        if mapas != "game":
+    def setting(k, kind):
+        return settings.value("cartridges", name, k, kind=kind)
+    start_map = setting("start_map", int)
+    party = setting("party", list)
+    maps = setting("maps", (str, list))
+    if isinstance(maps, str):
+        if maps != "game":
             sys.exit("%s: maps of %s is a list or \"game\", and it is %r"
-                     % (project.project_file(), nombre, mapas))
-        mapas = MAPAS
-    casos = clave("cases", (str, list))
-    if isinstance(casos, str):
-        if casos != "all":
+                     % (project.project_file(), name, maps))
+        maps = MAPS
+    cases = setting("cases", (str, list))
+    if isinstance(cases, str):
+        if cases != "all":
             sys.exit("%s: cases of %s is a list or \"all\", and it is %r"
-                     % (project.project_file(), nombre, casos))
-        casos = None
-    flags = ((["--grupo"] + [str(a) for a in grupo] if grupo else [])
-             + ["--map-id", str(arranque), "--mapas"]
-             + [str(m) for m in mapas if m != arranque]
-             + [f for charset, indice in clave("test_graphics", list)
-                for f in ("--grafico-de-prueba", charset, indice)]
-             + clave("flags", list) + _DE_TODOS)
-    return flags, casos
+                     % (project.project_file(), name, cases))
+        cases = None
+    flags = ((["--grupo"] + [str(a) for a in party] if party else [])
+             + ["--map-id", str(start_map), "--mapas"]
+             + [str(m) for m in maps if m != start_map]
+             + [f for charset, index in setting("test_graphics", list)
+                for f in ("--grafico-de-prueba", charset, index)]
+             + setting("flags", list) + _FOR_ALL)
+    return flags, cases
 
 
-CARTUCHOS = {nombre: _cartucho(nombre)
-             for nombre in settings.value("cartridges", kind=dict)}
-if RELEASE not in CARTUCHOS or CARTUCHOS[RELEASE][1] is not None:
+CARTRIDGES = {name: _cartridge(name)
+              for name in settings.value("cartridges", kind=dict)}
+if RELEASE not in CARTRIDGES or CARTRIDGES[RELEASE][1] is not None:
     sys.exit("%s: missing [cartridges.%s], with cases = \"all\""
              % (project.project_file(), RELEASE))
 
 # The cases `release` does not carry, because there they would change the
 # others' images.
-FUERA = set(settings.value("cartridges", RELEASE, "excluded_cases",
-                           kind=list))
+EXCLUDED_CASES = set(settings.value("cartridges", RELEASE, "excluded_cases",
+                                    kind=list))
 
 # Page 0 is the real game's, except with the debug map, whose entry is what
 # goes there: see `[cases]` in the file.
-LA_PARTIDA_DE_VERDAD = settings.value("cases", "real_game", kind=str)
-ENTRADA_AL_MAPA_DE_DEBUG = settings.value("cases", "debug_map_entry",
-                                          kind=str)
+REAL_GAME = settings.value("cases", "real_game", kind=str)
+DEBUG_MAP_ENTRY = settings.value("cases", "debug_map_entry",
+                                 kind=str)
 
 
-def primero(con_mapa_de_debug=CON_MAPA_DE_DEBUG):
+def first_case(with_debug_map=WITH_DEBUG_MAP):
     """The case on page 0: what "Begin the Story" runs."""
-    return (ENTRADA_AL_MAPA_DE_DEBUG if con_mapa_de_debug
-            else LA_PARTIDA_DE_VERDAD)
+    return (DEBUG_MAP_ENTRY if with_debug_map
+            else REAL_GAME)
 
 
-def fuera(con_mapa_de_debug=CON_MAPA_DE_DEBUG):
+def excluded_cases(with_debug_map=WITH_DEBUG_MAP):
     """The cases `release` does not carry. Without the map, not its entry
     either: its `Teleport` leads to a map that is not there, and the converter
     balks."""
-    return FUERA | (set() if con_mapa_de_debug
-                    else {ENTRADA_AL_MAPA_DE_DEBUG})
+    return EXCLUDED_CASES | (set() if with_debug_map
+                             else {DEBUG_MAP_ENTRY})
 
 
-PRIMERO = primero()
+FIRST_CASE = first_case()
 
 
-def huella():
+def fingerprint():
     """What a cartridge depends on, besides its flags and its cases.
 
     Whatever changes the ROM and is not here leaves it silently stale: that
@@ -199,230 +197,230 @@ def huella():
     looked at and not the date, which `git checkout` changes.
     """
     h = hashlib.sha256()
-    for ruta in archivos_de_la_huella():
-        with open(ruta, "rb") as archivo:
-            h.update(archivo.read())
+    for path in fingerprint_files():
+        with open(path, "rb") as handle:
+            h.update(handle.read())
     # And each song's volume ceiling, which changes the streams: by its values
     # and not by the file, because `just techos` rewrites it with what it
     # measured —the peak, the mix fingerprint— after building, and that does
     # not change the ROM.
     from audio import snes_music
-    h.update(repr(sorted(snes_music.leer_techos().items())).encode())
+    h.update(repr(sorted(snes_music.read_ceilings().items())).encode())
     return h.hexdigest()[:16]
 
 
-def archivos_de_la_huella(fuente=FUENTE):
-    """The files `huella` reads, in order. `fuente` is a parameter only so
+def fingerprint_files(runtime=RUNTIME):
+    """The files `fingerprint` reads, in order. `runtime` is a parameter only so
     that a test can pass it a tree built by hand."""
     # All of `tools/runtime/`, and not only what `main.s` includes today: a file
     # that is added and included in the same change has to make the cartridge
     # stale.
-    partes = (sorted(r for r in glob.glob(os.path.join(fuente, "**"),
-                                          recursive=True) if os.path.isfile(r))
-              + ensamblar.binarios()
-              + [tiles_bin.binario(), muestras_brr.binario(),
-                 comprimir.binario()])
+    parts = (sorted(r for r in glob.glob(os.path.join(runtime, "**"),
+                                         recursive=True) if os.path.isfile(r))
+             + assemble.binaries()
+             + [tiles_bin.binario(), brr_samples.binary(),
+                comprimir.binario()])
     # Except the tools' tests, which build nothing: with them inside, editing
     # a test made every cartridge stale.
-    pruebas = os.path.join(project.tools(), "pruebas", "")
-    partes += sorted(r for r in glob.glob(os.path.join(project.tools(),
-                                                       "*", "*.py"))
-                     if not r.startswith(pruebas))
-    partes += sorted(glob.glob(os.path.join(project.manual_patches(), "*",
-                                            "*")))
+    tests_dir = os.path.join(project.tools(), "pruebas", "")
+    parts += sorted(r for r in glob.glob(os.path.join(project.tools(),
+                                                      "*", "*.py"))
+                    if not r.startswith(tests_dir))
+    parts += sorted(glob.glob(os.path.join(project.manual_patches(), "*",
+                                           "*")))
     # And the project file, whole: the converter and the music read it, and
     # not only what reaches the stamp's flags.
-    partes.append(project.project_file())
-    return partes
+    parts.append(project.project_file())
+    return parts
 
 
-def todos_los_casos():
+def all_cases():
     return sorted(os.path.splitext(os.path.basename(r))[0]
-                  for r in glob.glob(os.path.join(CASOS, "*.json")))
+                  for r in glob.glob(os.path.join(CASES, "*.json")))
 
 
-def casos_de(nombre, con_mapa_de_debug=CON_MAPA_DE_DEBUG):
-    """The cartridge's cases, in the order of its pages. `con_mapa_de_debug`
+def cases_of(name, with_debug_map=WITH_DEBUG_MAP):
+    """The cartridge's cases, in the order of its pages. `with_debug_map`
     is a parameter only so that a test can look at the clean delivery without
     building it."""
-    casos = CARTUCHOS[nombre][1]
-    if casos is None:
-        cero = primero(con_mapa_de_debug)
-        return [cero] + [n for n in todos_los_casos()
-                         if n not in fuera(con_mapa_de_debug) and n != cero]
-    return list(casos)
+    cases = CARTRIDGES[name][1]
+    if cases is None:
+        first = first_case(with_debug_map)
+        return [first] + [n for n in all_cases()
+                          if n not in excluded_cases(with_debug_map) and n != first]
+    return list(cases)
 
 
-def sin_titulo(nombre):
+def without_title(name):
     """Whether the cartridge starts without a title screen, straight on the
     map."""
-    return "--sin-titulo" in CARTUCHOS[nombre][0]
+    return "--sin-titulo" in CARTRIDGES[name][0]
 
 
-def donde_esta(caso):
+def where_is(case):
     """The cartridges that carry the case: first the one that carries all of
     them, then the rest by name.
 
-    **It does not come from the order of `CARTUCHOS`**, on purpose: a case
+    **It does not come from the order of `CARTRIDGES`**, on purpose: a case
     that is in two —`parado-tapado`— runs in the first, and with the
     dictionary in another order it ran in the small one and moved its golden
     without anyone touching the case.
     """
-    return sorted((n for n in CARTUCHOS if caso in casos_de(n)),
-                  key=lambda n: (CARTUCHOS[n][1] is not None, n))
+    return sorted((n for n in CARTRIDGES if case in cases_of(n)),
+                  key=lambda n: (CARTRIDGES[n][1] is not None, n))
 
 
-def _contenido(casos):
-    contenido = []
-    for caso in casos:
-        with open(os.path.join(CASOS, caso + ".json"), encoding="utf-8") as a:
-            contenido.append((caso, a.read()))
-    return contenido
+def _contents(cases):
+    contents = []
+    for case in cases:
+        with open(os.path.join(CASES, case + ".json"), encoding="utf-8") as a:
+            contents.append((case, a.read()))
+    return contents
 
 
-def sello(nombre, fuentes=None):
+def stamp(name, inputs=None):
     """What the cartridge's stamp has to say for it to be up to date."""
-    flags, _casos = CARTUCHOS[nombre]
-    return "%s\n%r" % (fuentes or huella(),
-                       (flags, _contenido(casos_de(nombre))))
+    flags, _cases = CARTRIDGES[name]
+    return "%s\n%r" % (inputs or fingerprint(),
+                       (flags, _contents(cases_of(name))))
 
 
-def directorio(nombre):
+def directory(name):
     """What the tests write does not go here but to `rom/pruebas/snapshots/`."""
-    if nombre == RELEASE:
+    if name == RELEASE:
         return os.path.join(project.build(), RELEASE)
     return os.path.join(environment.test_cartridges(),
-                        nombre.replace("test-", "", 1))
+                        name.replace("test-", "", 1))
 
 
-def rom_de(nombre):
+def rom_of(name):
     # The MSU-1 looks for its tracks by the `.sfc`'s name.
-    return os.path.join(directorio(nombre),
-                        NOMBRE_DE_LA_ROM + ".sfc" if nombre == RELEASE
+    return os.path.join(directory(name),
+                        ROM_NAME + ".sfc" if name == RELEASE
                         else "prueba.sfc")
 
 
-def msu_de(nombre):
+def msu_of(name):
     """The cartridge's `.msu`: the converter writes it, with the battle
     backgrounds the MSU-1 serves to the ROM —see tools/port/msu_datos.py—,
     and it is also what turns on the MSU-1 for the tracks. Next to the `.sfc`
     and with its name, which is where the emulator and the FX Pak look for
     it."""
-    return os.path.splitext(rom_de(nombre))[0] + ".msu"
+    return os.path.splitext(rom_of(name))[0] + ".msu"
 
 
-def _archivo(nombre, que):
-    return os.path.join(directorio(nombre), que)
+def _file(name, what):
+    return os.path.join(directory(name), what)
 
 
-def viejo(nombre, fuentes=None):
+def stale(name, inputs=None):
     """Why the cartridge is no good, or None if it is up to date."""
-    if nombre not in CARTUCHOS:
+    if name not in CARTRIDGES:
         return "does not exist"
     try:
-        with open(_archivo(nombre, "sello.txt")) as archivo:
-            sellado = archivo.read()
+        with open(_file(name, "sello.txt")) as handle:
+            stamped = handle.read()
     except OSError:
         return "is not built"
-    if sellado != sello(nombre, fuentes):
+    if stamped != stamp(name, inputs):
         return "was built with other sources, other flags or other cases"
     # The converter writes it along with the ROM and it does not go into the
     # stamp: without it the cartridge would work, but the MSU-1 test would
     # have nothing to read.
-    if not os.path.isfile(msu_de(nombre)):
+    if not os.path.isfile(msu_of(name)):
         return "does not have its .msu"
     return None
 
 
-def manifiesto(nombre):
+def manifest(name):
     """(the cases, whether each one starts with a `Teleport`), per page."""
-    casos = casos_de(nombre)
-    return casos, [_salta(texto) for _n, texto in _contenido(casos)]
+    cases = cases_of(name)
+    return cases, [_teleports(text) for _n, text in _contents(cases)]
 
 
-def _salta(texto):
+def _teleports(text):
     """Whether the case starts with a `Teleport`: the harness waits for the
     arrival, and looking at whether the ROM is fading is not enough, because
     there are maps that fade on their own when entered."""
-    comandos = json.loads(texto).get("event_commands") or [{}]
-    return comandos[0].get("code") == "Teleport"
+    commands = json.loads(text).get("event_commands") or [{}]
+    return commands[0].get("code") == "Teleport"
 
 
-def armar(nombre, fuentes):
+def build(name, inputs):
     """Converts and assembles the cartridge, if it is not up to date. Says
     whether it built it."""
-    if not viejo(nombre, fuentes):
+    if not stale(name, inputs):
         return False
-    convertir(nombre, directorio(nombre), rom_de(nombre))
-    with open(_archivo(nombre, "sello.txt"), "w") as archivo:
-        archivo.write(sello(nombre, fuentes))
+    convert(name, directory(name), rom_of(name))
+    with open(_file(name, "sello.txt"), "w") as handle:
+        handle.write(stamp(name, inputs))
     return True
 
 
-def convertir(nombre, destino, sfc, extra=()):
-    """Converts and assembles the cartridge in `destino`, without a stamp and
+def convert(name, dest, sfc, extra=()):
+    """Converts and assembles the cartridge in `dest`, without a stamp and
     even if it is up to date. `extra` are extra flags for the converter:
-    that is how `tools/audio/techos.py` builds a copy of `release` with
+    that is how `tools/audio/ceilings.py` builds a copy of `release` with
     another volume, without touching the real one."""
-    flags, _casos = CARTUCHOS[nombre]
-    os.makedirs(destino, exist_ok=True)
-    log = os.path.join(destino, "conversor.log")
+    flags, _cases = CARTRIDGES[name]
+    os.makedirs(dest, exist_ok=True)
+    log = os.path.join(dest, "conversor.log")
     # The cases go at the end: after a `--caso`, any cartridge flag would
     # belong to that case, and the converter rejects it.
-    de_casos = []
-    for k, caso in enumerate(casos_de(nombre)):
-        de_casos += (["--caso"] if k else []) + [
+    case_flags = []
+    for k, case in enumerate(cases_of(name)):
+        case_flags += (["--caso"] if k else []) + [
             "--comandos-de-prueba",
-            os.path.relpath(os.path.join(CASOS, caso + ".json"), RAIZ)]
+            os.path.relpath(os.path.join(CASES, case + ".json"), ROOT)]
     # With `--project`, because it runs standing in the repo root —see
-    # `ensamblar.RAIZ`— and from there it would not find the file by
+    # `assemble.ROOT`— and from there it would not find the file by
     # searching.
-    orden = ([sys.executable, os.path.join(project.tools(), "port",
-                                           "snes_convert.py"),
-              "--project", project.directory(),
-              *environment.as_flags(*AL_CONVERSOR),
-              "-o", os.path.join(destino, "mapdata.inc"),
-              "--msu", os.path.splitext(sfc)[0] + ".msu"]
-             + flags + list(extra) + de_casos)
-    hecho = subprocess.run(orden, cwd=RAIZ, capture_output=True, text=True)
-    with open(log, "w") as archivo:
-        archivo.write(hecho.stdout + hecho.stderr)
-    if hecho.returncode:
-        sys.stderr.write(hecho.stdout[-3000:] + hecho.stderr)
-        sys.exit("%s: the converter failed; everything is in %s" % (nombre, log))
-    ensamblar.ensamblar(os.path.join(FUENTE, "main.s"),
-                        destino, sfc, sfc + ".sym")
+    command = ([sys.executable, os.path.join(project.tools(), "port",
+                                             "snes_convert.py"),
+                "--project", project.directory(),
+                *environment.as_flags(*TO_CONVERTER),
+                "-o", os.path.join(dest, "mapdata.inc"),
+                "--msu", os.path.splitext(sfc)[0] + ".msu"]
+               + flags + list(extra) + case_flags)
+    result = subprocess.run(command, cwd=ROOT, capture_output=True, text=True)
+    with open(log, "w") as handle:
+        handle.write(result.stdout + result.stderr)
+    if result.returncode:
+        sys.stderr.write(result.stdout[-3000:] + result.stderr)
+        sys.exit("%s: the converter failed; everything is in %s" % (name, log))
+    assemble.assemble(os.path.join(RUNTIME, "main.s"),
+                      dest, sfc, sfc + ".sym")
 
 
 # What the converter needs from the machine, since it runs in another
 # process and receives it by flags; and what this one adds: where the test
 # cartridges go, and the replacements for the MSU-1 tracks.
-AL_CONVERSOR = ("game_dir", "rtp_dir", "soundfont", "cache")
-DEL_AMBIENTE = AL_CONVERSOR + ("test_cartridges", "replacements")
+TO_CONVERTER = ("game_dir", "rtp_dir", "soundfont", "cache")
+FROM_ENVIRONMENT = TO_CONVERTER + ("test_cartridges", "replacements")
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     project.add_argument(parser)
-    environment.add_arguments(parser, *DEL_AMBIENTE)
-    parser.add_argument("--lista", action="store_true",
+    environment.add_arguments(parser, *FROM_ENVIRONMENT)
+    parser.add_argument("--list", action="store_true",
                         help="which case goes in which cartridge, without building anything")
-    parser.add_argument("nombres", nargs="*", metavar="CARTRIDGE",
+    parser.add_argument("names", nargs="*", metavar="CARTRIDGE",
                         help="only these; without names, all of them. It is what "
                              "`just build release` uses")
     args = parser.parse_args()
-    environment.from_arguments(args, *DEL_AMBIENTE)
-    for nombre in args.nombres:
-        if nombre not in CARTUCHOS:
+    environment.from_arguments(args, *FROM_ENVIRONMENT)
+    for name in args.names:
+        if name not in CARTRIDGES:
             sys.exit("there is no cartridge %r: the ones there are %s"
-                     % (nombre, ", ".join(CARTUCHOS)))
-    if args.lista:
-        for nombre in CARTUCHOS:
-            casos = casos_de(nombre)
-            print("%s (%d): %s" % (nombre, len(casos), " ".join(casos)))
+                     % (name, ", ".join(CARTRIDGES)))
+    if args.list:
+        for name in CARTRIDGES:
+            cases = cases_of(name)
+            print("%s (%d): %s" % (name, len(cases), " ".join(cases)))
         return
-    fuentes = huella()
-    nombres = args.nombres or list(CARTUCHOS)
+    inputs = fingerprint()
+    names = args.names or list(CARTRIDGES)
     # The cartridges and the tracks are built at the same time, in threads:
     # each one writes in its own directory, and the heavy work runs in
     # subprocesses —the converter, `ca65`, fluidsynth—. What they share is the
@@ -432,36 +430,36 @@ def main():
     # The tracks, **after `release`** and not alongside it: they are its
     # songs', which the converter leaves in its `musica.json`. Meanwhile the
     # other cartridges get built.
-    with concurrent.futures.ThreadPoolExecutor(len(nombres) + 1) as hilos:
-        armados = {nombre: hilos.submit(armar, nombre, fuentes)
-                   for nombre in nombres}
-        hechas = (hilos.submit(pistas, armados[RELEASE])
-                  if RELEASE in nombres else None)
-        for nombre in nombres:
-            print("%s: %s" % (nombre, "built" if armados[nombre].result()
+    with concurrent.futures.ThreadPoolExecutor(len(names) + 1) as pool:
+        built = {name: pool.submit(build, name, inputs)
+                 for name in names}
+        made = (pool.submit(msu_tracks, built[RELEASE])
+                if RELEASE in names else None)
+        for name in names:
+            print("%s: %s" % (name, "built" if built[name].result()
                               else "up to date"))
-            if nombre == RELEASE:
-                print(hechas.result())
+            if name == RELEASE:
+                print(made.result())
 
 
-def pistas(armado=None):
+def msu_tracks(built=None):
     """The MSU-1 tracks next to the ROM that is played: `release` always
     carries them, so there is no other way to have the ROM with tracks.
 
     They go outside the stamp and are checked even if the ROM is up to date:
     which ones they are is said by the cartridge —its `musica.json`—, but how
     each one sounds depends on the MIDI, the soundfont and the synthesizer,
-    and `msu.armar` already knows which ones are there —see
-    `clave_de_la_pista`—. Having them next to it does not change the suite:
+    and `msu.build` already knows which ones are there —see
+    `track_key`—. Having them next to it does not change the suite:
     the harness hides the tracks from the core, see `retro.Console`.
     Returns the line that reports it, which `main` prints in its place.
     """
-    if armado is not None:
-        armado.result()         # the `musica.json` that says which ones
+    if built is not None:
+        built.result()         # the `musica.json` that says which ones
     from audio import msu       # fluidsynth and ffmpeg, only for `release`
-    hechas, estaban = msu.armar(rom_de(RELEASE), charlar=False)
+    made, already = msu.build(rom_of(RELEASE), verbose=False)
     return ("%s: MSU-1 tracks, %d made and %d that were already there"
-            % (RELEASE, hechas, estaban))
+            % (RELEASE, made, already))
 
 
 if __name__ == "__main__":
