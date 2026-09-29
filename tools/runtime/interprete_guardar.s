@@ -9,7 +9,7 @@
 ; with `jmp correr_codigo::otro` or ends the frame with `rts`.
 
 ; `OpenSaveMenu`: the slot screen in save mode, and the save goes to whichever
-; slot the player picks. No operands. See `OP_SAVE` in tools/port/eventos.py.
+; slot the player picks. No operands. See `OP_SAVE` in tools/port/events.py.
 ;
 ; **It blocks inside the interpreter and costs no tick**, which is what RM2k
 ; does: `OpenSaveMenu` pushes `Scene_Save`, the map stops updating until it

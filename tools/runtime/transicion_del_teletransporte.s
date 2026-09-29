@@ -7,7 +7,7 @@
 ; RM2k erases and shows the screen again on every teleport with whatever
 ; transition the system says, and `ChangeScreenTransitions` changes it from
 ; then on. The ROM does three, and the converter has already decided which one
-; goes —see `CHANGE_SCREEN_TRANSITIONS` in tools/port/eventos.py—:
+; goes —see `CHANGE_SCREEN_TRANSITIONS` in tools/port/events.py—:
 ;
 ;   the fade     the usual one, `fundido_tick`: the master brightness over
 ;                `fundido_rampa`. It is also what goes for the ones the

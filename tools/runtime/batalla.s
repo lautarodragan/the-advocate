@@ -654,7 +654,7 @@ tropa_lista:
 ;
 ; easyrpg's `Normal::vExecute`: **three rolls in this order** —hit, critical
 ; and variance— and the critical one is rolled even if the chance is zero.
-; That order is the contract with `tools/port/batalla.py`: changing it on one
+; That order is the contract with `tools/port/battle.py`: changing it on one
 ; side throws the other side's randomness out of step and it does not show
 ; until a hit comes out different.
 ;
@@ -1262,7 +1262,7 @@ ordenado:
 ; --- the screen -----------------------------------------------------------
 ;
 ; Text on black, on the same grid of 32 by 28 cells as the equipment screen
-; and the shop. The geometry comes from `tools/port/pantallas.py` and the
+; and the shop. The geometry comes from `tools/port/screens.py` and the
 ; converter emits the positions, so it is written **by only one of the two
 ; sides**. The enemies at the top, the party at the bottom, and the last line
 ; is either the command menu or the message's two lines.

@@ -336,10 +336,10 @@ def test_un_tema_que_suena_para_irse_va_aparte_del_paquete():
     salida en el mapa si **todos** sus `PlayBGM` de ahí lo son.
     """
     from rpgmaker import lcf
-    from port import eventos
+    from port import events
 
     def pagina(*comandos):
-        return eventos._Comandos(lcf.handwritten_commands(
+        return events._Commands(lcf.handwritten_commands(
             {"event_commands": list(comandos)}))
 
     def tema(nombre):
@@ -354,18 +354,18 @@ def test_un_tema_que_suena_para_irse_va_aparte_del_paquete():
     al_3 = {"code": "Teleport", "parameters": [3, 9, 9]}
     indice = {3: 0, 4: 1}.get
 
-    temas = eventos.Temas()
-    temas.mapa = 0
+    temas = events.Songs()
+    temas.current_map = 0
     for comandos in ([tema("sale"), esperar, switch, al_4],
                      [tema("suena"), efecto, al_4],
                      [tema("vuelve"), esperar, al_3],
                      [tema("queda"), esperar],
                      [tema("dos_veces"), al_4],
                      [tema("dos_veces"), esperar]):
-        assert eventos.compilar_pagina(pagina(*comandos), indice,
-                                       temas=temas) is not None, (
+        assert events.compile_page(pagina(*comandos), indice,
+                                   songs=temas) is not None, (
             "la página %r no compiló: la prueba no mira nada" % (comandos,))
-    de_salida = {temas.nombres[t] for t in temas.de_salida(0)}
+    de_salida = {temas.names[t] for t in temas.exit_songs(0)}
     assert de_salida == {"sale"}, (
         "de salida en el mapa: %s, y sólo tenía que serlo `sale`"
         % sorted(de_salida))

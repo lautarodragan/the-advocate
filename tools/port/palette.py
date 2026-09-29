@@ -1,18 +1,18 @@
 """An image brought down to N 15-bit colors, or to a full screen at 8 bpp.
 
-`reducir` and `convertir` were born for the title screen, and today the
+`reduce` and `convert` were born for the title screen, and today the
 pictures, the animations, the battle backdrops and the full screens use them
 too.
 """
 
 import collections
 
-from port.constantes import ALTO, ANCHO, CELL, COLORES, COLS, FILAS, MENU_CGRAM
+from port.constants import HEIGHT, WIDTH, CELL, COLORS, COLS, ROWS, MENU_CGRAM
 
-NEGRO = (0, 0, 0)
+BLACK = (0, 0, 0)
 
 
-def _distancia(a, b):
+def _distance(a, b):
     """How far apart two 15-bit colors are, squared.
 
     Euclidean and with no per-channel weights: the alternative —weighting by
@@ -24,8 +24,8 @@ def _distancia(a, b):
     return sum((x - y) ** 2 for x, y in zip(a, b))
 
 
-def reducir(pixeles, tope=COLORES):
-    """The image's colors brought down to `tope`, and the map of where each
+def reduce(pixels, cap=COLORS):
+    """The image's colors brought down to `cap`, and the map of where each
     one went.
 
     It keeps the most used ones and sends each of the leftovers to its
@@ -39,22 +39,22 @@ def reducir(pixeles, tope=COLORES):
     colors with the same count must always fall on the same side, or the ROM
     changes without anyone having touched anything.
     """
-    cuenta = collections.Counter(pixeles)
+    counts = collections.Counter(pixels)
     # Black keeps index 0 even if it was not among the most used: it is the
     # backdrop color, and this way what the PPU paints where there is
     # nothing matches what the image has there.
-    orden = sorted(cuenta, key=lambda c: (-cuenta[c], c))
-    if NEGRO in orden:
-        orden.remove(NEGRO)
-    paleta = [NEGRO] + orden[:tope - 1]
-    quedan = set(paleta)
-    mapa = {c: c for c in quedan}
-    for color in orden[tope - 1:]:
-        mapa[color] = min(paleta, key=lambda p: (_distancia(color, p), p))
-    return paleta, mapa
+    order = sorted(counts, key=lambda c: (-counts[c], c))
+    if BLACK in order:
+        order.remove(BLACK)
+    palette = [BLACK] + order[:cap - 1]
+    kept = set(palette)
+    mapping = {c: c for c in kept}
+    for color in order[cap - 1:]:
+        mapping[color] = min(palette, key=lambda p: (_distance(color, p), p))
+    return palette, mapping
 
 
-def _quince(imagen):
+def _to_15_bits(image):
     """The image scaled to the screen, with its colors at 15 bits.
 
     The scaling is LANCZOS, which is the one that smears the edges of the
@@ -63,38 +63,38 @@ def _quince(imagen):
     nowhere else.
     """
     from PIL import Image
-    chica = imagen.convert("RGB").resize((ANCHO, ALTO), Image.LANCZOS)
-    return [(r >> 3, g >> 3, b >> 3) for r, g, b in chica.get_flattened_data()]
+    small = image.convert("RGB").resize((WIDTH, HEIGHT), Image.LANCZOS)
+    return [(r >> 3, g >> 3, b >> 3) for r, g, b in small.get_flattened_data()]
 
 
-def convertir(imagen, primer_color=MENU_CGRAM, tope=COLORES):
+def convert(image, first_color=MENU_CGRAM, cap=COLORS):
     """A full-screen image as (tiles, paleta, tilemap).
 
-    `tiles` are the unique tiles at 8 bits per pixel; `paleta` their colors,
-    which go in CGRAM **starting at `primer_color`** —on the title,
+    `tiles` are the unique tiles at 8 bits per pixel; `palette` their colors,
+    which go in CGRAM **starting at `first_color`** —on the title,
     `MENU_CGRAM`, because the ones below belong to the menu—; `tilemap` the
-    32x28 entries, in the 32x32 tilemap the PPU expects. `tope` is how many
+    32x28 entries, in the 32x32 tilemap the PPU expects. `cap` is how many
     colors are left.
 
     The indices the tiles carry are already shifted, so whoever emits them
     does not have to remember to add anything: the shift is written once and
     here.
     """
-    pixeles = _quince(imagen)
-    paleta, mapa = reducir(pixeles, tope)
-    indice = {color: i + primer_color for i, color in enumerate(paleta)}
+    pixels = _to_15_bits(image)
+    palette, mapping = reduce(pixels, cap)
+    index = {color: i + first_color for i, color in enumerate(palette)}
     # The image as palette indices, row by row.
-    filas = []
-    for y in range(ALTO):
-        filas.append([indice[mapa[pixeles[y * ANCHO + x]]] for x in range(ANCHO)])
+    rows = []
+    for y in range(HEIGHT):
+        rows.append([index[mapping[pixels[y * WIDTH + x]]] for x in range(WIDTH)])
 
-    tiles, donde, tilemap = [], {}, []
-    for ty in range(FILAS):
+    tiles, where, tilemap = [], {}, []
+    for ty in range(ROWS):
         for tx in range(COLS):
-            celda = tuple(tuple(filas[ty * CELL + y][tx * CELL:(tx + 1) * CELL])
-                          for y in range(CELL))
-            if celda not in donde:
-                donde[celda] = len(tiles)
-                tiles.append(celda)
-            tilemap.append(donde[celda])
-    return tiles, paleta, tilemap
+            cell = tuple(tuple(rows[ty * CELL + y][tx * CELL:(tx + 1) * CELL])
+                         for y in range(CELL))
+            if cell not in where:
+                where[cell] = len(tiles)
+                tiles.append(cell)
+            tilemap.append(where[cell])
+    return tiles, palette, tilemap

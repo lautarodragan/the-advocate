@@ -251,7 +251,7 @@ def test_cada_ranura_carga_lo_que_se_guardo_en_ella(partida, ranura):
 def test_la_pantalla_de_ranuras_muestra_el_grupo_guardado(partida):
     """Una ranura con partida muestra el nombre del líder y las caras del
     grupo, como `Window_SaveFile` en RM2k, y **pixel por pixel** contra
-    `menus.render_ranuras` con ese mismo grupo.
+    `menus.render_slots` con ese mismo grupo.
 
     Es la única prueba de pixeles de la variante "llena": la tanda no puede
     llegar a ella porque la SRAM del emulador arranca virgen, y acá sí, porque
@@ -271,7 +271,7 @@ def test_la_pantalla_de_ranuras_muestra_el_grupo_guardado(partida):
     ranuras = una.simbolos["SRAM_RANURAS"]
 
     def comparar(elegida):
-        esperada = menus.render_ranuras(skin, db, ranuras, [False] * ranuras,
+        esperada = menus.render_slots(skin, db, ranuras, [False] * ranuras,
                                          elegida, 0, db.font_id,
                                          {1: [14, 10]}, GAME_DIR)
         comparar_pantalla(una, esperada, "ranuras-grupo-%d" % elegida,
@@ -354,7 +354,7 @@ def test_una_partida_de_otro_build_se_ve_vacia_y_no_carga(partida, como):
 
     db, skin = datos.base(), datos.skin()
     ranuras = s["SRAM_RANURAS"]
-    esperada = menus.render_ranuras(skin, db, ranuras, [False] * ranuras,
+    esperada = menus.render_slots(skin, db, ranuras, [False] * ranuras,
                                      0, 0, db.font_id, {}, GAME_DIR)
     comparar_pantalla(una, esperada, "ranuras-otro-build-%s" % como,
                       "la pantalla de ranuras con una partida de otro build "

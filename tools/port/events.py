@@ -20,9 +20,9 @@ import collections
 import math
 import os
 
-from port import imagen as imagen_mod
-from port import reglas
-from port.constantes import COLUMNAS, LINEAS, RANURAS_EQUIPO
+from port import picture as picture_mod
+from port import rules
+from port.constants import COLUMNS, LINES, EQUIPMENT_SLOTS
 from rpgmaker import rm2k
 
 # The opcodes' numbers, lengths and layout. **They are not declared here**:
@@ -69,7 +69,7 @@ TRADE_EVENT_LOCATIONS = 10870
 # that is why in the ROM it is a small table that translates blocks while
 # drawing, and not a write to the grid —which lives in ROM and cannot be
 # written—. The converter resolves which block goes to which: see
-# `Sustituciones`.
+# `Substitutions`.
 TILE_SUBSTITUTION = 11750
 # A cell's terrain into a variable: `CommandStoreTerrainID`. The terrain comes
 # from the tile of the **lower** layer —"RPG_RT always uses the terrain of the
@@ -81,20 +81,20 @@ FLASH_SCREEN = 11040
 # operations the game uses two —112 `pan` and 21 `reset`, and not one `lock`
 # or `unlock`— so those are the ones that compile.
 PAN_SCREEN = 11060
-PAN_FIJAR, PAN_SOLTAR, PAN_CORRER, PAN_VOLVER = 0, 1, 2, 3
+PAN_LOCK, PAN_UNLOCK, PAN_SHIFT, PAN_RETURN = 0, 1, 2, 3
 # The camera's units inside RM2k: `SCREEN_TILE_SIZE`, that is 1/16 of a
 # pixel, with a 16-pixel cell worth 256. Keeping them is not a whim: speed 2
 # moves the camera **half a pixel per frame**, and in whole pixels that cannot
 # be counted.
-PAN_UNIDAD = 256
-PAN_ARRIBA, PAN_DERECHA, PAN_ABAJO, PAN_IZQUIERDA = 0, 1, 2, 3
+PAN_UNIT = 256
+PAN_UP, PAN_RIGHT, PAN_DOWN, PAN_LEFT = 0, 1, 2, 3
 # Which way the camera moves for each direction, in (dx, dy) per unit.
-PAN_SENTIDO = {PAN_ARRIBA: (0, -1), PAN_DERECHA: (1, 0),
-               PAN_ABAJO: (0, 1), PAN_IZQUIERDA: (-1, 0)}
-PAN_VEL_MIN, PAN_VEL_MAX = 1, 6
+PAN_DIRECTION = {PAN_UP: (0, -1), PAN_RIGHT: (1, 0),
+                 PAN_DOWN: (0, 1), PAN_LEFT: (-1, 0)}
+PAN_SPEED_MIN, PAN_SPEED_MAX = 1, 6
 
 
-def bytes_de_pan(operacion, direccion, distancia, velocidad, esperar):
+def pan_bytes(operation, direction, distance, speed, wait):
     """The OP_PAN of a `PanScreen`, or None if it cannot be done.
 
     The direction and the distance are resolved here to a signed offset in
@@ -102,29 +102,29 @@ def bytes_de_pan(operacion, direccion, distancia, velocidad, esperar):
     computations and the ROM has no reason to repeat them. What is left to
     the console are the frames the page waits.
     """
-    dx, dy = (0, 0) if operacion == PAN_VOLVER else PAN_SENTIDO[direccion]
-    dx *= distancia * PAN_UNIDAD
-    dy *= distancia * PAN_UNIDAD
+    dx, dy = (0, 0) if operation == PAN_RETURN else PAN_DIRECTION[direction]
+    dx *= distance * PAN_UNIT
+    dy *= distance * PAN_UNIT
     if not (-0x8000 <= dx < 0x8000 and -0x8000 <= dy < 0x8000):
         return None
-    return bytes([OP_PAN, operacion,
+    return bytes([OP_PAN, operation,
                   dx & 0xFF, (dx >> 8) & 0xFF,
                   dy & 0xFF, (dy >> 8) & 0xFF,
-                  paso_de_pan(velocidad), 1 if esperar else 0])
+                  pan_step(speed), 1 if wait else 0])
 
 
-def paso_de_pan(velocidad):
+def pan_step(speed):
     """How far the camera moves per frame, in 1/16 of a pixel.
 
     It is `data()->pan_speed = 2 << speed` from `Game_Player::StartPan`, with
     the speed clamped between 1 and 6 as `CommandPanScreen` does. The game
     uses 2 to 6: from half a pixel per frame to eight.
     """
-    return 2 << min(PAN_VEL_MAX, max(PAN_VEL_MIN, velocidad))
+    return 2 << min(PAN_SPEED_MAX, max(PAN_SPEED_MIN, speed))
 
 
-LUGAR_CONSTANTE = 0         # p[1]: 0 is the written cell, 1 reads it from variables
-LUGAR_POR_VARIABLE = 1      # and there is no third: `CommandChangeEventLocation`
+PLACE_CONSTANT = 0         # p[1]: 0 is the written cell, 1 reads it from variables
+PLACE_BY_VARIABLE = 1      # and there is no third: `CommandChangeEventLocation`
                             # has two branches and nothing else
 
 # A text box. RM2k emits a `ShowMessage` with the first line and a
@@ -138,7 +138,7 @@ SHOW_MESSAGE_2 = 20110
 # The escape codes this game's text uses: `\|` is a pause and `\^` closes the
 # box without waiting for the player to press anything. Both are time and not
 # text, and since 2026-09-13 both are done: they travel in the box's header
-# —see `mensaje_bytes`— and the ROM's interpreter and the one below read them
+# —see `message_bytes`— and the ROM's interpreter and the one below read them
 # the same way.
 #
 # They are done for real and not by quietly deleting them, which was the cheap
@@ -151,23 +151,23 @@ SHOW_MESSAGE_2 = 20110
 # text— require composing the text when opening it, which is something else.
 # Drawing them as two letters would show.
 ESCAPE = "\\"
-ESCAPE_PAUSA = "|"
-ESCAPE_CERRAR = "^"
+ESCAPE_PAUSE = "|"
+ESCAPE_CLOSE = "^"
 
 # What a `\|` costs. **It is not one second**: it is the
 # `SetWaitForNonPrintable(61)` of `window_message.cpp`, with its comment next to
 # it —"Despite documentation saying 1 second, RPG_RT waits for 61 frames"—. It
 # is 61 and not 60, and that difference is exactly the kind of number that
 # cannot be written from memory.
-CUADROS_DE_PAUSA = 61
+PAUSE_FRAMES = 61
 
 # How many pauses fit in the box's header. The most the game uses is three in a
 # row (`\|\|\|\^`, twice, on map 108); more than fifteen does not fit in the
 # high nibble and the page does not compile instead of lasting too little.
-PAUSAS_MAX = 15
+PAUSES_MAX = 15
 
 
-def cola_de_escapes(lineas):
+def escape_tail(lines):
     r"""The lines without their escape tail, how many pauses it has and
     whether it closes on its own.
 
@@ -183,31 +183,31 @@ def cola_de_escapes(lineas):
     at the end of a line does not draw a single pixel, so removing it does not
     change the screen.
     """
-    lineas = list(lineas)
-    pausas = 0
-    autocierre = False
-    if lineas:
-        texto = lineas[-1]
-        i = corte = len(texto)
+    lines = list(lines)
+    pauses = 0
+    auto_close = False
+    if lines:
+        text = lines[-1]
+        i = cut = len(text)
         escapes = 0
         while i > 0:
-            if i >= 2 and texto[i - 2] == ESCAPE \
-                    and texto[i - 1] in (ESCAPE_PAUSA, ESCAPE_CERRAR):
+            if i >= 2 and text[i - 2] == ESCAPE \
+                    and text[i - 1] in (ESCAPE_PAUSE, ESCAPE_CLOSE):
                 i -= 2
-                corte = i
+                cut = i
                 escapes += 1
-            elif texto[i - 1] == " ":
+            elif text[i - 1] == " ":
                 i -= 1
             else:
                 break
         if escapes:
-            cola = texto[corte:]
-            pausas = cola.count(ESCAPE + ESCAPE_PAUSA)
-            autocierre = ESCAPE + ESCAPE_CERRAR in cola
-            lineas[-1] = texto[:corte]
-    if any(ESCAPE in t for t in lineas) or pausas > PAUSAS_MAX:
-        raise NoSePuede()
-    return tuple(lineas), pausas, autocierre
+            tail = text[cut:]
+            pauses = tail.count(ESCAPE + ESCAPE_PAUSE)
+            auto_close = ESCAPE + ESCAPE_CLOSE in tail
+            lines[-1] = text[:cut]
+    if any(ESCAPE in t for t in lines) or pauses > PAUSES_MAX:
+        raise CannotCompile()
+    return tuple(lines), pauses, auto_close
 
 
 # A forced MoveEvent route. The parameters are (whom, frequency, a repeat
@@ -220,21 +220,21 @@ def cola_de_escapes(lineas):
 # lets the whole animation cycle slip through. A blocked move is skipped,
 # which is our decision and not RM2k's —RM2k would retry forever and a hung
 # test says nothing—.
-RUTA_HEROE = 10001
-RUTA_ESTE_EVENTO = 10005                    # "this event", the page's owner
+ROUTE_HERO = 10001
+ROUTE_THIS_EVENT = 10005                    # "this event", the page's owner
 # 10002 to 10004 are the vehicles —boat, ship, airship—, which do not exist here.
-RUTA_MIRAR = {12: 0, 13: 1, 14: 2, 15: 3}   # face_up/right/down/left
-RUTA_MOVER = {n: n for n in range(8)}      # the four move_* and the
+ROUTE_LOOK = {12: 0, 13: 1, 14: 2, 15: 3}   # face_up/right/down/left
+ROUTE_MOVE = {n: n for n in range(8)}      # the four move_* and the
                                            # four diagonals: the command's
                                            # code **is** the direction. See
-                                           # RUTA_DIAGONALES
-RUTA_ESPERAR = 23
+                                           # ROUTE_DIAGONALS
+ROUTE_WAIT = 23
 
 # What a `wait` inside a forced route costs. **It is not one frame**: in RM2k
 # it is `SetMaxStopCountForWait`, which gives `20 + (1 << (8 - frecuencia))`,
-# and with frequency 8 —the only one this repo accepts, see `RUTA_FRECUENCIA`—
+# and with frequency 8 —the only one this repo accepts, see `ROUTE_FREQUENCY`—
 # that is twenty.
-CUADROS_DE_ESPERA_DE_RUTA = 20
+ROUTE_WAIT_FRAMES = 20
 
 # The frequency a forced route is walked at. It governs two things: how long
 # it waits between one command and the next —`1 << (9 - frecuencia)` frames,
@@ -249,53 +249,53 @@ CUADROS_DE_ESPERA_DE_RUTA = 20
 # The game uses 2, 3, 4, 7 and 8; 1 would give 256 frames after each step,
 # which do not fit in the ROM's wait byte, and nobody uses it: it is
 # rejected.
-RUTA_FRECUENCIA = 8
-RUTA_FRECUENCIA_MIN = 2
+ROUTE_FREQUENCY = 8
+ROUTE_FREQUENCY_MIN = 2
 
 
-def frecuencia_minima(frecuencia, ordenes, repite=False):
+def min_frequency(frequency, commands, repeats=False):
     """The lowest frequency a route with commands 30 and 31 goes through.
 
     It is what decides whether the route can be compiled: with frequency 1
     the wait after a step is 256 frames and the `ruta_tras_paso` byte cannot
     hold it, so a route that goes down that far is rejected whole.
 
-    `ordenes` are bare codes, without operands: the two callers pass what
-    `decodificar_ruta` returned, which already separated them. It is not the
+    `commands` are bare codes, without operands: the two callers pass what
+    `decode_route` returned, which already separated them. It is not the
     same as a compiled route, where 34 drags a byte along that has to be
     skipped.
 
-    With `repite` the commands are walked nine times and not once. It is not
+    With `repeats` the commands are walked nine times and not once. It is not
     just in case: the frequency is clamped at 8 and at 1, so a repeating
     route that goes down more than it goes up ends at 1 no matter what, and
     nine passes are enough for it to get there from any starting point.
     """
-    actual = minima = frecuencia
-    for _ in range(9 if repite else 1):
-        for orden in ordenes:
-            if orden == RUTA_FREC_MAS:
-                actual = min(RUTA_FRECUENCIA, actual + 1)
-            elif orden == RUTA_FREC_MENOS:
-                actual = max(1, actual - 1)
-            minima = min(minima, actual)
-    return minima
+    current = lowest = frequency
+    for _ in range(9 if repeats else 1):
+        for command in commands:
+            if command == ROUTE_FREQ_UP:
+                current = min(ROUTE_FREQUENCY, current + 1)
+            elif command == ROUTE_FREQ_DOWN:
+                current = max(1, current - 1)
+            lowest = min(lowest, current)
+    return lowest
 
 
-def espera_tras_paso(frecuencia):
+def wait_after_step(frequency):
     """`GetMaxStopCountForStep`: the frames standing still after a step."""
-    return 0 if frecuencia >= 8 else 1 << (9 - frecuencia)
+    return 0 if frequency >= 8 else 1 << (9 - frequency)
 
 
-def espera_tras_giro(frecuencia):
+def wait_after_turn(frequency):
     """`GetMaxStopCountForTurn`: the frames standing still after a turn. The
-    `wait` is `CUADROS_DE_ESPERA_DE_RUTA` plus this."""
-    return 0 if frecuencia >= 8 else 1 << (8 - frecuencia)
+    `wait` is `ROUTE_WAIT_FRAMES` plus this."""
+    return 0 if frequency >= 8 else 1 << (8 - frequency)
 
 
 # Facing the hero: `GetDirectionToCharacter`. The axis with more distance
 # wins, and on a tie the vertical one; on the same cell it looks down. Only on
 # events: no page uses the hero facing itself.
-RUTA_ENCARAR_HEROE = 21
+ROUTE_FACE_HERO = 21
 
 # And moving toward the hero: `move_towards_hero`. It is not a new command but
 # two that already exist stuck together —in `UpdateMoveRoute` it is
@@ -310,7 +310,7 @@ RUTA_ENCARAR_HEROE = 21
 #
 # Only on events, like 21: no route in the game asks for the hero moving
 # toward itself —measured, zero— and it would mean nothing.
-RUTA_HACIA_HEROE = 9
+ROUTE_TOWARD_HERO = 9
 
 # Turning without moving —`turn_90_degree_right` and its siblings— is still
 # out, and not because of cost: RM2k turns relative to the direction the
@@ -319,39 +319,39 @@ RUTA_HACIA_HEROE = 9
 
 # The jump: what lies between the two is added up as an offset and the
 # character does it in one go, in an arc.
-RUTA_SALTO_INICIO, RUTA_SALTO_FIN = 24, 25
+ROUTE_JUMP_START, ROUTE_JUMP_END = 24, 25
 
 # Walking through walls, and stopping or resuming the walking animation.
-RUTA_ATRAVESAR_ON, RUTA_ATRAVESAR_OFF = 36, 37
-RUTA_ANIM_PARAR, RUTA_ANIM_SEGUIR = 38, 39
+ROUTE_THROUGH_ON, ROUTE_THROUGH_OFF = 36, 37
+ROUTE_ANIM_STOP, ROUTE_ANIM_RESUME = 38, 39
 # Locking and unlocking the facing —`lock_facing`—, and raising and lowering
 # the speed by one, between 1 and 6. They came in on 2026-09-05 with the
 # pages' own routes: map 2's droids use them.
-RUTA_FIJAR_DIR, RUTA_SOLTAR_DIR = 26, 27
-RUTA_VEL_MAS, RUTA_VEL_MENOS = 28, 29
+ROUTE_LOCK_DIR, ROUTE_UNLOCK_DIR = 26, 27
+ROUTE_SPEED_UP, ROUTE_SPEED_DOWN = 28, 29
 # The four above, **on the hero**, are not compiled: see `traducir`. On the
 # hero, locking and unlocking the facing are dropped; raising and lowering the
 # speed **are done** since 2026-09-10 —the Tram Officer asks for it, and 170
 # routes in the game— and they stay: RM2k restores the frequency when the
 # route ends and not the speed, so the pad walks afterwards at the speed the
 # route left.
-RUTA_HEROE_AFUERA = {RUTA_FIJAR_DIR, RUTA_SOLTAR_DIR}
+ROUTE_HERO_OUTSIDE = {ROUTE_LOCK_DIR, ROUTE_UNLOCK_DIR}
 # Raising and lowering the frequency in the middle of a route:
 # `increase/decrease_movement_frequence`, which RM2k clamps at 8 and 1. **A
 # single route in the whole game** uses them —the one that shakes Manta in the
 # Emitter Room scene, which goes down twice from 8 to 6— and without them that
 # page does not compile.
-RUTA_FREC_MAS, RUTA_FREC_MENOS = 30, 31
+ROUTE_FREQ_UP, ROUTE_FREQ_DOWN = 30, 31
 # Changing the graphic in the middle of a route. It is the **only command with
 # an operand**: the bytecode carries after it the CharSet's index in
-# `Graficos`. Only on events; on the hero it is not compiled, see `traducir`.
-RUTA_CAMBIAR_GRAFICO = 34
+# `Graphics`. Only on events; on the hero it is not compiled, see `traducir`.
+ROUTE_CHANGE_GRAPHIC = 34
 
 # How far a step advances per frame by speed, out of 256 per cell: it is the
 # `1 << (1 + GetMoveSpeed())` of `Game_Character::UpdateMovement`. 4 is the
 # hero's, 32 per frame, that is two pixels and eight frames per cell; 3 is
 # sixteen frames and 2 thirty-two, at half a pixel per frame.
-PASO_POR_VELOCIDAD = (4, 8, 16, 32, 64, 128)
+STEP_PER_SPEED = (4, 8, 16, 32, 64, 128)
 
 # A jump lasts as long as `remaining_step` takes to go from 256 to 0 at
 # `jump_speed[move_speed - 1]` per frame. At speed 4 —the hero's at the
@@ -359,8 +359,8 @@ PASO_POR_VELOCIDAD = (4, 8, 16, 32, 64, 128)
 # depend on the distance**: jumping five cells costs the same as jumping in
 # place. The ROM has the same table in `salto_por_vel`; this is the one the
 # tests look at.
-SALTO_PASO = 256
-SALTO_POR_VELOCIDAD = (8, 12, 16, 24, 32, 64)
+JUMP_STEP = 256
+JUMP_PER_SPEED = (8, 12, 16, 24, 32, 64)
 
 # The four route diagonals, each with its two components: vertical first and
 # then horizontal. They are `move_upright`, `move_downright`, `move_downleft`
@@ -372,23 +372,23 @@ SALTO_POR_VELOCIDAD = (8, 12, 16, 24, 32, 64)
 # duplicating `try_up` and its three siblings for nothing. The converter
 # rejects the page that tries it —see MOVE_EVENT in `traducir`—, which is what
 # keeps the ROM from silently walking something else.
-RUTA_DIAGONALES = {4: (0, 1), 5: (2, 1), 6: (2, 3), 7: (0, 3)}
+ROUTE_DIAGONALS = {4: (0, 1), 5: (2, 1), 6: (2, 3), 7: (0, 3)}
 
 
 # The move commands we know how to walk, in a single place.
-RUTA_ORDENES = (set(RUTA_MIRAR) | set(RUTA_MOVER)
-                | {RUTA_ESPERAR, RUTA_SALTO_INICIO, RUTA_SALTO_FIN,
-                   RUTA_ATRAVESAR_ON, RUTA_ATRAVESAR_OFF,
-                   RUTA_ANIM_PARAR, RUTA_ANIM_SEGUIR, RUTA_ENCARAR_HEROE,
-                   RUTA_HACIA_HEROE,
-                   RUTA_FIJAR_DIR, RUTA_SOLTAR_DIR, RUTA_VEL_MAS, RUTA_VEL_MENOS,
-                   RUTA_FREC_MAS, RUTA_FREC_MENOS, RUTA_CAMBIAR_GRAFICO})
+ROUTE_COMMANDS = (set(ROUTE_LOOK) | set(ROUTE_MOVE)
+                  | {ROUTE_WAIT, ROUTE_JUMP_START, ROUTE_JUMP_END,
+                     ROUTE_THROUGH_ON, ROUTE_THROUGH_OFF,
+                     ROUTE_ANIM_STOP, ROUTE_ANIM_RESUME, ROUTE_FACE_HERO,
+                     ROUTE_TOWARD_HERO,
+                     ROUTE_LOCK_DIR, ROUTE_UNLOCK_DIR, ROUTE_SPEED_UP, ROUTE_SPEED_DOWN,
+                     ROUTE_FREQ_UP, ROUTE_FREQ_DOWN, ROUTE_CHANGE_GRAPHIC})
 
 
 # The commands that carry something after them, and what. The numbers are
 # those of `rpg::MoveCommand::Code` in liblcf.
-RUTA_SWITCH_ON, RUTA_SWITCH_OFF = 32, 33
-# RUTA_CAMBIAR_GRAFICO, 34, is further up: `RUTA_ORDENES` needs it.
+ROUTE_SWITCH_ON, ROUTE_SWITCH_OFF = 32, 33
+# ROUTE_CHANGE_GRAPHIC, 34, is further up: `ROUTE_COMMANDS` needs it.
 # Raising and lowering the transparency by an eighth. They are accepted and
 # dropped, like the sound: the SNES does not fade a sprite in steps without
 # color math, and the game's eight routes that use it —map 2's four screens,
@@ -396,22 +396,22 @@ RUTA_SWITCH_ON, RUTA_SWITCH_OFF = 32, 33
 # scene that did not compile without this. They cost no frames: in
 # `UpdateMoveRoute` they go through the branch that does not touch the stop
 # counter.
-RUTA_TRANSPARENCIA = (40, 41)
+ROUTE_TRANSPARENCY = (40, 41)
 # The sound inside the route: it plays when the route reaches that step, since
 # 2026-09-27. In a MoveEvent it goes with two bytes after it, the effect's
-# index in `Temas.sonidos` —the same one OP_SOUND carries—, so the effect goes
+# index in `Songs.sounds` —the same one OP_SOUND carries—, so the effect goes
 # into the map's audio package like that of a `PlaySound`. It costs no frame:
 # `UpdateMoveRoute` does not touch its stop counter.
 #
 # It is still dropped in two places. **Inside a jump**, because RM2k does not
 # touch it there: `BeginMoveRouteJump` walks up to the `end_jump` adding up the
 # steps and runs nothing else. And **in a page's own route**, which is a bare
-# list of codes with no room for the operand —see `ruta_propia`—: a single
+# list of codes with no room for the operand —see `own_route`—: a single
 # one in the game asks for it, that of event 40 on map 2.
-RUTA_SONIDO = 35
+ROUTE_SOUND = 35
 
 
-def decodificar_ruta(parametros):
+def decode_route(params):
     """The commands of a forced route, with whatever each one drags along.
 
     Returns a list of `(codigo, extras)`. It is needed because **the route is
@@ -430,44 +430,44 @@ def decodificar_ruta(parametros):
     is the normal end. The difference matters: mixing them up left out 258
     pages that are perfectly fine.
     """
-    ordenes = []
+    commands = []
     i = 0
-    n = len(parametros)
+    n = len(params)
 
-    def entero():
+    def integer():
         nonlocal i
-        valor = 0
+        value = 0
         while True:
             if i >= n:
-                raise NoSePuede()
-            x = parametros[i]
+                raise CannotCompile()
+            x = params[i]
             i += 1
-            valor = (valor << 7) | (x & 0x7F)
+            value = (value << 7) | (x & 0x7F)
             if not x & 0x80:
-                return valor
+                return value
 
-    def texto():
+    def text():
         nonlocal i
-        largo = entero()
-        if i + largo > n:
-            raise NoSePuede()
-        letras = "".join(chr(c & 0xFF) for c in parametros[i:i + largo])
-        i += largo
-        return letras
+        length = integer()
+        if i + length > n:
+            raise CannotCompile()
+        letters = "".join(chr(c & 0xFF) for c in params[i:i + length])
+        i += length
+        return letters
 
     while i < n:
-        codigo = parametros[i]
+        code = params[i]
         i += 1
-        if codigo in (RUTA_SWITCH_ON, RUTA_SWITCH_OFF):
-            extras = [entero()]
-        elif codigo == RUTA_CAMBIAR_GRAFICO:
-            extras = [texto(), entero()]
-        elif codigo == RUTA_SONIDO:
-            extras = [texto(), entero(), entero(), entero()]
+        if code in (ROUTE_SWITCH_ON, ROUTE_SWITCH_OFF):
+            extras = [integer()]
+        elif code == ROUTE_CHANGE_GRAPHIC:
+            extras = [text(), integer()]
+        elif code == ROUTE_SOUND:
+            extras = [text(), integer(), integer(), integer()]
         else:
             extras = []
-        ordenes.append((codigo, extras))
-    return ordenes
+        commands.append((code, extras))
+    return commands
 
 # "Wait for the routes to finish". In RM2k it waits until **none** is
 # pending, neither the hero's nor any event's: it is `Game_Map::IsAnyMovePending`
@@ -495,9 +495,9 @@ FLASH_SPRITE = 11320
 # ChangePartyMembers: the first parameter says whether it adds or removes, the
 # second where the actor's id comes from, and the third the id. From liblcf
 # and `Game_Interpreter::CommandChangePartyMember` in easyrpg-player.
-GRUPO_AGREGAR, GRUPO_SACAR = 0, 1
-GRUPO_ID_FIJO = 0
-GRUPO_MAX = 4           # `Game_Party::AddActor` does not add if there are four
+PARTY_ADD, PARTY_REMOVE = 0, 1
+PARTY_FIXED_ID = 0
+PARTY_MAX = 4           # `Game_Party::AddActor` does not add if there are four
 
 # Commands accepted while doing nothing, because doing nothing does not show.
 # It is the same criterion as the doors', and it has to be applied with the
@@ -505,7 +505,7 @@ GRUPO_MAX = 4           # `Game_Party::AddActor` does not add if there are four
 # here.
 MESSAGE_OPTIONS = 10120
 
-IGNORABLES = {
+IGNORABLE = {
     MESSAGE_OPTIONS,      # where and how the message window is drawn,
                           # which without messages is drawn nowhere
 }
@@ -606,7 +606,7 @@ CHANGE_ITEMS = 10320
 # image on top of everything, moved and erased.
 #
 # **Since 2026-09-12 one is done**: the "One year previously" picture, and any
-# other that fits the same mold. See `Imagenes`, OP_PICTURE and
+# other that fits the same mold. See `Pictures`, OP_PICTURE and
 # workflow/tasks/done/show-picture-phase-1.md. The ones that do not fit —27 of
 # the 34 the game has— are still accepted without being done, and what follows
 # applies to those.
@@ -640,7 +640,7 @@ OPEN_SHOP = 10720
 
 # And the inn: `ShowInn`, with its three branches. The game has 18 pages with
 # one and none uses the branches —measured on 2026-09-20—, so the command is
-# compiled alone: see `_compilar_posada`.
+# compiled alone: see `_compile_inn`.
 SHOW_INN = 10730
 INN_STAY, INN_NO_STAY, INN_END = 20730, 20731, 20732
 
@@ -651,7 +651,7 @@ INN_STAY, INN_NO_STAY, INN_END = 20730, 20731, 20732
 #
 # It is accepted without being done, and the debt is concrete: **a battle on
 # those maps plays the LDB's song instead of the zone's**. It is not "it does
-# not sound": what sounds is the one `AUDIO_BATALLA` brings from the database,
+# not sound": what sounds is the one `BATTLE_AUDIO` brings from the database,
 # which is the one the map's audio package already carries, so nothing goes
 # silent and nothing asks for a sample that is not there. And it does not
 # change a pixel, so the suite measures the same with and without this.
@@ -692,9 +692,9 @@ CHANGE_HERO_TITLE = 10620
 # `encuentro_pasos`.
 CHANGE_ENCOUNTER_STEPS = 11740
 
-ACEPTADOS_SIN_HACER = {
+ACCEPTED_UNDONE = {
     # CallEvent **is no longer here**: since 2026-09-12 it is compiled
-    # inline, see `_compilar_llamada`. What is left of that is that a call
+    # inline, see `_compile_call`. What is left of that is that a call
     # whose target does not compile is skipped just like before, and that is
     # decided in there and not in this list: the command itself is no longer
     # a whole debt.
@@ -706,11 +706,11 @@ ACEPTADOS_SIN_HACER = {
 }
 
 
-class Temas:
+class Songs:
     """The songs the game's `PlayBGM`s ask for, numbered in the order they
     appear.
 
-    It is the sibling of `Mensajes`: the bytecode carries an index and not a
+    It is the sibling of `Messages`: the bytecode carries an index and not a
     name, and the converter is the one that resolves the index. The ROM
     carries **the first `TEMA_TOTAL`**, which are the ones that fit in ARAM:
     all of them share the samples and the shared bank lives in the SPC700's
@@ -724,69 +724,69 @@ class Temas:
     """
 
     def __init__(self):
-        self.nombres = []
+        self.names = []
         # And the `PlaySound` effects, the same way: each combination of
         # effect, volume, tempo and pan is an entry, and the bytecode carries
         # its index. They live here and not apart because this is what the
         # converter already passes from compilation to compilation.
-        self.sonidos = []
-        # And who asks for what: the converter puts in `mapa` the index of the
+        self.sounds = []
+        # And who asks for what: the converter puts in `game_map` the index of the
         # map it is compiling, and each song and each effect is noted in its
         # own, in the order they appear. It is what builds each map's audio
         # package: see `paquete_cargar` in tools/runtime/paquete_de_audio.s.
         # And which ROM maps each one jumps to —`destinos`, indices into the
         # map table—, which is where it comes from which song may be playing
-        # when a package is loaded: see `temas_heredados` in snes_convert.py.
-        self.mapa = None
-        self.por_mapa = {}
-        # And which `PlayBGM`s of each map are **exit ones**: see `salida`.
-        self.salidas = {}
-        # And with which song each `Teleport` of each map jumps: see `salto`.
-        self.saltos = {}
+        # when a package is loaded: see `inherited_songs` in snes_convert.py.
+        self.current_map = None
+        self.per_map = {}
+        # And which `PlayBGM`s of each map are **exit ones**: see `output`.
+        self.exits = {}
+        # And with which song each `Teleport` of each map jumps: see `jump`.
+        self.jumps = {}
         # How many times an effect was asked for, so the page can see whether
-        # a command made one sound: see `_seguir_la_salida`.
-        self.pedidos = 0
+        # a command made one sound: see `_follow_exit`.
+        self.requested = 0
 
-    def _anotar(self, que, valor):
-        if self.mapa is None:
+    def _note(self, what, value):
+        if self.current_map is None:
             return
-        lista = self.por_mapa.setdefault(
-            self.mapa, {"temas": [], "sonidos": [], "destinos": []})[que]
-        if valor not in lista:
-            lista.append(valor)
+        values = self.per_map.setdefault(
+            self.current_map, {"temas": [], "sonidos": [], "destinos": []})[what]
+        if value not in values:
+            values.append(value)
 
-    def indice(self, nombre):
-        if nombre not in self.nombres:
-            self.nombres.append(nombre)
-        self._anotar("temas", self.nombres.index(nombre))
-        return self.nombres.index(nombre)
+    def index(self, name):
+        if name not in self.names:
+            self.names.append(name)
+        self._note("temas", self.names.index(name))
+        return self.names.index(name)
 
-    def destino(self, mapa):
-        self._anotar("destinos", mapa)
+    def dest(self, game_map):
+        self._note("destinos", game_map)
 
-    def salto(self, destino, tema):
-        """Notes a jump from the map being compiled to `destino`: with `tema`
+    def jump(self, dest, song):
+        """Notes a jump from the map being compiled to `dest`: with `song`
         if it goes right after a `PlayBGM` of that song, with no branches or
         effects in between —the one it surely carries—, or with None if it
         carries whatever is playing. The page notes it when it compiles, and
-        `_destino_recordado` that of a `RecallToLocation`, always with None.
-        See `temas_heredados` in snes_convert.py."""
-        if self.mapa is None:
+        `_recalled_destination` that of a `RecallToLocation`, always with None.
+        See `inherited_songs` in snes_convert.py."""
+        if self.current_map is None:
             return
-        self.saltos.setdefault(self.mapa, {}).setdefault(destino, set()).add(
-            tema)
+        self.jumps.setdefault(self.current_map, {}).setdefault(dest, set()).add(
+            song)
 
-    def salida(self, tema, sale):
-        """Notes a `PlayBGM` of the song on the map being compiled: `sale` if
+    def note_exit(self, song, is_exit):
+        """Notes a `PlayBGM` of the song on the map being compiled: `is_exit` if
         after it, with no branches or effects in between, the page jumps to
         another map. A song is an exit song on a map if **all** its
-        `PlayBGM`s there are: see `de_salida`."""
-        if self.mapa is None:
+        `PlayBGM`s there are: see `exit_songs`."""
+        if self.current_map is None:
             return
-        anotadas = self.salidas.setdefault(self.mapa, {})
-        anotadas[tema] = anotadas.get(tema, True) and sale
+        noted = self.exits.setdefault(self.current_map, {})
+        noted[song] = noted.get(song, True) and is_exit
 
-    def de_salida(self, mapa):
+    def exit_songs(self, game_map):
         """The songs a map turns on only to leave: each of its `PlayBGM`s is
         followed by a jump to another map, with no effects or branches in
         between. In the game it is `lufsorr` on map 3: it plays after the
@@ -795,27 +795,27 @@ class Temas:
         goes in the **separate** package, it is uploaded if there is room,
         and if not its `PlayBGM` uploads it —see `extra_de_salida` in
         tools/runtime/paquete_de_audio.s—. It is from 2026-09-26."""
-        return [t for t, sale in self.salidas.get(mapa, {}).items() if sale]
+        return [t for t, is_exit in self.exits.get(game_map, {}).items() if is_exit]
 
-    def sonido(self, nombre, volumen, tempo, balance, al_paquete=True):
-        """The effect's index. Without `al_paquete` it is not noted in the
+    def sound(self, name, volume, tempo, balance, in_package=True):
+        """The effect's index. Without `in_package` it is not noted in the
         map's package: it only sounds if something else puts it there. See
         `se_route_left_out` in snes_music.py. It does not count in
-        `pedidos` either: one that is not in the package does not sound, so
+        `requested` either: one that is not in the package does not sound, so
         it does not keep a song from being an exit song."""
-        clave = (nombre, volumen, tempo, balance)
-        if clave not in self.sonidos:
-            self.sonidos.append(clave)
-        if al_paquete:
-            self.pedidos += 1
-            self._anotar("sonidos", nombre)
-        return self.sonidos.index(clave)
+        key = (name, volume, tempo, balance)
+        if key not in self.sounds:
+            self.sounds.append(key)
+        if in_package:
+            self.requested += 1
+            self._note("sonidos", name)
+        return self.sounds.index(key)
 
-class Graficos:
+class Graphics:
     """The graphics the routes change to with command 34, numbered in the
     order they appear.
 
-    Sibling of `Temas` and `Mensajes`, with a difference that matters: it is
+    Sibling of `Songs` and `Messages`, with a difference that matters: it is
     **per map**. What the ROM needs from a graphic —its twelve poses and its
     palette— lives in the sprite bank, and the bank belongs to each map; two
     maps that change to the same CharSet number it each on their own.
@@ -824,25 +824,25 @@ class Graficos:
     the converter is the one that resolves it, and the ROM does not look at
     the LCF again.
 
-    `asociaciones` half breaks the "per map", and it is worth understanding
+    `associations` half breaks the "per map", and it is worth understanding
     why: they are the graphics `ChangeSpriteAssociation` can give an actor,
     and that **survives the map change** —every time the game uses it, the
     command is right next to a teleport and what shows is the graphic on the
     other side—. So its index cannot mean one thing here and another there.
     It is solved by reserving the first slots of the table of **every** ROM
-    map for them, in the same order: see `asociaciones_de`, which is the
-    prior pass that gathers them, and `Imagenes.elegir`, which is the same
+    map for them, in the same order: see `sprite_associations`, which is the
+    prior pass that gathers them, and `Pictures.choose`, which is the same
     pattern.
     """
 
-    def __init__(self, asociaciones=()):
-        self.pares = list(asociaciones)
+    def __init__(self, associations=()):
+        self.pairs = list(associations)
 
-    def indice(self, charset, index):
-        par = (charset, index)
-        if par not in self.pares:
-            self.pares.append(par)
-        return self.pares.index(par)
+    def index(self, charset, index):
+        pair = (charset, index)
+        if pair not in self.pairs:
+            self.pairs.append(pair)
+        return self.pairs.index(pair)
 
 
 # `ChangeSpriteAssociation`: changes the CharSet of an **actor**, not an
@@ -858,17 +858,17 @@ class Graficos:
 CHANGE_SPRITE_ASSOCIATION = 10630
 
 
-def asociaciones_de(game_maps, extra=()):
+def sprite_associations(game_maps, extra=()):
     """The (CharSet, index) pairs some `ChangeSpriteAssociation` names.
 
-    It is `Graficos`' prior pass: it reserves for each one the same slot in
+    It is `Graphics`' prior pass: it reserves for each one the same slot in
     the graphics table of every ROM map, because the graphic the command
     gives an actor **crosses the teleport** and its index has to mean the
     same on both sides of the jump.
 
     **All** the pages are looked at and not only the ones that compile, on
     purpose: if it depended on what compiles, the list would depend on
-    whether the ROM carries a message window —same as `lideres_posibles`—
+    whether the ROM carries a message window —same as `possible_leaders`—
     and the converter's two passes would number differently. Reserving one
     slot too many costs the twelve poses of a CharSet in the sprite bank and
     nothing else.
@@ -878,19 +878,19 @@ def asociaciones_de(game_maps, extra=()):
 
     `extra` are the commands of the test pages, which go after.
     """
-    pares = []
-    comandos = [cmd for game_map in game_maps for evento in game_map.events
-                for page in evento.pages for cmd in page.commands]
-    for cmd in comandos + list(extra):
+    pairs = []
+    commands = [cmd for game_map in game_maps for event in game_map.events
+                for page in event.pages for cmd in page.commands]
+    for cmd in commands + list(extra):
         if cmd.code != CHANGE_SPRITE_ASSOCIATION:
             continue
         p = list(cmd.parameters)
         if len(p) != 3 or p[2]:
-            continue        # the ones `_compilar` is going to reject
-        par = (cmd.string, p[1])
-        if par not in pares:
-            pares.append(par)
-    return pares
+            continue        # the ones `_compile` is going to reject
+        pair = (cmd.string, p[1])
+        if pair not in pairs:
+            pairs.append(pair)
+    return pairs
 
 
 # --- the opcodes we emit ----------------------------------------------------
@@ -928,7 +928,7 @@ def asociaciones_de(game_maps, extra=()):
 #     list, which can be any other. The converter
 #     translates it, being the only one that sees the map.
 #
-# OP_MESSAGE: offset (word) within the `mensajes` block: opens
+# OP_MESSAGE: offset (word) within the `messages` block: opens
 #     that window and blocks the page until the player
 #     presses A
 #
@@ -1035,20 +1035,20 @@ def asociaciones_de(game_maps, extra=()):
 #     The step goes and not the milliseconds RM2k brings
 #     because the 65816 does not divide without hardware
 #     and the math is always the same:
-#     `ceil(65536 / cuadros)`. It is the same kind of
+#     `ceil(65536 / frames)`. It is the same kind of
 #     number as a teleport's map index —resolved by the
 #     converter so the ROM does not look at it again—, and
-#     `paso_de_fundido` does it.
+#     `fade_step` does it.
 #
-# OP_BGM: the song's index in `Temas` (byte). The ROM plays the
+# OP_BGM: the song's index in `Songs` (byte). The ROM plays the
 #     ones it carried —the first `TEMA_TOTAL`— and with
-#     any other it does nothing. See `Temas`.
+#     any other it does nothing. See `Songs`.
 #
 # OP_TIMER: operation (byte), seconds (word), visible (byte).
 #     The five bytes are fixed even though each operation
 #     uses two: that way the interpreter skips it without
 #     looking at which one it is, which is what the
-#     converter's `recorrer_codigo` does.
+#     converter's `walk_code` does.
 
 # The operand is an offset and not a text, and that is what makes it fit. An
 # already composed message page is ~240 tiles at 4bpp, that is 7.5 KB, and
@@ -1067,30 +1067,30 @@ def asociaciones_de(game_maps, extra=()):
 # TimerOperation. The parameters are (operation, where the seconds come from,
 # seconds, visible, in battle): liblcf, TimerOperation::Operation.
 TIMER_OPERATION = 10230
-TIMER_PONER, TIMER_ARRANCAR, TIMER_PARAR = 0, 1, 2
-TIMER_SEGUNDOS_FIJOS = 0        # the other value takes them from a variable
+TIMER_SET, TIMER_START, TIMER_STOP = 0, 1, 2
+TIMER_FIXED_SECONDS = 0        # the other value takes them from a variable
 # `Game_Party::SetTimer` stores `segundos * 60 + 59`, not `segundos * 60`. The
 # extra 59 are what makes the first second show whole: without them the timer
 # would show the requested value for a single frame.
-TIMER_CUADROS_DE_MAS = 59
+TIMER_EXTRA_FRAMES = 59
 
 # ControlSwitches: the first parameter says where the ids come from and the
 # last what to do with them (liblcf, ControlSwitches::Operation).
-SWITCH_UNICO, SWITCH_RANGO, SWITCH_INDIRECTO = 0, 1, 2
+SWITCH_SINGLE, SWITCH_RANGE, SWITCH_INDIRECT = 0, 1, 2
 SWITCH_ON, SWITCH_OFF, SWITCH_TOGGLE = 0, 1, 2
 
 # An absurd range is not unrolled: better not to run the page than to emit
 # thousands of opcodes for one line.
-MAX_RANGO = 64
+MAX_RANGE = 64
 
 # RM2k measures waits in tenths of a second.
-CUADROS_POR_DECIMA = 6
-CUADROS_POR_SEGUNDO = 60        # DEFAULT_FPS: it is what the timer counts with
+FRAMES_PER_TENTH = 6
+FRAMES_PER_SECOND = 60        # DEFAULT_FPS: it is what the timer counts with
 
 # A step is sixteen pixels at WALK_SPEED = 2 per frame.
-CELDA_PX = 16
+CELL_PX = 16
 WALK_SPEED = 2
-CUADROS_POR_CELDA = CELDA_PX // WALK_SPEED
+FRAMES_PER_CELL = CELL_PX // WALK_SPEED
 
 # --- the teleport fade -------------------------------------------------------
 #
@@ -1106,8 +1106,8 @@ CUADROS_POR_CELDA = CELDA_PX // WALK_SPEED
 # `Player::Update(false)`, which does not update the scene.
 # Measured against A Blurred Line: an assumption of the engine, not a fact of
 # the game. See `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
-FUNDIDO_CUADROS = 35
-FUNDIDO_TOTAL = FUNDIDO_CUADROS * 2
+FADE_FRAMES = 35
+FADE_TOTAL = FADE_FRAMES * 2
 
 # Of those 35, the ramp is 24 and the other 11 are plain black. The console
 # cannot fade any other way: INIDISP's master brightness has sixteen steps and
@@ -1118,9 +1118,9 @@ FUNDIDO_TOTAL = FUNDIDO_CUADROS * 2
 # not run the clock, because the fade is counted in hardware frames and not
 # in loop turns. Between the map being loaded —frame 24— and the ramp back
 # leaving zero —frame 47— there are 23 frames of margin.
-FUNDIDO_RAMPA = 24
-FUNDIDO_NEGRO = FUNDIDO_CUADROS - FUNDIDO_RAMPA
-BRILLO_MAX = 15
+FADE_RAMP = 24
+FADE_BLACK = FADE_FRAMES - FADE_RAMP
+BRIGHTNESS_MAX = 15
 
 # `ChangeScreenTransitions` (10690) changes that transition from then on:
 # `[which, transition]`, with which 0 the teleport's erase and 1 its show —2
@@ -1128,7 +1128,7 @@ BRILLO_MAX = 15
 # `Game_System::GetTransition`'s `fades` table. The game uses it in Boss
 # Wick's hideout: zoom (16) to go to the vidcasts, mosaic (17) inside, and fade
 # (0) on the way back. It is state that crosses the teleport, and in RM2k it
-# travels in the save; here it does not —see `TRANSICION_BORRAR` in
+# travels in the save; here it does not —see `TRANSITION_ERASE` in
 # tools/runtime/ram_lejana.s—.
 #
 # The ROM does two: **the mosaic**, with the PPU's MOSAIC register tied to the
@@ -1152,15 +1152,15 @@ BRILLO_MAX = 15
 # and with nobody running them they would be a path no test walks. The
 # battle's do not either: the ROM always uses the database's.
 CHANGE_SCREEN_TRANSITIONS = 10690
-TRANSICION_BORRAR, TRANSICION_MOSTRAR = 0, 1
-RM2K_TRANSICION_MOSAICO = 17
-RM2K_TRANSICIONES_CORTE = (19, 20)       # the cut and "none"
-RM2K_TRANSICIONES_QUE_NO = {19: "the cut", 20: "none"}
+TRANSITION_ERASE, TRANSITION_SHOW = 0, 1
+RM2K_TRANSITION_MOSAIC = 17
+RM2K_CUT_TRANSITIONS = (19, 20)       # the cut and "none"
+RM2K_TRANSITIONS_NOT_DONE = {19: "the cut", 20: "none"}
 # What the bytecode carries: what the ROM does, and not the RM2k number.
-TRANSICION_FUNDIDO, TRANSICION_MOSAICO, TRANSICION_CORTE = 0, 1, 2
+TRANSITION_FADE, TRANSITION_MOSAIC, TRANSITION_CUT = 0, 1, 2
 
 
-def paso_de_fundido(milisegundos):
+def fade_step(milliseconds):
     """How much the song's volume goes down per frame, in 1/65536.
 
     RM2k measures `FadeOutBGM` in milliseconds and the ROM counts frames, so
@@ -1168,14 +1168,14 @@ def paso_de_fundido(milisegundos):
     asking the hardware, and the hardware divider is eight bits —the 5000 ms
     of map 3's door are 300 frames and do not fit—.
 
-    The level starts at 65535 and goes down by `paso`; it is rounded up so
+    The level starts at 65535 and goes down by `step`; it is rounded up so
     the fade ends **within** the frames it asks for and not one after.
     """
-    cuadros = max(1, milisegundos * CUADROS_POR_SEGUNDO // 1000)
-    return min(0xFFFF, -(-0x10000 // cuadros))
+    frames = max(1, milliseconds * FRAMES_PER_SECOND // 1000)
+    return min(0xFFFF, -(-0x10000 // frames))
 
 
-def rampa_de_fundido():
+def fade_ramp():
     """The INIDISP brightness on each frame of the ramp, from black to full.
 
     It is a rounded straight line over the sixteen steps the master
@@ -1183,23 +1183,23 @@ def rampa_de_fundido():
     `mapdata.inc` as `fundido_rampa`, so the number lives in a single
     place.
     """
-    ultimo = FUNDIDO_RAMPA - 1
-    return [(BRILLO_MAX * s + ultimo // 2) // ultimo
-            for s in range(FUNDIDO_RAMPA)]
+    last = FADE_RAMP - 1
+    return [(BRIGHTNESS_MAX * s + last // 2) // last
+            for s in range(FADE_RAMP)]
 
 
 # What triggers a page. Those of liblcf's `rpg::EventPage::Trigger`.
-TRIGGER_ACCION = 0          # the player presses the action key facing it
-TRIGGER_TOCA_HEROE = 1      # the hero walks onto it
+TRIGGER_ACTION = 0          # the player presses the action key facing it
+TRIGGER_TOUCH_HERO = 1      # the hero walks onto it
 # 2 is the collision —the event walks into the hero—, and it is not named here.
-TRIGGER_AUTOMATICO = 3
-TRIGGER_PARALELO = 4
+TRIGGER_AUTOSTART = 3
+TRIGGER_PARALLEL = 4
 
 # The ones the ROM knows how to trigger. The rest of an event's pages are
 # emitted anyway —they are needed to know which one is active— but without
 # code.
-TRIGGERS = (TRIGGER_ACCION, TRIGGER_TOCA_HEROE, TRIGGER_AUTOMATICO,
-            TRIGGER_PARALELO)
+TRIGGERS = (TRIGGER_ACTION, TRIGGER_TOUCH_HERO, TRIGGER_AUTOSTART,
+            TRIGGER_PARALLEL)
 
 # TURN. An event with a graphic **turns toward the hero** when he triggers it,
 # unless it has a fixed direction: it is the
@@ -1231,18 +1231,18 @@ TRIGGERS = (TRIGGER_ACCION, TRIGGER_TOCA_HEROE, TRIGGER_AUTOMATICO,
 # The animation types with a fixed direction are the `fixed_*` of
 # `rpg::EventPage::AnimType`, plus `spin`, which turns on its own and does not
 # obey either.
-ANIM_FIJAS = (2, 3, 4, 5)
+ANIM_FIXED = (2, 3, 4, 5)
 
 # Only the events on the hero's layer are triggered with the action key: it is
 # the `GetLayer() == Layers_same` of `CheckEventTriggerThere`.
-LAYER_MISMA = 1
+LAYER_SAME = 1
 
 
-class NoSePuede(Exception):
+class CannotCompile(Exception):
     """This page has something the ROM does not know how to do yet."""
 
 
-class Eventos:
+class MapEvents:
     """The map's events, as the compiler sees them.
 
     It exists for a reason that was measured and is paid dearly otherwise:
@@ -1252,87 +1252,87 @@ class Eventos:
     be any other. The translation is done here, once, and the bytecode never
     sees an RM2k id again.
 
-    `mio` is the event that owns the page being compiled, which is whom
+    `owner` is the event that owns the page being compiled, which is whom
     "this event" points to.
     """
 
-    def __init__(self, game_map, mio=None):
+    def __init__(self, game_map, owner=None):
         self.indices = {ev.id: n for n, ev in enumerate(game_map.events)}
         # The pages of each event, by id, for `CallEvent`: calling a map
         # event compiles its page in place. The pages go and not their
         # commands because the number the call brings is the page's, and in
         # RM2k it starts at one.
-        self.paginas = {ev.id: ev.pages for ev in game_map.events}
+        self.pages = {ev.id: ev.pages for ev in game_map.events}
         # Visible is having a graphic on the active page, which is the same
         # rule `collect_npcs` uses to decide what goes in the ROM's table.
-        self.visibles = {ev.id for ev in game_map.events
-                         if ev.active_page() is not None
-                         and ev.active_page().character_name}
+        self.visible = {ev.id for ev in game_map.events
+                        if ev.active_page() is not None
+                        and ev.active_page().character_name}
         # Which character each one is drawn with, to know which share a
         # palette. On the console the flash is done on the character's
         # palette, so two events with the same graphic would flash together:
-        # see `_compilar`.
-        self.grafico = {}
+        # see `_compile`.
+        self.graphic = {}
         for ev in game_map.events:
             page = ev.active_page()
             if page is not None and page.character_name:
-                self.grafico[ev.id] = (page.character_name,
+                self.graphic[ev.id] = (page.character_name,
                                        page.character_index)
         # Which variables some page condition of this map looks at: it is
         # `Game_Map::RefreshEvent`'s `map_cache`, which is filled with each
-        # page's `pg.condition.variable_id`. `escritura_pide_refresco` reads
+        # page's `pg.condition.variable_id`. `write_needs_refresh` reads
         # it. Measured over the 328 maps: at most **one** per map, and 314
         # have none.
-        self.vars_observadas = {pg.condition.ids["variable"]
-                                for ev in game_map.events for pg in ev.pages
-                                if "variable" in pg.condition.active}
+        self.watched_vars = {pg.condition.ids["variable"]
+                             for ev in game_map.events for pg in ev.pages
+                             if "variable" in pg.condition.active}
         # Which map it belongs to, to know when a page leaves it: see
-        # `afuera`.
+        # `after_jump`.
         self.map_id = getattr(game_map, "map_id", None)
         # How a `TileSubstitution` translates to ROM block pairs. The
         # converter sets it on the map, because it depends on how the blocks
         # ended up —which is the console's business— and not on RM2k.
         # Without it the command does not compile, which is what happens in
         # any ROM built without going through `snes_convert`.
-        self.sustituciones = getattr(game_map, "sustituciones", None)
-        self.mio = mio
+        self.substitutions = getattr(game_map, "substitutions", None)
+        self.owner = owner
 
-    def comparte_grafico(self, quien):
+    def shares_graphic(self, who):
         """Whether this event draws with the same character as another one on
         the map."""
-        cual = self.grafico.get(quien)
-        return cual is not None and sum(1 for g in self.grafico.values()
-                                        if g == cual) > 1
+        which = self.graphic.get(who)
+        return which is not None and sum(1 for g in self.graphic.values()
+                                         if g == which) > 1
 
-    def para(self, id_evento):
-        otro = Eventos.__new__(Eventos)
-        otro.indices, otro.visibles = self.indices, self.visibles
-        otro.grafico, otro.mio = self.grafico, id_evento
-        otro.paginas = self.paginas
-        otro.vars_observadas = self.vars_observadas
-        otro.map_id = self.map_id
-        otro.sustituciones = self.sustituciones
-        return otro
+    def for_event(self, event_id):
+        other = MapEvents.__new__(MapEvents)
+        other.indices, other.visible = self.indices, self.visible
+        other.graphic, other.owner = self.graphic, event_id
+        other.pages = self.pages
+        other.watched_vars = self.watched_vars
+        other.map_id = self.map_id
+        other.substitutions = self.substitutions
+        return other
 
-    def afuera(self):
+    def after_jump(self):
         """The same, for what the page does **after jumping to another map**:
         it keeps running there, and which variables the pages there look at
         cannot be known from here, so every write asks for a refresh. See
-        `escritura_pide_refresco`.
+        `write_needs_refresh`.
 
         The rest does not change, and not because it is right: an event named
         by id after the jump is translated against this map and not against
         the destination. No page of the game that compiles today does it.
         """
-        otro = self.para(self.mio)
-        otro.vars_observadas = None
+        other = self.for_event(self.owner)
+        other.watched_vars = None
         # And the blocks there are not these: a substitution after the jump
         # would talk about the new map's tiles and the translation is the old
         # one's.
-        otro.sustituciones = None
-        return otro
+        other.substitutions = None
+        return other
 
-    def blanco(self, quien):
+    def route_target(self, who):
         """The target byte that goes in OP_ROUTE, or None if it cannot be
         moved.
 
@@ -1340,16 +1340,16 @@ class Eventos:
         exist in this ROM and neither does an id the map does not have: both
         return None, which cuts the page.
         """
-        if quien == RUTA_HEROE:
+        if who == ROUTE_HERO:
             return 0
-        if quien == RUTA_ESTE_EVENTO:
-            quien = self.mio
-        if quien in self.indices:
-            return self.indices[quien] + 1
+        if who == ROUTE_THIS_EVENT:
+            who = self.owner
+        if who in self.indices:
+            return self.indices[who] + 1
         return None
 
 
-class Mensajes:
+class Messages:
     """The ROM's text block, and the offset of each box.
 
     It belongs to the whole ROM and not to the map: `OP_MESSAGE` carries an
@@ -1359,21 +1359,21 @@ class Mensajes:
     content already is the key.
     """
 
-    def __init__(self, paso=1):
+    def __init__(self, step=1):
         # How many bytes at a time the offset in the bytecode counts. The
-        # game's block goes by four —see MENSAJES_PASO— and each box starts
+        # game's block goes by four —see MESSAGES_STEP— and each box starts
         # at a multiple of four; the others, like the troops', by one.
         # Inside, everything is in bytes: the step is applied going in and
         # going out.
-        self.paso = paso
-        self.datos = bytearray()
-        self.donde = {}         # the lines already stored -> their offset
-        self.textos = {}        # and back: the offset -> the lines
+        self.step = step
+        self.data = bytearray()
+        self.where = {}         # the lines already stored -> their offset
+        self.texts = {}        # and back: the offset -> the lines
 
-    def agregar(self, lineas):
+    def add(self, lines):
         r"""The offset of this box, storing it if it is the first time.
 
-        The escape tail is removed **here** —see `cola_de_escapes`— and not
+        The escape tail is removed **here** —see `escape_tail`— and not
         in the compiler, so that everyone who builds a box goes through the
         same place: the game's `ShowMessage`s and those of the test pages
         —which is how this is tested: `autocierre` in the suite— and a
@@ -1391,29 +1391,29 @@ class Mensajes:
         boxes —one waits for the player and the other does not— and sharing
         an offset would make them last the same.
         """
-        lineas, pausas, autocierre = cola_de_escapes(lineas)
-        lineas = tuple(t[:COLUMNAS]
-                       for t in list(lineas)[:LINEAS])
-        clave = (lineas, pausas, autocierre)
-        if clave not in self.donde:
-            while len(self.datos) % self.paso:
-                self.datos.append(0)
-            donde = len(self.datos)
-            self.datos += mensaje_bytes(lineas, pausas, autocierre)
-            if donde // self.paso > 0xFFFF:
+        lines, pauses, auto_close = escape_tail(lines)
+        lines = tuple(t[:COLUMNS]
+                      for t in list(lines)[:LINES])
+        key = (lines, pauses, auto_close)
+        if key not in self.where:
+            while len(self.data) % self.step:
+                self.data.append(0)
+            where = len(self.data)
+            self.data += message_bytes(lines, pauses, auto_close)
+            if where // self.step > 0xFFFF:
                 raise SystemExit(
                     "this ROM's messages are %d bytes and the OP_MESSAGE "
                     "operand is 16 bits, counting by %d bytes"
-                    % (len(self.datos), self.paso))
-            self.donde[clave] = donde
-            self.textos[donde] = lineas
-        return self.donde[clave] // self.paso
+                    % (len(self.data), self.step))
+            self.where[key] = where
+            self.texts[where] = lines
+        return self.where[key] // self.step
 
-    def lineas(self, donde):
-        """The lines `agregar` stored at that offset."""
-        return self.textos[donde * self.paso]
+    def lines(self, where):
+        """The lines `add` stored at that offset."""
+        return self.texts[where * self.step]
 
-    def cola(self, donde):
+    def tail(self, where):
         """How many pauses that box carries and whether it closes on its own.
 
         It comes from **the same bytes the ROM reads** and not from a
@@ -1421,14 +1421,14 @@ class Mensajes:
         same masks. A format read in two different ways is exactly the
         failure mode this repo has already paid for twice.
         """
-        cabecera = self.datos[donde * self.paso]
-        return (cabecera >> 4, bool(cabecera & CABECERA_AUTOCIERRE))
+        header = self.data[where * self.step]
+        return (header >> 4, bool(header & HEADER_AUTO_CLOSE))
 
-    def marca(self):
-        return len(self.datos)
+    def mark(self):
+        return len(self.data)
 
-    def volver(self, marca):
-        """Undoes what was added since `marca`.
+    def rewind(self, mark):
+        """Undoes what was added since `mark`.
 
         It is needed because a page is compiled command by command and can
         be cut at the last one: without this, the text of all the pages that
@@ -1436,14 +1436,14 @@ class Mensajes:
         micro-optimization, it is the whole game's 161 KB against the few
         that are needed.
         """
-        del self.datos[marca:]
-        self.donde = {k: v for k, v in self.donde.items() if v < marca}
-        self.textos = {k: v for k, v in self.textos.items() if k < marca}
+        del self.data[mark:]
+        self.where = {k: v for k, v in self.where.items() if v < mark}
+        self.texts = {k: v for k, v in self.texts.items() if k < mark}
 
     def bytes(self):
         # Never empty: the assembler needs the label resolved even if the ROM
         # is never going to read it.
-        return bytes(self.datos) or b"\x00"
+        return bytes(self.data) or b"\x00"
 
 
 # The header of a text box. The escapes go here and not in one more operand of
@@ -1460,12 +1460,12 @@ class Mensajes:
 # the ROM reads in the compositor's loop —`and #CABECERA_LINEAS` and done— and
 # the pauses at the top because they are read only once, on opening, where an
 # extra `lsr` does not show.
-CABECERA_LINEAS = 0x07
-CABECERA_AUTOCIERRE = 0x08
+HEADER_LINES = 0x07
+HEADER_AUTO_CLOSE = 0x08
 
 # The `OP_MESSAGE` offset in the game's block counts by four bytes, so the
 # block can be 256 KB with a 16-bit operand. It went by two from when the
-# texts were reflowed for the window (`port/textos.py`) until 2026-09-27, when
+# texts were reflowed for the window (`port/texts.py`) until 2026-09-27, when
 # the main path of the world chapter went past 128 KB; the whole game is about
 # 161 KB. It costs a byte and a half of padding per box, on average, against
 # half a byte by two: step 3 was measured (half the padding, 192 KB, and a
@@ -1476,10 +1476,10 @@ CABECERA_AUTOCIERRE = 0x08
 # both sides of the math are the same: `MENSAJES_TOPE`.
 # Measured against A Blurred Line: an assumption of the engine, not a fact of
 # the game. See `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
-MENSAJES_PASO = 4
+MESSAGES_STEP = 4
 
 
-def mensaje_bytes(lineas, pausas=0, autocierre=False):
+def message_bytes(lines, pauses=0, auto_close=False):
     """A text box as the ROM reads it: the header, and each line with its
     length.
 
@@ -1487,14 +1487,14 @@ def mensaje_bytes(lineas, pausas=0, autocierre=False):
     32. All of this game's text fits there: it was measured, and it does not
     have a single accented letter.
     """
-    assert 0 <= pausas <= PAUSAS_MAX
-    out = bytearray([min(len(lineas), LINEAS)
-                     | (CABECERA_AUTOCIERRE if autocierre else 0)
-                     | (pausas << 4)])
-    for texto in list(lineas)[:LINEAS]:
-        texto = texto[:COLUMNAS]
-        out.append(len(texto))
-        for ch in texto:
+    assert 0 <= pauses <= PAUSES_MAX
+    out = bytearray([min(len(lines), LINES)
+                     | (HEADER_AUTO_CLOSE if auto_close else 0)
+                     | (pauses << 4)])
+    for text in list(lines)[:LINES]:
+        text = text[:COLUMNS]
+        out.append(len(text))
+        for ch in text:
             if not 32 <= ord(ch) < 127:
                 raise SystemExit("the message has a character that is not in "
                                  "the font: %r" % ch)
@@ -1502,7 +1502,7 @@ def mensaje_bytes(lineas, pausas=0, autocierre=False):
     return bytes(out)
 
 
-def agrupar(comandos):
+def group_boxes(commands):
     """The commands one at a time, except the text boxes.
 
     Returns (command, extra lines), where the extra ones are the
@@ -1514,18 +1514,18 @@ def agrupar(comandos):
     separately is what made the measurement of how much the text boxes
     unlocked come out wrong.
     """
-    comandos = list(comandos)
+    commands = list(commands)
     i = 0
-    while i < len(comandos):
+    while i < len(commands):
         j = i + 1
-        if comandos[i].code == SHOW_MESSAGE:
-            while j < len(comandos) and comandos[j].code == SHOW_MESSAGE_2:
+        if commands[i].code == SHOW_MESSAGE:
+            while j < len(commands) and commands[j].code == SHOW_MESSAGE_2:
                 j += 1
-        yield comandos[i], [c.string for c in comandos[i + 1:j]]
+        yield commands[i], [c.string for c in commands[i + 1:j]]
         i = j
 
 
-def puede_dispararse(page):
+def can_trigger(page):
     """Whether the ROM knows how to trigger this page, apart from whether its
     commands compile.
 
@@ -1549,7 +1549,7 @@ def puede_dispararse(page):
     half the game's NPCs could not be used. Since 2026-09-11 the event also
     turns for real: see TURN.
     """
-    if page.trigger == TRIGGER_ACCION:
+    if page.trigger == TRIGGER_ACTION:
         # Both cells count, and each one asks for the opposite layer. The one
         # in front is `CheckEventTriggerThere`, which asks for `Layers_same`;
         # the own one is `CheckEventTriggerHere`, which asks for
@@ -1561,17 +1561,17 @@ def puede_dispararse(page):
         # **layer 2**, and it opens by standing on it. Without this it never
         # triggered and there was no way out of the pad.
         return True
-    if page.trigger == TRIGGER_TOCA_HEROE:
-        return page.layer != LAYER_MISMA
+    if page.trigger == TRIGGER_TOUCH_HERO:
+        return page.layer != LAYER_SAME
     return True
 
 
 # `ConditionalBranch` and its two closers. They come from `event_codes.py`,
 # which is generated from liblcf: the doors' ones were written from memory
 # once and three were wrong.
-COND_RAMA = 12010
-COND_SINO = 22010
-COND_FIN = 22011
+COND_BRANCH = 12010
+COND_ELSE = 22010
+COND_END = 22011
 
 # The condition kinds we know how to do. The number is RM2k's as is
 # —`parameters[0]`— and not a numbering of ours: copying it avoids the
@@ -1604,7 +1604,7 @@ COND_FIN = 22011
 # So of the 433 pages that did not compile, the two actor questions are worth
 # **+28** and the other two kinds are worth nothing.
 COND_SWITCH = 0
-COND_ORO = 3
+COND_GOLD = 3
 # The inventory **already exists** —`OP_ITEM` and `FAR_ITEMS`, since
 # 2026-09-10— so the line above is stale: the item branch is
 # `GetItemCount(id) > 0`, exactly the same question as the page condition by
@@ -1623,19 +1623,19 @@ COND_ACTOR = 5
 # The ones left out —the name, the level, the HP and the state— ask for stats
 # this port does not carry or that never change; measured over the whole
 # game, the four together cut **zero** pages.
-COND_ACTOR_EN_GRUPO = 0
+COND_ACTOR_IN_PARTY = 0
 # `actor->IsSkillLearned(p[3])`. Since 2026-09-21 it is state: the bit of the
 # (actor, skill) pair in `FAR_HAB`, which starts with what
-# `reglas.aprendidas_de` says from the LDB and which `ChangeSkills` turns on
+# `rules.learned_skills` says from the LDB and which `ChangeSkills` turns on
 # and off. The operand that travels is the pair's slot and not the skill; see
-# `HABILIDAD_RANURA`.
-COND_ACTOR_HABILIDAD = 4
+# `SKILL_SLOT`.
+COND_ACTOR_SKILL = 4
 # easyrpg's five `Get*Id()`s compared against `p[3]`: weapon, shield, armor,
 # helmet and accessory. This **is** real state —`FAR_EQUIPO`, which the
 # equipment screen writes and which travels in the save— and it starts from
 # the LDB's `initial_equipment`. Asking about item 0 says yes as soon as there
 # is an empty slot, which is what RM2k does; no page of the game does it.
-COND_ACTOR_EQUIPO = 5
+COND_ACTOR_EQUIPMENT = 5
 # The branch by variable: `[1, variable, value kind, value, comparison, has
 # else]`. The kind is 0 for a constant and 1 for another variable; the
 # comparison, `==`, `>=`, `<=`, `>`, `<` and `!=`, in that order, which is
@@ -1650,7 +1650,7 @@ COND_VARIABLE = 1
 # the pages **of every map in the game** name and gives each one a **slot**,
 # from zero up —`VARIABLE_SLOT`—, and the bytecode talks in slots. That way
 # the RAM it costs is 162 bytes, they live in bank 1's RAM (`FAR_VARIABLES`)
-# and travel in the saved game. `indexar_variables` builds the index. Until
+# and travel in the saved game. `index_variables` builds the index. Until
 # the night of 2026-09-10 the index was of each ROM's maps —six variables on
 # maps 1 to 10— and with that a game saved with one ROM was not valid for
 # another with more maps: the slots shifted. With the whole game's index a
@@ -1688,10 +1688,10 @@ COND_VARIABLE = 1
 # bit moved to the flags byte, which in the three opcodes had the top one
 # free, and the slot was left at eight bits: 256, which is what far RAM
 # reserves between `FAR_VARIABLES` and `FAR_ITEMS`.
-VAR_REFRESCO = 0x80
+VAR_REFRESH = 0x80
 # Measured against A Blurred Line: an assumption of the engine, not a fact of
 # the game. See `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
-VAR_RANURA_MAX = 0xFF
+VAR_SLOT_MAX = 0xFF
 #
 # OP_IF_VAR: slot (byte), kind (byte), comparison (byte), value (word),
 #     destination (word): like OP_IF, the destination goes last for patching
@@ -1780,22 +1780,22 @@ ITEM_MAX = 99
 # spent the divider on every off drop of every frame.
 #
 # OP_WEATHER: type, power
-CLIMA_LLUVIA = 1
-LLUVIA_GOTAS = (15, 45, 75)
-LLUVIA_VIDA = 12
-LLUVIA_NACE = 26    # out of 256
-LLUVIA_SEMILLA = 0x1D2B
-LLUVIA_COLORES = ((16, 16, 18), (11, 11, 13), (6, 6, 7))   # 5-bit
+WEATHER_RAIN = 1
+RAIN_DROPS = (15, 45, 75)
+RAIN_LIFE = 12
+RAIN_SPAWN = 26    # out of 256
+RAIN_SEED = 0x1D2B
+RAIN_COLORS = ((16, 16, 18), (11, 11, 13), (6, 6, 7))   # 5-bit
 
 
-def lluvia_pixeles(x, y):
+def rain_pixels(x, y):
     """The pixels of a drop with its corner at (x, y): a 4x16 streak going
     down to the left, one pixel every four rows."""
     return [(x + 3 - r // 4, y + r) for r in range(16)]
 
 
 # The sound effects, since 2026-09-11: `PlaySound` compiles to OP_SOUND with
-# the index of its entry in `Temas.sonidos`, and the ROM's table says with
+# the index of its entry in `Songs.sounds`, and the ROM's table says with
 # which sample, what pitch, what volume on each side and how many frames. The
 # samples go in ARAM next to the music's bank, with a budget of their own: see
 # `build_sound_effects` in snes_music.py. They play on voice 7, which is stolen from
@@ -1819,33 +1819,33 @@ def lluvia_pixeles(x, y):
 # The flash is not exactly RM2k's: there the power is
 # `min((7 - (d + 1) / 2) * potencia / 6, 31)` for ten frames, in steps; here
 # it is a `FlashScreen` or a `FlashSprite` that starts at the first and goes
-# down linearly over `ANIM_DESTELLO_CUADROS`. It is the same light and it
+# down linearly over `ANIM_FLASH_FRAMES`. It is the same light and it
 # lasts the same.
 #
-# OP_ANIMATION: n, and n entries of ANIM_ENTRADA bytes
-ANIM_ENTRADA = 8
-ANIM_SONIDO, ANIM_DESTELLO, ANIM_FLASH = 0, 1, 2
+# OP_ANIMATION: n, and n entries of ANIM_ENTRY_BYTES bytes
+ANIM_ENTRY_BYTES = 8
+ANIM_SOUND, ANIM_SCREEN_FLASH, ANIM_FLASH = 0, 1, 2
 # Ten, which is how long RM2k's lasts, and **even** on purpose: the screen
 # flash works in two phases according to the parity of what it has left —see
 # `destello_tick`—, and a `FlashScreen` of the game always lasts tenths times
 # six. With eleven the first phase was the even one, a path no page takes and
 # that therefore tests nothing: `animacion` showed it.
-ANIM_DESTELLO_CUADROS = 10
-ANIMACIONES = {}
+ANIM_FLASH_FRAMES = 10
+ANIMATIONS = {}
 # The **drawing**, since 2026-09-12. The opcode carries two more bytes: the
 # RM2k animation number as is —180 at most, so it fits in one— and what it is
 # drawn over. The number goes raw and not as an index of ours on purpose: the
 # ROM looks it up in `anim_batalla_de`, a table by number, so neither end has
-# to carry a counter the other one guesses. See `animacion.py`.
+# to carry a counter the other one guesses. See `animation.py`.
 #
-# `ANIM_SIN_DIBUJO` is "this animation is not drawn", and it is used by the
+# `ANIM_NO_DRAWING` is "this animation is not drawn", and it is used by the
 # ones RM2k repeats three by three to cover the screen —`global`—, which are
 # not done.
-ANIM_SIN_DIBUJO = 0xFF
-ANIM_BLANCO_PANTALLA = 0xFF     # "screen" scope: goes to the center, no target
+ANIM_NO_DRAWING = 0xFF
+ANIM_TARGET_SCREEN = 0xFF     # "screen" scope: goes to the center, no target
 
 
-def dibujo_blanco(anim, blanco):
+def drawing_target(anim, target):
     """What this animation is drawn over: the target, or the screen.
 
     With "screen" scope —`Animation::Scope_screen`, which is 1— RM2k draws it
@@ -1853,11 +1853,11 @@ def dibujo_blanco(anim, blanco):
     target, which is the same byte the routes and the flashes already use.
     """
     if anim.get("alcance", 0) == 1:
-        return ANIM_BLANCO_PANTALLA
-    return blanco
+        return ANIM_TARGET_SCREEN
+    return target
 
 # The picture of a `ShowPicture`, since 2026-09-12. The ROM carries **a
-# single one** —see `Imagenes`— and that is why the three opcodes do not say
+# single one** —see `Pictures`— and that is why the three opcodes do not say
 # which: they say what to do to it.
 #
 #   OP_PICTURE        r, g, b, sat (bytes, 100 neutral): puts it up with that
@@ -1879,7 +1879,7 @@ def dibujo_blanco(anim, blanco):
 # OP_PICTURE_MOVE: r, g, b, sat, frames (byte)
 # How many frames a `MovePicture` can last to fit in `OP_PICTURE_MOVE`'s byte.
 # The page's two last 210 and 120.
-IMAGEN_CUADROS_MAX = 255
+PICTURE_FRAMES_MAX = 255
 
 
 # --- the battle -------------------------------------------------------------
@@ -1908,7 +1908,7 @@ IMAGEN_CUADROS_MAX = 255
 # destination —all three are absolute within the page and none in the game
 # reaches 64 KB— so no new opcode or extra byte per battle is needed. The ROM
 # looks at it in `op_battle`.
-BATALLA_PERDER = 0xFFFF
+BATTLE_LOSE = 0xFFFF
 
 # `HaltAllMovement`: all of the map's forced routes are abandoned at once. It
 # is `Game_Map::RemoveAllPendingMoves`, that is a `CancelMoveRoute` on the
@@ -1937,7 +1937,7 @@ BATALLA_PERDER = 0xFFFF
 #
 # It carries no polarity: RM2k gives none to these two —the branch below is
 # the `else`— same as to "is in the party". The destination goes last, as in
-# all of them, because it is what `con_destino` patches when closing the
+# all of them, because it is what `with_dest` patches when closing the
 # branch.
 #
 # OP_IF_ACTOR: sub (byte), actor (byte), data (word), destination (word)
@@ -1965,8 +1965,8 @@ CHANGE_PBG = 11720
 # two differences come from there:
 #
 # * **It survives the map change**, because in RM2k it belongs to the actor
-#   and not to `Game_Player`. That is why its index comes from `Graficos`'
-#   reserved slots —see `asociaciones_de`— and not from the map's free
+#   and not to `Game_Player`. That is why its index comes from `Graphics`'
+#   reserved slots —see `sprite_associations`— and not from the map's free
 #   numbering.
 # * **It is stored per actor and shows only if that actor leads.** The one
 #   that does not lead is not drawn, so the change stays waiting; the ROM
@@ -2003,7 +2003,7 @@ CHANGE_PBG = 11720
 #   with wait    the page stops here until there is an **edge**
 #                —`IsTriggered`— of any of the requested keys.
 #
-# The waiting one is emitted **twice**, the first with `TECLA_ARRANCA`: that
+# The waiting one is emitted **twice**, the first with `KEY_START`: that
 # one sets the variable to zero, eats whatever edge there was and returns
 # control without looking at anything. It is RPG_RT's
 # `Input::ResetTriggerKeys()`, which exists so the command does not eat the
@@ -2012,20 +2012,20 @@ CHANGE_PBG = 11720
 # opcodes and not a state byte because the interpreter has nowhere to keep
 # it: the one that waits **rewinds its own cursor** and runs again frame after
 # frame, so it cannot tell the first turn from the others.
-TECLA_ESPERA   = 0x01    # bit 0 on purpose: `tecla_valor` reads it with an `lsr`
-TECLA_DIRS     = 0x02
-TECLA_DECISION = 0x04
-TECLA_CANCELAR = 0x08
-TECLA_ARRANCA  = 0x10
+KEY_WAIT   = 0x01    # bit 0 on purpose: `tecla_valor` reads it with an `lsr`
+KEY_DIRS     = 0x02
+KEY_DECISION = 0x04
+KEY_CANCEL = 0x08
+KEY_START  = 0x10
 
 KEY_INPUT_PROC = 11610
 
 # The value RM2k stores for each key, and from here also comes the order they
 # are checked in: from highest to lowest.
-TECLA_VALOR_CANCELAR = 6
-TECLA_VALOR_DECISION = 5
+KEY_VALUE_CANCEL = 6
+KEY_VALUE_DECISION = 5
 # By ROM direction: 0 up, 1 right, 2 down, 3 left.
-TECLA_VALOR_DIR = {0: 4, 1: 3, 3: 2, 2: 1}
+KEY_VALUE_DIR = {0: 4, 1: 3, 3: 2, 2: 1}
 
 # `ChangeEventLocation` with the cell **in two variables**, which is RM2k's
 # other `LUGAR`: same effects as `OP_PLACE` —`MoveTo`, the cell changes right
@@ -2052,8 +2052,8 @@ TECLA_VALOR_DIR = {0: 4, 1: 3, 3: 2, 2: 1}
 # OP_LOCATION: mode (byte), and the slots of the map, x and y (a byte each).
 #     `MemorizeLocation` and `RecallToLocation` are the same opcode because
 #     they are the same location read or written: bit 0 of the mode says
-#     which —`LUGAR_SALTAR`—, and when recalling bits 7, 6 and 5 are the
-#     VAR_REFRESCO of each of the three writes. **The map in the variable is
+#     which —`PLACE_JUMP`—, and when recalling bits 7, 6 and 5 are the
+#     VAR_REFRESH of each of the three writes. **The map in the variable is
 #     the RM2k id**, which is what any other page reads and writes; the ROM
 #     translates it with `mapa_rm2k`. They unlock 55 pages of Lashe City's
 #     milestone 3 —the plant's floors, 28 on 60 and 26 on 62, and the droid
@@ -2061,14 +2061,14 @@ TECLA_VALOR_DIR = {0: 4, 1: 3, 3: 2, 2: 1}
 #     game.
 #
 # OP_MEMORIZED_BGM: 0 remember the song that plays, 1 put it back.
-LUGAR_SALTAR = 0x01
-LUGAR_REFRESCOS = (0x80, 0x40, 0x20)    # the map, x and y
+PLACE_JUMP = 0x01
+PLACE_REFRESHES = (0x80, 0x40, 0x20)    # the map, x and y
 
 
-def tecla_de(banderas, apretadas):
+def key_value(flags, pressed):
     """Which value the variable gets with these keys pressed.
 
-    `apretadas` is the set of what the player is holding: integers 0 to 3
+    `pressed` is the set of what the player is holding: integers 0 to 3
     for the directions, "a" and "b" for the two keys. It is what
     `test_tecla.py` expects from `op_key`, and the order is `CheckInput`'s.
 
@@ -2078,14 +2078,14 @@ def tecla_de(banderas, apretadas):
     —`Input::IsPressed`—. Here they cannot be told apart: both are "what
     counts as pressed" for this question.
     """
-    if banderas & TECLA_CANCELAR and "b" in apretadas:
-        return TECLA_VALOR_CANCELAR
-    if banderas & TECLA_DECISION and "a" in apretadas:
-        return TECLA_VALOR_DECISION
-    if banderas & TECLA_DIRS:
-        for direccion in (0, 1, 3, 2):          # up, right, left, down
-            if direccion in apretadas:
-                return TECLA_VALOR_DIR[direccion]
+    if flags & KEY_CANCEL and "b" in pressed:
+        return KEY_VALUE_CANCEL
+    if flags & KEY_DECISION and "a" in pressed:
+        return KEY_VALUE_DECISION
+    if flags & KEY_DIRS:
+        for direction in (0, 1, 3, 2):          # up, right, left, down
+            if direction in pressed:
+                return KEY_VALUE_DIR[direction]
     return 0
 
 ENEMY_ENCOUNTER = 10710
@@ -2095,7 +2095,7 @@ DEFEAT_HANDLER = 20712
 END_BATTLE = 20713
 
 # The three handlers, in the order their destinations go in the opcode.
-BATALLA_HANDLERS = (VICTORY_HANDLER, ESCAPE_HANDLER, DEFEAT_HANDLER)
+BATTLE_HANDLERS = (VICTORY_HANDLER, ESCAPE_HANDLER, DEFEAT_HANDLER)
 
 # The parameters of `EnemyEncounter`, from `Game_Interpreter_Map::
 # CommandEnemyEncounter`: [troop by variable, troop, where the backdrop comes
@@ -2107,20 +2107,20 @@ BATALLA_HANDLERS = (VICTORY_HANDLER, ESCAPE_HANDLER, DEFEAT_HANDLER)
 # the local one —the map's, or that of the terrain the hero stands on: it is
 # `Game_Map::SetupBattle`—, 1 the one the command names and 2 that of a given
 # terrain, which is RM2k3's.
-BATALLA_FONDO_DEL_LUGAR = 0
-BATALLA_FONDO_DEL_COMANDO = 1
+BATTLE_BACKDROP_OF_PLACE = 0
+BATTLE_BACKDROP_OF_COMMAND = 1
 # The backdrop of a troop that fights with the local one: it is not known when
 # compiling, because it depends on where the hero is. See
-# `fondo_de_encuentro`.
-FONDO_DEL_LUGAR = ("del lugar",)
+# `encounter_backdrop`.
+PLACE_BACKDROP = ("del lugar",)
 # The troop pages' command that changes the backdrop mid-battle. The game does
 # not use it, and the port does not compile it; it is swept for the names it
-# gives, so that `fondos_nombrados` is the whole game's.
+# gives, so that `named_backdrops` is the whole game's.
 CHANGE_BATTLE_BG = 13210
 # The escape parameter: 0 cannot, 1 cuts the battle. Only 1 is asked
 # about.
-BATALLA_ESCAPE_CORTA = 1
-BATALLA_DERROTA_GAME_OVER = 0
+BATTLE_ESCAPE_CUTS = 1
+BATTLE_DEFEAT_GAME_OVER = 0
 
 
 # --- the battle's audio -----------------------------------------------------
@@ -2143,28 +2143,28 @@ BATALLA_DERROTA_GAME_OVER = 0
 # registered for it: a name that does not resolve to any file still goes into
 # the tables but would take up an entry that is forever silent.
 #
-# **This is registered inside the compilation** —`audio_de_batalla`, when
-# compiling the `EnemyEncounter`— and not in the converter: the `Temas`
+# **This is registered inside the compilation** —`battle_audio`, when
+# compiling the `EnemyEncounter`— and not in the converter: the `Songs`
 # indices are carried by the bytecode of each `PlayBGM` and each `PlaySound`,
 # so everyone who compiles pages has to number the same way, and a song noted
 # from outside would shift all the ones after it.
-AUDIO_BATALLA = {}
+BATTLE_AUDIO = {}
 
 # The order is the contract with the ROM: the converter emits `BA_SE_<n>` with
-# the index each one got from `Temas`, in this order.
-AUDIO_BATALLA_SE = ("dodge_se", "enemy_attack_se", "enemy_damaged_se",
-                    "actor_damaged_se", "enemy_death_se", "escape_se",
-                    # The one from 2026-09-13, when the battle started
-                    # letting items be used: easyrpg's `Item::GetStartSe`,
-                    # which is the LDB's `item_se`.
-                    "item_se")
-AUDIO_BATALLA_BGM = ("battle_music", "battle_end_music")
+# the index each one got from `Songs`, in this order.
+BATTLE_AUDIO_SE = ("dodge_se", "enemy_attack_se", "enemy_damaged_se",
+                   "actor_damaged_se", "enemy_death_se", "escape_se",
+                   # The one from 2026-09-13, when the battle started
+                   # letting items be used: easyrpg's `Item::GetStartSe`,
+                   # which is the LDB's `item_se`.
+                   "item_se")
+BATTLE_AUDIO_BGM = ("battle_music", "battle_end_music")
 
 # A name RM2k uses to say "nothing": neither the song nor the effect exist.
-AUDIO_APAGADO = ("", "(OFF)")
+AUDIO_OFF = ("", "(OFF)")
 
 
-def base_de_datos(game_dir):
+def database(game_dir):
     """The game's LDB, **for reading**: the `indexar_*`s and the sweeps
     share it, which used to load it each on its own.
 
@@ -2174,35 +2174,35 @@ def base_de_datos(game_dir):
     two `lcf` hooks, which change what is read.
     """
     from rpgmaker import fork, lcf
-    ruta = os.path.join(game_dir, "RPG_RT.ldb")
-    huella = [ruta, lcf.REFIT_TEXTS, lcf.DECORATE_TRANSLUCENT]
-    for carpeta in (os.path.join(lcf.dump_dir(ruta), "db"), fork.chipsets_folder()):
-        if os.path.isdir(carpeta):
-            for nombre in sorted(os.listdir(carpeta)):
-                estado = os.stat(os.path.join(carpeta, nombre))
-                huella.append((carpeta, nombre, estado.st_mtime_ns,
-                               estado.st_size))
-    huella = tuple(huella)
-    if _BASE[:1] != [huella]:
-        _BASE[:] = [huella, lcf.Database(ruta)]
+    path = os.path.join(game_dir, "RPG_RT.ldb")
+    fingerprint = [path, lcf.REFIT_TEXTS, lcf.DECORATE_TRANSLUCENT]
+    for folder in (os.path.join(lcf.dump_dir(path), "db"), fork.chipsets_folder()):
+        if os.path.isdir(folder):
+            for name in sorted(os.listdir(folder)):
+                state = os.stat(os.path.join(folder, name))
+                fingerprint.append((folder, name, state.st_mtime_ns,
+                                    state.st_size))
+    fingerprint = tuple(fingerprint)
+    if _BASE[:1] != [fingerprint]:
+        _BASE[:] = [fingerprint, lcf.Database(path)]
     return _BASE[1]
 
 
 _BASE = []
 
 
-def indexar_audio_de_batalla(game_dir):
+def index_battle_audio(game_dir):
     """The battle's song and effects, from the LDB. The converter and the
-    tests that compile pages call it, same as `indexar_animaciones`."""
-    db = base_de_datos(game_dir)
-    AUDIO_BATALLA.clear()
-    AUDIO_BATALLA["battle_music"] = db.battle_music
-    AUDIO_BATALLA["battle_end_music"] = db.battle_end_music
-    for nombre in AUDIO_BATALLA_SE:
-        AUDIO_BATALLA[nombre] = db.system_se[nombre]
+    tests that compile pages call it, same as `index_animations`."""
+    db = database(game_dir)
+    BATTLE_AUDIO.clear()
+    BATTLE_AUDIO["battle_music"] = db.battle_music
+    BATTLE_AUDIO["battle_end_music"] = db.battle_end_music
+    for name in BATTLE_AUDIO_SE:
+        BATTLE_AUDIO[name] = db.system_se[name]
 
 
-# The `Temas.por_mapa` key where the battle's audio goes. It is not a map: it
+# The `Songs.per_map` key where the battle's audio goes. It is not a map: it
 # is **an audio package of its own**, which the ROM loads when opening the
 # battle and unloads when closing it.
 #
@@ -2211,41 +2211,41 @@ def indexar_audio_de_batalla(game_dir):
 # putting it in map 2's package the 24 effects of that map —49,068 B, which
 # all fit today— dropped almost entirely. With its own package the map pays
 # nothing while there is no battle.
-PAQUETE_BATALLA = "batalla"
+BATTLE_PACKAGE = "batalla"
 
 
-def audio_de_batalla(temas):
-    """Notes in `temas` what the battle is going to play, and returns their
-    indices: two songs and `AUDIO_BATALLA_SE` effects, $FF or $FFFF the off
+def battle_audio(songs):
+    """Notes in `songs` what the battle is going to play, and returns their
+    indices: two songs and `BATTLE_AUDIO_SE` effects, $FF or $FFFF the off
     one.
 
     It is called every time a page compiles an `EnemyEncounter`. What is
-    noted falls into the `PAQUETE_BATALLA` package and not into that of the
+    noted falls into the `BATTLE_PACKAGE` package and not into that of the
     map that has the battle, so `temas.mapa` has to be saved and restored
     around it.
     """
-    if temas is None or not AUDIO_BATALLA:
+    if songs is None or not BATTLE_AUDIO:
         return None
     indices = {}
-    anterior = temas.mapa
-    temas.mapa = PAQUETE_BATALLA
-    for nombre in AUDIO_BATALLA_BGM:
-        tema = AUDIO_BATALLA[nombre]
-        indices[nombre] = (0xFF if tema in AUDIO_APAGADO
-                           else temas.indice(tema))
-    for nombre in AUDIO_BATALLA_SE:
-        efecto = AUDIO_BATALLA[nombre]
-        indices[nombre] = (0xFFFF if efecto[0] in AUDIO_APAGADO
-                           else temas.sonido(*efecto))
-    temas.mapa = anterior
+    previous = songs.current_map
+    songs.current_map = BATTLE_PACKAGE
+    for name in BATTLE_AUDIO_BGM:
+        song = BATTLE_AUDIO[name]
+        indices[name] = (0xFF if song in AUDIO_OFF
+                         else songs.index(song))
+    for name in BATTLE_AUDIO_SE:
+        effect = BATTLE_AUDIO[name]
+        indices[name] = (0xFFFF if effect[0] in AUDIO_OFF
+                         else songs.sound(*effect))
+    songs.current_map = previous
     return indices
 
 
-class Imagenes:
+class Pictures:
     """The only picture that goes into the cartridge, and which commands
     move it.
 
-    It is the sibling of `Temas` and `Graficos`: the converter builds one,
+    It is the sibling of `Songs` and `Graphics`: the converter builds one,
     and the decision is here and not there.
 
     **A single one per ROM**, and that is the decision that bounds the
@@ -2263,20 +2263,20 @@ class Imagenes:
 
     def __init__(self, game_dir):
         self.game_dir = game_dir
-        self.nombre = None      # the picture that took the slot
-        self.info = None        # what `imagen.convertir` got from it
-        self.numero = None      # the RM2k picture number that shows it
-        self.donde = None       # where its ShowPicture centered it
+        self.name = None      # the picture that took the slot
+        self.info = None        # what `picture.convert` got from it
+        self.number = None      # the RM2k picture number that shows it
+        self.where = None       # where its ShowPicture centered it
 
-    def _leer(self, nombre):
+    def _read(self, name):
         import os
         from PIL import Image
-        ruta = os.path.join(self.game_dir, "Picture", nombre + ".png")
-        if not os.path.exists(ruta):
+        path = os.path.join(self.game_dir, "Picture", name + ".png")
+        if not os.path.exists(path):
             return None
-        return Image.open(ruta)
+        return Image.open(path)
 
-    def elegir(self, game_maps):
+    def choose(self, game_maps):
         """Which of the ROM's `ShowPicture`s takes the slot.
 
         It is decided **before compiling a single page** and looking at all
@@ -2284,7 +2284,7 @@ class Imagenes:
         that way the choice does not depend on the order the maps are
         compiled in.
         """
-        if self.nombre is not None:
+        if self.name is not None:
             return self.info    # the slot is already taken
         for game_map in game_maps:
             for event in game_map.events:
@@ -2292,84 +2292,84 @@ class Imagenes:
                     for cmd in page.commands:
                         if cmd.code != SHOW_PICTURE:
                             continue
-                        if not imagen_aceptable(cmd.parameters):
+                        if not picture_fits(cmd.parameters):
                             continue
                         if cmd.parameters[7]:
                             continue    # the PNG's transparent color
-                        im = self._leer(cmd.string)
+                        im = self._read(cmd.string)
                         if im is None:
                             continue
                         p = cmd.parameters
-                        info = imagen_mod.convertir(im, p[2], p[3])
-                        if not imagen_mod.cabe(info):
+                        info = picture_mod.convert(im, p[2], p[3])
+                        if not picture_mod.fits(info):
                             continue
-                        self.nombre, self.info = cmd.string, info
-                        self.numero, self.donde = p[0], (p[2], p[3])
+                        self.name, self.info = cmd.string, info
+                        self.number, self.where = p[0], (p[2], p[3])
                         return info
         return None
 
-    def mostrar(self, numero, nombre, cx, cy):
+    def show(self, number, name, cx, cy):
         """The slot's picture if this `ShowPicture` is its own, or None."""
-        if self.nombre is None:
+        if self.name is None:
             return None
-        return (self.info if (self.nombre, self.numero, self.donde)
-                == (nombre, numero, (cx, cy)) else None)
+        return (self.info if (self.name, self.number, self.where)
+                == (name, number, (cx, cy)) else None)
 
-    def suyo(self, numero, cx, cy):
+    def owns(self, number, cx, cy):
         """Whether the slot's picture is the one this command names and it
         does not move from where it is. `MovePicture` and `ErasePicture` ask
         it, since they do not carry the name: in RM2k the picture number is
         all that ties them to their `ShowPicture`."""
-        return (self.nombre is not None and self.numero == numero
-                and (cx is None or self.donde == (cx, cy)))
+        return (self.name is not None and self.number == number
+                and (cx is None or self.where == (cx, cy)))
 
 
-def indexar_animaciones(game_dir):
+def index_animations(game_dir):
     """The LDB's battle animations, by id: their frames and their timings,
     with liblcf's default values —the decoder omits the ones that are not
     there—. The converter and the tests that compile pages call it."""
-    db = base_de_datos(game_dir)
-    ANIMACIONES.clear()
-    for numero, anim in db.decode().get("animations", {}).items():
+    db = database(game_dir)
+    ANIMATIONS.clear()
+    for number, anim in db.decode().get("animations", {}).items():
         timings = []
         for _i, t in sorted((anim.get("timings") or {}).items()):
-            se = t.get("se") or {}
+            sound_effect = t.get("se") or {}
             timings.append({
                 "frame": t.get("frame", 0),
-                "se": (se.get("name", ""), se.get("volume", 100),
-                       se.get("tempo", 100), se.get("balance", 50)),
+                "se": (sound_effect.get("name", ""), sound_effect.get("volume", 100),
+                       sound_effect.get("tempo", 100), sound_effect.get("balance", 50)),
                 "alcance": t.get("flash_scope", 0),
                 "rgb": (t.get("flash_red", 31), t.get("flash_green", 31),
                         t.get("flash_blue", 31)),
                 "fuerza": t.get("flash_power", 31),
             })
         # And what is needed to **draw it**, since 2026-09-12: the `Battle`
-        # sheet, each frame's cells and where the box goes. `animacion.py`
+        # sheet, each frame's cells and where the box goes. `animation.py`
         # reads it, being the only one that knows what to do with this;
         # here it is stored exactly as it comes from the LDB.
-        cuadros = anim.get("frames") or {}
-        ANIMACIONES[numero] = {"cuadros": [cuadros[k].get("cells") or {}
-                                           for k in sorted(cuadros)],
-                               "timings": timings,
-                               # The name the animation has in the editor
-                               # —"Whole Magic Flame C"—: nobody looks at it
-                               # to draw, its patch writes it so whoever
-                               # reads the diff knows which one it is.
-                               "nombre": anim.get("name", ""),
-                               "imagen": anim.get("animation_name", ""),
-                               "grande": bool(anim.get("large")),
-                               "alcance": anim.get("scope", 0),
-                               "posicion": anim.get("position", 1)}
+        frames = anim.get("frames") or {}
+        ANIMATIONS[number] = {"cuadros": [frames[k].get("cells") or {}
+                                          for k in sorted(frames)],
+                              "timings": timings,
+                              # The name the animation has in the editor
+                              # —"Whole Magic Flame C"—: nobody looks at it
+                              # to draw, its patch writes it so whoever
+                              # reads the diff knows which one it is.
+                              "nombre": anim.get("name", ""),
+                              "imagen": anim.get("animation_name", ""),
+                              "grande": bool(anim.get("large")),
+                              "alcance": anim.get("scope", 0),
+                              "posicion": anim.get("position", 1)}
 CHANGE_HP = 10460
 CHANGE_CONDITION = 10480
 FULL_HEAL = 10490
 CHANGE_MENU_ACCESS = 11960
 CHANGE_ESCAPE_ACCESS = 11840
-ACCESO_GUARDAR, ACCESO_MENU, ACCESO_ESCAPAR = 0, 1, 2
+ACCESS_SAVE, ACCESS_MENU, ACCESS_ESCAPE = 0, 1, 2
 # Each one's bit in `FAR_ACCESO`, and the bits mean "forbidden" so that the
 # reset's zero is "everything allowed", which is how RM2k starts. $80 is the
 # menu request —`menu_calling`— and it is not a permission.
-ACCESO_BIT = (0x01, 0x02, 0x04)
+ACCESS_BIT = (0x01, 0x02, 0x04)
 # `ChangeEscapeAccess` is the permission to escape from a battle, and it is
 # stored without being read: the battle looks at the escape, and that belongs
 # to someone else. It is here anyway because it is what unlocks the most for
@@ -2379,13 +2379,13 @@ ACCESO_BIT = (0x01, 0x02, 0x04)
 # save, and here too.
 # The ControlVars operations that compile: set, add, subtract. Multiply,
 # divide and modulo are not used by any page of the game.
-VAR_PONER, VAR_SUMAR, VAR_RESTAR = 0, 1, 2
+VAR_SET, VAR_ADD, VAR_SUBTRACT = 0, 1, 2
 # And where the operand comes from, with the RM2k number: a constant, another
 # variable, a random number between a and b, or "other", which here are the
 # gold and the seconds the timer has left. The random one requires b - a to be
 # less than 256: the ROM divides with the hardware's eight-bit divider.
-VAR_CONSTANTE, VAR_VARIABLE, VAR_AZAR, VAR_OTRO = 0, 1, 3, 7
-OTRO_ORO, OTRO_TIMER = 0, 1
+VAR_CONSTANT, VAR_VARIABLE, VAR_RANDOM, VAR_OTHER = 0, 1, 3, 7
+OTHER_GOLD, OTHER_TIMER = 0, 1
 # And kind 6: **a character's coordinates**. The sub-operands are those of
 # easyrpg-player's `ControlVariables::Event` —the `op` of
 # `game_interpreter_control_variables.cpp`—: 0 the map id, 1 x, 2 y, 3 where
@@ -2404,29 +2404,29 @@ OTRO_ORO, OTRO_TIMER = 0, 1
 #   game's. They are two occurrences in the whole game, and accepting them
 #   would unlock **one** more page —measured, 5135 against 5136—: it is not
 #   worth making up a coordinate that is not the one there for one page.
-VAR_PERSONAJE = 6
-PERSONAJE_X, PERSONAJE_Y = 1, 2
-CMP_IGUAL, CMP_MAYOR_IGUAL, CMP_MENOR_IGUAL, CMP_MAYOR, CMP_MENOR, \
-    CMP_DISTINTO = range(6)
+VAR_CHARACTER = 6
+CHARACTER_X, CHARACTER_Y = 1, 2
+CMP_EQUAL, CMP_GREATER_EQUAL, CMP_LESS_EQUAL, CMP_GREATER, CMP_LESS, \
+    CMP_NOT_EQUAL = range(6)
 # The random generator: a sixteen-bit xorshift —x ^= x << 7; x ^= x >> 9;
 # x ^= x << 8— seeded at reset. There is no real entropy, on purpose: a page
 # with randomness always gets the same sequence, and that is why what it
 # draws can be frozen in a golden.
-AZAR_SEMILLA = 0xACE1
-TIMER_PONER_VAR = 3     # the timer's fourth operation: the seconds from a
+RANDOM_SEED = 0xACE1
+TIMER_SET_VAR = 3     # the timer's fourth operation: the seconds from a
                         # variable. RM2k's three are 0, 1 and 2.
 
 VARIABLE_SLOT = {}      # RM2k variable -> slot in the ROM
 
 
-def mapas_del_juego(game_dir):
+def game_map_ids(game_dir):
     """The numbers of all the maps in the game, in order."""
     import glob
     return sorted(int(os.path.basename(p)[3:7]) for p in
                   glob.glob(os.path.join(game_dir, "Map[0-9][0-9][0-9][0-9].lmu")))
 
 
-def variables_de(game_dir, map_ids=None, extra=()):
+def variables_named(game_dir, map_ids=None, extra=()):
     """Which variables the pages of these maps name —without a list, the
     whole game's—, each with its slot.
 
@@ -2434,7 +2434,7 @@ def variables_de(game_dir, map_ids=None, extra=()):
     they compile or not: it is a cheap superset —two bytes per variable— and
     that way a page that compiles later does not change the others' slots.
     `extra` are those of the test pages, which do not come from any map: the
-    converter sweeps them with `variables_de_comandos`.
+    converter sweeps them with `command_variables`.
 
     **`KeyInputProc` also names a variable, and until 2026-09-13 it was not
     in this list.** It is the only command in the game that writes to a
@@ -2448,71 +2448,71 @@ def variables_de(game_dir, map_ids=None, extra=()):
     look at this one.
     """
     ids = set(extra)
-    ids |= barrer_los_mapas(
-        game_dir, mapas_del_juego(game_dir) if map_ids is None else map_ids,
-        _variables_del_mapa)
+    ids |= sweep_maps(
+        game_dir, game_map_ids(game_dir) if map_ids is None else map_ids,
+        _map_variables)
     if map_ids is None:
         # And those of the troops' pages, which belong to the whole game and
         # not to a map. They add up to **forty**, measured on 2026-09-21: the
         # characters' systems each carry their counters —Talan's 81 and 106
         # count how many times he absorbed each technique—, and no map names
         # them.
-        db = base_de_datos(game_dir)
-        for tropa in db.troops.values():
-            for pagina in tropa.pages:
-                if "variable" in pagina.active:
-                    ids.add(pagina.condition["variable_id"])
-        for comandos in comandos_de_las_tropas(db):
-            ids |= variables_de_comandos(comandos)
-    return {variable: ranura for ranura, variable in enumerate(sorted(ids))}
+        db = database(game_dir)
+        for troop in db.troops.values():
+            for page in troop.pages:
+                if "variable" in page.active:
+                    ids.add(page.condition["variable_id"])
+        for commands in troop_page_commands(db):
+            ids |= command_variables(commands)
+    return {variable: slot for slot, variable in enumerate(sorted(ids))}
 
 
-def _variables_del_mapa(game_map):
-    """The `variables_de` sweep over one map."""
+def _map_variables(game_map):
+    """The `variables_named` sweep over one map."""
     ids = set()
-    for evento in game_map.events:
-        for page in evento.pages:
+    for event in game_map.events:
+        for page in event.pages:
             if "variable" in page.condition.active:
                 ids.add(page.condition.ids["variable"])
-            ids |= variables_de_comandos(page.commands)
+            ids |= command_variables(page.commands)
     return ids
 
 
-def barrer_los_mapas(game_dir, map_ids, barrido):
-    """The union of `barrido(mapa)` —a set— over those maps.
+def sweep_maps(game_dir, map_ids, sweep):
+    """The union of `sweep(game_map)` —a set— over those maps.
 
-    The sweeps of `variables_de` and `pares_de_habilidad` each load the
+    The sweeps of `variables_named` and `skill_pairs` each load the
     game's 328 maps, and loading them is almost all they cost: they run in
     parallel, in batches, and each batch returns the union of its own. The
     result is a set, so the order does not matter.
     """
     from rpgmaker import lcf
     from common.parallel import in_parallel
-    rutas = [os.path.join(game_dir, "Map%04d.lmu" % m) for m in map_ids]
-    tandas = max(1, min(len(rutas), os.cpu_count() or 1))
-    hallado = set()
-    for parte in in_parallel(
-            lambda suyas: set().union(*(barrido(lcf.Map(r)) for r in suyas)),
-            [rutas[k::tandas] for k in range(tandas)]):
-        hallado |= parte
-    return hallado
+    paths = [os.path.join(game_dir, "Map%04d.lmu" % m) for m in map_ids]
+    batches = max(1, min(len(paths), os.cpu_count() or 1))
+    found = set()
+    for part in in_parallel(
+            lambda theirs: set().union(*(sweep(lcf.Map(r)) for r in theirs)),
+            [paths[k::batches] for k in range(batches)]):
+        found |= part
+    return found
 
 
-def comandos_de_las_tropas(db):
+def troop_page_commands(db):
     """The commands of each troop page of the LDB, with the battle branches
-    translated to the map's —see `RAMA_DE_PELEA`—, for the sweeps that look
+    translated to the map's —see `BATTLE_BRANCH`—, for the sweeps that look
     for variables and skill pairs. **It does not filter**: the sweep is a
     superset, like the maps', whether the page compiles or not."""
     from rpgmaker import lcf
-    for tropa in db.troops.values():
-        for pagina in tropa.pages:
-            yield [lcf.EventCommand(RAMA_DE_PELEA.get(c.code, c.code),
+    for troop in db.troops.values():
+        for page in troop.pages:
+            yield [lcf.EventCommand(BATTLE_BRANCH.get(c.code, c.code),
                                     c.indent, c.string, c.parameters)
-                   for c in pagina.commands]
+                   for c in page.commands]
 
 
-def variables_de_comandos(comandos):
-    """The variables these commands name: the `variables_de` sweep, which is
+def command_variables(commands):
+    """The variables these commands name: the `variables_named` sweep, which is
     also that of the test pages.
 
     `ChangeEventLocation` with the cell in two variables came in on
@@ -2521,7 +2521,7 @@ def variables_de_comandos(comandos):
     another command.
     """
     ids = set()
-    for cmd in comandos:
+    for cmd in commands:
         p = cmd.parameters
         if cmd.code == CONTROL_VARS and len(p) >= 7:
             if p[0] == 0:
@@ -2530,7 +2530,7 @@ def variables_de_comandos(comandos):
                 ids.update(range(p[1], p[2] + 1))
             if p[4] == VAR_VARIABLE:
                 ids.add(p[5])
-        elif cmd.code == COND_RAMA and len(p) >= 5 \
+        elif cmd.code == COND_BRANCH and len(p) >= 5 \
                 and p[0] == COND_VARIABLE:
             ids.add(p[1])
             if p[2] == 1:
@@ -2538,11 +2538,11 @@ def variables_de_comandos(comandos):
         elif cmd.code == KEY_INPUT_PROC and p:
             ids.add(p[0])
         elif cmd.code == TIMER_OPERATION and len(p) >= 3 \
-                and p[0] == TIMER_PONER \
-                and p[1] != TIMER_SEGUNDOS_FIJOS:
+                and p[0] == TIMER_SET \
+                and p[1] != TIMER_FIXED_SECONDS:
             ids.add(p[2])
         elif cmd.code == CHANGE_EVENT_LOCATION and len(p) >= 4 \
-                and p[1] == LUGAR_POR_VARIABLE:
+                and p[1] == PLACE_BY_VARIABLE:
             ids.update((p[2], p[3]))
         elif cmd.code == STORE_TERRAIN_ID and len(p) >= 4:
             ids.add(p[3])
@@ -2554,7 +2554,7 @@ def variables_de_comandos(comandos):
     return ids
 
 
-COMUNES = {}            # RM2k common event -> its commands
+COMMON_EVENTS = {}            # RM2k common event -> its commands
 
 # **The parallel common events that only look at the equipment**: switch ->
 # the common event. It is the tailored path of Lashe City's milestone 4, and in
@@ -2583,73 +2583,73 @@ COMUNES = {}            # RM2k common event -> its commands
 #
 # What is left out: a page's `ChangeEquipment` on the actor the event looks
 # at does not run it again. In the game there is none on 18.
-COMUNES_DEL_EQUIPO = {}
+PARTY_COMMON_EVENTS = {}
 # The `rpg::CommonEvent` `trigger` that runs in parallel.
-COMUN_PARALELO = 4
+COMMON_PARALLEL = 4
 # The end of a block of commands: the empty line that closes each branch.
-FIN_DE_BLOQUE = 10
+BLOCK_END = 10
 
 
-def es_comun_del_equipo(trigger, comandos):
-    """Whether a common event is one of `COMUNES_DEL_EQUIPO`'s: parallel,
+def is_party_common_event(trigger, commands):
+    """Whether a common event is one of `PARTY_COMMON_EVENTS`'s: parallel,
     with a switch, and with nothing but `ChangeSkills` and branches on an
     actor's equipment —with their `else`, their closer and the block
     ends—."""
-    tipo, con_switch, _switch = trigger
-    permitidos = (CHANGE_SKILLS, COND_RAMA, COND_SINO, COND_FIN,
-                  FIN_DE_BLOQUE)
-    return (tipo == COMUN_PARALELO and con_switch and comandos
-            and all(c.code in permitidos for c in comandos)
+    kind, has_switch, _switch = trigger
+    allowed = (CHANGE_SKILLS, COND_BRANCH, COND_ELSE, COND_END,
+               BLOCK_END)
+    return (kind == COMMON_PARALLEL and has_switch and commands
+            and all(c.code in allowed for c in commands)
             and all(c.parameters[:1] == [COND_ACTOR]
-                    and c.parameters[2:3] == [COND_ACTOR_EQUIPO]
-                    for c in comandos if c.code == COND_RAMA))
+                    and c.parameters[2:3] == [COND_ACTOR_EQUIPMENT]
+                    for c in commands if c.code == COND_BRANCH))
 
 
-def indexar_comunes(game_dir):
-    """Leaves in `COMUNES` the commands of each common event, and in
-    `COMUNES_DEL_EQUIPO` the ones that are of that kind.
+def index_common_events(game_dir):
+    """Leaves in `COMMON_EVENTS` the commands of each common event, and in
+    `PARTY_COMMON_EVENTS` the ones that are of that kind.
 
     The converter and the tests that compile pages call it before compiling
-    anything, same as `indexar_variables`: `CallEvent` compiles them in
+    anything, same as `index_variables`: `CallEvent` compiles them in
     place, so without the database loaded none compiles.
     """
-    db = base_de_datos(game_dir)
-    COMUNES.clear()
-    COMUNES.update(db.common_events)
-    COMUNES_DEL_EQUIPO.clear()
-    for numero, trigger in sorted(db.common_event_triggers.items()):
-        if es_comun_del_equipo(trigger, db.common_events.get(numero)):
-            COMUNES_DEL_EQUIPO[trigger[2]] = numero
-    return COMUNES
+    db = database(game_dir)
+    COMMON_EVENTS.clear()
+    COMMON_EVENTS.update(db.common_events)
+    PARTY_COMMON_EVENTS.clear()
+    for number, trigger in sorted(db.common_event_triggers.items()):
+        if is_party_common_event(trigger, db.common_events.get(number)):
+            PARTY_COMMON_EVENTS[trigger[2]] = number
+    return COMMON_EVENTS
 
 
-def compilar_comun_del_equipo(numero):
-    """The body of a `COMUNES_DEL_EQUIPO` common event as a loose page, with
+def compile_party_common_event(number):
+    """The body of a `PARTY_COMMON_EVENTS` common event as a loose page, with
     its `OP_DONE`: what the ROM runs when closing the menu. It needs no map
     nor texts —it does not use them—, and if it does not compile it is a
-    converter bug: `es_comun_del_equipo` only lets through what always
+    converter bug: `is_party_common_event` only lets through what always
     compiles.
     """
-    codigo = compilar_pagina(_Comandos(COMUNES[numero]), lambda _m: None)
-    if codigo is None:
+    code = compile_page(_Commands(COMMON_EVENTS[number]), lambda _m: None)
+    if code is None:
         raise SystemExit("common event %d is an equipment one and does not "
-                         "compile" % numero)
-    return codigo
+                         "compile" % number)
+    return code
 
 
 # What the two actor questions of `ConditionalBranch` need to know from the
 # LDB: what each one has equipped at the start and which skills it knows.
-# They go in a module index, like `COMUNES` and `VARIABLE_SLOT`: it is built
+# They go in a module index, like `COMMON_EVENTS` and `VARIABLE_SLOT`: it is built
 # only once before compiling anything, so all pages read the same reading of
 # the LDB.
-ACTOR_EQUIPO = {}       # RM2k actor -> its five slots, in the order of
-                        # `constantes.RANURAS_EQUIPO`
-ACTOR_SABE = {}         # RM2k actor -> the skills it knows
-_ACTORES_INDEXADOS = []
+ACTOR_EQUIPMENT = {}       # RM2k actor -> its five slots, in the order of
+                        # `constants.EQUIPMENT_SLOTS`
+ACTOR_SKILLS = {}         # RM2k actor -> the skills it knows
+_INDEXED_ACTORS = []
 
 
-def indexar_actores(game_dir):
-    """Leaves in `ACTOR_EQUIPO` and `ACTOR_SABE` what the LDB says about
+def index_actors(game_dir):
+    """Leaves in `ACTOR_EQUIPMENT` and `ACTOR_SKILLS` what the LDB says about
     each actor.
 
     Without this the interpreter would answer that nobody has anything
@@ -2657,45 +2657,45 @@ def indexar_actores(game_dir):
     only**, which is the failure mode `AGENTS.md` names. That is why there is
     a list that says whether it was called and `OP_IF_ACTOR` looks at it.
     """
-    db = base_de_datos(game_dir)
-    ACTOR_EQUIPO.clear()
-    ACTOR_SABE.clear()
-    ACTOR_EQUIPO.update({a: tuple(act.initial_equipment)
-                         for a, act in db.actors.items()})
-    ACTOR_SABE.update({a: reglas.aprendidas_de(db, a)
-                       for a in db.actors})
-    _ACTORES_INDEXADOS[:] = [True]
-    return dict(ACTOR_EQUIPO)
+    db = database(game_dir)
+    ACTOR_EQUIPMENT.clear()
+    ACTOR_SKILLS.clear()
+    ACTOR_EQUIPMENT.update({a: tuple(act.initial_equipment)
+                            for a, act in db.actors.items()})
+    ACTOR_SKILLS.update({a: rules.learned_skills(db, a)
+                         for a in db.actors})
+    _INDEXED_ACTORS[:] = [True]
+    return dict(ACTOR_EQUIPMENT)
 
 
 # The terms the inn's greeting is built with. They are the game's and not
 # ours —ABL charges in "Cr"— so they come from the LDB and not from a literal,
 # for the same reason as the title screen's. They go in a module index like
-# `ACTOR_EQUIPO`: the converter builds it once before compiling anything.
+# `ACTOR_EQUIPMENT`: the converter builds it once before compiling anything.
 #
 # The two sets of terms are `ShowInn`'s `inn_type`: 0 set A and 1 set B.
-TERMINOS_POSADA = {}
-_TERMINOS_DE_POSADA = ("greeting_1", "greeting_2", "greeting_3", "accept",
-                       "cancel")
+INN_TERMS = {}
+_INN_TERMS = ("greeting_1", "greeting_2", "greeting_3", "accept",
+              "cancel")
 
 
-def indexar_terminos(game_dir):
-    """Leaves in `TERMINOS_POSADA` the inn's terms and the gold's.
+def index_terms(game_dir):
+    """Leaves in `INN_TERMS` the inn's terms and the gold's.
 
     Without this `ShowInn` does not compile —and says so—, instead of
     building the greeting with made-up words: the price and the currency are
     the only thing the player is going to read to decide.
     """
     from rpgmaker import lcf
-    db = base_de_datos(game_dir)
-    terminos = db.sections["terms"]
-    TERMINOS_POSADA.clear()
-    TERMINOS_POSADA["gold"] = lcf.field(terminos, "gold")
-    for tipo, letra in ((0, "a"), (1, "b")):
-        TERMINOS_POSADA[tipo] = tuple(
-            lcf.field(terminos, "inn_%s_%s" % (letra, nombre))
-            for nombre in _TERMINOS_DE_POSADA)
-    return dict(TERMINOS_POSADA)
+    db = database(game_dir)
+    terms = db.sections["terms"]
+    INN_TERMS.clear()
+    INN_TERMS["gold"] = lcf.field(terms, "gold")
+    for kind, letter in ((0, "a"), (1, "b")):
+        INN_TERMS[kind] = tuple(
+            lcf.field(terms, "inn_%s_%s" % (letter, name))
+            for name in _INN_TERMS)
+    return dict(INN_TERMS)
 
 
 # --- which skills each actor knows, as state --------------------------------
@@ -2723,11 +2723,11 @@ def indexar_terminos(game_dir):
 # way the ROM builds the list by walking a stretch, without sorting anything.
 #
 # OP_SKILL: pair slot (word), learns (byte: 1 learns, 0 forgets)
-HABILIDAD_RANURA = {}   # (actor, skill) -> slot
+SKILL_SLOT = {}   # (actor, skill) -> slot
 # The ceiling: the bits live in `FAR_HAB`, which has 256 bytes in the far RAM
 # map. Today the game uses far fewer; if some day they are not enough, the
 # converter stops instead of overwriting the neighbor.
-HABILIDAD_RANURAS_MAX = 256 * 8
+SKILL_SLOTS_MAX = 256 * 8
 CHANGE_SKILLS = 10440
 CHANGE_EQUIPMENT = 10450
 GAME_OVER = 12420
@@ -2740,97 +2740,97 @@ COMMENT = 12410
 COMMENT_2 = 22410
 
 
-def pares_de_habilidad_de_comandos(comandos):
+def command_skill_pairs(commands):
     """The (actor, skill) pairs these commands name: the
-    `pares_de_habilidad` sweep, which is also that of the test pages.
+    `skill_pairs` sweep, which is also that of the test pages.
 
     Only the forms that compile —fixed actor and constant skill—: a pair that
     comes in a variable cannot be indexed, and those commands do not compile.
     None in the game does it."""
-    pares = set()
-    for cmd in comandos:
+    pairs = set()
+    for cmd in commands:
         p = cmd.parameters
         if cmd.code == CHANGE_SKILLS and len(p) >= 5 \
                 and p[0] == 1 and p[3] == 0:
-            pares.add((p[1], p[4]))
-        elif cmd.code == COND_RAMA and len(p) >= 4 and p[0] == COND_ACTOR \
-                and p[2] == COND_ACTOR_HABILIDAD:
-            pares.add((p[1], p[3]))
-    return pares
+            pairs.add((p[1], p[4]))
+        elif cmd.code == COND_BRANCH and len(p) >= 4 and p[0] == COND_ACTOR \
+                and p[2] == COND_ACTOR_SKILL:
+            pairs.add((p[1], p[3]))
+    return pairs
 
 
-def _pares_del_mapa(game_map):
-    """The `pares_de_habilidad` sweep over one map."""
-    pares = set()
-    for evento in game_map.events:
-        for page in evento.pages:
-            pares |= pares_de_habilidad_de_comandos(page.commands)
-    return pares
+def _map_skill_pairs(game_map):
+    """The `skill_pairs` sweep over one map."""
+    pairs = set()
+    for event in game_map.events:
+        for page in event.pages:
+            pairs |= command_skill_pairs(page.commands)
+    return pairs
 
 
-def pares_de_habilidad(game_dir, extra=()):
+def skill_pairs(game_dir, extra=()):
     """Each (actor, skill) pair the game can look at, with its slot.
 
-    See `HABILIDAD_RANURA`. The ones naming an actor or a skill the LDB does
+    See `SKILL_SLOT`. The ones naming an actor or a skill the LDB does
     not have are discarded: RM2k ignores them with a warning, and here they
     do not compile."""
-    db = base_de_datos(game_dir)
-    pares = set(extra)
-    for numero, actor in db.actors.items():
-        pares |= {(numero, s) for _nivel, s in actor.skills if s}
-    pares |= barrer_los_mapas(game_dir, mapas_del_juego(game_dir),
-                              _pares_del_mapa)
-    for comandos in db.common_events.values():
-        pares |= pares_de_habilidad_de_comandos(comandos)
+    db = database(game_dir)
+    pairs = set(extra)
+    for number, actor in db.actors.items():
+        pairs |= {(number, s) for _level, s in actor.skills if s}
+    pairs |= sweep_maps(game_dir, game_map_ids(game_dir),
+                        _map_skill_pairs)
+    for commands in db.common_events.values():
+        pairs |= command_skill_pairs(commands)
     # And the troops' pages, which since 2026-09-21 run in the battle. Today
     # they add no pair —the ones the systems teach are already named by some
     # map—, but without this the first one that is not would not compile.
-    for comandos in comandos_de_las_tropas(db):
-        pares |= pares_de_habilidad_de_comandos(comandos)
-    pares = {(a, s) for a, s in pares if a in db.actors and s in db.skills}
-    return {par: ranura for ranura, par in enumerate(sorted(pares))}
+    for commands in troop_page_commands(db):
+        pairs |= command_skill_pairs(commands)
+    pairs = {(a, s) for a, s in pairs if a in db.actors and s in db.skills}
+    return {pair: slot for slot, pair in enumerate(sorted(pairs))}
 
 
-def indexar_habilidades(game_dir, extra=()):
-    """Leaves in `HABILIDAD_RANURA` the whole game's index. The converter
-    calls it before compiling anything, like `indexar_variables`."""
-    HABILIDAD_RANURA.clear()
-    HABILIDAD_RANURA.update(pares_de_habilidad(game_dir, extra))
-    if len(HABILIDAD_RANURA) > HABILIDAD_RANURAS_MAX:
+def index_skills(game_dir, extra=()):
+    """Leaves in `SKILL_SLOT` the whole game's index. The converter
+    calls it before compiling anything, like `index_variables`."""
+    SKILL_SLOT.clear()
+    SKILL_SLOT.update(skill_pairs(game_dir, extra))
+    if len(SKILL_SLOT) > SKILL_SLOTS_MAX:
         raise SystemExit("there are %d skill pairs and `FAR_HAB` holds %d"
-                         % (len(HABILIDAD_RANURA), HABILIDAD_RANURAS_MAX))
-    return dict(HABILIDAD_RANURA)
+                         % (len(SKILL_SLOT), SKILL_SLOTS_MAX))
+    return dict(SKILL_SLOT)
 
 
-def ranura_de_habilidad(actor, habilidad):
-    if (actor, habilidad) not in HABILIDAD_RANURA:
-        raise NoSePuede("the pair actor %d, skill %d has no slot"
-                        % (actor, habilidad))
-    return HABILIDAD_RANURA[(actor, habilidad)]
+def skill_slot(actor, skill):
+    if (actor, skill) not in SKILL_SLOT:
+        raise CannotCompile("the pair actor %d, skill %d has no slot"
+                            % (actor, skill))
+    return SKILL_SLOT[(actor, skill)]
 
 
-def indexar_variables(game_dir, extra=()):
+def index_variables(game_dir, extra=()):
     """Leaves in `VARIABLE_SLOT` the whole game's index. The converter and
     the tests that compile pages call it before compiling anything; it takes
     a third of a second to read the 328 maps."""
     VARIABLE_SLOT.clear()
-    VARIABLE_SLOT.update(variables_de(game_dir, None, extra))
+    VARIABLE_SLOT.update(variables_named(game_dir, None, extra))
     return dict(VARIABLE_SLOT)
 
 
-def ranura_de_variable(numero):
-    if numero not in VARIABLE_SLOT:
-        raise NoSePuede("variable %d has no slot in this ROM" % numero)
-    ranura = VARIABLE_SLOT[numero]
-    if ranura > VAR_RANURA_MAX:
+def variable_slot(number):
+    if number not in VARIABLE_SLOT:
+        raise CannotCompile("variable %d has no slot in this ROM" % number)
+    slot = VARIABLE_SLOT[number]
+    if slot > VAR_SLOT_MAX:
         # The slot is a byte, and far RAM has room for 256.
-        raise NoSePuede("slot %d does not fit in a byte: see VAR_RANURA_MAX"
-                        % ranura)
-    return ranura
+        raise CannotCompile("slot %d does not fit in a byte: see VAR_SLOT_MAX"
+                            % slot)
+    return slot
 
 
-def escritura_pide_refresco(numero, eventos_mapa):
-    """The `VAR_REFRESCO` bit for a write to variable `numero`.
+def write_needs_refresh(number, map_events):
+    """The `VAR_REFRESH` bit for a write to variable `number`.
 
     It is `SetNeedRefreshForVarChange` resolved at compile time: only the
     variables some page condition of the map looks at ask for a refresh.
@@ -2838,12 +2838,12 @@ def escritura_pide_refresco(numero, eventos_mapa):
     before this and the only honest thing when it is not known who looks at
     what.
     """
-    if eventos_mapa is None or eventos_mapa.vars_observadas is None:
-        return VAR_REFRESCO     # without the map, or after leaving it
-    return VAR_REFRESCO if numero in eventos_mapa.vars_observadas else 0
+    if map_events is None or map_events.watched_vars is None:
+        return VAR_REFRESH     # without the map, or after leaving it
+    return VAR_REFRESH if number in map_events.watched_vars else 0
 
 
-def azar_siguiente(x):
+def next_random(x):
     """The xorshift step, in sixteen bits."""
     x ^= (x << 7) & 0xFFFF
     x ^= x >> 9
@@ -2852,7 +2852,7 @@ def azar_siguiente(x):
 
 # RM2k's gold cap: `Game_Party::GainGold` clamps to `MaxGoldValue()`, which
 # by default is this.
-ORO_MAX = 999999
+GOLD_MAX = 999999
 
 # How many switches the ROM's bitmap fits: `SWITCH_BYTES` is 128, that is 0 to
 # 1023. A branch on a higher one would write out of bounds, so it does not
@@ -2873,51 +2873,51 @@ SHOW_CHOICE_END = 20141
 # RM2k shows four options at most, and `GetChoices(4)` discards the ones with
 # a higher index. This ROM's window has four lines, so the cap is the same on
 # both sides.
-ELEGIR_MAX = 4
+CHOICE_MAX = 4
 
 # The cursor, and what is put in front of the options that do not have it so
 # the text does not shift from line to line.
-ELEGIR_CURSOR = ">"
-ELEGIR_SANGRIA = " "
+CHOICE_CURSOR = ">"
+CHOICE_INDENT = " "
 
 
-def opciones_de_eleccion(comandos, i):
+def choice_options(commands, i):
     """The options of the `ShowChoice` at `comandos[i]`.
 
     It is `Game_Interpreter::GetChoices`: it walks forward from the next
     command, gathers the `ShowChoiceOption`s on its same indentation and
     stops at the `ShowChoiceEnd`. Returns (index, text).
     """
-    if i + 1 >= len(comandos):
+    if i + 1 >= len(commands):
         return []
-    nivel = comandos[i + 1].indent
-    salida = []
-    for cmd in comandos[i + 1:]:
-        if cmd.indent != nivel:
+    level = commands[i + 1].indent
+    output = []
+    for cmd in commands[i + 1:]:
+        if cmd.indent != level:
             continue
         if cmd.code == SHOW_CHOICE_END:
             break
         if cmd.code == SHOW_CHOICE_OPTION and cmd.parameters \
-                and cmd.parameters[0] < ELEGIR_MAX:
-            salida.append((cmd.parameters[0], cmd.string or ""))
-    return salida
+                and cmd.parameters[0] < CHOICE_MAX:
+            output.append((cmd.parameters[0], cmd.string or ""))
+    return output
 
 
-def cuadros_de_eleccion(opciones, mensajes):
-    """One `mensajes` offset per option, with the cursor on its line.
+def choice_boxes(options, messages):
+    """One `messages` offset per option, with the cursor on its line.
 
-    The boxes are the same except for the cursor. `Mensajes` deduplicates by
+    The boxes are the same except for the cursor. `Messages` deduplicates by
     content, so the common lines are not stored twice: what is paid is one
     small box per option.
     """
-    textos = [t for _, t in opciones]
-    return [mensajes.agregar(
-                [(ELEGIR_CURSOR if k == n else ELEGIR_SANGRIA) + " " + t
-                 for k, t in enumerate(textos)])
-            for n in range(len(textos))]
+    texts = [t for _, t in options]
+    return [messages.add(
+                [(CHOICE_CURSOR if k == n else CHOICE_INDENT) + " " + t
+                 for k, t in enumerate(texts)])
+            for n in range(len(texts))]
 
 
-def bytes_de_rama(cmd):
+def branch_bytes(cmd):
     """A `ConditionalBranch` of the kinds we know, with the destination
     blank.
 
@@ -2937,91 +2937,91 @@ def bytes_de_rama(cmd):
     """
     p = cmd.parameters
     if len(p) < 3:
-        raise NoSePuede("a branch with no operands")
+        raise CannotCompile("a branch with no operands")
     if p[0] == COND_SWITCH:
-        numero = p[1]
-        if not 0 <= numero < SWITCH_MAX:
-            raise NoSePuede("switch %d out of the bitmap" % numero)
-    elif p[0] == COND_ORO:
-        numero = p[1]
-        if not 0 <= numero <= 0xFFFF:
+        number = p[1]
+        if not 0 <= number < SWITCH_MAX:
+            raise CannotCompile("switch %d out of the bitmap" % number)
+    elif p[0] == COND_GOLD:
+        number = p[1]
+        if not 0 <= number <= 0xFFFF:
             # The operand travels in a word. In this game the biggest is
             # 2000, so nothing is lost; if some day a bigger one appears,
             # this says so instead of comparing it wrong.
-            raise NoSePuede("gold comparison against %d, which does not fit "
-                            "in a word" % numero)
+            raise CannotCompile("gold comparison against %d, which does not fit "
+                                "in a word" % number)
     elif p[0] == COND_ITEM:
-        numero = p[1]
-        if not 0 <= numero < ITEMS_N:
-            raise NoSePuede("item %d is not in the LDB" % numero)
+        number = p[1]
+        if not 0 <= number < ITEMS_N:
+            raise CannotCompile("item %d is not in the LDB" % number)
     elif p[0] == COND_ACTOR:
-        numero = p[1]
-        if not 0 <= numero <= 0xFFFF:
-            raise NoSePuede("actor %d out of range" % numero)
-        if p[2] == COND_ACTOR_EN_GRUPO:
+        number = p[1]
+        if not 0 <= number <= 0xFFFF:
+            raise CannotCompile("actor %d out of range" % number)
+        if p[2] == COND_ACTOR_IN_PARTY:
             # "Is in the party" has no polarity: the branch below is the
             # `else`.
-            return bytes([OP_IF, COND_ACTOR, numero & 0xFF, numero >> 8,
+            return bytes([OP_IF, COND_ACTOR, number & 0xFF, number >> 8,
                           0, 0, 0])
-        if p[2] in (COND_ACTOR_HABILIDAD, COND_ACTOR_EQUIPO):
+        if p[2] in (COND_ACTOR_SKILL, COND_ACTOR_EQUIPMENT):
             if len(p) < 4:
-                raise NoSePuede("an actor branch without the item or the "
-                                "skill")
-            if not 0 <= numero <= 0xFF:
+                raise CannotCompile("an actor branch without the item or the "
+                                    "skill")
+            if not 0 <= number <= 0xFF:
                 # The actor travels in a byte: see OP_IF_ACTOR. The LDB has 60.
-                raise NoSePuede("actor %d, which does not fit in a byte" % numero)
-            if _ACTORES_INDEXADOS and numero not in ACTOR_EQUIPO:
+                raise CannotCompile("actor %d, which does not fit in a byte" % number)
+            if _INDEXED_ACTORS and number not in ACTOR_EQUIPMENT:
                 # The ROM's tables go from 0 to the LDB's last actor, so an
                 # extra number would be read out of the table. RM2k warns and
                 # goes through the `else`; here it does not compile, which is
                 # what this port does with everything it cannot answer. No
                 # page of the game does it: it is checked only when the index
                 # is loaded, so as not to change the answer for whoever
-                # compiles without calling `indexar_actores`.
-                raise NoSePuede("actor %d is not in the LDB" % numero)
-            dato = p[3]
-            if p[2] == COND_ACTOR_HABILIDAD:
+                # compiles without calling `index_actors`.
+                raise CannotCompile("actor %d is not in the LDB" % number)
+            operand = p[3]
+            if p[2] == COND_ACTOR_SKILL:
                 # The skill travels as its pair's slot: it is the bit the ROM
                 # looks at, and that way it does not have to search. See
-                # `HABILIDAD_RANURA`.
-                dato = ranura_de_habilidad(numero, dato)
-            if not 0 <= dato <= 0xFFFF:
-                raise NoSePuede("an actor branch against %d, which does not "
-                                "fit in a word" % dato)
-            return bytes([OP_IF_ACTOR, p[2], numero,
-                          dato & 0xFF, dato >> 8, 0, 0])
-        raise NoSePuede("of the hero we know whether it is in the party, "
-                        "whether it knows a skill and what it has equipped, "
-                        "and not %d" % p[2])
+                # `SKILL_SLOT`.
+                operand = skill_slot(number, operand)
+            if not 0 <= operand <= 0xFFFF:
+                raise CannotCompile("an actor branch against %d, which does not "
+                                    "fit in a word" % operand)
+            return bytes([OP_IF_ACTOR, p[2], number,
+                          operand & 0xFF, operand >> 8, 0, 0])
+        raise CannotCompile("of the hero we know whether it is in the party, "
+                            "whether it knows a skill and what it has equipped, "
+                            "and not %d" % p[2])
     elif p[0] == COND_VARIABLE:
         if len(p) < 5:
-            raise NoSePuede("a variable branch with no operands")
-        ranura = ranura_de_variable(p[1])
+            raise CannotCompile("a variable branch with no operands")
+        slot = variable_slot(p[1])
         if p[2] == 0:
-            clase, valor = VAR_CONSTANTE, p[3]
-            if not -0x8000 <= valor <= 0x7FFF:
-                raise NoSePuede("comparison against %d, which does not fit "
-                                "in a signed word" % valor)
+            operand_kind, value = VAR_CONSTANT, p[3]
+            if not -0x8000 <= value <= 0x7FFF:
+                raise CannotCompile("comparison against %d, which does not fit "
+                                    "in a signed word" % value)
         elif p[2] == 1:
-            clase, valor = VAR_VARIABLE, ranura_de_variable(p[3])
+            operand_kind, value = VAR_VARIABLE, variable_slot(p[3])
         else:
-            raise NoSePuede("variable branch against something we do not "
-                            "know")
-        if not 0 <= p[4] <= CMP_DISTINTO:
-            raise NoSePuede("comparison %d does not exist" % p[4])
-        return bytes([OP_IF_VAR, ranura, clase, p[4], valor & 0xFF,
-                      (valor >> 8) & 0xFF, 0, 0])
+            raise CannotCompile("variable branch against something we do not "
+                                "know")
+        if not 0 <= p[4] <= CMP_NOT_EQUAL:
+            raise CannotCompile("comparison %d does not exist" % p[4])
+        return bytes([OP_IF_VAR, slot, operand_kind, p[4], value & 0xFF,
+                      (value >> 8) & 0xFF, 0, 0])
     else:
-        raise NoSePuede("branch on a condition we do not know how to do")
-    return bytes([OP_IF, p[0], numero & 0xFF, numero >> 8,
+        raise CannotCompile("branch on a condition we do not know how to do")
+    return bytes([OP_IF, p[0], number & 0xFF, number >> 8,
                   1 if p[2] else 0, 0, 0])
 
 
-class Tropas:
+class Troops:
     """The troops the compiled battles ask for, to know which tables to emit.
 
-    Sibling of `Temas`, with a difference that matters: **the bytecode does
-    not depend on it**. `Temas` numbers and the opcode carries the number;
+    Sibling of `Songs`, with a difference that matters: **the bytecode does
+    not depend on it**. `Songs` numbers and the opcode carries the number;
     here the opcode carries the RM2k id and this only gathers the list, so a
     registry with other troops inside does not change a single byte of any
     page. It is what allows compiling a loose page without knowing which
@@ -3034,23 +3034,23 @@ class Tropas:
         # `EnemyEncounter` itself —`SJBackdropABL04` on map 2— and not
         # something to look up in the LDB. It goes here and not in a
         # separate registry because it is a fact of the battle, like the
-        # troop. See tools/port/escena.py.
-        self.fondos = {}
+        # troop. See tools/port/scene.py.
+        self.backdrops = {}
 
-    def pedir(self, numero, fondo=None):
-        if numero not in self.ids:
-            self.ids.append(numero)
-        if fondo and numero not in self.fondos:
-            self.fondos[numero] = fondo     # a name, or FONDO_DEL_LUGAR
-        return numero
+    def request(self, number, backdrop=None):
+        if number not in self.ids:
+            self.ids.append(number)
+        if backdrop and number not in self.backdrops:
+            self.backdrops[number] = backdrop     # a name, or PLACE_BACKDROP
+        return number
 
 
 # --- the troops' event pages -------------------------------------------------
 #
 # `Game_Interpreter_Battle`: each troop brings its pages, and the battle runs
 # them **with the same interpreter as the maps**, `correr_codigo`, so they are
-# compiled with the same `compilar_pagina`. The only thing that changes is
-# what is accepted: see `TROPA_COMANDOS`.
+# compiled with the same `compile_page`. The only thing that changes is
+# what is accepted: see `TROOP_COMMANDS`.
 #
 # When each one runs is decided by the ROM and it is copied from
 # `Scene_Battle_Rpg2k`; see `ba_pag_probar` in tools/runtime/batalla_tropa.s.
@@ -3063,8 +3063,8 @@ class Tropas:
 # are translated to the map's code and compile to OP_IF and OP_IF_VAR without
 # a new opcode. The other four —whether an actor or an enemy can act, whom it
 # targets, which command it gave— ask for battle state and do not compile.
-RAMA_DE_PELEA = {13310: COND_RAMA, 23310: COND_SINO, 23311: COND_FIN}
-RAMA_DE_PELEA_CLASES = (COND_SWITCH, COND_VARIABLE)
+BATTLE_BRANCH = {13310: COND_BRANCH, 23310: COND_ELSE, 23311: COND_END}
+BATTLE_BRANCH_KINDS = (COND_SWITCH, COND_VARIABLE)
 
 # `ShowHiddenMonster`, which only exists in battle: the troop member in that
 # place —from 0, in troop order— stops being hidden. See OP_SHOW_ENEMY and
@@ -3078,98 +3078,98 @@ SHOW_HIDDEN_MONSTER = 13150
 # warning.
 #
 # `PlaySound` sounds in the battle's audio package if its effect fits there
-# —see `PaginasDeTropa.compilar`—, and `ShakeScreen` moves the scene: see
+# —see `TroopPages.compile`—, and `ShakeScreen` moves the scene: see
 # `ba_sacudir`. Its wait, an OP_DELAY, is counted by `ba_pag_paso`.
 #
 # The ones left out that the game uses, in case someone wants to add them:
 # `ChangeHP` and `FullHeal` —in battle HP lives in `BA_UNO` and `FAR_HP` is
 # overwritten when closing it—, `ChangePartyMembers`, `ChangeEquipment`,
 # `Wait`, `TintScreen` and five of the six that only exist in battle.
-TROPA_COMANDOS = ({END, SHOW_MESSAGE, SHOW_MESSAGE_2, CONTROL_SWITCHES,
+TROOP_COMMANDS = ({END, SHOW_MESSAGE, SHOW_MESSAGE_2, CONTROL_SWITCHES,
                    CONTROL_VARS, CHANGE_SKILLS, CHANGE_GOLD, CHANGE_ITEMS,
                    PLAY_SOUND, SHAKE_SCREEN, SHOW_HIDDEN_MONSTER,
-                   COND_RAMA, COND_SINO, COND_FIN} | IGNORABLES)
+                   COND_BRANCH, COND_ELSE, COND_END} | IGNORABLE)
 
 # Which triggers the ROM knows how to look at, with their bit in
 # `tpag_flags`: RM2k's six. The three from 2003 —an actor's or an enemy's
 # turn, fatigue and an actor's command— do not exist in a 2000 game, and a
 # page that asked for them is left out.
-TROPA_DISPARO_SWITCH_A = 0x01
-TROPA_DISPARO_SWITCH_B = 0x02
-TROPA_DISPARO_VARIABLE = 0x04
-TROPA_DISPARO_TURNO = 0x08
-TROPA_DISPARO_ENEMIGO = 0x10
-TROPA_DISPARO_ACTOR = 0x20
-TROPA_DISPAROS = {"switch_a": TROPA_DISPARO_SWITCH_A,
-                  "switch_b": TROPA_DISPARO_SWITCH_B,
-                  "variable": TROPA_DISPARO_VARIABLE,
-                  "turn": TROPA_DISPARO_TURNO,
-                  "enemy_hp": TROPA_DISPARO_ENEMIGO,
-                  "actor_hp": TROPA_DISPARO_ACTOR}
+TROOP_TRIGGER_SWITCH_A = 0x01
+TROOP_TRIGGER_SWITCH_B = 0x02
+TROOP_TRIGGER_VARIABLE = 0x04
+TROOP_TRIGGER_TURN = 0x08
+TROOP_TRIGGER_ENEMY = 0x10
+TROOP_TRIGGER_ACTOR = 0x20
+TROOP_TRIGGERS = {"switch_a": TROOP_TRIGGER_SWITCH_A,
+                  "switch_b": TROOP_TRIGGER_SWITCH_B,
+                  "variable": TROOP_TRIGGER_VARIABLE,
+                  "turn": TROOP_TRIGGER_TURN,
+                  "enemy_hp": TROOP_TRIGGER_ENEMY,
+                  "actor_hp": TROOP_TRIGGER_ACTOR}
 # How many pages of a troop the battle notes as "already ran this turn", one
 # byte each in `BA_PAG_HECHA`. It is a far RAM cap and not the game's: the
 # converter stops if any troop goes over.
-TROPA_PAGINAS_MAX = 32
+TROOP_PAGES_MAX = 32
 
 # The triggers that carry a **header**: the turn and HP numbers do not go in
 # per-page tables in bank 1 —which no longer has room for ten bytes for each
 # of the five hundred— but in front of the page's code, in `tropa_codigo`,
-# which is in RODATA. See `cabecera_de_tropa` and `ba_pag_cabecera`.
-TROPA_CON_CABECERA = (TROPA_DISPARO_TURNO | TROPA_DISPARO_ENEMIGO
-                      | TROPA_DISPARO_ACTOR)
-TROPA_CABECERA_BYTES = 10
+# which is in RODATA. See `troop_header` and `ba_pag_cabecera`.
+TROOP_WITH_HEADER = (TROOP_TRIGGER_TURN | TROOP_TRIGGER_ENEMY
+                     | TROOP_TRIGGER_ACTOR)
+TROOP_HEADER_BYTES = 10
 
 
-def cabecera_de_tropa(disparo):
+def troop_header(trigger):
     """The ten bytes that go in front of the code of a page that looks at
     the turn or the HP: the turn's base and multiple, a word each, and the
     enemy's place, the actor and their ranges, a byte each. Empty if it looks
     at none of that. The order is `BA_COND`'s in
     tools/runtime/ram_lejana.s."""
-    if not disparo.flags & TROPA_CON_CABECERA:
+    if not trigger.flags & TROOP_WITH_HEADER:
         return b""
-    d = disparo
-    salida = bytes([d.turno_base & 0xFF, d.turno_base >> 8,
-                    d.turno_mult & 0xFF, d.turno_mult >> 8,
-                    d.enemigo, d.enemigo_min, d.enemigo_max,
+    d = trigger
+    output = bytes([d.turn_base & 0xFF, d.turn_base >> 8,
+                    d.turn_mult & 0xFF, d.turn_mult >> 8,
+                    d.enemy, d.enemy_min, d.enemy_max,
                     d.actor, d.actor_min, d.actor_max])
-    assert len(salida) == TROPA_CABECERA_BYTES
-    return salida
+    assert len(output) == TROOP_HEADER_BYTES
+    return output
 
 
-def comandos_de_tropa(comandos):
-    """The commands of a troop page as if they were a map's, or `NoSePuede`
-    if any is not in `TROPA_COMANDOS`.
+def troop_commands(commands):
+    """The commands of a troop page as if they were a map's, or `CannotCompile`
+    if any is not in `TROOP_COMMANDS`.
 
     Returns copies: the database's are shared by all the troops that have
     the same page, and translating them in place would leave them translated
     for whoever reads them later."""
     from rpgmaker import lcf
-    salida = []
-    for cmd in comandos:
-        codigo = RAMA_DE_PELEA.get(cmd.code, cmd.code)
+    output = []
+    for cmd in commands:
+        code = BATTLE_BRANCH.get(cmd.code, cmd.code)
         if cmd.code == 13310 and (not cmd.parameters
                                   or cmd.parameters[0]
-                                  not in RAMA_DE_PELEA_CLASES):
-            raise NoSePuede("a battle branch that asks about the battle")
-        if codigo not in TROPA_COMANDOS:
-            raise NoSePuede("command %d does not run in a troop page"
-                            % cmd.code)
-        salida.append(lcf.EventCommand(codigo, cmd.indent, cmd.string,
+                                  not in BATTLE_BRANCH_KINDS):
+            raise CannotCompile("a battle branch that asks about the battle")
+        if code not in TROOP_COMMANDS:
+            raise CannotCompile("command %d does not run in a troop page"
+                                % cmd.code)
+        output.append(lcf.EventCommand(code, cmd.indent, cmd.string,
                                        cmd.parameters))
-    return salida
+    return output
 
 
 # The trigger of a troop page, with what the ROM reads from each one. The
 # fields of what the page does not look at go at zero.
-Disparo = collections.namedtuple("Disparo", (
-    "flags", "switch_a", "switch_b", "ranura", "valor",
-    "turno_base", "turno_mult", "enemigo", "enemigo_min", "enemigo_max",
+Trigger = collections.namedtuple("Trigger", (
+    "flags", "switch_a", "switch_b", "slot", "value",
+    "turn_base", "turn_mult", "enemy", "enemy_min", "enemy_max",
     "actor", "actor_min", "actor_max"))
 
 
-def disparo_de_tropa(pagina):
-    """The `Disparo` of a troop page, or None if it looks at something the
+def troop_trigger(page):
+    """The `Trigger` of a troop page, or None if it looks at something the
     ROM does not know how to look at.
 
     A page **without any trigger never runs** —`AreConditionsMet` returns
@@ -3184,58 +3184,58 @@ def disparo_de_tropa(pagina):
 
     HP is in percent, from 0 to 100: an enemy's by its place in the troop,
     an actor's by its LDB number."""
-    if not pagina.active:
+    if not page.active:
         return None
-    if any(a not in TROPA_DISPAROS for a in pagina.active):
+    if any(a not in TROOP_TRIGGERS for a in page.active):
         return None
-    c = pagina.condition
+    c = page.condition
     flags = 0
-    for a in pagina.active:
-        flags |= TROPA_DISPAROS[a]
-    switch_a = c["switch_a_id"] if "switch_a" in pagina.active else 0
-    switch_b = c["switch_b_id"] if "switch_b" in pagina.active else 0
+    for a in page.active:
+        flags |= TROOP_TRIGGERS[a]
+    switch_a = c["switch_a_id"] if "switch_a" in page.active else 0
+    switch_b = c["switch_b_id"] if "switch_b" in page.active else 0
     for s in (switch_a, switch_b):
         if not 0 <= s < SWITCH_MAX:
             return None
-    ranura, valor = 0, 0
-    if "variable" in pagina.active:
-        valor = c["variable_value"]
-        if not -0x8000 <= valor <= 0x7FFF:
+    slot, value = 0, 0
+    if "variable" in page.active:
+        value = c["variable_value"]
+        if not -0x8000 <= value <= 0x7FFF:
             return None
         try:
-            ranura = ranura_de_variable(c["variable_id"])
-        except NoSePuede:
+            slot = variable_slot(c["variable_id"])
+        except CannotCompile:
             return None
     base, mult = 0, 0
-    if "turn" in pagina.active:
+    if "turn" in page.active:
         base, mult = c["turn_b"], c["turn_a"]
         if not (0 <= base <= 0xFFFF and 0 <= mult < 0x8000):
             return None     # `ba_div` requires the divisor below 32768
-    enemigo, e_min, e_max = 0, 0, 0
-    if "enemy_hp" in pagina.active:
-        enemigo, e_min, e_max = (c["enemy_id"], c["enemy_hp_min"],
-                                 c["enemy_hp_max"])
-        if not (0 <= enemigo < 256 and 0 <= e_min <= 100
+    enemy, e_min, e_max = 0, 0, 0
+    if "enemy_hp" in page.active:
+        enemy, e_min, e_max = (c["enemy_id"], c["enemy_hp_min"],
+                               c["enemy_hp_max"])
+        if not (0 <= enemy < 256 and 0 <= e_min <= 100
                 and 0 <= e_max <= 100):
             return None
     actor, a_min, a_max = 0, 0, 0
-    if "actor_hp" in pagina.active:
+    if "actor_hp" in page.active:
         actor, a_min, a_max = (c["actor_id"], c["actor_hp_min"],
                                c["actor_hp_max"])
         if not (0 <= actor < 256 and 0 <= a_min <= 100
                 and 0 <= a_max <= 100):
             return None
-    return Disparo(flags, switch_a, switch_b, ranura, valor, base, mult,
-                   enemigo, e_min, e_max, actor, a_min, a_max)
+    return Trigger(flags, switch_a, switch_b, slot, value, base, mult,
+                   enemy, e_min, e_max, actor, a_min, a_max)
 
 
-class PaginasDeTropa:
+class TroopPages:
     """The pages of the cartridge's troops, compiled and deduplicated.
 
     `cuerpos` is the code of all of them, one after the other and **each
     distinct body only once**: the game copies its systems' pages into every
     troop —4588 pages and 295 distinct bodies—, so the key is the already
-    compiled bytecode, same as `Materiales` with the map's blocks.
+    compiled bytecode, same as `Materials` with the map's blocks.
 
     The messages go to **their own block**, `mensajes_tropa`, and not to the
     maps': `OP_MESSAGE` carries a sixteen-bit offset and the maps' block of
@@ -3245,57 +3245,57 @@ class PaginasDeTropa:
     """
 
     def __init__(self):
-        self.mensajes = Mensajes()
-        self.cuerpos = bytearray()
-        self.donde = {}             # bytecode -> offset in `cuerpos`
-        self.por_tropa = {}         # troop -> [(Disparo, ofs)]
-        self.paginas = 0            # how many were looked at
-        self.afuera = 0             # and how many did not get in
+        self.messages = Messages()
+        self.bodies = bytearray()
+        self.where = {}             # bytecode -> offset in `cuerpos`
+        self.per_troop = {}         # troop -> [(Trigger, ofs)]
+        self.pages = 0            # how many were looked at
+        self.left_out = 0             # and how many did not get in
 
-    def compilar(self, numero, tropa, temas=None):
-        """A troop's pages. With `temas`, a `PlaySound` is compiled with its
+    def compile(self, number, troop, songs=None):
+        """A troop's pages. With `songs`, a `PlaySound` is compiled with its
         effect, which counts for **the battle's audio package** —the one
-        loaded when the page runs, see `PAQUETE_BATALLA`— and not for the
+        loaded when the page runs, see `BATTLE_PACKAGE`— and not for the
         map's; and it goes into it only if it is in `se_troop_in_package`
         (snes_music.py): otherwise it is asked for and does not sound, like a
-        route one that does not fit. Without `temas` it is accepted and not
+        route one that does not fit. Without `songs` it is accepted and not
         done."""
-        suyas = []
-        anterior = temas.mapa if temas is not None else None
-        if temas is not None:
-            temas.mapa = PAQUETE_BATALLA
+        theirs = []
+        previous = songs.current_map if songs is not None else None
+        if songs is not None:
+            songs.current_map = BATTLE_PACKAGE
         try:
-            for pagina in tropa.pages:
-                self.paginas += 1
-                disparo = disparo_de_tropa(pagina)
-                codigo = None
-                if disparo is not None:
+            for page in troop.pages:
+                self.pages += 1
+                trigger = troop_trigger(page)
+                code = None
+                if trigger is not None:
                     try:
-                        comandos = comandos_de_tropa(pagina.commands)
-                    except NoSePuede:
-                        comandos = None
-                    if comandos is not None:
-                        codigo = compilar_pagina(_Comandos(comandos),
-                                                 lambda _mapa: None,
-                                                 self.mensajes, temas=temas)
-                if codigo is None:
-                    self.afuera += 1
+                        commands = troop_commands(page.commands)
+                    except CannotCompile:
+                        commands = None
+                    if commands is not None:
+                        code = compile_page(_Commands(commands),
+                                            lambda _map: None,
+                                            self.messages, songs=songs)
+                if code is None:
+                    self.left_out += 1
                     continue
                 # The header goes right in front and is part of the key: two
                 # pages with the same code and another turn are two bodies.
                 # The offset noted is the code's, so the ROM finds the header
-                # `TROPA_CABECERA_BYTES` before it.
-                cabecera = cabecera_de_tropa(disparo)
-                clave = cabecera + bytes(codigo)
-                if clave not in self.donde:
-                    self.donde[clave] = len(self.cuerpos) + len(cabecera)
-                    self.cuerpos += clave
-                suyas.append((disparo, self.donde[clave]))
+                # `TROOP_HEADER_BYTES` before it.
+                header = troop_header(trigger)
+                key = header + bytes(code)
+                if key not in self.where:
+                    self.where[key] = len(self.bodies) + len(header)
+                    self.bodies += key
+                theirs.append((trigger, self.where[key]))
         finally:
-            if temas is not None:
-                temas.mapa = anterior
-        self.por_tropa[numero] = suyas
-        return suyas
+            if songs is not None:
+                songs.current_map = previous
+        self.per_troop[number] = theirs
+        return theirs
 
 
 # --- random encounters -------------------------------------------------------
@@ -3337,11 +3337,11 @@ class PaginasDeTropa:
 #   empty `terrain_set`, and in RM2k empty means "on all of them".
 #
 # With that the model stays entirely in integers, which is what the console
-# can do without floating point: see `enc_umbrales_de_paso`.
+# can do without floating point: see `enc_step_thresholds`.
 
 # Every how many steps, by default, if the node does not carry the chunk
 # (liblcf: rpg::MapInfo::encounter_steps).
-ENC_PASOS_DEFECTO = 25
+ENC_DEFAULT_STEPS = 25
 
 # The tree node type that is an area. See `lcf.TreeMap.map_types`.
 TREE_AREA = 2
@@ -3351,7 +3351,7 @@ TREE_AREA = 2
 # they go as shifts and the math needs no floats. The ninth row there is
 # `{INT_MAX, 16.0}`, that is a cap that is never reached: the `while` does not
 # go past the last of these.
-ENC_TABLA = ((0, -4), (20, -3), (40, -2), (60, -1),
+ENC_TABLE = ((0, -4), (20, -3), (40, -2), (60, -1),
              (100, 1), (140, 2), (160, 3), (180, 4))
 
 # The `encounter_rate` the accumulated goes up by: the terrain's, which in
@@ -3360,16 +3360,16 @@ ENC_TABLA = ((0, -4), (20, -3), (40, -2), (60, -1),
 # the game. See `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 ENC_RATE = 100
 
-# The seed of the encounters' randomness. It differs from `AZAR_SEMILLA` and
-# from `BATALLA_SEMILLA` on purpose, and for the same reason as that one:
+# The seed of the encounters' randomness. It differs from `RANDOM_SEED` and
+# from `BATTLE_SEED` on purpose, and for the same reason as that one:
 # walking does not advance the map's randomness —a random `ControlVars` has
 # to give the same with and without encounters—. All that is asked of it is
 # not to be zero —the xorshift gets stuck— and to be the same in
-# `Encuentros` and in the ROM.
-ENC_SEMILLA = 0x5A17
+# `Encounters` and in the ROM.
+ENC_SEED = 0x5A17
 
 
-def enc_base(pasos):
+def enc_base(steps):
     """The formula's `1 / encounter_steps`, in 1/65536.
 
     A step's chance is `pmod / pasos`, and `pmod` is a power of two: if the
@@ -3379,11 +3379,11 @@ def enc_base(pasos):
 
     Zero means off, which is what `encounter_steps` 0 means in RM2k.
     """
-    return 0 if pasos <= 0 else 0x10000 // pasos
+    return 0 if steps <= 0 else 0x10000 // steps
 
 
-def enc_umbrales_de_paso(pasos):
-    """At which step each row of `ENC_TABLA` is crossed, counting from zero.
+def enc_step_thresholds(steps):
+    """At which step each row of `ENC_TABLE` is crossed, counting from zero.
 
     There the comparison is `ratio >= fila`, with `ratio = acumulado / pasos`
     integer and `acumulado = 100 * n`. Since the row is an integer,
@@ -3394,10 +3394,10 @@ def enc_umbrales_de_paso(pasos):
     bytes per map and not a single division on the console. The first row is
     0 and is not needed.
     """
-    return [-(-fila * pasos // ENC_RATE) for fila, _ in ENC_TABLA[1:]]
+    return [-(-row * steps // ENC_RATE) for row, _ in ENC_TABLE[1:]]
 
 
-def enc_umbral(base, idx):
+def enc_threshold(base, idx):
     """The step's chance, in 1/65536, or None if it is "always".
 
     `pmod` shifts `base` one way or the other. With small steps —the ones
@@ -3405,14 +3405,14 @@ def enc_umbral(base, idx):
     and there RM2k has certainty: `PercentChance` with `rate >= 1` always
     says yes. On the console that is the shift's carry.
     """
-    corrimiento = ENC_TABLA[idx][1]
-    if corrimiento < 0:
-        return base >> -corrimiento
-    valor = base << corrimiento
-    return None if valor >= 0x10000 else valor
+    shift = ENC_TABLE[idx][1]
+    if shift < 0:
+        return base >> -shift
+    value = base << shift
+    return None if value >= 0x10000 else value
 
 
-def zonas_de_encuentro(tree, map_id, ancho, alto):
+def encounter_zones(tree, map_id, width, height):
     """A map's zones: its own and one per area that hangs from it.
 
     A zone is (left, top, right, bottom, troops) with the rectangle
@@ -3423,18 +3423,18 @@ def zonas_de_encuentro(tree, map_id, ancho, alto):
     game no map has troops of its own **and** areas —measured—, so putting
     its own first cannot change which troop comes out.
     """
-    zonas = []
+    zones = []
     if tree.encounters.get(map_id):
-        zonas.append((0, 0, ancho, alto, list(tree.encounters[map_id])))
+        zones.append((0, 0, width, height, list(tree.encounters[map_id])))
     for i in sorted(tree.map_types):
         if (tree.map_types[i] == TREE_AREA and tree.map_parents.get(i) == map_id
                 and tree.encounters.get(i)):
-            izq, arr, der, aba = tree.area_rect[i]
-            zonas.append((izq, arr, der, aba, list(tree.encounters[i])))
-    return zonas
+            left, top, right, bottom = tree.area_rect[i]
+            zones.append((left, top, right, bottom, list(tree.encounters[i])))
+    return zones
 
 
-class Encuentros:
+class Encounters:
     """The encounter state of a game, the same on both sides.
 
     The tests use it; the ROM does the same with the tables the converter
@@ -3443,31 +3443,31 @@ class Encuentros:
     program.
     """
 
-    def __init__(self, pasos, zonas, semilla=ENC_SEMILLA):
-        self.zonas = list(zonas)
-        self.poner_pasos(pasos)
-        self.semilla = semilla
-        self.reiniciar()
+    def __init__(self, steps, zones, seed=ENC_SEED):
+        self.zones = list(zones)
+        self.set_steps(steps)
+        self.seed = seed
+        self.reset()
 
-    def poner_pasos(self, pasos):
+    def set_steps(self, steps):
         """The map's `encounter_steps`: on entering, and
         `ChangeEncounterSteps`."""
-        self.pasos = pasos
-        self.base = enc_base(pasos) if self.zonas else 0
-        self.umbrales = enc_umbrales_de_paso(pasos)
+        self.steps = steps
+        self.base = enc_base(steps) if self.zones else 0
+        self.thresholds = enc_step_thresholds(steps)
 
-    def reiniciar(self):
+    def reset(self):
         """The `SetTotalEncounterRate(0)` of `Game_Player::MoveTo`: every
         teleport —and every door— sets the accumulated to zero."""
         self.n = 0
         self.idx = 0
-        self.pendiente = False
+        self.pending = False
 
-    def _azar(self):
-        self.semilla = azar_siguiente(self.semilla)
-        return self.semilla
+    def _roll(self):
+        self.seed = next_random(self.seed)
+        return self.seed
 
-    def paso(self):
+    def step(self):
         """One step of the hero with the pad. Returns whether an encounter
         was left pending."""
         if not self.base:
@@ -3481,38 +3481,38 @@ class Encuentros:
         # sides have to **count the same**, and there the counter does not
         # wrap around.
         self.n = min(255, self.n + 1)
-        while (self.idx + 1 < len(ENC_TABLA)
-               and self.n >= self.umbrales[self.idx]):
+        while (self.idx + 1 < len(ENC_TABLE)
+               and self.n >= self.thresholds[self.idx]):
             self.idx += 1
-        umbral = enc_umbral(self.base, self.idx)
-        salio = umbral is None or self._azar() < umbral
-        if salio:
+        threshold = enc_threshold(self.base, self.idx)
+        hit = threshold is None or self._roll() < threshold
+        if hit:
             self.n = 0
             self.idx = 0
-            self.pendiente = True
-        return salio
+            self.pending = True
+        return hit
 
-    def candidatas(self, x, y):
+    def candidates(self, x, y):
         """The troops that can be fought on that cell: the map's plus those
         of each area covering it. It is `GetEncountersAt`."""
-        salida = []
-        for izq, arr, der, aba, tropas in self.zonas:
-            if izq <= x < der and arr <= y < aba:
-                salida += tropas
-        return salida
+        output = []
+        for left, top, right, bottom, troops in self.zones:
+            if left <= x < right and top <= y < bottom:
+                output += troops
+        return output
 
-    def elegir(self, x, y):
+    def choose(self, x, y):
         """The next frame's `PrepareEncounter`: which troop is fought, or
         None if there is none on that cell."""
-        self.pendiente = False
-        tropas = self.candidatas(x, y)
-        if not tropas:
+        self.pending = False
+        troops = self.candidates(x, y)
+        if not troops:
             return None
-        return tropas[self._azar() % len(tropas)]
+        return troops[self._roll() % len(troops)]
 
 
-def tropa_de_encuentro(cmd):
-    """The troop number of an `EnemyEncounter`, or `NoSePuede`.
+def encounter_troop(cmd):
+    """The troop number of an `EnemyEncounter`, or `CannotCompile`.
 
     The indices come from easyrpg-player's
     `Game_Interpreter_Map::CommandEnemyEncounter`, **not from memory**: `[0]`
@@ -3529,7 +3529,7 @@ def tropa_de_encuentro(cmd):
       in RM2k cuts the whole page on escaping —`abort_on_escape`— and would
       be a path with nothing exercising it;
     * **defeat**, with a handler or without: `defeat_mode` 0 is RM2k's Game
-      Over screen, and since 2026-09-13 it is emitted as `BATALLA_PERDER` in
+      Over screen, and since 2026-09-13 it is emitted as `BATTLE_LOSE` in
       the defeat's destination. The ROM notes it before fighting and, if it
       loses, shows the Game Over screen and from there goes back to boot
       —that is to the title screen, with the saved game waiting in SRAM—:
@@ -3538,23 +3538,23 @@ def tropa_de_encuentro(cmd):
       What is not done is what was done before 2026-09-13, which was not
       compiling the page: it cost 15, among them the Rat Tracks boss.
 
-    The backdrop is not looked at here: `fondo_de_encuentro` gets it.
+    The backdrop is not looked at here: `encounter_backdrop` gets it.
     """
     p = cmd.parameters
     if len(p) < 6:
-        raise NoSePuede("EnemyEncounter with no operands")
+        raise CannotCompile("EnemyEncounter with no operands")
     if p[0] != 0:
-        raise NoSePuede("EnemyEncounter with the troop in a variable")
+        raise CannotCompile("EnemyEncounter with the troop in a variable")
     if not 0 < p[1] <= 0xFFFF:
-        raise NoSePuede("EnemyEncounter of troop %d" % p[1])
-    if p[3] == BATALLA_ESCAPE_CORTA:
-        raise NoSePuede("EnemyEncounter that cuts the page on escape")
+        raise CannotCompile("EnemyEncounter of troop %d" % p[1])
+    if p[3] == BATTLE_ESCAPE_CUTS:
+        raise CannotCompile("EnemyEncounter that cuts the page on escape")
     return p[1]
 
 
-def fondo_de_encuentro(cmd):
+def encounter_backdrop(cmd):
     """The battle backdrop of an `EnemyEncounter`: the name it carries,
-    `FONDO_DEL_LUGAR`, or "" if none.
+    `PLACE_BACKDROP`, or "" if none.
 
     Parameter `[2]` of `CommandEnemyEncounter` says where the backdrop comes
     from: 1 is "the one this command says", which is what 49 of the game's 51
@@ -3564,54 +3564,54 @@ def fondo_de_encuentro(cmd):
     RM2k3's.
     """
     p = cmd.parameters
-    if len(p) > 2 and p[2] == BATALLA_FONDO_DEL_COMANDO:
+    if len(p) > 2 and p[2] == BATTLE_BACKDROP_OF_COMMAND:
         return cmd.string
-    if len(p) > 2 and p[2] == BATALLA_FONDO_DEL_LUGAR:
-        return FONDO_DEL_LUGAR
+    if len(p) > 2 and p[2] == BATTLE_BACKDROP_OF_PLACE:
+        return PLACE_BACKDROP
     return ""
 
 
-def fondos_de_comandos(comandos):
-    """The battle backdrops these commands name: the `fondos_nombrados`
+def command_backdrops(commands):
+    """The battle backdrops these commands name: the `named_backdrops`
     sweep."""
-    nombres = set()
-    for cmd in comandos:
+    names = set()
+    for cmd in commands:
         if cmd.code == ENEMY_ENCOUNTER:
-            fondo = fondo_de_encuentro(cmd)
-            if fondo and fondo is not FONDO_DEL_LUGAR:
-                nombres.add(fondo)
+            backdrop = encounter_backdrop(cmd)
+            if backdrop and backdrop is not PLACE_BACKDROP:
+                names.add(backdrop)
         elif cmd.code == CHANGE_BATTLE_BG and cmd.string:
-            nombres.add(cmd.string)
-    return nombres
+            names.add(cmd.string)
+    return names
 
 
-def _fondos_del_mapa(game_map):
-    """The `fondos_nombrados` sweep over one map."""
-    nombres = set()
-    for evento in game_map.events:
-        for page in evento.pages:
-            nombres |= fondos_de_comandos(page.commands)
-    return nombres
+def _map_backdrops(game_map):
+    """The `named_backdrops` sweep over one map."""
+    names = set()
+    for event in game_map.events:
+        for page in event.pages:
+            names |= command_backdrops(page.commands)
+    return names
 
 
-def fondos_nombrados(game_dir):
+def named_backdrops(game_dir):
     """The battle backdrops some command of the game names: the
     `EnemyEncounter`s and `ChangeBattleBG`s of all the maps, of the common
     events and of the troops' pages, whether they compile or not. The map
-    tree's and the terrains' are added by `escena.fondos_del_juego`.
+    tree's and the terrains' are added by `scene.game_backdrops`.
     """
-    db = base_de_datos(game_dir)
-    nombres = barrer_los_mapas(game_dir, mapas_del_juego(game_dir),
-                               _fondos_del_mapa)
-    for comandos in db.common_events.values():
-        nombres |= fondos_de_comandos(comandos)
-    for tropa in db.troops.values():
-        for pagina in tropa.pages:
-            nombres |= fondos_de_comandos(pagina.commands)
-    return nombres
+    db = database(game_dir)
+    names = sweep_maps(game_dir, game_map_ids(game_dir),
+                       _map_backdrops)
+    for commands in db.common_events.values():
+        names |= command_backdrops(commands)
+    for troop in db.troops.values():
+        for page in troop.pages:
+            names |= command_backdrops(page.commands)
+    return names
 
 
-def actor_de_blanco(p, que):
+def target_actor(p, what):
     """The actor operand of OP_HEAL and OP_EQUIPMENT, from RM2k's
     `[tipo, id]`.
 
@@ -3629,38 +3629,38 @@ def actor_de_blanco(p, que):
         return 0
     if p[0] == 1 and 0 < p[1] <= 0xFF:
         return p[1]
-    raise NoSePuede("%s with the actor in a variable" % que)
+    raise CannotCompile("%s with the actor in a variable" % what)
 
 
-def con_destino(pieza, destino):
+def with_dest(piece, dest):
     """The same piece with the destination set in its last two bytes."""
-    return pieza[:-2] + bytes([destino & 0xFF, destino >> 8])
+    return piece[:-2] + bytes([dest & 0xFF, dest >> 8])
 
 
-def _parchear(piezas, abierta, destino):
-    """Puts `destino` in the open piece of the branch stack. An entry is the
+def _patch(pieces, open_at, dest):
+    """Puts `dest` in the open piece of the branch stack. An entry is the
     piece's index, with the destination in its last two bytes, or (index,
     offset) for a piece with more than one destination: `OP_CELL_TEST`."""
-    if not isinstance(abierta, tuple):
-        piezas[abierta] = con_destino(piezas[abierta], destino)
+    if not isinstance(open_at, tuple):
+        pieces[open_at] = with_dest(pieces[open_at], dest)
         return
-    i, donde = abierta
-    pieza = piezas[i]
-    piezas[i] = (pieza[:donde] + bytes([destino & 0xFF, destino >> 8])
-                 + pieza[donde + 2:])
+    i, where = open_at
+    piece = pieces[i]
+    pieces[i] = (piece[:where] + bytes([dest & 0xFF, dest >> 8])
+                 + piece[where + 2:])
 
 
 # Where the two destinations go inside `OP_CELL_TEST`: see events.toml.
-CELDA_DESTINO_A = 10
-CELDA_DESTINO_B = 16
+CELL_DEST_A = 10
+CELL_DEST_B = 16
 # The top two bits of each `OP_CELL_TEST` write, over the variable's offset:
 # y instead of x, and the refresh. See `celda_probar` in
 # tools/runtime/interprete_celdas.s.
-CELDA_Y = 0x4000
-CELDA_REFRESCO = 0x8000
+CELL_Y = 0x4000
+CELL_REFRESH = 0x8000
 
 
-def celdas_fundibles(comandos):
+def fadable_cells(commands):
     """Where each "is it on the cell?" pattern that `OP_CELL_TEST` does in a
     single opcode starts: two `ControlVars` that put the x and the y of the
     same character in two variables, and two nested `ConditionalBranch`es
@@ -3674,94 +3674,94 @@ def celdas_fundibles(comandos):
     frames: see `celda_probar` in tools/runtime/interprete_celdas.s.
 
     Only the shape is looked at here; whether the operands compile is said
-    by `_pieza_de_celdas`, which is the one that emits.
+    by `_cell_test_piece`, which is the one that emits.
     """
-    def poner_celda(c):
+    def set_cell(c):
         p = c.parameters
         return (c.code == CONTROL_VARS and len(p) >= 7 and p[0] == 0
-                and p[3] == VAR_PONER and p[4] == VAR_PERSONAJE)
+                and p[3] == VAR_SET and p[4] == VAR_CHARACTER)
 
-    def igual_a_variable(c):
+    def equal_to_variable(c):
         p = c.parameters
-        return (c.code == COND_RAMA and len(p) >= 5 and p[0] == COND_VARIABLE
-                and p[2] == 1 and p[4] == CMP_IGUAL)
+        return (c.code == COND_BRANCH and len(p) >= 5 and p[0] == COND_VARIABLE
+                and p[2] == 1 and p[4] == CMP_EQUAL)
 
-    inicios = []
+    starts = []
     i = 0
-    while i + 3 < len(comandos):
-        a, b, c, d = comandos[i:i + 4]
-        if (poner_celda(a) and poner_celda(b)
+    while i + 3 < len(commands):
+        a, b, c, d = commands[i:i + 4]
+        if (set_cell(a) and set_cell(b)
                 and a.parameters[5] == b.parameters[5]
-                and igual_a_variable(c) and igual_a_variable(d)
+                and equal_to_variable(c) and equal_to_variable(d)
                 and a.indent == b.indent == c.indent
                 and d.indent == c.indent + 1):
-            inicios.append(i)
+            starts.append(i)
             i += 4
         else:
             i += 1
-    return inicios
+    return starts
 
 
-def _pieza_de_celdas(escrituras, ramas):
+def _cell_test_piece(writes, branches):
     """`OP_CELL_TEST` with the two destinations blank, built with what the
     four loose opcodes would emit —so the validations and the refresh are
     the same—, or None if it cannot be fused."""
-    v1, v2 = escrituras
-    r1, r2 = ramas
+    v1, v2 = writes
+    r1, r2 = branches
     for v in (v1, v2):
-        if (v[0] != OP_VAR or v[3] != VAR_PERSONAJE or v[5] != 0
-                or v[7] != 0 or v[6] not in (PERSONAJE_X, PERSONAJE_Y)
-                or v[2] & ~VAR_REFRESCO != VAR_PONER):
+        if (v[0] != OP_VAR or v[3] != VAR_CHARACTER or v[5] != 0
+                or v[7] != 0 or v[6] not in (CHARACTER_X, CHARACTER_Y)
+                or v[2] & ~VAR_REFRESH != VAR_SET):
             return None
     if v1[4] != v2[4]:
         return None
     for r in (r1, r2):
-        if (r[0] != OP_IF_VAR or r[2] != VAR_VARIABLE or r[3] != CMP_IGUAL
+        if (r[0] != OP_IF_VAR or r[2] != VAR_VARIABLE or r[3] != CMP_EQUAL
                 or r[5] != 0):
             return None
-    def escritura(v):
-        return (v[1] * 2 | (CELDA_Y if v[6] == PERSONAJE_Y else 0)
-                | (CELDA_REFRESCO if v[2] & VAR_REFRESCO else 0))
+    def write(v):
+        return (v[1] * 2 | (CELL_Y if v[6] == CHARACTER_Y else 0)
+                | (CELL_REFRESH if v[2] & VAR_REFRESH else 0))
 
-    palabras = [escritura(v1), escritura(v2),
-                r1[1] * 2, r1[4] * 2, 0, r2[1] * 2, r2[4] * 2, 0]
-    pieza = bytes([OP_CELL_TEST, v1[4]]) + b"".join(
-        bytes([w & 0xFF, w >> 8]) for w in palabras)
-    assert len(pieza) == OPCODE_SIZE[OP_CELL_TEST]
-    return pieza
+    words = [write(v1), write(v2),
+             r1[1] * 2, r1[4] * 2, 0, r2[1] * 2, r2[4] * 2, 0]
+    piece = bytes([OP_CELL_TEST, v1[4]]) + b"".join(
+        bytes([w & 0xFF, w >> 8]) for w in words)
+    assert len(piece) == OPCODE_SIZE[OP_CELL_TEST]
+    return piece
 
 
-def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
-                    temas=None, graficos=None, imagenes=None, tropas=None,
-                    base=0, hondo=0):
+def compile_page(page, map_index, messages=None, map_events=None,
+                 songs=None, graphics=None, pictures=None, troops=None,
+                 base=0, depth=0):
     """A page's commands as bytes, or None if it cannot be done.
 
-    `indice_de_mapa` translates the RM2k map id to the index in the ROM's
+    `map_index` translates the RM2k map id to the index in the ROM's
     table, and returns None for the maps that did not get into the
     cartridge: a teleport to one of those makes the page not runnable, which
     is more honest than jumping anywhere.
 
-    `mensajes` is the ROM's text block. Without it the text boxes do not
+    `messages` is the ROM's text block. Without it the text boxes do not
     compile, and it is not a matter of taste: the window takes 8 KB of VRAM
     and a palette, so a ROM that does not carry it has nowhere to draw them.
 
-    `eventos_mapa` is the map's `Eventos`, already pointed at the page's
+    `map_events` is the map's `MapEvents`, already pointed at the page's
     owner. Without it a forced route can only be on the hero: there is
     nothing to translate the RM2k id to the table's index with.
 
-    `tropas` is the registry of the troops the cartridge is going to have to
+    `troops` is the registry of the troops the cartridge is going to have to
     carry. **It does not change the bytecode** —the troop number emitted is
     RM2k's— so a ROM without a registry compiles exactly the same; the only
     thing lost is knowing which tables have to be emitted.
 
-    `base` and `hondo` are for `CallEvent`, which is compiled **inline**: the
+    `base` and `depth` are for `CallEvent`, which is compiled **inline**: the
     called event's body is emitted in the place of the call. `base` is where
     this piece starts inside the outer page, because the branches'
-    destinations are absolute; `hondo` is the nesting, which is capped. An
+    destinations are absolute; `depth` is the nesting, which is capped. An
     inline piece **carries no `OP_DONE`**: in RM2k the called event's `END`
     returns to the caller, it does not end the page.
     """
-    marca = mensajes.marca() if mensajes is not None else None
+    mark = messages.mark() if messages is not None else None
     try:
         # The branches are emitted with the destination blank and patched
         # when closing them, which is the only way: until what is inside is
@@ -3769,16 +3769,16 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
         # nesting, so there is no need to look at the indentation as
         # `SkipToNextConditional` does —it walks the list of commands, here
         # the blocks already come properly nested—.
-        piezas = []
-        largo = base         # see `base`: the branches' destinations are
+        pieces = []
+        length = base         # see `base`: the branches' destinations are
                              # absolute within the outer page
-        pila = []            # pieces with the destination still blank
+        stack = []            # pieces with the destination still blank
         # The options of each `ShowChoice` are gathered looking ahead, which
         # is what `GetChoices` does, so they are resolved before the loop:
         # in here the commands come one at a time and already grouped.
-        comandos = list(page.commands)
-        opciones_de = {id(c): opciones_de_eleccion(comandos, i)
-                       for i, c in enumerate(comandos) if c.code == SHOW_CHOICE}
+        commands = list(page.commands)
+        options_of = {id(c): choice_options(commands, i)
+                      for i, c in enumerate(commands) if c.code == SHOW_CHOICE}
         # Which `EnemyEncounter`s come **without a handler block**. RM2k does
         # not emit it when the battle has no branch to write, which is
         # exactly what happens with `defeat_mode` 0: losing is the Game Over
@@ -3788,71 +3788,71 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
         # them falling into "an unclosed battle". It looks ahead like a
         # `ShowChoice`'s options, because inside the loop the commands come
         # one at a time.
-        sin_bloque = {id(c) for i, c in enumerate(comandos)
-                      if c.code == ENEMY_ENCOUNTER
-                      and (i + 1 >= len(comandos)
-                           or comandos[i + 1].code not in BATALLA_HANDLERS)}
+        no_block = {id(c) for i, c in enumerate(commands)
+                    if c.code == ENEMY_ENCOUNTER
+                    and (i + 1 >= len(commands)
+                         or commands[i + 1].code not in BATTLE_HANDLERS)}
         # The four of "is it on the cell?", which go in a single opcode: see
-        # `celdas_fundibles`. Each command's role —0 and 1 the writes, 2 and
+        # `fadable_cells`. Each command's role —0 and 1 the writes, 2 and
         # 3 the branches— by its id, and each pattern's fused piece by its
         # first command's id, when it is emitted.
-        celda_papel = {}
-        for i in celdas_fundibles(comandos):
+        cell_role = {}
+        for i in fadable_cells(commands):
             for n in range(4):
-                celda_papel[id(comandos[i + n])] = (n, id(comandos[i]))
-        celda_pieza = {}
-        eleg = []            # the open choices
+                cell_role[id(commands[i + n])] = (n, id(commands[i]))
+        cell_piece = {}
+        choices = []            # the open choices
         bat = []             # and the open battles, same as them
         bgm = [None, [], []]  # the pending `PlayBGM`, what was noted and
-                              # the jumps: see `_seguir_la_salida`
-        constantes = {}      # the last thing the page put in each variable,
-                             # if it was a constant: see `_destino_recordado`
-        for cmd, extra in agrupar(comandos):
-            pedidos = temas.pedidos if temas is not None else 0
-            papel = celda_papel.get(id(cmd))
-            if papel is not None and papel[0] == 0:
+                              # the jumps: see `_follow_exit`
+        constants = {}      # the last thing the page put in each variable,
+                             # if it was a constant: see `_recalled_destination`
+        for cmd, extra in group_boxes(commands):
+            requested = songs.requested if songs is not None else 0
+            role = cell_role.get(id(cmd))
+            if role is not None and role[0] == 0:
                 # It is built here and not before because the refresh
-                # depends on `eventos_mapa`, which changes after a
+                # depends on `map_events`, which changes after a
                 # `Teleport`.
-                i = comandos.index(cmd)
-                sueltos = comandos[i:i + 4]
-                fundida = _pieza_de_celdas(
-                    [_compilar(c, indice_de_mapa, mensajes, (), eventos_mapa,
-                               temas, graficos, imagenes)
-                     for c in sueltos[:2]],
-                    [bytes_de_rama(c) for c in sueltos[2:]])
-                if fundida is None:
-                    for c in sueltos:
-                        del celda_papel[id(c)]
-                    papel = None
+                i = commands.index(cmd)
+                loose = commands[i:i + 4]
+                faded = _cell_test_piece(
+                    [_compile(c, map_index, messages, (), map_events,
+                              songs, graphics, pictures)
+                     for c in loose[:2]],
+                    [branch_bytes(c) for c in loose[2:]])
+                if faded is None:
+                    for c in loose:
+                        del cell_role[id(c)]
+                    role = None
                 else:
-                    celda_pieza[id(cmd)] = len(piezas)
-            if papel is not None:
-                n, primero = papel
-                pieza = b""
+                    cell_piece[id(cmd)] = len(pieces)
+            if role is not None:
+                n, first = role
+                piece = b""
                 if n == 0:
-                    pieza = fundida
+                    piece = faded
                 if n < 2:
-                    _anotar_constante(cmd, constantes)
+                    _note_constant(cmd, constants)
                 else:
-                    pila.append((celda_pieza[primero],
-                                 CELDA_DESTINO_A if n == 2
-                                 else CELDA_DESTINO_B))
+                    stack.append((cell_piece[first],
+                                  CELL_DEST_A if n == 2
+                                  else CELL_DEST_B))
             elif cmd.code == ENEMY_ENCOUNTER:
-                tropa = tropa_de_encuentro(cmd)
-                if tropas is not None:
-                    tropas.pedir(tropa, fondo_de_encuentro(cmd))
+                troop = encounter_troop(cmd)
+                if troops is not None:
+                    troops.request(troop, encounter_backdrop(cmd))
                 # The song and effects the battle plays, noted in the
-                # battle's package: see `audio_de_batalla`.
-                audio_de_batalla(temas)
-                perder_es_game_over = (len(cmd.parameters) > 4
+                # battle's package: see `battle_audio`.
+                battle_audio(songs)
+                losing_is_game_over = (len(cmd.parameters) > 4
                                        and cmd.parameters[4]
-                                       == BATALLA_DERROTA_GAME_OVER)
-                if id(cmd) in sin_bloque:
+                                       == BATTLE_DEFEAT_GAME_OVER)
+                if id(cmd) in no_block:
                     # No handlers: the battle closes right here. Winning and
                     # escaping continue with the command below —which is what
                     # RM2k does when there are no branches— and losing goes
-                    # to `BATALLA_PERDER`, that is to the Game Over.
+                    # to `BATTLE_LOSE`, that is to the Game Over.
                     #
                     # **Escaping points to victory and not elsewhere**, and
                     # it is a declared approximation: the 24 battles of this
@@ -3861,317 +3861,317 @@ def compilar_pagina(page, indice_de_mapa, mensajes=None, eventos_mapa=None,
                     # escape anyway, because the permission does not travel
                     # in the opcode: `ChangeEscapeAccess` is accepted and not
                     # done.
-                    sigue = largo + 9
-                    perder = (BATALLA_PERDER if perder_es_game_over
-                              else sigue)
-                    pieza = bytes([OP_BATTLE, tropa & 0xFF, tropa >> 8,
-                                   sigue & 0xFF, sigue >> 8,
-                                   sigue & 0xFF, sigue >> 8,
-                                   perder & 0xFF, perder >> 8])
+                    next_at = length + 9
+                    lose = (BATTLE_LOSE if losing_is_game_over
+                            else next_at)
+                    piece = bytes([OP_BATTLE, troop & 0xFF, troop >> 8,
+                                   next_at & 0xFF, next_at >> 8,
+                                   next_at & 0xFF, next_at >> 8,
+                                   lose & 0xFF, lose >> 8])
                 else:
-                    bat.append({"i": len(piezas), "tropa": tropa,
+                    bat.append({"i": len(pieces), "tropa": troop,
                                 "destinos": [None, None, None],
-                                "game_over": perder_es_game_over,
+                                "game_over": losing_is_game_over,
                                 "vistas": 0, "salidas": []})
-                    pieza = bytes(9)  # the room, filled in at the EndBattle
-            elif cmd.code in BATALLA_HANDLERS:
+                    piece = bytes(9)  # the room, filled in at the EndBattle
+            elif cmd.code in BATTLE_HANDLERS:
                 if not bat:
-                    raise NoSePuede("a battle handler without its battle")
-                actual = bat[-1]
-                n = BATALLA_HANDLERS.index(cmd.code)
+                    raise CannotCompile("a battle handler without its battle")
+                current = bat[-1]
+                n = BATTLE_HANDLERS.index(cmd.code)
                 # The previous handler's body ends here and is taken out of
                 # the block with a jump to the end, patched when closing it.
                 # It is the same `ShowChoiceOption` does, and for the same
                 # reason: that way there is no need to look at the
                 # indentation.
-                pieza = b"" if not actual["vistas"] else bytes([OP_GOTO, 0, 0])
-                if pieza:
-                    actual["salidas"].append(len(piezas))
-                actual["vistas"] += 1
-                if actual["destinos"][n] is not None:
-                    raise NoSePuede("two identical battle handlers")
-                actual["destinos"][n] = largo + len(pieza)
+                piece = b"" if not current["vistas"] else bytes([OP_GOTO, 0, 0])
+                if piece:
+                    current["salidas"].append(len(pieces))
+                current["vistas"] += 1
+                if current["destinos"][n] is not None:
+                    raise CannotCompile("two identical battle handlers")
+                current["destinos"][n] = length + len(piece)
             elif cmd.code == END_BATTLE:
                 if not bat:
-                    raise NoSePuede("a battle end without its battle")
-                actual = bat.pop()
-                tabla = bytes([OP_BATTLE,
-                               actual["tropa"] & 0xFF, actual["tropa"] >> 8])
-                for n, destino in enumerate(actual["destinos"]):
+                    raise CannotCompile("a battle end without its battle")
+                current = bat.pop()
+                table = bytes([OP_BATTLE,
+                               current["tropa"] & 0xFF, current["tropa"] >> 8])
+                for n, dest in enumerate(current["destinos"]):
                     # The handler the page does not have falls at the end of
                     # the block, which is what RM2k does with a sub-index
                     # without a branch: `SetSubcommandIndex` and carry on.
                     # **Except the defeat with `defeat_mode` 0**, which there
                     # is not a missing branch but the Game Over: see
-                    # `BATALLA_PERDER`.
-                    if destino is None and n == 2 and actual["game_over"]:
-                        d = BATALLA_PERDER
+                    # `BATTLE_LOSE`.
+                    if dest is None and n == 2 and current["game_over"]:
+                        d = BATTLE_LOSE
                     else:
-                        d = largo if destino is None else destino
-                    tabla += bytes([d & 0xFF, d >> 8])
-                piezas[actual["i"]] = tabla
-                for salida in actual["salidas"]:
-                    piezas[salida] = con_destino(piezas[salida], largo)
-                pieza = b""
+                        d = length if dest is None else dest
+                    table += bytes([d & 0xFF, d >> 8])
+                pieces[current["i"]] = table
+                for output in current["salidas"]:
+                    pieces[output] = with_dest(pieces[output], length)
+                piece = b""
             elif cmd.code == SHOW_CHOICE:
-                if mensajes is None:
-                    raise NoSePuede("a choice with no window to put it in")
-                opciones = opciones_de[id(cmd)]
-                if not opciones:
-                    raise NoSePuede("a choice without options")
-                if [n for n, _ in opciones] != list(range(len(opciones))):
-                    raise NoSePuede("options numbered out of order")
-                cancelar = cmd.parameters[0] if cmd.parameters else 0
-                if cancelar > len(opciones):
+                if messages is None:
+                    raise CannotCompile("a choice with no window to put it in")
+                options = options_of[id(cmd)]
+                if not options:
+                    raise CannotCompile("a choice without options")
+                if [n for n, _ in options] != list(range(len(options))):
+                    raise CannotCompile("options numbered out of order")
+                cancel = cmd.parameters[0] if cmd.parameters else 0
+                if cancel > len(options):
                     # `cancel_type` 5 with four options is the "cancel
                     # branch", a fifth one that is not in the list. Nobody
                     # uses it in this game and doing it blindly would be
                     # making things up.
-                    raise NoSePuede("choice with a cancel branch")
-                cuadros = cuadros_de_eleccion(opciones, mensajes)
-                eleg.append({"i": len(piezas), "n": len(opciones),
-                             "cancelar": cancelar, "cuadros": cuadros,
-                             "destinos": [None] * len(opciones),
-                             "vistas": 0, "salidas": []})
+                    raise CannotCompile("choice with a cancel branch")
+                frames = choice_boxes(options, messages)
+                choices.append({"i": len(pieces), "n": len(options),
+                                "cancelar": cancel, "cuadros": frames,
+                                "destinos": [None] * len(options),
+                                "vistas": 0, "salidas": []})
                 # The table's room, filled in at the `ShowChoiceEnd`.
-                pieza = bytes(3 + 4 * len(opciones))
+                piece = bytes(3 + 4 * len(options))
             elif cmd.code == SHOW_CHOICE_OPTION:
-                if not eleg:
-                    raise NoSePuede("an option without its choice")
-                actual = eleg[-1]
+                if not choices:
+                    raise CannotCompile("an option without its choice")
+                current = choices[-1]
                 n = cmd.parameters[0] if cmd.parameters else 0
-                if not 0 <= n < actual["n"]:
-                    raise NoSePuede("an option that is not in the list")
+                if not 0 <= n < current["n"]:
+                    raise CannotCompile("an option that is not in the list")
                 # The previous option's body ends here: it is taken out of
                 # the choice with a jump to the end, patched when closing it.
                 # Emitting it here and not at the body's `END` is what keeps
                 # this from depending on looking at the indentation.
-                pieza = b"" if not actual["vistas"] else bytes([OP_GOTO, 0, 0])
-                if pieza:
-                    actual["salidas"].append(len(piezas))
-                actual["vistas"] += 1
-                actual["destinos"][n] = largo + len(pieza)
+                piece = b"" if not current["vistas"] else bytes([OP_GOTO, 0, 0])
+                if piece:
+                    current["salidas"].append(len(pieces))
+                current["vistas"] += 1
+                current["destinos"][n] = length + len(piece)
             elif cmd.code == SHOW_CHOICE_END:
-                if not eleg:
-                    raise NoSePuede("a choice end without its choice")
-                actual = eleg.pop()
-                if any(d is None for d in actual["destinos"]):
-                    raise NoSePuede("an option without a body")
-                tabla = bytes([OP_CHOICE, actual["n"], actual["cancelar"]])
-                for cuadro, destino in zip(actual["cuadros"],
-                                           actual["destinos"]):
-                    tabla += bytes([cuadro & 0xFF, cuadro >> 8,
-                                    destino & 0xFF, destino >> 8])
-                piezas[actual["i"]] = tabla
-                for salida in actual["salidas"]:
-                    piezas[salida] = con_destino(piezas[salida], largo)
-                pieza = b""
-            elif cmd.code == COND_RAMA:
-                pila.append(len(piezas))
-                pieza = bytes_de_rama(cmd)
-            elif cmd.code == COND_SINO:
-                if not pila:
-                    raise NoSePuede("an `else` without its `if`")
-                abierta = pila.pop()
-                pieza = bytes([OP_GOTO, 0, 0])
+                if not choices:
+                    raise CannotCompile("a choice end without its choice")
+                current = choices.pop()
+                if any(d is None for d in current["destinos"]):
+                    raise CannotCompile("an option without a body")
+                table = bytes([OP_CHOICE, current["n"], current["cancelar"]])
+                for frame, dest in zip(current["cuadros"],
+                                       current["destinos"]):
+                    table += bytes([frame & 0xFF, frame >> 8,
+                                    dest & 0xFF, dest >> 8])
+                pieces[current["i"]] = table
+                for output in current["salidas"]:
+                    pieces[output] = with_dest(pieces[output], length)
+                piece = b""
+            elif cmd.code == COND_BRANCH:
+                stack.append(len(pieces))
+                piece = branch_bytes(cmd)
+            elif cmd.code == COND_ELSE:
+                if not stack:
+                    raise CannotCompile("an `else` without its `if`")
+                open_at = stack.pop()
+                piece = bytes([OP_GOTO, 0, 0])
                 # The `if`'s destination is **after** this jump, which is
                 # where the branch below starts; the jump's is resolved at
                 # the `end`, with the piece left open in its place.
-                _parchear(piezas, abierta, largo + 3)
-                pila.append(len(piezas))
-            elif cmd.code == COND_FIN:
-                if not pila:
-                    raise NoSePuede("an `end` without its `if`")
-                abierta = pila.pop()
-                _parchear(piezas, abierta, largo)
-                pieza = b""
+                _patch(pieces, open_at, length + 3)
+                stack.append(len(pieces))
+            elif cmd.code == COND_END:
+                if not stack:
+                    raise CannotCompile("an `end` without its `if`")
+                open_at = stack.pop()
+                _patch(pieces, open_at, length)
+                piece = b""
             elif cmd.code == SHOW_INN:
-                pieza = _compilar_posada(cmd, largo, mensajes)
+                piece = _compile_inn(cmd, length, messages)
             elif cmd.code == CONTROL_SWITCHES \
                     and len(cmd.parameters) >= 4 \
                     and cmd.parameters[3] == SWITCH_TOGGLE:
-                pieza = _compilar_alternar(cmd, largo)
+                piece = _compile_toggle(cmd, length)
             elif cmd.code in (INN_STAY, INN_NO_STAY, INN_END):
                 # The inn's three branches. None of the game's 18 pages
                 # uses them —measured—, and doing them requires exactly what
-                # `_compilar_posada` does not have: a place to put the body of
+                # `_compile_inn` does not have: a place to put the body of
                 # "stayed" inside a choice that is already built.
-                raise NoSePuede("an inn with its branches")
+                raise CannotCompile("an inn with its branches")
             elif cmd.code == CALL_EVENT:
-                pieza = _compilar_llamada(cmd, largo, hondo, indice_de_mapa,
-                                          mensajes, eventos_mapa, temas,
-                                          graficos, imagenes, tropas)
+                piece = _compile_call(cmd, length, depth, map_index,
+                                      messages, map_events, songs,
+                                      graphics, pictures, troops)
             else:
-                pieza = _compilar(cmd, indice_de_mapa, mensajes, extra,
-                                  eventos_mapa, temas, graficos, imagenes)
+                piece = _compile(cmd, map_index, messages, extra,
+                                 map_events, songs, graphics, pictures)
                 # A jump to another map: the page keeps running there. See
-                # `Eventos.afuera`.
-                if cmd.code == TELEPORT and eventos_mapa is not None \
-                        and cmd.parameters[0] != eventos_mapa.map_id:
-                    eventos_mapa = eventos_mapa.afuera()
+                # `MapEvents.after_jump`.
+                if cmd.code == TELEPORT and map_events is not None \
+                        and cmd.parameters[0] != map_events.map_id:
+                    map_events = map_events.after_jump()
                 if cmd.code == RECALL_TO_LOCATION:
-                    destino = _destino_recordado(cmd, constantes, temas,
-                                                 indice_de_mapa)
-                    if eventos_mapa is not None \
-                            and destino != eventos_mapa.map_id:
-                        eventos_mapa = eventos_mapa.afuera()
-                _anotar_constante(cmd, constantes)
+                    dest = _recalled_destination(cmd, constants, songs,
+                                                 map_index)
+                    if map_events is not None \
+                            and dest != map_events.map_id:
+                        map_events = map_events.after_jump()
+                _note_constant(cmd, constants)
                 # The switch of an equipment common event, turned on: its
                 # body goes right here, as if a `CallEvent` followed it. In
                 # RM2k it would run on the next frame; see
-                # `COMUNES_DEL_EQUIPO`.
-                for numero in _comunes_que_prende(cmd):
-                    pieza += compilar_pagina(
-                        _Comandos(COMUNES[numero]), indice_de_mapa, mensajes,
-                        eventos_mapa, temas, graficos, imagenes, tropas,
-                        base=largo + len(pieza), hondo=hondo + 1) or b""
-            if temas is not None:
-                _seguir_la_salida(cmd, bgm, temas, indice_de_mapa,
-                                  temas.pedidos != pedidos)
-            piezas.append(pieza)
-            largo += len(pieza)
-        if pila:
-            raise NoSePuede("an unclosed branch")
-        if eleg:
-            raise NoSePuede("an unclosed choice")
+                # `PARTY_COMMON_EVENTS`.
+                for number in _common_events_turned_on(cmd):
+                    piece += compile_page(
+                        _Commands(COMMON_EVENTS[number]), map_index, messages,
+                        map_events, songs, graphics, pictures, troops,
+                        base=length + len(piece), depth=depth + 1) or b""
+            if songs is not None:
+                _follow_exit(cmd, bgm, songs, map_index,
+                             songs.requested != requested)
+            pieces.append(piece)
+            length += len(piece)
+        if stack:
+            raise CannotCompile("an unclosed branch")
+        if choices:
+            raise CannotCompile("an unclosed choice")
         if bat:
-            raise NoSePuede("an unclosed battle")
+            raise CannotCompile("an unclosed battle")
         # What was noted from the `PlayBGM`s counts only if the page
         # compiles: one that does not, does not run, and says nothing about
         # how the map is left.
         if bgm[0] is not None:
             bgm[1].append((bgm[0], False))
-        for tema, sale in bgm[1]:
-            temas.salida(tema, sale)
-        for destino, tema in bgm[2]:
-            temas.salto(destino, tema)
-        codigo = b"".join(piezas)
+        for song, is_exit in bgm[1]:
+            songs.note_exit(song, is_exit)
+        for dest, song in bgm[2]:
+            songs.jump(dest, song)
+        code = b"".join(pieces)
         # The `OP_DONE` belongs to the page and not to the piece: an inline
         # body carrying it would end the caller's page instead of returning
         # control to it. See `base`.
-        return codigo if hondo else codigo + bytes([OP_DONE])
-    except NoSePuede:
-        if mensajes is not None:
-            mensajes.volver(marca)
+        return code if depth else code + bytes([OP_DONE])
+    except CannotCompile:
+        if messages is not None:
+            messages.rewind(mark)
         return None
 
 
-def _comunes_que_prende(cmd):
-    """The `COMUNES_DEL_EQUIPO` events whose switch this command turns on."""
+def _common_events_turned_on(cmd):
+    """The `PARTY_COMMON_EVENTS` events whose switch this command turns on."""
     p = cmd.parameters
     if cmd.code != CONTROL_SWITCHES or len(p) < 4 or p[3] != SWITCH_ON \
-            or p[0] not in (SWITCH_UNICO, SWITCH_RANGO):
+            or p[0] not in (SWITCH_SINGLE, SWITCH_RANGE):
         return []
-    return [numero for switch, numero in sorted(COMUNES_DEL_EQUIPO.items())
+    return [number for switch, number in sorted(PARTY_COMMON_EVENTS.items())
             if p[1] <= switch <= p[2]]
 
 
-def _anotar_constante(cmd, constantes):
-    """Keeps in `constantes` the last thing the page put in each variable
+def _note_constant(cmd, constants):
+    """Keeps in `constants` the last thing the page put in each variable
     when it was a constant, and forgets the variable if it wrote it some
-    other way. It does not look at branches: it is for `_destino_recordado`,
+    other way. It does not look at branches: it is for `_recalled_destination`,
     which only uses it to note an audio destination."""
     p = cmd.parameters
     if cmd.code == CONTROL_VARS and len(p) >= 7:
-        desde, hasta = (p[1], p[1]) if p[0] == 0 else (p[1], p[2])
-        for numero in range(desde, hasta + 1):
-            constantes.pop(numero, None)
-        if p[0] == 0 and p[3] == VAR_PONER and p[4] == VAR_CONSTANTE:
-            constantes[p[1]] = p[5]
+        first, last = (p[1], p[1]) if p[0] == 0 else (p[1], p[2])
+        for number in range(first, last + 1):
+            constants.pop(number, None)
+        if p[0] == 0 and p[3] == VAR_SET and p[4] == VAR_CONSTANT:
+            constants[p[1]] = p[5]
     elif cmd.code in (MEMORIZE_LOCATION, KEY_INPUT_PROC, STORE_TERRAIN_ID) \
             and p:
-        for numero in (p[:3] if cmd.code == MEMORIZE_LOCATION
+        for number in (p[:3] if cmd.code == MEMORIZE_LOCATION
                        else p[3:4] if cmd.code == STORE_TERRAIN_ID else p[:1]):
-            constantes.pop(numero, None)
+            constants.pop(number, None)
 
 
-def _destino_recordado(cmd, constantes, temas, indice_de_mapa):
+def _recalled_destination(cmd, constants, songs, map_index):
     """The RM2k id of the map a `RecallToLocation` jumps to, if the page set
     it with a constant before —the breaking floors load 61 or 60 into the
     variable, and jump right away—, or None.
 
-    What is known is noted as the map's destination in `temas`, same as a
+    What is known is noted as the map's destination in `songs`, same as a
     `Teleport`: it is where it comes from which song may be playing on
     arrival. What is not known —the way back from a tutorial, which jumps to
     whatever another page remembered— is not noted, and it is the only thing
     the audio does not see: the song that arrives that way has to be in the
     destination's package by another path. In the game it is the droid
     tutorial going back to 48 with the song it left there with."""
-    destino = constantes.get(cmd.parameters[0]) if cmd.parameters else None
-    if destino is not None and temas is not None:
-        indice = indice_de_mapa(destino)
-        if indice is not None:
-            temas.destino(indice)
-            if indice != temas.mapa:
-                temas.salto(indice, None)
-    return destino
+    dest = constants.get(cmd.parameters[0]) if cmd.parameters else None
+    if dest is not None and songs is not None:
+        index = map_index(dest)
+        if index is not None:
+            songs.dest(index)
+            if index != songs.current_map:
+                songs.jump(index, None)
+    return dest
 
 
 # What cuts an exit `PlayBGM` before the jump: branches, choices, battles,
 # calls and loops —with them, what follows is no longer a single line—. The
-# effects too, but those show in `Temas.pedidos`, which also counts an
+# effects too, but those show in `Songs.requested`, which also counts an
 # animation's.
-CORTAN_LA_SALIDA = frozenset((
-    COND_RAMA, COND_SINO, COND_FIN, SHOW_CHOICE, SHOW_CHOICE_OPTION,
+CUT_THE_EXIT = frozenset((
+    COND_BRANCH, COND_ELSE, COND_END, SHOW_CHOICE, SHOW_CHOICE_OPTION,
     SHOW_CHOICE_END, ENEMY_ENCOUNTER, END_BATTLE, CALL_EVENT, SHOW_INN,
     INN_STAY, INN_NO_STAY, INN_END,
     # A jump whose destination is not always known: it is taken as not
     # leaving.
-    RECALL_TO_LOCATION, PLAY_MEMORIZED_BGM) + BATALLA_HANDLERS
+    RECALL_TO_LOCATION, PLAY_MEMORIZED_BGM) + BATTLE_HANDLERS
     # Label, JumpToLabel, Loop, BreakLoop, EndLoop and EndEventProcessing.
     + (12110, 12120, 12210, 12220, 22210, 12310))
 
 
-def _seguir_la_salida(cmd, salida, temas, indice_de_mapa, sono):
+def _follow_exit(cmd, output, songs, map_index, played_sound):
     """Follows, command by command, whether the page's last `PlayBGM` is an
-    exit one —see `Temas.de_salida`—: it is if what comes up to a
-    `Teleport` to another map plays no effect (`sono`), turns on no other
-    song and does not branch. `salida` is [the pending song or None, what
-    was noted]; what was noted is passed to `temas` only if the page
+    exit one —see `Songs.exit_songs`—: it is if what comes up to a
+    `Teleport` to another map plays no effect (`played_sound`), turns on no other
+    song and does not branch. `output` is [the pending song or None, what
+    was noted]; what was noted is passed to `songs` only if the page
     compiles.
 
     A jump to the same map also cuts it: it reloads the package with the
     song playing, which is the inheritance case and not the leaving one.
 
     And it notes in `salida[2]` each jump to another map with the song it
-    carries if it is an exit one, or None: see `Temas.salto`."""
-    pendiente, anotado = salida[:2]
-    if cmd.code == TELEPORT and temas.mapa is not None:
-        destino = indice_de_mapa(cmd.parameters[0])
-        if destino is not None and destino != temas.mapa:
-            salida[2].append((destino, pendiente))
+    carries if it is an exit one, or None: see `Songs.jump`."""
+    pending, noted = output[:2]
+    if cmd.code == TELEPORT and songs.current_map is not None:
+        dest = map_index(cmd.parameters[0])
+        if dest is not None and dest != songs.current_map:
+            output[2].append((dest, pending))
     if cmd.code == PLAY_BGM and cmd.string:
-        if pendiente is not None:
-            anotado.append((pendiente, False))
-        salida[0] = temas.nombres.index(cmd.string)
+        if pending is not None:
+            noted.append((pending, False))
+        output[0] = songs.names.index(cmd.string)
         return
-    if pendiente is None:
+    if pending is None:
         return
     if cmd.code == TELEPORT:
-        sale = indice_de_mapa(cmd.parameters[0]) != temas.mapa
-        anotado.append((pendiente, sale))
-        salida[0] = None
-    elif sono or cmd.code in CORTAN_LA_SALIDA:
-        anotado.append((pendiente, False))
-        salida[0] = None
+        is_exit = map_index(cmd.parameters[0]) != songs.current_map
+        noted.append((pending, is_exit))
+        output[0] = None
+    elif played_sound or cmd.code in CUT_THE_EXIT:
+        noted.append((pending, False))
+        output[0] = None
 
 
 # How deep a `CallEvent` nests. It is not an abstract precaution: a common
 # event can call itself —the inline body would be infinite— and two can call
 # each other. In this game the longest chain that compiles is one.
-LLAMADA_MAX = 4
+CALL_MAX = 4
 
 
-class _Comandos:
-    """A wrapper with `.commands`, which is the only thing `compilar_pagina`
+class _Commands:
+    """A wrapper with `.commands`, which is the only thing `compile_page`
     looks at in a page. The common events, which are not pages, need it."""
 
-    def __init__(self, comandos):
-        self.commands = comandos
+    def __init__(self, commands):
+        self.commands = commands
 
 
-def _compilar_llamada(cmd, largo, hondo, indice_de_mapa, mensajes,
-                      eventos_mapa, temas, graficos, imagenes, tropas):
+def _compile_call(cmd, length, depth, map_index, messages,
+                  map_events, songs, graphics, pictures, troops):
     """`CallEvent`, compiled **inline**: the called event's body goes in the
     place of the call.
 
@@ -4193,40 +4193,40 @@ def _compilar_llamada(cmd, largo, hondo, indice_de_mapa, mensajes,
     all their targets compilable.
     """
     p = list(cmd.parameters)
-    if len(p) < 2 or hondo >= LLAMADA_MAX:
+    if len(p) < 2 or depth >= CALL_MAX:
         return b""
     if p[0] == 0:
         # A common event, by number. This game's are cut almost all of them
         # at `ControlVars` and at the original's own menus.
-        destino, ctx = COMUNES.get(p[1]), eventos_mapa
-    elif p[0] == 1 and len(p) >= 3 and eventos_mapa is not None:
+        dest, ctx = COMMON_EVENTS.get(p[1]), map_events
+    elif p[0] == 1 and len(p) >= 3 and map_events is not None:
         # A map event, by id and **page number**, which in RM2k starts at
         # one: it is `CommandCallEvent`'s `page->ID`.
-        paginas = eventos_mapa.paginas.get(p[1])
-        if paginas is None or not 1 <= p[2] <= len(paginas):
+        pages = map_events.pages.get(p[1])
+        if pages is None or not 1 <= p[2] <= len(pages):
             return b""
-        destino = paginas[p[2] - 1].commands
+        dest = pages[p[2] - 1].commands
         # "This event" inside the called one is **the called one**, not the
         # caller: `Push` passes it `event->GetId()`. Without this a
         # Hover-Tram route would move the Tram Officer.
-        ctx = eventos_mapa.para(p[1])
+        ctx = map_events.for_event(p[1])
     else:
         # By variable —type 2— it is not resolved at compile time and never
         # will be: the number comes from the save. It is skipped, as
         # before.
         return b""
-    if not destino:
+    if not dest:
         return b""
-    return compilar_pagina(_Comandos(destino), indice_de_mapa, mensajes, ctx,
-                           temas, graficos, imagenes, tropas,
-                           base=largo, hondo=hondo + 1) or b""
+    return compile_page(_Commands(dest), map_index, messages, ctx,
+                        songs, graphics, pictures, troops,
+                        base=length, depth=depth + 1) or b""
 
 
-def _compilar_alternar(cmd, largo):
+def _compile_toggle(cmd, length):
     """`ControlSwitches` that toggles: no opcode of its own, one branch per
     switch with what the interpreter already does —like the inn, it is
     built here because the destinations are absolute within the page and the
-    one that carries `largo` is `compilar_pagina`'s loop—. For each switch,
+    one that carries `length` is `compile_page`'s loop—. For each switch,
     with the offsets relative to its piece:
 
          0  OP_IF       on, and if not, to 14
@@ -4239,33 +4239,33 @@ def _compilar_alternar(cmd, largo):
     bit, and the game toggles a single one, 286, twelve times in Eisen's
     story (89 ev4 and 93 ev4 p2): it does not justify code in the ROM."""
     p = cmd.parameters
-    if p[0] not in (SWITCH_UNICO, SWITCH_RANGO):
-        raise NoSePuede("toggling switches by variable")
-    desde, hasta = p[1], p[2]
-    if hasta < desde or hasta - desde >= MAX_RANGO:
-        raise NoSePuede("toggling a range from %d to %d" % (desde, hasta))
+    if p[0] not in (SWITCH_SINGLE, SWITCH_RANGE):
+        raise CannotCompile("toggling switches by variable")
+    first, last = p[1], p[2]
+    if last < first or last - first >= MAX_RANGE:
+        raise CannotCompile("toggling a range from %d to %d" % (first, last))
     out = b""
-    for numero in range(desde, hasta + 1):
-        aca = largo + len(out)
-        prender, fin = aca + 14, aca + 18
-        bajo, alto = numero & 0xFF, numero >> 8
-        out += bytes([OP_IF, COND_SWITCH, bajo, alto, 0,
-                      prender & 0xFF, prender >> 8,
-                      OP_SWITCH, bajo, alto, 0,
-                      OP_GOTO, fin & 0xFF, fin >> 8,
-                      OP_SWITCH, bajo, alto, 1])
+    for number in range(first, last + 1):
+        here = length + len(out)
+        turn_on, end = here + 14, here + 18
+        low, height = number & 0xFF, number >> 8
+        out += bytes([OP_IF, COND_SWITCH, low, height, 0,
+                      turn_on & 0xFF, turn_on >> 8,
+                      OP_SWITCH, low, height, 0,
+                      OP_GOTO, end & 0xFF, end >> 8,
+                      OP_SWITCH, low, height, 1])
     return out
 
 
-def _compilar_posada(cmd, largo, mensajes):
+def _compile_inn(cmd, length, messages):
     r"""`ShowInn`, expanded into commands the ROM already knows how to do.
 
     The inn is not a new opcode: it is the greeting with its choice, a branch
     on gold, the charge and the heal, which are five things the interpreter
-    already did. It is built here and not in `_compilar` because the
+    already did. It is built here and not in `_compile` because the
     destinations of the choice and of the branch are offsets **absolute
-    within the page**, and that is known by `compilar_pagina`'s loop, which
-    is the one that carries `largo`.
+    within the page**, and that is known by `compile_page`'s loop, which
+    is the one that carries `length`.
 
     What comes out, with the offsets relative to the start of the block:
 
@@ -4280,7 +4280,7 @@ def _compilar_posada(cmd, largo, mensajes):
     `game_interpreter_map.cpp:449-560`): `"{greeting_1} {precio}{gold}
     {greeting_2}"` on the first line —hence the two spaces, because this
     game's `greeting_2` starts with one— and `greeting_3` on the second. The
-    terms are from the LDB: see `indexar_terminos`.
+    terms are from the LDB: see `index_terms`.
 
     **Three declared debts**, and all three are about what is seen and not
     about what happens:
@@ -4300,43 +4300,43 @@ def _compilar_posada(cmd, largo, mensajes):
     """
     p = cmd.parameters
     if len(p) < 2:
-        raise NoSePuede("ShowInn with no operands")
-    tipo, precio = p[0], p[1]
-    if precio == 0:
+        raise CannotCompile("ShowInn with no operands")
+    kind, price = p[0], p[1]
+    if price == 0:
         return bytes([OP_HEAL, 0, 0, 0])
-    if mensajes is None:
-        raise NoSePuede("an inn with no window to put it in")
-    if tipo not in TERMINOS_POSADA:
-        raise NoSePuede("inn of type %d, which is not in the terms: was "
-                        "indexar_terminos called?" % tipo)
-    if not precio <= 0xFFFF:
+    if messages is None:
+        raise CannotCompile("an inn with no window to put it in")
+    if kind not in INN_TERMS:
+        raise CannotCompile("inn of type %d, which is not in the terms: was "
+                            "index_terms called?" % kind)
+    if not price <= 0xFFFF:
         # The cap is the gold branch's operand, which goes in a word; the
         # game's most expensive is 100.
-        raise NoSePuede("inn of %d, which does not fit in the gold branch"
-                        % precio)
-    saludo_1, saludo_2, saludo_3, si, no = TERMINOS_POSADA[tipo]
-    donde = mensajes.agregar(
-        ["%s %d%s %s" % (saludo_1, precio, TERMINOS_POSADA["gold"], saludo_2),
-         saludo_3])
-    cuadros = cuadros_de_eleccion([(0, si), (1, no)], mensajes)
-    fin = largo + 30
-    rama = bytes([OP_IF, COND_ORO, precio & 0xFF, precio >> 8, 0,
-                  fin & 0xFF, fin >> 8])
-    return (bytes([OP_MESSAGE, donde & 0xFF, donde >> 8])
+        raise CannotCompile("inn of %d, which does not fit in the gold branch"
+                            % price)
+    greeting_1, greeting_2, greeting_3, yes, no = INN_TERMS[kind]
+    where = messages.add(
+        ["%s %d%s %s" % (greeting_1, price, INN_TERMS["gold"], greeting_2),
+         greeting_3])
+    frames = choice_boxes([(0, yes), (1, no)], messages)
+    end = length + 30
+    branch = bytes([OP_IF, COND_GOLD, price & 0xFF, price >> 8, 0,
+                    end & 0xFF, end >> 8])
+    return (bytes([OP_MESSAGE, where & 0xFF, where >> 8])
             # Cancel is the second option: there the default
             # `choice_cancel_type` is 5 and `inn_stay` is
             # `choice_result == 0`, that is cancelling is not staying.
             + bytes([OP_CHOICE, 2, 2])
-            + bytes([cuadros[0] & 0xFF, cuadros[0] >> 8,
-                     (largo + 14) & 0xFF, (largo + 14) >> 8])
-            + bytes([cuadros[1] & 0xFF, cuadros[1] >> 8,
-                     fin & 0xFF, fin >> 8])
-            + rama
-            + bytes([OP_GOLD, 1, precio & 0xFF, (precio >> 8) & 0xFF, 0])
+            + bytes([frames[0] & 0xFF, frames[0] >> 8,
+                     (length + 14) & 0xFF, (length + 14) >> 8])
+            + bytes([frames[1] & 0xFF, frames[1] >> 8,
+                     end & 0xFF, end >> 8])
+            + branch
+            + bytes([OP_GOLD, 1, price & 0xFF, (price >> 8) & 0xFF, 0])
             + bytes([OP_HEAL, 0, 0, 0]))
 
 
-def imagen_aceptable(p):
+def picture_fits(p):
     """Whether the parameters of a `ShowPicture` or a `MovePicture` fall
     within what the console's picture knows how to do.
 
@@ -4355,7 +4355,7 @@ def imagen_aceptable(p):
             and all(0 <= v <= 200 for v in p[8:12]))
 
 
-def _compilar_imagen(cmd, imagenes):
+def _compile_picture(cmd, pictures):
     """The three `Picture` commands, or None if this picture does not fit.
 
     The parameter indices come from easyrpg-player's `CommandShowPicture` and
@@ -4364,44 +4364,44 @@ def _compilar_imagen(cmd, imagenes):
     saturation go in 8..11 and the effect mode in 12—.
     """
     p = cmd.parameters
-    if imagenes is None:
+    if pictures is None:
         return None
     if cmd.code == ERASE_PICTURE:
-        if not p or not imagenes.suyo(p[0], None, None):
+        if not p or not pictures.owns(p[0], None, None):
             return None
         return bytes([OP_PICTURE_ERASE])
-    if not imagen_aceptable(p):
+    if not picture_fits(p):
         return None
-    tono = (p[8], p[9], p[10], p[11])
+    tone = (p[8], p[9], p[10], p[11])
     if cmd.code == SHOW_PICTURE:
         # `use_transparent_color`: whether the PNG's index 0 is drawn or not.
         # The "1 year earlier" picture has it off, so it is an opaque
         # rectangle; making it transparent would require one palette color
         # less and knowing which was index 0 before reducing.
-        if p[7] or imagenes.mostrar(p[0], cmd.string, p[2], p[3]) is None:
+        if p[7] or pictures.show(p[0], cmd.string, p[2], p[3]) is None:
             return None
-        return bytes([OP_PICTURE]) + bytes(tono)
+        return bytes([OP_PICTURE]) + bytes(tone)
     # MovePicture: the same picture, in the same place, with another tone.
     # The duration comes in **tenths** —`data.time_left = duration *
     # DEFAULT_FPS / 10`—, which is what had to be looked up: the first one's
     # 35 are three and a half seconds, not half a second.
-    if not imagenes.suyo(p[0], p[2], p[3]):
+    if not pictures.owns(p[0], p[2], p[3]):
         return None
-    cuadros = p[14] * CUADROS_POR_DECIMA
-    if not 0 <= cuadros <= IMAGEN_CUADROS_MAX:
+    frames = p[14] * FRAMES_PER_TENTH
+    if not 0 <= frames <= PICTURE_FRAMES_MAX:
         return None
-    salida = bytes([OP_PICTURE_MOVE]) + bytes(tono) + bytes([cuadros])
-    if len(p) > 15 and p[15] and cuadros:
+    output = bytes([OP_PICTURE_MOVE]) + bytes(tone) + bytes([frames])
+    if len(p) > 15 and p[15] and frames:
         # `options.wait`: the page waits as long as it lasts, like
         # `FlashScreen`.
-        salida += bytes([OP_DELAY, cuadros & 0xFF, cuadros >> 8])
-    return salida
+        output += bytes([OP_DELAY, frames & 0xFF, frames >> 8])
+    return output
 
 
-def indice_de_sonido(temas, indice_de_mapa, nombre, volumen, tempo, balance,
-                     de_ruta=False):
-    """The `Temas.sonidos` index of an effect asked for on the map being
-    compiled: `PlaySound`'s and, with `de_ruta`, that of move command
+def sound_index(songs, map_index, name, volume, tempo, balance,
+                from_route=False):
+    """The `Songs.sounds` index of an effect asked for on the map being
+    compiled: `PlaySound`'s and, with `from_route`, that of move command
     35.
 
     The ones that on some map sound with another sample —map 1's whole
@@ -4410,65 +4410,65 @@ def indice_de_sonido(temas, indice_de_mapa, nombre, volumen, tempo, balance,
     `se_route_left_out` maps do not go into the package: see there."""
     from audio import snes_music
 
-    def es(mapa):
+    def is_it(game_map):
         try:
-            return temas.mapa == indice_de_mapa(mapa)
+            return songs.current_map == map_index(game_map)
         except Exception:
             return False
 
-    al_paquete = True
-    if temas.mapa is not None:
-        for (base, mapa), alias in snes_music.se_per_map().items():
-            if nombre == base and es(mapa):
-                nombre = alias
+    in_package = True
+    if songs.current_map is not None:
+        for (base, game_map), alias in snes_music.se_per_map().items():
+            if name == base and is_it(game_map):
+                name = alias
                 break
-        if de_ruta:
-            al_paquete = not any(
-                es(m) and (cuales is None or nombre in cuales)
-                for m, cuales in snes_music.se_route_left_out().items())
-    if temas.mapa == PAQUETE_BATALLA:
+        if from_route:
+            in_package = not any(
+                is_it(m) and (which_ones is None or name in which_ones)
+                for m, which_ones in snes_music.se_route_left_out().items())
+    if songs.current_map == BATTLE_PACKAGE:
         # A troop page's: see `se_troop_in_package`.
-        al_paquete = nombre in snes_music.se_troop_in_package()
-    return temas.sonido(nombre, volumen, tempo, balance, al_paquete)
+        in_package = name in snes_music.se_troop_in_package()
+    return songs.sound(name, volume, tempo, balance, in_package)
 
 
-def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
-              eventos_mapa=None, temas=None, graficos=None, imagenes=None):
+def _compile(cmd, map_index, messages=None, extra=(),
+             map_events=None, songs=None, graphics=None, pictures=None):
     p = cmd.parameters
 
-    if cmd.code == END or cmd.code in IGNORABLES:
+    if cmd.code == END or cmd.code in IGNORABLE:
         return b""
 
     if cmd.code == PLAY_SOUND:
         # Without a song registry it is accepted and not done, as before. An
         # empty name is "(OFF)": it plays nothing.
-        if temas is None or not cmd.string or len(p) < 3:
+        if songs is None or not cmd.string or len(p) < 3:
             return b""
-        k = indice_de_sonido(temas, indice_de_mapa, cmd.string, p[0], p[1],
-                             p[2])
+        k = sound_index(songs, map_index, cmd.string, p[0], p[1],
+                        p[2])
         return bytes([OP_SOUND, k & 0xFF, k >> 8])
 
     if cmd.code == WEATHER_EFFECTS:
         if len(p) < 2:
-            raise NoSePuede("WeatherEffects with no operands")
+            raise CannotCompile("WeatherEffects with no operands")
         return bytes([OP_WEATHER, p[0] & 0xFF, min(max(p[1], 0), 2)])
 
     if cmd.code == OPEN_SHOP:
         if len(p) < 4:
-            raise NoSePuede("OpenShop with no operands")
+            raise CannotCompile("OpenShop with no operands")
         if p[2]:
-            raise NoSePuede("OpenShop with the bought and did-not-buy branches")
-        vende = [i for i in p[4:] if 0 < i < ITEMS_N]
-        if len(vende) > 255 or not 0 <= p[0] <= 2 or not 0 <= p[1] <= 2:
-            raise NoSePuede("OpenShop that does not fit in OP_SHOP")
-        return bytes([OP_SHOP, p[0], p[1], len(vende)]) + b"".join(
-            bytes([i & 0xFF, i >> 8]) for i in vende)
+            raise CannotCompile("OpenShop with the bought and did-not-buy branches")
+        sells = [i for i in p[4:] if 0 < i < ITEMS_N]
+        if len(sells) > 255 or not 0 <= p[0] <= 2 or not 0 <= p[1] <= 2:
+            raise CannotCompile("OpenShop that does not fit in OP_SHOP")
+        return bytes([OP_SHOP, p[0], p[1], len(sells)]) + b"".join(
+            bytes([i & 0xFF, i >> 8]) for i in sells)
 
     if cmd.code == FULL_HEAL:
         # The amount at 0 is what tells it apart from `ChangeHP`, below.
         if len(p) < 2:
-            raise NoSePuede("FullHeal with no operands")
-        return bytes([OP_HEAL, actor_de_blanco(p, "FullHeal"), 0, 0])
+            raise CannotCompile("FullHeal with no operands")
+        return bytes([OP_HEAL, target_actor(p, "FullHeal"), 0, 0])
     if cmd.code == CHANGE_HP:
         # [type, id, subtracts, amount by variable, amount, lethal]. The one
         # that adds shares OP_HEAL with `FullHeal`, with the amount set: it
@@ -4484,14 +4484,14 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         # variable does not compile. The ones that subtract are still out:
         # they can kill, and `lethal` asks what to do about that.
         if len(p) < 5 or p[2] != 0:
-            raise NoSePuede("ChangeHP that subtracts")
+            raise CannotCompile("ChangeHP that subtracts")
         if p[3] != 0:
-            raise NoSePuede("ChangeHP with the amount in a variable")
+            raise CannotCompile("ChangeHP with the amount in a variable")
         if not 0 <= p[4] <= 0xFFFF:
-            raise NoSePuede("ChangeHP of %d" % p[4])
+            raise CannotCompile("ChangeHP of %d" % p[4])
         if p[4] == 0:
             return b""
-        return bytes([OP_HEAL, actor_de_blanco(p, "ChangeHP"),
+        return bytes([OP_HEAL, target_actor(p, "ChangeHP"),
                       p[4] & 0xFF, p[4] >> 8])
     if cmd.code == CHANGE_SKILLS:
         # [type, id, forgets, skill by variable, skill]. It is easyrpg's
@@ -4501,17 +4501,17 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         # a thing" is written by the page with a `ShowMessage`.
         #
         # The game's 898 are all fixed actor and constant skill, so the
-        # operand is directly the bit: see `HABILIDAD_RANURA`. The party, the
+        # operand is directly the bit: see `SKILL_SLOT`. The party, the
         # actor by variable and the skill by variable do not compile.
         if len(p) < 5:
-            raise NoSePuede("ChangeSkills with no operands")
+            raise CannotCompile("ChangeSkills with no operands")
         if p[0] != 1:
-            raise NoSePuede("ChangeSkills on the party or an actor by "
-                            "variable")
+            raise CannotCompile("ChangeSkills on the party or an actor by "
+                                "variable")
         if p[3] != 0:
-            raise NoSePuede("ChangeSkills with the skill in a variable")
-        ranura = ranura_de_habilidad(p[1], p[4])
-        return bytes([OP_SKILL, ranura & 0xFF, ranura >> 8,
+            raise CannotCompile("ChangeSkills with the skill in a variable")
+        slot = skill_slot(p[1], p[4])
+        return bytes([OP_SKILL, slot & 0xFF, slot >> 8,
                       0 if p[2] else 1])
     if cmd.code == CHANGE_EQUIPMENT:
         # [type, id, operation, a, b]. Operation 1 is unequipping slot `a`
@@ -4526,19 +4526,19 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         # equipping does not compile, and unequipping everything does not
         # either: nobody uses it.
         if len(p) < 4:
-            raise NoSePuede("ChangeEquipment with no operands")
+            raise CannotCompile("ChangeEquipment with no operands")
         if p[2] != 1:
-            raise NoSePuede("ChangeEquipment that equips")
-        if not 0 <= p[3] < RANURAS_EQUIPO:
-            raise NoSePuede("ChangeEquipment that unequips everything")
-        actor = actor_de_blanco(p, "ChangeEquipment")
-        if _ACTORES_INDEXADOS and actor and actor not in ACTOR_EQUIPO:
-            raise NoSePuede("actor %d is not in the LDB" % actor)
+            raise CannotCompile("ChangeEquipment that equips")
+        if not 0 <= p[3] < EQUIPMENT_SLOTS:
+            raise CannotCompile("ChangeEquipment that unequips everything")
+        actor = target_actor(p, "ChangeEquipment")
+        if _INDEXED_ACTORS and actor and actor not in ACTOR_EQUIPMENT:
+            raise CannotCompile("actor %d is not in the LDB" % actor)
         return bytes([OP_EQUIPMENT, actor, p[3]])
     if cmd.code == GAME_OVER:
         # `CommandGameOver`: the Game Over screen and, on pressing, the
         # title. It is the same as losing a battle without a handler —see
-        # `BATALLA_PERDER`—: tools/runtime/game_over.s.
+        # `BATTLE_LOSE`—: tools/runtime/game_over.s.
         return bytes([OP_GAME_OVER])
     if cmd.code == RETURN_TO_TITLE:
         # `ReturntoTitleScreen`: the same without the screen, that is going
@@ -4549,7 +4549,7 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         return bytes([OP_RETURN_TO_TITLE])
     if cmd.code == CHANGE_CONDITION:
         if len(p) < 3 or p[2] != 1:
-            raise NoSePuede("ChangeCondition that sets a state")
+            raise CannotCompile("ChangeCondition that sets a state")
         return b""
 
     if cmd.code == KEY_INPUT_PROC:
@@ -4558,14 +4558,14 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         # RM2k 1.50 goes on to look at each direction separately, which is
         # another program, so the length is required instead of assumed.
         if len(p) != 5:
-            raise NoSePuede("KeyInputProc with %d operands" % len(p))
-        banderas = ((TECLA_ESPERA if p[1] else 0)
-                    | (TECLA_DIRS if p[2] else 0)
-                    | (TECLA_DECISION if p[3] else 0)
-                    | (TECLA_CANCELAR if p[4] else 0))
-        if not banderas & (TECLA_DIRS | TECLA_DECISION | TECLA_CANCELAR):
+            raise CannotCompile("KeyInputProc with %d operands" % len(p))
+        flags = ((KEY_WAIT if p[1] else 0)
+                 | (KEY_DIRS if p[2] else 0)
+                 | (KEY_DECISION if p[3] else 0)
+                 | (KEY_CANCEL if p[4] else 0))
+        if not flags & (KEY_DIRS | KEY_DECISION | KEY_CANCEL):
             # With no key asked for, the waiting form never comes out.
-            raise NoSePuede("KeyInputProc with no key")
+            raise CannotCompile("KeyInputProc with no key")
         if not p[1]:
             # The form that does not wait: it reads what is pressed and the
             # page continues on the same frame. In the game there are four
@@ -4582,9 +4582,9 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             # a `Teleport` from a parallel page was not handled with the
             # foreground idle —see the main loop—.
             # `test_recorrido_carrera_golden.py` enforces it.
-            return bytes([OP_KEY, ranura_de_variable(p[0]),
-                          banderas | escritura_pide_refresco(p[0],
-                                                             eventos_mapa)])
+            return bytes([OP_KEY, variable_slot(p[0]),
+                          flags | write_needs_refresh(p[0],
+                                                      map_events)])
         # **The wait is done with all three: the D-pad, the action key and
         # cancel**, since 2026-09-13. Until that day only the action one
         # counted, and the written reason was the **harness**'s and not the
@@ -4602,72 +4602,72 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         # —the one that waits for all three— and, together with variable 5's
         # slot, the one of the stones minigame engine on map 11, which is
         # `(8, 1, 1, 0, 0)`: without this no stone can be thrown.
-        ranura = ranura_de_variable(p[0])
-        banderas |= escritura_pide_refresco(p[0], eventos_mapa)
-        return bytes([OP_KEY, ranura, banderas | TECLA_ARRANCA,
-                      OP_KEY, ranura, banderas])
+        slot = variable_slot(p[0])
+        flags |= write_needs_refresh(p[0], map_events)
+        return bytes([OP_KEY, slot, flags | KEY_START,
+                      OP_KEY, slot, flags])
 
     if cmd.code == CHANGE_SPRITE_ASSOCIATION:
         # [actor, CharSet index, transparent]. See OP_ACTOR_SPRITE.
         if len(p) != 3:
             # With four it is the bitfield of "this comes from a variable",
             # which this game never uses.
-            raise NoSePuede("ChangeSpriteAssociation with operands we do not "
-                            "know how to read")
+            raise CannotCompile("ChangeSpriteAssociation with operands we do not "
+                                "know how to read")
         if p[2]:
-            raise NoSePuede("transparent ChangeSpriteAssociation: the console "
-                            "does not fade a sprite without color math")
+            raise CannotCompile("transparent ChangeSpriteAssociation: the console "
+                                "does not fade a sprite without color math")
         if not 0 < p[0] < 256:
-            raise NoSePuede("ChangeSpriteAssociation on actor %d" % p[0])
-        if graficos is None:
-            raise NoSePuede("ChangeSpriteAssociation without a graphics table")
-        elegido = graficos.indice(cmd.string, p[1])
-        if elegido > 0xFF:
-            raise NoSePuede("too many graphics on the map")
-        return bytes([OP_ACTOR_SPRITE, p[0], elegido])
+            raise CannotCompile("ChangeSpriteAssociation on actor %d" % p[0])
+        if graphics is None:
+            raise CannotCompile("ChangeSpriteAssociation without a graphics table")
+        chosen = graphics.index(cmd.string, p[1])
+        if chosen > 0xFF:
+            raise CannotCompile("too many graphics on the map")
+        return bytes([OP_ACTOR_SPRITE, p[0], chosen])
 
     if cmd.code in (CHANGE_SAVE_ACCESS, CHANGE_MENU_ACCESS,
                     CHANGE_ESCAPE_ACCESS):
         if not p:
-            raise NoSePuede("%s with no operands" % cmd.code)
-        cual = {CHANGE_SAVE_ACCESS: ACCESO_GUARDAR,
-                CHANGE_MENU_ACCESS: ACCESO_MENU,
-                CHANGE_ESCAPE_ACCESS: ACCESO_ESCAPAR}[cmd.code]
-        return bytes([OP_ACCESS, ACCESO_BIT[cual], 1 if p[0] else 0])
+            raise CannotCompile("%s with no operands" % cmd.code)
+        which = {CHANGE_SAVE_ACCESS: ACCESS_SAVE,
+                 CHANGE_MENU_ACCESS: ACCESS_MENU,
+                 CHANGE_ESCAPE_ACCESS: ACCESS_ESCAPE}[cmd.code]
+        return bytes([OP_ACCESS, ACCESS_BIT[which], 1 if p[0] else 0])
 
     if cmd.code == CHANGE_SCREEN_TRANSITIONS:
         # See CHANGE_SCREEN_TRANSITIONS and OP_TRANSITION.
         if len(p) < 2:
-            raise NoSePuede("ChangeScreenTransitions with no operands")
-        cual, rm2k = p[0], p[1]
-        if cual not in (TRANSICION_BORRAR, TRANSICION_MOSTRAR):
-            raise NoSePuede("the battle's ChangeScreenTransitions: the ROM "
-                            "always uses the database's")
-        if cual == TRANSICION_BORRAR and rm2k in RM2K_TRANSICIONES_CORTE:
-            return bytes([OP_TRANSITION, cual, TRANSICION_CORTE])
-        if rm2k in RM2K_TRANSICIONES_QUE_NO:
-            raise NoSePuede("ChangeScreenTransitions to %s for showing, which "
-                            "no ROM map uses"
-                            % RM2K_TRANSICIONES_QUE_NO[rm2k])
-        tipo = (TRANSICION_MOSAICO if rm2k == RM2K_TRANSICION_MOSAICO
-                else TRANSICION_FUNDIDO)
-        return bytes([OP_TRANSITION, cual, tipo])
+            raise CannotCompile("ChangeScreenTransitions with no operands")
+        which, rm2k = p[0], p[1]
+        if which not in (TRANSITION_ERASE, TRANSITION_SHOW):
+            raise CannotCompile("the battle's ChangeScreenTransitions: the ROM "
+                                "always uses the database's")
+        if which == TRANSITION_ERASE and rm2k in RM2K_CUT_TRANSITIONS:
+            return bytes([OP_TRANSITION, which, TRANSITION_CUT])
+        if rm2k in RM2K_TRANSITIONS_NOT_DONE:
+            raise CannotCompile("ChangeScreenTransitions to %s for showing, which "
+                                "no ROM map uses"
+                                % RM2K_TRANSITIONS_NOT_DONE[rm2k])
+        kind = (TRANSITION_MOSAIC if rm2k == RM2K_TRANSITION_MOSAIC
+                else TRANSITION_FADE)
+        return bytes([OP_TRANSITION, which, kind])
 
     if cmd.code == CHANGE_ITEMS:
         # [add or remove, item by constant or variable, item, amount by
         # constant or variable, amount]. See OP_ITEM.
         if len(p) < 5:
-            raise NoSePuede("ChangeItems with no operands")
+            raise CannotCompile("ChangeItems with no operands")
         if p[1] != 0 or p[3] != 0:
-            raise NoSePuede("ChangeItems with the item or the amount in a "
-                            "variable")
+            raise CannotCompile("ChangeItems with the item or the amount in a "
+                                "variable")
         if not 1 <= p[2] < ITEMS_N:
-            raise NoSePuede("ChangeItems of item %d, which is not in the LDB"
-                            % p[2])
+            raise CannotCompile("ChangeItems of item %d, which is not in the LDB"
+                                % p[2])
         delta = -p[4] if p[0] else p[4]
         if not -128 <= delta <= 127:
-            raise NoSePuede("ChangeItems of %d, which does not fit in a byte"
-                            % p[4])
+            raise CannotCompile("ChangeItems of %d, which does not fit in a byte"
+                                % p[4])
         return bytes([OP_ITEM, p[2] & 0xFF, p[2] >> 8, delta & 0xFF])
 
     if cmd.code == CHANGE_GOLD:
@@ -4675,76 +4675,76 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         # 1 subtract, and the type 0 constant and 1 "the value is in a
         # variable". Without variables, the latter cannot be done.
         if len(p) < 3:
-            raise NoSePuede("ChangeGold with no operands")
+            raise CannotCompile("ChangeGold with no operands")
         if p[1] != 0:
-            raise NoSePuede("ChangeGold with the amount in a variable")
-        monto = p[2]
-        if not 0 <= monto <= 0xFFFFFF:
-            raise NoSePuede("ChangeGold of %d, which does not fit in three "
-                            "bytes" % monto)
+            raise CannotCompile("ChangeGold with the amount in a variable")
+        amount = p[2]
+        if not 0 <= amount <= 0xFFFFFF:
+            raise CannotCompile("ChangeGold of %d, which does not fit in three "
+                                "bytes" % amount)
         return bytes([OP_GOLD, 1 if p[0] else 0,
-                      monto & 0xFF, (monto >> 8) & 0xFF, (monto >> 16) & 0xFF])
+                      amount & 0xFF, (amount >> 8) & 0xFF, (amount >> 16) & 0xFF])
 
     if cmd.code == PLAY_BGM:
         # Without a song registry it is accepted and not done, which is what
         # this repo did with PlayBGM from the start. With a registry the index
         # is emitted and the ROM plays the song if it got to carry it.
-        if temas is None or not cmd.string:
+        if songs is None or not cmd.string:
             return b""
-        return bytes([OP_BGM, temas.indice(cmd.string) & 0xFF])
+        return bytes([OP_BGM, songs.index(cmd.string) & 0xFF])
 
     if cmd.code == PAN_SCREEN:
         # Locking and unlocking the camera are used by no page of the game,
         # so they do not compile: modeling them with nothing exercising them
         # is making up a difference. Moving and resetting do, which are the
         # 133 there are.
-        if len(p) < 5 or p[0] not in (PAN_CORRER, PAN_VOLVER):
-            raise NoSePuede()
-        if p[0] == PAN_CORRER and p[1] not in PAN_SENTIDO:
-            raise NoSePuede()
+        if len(p) < 5 or p[0] not in (PAN_SHIFT, PAN_RETURN):
+            raise CannotCompile()
+        if p[0] == PAN_SHIFT and p[1] not in PAN_DIRECTION:
+            raise CannotCompile()
         if not 0 <= p[2] <= 255:
-            raise NoSePuede()
-        salida = bytes_de_pan(p[0], p[1], p[2], p[3], p[4])
-        if salida is None:
-            raise NoSePuede()
-        return salida
+            raise CannotCompile()
+        output = pan_bytes(p[0], p[1], p[2], p[3], p[4])
+        if output is None:
+            raise CannotCompile()
+        return output
 
     if cmd.code == FADE_OUT_BGM:
         if not p or p[0] < 0:
-            raise NoSePuede()
-        paso = paso_de_fundido(p[0])
-        return bytes([OP_FADE_BGM, paso & 0xFF, paso >> 8])
+            raise CannotCompile()
+        step = fade_step(p[0])
+        return bytes([OP_FADE_BGM, step & 0xFF, step >> 8])
 
     if cmd.code == OPEN_SAVE_MENU:
         return bytes([OP_SAVE])
 
     if cmd.code in (SHOW_PICTURE, MOVE_PICTURE, ERASE_PICTURE):
-        salida = _compilar_imagen(cmd, imagenes)
+        output = _compile_picture(cmd, pictures)
         # None is "this picture does not fit the model": it is accepted
         # without being done, which is what the three did until 2026-09-12.
         # Cutting the page would take away from the game the eight that
         # compile today because of it.
-        return b"" if salida is None else salida
+        return b"" if output is None else output
 
-    if cmd.code in ACEPTADOS_SIN_HACER:
+    if cmd.code in ACCEPTED_UNDONE:
         return b""     # accepted with the debt declared above
 
     if cmd.code == CHANGE_ENCOUNTER_STEPS:
         # The `1 / pasos` and the rows' seven thresholds, computed here as for
-        # the map's registry —`encuentros_de_la_rom`—, so a change of steps
+        # the map's registry —`rom_encounters`—, so a change of steps
         # changes the chance and the rows together, same as
-        # `Encuentros.poner_pasos`. It lasts until the next map load: the ROM
+        # `Encounters.set_steps`. It lasts until the next map load: the ROM
         # sets the map's again, which is what RM2k does.
         if not p:
-            raise NoSePuede("ChangeEncounterSteps with no operands")
-        pasos = max(p[0], 0)
-        umbrales = enc_umbrales_de_paso(pasos)
-        if max(umbrales) > 0xFF:
-            raise NoSePuede("ChangeEncounterSteps of %d steps: the thresholds "
-                            "do not fit in a byte" % pasos)
-        base = enc_base(pasos)
+            raise CannotCompile("ChangeEncounterSteps with no operands")
+        steps = max(p[0], 0)
+        thresholds = enc_step_thresholds(steps)
+        if max(thresholds) > 0xFF:
+            raise CannotCompile("ChangeEncounterSteps of %d steps: the thresholds "
+                                "do not fit in a byte" % steps)
+        base = enc_base(steps)
         return bytes([OP_ENCOUNTER_STEPS, base & 0xFF, base >> 8]
-                     + umbrales + [0xFF])
+                     + thresholds + [0xFF])
 
     if cmd.code in (COMMENT, COMMENT_2):
         # It is not debt: in RM2k it does nothing either. Map 64's farewell
@@ -4753,62 +4753,62 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         return b""
 
     if cmd.code == CONTROL_SWITCHES:
-        if len(p) < 4 or p[0] not in (SWITCH_UNICO, SWITCH_RANGO):
-            raise NoSePuede()       # by variable: it needs variables
+        if len(p) < 4 or p[0] not in (SWITCH_SINGLE, SWITCH_RANGE):
+            raise CannotCompile()       # by variable: it needs variables
         if p[3] == SWITCH_TOGGLE:
-            # `_compilar_alternar` builds it from `compilar_pagina`'s loop,
-            # which is the one that knows `largo`; here it would only arrive
+            # `_compile_toggle` builds it from `compile_page`'s loop,
+            # which is the one that knows `length`; here it would only arrive
             # from another path —the fused cells'—, which no toggle of the
             # game takes.
-            raise NoSePuede("toggling a switch outside the page's loop")
-        desde, hasta = p[1], p[2]
-        if hasta < desde or hasta - desde >= MAX_RANGO:
-            raise NoSePuede()
-        valor = 1 if p[3] == SWITCH_ON else 0
+            raise CannotCompile("toggling a switch outside the page's loop")
+        first, last = p[1], p[2]
+        if last < first or last - first >= MAX_RANGE:
+            raise CannotCompile()
+        value = 1 if p[3] == SWITCH_ON else 0
         out = b""
-        for numero in range(desde, hasta + 1):
-            out += bytes([OP_SWITCH, numero & 0xFF, numero >> 8, valor])
+        for number in range(first, last + 1):
+            out += bytes([OP_SWITCH, number & 0xFF, number >> 8, value])
         return out
 
     if cmd.code == TELEPORT:
         if len(p) < 3:
-            raise NoSePuede()
-        destino = indice_de_mapa(p[0])
-        if destino is None:
-            raise NoSePuede()       # the map did not get into the ROM
-        if temas is not None:
-            temas.destino(destino)
-        return bytes([OP_TELEPORT, destino & 0xFF, destino >> 8,
+            raise CannotCompile()
+        dest = map_index(p[0])
+        if dest is None:
+            raise CannotCompile()       # the map did not get into the ROM
+        if songs is not None:
+            songs.dest(dest)
+        return bytes([OP_TELEPORT, dest & 0xFF, dest >> 8,
                       p[1] & 0xFF, p[1] >> 8, p[2] & 0xFF, p[2] >> 8])
 
     if cmd.code == MEMORIZE_LOCATION:
         if len(p) < 3:
-            raise NoSePuede("MemorizeLocation without its three variables")
-        modo = 0
-        for bit, numero in zip(LUGAR_REFRESCOS, p[:3]):
-            if escritura_pide_refresco(numero, eventos_mapa):
-                modo |= bit
-        return bytes([OP_LOCATION, modo]
-                     + [ranura_de_variable(n) for n in p[:3]])
+            raise CannotCompile("MemorizeLocation without its three variables")
+        mode = 0
+        for bit, number in zip(PLACE_REFRESHES, p[:3]):
+            if write_needs_refresh(number, map_events):
+                mode |= bit
+        return bytes([OP_LOCATION, mode]
+                     + [variable_slot(n) for n in p[:3]])
 
     if cmd.code == RECALL_TO_LOCATION:
         if len(p) < 3:
-            raise NoSePuede("RecallToLocation without its three variables")
-        return bytes([OP_LOCATION, LUGAR_SALTAR]
-                     + [ranura_de_variable(n) for n in p[:3]])
+            raise CannotCompile("RecallToLocation without its three variables")
+        return bytes([OP_LOCATION, PLACE_JUMP]
+                     + [variable_slot(n) for n in p[:3]])
 
     if cmd.code in (MEMORIZE_BGM, PLAY_MEMORIZED_BGM):
         # Without a song registry it is accepted and not done, like
         # `PlayBGM`.
-        if temas is None:
+        if songs is None:
             return b""
         return bytes([OP_MEMORIZED_BGM, int(cmd.code == PLAY_MEMORIZED_BGM)])
 
     if cmd.code == CHANGE_PARTY_MEMBERS:
-        if len(p) < 3 or p[1] != GRUPO_ID_FIJO:
-            raise NoSePuede()   # the id comes from a variable, and we do not read them
-        if p[0] not in (GRUPO_AGREGAR, GRUPO_SACAR) or not 0 <= p[2] <= 255:
-            raise NoSePuede()
+        if len(p) < 3 or p[1] != PARTY_FIXED_ID:
+            raise CannotCompile()   # the id comes from a variable, and we do not read them
+        if p[0] not in (PARTY_ADD, PARTY_REMOVE) or not 0 <= p[2] <= 255:
+            raise CannotCompile()
         return bytes([OP_PARTY, p[0], p[2]])
 
     if cmd.code == PROCEED_WITH_MOVEMENT:
@@ -4822,15 +4822,15 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
 
     if cmd.code == FLASH_SPRITE:
         if len(p) < 7:
-            raise NoSePuede()
-        if p[0] == RUTA_HEROE:
-            blanco = 0
-        elif eventos_mapa is None:
-            raise NoSePuede()
+            raise CannotCompile()
+        if p[0] == ROUTE_HERO:
+            target = 0
+        elif map_events is None:
+            raise CannotCompile()
         else:
-            blanco = eventos_mapa.blanco(p[0])
-            if blanco is None:
-                raise NoSePuede()   # a vehicle, or an event that does not exist
+            target = map_events.route_target(p[0])
+            if target is None:
+                raise CannotCompile()   # a vehicle, or an event that does not exist
             # **A flash on an event that shares a palette is emitted anyway.**
             # On the console the flash is a CGRAM tint —`pintar_flash`
             # uploads the whole row— so two events with the same graphic
@@ -4844,15 +4844,15 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             # the image of a single sprite, and it is in
             # `workflow/divergencias/destello-sobre-la-paleta-de-otro.md`.
         if any(not 0 <= v <= 31 for v in p[1:5]):
-            raise NoSePuede()
-        cuadros = p[5] * CUADROS_POR_DECIMA
-        if not 0 < cuadros <= 255:
-            raise NoSePuede()
-        out = bytes([OP_FLASH, blanco, p[1], p[2], p[3], p[4], cuadros])
+            raise CannotCompile()
+        frames = p[5] * FRAMES_PER_TENTH
+        if not 0 < frames <= 255:
+            raise CannotCompile()
+        out = bytes([OP_FLASH, target, p[1], p[2], p[3], p[4], frames])
         if p[6]:
             # Waiting is exactly the Wait command: `SetupWait(tenths)`, that
-            # is the same tenths times CUADROS_POR_DECIMA.
-            out += bytes([OP_DELAY, cuadros & 0xFF, cuadros >> 8])
+            # is the same tenths times FRAMES_PER_TENTH.
+            out += bytes([OP_DELAY, frames & 0xFF, frames >> 8])
         return out
 
     if cmd.code == CONTROL_VARS:
@@ -4860,135 +4860,135 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         # variable at a time and nothing else: ranges and indirect are used
         # by no page of the game. See OP_VAR.
         if len(p) < 7:
-            raise NoSePuede("a ControlVars with no operands")
+            raise CannotCompile("a ControlVars with no operands")
         if p[0] != 0:
-            raise NoSePuede("ControlVars on a range or indirect")
-        ranura = ranura_de_variable(p[1])
-        refresco = escritura_pide_refresco(p[1], eventos_mapa)
-        if p[3] not in (VAR_PONER, VAR_SUMAR, VAR_RESTAR):
-            raise NoSePuede("ControlVars operation %d" % p[3])
-        clase, a, b = p[4], p[5], p[6]
-        if clase == VAR_CONSTANTE:
+            raise CannotCompile("ControlVars on a range or indirect")
+        slot = variable_slot(p[1])
+        refresh = write_needs_refresh(p[1], map_events)
+        if p[3] not in (VAR_SET, VAR_ADD, VAR_SUBTRACT):
+            raise CannotCompile("ControlVars operation %d" % p[3])
+        operand_kind, a, b = p[4], p[5], p[6]
+        if operand_kind == VAR_CONSTANT:
             if not -0x8000 <= a <= 0x7FFF:
-                raise NoSePuede("constant %d that does not fit in a word" % a)
+                raise CannotCompile("constant %d that does not fit in a word" % a)
             b = 0
-        elif clase == VAR_VARIABLE:
-            a, b = ranura_de_variable(a), 0
-        elif clase == VAR_AZAR:
+        elif operand_kind == VAR_VARIABLE:
+            a, b = variable_slot(a), 0
+        elif operand_kind == VAR_RANDOM:
             if not (0 <= a <= b <= 0x7FFF and b - a < 256):
-                raise NoSePuede("random between %d and %d: the ROM divides by "
-                                "a byte" % (a, b))
-        elif clase == VAR_OTRO:
-            if a not in (OTRO_ORO, OTRO_TIMER):
-                raise NoSePuede("ControlVars 'other' %d" % a)
+                raise CannotCompile("random between %d and %d: the ROM divides by "
+                                    "a byte" % (a, b))
+        elif operand_kind == VAR_OTHER:
+            if a not in (OTHER_GOLD, OTHER_TIMER):
+                raise CannotCompile("ControlVars 'other' %d" % a)
             b = 0
-        elif clase == VAR_PERSONAJE:
+        elif operand_kind == VAR_CHARACTER:
             # A character's cell. `a` becomes the same target byte OP_ROUTE
             # carries —0 the hero, the event's index plus one— and not the
             # RM2k id: the bytecode never sees an id again, which is what
-            # `Eventos` exists to guarantee. `b` is which coordinate.
-            if b not in (PERSONAJE_X, PERSONAJE_Y):
-                raise NoSePuede("ControlVars kind 6 with sub-operand %d"
-                                % b)
-            if a == RUTA_HEROE:
+            # `MapEvents` exists to guarantee. `b` is which coordinate.
+            if b not in (CHARACTER_X, CHARACTER_Y):
+                raise CannotCompile("ControlVars kind 6 with sub-operand %d"
+                                    % b)
+            if a == ROUTE_HERO:
                 a = 0
-            elif eventos_mapa is None:
-                raise NoSePuede("kind 6 on an event without the map")
+            elif map_events is None:
+                raise CannotCompile("kind 6 on an event without the map")
             else:
-                a = eventos_mapa.blanco(a)
+                a = map_events.route_target(a)
                 if a is None:
-                    raise NoSePuede()   # a vehicle, or an event that does not exist
+                    raise CannotCompile()   # a vehicle, or an event that does not exist
         else:
-            raise NoSePuede("operand of kind %d in ControlVars" % clase)
-        return bytes([OP_VAR, ranura, p[3] | refresco, clase, a & 0xFF,
+            raise CannotCompile("operand of kind %d in ControlVars" % operand_kind)
+        return bytes([OP_VAR, slot, p[3] | refresh, operand_kind, a & 0xFF,
                       (a >> 8) & 0xFF, b & 0xFF, b >> 8])
     if cmd.code == TIMER_OPERATION:
         # The timer. The whole operation is done —set, start and stop— and
         # the seconds can come from a variable: it is the fourth operation,
-        # `TIMER_PONER_VAR`, with the slot in the operand.
+        # `TIMER_SET_VAR`, with the slot in the operand.
         if len(p) < 5:
-            raise NoSePuede()
-        if p[0] == TIMER_PONER:
-            if p[1] != TIMER_SEGUNDOS_FIJOS:
-                ranura = ranura_de_variable(p[2])
-                return bytes([OP_TIMER, TIMER_PONER_VAR, ranura, 0, 0])
+            raise CannotCompile()
+        if p[0] == TIMER_SET:
+            if p[1] != TIMER_FIXED_SECONDS:
+                slot = variable_slot(p[2])
+                return bytes([OP_TIMER, TIMER_SET_VAR, slot, 0, 0])
             # The ROM counts the frames in sixteen bits, so the cap is not the
             # operand's but the count's. It is eighteen minutes, and the
             # game's longest timer is ten.
-            if not 0 <= p[2] * CUADROS_POR_SEGUNDO + TIMER_CUADROS_DE_MAS \
+            if not 0 <= p[2] * FRAMES_PER_SECOND + TIMER_EXTRA_FRAMES \
                     <= 0xFFFF:
-                raise NoSePuede()
-            return bytes([OP_TIMER, TIMER_PONER, p[2] & 0xFF, p[2] >> 8, 0])
-        if p[0] in (TIMER_ARRANCAR, TIMER_PARAR):
+                raise CannotCompile()
+            return bytes([OP_TIMER, TIMER_SET, p[2] & 0xFF, p[2] >> 8, 0])
+        if p[0] in (TIMER_START, TIMER_STOP):
             # The fifth parameter is "also in battle", and here there are no
             # battles: it is compiled anyway and ignored, like the rest of
             # what belongs to combat.
             return bytes([OP_TIMER, p[0], 0, 0, 1 if p[3] else 0])
-        raise NoSePuede()
+        raise CannotCompile()
 
     if cmd.code == MOVE_EVENT:
         if len(p) < 4:
-            raise NoSePuede()
-        if p[0] == RUTA_HEROE:
-            blanco = 0
-        elif eventos_mapa is None:
-            raise NoSePuede()   # without the map there is no way to translate the id
+            raise CannotCompile()
+        if p[0] == ROUTE_HERO:
+            target = 0
+        elif map_events is None:
+            raise CannotCompile()   # without the map there is no way to translate the id
         else:
-            blanco = eventos_mapa.blanco(p[0])
-            if blanco is None:
-                raise NoSePuede()   # a vehicle, or an event that does not exist
-        if not RUTA_FRECUENCIA_MIN <= p[1] <= RUTA_FRECUENCIA:
-            raise NoSePuede()   # 1 does not fit in the ROM's wait byte
-        ordenes = decodificar_ruta(list(p[4:]))
-        if frecuencia_minima(p[1], [o for o, _ in ordenes],
-                             bool(p[2])) < RUTA_FRECUENCIA_MIN:
-            raise NoSePuede()   # commands 30 and 31 would take it down to 1
-        ruta = []
+            target = map_events.route_target(p[0])
+            if target is None:
+                raise CannotCompile()   # a vehicle, or an event that does not exist
+        if not ROUTE_FREQUENCY_MIN <= p[1] <= ROUTE_FREQUENCY:
+            raise CannotCompile()   # 1 does not fit in the ROM's wait byte
+        commands = decode_route(list(p[4:]))
+        if min_frequency(p[1], [o for o, _ in commands],
+                         bool(p[2])) < ROUTE_FREQUENCY_MIN:
+            raise CannotCompile()   # commands 30 and 31 would take it down to 1
+        path = []
         # Whether the cursor is between a `begin_jump` and its `end_jump`.
         # Inside a jump the commands are not run: `BeginMoveRouteJump` only
         # **adds up** the `move_*`s and the turns, and 9 there would have to
         # ask about the hero in the middle of the math. No route of the game
         # does it —measured, zero—, so it is rejected instead of letting the
         # ROM walk it down a path no test exercises.
-        en_salto = False
-        for orden, extras in ordenes:
-            if orden == RUTA_SALTO_INICIO:
-                en_salto = True
-            elif orden == RUTA_SALTO_FIN:
-                en_salto = False
-            elif orden == RUTA_HACIA_HEROE and en_salto:
-                raise NoSePuede()
+        in_jump = False
+        for command, extras in commands:
+            if command == ROUTE_JUMP_START:
+                in_jump = True
+            elif command == ROUTE_JUMP_END:
+                in_jump = False
+            elif command == ROUTE_TOWARD_HERO and in_jump:
+                raise CannotCompile()
 
-            if orden == RUTA_SONIDO:
-                # See RUTA_SONIDO. Without a song registry, or "(OFF)", it is
+            if command == ROUTE_SOUND:
+                # See ROUTE_SOUND. Without a song registry, or "(OFF)", it is
                 # dropped as before.
-                if en_salto or temas is None or extras[0] in ("", "(OFF)"):
+                if in_jump or songs is None or extras[0] in ("", "(OFF)"):
                     continue
-                k = indice_de_sonido(temas, indice_de_mapa, *extras,
-                                     de_ruta=True)
-                ruta += [orden, k & 0xFF, k >> 8]
+                k = sound_index(songs, map_index, *extras,
+                                from_route=True)
+                path += [command, k & 0xFF, k >> 8]
                 continue
-            if orden in RUTA_TRANSPARENCIA:
+            if command in ROUTE_TRANSPARENCY:
                 # Accepted and dropped: it does not show and costs no frames.
-                # See RUTA_TRANSPARENCIA.
+                # See ROUTE_TRANSPARENCY.
                 continue
             # Turning, waiting and moving. The `move_*`s came in on
             # 2026-09-03, and they are looked at *during* the walk and not
-            # only at the end: `ruta` tests it, comparing four frames of a
+            # only at the end: `path` tests it, comparing four frames of a
             # twelve-cell route with waits in the middle. What goes in from
-            # `rpg::MoveCommand::Code` is `RUTA_ORDENES`, and moving toward
-            # the hero is in since 2026-09-12 —see RUTA_HACIA_HEROE—; moving
+            # `rpg::MoveCommand::Code` is `ROUTE_COMMANDS`, and moving toward
+            # the hero is in since 2026-09-12 —see ROUTE_TOWARD_HERO—; moving
             # away from him, turning in place and the switches are still out.
-            if orden not in RUTA_ORDENES:
-                raise NoSePuede()
-            if orden in (RUTA_ENCARAR_HEROE, RUTA_HACIA_HEROE) and blanco == 0:
-                raise NoSePuede()   # the hero facing or moving toward itself
-            if orden in RUTA_HEROE_AFUERA and blanco == 0:
+            if command not in ROUTE_COMMANDS:
+                raise CannotCompile()
+            if command in (ROUTE_FACE_HERO, ROUTE_TOWARD_HERO) and target == 0:
+                raise CannotCompile()   # the hero facing or moving toward itself
+            if command in ROUTE_HERO_OUTSIDE and target == 0:
                 # Locking and unlocking the facing on **the hero**: accepted
                 # and dropped, like the sound and the transparency. On events
                 # they are done. Raising and lowering the speed were also
                 # dropped on the hero, and they are done since 2026-09-10:
-                # see RUTA_HEROE_AFUERA.
+                # see ROUTE_HERO_OUTSIDE.
                 #
                 # Dropping them and not rejecting the whole page, which was
                 # the first thing tried, is from 2026-09-06: **Talan's scene
@@ -4996,15 +4996,15 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
                 # motivated that day's six points did not compile and the
                 # player could not leave the Emitter Room corridor.
                 continue
-            if orden in RUTA_DIAGONALES and blanco == 0:
+            if command in ROUTE_DIAGONALS and target == 0:
                 # And the hero diagonally: the ROM does not know how to do it
                 # and none of the game's 26 routes with diagonals is the
                 # hero's. Without this cut the ROM would go left —the `mover`
                 # of `paso_de_ruta` falls into `try_left` by elimination—.
-                raise NoSePuede()
-            if orden == RUTA_CAMBIAR_GRAFICO:
+                raise CannotCompile()
+            if command == ROUTE_CHANGE_GRAPHIC:
                 # The only command with an operand: after 34 goes the
-                # graphic's index in `Graficos`, which the converter resolves
+                # graphic's index in `Graphics`, which the converter resolves
                 # to the map's sprite bank. Whoever walks an already compiled
                 # route has to skip that byte: read as a command, a 30 or a
                 # 31 change the route's frequency without anyone asking.
@@ -5016,38 +5016,38 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
                 # in tools/runtime/ruta_del_heroe.s. They are +29 pages of the
                 # game, and among them the three of map 8's `EV0047`, which
                 # could not be interacted with.
-                if graficos is None or len(extras) < 2:
-                    raise NoSePuede()
-                elegido = graficos.indice(extras[0], extras[1])
-                if elegido > 0xFF:
-                    raise NoSePuede()
-                ruta.append(orden)
-                ruta.append(elegido)
+                if graphics is None or len(extras) < 2:
+                    raise CannotCompile()
+                chosen = graphics.index(extras[0], extras[1])
+                if chosen > 0xFF:
+                    raise CannotCompile()
+                path.append(command)
+                path.append(chosen)
                 continue
-            ruta.append(orden)
-        if len(ruta) > 255:
-            raise NoSePuede()
-        if not ruta:
+            path.append(command)
+        if len(path) > 255:
+            raise CannotCompile()
+        if not path:
             # A route left without commands —only sound or transparency,
             # like those of map 2's screens— is not emitted: in RM2k
             # `UpdateMoveRoute` consumes it whole on the same frame and
             # considers it finished, so it neither costs frames nor leaves
             # anything to wait for in `ProceedWithMovement`.
             return b""
-        return bytes([OP_ROUTE, blanco, p[1], len(ruta)]) + bytes(ruta)
+        return bytes([OP_ROUTE, target, p[1], len(path)]) + bytes(path)
 
     if cmd.code == CHANGE_EVENT_LOCATION:
-        if len(p) < 4 or p[1] not in (LUGAR_CONSTANTE, LUGAR_POR_VARIABLE):
-            raise NoSePuede()
-        if p[0] == RUTA_HEROE or eventos_mapa is None:
+        if len(p) < 4 or p[1] not in (PLACE_CONSTANT, PLACE_BY_VARIABLE):
+            raise CannotCompile()
+        if p[0] == ROUTE_HERO or map_events is None:
             # Nobody moves the hero this way in this game —that is what
             # Teleport is for— and without the map there is no way to
             # translate the id.
-            raise NoSePuede()
-        blanco = eventos_mapa.blanco(p[0])
-        if blanco is None:
-            raise NoSePuede()   # a vehicle, or an event that does not exist
-        if p[1] == LUGAR_POR_VARIABLE:
+            raise CannotCompile()
+        target = map_events.route_target(p[0])
+        if target is None:
+            raise CannotCompile()   # a vehicle, or an event that does not exist
+        if p[1] == PLACE_BY_VARIABLE:
             # The cell comes from two variables, and they are read **when it
             # runs**: it is `CommandChangeEventLocation`'s
             # `Main_Data::game_variables->Get(x)`. It goes in a separate
@@ -5055,11 +5055,11 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
             # different —two one-byte slots against two words— and a
             # variable-length opcode is what the walk over the bytecode does
             # not know how to do: `OPCODE_SIZE` is a table.
-            return bytes([OP_PLACE_VAR, blanco, ranura_de_variable(p[2]),
-                          ranura_de_variable(p[3])])
+            return bytes([OP_PLACE_VAR, target, variable_slot(p[2]),
+                          variable_slot(p[3])])
         if not (0 <= p[2] <= 0xFFFF and 0 <= p[3] <= 0xFFFF):
-            raise NoSePuede()
-        return bytes([OP_PLACE, blanco, p[2] & 0xFF, p[2] >> 8,
+            raise CannotCompile()
+        return bytes([OP_PLACE, target, p[2] & 0xFF, p[2] >> 8,
                       p[3] & 0xFF, p[3] >> 8])
 
     if cmd.code == TILE_SUBSTITUTION:
@@ -5067,23 +5067,23 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         # the first of their layer, which is how `DoSubstitute` numbers
         # them.
         if len(p) < 3:
-            raise NoSePuede("TileSubstitution with no operands")
-        if eventos_mapa is None or eventos_mapa.sustituciones is None:
+            raise CannotCompile("TileSubstitution with no operands")
+        if map_events is None or map_events.substitutions is None:
             # Without the converter in between there are no blocks to
-            # translate against. See `Sustituciones` in snes_convert.py.
-            raise NoSePuede("TileSubstitution without the map's blocks")
-        pares = eventos_mapa.sustituciones.pares(bool(p[0]), p[1], p[2])
-        if pares is None:
-            raise NoSePuede("TileSubstitution that cannot be translated to "
-                            "blocks: see `Sustituciones`")
-        if not pares:
+            # translate against. See `Substitutions` in snes_convert.py.
+            raise CannotCompile("TileSubstitution without the map's blocks")
+        pairs = map_events.substitutions.pairs(bool(p[0]), p[1], p[2])
+        if pairs is None:
+            raise CannotCompile("TileSubstitution that cannot be translated to "
+                                "blocks: see `Substitutions`")
+        if not pairs:
             # No cell of the map draws the old tile, so there is nothing to
             # change. In RM2k the substitution is still recorded, but nobody
             # looks at what it records: there is no cell that can use it.
             return b""
-        out = bytearray([OP_TILE_SUB, len(pares)])
-        for viejo, nuevo in pares:
-            out += bytes([viejo & 0xFF, viejo >> 8, nuevo & 0xFF, nuevo >> 8])
+        out = bytearray([OP_TILE_SUB, len(pairs)])
+        for old, new in pairs:
+            out += bytes([old & 0xFF, old >> 8, new & 0xFF, new >> 8])
         return bytes(out)
 
     if cmd.code == STORE_TERRAIN_ID:
@@ -5093,24 +5093,24 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         # the mode set: reading them here in mode 1 would answer with what
         # the variables were worth at compile time.
         if len(p) < 4 or p[0] not in (0, 1):
-            raise NoSePuede("StoreTerrainID with a mode that is neither 0 nor 1")
-        destino = ranura_de_variable(p[3])
+            raise CannotCompile("StoreTerrainID with a mode that is neither 0 nor 1")
+        dest = variable_slot(p[3])
         if p[0]:
-            x, y = ranura_de_variable(p[1]), ranura_de_variable(p[2])
+            x, y = variable_slot(p[1]), variable_slot(p[2])
         else:
             if not (0 <= p[1] <= 0xFFFF and 0 <= p[2] <= 0xFFFF):
-                raise NoSePuede("StoreTerrainID outside the 16 bits")
+                raise CannotCompile("StoreTerrainID outside the 16 bits")
             x, y = p[1], p[2]
-        modo = p[0] | escritura_pide_refresco(p[3], eventos_mapa)
-        return bytes([OP_TERRAIN, modo, x & 0xFF, x >> 8, y & 0xFF, y >> 8,
-                      destino])
+        mode = p[0] | write_needs_refresh(p[3], map_events)
+        return bytes([OP_TERRAIN, mode, x & 0xFF, x >> 8, y & 0xFF, y >> 8,
+                      dest])
 
     if cmd.code == SHOW_HIDDEN_MONSTER:
-        # It only arrives from a troop page: see `TROPA_COMANDOS`. A place
+        # It only arrives from a troop page: see `TROOP_COMMANDS`. A place
         # the troop does not have does nothing in easyrpg —`GetEnemy` gives
         # null—, and the ROM checks it against `BA_NENE`.
         if len(p) < 1 or not 0 <= p[0] < 256:
-            raise NoSePuede("ShowHiddenMonster without a place")
+            raise CannotCompile("ShowHiddenMonster without a place")
         return bytes([OP_SHOW_ENEMY, p[0]])
 
     if cmd.code == SHAKE_SCREEN:
@@ -5118,28 +5118,28 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         # whether it waits. The game's 29 are of that form. With zero tenths
         # it is `ShakeEnd` and never waits.
         if len(p) < 4 or not 0 <= p[0] <= 9 or not 0 <= p[1] <= 9:
-            raise NoSePuede()
-        cuadros = p[2] * CUADROS_POR_DECIMA
-        if cuadros > 0xFFFF:
-            raise NoSePuede()
-        out = bytes([OP_SHAKE, p[0], p[1], cuadros & 0xFF, cuadros >> 8])
-        if cuadros and p[3]:
-            out += bytes([OP_DELAY, cuadros & 0xFF, cuadros >> 8])
+            raise CannotCompile()
+        frames = p[2] * FRAMES_PER_TENTH
+        if frames > 0xFFFF:
+            raise CannotCompile()
+        out = bytes([OP_SHAKE, p[0], p[1], frames & 0xFF, frames >> 8])
+        if frames and p[3]:
+            out += bytes([OP_DELAY, frames & 0xFF, frames >> 8])
         return out
 
     if cmd.code == SHOW_BATTLE_ANIMATION:
         # (animation, target, wait, global): see OP_ANIMATION.
         if len(p) < 3:
-            raise NoSePuede()
-        anim = ANIMACIONES.get(p[0])
-        if p[1] == RUTA_HEROE:
-            blanco, quien = 0, None
-        elif eventos_mapa is None:
-            blanco, quien = None, None
+            raise CannotCompile()
+        anim = ANIMATIONS.get(p[0])
+        if p[1] == ROUTE_HERO:
+            target, who = 0, None
+        elif map_events is None:
+            target, who = None, None
         else:
-            blanco = eventos_mapa.blanco(p[1])
-            quien = (eventos_mapa.mio if p[1] == RUTA_ESTE_EVENTO else p[1])
-        if anim is None or blanco is None:
+            target = map_events.route_target(p[1])
+            who = (map_events.owner if p[1] == ROUTE_THIS_EVENT else p[1])
+        if anim is None or target is None:
             return b""      # without an animation or a target RM2k does nothing
         # The target's flash is a tint of its palette on the console, and two
         # events with the same graphic share it: see FLASH_SPRITE. Here the
@@ -5148,41 +5148,41 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         # party, which the compiler does not see —the converter looks at it
         # for the `FlashSprite`s and cuts the whole ROM—, and an animation is
         # not worth that.
-        destella = (blanco != 0
-                    and not eventos_mapa.comparte_grafico(quien))
-        entradas = []
+        flashes = (target != 0
+                   and not map_events.shares_graphic(who))
+        entries = []
         for t in anim["timings"]:
             tick = (t["frame"] - 1) * 2
             if not 0 <= tick <= 255:
                 continue
-            nombre, volumen, tempo, balance = t["se"]
-            if nombre and nombre != "(OFF)" and temas is not None:
-                k = temas.sonido(nombre, volumen, tempo, balance)
-                entradas.append(bytes([tick, ANIM_SONIDO, k & 0xFF, k >> 8,
-                                       0, 0, 0, 0]))
+            name, volume, tempo, balance = t["se"]
+            if name and name != "(OFF)" and songs is not None:
+                k = songs.sound(name, volume, tempo, balance)
+                entries.append(bytes([tick, ANIM_SOUND, k & 0xFF, k >> 8,
+                                      0, 0, 0, 0]))
             r, g, b = (min(31, max(0, v)) for v in t["rgb"])
-            fuerza = min(7 * max(0, t["fuerza"]) // 6, 31)
+            strength = min(7 * max(0, t["fuerza"]) // 6, 31)
             if t["alcance"] == 2:
-                entradas.append(bytes([tick, ANIM_DESTELLO, r, g, b, fuerza,
-                                       ANIM_DESTELLO_CUADROS, 0]))
-            elif t["alcance"] == 1 and destella:
-                entradas.append(bytes([tick, ANIM_FLASH, blanco, r, g, b,
-                                       fuerza, ANIM_DESTELLO_CUADROS]))
-        entradas.sort(key=lambda e: e[0])   # stable: the LDB's order
-        if len(entradas) > 255:
-            raise NoSePuede()
+                entries.append(bytes([tick, ANIM_SCREEN_FLASH, r, g, b, strength,
+                                      ANIM_FLASH_FRAMES, 0]))
+            elif t["alcance"] == 1 and flashes:
+                entries.append(bytes([tick, ANIM_FLASH, target, r, g, b,
+                                      strength, ANIM_FLASH_FRAMES]))
+        entries.sort(key=lambda e: e[0])   # stable: the LDB's order
+        if len(entries) > 255:
+            raise CannotCompile()
         # A `global` one —the one RM2k repeats three by three to cover the
         # screen— is accepted and not drawn: it is still heard and still
         # flashes, which is what it already did. None of the intro's eleven
         # asks for it.
-        numero = (p[0] if p[0] <= 255 and not (len(p) > 3 and p[3])
-                  else ANIM_SIN_DIBUJO)
-        out = (bytes([OP_ANIMATION, numero, dibujo_blanco(anim, blanco),
-                      len(entradas)])
-               + b"".join(entradas))
-        cuadros = 2 * len(anim["cuadros"])
-        if p[2] and cuadros:
-            out += bytes([OP_DELAY, cuadros & 0xFF, cuadros >> 8])
+        number = (p[0] if p[0] <= 255 and not (len(p) > 3 and p[3])
+                  else ANIM_NO_DRAWING)
+        out = (bytes([OP_ANIMATION, number, drawing_target(anim, target),
+                      len(entries)])
+               + b"".join(entries))
+        frames = 2 * len(anim["cuadros"])
+        if p[2] and frames:
+            out += bytes([OP_DELAY, frames & 0xFF, frames >> 8])
         return out
 
     if cmd.code == FLASH_SCREEN:
@@ -5192,68 +5192,68 @@ def _compilar(cmd, indice_de_mapa, mensajes=None, extra=(),
         # divides the level by what is left with the hardware's eight-bit
         # divider.
         if len(p) < 6 or any(not 0 <= v <= 31 for v in p[:4]):
-            raise NoSePuede()
-        cuadros = p[4] * CUADROS_POR_DECIMA
-        if cuadros > 0xFF:
-            raise NoSePuede()
-        out = bytes([OP_FLASH_SCREEN, p[0], p[1], p[2], p[3], cuadros])
-        if cuadros and p[5]:
-            out += bytes([OP_DELAY, cuadros & 0xFF, cuadros >> 8])
+            raise CannotCompile()
+        frames = p[4] * FRAMES_PER_TENTH
+        if frames > 0xFF:
+            raise CannotCompile()
+        out = bytes([OP_FLASH_SCREEN, p[0], p[1], p[2], p[3], frames])
+        if frames and p[5]:
+            out += bytes([OP_DELAY, frames & 0xFF, frames >> 8])
         return out
 
     if cmd.code == TRADE_EVENT_LOCATIONS:
         # `CommandTradeEventLocations`: each one goes with `MoveTo` to the
         # other's cell. No page of the game uses it on the hero.
-        if len(p) < 2 or eventos_mapa is None:
-            raise NoSePuede()
-        blancos = [eventos_mapa.blanco(q) for q in p[:2]]
-        if any(b is None or b == 0 for b in blancos):
-            raise NoSePuede()   # the hero, a vehicle or an event that does not exist
-        return bytes([OP_SWAP] + blancos)
+        if len(p) < 2 or map_events is None:
+            raise CannotCompile()
+        targets = [map_events.route_target(q) for q in p[:2]]
+        if any(b is None or b == 0 for b in targets):
+            raise CannotCompile()   # the hero, a vehicle or an event that does not exist
+        return bytes([OP_SWAP] + targets)
 
     if cmd.code == WAIT:
         if len(p) < 1:
-            raise NoSePuede()
-        cuadros = p[0] * CUADROS_POR_DECIMA
-        if cuadros > 0xFFFF:
-            raise NoSePuede()
-        return bytes([OP_DELAY, cuadros & 0xFF, cuadros >> 8])
+            raise CannotCompile()
+        frames = p[0] * FRAMES_PER_TENTH
+        if frames > 0xFFFF:
+            raise CannotCompile()
+        return bytes([OP_DELAY, frames & 0xFF, frames >> 8])
 
     if cmd.code == TINT_SCREEN:
         if len(p) < 4:
-            raise NoSePuede()
+            raise CannotCompile()
         if any(not 0 <= v <= 200 for v in p[:4]):
-            raise NoSePuede()
+            raise CannotCompile()
         # The duration is discarded: the tint is applied at once. The screen
         # being compared is always settled, so the final value is the one
         # that matters; what is lost is the one-second gradient.
         return bytes([OP_TINT, p[0], p[1], p[2], p[3]])
 
     if cmd.code == SHOW_MESSAGE:
-        if mensajes is None:
-            raise NoSePuede()   # this ROM carries no window: nowhere to put it
-        lineas = [cmd.string] + list(extra)
-        # `Mensajes.agregar` removes the escape tail, since every box goes
+        if messages is None:
+            raise CannotCompile()   # this ROM carries no window: nowhere to put it
+        lines = [cmd.string] + list(extra)
+        # `Messages.add` removes the escape tail, since every box goes
         # through it; anything that is not `\|` or `\^` still cuts the page
-        # from there. See `cola_de_escapes`.
-        donde = mensajes.agregar(lineas)
-        return bytes([OP_MESSAGE, donde & 0xFF, donde >> 8])
+        # from there. See `escape_tail`.
+        where = messages.add(lines)
+        return bytes([OP_MESSAGE, where & 0xFF, where >> 8])
 
-    raise NoSePuede()
+    raise CannotCompile()
 
 
-class Estado:
+class PartyState:
     """The party, to simulate its changes when converting:
-    `lideres_posibles` and `grupo_de_la_pagina` in snes_convert.py. It is
+    `possible_leaders` and `page_party` in snes_convert.py. It is
     what is left of the Python interpreter's state, which went away with the
     reference; the ROM is the only one that runs the bytecode."""
 
-    def __init__(self, grupo=()):
+    def __init__(self, party=()):
         # The party, in order. The hero's graphic is the first one's, so the
         # order decides which poses have to fit in VRAM.
-        self.grupo = list(grupo)
+        self.party = list(party)
 
-    def cambiar_grupo(self, operacion, actor):
+    def change_party(self, operation, actor):
         """Adds or removes an actor, with RM2k's rules.
 
         Adding one who is already there does not duplicate it nor move it,
@@ -5263,14 +5263,14 @@ class Estado:
         call `ResetGraphic` in both cases. It matters because the order
         decides who the leader is, that is which sprite is drawn.
         """
-        if operacion == GRUPO_SACAR:
-            if actor in self.grupo:
-                self.grupo.remove(actor)
-        elif actor not in self.grupo and len(self.grupo) < GRUPO_MAX:
-            self.grupo.append(actor)
+        if operation == PARTY_REMOVE:
+            if actor in self.party:
+                self.party.remove(actor)
+        elif actor not in self.party and len(self.party) < PARTY_MAX:
+            self.party.append(actor)
 
-    def lider(self):
-        return self.grupo[0] if self.grupo else None
+    def leader(self):
+        return self.party[0] if self.party else None
 
 
 # How much each opcode takes is derived from its declared arguments, so
@@ -5294,31 +5294,31 @@ class Estado:
 # 256-byte table at scale 127 and the division is integer, so the ROM may
 # differ from RPG_RT by one pixel on some frame. The converter emits the table
 # to mapdata.inc from this same list.
-SENO_SACUDIDA = [round(math.sin(t * math.pi / 128) * 127) for t in range(256)]
+SHAKE_SINE = [round(math.sin(t * math.pi / 128) * 127) for t in range(256)]
 
 
-def recorrer_codigo(codigo):
+def walk_code(code):
     """(offset, code) of each opcode of an already compiled page."""
     i = 0
-    while i < len(codigo):
-        yield i, codigo
-        i += opcode_size(codigo, i)
+    while i < len(code):
+        yield i, code
+        i += opcode_size(code, i)
 
 
-def blancos_de_ruta(paginas):
+def route_targets(pages):
     """The events these already compiled pages send a route to.
 
     It walks the bytecode and not the RM2k commands, which is what makes it
     the truth and not a guess: what counts is what ended up emitted, after
     the filter decided which pages go in.
     """
-    blancos = set()
-    for pagina in paginas:
-        codigo = pagina.get("codigo")
-        for i, c in recorrer_codigo(codigo or b""):
+    targets = set()
+    for page in pages:
+        code = page.get("codigo")
+        for i, c in walk_code(code or b""):
             if c[i] == OP_ROUTE and c[i + 1]:
-                blancos.add(c[i + 1] - 1)
-    return blancos
+                targets.add(c[i + 1] - 1)
+    return targets
 
 
 # The switch with which the test page turns itself off: the last one of the
@@ -5334,10 +5334,10 @@ def blancos_de_ruta(paginas):
 # idiom along the way.
 # Measured against A Blurred Line: an assumption of the engine, not a fact of
 # the game. See `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
-SWITCH_DE_PRUEBA = 1023
+TEST_SWITCH = 1023
 
 # The variable that chooses which of the test pages runs, when a cartridge
-# carries several: see `--caso` in snes_convert.py. Page k asks for it to be
+# carries several: see `--case` in snes_convert.py. Page k asks for it to be
 # **at least** k, which is the only comparison RM2k 2000 offers in a page's
 # condition, and since the highest-numbered one that is met wins, with the
 # variable at k page k runs and no other. With a single variable it is enough
@@ -5349,18 +5349,18 @@ SWITCH_DE_PRUEBA = 1023
 # the last and shifts nobody else's.
 # Measured against A Blurred Line: an assumption of the engine, not a fact of
 # the game. See `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
-VARIABLE_DE_CASO = 1000
-COMPARAR_AL_MENOS = 1   # the `>=` of RM2k's page conditions
+CASE_VARIABLE = 1000
+COMPARE_AT_LEAST = 1   # the `>=` of RM2k's page conditions
 # The switch that is never turned on: it is what a page with a condition the
 # port cannot meet —an item, see `rm2k.IMPOSSIBLE_CONDITIONS`— carries as
 # `switch_a`, so the ROM never picks it, and does pick the event's other
 # pages. The game checks switches up to 1003 and 1023 is the test page's.
 # Measured against A Blurred Line: an assumption of the engine, not a fact of
 # the game. See `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
-SWITCH_IMPOSIBLE = 1021
+SWITCH_IMPOSSIBLE = 1021
 
 
-def deudas_de_la_pagina(page, imagenes=None):
+def page_debts(page, pictures=None):
     """Which commands of this page are accepted without being done.
 
     So the converter can warn instead of the debt going silent.
@@ -5370,19 +5370,19 @@ def deudas_de_la_pagina(page, imagenes=None):
     nobody reads, which is how a real debt gets lost among the ones that no
     longer are.
     """
-    salida = set()
+    output = set()
     for cmd in page.commands:
-        if cmd.code not in ACEPTADOS_SIN_HACER:
+        if cmd.code not in ACCEPTED_UNDONE:
             continue
         if (cmd.code in (SHOW_PICTURE, MOVE_PICTURE, ERASE_PICTURE)
-                and _compilar_imagen(cmd, imagenes) is not None):
+                and _compile_picture(cmd, pictures) is not None):
             continue
-        salida.add(cmd.code)
-    return sorted(salida)
+        output.add(cmd.code)
+    return sorted(output)
 
 
-def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
-                     graficos=None, imagenes=None, tropas=None):
+def map_pages(game_map, map_index, messages=None, songs=None,
+              graphics=None, pictures=None, troops=None):
     """The pages the ROM needs to resolve the map's events.
 
     *All* the pages of an event that has some triggerable one are emitted,
@@ -5390,10 +5390,10 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
     of them, and a later page that triggers nothing still wins and keeps the
     one below from running.
     """
-    salida = []
-    del_mapa = Eventos(game_map)
+    output = []
+    map_events = MapEvents(game_map)
     chipset = getattr(game_map, "chipset_filename", None)
-    for numero_evento, event in enumerate(game_map.events):
+    for event_number, event in enumerate(game_map.events):
         # **All** events go, whether or not they have a page that triggers
         # something: since 2026-09-05 the table also says which layer the
         # active page is on, which is what decides whether the event blocks
@@ -5412,18 +5412,18 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
         if not rm2k.supported_conditions(event):
             continue
 
-        grupo = []
-        for numero_pagina, page in enumerate(event.pages):
+        party = []
+        for page_number, page in enumerate(event.pages):
             cond = page.condition
-            codigo = None
+            code = None
             if rm2k.impossible_page(page):
                 # Never active: no code, no graphic, and with the switch that
                 # never turns on. The pages below keep winning when their turn
                 # comes, which is what RM2k does while the item is not there.
-                grupo.append({
-                    "evento": numero_evento, "pagina": numero_pagina,
+                party.append({
+                    "evento": event_number, "pagina": page_number,
                     "trigger": page.trigger,
-                    "switch_a": SWITCH_IMPOSIBLE, "switch_b": 0, "actor": 0,
+                    "switch_a": SWITCH_IMPOSSIBLE, "switch_b": 0, "actor": 0,
                     "variable": None, "item": 0,
                     "capa": page.layer, "frecuencia": page.move_frequency,
                     "velocidad": page.move_speed, "codigo": None,
@@ -5431,7 +5431,7 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
                     "gira": False,
                 })
                 continue
-            grafico = rm2k.page_graphic(page, chipset)
+            graphic = rm2k.page_graphic(page, chipset)
             # **An automatic or parallel page without a single command starts
             # nothing.** It is `Game_Interpreter::Push`, which returns right
             # away with an empty list: the interpreter does not keep running
@@ -5448,14 +5448,14 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
             # It is turned off by setting its code to None, which is what the
             # converter already looks at to decide whether an automatic page
             # counts: the page's bit 7.
-            vacia = not page.commands and page.trigger in (TRIGGER_AUTOMATICO,
-                                                           TRIGGER_PARALELO)
-            if page.trigger in TRIGGERS and puede_dispararse(page) and not vacia:
-                codigo = compilar_pagina(page, indice_de_mapa, mensajes,
-                                         del_mapa.para(event.id), temas,
-                                         graficos, imagenes, tropas)
+            empty = not page.commands and page.trigger in (TRIGGER_AUTOSTART,
+                                                           TRIGGER_PARALLEL)
+            if page.trigger in TRIGGERS and can_trigger(page) and not empty:
+                code = compile_page(page, map_index, messages,
+                                    map_events.for_event(event.id), songs,
+                                    graphics, pictures, troops)
                 # **And the same with one that compiles to nothing**: all it
-                # had were calls that got skipped —see `_compilar_llamada`—.
+                # had were calls that got skipped —see `_compile_call`—.
                 # In RM2k it is not empty, and what it calls is what turns it
                 # off; here it would be the empty page above, with the map
                 # frozen. It is `AfterBattleMint` on the maps with encounters:
@@ -5464,54 +5464,54 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
                 # compile and is the one that turns 498 off. Without this, the
                 # first battle on those maps left the hero unable to take a
                 # step.
-                if codigo == bytes([OP_DONE]) and page.trigger in (
-                        TRIGGER_AUTOMATICO, TRIGGER_PARALELO):
-                    codigo = None
-            grupo.append({
-                "evento": numero_evento,
-                "pagina": numero_pagina,
+                if code == bytes([OP_DONE]) and page.trigger in (
+                        TRIGGER_AUTOSTART, TRIGGER_PARALLEL):
+                    code = None
+            party.append({
+                "evento": event_number,
+                "pagina": page_number,
                 "trigger": page.trigger,
                 "switch_a": cond.ids["switch_a"] if "switch_a" in cond.active else 0,
                 "switch_b": cond.ids["switch_b"] if "switch_b" in cond.active else 0,
                 "actor": cond.ids["actor"] if "actor" in cond.active else 0,
-                "variable": ((ranura_de_variable(cond.ids["variable"]),
+                "variable": ((variable_slot(cond.ids["variable"]),
                               cond.operator, cond.variable_value)
                              if "variable" in cond.active else None),
                 "item": cond.ids["item"] if "item" in cond.active else 0,
                 "capa": page.layer,
                 "frecuencia": page.move_frequency,
                 "velocidad": page.move_speed,
-                "codigo": codigo,
-                "ruta_propia": ruta_propia(page),
+                "codigo": code,
+                "ruta_propia": own_route(page),
                 # What the page draws and what its tile imposes on the cell:
                 # see `rm2k.collect_npcs`, and `pasa_con_evento` in
                 # tools/runtime/heroe.s, which is the one that applies them.
-                "grafico": grafico,
-                "tile_pasa": (rm2k.event_tile_passability(game_map, grafico[0],
+                "grafico": graphic,
+                "tile_pasa": (rm2k.event_tile_passability(game_map, graphic[0],
                                                           page.layer)
-                              if grafico is not None else None),
+                              if graphic is not None else None),
                 # Whether the event turns around toward the hero with this
                 # page: a CharSet —a chipset tile has nowhere to look— and an
                 # animation type that does not fix the direction. See TURN.
                 "gira": bool(page.character_name)
-                        and page.animation_type not in ANIM_FIJAS,
+                        and page.animation_type not in ANIM_FIXED,
             })
-        salida += grupo
-    return salida
+        output += party
+    return output
 
 
 # The page's animation types, `rpg::EventPage::AnimType`.
-ANIM_NO_CONTINUA, ANIM_CONTINUA_TIPO, ANIM_FIJA_NO_CONTINUA = 0, 1, 2
-ANIM_FIJA_CONTINUA, ANIM_GRAFICO_FIJO, ANIM_GIRO = 3, 4, 5
+ANIM_NOT_CONTINUOUS, ANIM_CONTINUOUS_KIND, ANIM_FIXED_NOT_CONTINUOUS = 0, 1, 2
+ANIM_FIXED_CONTINUOUS, ANIM_FIXED_GRAPHIC, ANIM_TURN = 3, 4, 5
 
 
-def ruta_propia(page):
+def own_route(page):
     """The page's own route —`move_type` 6, the route it walks on its own—,
     or None if it has none or it cannot be done.
 
     The same commands as in a MoveEvent go, with the transparency dropped and
     also the sound, which in a MoveEvent does play: here there is nowhere to
-    put its operand —see RUTA_SONIDO—. The diagonals go in: an own route is
+    put its operand —see ROUTE_SOUND—. The diagonals go in: an own route is
     always an event's, which is what the ROM walks them on. What is left
     out: moving toward or away from the hero, changing the graphic —none uses
     it— and the switches; and turning in place (`AnimType_spin`), which
@@ -5528,39 +5528,39 @@ def ruta_propia(page):
     """
     if page.move_type != 6 or not page.move_route.commands:
         return None
-    if not RUTA_FRECUENCIA_MIN <= page.move_frequency <= RUTA_FRECUENCIA:
+    if not ROUTE_FREQUENCY_MIN <= page.move_frequency <= ROUTE_FREQUENCY:
         return None
-    if not 1 <= page.move_speed <= 6 or page.animation_type == ANIM_GIRO:
+    if not 1 <= page.move_speed <= 6 or page.animation_type == ANIM_TURN:
         return None
-    ordenes = []
-    for orden in page.move_route.commands:
-        if orden == RUTA_SONIDO or orden in RUTA_TRANSPARENCIA:
+    commands = []
+    for command in page.move_route.commands:
+        if command == ROUTE_SOUND or command in ROUTE_TRANSPARENCY:
             continue
-        if orden not in RUTA_ORDENES or orden in (RUTA_ENCARAR_HEROE,
-                                                  RUTA_HACIA_HEROE):
+        if command not in ROUTE_COMMANDS or command in (ROUTE_FACE_HERO,
+                                                        ROUTE_TOWARD_HERO):
             return None
-        if orden == RUTA_CAMBIAR_GRAFICO:
+        if command == ROUTE_CHANGE_GRAPHIC:
             # Here there is nowhere to put the operand —a page's route is a
             # bare list of codes, not a MoveEvent with its text— and it is not
             # needed: **none of the game's 3509 own routes changes graphic**,
             # measured. The day one shows up, this rejects it instead of
             # compiling a 34 with nothing to change to.
             return None
-        ordenes.append(orden)
-    if frecuencia_minima(page.move_frequency, ordenes,
-                         page.move_route.repeat) < RUTA_FRECUENCIA_MIN:
+        commands.append(command)
+    if min_frequency(page.move_frequency, commands,
+                     page.move_route.repeat) < ROUTE_FREQUENCY_MIN:
         return None             # commands 30 and 31 would take it down to 1
-    if not ordenes or len(ordenes) > 255:
+    if not commands or len(commands) > 255:
         return None
     return {
-        "ordenes": ordenes,
+        "ordenes": commands,
         "frecuencia": page.move_frequency,
         "velocidad": page.move_speed,
         "repite": page.move_route.repeat,
         "saltable": page.move_route.skippable,
-        "dir_fija": page.animation_type in (ANIM_FIJA_NO_CONTINUA,
-                                           ANIM_FIJA_CONTINUA,
-                                           ANIM_GRAFICO_FIJO),
-        "anim_continua": page.animation_type in (ANIM_CONTINUA_TIPO,
-                                                ANIM_FIJA_CONTINUA),
+        "dir_fija": page.animation_type in (ANIM_FIXED_NOT_CONTINUOUS,
+                                           ANIM_FIXED_CONTINUOUS,
+                                           ANIM_FIXED_GRAPHIC),
+        "anim_continua": page.animation_type in (ANIM_CONTINUOUS_KIND,
+                                                ANIM_FIXED_CONTINUOUS),
     }

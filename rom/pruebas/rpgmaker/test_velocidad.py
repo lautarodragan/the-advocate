@@ -5,24 +5,24 @@ Lo que se ve de una ruta con 28 o 29 lo cobra la tanda —`ruta-vel` y
 golden no dice es dónde quedó el héroe, así que acá se le escribe
 al héroe la velocidad que una ruta le habría dejado y se lo hace caminar con el
 pad. La cuenta de dónde tiene que estar es la de RM2k: 256 unidades por celda a
-`PASO_POR_VELOCIDAD` por cuadro, y los pixeles que faltan son las unidades que
+`STEP_PER_SPEED` por cuadro, y los pixeles que faltan son las unidades que
 faltan sobre dieciséis, que es lo que `advance_step` hace con `step_left >> 3`
 sobre medias unidades.
 """
 
 
-from port import eventos
+from port import events
 
 
 def donde_queda(tile_y, velocidad, cuadros):
     """hero_y tras `cuadros` cuadros **subiendo** desde la celda `tile_y`: en
     el mapa de arranque de las pruebas, hacia abajo hay pared."""
-    paso = eventos.PASO_POR_VELOCIDAD[velocidad - 1]
+    paso = events.STEP_PER_SPEED[velocidad - 1]
     unidades = cuadros * paso
-    celdas, resto = divmod(unidades, eventos.SALTO_PASO)
+    celdas, resto = divmod(unidades, events.JUMP_STEP)
     if resto:
         celdas += 1
-        faltan = (eventos.SALTO_PASO - resto) >> 4
+        faltan = (events.JUMP_STEP - resto) >> 4
     else:
         faltan = 0
     return (tile_y - celdas) * 16 + faltan

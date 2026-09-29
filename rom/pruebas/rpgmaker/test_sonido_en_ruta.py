@@ -33,7 +33,7 @@ EFECTO = ("Close1", 100, 100, 50)
 def fila(una, sonido=EFECTO):
     """La fila de `sonido_tabla` del efecto: la muestra, la altura, el volumen
     de cada lado y los cuadros que dura. El índice sale de `efectos.json`, que
-    el conversor escribe al lado del cartucho en el orden de `Temas.sonidos`."""
+    el conversor escribe al lado del cartucho en el orden de `Songs.sounds`."""
     with open(os.path.join(os.path.dirname(una.sfc), "efectos.json")) as a:
         sonidos = [tuple(s) for s in json.load(a)["sonidos"]]
     k = sonidos.index(sonido)

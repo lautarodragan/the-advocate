@@ -4,7 +4,7 @@ Es `Game_Map::SetEncounterSteps`: cambia el `encounter_steps` del mapa hasta
 que se cargue otro. En la ROM son dos cosas que salen del mismo número —la
 chance del paso, `ENC_BASE`, y en qué paso se cruza cada fila de la tabla,
 `ENC_UMB`— y el conversor las calcula las dos: ver `encuentro_pasos` en
-runtime/encuentros.s y `Encuentros.poner_pasos`, que es el modelo.
+runtime/encuentros.s y `Encounters.set_steps`, que es el modelo.
 
 Lo pidió el viaje de Dalia a Tasgarde (la automática 14 del mundo, el 66), que
 los pone en cero antes de forzarle una ruta al héroe. Los tres casos van en el
@@ -19,7 +19,7 @@ from batalla import grupo_de
 from consola import en_la_wram
 from tanda import partida
 
-from port import eventos
+from port import events
 
 EL_MUNDO = 66
 LA_LLEGADA = (71, 29)
@@ -40,8 +40,8 @@ def leer(p):
 
 
 def esperado(pasos):
-    return (eventos.enc_base(pasos),
-            eventos.enc_umbrales_de_paso(pasos) + [0xFF])
+    return (events.enc_base(pasos),
+            events.enc_step_thresholds(pasos) + [0xFF])
 
 
 def test_cambiar_los_pasos_cambia_la_chance_y_las_filas():
@@ -80,7 +80,7 @@ def test_cero_los_apaga():
 
 
 def test_en_un_mapa_sin_encuentros_no_prende_nada():
-    """Sin tropas ni áreas no hay encuentro que prender: `poner_pasos` deja la
+    """Sin tropas ni áreas no hay encuentro que prender: `set_steps` deja la
     base en cero, y la ROM no escribe nada."""
     p = partida("encuentros-sin-zonas")
     p.correr(TICKS)

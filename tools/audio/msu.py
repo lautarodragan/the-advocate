@@ -13,7 +13,7 @@ A track is `<rom>-<number>.pcm`: the "MSU1" signature, the loop point in
 samples —four bytes— and the raw audio, signed 16-bit stereo at 44.1 kHz.
 And next to it there has to be `<rom>.msu`, which is what turns MSU-1 on.
 That one is not written by this but by the converter, with the battle
-backgrounds MSU-1 serves to the ROM —see `port/msu_datos.py`—; for the
+backgrounds MSU-1 serves to the ROM —see `port/msu_data.py`—; for the
 tracks it can be empty.
 
 The audio comes from rendering the MIDI with fluidsynth and **the same

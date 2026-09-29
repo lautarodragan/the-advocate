@@ -145,7 +145,7 @@ listo:
 ; animated tiles already do.
 ;
 ; Where each pixel lands and what color it is lives in
-; `tools/port/animacion.py`, which is the only thing both ends share; nothing
+; `tools/port/animation.py`, which is the only thing both ends share; nothing
 ; of that is decided here. There is one box for the whole ROM and what changes
 ; per map —which tile it lands on and with which palette— comes from
 ; `anim_batalla_reparto`, one byte per map.

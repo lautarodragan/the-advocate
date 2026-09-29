@@ -1,12 +1,12 @@
 """El equipo: la pantalla de `Scene_Equip` desde el menú, pixel por pixel
-contra `pantallas.pantalla_equipo`, y lo que equipar cambia en la RAM.
+contra `screens.equipment_screen`, y lo que equipar cambia en la RAM.
 
 El inventario lo da la página de prueba con `ChangeItems` de verdad. Talan
 arranca con su ropa de trabajo, que es el equipo inicial del LDB copiado a
 `FAR_EQUIPO` en el reset.
 """
 
-from port import pantallas
+from port import screens
 
 from consola import TITULO_AIRE
 import datos
@@ -51,17 +51,17 @@ def test_equipar_desde_el_menu(partida):
     una = entrar(partida(caso="equipo-inventario"))
     puesto = list(db.actors[TALAN].initial_equipment)
     inv = dict(INVENTARIO)
-    comparar_pantalla(una, pantallas.pantalla_equipo(db, TALAN, puesto, inv, 0)
+    comparar_pantalla(una, screens.equipment_screen(db, TALAN, puesto, inv, 0)
              .render(skin, db.font_id), "equipo")
     una.tocar_cuadros("a", 10)
-    comparar_pantalla(una, pantallas.pantalla_equipo(db, TALAN, puesto, inv, 0, True,
+    comparar_pantalla(una, screens.equipment_screen(db, TALAN, puesto, inv, 0, True,
                                             0).render(skin, db.font_id),
              "equipo-lista")
     una.tocar_cuadros("a", 10)          # el palo
-    pantallas.equipar(db, puesto, inv, 0, PALO)
+    screens.equip(db, puesto, inv, 0, PALO)
     assert una.equipo(TALAN) == puesto
     assert una.item(PALO) == 1
-    comparar_pantalla(una, pantallas.pantalla_equipo(db, TALAN, puesto, inv, 0)
+    comparar_pantalla(una, screens.equipment_screen(db, TALAN, puesto, inv, 0)
              .render(skin, db.font_id), "equipo-puesto")
 
 
@@ -81,7 +81,7 @@ def test_la_lanza_a_dos_manos_saca_el_escudo(partida):
     puesto[1] = ESCUDO
     inv = dict(INVENTARIO)
     inv[ESCUDO] = 0
-    comparar_pantalla(una, pantallas.pantalla_equipo(db, TALAN, puesto, inv, 0, True,
+    comparar_pantalla(una, screens.equipment_screen(db, TALAN, puesto, inv, 0, True,
                                             1).render(skin, db.font_id),
              "equipo-lanza")
     una.tocar_cuadros("a", 10)

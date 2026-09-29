@@ -14,7 +14,7 @@ siempre. Lo que se cuenta acá son los ticks con `ruta_salto` distinto de cero.
 
 import pytest
 
-from port import eventos
+from port import events
 
 
 def cuadros_en_el_aire(una, tope=200):
@@ -43,8 +43,8 @@ def test_el_salto_del_heroe_dura_lo_que_dice_su_velocidad(partida, caso,
     dura = cuadros_en_el_aire(una)
     assert una.velocidad_del_heroe() == velocidad, \
         "la ruta dejó al héroe a velocidad %d" % una.velocidad_del_heroe()
-    s = eventos.SALTO_POR_VELOCIDAD[velocidad - 1]
-    esperado = -(-eventos.SALTO_PASO // s) - 1
+    s = events.JUMP_PER_SPEED[velocidad - 1]
+    esperado = -(-events.JUMP_STEP // s) - 1
     assert dura == esperado, (
         "a velocidad %d el salto baja %d por cuadro y en RM2k está %d ticks en "
         "el aire; acá estuvo %d" % (velocidad, s, esperado, dura))

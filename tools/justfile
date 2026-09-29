@@ -106,7 +106,7 @@ voodoo-test:
   cd voodoo && cargo test
 
 # LZ2: Nintendo's LC_LZ2, which the converter uses to compress the tiles and
-# grids the ROM decompresses when loading a map —see `port/comprimir.py`—.
+# grids the ROM decompresses when loading a map —see `port/compress.py`—.
 # Its tests do not need the game; the ones that run every block of the
 # cartridge through the reference are the port's.
 lz2-test:
@@ -204,7 +204,7 @@ _install root *projects:
   ln -sfn "{{justfile_directory()}}/assembly/assemble.py" "{{root}}/bin/rm2k-snes-assemble"
   ln -sfn "{{justfile_directory()}}/assembly/space.py" "{{root}}/bin/rm2k-snes-space"
   ln -sfn "{{justfile_directory()}}/port/snes_convert.py" "{{root}}/bin/rm2k-snes-convert"
-  ln -sfn "{{justfile_directory()}}/port/parches.py" "{{root}}/bin/rm2k-snes-patches"
+  ln -sfn "{{justfile_directory()}}/port/patches.py" "{{root}}/bin/rm2k-snes-patches"
   ln -sfn "{{justfile_directory()}}/audio/msu.py" "{{root}}/bin/rm2k-snes-msu"
   ln -sfn "{{justfile_directory()}}/audio/ceilings.py" "{{root}}/bin/rm2k-snes-volume-ceilings"
   ln -sfn "{{justfile_directory()}}/assembly/entregar.py" "{{root}}/bin/abl-entregar"

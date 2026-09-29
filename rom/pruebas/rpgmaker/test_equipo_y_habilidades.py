@@ -6,13 +6,13 @@ mapa 30 y la cinemática del techo del mapa 32— y los dos cambian estado que n
 se ve en ningún pixel del cuadro en que pasa, así que esto le pregunta a la RAM.
 
 **Las habilidades son un bit por par (actor, habilidad)** en `FAR_HAB`, con la
-ranura que les da `eventos.HABILIDAD_RANURA`: el juego entero **más los pares
+ranura que les da `events.SKILL_SLOT`: el juego entero **más los pares
 que nombren las páginas de prueba del cartucho**, así que la prueba rearma el
 índice con los mismos casos. La página `habilidades-cambiar` le enseña a Arden
 la 152 —se la enseña el mapa 48— y le hace olvidar la 147, que el LDB le da.
 """
 
-from port import eventos
+from port import events
 
 import datos
 from datos import pagina_de
@@ -97,13 +97,13 @@ def test_change_equipment_saca_y_devuelve_al_inventario(partida):
     assert arma_k and arma_c and casco_m, "el caso no saca nada: no mide nada"
     # Uno de los ítems ya estaba en el tope: tiene que quedarse ahí.
     una.consola.write_ram(una.simbolos["FAR_ITEMS"] + arma_c,
-                          [eventos.ITEM_MAX])
+                          [events.ITEM_MAX])
     una.correr(DESPUES)
     assert una.equipo(KERSH)[0] == 0 and una.equipo(CORE)[0] == 0, (
         "el grupo sigue armado: %s, %s" % (una.equipo(KERSH), una.equipo(CORE)))
     assert una.equipo(MANTA)[3] == 0, "Manta sigue con el casco"
     assert una.item(arma_k) == 1, "el arma de Kersh no volvió al inventario"
-    assert una.item(arma_c) == eventos.ITEM_MAX, "el inventario pasó del tope"
+    assert una.item(arma_c) == events.ITEM_MAX, "el inventario pasó del tope"
     assert una.item(casco_m) == 1, "el casco de Manta no volvió al inventario"
 
 

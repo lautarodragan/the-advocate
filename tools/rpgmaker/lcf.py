@@ -187,7 +187,7 @@ class EventCommand:
 
 # Text boxes rebuilt for another screen: a function that receives a page's
 # commands as they are in the JSON and returns different ones. The port sets
-# `textos.reajustar_comandos`; the reader knows nothing about screens, and
+# `texts.refit_commands`; the reader knows nothing about screens, and
 # with nobody setting it the game is read as is.
 #
 # It is a step separate from `rom/parches/`, and runs after it: it reads
@@ -446,11 +446,11 @@ class Actor:
         self.sp_max = self.params.get("maxsp", [])
         # **The level it starts at**, which in ABL is not 1: Kersh starts at
         # 20 and Core and Manta at 15. Until 2026-09-13 this port had
-        # everyone at 1 —a constant `titulo.NIVEL`— and from that came the
+        # everyone at 1 —a constant `title.NIVEL`— and from that came the
         # HP, the parameters and the conclusion that nobody knew any skill.
         self.initial_level = field(data, "initial_level") or 1
         # How high it goes and with which experience curve: the three
-        # numbers of `Game_Actor::CalculateExp`. See `port.experiencia`.
+        # numbers of `Game_Actor::CalculateExp`. See `port.experience`.
         self.final_level = field(data, "final_level")
         self.exp_base = field(data, "exp_base")
         self.exp_inflation = field(data, "exp_inflation")
@@ -461,7 +461,7 @@ class Actor:
         # the format says: it is the only game datum that changed when moving
         # to Ditto. Alex —actor 1, from the RTP, which this game does not
         # use— learns skill 1 at level 1, and before that arrived as skill 0
-        # and was dropped. It is one more pair in `eventos.HABILIDAD_RANURA`;
+        # and was dropped. It is one more pair in `events.SKILL_SLOT`;
         # other than that the `mapdata.inc` is identical.
         self.skills = [(field(l, "level"),
                         field(l, "skill_id"))
@@ -508,7 +508,7 @@ class Skill:
         for name in SKILL_FIELDS:
             setattr(self, name, field(data, name))
         # Its number, which an enemy's action list needs to name it: see
-        # `batalla.acciones_de_enemigo`.
+        # `battle.actions_of_enemy`.
         self.id = field(data, "id")
 
     @property
@@ -539,7 +539,7 @@ class Item:
     outside battle" and `ko_only` "only on a dead one". `state_set` are the
     states it removes, one per LDB state from 1, which is the dead one: it is
     what decides whether it revives a fallen one. See
-    `batalla.item_usable_en_batalla` and `medicina_usar` in
+    `battle.item_usable_in_battle` and `medicina_usar` in
     tools/runtime/medicina.s.
     """
 
@@ -583,7 +583,7 @@ class Enemy:
             setattr(self, name, field(data, name))
         self.critical_hit_chance = field(data, "critical_hit_chance") or 30
         # What it can do on its turn, in the LDB's order: see
-        # `batalla.acciones_de_enemigo`.
+        # `battle.actions_of_enemy`.
         self.actions = [EnemyAction(a) for _, a in
                         sorted(by_id(list_field(data, "actions")).items())]
 
@@ -665,7 +665,7 @@ SECTIONS = ("actors", "skills", "items", "enemies", "troops", "terrains",
 LIST_SECTIONS = tuple(s for s in SECTIONS if s not in ("system", "terms"))
 
 # The sound effects `Game_System::GetSystemSE` hands out, in the order
-# `eventos.AUDIO_BATALLA_SE` walks.
+# `events.BATTLE_AUDIO_SE` walks.
 SYSTEM_SE = ("battle_se", "escape_se", "enemy_attack_se", "enemy_damaged_se",
              "actor_damaged_se", "dodge_se", "enemy_death_se", "item_se")
 
@@ -728,7 +728,7 @@ class Database:
                 raw["chipsets"][number] = data["chipset"]
         self.chipsets = {i: Chipset(f) for i, f in raw["chipsets"].items()}
         self.actors = {i: Actor(f) for i, f in raw["actors"].items()}
-        # The items, and the highest number: `ITEMS_N` in eventos.py is this
+        # The items, and the highest number: `ITEMS_N` in events.py is this
         # plus one, and test_items.py checks it.
         self.items = {i: Item(f) for i, f in raw["items"].items()}
         # The skills, which `lcf.Actor.skills` names by number.
@@ -750,7 +750,7 @@ class Database:
         # And when each one runs on its own: `(trigger, switch_flag,
         # switch_id)`, with the `trigger` of `rpg::CommonEvent` —3 automatic,
         # 4 parallel, 5 only through `CallEvent`—. See
-        # `eventos.COMUNES_DEL_EQUIPO`.
+        # `events.PARTY_COMMON_EVENTS`.
         self.common_event_triggers = {
             i: (field(f, "trigger"), field(f, "switch_flag"),
                 field(f, "switch_id"))

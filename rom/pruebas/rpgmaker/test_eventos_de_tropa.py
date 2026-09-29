@@ -7,7 +7,7 @@ Tres peleas del juego, cada una con su caso:
 * **el Rat King** (tropa 97, `pelea-97`): empieza solo, con sus dos ratas
   ocultas, y las llama con dos páginas **por HP del enemigo 0** —el 60% y el
   30%— que hacen `ShowHiddenMonster`. Se juega turno por turno contra
-  `batalla.Batalla` con las páginas del LDB, que dice en qué turno aparece cada
+  `battle.Battle` con las páginas del LDB, que dice en qué turno aparece cada
   una y con qué HP queda cada uno;
 * **los agentes** (tropa 102, `pelea-102`): una página de **turno 1** con el
   `PlaySound`, la sacudida y "The Captain has taken off in the ship!";
@@ -24,9 +24,9 @@ los mensajes de cada página, con un recorrido que no comparte nada con el
 compilador.
 """
 
-from port import batalla as modelo
-from port import eventos
-from port import reglas
+from port import battle as modelo
+from port import events
+from port import rules
 
 from batalla import (Pelea, mensaje_en_pantalla, modelo_de, paginas,
                      primera_pagina)
@@ -76,15 +76,15 @@ def lo_que_dicen(pagina):
     """Los mensajes de una página, cada uno con sus renglones."""
     mensajes = []
     for cmd in pagina.commands:
-        if cmd.code == eventos.SHOW_MESSAGE:
+        if cmd.code == events.SHOW_MESSAGE:
             mensajes.append([cmd.string])
-        elif cmd.code == eventos.SHOW_MESSAGE_2 and mensajes:
+        elif cmd.code == events.SHOW_MESSAGE_2 and mensajes:
             mensajes[-1].append(cmd.string)
     return mensajes
 
 
 def paginas_del_modelo(base, tropa):
-    return [modelo.PaginaDeTropa(p) for p in base.troops[tropa].pages]
+    return [modelo.TroopPage(p) for p in base.troops[tropa].pages]
 
 
 def turno_contando(una, pelea, ordenes, tope=3000, cada_cuadro=None):
@@ -124,24 +124,24 @@ def test_las_tropas_son_las_que_se_espera():
             for p in llaman] == [(0, 60), (0, 30)]
     # Y la del despegue, en el turno 1: `turn_b` es la base.
     despegue = [p for p in base.troops[TROPA_AGENTES].pages
-                if any(c.code == eventos.SHAKE_SCREEN for c in p.commands)]
+                if any(c.code == events.SHAKE_SCREEN for c in p.commands)]
     assert len(despegue) == 1
-    d = eventos.disparo_de_tropa(despegue[0])
-    assert (d.turno_base, d.turno_mult) == (1, 0)
+    d = events.troop_trigger(despegue[0])
+    assert (d.turn_base, d.turn_mult) == (1, 0)
 
 
 def test_la_condicion_de_turno_es_la_de_easyrpg():
     """`CheckTurns(turno, base, múltiplo)`: sin múltiplo, justo en la base; con
     él, en la base y cada tantos. Y la página de los Lazer Teeth: base 1,
     cada 3."""
-    assert [t for t in range(10) if modelo._turnos(t, 1, 0)] == [1]
-    assert [t for t in range(10) if modelo._turnos(t, 0, 0)] == [0]
-    assert [t for t in range(10) if modelo._turnos(t, 1, 3)] == [1, 4, 7]
-    assert [t for t in range(10) if modelo._turnos(t, 0, 2)] == [0, 2, 4, 6, 8]
+    assert [t for t in range(10) if modelo._turns(t, 1, 0)] == [1]
+    assert [t for t in range(10) if modelo._turns(t, 0, 0)] == [0]
+    assert [t for t in range(10) if modelo._turns(t, 1, 3)] == [1, 4, 7]
+    assert [t for t in range(10) if modelo._turns(t, 0, 2)] == [0, 2, 4, 6, 8]
     base = datos.base()
     primera = base.troops[TROPA_LAZER].pages[0]
-    d = eventos.disparo_de_tropa(primera)
-    assert (d.turno_base, d.turno_mult, d.actor) == (1, 3, TALAN)
+    d = events.troop_trigger(primera)
+    assert (d.turn_base, d.turn_mult, d.actor) == (1, 3, TALAN)
 
 
 # --- el Rat King --------------------------------------------------------------
@@ -160,8 +160,8 @@ def test_el_rat_king_empieza_solo_y_llama_a_sus_ratas(partida):
     una = partida(caso="pelea-97")
     pelea = a_la_pelea(una)
     esperado = modelo_de(base, (AG7,), TROPA_RAT_KING,
-                         paginas=paginas_del_modelo(base, TROPA_RAT_KING))
-    esperado.empezar()
+                         pages=paginas_del_modelo(base, TROPA_RAT_KING))
+    esperado.start()
     g = una.simbolos["BA_GRUPO_MAX"]
     assert ocultos_de_la_rom(una, 3) == [False, True, True]
     una.consola.run(4)
@@ -173,26 +173,26 @@ def test_el_rat_king_empieza_solo_y_llama_a_sus_ratas(partida):
     for turno in range(1, 20):
         if pelea.modo() == "FIN":
             break
-        blanco = [i for i, e in enumerate(esperado.enemigos) if e.vivo][0]
+        blanco = [i for i, e in enumerate(esperado.enemies) if e.alive][0]
         dichos += [m for m, _t in turno_contando(una, pelea, [("atacar", 0)])]
-        esperado.jugar_turno([(modelo.ORDEN_ATACAR, blanco)])
+        esperado.play_turn([(modelo.COMMAND_ATTACK, blanco)])
         de_la_rom = ([pelea.hp_del_combatiente(0)]
                      + [pelea.hp_del_combatiente(g + k) for k in range(3)])
-        del_modelo = [c.hp for c in esperado.actores + esperado.enemigos]
+        del_modelo = [c.hp for c in esperado.actors + esperado.enemies]
         assert de_la_rom == del_modelo, (
             "turno %d: la consola dejó %r y el modelo %r"
             % (turno, de_la_rom, del_modelo))
-        assert ocultos_de_la_rom(una, 3) == [e.oculto
-                                             for e in esperado.enemigos], (
+        assert ocultos_de_la_rom(una, 3) == [e.hidden
+                                             for e in esperado.enemies], (
             "turno %d: ocultos %r en la consola y %r en el modelo"
             % (turno, ocultos_de_la_rom(una, 3),
-               [e.oculto for e in esperado.enemigos]))
+               [e.hidden for e in esperado.enemies]))
         for k in (1, 2):
-            if not esperado.enemigos[k].oculto:
+            if not esperado.enemies[k].hidden:
                 aparecio.setdefault(k, turno)
         una.consola.run(30)      # lo que tarda en subir un battler
         pintados[turno] = pintado(una)
-        vivos = sum(1 << k for k, e in enumerate(esperado.enemigos) if e.vivo)
+        vivos = sum(1 << k for k, e in enumerate(esperado.enemies) if e.alive)
         if pelea.modo() != "FIN":
             assert dibujados(una) == vivos, (
                 "turno %d: la escena dibuja $%02X y en la pelea están $%02X"
@@ -215,7 +215,7 @@ def test_un_oculto_no_es_blanco_ni_cuenta_para_ganar(partida):
     la victoria da la experiencia y el oro **del rey solo** —`GetExp` y
     `GetMoney` suman los muertos—."""
     base = datos.base()
-    term = reglas.terminos_batalla(base)
+    term = rules.battle_terms(base)
     una = partida(caso="pelea-97-sin-ratas")
     pelea = a_la_pelea(una)
     assert pelea.switch(1005) and pelea.switch(1006)
@@ -237,23 +237,23 @@ def test_un_oculto_no_es_blanco_ni_cuenta_para_ganar(partida):
             break
         turno_contando(una, pelea, [("atacar", 0)])
     assert pelea.modo() == "FIN"
-    assert pelea.byte("BA_RESULT") == modelo.VICTORIA
+    assert pelea.byte("BA_RESULT") == modelo.VICTORY
     assert ocultos_de_la_rom(una, 3) == [False, True, True]
     esperado = modelo_de(base, (KERSH,), TROPA_RAT_KING)
-    esperado.enemigos[0].hp = 0
-    assert esperado.experiencia() == base.enemies[KING_RAT].exp
-    assert una.oro() == oro_antes + esperado.oro() == oro_antes + \
+    esperado.enemies[0].hp = 0
+    assert esperado.experience() == base.enemies[KING_RAT].exp
+    assert una.oro() == oro_antes + esperado.gold() == oro_antes + \
         base.enemies[KING_RAT].gold
     vistas = paginas(una, pelea)
-    assert vistas[0][:len(primera_pagina(term, esperado.experiencia()))] \
-        == primera_pagina(term, esperado.experiencia())
+    assert vistas[0][:len(primera_pagina(term, esperado.experience()))] \
+        == primera_pagina(term, esperado.experience())
 
 
 # --- los agentes ------------------------------------------------------------
 
 def la_pagina_del_despegue(base):
     return [p for p in base.troops[TROPA_AGENTES].pages
-            if any(c.code == eventos.SHAKE_SCREEN for c in p.commands)][0]
+            if any(c.code == events.SHAKE_SCREEN for c in p.commands)][0]
 
 
 def test_el_despegue_sale_en_el_turno_uno_con_su_sacudida(partida):
@@ -323,10 +323,10 @@ def test_el_despegue_pide_su_efecto(partida):
     with open(os.path.join(os.path.dirname(una.sfc), "efectos.json")) as f:
         sonidos = [tuple(x) for x in json.load(f)["sonidos"]]
     p = [c for c in la_pagina_del_despegue(base).commands
-         if c.code == eventos.PLAY_SOUND][0]
+         if c.code == events.PLAY_SOUND][0]
     trueno = sonidos.index((p.string, p.parameters[0], p.parameters[1],
                             p.parameters[2]))
-    assert bytes([eventos.OP_SOUND, trueno & 0xFF, trueno >> 8]) in codigos
+    assert bytes([events.OP_SOUND, trueno & 0xFF, trueno >> 8]) in codigos
 
 
 # --- el turno con múltiplo --------------------------------------------------
@@ -357,7 +357,7 @@ def test_la_pagina_de_los_lazer_teeth_vuelve_cada_tres_turnos(partida):
         assert all(t == turno for _m, t in vistos)
         assert pelea.modo() == "ORDEN"
     esperados = {t: (lo_que_dicen(primera)
-                     if modelo._turnos(t, 1, 3) else [])
+                     if modelo._turns(t, 1, 3) else [])
                  for t in range(1, 6)}
     assert salieron == esperados, salieron
     assert salieron[1] and salieron[4] and not salieron[2]

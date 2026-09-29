@@ -27,7 +27,7 @@ switch arriba y ramifica abajo, en la misma página: ahí el orden es nuestro.
 Ninguna página del juego que use `ConditionalBranch` prende antes el switch
 que la decide —todas leen uno que viene de otra parte—. La página
 es `pruebas/casos/rama-300.json`, un dato de RM2k que compila
-`compilar_pagina` igual que a una página del juego.
+`compile_page` igual que a una página del juego.
 """
 
 # La página del juego, y lo que deja.

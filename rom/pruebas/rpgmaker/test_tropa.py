@@ -25,7 +25,7 @@ pasa a ser un líder posible del cartucho de pruebas, que le pondría su sprite
 en todos los mapas y le podría mover los colores a más de una golden.
 """
 
-from port import eventos
+from port import events
 
 from batalla import Pelea, hab_id, mensaje_en_pantalla, sabe
 import datos
@@ -54,9 +54,9 @@ def lo_que_dice(pagina):
     """Los renglones de su primer `ShowMessage`, como los corta la pantalla."""
     renglones = []
     for cmd in pagina.commands:
-        if cmd.code == eventos.SHOW_MESSAGE and not renglones:
+        if cmd.code == events.SHOW_MESSAGE and not renglones:
             renglones.append(cmd.string)
-        elif cmd.code == eventos.SHOW_MESSAGE_2 and renglones:
+        elif cmd.code == events.SHOW_MESSAGE_2 and renglones:
             renglones.append(cmd.string)
         elif renglones:
             break
@@ -68,7 +68,7 @@ def lo_que_enseña(pagina):
     cambios = {}
     for cmd in pagina.commands:
         p = cmd.parameters
-        if cmd.code == eventos.CHANGE_SKILLS and p[0] == 1 and p[1] == TALAN:
+        if cmd.code == events.CHANGE_SKILLS and p[0] == 1 and p[1] == TALAN:
             cambios[p[4]] = p[2] == 0
     return cambios
 
@@ -80,7 +80,7 @@ def lo_que_cuenta(pagina):
     valores = {}
     for cmd in pagina.commands:
         p = cmd.parameters
-        if cmd.code != eventos.CONTROL_VARS or cmd.indent != 0:
+        if cmd.code != events.CONTROL_VARS or cmd.indent != 0:
             continue
         assert p[0] == 0 and p[1] == p[2] and p[4] == 0, p
         if p[3] == 0:

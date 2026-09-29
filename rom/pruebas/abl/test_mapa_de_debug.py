@@ -18,7 +18,7 @@ la carrera y al mundo no llega: esas dos puertas lo dicen y no saltan.
 **Talan es siempre el primero.** Una puerta que armaba el grupo sacando a
 Talan y metiendo a DummyHero, con un compañero adentro, lo dejaba a él de
 líder: al compañero el conversor no le prevé gráfico —en el juego nunca
-lidera, ver `lideres_posibles`— y el héroe no se veía. Por eso cada llegada
+lidera, ver `possible_leaders`— y el héroe no se veía. Por eso cada llegada
 mira el líder y `hero_poses`.
 
 Se entra como entra el jugador: `partida("mapa-de-debug")` es la página 0 de

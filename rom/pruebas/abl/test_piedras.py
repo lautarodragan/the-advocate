@@ -30,7 +30,7 @@ El orden de los toques importa y es el del juego: A primero, y la dirección
 ("I'll have to be careful about pressing the OK button...").
 """
 
-from port import eventos
+from port import events
 
 from piedras import (DEBAJO_DE_LA_REJA, MAPAS, STONE, celda_de,
                      eventos_del_11, hablarle_a_la_reja, ranura)
@@ -68,7 +68,7 @@ def test_con_a_y_una_direccion_la_piedra_sale_volando(partida):
     assert lejos != DEBAJO_DE_LA_REJA
 
     p.tocar_ticks("a")
-    assert p.variable(ranura(5)) == eventos.TECLA_VALOR_DECISION, (
+    assert p.variable(ranura(5)) == events.KEY_VALUE_DECISION, (
         "el primer KeyInputProc tendría que haber leído la tecla de acción, y "
         "la variable 5 quedó en %d" % p.variable(ranura(5)))
     # El héroe sigue mirando a la reja, que es un evento de acción. La A es
@@ -86,7 +86,7 @@ def test_con_a_y_una_direccion_la_piedra_sale_volando(partida):
 
     p.correr(4)
     p.tocar_ticks("left")
-    assert p.variable(ranura(8)) == eventos.TECLA_VALOR_DIR[3], (
+    assert p.variable(ranura(8)) == events.KEY_VALUE_DIR[3], (
         "el segundo KeyInputProc tendría que haber leído izquierda —2 en "
         "`CheckInput`— y la variable 8 quedó en %d" % p.variable(ranura(8)))
     p.correr(20)
@@ -176,7 +176,7 @@ def test_la_a_que_cierra_el_mensaje_no_saca_una_piedra(partida):
     # El control: sin mensaje, la A siguiente sí es del motor. Sin esto, un
     # motor que dejara de leer la A para siempre daría verde arriba.
     p.tocar_ticks("a")
-    assert p.variable(ranura(5)) == eventos.TECLA_VALOR_DECISION, (
+    assert p.variable(ranura(5)) == events.KEY_VALUE_DECISION, (
         "con el mensaje cerrado, la A siguiente tendría que preparar la "
         "piedra, y la variable 5 quedó en %d" % p.variable(ranura(5)))
     assert celda_de(p, STONE) == FRENTE_A_LA_PC
@@ -212,7 +212,7 @@ def test_la_a_que_cierra_el_mensaje_no_le_habla_al_de_enfrente(partida):
     assert (p.palabra("tile_x"), p.palabra("tile_y")) == AL_LADO_DE_EV0060
     assert p.byte("hero_dir") == p.simbolos["DIR_RIGHT"], (
         "el héroe tendría que mirar a EV0060")
-    assert eventos_del_11().para(1).blanco(EV0060)
+    assert eventos_del_11().for_event(1).route_target(EV0060)
     for _ in range(TOPE_HASTA_EL_MENSAJE):
         if p.byte("msg_abierto"):
             break

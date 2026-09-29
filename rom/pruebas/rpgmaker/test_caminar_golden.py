@@ -124,7 +124,7 @@ def test_puerta_30_28():
 def test_varios(direccion):
     """`varios`: el mapa 19 en un cartucho donde **no** es el primero.
 
-    Se llama `18` porque su cartucho era `--map-id 18 --mapas 7 19 --inicial
+    Se llama `18` porque su cartucho era `--map-id 18 --maps 7 19 --start-index
     2`, que arrancaba en el tercero de la tabla, el 19. Desde el 9f ningún
     mapa de los que miran estas pruebas es el primero salvo el 6.
 

@@ -61,7 +61,7 @@ DE_AMBIENTE = {"ABL_GAME_DIR", "ABL_RTP_DIR", "ABL_SOUNDFONT", "ABL_CACHE",
 PERMITIDOS = {
     # The shape of each cartridge's directory, which imitates `rom/parches/`:
     # it is not where `rom/parches/` is in the repo, and does not move with it.
-    ("port/parches.py", "parches"),
+    ("port/patches.py", "parches"),
 }
 
 

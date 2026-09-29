@@ -8,8 +8,8 @@ pipeline, and that is why it is not in `tools/voodoo/`, which only converts
 what already fits and never touches a pixel: see "`tools/voodoo/` no decide
 colores" in `AGENTS.md`.
 
-Its users are still spread across `snes_convert.py` —`repartir_encima`,
-`build_palette`, `npcs_dibujables`— and `menus.py`. The day the allocator
+Its users are still spread across `snes_convert.py` —`split_above`,
+`build_palette`, `drawable_npcs`— and `menus.py`. The day the allocator
 moves to Rust, this is what goes first.
 
 Until 2026-09-17 it was called `pixeles.py` and also did the part that
@@ -36,7 +36,7 @@ def tile_colors(tile):
     return frozenset(p for row in tile for p in row if p is not None)
 
 
-def try_pack(sets, limit, por_paleta=USABLE_COLORS):
+def try_pack(sets, limit, per_palette=USABLE_COLORS):
     """Splits the colors into palettes so that each tile uses only one.
 
     Colors may repeat across palettes: what has to be achieved is that the
@@ -49,7 +49,7 @@ def try_pack(sets, limit, por_paleta=USABLE_COLORS):
         best = None
         for index, group in enumerate(groups):
             size = len(group | colors)
-            if size <= por_paleta and (best is None or size < best[1]):
+            if size <= per_palette and (best is None or size < best[1]):
                 best = (index, size)
         if best is not None:
             groups[best[0]] |= colors
@@ -110,15 +110,15 @@ def merge_least_visible(counts, keep, accept=None):
     mapping they receive.
     """
     if accept is None:
-        clave = (tuple(counts.items()), keep)
-        if clave not in _fusionados:
-            _fusionados[clave] = _merge_least_visible(counts, keep, None)
-        mapping, merged = _fusionados[clave]
+        key = (tuple(counts.items()), keep)
+        if key not in _merged_cache:
+            _merged_cache[key] = _merge_least_visible(counts, keep, None)
+        mapping, merged = _merged_cache[key]
         return dict(mapping), list(merged)
     return _merge_least_visible(counts, keep, accept)
 
 
-_fusionados = {}
+_merged_cache = {}
 
 
 def _merge_least_visible(counts, keep, accept):
@@ -129,70 +129,70 @@ def _merge_least_visible(counts, keep, accept):
     # `(distancia, color)`, the victim by `(costo, color)`— is the tie-break
     # by rank, integer and without floats. `luma_distance` and the cost are
     # the usual ones.
-    colores = sorted(counts)
-    puesto = {c: i for i, c in enumerate(colores)}
-    n = len(colores)
-    rojo, verde, azul = (numpy.array([c[k] for c in colores], dtype=numpy.int64)
-                         for k in range(3))
-    orden = numpy.arange(n, dtype=numpy.int64)
-    peso = numpy.array([counts[c] for c in colores], dtype=numpy.int64)
-    vivo = numpy.ones(n, dtype=bool)
-    nunca = numpy.iinfo(numpy.int64).max
+    colors = sorted(counts)
+    position = {c: i for i, c in enumerate(colors)}
+    n = len(colors)
+    red, green, blue = (numpy.array([c[k] for c in colors], dtype=numpy.int64)
+                        for k in range(3))
+    order = numpy.arange(n, dtype=numpy.int64)
+    weight = numpy.array([counts[c] for c in colors], dtype=numpy.int64)
+    alive = numpy.ones(n, dtype=bool)
+    never = numpy.iinfo(numpy.int64).max
     # Which original colors are in each one today, so as not to walk the
     # whole mapping on every merge.
-    adentro = [[c] for c in colores]
+    members = [[c] for c in colors]
     # The cheapest neighbor of each living color, and what it costs to send
     # it there. It is recomputed only for those whose neighbor was the dead
     # one —and for the one that grew—, which is what keeps this from being
     # cubic: the lower layer's sheets reach three hundred colors and merge a
     # hundred.
-    costo = numpy.zeros(n, dtype=numpy.int64)
-    vecino = numpy.full(n, -1, dtype=numpy.int64)
+    cost = numpy.zeros(n, dtype=numpy.int64)
+    neighbor = numpy.full(n, -1, dtype=numpy.int64)
 
-    def recalcular(i):
-        distancia = (30 * (rojo - rojo[i]) ** 2 + 59 * (verde - verde[i]) ** 2
-                     + 11 * (azul - azul[i]) ** 2)
-        clave = numpy.where(vivo, distancia * n + orden, nunca)
-        clave[i] = nunca
-        j = int(clave.argmin())
-        if clave[j] == nunca:
-            vecino[i] = -1
+    def recompute(i):
+        distance = (30 * (red - red[i]) ** 2 + 59 * (green - green[i]) ** 2
+                    + 11 * (blue - blue[i]) ** 2)
+        key = numpy.where(alive, distance * n + order, never)
+        key[i] = never
+        j = int(key.argmin())
+        if key[j] == never:
+            neighbor[i] = -1
             return
-        costo[i] = peso[i] * distancia[j]
-        vecino[i] = j
+        cost[i] = weight[i] * distance[j]
+        neighbor[i] = j
 
     for i in range(n):
-        recalcular(i)
-    vivos = n
+        recompute(i)
+    n_alive = n
 
     while True:
         if accept is None:
-            if vivos <= keep:
+            if n_alive <= keep:
                 return mapping, merged
         else:
             result = accept(mapping)
             if result is not None:
                 return mapping, merged, result
 
-        if vivos <= 1:
+        if n_alive <= 1:
             sys.exit("The palette could not be reduced enough.")
 
-        candidatos = numpy.where(vivo, costo, nunca)
-        victima = int(numpy.flatnonzero(vivo & (candidatos
-                                                == candidatos.min()))[0])
-        blanco = int(vecino[victima])
-        victim, target = colores[victima], colores[blanco]
-        for original in adentro[victima]:
+        candidates = numpy.where(alive, cost, never)
+        victim_i = int(numpy.flatnonzero(alive & (candidates
+                                                  == candidates.min()))[0])
+        target_i = int(neighbor[victim_i])
+        victim, target = colors[victim_i], colors[target_i]
+        for original in members[victim_i]:
             mapping[original] = target
-        adentro[blanco] += adentro[victima]
-        merged.append((victim, target, int(peso[victima])))
-        peso[blanco] += peso[victima]
-        vivo[victima] = False
-        vivos -= 1
-        recalcular(blanco)
-        for i in numpy.flatnonzero(vivo & (vecino == victima)).tolist():
-            if i != blanco:
-                recalcular(i)
+        members[target_i] += members[victim_i]
+        merged.append((victim, target, int(weight[victim_i])))
+        weight[target_i] += weight[victim_i]
+        alive[victim_i] = False
+        n_alive -= 1
+        recompute(target_i)
+        for i in numpy.flatnonzero(alive & (neighbor == victim_i)).tolist():
+            if i != target_i:
+                recompute(i)
 
 
 def reduce_colors(grid, budget):

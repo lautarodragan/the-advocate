@@ -1,16 +1,16 @@
 """La pelea de la consola, manejada desde afuera, y lo que las pruebas de
 pelea comparten: el droide del mapa 2, el grupo de la intro, el modelo de
-`port.batalla`, perder sin pelear, la experiencia, los textos de la pantalla y
+`port.battle`, perder sin pelear, la experiencia, los textos de la pantalla y
 volver del Game Over.
 
 **Todo en cuadros de hardware**: la pelea corre su propio lazo y `vueltas` no
 avanza mientras dura.
 """
 
-from port import batalla as modelo
-from port import eventos
+from port import battle as modelo
+from port import events
 from port import menus
-from port import pantallas
+from port import screens
 
 from consola import EMPEZAR, en_la_rom, en_la_wram
 import datos
@@ -27,7 +27,7 @@ GRUPO = (11, 12, 13)
 # la ROM sin el prefijo —"ORDEN", "BLANCO", "FIN"...— y las órdenes son
 # `BA_ORDEN_ATACAR` y compañía. El orden es el del original —Attack /
 # <habilidad> / Defend / Use Item— y `Escape` va quinta, que es la
-# simplificación que `port/batalla.py` declara.
+# simplificación que `port/battle.py` declara.
 
 
 class Pelea:
@@ -114,7 +114,7 @@ class Pelea:
 
         `que` es `("atacar", enemigo)`, `("defender",)` o
         `("habilidad", k, blanco)`, donde `k` es el lugar en la lista de
-        habilidades del actor —la misma que `batalla.habilidades_de` arma— y
+        habilidades del actor —la misma que `battle.skills_of` arma— y
         `blanco` el lugar del enemigo o del actor al que apunta, según su
         `scope`. Una de switch va sin blanco, `("habilidad", k)`: no lo pide.
         """
@@ -213,9 +213,9 @@ class Pelea:
 
 
 def modelo_de(base, actores=GRUPO, tropa=TROPA_DROIDE, **extra):
-    return modelo.Batalla(
-        [modelo.actor_de(base, a) for a in actores],
-        modelo.enemigos_de_la_tropa(base, tropa), **extra)
+    return modelo.Battle(
+        [modelo.actor_of(base, a) for a in actores],
+        modelo.troop_enemies(base, tropa), **extra)
 
 
 def en_el_droide(partida, con_musica=None):
@@ -347,7 +347,7 @@ def rom_de(una):
 def ranura_exp(una, actor):
     """La ranura de `FAR_EXP` del actor, leída de `actor_exp_k`, o None.
 
-    Se lee del cartucho y no se recalcula con `experiencia_ranuras`: depende
+    Se lee del cartucho y no se recalcula con `experience_slots`: depende
     de qué actores pueden entrar al grupo en **este** cartucho, y rehacer esa
     cuenta acá sería una segunda manera de contestar lo mismo.
     """
@@ -392,7 +392,7 @@ def mensaje_en_pantalla(una, pelea):
     with open(una.sfc, "rb") as archivo:
         rom = archivo.read()
     i = en_la_rom(una.simbolos["mensajes_tropa"]) + desplazamiento
-    cuantos = rom[i] & eventos.CABECERA_LINEAS
+    cuantos = rom[i] & events.HEADER_LINES
     i += 1
     renglones = []
     for _ in range(cuantos):
@@ -410,10 +410,10 @@ def glifos(una):
         rom = archivo.read()
     base = en_la_rom(una.simbolos["item_glifo_celdas"])
     de = {}
-    for n in range(menus.ITEM_CARACTERES):
+    for n in range(menus.ITEM_CHARS):
         b = rom[base + 4 * n:base + 4 * n + 4]
         de.setdefault((b[0] | (b[1] << 8), b[2] | (b[3] << 8)),
-                      chr(menus.ITEM_PRIMER_CARACTER + n))
+                      chr(menus.ITEM_FIRST_CHAR + n))
     return de
 
 
@@ -440,9 +440,9 @@ def ventana(una):
     """Lo que dice la ventana de la victoria: los cuatro renglones del grupo,
     desde la columna del mensaje, y los dos de abajo, que tienen que quedar
     vacíos."""
-    arriba = renglones(una, pantallas.BA_PAG_MSG_FILA0, 4)
-    abajo = renglones(una, pantallas.BA_MSG_FILA1, 2)
-    col = pantallas.BA_PAG_MSG_COL
+    arriba = renglones(una, screens.BA_PAGE_MSG_ROW0, 4)
+    abajo = renglones(una, screens.BA_MSG_ROW1, 2)
+    col = screens.BA_PAGE_MSG_COL
     assert all(r[:col].strip() == "" for r in arriba), arriba
     return [r[col:] for r in arriba], abajo
 
@@ -469,8 +469,8 @@ def paginas(una, pelea, tope=10):
 
 
 def primera_pagina(term, exp):
-    return (pantallas.renglones_de_la_victoria(term["victoria"])
-            + [pantallas.renglon_de_experiencia(term, exp)])
+    return (screens.victory_lines(term["victoria"])
+            + [screens.exp_line(term, exp)])
 
 
 # --- volver del Game Over ---------------------------------------------------

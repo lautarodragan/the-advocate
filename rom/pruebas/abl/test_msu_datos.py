@@ -2,7 +2,7 @@
 
 El cartucho lleva en la ROM el respaldo liviano de cada fondo —128x64 en
 4bpp, 16 colores, que la ROM agranda al doble— y el conversor escribe en el `.msu` el de calidad —8bpp, 96—: ver
-"El respaldo liviano" en tools/port/escena.py. Con MSU-1 y el `.msu` de este
+"El respaldo liviano" en tools/port/scene.py. Con MSU-1 y el `.msu` de este
 cartucho la ROM lee el de calidad; sin MSU-1, o con otro `.msu`, el suyo. La
 tanda entera corre sin MSU-1 —el arnés le esconde el `.msu` al core, ver
 `retro.Console`—, así que cubre el respaldo; esto cubre el otro camino, y que
@@ -18,7 +18,7 @@ mismo `.msu` con los tiles del fondo cambiados y la firma de la cabecera
 intacta —la ROM no puede hashear 98 KB— tiene que dibujar otra cosa.
 
 **Y el `.msu` lleva todos los fondos del juego**, cada uno en su lugar fijo
-—ver "El formato" en tools/port/msu_datos.py—, y la ROM los que piden las
+—ver "El formato" en tools/port/msu_data.py—, y la ROM los que piden las
 peleas del cartucho. Lo prueba una pelea del mundo, el 66, cuyo fondo es el
 del terreno que pisa el héroe: con el `.msu` sale el de calidad, y sin él su
 respaldo. El reemplazo, para un fondo que la ROM no lleva, lo prueba
@@ -36,7 +36,7 @@ import shutil
 
 import pytest
 
-from port import escena, eventos, formato_snes, msu_datos, snes_convert
+from port import scene, events, snes_format, msu_data, snes_convert
 from rpgmaker.resources import GAME_DIR
 from rpgmaker import lcf, rm2k
 
@@ -105,7 +105,7 @@ def _pelea(tmp_path, nombre, nucleo, msu, lugar=SECTOR_27, antes=0,
     # y bsnes pasan el mismo color de 15 bits a 24 de distinta manera —98 y
     # 99—, y esta prueba corre en los dos contra la misma golden.
     imagen = una.consola.image().convert("RGB").point(lambda v: v & 0xF8)
-    limpio = una.consola.ram(en_la_wram(s["ESC_LIMPIO"]), escena.TILES * 64)
+    limpio = una.consola.ram(en_la_wram(s["ESC_LIMPIO"]), scene.TILES * 64)
     return (tanda.quince_bits(imagen), byte("ESC_MSU"), byte("ESC_FONDO"),
             imagen, bytes(limpio))
 
@@ -114,13 +114,13 @@ def _fondo_8bpp(liviano, nombre=FONDO_SECTOR_27):
     """Los 32 KB que la ROM deja en la WRAM para un fondo —el de Sector 27, si
     no—: el de calidad tal cual, o el liviano agrandado al doble. El liviano
     se arma de sus índices ya duplicados y en 8bpp, sin pasar por
-    `respaldo_bytes`: así lo que se compara es lo que hace la ROM contra la
+    `fallback_bytes`: así lo que se compara es lo que hace la ROM contra la
     imagen, y no contra el mismo orden de bytes del que ella lee."""
     if not liviano:
-        return snes_convert.fondo_bytes(escena.fondo(nombre, GAME_DIR))[0]
-    grande = escena.fondo_liviano(nombre, GAME_DIR)["indices"]
-    return b"".join(formato_snes.pack_tile(celda, planes=8)
-                    for celda in escena.tiles(grande))
+        return snes_convert.backdrop_bytes(scene.backdrop(nombre, GAME_DIR))[0]
+    grande = scene.light_backdrop(nombre, GAME_DIR)["indices"]
+    return b"".join(snes_format.pack_tile(celda, planes=8)
+                    for celda in scene.tiles(grande))
 
 
 def _msu_del_cartucho():
@@ -132,7 +132,7 @@ def _msu_del_cartucho():
 def _tiles_cambiados(msu, fondo):
     """Una copia del `.msu` con los tiles del fondo `fondo` negados, y la
     cabecera tal cual: la firma sigue siendo la que la ROM espera."""
-    donde, largo = msu_datos.indice(msu)[2 * fondo]
+    donde, largo = msu_data.index(msu)[2 * fondo]
     otro = bytearray(msu)
     for i in range(donde, donde + largo):
         otro[i] ^= 0xFF
@@ -186,11 +186,11 @@ def test_msu_de_otro_build_cae_al_cartucho(tmp_path, nucleo):
     msu = _msu_del_cartucho()
     sin, _de_donde, fondo, _imagen, _limpio = _pelea(tmp_path, "sin", nucleo,
                                                      None)
-    entradas = [bytearray(e) for e in msu_datos.leer(msu)]
+    entradas = [bytearray(e) for e in msu_data.read(msu)]
     for i in range(len(entradas[2 * fondo])):
         entradas[2 * fondo][i] ^= 0xFF
-    otro, _posiciones = msu_datos.armar([bytes(e) for e in entradas])
-    assert otro[:msu_datos.FIRMA] != msu[:msu_datos.FIRMA]
+    otro, _posiciones = msu_data.build([bytes(e) for e in entradas])
+    assert otro[:msu_data.SIGNATURE_SIZE] != msu[:msu_data.SIGNATURE_SIZE]
     for nombre, archivo in (("otro", otro), ("vacio", b"")):
         imagen, de_donde, _fondo, _captura, _limpio = _pelea(
             tmp_path, nombre, nucleo, archivo)
@@ -202,17 +202,17 @@ def test_msu_de_otro_build_cae_al_cartucho(tmp_path, nucleo):
 
 
 def _fondos_del_juego():
-    db = eventos.base_de_datos(GAME_DIR)
+    db = events.database(GAME_DIR)
     tree = lcf.TreeMap(GAME_DIR + "/RPG_RT.lmt")
-    return escena.fondos_del_juego(eventos.fondos_nombrados(GAME_DIR), tree,
-                                   db.terrain_backdrops, GAME_DIR)
+    return scene.game_backdrops(events.named_backdrops(GAME_DIR), tree,
+                                db.terrain_backdrops, GAME_DIR)
 
 
 def _fondo_del_terreno(mapa, x, y):
     """El nombre del fondo del terreno de una celda, desde el juego: el tile
     de la capa de abajo, su terreno en el ChipSet y el fondo del terreno. Es lo
     que `Spriteset_Battle` usa cuando el mapa no nombra fondo."""
-    db = eventos.base_de_datos(GAME_DIR)
+    db = events.database(GAME_DIR)
     game_map = lcf.Map("%s/Map%04d.lmu" % (GAME_DIR, mapa))
     terreno = rm2k.terrain_of(db.chipsets[game_map.chipset_id],
                               game_map.lower_layer[y * game_map.width + x])
@@ -271,34 +271,34 @@ def test_msu_la_rom_sabe_donde_esta_cada_fondo():
             rom = archivo.read()
         with open(cartridges.msu_of(nombre), "rb") as archivo:
             msu = archivo.read()
-        indice = msu_datos.indice(msu)
+        indice = msu_data.index(msu)
         s = uno.simbolos
-        assert msu[:msu_datos.FIRMA] == rom[en_la_rom(s["msu_datos_firma"]):][
-            :msu_datos.FIRMA], "%s: la firma de la ROM no es la del .msu" % nombre
+        assert msu[:msu_data.SIGNATURE_SIZE] == rom[en_la_rom(s["msu_datos_firma"]):][
+            :msu_data.SIGNATURE_SIZE], "%s: la firma de la ROM no es la del .msu" % nombre
         assert s["MSU_FONDOS_N"] == s["FONDOS_JUEGO"] == len(juego), (
             "%s: el .msu lleva %d fondos, la ROM cuenta con %d y el juego "
             "tiene %d" % (nombre, s["MSU_FONDOS_N"], s["FONDOS_JUEGO"],
                           len(juego)))
         pos = en_la_rom(s["msu_fondo_pos"])
         # Los fondos van primero, dos entradas cada uno, y detrás los efectos
-        # de sonido de calidad: ver `escribir_msu` en snes_convert.py.
+        # de sonido de calidad: ver `write_msu` en snes_convert.py.
         assert len(indice) == 2 * s["MSU_FONDOS_N"] + s["MSU_EFECTOS_N"], (
             "%s: el .msu tiene %d entradas y la ROM cuenta con %d fondos y %d "
             "efectos" % (nombre, len(indice), s["MSU_FONDOS_N"],
                          s["MSU_EFECTOS_N"]))
         for k in range(s["MSU_FONDOS_N"]):
             (dt, lt), (dc, lc) = indice[2 * k], indice[2 * k + 1]
-            assert (dt, dc) == (msu_datos.fondo_en(k),
-                                msu_datos.fondo_en(k) + msu_datos.COLORES_EN), (
+            assert (dt, dc) == (msu_data.backdrop_offset(k),
+                                msu_data.backdrop_offset(k) + msu_data.COLORS_AT), (
                 "%s: el fondo %d no está en su lugar fijo" % (nombre, k))
             assert rom[pos + 8 * k:pos + 8 * k + 8] == (
                 dt.to_bytes(4, "little") + dc.to_bytes(4, "little")), (
                 "%s: msu_fondo_pos del fondo %d no apunta a sus entradas"
                 % (nombre, k))
-            assert (lt, lc) == (escena.TILES * 64, escena.COLORES * 2), (
+            assert (lt, lc) == (scene.TILES * 64, scene.COLORS * 2), (
                 "%s: el fondo %d del .msu mide %d y %d" % (nombre, k, lt, lc))
-        regiones[nombre] = msu[msu_datos.FONDOS_DESDE:
-                               msu_datos.fondo_en(len(juego))]
+        regiones[nombre] = msu[msu_data.BACKDROPS_START:
+                               msu_data.backdrop_offset(len(juego))]
     assert len(set(regiones.values())) == 1, (
         "la región de los fondos del .msu no es la misma en todos los "
         "cartuchos: %s" % sorted(regiones))

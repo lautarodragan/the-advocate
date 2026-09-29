@@ -90,9 +90,9 @@ def test_la_medicina_abre_la_eleccion_de_actor_y_no_se_gasta(partida):
     una.tocar_cuadros("a", TITULO_AIRE)  # la poción
     db, skin = datos.base(), datos.skin()
     for elegida in (0, 1):
-        esperada = menus.render_objetivo(skin, db, 4, (14, 11), elegida,
+        esperada = menus.render_target(skin, db, 4, (14, 11), elegida,
                                           db.font_id, None, GAME_DIR,
-                                          item=1, cantidad=INVENTARIO[1])
+                                          item=1, amount=INVENTARIO[1])
         comparar_pantalla(una, esperada,
                           que="la elección de actor con el cursor en %d"
                           % elegida)
@@ -109,10 +109,10 @@ def test_la_lista_se_corre_cuando_el_cursor_se_sale(partida):
     una = entrar(partida(caso="items-pantalla-muchos"))
     for _ in range(13):
         una.tocar_cuadros("down")
-    comparar(una, MUCHOS, 13, arriba=14 - menus.ITEM_FILAS,
+    comparar(una, MUCHOS, 13, arriba=14 - menus.ITEM_ROWS,
              nombre="items-abajo")
     una.tocar_cuadros("down")           # no hay más: se queda
-    comparar(una, MUCHOS, 13, arriba=14 - menus.ITEM_FILAS,
+    comparar(una, MUCHOS, 13, arriba=14 - menus.ITEM_ROWS,
              nombre="items-abajo")
     for _ in range(13):
         una.tocar_cuadros("up")

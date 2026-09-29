@@ -340,7 +340,7 @@ SUPPORTED_CONDITIONS = ("switch_a", "switch_b", "actor", "variable", "item")
 # And the ones the port **can never meet**. The item one was for a day:
 # without an inventory, `ChangeItems` was accepted doing nothing and the
 # party never had any item, so the page was emitted as one that is never
-# active —see `SWITCH_IMPOSIBLE` in eventos.py— and the event's other pages
+# active —see `SWITCH_IMPOSSIBLE` in events.py— and the event's other pages
 # ran as they should. Since the night of 2026-09-10 there is an inventory and
 # the item condition is evaluated; the machinery stays in case another
 # condition like that shows up.

@@ -61,7 +61,7 @@ mudo:
     ; --- the image, with all of CGRAM ---
     ; `pantalla_subir` uploads it, the Game Over one: the tiles from $0000,
     ; the tilemap at PANTALLA_MAPA and the colors —the menu's below and the
-    ; image's above, in the same stream: see tools/port/pantalla_completa.py—.
+    ; image's above, in the same stream: see tools/port/fullscreen.py—.
     ; It leaves the screen off, BG1 in mode 3, and TM, the window and color
     ; math at zero.
     ;

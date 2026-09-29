@@ -90,7 +90,7 @@ way. When a term is missing, pick one, use it consistently, and add it here.
 | elección | choice | |
 | manejador | handler | |
 | quieto | still | an event that doesn't move |
-| giro / ranura de giro | turn / turn slot | TURN in `eventos.py` |
+| giro / ranura de giro | turn / turn slot | TURN in `events.py` |
 | ele / pata / codo | L-shape / leg / elbow | a diagonal step |
 | cartel (ShowPicture) | picture | not "sign", which is the arithmetic sign |
 | fondo de batalla | battle backdrop | |

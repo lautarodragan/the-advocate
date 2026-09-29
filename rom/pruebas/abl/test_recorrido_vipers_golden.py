@@ -62,7 +62,7 @@ están bendecidas**: son para que taro las mire. Ver `Recorrido.foto`.
 """
 
 from recorrido import A_CADA
-from port import eventos
+from port import events
 
 # El switch que prende el despertador de Talan —"se levantó y va a trabajar"—.
 # No es decoración: la página 0 del hotplate lo pide, y las tres del caño
@@ -125,7 +125,7 @@ def sin_quedarse_en_el_aire(partida, a_cada=A_CADA):
             seguidas[0] = 0
             return
         dura = -(-partida.simbolos["SALTO_PASO"]
-                 // eventos.SALTO_POR_VELOCIDAD[p.velocidad_del_heroe() - 1])
+                 // events.JUMP_PER_SPEED[p.velocidad_del_heroe() - 1])
         tope = -(-dura // a_cada) + 1
         seguidas[0] += 1
         assert seguidas[0] <= tope, (

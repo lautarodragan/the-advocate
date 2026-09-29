@@ -23,7 +23,7 @@ import shutil
 import subprocess
 import tempfile
 
-FALTA = """`lz2` is missing, the compressor of the tiles and the grids.
+MISSING = """`lz2` is missing, the compressor of the tiles and the grids.
 
 It is a Rust binary that lives in `tools/lz2/` and is installed as a system
 tool:
@@ -32,77 +32,77 @@ tool:
 
 # The longest a stream can expand to: the repeat names the output position
 # with sixteen bits. It is the format's, not ours.
-SALIDA_MAX = 0x10000
+OUTPUT_MAX = 0x10000
 
 
-def binario():
+def binary():
     """The path of the `lz2` on the PATH. Exits with the message if it is
     not there."""
-    ruta = shutil.which("lz2")
-    if ruta is None:
-        raise SystemExit(FALTA)
-    return ruta
+    path = shutil.which("lz2")
+    if path is None:
+        raise SystemExit(MISSING)
+    return path
 
 
-def comprimir_varios(bloques):
+def compress_many(blocks):
     """Each block compressed, in the same order. A single process for all of
     them: there are hundreds per cartridge and launching one per block
     shows."""
-    bloques = [bytes(b) for b in bloques]
-    for b in bloques:
-        if len(b) > SALIDA_MAX:
+    blocks = [bytes(b) for b in blocks]
+    for b in blocks:
+        if len(b) > OUTPUT_MAX:
             raise SystemExit("a block of %d bytes does not fit in an LZ2 stream: "
-                             "the limit is %d" % (len(b), SALIDA_MAX))
-    if not bloques:
+                             "the limit is %d" % (len(b), OUTPUT_MAX))
+    if not blocks:
         return []
     with tempfile.TemporaryDirectory(prefix="lz2-") as d:
-        args = [binario(), "compress", "--no-increasing"]
-        for k, b in enumerate(bloques):
-            entrada = os.path.join(d, "%d.bin" % k)
-            with open(entrada, "wb") as f:
+        args = [binary(), "compress", "--no-increasing"]
+        for k, b in enumerate(blocks):
+            input_path = os.path.join(d, "%d.bin" % k)
+            with open(input_path, "wb") as f:
                 f.write(b)
-            args += [entrada, entrada + ".lz2"]
-        hecho = subprocess.run(args, capture_output=True, text=True)
-        if hecho.returncode:
+            args += [input_path, input_path + ".lz2"]
+        done = subprocess.run(args, capture_output=True, text=True)
+        if done.returncode:
             raise SystemExit("lz2 exited with %d: %s"
-                             % (hecho.returncode, hecho.stderr.strip()))
-        salida = []
-        for k in range(len(bloques)):
+                             % (done.returncode, done.stderr.strip()))
+        out = []
+        for k in range(len(blocks)):
             with open(os.path.join(d, "%d.bin.lz2" % k), "rb") as f:
-                flujo = f.read()
-            falta = lo_que_la_rom_no_lee(flujo)
-            if falta:
+                stream = f.read()
+            missing = what_the_rom_does_not_read(stream)
+            if missing:
                 raise SystemExit("lz2 emitted %s, which `lz2_descomprimir` does not read"
-                                 % falta)
-            salida.append(flujo)
-        return salida
+                                 % missing)
+            out.append(stream)
+        return out
 
 
-def comprimir(bloque):
-    return comprimir_varios([bloque])[0]
+def compress(block):
+    return compress_many([block])[0]
 
 
-def recorrer(flujo):
+def walk(stream):
     """The commands of a stream, as (command, length). Reads only the
     headers."""
     i = 0
-    while flujo[i] != 0xFF:
-        encabezado = flujo[i]
-        if encabezado >> 5 == 7:
-            comando = (encabezado >> 2) & 7
-            largo = ((encabezado & 3) << 8 | flujo[i + 1]) + 1
+    while stream[i] != 0xFF:
+        header = stream[i]
+        if header >> 5 == 7:
+            command = (header >> 2) & 7
+            length = ((header & 3) << 8 | stream[i + 1]) + 1
             i += 2
         else:
-            comando, largo = encabezado >> 5, (encabezado & 31) + 1
+            command, length = header >> 5, (header & 31) + 1
             i += 1
-        i += {0: largo, 1: 1, 2: 2, 3: 1, 4: 2}[comando]
-        yield comando, largo
+        i += {0: length, 1: 1, 2: 2, 3: 1, 4: 2}[command]
+        yield command, length
 
 
-def comandos(flujo):
+def commands(stream):
     """How many commands a stream has: what it costs to decompress it
     depends on this and on how many bytes come out."""
-    return sum(1 for _ in recorrer(flujo))
+    return sum(1 for _ in walk(stream))
 
 
 # The two commands the format has and `lz2_descomprimir` does not read, on
@@ -111,10 +111,10 @@ def comandos(flujo):
 # increasing one (3) with `--no-increasing`, and it costs almost nothing; it
 # never picks the one-byte word, because a literal of one costs less. If
 # either shows up, it stops here and not on the console.
-def lo_que_la_rom_no_lee(flujo):
-    for comando, largo in recorrer(flujo):
-        if comando == 3:
+def what_the_rom_does_not_read(stream):
+    for command, length in walk(stream):
+        if command == 3:
             return "an increasing fill"
-        if comando == 2 and largo == 1:
+        if command == 2 and length == 1:
             return "a one-byte word"
     return None

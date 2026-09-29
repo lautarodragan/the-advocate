@@ -5,7 +5,7 @@ para que Talan tenga las piedras, y dónde está cada evento.
 import functools
 import os
 
-from port import eventos
+from port import events
 from rpgmaker import lcf
 from rpgmaker.resources import GAME_DIR
 
@@ -37,12 +37,12 @@ def mapa11():
 def eventos_del_11():
     """Para traducir el id de RM2k de un evento al índice de la tabla de la
     ROM, con la misma función que usó el conversor."""
-    return eventos.Eventos(mapa11())
+    return events.MapEvents(mapa11())
 
 
 def celda_de(p, evento):
     """En qué celda tiene la ROM al evento `evento` de RM2k, ahora mismo."""
-    return p.evento(eventos_del_11().para(1).blanco(evento) - 1)
+    return p.evento(eventos_del_11().for_event(1).route_target(evento) - 1)
 
 
 def hablarle_a_la_reja(p):

@@ -2,10 +2,10 @@
 tener, byte por byte, para **cada cuadro de cada animación** del cartucho.
 
 Desde el 2026-09-26 el cartucho no guarda los cuadros enteros sino sólo sus
-tiles con algo —ver `cuadro_sin_vacios` en snes_convert.py—, y la ROM los
+tiles con algo —ver `frame_without_gaps` en snes_convert.py—, y la ROM los
 rearma en la RAM lejana antes de subirlos. La propiedad que hace verificable
 ese cambio es que **lo que llega a la VRAM no cambió**, y eso es lo que se mira
-acá: contra `cuadro_de_animacion`, que es la cuenta de los 2 KB sin comprimir y
+acá: contra `animation_frame`, que es la cuenta de los 2 KB sin comprimir y
 ninguna de las rutinas de la ROM.
 
 Las goldens de `animacion-dibujo` miran cinco cuadros de una animación; esto
@@ -18,8 +18,8 @@ camino que se prueba.
 
 import pytest
 
-from port import animacion, eventos
-from port.snes_convert import cuadro_de_animacion
+from port import animation, events
+from port.snes_convert import animation_frame
 from render.render_map import Renderer
 from rpgmaker.resources import GAME_DIR
 
@@ -92,10 +92,10 @@ def _correr_la_animacion(p, nucleo, fila, cuadros):
 
 @pytest.fixture(scope="module")
 def esperados():
-    eventos.indexar_animaciones(GAME_DIR)
+    events.index_animations(GAME_DIR)
     renderer = Renderer()
-    return lambda numero: [cuadro_de_animacion(c) for c in
-                           animacion.de_numero(renderer, numero)["cuadros"]]
+    return lambda numero: [animation_frame(c) for c in
+                           animation.by_number(renderer, numero)["cuadros"]]
 
 
 @pytest.mark.parametrize("nucleo", (None, BSNES), ids=("snes9x", "bsnes"))

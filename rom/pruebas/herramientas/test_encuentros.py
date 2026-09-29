@@ -24,7 +24,7 @@ import os
 
 import pytest
 
-from port import eventos
+from port import events
 from rpgmaker import lcf
 from rpgmaker.resources import GAME_DIR
 
@@ -43,7 +43,7 @@ def juego():
 def mapas_con_encuentros(tree):
     """Los mapas donde puede salir un encuentro: los que traen tropas propias
     y los que tienen un área colgando."""
-    areas = [i for i, t in tree.map_types.items() if t == eventos.TREE_AREA]
+    areas = [i for i, t in tree.map_types.items() if t == events.TREE_AREA]
     con_area = {tree.map_parents[i] for i in areas if tree.encounters[i]}
     propias = {i for i, t in tree.map_types.items()
                if t == 1 and tree.encounters[i]}
@@ -85,11 +85,11 @@ def test_todos_los_terrenos_de_esos_mapas_valen_cien(juego):
             vistos.add(tag_de_celda(db, game_map, i))
     assert vistos, "ningún mapa con encuentros: la medición no midió nada"
     distintos = {t: rate.get(t) for t in sorted(vistos)
-                 if rate.get(t) != eventos.ENC_RATE}
+                 if rate.get(t) != events.ENC_RATE}
     assert not distintos, (
         "estos terrenos de los mapas con encuentros no valen %d: %s. El modelo "
         "de eventos.Encuentros da por sentado que el acumulado sube de a %d"
-        % (eventos.ENC_RATE, distintos, eventos.ENC_RATE))
+        % (events.ENC_RATE, distintos, events.ENC_RATE))
 
 
 def test_ninguna_tropa_queda_afuera_por_el_terreno(juego):
@@ -138,7 +138,7 @@ def test_ningun_mapa_tiene_tropas_propias_y_areas(juego):
     """Lo que hace que el orden de las zonas no pueda cambiar qué tropa sale.
 
     `GetEncountersAt` recorre el árbol por índice y va juntando las tropas del
-    mapa y las de sus áreas en ese orden; `zonas_de_encuentro` pone la del mapa
+    mapa y las de sus áreas en ese orden; `encounter_zones` pone la del mapa
     primero. Mientras ningún mapa tenga las dos cosas, los dos órdenes dan la
     misma lista.
     """
@@ -178,27 +178,27 @@ def test_los_umbrales_dicen_lo_mismo_que_la_division(juego):
     pasos_posibles = sorted({p for p in tree.encounter_steps.values() if p > 0}
                             | {1, 2, 8, 25})
     for pasos in pasos_posibles:
-        umbrales = eventos.enc_umbrales_de_paso(pasos)
+        umbrales = events.enc_step_thresholds(pasos)
         for n in range(0, 400):
-            ratio = (eventos.ENC_RATE * n) // pasos
-            for fila, (minimo, _pmod) in enumerate(eventos.ENC_TABLA[1:]):
+            ratio = (events.ENC_RATE * n) // pasos
+            for fila, (minimo, _pmod) in enumerate(events.ENC_TABLE[1:]):
                 assert (ratio >= minimo) == (n >= umbrales[fila]), (
                     pasos, n, fila)
 
 
 def test_la_chance_es_la_de_la_formula():
-    """`enc_umbral` contra `(1 / pasos) * pmod`, en 1/65536.
+    """`enc_threshold` contra `(1 / pasos) * pmod`, en 1/65536.
 
     La cuenta de allá es flotante y la de acá es un corrimiento sobre
     `65536 // pasos`, así que la diferencia es el truncado de esa división y
     nada más. Se exige eso: menos de una parte en `pasos` de distancia.
     """
     for pasos in (8, 25, 35, 40, 55, 65, 70, 75, 80, 85):
-        base = eventos.enc_base(pasos)
-        for fila, (_minimo, corrimiento) in enumerate(eventos.ENC_TABLA):
+        base = events.enc_base(pasos)
+        for fila, (_minimo, corrimiento) in enumerate(events.ENC_TABLE):
             pmod = 2.0 ** corrimiento if corrimiento > 0 else 1 / 2 ** -corrimiento
             exacta = pmod / pasos
-            umbral = eventos.enc_umbral(base, fila)
+            umbral = events.enc_threshold(base, fila)
             if umbral is None:
                 assert exacta >= 1, (pasos, fila, exacta)
                 continue
@@ -212,15 +212,15 @@ def test_apagados_no_tiran_azar():
     un mapa apagado que igual tirara un número correría la secuencia, y el
     encuentro del mapa siguiente saldría en otro paso.
     """
-    apagado = eventos.Encuentros(0, [(0, 0, 10, 10, [1])])
-    semilla = apagado.semilla
+    apagado = events.Encounters(0, [(0, 0, 10, 10, [1])])
+    semilla = apagado.seed
     for _ in range(50):
-        assert not apagado.paso()
-    assert apagado.semilla == semilla
+        assert not apagado.step()
+    assert apagado.seed == semilla
     # Y un mapa sin zonas, aunque traiga pasos: no hay contra qué pelear.
-    sin_zonas = eventos.Encuentros(25, [])
+    sin_zonas = events.Encounters(25, [])
     for _ in range(50):
-        assert not sin_zonas.paso()
+        assert not sin_zonas.step()
 
 
 def test_el_area_tapa_con_el_rectangulo_semiabierto(juego):
@@ -231,14 +231,14 @@ def test_el_area_tapa_con_el_rectangulo_semiabierto(juego):
     sale, y jugando no se distingue de "todavía no me tocó".
     """
     _db, tree = juego
-    zonas = eventos.zonas_de_encuentro(tree, 20, 100, 100)
-    enc = eventos.Encuentros(80, zonas)
-    assert enc.candidatas(35, 20)          # la esquina de arriba a la izquierda
-    assert enc.candidatas(99, 67)          # la de abajo a la derecha
-    assert not enc.candidatas(34, 20)
-    assert not enc.candidatas(35, 19)
-    assert not enc.candidatas(100, 67)
-    assert not enc.candidatas(99, 68)
+    zonas = events.encounter_zones(tree, 20, 100, 100)
+    enc = events.Encounters(80, zonas)
+    assert enc.candidates(35, 20)          # la esquina de arriba a la izquierda
+    assert enc.candidates(99, 67)          # la de abajo a la derecha
+    assert not enc.candidates(34, 20)
+    assert not enc.candidates(35, 19)
+    assert not enc.candidates(100, 67)
+    assert not enc.candidates(99, 68)
 
 
 def test_el_paso_ocho_del_caso_de_la_tanda(juego):
@@ -249,12 +249,12 @@ def test_el_paso_ocho_del_caso_de_la_tanda(juego):
     la pena que lo diga una prueba y no un rojo de la tanda a los diez minutos.
     """
     _db, tree = juego
-    zonas = eventos.zonas_de_encuentro(tree, 21, 50, 50)
-    enc = eventos.Encuentros(8, zonas)
+    zonas = events.encounter_zones(tree, 21, 50, 50)
+    enc = events.Encounters(8, zonas)
     x, y = 25, 25
     for paso in range(1, 20):
         y -= 1
-        if enc.paso():
-            assert (paso, enc.elegir(x, y)) == (8, 96)
+        if enc.step():
+            assert (paso, enc.choose(x, y)) == (8, 96)
             return
     pytest.fail("no salió ningún encuentro en veinte pasos")

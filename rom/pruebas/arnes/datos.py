@@ -9,7 +9,7 @@ Todo sale de `resources.GAME_DIR`, que es `ABL_GAME_DIR` si está puesta.
 
 **La base se lee una vez por proceso y se comparte**, y eso vale mientras
 nadie la modifique: ni las pruebas ni lo que llaman de `tools/port/` le
-escriben —`pantallas.equipar` y el modelo de la pelea copian lo que toman—.
+escriben —`screens.equip` y el modelo de la pelea copian lo que toman—.
 Antes cada prueba la leía de nuevo, así que una que le escribiera a la
 compartida sería un cambio de comportamiento, no de arnés.
 """
@@ -38,8 +38,8 @@ def base():
 def skin():
     """El System del juego, con el que se dibujan las ventanas de los
     dibujos de Python contra los que se comparan las pantallas."""
-    from port import ventana
-    return ventana.skin(GAME_DIR, base().system_name)
+    from port import window
+    return window.skin(GAME_DIR, base().system_name)
 
 
 def maximos():
@@ -49,26 +49,26 @@ def maximos():
     la ROM copiara de una tabla equivocada, comparar contra esa misma tabla
     daría verde.
     """
-    from port import reglas
-    return {a: (reglas.parametro_de(actor, "maxhp"),
-                reglas.parametro_de(actor, "maxsp"))
+    from port import rules
+    return {a: (rules.param_of(actor, "maxhp"),
+                rules.param_of(actor, "maxsp"))
             for a, actor in base().actors.items()}
 
 
 def pagina_de(map_id, evento_id, numero):
     """La página `numero` del evento `evento_id` del mapa, compilada."""
-    from port import eventos
+    from port import events
     from rpgmaker import lcf
     game_map = lcf.Map(os.path.join(GAME_DIR, "Map%04d.lmu" % map_id))
     evento = [e for e in game_map.events if e.id == evento_id][0]
-    for indexar in (eventos.indexar_variables, eventos.indexar_animaciones,
-                    eventos.indexar_comunes, eventos.indexar_audio_de_batalla,
-                    eventos.indexar_actores, eventos.indexar_habilidades):
+    for indexar in (events.index_variables, events.index_animations,
+                    events.index_common_events, events.index_battle_audio,
+                    events.index_actors, events.index_skills):
         indexar(GAME_DIR)
-    del_mapa = eventos.Eventos(game_map).para(evento.id)
-    return eventos.compilar_pagina(
-        evento.pages[numero], lambda mid: 0, eventos.Mensajes(), del_mapa,
-        eventos.Temas(), eventos.Graficos(), eventos.Imagenes(GAME_DIR))
+    del_mapa = events.MapEvents(game_map).for_event(evento.id)
+    return events.compile_page(
+        evento.pages[numero], lambda mid: 0, events.Messages(), del_mapa,
+        events.Songs(), events.Graphics(), events.Pictures(GAME_DIR))
 
 
 # --- los índices del cartucho --------------------------------------------------
@@ -82,7 +82,7 @@ def pagina_de(map_id, evento_id, numero):
 @functools.lru_cache(maxsize=None)
 def comandos_de_los_casos(cartucho=cartridges.RELEASE):
     """Los comandos de todos los casos del cartucho, seguidos: lo que barre
-    `comandos_de_casos` en el conversor."""
+    `case_commands` en el conversor."""
     from rpgmaker import lcf
     comandos = []
     for nombre in cartridges.cases_of(cartucho):
@@ -96,20 +96,20 @@ def comandos_de_los_casos(cartucho=cartridges.RELEASE):
 def ranuras_de_variable(cartucho=cartridges.RELEASE):
     """{número de variable: ranura} del cartucho: las del juego, las de sus
     casos y, si lleva más de uno, la que elige el caso —ver
-    `eventos.VARIABLE_DE_CASO`—. Es lo que le pasa a `indexar_variables` el
+    `events.CASE_VARIABLE`—. Es lo que le pasa a `index_variables` el
     conversor."""
-    from port import eventos
-    extra = eventos.variables_de_comandos(comandos_de_los_casos(cartucho))
+    from port import events
+    extra = events.command_variables(comandos_de_los_casos(cartucho))
     if len(cartridges.cases_of(cartucho)) > 1:
-        extra.add(eventos.VARIABLE_DE_CASO)
-    return eventos.variables_de(GAME_DIR, None, extra)
+        extra.add(events.CASE_VARIABLE)
+    return events.variables_named(GAME_DIR, None, extra)
 
 
 @functools.lru_cache(maxsize=None)
 def ranuras_de_habilidad(cartucho=cartridges.RELEASE):
     """{(actor, habilidad): bit} del cartucho: los pares del juego con los que
     nombran sus casos, que es lo que le pasa el conversor."""
-    from port import eventos
-    return eventos.pares_de_habilidad(
-        GAME_DIR, eventos.pares_de_habilidad_de_comandos(
+    from port import events
+    return events.skill_pairs(
+        GAME_DIR, events.command_skill_pairs(
             comandos_de_los_casos(cartucho)))

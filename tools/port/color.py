@@ -6,23 +6,23 @@ channel. The ROM does the same math when it uploads the palette.
 
 # The RM2k tint goes from 0 to 200 with 100 as neutral. The ROM stores it as
 # is and applies it when uploading the palette.
-TINTE_NEUTRO = 100
+NEUTRAL_TINT = 100
 
 
 # RM2k's luminance weights, which are those of Y' in Y'CbCr: the math of
 # `saturation_tone` in easyrpg is `(7471*b + 38470*g + 19595*r) >> 16`. They
 # add up to exactly 65536, so applied to five-bit channels they give a
 # five-bit luminance without rescaling anything.
-LUZ_R, LUZ_G, LUZ_B = 19595, 38470, 7471
-LUZ_TOTAL = 65536
+LUMA_R, LUMA_G, LUMA_B = 19595, 38470, 7471
+LUMA_TOTAL = 65536
 
 
-def luminancia(r, g, b):
+def luminance(r, g, b):
     """The luminance of a 15-bit color, in five bits."""
-    return (LUZ_R * r + LUZ_G * g + LUZ_B * b) // LUZ_TOTAL
+    return (LUMA_R * r + LUMA_G * g + LUMA_B * b) // LUMA_TOTAL
 
 
-def saturar(canal, luz, s):
+def saturate(channel, luma, s):
     """A channel moved toward or away from gray, with `s` in RM2k units.
 
     It is easyrpg's `saturation_tone` brought to five bits and to RM2k's
@@ -38,17 +38,17 @@ def saturar(canal, luz, s):
     oversaturating; doing it signed on the 65816 would cost quite a lot more
     than that.
     """
-    if s <= TINTE_NEUTRO:
+    if s <= NEUTRAL_TINT:
         # An interpolation between gray and the color, with both terms
         # positive: it is the form the 65816 can do unsigned.
-        return (luz * (TINTE_NEUTRO - s) + canal * s) // TINTE_NEUTRO
-    m = s - TINTE_NEUTRO
-    if canal >= luz:
-        return min(31, canal + (canal - luz) * m // TINTE_NEUTRO)
-    return max(0, canal - (luz - canal) * m // TINTE_NEUTRO)
+        return (luma * (NEUTRAL_TINT - s) + channel * s) // NEUTRAL_TINT
+    m = s - NEUTRAL_TINT
+    if channel >= luma:
+        return min(31, channel + (channel - luma) * m // NEUTRAL_TINT)
+    return max(0, channel - (luma - channel) * m // NEUTRAL_TINT)
 
 
-def tenir_canal(canal, valor):
+def tint_channel(channel, value):
     """A five-bit channel passed through RM2k's tint, which is a hard light.
 
     RM2k does not scale the channel: it composites it with a *hard light*
@@ -72,12 +72,12 @@ def tenir_canal(canal, valor):
     same tolerance the lower half already had, and it comes from RM2k doing
     the math in eight bits while the console has five.
     """
-    if valor <= TINTE_NEUTRO:
-        return min(31, canal * valor // TINTE_NEUTRO)
-    return min(31, 31 - (2 * TINTE_NEUTRO - valor) * (31 - canal) // TINTE_NEUTRO)
+    if value <= NEUTRAL_TINT:
+        return min(31, channel * value // NEUTRAL_TINT)
+    return min(31, 31 - (2 * NEUTRAL_TINT - value) * (31 - channel) // NEUTRAL_TINT)
 
 
-def tenir(palabra, tinte):
+def apply_tint(word, tint):
     """A 15-bit color passed through the screen tint.
 
     Saturation first and color second, which is the order of `ToneBlit`:
@@ -89,14 +89,14 @@ def tenir(palabra, tinte):
     The math is done with integers and on the 15 bits, not on the PNG's 24:
     the console has five bits per channel and would round differently.
     """
-    canales = [palabra & 0x1F, (palabra >> 5) & 0x1F, (palabra >> 10) & 0x1F]
-    if len(tinte) > 3 and tinte[3] != TINTE_NEUTRO:
+    channels = [word & 0x1F, (word >> 5) & 0x1F, (word >> 10) & 0x1F]
+    if len(tint) > 3 and tint[3] != NEUTRAL_TINT:
         # Only when needed, like easyrpg's `apply_sat`: saturation cannot be
         # done channel by channel —it needs the gray of the whole color— and
         # it is the expensive part of this on the console.
-        luz = luminancia(*canales)
-        canales = [saturar(c, luz, tinte[3]) for c in canales]
-    salida = 0
-    for numero, (canal, valor) in enumerate(zip(canales, tinte)):
-        salida |= tenir_canal(canal, valor) << (numero * 5)
-    return salida
+        luma = luminance(*channels)
+        channels = [saturate(c, luma, tint[3]) for c in channels]
+    out = 0
+    for index, (channel, value) in enumerate(zip(channels, tint)):
+        out |= tint_channel(channel, value) << (index * 5)
+    return out

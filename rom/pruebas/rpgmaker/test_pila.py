@@ -189,7 +189,7 @@ def _tropa():
 
 # Los caminos hondos, cada uno con lo que baja. Un `CallEvent` anidado **no está
 # acá y no falta**: se compila en línea —ver
-# `_compilar_llamada` en `tools/port/eventos.py`— así que el cuerpo del llamado
+# `_compile_call` en `tools/port/events.py`— así que el cuerpo del llamado
 # es bytecode del llamador y no cuesta un solo byte de pila.
 CAMINOS = (
     ("pelea", _pelea),

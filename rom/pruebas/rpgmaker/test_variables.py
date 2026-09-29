@@ -7,12 +7,12 @@ donde viven, y por los switches que una rama por variable prendió.
 La página de prueba las escribe con los mismos números que RM2k: variable,
 operación (0 pone, 1 suma, 2 resta), clase del operando (0 constante, 1 otra
 variable, 3 azar, 7 otro) y dos números. Las ranuras las da
-`eventos.indexar_variables`, que es el índice del juego entero.
+`events.index_variables`, que es el índice del juego entero.
 """
 
 import pytest
 
-from port import eventos
+from port import events
 
 import datos
 
@@ -48,11 +48,11 @@ def test_las_operaciones_dan_lo_que_dan_en_python(con_variables):
 
 def test_el_azar_es_el_mismo_de_los_dos_lados(con_variables):
     """El primer número al azar de la ROM es el primero del xorshift de
-    `eventos.py` desde la misma semilla. Es el generador del modelo de
-    `port/batalla.py`, así que si se separaran, las pruebas que comparan una
+    `events.py` desde la misma semilla. Es el generador del modelo de
+    `port/battle.py`, así que si se separaran, las pruebas que comparan una
     pelea número por número se separarían con él."""
     una, r = con_variables, ranuras()
-    esperado = eventos.azar_siguiente(eventos.AZAR_SEMILLA) % 101
+    esperado = events.next_random(events.RANDOM_SEED) % 101
     assert una.variable(r[21]) == esperado, (
         "la ROM sacó %d y el xorshift de Python %d" % (una.variable(r[21]),
                                                         esperado))

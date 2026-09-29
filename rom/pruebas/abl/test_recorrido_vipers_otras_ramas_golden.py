@@ -46,7 +46,7 @@ lo que cobra esta prueba es la RAM.
 """
 
 from recorrido import A_CADA
-from port import eventos
+from port import events
 
 # Los mismos de `test_recorrido_vipers_golden.py`, que se repiten porque
 # ninguna prueba importa de otra —ver `pruebas/README.md`—.
@@ -114,7 +114,7 @@ def sin_quedarse_en_el_aire(partida, a_cada=A_CADA):
             seguidas[0] = 0
             return
         dura = -(-partida.simbolos["SALTO_PASO"]
-                 // eventos.SALTO_POR_VELOCIDAD[p.velocidad_del_heroe() - 1])
+                 // events.JUMP_PER_SPEED[p.velocidad_del_heroe() - 1])
         tope = -(-dura // a_cada) + 1
         seguidas[0] += 1
         assert seguidas[0] <= tope, (

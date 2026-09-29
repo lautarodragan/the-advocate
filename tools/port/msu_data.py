@@ -9,12 +9,12 @@ mechanism on this side and on the ROM's is in docs/port/msu-datos.md.
 
 What it carries first are **the quality battle backdrops**, 8bpp and 96
 colors, and **all of the game's**, whether or not they are in the
-cartridge's maps: see "Which backdrops there are" in tools/port/escena.py.
+cartridge's maps: see "Which backdrops there are" in tools/port/scene.py.
 **Without MSU-1 the game has to work the same** —Mednafen does not have
 it—, so the ROM carries a light fallback, 4bpp and 16 colors, of the few
 that fit, and a replacement for the rest; the `.msu` replaces them when it is
 there and it belongs to this cartridge. They are different on purpose: see
-"The light fallback" in tools/port/escena.py.
+"The light fallback" in tools/port/scene.py.
 
 ## The format
 
@@ -27,9 +27,9 @@ All little-endian:
     $0E     2  how many entries there are, N
     $10     8N per entry: where it starts in the file and how long it is,
                4 and 4
-    ...        zeros, up to FONDOS_DESDE
-    $10000     the backdrops, one every FONDO_LUGAR bytes and in order of
-               number: backdrop k at `fondo_en(k)`
+    ...        zeros, up to BACKDROPS_START
+    $10000     the backdrops, one every BACKDROP_SPAN bytes and in order of
+               number: backdrop k at `backdrop_offset(k)`
     ...        after the last one, the other entries, one after the other
                and in the order of the index
 
@@ -39,10 +39,10 @@ many entries there were —and the sound effects belong to each cartridge— and
 on which backdrops the cartridge carried. Since 2026-09-27 the `.msu`
 carries all of the game's backdrops, each one with its number, and backdrop
 k is at the same byte in the `.msu` of any cartridge:
-`FONDOS_DESDE + k * FONDO_LUGAR` its tiles, and `COLORES_EN` further on its
+`BACKDROPS_START + k * BACKDROP_SPAN` its tiles, and `COLORS_AT` further on its
 colors. The index is still there, and says the same thing, for the tools. If
-the index were ever to go past `FONDOS_DESDE` —more than eight thousand
-entries— `armar` refuses.
+the index were ever to go past `BACKDROPS_START` —more than eight thousand
+entries— `build` refuses.
 
 Each place is 32,768 bytes of tiles, 192 of colors and padding up to the
 next multiple of 512: that way the tiles of each backdrop start at a sector
@@ -60,19 +60,19 @@ covering the index with the hash also covers where each thing is.
 
 **The ROM reads the positions from its `.inc`, not from the index.** Once
 the signature is accepted, the file's index and the `.inc` constants are the
-same data by construction —they come from `armar`—, and reading it on the
+same data by construction —they come from `build`—, and reading it on the
 console would be one more seek per battle to learn nothing. The index is
-there for the tools on this side (`leer`) and so that adding something else
+there for the tools on this side (`read`) and so that adding something else
 later means adding entries, without changing the format.
 
 Each backdrop is two entries, in this order: its 512 tiles at 8bpp —32,768
 bytes, exactly as they go to WRAM— and its 96 15-bit colors —192 bytes,
-exactly as they go to CGRAM from entry 32—. `fondo_bytes` in
+exactly as they go to CGRAM from entry 32—. `backdrop_bytes` in
 snes_convert.py builds them, and the ROM knows where each one is from
-`msu_fondo_pos`, which `escribir_msu` emits.
+`msu_fondo_pos`, which `write_msu` emits.
 
 After the backdrops come the quality sound effects, one entry per effect of
-each audio pack, in BRR: `escribir_msu` in snes_convert.py orders them, and
+each audio pack, in BRR: `write_msu` in snes_convert.py orders them, and
 the reason is in tools/audio/msu_effects.py.
 """
 
@@ -82,68 +82,68 @@ import struct
 from common import settings
 
 VERSION = 2
-FIRMA = 8
-CABECERA = 16
-ENTRADA = 8
+SIGNATURE_SIZE = 8
+HEADER_SIZE = 16
+ENTRY_SIZE = 8
 
 # The backdrop region: see "The format".
-FONDOS_DESDE = 0x10000
-COLORES_EN = 0x8000                 # 512 tiles at 8bpp
-FONDO_LUGAR = 0x8200                # and the 192 bytes of colors, to the sector
+BACKDROPS_START = 0x10000
+COLORS_AT = 0x8000                 # 512 tiles at 8bpp
+BACKDROP_SPAN = 0x8200                # and the 192 bytes of colors, to the sector
 SECTOR = 512
-assert FONDO_LUGAR % SECTOR == 0 and FONDO_LUGAR >= COLORES_EN + 96 * 2
+assert BACKDROP_SPAN % SECTOR == 0 and BACKDROP_SPAN >= COLORS_AT + 96 * 2
 
 
-def fondo_en(k):
-    """Where the tiles of backdrop number `k` are; its colors, `COLORES_EN`
+def backdrop_offset(k):
+    """Where the tiles of backdrop number `k` are; its colors, `COLORS_AT`
     further on."""
-    return FONDOS_DESDE + k * FONDO_LUGAR
+    return BACKDROPS_START + k * BACKDROP_SPAN
 
 
-def armar(entradas, fondos=0):
+def build(entries, backdrops=0):
     """The `.msu` with these entries, and where each one ended up.
 
-    `entradas` are the bytes of each one, in order. The first `2 * fondos`
+    `entries` are the bytes of each one, in order. The first `2 * fondos`
     are the backdrops —tiles and colors of each— and go in their fixed
-    place, `fondo_en`; the rest after the backdrop region, one after the
+    place, `backdrop_offset`; the rest after the backdrop region, one after the
     other. Without backdrops, all of them in a row after the index. Returns
     `(archivo, posiciones)`, with `posiciones[k]` the offset of entry `k`
     from the start of the file.
     """
-    posiciones = []
-    donde = CABECERA + ENTRADA * len(entradas)
-    if fondos:
-        if donde > FONDOS_DESDE:
+    offsets = []
+    offset = HEADER_SIZE + ENTRY_SIZE * len(entries)
+    if backdrops:
+        if offset > BACKDROPS_START:
             raise ValueError("the .msu index is %d B long and overlaps the "
-                             "backdrop region, at $%X" % (donde, FONDOS_DESDE))
-        for k in range(fondos):
-            tiles, colores = entradas[2 * k], entradas[2 * k + 1]
-            if len(tiles) > COLORES_EN or \
-                    COLORES_EN + len(colores) > FONDO_LUGAR:
+                             "backdrop region, at $%X" % (offset, BACKDROPS_START))
+        for k in range(backdrops):
+            tiles, colors = entries[2 * k], entries[2 * k + 1]
+            if len(tiles) > COLORS_AT or \
+                    COLORS_AT + len(colors) > BACKDROP_SPAN:
                 raise ValueError("backdrop %d does not fit in its place in the .msu"
                                  % k)
-            posiciones += [fondo_en(k), fondo_en(k) + COLORES_EN]
+            offsets += [backdrop_offset(k), backdrop_offset(k) + COLORS_AT]
         # What follows goes after the whole region, not after the last byte
         # written: that way it does not depend on the size of the last
         # backdrop either.
-        donde = fondo_en(fondos)
-    for datos in entradas[2 * fondos:]:
-        posiciones.append(donde)
-        donde += len(datos)
-    indice = b"".join(struct.pack("<II", p, len(d))
-                      for p, d in zip(posiciones, entradas))
-    cuerpo = bytearray(magia() + struct.pack("<HH", VERSION, len(entradas))
-                       + indice)
-    for p, datos in zip(posiciones, entradas):
+        offset = backdrop_offset(backdrops)
+    for data in entries[2 * backdrops:]:
+        offsets.append(offset)
+        offset += len(data)
+    index = b"".join(struct.pack("<II", p, len(d))
+                     for p, d in zip(offsets, entries))
+    body = bytearray(magic() + struct.pack("<HH", VERSION, len(entries))
+                     + index)
+    for p, data in zip(offsets, entries):
         # Zero padding up to where it goes: the signature covers it like
         # everything else.
-        cuerpo += bytes(p - FIRMA - len(cuerpo))
-        cuerpo += datos
-    cuerpo = bytes(cuerpo)
-    return firma_de(cuerpo) + cuerpo, posiciones
+        body += bytes(p - SIGNATURE_SIZE - len(body))
+        body += data
+    body = bytes(body)
+    return signature_of(body) + body, offsets
 
 
-def magia():
+def magic():
     """The four bytes that say which game the `.msu` belongs to: those of
     the project file, `[rom] msu_data_signature`. The ROM does not compare
     them: it compares the signature at the front, which covers them. They are
@@ -152,25 +152,25 @@ def magia():
     return settings.ascii("rom", "msu_data_signature", length=4).encode()
 
 
-def firma_de(cuerpo):
+def signature_of(body):
     """The 8 bytes that go at the start: from the sha256 of what follows."""
-    return hashlib.sha256(cuerpo).digest()[:FIRMA]
+    return hashlib.sha256(body).digest()[:SIGNATURE_SIZE]
 
 
-def indice(archivo):
+def index(blob):
     """The index of a `.msu`: `(donde, largo)` per entry, or `ValueError` if
     it is not a valid one."""
-    if len(archivo) < CABECERA or archivo[FIRMA:FIRMA + 4] != magia():
+    if len(blob) < HEADER_SIZE or blob[SIGNATURE_SIZE:SIGNATURE_SIZE + 4] != magic():
         raise ValueError("not a .msu with data from this port")
-    if firma_de(archivo[FIRMA:]) != archivo[:FIRMA]:
+    if signature_of(blob[SIGNATURE_SIZE:]) != blob[:SIGNATURE_SIZE]:
         raise ValueError("the signature does not match the content")
-    version, n = struct.unpack_from("<HH", archivo, FIRMA + 4)
+    version, n = struct.unpack_from("<HH", blob, SIGNATURE_SIZE + 4)
     if version != VERSION:
         raise ValueError("version %d, and this reads %d" % (version, VERSION))
-    return [struct.unpack_from("<II", archivo, CABECERA + ENTRADA * k)
+    return [struct.unpack_from("<II", blob, HEADER_SIZE + ENTRY_SIZE * k)
             for k in range(n)]
 
 
-def leer(archivo):
+def read(blob):
     """The entries of a `.msu`, or `ValueError` if it is not a valid one."""
-    return [archivo[donde:donde + largo] for donde, largo in indice(archivo)]
+    return [blob[offset:offset + length] for offset, length in index(blob)]

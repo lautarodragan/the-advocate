@@ -4,7 +4,7 @@ Cada página de evento que se puede compilar viaja en el cartucho como
 **bytecode**, y ese bytecode tiene tres dueños que no se pisan:
 
     tools/protocol/events.toml  lo declara: cada opcode, su número y los bytes que lleva
-    tools/port/eventos.py       lo emite: `_compilar`, un caso por comando de RM2k
+    tools/port/events.py       lo emite: `_compilar`, un caso por comando de RM2k
     tools/runtime/interprete*.s       lo ejecuta: `correr_codigo` y un `.proc op_*` por opcode
 
 De `tools/protocol/events.toml` salen generados `tools/port/event_opcodes.py` y
@@ -25,7 +25,7 @@ eslabón por opcode, y era el punto donde chocaban dos ramas que agregaban uno
 cada una.
 
 **Una página se emite sólo si todos sus comandos se pueden ejecutar.**
-`compilar_pagina` corta con `NoSePuede` y el evento se queda sin código:
+`compile_page` corta con `CannotCompile` y el evento se queda sin código:
 ejecutar la mitad de un script dejaría al juego en un estado que no existe, y la
 comparación no lo vería: la golden es una captura de la propia ROM. Por lo
 mismo, un evento con una condición que no sabemos evaluar queda entero afuera:
@@ -72,20 +72,20 @@ entere. El porqué de cada mecánica va en el comentario de su rutina.
 | Hablarle a un evento con la tecla de acción | `probar_accion`, `encolar_por_accion` | — |
 | Una página esperando turno es un bit por evento, no una cola | `marcar_esperando` | — |
 | Qué página está activa, congelada hasta el refresco | `elegir_paginas`, `aplicar_paginas` | — |
-| Las rutas propias de la página, y la velocidad que traen | `rutas_de_pagina`, `animar_ruta_ev` | `ruta_propia` |
-| La frecuencia de la ruta, y encarar al héroe | `paso_de_ruta`, `hacia_el_heroe`, `tras_paso`, `tras_giro` | `espera_tras_paso`, `espera_tras_giro` |
-| La frecuencia se sube y se baja a mitad de una ruta (las órdenes 30 y 31) | `paso_de_ruta` | `frecuencia_minima` |
+| Las rutas propias de la página, y la velocidad que traen | `rutas_de_pagina`, `animar_ruta_ev` | `own_route` |
+| La frecuencia de la ruta, y encarar al héroe | `paso_de_ruta`, `hacia_el_heroe`, `tras_paso`, `tras_giro` | `wait_after_step`, `wait_after_turn` |
+| La frecuencia se sube y se baja a mitad de una ruta (las órdenes 30 y 31) | `paso_de_ruta` | `min_frequency` |
 | Las diagonales, y hacia dónde dejan mirando | `puede_celda_diag`, `encarar_diagonal` | — |
-| Cambiar el gráfico a mitad de una ruta (la orden 34) | `load_ruta_graficos`, `refrescar_npc` | `Graficos` |
+| Cambiar el gráfico a mitad de una ruta (la orden 34) | `load_ruta_graficos`, `refrescar_npc` | `Graphics` |
 | La colisión con los eventos | `celda_bloqueada`, `atraviesa_el_evento` | — |
-| El gráfico sigue a la página, y el tile manda sobre el terreno | `grafico_de_pagina`, `pasa_con_evento`, `acomodar_npc` | `npcs_dibujables` |
-| Los eventos dibujados con un tile del chipset | `load_npcs` | `npcs_dibujables`, `Charsets` en `tools/render/render_map.py` |
-| Los que además son opacos y fijos: horneados en el mapa y sin fila que dibujar | `build_oam` saltea la fila escondida | `eventos_horneables` |
-| El fundido de los teletransportes, con el mapa cargando adentro del negro | `empezar_fundido`, `fundido_tick` | `rampa_de_fundido`, y las constantes `FUNDIDO_*` |
+| El gráfico sigue a la página, y el tile manda sobre el terreno | `grafico_de_pagina`, `pasa_con_evento`, `acomodar_npc` | `drawable_npcs` |
+| Los eventos dibujados con un tile del chipset | `load_npcs` | `drawable_npcs`, `Charsets` en `tools/render/render_map.py` |
+| Los que además son opacos y fijos: horneados en el mapa y sin fila que dibujar | `build_oam` saltea la fila escondida | `bakeable_events` |
+| El fundido de los teletransportes, con el mapa cargando adentro del negro | `empezar_fundido`, `fundido_tick` | `fade_ramp`, y las constantes `FADE_*` |
 | El tope de teletransportes encadenados | `SALTOS_MAX` y sus usos | lo cobra `rom/pruebas/rpgmaker/test_saltos.py` |
 | La pantalla se prende en el vblank y en ningún otro lado | `flush_video` | — |
-| La ventana de mensaje, clavada abajo por HDMA | `armar_hdma`, `msg_empezar`, `msg_ptr_sig` | `tools/port/ventana.py`, `Mensajes` |
-| El texto compuesto en caliente, con los glifos ya pre-renderizados | `mensaje_tick`, `componer_char`, `cebar_linea` | `fuente_prerender` en `tools/port/snes_convert.py` |
+| La ventana de mensaje, clavada abajo por HDMA | `armar_hdma`, `msg_empezar`, `msg_ptr_sig` | `tools/port/window.py`, `Messages` |
+| El texto compuesto en caliente, con los glifos ya pre-renderizados | `mensaje_tick`, `componer_char`, `cebar_linea` | `font_prerender` en `tools/port/snes_convert.py` |
 | El arranque dura siempre lo mismo | `BOOT_CUADROS` | lo corre `Partida` en `rom/pruebas/arnes/consola.py` |
 | Los cuadros perdidos se cuentan | `contar_perdidos` | los lee `Partida.cuadros_perdidos` de la WRAM |
 | La música no espera al lazo: va en una IRQ vertical | `irq_musica`, `IRQ_LINEA` | — |

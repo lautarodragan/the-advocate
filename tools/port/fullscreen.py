@@ -1,7 +1,7 @@
 """An image that fills the whole screen, compressed into one LZ2 stream.
 
 It is the path of the Game Over and title screens: the image is converted
-with `paleta.convertir` —scaled to 256x224, at 8 bits per pixel on BG1,
+with `palette.convert` —scaled to 256x224, at 8 bits per pixel on BG1,
 which in mode 3 addresses all of CGRAM— and what goes into the cartridge is
 **a single stream** with the three things the ROM uploads, one after the
 other:
@@ -27,9 +27,9 @@ decided the same way, on 2026-09-28: the numbers are in
 `workflow/tasks/*/la-pantalla-de-titulo-comprimida.md`.
 """
 
-from port import comprimir
-from port.formato_snes import cgram_word, entry, pack_tile
-from port.paleta import convertir
+from port import compress
+from port.snes_format import cgram_word, entry, pack_tile
+from port.palette import convert
 
 # The tilemap the ROM uploads: 32x32 entries of two bytes, even though the
 # screen shows 28 rows. It is the size the PPU reads, and the same as the
@@ -37,34 +37,34 @@ from port.paleta import convertir
 TILEMAP_BYTES = 32 * 32 * 2
 
 
-def comprimida(imagen, primer_color=0, tope=256, debajo=()):
+def compressed(image, first_color=0, cap=256, below=()):
     """The image as a dict: `flujo` is the LZ2 with the three parts, and
-    `tiles`, `colores` and `primer_color` are what the ROM needs to split
+    `tiles`, `colors` and `first_color` are what the ROM needs to split
     it.
 
-    `primer_color` and `tope` are those of `paleta.convertir`: by default the
+    `first_color` and `cap` are those of `palette.convert`: by default the
     image takes all of CGRAM, from 0. Index 0 is also the PPU's backdrop
-    color, and `paleta.reducir` leaves black there.
+    color, and `palette.reduce` leaves black there.
 
-    `debajo` are colors that are not the image's and go in CGRAM right before
+    `below` are colors that are not the image's and go in CGRAM right before
     its own —on the title, the menu's—: they travel in the same stream and
-    are uploaded with the same DMA, so the stream's `primer_color` drops by
+    are uploaded with the same DMA, so the stream's `first_color` drops by
     as many as they take. It is to avoid spending another DMA in bank 0.
     """
-    if len(debajo) > primer_color:
+    if len(below) > first_color:
         raise ValueError("%d colors below the image, and the image starts "
-                         "at %d" % (len(debajo), primer_color))
-    tiles, paleta, tilemap = convertir(imagen, primer_color, tope)
-    datos = bytearray()
-    for celda in tiles:
-        datos += pack_tile(celda, planes=8)
-    plano = bytearray()
-    for indice in range(32 * 32):
-        numero = tilemap[indice] if indice < len(tilemap) else 0
-        plano += entry(numero, False, False).to_bytes(2, "little")
-    colores = list(debajo) + list(paleta)
-    crudo = (bytes(datos) + bytes(plano)
-             + b"".join(cgram_word(c).to_bytes(2, "little") for c in colores))
-    return {"flujo": comprimir.comprimir(crudo), "crudo": len(crudo),
-            "tiles": len(tiles), "colores": len(colores),
-            "primer_color": primer_color - len(debajo)}
+                         "at %d" % (len(below), first_color))
+    tiles, palette, tilemap = convert(image, first_color, cap)
+    data = bytearray()
+    for cell in tiles:
+        data += pack_tile(cell, planes=8)
+    plane = bytearray()
+    for index in range(32 * 32):
+        number = tilemap[index] if index < len(tilemap) else 0
+        plane += entry(number, False, False).to_bytes(2, "little")
+    colors = list(below) + list(palette)
+    raw = (bytes(data) + bytes(plane)
+           + b"".join(cgram_word(c).to_bytes(2, "little") for c in colors))
+    return {"flujo": compress.compress(raw), "crudo": len(raw),
+            "tiles": len(tiles), "colores": len(colors),
+            "primer_color": first_color - len(below)}

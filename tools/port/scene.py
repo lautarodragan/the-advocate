@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """The battle scene: the backdrop and the monsters, **composited on the console**.
 
-It lives apart from `snes_convert.py` for the same reason as `imagen.py` and
-`animacion.py`: it is not a map, it is a loose drawing. What the converter
+It lives apart from `snes_convert.py` for the same reason as `picture.py` and
+`animation.py`: it is not a map, it is a loose drawing. What the converter
 and the ROM have to share is exactly where each pixel lands and what color
 it is.
 
@@ -44,7 +44,7 @@ That they are fifteen colors **is an artistic decision**: color is lost
 compared with the baked scene, where the battlers shared the 96 entries with
 the backdrop. What was merged with what is written per battler in
 `rom/parches/auto/battlers/`, like the map layers. See
-`tools/port/parches.py`.
+`tools/port/patches.py`.
 
 The edge changes too: before, the battler blended with the backdrop when
 shrunk —`alpha_composite`— and now each pixel is either the battler's or the
@@ -89,11 +89,11 @@ does not go past because it has another eighty pixels of screen below.
 
 **The game's backdrops** are all the ones a battle can ask for: those named
 by the `EnemyEncounter`s and the `ChangeBattleBG`s, those of the map tree and
-those of the terrains —see `fondos_del_juego`—. Each one has a **number**,
+those of the terrains —see `game_backdrops`—. Each one has a **number**,
 its place in that list sorted by name, and the number does not depend on
 which maps the cartridge carries: it is what gives each backdrop a fixed
 place in the `.msu`, which carries **all** of them, in quality
-(tools/port/msu_datos.py).
+(tools/port/msu_data.py).
 
 **The ROM carries, in the light fallback, all the ones the cartridge's
 battles can ask for**: those a troop names, those of the maps with random
@@ -102,7 +102,7 @@ stand on. taro asked for it on 2026-09-27, with the quality as low as needed
 for them to fit: see "The light fallback". Until that day it carried three,
 and the other battles used the replacement.
 
-**The replacement**, `reemplazo()`, is left for what the ROM cannot know at
+**The replacement**, `replacement()`, is left for what the ROM cannot know at
 conversion time: a troop that fights with the "local" backdrop on a map
 without random encounters, where the backdrop comes from the terrain under
 the hero and any terrain of the map is possible. In `release` only test
@@ -142,15 +142,15 @@ doubles the small one with the CPU: each pixel twice across and each row
 twice down. From there on everything is the same —compositing, erasing a
 dead one, uploading to VRAM—, because what is left in WRAM is an 8bpp
 backdrop like the `.msu` one. See `esc_llenar` and `esc_doblar` in
-tools/runtime/batalla_escena.s, and `respaldo_bytes` in snes_convert.py for
+tools/runtime/batalla_escena.s, and `fallback_bytes` in snes_convert.py for
 the order the bytes travel in, which is the one that saves the ROM math.
 
 The other way out was for the `.msu` to carry 4bpp too, "more quality within
 the same format"; but sixteen colors are the ceiling of 4bpp, so the quality
 would have nowhere to grow.
 
-The sixteen come from `asignador.merge_least_visible`, the battlers' one,
-and not from `paleta.reducir`, which is the one that builds the 96: reducir
+The sixteen come from `allocator.merge_least_visible`, the battlers' one,
+and not from `palette.reduce`, which is the one that builds the 96: reducir
 keeps the most used, and in a backdrop the sixteen most used are all from
 the floor and the walls —the green sign and the violet water turned gray—.
 Merging by what shows the least keeps the accents. The 96 did not change
@@ -164,44 +164,44 @@ import os
 from common import settings
 
 # The scene, in screen pixels: the top seven text lines.
-ANCHO, ALTO = 256, 128
+WIDTH, HEIGHT = 256, 128
 # RM2k's battle backdrop and the screen it lives on, where the 80% comes from.
-FONDO_RM = (320, 160)
-PANTALLA_RM = (320, 240)
-ESCALA_NUM, ESCALA_DEN = ANCHO, FONDO_RM[0]     # 256/320
+RM_BACKDROP = (320, 160)
+RM_SCREEN = (320, 240)
+SCALE_NUM, SCALE_DEN = WIDTH, RM_BACKDROP[0]     # 256/320
 
 # The backdrop's colors, and from which CGRAM entry they go. See "The
 # budget".
-COLORES = 96
+COLORS = 96
 CGRAM_BASE = 32
 # Those of the light fallback, which goes at 4bpp: see "The light fallback".
 # They fit in a palette of sixteen, and `CGRAM_BASE` has to be the start of
 # one so that planes 4 to 7 are the same on all its pixels.
-RESPALDO_COLORES = 16
-RESPALDO_PLANOS = 4
-assert CGRAM_BASE % RESPALDO_COLORES == 0
+FALLBACK_COLORS = 16
+FALLBACK_PLANES = 4
+assert CGRAM_BASE % FALLBACK_COLORS == 0
 # And it goes at half resolution: the ROM doubles each pixel across and down.
 # `esc_doblar` is written for double and nothing else.
-RESPALDO_ESCALA = 2
-RESPALDO_ANCHO = ANCHO // RESPALDO_ESCALA
-RESPALDO_ALTO = ALTO // RESPALDO_ESCALA
+FALLBACK_SCALE = 2
+FALLBACK_WIDTH = WIDTH // FALLBACK_SCALE
+FALLBACK_HEIGHT = HEIGHT // FALLBACK_SCALE
 # The battlers' palettes: 8 to 15, that is entries 128 to 255. One per
 # distinct battler of the troop, and a troop has at most eight enemies, so
 # there are always enough.
-BATTLER_PALETA = 8
-BATTLER_PALETAS = 8
-BATTLER_COLORES = 15
+BATTLER_PALETTE = 8
+BATTLER_PALETTES = 8
+BATTLER_COLORS = 15
 
-CELDA = 8
-TILES_X, TILES_Y = ANCHO // CELDA, ALTO // CELDA
+CELL = 8
+TILES_X, TILES_Y = WIDTH // CELL, HEIGHT // CELL
 TILES = TILES_X * TILES_Y                       # 512, the whole grid
 
 # Where it lives in VRAM, in words. The tilemap goes before the text's
 # —$3C00— and the tiles after, which is the only 32 KB gap left.
-VRAM_MAPA = 0x3800
+VRAM_MAP = 0x3800
 VRAM_TILES = 0x4000
 
-def reemplazo():
+def replacement():
     """The backdrop of the battles whose backdrop is not in the ROM: see
     "Which backdrops there are". The game chooses it, in
     `[battle] fallback_backdrop` of the project file, with its reason."""
@@ -209,17 +209,17 @@ def reemplazo():
 
 # How many planes the cartridge stores per row of a battler: the mask and the
 # four of its drawing. The ROM sets the other four according to the palette.
-BATTLER_PLANOS = 5
+BATTLER_PLANES = 5
 
 
-def escalar(valor):
+def scale(value):
     """An RM2k length in scene pixels. The same math on both sides, with
     integers: `//` would round differently from the hardware divider only
     with negatives, and there are none here."""
-    return max(1, (valor * ESCALA_NUM + ESCALA_DEN // 2) // ESCALA_DEN)
+    return max(1, (value * SCALE_NUM + SCALE_DEN // 2) // SCALE_DEN)
 
 
-def _abrir(game_dir, carpeta, nombre, rtp=False):
+def _open(game_dir, folder, name, rtp=False):
     """A game PNG with color 0 as transparent, which is RM2k's rule. It comes
     from `render_map.load_image` so as not to have two ways of reading the
     same thing.
@@ -232,12 +232,12 @@ def _abrir(game_dir, carpeta, nombre, rtp=False):
     at it."""
     from render import render_map
     from rpgmaker import resources
-    lugares = [game_dir] + ([resources.RTP_DIR] if rtp else [])
-    camino = resources.find_resource(lugares, carpeta, nombre,
-                                     (".png", ".bmp", ".xyz"))
-    if camino is None:
+    places = [game_dir] + ([resources.RTP_DIR] if rtp else [])
+    path = resources.find_resource(places, folder, name,
+                                   (".png", ".bmp", ".xyz"))
+    if path is None:
         return None
-    return render_map.load_image(camino)
+    return render_map.load_image(path)
 
 
 # --- the battler's hue -------------------------------------------------------
@@ -250,24 +250,24 @@ def _div(a, b):
     return q if (a >= 0) == (b >= 0) else -q
 
 
-def _a_hsl(r, g, b):
+def _to_hsl(r, g, b):
     """easyrpg-player's `RGB_to_HSL`, `bitmap_hslrgb.h`, with its integers."""
     if r > g:
-        orden = ("rbg" if g < b else "rgb") if r > b else "brg"
+        order = ("rbg" if g < b else "rgb") if r > b else "brg"
     else:
-        orden = ("gbr" if g > b else "bgr") if r < b else "grb"
-    if orden == "rgb":
+        order = ("gbr" if g > b else "bgr") if r < b else "grb"
+    if order == "rgb":
         c = r - b; h = 0 if c == 0 else _div(0x100 * (g - b), c); l2 = r + b
-    elif orden == "rbg":
+    elif order == "rbg":
         c = r - g; h = 0 if c == 0 else _div(0x100 * (g - b), c) + 0x600
         l2 = r + g
-    elif orden == "grb":
+    elif order == "grb":
         c = g - b; h = 0 if c == 0 else _div(0x100 * (b - r), c) + 0x200
         l2 = g + b
-    elif orden == "gbr":
+    elif order == "gbr":
         c = g - r; h = 0 if c == 0 else _div(0x100 * (b - r), c) + 0x200
         l2 = g + r
-    elif orden == "brg":
+    elif order == "brg":
         c = b - g; h = 0 if c == 0 else _div(0x100 * (r - g), c) + 0x400
         l2 = b + g
     else:
@@ -279,7 +279,7 @@ def _a_hsl(r, g, b):
     return h, s, l2 // 2
 
 
-def _de_hsl(h, s, l):
+def _from_hsl(h, s, l):
     """easyrpg-player's `HSL_to_RGB`."""
     l2 = 2 * l
     c = _div(s * ((0x1FF - l2) if l2 > 0xFF else l2), 0x100)
@@ -300,195 +300,195 @@ def _de_hsl(h, s, l):
     return m + c, m, m + _div(h1 * c, 0x100)
 
 
-def girar_tono(imagen, grados):
+def rotate_hue(image, degrees):
     """`Bitmap::HueChangeBlit`: the enemy's `battler_hue`, in degrees.
 
     It is what makes the same `BLmouse` be the GiantRat, the MutantMouse and
     the HairyVermin. The baked scene ignored it; now, with one battler per
     enemy and not per image, ignoring it would draw all three the same.
     """
-    tono = int(grados / 60.0 * 0x100)
-    if tono < 0:
-        tono += ((-tono + 0x5FF) // 0x600) * 0x600
-    elif tono > 0x600:
-        tono -= (tono // 0x600) * 0x600
-    salida = imagen.copy()
-    datos = []
-    for r, g, b, a in imagen.get_flattened_data():
+    hue = int(degrees / 60.0 * 0x100)
+    if hue < 0:
+        hue += ((-hue + 0x5FF) // 0x600) * 0x600
+    elif hue > 0x600:
+        hue -= (hue // 0x600) * 0x600
+    out = image.copy()
+    data = []
+    for r, g, b, a in image.get_flattened_data():
         if a > 0:
-            h, s, l = _a_hsl(r, g, b)
-            h += tono
+            h, s, l = _to_hsl(r, g, b)
+            h += hue
             if h >= 0x600:
                 h -= 0x600
             s = min(s, 0xFF)
             l = max(0, min(l, 0xFF))
-            r, g, b = (max(0, min(255, v)) for v in _de_hsl(h, s, l))
-        datos.append((r, g, b, a))
-    salida.putdata(datos)
-    return salida
+            r, g, b = (max(0, min(255, v)) for v in _from_hsl(h, s, l))
+        data.append((r, g, b, a))
+    out.putdata(data)
+    return out
 
 
 # --- the backdrop -------------------------------------------------------------
 
-def fondos_del_juego(nombrados, tree, terrenos, game_dir):
+def game_backdrops(named, tree, terrains, game_dir):
     """The game's backdrops, in the order that gives them their number: see
     "Which backdrops there are".
 
-    `nombrados` are the ones the commands name (`eventos.fondos_nombrados`),
-    `tree` the map tree and `terrenos` each terrain's backdrop
+    `named` are the ones the commands name (`events.named_backdrops`),
+    `tree` the map tree and `terrains` each terrain's backdrop
     (`Database.terrain_backdrops`). They are sorted by name ignoring case,
     which is how RM2k looks them up, and a name that is neither in the game
     nor in the RTP is left out: in RM2k that battle has no backdrop. Returns
     the names as the game writes them the first time, in that order.
     """
     from rpgmaker import resources
-    todos = set(nombrados)
-    todos |= {nombre for tipo, nombre in tree.background.values()
-              if tipo == 2 and nombre}
-    todos |= {nombre for nombre in terrenos.values() if nombre}
-    por_clave = {}
-    for nombre in sorted(todos):
-        por_clave.setdefault(nombre.lower(), nombre)
-    salida = []
-    for clave in sorted(por_clave):
-        nombre = por_clave[clave]
+    every = set(named)
+    every |= {name for kind, name in tree.background.values()
+              if kind == 2 and name}
+    every |= {name for name in terrains.values() if name}
+    by_key = {}
+    for name in sorted(every):
+        by_key.setdefault(name.lower(), name)
+    out = []
+    for key in sorted(by_key):
+        name = by_key[key]
         if resources.find_resource([game_dir, resources.RTP_DIR],
-                                   "Backdrop", nombre,
+                                   "Backdrop", name,
                                    (".png", ".bmp", ".xyz")) is None:
-            print("  backdrop %r is neither in the game nor in the RTP" % nombre)
+            print("  backdrop %r is neither in the game nor in the RTP" % name)
             continue
-        salida.append(nombre)
-    return salida
+        out.append(name)
+    return out
 
 
-def fondo(nombre, game_dir):
+def backdrop(name, game_dir):
     """A battle backdrop ready for the ROM, or None if it is not there.
 
       `indices`  256x128 CGRAM indices, row by row, already shifted by
                  `CGRAM_BASE`: it is what the console reads.
-      `paleta`   its `COLORES` 15-bit colors, from `CGRAM_BASE`.
+      `palette`   its `COLORS` 15-bit colors, from `CGRAM_BASE`.
     """
     from PIL import Image
-    from port.paleta import reducir
-    imagen = _abrir(game_dir, "Backdrop", nombre, rtp=True)
-    if imagen is None:
+    from port.palette import reduce
+    image = _open(game_dir, "Backdrop", name, rtp=True)
+    if image is None:
         return None
-    imagen = imagen.convert("RGB").resize((ANCHO, ALTO), Image.LANCZOS)
-    pixeles = [(r >> 3, g >> 3, b >> 3)
-               for r, g, b in imagen.get_flattened_data()]
-    paleta, mapa = reducir(pixeles, COLORES)
-    donde = {color: i + CGRAM_BASE for i, color in enumerate(paleta)}
-    indices = [[donde[mapa[pixeles[y * ANCHO + x]]] for x in range(ANCHO)]
-               for y in range(ALTO)]
-    return {"nombre": nombre, "indices": indices, "paleta": paleta}
+    image = image.convert("RGB").resize((WIDTH, HEIGHT), Image.LANCZOS)
+    pixels = [(r >> 3, g >> 3, b >> 3)
+              for r, g, b in image.get_flattened_data()]
+    palette, mapping = reduce(pixels, COLORS)
+    offset = {color: i + CGRAM_BASE for i, color in enumerate(palette)}
+    indices = [[offset[mapping[pixels[y * WIDTH + x]]] for x in range(WIDTH)]
+               for y in range(HEIGHT)]
+    return {"nombre": name, "indices": indices, "paleta": palette}
 
 
-def fondo_liviano(nombre, game_dir):
+def light_backdrop(name, game_dir):
     """The backdrop's fallback: the one that goes in the ROM, with
-    `RESPALDO_COLORES` and at half resolution.
+    `FALLBACK_COLORS` and at half resolution.
 
-    The same image as `fondo`, shrunk to `RESPALDO_ANCHO` x `RESPALDO_ALTO`
-    and with sixteen colors merged by `asignador.merge_least_visible`: see
+    The same image as `backdrop`, shrunk to `FALLBACK_WIDTH` x `FALLBACK_HEIGHT`
+    and with sixteen colors merged by `allocator.merge_least_visible`: see
     "The light fallback". The palette goes from most used to least, and on
     equal counts by color, so it always comes out the same.
 
-      `chico`    the fallback's CGRAM indices, at 128x64: what travels.
+      `small`    the fallback's CGRAM indices, at 128x64: what travels.
       `indices`  the same, doubled to 256x128 as the ROM leaves them in
                  WRAM: it is what the tests compare.
     """
     from PIL import Image
-    from port import asignador
-    imagen = _abrir(game_dir, "Backdrop", nombre, rtp=True)
-    if imagen is None:
+    from port import allocator
+    image = _open(game_dir, "Backdrop", name, rtp=True)
+    if image is None:
         return None
-    imagen = imagen.convert("RGB").resize((RESPALDO_ANCHO, RESPALDO_ALTO),
-                                          Image.LANCZOS)
-    pixeles = [(r >> 3, g >> 3, b >> 3)
-               for r, g, b in imagen.get_flattened_data()]
-    cuenta = collections.Counter(pixeles)
-    mapeo, _fusiones = asignador.merge_least_visible(cuenta, RESPALDO_COLORES)
-    finales = collections.Counter()
-    for color, n in cuenta.items():
-        finales[mapeo[color]] += n
-    paleta = sorted(finales, key=lambda c: (-finales[c], c))
-    donde = {color: i + CGRAM_BASE for i, color in enumerate(paleta)}
-    chico = [[donde[mapeo[pixeles[y * RESPALDO_ANCHO + x]]]
-              for x in range(RESPALDO_ANCHO)] for y in range(RESPALDO_ALTO)]
-    indices = [[chico[y // RESPALDO_ESCALA][x // RESPALDO_ESCALA]
-                for x in range(ANCHO)] for y in range(ALTO)]
-    return {"nombre": nombre, "chico": chico, "indices": indices,
-            "paleta": paleta}
+    image = image.convert("RGB").resize((FALLBACK_WIDTH, FALLBACK_HEIGHT),
+                                        Image.LANCZOS)
+    pixels = [(r >> 3, g >> 3, b >> 3)
+              for r, g, b in image.get_flattened_data()]
+    counts = collections.Counter(pixels)
+    mapping, _merges = allocator.merge_least_visible(counts, FALLBACK_COLORS)
+    final = collections.Counter()
+    for color, n in counts.items():
+        final[mapping[color]] += n
+    palette = sorted(final, key=lambda c: (-final[c], c))
+    offset = {color: i + CGRAM_BASE for i, color in enumerate(palette)}
+    small = [[offset[mapping[pixels[y * FALLBACK_WIDTH + x]]]
+              for x in range(FALLBACK_WIDTH)] for y in range(FALLBACK_HEIGHT)]
+    indices = [[small[y // FALLBACK_SCALE][x // FALLBACK_SCALE]
+                for x in range(WIDTH)] for y in range(HEIGHT)]
+    return {"nombre": name, "chico": small, "indices": indices,
+            "paleta": palette}
 
 
 def tiles(indices):
     """The 8x8 tiles of a grid —the 512 of a 256x128 one—, in the order the
     tilemap reads them: row by row, without deduplicating. See "The
     budget"."""
-    salida = []
-    for ty in range(len(indices) // CELDA):
-        for tx in range(len(indices[0]) // CELDA):
-            salida.append([[indices[ty * CELDA + y][tx * CELDA + x]
-                            for x in range(CELDA)] for y in range(CELDA)])
-    return salida
+    out = []
+    for ty in range(len(indices) // CELL):
+        for tx in range(len(indices[0]) // CELL):
+            out.append([[indices[ty * CELL + y][tx * CELL + x]
+                         for x in range(CELL)] for y in range(CELL)])
+    return out
 
 
 # --- the battlers --------------------------------------------------------------
 
-def clave(nombre, tono):
+def key(name, hue):
     """What a battler is called in the cartridge and in `rom/parches/`: the
     image and its hue, which is what makes it different from another with
     the same image."""
-    return "%s-%d" % (nombre, tono) if tono else nombre
+    return "%s-%d" % (name, hue) if hue else name
 
 
-def battler(nombre, tono, game_dir):
+def battler(name, hue, game_dir):
     """A battler ready for the ROM, or None if the image is not there.
 
-      `ancho`, `alto`  in scene pixels, already at 80%.
-      `pixeles`        row by row, from 0 to 15: 0 is the transparent one and
-                       the others the color in `paleta`, plus one.
-      `paleta`         its up to fifteen 15-bit colors.
+      `width`, `height`  in scene pixels, already at 80%.
+      `pixels`        row by row, from 0 to 15: 0 is the transparent one and
+                       the others the color in `palette`, plus one.
+      `palette`         its up to fifteen 15-bit colors.
       `colores`        how many distinct ones the drawing had, already
                        shrunk.
-      `fusiones`       what was merged with what to get to fifteen, as
-                       `asignador.merge_least_visible` returns them.
+      `merges`       what was merged with what to get to fifteen, as
+                       `allocator.merge_least_visible` returns them.
     """
     from PIL import Image
-    from port import asignador
-    imagen = _abrir(game_dir, "Monster", nombre)
-    if imagen is None:
+    from port import allocator
+    image = _open(game_dir, "Monster", name)
+    if image is None:
         return None
-    imagen = imagen.convert("RGBA")
-    if tono:
-        imagen = girar_tono(imagen, tono)
-    ancho, alto = escalar(imagen.width), escalar(imagen.height)
-    chica = imagen.resize((ancho, alto), Image.LANCZOS)
+    image = image.convert("RGBA")
+    if hue:
+        image = rotate_hue(image, hue)
+    width, height = scale(image.width), scale(image.height)
+    small = image.resize((width, height), Image.LANCZOS)
     # A pixel is either the battler's or the backdrop's: half the alpha
     # decides.
-    datos = chica.get_flattened_data()
-    opacos = [(r >> 3, g >> 3, b >> 3) if a >= 128 else None
-              for r, g, b, a in datos]
-    cuenta = collections.Counter(c for c in opacos if c is not None)
-    mapeo, fusiones = asignador.merge_least_visible(cuenta, BATTLER_COLORES)
-    finales = collections.Counter()
-    for color, n in cuenta.items():
-        finales[mapeo[color]] += n
-    paleta = sorted(finales, key=lambda c: (-finales[c], c))
-    lugar = {c: i + 1 for i, c in enumerate(paleta)}
+    data = small.get_flattened_data()
+    opaque = [(r >> 3, g >> 3, b >> 3) if a >= 128 else None
+              for r, g, b, a in data]
+    counts = collections.Counter(c for c in opaque if c is not None)
+    mapping, merges = allocator.merge_least_visible(counts, BATTLER_COLORS)
+    final = collections.Counter()
+    for color, n in counts.items():
+        final[mapping[color]] += n
+    palette = sorted(final, key=lambda c: (-final[c], c))
+    slot_of = {c: i + 1 for i, c in enumerate(palette)}
     # What goes past the scene is not stored: a battler taller than it ends
-    # up clamped at the top —see `posicion`— and its bottom rows are not
+    # up clamped at the top —see `position`— and its bottom rows are not
     # seen.
-    ancho, alto = min(ancho, ANCHO), min(alto, ALTO)
-    pixeles = [[0 if opacos[y * chica.width + x] is None
-                else lugar[mapeo[opacos[y * chica.width + x]]]
-                for x in range(ancho)] for y in range(alto)]
-    return {"clave": clave(nombre, tono), "imagen": nombre, "tono": tono,
-            "ancho": ancho, "alto": alto, "pixeles": pixeles,
-            "alto_rm": imagen.height,
-            "paleta": paleta, "colores": len(cuenta), "fusiones": fusiones}
+    width, height = min(width, WIDTH), min(height, HEIGHT)
+    pixels = [[0 if opaque[y * small.width + x] is None
+               else slot_of[mapping[opaque[y * small.width + x]]]
+               for x in range(width)] for y in range(height)]
+    return {"clave": key(name, hue), "imagen": name, "tono": hue,
+            "ancho": width, "alto": height, "pixeles": pixels,
+            "alto_rm": image.height,
+            "paleta": palette, "colores": len(counts), "fusiones": merges}
 
 
-def columnas(info):
+def columns(info):
     """How many bytes a row of a plane is: eight pixels per byte."""
     return (info["ancho"] + 7) // 8
 
@@ -510,38 +510,38 @@ def battler_bytes(info):
     ROM does not have to check for the edge; the last plane carries an extra
     zero at the end for the same reason.
     """
-    n = columnas(info)
-    planos = []
-    for plano in range(BATTLER_PLANOS):
-        datos = bytearray()
-        for fila in info["pixeles"]:
-            bytes_fila = bytearray(n)
-            for x, valor in enumerate(fila):
-                prendido = (valor != 0) if plano == 0 else \
-                    bool((valor >> (plano - 1)) & 1)
-                if prendido:
-                    bytes_fila[x // 8] |= 0x80 >> (x % 8)
-            datos += bytes([0]) + bytes(reversed(bytes_fila))
-        planos.append(bytes(datos))
-    return b"".join(planos) + b"\x00"
+    n = columns(info)
+    planes = []
+    for plane in range(BATTLER_PLANES):
+        data = bytearray()
+        for row in info["pixeles"]:
+            row_bytes = bytearray(n)
+            for x, value in enumerate(row):
+                lit = (value != 0) if plane == 0 else \
+                    bool((value >> (plane - 1)) & 1)
+                if lit:
+                    row_bytes[x // 8] |= 0x80 >> (x % 8)
+            data += bytes([0]) + bytes(reversed(row_bytes))
+        planes.append(bytes(data))
+    return b"".join(planes) + b"\x00"
 
 
-def posicion(centro, info):
+def position(center, info):
     """Where a battler's corner lands in the scene, already clamped inside.
 
     The LDB position is **the center** of the battler, on RM2k's 320x240
     screen. It is scaled like everything else and clamped inside the scene:
     see "The geometry".
     """
-    x, y = centro
-    px = min(max(escalar(x) - info["ancho"] // 2, 0),
-             max(0, ANCHO - info["ancho"]))
-    py = min(max(escalar(y) - info["alto"] // 2, 0),
-             max(0, ALTO - info["alto"]))
+    x, y = center
+    px = min(max(scale(x) - info["ancho"] // 2, 0),
+             max(0, WIDTH - info["ancho"]))
+    py = min(max(scale(y) - info["alto"] // 2, 0),
+             max(0, HEIGHT - info["alto"]))
     return px, py
 
 
-def orden_de_dibujo(centros, infos):
+def drawing_order(centers, infos):
     """The order a troop's enemies are placed in: the one that goes later
     covers.
 
@@ -552,31 +552,31 @@ def orden_de_dibujo(centros, infos):
     and it does not matter where it lands.
     """
     def z(k):
-        alto = infos[k]["alto_rm"] if infos[k] else 0
-        return (centros[k][1] + alto // 2, -k)
-    return sorted(range(len(centros)), key=z)
+        height = infos[k]["alto_rm"] if infos[k] else 0
+        return (centers[k][1] + height // 2, -k)
+    return sorted(range(len(centers)), key=z)
 
 
-def componer(fondo_indices, puestos):
+def compose(backdrop_indices, placed):
     """The scene as the console composites it, in CGRAM indices.
 
-    `fondo_indices` is a backdrop's grid, or None for the flat backdrop.
-    `puestos` are `(info, paleta, x, y)` in the order the ROM places them,
-    which is `orden_de_dibujo`: the one that goes later covers the one
+    `backdrop_indices` is a backdrop's grid, or None for the flat backdrop.
+    `placed` are `(info, paleta, x, y)` in the order the ROM places them,
+    which is `drawing_order`: the one that goes later covers the one
     before. The converter does not use it —the ROM composites on its own—
     but the tests do, to know what has to be in each pixel.
     """
-    escena = [list(fila) if fondo_indices else [0] * ANCHO
-              for fila in (fondo_indices or [None] * ALTO)]
-    for info, paleta, px, py in puestos:
-        for y, fila in enumerate(info["pixeles"]):
-            for x, valor in enumerate(fila):
-                if valor and 0 <= py + y < ALTO and 0 <= px + x < ANCHO:
-                    escena[py + y][px + x] = paleta * 16 + valor
-    return escena
+    scene = [list(row) if backdrop_indices else [0] * WIDTH
+             for row in (backdrop_indices or [None] * HEIGHT)]
+    for info, palette, px, py in placed:
+        for y, row in enumerate(info["pixeles"]):
+            for x, value in enumerate(row):
+                if value and 0 <= py + y < HEIGHT and 0 <= px + x < WIDTH:
+                    scene[py + y][px + x] = palette * 16 + value
+    return scene
 
 
-def informe_battler(info):
+def battler_report(info):
     """The battler's numbers, for the converter to print."""
     return {"clave": info["clave"], "ancho": info["ancho"],
             "alto": info["alto"], "bytes": len(battler_bytes(info)),

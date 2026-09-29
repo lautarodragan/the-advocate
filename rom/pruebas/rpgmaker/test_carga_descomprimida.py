@@ -7,7 +7,7 @@ los descomprime al cargar el mapa —ver `lz2_descomprimir` en
 runtime/descomprimir.s—. La propiedad que hace verificable ese cambio es que
 **lo que llega a la VRAM no cambió**, y eso es lo que se mira acá, en todos los
 mapas de `release`: contra `crudos/`, que el conversor deja al lado del
-cartucho sin comprimir —ver `escribir_crudos`— y no contra nada que salga de la
+cartucho sin comprimir —ver `write_raw`— y no contra nada que salga de la
 ROM.
 
 Se mira justo después de la carga, en el primer cuadro en que `fundido_que`

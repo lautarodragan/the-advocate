@@ -6,7 +6,7 @@
 ; 256x128 on BG1, which is the seven text lines at the top. **It is composed
 ; here, when the battle starts**, from a background and the troop's
 ; battlers, which the cartridge carries once each. The why, the format and
-; the budget are in tools/port/escena.py.
+; the budget are in tools/port/scene.py.
 ;
 ; It runs from `batalla_correr` with the data bank at $7E, so the PPU
 ; registers and the cartridge's tables all go with `f:`, and the state here
@@ -17,7 +17,7 @@
 ESC_ORIGEN   = $6600    ; 1: a random encounter started the battle
 ; The number of this battle's background among the game's, or FONDO_LISO.
 ; It is the one read from the `.msu`; the ROM's is ESC_RESPALDO. See "Qué
-; fondos hay" in tools/port/escena.py.
+; fondos hay" in tools/port/scene.py.
 ESC_FONDO    = $6601
 ESC_VIS      = $6602    ; one bit per enemy: still drawn
 ESC_PAL_N    = $6603    ; how many battler palettes were handed out
@@ -1136,7 +1136,7 @@ de_la_rom:
     ; pixel of the fallback: the 32 bytes of `respaldo_alto` in the top half
     ; of every tile, rewinding the source and moving WMADD on each one.
     ; `esc_doblar` fills the bottom half afterwards. See "El respaldo
-    ; liviano" in tools/port/escena.py.
+    ; liviano" in tools/port/scene.py.
     lda #0
     sta f:DMAP7                 ; one byte at a time, the source advancing
     lda #$80                    ; WMDATA

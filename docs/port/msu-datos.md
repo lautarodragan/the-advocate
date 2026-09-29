@@ -12,7 +12,7 @@ abajo.
 La ROM lleva los fondos que piden las peleas del cartucho, y **livianos**:
 128x64 en 4bpp y 16 colores, que la ROM agranda al doble, contra los 256x128
 en 8bpp y 96 colores del `.msu` —ver "The light fallback" en
-`tools/port/escena.py`—. Así se ve a ojo de qué lado salió el fondo, y cada
+`tools/port/scene.py`—. Así se ve a ojo de qué lado salió el fondo, y cada
 uno cuesta en la ROM un octavo de lo que pesa en el `.msu`. Una pelea cuyo
 fondo la ROM no lleva usa, sin MSU-1, uno de reemplazo.
 
@@ -37,7 +37,7 @@ implementan, en `docs/snes/emulators.md`.
 
 ## El formato
 
-Lo arma `tools/port/msu_datos.py`, y su docstring es la referencia: una firma
+Lo arma `tools/port/msu_data.py`, y su docstring es la referencia: una firma
 de 8 bytes (del sha256 de lo que sigue), `"ABLD"`, la versión, un índice de
 `(posición, largo)` por entrada, y las entradas. Cada fondo son dos: sus 512
 tiles de 8bpp y sus 96 colores, tal cual van a la WRAM y a la CGRAM. La ROM
@@ -85,7 +85,7 @@ pelea.
 
 Las posiciones salen del `.inc` y no del índice del archivo: aceptada la
 firma son el mismo dato, y leer el índice sería una búsqueda más por pelea.
-El índice queda para las herramientas (`msu_datos.leer`) y para sumar
+El índice queda para las herramientas (`msu_data.read`) y para sumar
 entradas sin cambiar el formato.
 
 ## Los fondos
@@ -94,7 +94,7 @@ entradas sin cambiar el formato.
 nombran los `EnemyEncounter` y los `ChangeBattleBG` de todo el juego, los del
 árbol de mapas y los de los terrenos. Se ordenan por nombre sin mirar
 mayúsculas, que es como RM2k los busca, y el lugar de cada uno en esa lista es
-su **número**: `escena.fondos_del_juego`. Un nombre que no está ni en el juego
+su **número**: `scene.game_backdrops`. Un nombre que no está ni en el juego
 ni en el RTP (`ABL_RTP_DIR`) no entra; esa pelea va sin fondo, como en RM2k.
 
 Qué fondo pide una pelea es lo de RM2k —`Game_Map::SetupBattle` y
@@ -108,7 +108,7 @@ salen las peleas del mundo.
 **La ROM lleva todos los que las peleas del cartucho pueden pedir**: los que
 nombran las tropas, los de los mapas con encuentros al azar y los de los
 terrenos de esos mapas cuando no nombran ninguno —ver "Which backdrops there are" en
-`tools/port/escena.py`—. Sin MSU-1, una pelea cuyo fondo la ROM no lleva usa
+`tools/port/scene.py`—. Sin MSU-1, una pelea cuyo fondo la ROM no lleva usa
 **el de reemplazo**, `[battle] fallback_backdrop` del archivo de proyecto
 —por qué ése, en su comentario—:
 `fondo_respaldo` dice, por número de fondo, cuál de la ROM se dibuja. Lo
@@ -165,7 +165,7 @@ enteros y a la tasa que le entra a ese paquete con la ARAM libre de música
 —el reparto es `tools/audio/msu_effects.py`—: por paquete, en el orden de la
 tabla, y adentro de cada uno en orden de SRCN, que es como los sube
 `subir_colocadas`. Así la ROM **busca una vez por paquete** y lee de corrido;
-un efecto que está en dos paquetes va dos veces. Lo escribe `escribir_msu`
+un efecto que está en dos paquetes va dos veces. Lo escribe `write_msu`
 en snes_convert.py, que también emite lo que la ROM necesita: `se_msu_paq` y
 `se_msu_filas` —dónde está cada efecto de cada paquete y cuánto mide— y
 `se_msu_altura_paq` y `se_msu_altura` —la altura de cada sonido con la

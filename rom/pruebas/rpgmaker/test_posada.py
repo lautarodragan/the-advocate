@@ -7,7 +7,7 @@ su página no compilaba, así que no se le podía hablar.
 **No es un opcode nuevo.** `ShowInn` se expande a comandos que el intérprete
 ya hacía —el saludo, la elección, una rama por oro, el cobro y la cura— igual
 que `CallEvent` se expande al cuerpo del llamado. El porqué de cada byte está
-en `_compilar_posada`, y ahí están también las tres deudas declaradas: sin
+en `_compile_inn`, y ahí están también las tres deudas declaradas: sin
 ventana de oro, sin "Yes" en gris cuando no alcanza y sin el fundido ni la
 música de `Scene_Map::CallInn`.
 
@@ -145,23 +145,23 @@ def _pagina_del_bum():
     """La página del bum compilada, con los textos que dejó."""
     import glob
 
-    from port import eventos
+    from port import events
     from rpgmaker import lcf
     from rpgmaker.resources import GAME_DIR
 
     todos = sorted(int(os.path.basename(f)[3:7])
                    for f in glob.glob(os.path.join(GAME_DIR, "Map*.lmu")))
-    eventos.indexar_variables(GAME_DIR)
-    eventos.indexar_terminos(GAME_DIR)
+    events.index_variables(GAME_DIR)
+    events.index_terms(GAME_DIR)
     mapa = lcf.Map(os.path.join(GAME_DIR, "Map0020.lmu"))
-    del_mapa = eventos.Eventos(mapa)
+    del_mapa = events.MapEvents(mapa)
     bum = [e for e in mapa.events if e.id == 4][0]
-    mensajes = eventos.Mensajes()
-    codigo = eventos.compilar_pagina(
+    mensajes = events.Messages()
+    codigo = events.compile_page(
         bum.pages[0], {m: i for i, m in enumerate(todos)}.get, mensajes,
-        del_mapa.para(4), eventos.Temas(), eventos.Graficos(),
-        eventos.Imagenes(GAME_DIR))
-    return eventos, codigo, mensajes
+        del_mapa.for_event(4), events.Songs(), events.Graphics(),
+        events.Pictures(GAME_DIR))
+    return events, codigo, mensajes
 
 
 def test_la_pagina_del_bum_compila_y_trae_los_opcodes_de_la_posada():
@@ -173,32 +173,32 @@ def test_la_pagina_del_bum_compila_y_trae_los_opcodes_de_la_posada():
     bytes, y ésos son los tres que una implementación que contara desde cero
     se equivocaría.
     """
-    eventos, codigo, mensajes = _pagina_del_bum()
+    events, codigo, mensajes = _pagina_del_bum()
     assert codigo is not None, "la página del bum no compila"
-    saludo = mensajes.donde[(("Only 5Cr  to rest here",
+    saludo = mensajes.where[(("Only 5Cr  to rest here",
                               "Do you wish to rest here?"), 0, False)]
-    si, no = eventos.cuadros_de_eleccion([(0, "Yes"), (1, "No")], mensajes)
+    si, no = events.choice_boxes([(0, "Yes"), (1, "No")], mensajes)
     assert codigo == bytes(
-        [eventos.OP_MESSAGE, 0, 0]                      # el texto del bum
-        + [eventos.OP_MESSAGE, saludo & 0xFF, saludo >> 8]
-        + [eventos.OP_CHOICE, 2, 2]                     # cancelar es "No"
+        [events.OP_MESSAGE, 0, 0]                      # el texto del bum
+        + [events.OP_MESSAGE, saludo & 0xFF, saludo >> 8]
+        + [events.OP_CHOICE, 2, 2]                     # cancelar es "No"
         + [si & 0xFF, si >> 8, 17, 0]                   # "Yes" -> la rama
         + [no & 0xFF, no >> 8, 33, 0]                   # "No"  -> el final
-        + [eventos.OP_IF, eventos.COND_ORO, PRECIO, 0, 0, 33, 0]
-        + [eventos.OP_GOLD, 1, PRECIO, 0, 0]
-        + [eventos.OP_HEAL, 0, 0, 0]
-        + [eventos.OP_DONE]), codigo.hex(" ")
+        + [events.OP_IF, events.COND_GOLD, PRECIO, 0, 0, 33, 0]
+        + [events.OP_GOLD, 1, PRECIO, 0, 0]
+        + [events.OP_HEAL, 0, 0, 0]
+        + [events.OP_DONE]), codigo.hex(" ")
 
 
 def test_una_posada_gratis_es_sólo_la_cura():
     """Con el precio en cero `CommandShowInn` no muestra nada y descansa de
     una. Son 6 de las 18 páginas del juego."""
-    from port import eventos
-    from port.eventos import _compilar_posada
+    from port import events
+    from port.events import _compile_inn
 
     class Uno:
-        code = eventos.SHOW_INN
+        code = events.SHOW_INN
         parameters = [0, 0, 0]
         string = ""
 
-    assert _compilar_posada(Uno(), 0, None) == bytes([eventos.OP_HEAL, 0, 0, 0])
+    assert _compile_inn(Uno(), 0, None) == bytes([events.OP_HEAL, 0, 0, 0])

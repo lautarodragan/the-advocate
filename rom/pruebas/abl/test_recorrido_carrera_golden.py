@@ -108,7 +108,7 @@ LA_LARGADA_X = 4
 
 # Los efectos de la ruta del auto en el puente del 51: seis veces el viento, a
 # medio tempo, y el golpe al final. Suenan desde el 2026-09-27: ver
-# `RUTA_SONIDO` en tools/port/eventos.py.
+# `ROUTE_SOUND` en tools/port/events.py.
 VIENTO = ("Wind7", 100, 50, 50)
 GOLPE = ("Annihilation2", 100, 80, 50)
 VIENTOS = 6
