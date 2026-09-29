@@ -410,7 +410,7 @@ no puede, que es una ROM que no linkea: ahí `ld65` dice por cuánto se pasa.
 muestras ya preparadas y capas convertidas— y su clave lleva el hash de los
 fuentes **y el de los binarios que producen lo guardado**, así que no hay que
 borrarlo al tocar código. Lo único que pide es que cualquier cambio en lo que
-se cachea se verifique con `SIN_CACHE=1`: las dos ROMs tienen que ser byte por
+se cachea se verifique con `NO_CACHE=1`: las dos ROMs tienen que ser byte por
 byte iguales. Ver `tools/common/disk_cache.py`.
 
 **Mientras corren las pruebas no se toca ningún fuente.** `cartridges.fingerprint()` cubre

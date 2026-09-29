@@ -251,7 +251,7 @@ COPY_SUFFIX = "~aparte"
 
 # Which dither. The options are in `render_map.DITHERS`; it is chosen by
 # looking at a CRT TV, which is where this shows.
-DITHER_PATTERN = os.environ.get("TRAMA_PATRON", "cinco_de_ocho")
+DITHER_PATTERN = os.environ.get("DITHER_PATTERN", "five_of_eight")
 
 
 # The opacity RM2k draws a translucent page with: 160 out of 255.
@@ -274,9 +274,9 @@ TRANSLUCENT_OPACITY = 160
 # `render_map.Charsets` builds the image.
 BAKED_SUFFIX = "~horneado"
 
-# Which of the two paths runs. It is switched with MODO_TRANSLUCIDO=trama to
+# Which of the two paths runs. It is switched with TRANSLUCENT_MODE=dither to
 # be able to compare both on the same tree.
-TRANSLUCENT_MODE = os.environ.get("MODO_TRANSLUCIDO", "horneado")
+TRANSLUCENT_MODE = os.environ.get("TRANSLUCENT_MODE", "baked")
 
 
 def baked_name(name, map_id, x, y):
@@ -314,12 +314,12 @@ def decorate_translucent(name, map_id, x, y):
     Three ways out, and the first one wins: those in `opaque_charsets()` are
     drawn **opaque** even though their page says translucent —taro's
     decision, see the list—, the rest go baked against their cell's
-    background, and `MODO_TRANSLUCIDO=trama` goes back to the checkerboard to
+    background, and `TRANSLUCENT_MODE=dither` goes back to the checkerboard to
     be able to compare both on the same tree.
     """
     if name.lower() in opaque_charsets():
         return name
-    if TRANSLUCENT_MODE == "trama":
+    if TRANSLUCENT_MODE == "dither":
         return name + DITHER_SUFFIX
     return baked_name(name, map_id, x, y)
 

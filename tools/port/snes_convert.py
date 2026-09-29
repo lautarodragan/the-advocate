@@ -1816,7 +1816,7 @@ def converted_layers(renderer, game_map):
     maintained by hand, and if it falls short the cache answers stale without
     anything failing.
 
-    Verified with `SIN_CACHE=1` and with the cache deleted: the `.sfc` is the
+    Verified with `NO_CACHE=1` and with the cache deleted: the `.sfc` is the
     same byte for byte.
     """
     from common import disk_cache
@@ -1841,7 +1841,7 @@ def converted_layers(renderer, game_map):
 
 
 # The layers already converted in this run, keyed by the disk cache key.
-# `precompute_layers` fills it and it also works with `SIN_CACHE=1`: it is not
+# `precompute_layers` fills it and it also works with `NO_CACHE=1`: it is not
 # a cache between runs but the same computation done earlier and in parallel.
 _layers_in_memory = {}
 

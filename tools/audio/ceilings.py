@@ -240,7 +240,7 @@ def write(ceilings, measured, fingerprints, path=None):
         "# peak; and `huella`, that of `mix_fingerprint`.",
         "",
         "[medida]",
-        "aire_de_medida = %s" % MEASURING_HEADROOM,
+        "measuring_headroom = %s" % MEASURING_HEADROOM,
         "margen_db = -0.5",
         "",
     ]

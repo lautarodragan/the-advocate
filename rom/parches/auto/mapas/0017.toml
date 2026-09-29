@@ -1,23 +1,23 @@
-# Las decisiones artísticas del mapa 17: qué se pierde al pasarlo a la
-# SNES. Lo escribe el conversor y lo regenera `just parches`, que es lo
-# que hay que correr cuando un cambio lo mueve; `just parches --check`
-# —y la tanda— fallan si quedó viejo. Ver `rm2k-snes-patches`.
+# The artistic decisions of map 17: what is lost when taking it to the
+# SNES. The converter writes it and `just parches` regenerates it,
+# which is what has to be run when a change moves it; `just parches
+# --check` —and the suite— fail if it is stale. See `rm2k-snes-patches`.
 
 mapa = 17
 nombre = "Delcentric Factory"
 
 [capas.fondo]
-# Cuántos colores distintos traía el dibujo y cuántas entradas
-# de CGRAM le dejó la capa de encima.
+# How many distinct colors the drawing brought and how many
+# CGRAM entries the upper layer left it.
 colores = 52
 presupuesto = 103
-# Cada fusión manda el color `de` al color `a`, en RGB de 15 bits,
-# y `pixeles` es cuántos movía cuando se decidió. Van **en orden**:
-# aplicarlas de arriba a abajo reconstruye el mapeo entero.
+# Each merge sends color `de` to color `a`, in 15-bit RGB, and
+# `pixeles` is how many it moved when it was decided. They go **in
+# order**: applying them top to bottom rebuilds the whole mapping.
 fusiones = []
 
 [capas.encima]
-# Cada fusión manda el color `de` al color `a`, en RGB de 15 bits,
-# y `pixeles` es cuántos movía cuando se decidió. Van **en orden**:
-# aplicarlas de arriba a abajo reconstruye el mapeo entero.
+# Each merge sends color `de` to color `a`, in 15-bit RGB, and
+# `pixeles` is how many it moved when it was decided. They go **in
+# order**: applying them top to bottom rebuilds the whole mapping.
 fusiones = []

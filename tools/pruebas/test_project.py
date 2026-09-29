@@ -238,7 +238,7 @@ def test_the_abl_net_sees_every_form(fuente):
     'parser.add_argument("x", help="rom/build/release")\n',
     'sys.exit("pasame `rom/build/release` y no dos")\n',
     'settings.value("rom", "name")\n',
-    'AVISO = os.environ.get("SIN_CACHE")\n',
+    'AVISO = os.environ.get("NO_CACHE")\n',
 ])
 def test_prose_and_the_rom_section_are_not_abl(fuente):
     """Naming `rom/` so that one can find it is not knowing where it is:

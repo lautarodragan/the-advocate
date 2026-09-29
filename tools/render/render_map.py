@@ -86,16 +86,16 @@ def draw_tiles(image, atlas, game_map, flags, pass_upper, steps=(0, 0)):
 
 
 # The dithers a translucent event is drawn with, and which pixel drops out.
-# RM2k draws at 160 out of 255, that is, at 63%: `cinco_de_ocho` is the one
+# RM2k draws at 160 out of 255, that is, at 63%: `five_of_eight` is the one
 # that comes closest. The rest are here to be able to compare on a real TV,
 # which is where this is decided: a CRT's scan blurs **along the line**, so
 # alternating columns blend and the checkerboard does not.
 DITHERS = {
-    "damero":        lambda x, y: (x + y) % 2 == 1,
-    "columnas":      lambda x, y: x % 2 == 1,
-    "filas":         lambda x, y: y % 2 == 1,
-    "cinco_de_ocho": lambda x, y: ((y % 2) * 4 + (x % 4)) in (1, 4, 7),
-    "tres_de_cuatro": lambda x, y: x % 2 == 1 and y % 2 == 1,
+    "checkerboard":   lambda x, y: (x + y) % 2 == 1,
+    "columns":        lambda x, y: x % 2 == 1,
+    "rows":           lambda x, y: y % 2 == 1,
+    "five_of_eight":  lambda x, y: ((y % 2) * 4 + (x % 4)) in (1, 4, 7),
+    "three_of_four":  lambda x, y: x % 2 == 1 and y % 2 == 1,
 }
 
 

@@ -51,7 +51,7 @@ the soundfont, the synthesizer and how it is normalized, and all of that goes
 into the key —see `track_key`—. What is stored in
 `rom/build/cache/msu/` is the sha256 of the `.pcm`, not the `.pcm`: the
 tracks weigh hundreds of megabytes and are already on disk, next to the ROM;
-storing them would mean two copies of the same thing. With `SIN_CACHE=1` they
+storing them would mean two copies of the same thing. With `NO_CACHE=1` they
 are all redone, which is how one checks that they come out the same.
 """
 import argparse
