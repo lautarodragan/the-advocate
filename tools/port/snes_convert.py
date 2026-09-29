@@ -87,7 +87,7 @@ from port import color as color_mod
 from port import constantes
 from port import reglas
 from port import msu_datos
-from audio import efectos_msu
+from audio import msu_effects
 from common import settings
 from common import project
 from common.parallel import in_parallel
@@ -8433,7 +8433,7 @@ def escribir_msu(ruta, musica, fondos, por_nombre, paquetes, hechos, muestras,
     `por_nombre` are the ROM's packages as `build_all` sees them —with the
     names of their sound effects— and `paquetes` the same as `emit` emits them
     —with their sound effect numbers—, in the same order. See
-    tools/audio/efectos_msu.py.
+    tools/audio/msu_effects.py.
     """
     efectos = getattr(banco, "effects", {})
     de_numero = {i: n for n, i in getattr(banco, "effect_id", {}).items()}
@@ -8451,11 +8451,11 @@ def escribir_msu(ruta, musica, fondos, por_nombre, paquetes, hechos, muestras,
         return sum(len(muestras[i].data) for i in suyas)
     pedidos = [(str(p[0]), list(p[2]), musica_de(p[1]))
                for p in por_nombre]
-    tasas = efectos_msu.tasas(pedidos, efectos, banco.free, game_dir)
+    tasas = msu_effects.rates_per_package(pedidos, efectos, banco.free, game_dir)
     unicas = sorted({(e, t) for suyas in tasas.values()
                      for e, t in suyas.items()})
     hechas = dict(zip(unicas, in_parallel(
-        lambda par: efectos_msu.armar(par[0], par[1], game_dir), unicas)))
+        lambda par: msu_effects.build(par[0], par[1], game_dir), unicas)))
 
     entradas = [parte for par in fondos for parte in par]
     # Which entry each sound effect of each package is, in SRCN order: two of

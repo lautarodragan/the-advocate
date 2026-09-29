@@ -3,7 +3,7 @@
 Con MSU-1 y el SPC700 sin música, un efecto que no entra en la 7 ni en la 6
 toma una de las voces 0 a 5; y si el `.msu` es el de este cartucho, los
 efectos de cada paquete se suben de ahí, enteros y a la tasa que les entra.
-Ver runtime/efectos_con_msu.s y tools/audio/efectos_msu.py. La tanda corre
+Ver runtime/efectos_con_msu.s y tools/audio/msu_effects.py. La tanda corre
 sin MSU-1 —el arnés le esconde el `.msu` al core—, así que eso lo cubren las
 pruebas de siempre; esto cubre el otro camino.
 

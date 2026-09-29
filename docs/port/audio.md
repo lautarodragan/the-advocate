@@ -71,7 +71,7 @@ muestra y con qué envolvente, y la consola sólo reproduce.
   tienen también las voces 0 a 5; y si el `.msu` es el de este cartucho, los
   de cada paquete se suben de ahí, enteros y a la tasa que les entra ahora
   que la música no ocupa la ARAM —una versión por paquete—. Sin MSU-1, o con
-  otro `.msu`, lo de siempre. El reparto, en `tools/audio/efectos_msu.py`; la
+  otro `.msu`, lo de siempre. El reparto, en `tools/audio/msu_effects.py`; la
   ROM, en `tools/runtime/efectos_con_msu.s`.
 
 Qué prueba cubre qué: `rom/pruebas/rpgmaker/test_musica_*.py` corren la ROM

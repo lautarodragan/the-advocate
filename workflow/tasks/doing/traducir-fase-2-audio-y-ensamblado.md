@@ -44,3 +44,7 @@ ejecutable corrido por su nombre desde /tmp con `--project`.
   `musica.json`; las etiquetas del driver del SPC700; y lo que va adentro
   del texto de `musicdata.inc`, que tiene que salir igual: nombra todavía
   `lugares_de_efectos` y `build_efectos`.
+- `audio/efectos_msu.py` → `audio/msu_effects.py`, con sus nombres. El
+  comentario de `tools/runtime/efectos_con_msu.s` que lo nombra queda con
+  la ruta vieja: tocar un `.s` cambia el `.dbg`, y el runtime es la última
+  área.

@@ -22,7 +22,7 @@ in the ARAM, because it has nowhere to record which version was left: see
 `se_msu_preparar` in tools/runtime/efectos_con_msu.s.
 
 **Always whole, and at the highest rate that fits**: the same for all the
-sound effects of the package —`TASAS`, from the WAVs' rate downwards— unless
+sound effects of the package —`RATES`, from the WAVs' rate downwards— unless
 the cartridge's is higher. A sound effect the cartridge already carries
 whole ends up no worse than without MSU-1: its rate is the floor. One the
 cartridge carries trimmed may end up at a lower rate than there, but whole:
@@ -39,70 +39,71 @@ from audio import snes_samples
 # RTP's WAVs, so there is no resampling; one fixed rate for all the sound
 # effects of a package, and stepped so that the same version serves more than
 # one package —the BRR cache encodes it once—.
-TASAS = (22050, 20000, 18000, 16000, 14000, 12000, 11025, 10000, 9000, 8000,
+RATES = (22050, 20000, 18000, 16000, 14000, 12000, 11025, 10000, 9000, 8000,
          7500, 7000, 6500, 6000, 5500, 5000, 4500, 4000, 3500, 3000)
 # What is left free in each package, as with the music: `ARAM_MARGIN`.
-MARGEN = snes_music.ARAM_MARGIN
+MARGIN = snes_music.ARAM_MARGIN
 
 
-# `rate` and not `tasa`: that is how `snes_music.effect_pitch` reads it,
-# the same as a `SoundEffect`.
-Version = collections.namedtuple("Version", "nombre rate data")
+# `rate` is what `snes_music.effect_pitch` reads, the same as from a
+# `SoundEffect`.
+Version = collections.namedtuple("Version", "name rate data")
 
 
-def armar(nombre, tasa, game_dir):
-    """The whole sound effect, without a loop, at `tasa` —or at its WAV's rate,
-    if lower—, in BRR. It is what `snes_music.build_sound_effect` does with a sound
-    effect from `se_whole()`, and the normalization is the same: it sounds
-    as loud as the ROM's."""
-    crudo, fuente = snes_music.read_wav(nombre.split("@")[0], game_dir)
-    tasa = min(tasa, fuente)
-    salen = max(brr_samples.BLOCK_SAMPLES,
-                int(round(len(crudo) * tasa / float(fuente)))
+def build(name, rate, game_dir):
+    """The whole sound effect, without a loop, at `rate` —or at its WAV's rate,
+    if lower—, in BRR. It is what `snes_music.build_sound_effect` does with a
+    sound effect from `se_whole()`, and the normalization is the same: it
+    sounds as loud as the ROM's."""
+    raw, source_rate = snes_music.read_wav(name.split("@")[0], game_dir)
+    rate = min(rate, source_rate)
+    count = max(brr_samples.BLOCK_SAMPLES,
+                int(round(len(raw) * rate / float(source_rate)))
                 // brr_samples.BLOCK_SAMPLES * brr_samples.BLOCK_SAMPLES)
-    audio = snes_samples.normalize(snes_samples.resample(crudo, salen))
-    return Version(nombre, tasa, brr_samples.encode(audio))
+    audio = snes_samples.normalize(snes_samples.resample(raw, count))
+    return Version(name, rate, brr_samples.encode(audio))
 
 
-def _pesa(largo, fuente, tasa):
-    """What a sound effect of `largo` samples at `fuente` Hz takes up in BRR,
-    whole at `tasa`: the same arithmetic as `armar`, without building it."""
-    tasa = min(tasa, fuente)
-    salen = max(16, int(round(largo * tasa / float(fuente))) // 16 * 16)
-    return salen // 16 * brr_samples.BLOCK_BYTES
+def _size(length, source_rate, rate):
+    """What a sound effect of `length` samples at `source_rate` Hz takes up in
+    BRR, whole at `rate`: the same arithmetic as `build`, without building
+    it."""
+    rate = min(rate, source_rate)
+    count = max(16, int(round(length * rate / float(source_rate))) // 16 * 16)
+    return count // 16 * brr_samples.BLOCK_BYTES
 
 
-def tasas(paquetes, efectos, libre, game_dir):
+def rates_per_package(packages, effects, free, game_dir):
     """{package name: {sound effect: rate}}: at which rate each sound effect
     of each package goes in the `.msu`.
 
-    `paquetes` are (name, sound effects, bytes of the music that does get
+    `packages` are (name, sound effects, bytes of the music that does get
     uploaded with MSU-1): that of the package's songs that have no track.
-    `efectos` is `bank.effects` —{name: (SRCN, SoundEffect)}—, which gives each
-    one's floor: the cartridge's rate if it goes whole there. `libre` is what
+    `effects` is `bank.effects` —{name: (SRCN, SoundEffect)}—, which gives each
+    one's floor: the cartridge's rate if it goes whole there. `free` is what
     the ARAM has for samples.
     """
     wavs = {}
-    salida = {}
-    for nombre, suyos, musica in paquetes:
-        suyos = [e for e in dict.fromkeys(suyos) if e in efectos]
-        if not suyos:
+    out = {}
+    for name, own, music_bytes in packages:
+        own = [e for e in dict.fromkeys(own) if e in effects]
+        if not own:
             continue
-        for e in suyos:
+        for e in own:
             if e not in wavs:
-                crudo, fuente = snes_music.read_wav(e.split("@")[0], game_dir)
-                wavs[e] = (len(crudo), fuente)
-        piso = {e: 0 if efectos[e][1].repeats else efectos[e][1].rate
-                for e in suyos}
-        hay = libre - MARGEN - musica
-        elegida = {}
-        for tasa in TASAS:
-            elegida = {e: max(tasa, piso[e]) for e in suyos}
-            if sum(_pesa(*wavs[e], elegida[e]) for e in suyos) <= hay:
+                raw, source_rate = snes_music.read_wav(e.split("@")[0], game_dir)
+                wavs[e] = (len(raw), source_rate)
+        floor = {e: 0 if effects[e][1].repeats else effects[e][1].rate
+                 for e in own}
+        room = free - MARGIN - music_bytes
+        chosen = {}
+        for rate in RATES:
+            chosen = {e: max(rate, floor[e]) for e in own}
+            if sum(_size(*wavs[e], chosen[e]) for e in own) <= room:
                 break
         else:
             print("  high-quality sound effects: package %s does not fit even at "
                   "%d Hz; the ones that do not fit do not play with MSU-1"
-                  % (nombre, TASAS[-1]))
-        salida[nombre] = elegida
-    return salida
+                  % (name, RATES[-1]))
+        out[name] = chosen
+    return out
