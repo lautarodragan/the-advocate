@@ -62,19 +62,20 @@ Cada grupo de archivos va en su commit, y se verifica con tres cosas:
 * Citas que otros archivos hacen de títulos que cambiaron de nombre, fuera
   de este alcance: `tools/runtime/ranuras.s` cita "lo que depende del
   actor" —ahora "what depends on the actor", en `menus.py`—, y
-  `snes_convert.py`, que es de otra parte de la traducción, cita "Qué
+  `snes_convert.py`, ya traducido por Aromo, sigue citando "Qué
   fondos hay" (escena.py), GIRO —ahora TURN— y "las variables de RM2k"
   —ahora "RM2k's variables"— (eventos.py), y "lo que depende del actor".
 
 ## Verificado
 
-Sobre el árbol con `main` mergeado (`5e652dc2`, con lo de Coronillo y
+Sobre el árbol con `main` mergeado (`106da9f8`, con lo de Aromo, Coronillo y
 Palmar adentro):
 
 * `SIN_CACHE=1 just cartuchos`: los `.sfc`, `.msu`, `.pcm` y `.sym` de
   `rom/build/` con el mismo sha256 que antes de empezar. Lo único distinto
-  es `memoria.cfg`, cuyo encabezado tradujo Coronillo. Los `.inc` salen
-  idénticos: ningún módulo de esta parte escribe comentarios en ellos.
+  es `memoria.cfg`, cuyo encabezado tradujo Coronillo. Ningún módulo de
+  esta parte escribe en los `.inc`: antes de mergear salían idénticos, y
+  lo que cambia en ellos después es de `snes_convert.py`.
 * `just pruebas`: 874 pasan.
 * `just -f tools/justfile pruebas`: 132 pasan y 2 se saltean.
 
