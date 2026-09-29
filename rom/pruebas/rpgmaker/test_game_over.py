@@ -6,7 +6,7 @@ Game Over y, al apretar, la pantalla de título. Son **15 páginas del juego**,
 y entre ellas las tres del `EV0006` del mapa 26, que es el jefe de los Rat
 Tracks.
 
-Compilan con el destino de la derrota puesto en `eventos.BATALLA_PERDER`
+Compilan con el destino de la derrota puesto en `events.BATTLE_LOSE`
 —$FFFF, un destino imposible adentro de una página—; la ROM lo anota antes de
 pelear y, si se pierde, muestra la pantalla y al apretar A se va con un `jml
 reset`. Ver runtime/game_over.s.
@@ -28,7 +28,7 @@ página sigue. Sin él, un reinicio por cualquier otra causa —una pelea que
 cuelgue, una pila que se desborde— pasaría por verde.
 """
 
-from port import eventos
+from port import events
 
 from batalla import (TITULO_QUIETO, VOLVER_TOPE, con_encuentros,
                      cuadros_hasta_el_game_over, cuadros_hasta_volver,
@@ -96,21 +96,21 @@ def test_las_tres_paginas_del_jefe_compilan():
 
 
 def test_la_derrota_del_jefe_apunta_al_game_over():
-    """Y el destino que se emite es `BATALLA_PERDER`, no el comando siguiente.
+    """Y el destino que se emite es `BATTLE_LOSE`, no el comando siguiente.
 
     Es lo que separa "el jefe aparece" de "el jefe aparece y perder no pasa
     nada": sin esto la página seguiría como si hubiera ganado, que es
     exactamente la clase de mentira que el `raise` estaba evitando.
     """
     codigo = pagina_del_jefe(0)
-    peleas = [i for i, b in enumerate(codigo) if b == eventos.OP_BATTLE]
+    peleas = [i for i, b in enumerate(codigo) if b == events.OP_BATTLE]
     # El opcode puede aparecer como operando de otro comando, así que se busca
     # el que además lleva la tropa que el LDB dice.
     for i in peleas:
         if codigo[i + 1] | (codigo[i + 2] << 8) != 97:
             continue
         derrota = codigo[i + 7] | (codigo[i + 8] << 8)
-        assert derrota == eventos.BATALLA_PERDER, (
+        assert derrota == events.BATTLE_LOSE, (
             "la derrota de la pelea del jefe va a %d y tendría que ser el "
             "Game Over" % derrota)
         return
@@ -168,7 +168,7 @@ def test_el_cofre_trampa_compila():
     `ChangeEscapeAccess` con la huida prohibida, así que perder es la única
     salida que la página tiene. Está acá para que se sepa **cuál** es el cofre
     del que habla `test_el_game_over_vuelve_al_juego`: sin esto, el día que
-    alguien toque `tropa_de_encuentro` el cuelgue vuelve por un camino que
+    alguien toque `encounter_troop` el cuelgue vuelve por un camino que
     ninguna prueba nombra.
     """
     assert pagina_de(RAT_TRACKS_B1, COFRE_TRAMPA, 0) is not None
@@ -202,7 +202,7 @@ def test_el_game_over_vuelve_al_juego(partida):
 
 # --- y el otro camino a una pelea: el encuentro al azar ---------------------
 #
-# En una página, `op_battle` anota el destino de la derrota y `BATALLA_PERDER`
+# En una página, `op_battle` anota el destino de la derrota y `BATTLE_LOSE`
 # la manda a la pantalla de Game Over. El encuentro al azar arranca la pelea
 # **sin bytecode** —`pelea_arrancar` desde `move_hero`—, así que no hay
 # `op_battle` que anote nada: si nadie más lo hace, perder devuelve el control
@@ -282,7 +282,7 @@ def test_ganar_encuentros_al_azar_no_reinicia(partida):
 # --- y el `GameOver` de una página -----------------------------------------
 #
 # Compila a OP_GAME_OVER, que lleva a la misma pantalla que el destino
-# `BATALLA_PERDER`, fundiendo antes el mapa. La página de prueba `game-over`
+# `BATTLE_LOSE`, fundiendo antes el mapa. La página de prueba `game-over`
 # espera 18 ticks y lo llama; el control es `pelea-82`, que tampoco llega —ver
 # `test_perder_con_manejador_no_es_game_over`— y el de `curar-sumar`, abajo.
 

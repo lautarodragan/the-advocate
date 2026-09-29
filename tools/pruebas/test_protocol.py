@@ -1,7 +1,7 @@
 """The bytecode declarations and their generated files must not drift apart.
 
 There are two bytecodes in this port: the event one, which
-`tools/port/eventos.py` emits and the ROM interprets, and the music stream,
+`tools/port/events.py` emits and the ROM interprets, and the music stream,
 which `tools/audio/snes_music.py` writes and `irq_musica` reads. They are
 declared by `tools/protocol/`, which belongs to neither side, and from there
 the files in `GENERADOS` are generated. The generator is a Rust binary
@@ -22,7 +22,7 @@ import subprocess
 import pytest  # noqa: E402
 
 from port import event_opcodes  # noqa: E402
-from port import eventos  # noqa: E402
+from port import events  # noqa: E402
 from rpgmaker import lcf  # noqa: E402
 from assembly import assemble  # noqa: E402
 from audio import music_opcodes  # noqa: E402
@@ -157,8 +157,8 @@ LEJOS = 300
 
 
 def compile_a_teleport(destino):
-    cmd = lcf.EventCommand(eventos.TELEPORT, 0, "", [7, 12, 34])
-    return eventos._compilar(cmd, lambda m: destino)
+    cmd = lcf.EventCommand(events.TELEPORT, 0, "", [7, 12, 34])
+    return events._compile(cmd, lambda m: destino)
 
 
 def test_a_destination_that_does_not_fit_a_byte_is_not_truncated():
@@ -182,7 +182,7 @@ def test_no_opcode_shares_a_number_with_another():
     says it directly and without depending on the game exercising them.
     """
     numeros = {}
-    for nombre, valor in sorted(vars(eventos).items()):
+    for nombre, valor in sorted(vars(events).items()):
         if not nombre.startswith("OP_") or not isinstance(valor, int):
             continue
         assert valor not in numeros, (

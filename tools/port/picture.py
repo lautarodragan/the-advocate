@@ -30,7 +30,7 @@ is centered at (100, 175) of 320x240 and measures 233x31, so **it starts at
 game shows.
 
 What is **not** done, and therefore not accepted either —see
-`Imagenes.cabe` in eventos.py—: moving the image, scaling it, making it
+`picture.fits`—: moving the image, scaling it, making it
 translucent (`top_trans`), the transparent color, saturation, and the
 rotation and wave effects. Of the three `Picture`s on the "1 year earlier"
 page none asks for any of that: the only thing that changes between one and
@@ -130,7 +130,7 @@ def convert(image, cx, cy):
 
 def fits(info):
     """Whether the picture fits the model: one object tall and up to
-    `OBJECTS_MAX` wide. `eventos.Imagenes` asks this when choosing the
+    `OBJECTS_MAX` wide. `events.Pictures` asks this when choosing the
     picture."""
     return 0 < info["alto"] <= OBJ and 0 < info["objetos"] <= OBJECTS_MAX
 

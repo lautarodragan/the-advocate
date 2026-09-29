@@ -122,7 +122,7 @@ miden `tests/schema.rs` y las pruebas de la vista resuelta.
 cambiaron no llamaban a `lcf.Map`: metían la mano **por debajo** de la capa, a
 los chunks crudos de `db.fields`, que ya no existen porque no hay binario.
 
-* `tools/port/eventos.py` y `tools/destraba.py` armaban los eventos comunes leyendo
+* `tools/port/events.py` y `tools/destraba.py` armaban los eventos comunes leyendo
   el chunk 0x19 de la base y el 0x16 de cada uno; ahora es `db.common_events`,
   que la capa arma.
 * `rom/pruebas/herramientas/test_encuentros.py` leía los terrenos y el `terrain_set` de las

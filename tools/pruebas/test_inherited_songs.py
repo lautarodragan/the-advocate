@@ -11,11 +11,11 @@ one of its own" carried those to all its destinations instead of what was
 playing.
 
 It is built by hand, without a ROM: the song table of five maps shaped like
-the game's. What the pages compile —`Temas.salto` and `Temas.salida`— is
+the game's. What the pages compile —`Songs.jump` and `Songs.note_exit`— is
 covered by `test_a_teleport_notes_the_song_it_carries`.
 """
 
-from port import eventos                                      # noqa: E402
+from port import events                                      # noqa: E402
 from port.snes_convert import temas_heredados                 # noqa: E402
 
 K, G, T, V = 0, 1, 2, 3            # Kfmus5, golden_axe, tsmedit, vswar
@@ -23,11 +23,11 @@ SIN = 0xFF
 
 
 def _songs(por_mapa, salidas, saltos):
-    temas = eventos.Temas()
-    temas.nombres = ["K", "G", "T", "V"]
-    temas.por_mapa = por_mapa
-    temas.salidas = salidas
-    temas.saltos = saltos
+    temas = events.Songs()
+    temas.names = ["K", "G", "T", "V"]
+    temas.per_map = por_mapa
+    temas.exits = salidas
+    temas.jumps = saltos
     return temas
 
 
@@ -92,19 +92,19 @@ def test_a_teleport_notes_the_song_it_carries():
     """What `temas_heredados` reads is noted by the page when it compiles: the
     jump right after a `PlayBGM` takes that song along, and the one that is
     not, None."""
-    temas = eventos.Temas()
-    temas.nombres = ["K"]
-    temas.mapa = 0
+    temas = events.Songs()
+    temas.names = ["K"]
+    temas.current_map = 0
 
     class Cmd:
         def __init__(self, code, parameters=(), string=""):
             self.code, self.parameters, self.string = code, list(parameters), \
                 string
     bgm = [None, [], []]
-    for cmd in (Cmd(eventos.TELEPORT, [20, 1, 1]),
-                Cmd(eventos.PLAY_BGM, [0, 100, 100, 50], "K"),
-                Cmd(eventos.TELEPORT, [30, 1, 1])):
-        eventos._seguir_la_salida(cmd, bgm, temas,
-                                  lambda mapa: {20: 1, 30: 2}.get(mapa),
-                                  False)
+    for cmd in (Cmd(events.TELEPORT, [20, 1, 1]),
+                Cmd(events.PLAY_BGM, [0, 100, 100, 50], "K"),
+                Cmd(events.TELEPORT, [30, 1, 1])):
+        events._follow_exit(cmd, bgm, temas,
+                            lambda mapa: {20: 1, 30: 2}.get(mapa),
+                            False)
     assert bgm[2] == [(1, None), (2, 0)]

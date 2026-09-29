@@ -50,7 +50,7 @@ import numpy
 # folder in `sys.path`, not `tools/`, which is where the packages are imported
 # from. It is replaced instead of adding `tools/` next to it: with both, a bare
 # `import eventos` would work and load a second copy of the module, distinct
-# from `port.eventos`.
+# from `port.events`.
 # `realpath` and not `abspath`: `just install` installs it on the PATH as
 # a symlink, and the folder that matters is the one of the real file.
 if __name__ == "__main__":
@@ -60,7 +60,7 @@ from assembly import banks
 from port import tiles_bin
 from port import compress
 from rpgmaker import event_codes
-from port import eventos
+from port import events
 from rpgmaker import lcf
 from rpgmaker import rm2k
 
@@ -751,8 +751,8 @@ def poses_del_mapa(renderer, game_map, lideres, movibles=(), giran=(),
 # it is more conservative —it also counts the pages this port doesn't
 # compile— and nothing needs compiling to ask, which is what lets the decision
 # be made before drawing the layers.
-COMANDOS_QUE_MUEVEN = (eventos.MOVE_EVENT, eventos.CHANGE_EVENT_LOCATION,
-                       eventos.TRADE_EVENT_LOCATIONS, eventos.FLASH_SPRITE)
+COMANDOS_QUE_MUEVEN = (events.MOVE_EVENT, events.CHANGE_EVENT_LOCATION,
+                       events.TRADE_EVENT_LOCATIONS, events.FLASH_SPRITE)
 
 
 def _alfas_del_tile(atlas, indice):
@@ -812,14 +812,14 @@ def eventos_horneables(renderer, game_map):
         return {}
     # The events that some page moves, flashes or sends walking. It goes by
     # the RM2k id, which is what the commands carry, and it is translated by
-    # the same `eventos.Eventos` the compilation uses.
-    del_mapa = eventos.Eventos(game_map)
+    # the same `events.MapEvents` the compilation uses.
+    del_mapa = events.MapEvents(game_map)
     tocados = set()
     for evento in game_map.events:
         for page in evento.pages:
             for cmd in page.commands:
                 if cmd.code in COMANDOS_QUE_MUEVEN and cmd.parameters:
-                    blanco = del_mapa.blanco(cmd.parameters[0])
+                    blanco = del_mapa.route_target(cmd.parameters[0])
                     if blanco:
                         tocados.add(blanco - 1)
     # And the ones that walk on their own: `move_type` set to anything other
@@ -1449,7 +1449,7 @@ def digitos_del_timer(sys_img, tiles, palettes, de_lider=(),
 def gotas_de_lluvia(tiles, palettes, de_lider=(), timer_base=None,
                    tope=OBJ_PALETTES, timer_pal=None):
     """The six raindrop tiles —above and below the streak, in the three
-    grays— and the palette their colors go in. See OP_WEATHER in eventos.py.
+    grays— and the palette their colors go in. See OP_WEATHER in events.py.
 
     It is the same as `digitos_del_timer`: the colors go in the first
     character palette with room, except the leader ones, and the tiles at the
@@ -1467,7 +1467,7 @@ def gotas_de_lluvia(tiles, palettes, de_lider=(), timer_base=None,
     with them. It is still avoided because removing it can move where the
     drops land, and that wasn't measured.
     """
-    quiere = [c for c in eventos.LLUVIA_COLORES]
+    quiere = [c for c in events.RAIN_COLORS]
     evitar = set(de_lider)
     if timer_pal is not None:
         evitar.add(timer_pal)
@@ -1485,7 +1485,7 @@ def gotas_de_lluvia(tiles, palettes, de_lider=(), timer_base=None,
         base = -(-(len(tiles) // 32) // 64) * 64
     if (base + 16 + 3) * 32 > len(tiles):
         tiles += bytes((base + 16 + 3) * 32 - len(tiles))
-    raya = set(eventos.lluvia_pixeles(0, 0))
+    raya = set(events.rain_pixels(0, 0))
     for tono, color in enumerate(quiere):
         indice = paleta.index(color) + 1
         for mitad in (0, 1):
@@ -1548,7 +1548,7 @@ def mapa_muestra_animacion(game_map, renderer, comandos=()):
     for cmd in list(comandos) + [cmd for evento in game_map.events
                                  for page in evento.pages
                                  for cmd in page.commands]:
-        if (cmd.code == eventos.SHOW_BATTLE_ANIMATION
+        if (cmd.code == events.SHOW_BATTLE_ANIMATION
                 and len(cmd.parameters) >= 3):
             numeros.add(cmd.parameters[0])
     return any(animacion_mod.de_numero(renderer, n) is not None
@@ -1662,8 +1662,8 @@ def hay_lluvia(map_ids, extra=()):
     carries the drops, because the weather persists across map changes.
     `extra` are the commands of the test pages."""
     def llueve(cmd):
-        return (cmd.code == eventos.WEATHER_EFFECTS
-                and cmd.parameters[:1] == [eventos.CLIMA_LLUVIA])
+        return (cmd.code == events.WEATHER_EFFECTS
+                and cmd.parameters[:1] == [events.WEATHER_RAIN])
     if any(llueve(cmd) for cmd in extra):
         return True
     for map_id in map_ids:
@@ -2881,7 +2881,7 @@ class Sustituciones:
     there are 16x16 blocks that carry both layers and the passability
     together, so an RM2k substitution is as many block pairs as (lower, upper)
     combinations of the map carry that tile. Which ones they are is known when
-    converting, which is why this lives here and not in `eventos.py`.
+    converting, which is why this lives here and not in `events.py`.
 
     The destination block may not exist —nobody drew that combination
     anywhere in the map— and then it is built: the four 8x8 cells of the layer
@@ -2961,7 +2961,7 @@ class Sustituciones:
     def pares(self, capa_alta, viejo, nuevo):
         """The `(old block, new block)` pairs of a substitution, or None.
 
-        None is "this page doesn't compile", which is what `eventos.py`
+        None is "this page doesn't compile", which is what `events.py`
         expects from a command that can't be done.
         """
         if not (0 <= viejo < rm2k.TILES_PER_LAYER
@@ -3068,7 +3068,7 @@ def triples_de_sustitucion(game_map, casos, map_id):
     listas += [caso.comandos for caso in casos if caso.mapa == map_id]
     for comandos in listas:
         for cmd in comandos:
-            if cmd.code != eventos.TILE_SUBSTITUTION or len(cmd.parameters) < 3:
+            if cmd.code != events.TILE_SUBSTITUTION or len(cmd.parameters) < 3:
                 continue
             triple = (bool(cmd.parameters[0]),
                       cmd.parameters[1], cmd.parameters[2])
@@ -3421,15 +3421,15 @@ def animaciones_de_la_rom(mapas, renderer):
     The bytecode is walked and not the commands, which is what makes it the
     truth and not a guess: what counts is what ended up emitted, after the
     page filter decided which ones go in. It is the same rule as
-    `eventos.blancos_de_ruta`.
+    `events.route_targets`.
     """
     numeros = set()
     for mapa in mapas:
         for pagina in mapa.get("paginas", ()):
             codigo = pagina.get("codigo") or b""
-            for i, c in eventos.recorrer_codigo(codigo):
-                if (c[i] == eventos.OP_ANIMATION
-                        and c[i + 1] != eventos.ANIM_SIN_DIBUJO):
+            for i, c in events.walk_code(codigo):
+                if (c[i] == events.OP_ANIMATION
+                        and c[i + 1] != events.ANIM_NO_DRAWING):
                     numeros.add(c[i + 1])
     salida = {}
     for numero in sorted(numeros):
@@ -3520,8 +3520,8 @@ def animaciones_asm(animaciones, mapas):
         "; `Scope_screen` land: `DrawAt(screen_width / 2, screen_height / 2)`.",
         "ANIM_B_CENTRO_X = %d" % (animacion_mod.PANTALLA[0] // 2),
         "ANIM_B_CENTRO_Y = %d" % (animacion_mod.PANTALLA[1] // 2),
-        "ANIM_B_SIN      = $%02X" % eventos.ANIM_SIN_DIBUJO,
-        "ANIM_B_PANTALLA = $%02X" % eventos.ANIM_BLANCO_PANTALLA,
+        "ANIM_B_SIN      = $%02X" % events.ANIM_NO_DRAWING,
+        "ANIM_B_PANTALLA = $%02X" % events.ANIM_TARGET_SCREEN,
     ]
     out.append(bloque("anim_batalla_de",
                       bytes(entrada.get(n, 0xFF) for n in range(tope))))
@@ -3666,7 +3666,7 @@ def escena_de_la_rom(db, tropas, mapas, tree, encuentros, game_dir):
 
     * **an `EnemyEncounter` that names it**, and then it belongs to the troop
       —that is how the baked scene worked—. If two asked for it differently
-      for the same troop the first one wins, as in `Tropas.pedir`;
+      for the same troop the first one wins, as in `Troops.request`;
     * **a random encounter in a map that inherits it**, which is
       `TreeMap.map_background`: the Back Alleys areas bring no backdrop and
       take it from their map;
@@ -3686,7 +3686,7 @@ def escena_de_la_rom(db, tropas, mapas, tree, encuentros, game_dir):
     HairyVermin are the same `BLmouse` and two battlers.
     """
     E = escena_mod
-    juego = E.game_backdrops(eventos.fondos_nombrados(game_dir), tree,
+    juego = E.game_backdrops(events.named_backdrops(game_dir), tree,
                              db.terrain_backdrops, game_dir)
     numero_de = {nombre.lower(): k for k, nombre in enumerate(juego)}
     if len(juego) >= FONDO_DEL_LUGAR:
@@ -3698,13 +3698,13 @@ def escena_de_la_rom(db, tropas, mapas, tree, encuentros, game_dir):
              "terreno_fondo": [], "calidad": []}
 
     def numero(nombre):
-        if nombre is None or nombre is eventos.FONDO_DEL_LUGAR:
+        if nombre is None or nombre is events.PLACE_BACKDROP:
             return FONDO_DEL_LUGAR
         return numero_de.get(nombre.lower(), FONDO_LISO) if nombre \
             else FONDO_LISO
 
     for n in tropas.ids:
-        fondo = tropas.fondos.get(n)
+        fondo = tropas.backdrops.get(n)
         datos["tropa_fondo"][n] = numero(fondo) if fondo else FONDO_LISO
     # The map's, for random encounters and for the troops that fight with the
     # one of the place. Only in the maps where some battle can look at it:
@@ -3802,14 +3802,14 @@ def usos_de_los_parches(mapas, db, tree):
         for pagina in mapa.get("paginas", ()):
             origen = "caso" if pagina.get("prueba") else mapa["id"]
             codigo = pagina.get("codigo") or b""
-            for i, c in eventos.recorrer_codigo(codigo):
-                if (c[i] == eventos.OP_ANIMATION
-                        and c[i + 1] != eventos.ANIM_SIN_DIBUJO):
+            for i, c in events.walk_code(codigo):
+                if (c[i] == events.OP_ANIMATION
+                        and c[i + 1] != events.ANIM_NO_DRAWING):
                     animaciones[c[i + 1]].add(origen)
-                elif c[i] == eventos.OP_BATTLE:
+                elif c[i] == events.OP_BATTLE:
                     tropas[c[i + 1] | (c[i + 2] << 8)].add(origen)
         game_map = mapa["game_map"]
-        for *_rect, cuales in eventos.zonas_de_encuentro(
+        for *_rect, cuales in events.encounter_zones(
                 tree, mapa["id"], game_map.width, game_map.height):
             for numero in cuales:
                 tropas[numero].add(mapa["id"])
@@ -4146,8 +4146,8 @@ def tabla_de_paginas(mapa, numero, evcodigo):
     # `elegir_paginas` doesn't even note which one is active —it filters by
     # $E0— and `paralelos_tick` would have nowhere to get its code from.
     con_auto = {p["evento"] for p in mapa["paginas"]
-                if p["trigger"] in (eventos.TRIGGER_AUTOMATICO,
-                                    eventos.TRIGGER_PARALELO) and p["codigo"]}
+                if p["trigger"] in (events.TRIGGER_AUTOSTART,
+                                    events.TRIGGER_PARALLEL) and p["codigo"]}
     for pagina in mapa["paginas"]:
         if pagina["codigo"]:
             destino = "%s + %d" % (evcodigo, pagina["offset"])
@@ -4168,7 +4168,7 @@ def tabla_de_paginas(mapa, numero, evcodigo):
         propia = pagina.get("ruta_propia")
         if propia:
             # The page's own route, the one it walks by itself: see
-            # `eventos.ruta_propia`. The flags: bit 0 it has one, 1 it
+            # `events.own_route`. The flags: bit 0 it has one, 1 it
             # repeats, 2 it skips what is blocked, 3 it always faces the same
             # way, 4 the animation continues while still.
             banderas = (1 | (2 if propia["repite"] else 0)
@@ -4229,7 +4229,7 @@ def tabla_de_paginas(mapa, numero, evcodigo):
         # the poses of its graphic are in, or $FF if the page doesn't turn,
         # and its pose. When triggered, the ROM uploads the one facing the
         # hero; on a refresh, a change to a page that doesn't turn or has
-        # another graphic undoes the turn. See TURN in eventos.py.
+        # another graphic undoes the turn. See TURN in events.py.
         grafico = pagina.get("grafico")
         k = (mapa.get("giro_k", {}).get(tuple(grafico[:2]))
              if pagina.get("gira") and grafico and pagina["evento"] in
@@ -4522,7 +4522,7 @@ def datos_del_mapa(mapa, numero, indice_global, materiales):
         ("bloque_terreno", terreno_del_mapa(mapa)),
         ("npc_table", npc_bytes(sprite[3]) if sprite else b""),
         # Two bytes per graphic of command 34: its entry in `npc_poses` —or
-        # $FF, which is hiding— and its palette. See `Graficos` in eventos.py.
+        # $FF, which is hiding— and its palette. See `Graphics` in events.py.
         ("ruta_grafico",
          bytes(b for par in (sprite[9] if sprite else []) for b in par)),
         ("ev_pos", mapa["ev_pos"]),
@@ -4563,7 +4563,7 @@ def encuentros_de_la_rom(mapas, tree, pasos_de_prueba, tropas):
 
     The data lives in the tree and not in the `.lmu`: each node brings its
     list of troops, every how many steps, and —if it is an area— the
-    rectangle it covers. See `eventos.zonas_de_encuentro`.
+    rectangle it covers. See `events.encounter_zones`.
 
     Along the way it **asks for the troops**, which is what makes the
     cartridge carry their enemies and the battle's audio package: without
@@ -4578,24 +4578,24 @@ def encuentros_de_la_rom(mapas, tree, pasos_de_prueba, tropas):
     registros, zonas, tropas_de_zona, por_mapa = [], [], [], []
     for mapa in mapas:
         game_map = mapa["game_map"]
-        suyas = eventos.zonas_de_encuentro(tree, mapa["id"],
-                                           game_map.width, game_map.height)
+        suyas = events.encounter_zones(tree, mapa["id"],
+                                       game_map.width, game_map.height)
         pasos = (pasos_de_prueba if pasos_de_prueba is not None
                  else tree.encounter_steps.get(mapa["id"],
-                                               eventos.ENC_PASOS_DEFECTO))
-        if not suyas or not eventos.enc_base(pasos):
+                                               events.ENC_DEFAULT_STEPS))
+        if not suyas or not events.enc_base(pasos):
             por_mapa.append(0xFF)
             continue
         por_mapa.append(len(registros))
-        registro = {"base": eventos.enc_base(pasos),
-                    "umbrales": eventos.enc_umbrales_de_paso(pasos),
+        registro = {"base": events.enc_base(pasos),
+                    "umbrales": events.enc_step_thresholds(pasos),
                     "zona_ini": len(zonas), "zona_n": len(suyas)}
         for izq, arr, der, aba, cuales in suyas:
             zonas.append({"rect": (izq, arr, der, aba),
                           "tropa_ini": len(tropas_de_zona),
                           "tropa_n": len(cuales)})
             for numero in cuales:
-                tropas.pedir(numero)
+                tropas.request(numero)
             tropas_de_zona += cuales
         registros.append(registro)
     if len(registros) > 0xFF or len(zonas) > 0xFF or len(tropas_de_zona) > 0xFF:
@@ -5036,54 +5036,54 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            NPC_QUIETO,
            EV_STRIDE, EV_MAX, RUTA_EV_MAX,
            PAGINA_BYTES, GIRO_NINGUNO, RUTA_GRAF_MAX,
-           eventos.CABECERA_LINEAS, eventos.CABECERA_AUTOCIERRE,
-           eventos.CUADROS_DE_PAUSA, eventos.VAR_REFRESCO, eventos.VAR_RANURA_MAX,
-           eventos.ANIM_ENTRADA, eventos.ANIM_SONIDO, eventos.ANIM_DESTELLO, eventos.TECLA_ESPERA,
-           eventos.TECLA_DIRS, eventos.TECLA_DECISION,
-           eventos.TECLA_CANCELAR, eventos.TECLA_ARRANCA,
-           eventos.TECLA_VALOR_DECISION, eventos.TECLA_VALOR_CANCELAR,
-           eventos.TECLA_VALOR_DIR[0], eventos.TECLA_VALOR_DIR[1],
-           eventos.TECLA_VALOR_DIR[3], eventos.TECLA_VALOR_DIR[2],
+           events.HEADER_LINES, events.HEADER_AUTO_CLOSE,
+           events.PAUSE_FRAMES, events.VAR_REFRESH, events.VAR_SLOT_MAX,
+           events.ANIM_ENTRY_BYTES, events.ANIM_SOUND, events.ANIM_SCREEN_FLASH, events.KEY_WAIT,
+           events.KEY_DIRS, events.KEY_DECISION,
+           events.KEY_CANCEL, events.KEY_START,
+           events.KEY_VALUE_DECISION, events.KEY_VALUE_CANCEL,
+           events.KEY_VALUE_DIR[0], events.KEY_VALUE_DIR[1],
+           events.KEY_VALUE_DIR[3], events.KEY_VALUE_DIR[2],
            cartel_base, cartel_pal,
            cartel["x"] if cartel else 0, cartel["y"] if cartel else 0,
            cartel["objetos"] if cartel else 0,
            picture.OBJ_SIDE, 4 * picture.GRID,
-           max(eventos.LLUVIA_GOTAS),
-           eventos.LLUVIA_GOTAS[0], eventos.LLUVIA_GOTAS[1],
-           eventos.LLUVIA_GOTAS[2], eventos.LLUVIA_VIDA,
-           eventos.LLUVIA_NACE, eventos.LLUVIA_SEMILLA,
-           eventos.CLIMA_LLUVIA,
-           eventos.ITEMS_N,
-           eventos.ITEM_MAX,
+           max(events.RAIN_DROPS),
+           events.RAIN_DROPS[0], events.RAIN_DROPS[1],
+           events.RAIN_DROPS[2], events.RAIN_LIFE,
+           events.RAIN_SPAWN, events.RAIN_SEED,
+           events.WEATHER_RAIN,
+           events.ITEMS_N,
+           events.ITEM_MAX,
            variables_n(),
-           eventos.VAR_SUMAR, eventos.VAR_VARIABLE, eventos.VAR_AZAR,
-           eventos.VAR_OTRO,
-           eventos.VAR_PERSONAJE, eventos.PERSONAJE_X, eventos.PERSONAJE_Y,
-           eventos.CELDA_Y, eventos.CELDA_REFRESCO,
-           eventos.AZAR_SEMILLA, eventos.ENC_SEMILLA,
-           eventos.TIMER_PONER_VAR,
-           eventos.COND_ORO, eventos.COND_ITEM,
-           eventos.COND_ACTOR, eventos.COND_ACTOR_HABILIDAD,
-           eventos.COND_ACTOR_EQUIPO,
-           eventos.ORO_MAX,
-           eventos.PAN_CORRER, eventos.PAN_VOLVER,
-           eventos.TIMER_PONER, eventos.TIMER_ARRANCAR,
+           events.VAR_ADD, events.VAR_VARIABLE, events.VAR_RANDOM,
+           events.VAR_OTHER,
+           events.VAR_CHARACTER, events.CHARACTER_X, events.CHARACTER_Y,
+           events.CELL_Y, events.CELL_REFRESH,
+           events.RANDOM_SEED, events.ENC_SEED,
+           events.TIMER_SET_VAR,
+           events.COND_GOLD, events.COND_ITEM,
+           events.COND_ACTOR, events.COND_ACTOR_SKILL,
+           events.COND_ACTOR_EQUIPMENT,
+           events.GOLD_MAX,
+           events.PAN_SHIFT, events.PAN_RETURN,
+           events.TIMER_SET, events.TIMER_START,
            TIMER_X, TIMER_Y, TIMER_GLIFO_W, TIMER_GLIFOS - 1,
-           eventos.CUADROS_POR_SEGUNDO, eventos.TIMER_CUADROS_DE_MAS,
+           events.FRAMES_PER_SECOND, events.TIMER_EXTRA_FRAMES,
            FLASH_MAX, PARALELO_MAX,
-           eventos.TRIGGER_AUTOMATICO, eventos.TRIGGER_ACCION,
-           eventos.TRIGGER_TOCA_HEROE, eventos.TRIGGER_PARALELO,
-           eventos.CUADROS_POR_CELDA, eventos.RUTA_FRECUENCIA,
-           eventos.CUADROS_DE_ESPERA_DE_RUTA,
-           eventos.SALTO_PASO,
+           events.TRIGGER_AUTOSTART, events.TRIGGER_ACTION,
+           events.TRIGGER_TOUCH_HERO, events.TRIGGER_PARALLEL,
+           events.FRAMES_PER_CELL, events.ROUTE_FREQUENCY,
+           events.ROUTE_WAIT_FRAMES,
+           events.JUMP_STEP,
            color_mod.NEUTRAL_TINT,
-           eventos.FUNDIDO_RAMPA,
-           eventos.FUNDIDO_CUADROS, eventos.FUNDIDO_TOTAL,
-           eventos.FUNDIDO_RAMPA, eventos.FUNDIDO_NEGRO,
-           eventos.FUNDIDO_RAMPA, eventos.BRILLO_MAX,
-           eventos.TRANSICION_MOSAICO, eventos.TRANSICION_CORTE,
+           events.FADE_RAMP,
+           events.FADE_FRAMES, events.FADE_TOTAL,
+           events.FADE_RAMP, events.FADE_BLACK,
+           events.FADE_RAMP, events.BRIGHTNESS_MAX,
+           events.TRANSITION_MOSAIC, events.TRANSITION_CUT,
            color_mod.LUMA_R, color_mod.LUMA_G, color_mod.LUMA_B, SWITCH_BYTES,
-           eventos.GRUPO_MAX, len(grupo_inicial), ACTOR_BYTES,
+           events.PARTY_MAX, len(grupo_inicial), ACTOR_BYTES,
            ACTOR_COLORES, OBJ_COLORS,
            rm2k.LAYER_SAME,
            OBJ_PRIORITY_ABOVE if heroe_encima else OBJ_PRIORITY,
@@ -5135,14 +5135,14 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write(desplazamientos())
         handle.write("\n\n")
         # The fade ramp, in bank 0 because `fundido_tick` reads it with
-        # `lda fundido_rampa, x`. It comes from `eventos.rampa_de_fundido()`:
+        # `lda fundido_rampa, x`. It comes from `events.fade_ramp()`:
         # writing it in tools/runtime/ too would be having two copies that can
         # get out of sync without anything noticing.
         handle.write('.segment "TABLAS"\n'
                      '; The master brightness on each frame of the ramp, from\n'
                      '; black to full. Going down it is read backwards.\n'
                      'fundido_rampa:\n    .byte %s\n\n'
-                     % ",".join(str(v) for v in eventos.rampa_de_fundido()))
+                     % ",".join(str(v) for v in events.fade_ramp()))
         # The data goes in RODATA, which the linker spreads over the upper
         # banks. What stays in TABLAS —that is, in bank 0— is what the ROM
         # walks with a bare `lda tabla, x`, which addresses the data bank.
@@ -5287,7 +5287,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             # `MENSAJES_PASO` bytes.
             handle.write("MENSAJES_BYTES = %d\nMENSAJES_TOPE = %d\n"
                          % (len(ventana["mensajes"]),
-                            0x10000 * eventos.MENSAJES_PASO))
+                            0x10000 * events.MESSAGES_STEP))
         # --- the ShowPicture picture ---
         #
         # Its fifteen colors as they came out of `picture.convert`, in the
@@ -5592,7 +5592,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "FIN_PASO_TEMA = %d\n"
             % (len(fin_tiles), fin_fila0, len(fin_filas) // constants.COLS,
                fin_mod.DEFAULT_CHOICE, fin_mod.NO, fin_mod.FADE_FRAMES,
-               eventos.paso_de_fundido(fin_mod.SONG_FADE_MS)))
+               events.fade_step(fin_mod.SONG_FADE_MS)))
         item_textos, item_textos_ofs = bytearray(), []
 
         def texto_nuevo(texto):
@@ -5704,7 +5704,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # **All the ones they can end up knowing**, and not only the LDB's: a
         # `ChangeSkills` teaches the actor what the learning table doesn't
         # have, and since 2026-09-21 that shows in battle. They are those of
-        # their pairs in `eventos.HABILIDAD_RANURA` that the battle knows how
+        # their pairs in `events.SKILL_SLOT` that the battle knows how
         # to offer.
         #
         # And the ones some enemy of the cartridge's troops uses, since
@@ -5712,7 +5712,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # `batalla.acciones_de_enemigo`.
         acciones_rom = {e: B.acciones_de_enemigo(db, e) for e in enemigos_rom}
         habilidades_rom = sorted(
-            {h for (a, h) in eventos.HABILIDAD_RANURA
+            {h for (a, h) in events.SKILL_SLOT
              if a in ranuras["actores"] and B.habilidad_usable(db.skills[h])}
             | {skill.id for lista in acciones_rom.values()
                for _r, skill, _ef in lista if skill is not None})
@@ -5727,7 +5727,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # its column, and some of these the battle doesn't know how to offer
         # —Lurk In Shadows, Arden's— and aren't in the list. See
         # `hab_par_aprende_txt`.
-        ensenadas = {h for (a, h) in eventos.HABILIDAD_RANURA
+        ensenadas = {h for (a, h) in events.SKILL_SLOT
                      if a in ranuras["actores"] and a in db.actors
                      and B.nivel_en_que_aprende(db, a, h)
                      > X.initial_level(db.actors[a])}
@@ -6044,7 +6044,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # the code's bank filled up with the audio package.
         handle.write('.segment "RODATA"\n')
         bytes_asm("item_k", [k_de.get(n, 0xFF)
-                             for n in range(eventos.ITEMS_N)],
+                             for n in range(events.ITEMS_N)],
                   declarar=True)
         handle.write('.segment "TABLAS"\n')
         words_asm("item_id", items)
@@ -6352,8 +6352,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # The parallel common events that only look at the equipment,
         # compiled: the ROM runs them when closing the menu if their switch is
         # on. For each one, where its switch is in the bitmap —byte and mask—
-        # and its code. See `eventos.COMUNES_DEL_EQUIPO`.
-        del_equipo = sorted(eventos.COMUNES_DEL_EQUIPO.items())
+        # and its code. See `events.PARTY_COMMON_EVENTS`.
+        del_equipo = sorted(events.PARTY_COMMON_EVENTS.items())
         handle.write("COMEQ_N = %d\n" % len(del_equipo))
         words_asm("comeq_byte", [sw >> 3 for sw, _n in del_equipo],
                   declarar=True)
@@ -6370,10 +6370,10 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                   declarar=True)
         for _sw, n in del_equipo:
             handle.write(bloque("comun_equipo_%d" % n,
-                                eventos.compilar_comun_del_equipo(n)) + "\n")
+                                events.compile_party_common_event(n)) + "\n")
         # And what each actor knows, which since 2026-09-21 is state: one bit
         # per (actor, skill) pair in `FAR_HAB`, with the slots of
-        # `eventos.HABILIDAD_RANURA`. It is answered by branch 4 of
+        # `events.SKILL_SLOT`. It is answered by branch 4 of
         # `ConditionalBranch` —which already brings the slot in the bytecode—
         # and by the battle's list, which walks the actor's pairs: where they
         # start —`hab_par_ini`, as words because there are more than 255—,
@@ -6384,7 +6384,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         #
         # The bits start with `rules.learned_skills`, which is what the LDB
         # says at its initial level: `hab_inicial_poner` copies them on reset.
-        pares = sorted(eventos.HABILIDAD_RANURA.items(), key=lambda x: x[1])
+        pares = sorted(events.SKILL_SLOT.items(), key=lambda x: x[1])
         hab_par_ini, hab_par_n = [], []
         for a in range(actores_n):
             suyos = [r for (actor, _s), r in pares if actor == a]
@@ -6440,7 +6440,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # that form them. The bytecode carries the troop's **RM2k number**, so
         # `tropa_id` is what the ROM looks up; the list being only that of the
         # used troops doesn't change a byte of any page. See
-        # `eventos.Tropas`.
+        # `events.Troops`.
         usadas = [n for n in tropas if n in db.troops]
         lugar_de = {e: k for k, e in enumerate(enemigos_rom)}
         miembros, inicios = [], []
@@ -6498,7 +6498,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # compile: skipping them doesn't change the order of the others. Per
         # troop, where they start and how many there are; per page, its
         # trigger and where its code is inside `tropa_codigo`, which
-        # deduplicates them. See `eventos.PaginasDeTropa` and `ba_pag_probar`
+        # deduplicates them. See `events.TroopPages` and `ba_pag_probar`
         # in tools/runtime/batalla_tropa.s.
         #
         # **The small tables go to bank 1, `FAR`; the two big blocks —the code
@@ -6510,16 +6510,16 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # four hundred bytes. Both are read with a long pointer whose bank
         # comes from `^tropa_codigo` and `^mensajes_tropa`, so it is enough
         # for each to fit whole in one bank, which is what `bloque` asks for.
-        pt = paginas_tropa or eventos.PaginasDeTropa()
+        pt = paginas_tropa or events.TroopPages()
         entradas, pag_ini, pag_n = [], [], []
         for numero in usadas:
-            suyas = pt.por_tropa.get(numero, [])
+            suyas = pt.per_troop.get(numero, [])
             pag_ini.append(len(entradas))
             pag_n.append(len(suyas))
             entradas += suyas
-        if max(pag_n, default=0) > eventos.TROPA_PAGINAS_MAX:
+        if max(pag_n, default=0) > events.TROOP_PAGES_MAX:
             raise SystemExit("a troop brings %d pages and the battle tracks %d"
-                             % (max(pag_n), eventos.TROPA_PAGINAS_MAX))
+                             % (max(pag_n), events.TROOP_PAGES_MAX))
         handle.write('.segment "FAR"\n')
         words_asm("tropa_pag_ini", pag_ini)
         bytes_asm("tropa_pag_n", pag_n)
@@ -6531,18 +6531,18 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # them: the characters' 32 systems only look at `switch_a`, and with
         # none the ROM never reads them —the bit in `tpag_flags` is zero—, so
         # the label is enough. The turn and the HP have no table: they go in
-        # front of the code, see `eventos.cabecera_de_tropa`.
+        # front of the code, see `events.troop_header`.
         for nombre, campo, bit in (
-                ("tpag_sw_b", "switch_b", eventos.TROPA_DISPARO_SWITCH_B),
-                ("tpag_var", "ranura", eventos.TROPA_DISPARO_VARIABLE),
-                ("tpag_valor", "valor", eventos.TROPA_DISPARO_VARIABLE)):
+                ("tpag_sw_b", "switch_b", events.TROOP_TRIGGER_SWITCH_B),
+                ("tpag_var", "ranura", events.TROOP_TRIGGER_VARIABLE),
+                ("tpag_valor", "valor", events.TROOP_TRIGGER_VARIABLE)):
             usa = any(d.flags & bit for d, _ofs in entradas)
             words_asm(nombre, [getattr(d, campo) & 0xFFFF
                                for d, _ofs in entradas] if usa else [])
         handle.write('.segment "RODATA"\n')
-        handle.write(bloque("tropa_codigo", bytes(pt.cuerpos) or b"\x00")
+        handle.write(bloque("tropa_codigo", bytes(pt.bodies) or b"\x00")
                      + "\n")
-        handle.write(bloque("mensajes_tropa", pt.mensajes.bytes())
+        handle.write(bloque("mensajes_tropa", pt.messages.bytes())
                      + "\n")
         # And the random encounters, which also talk about troops by their
         # RM2k number. They go here outside bank 0 —they are read with
@@ -6719,15 +6719,15 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                P.BA_BARRA_COL * 2,
                P.BA_HP_MAX_NUM * 2, 1 * 2,
                pos(P.BA_PAG_MSG_FILA0, 0), P.BA_PAG_MSG_COL * 2,
-               P.BA_PAG_MSG_ANCHO, eventos.TROPA_PAGINAS_MAX,
-               eventos.TROPA_DISPARO_SWITCH_A, eventos.TROPA_DISPARO_SWITCH_B,
-               eventos.TROPA_DISPARO_VARIABLE, eventos.TROPA_DISPARO_TURNO,
-               eventos.TROPA_DISPARO_ENEMIGO, eventos.TROPA_DISPARO_ACTOR,
-               eventos.TROPA_CON_CABECERA, eventos.TROPA_CABECERA_BYTES))
+               P.BA_PAG_MSG_ANCHO, events.TROOP_PAGES_MAX,
+               events.TROOP_TRIGGER_SWITCH_A, events.TROOP_TRIGGER_SWITCH_B,
+               events.TROOP_TRIGGER_VARIABLE, events.TROOP_TRIGGER_TURN,
+               events.TROOP_TRIGGER_ENEMY, events.TROOP_TRIGGER_ACTOR,
+               events.TROOP_WITH_HEADER, events.TROOP_HEADER_BYTES))
         # The audio: the battle song, the victory one and the five sound
-        # effects, with the index they got from `Temas`. $FF and $FFFF mean
+        # effects, with the index they got from `Songs`. $FF and $FFFF mean
         # "the LDB has it turned off", which is the case of `battle_se` in
-        # this game. Who sounds at which moment is in `eventos.AUDIO_BATALLA`,
+        # this game. Who sounds at which moment is in `events.BATTLE_AUDIO`,
         # taken from easyrpg-player; only the numbers travel here.
         audio = audio_batalla or {}
         # The battle's audio package goes after the maps' ones, so its index
@@ -6848,16 +6848,16 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # How many frames a character stays still after a step and after a
         # turn, per route frequency: RM2k's stop counter, in two tables of
         # nine to index with the frequency as is. They come from
-        # `eventos.espera_tras_paso` and `espera_tras_giro`. 0 and 1 aren't
+        # `events.wait_after_step` and `wait_after_turn`. 0 and 1 aren't
         # compiled; they carry zero so that the table has no holes.
         handle.write("ruta_tras_paso:\n    .byte %s\n" % ",".join(
-            "%d" % (eventos.espera_tras_paso(f)
-                    if f >= eventos.RUTA_FRECUENCIA_MIN else 0)
-            for f in range(eventos.RUTA_FRECUENCIA + 1)))
+            "%d" % (events.wait_after_step(f)
+                    if f >= events.ROUTE_FREQUENCY_MIN else 0)
+            for f in range(events.ROUTE_FREQUENCY + 1)))
         handle.write("ruta_tras_giro:\n    .byte %s\n\n" % ",".join(
-            "%d" % (eventos.espera_tras_giro(f)
-                    if f >= eventos.RUTA_FRECUENCIA_MIN else 0)
-            for f in range(eventos.RUTA_FRECUENCIA + 1)))
+            "%d" % (events.wait_after_turn(f)
+                    if f >= events.ROUTE_FREQUENCY_MIN else 0)
+            for f in range(events.ROUTE_FREQUENCY + 1)))
         handle.write(tabla_de_mapas(mapas, etiquetas))
         handle.write("\n\n")
         # After the map one, which already left the segment in RODATA.
@@ -6982,9 +6982,9 @@ def sort_key(layer, y):
 
 # How much each opcode takes, to walk the bytecode without running it. The
 # variable-length ones go with None and are measured separately.
-# The bytecode walk lives in eventos.py, with the length table: there was a
+# The bytecode walk lives in events.py, with the length table: there was a
 # copy here and the one there went stale without anyone seeing it.
-recorrer_codigo = eventos.recorrer_codigo
+recorrer_codigo = events.walk_code
 
 
 def orden_de_mapas(args):
@@ -7020,7 +7020,7 @@ def eventos_movibles(game_map, indice_de_mapa, asociaciones=()):
     graphic put in the cartridge, and that is decided before building the
     bank. **The order has to be the same as the real compilation's**, because
     the bytecode carries the index: what guarantees it is that both passes
-    compile the same pages, with the same text block. Without `Graficos` here
+    compile the same pages, with the same text block. Without `Graphics` here
     a route with command 34 wouldn't compile in this pass and would in the
     other, and the two lists would drift apart.
 
@@ -7029,10 +7029,10 @@ def eventos_movibles(game_map, indice_de_mapa, asociaciones=()):
     block— but it isn't a repeated **rule**: the decision of what compiles is
     made by the same function both times.
     """
-    graficos = eventos.Graficos(asociaciones)
-    paginas = eventos.paginas_del_mapa(
+    graficos = events.Graphics(asociaciones)
+    paginas = events.map_pages(
         game_map, indice_de_mapa,
-        eventos.Mensajes(), graficos=graficos)
+        events.Messages(), graphics=graficos)
     npcs = rm2k.collect_npcs(game_map)
     visibles = {npc["evento"] for npc in npcs}
     # And the ones that walk on their own with some page's own route, which
@@ -7043,7 +7043,7 @@ def eventos_movibles(game_map, indice_de_mapa, asociaciones=()):
     # twelve poses their VRAM slot would carry a single one and there would be
     # nothing to animate them with: the still ones share a slot by (CharSet,
     # index, pose) and don't have one of their own.
-    con_ruta = (eventos.blancos_de_ruta(paginas) | propios) & visibles
+    con_ruta = (events.route_targets(paginas) | propios) & visibles
     animados = {npc["evento"] for npc in npcs
                 if npc.get("anima")} & visibles - con_ruta
     # And the cap: a still event that animates **costs a whole VRAM slot**
@@ -7060,20 +7060,20 @@ def eventos_movibles(game_map, indice_de_mapa, asociaciones=()):
         animados = set()
     # And the ones that turn toward the hero when it talks to them: the events
     # with some action or touch page that compiled and turns —see TURN in
-    # eventos.py—, with the graphics of **all** their pages that turn. The
+    # events.py—, with the graphics of **all** their pages that turn. The
     # twelve poses of each go to the cartridge, which is where the ROM takes
     # the one facing the hero from; the refresh compares the pages' graphics
     # to know whether the turn survives a page change.
     giran = {}
     for p in paginas:
         if (p["codigo"] and p.get("gira")
-                and p["trigger"] in (eventos.TRIGGER_ACCION,
-                                     eventos.TRIGGER_TOCA_HEROE)):
+                and p["trigger"] in (events.TRIGGER_ACTION,
+                                     events.TRIGGER_TOUCH_HERO)):
             giran[p["evento"]] = set()
     for p in paginas:
         if p["evento"] in giran and p.get("gira") and p["grafico"]:
             giran[p["evento"]].add(tuple(p["grafico"][:2]))
-    return con_ruta | animados, list(graficos.pares), animados, giran
+    return con_ruta | animados, list(graficos.pairs), animados, giran
 
 
 def graficos_de_prueba(argumento):
@@ -7097,8 +7097,8 @@ def firma_de_la_partida(pares, ranuras_exp, actores_n):
     changes.
     """
     forma = {
-        "variables": sorted(eventos.VARIABLE_SLOT.items(), key=lambda x: x[1]),
-        "items": eventos.ITEMS_N,
+        "variables": sorted(events.VARIABLE_SLOT.items(), key=lambda x: x[1]),
+        "items": events.ITEMS_N,
         "switches": SWITCH_BYTES,
         "actores": actores_n,
         "habilidades": [[a, h, r] for (a, h), r in pares],
@@ -7111,7 +7111,7 @@ def variables_n():
     """How many variable slots the ROM carries: at least one —a zero length
     would close the save table— and up to 256, which is what fits between
     `FAR_VARIABLES` and `FAR_ITEMS`."""
-    n = max(1, len(eventos.VARIABLE_SLOT))
+    n = max(1, len(events.VARIABLE_SLOT))
     if n > 256:
         sys.exit("%d variables don't fit in far RAM: FAR_ITEMS is "
                  "512 bytes from FAR_VARIABLES" % n)
@@ -7129,7 +7129,7 @@ def tabla_de_senos():
            '.segment "RODATA"',
            ".bloque 256",
            "seno_sacudida:"]
-    valores = eventos.SENO_SACUDIDA
+    valores = events.SHAKE_SINE
     for i in range(0, 256, 16):
         out.append("    .byte " + ",".join("$%02X" % (v & 0xFF)
                                             for v in valores[i:i + 16]))
@@ -7150,7 +7150,7 @@ def ev_pos_bytes(game_map):
 
     The order is the table index, which is what the bytecode carries. **It
     isn't the RM2k id**: 39 maps have gaps in the numbering, and translating
-    is exactly what `eventos.Eventos` does.
+    is exactly what `events.MapEvents` does.
     """
     if len(game_map.events) > EV_MAX:
         raise SystemExit("the map has %d events and the ROM's RAM holds %d"
@@ -7420,7 +7420,7 @@ def main():
     # see `timer_oam`.
     args.timer_en = set(orden) if not args.sin_timer else {
         caso.mapa for caso in args.casos
-        if any(cmd.code == eventos.TIMER_OPERATION for cmd in caso.comandos)}
+        if any(cmd.code == events.TIMER_OPERATION for cmd in caso.comandos)}
 
     renderer = Renderer(args.game_dir)
 
@@ -7444,7 +7444,7 @@ def main():
     todos = orden_de_mapas(args)
     # **The indices go before anything that compiles a page**, and
     # `lideres_posibles` compiles pages. They were after, and the price was
-    # concrete: without `indexar_variables`, no `ControlVars` compiles, so
+    # concrete: without `index_variables`, no `ControlVars` compiles, so
     # `RaceController1` of map 49 —which starts with a `PlayBGM` and goes on
     # with two `ControlVars`— didn't compile **in that pass** and did in the
     # real one. The actors it adds to the party were lost: `CarRED` didn't go
@@ -7453,31 +7453,31 @@ def main():
     # already noted for the page counts, in another place.
     #
     # The variables of the whole game, with their slot.
-    extra = eventos.variables_de_comandos(de_archivo)
+    extra = events.command_variables(de_archivo)
     if len(args.casos) > 1:
-        # The one that picks the case: see `eventos.VARIABLE_DE_CASO`. With a
+        # The one that picks the case: see `events.CASE_VARIABLE`. With a
         # single one it isn't needed, and that way that cartridge comes out
         # the same as before `--caso`.
-        extra.add(eventos.VARIABLE_DE_CASO)
-    eventos.indexar_variables(args.game_dir, extra)
+        extra.add(events.CASE_VARIABLE)
+    events.index_variables(args.game_dir, extra)
     # And the battle animations, which `ShowBattleAnimation` compiles with its
     # timeline inside: see OP_ANIMATION.
-    eventos.indexar_animaciones(args.game_dir)
+    events.index_animations(args.game_dir)
     # And the common events, which `CallEvent` compiles in place.
-    eventos.indexar_comunes(args.game_dir)
-    eventos.indexar_audio_de_batalla(args.game_dir)
+    events.index_common_events(args.game_dir)
+    events.index_battle_audio(args.game_dir)
     # And the inn terms, which `ShowInn` builds its greeting with.
-    eventos.indexar_terminos(args.game_dir)
+    events.index_terms(args.game_dir)
     # And the equipment and skills of each actor of the LDB: it is what the
     # two actor branches with two operands answer. **Before
     # `lideres_posibles`**, which compiles pages: see its comment.
-    eventos.indexar_actores(args.game_dir)
+    events.index_actors(args.game_dir)
     # And the (actor, skill) pairs of the whole game, with those of the test
     # pages: it is the operand of `ChangeSkills` and of the branch that asks
     # whether it knows one, so it goes before compiling anything, same as the
     # variables.
-    eventos.indexar_habilidades(
-        args.game_dir, eventos.pares_de_habilidad_de_comandos(de_archivo))
+    events.index_skills(
+        args.game_dir, events.command_skill_pairs(de_archivo))
     args.lideres = lideres_posibles(renderer, todos, grupo)
     # And those of the party each test page continues with, behind: the test
     # can start with it in any map of the cartridge.
@@ -7498,21 +7498,21 @@ def main():
     # the other.
     args.mapas_por_personaje = mapas_por_personaje(renderer, todos,
                                                    args.game_dir)
-    # The `ShowPicture` picture, one per ROM: see `eventos.Imagenes`. The first
+    # The `ShowPicture` picture, one per ROM: see `events.Pictures`. The first
     # map of the table that shows it keeps it, which is the order `convertir`
     # walks them in.
-    args.imagenes = eventos.Imagenes(args.game_dir)
+    args.imagenes = events.Pictures(args.game_dir)
     args.imagenes.mapa = None
     # And the slots `ChangeSpriteAssociation` reserves in the graphics table
     # of **all** maps, for the same reason as the picture: the graphic it gives
     # an actor crosses the teleport, so its index has to mean the same in both
-    # maps. See `eventos.asociaciones_de`.
+    # maps. See `events.sprite_associations`.
     #
     # The test pages' ones come in through the same door: if they went by
     # `--grafico-de-prueba` they would have an index only in the maps where a
     # case runs, and what the command does —crossing the teleport— couldn't
     # be tested.
-    args.asociaciones = eventos.asociaciones_de(
+    args.asociaciones = events.sprite_associations(
         [lcf.Map(os.path.join(args.game_dir, "Map%04d.lmu" % m))
          for m in todos], de_archivo)
 
@@ -7535,9 +7535,9 @@ def main():
         chipset = renderer.database.chipsets[mapa["game_map"].chipset_id]
         mapa["sustituciones"] = Sustituciones(
             mapa, build_passability(chipset), chipset)
-        # It hangs from the map so it reaches `eventos.Eventos`, which is what
+        # It hangs from the map so it reaches `events.MapEvents`, which is what
         # the compiler already passes around.
-        mapa["game_map"].sustituciones = mapa["sustituciones"]
+        mapa["game_map"].substitutions = mapa["sustituciones"]
         triples = triples_de_sustitucion(mapa["game_map"], args.casos,
                                          mapa["id"])
         for faltante in mapa["sustituciones"].cerrar(triples):
@@ -7564,23 +7564,23 @@ def main():
     # The text block belongs to the whole ROM and is built while the pages
     # are compiled: each `ShowMessage` leaves its text here and takes an
     # offset, which is what goes in the bytecode.
-    mensajes = eventos.Mensajes(paso=eventos.MENSAJES_PASO)
+    mensajes = events.Messages(step=events.MESSAGES_STEP)
     # The songs the pages' PlayBGMs ask for, numbered in the order they
-    # appear. The ROM carries a single one —see `Temas`— and picks it further
+    # appear. The ROM carries a single one —see `Songs`— and picks it further
     # down, when all are compiled and it is known which ones are asked for.
-    temas = eventos.Temas()
+    temas = events.Songs()
     # And the troops the EnemyEncounters ask for. It doesn't number anything
     # —the bytecode carries the RM2k id— so it only says which enemy tables
-    # have to be emitted. See `eventos.Tropas`.
-    tropas = eventos.Tropas()
+    # have to be emitted. See `events.Troops`.
+    tropas = events.Troops()
     # The test pages' texts go **first**, before all the maps, and that isn't
     # aesthetic: that way their offset doesn't depend on how many texts the
     # map the ROM boots in brings nor on the order they are compiled in —the
     # first is 0—. They are stored here and the page's compilation, further
     # down, finds them stored, because the block deduplicates by content.
-    for cmd, extra_lineas in eventos.agrupar(de_archivo):
-        if cmd.code == eventos.SHOW_MESSAGE:
-            mensajes.agregar([cmd.string] + extra_lineas)
+    for cmd, extra_lineas in events.group_boxes(de_archivo):
+        if cmd.code == events.SHOW_MESSAGE:
+            mensajes.add([cmd.string] + extra_lineas)
     # The test pages already compiled, per case: see the second round.
     de_prueba = {}
 
@@ -7588,19 +7588,19 @@ def main():
         # The automatic events: their pages with the conditions, and the code
         # of the ones that can be run, all together in a single block.
         # One graphics registry per map: command 34 carries the index and the
-        # map's `ruta_grafico` table resolves it. See `eventos.Graficos`.
-        graficos = eventos.Graficos(args.asociaciones)
-        temas.mapa = mapas.index(mapa)      # for its audio package
-        paginas = eventos.paginas_del_mapa(mapa["game_map"], indices.get,
-                                           mensajes, temas, graficos,
-                                           args.imagenes, tropas)
-        temas.mapa = None
+        # map's `ruta_grafico` table resolves it. See `events.Graphics`.
+        graficos = events.Graphics(args.asociaciones)
+        temas.current_map = mapas.index(mapa)      # for its audio package
+        paginas = events.map_pages(mapa["game_map"], indices.get,
+                                   mensajes, temas, graficos,
+                                   args.imagenes, tropas)
+        temas.current_map = None
         # One interpreter per event with some parallel page that compiles. The
         # ROM carries them in a fixed-cap list and **doesn't warn** if it goes
         # over —the extra ones wouldn't run and nothing would say so—, so the
         # stop goes here.
         con_paralela = {p["evento"] for p in paginas
-                        if p["trigger"] == eventos.TRIGGER_PARALELO
+                        if p["trigger"] == events.TRIGGER_PARALLEL
                         and p["codigo"]}
         if len(con_paralela) > PARALELO_MAX:
             sys.exit("map %d has %d events with a parallel page and %d "
@@ -7611,7 +7611,7 @@ def main():
                   % (mapa["id"], len(con_paralela)))
         if args.grafico_de_prueba and mapa["id"] in mapas_de_prueba(args):
             for charset, index in graficos_de_prueba(args.grafico_de_prueba):
-                graficos.indice(charset, index)
+                graficos.index(charset, index)
         # **Only the map that took its tiles can show the picture.** The sprite
         # bank belongs to each map, so from another one the six objects would
         # read whatever was in those tiles. It doesn't happen today —the "1
@@ -7619,26 +7619,26 @@ def main():
         # stops instead of choosing: the day two maps show the same one, it
         # has to be decided whether its tiles go in both, and the converter
         # can't make that decision alone.
-        if (args.imagenes.nombre is not None
+        if (args.imagenes.name is not None
                 and mapa["id"] != args.imagenes.mapa):
             for pagina in paginas:
                 codigo = pagina["codigo"]
-                if codigo and any(codigo[i] == eventos.OP_PICTURE
-                                  for i, _c in eventos.recorrer_codigo(codigo)):
+                if codigo and any(codigo[i] == events.OP_PICTURE
+                                  for i, _c in events.walk_code(codigo)):
                     sys.exit(
                         "map %d: shows the picture %r and its tiles ended up in "
                         "map %d; the ROM carries it in a single one. See "
                         "`cartel_de_imagen`."
-                        % (mapa["id"], args.imagenes.nombre,
+                        % (mapa["id"], args.imagenes.name,
                            args.imagenes.mapa))
-        if graficos.pares != mapa["graficos_de_ruta"]:
+        if graficos.pairs != mapa["graficos_de_ruta"]:
             # The two passes compiled different things. It can't happen —both
-            # use `paginas_del_mapa` with the same text block— and if it did,
+            # use `map_pages` with the same text block— and if it did,
             # the bytecode would end up pointing at the wrong table without
             # anything saying so.
             sys.exit("map %d: the two passes numbered the route graphics "
                      "differently: %s against %s"
-                     % (mapa["id"], graficos.pares, mapa["graficos_de_ruta"]))
+                     % (mapa["id"], graficos.pairs, mapa["graficos_de_ruta"]))
         # The pages of the cases that run in this map, compiled with its
         # context even though they will live in the boot map: see
         # `mapa_del_caso`. They are put there in the second round, when all
@@ -7661,13 +7661,13 @@ def main():
         # opening and led nowhere because it ends up jumping to map 3.
         afuera_de, cuantas = set(), 0
         for pagina in paginas:
-            if pagina["codigo"] or pagina["trigger"] not in eventos.TRIGGERS \
+            if pagina["codigo"] or pagina["trigger"] not in events.TRIGGERS \
                     or pagina.get("prueba"):
                 continue        # the test page doesn't come from the game
             evento = mapa["game_map"].events[pagina["evento"]]
             faltan = {cmd.parameters[0]
                       for cmd in evento.pages[pagina["pagina"]].commands
-                      if cmd.code == eventos.TELEPORT and cmd.parameters
+                      if cmd.code == events.TELEPORT and cmd.parameters
                       and indices.get(cmd.parameters[0]) is None}
             if faltan:
                 afuera_de |= faltan
@@ -7685,21 +7685,21 @@ def main():
         deudas = set()
         for evento in mapa["game_map"].events:
             for page in evento.pages:
-                if page.trigger != eventos.TRIGGER_AUTOMATICO:
+                if page.trigger != events.TRIGGER_AUTOSTART:
                     continue
                 # With the same text block as above: if it were None here, a
                 # page with a text box wouldn't compile and its debt —a
                 # PlayBGM, say— would go unwarned even though the ROM does run
                 # it. Adding a text that is already there again doesn't grow
                 # the block: the key is the content.
-                if eventos.compilar_pagina(page, indices.get,
-                                           mensajes) is None:
+                if events.compile_page(page, indices.get,
+                                       mensajes) is None:
                     continue
-                deudas |= set(eventos.deudas_de_la_pagina(page,
-                                                          args.imagenes))
+                deudas |= set(events.page_debts(page,
+                                                args.imagenes))
         for codigo_cmd in sorted(deudas):
             print("  map %d: WARNING, a page uses %s and the ROM doesn't do it; "
-                  "see ACEPTADOS_SIN_HACER in tools/port/eventos.py"
+                  "see ACCEPTED_UNDONE in tools/port/events.py"
                   % (mapa["id"], event_codes.EVENT_CODES.get(codigo_cmd,
                                                              codigo_cmd)))
 
@@ -7719,28 +7719,28 @@ def main():
             # highest, and this page has to run before the game's. Until
             # 2026-09-17 it went at the first free index, at the end.
             #
-            # **One page per case**, and page k asks for `VARIABLE_DE_CASO` to
+            # **One page per case**, and page k asks for `CASE_VARIABLE` to
             # be at least k: see its comment. Page 0 asks for nothing, so a
             # single-case cartridge is the usual one.
             paginas = paginas + [{
                 "evento": 0, "pagina": k, "prueba": True,
-                "trigger": eventos.TRIGGER_AUTOMATICO,
+                "trigger": events.TRIGGER_AUTOSTART,
                 "switch_a": 0, "switch_b": 0, "actor": 0,
-                "variable": ((eventos.ranura_de_variable(
-                    eventos.VARIABLE_DE_CASO),
-                    eventos.COMPARAR_AL_MENOS, k) if k else None),
+                "variable": ((events.variable_slot(
+                    events.CASE_VARIABLE),
+                    events.COMPARE_AT_LEAST, k) if k else None),
                 "item": 0, "capa": 0,
-                "frecuencia": eventos.RUTA_FRECUENCIA, "velocidad": 4,
+                "frecuencia": events.ROUTE_FREQUENCY, "velocidad": 4,
                 "codigo": de_prueba[k]} for k in range(len(args.casos))] + [{
                 # And the one that turns it off: it asks for
-                # `SWITCH_DE_PRUEBA` and has no code, so as soon as it wins,
+                # `TEST_SWITCH` and has no code, so as soon as it wins,
                 # the invented event no longer has an automatic page to run and
                 # the first one doesn't repeat.
                 "evento": 0, "pagina": len(args.casos), "prueba": True,
-                "trigger": eventos.TRIGGER_AUTOMATICO,
-                "switch_a": eventos.SWITCH_DE_PRUEBA, "switch_b": 0,
+                "trigger": events.TRIGGER_AUTOSTART,
+                "switch_a": events.TEST_SWITCH, "switch_b": 0,
                 "actor": 0, "variable": None, "item": 0, "capa": 0,
-                "frecuencia": eventos.RUTA_FRECUENCIA, "velocidad": 4,
+                "frecuencia": events.ROUTE_FREQUENCY, "velocidad": 4,
                 "codigo": b""}]
         codigo = bytearray()
         for pagina in paginas:
@@ -7811,10 +7811,10 @@ def main():
                        if caso.mapa == mapa["id"]]
         blancos = {c[i + 1] for codigo in corren_aca
                    for i, c in recorrer_codigo(codigo)
-                   if c[i] == eventos.OP_ROUTE and c[i + 1]}
+                   if c[i] == events.OP_ROUTE and c[i + 1]}
         # And that nobody flashes someone who shares a graphic with another.
         # On the console the flash is done on the character's palette, so two
-        # that share a graphic would flash together. `eventos.py` already
+        # that share a graphic would flash together. `events.py` already
         # rejects the case of two events; here the one it can't see there is
         # covered, which is the hero's: which graphic it has depends on the
         # party, and the converter knows that and the compiler doesn't.
@@ -7831,7 +7831,7 @@ def main():
             graficos[(a.charset, a.charset_index)] += 1
         for codigo in corren_aca:
             for i, c in recorrer_codigo(codigo):
-                if c[i] != eventos.OP_FLASH or c[i + 1] != 0:
+                if c[i] != events.OP_FLASH or c[i + 1] != 0:
                     continue
                 for actor in args.lideres:
                     a = renderer.database.actors[actor]
@@ -7866,7 +7866,7 @@ def main():
           % (len(ventana_datos["tiles"]) // 32,
              len(ventana_datos["fondo"]) // 32,
              sum(1 for w in ventana_datos["cram"] if w),
-             len(ventana_datos["fuente"]), len(mensajes.textos),
+             len(ventana_datos["fuente"]), len(mensajes.texts),
              len(ventana_datos["mensajes"])))
     # The slots screen goes in every ROM: the save point opens it from inside
     # the game, and "Resume the Story" from the title when there is one. It is
@@ -7999,7 +7999,7 @@ def main():
     # last, which is the same `temas_de_la_rom` does with the map's song.
     # Asking for it first always gave it index 0, and with that no case of the
     # suite exercised that `escena_tropa_fondo` and `tropa_id` are really
-    # indexed. That is why `pagina_de_caso` compiles without `Tropas`.
+    # indexed. That is why `pagina_de_caso` compiles without `Troops`.
     encuentros = encuentros_de_la_rom(mapas, renderer.tree,
                                       args.encuentros_de_prueba, tropas)
     cuantas = sum(z["tropa_n"] for z in encuentros["zonas"])
@@ -8008,14 +8008,14 @@ def main():
               % (len(encuentros["registros"]), len(encuentros["zonas"]),
                  cuantas))
     for cmd in de_archivo:
-        if cmd.code == eventos.ENEMY_ENCOUNTER:
-            tropas.pedir(eventos.tropa_de_encuentro(cmd),
-                         eventos.fondo_de_encuentro(cmd))
+        if cmd.code == events.ENEMY_ENCOUNTER:
+            tropas.request(events.encounter_troop(cmd),
+                           events.encounter_backdrop(cmd))
     # The battle's audio, with the indices it already got from `temas` while
-    # the pages compiled. It is asked for again only to read them: `Temas`
+    # the pages compiled. It is asked for again only to read them: `Songs`
     # numbers once and returns the same, and what was noted goes to the
     # battle's package and not to any map's.
-    audio_batalla = eventos.audio_de_batalla(temas) if tropas.ids else None
+    audio_batalla = events.battle_audio(temas) if tropas.ids else None
     # The backdrops and the battlers the cartridge's battles ask for, each one
     # once: the ROM composes them when each battle starts. See
     # tools/port/scene.py, which is where the reason and the budget are.
@@ -8052,21 +8052,21 @@ def main():
                  d["colores"]))
     # The event pages of the troops some battle of the cartridge asks for,
     # with **all** the troops already asked for: the maps', the random
-    # encounters' and the test pages'. See `eventos.PaginasDeTropa`, which is
+    # encounters' and the test pages'. See `events.TroopPages`, which is
     # also why their messages go to a separate block. With `temas`, because a
     # page's `PlaySound` sounds in the battle's package, which isn't built
     # yet: it is built further down.
-    paginas_tropa = eventos.PaginasDeTropa()
+    paginas_tropa = events.TroopPages()
     for numero in tropas.ids:
         if numero in renderer.database.troops:
-            paginas_tropa.compilar(numero, renderer.database.troops[numero],
-                                   temas)
+            paginas_tropa.compile(numero, renderer.database.troops[numero],
+                                  temas)
     print("  troop pages: %d of %d in %d distinct body(ies), %d B of "
           "code and %d B in %d message(s)"
-          % (paginas_tropa.paginas - paginas_tropa.afuera,
-             paginas_tropa.paginas, len(paginas_tropa.donde),
-             len(paginas_tropa.cuerpos), len(paginas_tropa.mensajes.datos),
-             len(paginas_tropa.mensajes.textos)))
+          % (paginas_tropa.pages - paginas_tropa.left_out,
+             paginas_tropa.pages, len(paginas_tropa.where),
+             len(paginas_tropa.bodies), len(paginas_tropa.messages.data),
+             len(paginas_tropa.messages.texts)))
     # The items the enemies of those troops drop can also reach the
     # inventory: see `items_del_botin`.
     ranuras_datos["items"] = sorted(
@@ -8102,8 +8102,8 @@ def main():
     if len(args.casos) > 1:
         # Where the harness writes the case number: see `--caso`.
         with open(args.output, "a") as handle:
-            handle.write("\nCASO_RANURA = %d\n" % eventos.ranura_de_variable(
-                eventos.VARIABLE_DE_CASO))
+            handle.write("\nCASO_RANURA = %d\n" % events.variable_slot(
+                events.CASE_VARIABLE))
     print("%d map(s) -> %s, boots at %d (map %d)"
           % (len(mapas), args.output, args.inicial, mapas[args.inicial]["id"]))
     # What the allocator decided, as images: to look at which colors were lost
@@ -8137,8 +8137,8 @@ def main():
     cuantos, pesan = parches_mod.write_animations(
         destino_parches,
         [dict(animacion_mod.informe(numero, animaciones[numero]),
-              nombre=eventos.ANIMACIONES[numero].get("nombre", ""),
-              hoja=eventos.ANIMACIONES[numero].get("imagen", ""),
+              nombre=events.ANIMATIONS[numero].get("nombre", ""),
+              hoja=events.ANIMATIONS[numero].get("imagen", ""),
               lado=animacion_mod.CAJA)
          for numero in sorted(animaciones)])
     print("patches of %d animation(s) -> %s (%d B)"
@@ -8188,10 +8188,10 @@ def main():
     # cost the music, because `snes_music.copies` counts the cartridge's
     # sound effects. It happens with the route ones of
     # `se_route_left_out`.
-    empaquetados = {n for pide in temas.por_mapa.values()
+    empaquetados = {n for pide in temas.per_map.values()
                     for n in pide["sonidos"]}
     pedidos_se = []
-    for nombre, _v, _t, _b in temas.sonidos:
+    for nombre, _v, _t, _b in temas.sounds:
         if nombre not in pedidos_se and nombre in empaquetados:
             pedidos_se.append(nombre)
     # Each map's audio package, in the order of the map table: the songs its
@@ -8203,7 +8203,7 @@ def main():
     # budget comes from them: see `snes_music.Bank`.
     paquetes, apartes = [], []
     for i, _mapa in enumerate(mapas):
-        pide = temas.por_mapa.get(i, {"temas": [], "sonidos": []})
+        pide = temas.per_map.get(i, {"temas": [], "sonidos": []})
         suyos = list(pide["temas"])
         if i == args.inicial and arranque != 0xFF and arranque not in suyos:
             suyos.insert(0, arranque)
@@ -8218,9 +8218,9 @@ def main():
             suyos.insert(0, tema_de_mapa[i])
         # And the exit ones, separate and after the sound effects: the ones
         # the map starts only to leave have no reason to go in with its sound
-        # effects. See `Temas.de_salida`. Not the map's own nor the boot one:
+        # effects. See `Songs.exit_songs`. Not the map's own nor the boot one:
         # those play on entering.
-        salida = [t for t in temas.de_salida(i)
+        salida = [t for t in temas.exit_songs(i)
                   if t in suyos and t != tema_de_mapa[i]
                   and not (i == args.inicial and t == arranque)]
         suyos = [t for t in suyos if t not in salida]
@@ -8236,8 +8236,8 @@ def main():
     # And the battle's package, after the maps: the battle song and its sound
     # effects, which the ROM uploads when opening the battle and unloads when
     # closing it. It goes separately and not inside the map's package because
-    # the battle song alone fills the ARAM; see `eventos.PAQUETE_BATALLA`.
-    pide = temas.por_mapa.get(eventos.PAQUETE_BATALLA)
+    # the battle song alone fills the ARAM; see `events.BATTLE_PACKAGE`.
+    pide = temas.per_map.get(events.BATTLE_PACKAGE)
     if pide:
         paquetes.append((list(pide["temas"]), list(pide["sonidos"]), []))
         apartes.append([])
@@ -8322,7 +8322,7 @@ def main():
     print("  boot: the boot map's package is %d B, %.0f of "
           "the %d frames of BOOT_CUADROS" % (del_paquete, cuadros, tope))
     snes_music.emit(musica, hechos, driver, muestras, arranque, tema_titulo,
-                    snes_music.sound_table(temas.sonidos, banco),
+                    snes_music.sound_table(temas.sounds, banco),
                     [p + (aparte,) for p, aparte in zip(paquetes, apartes)],
                     tema_de_mapa, directorio, efecto_lugar,
                     game_over=(tema_game_over, paquete_game_over))
@@ -8333,7 +8333,7 @@ def main():
     escribir_msu(args.msu or os.path.join(os.path.dirname(os.path.abspath(
         args.output)), "datos.msu"), musica, escenas["calidad"],
         por_nombre[:len(paquetes)], paquetes, hechos, muestras, banco,
-        temas.sonidos, args.game_dir)
+        temas.sounds, args.game_dir)
     for i, (suyos, suyas, salida) in enumerate(paquetes[:len(mapas)]):
         if suyos or suyas or salida or apartes[i]:
             print("  audio package of map %d: %d song(s), %d sound effect(s)%s%s"
@@ -8573,7 +8573,7 @@ def temas_heredados(temas, tema_de_mapa, inicial, titulo, nombres_de_paquete,
     has to fit next to whatever can be already playing.
 
     The teleports of the compiled pages are followed —`destinos` of
-    `Temas.por_mapa`— without looking at conditions, with a rule that is what
+    `Songs.per_map`— without looking at conditions, with a rule that is what
     makes the count realistic and not "any song to any map" (4 is the game's
     router): **a map with `PlayBGM` leaves with one of its own**, because the
     page that jumps is almost always the one that started the song before. A
@@ -8584,14 +8584,14 @@ def temas_heredados(temas, tema_de_mapa, inicial, titulo, nombres_de_paquete,
     script.
 
     `del_paquete` are the songs each map's package uploads on entering
-    —without the exit ones, see `Temas.de_salida`—: a song that arrives
+    —without the exit ones, see `Songs.exit_songs`—: a song that arrives
     playing and isn't there has to fit next to it. Without it, the ones its
     pages start. What leaves a map is still any of the ones they start, exit
     ones included: they are precisely the ones that leave with it.
 
     **Except in a map whose `PlayBGM`s are all exit ones**: there the rule
     above doesn't hold, because each one goes stuck to its jump and the map's
-    other jumps carry none. Each jump carries what `Temas.salto` says: the
+    other jumps carry none. Each jump carries what `Songs.jump` says: the
     exit song that precedes it, or whatever came into the map. It is the
     game's 41 and 40: `Kfmus5` comes into 41 from the page of 37 and goes on
     through 40, 42, 43, 44 and 45, while `golden_axe-turtlevillage2` and
@@ -8610,13 +8610,13 @@ def temas_heredados(temas, tema_de_mapa, inicial, titulo, nombres_de_paquete,
     file.
     """
     n = len(tema_de_mapa)
-    pide = [temas.por_mapa.get(i, {}) for i in range(n)]
+    pide = [temas.per_map.get(i, {}) for i in range(n)]
     apartes = apartes or [()] * n
     indice = {nombre: i for i, nombre in enumerate(nombres_de_paquete[:n])}
     no_se_dan = {(indice[str(a)], indice[str(b)])
                  for a, b in no_se_dan
                  if str(a) in indice and str(b) in indice}
-    saltos = getattr(temas, "saltos", {})
+    saltos = getattr(temas, "jumps", {})
     entra = [set() for _ in range(n)]
     if titulo != 0xFF:
         entra[inicial].add(titulo)
@@ -8628,7 +8628,7 @@ def temas_heredados(temas, tema_de_mapa, inicial, titulo, nombres_de_paquete,
         # Not the boot one: it is the router, which jumps to mid-game
         # according to variables, and without looking at conditions whatever
         # comes in there would go out anywhere.
-        if suyos and suyos <= set(temas.de_salida(i)) and i != inicial:
+        if suyos and suyos <= set(temas.exit_songs(i)) and i != inicial:
             # A destination no noted jump names —that of a page that didn't
             # compile whole— carries what came in.
             con = saltos.get(i, {}).get(destino, {None})
@@ -8667,7 +8667,7 @@ def temas_de_la_rom(map_id, temas, game_dir, titulo=None, map_ids=(),
     by `snes_music.build_all` per package: at the rate the worst package of
     each one gives, but all of them.
 
-    The indices are those of `Temas` and aren't touched: the bytecode already
+    The indices are those of `Songs` and aren't touched: the bytecode already
     carries them emitted. That is why the map's is added **at the end**,
     which is the only thing that doesn't renumber the others. Going last
     costs nothing: since the per-package budget no song loses samples for its
@@ -8680,28 +8680,28 @@ def temas_de_la_rom(map_id, temas, game_dir, titulo=None, map_ids=(),
     """
     propio = snes_music.song_of_map(map_id, game_dir)
     if propio:
-        temas.indice(propio)            # adds it at the end if it wasn't there
+        temas.index(propio)            # adds it at the end if it wasn't there
     # The title screen's goes after, for the same reason: adding at the end is
     # the only thing that doesn't renumber the ones the bytecode already
     # names. It comes from the LDB —`title_music`, which in ABL is
     # Fantasia_Of_The_Wind— and not from the command line: it is a piece of
     # the game's data, not a choice of ours.
     if titulo:
-        temas.indice(titulo)
+        temas.index(titulo)
     # And the Game Over screen's, for the same reason: `gameover_music`,
     # which in ABL is `GameOver3` and comes from the RTP. See
     # `PAQUETE_GAME_OVER`.
     if game_over:
-        temas.indice(game_over)
+        temas.index(game_over)
     de_cada_mapa = []
     for nombre in snes_music.songs_of_maps(map_ids, game_dir):
-        indice = temas.indice(nombre) if nombre else 0xFF
+        indice = temas.index(nombre) if nombre else 0xFF
         # $FF is "doesn't change": a song with that number couldn't be
         # started. A `PlayBGM`, which carries the index in one byte, wouldn't
         # start it either.
         assert indice <= 0xFF, "song %r doesn't fit in a byte" % nombre
         de_cada_mapa.append(indice)
-    nombres = list(temas.nombres)
+    nombres = list(temas.names)
     return (nombres, (nombres.index(propio) if propio else 0xFF),
             (nombres.index(titulo) if titulo else 0xFF), de_cada_mapa,
             (nombres.index(game_over) if game_over else 0xFF))
@@ -8775,7 +8775,7 @@ def lideres_posibles(renderer, map_ids, grupo):
 
     Who goes first is known by simulating: the `ChangePartyMembers` of the
     pages that compile are applied, in the order they appear, with the same
-    rules as `Estado.cambiar_grupo`. It is an approximation —which page runs
+    rules as `PartyState.change_party`. It is an approximation —which page runs
     and when depends on switches that aren't known here— and that is why the
     order matters: if a ROM ever draws the hero with no graphic, start by
     looking here.
@@ -8797,11 +8797,11 @@ def lideres_posibles(renderer, map_ids, grupo):
     """
     actores = list(grupo[:1])
     for cambios in _cambios_de_grupo(map_ids):
-        estado = eventos.Estado(grupo)
+        estado = events.PartyState(grupo)
         for tanda in cambios:
             for quien, operacion in tanda:
-                estado.cambiar_grupo(quien, operacion)
-            lider = estado.lider()
+                estado.change_party(quien, operacion)
+            lider = estado.leader()
             if lider is not None and lider not in actores:
                 actores.append(lider)
     return actores
@@ -8814,7 +8814,7 @@ def _cambios_de_grupo(map_ids):
     **It is computed once per conversion**, because it doesn't depend on the
     party: `lideres_posibles` runs again for each test case that touches the
     party, and each run loaded and compiled all the maps again. The
-    compilation only reads the global indices of `eventos`, which are filled
+    compilation only reads the global indices of `events`, which are filled
     before the first call and don't change afterwards.
     """
     clave = (_juego(), tuple(map_ids))
@@ -8832,7 +8832,7 @@ def _cambios_del_mapa(map_id, map_ids):
     cambios = []
     game_map = lcf.Map(os.path.join(_juego(),
                                     "Map%04d.lmu" % map_id))
-    del_mapa = eventos.Eventos(game_map)
+    del_mapa = events.MapEvents(game_map)
     for evento in game_map.events:
         for page in evento.pages:
             # With the map's context, which is the same the real filter uses.
@@ -8842,7 +8842,7 @@ def _cambios_del_mapa(map_id, map_ids):
             # right after sending event 8 walking, so the hero was left
             # without a pose table and wasn't drawn.
             # **With the same context as the real compilation**, and not only
-            # with the text block. `Temas`, `Graficos` and `Imagenes` were
+            # with the text block. `Songs`, `Graphics` and `Pictures` were
             # missing, and without them a page that starts with a `PlayBGM`
             # doesn't compile **here** and does compile there: the actors it
             # adds to the party are lost. It is exactly what happened to the
@@ -8850,11 +8850,11 @@ def _cambios_del_mapa(map_id, map_ids):
             # and then adds `CarRED`—, and the symptom was that the hero
             # wasn't drawn: `hero_poses` at zero because the actor wasn't in
             # the map's table.
-            if eventos.compilar_pagina(
+            if events.compile_page(
                     page, indices.get,
-                    eventos.Mensajes(),
-                    del_mapa.para(evento.id), eventos.Temas(),
-                    eventos.Graficos(), eventos.Imagenes(
+                    events.Messages(),
+                    del_mapa.for_event(evento.id), events.Songs(),
+                    events.Graphics(), events.Pictures(
                         _juego())) is None:
                 continue
             # **In batches of consecutive commands**, and the leader is looked
@@ -8868,11 +8868,11 @@ def _cambios_del_mapa(map_id, map_ids):
             # do with it.
             tanda = None
             for cmd in page.commands:
-                if cmd.code != eventos.CHANGE_PARTY_MEMBERS:
+                if cmd.code != events.CHANGE_PARTY_MEMBERS:
                     tanda = None
                     continue
                 p = cmd.parameters
-                if len(p) < 3 or p[1] != eventos.GRUPO_ID_FIJO:
+                if len(p) < 3 or p[1] != events.PARTY_FIXED_ID:
                     tanda = None
                     continue
                 if tanda is None:
@@ -8911,10 +8911,10 @@ def items_posibles(map_ids, actores=(), db=None, extra=()):
     def barrer(comandos):
         for cmd in comandos:
             p = cmd.parameters
-            if (cmd.code == eventos.CHANGE_ITEMS and len(p) >= 5
+            if (cmd.code == events.CHANGE_ITEMS and len(p) >= 5
                     and p[0] == 0 and p[1] == 0):
                 items.add(p[2])
-            elif cmd.code == eventos.OPEN_SHOP:
+            elif cmd.code == events.OPEN_SHOP:
                 items.update(p[4:])
 
     for map_id in map_ids:
@@ -8924,7 +8924,7 @@ def items_posibles(map_ids, actores=(), db=None, extra=()):
             for page in evento.pages:
                 barrer(page.commands)
     barrer(extra)
-    return sorted(i for i in items if 0 < i < eventos.ITEMS_N)
+    return sorted(i for i in items if 0 < i < events.ITEMS_N)
 
 
 def items_del_botin(db, tropas):
@@ -8934,7 +8934,7 @@ def items_del_botin(db, tropas):
     in any page. All the members, like `enemigos_rom`."""
     return {db.enemies[e].drop_id for n in tropas if n in db.troops
             for e in db.troops[n].members
-            if 0 < db.enemies[e].drop_id < eventos.ITEMS_N}
+            if 0 < db.enemies[e].drop_id < events.ITEMS_N}
 
 
 def miembros_posibles(map_ids, grupo, extra=()):
@@ -8954,10 +8954,10 @@ def miembros_posibles(map_ids, grupo, extra=()):
 
     def barrer(comandos):
         for cmd in comandos:
-            if cmd.code != eventos.CHANGE_PARTY_MEMBERS:
+            if cmd.code != events.CHANGE_PARTY_MEMBERS:
                 continue
             p = cmd.parameters
-            if len(p) < 3 or p[1] != eventos.GRUPO_ID_FIJO:
+            if len(p) < 3 or p[1] != events.PARTY_FIXED_ID:
                 continue
             if p[0] == 0 and p[2] not in actores:
                 actores.append(p[2])
@@ -8977,15 +8977,15 @@ def grupo_de_la_pagina(caso, grupo):
     touches it: the case's `ChangePartyMembers` applied to the cartridge's
     party, with the same rules as the interpreter. None if it doesn't touch
     it."""
-    estado = eventos.Estado(grupo)
+    estado = events.PartyState(grupo)
     toca = False
     for cmd in caso.comandos:
         p = cmd.parameters
-        if (cmd.code == eventos.CHANGE_PARTY_MEMBERS and len(p) >= 3
-                and p[1] == eventos.GRUPO_ID_FIJO):
-            estado.cambiar_grupo(p[0], p[2])
+        if (cmd.code == events.CHANGE_PARTY_MEMBERS and len(p) >= 3
+                and p[1] == events.PARTY_FIXED_ID):
+            estado.change_party(p[0], p[2])
             toca = True
-    return estado.grupo if toca else None
+    return estado.party if toca else None
 
 
 def separar_del_heroe(renderer, game_map, args, comandos=()):
@@ -9001,8 +9001,8 @@ def separar_del_heroe(renderer, game_map, args, comandos=()):
     hero. `comandos` are those of the test pages.
     """
     destella = any(
-        cmd.code == eventos.FLASH_SPRITE and cmd.parameters
-        and cmd.parameters[0] == eventos.RUTA_HEROE
+        cmd.code == events.FLASH_SPRITE and cmd.parameters
+        and cmd.parameters[0] == events.ROUTE_HERO
         for cmd in list(comandos) + [cmd for ev in game_map.events
                                      for page in ev.pages
                                      for cmd in page.commands])
@@ -9101,7 +9101,7 @@ def mapa_del_caso(caso, orden, inicial):
     even though the variable already held what its page asks for.
     """
     primero = caso.comandos[0] if caso.comandos else None
-    if primero is None or primero.code != eventos.TELEPORT:
+    if primero is None or primero.code != events.TELEPORT:
         return orden[inicial]
     destino = primero.parameters[0]
     if destino not in orden:
@@ -9126,16 +9126,16 @@ def pagina_de_caso(caso, mapa, temas, graficos, mensajes, indices, imagenes):
     where it runs —see `mapa_del_caso`—; the only thing the converter puts in
     front of it is the `ControlSwitches` that turns it off, which is a
     convention of the harness and not of the case —see
-    `eventos.SWITCH_DE_PRUEBA`—. The troops aren't noted here but at the end,
+    `events.TEST_SWITCH`—. The troops aren't noted here but at the end,
     in `main`: the test's goes last.
     """
     apagar = lcf.EventCommand(
-        eventos.CONTROL_SWITCHES, 0, "",
-        [eventos.SWITCH_UNICO, eventos.SWITCH_DE_PRUEBA,
-         eventos.SWITCH_DE_PRUEBA, eventos.SWITCH_ON])
-    codigo = eventos.compilar_pagina(
-        eventos._Comandos([apagar] + list(caso.comandos)), indices.get,
-        mensajes, eventos.Eventos(mapa["game_map"]).para(0), temas,
+        events.CONTROL_SWITCHES, 0, "",
+        [events.SWITCH_SINGLE, events.TEST_SWITCH,
+         events.TEST_SWITCH, events.SWITCH_ON])
+    codigo = events.compile_page(
+        events._Commands([apagar] + list(caso.comandos)), indices.get,
+        mensajes, events.MapEvents(mapa["game_map"]).for_event(0), temas,
         graficos, imagenes)
     if codigo is None:
         sys.exit("%s: the test page doesn't compile"
@@ -9209,17 +9209,17 @@ def convertir(renderer, map_id, args):
                 graficos_de_ruta.append((charset, index))
     if comandos_de_casos(args, map_id):
         # And the ones the test pages send walking, which don't come from
-        # `paginas_del_mapa`: they have to be added by hand or the NPC would
+        # `map_pages`: they have to be added by hand or the NPC would
         # walk with a single pose. It goes **before** the palette split: since
         # the palette is chosen over the poses that are seen, knowing who walks
         # is part of choosing the colors and not only of splitting the VRAM.
-        # The event goes by its RM2k id and the same `Eventos` the compilation
+        # The event goes by its RM2k id and the same `MapEvents` the compilation
         # uses translates it.
-        del_mapa = eventos.Eventos(game_map)
+        del_mapa = events.MapEvents(game_map)
         for cmd in comandos_de_casos(args, map_id):
-            if cmd.code == eventos.MOVE_EVENT and cmd.parameters \
-                    and cmd.parameters[0] != eventos.RUTA_HEROE:
-                blanco = del_mapa.blanco(cmd.parameters[0])
+            if cmd.code == events.MOVE_EVENT and cmd.parameters \
+                    and cmd.parameters[0] != events.ROUTE_HERO:
+                blanco = del_mapa.route_target(cmd.parameters[0])
                 if blanco:
                     movibles = movibles | {blanco - 1}
     # And with that, which poses each graphic can show: it is what decides
@@ -9417,7 +9417,7 @@ def convertir(renderer, map_id, args):
     # moves to this one while its page lasts. It is a single one because only
     # the event the hero triggered turns, and there is one at a time. The
     # ones that walk or animate don't need it: they have their own. See TURN
-    # in eventos.py.
+    # in events.py.
     quietos_que_giran = [npc for npc in npcs
                          if npc["evento"] in giran
                          and npc["evento"] not in movibles
@@ -9475,12 +9475,12 @@ def convertir(renderer, map_id, args):
             print("  map %d: WARNING, the raindrops don't fit in the "
                   "sprite palettes and it doesn't rain here" % map_id)
     # The `ShowPicture` picture, if its own belongs to this map. The slot is
-    # chosen by `Imagenes.elegir` **in the order of the map table**, which is
+    # chosen by `Pictures.choose` **in the order of the map table**, which is
     # this same loop.
     imagen_base, imagen_pal = 0, 0
     registro = getattr(args, "imagenes", None)
     if registro is not None:
-        info = registro.elegir([game_map])
+        info = registro.choose([game_map])
         if info is not None and registro.mapa is None:
             registro.mapa = map_id
         if info is not None and registro.mapa == map_id:
@@ -9490,9 +9490,9 @@ def convertir(renderer, map_id, args):
                 sys.exit("map %d: the picture %r doesn't fit: the map already uses "
                          "the %d sprite palettes and the fade needs a whole "
                          "one. See `cartel_de_imagen`."
-                         % (map_id, registro.nombre, OBJ_PALETTES))
+                         % (map_id, registro.name, OBJ_PALETTES))
             print("  map %d: the picture %r, %d objects in %d tiles from "
-                  "%d, palette %d" % (map_id, registro.nombre,
+                  "%d, palette %d" % (map_id, registro.name,
                                       info["objetos"],
                                       picture.reserved_tiles(info),
                                       imagen_base, imagen_pal))

@@ -334,7 +334,7 @@ def game_backdrops(named, tree, terrains, game_dir):
     """The game's backdrops, in the order that gives them their number: see
     "Which backdrops there are".
 
-    `named` are the ones the commands name (`eventos.fondos_nombrados`),
+    `named` are the ones the commands name (`events.named_backdrops`),
     `tree` the map tree and `terrains` each terrain's backdrop
     (`Database.terrain_backdrops`). They are sorted by name ignoring case,
     which is how RM2k looks them up, and a name that is neither in the game

@@ -31,7 +31,7 @@ Three things are **not** RM2k's, and all three are on purpose:
 
 * **The randomness.** RPG_RT draws from a generator we cannot reproduce.
   Here the randomness is the same sixteen-bit xorshift the port already uses
-  for `ControlVars` —`eventos.azar_siguiente`—, but with **its own seed**:
+  for `ControlVars` —`events.next_random`—, but with **its own seed**:
   `BATALLA_SEMILLA`. Having its own and not sharing `FAR_AZAR` is what keeps
   a battle from advancing the map's randomness: a random `ControlVars` gives
   the same with or without a battle in between.
@@ -55,7 +55,7 @@ Three things are **not** RM2k's, and all three are on purpose:
   an approximation.
 """
 
-from port import eventos
+from port import events
 from port import rules
 from port.constants import ENEMIES_MAX
 
@@ -442,7 +442,7 @@ class Azar:
         self.estado = semilla
 
     def hasta(self, n):
-        self.estado = eventos.azar_siguiente(self.estado)
+        self.estado = events.next_random(self.estado)
         return self.estado % (n + 1) if n >= 0 else 0
 
     def porciento(self, tanto):
@@ -694,12 +694,12 @@ class PaginaDeTropa:
             elif cmd.code == 23310:
                 # The `else` of a branch that was taken: it is skipped.
                 saltear_desde = cmd.indent
-            elif cmd.code == eventos.CONTROL_SWITCHES:
+            elif cmd.code == events.CONTROL_SWITCHES:
                 if p[0] != 0 or p[1] != p[2] or p[3] not in (0, 1):
                     raise NotImplementedError("a ControlSwitches the model "
                                               "does not know")
                 batalla.estado[p[1]] = p[3] == 0
-            elif cmd.code == eventos.SHOW_HIDDEN_MONSTER:
+            elif cmd.code == events.SHOW_HIDDEN_MONSTER:
                 if p[0] < len(batalla.enemigos):
                     batalla.enemigos[p[0]].oculto = False
 

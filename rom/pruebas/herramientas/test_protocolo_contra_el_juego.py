@@ -11,7 +11,7 @@ import os
 import pytest
 
 from port import event_opcodes
-from port import eventos
+from port import events
 from rpgmaker import lcf
 from rpgmaker.resources import GAME_DIR
 from assembly import cartridges
@@ -76,28 +76,28 @@ def test_la_entrada_k_de_la_tabla_salta_al_manejador_del_opcode_k(nombre):
 def paginas_del_juego():
     """Todas las páginas disparables de los 328 mapas, ya compiladas."""
     # **Todos** los índices que llena el conversor antes de compilar, y no sólo
-    # el de variables: son globales de `eventos`, así que con uno solo las
+    # el de variables: son globales de `events`, así que con uno solo las
     # páginas que compilan dependían de qué otra prueba había corrido antes en
     # el mismo proceso, y con xdist eso es el reparto.
-    for indexar in (eventos.indexar_variables, eventos.indexar_animaciones,
-                    eventos.indexar_comunes, eventos.indexar_audio_de_batalla,
-                    eventos.indexar_terminos, eventos.indexar_actores,
-                    eventos.indexar_habilidades):
+    for indexar in (events.index_variables, events.index_animations,
+                    events.index_common_events, events.index_battle_audio,
+                    events.index_terms, events.index_actors,
+                    events.index_skills):
         indexar(GAME_DIR)
     for nombre in sorted(os.listdir(GAME_DIR)):
         if not (nombre.startswith("Map") and nombre.endswith(".lmu")):
             continue
         game_map = lcf.Map(os.path.join(GAME_DIR, nombre))
-        del_mapa = eventos.Eventos(game_map)
+        del_mapa = events.MapEvents(game_map)
         for ev in game_map.events:
             for numero, page in enumerate(ev.pages):
-                if page.trigger not in eventos.TRIGGERS \
-                        or not eventos.puede_dispararse(page):
+                if page.trigger not in events.TRIGGERS \
+                        or not events.can_trigger(page):
                     continue
-                codigo = eventos.compilar_pagina(
-                    page, lambda m: 0, eventos.Mensajes(),
-                    del_mapa.para(ev.id), eventos.Temas(), eventos.Graficos(),
-                    eventos.Imagenes(GAME_DIR))
+                codigo = events.compile_page(
+                    page, lambda m: 0, events.Messages(),
+                    del_mapa.for_event(ev.id), events.Songs(), events.Graphics(),
+                    events.Pictures(GAME_DIR))
                 if codigo:
                     yield nombre, ev.id, numero, codigo
 
@@ -110,7 +110,7 @@ def test_los_largos_de_opcode_cuadran_en_todo_el_juego():
         cuantas += 1
         i = 0
         while i < len(codigo):
-            i += eventos.opcode_size(codigo, i)
+            i += events.opcode_size(codigo, i)
         assert i == len(codigo), (
             "%s evento %d página %d: el recorrido por OPCODE_SIZE termina "
             "en %d y la página mide %d" % (nombre, evento, numero, i,

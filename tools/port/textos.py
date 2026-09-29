@@ -29,7 +29,7 @@ The rules, and where each one comes from:
   of the same character none fails to repeat the name, and the author
   himself splits a sentence that way —`MANTA` / "...up to the Emitter Room
   -" and `MANTA` / "- where the Link is projected!"—.
-* **The escape tail** —`\|` and `\^`, see `eventos.cola_de_escapes`— goes at
+* **The escape tail** —`\|` and `\^`, see `events.escape_tail`— goes at
   the end of the last box, which is where the player saw it.
 
 What is lost in a reflowed box are the extra spaces between words: the words
@@ -38,7 +38,7 @@ are joined again with one. In one that fits, nothing is lost.
 
 import re
 
-from port import eventos
+from port import events
 from port import constants
 
 # An end of sentence, with the quotes or parenthesis that close it: cutting
@@ -115,7 +115,7 @@ def es_hablante(linea):
 
 def entra(lineas, columnas=constants.COLUMNS, renglones=constants.LINES):
     """Whether the box is fully visible, not counting its escape tail."""
-    sin_cola, _pausas, _autocierre = eventos.cola_de_escapes(lineas)
+    sin_cola, _pausas, _autocierre = events.escape_tail(lineas)
     return (len(sin_cola) <= renglones
             and all(ancho(t) <= columnas for t in sin_cola))
 
@@ -123,7 +123,7 @@ def entra(lineas, columnas=constants.COLUMNS, renglones=constants.LINES):
 def _cola(lineas):
     """The box's escape tail, exactly as written, and the lines without
     it."""
-    sin_cola, _pausas, _autocierre = eventos.cola_de_escapes(lineas)
+    sin_cola, _pausas, _autocierre = events.escape_tail(lineas)
     sin_cola = list(sin_cola)
     if not sin_cola:
         return sin_cola, ""
@@ -296,7 +296,7 @@ def reajustar(lineas, columnas=constants.COLUMNS,
     """The boxes that replace this one, each a list of lines.
 
     Returns `[lineas]` untouched if the box already fits, or if it carries an
-    escape that does not compile —`eventos.NoSePuede`—: that page does not
+    escape that does not compile —`events.CannotCompile`—: that page does not
     reach the ROM, so there is nothing to arrange.
 
     It is memoized by text: the math is pure, and a map is loaded several
@@ -318,7 +318,7 @@ def _reajustar(lineas, columnas, renglones):
         if entra(lineas, columnas, renglones):
             return [lineas]
         sin_cola, cola = _cola(lineas)
-    except eventos.NoSePuede:
+    except events.CannotCompile:
         return [lineas]
 
     cabeza = []
@@ -350,12 +350,12 @@ def reajustar_comandos(comandos, columnas=constants.COLUMNS,
     i = 0
     while i < len(comandos):
         comando = comandos[i]
-        if comando["code"] != eventos.SHOW_MESSAGE:
+        if comando["code"] != events.SHOW_MESSAGE:
             salida.append(comando)
             i += 1
             continue
         j = i + 1
-        while j < len(comandos) and comandos[j]["code"] == eventos.SHOW_MESSAGE_2:
+        while j < len(comandos) and comandos[j]["code"] == events.SHOW_MESSAGE_2:
             j += 1
         originales = comandos[i:j]
         lineas = [c["string"] for c in originales]
@@ -366,8 +366,8 @@ def reajustar_comandos(comandos, columnas=constants.COLUMNS,
             for cuadro in cuadros:
                 for k, texto in enumerate(cuadro):
                     salida.append({
-                        "code": (eventos.SHOW_MESSAGE if k == 0
-                                 else eventos.SHOW_MESSAGE_2),
+                        "code": (events.SHOW_MESSAGE if k == 0
+                                 else events.SHOW_MESSAGE_2),
                         "indent": comando["indent"],
                         "parameters": [],
                         "string": texto,

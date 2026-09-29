@@ -14,7 +14,7 @@ acá contra el número exacto de `port.batalla`, como el resto de las peleas:
 Y lo que no es de la pelea pero es lo que le da sus habilidades a AG7: el
 evento común 37, `UpdateAG7 Skills`, paralelo con el switch 150, que la ROM
 corre al prenderse el switch y al cerrar el menú —ver
-`eventos.COMUNES_DEL_EQUIPO`—.
+`events.PARTY_COMMON_EVENTS`—.
 
 Las dos páginas de prueba arman el grupo de la rama sin compañero —Talan y
 AG7— en el piso 1 de la planta, y prenden el 150 con el `ControlSwitches` de

@@ -25,7 +25,7 @@ compilador.
 """
 
 from port import batalla as modelo
-from port import eventos
+from port import events
 from port import rules
 
 from batalla import (Pelea, mensaje_en_pantalla, modelo_de, paginas,
@@ -76,9 +76,9 @@ def lo_que_dicen(pagina):
     """Los mensajes de una página, cada uno con sus renglones."""
     mensajes = []
     for cmd in pagina.commands:
-        if cmd.code == eventos.SHOW_MESSAGE:
+        if cmd.code == events.SHOW_MESSAGE:
             mensajes.append([cmd.string])
-        elif cmd.code == eventos.SHOW_MESSAGE_2 and mensajes:
+        elif cmd.code == events.SHOW_MESSAGE_2 and mensajes:
             mensajes[-1].append(cmd.string)
     return mensajes
 
@@ -124,10 +124,10 @@ def test_las_tropas_son_las_que_se_espera():
             for p in llaman] == [(0, 60), (0, 30)]
     # Y la del despegue, en el turno 1: `turn_b` es la base.
     despegue = [p for p in base.troops[TROPA_AGENTES].pages
-                if any(c.code == eventos.SHAKE_SCREEN for c in p.commands)]
+                if any(c.code == events.SHAKE_SCREEN for c in p.commands)]
     assert len(despegue) == 1
-    d = eventos.disparo_de_tropa(despegue[0])
-    assert (d.turno_base, d.turno_mult) == (1, 0)
+    d = events.troop_trigger(despegue[0])
+    assert (d.turn_base, d.turn_mult) == (1, 0)
 
 
 def test_la_condicion_de_turno_es_la_de_easyrpg():
@@ -140,8 +140,8 @@ def test_la_condicion_de_turno_es_la_de_easyrpg():
     assert [t for t in range(10) if modelo._turnos(t, 0, 2)] == [0, 2, 4, 6, 8]
     base = datos.base()
     primera = base.troops[TROPA_LAZER].pages[0]
-    d = eventos.disparo_de_tropa(primera)
-    assert (d.turno_base, d.turno_mult, d.actor) == (1, 3, TALAN)
+    d = events.troop_trigger(primera)
+    assert (d.turn_base, d.turn_mult, d.actor) == (1, 3, TALAN)
 
 
 # --- el Rat King --------------------------------------------------------------
@@ -253,7 +253,7 @@ def test_un_oculto_no_es_blanco_ni_cuenta_para_ganar(partida):
 
 def la_pagina_del_despegue(base):
     return [p for p in base.troops[TROPA_AGENTES].pages
-            if any(c.code == eventos.SHAKE_SCREEN for c in p.commands)][0]
+            if any(c.code == events.SHAKE_SCREEN for c in p.commands)][0]
 
 
 def test_el_despegue_sale_en_el_turno_uno_con_su_sacudida(partida):
@@ -323,10 +323,10 @@ def test_el_despegue_pide_su_efecto(partida):
     with open(os.path.join(os.path.dirname(una.sfc), "efectos.json")) as f:
         sonidos = [tuple(x) for x in json.load(f)["sonidos"]]
     p = [c for c in la_pagina_del_despegue(base).commands
-         if c.code == eventos.PLAY_SOUND][0]
+         if c.code == events.PLAY_SOUND][0]
     trueno = sonidos.index((p.string, p.parameters[0], p.parameters[1],
                             p.parameters[2]))
-    assert bytes([eventos.OP_SOUND, trueno & 0xFF, trueno >> 8]) in codigos
+    assert bytes([events.OP_SOUND, trueno & 0xFF, trueno >> 8]) in codigos
 
 
 # --- el turno con múltiplo --------------------------------------------------

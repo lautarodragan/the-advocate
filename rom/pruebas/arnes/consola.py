@@ -795,7 +795,7 @@ class Partida:
         """Lo contrario de `prender`, con el mismo `refresco` detrás.
 
         Hace falta para volver a correr la página de prueba después de cargar
-        una partida: la página prende `SWITCH_DE_PRUEBA` al arrancar, la
+        una partida: la página prende `TEST_SWITCH` al arrancar, la
         partida se guarda con ese switch puesto, y al cargarla gana la página
         que lo mira y la apaga. Es un artefacto de la página inventada y no del
         juego, así que se deshace desde afuera.
@@ -1083,7 +1083,7 @@ def en_la_wram(direccion):
 def indice_del_tema(una, nombre):
     """El índice del tema en el cartucho, leído de la cabecera del
     `musicdata.inc` que se armó con él: `; Temas: a, b, …`, en el orden de
-    `Temas`."""
+    `Songs`."""
     inc = os.path.join(os.path.dirname(una.sfc), "musicdata.inc")
     with open(inc) as archivo:
         for linea in archivo:

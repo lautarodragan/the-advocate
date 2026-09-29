@@ -11,7 +11,7 @@ import json
 import os
 
 from common import project                               # noqa: E402
-from port import eventos                                # noqa: E402
+from port import events                                # noqa: E402
 from port import textos                                 # noqa: E402
 from port import constants                             # noqa: E402
 
@@ -32,9 +32,9 @@ def _cuadros_del_juego():
                 i = 0
                 while i < len(comandos):
                     j = i + 1
-                    if comandos[i]["code"] == eventos.SHOW_MESSAGE:
+                    if comandos[i]["code"] == events.SHOW_MESSAGE:
                         while (j < len(comandos) and comandos[j]["code"]
-                               == eventos.SHOW_MESSAGE_2):
+                               == events.SHOW_MESSAGE_2):
                             j += 1
                         yield [c["string"] for c in comandos[i:j]]
                     i = j
@@ -50,8 +50,8 @@ def test_todo_el_juego_entra_sin_perder_palabras():
             continue
         vistos += 1
         hablante = len(cuadro) > 1 and textos.es_hablante(cuadro[0])
-        sin_cola = [eventos.cola_de_escapes(c)[0] for c in salida]
-        original = eventos.cola_de_escapes(cuadro)[0]
+        sin_cola = [events.escape_tail(c)[0] for c in salida]
+        original = events.escape_tail(cuadro)[0]
         assert _palabras(sin_cola, hablante) == _palabras([original], hablante)
         for c in salida:
             assert textos.entra(c), c
@@ -70,7 +70,7 @@ def test_el_conversor_rearma_los_textos_al_leer_los_mapas():
     mapa = lcf.Map(os.path.join(project.data(), "maps", "Map0002.json"))
     largos = [c.string for evento in mapa.events
               for pagina in evento.pages for c in pagina.commands
-              if c.code in (eventos.SHOW_MESSAGE, eventos.SHOW_MESSAGE_2)
-              and len(eventos.cola_de_escapes([c.string])[0][0])
+              if c.code in (events.SHOW_MESSAGE, events.SHOW_MESSAGE_2)
+              and len(events.escape_tail([c.string])[0][0])
               > constants.COLUMNS]
     assert not largos, largos

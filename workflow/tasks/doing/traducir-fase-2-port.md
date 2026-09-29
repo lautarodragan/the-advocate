@@ -36,6 +36,20 @@ ejecutables `rm2k-snes-*` andando desde `/tmp`.
    `tools/justfile`, y la namedtuple `Clase` → `Kind` con sus campos. Sus
    flags ya estaban en inglés. Los TOML que escribe no cambian: `just
    parches` los reescribe iguales.
+6. `eventos` → `events`, el compilador de páginas: sus ~440 nombres, sus
+   clases (`Temas` → `Songs`, `Eventos` → `MapEvents`, `Mensajes` →
+   `Messages`, `Imagenes` → `Pictures`, `Tropas` → `Troops`,
+   `PaginasDeTropa` → `TroopPages`, `Encuentros` → `Encounters`, `Estado` →
+   `PartyState`, `NoSePuede` → `CannotCompile`, la namedtuple `Disparo` →
+   `Trigger`) con sus atributos y métodos, renombrados sólo sobre las bases
+   que los usan de verdad (`temas.`, `mensajes.`, `del_mapa.`…), porque
+   `.mapa`, `.nombre` o `.paso` también son de otros objetos.
+
+   Las constantes que tienen el mismo nombre que un símbolo del
+   ensamblador (`ORO_MAX`, `TECLA_DECISION`, `TRIGGER_AUTOMATICO`…) también
+   se tradujeron: el `.inc` las escribe con un string, que no cambia. El
+   runtime las sigue llamando en castellano hasta la última área, que puede
+   usar los nombres de Python como guía.
 
 Lo que el conversor escribe al `.inc` cita rutas de `tools/port/` en sus
 comentarios (`; See tools/port/imagen.py.`): esas quedan con el nombre

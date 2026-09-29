@@ -271,13 +271,13 @@ def test_escena_el_droide_muerto_peleando_desaparece(partida):
 
 
 def _fondos_del_juego():
-    from port import eventos
+    from port import events
     from rpgmaker import lcf
     import os
     tree = lcf.TreeMap(os.path.join(GAME_DIR, "RPG_RT.lmt"))
     juego = scene.game_backdrops(
-        eventos.fondos_nombrados(GAME_DIR), tree,
-        eventos.base_de_datos(GAME_DIR).terrain_backdrops, GAME_DIR)
+        events.named_backdrops(GAME_DIR), tree,
+        events.database(GAME_DIR).terrain_backdrops, GAME_DIR)
     return tree, juego
 
 
@@ -291,7 +291,7 @@ def test_escena_una_pelea_del_lugar_usa_el_fondo_del_mapa(partida):
 
     Si alguna página del juego que el cartucho compila antes pidiera la tropa
     113 con un fondo con nombre, la tropa se quedaría con ése —gana el
-    primero, ver `Tropas.pedir`— y esta prueba lo diría."""
+    primero, ver `Troops.request`— y esta prueba lo diría."""
     tree, juego = _fondos_del_juego()
     del_mapa = tree.map_background(60)
     assert del_mapa, "el 60 ya no nombra fondo, y la prueba necesita uno"
@@ -320,10 +320,10 @@ def test_escena_una_pelea_cuyo_fondo_no_esta_usa_el_reemplazo(partida):
     el conversor no puede saber cuál será. `ESC_FONDO` es el del terreno —el
     que se leería del `.msu`— y sin MSU-1 se dibuja el de
     `scene.replacement()`, no negro. Ver "Qué fondos hay" en escena.py."""
-    from port import eventos
+    from port import events
     from rpgmaker import lcf, rm2k
     _tree, juego = _fondos_del_juego()
-    db = eventos.base_de_datos(GAME_DIR)
+    db = events.database(GAME_DIR)
     game_map = lcf.Map("%s/Map%04d.lmu" % (GAME_DIR, 7))
     terrenos = {rm2k.terrain_of(db.chipsets[game_map.chipset_id], t)
                 for t in game_map.lower_layer}

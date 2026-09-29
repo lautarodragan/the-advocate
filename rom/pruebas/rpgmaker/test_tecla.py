@@ -6,7 +6,7 @@ lo que un pixel no dice: **qué número quedó en la variable**, que es lo que l
 páginas del juego leen después con un `ConditionalBranch`, y que la variable
 quede en cero mientras se espera.
 
-El valor esperado sale de `eventos.tecla_de`, que es `CheckInput` escrito de
+El valor esperado sale de `events.key_value`, que es `CheckInput` escrito de
 este lado: si la ROM y esa tabla dejan de coincidir en el número de una tecla,
 esto se cae.
 
@@ -14,10 +14,10 @@ esto se cae.
 el cronómetro del caso `tecla-dir` muestra un número por ROM, así que cubrir las
 cuatro y B por pixeles serían cinco casos para medir lo mismo. Acá cuesta un
 toque cada uno. La que sigue afuera es la forma que **no espera**, y el porqué,
-con el número, está en `KEY_INPUT_PROC` en `eventos.py`.
+con el número, está en `KEY_INPUT_PROC` en `events.py`.
 """
 
-from port import eventos
+from port import events
 
 import datos
 
@@ -62,8 +62,8 @@ def test_al_apretar_guarda_el_numero_de_la_tecla_de_accion(partida):
     assert leer(una) == 0, "se adelantó: la variable ya tenía %d" % leer(una)
     una.tocar_ticks("a")
     una.correr(5)
-    esperado = eventos.tecla_de(eventos.TECLA_DECISION, {"a"})
-    assert esperado == eventos.TECLA_VALOR_DECISION == 5
+    esperado = events.key_value(events.KEY_DECISION, {"a"})
+    assert esperado == events.KEY_VALUE_DECISION == 5
     assert leer(una) == esperado, (
         "con A apretada la variable quedó en %d y el modelo dice %d"
         % (leer(una), esperado))
@@ -101,8 +101,8 @@ def test_la_cruceta_guarda_el_numero_de_cada_direccion(partida):
             "se adelantó con %s: la variable ya tenía %d" % (boton, leer(una)))
         una.tocar_ticks(boton)
         una.correr(5)
-        esperado = eventos.tecla_de(eventos.TECLA_DIRS, {direccion})
-        assert esperado == eventos.TECLA_VALOR_DIR[direccion]
+        esperado = events.key_value(events.KEY_DIRS, {direccion})
+        assert esperado == events.KEY_VALUE_DIR[direccion]
         assert leer(una) == esperado, (
             "con %s la variable quedó en %d y el modelo dice %d"
             % (boton, leer(una), esperado))
@@ -123,8 +123,8 @@ def test_cancelar_guarda_seis(partida):
     una = partida(caso="tecla-esperar-todo")
     una.correr(ESPERA + 10)
     una.sostener(1, "b")
-    esperado = eventos.tecla_de(eventos.TECLA_CANCELAR, {"b"})
-    assert esperado == eventos.TECLA_VALOR_CANCELAR == 6
+    esperado = events.key_value(events.KEY_CANCEL, {"b"})
+    assert esperado == events.KEY_VALUE_CANCEL == 6
     assert leer(una) == esperado, (
         "con B la variable quedó en %d y el modelo dice %d"
         % (leer(una), esperado))
@@ -137,7 +137,7 @@ def test_con_las_tres_pedidas_gana_cancelar(partida):
     una = partida(caso="tecla-esperar-todo")
     una.correr(ESPERA + 10)
     una.sostener(1, "b", "a", "up")
-    assert leer(una) == eventos.TECLA_VALOR_CANCELAR, (
+    assert leer(una) == events.KEY_VALUE_CANCEL, (
         "con B, A y arriba a la vez la variable quedó en %d y tendría que "
         "decir cancelar" % leer(una))
 

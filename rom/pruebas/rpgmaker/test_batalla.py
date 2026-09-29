@@ -4,7 +4,7 @@ la página.
 Es la mitad de la red que la tanda de pixeles no puede cubrir. Los casos
 de `test_batalla_golden.py` comparan **la pantalla** contra su
 golden y no pueden hacer más: la pelea bloquea adentro del intérprete y no
-cuesta ningún tick —ver `OP_BATTLE` en tools/port/eventos.py—. Lo que pasa adentro
+cuesta ningún tick —ver `OP_BATTLE` en tools/port/events.py—. Lo que pasa adentro
 se mira desde acá.
 
 **Lo que hace fuerte a este archivo** es que no se conforma con "bajó": el
@@ -569,7 +569,7 @@ def test_la_pelea_prende_el_tema_de_batalla_del_ldb(partida):
     muestras que su stream escribe en SRCN tienen que estar en la ARAM, o son
     notas contra el bloque de silencio. Por eso el tema se anota en el paquete
     de audio **del mapa que tiene la pelea**, que es lo que hace
-    `eventos.audio_de_batalla`.
+    `events.battle_audio`.
     """
     una = en_el_droide(partida)
     tema = una.simbolos["BA_TEMA"]
@@ -721,7 +721,7 @@ def test_el_golpe_suena_con_el_efecto_que_le_toca(partida):
     """Cuál de los cinco efectos del LDB sale en cada golpe.
 
     El reparto es el de easyrpg-player y está escrito en
-    `eventos.AUDIO_BATALLA`: errar es `GetFailureSe` —dodge_se—, pegarle a un
+    `events.BATTLE_AUDIO`: errar es `GetFailureSe` —dodge_se—, pegarle a un
     actor es actor_damaged_se, y a un enemigo enemy_damaged_se salvo que lo
     mate, que es el enemy_death_se de `ProcessBattleActionDeath`. Cuando el que
     pega es un enemigo, primero suena su enemy_attack_se y el del daño queda

@@ -461,7 +461,7 @@ class Actor:
         # the format says: it is the only game datum that changed when moving
         # to Ditto. Alex —actor 1, from the RTP, which this game does not
         # use— learns skill 1 at level 1, and before that arrived as skill 0
-        # and was dropped. It is one more pair in `eventos.HABILIDAD_RANURA`;
+        # and was dropped. It is one more pair in `events.SKILL_SLOT`;
         # other than that the `mapdata.inc` is identical.
         self.skills = [(field(l, "level"),
                         field(l, "skill_id"))
@@ -665,7 +665,7 @@ SECTIONS = ("actors", "skills", "items", "enemies", "troops", "terrains",
 LIST_SECTIONS = tuple(s for s in SECTIONS if s not in ("system", "terms"))
 
 # The sound effects `Game_System::GetSystemSE` hands out, in the order
-# `eventos.AUDIO_BATALLA_SE` walks.
+# `events.BATTLE_AUDIO_SE` walks.
 SYSTEM_SE = ("battle_se", "escape_se", "enemy_attack_se", "enemy_damaged_se",
              "actor_damaged_se", "dodge_se", "enemy_death_se", "item_se")
 
@@ -728,7 +728,7 @@ class Database:
                 raw["chipsets"][number] = data["chipset"]
         self.chipsets = {i: Chipset(f) for i, f in raw["chipsets"].items()}
         self.actors = {i: Actor(f) for i, f in raw["actors"].items()}
-        # The items, and the highest number: `ITEMS_N` in eventos.py is this
+        # The items, and the highest number: `ITEMS_N` in events.py is this
         # plus one, and test_items.py checks it.
         self.items = {i: Item(f) for i, f in raw["items"].items()}
         # The skills, which `lcf.Actor.skills` names by number.
@@ -750,7 +750,7 @@ class Database:
         # And when each one runs on its own: `(trigger, switch_flag,
         # switch_id)`, with the `trigger` of `rpg::CommonEvent` —3 automatic,
         # 4 parallel, 5 only through `CallEvent`—. See
-        # `eventos.COMUNES_DEL_EQUIPO`.
+        # `events.PARTY_COMMON_EVENTS`.
         self.common_event_triggers = {
             i: (field(f, "trigger"), field(f, "switch_flag"),
                 field(f, "switch_id"))

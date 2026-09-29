@@ -36,7 +36,7 @@ import shutil
 
 import pytest
 
-from port import scene, eventos, snes_format, msu_data, snes_convert
+from port import scene, events, snes_format, msu_data, snes_convert
 from rpgmaker.resources import GAME_DIR
 from rpgmaker import lcf, rm2k
 
@@ -202,9 +202,9 @@ def test_msu_de_otro_build_cae_al_cartucho(tmp_path, nucleo):
 
 
 def _fondos_del_juego():
-    db = eventos.base_de_datos(GAME_DIR)
+    db = events.database(GAME_DIR)
     tree = lcf.TreeMap(GAME_DIR + "/RPG_RT.lmt")
-    return scene.game_backdrops(eventos.fondos_nombrados(GAME_DIR), tree,
+    return scene.game_backdrops(events.named_backdrops(GAME_DIR), tree,
                                 db.terrain_backdrops, GAME_DIR)
 
 
@@ -212,7 +212,7 @@ def _fondo_del_terreno(mapa, x, y):
     """El nombre del fondo del terreno de una celda, desde el juego: el tile
     de la capa de abajo, su terreno en el ChipSet y el fondo del terreno. Es lo
     que `Spriteset_Battle` usa cuando el mapa no nombra fondo."""
-    db = eventos.base_de_datos(GAME_DIR)
+    db = events.database(GAME_DIR)
     game_map = lcf.Map("%s/Map%04d.lmu" % (GAME_DIR, mapa))
     terreno = rm2k.terrain_of(db.chipsets[game_map.chipset_id],
                               game_map.lower_layer[y * game_map.width + x])

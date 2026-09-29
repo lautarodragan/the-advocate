@@ -29,7 +29,7 @@ What it prints, and where each thing comes from:
   give zero.
 * **BSS and ZEROPAGE**: their `.cfg` areas minus what they take.
 * **Texts**: `MENSAJES_BYTES` against `MENSAJES_TOPE`, which the converter
-  emits next to the block; see `eventos.MENSAJES_PASO`.
+  emits next to the block; see `events.MESSAGES_STEP`.
 """
 
 import argparse

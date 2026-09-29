@@ -1,14 +1,14 @@
 """Las tablas de páginas, del lado de Python: lo que la ROM va a leer, así que
 conviene mirar acá que digan lo que tienen que decir.
 
-No corre ninguna ROM. Es la red para las decisiones de `paginas_del_mapa` que
+No corre ninguna ROM. Es la red para las decisiones de `map_pages` que
 no cambian un pixel por sí solas pero deciden qué página está activa.
 """
 
 import os
 import re
 
-from port import eventos
+from port import events
 from port import snes_convert
 from rpgmaker import lcf
 from rpgmaker import rm2k
@@ -19,8 +19,8 @@ def paginas_de(map_id, evento_id):
     game_map = lcf.Map(os.path.join(GAME_DIR, "Map%04d.lmu" % map_id))
     indices = {map_id: 0}
     numero = [n for n, e in enumerate(game_map.events) if e.id == evento_id][0]
-    return [p for p in eventos.paginas_del_mapa(game_map, indices.get,
-                                                eventos.Mensajes())
+    return [p for p in events.map_pages(game_map, indices.get,
+                                        events.Messages())
             if p["evento"] == numero]
 
 
@@ -47,16 +47,16 @@ def test_la_condicion_por_variable_va_en_la_pagina():
     comparación y el valor de la primera, nada en la segunda, y el ítem en la
     tercera. Que la ROM elija con eso lo cobran `cofre` y `cofre-llave` en
     `test_comandos_golden.py`."""
-    eventos.indexar_variables(GAME_DIR)
+    events.index_variables(GAME_DIR)
     paginas = paginas_de(133, 2)
     assert len(paginas) == 3
     primera, segunda, tercera = paginas
-    assert primera["variable"] == (eventos.ranura_de_variable(123),
-                                   eventos.CMP_MAYOR_IGUAL, 8)
+    assert primera["variable"] == (events.variable_slot(123),
+                                   events.CMP_GREATER_EQUAL, 8)
     assert segunda["variable"] is None and segunda["switch_a"] == 411
     assert tercera["item"] == 151 and tercera["variable"] is None \
         and tercera["switch_a"] == 0
-    assert eventos.SWITCH_IMPOSIBLE not in range(1, 1004), (
+    assert events.SWITCH_IMPOSSIBLE not in range(1, 1004), (
         "el juego consulta switches hasta el 1003")
 
 
@@ -64,7 +64,7 @@ def test_las_ranuras_son_las_del_juego_entero():
     """Las mismas ranuras en cualquier ROM: una partida guardada con la demo
     tiene que valer para una ROM con más mapas.
 
-    Eran 81 hasta el 2026-09-13: `variables_de` no miraba el `KeyInputProc`,
+    Eran 81 hasta el 2026-09-13: `variables_named` no miraba el `KeyInputProc`,
     que es el único comando de este juego que le escribe a una variable sin ser
     un `ControlVars`. Las dos que aparecieron son la 5 —el motor del minijuego
     de las piedras del mapa 11— y la 151, y a ninguna de las dos la nombra
@@ -74,11 +74,11 @@ def test_las_ranuras_son_las_del_juego_entero():
     Y desde el 2026-09-21 son 123: el índice mira también las páginas de las
     tropas, que corren en la pelea, y los sistemas de batalla de los personajes
     suman cuarenta variables que ningún mapa nombra —la 81 y la 106 de Talan
-    cuentan cuántas veces absorbió cada técnica—. Ver `variables_de`.
+    cuentan cuántas veces absorbió cada técnica—. Ver `variables_named`.
 
     Y desde el 2026-09-27 son 132: `MemorizeLocation` y `RecallToLocation`
     nombran nueve que nadie más nombra —127 a 129, 158 a 160 y 169 a 171—, y
-    con eso la ranura dejó de caber en siete bits: ver VAR_RANURA_MAX.
+    con eso la ranura dejó de caber en siete bits: ver VAR_SLOT_MAX.
 
     Las cuatro de arriba de la 204 son nuestras y no del juego: las usa el
     evento paralelo que reemplazó a las 52 baldosas de luz del mapa 11 —ver
@@ -86,7 +86,7 @@ def test_las_ranuras_son_las_del_juego_entero():
     el juego nombra** justamente para que no le corran la ranura a ninguna: una
     partida guardada antes del rediseño sigue leyendo las mismas.
     """
-    ranuras = eventos.indexar_variables(GAME_DIR)
+    ranuras = events.index_variables(GAME_DIR)
     assert list(ranuras.values()) == list(range(len(ranuras)))
     assert 5 in ranuras and 151 in ranuras
     del_juego = [v for v in ranuras if v <= 204]
@@ -95,7 +95,7 @@ def test_las_ranuras_son_las_del_juego_entero():
     assert max(del_juego) == 201
     assert all(ranuras[v] == r for r, v in enumerate(sorted(del_juego)))
     # Las de la página de prueba se suman al final, sin correr a las demás.
-    con_extra = eventos.indexar_variables(GAME_DIR, extra=(3000,))
+    con_extra = events.index_variables(GAME_DIR, extra=(3000,))
     assert con_extra[3000] == len(ranuras)
     assert all(con_extra[v] == r for v, r in ranuras.items())
 
@@ -106,40 +106,40 @@ def test_el_tram_officer_compila_con_las_variables():
     Con las ranuras indexadas compila; sin ellas, no. Las suyas son la 17, la
     21 y de la 39 a la 42."""
     game_map = lcf.Map(os.path.join(GAME_DIR, "Map0009.lmu"))
-    del_mapa = eventos.Eventos(game_map)
+    del_mapa = events.MapEvents(game_map)
     oficial = [e for e in game_map.events if e.name == "Tram Officer"][0]
     # Vaciar el índice es global a todo el proceso: se repone aunque la
     # aserción falle, o la prueba que corra después en este proceso compila
     # sin variables.
-    antes = dict(eventos.VARIABLE_SLOT)
-    eventos.VARIABLE_SLOT.clear()
+    antes = dict(events.VARIABLE_SLOT)
+    events.VARIABLE_SLOT.clear()
     try:
-        assert eventos.compilar_pagina(oficial.pages[0], {9: 0}.get,
-                                       eventos.Mensajes(),
-                                       del_mapa.para(oficial.id)) is None
+        assert events.compile_page(oficial.pages[0], {9: 0}.get,
+                                   events.Messages(),
+                                   del_mapa.for_event(oficial.id)) is None
     finally:
-        eventos.VARIABLE_SLOT.update(antes)
-    ranuras = eventos.indexar_variables(GAME_DIR)
+        events.VARIABLE_SLOT.update(antes)
+    ranuras = events.index_variables(GAME_DIR)
     assert {17, 21, 39, 40, 41, 42} <= set(ranuras), ranuras
-    codigo = eventos.compilar_pagina(oficial.pages[0], {9: 0}.get,
-                                     eventos.Mensajes(),
-                                     del_mapa.para(oficial.id))
-    assert codigo is not None and eventos.OP_VAR in codigo \
-        and eventos.OP_IF_VAR in codigo
+    codigo = events.compile_page(oficial.pages[0], {9: 0}.get,
+                                 events.Messages(),
+                                 del_mapa.for_event(oficial.id))
+    assert codigo is not None and events.OP_VAR in codigo \
+        and events.OP_IF_VAR in codigo
 
 
 def _escritura_de_la_123(comandos, desde):
     """Compila `comandos` como una página del mapa `desde` y devuelve el byte
     de la operación del `OP_VAR` que escribe la variable 123, que es el que
     lleva el bit del refresco."""
-    eventos.indexar_variables(GAME_DIR)
+    events.index_variables(GAME_DIR)
     game_map = lcf.Map(os.path.join(GAME_DIR, "Map%04d.lmu" % desde))
-    codigo = eventos.compilar_pagina(
-        eventos._Comandos(comandos), {desde: 0, 133: 1}.get,
-        eventos.Mensajes(), eventos.Eventos(game_map).para(0))
+    codigo = events.compile_page(
+        events._Commands(comandos), {desde: 0, 133: 1}.get,
+        events.Messages(), events.MapEvents(game_map).for_event(0))
     assert codigo is not None, "la página no compila"
-    operaciones = [c[i + 2] for i, c in eventos.recorrer_codigo(codigo)
-                   if c[i] == eventos.OP_VAR]
+    operaciones = [c[i + 2] for i, c in events.walk_code(codigo)
+                   if c[i] == events.OP_VAR]
     assert len(operaciones) == 1
     return operaciones[0]
 
@@ -148,7 +148,7 @@ def _comandos(*crudos):
     return [lcf.EventCommand(codigo, 0, "", list(p)) for codigo, p in crudos]
 
 
-PONER_123_EN_8 = (eventos.CONTROL_VARS, (0, 123, 123, 0, 0, 8, 0))
+PONER_123_EN_8 = (events.CONTROL_VARS, (0, 123, 123, 0, 0, 8, 0))
 
 
 def test_la_escritura_despues_de_saltar_a_otro_mapa_pide_refresco():
@@ -163,8 +163,8 @@ def test_la_escritura_despues_de_saltar_a_otro_mapa_pide_refresco():
     mapa 6 aunque la variable ya valía 8: el 6 no mira la 123.
     """
     operacion = _escritura_de_la_123(_comandos(
-        (eventos.TELEPORT, (133, 4, 7)), PONER_123_EN_8), desde=6)
-    assert operacion & eventos.VAR_REFRESCO, \
+        (events.TELEPORT, (133, 4, 7)), PONER_123_EN_8), desde=6)
+    assert operacion & events.VAR_REFRESH, \
         "después de saltar al 133 la escritura a la 123 no pide refresco"
 
 
@@ -173,12 +173,12 @@ def test_sin_saltar_la_escritura_mira_las_variables_del_mapa():
     no pide refresco; en el 133, que sí, lo pide. Y un salto **al mismo**
     mapa no cambia quién mira."""
     assert not _escritura_de_la_123(_comandos(PONER_123_EN_8), desde=6) \
-        & eventos.VAR_REFRESCO
+        & events.VAR_REFRESH
     assert _escritura_de_la_123(_comandos(PONER_123_EN_8), desde=133) \
-        & eventos.VAR_REFRESCO
+        & events.VAR_REFRESH
     assert not _escritura_de_la_123(_comandos(
-        (eventos.TELEPORT, (6, 22, 12)), PONER_123_EN_8), desde=6) \
-        & eventos.VAR_REFRESCO
+        (events.TELEPORT, (6, 22, 12)), PONER_123_EN_8), desde=6) \
+        & events.VAR_REFRESH
 
 
 def test_la_ruta_propia_apunta_al_bloque_que_recibe():
@@ -197,7 +197,7 @@ def test_la_ruta_propia_apunta_al_bloque_que_recibe():
     tabla es texto, y lo que importa es a qué símbolo nombra.
     """
     pagina = {
-        "evento": 0, "pagina": 1, "trigger": eventos.TRIGGER_PARALELO,
+        "evento": 0, "pagina": 1, "trigger": events.TRIGGER_PARALLEL,
         "switch_a": 0, "switch_b": 0, "actor": 0, "capa": 1, "item": 0,
         "codigo": b"\x00", "offset": 0, "ruta_offset": 1,
         "frecuencia": 3, "velocidad": 4,
@@ -219,32 +219,32 @@ def test_la_ruta_propia_apunta_al_bloque_que_recibe():
 # cuarenta autos de cada vuelta de la carrera, con el héroe de blanco.
 def _celda(*cuerpo):
     comandos = [
-        lcf.EventCommand(eventos.CONTROL_VARS, 0, "",
-                         [0, 36, 36, eventos.VAR_PONER, eventos.VAR_PERSONAJE,
-                          eventos.RUTA_HEROE, eventos.PERSONAJE_Y]),
-        lcf.EventCommand(eventos.CONTROL_VARS, 0, "",
-                         [0, 37, 37, eventos.VAR_PONER, eventos.VAR_PERSONAJE,
-                          eventos.RUTA_HEROE, eventos.PERSONAJE_X]),
-        lcf.EventCommand(eventos.COND_RAMA, 0, "",
-                         [eventos.COND_VARIABLE, 36, 1, 34, eventos.CMP_IGUAL,
+        lcf.EventCommand(events.CONTROL_VARS, 0, "",
+                         [0, 36, 36, events.VAR_SET, events.VAR_CHARACTER,
+                          events.ROUTE_HERO, events.CHARACTER_Y]),
+        lcf.EventCommand(events.CONTROL_VARS, 0, "",
+                         [0, 37, 37, events.VAR_SET, events.VAR_CHARACTER,
+                          events.ROUTE_HERO, events.CHARACTER_X]),
+        lcf.EventCommand(events.COND_BRANCH, 0, "",
+                         [events.COND_VARIABLE, 36, 1, 34, events.CMP_EQUAL,
                           1]),
-        lcf.EventCommand(eventos.COND_RAMA, 1, "",
-                         [eventos.COND_VARIABLE, 37, 1, 35, eventos.CMP_IGUAL,
+        lcf.EventCommand(events.COND_BRANCH, 1, "",
+                         [events.COND_VARIABLE, 37, 1, 35, events.CMP_EQUAL,
                           1]),
     ]
     return comandos + [lcf.EventCommand(c, i, "", list(p))
                        for c, i, p in cuerpo]
 
 
-PRENDER_172 = (eventos.CONTROL_SWITCHES, 2, (0, 172, 172, 0))
+PRENDER_172 = (events.CONTROL_SWITCHES, 2, (0, 172, 172, 0))
 
 
 def _compilar_celda(comandos):
-    eventos.indexar_variables(GAME_DIR)
+    events.index_variables(GAME_DIR)
     game_map = lcf.Map(os.path.join(GAME_DIR, "Map0049.lmu"))
-    codigo = eventos.compilar_pagina(
-        eventos._Comandos(comandos), {49: 0}.get, eventos.Mensajes(),
-        eventos.Eventos(game_map).para(0))
+    codigo = events.compile_page(
+        events._Commands(comandos), {49: 0}.get, events.Messages(),
+        events.MapEvents(game_map).for_event(0))
     assert codigo is not None, "la página no compila"
     return codigo
 
@@ -260,21 +260,21 @@ def test_las_cuatro_de_la_celda_van_en_un_opcode():
     dos destinos, que sin `else` son los dos el final de su rama."""
     codigo = _compilar_celda(_celda(
         PRENDER_172,
-        (eventos.COND_FIN, 1, ()),
-        (eventos.COND_FIN, 0, ())))
-    ops = [c[i] for i, c in eventos.recorrer_codigo(codigo)]
-    assert ops == [eventos.OP_CELL_TEST, eventos.OP_SWITCH, eventos.OP_DONE]
-    r = eventos.ranura_de_variable
+        (events.COND_END, 1, ()),
+        (events.COND_END, 0, ())))
+    ops = [c[i] for i, c in events.walk_code(codigo)]
+    assert ops == [events.OP_CELL_TEST, events.OP_SWITCH, events.OP_DONE]
+    r = events.variable_slot
     assert codigo[1] == 0, "el blanco es el héroe"
-    assert _palabra(codigo, 2) & ~eventos.CELDA_REFRESCO \
-        == r(36) * 2 | eventos.CELDA_Y
-    assert _palabra(codigo, 4) & ~eventos.CELDA_REFRESCO == r(37) * 2
+    assert _palabra(codigo, 2) & ~events.CELL_REFRESH \
+        == r(36) * 2 | events.CELL_Y
+    assert _palabra(codigo, 4) & ~events.CELL_REFRESH == r(37) * 2
     assert (_palabra(codigo, 6), _palabra(codigo, 8)) == (r(36) * 2, r(34) * 2)
     assert (_palabra(codigo, 12), _palabra(codigo, 14)) \
         == (r(37) * 2, r(35) * 2)
     fin = len(codigo) - 1                     # el OP_DONE
-    assert _palabra(codigo, eventos.CELDA_DESTINO_A) == fin
-    assert _palabra(codigo, eventos.CELDA_DESTINO_B) == fin
+    assert _palabra(codigo, events.CELL_DEST_A) == fin
+    assert _palabra(codigo, events.CELL_DEST_B) == fin
 
 
 def test_el_else_de_la_rama_de_adentro_sale_de_su_destino():
@@ -284,33 +284,33 @@ def test_el_else_de_la_rama_de_adentro_sale_de_su_destino():
     suelta, sobre el segundo destino del opcode."""
     codigo = _compilar_celda(_celda(
         PRENDER_172,
-        (eventos.COND_SINO, 1, ()),
-        (eventos.CONTROL_SWITCHES, 2, (0, 173, 173, 0)),
-        (eventos.COND_FIN, 1, ()),
-        (eventos.COND_FIN, 0, ())))
-    ops = [(i, c[i]) for i, c in eventos.recorrer_codigo(codigo)]
+        (events.COND_ELSE, 1, ()),
+        (events.CONTROL_SWITCHES, 2, (0, 173, 173, 0)),
+        (events.COND_END, 1, ()),
+        (events.COND_END, 0, ())))
+    ops = [(i, c[i]) for i, c in events.walk_code(codigo)]
     assert [o for _, o in ops] == [
-        eventos.OP_CELL_TEST, eventos.OP_SWITCH, eventos.OP_GOTO,
-        eventos.OP_SWITCH, eventos.OP_DONE]
+        events.OP_CELL_TEST, events.OP_SWITCH, events.OP_GOTO,
+        events.OP_SWITCH, events.OP_DONE]
     goto, sino, fin = ops[2][0], ops[3][0], ops[4][0]
-    assert _palabra(codigo, eventos.CELDA_DESTINO_B) == sino
+    assert _palabra(codigo, events.CELL_DEST_B) == sino
     assert _palabra(codigo, goto + 1) == fin
-    assert _palabra(codigo, eventos.CELDA_DESTINO_A) == fin
+    assert _palabra(codigo, events.CELL_DEST_A) == fin
 
 
 def test_sin_la_forma_exacta_no_se_funde():
     """Una comparación que no es por igualdad, o una rama que no es lo
     primero adentro de la otra, va como antes: cuatro opcodes sueltos."""
-    distinta = _celda(PRENDER_172, (eventos.COND_FIN, 1, ()),
-                      (eventos.COND_FIN, 0, ()))
-    distinta[3].parameters[4] = eventos.CMP_MAYOR_IGUAL
-    ops = [c[i] for i, c in eventos.recorrer_codigo(_compilar_celda(distinta))]
-    assert eventos.OP_CELL_TEST not in ops
-    assert ops[:4] == [eventos.OP_VAR, eventos.OP_VAR, eventos.OP_IF_VAR,
-                       eventos.OP_IF_VAR]
+    distinta = _celda(PRENDER_172, (events.COND_END, 1, ()),
+                      (events.COND_END, 0, ()))
+    distinta[3].parameters[4] = events.CMP_GREATER_EQUAL
+    ops = [c[i] for i, c in events.walk_code(_compilar_celda(distinta))]
+    assert events.OP_CELL_TEST not in ops
+    assert ops[:4] == [events.OP_VAR, events.OP_VAR, events.OP_IF_VAR,
+                       events.OP_IF_VAR]
 
-    afuera = _celda(PRENDER_172, (eventos.COND_FIN, 1, ()),
-                    (eventos.COND_FIN, 0, ()))
+    afuera = _celda(PRENDER_172, (events.COND_END, 1, ()),
+                    (events.COND_END, 0, ()))
     afuera[3].indent = 0                      # la segunda, al lado de la otra
-    ops = [c[i] for i, c in eventos.recorrer_codigo(_compilar_celda(afuera))]
-    assert eventos.OP_CELL_TEST not in ops
+    ops = [c[i] for i, c in events.walk_code(_compilar_celda(afuera))]
+    assert events.OP_CELL_TEST not in ops

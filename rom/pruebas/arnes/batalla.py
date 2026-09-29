@@ -8,7 +8,7 @@ avanza mientras dura.
 """
 
 from port import batalla as modelo
-from port import eventos
+from port import events
 from port import menus
 from port import pantallas
 
@@ -392,7 +392,7 @@ def mensaje_en_pantalla(una, pelea):
     with open(una.sfc, "rb") as archivo:
         rom = archivo.read()
     i = en_la_rom(una.simbolos["mensajes_tropa"]) + desplazamiento
-    cuantos = rom[i] & eventos.CABECERA_LINEAS
+    cuantos = rom[i] & events.HEADER_LINES
     i += 1
     renglones = []
     for _ in range(cuantos):

@@ -7,15 +7,15 @@ está. Acá se le pregunta a la ROM por la RAM lejana, que es donde vive la
 cuenta de cada ítem, con la página de prueba dando y quitando.
 """
 
-from port import eventos
+from port import events
 
 import datos
 
 
 def test_items_n_es_el_del_ldb():
-    """`ITEMS_N` está escrito a mano en eventos.py: que sea el del LDB."""
+    """`ITEMS_N` está escrito a mano en events.py: que sea el del LDB."""
     db = datos.base()
-    assert eventos.ITEMS_N == db.items_max + 1, (db.items_max, eventos.ITEMS_N)
+    assert events.ITEMS_N == db.items_max + 1, (db.items_max, events.ITEMS_N)
 
 
 def test_sumar_y_quitar_topan_como_rm2k(partida):
@@ -25,7 +25,7 @@ def test_sumar_y_quitar_topan_como_rm2k(partida):
     una = partida(caso="inventario")
     una.correr(30)
     assert una.item(151) == 4
-    assert una.item(90) == eventos.ITEM_MAX
+    assert una.item(90) == events.ITEM_MAX
     assert una.item(17) == 0
     assert una.item(200) == 0
 
@@ -36,4 +36,4 @@ def test_el_inventario_viaja_en_la_partida(partida):
     assert una.item(151) == 4
     una.reiniciar()
     assert una.item(151) == 4, "el ítem 151 no volvió de la SRAM"
-    assert una.item(90) == eventos.ITEM_MAX
+    assert una.item(90) == events.ITEM_MAX

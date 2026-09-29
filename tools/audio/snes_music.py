@@ -75,7 +75,7 @@ from audio.music_opcodes import *   # noqa: E402,F401,F403
 # place in the sorted list of `Music/` —case-insensitive, counting from 1—.
 # The song's index in the cartridge would have been the obvious choice, but
 # that is decided by the order in which the `PlayBGM`s appear when compiling
-# (`Temas.indice`), so a new map shifts the numbering of the ones after it,
+# (`Songs.index`), so a new map shifts the numbering of the ones after it,
 # and renumbering means hundreds of megabytes to redo and copy to the card
 # again. `Music/` belongs to the original game and does not change, so a
 # song's number is always the same, in any cartridge and with any list of
@@ -304,7 +304,7 @@ def se_paid_by_music():
 
 def se_per_map():
     """{(name in RM2k, map id): the sample that plays there}. They are put in
-    by `_compilar`, in tools/port/eventos.py. Each one is one more sound
+    by `_compilar`, in tools/port/events.py. Each one is one more sound
     effect, but not one more directory entry: it shares a place with those
     of the other packages —see `effect_places`—. From
     `[sound_effects] per_map`."""
@@ -314,8 +314,8 @@ def se_per_map():
 
 def se_route_left_out():
     """{map id: None for all, or the names} of the sound effects that forced
-    move routes ask for —move command 35, see `RUTA_SONIDO` in
-    tools/port/eventos.py— and that **do not fit** in their map's audio
+    move routes ask for —move command 35, see `ROUTE_SOUND` in
+    tools/port/events.py— and that **do not fit** in their map's audio
     package. From `[sound_effects] route_effects_left_out`."""
     return {m["map"]: None if m["effects"] == "all" else set(m["effects"])
             for m in settings.value("sound_effects", "route_effects_left_out",
@@ -2050,7 +2050,7 @@ def build_all(names, game_dir=None, effects=(), packages=None,
 
     Returns (driver, the voices —the bank's followed by the sound effects,
     each with its sample number—, songs, bank). There is one dict per song in the
-    order they came in: the indices are `Temas`'s, the bytecode already has
+    order they came in: the indices are `Songs`'s, the bytecode already has
     them emitted, so **they cannot be reordered**.
 
     **Every requested song goes in the cartridge, and all of them with all
@@ -2062,7 +2062,7 @@ def build_all(names, game_dir=None, effects=(), packages=None,
     its sound effects[, indices of its exit songs[, indices of its separate
     songs]]). Each one has to fit alone in the ARAM, with its sound effects,
     and what its sound effects take is subtracted before allocating; each
-    exit song —see `Temas.de_salida` in tools/port/eventos.py— has to fit
+    exit song —see `Songs.exit_songs` in tools/port/events.py— has to fit
     alone, and each separate song —see `separate_songs`— alone with the
     package's sound effects. If not given, each song is a package without
     sound effects.
@@ -2267,7 +2267,7 @@ def notes_that_sound(parsed, bank):
 
 
 def sound_table(sounds, bank):
-    """One row per entry of `Temas.sonidos`: the sample —$FF if it did not
+    """One row per entry of `Songs.sounds`: the sample —$FF if it did not
     fit—, the pitch, the volume of each side, how many frames it lasts and
     the sound effect number, which is what says which of the ones sharing
     the sample it is: see `effect_places`."""
@@ -2360,7 +2360,7 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
          effect_place=(), game_over=(0xFF, 0xFFFF)):
     """The .inc the assembler builds along with main.s.
 
-    `songs` are `build_all`'s, in `Temas` order: the bytecode already has
+    `songs` are `build_all`'s, in `Songs` order: the bytecode already has
     those indices emitted. `boot` is which one plays from the first
     frame, or $FF if the ROM boots silent and a `PlayBGM` turns it on.
 
@@ -2449,7 +2449,7 @@ def emit(path, songs, driver, voices, boot=0xFF, title=0xFF,
                        + ", ".join("%d" % b for b in bases or [0]) + "\n"
                        + block("musica_sonidos", bytes(body) or bytes(6),
                                as_block=True))
-    # And the sound effects: seven bytes per entry of `Temas.sonidos`.
+    # And the sound effects: seven bytes per entry of `Songs.sounds`.
     # Outside bank 0: `op_sound` reads them with `lda f:sonido_tabla, x`.
     rows = list(sounds) or [(0xFF, 0, 0, 0, 0, 0xFF)]
     se_table = ".bloque %d\nsonido_tabla:\n" % (7 * len(rows)) + "\n".join(

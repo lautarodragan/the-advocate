@@ -20,7 +20,7 @@ screen —see `ventanas_equipo` and `ventanas_tienda`—.
 from port import constants
 from port import menus
 from port.constants import HEIGHT, WIDTH, CELL, EQUIPMENT_SLOTS
-from port.eventos import ELEGIR_CURSOR, ITEM_MAX
+from port.events import CHOICE_CURSOR, ITEM_MAX
 from port.rules import equipped_params
 
 FILAS, COLS = 28, 32

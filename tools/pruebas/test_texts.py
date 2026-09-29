@@ -8,7 +8,7 @@ the game's tests. Whether it reads well is for taro to say while playing.
 
 import pytest
 
-from port import eventos                                # noqa: E402
+from port import events                                # noqa: E402
 from port import textos                                 # noqa: E402
 from port import constants                             # noqa: E402
 
@@ -134,16 +134,16 @@ def test_who_speaks(linea, es):
 
 
 def test_unchanged_commands_are_the_same_objects():
-    cuadro_que_entra = {"code": eventos.SHOW_MESSAGE, "indent": 1,
+    cuadro_que_entra = {"code": events.SHOW_MESSAGE, "indent": 1,
                         "parameters": [], "string": "Hi."}
     otro = {"code": 10310, "indent": 1, "parameters": [0, 0], "string": ""}
-    largo = [{"code": eventos.SHOW_MESSAGE, "indent": 2, "parameters": [],
+    largo = [{"code": events.SHOW_MESSAGE, "indent": 2, "parameters": [],
               "string": "MANTA"},
-             {"code": eventos.SHOW_MESSAGE_2, "indent": 2, "parameters": [],
+             {"code": events.SHOW_MESSAGE_2, "indent": 2, "parameters": [],
               "string": "I already told you. He didn't go this way. Twice."}]
     salida = textos.reajustar_comandos([cuadro_que_entra, otro] + largo)
     assert salida[0] is cuadro_que_entra and salida[1] is otro
     nuevos = salida[2:]
-    assert nuevos[0]["code"] == eventos.SHOW_MESSAGE
-    assert all(c["code"] == eventos.SHOW_MESSAGE_2 for c in nuevos[1:])
+    assert nuevos[0]["code"] == events.SHOW_MESSAGE
+    assert all(c["code"] == events.SHOW_MESSAGE_2 for c in nuevos[1:])
     assert all(c["indent"] == 2 for c in nuevos)

@@ -5,7 +5,7 @@ It lives apart from `snes_convert.py` for the same reason as `imagen.py`: it
 is not a map. It is a loose drawing that has to be put on the screen, and
 the only thing to decide is **exactly where each pixel lands and what color
 it is**. The sounds and flashes of the same animation are not here: those
-are `OP_ANIMATION` in `eventos.py`, and they exist since 2026-09-11.
+are `OP_ANIMATION` in `events.py`, and they exist since 2026-09-11.
 
 The budget, which is where everything else comes from:
 
@@ -162,7 +162,7 @@ def _pintar_cuadro(anim, hoja, i, caja):
     and is composited centered at its (x, y).
     """
     from PIL import Image
-    from port import eventos
+    from port import events
     x0, y0, ancho, alto = caja
     canvas = Image.new("RGBA", (ancho, alto), (0, 0, 0, 0))
     lado_hoja = CELDA_GRANDE if anim.get("grande") else CELDA
@@ -282,10 +282,10 @@ def de_numero(renderer, numero):
     Converting one is a handful of large `resize`s, and the converter asks
     for it once per map that shows it.
     """
-    from port import eventos
+    from port import events
     if numero in _CACHE:
         return _CACHE[numero]
-    anim = eventos.ANIMACIONES.get(numero)
+    anim = events.ANIMATIONS.get(numero)
     salida = convertir(anim, hoja_de(renderer, anim)) if anim else None
     _CACHE[numero] = salida
     return salida

@@ -18,7 +18,7 @@ camino que se prueba.
 
 import pytest
 
-from port import animacion, eventos
+from port import animacion, events
 from port.snes_convert import cuadro_de_animacion
 from render.render_map import Renderer
 from rpgmaker.resources import GAME_DIR
@@ -92,7 +92,7 @@ def _correr_la_animacion(p, nucleo, fila, cuadros):
 
 @pytest.fixture(scope="module")
 def esperados():
-    eventos.indexar_animaciones(GAME_DIR)
+    events.index_animations(GAME_DIR)
     renderer = Renderer()
     return lambda numero: [cuadro_de_animacion(c) for c in
                            animacion.de_numero(renderer, numero)["cuadros"]]
