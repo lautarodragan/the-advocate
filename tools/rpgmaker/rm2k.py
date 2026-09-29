@@ -243,7 +243,7 @@ TILE_PREFIX = "@tile:"
 DITHER_SUFFIX = "~trama"
 
 # A CharSet with this suffix is **the same drawing, counted as another
-# graphic**: the allocator gives it its own palette. It exists because of
+# graphic**: Adeleine gives it its own palette. It exists because of
 # the hero's flash, which on the console is done on the character's palette:
 # an NPC drawn with the graphic of a possible leader shared its palette and
 # flashed too. See `separate_from_hero` in port/sprites.py.

@@ -3,7 +3,7 @@
 It takes an 8-bit indexed PNG whose indices are CGRAM entries —on a 4bpp
 layer, `index >> 4` is the palette— and returns tiles, tilemap and CGRAM.
 **It decides nothing visible**: which colors stay and which palette each
-cell goes in was decided by the allocator before writing the image: see
+cell goes in was decided by Adeleine before writing the image: see
 "`tools/snes/voodoo/` no decide colores" in `AGENTS.md`.
 
 This module is still called `tiles_bin` because it names **what it

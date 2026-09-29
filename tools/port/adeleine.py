@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The allocator's primitives: which colors are lost and how they are grouped.
+"""Adeleine's primitives: which colors are lost and how they are grouped.
 
 Everything here **changes what is seen**: merging one color into another,
 deciding which colors go together in a palette, measuring how much an image
@@ -9,7 +9,7 @@ what already fits and never touches a pixel: see "`tools/snes/voodoo/` no decide
 colores" in `AGENTS.md`.
 
 Its users are `map_layers.py` —`split_above`, `build_palette`—,
-`sprites.py` —`drawable_npcs`— and `menus.py`. The day the allocator
+`sprites.py` —`drawable_npcs`— and `menus.py`. The day Adeleine
 moves to Rust, this is what goes first.
 
 Until 2026-09-17 it was called `pixeles.py` and also did the part that

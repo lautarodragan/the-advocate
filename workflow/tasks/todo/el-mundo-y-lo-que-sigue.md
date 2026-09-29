@@ -104,10 +104,10 @@ son otros (ver la pregunta 6).
 3. **Partir el chipset** en zonas con su propio juego de tiles, recargando al
    cruzar. Es el 2 sin caché: el mismo 307 como tope por zona, y un corte
    visible al cambiar. Peor que el 1 para el 66.
-4. **Menos colores con el asignador.** No achica lo que falta: el 66 usa 97
+4. **Menos colores con Adeleine.** No achica lo que falta: el 66 usa 97
    colores y el reuso ya es del 98%, con el espejado deduplicado (716 celdas
    lo usan). Lo que sobra son **tiles distintos**, y 148 aparecen una sola
-   vez: fusionarlos sería cambiar pixeles, que es decisión del asignador y
+   vez: fusionarlos sería cambiar pixeles, que es decisión de Adeleine y
    se vería.
 5. **El MSU-1 como fuente.** **No aplica**: lo que falta es VRAM, no ROM, y el
    MSU-1 sólo puede reemplazar algo que la ROM ya lleva (`docs/port/msu-datos.md`,

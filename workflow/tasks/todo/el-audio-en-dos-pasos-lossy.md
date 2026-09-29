@@ -70,7 +70,7 @@ después el MIDI.
 
 El MIDI reducido y la SoundFont reducida **se cargan en un DAW**, y ahí se
 prueban ajustes sin pedir un build. Es el equivalente de los PNG que deja el
-asignador en `rom/build/<cartucho>/asignador/`: se juzga el paso lossy mirando
+Adeleine en `rom/build/<cartucho>/adeleine/`: se juzga el paso lossy mirando
 —u oyendo— su salida.
 
 Eso lo hace taro, así que el artefacto tiene que abrirse con herramientas de

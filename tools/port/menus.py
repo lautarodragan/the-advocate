@@ -6,7 +6,7 @@ import collections
 
 import numpy
 
-from port import allocator
+from port import adeleine
 from port import experience
 from port import font
 from port.constants import HEIGHT, WIDTH, CELL, COLS, ROWS, MENU_CGRAM
@@ -267,7 +267,7 @@ def _face_palette(face):
     screen's black background it makes no difference and does not spend an
     entry.
 
-    The reduction is `allocator.merge_least_visible` and **not** `palette.reduce`,
+    The reduction is `adeleine.merge_least_visible` and **not** `palette.reduce`,
     which is what the title image uses. `palette.reduce` keeps the fifteen most
     used colors and sends the rest to the nearest, and at 48x48 pixels that
     flattens everything: a face has a handful of skin tones covering almost
@@ -284,7 +284,7 @@ def _face_palette(face):
                    for r, g, b, a in face.get_flattened_data()]
     used = collections.Counter(p for p in face_pixels if p != BLACK)
     if len(used) > 15:
-        mapping = allocator.merge_least_visible(used, 15)[0]
+        mapping = adeleine.merge_least_visible(used, 15)[0]
         palette = sorted(set(mapping.values()))
         dest = mapping
     else:
@@ -322,7 +322,7 @@ def _lent_face(colors, face_index, palettes):
         else:
             offset[color] = dest.index(
                 min(dest, key=lambda p, c=color: (
-                    allocator.luma_distance(p, c), p)))
+                    adeleine.luma_distance(p, c), p)))
     return which, {c: offset[colors[k]] for c, k in face_index.items()}
 
 

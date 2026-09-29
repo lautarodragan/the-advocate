@@ -117,7 +117,7 @@ ditto-round-trip:
   cargo test --release -- --include-ignored --nocapture
 
 # Voodoo: from an indexed PNG to tiles, tilemap and CGRAM, in Rust. It is what
-# converts the map layers, from the images the allocator leaves. It does not
+# converts the map layers, from the images Adeleine leaves. It does not
 # decide colors; see AGENTS.md.
 #
 # Its tests are images generated inside the test, plus the error messages,

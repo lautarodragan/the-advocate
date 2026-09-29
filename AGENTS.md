@@ -149,8 +149,8 @@ y `tools/snes/protocol/`, `tools/snes/gunter/`, `tools/snes/voodoo/`, `tools/sne
 `tools/snes/voodoo/` convierte una imagen **que ya entra**: recibe PNG indexados cuyos
 índices son entradas de CGRAM, y si la imagen rompe el formato, dice dónde y no
 la arregla. Qué colores se pierden y cómo se agrupan en paletas lo decide el
-asignador, `tools/port/allocator.py`, que corre **antes** y deja lo que decidió como
-imágenes en `rom/build/<cartucho>/asignador/`. La prueba para saber de qué lado
+Adeleine, `tools/port/adeleine.py`, que corre **antes** y deja lo que decidió como
+imágenes en `rom/build/<cartucho>/adeleine/`. La prueba para saber de qué lado
 va algo es si cambia un pixel de lo que se ve.
 
 Es de taro, el 2026-09-17. Voodoo tuvo un `--merge` que fusionaba colores; se

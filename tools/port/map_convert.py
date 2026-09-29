@@ -14,7 +14,7 @@ from rpgmaker import lcf
 from rpgmaker import rm2k
 from port import animation as animation_mod
 from port import picture
-from port.allocator import CELL
+from port.adeleine import CELL
 from port.snes_format import BYTES_PER_TILE, cgram_word
 from rpgmaker.rm2k import collect_npcs, passability_map
 from render.render_map import build_passability

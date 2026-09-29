@@ -149,7 +149,7 @@ The other way out was for the `.msu` to carry 4bpp too, "more quality within
 the same format"; but sixteen colors are the ceiling of 4bpp, so the quality
 would have nowhere to grow.
 
-The sixteen come from `allocator.merge_least_visible`, the battlers' one,
+The sixteen come from `adeleine.merge_least_visible`, the battlers' one,
 and not from `palette.reduce`, which is the one that builds the 96: reducir
 keeps the most used, and in a backdrop the sixteen most used are all from
 the floor and the walls —the green sign and the violet water turned gray—.
@@ -388,7 +388,7 @@ def light_backdrop(name, game_dir):
     `FALLBACK_COLORS` and at half resolution.
 
     The same image as `backdrop`, shrunk to `FALLBACK_WIDTH` x `FALLBACK_HEIGHT`
-    and with sixteen colors merged by `allocator.merge_least_visible`: see
+    and with sixteen colors merged by `adeleine.merge_least_visible`: see
     "The light fallback". The palette goes from most used to least, and on
     equal counts by color, so it always comes out the same.
 
@@ -397,7 +397,7 @@ def light_backdrop(name, game_dir):
                  WRAM: it is what the tests compare.
     """
     from PIL import Image
-    from port import allocator
+    from port import adeleine
     image = _open(game_dir, "Backdrop", name, rtp=True)
     if image is None:
         return None
@@ -406,7 +406,7 @@ def light_backdrop(name, game_dir):
     pixels = [(r >> 3, g >> 3, b >> 3)
               for r, g, b in image.get_flattened_data()]
     counts = collections.Counter(pixels)
-    mapping, _merges = allocator.merge_least_visible(counts, FALLBACK_COLORS)
+    mapping, _merges = adeleine.merge_least_visible(counts, FALLBACK_COLORS)
     final = collections.Counter()
     for color, n in counts.items():
         final[mapping[color]] += n
@@ -451,10 +451,10 @@ def battler(name, hue, game_dir):
       `colores`        how many distinct ones the drawing had, already
                        shrunk.
       `merges`       what was merged with what to get to fifteen, as
-                       `allocator.merge_least_visible` returns them.
+                       `adeleine.merge_least_visible` returns them.
     """
     from PIL import Image
-    from port import allocator
+    from port import adeleine
     image = _open(game_dir, "Monster", name)
     if image is None:
         return None
@@ -469,7 +469,7 @@ def battler(name, hue, game_dir):
     opaque = [(r >> 3, g >> 3, b >> 3) if a >= 128 else None
               for r, g, b, a in data]
     counts = collections.Counter(c for c in opaque if c is not None)
-    mapping, merges = allocator.merge_least_visible(counts, BATTLER_COLORS)
+    mapping, merges = adeleine.merge_least_visible(counts, BATTLER_COLORS)
     final = collections.Counter()
     for color, n in counts.items():
         final[mapping[color]] += n

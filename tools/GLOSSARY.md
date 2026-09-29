@@ -125,7 +125,7 @@ way. When a term is missing, pick one, use it consistently, and add it here.
 | podar | prune | |
 | receta (del fork) | recipe | |
 | pasabilidad | passability | |
-| asignador | allocator | |
+| asignador | Adeleine | the name of the tool that decides which colors are lost |
 | capa de abajo / de arriba | lower / upper layer | |
 | reparto (de paletas, de CGRAM) | split | "layout" is only for VRAM |
 | prestar paleta | lend a palette | |

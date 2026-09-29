@@ -42,7 +42,7 @@ Las cinco que hay hoy, todas automáticas; las tres primeras ya dejan rastro
 escrito y las dos últimas todavía no:
 
 * los **colores que se fusionan** cuando una imagen no entra en las paletas
-  (`tools/port/asignador.py`) — escritas, por mapa;
+  (`tools/port/Adeleine.py`) — escritas, por mapa;
 * las **animaciones dibujadas a otro tamaño**, como la del Emitter Room
   (`tools/port/animacion.py`) — escritas, por número de animación;
 * los **quince colores de cada battler** en la escena de la pelea
@@ -94,7 +94,7 @@ el mapa 2 un color se fusiona con otro que más abajo se fusiona a su vez.
 
 La clave es el **id del mapa**, que es del juego: no se mueve con el orden
 interno del conversor, ni con la lista de mapas del cartucho, ni con el
-algoritmo del asignador. Los colores van por valor y no por índice en ninguna
+algoritmo de Adeleine. Los colores van por valor y no por índice en ninguna
 paleta, por lo mismo.
 
 **Y el cartucho no entra en la clave**, por la regla de taro del 2026-09-21: la
