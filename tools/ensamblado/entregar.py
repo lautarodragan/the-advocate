@@ -25,6 +25,7 @@ import textwrap
 # como symlink, y lo que importa es dónde está el archivo de verdad.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
+from comun import perillas                              # noqa: E402
 from comun import proyecto                              # noqa: E402
 
 RAIZ = proyecto.raiz()
@@ -33,6 +34,13 @@ SHARED = proyecto.compartido()
 BUILDS = os.path.join(SHARED, "builds")
 MSU = os.path.join(SHARED, "msu")
 
+# Cómo se llaman los archivos de la ROM: `abl.sfc`, `abl.msu`, `abl-N.pcm`.
+# Lo dice el archivo de proyecto; en la prosa de acá se lee "abl".
+NOMBRE = perillas.valor("rom", "name", tipo=str)
+SFC = NOMBRE + ".sfc"
+DBG = SFC + ".dbg"
+PISTAS = NOMBRE + "-*.pcm"
+
 # Lo que entra en la ROM: lo que mira `cartuchos.huella()` más lo que lee el
 # conversor. Un cambio sin commitear ahí haría un build que no es el del commit
 # que lo nombra. `README.md`, `docs/` o un `.box.yml` suelto no entran.
@@ -40,7 +48,7 @@ MSU = os.path.join(SHARED, "msu")
 RUNTIME = os.path.relpath(proyecto.runtime(), RAIZ)
 LO_QUE_ENTRA = tuple(os.path.relpath(r, RAIZ) for r in (
     proyecto.runtime(), proyecto.herramientas(), proyecto.parches(),
-    proyecto.data()))
+    proyecto.data(), proyecto.archivo_de_proyecto()))
 
 # `<fecha>-<commit>` y lo que siga. Sólo esos se cuentan y se borran: lo demás
 # que haya en /shared/builds/ es de taro.
@@ -48,7 +56,7 @@ BUILD = re.compile(r"^(\d{4}-\d{2}-\d{2})-([0-9a-f]{7,40})")
 
 # Lo que escribe esto adentro del build. Si el directorio ya existía, se pisa
 # esto y nada más: taro deja ahí la partida de su emulador (`abl.ram`).
-LO_NUESTRO = ("abl.sfc", "abl.sfc.dbg", "abl.msu", "LEEME.txt",
+LO_NUESTRO = (SFC, DBG, NOMBRE + ".msu", "LEEME.txt",
               RUNTIME.split(os.sep)[0])
 
 # **El `abl.msu` es del build, no de las pistas.** Lleva los fondos de batalla
@@ -58,13 +66,13 @@ LO_NUESTRO = ("abl.sfc", "abl.sfc.dbg", "abl.msu", "LEEME.txt",
 # /shared/msu/, que es donde taro juega con MSU-1: ahí tiene que estar el del
 # último build. Con el `abl.sfc` de otro build no se rompe nada: la ROM no
 # encuentra su firma y lee los fondos de sí misma.
-MSU_DEL_BUILD = "abl.msu"
+MSU_DEL_BUILD = NOMBRE + ".msu"
 
 # El comando de la huella tal cual lo escribe `/shared/msu/LEEME.txt`, y se
 # corre con un shell y no reimplementado: la línea que hashea el segundo
 # `sha256sum` lleva la ruta, y el orden lo pone el glob del shell.
-HUELLA_MSU = ("sha256sum %s/abl-*.pcm | sha256sum"
-              % os.path.relpath(RELEASE, RAIZ))
+HUELLA_MSU = ("sha256sum %s/%s | sha256sum"
+              % (os.path.relpath(RELEASE, RAIZ), PISTAS))
 
 
 def fallar(mensaje):
@@ -100,8 +108,8 @@ def actualizar_msu(commit, fecha, huella):
     que taro tenga ahí. El `abl.msu` no va acá: se copia con cada build, ver
     `MSU_DEL_BUILD`."""
     os.makedirs(MSU, exist_ok=True)
-    nuevas = {os.path.basename(p) for p in glob.glob(os.path.join(RELEASE, "abl-*.pcm"))}
-    for vieja in glob.glob(os.path.join(MSU, "abl-*.pcm")):
+    nuevas = {os.path.basename(p) for p in glob.glob(os.path.join(RELEASE, PISTAS))}
+    for vieja in glob.glob(os.path.join(MSU, PISTAS)):
         if os.path.basename(vieja) not in nuevas:
             os.remove(vieja)
     for nombre in sorted(nuevas):
@@ -118,11 +126,11 @@ def actualizar_msu(commit, fecha, huella):
 
 
 LEEME = """\
-abl.sfc del commit {commit} ({fecha}): {asunto}
+{nombre}.sfc del commit {commit} ({fecha}): {asunto}
 
 {que_mirar}
 
-abl.sfc.dbg: los nombres de las rutinas para el depurador de Mesen2, que lo
+{nombre}.sfc.dbg: los nombres de las rutinas para el depurador de Mesen2, que lo
 carga solo si está al lado de la ROM. tools/runtime/ es el fuente exacto de este
 commit, y es lo que hace que Mesen2 muestre el fuente al lado del
 desensamblado (Ctrl+Q) abriendo la ROM desde acá: lo busca subiendo de carpeta
@@ -131,11 +139,11 @@ pesan ~15 MB: las líneas que caen en ellos se ven sólo desensambladas. Ver
 docs/snes/emulators.md.
 
 Para el MSU-1: las pistas están en /shared/msu/ y no acá, porque pesan medio
-giga. Se escucha copiando ahí este abl.sfc y el abl.sfc.dbg (y el rom/ si se
+giga. Se escucha copiando ahí este {nombre}.sfc y el {nombre}.sfc.dbg (y el rom/ si se
 quiere el fuente). {msu}
 
-abl.msu: los fondos de batalla que la ROM lee por el MSU-1 cuando está. Es de
-este build y ya se copió a /shared/msu/; con otro abl.sfc hay que llevar el
+{nombre}.msu: los fondos de batalla que la ROM lee por el MSU-1 cuando está. Es de
+este build y ya se copió a /shared/msu/; con otro {nombre}.sfc hay que llevar el
 suyo, y si no se lleva anda igual, con los fondos de la ROM.
 """
 
@@ -164,9 +172,10 @@ def main():
         fallar("hay cambios sin commitear en lo que entra en la ROM, y el build "
                "se nombra por commit:\n" + sucio)
 
-    for nombre in ("abl.sfc", "abl.sfc.dbg", MSU_DEL_BUILD):
+    for nombre in (SFC, DBG, MSU_DEL_BUILD):
         if not os.path.isfile(os.path.join(RELEASE, nombre)):
-            fallar("falta rom/build/release/%s: `just build release`." % nombre)
+            fallar("falta %s: `just build release`."
+                   % os.path.relpath(os.path.join(RELEASE, nombre), RAIZ))
 
     commit = git("rev-parse", "--short", "HEAD").strip()
     asunto = git("log", "-1", "--format=%s").strip()
@@ -183,7 +192,7 @@ def main():
               % (destino, ", ".join(LO_NUESTRO)))
     os.makedirs(destino, exist_ok=True)
 
-    for nombre in ("abl.sfc", "abl.sfc.dbg", MSU_DEL_BUILD):
+    for nombre in (SFC, DBG, MSU_DEL_BUILD):
         shutil.copyfile(os.path.join(RELEASE, nombre), os.path.join(destino, nombre))
     os.makedirs(MSU, exist_ok=True)
     shutil.copyfile(os.path.join(RELEASE, MSU_DEL_BUILD),
@@ -215,7 +224,7 @@ def main():
                  "--actualizar-msu" % (huella, entregada))
 
     with open(os.path.join(destino, "LEEME.txt"), "w", encoding="utf-8") as f:
-        f.write(LEEME.format(commit=commit, fecha=hoy, asunto=asunto,
+        f.write(LEEME.format(nombre=NOMBRE, commit=commit, fecha=hoy, asunto=asunto,
                              que_mirar=renglones(args.que_mirar), msu=msu))
     # Se dejan dos: éste y el más nuevo de los demás, que sirve para comparar
     # con lo que se venía jugando; los de más atrás se rearman desde su

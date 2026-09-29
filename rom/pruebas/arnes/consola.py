@@ -24,6 +24,7 @@ mano se desfasaría en silencio y leería la dirección de al lado.
 import os
 import re
 
+from comun import perillas
 from comun import proyecto
 from emulador import retro
 from ensamblado import bancos
@@ -61,9 +62,10 @@ EFECTO = 0x100
 
 # La marca de una ranura con partida. **No sale de la tabla de símbolos porque
 # la ROM no la tiene como símbolo**: `ranura_llena` la compara con cuatro
-# `cmp #$41`... inmediatos, y `guardar_partida` la escribe igual. Lo que sí
-# es símbolo es dónde va, `SRAM_MAGIA`.
-MAGIA = b"ABLS"
+# `cmp #` inmediatos, y `guardar_partida` la escribe igual. Sale del archivo
+# de proyecto, de donde la saca el conversor. Lo que sí es símbolo es dónde
+# va, `SRAM_MAGIA`.
+MAGIA = perillas.ascii("rom", "sram_signature", largo=4).encode()
 
 
 class SimboloDesconocido(KeyError):

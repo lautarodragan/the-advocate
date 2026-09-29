@@ -88,6 +88,7 @@ from port import constantes
 from port import reglas
 from port import msu_datos
 from audio import efectos_msu
+from comun import perillas
 from comun import proyecto
 from comun.paralelo import en_paralelo
 from audio import snes_music
@@ -4560,6 +4561,25 @@ def encuentros_de_la_rom(mapas, tree, pasos_de_prueba, tropas):
             "tropas": tropas_de_zona}
 
 
+# El título de la cabecera de una ROM de SNES: 21 bytes, en `$FFC0`.
+TITULO_CABECERA = 21
+
+
+def identidad_de_la_rom():
+    """Lo que la ROM dice de sí misma, del `[rom]` del archivo de proyecto:
+    el título de la cabecera, ya rellenado con blancos, y la firma de la
+    partida en la SRAM. Son `.define` porque son texto: `cabecera.s` y
+    `partida.s` los usan, y hasta el 2026-09-29 los tenían escritos."""
+    titulo = perillas.ascii("rom", "title", hasta=TITULO_CABECERA)
+    firma = perillas.ascii("rom", "sram_signature", largo=4)
+    return ("; Quién es la ROM, del archivo de proyecto: el título de la\n"
+            "; cabecera y la firma con que la SRAM dice que una ranura tiene\n"
+            "; una partida de este juego.\n"
+            '.define ROM_TITULO "%s"\n'
+            '.define SRAM_MAGIA_TEXTO "%s"\n\n'
+            % (titulo.ljust(TITULO_CABECERA), firma))
+
+
 def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
          ventana=None, titulo=None, ranuras=None, cartel=None,
          animaciones=None, tropas=(), audio_batalla=None, escenas=None,
@@ -5056,6 +5076,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
 
     with open(path, "w") as handle:
         handle.write(cabecera)
+        handle.write(identidad_de_la_rom())
         handle.write(desplazamientos())
         handle.write("\n\n")
         # La rampa del fundido, en el banco 0 porque `fundido_tick` la lee con

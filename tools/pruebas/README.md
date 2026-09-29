@@ -51,4 +51,7 @@ nombrado tiene que existir: lo cobra `test_indice.py`.
 * `test_proyecto.py`: que dónde está cada cosa —la raíz, las carpetas del
   repo, los valores por omisión del ambiente— lo sepa sólo
   `comun/proyecto.py`
+* `test_perillas.py`: que el lector del archivo de proyecto,
+  `comun/perillas.py`, falle con el nombre de la clave en vez de caer en un
+  valor por omisión
 * `test_indice.py`: que esta lista esté al día

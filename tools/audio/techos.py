@@ -43,12 +43,16 @@ from multiprocessing import Pool
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 from audio import sdsp, snes_music                      # noqa: E402
+from comun import perillas                              # noqa: E402
 from comun import proyecto                              # noqa: E402
 
 # La mitad del aire de siempre: medido el 2026-09-26, con 0,25 no recorta
 # ninguno de los 32 temas del `release`, y el que más suma queda a 3,9 dB
 # del tope.
 AIRE_DE_MEDIDA = sdsp.AIRE / 2
+
+# Cómo se llama la ROM que se mide: la del juego, en su archivo de proyecto.
+NOMBRE_DE_LA_ROM = perillas.valor("rom", "name", tipo=str)
 
 # Hasta dónde se deja llegar el pico: 0,5 dB bajo el tope. Lo que absorbe es
 # el redondeo del volumen de cada voz a un entero, que hace que el pico no
@@ -146,7 +150,8 @@ _largos = {}
 def _medir_uno(trabajo):
     import numpy as np
     directorio, tema, cuadros, lufs = trabajo
-    x, tasa = tocar(os.path.join(directorio, "abl.sfc"), tema, cuadros)
+    x, tasa = tocar(os.path.join(directorio, NOMBRE_DE_LA_ROM + ".sfc"),
+                    tema, cuadros)
     absoluto = np.abs(x.astype(np.int32))
     pico = int(absoluto.max()) if len(x) else 0
     # El cuadro del pico: las muestras son pares izquierda/derecha.
@@ -268,7 +273,7 @@ def main():
     print("una copia de release con el aire en %s, en %s"
           % (AIRE_DE_MEDIDA, MEDIDA))
     cartuchos.convertir(cartuchos.RELEASE, MEDIDA,
-                        os.path.join(MEDIDA, "abl.sfc"),
+                        os.path.join(MEDIDA, NOMBRE_DE_LA_ROM + ".sfc"),
                         ["--aire-de-medida", str(AIRE_DE_MEDIDA)])
     a_medias = medir(MEDIDA)
     recortan = [n for n, f in a_medias.items() if f["recortes"]]

@@ -21,7 +21,7 @@ Todo en little-endian:
 
     $00     8  la firma: los primeros 8 bytes del sha256 de todo lo que
                sigue
-    $08     4  "ABLD"
+    $08     4  la firma del juego: `[rom] msu_data_signature`
     $0C     2  la versión del formato, hoy 2
     $0E     2  cuántas entradas hay, N
     $10     8N por entrada: dónde empieza en el archivo y cuánto mide, 4 y 4
@@ -75,7 +75,11 @@ snes_convert.py, y el porqué está en tools/audio/efectos_msu.py.
 import hashlib
 import struct
 
-MAGIA = b"ABLD"
+from comun import perillas
+
+# La del juego, de su archivo de proyecto. La ROM no la compara: compara la
+# firma de adelante, que la cubre.
+MAGIA = perillas.ascii("rom", "msu_data_signature", largo=4).encode()
 VERSION = 2
 FIRMA = 8
 CABECERA = 16

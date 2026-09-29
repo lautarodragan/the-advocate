@@ -14,6 +14,27 @@
 # midieron sobre ABL, que son supuestos del motor y se quedan en su código.
 
 
+# --- La ROM ------------------------------------------------------------------
+[rom]
+# El nombre de los archivos: `abl.sfc`, y al lado `abl.msu` y las pistas
+# `abl-N.pcm`, que el MSU-1 busca por el nombre del `.sfc`.
+name = "abl"
+
+# El título de la cabecera: lo que muestra el menú del FX Pak y lo que lee
+# cualquier base de datos de ROMs. Hasta 21 caracteres ASCII, y se rellena con
+# blancos. Decía "ABL SNES MUSIC POC" hasta el 2026-09-09, de cuando esto era
+# una prueba de audio; en hardware se ve, así que dejó de dar igual.
+title = "A BLURRED LINE"
+
+# La firma con que la SRAM dice que una ranura tiene una partida de este juego:
+# cuatro caracteres ASCII. **Cambiarla invalida las partidas guardadas**: una
+# ranura con otra firma se ve vacía.
+sram_signature = "ABLS"
+
+# La firma del `.msu` de datos —los fondos de batalla que la ROM lee por el
+# MSU-1—: cuatro caracteres ASCII al principio de la cabecera del archivo.
+msu_data_signature = "ABLD"
+
 # --- Los mapas ---------------------------------------------------------------
 #
 # Los mapas del juego que lleva `release`: **los de id menor a `below`, menos

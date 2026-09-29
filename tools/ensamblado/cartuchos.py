@@ -110,6 +110,10 @@ MAPAS = MAPAS_DEL_JUEGO + MAPAS_DE_PRUEBA
 # pistas de MSU-1, y todos los casos. El archivo lo tiene que declarar.
 RELEASE = "release"
 
+# Cómo se llaman sus archivos: `<nombre>.sfc`, y al lado el `.msu` y las
+# pistas `<nombre>-N.pcm`. Los de los demás cartuchos se llaman `prueba`.
+NOMBRE_DE_LA_ROM = perillas.valor("rom", "name", tipo=str)
+
 
 def _cartucho(nombre):
     """(los flags del conversor, los casos o None si son todos) de un
@@ -278,7 +282,8 @@ def directorio(nombre):
 def rom_de(nombre):
     # El MSU-1 busca sus pistas por el nombre del `.sfc`.
     return os.path.join(directorio(nombre),
-                        "abl.sfc" if nombre == RELEASE else "prueba.sfc")
+                        NOMBRE_DE_LA_ROM + ".sfc" if nombre == RELEASE
+                        else "prueba.sfc")
 
 
 def msu_de(nombre):

@@ -67,3 +67,22 @@ def _admite_bool(tipo):
 def _nombre(tipo):
     tipos = tipo if isinstance(tipo, tuple) else (tipo,)
     return " o ".join(t.__name__ for t in tipos)
+
+
+def ascii(*claves, largo=None, hasta=None, ruta=None):
+    """Una perilla de texto que termina en la ROM tal cual: ASCII imprimible,
+    sin comillas —va entre comillas en el `.inc`—, y de `largo` caracteres
+    exactos o de `hasta` como mucho."""
+    texto = valor(*claves, tipo=str, ruta=ruta)
+    nombre = ".".join(claves)
+    ruta = ruta or proyecto.archivo_de_proyecto()
+    if not all(" " <= c <= "~" and c != '"' for c in texto):
+        raise FaltaUnaClave("%s: %s tiene que ser ASCII imprimible y sin "
+                            "comillas, y es %r" % (ruta, nombre, texto))
+    if largo is not None and len(texto) != largo:
+        raise FaltaUnaClave("%s: %s tiene que tener %d caracteres, y tiene %d"
+                            % (ruta, nombre, largo, len(texto)))
+    if hasta is not None and not 0 < len(texto) <= hasta:
+        raise FaltaUnaClave("%s: %s tiene que tener de 1 a %d caracteres, y "
+                            "tiene %d" % (ruta, nombre, hasta, len(texto)))
+    return texto

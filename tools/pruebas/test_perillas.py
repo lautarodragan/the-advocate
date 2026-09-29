@@ -35,3 +35,16 @@ def test_un_tipo_equivocado_tambien_falla(archivo):
     with pytest.raises(perillas.FaltaUnaClave, match="tiene que ser int"):
         perillas.valor("maps", "debug", tipo=int, ruta=archivo)
     assert perillas.valor("maps", "debug", tipo=bool, ruta=archivo) is True
+
+
+def test_un_texto_que_va_a_la_rom_se_mide(tmp_path):
+    ruta = tmp_path / "rm2k-snes.toml"
+    ruta.write_text('[rom]\nfirma = "ABLS"\ncorta = "ABL"\nacento = "ÁBLS"\n')
+    ruta = str(ruta)
+    assert perillas.ascii("rom", "firma", largo=4, ruta=ruta) == "ABLS"
+    with pytest.raises(perillas.FaltaUnaClave, match="tener 4 caracteres"):
+        perillas.ascii("rom", "corta", largo=4, ruta=ruta)
+    with pytest.raises(perillas.FaltaUnaClave, match="ASCII"):
+        perillas.ascii("rom", "acento", largo=4, ruta=ruta)
+    with pytest.raises(perillas.FaltaUnaClave, match="de 1 a 2"):
+        perillas.ascii("rom", "firma", hasta=2, ruta=ruta)
