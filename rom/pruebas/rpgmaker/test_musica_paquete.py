@@ -427,7 +427,7 @@ def test_el_tema_aparte_sube_con_los_efectos_del_paquete(partida):
     paquete**, sin los otros temas, y el paquete queda incompleto.
 
     El caso es el basural del 38: `golden_axe-turtlevillage2`, que es del
-    paquete, y después `vswar`, que es aparte ahí —ver `TEMAS_APARTE` en
+    paquete, y después `vswar`, que es aparte ahí —ver `temas_aparte` en
     tools/audio/snes_music.py— y no entra al lado de `golden_axe`: si
     entrara, el caso no ejercitaría nada, y se pide antes. Con `vswar`
     sonando tienen que estar sus muestras y las de los efectos del paquete
@@ -481,7 +481,7 @@ def test_los_efectos_comparten_lugares_del_directorio():
 
     El SRCN es de un byte, así que el directorio llega a 255 entradas. Hasta
     el 2026-09-26 cada efecto del cartucho tenía la suya —92 en `release`,
-    `SE_DE_SIEMPRE`—, y `snes_music.copias` paraba por llenarlo: las muestras
+    `se_de_siempre`—, y `snes_music.copias` paraba por llenarlo: las muestras
     que un paquete limitaba seguían limitando a los temas de afuera. Desde ese
     día los efectos comparten los `SE_LUGARES` del final —dos efectos que
     nunca van en el mismo paquete pueden ir al mismo lugar, ver
@@ -508,7 +508,7 @@ def test_los_efectos_comparten_lugares_del_directorio():
     with open(release.sfc, "rb") as archivo:
         rom = archivo.read()
     assert s["MUESTRAS_N"] <= snes_music.DIRECTORIO_MAX, s["MUESTRAS_N"]
-    assert s["SE_LUGARES"] < snes_music.SE_DE_SIEMPRE, (
+    assert s["SE_LUGARES"] < snes_music.se_de_siempre(), (
         "los efectos ocupan %d entradas del directorio, tantas como cuando "
         "cada uno tenía la suya: no comparten" % s["SE_LUGARES"])
     assert s["MUESTRAS_N"] == s["SE_PRIMERA"] + s["SE_LUGARES"]

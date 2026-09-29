@@ -779,7 +779,7 @@ class Temas:
     def sonido(self, nombre, volumen, tempo, balance, al_paquete=True):
         """El índice del efecto. Sin `al_paquete` no se anota en el paquete
         del mapa: suena sólo si otra cosa lo mete ahí. Ver
-        `SE_DE_RUTA_SIN_PAQUETE` en snes_music.py. Tampoco cuenta en
+        `se_de_ruta_sin_paquete` en snes_music.py. Tampoco cuenta en
         `pedidos`: uno que no está en el paquete no suena, así que no le impide
         a un tema ser de salida."""
         clave = (nombre, volumen, tempo, balance)
@@ -3158,7 +3158,7 @@ class PaginasDeTropa:
         con su efecto, que cuenta para **el paquete de audio de la pelea** —el
         que está cargado cuando la página corre, ver `PAQUETE_BATALLA`— y no
         para el del mapa; y entra en él sólo si está en
-        `SE_DE_TROPA_AL_PAQUETE` (snes_music.py): si no, se pide y no suena,
+        `se_de_tropa_al_paquete` (snes_music.py): si no, se pide y no suena,
         como uno de ruta que no entra. Sin `temas` se acepta y no se hace."""
         suyas = []
         anterior = temas.mapa if temas is not None else None
@@ -4283,10 +4283,9 @@ def indice_de_sonido(temas, indice_de_mapa, nombre, volumen, tempo, balance,
 
     Los que en un mapa suenan con otra muestra —el trueno entero del mapa 1—
     llevan otro nombre para la misma WAV, para que los demás mapas sigan con
-    la suya. Ver `SE_DEL_MAPA` en snes_music.py. Y los de ruta de los mapas de
-    `SE_DE_RUTA_SIN_PAQUETE` no entran en el paquete: ver ahí."""
-    from audio.snes_music import (SE_DEL_MAPA, SE_DE_RUTA_SIN_PAQUETE,
-                                  SE_DE_TROPA_AL_PAQUETE)
+    la suya. Ver `se_del_mapa` en snes_music.py. Y los de ruta de los mapas de
+    `se_de_ruta_sin_paquete` no entran en el paquete: ver ahí."""
+    from audio import snes_music
 
     def es(mapa):
         try:
@@ -4296,17 +4295,17 @@ def indice_de_sonido(temas, indice_de_mapa, nombre, volumen, tempo, balance,
 
     al_paquete = True
     if temas.mapa is not None:
-        for (base, mapa), alias in SE_DEL_MAPA.items():
+        for (base, mapa), alias in snes_music.se_del_mapa().items():
             if nombre == base and es(mapa):
                 nombre = alias
                 break
         if de_ruta:
             al_paquete = not any(
                 es(m) and (cuales is None or nombre in cuales)
-                for m, cuales in SE_DE_RUTA_SIN_PAQUETE.items())
+                for m, cuales in snes_music.se_de_ruta_sin_paquete().items())
     if temas.mapa == PAQUETE_BATALLA:
-        # El de una página de tropa: ver `SE_DE_TROPA_AL_PAQUETE`.
-        al_paquete = nombre in SE_DE_TROPA_AL_PAQUETE
+        # El de una página de tropa: ver `se_de_tropa_al_paquete`.
+        al_paquete = nombre in snes_music.se_de_tropa_al_paquete()
     return temas.sonido(nombre, volumen, tempo, balance, al_paquete)
 
 

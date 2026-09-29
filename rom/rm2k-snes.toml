@@ -102,6 +102,193 @@ fallback_backdrop = "ABLBackdropSJ08"
 # bajaba cuatro golpes a `Lunar_Pyramid` y `wb3shop`, de 22 a 14 kHz.
 jumps_that_never_happen = [[45, 20]]
 
+# **Los temas aparte**: un tema aparte no va con los otros temas del paquete
+# de su mapa: lo sube su `PlayBGM`, **él solo con los efectos del paquete**, y
+# lo demás se suelta hasta el próximo `PlayBGM`. Tampoco se lo hereda a los
+# mapas a los que se sale de ahí. Es un tema de salida que no se va, y por eso
+# lo dice esta lista y no una regla: que nunca suene al mismo tiempo que los
+# otros temas del mapa, ni al salir, lo sabe quien leyó las páginas.
+apart_themes = [
+    # `vswar` en el 38 y el 47, del 2026-09-27: es el de las escenas del HQ y
+    # de los guardias, y solo ocupa 61 KB a la tasa que tenía antes de Lashe
+    # City, así que con `golden_axe-turtlevillage2` al lado —el otro tema de
+    # esos dos mapas— y `cd4`, que llega sonando del 10, el paquete pedía 82 KB
+    # y bajaban 47 pares (tema, instrumento), los de afuera por las copias que
+    # ya no se podían hacer. En los dos la escena lo cambia a `golden_axe`
+    # antes de irse: en el 47 en la misma página, y en el 38 se entra al
+    # basural por un `Teleport` y se sale por otro que antes prende
+    # `golden_axe` (los eventos 20, 21 y 26). Lo que cuesta es la carga: subir
+    # vswar al empezar la escena, un cuadro y medio por KB. Los cofres del
+    # basural (Bow2) suenan igual, porque los efectos del paquete se quedan.
+    { map = 38, themes = ["vswar"] },
+    { map = 47, themes = ["vswar"] },
+]
+
+# Hasta cuántas entradas del directorio de muestras llega la primera tanda de
+# copias —las que taro escuchó—: las que ocupaban los efectos cuando cada uno
+# tenía la suya, el 2026-09-26, los 92 de `release`. No son los efectos de hoy:
+# contarlos hacía que cada efecto nuevo le sacara una copia a la primera tanda
+# aunque no ocupara ninguna entrada, porque comparte lugar con los de otros
+# paquetes. Así quedaron afuera Flash1 en el 13 y Earth4 en el 21, del
+# 2026-09-27: con los dos, un golpe de `bubstix` bajaba de 19,3 a 13,9 kHz.
+effect_slots_of_first_copies = 92
+
+# --- Los efectos de sonido ---------------------------------------------------
+[sound_effects]
+# Los enteros que **sí** paga la música: los de `[sound_effects.whole]` que, si
+# no entran en lo que la música deja libre en su paquete, le bajan la tasa a
+# algún instrumento. Los demás enteros no pueden: si no entran, el conversor
+# se corta.
+paid_by_music = [
+    # El trueno de la apertura: ver su tasa, abajo.
+    "Thunder9@entero",
+    # **Los que sí paga la música**, del 2026-09-26. taro, escuchando los que
+    # no entraban en lo libre: *"tengo cero dudas de que tienen que tener su
+    # longitud completa (todos)"*. Y después, con los números de subirlos a 11
+    # kHz a la vista, que afectar tanto a la música no le agrada: van **enteros
+    # a la tasa de siempre**, y a más sólo donde fuera gratis —no hubo ninguno:
+    # cada uno está en algún paquete que limita muestras—. Los de tres cuartos
+    # de segundo o menos ya sonaban enteros y no están acá.
+    #
+    # Enteros sí le cuestan a la música de su paquete —los tres largos de la
+    # pelea al tema de batalla, los del mapa 3 a `evilrhys`; la lluvia no,
+    # porque la paga el trueno de la apertura, que bajó de tasa—: cuánto y a
+    # quién está en `tasks/*/efectos-de-sonido-sin-recortes.md`.
+    "Rain1", "Bite", "Item2", "Monster1", "Thunder9", "Darkness",
+    "Explosion4", "Glass", "Holy5",
+]
+
+# Los alias por mapa: el efecto que en ese mapa suena con otra muestra. Cada
+# uno es un efecto más, pero no una entrada más del directorio: comparte lugar
+# con los de los otros paquetes, así que sólo cuesta una si su paquete pasa a
+# ser el más cargado. El `sample` lleva una `@`: lo que va después es un nombre
+# aparte para la misma WAV.
+per_map = [
+    # El trueno de la apertura, entero: el 3, el 20 y el 32 también piden el
+    # trueno y llevan el de siempre.
+    { effect = "Thunder9", map = 1, sample = "Thunder9@entero" },
+    # Earth4 en el 21, del 2026-09-27: lo pide una ruta de ahí, y dura 1,36 s,
+    # así que sólo ahí va entero y a la tasa de su WAV —el del 3 sigue como
+    # estaba—.
+    { effect = "Earth4", map = 21, sample = "Earth4@entero" },
+]
+
+# Los mapas cuyos efectos de ruta —los que pide la orden 35 de una ruta
+# forzada— **no entran** en el paquete de audio del mapa: `effects` es "all", o
+# la lista de nombres. Un efecto de ruta suena igual si alguna página del mapa
+# lo pide con `PlaySound`, porque entonces ya está en el paquete; los que sólo
+# pide una ruta, no suenan.
+#
+# Es la regla de taro para los efectos —ningún instrumento pierde tasa por
+# ellos— aplicada mapa por mapa, medida el 2026-09-27 contra el reparto de
+# `release` (la tasa de cada par tema-instrumento, antes y después).
+route_effects_left_out = [
+    # Los nueve de la escena de `evilrhys` (Decision1, Blow1 a Blow6, Shot2) no
+    # entran en su paquete **ni con las muestras al mínimo**: el conversor se
+    # corta. Switch1 suena, porque las páginas también lo piden.
+    { map = 3, effects = "all" },
+    # Blow2 le baja un instrumento de `Deflector1` de 22,9 a 16,4 kHz.
+    { map = 7, effects = "all" },
+    # El `SceneDriver` pide cuatro, y con ellos `hzbreach` deja de ser tema de
+    # salida y el paquete no entra.
+    { map = 14, effects = "all" },
+    # Es de prueba: Earth8 le baja 25 pares.
+    { map = 121, effects = "all" },
+]
+
+# Los efectos de las páginas de tropa —su `PlaySound`— que **sí** entran en el
+# paquete de audio de la pelea. Los demás no entran, por la misma regla de
+# taro: ningún instrumento pierde tasa por un efecto. El paquete de la pelea
+# es el tema de batalla y los efectos del sistema, y ya limita muestras:
+# medido el 2026-09-28 contra el `release` de antes, el `Thunder9` del
+# despegue de la pelea de los agentes (tropas 102 y 104) le baja a
+# `T_VGFighterMAX_Masako` seis instrumentos de 13,6-14,1 a 11,5-11,7 kHz y el
+# BRASS64 de 16,3 a 10,8. Con MSU-1 el tema suena por su pista y eso no se
+# oye, pero el efecto tampoco: los efectos de calidad del `.msu` son los del
+# paquete. Sumarlo acá lo hace sonar con los dos. Es una decisión de oído, como
+# `paid_by_music`: ver `workflow/tasks/*/eventos-de-tropa-de-release.md`.
+#
+# El `Thunder9` entra, a los 6000 Hz de `[sound_effects.whole]`: taro escuchó
+# el tema de batalla con y sin él, y a 6000 y a 3000 Hz, y eligió 6000 el
+# 2026-09-28 (`tasks/*/el-hp-de-los-enemigos-y-el-trueno.md`). Además de lo de
+# arriba bajan ocho muestras de la batería, y con MSU-1 los efectos de calidad
+# de la pelea pasan de 14000 a 12000 Hz.
+troop_effects_in_package = ["Thunder9"]
+
+# Los que van enteros, sin tope ni bucle, a la tasa que dice cada uno, en Hz:
+# terminan cuando termina la muestra, que es lo que hacen en RM2k. Con el
+# tope, el trueno repetía sus 0,35–0,75 s hasta cumplir los cuadros y taro lo
+# oyó tartamudear: `decisiones/el-trueno-va-entero-y-paga-la-lluvia.md`.
+#
+# **Lo que un efecto entero ocupa de más no le cuesta nada a la música**: el
+# banco se reparte contando cada efecto como si no estuviera acá, y lo de más
+# tiene que entrar en lo que la música deja libre en cada paquete donde está
+# —si no, el conversor se corta—, salvo los de `paid_by_music`. Es de taro:
+# *"No me parece aceptable que instrumentos pierdan calidad por un solo mapa,
+# pero tampoco quiero perder calidad en los efectos de sonido."* Un efecto que
+# está en un paquete que limita muestras —cuál limita a cada una lo imprime
+# el conversor— no puede estar acá sin que algún instrumento lo pague, y eso
+# lo decide taro escuchando: ver la tarea `efectos-de-sonido-sin-recortes.md`.
+#
+# La tasa de cada uno se eligió el 2026-09-26: los que más se oyen primero, a
+# la más alta que entra —22.050 Hz es la de los WAV, así que no se
+# remuestrean—, y sin que los efectos de un paquete que hoy entran al lado de
+# un tema que puede venir sonando dejen de entrar (ver
+# `decisiones/el-tema-que-suena-gana-y-los-efectos-esperan.md`).
+[sound_effects.whole]
+# El trueno de la apertura, que es un alias de `per_map`. **Sí** lo paga la
+# música, si hace falta. Va a 8,8 kHz y no a los 22 de su WAV para que la
+# lluvia entera entre en el paquete del mapa 1 sin bajarle la tasa a ningún
+# instrumento: taro, el 2026-09-26. Subirlo vuelve a costarle a
+# `escape_newyork`.
+"Thunder9@entero" = 8800
+Sword3 = 22050
+Monster2 = 22050
+Recovery4 = 22050
+Flame5 = 22050
+Explosion5 = 22050
+Dark5 = 22050
+Cold2 = 22050
+Thunder6 = 22050
+Thunder4 = 22050
+Decision2 = 22050
+Earth8 = 22050
+Fall2 = 22050
+Buzzer1 = 22050
+Blow7 = 22050
+Failure1 = 22050
+Holy6 = 16000
+Kill3 = 16000
+Sword2 = 11025
+Dark1 = 11025
+Sword1 = 11025
+Numbness3 = 6000
+"Refer Book" = 6000
+Earth1 = 6000
+Thunder5 = 6000
+# Los de `paid_by_music`, del 2026-09-26: enteros a la tasa de siempre.
+Rain1 = 6000
+Bite = 6000
+Item2 = 6000
+Monster1 = 6000
+Thunder9 = 6000
+Darkness = 6000
+Explosion4 = 6000
+Glass = 6000
+Holy5 = 6000
+# Annihilation2, del 2026-09-27: el golpe de la carrera cuando el volante
+# quiere salirse de los carriles, y el del final del puente. Está en los
+# paquetes de las tres vueltas y del puente, y sonaba recortado y con bucle. A
+# 8 kHz es lo más alto que entra sin bajarle a ningún instrumento y sin que
+# los efectos del 49 dejen de entrar al lado de `golden_axe-turtlevillage2`,
+# que puede venir sonando desde Lashe City: a 11 kHz ya esperan al `PlayBGM`.
+# Medido con el reparto de `release` antes y después.
+Annihilation2 = 8000
+# Earth4 en el 21, que es un alias de `per_map`, a la tasa de su WAV. Entra en
+# lo que la música deja libre en el paquete del 21 sin bajarle a nadie; sólo
+# alarga la carga.
+"Earth4@entero" = 22050
+
 # --- Los mapas ---------------------------------------------------------------
 #
 # Los mapas del juego que lleva `release`: **los de id menor a `below`, menos

@@ -48,3 +48,23 @@ def test_un_texto_que_va_a_la_rom_se_mide(tmp_path):
         perillas.ascii("rom", "acento", largo=4, ruta=ruta)
     with pytest.raises(perillas.FaltaUnaClave, match="de 1 a 2"):
         perillas.ascii("rom", "firma", hasta=2, ruta=ruta)
+
+
+def test_las_herramientas_se_importan_sin_un_juego(tmp_path):
+    """El conversor y lo que usa leen las perillas cuando las usan, no al
+    importarse: si no, importar `port.snes_convert` —lo que hacen las pruebas
+    de acá— pediría el archivo de proyecto de un juego. Se corre aparte, con
+    el archivo apuntando a uno que no existe, porque en este proceso los
+    módulos ya pueden estar importados."""
+    import subprocess
+    import sys
+    codigo = (
+        "from comun import proyecto\n"
+        "proyecto.archivo_de_proyecto = lambda: %r\n"
+        "import port.snes_convert, port.eventos, port.escena, port.msu_datos\n"
+        "import audio.snes_music, rpgmaker.rm2k\n"
+        % str(tmp_path / "no-existe.toml"))
+    hecho = subprocess.run([sys.executable, "-c", codigo],
+                           cwd=perillas.proyecto.herramientas(),
+                           capture_output=True, text=True)
+    assert hecho.returncode == 0, hecho.stderr[-2000:]

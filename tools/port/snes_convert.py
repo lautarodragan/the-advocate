@@ -8059,7 +8059,7 @@ def main():
     # Sólo los que están en algún paquete: uno que no está en ninguno no
     # suena en ningún lado —su fila de `sonido_tabla` queda en $FF— y
     # armarlo le costaría a la música, porque `snes_music.copias` cuenta los
-    # efectos del cartucho. Pasa con los de ruta de `SE_DE_RUTA_SIN_PAQUETE`.
+    # efectos del cartucho. Pasa con los de ruta de `se_de_ruta_sin_paquete`.
     empaquetados = {n for pide in temas.por_mapa.values()
                     for n in pide["sonidos"]}
     pedidos_se = []
@@ -8097,8 +8097,8 @@ def main():
                   and not (i == args.inicial and t == arranque)]
         suyos = [t for t in suyos if t not in salida]
         # Y los aparte, que tampoco van con los otros temas: los sube su
-        # `PlayBGM` con los efectos del paquete. Ver `TEMAS_APARTE`.
-        aparte = [t for t in suyos if pedidos[t] in snes_music.TEMAS_APARTE.get(
+        # `PlayBGM` con los efectos del paquete. Ver `temas_aparte`.
+        aparte = [t for t in suyos if pedidos[t] in snes_music.temas_aparte().get(
                       _mapa["id"], ()) and t != tema_de_mapa[i]
                   and not (i == args.inicial and t == arranque)]
         suyos = [t for t in suyos if t not in aparte]
@@ -8465,7 +8465,7 @@ def temas_heredados(temas, tema_de_mapa, inicial, titulo, nombres_de_paquete,
     salida. El de arranque sigue con la regla de arriba: ver `lleva`.
 
     `apartes` son los temas aparte de cada paquete —ver
-    `snes_music.TEMAS_APARTE`—: no se van del mapa, así que no cuentan en lo
+    `snes_music.temas_aparte()`—: no se van del mapa, así que no cuentan en lo
     que sale.
 
     `no_se_dan` son los saltos de páginas compiladas que no se pueden dar,
