@@ -31,3 +31,4 @@ un `-c`) se buscan aparte con grep.
 5. `cache_disco.py` → `disk_cache.py`.
 6. `paralelo.py` → `parallel.py`.
 7. `rpgmaker/recursos.py` → `rpgmaker/resources.py`.
+8. `rpgmaker/fork.py`, sus nombres.

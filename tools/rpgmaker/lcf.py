@@ -368,8 +368,8 @@ class Map:
         # The fork belongs only to **this** game: another game is read by
         # passing it its own dump, and there `rom/parches/manual/` has no
         # say. And the same for a map the game does not have: see
-        # `fork.nuevos`.
-        forkeado = ((fork.mapa(self.map_id) or fork.nuevo(self.map_id))
+        # `fork.new_maps`.
+        forkeado = ((fork.map_fork(self.map_id) or fork.new_map(self.map_id))
                     if raiz == project.data() else None)
         if forkeado:
             ruta_json, ruta_tiles = forkeado
@@ -863,9 +863,9 @@ class TreeMap:
         datos = leer(volcado(path), "maps.json")
         infos = por_id(lista(datos, "maps"))
         # The maps the game does not have bring their node: see
-        # `fork.nuevos`. Only on this game's dump, same as `Map`'s forks.
+        # `fork.new_maps`. Only on this game's dump, same as `Map`'s forks.
         if volcado(path) == project.data():
-            for map_id, (_json, _tiles, nodo) in fork.nuevos().items():
+            for map_id, (_json, _tiles, nodo) in fork.new_maps().items():
                 infos[map_id] = nodo
 
         self.map_names = {i: campo(f, "name")

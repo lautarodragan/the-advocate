@@ -43,7 +43,7 @@ Un fork reemplaza un mapa que existe; un mapa de `nuevos/` **no puede** tener
 el id de uno que exista, porque lo taparía sin avisar. Por eso van en otra
 carpeta: juntos, un fork con el nombre mal escrito pasaría por mapa nuevo.
 Lo demás es igual —todo o nada, el id de adentro es el del nombre— y lo hace
-cumplir `fork.nuevos`.
+cumplir `fork.new_maps`.
 
 Y trae lo que un mapa del juego tiene afuera: **su nodo del árbol**, el de
 `data/maps.json`, en el campo `arbol` del JSON y en la misma vista resuelta.

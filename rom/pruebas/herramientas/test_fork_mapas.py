@@ -52,8 +52,8 @@ def fork_de_mentira(tmp_path, monkeypatch):
     tiene."""
     mapas = tmp_path / "mapas"
     mapas.mkdir()
-    monkeypatch.setattr(fork, "carpeta_mapas", lambda: str(mapas))
-    monkeypatch.setattr(fork, "carpeta_chipsets",
+    monkeypatch.setattr(fork, "maps_folder", lambda: str(mapas))
+    monkeypatch.setattr(fork, "chipsets_folder",
                         lambda: str(tmp_path / "chipsets"))
     return mapas
 
@@ -67,8 +67,8 @@ def test_fork_a_medias_no_arma(fork_de_mentira):
     """El `.json` sin su `.tiles`: el modo de falla que se ve bien."""
     shutil.copy(_un_mapa_de_verdad() + ".json",
                 str(fork_de_mentira / "Map0011.json"))
-    with pytest.raises(fork.ForkRoto) as roto:
-        fork.mapas()
+    with pytest.raises(fork.BrokenFork) as roto:
+        fork.maps()
     assert "incomplete" in str(roto.value)
 
 
@@ -76,8 +76,8 @@ def test_fork_con_las_capas_solas_tampoco_arma(fork_de_mentira):
     """Y al revés, que es el mismo agujero por el otro lado."""
     shutil.copy(_un_mapa_de_verdad() + ".tiles",
                 str(fork_de_mentira / "Map0011.tiles"))
-    with pytest.raises(fork.ForkRoto):
-        fork.mapas()
+    with pytest.raises(fork.BrokenFork):
+        fork.maps()
 
 
 def test_fork_que_dice_ser_otro_mapa_no_arma(fork_de_mentira):
@@ -89,8 +89,8 @@ def test_fork_que_dice_ser_otro_mapa_no_arma(fork_de_mentira):
         json.dump(datos, handle)
     shutil.copy(_un_mapa_de_verdad() + ".tiles",
                 str(fork_de_mentira / "Map0011.tiles"))
-    with pytest.raises(fork.ForkRoto) as roto:
-        fork.mapas()
+    with pytest.raises(fork.BrokenFork) as roto:
+        fork.maps()
     assert "map 12" in str(roto.value)
 
 
@@ -99,18 +99,18 @@ def test_fork_de_un_mapa_que_no_existe_no_arma(fork_de_mentira):
     for extension in (".json", ".tiles"):
         shutil.copy(_un_mapa_de_verdad() + extension,
                     str(fork_de_mentira / ("Map9999" + extension)))
-    with pytest.raises(fork.ForkRoto):
-        fork.mapas()
+    with pytest.raises(fork.BrokenFork):
+        fork.maps()
 
 
 # Los mapas nuevos, `parches/manual/nuevos/`: la regla de los forks dada
-# vuelta. Ver `fork.nuevos`.
+# vuelta. Ver `fork.new_maps`.
 
 @pytest.fixture
 def nuevos_de_mentira(tmp_path, monkeypatch):
     nuevos = tmp_path / "nuevos"
     nuevos.mkdir()
-    monkeypatch.setattr(fork, "carpeta_nuevos", lambda: str(nuevos))
+    monkeypatch.setattr(fork, "new_maps_folder", lambda: str(nuevos))
     return nuevos
 
 
@@ -132,8 +132,8 @@ def test_un_mapa_nuevo_no_pisa_uno_del_juego(nuevos_de_mentira):
     """Con el id de un mapa que `data/` tiene lo taparía sin avisar: eso es un
     fork, y va en la otra carpeta."""
     _un_mapa_nuevo(nuevos_de_mentira, 11)
-    with pytest.raises(fork.ForkRoto) as roto:
-        fork.nuevos()
+    with pytest.raises(fork.BrokenFork) as roto:
+        fork.new_maps()
     assert "already exists" in str(roto.value)
 
 
@@ -141,15 +141,15 @@ def test_un_mapa_nuevo_trae_su_nodo_con_su_id(nuevos_de_mentira):
     """El nodo del árbol es lo que le da nombre, padre y música: con otro id
     se los daría a otro mapa."""
     _un_mapa_nuevo(nuevos_de_mentira, 9998, id_del_nodo=9997)
-    with pytest.raises(fork.ForkRoto):
-        fork.nuevos()
+    with pytest.raises(fork.BrokenFork):
+        fork.new_maps()
 
 
 def test_un_mapa_nuevo_a_medias_no_arma(nuevos_de_mentira):
     _un_mapa_nuevo(nuevos_de_mentira, 9998)
     os.remove(str(nuevos_de_mentira / "Map9998.tiles"))
-    with pytest.raises(fork.ForkRoto) as roto:
-        fork.nuevos()
+    with pytest.raises(fork.BrokenFork) as roto:
+        fork.new_maps()
     assert "incomplete" in str(roto.value)
 
 
@@ -162,8 +162,8 @@ def test_un_mapa_nuevo_se_lee_como_cualquiera(nuevos_de_mentira):
 
 
 def test_fork_el_id_de_adentro_es_el_del_nombre():
-    """Sobre los forks de verdad: es lo que `fork.mapas()` exige al leerlos."""
-    for map_id, (ruta_json, _) in fork.mapas().items():
+    """Sobre los forks de verdad: es lo que `fork.maps()` exige al leerlos."""
+    for map_id, (ruta_json, _) in fork.maps().items():
         datos = json.load(open(ruta_json, encoding="utf-8"))
         assert datos["id"] == map_id
         assert os.path.basename(ruta_json) == "Map%04d.json" % map_id
@@ -171,7 +171,7 @@ def test_fork_el_id_de_adentro_es_el_del_nombre():
 
 def test_fork_no_le_cambia_el_tamano_al_mapa():
     """Un fork que redimensiona corre todas las celdas del juego un lugar."""
-    for map_id, (ruta_json, _) in fork.mapas().items():
+    for map_id, (ruta_json, _) in fork.maps().items():
         nuestro = json.load(open(ruta_json, encoding="utf-8"))
         suyo = json.load(open(os.path.join(project.data(), "maps",
                                            "Map%04d.json" % map_id),
@@ -188,7 +188,7 @@ def test_fork_no_borra_un_evento_que_otro_nombra():
     El público del Auditorio se horneó porque ninguna de sus páginas lo toca;
     esto es lo que lo comprueba cada vez y no una sola.
     """
-    for map_id, (ruta_json, _) in fork.mapas().items():
+    for map_id, (ruta_json, _) in fork.maps().items():
         datos = json.load(open(ruta_json, encoding="utf-8"))
         hay = {evento["id"] for evento in datos["events"]}
         for evento in datos["events"]:
@@ -211,7 +211,7 @@ def test_fork_donde_borro_un_evento_del_piso_la_celda_sigue_cerrada():
     abierta y el jugador camina por encima de la gente. La pasabilidad del
     ChipSet forkeado es lo único que lo sostiene.
     """
-    for map_id, _ in fork.mapas().items():
+    for map_id, _ in fork.maps().items():
         datos, _ = _original(map_id)
         game_map = lcf.Map("Map%04d.lmu" % map_id)
         vivos = {evento.id for evento in game_map.events}
@@ -271,7 +271,7 @@ def test_fork_los_teleports_que_entran_siguen_cayendo_en_celdas_pisables():
     pisar, y no más: el 36 —la pantalla negra del auto— recibe a `DummyHero`
     en celdas que ya en el juego original no se pisan, y ahí nadie camina.
     """
-    forkeados = fork.mapas()
+    forkeados = fork.maps()
     if not forkeados:
         pytest.skip("no hay ningún mapa forkeado")
     base = lcf.Database(os.path.join(project.data(), "db", "RPG_RT.ldb"))
@@ -334,7 +334,7 @@ def test_fork_no_pisa_una_ranura_que_su_mapa_dibuja_con_el_arte_de_antes():
     forkeados, así que las demás ranuras son de uso libre.
     """
     por_chipset = {}
-    for map_id, (ruta_json, _) in fork.mapas().items():
+    for map_id, (ruta_json, _) in fork.maps().items():
         datos = json.load(open(ruta_json, encoding="utf-8"))
         por_chipset.setdefault(datos["chipset_id"], []).append(map_id)
     for numero, datos in fork.chipsets().items():
@@ -383,7 +383,7 @@ def test_podar_conserva_las_ranuras_que_solo_nombra_un_evento():
     ninguna prueba, lo cobró comparar la ROM byte por byte, y por eso esta
     prueba existe.
     """
-    forkeados = fork.mapas()
+    forkeados = fork.maps()
     chipsets = fork.chipsets()
     mirados = 0
     for map_id, (ruta_json, _) in forkeados.items():
@@ -413,26 +413,26 @@ def test_podar_se_planta_si_el_mapa_elige_tiles_en_caliente(tmp_path):
     archivo existe para evitar. Ningún mapa forkeado los usa, así que el camino
     se ejercita metiéndole el comando a un fork de mentira.
     """
-    map_id = next(iter(fork.mapas()))
-    ruta_json, ruta_tiles = fork.mapas()[map_id]
+    map_id = next(iter(fork.maps()))
+    ruta_json, ruta_tiles = fork.maps()[map_id]
     datos = json.load(open(ruta_json, encoding="utf-8"))
     codigo, nombre = sorted(
         chipset_del_fork.COMANDOS_QUE_ELIGEN_TILES.items())[0]
     datos["events"][0]["pages"][0].setdefault("event_commands", []).append(
         {"code": codigo, "indent": 0, "string": "", "parameters": [0]})
 
-    mapas_antes = fork.carpeta_mapas
-    fork.carpeta_mapas = lambda: str(tmp_path)
+    mapas_antes = fork.maps_folder
+    fork.maps_folder = lambda: str(tmp_path)
     try:
         with open(os.path.join(tmp_path, "Map%04d.json" % map_id), "w",
                   encoding="utf-8") as handle:
             json.dump(datos, handle)
         shutil.copy(ruta_tiles, os.path.join(tmp_path,
                                              "Map%04d.tiles" % map_id))
-        with pytest.raises(fork.ForkRoto) as caida:
+        with pytest.raises(fork.BrokenFork) as caida:
             chipset_del_fork._lo_que_dibuja(map_id)
     finally:
-        fork.carpeta_mapas = mapas_antes
+        fork.maps_folder = mapas_antes
     assert nombre in str(caida.value)
 
 

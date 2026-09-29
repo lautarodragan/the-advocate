@@ -26,7 +26,7 @@ from PIL import Image
 
 from common import project
 from rpgmaker import lcf
-from rpgmaker.fork import ForkRoto, chipsets
+from rpgmaker.fork import BrokenFork, chipsets
 from rpgmaker.rm2k import (OFFSET_X, SPRITE_HEIGHT, SPRITE_WIDTH, TILE,
                            caja_de_comun, caja_de_terreno)
 
@@ -96,7 +96,7 @@ def _lo_que_dibuja(map_id):
             for comando in pagina.commands:
                 nombre = COMANDOS_QUE_ELIGEN_TILES.get(comando.code)
                 if nombre:
-                    raise ForkRoto(
+                    raise BrokenFork(
                         "map %d uses %s, which picks a tile at run time: "
                         "with that the layers do not say what is drawn and "
                         "pruning the ChipSet would erase art the map does use"
@@ -159,7 +159,7 @@ class _Paleta:
     def indice(self, color):
         if color not in self.donde:
             if not self.libres:
-                raise ForkRoto(
+                raise BrokenFork(
                     "the ChipSet ran out of palette indices: all 256 are "
                     "already used and the incoming drawing brings colors it "
                     "does not have. If the ChipSet is not being pruned, "
@@ -213,8 +213,8 @@ def imagen_del_chipset(datos, buscar):
     receta = datos["imagen"]
     origen = buscar("ChipSet", receta["base"])
     if origen is None:
-        raise ForkRoto("ChipSet %r, which %d comes from, is missing"
-                       % (receta["base"], datos["chipset"]["id"]))
+        raise BrokenFork("ChipSet %r, which %d comes from, is missing"
+                         % (receta["base"], datos["chipset"]["id"]))
     # Without converting to RGBA: the ChipSets are indexed PNGs and color 0
     # is the color key. Converting them here threw away the palette, and the
     # resulting PNG had the empty tiles **opaque**: it shows, and it looks
@@ -258,9 +258,9 @@ def imagen_del_chipset(datos, buscar):
         for una in receta["desde_charset"]:
             hoja = buscar("CharSet", una["charset"])
             if hoja is None:
-                raise ForkRoto("CharSet %r, which ChipSet %d bakes, "
-                               "is missing" % (una["charset"],
-                                               datos["chipset"]["id"]))
+                raise BrokenFork("CharSet %r, which ChipSet %d bakes, "
+                                 "is missing" % (una["charset"],
+                                                 datos["chipset"]["id"]))
             fuente = Image.open(hoja)
             fuente.load()
             desde = _paleta(fuente)
@@ -286,9 +286,9 @@ def imagen_del_chipset(datos, buscar):
         una = receta["desde_imagen"]
         ruta = buscar(una["carpeta"], una["imagen"])
         if ruta is None:
-            raise ForkRoto("%s/%s, which ChipSet %d bakes, is missing"
-                           % (una["carpeta"], una["imagen"],
-                              datos["chipset"]["id"]))
+            raise BrokenFork("%s/%s, which ChipSet %d bakes, is missing"
+                             % (una["carpeta"], una["imagen"],
+                                datos["chipset"]["id"]))
         fuente = Image.open(ruta)
         fuente.load()
         desde = _paleta(fuente)

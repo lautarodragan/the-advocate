@@ -68,13 +68,13 @@ AGREGADOS = tuple(settings.value("maps", "added", kind=list))
 
 def el_mapa_de_debug():
     """The debug map's id: the only new map in
-    `rom/parches/manual/nuevos/` —see `fork.nuevos`—. It comes from there and
+    `rom/parches/manual/nuevos/` —see `fork.new_maps`—. It comes from there and
     not from the project file so as not to write the number twice."""
     from rpgmaker import fork
-    nuevos = sorted(fork.nuevos())
+    nuevos = sorted(fork.new_maps())
     if len(nuevos) != 1:
         sys.exit("the debug map is the only new map in %s, and there are %d: %s"
-                 % (fork.carpeta_nuevos(), len(nuevos), nuevos))
+                 % (fork.new_maps_folder(), len(nuevos), nuevos))
     return nuevos[0]
 
 

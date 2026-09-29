@@ -2176,7 +2176,7 @@ def base_de_datos(game_dir):
     from rpgmaker import fork, lcf
     ruta = os.path.join(game_dir, "RPG_RT.ldb")
     huella = [ruta, lcf.REAJUSTAR_TEXTOS, lcf.DECORAR_TRANSLUCIDO]
-    for carpeta in (os.path.join(lcf.volcado(ruta), "db"), fork.carpeta_chipsets()):
+    for carpeta in (os.path.join(lcf.volcado(ruta), "db"), fork.chipsets_folder()):
         if os.path.isdir(carpeta):
             for nombre in sorted(os.listdir(carpeta)):
                 estado = os.stat(os.path.join(carpeta, nombre))
