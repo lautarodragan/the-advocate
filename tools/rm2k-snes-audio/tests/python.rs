@@ -27,6 +27,17 @@ fn sha(text: &[u8]) -> String {
     Sha256::digest(text).iter().map(|b| format!("{b:02x}")).collect()
 }
 
+/// `musicdata.inc` without its comments: what the assembler reads, and the
+/// one comment line that is data —`; Songs: `, which the tools that read a
+/// cartridge look for—. The other comments explain the file, and are
+/// free to change.
+fn data_of(inc: &str) -> String {
+    inc.split('\n')
+        .filter(|l| !l.starts_with(';') || l.starts_with("; Songs: "))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 fn scratch(name: &str) -> PathBuf {
     let dir = std::env::temp_dir().join(format!("rm2k-snes-audio-{name}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
@@ -81,7 +92,7 @@ fn the_music_is_the_one_the_python_wrote() {
     let (inc, songs, quality, boot) = compile_fixture(&dir);
     let _ = std::fs::remove_dir_all(&dir);
     assert_eq!(boot, (44.07861328125, 21420), "the boot's estimate");
-    assert_eq!(sha(inc.as_bytes()), "d481058e892bf1fcc537449358940cdd115673af0d20eebe07f1522ba0946697", "musicdata.inc");
+    assert_eq!(sha(data_of(&inc).as_bytes()), "d2a34be276994b01a5a73339058b1bda9fb0ce3b71b1fd197fec05b6636dca14", "musicdata.inc");
     assert_eq!(sha(songs.as_bytes()), "c5feb36f38f182aa9dc1fc40dac8bf8e7ed208ca3b12e85fe0df83c23c240d66", "musica.json");
     assert_eq!(sha(quality.as_bytes()), "bd9599b5508c5c16076ffc79b39eb889ec28c5bc5e1c3301414b31253f257337", "the MSU-1 sound effects");
 }
