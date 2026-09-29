@@ -1,13 +1,14 @@
-"""Convierte el MIDI de un mapa a muestras BRR y un stream para el S-DSP.
+"""Converts a map's MIDI to BRR samples and a stream for the S-DSP.
 
-Lo que no depende del chip —leer el MIDI y pasar los tiempos a cuadros— está
-en midi.py y musica.py; lo del S-DSP, en sdsp.py. Las voces se reparten nota a
-nota, las ocho para todos los canales: ver `assign`.
+What does not depend on the chip —reading the MIDI and turning times into
+frames— is in midi.py and musica.py; the S-DSP part, in sdsp.py. Voices are
+allocated note by note, all eight shared by every channel: see `assign`.
 
-Salen dos cosas: el bloque que se sube a la memoria del SPC700 (el directorio
-de muestras más las muestras en BRR) y el stream de cada tema, por nota, que el
-65816 expande a escrituras al DSP cuadro a cuadro: ver "el formato por nota". Quien lo llama es el conversor, con
-todos los temas del cartucho a la vez: ver `build_varios`.
+Two things come out: the block uploaded to the SPC700's memory (the sample
+directory plus the samples in BRR) and each song's stream, per note, which the
+65816 expands into DSP writes frame by frame: see "the per-note format". The
+caller is the converter, with every song of the cartridge at once: see
+`build_varios`.
 """
 
 import collections
@@ -29,73 +30,78 @@ from rpgmaker.recursos import find_resource
 
 TICKS_PER_SECOND = musica.TICKS_PER_SECOND
 
-# Dónde vive cada cosa en los 64 KB del SPC700. Los primeros $200 bytes se los
-# queda la ROM de arranque para sus variables, así que se empieza más arriba.
+# Where each thing lives in the SPC700's 64 KB. The boot ROM keeps the first
+# $200 bytes for its variables, so everything starts higher up.
 DRIVER_ADDR = 0x0200
 SAMPLES_ADDR = 0x0400
 
-BLOQUE = muestras_brr.BLOQUE_MUESTRAS   # 16 muestras por bloque de BRR
+BLOQUE = muestras_brr.BLOQUE_MUESTRAS   # 16 samples per BRR block
 
-# Las muestras van de $0400 hasta el final de los 64 KB —`ARAM_FIN`, más
-# abajo—, sin reserva: el eco está apagado —FLG con el bit de "no escribir el
-# buffer"— y la pila del SPC700 vive en $0100, o sea debajo. Ahí entra un
-# paquete por vez, y es contra eso que se reparte: ver `Banco`.
+# The samples go from $0400 to the end of the 64 KB —`ARAM_FIN`, further
+# down—, with no reservation: echo is off —FLG with the "do not write the
+# buffer" bit— and the SPC700's stack lives at $0100, that is, below. One
+# package fits there at a time, and that is what the allocation is done
+# against: see `Banco`.
 #
-# Y lo que se le deja libre a cada paquete al repartir. El largo de cada
-# muestra se redondea a bloques de BRR y el reparto pide por presupuesto, así
-# que es holgura para eso; `Banco` comprueba lo que ocupan de verdad contra
-# la ARAM sin margen. Con 1 KB es con lo que se midió el paso 6.
+# And what is left free for each package when allocating. Each sample's
+# length is rounded up to BRR blocks and the allocation asks by budget, so
+# this is slack for that; `Banco` checks what they really take against the
+# ARAM with no margin. 1 KB is what step 6 was measured with.
 ARAM_MARGEN = 1024
 
-# Los opcodes del stream **no se declaran acá**: salen de
-# `tools/protocol/music.toml`, que es del que escribe el stream y del que lo lee, y
-# de ninguno. Hasta el 2026-09-15 estaban escritos a mano de los dos lados, en
-# este archivo y en main.s, sin nada que los atara.
+# The stream's opcodes **are not declared here**: they come from
+# `tools/protocol/music.toml`, which belongs to the stream's writer and its
+# reader, and to neither. Until 2026-09-15 they were written by hand on both
+# sides, in this file and in main.s, with nothing tying them together.
 from audio.music_opcodes import *   # noqa: E402,F401,F403
 
 
-# La pista de MSU-1 de cada tema. El MSU-1 no es hardware de la consola sino
-# una extensión que soportan el FX Pak Pro y los emuladores: la música sale de
-# un archivo PCM al lado de la ROM —`<rom>-<pista>.pcm`, habilitado por un
-# `<rom>.msu`— en vez de sintetizarse en el SPC700. Cuando el tema tiene
-# pista, la ROM calla el SPC700 y la toca; los efectos siguen sonando en el
-# SPC700, así que la ARAM les queda entera. Las pistas las arma
-# `tools/audio/msu.py` desde los mismos MIDI, con el soundfont con que sonaba
-# el juego original en la PC.
+# Each song's MSU-1 track. The MSU-1 is not console hardware but an extension
+# supported by the FX Pak Pro and the emulators: the music comes from a PCM
+# file next to the ROM —`<rom>-<track>.pcm`, enabled by a `<rom>.msu`—
+# instead of being synthesized on the SPC700. When the song has a track, the
+# ROM silences the SPC700 and plays the track; sound effects keep playing on
+# the SPC700, so they get the whole ARAM. The tracks are built by
+# `tools/audio/msu.py` from the same MIDIs, with the soundfont the original
+# game sounded with on the PC.
 #
-# **Todo tema tiene pista**: lo pidió taro el 2026-09-26, y hasta ese día era
-# una lista a mano de 22 —los que suenan hasta salir de Lashe City—. Un tema
-# sin pista es uno que no tiene de dónde salir: "(OFF)", o un nombre que no
-# está en `Music/`. Lo cobra `test_todo_tema_tiene_su_pista`.
+# **Every song has a track**: taro asked for it on 2026-09-26, and until that
+# day it was a hand-written list of 22 —the ones that play until leaving
+# Lashe City—. A song without a track is one with nothing to come from:
+# "(OFF)", or a name that is not in `Music/`. Enforced by
+# `test_todo_tema_tiene_su_pista`.
 #
-# **El número sale del juego, no del cartucho**: es el lugar del tema en la
-# lista ordenada de `Music/` —sin mayúsculas, contando desde 1—. El índice
-# del tema en el cartucho habría sido lo obvio, pero lo decide el orden en que
-# los `PlayBGM` aparecen al compilar (`Temas.indice`), así que un mapa nuevo
-# corre la numeración de los que vienen detrás, y renumerar son cientos de
-# megas que rehacer y que volver a copiar a la tarjeta. `Music/` es del juego
-# original y no cambia, así que el número de un tema es siempre el mismo, en
-# cualquier cartucho y con cualquier lista de mapas: un tema nuevo es un
-# archivo nuevo y nada más. Los números salen salteados —el cartucho no usa
-# todos los temas del juego— y al MSU-1 le da igual.
+# **The number comes from the game, not the cartridge**: it is the song's
+# place in the sorted list of `Music/` —case-insensitive, counting from 1—.
+# The song's index in the cartridge would have been the obvious choice, but
+# that is decided by the order in which the `PlayBGM`s appear when compiling
+# (`Temas.indice`), so a new map shifts the numbering of the ones after it,
+# and renumbering means hundreds of megabytes to redo and copy to the card
+# again. `Music/` belongs to the original game and does not change, so a
+# song's number is always the same, in any cartridge and with any list of
+# maps: a new song is a new file and nothing else. The numbers come out with
+# gaps —the cartridge does not use every song in the game— and the MSU-1
+# does not care.
 #
-# Y el tamaño: 16 bits estéreo a 44,1 kHz son 10,6 MB por minuto, así que la
-# pista de cada tema pesa lo que dura. Recortarlas por loop no da: de los 21
-# de Lashe City, el **único** que repite exacto a la mitad es `C3classi`
-# —medido comparando las notas de las dos mitades—.
+# And the size: 16-bit stereo at 44.1 kHz is 10.6 MB per minute, so each
+# song's track weighs as much as it lasts. Trimming them by loop does not
+# work: of the 21 in Lashe City, the **only** one that repeats exactly at the
+# halfway point is `C3classi` —measured by comparing the notes of both
+# halves—.
 #
-# **Lo que NO arregla darle pista al de batalla**, medido el 2026-09-14 porque
-# parecía que sí: sacarlo del banco compartido libera 4 muestras y 565 B, sube
-# la tasa mediana de 11521 a 12496 Hz y **no devuelve ni un tema** de los
-# nueve recortados. Su peso es de stream, que vive en el cartucho, no de ARAM.
+# **What giving the battle song a track does NOT fix**, measured on
+# 2026-09-14 because it looked like it would: taking it out of the shared bank
+# frees 4 samples and 565 B, raises the median rate from 11521 to 12496 Hz and
+# **does not bring back a single song** of the nine that were cut. Its weight
+# is stream, which lives in the cartridge, not ARAM.
 #
-# **Y detrás, los del RTP que nombra el `System` del LDB** y el juego no trae:
-# en el ABL, el de Game Over —`GameOver3`— y los de los vehículos. Van después
-# de todos los de `Music/`, ordenados, así que no corren a ninguno de los del
-# juego; y son sólo ésos porque el RTP entero no entra en el byte —230 del
-# juego y 111 del RTP—. Un `PlayBGM` que nombre uno del RTP —`Farewell2`, en
-# los mapas 117, 127 y 150— no tiene pista hasta que se lo sume acá, y lo
-# cobra la misma prueba.
+# **And after them, the RTP ones named by the LDB's `System`** that the game
+# does not ship: in ABL, the Game Over one —`GameOver3`— and the vehicle
+# ones. They go after all of `Music/`, sorted, so they do not shift any of
+# the game's; and it is only those because the whole RTP does not fit in the
+# byte —230 from the game and 111 from the RTP—. A `PlayBGM` that names an
+# RTP one —`Farewell2`, in maps 117, 127 and 150— has no track until it is
+# added here, and the same test enforces it.
 MUSICA_DE_PISTA = (".mid", ".wav")
 
 
@@ -114,8 +120,8 @@ def _nombres_de_musica(directorio):
 
 
 def numeros_de_pista(game_dir=None):
-    """{nombre del tema en minúsculas: número de pista}, para todo `Music/` y
-    los del RTP que nombra el `System`."""
+    """{lowercase song name: track number}, for all of `Music/` and the RTP
+    ones named by `System`."""
     game_dir = game_dir or recursos.GAME_DIR
     if game_dir not in _numeros_de_pista:
         from rpgmaker.recursos import RTP_DIR
@@ -125,17 +131,17 @@ def numeros_de_pista(game_dir=None):
         sistema = sorted(({n.lower() for n in lcf.temas_del_sistema(ldb)}
                           - nombres) & del_rtp)
         orden = sorted(nombres) + sistema
-        # El número va en un byte de `tema_msu`, y $FF es "sin pista".
+        # The number goes in a byte of `tema_msu`, and $FF is "no track".
         if len(orden) > 0xFE:
-            raise SystemExit("Music/ tiene %d temas y la pista va en un byte"
+            raise SystemExit("Music/ has %d songs and the track goes in a byte"
                              % len(orden))
         _numeros_de_pista[game_dir] = {n: i + 1 for i, n in enumerate(orden)}
     return _numeros_de_pista[game_dir]
 
 
 def ruta_del_tema(nombre, game_dir=None, extensiones=MUSICA_DE_PISTA):
-    """El archivo del tema: el del juego y, si no está, el del RTP, que es
-    como lo busca RM2k. `None` si no está en ninguno de los dos."""
+    """The song's file: the game's and, if it is not there, the RTP's, which
+    is how RM2k looks for it. `None` if it is in neither."""
     game_dir = game_dir or recursos.GAME_DIR
     from rpgmaker.recursos import RTP_DIR
     return (find_resource([game_dir, RTP_DIR], "Music", nombre, extensiones)
@@ -143,61 +149,63 @@ def ruta_del_tema(nombre, game_dir=None, extensiones=MUSICA_DE_PISTA):
 
 
 def pista_msu(nombre, game_dir=None):
-    """El número de pista de MSU-1 del tema, o None si no tiene de dónde
-    salir: ver `numeros_de_pista`."""
+    """The song's MSU-1 track number, or None if it has nothing to come
+    from: see `numeros_de_pista`."""
     game_dir = game_dir or recursos.GAME_DIR
     return numeros_de_pista(game_dir).get(nombre.lower()) if nombre else None
 
 
-# --- el driver del SPC700 ---------------------------------------------------
-# Se queda esperando que el 65816 cambie el testigo del puerto 3 —lo
-# incrementa en cada escritura, y el driver se lo devuelve como acuse— y mira
-# el puerto 2, que dice qué hacer:
+# --- the SPC700 driver ------------------------------------------------------
+# It waits for the 65816 to change the token in port 3 —the 65816 increments
+# it on every write, and the driver hands it back as an acknowledgement— and
+# looks at port 2, which says what to do:
 #
-#   0  un par (registro, valor) del DSP en los puertos 0 y 1: la música
-#   1  un byte del puerto 0 a la ARAM, donde apunta el puntero, que avanza
-#   2  el puntero de la ARAM, de los puertos 0 y 1
-#   3  un bloque: el puerto 0 dice cuántas ternas vienen —hasta 85, para
-#      que el índice Y no pase de un byte—, y después llega una por testigo,
-#      en los puertos 0, 1 y 2, detrás del puntero. El puntero no avanza: el
-#      65816 lo vuelve a poner antes de cada bloque. Son unos 56 ciclos del
-#      SPC700 por terna, unos 55 KB por segundo
-#   4  volver a la ROM del IPL: ver abajo. No contesta el acuse, porque para
-#      cuando el 65816 lo leería el driver ya no existe
+#   0  a DSP (register, value) pair in ports 0 and 1: the music
+#   1  a byte from port 0 into the ARAM, where the pointer points, which
+#      advances
+#   2  the ARAM pointer, from ports 0 and 1
+#   3  a block: port 0 says how many triplets are coming —up to 85, so that
+#      index Y does not go past a byte—, and then one arrives per token, in
+#      ports 0, 1 and 2, after the pointer. The pointer does not advance: the
+#      65816 sets it again before each block. That is about 56 SPC700 cycles
+#      per triplet, about 55 KB per second
+#   4  go back to the IPL ROM: see below. It does not answer the
+#      acknowledgement, because by the time the 65816 would read it the
+#      driver no longer exists
 #
-# El comando 4 está para **volver a arrancar la ROM**. El 65816 no puede
-# resetear al SPC700 —el botón de reset de la consola sí, porque la línea les
-# llega a los dos, pero un `jml reset` de adentro del juego no—, así que
-# después del Game Over el SPC700 sigue corriendo este driver y el IPL ya no
-# está para saludar con $AA/$BB. `spc_upload` se quedaba esperando ese saludo
-# **para siempre**, con la pantalla ya encendida y el mapa dibujado: es el
-# cuelgue del cofre trampa de los Rat Tracks. Prendiendo el bit 7 de $F1 la
-# ROM del IPL vuelve a aparecer en $FFC0 y saltar ahí la arranca de cero, que
-# es exactamente lo que ve el 65816 cuando la consola se enciende.
+# Command 4 is there to **boot the ROM again**. The 65816 cannot reset the
+# SPC700 —the console's reset button can, because the line reaches both, but
+# a `jml reset` from inside the game cannot—, so after the Game Over the
+# SPC700 keeps running this driver and the IPL is no longer there to greet
+# with $AA/$BB. `spc_upload` would wait for that greeting **forever**, with
+# the screen already on and the map drawn: that is the hang at the Rat
+# Tracks' trap chest. Setting bit 7 of $F1 makes the IPL ROM reappear at
+# $FFC0, and jumping there boots it from scratch, which is exactly what the
+# 65816 sees when the console is switched on.
 #
-# Los tres de la ARAM existen por el paquete de audio de cada mapa: las
-# muestras se suben mientras la música suena, así que el driver tiene que
-# poder recibirlas sin dejar de atender al DSP. Ver `paquete_cargar` en
-# tools/runtime/paquete_de_audio.s. El puntero y la cuenta viven en $00-$03 de la página cero, que la
-# ROM de arranque usa y deja libre.
+# The three ARAM ones exist because of each map's audio package: the samples
+# are uploaded while the music plays, so the driver has to be able to receive
+# them without stopping serving the DSP. See `paquete_cargar` in
+# tools/runtime/paquete_de_audio.s. The pointer and the count live at $00-$03
+# of the zero page, which the boot ROM uses and leaves free.
 #
-# La música sigue mandando comandos 0 sin tocar el puerto 2: quien sube a la
-# ARAM lo deja en cero antes de soltar el bus, que es lo que hace que nada del
-# stream haya tenido que cambiar.
+# The music keeps sending 0 commands without touching port 2: whoever
+# uploads to the ARAM leaves it at zero before releasing the bus, which is
+# why nothing in the stream had to change.
 
 DRIVER = """
-    mov x, $F7          ; arrancar con el testigo que ya esté, sin disparar
+    mov x, $F7          ; start with whatever token is there, without firing
 espera:
     cmp x, $F7
     beq espera
     mov x, $F7
-    mov a, $F6          ; el comando
+    mov a, $F6          ; the command
     bne no_dsp
-    mov a, $F4          ; registro del DSP
+    mov a, $F4          ; DSP register
     mov $F2, a
-    mov a, $F5          ; el valor que va en ese registro
+    mov a, $F5          ; the value that goes in that register
     mov $F3, a
-    mov $F7, x          ; acusar recibo devolviendo el testigo
+    mov $F7, x          ; acknowledge by handing the token back
     bra espera
 no_dsp:
     cmp a, #$01
@@ -220,7 +228,7 @@ no_byte:
 no_puntero:
     cmp a, #$04
     bne bloque
-    mov a, #$80         ; la ROM del IPL, de vuelta en $FFC0
+    mov a, #$80         ; the IPL ROM, back at $FFC0
     mov $F1, a
     jmp !$FFC0
 bloque:
@@ -248,91 +256,94 @@ terna:
 """
 
 
-# --- muestras ---------------------------------------------------------------
+# --- samples ----------------------------------------------------------------
 
-# --- los efectos de sonido -------------------------------------------------
+# --- sound effects ---------------------------------------------------------
 #
-# Los WAV de `PlaySound` —del juego o del RTP—, en la misma ARAM que el banco
-# de la música, con **lo que la música deja libre** y hasta `SE_ARAM`: la
-# música va primero. El primer intento les reservaba 16 KB y se los sacaba a
-# la percusión, que es la que se queda con lo que sobra, y el banco de la
-# demo bajó de 44 muestras a 22. La demo pide 38 efectos que suman más de 40
-# segundos, y eso no entra a ninguna calidad razonable, así que se eligen:
-# primero los que piden los primeros mapas de la ROM, a `SE_TASA`, recortados a
-# `SE_MAX_SEGUNDOS`; uno más largo repite sus últimos `SE_LOOP_SEGUNDOS`
-# hasta durar lo que dura en RM2k —la lluvia de la apertura son cinco
-# segundos de ruido, y así se la oye entera—. Los que no entran no suenan, y
-# el conversor lo dice.
+# The WAVs of `PlaySound` —from the game or the RTP—, in the same ARAM as the
+# music bank, with **what the music leaves free** and up to `SE_ARAM`: the
+# music comes first. The first attempt reserved 16 KB for them and took it
+# from the percussion, which is what gets whatever is left over, and the
+# demo's bank dropped from 44 samples to 22. The demo asks for 38 sound
+# effects adding up to more than 40 seconds, and that does not fit at any
+# reasonable quality, so they are chosen: first the ones the ROM's first maps
+# ask for, at `SE_TASA`, trimmed to `SE_MAX_SEGUNDOS`; a longer one repeats
+# its last `SE_LOOP_SEGUNDOS` until it lasts as long as it does in RM2k —the
+# opening's rain is five seconds of noise, and that way it is heard whole—.
+# The ones that do not fit do not play, and the converter says so.
 SE_ARAM = 16 * 1024
 SE_TASA = 6000
-SE_MAX_SEGUNDOS = 0.75           # desde el paquete por mapa: ver `paquete_cargar`
+SE_MAX_SEGUNDOS = 0.75           # since the per-map package: see `paquete_cargar`
 SE_LOOP_SEGUNDOS = 0.4
-SE_VOZ = 7                      # la que se le roba a la música
-# Y la segunda, para que dos efectos suenen a la vez —la lluvia y el trueno de
-# la apertura—, como en RM2k. Las dos son las que el reparto de la música
-# llena primero con la percusión: ver `VOCES_DE_EFECTOS`.
+SE_VOZ = 7                      # the one stolen from the music
+# And the second, so two sound effects can play at once —the opening's rain
+# and thunder—, as in RM2k. Both are the ones the music allocation fills
+# first with percussion: see `VOCES_DE_EFECTOS`.
 SE_VOZ2 = 6
-# **Qué efectos van enteros, cuáles paga la música, qué alias hay por mapa y
-# qué temas van aparte son decisiones de oído del juego**, casi todas de taro
-# escuchando, y viven en su archivo de proyecto —`[sound_effects]` y
-# `[music]`— con el porqué de cada una. Hasta el 2026-09-29 eran tablas de
-# acá. Se leen al usarlas y no al importar, para que el conversor se pueda
-# importar sin un juego.
+# **Which sound effects go whole, which ones the music pays for, which
+# aliases there are per map and which songs go separately are the game's
+# decisions by ear**, almost all of them taro's while listening, and they
+# live in its project file —`[sound_effects]` and `[music]`— with the reason
+# for each. Until 2026-09-29 they were tables here. They are read when used
+# and not at import, so the converter can be imported without a game.
 
 def se_enteros():
-    """{efecto: tasa en Hz} de los que van enteros, sin tope ni bucle:
-    terminan cuando termina la muestra, que es lo que hacen en RM2k. Lo que
-    uno ocupa de más tiene que entrar en lo que la música deja libre en cada
-    paquete donde está, salvo los de `se_enteros_pagados`: ver
-    `_enteros_entran`. De `[sound_effects.whole]`."""
+    """{sound effect: rate in Hz} of the ones that go whole, with no cap or
+    loop: they end when the sample ends, which is what they do in RM2k. What
+    one takes beyond the usual has to fit in what the music leaves free in
+    each package it is in, except for those in `se_enteros_pagados`: see
+    `_enteros_entran`. From `[sound_effects.whole]`."""
     return dict(perillas.valor("sound_effects", "whole", tipo=dict))
 
 
 def se_enteros_pagados():
-    """Los enteros que, si no entran en lo libre, le bajan la tasa a la
-    música. De `[sound_effects] paid_by_music`."""
+    """The whole ones that, if they do not fit in the free space, lower the
+    music's rate. From `[sound_effects] paid_by_music`."""
     return set(perillas.valor("sound_effects", "paid_by_music", tipo=list))
 
 
 def se_del_mapa():
-    """{(nombre en RM2k, id del mapa): la muestra que suena ahí}. Los pone
-    `_compilar`, en tools/port/eventos.py. Cada uno es un efecto más, pero no
-    una entrada más del directorio: comparte lugar con los de los otros
-    paquetes —ver `lugares_de_efectos`—. De `[sound_effects] per_map`."""
+    """{(name in RM2k, map id): the sample that plays there}. They are put in
+    by `_compilar`, in tools/port/eventos.py. Each one is one more sound
+    effect, but not one more directory entry: it shares a place with those
+    of the other packages —see `lugares_de_efectos`—. From
+    `[sound_effects] per_map`."""
     return {(a["effect"], a["map"]): a["sample"]
             for a in perillas.valor("sound_effects", "per_map", tipo=list)}
 
 
 def se_de_ruta_sin_paquete():
-    """{id del mapa: None para todos, o los nombres} de los efectos que piden
-    las rutas forzadas —la orden 35, ver `RUTA_SONIDO` en
-    tools/port/eventos.py— y **no entran** en el paquete de audio de su mapa.
-    De `[sound_effects] route_effects_left_out`."""
+    """{map id: None for all, or the names} of the sound effects that forced
+    move routes ask for —move command 35, see `RUTA_SONIDO` in
+    tools/port/eventos.py— and that **do not fit** in their map's audio
+    package. From `[sound_effects] route_effects_left_out`."""
     return {m["map"]: None if m["effects"] == "all" else set(m["effects"])
             for m in perillas.valor("sound_effects", "route_effects_left_out",
                                     tipo=list)}
 
 
 def se_de_tropa_al_paquete():
-    """Los efectos de las páginas de tropa que **sí** entran en el paquete de
-    audio de la pelea. De `[sound_effects] troop_effects_in_package`."""
+    """The sound effects of troop pages that **do** go in the battle's audio
+    package. From `[sound_effects] troop_effects_in_package`."""
     return set(perillas.valor("sound_effects", "troop_effects_in_package",
                               tipo=list))
 
 
 def temas_aparte():
-    """{id del mapa: nombres} de los temas aparte: no van con los otros temas
-    del paquete de su mapa, los sube su `PlayBGM` solos con los efectos del
-    paquete —ver `extra_aparte` en tools/runtime/paquete_de_audio.s—, y no se
-    heredan a los mapas a los que se sale —ver `temas_heredados` en
-    snes_convert.py—. De `[music] apart_themes`."""
+    """{map id: names} of the separate songs: they do not go with the other
+    songs of their map's package, their `PlayBGM` uploads them alone with the
+    package's sound effects —see `extra_aparte` in
+    tools/runtime/paquete_de_audio.s—, and they are not inherited by the maps
+    you exit to —see `temas_heredados` in snes_convert.py—. From
+    `[music] apart_themes`."""
     return {m["map"]: set(m["themes"])
             for m in perillas.valor("music", "apart_themes", tipo=list)}
 
 
 class Efecto:
-    """Un efecto listo para el SPC700: `data` en BRR, a `rate`, que vuelve al
-    bloque `loop_block` si repite, y dura `segundos` en RM2k."""
+    """A sound effect ready for the SPC700: `data` in BRR, at `rate`, which
+    goes back to block `loop_block` if it repeats, and lasts `segundos` in
+    RM2k."""
 
     def __init__(self, name, data, rate, loop_block, segundos):
         self.name = name
@@ -344,8 +355,8 @@ class Efecto:
 
 
 def leer_wav(nombre, game_dir=None):
-    """Las muestras de un WAV mono como enteros de 16 bits con signo, y su
-    tasa. None si no está o no es un WAV que se entienda."""
+    """A mono WAV's samples as signed 16-bit integers, and its rate. None if
+    it is missing or is not a WAV that can be understood."""
     game_dir = game_dir or recursos.GAME_DIR
     import wave
     from rpgmaker.recursos import RTP_DIR
@@ -373,8 +384,8 @@ def leer_wav(nombre, game_dir=None):
 
 
 def build_efecto(nombre, game_dir=None, tasa=SE_TASA, enteros=None):
-    """`enteros` es `se_enteros()` si no viene; con {} sale el de siempre,
-    que es lo que la música le presupuesta: ver `se_enteros`."""
+    """`enteros` is `se_enteros()` if not given; with {} the usual one comes
+    out, which is what the music budgets for it: see `se_enteros`."""
     game_dir = game_dir or recursos.GAME_DIR
     enteros = se_enteros() if enteros is None else enteros
     leido = leer_wav(nombre.split("@")[0], game_dir)
@@ -400,13 +411,14 @@ def build_efecto(nombre, game_dir=None, tasa=SE_TASA, enteros=None):
 
 
 def build_efectos(pedidos, game_dir=None, budget=SE_ARAM):
-    """Los efectos que entran en `budget`, por prioridad: `pedidos` es una
-    lista de nombres ya ordenada de más a menos pedido. Devuelve {nombre:
-    Efecto} con los que entraron."""
+    """The sound effects that fit in `budget`, by priority: `pedidos` is a
+    list of names already sorted from most to least requested. Returns
+    {name: Efecto} with the ones that fit."""
     game_dir = game_dir or recursos.GAME_DIR
     hechos, usado = {}, 0
-    # Cada efecto se arma solo —leer el WAV, remuestrearlo, codificarlo— y
-    # eso es puro: todos a la vez, y después el reparto en el orden pedido.
+    # Each sound effect is built on its own —read the WAV, resample it,
+    # encode it— and that is pure: all at once, and then the allocation in
+    # the requested order.
     unicos = list(dict.fromkeys(pedidos))
     armados = dict(zip(unicos, en_paralelo(
         lambda n: build_efecto(n, game_dir), unicos)))
@@ -416,7 +428,7 @@ def build_efectos(pedidos, game_dir=None, budget=SE_ARAM):
         efecto = armados[nombre]
         if efecto is None:
             continue
-        costo = len(efecto.data) + 4          # la muestra y su entrada
+        costo = len(efecto.data) + 4          # the sample and its entry
         if usado + costo > budget:
             continue
         hechos[nombre] = efecto
@@ -425,74 +437,76 @@ def build_efectos(pedidos, game_dir=None, budget=SE_ARAM):
 
 
 def altura_de_efecto(efecto, tempo):
-    """El registro de altura del DSP: 4096 es la tasa de 32 kHz, y el tempo
-    de RM2k —de 50 a 150— la estira."""
+    """The DSP pitch register: 4096 is the 32 kHz rate, and RM2k's tempo
+    —from 50 to 150— stretches it."""
     return min(0x3FFF, int(round(efecto.rate * 4096 / 32000.0 * tempo / 100.0)))
 
 
 def cuadros_de_efecto(efecto, tempo):
-    """Cuánto dura, en cuadros de 60 Hz, con el tempo aplicado."""
+    """How long it lasts, in 60 Hz frames, with the tempo applied."""
     return max(1, int(round(efecto.segundos * 60 * 100.0 / max(1, tempo))))
 
 
 def volumen_de_efecto(volumen, balance):
-    """Izquierda y derecha del DSP, de 0 a 127, desde el volumen y el paneo
-    de RM2k: el paneo en 50 es el centro, y a cada lado baja el otro."""
+    """DSP left and right, from 0 to 127, from RM2k's volume and pan: pan at
+    50 is the center, and toward each side the other one drops."""
     tope = sdsp.MASTER if hasattr(sdsp, "MASTER") else 0x7F
-    # Los $60 se eligieron con el volumen general en $60, que también se les
-    # aplica a los efectos —con MSU-1 o sin él—. Con el aire de `sdsp` el
-    # general subió, y el techo del efecto baja lo mismo para que suene igual.
+    # The $60 was chosen with the master volume at $60, which is also applied
+    # to the sound effects —with MSU-1 or without it—. With `sdsp`'s headroom
+    # the master went up, and the sound effect's ceiling goes down by the
+    # same amount so it sounds the same.
     v = max(0, min(100, volumen)) * int(round(0x60 * 0x60 / sdsp.MASTER)) // 100
     izquierda = v * min(50, 100 - balance) // 50
     derecha = v * min(50, balance) // 50
     return max(0, min(0x7F, izquierda)), max(0, min(0x7F, derecha))
 
 
-# --- reparto de voces -------------------------------------------------------
+# --- voice allocation -------------------------------------------------------
 
 def assign(notes):
-    """Qué voces del DSP puede tomar cada canal del MIDI: las ocho, todos.
+    """Which DSP voices each MIDI channel may take: all eight, every channel.
 
-    Hasta el 2026-09-26 cada canal melódico tenía sus voces fijas —repartidas
-    por cuánto tiempo-nota agregaba cada una— y la batería dos al final. En
-    `escape_newyork` eso dejaba una voz para los acordes de tres notas de las
-    cuerdas, una para los de seis del polysynth, y ninguna para el clavinet y
-    la onda cuadrada: se perdía el 55% del tiempo-nota contra el 23% que se
-    pierde sin remedio con ocho voces. Ahora el reparto es nota a nota, en
-    `build_events`: una nota toma una voz libre, y si no hay, le roba a otra
-    por prioridad —ver `_victima`—. Es el paso 5 de
+    Until 2026-09-26 each melodic channel had its fixed voices —allocated by
+    how much note-time each one added— and the drums two at the end. In
+    `escape_newyork` that left one voice for the strings' three-note chords,
+    one for the polysynth's six-note ones, and none for the clavinet and the
+    square wave: 55% of the note-time was lost, against the 23% that is lost
+    unavoidably with eight voices. Now allocation is note by note, in
+    `build_events`: a note takes a free voice, and if there is none, it steals
+    another by priority —see `_victima`—. It is step 5 of
     `workflow/tasks/todo/la-calidad-de-la-musica.md`.
 
-    Sigue devolviendo un grupo por canal porque `build_events` los acepta
-    distintos, y las pruebas lo usan para armar casos chicos.
+    It still returns one group per channel because `build_events` accepts
+    them different, and the tests use it to build small cases.
     """
     return {channel: list(range(sdsp.VOICES))
             for channel in sorted({n.channel for n in notes})}
 
 
-# Las voces que los efectos de sonido le sacan a la música: `SE_VOZ` y
-# `SE_VOZ2`. Mientras un efecto suena, lo que la música le escribe a su voz va
-# a la sombra y no al DSP —ver `dsp_musica`—, así que la nota que estuviera
-# ahí se calla. Por eso ahí van primero los golpes de percusión, que duran
-# medio segundo, y las notas melódicas sólo si no queda otra libre: es lo que
-# pasaba cuando la batería tenía esas dos voces fijas.
+# The voices that sound effects take from the music: `SE_VOZ` and
+# `SE_VOZ2`. While a sound effect plays, what the music writes to its voice
+# goes to the shadow and not to the DSP —see `dsp_musica`—, so whatever note
+# was there goes silent. That is why percussion hits, which last half a
+# second, go there first, and melodic notes only if no other voice is free:
+# that is what happened when the drums had those two voices fixed.
 VOCES_DE_EFECTOS = (SE_VOZ2, SE_VOZ)
 
 
-# El GAIN con que se baja una voz que suena un cuadro antes de dársela a otra
-# nota: lineal, 64 pasos de 6 muestras, así que llega a cero en 12 ms, antes
-# del cuadro siguiente. Lo que evita es el clic del KON, que pone la
-# envolvente en cero de golpe: el prototipo del paso 5 de
-# `workflow/tasks/todo/la-calidad-de-la-musica.md` lo grabó (la variante 07).
-# Es un `OP_RELEASE_GAIN` más del stream: el driver no cambia.
+# The GAIN used to bring down a voice that is playing one frame before
+# handing it to another note: linear, 64 steps of 6 samples, so it reaches
+# zero in 12 ms, before the next frame. What it avoids is the KON click,
+# which drops the envelope to zero at once: the prototype for step 5 of
+# `workflow/tasks/todo/la-calidad-de-la-musica.md` recorded it (variant 07).
+# It is one more `OP_RELEASE_GAIN` in the stream: the driver does not change.
 RAMPA = sdsp.GAIN_LINEAR_DECREASE | 26
 assert 64 * sdsp.PERIODO[RAMPA & 0x1F] <= sdsp.SAMPLE_RATE // TICKS_PER_SECOND
 
 
 class _Voz:
-    """Lo que el reparto sabe de una voz: la nota que la tiene, hasta cuándo
-    la sostiene —`fin`— y hasta cuándo se oye —`cola`, con el release o lo que
-    dura el golpe—, y con qué volumen arrancó, izquierda más derecha."""
+    """What the allocation knows about a voice: the note holding it, until
+    when it holds it —`fin`— and until when it can be heard —`cola`, with the
+    release or however long the hit lasts—, and the volume it started with,
+    left plus right."""
 
     __slots__ = ("nota", "fin", "cola", "nivel")
 
@@ -501,9 +515,9 @@ class _Voz:
 
 
 def _cuadros_del_release(gain):
-    """Cuántos cuadros tarda en callarse una voz soltada con ese GAIN, desde
-    arriba: el lineal baja 1/64 por paso, y el exponencial llega a cero en
-    `PASOS_HASTA_CERO` —ver `sdsp`—."""
+    """How many frames a voice released with that GAIN takes to go silent,
+    from the top: the linear one drops 1/64 per step, and the exponential
+    one reaches zero in `PASOS_HASTA_CERO` —see `sdsp`—."""
     periodo = sdsp.PERIODO[gain & 0x1F] or 0
     pasos = (64 if gain & 0xE0 == sdsp.GAIN_LINEAR_DECREASE
              else sdsp.PASOS_HASTA_CERO)
@@ -511,43 +525,45 @@ def _cuadros_del_release(gain):
 
 
 def _libre(voz, t, voces, nota, drums):
-    """El orden entre las voces libres —las que nadie sostiene en `t`—: la
-    menor gana."""
+    """The order among the free voices —the ones nobody holds at `t`—: the
+    lowest wins."""
     s = voces.get(voz)
-    # Primero las calladas: reusar una que todavía suena en su cola la corta.
-    # Entre las que suenan, la que se apaga antes.
+    # Silent ones first: reusing one that is still sounding in its tail cuts
+    # it. Among the sounding ones, the one that dies out first.
     suena = s is not None and s.cola > t
     return (suena, s.cola if suena else 0,
-            # Los golpes, a las voces de los efectos; lo melódico, a las otras.
+            # Hits go to the sound effect voices; melodic notes, to the rest.
             (voz in VOCES_DE_EFECTOS) != drums,
-            # Y la que tuvo una nota del mismo canal: mismo instrumento y
-            # mismo volumen, así que la nota nueva sale en dos bytes.
+            # And the one that had a note from the same channel: same
+            # instrument and same volume, so the new note costs two bytes.
             s is None or s.nota.channel != nota.channel,
             voz)
 
 
 def _victima(nota, t, grupo, voces, nivel):
-    """A qué voz le roba `nota` cuando todas las de su grupo están
-    sostenidas, o None si no le roba a ninguna y no suena.
+    """Which voice `nota` steals when every voice in its group is held, or
+    None if it steals none and does not play.
 
-    Es la regla del prototipo —lo que taro escuchó en la variante 09 y dijo
-    que "es muy aceptable"—. Medida en los 32 temas del `release`: robarle
-    siempre a la más vieja sin ceder nunca pierde el mismo tiempo-nota pero
-    corta 2,5 veces más notas mientras suenan, y robarle siempre a la más
-    débil pierde más; protegerle además la nota más grave y la más aguda, o
-    robar primero dentro del propio canal, empatan con ella en promedio y
-    ganan en unos temas lo que pierden en otros, así que no entraron. Los
-    números, en el paso 5 de `workflow/tasks/todo/la-calidad-de-la-musica.md`.
+    It is the prototype's rule —what taro listened to in variant 09 and said
+    "is very acceptable"—. Measured on the 32 songs of `release`: always
+    stealing the oldest without ever yielding loses the same note-time but
+    cuts 2.5 times more notes while they sound, and always stealing the
+    weakest loses more; also protecting the lowest and the highest note, or
+    stealing within the note's own channel first, tie with it on average and
+    gain on some songs what they lose on others, so they did not go in. The
+    numbers are in step 5 of
+    `workflow/tasks/todo/la-calidad-de-la-musica.md`.
 
-    * La misma tecla del mismo canal que vuelve a sonar le roba a sí misma:
-      es un sintetizador que redispara la nota.
-    * Nunca a una nota que arrancó en este mismo cuadro, que no llegaría a
-      sonar; ni a la última voz de un canal, que lo dejaría mudo.
-    * Entre las demás, a la más débil —el volumen con que arrancó— y, a la
-      par, a la más vieja.
-    * Y la nota nueva cede en vez de robar si su canal ya suena y la víctima
-      es la última de otro, o es más fuerte que ella y su canal no tiene más
-      voces que el de la nueva.
+    * The same key of the same channel sounding again steals from itself: it
+      is a synthesizer retriggering the note.
+    * Never from a note that started in this same frame, which would never
+      get to sound; nor from a channel's last voice, which would leave it
+      mute.
+    * Among the rest, from the weakest —the volume it started with— and, on
+      a tie, from the oldest.
+    * And the new note yields instead of stealing if its channel is already
+      sounding and the victim is another channel's last, or is louder than
+      it and its channel has no more voices than the new note's.
     """
     por_canal = collections.Counter(voces[v].nota.channel for v in grupo)
     for v in grupo:
@@ -556,8 +572,8 @@ def _victima(nota, t, grupo, voces, nivel):
             return v
 
     def ultima(s):
-        # La última voz de otro canal: robársela lo deja mudo. La del mismo
-        # no, que sigue sonando con la nota nueva.
+        # Another channel's last voice: stealing it leaves that channel mute.
+        # Not the same channel's, which keeps sounding with the new note.
         return s.nota.channel != nota.channel and por_canal[s.nota.channel] <= 1
 
     def costo(v):
@@ -575,61 +591,64 @@ def _victima(nota, t, grupo, voces, nivel):
     return v
 
 
-# Los golpes de General MIDI que son el mismo instrumento tocado de otra
-# manera: dos bombos, dos cajas, el charles cerrado, con pedal y abierto, dos
-# platos de choque, dos rides. Un MIDI que los pide juntos está engordando el
-# golpe, no tocando dos —el de batalla pega 35 y 36 en cada tiempo, y 38 y 40
-# en cada caja—. Los toms no: son tambores distintos y un redoble los junta.
+# The General MIDI hits that are the same instrument played another way: two
+# bass drums, two snares, the hi-hat closed, pedaled and open, two crash
+# cymbals, two rides. A MIDI asking for them together is thickening the hit,
+# not playing two —the battle song hits 35 and 36 on every beat, and 38 and
+# 40 on every snare—. Not the toms: they are different drums and a roll
+# brings them together.
 FAMILIAS_DE_GOLPES = {35: "bombo", 36: "bombo", 38: "caja", 40: "caja",
                       42: "charles", 44: "charles", 46: "charles",
                       49: "platillo", 57: "platillo", 51: "ride", 59: "ride"}
 
 
 def _orden_del_cuadro(notas, nivel):
-    """En qué orden eligen voz las notas que arrancan en un mismo cuadro:
-    cuando no hay para todas, las últimas son las que se quedan afuera,
-    porque `_victima` no le roba a una nota que arrancó en el cuadro.
+    """In which order the notes that start in the same frame pick a voice:
+    when there are not enough for all, the last ones are left out, because
+    `_victima` does not steal from a note that started in the frame.
 
-    * **Primero los golpes, uno por familia** (`FAMILIAS_DE_GOLPES`), del más
-      fuerte al más suave: duran poco, y son el ritmo.
-    * **Después lo melódico, por su nivel dividido por su lugar en su
-      canal**: la nota más fuerte de cada canal va con su nivel, la segunda
-      con la mitad, la tercera con un tercio. Así la voz de arriba de un
-      acorde va antes que un canal más suave, pero la segunda nota de ese
-      acorde va después, salvo que ese canal sea poco más que un susurro.
-    * **Al final, el golpe repetido de una familia**, que sólo suena si
-      sobra una voz.
+    * **Hits first, one per family** (`FAMILIAS_DE_GOLPES`), from loudest to
+      softest: they are short, and they are the rhythm.
+    * **Then the melodic notes, by their level divided by their place in
+      their channel**: each channel's loudest note goes with its level, the
+      second with half, the third with a third. That way the top voice of a
+      chord goes before a softer channel, but the second note of that chord
+      goes after, unless that channel is little more than a whisper.
+    * **Last, a family's repeated hit**, which only plays if there is a
+      voice to spare.
 
-    `nivel` es el de cada nota con los controladores del cuadro, izquierda
-    más derecha: el de `_victima`, que es con el que la nota va a sonar.
+    `nivel` is each note's level with the frame's controllers, left plus
+    right: `_victima`'s, which is the level the note will sound at.
 
-    Hasta el 2026-09-26 el orden era el de la velocidad, y entre iguales el
-    más grave primero. En el de batalla todo va con velocidad 127, así que
-    los cinco o seis golpes de cada tiempo —dos bombos, dos cajas, charles—,
-    los dos bajos y los metales tomaban las ocho voces antes de que llegara
-    la melodía, que es lo más agudo; y no se le puede robar a una nota del
-    mismo cuadro. De las 536 notas de la voz de arriba de su órgano —el
-    canal 0, el más fuerte de la mezcla por su CC7— 214 no sonaban, y la
-    frase principal (de los 15 a los 22 s) se cortaba una nota sí y otra no.
-    Con el reparto fijo de antes del paso 5 no pasaba: el órgano tenía su
-    voz. Medido con los 32 temas del `release`, con un script descartable:
+    Until 2026-09-26 the order was by velocity, and among equals the lowest
+    first. In the battle song everything has velocity 127, so the five or
+    six hits of each beat —two bass drums, two snares, hi-hat—, the two
+    basses and the brass took all eight voices before the melody arrived,
+    which is the highest; and a note from the same frame cannot be stolen
+    from. Of the 536 notes of its organ's top voice —channel 0, the loudest
+    in the mix because of its CC7— 214 did not play, and the main phrase
+    (from 15 to 22 s) lost every other note. With the fixed allocation from
+    before step 5 this did not happen: the organ had its voice. Measured on
+    the 32 songs of `release`, with a throwaway script:
 
-    * la melodía de la batalla pasa de perder 48% de su tiempo a 0%;
-    * en promedio, el tiempo-nota perdido baja de 7,38% a 7,05%, y los robos
-      de 2.883 a 2.528; la nota más aguda de cada instante se pierde 6,9% del
-      tiempo en vez de 10,7%, la más grave 3,7% en vez de 3,3%; los golpes
-      que no suenan —contando una familia por cuadro— bajan de 0,39% a 0,12%;
-    * el stream baja 3,6 KB, porque hay menos robos y con ellos menos rampas.
+    * the battle melody goes from losing 48% of its time to 0%;
+    * on average, the lost note-time drops from 7.38% to 7.05%, and the
+      steals from 2,883 to 2,528; the highest note at each instant is lost
+      6.9% of the time instead of 10.7%, the lowest 3.7% instead of 3.3%;
+      the hits that do not play —counting one family per frame— drop from
+      0.39% to 0.12%;
+    * the stream shrinks by 3.6 KB, because there are fewer steals and with
+      them fewer ramps.
 
-    Lo que se probó y no alcanzó, en la tarea
-    (`workflow/tasks/todo/la-calidad-de-la-musica.md`, paso 5b): ordenar por
-    nivel sin más, sin repartir por canal (la melodía pierde 22%); una ronda
-    estricta —cada canal su primera nota antes que cualquiera su segunda—,
-    que salva la melodía igual pero le da voz a las cuerdas de velocidad 29
-    de `escape_newyork` a costa del polysynth; y lo que se hace en
-    `_victima` —no robar una nota recién empezada, un tope de voces para la
-    batería, que los golpes no roben—, que no cambia nada: la melodía no se
-    perdía por robos sino por llegar última a su cuadro.
+    What was tried and fell short, in the task
+    (`workflow/tasks/todo/la-calidad-de-la-musica.md`, step 5b): sorting by
+    level alone, without spreading by channel (the melody loses 22%); a
+    strict round —every channel its first note before any its second—,
+    which saves the melody just the same but gives a voice to
+    `escape_newyork`'s velocity-29 strings at the polysynth's expense; and
+    what is done in `_victima` —not stealing a note that just started, a cap
+    on voices for the drums, hits not stealing—, which changes nothing: the
+    melody was not lost to steals but to arriving last in its frame.
     """
     niveles = {id(n): nivel(n) for n in notas}
     lugar = {}
@@ -650,16 +669,15 @@ def _orden_del_cuadro(notas, nivel):
     return sorted(notas, key=lambda n: lugar[id(n)] + (n.pitch,))
 
 
-# --- el banco compartido ----------------------------------------------------
+# --- the shared bank --------------------------------------------------------
 
-# Las muestras se piden por clave: ("p", programa, tecla) una melódica,
-# ("g", tecla) un golpe de percusión. Es una por programa de General MIDI y
-# una por golpe en todo el cartucho, así que dos temas que tocan piano usan
-# la misma. La tecla de la melódica elige la zona del SoundFont: ver
-# `zonas_mas_usadas`.
+# Samples are requested by key: ("p", program, key) a melodic one, ("g", key)
+# a percussion hit. It is one per General MIDI program and one per hit in the
+# whole cartridge, so two songs that play piano use the same one. The melodic
+# key picks the SoundFont zone: see `zonas_mas_usadas`.
 def claves_del_tema(leido, teclas=None):
-    """Las muestras que pide un tema leído por `leer_tema`, o ninguna.
-    `teclas` son las de `zonas_mas_usadas`; sin ella, el do central."""
+    """The samples a song read by `leer_tema` asks for, or none. `teclas` are
+    the ones from `zonas_mas_usadas`; without it, middle C."""
     if not leido:
         return set()
     teclas = teclas or {}
@@ -669,30 +687,29 @@ def claves_del_tema(leido, teclas=None):
 
 
 def zonas_mas_usadas(leidos):
-    """{programa: tecla}: con qué tecla se pide la muestra de cada programa,
-    que es la que elige la zona del SoundFont.
+    """{program: key}: which key each program's sample is requested with,
+    which is what picks the SoundFont zone.
 
-    **La zona donde el cartucho entero toca más tiempo-nota de ese
-    programa**, y no la del do central. Una muestra suena bien cerca de su
-    raíz: lejos, el DSP la estira o la aprieta y se oye —una octava abajo
-    los agudos que faltan, una arriba el loop que se acorta—. Medido el
-    2026-09-26 con los 32 temas del `release`: el 34% del tiempo-nota
-    melódico sonaba a doce semitonos o más de la raíz de la muestra del do
-    central, en teclas para las que el SoundFont tiene otra; el bajo
-    sintético 33, en doce temas, toca la zona de `MMBAS40` y no la del 62.
-    Es una por programa igual que antes, así que no cuesta ARAM; lo que
-    pierde es que un programa que dos temas tocan en registros distintos
-    queda bien para uno solo. Es el paso 6 de
-    `workflow/tasks/todo/la-calidad-de-la-musica.md`.
+    **The zone where the whole cartridge plays the most note-time of that
+    program**, and not middle C's. A sample sounds good near its root: far
+    from it, the DSP stretches or squeezes it and you can hear it —an octave
+    down the missing highs, an octave up the loop getting shorter—. Measured
+    on 2026-09-26 with the 32 songs of `release`: 34% of the melodic
+    note-time played twelve semitones or more from the root of the middle C
+    sample, on keys for which the SoundFont has another; synth bass 33, in
+    twelve songs, plays `MMBAS40`'s zone and not 62's. It is one per program
+    just as before, so it costs no ARAM; what it loses is that a program two
+    songs play in different registers is right for only one of them. It is
+    step 6 of `workflow/tasks/todo/la-calidad-de-la-musica.md`.
 
-    La tecla es la raíz de esa zona si la zona la cubre —así dos temas que
-    tocan la misma zona piden la misma muestra—, y si no, la tecla que más
-    suena adentro de la zona.
+    The key is that zone's root if the zone covers it —so two songs that
+    play the same zone ask for the same sample—, and if not, the key that
+    sounds the most inside the zone.
     """
     tiempo = collections.defaultdict(collections.Counter)
     adentro = collections.defaultdict(collections.Counter)
-    # Las zonas que el lazo de abajo va a pedir, pedidas antes todas juntas:
-    # ver `muestras_brr.precargar`.
+    # The zones the loop below is going to ask for, requested beforehand all
+    # together: see `muestras_brr.precargar`.
     muestras_brr.precargar(
         ("program:%d@%d" % (leido["programas"].get(nota.channel, 0),
                             nota.pitch)
@@ -728,8 +745,8 @@ def zonas_mas_usadas(leidos):
 
 
 def _muestra(clave, presupuesto):
-    """La voz de una clave con ese presupuesto en bytes de BRR, o None si el
-    SoundFont no la tiene."""
+    """A key's voice with that budget in BRR bytes, or None if the SoundFont
+    does not have it."""
     if clave[0] == "p":
         return snes_samples.build_voice(snes_samples.SOUNDFONT, clave[1],
                                         presupuesto, key=clave[2])
@@ -737,39 +754,41 @@ def _muestra(clave, presupuesto):
                                    presupuesto)
 
 
-# Un presupuesto que nadie alcanza: con él, cada muestra sale a la tasa del
-# SoundFont —topada en `MAX_RATE`—, que es lo que pesaría sin recortar.
+# A budget nobody reaches: with it, each sample comes out at the SoundFont's
+# rate —capped at `MAX_RATE`—, which is what it would weigh untrimmed.
 NATIVA = 1 << 24
-# Lo mínimo que se le da a una muestra aunque su paquete esté lleno.
+# The minimum a sample is given even when its package is full.
 PISO = 256
 
 
 class Restriccion(collections.namedtuple("Restriccion",
                                          "nombre claves libre")):
-    """Un grupo de muestras que tiene que entrar junto en `libre` bytes: las
-    de los temas de un paquete, con lo que ocupan sus efectos ya restado, o
-    las de un paquete más las del tema que puede venir sonando."""
+    """A group of samples that has to fit together in `libre` bytes: those
+    of a package's songs, with what its sound effects take already
+    subtracted, or those of a package plus those of the song that may be
+    playing when it loads."""
     __slots__ = ()
 
 
 class Grupo(collections.namedtuple("Grupo", "nombre temas ocupan")):
-    """Temas —índices— que tienen que entrar juntos en la ARAM, con `ocupan`
-    bytes de efectos al lado: los de un paquete, un tema de salida solo, o
-    un paquete con el tema que puede venir sonando. Es de lo que salen las
-    `Restriccion`: con qué muestra toca cada tema lo dice `copias`."""
+    """Songs —indices— that have to fit together in the ARAM, with `ocupan`
+    bytes of sound effects beside them: those of a package, a lone exit song,
+    or a package with the song that may be playing when it loads. It is what
+    the `Restriccion`s come from: which sample each song plays with is said
+    by `copias`."""
     __slots__ = ()
 
 
 def libre_para(muestras, efectos):
-    """Lo libre para muestras con `muestras` de música y `efectos` en el
-    directorio: la ARAM desde detrás del directorio y del silencio hasta
-    `ARAM_FIN`. Cada entrada del directorio son cuatro bytes."""
+    """What is free for samples with `muestras` of music and `efectos` in
+    the directory: the ARAM from behind the directory and the silence up to
+    `ARAM_FIN`. Each directory entry is four bytes."""
     return ARAM_FIN - (SAMPLES_ADDR + 4 * (muestras + efectos) + len(SILENCIO))
 
 
 def restricciones_de(asignacion, grupos, libre):
-    """Las `Restriccion` de `repartir` para esos grupos, con las muestras que
-    le tocan a cada tema según `asignacion` —ver `copias`—."""
+    """The `Restriccion`s for `repartir` for those groups, with the samples
+    each song gets according to `asignacion` —see `copias`—."""
     salida = []
     for g in grupos:
         claves = set().union(*[set(asignacion[t].values()) for t in g.temas])
@@ -778,67 +797,69 @@ def restricciones_de(asignacion, grupos, libre):
     return salida
 
 
-# El SRCN es de un byte y las listas de muestras de la ROM se cierran con $FF,
-# así que el directorio llega a 255 entradas: las muestras de la música y los
-# lugares de los efectos —ver `lugares_de_efectos`— juntos.
+# SRCN is one byte and the ROM's sample lists end with $FF, so the directory
+# goes up to 255 entries: the music's samples and the sound effect places
+# —see `lugares_de_efectos`— together.
 DIRECTORIO_MAX = 255
-# Cuántos lugares del directorio pueden ser de los efectos: la ROM anota qué
-# efecto hay en cada uno en `FAR_EFECTO_EN`, que tiene ese tamaño.
+# How many directory places can belong to sound effects: the ROM records
+# which sound effect is in each one in `FAR_EFECTO_EN`, which has that size.
 SE_LUGARES_MAX = 48
-# Una copia no se hace por una muestra que ya suena casi a su tasa: una
-# entrada del directorio vale más que eso.
+# No copy is made for a sample that already plays at nearly its rate: a
+# directory entry is worth more than that.
 COPIA_HASTA = 0.9
 def se_de_siempre():
-    """Hasta cuántas entradas del directorio llega la primera tanda de
-    `copias`: las que ocupaban los efectos cuando cada uno tenía la suya, y
-    no los de hoy. Lo midió el juego: `[music] effect_slots_of_first_copies`."""
+    """Up to how many directory entries the first round of `copias` goes:
+    the ones the sound effects took when each had its own, and not today's.
+    The game measured it: `[music] effect_slots_of_first_copies`."""
     return perillas.valor("music", "effect_slots_of_first_copies", tipo=int)
 
 
 def copias(claves_de, grupos, efectos, de_siempre, reales=None,
            tope=DIRECTORIO_MAX, hasta=COPIA_HASTA):
-    """[{clave: muestra}], uno por tema: con qué muestra toca cada tema cada
-    una de sus claves. Casi siempre la clave misma —una muestra por programa
-    y por golpe en todo el cartucho—, salvo **las copias**.
+    """[{key: sample}], one per song: which sample each song plays each of
+    its keys with. Almost always the key itself —one sample per program and
+    per hit in the whole cartridge—, except for **the copies**.
 
-    Una muestra tiene que entrar en todos los grupos donde está, así que su
-    tasa la fija el peor, y lo paga también el tema que nunca suena ahí:
-    hasta el 2026-09-26, los 43 KB de efectos del mapa 3 dejaban la batería
-    de **todos** los temas a 10 kHz y el oboe a 7. Una copia es la misma
-    clave como otra muestra, sólo para los temas de un grupo: ellos quedan
-    igual, y los de afuera dejan de pagar un paquete donde no están. Es la
-    opción B del paso 6 de `workflow/tasks/testing/la-calidad-de-la-musica.md`,
-    acotada: B entera —una copia por tema— serían unas 370 entradas del
-    directorio contra 255.
+    A sample has to fit in every group it is in, so its rate is set by the
+    worst one, and the song that never plays there pays for it too: until
+    2026-09-26, map 3's 43 KB of sound effects left the drums of **every**
+    song at 10 kHz and the oboe at 7. A copy is the same key as another
+    sample, only for the songs of one group: they stay the same, and the ones
+    outside stop paying for a package they are not in. It is option B of
+    step 6 of `workflow/tasks/testing/la-calidad-de-la-musica.md`, bounded:
+    full B —one copy per song— would be some 370 directory entries against
+    255.
 
-    Se hacen en dos tandas. `efectos` es cuántas entradas del directorio
-    ocupan hoy los efectos, y `de_siempre` cuántas ocupaban cuando cada uno
-    tenía la suya —ver `se_de_siempre`—.
+    They are made in two rounds. `efectos` is how many directory entries the
+    sound effects take today, and `de_siempre` how many they took when each
+    had its own —see `se_de_siempre`—.
 
-    **Las de siempre**, de a una y **la peor primero**: la muestra de
-    fracción más baja de su tamaño nativo que tenga algún tema fuera del
-    grupo que la limita, copiada para los de adentro. Después se vuelve a
-    repartir, porque la copia cambia lo que ocupa cada grupo, y se sigue
-    hasta llenar el directorio como era —con `de_siempre` entradas para los
-    efectos— o hasta que no quede una por debajo de `hasta`. Son las que taro
-    escuchó y aprobó el 2026-09-26, con lo que cada una le bajaba a otros:
-    lo que se libera de un paquete compite en los demás.
+    **The usual ones**, one at a time and **the worst first**: the sample
+    with the lowest fraction of its native size that has some song outside
+    the group limiting it, copied for the ones inside. Then the allocation
+    is redone, because the copy changes what each group takes, and it goes
+    on until the directory is full as it used to be —with `de_siempre`
+    entries for the sound effects— or until none is left below `hasta`.
+    These are the ones taro listened to and approved on 2026-09-26, with
+    what each one took away from others: what is freed in one package
+    competes in the rest.
 
-    **Las de las entradas que liberaron los efectos**, del mismo día: sólo
-    las que **no le bajan la tasa a ningún par** (tema, clave) respecto de
-    cómo quedaron las de siempre, y de ésas, la que más kHz suma entre todos.
-    La primera tanda, al subir una muestra la hace competir con las demás de
-    sus grupos, y hacerlas de a una la peor primero con las entradas libres
-    le bajaba 56 pares a otros para subir 126: ver
-    `workflow/tasks/*/el-directorio-de-los-efectos.md`. Acá se prueban todas
-    las copias posibles —cada clave para los temas de cada grupo donde está—
-    contra el piso, y se sigue hasta que ninguna suma o se llena el
-    directorio. Esta tanda reparte con el directorio lleno, aunque no se
-    llene: así ninguna copia le cuesta a nadie sus cuatro bytes, y el
-    directorio que quede más corto sólo puede dejar más lugar. Y reparte con
-    `reales`, los mismos grupos con lo que sus efectos ocupan de verdad: los
-    `se_enteros()` que no paga la música van en lo que ella deja libre, y una
-    copia que sube a su tasa llenaría justo eso.
+    **The ones from the entries the sound effects freed up**, from the same
+    day: only those that **do not lower the rate of any (song, key) pair**
+    compared to how the usual ones left it, and of those, the one that adds
+    the most kHz across all. The first round, when it raises a sample, makes
+    it compete with the others in its groups, and doing them one at a time,
+    worst first, with the free entries lowered 56 pairs for others to raise
+    126: see `workflow/tasks/*/el-directorio-de-los-efectos.md`. Here every
+    possible copy —each key for the songs of each group it is in— is tried
+    against the floor, and it goes on until none adds anything or the
+    directory is full. This round allocates with the directory full, even if
+    it does not fill up: that way no copy costs anyone its four bytes, and a
+    directory that ends up shorter can only leave more room. And it
+    allocates with `reales`, the same groups with what their sound effects
+    really take: the `se_enteros()` the music does not pay for go in what it
+    leaves free, and a copy that goes up to its rate would fill exactly
+    that.
     """
     reales = grupos if reales is None else reales
     asignacion = [{k: k for k in ks} for ks in claves_de]
@@ -902,11 +923,11 @@ def copias(claves_de, grupos, efectos, de_siempre, reales=None,
 
     claves, presupuesto, piso = khz(asignacion)
     actual = piso
-    # Probarlas todas en cada vuelta son miles de repartos: se prueban en el
-    # orden de lo que sumaban la última vez que se probaron —las nuevas
-    # primero—, y se toma la primera que, probada de nuevo, suma al menos lo
-    # que sumaba cualquiera de las que siguen. Que no baje a nadie se mira
-    # siempre en el momento.
+    # Trying all of them on every pass is thousands of allocations: they are
+    # tried in the order of what they added the last time they were tried
+    # —new ones first—, and the first one that, tried again, adds at least
+    # what any of the following ones added is taken. That it lowers no one
+    # is always checked on the spot.
     cota = {}
     while len(claves) + efectos < tope:
         candidatas = []
@@ -947,20 +968,21 @@ def copias(claves_de, grupos, efectos, de_siempre, reales=None,
 
 
 def lugares_de_efectos(paquetes, nombres):
-    """{efecto: lugar}: en cuál de las entradas del directorio que son de los
-    efectos va cada uno. `paquetes` son los efectos de cada paquete y
-    `nombres` todos, en el orden del cartucho.
+    """{sound effect: place}: which of the sound effects' directory entries
+    each one goes in. `paquetes` are each package's sound effects and
+    `nombres` all of them, in cartridge order.
 
-    Hasta el 2026-09-26 cada efecto tenía su entrada, y con 92 en el
-    cartucho y la música al lado el directorio estaba lleno: `copias` no
-    tenía dónde hacer más. Pero a la ARAM va un paquete por vez, y ninguno
-    trae más de una veintena de efectos, así que dos efectos que nunca están
-    en el mismo paquete pueden compartir entrada. Es colorear un grafo —dos
-    efectos se tocan si comparten paquete—, y con DSATUR alcanzan tantos
-    lugares como efectos tiene el paquete más cargado.
+    Until 2026-09-26 each sound effect had its own entry, and with 92 in the
+    cartridge and the music beside them the directory was full: `copias` had
+    no room to make more. But the ARAM holds one package at a time, and none
+    carries more than a score of sound effects, so two sound effects that
+    are never in the same package can share an entry. It is graph coloring
+    —two sound effects touch if they share a package—, and with DSATUR as
+    many places as the most loaded package has sound effects are enough.
 
-    La ROM no puede saber de la entrada qué efecto hay: lo anota al subirlo
-    (`FAR_EFECTO_EN`, en tools/runtime/paquete_de_audio.s).
+    The ROM cannot tell from the entry which sound effect is there: it
+    records it when uploading it (`FAR_EFECTO_EN`, in
+    tools/runtime/paquete_de_audio.s).
     """
     toca = {n: set() for n in nombres}
     for suyos in paquetes:
@@ -970,9 +992,10 @@ def lugares_de_efectos(paquetes, nombres):
     orden = {n: i for i, n in enumerate(nombres)}
     lugar = {}
     while len(lugar) < len(toca):
-        # El más trabado primero —el que tiene más lugares distintos ya
-        # tomados alrededor—, y entre ésos el de más vecinos; si empatan, el
-        # que va antes en el cartucho, para que salga siempre igual.
+        # The most constrained first —the one with the most distinct places
+        # already taken around it—, and among those the one with the most
+        # neighbors; on a tie, the one earlier in the cartridge, so it always
+        # comes out the same.
         n = max((n for n in toca if n not in lugar),
                 key=lambda n: (len({lugar[v] for v in toca[n] if v in lugar}),
                                len(toca[n]), -orden[n]))
@@ -982,16 +1005,15 @@ def lugares_de_efectos(paquetes, nombres):
 
 
 def repartir(claves, restricciones, margen=None, nativas=None):
-    """({clave: presupuesto}, {clave: restricción que la limitó}): cuánto le
-    toca a cada muestra para que cada restricción entre en lo suyo menos
-    `margen`.
+    """({key: budget}, {key: constraint that limited it}): how much each
+    sample gets so that every constraint fits in its space minus `margen`.
 
-    Es un llenado progresivo sobre la fracción del tamaño nativo de cada
-    muestra: se sube la fracción de todas juntas hasta que alguna restricción
-    se llena, las de ésa quedan fijas, y se sigue con las demás. Así una
-    muestra queda limitada por su **peor** paquete y no por el banco entero,
-    y el que tiene lugar de sobra no paga por el que no. Lo que no está en
-    ninguna restricción que se llene va entera.
+    It is progressive filling over the fraction of each sample's native
+    size: the fraction of all of them is raised together until some
+    constraint fills up, that one's samples are frozen, and it goes on with
+    the rest. That way a sample is limited by its **worst** package and not
+    by the whole bank, and the one with room to spare does not pay for the
+    one without. Whatever is in no constraint that fills up goes whole.
     """
     margen = ARAM_MARGEN if margen is None else margen
     if nativas is None:
@@ -999,9 +1021,10 @@ def repartir(claves, restricciones, margen=None, nativas=None):
     fraccion, limita = {}, {}
     libres = set(claves)
     activas = [r for r in restricciones if r.claves & libres]
-    # Lo de cada restricción se lleva al día a medida que se congelan
-    # muestras, en vez de volver a sumarlo en cada vuelta: `copias` reparte
-    # miles de veces por conversión, y así cada reparto cuesta una fracción.
+    # Each constraint's totals are kept up to date as samples freeze,
+    # instead of summing them again on every pass: `copias` allocates
+    # thousands of times per conversion, and this way each allocation costs
+    # a fraction.
     suyas = [set(r.claves) & libres for r in activas]
     suma = [sum(nativas[k] for k in s) for s in suyas]
     fijo = [0.0] * len(activas)
@@ -1035,36 +1058,38 @@ def repartir(claves, restricciones, margen=None, nativas=None):
 
 
 class Banco:
-    """Las muestras que comparten **todos** los temas de la ROM, una por
-    programa y una por golpe, cada una con el presupuesto de su peor paquete.
+    """The samples shared by **every** song in the ROM, one per program and
+    one per hit, each with the budget of its worst package.
 
-    Es uno solo —salvo las copias de `copias`—, y no por ahorrar cartucho
-    —de ése sobra— sino por la numeración: el SRCN que el stream escribe es el índice de la muestra en
-    el cartucho, así que dos temas que tocan piano apuntan a la misma. Pero
-    **no se sube entero**: a la ARAM van de a paquetes, uno por mapa —ver
-    `paquete_cargar` en tools/runtime/paquete_de_audio.s—, así que lo que tiene que
-    entrar en los 64 KB no es el banco sino cada paquete, con sus efectos.
+    There is only one —except for the copies from `copias`—, and not to save
+    cartridge space —there is plenty of that— but because of the numbering:
+    the SRCN the stream writes is the sample's index in the cartridge, so
+    two songs that play piano point to the same one. But **it is not
+    uploaded whole**: the ARAM gets packages, one per map —see
+    `paquete_cargar` in tools/runtime/paquete_de_audio.s—, so what has to
+    fit in the 64 KB is not the bank but each package, with its sound
+    effects.
 
-    Por eso el presupuesto es por paquete: el paso 6 de
-    `workflow/tasks/todo/la-calidad-de-la-musica.md`, la opción A, elegida
-    por taro el 2026-09-26. Hasta ese día el banco entero tenía que entrar
-    en la ARAM —40 KB para lo melódico y la percusión con lo que sobrara—, y
-    los temas que no cabían dejaban de aportar programas: diecinueve de los
-    treinta y dos del `release` sonaban con lo que otros habían puesto, o
-    mudos.
+    That is why the budget is per package: step 6 of
+    `workflow/tasks/todo/la-calidad-de-la-musica.md`, option A, chosen by
+    taro on 2026-09-26. Until that day the whole bank had to fit in the ARAM
+    —40 KB for the melodic part and the percussion with whatever was left—,
+    and the songs that did not fit stopped contributing programs: nineteen
+    of the thirty-two in `release` played with what others had put in, or
+    were silent.
 
-    `restricciones` son las de `repartir`; `limita` dice cuál fijó cada
-    muestra, para el informe del conversor.
+    `restricciones` are `repartir`'s; `limita` says which one set each
+    sample, for the converter's report.
     """
 
     def __init__(self, claves, restricciones=(), margen=None):
         claves = {k for k in claves if _muestra(k, NATIVA) is not None}
         presupuesto, self.limita = repartir(claves, restricciones, margen)
         voz = {k: _muestra(k, presupuesto[k]) for k in claves}
-        # El presupuesto es una guía: el largo real se redondea a bloques de
-        # BRR, así que se comprueba lo que ocupa de verdad y, si una
-        # restricción se pasa de lo suyo —sin el margen: el margen es para
-        # esto—, se les pide menos a sus muestras y se vuelve a armar.
+        # The budget is a guide: the real length is rounded up to BRR blocks,
+        # so what it really takes is checked and, if a constraint goes over
+        # its space —without the margin: the margin is for this—, its samples
+        # are asked for less and it is built again.
         for _ in range(20):
             pasadas = [r for r in restricciones
                        if self._suma(voz, r.claves) > r.libre]
@@ -1078,18 +1103,18 @@ class Banco:
                     voz[k] = _muestra(k, presupuesto[k])
         else:
             raise SystemExit(
-                "las muestras de %s no entran en la ARAM ni con el mínimo"
-                % ", ".join("%s (%d de %d B)" % (r.nombre,
+                "the samples of %s do not fit in the ARAM even at the minimum"
+                % ", ".join("%s (%d of %d B)" % (r.nombre,
                                                  self._suma(voz, r.claves),
                                                  r.libre) for r in pasadas))
         self.restricciones = list(restricciones)
         self.claves = ([k for k in sorted(claves) if k[0] == "p"]
                        + [k for k in sorted(claves) if k[0] == "g"])
         self.voces = [voz[k] for k in self.claves]
-        # De programa de MIDI a índice en el banco, que es lo que va en
-        # `V_SRCN`; los golpes van después de los melódicos, así que el DSP no
-        # distingue percusión de nada más. Son los de las muestras sin copia:
-        # un tema con copias pide los suyos con `del_tema`.
+        # From MIDI program to index in the bank, which is what goes in
+        # `V_SRCN`; hits go after the melodic ones, so the DSP does not tell
+        # percussion from anything else. These are the samples without
+        # copies: a song with copies asks for its own with `del_tema`.
         self.melodicas = {k[1]: i for i, k in enumerate(self.claves)
                           if k[0] == "p" and len(k) == 3}
         self.golpes = {k[1]: i for i, k in enumerate(self.claves)
@@ -1097,9 +1122,9 @@ class Banco:
         self._envolventes = {}
 
     def del_tema(self, asignacion):
-        """El banco como lo ve un tema: sus programas y sus golpes apuntan a
-        las muestras que le tocaron —ver `copias`—, y lo demás es lo de
-        todos. `asignacion` es {clave: muestra}."""
+        """The bank as a song sees it: its programs and its hits point to the
+        samples it was given —see `copias`—, and the rest is everyone's.
+        `asignacion` is {key: sample}."""
         vista = _Vista(self)
         indice = {k: i for i, k in enumerate(self.claves)}
         vista.melodicas = {base[1]: indice[k] for base, k in asignacion.items()
@@ -1113,19 +1138,18 @@ class Banco:
         return sum(len(voz[k].data) for k in claves if k in voz)
 
     def ocupa(self, claves):
-        """Cuánto ocupan en la ARAM las muestras de esas claves."""
+        """How much the samples of those keys take in the ARAM."""
         return sum(len(v.data) for k, v in zip(self.claves, self.voces)
                    if k in claves)
 
     def envolvente(self, program, key):
-        """(ADSR1, ADSR2, GAIN del release) de una nota melódica: la
-        envolvente de la zona del SoundFont que cubre la tecla, traducida por
-        `sdsp.envelope`.
+        """(ADSR1, ADSR2, release GAIN) of a melodic note: the envelope of
+        the SoundFont zone covering the key, translated by `sdsp.envelope`.
 
-        La zona puede no ser la de la muestra —cada programa lleva una sola,
-        la de `zonas_mas_usadas`—, y es a propósito: es la envolvente que el
-        SoundFont le daría a esa tecla, y en el piano el decaimiento cambia
-        tecla por tecla. Si ninguna zona cubre la tecla, la del do central.
+        The zone may not be the sample's —each program carries only one, the
+        one from `zonas_mas_usadas`—, and that is on purpose: it is the
+        envelope the SoundFont would give that key, and on the piano the
+        decay changes key by key. If no zone covers the key, middle C's.
         """
         clave = (program, key)
         if clave not in self._envolventes:
@@ -1139,13 +1163,13 @@ class Banco:
 
     @property
     def bytes(self):
-        """Cuánto ocupa en ARAM: el directorio más las muestras."""
+        """How much it takes in ARAM: the directory plus the samples."""
         return 4 * len(self.voces) + sum(len(v.data) for v in self.voces)
 
 
 class _Vista:
-    """Lo que devuelve `Banco.del_tema`: el mismo banco con los índices de un
-    tema. Lo que no pisa lo lee del banco."""
+    """What `Banco.del_tema` returns: the same bank with one song's indices.
+    Whatever it does not override it reads from the bank."""
 
     def __init__(self, banco):
         self._banco = banco
@@ -1154,37 +1178,39 @@ class _Vista:
         return getattr(self._banco, nombre)
 
 
-# --- eventos ----------------------------------------------------------------
+# --- events -----------------------------------------------------------------
 
 class Frame:
-    """Todo lo que pasa en un cuadro, separado por cuándo hay que escribirlo.
+    """Everything that happens in a frame, split by when it has to be
+    written.
 
-    El orden importa: primero se prepara cada voz —volumen, altura, timbre— y
-    recién al final se tocan KON y KOF, que son los que disparan. Si se hiciera
-    al revés, la nota arrancaría con los valores de la anterior.
+    Order matters: first each voice is prepared —volume, pitch, timbre— and
+    only at the end are KON and KOF touched, which are what trigger. If it
+    were done the other way round, the note would start with the previous
+    one's values.
     """
 
     __slots__ = ("release", "setup", "kon", "kof", "control")
 
     def __init__(self):
-        # Las notas que se sueltan en este cuadro: (voz, GAIN del release), y
-        # las voces que se bajan con `RAMPA` porque otra nota las toma en el
-        # cuadro siguiente.
+        # The notes released in this frame: (voice, release GAIN), and the
+        # voices brought down with `RAMPA` because another note takes them in
+        # the next frame.
         self.release = []
-        # Las que arrancan: una `Preparacion` por nota, en orden.
+        # The ones that start: one `Preparacion` per note, in order.
         self.setup = []
         self.kon = 0
         self.kof = 0
-        # Lo que los controladores le cambian a una voz que ya sonaba:
-        # registro -> valor, y gana el último del cuadro. Un dict y no una
-        # lista porque un fundido trae varios CC7 por cuadro, y escribir los
-        # del medio son bytes que el DSP no llega a usar.
+        # What the controllers change on a voice that was already sounding:
+        # register -> value, and the frame's last one wins. A dict and not a
+        # list because a fade brings several CC7s per frame, and writing the
+        # ones in the middle is bytes the DSP never gets to use.
         self.control = {}
 
 
-# Lo que una nota le escribe a su voz antes del KON, y el GAIN con que se va
-# a soltar —None en la batería, que no se suelta—. Las siete escrituras salen
-# de `Preparacion.escrituras`, en el orden en que van al DSP.
+# What a note writes to its voice before the KON, and the GAIN it will be
+# released with —None for the drums, which are not released—. The seven
+# writes come from `Preparacion.escrituras`, in the order they go to the DSP.
 class Preparacion(collections.namedtuple(
         "Preparacion", "voz izquierda derecha altura muestra adsr1 adsr2 gain")):
     __slots__ = ()
@@ -1202,32 +1228,32 @@ class Preparacion(collections.namedtuple(
 
 def build_events(notes, voices, programs, banco, controls=(), reparto=None,
                  aire=sdsp.AIRE):
-    """Las escrituras al DSP, cuadro por cuadro.
+    """The writes to the DSP, frame by frame.
 
-    Cada canal tiene su grupo de voces —desde el paso 5, las ocho para todos:
-    ver `assign`—; una nota que arranca toma una libre, la que menos corte
-    según `_libre`, y si están todas sostenidas le roba a la que diga
-    `_victima`, o no suena. Es lo que hace un sintetizador cuando se le acaba
-    la polifonía.
+    Each channel has its group of voices —since step 5, all eight for
+    everyone: see `assign`—; a note that starts takes a free one, the one
+    that cuts least according to `_libre`, and if they are all held it
+    steals the one `_victima` says, or it does not play. It is what a
+    synthesizer does when it runs out of polyphony.
 
-    El banco viene de afuera y no se arma acá: lo comparten todos los temas de
-    la ROM, así que los índices de `V_SRCN` que este stream escribe son los de
-    ese banco y no los de uno propio. Ver `Banco`.
+    The bank comes from outside and is not built here: every song in the ROM
+    shares it, so the `V_SRCN` indices this stream writes are that bank's and
+    not those of one of its own. See `Banco`.
 
-    `controls` son los `midi.Control` del tema, ya en cuadros: el volumen, la
-    expresión y el paneo entran en el volumen de cada lado de la nota, y el
-    bend en su altura. Los de un cuadro se aplican antes que sus notas, así
-    que la nota arranca con el estado con que termina el cuadro; y a una voz
-    que ya sonaba —o que está en su cola— se le reescriben sus registros.
+    `controls` are the song's `midi.Control`s, already in frames: volume,
+    expression and pan go into the volume of each side of the note, and bend
+    into its pitch. A frame's controls are applied before its notes, so the
+    note starts with the state the frame ends with; and a voice that was
+    already sounding —or is in its tail— gets its registers rewritten.
 
-    `reparto`, si viene una lista, se llena con lo que le tocó a cada nota que
-    tiene muestra: (nota, voz o None si no sonó, cuadro en que le robaron la
-    voz o None, hasta cuándo la sostiene —el fin de la nota, o el de la
-    muestra si es un golpe más corto que ella—). Es de dónde sale cuánto
-    tiempo-nota se pierde.
+    `reparto`, if a list is given, is filled with what each note that has a
+    sample got: (note, voice or None if it did not play, frame its voice was
+    stolen in or None, until when it holds it —the end of the note, or of
+    the sample if it is a hit shorter than the note—). It is where the
+    amount of lost note-time comes from.
 
-    `aire` es el techo de las voces de este tema, el de `sdsp.AIRE` o uno
-    más bajo: ver `leer_techos`.
+    `aire` is the ceiling of this song's voices, `sdsp.AIRE`'s or a lower
+    one: see `leer_techos`.
     """
     frames = collections.defaultdict(Frame)
     techo = aire / sdsp.AIRE
@@ -1246,10 +1272,10 @@ def build_events(notes, voices, programs, banco, controls=(), reparto=None,
 
     def altura(note, drums):
         if drums:
-            # En General MIDI la nota elige el instrumento, no la altura, así
-            # que cada golpe tiene su propia muestra y se toca a su tasa
-            # original: transponerla convertiría un bombo en otra cosa. Por
-            # eso el bend tampoco la mueve.
+            # In General MIDI the note picks the instrument, not the pitch, so
+            # each hit has its own sample and is played at its original rate:
+            # transposing it would turn a bass drum into something else. That
+            # is why the bend does not move it either.
             drum = bank[drum_index[note.pitch]]
             return sdsp.pitch_for(drum.root, drum.root, drum.rate)
         instrument = bank[index_of[programs.get(note.channel, 0)]]
@@ -1257,8 +1283,8 @@ def build_events(notes, voices, programs, banco, controls=(), reparto=None,
                               instrument.root, instrument.rate)
 
     def controlar(hasta):
-        """Aplica los controladores hasta el cuadro `hasta`, y a las voces
-        cuya nota es de ese canal les reescribe lo que cambió."""
+        """Applies the controllers up to frame `hasta`, and rewrites what
+        changed on the voices whose note is from that channel."""
         nonlocal siguiente
         while (siguiente < len(pendientes)
                and pendientes[siguiente].start <= hasta):
@@ -1267,10 +1293,10 @@ def build_events(notes, voices, programs, banco, controls=(), reparto=None,
             if estado[c.channel][c.number] == c.value:
                 continue
             estado[c.channel][c.number] = c.value
-            # `owner` sigue teniendo a la nota después de su fin, así que
-            # esto también le cambia el volumen a una cola que se apaga, como
-            # fluidsynth. Cortarlo en el fin de la nota ahorraba 1.195 B en
-            # los 32 temas del `release` (2026-09-26): no vale un caso aparte.
+            # `owner` still has the note after its end, so this also changes
+            # the volume of a tail that is dying out, like fluidsynth.
+            # Cutting it at the end of the note saved 1,195 B across the 32
+            # songs of `release` (2026-09-26): not worth a special case.
             for voice, note in owner.items():
                 if note.channel != c.channel:
                     continue
@@ -1289,11 +1315,11 @@ def build_events(notes, voices, programs, banco, controls=(), reparto=None,
                     frame[base + sdsp.V_VOL_R] = derecha
 
     def en_orden():
-        """Las notas cuadro por cuadro, cada cuadro en el orden de
-        `_orden_del_cuadro`. Los controladores del cuadro se aplican antes de
-        ordenarlo, porque el orden va por el nivel con que arranca cada nota;
-        y como es un generador, eso pasa recién cuando el cuadro anterior ya
-        repartió sus voces, que es cuando lo hacía cada nota."""
+        """The notes frame by frame, each frame in `_orden_del_cuadro`'s
+        order. The frame's controllers are applied before sorting it,
+        because the order goes by the level each note starts with; and since
+        it is a generator, that only happens once the previous frame has
+        allocated its voices, which is when each note used to do it."""
         por_cuadro = collections.defaultdict(list)
         for note in notes:
             por_cuadro[note.start].append(note)
@@ -1302,40 +1328,41 @@ def build_events(notes, voices, programs, banco, controls=(), reparto=None,
             yield from _orden_del_cuadro(por_cuadro[cuadro], lambda n: sum(
                 lados(n, n.channel == midi.DRUM_CHANNEL)))
 
-    # De quién es cada voz ahora: la última nota que la tomó, con hasta
-    # cuándo la sostiene y hasta cuándo se oye. El release de una nota se
-    # agenda recién al final, y sólo si llegó a su fin siendo la dueña: si
-    # otra le robó la voz antes, soltarla soltaría a la ladrona. Hasta el
-    # 2026-09-25 se agendaba al tomar la voz y eran 329 notas de
-    # `escape_newyork` cortadas antes de tiempo, casi todas del bajo.
+    # Who owns each voice now: the last note that took it, with until when
+    # it holds it and until when it can be heard. A note's release is only
+    # scheduled at the end, and only if it reached its end still being the
+    # owner: if another note stole the voice first, releasing it would
+    # release the thief. Until 2026-09-25 it was scheduled when taking the
+    # voice, and 329 notes of `escape_newyork` were cut short, almost all
+    # of them the bass.
     voces, owner, robbed, sounded, rampas = {}, {}, {}, [], []
-    de_la_voz = {}                  # la entrada de `reparto` de su dueña
+    de_la_voz = {}                  # its owner's `reparto` entry
     for note in en_orden():
         group = voices.get(note.channel)
         if not group:
             continue
         program = programs.get(note.channel, 0)
         drums = note.channel == midi.DRUM_CHANNEL
-        # Antes de elegir voz: una nota sin muestra no suena, y si ocupara la
-        # voz le quitaría el lugar a una que sí.
+        # Before picking a voice: a note without a sample does not play, and
+        # if it took the voice it would take the place of one that does.
         source = (drum_index.get(note.pitch) if drums
                   else index_of.get(program))
         if source is None:
-            continue                    # el banco no trae ese golpe o programa
+            continue                    # the bank does not have that hit or program
 
         step = altura(note, drums)
         izquierda, derecha = lados(note, drums)
         if drums:
-            # Ataque instantáneo y sin decaimiento: el golpe ya trae su propia
-            # forma, la envolvente sólo lo apaga al final para que no siga
-            # leyendo memoria. No tiene release, así que tampoco GAIN: se oye
-            # hasta que la muestra se acaba. Pero la voz la sostiene sólo
-            # hasta el fin de la nota en el MIDI, y lo que sigue es como la
-            # cola de un release: se la puede tomar otra nota. Sostenerla
-            # hasta el final de la muestra le hacía perder a lo melódico, en
-            # los 32 temas, 8,3% del tiempo-nota en promedio en vez de 7,9%
-            # —Lunar_Pyramid 33% en vez de 23%— para salvar colas de golpes
-            # que en fluidsynth también se sueltan con el fin de la nota.
+            # Instant attack and no decay: the hit already carries its own
+            # shape, the envelope only shuts it off at the end so it does not
+            # keep reading memory. It has no release, so no GAIN either: it
+            # is heard until the sample runs out. But the voice holds it only
+            # until the note's end in the MIDI, and what follows is like a
+            # release tail: another note can take it. Holding it until the
+            # end of the sample made the melodic part lose, across the 32
+            # songs, 8.3% of note-time on average instead of 7.9%
+            # —Lunar_Pyramid 33% instead of 23%— to save hit tails that in
+            # fluidsynth are also released with the note's end.
             adsr1, adsr2, gain = 0x8F, 0xE0, None
             muestra = bank[source]
             cola = note.start + int(math.ceil(
@@ -1359,10 +1386,10 @@ def build_events(notes, voices, programs, banco, controls=(), reparto=None,
             robbed.setdefault(id(owner[voice]), t)
             if voice in de_la_voz:
                 de_la_voz[voice][2] = t
-            # Si la voz todavía suena, se la baja a cero en el cuadro de antes:
-            # el KON pone la envolvente en cero de golpe, y eso es un clic. No
-            # a una nota que arrancó en ese mismo cuadro, que se prepara detrás
-            # del release y lo deshace.
+            # If the voice is still sounding, it is brought down to zero in the
+            # frame before: KON drops the envelope to zero at once, and that is
+            # a click. Not for a note that started in that same frame, which is
+            # prepared after the release and undoes it.
             anterior = voces[voice]
             if anterior.cola > t - 1 and anterior.nota.start < t - 1:
                 rampas.append((t - 1, voice))
@@ -1374,8 +1401,9 @@ def build_events(notes, voices, programs, banco, controls=(), reparto=None,
 
         start = frames[note.start]
         base = voice * 0x10
-        # Lo que los controladores le reescribían a la dueña anterior en este
-        # cuadro ya no va: esta nota escribe los suyos, con el mismo estado.
+        # What the controllers were rewriting for the previous owner in this
+        # frame no longer applies: this note writes its own, with the same
+        # state.
         for registro in (sdsp.V_VOL_L, sdsp.V_VOL_R, sdsp.V_PITCH_L,
                          sdsp.V_PITCH_H):
             start.control.pop(base + registro, None)
@@ -1386,18 +1414,18 @@ def build_events(notes, voices, programs, banco, controls=(), reparto=None,
         if not drums:
             sounded.append((note, voice, gain))
 
-    # Los que quedan después de la última nota: el fundido del final de
-    # `escape_newyork` es CC7 sobre las notas que ya sonaban.
+    # The ones left after the last note: the fade at the end of
+    # `escape_newyork` is CC7 over the notes that were already sounding.
     controlar(float("inf"))
 
     for note, voice, gain in sounded:
-        # Robada en el mismo cuadro en que termina tampoco se suelta: la
-        # ladrona escribe su ADSR1 detrás del release y lo deshace, así que
-        # serían seis bytes que no hacen nada.
+        # Stolen in the same frame it ends in is not released either: the
+        # thief writes its ADSR1 after the release and undoes it, so it would
+        # be six bytes that do nothing.
         if robbed.get(id(note), note.end + 1) <= note.end:
             continue
         frames[note.end].release.append((voice, gain))
-    # Las rampas van después de los releases de su cuadro, para ganarles.
+    # Ramps go after their frame's releases, to win over them.
     for cuadro, voice in rampas:
         frames[cuadro].release.append((voice, RAMPA))
 
@@ -1405,47 +1433,49 @@ def build_events(notes, voices, programs, banco, controls=(), reparto=None,
 
 
 def init_writes():
-    """El estado del DSP antes de la primera nota.
+    """The DSP's state before the first note.
 
-    No depende del banco ni de qué voces son percusión: todo lo que hay acá es
-    global del DSP. Llevaba los dos como parámetros y no los miraba.
+    It depends neither on the bank nor on which voices are percussion:
+    everything here is global to the DSP. It used to take both as parameters
+    and never looked at them.
     """
     writes = [
-        (sdsp.FLG, sdsp.FLG_BASE),          # sin eco, sin mute
+        (sdsp.FLG, sdsp.FLG_BASE),          # no echo, no mute
         (sdsp.MVOL_L, sdsp.MASTER), (sdsp.MVOL_R, sdsp.MASTER),
         (sdsp.EVOL_L, 0x00), (sdsp.EVOL_R, 0x00),
-        (sdsp.EON, 0x00),                   # ninguna voz manda al eco
-        (sdsp.PMON, 0x00),                  # sin modulación entre voces
-        (sdsp.NON, 0x00),                   # ya no se usa el ruido: la
-                                            # percusión tiene muestras propias
-        (sdsp.DIR, SAMPLES_ADDR >> 8),      # dónde está el directorio
+        (sdsp.EON, 0x00),                   # no voice sends to the echo
+        (sdsp.PMON, 0x00),                  # no modulation between voices
+        (sdsp.NON, 0x00),                   # noise is no longer used: the
+                                            # percussion has its own samples
+        (sdsp.DIR, SAMPLES_ADDR >> 8),      # where the directory is
         (sdsp.KON, 0x00), (sdsp.KOF, 0x00),
     ]
     return writes
 
 
 def escrituras(frames, length, init):
-    """Lo que el tema le escribe al DSP: (cuadro, registro, valor), en orden.
+    """What the song writes to the DSP: (frame, register, value), in order.
 
-    Es **la especificación del stream**, y lo que hasta el 2026-09-26 era el
-    stream mismo —un `OP_DSP registro valor` de tres bytes por escritura—. El
-    formato por nota de `pack` tiene que expandirse a exactamente esto, cuadro
-    por cuadro: lo verifica `build_varios` con cada tema que arma, y en la ROM
-    `rom/pruebas/rpgmaker/test_musica_escrituras.py`.
+    It is **the stream's specification**, and what until 2026-09-26 was the
+    stream itself —a three-byte `OP_DSP register value` per write—. `pack`'s
+    per-note format has to expand to exactly this, frame by frame:
+    `build_varios` verifies it with every song it builds, and in the ROM
+    `rom/pruebas/rpgmaker/test_musica_escrituras.py` does.
 
-    Los registros del DSP son simples cerrojos: vuelto a escribir el mismo valor
-    no pasa nada. Así que se lleva la cuenta de qué tiene cada uno y se saltean
-    las escrituras que no cambian nada, que son muchas: el timbre y la muestra
-    de una voz casi nunca cambian entre dos notas seguidas.
+    The DSP's registers are plain latches: writing the same value again does
+    nothing. So what each one holds is tracked and the writes that change
+    nothing are skipped, and there are many: a voice's timbre and sample
+    almost never change between two consecutive notes.
 
-    Eso es seguro aun con el tema en loop. Una escritura se saltea sólo porque
-    otra anterior del mismo stream dejó ese valor, y esa anterior también se
-    ejecuta en la segunda vuelta; por inducción, el estado del DSP en cada punto
-    de la segunda vuelta es el mismo que en la primera.
+    That is safe even with the song looping. A write is skipped only because
+    an earlier write in the same stream left that value, and that earlier
+    one also runs on the second pass; by induction, the DSP's state at every
+    point of the second pass is the same as in the first.
 
-    KON es la excepción y nunca se cachea: no es un cerrojo sino un disparador.
-    El DSP lo mira cada dos milisegundos y arranca las voces cuyo bit esté
-    puesto, así que hay que bajarlo a mano o la nota se repite sola.
+    KON is the exception and is never cached: it is not a latch but a
+    trigger. The DSP looks at it every two milliseconds and starts the
+    voices whose bit is set, so it has to be cleared by hand or the note
+    repeats on its own.
     """
     salen = []
     state = {}
@@ -1471,12 +1501,12 @@ def escrituras(frames, length, init):
             continue
         cuadro = at
 
-        if sounding:                       # bajar el disparo del cuadro anterior
+        if sounding:                       # clear the previous frame's trigger
             salen.append((cuadro, sdsp.KON, 0x00))
             sounding = 0
         write(sdsp.KOF, 0x00)
         for voice, gain in frame.release:
-            write(voice * 0x10 + sdsp.V_ADSR1, 0x00)    # apagar ADSR: manda GAIN
+            write(voice * 0x10 + sdsp.V_ADSR1, 0x00)    # ADSR off: GAIN rules
             write(voice * 0x10 + sdsp.V_GAIN, gain)
         for preparacion in frame.setup:
             for register, value in preparacion.escrituras():
@@ -1489,59 +1519,62 @@ def escrituras(frames, length, init):
             salen.append((cuadro, sdsp.KON, frame.kon))
             sounding = frame.kon
 
-    # Al final se apaga todo, si no la última nota queda sonando en el loop.
+    # At the end everything is shut off, otherwise the last note keeps
+    # sounding into the loop.
     cuadro = max(cuadro, length)
     salen.append((cuadro, sdsp.KON, 0x00))
     salen.append((cuadro, sdsp.KOF, 0xFF))
     return salen
 
 
-# --- el formato por nota ---------------------------------------------------
+# --- the per-note format ---------------------------------------------------
 #
-# Hasta el 2026-09-26 el stream eran las escrituras mismas —`OP_DSP registro
-# valor`, tres bytes cada una— y pesaba más de la quinta parte del cartucho.
-# Ahora son eventos, y el 65816 los expande (`music_frame`) a **las mismas
-# escrituras, cuadro por cuadro**: el formato no puede cambiar cómo suena. Lo
-# verifica `build_varios` con cada tema que arma, y en la ROM
-# `rom/pruebas/rpgmaker/test_musica_escrituras.py`.
+# Until 2026-09-26 the stream was the writes themselves —`OP_DSP register
+# value`, three bytes each— and it weighed more than a fifth of the
+# cartridge. Now they are events, and the 65816 expands them (`music_frame`)
+# into **the same writes, frame by frame**: the format cannot change how it
+# sounds. `build_varios` verifies it with every song it builds, and in the
+# ROM `rom/pruebas/rpgmaker/test_musica_escrituras.py` does.
 #
-# Un tema es su stream y su tabla de *sonidos*: todo lo que una nota le
-# escribe a su voz salvo el volumen —altura, muestra, ADSR— más el GAIN con que
-# se va a soltar. La altura va adentro, y no aparte, porque con eso el
-# instrumento y la tecla son un solo byte: la batería cambia de golpe en casi
-# cada nota, y el piano de ADSR2 con la tecla.
+# A song is its stream and its table of *sounds*: everything a note writes to
+# its voice except the volume —pitch, sample, ADSR— plus the GAIN it will be
+# released with. The pitch goes inside, and not separately, because that way
+# the instrument and the key are a single byte: the drums change hit on
+# almost every note, and the piano changes ADSR2 with the key.
 #
-# Lo que el formato **no** asume, a propósito, es de qué canal es cada voz: el
-# evento dice la voz y el conversor la eligió. Así el reparto por prioridad del
-# paso 5 de `la-calidad-de-la-musica.md` —cualquier voz para cualquier canal—
-# entra sin tocarlo: que una voz cambie de instrumento nota a nota cuesta lo
-# mismo que no cambiarlo, un sonido por nota. Y la rampa antes de reusar una
-# voz que suena es un `OP_RELEASE_GAIN` con el GAIN de la rampa, un cuadro
-# antes de la nota.
+# What the format does **not** assume, on purpose, is which channel each
+# voice belongs to: the event says the voice and the converter chose it. That
+# way step 5's priority allocation from `la-calidad-de-la-musica.md` —any
+# voice for any channel— fits in without touching it: a voice changing
+# instrument note by note costs the same as not changing it, one sound per
+# note. And the ramp before reusing a sounding voice is an `OP_RELEASE_GAIN`
+# with the ramp's GAIN, one frame before the note.
 #
-# El caché de registros de `escrituras` lo lleva el 65816 y no el stream: cada
-# evento dice valores y el decodificador saltea el que el registro ya tiene.
-# Tiene una sola trampa, que es que no sabe decir "no sé" —ver `decodificar`—.
-# El KON tampoco va en el stream: lo juntan las notas y lo dispara la espera
-# que cierra el cuadro, que es exactamente la regla de `escrituras`.
+# The register cache of `escrituras` is kept by the 65816 and not by the
+# stream: each event says values and the decoder skips the one the register
+# already has. It has a single trap, which is that it cannot say "I don't
+# know" —see `decodificar`—. KON does not go in the stream either: the notes
+# accumulate it and the wait that closes the frame fires it, which is
+# exactly `escrituras`'s rule.
 
 VOCES = sdsp.VOICES
-# Los registros de voz que el decodificador lleva en su caché: de VOL_L a GAIN.
+# The voice registers the decoder keeps in its cache: from VOL_L to GAIN.
 REGISTROS_DE_VOZ = 8
 
 
-# Las familias de ocho opcodes, una por voz: la voz va en los tres bits bajos
-# y la familia en los de arriba, que es como las encuentra el decodificador.
-# Ver el encabezado de `tools/protocol/music.toml`, que no las puede declarar.
+# The families of eight opcodes, one per voice: the voice goes in the three
+# low bits and the family in the upper ones, which is how the decoder finds
+# them. See the header of `tools/protocol/music.toml`, which cannot declare
+# them.
 FAMILIAS = ["NOTE", "NOTE_VOL", "NOTE_PAN", "RELEASE", "RELEASE_GAIN",
             "SET_VOL", "SET_PAN", "SET_PITCH"]
 for _k, _familia in enumerate(FAMILIAS):
     for _v in range(VOCES):
         assert globals()["OP_%s_V%d" % (_familia, _v)] == 8 * _k + _v, (
-            "music.toml: OP_%s_V%d no está donde la familia lo espera"
+            "music.toml: OP_%s_V%d is not where the family expects it"
             % (_familia, _v))
-# Las esperas cortas, de OP_WAIT_1 a OP_WAIT_32: un byte cierra el cuadro y
-# espera. Entran casi todas; las demás van con OP_WAIT, de dieciséis bits.
+# The short waits, from OP_WAIT_1 to OP_WAIT_32: one byte closes the frame
+# and waits. Almost all of them fit; the rest go with OP_WAIT, sixteen bits.
 ESPERA_CORTA = 32
 for _n in range(1, ESPERA_CORTA + 1):
     assert globals()["OP_WAIT_%d" % _n] == OP_WAIT_1 + _n - 1, _n
@@ -1553,28 +1586,27 @@ def _es_de_voz(registro):
 
 
 def escrituras_del_arranque():
-    """Lo que escribe `OP_INIT`: la tabla `dsp_init_*` que `emit` le deja a la
-    ROM —el arranque sin KON ni KOF— y detrás KON y KOF en cero."""
+    """What `OP_INIT` writes: the `dsp_init_*` table `emit` leaves for the
+    ROM —the startup without KON or KOF— followed by KON and KOF at zero."""
     return ([(r, v) for r, v in init_writes() if r not in (sdsp.KON, sdsp.KOF)]
             + [(sdsp.KON, 0x00), (sdsp.KOF, 0x00)])
 
 
 class _Codificador:
-    """Arma el stream por nota de un tema. Lleva el mismo estado que el
-    decodificador del 65816 —el caché de los registros de voz, el sonido de
-    cada voz, el KON juntado del cuadro— y el mismo caché que `escrituras`,
-    así que decide cada evento sabiendo exactamente qué escrituras va a
-    producir."""
+    """Builds a song's per-note stream. It keeps the same state as the
+    65816's decoder —the voice register cache, each voice's sound, the
+    frame's accumulated KON— and the same cache as `escrituras`, so it
+    decides each event knowing exactly which writes it will produce."""
 
     def __init__(self):
         self.stream = bytearray()
         self.sonidos, self._sonido = [], {}
-        self.state = {}             # el caché de `escrituras`
-        self.sonido_de = {}         # el sonido de la última nota de cada voz
+        self.state = {}             # `escrituras`'s cache
+        self.sonido_de = {}         # the sound of each voice's last note
 
     def sonido(self, p):
-        # En el orden en que se escriben —PITCH_L, PITCH_H, SRCN, ADSR1,
-        # ADSR2—, que es lo que deja al 65816 recorrerlo con un solo índice.
+        # In the order they are written —PITCH_L, PITCH_H, SRCN, ADSR1,
+        # ADSR2—, which is what lets the 65816 walk it with a single index.
         clave = (p.altura & 0xFF, p.altura >> 8, p.muestra, p.adsr1, p.adsr2,
                  0 if p.gain is None else p.gain)
         if clave not in self._sonido:
@@ -1592,7 +1624,7 @@ class _Codificador:
         self.stream.extend((codigo,) + datos)
 
     def global_(self, registro, valor):
-        """Una escritura cacheada fuera de las voces: va cruda si cambia."""
+        """A cached write outside the voices: it goes raw if it changes."""
         assert not _es_de_voz(registro), registro
         if self.cambia(registro, valor):
             self.escribir(registro, valor)
@@ -1616,7 +1648,7 @@ class _Codificador:
         base = v * 0x10
         if (not self.cambia(base + sdsp.V_ADSR1, 0)
                 and not self.cambia(base + sdsp.V_GAIN, gain)):
-            return                      # no escribiría nada
+            return                      # it would write nothing
         if self.sonidos[self.sonido_de[v]][5] == gain:
             self.op(OP_RELEASE_V0 + v)
         else:
@@ -1628,13 +1660,13 @@ class _Codificador:
         por_voz = collections.defaultdict(dict)
         for registro, valor in control.items():
             assert _es_de_voz(registro), (
-                "un controlador escribe $%02X, que no es de una voz" % registro)
+                "a controller writes $%02X, which is not a voice register" % registro)
             por_voz[registro >> 4][registro & 0x0F] = valor
         for v in sorted(por_voz):
             regs, base = por_voz[v], v * 0x10
             assert set(regs) in ({0, 1}, {2, 3}, {0, 1, 2, 3}), (
-                "un controlador le escribe a la voz %d los registros %s: el "
-                "formato sólo sabe del par de volumen y el de altura"
+                "a controller writes to voice %d the registers %s: the "
+                "format only knows the volume pair and the pitch pair"
                 % (v, sorted(regs)))
             if 0 in regs and (self.cambia(base, regs[0])
                               or self.cambia(base + 1, regs[1])):
@@ -1658,14 +1690,14 @@ class _Codificador:
 
 
 def pack(frames, length, init):
-    """El tema en el formato por nota: (stream, sonidos).
+    """The song in the per-note format: (stream, sounds).
 
-    `sonidos` son los que el tema toca, en el orden de sus índices: cada uno
-    es (PITCH_L, PITCH_H, SRCN, ADSR1, ADSR2, GAIN del release), y el stream
-    los nombra por índice. Lo que el stream produce en el DSP es
-    **exactamente** `escrituras(frames, length, init)`, escritura por
-    escritura y cuadro por cuadro; lo verifica `build_varios` con
-    `decodificar`, que es el modelo del decodificador del 65816.
+    `sonidos` are the ones the song plays, in the order of their indices:
+    each is (PITCH_L, PITCH_H, SRCN, ADSR1, ADSR2, release GAIN), and the
+    stream names them by index. What the stream produces in the DSP is
+    **exactly** `escrituras(frames, length, init)`, write by write and frame
+    by frame; `build_varios` verifies it with `decodificar`, which is the
+    model of the 65816's decoder.
     """
     c = _Codificador()
     init = list(init)
@@ -1687,7 +1719,7 @@ def pack(frames, length, init):
             continue
         if at > previo:
             c.esperar(at - previo)
-            sonando = 0                 # el decodificador baja el KON al abrir
+            sonando = 0                 # the decoder clears KON on opening
         previo = at
         c.global_(sdsp.KOF, 0x00)
         for voz, gain in frame.release:
@@ -1699,37 +1731,38 @@ def pack(frames, length, init):
         c.controles(frame.control)
         if frame.kof:
             c.global_(sdsp.KOF, frame.kof)
-        assert kon == frame.kon, "el KON del cuadro no es el de sus notas"
+        assert kon == frame.kon, "the frame's KON is not its notes' KON"
         sonando = kon
 
-    # El final: `escrituras` baja KON y apaga todo en el cuadro `length`.
+    # The end: `escrituras` clears KON and shuts everything off in frame
+    # `length`.
     if length > previo:
         c.esperar(length - previo)
         if not sonando:
             c.op(OP_DSP, sdsp.KON, 0x00)
     else:
-        c.op(OP_WAIT, 0, 0)             # suelta el KON sin esperar
+        c.op(OP_WAIT, 0, 0)             # fires the KON without waiting
         c.op(OP_DSP, sdsp.KON, 0x00)
     c.op(OP_DSP, sdsp.KOF, 0xFF)
     c.op(OP_END)
     if len(c.sonidos) > 256:
-        raise SystemExit("el tema usa %d sonidos y el índice es de un byte"
+        raise SystemExit("the song uses %d sounds and the index is one byte"
                          % len(c.sonidos))
     return bytes(c.stream), c.sonidos
 
 
 def decodificar(stream, sonidos):
-    """El modelo del decodificador del 65816 —`music_frame`, en
-    tools/runtime/musica.s—, paso por paso: lo que el stream escribe, (cuadro,
-    registro, valor), hasta su `OP_END`. Tiene que dar lo mismo que
+    """The model of the 65816's decoder —`music_frame`, in
+    tools/runtime/musica.s—, step by step: what the stream writes, (frame,
+    register, value), up to its `OP_END`. It has to give the same as
     `escrituras`.
 
-    Imita también lo que el 65816 **no** sabe. Su caché no tiene "vacío":
-    al arrancar el tema tiene lo que haya quedado, y lo que lo reemplaza es
-    que la primera nota de cada voz escribe todo sin mirarlo, y el primer
-    release escribe su GAIN igual. Si el stream llegara a comparar contra un
-    registro que nadie escribió todavía, en la consola estaría comparando
-    contra basura: acá eso corta.
+    It also imitates what the 65816 does **not** know. Its cache has no
+    "empty": when the song starts it holds whatever was left, and what stands
+    in for that is that each voice's first note writes everything without
+    looking, and the first release writes its GAIN regardless. If the stream
+    ever compared against a register nobody has written yet, on the console
+    it would be comparing against garbage: here that stops.
     """
     salen, cache, vistas, con_gain = [], {}, set(), set()
     gain_de = {}
@@ -1741,8 +1774,8 @@ def decodificar(stream, sonidos):
     def escribir(registro, valor, forzar=False):
         if not forzar:
             assert registro in cache, (
-                "el stream compara el registro $%02X contra el caché antes "
-                "de escribirlo: en la ROM sería basura" % registro)
+                "the stream compares register $%02X against the cache before "
+                "writing it: in the ROM it would be garbage" % registro)
             if cache[registro] == valor:
                 return
         cache[registro] = valor
@@ -1785,7 +1818,7 @@ def decodificar(stream, sonidos):
         familia, v = FAMILIAS[op >> 3], op & 7
         base = v * 0x10
         if familia.startswith("NOTE"):
-            # La primera nota de la voz escribe todo: ver arriba.
+            # The voice's first note writes everything: see above.
             forzar = v not in vistas
             vistas.add(v)
             if familia == "NOTE_VOL":
@@ -1797,7 +1830,7 @@ def decodificar(stream, sonidos):
                 escribir(base + sdsp.V_VOL_L, izq, forzar)
                 escribir(base + sdsp.V_VOL_R, der, forzar)
             sonido = sonidos[leer()]
-            for k in range(5):          # de PITCH_L a ADSR2, en ese orden
+            for k in range(5):          # from PITCH_L to ADSR2, in that order
                 escribir(base + sdsp.V_PITCH_L + k, sonido[k], forzar)
             gain_de[v] = sonido[5]
             kon |= 1 << v
@@ -1823,9 +1856,9 @@ def decodificar(stream, sonidos):
 
 
 def verificar_formato(nombre, stream, sonidos, referencia):
-    """Que el stream de un tema, decodificado, escriba lo mismo que
-    `escrituras`: cada registro, cada valor, en el mismo orden y el mismo
-    cuadro. Se corta el conversor en la primera diferencia."""
+    """That a song's stream, decoded, writes the same as `escrituras`: every
+    register, every value, in the same order and the same frame. The
+    converter stops at the first difference."""
     salen = decodificar(stream, sonidos)
     if salen == referencia:
         return
@@ -1835,25 +1868,26 @@ def verificar_formato(nombre, stream, sonidos, referencia):
     else:
         n = min(len(salen), len(referencia))
     raise SystemExit(
-        "el stream de %s no escribe lo que tiene que escribir: la escritura "
-        "%d es %s y tenía que ser %s (cuadro, registro, valor)"
-        % (nombre, n, salen[n] if n < len(salen) else "ninguna",
-           referencia[n] if n < len(referencia) else "ninguna"))
+        "the stream of %s does not write what it has to write: write %d is "
+        "%s and it had to be %s (frame, register, value)"
+        % (nombre, n, salen[n] if n < len(salen) else "none",
+           referencia[n] if n < len(referencia) else "none"))
 
 
 def tema_del_mapa(map_id, game_dir=None):
-    """El nombre del tema que le toca a un mapa por el árbol, o "" si no tiene."""
+    """The name of the song a map gets from the tree, or "" if it has none."""
     game_dir = game_dir or recursos.GAME_DIR
     return temas_de_los_mapas([map_id], game_dir)[0]
 
 
 def temas_de_los_mapas(map_ids, game_dir=None):
-    """`tema_del_mapa` de cada uno, leyendo el árbol una sola vez.
+    """`tema_del_mapa` for each one, reading the tree only once.
 
-    "" quiere decir que entrar al mapa **no cambia** lo que suena: o el mapa
-    no trae tema —la raíz del árbol—, o es el `music_type` 1, "lo decide un
-    evento". Es el `return` temprano de `Game_Map::PlayBgm` en easyrpg. Un
-    "(OFF)" sí es un tema: calla, igual que un `PlayBGM` de "(OFF)".
+    "" means that entering the map **does not change** what is playing:
+    either the map has no song —the root of the tree—, or it is
+    `music_type` 1, "an event decides". It is the early `return` of
+    `Game_Map::PlayBgm` in easyrpg. An "(OFF)" is a song: it silences, just
+    like a `PlayBGM` of "(OFF)".
     """
     game_dir = game_dir or recursos.GAME_DIR
     tree = lcf.TreeMap(os.path.join(game_dir, "RPG_RT.lmt"))
@@ -1865,12 +1899,12 @@ def temas_de_los_mapas(map_ids, game_dir=None):
 
 
 def leer_tema(name, game_dir=None):
-    """Lo que hay que saber de un tema **antes** de tener el banco.
+    """What needs to be known about a song **before** having the bank.
 
-    Devuelve None si el nombre no está o no es un MIDI, que es como un mapa sin
-    música: el tema entra igual en la numeración —el bytecode ya lleva su
-    índice— pero su stream es un `OP_END` solo y la ROM sale muda cuando lo
-    prenden.
+    Returns None if the name is missing or is not a MIDI, which is like a map
+    without music: the song still goes into the numbering —the bytecode
+    already carries its index— but its stream is a lone `OP_END` and the ROM
+    stays silent when it is played.
     """
     game_dir = game_dir or recursos.GAME_DIR
     path = ruta_del_tema(name, game_dir)
@@ -1887,37 +1921,39 @@ def leer_tema(name, game_dir=None):
         "largo": largo,
         "voces": voices,
         "programas": programs,
-        # Lo que aporta al banco compartido: los programas de sus canales
-        # melódicos y las teclas de percusión que toca.
+        # What it contributes to the shared bank: the programs of its melodic
+        # channels and the percussion keys it plays.
         "melodicos": {programs.get(c, 0) for c in voices
                       if c != midi.DRUM_CHANNEL},
         "golpes": {n.pitch for n in notes if n.channel == midi.DRUM_CHANNEL},
     }
 
 
-# --- el techo de cada tema --------------------------------------------------
+# --- each song's volume ceiling ---------------------------------------------
 
-# El aire de cada tema que recortaría con el de `sdsp.AIRE`: la opción B del
-# paso 5 de `workflow/tasks/todo/la-calidad-de-la-musica.md`, elegida por taro
-# el 2026-09-26. El DSP suma las ocho voces y satura la suma a 16 bits antes
-# del volumen general, así que lo único que evita el recorte es el techo de
-# cada voz; con uno solo para todos, lo fija el tema que más suma —`rshinld`,
-# por su CC7 en 127— y los que no recortan bajan casi 4 dB sin necesidad. Con
-# uno por tema, cada uno baja lo justo.
+# The headroom of each song that would clip with `sdsp.AIRE`'s: option B of
+# step 5 of `workflow/tasks/todo/la-calidad-de-la-musica.md`, chosen by taro
+# on 2026-09-26. The DSP adds up the eight voices and saturates the sum to
+# 16 bits before the master volume, so the only thing that prevents clipping
+# is each voice's ceiling; with a single one for all, it is set by the song
+# that adds up the most —`rshinld`, because of its CC7 at 127— and the ones
+# that do not clip drop almost 4 dB for no reason. With one per song, each
+# drops just what it needs.
 #
-# **No se escribe a mano**: lo mide `tools/audio/techos.py` (`just techos`)
-# tocando cada tema en la ROM, y lo que queda es un dato versionado, como las
-# decisiones de `rom/parches/auto/`. Un tema que no está en la tabla va con
-# `sdsp.AIRE`. Cada cambio de la mezcla —las muestras, las envolventes, el
-# reparto— la deja vieja, y eso lo cobra `test_musica_techos.py`.
+# **It is not written by hand**: `tools/audio/techos.py` (`just techos`)
+# measures it by playing each song in the ROM, and what remains is versioned
+# data, like the decisions in `rom/parches/auto/`. A song that is not in the
+# table goes with `sdsp.AIRE`. Every change to the mix —the samples, the
+# envelopes, the allocation— makes it stale, and `test_musica_techos.py`
+# enforces that.
 def ruta_de_techos():
-    """Dónde está la tabla: una función y no una constante, porque sale del
-    proyecto, que se encuentra al usarlo y no al importar."""
+    """Where the table is: a function and not a constant, because it comes
+    from the project, which is found when used and not at import."""
     return os.path.join(proyecto.parches_auto(), "musica", "techos.toml")
 
 
 def leer_techos(ruta=None):
-    """{tema: aire} de la tabla versionada; vacío si no existe."""
+    """{song: headroom} from the versioned table; empty if it does not exist."""
     import tomllib
     ruta = ruta or ruta_de_techos()
     try:
@@ -1929,11 +1965,12 @@ def leer_techos(ruta=None):
 
 
 def huella_de_la_mezcla(escrituras_del_tema, banco):
-    """De qué depende el pico de un tema, resumido: lo que le escribe al DSP
-    —con su aire ya puesto— y las muestras que toca, con su loop. Lo que
-    cambie esto puede mover el pico, y la tabla de techos lo guarda para que
-    la prueba sepa si lo que se midió sigue siendo lo que suena. El driver
-    no entra: no mezcla nada, pasa escrituras."""
+    """What a song's peak depends on, summarized: what it writes to the DSP
+    —with its headroom already applied— and the samples it plays, with their
+    loop. Whatever changes this can move the peak, and the ceiling table
+    stores it so the test knows whether what was measured is still what
+    plays. The driver does not count: it mixes nothing, it passes writes
+    along."""
     import hashlib
     h = hashlib.sha256(repr(escrituras_del_tema).encode())
     muestras = sorted({valor for _c, registro, valor in escrituras_del_tema
@@ -1948,14 +1985,15 @@ def huella_de_la_mezcla(escrituras_del_tema, banco):
 
 def _enteros_entran(banco, paquetes, herencia, efectos, presupuestado,
                     nombres):
-    """Que lo que los `se_enteros()` ocupan de más entre, en cada paquete, en
-    lo que la música dejó libre: el banco ya está repartido sin contarlo, así
-    que si no entra no hay a quién sacárselo sin bajarle la tasa a un
-    instrumento, y el conversor se corta diciendo cuál.
+    """That the extra space the `se_enteros()` take fits, in each package,
+    in what the music left free: the bank is already allocated without
+    counting it, so if it does not fit there is nobody to take it from
+    without lowering an instrument's rate, and the converter stops saying
+    which one.
 
-    Y dice —sin cortarse— con qué tema que puede venir sonando los efectos de
-    un paquete entraban al lado con el tamaño de siempre y enteros ya no: ahí
-    esperan al próximo `PlayBGM` (ver
+    And it says —without stopping— with which song that may be playing a
+    package's sound effects used to fit alongside at their usual size and no
+    longer fit whole: there they wait for the next `PlayBGM` (see
     `decisiones/el-tema-que-suena-gana-y-los-efectos-esperan.md`)."""
     todos, pagados = se_enteros(), se_enteros_pagados()
     claves_de = {}
@@ -1974,21 +2012,21 @@ def _enteros_entran(banco, paquetes, herencia, efectos, presupuestado,
         ocupan = sum(len(efectos[e].data) for e in suyas)
         banco.enteros_de_mas[str(nombre)] = ocupan - sum(presupuestado[e]
                                                          for e in suyas)
-        # El paquete, y cada uno de sus temas aparte, que sube con los
-        # mismos efectos: ver `temas_aparte`.
+        # The package, and each of its separate songs, which is uploaded with
+        # the same sound effects: see `temas_aparte`.
         for suyos in [None] + [[t] for t in (paquete[4] if len(paquete) > 4
                                              else ())]:
             musica = banco.ocupa(claves_de[nombre] if suyos is None
                                  else set(banco.asignacion[suyos[0]].values()))
             if musica + ocupan > banco.libre:
-                no_entran.append("%s en el paquete %s%s (%d B de más)" % (
+                no_entran.append("%s in package %s%s (%d B over)" % (
                     ", ".join(enteros), nombre,
                     "" if suyos is None else ">" + nombres[suyos[0]],
                     musica + ocupan - banco.libre))
     if no_entran:
         raise SystemExit(
-            "los efectos enteros no entran sin bajarle la tasa a un "
-            "instrumento: %s. Bajarles la tasa en [sound_effects.whole], o sacarlos"
+            "the whole sound effects do not fit without lowering an "
+            "instrument's rate: %s. Lower their rate in [sound_effects.whole], or remove them"
             % "; ".join(no_entran))
     efectos_de = {p[0]: set(p[2]) & set(efectos) for p in paquetes}
     for nombre, heredado in herencia:
@@ -2001,77 +2039,82 @@ def _enteros_entran(banco, paquetes, herencia, efectos, presupuestado,
         antes = musica + sum(presupuestado[e] for e in suyas)
         ahora = musica + sum(len(efectos[e].data) for e in suyas)
         if antes <= banco.libre < ahora:
-            print("  con %s sonando, los efectos enteros del paquete %s no "
-                  "entran al lado: esperan al PlayBGM"
+            print("  with %s playing, the whole sound effects of package %s "
+                  "do not fit alongside: they wait for the PlayBGM"
                   % (nombres[heredado], nombre))
 
 
 def build_varios(nombres, game_dir=None, efectos=(), paquetes=None,
                  herencia=(), techos=None, aire_de_medida=None):
-    """Todos los temas de la ROM, compartiendo un solo banco de muestras.
+    """Every song in the ROM, sharing a single sample bank.
 
-    Devuelve (driver, las voces —las del banco y detrás los efectos, cada una
-    con su número de muestra—, temas, banco). Hay un dict por tema en el
-    orden en que vinieron: los índices son los de `Temas`, el bytecode ya los
-    lleva emitidos, así que **no se pueden reordenar**.
+    Returns (driver, the voices —the bank's followed by the sound effects,
+    each with its sample number—, songs, bank). There is one dict per song in the
+    order they came in: the indices are `Temas`'s, the bytecode already has
+    them emitted, so **they cannot be reordered**.
 
-    **Todos los temas pedidos salen en el cartucho, y todos con todas sus
-    muestras.** Un índice no cuesta ARAM: cuesta su stream, que vive en el
-    cartucho. Lo que compite por la ARAM son las muestras, y eso se reparte
-    por paquete: ver `Banco` y `repartir`.
+    **Every requested song goes in the cartridge, and all of them with all
+    their samples.** An index costs no ARAM: it costs its stream, which
+    lives in the cartridge. What competes for the ARAM is the samples, and
+    that is allocated per package: see `Banco` and `repartir`.
 
-    `paquetes` son los de la ROM, por nombre: (nombre, índices de sus temas,
-    nombres de sus efectos[, índices de sus temas de salida[, índices de sus
-    temas aparte]]). Cada uno tiene que entrar solo en la ARAM, con sus
-    efectos, y lo que ocupan sus efectos se resta antes de repartir; cada
-    tema de salida —ver `Temas.de_salida` en tools/port/eventos.py— tiene
-    que entrar solo, y cada tema aparte —ver `temas_aparte`— solo con los
-    efectos del paquete. Si no viene, cada tema es un paquete sin efectos.
+    `paquetes` are the ROM's, by name: (name, indices of its songs, names of
+    its sound effects[, indices of its exit songs[, indices of its separate
+    songs]]). Each one has to fit alone in the ARAM, with its sound effects,
+    and what its sound effects take is subtracted before allocating; each
+    exit song —see `Temas.de_salida` in tools/port/eventos.py— has to fit
+    alone, and each separate song —see `temas_aparte`— alone with the
+    package's sound effects. If not given, each song is a package without
+    sound effects.
 
-    `herencia` son pares (nombre de un paquete, índice de un tema que puede
-    venir sonando al cargarlo). `paquete_cargar_ya` no mueve las muestras
-    del tema que suena, así que las del paquete tienen que entrar al lado;
-    **los efectos no**: si no entran, esperan al próximo `PlayBGM`, que
-    completa el paquete —ver `tema_asegurar`—. Es la decisión
-    `workflow/decisiones/el-tema-que-suena-gana-y-los-efectos-esperan.md`.
+    `herencia` are pairs (name of a package, index of a song that may be
+    playing when it loads). `paquete_cargar_ya` does not move the samples of
+    the song that is playing, so the package's have to fit alongside; **the
+    sound effects do not**: if they do not fit, they wait for the next
+    `PlayBGM`, which completes the package —see `tema_asegurar`—. It is the
+    decision `workflow/decisiones/el-tema-que-suena-gana-y-los-efectos-esperan.md`.
 
-    `techos` es el aire de cada tema, por nombre —si no viene, el que está
-    versionado: ver `leer_techos`—, y `aire_de_medida` lo pisa para todos: es
-    con lo que `tools/audio/techos.py` arma la ROM en que mide los picos.
+    `techos` is each song's headroom, by name —if not given, the versioned
+    one: see `leer_techos`—, and `aire_de_medida` overrides it for all: it
+    is what `tools/audio/techos.py` builds the ROM it measures peaks in
+    with.
     """
     game_dir = game_dir or recursos.GAME_DIR
     driver = spc700.assemble(DRIVER, DRIVER_ADDR)
     if techos is None:
         techos = leer_techos()
-    # Leer los MIDI es puro y son uno por tema: en paralelo, como armarlos.
+    # Reading the MIDIs is pure and there is one per song: in parallel, like
+    # building them.
     leidos = en_paralelo(lambda n: leer_tema(n, game_dir), nombres)
     teclas = zonas_mas_usadas(leidos)
     claves_de = [claves_del_tema(t, teclas) for t in leidos]
-    # Los efectos van **todos**: cuáles caben lo decide la ROM mapa por mapa,
-    # al armar su paquete de audio. Se arman antes que el banco porque lo que
-    # ocupan los de cada paquete es lo primero que se resta.
+    # **All** the sound effects go in: which ones fit is decided by the ROM
+    # map by map, when it builds its audio package. They are built before
+    # the bank because what each package's take is the first thing
+    # subtracted.
     efectos_hechos = build_efectos(list(efectos), game_dir, 1 << 30)
     lista = sorted(efectos_hechos.values(), key=lambda e: list(efectos).index(
         e.name) if e.name in efectos else 0)
-    # Lo que la música le presupuesta a cada efecto: el de siempre, aunque
-    # vaya entero. Ver `se_enteros`.
+    # What the music budgets for each sound effect: the usual one, even if
+    # it goes whole. See `se_enteros`.
     presupuestado = {n: len(e.data) for n, e in efectos_hechos.items()}
     todos, pagados = se_enteros(), se_enteros_pagados()
     for n in efectos_hechos:
         if n in todos and n not in pagados:
             presupuestado[n] = len(build_efecto(n, game_dir, enteros={}).data)
 
-    # Las claves que el SoundFont tiene; las demás no suenan en ningún lado.
+    # The keys the SoundFont has; the rest do not play anywhere.
     claves_de = [{k for k in ks if _muestra(k, NATIVA) is not None}
                  for ks in claves_de]
     if paquetes is None:
         paquetes = [(nombre, [i], []) for i, nombre in enumerate(nombres)]
-    # Qué tiene que entrar junto: cada paquete con sus efectos; cada tema de
-    # salida solo —lo sube su `PlayBGM`, callando lo demás: ver
-    # `extra_de_salida` en tools/runtime/paquete_de_audio.s—; y cada paquete con
-    # el tema que puede venir sonando, sin sus efectos.
-    # Y los mismos con lo que ocupan de verdad los efectos, que es con lo
-    # que reparten las copias que no le bajan a nadie: ver `copias`.
+    # What has to fit together: each package with its sound effects; each
+    # exit song alone —its `PlayBGM` uploads it, silencing the rest: see
+    # `extra_de_salida` in tools/runtime/paquete_de_audio.s—; and each
+    # package with the song that may be playing when it loads, without its
+    # sound effects.
+    # And the same ones with what the sound effects really take, which is
+    # what the copies that lower no one allocate with: see `copias`.
     grupos, reales, temas_de = [], [], {}
     for paquete in paquetes:
         nombre, suyos, suyas = paquete[:3]
@@ -2085,8 +2128,8 @@ def build_varios(nombres, game_dir=None, efectos=(), paquetes=None,
         for t in salida:
             grupos.append(Grupo("%s>%s" % (nombre, nombres[t]), (t,), 0))
             reales.append(grupos[-1])
-        # Y cada tema aparte con los efectos del paquete, que se quedan
-        # cuando su `PlayBGM` lo sube: ver `temas_aparte`.
+        # And each separate song with the package's sound effects, which stay
+        # when its `PlayBGM` uploads it: see `temas_aparte`.
         for t in (paquete[4] if len(paquete) > 4 else ()):
             grupos.append(Grupo("%s>%s" % (nombre, nombres[t]), (t,), ocupan))
             reales.append(Grupo(grupos[-1].nombre, (t,), ocupan_real))
@@ -2107,20 +2150,20 @@ def build_varios(nombres, game_dir=None, efectos=(), paquetes=None,
     _enteros_entran(banco, paquetes, herencia, efectos_hechos, presupuestado,
                     nombres)
 
-    # Cada tema es independiente una vez repartido el banco, y armarlos era
-    # la mitad de esta función: van en paralelo, y vuelven en el orden de
-    # siempre.
+    # Each song is independent once the bank is allocated, and building them
+    # was half of this function: they go in parallel, and come back in the
+    # usual order.
     contexto = (nombres, leidos, asignacion, banco, techos, aire_de_medida)
     temas = en_paralelo(lambda i: _armar_tema(contexto, i),
                         range(len(nombres)))
-    # Y la pista de MSU-1 de cada uno: ver `pista_msu`.
+    # And each one's MSU-1 track: see `pista_msu`.
     for tema in temas:
         tema["pista"] = pista_msu(tema["nombre"], game_dir)
-    # Los efectos van detrás del banco en el mismo directorio, en sus
-    # `lugares` entradas: su `V_SRCN` es el lugar que le tocó a cada uno
-    # después de las muestras de la música. Y cada uno tiene además su número
-    # de efecto, que es el que llevan las listas de los paquetes, y su fila
-    # de `muestra_tabla` detrás de las de la música: ver `lugares_de_efectos`.
+    # The sound effects go after the bank in the same directory, in its
+    # `lugares` entries: their `V_SRCN` is the place each one got after the
+    # music's samples. And each one also has its sound effect number, which
+    # is what the package lists carry, and its `muestra_tabla` row after the
+    # music's: see `lugares_de_efectos`.
     banco.lugares = lugares
     banco.efectos = {e.name: (len(banco.voces) + lugar[e.name], e)
                      for e in lista}
@@ -2129,7 +2172,7 @@ def build_varios(nombres, game_dir=None, efectos=(), paquetes=None,
 
 
 def _armar_tema(contexto, i):
-    """Un tema de `build_varios`: lo que hace en paralelo."""
+    """One song of `build_varios`: what it does in parallel."""
     nombres, leidos, asignacion, banco, techos, aire_de_medida = contexto
     nombre, leido, suya = nombres[i], leidos[i], asignacion[i]
     if leido is None:
@@ -2153,7 +2196,7 @@ def _armar_tema(contexto, i):
 
 
 def resumen_del_tema(leido, banco, reparto=()):
-    """Lo que imprime la receta: voces, timbres y cuánto se llega a tocar."""
+    """What the recipe prints: voices, timbres and how much gets played."""
     voices, programs = leido["voces"], leido["programas"]
     return {
         "voices": {c: v for c, v in sorted(voices.items())},
@@ -2161,32 +2204,34 @@ def resumen_del_tema(leido, banco, reparto=()):
                    for c in sorted(voices) if c != midi.DRUM_CHANNEL},
         "bank": ["%s (%.0f Hz, %d B)" % (v.name.strip(), v.rate, len(v.data))
                  for v in banco.voces],
-        # Cuánto del tiempo-nota se pierde por falta de voces, y cuánto se
-        # perdería sin remedio con ocho: ver `tiempo_perdido`.
+        # How much of the note-time is lost for lack of voices, and how much
+        # would be lost unavoidably with eight: see `tiempo_perdido`.
         "perdido": tiempo_perdido(reparto),
-        # Y cuántas de sus notas llegan al stream. Una nota cuyo programa no
-        # está en el banco **no suena más bajo: no existe** —el `continue` de
-        # `build_events`—, así que esto es la voz que el jugador no oye. Es un
-        # número distinto de `perdido`, que mide la polifonía; hasta el
-        # 2026-09-26 ése era `coverage`, una cuenta del reparto fijo por canal,
-        # y se confundieron el 2026-09-14: por un rato pareció que compartir
-        # el banco no costaba nada, porque `coverage` daba igual con el banco
-        # entero o compartido.
+        # And how many of its notes reach the stream. A note whose program
+        # is not in the bank **does not play quieter: it does not exist**
+        # —the `continue` in `build_events`—, so this is the voice the
+        # player does not hear. It is a different number from `perdido`,
+        # which measures polyphony; until 2026-09-26 that one was
+        # `coverage`, a count from the fixed per-channel allocation, and they
+        # got mixed up on 2026-09-14: for a while it looked like sharing the
+        # bank cost nothing, because `coverage` came out the same with the
+        # whole bank or the shared one.
         "notas": notas_que_suenan(leido, banco),
     }
 
 
 def tiempo_perdido(reparto):
-    """(lo que se pierde, el piso): qué fracción del tiempo-nota de las notas
-    con muestra no suena por falta de voces, y qué fracción no podría sonar
-    con ninguna regla —lo que pasa de ocho notas a la vez—.
+    """(what is lost, the floor): what fraction of the note-time of notes
+    with a sample does not play for lack of voices, and what fraction could
+    not play under any rule —whatever goes beyond eight notes at once—.
 
-    El tiempo-nota es lo que la nota sostiene su voz: del arranque al fin en
-    el MIDI, o al fin de la muestra si es un golpe que se acaba antes. Se
-    pierde entero si la nota no consigue voz, y desde que se la roban si le
-    roban la suya antes de ese fin. La cola del release no cuenta: no está en
-    el MIDI. Es la cuenta del prototipo, que en `escape_newyork` dio 55% con
-    el reparto fijo por canal contra un piso de 23%.
+    Note-time is how long the note holds its voice: from its start to its
+    end in the MIDI, or to the end of the sample if it is a hit that runs
+    out sooner. It is lost entirely if the note gets no voice, and from the
+    moment of the steal if its voice is stolen before that end. The release
+    tail does not count: it is not in the MIDI. It is the prototype's count,
+    which in `escape_newyork` gave 55% with the fixed per-channel allocation
+    against a floor of 23%.
     """
     total = perdido = 0
     tramos = []
@@ -2207,7 +2252,7 @@ _Tramo = collections.namedtuple("_Tramo", "start end")
 
 
 def notas_que_suenan(leido, banco):
-    """Qué fracción de las notas del MIDI tiene su muestra en el banco."""
+    """What fraction of the MIDI's notes has its sample in the bank."""
     total = suenan = 0
     for nota in leido["notas"]:
         if nota.channel not in leido["voces"]:
@@ -2222,10 +2267,10 @@ def notas_que_suenan(leido, banco):
 
 
 def tabla_de_sonidos(sonidos, banco):
-    """Una fila por entrada de `Temas.sonidos`: la muestra —$FF si no entró—,
-    la altura, el volumen de cada lado, cuántos cuadros dura y el número del
-    efecto, que es lo que dice cuál de los que comparten la muestra es: ver
-    `lugares_de_efectos`."""
+    """One row per entry of `Temas.sonidos`: the sample —$FF if it did not
+    fit—, the pitch, the volume of each side, how many frames it lasts and
+    the sound effect number, which is what says which of the ones sharing
+    the sample it is: see `lugares_de_efectos`."""
     filas = []
     efectos = getattr(banco, "efectos", {}) if banco is not None else {}
     for nombre, volumen, tempo, balance in sonidos:
@@ -2241,52 +2286,53 @@ def tabla_de_sonidos(sonidos, banco):
     return filas
 
 
-# El silencio: un bloque BRR con los bits de fin y de loop, y ocho bytes en
-# cero. Es adonde apunta en el directorio toda muestra que no está en la ARAM.
+# The silence: a BRR block with the end and loop bits, and eight zero bytes.
+# It is where every sample that is not in the ARAM points in the directory.
 SILENCIO = bytes([0x03]) + bytes(8)
-# Y hasta dónde se sube: los últimos 64 bytes de la ARAM son los que la ROM de
-# arranque tapa cuando está prendida, y así el tope entra en dieciséis bits.
+# And how far uploads go: the last 64 bytes of the ARAM are the ones the boot
+# ROM covers when it is enabled, and that way the limit fits in sixteen bits.
 ARAM_FIN = 0x10000 - 64
 
 
 def muestras_del_tema(tema):
-    """Qué muestras usa un tema: los valores que su stream escribe en los
-    registros SRCN de las voces. Es lo que la ROM tiene que tener en la ARAM
-    para tocarlo, sacado de lo que el tema hace —su stream, decodificado— y
-    no de cómo se armó."""
+    """Which samples a song uses: the values its stream writes to the
+    voices' SRCN registers. It is what the ROM has to have in the ARAM to
+    play it, taken from what the song does —its stream, decoded— and not
+    from how it was built."""
     return sorted({valor for _cuadro, registro, valor
                    in decodificar(tema["stream"], tema["sonidos"])
                    if _es_de_voz(registro)
                    and registro & 0x0F == sdsp.V_SRCN})
 
 
-# Lo que cuesta subir al SPC700, en cuadros, para la cuenta del arranque. Las
-# muestras de un paquete van de a ternas por el comando 3 del driver —ver
-# `subir_muestra` en tools/runtime/paquete_de_audio.s—: medido en la ROM el
-# 2026-09-26, de 1,33 a 1,42 cuadros por KB en dieciocho paquetes, y acá va
-# un poco más. El driver y el directorio van byte a byte por el IPL, que
-# medía 1,4. Y cargar el mapa, sin audio y sin descomprimir, son unos 8
-# cuadros (medido con el mapa 6 de `test-special`, que no tiene paquete); acá
-# van 10. Lo que cuesta descomprimir depende del mapa y va aparte.
+# What uploading to the SPC700 costs, in frames, for the boot count. A
+# package's samples go in triplets through the driver's command 3 —see
+# `subir_muestra` in tools/runtime/paquete_de_audio.s—: measured in the ROM
+# on 2026-09-26, from 1.33 to 1.42 frames per KB across eighteen packages,
+# and a bit more goes here. The driver and the directory go byte by byte
+# through the IPL, which measured 1.4. And loading the map, without audio
+# and without decompressing, is about 8 frames (measured with map 6 of
+# `test-special`, which has no package); 10 go here. What decompressing
+# costs depends on the map and goes separately.
 CUADROS_POR_KB_PAQUETE = 1.45
 CUADROS_POR_KB_IPL = 1.5
 CUADROS_DEL_MAPA = 10
-# Dónde vive `BOOT_CUADROS`, que es de la ROM y no de acá.
+# Where `BOOT_CUADROS` lives, which belongs to the ROM and not here.
 RAM_LEJANA = os.path.join(proyecto.runtime(), "ram_lejana.s")
 
 
 def cuadros_del_arranque(driver, voces, temas, paquete, descomprimir=0.0,
                          directorio=None):
-    """Cuánto tarda el arranque, por lo alto: el mapa, el driver y el
-    directorio por el IPL, y las muestras del paquete del mapa de arranque
-    —(índices de temas, índices de muestras de efectos, temas de salida), el
-    de `emit`—. Los de salida cuentan: se suben si hay lugar, y con la ARAM
-    vacía lo hay. `descomprimir` son los cuadros que se lleva descomprimir los
-    bloques LZ2 del mapa de arranque, que `CUADROS_DEL_MAPA` no cuenta: ver
-    `cuadros_de_descomprimir` en snes_convert.py. `directorio` es (muestras
-    de la música, lugares de los efectos), el de `emit`: los efectos van por
-    número, con su fila detrás de las de la música.
-    Devuelve (cuadros, bytes del paquete)."""
+    """How long boot takes, erring high: the map, the driver and the
+    directory through the IPL, and the samples of the boot map's package
+    —(song indices, sound effect sample indices, exit songs), `emit`'s—.
+    The exit ones count: they are uploaded if there is room, and with an
+    empty ARAM there is. `descomprimir` is the frames that decompressing the
+    boot map's LZ2 blocks takes, which `CUADROS_DEL_MAPA` does not count:
+    see `cuadros_de_descomprimir` in snes_convert.py. `directorio` is (music
+    samples, sound effect places), `emit`'s: the sound effects go by number,
+    with their row after the music's.
+    Returns (frames, package bytes)."""
     suyos, efectos = paquete[:2]
     salida = paquete[2] if len(paquete) > 2 else ()
     musica_n, lugares = directorio or (len(voces), 0)
@@ -2302,7 +2348,7 @@ def cuadros_del_arranque(driver, voces, temas, paquete, descomprimir=0.0,
 
 
 def boot_cuadros(ruta=RAM_LEJANA):
-    """El `BOOT_CUADROS` de la ROM, leído del fuente."""
+    """The ROM's `BOOT_CUADROS`, read from the source."""
     import re
     with open(ruta) as archivo:
         return int(re.search(r"^BOOT_CUADROS\s*=\s*(\d+)", archivo.read(),
@@ -2312,37 +2358,38 @@ def boot_cuadros(ruta=RAM_LEJANA):
 def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
          sonidos=(), paquetes=(), tema_de_mapa=(), directorio=None,
          efecto_lugar=(), game_over=(0xFF, 0xFFFF)):
-    """El .inc que arma el ensamblador junto con main.s.
+    """The .inc the assembler builds along with main.s.
 
-    `temas` son los de `build_varios`, en el orden de `Temas`: el bytecode ya
-    lleva esos índices emitidos. `arranque` es cuál suena desde el primer
-    cuadro, o $FF si la ROM arranca callada y lo prende un `PlayBGM`.
+    `temas` are `build_varios`'s, in `Temas` order: the bytecode already has
+    those indices emitted. `arranque` is which one plays from the first
+    frame, or $FF if the ROM boots silent and a `PlayBGM` turns it on.
 
-    `voces` son todas las muestras del cartucho, numeradas: las de la música y
-    detrás los efectos. Ninguna se sube al arrancar: van al SPC700 de a
-    **paquetes**, uno por mapa —`paquetes`, en el orden de la tabla de mapas,
-    cada uno con sus temas, las muestras de sus efectos y sus temas de
-    salida—, y el directorio
-    arranca con todas apuntando al silencio. Ver `paquete_cargar` en tools/runtime/paquete_de_audio.s.
+    `voces` are all the cartridge's samples, numbered: the music's followed
+    by the sound effects. None is uploaded at boot: they go to the SPC700 in
+    **packages**, one per map —`paquetes`, in map table order, each with its
+    songs, its sound effects' samples and its exit songs—, and the directory
+    starts with all of them pointing to the silence. See `paquete_cargar` in
+    tools/runtime/paquete_de_audio.s.
 
-    `tema_de_mapa` es el tema que prende cada mapa al entrar, en el mismo
-    orden, o $FF si entrar no cambia lo que suena. Ver `mapa_tema_callar`.
+    `tema_de_mapa` is the song each map turns on when entered, in the same
+    order, or $FF if entering does not change what is playing. See
+    `mapa_tema_callar`.
 
-    `directorio` es (muestras de la música, lugares de los efectos): las
-    entradas del directorio son ésas y no una por voz, porque los efectos
-    comparten lugares —ver `lugares_de_efectos`—; `voces` trae detrás de la
-    música todos los efectos, uno por número, y `efecto_lugar` es el
-    `V_SRCN` de cada uno. Las listas de efectos de `paquetes` van por número.
+    `directorio` is (music samples, sound effect places): the directory's
+    entries are those and not one per voice, because sound effects share
+    places —see `lugares_de_efectos`—; `voces` carries every sound effect
+    after the music, one per number, and `efecto_lugar` is each one's
+    `V_SRCN`. The sound effect lists in `paquetes` go by number.
     """
     def block(label, data, bloque=False):
-        # Sin `.bloque` salvo en las muestras, y con `.cruza` en su lugar: el
-        # driver va byte a byte por los puertos —`spc_block` hace el salto de
-        # banco a mano— y el stream lo recorre `advance`, que hace el mismo
-        # salto, así que pueden quedar partidos. Las muestras sí lo llevan:
-        # `subir_a_aram` las recorre con un puntero de 24 bits que no salta de
-        # banco, a cambio de ser más corta. Ver `resolver` en
-        # tools/ensamblado/bancos.py, que no deja pasar una sin ninguna de las
-        # dos.
+        # No `.bloque` except on the samples, and `.cruza` instead: the
+        # driver goes byte by byte through the ports —`spc_block` does the
+        # bank jump by hand— and the stream is walked by `advance`, which
+        # does the same jump, so they can end up split. The samples do carry
+        # it: `subir_a_aram` walks them with a 24-bit pointer that does not
+        # jump banks, in exchange for being shorter. See `resolver` in
+        # tools/ensamblado/bancos.py, which does not let one through with
+        # neither of the two.
         out = ([".bloque %d" % len(data)] if bloque else [".cruza"]) \
             + ["%s:" % label]
         for i in range(0, len(data), 16):
@@ -2356,88 +2403,89 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
         "%s:\n    .byte %s" % (nombre, ", ".join(prefijo + e for e in etiquetas))
         for nombre, prefijo in (("tema_lo", "<"), ("tema_hi", ">"),
                                 ("tema_bk", "^")))
-    # El prólogo del DSP, para el camino del MSU-1. Con pista el stream no
-    # corre nunca, y es el comienzo del stream el que saca al DSP del mute con
-    # que arranca el SPC700, le pone el volumen general y le dice dónde está el
-    # directorio de muestras. Sin esto los efectos de sonido se disparan contra
-    # un DSP mudo y no se oyen.
+    # The DSP prologue, for the MSU-1 path. With a track the stream never
+    # runs, and it is the start of the stream that takes the DSP out of the
+    # mute the SPC700 boots with, sets its master volume and tells it where
+    # the sample directory is. Without this, sound effects fire against a
+    # mute DSP and are not heard.
     #
-    # KON y KOF quedan afuera a propósito: con pista, la ROM deja KOF en $FF
-    # para que las voces de la música no suenen, y `se_despues` lo limpia solo
-    # cuando arranca un efecto. Escribir acá KOF en cero volvería a encender
-    # las voces de un tema que no está sonando.
+    # KON and KOF are left out on purpose: with a track, the ROM leaves KOF
+    # at $FF so the music's voices do not play, and `se_despues` clears it
+    # only when a sound effect starts. Writing KOF as zero here would turn
+    # back on the voices of a song that is not playing.
     #
-    # Van en dos tablas paralelas y no en una de pares porque el 65816 las
-    # recorre con un índice: `lda dsp_init_reg, y`.
+    # They go in two parallel tables and not in one of pairs because the
+    # 65816 walks them with an index: `lda dsp_init_reg, y`.
     init = [(r, v) for r, v in init_writes()
             if r not in (sdsp.KON, sdsp.KOF)]
     tabla += "\ndsp_init_reg:\n    .byte " + ", ".join(
         "$%02X" % r for r, _ in init) + ", $FF"
     tabla += "\ndsp_init_val:\n    .byte " + ", ".join(
         "$%02X" % v for _, v in init) + ", $00"
-    # Y qué pista de MSU-1 le toca a cada uno, o $FF: ver `pista_msu`.
+    # And which MSU-1 track each one gets, or $FF: see `pista_msu`.
     tabla += "\ntema_msu:\n    .byte " + ", ".join(
         "$%02X" % (t.get("pista") or 0xFF)
         for t in (temas or [{"nombre": ""}]))
-    # Y el tema propio de cada mapa. Fuera del banco 0: se lee una vez por
-    # teletransporte, con `lda f:mapa_tema, x`.
+    # And each map's own song. Outside bank 0: it is read once per teleport,
+    # with `lda f:mapa_tema, x`.
     del_mapa = list(tema_de_mapa) or [0xFF]
     tabla_mapa_tema = ".bloque %d\nmapa_tema:\n    .byte " % len(del_mapa) \
         + ", ".join("$%02X" % t for t in del_mapa)
-    # Y los sonidos de la música —los de `pack`: seis bytes, la altura,
-    # SRCN, ADSR1, ADSR2 y el GAIN del release—, los de todos los temas en una
-    # tabla y dónde empiezan los de cada uno. En un solo banco, porque
-    # `music_frame` llega con `lda f:musica_sonidos, x` y la X de dieciséis
-    # bits no cruza de banco.
+    # And the music's sounds —`pack`'s: six bytes, the pitch, SRCN, ADSR1,
+    # ADSR2 and the release GAIN—, those of every song in one table and
+    # where each one's start. In a single bank, because `music_frame`
+    # reaches them with `lda f:musica_sonidos, x` and a sixteen-bit X does
+    # not cross banks.
     cuerpo, bases = bytearray(), []
     for t in temas:
         bases.append(len(cuerpo))
         for sonido in t["sonidos"]:
             cuerpo += bytes(sonido)
     if len(cuerpo) > 0x8000:
-        raise SystemExit("los sonidos de la música pasan de un banco: %d B"
+        raise SystemExit("the music's sounds go over one bank: %d B"
                          % len(cuerpo))
     tabla_mapa_tema += ("\n.bloque %d\ntema_sonidos:\n    .word "
                         % (2 * len(bases or [0]))
                         + ", ".join("%d" % b for b in bases or [0]) + "\n"
                         + block("musica_sonidos", bytes(cuerpo) or bytes(6),
                                 bloque=True))
-    # Y los efectos de sonido: siete bytes por entrada de `Temas.sonidos`.
-    # Fuera del banco 0: `op_sound` los lee con `lda f:sonido_tabla, x`.
+    # And the sound effects: seven bytes per entry of `Temas.sonidos`.
+    # Outside bank 0: `op_sound` reads them with `lda f:sonido_tabla, x`.
     filas = list(sonidos) or [(0xFF, 0, 0, 0, 0, 0xFF)]
     tabla_se = ".bloque %d\nsonido_tabla:\n" % (7 * len(filas)) + "\n".join(
         "    .byte $%02X, <%d, >%d, %d, %d, <%d, >%d" % (
             srcn, altura, altura, izquierda, derecha, cuadros, cuadros)
         for srcn, altura, izquierda, derecha, cuadros, _e in filas)
-    # Y qué efecto es cada fila, aparte para no tocar las siete columnas que
-    # recorren `sonido_tocar` y efectos_con_msu.s: la muestra de la fila es un
-    # lugar que comparten varios efectos, y `sonido_tocar` pregunta con esto
-    # si el que está en la ARAM es el suyo. Y el lugar de cada efecto, que es
-    # lo que usa el paquete para subirlo.
+    # And which sound effect each row is, separately so as not to touch the
+    # seven columns `sonido_tocar` and efectos_con_msu.s walk: the row's
+    # sample is a place several sound effects share, and `sonido_tocar` asks
+    # with this whether the one in the ARAM is its own. And each sound
+    # effect's place, which is what the package uses to upload it.
     tabla_se += "\n.bloque %d\nsonido_efecto:\n    .byte " % len(filas) \
         + ", ".join("$%02X" % fila[5] for fila in filas)
     lugares_se = list(efecto_lugar) or [0xFF]
     tabla_se += "\n.bloque %d\nefecto_lugar:\n    .byte " % len(lugares_se) \
         + ", ".join("$%02X" % l for l in lugares_se)
 
-    # El directorio del SPC700, con todas en el silencio, y el silencio
-    # detrás. Es lo único que sube `spc_upload` además del driver.
+    # The SPC700 directory, with all of them on the silence, and the silence
+    # after it. It is the only thing `spc_upload` uploads besides the driver.
     musica_n, lugares = directorio or (len(voces), 0)
     n = max(1, musica_n + lugares)
     if n > DIRECTORIO_MAX:
-        raise SystemExit("el directorio tiene %d entradas y el SRCN es de un "
+        raise SystemExit("the directory has %d entries and SRCN is one "
                          "byte" % n)
     if len(voces) - musica_n > 0xFF:
-        raise SystemExit("hay %d efectos y su número es de un byte"
+        raise SystemExit("there are %d sound effects and their number is one byte"
                          % (len(voces) - musica_n))
     if lugares > SE_LUGARES_MAX:
-        raise SystemExit("los efectos piden %d lugares del directorio y la ROM "
-                         "anota %d: ver FAR_EFECTO_EN" % (lugares,
-                                                          SE_LUGARES_MAX))
+        raise SystemExit("the sound effects ask for %d directory places and the ROM "
+                         "records %d: see FAR_EFECTO_EN" % (lugares,
+                                                            SE_LUGARES_MAX))
     silencio = SAMPLES_ADDR + 4 * n
     datos = silencio + len(SILENCIO)
     samples = (silencio.to_bytes(2, "little") * 2) * n + SILENCIO
-    # Cada muestra, suelta, y su fila: el puntero, cuánto mide y dónde vuelve.
+    # Each sample, on its own, and its row: the pointer, its length and
+    # where it loops back to.
     muestras = [block("muestra_%d" % i, v.data, bloque=True)
                 for i, v in enumerate(voces)] or [block("muestra_0", SILENCIO)]
     filas_m = []
@@ -2446,8 +2494,8 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
         loop = v.loop_block * muestras_brr.BLOQUE_BYTES if v is not None else 0
         filas_m.append("    .byte <(muestra_%d), >(muestra_%d), ^(muestra_%d), "
                        "<%d, >%d, <%d, >%d" % (i, i, i, largo, largo, loop, loop))
-    # Qué muestras usa cada tema, y el paquete de cada mapa. Dos bloques con
-    # un índice de desplazamientos adelante, y cada lista cerrada con $FF.
+    # Which samples each song uses, and each map's package. Two blocks with
+    # an index of offsets in front, and each list terminated with $FF.
     def listas(label, grupos):
         cuerpo, ofs = bytearray(), []
         for grupo in grupos:
@@ -2456,13 +2504,13 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
                 cuerpo += bytes(parte) + b"\xFF"
         datos_ = b"".join(o.to_bytes(2, "little") for o in ofs) + bytes(cuerpo)
         return block(label, datos_ or b"\xFF", bloque=True)
-    # Decodificar los streams para saberlo es puro y cuesta: en paralelo.
+    # Decoding the streams to find out is pure and costly: in parallel.
     tema_muestras = listas("tema_muestras", [
         [m] for m in en_paralelo(lambda i: muestras_del_tema(temas[i]),
                                  range(len(temas)))] or [[[]]])
-    # Cada paquete, cuatro listas: sus temas, las muestras de sus efectos,
-    # sus temas de salida y sus temas aparte —ver `extra_de_salida` y
-    # `extra_aparte` en tools/runtime/paquete_de_audio.s—.
+    # Each package, four lists: its songs, its sound effects' samples, its
+    # exit songs and its separate songs —see `extra_de_salida` and
+    # `extra_aparte` in tools/runtime/paquete_de_audio.s—.
     paquetes = [tuple(p) + ((),) * (4 - len(p)) for p in paquetes] or \
         [([], [], [], [])]
     bloque_paquetes = listas("paquetes", [[list(t), list(m), list(s),
@@ -2471,32 +2519,36 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
 
     with open(path, "w") as handle:
         handle.write(
-            "; Generado por tools/audio/snes_music.py. No editar.\n"
+            "; Generated by tools/audio/snes_music.py. Do not edit.\n"
+            # The next line and the "sin música" below stay in Spanish on
+            # purpose: they are data. `tools/audio/techos.py` reads them with
+            # a regex, and `rom/pruebas/arnes/consola.py`, `test_msu.py` and
+            # `test_msu_efectos.py` look for "; Temas: ".
             "; Temas: %s\n\n"
-            "; Cuántos temas lleva el cartucho y cuál suena desde el arranque.\n"
-            "; Los índices son los de `Temas` en eventos.py, o sea los que el\n"
-            "; bytecode de los PlayBGM ya trae emitidos.\n"
-            "; $FF en TEMA_ARRANQUE es 'la ROM arranca callada': el tema del\n"
-            "; mapa donde arranca no existe, así que lo tiene que prender un\n"
-            "; evento.\n"
+            "; How many songs the cartridge carries and which one plays from boot.\n"
+            "; The indices are those of `Temas` in eventos.py, that is, the ones\n"
+            "; the PlayBGM bytecode already has emitted.\n"
+            "; $FF in TEMA_ARRANQUE means 'the ROM boots silent': the song of the\n"
+            "; map it boots in does not exist, so an event has to turn it on.\n"
             "TEMA_TOTAL       = %d\n"
             "TEMA_ARRANQUE    = $%02X\n"
-            "; Y el de la pantalla de título, que sale de `title_music` del\n"
-            "; LDB. $FF quiere decir que esta ROM no lleva pantalla de título.\n"
+            "; And the title screen's, which comes from the LDB's `title_music`.\n"
+            "; $FF means this ROM has no title screen.\n"
             "TEMA_TITULO      = $%02X\n"
-            # `rom/src/` y no `tools/runtime/`, acá y seis líneas más abajo, a
-            # propósito: es texto que va al `.inc`, y lo que se emite no se
-            # toca todavía (workflow/decisiones/las-herramientas-se-separan-de-abl.md).
-            "; Y el de la pantalla de Game Over —`gameover_music`— con su\n"
-            "; paquete, que va detrás de todos: el tema solo. $FF y $FFFF si\n"
-            "; esta ROM no lleva la pantalla. Ver rom/src/game_over.s.\n"
+            # `rom/src/` and not `tools/runtime/`, here and six lines further
+            # down, on purpose: it is text that goes into the `.inc`, and the
+            # paths in what is emitted are not changed yet
+            # (workflow/decisiones/las-herramientas-se-separan-de-abl.md).
+            "; And the Game Over screen's —`gameover_music`— with its package,\n"
+            "; which goes after all the others: the song alone. $FF and $FFFF\n"
+            "; if this ROM has no such screen. See rom/src/game_over.s.\n"
             "TEMA_GAME_OVER   = $%02X\n"
             "PAQUETE_GAME_OVER = $%04X\n"
-            "; El volumen general con que suena el tema y los dos registros\n"
-            "; del DSP donde va. Los emite `sdsp.py`, que es de donde salen:\n"
-            "; el stream ya los escribe al arrancar, y un `FadeOutBGM` los\n"
-            "; vuelve a escribir bajándolos. Escribirlos también en rom/src/\n"
-            "; serían dos lados que se pueden equivocar igual.\n"
+            "; The master volume the song plays at and the two DSP registers it\n"
+            "; goes in. `sdsp.py` emits them, since that is where they come\n"
+            "; from: the stream already writes them at start, and a `FadeOutBGM`\n"
+            "; writes them again lowering them. Writing them in rom/src/ too\n"
+            "; would be two sides that can be wrong in the same way.\n"
             "TEMA_VOLUMEN     = $%02X\n"
             "DSP_MVOL_L       = $%02X\n"
             "DSP_MVOL_R       = $%02X\n"
@@ -2504,14 +2556,14 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
             "SPC_DRIVER_SIZE  = %d\n"
             "SPC_SAMPLES_ADDR = $%04X\n"
             "SPC_SAMPLES_SIZE = %d\n"
-            "; Las muestras van al SPC700 de a paquetes: ver `paquete_cargar`.\n"
-            "; El directorio está en SPC_SAMPLES_ADDR, el silencio detrás, y\n"
-            "; las muestras se acomodan entre ARAM_DATOS y ARAM_FIN.\n"
-            "; MUESTRAS_N son las entradas del directorio: las de la música,\n"
-            "; y desde SE_PRIMERA los SE_LUGARES que comparten los efectos.\n"
-            "; Cada efecto tiene su número —EFECTOS_N en total, que es lo que\n"
-            "; llevan las listas de los paquetes— y su fila de `muestra_tabla`\n"
-            "; en SE_PRIMERA más ese número. Ver `lugares_de_efectos`.\n"
+            "; Samples go to the SPC700 in packages: see `paquete_cargar`.\n"
+            "; The directory is at SPC_SAMPLES_ADDR, the silence after it, and\n"
+            "; the samples are placed between ARAM_DATOS and ARAM_FIN.\n"
+            "; MUESTRAS_N is the directory's entries: the music's, and from\n"
+            "; SE_PRIMERA on the SE_LUGARES the sound effects share.\n"
+            "; Each sound effect has its number —EFECTOS_N in total, which is\n"
+            "; what the package lists carry— and its `muestra_tabla` row at\n"
+            "; SE_PRIMERA plus that number. See `lugares_de_efectos`.\n"
             "MUESTRAS_N       = %d\n"
             "SE_PRIMERA       = %d\n"
             "SE_LUGARES       = %d\n"
@@ -2520,17 +2572,17 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
             "ARAM_DATOS       = $%04X\n"
             "ARAM_FIN         = $%04X\n"
             "PAQUETES_N       = %d\n"
-            "; Los efectos de sonido: en qué voz suenan y cuántas entradas\n"
-            "; tiene `sonido_tabla`. Ver `build_efectos`.\n"
+            "; The sound effects: which voice they play on and how many entries\n"
+            "; `sonido_tabla` has. See `build_efectos`.\n"
             "SE_VOZ           = %d\n"
             "SE_BIT           = $%02X\n"
             "SE_REG           = $%02X\n"
             "SE2_BIT          = $%02X\n"
             "SE2_REG          = $%02X\n"
             "SONIDOS_N        = %d\n\n"
-            "; Dónde arranca el stream de cada tema, partido en tres tablas\n"
-            "; porque se leen con un índice: van en el banco 0 como todo lo\n"
-            "; que la CPU recorre con `lda tabla, x`.\n"
+            "; Where each song's stream starts, split into three tables\n"
+            "; because they are read with an index: they go in bank 0 like\n"
+            "; everything the CPU walks with `lda tabla, x`.\n"
             '.segment "TABLAS"\n%s\n\n'
             '.segment "RODATA"\n%s\n%s\n%s\n%s\n'
             '.bloque %d\nmuestra_tabla:\n%s\n%s\n%s\n%s\n%s\n'

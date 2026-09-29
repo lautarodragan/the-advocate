@@ -1,26 +1,26 @@
-"""Dónde están el juego y el RTP, y cómo se encuentra un recurso adentro.
+"""Where the game and the RTP are, and how a resource is found inside them.
 
-No es de dibujo: es la configuración del juego y la búsqueda de recursos de
-RM2k, que usan por igual el render, el audio y el conversor.
+It is not about drawing: it is the game's configuration and RM2k's resource
+lookup, used alike by the render, the audio and the converter.
 """
 
 import os
 
 from comun import ambiente
 
-# `GAME_DIR` es el proyecto RM2k original, y `RTP_DIR` el RTP con que se armó.
-# Los fija el ejecutable desde `--game-dir` y `--rtp-dir` —ver
-# `comun/ambiente.py`— y se leen al usarlos: leerlos sin fijar falla diciendo
-# qué flag falta.
+# `GAME_DIR` is the original RM2k project, and `RTP_DIR` the RTP it was built
+# with. The executable sets them from `--game-dir` and `--rtp-dir` —see
+# `comun/ambiente.py`— and they are read when used: reading them unset fails
+# saying which flag is missing.
 #
-# Para ABL, el RTP es el de Don Miguel (junio de 2000), extraído de RTPE.EXE.
-# No es el RTP "oficial": el RPG Maker 2000 que se usaba fuera de Japón era su
-# traducción, y de paso le agregó archivos propios (Future1-3, entre otros)
-# que ABL usa. El RTP libre de EasyRPG no sirve acá: es un reemplazo con arte
-# distinto. Ni el juego ni el RTP viven en el repo: no son nuestros para
-# redistribuir. Antes el RTP era `RTP/` adentro del repo, excluido por
-# .gitignore, que es la peor combinación —ocupaba lugar, no se versionaba, y
-# parecía del proyecto—.
+# For ABL, the RTP is Don Miguel's (June 2000), extracted from RTPE.EXE. It is
+# not the "official" RTP: the RPG Maker 2000 used outside Japan was his
+# translation, and along the way he added files of his own (Future1-3, among
+# others) that ABL uses. EasyRPG's free RTP does not work here: it is a
+# replacement with different art. Neither the game nor the RTP live in the
+# repo: they are not ours to redistribute. The RTP used to be `RTP/` inside
+# the repo, excluded by .gitignore, which is the worst combination —it took up
+# space, was not versioned, and looked like part of the project—.
 _DEL_AMBIENTE = {"GAME_DIR": ambiente.juego, "RTP_DIR": ambiente.rtp}
 
 
@@ -31,10 +31,10 @@ def __getattr__(nombre):
 
 
 def find_resource(dirs, folder, name, extensions=(".png", ".bmp")):
-    """Busca <dir>/<folder>/<name>.<ext> sin distinguir mayúsculas.
+    """Looks for <dir>/<folder>/<name>.<ext>, case-insensitively.
 
-    RM2k guarda los nombres sin extensión y el juego original corría en
-    Windows, así que los .lmu no dicen nada del case real del archivo.
+    RM2k stores names without extension and the original game ran on
+    Windows, so the .lmu files say nothing about the file's real case.
     """
     for directory in dirs:
         for entry in os.listdir(directory) if os.path.isdir(directory) else []:

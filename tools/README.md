@@ -1,101 +1,106 @@
 # tools/
 
-Todo lo que corre fuera de la consola: lo que lee el juego de RPG Maker, lo que
-lo convierte, lo que arma la ROM y lo que la corre en las pruebas. Nada suelto:
-cada cosa está en la carpeta de su responsabilidad.
+Everything that runs outside the console: what reads the RPG Maker game, what
+converts it, what builds the ROM, and what runs it in the tests. Nothing
+loose: each thing lives in the folder of its responsibility.
 
-## Las capas
+## The layers
 
-De abajo hacia arriba. Una carpeta importa sólo de las que tiene abajo, nunca de
-una de su misma fila ni de más arriba.
+From the bottom up. A folder imports only from the ones below it, never from
+one in its own row or above.
 
-    comun/       dónde está cada cosa (proyecto), el caché en disco del
-                 conversor (cache_disco) y el reparto de lo puro en procesos
-                 bifurcados (paralelo). No importa nada de `tools/`, y
-                 cualquiera de las de arriba lo puede importar
+    comun/       where everything is (proyecto), the converter's disk cache
+                 (cache_disco), and spreading pure work across forked
+                 processes (paralelo). It imports nothing from `tools/`, and
+                 any of the ones above may import it
 
-    rpgmaker/    el juego como datos: el volcado a JSON de rom/data/ (lcf), lo
-                 nuestro que manda sobre él (fork), los códigos de comando de
-                 RM2k (event_codes), sus reglas y la geometría de sus imágenes
-                 (rm2k), y dónde están el juego y el RTP (recursos). Ninguna
-                 regla del formato vive acá: rom/data/ viene resuelto. Tiene su
-                 propio README
-    ensamblado/  el mapa de memoria (bancos), el que arma la ROM (ensamblar) y
-                 qué ROMs hay y con qué flags (cartuchos, que usa `just build`)
-    emulador/    el core de libretro desde Python (retro), y el parche de
-                 bsnes-libretro que le expone la WRAM
+    rpgmaker/    the game as data: the JSON dump of rom/data/ (lcf), what is
+                 ours and overrides it (fork), the RM2k command codes
+                 (event_codes), its rules and the geometry of its images
+                 (rm2k), and where the game and the RTP are (recursos). No
+                 rule of the format lives here: rom/data/ comes resolved. It
+                 has its own README
+    ensamblado/  the memory map (bancos), what builds the ROM (ensamblar), and
+                 which ROMs exist and with which flags (cartuchos, used by
+                 `just build`)
+    emulador/    the libretro core from Python (retro), and the bsnes-libretro
+                 patch that exposes the WRAM
 
-    render/      un mapa y un chipset como imágenes, con los CharSets encima,
-                 y la imagen de los ChipSets del fork (chipset_del_fork); usa
+    render/      a map and a chipset as images, with the CharSets on top,
+                 and the image of the fork's ChipSets (chipset_del_fork); uses
                  rpgmaker
 
-    audio/       del MIDI al SPC700: snes_music, midi, musica, sdsp, spc700,
-                 muestras_brr, snes_samples, music_opcodes, y las pistas de
-                 MSU-1 (msu); usa rpgmaker y comun
+    audio/       from MIDI to the SPC700: snes_music, midi, musica, sdsp,
+                 spc700, muestras_brr, snes_samples, music_opcodes, and the
+                 MSU-1 tracks (msu); uses rpgmaker and comun
 
-    port/        el conversor a SNES —snes_convert— y todo lo que sólo él usa:
-                 eventos, event_opcodes, batalla, experiencia, pantallas,
-                 menus, titulo, imagen, ventana, fuente, escena, animacion,
-                 textos, asignador, tiles_bin, comprimir, pantalla_completa,
-                 fin_del_juego, msu_datos, parches; y abajo de todos ellos,
-                 porque no importan nada del port, reglas (de Game_Actor y del
-                 LDB), constantes, color (el tinte de pantalla), paleta (una
-                 imagen a N colores) y formato_snes (un tile, un color y una
-                 celda como los lee el PPU)
+    port/        the converter to SNES —snes_convert— and everything only it
+                 uses: eventos, event_opcodes, batalla, experiencia,
+                 pantallas, menus, titulo, imagen, ventana, fuente, escena,
+                 animacion, textos, asignador, tiles_bin, comprimir,
+                 pantalla_completa, fin_del_juego, msu_datos, parches; and
+                 beneath all of them, because they import nothing from the
+                 port, reglas (from Game_Actor and the LDB), constantes, color
+                 (the screen tint), paleta (an image down to N colors) and
+                 formato_snes (a tile, a color and a cell as the PPU reads
+                 them)
 
-Y los proyectos de Rust, que no son capas del port sino herramientas aparte,
-en inglés y sin una mención a este juego (ver AGENTS.md):
+And the Rust projects, which are not layers of the port but separate tools,
+in English and without a single mention of this game (see AGENTS.md):
 
-    ditto/       lee y escribe los formatos de RPG Maker 2000
-    protocol/    declara un bytecode y genera las constantes de sus dos lados
-    gunter/      Gunter: códec BRR y lector de SoundFont
-    voodoo/      Voodoo: de una imagen a tiles, paletas y tilemap
-    lz2/         el LC_LZ2 de Nintendo, con un parser óptimo
+    ditto/       reads and writes the RPG Maker 2000 formats
+    protocol/    declares a bytecode and generates the constants for both sides
+    gunter/      Gunter: BRR codec and SoundFont reader
+    voodoo/      Voodoo: from an image to tiles, palettes and tilemap
+    lz2/         Nintendo's LC_LZ2, with an optimal parser
 
-Se instalan con `just -f tools/justfile herramientas` y se usan desde el
-PATH: ningún `.py` de acá los compila ni los busca en `target/`. Los scripts de Python que se
-ejecutan también: ver "Los que se ejecutan".
+They are installed with `just -f tools/justfile herramientas` and used from
+the PATH: no `.py` here builds them or looks for them in `target/`. The same
+goes for the Python scripts that get executed: see "The ones that run".
 
-## Los ciclos, y la violación que queda
+## Cycles, and the violation that remains
 
-Contando los imports que están adentro de funciones, que Python no ve al
-cargar pero siguen siendo dependencias, entre los `.py` de `tools/` no hay
-ningún ciclo de imports. Adentro de `port/`, los de abajo son los que no
-importan nada del port; encima, los que piden algo a otro —`batalla` a
-`eventos`, `pantallas` a `menus` y a `eventos`, `titulo` y `menus` a
-`paleta`—; y arriba de todo `snes_convert`, que usa a todos. Los imports que
-siguen adentro de una función ya no esconden ningún ciclo.
+Counting the imports inside functions, which Python does not see at load
+time but are still dependencies, there is no import cycle among the `.py`
+files of `tools/`. Inside `port/`, the ones at the bottom are those that
+import nothing from the port; above them, those that ask another for
+something —`batalla` from `eventos`, `pantallas` from `menus` and `eventos`,
+`titulo` and `menus` from `paleta`—; and on top of everything `snes_convert`,
+which uses all of them. The imports still inside a function no longer hide
+any cycle.
 
-La única excepción es `ensamblado/cartuchos.py`, que es el que orquesta y vive
-abajo: importa de `port/` y de `audio/`, corre `port/snes_convert.py` como
-subproceso, y `port/parches.py` lo importa de vuelta: el único ciclo, si se
-cuenta el subproceso. Son las únicas violaciones de capa, y siguen a
-propósito: qué hacer con él es una pregunta abierta, ver
-`workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
+The only exception is `ensamblado/cartuchos.py`, which is the orchestrator
+and lives at the bottom: it imports from `port/` and `audio/`, runs
+`port/snes_convert.py` as a subprocess, and `port/parches.py` imports it
+back: the only cycle, if the subprocess counts. These are the only layer
+violations, and they stay on purpose: what to do with it is an open
+question, see `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 
-El grafo, por archivo y por paquete, lo imprime el script del apéndice D de
-`docs/research/el-mapa-de-las-herramientas-de-python.md`. Ese script pone a
-`comun` en la misma fila que `rpgmaker`, como estaba al escribirlo; desde que
-`comun` tiene a `proyecto` va abajo de todo, y con `"comun": -1` en su
-`NIVEL` las únicas violaciones que imprime son las de `cartuchos`.
+The graph, per file and per package, is printed by the script in appendix D
+of `docs/research/el-mapa-de-las-herramientas-de-python.md`. That script puts
+`comun` in the same row as `rpgmaker`, as it was when it was written; since
+`comun` has `proyecto` it goes at the very bottom, and with `"comun": -1` in
+its `NIVEL` the only violations it prints are those of `cartuchos`.
 
-## Cómo se importa
+## How imports work
 
-Cada carpeta es un paquete de Python, y se importa por su nombre, con `tools/`
-—y sólo `tools/`— en el `sys.path`:
+Each folder is a Python package, and is imported by its name, with `tools/`
+—and only `tools/`— on `sys.path`:
 
     from rpgmaker import lcf
     from rpgmaker.recursos import find_resource
 
-Un `import lcf` suelto falla, y es a propósito: si también anduviera, el mismo
-módulo se podría cargar dos veces con dos nombres, y lo que uno le cambia al
-otro —`snes_convert` le cambia `DECORAR_TRANSLUCIDO` a `lcf`— no llegaría.
+A bare `import lcf` fails, on purpose: if it worked too, the same module
+could be loaded twice under two names, and what one changes on the other
+—`snes_convert` changes `DECORAR_TRANSLUCIDO` on `lcf`— would not get
+through.
 
-## Los que se ejecutan
+## The ones that run
 
-Los scripts que se corren son ejecutables —hashbang y `chmod +x`— y `just
-herramientas` los instala como symlinks en el mismo `bin/` que los proyectos
-de Rust. El `justfile` los llama por su nombre y no sabe dónde están:
+The scripts that get run are executables —shebang and `chmod +x`— and `just
+herramientas` installs them as symlinks in the same `bin/` as the Rust
+projects. The `justfile` calls them by name and does not know where they
+are:
 
     rm2k-snes-cartridges        ensamblado/cartuchos.py
     rm2k-snes-assemble          ensamblado/ensamblar.py
@@ -106,105 +111,110 @@ de Rust. El `justfile` los llama por su nombre y no sabe dónde están:
     rm2k-snes-volume-ceilings   audio/techos.py
     abl-entregar                ensamblado/entregar.py
 
-El porqué de los nombres está en `tools/justfile`. Uno nuevo se agrega en
-`_instalar`, y el `.py` busca sus paquetes resolviendo el symlink con
-`realpath`, porque `__file__` es la ruta del PATH: sube hasta `tools/` y no
-más. **Dónde está todo lo demás** lo contesta `comun/proyecto.py`, y nadie
-más: lo cobra `pruebas/test_proyecto.py`. Lo del repo —la raíz, el runtime—
-sale de dónde está ese archivo; lo del juego, de su archivo de proyecto:
-ver "Cómo encuentran el juego". Las pruebas ponen `tools/`
-en el camino ellas mismas, desde `pytest.ini`: las de A Blurred Line, desde
-`rom/pytest.ini`, y las de las herramientas —`pruebas/`, las que no necesitan
-el juego—, desde el de acá. Ver `pruebas/README.md`.
+The reason for the names is in `tools/justfile`. A new one is added in
+`_instalar`, and the `.py` finds its packages by resolving the symlink with
+`realpath`, because `__file__` is the PATH location: it climbs up to
+`tools/` and no further. **Where everything else is** is answered by
+`comun/proyecto.py`, and by nobody else: `pruebas/test_proyecto.py` enforces
+it. What belongs to the repo —the root, the runtime— comes from where that
+file is; what belongs to the game, from its project file: see "How they find
+the game". The tests put `tools/` on the path themselves, from
+`pytest.ini`: A Blurred Line's, from `rom/pytest.ini`, and the tools'
+—`pruebas/`, the ones that do not need the game—, from the one here. See
+`pruebas/README.md`.
 
-Un worktree que modifica las herramientas usa las suyas con `just -f
-tools/justfile herramientas-locales <destino>`, que arma un `bin/` propio
-adonde le diga el que lo va a usar: el `justfile` del juego busca el suyo en
-un directorio suyo, y éste, en `tools/.herramientas-locales/`.
-Cada uno lo pone adelante en el PATH de sus recetas: ver la receta, y
-"Sub-agentes" en AGENTS.md.
+A worktree that modifies the tools uses its own with `just -f
+tools/justfile herramientas-locales <destination>`, which builds a `bin/` of
+its own wherever whoever will use it says: the game's `justfile` looks for
+its own in a directory of its own, and this one, in
+`tools/.herramientas-locales/`. Each puts it first on the PATH of its
+recipes: see the recipe, and "Sub-agentes" in AGENTS.md.
 
-## Lo que decide el juego: el archivo de proyecto
+## What the game decides: the project file
 
-**Lo que es de un juego no está escrito en las herramientas**: qué mapas y
-qué casos lleva cada cartucho, cómo se llama la ROM, el título de su
-cabecera y las firmas de sus partidas, qué efectos van enteros, qué temas
-van aparte, qué CharSet pesa al repartir paletas. Lo declara el juego en su
-raíz, en `rm2k-snes.toml` —el de A Blurred Line es `rom/rm2k-snes.toml`—, y
-se lee con `comun/perillas.py`: `perillas.valor("maps", "below", tipo=int)`.
+**What belongs to a game is not written in the tools**: which maps and which
+cases each cartridge carries, what the ROM is called, the title in its
+header and the signatures of its save files, which sound effects go whole,
+which songs go separately, which CharSet weighs most when splitting
+palettes. The game declares it at its root, in `rm2k-snes.toml` —A Blurred
+Line's is `rom/rm2k-snes.toml`—, and it is read with `comun/perillas.py`:
+`perillas.valor("maps", "below", tipo=int)`.
 
-* **Una clave que falta es un error**, con su nombre, y no un valor por
-  omisión: un default en una herramienta sería el valor de ABL, y otro juego
-  se armaría con él sin avisar. Lo cobra `pruebas/test_perillas.py`, y del
-  lado de ABL `test_perillas_repetidas.py`, que falla si un `.py` de acá
-  vuelve a escribir un valor del archivo.
-* **Se lee al usarlo, no al importar**: el conversor y lo que usa se tienen
-  que poder importar sin un juego, que es lo que hacen las pruebas de acá.
-  La excepción es `ensamblado/cartuchos.py`, que es el orquestador del juego
-  y lo lee entero al cargarse.
-* **Lo que el runtime necesita** —el título, la firma de la SRAM— le llega
-  como `.define` en el `mapdata.inc` que emite el conversor: el runtime no
-  lee TOML.
-* **Las claves van en inglés**, porque son la interfaz de las herramientas;
-  los comentarios, en el idioma del juego.
-* **Lo que no va**: dónde está el juego en la máquina —eso es del ambiente,
-  y llega por flags: ver abajo— y los límites del motor que se midieron
-  sobre ABL, que se quedan en el código con un comentario que lo dice.
+* **A missing key is an error**, with its name, and not a default value: a
+  default in a tool would be ABL's value, and another game would be built
+  with it without a warning. `pruebas/test_perillas.py` enforces it, and on
+  ABL's side `test_perillas_repetidas.py`, which fails if a `.py` here writes
+  a value from the file again.
+* **It is read when used, not at import**: the converter and what it uses
+  must be importable without a game, which is what the tests here do. The
+  exception is `ensamblado/cartuchos.py`, which is the game's orchestrator
+  and reads the whole file when loaded.
+* **What the runtime needs** —the title, the SRAM signature— reaches it as a
+  `.define` in the `mapdata.inc` the converter emits: the runtime does not
+  read TOML.
+* **The keys are in English**, because they are the tools' interface; the
+  comments, in the game's language.
+* **What does not go there**: where the game is on the machine —that belongs
+  to the environment, and arrives by flags: see below— and the engine limits
+  that were measured on ABL, which stay in the code with a comment that says
+  so.
 
-## Cómo encuentran el juego
+## How they find the game
 
-**Las herramientas no saben dónde vive ningún juego: lo encuentran**, como
-cargo encuentra su `Cargo.toml`. Buscan `rm2k-snes.toml` desde el directorio
-actual hacia arriba, o lo reciben por `--proyecto <directorio>`; si no lo
-encuentran, cortan diciendo desde dónde buscaron. Se busca la primera vez que
-alguien pregunta, no al importar: importar el conversor no pide un juego.
+**The tools do not know where any game lives: they find it**, the way cargo
+finds its `Cargo.toml`. They look for `rm2k-snes.toml` from the current
+directory upwards, or receive it through `--proyecto <directory>`; if they do
+not find it, they stop and say where they searched from. The search happens
+the first time someone asks, not at import: importing the converter does not
+require a game.
 
-**Cómo está armado el juego por dentro lo declara su archivo**, en `[paths]`,
-relativo a él: el volcado (`data`), lo decidido (`patches`), lo armado
-(`build`) y los casos de la tanda (`cases`). Lo de adentro —`manual/` y
-`auto/` en lo decidido, un directorio por cartucho en lo armado— es la
-forma que le dan las herramientas. Lo que sólo leen las pruebas del juego
-—sus goldens, lo que dejan para mirar— no va: ellas lo saben por su
-ubicación.
+**How the game is laid out inside is declared by its file**, in `[paths]`,
+relative to it: the dump (`data`), what was decided (`patches`), what was
+built (`build`) and the suite's cases (`cases`). What goes inside —`manual/`
+and `auto/` in the decided part, one directory per cartridge in the built
+part— is the shape the tools give it. What only the game's tests read —their
+goldens, what they leave to look at— does not go there: they know it by
+their location.
 
-**Lo que es de la máquina llega por flags**: `--game-dir`, `--rtp-dir`,
-`--soundfont`, `--reemplazos` (las pistas de MSU-1 que salen de un audio y
-no del MIDI), `--cache`, `--test-cartridges` y, en `abl-entregar`,
-`--compartido`. Cada ejecutable suma los que usa y los fija en
-`comun/ambiente.py`, de donde los lee el resto; `recursos.GAME_DIR` y
-`snes_samples.SOUNDFONT` se resuelven ahí al leerlos. **Ninguno tiene valor
-por omisión**, salvo el caché y los cartuchos de prueba, que tienen su lugar
-en el `build` del proyecto: el valor de una máquina es del que llama. En
-A Blurred Line, `rom/justfile` traduce sus variables a flags.
+**What belongs to the machine arrives by flags**: `--game-dir`, `--rtp-dir`,
+`--soundfont`, `--reemplazos` (the MSU-1 tracks that come from an audio file
+and not from the MIDI), `--cache`, `--test-cartridges` and, in
+`abl-entregar`, `--compartido`. Each executable adds the ones it uses and
+sets them in `comun/ambiente.py`, where the rest read them from;
+`recursos.GAME_DIR` and `snes_samples.SOUNDFONT` are resolved there when
+read. **None has a default value**, except the cache and the test
+cartridges, which have their place in the project's `build`: a machine's
+value belongs to the caller. In A Blurred Line, `rom/justfile` translates its
+variables into flags.
 
-Lo cobra `pruebas/test_proyecto.py`: falla si un `.py` de acá lee una
-variable `ABL_*` o escribe `rom/` como ruta.
+`pruebas/test_proyecto.py` enforces it: it fails if a `.py` here reads an
+`ABL_*` variable or writes `rom/` as a path.
 
 ## `tools/justfile`
 
-Las recetas de las herramientas —generar el bytecode, correr sus pruebas,
-instalar— viven en `tools/justfile`, y las de A
-Blurred Line en `rom/justfile`, que nombra este directorio una sola vez: para
-decir cómo se instalan las herramientas de un worktree. El `justfile` de la
-raíz importa el de ABL y no éste. Desde la raíz
-se corren con `just -f tools/justfile <receta>`; parado acá, con `just
-<receta>`. Las dos formas corren la receta parada en `tools/`.
+The tools' recipes —generating the bytecode, running their tests,
+installing— live in `tools/justfile`, and A Blurred Line's in
+`rom/justfile`, which names this directory only once: to say how a
+worktree's tools are installed. The root `justfile` imports ABL's and not
+this one. From the root they are run with `just -f tools/justfile <recipe>`;
+standing here, with `just <recipe>`. Both forms run the recipe standing in
+`tools/`.
 
-## El parche de bsnes
+## The bsnes patch
 
-`emulador/bsnes-wram.patch` es para **bsnes-libretro**, no para este repo.
-bsnes no expone la WRAM —`retro_get_memory_data` devuelve nulo para todos los
-ids— y el reloj de las pruebas le pregunta a la ROM en qué vuelta del lazo va,
-que vive en `vueltas`, en la WRAM. Sin el parche, lo que corre bajo bsnes cae
-a contar cuadros de hardware, que sirve mientras la ROM no se atrase. Y sin
-bsnes no hay con qué contestar lo que `rom/pruebas/rpgmaker/test_cores.py` existe
-para contestar.
+`emulador/bsnes-wram.patch` is for **bsnes-libretro**, not for this repo.
+bsnes does not expose the WRAM —`retro_get_memory_data` returns null for
+every id— and the tests' clock asks the ROM which tick of the loop it is on,
+which lives in `vueltas`, in the WRAM. Without the patch, whatever runs under
+bsnes falls back to counting hardware frames, which works as long as the ROM
+does not fall behind. And without bsnes there is nothing to answer what
+`rom/pruebas/rpgmaker/test_cores.py` exists to answer.
 
-El parche expone sólo `RETRO_MEMORY_SYSTEM_RAM` y deja el resto como está: el
-comentario de bsnes sobre esa función es por la SRAM, que no se toca, y por
-eso es defendible río arriba. Su mensaje de commit dice el resto.
+The patch exposes only `RETRO_MEMORY_SYSTEM_RAM` and leaves the rest as it
+is: bsnes's comment on that function is about the SRAM, which is not touched,
+and that is why it is defensible upstream. Its commit message says the rest.
 
-Para armarlo hace falta `gcc` y `make`, y nada más:
+Building it takes `gcc` and `make`, and nothing else:
 
     git clone https://github.com/libretro/bsnes-libretro
     cd bsnes-libretro

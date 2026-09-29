@@ -1,38 +1,39 @@
-"""Que dónde está cada cosa lo sepa `comun/proyecto.py`, y nadie más.
+"""That where each thing is is known by `comun/proyecto.py`, and nobody else.
 
-Antes de ese módulo, once `.py` calculaban la raíz del repo subiendo tres
-carpetas desde `__file__`, y otros tantos armaban a mano `data/`,
-`parches/manual/` o `rom/src/` a partir de ella. El 2026-09-29 el motor se
-mudó a `tools/runtime/`, y `data/`, `parches/` y `pruebas/` adentro de
-`rom/`: cada uno de ésos habría sido un lugar más para buscar, y con esto
-fue cambiar unas líneas de `proyecto.py`. Ver
+Before that module, eleven `.py` files computed the repo root by climbing
+three folders from `__file__`, and as many more built `data/`,
+`parches/manual/` or `rom/src/` by hand from it. On 2026-09-29 the runtime
+moved to `tools/runtime/`, and `data/`, `parches/` and `pruebas/` into
+`rom/`: each of those would have been one more place to search, and with
+this it took changing a few lines of `proyecto.py`. See
 `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 
-Mira los `.py` de `tools/` —los paquetes y sus pruebas—, y falla si alguno:
+It looks at the `.py` files of `tools/` —the packages and their tests—, and
+fails if any of them:
 
-* **sube hasta la raíz desde `__file__`**: tres `dirname` o un `".."` en la
-  misma sentencia que `__file__`. Subir dos, hasta `tools/`, sí se puede: es
-  cómo un script que se ejecuta pone sus paquetes en el `sys.path` antes de
-  poder importar nada, y eso incluye a `proyecto`;
-* **arma una ruta del repo a mano**: un `os.path.join` que empieza por una
-  carpeta de la raíz —`"data"`, `"tools/runtime"`…—, o que la pega detrás de la
-  raíz —`RAIZ`, `proyecto.raiz()`—. Detrás de otra cosa no cuenta:
-  `pruebas/` adentro de `tools/` es otra carpeta;
-* **lee una variable de ambiente de las que dicen dónde está algo**, o
-  escribe el valor por omisión de una: desde el 2026-09-29 eso llega por
-  flags —ver `comun/ambiente.py`—, y los valores de la máquina son del que
-  llama a las herramientas.
+* **climbs up to the root from `__file__`**: three `dirname` or a `".."` in
+  the same statement as `__file__`. Climbing two, up to `tools/`, is allowed:
+  that is how an executed script puts its packages on `sys.path` before it
+  can import anything, and that includes `proyecto`;
+* **builds a repo path by hand**: an `os.path.join` that starts with a root
+  folder —`"data"`, `"tools/runtime"`…—, or that sticks it after the root
+  —`RAIZ`, `proyecto.raiz()`—. After anything else it does not count:
+  `pruebas/` inside `tools/` is another folder;
+* **reads one of the environment variables that say where something is**, or
+  writes the default value of one: since 2026-09-29 that arrives by flags
+  —see `comun/ambiente.py`—, and the machine's values belong to whoever
+  calls the tools.
 
-Y aparte, `test_ninguna_herramienta_sabe_de_abl`, porque es otra regla y la
-de más arriba no la ve: que ningún `.py` de `tools/` lea una variable
-`ABL_*` —cualquiera, no sólo las de la lista—, ni escriba `rom/` como
-pedazo de ruta. Las herramientas encuentran el juego por su archivo de
-proyecto, y sus rutas las declara él: saber que A Blurred Line vive en
-`rom/` es saber de un juego.
+And separately, `test_ninguna_herramienta_sabe_de_abl`, because it is another
+rule and the one above does not see it: that no `.py` of `tools/` reads an
+`ABL_*` variable —any of them, not only those in the list—, or writes `rom/`
+as a piece of a path. The tools find the game through its project file, and
+its paths are declared by it: knowing that A Blurred Line lives in `rom/` is
+knowing about a game.
 
-Lo que no mira: la prosa —comentarios, docstrings, `help=`, los mensajes—,
-que nombra rutas para que uno las encuentre; ni este archivo, que las
-escribe a propósito para ver que la red las agarra.
+What it does not look at: the prose —comments, docstrings, `help=`, the
+messages—, which names paths so one can find them; nor this file, which
+writes them on purpose to see that the net catches them.
 """
 
 import ast
@@ -45,29 +46,29 @@ from comun import proyecto
 HERRAMIENTAS = proyecto.herramientas()
 ESTE = os.path.realpath(__file__)
 
-# Las carpetas de la raíz. Un pedazo de ruta que empieza por una de éstas es
-# una ruta del repo armada a mano.
+# The root folders. A piece of a path that starts with one of these is a repo
+# path built by hand.
 DE_LA_RAIZ = {"data", "parches", "rom", "pruebas", "tools"}
 
-# Cómo se llama la raíz cuando se la tiene en una variable.
+# What the root is called when it is held in a variable.
 RAIZ = {"RAIZ", "REPO", "raiz"}
 
-# Las variables que dicen dónde está algo.
+# The variables that say where something is.
 DE_AMBIENTE = {"ABL_GAME_DIR", "ABL_RTP_DIR", "ABL_SOUNDFONT", "ABL_CACHE",
                "CARTUCHOS", "SHARED"}
 
-# Lo que se permite, con su porqué: (archivo relativo a `tools/`, pedazo).
+# What is allowed, with its reason: (file relative to `tools/`, piece).
 PERMITIDOS = {
-    # La forma del directorio de cada cartucho, que imita la de `rom/parches/`:
-    # no es dónde está `rom/parches/` en el repo, y no se mueve con él.
+    # The shape of each cartridge's directory, which imitates `rom/parches/`:
+    # it is not where `rom/parches/` is in the repo, and does not move with it.
     ("port/parches.py", "parches"),
 }
 
 
 def _nuestros():
-    """Los `.py` de `tools/`, menos los proyectos de Rust. `proyecto.py`
-    también: hasta el 2026-09-29 era la excepción, porque ahí vivían los
-    valores de la máquina, y ya no los tiene."""
+    """The `.py` files of `tools/`, minus the Rust projects. `proyecto.py`
+    too: until 2026-09-29 it was the exception, because the machine's values
+    lived there, and it no longer has them."""
     for raiz, subs, archivos in os.walk(HERRAMIENTAS):
         subs[:] = sorted(s for s in subs
                          if s not in ("target", "__pycache__")
@@ -92,7 +93,7 @@ def _es_join(nodo):
 
 
 def _es_la_raiz(nodo):
-    """`RAIZ`, `REPO`, `raiz` o `algo.raiz()`."""
+    """`RAIZ`, `REPO`, `raiz` or `something.raiz()`."""
     if isinstance(nodo, ast.Name):
         return nodo.id in RAIZ
     return (isinstance(nodo, ast.Call) and isinstance(nodo.func, ast.Attribute)
@@ -100,7 +101,7 @@ def _es_la_raiz(nodo):
 
 
 def _es_lectura_de_ambiente(nodo):
-    """`os.environ.get("X", …)`, `os.getenv("X")` u `os.environ["X"]`."""
+    """`os.environ.get("X", …)`, `os.getenv("X")` or `os.environ["X"]`."""
     if isinstance(nodo, ast.Call):
         funcion = nodo.func
         if (isinstance(funcion, ast.Attribute) and funcion.attr == "get"
@@ -117,7 +118,7 @@ def _es_lectura_de_ambiente(nodo):
 
 
 def violaciones(ruta, fuente=None):
-    """Las violaciones de un archivo, como `línea: qué`."""
+    """A file's violations, as `line: what`."""
     if fuente is None:
         with open(ruta, encoding="utf-8") as archivo:
             fuente = archivo.read()
@@ -127,8 +128,8 @@ def violaciones(ruta, fuente=None):
     for sentencia in ast.walk(arbol):
         if not isinstance(sentencia, ast.stmt):
             continue
-        # Sólo las sentencias simples: una compuesta —un `def`, un `if`—
-        # contiene a las otras, y cada una se mira por su lado.
+        # Only the simple statements: a compound one —a `def`, an `if`—
+        # contains the others, and each is looked at on its own.
         if any(isinstance(h, ast.stmt) for h in ast.iter_child_nodes(sentencia)):
             continue
         nodos = list(ast.walk(sentencia))
@@ -136,7 +137,7 @@ def violaciones(ruta, fuente=None):
             dirnames = sum(1 for n in nodos if isinstance(n, ast.Attribute)
                            and n.attr == "dirname")
             if dirnames >= 3 or any(_texto(n) == ".." for n in nodos):
-                malas.append("%d: sube hasta la raíz desde __file__: "
+                malas.append("%d: climbs up to the root from __file__: "
                              "proyecto.raiz()" % sentencia.lineno)
     for nodo in ast.walk(arbol):
         if isinstance(nodo, ast.Call) and _es_join(nodo):
@@ -147,21 +148,21 @@ def violaciones(ruta, fuente=None):
                 primero = texto.split("/")[0]
                 if (primero in DE_LA_RAIZ
                         and (relativo, primero) not in PERMITIDOS):
-                    malas.append("%d: arma a mano una ruta de %s/: va en "
+                    malas.append("%d: builds a path to %s/ by hand: it goes in "
                                  "proyecto.py" % (nodo.lineno, primero))
         variable = _es_lectura_de_ambiente(nodo)
         if variable in DE_AMBIENTE:
-            malas.append("%d: lee %s: llega por flag, ver comun/ambiente.py"
+            malas.append("%d: reads %s: it arrives by flag, see comun/ambiente.py"
                          % (nodo.lineno, variable))
         texto = _texto(nodo)
         if texto and texto.startswith(("/extras", "/shared")):
-            malas.append("%d: un valor por omisión de la máquina: es del que "
-                         "llama a las herramientas" % nodo.lineno)
+            malas.append("%d: a machine default value: it belongs to whoever "
+                         "calls the tools" % nodo.lineno)
     return malas
 
 
 def _prosa(arbol):
-    """Los strings que son prosa: docstrings y `help=`."""
+    """The strings that are prose: docstrings and `help=`."""
     ids = set()
     for nodo in ast.walk(arbol):
         if isinstance(nodo, (ast.Module, ast.FunctionDef, ast.ClassDef,
@@ -176,9 +177,9 @@ def _prosa(arbol):
 
 
 def de_abl(ruta, fuente=None):
-    """Lo que un archivo sabe de A Blurred Line, como `línea: qué`: una
-    variable `ABL_*` leída, o `rom/` escrito como pedazo de ruta —un string
-    sin blancos, que es cómo se ve una ruta y no un mensaje—."""
+    """What a file knows about A Blurred Line, as `line: what`: an `ABL_*`
+    variable read, or `rom/` written as a piece of a path —a string without
+    whitespace, which is what a path looks like and not a message—."""
     if fuente is None:
         with open(ruta, encoding="utf-8") as archivo:
             fuente = archivo.read()
@@ -188,13 +189,13 @@ def de_abl(ruta, fuente=None):
     for nodo in ast.walk(arbol):
         variable = _es_lectura_de_ambiente(nodo)
         if variable and variable.startswith("ABL_"):
-            malas.append("%d: lee %s, que es de A Blurred Line"
+            malas.append("%d: reads %s, which belongs to A Blurred Line"
                          % (nodo.lineno, variable))
         texto = _texto(nodo)
         if (texto and id(nodo) not in prosa
                 and not any(c.isspace() for c in texto)
                 and (texto.startswith("rom/") or "/rom/" in texto)):
-            malas.append("%d: nombra %r, que es dónde vive A Blurred Line"
+            malas.append("%d: names %r, which is where A Blurred Line lives"
                          % (nodo.lineno, texto))
     return malas
 
@@ -205,7 +206,7 @@ def test_nadie_mas_sabe_donde_esta_cada_cosa():
         malas += ["%s:%s" % (os.path.relpath(ruta, HERRAMIENTAS), v)
                   for v in violaciones(ruta)]
     assert not malas, (
-        "dónde está cada cosa lo sabe comun/proyecto.py y nadie más:\n  "
+        "where each thing is is known by comun/proyecto.py and nobody else:\n  "
         + "\n  ".join(malas))
 
 
@@ -215,9 +216,9 @@ def test_ninguna_herramienta_sabe_de_abl():
         malas += ["%s:%s" % (os.path.relpath(ruta, HERRAMIENTAS), v)
                   for v in de_abl(ruta)]
     assert not malas, (
-        "las herramientas no saben de ningún juego: encuentran el proyecto "
-        "por su rm2k-snes.toml, sus rutas las declara él y lo de la máquina "
-        "llega por flags:\n  " + "\n  ".join(malas))
+        "the tools know about no game: they find the project "
+        "through its rm2k-snes.toml, its paths are declared by it and the "
+        "machine's values arrive by flags:\n  " + "\n  ".join(malas))
 
 
 @pytest.mark.parametrize("fuente", [
@@ -240,8 +241,8 @@ def test_la_red_de_abl_ve_cada_forma(fuente):
     'AVISO = os.environ.get("SIN_CACHE")\n',
 ])
 def test_la_prosa_y_la_seccion_rom_no_son_abl(fuente):
-    """Nombrar `rom/` para que uno lo encuentre no es saber dónde está:
-    tampoco `[rom]`, que es una sección del archivo de proyecto."""
+    """Naming `rom/` so that one can find it is not knowing where it is:
+    neither is `[rom]`, which is a section of the project file."""
     assert not de_abl(os.path.join(HERRAMIENTAS, "x", "y.py"), fuente)
 
 
@@ -255,14 +256,14 @@ def test_la_prosa_y_la_seccion_rom_no_son_abl(fuente):
     'REEMPLAZOS = "/extras/msu"\n',
 ])
 def test_la_red_ve_cada_forma(fuente):
-    """Cada forma que había antes de `proyecto.py` tiene que dar una
-    violación: si no, la prueba de arriba no está mirando."""
+    """Every form that existed before `proyecto.py` has to give a violation:
+    otherwise the test above is not looking."""
     assert violaciones(os.path.join(HERRAMIENTAS, "x", "y.py"), fuente)
 
 
 def test_subir_hasta_tools_se_puede():
-    """El arranque de un script, que pone `tools/` en el `sys.path` antes de
-    poder importar `proyecto`."""
+    """A script's startup, which puts `tools/` on `sys.path` before it can
+    import `proyecto`."""
     assert not violaciones(os.path.join(HERRAMIENTAS, "x", "y.py"),
                            'sys.path.insert(0, os.path.dirname(os.path.dirname('
                            'os.path.realpath(__file__))))\n')

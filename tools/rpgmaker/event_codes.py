@@ -1,10 +1,11 @@
-"""Nombres de los códigos de comando de evento de RPG Maker 2000.
+"""Names of the RPG Maker 2000 event command codes.
 
-La tabla es `event_codes.json`, que sale de liblcf y no se edita a mano; de
-dónde y con qué comando está en `tools/rpgmaker/README.md`. Acá sólo se la
-carga, con las claves de vuelta a número —JSON sólo tiene claves de texto—.
+The table is `event_codes.json`, which comes from liblcf and is not edited by
+hand; where from and with which command is in `tools/rpgmaker/README.md`.
+Here it is only loaded, with the keys turned back into numbers —JSON only has
+text keys—.
 
-Los códigos que no estén en la tabla se exportan como número pelado.
+Codes not in the table are exported as a bare number.
 """
 
 import json

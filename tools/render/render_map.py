@@ -1,9 +1,10 @@
-"""Las capas de un mapa de A Blurred Line (RPG Maker 2000) como imágenes.
+"""The layers of an A Blurred Line (RPG Maker 2000) map as images.
 
-Las dos capas de tiles resueltas contra su ChipSet, con los dibujos de la
-animación del agua y de los tiles animados, y los CharSets que se les ponen
-encima. Es lo que el conversor corta en tiles: ver `Renderer.capas_animadas`.
-Sin panorama y sin eventos: de los eventos se ocupa el conversor.
+The two tile layers resolved against their ChipSet, with the drawings of the
+water animation and of the animated tiles, and the CharSets placed on top of
+them. It is what the converter cuts into tiles: see
+`Renderer.capas_animadas`. No panorama and no events: the converter takes
+care of the events.
 """
 
 import array
@@ -25,50 +26,52 @@ from render.chipset import ANIMATED, ChipsetAtlas, TERRAIN, UPPER
 def load_image(path):
     image = Image.open(path)
     if image.mode == "P":
-        # En RM2k el color 0 de la paleta es el color key.
+        # In RM2k palette color 0 is the color key.
         image.info["transparency"] = 0
     return image.convert("RGBA")
 
 
 def _capa(tiles):
-    """Una capa de tiles como bytes, para meterla en una clave de caché.
+    """A tile layer as bytes, to put it in a cache key.
 
-    Cuatro bytes por tile y no uno: un ID de tile llega a 10143, así que
-    `bytes()` no sirve.
+    Four bytes per tile and not one: a tile ID goes up to 10143, so `bytes()`
+    does not work.
     """
     return array.array("i", tiles).tobytes()
 
 
 def build_passability(chipset):
-    """Tabla de flags por ID de tile, como la arma lmu2png (main.cpp).
+    """Table of flags per tile ID, as lmu2png builds it (main.cpp).
 
-    Sólo la usamos para decidir si un tile va antes o después del jugador; acá
-    no hay jugador, pero define el orden de dibujado entre las dos capas.
+    We only use it to decide whether a tile goes before or after the player;
+    there is no player here, but it defines the drawing order between the two
+    layers.
     """
     flags = bytearray(65536)
     lower, upper = chipset.passable_lower, chipset.passable_upper
 
-    for i in range(3):          # agua A/B/C
+    for i in range(3):          # water A/B/C
         flags[1000 * i:1000 * i + 1000] = bytes([lower[i]]) * 1000
-    for i in range(3):          # tiles animados
+    for i in range(3):          # animated tiles
         flags[3000 + i * 50:3050 + i * 50] = bytes([lower[3 + i]]) * 50
-    for i in range(12):         # autotiles de terreno
+    for i in range(12):         # terrain autotiles
         flags[4000 + i * 50:4050 + i * 50] = bytes([lower[6 + i]]) * 50
-    for i in range(144):        # páginas de tiles comunes
+    for i in range(144):        # common tile pages
         flags[5000 + i] = lower[18 + i]
         flags[10000 + i] = upper[i]
     return flags
 
 
 def draw_tiles(image, atlas, game_map, flags, pass_upper, pasos=(0, 0)):
-    """Dibuja los tiles de ambas capas que caen en la pasada pedida.
+    """Draws the tiles of both layers that fall in the requested pass.
 
-    Un tile de la capa baja con flags 0x30 y uno de la alta con 0x10 se dibujan
-    por encima del jugador; el resto, por debajo. Es lo que decide si un evento
-    queda tapado por el techo o parado sobre él.
+    A lower-layer tile with flags 0x30 and an upper-layer one with 0x10 are
+    drawn above the player; the rest, below. It is what decides whether an
+    event is covered by the roof or stands on top of it.
 
-    `pasos` son los dos de la animación del ChipSet —agua y tiles animados—,
-    que eligen qué dibujo de cada familia se pinta. Ver `render_tile`.
+    `pasos` are the two of the ChipSet's animation —water and animated
+    tiles—, which pick which drawing of each family is painted. See
+    `render_tile`.
     """
     for y in range(game_map.height):
         row = y * game_map.width
@@ -82,11 +85,11 @@ def draw_tiles(image, atlas, game_map, flags, pass_upper, pasos=(0, 0)):
                 atlas.render_tile(image, x, y, upper_tile, *pasos)
 
 
-# Las tramas con las que se dibuja un evento translúcido, y qué pixel se cae.
-# RM2k dibuja al 160 de 255, o sea al 63%: `cinco_de_ocho` es el que más se le
-# acerca. El resto están para poder comparar en un televisor de verdad, que es
-# donde esto se decide: el barrido de un CRT difumina **a lo largo de la línea**,
-# así que las columnas alternadas se funden y el damero no.
+# The dithers a translucent event is drawn with, and which pixel drops out.
+# RM2k draws at 160 out of 255, that is, at 63%: `cinco_de_ocho` is the one
+# that comes closest. The rest are here to be able to compare on a real TV,
+# which is where this is decided: a CRT's scan blurs **along the line**, so
+# alternating columns blend and the checkerboard does not.
 TRAMAS = {
     "damero":        lambda x, y: (x + y) % 2 == 1,
     "columnas":      lambda x, y: x % 2 == 1,
@@ -97,7 +100,7 @@ TRAMAS = {
 
 
 class Charsets:
-    """Cache de CharSets, que se repiten mucho entre los eventos de un mapa."""
+    """Cache of CharSets, which repeat a lot among a map's events."""
 
     def __init__(self, search_dirs, atlas_por_nombre=None, fondo_de_mapa=None):
         self.search_dirs = search_dirs
@@ -123,8 +126,8 @@ class Charsets:
         return self.images[name]
 
     def _tramado(self, name):
-        """El CharSet de un evento translúcido: el mismo, con parte de sus
-        pixeles transparentes. Ver `rm2k.TRAMA_SUFIJO` y `TRAMAS`."""
+        """The CharSet of a translucent event: the same one, with part of its
+        pixels transparent. See `rm2k.TRAMA_SUFIJO` and `TRAMAS`."""
         base = self.get(name)
         if base is None:
             return None
@@ -138,21 +141,22 @@ class Charsets:
         return image
 
     def _horneado(self, base, map_id, tile_x, tile_y):
-        """El CharSet de un evento translúcido, con la mezcla ya calculada.
+        """The CharSet of a translucent event, with the blend already computed.
 
-        RM2k lo dibuja al 160 de 255 sobre lo que haya detrás. Como el evento
-        es estático —lo son los 70 del juego— y el fondo también, la mezcla se
-        calcula una vez acá, contra el fondo real de la celda donde está
-        parado, y queda horneada en el gráfico: el sprite sale opaco y con los
-        colores exactos, sin trama.
+        RM2k draws it at 160 out of 255 over whatever is behind. Since the
+        event is static —all 70 in the game are— and so is the background,
+        the blend is computed once here, against the real background of the
+        cell where it stands, and stays baked into the graphic: the sprite
+        comes out opaque and with the exact colors, no dither.
 
-        El fondo es la **capa de abajo** del mapa, que es lo único que queda
-        detrás del sprite: la de encima se dibuja después y lo tapa, así que en
-        los pixeles donde el sprite se ve el fondo es éste. Y se toma en
-        `(x*16 - 4, y*16 - 16)`, que es donde `charset.draw` apoya el cuadro de
-        24x32 sobre la celda; como todas las poses del CharSet caen en el mismo
-        lugar de la pantalla, cada una se mezcla contra el mismo pedazo y
-        alcanza con mirar la posición del pixel adentro de su cuadro.
+        The background is the map's **lower layer**, which is the only thing
+        left behind the sprite: the upper one is drawn afterwards and covers
+        it, so on the pixels where the sprite shows the background is this
+        one. And it is taken at `(x*16 - 4, y*16 - 16)`, which is where
+        `charset.draw` rests the 24x32 frame on the cell; since all the
+        CharSet's poses land on the same place on the screen, each one is
+        blended against the same piece and it is enough to look at the
+        pixel's position inside its frame.
         """
         sheet = self.get(base)
         fondo = self.fondo_de_mapa(map_id) if self.fondo_de_mapa else None
@@ -174,19 +178,19 @@ class Charsets:
                 if 0 <= fx < fondo.width and 0 <= fy < fondo.height:
                     br, bg, bb = atras[fx, fy][:3]
                 else:
-                    br = bg = bb = 0        # fuera del mapa la consola ve negro
+                    br = bg = bb = 0        # outside the map the console sees black
                 pix[x, y] = ((r * alfa + br * (255 - alfa)) // 255,
                              (g * alfa + bg * (255 - alfa)) // 255,
                              (b * alfa + bb * (255 - alfa)) // 255, 255)
         return image
 
     def _de_tile(self, name):
-        """Un CharSet inventado con un tile de la página alta del chipset en
-        las doce poses del personaje 0, apoyado en la celda: el cuadro de un
-        personaje mide 24x32 y se dibuja en (x - 4, y - 16), así que el tile
-        de 16x16 va en (4, 16) de cada cuadro. Es como RM2k dibuja un evento
-        sin CharSet, sólo que como sprite, para que se mueva y
-        se cambie de lugar como cualquier otro."""
+        """A made-up CharSet with a tile from the chipset's upper page in the
+        twelve poses of character 0, resting on the cell: a character's frame
+        is 24x32 and is drawn at (x - 4, y - 16), so the 16x16 tile goes at
+        (4, 16) of each frame. It is how RM2k draws an event without a
+        CharSet, only as a sprite, so that it moves and
+        changes place like any other."""
         _, chipset, indice = name.split(":", 2)
         atlas = self.atlas_por_nombre(chipset) if self.atlas_por_nombre else None
         if atlas is None:
@@ -200,7 +204,7 @@ class Charsets:
 
 
 class Renderer:
-    """Todo lo que se comparte entre mapas: el juego, el RTP y los cachés."""
+    """Everything shared between maps: the game, the RTP and the caches."""
 
     def __init__(self, game_dir=None, rtp_dir=None):
         game_dir = game_dir or recursos.GAME_DIR
@@ -209,10 +213,10 @@ class Renderer:
         self.tree = lcf.TreeMap(os.path.join(game_dir, "RPG_RT.lmt"))
         self.game_dir = game_dir
         self.search_dirs = [proyecto.raiz(), game_dir, rtp_dir]
-        # Las imágenes de los ChipSets que agrega `rom/parches/manual/` se
-        # **arman** —el arte del juego no es nuestro para versionar, ver
-        # `chipset_del_fork.py`— y van primero en la búsqueda: son las que
-        # mandan cuando existen.
+        # The images of the ChipSets `rom/parches/manual/` adds are **built**
+        # —the game's art is not ours to version, see `chipset_del_fork.py`—
+        # and go first in the search: they are the ones that win when they
+        # exist.
         self.search_dirs.insert(0, chipset_del_fork.imagenes(
             lambda carpeta, nombre: find_resource(self.search_dirs, carpeta,
                                                   nombre)))
@@ -224,10 +228,11 @@ class Renderer:
         self.missing_chipsets = set()
 
     def fondo_de_mapa(self, map_id):
-        """La capa de abajo de un mapa, para hornear los translúcidos.
+        """A map's lower layer, to bake the translucent ones.
 
-        Se cachea porque un mapa con varios translúcidos la pediría una vez por
-        evento, y renderizar las capas de un mapa grande no es gratis.
+        It is cached because a map with several translucent events would ask
+        for it once per event, and rendering the layers of a big map is not
+        free.
         """
         if map_id not in self.fondos:
             game_map = self.cargar_mapa(
@@ -236,7 +241,7 @@ class Renderer:
         return self.fondos[map_id]
 
     def atlas(self, chipset):
-        """Los ChipSets se repiten entre mapas y expandirlos no es gratis."""
+        """ChipSets repeat between maps and expanding them is not free."""
         return self.atlas_por_nombre(chipset.filename)
 
     def atlas_por_nombre(self, filename):
@@ -248,24 +253,25 @@ class Renderer:
         return self.atlases[filename]
 
     def insumos_de_capas(self, game_map):
-        """Todo lo que entra en las capas dibujadas de un mapa, sin dibujarlas.
+        """Everything that goes into a map's drawn layers, without drawing them.
 
-        Es una lista de partes para una clave de caché, y existe para que quien
-        cachea lo que sale de `capas_animadas` pueda preguntar **antes** de
-        pagar el dibujo. Devuelve `None` cuando el ChipSet no está: ahí no hay
-        insumo que valga y el que llama tiene que ir por el camino de siempre,
-        que es el que sabe fallar.
+        It is a list of parts for a cache key, and it exists so that whoever
+        caches what comes out of `capas_animadas` can ask **before** paying
+        for the drawing. It returns `None` when the ChipSet is missing: then
+        there is no input that counts and the caller has to take the usual
+        path, which is the one that knows how to fail.
 
-        Vive acá y no en el conversor porque es este archivo el que sabe qué
-        lee `render_layers`: las dos capas del mapa, su tamaño, y del ChipSet
-        la pasabilidad —que decide qué tile va en cuál capa— y la imagen. Nada
-        más del `.lmu` llega al dibujo. Si algún día `render_layers` mira algo
-        que no está en esta lista, el caché se queda viejo sin avisar, y el
-        único lugar donde eso se puede ver es acá al lado.
+        It lives here and not in the converter because this file is the one
+        that knows what `render_layers` reads: the map's two layers, its
+        size, and from the ChipSet the passability —which decides which tile
+        goes on which layer— and the image. Nothing else from the `.lmu`
+        reaches the drawing. If some day `render_layers` looks at something
+        not on this list, the cache goes stale without warning, and the only
+        place where that can be seen is right next to it here.
 
-        Lo que **no** está, a propósito: el código que dibuja y la versión de
-        Pillow. No son del mapa sino de la corrida, y los pone quien arma la
-        clave.
+        What is **not** here, on purpose: the drawing code and the Pillow
+        version. They do not belong to the map but to the run, and whoever
+        builds the key adds them.
         """
         chipset = self.database.chipsets[game_map.chipset_id]
         imagen = self.huella_de_chipset(chipset.filename)
@@ -277,15 +283,15 @@ class Renderer:
                 imagen]
 
     def huella_de_chipset(self, filename):
-        """El sha256 del archivo de ChipSet que gana la búsqueda, o `None`.
+        """The sha256 of the ChipSet file that wins the search, or `None`.
 
-        Los bytes y no la ruta: que el archivo salga del juego o del RTP no
-        cambia un pixel si es el mismo archivo, y que salga del mismo lado no
-        garantiza que no lo hayan tocado.
+        The bytes and not the path: whether the file comes from the game or
+        from the RTP does not change a pixel if it is the same file, and
+        coming from the same side does not guarantee nobody touched it.
 
-        Se recuerda por nombre porque los mapas comparten ChipSet: un cartucho
-        tiene bastantes menos ChipSets que mapas, y leer el archivo una vez por
-        mapa no aportaría nada.
+        It is remembered by name because maps share ChipSets: a cartridge has
+        quite a few fewer ChipSets than maps, and reading the file once per
+        map would add nothing.
         """
         if filename not in self.huellas:
             path = find_resource(self.search_dirs, "ChipSet", filename)
@@ -297,22 +303,22 @@ class Renderer:
         return self.huellas[filename]
 
     def cargar_mapa(self, path):
-        """El mapa, con el nombre de su chipset puesto: `collect_npcs` lo
-        necesita para los eventos que se dibujan con un tile."""
+        """The map, with its chipset's name set: `collect_npcs` needs it for
+        the events that are drawn with a tile."""
         game_map = lcf.Map(path)
         chipset = self.database.chipsets[game_map.chipset_id]
         game_map.chipset_nombre = chipset.filename
-        # Y la pasabilidad de sus tiles, para los eventos que se dibujan con
-        # uno en la capa de abajo: ver `rm2k.pasabilidad_del_tile`.
+        # And the passability of its tiles, for the events drawn with one on
+        # the lower layer: see `rm2k.pasabilidad_del_tile`.
         game_map.pasabilidad_tiles = build_passability(chipset)
         return game_map
 
     def render_layers(self, game_map, pasos=(0, 0)):
-        """El mapa en dos capas separadas, como las ordena RM2k.
+        """The map in two separate layers, as RM2k orders them.
 
-        La de abajo es opaca y va detrás del héroe; la de arriba lleva sólo los
-        tiles marcados como "por encima del héroe" y es transparente en todo lo
-        demás.
+        The lower one is opaque and goes behind the hero; the upper one
+        carries only the tiles marked "above the hero" and is transparent
+        everywhere else.
         """
         chipset = self.database.chipsets[game_map.chipset_id]
         atlas = self.atlas(chipset)
@@ -329,21 +335,22 @@ class Renderer:
         return base, above
 
     def capas_animadas(self, game_map):
-        """Las capas del mapa y los otros dibujos de la animación del ChipSet.
+        """The map's layers and the other drawings of the ChipSet's animation.
 
-        Devuelve `(base, encima, variantes)`, con `variantes` en la forma que
-        pide `snes_convert._convert_layers`: por familia, los dibujos que **no**
-        son el 0, que es `base`.
+        Returns `(base, encima, variantes)`, with `variantes` in the shape
+        `snes_convert._convert_layers` asks for: per family, the drawings
+        that are **not** 0, which is `base`.
 
-        Es el único lugar donde se decide qué dibujos hay, y lo usan las dos
-        puntas —el conversor y la referencia—: si cada una los armara por su
-        cuenta, la ROM y la referencia podrían estar animando cosas distintas.
+        It is the only place where it is decided which drawings there are,
+        and both ends use it —the converter and the reference—: if each built
+        them on its own, the ROM and the reference could be animating
+        different things.
 
-        Sólo se renderiza lo que el mapa puede llegar a mover: un mapa sin agua
-        ni tiles animados no paga nada. Que los dibujos de una familia salgan
-        todos iguales —el agua del mapa 3 lo hace, porque el ChipSet la tiene
-        dibujada tres veces igual— no hace falta detectarlo acá: `convert` no
-        va a encontrar ninguna celda que cambie y la corrida sale vacía.
+        Only what the map can end up moving is rendered: a map without water
+        or animated tiles pays nothing. That all the drawings of a family
+        come out the same —map 3's water does, because the ChipSet has it
+        drawn three times the same— does not need detecting here: `convert`
+        will not find any cell that changes and the run comes out empty.
         """
         base, above = self.render_layers(game_map)
         if base is None:

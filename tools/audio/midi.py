@@ -1,13 +1,13 @@
-"""Lector mínimo de archivos MIDI: las notas y los controladores que suenan.
+"""Minimal MIDI file reader: the notes and the controllers that are heard.
 
-Cuándo empieza y cuándo termina cada nota, en qué canal y con qué velocidad,
-los cambios de tempo, el primer instrumento de cada canal, y los
-controladores que cambian cómo suena una nota que ya sonaba: volumen (CC7),
-paneo (CC10), expresión (CC11) y pitch bend, que se devuelven como
-`Control`. El pedal (CC64) no se devuelve: alarga las notas, que es lo que
-hace un sintetizador con él. Lo demás —reverb, chorus, modulación, los NRPN
-del AWE32, el aftertouch— se tira: ver "El paso 3" en
-`workflow/tasks/todo/la-calidad-de-la-musica.md` para qué temas lo usan.
+When each note starts and ends, on which channel and with which velocity,
+the tempo changes, the first instrument of each channel, and the
+controllers that change how an already sounding note sounds: volume (CC7),
+pan (CC10), expression (CC11) and pitch bend, which are returned as
+`Control`. The sustain pedal (CC64) is not returned: it lengthens the notes,
+which is what a synthesizer does with it. The rest —reverb, chorus,
+modulation, the AWE32's NRPNs, aftertouch— is dropped: see "El paso 3" in
+`workflow/tasks/todo/la-calidad-de-la-musica.md` for which songs use it.
 """
 
 import struct
@@ -19,27 +19,27 @@ PROGRAM = 0xC0
 BEND_STATUS = 0xE0
 META = 0xFF
 TEMPO = 0x51
-DRUM_CHANNEL = 9        # el canal 10 del estándar, contando desde cero
+DRUM_CHANNEL = 9        # the standard's channel 10, counting from zero
 
-# Los controladores que se devuelven, con el número de General MIDI, y el
-# valor que tiene un canal antes de que el MIDI diga nada: los de GM, que son
-# los de fluidsynth.
+# The controllers that are returned, with their General MIDI number, and the
+# value a channel has before the MIDI says anything: GM's, which are
+# fluidsynth's.
 VOLUME, PAN, EXPRESSION = 7, 10, 11
-# El pitch bend no es un controlador, pero viaja igual: se lo numera fuera
-# del rango de los CC para que no choque con ninguno. Su valor ya viene en
-# semitonos, con el rango del canal aplicado.
+# Pitch bend is not a controller, but it travels the same way: it is numbered
+# outside the CC range so it does not clash with any of them. Its value
+# already comes in semitones, with the channel's range applied.
 BEND = 0x100
 DEFAULTS = {VOLUME: 100, PAN: 64, EXPRESSION: 127, BEND: 0.0}
 
 SUSTAIN = 64
-# Lo que hace falta para el rango del pitch bend: el RPN 0 se elige con
-# CC101 y CC100 en cero, y el valor llega por CC6 (semitonos) y CC38
-# (centésimos). CC99 y CC98 eligen un NRPN, y desde ahí CC6 ya no es del RPN.
+# What the pitch bend range needs: RPN 0 is selected with CC101 and CC100 at
+# zero, and the value arrives through CC6 (semitones) and CC38 (cents). CC99
+# and CC98 select an NRPN, and from then on CC6 no longer belongs to the RPN.
 _DATA_MSB, _DATA_LSB = 6, 38
 _NRPN_LSB, _NRPN_MSB, _RPN_LSB, _RPN_MSB = 98, 99, 100, 101
 _CRUDOS = {VOLUME, PAN, EXPRESSION, SUSTAIN, _DATA_MSB, _DATA_LSB,
            _NRPN_LSB, _NRPN_MSB, _RPN_LSB, _RPN_MSB}
-BEND_RANGE = 2          # semitonos, el de GM mientras nadie lo cambie
+BEND_RANGE = 2          # semitones, GM's as long as nobody changes it
 
 
 class Note:
@@ -54,9 +54,9 @@ class Note:
 
 
 class Control:
-    """Un controlador que cambia en un canal: `number` es VOLUME, PAN,
-    EXPRESSION o BEND. `end` está sólo para que `musica.timeline` lo pase a
-    cuadros igual que a una nota."""
+    """A controller that changes on a channel: `number` is VOLUME, PAN,
+    EXPRESSION or BEND. `end` is there only so that `musica.timeline` converts
+    it to frames the same as a note."""
 
     __slots__ = ("start", "end", "channel", "number", "value")
 
@@ -68,7 +68,7 @@ class Control:
 
 
 def _varlen(data, pos):
-    """Los tiempos entre eventos van en 7 bits por byte, el 8 indica "sigue"."""
+    """The times between events go in 7 bits per byte; the 8th means "more follows"."""
     value = 0
     while True:
         byte = data[pos]
@@ -79,12 +79,12 @@ def _varlen(data, pos):
 
 
 def _track(data, pos, end, notes, tempos, programs, raw):
-    """Recorre una pista acumulando notas, tempos e instrumentos, en ticks.
+    """Walks a track collecting notes, tempos and instruments, in ticks.
 
-    Los controladores van crudos a `raw` y se resuelven después con todas las
-    pistas juntas: un canal reparte sus eventos entre varias pistas
-    —`escape_newyork` tiene el 4 en cuatro—, así que el rango del bend o el
-    pedal que eligió una los usa otra.
+    The controllers go raw into `raw` and are resolved later with all the
+    tracks together: a channel spreads its events over several tracks
+    —`escape_newyork` has channel 4 in four of them—, so the bend range or the
+    pedal one track chose is used by another.
     """
     time = 0
     status = 0
@@ -94,12 +94,12 @@ def _track(data, pos, end, notes, tempos, programs, raw):
         delta, pos = _varlen(data, pos)
         time += delta
         if pos >= end:
-            break               # la pista termina justo después del último delta
+            break               # the track ends right after the last delta
 
         if data[pos] & 0x80:
             status = data[pos]
             pos += 1
-        # Si no, es "running status": se repite el último y el byte ya es dato.
+        # Otherwise it is "running status": the last one repeats and the byte is already data.
 
         kind, channel = status & 0xF0, status & 0x0F
 
@@ -125,10 +125,10 @@ def _track(data, pos, end, notes, tempos, programs, raw):
             elif key in sounding:
                 sounding.pop(key).end = time
         elif kind == PROGRAM:
-            programs.setdefault(channel, data[pos])   # el primero de cada canal
+            programs.setdefault(channel, data[pos])   # the first one of each channel
             pos += 1
         elif kind == 0xD0:
-            pos += 1                    # aftertouch de canal
+            pos += 1                    # channel aftertouch
         elif kind == CONTROL:
             if data[pos] in _CRUDOS:
                 raw.append((time, channel, data[pos], data[pos + 1]))
@@ -138,20 +138,20 @@ def _track(data, pos, end, notes, tempos, programs, raw):
                         (data[pos] | data[pos + 1] << 7) - 8192))
             pos += 2
         else:
-            pos += 2                    # el resto son dos bytes
+            pos += 2                    # the rest are two bytes
 
     for note in sounding.values():
         note.end = time
 
 
 def _controls(raw, notes):
-    """Los controladores crudos de todas las pistas, en orden de tiempo, a
-    `Control`: el bend a semitonos con el rango de su canal, y el pedal
-    aplicado a las notas."""
+    """The raw controllers of all the tracks, in time order, to `Control`: the
+    bend to semitones with its channel's range, and the pedal applied to the
+    notes."""
     controls = []
-    param = {}                  # canal -> (es RPN, MSB, LSB) elegido
-    semitones = {}              # canal -> rango del bend
-    pedal = {}                  # canal -> [(baja, sube)]
+    param = {}                  # channel -> selected (is RPN, MSB, LSB)
+    semitones = {}              # channel -> bend range
+    pedal = {}                  # channel -> [(down, up)]
     down = {}
     for time, channel, number, value in sorted(raw, key=lambda e: e[0]):
         if number == BEND:
@@ -167,8 +167,8 @@ def _controls(raw, notes):
                 pedal.setdefault(channel, []).append((down.pop(channel), time))
         elif number in (_RPN_MSB, _RPN_LSB, _NRPN_MSB, _NRPN_LSB):
             rpn = number in (_RPN_MSB, _RPN_LSB)
-            # Sin elegir, los dos valen 127: el RPN "nulo". Medido con
-            # fluidsynth: un CC101 en 0 sin su CC100 no toca el rango.
+            # Unselected, both are 127: the "null" RPN. Measured with
+            # fluidsynth: a CC101 at 0 without its CC100 does not touch the range.
             actual = param.get(channel, (rpn, 127, 127))
             if actual[0] != rpn:
                 actual = (rpn, 127, 127)
@@ -176,10 +176,10 @@ def _controls(raw, notes):
             lsb = value if number in (_RPN_LSB, _NRPN_LSB) else actual[2]
             param[channel] = (rpn, msb, lsb)
         elif param.get(channel) == (True, 0, 0):
-            # El RPN 0, el rango del bend. **Sin tope**: `3D-Galax` pide 95
-            # semitonos y fluidsynth los respeta —medido—; un sintetizador
-            # GS lo toparía en 24. Se sigue a fluidsynth, que es contra lo
-            # que se compara y de donde sale la pista de MSU-1.
+            # RPN 0, the bend range. **No cap**: `3D-Galax` asks for 95
+            # semitones and fluidsynth honors them —measured—; a GS
+            # synthesizer would cap it at 24. We follow fluidsynth, which is
+            # what we compare against and where the MSU-1 track comes from.
             entero = int(semitones.get(channel, BEND_RANGE))
             fraccion = semitones.get(channel, BEND_RANGE) - entero
             if number == _DATA_MSB:
@@ -187,9 +187,9 @@ def _controls(raw, notes):
             else:
                 semitones[channel] = entero + value / 100.0
     if down or pedal:
-        # Una nota que se suelta con el pedal abajo sigue sonando hasta que
-        # sube, o hasta que se vuelve a tocar la misma tecla. Si no sube
-        # nunca, hasta el final del tema.
+        # A note released with the pedal down keeps sounding until it goes
+        # up, or until the same key is played again. If it never goes up,
+        # until the end of the song.
         final = max((n.end for n in notes), default=0)
         for channel, time in down.items():
             pedal.setdefault(channel, []).append((time, final))
@@ -205,16 +205,16 @@ def _controls(raw, notes):
 
 
 def read(path):
-    """Devuelve (notas, tempos, ticks por negra, instrumento de cada canal,
-    controladores)."""
+    """Returns (notes, tempos, ticks per quarter note, instrument of each
+    channel, controllers)."""
     data = open(path, "rb").read()
     if data[:4] != b"MThd":
-        raise ValueError("%s no es un MIDI" % path)
+        raise ValueError("%s is not a MIDI file" % path)
 
     header = struct.unpack(">I", data[4:8])[0]
     _, tracks, division = struct.unpack(">HHH", data[8:14])
     if division & 0x8000:
-        raise ValueError("MIDI con división SMPTE, no soportado")
+        raise ValueError("MIDI with SMPTE division, not supported")
 
     notes, tempos, programs, raw = [], [], {}, []
     pos = 8 + header

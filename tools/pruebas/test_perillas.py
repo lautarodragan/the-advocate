@@ -1,6 +1,5 @@
-"""Que el lector del archivo de proyecto falle claro en vez de caer en un
-default: ver `comun/perillas.py`. Sobre archivos armados acá, no sobre el del
-juego."""
+"""That the project file reader fails clearly instead of falling back to a
+default: see `comun/perillas.py`. On files built here, not on the game's."""
 
 import pytest
 
@@ -21,18 +20,18 @@ def test_lee_una_clave_anidada(archivo):
 
 
 def test_una_clave_que_falta_dice_cual(archivo):
-    with pytest.raises(perillas.FaltaUnaClave, match=r"falta la clave rom\.title"):
+    with pytest.raises(perillas.FaltaUnaClave, match=r"missing key rom\.title"):
         perillas.valor("rom", "title", ruta=archivo)
-    with pytest.raises(perillas.FaltaUnaClave, match=r"falta la clave audio$"):
+    with pytest.raises(perillas.FaltaUnaClave, match=r"missing key audio$"):
         perillas.valor("audio", "se", ruta=archivo)
 
 
 def test_un_tipo_equivocado_tambien_falla(archivo):
-    with pytest.raises(perillas.FaltaUnaClave, match="tiene que ser int"):
+    with pytest.raises(perillas.FaltaUnaClave, match="must be int"):
         perillas.valor("rom", "name", tipo=int, ruta=archivo)
-    # `True` es un `int` para Python, y una perilla booleana puesta donde va
-    # un número es un error del archivo.
-    with pytest.raises(perillas.FaltaUnaClave, match="tiene que ser int"):
+    # `True` is an `int` to Python, and a boolean setting placed where a
+    # number goes is an error in the file.
+    with pytest.raises(perillas.FaltaUnaClave, match="must be int"):
         perillas.valor("maps", "debug", tipo=int, ruta=archivo)
     assert perillas.valor("maps", "debug", tipo=bool, ruta=archivo) is True
 
@@ -42,22 +41,22 @@ def test_un_texto_que_va_a_la_rom_se_mide(tmp_path):
     ruta.write_text('[rom]\nfirma = "ABLS"\ncorta = "ABL"\nacento = "ÁBLS"\n')
     ruta = str(ruta)
     assert perillas.ascii("rom", "firma", largo=4, ruta=ruta) == "ABLS"
-    with pytest.raises(perillas.FaltaUnaClave, match="tener 4 caracteres"):
+    with pytest.raises(perillas.FaltaUnaClave, match="have 4 characters"):
         perillas.ascii("rom", "corta", largo=4, ruta=ruta)
     with pytest.raises(perillas.FaltaUnaClave, match="ASCII"):
         perillas.ascii("rom", "acento", largo=4, ruta=ruta)
-    with pytest.raises(perillas.FaltaUnaClave, match="de 1 a 2"):
+    with pytest.raises(perillas.FaltaUnaClave, match="1 to 2"):
         perillas.ascii("rom", "firma", hasta=2, ruta=ruta)
 
 
 def test_las_herramientas_se_importan_sin_un_juego(tmp_path):
-    """El conversor y lo que usa leen las perillas y las rutas del proyecto
-    cuando las usan, no al importarse: si no, importar `port.snes_convert`
-    —lo que hacen las pruebas de acá— pediría el archivo de proyecto de un
-    juego. Se corre aparte, parado en un directorio vacío —donde buscar el
-    archivo hacia arriba no encuentra ninguno—, porque en este proceso los
-    módulos ya pueden estar importados. Y al final se pide el proyecto, para
-    ver que de verdad no había uno que encontrar."""
+    """The converter and what it uses read the settings and the project paths
+    when they use them, not at import: otherwise importing `port.snes_convert`
+    —which is what the tests here do— would require a game's project file.
+    It runs separately, standing in an empty directory —where searching
+    upwards for the file finds none—, because in this process the modules may
+    already be imported. And at the end the project is requested, to see that
+    there really was none to find."""
     import os
     import subprocess
     import sys
@@ -73,5 +72,5 @@ def test_las_herramientas_se_importan_sin_un_juego(tmp_path):
     hecho = subprocess.run([sys.executable, "-c", codigo], cwd=vacio,
                            env=entorno, capture_output=True, text=True)
     assert hecho.returncode == 1, hecho.stderr[-2000:]
-    assert hecho.stderr.startswith("no encontré un rm2k-snes.toml en %s"
+    assert hecho.stderr.startswith("found no rm2k-snes.toml in %s"
                                    % vacio), hecho.stderr[-2000:]

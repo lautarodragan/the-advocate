@@ -1,32 +1,33 @@
-"""Arma el banco de muestras de la SNES a partir del SoundFont.
+"""Builds the SNES sample bank from the SoundFont.
 
-Reemplaza las ondas de un ciclo de sdsp.py por grabaciones reales. El problema
-deja de ser inventar un timbre y pasa a ser uno de presupuesto: el SPC700 tiene
-64 KB para todo.
+It replaces sdsp.py's one-cycle waves with real recordings. The problem stops
+being inventing a timbre and becomes one of budget: the SPC700 has 64 KB for
+everything.
 
-La palanca es la tasa de muestreo. El DSP remuestrea igual para cambiar la
-altura de la nota, así que guardar a 8 o 12 kHz no cuesta nada extra en tiempo
-de ejecución: sólo cuesta agudos. Es exactamente lo que hacían los juegos de la
-consola, y por eso suenan como suenan.
+The lever is the sample rate. The DSP resamples anyway to change the pitch
+of the note, so storing at 8 or 12 kHz costs nothing extra at run time: it
+only costs treble. It is exactly what the console's games did, and that is
+why they sound the way they sound.
 
-Con el banco de Windows la palanca se usa poco: sus muestras ya vienen a 22 kHz
-y son cortas, así que en un paquete con lugar van enteras. En los que llenan
-la ARAM —los mapas con muchos efectos, la pelea— baja, y para eso `resample`
-filtra antes de bajar la tasa. La regla sigue siendo no tocar la tasa mientras
-haya lugar: el filtro evita el replegado, no devuelve los agudos.
+With the Windows bank the lever is barely used: its samples already come at
+22 kHz and are short, so in a package with room they go whole. In the ones
+that fill the ARAM —the maps with many sound effects, the battle— it goes
+down, and for that `resample` filters before lowering the rate. The rule is
+still not to touch the rate while there is room: the filter prevents
+aliasing, it does not bring the treble back.
 
-Tres restricciones mandan en el resultado:
+Three constraints rule the result:
 
-  * **El loop tiene que caer en un bloque de BRR.** El DSP vuelve al principio
-    de un bloque de nueve bytes, o sea cada 16 muestras. Si el punto de loop
-    queda a mitad de bloque, no se puede expresar; hay que ajustar el
-    remuestreo para que caiga justo, no redondear y esperar.
-  * **El loop no se acorta.** FluidR3 elige loops largos (casi un segundo en el
-    piano) porque adentro hay batido entre cuerdas. Cortarlo más corto mete una
-    periodicidad audible, así que cuando falta lugar se baja la tasa, no el
-    largo.
-  * **Los ataques no se tocan.** Es lo que distingue un piano de un órgano, y
-    dura poco: recortarlo ahorra poco y cuesta mucho.
+  * **The loop has to fall on a BRR block.** The DSP loops back to the start
+    of a nine-byte block, that is, every 16 samples. If the loop point falls
+    mid-block, it cannot be expressed; the resampling has to be adjusted so
+    it lands exactly, not rounded in the hope it works.
+  * **The loop is not shortened.** FluidR3 picks long loops (almost a second
+    on the piano) because inside there is beating between strings. Cutting
+    it shorter introduces an audible periodicity, so when room runs short the
+    rate goes down, not the length.
+  * **The attacks are not touched.** They are what tells a piano from an
+    organ, and they are short: trimming them saves little and costs a lot.
 """
 
 import hashlib
@@ -36,18 +37,18 @@ from audio import muestras_brr
 from comun import ambiente
 from comun import cache_disco
 
-# El sintetizador por software de Windows, que es con el que se compuso y se
-# escuchó este juego. Microsoft le licenció a Roland un subconjunto reducido del
-# Sound Canvas, así que no es un SC-55: es exactamente esto y nada más.
+# The Windows software synthesizer, which is what this game was composed and
+# listened to with. Microsoft licensed a reduced subset of the Sound Canvas
+# from Roland, so it is not an SC-55: it is exactly this and nothing more.
 #
-# Que sea reducido nos viene bien por dos lados. Sus muestras son diez veces más
-# cortas que las de FluidR3 y ya vienen a 22 kHz, así que el banco entero entra
-# en ARAM sin remuestrear nada — y remuestrear era, por lejos, lo que más
-# calidad costaba. Y de paso dejamos de aproximarnos a un banco parecido para
-# muestrear del que produjo el sonido original.
+# Its being reduced suits us in two ways. Its samples are ten times shorter
+# than FluidR3's and already come at 22 kHz, so the whole bank fits in ARAM
+# without resampling anything — and resampling was, by far, what cost the
+# most quality. And along the way we stop approximating a similar bank and
+# sample from the one that produced the original sound.
 #
-# `SOUNDFONT` lo fija el ejecutable desde `--soundfont`, y se lee al usarlo:
-# ver `__getattr__` y `comun/ambiente.py`.
+# `SOUNDFONT` is set by the executable from `--soundfont`, and read when used:
+# see `__getattr__` and `comun/ambiente.py`.
 
 
 def __getattr__(nombre):
@@ -56,13 +57,14 @@ def __getattr__(nombre):
     raise AttributeError("module %r has no attribute %r" % (__name__, nombre))
 
 
-BLOCK = muestras_brr.BLOQUE_MUESTRAS   # 16 muestras por bloque de BRR
-REFERENCE_KEY = 60                 # do central: con qué nota se elige la zona
-PEAK = 0x6800                      # a cuánto se normaliza cada muestra
+BLOCK = muestras_brr.BLOQUE_MUESTRAS   # 16 samples per BRR block
+REFERENCE_KEY = 60                 # middle C: the note the zone is picked with
+PEAK = 0x6800                      # what each sample is normalized to
 
-# La percusión de General MIDI vive en el banco 128, y ahí cada tecla es un
-# instrumento distinto en vez de una altura distinta. Eso es del formato, así
-# que quien lo sabe es `gunter sf2`: acá se pide `drum:36` y nada más.
+# General MIDI percussion lives in bank 128, and there each key is a
+# different instrument instead of a different pitch. That belongs to the
+# format, so the one who knows it is `gunter sf2`: here we ask for `drum:36`
+# and nothing more.
 DRUM_SECONDS = 0.5
 
 MIN_RATE = 4000
@@ -70,38 +72,38 @@ MAX_RATE = 24000
 
 
 class Voice:
-    """Un instrumento ya listo para el SPC700."""
+    """An instrument ready for the SPC700."""
 
     def __init__(self, program, name, data, rate, root, loop_block, frames):
         self.program = program
         self.name = name
         self.data = data                # BRR
-        self.rate = rate                # a la que quedó guardada
-        self.root = root                # qué nota suena a esa tasa
-        self.loop_block = loop_block    # en qué bloque vuelve
+        self.rate = rate                # the rate it was stored at
+        self.root = root                # which note sounds at that rate
+        self.loop_block = loop_block    # which block it loops back to
         self.frames = frames
 
     def __repr__(self):
-        return "<Voz %d %r %d B a %d Hz>" % (self.program, self.name,
+        return "<Voice %d %r %d B at %d Hz>" % (self.program, self.name,
                                              len(self.data), self.rate)
 
 
-# --- el caché de la muestra preparada ---------------------------------------
+# --- the prepared-sample cache ---------------------------------------------
 #
-# Lo que se guarda acá es **la voz entera**: el remuestreo, la normalización y
-# el BRR que sale de ellos. `muestras_brr.codificar` ya cacheaba lo último, y
-# ése nunca fue el problema — la preparación en Python que va antes sí. Medido
-# con `cProfile` sobre una conversión de `abl` **con el caché
-# caliente**: de 165 s de perfil, 114,6 eran audio, y de ésos 108,9 los ponía
-# `build_drum_bank` —el reparto de la percusión hasta el paso 6—, que en una
-# conversión se llamaba 790 veces.
+# What is stored here is **the whole voice**: the resampling, the
+# normalization and the BRR that comes out of them. `muestras_brr.codificar`
+# already cached the last part, and that was never the problem — the Python
+# preparation that comes before was. Measured with `cProfile` over a
+# conversion of `abl` **with a warm cache**: of 165 s of profile, 114.6 were
+# audio, and of those 108.9 came from `build_drum_bank` —the percussion
+# allocation up to step 6—, which was called 790 times in one conversion.
 #
-# **Se cachea el golpe y no el banco** —`build_drum(golpe, presupuesto)` y no
-# `build_drum_bank(golpes, presupuesto)`— y ésa es la decisión. El banco tiene
-# menos claves, pero su clave lleva *qué golpes* pide el cartucho, así que dos
-# cartuchos con listas de temas distintas no comparten ni una entrada. El golpe
-# suelto sí: la clave es una nota y un presupuesto, y ésos se repiten entre las
-# vueltas del reparto, entre los cartuchos de prueba y la demo.
+# **The hit is cached and not the bank** —`build_drum(hit, budget)` and not
+# `build_drum_bank(hits, budget)`— and that is the decision. The bank has
+# fewer keys, but its key carries *which hits* the cartridge asks for, so two
+# cartridges with different song lists do not share a single entry. The
+# single hit does: the key is a note and a budget, and those repeat across
+# the rounds of the allocation, across the test cartridges and the demo.
 
 _version = None
 _huellas = {}
@@ -110,12 +112,12 @@ _voces = {}
 
 
 def _version_de_la_preparacion():
-    """Qué versión del código produjo la voz que hay guardada.
+    """Which version of the code produced the stored voice.
 
-    Va este archivo —el remuestreo, la normalización y el reparto de
-    presupuesto viven acá— y, por `muestras_brr.version()`, el puente y **el
-    binario instalado**. Lo que decide la clave es lo que produjo los bytes, y
-    los bytes pasan por los tres.
+    It covers this file —the resampling, the normalization and the budget
+    allocation live here— and, through `muestras_brr.version()`, the bridge
+    and **the installed binary**. What decides the key is what produced the
+    bytes, and the bytes go through all three.
     """
     global _version
     if _version is None:
@@ -126,14 +128,14 @@ def _version_de_la_preparacion():
 
 
 def huella_del_soundfont(ruta):
-    """El contenido del SoundFont, no su ruta.
+    """The SoundFont's content, not its path.
 
-    `--soundfont` puede apuntar a otro banco, y un banco puede cambiar sin
-    cambiar de nombre: la clave tiene que caducar con cualquiera de las dos.
-    Se lee una vez por proceso porque el archivo pesa megas.
+    `--soundfont` can point to another bank, and a bank can change without
+    changing its name: the key has to expire with either. It is read once per
+    process because the file weighs megabytes.
 
-    Es pública porque `msu.py` renderiza con **el mismo soundfont** y su clave
-    necesita la misma huella, por la misma razón.
+    It is public because `msu.py` renders with **the same soundfont** and its
+    key needs the same fingerprint, for the same reason.
     """
     if ruta not in _huellas:
         h = hashlib.sha256()
@@ -145,13 +147,13 @@ def huella_del_soundfont(ruta):
 
 
 def _cacheada(memoria, clave, partes, hacer):
-    """Una voz, de la memoria del proceso, del disco o recién hecha.
+    """A voice, from the process's memory, from disk or freshly made.
 
-    Lo guardado va adentro de una tupla de uno porque **`None` es un resultado
-    legítimo** —no hay tal golpe en el banco, o lo que entra en el presupuesto
-    no llega ni a un bloque— y `cache_disco.leer` devuelve `None` cuando no hay
-    nada. Sin el envoltorio, un "no existe" ya calculado se volvería a calcular
-    en cada corrida.
+    What is stored goes inside a one-element tuple because **`None` is a
+    legitimate result** —there is no such hit in the bank, or what fits in the
+    budget does not even reach one block— and `cache_disco.leer` returns
+    `None` when there is nothing. Without the wrapper, an already computed
+    "does not exist" would be computed again on every run.
     """
     if clave in memoria:
         return memoria[clave]
@@ -164,24 +166,22 @@ def _cacheada(memoria, clave, partes, hacer):
     return guardado[0]
 
 
-# Hasta dónde llega el pasabajos antes de bajar la tasa, como fracción de la
-# mitad de la tasa nueva: un poco por debajo, porque la caída del filtro no
-# es vertical y lo que pasa de la mitad se repliega. Y cuántos ciclos de la
-# frecuencia de corte abarca su núcleo: más es una caída más empinada y un
-# filtro más largo.
+# How far the low-pass reaches before lowering the rate, as a fraction of
+# half the new rate: a bit below, because the filter's roll-off is not
+# vertical and what goes past half aliases. And how many cycles of the cutoff
+# frequency its kernel spans: more is a steeper roll-off and a longer filter.
 CORTE = 0.9
 CICLOS = 12
 
 
 def _pasabajos(muestras, fraccion, circular=False, despues=()):
-    """`muestras` sin lo que pasa de `fraccion` de su tasa (en ciclos por
-    muestra), como floats: un sinc con ventana de Blackman.
+    """`muestras` without what goes past `fraccion` of its rate (in cycles per
+    sample), as floats: a Blackman-windowed sinc.
 
-    `circular` es para el loop: la señal se repite, así que el filtro la ve
-    como periódica y el punto de loop no queda con un escalón. `despues` es
-    lo que sigue a la señal —el loop, detrás del ataque—, para que el final
-    del ataque se filtre con lo que de verdad suena después y no contra
-    ceros."""
+    `circular` is for the loop: the signal repeats, so the filter sees it as
+    periodic and the loop point is not left with a step. `despues` is what
+    follows the signal —the loop, after the attack—, so that the end of the
+    attack is filtered with what really plays next and not against zeros."""
     import numpy as np
     x = np.asarray(muestras, dtype=float)
     mitad = max(8, int(math.ceil(CICLOS / (2.0 * fraccion))))
@@ -201,19 +201,19 @@ def _pasabajos(muestras, fraccion, circular=False, despues=()):
 
 
 def resample(samples, count, circular=False, despues=()):
-    """Cambia el largo de una señal: pasabajos si se baja la tasa, y después
-    interpolación lineal.
+    """Changes a signal's length: low-pass if the rate goes down, and then
+    linear interpolation.
 
-    Hasta el 2026-09-26 no se filtraba —"en instrumentos de tono estos
-    parciales son débiles, y el error del BRR es bastante mayor que el del
-    replegado"—, y con el banco de Windows casi no hacía falta, porque casi
-    todo iba a la tasa del SoundFont. Desde el presupuesto por paquete hay
-    muestras que bajan de 22 a 10 kHz, y ahí lo que pasa de 5 kHz se
-    repliega sobre los graves como ruido que no está en el instrumento. Es
-    el paso 6 de `workflow/tasks/todo/la-calidad-de-la-musica.md`, con lo
-    que se midió.
+    Until 2026-09-26 there was no filtering —"in pitched instruments these
+    partials are weak, and the BRR error is much larger than the aliasing
+    error"—, and with the Windows bank it was hardly needed, because almost
+    everything went at the SoundFont's rate. Since the per-package budget
+    there are samples that go down from 22 to 10 kHz, and there whatever
+    goes past 5 kHz aliases onto the lows as noise that is not in the
+    instrument. It is step 6 of
+    `workflow/tasks/todo/la-calidad-de-la-musica.md`, with what was measured.
 
-    `circular` y `despues` son los de `_pasabajos`.
+    `circular` and `despues` are those of `_pasabajos`.
     """
     if count <= 0 or not len(samples):
         return []
@@ -236,10 +236,11 @@ def resample(samples, count, circular=False, despues=()):
 
 
 def normalize(samples, peak=PEAK):
-    """Lleva la muestra a una amplitud conocida.
+    """Brings the sample to a known amplitude.
 
-    Así el volumen lo decide la velocidad de la nota y no cuán fuerte grabaron
-    ese instrumento, que entre presets de FluidR3 varía bastante.
+    That way the volume is decided by the note's velocity and not by how
+    loud that instrument was recorded, which varies quite a bit between
+    FluidR3 presets.
     """
     top = max((abs(s) for s in samples), default=0)
     if not top:
@@ -249,22 +250,22 @@ def normalize(samples, peak=PEAK):
 
 
 def plan_rate(attack_frames, loop_frames, source_rate, budget):
-    """A qué tasa hay que guardar para entrar en el presupuesto.
+    """At which rate to store to fit in the budget.
 
-    Devuelve la tasa más alta que cumple, acotada por MIN_RATE y MAX_RATE. El
-    presupuesto está en bytes de BRR, que son nueve por cada 16 muestras.
+    Returns the highest rate that fits, bounded by MIN_RATE and MAX_RATE. The
+    budget is in BRR bytes, which are nine per 16 samples.
     """
     frames = attack_frames + loop_frames
     if not frames:
         return MIN_RATE
-    # Cuantas muestras entran en el presupuesto.
+    # How many samples fit in the budget.
     allowed = budget * BLOCK / float(muestras_brr.BLOQUE_BYTES)
     rate = source_rate * allowed / frames
     return int(max(MIN_RATE, min(MAX_RATE, min(rate, source_rate))))
 
 
 def build_voice(soundfont, program, budget, key=REFERENCE_KEY):
-    """Un instrumento del SoundFont en BRR, cacheado. Ver `_cacheada`."""
+    """An instrument from the SoundFont in BRR, cached. See `_cacheada`."""
     return _cacheada(_voces, (soundfont, program, budget, key),
                      (huella_del_soundfont(soundfont), "program",
                       str(program), str(budget), str(key)),
@@ -272,21 +273,23 @@ def build_voice(soundfont, program, budget, key=REFERENCE_KEY):
 
 
 def _build_voice(soundfont, program, budget, key):
-    """Extrae un instrumento del SoundFont y lo deja en BRR.
+    """Extracts an instrument from the SoundFont and leaves it in BRR.
 
-    El ajuste fino está en que el loop caiga justo en un bloque. Se elige
-    primero cuántas muestras va a tener el loop —un múltiplo de 16— y de ahí
-    sale la tasa real, que puede diferir un poco de la pedida. Después el
-    ataque se lleva al múltiplo de 16 más cercano con esa misma tasa.
+    The fine adjustment is in making the loop land exactly on a block. First
+    it picks how many samples the loop will have —a multiple of 16— and from
+    that comes the real rate, which may differ a bit from the one asked for.
+    Then the attack is brought to the nearest multiple of 16 at that same
+    rate.
     """
     sample = muestras_brr.extraer("program:%d@%d" % (program, key), soundfont)
     if sample is None:
         return None
 
-    # Qué zona cubre la nota, si el loop vale y de dónde sale la nota raíz son
-    # decisiones del formato, y las toma `gunter sf2`: acá el loop ya viene en
-    # cuadros y relativo al PCM extraído, y `loop` ya dice que no cuando la
-    # zona no repite o cuando el loop está vacío.
+    # Which zone covers the note, whether the loop is valid and where the root
+    # key comes from are decisions of the format, and `gunter sf2` makes them:
+    # here the loop already comes in frames and relative to the extracted PCM,
+    # and `loop` already says no when the zone does not repeat or when the
+    # loop is empty.
     looped = sample.loop
     attack_frames = sample.loop_start if looped else sample.cuadros
     loop_frames = sample.loop_end - sample.loop_start if looped else 0
@@ -295,8 +298,8 @@ def _build_voice(soundfont, program, budget, key):
     ratio = rate / float(sample.tasa)
 
     if looped:
-        # El loop primero: su largo tiene que ser múltiplo de 16, y de ese
-        # redondeo sale la tasa que realmente vamos a declarar.
+        # The loop first: its length has to be a multiple of 16, and from that
+        # rounding comes the rate we will actually declare.
         loop_out = max(BLOCK, int(round(loop_frames * ratio / BLOCK)) * BLOCK)
         ratio = loop_out / float(loop_frames)
         rate = int(round(sample.tasa * ratio))
@@ -319,7 +322,7 @@ def _build_voice(soundfont, program, budget, key):
 
 
 def build_drum(soundfont, note, budget, seconds=DRUM_SECONDS):
-    """Un golpe de percusión en BRR, cacheado. Ver `_cacheada`."""
+    """A percussion hit in BRR, cached. See `_cacheada`."""
     return _cacheada(_tambores, (soundfont, note, budget, seconds),
                      (huella_del_soundfont(soundfont), "drum", str(note),
                       str(budget), repr(seconds)),
@@ -327,16 +330,16 @@ def build_drum(soundfont, note, budget, seconds=DRUM_SECONDS):
 
 
 def _build_drum(soundfont, note, budget, seconds):
-    """Un golpe de percusión del kit estándar.
+    """A percussion hit from the standard kit.
 
-    En General MIDI la percusión vive en el banco 128 y cada tecla es un
-    instrumento distinto: el 36 es el bombo, el 42 el charles. No se transpone
-    nada, así que la muestra se guarda para sonar a su tasa original.
+    In General MIDI percussion lives in bank 128 and each key is a different
+    instrument: 36 is the bass drum, 42 the hi-hat. Nothing is transposed, so
+    the sample is stored to play at its original rate.
 
-    Se recorta, y bastante: el plato ride de FluidR3 dura 2,6 segundos y el
-    charles cerrado 0,7, casi todo cola que se apaga. Guardarla entera costaría
-    más que todos los instrumentos melódicos juntos. Se corta y el resto lo hace
-    la envolvente del DSP, que es justamente para lo que sirve.
+    It is trimmed, and a lot: FluidR3's ride cymbal lasts 2.6 seconds and the
+    closed hi-hat 0.7, almost all of it a tail that dies out. Storing it whole
+    would cost more than all the melodic instruments together. It is cut and
+    the rest is done by the DSP envelope, which is exactly what it is for.
     """
     sample = muestras_brr.extraer("drum:%d" % note, soundfont)
     if sample is None:

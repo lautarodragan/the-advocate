@@ -1,9 +1,9 @@
-"""Los cuadros de texto rearmados para el ancho de la SNES: `port.textos`.
+"""The text boxes rebuilt for the SNES width: `port.textos`.
 
-No corre ninguna ROM. Cubre la función: que lo que devuelve entra, que no
-pierde palabras, y que no toca lo que ya entraba. Que el conversor la llame,
-y que todos los cuadros de un juego entren, lo miran las pruebas del juego.
-Si se lee bien lo dice taro jugando.
+It runs no ROM. It covers the function: that what it returns fits, that it
+loses no words, and that it does not touch what already fit. That the
+converter calls it, and that all of a game's text boxes fit, is checked by
+the game's tests. Whether it reads well is for taro to say while playing.
 """
 
 import pytest
@@ -19,7 +19,7 @@ def _palabras(cuadros, con_hablante):
 
 
 def test_un_cuadro_que_entra_no_se_toca():
-    """Ni los espacios de adentro: son del autor."""
+    """Not even the spaces inside: they are the author's."""
     cuadro = ["                  < Kiss >"]
     assert textos.reajustar(cuadro) == [cuadro]
 
@@ -35,7 +35,7 @@ def test_se_rearma_y_conserva_al_que_habla():
 
 
 def test_lo_que_no_entra_se_parte_y_repite_al_que_habla():
-    """Como hace el juego con los cuadros seguidos del mismo personaje."""
+    """As the game does with consecutive text boxes from the same character."""
     cuadro = ["MANTA",
               "According to this, the Catch Colony is connected",
               "to the Block by an electromagnetic Link, which",
@@ -57,18 +57,18 @@ def test_la_cola_va_al_final_del_ultimo_cuadro():
     assert not any("\\" in t for c in salida[:-1] for t in c)
 
 
-# Un renglón que no es el último y ocupa menos de esto se ve interrumpido.
+# A line that is not the last one and takes up less than this looks cut off.
 CORTO = 2 * constantes.COLUMNAS // 3
 
 
 @pytest.mark.parametrize("cuadro", [
-    # Los dos que peor se veían en lo que taro jugó el 2026-09-24: "Remember,"
-    # y "Well," solos en su renglón, para que los de abajo terminaran en punto.
+    # The two that looked worst in what taro played on 2026-09-24: "Remember,"
+    # and "Well," alone on their line, so that the ones below ended in a period.
     ["?????", "Remember, my alias for this operation is",
      '"Kersh." We should have the element of', "surprise."],
     ["TALAN", "Well, this decision won't get any easier.",
      "I've got to make up my mind and go!"],
-    # Los otros de sus capturas que tenían el mismo problema.
+    # The others from his captures that had the same problem.
     ["?????", "That security droid has been deactivated.",
      "Its attack mode has been switched off."],
     ["TALAN", "...but the Hover-Trams don't always run on",
@@ -84,8 +84,8 @@ CORTO = 2 * constantes.COLUMNAS // 3
      "question none of my abilities... can."],
 ])
 def test_ningun_renglon_se_interrumpe_antes_de_tiempo(cuadro):
-    """Salvo el último de cada cuadro, ningún renglón queda más corto que
-    `CORTO`. Todos éstos tienen una forma de cortarse que lo cumple."""
+    """Except the last one of each text box, no line ends up shorter than
+    `CORTO`. All of these have a way of breaking that satisfies it."""
     salida = textos.reajustar(cuadro)
     for c in salida:
         assert c[0] == cuadro[0]
@@ -95,8 +95,8 @@ def test_ningun_renglon_se_interrumpe_antes_de_tiempo(cuadro):
 
 
 def test_un_renglon_con_oraciones_enteras_puede_quedar_corto():
-    """El otro lado de la regla: cortar entre dos oraciones cortas se lee
-    como un salto del autor, y no se cambia por llenar el renglón."""
+    """The other side of the rule: breaking between two short sentences reads
+    as the author's line break, and it is not traded for filling the line."""
     assert textos.reajustar(
         ["KERSH", "Time is running out. There's no turning back."]) == [
         ["KERSH", "Time is running out.", "There's no turning back."]]
@@ -114,8 +114,8 @@ def test_no_se_separa_un_nombre_de_su_numero():
 
 
 def test_no_se_agrega_un_cuadro_por_gusto():
-    """Si el texto entra en un cuadro, no se parte en dos para que se vea
-    mejor: un cuadro de más es una tecla de más."""
+    """If the text fits in one text box, it is not split in two to look
+    better: one more text box is one more key press."""
     cuadro = ["TALAN", "Well... time to get away from the Agency. Now I've",
               "got an entire world to hide in..."]
     assert len(textos.reajustar(cuadro)) == 1
