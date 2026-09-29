@@ -103,10 +103,11 @@ port —ver `tools/README.md`—:
       project/         la biblioteca: qué juego, sus perillas, los flags de la máquina
       cartridge/       los cartuchos: el reparto en bancos, ca65 + ld65, el espacio
       rm2k-snes-audio/ la música: del MIDI y el SoundFont a musicdata.inc
+      battle/          las tablas de la pelea: experiencia y encuentros
 
 Las capas sólo dependen hacia abajo —`rm2k-snes/` de las otras dos, y
-ésas de nada de las demás—, y lo cuida `tools/tests/test_layers.py`. Los
-nueve son un solo workspace de Cargo, con el `Cargo.lock` y el `target/`
+ésas de nada de las demás—, y lo cuida `tools/tests/test_layers.py`. Todos
+son un solo workspace de Cargo, con el `Cargo.lock` y el `target/`
 en `tools/`.
 
 Hasta el 2026-09-16 hubo otro más, `w65/`, el ensamblador de 65816. Lo reemplazaron
@@ -141,8 +142,8 @@ segundo bytecode quedó claro que hacerlo hablar castellano lo ata a este repo.
 Las pruebas de esos proyectos no dependen del juego. Ditto recibe el corpus por
 `DITTO_CORPUS`, y sin esa variable las que lo necesitan se saltean con un
 mensaje; `tools/rm2k-snes/rm2k-snes-audio/` recibe el SoundFont por `SOUNDFONT`, igual;
-y `tools/snes/protocol/`, `tools/snes/gunter/`, `tools/snes/voodoo/`, `tools/snes/lz2/` y
-`tools/rm2k/rm2k-render/` no necesitan nada.
+y `tools/snes/protocol/`, `tools/snes/gunter/`, `tools/snes/voodoo/`, `tools/snes/lz2/`,
+`tools/rm2k/rm2k-render/` y `tools/rm2k-snes/battle/` no necesitan nada.
 
 ### `tools/snes/voodoo/` no decide colores, y eso no se arregla
 

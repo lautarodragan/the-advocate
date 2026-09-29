@@ -18,7 +18,8 @@ in its own module of `port/`, one per piece that can be replaced alone:
     message_window      the message window and the font
     battle_scenes       backdrops and battlers
     battle_animations   the battle animations
-    battle_tables       experience and encounters
+    stage               runs a part that is a program of its own:
+                        `rm2k-snes-battle`, experience and encounters
     music               the job for `rm2k-snes-audio`, and the `.msu`
     mapdata             `emit`: the whole `mapdata.inc`
       map_record        the tables of each map

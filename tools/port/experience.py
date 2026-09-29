@@ -15,11 +15,14 @@ in `/extras/ref`:
     src/game_enemyparty.cpp     GetExp
     src/scene_battle_rpg2k.cpp  ProcessSceneActionVictory
 
-What the ROM **does not** do in floating point is compute the curve: the
-converter computes it, here, and it travels in the cartridge as a table per
-level. That way easyrpg's `double` is Python's `float`, which is the same
-64-bit IEEE 754, and the truncation of C++'s `(int)` is Python's `int()`.
-There is no approximation to declare.
+What the ROM **does not** do in floating point is compute the curve: it
+travels in the cartridge as a table per level. That way easyrpg's `double`
+is Python's `float`, which is the same 64-bit IEEE 754, and the truncation
+of C++'s `(int)` is Python's `int()`. There is no approximation to declare.
+
+The table is written by `rm2k-snes-battle`, which has the same functions in
+Rust. These stay for the menus and for the tests, which demand that the ROM
+gives what they give: so the two copies cannot drift apart unnoticed.
 """
 
 from port.constants import ENEMIES_MAX
