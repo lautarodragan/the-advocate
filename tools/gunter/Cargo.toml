@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2021"
 description = "Encodes PCM into the SPC700's BRR blocks, and pulls samples out of SoundFonts"
 
+[lib]
+name = "gunter"
+path = "src/lib.rs"
+
 [[bin]]
 name = "gunter"
 path = "src/main.rs"
