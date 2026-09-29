@@ -41,14 +41,14 @@ protocol *args:
   protocol protocol/music.toml \
       --python audio/music_opcodes.py --asm runtime/music_opcodes.inc {{args}}
 
-# The tools' Python tests, the ones in `pruebas/`: those that need neither the
+# The tools' Python tests, the ones in `tests/`: those that need neither the
 # game, nor its data, nor a built cartridge. Those that do are among A Blurred
 # Line's. They are fast, so they run serially and without xdist.
 #
 # Two read a real SoundFont, and **whoever runs them passes it**, in
 # `SOUNDFONT`, the way Ditto gets its corpus: this file does not know where
 # one is. Without the variable, those two are skipped with a message.
-# `pytest` takes `pruebas/` from `pytest.ini`, so whatever is passed to it —a
+# `pytest` takes `tests/` from `pytest.ini`, so whatever is passed to it —a
 # file, `-k`— works the same as in a plain `pytest`.
 test *args:
   pytest {{args}}

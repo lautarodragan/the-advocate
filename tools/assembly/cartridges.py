@@ -222,7 +222,7 @@ def fingerprint_files(runtime=RUNTIME):
                 compress.binary()])
     # Except the tools' tests, which build nothing: with them inside, editing
     # a test made every cartridge stale.
-    tests_dir = os.path.join(project.tools(), "pruebas", "")
+    tests_dir = os.path.join(project.tools(), "tests", "")
     parts += sorted(r for r in glob.glob(os.path.join(project.tools(),
                                                       "*", "*.py"))
                     if not r.startswith(tests_dir))

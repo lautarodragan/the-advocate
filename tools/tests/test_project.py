@@ -18,7 +18,7 @@ fails if any of them:
 * **builds a repo path by hand**: an `os.path.join` that starts with a root
   folder —`"data"`, `"tools/runtime"`…—, or that sticks it after the root
   —`RAIZ`, `project.root()`—. After anything else it does not count:
-  `pruebas/` inside `tools/` is another folder;
+  `tests/` inside `tools/` is another folder;
 * **reads one of the environment variables that say where something is**, or
   writes the default value of one: since 2026-09-29 that arrives by flags
   —see `common/environment.py`—, and the machine's values belong to whoever
