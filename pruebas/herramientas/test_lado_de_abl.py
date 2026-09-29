@@ -8,11 +8,9 @@ sabe que hay una suite de ejecutables en el PATH. La regla es de taro, el
 
 **Qué es el lado de ABL**, para esta prueba:
 
-* `justfile`, entero, salvo las recetas que arman, prueban o instalan las
-  herramientas mismas (`RECETAS_DE_LAS_HERRAMIENTAS`): ésas se van con la
-  suite cuando se separe, y hoy no pueden no nombrar dónde está lo que
-  compilan —`protocolo` le pasa `--python` al generador, `herramientas`
-  instala los `.py`—. En el resto no se nombra `tools/` ni Python, ni en
+* `justfile`, entero, salvo las recetas de `RECETAS_QUE_NOMBRAN_TOOLS`. Las
+  que arman, prueban o instalan las herramientas están en `tools/justfile`,
+  que es del otro lado. En el resto no se nombra `tools/` ni Python, ni en
   una receta ni en un comentario.
 * `parches/` y `data/`: el contenido del juego. Son lo más claramente de ABL
   que hay en el repo.
@@ -49,22 +47,13 @@ NOMBRA_TOOLS = re.compile(
 # nombre del paquete de Arch que se le dice a uno que instale.
 NOMBRA_PYTHON = re.compile(r"\bpython(?!-)", re.IGNORECASE)
 
-# Las recetas del `justfile` que son de las herramientas y no de ABL: arman
-# los proyectos de Rust, corren sus pruebas o instalan la suite. Se van con
-# ella. También sólo puede achicarse, con una excepción que no la agranda:
-# `_instalar` entró el 2026-09-29 con lo que antes estaba adentro de
-# `herramientas`, cuando la instalación pasó a servir también a
-# `herramientas-locales`.
-RECETAS_DE_LAS_HERRAMIENTAS = {
-    "protocolo",
-    "protocolo-pruebas",
-    "gunter-pruebas",
-    "ditto-pruebas",
-    "ditto-vuelta-entera",
-    "voodoo-pruebas",
-    "lz2-pruebas",
-    "herramientas",
-    "_instalar",
+# Las recetas del `justfile` que pueden nombrar `tools/`. Hasta el
+# 2026-09-29 eran las nueve que arman, prueban o instalan las herramientas;
+# ese día se mudaron a `tools/justfile`, y queda una sola: la guarda que, en
+# un worktree sin sus herramientas, tiene que decir el comando que las
+# instala, y ése vive en `tools/`. Sólo puede achicarse.
+RECETAS_QUE_NOMBRAN_TOOLS = {
+    "_herramientas_del_checkout",
 }
 
 # Relativas a la raíz del repo. Las que arman el camino de los imports con
@@ -161,7 +150,7 @@ def test_el_justfile_no_nombra_python():
     malas = ["%d: %s" % (n, linea.strip())
              for n, (linea, receta) in enumerate(_recetas_del_justfile(), 1)
              if NOMBRA_PYTHON.search(linea)
-             and receta not in RECETAS_DE_LAS_HERRAMIENTAS]
+             and receta not in RECETAS_QUE_NOMBRAN_TOOLS]
     assert not malas, (
         "el justfile nombra Python, y no tiene que saber que existe: llama "
         "ejecutables por su nombre, que instala `just herramientas`.\n"
@@ -174,16 +163,16 @@ def test_el_justfile_no_nombra_tools_fuera_de_sus_recetas():
                               linea.strip())
              for n, (linea, receta) in enumerate(lineas, 1)
              if NOMBRA_TOOLS.search(linea)
-             and receta not in RECETAS_DE_LAS_HERRAMIENTAS]
+             and receta not in RECETAS_QUE_NOMBRAN_TOOLS]
     assert not malas, (
         "el justfile nombra tools/ en recetas de ABL: ABL conoce ejecutables "
         "del PATH y no dónde viven. Si es una herramienta nueva, instalala en "
         "`just herramientas` y llamala por su nombre.\n" + "\n".join(malas))
-    limpias = sorted(RECETAS_DE_LAS_HERRAMIENTAS - {
+    limpias = sorted(RECETAS_QUE_NOMBRAN_TOOLS - {
         receta for linea, receta in lineas if NOMBRA_TOOLS.search(linea)})
     assert not limpias, (
         "estas recetas ya no nombran tools/: sacalas de "
-        "RECETAS_DE_LAS_HERRAMIENTAS, que sólo puede achicarse: %s"
+        "RECETAS_QUE_NOMBRAN_TOOLS, que sólo puede achicarse: %s"
         % ", ".join(limpias))
 
 

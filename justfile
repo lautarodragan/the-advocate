@@ -1,51 +1,14 @@
-# Los opcodes de los eventos: su número y su layout. La declaración está en
-# `tools/protocol/events.toml` y no es ni del compilador ni del intérprete; de ahí
-# salen generados los dos módulos de `tools/` y los dos `.inc` de `rom/src/`,
-# todos commiteados. Hay dos declaraciones: el bytecode de los eventos y el
-# stream de música que lee el SPC700.
-#
-# La de eventos lleva `--jump-table`: de ahí sale la tabla del despacho de
-# `correr_codigo`, así que un opcode nuevo no toca el intérprete más que en su
-# `.proc op_x`. La de música no puede —termina en 0xFF— ni lo necesita.
-#
-# `--check` es lo que corre la tanda: falla si alguno quedó viejo.
-protocolo *args:
-  protocol tools/protocol/events.toml \
-      --python tools/port/event_opcodes.py --asm rom/src/event_opcodes.inc \
-      --jump-table {{args}}
-  protocol tools/protocol/music.toml \
-      --python tools/audio/music_opcodes.py --asm rom/src/music_opcodes.inc {{args}}
+# Las recetas de A Blurred Line: armar los cartuchos, correr las pruebas,
+# regenerar lo versionado y entregar. Las herramientas que usan se instalan
+# aparte y se consumen desde el PATH, por su nombre: este archivo no sabe
+# dónde viven ni en qué están escritas.
 
-# Las pruebas del generador: los errores que tiene que dar ante una declaración
-# rota, y la forma exacta del texto que emite. No necesitan el juego ni la ROM.
-protocolo-pruebas:
-  cd tools/protocol && cargo test
-
-# Gunter: el códec BRR y el lector de SoundFont, y **el que arma las muestras
-# de la ROM**. Sus pruebas son muestras generadas adentro de la prueba —silencio,
-# rampa, cuadrada, impulso, saturación— más los mensajes de error, así que no
-# necesitan ni el juego ni un soundfont. Que las muestras de verdad salgan bien
-# lo cobra cualquier ROM, porque viajan adentro del `.sfc`.
-gunter-pruebas:
-  cd tools/gunter && cargo test
-
-# El .ldb/.lmu/.lmt ⇄ JSON en Rust. Todavía no reemplaza a
-# `tools/rpgmaker/lcf.py` ni al conversor: convive con ellos. Ver DITTO.md, que
-# es lo que ata a Ditto con este port; adentro de tools/ditto/ no hay ni una
-# referencia a nosotros, a propósito.
-#
-# El juego con el que se mide **se lo pasa el repo**, no lo sabe la herramienta:
-# sin DITTO_CORPUS las pruebas que lo necesitan se saltean con un mensaje.
-#
-# La tanda corta va sobre una muestra de mapas; `ditto-vuelta-entera` son todos
-# los mapas, el LDB y el árbol, y mide lo único que hace útil a la herramienta:
-# que el binario vuelva **byte por byte**. Va aparte porque es la que uno quiere
-# ver con el número, no la que corre callada.
-ditto-pruebas:
-  cd tools/ditto && DITTO_CORPUS="${ABL_GAME_DIR:-/extras/abl-rm}" cargo test
-
-ditto-vuelta-entera:
-  cd tools/ditto && DITTO_CORPUS="${ABL_GAME_DIR:-/extras/abl-rm}" cargo test --release -- --include-ignored --nocapture
+# Dónde instala las herramientas de un worktree `just herramientas-locales`:
+# adentro del checkout, ignorado por git. Si existe, su `bin/` va **adelante
+# en el PATH de toda receta**, y lo que no esté ahí sale del global. En el
+# checkout principal no existe.
+locales := justfile_directory() / ".herramientas-locales"
+export PATH := if path_exists(locales / "bin") == "true" { locales / "bin" + ":" + env_var("PATH") } else { env_var("PATH") }
 
 # **Regenera `data/`**: el juego entero como árbol de archivos, que es lo que
 # lee el conversor, con `lcf`. Es derivado —se puede volver a
@@ -76,107 +39,6 @@ datos DIR="data" EXACTO="rom/build/ditto-exacto":
 ditto-volcado DIR="/extras/volcado-ditto":
   just datos {{DIR}} "{{DIR}}-exacto"
 
-# Voodoo: de un PNG indexado a tiles, tilemap y CGRAM, en Rust. Es el que
-# convierte las capas de los mapas, desde las imágenes que deja el asignador.
-# No decide colores; ver AGENTS.md.
-#
-# Sus pruebas son imágenes generadas adentro de la prueba, más los mensajes de
-# error, así que no necesitan el juego.
-voodoo-pruebas:
-  cd tools/voodoo && cargo test
-
-# LZ2 (`tools/lz2/`): el LC_LZ2 de Nintendo, con el que el conversor comprime
-# los tiles y las grillas que la ROM descomprime al cargar un mapa —ver
-# `tools/port/comprimir.py`—. Sus pruebas no necesitan el juego; las que pasan
-# todos los bloques del cartucho por la referencia son `test_lz2.py`.
-lz2-pruebas:
-  cd tools/lz2 && cargo test --release
-
-# Dónde instala `just herramientas`. En el contenedor `/usr/local` está en el
-# PATH; desde el host conviene `CARGO_ROOT=~/.cargo`, el default de cargo.
-cargo_root := env_var_or_default("CARGO_ROOT", "/usr/local")
-
-# Dónde instala `just herramientas-locales`: adentro del checkout, ignorado
-# por git. Si existe, su `bin/` va **adelante en el PATH de toda receta**, y lo
-# que no esté ahí sale del global. En el checkout principal no existe.
-locales := justfile_directory() / ".herramientas-locales"
-export PATH := if path_exists(locales / "bin") == "true" { locales / "bin" + ":" + env_var("PATH") } else { env_var("PATH") }
-
-# Los proyectos de Rust, en el orden en que se instalan.
-proyectos_de_rust := "protocol gunter ditto voodoo lz2"
-
-# --- Las herramientas ------------------------------------------------------
-# `tools/protocol/`, `tools/gunter/`, `tools/ditto/`, `tools/voodoo/` y
-# `tools/lz2/` son proyectos aparte, y el port los consume **desde el PATH**,
-# como consume un core de libretro: ningún script ni prueba de este juego
-# llama a `cargo`. Se instalan una vez y quedan.
-#
-# Y los scripts de Python que se ejecutan, al mismo `bin/`, para que este
-# archivo los llame por su nombre como a los de Rust. Van **como symlinks y no
-# como copias**: una copia quedaría vieja al editar el `.py`, y la tanda
-# correría otra versión que la del árbol. Apuntan al checkout desde el que se
-# corrió esto: si ése se borra, hay que volver a correrlo desde otro.
-#
-# Con nombres de proyectos de Rust —`just herramientas lz2`— instala sólo
-# ésos, más los symlinks de Python, que no cuestan nada: es lo que corre el
-# que mergea una rama, con lo de Rust que la rama tocó. Sin nombres, todos.
-#
-# Los nombres siguen al repo donde va a vivir cada programa cuando las
-# herramientas se separen de ABL: `rm2k-snes-` y en inglés los de la suite,
-# que va a ser un repo en inglés; `abl-` y en castellano el que se queda con
-# el juego. El prefijo es porque el `bin/` es compartido: un `espacio` o un
-# `parches` suelto no dice qué es y puede chocar con cualquier cosa.
-#
-# `(cargo_root)` va entre paréntesis porque, pegado al paréntesis que sigue,
-# `just` lo leería como una llamada a una función `cargo_root`.
-herramientas *proyectos: (_instalar (cargo_root) (if proyectos == "" { proyectos_de_rust } else { proyectos }))
-
-# **Las herramientas de un worktree**, para el sub-agente que las modifica.
-# Un symlink del global apunta a un solo checkout —el principal—, así que un
-# worktree que cambia un script de las herramientas o un proyecto de Rust no
-# correría su cambio. Esto arma `.herramientas-locales/bin/` con los ocho
-# scripts del worktree, siempre, y con los proyectos de Rust que se le
-# nombren, **sólo ésos**: compilar Rust cuesta, y sólo tiene sentido si el
-# agente va a modificar ese proyecto. Sin nombres no compila nada. Es de
-# taro, el 2026-09-29.
-#
-# Vale sólo para lo que corre por `just`, que es el que pone el `bin/`
-# adelante en el PATH: un comando suelto usa el global. Se niega en el
-# checkout principal, donde taparía al global con lo mismo.
-herramientas-locales *proyectos: _no_en_el_principal (_instalar locales proyectos)
-
-_no_en_el_principal:
-  #!/usr/bin/env sh
-  [ "$(git rev-parse --git-dir)" != "$(git rev-parse --git-common-dir)" ] && exit 0
-  echo "esto es el checkout principal: acá las herramientas son las globales, las de 'just herramientas'." >&2
-  exit 1
-
-# Instala en `raiz`: `cargo install` de los proyectos de Rust nombrados, y los
-# symlinks de los ocho de Python. Un nombre que no es proyecto corta antes de
-# compilar nada.
-_instalar raiz *proyectos:
-  #!/usr/bin/env sh
-  set -eu
-  for p in {{proyectos}}; do
-    case " {{proyectos_de_rust}} " in
-      *" $p "*) ;;
-      *) echo "'$p' no es un proyecto de Rust: son {{proyectos_de_rust}}." >&2; exit 1 ;;
-    esac
-  done
-  for p in {{proyectos}}; do
-    cargo install --locked --path "tools/$p" --root "{{raiz}}"
-  done
-  mkdir -p "{{raiz}}/bin"
-  ln -sfn "{{justfile_directory()}}/tools/ensamblado/cartuchos.py" "{{raiz}}/bin/rm2k-snes-cartridges"
-  ln -sfn "{{justfile_directory()}}/tools/ensamblado/ensamblar.py" "{{raiz}}/bin/rm2k-snes-assemble"
-  ln -sfn "{{justfile_directory()}}/tools/ensamblado/espacio.py" "{{raiz}}/bin/rm2k-snes-space"
-  ln -sfn "{{justfile_directory()}}/tools/port/snes_convert.py" "{{raiz}}/bin/rm2k-snes-convert"
-  ln -sfn "{{justfile_directory()}}/tools/port/parches.py" "{{raiz}}/bin/rm2k-snes-patches"
-  ln -sfn "{{justfile_directory()}}/tools/audio/msu.py" "{{raiz}}/bin/rm2k-snes-msu"
-  ln -sfn "{{justfile_directory()}}/tools/audio/techos.py" "{{raiz}}/bin/rm2k-snes-volume-ceilings"
-  ln -sfn "{{justfile_directory()}}/tools/ensamblado/entregar.py" "{{raiz}}/bin/abl-entregar"
-  echo "en {{raiz}}/bin: los ocho de Python, y de Rust: {{ if proyectos == "" { "ninguno" } else { proyectos } }}"
-
 # **Un worktree sin su `bin/` no corre herramientas.** Correría los scripts
 # del checkout principal —los del global—, que arman en el `rom/build/` del
 # principal: pisaría sus cartuchos, quizás con una tanda corriendo ahí, sin
@@ -184,30 +46,26 @@ _instalar raiz *proyectos:
 # depende de ésta, y en un worktree sin `.herramientas-locales/bin/` se
 # niega. En el checkout principal pasa siempre. Un worktree se reconoce
 # porque su `git-dir` no es el común.
+#
+# Es la única receta de este archivo que nombra `tools/`: el mensaje tiene que
+# dar un comando que ande desde acá, y el que instala las herramientas del
+# worktree vive con ellas.
 _herramientas_del_checkout:
   #!/usr/bin/env sh
   [ "$(git rev-parse --git-dir)" = "$(git rev-parse --git-common-dir)" ] && exit 0
   [ -d "{{locales}}/bin" ] && exit 0
-  echo "este worktree no tiene sus herramientas: corré 'just herramientas-locales' primero." >&2
+  echo "este worktree no tiene sus herramientas: corré 'just -f tools/justfile herramientas-locales' primero." >&2
   echo "sin eso, los scripts serían los del checkout principal, y armarían en su rom/build/." >&2
   exit 1
 
-# Qué ejecutable resuelve este checkout para cada herramienta: el de
-# `.herramientas-locales/bin/` si está, si no el global.
-cuales:
-  #!/usr/bin/env sh
-  for x in {{proyectos_de_rust}} rm2k-snes-cartridges rm2k-snes-assemble rm2k-snes-space rm2k-snes-convert rm2k-snes-patches rm2k-snes-msu rm2k-snes-volume-ceilings abl-entregar; do
-    printf '%-26s %s\n' "$x" "$(command -v "$x" || echo falta)"
-  done
-
 # --- Super Nintendo --------------------------------------------------------
 # El port. El toolchain son dos cosas: un core de libretro y las herramientas
-# del PATH —las de `just herramientas` convierten el juego, `ca65` + `ld65`
-# arman la ROM y `gunter` sus muestras—. La ROM se corre cuadro a cuadro desde
-# el arnés de las pruebas, sin emulador con ventana ni servidor X.
+# del PATH —las de la suite convierten el juego, `ca65` + `ld65` arman la ROM
+# y `gunter` sus muestras—. La ROM se corre cuadro a cuadro desde el arnés de
+# las pruebas, sin emulador con ventana ni servidor X.
 #
-# Las herramientas se instalan con `just herramientas` y no se compilan acá;
-# si falta alguna, el que la busca dice cuál y cómo tenerla.
+# Las herramientas se instalan aparte y no se compilan acá; si falta alguna,
+# el que la busca dice cuál y cómo tenerla.
 
 # **Todas las pruebas**, que desde el 2026-09-16 son las dos redes a la vez.
 #
