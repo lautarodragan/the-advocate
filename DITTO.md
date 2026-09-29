@@ -198,16 +198,16 @@ escritos a mano, es exactamente el bug que abre este archivo.
 ## El corpus
 
 Ditto se mide contra el juego original, en la carpeta que diga `ABL_GAME_DIR`
-—la misma que lee el resto del repo—. Ditto no lo sabe: se lo pasa el
-justfile.
+—la misma que lee el resto del repo—. Ditto no lo sabe: se lo pasa
+`tools/justfile`.
 
-    just ditto-pruebas          # una muestra de mapas, un segundo
-    just ditto-vuelta-entera    # los 330, con el número impreso
+    just -f tools/justfile ditto-pruebas          # una muestra de mapas, un segundo
+    just -f tools/justfile ditto-vuelta-entera    # los 330, con el número impreso
 
-Las dos recetas exportan `DITTO_CORPUS` con esa carpeta. Corrido a mano sin esa
-variable, las pruebas que necesitan el juego **se saltean con un mensaje** en
-vez de fallar; las que no lo necesitan —los defaults del esquema, y el corpus
-sintético— corren siempre.
+Las dos recetas exportan `DITTO_CORPUS` con esa carpeta, si no viene ya
+puesta. Corrido a mano sin esa variable, las pruebas que necesitan el juego
+**se saltean con un mensaje** en vez de fallar; las que no lo necesitan —los
+defaults del esquema, y el corpus sintético— corren siempre.
 
 ### El corpus que Ditto se escribe solo
 

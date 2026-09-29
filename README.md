@@ -56,9 +56,9 @@ instalan una vez, y ningún script ni prueba de este juego llama a `cargo`. El p
 cc65, que no viene empaquetado en todas las distribuciones y se compila de sus
 fuentes: ver "Referencias".
 
-    just herramientas     # instala las herramientas en el PATH
-    just cartuchos        # arma las ROMs: release y las de prueba
-    just pruebas          # la tanda entera; arma antes lo que haga falta
+    just -f tools/justfile herramientas   # instala las herramientas en el PATH
+    just cartuchos                        # arma las ROMs: release y las de prueba
+    just pruebas                          # la tanda entera; arma antes lo que haga falta
 
 La ROM que se juega sale en `rom/build/release/abl.sfc`, con su `abl.msu` y las
 pistas de MSU-1 al lado. Qué pasa entre el juego y la ROM está en

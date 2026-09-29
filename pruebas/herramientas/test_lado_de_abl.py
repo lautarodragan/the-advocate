@@ -153,7 +153,7 @@ def test_el_justfile_no_nombra_python():
              and receta not in RECETAS_QUE_NOMBRAN_TOOLS]
     assert not malas, (
         "el justfile nombra Python, y no tiene que saber que existe: llama "
-        "ejecutables por su nombre, que instala `just herramientas`.\n"
+        "ejecutables por su nombre, que instala `just -f tools/justfile herramientas`.\n"
         + "\n".join(malas))
 
 
@@ -167,7 +167,7 @@ def test_el_justfile_no_nombra_tools_fuera_de_sus_recetas():
     assert not malas, (
         "el justfile nombra tools/ en recetas de ABL: ABL conoce ejecutables "
         "del PATH y no dónde viven. Si es una herramienta nueva, instalala en "
-        "`just herramientas` y llamala por su nombre.\n" + "\n".join(malas))
+        "`just -f tools/justfile herramientas` y llamala por su nombre.\n" + "\n".join(malas))
     limpias = sorted(RECETAS_QUE_NOMBRAN_TOOLS - {
         receta for linea, receta in lineas if NOMBRA_TOOLS.search(linea)})
     assert not limpias, (
@@ -193,7 +193,7 @@ def test_las_pruebas_nuevas_no_nombran_tools():
         "estos archivos nombran tools/ y no están en la lista de "
         "excepciones, que sólo puede achicarse: %s. Si hace falta un script "
         "de las herramientas, que lo llame por el nombre con que lo instala "
-        "`just herramientas`." % ", ".join(nuevas))
+        "`just -f tools/justfile herramientas`." % ", ".join(nuevas))
     limpias = sorted(PRUEBAS_QUE_TODAVIA_NOMBRAN_TOOLS - nombran)
     assert not limpias, (
         "estos ya no nombran tools/ —o no existen—: sacalos de "

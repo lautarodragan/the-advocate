@@ -45,7 +45,7 @@ FALTA = """falta `gunter`, el códec de muestras del SPC700.
 Es un binario de Rust que vive en `tools/gunter/` y se instala como herramienta
 del sistema, no se compila en cada corrida:
 
-    just herramientas
+    just -f tools/justfile herramientas
 
 Eso hace `cargo install --locked --path tools/gunter`. Si falta cargo, en Arch es
 `pacman -S rust`."""
