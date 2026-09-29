@@ -90,6 +90,30 @@ A_CADA = 8
 # Dónde viven las capturas que taro bendijo, y cuánto se les tolera. Ver `foto`.
 GOLDEN = os.path.join(lugares.GOLDENS, "playthrough")
 GOLDEN_TOLERANCIA = 0.15
+# Las fotos que todavía no tienen golden, dichas una por una: ver
+# `pendientes` y el encabezado del archivo.
+PENDIENTES = os.path.join(GOLDEN, "pendientes.txt")
+
+
+def pendientes(ruta=PENDIENTES):
+    """Las fotos de la lista de pendientes, como `<tramo>/<NN>-<hito>.png`.
+
+    Se lee de nuevo cada vez y no se cachea: son unos cien renglones, y una
+    prueba que la cambie a mitad de corrida no tiene que ver la vieja.
+    """
+    with open(ruta, encoding="utf-8") as archivo:
+        renglones = [r.strip() for r in archivo]
+    fotos = [r for r in renglones if r and not r.startswith("#")]
+    repetidas = sorted({f for f in fotos if fotos.count(f) > 1})
+    assert not repetidas, "%s repite %s" % (ruta, ", ".join(repetidas))
+    return set(fotos)
+
+
+# Los `Recorrido` con carpeta de fotos creados en la prueba que corre: al
+# terminar, `conftest._tramos_completos` le pide a cada uno
+# `verificar_el_tramo`. Es una lista del módulo y no un fixture porque
+# `test_mapa_de_debug.py` arma los suyos sin pasar por el de `recorrido`.
+ABIERTOS = []
 
 
 # Cuántas veces se insiste con un paso antes de dar la celda por bloqueada. Los
@@ -419,6 +443,8 @@ class Recorrido:
         self.fotos_dir = fotos
         self.hito = "arranque"
         self.fotos = []
+        if fotos:
+            ABIERTOS.append(self)
 
     # --- lo que se le dice al mundo ----------------------------------------
 
@@ -469,9 +495,12 @@ class Recorrido:
         estado lo habría notado.
 
         La golden la bendice taro mirándola una vez, y vive en
-        `pruebas/golden/playthrough/`. Si no hay
-        golden, la captura se guarda igual y el caso **no falla**: así se
-        agrega un hito nuevo sin romper la prueba, y se bendice después.
+        `pruebas/golden/playthrough/`. Si no hay golden, la captura se guarda
+        igual y el caso **no falla sólo si la foto está en
+        `pendientes.txt`**, al lado de las goldens: así se agrega un hito
+        nuevo sin romper la prueba, y se bendice después, pero que falte una
+        golden se declara. Hasta el 2026-09-29 alcanzaba con que no estuviera,
+        y "todavía no la aprobó nadie" no se distinguía de "se borró".
 
         **La tolerancia es grande a propósito.** No es una comparación pixel
         por pixel como la de `tanda.golden`: acá los cuadros no están
@@ -502,14 +531,17 @@ class Recorrido:
         return self
 
     def _contra_golden(self, nombre, archivo, imagen):
-        """Compara con la golden si la hay. Ver `foto`."""
-        carpeta = os.path.join(GOLDEN, os.path.basename(self.fotos_dir))
+        """Compara con la golden, o se fija que la foto esté pendiente. Ver
+        `foto`."""
+        tramo = os.path.basename(self.fotos_dir)
+        carpeta = os.path.join(GOLDEN, tramo)
         golden = os.path.join(carpeta, archivo)
+        pendiente = "%s/%s" % (tramo, archivo) in pendientes()
         if not os.path.exists(golden):
-            # Sin golden no falla, a propósito; pero la golden se busca por el
-            # número de orden, así que una foto nueva metida antes corre a
-            # todas las de atrás y las deja sin comparar, calladas. Si el hito
-            # tiene golden con otro número, es eso.
+            # La golden se busca por el número de orden, así que una foto
+            # nueva metida antes corre a todas las de atrás y las deja sin
+            # golden. Si el hito tiene golden con otro número, es eso, y se
+            # dice antes que lo de la lista, que sería la consecuencia.
             hito = archivo.split("-", 1)[1]
             hay = os.listdir(carpeta) if os.path.isdir(carpeta) else ()
             otras = sorted(n for n in hay if n.split("-", 1)[-1] == hito)
@@ -519,7 +551,18 @@ class Recorrido:
                     "numeración, y las fotos que siguen quedan sin comparar. "
                     "Renombrá las goldens de %s."
                     % (nombre, archivo, ", ".join(otras), carpeta))
+            if not pendiente:
+                raise AssertionError(
+                    "el hito %r es la foto %s/%s, que no tiene golden ni está "
+                    "en %s. Si es nueva, anotala ahí hasta que taro la mire; "
+                    "si tenía golden, se borró. La captura quedó en %s."
+                    % (nombre, tramo, archivo, PENDIENTES,
+                       os.path.join(self.fotos_dir, archivo)))
             return
+        if pendiente:
+            raise AssertionError(
+                "la foto %s/%s tiene golden y sigue en %s: si la golden es la "
+                "aprobada, sacala de la lista." % (tramo, archivo, PENDIENTES))
         from PIL import Image
         esperada = Image.open(golden).convert("RGB")
         actual = imagen.convert("RGB")
@@ -540,6 +583,36 @@ class Recorrido:
                    100.0 * GOLDEN_TOLERANCIA, os.path.join(self.fotos_dir,
                                                            archivo),
                    golden, self.estado()))
+
+    def verificar_el_tramo(self):
+        """Al terminar la jugada, que cada golden de su tramo y cada renglón
+        suyo en `pendientes.txt` sean una foto que sacó: lo inverso de
+        `_contra_golden`, que mira foto por foto.
+
+        Una golden que ninguna foto usa es una comparación que ya no se hace
+        —la foto se renombró, o la jugada dejó de llegar ahí— y un renglón que
+        ninguna foto usa es la lista quedándose vieja. Lo llama el conftest,
+        y sólo si la prueba pasó: una que se cortó a la mitad no sacó las de
+        atrás.
+        """
+        if not self.fotos_dir:
+            return
+        tramo = os.path.basename(self.fotos_dir)
+        carpeta = os.path.join(GOLDEN, tramo)
+        sacadas = {os.path.basename(ruta) for _n, ruta, _e in self.fotos}
+        goldens = set(os.listdir(carpeta)) if os.path.isdir(carpeta) else set()
+        anotadas = {f.split("/", 1)[1] for f in pendientes()
+                    if f.split("/", 1)[0] == tramo}
+        sobran = (["la golden %s/%s" % (carpeta, n)
+                   for n in sorted(goldens - sacadas)]
+                  + ["el renglón %s/%s de %s" % (tramo, n, PENDIENTES)
+                     for n in sorted(anotadas - sacadas)])
+        assert not sobran, (
+            "la jugada del tramo %r terminó sin sacar ninguna foto para %s. "
+            "Si la foto se renombró o se sacó a propósito, eso sobra; si no, "
+            "la jugada dejó de mirar ahí. Las que sacó: %s."
+            % (tramo, ", ".join(sobran),
+               ", ".join(sorted(sacadas)) or "ninguna"))
 
     # --- esperar, que es la mitad del juego --------------------------------
 
