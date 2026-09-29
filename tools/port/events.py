@@ -20,6 +20,7 @@ import collections
 import math
 import os
 
+from common import settings
 from port import picture as picture_mod
 from port import rules
 from port.constants import COLUMNS, LINES, EQUIPMENT_SLOTS
@@ -4398,6 +4399,37 @@ def _compile_picture(cmd, pictures):
     return output
 
 
+# Which sound effects play with another sample on some map, which ones the
+# routes and the troops leave out of their package: **the game's decisions
+# by ear**, in its project file —`[sound_effects]`— with the reason for each.
+# They are read when used and not at import, so the converter can be
+# imported without a game.
+
+def se_per_map():
+    """{(name in RM2k, map id): the sample that plays there}. Each one is one
+    more sound effect, but not one more directory entry: it shares a place
+    with those of the other packages. From `[sound_effects] per_map`."""
+    return {(a["effect"], a["map"]): a["sample"]
+            for a in settings.value("sound_effects", "per_map", kind=list)}
+
+
+def se_route_left_out():
+    """{map id: None for all, or the names} of the sound effects that forced
+    move routes ask for —move command 35, see `ROUTE_SOUND`— and that **do
+    not fit** in their map's audio package. From
+    `[sound_effects] route_effects_left_out`."""
+    return {m["map"]: None if m["effects"] == "all" else set(m["effects"])
+            for m in settings.value("sound_effects", "route_effects_left_out",
+                                    kind=list)}
+
+
+def se_troop_in_package():
+    """The sound effects of troop pages that **do** go in the battle's audio
+    package. From `[sound_effects] troop_effects_in_package`."""
+    return set(settings.value("sound_effects", "troop_effects_in_package",
+                              kind=list))
+
+
 def sound_index(songs, map_index, name, volume, tempo, balance,
                 from_route=False):
     """The `Songs.sounds` index of an effect asked for on the map being
@@ -4406,9 +4438,8 @@ def sound_index(songs, map_index, name, volume, tempo, balance,
 
     The ones that on some map sound with another sample —map 1's whole
     thunder— carry another name for the same WAV, so the other maps keep
-    theirs. See `se_per_map` in snes_music.py. And the route ones of the
+    theirs. See `se_per_map`. And the route ones of the
     `se_route_left_out` maps do not go into the package: see there."""
-    from audio import snes_music
 
     def is_it(game_map):
         try:
@@ -4418,17 +4449,17 @@ def sound_index(songs, map_index, name, volume, tempo, balance,
 
     in_package = True
     if songs.current_map is not None:
-        for (base, game_map), alias in snes_music.se_per_map().items():
+        for (base, game_map), alias in se_per_map().items():
             if name == base and is_it(game_map):
                 name = alias
                 break
         if from_route:
             in_package = not any(
                 is_it(m) and (which_ones is None or name in which_ones)
-                for m, which_ones in snes_music.se_route_left_out().items())
+                for m, which_ones in se_route_left_out().items())
     if songs.current_map == BATTLE_PACKAGE:
         # A troop page's: see `se_troop_in_package`.
-        in_package = name in snes_music.se_troop_in_package()
+        in_package = name in se_troop_in_package()
     return songs.sound(name, volume, tempo, balance, in_package)
 
 

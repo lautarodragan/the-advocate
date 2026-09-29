@@ -41,6 +41,7 @@ import json
 import multiprocessing
 import os
 import shutil
+import subprocess
 import sys
 import zlib
 
@@ -86,11 +87,9 @@ from port import color as color_mod
 from port import constants
 from port import rules
 from port import msu_data
-from audio import msu_effects
 from common import settings
 from common import project
 from common.parallel import in_parallel
-from audio import snes_music
 from port.allocator import CELL, tile_colors
 from port.snes_format import cgram_word, entry, pack_tile
 from rpgmaker.rm2k import TILE, collect_npcs, hero_start, passability_map
@@ -8229,7 +8228,7 @@ def main():
         # And the separate ones, which don't go with the other songs either:
         # their `PlayBGM` uploads them with the package's sound effects. See
         # `separate_songs`.
-        separate = [t for t in owned if requested[t] in snes_music.separate_songs().get(
+        separate = [t for t in owned if requested[t] in separate_songs().get(
                       _map["id"], ()) and t != map_song[i]
                     and not (i == args.start_index and t == boot)]
         owned = [t for t in owned if t not in separate]
@@ -8272,32 +8271,46 @@ def main():
                                   separate_ones, not_given=settings.value(
                                    "music", "jumps_that_never_happen",
                                    kind=list))
-    driver, samples, done_ones, bank = snes_music.build_all(
-        requested, args.game_dir, requested_se, per_name, inheritance,
-        measuring_headroom=args.measure_headroom)
-    # And what `tools/audio/ceilings.py` needs from each song —how long it lasts
-    # and the fingerprint of its mix—, written next to it: the bank can no
-    # longer be rebuilt without compiling the pages, which is where the
-    # packages come from.
-    with open(os.path.join(os.path.dirname(music), "musica.json"),
-              "w") as handle:
-        json.dump({"temas": [
-            {"nombre": t["nombre"],
-             "largo": t["escrituras"][-1][0] + 1 if t["escrituras"] else 0,
-             "huella": t.get("huella", ""),
-             # `tools/audio/msu.py` reads it from here, which builds only the
-             # tracks of the cartridge's songs.
-             "pista": t["pista"]} for t in done_ones]},
-            handle, indent=1)
-    # Each package's sound effects go by number and not by SRCN: several share
-    # the directory's place. See `snes_music.effect_places`.
-    effects = getattr(bank, "effects", {})
-    effect_id = getattr(bank, "effect_id", {})
-    packages = [(owned, [effect_id[n] for n in theirs if n in effects], out)
-                for owned, theirs, out in packages]
-    directory = (len(bank.voices), getattr(bank, "places", 0))
-    effect_place = [srcn - directory[0] for srcn, _e in sorted(
-        effects.values(), key=lambda v: effect_id[v[1].name])]
+    # The music itself is `rm2k-snes-audio`'s: it gets what was decided
+    # here —the songs, the sound effects, the packages—, and writes
+    # `musicdata.inc`, `musica.json` —what `tools/audio/msu.py` and the
+    # volume ceilings read of each song— and `audio.json`, what the rest of
+    # this function needs from the music. The job stays next to them, so
+    # the music of a cartridge can be rebuilt alone.
+    # Each package's sound effects go by number and not by SRCN: several
+    # share the directory's place, which is its business.
+    job = {
+        "songs": requested,
+        "effects": requested_se,
+        "packages": [{"name": name, "songs": list(owned),
+                      "effects": list(theirs), "exits": list(out),
+                      "separate": list(separate)}
+                     for name, owned, theirs, out, separate
+                     in per_name[:len(packages)]]
+                    + [{"name": p[0], "songs": list(p[1]),
+                        "effects": list(p[2])}
+                       for p in per_name[len(packages):]],
+        "inheritance": [[name, t] for name, t in inheritance],
+        "measuring_headroom": args.measure_headroom,
+        "system_songs": lcf.system_songs(
+            os.path.join(args.game_dir, "RPG_RT.ldb")),
+        "emit": {
+            "packages": len(packages),
+            "boot": boot,
+            "title": title_song,
+            "game_over": [game_over_song, game_over_package],
+            "map_song": list(map_song),
+            "sounds": [list(sound) for sound in songs.sounds],
+            "start": args.start_index,
+            "decompress_frames": decompress_frames(maps[args.start_index],
+                                                   compressed),
+        },
+    }
+    audio = compile_music(job, os.path.dirname(music))
+    done_ones = audio["songs"]
+    effects = {e["name"]: e for e in audio["effects"]}
+    packages = [(owned, theirs, out)
+                for owned, theirs, out, _separate in audio["packages"]]
     if palettes_needed:
         assert package_names[len(maps)] == "pelea", (
             "the battle's package has to end up at the index `emit` emitted "
@@ -8309,11 +8322,8 @@ def main():
     # the boot map's package took longer, it would come out later and the
     # tests —which count from there— would count wrong. See the comment on
     # `BOOT_FRAMES` in tools/runtime/far_ram.s.
-    frames, in_package = snes_music.boot_frames_estimate(
-        driver, samples, done_ones, packages[args.start_index],
-        decompress_frames(maps[args.start_index], compressed),
-        directory)
-    cap = snes_music.boot_frames()
+    frames, in_package = audio["boot"]["frames"], audio["boot"]["bytes"]
+    cap = boot_frames()
     if frames > cap:
         raise SystemExit(
             "the boot doesn't fit in BOOT_FRAMES: the boot map's package is "
@@ -8323,94 +8333,93 @@ def main():
             % (in_package, frames, cap))
     print("  boot: the boot map's package is %d B, %.0f of "
           "the %d frames of BOOT_FRAMES" % (in_package, frames, cap))
-    snes_music.emit(music, done_ones, driver, samples, boot, title_song,
-                    snes_music.sound_table(songs.sounds, bank),
-                    [p + (separate,) for p, separate in zip(packages, separate_ones)],
-                    map_song, directory, effect_place,
-                    game_over=(game_over_song, game_over_package))
     # The `.msu`: the quality backdrops and the quality sound effects, to read
     # them through the MSU-1 when it is there. It is always written, even if
     # the cartridge carries neither backdrops nor sound effects, because it is
     # also the file that turns on the MSU-1 for the tracks.
     write_msu(args.msu or os.path.join(os.path.dirname(os.path.abspath(
         args.output)), "datos.msu"), music, scenes["calidad"],
-        per_name[:len(packages)], packages, done_ones, samples, bank,
-        songs.sounds, args.game_dir)
+        audio, songs.sounds)
     for i, (owned, theirs, out) in enumerate(packages[:len(maps)]):
         if owned or theirs or out or separate_ones[i]:
             print("  audio package of map %d: %d song(s), %d sound effect(s)%s%s"
                   % (maps[i]["id"], len(owned), len(theirs),
-                     ", and for exit %s" % ", ".join(done_ones[t]["nombre"]
+                     ", and for exit %s" % ", ".join(done_ones[t]["name"]
                                                      for t in out)
                      if out else "",
-                     ", and separate %s" % ", ".join(done_ones[t]["nombre"]
+                     ", and separate %s" % ", ".join(done_ones[t]["name"]
                                                      for t in separate_ones[i])
                      if separate_ones[i] else ""))
     if requested_se:
         print("  sound effects: %d, %d B in the cartridge"
-              % (len(effects), sum(len(e.data) for _s, e in effects.values())))
+              % (len(effects), sum(e["bytes"] for e in effects.values())))
     print("music -> %s: %s"
-          % (music, ", ".join(t["nombre"] for t in done_ones)
+          % (music, ", ".join(t["name"] for t in done_ones)
              or "none, it comes out silent"))
-
     # The bank packing is not decided here: both files send everything to
     # RODATA, with a `.block` or a `.crossbank` in front of each piece, and
     # `rm2k-snes-assemble` spreads it into banks and writes the memory map
     # before running `ca65`.
-    for i, song in enumerate(done_ones):
-        # The percentage of notes that reach the stream goes here and not
-        # hidden: it is what is heard as "it's missing voices", and until
-        # 2026-09-14 nobody said it. See
-        # workflow/decisiones/un-solo-banco-de-muestras.md.
-        sound = song["resumen"].get("notas")
-        # And how much of what does have a sample is lost for lack of voices,
-        # against what would be lost with no remedy with eight: it is what
-        # the allocation of `snes_music.assign` measures.
-        lost, floor = song["resumen"].get("perdido", (0.0, 0.0))
-        print("  %d. %-16s %4.0f s, %6d B of stream and %4d of sounds, "
-              "%s of the notes, %.0f%% of note-time without a voice (floor %.0f%%)%s"
-              % (i, song["nombre"], song["segundos"], len(song["stream"]),
-                 6 * len(song["sonidos"]),
-                 "all" if sound is None or sound > 0.999
-                 else "%.0f%%" % (100 * sound), 100 * lost, 100 * floor,
-                 ", plays from boot" if i == boot else ""))
-    if done_ones:
-        print("  shared bank: %d samples, %d B in the cartridge; each "
-              "package has %d B of ARAM for its samples"
-              % (len(bank.voices), sum(len(v.data) for v in bank.voices),
-                 bank.free))
-        # What rate each sample ended up at and which package limited it: it
-        # is what is heard, and what says where to look for room if needed. A
-        # key with copies comes out once per copy, with the songs that use it:
-        # see `snes_music.copies`.
-        use = collections.defaultdict(list)
-        for song, its in zip(done_ones, bank.assignment):
-            for sample in its.values():
-                use[sample].append(song["nombre"])
-        for key, voice in zip(bank.keys, bank.voices):
-            print("    %s %3d %-10s %5.1f kHz, %5d B%s%s%s"
-                  % ("program " if key[0] == "p" else "hit     ", key[1],
-                     voice.name.strip()[:10], voice.rate / 1000.0, len(voice.data),
-                     ", root %d" % voice.root if key[0] == "p" else "",
-                     ", limited by " + bank.limited_by[key]
-                     if key in bank.limited_by else "",
-                     ", for " + " ".join(use[key])
-                     if len(key) > (3 if key[0] == "p" else 2)
-                     or any(len(k) > len(key) and k[:len(key)] == key
-                            for k in bank.keys) else ""))
-        # And how much each package has left over, with its sound effects: the
-        # whole ones with what they really take, not with what the music
-        # budgeted for them. The bank's constraints already bring them that way
-        # —they are those of `reales`, see `snes_music.copies`—: subtracting
-        # the extra again gave packages that didn't fit and did fit.
-        for r in bank.constraints:
-            print("    package %-28s %5d B of samples, %5d left over"
-                  % (r.name[:28], bank.takes(r.keys),
-                     r.free - bank.takes(r.keys)))
 
 
-def write_msu(path, music, backdrops, per_name, packages, done_ones, samples,
-              bank, sounds, game_dir):
+AUDIO = "rm2k-snes-audio"
+
+AUDIO_MISSING = """`rm2k-snes-audio` is missing, the one that compiles the music.
+
+It is a Rust binary that lives in `tools/rm2k-snes-audio/` and is installed
+as a system tool:
+
+    just -f tools/justfile install rm2k-snes-audio"""
+
+
+def compile_music(job, directory):
+    """Hands the music to `rm2k-snes-audio`, which writes `musicdata.inc`,
+    `musica.json` and `audio.json` into `directory`, and prints what each
+    song and the bank came out as. Returns `audio.json`.
+
+    Whatever it answers no to —the samples do not fit even at the minimum, a
+    song's stream would not write what it has to— stops the conversion with
+    its message."""
+    binary = shutil.which(AUDIO)
+    if binary is None:
+        raise SystemExit(AUDIO_MISSING)
+    path = os.path.join(directory, "audio-job.json")
+    with open(path, "w") as handle:
+        json.dump(job, handle, indent=1)
+    # What this printed goes before what the binary prints.
+    sys.stdout.flush()
+    done = subprocess.run(
+        [binary, "compile", "--job", path, "--out", directory,
+         "--project", project.directory()]
+        + environment.as_flags("game_dir", "rtp_dir", "soundfont"))
+    if done.returncode:
+        raise SystemExit("%s could not compile the music (exit %d): see "
+                         "above" % (AUDIO, done.returncode))
+    with open(os.path.join(directory, "audio.json")) as handle:
+        return json.load(handle)
+
+
+def separate_songs():
+    """{map id: names} of the separate songs: they do not go with the other
+    songs of their map's package, their `PlayBGM` uploads them alone with the
+    package's sound effects —see `extra_separate` in
+    tools/runtime/audio_package.s—, and they are not inherited by the maps
+    you exit to —see `inherited_songs`—. From `[music] apart_themes`."""
+    return {m["map"]: set(m["themes"])
+            for m in settings.value("music", "apart_themes", kind=list)}
+
+
+def boot_frames(path=None):
+    """The ROM's `BOOT_FRAMES`, read from the source: it belongs to the ROM
+    and not here."""
+    import re
+    path = path or os.path.join(project.runtime(), "far_ram.s")
+    with open(path) as handle:
+        return int(re.search(r"^BOOT_FRAMES\s*=\s*(\d+)", handle.read(),
+                             re.M).group(1))
+
+
+def write_msu(path, music, backdrops, audio, sounds):
     """Writes the `.msu` to `path` and appends to `music` —the
     `musicdata.inc`— what the ROM needs to read it: the signature, where each
     backdrop is and, per package, where each sound effect is and at which
@@ -8425,70 +8434,39 @@ def write_msu(path, music, backdrops, per_name, packages, done_ones, samples,
     sound effect that is in two packages goes twice even if at the same rate:
     a seek costs Mednafen one or two frames, and the file has no cap.
 
-    `per_name` are the ROM's packages as `build_all` sees them —with the
-    names of their sound effects— and `packages` the same as `emit` emits them
-    —with their sound effect numbers—, in the same order. See
-    tools/audio/msu_effects.py.
+    Which version of each sound effect goes in each package, and at which
+    pitch it plays there, is the music's: `audio` is what
+    `rm2k-snes-audio` wrote, see its `msu`. This puts them in the file.
     """
-    effects = getattr(bank, "effects", {})
-    by_number = {i: n for n, i in getattr(bank, "effect_id", {}).items()}
-    # What the music takes with MSU-1 in each package: only the songs without
-    # a track, which `song_per_msu` doesn't skip.
-    weighs = {}
-
-    def music_of(songs):
-        theirs = set()
-        for t in songs:
-            if done_ones[t]["pista"] is None:
-                if t not in weighs:
-                    weighs[t] = snes_music.song_samples(done_ones[t])
-                theirs |= set(weighs[t])
-        return sum(len(samples[i].data) for i in theirs)
-    requested = [(str(p[0]), list(p[2]), music_of(p[1]))
-                 for p in per_name]
-    rates = msu_effects.rates_per_package(requested, effects, bank.free, game_dir)
-    unique = sorted({(e, t) for theirs in rates.values()
-                     for e, t in theirs.items()})
-    done_tracks = dict(zip(unique, in_parallel(
-        lambda pair: msu_effects.build(pair[0], pair[1], game_dir), unique)))
-
+    quality = audio["msu"]
+    versions = [bytes.fromhex(v["brr"]) for v in quality["versions"]]
     entries = [part for pair in backdrops for part in pair]
     # Which entry each sound effect of each package is, in SRCN order: two of
     # the same package never share a place.
-    in_package = []
-    for (name, _t, _e, *_s), (_songs, numbers, _out) in zip(per_name,
-                                                            packages):
-        theirs = rates.get(str(name), {})
-        values = []
-        for e in sorted({by_number[i] for i in numbers},
-                        key=lambda e: effects[e][0]):
-            values.append((e, len(entries), done_tracks[e, theirs[e]]))
-            entries.append(done_tracks[e, theirs[e]].data)
-        in_package.append(values)
+    first = []
+    for package in quality["packages"]:
+        first.append(len(entries))
+        entries += [versions[v] for v in package["versions"]]
     blob, offset = msu_data.build(entries, backdrops=len(backdrops))
     signature = blob[:msu_data.SIGNATURE_SIZE]
     with open(path + ".nuevo", "wb") as handle:
         handle.write(blob)
     os.replace(path + ".nuevo", path)
     print("  .msu: %d backdrop(s) and %d sound effect(s) in %d B, signature %s -> %s"
-          % (len(backdrops), sum(len(l) for l in in_package), len(blob),
+          % (len(backdrops), len(entries) - 2 * len(backdrops), len(blob),
              signature.hex(), path))
 
-    # Per package, one row per sound effect of its list —that of `packages`,
-    # in the order the ROM walks it—: where it is in the `.msu`, how long it
-    # is and where it loops back, which is always to the start because they
-    # go whole.
+    # Per package, one row per sound effect of its list —in the order the ROM
+    # walks it—: where it is in the `.msu`, how long it is and where it loops
+    # back, which is always to the start because they go whole.
     rows, from_rows = bytearray(), bytearray()
     heights, from_heights, already_done = bytearray(), bytearray(), {}
-    for (name, *_r), (_songs, numbers, _out), values in zip(
-            per_name, packages, in_package):
+    for package, start in zip(quality["packages"], first):
         from_rows += (len(rows)).to_bytes(2, "little")
-        by_effect = {e: (offset[k], v) for e, k, v in values}
-        for i in numbers:
-            pos, version = by_effect[by_number[i]]
-            rows += (pos.to_bytes(4, "little")
-                     + len(version.data).to_bytes(2, "little")
-                     + bytes(2))
+        for j in package["rows"]:
+            data = versions[package["versions"][j]]
+            rows += (offset[start + j].to_bytes(4, "little")
+                     + len(data).to_bytes(2, "little") + bytes(2))
         # And the pitch of each sound of `sound_table` with this package's
         # version: with that the ROM does no arithmetic, not even in the
         # interrupt. **Only the sounds whose sound effect is from here**, as
@@ -8496,16 +8474,9 @@ def write_msu(path, music, backdrops, per_name, packages, done_ones, samples,
         # `msu_pitch` walks: until 2026-09-27 it was one row per package with
         # all the sounds, almost all zeros, and with the whole world chapter
         # it went over a bank. Two packages with the same list share it.
-        theirs = rates.get(str(name), {})
         values = bytearray()
-        for k, (effect, _volume, tempo, _balance) in enumerate(sounds):
-            height = 0
-            if effect in theirs:
-                height = snes_music.effect_pitch(
-                    done_tracks[effect, theirs[effect]], tempo)
-            # Zero is "not from here" for the ROM, so it isn't stored.
-            if height:
-                values += k.to_bytes(2, "little") + height.to_bytes(2, "little")
+        for k, height in package["pitches"]:
+            values += k.to_bytes(2, "little") + height.to_bytes(2, "little")
         values += b"\xFF\xFF"
         values = bytes(values)
         if values not in already_done:
@@ -8528,8 +8499,7 @@ def write_msu(path, music, backdrops, per_name, packages, done_ones, samples,
             "MSU_BACKDROPS_N = %d\n"
             "MSU_EFFECTS_N = %d\n"
             '.segment "RODATA"\n%s\n'
-            % (len(backdrops),
-               sum(len(values) for values in in_package),
+            % (len(backdrops), len(entries) - 2 * len(backdrops),
                "\n".join(block(label, data or bytes(2)) for label, data
                          in (("msu_data_signature", signature),
                              ("msu_backdrop_pos", backdrop_pos),
@@ -8542,16 +8512,17 @@ def write_msu(path, music, backdrops, per_name, packages, done_ones, samples,
     # goes in the `.msu`. The ROM doesn't read it; it is for the tools that
     # touch a sound effect from outside and to look at what the allocation
     # decided.
+    rates = quality["rates"]
     with open(os.path.join(os.path.dirname(music), "efectos.json"),
               "w") as handle:
         json.dump({"sonidos": [list(s) for s in sounds],
-                   "srcn": {e: srcn for e, (srcn, _v) in effects.items()},
+                   "srcn": {e["name"]: e["srcn"] for e in audio["effects"]},
                    "tasas": rates}, handle, indent=1)
-    for (name, *_r) in per_name:
-        theirs = rates.get(str(name), {})
+    for package in quality["packages"]:
+        theirs = rates.get(package["name"], {})
         if theirs:
             print("  quality sound effects of package %s: %s"
-                  % (name, ", ".join(
+                  % (package["name"], ", ".join(
                       "%d Hz: %d" % (t, sum(1 for v in theirs.values()
                                             if v == t))
                       for t in sorted(set(theirs.values()), reverse=True))))
@@ -8650,6 +8621,23 @@ def inherited_songs(songs, map_song, initial, title, package_names,
             if t not in in_package[i] and t != map_song[i]]
 
 
+def songs_of_maps(map_ids, game_dir):
+    """The name of the song each map gets from the tree, reading it once.
+
+    "" means that entering the map **does not change** what is playing:
+    either the map has no song —the root of the tree—, or it is
+    `music_type` 1, "an event decides". It is the early `return` of
+    `Game_Map::PlayBgm` in easyrpg. An "(OFF)" is a song: it silences, just
+    like a `PlayBGM` of "(OFF)".
+    """
+    tree = lcf.TreeMap(os.path.join(game_dir, "RPG_RT.lmt"))
+    names = []
+    for map_id in map_ids:
+        music = tree.map_music(map_id)
+        names.append(music["name"] if music else "")
+    return names
+
+
 def rom_songs(map_id, songs, game_dir, title=None, map_ids=(),
               game_over=None):
     """Which songs the cartridge asks for, which one plays at boot and which
@@ -8673,7 +8661,7 @@ def rom_songs(map_id, songs, game_dir, title=None, map_ids=(),
     through a teleport. They go behind all, for the same reason, and as each
     one's index or $FF, which is "entering doesn't change the music".
     """
-    own = snes_music.song_of_map(map_id, game_dir)
+    own = songs_of_maps([map_id], game_dir)[0]
     if own:
         songs.index(own)            # adds it at the end if it wasn't there
     # The title screen's goes after, for the same reason: adding at the end is
@@ -8689,7 +8677,7 @@ def rom_songs(map_id, songs, game_dir, title=None, map_ids=(),
     if game_over:
         songs.index(game_over)
     each_map = []
-    for name in snes_music.songs_of_maps(map_ids, game_dir):
+    for name in songs_of_maps(map_ids, game_dir):
         index = songs.index(name) if name else 0xFF
         # $FF is "doesn't change": a song with that number couldn't be
         # started. A `PlayBGM`, which carries the index in one byte, wouldn't
