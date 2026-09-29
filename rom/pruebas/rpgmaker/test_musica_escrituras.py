@@ -1,14 +1,15 @@
 """Que el decodificador del 65816 escriba al DSP lo mismo que el stream dice,
 cuadro por cuadro.
 
-El stream de música es por nota desde el 2026-09-26 —ver "el formato por
-nota" en `tools/audio/snes_music.py`— y lo expande `music_frame`
-(runtime/music.s) a escrituras al DSP. La propiedad que sostiene el formato
-es que esas escrituras sean **exactamente** las de `snes_music.writes`:
-mismo registro, mismo valor, mismo orden y mismo cuadro. Hay dos redes:
+El stream de música es por nota desde el 2026-09-26 —ver "the per-note
+format" en `rm2k-snes-audio`— y lo expande `music_frame` (runtime/music.s) a
+escrituras al DSP. La propiedad que sostiene el formato es que esas
+escrituras sean **exactamente** las que el compilador de música especifica
+para el tema: mismo registro, mismo valor, mismo orden y mismo cuadro. Hay
+dos redes:
 
-* el conversor decodifica cada tema con `snes_music.decode`, el modelo
-  del decodificador, y se corta si no da `writes` (`check_format`);
+* el compilador decodifica cada tema con su modelo del decodificador, y se
+  corta si no da esas escrituras;
 * y ésta, que cobra lo que el modelo no ve: el 65816. Toca cada tema entero
   en la ROM, anota lo que llega a `dsp_music` —la bitácora, `MUS_LOG`,
   que la prueba prende— y lo compara contra el modelo corriendo sobre los
@@ -26,10 +27,8 @@ cada vuelta. Cada uno se mira entero y un poco de la segunda vuelta.
 
 import pytest
 
-from consola import (EMPEZAR, TITULO_AIRE, WRAM, DelCartucho, en_la_rom,
-                     en_la_wram, indice_del_tema)
-
-from audio import music_opcodes
+from consola import (EMPEZAR, TITULO_AIRE, WRAM, en_la_rom, en_la_wram,
+                     indice_del_tema)
 
 # Los que más formas del stream ejercitan, además del título —el pedal—: el
 # de `escape_newyork`, el de batalla —el más pesado, y el peor cuadro—, el de
@@ -54,14 +53,11 @@ def _por_cuadro(vuelta, largo):
     return por_cuadro
 
 
-def _fin_del_stream(rom, direccion):
-    """La dirección del `OP_END` del stream, recorriéndolo por los largos que
-    declara music.toml."""
-    i, datos = 0, DelCartucho(rom, direccion)
-    while datos[i] != music_opcodes.OP_END:
-        i += music_opcodes.OPCODE_SIZE[datos[i]]
+def _fin_del_stream(direccion, largo):
+    """La dirección del `OP_END` del stream que empieza en `direccion` y
+    ocupa `largo` bytes, el `OP_END` incluido: el último."""
     # El desplazamiento en el archivo vuelve a ser una dirección de LoROM.
-    archivo = en_la_rom(direccion) + i
+    archivo = en_la_rom(direccion) + largo - 1
     return (archivo // 0x8000) << 16 | 0x8000 | (archivo & 0x7FFF)
 
 
@@ -135,11 +131,10 @@ def test_la_rom_escribe_lo_que_el_stream_dice(partida, nombre):
     escrituras son las mismas."""
     una = partida(titulo=EMPEZAR).quedarse_en_el_titulo()
     s = una.simbolos
-    with open(una.sfc, "rb") as archivo:
-        rom = archivo.read()
     tema = indice_del_tema(una, nombre)
     vuelta = una.escrituras_del_tema(tema)
-    fin = _fin_del_stream(rom, una.stream_del_tema(tema)[0])
+    fin = _fin_del_stream(una.stream_del_tema(tema)[0],
+                          una.largo_del_stream(tema))
 
     # Todo entre dos cuadros, que es cuando la consola no está corriendo.
     _escribir(una, s["music"], [fin & 0xFF, fin >> 8 & 0xFF, fin >> 16])

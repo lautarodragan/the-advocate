@@ -136,7 +136,8 @@ fn decode_gives_what_the_song_writes() {
         .unwrap();
     assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
     let decoded: Value = serde_json::from_slice(&out.stdout).unwrap();
-    assert_eq!(decoded, audio["songs"][1]["writes"]);
+    assert_eq!(decoded["writes"], audio["songs"][1]["writes"]);
+    assert_eq!(decoded["length"].as_u64(), Some(stream.len() as u64));
     let _ = std::fs::remove_dir_all(&dir);
 }
 

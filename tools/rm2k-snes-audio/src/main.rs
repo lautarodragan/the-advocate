@@ -45,7 +45,7 @@ enum Command {
     Compile(CompileArgs),
     /// The samples each song asks for, and what each weighs untrimmed
     Keys(KeysArgs),
-    /// What a stream writes to the DSP: (frame, register, value)
+    /// What a stream writes to the DSP —(frame, register, value)— and how long it is
     Decode(DecodeArgs),
     /// A sound effect's WAV, as it is read: its samples and its rate
     Wav(WavArgs),
@@ -333,7 +333,8 @@ fn do_decode(args: &DecodeArgs) -> Result<()> {
     let stream_bytes = bytes(&args.stream)?;
     let sounds: Vec<stream::Sound> =
         bytes(&args.sounds)?.chunks_exact(6).map(|c| c.try_into().unwrap()).collect();
-    println!("{}", json!(stream::decode(&stream_bytes, &sounds)?));
+    let (writes, length) = stream::decode_counting(&stream_bytes, &sounds)?;
+    println!("{}", json!({"writes": writes, "length": length}));
     Ok(())
 }
 
@@ -374,6 +375,11 @@ fn main() -> ExitCode {
                     "master": sdsp::master(),
                     "directory_max": bank::DIRECTORY_MAX,
                     "ticks_per_second": rm2k_snes_audio::midi::TICKS_PER_SECOND,
+                    "kon": sdsp::KON,
+                    "v_srcn": sdsp::V_SRCN,
+                    "block_bytes": rm2k_snes_audio::samples::BLOCK_BYTES,
+                    "samples_addr": bank::SAMPLES_ADDR,
+                    "silence_bytes": bank::SILENCE.len(),
                 })
             );
             Ok(())

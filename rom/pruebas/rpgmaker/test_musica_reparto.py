@@ -5,36 +5,39 @@ batalla, el que el cambio rompió.
 Hasta el 2026-09-26 cada canal del MIDI tenía sus voces fijas, y en este tema
 eso eran una voz para los acordes de tres notas de las cuerdas (canal 2) y
 ninguna para el clavinet (canal 5) ni la onda cuadrada (canal 7): no sonaban
-nunca, y sus programas ni siquiera entraban al banco. Las pruebas de
-`test_music_stream.py`, con las de las herramientas, miran la regla con notas
-armadas a mano; ésta, que el stream que sale del conversor para el tema de verdad
-tenga lo que la regla promete.
+nunca, y sus programas ni siquiera entraban al banco. Las pruebas del
+reparto de `rm2k-snes-audio` miran la regla con notas armadas a mano; ésta,
+que el stream que sale del compilador para el tema de verdad tenga lo que la
+regla promete.
 
-No corre ninguna ROM: arma el tema con `build_all`, solo, y lee sus
-escrituras —las mismas que la ROM le manda al DSP, lo cobra
-`test_musica_escrituras.py`—.
+No corre ninguna ROM: le pide al compilador de música el tema solo, con sus
+notas y su reparto, y lee sus escrituras —las mismas que la ROM le manda al
+DSP, lo cobra `test_musica_escrituras.py`—.
 """
 
 import collections
 
+import musica
+
+# Cada nota, como la da el compilador: (inicio, fin, canal, tecla, velocidad).
+INICIO, FIN, CANAL, TECLA = 0, 1, 2, 3
+
 
 def _tema():
-    from audio import snes_music
-    _d, _v, temas, banco = snes_music.build_all(["escape_newyork"])
-    return snes_music.read_song("escape_newyork"), temas[0], banco
+    temas, banco, _libre = musica.compilar(["escape_newyork"])
+    return temas[0], banco
 
 
 def test_el_acorde_de_las_cuerdas_suena_entero():
     """El primer cuadro en que las cuerdas arrancan tres notas juntas tiene
     que disparar por lo menos tres voces."""
-    from audio import sdsp
-    leido, tema, _banco = _tema()
-    arranques = collections.Counter(n.start for n in leido["notas"]
-                                    if n.channel == 2)
+    tema, _banco = _tema()
+    arranques = collections.Counter(n[INICIO] for n in tema["notes"]
+                                    if n[CANAL] == 2)
     cuadro = min(c for c, cuantas in arranques.items() if cuantas >= 3)
     kon = 0
-    for c, registro, valor in tema["escrituras"]:
-        if c == cuadro and registro == sdsp.KON:
+    for c, registro, valor in tema["writes"]:
+        if c == cuadro and registro == musica.constantes()["kon"]:
             kon |= valor
     assert bin(kon).count("1") >= 3, (
         "en el cuadro %d arrancan tres notas de las cuerdas y el KON es $%02X"
@@ -55,25 +58,24 @@ def test_la_melodia_de_la_batalla_no_pierde_notas():
     cinco o seis golpes a la vez —dos bombos, dos cajas, el charles—, y con
     los dos bajos y los metales tomaban las ocho voces antes de que llegara
     la melodía, que por ser lo más agudo elegía última: no sonaban 214 de sus
-    536 notas. El orden de cada cuadro es `_frame_order`."""
-    from audio import snes_music
-    _d, _v, _temas, banco = snes_music.build_all([BATALLA])
-    leido = snes_music.read_song(BATALLA)
-    reparto = []
-    snes_music.build_events(leido["notas"], leido["voces"],
-                            leido["programas"], banco, leido["controles"],
-                            reparto)
+    536 notas. El orden de cada cuadro es `frame_order`, en el compilador.
+
+    Con el aire de siempre y no con el techo del tema: es el reparto el que
+    se mira, y el de siempre es el que se oyó."""
+    temas, _banco, _libre = musica.compilar(
+        [BATALLA], aire=musica.constantes()["headroom"])
+    notas = temas[0]["notes"]
     arriba = {}
-    for entrada in reparto:
-        nota = entrada[0]
-        if nota.channel == 0 and (nota.start not in arriba or
-                                  nota.pitch > arriba[nota.start][0].pitch):
-            arriba[nota.start] = entrada
+    for entrada in temas[0]["allocation"]:
+        nota = notas[entrada[0]]
+        if nota[CANAL] == 0 and (nota[INICIO] not in arriba or
+                                 nota[TECLA] > notas[arriba[nota[INICIO]][0]][TECLA]):
+            arriba[nota[INICIO]] = entrada
     assert len(arriba) > 500, "la melodía tiene %d notas" % len(arriba)
-    segundos = snes_music.TICKS_PER_SECOND
-    perdidas = ["%.2f s" % (n.start / segundos)
-                for n, voz, robada, fin in sorted(arriba.values(),
-                                                  key=lambda e: e[0].start)
+    segundos = musica.constantes()["ticks_per_second"]
+    perdidas = ["%.2f s" % (notas[n][INICIO] / segundos)
+                for n, voz, robada, fin in sorted(
+                    arriba.values(), key=lambda e: notas[e[0]][INICIO])
                 if voz is None or (robada is not None and robada < fin)]
     assert not perdidas, "%d notas de la melodía no suenan enteras: %s" % (
         len(perdidas), ", ".join(perdidas[:12]))
@@ -82,12 +84,12 @@ def test_la_melodia_de_la_batalla_no_pierde_notas():
 def test_el_clavinet_y_la_onda_cuadrada_suenan():
     """Los dos canales que el reparto fijo dejaba sin voz: sus muestras están
     en el banco y alguna voz las toca."""
-    from audio import sdsp
-    leido, tema, banco = _tema()
-    srcn = {valor for _c, registro, valor in tema["escrituras"]
-            if registro < 0x80 and registro & 0x0F == sdsp.V_SRCN}
+    tema, banco = _tema()
+    srcn = {valor for _c, registro, valor in tema["writes"]
+            if registro < 0x80
+            and registro & 0x0F == musica.constantes()["v_srcn"]}
     for canal in (5, 7):
-        programa = leido["programas"][canal]
+        programa = tema["programs"][str(canal)]
         assert programa in banco.melodic, (
             "el programa %d del canal %d no está en el banco" % (programa, canal))
         assert banco.melodic[programa] in srcn, (

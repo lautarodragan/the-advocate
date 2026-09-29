@@ -4,13 +4,13 @@ versionada (`parches/auto/musica/techos.toml`), y que la tabla no esté vieja.
 El DSP suma las ocho voces y satura la suma antes del volumen general, así
 que lo que evita el recorte es el techo de cada voz, y desde el 2026-09-26
 hay uno por tema: el más alto que no recorta, medido tocando cada tema en la
-ROM —`just techos`, ver tools/audio/ceilings.py—. Medirlo cuesta unos cuatro
+ROM —`just techos`, ver `rm2k-snes-volume-ceilings`—. Medirlo cuesta unos cuatro
 minutos, así que acá no se mide: se cobra que lo medido siga valiendo.
 
 * **La huella**: lo que el pico de un tema puede mover —lo que le escribe al
-  DSP y las muestras que toca, ver `mix_fingerprint`— tiene que ser lo
-  que se midió. El paso 6 cambia las muestras y con ellas los picos; sin
-  esto, la tabla quedaría vieja sin avisar.
+  DSP y las muestras que toca, ver `mix_fingerprint` en `rm2k-snes-audio`—
+  tiene que ser lo que se midió. El paso 6 cambia las muestras y con ellas
+  los picos; sin esto, la tabla quedaría vieja sin avisar.
 * **Los que quedaron cerca del tope**, tocados en la ROM hasta pasar por su
   pico —el `hasta` de la tabla, no el tema entero—: ninguna muestra en el
   tope. Con la mezcla igual, lo único que mueve el pico es cuándo cae cada
@@ -26,7 +26,7 @@ import pytest
 
 import tanda
 
-from audio import snes_music, ceilings
+from audio import ceilings
 
 # A cuántos dB del tope un tema se toca en la prueba. La tabla los deja a
 # 0,5 dB (`ceilings.MARGIN`); lo que hace falta es que entren ésos con margen.
@@ -34,7 +34,7 @@ CERCA = 1.5
 
 
 def _tabla():
-    with open(snes_music.ceilings_path(), "rb") as archivo:
+    with open(ceilings.ceilings_path(), "rb") as archivo:
         return tomllib.load(archivo)["temas"]
 
 
@@ -56,7 +56,7 @@ def test_la_tabla_de_techos_es_la_de_esta_mezcla():
     assert not viejos, (
         "la mezcla de %s cambió desde que se midió su techo, así que su pico "
         "ya no es el de la tabla: correr `just techos` y mirar el diff de %s"
-        % (", ".join(viejos), os.path.relpath(snes_music.ceilings_path())))
+        % (", ".join(viejos), os.path.relpath(ceilings.ceilings_path())))
 
 
 @pytest.mark.parametrize("nombre", _cerca())

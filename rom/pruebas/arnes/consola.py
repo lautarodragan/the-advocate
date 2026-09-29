@@ -29,6 +29,7 @@ from common import settings
 from common import project
 from emulator import retro
 import cartuchos
+import musica
 
 RAIZ = project.root()
 # Lo que las pruebas dejan para mirar. Lo toman de acá los pedazos del arnés
@@ -907,7 +908,7 @@ class Partida:
         cartucho**.
 
         Es la misma tabla que mira `song_ensure`, y se lee de la ROM en vez
-        de recalcularla con `snes_music.song_samples`: recalcularla
+        de recalcularla con el compilador de música: recalcularla
         sería una segunda manera de contestar la pregunta, y las dos se pueden
         equivocar igual. Un índice de desplazamientos de dos bytes por tema
         —`SONG_TOTAL` de ellos— y detrás una lista por tema cerrada con $FF.
@@ -987,13 +988,23 @@ class Partida:
 
     def escrituras_del_tema(self, indice):
         """Lo que el stream del tema le escribe al DSP, (cuadro, registro,
-        valor), una vuelta: sus bytes en el cartucho, decodificados con
-        `snes_music.decode`, que es el modelo de `music_frame`."""
-        from audio import snes_music
+        valor), una vuelta: sus bytes en el cartucho, decodificados por
+        `rm2k-snes-audio decode`, que es el modelo de `music_frame`."""
+        return self._stream_decodificado(indice)[0]
+
+    def largo_del_stream(self, indice):
+        """Cuántos bytes ocupa el stream del tema en el cartucho, su
+        `OP_END` incluido."""
+        return self._stream_decodificado(indice)[1]
+
+    def _stream_decodificado(self, indice):
         direccion, sonidos = self.stream_del_tema(indice)
         with open(self.sfc, "rb") as archivo:
             rom = archivo.read()
-        return snes_music.decode(DelCartucho(rom, direccion), sonidos)
+        # Desde el principio del stream hasta el final del archivo: en LoROM
+        # el byte que sigue a $xxFFFF es el siguiente del archivo —ver
+        # `DelCartucho`—, y lo que sigue al `OP_END` no se lee.
+        return musica.decodificar(rom[en_la_rom(direccion):], sonidos)
 
     def acceso(self):
         """El byte de permisos: bit 0 guardar prohibido, bit 1 el menú

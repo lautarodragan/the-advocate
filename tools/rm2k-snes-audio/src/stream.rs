@@ -458,6 +458,12 @@ pub fn pack(frames: &Frames, length: i64, init: &[(u8, u8)]) -> Result<(Vec<u8>,
 /// ever compared against a register nobody has written yet, on the console
 /// it would be comparing against garbage: here that stops.
 pub fn decode(stream: &[u8], sounds: &[Sound]) -> Result<Vec<Write>> {
+    Ok(decode_counting(stream, sounds)?.0)
+}
+
+/// [`decode`], and how many bytes the stream took, its `OP_END` included:
+/// whoever reads it from a cartridge learns where it ends.
+pub fn decode_counting(stream: &[u8], sounds: &[Sound]) -> Result<(Vec<Write>, usize)> {
     let mut out = Vec::new();
     let mut cache: HashMap<u8, u8> = HashMap::new();
     let (mut seen, mut with_gain): (HashSet<u8>, HashSet<u8>) = (HashSet::new(), HashSet::new());
@@ -499,7 +505,7 @@ pub fn decode(stream: &[u8], sounds: &[Sound]) -> Result<Vec<Write>> {
     loop {
         let op = read(&mut i)?;
         if op == OP_END {
-            return Ok(out);
+            return Ok((out, i));
         }
         if op == OP_INIT {
             for (r, v) in boot_writes() {
