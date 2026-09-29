@@ -55,3 +55,11 @@ Relacionadas: `todo/las-responsabilidades-de-snes-convert.md` y
   que el original (diff vacío, salvo un encabezado).
 * `tools/README.md` decía tres ciclos que ya no eran así; lo corregí en su
   propio commit, apuntando al research.
+
+## Lo que decidió taro
+
+El 2026-09-28, sobre el resumen del research: ver
+`workflow/decisiones/las-herramientas-se-separan-de-abl.md`, que tiene
+también las tres preguntas que quedaron abiertas (cómo consume ABL a las
+herramientas, `cartuchos.py`, y qué decisiones y divergencias van a cada
+lado). El research no se tocó: es una foto.
