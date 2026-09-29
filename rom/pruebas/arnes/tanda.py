@@ -38,11 +38,11 @@ from consola import (EMPEZAR, NUCLEO, RETRASO_DE_PANTALLA, Partida,
 
 from emulador import retro
 
-from comun import proyecto
+import lugares
 from ensamblado import cartuchos
 
 # Dónde viven las capturas congeladas y los planes.
-GOLDEN = os.path.join(proyecto.goldens(), "tanda")
+GOLDEN = os.path.join(lugares.GOLDENS, "tanda")
 
 
 class Cartucho:
@@ -338,7 +338,7 @@ def golden(nombre, imagen):
     quedado de una corrida anterior: así ese directorio tiene sólo lo que está
     en rojo ahora, y no lo que estuvo alguna vez.
     """
-    rojo = os.path.join(proyecto.snapshots(), "tanda")
+    rojo = os.path.join(lugares.SNAPSHOTS, "tanda")
     donde = os.path.join(rojo, "%s.png" % nombre)
     ruta = os.path.join(GOLDEN, "%s.png" % nombre)
     if not os.path.exists(ruta):

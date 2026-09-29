@@ -31,17 +31,21 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 from audio import muestras_brr                          # noqa: E402
+from comun import ambiente                              # noqa: E402
 from comun import perillas                              # noqa: E402
 from comun import proyecto                              # noqa: E402
 from ensamblado import ensamblar                        # noqa: E402
 from port import tiles_bin                              # noqa: E402
 from port import comprimir                              # noqa: E402
 
+# `--proyecto` se lee antes que nada: este módulo lee el archivo de proyecto
+# al importarse, y el `parse_args` de `main` llega tarde.
+if __name__ == "__main__":
+    proyecto.desde_la_linea_de_comandos()
+
 RAIZ = proyecto.raiz()
 CASOS = proyecto.casos()
 FUENTE = proyecto.runtime()
-
-DESTINO = proyecto.cartuchos_de_prueba()
 
 # **Qué lleva cada cartucho es del juego, y está en su archivo de proyecto**
 # —`proyecto.archivo_de_proyecto()`, con los porqués de cada valor como
@@ -69,7 +73,7 @@ def el_mapa_de_debug():
     nuevos = sorted(fork.nuevos())
     if len(nuevos) != 1:
         sys.exit("el mapa de debug es el único mapa nuevo de %s, y hay %d: %s"
-                 % (fork.NUEVOS, len(nuevos), nuevos))
+                 % (fork.carpeta_nuevos(), len(nuevos), nuevos))
     return nuevos[0]
 
 
@@ -95,7 +99,7 @@ def mapas_de_la_regla(menor_a=MENOR_A, excluidos=EXCLUIDOS,
     El árbol es el del volcado de `rom/data/`, que es el que lee el conversor: por
     eso la ruta cae adentro de `rom/data/` y no del juego —ver `lcf.volcado`—."""
     from rpgmaker import lcf
-    arbol = lcf.TreeMap(os.path.join(lcf.DATOS, "RPG_RT.lmt"))
+    arbol = lcf.TreeMap(os.path.join(proyecto.data(), "RPG_RT.lmt"))
     de_la_regla = [m for m in range(1, menor_a)
                    if arbol.map_types.get(m) == 1 and m not in excluidos]
     return tuple(de_la_regla + [m for m in agregados if m not in de_la_regla])
@@ -279,7 +283,8 @@ def directorio(nombre):
     """Lo que las pruebas escriben no va acá sino a `rom/pruebas/snapshots/`."""
     if nombre == RELEASE:
         return os.path.join(proyecto.build(), RELEASE)
-    return os.path.join(DESTINO, nombre.replace("test-", "", 1))
+    return os.path.join(ambiente.cartuchos_de_prueba(),
+                        nombre.replace("test-", "", 1))
 
 
 def rom_de(nombre):
@@ -357,8 +362,12 @@ def convertir(nombre, destino, sfc, extra=()):
         de_casos += (["--caso"] if k else []) + [
             "--comandos-de-prueba",
             os.path.relpath(os.path.join(CASOS, caso + ".json"), RAIZ)]
+    # Con `--proyecto`, porque corre parado en la raíz del repo —ver
+    # `ensamblar.RAIZ`— y desde ahí no encontraría el archivo buscándolo.
     orden = ([sys.executable, os.path.join(proyecto.herramientas(), "port",
                                            "snes_convert.py"),
+              "--proyecto", proyecto.directorio(),
+              *ambiente.como_flags(*AL_CONVERSOR),
               "-o", os.path.join(destino, "mapdata.inc"),
               "--msu", os.path.splitext(sfc)[0] + ".msu"]
              + flags + list(extra) + de_casos)
@@ -372,14 +381,24 @@ def convertir(nombre, destino, sfc, extra=()):
                         destino, sfc, sfc + ".sym")
 
 
+# Lo de la máquina que necesita el conversor, que corre en otro proceso y lo
+# recibe por flags; y lo que suma éste: dónde van los cartuchos de prueba, y
+# los reemplazos de las pistas de MSU-1.
+AL_CONVERSOR = ("game_dir", "rtp_dir", "soundfont", "cache")
+DEL_AMBIENTE = AL_CONVERSOR + ("test_cartridges", "reemplazos")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    proyecto.argumento(parser)
+    ambiente.argumentos(parser, *DEL_AMBIENTE)
     parser.add_argument("--lista", action="store_true",
                         help="qué caso va en qué cartucho, sin armar nada")
     parser.add_argument("nombres", nargs="*", metavar="CARTUCHO",
                         help="sólo éstos; sin nombres, todos. Es lo que usa "
                              "`just build release`")
     args = parser.parse_args()
+    ambiente.desde_argumentos(args, *DEL_AMBIENTE)
     for nombre in args.nombres:
         if nombre not in CARTUCHOS:
             sys.exit("no hay un cartucho %r: los que hay son %s"

@@ -31,6 +31,13 @@ DEL_FORMATO = {"game", "all", "release"}
 # nombre propio, y ésos sí se miran.
 SIN_MIRAR = {"cases", "excluded_cases"}
 
+# `[paths]` entera: son nombres de carpeta, y las herramientas usan las mismas
+# palabras para la forma de lo que arman —`parches/auto/` adentro del
+# directorio de cada cartucho, a imagen de la del juego—. Armar a mano una
+# ruta del juego con esas palabras lo cobra `test_proyecto.py`, de las
+# herramientas, que mira las rutas y no los textos.
+TABLAS_SIN_MIRAR = {"paths"}
+
 
 def _textos(nodo):
     if isinstance(nodo, dict):
@@ -50,7 +57,8 @@ def _del_archivo():
     """Los textos del archivo que valen como valor, no como nombre de clave
     de las herramientas: las claves de las secciones fijas —`[rom]`,
     `name`…— no cuentan, porque ésas sí las escriben las herramientas."""
-    datos = perillas.leer()
+    datos = {k: v for k, v in perillas.leer().items()
+             if k not in TABLAS_SIN_MIRAR}
     fijas = set()
 
     def claves(nodo, libres):

@@ -43,6 +43,10 @@ protocolo *args:
 # Las pruebas de Python de las herramientas, las de `pruebas/`: las que no
 # necesitan el juego, ni sus datos, ni un cartucho armado. Las que sí están en
 # las de A Blurred Line. Son rápidas, así que corren en serie y sin xdist.
+#
+# Dos leen un SoundFont de verdad, y **se lo pasa el que corre**, en
+# `SOUNDFONT`, como a Ditto su corpus: este archivo no sabe dónde hay uno.
+# Sin la variable, esas dos se saltean con un mensaje.
 # `pytest` toma `pruebas/` de `pytest.ini`, así que lo que se le pase —un
 # archivo, `-k`— vale igual que en un `pytest` suelto.
 pruebas *args:

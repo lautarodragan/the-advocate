@@ -290,11 +290,21 @@ que revela menos y da más margen. Hoy tiene:
 Las capturas van ahí y no a `/tmp` por una razón concreta: el contenedor corre
 con `--rm --replace`, así que `/tmp` se muere con él y `/extras` no.
 
-Las herramientas llegan a `/extras` y a `/shared` por sus valores por
-omisión —`ABL_GAME_DIR`, `ABL_RTP_DIR`, `ABL_SOUNDFONT`, `SHARED` y los
-reemplazos de MSU-1—, y ésos viven todos en `tools/comun/proyecto.py`, junto
-con dónde está cada carpeta del repo. Si el ambiente cambia, se cambia ahí;
-`rom/justfile` repite el del juego, porque no importa Python.
+Las herramientas llegan a `/extras` y a `/shared` por flags —`--game-dir`,
+`--rtp-dir`, `--soundfont`, `--reemplazos`, `--compartido`—, y no saben de
+ningún valor de esta máquina. Los pone `rom/justfile`, que traduce
+`ABL_GAME_DIR`, `ABL_RTP_DIR`, `ABL_SOUNDFONT` y `SHARED` con los valores de
+acá por omisión, y los exporta para las pruebas; los reemplazos de MSU-1,
+que no tienen variable, son `reemplazos_msu` del mismo archivo. Si el
+ambiente cambia, se cambia ahí. `ABL_CACHE` y `CARTUCHOS` también se
+traducen, pero sin valor de la máquina: el caché y los cartuchos de prueba
+viven adentro de `rom/build/`, y las variables sólo los mueven.
+
+Las dos pruebas de las herramientas que leen un SoundFont de verdad lo
+reciben en `SOUNDFONT`, como Ditto su corpus en `DITTO_CORPUS`: sin la
+variable se saltean. Para correrlas acá,
+`SOUNDFONT="/extras/soundfonts/Microsoft GS Wavetable Synth.sf2" just -f
+tools/justfile pruebas`.
 
 **`ca65` y `ld65` se compilan acá adentro, y eso fue una decisión.** No están
 empaquetados en Arch, y hasta el 2026-09-15 la regla era no compilar fuentes de

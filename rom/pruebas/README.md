@@ -10,6 +10,14 @@ Las pruebas del ROM. En Python. Usan libretro para correr el rom.
 Cuántas son y cuántas pasan lo dice la corrida; `pytest pruebas
 --collect-only -q` las lista sin correrlas.
 
+**Corren por `just`**: el `justfile` exporta `ABL_GAME_DIR`, `ABL_RTP_DIR` y
+`ABL_SOUNDFONT` con los valores de la máquina, y las pruebas los leen de
+ahí, en `arnes/lugares.py`, igual que el conversor los recibe por flags. Un
+`pytest` suelto sin esas variables corta diciendo cuál falta. `lugares.py`
+también les dice a las herramientas cuál es el proyecto —la carpeta de
+arriba de `pruebas/`—, y dónde están las goldens y los snapshots, que son
+sólo de las pruebas.
+
 ## Carpetas
 
     pruebas/rpgmaker/      lo que el motor tiene que hacer igual que RM2k

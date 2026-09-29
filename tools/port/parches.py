@@ -26,7 +26,7 @@ Dos ejemplos de cómo se leería de vuelta, que es lo que guió el formato. El
 mapeo de colores de una capa::
 
     mapping = {}
-    for f in parches.leer(RAIZ, 7)["capas"]["fondo"]["fusiones"]:
+    for f in parches.leer(proyecto.parches_auto(), 7)["capas"]["fondo"]["fusiones"]:
         de, a = tuple(f["de"]), tuple(f["a"])
         for viejo, actual in mapping.items():
             if actual == de:
@@ -36,7 +36,7 @@ mapeo de colores de una capa::
 Y el tamaño al que se dibuja una animación de batalla, que es una sola línea
 porque la decisión es un rectángulo::
 
-    ta, tal = parches.leer_animacion(RAIZ, 82)["tamano"]
+    ta, tal = parches.leer_animacion(proyecto.parches_auto(), 82)["tamano"]
 
 La clave
 --------
@@ -131,14 +131,15 @@ import tomllib
 if __name__ == "__main__":
     sys.path[0] = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
+from comun import ambiente                                  # noqa: E402
 from comun import proyecto                                  # noqa: E402
 
-# Dónde viven los versionados, relativo a la raíz del repo: las funciones
-# reciben la raíz —`proyecto.raiz()`, o un directorio temporal en las
-# pruebas— y esto es lo que se le suma. Sale de `proyecto` para que mover
-# `rom/parches/` no haya que repetirlo acá.
-_AUTO = os.path.relpath(proyecto.parches_auto(), proyecto.raiz())
-DIRECTORIO = os.path.join(_AUTO, "mapas")
+# Dónde viven los versionados, relativo a lo que el conversor decidió y se
+# versiona: las funciones reciben ese directorio —`proyecto.parches_auto()`,
+# o uno temporal en las pruebas— y esto es lo que se le suma. Hasta el
+# 2026-09-29 recibían la raíz del repo y sumaban `rom/parches/auto/`, que
+# es saber dónde vive el juego.
+DIRECTORIO = "mapas"
 
 # Dónde los deja cada cartucho al armarse, relativo al directorio del build.
 # Es la forma del build, no dónde está `rom/parches/` en el repo: por eso no sale
@@ -146,8 +147,8 @@ DIRECTORIO = os.path.join(_AUTO, "mapas")
 EN_BUILD = os.path.join("parches", "auto", "mapas")
 
 
-def ruta(raiz, map_id):
-    return os.path.join(raiz, DIRECTORIO, "%04d.toml" % map_id)
+def ruta(auto, map_id):
+    return os.path.join(auto, DIRECTORIO, "%04d.toml" % map_id)
 
 
 def _color(c):
@@ -236,12 +237,12 @@ def escribir(destino, mapas):
 # Igual que los mapas: versionadas acá, y cada cartucho deja las suyas al lado
 # de su ROM. La clave es **el número de animación de RM2k**, que es del juego:
 # el mismo 82 en cualquier cartucho que la muestre.
-DIRECTORIO_ANIM = os.path.join(_AUTO, "animaciones")
+DIRECTORIO_ANIM = "animaciones"
 EN_BUILD_ANIM = os.path.join("parches", "auto", "animaciones")
 
 
-def ruta_animacion(raiz, numero):
-    return os.path.join(raiz, DIRECTORIO_ANIM, "%04d.toml" % numero)
+def ruta_animacion(auto, numero):
+    return os.path.join(auto, DIRECTORIO_ANIM, "%04d.toml" % numero)
 
 
 def texto_animacion(datos):
@@ -305,7 +306,7 @@ def escribir_animaciones(destino, animaciones):
 # La clave es **el battler**: la imagen de RM2k y su tono, `escena.clave`. Es
 # del juego y no depende del cartucho ni de la tropa, porque la reducción mira
 # el dibujo ya achicado y nada más.
-DIRECTORIO_BAT = os.path.join(_AUTO, "battlers")
+DIRECTORIO_BAT = "battlers"
 EN_BUILD_BAT = os.path.join("parches", "auto", "battlers")
 
 
@@ -316,8 +317,8 @@ def _archivo(clave):
     return "%s.toml" % str(clave).replace(" ", "_")
 
 
-def ruta_battler(raiz, clave):
-    return os.path.join(raiz, DIRECTORIO_BAT, _archivo(clave))
+def ruta_battler(auto, clave):
+    return os.path.join(auto, DIRECTORIO_BAT, _archivo(clave))
 
 
 def texto_battler(info):
@@ -375,8 +376,8 @@ def escribir_battlers(destino, battlers):
     return len(battlers), bytes_
 
 
-def leer_battler(raiz, clave):
-    return _leer(ruta_battler(raiz, clave))
+def leer_battler(auto, clave):
+    return _leer(ruta_battler(auto, clave))
 
 
 def diferencias_battler(viejo, nuevo):
@@ -458,18 +459,18 @@ def _leer(ruta_):
         return tomllib.load(f)
 
 
-def leer(raiz, map_id):
+def leer(auto, map_id):
     """Lo decidido y versionado para un mapa, parseado.
 
     Es la puerta de entrada de la fase 2 y la usa la verificación, que es lo
     que la mantiene viva mientras la fase 2 no exista.
     """
-    return _leer(ruta(raiz, map_id))
+    return _leer(ruta(auto, map_id))
 
 
-def leer_animacion(raiz, numero):
+def leer_animacion(auto, numero):
     """Lo decidido y versionado para una animación de batalla, parseado."""
-    return _leer(ruta_animacion(raiz, numero))
+    return _leer(ruta_animacion(auto, numero))
 
 
 def _fusiones(doc, capa):
@@ -565,14 +566,14 @@ CLASES = (
 )
 
 
-def versionados(raiz, clase=None):
+def versionados(auto, clase=None):
     """Los que tienen parche versionado, o sea los del ROM jugable.
 
     Sin `clase`, los mapas: es lo que pedían los llamadores cuando ésta era la
     única clase que había.
     """
     clase = clase or CLASES[0]
-    carpeta = os.path.join(raiz, clase.directorio)
+    carpeta = os.path.join(auto, clase.directorio)
     if not os.path.isdir(carpeta):
         return []
     # La clave se lee de adentro del archivo y no del nombre: la de un battler
@@ -581,7 +582,7 @@ def versionados(raiz, clase=None):
                   for n in os.listdir(carpeta) if n.endswith(".toml"))
 
 
-def revisar(raiz, builds, jugable="release"):
+def revisar(auto, builds, jugable="release"):
     """Los parches de los builds contra los versionados: (quejas, propios).
 
     `builds` son directorios de cartuchos armados, y se miran **todos**. Lo que
@@ -604,17 +605,17 @@ def revisar(raiz, builds, jugable="release"):
     """
     quejas, propios = [], {}
     for clase in CLASES:
-        suyas, mios = _revisar_clase(clase, raiz, builds, jugable)
+        suyas, mios = _revisar_clase(clase, auto, builds, jugable)
         quejas += suyas
         if mios:
             propios[clase.clave] = mios
     return quejas, propios
 
 
-def _revisar_clase(clase, raiz, builds, jugable):
+def _revisar_clase(clase, auto, builds, jugable):
     quejas, propios = [], {}
     prueba = mapas_de_prueba()
-    tengo = set(versionados(raiz, clase))
+    tengo = set(versionados(auto, clase))
     vistos = set()
     # Una queja por situación **y por juego de diferencias**: cuatro cartuchos
     # que llevan el mismo mapa dicen todos lo mismo, y repetirlo cuatro veces
@@ -646,8 +647,8 @@ def _revisar_clase(clase, raiz, builds, jugable):
                     propios.setdefault(cual, []).append(cartucho)
                 continue
             vistos.add(cual)
-            versionado = os.path.join(raiz, clase.directorio, nombre)
-            cambios = clase.diferencias(clase.leer(raiz, cual), doc)
+            versionado = os.path.join(auto, clase.directorio, nombre)
+            cambios = clase.diferencias(clase.leer(auto, cual), doc)
             if cambios and (cual, tuple(cambios)) not in dichas:
                 dichas.add((cual, tuple(cambios)))
                 quejas.append(
@@ -655,7 +656,7 @@ def _revisar_clase(clase, raiz, builds, jugable):
                     "cambió de %s %s es esto:\n    %s\n"
                     "  Si el cambio es el que se buscaba, `just parches` y al "
                     "commit; si no, algo movió lo que se ve."
-                    % (os.path.relpath(versionado, raiz), cartucho,
+                    % (os.path.relpath(versionado), cartucho,
                        clase.articulo, cual, "\n    ".join(cambios)))
     for cual in sorted(tengo - vistos):
         quejas.append(
@@ -667,8 +668,11 @@ def _revisar_clase(clase, raiz, builds, jugable):
 
 
 def main(argv=None):
-    raiz = proyecto.raiz()
+    proyecto.desde_la_linea_de_comandos(argv)
+    auto = proyecto.parches_auto()
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    proyecto.argumento(parser)
+    ambiente.argumentos(parser, "test_cartridges")
     parser.add_argument(
         "builds", nargs="*",
         help="los directorios de los cartuchos armados. Sin --check tiene que "
@@ -678,6 +682,7 @@ def main(argv=None):
     parser.add_argument("--check", action="store_true",
                         help="no escribe: falla si lo versionado quedó viejo")
     args = parser.parse_args(argv)
+    ambiente.desde_argumentos(args, "test_cartridges")
     if not args.builds and args.check:
         from ensamblado import cartuchos
         args.builds = [cartuchos.directorio(n) for n in cartuchos.CARTUCHOS]
@@ -692,7 +697,7 @@ def main(argv=None):
         sys.exit("no encontré ningún cartucho armado con parches adentro: %s"
                  % ", ".join(args.builds))
     if args.check:
-        quejas, propios = revisar(raiz, builds)
+        quejas, propios = revisar(auto, builds)
         for queja in quejas:
             print("  " + queja, file=sys.stderr)
         if quejas:
@@ -701,7 +706,7 @@ def main(argv=None):
         for clase in CLASES:
             print("los %d parche(s) de %s del juego coinciden con lo que "
                   "decidieron %d cartucho(s)"
-                  % (len(versionados(raiz, clase)), clase.nombre, len(builds)))
+                  % (len(versionados(auto, clase)), clase.nombre, len(builds)))
             mios = propios.get(clase.clave)
             if mios:
                 # No es una queja: son situaciones que `abl` no tiene, así que
@@ -715,7 +720,7 @@ def main(argv=None):
         sys.exit("lo versionado es lo que decide **un** ROM, el jugable: "
                  "pasame `rom/build/release` y no %d cartuchos" % len(builds))
     for clase in CLASES:
-        _copiar(raiz, builds[0], clase)
+        _copiar(auto, builds[0], clase)
 
 
 def _tiene_parches(build):
@@ -723,9 +728,9 @@ def _tiene_parches(build):
                for c in CLASES)
 
 
-def _copiar(raiz, build, clase):
+def _copiar(auto, build, clase):
     """Lo que decidió el ROM jugable, a `rom/parches/`, y afuera lo que ya no está."""
-    destino = os.path.join(raiz, clase.directorio)
+    destino = os.path.join(auto, clase.directorio)
     os.makedirs(destino, exist_ok=True)
     carpeta = os.path.join(build, clase.en_build)
     vistos, bytes_ = set(), 0
@@ -748,8 +753,9 @@ def _copiar(raiz, build, clase):
         if nombre.endswith(".toml") and nombre not in vistos:
             os.remove(os.path.join(destino, nombre))
             print("  %s: el juego ya no lo lleva, lo saco"
-                  % os.path.join(clase.directorio, nombre))
-    print("%d parche(s) en %s, %d B" % (len(vistos), clase.directorio, bytes_))
+                  % os.path.relpath(os.path.join(destino, nombre)))
+    print("%d parche(s) en %s, %d B" % (len(vistos), os.path.relpath(destino),
+                                        bytes_))
 
 
 if __name__ == "__main__":

@@ -23,7 +23,8 @@ el mapa de arriba de `AGENTS.md`, y cada una con README explica lo suyo.
 
 ## El juego original
 
-**No está en el repo**: se lee de la carpeta que diga `ABL_GAME_DIR`, y de ahí
+**No está en el repo**: se lee de la carpeta que diga `ABL_GAME_DIR` —que
+`rom/justfile` le pasa a las herramientas como `--game-dir`—, y de ahí
 salen los mapas (`.lmu`), la base de datos (`RPG_RT.ldb`), el árbol de mapas
 (`RPG_RT.lmt`), las imágenes, los MIDI y los WAV. Lo que el juego no trae lo
 pone el RTP de Don Miguel, que tampoco es nuestro para redistribuir: ver

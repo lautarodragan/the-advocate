@@ -19,6 +19,31 @@
 locales := source_directory() / ".herramientas-locales"
 export PATH := if path_exists(locales / "bin") == "true" { locales / "bin" + ":" + env_var("PATH") } else { env_var("PATH") }
 
+# **Dónde está cada cosa en esta máquina**: el juego original, el RTP, el
+# SoundFont, los reemplazos de las pistas de MSU-1 y dónde se entrega. Las
+# herramientas no leen ninguna variable: lo reciben por flags —`--game-dir`,
+# `--rtp-dir`…—, y es acá donde las variables se traducen, con los valores
+# de esta máquina por omisión. Se exportan porque las pruebas las leen
+# también, igual que el conversor: ver `pruebas/arnes/lugares.py`.
+export ABL_GAME_DIR := env_var_or_default("ABL_GAME_DIR", "/extras/abl-rm")
+export ABL_RTP_DIR := env_var_or_default("ABL_RTP_DIR", "/extras/rtp")
+export ABL_SOUNDFONT := env_var_or_default("ABL_SOUNDFONT", "/extras/soundfonts/Microsoft GS Wavetable Synth.sf2")
+export SHARED := env_var_or_default("SHARED", "/shared")
+# Sin variable: se cambia acá.
+reemplazos_msu := "/extras/msu"
+
+# El caché del conversor y los cartuchos de prueba viven adentro de `build/`,
+# y las herramientas lo saben solas: estas dos sólo los mueven, así que sin
+# ellas no se pasa nada.
+export ABL_CACHE := env_var_or_default("ABL_CACHE", "")
+export CARTUCHOS := env_var_or_default("CARTUCHOS", "")
+de_prueba := if CARTUCHOS == "" { "" } else { "--test-cartridges " + quote(CARTUCHOS) }
+
+# Lo que necesita todo lo que convierte, y lo que suma el que arma los
+# cartuchos: dónde van los de prueba y los reemplazos de las pistas.
+al_conversor := "--game-dir " + quote(ABL_GAME_DIR) + " --rtp-dir " + quote(ABL_RTP_DIR) + " --soundfont " + quote(ABL_SOUNDFONT) + if ABL_CACHE == "" { "" } else { " --cache " + quote(ABL_CACHE) }
+al_armar := al_conversor + " " + de_prueba + " --reemplazos " + quote(reemplazos_msu)
+
 # **Regenera `data/`**: el juego entero como árbol de archivos, que es lo que
 # lee el conversor, con `lcf`. Es derivado —se puede volver a
 # sacar en cualquier momento— y va a git igual, porque es la única forma de
@@ -42,7 +67,7 @@ export PATH := if path_exists(locales / "bin") == "true" { locales / "bin" + ":"
 # Después de correrlo, lo que manda es el diff: si el juego no cambió, tiene
 # que dar vacío.
 datos DIR="data" EXACTO="build/ditto-exacto":
-  ditto unpack "${ABL_GAME_DIR:-/extras/abl-rm}" {{EXACTO}} {{DIR}}
+  ditto unpack "$ABL_GAME_DIR" {{EXACTO}} {{DIR}}
 
 # Lo mismo pero a otro lado, para mirarlo sin tocar el del repo.
 ditto-volcado DIR="/extras/volcado-ditto":
@@ -61,7 +86,7 @@ ditto-volcado DIR="/extras/volcado-ditto":
 datos-vuelta:
   #!/usr/bin/env sh
   set -eu
-  juego="${ABL_GAME_DIR:-/extras/abl-rm}"
+  juego="$ABL_GAME_DIR"
   aca=build/ditto-vuelta
   rm -rf "$aca"
   mkdir -p "$aca"
@@ -189,7 +214,7 @@ _xdist:
 # Qué va en cada uno y por qué está en el fuente de `rm2k-snes-cartridges`;
 # `--lista` lo imprime.
 cartuchos *args: _herramientas_del_checkout
-  rm2k-snes-cartridges {{args}}
+  rm2k-snes-cartridges {{al_armar}} {{args}}
 
 # **Cuánto espacio le queda a cada cartucho**: bancos de datos libres y los
 # huecos entre ellos, banco 0, banco 1, BSS, ZEROPAGE y el bloque de textos.
@@ -204,8 +229,8 @@ cartuchos *args: _herramientas_del_checkout
 # Imprime el espacio libre de cada cartucho.
 espacio *args: _herramientas_del_checkout
   #!/usr/bin/env sh
-  for a in {{args}}; do [ -f "$a" ] && exec rm2k-snes-space {{args}}; done
-  rm2k-snes-cartridges {{args}} >/dev/null && rm2k-snes-space {{args}}
+  for a in {{args}}; do [ -f "$a" ] && exec rm2k-snes-space {{de_prueba}} {{args}}; done
+  rm2k-snes-cartridges {{al_armar}} {{args}} >/dev/null && rm2k-snes-space {{de_prueba}} {{args}}
 
 # **Las decisiones artísticas del conversor, versionadas**: qué color se
 # fusionó con cuál en cada mapa porque la CGRAM no daba para los dos, y a qué
@@ -226,7 +251,7 @@ parches: _herramientas_del_checkout (build "release")
 # 64x49"—, no que el archivo difiere. Sin argumentos mira todos los cartuchos
 # de `rm2k-snes.toml`, porque lo versionado tiene que salir igual en todos.
 parches-check *builds: _herramientas_del_checkout
-  rm2k-snes-patches {{builds}} --check
+  rm2k-snes-patches {{de_prueba}} {{builds}} --check
 
 # **El techo de volumen de cada tema**, medido: arma una copia de `release`
 # con todos los temas a medio volumen, toca cada uno entero en snes9x, le da el
@@ -238,7 +263,7 @@ parches-check *builds: _herramientas_del_checkout
 # porqué, en `leer_techos`, que es donde el conversor la lee. `--medir` sólo
 # mide el `release` armado, sin escribir nada: recortes, pico y LUFS por tema.
 techos *args: _herramientas_del_checkout
-  rm2k-snes-volume-ceilings {{args}}
+  rm2k-snes-volume-ceilings {{al_conversor}} {{args}}
 
 # Arma un cartucho por nombre, si no está al día:
 #
@@ -272,7 +297,7 @@ techos *args: _herramientas_del_checkout
 #
 # Arma una ROM por nombre: release o test-special.
 build cual: _herramientas_del_checkout
-  rm2k-snes-cartridges {{cual}}
+  rm2k-snes-cartridges {{al_armar}} {{cual}}
 
 # **Le deja a taro el `release` en `/shared/builds/<fecha>-<commit>/`**: el
 # `abl.sfc`, su `.dbg`, un `LEEME.txt` con lo que se le pasa como qué mirar, y
@@ -292,7 +317,7 @@ build cual: _herramientas_del_checkout
 #
 # Entrega el release en /shared/builds/ para que taro lo juegue.
 entregar que_mirar *args: _herramientas_del_checkout (build "release")
-  abl-entregar {{quote(que_mirar)}} {{args}}
+  abl-entregar --compartido {{quote(SHARED)}} {{quote(que_mirar)}} {{args}}
 
 # Es para que taro vea y escuche un build sin correrlo. Las jugadas son partes
 # del nombre de las pruebas de `pruebas/abl/test_recorrido_golden.py`

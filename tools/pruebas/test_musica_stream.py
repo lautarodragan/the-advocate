@@ -6,12 +6,20 @@ para que pase lo que se quiere mirar, y lo que se mira es lo que el stream le
 escribe al DSP —el stream por nota empaquetado y decodificado, que tiene que
 dar `escrituras`: lo mismo que la ROM le va a mandar—, con `_salen`. Las de las envolventes leen el SoundFont de verdad, por `gunter` del
 PATH: lo que cobran es justamente que los números salgan de ahí.
+
+**Ese SoundFont lo pasa el que corre, en `SOUNDFONT`**, igual que Ditto
+recibe su corpus en `DITTO_CORPUS`: las herramientas no saben dónde está en
+ninguna máquina. Sin la variable, esas dos se saltean con un mensaje.
 """
 
 import math
+import os
 import struct
 
+import pytest
+
 from audio import midi, sdsp, snes_music                   # noqa: E402
+from comun import ambiente
 
 PIANO, BAJO_SINTETICO, BOMBO, SIN_MUESTRA = 0, 38, 36, 35
 
@@ -133,6 +141,17 @@ def _registros(salen, voz):
     return escrito
 
 
+@pytest.fixture
+def soundfont():
+    """El SoundFont de `SOUNDFONT`, fijado para `snes_music`; sin él, la
+    prueba se saltea."""
+    ruta = os.environ.get("SOUNDFONT")
+    if not ruta:
+        pytest.skip("hace falta un SoundFont de verdad: SOUNDFONT=<el .sf2>")
+    ambiente.fijar(soundfont=ruta)
+
+
+@pytest.mark.usefixtures("soundfont")
 def test_el_bajo_sintetico_se_suelta_en_lo_que_dice_el_soundfont():
     """El bajo sintético (38) del SoundFont se suelta en 30 ms. Con las
     familias de `sdsp` —las de antes del 2026-09-25— arrastraba 2,4 s de cola
@@ -146,6 +165,7 @@ def test_el_bajo_sintetico_se_suelta_en_lo_que_dice_el_soundfont():
     assert segundos < 0.1, "el release dura %.3f s" % segundos
 
 
+@pytest.mark.usefixtures("soundfont")
 def test_el_piano_decae_distinto_en_cada_tecla_y_hasta_callarse():
     """El piano (0) del SoundFont no tiene sostenido —1440 centibels: decae
     hasta el silencio— y su decaimiento se acorta con la tecla. Así que el

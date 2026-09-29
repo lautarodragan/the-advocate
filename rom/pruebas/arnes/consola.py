@@ -24,6 +24,7 @@ mano se desfasaría en silencio y leería la dirección de al lado.
 import os
 import re
 
+import lugares                                  # antes que nada
 from comun import perillas
 from comun import proyecto
 from emulador import retro
@@ -32,7 +33,7 @@ from ensamblado import bancos
 RAIZ = proyecto.raiz()
 # Lo que las pruebas dejan para mirar. Lo toman de acá los pedazos del arnés
 # que no importan de las herramientas.
-SNAPSHOTS = proyecto.snapshots()
+SNAPSHOTS = lugares.SNAPSHOTS
 
 # El mismo que usa el justfile por omisión. Se puede pisar con NUCLEO para
 # correr las pruebas contra otro core.

@@ -33,7 +33,7 @@ import os
 import pytest
 
 from batalla import grupo_de, sabe
-from comun import proyecto
+import lugares
 from ensamblado import cartuchos
 from recorrido import Recorrido
 from tanda import golden, partida
@@ -73,7 +73,7 @@ CON_TODAS = sorted({s for t in (DEL_DIRECTOR, DE_LA_CARRERA)
 COMPANEROS = [None, ARDEN, SALDRA, AG7]
 NOMBRES = ["solo", "arden", "saldra", "ag7"]
 
-FOTOS = os.path.join(proyecto.snapshots(), "playthrough")
+FOTOS = os.path.join(lugares.SNAPSHOTS, "playthrough")
 
 
 def entrar(mundo, fotos=None, companero=None):

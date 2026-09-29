@@ -52,8 +52,9 @@ def fork_de_mentira(tmp_path, monkeypatch):
     tiene."""
     mapas = tmp_path / "mapas"
     mapas.mkdir()
-    monkeypatch.setattr(fork, "MAPAS", str(mapas))
-    monkeypatch.setattr(fork, "CHIPSETS", str(tmp_path / "chipsets"))
+    monkeypatch.setattr(fork, "carpeta_mapas", lambda: str(mapas))
+    monkeypatch.setattr(fork, "carpeta_chipsets",
+                        lambda: str(tmp_path / "chipsets"))
     return mapas
 
 
@@ -109,7 +110,7 @@ def test_fork_de_un_mapa_que_no_existe_no_arma(fork_de_mentira):
 def nuevos_de_mentira(tmp_path, monkeypatch):
     nuevos = tmp_path / "nuevos"
     nuevos.mkdir()
-    monkeypatch.setattr(fork, "NUEVOS", str(nuevos))
+    monkeypatch.setattr(fork, "carpeta_nuevos", lambda: str(nuevos))
     return nuevos
 
 
@@ -420,8 +421,8 @@ def test_podar_se_planta_si_el_mapa_elige_tiles_en_caliente(tmp_path):
     datos["events"][0]["pages"][0].setdefault("event_commands", []).append(
         {"code": codigo, "indent": 0, "string": "", "parameters": [0]})
 
-    mapas_antes = fork.MAPAS
-    fork.MAPAS = str(tmp_path)
+    mapas_antes = fork.carpeta_mapas
+    fork.carpeta_mapas = lambda: str(tmp_path)
     try:
         with open(os.path.join(tmp_path, "Map%04d.json" % map_id), "w",
                   encoding="utf-8") as handle:
@@ -431,7 +432,7 @@ def test_podar_se_planta_si_el_mapa_elige_tiles_en_caliente(tmp_path):
         with pytest.raises(fork.ForkRoto) as caida:
             chipset_del_fork._lo_que_dibuja(map_id)
     finally:
-        fork.MAPAS = mapas_antes
+        fork.carpeta_mapas = mapas_antes
     assert nombre in str(caida.value)
 
 
@@ -480,14 +481,14 @@ def test_desde_imagen_trae_el_png_a_quince_bits_y_compone_sobre_su_base(tmp_path
     def buscar(carpeta, nombre):
         return str(ruta_chip if carpeta == "ChipSet" else ruta_dibujo)
 
-    anterior = chipset_del_fork.GENERADO
-    chipset_del_fork.GENERADO = str(tmp_path / "build")
+    anterior = chipset_del_fork.generado
+    chipset_del_fork.generado = lambda: str(tmp_path / "build")
     try:
         salida = Image.open(
             chipset_del_fork.imagen_del_chipset(datos, buscar))
         salida.load()
     finally:
-        chipset_del_fork.GENERADO = anterior
+        chipset_del_fork.generado = anterior
     paleta = salida.getpalette()
 
     def color(ranura, x, y):
@@ -529,7 +530,7 @@ def test_los_colores_declarados_transparentes_no_llegan_al_chipset():
         if not declarados:
             continue
         mirados += 1
-        ruta = os.path.join(chipset_del_fork.GENERADO, "ChipSet",
+        ruta = os.path.join(chipset_del_fork.generado(), "ChipSet",
                             datos["chipset"]["chipset_name"] + ".png")
         if not os.path.isfile(ruta):
             pytest.skip("el PNG del ChipSet %d no está armado" % numero)

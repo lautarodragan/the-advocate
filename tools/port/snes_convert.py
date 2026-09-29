@@ -96,7 +96,9 @@ from port.asignador import CELL, tile_colors
 from port.formato_snes import cgram_word, entry, pack_tile
 from rpgmaker.rm2k import TILE, collect_npcs, hero_start, passability_map
 from render.render_map import Renderer, build_passability, load_image
-from rpgmaker.recursos import GAME_DIR, RTP_DIR, find_resource
+from comun import ambiente
+from rpgmaker import recursos
+from rpgmaker.recursos import find_resource
 
 # El PPU direcciona 1024 tiles por capa: diez bits en cada celda del tilemap.
 MAX_TILES = 1024
@@ -1641,7 +1643,7 @@ def hay_lluvia(map_ids, extra=()):
     if any(llueve(cmd) for cmd in extra):
         return True
     for map_id in map_ids:
-        game_map = lcf.Map(os.path.join(args_game_dir[0],
+        game_map = lcf.Map(os.path.join(_juego(),
                                         "Map%04d.lmu" % map_id))
         for evento in game_map.events:
             for page in evento.pages:
@@ -7186,7 +7188,10 @@ def parser_de_flags():
                              "tabla. Obligatorio y sin valor por omisión: "
                              "es del juego, y lo declara su archivo de "
                              "proyecto")
-    parser.add_argument("--game-dir", default=GAME_DIR)
+    proyecto.argumento(parser)
+    # Sin valor por omisión, y sin `required` por lo mismo que `--map-id`:
+    # los cobra `ambiente` cuando se leen.
+    ambiente.argumentos(parser, "game_dir", "rtp_dir", "soundfont", "cache")
     parser.add_argument("-o", "--output",
                         default=os.path.join(proyecto.build(), "inc", "mapdata.inc"))
     parser.add_argument("--msu",
@@ -7280,11 +7285,15 @@ def parser_de_flags():
 
 
 def main():
+    proyecto.desde_la_linea_de_comandos()
     parser = parser_de_flags()
     argv, tramos = partir_en_casos(sys.argv[1:])
     args = parser.parse_args(argv)
     if args.map_id is None:
         parser.error("falta --map-id, el mapa de arranque")
+    ambiente.desde_argumentos(args, "game_dir", "rtp_dir", "soundfont",
+                              "cache")
+    args.game_dir = ambiente.juego()
     args.casos = casos_de_prueba(parser, args, tramos)
     orden = orden_de_mapas(args)
     if not 0 <= args.inicial < len(orden):
@@ -7852,7 +7861,7 @@ def main():
     # toda ROM que la encuentre: cualquier cartucho puede perder una pelea o
     # correr un `GameOver`. Ver tools/port/pantalla_completa.py.
     game_over_datos = None
-    ruta = find_resource([args.game_dir, RTP_DIR], "GameOver",
+    ruta = find_resource([args.game_dir, recursos.RTP_DIR], "GameOver",
                          renderer.database.gameover_name)
     if renderer.database.gameover_name and ruta:
         from PIL import Image
@@ -8677,7 +8686,7 @@ def _cambios_de_grupo(map_ids):
     compilación sólo lee los índices globales de `eventos`, que se llenan
     antes de la primera llamada y no cambian después.
     """
-    clave = (args_game_dir[0], tuple(map_ids))
+    clave = (_juego(), tuple(map_ids))
     if clave not in _cambios_por_mapas:
         _cambios_por_mapas[clave] = [_cambios_del_mapa(map_id, map_ids)
                                      for map_id in map_ids]
@@ -8690,7 +8699,7 @@ _cambios_por_mapas = {}
 def _cambios_del_mapa(map_id, map_ids):
     indices = {m: i for i, m in enumerate(map_ids)}
     cambios = []
-    game_map = lcf.Map(os.path.join(args_game_dir[0],
+    game_map = lcf.Map(os.path.join(_juego(),
                                     "Map%04d.lmu" % map_id))
     del_mapa = eventos.Eventos(game_map)
     for evento in game_map.events:
@@ -8715,7 +8724,7 @@ def _cambios_del_mapa(map_id, map_ids):
                     eventos.Mensajes(),
                     del_mapa.para(evento.id), eventos.Temas(),
                     eventos.Graficos(), eventos.Imagenes(
-                        args_game_dir[0])) is None:
+                        _juego())) is None:
                 continue
             # **De a tandas de comandos seguidos**, y el líder se mira al
             # final de cada una: los `ChangePartyMembers` pegados corren en el
@@ -8743,8 +8752,15 @@ def _cambios_del_mapa(map_id, map_ids):
 
 
 # El directorio del juego, para `lideres_posibles`. Es feo pero es un solo
-# lugar: la alternativa era pasarlo por tres funciones que no lo usan.
-args_game_dir = [GAME_DIR]
+# lugar: la alternativa era pasarlo por tres funciones que no lo usan. Lo
+# pone `main`, desde `--game-dir`.
+args_game_dir = [None]
+
+
+def _juego():
+    """El de `main` o, si no pasó por ahí —una prueba que llama a estas
+    funciones sueltas—, el del ambiente, que es el mismo `--game-dir`."""
+    return args_game_dir[0] or recursos.GAME_DIR
 
 
 def items_posibles(map_ids, actores=(), db=None, extra=()):
@@ -8770,7 +8786,7 @@ def items_posibles(map_ids, actores=(), db=None, extra=()):
                 items.update(p[4:])
 
     for map_id in map_ids:
-        game_map = lcf.Map(os.path.join(args_game_dir[0],
+        game_map = lcf.Map(os.path.join(_juego(),
                                         "Map%04d.lmu" % map_id))
         for evento in game_map.events:
             for page in evento.pages:
@@ -8815,7 +8831,7 @@ def miembros_posibles(map_ids, grupo, extra=()):
                 actores.append(p[2])
 
     for map_id in map_ids:
-        game_map = lcf.Map(os.path.join(args_game_dir[0],
+        game_map = lcf.Map(os.path.join(_juego(),
                                         "Map%04d.lmu" % map_id))
         for evento in game_map.events:
             for page in evento.pages:

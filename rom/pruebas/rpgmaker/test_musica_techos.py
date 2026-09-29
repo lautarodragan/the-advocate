@@ -34,7 +34,7 @@ CERCA = 1.5
 
 
 def _tabla():
-    with open(snes_music.TECHOS, "rb") as archivo:
+    with open(snes_music.ruta_de_techos(), "rb") as archivo:
         return tomllib.load(archivo)["temas"]
 
 
@@ -56,7 +56,7 @@ def test_la_tabla_de_techos_es_la_de_esta_mezcla():
     assert not viejos, (
         "la mezcla de %s cambió desde que se midió su techo, así que su pico "
         "ya no es el de la tabla: correr `just techos` y mirar el diff de %s"
-        % (", ".join(viejos), os.path.relpath(snes_music.TECHOS)))
+        % (", ".join(viejos), os.path.relpath(snes_music.ruta_de_techos())))
 
 
 @pytest.mark.parametrize("nombre", _cerca())

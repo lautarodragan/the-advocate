@@ -85,7 +85,7 @@ Cada carpeta es un paquete de Python, y se importa por su nombre, con `tools/`
 —y sólo `tools/`— en el `sys.path`:
 
     from rpgmaker import lcf
-    from rpgmaker.recursos import GAME_DIR
+    from rpgmaker.recursos import find_resource
 
 Un `import lcf` suelto falla, y es a propósito: si también anduviera, el mismo
 módulo se podría cargar dos veces con dos nombres, y lo que uno le cambia al
@@ -109,10 +109,10 @@ de Rust. El `justfile` los llama por su nombre y no sabe dónde están:
 El porqué de los nombres está en `tools/justfile`. Uno nuevo se agrega en
 `_instalar`, y el `.py` busca sus paquetes resolviendo el symlink con
 `realpath`, porque `__file__` es la ruta del PATH: sube hasta `tools/` y no
-más. **Dónde está todo lo demás** —la raíz, `rom/data/`, `rom/parches/`, el motor,
-`rom/build/`, los casos, y los valores por omisión de `ABL_GAME_DIR` y las
-otras variables— lo contesta `comun/proyecto.py`, y nadie más: lo cobra
-`pruebas/test_proyecto.py`. Las pruebas ponen `tools/`
+más. **Dónde está todo lo demás** lo contesta `comun/proyecto.py`, y nadie
+más: lo cobra `pruebas/test_proyecto.py`. Lo del repo —la raíz, el runtime—
+sale de dónde está ese archivo; lo del juego, de su archivo de proyecto:
+ver "Cómo encuentran el juego". Las pruebas ponen `tools/`
 en el camino ellas mismas, desde `pytest.ini`: las de A Blurred Line, desde
 `rom/pytest.ini`, y las de las herramientas —`pruebas/`, las que no necesitan
 el juego—, desde el de acá. Ver `pruebas/README.md`.
@@ -148,8 +148,37 @@ se lee con `comun/perillas.py`: `perillas.valor("maps", "below", tipo=int)`.
 * **Las claves van en inglés**, porque son la interfaz de las herramientas;
   los comentarios, en el idioma del juego.
 * **Lo que no va**: dónde está el juego en la máquina —eso es del ambiente,
-  ver `comun/proyecto.py`— y los límites del motor que se midieron sobre ABL,
-  que se quedan en el código con un comentario que lo dice.
+  y llega por flags: ver abajo— y los límites del motor que se midieron
+  sobre ABL, que se quedan en el código con un comentario que lo dice.
+
+## Cómo encuentran el juego
+
+**Las herramientas no saben dónde vive ningún juego: lo encuentran**, como
+cargo encuentra su `Cargo.toml`. Buscan `rm2k-snes.toml` desde el directorio
+actual hacia arriba, o lo reciben por `--proyecto <directorio>`; si no lo
+encuentran, cortan diciendo desde dónde buscaron. Se busca la primera vez que
+alguien pregunta, no al importar: importar el conversor no pide un juego.
+
+**Cómo está armado el juego por dentro lo declara su archivo**, en `[paths]`,
+relativo a él: el volcado (`data`), lo decidido (`patches`), lo armado
+(`build`) y los casos de la tanda (`cases`). Lo de adentro —`manual/` y
+`auto/` en lo decidido, un directorio por cartucho en lo armado— es la
+forma que le dan las herramientas. Lo que sólo leen las pruebas del juego
+—sus goldens, lo que dejan para mirar— no va: ellas lo saben por su
+ubicación.
+
+**Lo que es de la máquina llega por flags**: `--game-dir`, `--rtp-dir`,
+`--soundfont`, `--reemplazos` (las pistas de MSU-1 que salen de un audio y
+no del MIDI), `--cache`, `--test-cartridges` y, en `abl-entregar`,
+`--compartido`. Cada ejecutable suma los que usa y los fija en
+`comun/ambiente.py`, de donde los lee el resto; `recursos.GAME_DIR` y
+`snes_samples.SOUNDFONT` se resuelven ahí al leerlos. **Ninguno tiene valor
+por omisión**, salvo el caché y los cartuchos de prueba, que tienen su lugar
+en el `build` del proyecto: el valor de una máquina es del que llama. En
+A Blurred Line, `rom/justfile` traduce sus variables a flags.
+
+Lo cobra `pruebas/test_proyecto.py`: falla si un `.py` de acá lee una
+variable `ABL_*` o escribe `rom/` como ruta.
 
 ## `tools/justfile`
 

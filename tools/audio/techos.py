@@ -43,6 +43,7 @@ from multiprocessing import Pool
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 from audio import sdsp, snes_music                      # noqa: E402
+from comun import ambiente                              # noqa: E402
 from comun import perillas                              # noqa: E402
 from comun import proyecto                              # noqa: E402
 
@@ -72,9 +73,6 @@ ANTES_DEL_TITULO = 22
 
 # Cuántos cuadros más allá del pico toca la prueba.
 DESPUES_DEL_PICO = 60
-
-MEDIDA = os.path.join(proyecto.build(), "techos")
-
 
 def temas_de(directorio):
     """Los nombres de los temas del cartucho, en el orden de sus índices."""
@@ -209,8 +207,9 @@ def db(pico):
     return 20 * math.log10(max(pico, 1) / float(TOPE))
 
 
-def escribir(techos, medido, huellas, ruta=snes_music.TECHOS):
+def escribir(techos, medido, huellas, ruta=None):
     """La tabla, con su porqué arriba."""
+    ruta = ruta or snes_music.ruta_de_techos()
     lineas = [
         "# El techo de volumen de cada tema del `release`: el aire con que",
         "# `build_varios` le arma el stream, en vez de `sdsp.AIRE`.",
@@ -259,23 +258,29 @@ def imprimir(medido, techos=None):
 
 
 def main():
+    proyecto.desde_la_linea_de_comandos()
+    from ensamblado import cartuchos
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    proyecto.argumento(parser)
+    ambiente.argumentos(parser, *cartuchos.AL_CONVERSOR)
     parser.add_argument("--medir", action="store_true",
                         help="sólo medir el `release` armado: recortes, pico "
                              "y LUFS de cada tema")
     args = parser.parse_args()
-    from ensamblado import cartuchos
+    ambiente.desde_argumentos(args, *cartuchos.AL_CONVERSOR)
     release = cartuchos.directorio(cartuchos.RELEASE)
     if args.medir:
         imprimir(medir(release, lufs=True))
         return
 
+    # La copia a medio volumen, en su propio directorio del build.
+    medida = os.path.join(proyecto.build(), "techos")
     print("una copia de release con el aire en %s, en %s"
-          % (AIRE_DE_MEDIDA, MEDIDA))
-    cartuchos.convertir(cartuchos.RELEASE, MEDIDA,
-                        os.path.join(MEDIDA, NOMBRE_DE_LA_ROM + ".sfc"),
+          % (AIRE_DE_MEDIDA, medida))
+    cartuchos.convertir(cartuchos.RELEASE, medida,
+                        os.path.join(medida, NOMBRE_DE_LA_ROM + ".sfc"),
                         ["--aire-de-medida", str(AIRE_DE_MEDIDA)])
-    a_medias = medir(MEDIDA)
+    a_medias = medir(medida)
     recortan = [n for n, f in a_medias.items() if f["recortes"]]
     if recortan:
         sys.exit("con el aire en %s recortan %s: bajar AIRE_DE_MEDIDA"
@@ -308,7 +313,7 @@ def main():
     # mira sólo los aires de la tabla (ver `cartuchos.huella`).
     escribir(techos, medido, huellas)
     imprimir(medido, techos)
-    print("-> %s" % os.path.relpath(snes_music.TECHOS, proyecto.raiz()))
+    print("-> %s" % os.path.relpath(snes_music.ruta_de_techos()))
 
 
 if __name__ == "__main__":

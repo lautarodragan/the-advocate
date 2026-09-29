@@ -14,6 +14,32 @@
 # midieron sobre ABL, que son supuestos del motor y se quedan en su código.
 
 
+# --- Dónde está cada cosa ----------------------------------------------------
+[paths]
+# Relativas a este archivo. Las herramientas no saben cómo está armado el
+# juego por dentro: lo leen de acá. Hasta el 2026-09-29 las sabía
+# `comun/proyecto.py`, que es de las herramientas.
+#
+# Lo que no va: el runtime, que viaja con las herramientas; y lo que es sólo
+# de las pruebas del juego —las goldens, lo que dejan para mirar—, que no lo
+# lee ninguna herramienta y las pruebas lo saben por su propia ubicación.
+
+# El juego volcado a JSON, que es lo que lee el conversor: `just datos`.
+data = "data"
+
+# Lo que se decidió sobre el juego: `manual/`, lo rediseñado a mano, y
+# `auto/`, lo que decidió el conversor y se versiona.
+patches = "parches"
+
+# Todo lo que se arma, y nada versionado: un directorio por cartucho, el
+# caché, lo que miden `techos` y los ChipSets del fork.
+build = "build"
+
+# Los casos de la tanda, un JSON por caso. Es de las pruebas, pero lo lee
+# `rm2k-snes-cartridges`, que los mete en las páginas de prueba de cada
+# cartucho.
+cases = "pruebas/casos"
+
 # --- La ROM ------------------------------------------------------------------
 [rom]
 # El nombre de los archivos: `abl.sfc`, y al lado `abl.msu` y las pistas

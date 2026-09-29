@@ -21,7 +21,7 @@ caché contesta ahí no es "tomá esto" sino "lo que hay es lo que yo haría".
 
 Vive en `rom/build/cache/`, que git ignora y que existe de los dos lados —el
 host y el contenedor—, porque las recetas se corren desde los dos. Se puede
-mover con `ABL_CACHE` y apagar con `SIN_CACHE=1`, que es lo que se usa para
+mover con `--cache` y apagar con `SIN_CACHE=1`, que es lo que se usa para
 comprobar que con caché y sin caché sale **el mismo `.sfc` byte por byte**: la
 única verificación honesta de un caché es ésa.
 
@@ -34,10 +34,16 @@ import os
 import pickle
 import tempfile
 
+from comun import ambiente
 from comun import proyecto
 
-DONDE = proyecto.cache()
 APAGADO = os.environ.get("SIN_CACHE") == "1"
+
+
+def donde():
+    """El directorio del caché. Se pide al usarlo y no al importar: sale del
+    proyecto, que se encuentra al usarlo, o de `--cache`."""
+    return ambiente.cache()
 
 
 def version_de(*archivos):
@@ -66,7 +72,7 @@ def leer(categoria, clave):
     """Lo guardado bajo esa clave, o None."""
     if APAGADO:
         return None
-    ruta = os.path.join(DONDE, categoria, clave)
+    ruta = os.path.join(donde(), categoria, clave)
     try:
         with open(ruta, "rb") as f:
             return pickle.load(f)
@@ -79,7 +85,7 @@ def guardar(categoria, clave, valor):
     corrida cortada a la mitad no deja un archivo a medias que otra lea."""
     if APAGADO:
         return
-    carpeta = os.path.join(DONDE, categoria)
+    carpeta = os.path.join(donde(), categoria)
     try:
         os.makedirs(carpeta, exist_ok=True)
         fd, temporal = tempfile.mkstemp(dir=carpeta, prefix=".tmp-")

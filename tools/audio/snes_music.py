@@ -24,7 +24,8 @@ from audio import spc700
 from comun import perillas
 from comun import proyecto
 from comun.paralelo import en_paralelo
-from rpgmaker.recursos import GAME_DIR, find_resource
+from rpgmaker import recursos
+from rpgmaker.recursos import find_resource
 
 TICKS_PER_SECOND = musica.TICKS_PER_SECOND
 
@@ -112,9 +113,10 @@ def _nombres_de_musica(directorio):
     return nombres
 
 
-def numeros_de_pista(game_dir=GAME_DIR):
+def numeros_de_pista(game_dir=None):
     """{nombre del tema en minúsculas: número de pista}, para todo `Music/` y
     los del RTP que nombra el `System`."""
+    game_dir = game_dir or recursos.GAME_DIR
     if game_dir not in _numeros_de_pista:
         from rpgmaker.recursos import RTP_DIR
         nombres = _nombres_de_musica(game_dir)
@@ -131,17 +133,19 @@ def numeros_de_pista(game_dir=GAME_DIR):
     return _numeros_de_pista[game_dir]
 
 
-def ruta_del_tema(nombre, game_dir=GAME_DIR, extensiones=MUSICA_DE_PISTA):
+def ruta_del_tema(nombre, game_dir=None, extensiones=MUSICA_DE_PISTA):
     """El archivo del tema: el del juego y, si no está, el del RTP, que es
     como lo busca RM2k. `None` si no está en ninguno de los dos."""
+    game_dir = game_dir or recursos.GAME_DIR
     from rpgmaker.recursos import RTP_DIR
     return (find_resource([game_dir, RTP_DIR], "Music", nombre, extensiones)
             if nombre else None)
 
 
-def pista_msu(nombre, game_dir=GAME_DIR):
+def pista_msu(nombre, game_dir=None):
     """El número de pista de MSU-1 del tema, o None si no tiene de dónde
     salir: ver `numeros_de_pista`."""
+    game_dir = game_dir or recursos.GAME_DIR
     return numeros_de_pista(game_dir).get(nombre.lower()) if nombre else None
 
 
@@ -339,9 +343,10 @@ class Efecto:
         self.segundos = segundos
 
 
-def leer_wav(nombre, game_dir=GAME_DIR):
+def leer_wav(nombre, game_dir=None):
     """Las muestras de un WAV mono como enteros de 16 bits con signo, y su
     tasa. None si no está o no es un WAV que se entienda."""
+    game_dir = game_dir or recursos.GAME_DIR
     import wave
     from rpgmaker.recursos import RTP_DIR
     ruta = find_resource([game_dir, RTP_DIR], "Sound", nombre,
@@ -367,9 +372,10 @@ def leer_wav(nombre, game_dir=GAME_DIR):
     return crudo, tasa
 
 
-def build_efecto(nombre, game_dir=GAME_DIR, tasa=SE_TASA, enteros=None):
+def build_efecto(nombre, game_dir=None, tasa=SE_TASA, enteros=None):
     """`enteros` es `se_enteros()` si no viene; con {} sale el de siempre,
     que es lo que la música le presupuesta: ver `se_enteros`."""
+    game_dir = game_dir or recursos.GAME_DIR
     enteros = se_enteros() if enteros is None else enteros
     leido = leer_wav(nombre.split("@")[0], game_dir)
     if not leido or not leido[0]:
@@ -393,10 +399,11 @@ def build_efecto(nombre, game_dir=GAME_DIR, tasa=SE_TASA, enteros=None):
                   segundos)
 
 
-def build_efectos(pedidos, game_dir=GAME_DIR, budget=SE_ARAM):
+def build_efectos(pedidos, game_dir=None, budget=SE_ARAM):
     """Los efectos que entran en `budget`, por prioridad: `pedidos` es una
     lista de nombres ya ordenada de más a menos pedido. Devuelve {nombre:
     Efecto} con los que entraron."""
+    game_dir = game_dir or recursos.GAME_DIR
     hechos, usado = {}, 0
     # Cada efecto se arma solo —leer el WAV, remuestrearlo, codificarlo— y
     # eso es puro: todos a la vez, y después el reparto en el orden pedido.
@@ -1834,12 +1841,13 @@ def verificar_formato(nombre, stream, sonidos, referencia):
            referencia[n] if n < len(referencia) else "ninguna"))
 
 
-def tema_del_mapa(map_id, game_dir=GAME_DIR):
+def tema_del_mapa(map_id, game_dir=None):
     """El nombre del tema que le toca a un mapa por el árbol, o "" si no tiene."""
+    game_dir = game_dir or recursos.GAME_DIR
     return temas_de_los_mapas([map_id], game_dir)[0]
 
 
-def temas_de_los_mapas(map_ids, game_dir=GAME_DIR):
+def temas_de_los_mapas(map_ids, game_dir=None):
     """`tema_del_mapa` de cada uno, leyendo el árbol una sola vez.
 
     "" quiere decir que entrar al mapa **no cambia** lo que suena: o el mapa
@@ -1847,6 +1855,7 @@ def temas_de_los_mapas(map_ids, game_dir=GAME_DIR):
     evento". Es el `return` temprano de `Game_Map::PlayBgm` en easyrpg. Un
     "(OFF)" sí es un tema: calla, igual que un `PlayBGM` de "(OFF)".
     """
+    game_dir = game_dir or recursos.GAME_DIR
     tree = lcf.TreeMap(os.path.join(game_dir, "RPG_RT.lmt"))
     nombres = []
     for map_id in map_ids:
@@ -1855,7 +1864,7 @@ def temas_de_los_mapas(map_ids, game_dir=GAME_DIR):
     return nombres
 
 
-def leer_tema(name, game_dir=GAME_DIR):
+def leer_tema(name, game_dir=None):
     """Lo que hay que saber de un tema **antes** de tener el banco.
 
     Devuelve None si el nombre no está o no es un MIDI, que es como un mapa sin
@@ -1863,6 +1872,7 @@ def leer_tema(name, game_dir=GAME_DIR):
     índice— pero su stream es un `OP_END` solo y la ROM sale muda cuando lo
     prenden.
     """
+    game_dir = game_dir or recursos.GAME_DIR
     path = ruta_del_tema(name, game_dir)
     if not path or not path.lower().endswith(".mid"):
         return None
@@ -1900,12 +1910,16 @@ def leer_tema(name, game_dir=GAME_DIR):
 # decisiones de `rom/parches/auto/`. Un tema que no está en la tabla va con
 # `sdsp.AIRE`. Cada cambio de la mezcla —las muestras, las envolventes, el
 # reparto— la deja vieja, y eso lo cobra `test_musica_techos.py`.
-TECHOS = os.path.join(proyecto.parches_auto(), "musica", "techos.toml")
+def ruta_de_techos():
+    """Dónde está la tabla: una función y no una constante, porque sale del
+    proyecto, que se encuentra al usarlo y no al importar."""
+    return os.path.join(proyecto.parches_auto(), "musica", "techos.toml")
 
 
-def leer_techos(ruta=TECHOS):
+def leer_techos(ruta=None):
     """{tema: aire} de la tabla versionada; vacío si no existe."""
     import tomllib
+    ruta = ruta or ruta_de_techos()
     try:
         with open(ruta, "rb") as archivo:
             tabla = tomllib.load(archivo)
@@ -1992,7 +2006,7 @@ def _enteros_entran(banco, paquetes, herencia, efectos, presupuestado,
                   % (nombres[heredado], nombre))
 
 
-def build_varios(nombres, game_dir=GAME_DIR, efectos=(), paquetes=None,
+def build_varios(nombres, game_dir=None, efectos=(), paquetes=None,
                  herencia=(), techos=None, aire_de_medida=None):
     """Todos los temas de la ROM, compartiendo un solo banco de muestras.
 
@@ -2025,6 +2039,7 @@ def build_varios(nombres, game_dir=GAME_DIR, efectos=(), paquetes=None,
     versionado: ver `leer_techos`—, y `aire_de_medida` lo pisa para todos: es
     con lo que `tools/audio/techos.py` arma la ROM en que mide los picos.
     """
+    game_dir = game_dir or recursos.GAME_DIR
     driver = spc700.assemble(DRIVER, DRIVER_ADDR)
     if techos is None:
         techos = leer_techos()
