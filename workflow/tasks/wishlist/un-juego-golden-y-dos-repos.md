@@ -65,3 +65,8 @@ una tabla especial de la ROM.
 * **Dónde queda `tools/`**, que es de las dos clases: el conversor es del motor,
   pero `port/` todavía sabe cosas de ABL.
 * **Qué pasa con `golden/` y `casos/`**, que hoy sirven a las dos capas.
+
+El 2026-09-28 se midió qué del repo es de ABL y qué no, con un plan por
+partes para llegar a dos repos que no pide esperar a este juego: ver
+`docs/research/el-mapa-de-las-herramientas-de-python.md`. Sus preguntas de
+la §5 tocan las tres decisiones de acá.
