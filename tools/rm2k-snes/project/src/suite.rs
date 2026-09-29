@@ -9,11 +9,13 @@
 
 use std::path::{Path, PathBuf};
 
-/// The directory that holds the tools: this crate's parent.
+/// The directory that holds the tools: two above this crate, which lives in
+/// its layer's directory, `rm2k-snes/`.
 pub fn tools() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .expect("a crate lives inside a directory")
+        .ancestors()
+        .nth(2)
+        .expect("a crate lives inside its layer's directory, inside the tools")
         .to_path_buf()
 }
 
@@ -32,4 +34,18 @@ pub fn root() -> PathBuf {
 /// generated data.
 pub fn runtime() -> PathBuf {
     tools().join("runtime")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // `tools()` counts directories up from this crate, so moving the crate
+    // one level deeper or shallower breaks it without a compile error: this
+    // is what notices.
+    #[test]
+    fn the_tools_are_where_the_runtime_is() {
+        assert!(runtime().join("main.s").is_file(), "{}", runtime().display());
+        assert!(tools().join("Cargo.toml").is_file(), "{}", tools().display());
+    }
 }

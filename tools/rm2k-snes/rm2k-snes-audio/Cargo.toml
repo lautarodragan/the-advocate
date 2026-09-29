@@ -22,7 +22,7 @@ path = "src/bin/volume_ceilings.rs"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
-gunter = { path = "../gunter" }
+gunter = { path = "../../snes/gunter" }
 libc = "0.2"
 rm2k-project = { path = "../project" }
 serde_json = { version = "1", features = ["preserve_order"] }

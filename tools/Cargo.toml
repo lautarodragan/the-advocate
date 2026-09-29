@@ -8,16 +8,16 @@
 # cannot nest another one, and Ditto had its own for it.
 [workspace]
 members = [
-    "cartridge",
-    "ditto",
-    "ditto/xtask",
-    "gunter",
-    "lz2",
-    "project",
-    "protocol",
-    "rm2k-render",
-    "rm2k-snes-audio",
-    "voodoo",
+    "snes/gunter",
+    "snes/lz2",
+    "snes/protocol",
+    "snes/voodoo",
+    "rm2k/ditto",
+    "rm2k/ditto/xtask",
+    "rm2k/rm2k-render",
+    "rm2k-snes/cartridge",
+    "rm2k-snes/project",
+    "rm2k-snes/rm2k-snes-audio",
 ]
 # A virtual manifest has no edition to take the resolver from, and would fall
 # back to the old one. "2" is what every member, on edition 2021, used alone.
