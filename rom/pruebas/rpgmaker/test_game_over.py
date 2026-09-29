@@ -219,7 +219,7 @@ def test_el_game_over_vuelve_al_juego(partida):
 # lo emita. Así que la derrota es siempre Game Over, como en RM2k.
 
 # Los encuentros salen cada ocho pasos, en vez de los 80 que dice el árbol:
-# con los de verdad la prueba caminaría minutos. Es el `--encuentros-de-prueba`
+# con los de verdad la prueba caminaría minutos. Es el `--test-encounters`
 # de `test-special`, el mismo que usa el caso `encuentro` de la tanda.
 #
 # El grupo lo arma la página de prueba `grupo-11-12-13`: el de la intro, que

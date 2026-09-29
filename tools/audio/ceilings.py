@@ -290,7 +290,7 @@ def main():
           % (MEASURING_HEADROOM, measure_dir))
     cartridges.convert(cartridges.RELEASE, measure_dir,
                        os.path.join(measure_dir, ROM_NAME + ".sfc"),
-                       ["--aire-de-medida", str(MEASURING_HEADROOM)])
+                       ["--measure-headroom", str(MEASURING_HEADROOM)])
     at_half = measure(measure_dir)
     clipping = [n for n, f in at_half.items() if f["recortes"]]
     if clipping:

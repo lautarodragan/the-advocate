@@ -262,7 +262,7 @@ def test_sprite_actor(cuadro):
     líder **después de la espera**, así que el tick de antes lo mira con el
     gráfico del LDB y el de después con el nuevo.
 
-    `--grafico-de-prueba` va junto y no es redundante: el comando de la página
+    `--test-graphic` va junto y no es redundante: el comando de la página
     reserva la ranura de la tabla de gráficos en **todos** los mapas —es lo que
     hace que el índice signifique lo mismo después de un salto— y el flag es el
     que le mete las poses al banco de sprites del mapa.

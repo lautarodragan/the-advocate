@@ -26,12 +26,12 @@ Usage:
     rm2k-snes-convert --map-id 7 -o rom/build/inc/mapdata.inc
 
 With a test page, which is the list of RM2k commands from a file in
-`rom/pruebas/casos/`; several in one cartridge, each one after a `--caso`, and
+`rom/pruebas/casos/`; several in one cartridge, each one after a `--case`, and
 the cartridge flags before the first. The harness picks which one runs with
 `Partida(caso=k)`:
     rm2k-snes-convert -o … --map-id 6 \
-        --comandos-de-prueba rom/pruebas/casos/pan.json \
-        --caso --comandos-de-prueba rom/pruebas/casos/pan-vuelve.json
+        --test-commands rom/pruebas/casos/pan.json \
+        --case --test-commands rom/pruebas/casos/pan-vuelve.json
 """
 
 import argparse
@@ -4636,7 +4636,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
          hp_de_enemigos=False, game_over=None):
     """The .inc that is assembled together with main.s.
 
-    `hp_de_enemigos` is `--hp-de-enemigos`: whether the battle draws the
+    `hp_de_enemigos` is `--enemy-hp`: whether the battle draws the
     enemies' HP, which RM2k doesn't show.
 
     `comprimidos` is what `comprimir_los_bloques` returns; if missing it is
@@ -6995,7 +6995,7 @@ def orden_de_mapas(args):
     the RM2k id. Two lists built differently would take the same bytecode to
     different maps.
     """
-    return [args.map_id] + [m for m in (args.mapas or []) if m != args.map_id]
+    return [args.map_id] + [m for m in (args.maps or []) if m != args.map_id]
 
 
 # How many still events with continuous animation a map animates. See the
@@ -7077,7 +7077,7 @@ def eventos_movibles(game_map, indice_de_mapa, asociaciones=()):
 
 
 def graficos_de_prueba(argumento):
-    """The (CharSet, index) pairs of `--grafico-de-prueba`, or () if none."""
+    """The (CharSet, index) pairs of `--test-graphic`, or () if none."""
     return tuple((charset, int(indice)) for charset, indice in argumento or ())
 
 
@@ -7291,7 +7291,7 @@ def parser_de_flags():
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     # Mandatory, but without `required`: `casos_de_prueba` reads the flags of
-    # each `--caso` again with this same parser, and there it doesn't go.
+    # each `--case` again with this same parser, and there it doesn't go.
     # `main` enforces it.
     parser.add_argument("--map-id", type=int, default=None,
                         help="the boot map, which goes first in the "
@@ -7310,37 +7310,37 @@ def parser_de_flags():
                              "MSU-1 serves to the ROM: next to the .sfc and\n"
                              "with its name, so the emulator finds it.\n"
                              "Without this, datos.msu next to --output")
-    parser.add_argument("--relleno-de-textos", type=int, default=0,
+    parser.add_argument("--text-padding", type=int, default=0,
                         help="dead texts after the item ones, so that\n"
                              "the battle's indices go past 255 without\n"
                              "building a twenty-nine-map cartridge. It\n"
                              "doesn't change a pixel, and that is why they\n"
                              "don't go first: item k's name is text 3k")
-    parser.add_argument("--sin-titulo", action="store_true",
+    parser.add_argument("--no-title", action="store_true",
                         help="without the game's title screen and its "
                              "start and load menu: the ROM boots straight "
                              "into the map. It is what the regression "
                              "suite's cartridges ask for: the title screen "
                              "would add frames to the boot, and the cases "
                              "compare frames counted from reset.")
-    parser.add_argument("--aire-de-medida", type=float, metavar="HEADROOM",
+    parser.add_argument("--measure-headroom", type=float, metavar="HEADROOM",
                         help="the same headroom for every song, instead of "
                              "the volume ceiling table: it is what "
                              "`tools/audio/ceilings.py` builds the ROM where it "
                              "measures each song's peak with. See "
                              "`read_ceilings` in tools/audio/snes_music.py")
-    parser.add_argument("--hp-de-enemigos", action="store_true",
+    parser.add_argument("--enemy-hp", action="store_true",
                         help="the battle shows the enemies' HP, which RM2k "
                              "never shows: for debugging. It is asked for by "
                              "`[debug] enemy_hp` of the project file")
-    parser.add_argument("--sin-timer", action="store_true",
+    parser.add_argument("--no-timer", action="store_true",
                         help="the timer digits —eleven glyphs of the System "
                              "image at the end of the sprite bank, which "
                              "share a palette with a character— only in the "
                              "maps where a case that uses them runs, and not "
                              "in all. It is what the suite's cartridges ask "
                              "for: see `args.timer_en`")
-    parser.add_argument("--grafico-de-prueba", nargs=2, action="append",
+    parser.add_argument("--test-graphic", nargs=2, action="append",
                         default=None, metavar=("CHARSET", "INDEX"),
                         help="puts this graphic in the sprite bank of the\n"
                              "maps where some case runs, so that the test\n"
@@ -7349,25 +7349,25 @@ def parser_de_flags():
                              "It can be repeated. No page that compiles\n"
                              "today changes graphic, so without this\n"
                              "nothing runs that path")
-    parser.add_argument("--encuentros-de-prueba", type=int, default=None,
+    parser.add_argument("--test-encounters", type=int, default=None,
                         metavar="STEPS",
                         help="every how many steps there is a random "
                              "encounter, for every map of the cartridge. "
                              "Without this the game tree's value applies, "
                              "which goes from 25 to 85 steps; 0 turns them off")
-    parser.add_argument("--heroe-encima", action="store_true",
+    parser.add_argument("--hero-above", action="store_true",
                         help="the hero at object priority 2, above the "
                              "layer that should cover it. It is the only "
                              "way to exercise it: the game's only above "
                              "event never gets to step on the upper layer")
-    parser.add_argument("--grupo", nargs="+", type=int, default=None,
+    parser.add_argument("--party", nargs="+", type=int, default=None,
                         metavar="ACTOR",
                         help="the party it starts with, by actor ids. The "
                              "hero's graphic is the first one's, which is how "
                              "RM2k decides it. By default, the database's: "
                              "this game starts with actor 10, DummyHero, whose "
                              "sprite is an empty cell on purpose")
-    parser.add_argument("--comandos-de-prueba", default=None,
+    parser.add_argument("--test-commands", default=None,
                         metavar="FILE",
                         help="this case's test page, as the command list of "
                              "an RM2k page in Ditto's JSON —see "
@@ -7382,10 +7382,10 @@ def parser_de_flags():
                              "decides it")
     parser.add_argument("--charset-index", type=int, default=None,
                         help="which of the CharSet's 8 characters")
-    parser.add_argument("--mapas", nargs="+", type=int, metavar="ID",
+    parser.add_argument("--maps", nargs="+", type=int, metavar="ID",
                         help="other maps to put in the same ROM. The one "
                              "from --map-id goes first in the table")
-    parser.add_argument("--inicial", type=int, default=0, metavar="N",
+    parser.add_argument("--start-index", type=int, default=0, metavar="N",
                         help="which table index the ROM boots at. It serves "
                              "to test a map other than the first, which is "
                              "the only case where the record's offset isn't "
@@ -7405,20 +7405,20 @@ def main():
     args.game_dir = environment.game()
     args.casos = casos_de_prueba(parser, args, tramos)
     orden = orden_de_mapas(args)
-    if not 0 <= args.inicial < len(orden):
-        sys.exit("--inicial %d but there are %d maps" % (args.inicial, len(orden)))
+    if not 0 <= args.start_index < len(orden):
+        sys.exit("--start-index %d but there are %d maps" % (args.start_index, len(orden)))
     for caso in args.casos:
-        caso.mapa = mapa_del_caso(caso, orden, args.inicial)
+        caso.mapa = mapa_del_caso(caso, orden, args.start_index)
     de_archivo = comandos_de_casos(args)
     # Which maps carry the timer digits, which cost a sprite palette.
     # Normally, all: it is what the game asks for, where the countdown starts
-    # in one map and is seen in the following ones. With `--sin-timer`, the
+    # in one map and is seen in the following ones. With `--no-timer`, the
     # maps where a case that touches it runs: until step 9e one was enough for
     # every map of the cartridge to carry them, and in the single cartridge of
     # 9f that took the palette away from every map —measured, fifteen goldens
     # moved—. A map without digits doesn't draw them: `TIMER_BASE` at zero,
     # see `timer_oam`.
-    args.timer_en = set(orden) if not args.sin_timer else {
+    args.timer_en = set(orden) if not args.no_timer else {
         caso.mapa for caso in args.casos
         if any(cmd.code == events.TIMER_OPERATION for cmd in caso.comandos)}
 
@@ -7429,7 +7429,7 @@ def main():
     # —'DummyHero', which is Chubby2[2]—. Until now there was a hand-set
     # default that gave Future1[0], that is another character's sprite.
     # --charset stays to force it by hand when needed.
-    grupo = args.grupo if args.grupo else renderer.database.party
+    grupo = args.party if args.party else renderer.database.party
     if args.charset is None:
         args.charset, indice = renderer.database.leader(grupo)
         if args.charset_index is None:
@@ -7457,7 +7457,7 @@ def main():
     if len(args.casos) > 1:
         # The one that picks the case: see `events.CASE_VARIABLE`. With a
         # single one it isn't needed, and that way that cartridge comes out
-        # the same as before `--caso`.
+        # the same as before `--case`.
         extra.add(events.CASE_VARIABLE)
     events.index_variables(args.game_dir, extra)
     # And the battle animations, which `ShowBattleAnimation` compiles with its
@@ -7509,7 +7509,7 @@ def main():
     # maps. See `events.sprite_associations`.
     #
     # The test pages' ones come in through the same door: if they went by
-    # `--grafico-de-prueba` they would have an index only in the maps where a
+    # `--test-graphic` they would have an index only in the maps where a
     # case runs, and what the command does —crossing the teleport— couldn't
     # be tested.
     args.asociaciones = events.sprite_associations(
@@ -7609,8 +7609,8 @@ def main():
         if con_paralela:
             print("  map %d: %d event(s) with a parallel page"
                   % (mapa["id"], len(con_paralela)))
-        if args.grafico_de_prueba and mapa["id"] in mapas_de_prueba(args):
-            for charset, index in graficos_de_prueba(args.grafico_de_prueba):
+        if args.test_graphic and mapa["id"] in mapas_de_prueba(args):
+            for charset, index in graficos_de_prueba(args.test_graphic):
                 graficos.index(charset, index)
         # **Only the map that took its tiles can show the picture.** The sprite
         # bank belongs to each map, so from another one the six objects would
@@ -7708,7 +7708,7 @@ def main():
     # put in the boot map and each map's block is built.
     for mapa in mapas:
         paginas = mapa["paginas"]
-        if args.casos and mapa is mapas[args.inicial]:
+        if args.casos and mapa is mapas[args.start_index]:
             # The test pages, only in the map the ROM boots in. They don't come
             # from the game but from `rom/pruebas/casos/`: they exist because
             # there are interpreter paths no page of the game that compiles
@@ -7853,8 +7853,8 @@ def main():
             print("  map %d: %d automatic event page(s), %d runnable"
                   % (mapa["id"], len(paginas), corribles))
 
-    if not 0 <= args.inicial < len(mapas):
-        sys.exit("--inicial %d but there are %d maps" % (args.inicial, len(mapas)))
+    if not 0 <= args.start_index < len(mapas):
+        sys.exit("--start-index %d but there are %d maps" % (args.start_index, len(mapas)))
     from port import window as ventana_mod
     skin = ventana_mod.skin(args.game_dir, renderer.database.system_name)
     font_id = renderer.database.font_id
@@ -7920,7 +7920,7 @@ def main():
                      "caras": ranura_caras,
                      "menu": ranura_menu, "items": items_rom,
                      "db": renderer.database, "actores": miembros,
-                     "relleno_textos": args.relleno_de_textos,
+                     "relleno_textos": args.text_padding,
                      "items_db": renderer.database.items,
                      "items_tiles": items_tiles,
                      "items_paletas": items_paletas,
@@ -7940,7 +7940,7 @@ def main():
              ", ".join("%d %s" % (a, renderer.database.actors[a].name)
                        for a in sorted(ranura_caras)) or "none"))
     titulo_datos = None
-    if not args.sin_titulo:
+    if not args.no_title:
         from PIL import Image
         nombre = renderer.database.title_name
         picture = Image.open(os.path.join(args.game_dir, "Title",
@@ -8001,7 +8001,7 @@ def main():
     # suite exercised that `escena_tropa_fondo` and `tropa_id` are really
     # indexed. That is why `pagina_de_caso` compiles without `Troops`.
     encuentros = encuentros_de_la_rom(mapas, renderer.tree,
-                                      args.encuentros_de_prueba, tropas)
+                                      args.test_encounters, tropas)
     cuantas = sum(z["tropa_n"] for z in encuentros["zonas"])
     if encuentros["registros"]:
         print("  random encounters: %d map(s), %d zone(s), %d troop(s)"
@@ -8072,11 +8072,11 @@ def main():
     ranuras_datos["items"] = sorted(
         set(items_rom) | items_del_botin(renderer.database, tropas.ids))
     comprimidos = comprimir_los_bloques(mapas)
-    informe = emit(args.output, mapas, args.inicial, args.heroe_encima, grupo,
+    informe = emit(args.output, mapas, args.start_index, args.hero_above, grupo,
                    ventana_datos, titulo_datos, ranuras_datos,
                    args.imagenes.info, animaciones, tropas.ids, audio_batalla,
                    escenas, encuentros, paginas_tropa, comprimidos,
-                   hp_de_enemigos=args.hp_de_enemigos,
+                   hp_de_enemigos=args.enemy_hp,
                    game_over=game_over_datos)
     # Which entries of their palette the timer digits use, one bit per entry
     # and one word per map, in the order of `mapa_tabla`. `subir_timer_pal`
@@ -8100,12 +8100,12 @@ def main():
                      % (2 * len(mascaras),
                         ", ".join("$%04X" % m for m in mascaras)))
     if len(args.casos) > 1:
-        # Where the harness writes the case number: see `--caso`.
+        # Where the harness writes the case number: see `--case`.
         with open(args.output, "a") as handle:
             handle.write("\nCASO_RANURA = %d\n" % events.variable_slot(
                 events.CASE_VARIABLE))
     print("%d map(s) -> %s, boots at %d (map %d)"
-          % (len(mapas), args.output, args.inicial, mapas[args.inicial]["id"]))
+          % (len(mapas), args.output, args.start_index, mapas[args.start_index]["id"]))
     # What the allocator decided, as images: to look at which colors were lost
     # and which palette each cell ended up in without building or running the
     # ROM. They are indexed and their indices are CGRAM entries, so an editor
@@ -8176,8 +8176,8 @@ def main():
                           "musicdata.inc")
     pedidos, arranque, tema_titulo, tema_de_mapa, tema_game_over = (
         temas_de_la_rom(
-            mapas[args.inicial]["id"], temas, args.game_dir,
-            renderer.database.title_music if not args.sin_titulo else None,
+            mapas[args.start_index]["id"], temas, args.game_dir,
+            renderer.database.title_music if not args.no_title else None,
             [m["id"] for m in mapas],
             renderer.database.gameover_music if game_over_datos else None))
     # The sound effects, in the order the compiled pages ask for them: the
@@ -8205,7 +8205,7 @@ def main():
     for i, _mapa in enumerate(mapas):
         pide = temas.per_map.get(i, {"temas": [], "sonidos": []})
         suyos = list(pide["temas"])
-        if i == args.inicial and arranque != 0xFF and arranque not in suyos:
+        if i == args.start_index and arranque != 0xFF and arranque not in suyos:
             suyos.insert(0, arranque)
         # And the map's own song, **in front**: it is the only one on the list
         # that surely plays on entering, so if the ARAM isn't enough for
@@ -8222,14 +8222,14 @@ def main():
         # those play on entering.
         salida = [t for t in temas.exit_songs(i)
                   if t in suyos and t != tema_de_mapa[i]
-                  and not (i == args.inicial and t == arranque)]
+                  and not (i == args.start_index and t == arranque)]
         suyos = [t for t in suyos if t not in salida]
         # And the separate ones, which don't go with the other songs either:
         # their `PlayBGM` uploads them with the package's sound effects. See
         # `separate_songs`.
         aparte = [t for t in suyos if pedidos[t] in snes_music.separate_songs().get(
                       _mapa["id"], ()) and t != tema_de_mapa[i]
-                  and not (i == args.inicial and t == arranque)]
+                  and not (i == args.start_index and t == arranque)]
         suyos = [t for t in suyos if t not in aparte]
         apartes.append(aparte)
         paquetes.append((suyos, list(pide["sonidos"]), salida))
@@ -8262,9 +8262,9 @@ def main():
     # And the title screen's, which isn't in the table: `tema_asegurar`
     # uploads its song with the boot map's package behind.
     if tema_titulo != 0xFF:
-        suyos, suyas, _salida = paquetes[args.inicial]
+        suyos, suyas, _salida = paquetes[args.start_index]
         por_nombre.append(("titulo", [tema_titulo] + suyos, suyas))
-    herencia = temas_heredados(temas, tema_de_mapa, args.inicial,
+    herencia = temas_heredados(temas, tema_de_mapa, args.start_index,
                                tema_titulo, nombres_de_paquete,
                                [suyos for suyos, _e, _s in paquetes],
                                apartes, no_se_dan=settings.value(
@@ -8272,7 +8272,7 @@ def main():
                                    kind=list))
     driver, muestras, hechos, banco = snes_music.build_all(
         pedidos, args.game_dir, pedidos_se, por_nombre, herencia,
-        measuring_headroom=args.aire_de_medida)
+        measuring_headroom=args.measure_headroom)
     # And what `tools/audio/ceilings.py` needs from each song —how long it lasts
     # and the fingerprint of its mix—, written next to it: the bank can no
     # longer be rebuilt without compiling the pages, which is where the
@@ -8308,8 +8308,8 @@ def main():
     # tests —which count from there— would count wrong. See the comment on
     # `BOOT_CUADROS` in tools/runtime/ram_lejana.s.
     cuadros, del_paquete = snes_music.boot_frames_estimate(
-        driver, muestras, hechos, paquetes[args.inicial],
-        cuadros_de_descomprimir(mapas[args.inicial], comprimidos),
+        driver, muestras, hechos, paquetes[args.start_index],
+        cuadros_de_descomprimir(mapas[args.start_index], comprimidos),
         directorio)
     tope = snes_music.boot_frames()
     if cuadros > tope:
@@ -9019,22 +9019,22 @@ def separar_del_heroe(renderer, game_map, args, comandos=()):
 
 
 # The flags that describe **a test case** —what its page does— and not the
-# cartridge. They are the ones that can go after a `--caso`; the rest belong
+# cartridge. They are the ones that can go after a `--case`; the rest belong
 # to the whole cartridge and go before the first one. Since cut 3 of step 9d
 # there is a single one, the file with the page: what the page does is RM2k
-# data, not flags. `--grafico-de-prueba` belongs to the cartridge on purpose:
+# data, not flags. `--test-graphic` belongs to the cartridge on purpose:
 # it says which graphics are in the sprite bank of the maps where the cases
 # run, not what the page does. And where a case runs isn't a flag either: the
 # `Teleport` it starts with says so, see `mapa_del_caso`.
-FLAGS_DE_CASO = ("comandos_de_prueba",)
+FLAGS_DE_CASO = ("test_commands",)
 
 
 def partir_en_casos(argv):
-    """The command line split at `--caso`: the cartridge's part, and the
+    """The command line split at `--case`: the cartridge's part, and the
     flags of each case that goes after."""
     tramos = [[]]
     for token in argv:
-        if token == "--caso":
+        if token == "--case":
             tramos.append([])
         else:
             tramos[-1].append(token)
@@ -9045,8 +9045,8 @@ def casos_de_prueba(parser, args, tramos):
     """The cartridge's test pages, one per case, in the order of their pages.
     Each one is a copy of `args` with its case's flags.
 
-    Case 0 is the flags before the first `--caso`, so a single-case cartridge
-    is built as before this existed. If there are none, the first `--caso`
+    Case 0 is the flags before the first `--case`, so a single-case cartridge
+    is built as before this existed. If there are none, the first `--case`
     becomes 0. Each case takes the commands of its file in `comandos`.
     """
     import copy
@@ -9057,15 +9057,15 @@ def casos_de_prueba(parser, args, tramos):
         for dest, valor in vars(suelto).items():
             if dest not in FLAGS_DE_CASO and valor != getattr(defecto, dest):
                 sys.exit("--%s belongs to the cartridge and not to a case: it "
-                         "goes before the first --caso" % dest.replace("_", "-"))
+                         "goes before the first --case" % dest.replace("_", "-"))
         caso = copy.copy(args)
         for dest in FLAGS_DE_CASO:
             setattr(caso, dest, getattr(suelto, dest))
         if not pide_pagina_de_prueba(caso):
-            sys.exit("a --caso with nothing for the test page to do")
+            sys.exit("a --case with nothing for the test page to do")
         casos.append(caso)
     for caso in casos:
-        with open(caso.comandos_de_prueba, encoding="utf-8") as archivo:
+        with open(caso.test_commands, encoding="utf-8") as archivo:
             caso.comandos = lcf.handwritten_commands(json.load(archivo))
     return casos
 
@@ -9106,17 +9106,17 @@ def mapa_del_caso(caso, orden, inicial):
     destino = primero.parameters[0]
     if destino not in orden:
         sys.exit("%s: the case jumps to map %d, which isn't in the cartridge "
-                 "(it carries %s)" % (caso.comandos_de_prueba, destino,
+                 "(it carries %s)" % (caso.test_commands, destino,
                                       " ".join(str(m) for m in orden)))
     return destino
 
 
 def mapas_de_prueba(args):
     """The maps where some case runs, which are the ones that carry the
-    graphics of `--grafico-de-prueba` in their bank."""
+    graphics of `--test-graphic` in their bank."""
     if args.casos:
         return {caso.mapa for caso in args.casos}
-    return {orden_de_mapas(args)[args.inicial]}
+    return {orden_de_mapas(args)[args.start_index]}
 
 
 def pagina_de_caso(caso, mapa, temas, graficos, mensajes, indices, imagenes):
@@ -9139,18 +9139,18 @@ def pagina_de_caso(caso, mapa, temas, graficos, mensajes, indices, imagenes):
         graficos, imagenes)
     if codigo is None:
         sys.exit("%s: the test page doesn't compile"
-                 % caso.comandos_de_prueba)
+                 % caso.test_commands)
     return codigo
 
 def pide_pagina_de_prueba(args):
-    """Whether there is a test page before the first `--caso`."""
-    return bool(args.comandos_de_prueba)
+    """Whether there is a test page before the first `--case`."""
+    return bool(args.test_commands)
 
 def convertir(renderer, map_id, args):
     """A whole map: tiles, colors, sprites, collision and blocks."""
     game_map = renderer.load_map(
         os.path.join(args.game_dir, "Map%04d.lmu" % map_id))
-    if args.casos and map_id == orden_de_mapas(args)[args.inicial]:
+    if args.casos and map_id == orden_de_mapas(args)[args.start_index]:
         # The test page's event goes **first**: the ROM walks the events from
         # lowest to highest, and the test page has to run before the game's.
         # It builds the party the test starts with, and a map whose page
@@ -9199,12 +9199,12 @@ def convertir(renderer, map_id, args):
     movibles, graficos_de_ruta, anima_quieto, giran = eventos_movibles(
         game_map, {m: i for i, m in enumerate(orden)}.get,
         asociaciones=args.asociaciones)
-    # And the ones from `--grafico-de-prueba`, which go only in the maps where
+    # And the ones from `--test-graphic`, which go only in the maps where
     # some case runs, and for the same reason their pages are compiled with
     # that map's context. They are added **after** the game's, which is the
     # order the real compilation numbers them in.
-    if args.grafico_de_prueba and map_id in mapas_de_prueba(args):
-        for charset, index in graficos_de_prueba(args.grafico_de_prueba):
+    if args.test_graphic and map_id in mapas_de_prueba(args):
+        for charset, index in graficos_de_prueba(args.test_graphic):
             if (charset, index) not in graficos_de_ruta:
                 graficos_de_ruta.append((charset, index))
     if comandos_de_casos(args, map_id):

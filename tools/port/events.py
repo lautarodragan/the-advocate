@@ -5337,7 +5337,7 @@ def route_targets(pages):
 TEST_SWITCH = 1023
 
 # The variable that chooses which of the test pages runs, when a cartridge
-# carries several: see `--caso` in snes_convert.py. Page k asks for it to be
+# carries several: see `--case` in snes_convert.py. Page k asks for it to be
 # **at least** k, which is the only comparison RM2k 2000 offers in a page's
 # condition, and since the highest-numbered one that is met wins, with the
 # variable at k page k runs and no other. With a single variable it is enough

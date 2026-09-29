@@ -66,6 +66,16 @@ ejecutables `rm2k-snes-*` andando desde `/tmp`.
     `shop_screen`, `Texto` → `TextGrid`, las constantes `BA_*`, `EQ_*`,
     `TI_*` con su prefijo), también por los alias locales `P` y `PM` de
     snes_convert.
+11. Los flags del conversor: `--relleno-de-textos` → `--text-padding`,
+    `--sin-titulo` → `--no-title`, `--aire-de-medida` →
+    `--measure-headroom`, `--hp-de-enemigos` → `--enemy-hp`, `--sin-timer` →
+    `--no-timer`, `--grafico-de-prueba` → `--test-graphic`,
+    `--encuentros-de-prueba` → `--test-encounters`, `--heroe-encima` →
+    `--hero-above`, `--grupo` → `--party`, `--comandos-de-prueba` →
+    `--test-commands`, `--mapas` → `--maps`, `--inicial` → `--start-index`
+    y el separador `--caso` → `--case`, con quien los pasa: `cartridges.py`,
+    `ceilings.py` y los `flags` de `rom/rm2k-snes.toml`. La clave
+    `aire_de_medida` de `techos.toml` es del TOML y queda.
 
 Lo que el conversor escribe al `.inc` cita rutas de `tools/port/` en sus
 comentarios (`; See tools/port/imagen.py.`): esas quedan con el nombre

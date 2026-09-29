@@ -54,7 +54,7 @@ RUNTIME = project.runtime()
 # remains in this file is the mechanism that reads it and builds.
 #
 # **The maps are values in the file and not converter flags**, on purpose:
-# the converter still receives the whole list in `--mapas`. This is the only
+# the converter still receives the whole list in `--maps`. This is the only
 # one that calls it; `test_horneados` and `test_parches` need the list
 # without running it; and since the stamp carries the flags and not
 # `rom/data/`, a tree that changes which maps go in makes the cartridge stale
@@ -82,15 +82,15 @@ DEBUG_MAP = debug_map_id()
 if WITH_DEBUG_MAP:
     ADDED_MAPS += (DEBUG_MAP,)
 
-# The enemies' HP in battle: passes `--hp-de-enemigos` to the converter in
+# The enemies' HP in battle: passes `--enemy-hp` to the converter in
 # every cartridge.
 WITH_ENEMY_HP = settings.value("debug", "enemy_hp", kind=bool)
-_FOR_ALL = ["--hp-de-enemigos"] if WITH_ENEMY_HP else []
+_FOR_ALL = ["--enemy-hp"] if WITH_ENEMY_HP else []
 
 
 def rule_maps(below=MAPS_BELOW, excluded=EXCLUDED_MAPS,
               added=ADDED_MAPS):
-    """The game's maps in the order they go to `--mapas`: the ones from the
+    """The game's maps in the order they go to `--maps`: the ones from the
     rule in ascending order, and then the added ones. **The order is that of
     the ROM's table**, so changing it moves the table: see `orden_de_mapas`
     in snes_convert.py.
@@ -143,11 +143,11 @@ def _cartridge(name):
             sys.exit("%s: cases of %s is a list or \"all\", and it is %r"
                      % (project.project_file(), name, cases))
         cases = None
-    flags = ((["--grupo"] + [str(a) for a in party] if party else [])
-             + ["--map-id", str(start_map), "--mapas"]
+    flags = ((["--party"] + [str(a) for a in party] if party else [])
+             + ["--map-id", str(start_map), "--maps"]
              + [str(m) for m in maps if m != start_map]
              + [f for charset, index in setting("test_graphics", list)
-                for f in ("--grafico-de-prueba", charset, index)]
+                for f in ("--test-graphic", charset, index)]
              + setting("flags", list) + _FOR_ALL)
     return flags, cases
 
@@ -254,7 +254,7 @@ def cases_of(name, with_debug_map=WITH_DEBUG_MAP):
 def without_title(name):
     """Whether the cartridge starts without a title screen, straight on the
     map."""
-    return "--sin-titulo" in CARTRIDGES[name][0]
+    return "--no-title" in CARTRIDGES[name][0]
 
 
 def where_is(case):
@@ -365,12 +365,12 @@ def convert(name, dest, sfc, extra=()):
     flags, _cases = CARTRIDGES[name]
     os.makedirs(dest, exist_ok=True)
     log = os.path.join(dest, "conversor.log")
-    # The cases go at the end: after a `--caso`, any cartridge flag would
+    # The cases go at the end: after a `--case`, any cartridge flag would
     # belong to that case, and the converter rejects it.
     case_flags = []
     for k, case in enumerate(cases_of(name)):
-        case_flags += (["--caso"] if k else []) + [
-            "--comandos-de-prueba",
+        case_flags += (["--case"] if k else []) + [
+            "--test-commands",
             os.path.relpath(os.path.join(CASES, case + ".json"), ROOT)]
     # With `--project`, because it runs standing in the repo root —see
     # `assemble.ROOT`— and from there it would not find the file by
