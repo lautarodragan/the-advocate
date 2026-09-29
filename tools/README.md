@@ -115,13 +115,12 @@ are:
 
     rm2k-snes-convert           port/snes_convert.py
     rm2k-snes-patches           port/patches.py
-    rm2k-snes-msu               audio/msu.py
-    rm2k-snes-volume-ceilings   audio/ceilings.py
     abl-entregar                assembly/entregar.py
 
-and next to them the three that are Rust binaries —`rm2k-snes-cartridges`,
-`rm2k-snes-assemble` and `rm2k-snes-space`, from `cartridge/`—, which find
-the runtime through the checkout they were installed from.
+and next to them the ones that are Rust binaries —`rm2k-snes-cartridges`,
+`rm2k-snes-assemble` and `rm2k-snes-space`, from `cartridge/`, which find
+the runtime through the checkout they were installed from; and
+`rm2k-snes-msu` and `rm2k-snes-volume-ceilings`, from `rm2k-snes-audio/`—.
 
 The reason for the names is in `tools/justfile`. A new one is added in
 `_install`, and the `.py` finds its packages by resolving the symlink with

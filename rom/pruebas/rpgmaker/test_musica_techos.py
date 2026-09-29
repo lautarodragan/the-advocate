@@ -19,22 +19,33 @@ minutos, así que acá no se mide: se cobra que lo medido siga valiendo.
   `CERCA` dB del tope, que son los que eso puede hacer recortar.
 """
 
+import json
 import os
+import subprocess
 import tomllib
 
 import pytest
 
 import tanda
 
-from audio import ceilings
+from common import project
 
 # A cuántos dB del tope un tema se toca en la prueba. La tabla los deja a
-# 0,5 dB (`ceilings.MARGIN`); lo que hace falta es que entren ésos con margen.
+# 0,5 dB (`margin` en `rm2k-snes-audio`); lo que hace falta es que entren
+# ésos con margen.
 CERCA = 1.5
+
+# El que mide los techos, y el que toca un tema solo con `--play`: la misma
+# consola de libretro y las mismas cuentas con que se midió la tabla.
+TECHOS = "rm2k-snes-volume-ceilings"
+
+
+def _ruta():
+    return os.path.join(project.auto_patches(), "musica", "techos.toml")
 
 
 def _tabla():
-    with open(ceilings.ceilings_path(), "rb") as archivo:
+    with open(_ruta(), "rb") as archivo:
         return tomllib.load(archivo)["temas"]
 
 
@@ -42,11 +53,27 @@ def _cerca():
     return sorted(n for n, fila in _tabla().items() if fila["pico"] > -CERCA)
 
 
+def _hechos(directorio):
+    """Los temas del cartucho como los armó el compilador, en el orden de sus
+    índices: `musica.json`, al lado de `musicdata.inc`."""
+    with open(os.path.join(directorio, "musica.json")) as archivo:
+        return json.load(archivo)["temas"]
+
+
+def _indice(directorio, nombre):
+    """El índice del tema en el cartucho: la línea `; Songs:` de
+    `musicdata.inc`, que es la que lee también el que mide."""
+    with open(os.path.join(directorio, "musicdata.inc")) as archivo:
+        for linea in archivo:
+            if linea.startswith("; Songs: "):
+                return linea[len("; Songs: "):].rstrip("\n").split(", ").index(nombre)
+    raise AssertionError("musicdata.inc no dice sus temas")
+
+
 def test_la_tabla_de_techos_es_la_de_esta_mezcla():
     release = tanda.cartucho()
     tabla = _tabla()
-    hechos = {t["nombre"]: t for t in ceilings.built_songs(release.dir)
-              if t["largo"]}
+    hechos = {t["nombre"]: t for t in _hechos(release.dir) if t["largo"]}
     assert sorted(hechos) == sorted(tabla), (
         "los temas del release no son los de la tabla de techos: sobran %s, "
         "faltan %s. Correr `just techos`."
@@ -56,16 +83,19 @@ def test_la_tabla_de_techos_es_la_de_esta_mezcla():
     assert not viejos, (
         "la mezcla de %s cambió desde que se midió su techo, así que su pico "
         "ya no es el de la tabla: correr `just techos` y mirar el diff de %s"
-        % (", ".join(viejos), os.path.relpath(ceilings.ceilings_path())))
+        % (", ".join(viejos), os.path.relpath(_ruta())))
 
 
 @pytest.mark.parametrize("nombre", _cerca())
 def test_el_tema_no_recorta_en_su_pico(nombre):
     release = tanda.cartucho()
     fila = _tabla()[nombre]
-    tema = ceilings.song_names(release.dir).index(nombre)
-    muestras, _tasa = ceilings.play(release.sfc, tema, fila["hasta"])
-    recortes = ceilings.clipped(muestras)
+    tema = _indice(release.dir, nombre)
+    hecho = subprocess.run(
+        [TECHOS, "--play", release.sfc, "--song", str(tema),
+         "--frames", str(fila["hasta"])], capture_output=True, text=True)
+    assert hecho.returncode == 0, hecho.stderr
+    recortes = json.loads(hecho.stdout)["recortes"]
     assert not recortes, (
         "%s recorta %d muestras en sus primeros %d cuadros, con el aire en "
         "%.3f: correr `just techos`" % (nombre, recortes, fila["hasta"],

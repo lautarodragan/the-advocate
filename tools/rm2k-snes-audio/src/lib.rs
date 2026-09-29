@@ -16,6 +16,7 @@
 //! cartridge has to keep coming out byte for byte the same: see [`num`].
 
 pub mod bank;
+pub mod ceilings;
 pub mod compile;
 pub mod effects;
 pub mod emit;
@@ -28,11 +29,13 @@ pub mod msu;
 pub mod music_opcodes;
 pub mod num;
 pub mod pyjson;
+pub mod retro;
 pub mod samples;
 pub mod sdsp;
 pub mod song;
 pub mod spc700;
 pub mod stream;
+pub mod tracks;
 pub mod voices;
 
 pub use fail::{Bad, Result};
