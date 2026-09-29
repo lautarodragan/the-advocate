@@ -37,6 +37,9 @@ dibuja el fundido.
 
 import collections
 
+from port.color import tenir
+from port.paleta import reducir
+
 # La pantalla de RM2k y la de la consola.
 ANCHO_RM, ALTO_RM = 320, 240
 ANCHO, ALTO = 256, 224
@@ -85,7 +88,7 @@ def caja(ancho, alto, cx, cy):
 def _quince(imagen, ancho, alto):
     """La imagen escalada y con los colores a 15 bits, fila por fila.
 
-    LANCZOS como `titulo._quince`, y por lo mismo: es el que menos ensucia los
+    LANCZOS como `paleta._quince`, y por lo mismo: es el que menos ensucia los
     bordes del texto.
     """
     from PIL import Image
@@ -102,16 +105,15 @@ def convertir(imagen, cx, cy):
     imagen como índices de esa paleta **corridos uno**, que es como los numera
     una paleta de sprite: el 0 es el transparente y no se dibuja.
 
-    Los colores salen de `titulo.reducir`, el mismo de la pantalla de título, y
+    Los colores salen de `paleta.reducir`, el mismo de la pantalla de título, y
     por la misma razón: no promedia, así que no inventa colores que haya que
     volver a cuantizar, y no depende de la versión de PIL. De 226 colores a
     quince el degradé del resplandor se escalona; se ve y está declarado.
     """
-    from port import titulo
     x, y, ancho, alto = caja(imagen.width, imagen.height, cx, cy)
     filas = _quince(imagen, ancho, alto)
     pixeles = [c for fila in filas for c in fila]
-    paleta, mapa = titulo.reducir(pixeles, COLORES)
+    paleta, mapa = reducir(pixeles, COLORES)
     donde = {color: i + 1 for i, color in enumerate(paleta)}
     indices = [[donde[mapa[c]] for c in fila] for fila in filas]
     return {
@@ -177,13 +179,12 @@ def render(info, tono):
     RGBA de `ancho` x `alto` para pegar en (x, y).
 
     El tono es el de RM2k —(r, g, b, sat), 100 neutro— y pasa por
-    `eventos.tenir`, que es la misma cuenta del tinte de pantalla: allá y acá es
+    `color.tenir`, que es la misma cuenta del tinte de pantalla: allá y acá es
     `ToneBlit`. La consola no tiñe pixeles sino las quince entradas de CGRAM del
     cartel, así que teñir la paleta y pintar da exactamente lo mismo.
     """
     from PIL import Image
-    from port import eventos
-    paleta = [eventos.tenir(c[0] | (c[1] << 5) | (c[2] << 10), tono)
+    paleta = [tenir(c[0] | (c[1] << 5) | (c[2] << 10), tono)
               for c in info["paleta"]]
     colores = [(0, 0, 0, 0)] + [(((p & 0x1F) << 3), (((p >> 5) & 0x1F) << 3),
                                  (((p >> 10) & 0x1F) << 3), 255)

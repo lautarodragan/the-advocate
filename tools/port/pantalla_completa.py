@@ -1,7 +1,7 @@
 """Una imagen que ocupa la pantalla entera, comprimida en un flujo LZ2.
 
 Es el camino de las pantallas de Game Over y de título: la imagen se convierte
-con `titulo.convertir` —escalada a 256x224, a 8 bits por pixel en BG1, que en
+con `paleta.convertir` —escalada a 256x224, a 8 bits por pixel en BG1, que en
 modo 3 direcciona CGRAM entera— y lo que va al cartucho es **un solo flujo**
 con las tres cosas que la ROM sube, una detrás de otra:
 
@@ -27,7 +27,7 @@ La del título se decidió igual, el 2026-09-28: los números están en
 """
 
 from port import comprimir
-from port import titulo
+from port.paleta import convertir
 
 # El tilemap que sube la ROM: 32x32 entradas de dos bytes, aunque la pantalla
 # muestre 28 filas. Es el tamaño que el PPU lee, y el mismo que el título.
@@ -39,9 +39,9 @@ def comprimida(imagen, primer_color=0, tope=256, debajo=()):
     `tiles`, `colores` y `primer_color` son lo que la ROM necesita para
     partirlo.
 
-    `primer_color` y `tope` son los de `titulo.convertir`: por omisión la
+    `primer_color` y `tope` son los de `paleta.convertir`: por omisión la
     imagen se queda con CGRAM entera, desde el 0. El índice 0 es además el
-    color del fondo del PPU, y `titulo.reducir` le deja ahí el negro.
+    color del fondo del PPU, y `paleta.reducir` le deja ahí el negro.
 
     `debajo` son colores que no son de la imagen y van en CGRAM justo antes
     de los suyos —en el título, los del menú—: viajan en el mismo flujo y se
@@ -52,7 +52,7 @@ def comprimida(imagen, primer_color=0, tope=256, debajo=()):
         raise ValueError("%d colores debajo de la imagen y la imagen empieza "
                          "en el %d" % (len(debajo), primer_color))
     from port.snes_convert import cgram_word, pack_tile, entry
-    tiles, paleta, tilemap = titulo.convertir(imagen, primer_color, tope)
+    tiles, paleta, tilemap = convertir(imagen, primer_color, tope)
     datos = bytearray()
     for celda in tiles:
         datos += pack_tile(celda, planes=8)

@@ -25,6 +25,7 @@ import os
 
 from PIL import Image
 
+from port.constantes import COLUMNAS, LINEAS
 from render import render_map
 
 # El tamaño y el lugar de la ventana de mensaje. En RM2k la pantalla es de
@@ -35,18 +36,6 @@ ANCHO, ALTO = 256, 80
 BORDE = 8                       # `border_x` y `border_y` de Window
 ALTO_LINEA = 16                 # `contents_y += 16` de Window_Message
 TEXTO_Y = 2                     # el `contents_y = 2` de la primera línea
-LINEAS = 4
-
-# Cuántos caracteres entran en una línea, y de dónde sale el número. No es el
-# ancho de la ventana: es el banco de tiles. El área de texto de la ventana son
-# 30 celdas de 8x8 de ancho, y sus tiles no se deduplican porque la ROM los
-# reescribe, así que son 30x8 = 240 tiles fijos que con los 12 de la ventana
-# vacía llegan a 252 de los 256 que hay. Con 40 caracteres la sombra del último
-# se pasa a la celda 31 y harían falta ocho tiles más.
-#
-# Medido sobre las 18.808 líneas de mensaje del juego: truncar a 39 pierde el
-# 1,58% de los caracteres, contra el 1,09% de truncar a 40.
-COLUMNAS = 39
 
 
 def skin(game_dir, nombre):

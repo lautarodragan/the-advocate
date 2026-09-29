@@ -10,7 +10,7 @@ import pytest
 
 from port import eventos                                # noqa: E402
 from port import textos                                 # noqa: E402
-from port import ventana                                # noqa: E402
+from port import constantes                             # noqa: E402
 
 
 def _palabras(cuadros, con_hablante):
@@ -30,7 +30,7 @@ def test_se_rearma_y_conserva_al_que_habla():
     salida = textos.reajustar(cuadro)
     assert len(salida) == 1
     assert salida[0][0] == "KERSH"
-    assert all(len(t) <= ventana.COLUMNAS for t in salida[0])
+    assert all(len(t) <= constantes.COLUMNAS for t in salida[0])
     assert _palabras(salida, True) == _palabras([cuadro], True)
 
 
@@ -43,7 +43,7 @@ def test_lo_que_no_entra_se_parte_y_repite_al_que_habla():
     salida = textos.reajustar(cuadro)
     assert len(salida) == 2
     assert all(c[0] == "MANTA" for c in salida)
-    assert all(len(c) <= ventana.LINEAS for c in salida)
+    assert all(len(c) <= constantes.LINEAS for c in salida)
     assert _palabras(salida, True) == _palabras([cuadro], True)
 
 
@@ -58,7 +58,7 @@ def test_la_cola_va_al_final_del_ultimo_cuadro():
 
 
 # Un renglón que no es el último y ocupa menos de esto se ve interrumpido.
-CORTO = 2 * ventana.COLUMNAS // 3
+CORTO = 2 * constantes.COLUMNAS // 3
 
 
 @pytest.mark.parametrize("cuadro", [

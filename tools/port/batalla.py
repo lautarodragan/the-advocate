@@ -53,17 +53,17 @@ Tres cosas **no** son de RM2k, y las tres son a propósito:
 """
 
 from port import eventos
+from port import reglas
+from port.constantes import ENEMIGOS_MAX
 
 # La semilla del azar de la batalla. Es otra que `AZAR_SEMILLA` a propósito:
 # ver arriba. El valor no significa nada, sólo tiene que ser distinto de cero
 # —el xorshift se queda clavado en el cero— y ser el mismo de los dos lados.
 BATALLA_SEMILLA = 0x2B1D
 
-# Cuántos caben en una pelea. El grupo es el de RM2k, cuatro; los enemigos, lo
-# que entra en la pantalla de texto sin taparle nada al grupo. La tropa más
-# grande del juego tiene ocho miembros, así que con ocho no se pierde ninguna.
+# Cuántos caben en una pelea. El grupo es el de RM2k, cuatro; los enemigos,
+# `constantes.ENEMIGOS_MAX`.
 GRUPO_MAX = 4
-ENEMIGOS_MAX = 8
 
 # Los tres resultados, en el orden en que el bytecode lleva sus destinos.
 VICTORIA, HUIDA, DERROTA = 0, 1, 2
@@ -309,28 +309,8 @@ def habilidades_de(db, numero, nivel=None):
 
     Las que este port no sabe ofrecer no entran: ver `habilidad_usable`.
     """
-    return [s for s in aprendidas_de(db, numero, nivel)
+    return [s for s in reglas.aprendidas_de(db, numero, nivel)
             if habilidad_usable(db.skills[s])]
-
-
-def aprendidas_de(db, numero, nivel=None):
-    """Las habilidades que este actor **sabe**, usables o no, ordenadas.
-
-    Es `Game_Actor::LearnLevelSkills` a secas: las de nivel menor o igual al
-    suyo. Va aparte de `habilidades_de` porque son dos preguntas distintas y
-    confundirlas se paga de un solo lado: el menú de la pelea sólo puede
-    ofrecer las que este port sabe ejecutar —ése es el filtro de
-    `habilidad_usable`— pero `IsSkillLearned`, que es lo que pregunta la rama
-    de `ConditionalBranch`, no filtra nada.
-
-    Las dos salen de acá para que no puedan separarse: la rama y el menú tienen
-    que estar de acuerdo en qué sabe cada uno.
-    """
-    actor = db.actors[numero]
-    if nivel is None:
-        nivel = actor.initial_level
-    return sorted({s for aprende, s in actor.skills
-                   if s and aprende <= nivel})
 
 
 def nivel_en_que_aprende(db, numero, skill):
@@ -350,11 +330,10 @@ def nombre_de_orden_habilidad(db, numero):
     cuatro actores de la intro lo tienen puesto: "AgentTrain", "Telepathy",
     "Slicing" y "Special".
     """
-    from port import pantallas
     actor = db.actors[numero]
     if actor.rename_skill and actor.skill_name:
         return actor.skill_name
-    return pantallas.terminos_batalla(db)["habilidad"]
+    return reglas.terminos_batalla(db)["habilidad"]
 
 
 def costo_de(skill):
@@ -542,7 +521,7 @@ class Combatiente:
 def actor_de(db, numero, equipo=None, nivel=None):
     """El combatiente de un actor del LDB, con lo que tenga puesto.
 
-    Los parámetros salen de `pantallas.parametros`, que es la misma función que
+    Los parámetros salen de `reglas.parametros`, que es la misma función que
     usa la pantalla de equipo: el del nivel más lo que suma cada pieza, topado
     en [1, 999]. Los HP son los del nivel y no llevan equipo, como
     `Game_Actor::GetMaxHp` en RM2k, donde el equipo no toca los HP.
@@ -551,22 +530,20 @@ def actor_de(db, numero, equipo=None, nivel=None):
     **El `hit` del arma no se lee**, y es deuda declarada: ningún arma del ABL
     lo baja, pero el día que una lo haga esto se equivoca en silencio.
 
-    El nivel es el `initial_level` del LDB y no el 1: ver `titulo.nivel_de`.
+    El nivel es el `initial_level` del LDB y no el 1: ver `reglas.nivel_de`.
     Hasta el 2026-09-13 era el 1 y Kersh peleaba con 40 HP y ataque 17 en vez
     de 168 y 80. Con `nivel`, el que haya subido: ver `port.experiencia`.
     """
-    from port import pantallas
-    from port import titulo
     actor = db.actors[numero]
     if equipo is None:
         equipo = list(actor.initial_equipment)
-    ataque, defensa, espiritu, agilidad = pantallas.parametros(db, numero,
+    ataque, defensa, espiritu, agilidad = reglas.parametros(db, numero,
                                                                equipo, nivel)
     critico = (100 // actor_critico_cada(db, numero)) \
         if actor_tiene_critico(db, numero) else 0
-    quien = Combatiente(actor.name, titulo.parametro_de(actor, "maxhp", nivel),
+    quien = Combatiente(actor.name, reglas.parametro_de(actor, "maxhp", nivel),
                         ataque, defensa, agilidad, 90, critico, True, numero,
-                        espiritu, titulo.parametro_de(actor, "maxsp", nivel),
+                        espiritu, reglas.parametro_de(actor, "maxsp", nivel),
                         habilidades_de(db, numero, nivel),
                         sp_arma=sp_del_arma(db, equipo))
     return quien

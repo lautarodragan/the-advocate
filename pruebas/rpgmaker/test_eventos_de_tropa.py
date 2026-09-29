@@ -26,7 +26,7 @@ compilador.
 
 from port import batalla as modelo
 from port import eventos
-from port import pantallas
+from port import reglas
 
 from batalla import Pelea, modelo_de
 from consola import en_la_rom
@@ -216,7 +216,7 @@ def test_un_oculto_no_es_blanco_ni_cuenta_para_ganar(partida):
     la victoria da la experiencia y el oro **del rey solo** —`GetExp` y
     `GetMoney` suman los muertos—."""
     base = datos.base()
-    term = pantallas.terminos_batalla(base)
+    term = reglas.terminos_batalla(base)
     una = partida(caso="pelea-97-sin-ratas")
     pelea = a_la_pelea(una)
     assert pelea.switch(1005) and pelea.switch(1006)

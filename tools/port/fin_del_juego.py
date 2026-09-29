@@ -27,11 +27,11 @@ pocas entradas con la paleta de la otra imagen, en el vblank. Así no hay un
 segundo tilemap ni tiles de más.
 """
 
-from port import titulo
+from port import constantes
 from port import ventana as ventana_mod
 
-ANCHO, ALTO = titulo.ANCHO, titulo.ALTO
-CELL = titulo.CELL
+ANCHO, ALTO = constantes.ANCHO, constantes.ALTO
+CELL = constantes.CELL
 NEGRO = (0, 0, 0)
 
 # `menu_item_height` de Window_Selectable y los bordes de Window.

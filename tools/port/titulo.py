@@ -24,109 +24,11 @@ import collections
 import numpy
 
 from port import asignador
+from port import experiencia
 from port import fuente
-
-CELL = 8
-ANCHO = 256
-ALTO = 224
-COLS = ANCHO // CELL            # 32
-FILAS = ALTO // CELL            # 28
-
-# Cuántas entradas de CGRAM se lleva el menú, que va en BG2 a cuatro bits por
-# pixel: una paleta de dieciséis, la 0. Son las **primeras** de CGRAM porque un
-# BG de 4bpp sólo alcanza las de abajo, así que la imagen no puede quedarse con
-# ellas y arranca corrida.
-MENU_CGRAM = 16
-
-# Cuántos colores le quedan a la imagen. Bajar de 256 a 240 no se ve: ya venía
-# de 369, y los que se fusionan son los que aparecen en un puñado de pixeles.
-COLORES = 256 - MENU_CGRAM
-NEGRO = (0, 0, 0)
-
-
-def _distancia(a, b):
-    """Lo lejos que están dos colores de 15 bits, al cuadrado.
-
-    Euclídea y sin pesos por canal: la alternativa —ponderar por luma, que es
-    lo que hace `merge_least_visible` para las paletas de dieciséis— acá no
-    cambiaría nada visible y sí haría falta explicar por qué los pesos son esos.
-    Los colores que se fusionan son los que casi no aparecen, y el vecino que
-    les toca está a un paso de distancia.
-    """
-    return sum((x - y) ** 2 for x, y in zip(a, b))
-
-
-def reducir(pixeles, tope=COLORES):
-    """Los colores de la imagen llevados a `tope`, y el mapa de a dónde fue cada uno.
-
-    Se queda con los más usados y manda cada uno de los que sobran a su vecino
-    más cercano de los que quedaron. **No es mediancut**: no promedia colores,
-    así que no puede inventar uno que no estuviera en la imagen y no hay que
-    volver a cuantizar a 15 bits después. Y no depende de qué versión de PIL
-    esté instalada, que es lo que hace que la ROM salga igual byte por byte en
-    cualquier máquina.
-
-    El desempate es por el color, no por el orden en que aparecieron: dos
-    colores con la misma cuenta tienen que caer siempre del mismo lado o la
-    ROM cambia sin que nadie haya tocado nada.
-    """
-    cuenta = collections.Counter(pixeles)
-    # El negro se queda con el índice 0 aunque no fuera de los más usados: es
-    # el color del fondo, y así lo que el PPU pinta donde no hay nada coincide
-    # con lo que la imagen tiene ahí.
-    orden = sorted(cuenta, key=lambda c: (-cuenta[c], c))
-    if NEGRO in orden:
-        orden.remove(NEGRO)
-    paleta = [NEGRO] + orden[:tope - 1]
-    quedan = set(paleta)
-    mapa = {c: c for c in quedan}
-    for color in orden[tope - 1:]:
-        mapa[color] = min(paleta, key=lambda p: (_distancia(color, p), p))
-    return paleta, mapa
-
-
-def _quince(imagen):
-    """La imagen escalada a la pantalla y con los colores a 15 bits.
-
-    El escalado es LANCZOS, que es el que menos ensucia los bordes del texto
-    del título; el original tiene mucho degradé y poco detalle fino, así que la
-    diferencia contra bicúbico se ve en los créditos y en ningún otro lado.
-    """
-    from PIL import Image
-    chica = imagen.convert("RGB").resize((ANCHO, ALTO), Image.LANCZOS)
-    return [(r >> 3, g >> 3, b >> 3) for r, g, b in chica.get_flattened_data()]
-
-
-def convertir(imagen, primer_color=MENU_CGRAM, tope=COLORES):
-    """Una imagen de pantalla completa como (tiles, paleta, tilemap).
-
-    `tiles` son los tiles únicos de 8 bits por pixel; `paleta` sus colores, que
-    van en CGRAM **a partir de `primer_color`** —en el título, `MENU_CGRAM`,
-    porque las de abajo son del menú—; `tilemap` las 32x28 entradas, en el
-    tilemap de 32x32 que el PPU espera. `tope` es cuántos colores le quedan.
-
-    Los índices que los tiles llevan ya vienen corridos, así que quien los emita
-    no tiene que acordarse de sumar nada: el corrimiento se escribe una sola vez
-    y acá.
-    """
-    pixeles = _quince(imagen)
-    paleta, mapa = reducir(pixeles, tope)
-    indice = {color: i + primer_color for i, color in enumerate(paleta)}
-    # La imagen como índices de paleta, fila por fila.
-    filas = []
-    for y in range(ALTO):
-        filas.append([indice[mapa[pixeles[y * ANCHO + x]]] for x in range(ANCHO)])
-
-    tiles, donde, tilemap = [], {}, []
-    for ty in range(FILAS):
-        for tx in range(COLS):
-            celda = tuple(tuple(filas[ty * CELL + y][tx * CELL:(tx + 1) * CELL])
-                          for y in range(CELL))
-            if celda not in donde:
-                donde[celda] = len(tiles)
-                tiles.append(celda)
-            tilemap.append(donde[celda])
-    return tiles, paleta, tilemap
+from port.constantes import ALTO, ANCHO, CELL, COLS, FILAS, MENU_CGRAM
+from port.paleta import NEGRO, convertir
+from port.reglas import nivel_de, parametro_de
 
 
 def informe(imagen):
@@ -425,44 +327,6 @@ def _bloque_de_celdas(capa, fila0, filas, tiles, donde, indice, col0=0,
     return celdas
 
 
-# El nivel de cada actor sale del LDB desde el 2026-09-13: es su
-# `initial_level`, que en el ABL no es 1 —Kersh arranca en 20, Core y Manta en
-# 15— y de él salen los HP, los SP y los cuatro parámetros.
-#
-# Hasta ese día acá había un `NIVEL = 1` mockeado, y **no era sólo cosmético**:
-# con él Kersh mostraba 40 HP en vez de 168 y peleaba con ataque 17 en vez de
-# 80, así que el balance entero de la pelea era otro. Y de ahí salió además la
-# conclusión equivocada de que nadie sabía ninguna habilidad: todas se aprenden
-# en el nivel 3 o más arriba, y con el nivel inicial de verdad los tres las
-# saben desde la primera pelea.
-#
-# Subir de nivel sigue sin existir, y eso sí es una decisión: no hay
-# experiencia. El nivel es un dato estático del LDB.
-
-
-def nivel_de(actor):
-    """El nivel con el que arranca un actor: `Game_Actor::Setup`, que llama a
-    `ChangeLevel(initial_level)` cuando el campo está."""
-    return actor.initial_level
-
-
-def parametro_de(actor, cual, nivel=None):
-    """Un parámetro del actor a su nivel: `maxhp`, `maxsp`, `attack`,
-    `defense`, `spirit` o `agility`.
-
-    La tabla del LDB va desde el nivel 1, así que el índice es el nivel menos
-    uno. Un actor sin la tabla —o con una más corta que su nivel, que no pasa
-    en este juego— da cero, que es lo que hacía el código de antes.
-
-    Sin `nivel` es el de arranque; con él, el que haya subido peleando: ver
-    `port.experiencia`.
-    """
-    valores = actor.params.get(cual) or []
-    if nivel is None:
-        nivel = nivel_de(actor)
-    return valores[nivel - 1] if nivel - 1 < len(valores) else 0
-
-
 def _texto_de_ranura(numero, db, llena):
     """Las dos primeras líneas de una ranura, con los términos del juego. La
     segunda de una ranura llena es el nombre del líder, que va aparte porque
@@ -523,13 +387,12 @@ def texto_de_exp(db, actor, nivel=None, exp=None):
     """La experiencia como la escribe `DrawActorExp`: `"%6d/%6d"`, la de ahora
     y la que pide el nivel que sigue —`GetNextExp`—, o guiones en el tope.
     Sin `nivel` ni `exp`, los de arranque, como `texto_de_nivel`."""
-    from port import experiencia as X
     a = db.actors[actor]
     if nivel is None:
-        nivel = X.nivel_inicial(a)
+        nivel = experiencia.nivel_inicial(a)
     if exp is None:
-        exp = X.exp_inicial(a)
-    siguiente = X.siguiente(a, nivel)
+        exp = experiencia.exp_inicial(a)
+    siguiente = experiencia.siguiente(a, nivel)
     if siguiente == -1:
         return "-" * MENU_EXP_CIFRAS + "/" + "-" * MENU_EXP_CIFRAS
     return "%*d/%*d" % (MENU_EXP_CIFRAS, exp, MENU_EXP_CIFRAS, siguiente)

@@ -16,7 +16,7 @@ defendería. Ver "Una golden caza regresiones" en AGENTS.md.
 import pytest
 
 from port import eventos
-from port import ventana
+from port import constantes
 
 
 def test_la_cola_sale_del_texto_y_se_cuenta():
@@ -90,7 +90,7 @@ def test_la_cola_se_saca_antes_de_recortar_el_renglon():
     """Al revés, un renglón lleno se comería su propio `\\|\\^` y el cuadro
     quedaría esperando un A que RM2k no pide."""
     mensajes = eventos.Mensajes()
-    largo = "x" * ventana.COLUMNAS
+    largo = "x" * constantes.COLUMNAS
     donde = mensajes.agregar([largo + "\\|\\^"])
     assert mensajes.lineas(donde) == (largo,)
     assert mensajes.cola(donde) == (1, True)
