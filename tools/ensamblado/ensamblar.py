@@ -32,14 +32,6 @@ import shutil
 import subprocess
 import sys
 
-# Corrido como script, deja `tools/` en el camino de los imports en vez de la
-# carpeta de este archivo; y desde el PATH, si el directorio actual es otro
-# checkout, corre el de ahí: ver `comun/ejecutable.py`.
-if __name__ == "__main__":
-    sys.path[0] = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-    from comun import ejecutable
-    ejecutable.usar_el_del_checkout(__file__)
-
 # Los que escribe el conversor. Si alguno aparece junto a la fuente, tapa al del
 # directorio que se pasa con -I.
 GENERADOS = ("mapdata.inc", "musicdata.inc")

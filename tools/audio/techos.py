@@ -43,12 +43,6 @@ from multiprocessing import Pool
 RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 sys.path.insert(0, os.path.join(RAIZ, "tools"))
 
-# Desde el PATH, si el directorio actual es otro checkout, corre el de ahí:
-# ver `comun/ejecutable.py`.
-if __name__ == "__main__":
-    from comun import ejecutable                        # noqa: E402
-    ejecutable.usar_el_del_checkout(__file__)
-
 from audio import sdsp, snes_music                      # noqa: E402
 
 # La mitad del aire de siempre: medido el 2026-09-26, con 0,25 no recorta
