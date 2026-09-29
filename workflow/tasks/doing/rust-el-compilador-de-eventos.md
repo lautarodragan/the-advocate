@@ -156,3 +156,19 @@ con la forma del piloto. Dos subcomandos:
   binario, los dos bloques de mensajes y el código de las tropas.
 
 Los números de opcode salen de `events.toml` con `protocol --rust`.
+
+## Dónde va
+
+- `cc001fba`: el crate, sin que nadie lo llame todavía.
+- La comparación descartable, adentro de una conversión real (un módulo
+  temporal que corre las dos cosas con las mismas entradas y compara
+  campo por campo): **0 diferencias** en `release` (93 mapas, 2.064
+  páginas, 1.995 con código, 236 casos, 69 tropas) y en `test-special`
+  (7 mapas, 249 páginas, 8 casos, 11 tropas). Compara el bytecode de cada
+  página y todo su registro, los gráficos de cada mapa, las deudas, qué
+  sustituciones pidió, cada caso, el bloque de textos, los temas y
+  efectos con sus paquetes, salidas y saltos, las tropas y sus fondos, las
+  páginas de tropa, el audio de la pelea, los eventos comunes de equipo, y
+  las dos pasadas del `scan` —qué páginas compilan y las de quién camina—.
+- Falta: que el conversor use el crate, la prueba del crate con el juego
+  chico, borrar el Python, la prosa.
