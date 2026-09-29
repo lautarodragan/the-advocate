@@ -68,10 +68,10 @@ from rpgmaker import rm2k
 # —baked against the background, dithered, or opaque—.
 lcf.DECORATE_TRANSLUCENT = rm2k.decorate_translucent
 # And the text boxes, rebuilt for the SNES window: see
-# `lcf.REFIT_TEXTS` and `port/textos.py`.
-from port import textos
-lcf.REFIT_TEXTS = textos.reajustar_comandos
-from port import animacion as animacion_mod
+# `lcf.REFIT_TEXTS` and `port/texts.py`.
+from port import texts
+lcf.REFIT_TEXTS = texts.refit_commands
+from port import animation as animacion_mod
 from port import picture
 from port import allocator
 from port import patches as parches_mod
@@ -1551,7 +1551,7 @@ def mapa_muestra_animacion(game_map, renderer, comandos=()):
         if (cmd.code == events.SHOW_BATTLE_ANIMATION
                 and len(cmd.parameters) >= 3):
             numeros.add(cmd.parameters[0])
-    return any(animacion_mod.de_numero(renderer, n) is not None
+    return any(animacion_mod.by_number(renderer, n) is not None
                for n in numeros)
 
 
@@ -1568,7 +1568,7 @@ def animacion_de_mapa(tiles, palettes, usadas=0):
     characters, the panorama and the shadows, and not to the animations.
 
     The tiles are reserved **blank**: what goes inside is uploaded by the ROM
-    via DMA frame by frame, from the cartridge. See `animacion.py`.
+    via DMA frame by frame, from the cartridge. See `animation.py`.
 
     Returns (tiles, base, palette number), or (tiles, 0, 0) if the map already
     uses the eight sprite palettes. `usadas` are the ones the picture already
@@ -3416,7 +3416,7 @@ def anim_tabla(mapas):
 
 def animaciones_de_la_rom(mapas, renderer):
     """The battle animations the already emitted bytecode shows, by RM2k
-    number, each one converted by `animacion.py`.
+    number, each one converted by `animation.py`.
 
     The bytecode is walked and not the commands, which is what makes it the
     truth and not a guess: what counts is what ended up emitted, after the
@@ -3433,7 +3433,7 @@ def animaciones_de_la_rom(mapas, renderer):
                     numeros.add(c[i + 1])
     salida = {}
     for numero in sorted(numeros):
-        info = animacion_mod.de_numero(renderer, numero)
+        info = animacion_mod.by_number(renderer, numero)
         if info is not None:
             salida[numero] = info
     return salida
@@ -3443,7 +3443,7 @@ def cuadro_de_animacion(cuadro):
     """The 2 KB of a battle animation frame as they end up in VRAM: the box's
     64 4bpp tiles, in order."""
     datos = bytearray(animacion_mod.TILES * 32)
-    for tile, celda in animacion_mod.celdas(cuadro).items():
+    for tile, celda in animacion_mod.cells(cuadro).items():
         datos[tile * 32:(tile + 1) * 32] = pack_tile(celda, planes=4)
     return bytes(datos)
 
@@ -3506,9 +3506,9 @@ def animaciones_asm(animaciones, mapas):
         "; map 2 has left free. What changes per map is where that row lands",
         "; and with which palette, and that goes in `anim_batalla_reparto`,",
         "; one byte per map.",
-        "ANIM_B_CAJA   = %d" % animacion_mod.CAJA,
+        "ANIM_B_CAJA   = %d" % animacion_mod.BOX,
         "ANIM_B_OBJ    = %d" % animacion_mod.OBJ,
-        "ANIM_B_OBJETOS = %d" % animacion_mod.OBJETOS,
+        "ANIM_B_OBJETOS = %d" % animacion_mod.OBJECTS,
         "ANIM_B_TILES  = %d" % animacion_mod.TILES,
         "ANIM_B_BYTES  = %d" % (animacion_mod.TILES * 32),
         "ANIM_B_STRIDE = 8",
@@ -3518,8 +3518,8 @@ def animaciones_asm(animaciones, mapas):
         "ANIM_B_MAX    = %d" % tope,
         "; The center of the screen, which is where the ones with scope",
         "; `Scope_screen` land: `DrawAt(screen_width / 2, screen_height / 2)`.",
-        "ANIM_B_CENTRO_X = %d" % (animacion_mod.PANTALLA[0] // 2),
-        "ANIM_B_CENTRO_Y = %d" % (animacion_mod.PANTALLA[1] // 2),
+        "ANIM_B_CENTRO_X = %d" % (animacion_mod.SCREEN[0] // 2),
+        "ANIM_B_CENTRO_Y = %d" % (animacion_mod.SCREEN[1] // 2),
         "ANIM_B_SIN      = $%02X" % events.ANIM_NO_DRAWING,
         "ANIM_B_PANTALLA = $%02X" % events.ANIM_TARGET_SCREEN,
     ]
@@ -3532,7 +3532,7 @@ def animaciones_asm(animaciones, mapas):
         # The anchor **as the ROM wants it**: with the shift of
         # `Animation::Position` already baked in, so the console only
         # subtracts.
-        ax, ay = animacion_mod.ancla_rom(info)
+        ax, ay = animacion_mod.rom_anchor(info)
         tabla += bytes([len(info["cuadros"]), ax & 0xFF, ay & 0xFF, 0,
                         primero & 0xFF, primero >> 8, 0, 0])
         primero += len(info["cuadros"])
@@ -3829,7 +3829,7 @@ def usos_de_los_parches(mapas, db, tree):
 
 def fondo_bytes(info):
     """A battle backdrop as the console reads it: `(tiles, colors)`, its 512
-    8bpp tiles in tilemap order and its `COLORES` 15-bit colors, padded with
+    8bpp tiles in tilemap order and its `COLORS` 15-bit colors, padded with
     black."""
     E = escena_mod
     tiles_ = bytearray()
@@ -7945,9 +7945,9 @@ def main():
         nombre = renderer.database.title_name
         picture = Image.open(os.path.join(args.game_dir, "Title",
                                           nombre + ".png"))
-        textos = titulo_mod.options(renderer.database)
+        texts = titulo_mod.options(renderer.database)
         menu_tiles, menu_paleta, menu_mapas = titulo_mod.menu(
-            skin, textos, renderer.database.font_id)
+            skin, texts, renderer.database.font_id)
         # The image, compressed like the Game Over one, and with the menu's
         # colors below its own in the same stream: the whole CGRAM at once,
         # the menu's palette at the bottom because a 4-bit BG only reaches
@@ -7966,7 +7966,7 @@ def main():
                  pantalla["colores"] - len(debajo), pantalla["crudo"],
                  len(pantalla["flujo"])))
         print("    menu (%s): %d 4bpp tiles (%d B) + %d colors, %d tilemap(s)"
-              % (", ".join(repr(t) for t in textos), len(menu_tiles),
+              % (", ".join(repr(t) for t in texts), len(menu_tiles),
                  len(menu_tiles) * 32, len(menu_paleta), len(menu_mapas)))
     # The Game Over screen: the image the LDB's `System` names, in the game's
     # or the RTP's `GameOver/` —as RM2k looks for it—, compressed. It goes in
@@ -7987,7 +7987,7 @@ def main():
     # prerendered frames go to the cartridge and the ROM uploads them by DMA.
     animaciones = animaciones_de_la_rom(mapas, renderer)
     for numero in sorted(animaciones):
-        datos = animacion_mod.informe(numero, animaciones[numero])
+        datos = animacion_mod.report(numero, animaciones[numero])
         print("  animation %d: %d frames of %dx%d, shrunk from %dx%d to %d%%,"
               " %d colors, %d B"
               % (datos["animacion"], datos["cuadros"], datos["caja"][0],
@@ -8136,10 +8136,10 @@ def main():
     # which one it is about.
     cuantos, pesan = parches_mod.write_animations(
         destino_parches,
-        [dict(animacion_mod.informe(numero, animaciones[numero]),
+        [dict(animacion_mod.report(numero, animaciones[numero]),
               nombre=events.ANIMATIONS[numero].get("nombre", ""),
               hoja=events.ANIMATIONS[numero].get("imagen", ""),
-              lado=animacion_mod.CAJA)
+              lado=animacion_mod.BOX)
          for numero in sorted(animaciones)])
     print("patches of %d animation(s) -> %s (%d B)"
           % (cuantos, parches_mod.ANIMS_IN_BUILD, pesan))

@@ -1465,7 +1465,7 @@ HEADER_AUTO_CLOSE = 0x08
 
 # The `OP_MESSAGE` offset in the game's block counts by four bytes, so the
 # block can be 256 KB with a 16-bit operand. It went by two from when the
-# texts were reflowed for the window (`port/textos.py`) until 2026-09-27, when
+# texts were reflowed for the window (`port/texts.py`) until 2026-09-27, when
 # the main path of the world chapter went past 128 KB; the whole game is about
 # 161 KB. It costs a byte and a half of padding per box, on average, against
 # half a byte by two: step 3 was measured (half the padding, 192 KB, and a
@@ -1836,7 +1836,7 @@ ANIMATIONS = {}
 # RM2k animation number as is —180 at most, so it fits in one— and what it is
 # drawn over. The number goes raw and not as an index of ours on purpose: the
 # ROM looks it up in `anim_batalla_de`, a table by number, so neither end has
-# to carry a counter the other one guesses. See `animacion.py`.
+# to carry a counter the other one guesses. See `animation.py`.
 #
 # `ANIM_NO_DRAWING` is "this animation is not drawn", and it is used by the
 # ones RM2k repeats three by three to cover the screen —`global`—, which are
@@ -2344,7 +2344,7 @@ def index_animations(game_dir):
                 "fuerza": t.get("flash_power", 31),
             })
         # And what is needed to **draw it**, since 2026-09-12: the `Battle`
-        # sheet, each frame's cells and where the box goes. `animacion.py`
+        # sheet, each frame's cells and where the box goes. `animation.py`
         # reads it, being the only one that knows what to do with this;
         # here it is stored exactly as it comes from the LDB.
         frames = anim.get("frames") or {}

@@ -12,7 +12,7 @@ import os
 
 from common import project                               # noqa: E402
 from port import events                                # noqa: E402
-from port import textos                                 # noqa: E402
+from port import texts                                 # noqa: E402
 from port import constants                             # noqa: E402
 
 
@@ -45,17 +45,17 @@ def test_todo_el_juego_entra_sin_perder_palabras():
     palabras en el mismo orden, y rearmarlo otra vez no lo cambia."""
     vistos = 0
     for cuadro in _cuadros_del_juego():
-        salida = textos.reajustar(cuadro)
+        salida = texts.refit(cuadro)
         if salida == [cuadro]:
             continue
         vistos += 1
-        hablante = len(cuadro) > 1 and textos.es_hablante(cuadro[0])
+        hablante = len(cuadro) > 1 and texts.is_speaker(cuadro[0])
         sin_cola = [events.escape_tail(c)[0] for c in salida]
         original = events.escape_tail(cuadro)[0]
         assert _palabras(sin_cola, hablante) == _palabras([original], hablante)
         for c in salida:
-            assert textos.entra(c), c
-            assert textos.reajustar(c) == [c]
+            assert texts.fits(c), c
+            assert texts.refit(c) == [c]
     assert vistos, "ningún cuadro se rearmó: la prueba no está mirando nada"
 
 
@@ -66,7 +66,7 @@ def test_el_conversor_rearma_los_textos_al_leer_los_mapas():
     ninguna prueba ejecuta."""
     from port import snes_convert                       # noqa: F401
     from rpgmaker import lcf
-    assert lcf.REFIT_TEXTS is textos.reajustar_comandos
+    assert lcf.REFIT_TEXTS is texts.refit_commands
     mapa = lcf.Map(os.path.join(project.data(), "maps", "Map0002.json"))
     largos = [c.string for evento in mapa.events
               for pagina in evento.pages for c in pagina.commands

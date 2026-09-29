@@ -27,7 +27,7 @@ convierte `release` tiene que estar versionado.
 import os
 
 from common import project                                    # noqa: E402
-from port import animacion                                    # noqa: E402
+from port import animation                                    # noqa: E402
 from port import patches                                      # noqa: E402
 
 from assembly import cartridges                             # noqa: E402
@@ -72,11 +72,11 @@ def test_el_tamano_de_cada_animacion_versionada_sale_de_su_caja_y_de_nada_mas():
     for numero in numeros:
         doc = patches.read_animation(project.auto_patches(), numero)
         assert doc["animacion"] == numero
-        assert tuple(doc["tamano"]) == animacion.tamano(*doc["original"]), (
+        assert tuple(doc["tamano"]) == animation.fit_size(*doc["original"]), (
             "la animación %d dice que se dibuja a %s y su caja de %s da %s"
             % (numero, doc["tamano"], doc["original"],
-               animacion.tamano(*doc["original"])))
-        assert max(doc["tamano"]) <= animacion.CAJA
+               animation.fit_size(*doc["original"])))
+        assert max(doc["tamano"]) <= animation.BOX
 
 
 def test_armar_otra_vez_no_deja_los_parches_de_la_corrida_anterior(tmp_path):

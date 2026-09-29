@@ -5,7 +5,7 @@ by the author, thinking of a 320 px window. The one here is narrower
 —`constants.COLUMNS` characters per line—, and until this, whatever did
 not fit was truncated.
 
-`reajustar` takes the lines of **one** box, exactly as they are in
+`refit` takes the lines of **one** box, exactly as they are in
 `rom/data/`, and returns one or more boxes that fit. It is a pure function:
 the same box always gives the same result, and that is what allows applying
 it on every build instead of storing its output.
@@ -43,9 +43,9 @@ from port import constants
 
 # An end of sentence, with the quotes or parenthesis that close it: cutting
 # there is free. `...` matches through the period.
-FIN_DE_ORACION = re.compile(r"""[.!?]["')]*$""")
+SENTENCE_END = re.compile(r"""[.!?]["')]*$""")
 # A minor pause: cutting there costs little.
-PAUSA = re.compile(r"""[,;:\-]["')]*$""")
+PAUSE = re.compile(r"""[,;:\-]["')]*$""")
 
 # The costs. They are taste and not a measurement: with other values the same
 # box comes out differently. The first ones were tried on the introduction and
@@ -54,14 +54,14 @@ PAUSA = re.compile(r"""[,;:\-]["')]*$""")
 # against the previous version on every box of the game.
 #
 # Cutting a line after a word:
-COSTO_FIN_DE_ORACION = 0
-COSTO_PAUSA = 15
-COSTO_CUALQUIERA = 40
-DESCUENTO_SALTO_ORIGINAL = 10   # where the author cut
-COSTO_HUERFANA = 200            # a lone word on the last line
+COST_SENTENCE_END = 0
+COST_PAUSE = 15
+COST_ANYWHERE = 40
+DISCOUNT_ORIGINAL_BREAK = 10   # where the author cut
+COST_ORPHAN = 200            # a lone word on the last line
 # Between a proper name and its number —"Sector / 33."—. It is almost
 # forbidden: it costs more than an extra box.
-COSTO_ANTES_DE_NUMERO = 1000
+COST_BEFORE_NUMBER = 1000
 
 # The gap a line that is not the last one leaves. How much it weighs depends
 # on where it cuts, and that is the rule that most changes what is seen: **a
@@ -71,32 +71,32 @@ COSTO_ANTES_DE_NUMERO = 1000
 # at an end of sentence was so cheap against the gap that the reflow left
 # "Remember," or "Well," alone on a line so that the ones below would end in
 # a period: that is what taro complained about.
-PESO_HUECO = 20                 # whole sentences: the gap squared / 20
-PESO_HUECO_PAUSA = 8            # cuts at a comma: squared / 8
-PESO_HUECO_PARTIDO = 1000       # splits a sentence: cubed, relative to the width
+WEIGHT_GAP = 20                 # whole sentences: the gap squared / 20
+WEIGHT_GAP_PAUSE = 8            # cuts at a comma: squared / 8
+WEIGHT_GAP_SPLIT = 1000       # splits a sentence: cubed, relative to the width
 
 # The piece of sentence left on the other side of a cut —"sure." at the start
 # of a line, "There" at the end—, if it is shorter than this. It is the
 # generalized orphan: "in time?" alone below looks as cut off as "Well," above.
-COLA_MINIMA = 16
-PESO_COLA = 3                   # what it is short of, squared / 3
+TAIL_MIN = 16
+WEIGHT_TAIL = 3                   # what it is short of, squared / 3
 
 # An extra box is an extra key press for the player. If the nicest layout
 # does not fit in one box but there is one that fits and costs at most this
 # much more, the one that fits wins.
-COSTO_CUADRO_DE_MAS = 300
+COST_EXTRA_BOX = 300
 
 
-def ancho(texto):
+def width(text):
     """How many columns it takes: one character, one column. The font is
     fixed-width, and the only escapes that compile go in the tail, outside
     of this."""
-    return len(texto)
+    return len(text)
 
 
 # Measured against A Blurred Line: an assumption of the engine, not a fact of
 # the game. See `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
-def es_hablante(linea):
+def is_speaker(line):
     """Whether the line names the speaker: all caps, short, and with no
     sentence punctuation at the end.
 
@@ -105,67 +105,67 @@ def es_hablante(linea):
     there is nothing but question marks. "WHAT?" is a shouted sentence, not
     a name.
     """
-    texto = linea.strip()
-    if not texto or len(texto) > 20 or texto != texto.upper():
+    text = line.strip()
+    if not text or len(text) > 20 or text != text.upper():
         return False
-    if set(texto) == {"?"}:
+    if set(text) == {"?"}:
         return True
-    return not texto.endswith((".", "!", "?", ","))
+    return not text.endswith((".", "!", "?", ","))
 
 
-def entra(lineas, columnas=constants.COLUMNS, renglones=constants.LINES):
+def fits(lines, columns=constants.COLUMNS, rows=constants.LINES):
     """Whether the box is fully visible, not counting its escape tail."""
-    sin_cola, _pausas, _autocierre = events.escape_tail(lineas)
-    return (len(sin_cola) <= renglones
-            and all(ancho(t) <= columnas for t in sin_cola))
+    untailed, _pauses, _auto_close = events.escape_tail(lines)
+    return (len(untailed) <= rows
+            and all(width(t) <= columns for t in untailed))
 
 
-def _cola(lineas):
+def _tail(lines):
     """The box's escape tail, exactly as written, and the lines without
     it."""
-    sin_cola, _pausas, _autocierre = events.escape_tail(lineas)
-    sin_cola = list(sin_cola)
-    if not sin_cola:
-        return sin_cola, ""
-    return sin_cola, lineas[-1][len(sin_cola[-1]):]
+    untailed, _pauses, _auto_close = events.escape_tail(lines)
+    untailed = list(untailed)
+    if not untailed:
+        return untailed, ""
+    return untailed, lines[-1][len(untailed[-1]):]
 
 
-def _palabras(renglones, columnas):
+def _words(rows, columns):
     """The words of the body, and after which of them the author cut.
 
     A word wider than a line is split by force: there is no other way to
     show it.
     """
-    palabras = []
-    cortes = set()
-    for renglon in renglones:
-        for palabra in renglon.split():
-            while ancho(palabra) > columnas:
-                palabras.append(palabra[:columnas])
-                palabra = palabra[columnas:]
-            palabras.append(palabra)
-        if palabras:
-            cortes.add(len(palabras) - 1)
-    return palabras, cortes
+    words = []
+    cuts = set()
+    for row in rows:
+        for word in row.split():
+            while width(word) > columns:
+                words.append(word[:columns])
+                word = word[columns:]
+            words.append(word)
+        if words:
+            cuts.add(len(words) - 1)
+    return words, cuts
 
 
-def _costo_de_cortar(palabras, cortes, i):
-    palabra = palabras[i]
-    if FIN_DE_ORACION.search(palabra):
-        costo = COSTO_FIN_DE_ORACION
-    elif PAUSA.search(palabra):
-        costo = COSTO_PAUSA
+def _cut_cost(words, cuts, i):
+    word = words[i]
+    if SENTENCE_END.search(word):
+        cost = COST_SENTENCE_END
+    elif PAUSE.search(word):
+        cost = COST_PAUSE
     else:
-        costo = COSTO_CUALQUIERA
-    if i in cortes:
-        costo -= DESCUENTO_SALTO_ORIGINAL
-    if (palabra[:1].isupper() and palabra[-1:].isalpha()
-            and i + 1 < len(palabras) and palabras[i + 1][:1].isdigit()):
-        costo += COSTO_ANTES_DE_NUMERO
-    return costo
+        cost = COST_ANYWHERE
+    if i in cuts:
+        cost -= DISCOUNT_ORIGINAL_BREAK
+    if (word[:1].isupper() and word[-1:].isalpha()
+            and i + 1 < len(words) and words[i + 1][:1].isdigit()):
+        cost += COST_BEFORE_NUMBER
+    return cost
 
 
-def _costo_del_renglon(palabras, cortes, i, j, columnas):
+def _line_cost(words, cuts, i, j, columns):
     """What a line with the words from `i` to `j` costs: its gap, the cut it
     ends with and the pieces of sentence it leaves loose.
 
@@ -173,126 +173,126 @@ def _costo_del_renglon(palabras, cortes, i, j, columnas):
     but it does pay for being left with a single word or with a short piece
     of the sentence above.
     """
-    n = len(palabras)
-    largo = ancho(" ".join(palabras[i:j]))
-    fines = [k for k in range(i, j) if FIN_DE_ORACION.search(palabras[k])]
-    empieza_oracion = i == 0 or FIN_DE_ORACION.search(palabras[i - 1])
-    costo = 0
+    n = len(words)
+    length = width(" ".join(words[i:j]))
+    ends = [k for k in range(i, j) if SENTENCE_END.search(words[k])]
+    starts_sentence = i == 0 or SENTENCE_END.search(words[i - 1])
+    cost = 0
     # The end of a sentence that started on the line above.
-    if not empieza_oracion and (j == n or (fines and fines[0] < j - 1)):
-        hasta = fines[0] + 1 if fines else j
-        costo += _costo_de_fragmento(palabras[i:hasta])
+    if not starts_sentence and (j == n or (ends and ends[0] < j - 1)):
+        last = ends[0] + 1 if ends else j
+        cost += _fragment_cost(words[i:last])
     if j == n:
         if j - i == 1 and i > 0:
-            costo += COSTO_HUERFANA
-        return costo
+            cost += COST_ORPHAN
+        return cost
     # The start of a sentence that continues on the line below.
-    if not FIN_DE_ORACION.search(palabras[j - 1]) and fines:
-        costo += _costo_de_fragmento(palabras[fines[-1] + 1:j])
-    hueco = columnas - largo
-    if FIN_DE_ORACION.search(palabras[j - 1]) and empieza_oracion:
-        costo += hueco * hueco / PESO_HUECO
-    elif PAUSA.search(palabras[j - 1]):
-        costo += hueco * hueco / PESO_HUECO_PAUSA
+    if not SENTENCE_END.search(words[j - 1]) and ends:
+        cost += _fragment_cost(words[ends[-1] + 1:j])
+    gap = columns - length
+    if SENTENCE_END.search(words[j - 1]) and starts_sentence:
+        cost += gap * gap / WEIGHT_GAP
+    elif PAUSE.search(words[j - 1]):
+        cost += gap * gap / WEIGHT_GAP_PAUSE
     else:
-        costo += PESO_HUECO_PARTIDO * (hueco / columnas) ** 3
-    return costo + _costo_de_cortar(palabras, cortes, j - 1)
+        cost += WEIGHT_GAP_SPLIT * (gap / columns) ** 3
+    return cost + _cut_cost(words, cuts, j - 1)
 
 
-def _costo_de_fragmento(palabras):
+def _fragment_cost(words):
     """A piece of sentence separated from the rest by a line break."""
-    falta = max(0, COLA_MINIMA - ancho(" ".join(palabras)))
-    return falta * falta / PESO_COLA
+    missing = max(0, TAIL_MIN - width(" ".join(words)))
+    return missing * missing / WEIGHT_TAIL
 
 
-def _renglones(palabras, cortes, columnas, maximo=None):
+def _rows(words, cuts, columns, limit=None):
     """The words in lines, choosing the cuts that cost the least.
 
     It is TeX's paragraph algorithm in miniature: dynamic programming over
     where each line ends, keeping count of how many there are so far.
     """
-    n = len(palabras)
+    n = len(words)
     if n == 0:
         return []
     # mejor[j][k]: the cost of putting the first j words in k lines, and
     # where the last one starts.
-    mejor = [dict() for _ in range(n + 1)]
-    mejor[0][0] = (0, None)
+    best = [dict() for _ in range(n + 1)]
+    best[0][0] = (0, None)
     for j in range(1, n + 1):
         for i in range(j - 1, -1, -1):
-            renglon = " ".join(palabras[i:j])
-            if ancho(renglon) > columnas:
+            row = " ".join(words[i:j])
+            if width(row) > columns:
                 break
-            if not mejor[i]:
+            if not best[i]:
                 continue
-            propio = _costo_del_renglon(palabras, cortes, i, j, columnas)
-            for k, (antes, _desde) in mejor[i].items():
-                costo = antes + propio
+            own = _line_cost(words, cuts, i, j, columns)
+            for k, (before, _first) in best[i].items():
+                cost = before + own
                 # `<` and not `<=`: on a tie the longest line wins, which is
                 # the one found first. It is what makes it deterministic.
-                if k + 1 not in mejor[j] or costo < mejor[j][k + 1][0]:
-                    mejor[j][k + 1] = (costo, i)
-    opciones = sorted(mejor[n].items(), key=lambda kv: (kv[1][0], kv[0]))
-    elegido = opciones[0][0]
-    if maximo is not None and elegido > maximo:
+                if k + 1 not in best[j] or cost < best[j][k + 1][0]:
+                    best[j][k + 1] = (cost, i)
+    options = sorted(best[n].items(), key=lambda kv: (kv[1][0], kv[0]))
+    chosen = options[0][0]
+    if limit is not None and chosen > limit:
         # The nicest layout does not fit in one box. If there is one that
         # fits and is not much worse, that one is used: an extra box is an
         # extra key press.
-        entran = [kv for kv in opciones if kv[0] <= maximo]
-        if entran and entran[0][1][0] < opciones[0][1][0] + COSTO_CUADRO_DE_MAS:
-            elegido = entran[0][0]
-    salida = []
-    j, k = n, elegido
+        fit = [kv for kv in options if kv[0] <= limit]
+        if fit and fit[0][1][0] < options[0][1][0] + COST_EXTRA_BOX:
+            chosen = fit[0][0]
+    out = []
+    j, k = n, chosen
     while j > 0:
-        i = mejor[j][k][1]
-        salida.append(" ".join(palabras[i:j]))
+        i = best[j][k][1]
+        out.append(" ".join(words[i:j]))
         j, k = i, k - 1
-    return salida[::-1]
+    return out[::-1]
 
 
-def _tramos(palabras, cortes, columnas, cuerpo):
+def _stretches(words, cuts, columns, body):
     """The words spread over as many boxes as needed.
 
     Each box is filled with whole sentences while they fit. A sentence that
     does not fit in a box on its own is split by lines.
     """
-    oraciones = []
-    desde = 0
-    for i, palabra in enumerate(palabras):
-        if FIN_DE_ORACION.search(palabra) or i == len(palabras) - 1:
-            oraciones.append((desde, i + 1))
-            desde = i + 1
+    sentences = []
+    first = 0
+    for i, word in enumerate(words):
+        if SENTENCE_END.search(word) or i == len(words) - 1:
+            sentences.append((first, i + 1))
+            first = i + 1
 
-    def renglones_de(a, b):
-        locales = {c - a for c in cortes if a <= c < b}
-        return _renglones(palabras[a:b], locales, columnas, cuerpo)
+    def lines_of(a, b):
+        local_ones = {c - a for c in cuts if a <= c < b}
+        return _rows(words[a:b], local_ones, columns, body)
 
-    tramos = []
-    inicio = fin = 0
-    for a, b in oraciones:
-        if len(renglones_de(inicio, b)) <= cuerpo:
-            fin = b
+    stretches = []
+    start = end = 0
+    for a, b in sentences:
+        if len(lines_of(start, b)) <= body:
+            end = b
             continue
-        if fin > inicio:
-            tramos.append(renglones_de(inicio, fin))
-            inicio = fin = a
-        if len(renglones_de(a, b)) <= cuerpo:
-            fin = b
+        if end > start:
+            stretches.append(lines_of(start, end))
+            start = end = a
+        if len(lines_of(a, b)) <= body:
+            end = b
             continue
         # The sentence alone does not fit in a box: it is spread by lines.
-        todos = renglones_de(a, b)
-        for k in range(0, len(todos) - cuerpo, cuerpo):
-            tramos.append(todos[k:k + cuerpo])
-        resto = todos[(len(todos) - 1) // cuerpo * cuerpo:]
-        inicio = b - len(" ".join(resto).split())
-        fin = b
-    if fin > inicio:
-        tramos.append(renglones_de(inicio, fin))
-    return tramos
+        every = lines_of(a, b)
+        for k in range(0, len(every) - body, body):
+            stretches.append(every[k:k + body])
+        rest = every[(len(every) - 1) // body * body:]
+        start = b - len(" ".join(rest).split())
+        end = b
+    if end > start:
+        stretches.append(lines_of(start, end))
+    return stretches
 
 
-def reajustar(lineas, columnas=constants.COLUMNS,
-              renglones=constants.LINES):
+def refit(lines, columns=constants.COLUMNS,
+          rows=constants.LINES):
     """The boxes that replace this one, each a list of lines.
 
     Returns `[lineas]` untouched if the box already fits, or if it carries an
@@ -304,40 +304,40 @@ def reajustar(lineas, columnas=constants.COLUMNS,
     an earlier one. A copy is returned, because some callers add lines to
     what they receive.
     """
-    clave = (tuple(lineas), columnas, renglones)
-    if clave not in _reajustados:
-        _reajustados[clave] = _reajustar(list(lineas), columnas, renglones)
-    return [list(cuadro) for cuadro in _reajustados[clave]]
+    key = (tuple(lines), columns, rows)
+    if key not in _refit_cache:
+        _refit_cache[key] = _refit(list(lines), columns, rows)
+    return [list(frame) for frame in _refit_cache[key]]
 
 
-_reajustados = {}
+_refit_cache = {}
 
 
-def _reajustar(lineas, columnas, renglones):
+def _refit(lines, columns, rows):
     try:
-        if entra(lineas, columnas, renglones):
-            return [lineas]
-        sin_cola, cola = _cola(lineas)
+        if fits(lines, columns, rows):
+            return [lines]
+        untailed, tail = _tail(lines)
     except events.CannotCompile:
-        return [lineas]
+        return [lines]
 
-    cabeza = []
-    if len(sin_cola) > 1 and es_hablante(sin_cola[0]):
-        cabeza = [sin_cola[0]]
-        sin_cola = sin_cola[1:]
-    cuerpo = renglones - len(cabeza)
+    head = []
+    if len(untailed) > 1 and is_speaker(untailed[0]):
+        head = [untailed[0]]
+        untailed = untailed[1:]
+    body = rows - len(head)
 
-    palabras, cortes = _palabras(sin_cola, columnas)
-    tramos = _tramos(palabras, cortes, columnas, cuerpo) or [[]]
-    cuadros = [cabeza + tramo for tramo in tramos]
-    if not cuadros[-1]:
-        cuadros[-1].append("")
-    cuadros[-1][-1] += cola
-    return cuadros
+    words, cuts = _words(untailed, columns)
+    stretches = _stretches(words, cuts, columns, body) or [[]]
+    frames = [head + stretch for stretch in stretches]
+    if not frames[-1]:
+        frames[-1].append("")
+    frames[-1][-1] += tail
+    return frames
 
 
-def reajustar_comandos(comandos, columnas=constants.COLUMNS,
-                       renglones=constants.LINES):
+def refit_commands(commands, columns=constants.COLUMNS,
+                   rows=constants.LINES):
     """A list of commands from `rom/data/` —dictionaries, as they are in the
     JSON— with each text box reflowed.
 
@@ -346,31 +346,31 @@ def reajustar_comandos(comandos, columnas=constants.COLUMNS,
     the boxes that already fit, come out as **the same objects**: whoever
     compares with `is` knows what changed.
     """
-    salida = []
+    out = []
     i = 0
-    while i < len(comandos):
-        comando = comandos[i]
-        if comando["code"] != events.SHOW_MESSAGE:
-            salida.append(comando)
+    while i < len(commands):
+        command = commands[i]
+        if command["code"] != events.SHOW_MESSAGE:
+            out.append(command)
             i += 1
             continue
         j = i + 1
-        while j < len(comandos) and comandos[j]["code"] == events.SHOW_MESSAGE_2:
+        while j < len(commands) and commands[j]["code"] == events.SHOW_MESSAGE_2:
             j += 1
-        originales = comandos[i:j]
-        lineas = [c["string"] for c in originales]
-        cuadros = reajustar(lineas, columnas, renglones)
-        if cuadros == [lineas]:
-            salida.extend(originales)
+        originals = commands[i:j]
+        lines = [c["string"] for c in originals]
+        frames = refit(lines, columns, rows)
+        if frames == [lines]:
+            out.extend(originals)
         else:
-            for cuadro in cuadros:
-                for k, texto in enumerate(cuadro):
-                    salida.append({
+            for frame in frames:
+                for k, text in enumerate(frame):
+                    out.append({
                         "code": (events.SHOW_MESSAGE if k == 0
                                  else events.SHOW_MESSAGE_2),
-                        "indent": comando["indent"],
+                        "indent": command["indent"],
                         "parameters": [],
-                        "string": texto,
+                        "string": text,
                     })
         i = j
-    return salida
+    return out

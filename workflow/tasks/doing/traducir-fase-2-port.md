@@ -50,6 +50,7 @@ ejecutables `rm2k-snes-*` andando desde `/tmp`.
    se tradujeron: el `.inc` las escribe con un string, que no cambia. El
    runtime las sigue llamando en castellano hasta la última área, que puede
    usar los nombres de Python como guía.
+7. `animacion` → `animation` y `textos` → `texts`.
 
 Lo que el conversor escribe al `.inc` cita rutas de `tools/port/` en sus
 comentarios (`; See tools/port/imagen.py.`): esas quedan con el nombre

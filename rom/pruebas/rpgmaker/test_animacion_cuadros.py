@@ -18,7 +18,7 @@ camino que se prueba.
 
 import pytest
 
-from port import animacion, events
+from port import animation, events
 from port.snes_convert import cuadro_de_animacion
 from render.render_map import Renderer
 from rpgmaker.resources import GAME_DIR
@@ -95,7 +95,7 @@ def esperados():
     events.index_animations(GAME_DIR)
     renderer = Renderer()
     return lambda numero: [cuadro_de_animacion(c) for c in
-                           animacion.de_numero(renderer, numero)["cuadros"]]
+                           animation.by_number(renderer, numero)["cuadros"]]
 
 
 @pytest.mark.parametrize("nucleo", (None, BSNES), ids=("snes9x", "bsnes"))

@@ -93,9 +93,9 @@ the console's box is shrunk whole, keeping its proportions, and that shows
 11%—.
 
 Its key is **the RM2k animation number**, and it is enough alone because the
-size comes from `animacion.tamano`, which looks at the box the animation
+size comes from `animation.fit_size`, which looks at the box the animation
 takes in RM2k and the console's box, which is **a single one for the whole
-ROM** —the reason is in `animacion.py`: that it does not depend on the map is
+ROM** —the reason is in `animation.py`: that it does not depend on the map is
 what lets the `ShowBattleAnimation`s of every map share the frames already
 converted—. Neither the cartridge nor the map is part of it, and it is not
 assumed: as with the layers, `--check` compares every cartridge that shows
@@ -256,7 +256,7 @@ def animation_path(auto, number):
 def animation_text(data):
     """An animation's file, exactly as it goes to disk.
 
-    `data` is what `snes_convert` builds with `animacion.informe` and the
+    `data` is what `snes_convert` builds with `animation.report` and the
     name the animation has in the LDB.
     """
     width, height = data["original"]
