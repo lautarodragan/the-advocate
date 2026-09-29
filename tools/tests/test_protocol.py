@@ -1,7 +1,7 @@
 """The bytecode declarations and their generated files must not drift apart.
 
 There are two bytecodes in this port: the event one, which
-`tools/port/events.py` emits and the ROM interprets, and the music stream,
+`rm2k-snes-events` emits and the ROM interprets, and the music stream,
 which `rm2k-snes-audio` writes and `irq_music` reads. They are
 declared by `tools/snes/protocol/`, which belongs to neither side, and from there
 the files in `GENERADOS` are generated. The generator is a Rust binary
@@ -23,7 +23,6 @@ import pytest  # noqa: E402
 
 from port import event_opcodes  # noqa: E402
 from port import events  # noqa: E402
-from rpgmaker import lcf  # noqa: E402
 from audio import music_opcodes  # noqa: E402
 from common import project  # noqa: E402
 
@@ -143,28 +142,6 @@ def test_the_lengths_come_from_the_layout(nombre, modulo, inc, py):
             assert base == cuenta, op_nombre
         else:
             assert modulo.OPCODE_SIZE[codigo] == cuenta, op_nombre
-
-
-# --- a teleport's destination fits in two bytes ---------------------------
-#
-# `OP_TELEPORT` stored the destination map's index in **one byte**, so the
-# format could not name more than 256 maps: it was a ceiling written into the
-# bytecode, and this removes it. That the emitter and the interpreter count
-# the same bytes in every page of a game is checked by the game's suite.
-
-# An index that **does not fit in a byte**, which is the point. The game has
-# 328 maps: 300 is one of those the old format could not name.
-LEJOS = 300
-
-
-def compile_a_teleport(destino):
-    cmd = lcf.EventCommand(events.TELEPORT, 0, "", [7, 12, 34])
-    return events._compile(cmd, lambda m: destino)
-
-
-def test_a_destination_that_does_not_fit_a_byte_is_not_truncated():
-    """The case the old format could not handle: 300 & 0xFF is 44."""
-    assert compile_a_teleport(LEJOS) != compile_a_teleport(LEJOS & 0xFF)
 
 
 def test_no_opcode_shares_a_number_with_another():

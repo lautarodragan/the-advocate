@@ -349,7 +349,7 @@ def troop_pages(answer):
     data = answer["troop_pages"]
     per_troop = {}
     for number, theirs in data["per_troop"]:
-        per_troop[number] = [(events.Trigger(*t), at) for t, at in theirs]
+        per_troop[number] = [(events.Trigger(*t), at) for t, at, _page in theirs]
     return Registry(
         messages=messages(data["messages"], data["message_count"]),
         bodies=bytearray(bytes.fromhex(data["code"])),
@@ -362,3 +362,85 @@ def party_common_events(answer):
     """{common event: its code}: what the ROM runs when the menu closes."""
     return {number: bytes.fromhex(code)
             for _switch, number, code in answer["party_common_events"]}
+
+
+# --- for whoever asks about one page ------------------------------------------
+#
+# The game's tests ask the compiler what it does with a page of the game or
+# one of their own, without building a cartridge. They go through the same
+# two calls.
+
+def slots(dump, test_commands=(), extra_variables=()):
+    """`({variable: slot}, {(actor, skill): bit})` of the whole game, with
+    what `test_commands` name and `extra_variables`: the ones a cartridge
+    built with those test pages carries."""
+    answer = scan(dump, [], test_commands, extra_variables)
+    return ({v: s for v, s in answer["variables"]},
+            {(a, h): s for a, h, s in answer["skills"]})
+
+
+def _map_substitutions(dump, map_ids):
+    """The `TileSubstitution`s these maps' pages and the common events can
+    ask for, **unresolved**: without the converter there are no blocks to
+    translate them to, so the page that asks for one does not compile."""
+    files = map_files(dump)
+    triples = common_substitutions(dump)
+    out = {}
+    for m in map_ids:
+        path = files.get(str(m), os.path.join(dump, "maps",
+                                              "Map%04d.json" % m))
+        mine = list(triples)
+        for event in lcf.read_json(path)["events"]:
+            for page in event["pages"]:
+                for cmd in page["event_commands"]:
+                    p = cmd["parameters"]
+                    if cmd["code"] == events.TILE_SUBSTITUTION and len(p) >= 3:
+                        triple = (bool(p[0]), p[1], p[2])
+                        if triple not in mine:
+                            mine.append(triple)
+        out[str(m)] = [{"upper": u, "old": o, "new": n, "pairs": None}
+                       for u, o, n in mine]
+    return out
+
+
+def loose_request(dump, maps, cases=(), encounter_troops=()):
+    """A `compile` request for a cartridge of `maps` built without the
+    converter: no picture, no graphic renamed, no substitution resolved.
+    `cases` are `(map, commands)`, as they are: nothing is put in front."""
+    req = request(dump, maps, [c for _m, cmds in cases for c in cmds])
+    req.update({
+        "substitutions": _map_substitutions(dump, maps),
+        "picture": None,
+        "sound_effects": {
+            name: settings.value("sound_effects", name, kind=list)
+            for name in ("per_map", "route_effects_left_out",
+                         "troop_effects_in_package")},
+        "cases": [{"map": m, "commands": [command(c) for c in cmds]}
+                  for m, cmds in cases],
+        "test_graphics": {},
+        "messages_step": events.MESSAGES_STEP,
+        "encounter_troops": list(encounter_troops),
+    })
+    return req
+
+
+def loose_page(dump, map_id, commands, maps=None):
+    """`commands`, compiled as a page of event 0 of `map_id` in a cartridge
+    of `maps` —that map alone, by default—: its code, or None."""
+    answer = run("compile", dump,
+                 loose_request(dump, list(maps or [map_id]),
+                               [(map_id, commands)]))
+    code = answer["cases"][0]
+    return None if code is None else bytes.fromhex(code)
+
+
+def troop_triggers(dump, troop):
+    """{page: trigger} of the pages of that troop that get into a cartridge,
+    as `events.Trigger`: what the battle reads to know when each one
+    runs."""
+    answer = run("compile", dump, loose_request(dump, [],
+                                                encounter_troops=[troop]))
+    for number, theirs in answer["troop_pages"]["per_troop"]:
+        if number == troop:
+            return {page: events.Trigger(*t) for t, _at, page in theirs}
+    return {}

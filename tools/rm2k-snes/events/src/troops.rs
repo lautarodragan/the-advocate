@@ -206,7 +206,9 @@ pub struct TroopPages {
     pub messages: Messages,
     pub bodies: Vec<u8>,
     where_: HashMap<Vec<u8>, usize>,
-    pub per_troop: Vec<(i32, Vec<(Trigger, usize)>)>,
+    /// Per troop, each page that got in: its trigger, where its code is,
+    /// and which of the troop's pages it is.
+    pub per_troop: Vec<(i32, Vec<(Trigger, usize, usize)>)>,
     pub pages: usize,
     pub left_out: usize,
 }
@@ -237,9 +239,13 @@ impl TroopPages {
         Ok(())
     }
 
-    fn pages_of(&mut self, ctx: &mut Ctx, pages: &[TroopPage]) -> Result<Vec<(Trigger, usize)>> {
+    fn pages_of(
+        &mut self,
+        ctx: &mut Ctx,
+        pages: &[TroopPage],
+    ) -> Result<Vec<(Trigger, usize, usize)>> {
         let mut theirs = Vec::new();
-        for page in pages {
+        for (k, page) in pages.iter().enumerate() {
             self.pages += 1;
             let t = trigger(ctx, page);
             let cmds = t.as_ref().and_then(|_| commands(&page.commands));
@@ -276,7 +282,7 @@ impl TroopPages {
                     at
                 }
             };
-            theirs.push((t, at));
+            theirs.push((t, at, k));
         }
         Ok(theirs)
     }
@@ -288,7 +294,7 @@ impl TroopPages {
             "distinct": self.where_.len(),
             "per_troop": self.per_troop.iter().map(|(n, theirs)| json!([
                 n,
-                theirs.iter().map(|(t, at)| json!([t.to_json(), at])).collect::<Vec<_>>(),
+                theirs.iter().map(|(t, at, k)| json!([t.to_json(), at, k])).collect::<Vec<_>>(),
             ])).collect::<Vec<_>>(),
             "code": crate::pages::hex(&self.bodies),
             "messages": crate::pages::hex(&self.messages.bytes()),

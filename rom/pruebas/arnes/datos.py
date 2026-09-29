@@ -56,19 +56,26 @@ def maximos():
 
 
 def pagina_de(map_id, evento_id, numero):
-    """La página `numero` del evento `evento_id` del mapa, compilada."""
-    from port import events
+    """La página `numero` del evento `evento_id` del mapa, compilada sola:
+    con su bloque de textos, sus temas y sus gráficos, en un cartucho con
+    todos los mapas del juego. Es lo que contesta la primera llamada del
+    compilador —ver `compiler.scan`—; None si no compila."""
+    from port import compiler
     from rpgmaker import lcf
     game_map = lcf.Map(os.path.join(GAME_DIR, "Map%04d.lmu" % map_id))
-    evento = [e for e in game_map.events if e.id == evento_id][0]
-    for indexar in (events.index_variables, events.index_animations,
-                    events.index_common_events, events.index_battle_audio,
-                    events.index_actors, events.index_skills):
-        indexar(GAME_DIR)
-    del_mapa = events.MapEvents(game_map).for_event(evento.id)
-    return events.compile_page(
-        evento.pages[numero], lambda mid: 0, events.Messages(), del_mapa,
-        events.Songs(), events.Graphics(), events.Pictures(GAME_DIR))
+    evento = [n for n, e in enumerate(game_map.events) if e.id == evento_id][0]
+    return compiler.compiled_pages(todo_el_juego(), map_id).get(
+        (evento, numero))
+
+
+@functools.lru_cache(maxsize=None)
+def todo_el_juego():
+    """La primera llamada del compilador con todos los mapas del juego."""
+    from port import compiler
+    dump = compiler.dump_of(GAME_DIR)
+    mapas = sorted(int(n[3:7]) for n in os.listdir(os.path.join(dump, "maps"))
+                   if n.startswith("Map") and n.endswith(".json"))
+    return compiler.scan(dump, mapas)
 
 
 # --- los índices del cartucho --------------------------------------------------
@@ -96,20 +103,19 @@ def comandos_de_los_casos(cartucho=cartuchos.RELEASE):
 def ranuras_de_variable(cartucho=cartuchos.RELEASE):
     """{número de variable: ranura} del cartucho: las del juego, las de sus
     casos y, si lleva más de uno, la que elige el caso —ver
-    `events.CASE_VARIABLE`—. Es lo que le pasa a `index_variables` el
+    `events.CASE_VARIABLE`—. Las contesta el compilador, igual que al
     conversor."""
-    from port import events
-    extra = events.command_variables(comandos_de_los_casos(cartucho))
-    if len(cartuchos.casos_de(cartucho)) > 1:
-        extra.add(events.CASE_VARIABLE)
-    return events.variables_named(GAME_DIR, None, extra)
+    from port import compiler, events
+    extra = ({events.CASE_VARIABLE}
+             if len(cartuchos.casos_de(cartucho)) > 1 else set())
+    return compiler.slots(compiler.dump_of(GAME_DIR),
+                          comandos_de_los_casos(cartucho), extra)[0]
 
 
 @functools.lru_cache(maxsize=None)
 def ranuras_de_habilidad(cartucho=cartuchos.RELEASE):
     """{(actor, habilidad): bit} del cartucho: los pares del juego con los que
-    nombran sus casos, que es lo que le pasa el conversor."""
-    from port import events
-    return events.skill_pairs(
-        GAME_DIR, events.command_skill_pairs(
-            comandos_de_los_casos(cartucho)))
+    nombran sus casos, que es lo que contesta el compilador al conversor."""
+    from port import compiler
+    return compiler.slots(compiler.dump_of(GAME_DIR),
+                          comandos_de_los_casos(cartucho))[1]

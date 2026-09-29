@@ -7,9 +7,9 @@ su página no compilaba, así que no se le podía hablar.
 **No es un opcode nuevo.** `ShowInn` se expande a comandos que el intérprete
 ya hacía —el saludo, la elección, una rama por oro, el cobro y la cura— igual
 que `CallEvent` se expande al cuerpo del llamado. El porqué de cada byte está
-en `_compile_inn`, y ahí están también las tres deudas declaradas: sin
-ventana de oro, sin "Yes" en gris cuando no alcanza y sin el fundido ni la
-música de `Scene_Map::CallInn`.
+en `compile_inn`, en el compilador de `rm2k-snes-events`, y ahí están
+también las tres deudas declaradas: sin ventana de oro, sin "Yes" en gris
+cuando no alcanza y sin el fundido ni la música de `Scene_Map::CallInn`.
 
 Lo que estas pruebas cuidan es lo que sí pasa: que cobre cuando alcanza, que
 no cobre cuando no, y que "No" no toque nada.
@@ -141,27 +141,8 @@ def test_con_no_no_pasa_nada(partida):
 
 # --- lo que el compilador emite -------------------------------------------
 
-def _pagina_del_bum():
-    """La página del bum compilada, con los textos que dejó."""
-    import glob
-
-    from port import events
-    from rpgmaker import lcf
-    from rpgmaker.resources import GAME_DIR
-
-    todos = sorted(int(os.path.basename(f)[3:7])
-                   for f in glob.glob(os.path.join(GAME_DIR, "Map*.lmu")))
-    events.index_variables(GAME_DIR)
-    events.index_terms(GAME_DIR)
-    mapa = lcf.Map(os.path.join(GAME_DIR, "Map0020.lmu"))
-    del_mapa = events.MapEvents(mapa)
-    bum = [e for e in mapa.events if e.id == 4][0]
-    mensajes = events.Messages()
-    codigo = events.compile_page(
-        bum.pages[0], {m: i for i, m in enumerate(todos)}.get, mensajes,
-        del_mapa.for_event(4), events.Songs(), events.Graphics(),
-        events.Pictures(GAME_DIR))
-    return events, codigo, mensajes
+def _palabra(codigo, i):
+    return codigo[i] | codigo[i + 1] << 8
 
 
 def test_la_pagina_del_bum_compila_y_trae_los_opcodes_de_la_posada():
@@ -172,12 +153,19 @@ def test_la_pagina_del_bum_compila_y_trae_los_opcodes_de_la_posada():
     puede leer aparte: el `OP_MESSAGE` del bum que va delante lo corre tres
     bytes, y ésos son los tres que una implementación que contara desde cero
     se equivocaría.
+
+    Los textos son de la página, compilada sola: el del bum en el 0, el
+    saludo y las dos cajas de la elección detrás, en ese orden. La posada
+    gratis, que es sólo la cura, la mira la prueba del compilador,
+    `a_free_inn_is_only_the_heal`.
     """
-    events, codigo, mensajes = _pagina_del_bum()
+    from datos import pagina_de
+    from port import events
+    codigo = pagina_de(20, 4, 0)
     assert codigo is not None, "la página del bum no compila"
-    saludo = mensajes.where[(("Only 5Cr  to rest here",
-                              "Do you wish to rest here?"), 0, False)]
-    si, no = events.choice_boxes([(0, "Yes"), (1, "No")], mensajes)
+    saludo, si, no = (_palabra(codigo, 4), _palabra(codigo, 9),
+                      _palabra(codigo, 13))
+    assert 0 < saludo < si < no, (saludo, si, no)
     assert codigo == bytes(
         [events.OP_MESSAGE, 0, 0]                      # el texto del bum
         + [events.OP_MESSAGE, saludo & 0xFF, saludo >> 8]
@@ -188,17 +176,3 @@ def test_la_pagina_del_bum_compila_y_trae_los_opcodes_de_la_posada():
         + [events.OP_GOLD, 1, PRECIO, 0, 0]
         + [events.OP_HEAL, 0, 0, 0]
         + [events.OP_DONE]), codigo.hex(" ")
-
-
-def test_una_posada_gratis_es_sólo_la_cura():
-    """Con el precio en cero `CommandShowInn` no muestra nada y descansa de
-    una. Son 6 de las 18 páginas del juego."""
-    from port import events
-    from port.events import _compile_inn
-
-    class Uno:
-        code = events.SHOW_INN
-        parameters = [0, 0, 0]
-        string = ""
-
-    assert _compile_inn(Uno(), 0, None) == bytes([events.OP_HEAL, 0, 0, 0])
