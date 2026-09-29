@@ -4,7 +4,7 @@ El formato es el LC_LZ2 de Nintendo, y lo decidió taro el 2026-09-26 con lo
 medido en `workflow/tasks/*/la-compresion-de-mapas-y-graficos.md`: queda a un
 20% de zlib en los tiles y a 10 KB en las grillas, y su repetición con
 dirección absoluta en la salida es lo que un `mvn` hace de un saque. El
-descompresor es `lz2_descomprimir`, en `rom/src/descomprimir.s`.
+descompresor es `lz2_descomprimir`, en `tools/runtime/descomprimir.s`.
 
 El compresor es un proyecto aparte, `tools/lz2/`, en Rust y en inglés, por la
 regla de AGENTS.md: no necesita saber nada de este juego. Y en Rust y no acá
@@ -14,7 +14,7 @@ desde el PATH, como `voodoo` y `gunter`: se instala con `just herramientas` y
 ningún script llama a `cargo`.
 
 La referencia contra la que se prueba es otra, a propósito: `lz2.py` en
-`pruebas/arnes/`, escrita aparte y sin mirar el binario.
+`rom/pruebas/arnes/`, escrita aparte y sin mirar el binario.
 """
 
 import os

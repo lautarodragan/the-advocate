@@ -11,7 +11,7 @@ imagen de 32 KB **por tropa**, con el fondo y los battlers ya encima. Eso
 multiplicaba imágenes por combinación —seis en `abl`, sobre cuatro fondos— y un
 enemigo muerto se seguía viendo. Desde ese día, idea de taro, el cartucho lleva
 **cada fondo una vez y cada battler una vez**, y la consola los compone al
-empezar la pelea. Ver `escena_subir` en rom/src/batalla_escena.s.
+empezar la pelea. Ver `escena_subir` en tools/runtime/batalla_escena.s.
 
 Sigue siendo una sola capa de 8bpp en BG1, y eso es lo que compra lo mismo que
 compraba antes:
@@ -41,7 +41,7 @@ nada por combinación.
 Que sean quince colores **es una decisión artística**: se pierde color respecto
 de la escena horneada, donde los battlers compartían las 96 entradas con el
 fondo. Qué se fusionó con qué queda escrito por battler en
-`parches/auto/battlers/`, como las capas de los mapas. Ver
+`rom/parches/auto/battlers/`, como las capas de los mapas. Ver
 `tools/port/parches.py`.
 
 El borde también cambia: antes el battler se mezclaba con el fondo al
@@ -132,7 +132,7 @@ primero los dos búferes de la WRAM con esos planos fijos, por DMA, y después
 agranda el chico con la CPU: cada pixel dos veces a lo ancho y cada fila dos
 veces a lo alto. De ahí para adelante todo es igual —componer, borrar a un
 muerto, subir a la VRAM—, porque en la WRAM queda un fondo de 8bpp como el
-del `.msu`. Ver `esc_llenar` y `esc_doblar` en rom/src/batalla_escena.s, y
+del `.msu`. Ver `esc_llenar` y `esc_doblar` en tools/runtime/batalla_escena.s, y
 `respaldo_bytes` en snes_convert.py para el orden en que viajan los bytes,
 que es el que le ahorra cuentas a la ROM.
 
@@ -425,7 +425,7 @@ def tiles(indices):
 # --- los battlers ---------------------------------------------------------------
 
 def clave(nombre, tono):
-    """Cómo se llama un battler en el cartucho y en `parches/`: la imagen y su
+    """Cómo se llama un battler en el cartucho y en `rom/parches/`: la imagen y su
     tono, que es lo que lo hace distinto de otro con la misma imagen."""
     return "%s-%d" % (nombre, tono) if tono else nombre
 

@@ -10,7 +10,7 @@ con las tres cosas que la ROM sube, una detrás de otra:
     los colores, a dos bytes cada uno
 
 La ROM lo descomprime entero en la WRAM y lo sube con tres DMA: ver
-`pantalla_subir` en rom/src/game_over.s, que lee de `pantallas_tabla` dónde
+`pantalla_subir` en tools/runtime/game_over.s, que lee de `pantallas_tabla` dónde
 está cada flujo y cuánto mide cada parte.
 
 **Por qué comprimido y no un liviano en la ROM con el de calidad en el

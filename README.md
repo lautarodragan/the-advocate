@@ -35,9 +35,9 @@ El primer mapa de verdad es el 1.
 
 ## Los datos en formato versionable
 
-    just datos         # el juego -> data/ y rom/build/ditto-exacto/, con Ditto
+    just datos         # el juego -> rom/data/ y rom/build/ditto-exacto/, con Ditto
 
-`data/` tiene los mismos datos que los `.lmu` pero en un formato que git puede
+`rom/data/` tiene los mismos datos que los `.lmu` pero en un formato que git puede
 versionar de verdad: se puede ver qué cambió, revisarlo y editarlo a mano. Y
 **es de donde el port lee el juego**: `tools/rpgmaker/lcf.py` sale de acá, así
 que el conversor y las pruebas están mirando estos archivos y no los binarios.
@@ -45,7 +45,7 @@ Quién lo escribe es **Ditto** (`tools/ditto/`), que además sabe volver: `ditto
 pack` rearma los archivos del juego byte por byte desde el volcado exacto, que
 la misma corrida deja en `rom/build/ditto-exacto/` y que no se versiona. El
 porqué de la decisión está en `DITTO.md` y lo que hay adentro, en
-`data/README.md`.
+`rom/data/README.md`.
 
 ## Cómo se arma
 
@@ -60,10 +60,17 @@ fuentes: ver "Referencias".
     just cartuchos                        # arma las ROMs: release y las de prueba
     just pruebas                          # la tanda entera; arma antes lo que haga falta
 
+El repo tiene dos mitades: `tools/`, las herramientas y el runtime
+—`tools/runtime/`, el motor en ensamblador, que se arma junto con los `.inc`
+de cada juego—, y `rom/`, que es A Blurred Line: su `justfile`, `data/`,
+`parches/`, `pruebas/` y `build/`. Las recetas de ABL corren desde la raíz
+del repo, porque el `justfile` de ahí importa el de `rom/`, o parado en
+`rom/`; las de las herramientas, con `just -f tools/justfile`.
+
 La ROM que se juega sale en `rom/build/release/abl.sfc`, con su `abl.msu` y las
 pistas de MSU-1 al lado. Qué pasa entre el juego y la ROM está en
 `docs/port/pipeline.md`, y el audio en `docs/port/audio.md`; qué ROMs hay y
-qué prueba cubre qué, en `pruebas/README.md`; qué hace cada carpeta de
+qué prueba cubre qué, en `rom/pruebas/README.md`; qué hace cada carpeta de
 `tools/`, en `tools/README.md`.
 
 ## La arquitectura
@@ -129,7 +136,7 @@ No se escribe acá, porque acá envejecía sin que nadie lo notara:
 * qué comandos de evento se aceptan sin hacerse lo dice
   `ACEPTADOS_SIN_HACER`, en `tools/port/eventos.py`, que es una lista
   ejecutable y no puede desincronizarse;
-* y lo que ninguna prueba mira, en `pruebas/UNTESTED.md`.
+* y lo que ninguna prueba mira, en `rom/pruebas/UNTESTED.md`.
 
 ## Referencias
 

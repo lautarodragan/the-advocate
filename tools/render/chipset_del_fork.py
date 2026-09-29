@@ -1,4 +1,4 @@
-"""La imagen de un ChipSet de `parches/manual/`: la receta aplicada al PNG.
+"""La imagen de un ChipSet de `rom/parches/manual/`: la receta aplicada al PNG.
 
 **La imagen del ChipSet no se versiona: se arma.** El arte del juego no es
 nuestro para redistribuir —vive en `/extras`, ver `docs/rpgmaker/rtp.md`—, así
@@ -103,7 +103,7 @@ def podar(imagen, map_id):
     """Borra del ChipSet todo lo que ese mapa no dibuja.
 
     Un ChipSet del fork es **privado de su mapa** —ver
-    `parches/manual/README.md`—, así que ningún otro puede pedirle un tile que
+    `rom/parches/manual/README.md`—, así que ningún otro puede pedirle un tile que
     éste no use: lo que no se dibuja es peso muerto. Y el peso que importa no
     son los pixeles sino los **índices de paleta**: el PNG es indexado y tiene
     256, que es el techo contra el que choca `desde_imagen` al traer un dibujo
@@ -176,7 +176,7 @@ def _a_quince(color):
 
     Que el PNG del ChipSet quede con colores que el arte original no tiene no
     es un problema: esa imagen **no se versiona, se arma** —ver
-    `parches/manual/README.md`—, así que es un intermedio del build y no el
+    `rom/parches/manual/README.md`—, así que es un intermedio del build y no el
     arte del juego, que sigue intacto en su `Picture/`.
     """
     return tuple((canal >> 3) << 3 for canal in color)

@@ -359,7 +359,7 @@ BANCOS_RESERVADOS = 2
 #
 # **Bajó de 256 a 128 el 2026-09-20, por decisión de taro**, para darle esos 128
 # bytes a la BSS, que está llena. Lo que hace que el margen deje de ser ciego es
-# `pruebas/rpgmaker/test_pila.py`: marca la zona de la pila **antes del
+# `rom/pruebas/rpgmaker/test_pila.py`: marca la zona de la pila **antes del
 # primer cuadro** y mide hasta dónde bajó de verdad en los caminos más hondos,
 # con el umbral en la mitad de acá. Sin esa prueba bajar el número sería gastar
 # un margen que no ve nadie —el modo de falla es la pila comiéndose la BSS, y

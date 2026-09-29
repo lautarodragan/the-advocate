@@ -8,7 +8,7 @@ Ninguna prueba arma: corren contra lo que deja esto —ver `tanda.rom`—.
                                     `just build`
     rm2k-snes-cartridges --lista    qué caso va en qué cartucho
 
-Un caso nuevo es un archivo en `pruebas/casos/` y nada más: entra solo en
+Un caso nuevo es un archivo en `rom/pruebas/casos/` y nada más: entra solo en
 `release` y se corre con `tanda.partida("<nombre>")`. Empieza con un
 `Teleport` al mapa donde tiene que correr: el de arranque es el 4, el
 enrutador del juego, cuya cinemática no espera a nadie.
@@ -55,7 +55,7 @@ DESTINO = proyecto.cartuchos_de_prueba()
 # **Son valores de acá y no flags del conversor**, a propósito: al conversor le
 # sigue llegando la lista entera en `--mapas`. Éste es el único que lo llama;
 # `test_horneados` y `test_parches` necesitan la lista sin correrlo; y como el
-# sello lleva los flags y no `data/`, un árbol que cambie qué mapas entran deja
+# sello lleva los flags y no `rom/data/`, un árbol que cambie qué mapas entran deja
 # viejo al cartucho sólo si la lista viaja expandida.
 #
 # El 105, Mountain Path, es el primero del capítulo siguiente, adonde lleva el
@@ -109,7 +109,7 @@ AGREGADOS = (164, 259, 255)
 # **El mapa de debug**: un cuarto con una puerta a cada punto clave del juego
 # —cada una deja el estado de alguien que jugó hasta ahí— y un NPC por
 # compañero que lo suma o lo saca del grupo. Lo pidió taro el 2026-09-27, y
-# "Begin the Story" arranca ahí. Es un mapa nuevo de `parches/manual/nuevos/`
+# "Begin the Story" arranca ahí. Es un mapa nuevo de `rom/parches/manual/nuevos/`
 # —ver `fork.nuevos`—, con un id que el juego no usa, y lo que hace cada
 # puerta está en los comentarios de sus páginas.
 #
@@ -142,8 +142,8 @@ def mapas_de_la_regla(menor_a=MENOR_A, excluidos=EXCLUIDOS,
     la ROM**, así que cambiarlo la mueve: ver `orden_de_mapas` en
     snes_convert.py.
 
-    El árbol es el del volcado de `data/`, que es el que lee el conversor: por
-    eso la ruta cae adentro de `data/` y no del juego —ver `lcf.volcado`—."""
+    El árbol es el del volcado de `rom/data/`, que es el que lee el conversor: por
+    eso la ruta cae adentro de `rom/data/` y no del juego —ver `lcf.volcado`—."""
     from rpgmaker import lcf
     arbol = lcf.TreeMap(os.path.join(lcf.DATOS, "RPG_RT.lmt"))
     de_la_regla = [m for m in range(1, menor_a)
@@ -245,9 +245,9 @@ def huella():
     """De qué depende un cartucho, además de sus flags y sus casos.
 
     Lo que cambie la ROM y no esté acá la deja vieja en silencio: por eso
-    entran los binarios y `parches/manual/`, que la cambian sin tocar ningún
+    entran los binarios y `rom/parches/manual/`, que la cambian sin tocar ningún
     fuente.
-    `data/` no, que lo regenera `just datos`. Se mira el contenido y no la fecha, que `git checkout` cambia.
+    `rom/data/` no, que lo regenera `just datos`. Se mira el contenido y no la fecha, que `git checkout` cambia.
     """
     h = hashlib.sha256()
     for ruta in archivos_de_la_huella():
@@ -264,7 +264,7 @@ def huella():
 def archivos_de_la_huella(fuente=FUENTE):
     """Los archivos que lee `huella`, en orden. `fuente` es un parámetro sólo
     para que una prueba pueda pasarle un árbol armado a mano."""
-    # Todo `rom/src/`, y no sólo lo que `main.s` incluye hoy: un archivo que
+    # Todo `tools/runtime/`, y no sólo lo que `main.s` incluye hoy: un archivo que
     # se agrega y se incluye en el mismo cambio tiene que dejar viejo al cartucho.
     partes = (sorted(r for r in glob.glob(os.path.join(fuente, "**"),
                                           recursive=True) if os.path.isfile(r))
@@ -332,7 +332,7 @@ def sello(nombre, fuentes=None):
 
 
 def directorio(nombre):
-    """Lo que las pruebas escriben no va acá sino a `pruebas/snapshots/`."""
+    """Lo que las pruebas escriben no va acá sino a `rom/pruebas/snapshots/`."""
     if nombre == RELEASE:
         return os.path.join(proyecto.build(), RELEASE)
     return os.path.join(DESTINO, nombre.replace("test-", "", 1))

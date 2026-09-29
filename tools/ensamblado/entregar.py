@@ -6,7 +6,7 @@ AGENTS.md; esto es esa regla escrita una sola vez.
     abl-entregar "qué mirar"
     abl-entregar "qué mirar" --actualizar-msu
 
-El build lleva `abl.sfc`, `abl.sfc.dbg`, `abl.msu`, el `rom/src/` del commit
+El build lleva `abl.sfc`, `abl.sfc.dbg`, `abl.msu`, el `tools/runtime/` del commit
 y un `LEEME.txt`. Las pistas de MSU-1 no: van a `/shared/msu/`, y sólo con
 `--actualizar-msu`. El `abl.msu` va también ahí, siempre: ver `MSU_DEL_BUILD`.
 """
@@ -123,7 +123,7 @@ abl.sfc del commit {commit} ({fecha}): {asunto}
 {que_mirar}
 
 abl.sfc.dbg: los nombres de las rutinas para el depurador de Mesen2, que lo
-carga solo si está al lado de la ROM. rom/src/ es el fuente exacto de este
+carga solo si está al lado de la ROM. tools/runtime/ es el fuente exacto de este
 commit, y es lo que hace que Mesen2 muestre el fuente al lado del
 desensamblado (Ctrl+Q) abriendo la ROM desde acá: lo busca subiendo de carpeta
 desde el .dbg. No van mapdata.inc ni musicdata.inc, que genera el conversor y
@@ -190,7 +190,7 @@ def main():
                     os.path.join(MSU, MSU_DEL_BUILD))
 
     # `git archive` y no una copia del árbol: así es el del commit, sin nada
-    # sin trackear que haya quedado en rom/src/.
+    # sin trackear que haya quedado en tools/runtime/.
     shutil.rmtree(os.path.join(destino, RUNTIME.split(os.sep)[0]),
                   ignore_errors=True)
     archivo = subprocess.run(["git", "-C", RAIZ, "archive", "HEAD", RUNTIME],

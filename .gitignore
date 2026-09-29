@@ -3,10 +3,10 @@ __pycache__/
 wt/
 rom/build/
 # Lo que escriben las pruebas mientras corren —las fotos del recorrido y las
-# capturas que difieren de su golden—, al lado de `pruebas/golden/`, que es
+# capturas que difieren de su golden—, al lado de `rom/pruebas/golden/`, que es
 # contra lo que se comparan. Es salida de las pruebas y no del build, por eso
 # no va en `rom/build/`.
-pruebas/snapshots/
+rom/pruebas/snapshots/
 # Los worktrees de los sub-agentes. Son repositorios de git adentro del repo, y
 # un `git add -A` los mete al índice como submódulos rotos: pasó el 2026-09-13.
 .claude/worktrees/

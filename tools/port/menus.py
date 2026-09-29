@@ -1119,7 +1119,7 @@ def render_menu(sys_img, db, ranuras, grupo, oro, elegida=0,
 # la izquierda: no hay ítem.
 #
 # A usa la medicina sobre la fila marcada y la pantalla se queda, con los HP de
-# esa fila y la cantidad al día: ver `medicina_usar` en rom/src/medicina.s.
+# esa fila y la cantidad al día: ver `medicina_usar` en tools/runtime/medicina.s.
 # Esto dibuja los HP que se le pasen en `hp`, así que después de curar alcanza
 # con pasarle los nuevos.
 OBJETIVO_IZQ = 104

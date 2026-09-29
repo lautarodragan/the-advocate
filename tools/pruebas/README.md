@@ -8,15 +8,15 @@ Las de los proyectos de Rust tienen su receta cada uno (`protocolo-pruebas`,
 `ditto-pruebas`…).
 
 **Una prueba va acá si no lee el juego** —ni `ABL_GAME_DIR`, ni el RTP—, **ni
-`data/`, ni `parches/`, ni un cartucho armado, ni la tanda**. Todo lo que
+`rom/data/`, ni `rom/parches/`, ni un cartucho armado, ni la tanda**. Todo lo que
 mira lo arma adentro, o lo lee de `tools/` y del motor. Las que necesitan
-algo de eso son de las pruebas de A Blurred Line, en `pruebas/` de la raíz,
+algo de eso son de las pruebas de A Blurred Line, en `rom/pruebas/`,
 aunque prueben una herramienta. Un archivo que mezcla se parte: los dos lados
 del mismo tema pueden tener el mismo nombre —`test_bancos.py`— o uno que
 diga qué mira del juego —`test_protocolo_contra_el_juego.py`—.
 
 No corren ninguna ROM y tardan menos de un segundo, así que van en serie y
-sin xdist. La tanda de la raíz no las corre, y ellas no necesitan nada de
+sin xdist. La tanda de ABL no las corre, y ellas no necesitan nada de
 ABL: por eso tampoco dependen de `cartuchos`.
 
 Lo que sí usan de afuera: `test_protocolo.py` corre `protocol` del PATH, y
@@ -24,7 +24,7 @@ Lo que sí usan de afuera: `test_protocolo.py` corre `protocol` del PATH, y
 PATH, de donde diga `ABL_SOUNDFONT`. El SoundFont no es del juego sino
 material del conversor, aunque la variable todavía lleve el nombre de ABL.
 `test_protocolo.py` y `test_sustituciones.py` leen además el motor, en
-`rom/src/`, que viaja con las herramientas.
+`tools/runtime/`, que viaja con las herramientas.
 
 ## Qué prueba cubre qué
 

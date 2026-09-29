@@ -57,7 +57,7 @@ El de "+fondo" lo pidió **el mundo**, el mapa 66: 527 tiles de fondo y 222 de
 sprite. En vez de subir "+fondo" se agregó "+techo" al final, que es "+fondo"
 con los 544: los mapas que ya estaban siguen donde estaban. Y 544 tiles de 8bpp
 son 34 KB, más que el buffer de carga de LZ2, así que ese fondo viaja en dos
-flujos: ver `lz2_fondo` en `rom/src/descomprimir.s`.
+flujos: ver `lz2_fondo` en `tools/runtime/descomprimir.s`.
 
 El sexto, "+encima", lo pidió **Sorbe Village**, el mapa 69: 157 tiles en la
 capa de encima, y los otros cinco le dan 128. No sube ningún techo de fondo ni

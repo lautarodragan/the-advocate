@@ -5,10 +5,10 @@ Cada página de evento que se puede compilar viaja en el cartucho como
 
     tools/protocol/events.toml  lo declara: cada opcode, su número y los bytes que lleva
     tools/port/eventos.py       lo emite: `_compilar`, un caso por comando de RM2k
-    rom/src/interprete*.s       lo ejecuta: `correr_codigo` y un `.proc op_*` por opcode
+    tools/runtime/interprete*.s       lo ejecuta: `correr_codigo` y un `.proc op_*` por opcode
 
 De `tools/protocol/events.toml` salen generados `tools/port/event_opcodes.py` y
-`rom/src/event_opcodes.inc`; ver `tools/protocol/README.md`, que está en inglés porque
+`tools/runtime/event_opcodes.inc`; ver `tools/protocol/README.md`, que está en inglés porque
 ahí adentro no se sabe nada de este juego. **Un opcode nuevo se declara ahí y en
 ningún otro lado**: antes el número lo elegía el compilador y le llegaba al
 intérprete adentro de `mapdata.inc`, y así dos ramas eligieron el mismo sin que
@@ -66,7 +66,7 @@ como "la definición escrita" de lo que hace la ROM. Es documentación con forma
 de código, no se ejecuta, ninguna prueba la toca, y envejece sin que nadie se
 entere. El porqué de cada mecánica va en el comentario de su rutina.
 
-| Mecánica | en `rom/src/` | quién la compila, o quién la mide |
+| Mecánica | en `tools/runtime/` | quién la compila, o quién la mide |
 | --- | --- | --- |
 | Pisar un evento, y pisarlo al final de una ruta forzada —una puerta es eso: una página de contacto con un `Teleport` adentro— | `probar_contacto`, `accion_en_celda` | — |
 | Hablarle a un evento con la tecla de acción | `probar_accion`, `encolar_por_accion` | — |
@@ -82,11 +82,11 @@ entere. El porqué de cada mecánica va en el comentario de su rutina.
 | Los eventos dibujados con un tile del chipset | `load_npcs` | `npcs_dibujables`, `Charsets` en `tools/render/render_map.py` |
 | Los que además son opacos y fijos: horneados en el mapa y sin fila que dibujar | `build_oam` saltea la fila escondida | `eventos_horneables` |
 | El fundido de los teletransportes, con el mapa cargando adentro del negro | `empezar_fundido`, `fundido_tick` | `rampa_de_fundido`, y las constantes `FUNDIDO_*` |
-| El tope de teletransportes encadenados | `SALTOS_MAX` y sus usos | lo cobra `pruebas/rpgmaker/test_saltos.py` |
+| El tope de teletransportes encadenados | `SALTOS_MAX` y sus usos | lo cobra `rom/pruebas/rpgmaker/test_saltos.py` |
 | La pantalla se prende en el vblank y en ningún otro lado | `flush_video` | — |
 | La ventana de mensaje, clavada abajo por HDMA | `armar_hdma`, `msg_empezar`, `msg_ptr_sig` | `tools/port/ventana.py`, `Mensajes` |
 | El texto compuesto en caliente, con los glifos ya pre-renderizados | `mensaje_tick`, `componer_char`, `cebar_linea` | `fuente_prerender` en `tools/port/snes_convert.py` |
-| El arranque dura siempre lo mismo | `BOOT_CUADROS` | lo corre `Partida` en `pruebas/arnes/consola.py` |
+| El arranque dura siempre lo mismo | `BOOT_CUADROS` | lo corre `Partida` en `rom/pruebas/arnes/consola.py` |
 | Los cuadros perdidos se cuentan | `contar_perdidos` | los lee `Partida.cuadros_perdidos` de la WRAM |
 | La música no espera al lazo: va en una IRQ vertical | `irq_musica`, `IRQ_LINEA` | — |
 

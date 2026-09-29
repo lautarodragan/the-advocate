@@ -1,11 +1,11 @@
-"""El juego, leído del volcado a JSON de `data/`.
+"""El juego, leído del volcado a JSON de `rom/data/`.
 
 Hasta el 2026-09-14 esto parseaba los binarios de RPG Maker 2000 en cada build
 —ese lector se borró cuando dejó de tener quien lo usara—. Desde
-entonces el formato se lee **una sola vez**, en Ditto, y lo que hay en `data/`
+entonces el formato se lee **una sola vez**, en Ditto, y lo que hay en `rom/data/`
 es el resultado: `maps/MapNNNN.json` con su `.tiles` al lado, `maps.json` con el
 árbol y `db/*.json` con las quince secciones de la base. El porqué está en
-`DITTO.md`; lo que hay adentro de `data/`, en `data/README.md`.
+`DITTO.md`; lo que hay adentro de `rom/data/`, en `rom/data/README.md`.
 
 **Los consumidores no se enteraron.** Las clases de acá —`Map`, `Database`,
 `TreeMap` y todo lo que cuelga— tienen los mismos atributos que antes, con los
@@ -14,11 +14,11 @@ esa ruta sólo se usa **el nombre**, para saber qué mapa es, y el directorio
 sólo si tiene adentro un volcado propio (un `ditto.json`). Los gráficos y el
 audio siguen saliendo del juego de verdad, que es lo que `--game-dir` nombra.
 
-**Y de este archivo no sale ninguna regla del formato.** Lo que hay en `data/`
+**Y de este archivo no sale ninguna regla del formato.** Lo que hay en `rom/data/`
 es la *vista resuelta* que emite Ditto: **todos los campos escritos**, con su
 default ya aplicado, y los enums como el número que guarda el binario. Así que
 leer es leer: `datos["max_hp"]` y listo. Un campo que falte es un `KeyError`, y
-eso es lo que se quiere —quiere decir que `data/` quedó viejo, no que valga
+eso es lo que se quiere —quiere decir que `rom/data/` quedó viejo, no que valga
 cero—.
 
 Hasta el 2026-09-20 acá se leía el *volcado exacto* —defaults omitidos, enums
@@ -49,7 +49,7 @@ def volcado(path):
     Los llamadores pasan una ruta adentro del juego original —`--game-dir`—,
     que es de donde siguen saliendo los PNG y los MIDI. Si ese directorio
     tiene un volcado de Ditto adentro se usa ése, que es como se lee un juego
-    que no es éste; si no, el de `data/`, que es el del repo.
+    que no es éste; si no, el de `rom/data/`, que es el del repo.
     """
     directorio = os.path.dirname(os.path.abspath(path))
     if os.path.isfile(os.path.join(directorio, MANIFIESTO)):
@@ -133,7 +133,7 @@ def to_string(payload):
 # --- Enums, para nombrarlos en un volcado o en un mensaje -------------------
 #
 # Los nombres son los de liblcf y el orden es el de sus números. **No se usan
-# para leer nada**: `data/` trae los enums en número, que es lo que el port
+# para leer nada**: `rom/data/` trae los enums en número, que es lo que el port
 # quiere. Éstas están para nombrarlos —un volcado, un mensaje de error— y para
 # los que hay que recorrer por índice.
 
@@ -189,9 +189,9 @@ class EventCommand:
 # port pone `textos.reajustar_comandos`; el lector no sabe de pantallas, y
 # sin nadie que la ponga el juego se lee tal cual.
 #
-# Es un paso aparte de `parches/`, y corre después: lee lo que sea que haya
+# Es un paso aparte de `rom/parches/`, y corre después: lee lo que sea que haya
 # quedado, y un cuadro que ya entra lo deja como está. Así un texto corregido a
-# mano en un fork de `parches/manual/` gana siempre.
+# mano en un fork de `rom/parches/manual/` gana siempre.
 #
 # Se aplica a las páginas de los mapas y a los eventos comunes, y no a las de
 # las tropas: la ventana de la pelea tiene otro ancho.
@@ -212,9 +212,9 @@ def comandos(datos, reajustar=False):
 
 
 def comandos_escritos(datos):
-    """Lo mismo, pero de una lista **escrita a mano**: `pruebas/casos/*.json`.
+    """Lo mismo, pero de una lista **escrita a mano**: `rom/pruebas/casos/*.json`.
 
-    Esos archivos no salen de `data/`: los escribimos nosotros, y por eso
+    Esos archivos no salen de `rom/data/`: los escribimos nosotros, y por eso
     están en la taquigrafía que se puede escribir —el comando por su nombre,
     `ShowMessage`, y sólo los campos que dicen algo—. Un caso convertido a la
     vista resuelta sería ilegible y nadie lo editaría, así que la taquigrafía
@@ -363,7 +363,7 @@ class Map:
         self.map_id = int(base[3:7]) if base[3:7].isdigit() else 0
         raiz = volcado(path)
         # El fork es sólo de **este** juego: un juego ajeno se lee pasándole su
-        # propio volcado, y ahí `parches/manual/` no pinta nada.
+        # propio volcado, y ahí `rom/parches/manual/` no pinta nada.
         # Y lo mismo un mapa que el juego no tiene: ver `fork.nuevos`.
         forkeado = ((fork.mapa(self.map_id) or fork.nuevo(self.map_id))
                     if raiz == DATOS else None)
@@ -399,7 +399,7 @@ def passability(datos, nombre):
 
     El chipset que no la trae la tiene igual —15 es transitable por los cuatro
     lados y por debajo del héroe, y el 31 del primer tile alto lo pone por
-    encima—, y eso ya viene resuelto de `data/`: acá no hay nada que completar.
+    encima—, y eso ya viene resuelto de `rom/data/`: acá no hay nada que completar.
     """
     return bytes(campo(datos, nombre))
 
@@ -534,7 +534,7 @@ class Item:
     `ko_only` "sólo sobre un muerto". `state_set` son los estados que saca,
     uno por estado del LDB desde el 1, que es el de muerto: es lo que decide
     si levanta a un caído. Ver `batalla.item_usable_en_batalla` y
-    `medicina_usar` en rom/src/medicina.s.
+    `medicina_usar` en tools/runtime/medicina.s.
     """
 
     def __init__(self, datos):
@@ -707,14 +707,14 @@ class Database:
         self.secciones = {s: leer(raiz, "%s.json" % s) for s in SECCIONES}
 
         crudas = {s: por_id(self.secciones[s]) for s in SECCIONES_LISTA}
-        # Los ChipSets que agrega `parches/manual/`. Se **suman**: un id que ya
+        # Los ChipSets que agrega `rom/parches/manual/`. Se **suman**: un id que ya
         # esté en la base es un error, porque un fork que pisa una entrada
         # envejece sin avisar el día que `just datos` la cambie. Ver `fork.py`.
         if raiz == os.path.join(DATOS, "db"):
             for numero, datos in fork.chipsets().items():
                 if numero in crudas["chipsets"]:
                     raise ValueError(
-                        "el ChipSet %d ya está en data/: el fork agrega, no "
+                        "el ChipSet %d ya está en rom/data/: el fork agrega, no "
                         "reemplaza" % numero)
                 crudas["chipsets"][numero] = datos["chipset"]
         self.chipsets = {i: Chipset(f) for i, f in crudas["chipsets"].items()}
@@ -812,7 +812,7 @@ class Database:
     def decode(self, unknown=None):
         """La base entera como dicts, para el que la quiere campo por campo.
 
-        Es `data/` tal cual, con dos retoques que no son del formato: los
+        Es `rom/data/` tal cual, con dos retoques que no son del formato: los
         arrays de structs pasan a estar indexados por id, que es como se los
         busca, y los textos pasan por `texto`. Todo lo demás —los defaults
         aplicados, los enums en número— ya viene así.
@@ -822,7 +822,7 @@ class Database:
 
 
 def normalizar(datos):
-    """Un pedazo de `data/` indexado por id y con los textos adivinados.
+    """Un pedazo de `rom/data/` indexado por id y con los textos adivinados.
 
     Un array de structs vuelve a ser `{id: elemento}`, que es como se lo busca;
     los que no tienen id —los comandos de un evento, que en el formato van uno

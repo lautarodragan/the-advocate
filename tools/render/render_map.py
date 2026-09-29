@@ -206,7 +206,7 @@ class Renderer:
         self.tree = lcf.TreeMap(os.path.join(game_dir, "RPG_RT.lmt"))
         self.game_dir = game_dir
         self.search_dirs = [proyecto.raiz(), game_dir, rtp_dir]
-        # Las imágenes de los ChipSets que agrega `parches/manual/` se
+        # Las imágenes de los ChipSets que agrega `rom/parches/manual/` se
         # **arman** —el arte del juego no es nuestro para versionar, ver
         # `chipset_del_fork.py`— y van primero en la búsqueda: son las que
         # mandan cuando existen.

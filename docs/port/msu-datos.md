@@ -72,9 +72,9 @@ El conversor emite en el `.inc` la firma que escribió (`msu_datos_firma`) y
 dónde quedó cada fondo (`msu_fondo_pos`, por número de fondo: es la cuenta de
 arriba, en una tabla para que la ROM no multiplique). Al empezar una pelea
 con fondo,
-`msu_datos_validos` —en `rom/src/msu1.s`— busca la posición 0 y compara los 8
+`msu_datos_validos` —en `tools/runtime/msu1.s`— busca la posición 0 y compara los 8
 bytes; si coinciden, `esc_llenar` y los colores de `escena_subir` —en
-`rom/src/batalla_escena.s`— leen del `.msu`, y `ESC_MSU` queda en 1.
+`tools/runtime/batalla_escena.s`— leen del `.msu`, y `ESC_MSU` queda en 1.
 
 **La firma es del contenido, no del commit**: un `.msu` de otro build con los
 mismos fondos se acepta, y está bien, porque son los mismos bytes en las
@@ -102,7 +102,7 @@ Qué fondo pide una pelea es lo de RM2k —`Game_Map::SetupBattle` y
 si es un encuentro al azar o el comando pide "el del lugar", el del mapa
 subiendo por el árbol; y si el mapa no nombra ninguno, **el del terreno de la
 celda que pisa el héroe**. Ése lo resuelve la ROM al empezar la pelea
-(`esc_terreno`, en `rom/src/batalla_escena.s`), con `fondo_terreno`. Así
+(`esc_terreno`, en `tools/runtime/batalla_escena.s`), con `fondo_terreno`. Así
 salen las peleas del mundo.
 
 **La ROM lleva todos los que las peleas del cartucho pueden pedir**: los que
@@ -126,7 +126,7 @@ propiedad del formato, más 4 de puntero.
 ## Cuánto tarda
 
 Se mide con `ESC_CUADROS`, que `escena_subir` deja en la RAM al abrir la
-pelea: `pruebas/abl/test_msu_datos.py` arma los dos caminos, y leerlo ahí es
+pelea: `rom/pruebas/abl/test_msu_datos.py` arma los dos caminos, y leerlo ahí es
 una línea. En snes9x y en bsnes el `.msu` tarda **menos** que la ROM
 —medido en la pelea del droide—: los dos son DMA a la misma velocidad y ahí
 buscar es instantáneo, pero el respaldo lleva un DMA por tile para los planos
@@ -149,7 +149,7 @@ En el FX Pak buscar dentro de su búfer de 16 KB es inmediato, y fuera de él
 es leer la tarjeta SD —`prepare_data` en `src/msu1.c` de sd2snes, su
 firmware—.
 Eso **no está medido**. El tope de la espera —`MSU_ESPERA`, en
-`rom/src/msu1.s`— es unas diez veces lo que tarda Mednafen.
+`tools/runtime/msu1.s`— es unas diez veces lo que tarda Mednafen.
 
 Si una búsqueda no llega a tiempo, lo que ya se leyó del `.msu` es el fondo
 de calidad y lo que sigue saldría del liviano, que no comparten ni colores ni
@@ -173,16 +173,16 @@ paquetes con la misma lista la comparten—, y al lado un `efectos.json`
 legible.
 
 La firma es la misma de los fondos y se mira una vez por encendido, en la
-primera carga de paquete (`se_msu_preparar`, en `rom/src/efectos_con_msu.s`).
+primera carga de paquete (`se_msu_preparar`, en `tools/runtime/efectos_con_msu.s`).
 Sin firma, los efectos salen de la ROM como siempre. Una búsqueda que no llega
 a tiempo deja ese efecto sin subir: no suena, porque la versión de la ROM
-tiene otra altura. Lo cubre `pruebas/abl/test_msu_efectos.py`, menos esa
+tiene otra altura. Lo cubre `rom/pruebas/abl/test_msu_efectos.py`, menos esa
 espera, por lo mismo que la de los fondos.
 
 ## Cómo se prueba
 
 La tanda corre sin MSU-1, así que sus goldens de batalla son el respaldo
-liviano. `pruebas/abl/test_msu_datos.py` corre los dos caminos en snes9x y
+liviano. `rom/pruebas/abl/test_msu_datos.py` corre los dos caminos en snes9x y
 en bsnes y compara **cada uno contra su golden** —`msu-datos-rom` y
 `msu-datos-msu`— y el fondo limpio de la WRAM contra los bytes que arma el
 conversor: el de calidad tal cual y el liviano agrandado a 8bpp y al doble.
@@ -191,7 +191,7 @@ héroe —`msu-mundo-rom`, su respaldo, y `msu-mundo-msu`, el de calidad—, y
 que cada fondo esté en su lugar fijo con los mismos bytes en el `.msu` de
 todos los cartuchos. El reemplazo lo cubre
 `test_escena_una_pelea_cuyo_fondo_no_esta_usa_el_reemplazo`, en
-`pruebas/rpgmaker/test_batalla_escena_dibujo.py`.
+`rom/pruebas/rpgmaker/test_batalla_escena_dibujo.py`.
 
 **La espera no la cubre la tanda**, porque los tres cores de libretro que
 hay acá buscan en el acto, y el arnés no puede simular la demora: ve la
