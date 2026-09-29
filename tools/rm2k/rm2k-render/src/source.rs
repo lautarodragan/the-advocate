@@ -5,7 +5,7 @@
 //! * **a request**: a JSON file with the map's size, its two layers and its
 //!   ChipSet entry. It is how a caller that has already changed the map
 //!   —patched it, baked something into a layer— asks for exactly that map;
-//! * **the dump**: a map number, read from the project's Ditto dump
+//! * **the dump**: a map number, read from a Ditto dump
 //!   (`maps/MapNNNN.json`, with its layers in the `.tiles` beside it) and
 //!   its ChipSet entry from `db/chipsets.json`. The dump as Ditto wrote it:
 //!   whatever a project patches on top of it is the caller's to apply, and
@@ -223,50 +223,4 @@ fn split_extension(file_name: &str) -> (&str, &str) {
         Some(0) | None => (file_name, ""),
         Some(at) => file_name.split_at(at),
     }
-}
-
-/// The name of the file a project is found by.
-pub const PROJECT_FILE: &str = "rm2k-snes.toml";
-
-/// The project's dump: `[paths] data` in its project file, relative to it.
-/// The project is `--project`, or the nearest directory from the current
-/// one upwards that has the file, the way cargo finds its `Cargo.toml`.
-pub fn project_data(project: Option<&Path>) -> Result<PathBuf> {
-    let directory = match project {
-        Some(dir) => {
-            if !dir.join(PROJECT_FILE).is_file() {
-                return Err(Bad::usage(format!(
-                    "{} has no {PROJECT_FILE}: --project is the directory where that file is",
-                    dir.display()
-                )));
-            }
-            dir.to_path_buf()
-        }
-        None => {
-            let start = std::env::current_dir().map_err(|e| Bad::usage(e.to_string()))?;
-            start
-                .ancestors()
-                .find(|dir| dir.join(PROJECT_FILE).is_file())
-                .map(Path::to_path_buf)
-                .ok_or_else(|| {
-                    Bad::usage(format!(
-                        "found no {PROJECT_FILE} in {} nor in any folder above it: run this \
-                         from inside the project, or pass it --project <directory>",
-                        start.display()
-                    ))
-                })?
-        }
-    };
-    let file = directory.join(PROJECT_FILE);
-    let text = std::fs::read_to_string(&file)
-        .map_err(|e| Bad::usage(format!("{}: {e}", file.display())))?;
-    let table: toml::Table = text
-        .parse()
-        .map_err(|e| Bad::usage(format!("{}: {e}", file.display())))?;
-    let data = table
-        .get("paths")
-        .and_then(|p| p.get("data"))
-        .and_then(|d| d.as_str())
-        .ok_or_else(|| Bad::usage(format!("{}: no `data` in [paths]", file.display())))?;
-    Ok(directory.join(data))
 }

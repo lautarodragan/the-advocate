@@ -68,3 +68,24 @@ def test_the_layers_only_depend_downwards(packages):
                 wrong.append("%s (%s/) depends on %s (%s/)"
                              % (p["name"], source, d["name"], target))
     assert not wrong, "a layer depends upwards or sideways:\n" + "\n".join(wrong)
+
+
+def test_the_lower_layers_do_not_read_the_project_file():
+    """Knowing `rm2k-snes.toml` is knowing the layer above without depending
+    on it: copying its format instead of using `rm2k-project`. Until
+    2026-09-29 `rm2k-render` looked for the file itself, to find the dump;
+    `cargo metadata` does not see that, a grep does."""
+    found = []
+    for layer in ("snes", "rm2k"):
+        for root, dirs, files in os.walk(os.path.join(project.tools(), layer)):
+            dirs[:] = [d for d in dirs if d != "target"]
+            for name in files:
+                if not name.endswith((".rs", ".toml")):
+                    continue
+                path = os.path.join(root, name)
+                with open(path, encoding="utf-8") as handle:
+                    if "rm2k-snes.toml" in handle.read():
+                        found.append(os.path.relpath(path, project.tools()))
+    assert not found, (
+        "these name rm2k-snes.toml, which only rm2k-snes/ may know: %s"
+        % ", ".join(sorted(found)))

@@ -1,7 +1,7 @@
 //! The executable: its two ways in, what it writes, and how it says no.
 //!
 //! A small map and a ChipSet are generated inside each test, as a request
-//! and as a Ditto dump with its project file, so none of this needs a game.
+//! and as a Ditto dump, so none of this needs a game.
 
 use rm2k_render::{picture, Picture};
 use std::path::{Path, PathBuf};
@@ -150,10 +150,9 @@ fn a_request_draws_both_layers_and_each_family_it_uses() {
     std::fs::remove_dir_all(&dir).unwrap();
 }
 
-/// A project with its dump: the map in `maps/`, its layers in the `.tiles`
-/// beside it, and the ChipSet entry in `db/chipsets.json`.
-fn project(dir: &Path) {
-    std::fs::write(dir.join("rm2k-snes.toml"), "[paths]\ndata = \"dump\"\n").unwrap();
+/// A Ditto dump in `<dir>/dump`: the map in `maps/`, its layers in the
+/// `.tiles` beside it, and the ChipSet entry in `db/chipsets.json`.
+fn dump(dir: &Path) {
     let maps = dir.join("dump").join("maps");
     let db = dir.join("dump").join("db");
     std::fs::create_dir_all(&maps).unwrap();
@@ -196,7 +195,7 @@ fn project(dir: &Path) {
 #[test]
 fn a_map_from_the_dump_draws_what_the_same_request_draws() {
     let dir = scratch("dump");
-    project(&dir);
+    dump(&dir);
     // Upper case on disk, lower case in the database: the lookup ignores it.
     let game = dir.join("game");
     let file = chipset(&game, "TILES.png");
@@ -206,6 +205,8 @@ fn a_map_from_the_dump_draws_what_the_same_request_draws() {
             "layers",
             "--map",
             "7",
+            "--data",
+            dir.join("dump").to_str().unwrap(),
             "--game-dir",
             game.to_str().unwrap(),
             "--rtp-dir",
@@ -213,7 +214,7 @@ fn a_map_from_the_dump_draws_what_the_same_request_draws() {
             "--out",
             from_dump.to_str().unwrap(),
         ],
-        &dir.join("dump").join("maps"),
+        &dir,
     );
     assert!(
         done.status.success(),
@@ -282,6 +283,11 @@ fn a_missing_chipset_is_an_answer_and_a_missing_flag_is_misuse() {
     );
     assert_eq!(done.status.code(), Some(2));
     assert!(String::from_utf8_lossy(&done.stderr).contains("pass --game-dir"));
+
+    // A map number says nothing without the dump it is read from.
+    let done = run(&["layers", "--map", "7", "--out", out.to_str().unwrap()], &dir);
+    assert_eq!(done.status.code(), Some(2));
+    assert!(String::from_utf8_lossy(&done.stderr).contains("--data"));
     std::fs::remove_dir_all(&dir).unwrap();
 }
 

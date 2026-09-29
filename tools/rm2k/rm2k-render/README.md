@@ -1,6 +1,6 @@
 # rm2k-render: an RPG Maker 2000 map's tile layers, as pictures
 
-    rm2k-render layers --map 7 --game-dir game/ --rtp-dir rtp/ --out map7/
+    rm2k-render layers --map 7 --data dump/ --game-dir game/ --rtp-dir rtp/ --out map7/
     rm2k-render layers --request map.json --chipset-file ChipSet/Town.png --out map7/
     rm2k-render atlas --chipset Town --game-dir game/ --rtp-dir rtp/ -o town-atlas.png
 
@@ -39,10 +39,10 @@ drawing above is copied from.
 
 ## Where the map comes from
 
-**`--map N`** reads map `N` from a project's Ditto dump —`maps/MapNNNN.json`,
-its layers from the `.tiles` beside it, and its ChipSet's entry from
-`db/chipsets.json`—, the dump being `[paths] data` of the `rm2k-snes.toml`
-found from the current directory upwards, or in `--project`.
+**`--map N`** reads map `N` from the Ditto dump in **`--data`**
+—`maps/MapNNNN.json`, its layers from the `.tiles` beside it, and its
+ChipSet's entry from `db/chipsets.json`—. Like the game and the RTP, where
+the dump is is the caller's to say: this does not look for it.
 
 That is the dump **as Ditto wrote it**. A caller that changes the map before
 drawing it —patches it, puts something into a layer— sends it as a

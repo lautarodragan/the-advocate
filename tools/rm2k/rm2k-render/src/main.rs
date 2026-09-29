@@ -64,19 +64,20 @@ struct Where {
                         water-1.png and water-2.png, animated-1.png to animated-3.png. A \
                         family the map does not use has no files, and old ones are \
                         removed.\n\
-                        --map reads the project's Ditto dump as it is. A map somebody \
+                        --map reads a Ditto dump, --data, as it is. A map somebody \
                         changed goes in a --request: a JSON with width, height, \
                         lower_layer, upper_layer, and chipset with chipset_name, \
                         passable_data_lower and passable_data_upper, named as in the \
                         dump."
 )]
 struct Layers {
-    /// The map's number, read from the project's dump
+    /// The map's number, read from the dump in --data
     #[arg(
         long,
         value_name = "N",
         conflicts_with = "request",
-        required_unless_present = "request"
+        required_unless_present = "request",
+        requires = "data"
     )]
     map: Option<u32>,
 
@@ -84,10 +85,10 @@ struct Layers {
     #[arg(long, value_name = "PATH")]
     request: Option<PathBuf>,
 
-    /// The directory where rm2k-snes.toml is. Without this, it is looked up
-    /// from the current directory upwards. Only --map reads it
-    #[arg(long, value_name = "DIRECTORY")]
-    project: Option<PathBuf>,
+    /// The Ditto dump --map reads the map from: the directory with maps/
+    /// and db/
+    #[arg(long, value_name = "DIRECTORY", conflicts_with = "request")]
+    data: Option<PathBuf>,
 
     #[command(flatten)]
     chipset: Where,
@@ -149,7 +150,10 @@ fn chipset(place: &Where, name: Option<&str>) -> Result<picture::Picture> {
 fn do_layers(args: &Layers) -> Result<()> {
     let found = match (&args.request, args.map) {
         (Some(path), _) => source::request(path)?,
-        (None, Some(id)) => source::dump(&source::project_data(args.project.as_deref())?, id)?,
+        (None, Some(id)) => {
+            let data = args.data.as_deref();
+            source::dump(data.ok_or_else(|| Bad::usage("--map needs --data"))?, id)?
+        }
         (None, None) => return Err(Bad::usage("no map: --map or --request")),
     };
     let atlas = Atlas::new(&chipset(&args.chipset, Some(&found.chipset_name))?);

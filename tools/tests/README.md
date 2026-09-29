@@ -53,5 +53,6 @@ has to exist: `test_index.py` enforces it.
 * `test_settings.py`: that the project file reader, `common/settings.py`,
   fails with the key's name instead of falling back to a default value
 * `test_layers.py`: that the Rust projects' layers only depend downwards:
-  `snes/` and `rm2k/` on nothing of the other two, `rm2k-snes/` on both
+  `snes/` and `rm2k/` on nothing of the other two, `rm2k-snes/` on both;
+  and that neither of the first two names `rm2k-snes.toml`
 * `test_index.py`: that this list is up to date

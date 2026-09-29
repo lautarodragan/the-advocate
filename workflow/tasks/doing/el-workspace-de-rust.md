@@ -34,8 +34,16 @@ Dos cosas más, en la misma tarea:
    `cargo metadata`: `snes/` y `rm2k/` no dependen de `rm2k-snes/`, y
    `snes/` y `rm2k/` no dependen uno del otro.
 
-Commits: el workspace; la mudanza, sólo `git mv` y rutas; la prueba; la
-prosa aparte.
+3. **`rm2k-render` deja de leer `rm2k-snes.toml`.** Va a `rm2k/`, pero
+   `layers --map N` buscaba el archivo del proyecto hacia arriba y leía
+   `[paths] data` para encontrar el volcado: saber de la capa de arriba
+   copiando su formato en vez de depender de un crate, que la prueba de
+   capas por `cargo metadata` no ve. Ahora recibe `--data <dir>`, el
+   directorio del volcado de Ditto, y la prueba de capas mira también que
+   nada de `snes/` ni de `rm2k/` nombre `rm2k-snes.toml`.
+
+Commits: el workspace; la mudanza, sólo `git mv` y rutas; la prueba; lo de
+`rm2k-render`; la prosa aparte.
 
 ## Lo hecho
 
