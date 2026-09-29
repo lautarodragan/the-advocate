@@ -31,10 +31,10 @@ Tres restricciones mandan en el resultado:
 
 import hashlib
 import math
-import os
 
 from audio import muestras_brr
 from comun import cache_disco
+from comun import proyecto
 
 # El sintetizador por software de Windows, que es con el que se compuso y se
 # escuchó este juego. Microsoft le licenció a Roland un subconjunto reducido del
@@ -45,9 +45,8 @@ from comun import cache_disco
 # en ARAM sin remuestrear nada — y remuestrear era, por lejos, lo que más
 # calidad costaba. Y de paso dejamos de aproximarnos a un banco parecido para
 # muestrear del que produjo el sonido original.
-SOUNDFONT = os.environ.get(
-    "ABL_SOUNDFONT",
-    "/extras/soundfonts/Microsoft GS Wavetable Synth.sf2")
+# Se cambia con `ABL_SOUNDFONT`: ver `comun/proyecto.py`.
+SOUNDFONT = proyecto.soundfont()
 BLOCK = muestras_brr.BLOQUE_MUESTRAS   # 16 muestras por bloque de BRR
 REFERENCE_KEY = 60                 # do central: con qué nota se elige la zona
 PEAK = 0x6800                      # a cuánto se normaliza cada muestra

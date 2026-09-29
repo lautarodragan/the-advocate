@@ -40,10 +40,10 @@ from multiprocessing import Pool
 
 # `realpath` y no `abspath`: `just herramientas` instala este script en el PATH
 # como symlink, y lo que importa es dónde está el archivo de verdad.
-RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
-sys.path.insert(0, os.path.join(RAIZ, "tools"))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 from audio import sdsp, snes_music                      # noqa: E402
+from comun import proyecto                              # noqa: E402
 
 # La mitad del aire de siempre: medido el 2026-09-26, con 0,25 no recorta
 # ninguno de los 32 temas del `release`, y el que más suma queda a 3,9 dB
@@ -69,7 +69,7 @@ ANTES_DEL_TITULO = 22
 # Cuántos cuadros más allá del pico toca la prueba.
 DESPUES_DEL_PICO = 60
 
-MEDIDA = os.path.join(RAIZ, "rom", "build", "techos")
+MEDIDA = os.path.join(proyecto.build(), "techos")
 
 
 def temas_de(directorio):
@@ -303,7 +303,7 @@ def main():
     # mira sólo los aires de la tabla (ver `cartuchos.huella`).
     escribir(techos, medido, huellas)
     imprimir(medido, techos)
-    print("-> %s" % os.path.relpath(snes_music.TECHOS, RAIZ))
+    print("-> %s" % os.path.relpath(snes_music.TECHOS, proyecto.raiz()))
 
 
 if __name__ == "__main__":

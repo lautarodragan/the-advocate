@@ -91,10 +91,7 @@ def snapshots():
 # omisión son los de siempre: cambiar uno cambia dónde se lee el juego.
 
 def juego():
-    """El proyecto RM2k original. Es una copia dentro del contenedor, no un
-    montaje del host: así el directorio original ni siquiera es alcanzable
-    desde acá, que protege más que un montaje de sólo lectura. Todas las
-    herramientas aceptan --game-dir para apuntar a otro lado."""
+    """El proyecto RM2k original: ver `rpgmaker/recursos.py`."""
     return os.environ.get("ABL_GAME_DIR", "/extras/abl-rm")
 
 

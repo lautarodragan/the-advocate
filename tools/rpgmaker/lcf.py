@@ -35,11 +35,11 @@ en qué juego de caracteres está una cadena—.
 import json
 import os
 
+from comun import proyecto
 from rpgmaker import fork
 from rpgmaker.event_codes import EVENT_CODES
 
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-DATOS = os.path.join(REPO, "data")
+DATOS = proyecto.data()
 MANIFIESTO = "ditto.json"
 
 

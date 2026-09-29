@@ -76,6 +76,7 @@ if __name__ == "__main__":
 from audio import snes_music                                # noqa: E402
 from audio import snes_samples                              # noqa: E402
 from comun import cache_disco                               # noqa: E402
+from comun import proyecto                                  # noqa: E402
 from rpgmaker.recursos import GAME_DIR                      # noqa: E402
 
 # La ganancia de fluidsynth. Con 1.0 los temas con muchas voces saturan, así
@@ -90,7 +91,7 @@ _fluidsynth = None
 _ffmpeg = None
 
 # Dónde se buscan los reemplazos, y con qué extensiones, en este orden.
-REEMPLAZOS = "/extras/msu"
+REEMPLAZOS = proyecto.reemplazos_msu()
 EXTENSIONES = (".mp3", ".ogg", ".flac", ".wav")
 
 

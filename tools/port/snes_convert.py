@@ -88,12 +88,13 @@ from port import constantes
 from port import reglas
 from port import msu_datos
 from audio import efectos_msu
+from comun import proyecto
 from comun.paralelo import en_paralelo
 from audio import snes_music
 from port.asignador import CELL, tile_colors
 from port.formato_snes import cgram_word, entry, pack_tile
 from rpgmaker.rm2k import TILE, collect_npcs, hero_start, passability_map
-from render.render_map import REPO, Renderer, build_passability, load_image
+from render.render_map import Renderer, build_passability, load_image
 from rpgmaker.recursos import GAME_DIR, RTP_DIR, find_resource
 
 # El PPU direcciona 1024 tiles por capa: diez bits en cada celda del tilemap.
@@ -1747,7 +1748,7 @@ _VERSION_CAPAS = None
 def _version_capas():
     """Qué versión del código produjo lo que haya guardado bajo `capas`.
 
-    Son las seis piezas que participan del dibujo o de la conversión, más los
+    Son las siete piezas que participan del dibujo o de la conversión, más los
     dos programas que no son fuentes de este árbol:
 
     * `render/render_map.py` y `render/chipset.py` **dibujan** las capas y
@@ -1755,7 +1756,9 @@ def _version_capas():
       eran los pixeles ya dibujados: cambiar el dibujo cambiaba la clave solo.
       Desde que la clave sale de los insumos, la única forma de que un cambio
       en el dibujo invalide lo guardado es ésta. `rpgmaker/recursos.py` va con
-      ellos porque es de donde `render_map` saca cómo encuentra el ChipSet;
+      ellos porque es de donde `render_map` saca cómo encuentra el ChipSet, y
+      `comun/proyecto.py` porque es de donde salen los directorios en que lo
+      busca;
     * `port/asignador.py` decide qué colores se pierden, `rpgmaker/rm2k.py`
       tiene las constantes del reparto y de las familias animadas, y este
       archivo hace el resto;
@@ -1779,6 +1782,7 @@ def _version_capas():
                                                  "rpgmaker/rm2k.py",
                                                  "render/render_map.py",
                                                  "rpgmaker/recursos.py",
+                                                 "comun/proyecto.py",
                                                  "render/chipset.py")
                           + tiles_bin.version()
                           + " Pillow " + PIL.__version__)
@@ -7172,7 +7176,7 @@ def parser_de_flags():
     parser.add_argument("--map-id", type=int, default=7)
     parser.add_argument("--game-dir", default=GAME_DIR)
     parser.add_argument("-o", "--output",
-                        default=os.path.join(REPO, "rom/build/inc/mapdata.inc"))
+                        default=os.path.join(proyecto.build(), "inc", "mapdata.inc"))
     parser.add_argument("--msu",
                         help="dónde escribir el .msu con los datos que el\n"
                              "MSU-1 le sirve a la ROM: al lado del .sfc y con\n"

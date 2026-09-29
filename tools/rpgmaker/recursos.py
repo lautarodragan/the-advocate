@@ -6,11 +6,14 @@ RM2k, que usan por igual el render, el audio y el conversor.
 
 import os
 
+from comun import proyecto
+
 # El proyecto RM2k original. Es una copia dentro del contenedor, no un montaje
 # del host: así el directorio original ni siquiera es alcanzable desde acá, que
 # protege más que un montaje de sólo lectura. Todas las herramientas aceptan
-# --game-dir para apuntar a otro lado.
-GAME_DIR = os.environ.get("ABL_GAME_DIR", "/extras/abl-rm")
+# --game-dir para apuntar a otro lado. El valor por omisión y la variable,
+# `ABL_GAME_DIR`, están en `comun/proyecto.py`.
+GAME_DIR = proyecto.juego()
 # El RTP de Don Miguel (junio de 2000), extraído de RTPE.EXE. No es el RTP
 # "oficial": el RPG Maker 2000 que se usaba fuera de Japón era su traducción, y
 # de paso le agregó archivos propios (Future1-3, entre otros) que ABL usa. El
@@ -19,8 +22,8 @@ GAME_DIR = os.environ.get("ABL_GAME_DIR", "/extras/abl-rm")
 # por la misma razón: no es nuestro para redistribuir y no tiene por qué estar
 # en el árbol. Antes era `RTP/` adentro del repo, excluido por .gitignore, que
 # es la peor combinación —ocupaba lugar, no se versionaba, y parecía del
-# proyecto—. Con ABL_RTP_DIR se apunta a otra copia.
-RTP_DIR = os.environ.get("ABL_RTP_DIR", "/extras/rtp")
+# proyecto—. Con ABL_RTP_DIR se apunta a otra copia: ver `comun/proyecto.py`.
+RTP_DIR = proyecto.rtp()
 
 
 def find_resource(dirs, folder, name, extensions=(".png", ".bmp")):

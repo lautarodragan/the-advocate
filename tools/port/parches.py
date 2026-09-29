@@ -126,11 +126,24 @@ import os
 import sys
 import tomllib
 
-# Dónde viven los versionados, relativo a la raíz del repo.
-DIRECTORIO = os.path.join("parches", "auto", "mapas")
+# Corrido como script, Python pone en el `sys.path` la carpeta de este archivo
+# y no `tools/`: ver el mismo arranque en `port/snes_convert.py`.
+if __name__ == "__main__":
+    sys.path[0] = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+
+from comun import proyecto                                  # noqa: E402
+
+# Dónde viven los versionados, relativo a la raíz del repo: las funciones
+# reciben la raíz —`proyecto.raiz()`, o un directorio temporal en las
+# pruebas— y esto es lo que se le suma. Sale de `proyecto` para que mover
+# `parches/` no haya que repetirlo acá.
+_AUTO = os.path.relpath(proyecto.parches_auto(), proyecto.raiz())
+DIRECTORIO = os.path.join(_AUTO, "mapas")
 
 # Dónde los deja cada cartucho al armarse, relativo al directorio del build.
-EN_BUILD = DIRECTORIO
+# Es la forma del build, no dónde está `parches/` en el repo: por eso no sale
+# de `proyecto`, y no se mueve con él.
+EN_BUILD = os.path.join("parches", "auto", "mapas")
 
 
 def ruta(raiz, map_id):
@@ -223,8 +236,8 @@ def escribir(destino, mapas):
 # Igual que los mapas: versionadas acá, y cada cartucho deja las suyas al lado
 # de su ROM. La clave es **el número de animación de RM2k**, que es del juego:
 # el mismo 82 en cualquier cartucho que la muestre.
-DIRECTORIO_ANIM = os.path.join("parches", "auto", "animaciones")
-EN_BUILD_ANIM = DIRECTORIO_ANIM
+DIRECTORIO_ANIM = os.path.join(_AUTO, "animaciones")
+EN_BUILD_ANIM = os.path.join("parches", "auto", "animaciones")
 
 
 def ruta_animacion(raiz, numero):
@@ -292,8 +305,8 @@ def escribir_animaciones(destino, animaciones):
 # La clave es **el battler**: la imagen de RM2k y su tono, `escena.clave`. Es
 # del juego y no depende del cartucho ni de la tropa, porque la reducción mira
 # el dibujo ya achicado y nada más.
-DIRECTORIO_BAT = os.path.join("parches", "auto", "battlers")
-EN_BUILD_BAT = DIRECTORIO_BAT
+DIRECTORIO_BAT = os.path.join(_AUTO, "battlers")
+EN_BUILD_BAT = os.path.join("parches", "auto", "battlers")
 
 
 def _archivo(clave):
@@ -414,10 +427,6 @@ def mapas_de_prueba():
     """Los mapas que sólo existen por la tanda. Salen de `cartuchos.py`, que es
     donde se decide qué mapas lleva cada cartucho; acá no se escriben otra
     vez."""
-    # `realpath`: corrido desde el PATH, `__file__` es el symlink.
-    herramientas = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-    if herramientas not in sys.path:
-        sys.path.insert(0, herramientas)
     from ensamblado import cartuchos
     return set(cartuchos.MAPAS_DE_PRUEBA)
 
@@ -544,13 +553,14 @@ def _lados(par):
 # cuenta qué cambió. Agregar una clase es agregar una fila acá y su `texto`:
 # la verificación, el copiado a `parches/` y los mensajes salen de ésta.
 Clase = collections.namedtuple(
-    "Clase", "nombre articulo directorio clave leer diferencias")
+    "Clase", "nombre articulo directorio en_build clave leer diferencias")
 
 CLASES = (
-    Clase("mapa(s)", "el mapa", DIRECTORIO, "mapa", leer, diferencias),
-    Clase("animación(es)", "la animación", DIRECTORIO_ANIM, "animacion",
-          leer_animacion, diferencias_animacion),
-    Clase("battler(s)", "el battler", DIRECTORIO_BAT, "battler",
+    Clase("mapa(s)", "el mapa", DIRECTORIO, EN_BUILD, "mapa", leer,
+          diferencias),
+    Clase("animación(es)", "la animación", DIRECTORIO_ANIM, EN_BUILD_ANIM,
+          "animacion", leer_animacion, diferencias_animacion),
+    Clase("battler(s)", "el battler", DIRECTORIO_BAT, EN_BUILD_BAT, "battler",
           leer_battler, diferencias_battler),
 )
 
@@ -612,7 +622,7 @@ def _revisar_clase(clase, raiz, builds, jugable):
     # diferencias son otras y su queja sale igual, con su nombre.
     dichas = set()
     for build in builds:
-        carpeta = os.path.join(build, clase.directorio)
+        carpeta = os.path.join(build, clase.en_build)
         if not os.path.isdir(carpeta):
             continue
         cartucho = os.path.basename(os.path.normpath(build))
@@ -657,9 +667,7 @@ def _revisar_clase(clase, raiz, builds, jugable):
 
 
 def main(argv=None):
-    # `realpath`: corrido desde el PATH, `__file__` es el symlink.
-    raiz = os.path.dirname(os.path.dirname(os.path.dirname(
-        os.path.realpath(__file__))))
+    raiz = proyecto.raiz()
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument(
         "builds", nargs="*",
@@ -671,7 +679,6 @@ def main(argv=None):
                         help="no escribe: falla si lo versionado quedó viejo")
     args = parser.parse_args(argv)
     if not args.builds and args.check:
-        mapas_de_prueba()       # deja `tools/` en el camino de los imports
         from ensamblado import cartuchos
         args.builds = [cartuchos.directorio(n) for n in cartuchos.CARTUCHOS]
     builds = []
@@ -712,7 +719,7 @@ def main(argv=None):
 
 
 def _tiene_parches(build):
-    return any(os.path.isdir(os.path.join(build, c.directorio))
+    return any(os.path.isdir(os.path.join(build, c.en_build))
                for c in CLASES)
 
 
@@ -720,7 +727,7 @@ def _copiar(raiz, build, clase):
     """Lo que decidió el ROM jugable, a `parches/`, y afuera lo que ya no está."""
     destino = os.path.join(raiz, clase.directorio)
     os.makedirs(destino, exist_ok=True)
-    carpeta = os.path.join(build, clase.directorio)
+    carpeta = os.path.join(build, clase.en_build)
     vistos, bytes_ = set(), 0
     prueba = mapas_de_prueba()
     for nombre in sorted(os.listdir(carpeta) if os.path.isdir(carpeta) else []):
