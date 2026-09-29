@@ -56,3 +56,9 @@ de tocar nada.
   los nombres de paquete (`"pelea"`, `"gameover"`, `"titulo"`), los de las
   imágenes del asignador (`"fondo"`, `"encima"`) y el nombre del evento
   inventado (`"prueba"`).
+- Líneas 8297–9550, hasta el final: hecho. Con `test_lz2.py`, que
+  comparaba dos mensajes de `controlar_flujos`.
+- Quedan citados en castellano títulos de sección de otros archivos de
+  `tools/port/` ("Qué fondos hay", "lo que depende del actor", "la pantalla
+  de ítems", "las variables de RM2k"): los traduce Cina, y se alinean al
+  mergear.
