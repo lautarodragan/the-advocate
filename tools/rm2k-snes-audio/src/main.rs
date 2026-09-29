@@ -8,12 +8,12 @@
 use clap::{Args as ClapArgs, Parser, Subcommand};
 use rm2k_project::Project;
 use rm2k_snes_audio::bank::{self, Key, Samples};
-use rm2k_snes_audio::compile::{self, Job, Package};
-use rm2k_snes_audio::emit::{self, Emit, SoundRequest};
+use rm2k_snes_audio::compile;
+use rm2k_snes_audio::emit;
 use rm2k_snes_audio::fail::{Bad, Result};
 use rm2k_snes_audio::game::Game;
 use rm2k_snes_audio::samples::SoundFontSamples;
-use rm2k_snes_audio::{effects, msu, pyjson, sdsp, stream};
+use rm2k_snes_audio::{effects, job, msu, pyjson, sdsp, stream};
 use serde_json::{json, Map, Value};
 use std::collections::BTreeMap;
 use std::io::Write as _;
@@ -181,138 +181,13 @@ fn write_file(path: &Path, text: &str) -> Result<()> {
     std::fs::write(path, text).map_err(|e| Bad::usage(format!("{}: {e}", path.display())))
 }
 
-// --- the job ----------------------------------------------------------------
-
-fn bad_job(what: &str) -> Bad {
-    Bad::usage(format!("the job's {what} is not what it should be"))
-}
-
-fn strings(v: Option<&Value>, what: &str) -> Result<Vec<String>> {
-    match v {
-        None | Some(Value::Null) => Ok(Vec::new()),
-        Some(Value::Array(items)) => items
-            .iter()
-            .map(|i| i.as_str().map(String::from).ok_or_else(|| bad_job(what)))
-            .collect(),
-        _ => Err(bad_job(what)),
-    }
-}
-
-fn indices(v: Option<&Value>, what: &str) -> Result<Vec<usize>> {
-    match v {
-        None | Some(Value::Null) => Ok(Vec::new()),
-        Some(Value::Array(items)) => items
-            .iter()
-            .map(|i| i.as_u64().map(|n| n as usize).ok_or_else(|| bad_job(what)))
-            .collect(),
-        _ => Err(bad_job(what)),
-    }
-}
-
-fn int(v: Option<&Value>, what: &str) -> Result<i64> {
-    v.and_then(Value::as_i64).ok_or_else(|| bad_job(what))
-}
-
-fn parse_job(v: &Value, aram_end: i64) -> Result<(Job, Option<Emit>)> {
-    let songs = strings(v.get("songs"), "songs")?;
-    let packages = match v.get("packages") {
-        None | Some(Value::Null) => None,
-        Some(Value::Array(items)) => Some(
-            items
-                .iter()
-                .map(|p| {
-                    Ok(Package {
-                        name: p.get("name").and_then(Value::as_str).ok_or_else(|| bad_job("package name"))?.into(),
-                        songs: indices(p.get("songs"), "package songs")?,
-                        effects: strings(p.get("effects"), "package effects")?,
-                        exits: indices(p.get("exits"), "package exits")?,
-                        separate: indices(p.get("separate"), "package separate songs")?,
-                    })
-                })
-                .collect::<Result<Vec<_>>>()?,
-        ),
-        _ => return Err(bad_job("packages")),
-    };
-    let inheritance = match v.get("inheritance") {
-        None | Some(Value::Null) => Vec::new(),
-        Some(Value::Array(items)) => items
-            .iter()
-            .map(|pair| {
-                let name = pair.get(0).and_then(Value::as_str).ok_or_else(|| bad_job("inheritance"))?;
-                let song = pair.get(1).and_then(Value::as_u64).ok_or_else(|| bad_job("inheritance"))?;
-                Ok((name.to_string(), song as usize))
-            })
-            .collect::<Result<_>>()?,
-        _ => return Err(bad_job("inheritance")),
-    };
-    for (_, t) in &inheritance {
-        if *t >= songs.len() {
-            return Err(bad_job("inheritance"));
-        }
-    }
-    let job = Job {
-        songs,
-        effects: strings(v.get("effects"), "effects")?,
-        packages,
-        inheritance,
-        measuring_headroom: v.get("measuring_headroom").and_then(Value::as_f64),
-        system_songs: strings(v.get("system_songs"), "system songs")?,
-        aram_end,
-    };
-    let emit = match v.get("emit") {
-        None | Some(Value::Null) => None,
-        Some(e) => {
-            let byte = |key: &str| -> Result<u8> {
-                u8::try_from(int(e.get(key), key)?).map_err(|_| bad_job(key))
-            };
-            let game_over = e.get("game_over").and_then(Value::as_array).ok_or_else(|| bad_job("game_over"))?;
-            let sounds = e
-                .get("sounds")
-                .and_then(Value::as_array)
-                .ok_or_else(|| bad_job("sounds"))?
-                .iter()
-                .map(|s| {
-                    Ok(SoundRequest {
-                        effect: s.get(0).and_then(Value::as_str).ok_or_else(|| bad_job("sounds"))?.into(),
-                        volume: int(s.get(1), "sounds")?,
-                        tempo: int(s.get(2), "sounds")?,
-                        balance: int(s.get(3), "sounds")?,
-                    })
-                })
-                .collect::<Result<_>>()?;
-            Some(Emit {
-                packages: int(e.get("packages"), "emit packages")? as usize,
-                boot: byte("boot")?,
-                title: byte("title")?,
-                game_over: (
-                    u8::try_from(int(game_over.first(), "game_over")?).map_err(|_| bad_job("game_over"))?,
-                    u16::try_from(int(game_over.get(1), "game_over")?).map_err(|_| bad_job("game_over"))?,
-                ),
-                map_song: indices(e.get("map_song"), "map_song")?
-                    .into_iter()
-                    .map(|m| u8::try_from(m).map_err(|_| bad_job("map_song")))
-                    .collect::<Result<_>>()?,
-                sounds,
-                start: int(e.get("start"), "start")? as usize,
-                decompress_frames: e.get("decompress_frames").and_then(Value::as_f64).unwrap_or(0.0),
-            })
-        }
-    };
-    if let (Some(e), Some(p)) = (&emit, &job.packages) {
-        if e.packages > p.len() || e.start >= e.packages.max(1) {
-            return Err(bad_job("emit packages"));
-        }
-    }
-    Ok((job, emit))
-}
-
 fn hex(data: &[u8]) -> String {
     data.iter().map(|b| format!("{b:02x}")).collect()
 }
 
 fn do_compile(args: &CompileArgs) -> Result<()> {
     let game = args.place.game()?;
-    let (job, emit) = parse_job(&read_json(&args.job)?, args.aram_end)?;
+    let (job, emit) = job::parse(&read_json(&args.job)?, args.aram_end)?;
     let samples = Samples { font: SoundFontSamples::open(&args.soundfont)? };
     let music = compile::build(&job, &game, &samples)?;
     std::fs::create_dir_all(&args.out).map_err(|e| Bad::usage(format!("{}: {e}", args.out.display())))?;

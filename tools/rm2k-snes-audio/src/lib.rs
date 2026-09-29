@@ -21,6 +21,7 @@ pub mod effects;
 pub mod emit;
 pub mod fail;
 pub mod game;
+pub mod job;
 pub mod midi;
 pub mod msu;
 #[rustfmt::skip]

@@ -443,7 +443,7 @@ pub fn musicdata(music: &Music, emit: &Emit) -> Result<String> {
         voices.len() - music_n,
         silence,
         data,
-        bank::ARAM_END,
+        music.aram_end,
         packages.len().max(1),
         SE_VOICE,
         1u32 << SE_VOICE,

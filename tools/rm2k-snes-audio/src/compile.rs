@@ -103,6 +103,8 @@ pub struct Music {
     /// How many places they share.
     pub places: usize,
     pub packages: Vec<Package>,
+    /// Up to where the ARAM holds samples: the job's.
+    pub aram_end: i64,
 }
 
 impl Music {
@@ -468,7 +470,7 @@ pub fn build(job: &Job, game: &Game, samples: &Samples) -> Result<Music> {
             parsed: Some(parsed),
         });
     }
-    Ok(Music { driver, bank, songs, effects: effect_list, place, places, packages })
+    Ok(Music { driver, bank, songs, effects: effect_list, place, places, packages, aram_end: job.aram_end })
 }
 
 /// What the cartridge's compiler prints about the music: each song, the
