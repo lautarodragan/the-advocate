@@ -28,6 +28,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 from audio import muestras_brr                          # noqa: E402
+from comun import perillas                              # noqa: E402
 from comun import proyecto                              # noqa: E402
 from ensamblado import ensamblar                        # noqa: E402
 from port import tiles_bin                              # noqa: E402
@@ -39,99 +40,45 @@ FUENTE = proyecto.runtime()
 
 DESTINO = proyecto.cartuchos_de_prueba()
 
-# Los mapas del juego que lleva `release`: **los de id menor a `MENOR_A`,
-# menos `EXCLUIDOS`, más `AGREGADOS`**. Hoy es Lashe City entera y el camino
-# principal del capítulo del mundo, hasta el túnel a Paradise. Hasta el
-# 2026-09-27 era una lista escrita a mano; la regla y sus valores son de
-# `workflow/tasks/*/la-carrera-y-lo-que-sigue.md` y de
-# `workflow/tasks/*/el-mundo-y-lo-que-sigue.md` ("La regla de los mapas"), y
-# taro pidió que la exclusión se mantenga chica.
+# **Qué lleva cada cartucho es del juego, y está en su archivo de proyecto**
+# —`proyecto.archivo_de_proyecto()`, con los porqués de cada valor como
+# comentarios—: qué mapas entran, cuáles se excluyen, qué cartuchos hay y qué
+# casos lleva cada uno. Hasta el 2026-09-29 estaba escrito acá. Lo que queda
+# en este archivo es el mecanismo que lo lee y arma; los nombres de módulo
+# —`MENOR_A`, `CARTUCHOS`, `FUERA`…— son los de antes, porque la tanda los lee.
 #
-# "Mapa" es un nodo de tipo 1 del árbol de RM2k. Los ids que faltan entre los
-# de la regla sin estar excluidos —el 24, el 25, el 27, el 31 y el 35— son
-# áreas: nodos sin `.lmu` que le marcan los encuentros a un rectángulo del
-# padre.
-#
-# **Son valores de acá y no flags del conversor**, a propósito: al conversor le
-# sigue llegando la lista entera en `--mapas`. Éste es el único que lo llama;
-# `test_horneados` y `test_parches` necesitan la lista sin correrlo; y como el
-# sello lleva los flags y no `rom/data/`, un árbol que cambie qué mapas entran deja
-# viejo al cartucho sólo si la lista viaja expandida.
-#
-# El 105, Mountain Path, es el primero del capítulo siguiente, adonde lleva el
-# 66 ev18. La demo termina antes: al entrar a Tangle Forest (el 66 ev19, que
-# el fork del 66 cambia por el cartel del fin), porque el camino del puente
-# al túnel **cruza el bosque** —310, 311, 313 y 312, que sale al oeste del
-# 66— y el bosque todavía no entra.
-MENOR_A = 105
+# **Los mapas son valores del archivo y no flags del conversor**, a propósito:
+# al conversor le sigue llegando la lista entera en `--mapas`. Éste es el único
+# que lo llama; `test_horneados` y `test_parches` necesitan la lista sin
+# correrlo; y como el sello lleva los flags y no `rom/data/`, un árbol que
+# cambie qué mapas entran deja viejo al cartucho sólo si la lista viaja
+# expandida.
+MENOR_A = perillas.valor("maps", "below", tipo=int)
+EXCLUIDOS = frozenset(perillas.valor("maps", "excluded", tipo=list))
+AGREGADOS = tuple(perillas.valor("maps", "added", tipo=list))
 
-# Cada uno con su razón, que es lo que hay que revisar antes de sumarle otro.
-EXCLUIDOS = {
-    # Aura Tutorial: de otro capítulo, cuelga de `Tutorials` (161). Es el que
-    # cuesta: trae su tema y dos animaciones.
-    58: "el tutorial del aura, de otro capítulo",
-    # Overlook Memory: de otro capítulo, cuelga del 219.
-    104: "de otro capítulo",
-    # Carpetas del árbol —Lashe City, The Rat Tracks, la de la carrera y
-    # Northern World—: mapas negros a los que nadie salta.
-    15: "carpeta",
-    22: "carpeta",
-    55: "carpeta",
-    65: "carpeta",
-    # Security Footage 2 y los tres `Backup`: respaldos de otros mapas a los
-    # que nada lleva. Battle Rink Ladder cuelga del 199 y ningún `Teleport`
-    # lleva a él.
-    46: "inalcanzable",
-    75: "inalcanzable",
-    96: "inalcanzable",
-    97: "inalcanzable",
-    98: "inalcanzable",
-    # Lo opcional del mundo, que no entra todavía: Yun Town (67, y su armería
-    # y su posada) y Drust Camp (68 y sus minas). El 70 y el 73, que también
-    # son de Yun Town, entran igual: ya estaban en la ROM como mapas de
-    # prueba, y sin el 67 nada lleva a ellos. Ver "Lo que sigue" en
-    # `el-mundo-y-lo-que-sigue.md`, el hito 5.
-    67: "opcional: Yun Town",
-    71: "opcional: Yun Town",
-    72: "opcional: Yun Town",
-    68: "opcional: Drust Camp",
-    103: "opcional: Drust Camp",
-}
 
-# El tutorial del droide no cuelga de Lashe City sino de `Tutorials`, pero salta
-# ahí la página del 48 que mete a AG7-17 en el grupo. Y el puente del norte
-# (259) y lo que hay debajo (255), que es donde se prende el 849 que deja
-# cruzarlo: el final del camino principal antes del túnel.
-#
-# Y el mapa de debug, que el juego no tiene: ver `CON_MAPA_DE_DEBUG`.
-AGREGADOS = (164, 259, 255)
+def el_mapa_de_debug():
+    """El id del mapa de debug: el único mapa nuevo de
+    `rom/parches/manual/nuevos/` —ver `fork.nuevos`—. Sale de ahí y no del
+    archivo de proyecto para no escribir el número dos veces."""
+    from rpgmaker import fork
+    nuevos = sorted(fork.nuevos())
+    if len(nuevos) != 1:
+        sys.exit("el mapa de debug es el único mapa nuevo de %s, y hay %d: %s"
+                 % (fork.NUEVOS, len(nuevos), nuevos))
+    return nuevos[0]
 
-# **El mapa de debug**: un cuarto con una puerta a cada punto clave del juego
-# —cada una deja el estado de alguien que jugó hasta ahí— y un NPC por
-# compañero que lo suma o lo saca del grupo. Lo pidió taro el 2026-09-27, y
-# "Begin the Story" arranca ahí. Es un mapa nuevo de `rom/parches/manual/nuevos/`
-# —ver `fork.nuevos`—, con un id que el juego no usa, y lo que hace cada
-# puerta está en los comentarios de sus páginas.
-#
-# **Para una entrega limpia, `CON_MAPA_DE_DEBUG = False`**: el mapa sale del
-# cartucho y la página 0 vuelve a ser `nada`, o sea que "Begin the Story"
-# arranca en el mapa 4 como el juego. La tanda no depende de este valor: las
-# pruebas que juegan desde el título eligen `LA_PARTIDA_DE_VERDAD`, que es la
-# página 0 de la entrega limpia —ver `tanda.partida`—, y las del mapa de debug
-# se saltean sin él.
-CON_MAPA_DE_DEBUG = True
-MAPA_DE_DEBUG = 900
+
+# El mapa de debug, que el juego no tiene, entra detrás de los agregados.
+CON_MAPA_DE_DEBUG = perillas.valor("debug", "debug_map", tipo=bool)
+MAPA_DE_DEBUG = el_mapa_de_debug()
 if CON_MAPA_DE_DEBUG:
     AGREGADOS += (MAPA_DE_DEBUG,)
 
-# **Los HP de los enemigos en la pelea**: RM2k no los muestra nunca, y el ABL
-# no tiene cómo verlos —ni habilidad, ni ítem, ni mensaje—; lo midió Tero, en
-# `workflow/tasks/*/el-menu-como-rm2k.md`. Así que por omisión el renglón de un
-# enemigo es sólo su nombre, y esto los vuelve a dibujar para depurar: pasa
-# `--hp-de-enemigos` al conversor en los dos cartuchos. Lo pidió taro el
-# 2026-09-28. Las pruebas no dependen de este valor: los HP que miran los leen
-# de la RAM.
-CON_HP_DE_ENEMIGOS = False
+# Los HP de los enemigos en la pelea: pasa `--hp-de-enemigos` al conversor en
+# todos los cartuchos.
+CON_HP_DE_ENEMIGOS = perillas.valor("debug", "enemy_hp", tipo=bool)
 _DE_TODOS = ["--hp-de-enemigos"] if CON_HP_DE_ENEMIGOS else []
 
 
@@ -151,78 +98,65 @@ def mapas_de_la_regla(menor_a=MENOR_A, excluidos=EXCLUIDOS,
     return tuple(de_la_regla + [m for m in agregados if m not in de_la_regla])
 
 
-# Los sectores con auto —37, 38, 47 y 48— entran los cuatro juntos: la elección
-# del 36 es una sola página que compila con sus cuatro destinos o con ninguno.
-# Una exclusión no los puede separar.
-#
-# La demo termina en el mundo, el 66, al entrar a Tangle Forest: el fork del
-# 66 cambia ese `Teleport` por el cartel del fin. Los lugares del mundo cuyo
-# destino no está —Yun Town, Drust Camp, el bosque en llamas— no hacen nada,
-# porque sus páginas no compilan.
 MAPAS_DEL_JUEGO = mapas_de_la_regla()
 
-# Y los que sólo existen por la tanda: situaciones que ningún mapa del juego
-# que entra ejercita. `parches.revisar` los lee de acá para no pedirles parche
-# versionado.
-MAPAS_DE_PRUEBA = (119, 121, 133, 261, 269, 348)
+# Y los que sólo existen por la tanda. `parches.revisar` los lee de acá para no
+# pedirles parche versionado.
+MAPAS_DE_PRUEBA = tuple(perillas.valor("maps", "test", tipo=list))
 
 MAPAS = MAPAS_DEL_JUEGO + MAPAS_DE_PRUEBA
 
-# Los que los casos ponen con la orden 34 o `ChangeSpriteAssociation`.
-GRAFICOS = (("Future1", "0"), ("nobodyhere", "0"))
-
-# La ROM que se juega, y la que corre la tanda: con título, cronómetro, todos
-# los mapas y todos los casos. Hasta el 2026-09-25 eran dos, `release` y
-# `test-main`, y se juntaron —ver `workflow/tasks/*/juntar-release-y-test-main.md`—:
-# lo que se entrega es lo que se prueba. El grupo es el 10 y no el 11 de las
-# pruebas porque la apertura del mapa 1 no corre con Kersh ya en el grupo; el
-# 11 lo pone el caso `grupo-11`.
-#
-# **Los mapas y las páginas de prueba van en la ROM que se juega**, a
-# propósito, inalcanzables: los mapas porque ningún `Teleport` del juego lleva
-# a ellos, y las páginas por `PRIMERO`.
+# El cartucho que se juega: el que lleva la ROM con el nombre del juego, sus
+# pistas de MSU-1, y todos los casos. El archivo lo tiene que declarar.
 RELEASE = "release"
-_DE_RELEASE = (["--grupo", "10", "--map-id", "4", "--mapas"]
-               + [str(m) for m in MAPAS if m != 4]
-               + [f for charset, indice in GRAFICOS
-                  for f in ("--grafico-de-prueba", charset, indice)]
-               + _DE_TODOS)
 
-CARTUCHOS = {
-    RELEASE: (_DE_RELEASE, None),
-    # Lo que en `release` cambiaría las imágenes de los demás: los sprites
-    # de los actores 12 y 13, los flags y el relleno de textos. `empujon`
-    # tiene el tamaño medido que deja el texto de `grupo-11-en-255` sobre el
-    # borde de banco —ver `test_texto`—, y va último para no correrle la
-    # página a nadie.
-    "test-special": (["--map-id", "6", "--mapas", "74", "1", "2", "5", "21", "255",
-               "--sin-titulo", "--sin-timer",
-               "--heroe-encima", "--encuentros-de-prueba", "8",
-               "--relleno-de-textos", "200"] + _DE_TODOS,
-              ["parado-tapado", "grupo-11-12-13",
-               "grupo-11-en-255", "batalla", "batalla-item", "batalla-droide",
-               "pelea-82-grupo-11-12", "empujon"]),
-}
 
-FUERA = {"grupo-11-12-13", "batalla", "batalla-item", "batalla-droide",
-         "pelea-82-grupo-11-12",
-         # Acá correría el bloque de textos de todos los casos.
-         "empujon"}
+def _cartucho(nombre):
+    """(los flags del conversor, los casos o None si son todos) de un
+    cartucho del archivo. Los flags salen en el orden de siempre —el grupo, el
+    mapa de arranque, los mapas, los gráficos, lo demás—, porque van al sello
+    tal cual."""
+    def clave(k, tipo):
+        return perillas.valor("cartridges", nombre, k, tipo=tipo)
+    arranque = clave("start_map", int)
+    grupo = clave("party", list)
+    mapas = clave("maps", (str, list))
+    if isinstance(mapas, str):
+        if mapas != "game":
+            sys.exit("%s: maps de %s es una lista o \"game\", y es %r"
+                     % (proyecto.archivo_de_proyecto(), nombre, mapas))
+        mapas = MAPAS
+    casos = clave("cases", (str, list))
+    if isinstance(casos, str):
+        if casos != "all":
+            sys.exit("%s: cases de %s es una lista o \"all\", y es %r"
+                     % (proyecto.archivo_de_proyecto(), nombre, casos))
+        casos = None
+    flags = ((["--grupo"] + [str(a) for a in grupo] if grupo else [])
+             + ["--map-id", str(arranque), "--mapas"]
+             + [str(m) for m in mapas if m != arranque]
+             + [f for charset, indice in clave("test_graphics", list)
+                for f in ("--grafico-de-prueba", charset, indice)]
+             + clave("flags", list) + _DE_TODOS)
+    return flags, casos
 
-# La página 0 **no pide nada** y corre siempre, en el mapa de arranque, al
-# empezar: es la que corre en la partida de verdad. La k pide que
-# `VARIABLE_DE_CASO` valga al menos k, y el juego no toca esa variable, así que
-# con `nada` —ningún comando: la página sólo prende el switch que la apaga— los
-# casos quedan apagados en la ROM que se juega. El arnés elige los demás
-# escribiendo la variable. Con cualquier otro caso acá, el juego lo correría
-# al empezar: hasta el 2026-09-25 era `grupo-11`, que mete a Kersh en el grupo
-# y rompe la apertura.
-#
-# **Con el mapa de debug, la página 0 es la que lleva ahí** —un `Teleport` y
-# Talan en el grupo, para que el héroe se vea—, y `nada` pasa a ser una página
-# más, la que el arnés elige para jugar el juego como arranca sin él.
-LA_PARTIDA_DE_VERDAD = "nada"
-ENTRADA_AL_MAPA_DE_DEBUG = "mapa-de-debug"
+
+CARTUCHOS = {nombre: _cartucho(nombre)
+             for nombre in perillas.valor("cartridges", tipo=dict)}
+if RELEASE not in CARTUCHOS or CARTUCHOS[RELEASE][1] is not None:
+    sys.exit("%s: falta [cartridges.%s], con cases = \"all\""
+             % (proyecto.archivo_de_proyecto(), RELEASE))
+
+# Los casos que `release` no lleva, porque ahí cambiarían las imágenes de los
+# demás.
+FUERA = set(perillas.valor("cartridges", RELEASE, "excluded_cases",
+                           tipo=list))
+
+# La página 0 es la de la partida de verdad, salvo con el mapa de debug, que es
+# la que lleva ahí: ver `[cases]` en el archivo.
+LA_PARTIDA_DE_VERDAD = perillas.valor("cases", "real_game", tipo=str)
+ENTRADA_AL_MAPA_DE_DEBUG = perillas.valor("cases", "debug_map_entry",
+                                          tipo=str)
 
 
 def primero(con_mapa_de_debug=CON_MAPA_DE_DEBUG):

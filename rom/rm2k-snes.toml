@@ -12,3 +12,175 @@
 # Lo que **no** va: dónde está el juego en esta máquina —el RTP, el SoundFont—,
 # que es del ambiente y no del proyecto; y los límites del motor que se
 # midieron sobre ABL, que son supuestos del motor y se quedan en su código.
+
+
+# --- Los mapas ---------------------------------------------------------------
+#
+# Los mapas del juego que lleva `release`: **los de id menor a `below`, menos
+# `excluded`, más `added`**. Hoy es Lashe City entera y el camino principal del
+# capítulo del mundo, hasta el túnel a Paradise. Hasta el 2026-09-27 era una
+# lista escrita a mano; la regla y sus valores son de
+# `workflow/tasks/*/la-carrera-y-lo-que-sigue.md` y de
+# `workflow/tasks/*/el-mundo-y-lo-que-sigue.md` ("La regla de los mapas"), y
+# taro pidió que la exclusión se mantenga chica.
+#
+# "Mapa" es un nodo de tipo 1 del árbol de RM2k. Los ids que faltan entre los
+# de la regla sin estar excluidos —el 24, el 25, el 27, el 31 y el 35— son
+# áreas: nodos sin `.lmu` que le marcan los encuentros a un rectángulo del
+# padre.
+#
+# Los sectores con auto —37, 38, 47 y 48— entran los cuatro juntos: la elección
+# del 36 es una sola página que compila con sus cuatro destinos o con ninguno.
+# Una exclusión no los puede separar.
+#
+# La demo termina en el mundo, el 66, al entrar a Tangle Forest: el fork del
+# 66 cambia ese `Teleport` por el cartel del fin. Los lugares del mundo cuyo
+# destino no está —Yun Town, Drust Camp, el bosque en llamas— no hacen nada,
+# porque sus páginas no compilan.
+[maps]
+# El 105, Mountain Path, es el primero del capítulo siguiente, adonde lleva el
+# 66 ev18. La demo termina antes: al entrar a Tangle Forest (el 66 ev19, que
+# el fork del 66 cambia por el cartel del fin), porque el camino del puente
+# al túnel **cruza el bosque** —310, 311, 313 y 312, que sale al oeste del
+# 66— y el bosque todavía no entra.
+below = 105
+
+# Cada uno con su razón, que es lo que hay que revisar antes de sumarle otro.
+excluded = [
+    # Aura Tutorial: de otro capítulo, cuelga de `Tutorials` (161). Es el que
+    # cuesta: trae su tema y dos animaciones.
+    58,
+    # Overlook Memory: de otro capítulo, cuelga del 219.
+    104,
+    # Carpetas del árbol —Lashe City, The Rat Tracks, la de la carrera y
+    # Northern World—: mapas negros a los que nadie salta.
+    15, 22, 55, 65,
+    # Security Footage 2 y los tres `Backup`: respaldos de otros mapas a los
+    # que nada lleva. Battle Rink Ladder cuelga del 199 y ningún `Teleport`
+    # lleva a él. Inalcanzables.
+    46, 75, 96, 97, 98,
+    # Lo opcional del mundo, que no entra todavía: Yun Town (67, y su armería
+    # y su posada) y Drust Camp (68 y sus minas). El 70 y el 73, que también
+    # son de Yun Town, entran igual: ya estaban en la ROM como mapas de
+    # prueba, y sin el 67 nada lleva a ellos. Ver "Lo que sigue" en
+    # `el-mundo-y-lo-que-sigue.md`, el hito 5.
+    67, 71, 72,
+    68, 103,
+]
+
+# El tutorial del droide no cuelga de Lashe City sino de `Tutorials`, pero salta
+# ahí la página del 48 que mete a AG7-17 en el grupo. Y el puente del norte
+# (259) y lo que hay debajo (255), que es donde se prende el 849 que deja
+# cruzarlo: el final del camino principal antes del túnel.
+#
+# El mapa de debug no va acá: lo agrega `[debug] debug_map`.
+added = [164, 259, 255]
+
+# Y los que sólo existen por la tanda: situaciones que ningún mapa del juego
+# que entra ejercita. `rm2k-snes-patches` no les pide parche versionado.
+test = [119, 121, 133, 261, 269, 348]
+
+
+# --- Lo que es para depurar --------------------------------------------------
+[debug]
+# **El mapa de debug**: un cuarto con una puerta a cada punto clave del juego
+# —cada una deja el estado de alguien que jugó hasta ahí— y un NPC por
+# compañero que lo suma o lo saca del grupo. Lo pidió taro el 2026-09-27, y
+# "Begin the Story" arranca ahí. Es el único mapa nuevo de
+# `parches/manual/nuevos/`, con un id que el juego no usa, y lo que hace cada
+# puerta está en los comentarios de sus páginas.
+#
+# **Para una entrega limpia, `false`**: el mapa sale del cartucho y la página
+# 0 vuelve a ser `[cases] real_game`, o sea que "Begin the Story" arranca en
+# el mapa 4 como el juego. La tanda no depende de este valor: las pruebas que
+# juegan desde el título eligen `real_game`, que es la página 0 de la entrega
+# limpia, y las del mapa de debug se saltean sin él.
+debug_map = true
+
+# **Los HP de los enemigos en la pelea**: RM2k no los muestra nunca, y el ABL
+# no tiene cómo verlos —ni habilidad, ni ítem, ni mensaje—; lo midió Tero, en
+# `workflow/tasks/*/el-menu-como-rm2k.md`. Así que por omisión el renglón de un
+# enemigo es sólo su nombre, y esto los vuelve a dibujar para depurar, en todos
+# los cartuchos. Lo pidió taro el 2026-09-28. Las pruebas no dependen de este
+# valor: los HP que miran los leen de la RAM.
+enemy_hp = false
+
+
+# --- Los casos ---------------------------------------------------------------
+#
+# Un caso es un archivo de `pruebas/casos/`, y cada uno es una página de
+# prueba del cartucho. La página 0 **no pide nada** y corre siempre, en el mapa
+# de arranque, al empezar: es la que corre en la partida de verdad. La k pide
+# que la variable del caso valga al menos k, y el juego no toca esa variable,
+# así que con `real_game` —ningún comando: la página sólo prende el switch que
+# la apaga— los casos quedan apagados en la ROM que se juega. El arnés elige
+# los demás escribiendo la variable. Con cualquier otro caso ahí, el juego lo
+# correría al empezar: hasta el 2026-09-25 era `grupo-11`, que mete a Kersh en
+# el grupo y rompe la apertura.
+#
+# **Con el mapa de debug, la página 0 es `debug_map_entry`** —un `Teleport` y
+# Talan en el grupo, para que el héroe se vea—, y `real_game` pasa a ser una
+# página más, la que el arnés elige para jugar el juego como arranca sin él.
+[cases]
+real_game = "nada"
+debug_map_entry = "mapa-de-debug"
+
+
+# --- Los cartuchos -----------------------------------------------------------
+#
+# Cada uno es un directorio de `build/` con su ROM, y lo arma
+# `rm2k-snes-cartridges`. Lo que declara cada uno:
+#
+#   start_map      el mapa de arranque, primero en la tabla de la ROM
+#   party          el grupo con que arranca, por ids de actor; vacío, el de la
+#                  base de datos
+#   maps           los demás mapas, en el orden de la tabla; "game" son los
+#                  de `[maps]`: la regla, los agregados y los de prueba
+#   test_graphics  gráficos que los casos ponen con la orden 34 o
+#                  `ChangeSpriteAssociation`: (CharSet, índice)
+#   flags          lo demás, tal cual al conversor
+#   cases          los casos, en el orden de sus páginas; "all" es todos los
+#                  de `pruebas/casos/`, menos `excluded_cases`, con la página 0
+#                  de `[cases]` primero
+
+# La ROM que se juega, y la que corre la tanda: con título, cronómetro, todos
+# los mapas y todos los casos. Hasta el 2026-09-25 eran dos, `release` y
+# `test-main`, y se juntaron —ver `workflow/tasks/*/juntar-release-y-test-main.md`—:
+# lo que se entrega es lo que se prueba.
+#
+# **Los mapas y las páginas de prueba van en la ROM que se juega**, a
+# propósito, inalcanzables: los mapas porque ningún `Teleport` del juego lleva
+# a ellos, y las páginas por la página 0.
+[cartridges.release]
+start_map = 4
+# El 10 y no el 11 de las pruebas porque la apertura del mapa 1 no corre con
+# Kersh ya en el grupo; el 11 lo pone el caso `grupo-11`.
+party = [10]
+maps = "game"
+test_graphics = [["Future1", "0"], ["nobodyhere", "0"]]
+flags = []
+cases = "all"
+# Los que van en `test-special` y no acá, porque acá cambiarían las imágenes
+# de los demás.
+excluded_cases = [
+    "grupo-11-12-13", "batalla", "batalla-item", "batalla-droide",
+    "pelea-82-grupo-11-12",
+    # Acá correría el bloque de textos de todos los casos.
+    "empujon",
+]
+
+# Lo que en `release` cambiaría las imágenes de los demás: los sprites de los
+# actores 12 y 13, los flags y el relleno de textos. `empujon` tiene el tamaño
+# medido que deja el texto de `grupo-11-en-255` sobre el borde de banco —ver
+# `test_texto`—, y va último para no correrle la página a nadie.
+[cartridges.test-special]
+start_map = 6
+party = []
+maps = [74, 1, 2, 5, 21, 255]
+test_graphics = []
+flags = ["--sin-titulo", "--sin-timer",
+         "--heroe-encima", "--encuentros-de-prueba", "8",
+         "--relleno-de-textos", "200"]
+cases = ["parado-tapado", "grupo-11-12-13",
+         "grupo-11-en-255", "batalla", "batalla-item", "batalla-droide",
+         "pelea-82-grupo-11-12", "empujon"]
