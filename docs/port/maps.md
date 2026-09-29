@@ -20,18 +20,18 @@ Dónde está el héroe dentro de la grilla tampoco es un índice sino un **punte
 que se mueve con él**, una celda o una fila por paso. Así nunca hay que
 multiplicar ni armar una dirección de 24 bits desde cero, que es incómodo
 porque la grilla cruza de banco y los bancos no son contiguos: pasarse del
-`$FFFF` lleva al `$8000` del siguiente, y lo saben sólo `ptr_mas` y
-`ptr_menos`.
+`$FFFF` lleva al `$8000` del siguiente, y lo saben sólo `ptr_more` y
+`ptr_minus`.
 
 #### La grilla vive en la WRAM, y el cartucho la trae comprimida
 
 Desde el 2026-09-26 la grilla viaja en el cartucho en LZ2 y se descomprime
 entera al cargar el mapa en `$7E8000`, siguiendo en `$7F8000` si pasa de 32 KB
-(`GRILLA` en `tools/runtime/far_ram.s`, `lz2_grilla` en `decompress.s`). La
+(`GRID` en `tools/runtime/far_ram.s`, `lz2_grid` en `decompress.s`). La
 mitad alta de dos bancos seguidos de la WRAM tiene la forma de dos bancos de
 LoROM, así que los lectores no cambiaron: antes el puntero apuntaba al
 cartucho, ahora a la WRAM. La pelea pisa la mitad del `$7F`, y
-`volver_de_batalla` la vuelve a descomprimir. Qué costó reservar esa RAM y cómo
+`back_from_battle` la vuelve a descomprimir. Qué costó reservar esa RAM y cómo
 se revierte: `workflow/decisiones/la-grilla-vive-en-la-wram.md`.
 
 Lo mismo pasa con los tiles del fondo, de la capa de encima, de los sprites y

@@ -1,7 +1,7 @@
 # Qué
 
 **Agotar el presupuesto de teletransportes es un error, no un caso.** Al
-agotarse, la ROM llama a `entrar_en_panico` en vez de seguir.
+agotarse, la ROM llama a `enter_panic` en vez de seguir.
 
 # Por qué
 

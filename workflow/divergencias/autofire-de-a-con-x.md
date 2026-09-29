@@ -1,6 +1,6 @@
 # Qué
 
-Sostener X aprieta y suelta A solo: `pad_a` pasa `AUTOFIRE_CUADROS` vueltas
+Sostener X aprieta y suelta A solo: `pad_a` pasa `AUTOFIRE_FRAMES` vueltas
 prendido y otras tantas apagado, y como el juego mira el flanco de A
 —RM2k cierra el mensaje con `Input::IsTriggered`—, cada vuelta a prendido es
 un toque. Sirve para pasar textos y repetir elecciones sin machacar el botón.
@@ -27,7 +27,7 @@ Lo que se decidió en la línea, y está comentado ahí:
 
 # Medido
 
-Con `AUTOFIRE_CUADROS` en 4 son cuatro cuadros prendido y cuatro apagado:
+Con `AUTOFIRE_FRAMES` en 4 son cuatro cuadros prendido y cuatro apagado:
 7,5 toques por segundo. taro pidió entre 3 y 4 para arrancar, y es una
 constante con nombre para ajustarla jugando; tiene que ser potencia de dos,
 y un `.assert` lo cuida.

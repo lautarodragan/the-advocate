@@ -8,12 +8,12 @@ página que la prenda y no la apague deja al héroe atravesándolo todo hasta el
 final de la partida.
 
 Acá la bandera vale **sólo mientras el paso lo dé la ruta forzada**. El
-porqué, con el síntoma que lo delató, está en `celda_bloqueada`
-(`tools/runtime/event_pages.s`), que es donde se lee `atravesando` y no la
-pegajosa `ruta_atraviesa`.
+porqué, con el síntoma que lo delató, está en `cell_blocked`
+(`tools/runtime/event_pages.s`), que es donde se lee `crossing` y no la
+pegajosa `route_crosses`.
 
 Para la pregunta al revés —un evento que camina contra el héroe— se sigue
-mirando la pegajosa, `ruta_atraviesa`. Es una asimetría, y se deja porque
+mirando la pegajosa, `route_crosses`. Es una asimetría, y se deja porque
 ninguna ruta del juego la ejercita: haría falta un evento caminando encima del
 héroe justo después de una página que dejó la 36 prendida.
 

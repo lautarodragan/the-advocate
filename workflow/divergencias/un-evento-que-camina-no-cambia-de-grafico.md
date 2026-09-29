@@ -6,8 +6,8 @@ de NPC esas dos cosas se pelean por los mismos bytes, así que **gana caminar**.
 En RM2k el gráfico sigue a la página.
 
 Lo que sí sigue a la página es **si se ve**: la ROM copia de la página todo
-menos el tile y la paleta cuando la fila camina —`+9` vale `NPC_QUIETO` o el
-banco de sus poses—. Ver `grafico_de_pagina` en `tools/runtime/event_pages.s` y "gana
+menos el tile y la paleta cuando la fila camina —`+9` vale `NPC_STILL` o el
+banco de sus poses—. Ver `page_graphic` en `tools/runtime/event_pages.s` y "gana
 caminar" en `tools/port/snes_convert.py`.
 
 # Medido

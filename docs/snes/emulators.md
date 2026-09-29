@@ -75,7 +75,7 @@ that `ld65` leaves next to each ROM (`rom/build/release/abl.sfc.dbg`,
 - **Names work wherever the `.dbg` sits next to the ROM**, including a
   build handed over with `just entregar`. Labels inside a `.proc` lose their
   scope: Mesen2 uses the bare name and numbers the repeats, so the
-  many `listo` labels show up as `listo`, `listo_2`, `listo_3`… The
+  many `ready` labels show up as `ready`, `ready_2`, `ready_3`… The
   macro-local `LOCAL-MACRO_SYMBOL-*` names are skipped, since Mesen2
   rejects the dash.
 - **The source shows when Mesen2 finds `tools/runtime/` above the `.dbg`.** The
@@ -91,7 +91,7 @@ that `ld65` leaves next to each ROM (`rom/build/release/abl.sfc.dbg`,
 This was checked by reimplementing Mesen2's lookup (`DbgImporter.cs`,
 commit `b9fa69d`) and running it against every cartridge. taro confirmed
 the names in the Mesen2 UI on 2026-09-25 —disassembly, RAM variables and
-call stack, stopped on a breakpoint in `espera_boton`—, and the source
+call stack, stopped on a breakpoint in `wait_button`—, and the source
 view with the ROM opened from `rom/build/release/`. From a `just entregar`
 build the lookup finds every `.s` and misses only the two generated `.inc`
 files; that was checked with the same reimplementation, not yet in the UI.

@@ -22,7 +22,7 @@ cronómetro" en `tools/port/snes_convert.py`.
 # Lo que obliga en la ROM
 
 Como la paleta es de un personaje, **el tinte no la puede saltear entera**: los
-dígitos no se tiñen y el personaje sí. `subir_timer_pal` sube sin teñir sólo
+dígitos no se tiñen y el personaje sí. `upload_timer_pal` sube sin teñir sólo
 las entradas de los dígitos, y sólo mientras se ven. Hasta el 2026-09-25 subía
 la paleta entera, que era lo correcto cuando los dígitos la tenían para ellos
 solos, y el personaje quedaba sin teñir. Los colores que el personaje comparte

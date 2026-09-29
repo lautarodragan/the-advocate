@@ -10,7 +10,7 @@ la pelea, y los de uno que no pelea no —el máximo sale de su nivel—. En RM2
 `Game_Actors::GetActor` contesta por cualquiera. Las dos páginas del juego que
 lo miran son de la pelea de los Lazer Teeth (tropa 86) y miran a Talan; si
 Talan no estuviera en esa pelea, en RM2k podrían salir sus mensajes y acá no.
-Ver `ba_pag_cumple` y `batalla.PaginaDeTropa`.
+Ver `ba_page_met` y `batalla.PaginaDeTropa`.
 
 **`ShakeScreen` sacude la escena y no el texto.** Es lo que corre
 `Spriteset_Battle` con `GetShakeOffsetX` —el fondo y los battlers—; las

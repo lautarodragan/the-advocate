@@ -9,8 +9,8 @@ que su resultado puede cambiar**:
 * al prenderse el switch: el conversor pega el cuerpo detrás del
   `ControlSwitches` que lo prende, como si le siguiera un `CallEvent`;
 * al cerrar el menú de pausa, que es donde se cambia el equipo:
-  `comunes_del_equipo`, en `tools/runtime/equipment_from_events.s`, desde
-  `menu_pantalla`.
+  `equipment_commons`, en `tools/runtime/equipment_from_events.s`, desde
+  `menu_screen`.
 
 Vale para cualquier evento común paralelo, con switch, que no tenga más que
 `ChangeSkills` y ramas "tiene puesto tal ítem": `eventos.COMUNES_DEL_EQUIPO`.
@@ -40,7 +40,7 @@ como las páginas paralelas de los mapas— se midió el 2026-09-27 contra esto:
   (`Raining`, switch 94) y el 8 (`EnableSaving`, switch 236) también compilan.
   Hacer lo general cambia `release` mucho más allá de AG7.
 * **Esto**: 8 bytes del banco 0 (la llamada desde el menú y el puente a
-  `correr_codigo`), 117 del banco 1, ningún byte de RAM, y ningún ciclo por
+  `run_code`), 117 del banco 1, ningún byte de RAM, y ningún ciclo por
   cuadro. El cuerpo compilado son 307 bytes en RODATA y otros tantos pegados
   en la página 5 del evento 2 del mapa 57.
 

@@ -335,7 +335,7 @@ otra. Ver `capturas` en `rpgmaker/test_sustitucion.py`.
 
 No falla con un error: falla pareciendo ruido. Lo que se vio la primera vez
 fueron 28 pixeles de 57.344 distintos entre dos corridas que tenían la misma
-OAM, la misma CGRAM y el mismo `vueltas` —o sea, imposible—, y tablas de RAM
+OAM, la misma CGRAM y el mismo `ticks` —o sea, imposible—, y tablas de RAM
 que no eran las suyas.
 
 ## Limitaciones

@@ -16,13 +16,13 @@ muestra y con qué envolvente, y la consola sólo reproduce.
   driver y el directorio de muestras, nada más. Qué atiende el driver —pares
   (registro, valor) para el DSP, ternas para la ARAM, volver al IPL— está en
   `DRIVER`, en `tools/audio/snes_music.py`. Cuánto espera la ROM al encender
-  es `BOOT_CUADROS` (`tools/runtime/far_ram.s`), y el conversor se corta si no
+  es `BOOT_FRAMES` (`tools/runtime/far_ram.s`), y el conversor se corta si no
   alcanza: ver
   `workflow/decisiones/el-arranque-esta-dimensionado-para-el-paquete-de-arranque.md`.
 * **El stream es por nota**: notas, releases, cambios de volumen o de altura,
   y esperas, que el 65816 expande a las mismas escrituras que antes iban en el
   stream. El formato está en "el formato por nota" de `snes_music.py` y los
-  opcodes en `tools/protocol/music.toml`; `irq_musica` (`tools/runtime/music.s`)
+  opcodes en `tools/protocol/music.toml`; `irq_music` (`tools/runtime/music.s`)
   corre un cuadro de música por cuadro de video.
 * **Las ocho voces son de todos los canales** y se reparten nota a nota: una
   nota toma una voz libre o le roba a otra por prioridad. Ver `assign`,
@@ -36,7 +36,7 @@ muestra y con qué envolvente, y la consola sólo reproduce.
   por mapa**, y cada muestra con el presupuesto de su peor paquete: `Bank` y
   `allocate` en `snes_music.py`, y el porqué en
   `workflow/decisiones/un-solo-banco-de-muestras.md`. Lo sube
-  `paquete_cargar` (`tools/runtime/audio_package.s`) mientras la música suena;
+  `package_load` (`tools/runtime/audio_package.s`) mientras la música suena;
   si el tema que viene sonando y el paquete nuevo no entran juntos, gana el
   tema: `workflow/decisiones/el-tema-que-suena-gana-y-los-efectos-esperan.md`.
 * **El directorio del SPC700** tiene una entrada por muestra de la música
@@ -45,7 +45,7 @@ muestra y con qué envolvente, y la consola sólo reproduce.
   mismo paquete van al mismo lugar, así que alcanzan tantos como efectos
   tiene el paquete más cargado, y lo que queda del directorio es para las
   copias. `effect_places` en `snes_music.py`; la ROM anota qué efecto
-  subió a cada lugar en `FAR_EFECTO_EN` (`anotar_efecto`, en
+  subió a cada lugar en `FAR_EFFECT_IN` (`record_effect`, en
   `tools/runtime/audio_package.s`).
 * **Los efectos de sonido** —`PlaySound`— le roban dos voces a la música
   mientras duran, las que el reparto llena primero con la percusión:
@@ -60,13 +60,13 @@ muestra y con qué envolvente, y la consola sólo reproduce.
   juego, y cada entrada lleva su porqué en el archivo.
 * **El `FadeOutBGM` baja el tema y nada más**: el volumen de cada voz de la
   música, o el de la pista del MSU-1, y nunca el general del DSP, que es
-  también el de los efectos. `bgm_fundido_tick`, en `tools/runtime/music.s`.
+  también el de los efectos. `bgm_fade_tick`, en `tools/runtime/music.s`.
 * **El MSU-1**: todo tema suena desde un PCM al lado de la ROM, y la ROM
   calla el SPC700 mientras tanto. El número de cada pista es el lugar del
   tema en `Music/` del juego —`msu_track` en `snes_music.py`—, así que no
   depende del cartucho; las arma `tools/audio/msu.py`. Con MSU-1, el paquete no sube las muestras de los
   temas con pista, salvo que la pista haya faltado en la tarjeta:
-  `tema_por_msu`, en `tools/runtime/audio_package.s`.
+  `song_per_msu`, en `tools/runtime/audio_package.s`.
 * **Los efectos con MSU-1**: mientras el SPC700 no toca música, los efectos
   tienen también las voces 0 a 5; y si el `.msu` es el de este cartucho, los
   de cada paquete se suben de ahí, enteros y a la tasa que les entra ahora

@@ -19,5 +19,5 @@ eligió la subida en caliente.
 
 Lo que cuesta: un DMA por pose que cambia, con un tope por vblank —lo que sobra
 espera al siguiente—, y la cola tiene que subir la pose en el mismo vblank que
-la OAM que ya cuenta con ella. Cómo, en `vram_encolar`
+la OAM que ya cuenta con ella. Cómo, en `vram_queue`
 (`tools/runtime/load_graphics.s`) y su cola en `tools/runtime/low_ram.s`.

@@ -210,7 +210,7 @@ standing here, with `just <recipe>`. Both forms run the recipe standing in
 `emulator/bsnes-wram.patch` is for **bsnes-libretro**, not for this repo.
 bsnes does not expose the WRAM —`retro_get_memory_data` returns null for
 every id— and the tests' clock asks the ROM which tick of the loop it is on,
-which lives in `vueltas`, in the WRAM. Without the patch, whatever runs under
+which lives in `ticks`, in the WRAM. Without the patch, whatever runs under
 bsnes falls back to counting hardware frames, which works as long as the ROM
 does not fall behind. And without bsnes there is nothing to answer what
 `rom/pruebas/rpgmaker/test_cores.py` exists to answer.

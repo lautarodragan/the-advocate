@@ -11,7 +11,7 @@ paso 6 de `tasks/todo/la-calidad-de-la-musica.md`.
 # Por qué
 
 Casi ningún mapa del juego trae tema propio: lo prende una página, y hasta
-entonces sigue el del mapa anterior. `paquete_cargar_ya` no mueve sus
+entonces sigue el del mapa anterior. `package_load_done` no mueve sus
 muestras —la música sigue durante el fundido, y pisar una muestra que está
 sonando sería ruido—, así que el paquete nuevo se acomoda al lado.
 
@@ -26,5 +26,5 @@ efectos.
 
 Dónde vive: el conversor presupuesta cada paquete con los temas que pueden
 venir sonando (`temas_heredados` en `tools/port/snes_convert.py`), la ROM
-anota `PAQ_INCOMPLETO` y `tema_asegurar` completa el paquete. Lo cobra
+anota `PKG_PARTIAL` y `song_ensure` completa el paquete. Lo cobra
 `test_el_paquete_que_no_entro_con_otro_tema_sonando_se_completa`.

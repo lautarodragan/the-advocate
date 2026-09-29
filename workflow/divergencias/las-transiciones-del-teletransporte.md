@@ -23,7 +23,7 @@ Lo que queda distinto del original:
   héroe y los eventos se ven enteros mientras el mapa se hace bloques.
 * **El zoom es el fundido de siempre.**
 * **La transición no viaja en la partida**, y en RM2k sí: ver
-  `TRANSICION_BORRAR` en `tools/runtime/far_ram.s`.
+  `TRANSITION_ERASE` en `tools/runtime/far_ram.s`.
 * **Borrar con "ninguna" es el corte.** En RM2k no toca la pantalla, así que
   el fundido de vuelta funde del mapa viejo al nuevo (`screen1` y `screen2`
   de `Transition`); la consola no tiene con qué mezclar dos cuadros, y la

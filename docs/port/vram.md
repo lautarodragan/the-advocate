@@ -33,7 +33,7 @@ El "+ambos" lo pide **`Sector 34 With Car`**, el mapa 38: 476 tiles de fondo y
 347 de sprite. En bytes entraba en los otros tres; lo que no dejaba era el
 tilemap del fondo clavado en $5800, que corta el banco de BG1 en 448 tiles. Es
 el único reparto que lo mueve: lo baja a los 2 KB que quedan entre los sprites y
-el fondo, y la ROM lo lee de `FAR_VRAM_MAPA` al armar filas y columnas.
+el fondo, y la ROM lo lee de `FAR_VRAM_MAP` al armar filas y columnas.
 
 ## Dónde está el techo
 
@@ -57,14 +57,14 @@ El de "+fondo" lo pidió **el mundo**, el mapa 66: 527 tiles de fondo y 222 de
 sprite. En vez de subir "+fondo" se agregó "+techo" al final, que es "+fondo"
 con los 544: los mapas que ya estaban siguen donde estaban. Y 544 tiles de 8bpp
 son 34 KB, más que el buffer de carga de LZ2, así que ese fondo viaja en dos
-flujos: ver `lz2_fondo` en `tools/runtime/decompress.s`.
+flujos: ver `lz2_backdrop` en `tools/runtime/decompress.s`.
 
 El sexto, "+encima", lo pidió **Sorbe Village**, el mapa 69: 157 tiles en la
 capa de encima, y los otros cinco le dan 128. No sube ningún techo de fondo ni
 de sprite: **muda la base de BG2** de $6000 a $5000, y con eso la capa de
 encima tiene 256 tiles y la ventana arranca en el índice 256 de BG2 y no en el
 128. Como las celdas de la ventana llevan ese índice horneado, el cartucho
-lleva dos planos de la ventana —640 bytes cada uno— y `estampar_ventana` elige
+lleva dos planos de la ventana —640 bytes cada uno— y `stamp_window` elige
 el suyo por la distancia entre la ventana y la base de BG2. `vram_layout` mira
 desde entonces también la capa de encima; los mapas que ya convertían entraban
 todos en 128, así que ninguno cambió de reparto.

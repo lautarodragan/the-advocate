@@ -117,7 +117,7 @@ celdas de un mapa grande no entra, y se lee con un puntero de 24 bits. Vive
 descomprimida en la mitad alta de los dos bancos de la WRAM —ver
 `workflow/decisiones/la-grilla-vive-en-la-wram.md` y `docs/port/maps.md`—,
 que tiene la misma forma que LoROM: pasarse del `$FFFF` no lleva al `$0000`
-del banco siguiente sino a su `$8000`. `ptr_mas` y `ptr_menos` son las únicas
+del banco siguiente sino a su `$8000`. `ptr_more` y `ptr_minus` son las únicas
 rutinas que saben eso; todo lo demás las usa y se olvida del tema.
 
 Y una tabla mudada, o una que se recorra con `[ptr], y`, **tiene que
