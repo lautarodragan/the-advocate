@@ -62,6 +62,10 @@ ejecutables `rm2k-snes-*` andando desde `/tmp`.
    `render_objetivo` → `render_target`, las constantes `ITEM_*`, `MENU_*`,
    `OBJETIVO_*` → `TARGET_*`…), también por el alias local `T = menus_mod`
    de snes_convert.
+10. `pantallas` → `screens`: equipo, tienda y pelea (`pantalla_tienda` →
+    `shop_screen`, `Texto` → `TextGrid`, las constantes `BA_*`, `EQ_*`,
+    `TI_*` con su prefijo), también por los alias locales `P` y `PM` de
+    snes_convert.
 
 Lo que el conversor escribe al `.inc` cita rutas de `tools/port/` en sus
 comentarios (`; See tools/port/imagen.py.`): esas quedan con el nombre

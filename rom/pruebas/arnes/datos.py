@@ -9,7 +9,7 @@ Todo sale de `resources.GAME_DIR`, que es `ABL_GAME_DIR` si está puesta.
 
 **La base se lee una vez por proceso y se comparte**, y eso vale mientras
 nadie la modifique: ni las pruebas ni lo que llaman de `tools/port/` le
-escriben —`pantallas.equipar` y el modelo de la pelea copian lo que toman—.
+escriben —`screens.equip` y el modelo de la pelea copian lo que toman—.
 Antes cada prueba la leía de nuevo, así que una que le escribiera a la
 compartida sería un cambio de comportamiento, no de arnés.
 """

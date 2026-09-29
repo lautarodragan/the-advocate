@@ -10,7 +10,7 @@ avanza mientras dura.
 from port import battle as modelo
 from port import events
 from port import menus
-from port import pantallas
+from port import screens
 
 from consola import EMPEZAR, en_la_rom, en_la_wram
 import datos
@@ -440,9 +440,9 @@ def ventana(una):
     """Lo que dice la ventana de la victoria: los cuatro renglones del grupo,
     desde la columna del mensaje, y los dos de abajo, que tienen que quedar
     vacíos."""
-    arriba = renglones(una, pantallas.BA_PAG_MSG_FILA0, 4)
-    abajo = renglones(una, pantallas.BA_MSG_FILA1, 2)
-    col = pantallas.BA_PAG_MSG_COL
+    arriba = renglones(una, screens.BA_PAGE_MSG_ROW0, 4)
+    abajo = renglones(una, screens.BA_MSG_ROW1, 2)
+    col = screens.BA_PAGE_MSG_COL
     assert all(r[:col].strip() == "" for r in arriba), arriba
     return [r[col:] for r in arriba], abajo
 
@@ -469,8 +469,8 @@ def paginas(una, pelea, tope=10):
 
 
 def primera_pagina(term, exp):
-    return (pantallas.renglones_de_la_victoria(term["victoria"])
-            + [pantallas.renglon_de_experiencia(term, exp)])
+    return (screens.victory_lines(term["victoria"])
+            + [screens.exp_line(term, exp)])
 
 
 # --- volver del Game Over ---------------------------------------------------

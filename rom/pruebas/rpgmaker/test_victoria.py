@@ -11,14 +11,14 @@ habilidad aprendida. Acá van en los cuatro renglones del grupo —ver
 No se compara contra una golden sino **contra el texto**: se lee el tilemap de
 la pantalla, `texto_buf`, y se traduce cada celda con la tabla de glifos del
 cartucho. Así la prueba dice qué renglón está mal y con qué letras, y los
-renglones esperados salen de `pantallas.renglon_de_*`, que es el armado de
+renglones esperados salen de `screens.renglon_de_*`, que es el armado de
 `game_message_terms.cpp` y lo mismo con que el conversor cobra que entren. Los
 niveles y las habilidades salen de `experience.add_exp` y del LDB, no de acá.
 """
 
 from port import battle as modelo
 from port import experience
-from port import pantallas
+from port import screens
 from port import rules
 
 from batalla import (ARDEN, GRUPO, Pelea, en_el_droide, paginas, poner_exp,
@@ -49,9 +49,9 @@ def pagina_de_nivel(term, base, actor, antes, despues):
     nombres = [base.skills[s].name
                for nivel in range(antes + 1, despues + 1)
                for n, s in base.actors[actor].skills if n == nivel]
-    return ([pantallas.renglon_de_nivel(term, base.actors[actor].name,
-                                        despues)]
-            + [pantallas.renglon_de_habilidad(term, h) for h in nombres])
+    return ([screens.level_line(term, base.actors[actor].name,
+                                despues)]
+            + [screens.skill_line(term, h) for h in nombres])
 
 
 def test_la_victoria_dice_la_experiencia_y_se_cierra(partida):
@@ -238,8 +238,8 @@ def test_la_victoria_da_el_oro_y_los_items_y_los_cuenta(partida):
     ganada = experience.troop_exp(base, TROPA_MERODEADORES)
     vistas = paginas(una, pelea)
     assert vistas[:2] == [
-        primera_pagina(term, ganada) + [pantallas.renglon_de_oro(term, 285)],
-        [pantallas.renglon_de_item(term, base.items[i].name)
+        primera_pagina(term, ganada) + [screens.gold_line(term, 285)],
+        [screens.item_line(term, base.items[i].name)
          for i in esperado.drops],
     ]
 

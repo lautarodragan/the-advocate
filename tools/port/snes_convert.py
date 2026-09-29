@@ -79,7 +79,7 @@ from port import title as titulo_mod
 from port import menus as menus_mod
 from port import fullscreen
 from port import end_game as fin_mod
-from port import pantallas as pantallas_mod
+from port import screens as pantallas_mod
 from port import battle as batalla_mod
 from port import experience as X
 from port import scene as escena_mod
@@ -5499,7 +5499,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write(bloque("item_cgram_sube", paletas_cgram(
             ranuras["items_paletas"][menus_mod.ITEM_UP:])) + "\n")
         # The windows of the item and equipment screens, on BG1: see
-        # `ITEM_WINDOWS` and `pantallas.EQ_VENTANAS`. The tiles and the
+        # `ITEM_WINDOWS` and `screens.EQ_WINDOWS`. The tiles and the
         # colors are the same for both. Each tilemap goes without the bottom
         # rows the screen doesn't show, and each cursor as the two rows of
         # cells it takes, which the ROM copies on top: 128 bytes.
@@ -5522,7 +5522,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             cgram_word(c).to_bytes(2, "little")
             for c in marco_colores)) + "\n")
         # The shop windows, on BG1 with their own base: see
-        # `pantallas.TI_VENTANAS` and `tienda_compacta`, which says what is
+        # `screens.TI_WINDOWS` and `compact_shop`, which says what is
         # stored. The stretches of each layer are `(VRAM word, source byte in
         # `ti_marco_filas`, bytes)`, terminated by three zeros; the bars,
         # `(VRAM word, source byte in `ti_marco_parches`, bytes per row,
@@ -5530,7 +5530,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         PM = pantallas_mod
         ti_tiles, ti_colores, ti_mapas = ranuras["tienda_marco"]
         ti_filas, ti_arriba, ti_capas, ti_parches, ti_barras = \
-            PM.tienda_compacta(ti_mapas)
+            PM.compact_shop(ti_mapas)
 
         def palabras_le(valores):
             return b"".join(v.to_bytes(2, "little") for v in valores)
@@ -5548,7 +5548,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         for capa in ti_capas:
             capa_tramos.append(2 * len(tramos))
             for fila, origen, cuantas in capa:
-                tramos += [PM.TI_MAPA + fila * cols, origen * 2 * cols,
+                tramos += [PM.TI_MAP + fila * cols, origen * 2 * cols,
                            cuantas * 2 * cols]
             tramos += [0, 0, 0]
         handle.write(bloque("ti_tramos", palabras_le(tramos)) + "\n")
@@ -5556,13 +5556,13 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                      + "\n")
         handle.write(bloque("ti_barras", palabras_le(
             v for capa in ti_barras for fila, col, filas, ancho, origen in capa
-            for v in (PM.TI_MAPA + fila * cols + col, 2 * origen, 2 * ancho,
+            for v in (PM.TI_MAP + fila * cols + col, 2 * origen, 2 * ancho,
                       filas))) + "\n")
         base_barras = [0]
         for capa in ti_barras:
             base_barras.append(base_barras[-1] + len(capa))
         handle.write(bloque("ti_barra_base", bytes(base_barras[:-1])) + "\n")
-        handle.write(bloque("ti_capa_de_modo", bytes(PM.TI_CAPA_DE_MODO))
+        handle.write(bloque("ti_capa_de_modo", bytes(PM.TI_LAYER_OF_MODE))
                      + "\n")
         handle.write(
             "TI_MARCO_VRAM     = $%04X\n"
@@ -5570,7 +5570,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "TI_MARCO_TILES    = %d\n"
             "TI_MARCO_COLORES  = %d\n"
             "TI_MARCO_ARRIBA   = %d\n"
-            % (PM.TI_VRAM, PM.TI_MAPA, len(ti_tiles), len(ti_colores),
+            % (PM.TI_VRAM, PM.TI_MAP, len(ti_tiles), len(ti_colores),
                ti_arriba))
         # The End Game screen, whole: see tools/port/end_game.py. The two
         # palettes go one after the other, the "Yes" one first: the ROM picks
@@ -5629,23 +5629,23 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         for _ in range(ranuras.get("relleno_textos") or 0):
             item_textos_ofs.append((0, 0))
         # And the fixed ones, behind: the parameters and the equipment slots,
-        # and the name of each actor that can join the party. See pantallas.py.
+        # and the name of each actor that can join the party. See screens.py.
         P = pantallas_mod
         B = batalla_mod
         db = ranuras["db"]
-        texto_param = [texto_nuevo(t[:P.EQ_PARAM_VALOR - 1])
+        texto_param = [texto_nuevo(t[:P.EQ_PARAM_VALUE - 1])
                        for t in db.term_params]
-        texto_ranura = [texto_nuevo(t[:P.EQ_RANURA_TERM_ANCHO])
+        texto_ranura = [texto_nuevo(t[:P.EQ_SLOT_TERM_WIDTH])
                         for t in db.term_equipment]
         texto_actor = {a: texto_nuevo(db.actors[a].name)
                        for a in ranuras["actores"]}
         # The shop's: the eleven messages of each of the three sets, two lines
-        # each —`split_description`, as in pantallas.py—, and "Owned Items",
+        # each —`split_description`, as in screens.py—, and "Owned Items",
         # "Equipped Items" and the currency.
         texto_tienda = None
         for juego in range(3):
-            term = P.terminos_tienda(db, juego)
-            for nombre, _termino in P.TI_TERMINOS:
+            term = P.shop_terms(db, juego)
+            for nombre, _termino in P.TI_TERMS:
                 renglones = menus_mod.split_description(term[nombre])
                 # Outside the main one, the message goes in a one-line window:
                 # `ti_mensaje` writes only the first.
@@ -5658,26 +5658,26 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                     t = texto_nuevo(renglon)
                     if texto_tienda is None:
                         texto_tienda = t
-        texto_tengo = texto_nuevo(P.lcf_termino(db, P.TI_TERMINO_TENGO))
-        texto_llevo = texto_nuevo(P.lcf_termino(db, P.TI_TERMINO_LLEVO))
+        texto_tengo = texto_nuevo(P.lcf_term(db, P.TI_TERM_OWNED))
+        texto_llevo = texto_nuevo(P.lcf_term(db, P.TI_TERM_CARRIED))
         texto_moneda = texto_nuevo(db.term_gold)
         # And the battle's: the fifteen LDB terms the screen uses —in the order
         # of `rules.BATTLE_TERMS`, which is the one the ROM indexes— and the
         # name of each enemy some troop of the cartridge brings. The three
-        # commands go **already trimmed**, by `pantallas.texto_de_orden`: the
+        # commands go **already trimmed**, by `screens.command_text`: the
         # LDB brings them with leading spaces and that would shift the text of
         # their column.
         term_batalla = rules.battle_terms(db)
         texto_batalla = None
-        victoria = P.renglones_de_la_victoria(term_batalla["victoria"])
-        if len(victoria) > P.BA_VIC_TERMINO_MAX:
+        victoria = P.victory_lines(term_batalla["victoria"])
+        if len(victoria) > P.BA_VICTORY_TERM_MAX:
             raise SystemExit("the victory term takes %d lines and "
                              "the window leaves it %d: %r"
-                             % (len(victoria), P.BA_VIC_TERMINO_MAX, victoria))
+                             % (len(victoria), P.BA_VICTORY_TERM_MAX, victoria))
         for nombre, _termino in rules.BATTLE_TERMS:
             texto = term_batalla[nombre]
             if nombre in ("atacar", "defender", "huir"):
-                texto = P.texto_de_orden(texto)
+                texto = P.command_text(texto)
             if nombre == "victoria":
                 texto = victoria[0]
             t = texto_nuevo(texto)
@@ -5687,7 +5687,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # `message_recovery`, which goes stuck to the name —"Core has
         # revived!"—. It isn't a term but a piece of the state's data, so it
         # goes separately and with its own index. See `ba_mensaje`.
-        texto_revivio = texto_nuevo(P.texto_revivio(db))
+        texto_revivio = texto_nuevo(P.revived_text(db))
         # The second line of the victory, empty if it fits in one: it goes
         # separately so as not to shift the indices of `BA_TERMINOS`.
         texto_victoria2 = texto_nuevo((victoria + [""])[1])
@@ -5695,7 +5695,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                                if numero in db.troops
                                for e in db.troops[numero].members})
         texto_enemigo = {e: texto_nuevo(menus_mod.item_text(
-            db.enemies[e].name, P.BA_NOMBRE_ANCHO)) for e in enemigos_rom}
+            db.enemies[e].name, P.BA_NAME_WIDTH)) for e in enemigos_rom}
         # And the skills': the ones some actor that can join the party knows,
         # **at their LDB level** —see `battle.skills_of`—, sorted by
         # number, which is the order the menu puts them in. With the intro's
@@ -5717,10 +5717,10 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             | {skill.id for lista in acciones_rom.values()
                for _r, skill, _ef in lista if skill is not None})
         texto_hab = {h: texto_nuevo(menus_mod.item_text(
-            db.skills[h].name, P.BA_HAB_NOMBRE_ANCHO))
+            db.skills[h].name, P.BA_SKILL_NAME_WIDTH))
             for h in habilidades_rom}
         texto_hab_desc = {h: texto_nuevo(menus_mod.item_text(
-            db.skills[h].description, P.BA_HAB_DESC_ANCHO))
+            db.skills[h].description, P.BA_SKILL_DESC_WIDTH))
             for h in habilidades_rom}
         # And the **whole** name of the ones learned on leveling up, which is
         # what "<skill> acquired!" says at the victory: the list's is cut to
@@ -5745,7 +5745,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # that is its `skill_name` —"AgentTrain", "Telepathy", "Slicing"— and
         # not the LDB's `command_skill`. It goes trimmed like the other four
         # commands.
-        texto_hab_orden = {a: texto_nuevo(P.texto_de_orden(
+        texto_hab_orden = {a: texto_nuevo(P.command_text(
             B.skill_command_name(db, a))) for a in ranuras["actores"]}
         handle.write(bloque("item_textos", bytes(item_textos) or b"\x00")
                      + "\n")
@@ -6204,28 +6204,28 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "TI_TOTAL_POS      = %d\n"
             "TI_ROJO           = %d\n"
             % (texto_tienda, texto_tengo, texto_llevo, texto_moneda,
-               P.TI_SEGUNDO,
-               pos(P.TI_PRINCIPAL_MSG_FILA, T.ITEM_DESC_COL),
-               pos(P.TI_MSG_FILA, T.ITEM_DESC_COL),
-               pos(P.TI_PRINCIPAL_MSG_FILA + 2, P.TI_ORDEN_COL),
-               pos(P.TI_ORO_FILA, P.TI_ORO_COL),
-               pos(P.TI_TENGO_FILA, P.TI_ESTADO_COL),
-               pos(P.TI_TENGO_FILA, P.TI_ESTADO_NUM),
-               pos(P.TI_LLEVO_FILA, P.TI_ESTADO_COL),
-               pos(P.TI_LLEVO_FILA, P.TI_ESTADO_NUM),
-               pos(P.TI_LISTA_FILA0, 0), P.TI_LISTA_FILAS_COMPRA,
-               P.TI_LISTA_FILAS_VENTA, P.TI_LISTA_COL * 2,
-               P.TI_PRECIO_COL * 2,
-               pos(P.TI_CUANTOS_FILA, P.TI_LISTA_COL),
-               pos(P.TI_CUANTOS_FILA, P.TI_CUANTOS_X_COL),
-               pos(P.TI_CUANTOS_FILA, P.TI_CUANTOS_COL),
-               pos(P.TI_TOTAL_FILA, P.TI_ORO_COL), T.ITEM_RED))
+               P.TI_SECOND,
+               pos(P.TI_MAIN_MSG_ROW, T.ITEM_DESC_COL),
+               pos(P.TI_MSG_ROW, T.ITEM_DESC_COL),
+               pos(P.TI_MAIN_MSG_ROW + 2, P.TI_COMMAND_COL),
+               pos(P.TI_GOLD_ROW, P.TI_GOLD_COL),
+               pos(P.TI_OWNED_ROW, P.TI_STATUS_COL),
+               pos(P.TI_OWNED_ROW, P.TI_STATUS_NUM),
+               pos(P.TI_CARRIED_ROW, P.TI_STATUS_COL),
+               pos(P.TI_CARRIED_ROW, P.TI_STATUS_NUM),
+               pos(P.TI_LIST_ROW0, 0), P.TI_LIST_ROWS_BUY,
+               P.TI_LIST_ROWS_SALE, P.TI_LIST_COL * 2,
+               P.TI_PRICE_COL * 2,
+               pos(P.TI_COUNT_ROW, P.TI_LIST_COL),
+               pos(P.TI_COUNT_ROW, P.TI_COUNT_X_COL),
+               pos(P.TI_COUNT_ROW, P.TI_COUNT_COL),
+               pos(P.TI_TOTAL_ROW, P.TI_GOLD_COL), T.ITEM_RED))
         # `eq_barra` counts the rows of the slots and those of the list from
         # the same one: they are the same window.
-        if P.EQ_LISTA_FILA0 != P.EQ_RANURA_FILA0:
+        if P.EQ_LIST_ROW0 != P.EQ_SLOT_ROW0:
             raise SystemExit("the equipment list starts at row %d and the "
-                             "slots at %d" % (P.EQ_LISTA_FILA0,
-                                              P.EQ_RANURA_FILA0))
+                             "slots at %d" % (P.EQ_LIST_ROW0,
+                                              P.EQ_SLOT_ROW0))
         handle.write(
             "ACTORES_N         = %d\n"
             "RANURAS_EQUIPO    = %d\n"
@@ -6248,15 +6248,15 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "PANT_DESC_POS     = %d\n"
             % (actores_n, constants.EQUIPMENT_SLOTS, texto_param[0],
                texto_ranura[0],
-               pos(P.EQ_ACTOR_FILA, P.EQ_ACTOR_COL), P.EQ_RANURA_FILA0,
-               P.EQ_RANURA_FILA0,
-               max(constants.EQUIPMENT_SLOTS, P.EQ_LISTA_FILAS) * 2,
-               P.EQ_PARAM_VALOR * 2,
-               P.EQ_PARAM_FLECHA * 2, pos(P.EQ_RANURA_FILA0, 0),
-               P.EQ_RANURA_TERM_COL * 2, P.EQ_RANURA_NOMBRE_COL * 2,
-               P.EQ_RANURA_NOMBRE_ANCHO, pos(P.EQ_LISTA_FILA0, 0),
-               P.EQ_LISTA_FILAS,
-               P.EQ_LISTA_NOMBRE_COL * 2,
+               pos(P.EQ_ACTOR_ROW, P.EQ_ACTOR_COL), P.EQ_SLOT_ROW0,
+               P.EQ_SLOT_ROW0,
+               max(constants.EQUIPMENT_SLOTS, P.EQ_LIST_ROWS) * 2,
+               P.EQ_PARAM_VALUE * 2,
+               P.EQ_PARAM_ARROW * 2, pos(P.EQ_SLOT_ROW0, 0),
+               P.EQ_SLOT_TERM_COL * 2, P.EQ_SLOT_NAME_COL * 2,
+               P.EQ_SLOT_NAME_WIDTH, pos(P.EQ_LIST_ROW0, 0),
+               P.EQ_LIST_ROWS,
+               P.EQ_LIST_NAME_COL * 2,
                T.ITEM_COLON_COL * 2,
                pos(T.ITEM_DESC_Y // constants.CELL, T.ITEM_DESC_COL)))
         # --- the battle ---
@@ -6472,7 +6472,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         words_asm("tropa_oro", oro_tropa, declarar=True)
         # What the victory writes has to fit on its line: the ROM builds it
         # with a number or a name in the middle and doesn't split it.
-        P.cobrar_la_victoria(
+        P.collect_victory(
             term_batalla, max(exp_tropa, default=0),
             [db.actors[a].name for a in ranuras["actores"] if a in db.actors],
             [db.skills[h].name for h in sorted(ensenadas)],
@@ -6712,14 +6712,14 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "TPAG_CON_CABECERA = $%02X\n"
             "TPAG_CABECERA     = %d\n"
             % (len(usadas), B.BATTLE_SEED, texto_batalla,
-               pos(P.BA_ENEMIGO_FILA0, 0), pos(P.BA_GRUPO_FILA0, 0),
-               pos(P.BA_MSG_FILA1, 0), pos(P.BA_MSG_FILA2, 0), 2 * 64,
-               P.BA_CURSOR_COL * 2, P.BA_NOMBRE_COL * 2, P.BA_NOMBRE_ANCHO,
+               pos(P.BA_ENEMY_ROW0, 0), pos(P.BA_PARTY_ROW0, 0),
+               pos(P.BA_MSG_ROW1, 0), pos(P.BA_MSG_ROW2, 0), 2 * 64,
+               P.BA_CURSOR_COL * 2, P.BA_NAME_COL * 2, P.BA_NAME_WIDTH,
                P.BA_HP_COL * 2, P.BA_HP_NUM * 2, int(hp_de_enemigos),
-               P.BA_BARRA_COL * 2,
+               P.BA_BAR_COL * 2,
                P.BA_HP_MAX_NUM * 2, 1 * 2,
-               pos(P.BA_PAG_MSG_FILA0, 0), P.BA_PAG_MSG_COL * 2,
-               P.BA_PAG_MSG_ANCHO, events.TROOP_PAGES_MAX,
+               pos(P.BA_PAGE_MSG_ROW0, 0), P.BA_PAGE_MSG_COL * 2,
+               P.BA_PAGE_MSG_WIDTH, events.TROOP_PAGES_MAX,
                events.TROOP_TRIGGER_SWITCH_A, events.TROOP_TRIGGER_SWITCH_B,
                events.TROOP_TRIGGER_VARIABLE, events.TROOP_TRIGGER_TURN,
                events.TROOP_TRIGGER_ENEMY, events.TROOP_TRIGGER_ACTOR,
@@ -6766,17 +6766,17 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # always goes in gray. They go in tables and not in a computation
         # because since 2026-09-13 **they aren't three in a row on one line**:
         # they are the five of ABL's menu spread over two. See
-        # `pantallas.BA_ORDENES`.
-        handle.write("BA_ORDENES_N      = %d\n" % len(P.BA_ORDENES))
-        handle.write("BA_ITEM_CUENTA_DX = %d\n" % (P.BA_ITEM_CUENTA_COL * 2))
-        handle.write("BA_ORDEN_USAR     = %d\n" % P.BA_ORDEN_USAR)
-        handle.write("BA_ORDEN_HUIR     = %d\n" % P.BA_ORDEN_HUIR)
-        handle.write("BA_ORDEN_ATACAR   = %d\n" % P.BA_ORDEN_ATACAR)
-        handle.write("BA_ORDEN_DEFENDER = %d\n" % P.BA_ORDEN_DEFENDER)
-        handle.write("BA_ORDEN_HABILIDAD= %d\n" % P.BA_ORDEN_HABILIDAD)
+        # `screens.BA_COMMANDS`.
+        handle.write("BA_ORDENES_N      = %d\n" % len(P.BA_COMMANDS))
+        handle.write("BA_ITEM_CUENTA_DX = %d\n" % (P.BA_ITEM_COUNT_COL * 2))
+        handle.write("BA_ORDEN_USAR     = %d\n" % P.BA_COMMAND_USE)
+        handle.write("BA_ORDEN_HUIR     = %d\n" % P.BA_COMMAND_ESCAPE)
+        handle.write("BA_ORDEN_ATACAR   = %d\n" % P.BA_COMMAND_ATTACK)
+        handle.write("BA_ORDEN_DEFENDER = %d\n" % P.BA_COMMAND_DEFEND)
+        handle.write("BA_ORDEN_HABILIDAD= %d\n" % P.BA_COMMAND_SKILL)
         # The skills screen: two columns with the name and the cost, and the
         # description of the one under the cursor at the very top. The
-        # geometry comes from `pantallas.py`, like the item list's.
+        # geometry comes from `screens.py`, like the item list's.
         handle.write(
             "HABILIDADES_N     = %d\n"
             "BA_HAB_DESC_POS   = %d\n"
@@ -6790,16 +6790,16 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "BA_HAB_COSTO_DX   = %d\n"
             "BA_HAB_COSTO_CIFRAS = %d\n"
             % (len(habilidades_rom),
-               pos(P.BA_HAB_DESC_FILA, P.BA_HAB_DESC_COL),
-               pos(P.BA_HAB_FILA0, 0), P.BA_HAB_FILAS, P.BA_HAB_COLUMNAS,
-               P.BA_HAB_COLUMNA_DX * 2, P.BA_HAB_NOMBRE_COL * 2,
-               P.BA_HAB_NOMBRE_ANCHO, P.BA_HAB_GUION_COL * 2,
-               P.BA_HAB_COSTO_COL * 2, P.BA_HAB_COSTO_CIFRAS))
+               pos(P.BA_SKILL_DESC_ROW, P.BA_SKILL_DESC_COL),
+               pos(P.BA_SKILL_ROW0, 0), P.BA_SKILL_ROWS, P.BA_SKILL_COLUMNS,
+               P.BA_SKILL_COLUMN_DX * 2, P.BA_SKILL_NAME_COL * 2,
+               P.BA_SKILL_NAME_WIDTH, P.BA_SKILL_DASH_COL * 2,
+               P.BA_SKILL_COST_COL * 2, P.BA_SKILL_COST_DIGITS))
         handle.write('.segment "RODATA"\n')
         words_asm("ba_orden_fila", [
-            pos((P.BA_MSG_FILA1, P.BA_MSG_FILA2)[f], 0)
-            for _n, f, _c in P.BA_ORDENES], declarar=True)
-        words_asm("ba_orden_dx", [c * 2 for _n, _f, c in P.BA_ORDENES],
+            pos((P.BA_MSG_ROW1, P.BA_MSG_ROW2)[f], 0)
+            for _n, f, _c in P.BA_COMMANDS], declarar=True)
+        words_asm("ba_orden_dx", [c * 2 for _n, _f, c in P.BA_COMMANDS],
                   declarar=True)
         # **Two bytes.** A text index doesn't fit in one: with the 29 maps of
         # `abl` the battle's start at 273, and the one-byte table that was here
@@ -6807,10 +6807,10 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # to truncate them without saying anything.
         words_asm("ba_orden_txt", [
             texto_batalla + [n for n, _c in rules.BATTLE_TERMS].index(nombre)
-            for nombre, _f, _c in P.BA_ORDENES], declarar=True)
+            for nombre, _f, _c in P.BA_COMMANDS], declarar=True)
         bytes_asm("ba_orden_gris", [
-            1 if k in P.BA_ORDEN_SIN_HACER else 0
-            for k in range(len(P.BA_ORDENES))], declarar=True)
+            1 if k in P.BA_COMMAND_UNDONE else 0
+            for k in range(len(P.BA_COMMANDS))], declarar=True)
         handle.write('.segment "TABLAS"\n')
 
         glifos = ranuras["items_glifos"]
@@ -7903,12 +7903,12 @@ def main():
     # `menus.borders`.
     items_marco = menus_mod.borders(
         skin, items_marco_primero(len(items_tiles)),
-        [menus_mod.item_layers(skin), pantallas_mod.capas_equipo(skin)])
+        [menus_mod.item_layers(skin), pantallas_mod.equipment_layers(skin)])
     _controlar_marco_de_items(len(items_tiles), len(items_marco[0]))
     # The shop's, with their own tiles and colors: see
-    # `pantallas.TI_VENTANAS`.
+    # `screens.TI_WINDOWS`.
     tienda_marco = menus_mod.borders(
-        skin, 0, pantallas_mod.capas_tienda(skin),
+        skin, 0, pantallas_mod.shop_layers(skin),
         menus_mod.ITEM_BORDER_CGRAM, menus_mod.TARGET_CGRAM)
     _controlar_tienda(len(tienda_marco[0]))
     # The End Game screen's tiles go where the slots' do, so what is checked
