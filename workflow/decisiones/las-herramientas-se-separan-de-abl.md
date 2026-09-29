@@ -65,6 +65,17 @@ tiene el plan de seis pasos y las preguntas con sus opciones.
   `verificar-herramientas`, cuando exista el archivo de proyecto con la
   versión. La guarda que frena a un worktree sin su `bin/` es el primer
   pedazo.
+- **`rm2k-render` es el dueño de todo lo que es dibujar gráficos de RPG
+  Maker, sin saber nada de la SNES.** Charlado con taro el 2026-09-29. Hoy
+  dibuja las capas de un mapa y los ChipSets; va a crecer con los CharSets
+  (poses, translúcidos), las animaciones de pelea, los enemigos y fondos de
+  batalla, las FaceSets, el System y el cartel de `ShowPicture`, que hoy
+  dibuja el conversor en Python. Comparten una base —cargar una imagen de
+  RM2k con su color clave, mezclar por alfa, recortar hojas— que ya está en
+  su `picture.rs`. No se parte en un proyecto por asset: eso pediría otro
+  crate para la base, y serían varios chicos donde alcanza uno. Su límite es
+  la capa: nada de paletas de 16 colores ni de tiles de 8x8, que son del
+  asignador y de `voodoo`.
 - **ABL sólo conoce ejecutables del PATH, no `tools/`.** Es la idea de taro
   para el primer paso: el `justfile` no sabe que existe Python, y los `.py`
   que se ejecutan pasan a ser ejecutables de verdad, con hashbang y
