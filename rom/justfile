@@ -98,7 +98,9 @@ datos-vuelta:
 # worktree vive con ellas.
 _herramientas_del_checkout:
   #!/usr/bin/env sh
-  [ "$(git rev-parse --git-dir)" = "$(git rev-parse --git-common-dir)" ] && exit 0
+  # `--path-format=absolute`: parado en `rom/`, `--git-dir` sale absoluto y `--git-common-dir` relativo
+  # (`../.git`), y compararlos crudos toma al checkout principal por un worktree.
+  [ "$(git rev-parse --path-format=absolute --git-dir)" = "$(git rev-parse --path-format=absolute --git-common-dir)" ] && exit 0
   [ -d "{{locales}}/bin" ] && exit 0
   echo "este worktree no tiene sus herramientas. Corré primero, desde cualquier directorio:" >&2
   echo "  just -f $(git rev-parse --show-toplevel)/tools/justfile herramientas-locales {{locales}}" >&2
