@@ -291,7 +291,7 @@ Las capturas van ahí y no a `/tmp` por una razón concreta: el contenedor corre
 con `--rm --replace`, así que `/tmp` se muere con él y `/extras` no.
 
 Las herramientas llegan a `/extras` y a `/shared` por flags —`--game-dir`,
-`--rtp-dir`, `--soundfont`, `--reemplazos`, `--compartido`—, y no saben de
+`--rtp-dir`, `--soundfont`, `--replacements`, `--shared`—, y no saben de
 ningún valor de esta máquina. Los pone `rom/justfile`, que traduce
 `ABL_GAME_DIR`, `ABL_RTP_DIR`, `ABL_SOUNDFONT` y `SHARED` con los valores de
 acá por omisión, y los exporta para las pruebas; los reemplazos de MSU-1,
@@ -411,7 +411,7 @@ muestras ya preparadas y capas convertidas— y su clave lleva el hash de los
 fuentes **y el de los binarios que producen lo guardado**, así que no hay que
 borrarlo al tocar código. Lo único que pide es que cualquier cambio en lo que
 se cachea se verifique con `SIN_CACHE=1`: las dos ROMs tienen que ser byte por
-byte iguales. Ver `tools/comun/cache_disco.py`.
+byte iguales. Ver `tools/common/disk_cache.py`.
 
 **Mientras corren las pruebas no se toca ningún fuente.** `huella()` cubre
 todo `tools/runtime/`, los `.py` de `tools/` y los binarios de `ca65` y `ld65`: tocar
@@ -609,7 +609,7 @@ Así que al mergear una rama de sub-agente:
 * **Y los números que cada rama eligió sola.** Un opcode nuevo, un índice en una tupla de prueba, una dirección de la RAM lejana: cada agente toma "el
   siguiente libre" mirando su copia, así que dos ramas eligen el mismo y git no
   ve nada. Pasó las tres cosas el mismo día. Lo de los opcodes lo cuida ahora
-  `test_ningun_opcode_comparte_numero_con_otro`; lo demás hay que mirarlo.
+  `test_no_opcode_shares_a_number_with_another`; lo demás hay que mirarlo.
 
 ### Cuando un sub-agente se corta
 
