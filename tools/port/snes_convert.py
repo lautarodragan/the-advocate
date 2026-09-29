@@ -2524,6 +2524,29 @@ def _controlar_objetivo(tiles):
                 % (T.OBJETIVO_VRAM, fin_map, nombre, base, tope))
 
 
+def _controlar_tienda(tiles):
+    """Que los tiles de las ventanas de la tienda, desde la base de su BG1,
+    no lleguen más allá de lo que `load_map` repone al cerrar en ningún
+    reparto —como `_controlar_objetivo`—, ni a lo que usa la pantalla: la
+    fuente y el tilemap de BG2 terminan en `RANURA_MAP` + 1024. El tilemap es
+    el de ítems y equipo, que ya controla `_controlar_marco_de_items`."""
+    P = pantallas_mod
+    fin_tiles = P.TI_VRAM + tiles * 32
+    if P.TI_VRAM < RANURA_MAP + 32 * 32:
+        raise SystemExit("las ventanas de la tienda pisan el tilemap del "
+                         "texto")
+    for nombre, layout in LAYOUTS:
+        base, cuantos = layout["tiles"]
+        tope = base + cuantos * (BYTES_PER_TILE // 2)
+        if P.TI_VRAM < base or fin_tiles > tope:
+            raise SystemExit(
+                "las ventanas de la tienda son %d tiles de 8bpp, en "
+                "$%04X..$%04X, y el banco de BG1 de LAYOUT_%s es "
+                "$%04X..$%04X: al cerrar la tienda `load_map` no las "
+                "repondría" % (tiles, P.TI_VRAM, fin_tiles, nombre, base,
+                               tope))
+
+
 def _controlar_repartos():
     """Que cada reparto respete al hardware y a lo que la ROM supone de él.
 
@@ -5435,6 +5458,57 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write(bloque("items_marco_cgram", b"".join(
             cgram_word(c).to_bytes(2, "little")
             for c in marco_colores)) + "\n")
+        # Las ventanas de la tienda, en BG1 con su propia base: ver
+        # `pantallas.TI_VENTANAS` y `tienda_compacta`, que dice qué se guarda.
+        # Los tramos de cada capa son `(palabra de la VRAM, byte de origen en
+        # `ti_marco_filas`, bytes)`, terminados en tres ceros; las barras,
+        # `(palabra de la VRAM, byte de origen en `ti_marco_parches`, bytes
+        # por fila, filas)`.
+        PM = pantallas_mod
+        ti_tiles, ti_colores, ti_mapas = ranuras["tienda_marco"]
+        ti_filas, ti_arriba, ti_capas, ti_parches, ti_barras = \
+            PM.tienda_compacta(ti_mapas)
+
+        def palabras_le(valores):
+            return b"".join(v.to_bytes(2, "little") for v in valores)
+
+        handle.write(bloque("ti_marco_tiles", b"".join(
+            pack_tile(celda, planes=8) for celda in ti_tiles)) + "\n")
+        handle.write(bloque("ti_marco_cgram", b"".join(
+            cgram_word(c).to_bytes(2, "little") for c in ti_colores)) + "\n")
+        handle.write(bloque("ti_marco_filas", palabras_le(
+            p for f in ti_filas for p in f)) + "\n")
+        handle.write(bloque("ti_marco_parches", palabras_le(ti_parches))
+                     + "\n")
+        cols = titulo_mod.COLS
+        tramos, capa_tramos = [], []
+        for capa in ti_capas:
+            capa_tramos.append(2 * len(tramos))
+            for fila, origen, cuantas in capa:
+                tramos += [PM.TI_MAPA + fila * cols, origen * 2 * cols,
+                           cuantas * 2 * cols]
+            tramos += [0, 0, 0]
+        handle.write(bloque("ti_tramos", palabras_le(tramos)) + "\n")
+        handle.write(bloque("ti_capa_tramos", palabras_le(capa_tramos))
+                     + "\n")
+        handle.write(bloque("ti_barras", palabras_le(
+            v for capa in ti_barras for fila, col, filas, ancho, origen in capa
+            for v in (PM.TI_MAPA + fila * cols + col, 2 * origen, 2 * ancho,
+                      filas))) + "\n")
+        base_barras = [0]
+        for capa in ti_barras:
+            base_barras.append(base_barras[-1] + len(capa))
+        handle.write(bloque("ti_barra_base", bytes(base_barras[:-1])) + "\n")
+        handle.write(bloque("ti_capa_de_modo", bytes(PM.TI_CAPA_DE_MODO))
+                     + "\n")
+        handle.write(
+            "TI_MARCO_VRAM     = $%04X\n"
+            "TI_MARCO_MAPA     = $%04X\n"
+            "TI_MARCO_TILES    = %d\n"
+            "TI_MARCO_COLORES  = %d\n"
+            "TI_MARCO_ARRIBA   = %d\n"
+            % (PM.TI_VRAM, PM.TI_MAPA, len(ti_tiles), len(ti_colores),
+               ti_arriba))
         # La pantalla de End Game, entera: ver tools/port/fin_del_juego.py.
         # Las dos paletas van seguidas, la de "Yes" primero: la ROM elige
         # una multiplicando.
@@ -5508,7 +5582,15 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         for juego in range(3):
             term = P.terminos_tienda(db, juego)
             for nombre, _termino in P.TI_TERMINOS:
-                for renglon in titulo_mod.partir_descripcion(term[nombre]):
+                renglones = titulo_mod.partir_descripcion(term[nombre])
+                # Fuera de la principal, el mensaje va en una ventana de un
+                # renglón: `ti_mensaje` escribe sólo el primero.
+                if renglones[1] and nombre not in ("saludo", "resaludo"):
+                    raise SystemExit(
+                        "el mensaje %r de la tienda, del juego %d, ocupa dos "
+                        "renglones y su ventana tiene uno"
+                        % (term[nombre], juego))
+                for renglon in renglones:
                     t = texto_nuevo(renglon)
                     if texto_tienda is None:
                         texto_tienda = t
@@ -6028,6 +6110,8 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "TI_TEXTO_LLEVO    = %d\n"
             "TI_TEXTO_MONEDA   = %d\n"
             "TI_SEGUNDO        = %d\n"
+            "TI_PRINCIPAL_MSG_POS = %d\n"
+            "TI_MSG_POS        = %d\n"
             "TI_ORDEN_POS0     = %d\n"
             "TI_ORO_POS        = %d\n"
             "TI_TENGO_POS      = %d\n"
@@ -6035,20 +6119,32 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "TI_LLEVO_POS      = %d\n"
             "TI_LLEVO_NUM      = %d\n"
             "TI_LISTA_POS0     = %d\n"
-            "TI_LISTA_FILAS    = %d\n"
+            "TI_LISTA_FILAS_COMPRA = %d\n"
+            "TI_LISTA_FILAS_VENTA = %d\n"
+            "TI_NOMBRE         = %d\n"
             "TI_PRECIO         = %d\n"
-            "TI_CUANTOS        = %d\n"
+            "TI_CUANTOS_POS    = %d\n"
+            "TI_CUANTOS_X_POS  = %d\n"
+            "TI_CUANTOS_NUM_POS = %d\n"
             "TI_TOTAL_POS      = %d\n"
+            "TI_ROJO           = %d\n"
             % (texto_tienda, texto_tengo, texto_llevo, texto_moneda,
-               P.TI_SEGUNDO, pos(P.TI_ORDEN_FILA0, 0),
+               P.TI_SEGUNDO,
+               pos(P.TI_PRINCIPAL_MSG_FILA, T.ITEM_DESC_COL),
+               pos(P.TI_MSG_FILA, T.ITEM_DESC_COL),
+               pos(P.TI_PRINCIPAL_MSG_FILA + 2, P.TI_ORDEN_COL),
                pos(P.TI_ORO_FILA, P.TI_ORO_COL),
                pos(P.TI_TENGO_FILA, P.TI_ESTADO_COL),
                pos(P.TI_TENGO_FILA, P.TI_ESTADO_NUM),
                pos(P.TI_LLEVO_FILA, P.TI_ESTADO_COL),
                pos(P.TI_LLEVO_FILA, P.TI_ESTADO_NUM),
-               pos(P.TI_LISTA_FILA0, 0), P.TI_LISTA_FILAS,
-               P.TI_PRECIO_COL * 2, P.TI_CUANTOS_COL * 2,
-               pos(P.TI_TOTAL_FILA, P.TI_ORO_COL)))
+               pos(P.TI_LISTA_FILA0, 0), P.TI_LISTA_FILAS_COMPRA,
+               P.TI_LISTA_FILAS_VENTA, P.TI_LISTA_COL * 2,
+               P.TI_PRECIO_COL * 2,
+               pos(P.TI_CUANTOS_FILA, P.TI_LISTA_COL),
+               pos(P.TI_CUANTOS_FILA, P.TI_CUANTOS_X_COL),
+               pos(P.TI_CUANTOS_FILA, P.TI_CUANTOS_COL),
+               pos(P.TI_TOTAL_FILA, P.TI_ORO_COL), T.ITEM_ROJO))
         # `eq_barra` cuenta las filas de las ranuras y las de la lista desde
         # la misma: son la misma ventana.
         if P.EQ_LISTA_FILA0 != P.EQ_RANURA_FILA0:
@@ -6072,9 +6168,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             "EQ_RANURA_ANCHO   = %d\n"
             "EQ_LISTA_POS0     = %d\n"
             "EQ_LISTA_FILAS    = %d\n"
-            "EQ_CURSOR         = %d\n"
             "EQ_LISTA_NOMBRE   = %d\n"
-            "PANT_NOMBRE       = %d\n"
             "PANT_DOS_PUNTOS   = %d\n"
             "PANT_DESC_POS     = %d\n"
             % (actores_n, P.RANURAS_EQUIPO, texto_param[0], texto_ranura[0],
@@ -6085,9 +6179,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
                P.EQ_PARAM_FLECHA * 2, pos(P.EQ_RANURA_FILA0, 0),
                P.EQ_RANURA_TERM_COL * 2, P.EQ_RANURA_NOMBRE_COL * 2,
                P.EQ_RANURA_NOMBRE_ANCHO, pos(P.EQ_LISTA_FILA0, 0),
-               P.EQ_LISTA_FILAS, P.EQ_CURSOR_COL * 2,
+               P.EQ_LISTA_FILAS,
                P.EQ_LISTA_NOMBRE_COL * 2,
-               T.ITEM_NOMBRE_COL * 2, T.ITEM_DOS_PUNTOS_COL * 2,
+               T.ITEM_DOS_PUNTOS_COL * 2,
                pos(T.ITEM_DESC_Y // T.CELL, T.ITEM_DESC_COL)))
         # --- la batalla ---
         # Los HP máximos de cada actor a su nivel, por número de actor. Van
@@ -7693,6 +7787,12 @@ def main():
         skin, items_marco_primero(len(items_tiles)),
         [titulo_mod.capas_items(skin), pantallas_mod.capas_equipo(skin)])
     _controlar_marco_de_items(len(items_tiles), len(items_marco[0]))
+    # Las de la tienda, con sus propios tiles y colores: ver
+    # `pantallas.TI_VENTANAS`.
+    tienda_marco = titulo_mod.marcos(
+        skin, 0, pantallas_mod.capas_tienda(skin),
+        titulo_mod.ITEM_MARCO_CGRAM, titulo_mod.OBJETIVO_CGRAM)
+    _controlar_tienda(len(tienda_marco[0]))
     # Los tiles de la pantalla de End Game van donde los de las ranuras, así
     # que lo que se controla es lo mismo.
     fin = fin_mod.convertir(skin, renderer.database, renderer.database.font_id)
@@ -7708,6 +7808,7 @@ def main():
                      "items_paletas": items_paletas,
                      "items_glifos": items_glifos,
                      "items_marco": items_marco, "fin": fin,
+                     "tienda_marco": tienda_marco,
                      "objetivo": objetivo}
     _controlar_ranuras(len(ranura_tiles))
     _controlar_repartos()
