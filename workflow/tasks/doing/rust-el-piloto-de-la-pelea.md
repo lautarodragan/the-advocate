@@ -55,9 +55,14 @@ en inglés, que es donde la va a buscar el que arme el próximo:
   `tests/command_line.rs`, el binario visto de afuera.
 
 Del lado de Python, **el que llama es el orquestador**: `snes_convert.py`
-corre la etapa una vez, en el lugar donde antes corría
-`rom_encounters`, y le pasa el resultado a `mapdata.emit`. No queda un
-módulo envoltorio por etapa.
+arma el pedido y corre la etapa una vez, en el lugar donde antes corría
+`rom_encounters`, y le pasa lo escrito a `mapdata.emit`, que lo intercala
+donde estaba. Correr una etapa es `port/stage.py`, uno solo para todas:
+busca el binario en el PATH, escribe el pedido, lo corre en un directorio
+temporal y devuelve `{archivo: texto}`. No queda un módulo envoltorio por
+etapa. El árbol de `lcf.TreeMap` ahora dice de qué volcado salió (`dump`)
+y qué nodos le agregó el proyecto (`added_nodes`), que es lo que la etapa
+necesita para ver el mismo árbol.
 
 ## Lo que usaba de otros módulos
 
@@ -89,3 +94,13 @@ módulo envoltorio por etapa.
   conversión, así que la clave del caché no tiene por qué llevar el
   binario. La huella de los cartuchos sí: `CONVERTER_TOOLS` en
   `tools/rm2k-snes/cartridge/src/cartridges.rs`.
+
+## Verificación
+
+- `NO_CACHE=1 just cartuchos` antes (con `battle_tables.py`) y después
+  (con `rm2k-snes-battle`): los 999 archivos de `rom/build/` iguales —los
+  `.sfc`, `.msu`, `.pcm` y `.inc`— salvo los dos `.dbg`. Esos difieren
+  **sólo en cómo escriben la ruta de cada fuente**, que depende de qué
+  `rm2k-snes-assemble` arma —el global o el del worktree—, no del
+  conversor: rearmado con el global, el `.dbg` es el mismo con el prefijo
+  `.claude/worktrees/<agente>/` en cada `name=`, y nada más.

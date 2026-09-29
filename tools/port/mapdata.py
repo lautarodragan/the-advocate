@@ -51,7 +51,6 @@ from port.map_record import (ACTOR_BYTES, ACTOR_COLORS, ANIM_FAM_STRIDE,
                              map_table, offsets)
 from port.battle_animations import animations_asm
 from port.battle_scenes import scenes_asm
-from port.battle_tables import experience_asm, experience_slots
 
 
 # One bit per switch. The game checks up to 1003 in page conditions, so 1024
@@ -81,7 +80,7 @@ def rom_identity():
 def emit(path, maps, initial=0, hero_above=False, initial_party=(),
          window=None, title=None, slots=None, picture_info=None,
          animations=None, troops=(), battle_audio=None, scenes=None,
-         encounters=None, troop_pages=None, compressed=None,
+         battle_tables=None, troop_pages=None, compressed=None,
          enemy_hp=False, game_over=None):
     """The .inc that is assembled together with main.s.
 
@@ -1723,7 +1722,8 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
             (rules.param_of(db.actors[a], "maxsp")
              if a in db.actors else 0) & 0xFFFF
             for a in range(n_actors)], declare=True)
-        handle.write(experience_asm(db, slots["actores"], n_actors))
+        # See `rm2k-snes-battle`, which leaves the segment in RODATA.
+        handle.write(battle_tables["experience"])
         # --- the skills ---
         #
         # One row per skill the cartridge carries, in the order of
@@ -1854,7 +1854,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
                      "SKILL_BYTES = %d\n" % skill_bytes)
         handle.write("; The signature of the save format: see `SRAM_SIGNATURE`.\n"
                      "GAME_SIGNATURE = $%04X\n" % save_signature(
-                         pairs, experience_slots(db, slots["actores"]),
+                         pairs, battle_tables["slots"],
                          n_actors))
         words_asm("skill_pair_init", skill_pair_start, declare=True)
         bytes_asm("skill_pair_n", skill_pair_n, declare=True)
@@ -1995,32 +1995,9 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # And the random encounters, which also talk about troops by their
         # RM2k number. They go here outside bank 0 —they are read with
         # `lda f:tabla, x`— because eighty-five bytes were left there and this
-        # is about two hundred. See `rom_encounters` and
-        # `tools/runtime/encounters.s`.
-        enc = encounters or {"por_mapa": [0xFF] * len(maps), "registros": [],
-                             "zonas": [], "tropas": []}
-        bytes_asm("enc_map", enc["por_mapa"], declare=True)
-        words_asm("enc_base", [r["base"] for r in enc["registros"]],
-                  declare=True)
-        thresholds = []
-        for r in enc["registros"]:
-            # Seven thresholds and one of padding: with eight the record's
-            # index is a shift and not a multiplication. See ENC_STRIDE.
-            thresholds += list(r["umbrales"]) + [0xFF]
-        bytes_asm("enc_threshold_n", thresholds, declare=True)
-        bytes_asm("enc_zone_init", [r["zona_ini"] for r in enc["registros"]],
-                  declare=True)
-        bytes_asm("enc_zone_n", [r["zona_n"] for r in enc["registros"]],
-                  declare=True)
-        for k, label in enumerate(("enc_left", "enc_arr", "enc_right",
-                                   "enc_down")):
-            words_asm(label, [z["rect"][k] for z in enc["zonas"]],
-                      declare=True)
-        bytes_asm("enc_troop_init", [z["troop_init"] for z in enc["zonas"]],
-                  declare=True)
-        bytes_asm("enc_troop_n", [z["troop_n"] for z in enc["zonas"]],
-                  declare=True)
-        words_asm("enc_troop", enc["tropas"], declare=True)
+        # is about two hundred. `rm2k-snes-battle` writes them, and opens no
+        # segment: they land in this RODATA. See `tools/runtime/encounters.s`.
+        handle.write(battle_tables["encounters"])
         words_asm("enemy_hp", [db.enemies[e].max_hp for e in rom_enemies],
                   declare=True)
         words_asm("enemy_atk", [db.enemies[e].attack for e in rom_enemies],

@@ -76,7 +76,7 @@ def rom_scene(db, troops, maps, tree, encounters, game_dir):
     # The map's, for random encounters and for the troops that fight with the
     # one of the place. Only in the maps where some battle can look at it:
     # without that, any cartridge would ask for the replacement.
-    per_map = (encounters or {}).get("por_mapa") or [0xFF] * len(maps)
+    per_map = (encounters or {}).get("per_map") or [0xFF] * len(maps)
     place_ones = PLACE_BACKDROP in data["tropa_fondo"].values()
     for map_info, record in zip(maps, per_map):
         if record != 0xFF or place_ones:
