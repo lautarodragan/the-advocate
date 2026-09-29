@@ -35,7 +35,7 @@ song is deleted: `just entregar` copies every one it finds to the card.
 There is no need to run it by hand: `just build release` always runs it
 —see `pistas` in `cartuchos.py`—, because the ROM that is played carries its
 tracks. Their being next to the ROM does not change the tests: the harness
-hides the tracks from the core, see `retro.Consola`.
+hides the tracks from the core, see `retro.Console`.
 
 **A track can come from an audio file instead of the MIDI.** If the
 replacements directory —`/extras/msu` unless another is given— has a
@@ -77,10 +77,10 @@ if __name__ == "__main__":
 
 from audio import snes_music                                # noqa: E402
 from audio import snes_samples                              # noqa: E402
-from comun import ambiente                                  # noqa: E402
-from comun import cache_disco                               # noqa: E402
-from comun import proyecto                                  # noqa: E402
-from rpgmaker import recursos                               # noqa: E402
+from common import environment                                  # noqa: E402
+from common import disk_cache                               # noqa: E402
+from common import project                                  # noqa: E402
+from rpgmaker import resources                               # noqa: E402
 
 # fluidsynth's gain. With 1.0 the songs with many voices saturate, so it is
 # rendered low and then normalized: the track's peak ends up at `PICO`, which
@@ -94,7 +94,7 @@ _fluidsynth = None
 _ffmpeg = None
 
 # Which extensions the replacements are looked for with, in this order.
-# Where is set by `--reemplazos`: see `comun/ambiente.py`.
+# Where is set by `--replacements`: see `common/environment.py`.
 EXTENSIONES = (".mp3", ".ogg", ".flac", ".wav")
 
 
@@ -167,8 +167,8 @@ def clave_del_reemplazo(audio, pico=PICO):
     replacement, or a song that in the game is a WAV."""
     with open(audio, "rb") as f:
         crudo = f.read()
-    return cache_disco.clave(cache_disco.version_de("audio/msu.py"),
-                             huella_de_ffmpeg(), "%.17g" % pico, crudo)
+    return disk_cache.key(disk_cache.version_of("audio/msu.py"),
+                          huella_de_ffmpeg(), "%.17g" % pico, crudo)
 
 
 def decodificar(audio, salida):
@@ -190,11 +190,11 @@ def clave_de_la_pista(midi, soundfont, ganancia, pico=PICO):
     """
     with open(midi, "rb") as f:
         crudo = f.read()
-    return cache_disco.clave(cache_disco.version_de("audio/msu.py"),
-                             huella_de_fluidsynth(),
-                             snes_samples.huella_del_soundfont(soundfont),
-                             "%.17g %.17g" % (ganancia, pico),
-                             crudo)
+    return disk_cache.key(disk_cache.version_of("audio/msu.py"),
+                          huella_de_fluidsynth(),
+                          snes_samples.huella_del_soundfont(soundfont),
+                          "%.17g %.17g" % (ganancia, pico),
+                          crudo)
 
 
 def huella_del_archivo(ruta):
@@ -264,9 +264,9 @@ def armar(rom, game_dir=None, soundfont=None, ganancia=GANANCIA,
     `charlar` false silences the ones already there: `cartuchos.py` calls it
     on every `just pruebas`.
     """
-    game_dir = game_dir or recursos.GAME_DIR
+    game_dir = game_dir or resources.GAME_DIR
     soundfont = soundfont or snes_samples.SOUNDFONT
-    reemplazos = reemplazos or ambiente.reemplazos_msu()
+    reemplazos = reemplazos or environment.msu_replacements()
     base = os.path.splitext(rom)[0]
     # The file that turns MSU-1 on. The converter writes it with its data, so
     # here it is created only if missing —a loose ROM, built by hand—, and
@@ -326,7 +326,7 @@ def _una_pista(base, nombre, numero, game_dir, soundfont, ganancia,
     # same sources. What is stored is the sha256 of the `.pcm`, so a run cut
     # off halfway —the `.pcm` is written in one go, and weighs tens of
     # megabytes— is not taken as good: it does not match and is redone.
-    guardado = cache_disco.leer("msu", clave)
+    guardado = disk_cache.read("msu", clave)
     # The `is not None` is not redundant: without a cache `leer` gives
     # `None`, and a missing `.pcm` gives `None` too, so comparing them
     # plainly would say "already there" exactly when there is nothing.
@@ -343,7 +343,7 @@ def _una_pista(base, nombre, numero, game_dir, soundfont, ganancia,
     muestras, escala = pista(temporal, salida + ".nuevo")
     os.replace(salida + ".nuevo", salida)
     os.remove(temporal)
-    cache_disco.guardar("msu", clave, huella_del_archivo(salida))
+    disk_cache.write("msu", clave, huella_del_archivo(salida))
     return ("track %d: %-22s %6.1f s, %d MB, normalized x%.2f -> %s%s"
             % (numero, nombre, muestras / 44100.0,
                os.path.getsize(salida) // (1 << 20), escala, salida,
@@ -352,20 +352,20 @@ def _una_pista(base, nombre, numero, game_dir, soundfont, ganancia,
 
 # What it uses from the machine: the RTP, because a song can come from there;
 # and the cache, where it remembers which tracks are already there.
-DEL_AMBIENTE = ("game_dir", "rtp_dir", "soundfont", "reemplazos", "cache")
+DEL_AMBIENTE = ("game_dir", "rtp_dir", "soundfont", "replacements", "cache")
 
 
 def main():
-    proyecto.desde_la_linea_de_comandos()
+    project.from_command_line()
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("rom", help="the ROM: the tracks go next to it, with "
                                     "its name and the track number")
-    proyecto.argumento(parser)
-    ambiente.argumentos(parser, *DEL_AMBIENTE)
+    project.add_argument(parser)
+    environment.add_arguments(parser, *DEL_AMBIENTE)
     parser.add_argument("--ganancia", type=float, default=GANANCIA)
     args = parser.parse_args()
-    ambiente.desde_argumentos(args, *DEL_AMBIENTE)
+    environment.from_arguments(args, *DEL_AMBIENTE)
     armar(args.rom, ganancia=args.ganancia)
 
 

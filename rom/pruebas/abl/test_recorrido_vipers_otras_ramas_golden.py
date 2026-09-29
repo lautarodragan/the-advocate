@@ -226,7 +226,7 @@ def test_la_reja_primero_no_y_despues_si(recorrido):
 def test_con_el_idol_la_puerta_lleva_al_mapa_14(recorrido):
     """El único camino del 12 al 14, y la cinemática del 14 entera."""
     r = recorrido("vipers-el-idol", switch=[VA_A_TRABAJAR, TIENE_EL_IDOL])
-    r.p.consola.escribir_ram(r.p.simbolos["FAR_ITEMS"] + EL_IDOL, [1])
+    r.p.consola.write_ram(r.p.simbolos["FAR_ITEMS"] + EL_IDOL, [1])
 
     r.empezar("el techo del HQ")
     r.p.poner_grupo(TALAN)

@@ -2,7 +2,7 @@
 puerta a cada punto clave del juego y un NPC por compañero.
 
 Es un mapa que el juego no tiene —`parches/manual/nuevos/Map0900.json`, ver
-`fork.nuevos`— y lo prende `CON_MAPA_DE_DEBUG` en cartuchos.py. Cada puerta
+`fork.new_maps`— y lo prende `CON_MAPA_DE_DEBUG` en cartuchos.py. Cada puerta
 es una página de contacto que pone el estado de alguien que jugó hasta ahí
 —switches, grupo, oro, ítems, la velocidad del héroe— y salta; de dónde sale
 cada número lo dicen los comentarios de esa página. Acá se cobra que cada una

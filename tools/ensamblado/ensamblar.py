@@ -47,10 +47,10 @@ COMPLEMENTO = 0x7FDC
 if __name__ == "__main__":
     sys.path[0] = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
-from comun import proyecto                                  # noqa: E402
+from common import project                                  # noqa: E402
 
 # The repo root: `ca65` and `ld65` run from here, with relative paths.
-RAIZ = proyecto.raiz()
+RAIZ = project.root()
 
 FALTA = """`%s` is missing, from the cc65 project.
 

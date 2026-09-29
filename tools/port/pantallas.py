@@ -181,7 +181,7 @@ def candidatos(db, actor, ranura, inventario, items_rom=None):
     return [i for i in sorted(inventario)
             if inventario[i] > 0 and (items_rom is None or i in items_rom)
             and db.items[i].type == tipo_de_ranura(ranura)
-            and db.items[i].equipable_por(actor)] + [0]
+            and db.items[i].equippable_by(actor)] + [0]
 
 
 def equipar(db, equipo, inventario, ranura, item):
@@ -237,7 +237,7 @@ def pantalla_equipo(db, actor, equipo, inventario, ranura, eligiendo=False,
         for r in range(RANURAS_EQUIPO):
             fila = EQ_RANURA_FILA0 + 2 * r
             t.escribir(fila, EQ_RANURA_TERM_COL,
-                       db.term_equipo[r][:EQ_RANURA_TERM_ANCHO],
+                       db.term_equipment[r][:EQ_RANURA_TERM_ANCHO],
                        menus.ITEM_ROJO)
             if equipo[r]:
                 t.escribir(fila, EQ_RANURA_NOMBRE_COL, menus.texto_de_item(
@@ -504,7 +504,7 @@ def tienda_compacta(mapas):
 # each term ends in which one it is: `shop_greeting1`, `shop_greeting2`.
 # Until 2026-09-20 there was a chunk number here —thirteen in a row from
 # 0x29—, which worked because the three sets come one after the other; now it
-# is the name, which is what `db.terminos` has.
+# is the name, which is what `db.terms` has.
 TI_TERMINOS = (
     ("saludo", "shop_greeting"), ("resaludo", "shop_regreeting"),
     ("comprar", "shop_buy"), ("vender", "shop_sell"),
@@ -518,7 +518,7 @@ TI_TERMINO_TENGO, TI_TERMINO_LLEVO = "possessed_items", "equipped_items"
 
 def terminos_tienda(db, juego):
     from rpgmaker import lcf
-    return {n: lcf.to_string(db.terminos["%s%d" % (t, juego + 1)])
+    return {n: lcf.to_string(db.terms["%s%d" % (t, juego + 1)])
             for n, t in TI_TERMINOS}
 
 
@@ -859,8 +859,8 @@ def texto_revivio(db):
     `BattleMessage::GetStateRecoveryMessage` sticks to the name. In ABL it
     says " has revived!"."""
     from rpgmaker import lcf
-    muerto = lcf.por_id(db.secciones["states"])[1]
-    return lcf.campo(muerto, "message_recovery")
+    muerto = lcf.by_id(db.sections["states"])[1]
+    return lcf.field(muerto, "message_recovery")
 
 
 def texto_de_orden(termino):
@@ -877,4 +877,4 @@ def texto_de_orden(termino):
 
 def lcf_termino(db, nombre):
     from rpgmaker import lcf
-    return lcf.to_string(db.terminos[nombre])
+    return lcf.to_string(db.terms[nombre])

@@ -42,7 +42,7 @@ de_prueba := if CARTUCHOS == "" { "" } else { "--test-cartridges " + quote(CARTU
 # Lo que necesita todo lo que convierte, y lo que suma el que arma los
 # cartuchos: dónde van los de prueba y los reemplazos de las pistas.
 al_conversor := "--game-dir " + quote(ABL_GAME_DIR) + " --rtp-dir " + quote(ABL_RTP_DIR) + " --soundfont " + quote(ABL_SOUNDFONT) + if ABL_CACHE == "" { "" } else { " --cache " + quote(ABL_CACHE) }
-al_armar := al_conversor + " " + de_prueba + " --reemplazos " + quote(reemplazos_msu)
+al_armar := al_conversor + " " + de_prueba + " --replacements " + quote(reemplazos_msu)
 
 # **Regenera `data/`**: el juego entero como árbol de archivos, que es lo que
 # lee el conversor, con `lcf`. Es derivado —se puede volver a
@@ -289,7 +289,7 @@ techos *args: _herramientas_del_checkout
 # en otro directorio hasta el 2026-09-25: el emulador busca el `.msu` al lado
 # del `.sfc`, y la tanda corría con el SPC700 callado o no según si estaban.
 # Ahora el arnés le da al core una copia de la ROM en un directorio vacío;
-# ver `retro.Consola`.
+# ver `retro.Console`.
 #
 # En la tarjeta del FX Pak los tres van en el mismo directorio y con el mismo
 # nombre base que la ROM: renombrar el `.sfc` obliga a renombrar los otros, o
@@ -317,7 +317,7 @@ build cual: _herramientas_del_checkout
 #
 # Entrega el release en /shared/builds/ para que taro lo juegue.
 entregar que_mirar *args: _herramientas_del_checkout (build "release")
-  abl-entregar --compartido {{quote(SHARED)}} {{quote(que_mirar)}} {{args}}
+  abl-entregar --shared {{quote(SHARED)}} {{quote(que_mirar)}} {{args}}
 
 # Es para que taro vea y escuche un build sin correrlo. Las jugadas son partes
 # del nombre de las pruebas de `pruebas/abl/test_recorrido_golden.py`

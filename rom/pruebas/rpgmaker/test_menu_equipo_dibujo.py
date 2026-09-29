@@ -104,8 +104,8 @@ def test_la_linea_vacia_saca_lo_puesto(partida):
 
 def test_el_equipo_viaja_en_la_partida(partida):
     una = partida(caso="guardar-198")
-    una.consola.escribir_ram(una.simbolos["FAR_EQUIPO"] + TALAN * 10,
-                             [PALO, 0])
+    una.consola.write_ram(una.simbolos["FAR_EQUIPO"] + TALAN * 10,
+                          [PALO, 0])
     una.guardar_en(0)
     una.reiniciar()
     assert una.equipo(TALAN)[0] == PALO, "el equipo no volvió de la SRAM"

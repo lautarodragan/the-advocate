@@ -161,7 +161,7 @@ class Oido:
         with wave.open(ruta, "wb") as w:
             w.setnchannels(2)
             w.setsampwidth(2)
-            w.setframerate(int(self.p.consola.tasa()))
+            w.setframerate(int(self.p.consola.sample_rate()))
             w.writeframes(bytes(self.p.consola.audio[self.desde:]))
 
 
@@ -223,16 +223,16 @@ def pasar_mensajes(r, cuantos, fotos=None, tope=3000):
             visto += 1
             if visto in fotos:
                 r.foto(fotos[visto], asentar=False)
-            p.consola.apretar("a")
-            p.consola.correr(2)
-            p.consola.apretar()
+            p.consola.hold("a")
+            p.consola.run(2)
+            p.consola.hold()
             # Hasta que se cierra: el cuadro siguiente puede tardar en abrir.
             for _ in range(60):
                 if not p.byte("msg_abierto"):
                     break
-                p.consola.correr(1)
+                p.consola.run(1)
         else:
-            p.consola.correr(1)
+            p.consola.run(1)
     raise Trabado("se pasaron %d de %d mensajes. %s"
                   % (visto, cuantos, r.estado()))
 
@@ -332,7 +332,7 @@ def al_mundo_y_a_sorbe(r):
     r.empezar("caminando a Sorbe")
     p = r.p
     # El mapa los vuelve a prender en cada carga, y de acá a Sorbe no hay otra.
-    p.consola.escribir_ram(en_la_wram(p.simbolos["ENC_BASE"]), [0, 0])
+    p.consola.write_ram(en_la_wram(p.simbolos["ENC_BASE"]), [0, 0])
     r.caminar_a(SORBE, tope=4000, hasta=lambda p: p.mapa() == SORBE_VILLAGE)
     r.esperar_mapa(SORBE_VILLAGE)
     r.esperar_el_control()

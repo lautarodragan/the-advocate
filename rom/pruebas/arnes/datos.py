@@ -5,7 +5,7 @@ página compilada, y los dos índices que arma el conversor —qué ranura le to
 a cada variable y a cada par (actor, habilidad)— con la misma cuenta que usó
 al armar el cartucho.
 
-Todo sale de `recursos.GAME_DIR`, que es `ABL_GAME_DIR` si está puesta.
+Todo sale de `resources.GAME_DIR`, que es `ABL_GAME_DIR` si está puesta.
 
 **La base se lee una vez por proceso y se comparte**, y eso vale mientras
 nadie la modifique: ni las pruebas ni lo que llaman de `tools/port/` le
@@ -19,7 +19,7 @@ import json
 import os
 
 from ensamblado import cartuchos
-from rpgmaker.recursos import GAME_DIR
+from rpgmaker.resources import GAME_DIR
 
 
 # Los mapas de la apertura, en el orden en que se le pasan al conversor: el 4,
@@ -88,7 +88,7 @@ def comandos_de_los_casos(cartucho=cartuchos.RELEASE):
     for nombre in cartuchos.casos_de(cartucho):
         with open(os.path.join(cartuchos.CASOS, nombre + ".json"),
                   encoding="utf-8") as archivo:
-            comandos += lcf.comandos_escritos(json.load(archivo))
+            comandos += lcf.handwritten_commands(json.load(archivo))
     return tuple(comandos)
 
 

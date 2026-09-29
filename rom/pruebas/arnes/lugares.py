@@ -18,14 +18,14 @@ Se importa antes que nada que lea el archivo de proyecto al importarse
 
 import os
 
-from comun import ambiente
-from comun import proyecto
+from common import environment
+from common import project
 
 # `pruebas/`, y la raíz del juego arriba: donde está su archivo de proyecto.
 PRUEBAS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ABL = os.path.dirname(PRUEBAS)
 
-proyecto.fijar(ABL)
+project.use(ABL)
 
 # Lo que es sólo de las pruebas, y no lo lee ninguna herramienta: por eso no
 # está en el archivo de proyecto. Los casos sí, porque los lee
@@ -47,11 +47,11 @@ def _de_la_maquina(variable):
     return valor
 
 
-# `rpgmaker.recursos.GAME_DIR` y los demás, que las pruebas leen igual que el
+# `rpgmaker.resources.GAME_DIR` y los demás, que las pruebas leen igual que el
 # conversor. El caché y los cartuchos de prueba tienen su lugar en el
 # `build` del proyecto; las variables sólo los mueven.
-ambiente.fijar(game_dir=_de_la_maquina("ABL_GAME_DIR"),
-               rtp_dir=_de_la_maquina("ABL_RTP_DIR"),
-               soundfont=_de_la_maquina("ABL_SOUNDFONT"),
-               cache=os.environ.get("ABL_CACHE") or None,
-               test_cartridges=os.environ.get("CARTUCHOS") or None)
+environment.configure(game_dir=_de_la_maquina("ABL_GAME_DIR"),
+                      rtp_dir=_de_la_maquina("ABL_RTP_DIR"),
+                      soundfont=_de_la_maquina("ABL_SOUNDFONT"),
+                      cache=os.environ.get("ABL_CACHE") or None,
+                      test_cartridges=os.environ.get("CARTUCHOS") or None)

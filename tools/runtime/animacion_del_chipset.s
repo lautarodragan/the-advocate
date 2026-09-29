@@ -31,7 +31,7 @@
 ; Three drawings in four steps, with the fourth repeating the second. Both
 ; animations there are use it: the ChipSet's water —easyrpg's
 ; `animation_step_ab`— and a character's walk cycle, which has three columns
-; and draws column 1 when the step is 3. It is `CICLO_TRES` in
+; and draws column 1 when the step is 3. It is `CYCLE_OF_THREE` in
 ; tools/rpgmaker/rm2k.py.
 ciclo_tres:
     .byte 0, 1, 2, 1

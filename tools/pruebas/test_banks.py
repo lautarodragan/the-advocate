@@ -16,7 +16,7 @@ import pytest
 from ensamblado import bancos
 
 
-def resolver(texto, tmp_path, segundo=None):
+def resolve(texto, tmp_path, segundo=None):
     """Runs the packing over one or two files and returns what is left."""
     rutas = []
     for i, cuerpo in enumerate([texto] + ([segundo] if segundo else [])):
@@ -34,17 +34,17 @@ def bytes_(n):
     return "    .byte " + ",".join(["$00"] * n) + "\n"
 
 
-def test_rodata_pasa_a_ser_el_banco_donde_arrancan_los_datos(tmp_path):
-    (salida,), cuenta = resolver(
+def test_rodata_becomes_the_bank_where_the_data_starts(tmp_path):
+    (salida,), cuenta = resolve(
         '.segment "RODATA"\n.bloque 16\n' + bytes_(1), tmp_path)
     assert B2 in salida and "RODATA" not in salida and ".bloque" not in salida
     assert cuenta == (1, 1)
 
 
-def test_un_bloque_que_no_entra_va_a_otro_banco(tmp_path):
+def test_a_block_that_does_not_fit_goes_to_another_bank(tmp_path):
     """The case that gives meaning to everything: a block is never split. The
     big one goes first, and the 16 bytes no longer fit in the 8 it leaves."""
-    (salida,), cuenta = resolver(
+    (salida,), cuenta = resolve(
         '.segment "RODATA"\n.bloque 16\nchico:\n' + bytes_(16)
         + ".bloque %d\netiqueta:\n" % (bancos.BANCO - 8)
         + bytes_(8) * ((bancos.BANCO - 8) // 8), tmp_path)
@@ -53,7 +53,7 @@ def test_un_bloque_que_no_entra_va_a_otro_banco(tmp_path):
     assert cuenta == (2, 2)
 
 
-def test_first_fit_decreasing_llena_los_huecos(tmp_path):
+def test_first_fit_decreasing_fills_the_gaps(tmp_path):
     """What the packing gained: in order, two blocks of more than half a bank
     and two of less ask for three banks, because the second big one jumps and
     the last small one no longer fits behind the first. From largest to
@@ -63,13 +63,13 @@ def test_first_fit_decreasing_llena_los_huecos(tmp_path):
     for nombre, n in (("a", mitad + 16), ("b", mitad + 16),
                       ("c", mitad - 16), ("d", mitad - 16)):
         texto += ".bloque %d\n%s:\n" % (n, nombre) + bytes_(16) * (n // 16)
-    (salida,), cuenta = resolver(texto, tmp_path)
+    (salida,), cuenta = resolve(texto, tmp_path)
     assert cuenta == (4, 2)
     b2, b3 = salida.split(B3)
     assert "a:" in b2 and "c:" in b2 and "b:" in b3 and "d:" in b3
 
 
-def test_uno_de_mas_de_un_banco_arranca_banco_y_presta_lo_que_sobra(tmp_path):
+def test_one_bigger_than_a_bank_starts_a_bank_and_lends_the_rest(tmp_path):
     """The text block: it starts at a bank's `$8000` and continues in the
     next, as the sequential packing decided —it is walked by code that
     switches banks by hand—, and what is left over in its last bank is used
@@ -77,30 +77,30 @@ def test_uno_de_mas_de_un_banco_arranca_banco_y_presta_lo_que_sobra(tmp_path):
     texto = ('.segment "RODATA"\n.bloque 64\nchico:\n' + bytes_(16) * 4
              + ".bloque %d\ntextos:\n" % (bancos.BANCO + 32)
              + bytes_(16) * (bancos.BANCO // 16 + 2))
-    (salida,), cuenta = resolver(texto, tmp_path)
+    (salida,), cuenta = resolve(texto, tmp_path)
     assert cuenta == (2, 2)
     b2, b3 = salida.split(B3)
     assert b2.split("\n")[1] == "textos:", "it has to start the bank"
     assert "chico:" in b3 and b3.index("chico:") > b3.index("$00")
 
 
-def test_el_borde_justo_entra(tmp_path):
-    (salida,), _ = resolver(
+def test_the_exact_edge_fits(tmp_path):
+    (salida,), _ = resolve(
         '.segment "RODATA"\n.bloque %d\n' % bancos.BANCO, tmp_path)
     assert B3 not in salida
 
 
-def test_un_banco_lleno_se_deja_antes_de_la_etiqueta(tmp_path):
+def test_a_full_bank_is_left_before_the_label(tmp_path):
     """A label at the end of a bank would point outside the ROM."""
-    (salida,), _ = resolver(
+    (salida,), _ = resolve(
         '.segment "RODATA"\n' + bytes_(16) * (bancos.BANCO // 16)
         + "etiqueta:\n" + bytes_(1), tmp_path)
     assert salida.index(B3) < salida.index("etiqueta:")
 
 
-def test_lo_que_no_entra_se_parte_entre_los_dos_bancos(tmp_path):
+def test_what_does_not_fit_is_split_between_two_banks(tmp_path):
     """The cell grid: larger than a bank, contiguous in the file."""
-    (salida,), _ = resolver(
+    (salida,), _ = resolve(
         '.segment "RODATA"\n' + bytes_(16) * (bancos.BANCO // 16 - 1)
         + bytes_(8) + "    .word $1111,$2222,$3333,$4444,$5555,$6666\n",
         tmp_path)
@@ -109,15 +109,15 @@ def test_lo_que_no_entra_se_parte_entre_los_dos_bancos(tmp_path):
     assert "$5555, $6666" in despues and "$4444" not in despues
 
 
-def test_una_palabra_no_se_parte(tmp_path):
+def test_a_word_is_not_split(tmp_path):
     with pytest.raises(ValueError, match="middle of a"):
-        resolver('.segment "RODATA"\n' + bytes_(16) * (bancos.BANCO // 16 - 1)
-                 + bytes_(15) + "    .word $1111,$2222\n", tmp_path)
+        resolve('.segment "RODATA"\n' + bytes_(16) * (bancos.BANCO // 16 - 1)
+                + bytes_(15) + "    .word $1111,$2222\n", tmp_path)
 
 
-def test_lo_que_no_es_rodata_no_cuenta(tmp_path):
+def test_what_is_not_rodata_does_not_count(tmp_path):
     """The bank 0 tables go through another area and do not shift the data."""
-    (salida,), _ = resolver(
+    (salida,), _ = resolve(
         '.segment "RODATA"\n' + bytes_(16)
         + '.segment "TABLAS"\n' + bytes_(bancos.BANCO - 16)
         + '.segment "RODATA"\n'
@@ -126,10 +126,10 @@ def test_lo_que_no_es_rodata_no_cuenta(tmp_path):
     assert '.segment "TABLAS"' in salida
 
 
-def test_los_bancos_van_al_final_del_ultimo_archivo(tmp_path):
+def test_the_banks_go_at_the_end_of_the_last_file(tmp_path):
     """To move the pieces they have to be taken out of their place: `ca65`
     fills a segment in text order. The constants stay where they were."""
-    (primero, segundo), _ = resolver(
+    (primero, segundo), _ = resolve(
         '.segment "RODATA"\nCONSTANTE = 7\n.bloque 16\nuna:\n' + bytes_(16),
         tmp_path,
         segundo='.segment "RODATA"\n.bloque %d\notra:\n    .res %d\n'
@@ -139,7 +139,7 @@ def test_los_bancos_van_al_final_del_ultimo_archivo(tmp_path):
     assert B2 in segundo and B3 in segundo and "una:" in segundo
 
 
-def test_lo_que_no_entra_en_el_cartucho_lo_dice(tmp_path):
+def test_what_does_not_fit_in_the_cartridge_says_so(tmp_path):
     """Without this `ld65` complains, with an internal error that does not
     say space is short."""
     entran = bancos.BANCOS - bancos.BANCOS_RESERVADOS - bancos.PRIMER_BANCO
@@ -148,7 +148,7 @@ def test_lo_que_no_entra_en_el_cartucho_lo_dice(tmp_path):
         for k in range(entran + 1))
     with pytest.raises(ValueError, match="needs %d banks and %d fit"
                        % (entran + 1, entran)):
-        resolver(texto, tmp_path)
+        resolve(texto, tmp_path)
 
 
 @pytest.mark.parametrize("linea,bytes_", [
@@ -164,18 +164,18 @@ def test_lo_que_no_entra_en_el_cartucho_lo_dice(tmp_path):
     ("", 0),
     ("    .res 12", 12),
 ])
-def test_cuánto_ocupa_cada_línea(linea, bytes_):
+def test_how_much_each_line_takes(linea, bytes_):
     assert bancos._tamano(linea) == bytes_
 
 
-def test_alinear_no_se_toca_pero_se_cuenta(tmp_path):
+def test_align_is_left_alone_but_counted(tmp_path):
     """`.align` belongs to `ca65`, so it survives the pass.
 
     What cannot happen is that it stops being counted: if its padding does
     not enter the count, every block below is packed against a shifted
     number.
     """
-    (salida,), _ = resolver(
+    (salida,), _ = resolve(
         '.segment "RODATA"\n'
         ".bloque %d\ngrande:\n    .res %d\n" % ((bancos.BANCO - 1,) * 2)
         + ".align 2\n.bloque 1\nalineada:\n    .byte $00\n", tmp_path)
@@ -185,7 +185,7 @@ def test_alinear_no_se_toca_pero_se_cuenta(tmp_path):
     assert salida.index(B3) < salida.index("alineada:")
 
 
-def test_un_bloque_fuera_de_rodata_no_pasa_callado(tmp_path):
+def test_a_block_outside_rodata_is_not_silent(tmp_path):
     """The case found while writing this: one in TABLAS.
 
     There the packing cannot be computed —the area depends on the size of the
@@ -200,7 +200,7 @@ def test_un_bloque_fuera_de_rodata_no_pasa_callado(tmp_path):
         bancos.resolver([str(ruta)])
 
 
-def test_una_tabla_sin_bloque_no_pasa_callada(tmp_path):
+def test_a_table_without_a_block_is_not_silent(tmp_path):
     """A table the ROM reads with `lda f:tabla, x` cannot cross a bank: the
     index carries the address to the next bank's `$0000`, which in LoROM is
     not ROM. Without `.bloque`, the packing splits it wherever the end of the
@@ -215,22 +215,22 @@ def test_una_tabla_sin_bloque_no_pasa_callada(tmp_path):
     in RODATA.
     """
     with pytest.raises(ValueError, match="tabla_suelta"):
-        resolver('.segment "RODATA"\n.bloque 4\ncubierta:\n'
-                 "    .word $1111,$2222\n"
-                 "tabla_suelta:\n    .word $3333,$4444\n", tmp_path)
+        resolve('.segment "RODATA"\n.bloque 4\ncubierta:\n'
+                "    .word $1111,$2222\n"
+                "tabla_suelta:\n    .word $3333,$4444\n", tmp_path)
 
 
-def test_un_bloque_cubre_las_tablas_que_entran_en_él(tmp_path):
+def test_a_block_covers_the_tables_inside_it(tmp_path):
     """A `.bloque` that spans several tables covers them all, and a one-byte
     label cannot be split."""
-    resolver('.segment "RODATA"\n.bloque 8\nuna:\n    .word 1,2\n'
-             "otra:\n    .word 3,4\nsuelta:\n    .byte 5\n", tmp_path)
+    resolve('.segment "RODATA"\n.bloque 8\nuna:\n    .word 1,2\n'
+            "otra:\n    .word 3,4\nsuelta:\n    .byte 5\n", tmp_path)
 
 
-def test_lo_que_cruza_a_proposito_se_declara(tmp_path):
+def test_what_crosses_on_purpose_is_declared(tmp_path):
     """The music stream, the driver and the SPC700 samples do cross: they are
     walked by code that switches banks by hand. `.cruza` says so."""
-    (salida,), _ = resolver(
+    (salida,), _ = resolve(
         '.segment "RODATA"\n' + bytes_(16) * (bancos.BANCO // 16 - 1)
         + ".cruza\nstream:\n" + bytes_(16) + bytes_(16), tmp_path)
     antes, despues = salida.split(B3)
@@ -240,11 +240,11 @@ def test_lo_que_cruza_a_proposito_se_declara(tmp_path):
     assert despues.split("\n")[1].startswith("    .byte")
 
 
-def test_lo_que_cruza_y_entra_entero_llena_un_hueco(tmp_path):
+def test_what_crosses_and_fits_whole_fills_a_gap(tmp_path):
     """A small stream does not need to be split: if it fits in what is left of
     a bank, it goes there whole, and the chain of what crosses does not
     grow."""
-    (salida,), cuenta = resolver(
+    (salida,), cuenta = resolve(
         '.segment "RODATA"\n.bloque %d\ngrande:\n    .res %d\n'
         % ((bancos.BANCO - 64,) * 2)
         + ".bloque %d\notro:\n    .res %d\n" % ((bancos.BANCO - 16,) * 2)
@@ -254,7 +254,7 @@ def test_lo_que_cruza_y_entra_entero_llena_un_hueco(tmp_path):
     assert "otro:" in b2 and "grande:" in b3 and "stream:" in b3
 
 
-def test_el_mapa_de_memoria_pone_cada_banco_en_su_lugar():
+def test_the_memory_map_puts_each_bank_in_place():
     """What ties the `.cfg` to the packing: `BANKnn` starts at `$nn:8000`."""
     texto = bancos.cfg()
     assert "BANK01: start = $018000, size = $8000, fill = yes;" in texto

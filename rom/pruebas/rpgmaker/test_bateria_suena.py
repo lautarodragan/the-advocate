@@ -78,7 +78,7 @@ def test_las_voces_de_la_bateria_reciben_lo_que_la_musica_les_manda(partida):
     escrito = {v: [False] * REGISTROS_DE_VOZ for v in voces}
     vistos = {v: [set() for _ in range(REGISTROS_DE_VOZ)] for v in voces}
     for _ in range(hasta + MARGEN):
-        una.consola.correr(1)
+        una.consola.run(1)
         for voz, (_base, sombra) in voces.items():
             crudo = una.consola.ram(en_la_wram(sombra), REGISTROS_DE_VOZ)
             for registro, valor in enumerate(crudo):

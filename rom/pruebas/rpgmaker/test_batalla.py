@@ -505,7 +505,7 @@ def test_la_pelea_no_gasta_ningun_tick(partida):
     una = en_el_droide(partida)
     pelea = Pelea(una).abrir()
     antes = una.palabra("vueltas")
-    una.consola.correr(240)
+    una.consola.run(240)
     assert una.palabra("vueltas") == antes, \
         "el reloj del juego corrió durante la batalla"
 
@@ -659,7 +659,7 @@ def test_al_terminar_vuelve_lo_que_sonaba_en_el_mapa(partida, con_musica):
     for _ in range(300):
         if una.palabra("tema_actual") == tema and not una.byte("music_apagada"):
             break
-        una.consola.correr(1)
+        una.consola.run(1)
     assert not una.byte("music_apagada"), \
         "al salir de la pelea el mapa se quedó mudo"
     assert una.palabra("tema_actual") == tema, (
@@ -977,7 +977,7 @@ def test_el_segundo_elixir_sobre_el_mismo_caido_no_hace_nada(partida):
     una.poner_grupo(*GRUPO)
     una.ir_al_mapa(2, *DROIDE)
     una.poner_byte("hero_dir", una.simbolos["DIR_UP"])
-    una.consola.escribir_ram(una.simbolos["FAR_ITEMS"] + ELIXIR, [2])
+    una.consola.write_ram(una.simbolos["FAR_ITEMS"] + ELIXIR, [2])
     base = datos.base()
     una.poner_hp(GRUPO[1], 0)
     esperado = modelo_de(base)
@@ -1076,7 +1076,7 @@ def test_con_una_pista_de_msu_la_pelea_anota_el_tema_del_mapa(partida,
     propósito —`music_apagada` en 1—, y una pelea que mirara sólo eso anotaría
     $FF, "no sonaba nada", y al volver al mapa lo callaría en vez de
     reponerlo. Las pruebas corren sin MSU-1 —la consola le esconde las pistas
-    al core, ver `retro.Consola`—.
+    al core, ver `retro.Console`—.
 
     Así que acá se pone el estado que deja una pista sonando —las dos banderas,
     escritas a mano— y se mira qué anota la pelea. Sin el arreglo de
@@ -1087,7 +1087,7 @@ def test_con_una_pista_de_msu_la_pelea_anota_el_tema_del_mapa(partida,
     assert tema < 0xFF, "el mapa tenía que arrancar con su tema: no mide nada"
     # `MSU_SUENA` se declara con el banco adelante, y la RAM del core se
     # direcciona desde $7E:0000.
-    una.consola.escribir_ram(una.simbolos["MSU_SUENA"] & 0xFFFF, [1])
+    una.consola.write_ram(una.simbolos["MSU_SUENA"] & 0xFFFF, [1])
     una.poner_byte("music_apagada", 1)
     pelea = Pelea(una).abrir()
     assert pelea.byte("BA_TEMA_ANT") == tema, (

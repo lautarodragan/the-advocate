@@ -18,7 +18,7 @@ enemigos, uno por enemigo.
 
 from port import escena
 from port import batalla as modelo
-from rpgmaker.recursos import GAME_DIR
+from rpgmaker.resources import GAME_DIR
 
 from consola import en_la_rom, en_la_wram
 from batalla import Pelea, en_el_droide, modelo_de
@@ -72,7 +72,7 @@ def _esperada(una, base, tropa, vivos):
     """
     limpio = _bufer(una, "ESC_LIMPIO")
     miembros = base.troops[tropa].members
-    posiciones = base.troops[tropa].posiciones
+    posiciones = base.troops[tropa].positions
     claves, puestos = [], []
     for k, (enemigo, centro) in enumerate(zip(miembros, posiciones)):
         e = base.enemies[enemigo]
@@ -122,7 +122,7 @@ def _pantalla_distinta(una, esperada, desde):
     """Cuántos pixeles de la pantalla, de la fila `desde` al final de la
     escena, no son los de `esperada`."""
     colores = _colores(una)
-    imagen = una.consola.imagen()
+    imagen = una.consola.image()
     malos = 0
     for y in range(desde, escena.ALTO):
         for x in range(escena.ANCHO):
@@ -140,7 +140,7 @@ def _esperar(una, tope=400):
     for _ in range(tope):
         if una.byte("menu_abierto"):
             return
-        una.consola.correr(1)
+        una.consola.run(1)
     raise AssertionError("la pelea no se abrió")
 
 
@@ -148,11 +148,11 @@ def _hasta_subido(una, enemigo, tope=60):
     """Los cuadros que hagan falta para que la ROM borre al enemigo y suba sus
     celdas: el bit de `ESC_VIS` apagado y nada pendiente."""
     for _ in range(tope):
-        una.consola.correr(1)
+        una.consola.run(1)
         vis = _byte(una, "ESC_VIS")
         pendiente = _byte(una, "ESC_SUB_N") | _byte(una, "ESC_SUB_N", 1)
         if not vis & (1 << enemigo) and not pendiente:
-            una.consola.correr(2)
+            una.consola.run(2)
             return
     raise AssertionError(
         "el enemigo %d murió y la ROM no lo borró en %d cuadros: ESC_VIS "
@@ -165,11 +165,11 @@ def en_sector_27(partida):
     una = partida()
     una.ir_al_mapa(*SECTOR_27)
     s = una.simbolos
-    una.consola.escribir_ram(en_la_wram(s["ENC_SEM"]),
-                             [SEMILLA_TROPA_100 & 0xFF, SEMILLA_TROPA_100 >> 8])
-    una.consola.escribir_ram(en_la_wram(s["ENC_PIDE"]), [1])
+    una.consola.write_ram(en_la_wram(s["ENC_SEM"]),
+                          [SEMILLA_TROPA_100 & 0xFF, SEMILLA_TROPA_100 >> 8])
+    una.consola.write_ram(en_la_wram(s["ENC_PIDE"]), [1])
     _esperar(una)
-    una.consola.correr(3)
+    una.consola.run(3)
     tropa = una.palabra("BA_TROPA")
     assert tropa == TROPA_100, (
         "con la semilla %d el encuentro de Sector 27 tenía que ser la tropa %d "
@@ -230,7 +230,7 @@ def test_escena_un_enemigo_muerto_desaparece(partida):
     muerto = 1
     s = una.simbolos
     donde = s["BA_UNO"] + (s["BA_GRUPO_MAX"] + muerto) * s["BA_BYTES"]
-    una.consola.escribir_ram(en_la_wram(donde), [0, 0])
+    una.consola.write_ram(en_la_wram(donde), [0, 0])
     _hasta_subido(una, muerto)
     limpio, esperada = _esperada(una, base, TROPA_100,
                                  set(range(n)) - {muerto})
@@ -297,7 +297,7 @@ def test_escena_una_pelea_del_lugar_usa_el_fondo_del_mapa(partida):
     assert del_mapa, "el 60 ya no nombra fondo, y la prueba necesita uno"
     una = partida(caso="pelea-113")
     _esperar(una, tope=600)
-    una.consola.correr(3)
+    una.consola.run(3)
     assert _byte(una, "ESC_FONDO") == juego.index(del_mapa), (
         "la pelea del lugar en el 60 eligió el fondo %d y el del mapa es %r, "
         "el %d" % (_byte(una, "ESC_FONDO"), del_mapa, juego.index(del_mapa)))
@@ -325,14 +325,14 @@ def test_escena_una_pelea_cuyo_fondo_no_esta_usa_el_reemplazo(partida):
     _tree, juego = _fondos_del_juego()
     db = eventos.base_de_datos(GAME_DIR)
     game_map = lcf.Map("%s/Map%04d.lmu" % (GAME_DIR, 7))
-    terrenos = {rm2k.terreno_de(db.chipsets[game_map.chipset_id], t)
+    terrenos = {rm2k.terrain_of(db.chipsets[game_map.chipset_id], t)
                 for t in game_map.lower_layer}
     assert len(terrenos) == 1, (
         "el 7 dejó de ser de un solo terreno: %r" % sorted(terrenos))
     suyo = db.terrain_backdrops[terrenos.pop()]
     una = partida(caso=PELEA_EN_7)
     _esperar(una, tope=600)
-    una.consola.correr(3)
+    una.consola.run(3)
     assert _byte(una, "ESC_FONDO") == juego.index(suyo), (
         "la pelea del lugar en el 7 eligió el fondo %d y el terreno del mapa "
         "pide %r, el %d" % (_byte(una, "ESC_FONDO"), suyo, juego.index(suyo)))

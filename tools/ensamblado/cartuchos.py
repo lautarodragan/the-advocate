@@ -31,24 +31,24 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 from audio import muestras_brr                          # noqa: E402
-from comun import ambiente                              # noqa: E402
-from comun import perillas                              # noqa: E402
-from comun import proyecto                              # noqa: E402
+from common import environment                              # noqa: E402
+from common import settings                              # noqa: E402
+from common import project                              # noqa: E402
 from ensamblado import ensamblar                        # noqa: E402
 from port import tiles_bin                              # noqa: E402
 from port import comprimir                              # noqa: E402
 
-# `--proyecto` is read before anything else: this module reads the project
+# `--project` is read before anything else: this module reads the project
 # file when imported, and `main`'s `parse_args` comes too late.
 if __name__ == "__main__":
-    proyecto.desde_la_linea_de_comandos()
+    project.from_command_line()
 
-RAIZ = proyecto.raiz()
-CASOS = proyecto.casos()
-FUENTE = proyecto.runtime()
+RAIZ = project.root()
+CASOS = project.cases()
+FUENTE = project.runtime()
 
 # **What each cartridge carries belongs to the game, and is in its project
-# file** —`proyecto.archivo_de_proyecto()`, with the reasons for each value as
+# file** —`project.project_file()`, with the reasons for each value as
 # comments—: which maps go in, which are excluded, which cartridges exist and
 # which cases each one carries. Until 2026-09-29 it was written here. What
 # remains in this file is the mechanism that reads it and builds; the module
@@ -61,32 +61,32 @@ FUENTE = proyecto.runtime()
 # without running it; and since the stamp carries the flags and not
 # `rom/data/`, a tree that changes which maps go in makes the cartridge stale
 # only if the list travels expanded.
-MENOR_A = perillas.valor("maps", "below", tipo=int)
-EXCLUIDOS = frozenset(perillas.valor("maps", "excluded", tipo=list))
-AGREGADOS = tuple(perillas.valor("maps", "added", tipo=list))
+MENOR_A = settings.value("maps", "below", kind=int)
+EXCLUIDOS = frozenset(settings.value("maps", "excluded", kind=list))
+AGREGADOS = tuple(settings.value("maps", "added", kind=list))
 
 
 def el_mapa_de_debug():
     """The debug map's id: the only new map in
-    `rom/parches/manual/nuevos/` —see `fork.nuevos`—. It comes from there and
+    `rom/parches/manual/nuevos/` —see `fork.new_maps`—. It comes from there and
     not from the project file so as not to write the number twice."""
     from rpgmaker import fork
-    nuevos = sorted(fork.nuevos())
+    nuevos = sorted(fork.new_maps())
     if len(nuevos) != 1:
         sys.exit("the debug map is the only new map in %s, and there are %d: %s"
-                 % (fork.carpeta_nuevos(), len(nuevos), nuevos))
+                 % (fork.new_maps_folder(), len(nuevos), nuevos))
     return nuevos[0]
 
 
 # The debug map, which the game does not have, goes after the added ones.
-CON_MAPA_DE_DEBUG = perillas.valor("debug", "debug_map", tipo=bool)
+CON_MAPA_DE_DEBUG = settings.value("debug", "debug_map", kind=bool)
 MAPA_DE_DEBUG = el_mapa_de_debug()
 if CON_MAPA_DE_DEBUG:
     AGREGADOS += (MAPA_DE_DEBUG,)
 
 # The enemies' HP in battle: passes `--hp-de-enemigos` to the converter in
 # every cartridge.
-CON_HP_DE_ENEMIGOS = perillas.valor("debug", "enemy_hp", tipo=bool)
+CON_HP_DE_ENEMIGOS = settings.value("debug", "enemy_hp", kind=bool)
 _DE_TODOS = ["--hp-de-enemigos"] if CON_HP_DE_ENEMIGOS else []
 
 
@@ -99,9 +99,9 @@ def mapas_de_la_regla(menor_a=MENOR_A, excluidos=EXCLUIDOS,
 
     The tree is the one in the `rom/data/` dump, which is what the converter
     reads: that is why the path falls inside `rom/data/` and not inside the
-    game —see `lcf.volcado`—."""
+    game —see `lcf.dump_dir`—."""
     from rpgmaker import lcf
-    arbol = lcf.TreeMap(os.path.join(proyecto.data(), "RPG_RT.lmt"))
+    arbol = lcf.TreeMap(os.path.join(project.data(), "RPG_RT.lmt"))
     de_la_regla = [m for m in range(1, menor_a)
                    if arbol.map_types.get(m) == 1 and m not in excluidos]
     return tuple(de_la_regla + [m for m in agregados if m not in de_la_regla])
@@ -111,7 +111,7 @@ MAPAS_DEL_JUEGO = mapas_de_la_regla()
 
 # And the ones that only exist for the suite. `parches.revisar` reads them
 # from here so as not to require a versioned patch for them.
-MAPAS_DE_PRUEBA = tuple(perillas.valor("maps", "test", tipo=list))
+MAPAS_DE_PRUEBA = tuple(settings.value("maps", "test", kind=list))
 
 MAPAS = MAPAS_DEL_JUEGO + MAPAS_DE_PRUEBA
 
@@ -121,7 +121,7 @@ RELEASE = "release"
 
 # What its files are called: `<name>.sfc`, and next to it the `.msu` and the
 # `<name>-N.pcm` tracks. The other cartridges' files are called `prueba`.
-NOMBRE_DE_LA_ROM = perillas.valor("rom", "name", tipo=str)
+NOMBRE_DE_LA_ROM = settings.value("rom", "name", kind=str)
 
 
 def _cartucho(nombre):
@@ -130,20 +130,20 @@ def _cartucho(nombre):
     the starting map, the maps, the graphics, the rest—, because they go into
     the stamp as is."""
     def clave(k, tipo):
-        return perillas.valor("cartridges", nombre, k, tipo=tipo)
+        return settings.value("cartridges", nombre, k, kind=tipo)
     arranque = clave("start_map", int)
     grupo = clave("party", list)
     mapas = clave("maps", (str, list))
     if isinstance(mapas, str):
         if mapas != "game":
             sys.exit("%s: maps of %s is a list or \"game\", and it is %r"
-                     % (proyecto.archivo_de_proyecto(), nombre, mapas))
+                     % (project.project_file(), nombre, mapas))
         mapas = MAPAS
     casos = clave("cases", (str, list))
     if isinstance(casos, str):
         if casos != "all":
             sys.exit("%s: cases of %s is a list or \"all\", and it is %r"
-                     % (proyecto.archivo_de_proyecto(), nombre, casos))
+                     % (project.project_file(), nombre, casos))
         casos = None
     flags = ((["--grupo"] + [str(a) for a in grupo] if grupo else [])
              + ["--map-id", str(arranque), "--mapas"]
@@ -155,21 +155,21 @@ def _cartucho(nombre):
 
 
 CARTUCHOS = {nombre: _cartucho(nombre)
-             for nombre in perillas.valor("cartridges", tipo=dict)}
+             for nombre in settings.value("cartridges", kind=dict)}
 if RELEASE not in CARTUCHOS or CARTUCHOS[RELEASE][1] is not None:
     sys.exit("%s: missing [cartridges.%s], with cases = \"all\""
-             % (proyecto.archivo_de_proyecto(), RELEASE))
+             % (project.project_file(), RELEASE))
 
 # The cases `release` does not carry, because there they would change the
 # others' images.
-FUERA = set(perillas.valor("cartridges", RELEASE, "excluded_cases",
-                           tipo=list))
+FUERA = set(settings.value("cartridges", RELEASE, "excluded_cases",
+                           kind=list))
 
 # Page 0 is the real game's, except with the debug map, whose entry is what
 # goes there: see `[cases]` in the file.
-LA_PARTIDA_DE_VERDAD = perillas.valor("cases", "real_game", tipo=str)
-ENTRADA_AL_MAPA_DE_DEBUG = perillas.valor("cases", "debug_map_entry",
-                                          tipo=str)
+LA_PARTIDA_DE_VERDAD = settings.value("cases", "real_game", kind=str)
+ENTRADA_AL_MAPA_DE_DEBUG = settings.value("cases", "debug_map_entry",
+                                          kind=str)
 
 
 def primero(con_mapa_de_debug=CON_MAPA_DE_DEBUG):
@@ -224,15 +224,15 @@ def archivos_de_la_huella(fuente=FUENTE):
                  comprimir.binario()])
     # Except the tools' tests, which build nothing: with them inside, editing
     # a test made every cartridge stale.
-    pruebas = os.path.join(proyecto.herramientas(), "pruebas", "")
-    partes += sorted(r for r in glob.glob(os.path.join(proyecto.herramientas(),
+    pruebas = os.path.join(project.tools(), "pruebas", "")
+    partes += sorted(r for r in glob.glob(os.path.join(project.tools(),
                                                        "*", "*.py"))
                      if not r.startswith(pruebas))
-    partes += sorted(glob.glob(os.path.join(proyecto.parches_manual(), "*",
+    partes += sorted(glob.glob(os.path.join(project.manual_patches(), "*",
                                             "*")))
     # And the project file, whole: the converter and the music read it, and
     # not only what reaches the stamp's flags.
-    partes.append(proyecto.archivo_de_proyecto())
+    partes.append(project.project_file())
     return partes
 
 
@@ -290,8 +290,8 @@ def sello(nombre, fuentes=None):
 def directorio(nombre):
     """What the tests write does not go here but to `rom/pruebas/snapshots/`."""
     if nombre == RELEASE:
-        return os.path.join(proyecto.build(), RELEASE)
-    return os.path.join(ambiente.cartuchos_de_prueba(),
+        return os.path.join(project.build(), RELEASE)
+    return os.path.join(environment.test_cartridges(),
                         nombre.replace("test-", "", 1))
 
 
@@ -374,13 +374,13 @@ def convertir(nombre, destino, sfc, extra=()):
         de_casos += (["--caso"] if k else []) + [
             "--comandos-de-prueba",
             os.path.relpath(os.path.join(CASOS, caso + ".json"), RAIZ)]
-    # With `--proyecto`, because it runs standing in the repo root —see
+    # With `--project`, because it runs standing in the repo root —see
     # `ensamblar.RAIZ`— and from there it would not find the file by
     # searching.
-    orden = ([sys.executable, os.path.join(proyecto.herramientas(), "port",
+    orden = ([sys.executable, os.path.join(project.tools(), "port",
                                            "snes_convert.py"),
-              "--proyecto", proyecto.directorio(),
-              *ambiente.como_flags(*AL_CONVERSOR),
+              "--project", project.directory(),
+              *environment.as_flags(*AL_CONVERSOR),
               "-o", os.path.join(destino, "mapdata.inc"),
               "--msu", os.path.splitext(sfc)[0] + ".msu"]
              + flags + list(extra) + de_casos)
@@ -398,20 +398,20 @@ def convertir(nombre, destino, sfc, extra=()):
 # process and receives it by flags; and what this one adds: where the test
 # cartridges go, and the replacements for the MSU-1 tracks.
 AL_CONVERSOR = ("game_dir", "rtp_dir", "soundfont", "cache")
-DEL_AMBIENTE = AL_CONVERSOR + ("test_cartridges", "reemplazos")
+DEL_AMBIENTE = AL_CONVERSOR + ("test_cartridges", "replacements")
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    proyecto.argumento(parser)
-    ambiente.argumentos(parser, *DEL_AMBIENTE)
+    project.add_argument(parser)
+    environment.add_arguments(parser, *DEL_AMBIENTE)
     parser.add_argument("--lista", action="store_true",
                         help="which case goes in which cartridge, without building anything")
     parser.add_argument("nombres", nargs="*", metavar="CARTRIDGE",
                         help="only these; without names, all of them. It is what "
                              "`just build release` uses")
     args = parser.parse_args()
-    ambiente.desde_argumentos(args, *DEL_AMBIENTE)
+    environment.from_arguments(args, *DEL_AMBIENTE)
     for nombre in args.nombres:
         if nombre not in CARTUCHOS:
             sys.exit("there is no cartridge %r: the ones there are %s"
@@ -453,7 +453,7 @@ def pistas(armado=None):
     each one sounds depends on the MIDI, the soundfont and the synthesizer,
     and `msu.armar` already knows which ones are there —see
     `clave_de_la_pista`—. Having them next to it does not change the suite:
-    the harness hides the tracks from the core, see `retro.Consola`.
+    the harness hides the tracks from the core, see `retro.Console`.
     Returns the line that reports it, which `main` prints in its place.
     """
     if armado is not None:

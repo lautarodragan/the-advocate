@@ -40,7 +40,7 @@ TROPA_RAT_KING, TROPA_AGENTES, TROPA_LAZER = 97, 102, 86
 
 def a_la_pelea(una, tope=600):
     for _ in range(tope):
-        una.consola.correr(1)
+        una.consola.run(1)
         if una.menu_abierto():
             return Pelea(una).esperar("ORDEN")
     raise AssertionError("la página no abrió la pelea")
@@ -106,8 +106,8 @@ def turno_contando(una, pelea, ordenes, tope=3000, cada_cuadro=None):
             vistos.append((mensaje_en_pantalla(una, pelea),
                            pelea.palabra(una.simbolos["BA_TURNO"])))
         antes = msg if pelea.modo() == "PAGINA" else 0xFFFF
-        una.consola.apretar(*(("a",) if n % 6 < 2 else ()))
-        una.consola.correr(1)
+        una.consola.hold(*(("a",) if n % 6 < 2 else ()))
+        una.consola.run(1)
     raise AssertionError("el turno no terminó")
 
 
@@ -118,9 +118,9 @@ def test_las_tropas_son_las_que_se_espera():
     base = datos.base()
     rey = base.troops[TROPA_RAT_KING]
     assert rey.members == [KING_RAT, GIANT_RAT, GIANT_RAT]
-    assert rey.ocultos == [False, True, True]
-    llaman = [p for p in rey.pages if p.activos == ["enemy_hp"]]
-    assert [(p.condicion["enemy_id"], p.condicion["enemy_hp_max"])
+    assert rey.hidden == [False, True, True]
+    llaman = [p for p in rey.pages if p.active == ["enemy_hp"]]
+    assert [(p.condition["enemy_id"], p.condition["enemy_hp_max"])
             for p in llaman] == [(0, 60), (0, 30)]
     # Y la del despegue, en el turno 1: `turn_b` es la base.
     despegue = [p for p in base.troops[TROPA_AGENTES].pages
@@ -156,7 +156,7 @@ def test_el_rat_king_empieza_solo_y_llama_a_sus_ratas(partida):
     juntas."""
     base = datos.base()
     rey = base.troops[TROPA_RAT_KING]
-    llaman = [lo_que_dicen(p)[0] for p in rey.pages if p.activos == ["enemy_hp"]]
+    llaman = [lo_que_dicen(p)[0] for p in rey.pages if p.active == ["enemy_hp"]]
     una = partida(caso="pelea-97")
     pelea = a_la_pelea(una)
     esperado = modelo_de(base, (AG7,), TROPA_RAT_KING,
@@ -164,7 +164,7 @@ def test_el_rat_king_empieza_solo_y_llama_a_sus_ratas(partida):
     esperado.empezar()
     g = una.simbolos["BA_GRUPO_MAX"]
     assert ocultos_de_la_rom(una, 3) == [False, True, True]
-    una.consola.correr(4)
+    una.consola.run(4)
     assert dibujados(una) == 0b001, "al empezar se dibuja sólo el rey"
     pintados = {0: pintado(una)}
 
@@ -190,7 +190,7 @@ def test_el_rat_king_empieza_solo_y_llama_a_sus_ratas(partida):
         for k in (1, 2):
             if not esperado.enemigos[k].oculto:
                 aparecio.setdefault(k, turno)
-        una.consola.correr(30)      # lo que tarda en subir un battler
+        una.consola.run(30)      # lo que tarda en subir un battler
         pintados[turno] = pintado(una)
         vivos = sum(1 << k for k, e in enumerate(esperado.enemigos) if e.vivo)
         if pelea.modo() != "FIN":
@@ -275,7 +275,7 @@ def test_el_despegue_sale_en_el_turno_uno_con_su_sacudida(partida):
             break
         if una.palabra("sacudida_resta"):
             sacudio = True
-        una.consola.correr(1)
+        una.consola.run(1)
     assert sacudio, "el ShakeScreen de la página no sacudió"
     assert pelea.modo() == "PAGINA"
     assert pelea.palabra(una.simbolos["BA_TURNO"]) == 1
@@ -287,8 +287,8 @@ def test_el_despegue_sale_en_el_turno_uno_con_su_sacudida(partida):
     for n in range(3000):
         if pelea.modo() in ("ORDEN", "FIN"):
             break
-        una.consola.apretar(*(("a",) if n % 6 < 2 else ()))
-        una.consola.correr(1)
+        una.consola.hold(*(("a",) if n % 6 < 2 else ()))
+        una.consola.run(1)
     assert pelea.modo() == "ORDEN"
     assert turno_contando(una, pelea, [("defender",)]) == []
 
@@ -346,8 +346,8 @@ def test_la_pagina_de_los_lazer_teeth_vuelve_cada_tres_turnos(partida):
     def llenos():
         for k in range(2):
             d = s["BA_UNO"] + k * s["BA_BYTES"]
-            una.consola.escribir_ram(d + s["BA_HP"],
-                                     una.consola.ram(d + s["BA_HPMAX"], 2))
+            una.consola.write_ram(d + s["BA_HP"],
+                                  una.consola.ram(d + s["BA_HPMAX"], 2))
 
     for turno in range(1, 6):
         llenos()

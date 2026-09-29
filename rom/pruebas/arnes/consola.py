@@ -25,12 +25,12 @@ import os
 import re
 
 import lugares                                  # antes que nada
-from comun import perillas
-from comun import proyecto
-from emulador import retro
+from common import settings
+from common import project
+from emulator import retro
 from ensamblado import bancos
 
-RAIZ = proyecto.raiz()
+RAIZ = project.root()
 # Lo que las pruebas dejan para mirar. Lo toman de acá los pedazos del arnés
 # que no importan de las herramientas.
 SNAPSHOTS = lugares.SNAPSHOTS
@@ -66,7 +66,7 @@ EFECTO = 0x100
 # `cmp #` inmediatos, y `guardar_partida` la escribe igual. Sale del archivo
 # de proyecto, de donde la saca el conversor. Lo que sí es símbolo es dónde
 # va, `SRAM_MAGIA`.
-MAGIA = perillas.ascii("rom", "sram_signature", largo=4).encode()
+MAGIA = settings.ascii("rom", "sram_signature", length=4).encode()
 
 
 class SimboloDesconocido(KeyError):
@@ -152,8 +152,8 @@ class Partida:
         # Sin él vale el de siempre, que es snes9x.
         # `msu` deja que el core encuentre las pistas al lado de la ROM: sólo
         # lo pide `video.py`, para que el video suene como la ROM que se juega.
-        # Ver `retro.Consola`.
-        self.consola = retro.Consola(sfc, nucleo or NUCLEO, msu=msu)
+        # Ver `retro.Console`.
+        self.consola = retro.Console(sfc, nucleo or NUCLEO, msu=msu)
         # `pila` es sólo para `pruebas/rpgmaker/test_pila.py`, y va acá
         # porque acá es el único momento en que la marca llega antes del primer
         # cuadro: una línea después la ROM ya corrió el `reset`. Apagado por
@@ -173,7 +173,7 @@ class Partida:
         # Y el contador **no** lo cuenta: los números de `apretar_a` se cuentan
         # desde el primer cuadro de juego. Contándolo, cada toque caía ciento
         # quince cuadros antes de tiempo y la escena no avanzaba.
-        self.consola.correr(self.simbolos["BOOT_CUADROS"])
+        self.consola.run(self.simbolos["BOOT_CUADROS"])
         # Con pantalla de título el arranque no termina en el mapa sino en el
         # menú, y el primer cuadro de juego es el de después de elegir.
         self.titulo = titulo
@@ -192,7 +192,7 @@ class Partida:
         # `--caso` en snes_convert.py.
         self.caso = caso
         self._elegir_el_caso()
-        self.consola.correr(3)
+        self.consola.run(3)
         # Un caso que empieza con un `Teleport` —así elige dónde arranca desde
         # el paso 9e— sale en el primer tick y está fundiendo acá. Lo dice
         # quien armó el cartucho, que leyó el caso: mirar si hay un fundido
@@ -206,7 +206,7 @@ class Partida:
             for _ in range(60):
                 if self.palabra("vueltas"):
                     break
-                self.consola.correr(1)
+                self.consola.run(1)
             if not self.byte("fundido"):
                 raise AssertionError(
                     "el caso %d empieza con un Teleport y la ROM no está "
@@ -238,12 +238,12 @@ class Partida:
         for _ in range(600):
             if not self.byte("fundido"):
                 break
-            self.consola.correr(1)
+            self.consola.run(1)
         else:
             raise RuntimeError("el Teleport del caso no terminó de fundir")
         apagado = self.palabra("vueltas")
         while self.palabra("vueltas") <= apagado:
-            self.consola.correr(1)
+            self.consola.run(1)
         self.llegada = self.palabra("vueltas") - antes
 
     def _bajar_y_elegir(self, cuantas):
@@ -254,14 +254,14 @@ class Partida:
         `Input::IsTriggered` de RM2k y lo que la tanda comprueba en pixeles.
         """
         for _ in range(cuantas):
-            self.consola.apretar("down")
-            self.consola.correr(2)
-            self.consola.apretar()
-            self.consola.correr(2)
-        self.consola.apretar("a")
-        self.consola.correr(2)
-        self.consola.apretar()
-        self.consola.correr(2)
+            self.consola.hold("down")
+            self.consola.run(2)
+            self.consola.hold()
+            self.consola.run(2)
+        self.consola.hold("a")
+        self.consola.run(2)
+        self.consola.hold()
+        self.consola.run(2)
 
     def pasar_el_titulo(self, opcion, ranura=0):
         """Elige `opcion` en el menú del título, y `ranura` si hace falta.
@@ -275,10 +275,10 @@ class Partida:
         # sube 33 KB a la VRAM con la pantalla apagada. Un toque en el cuadro
         # BOOT_CUADROS justo cae ahí y se pierde. La pantalla de ranuras sube
         # bastante menos, pero el aire no cuesta nada y se le da el mismo.
-        self.consola.correr(TITULO_AIRE)
+        self.consola.run(TITULO_AIRE)
         self._bajar_y_elegir(opcion)
         if opcion:
-            self.consola.correr(TITULO_AIRE)
+            self.consola.run(TITULO_AIRE)
             self._bajar_y_elegir(ranura)
 
     def esperar_la_pantalla_de_ranuras(self, tope=120):
@@ -290,7 +290,7 @@ class Partida:
         for _ in range(tope):
             if self.byte("menu_abierto"):
                 return self
-            self.consola.correr(1)
+            self.consola.run(1)
         raise RuntimeError(
             "la pantalla de ranuras no se abrió en %d cuadros" % tope)
 
@@ -303,9 +303,9 @@ class Partida:
         se puede comprobar con una partida guardada de verdad.
         """
         self._resetear()
-        self.consola.correr(TITULO_AIRE)
+        self.consola.run(TITULO_AIRE)
         self._bajar_y_elegir(1)
-        self.consola.correr(TITULO_AIRE)
+        self.consola.run(TITULO_AIRE)
         return self.esperar_la_pantalla_de_ranuras()
 
     def poner_grupo(self, *actores):
@@ -314,15 +314,15 @@ class Partida:
         ranuras muestra."""
         largo = self.simbolos["GRUPO_MAX"]
         assert len(actores) <= largo
-        self.consola.escribir_ram(self.simbolos["grupo"],
-                                  list(actores) + [0] * (largo - len(actores)))
-        self.consola.escribir_ram(self.simbolos["grupo_n"],
-                                  [len(actores), 0])
+        self.consola.write_ram(self.simbolos["grupo"],
+                               list(actores) + [0] * (largo - len(actores)))
+        self.consola.write_ram(self.simbolos["grupo_n"],
+                               [len(actores), 0])
         return self
 
     def imagen(self):
         """La pantalla, como la dibuja el emulador."""
-        return self.consola.imagen()
+        return self.consola.image()
 
     def guardar_en(self, ranura=0, espera=200, cancelar=False):
         """Corre hasta que la página de prueba abra la pantalla de ranuras, y
@@ -342,11 +342,11 @@ class Partida:
         if self.cuadro < espera - 10:
             self.correr(espera - 10 - self.cuadro)
         self.esperar_la_pantalla_de_ranuras()
-        self.consola.correr(TITULO_AIRE)
+        self.consola.run(TITULO_AIRE)
         if cancelar:
-            self.consola.apretar("b")
-            self.consola.correr(2)
-            self.consola.apretar()
+            self.consola.hold("b")
+            self.consola.run(2)
+            self.consola.hold()
         else:
             self._bajar_y_elegir(ranura)
         # Y unos ticks de aire: que la página siga y el mapa vuelva.
@@ -366,33 +366,33 @@ class Partida:
         """
         acceso = self.simbolos["FAR_ACCESO"]
         permiso = self.consola.ram(acceso, 1)[0]
-        self.consola.escribir_ram(
+        self.consola.write_ram(
             acceso, [permiso & ~self.simbolos["ACCESO_SIN_GUARDAR"] & 0xFF])
-        self.consola.apretar("b")
-        self.consola.correr(2)
-        self.consola.apretar()
+        self.consola.hold("b")
+        self.consola.run(2)
+        self.consola.hold()
         for _ in range(120):
             if self.byte("menu_abierto"):
                 break
-            self.consola.correr(1)
+            self.consola.run(1)
         else:
             raise RuntimeError("B no abrió el menú de pausa: ¿el héroe tenía "
                                "el control?")
-        self.consola.correr(TITULO_AIRE)
+        self.consola.run(TITULO_AIRE)
         self._bajar_y_elegir(self.simbolos["MENU_GUARDAR"])
         # La pantalla de ranuras, arriba del menú: el menú sigue abierto
         # abajo, así que no hay bandera que esperar, y se le da el aire del
         # título, que sube más.
-        self.consola.correr(TITULO_AIRE)
+        self.consola.run(TITULO_AIRE)
         self._bajar_y_elegir(ranura)
-        self.consola.correr(TITULO_AIRE)
-        self.consola.apretar("b")
-        self.consola.correr(2)
-        self.consola.apretar()
+        self.consola.run(TITULO_AIRE)
+        self.consola.hold("b")
+        self.consola.run(2)
+        self.consola.hold()
         for _ in range(120):
             if not self.byte("menu_abierto"):
                 break
-            self.consola.correr(1)
+            self.consola.run(1)
         else:
             raise RuntimeError("B no cerró el menú de pausa")
         self.correr(10)
@@ -411,12 +411,12 @@ class Partida:
         inicializa variable por variable. Así lo que sobrevive es lo que vino
         de la SRAM o lo que el arranque escribió, como al prender la consola.
         """
-        self.consola.escribir_ram(0, bytes([0x55]) * WRAM)
+        self.consola.write_ram(0, bytes([0x55]) * WRAM)
         self.consola.reset()
         self.cuadro = 0
         self.llegada = 0
         self.hardware = 0
-        self.consola.correr(self.simbolos["BOOT_CUADROS"])
+        self.consola.run(self.simbolos["BOOT_CUADROS"])
 
     def reiniciar(self, opcion=None, ranura=0):
         """El botón de reset: la SRAM del cartucho sobrevive y la WRAM no.
@@ -442,18 +442,18 @@ class Partida:
         # la partida solo.
         if elegir == EMPEZAR:
             self._elegir_el_caso()
-        self.consola.correr(3)
+        self.consola.run(3)
         return self
 
     def _elegir_el_caso(self):
         """Escribe la variable que elige la página de prueba, con el refresco
         que la hace mirar. El 0 es el que no pide nada."""
         if self.caso:
-            self.consola.escribir_ram(
+            self.consola.write_ram(
                 self.simbolos["FAR_VARIABLES"]
                 + 2 * self.simbolos["CASO_RANURA"],
                 [self.caso & 0xFF, self.caso >> 8])
-            self.consola.escribir_ram(self.simbolos["refresco"], [1])
+            self.consola.write_ram(self.simbolos["refresco"], [1])
 
     def sram(self, direccion=0, largo=None):
         """La SRAM del cartucho, que es lo que un frontend vuelca a un `.srm`."""
@@ -462,7 +462,7 @@ class Partida:
     def poner_sram(self, direccion, datos):
         """Escribe la SRAM del cartucho, como si trajera el `.srm` de otro
         build."""
-        self.consola.escribir_sram(direccion, datos)
+        self.consola.write_sram(direccion, datos)
 
     def magia(self, ranura=0):
         """Los cuatro bytes de la marca de la ranura, en la SRAM."""
@@ -481,7 +481,7 @@ class Partida:
         por vuelta, así que si la vuelta se estira sigue siendo un solo flanco.
 
         `sosteniendo` son los que quedan apretados **todos** los cuadros. Hace
-        falta porque esto suelta el pad en cada vuelta: un `consola.apretar(...)` de afuera se
+        falta porque esto suelta el pad en cada vuelta: un `consola.hold(...)` de afuera se
         perdía en el primer cuadro, y `KeyInputProc` sin espera leía cero.
 
         Los otros tres son listas de `BOTON:CUADRO`, y cada uno cuenta
@@ -519,7 +519,7 @@ class Partida:
                        + con_retraso.get(n, ())
                        + por_hardware.get(self.hardware, ())
                        + (("a",) if n in presiones else ()))
-            self.consola.apretar(*botones)
+            self.consola.hold(*botones)
             self._un_cuadro()
             tope -= 1
             if tope <= 0:
@@ -528,7 +528,7 @@ class Partida:
 
     def _un_cuadro(self):
         """Un cuadro de hardware, y el reloj del juego al día."""
-        self.consola.correr(1)
+        self.consola.run(1)
         self.hardware += 1
         # El cuadro 0 es el tick 1.
         self.cuadro = self.palabra("vueltas") - 1 - self.llegada
@@ -572,9 +572,9 @@ class Partida:
         el título—: ahí `vueltas` no avanza y el segundo tick no llega nunca.
         Para ésas está `tocar_cuadros`.
         """
-        self.consola.apretar(*botones)
+        self.consola.hold(*botones)
         self._un_tick()
-        self.consola.apretar()
+        self.consola.hold()
         self._un_tick()
         return self
 
@@ -589,10 +589,10 @@ class Partida:
         ninguna de las pruebas que lo usaban cambió de resultado, y ninguna
         compara contra una golden.
         """
-        self.consola.apretar(boton)
-        self.consola.correr(2)
-        self.consola.apretar()
-        self.consola.correr(aire)
+        self.consola.hold(boton)
+        self.consola.run(2)
+        self.consola.hold()
+        self.consola.run(aire)
         return self
 
     def sostener(self, ticks, *botones):
@@ -603,13 +603,13 @@ class Partida:
         listas de `correr`. Lo que se pregunta después es lo que la ROM tenía
         con el botón todavía apretado en la última vuelta.
         """
-        self.consola.apretar(*botones)
+        self.consola.hold(*botones)
         for _ in range(ticks):
             self._un_tick()
         return self
 
     def soltar(self):
-        self.consola.apretar()
+        self.consola.hold()
         return self
 
     def velocidad_del_heroe(self):
@@ -618,7 +618,7 @@ class Partida:
 
     def poner_velocidad_del_heroe(self, velocidad):
         """Lo que una ruta con 28 o 29 le deja al héroe, sin correr la ruta."""
-        self.consola.escribir_ram(self.simbolos["FAR_HERO_VEL"], [velocidad])
+        self.consola.write_ram(self.simbolos["FAR_HERO_VEL"], [velocidad])
         return self
 
     def poner_byte(self, nombre, valor):
@@ -629,7 +629,7 @@ class Partida:
         partida larga. Lo que se escribe acá **no** es una aserción: se escribe
         el estado y después se le pregunta a la ROM qué hace con él.
         """
-        self.consola.escribir_ram(self.simbolos[nombre], [valor])
+        self.consola.write_ram(self.simbolos[nombre], [valor])
         return self
 
     def heroe(self):
@@ -649,9 +649,9 @@ class Partida:
         return b[0] | (b[1] << 8) | (b[2] << 16)
 
     def poner_oro(self, cuanto):
-        self.consola.escribir_ram(self.simbolos["oro"],
-                                  [cuanto & 0xFF, (cuanto >> 8) & 0xFF,
-                                   (cuanto >> 16) & 0xFF])
+        self.consola.write_ram(self.simbolos["oro"],
+                               [cuanto & 0xFF, (cuanto >> 8) & 0xFF,
+                                (cuanto >> 16) & 0xFF])
         return self
 
     # Los HP y los SP **de la partida**: `FAR_HP` y `FAR_SP`, una palabra por
@@ -677,8 +677,8 @@ class Partida:
         return bajo | (alto << 8)
 
     def _poner_palabra_del_actor(self, tabla, actor, valor):
-        self.consola.escribir_ram(self.simbolos[tabla] + 2 * actor,
-                                  [valor & 0xFF, valor >> 8])
+        self.consola.write_ram(self.simbolos[tabla] + 2 * actor,
+                               [valor & 0xFF, valor >> 8])
         return self
 
     def equipo(self, actor):
@@ -787,8 +787,8 @@ class Partida:
         for numero in numeros:
             direccion = base + numero // 8
             octeto = self.consola.ram(direccion, 1)[0] | (1 << (numero % 8))
-            self.consola.escribir_ram(direccion, [octeto])
-        self.consola.escribir_ram(self.simbolos["refresco"], [1])
+            self.consola.write_ram(direccion, [octeto])
+        self.consola.write_ram(self.simbolos["refresco"], [1])
         return self
 
     def apagar(self, *numeros):
@@ -804,8 +804,8 @@ class Partida:
         for numero in numeros:
             direccion = base + numero // 8
             octeto = self.consola.ram(direccion, 1)[0] & ~(1 << (numero % 8))
-            self.consola.escribir_ram(direccion, [octeto & 0xFF])
-        self.consola.escribir_ram(self.simbolos["refresco"], [1])
+            self.consola.write_ram(direccion, [octeto & 0xFF])
+        self.consola.write_ram(self.simbolos["refresco"], [1])
         return self
 
     def ir_al_mapa(self, map_id, x, y, cuadros=90, tinte=True):
@@ -828,21 +828,21 @@ class Partida:
         # OP_TELEPORT lo es. Escribiendo uno solo, el alto se queda con lo que
         # hubiera antes y la ROM carga cualquier mapa.
         indice = self.mapas.index(map_id)
-        self.consola.escribir_ram(self.simbolos["fundido_mapa"],
-                                  [indice & 0xFF, indice >> 8])
+        self.consola.write_ram(self.simbolos["fundido_mapa"],
+                               [indice & 0xFF, indice >> 8])
         for nombre, valor in (("entrada_x", x), ("entrada_y", y)):
-            self.consola.escribir_ram(self.simbolos[nombre],
-                                      [valor & 0xFF, valor >> 8])
+            self.consola.write_ram(self.simbolos[nombre],
+                                   [valor & 0xFF, valor >> 8])
         # `empezar_fundido`, desde afuera: qué fundido es, que hay uno, y el
         # reloj, que son **vueltas del lazo** —ticks— desde el 2026-09-08. Con
         # `boot_cuadros`, que es lo que decía antes, la resta daba cualquier
         # cosa y el fundido no terminaba nunca: la partida se quedaba en el
         # mapa de arranque y catorce pruebas fallaban sin decir por qué.
-        self.consola.escribir_ram(self.simbolos["fundido_que"],
-                                  [self.simbolos["FUNDIDO_PUERTA"]])
-        self.consola.escribir_ram(self.simbolos["fundido"], [1])
-        self.consola.escribir_ram(self.simbolos["fundido_base"],
-                                  [self.palabra("vueltas") & 0xFF])
+        self.consola.write_ram(self.simbolos["fundido_que"],
+                               [self.simbolos["FUNDIDO_PUERTA"]])
+        self.consola.write_ram(self.simbolos["fundido"], [1])
+        self.consola.write_ram(self.simbolos["fundido_base"],
+                               [self.palabra("vueltas") & 0xFF])
         # Y la pantalla se destiñe, que es lo único que este salto hace y una
         # puerta de verdad no.
         #
@@ -857,8 +857,8 @@ class Partida:
         # mirar que sobrevive.
         if tinte:
             for nombre in ("tinte_r", "tinte_g", "tinte_b", "tinte_s"):
-                self.consola.escribir_ram(self.simbolos[nombre],
-                                          [self.simbolos["TINTE_NEUTRO"]])
+                self.consola.write_ram(self.simbolos[nombre],
+                                       [self.simbolos["TINTE_NEUTRO"]])
         self.correr(cuadros)
         return self
 
@@ -876,7 +876,7 @@ class Partida:
         que se quiere mirar es el estado mientras la pantalla está puesta.
         """
         self._resetear()
-        self.consola.correr(TITULO_AIRE)
+        self.consola.run(TITULO_AIRE)
         return self
 
     def muestras_en_la_aram(self):
@@ -1046,8 +1046,8 @@ def marcar_la_pila(consola):
     de `$2000` lo escribió la ROM.
     """
     fondo = TOPE_DE_LA_PILA - bancos.PILA
-    consola.escribir_ram(fondo, bytes(marca_de(fondo + i)
-                                      for i in range(bancos.PILA)))
+    consola.write_ram(fondo, bytes(marca_de(fondo + i)
+                                   for i in range(bancos.PILA)))
 
 
 def hondura_de_la_pila(consola):
@@ -1071,7 +1071,7 @@ def hondura_de_la_pila(consola):
 
 def en_la_wram(direccion):
     """De una dirección larga del banco $7E al desplazamiento que pide
-    `retro.Consola.ram`.
+    `retro.Console.ram`.
 
     Las de la RAM lejana están escritas de las dos maneras en `runtime/ram_lejana.s` —unas
     con el banco adelante (`$7E3100`) y otras sin él (`$2600`)—, así que el

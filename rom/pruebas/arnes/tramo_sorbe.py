@@ -31,7 +31,7 @@ BOTON_CADA = 9       # cuadros de hardware entre toques de A en una pelea
 def sin_encuentros(p):
     """El mapa los vuelve a prender en cada carga: se apagan después de
     llegar."""
-    p.consola.escribir_ram(en_la_wram(p.simbolos["ENC_BASE"]), [0, 0])
+    p.consola.write_ram(en_la_wram(p.simbolos["ENC_BASE"]), [0, 0])
 
 
 def jugar(r, que, hasta, tope=60000, fotos=None, momentos=None):
@@ -55,7 +55,7 @@ def jugar(r, que, hasta, tope=60000, fotos=None, momentos=None):
                 r.foto(nombre, asentar=False)
                 del momentos[nombre]
         if p.byte("menu_abierto"):
-            p.consola.apretar(*(("a",) if cuadro % BOTON_CADA < 2 else ()))
+            p.consola.hold(*(("a",) if cuadro % BOTON_CADA < 2 else ()))
             p._un_cuadro()
             continue
         if p.byte("msg_abierto") and p.byte("msg_estado") != 1:
@@ -63,16 +63,16 @@ def jugar(r, que, hasta, tope=60000, fotos=None, momentos=None):
                 if cond(p):
                     r.foto(nombre, asentar=False)
                     del pendientes[nombre]
-            p.consola.apretar("a")
+            p.consola.hold("a")
             p._un_cuadro()
             p._un_cuadro()
-            p.consola.apretar()
+            p.consola.hold()
             for _ in range(60):
                 if not p.byte("msg_abierto"):
                     break
                 p._un_cuadro()
             continue
-        p.consola.apretar()
+        p.consola.hold()
         p._un_cuadro()
     raise AssertionError("jugando %s no se llegó en %d cuadros. %s"
                          % (que, tope, r.estado()))

@@ -89,7 +89,7 @@ def _cargar(p, map_id):
     p.ir_al_mapa(map_id, x, y, cuadros=0)
     antes = p.palabra("vueltas")
     for cuadros in range(1, 400):
-        p.consola.correr(1)
+        p.consola.run(1)
         if not p.byte("fundido_que"):
             assert p.mapa() == map_id, (
                 "pedí el mapa %d y la ROM cargó el %d" % (map_id, p.mapa()))
@@ -252,8 +252,8 @@ def test_la_grilla_vuelve_entera_de_una_pelea(nucleo):
     # Todo en cuadros de hardware: la pelea no cuenta ticks. A cada nueve
     # cuadros, que es lo que pasa los mensajes y elige atacar.
     for cuadros in range(1, 4000):
-        p.consola.apretar(*(("a",) if cuadros % 9 < 2 else ()))
-        p.consola.correr(1)
+        p.consola.hold(*(("a",) if cuadros % 9 < 2 else ()))
+        p.consola.run(1)
         if p.byte("menu_abierto"):
             pisada = pisada or (bytes(p.consola.ram(alta, len(crudo) - mitad))
                                 != crudo[mitad:])
@@ -261,13 +261,13 @@ def test_la_grilla_vuelve_entera_de_una_pelea(nucleo):
             break
     else:
         raise AssertionError("la pelea no terminó en %d cuadros" % cuadros)
-    p.consola.apretar()
+    p.consola.hold()
     assert pisada, (
         "la pelea no pisó la mitad alta del $7F: si la escena se mudó, esta "
         "prueba ya no mira el camino de `volver_de_batalla`")
     antes = p.palabra("vueltas")
     for _ in range(240):
-        p.consola.correr(1)
+        p.consola.run(1)
         if p.palabra("vueltas") - antes >= 2:
             break
     assert p.mapa() == 52, "la pelea no volvió al mapa 52: volvió al %d" % p.mapa()
@@ -303,7 +303,7 @@ def test_un_fondo_de_dos_flujos_no_se_sale_del_buffer():
         "ella: hace falta otro mapa" % map_id)
     alta = en_la_wram(s["GRILLA_ALTA"])
     testigo = bytes(range(256)) * 16
-    p.consola.escribir_ram(alta, list(testigo))
+    p.consola.write_ram(alta, list(testigo))
     _cargar(p, map_id)
     assert bytes(p.consola.ram(alta, len(testigo))) == testigo, (
         "cargar el mapa %d pisó `GRILLA_ALTA`: el fondo se salió del buffer "

@@ -18,12 +18,12 @@ README = os.path.join(AQUI, "README.md")
 NOMBRADA = re.compile(r"`(test_\w+\.py)`")
 
 
-def _en_disco():
+def _on_disk():
     return {os.path.basename(r)
             for r in glob.glob(os.path.join(AQUI, "test_*.py"))}
 
 
-def _en_el_indice():
+def _in_the_index():
     with open(README, encoding="utf-8") as f:
         texto = f.read()
     indice = texto.split("## Which test covers what", 1)
@@ -31,15 +31,15 @@ def _en_el_indice():
     return set(NOMBRADA.findall(indice[1]))
 
 
-def test_toda_prueba_esta_en_el_indice():
-    faltan = sorted(_en_disco() - _en_el_indice())
+def test_every_test_is_in_the_index():
+    faltan = sorted(_on_disk() - _in_the_index())
     assert not faltan, (
         "the index in tools/pruebas/README.md does not name: %s"
         % ", ".join(faltan))
 
 
-def test_el_indice_no_nombra_pruebas_que_no_existen():
-    sobran = sorted(_en_el_indice() - _en_disco())
+def test_the_index_names_no_missing_tests():
+    sobran = sorted(_in_the_index() - _on_disk())
     assert not sobran, (
         "the index in tools/pruebas/README.md names tests that do not exist: "
         "%s. Were they renamed or deleted?" % ", ".join(sobran))

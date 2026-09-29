@@ -6,7 +6,7 @@ cache and where builds are delivered.
 tools read `ABL_GAME_DIR` and friends, with this machine's values as
 defaults: they knew what the game was called and where it lived. Now each
 executable receives what it needs —`--game-dir`, `--rtp-dir`,
-`--soundfont`…—, sets it here with `desde_argumentos`, and the rest of the
+`--soundfont`…—, sets it here with `from_arguments`, and the rest of the
 tools read it from here. Which variable points to what, and the machine's
 values, belong to the caller: the game's `justfile`.
 
@@ -15,7 +15,7 @@ hang off the project —the cache and the test cartridges, inside its
 `build`—: a machine default would be one machine's.
 
 It is a single place that gets configured, and not a parameter in every
-function, on purpose: `recursos.GAME_DIR`, `recursos.RTP_DIR` and
+function, on purpose: `resources.GAME_DIR`, `resources.RTP_DIR` and
 `snes_samples.SOUNDFONT` are read inside some forty functions of the
 converter and the music, and passing them as parameters touched all those
 signatures. Those names still exist, but they are resolved here when read
@@ -25,12 +25,12 @@ being set.
 
 import os
 
-from comun import proyecto
+from common import project
 
 
-class FaltaElAmbiente(SystemExit):
+class MissingEnvironment(SystemExit):
     """A machine value nobody passed. It is a `SystemExit` for the same
-    reason as `proyecto.NoHayProyecto`: what fixes it is how it was run, not
+    reason as `project.NoProject`: what fixes it is how it was run, not
     the code."""
 
 
@@ -43,97 +43,98 @@ FLAGS = {
                              "game does not ship is looked up there"),
     "soundfont": ("--soundfont", "the bank the SPC700 samples and the "
                                  "MSU-1 tracks come from"),
-    "reemplazos": ("--reemplazos", "where to look for a <song>.mp3 —or "
-                                   ".ogg, .flac, .wav— that replaces that "
-                                   "song's MIDI in the MSU-1 tracks"),
+    "replacements": ("--replacements", "where to look for a <song>.mp3 "
+                                       "—or .ogg, .flac, .wav— that "
+                                       "replaces that song's MIDI in the "
+                                       "MSU-1 tracks"),
     "cache": ("--cache", "the converter's disk cache. Without this, "
                          "cache/ inside the project's build"),
     "test_cartridges": ("--test-cartridges", "where the test cartridges are "
                                              "built. Without this, tests/ "
                                              "inside the project's build"),
-    "compartido": ("--compartido", "the folder where what gets built is "
-                                   "delivered"),
+    "shared": ("--shared", "the folder where what gets built is "
+                           "delivered"),
 }
 
-_fijados = {}
+_values = {}
 
 
-def fijar(**valores):
+def configure(**values):
     """Sets the values that are not None. A name that is not in `FLAGS` is a
     programming error, not the caller's."""
-    for nombre, valor in valores.items():
-        if nombre not in FLAGS:
-            raise KeyError(nombre)
-        if valor is not None:
+    for name, value in values.items():
+        if name not in FLAGS:
+            raise KeyError(name)
+        if value is not None:
             # Absolute: the converter runs from a different directory than
             # the one that called it.
-            _fijados[nombre] = os.path.abspath(valor)
+            _values[name] = os.path.abspath(value)
 
 
-def argumentos(parser, *nombres):
-    """Adds the flags of `nombres` to an executable's parser."""
-    for nombre in nombres:
-        flag, ayuda = FLAGS[nombre]
-        parser.add_argument(flag, dest=nombre, metavar="PATH", help=ayuda)
+def add_arguments(parser, *names):
+    """Adds the flags of `names` to an executable's parser."""
+    for name in names:
+        flag, help_text = FLAGS[name]
+        parser.add_argument(flag, dest=name, metavar="PATH", help=help_text)
 
 
-def desde_argumentos(args, *nombres):
+def from_arguments(args, *names):
     """Sets what came on the command line."""
-    fijar(**{nombre: getattr(args, nombre) for nombre in nombres})
+    configure(**{name: getattr(args, name) for name in names})
 
 
-def como_flags(*nombres):
-    """The set values of `nombres`, as flags: to pass them on to another
+def as_flags(*names):
+    """The set values of `names`, as flags: to pass them on to another
     tool that runs in a separate process."""
     flags = []
-    for nombre in nombres:
-        if nombre in _fijados:
-            flags += [FLAGS[nombre][0], _fijados[nombre]]
+    for name in names:
+        if name in _values:
+            flags += [FLAGS[name][0], _values[name]]
     return flags
 
 
-def _pedir(nombre):
-    if nombre not in _fijados:
-        raise FaltaElAmbiente(
+def _require(name):
+    if name not in _values:
+        raise MissingEnvironment(
             "missing %s: %s. It belongs to the machine, so it has no default "
-            "value; whoever runs this passes it" % (FLAGS[nombre][0],
-                                                   FLAGS[nombre][1]))
-    return _fijados[nombre]
+            "value; whoever runs this passes it" % (FLAGS[name][0],
+                                                   FLAGS[name][1]))
+    return _values[name]
 
 
-def juego():
-    """The original RM2k project: see `rpgmaker/recursos.py`."""
-    return _pedir("game_dir")
+def game():
+    """The original RM2k project: see `rpgmaker/resources.py`."""
+    return _require("game_dir")
 
 
 def rtp():
-    """Don Miguel's RTP: see `rpgmaker/recursos.py`."""
-    return _pedir("rtp_dir")
+    """Don Miguel's RTP: see `rpgmaker/resources.py`."""
+    return _require("rtp_dir")
 
 
 def soundfont():
     """The bank the samples come from: see `audio/snes_samples.py`."""
-    return _pedir("soundfont")
+    return _require("soundfont")
 
 
-def reemplazos_msu():
+def msu_replacements():
     """Where the MSU-1 track replacements are looked up, or None: without
     replacements, each track comes from its MIDI."""
-    return _fijados.get("reemplazos")
+    return _values.get("replacements")
 
 
 def cache():
-    """The converter's disk cache: see `comun/cache_disco.py`."""
-    return _fijados.get("cache") or os.path.join(proyecto.build(), "cache")
+    """The converter's disk cache: see `common/disk_cache.py`."""
+    return _values.get("cache") or os.path.join(project.build(), "cache")
 
 
-def cartuchos_de_prueba():
+def test_cartridges():
     """Where the suite's cartridges are built, except `release`: see
     `cartuchos.directorio`."""
-    return (_fijados.get("test_cartridges")
-            or os.path.join(proyecto.build(), "tests"))
+    return (_values.get("test_cartridges")
+            or os.path.join(project.build(), "tests"))
 
 
-def compartido():
+def shared():
     """Where what gets built is delivered: see `ensamblado/entregar.py`."""
-    return _pedir("compartido")
+    return _require("shared")

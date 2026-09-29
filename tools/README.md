@@ -9,30 +9,30 @@ loose: each thing lives in the folder of its responsibility.
 From the bottom up. A folder imports only from the ones below it, never from
 one in its own row or above.
 
-    comun/       where everything is (proyecto), the converter's disk cache
-                 (cache_disco), and spreading pure work across forked
-                 processes (paralelo). It imports nothing from `tools/`, and
+    common/      where everything is (project), the converter's disk cache
+                 (disk_cache), and spreading pure work across forked
+                 processes (parallel). It imports nothing from `tools/`, and
                  any of the ones above may import it
 
     rpgmaker/    the game as data: the JSON dump of rom/data/ (lcf), what is
                  ours and overrides it (fork), the RM2k command codes
                  (event_codes), its rules and the geometry of its images
-                 (rm2k), and where the game and the RTP are (recursos). No
+                 (rm2k), and where the game and the RTP are (resources). No
                  rule of the format lives here: rom/data/ comes resolved. It
                  has its own README
     ensamblado/  the memory map (bancos), what builds the ROM (ensamblar), and
                  which ROMs exist and with which flags (cartuchos, used by
                  `just build`)
-    emulador/    the libretro core from Python (retro), and the bsnes-libretro
+    emulator/    the libretro core from Python (retro), and the bsnes-libretro
                  patch that exposes the WRAM
 
     render/      a map and a chipset as images, with the CharSets on top,
-                 and the image of the fork's ChipSets (chipset_del_fork); uses
+                 and the image of the fork's ChipSets (chipset_recipe); uses
                  rpgmaker
 
     audio/       from MIDI to the SPC700: snes_music, midi, musica, sdsp,
                  spc700, muestras_brr, snes_samples, music_opcodes, and the
-                 MSU-1 tracks (msu); uses rpgmaker and comun
+                 MSU-1 tracks (msu); uses rpgmaker and common
 
     port/        the converter to SNES —snes_convert— and everything only it
                  uses: eventos, event_opcodes, batalla, experiencia,
@@ -78,9 +78,10 @@ question, see `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 
 The graph, per file and per package, is printed by the script in appendix D
 of `docs/research/el-mapa-de-las-herramientas-de-python.md`. That script puts
-`comun` in the same row as `rpgmaker`, as it was when it was written; since
-`comun` has `proyecto` it goes at the very bottom, and with `"comun": -1` in
-its `NIVEL` the only violations it prints are those of `cartuchos`.
+`comun` —`common` since 2026-09-29— in the same row as `rpgmaker`, as it
+was when it was written; since it has `project` it goes at the very bottom,
+and with `"common": -1` in its `NIVEL` the only violations it prints are
+those of `cartuchos`.
 
 ## How imports work
 
@@ -88,11 +89,11 @@ Each folder is a Python package, and is imported by its name, with `tools/`
 —and only `tools/`— on `sys.path`:
 
     from rpgmaker import lcf
-    from rpgmaker.recursos import find_resource
+    from rpgmaker.resources import find_resource
 
 A bare `import lcf` fails, on purpose: if it worked too, the same module
 could be loaded twice under two names, and what one changes on the other
-—`snes_convert` changes `DECORAR_TRANSLUCIDO` on `lcf`— would not get
+—`snes_convert` changes `DECORATE_TRANSLUCENT` on `lcf`— would not get
 through.
 
 ## The ones that run
@@ -115,7 +116,7 @@ The reason for the names is in `tools/justfile`. A new one is added in
 `_instalar`, and the `.py` finds its packages by resolving the symlink with
 `realpath`, because `__file__` is the PATH location: it climbs up to
 `tools/` and no further. **Where everything else is** is answered by
-`comun/proyecto.py`, and by nobody else: `pruebas/test_proyecto.py` enforces
+`common/project.py`, and by nobody else: `pruebas/test_project.py` enforces
 it. What belongs to the repo —the root, the runtime— comes from where that
 file is; what belongs to the game, from its project file: see "How they find
 the game". The tests put `tools/` on the path themselves, from
@@ -137,12 +138,12 @@ cases each cartridge carries, what the ROM is called, the title in its
 header and the signatures of its save files, which sound effects go whole,
 which songs go separately, which CharSet weighs most when splitting
 palettes. The game declares it at its root, in `rm2k-snes.toml` —A Blurred
-Line's is `rom/rm2k-snes.toml`—, and it is read with `comun/perillas.py`:
-`perillas.valor("maps", "below", tipo=int)`.
+Line's is `rom/rm2k-snes.toml`—, and it is read with `common/settings.py`:
+`settings.value("maps", "below", kind=int)`.
 
 * **A missing key is an error**, with its name, and not a default value: a
   default in a tool would be ABL's value, and another game would be built
-  with it without a warning. `pruebas/test_perillas.py` enforces it, and on
+  with it without a warning. `pruebas/test_settings.py` enforces it, and on
   ABL's side `test_perillas_repetidas.py`, which fails if a `.py` here writes
   a value from the file again.
 * **It is read when used, not at import**: the converter and what it uses
@@ -163,7 +164,7 @@ Line's is `rom/rm2k-snes.toml`—, and it is read with `comun/perillas.py`:
 
 **The tools do not know where any game lives: they find it**, the way cargo
 finds its `Cargo.toml`. They look for `rm2k-snes.toml` from the current
-directory upwards, or receive it through `--proyecto <directory>`; if they do
+directory upwards, or receive it through `--project <directory>`; if they do
 not find it, they stop and say where they searched from. The search happens
 the first time someone asks, not at import: importing the converter does not
 require a game.
@@ -177,17 +178,17 @@ goldens, what they leave to look at— does not go there: they know it by
 their location.
 
 **What belongs to the machine arrives by flags**: `--game-dir`, `--rtp-dir`,
-`--soundfont`, `--reemplazos` (the MSU-1 tracks that come from an audio file
+`--soundfont`, `--replacements` (the MSU-1 tracks that come from an audio file
 and not from the MIDI), `--cache`, `--test-cartridges` and, in
-`abl-entregar`, `--compartido`. Each executable adds the ones it uses and
-sets them in `comun/ambiente.py`, where the rest read them from;
-`recursos.GAME_DIR` and `snes_samples.SOUNDFONT` are resolved there when
+`abl-entregar`, `--shared`. Each executable adds the ones it uses and
+sets them in `common/environment.py`, where the rest read them from;
+`resources.GAME_DIR` and `snes_samples.SOUNDFONT` are resolved there when
 read. **None has a default value**, except the cache and the test
 cartridges, which have their place in the project's `build`: a machine's
 value belongs to the caller. In A Blurred Line, `rom/justfile` translates its
 variables into flags.
 
-`pruebas/test_proyecto.py` enforces it: it fails if a `.py` here reads an
+`pruebas/test_project.py` enforces it: it fails if a `.py` here reads an
 `ABL_*` variable or writes `rom/` as a path.
 
 ## `tools/justfile`
@@ -202,7 +203,7 @@ standing here, with `just <recipe>`. Both forms run the recipe standing in
 
 ## The bsnes patch
 
-`emulador/bsnes-wram.patch` is for **bsnes-libretro**, not for this repo.
+`emulator/bsnes-wram.patch` is for **bsnes-libretro**, not for this repo.
 bsnes does not expose the WRAM —`retro_get_memory_data` returns null for
 every id— and the tests' clock asks the ROM which tick of the loop it is on,
 which lives in `vueltas`, in the WRAM. Without the patch, whatever runs under
@@ -218,6 +219,6 @@ Building it takes `gcc` and `make`, and nothing else:
 
     git clone https://github.com/libretro/bsnes-libretro
     cd bsnes-libretro
-    git am < .../tools/emulador/bsnes-wram.patch
+    git am < .../tools/emulator/bsnes-wram.patch
     make -j$(nproc)
     cp bsnes_libretro.so /usr/lib/libretro/

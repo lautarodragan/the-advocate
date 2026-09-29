@@ -12,7 +12,7 @@ ChipSet **sin** tabla de terrenos: la optimización de RPG_RT que
 verde con la tabla leída al revés.
 
 Los valores esperados no están escritos: salen del `.lmu` y del `.ldb` con
-`rm2k.terreno_de`, que es la misma regla de la que salió la tabla que la ROM
+`rm2k.terrain_of`, que es la misma regla de la que salió la tabla que la ROM
 lleva. Lo que esto compara es que el camino entero —conversor, bytecode,
 intérprete y la tabla del banco 1— devuelva lo que dice el juego.
 
@@ -29,7 +29,7 @@ import os
 import pytest
 
 from rpgmaker import lcf, rm2k
-from rpgmaker.recursos import GAME_DIR
+from rpgmaker.resources import GAME_DIR
 
 import datos
 from tanda import partida
@@ -63,7 +63,7 @@ def del_juego():
 def terreno_en(del_juego, celda):
     mapa, chipset = del_juego
     x, y = celda
-    return rm2k.terreno_de(chipset, mapa.lower_layer[y * mapa.width + x])
+    return rm2k.terrain_of(chipset, mapa.lower_layer[y * mapa.width + x])
 
 
 @pytest.fixture(scope="module")
@@ -96,7 +96,7 @@ def test_fuera_del_mapa_contesta_el_del_primer_tile(corrida, del_juego):
     """`GetTerrainTag` no se cae ni contesta el de la celda más cercana: usa
     el índice 0 del ChipSet."""
     _mapa, chipset = del_juego
-    assert corrida.variable(ranuras()[AFUERA]) == rm2k.terreno_de(chipset, 0)
+    assert corrida.variable(ranuras()[AFUERA]) == rm2k.terrain_of(chipset, 0)
 
 
 def test_la_celda_por_variable_da_lo_mismo_que_escrita(corrida, del_juego):

@@ -64,13 +64,13 @@ from port import eventos
 from rpgmaker import lcf
 from rpgmaker import rm2k
 
-# Translucent events carry their own graphic: see `rm2k.decorar_translucido`
+# Translucent events carry their own graphic: see `rm2k.decorate_translucent`
 # —baked against the background, dithered, or opaque—.
-lcf.DECORAR_TRANSLUCIDO = rm2k.decorar_translucido
+lcf.DECORATE_TRANSLUCENT = rm2k.decorate_translucent
 # And the text boxes, rebuilt for the SNES window: see
-# `lcf.REAJUSTAR_TEXTOS` and `port/textos.py`.
+# `lcf.REFIT_TEXTS` and `port/textos.py`.
 from port import textos
-lcf.REAJUSTAR_TEXTOS = textos.reajustar_comandos
+lcf.REFIT_TEXTS = textos.reajustar_comandos
 from port import animacion as animacion_mod
 from port import imagen
 from port import asignador
@@ -88,17 +88,17 @@ from port import constantes
 from port import reglas
 from port import msu_datos
 from audio import efectos_msu
-from comun import perillas
-from comun import proyecto
-from comun.paralelo import en_paralelo
+from common import settings
+from common import project
+from common.parallel import in_parallel
 from audio import snes_music
 from port.asignador import CELL, tile_colors
 from port.formato_snes import cgram_word, entry, pack_tile
 from rpgmaker.rm2k import TILE, collect_npcs, hero_start, passability_map
 from render.render_map import Renderer, build_passability, load_image
-from comun import ambiente
-from rpgmaker import recursos
-from rpgmaker.recursos import find_resource
+from common import environment
+from rpgmaker import resources
+from rpgmaker.resources import find_resource
 
 # The PPU addresses 1024 tiles per layer: ten bits in each tilemap cell.
 MAX_TILES = 1024
@@ -628,8 +628,8 @@ def peso_de_grafico(charset):
     `[graphics.palette_weight]` of the project file, with its reasons. The
     `~trama` suffix of translucent ones doesn't count: the weight belongs to
     the drawing."""
-    pesos = perillas.valor("graphics", "palette_weight", tipo=dict)
-    return pesos.get((charset or "").split(rm2k.TRAMA_SUFIJO)[0], 0)
+    pesos = settings.value("graphics", "palette_weight", kind=dict)
+    return pesos.get((charset or "").split(rm2k.DITHER_SUFFIX)[0], 0)
 
 
 def fila_de_pose(pose):
@@ -733,10 +733,10 @@ def poses_del_mapa(renderer, game_map, lideres, movibles=(), giran=(),
 # **Passability doesn't change, and that is what allows hiding the row.** For
 # an upper-layer tile without the "above the hero" bit,
 # `rm2k.passability_map` resolves the cell with that tile's bits, which are
-# exactly the ones `rm2k.pasabilidad_del_tile` made the event's row impose; and
-# `pasa_con_evento`, in tools/runtime/heroe.s, skips hidden rows. That is, the
-# baking hands the same table answer over to the map. It is guarded by
-# `rom/pruebas/herramientas/test_horneados.py`.
+# exactly the ones `rm2k.event_tile_passability` made the event's row
+# impose; and `pasa_con_evento`, in tools/runtime/heroe.s, skips hidden
+# rows. That is, the baking hands the same table answer over to the map. It
+# is guarded by `rom/pruebas/herramientas/test_horneados.py`.
 #
 # What is **not** saved yet: its sprite palette and its VRAM slot. The event
 # still enters the `npcs_dibujables` split as if it were drawn, on purpose:
@@ -795,11 +795,12 @@ def eventos_horneables(renderer, game_map):
 
     The tile below being animated **doesn't rule it out**: the cell is baked
     into every drawing of the animation, because what is touched is the map
-    layer and `capas_animadas` renders all of them from there. What is lost is
+    layer and `animated_layers` renders all of them from there. What is lost is
     the animation the opaque tile already covered.
     """
-    atlas = renderer.atlas_por_nombre(getattr(game_map, "chipset_nombre", None))
-    flags = getattr(game_map, "pasabilidad_tiles", None)
+    atlas = renderer.atlas_by_name(getattr(game_map, "chipset_filename",
+                                           None))
+    flags = getattr(game_map, "passability_table", None)
     if atlas is None or flags is None:
         return {}
     # That tile 0 of the upper layer —the one an empty cell carries— draws
@@ -830,7 +831,7 @@ def eventos_horneables(renderer, game_map):
     horneables = {}
     for npc in collect_npcs(game_map):
         numero = npc["evento"]
-        base = rm2k.sin_horneado(npc["charset"])
+        base = rm2k.unbaked(npc["charset"])
         if not base.startswith(rm2k.TILE_PREFIX) or not npc["visible"]:
             continue
         if npc["cambia"] or numero in caminan or numero in tocados:
@@ -844,13 +845,13 @@ def eventos_horneables(renderer, game_map):
         # event **can end up** drawing. Half of
         # `test_hornear_no_cambia_la_pasabilidad_de_la_celda` comes for free
         # from this: with the same graphic and the same layer on all of them,
-        # `pasabilidad_del_tile` gives the same on all of them.
+        # `rm2k.event_tile_passability` gives the same on all of them.
         if set(npc["graficos"]) != {npc["graficos"][0]} \
                 or npc["graficos"][0] is None:
             continue
         if set(npc["capas"]) != {rm2k.LAYER_BELOW}:
             continue
-        if any(p.animation_type in rm2k.ANIMA_CONTINUO for p in paginas):
+        if any(p.animation_type in rm2k.CONTINUOUS_ANIMATION for p in paginas):
             continue
         indice = int(base.rsplit(":", 1)[1])
         if not indice:
@@ -876,7 +877,7 @@ def eventos_horneables(renderer, game_map):
         # whole mechanism was never fully taken apart; what is measured is
         # that this baking is the only thing that changes between the two
         # ROMs.
-        if npc["tile_pasa"] & ~rm2k.pasa_de_celda(
+        if npc["tile_pasa"] & ~rm2k.cell_passability(
                 flags, game_map.lower_layer[celda],
                 game_map.upper_layer[celda]):
             continue
@@ -1645,7 +1646,7 @@ def mapas_por_personaje(renderer, map_ids, game_dir):
     """How many maps of the ROM each (CharSet, index) appears in."""
     cuenta = collections.Counter()
     for otro in map_ids:
-        gm = renderer.cargar_mapa(os.path.join(game_dir, "Map%04d.lmu" % otro))
+        gm = renderer.load_map(os.path.join(game_dir, "Map%04d.lmu" % otro))
         suyos = set()
         for evento in gm.events:
             for pagina in evento.pages:
@@ -1760,8 +1761,8 @@ def _version_capas():
       key was the already drawn pixels: changing the drawing changed the key
       by itself. Since the key comes from the inputs, the only way for a change
       in the drawing to invalidate what is stored is this one.
-      `rpgmaker/recursos.py` goes with them because it is where `render_map`
-      gets how it finds the ChipSet, and `comun/proyecto.py` because it is
+      `rpgmaker/resources.py` goes with them because it is where `render_map`
+      gets how it finds the ChipSet, and `common/project.py` because it is
       where the directories it searches in come from;
     * `port/asignador.py` decides which colors are lost, `rpgmaker/rm2k.py`
       has the constants of the split and of the animated families, and this
@@ -1775,20 +1776,20 @@ def _version_capas():
 
     What does **not** go in, on purpose: `rpgmaker/lcf.py`. What it reads from
     the dump —the two layers, the size, the ChipSet's passability— goes in by
-    its value in `insumos_de_capas`, so a change in how it is read only
+    its value in `layer_inputs`, so a change in how it is read only
     matters if what is read changes, and then the key changes by itself.
     """
     global _VERSION_CAPAS
     if _VERSION_CAPAS is None:
         import PIL
-        from comun import cache_disco
-        _VERSION_CAPAS = (cache_disco.version_de("port/snes_convert.py",
-                                                 "port/asignador.py",
-                                                 "rpgmaker/rm2k.py",
-                                                 "render/render_map.py",
-                                                 "rpgmaker/recursos.py",
-                                                 "comun/proyecto.py",
-                                                 "render/chipset.py")
+        from common import disk_cache
+        _VERSION_CAPAS = (disk_cache.version_of("port/snes_convert.py",
+                                                "port/asignador.py",
+                                                "rpgmaker/rm2k.py",
+                                                "render/render_map.py",
+                                                "rpgmaker/resources.py",
+                                                "common/project.py",
+                                                "render/chipset.py")
                           + tiles_bin.version()
                           + " Pillow " + PIL.__version__)
     return _VERSION_CAPAS
@@ -1810,7 +1811,7 @@ def capas_convertidas(renderer, game_map):
     drawing the 29 maps of `abl` with their animations is 24 of the 65 s of a
     warm build. With the key from the inputs, a warm build draws none.
 
-    What is lost is exactly that virtue, and that is why `insumos_de_capas`
+    What is lost is exactly that virtue, and that is why `layer_inputs`
     lives next to `render_layers` and says what it reads: now the list is
     maintained by hand, and if it falls short the cache answers stale without
     anything failing.
@@ -1818,23 +1819,23 @@ def capas_convertidas(renderer, game_map):
     Verified with `SIN_CACHE=1` and with the cache deleted: the `.sfc` is the
     same byte for byte.
     """
-    from comun import cache_disco
-    insumos = renderer.insumos_de_capas(game_map)
+    from common import disk_cache
+    insumos = renderer.layer_inputs(game_map)
     en_disco = None
     if insumos is not None:
-        en_disco = cache_disco.clave(_version_capas(), *insumos)
+        en_disco = disk_cache.key(_version_capas(), *insumos)
         if en_disco in _capas_en_memoria:
             return _capas_en_memoria[en_disco]
-        hecho = cache_disco.leer("capas", en_disco)
+        hecho = disk_cache.read("capas", en_disco)
         if hecho is not None:
             _capas_en_memoria[en_disco] = hecho
             return hecho
-    base, above_img, variantes = renderer.capas_animadas(game_map)
+    base, above_img, variantes = renderer.animated_layers(game_map)
     if base is None:
         return None
     hecho = _convert_layers(base, above_img, variantes)
     if en_disco is not None:
-        cache_disco.guardar("capas", en_disco, hecho)
+        disk_cache.write("capas", en_disco, hecho)
         _capas_en_memoria[en_disco] = hecho
     return hecho
 
@@ -1878,7 +1879,7 @@ def _capas_de_un_mapa(map_id):
     try:
         # Quiet: whatever it has to say, `convertir` says it, in order.
         with open(os.devnull, "w") as nulo, contextlib.redirect_stdout(nulo):
-            game_map = renderer.cargar_mapa(
+            game_map = renderer.load_map(
                 os.path.join(args.game_dir, "Map%04d.lmu" % map_id))
             separar_del_heroe(renderer, game_map, args,
                               comandos_de_casos(args, map_id))
@@ -2006,7 +2007,7 @@ def paleta_de_la_ventana(primeras=None):
 # The two tile families the ChipSet animates, with how many drawings each one
 # has and in the order their runs go to VRAM. It lives in rm2k.py together with
 # each one's cadence, which is what says which drawing is due.
-FAMILIAS = rm2k.FAMILIAS_ANIMADAS
+FAMILIAS = rm2k.ANIMATED_FAMILIES
 
 
 def convert(grid, palette, variantes, otras, resumen):
@@ -2837,7 +2838,7 @@ def build_blocks(game_map, tilemap, above_tilemap, passable, width, height,
                    # with different terrain, and the ROM reads it per block.
                    # It doesn't split any extra block in this game, where the
                    # terrain of every ChipSet is 1.
-                   rm2k.terreno_de(chipset, abajo) if chipset else 1)
+                   rm2k.terrain_of(chipset, abajo) if chipset else 1)
             if key not in blocks:
                 blocks[key] = len(blocks)
             cells.append(blocks[key])
@@ -2963,8 +2964,8 @@ class Sustituciones:
         None is "this page doesn't compile", which is what `eventos.py`
         expects from a command that can't be done.
         """
-        if not (0 <= viejo < rm2k.TILES_POR_CAPA
-                and 0 <= nuevo < rm2k.TILES_POR_CAPA):
+        if not (0 <= viejo < rm2k.TILES_PER_LAYER
+                and 0 <= nuevo < rm2k.TILES_PER_LAYER):
             return None
         capa = 1 if capa_alta else 0
         viejo_id, nuevo_id = self._combo(capa_alta, viejo, nuevo)
@@ -3003,8 +3004,8 @@ class Sustituciones:
         while True:
             antes = len(self.combos)
             for capa_alta, viejo, nuevo in triples:
-                if not (0 <= viejo < rm2k.TILES_POR_CAPA
-                        and 0 <= nuevo < rm2k.TILES_POR_CAPA):
+                if not (0 <= viejo < rm2k.TILES_PER_LAYER
+                        and 0 <= nuevo < rm2k.TILES_PER_LAYER):
                     continue
                 capa = 1 if capa_alta else 0
                 viejo_id, nuevo_id = self._combo(capa_alta, viejo, nuevo)
@@ -3038,8 +3039,8 @@ class Sustituciones:
                 or alto not in self.celdas[1]:
             return None
         huella = (self.celdas[0][bajo] + self.celdas[1][alto],
-                  rm2k.pasa_de_celda(self.flags, bajo, alto),
-                  rm2k.terreno_de(self.chipset, bajo))
+                  rm2k.cell_passability(self.flags, bajo, alto),
+                  rm2k.terrain_of(self.chipset, bajo))
         numero = self.por_bytes.get(huella)
         if numero is None:
             numero = len(self.mapa["pass"])
@@ -3594,7 +3595,7 @@ def experiencia_asm(db, actores, actores_n):
         exp_nivel_max  `GetMaxLevel()`, one byte.
         exp_curva      where its row starts in `exp_tabla`, a word.
         nivel_fila     six words: where each parameter curve starts in
-                       `nivel_params`, in the order of `lcf.CURVAS`.
+                       `nivel_params`, in the order of `lcf.CURVES`.
 
     `exp_tabla` is `MakeExpList` of each distinct curve —four bytes per level,
     `NIVEL_MAX` levels— and `nivel_params` the six curves of each slot,
@@ -3616,7 +3617,7 @@ def experiencia_asm(db, actores, actores_n):
         inicial += [exp & 0xFF, (exp >> 8) & 0xFF, exp >> 16,
                     X.nivel_inicial(actor) if actor else 1]
         maximo.append(X.nivel_max(actor) if actor else 1)
-        for curva in lcf.CURVAS:
+        for curva in lcf.CURVES:
             filas.append(2 * len(params))
             valores = list(actor.params.get(curva) or []) if actor else []
             valores = (valores + [0] * X.NIVEL_MAX)[:X.NIVEL_MAX]
@@ -3757,7 +3758,7 @@ def escena_de_la_rom(db, tropas, mapas, tree, encuentros, game_dir):
     reemplazo = lugar.get(numero_de[E.reemplazo().lower()], 0)
     datos["respaldo_de"] = [lugar.get(k, reemplazo) for k in range(len(juego))]
     # The quality ones, for the `.msu`: all of them, whether in the ROM or not.
-    datos["calidad"] = en_paralelo(
+    datos["calidad"] = in_parallel(
         lambda nombre: fondo_bytes(E.fondo(nombre, game_dir)), juego)
     battler_k = {}
     for numero in tropas.ids:
@@ -4043,7 +4044,7 @@ def escenas_asm(datos, tropas, db):
     for numero in usadas:
         tropa = db.troops[numero]
         suyos = list(zip(tropa.members,
-                         tropa.posiciones))[:constantes.ENEMIGOS_MAX]
+                         tropa.positions))[:constantes.ENEMIGOS_MAX]
         infos = []
         for enemigo, centro in suyos:
             k = datos["battler_de"].get(enemigo, 0xFF)
@@ -4618,8 +4619,8 @@ def identidad_de_la_rom():
     the header title, already padded with blanks, and the save signature in
     SRAM. They are `.define`s because they are text: `cabecera.s` and
     `partida.s` use them, and until 2026-09-29 they had them written in."""
-    titulo = perillas.ascii("rom", "title", hasta=TITULO_CABECERA)
-    firma = perillas.ascii("rom", "sram_signature", largo=4)
+    titulo = settings.ascii("rom", "title", max_length=TITULO_CABECERA)
+    firma = settings.ascii("rom", "sram_signature", length=4)
     return ("; Who the ROM is, from the project file: the header title and\n"
             "; the signature with which the SRAM says a slot holds a save of\n"
             "; this game.\n"
@@ -5097,9 +5098,9 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
            ventana["sombra"],
            FUENTE_PRE_FILAS, FUENTE_PRE_CHAR,
            len(FAMILIAS), ANIM_STRIDE, ANIM_FAM_STRIDE,
-           rm2k.AGUA_CUADROS_LENTO,
+           rm2k.WATER_FRAMES_SLOW,
            FAMILIAS[0][1],
-           len(rm2k.AGUA_CICLO), rm2k.ANIMADO_CUADROS, rm2k.ANIMADO_PASOS,
+           len(rm2k.WATER_CYCLE), rm2k.ANIMATED_FRAMES, rm2k.ANIMATED_STEPS,
            BYTES_PER_TILE,
            0 if titulo is None else titulo["pantalla"]["tiles"],
            constantes.MENU_CGRAM,
@@ -5635,7 +5636,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         texto_param = [texto_nuevo(t[:P.EQ_PARAM_VALOR - 1])
                        for t in db.term_params]
         texto_ranura = [texto_nuevo(t[:P.EQ_RANURA_TERM_ANCHO])
-                        for t in db.term_equipo]
+                        for t in db.term_equipment]
         texto_actor = {a: texto_nuevo(db.actors[a].name)
                        for a in ranuras["actores"]}
         # The shop's: the eleven messages of each of the three sets, two lines
@@ -5916,7 +5917,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         handle.write(bloque("objetivo_cgram", b"".join(
             cgram_word(c).to_bytes(2, "little") for c in obj_colores)) + "\n")
         medicinas = [n for n in ranuras["items"]
-                     if ranuras["items_db"][n].type == lcf.ITEM_TIPO_MEDICINA]
+                     if ranuras["items_db"][n].type == lcf.ITEM_TYPE_MEDICINE]
         if len(medicinas) > 255:
             raise SystemExit("%d medicines don't fit in `objetivo_nombre_de`"
                              % len(medicinas))
@@ -6134,13 +6135,13 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         bytes_asm("item_tipo", [db_items[n].type for n in items])
         handle.write('.segment "RODATA"\n')     # same: see `item_txt_lo`
         words_asm("item_puntos", [p & 0xFFFF for n in items
-                                  for p in db_items[n].puntos],
+                                  for p in db_items[n].points],
                   declarar=True)
         # And what attacking with each one costs: the weapons' `sp_cost`, zero
         # for the rest —`batalla.sp_del_arma`—. The battle reads it once per
         # actor when it is set up.
         bytes_asm("item_sp", [db_items[n].sp_cost
-                              if db_items[n].type == lcf.ITEM_TIPO_ARMA
+                              if db_items[n].type == lcf.ITEM_TYPE_WEAPON
                               else 0 for n in items], declarar=True)
         # `item_actores` also goes outside bank 0 —it is read with
         # `lda f:item_actores, x`—: it is 496 bytes, the fattest ones `TABLAS`
@@ -6152,7 +6153,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         bytes_asm("item_actores", [
             sum(1 << b for b in range(8)
                 if 8 * byte + b + 1 < actores_n
-                and db_items[n].equipable_por(8 * byte + b + 1))
+                and db_items[n].equippable_by(8 * byte + b + 1))
             for n in items for byte in range(8)], declarar=True)
         # `actor_params` goes outside bank 0 —it is read with
         # `lda f:actor_params, x`, only once per equipment screen— for the same
@@ -6340,7 +6341,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
             | (8 if db.skills[h].affect_defense else 0)
             | (16 if db.skills[h].affect_spirit else 0)
             | (32 if db.skills[h].affect_agility else 0)
-            | (64 if db.skills[h].apunta_a_enemigos else 0)
+            | (64 if db.skills[h].targets_enemies else 0)
             | (128 if db.skills[h].ignore_defense else 0)
             for h in habilidades_rom], "$%02X", declarar=True)
         # And the scope as is, `rpg::Skill::Scope`: 0 one enemy, 1 all, 2
@@ -6486,7 +6487,7 @@ def emit(path, mapas, inicial=0, heroe_encima=False, grupo_inicial=(),
         # `BAF_OCULTO`.
         bytes_asm("tropa_ocultos", [
             sum(1 << k for k, oculto in enumerate(
-                db.troops[n].ocultos[:constantes.ENEMIGOS_MAX]) if oculto)
+                db.troops[n].hidden[:constantes.ENEMIGOS_MAX]) if oculto)
             for n in usadas], "$%02X", declarar=True)
         bytes_asm("tropa_n",
                   [len(db.troops[n].members[:constantes.ENEMIGOS_MAX])
@@ -7223,7 +7224,7 @@ def npc_bytes(table):
         # is in the table hidden, to appear when another page wins.
         out.append(1 if npc["visible"] else 0)
         # +15: the passage bits its tile imposes on the cell, or $FF: see
-        # `rm2k.pasabilidad_del_tile`. The refresh redoes both.
+        # `rm2k.event_tile_passability`. The refresh redoes both.
         out.append(0xFF if npc["tile_pasa"] is None else npc["tile_pasa"])
     assert len(out) == NPC_STRIDE * len(table)
     return bytes(out)
@@ -7297,12 +7298,13 @@ def parser_de_flags():
                              "table. Mandatory and with no default: it "
                              "belongs to the game, and its project file "
                              "declares it")
-    proyecto.argumento(parser)
+    project.add_argument(parser)
     # No default, and no `required` for the same reason as `--map-id`:
-    # `ambiente` enforces them when they are read.
-    ambiente.argumentos(parser, "game_dir", "rtp_dir", "soundfont", "cache")
+    # `environment` enforces them when they are read.
+    environment.add_arguments(parser, "game_dir", "rtp_dir", "soundfont",
+                              "cache")
     parser.add_argument("-o", "--output",
-                        default=os.path.join(proyecto.build(), "inc", "mapdata.inc"))
+                        default=os.path.join(project.build(), "inc", "mapdata.inc"))
     parser.add_argument("--msu",
                         help="where to write the .msu with the data the\n"
                              "MSU-1 serves to the ROM: next to the .sfc and\n"
@@ -7392,15 +7394,15 @@ def parser_de_flags():
 
 
 def main():
-    proyecto.desde_la_linea_de_comandos()
+    project.from_command_line()
     parser = parser_de_flags()
     argv, tramos = partir_en_casos(sys.argv[1:])
     args = parser.parse_args(argv)
     if args.map_id is None:
         parser.error("--map-id is missing, the boot map")
-    ambiente.desde_argumentos(args, "game_dir", "rtp_dir", "soundfont",
-                              "cache")
-    args.game_dir = ambiente.juego()
+    environment.from_arguments(args, "game_dir", "rtp_dir", "soundfont",
+                               "cache")
+    args.game_dir = environment.game()
     args.casos = casos_de_prueba(parser, args, tramos)
     orden = orden_de_mapas(args)
     if not 0 <= args.inicial < len(orden):
@@ -7429,7 +7431,7 @@ def main():
     # --charset stays to force it by hand when needed.
     grupo = args.grupo if args.grupo else renderer.database.party
     if args.charset is None:
-        args.charset, indice = renderer.database.lider(grupo)
+        args.charset, indice = renderer.database.leader(grupo)
         if args.charset_index is None:
             args.charset_index = indice
     if args.charset_index is None:
@@ -7884,7 +7886,7 @@ def main():
     # the bank's glyphs: see `OBJETIVO_VENTANAS`.
     letras_medicinas = "".join(
         renderer.database.items[n].name for n in items_rom
-        if renderer.database.items[n].type == lcf.ITEM_TIPO_MEDICINA)
+        if renderer.database.items[n].type == lcf.ITEM_TYPE_MEDICINE)
     (ranura_tiles, ranura_paletas, ranura_cabs, ranura_filas, ranura_caras,
      ranura_menu) = menus_mod.pantalla_ranuras(
         skin, renderer.database, RANURAS, renderer.database.font_id,
@@ -7971,7 +7973,7 @@ def main():
     # every ROM that finds it: any cartridge can lose a battle or run a
     # `GameOver`. See tools/port/pantalla_completa.py.
     game_over_datos = None
-    ruta = find_resource([args.game_dir, recursos.RTP_DIR], "GameOver",
+    ruta = find_resource([args.game_dir, resources.RTP_DIR], "GameOver",
                          renderer.database.gameover_name)
     if renderer.database.gameover_name and ruta:
         from PIL import Image
@@ -8265,9 +8267,9 @@ def main():
     herencia = temas_heredados(temas, tema_de_mapa, args.inicial,
                                tema_titulo, nombres_de_paquete,
                                [suyos for suyos, _e, _s in paquetes],
-                               apartes, no_se_dan=perillas.valor(
+                               apartes, no_se_dan=settings.value(
                                    "music", "jumps_that_never_happen",
-                                   tipo=list))
+                                   kind=list))
     driver, muestras, hechos, banco = snes_music.build_varios(
         pedidos, args.game_dir, pedidos_se, por_nombre, herencia,
         aire_de_medida=args.aire_de_medida)
@@ -8452,7 +8454,7 @@ def escribir_msu(ruta, musica, fondos, por_nombre, paquetes, hechos, muestras,
     tasas = efectos_msu.tasas(pedidos, efectos, banco.libre, game_dir)
     unicas = sorted({(e, t) for suyas in tasas.values()
                      for e, t in suyas.items()})
-    hechas = dict(zip(unicas, en_paralelo(
+    hechas = dict(zip(unicas, in_parallel(
         lambda par: efectos_msu.armar(par[0], par[1], game_dir), unicas)))
 
     entradas = [parte for par in fondos for parte in par]
@@ -8890,7 +8892,7 @@ def _juego():
     """`main`'s or, if it didn't go through there —a test that calls these
     functions on their own—, the environment's, which is the same
     `--game-dir`."""
-    return args_game_dir[0] or recursos.GAME_DIR
+    return args_game_dir[0] or resources.GAME_DIR
 
 
 def items_posibles(map_ids, actores=(), db=None, extra=()):
@@ -8994,7 +8996,7 @@ def separar_del_heroe(renderer, game_map, args, comandos=()):
     that is also an NPC in the map shares a palette with that NPC —so that the
     NPC isn't drawn with another leader's colors—, so both flashed. It is
     solved by counting those NPCs' graphic as another one, with the suffix
-    `rm2k.COPIA_SUFIJO`: the same drawing, with its own palette. It costs one
+    `rm2k.COPY_SUFFIX`: the same drawing, with its own palette. It costs one
     palette per graphic, and only in the maps where something flashes the
     hero. `comandos` are those of the test pages.
     """
@@ -9013,7 +9015,7 @@ def separar_del_heroe(renderer, game_map, args, comandos=()):
     for ev in game_map.events:
         for page in ev.pages:
             if (page.character_name, page.character_index) in de_lider:
-                page.character_name += rm2k.COPIA_SUFIJO
+                page.character_name += rm2k.COPY_SUFFIX
 
 
 # The flags that describe **a test case** —what its page does— and not the
@@ -9064,7 +9066,7 @@ def casos_de_prueba(parser, args, tramos):
         casos.append(caso)
     for caso in casos:
         with open(caso.comandos_de_prueba, encoding="utf-8") as archivo:
-            caso.comandos = lcf.comandos_escritos(json.load(archivo))
+            caso.comandos = lcf.handwritten_commands(json.load(archivo))
     return casos
 
 
@@ -9146,7 +9148,7 @@ def pide_pagina_de_prueba(args):
 
 def convertir(renderer, map_id, args):
     """A whole map: tiles, colors, sprites, collision and blocks."""
-    game_map = renderer.cargar_mapa(
+    game_map = renderer.load_map(
         os.path.join(args.game_dir, "Map%04d.lmu" % map_id))
     if args.casos and map_id == orden_de_mapas(args)[args.inicial]:
         # The test page's event goes **first**: the ROM walks the events from
@@ -9314,7 +9316,7 @@ def convertir(renderer, map_id, args):
                              a.charset_index):
             continue            # not a single opaque pixel: it isn't drawn
         actores_con_grafico.append(actor)
-    primero = renderer.database.lider(args.lideres)   # (CharSet, index)
+    primero = renderer.database.leader(args.lideres)   # (CharSet, index)
     animados = []
     for actor in actores_con_grafico:
         a = renderer.database.actors[actor]
@@ -9661,7 +9663,7 @@ def convertir(renderer, map_id, args):
         # The terrain of a cell **outside the map**: `GetTerrainTag` uses the
         # ChipSet's index 0, that is the first autotile, and not that of any
         # cell. See `op_terrain`.
-        "terreno_fuera": rm2k.terreno_de(chipset, 0),
+        "terreno_fuera": rm2k.terrain_of(chipset, 0),
         "layout": vram_layout(
             len(tile_data) // BYTES_PER_TILE,
             len(sprite[0]) // 32 if sprite else 0,

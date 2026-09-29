@@ -13,7 +13,7 @@ than to deduce the algorithm, and there is no reason not to believe it.
 
 from PIL import Image
 
-from rpgmaker.rm2k import TILE, caja_de_comun, caja_de_terreno
+from rpgmaker.rm2k import TILE, common_box, terrain_box
 
 HALF = TILE // 2
 ATLAS_COLS = 32
@@ -82,7 +82,7 @@ class ChipsetAtlas:
 
         # Common tiles: the 3 pages of 96 in the right half, uncombined.
         for i in range(288):
-            x, y, _, _ = caja_de_comun(i)
+            x, y, _, _ = common_box(i)
             self._draw_full(tile, x, y)
             tile += 1
 
@@ -206,7 +206,7 @@ class ChipsetAtlas:
         self._draw_edges(t, frame * 16, 64 + depth * 16, number % 16)
 
     def _terrain_tile(self, t, terrain, comb):
-        sx, sy, _, _ = caja_de_terreno(terrain)
+        sx, sy, _, _ = terrain_box(terrain)
 
         # Background: the terrain's plain fill.
         self._draw_full(t, sx + 16, sy + 32)
@@ -288,16 +288,16 @@ class ChipsetAtlas:
 
     # --- usage -------------------------------------------------------------
 
-    def render_tile(self, dst, tile_x, tile_y, tile, paso_agua=0,
-                    paso_animado=0):
+    def render_tile(self, dst, tile_x, tile_y, tile, water_step=0,
+                    animated_step=0):
         """Draws the tile with the ID the map layer carries at (tile_x, tile_y).
 
         The two steps are the ChipSet's two animations, which run at
-        different cadences and over different tile families: `paso_agua`
+        different cadences and over different tile families: `water_step`
         —0, 1 or 2— picks the drawing of the water autotiles and
-        `paso_animado` —0 to 3— that of the "animated tiles". Which one is
-        due at each tick is said by rm2k.py's `paso_animado` and, for the
-        water, `AGUA_CICLO` with `AGUA_CUADROS_LENTO`; here only the atlas
+        `animated_step` —0 to 3— that of the "animated tiles". Which one is
+        due at each tick is said by rm2k.py's `animated_step` and, for the
+        water, `WATER_CYCLE` with `WATER_FRAMES_SLOW`; here only the atlas
         cell is picked.
         """
         if tile >= UPPER:
@@ -308,10 +308,10 @@ class ChipsetAtlas:
             index = tile - TERRAIN + 0x0213
         elif tile >= ANIMATED:
             index = (0x0207 + (((tile - ANIMATED) // 50) << 2)
-                     + paso_animado % 4)
+                     + animated_step % 4)
         else:
             index = ((tile // 50 // 20) * 141 + tile % 50
-                     + (paso_agua % 3) * 47)
+                     + (water_step % 3) * 47)
 
         blit(dst, tile_x * TILE, tile_y * TILE, self.atlas,
               (index & 0x1F) * TILE, (index >> 5) * TILE, TILE, TILE)

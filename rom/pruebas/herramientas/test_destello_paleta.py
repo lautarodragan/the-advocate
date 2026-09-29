@@ -26,13 +26,13 @@ import os
 import pytest
 
 from render import render_map
-from rpgmaker import recursos
+from rpgmaker import resources
 from port import snes_convert
 
 from datos import DEMO
 
 # El juego original, del mismo lugar que el conversor: `ABL_GAME_DIR`.
-JUEGO = recursos.GAME_DIR
+JUEGO = resources.GAME_DIR
 GRUPO = [10]
 
 # El Emitter Room, que es donde taro lo vio, y los dos mapas grandes de la
@@ -44,7 +44,7 @@ MAPAS = [3, 2, 1]
 def test_ningun_tile_entra_en_la_paleta_de_un_lider(map_id):
     ren = render_map.Renderer(JUEGO)
     lideres = snes_convert.lideres_posibles(ren, DEMO, GRUPO)
-    game_map = ren.cargar_mapa(os.path.join(JUEGO, "Map%04d.lmu" % map_id))
+    game_map = ren.load_map(os.path.join(JUEGO, "Map%04d.lmu" % map_id))
     _npcs, _fuera, reparto = snes_convert.npcs_dibujables(
         ren, game_map, lideres, snes_convert.OBJ_PALETTES, [])
     paletas, paleta_de = reparto[0], reparto[1]

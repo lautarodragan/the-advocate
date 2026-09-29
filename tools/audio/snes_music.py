@@ -22,11 +22,11 @@ from audio import muestras_brr
 from audio import sdsp
 from audio import snes_samples
 from audio import spc700
-from comun import perillas
-from comun import proyecto
-from comun.paralelo import en_paralelo
-from rpgmaker import recursos
-from rpgmaker.recursos import find_resource
+from common import settings
+from common import project
+from common.parallel import in_parallel
+from rpgmaker import resources
+from rpgmaker.resources import find_resource
 
 TICKS_PER_SECOND = musica.TICKS_PER_SECOND
 
@@ -122,13 +122,13 @@ def _nombres_de_musica(directorio):
 def numeros_de_pista(game_dir=None):
     """{lowercase song name: track number}, for all of `Music/` and the RTP
     ones named by `System`."""
-    game_dir = game_dir or recursos.GAME_DIR
+    game_dir = game_dir or resources.GAME_DIR
     if game_dir not in _numeros_de_pista:
-        from rpgmaker.recursos import RTP_DIR
+        from rpgmaker.resources import RTP_DIR
         nombres = _nombres_de_musica(game_dir)
         del_rtp = _nombres_de_musica(RTP_DIR)
         ldb = os.path.join(game_dir, "RPG_RT.ldb")
-        sistema = sorted(({n.lower() for n in lcf.temas_del_sistema(ldb)}
+        sistema = sorted(({n.lower() for n in lcf.system_songs(ldb)}
                           - nombres) & del_rtp)
         orden = sorted(nombres) + sistema
         # The number goes in a byte of `tema_msu`, and $FF is "no track".
@@ -142,8 +142,8 @@ def numeros_de_pista(game_dir=None):
 def ruta_del_tema(nombre, game_dir=None, extensiones=MUSICA_DE_PISTA):
     """The song's file: the game's and, if it is not there, the RTP's, which
     is how RM2k looks for it. `None` if it is in neither."""
-    game_dir = game_dir or recursos.GAME_DIR
-    from rpgmaker.recursos import RTP_DIR
+    game_dir = game_dir or resources.GAME_DIR
+    from rpgmaker.resources import RTP_DIR
     return (find_resource([game_dir, RTP_DIR], "Music", nombre, extensiones)
             if nombre else None)
 
@@ -151,7 +151,7 @@ def ruta_del_tema(nombre, game_dir=None, extensiones=MUSICA_DE_PISTA):
 def pista_msu(nombre, game_dir=None):
     """The song's MSU-1 track number, or None if it has nothing to come
     from: see `numeros_de_pista`."""
-    game_dir = game_dir or recursos.GAME_DIR
+    game_dir = game_dir or resources.GAME_DIR
     return numeros_de_pista(game_dir).get(nombre.lower()) if nombre else None
 
 
@@ -293,13 +293,13 @@ def se_enteros():
     one takes beyond the usual has to fit in what the music leaves free in
     each package it is in, except for those in `se_enteros_pagados`: see
     `_enteros_entran`. From `[sound_effects.whole]`."""
-    return dict(perillas.valor("sound_effects", "whole", tipo=dict))
+    return dict(settings.value("sound_effects", "whole", kind=dict))
 
 
 def se_enteros_pagados():
     """The whole ones that, if they do not fit in the free space, lower the
     music's rate. From `[sound_effects] paid_by_music`."""
-    return set(perillas.valor("sound_effects", "paid_by_music", tipo=list))
+    return set(settings.value("sound_effects", "paid_by_music", kind=list))
 
 
 def se_del_mapa():
@@ -309,7 +309,7 @@ def se_del_mapa():
     of the other packages —see `lugares_de_efectos`—. From
     `[sound_effects] per_map`."""
     return {(a["effect"], a["map"]): a["sample"]
-            for a in perillas.valor("sound_effects", "per_map", tipo=list)}
+            for a in settings.value("sound_effects", "per_map", kind=list)}
 
 
 def se_de_ruta_sin_paquete():
@@ -318,15 +318,15 @@ def se_de_ruta_sin_paquete():
     tools/port/eventos.py— and that **do not fit** in their map's audio
     package. From `[sound_effects] route_effects_left_out`."""
     return {m["map"]: None if m["effects"] == "all" else set(m["effects"])
-            for m in perillas.valor("sound_effects", "route_effects_left_out",
-                                    tipo=list)}
+            for m in settings.value("sound_effects", "route_effects_left_out",
+                                    kind=list)}
 
 
 def se_de_tropa_al_paquete():
     """The sound effects of troop pages that **do** go in the battle's audio
     package. From `[sound_effects] troop_effects_in_package`."""
-    return set(perillas.valor("sound_effects", "troop_effects_in_package",
-                              tipo=list))
+    return set(settings.value("sound_effects", "troop_effects_in_package",
+                              kind=list))
 
 
 def temas_aparte():
@@ -337,7 +337,7 @@ def temas_aparte():
     you exit to —see `temas_heredados` in snes_convert.py—. From
     `[music] apart_themes`."""
     return {m["map"]: set(m["themes"])
-            for m in perillas.valor("music", "apart_themes", tipo=list)}
+            for m in settings.value("music", "apart_themes", kind=list)}
 
 
 class Efecto:
@@ -357,9 +357,9 @@ class Efecto:
 def leer_wav(nombre, game_dir=None):
     """A mono WAV's samples as signed 16-bit integers, and its rate. None if
     it is missing or is not a WAV that can be understood."""
-    game_dir = game_dir or recursos.GAME_DIR
+    game_dir = game_dir or resources.GAME_DIR
     import wave
-    from rpgmaker.recursos import RTP_DIR
+    from rpgmaker.resources import RTP_DIR
     ruta = find_resource([game_dir, RTP_DIR], "Sound", nombre,
                          (".wav", ".WAV"))
     if not ruta:
@@ -386,7 +386,7 @@ def leer_wav(nombre, game_dir=None):
 def build_efecto(nombre, game_dir=None, tasa=SE_TASA, enteros=None):
     """`enteros` is `se_enteros()` if not given; with {} the usual one comes
     out, which is what the music budgets for it: see `se_enteros`."""
-    game_dir = game_dir or recursos.GAME_DIR
+    game_dir = game_dir or resources.GAME_DIR
     enteros = se_enteros() if enteros is None else enteros
     leido = leer_wav(nombre.split("@")[0], game_dir)
     if not leido or not leido[0]:
@@ -414,13 +414,13 @@ def build_efectos(pedidos, game_dir=None, budget=SE_ARAM):
     """The sound effects that fit in `budget`, by priority: `pedidos` is a
     list of names already sorted from most to least requested. Returns
     {name: Efecto} with the ones that fit."""
-    game_dir = game_dir or recursos.GAME_DIR
+    game_dir = game_dir or resources.GAME_DIR
     hechos, usado = {}, 0
     # Each sound effect is built on its own —read the WAV, resample it,
     # encode it— and that is pure: all at once, and then the allocation in
     # the requested order.
     unicos = list(dict.fromkeys(pedidos))
-    armados = dict(zip(unicos, en_paralelo(
+    armados = dict(zip(unicos, in_parallel(
         lambda n: build_efecto(n, game_dir), unicos)))
     for nombre in pedidos:
         if nombre in hechos:
@@ -811,7 +811,7 @@ def se_de_siempre():
     """Up to how many directory entries the first round of `copias` goes:
     the ones the sound effects took when each had its own, and not today's.
     The game measured it: `[music] effect_slots_of_first_copies`."""
-    return perillas.valor("music", "effect_slots_of_first_copies", tipo=int)
+    return settings.value("music", "effect_slots_of_first_copies", kind=int)
 
 
 def copias(claves_de, grupos, efectos, de_siempre, reales=None,
@@ -1876,7 +1876,7 @@ def verificar_formato(nombre, stream, sonidos, referencia):
 
 def tema_del_mapa(map_id, game_dir=None):
     """The name of the song a map gets from the tree, or "" if it has none."""
-    game_dir = game_dir or recursos.GAME_DIR
+    game_dir = game_dir or resources.GAME_DIR
     return temas_de_los_mapas([map_id], game_dir)[0]
 
 
@@ -1889,7 +1889,7 @@ def temas_de_los_mapas(map_ids, game_dir=None):
     `Game_Map::PlayBgm` in easyrpg. An "(OFF)" is a song: it silences, just
     like a `PlayBGM` of "(OFF)".
     """
-    game_dir = game_dir or recursos.GAME_DIR
+    game_dir = game_dir or resources.GAME_DIR
     tree = lcf.TreeMap(os.path.join(game_dir, "RPG_RT.lmt"))
     nombres = []
     for map_id in map_ids:
@@ -1906,7 +1906,7 @@ def leer_tema(name, game_dir=None):
     already carries its index— but its stream is a lone `OP_END` and the ROM
     stays silent when it is played.
     """
-    game_dir = game_dir or recursos.GAME_DIR
+    game_dir = game_dir or resources.GAME_DIR
     path = ruta_del_tema(name, game_dir)
     if not path or not path.lower().endswith(".mid"):
         return None
@@ -1949,7 +1949,7 @@ def leer_tema(name, game_dir=None):
 def ruta_de_techos():
     """Where the table is: a function and not a constant, because it comes
     from the project, which is found when used and not at import."""
-    return os.path.join(proyecto.parches_auto(), "musica", "techos.toml")
+    return os.path.join(project.auto_patches(), "musica", "techos.toml")
 
 
 def leer_techos(ruta=None):
@@ -2079,13 +2079,13 @@ def build_varios(nombres, game_dir=None, efectos=(), paquetes=None,
     is what `tools/audio/techos.py` builds the ROM it measures peaks in
     with.
     """
-    game_dir = game_dir or recursos.GAME_DIR
+    game_dir = game_dir or resources.GAME_DIR
     driver = spc700.assemble(DRIVER, DRIVER_ADDR)
     if techos is None:
         techos = leer_techos()
     # Reading the MIDIs is pure and there is one per song: in parallel, like
     # building them.
-    leidos = en_paralelo(lambda n: leer_tema(n, game_dir), nombres)
+    leidos = in_parallel(lambda n: leer_tema(n, game_dir), nombres)
     teclas = zonas_mas_usadas(leidos)
     claves_de = [claves_del_tema(t, teclas) for t in leidos]
     # **All** the sound effects go in: which ones fit is decided by the ROM
@@ -2154,7 +2154,7 @@ def build_varios(nombres, game_dir=None, efectos=(), paquetes=None,
     # was half of this function: they go in parallel, and come back in the
     # usual order.
     contexto = (nombres, leidos, asignacion, banco, techos, aire_de_medida)
-    temas = en_paralelo(lambda i: _armar_tema(contexto, i),
+    temas = in_parallel(lambda i: _armar_tema(contexto, i),
                         range(len(nombres)))
     # And each one's MSU-1 track: see `pista_msu`.
     for tema in temas:
@@ -2318,7 +2318,7 @@ CUADROS_POR_KB_PAQUETE = 1.45
 CUADROS_POR_KB_IPL = 1.5
 CUADROS_DEL_MAPA = 10
 # Where `BOOT_CUADROS` lives, which belongs to the ROM and not here.
-RAM_LEJANA = os.path.join(proyecto.runtime(), "ram_lejana.s")
+RAM_LEJANA = os.path.join(project.runtime(), "ram_lejana.s")
 
 
 def cuadros_del_arranque(driver, voces, temas, paquete, descomprimir=0.0,
@@ -2506,7 +2506,7 @@ def emit(path, temas, driver, voces, arranque=0xFF, titulo=0xFF,
         return block(label, datos_ or b"\xFF", bloque=True)
     # Decoding the streams to find out is pure and costly: in parallel.
     tema_muestras = listas("tema_muestras", [
-        [m] for m in en_paralelo(lambda i: muestras_del_tema(temas[i]),
+        [m] for m in in_parallel(lambda i: muestras_del_tema(temas[i]),
                                  range(len(temas)))] or [[[]]])
     # Each package, four lists: its songs, its sound effects' samples, its
     # exit songs and its separate songs —see `extra_de_salida` and

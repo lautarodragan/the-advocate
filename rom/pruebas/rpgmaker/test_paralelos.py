@@ -107,7 +107,7 @@ def test_el_hq_de_los_lazer_teeth_entra_en_el_cuadro(partida):
     una = partida(caso=HQ)
     una.correr(30)
     antes = una.palabra("vueltas")
-    una.consola.correr(180)
+    una.consola.run(180)
     vueltas = una.palabra("vueltas") - antes
     assert vueltas > 150, (
         "el mapa 11 dio %d vueltas en 180 cuadros (%.2f fps): volvió a "

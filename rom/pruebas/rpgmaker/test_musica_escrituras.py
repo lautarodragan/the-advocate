@@ -66,7 +66,7 @@ def _fin_del_stream(rom, direccion):
 
 
 def _escribir(una, direccion, datos):
-    una.consola.escribir_ram(en_la_wram(direccion), bytes(datos))
+    una.consola.write_ram(en_la_wram(direccion), bytes(datos))
 
 
 def _leer_bitacora(una, desde):
@@ -95,7 +95,7 @@ def _cuadros_de_la_rom(una, hasta, j=0, cuadros=None):
     for _ in range(2 * hasta):
         if len(cuadros) > hasta:
             break
-        una.consola.correr(1)
+        una.consola.run(1)
         pares, j = _leer_bitacora(una, j)
         for par in pares:
             if par[0] == marca:
@@ -170,12 +170,12 @@ def test_el_tema_del_titulo_desde_el_encendido(partida):
     s = una.simbolos
     tema = s["TEMA_TITULO"]
     vuelta = una.escrituras_del_tema(tema)
-    una.consola.escribir_ram(0, bytes([0x55]) * WRAM)
+    una.consola.write_ram(0, bytes([0x55]) * WRAM)
     una.consola.reset()
     for _ in range(s["BOOT_CUADROS"] + TITULO_AIRE):
         _escribir(una, s["MUS_BITACORA_I"], [0, 0])
         _escribir(una, s["MUS_BITACORA_SI"], [1])
-        una.consola.correr(1)
+        una.consola.run(1)
         if _leer_bitacora(una, 0)[1]:
             break
     else:

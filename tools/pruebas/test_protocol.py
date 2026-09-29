@@ -26,45 +26,45 @@ from port import eventos  # noqa: E402
 from rpgmaker import lcf  # noqa: E402
 from ensamblado import ensamblar  # noqa: E402
 from audio import music_opcodes  # noqa: E402
-from comun import proyecto  # noqa: E402
+from common import project  # noqa: E402
 
 
-def _relativa(ruta):
-    return os.path.relpath(ruta, proyecto.raiz())
+def _relative(ruta):
+    return os.path.relpath(ruta, project.root())
 
 
 # Each bytecode: its declaration, its Python module and its .inc. Relative to
 # the root, which is how they appear in each case's name.
 GENERADOS = [
     ("events", event_opcodes,
-     _relativa(os.path.join(proyecto.runtime(), "event_opcodes.inc")),
-     _relativa(os.path.join(proyecto.herramientas(), "port",
+     _relative(os.path.join(project.runtime(), "event_opcodes.inc")),
+     _relative(os.path.join(project.tools(), "port",
                             "event_opcodes.py"))),
     ("music", music_opcodes,
-     _relativa(os.path.join(proyecto.runtime(), "music_opcodes.inc")),
-     _relativa(os.path.join(proyecto.herramientas(), "audio",
+     _relative(os.path.join(project.runtime(), "music_opcodes.inc")),
+     _relative(os.path.join(project.tools(), "audio",
                             "music_opcodes.py"))),
 ]
-MAIN = os.path.join(proyecto.runtime(), "main.s")
+MAIN = os.path.join(project.runtime(), "main.s")
 # What each one needs on top, as in the `protocolo` recipe of tools/justfile:
 # without this `--check` compares against an `.inc` without the dispatch table
 # and reports it as stale.
 BANDERAS = {"events": ["--jump-table"]}
 
 
-def declarados(modulo):
+def declared(modulo):
     return {n: v for n, v in vars(modulo).items()
             if n.startswith("OP_") and isinstance(v, int)}
 
 
 @pytest.mark.parametrize("nombre,modulo,inc,py", GENERADOS)
-def test_los_generados_estan_al_dia(nombre, modulo, inc, py):
+def test_the_generated_files_are_up_to_date(nombre, modulo, inc, py):
     """Regenerating changes nothing: otherwise the tree has two truths."""
     hecho = subprocess.run(
         ["protocol",
-         os.path.join(proyecto.herramientas(), "protocol", nombre + ".toml"),
-         "--python", os.path.join(proyecto.raiz(), py),
-         "--asm", os.path.join(proyecto.raiz(), inc), "--check"]
+         os.path.join(project.tools(), "protocol", nombre + ".toml"),
+         "--python", os.path.join(project.root(), py),
+         "--asm", os.path.join(project.root(), inc), "--check"]
         + BANDERAS.get(nombre, []),
         capture_output=True, text=True)
     assert hecho.returncode != 2, (
@@ -75,22 +75,22 @@ def test_los_generados_estan_al_dia(nombre, modulo, inc, py):
 
 
 @pytest.mark.parametrize("nombre,modulo,inc,py", GENERADOS)
-def test_el_inc_y_el_py_dicen_los_mismos_numeros(nombre, modulo, inc, py):
+def test_the_inc_and_the_py_say_the_same_numbers(nombre, modulo, inc, py):
     """The two ends of the contract, each read on its own.
 
     A tree where only one was regenerated —and only one committed— builds and
     runs: the reader measures one opcode and the writer emits another.
     """
     del_inc = {}
-    for linea in open(os.path.join(proyecto.raiz(), inc), encoding="utf-8"):
+    for linea in open(os.path.join(project.root(), inc), encoding="utf-8"):
         m = re.match(r"^(OP_[A-Z0-9_]+)\s*=\s*\$([0-9A-Fa-f]+)\s*$", linea)
         if m:
             del_inc[m.group(1)] = int(m.group(2), 16)
     assert del_inc, "not a single opcode was read from %s" % inc
-    assert del_inc == declarados(modulo)
+    assert del_inc == declared(modulo)
 
 
-def test_ningun_opcode_de_la_rom_quedo_sin_declarar():
+def test_no_opcode_in_the_rom_is_undeclared():
     """A `cmp #OP_X` against something nobody declares does not assemble...
 
     ...today. But the day someone puts equates back by hand, or in a file the
@@ -105,7 +105,7 @@ def test_ningun_opcode_de_la_rom_quedo_sin_declarar():
     assert usados, "not a single use of an opcode was found in tools/runtime/"
     todos = set()
     for _, modulo, _, _ in GENERADOS:
-        todos |= set(declarados(modulo))
+        todos |= set(declared(modulo))
     # And that no hand-written one has reappeared in the ROM itself.
     propios = set(re.findall(r"^(OP_[A-Z0-9_]+)\s*=", fuente, re.M))
     assert not propios, (
@@ -117,14 +117,14 @@ def test_ningun_opcode_de_la_rom_quedo_sin_declarar():
         % ", ".join(sorted(sin_declarar)))
 
 
-def test_los_dos_bytecodes_no_comparten_un_nombre():
+def test_the_two_bytecodes_share_no_name():
     """Both land in the same assembler symbol space.
 
     The numbers may repeat —`OP_DSP` and `OP_DONE` are both $00, and they are
     different things in different streams—; the names may not.
     """
-    de_eventos = set(declarados(event_opcodes))
-    de_musica = set(declarados(music_opcodes))
+    de_eventos = set(declared(event_opcodes))
+    de_musica = set(declared(music_opcodes))
     compartidos = de_eventos & de_musica
     assert not compartidos, (
         "%s is in both bytecodes: in the ROM they are a single symbol"
@@ -132,9 +132,9 @@ def test_los_dos_bytecodes_no_comparten_un_nombre():
 
 
 @pytest.mark.parametrize("nombre,modulo,inc,py", GENERADOS)
-def test_los_largos_se_derivan_del_layout(nombre, modulo, inc, py):
+def test_the_lengths_come_from_the_layout(nombre, modulo, inc, py):
     """The length is not written: it is the opcode plus its arguments."""
-    for op_nombre, codigo in declarados(modulo).items():
+    for op_nombre, codigo in declared(modulo).items():
         args = modulo.LAYOUT[codigo]
         cuenta = 1 + sum(bytes_ for _, bytes_, _ in args)
         if codigo in modulo.VARIABLE_SIZE:
@@ -156,17 +156,17 @@ def test_los_largos_se_derivan_del_layout(nombre, modulo, inc, py):
 LEJOS = 300
 
 
-def compilar_un_teleport(destino):
+def compile_a_teleport(destino):
     cmd = lcf.EventCommand(eventos.TELEPORT, 0, "", [7, 12, 34])
     return eventos._compilar(cmd, lambda m: destino)
 
 
-def test_un_destino_que_no_entra_en_un_byte_no_se_trunca():
+def test_a_destination_that_does_not_fit_a_byte_is_not_truncated():
     """The case the old format could not handle: 300 & 0xFF is 44."""
-    assert compilar_un_teleport(LEJOS) != compilar_un_teleport(LEJOS & 0xFF)
+    assert compile_a_teleport(LEJOS) != compile_a_teleport(LEJOS & 0xFF)
 
 
-def test_ningun_opcode_comparte_numero_con_otro():
+def test_no_opcode_shares_a_number_with_another():
     """Two `OP_*` with the same value are two different programs.
 
     It is not an abstract precaution: on 2026-09-13 three sub-agent branches

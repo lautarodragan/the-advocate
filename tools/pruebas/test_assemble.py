@@ -11,7 +11,7 @@ import pytest
 from ensamblado import ensamblar
 
 
-def test_el_checksum_y_su_complemento_no_mueven_la_suma():
+def test_checksum_and_complement_do_not_move_the_sum():
     rom = bytearray(4 * 1024 * 1024)
     rom[1234] = 0x56
     rom[ensamblar.CHECKSUM:ensamblar.CHECKSUM + 2] = b"\xff\xff"
@@ -23,14 +23,14 @@ def test_el_checksum_y_su_complemento_no_mueven_la_suma():
     assert sum(rom) & 0xFFFF == suma
 
 
-def test_una_cabecera_sin_los_cuatro_bytes_de_siempre_es_un_error():
+def test_a_header_without_the_usual_four_bytes_is_an_error():
     rom = bytearray(4 * 1024 * 1024)
     rom[5] = 1
     with pytest.raises(ValueError, match="did not settle"):
         ensamblar.checksum(rom)
 
 
-def test_los_simbolos_salen_con_su_scope_y_su_signo(tmp_path):
+def test_symbols_come_out_with_their_scope_and_sign(tmp_path):
     dbg = tmp_path / "x.dbg"
     dbg.write_text(
         'scope\tid=0,name="",mod=0,size=10\n'
@@ -46,7 +46,7 @@ def test_los_simbolos_salen_con_su_scope_y_su_signo(tmp_path):
     }
 
 
-def test_no_arma_con_un_inc_generado_al_lado_de_la_fuente(tmp_path):
+def test_refuses_a_generated_inc_next_to_the_source(tmp_path):
     """`ca65` would read it before the cartridge's, without a warning."""
     (tmp_path / "main.s").write_text("")
     (tmp_path / "mapdata.inc").write_text("")
@@ -55,7 +55,7 @@ def test_no_arma_con_un_inc_generado_al_lado_de_la_fuente(tmp_path):
                             str(tmp_path / "x.sfc"))
 
 
-def test_las_fuentes_son_los_s_que_se_incluyen_y_no_los_generados(tmp_path):
+def test_sources_are_the_included_s_files_not_the_generated_ones(tmp_path):
     (tmp_path / "main.s").write_text(
         '.include "event_opcodes.inc"\n'
         '.include "tienda.s"\n'

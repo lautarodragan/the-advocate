@@ -72,7 +72,7 @@ clase de inestabilidad que no se puede tener en una prueba: los cuatro casos
 corridos solos dan cero contra snes9x, y los mismos cuatro corridos uno detrás
 del otro dan cero en `evento` y `cerrar-60` y 38.775 y 52.892 pixeles en
 `caminando` y `cerrar-400`. Un core de libretro no se descarga entre una
-`retro.Consola` y la siguiente —ctypes reusa el mismo `.so`, sin `retro_deinit`—
+`retro.Console` y la siguiente —ctypes reusa el mismo `.so`, sin `retro_deinit`—
 y mesen-s se arrastra estado ahí donde snes9x y bsnes no. O sea que el rojo no
 diría nada de la ROM.
 
@@ -245,15 +245,15 @@ def test_escena_de_la_pelea():
         una = partida("en-5", nucleo=nucleo)
         una.ir_al_mapa(28, 20, 30)
         s = una.simbolos
-        una.consola.escribir_ram(en_la_wram(s["ENC_SEM"]), [22, 0])
-        una.consola.escribir_ram(en_la_wram(s["ENC_PIDE"]), [1])
+        una.consola.write_ram(en_la_wram(s["ENC_SEM"]), [22, 0])
+        una.consola.write_ram(en_la_wram(s["ENC_PIDE"]), [1])
         # Con la transición de entrada adelante: los destellos, el fundido, la
         # carga en negro y el mosaico. Ver `fundido_de_pelea.s`.
-        una.consola.correr(200)
+        una.consola.run(200)
         assert una.byte("menu_abierto"), "la pelea no se abrió"
         donde = s["BA_UNO"] + (s["BA_GRUPO_MAX"] + 1) * s["BA_BYTES"]
-        una.consola.escribir_ram(en_la_wram(donde), [0, 0])
-        una.consola.correr(60)
+        una.consola.write_ram(en_la_wram(donde), [0, 0])
+        una.consola.run(60)
         assert una.consola.ram(en_la_wram(s["ESC_VIS"]), 1)[0] == 0b101, \
             "el enemigo del medio no se borró: la prueba no mide lo que dice"
         imagenes.append(una.imagen())
@@ -273,7 +273,7 @@ def test_la_pelea_de_la_planta():
     for nucleo in (SNES9X, BSNES):
         una = partida("pelea-113", nucleo=nucleo)
         for _ in range(600):
-            una.consola.correr(1)
+            una.consola.run(1)
             if una.byte("menu_abierto"):
                 break
         else:
@@ -298,6 +298,6 @@ def test_game_over():
         una = sin_hp(partida("pelea-82-game-over", nucleo=nucleo))
         assert cuadros_hasta_el_game_over(una, 600) is not None, (
             "la pantalla de Game Over no llegó en %s" % nucleo)
-        una.consola.correr(2)
+        una.consola.run(2)
         imagenes.append(una.imagen())
     iguales("game-over", *imagenes)

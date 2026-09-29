@@ -45,16 +45,16 @@ from multiprocessing import Pool
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 from audio import sdsp, snes_music                      # noqa: E402
-from comun import ambiente                              # noqa: E402
-from comun import perillas                              # noqa: E402
-from comun import proyecto                              # noqa: E402
+from common import environment                              # noqa: E402
+from common import settings                              # noqa: E402
+from common import project                              # noqa: E402
 
 # Half the usual headroom: measured on 2026-09-26, with 0.25 none of the 32
 # songs of `release` clips, and the loudest one stays 3.9 dB below the cap.
 AIRE_DE_MEDIDA = sdsp.AIRE / 2
 
 # What the measured ROM is called: the game's, in its project file.
-NOMBRE_DE_LA_ROM = perillas.valor("rom", "name", tipo=str)
+NOMBRE_DE_LA_ROM = settings.value("rom", "name", kind=str)
 
 # How far the peak is allowed to go: 0.5 dB below the cap. What it absorbs is
 # the rounding of each voice's volume to an integer, which makes the peak not
@@ -112,7 +112,7 @@ def tocar(sfc, tema, cuadros):
     """(the samples, interleaved stereo, and the rate): `cuadros` frames of
     the song from when the title starts it, in snes9x without MSU-1."""
     import numpy as np
-    from emulador import retro
+    from emulator import retro
     simbolos = simbolos_de(sfc)
     with open(sfc, "rb") as archivo:
         rom = con_el_tema_en_el_titulo(archivo.read(), simbolos, tema)
@@ -120,13 +120,13 @@ def tocar(sfc, tema, cuadros):
         ruta = os.path.join(tmp, "tema.sfc")
         with open(ruta, "wb") as archivo:
             archivo.write(rom)
-        consola = retro.Consola(ruta, msu=False)
-        tasa = consola.tasa()
-        consola.correr(simbolos["BOOT_CUADROS"] - ANTES_DEL_TITULO)
+        consola = retro.Console(ruta, msu=False)
+        tasa = consola.sample_rate()
+        consola.run(simbolos["BOOT_CUADROS"] - ANTES_DEL_TITULO)
         consola.audio = bytearray()
         partes = []
         for _ in range(cuadros):
-            consola.correr(1)
+            consola.run(1)
             if len(consola.audio) > 1 << 20:
                 partes.append(bytes(consola.audio))
                 consola.audio = bytearray()
@@ -264,23 +264,23 @@ def imprimir(medido, techos=None):
 
 
 def main():
-    proyecto.desde_la_linea_de_comandos()
+    project.from_command_line()
     from ensamblado import cartuchos
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    proyecto.argumento(parser)
-    ambiente.argumentos(parser, *cartuchos.AL_CONVERSOR)
+    project.add_argument(parser)
+    environment.add_arguments(parser, *cartuchos.AL_CONVERSOR)
     parser.add_argument("--medir", action="store_true",
                         help="only measure the built `release`: clipping, "
                              "peak and LUFS of each song")
     args = parser.parse_args()
-    ambiente.desde_argumentos(args, *cartuchos.AL_CONVERSOR)
+    environment.from_arguments(args, *cartuchos.AL_CONVERSOR)
     release = cartuchos.directorio(cartuchos.RELEASE)
     if args.medir:
         imprimir(medir(release, lufs=True))
         return
 
     # The half-volume copy, in its own build directory.
-    medida = os.path.join(proyecto.build(), "techos")
+    medida = os.path.join(project.build(), "techos")
     print("a copy of release with the headroom at %s, in %s"
           % (AIRE_DE_MEDIDA, medida))
     cartuchos.convertir(cartuchos.RELEASE, medida,

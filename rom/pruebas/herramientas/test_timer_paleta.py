@@ -20,13 +20,13 @@ import os
 import pytest
 
 from render import render_map
-from rpgmaker import recursos
+from rpgmaker import resources
 from port import snes_convert
 
 from datos import DEMO
 
 # El juego original, del mismo lugar que el conversor: `ABL_GAME_DIR`.
-JUEGO = recursos.GAME_DIR
+JUEGO = resources.GAME_DIR
 MAPA = 2
 PUERTA = 30 - 1          # `npcs_dibujables` numera los eventos desde cero
 
@@ -42,7 +42,7 @@ def descartados(paletas):
     """Qué eventos del mapa 2 no se dibujan con tantas paletas de sprite."""
     ren = render_map.Renderer(JUEGO)
     lideres = snes_convert.lideres_posibles(ren, DEMO, GRUPO)
-    game_map = ren.cargar_mapa(os.path.join(JUEGO, "Map%04d.lmu" % MAPA))
+    game_map = ren.load_map(os.path.join(JUEGO, "Map%04d.lmu" % MAPA))
     _npcs, fuera, _reparto = snes_convert.npcs_dibujables(
         ren, game_map, lideres, paletas, [])
     return {evento for evento, _tile in fuera}
@@ -68,7 +68,7 @@ def test_la_puerta_que_core_rompe_tiene_paleta(partida=None):
     """Y en particular la del evento 30, que es la que taro perdió jugando."""
     ren = render_map.Renderer(JUEGO)
     lideres = snes_convert.lideres_posibles(ren, DEMO, GRUPO)
-    game_map = ren.cargar_mapa(os.path.join(JUEGO, "Map%04d.lmu" % MAPA))
+    game_map = ren.load_map(os.path.join(JUEGO, "Map%04d.lmu" % MAPA))
     npcs, _fuera, reparto = snes_convert.npcs_dibujables(
         ren, game_map, lideres, snes_convert.OBJ_PALETTES - 2, [])
     paleta_de = reparto[1]

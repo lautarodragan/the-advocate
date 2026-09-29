@@ -195,17 +195,17 @@ def a_los_merodeadores(partida, semilla, tope=600):
     órdenes la semilla y el 1 HP de cada enemigo."""
     una = partida(caso="pelea-222")
     for _ in range(tope):
-        una.consola.correr(1)
+        una.consola.run(1)
         if una.menu_abierto():
             break
     else:
         raise AssertionError("la página no abrió la pelea")
     pelea = Pelea(una).esperar("ORDEN")
-    una.consola.escribir_ram(una.simbolos["BA_SEM"],
-                             [semilla & 0xFF, semilla >> 8])
+    una.consola.write_ram(una.simbolos["BA_SEM"],
+                          [semilla & 0xFF, semilla >> 8])
     g = una.simbolos["BA_GRUPO_MAX"]
     for k in range(3):
-        una.consola.escribir_ram(
+        una.consola.write_ram(
             una.simbolos["BA_UNO"] + (g + k) * una.simbolos["BA_BYTES"],
             [1, 0])
     return una, pelea
@@ -251,8 +251,8 @@ def test_el_item_que_sale_no_pasa_del_tope(partida):
     semilla, esperado = semilla_con_botin_a_medias(base)
     una, pelea = a_los_merodeadores(partida, semilla)
     tope = una.simbolos["ITEM_MAX"]
-    una.consola.escribir_ram(una.simbolos["FAR_ITEMS"] + HEALING_DRAUGHT,
-                             [tope])
+    una.consola.write_ram(una.simbolos["FAR_ITEMS"] + HEALING_DRAUGHT,
+                          [tope])
     for _ in range(10):
         if pelea.modo() == "FIN":
             break

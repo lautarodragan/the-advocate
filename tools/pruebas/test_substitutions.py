@@ -13,32 +13,32 @@ import os
 import re
 
 from port import snes_convert                            # noqa: E402
-from comun import proyecto  # noqa: E402
+from common import project  # noqa: E402
 from ensamblado import ensamblar  # noqa: E402
 
-MAIN = os.path.join(proyecto.runtime(), "main.s")
+MAIN = os.path.join(project.runtime(), "main.s")
 
 
-def de_main(nombre):
+def from_main(nombre):
     fuente = ensamblar.texto_de_la_fuente(MAIN)
     hallado = re.search(r"^%s\s*=\s*(\d+)\s*$" % nombre, fuente, re.M)
     assert hallado, "tools/runtime/ no longer declares %s" % nombre
     return int(hallado.group(1))
 
 
-def reserva(nombre):
+def reservation(nombre):
     fuente = ensamblar.texto_de_la_fuente(MAIN)
     hallado = re.search(r"^%s:\s*\.res\s+([^;\n]+)" % nombre, fuente, re.M)
     assert hallado, "tools/runtime/ no longer reserves %s" % nombre
     return hallado.group(1).strip()
 
 
-def test_el_tope_de_la_tabla_es_el_mismo_de_los_dos_lados():
-    assert de_main("SUB_MAX") == snes_convert.SUB_MAX
+def test_the_table_cap_is_the_same_on_both_sides():
+    assert from_main("SUB_MAX") == snes_convert.SUB_MAX
 
 
-def test_la_tabla_de_la_rom_mide_lo_que_dice_el_tope():
+def test_the_rom_table_is_as_long_as_the_cap_says():
     """Two words per pair, keys and values in parallel arrays: that is how
     `celda_sustituida` walks them with a single index."""
-    assert reserva("sub_clave") == "SUB_MAX * 2"
-    assert reserva("sub_valor") == "SUB_MAX * 2"
+    assert reservation("sub_clave") == "SUB_MAX * 2"
+    assert reservation("sub_valor") == "SUB_MAX * 2"

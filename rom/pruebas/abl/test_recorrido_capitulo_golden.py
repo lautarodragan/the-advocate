@@ -271,5 +271,5 @@ def test_tasgarde_eisen_y_el_puente(recorrido):
         "a la entrada del bosque salen dos mensajes de Talan y el cartel del "
         "fin, con el grupo de Talan y Arden parado en %s; salieron %s. %s"
         % (EL_BOSQUE, mensajes, r.estado()))
-    p.consola.correr(p.simbolos["BOOT_CUADROS"] + 60)
+    p.consola.run(p.simbolos["BOOT_CUADROS"] + 60)
     r.foto("el-titulo-despues-del-fin", asentar=False)

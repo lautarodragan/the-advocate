@@ -18,7 +18,7 @@ el archivo sólo los usa.
 import ast
 import os
 
-from comun import perillas, proyecto
+from common import settings, project
 
 # Los que el archivo usa como palabra clave de su propio formato, y el nombre
 # del cartucho que se juega, que las herramientas exigen: es su contrato, no
@@ -34,7 +34,7 @@ SIN_MIRAR = {"cases", "excluded_cases"}
 # `[paths]` entera: son nombres de carpeta, y las herramientas usan las mismas
 # palabras para la forma de lo que arman —`parches/auto/` adentro del
 # directorio de cada cartucho, a imagen de la del juego—. Armar a mano una
-# ruta del juego con esas palabras lo cobra `test_proyecto.py`, de las
+# ruta del juego con esas palabras lo cobra `test_project.py`, de las
 # herramientas, que mira las rutas y no los textos.
 TABLAS_SIN_MIRAR = {"paths"}
 
@@ -57,7 +57,7 @@ def _del_archivo():
     """Los textos del archivo que valen como valor, no como nombre de clave
     de las herramientas: las claves de las secciones fijas —`[rom]`,
     `name`…— no cuentan, porque ésas sí las escriben las herramientas."""
-    datos = {k: v for k, v in perillas.leer().items()
+    datos = {k: v for k, v in settings.load().items()
              if k not in TABLAS_SIN_MIRAR}
     fijas = set()
 
@@ -90,7 +90,7 @@ def _docstrings(arbol):
 
 
 def _nuestros():
-    herramientas = proyecto.herramientas()
+    herramientas = project.tools()
     for raiz, subs, archivos in os.walk(herramientas):
         subs[:] = sorted(s for s in subs
                          if s not in ("target", "__pycache__")
@@ -114,7 +114,7 @@ def test_ninguna_herramienta_repite_un_valor_del_archivo_de_proyecto():
             if (isinstance(nodo, ast.Constant) and isinstance(nodo.value, str)
                     and id(nodo) not in docs and nodo.value in del_archivo):
                 repetidos.append("%s:%d: %r" % (
-                    os.path.relpath(ruta, proyecto.herramientas()),
+                    os.path.relpath(ruta, project.tools()),
                     nodo.lineno, nodo.value))
     assert not repetidos, (
         "estos valores ya están en el archivo de proyecto y se leen de ahí: "

@@ -45,26 +45,26 @@ def pelear(una, tope=20000):
     mientras una pantalla propia está a la vista.
     """
     for _ in range(600):
-        una.consola.correr(1)
+        una.consola.run(1)
         if una.byte("menu_abierto"):
             break
     else:
         raise AssertionError("la página no abrió la pelea")
     for n in range(tope):
-        una.consola.apretar(*(("a",) if n % 6 < 2 else ()))
-        una.consola.correr(1)
+        una.consola.hold(*(("a",) if n % 6 < 2 else ()))
+        una.consola.run(1)
         if not una.byte("menu_abierto"):
-            una.consola.apretar()
+            una.consola.hold()
             # Y hasta que el lazo del mapa vuelva a correr: la vuelta de la
             # pelea descomprime los tiles del mapa y dura unos cuadros, y un B
             # apretado mientras tanto no lo ve nadie. Eran diez cuadros fijos
             # hasta que la carga creció, el 2026-09-26.
             antes = una.palabra("vueltas")
             for _ in range(240):
-                una.consola.correr(1)
+                una.consola.run(1)
                 if una.palabra("vueltas") - antes >= 2:
                     break
-            una.consola.correr(10)
+            una.consola.run(10)
             return una
     raise AssertionError("la pelea no terminó en %d cuadros" % tope)
 
@@ -90,7 +90,7 @@ def test_el_menu_de_despues_de_la_pelea_muestra_esos_hp(partida):
     nadie escribía.
     """
     from port import menus
-    from rpgmaker.recursos import GAME_DIR
+    from rpgmaker.resources import GAME_DIR
     from batalla import exp_y_nivel
     una = pelear(partida(caso="pelea-82-grupo-11-12"))
     quedo = hp_de(una)
@@ -152,20 +152,20 @@ def enemigos_de(una):
 def hasta_que_se_abra(una, cuadros=900):
     """Camina hasta que la pantalla de la pelea esté puesta."""
     for n in range(cuadros):
-        una.consola.apretar(("up", "down", "left", "right")[(n // 40) % 4])
-        una.consola.correr(1)
+        una.consola.hold(("up", "down", "left", "right")[(n // 40) % 4])
+        una.consola.run(1)
         if una.byte("menu_abierto"):
-            una.consola.apretar()
+            una.consola.hold()
             return una
     raise AssertionError("no salió ningún encuentro en %d cuadros" % cuadros)
 
 
 def ganarla(una, tope=20000):
     for n in range(tope):
-        una.consola.apretar(*(("a",) if n % 6 < 2 else ()))
-        una.consola.correr(1)
+        una.consola.hold(*(("a",) if n % 6 < 2 else ()))
+        una.consola.run(1)
         if not una.byte("menu_abierto"):
-            una.consola.apretar()
+            una.consola.hold()
             return una
     raise AssertionError("la pelea no terminó")
 

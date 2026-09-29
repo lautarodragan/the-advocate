@@ -30,10 +30,10 @@ import os
 import lugares
 from consola import TITULO_AIRE
 from render.render_map import Renderer
-from rpgmaker.recursos import GAME_DIR
+from rpgmaker.resources import GAME_DIR
 from rpgmaker.rm2k import (PASS_DOWN, PASS_LEFT, PASS_RIGHT,
-                           PASS_UP, TELEPORT, grafico_de_pagina,
-                           pasabilidad_del_tile, passability_map)
+                           PASS_UP, TELEPORT, page_graphic,
+                           event_tile_passability, passability_map)
 
 # El switch que prende el final del Emitter Room y que hace que el enrutador del
 # mapa 4 mande a la casa de Talan con el cartel de "One year previously". Es el
@@ -139,7 +139,7 @@ class Mundo:
     def lmu(self, map_id):
         """El mapa del juego original, con lo que `rm2k` necesita colgado."""
         if ("lmu", map_id) not in self.cache:
-            self.cache[("lmu", map_id)] = self.renderer.cargar_mapa(
+            self.cache[("lmu", map_id)] = self.renderer.load_map(
                 os.path.join(self.game_dir, "Map%04d.lmu" % map_id))
         return self.cache[("lmu", map_id)]
 
@@ -177,15 +177,15 @@ class Mundo:
             pagina = self.pagina_activa(evento, prendido)
             if pagina is None:
                 continue
-            grafico = grafico_de_pagina(pagina, getattr(
-                game_map, "chipset_nombre", None))
+            grafico = page_graphic(pagina, getattr(
+                game_map, "chipset_filename", None))
             pasa = (None if grafico is None else
-                    pasabilidad_del_tile(game_map, grafico[0], pagina.layer))
+                    event_tile_passability(game_map, grafico[0], pagina.layer))
             eventos.append(((evento.x, evento.y), pasa))
         clave = ("mapa", map_id, tuple(eventos))
         if clave not in self.cache:
             pasable = bytearray(
-                passability_map(game_map, game_map.pasabilidad_tiles))
+                passability_map(game_map, game_map.passability_table))
             for (x, y), pasa in eventos:
                 if pasa is not None:
                     pasable[y * game_map.width + x] = pasa
@@ -787,7 +787,7 @@ class Recorrido:
     def _paso(self, paso, hasta=None):
         """Un paso de una celda. Devuelve (si se movió, ticks gastados)."""
         antes = self.celda()
-        self.p.consola.apretar(BOTON[paso])
+        self.p.consola.hold(BOTON[paso])
         for ticks in range(1, PASO_TOPE + 1):
             self.p._un_tick()
             if self.celda() != antes:
@@ -1047,10 +1047,10 @@ class Recorrido:
         for _ in range(toques):
             if p.byte("menu_abierto"):
                 break
-            p.consola.apretar("a")
-            p.consola.correr(2)
-            p.consola.apretar()
-            p.consola.correr(8)
+            p.consola.hold("a")
+            p.consola.run(2)
+            p.consola.hold()
+            p.consola.run(8)
         if not p.byte("menu_abierto"):
             raise Trabado(
                 "el save point no abrió la pantalla de ranuras en %d toques "
@@ -1058,7 +1058,7 @@ class Recorrido:
         # El mismo aire que `Partida.guardar_en` le da a la pantalla antes de
         # tocarle nada: sube su banco con la pantalla apagada y un toque que
         # caiga ahí se pierde.
-        p.consola.correr(TITULO_AIRE)
+        p.consola.run(TITULO_AIRE)
         return self
 
     def guardar_en_el_save_point(self, ranura=0, toques=40):
@@ -1079,7 +1079,7 @@ class Recorrido:
         """
         p = self.abrir_el_save_point(toques).p
         p._bajar_y_elegir(ranura)
-        p.consola.correr(10)
+        p.consola.run(10)
         p._un_cuadro()
         return self
 

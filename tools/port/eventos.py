@@ -1983,7 +1983,7 @@ CHANGE_PBG = 11720
 # free one" at the same time without seeing each other: $23 came out twice
 # and $24 twice, git merged them without a single conflict —each on its own
 # line— and what broke was the walk over the bytecode.
-# `test_ningun_opcode_comparte_numero_con_otro` guards it.
+# `test_no_opcode_shares_a_number_with_another` guards it.
 #
 # OP_ACTOR_SPRITE: actor (byte), graphic (byte)
 
@@ -2175,8 +2175,8 @@ def base_de_datos(game_dir):
     """
     from rpgmaker import fork, lcf
     ruta = os.path.join(game_dir, "RPG_RT.ldb")
-    huella = [ruta, lcf.REAJUSTAR_TEXTOS, lcf.DECORAR_TRANSLUCIDO]
-    for carpeta in (os.path.join(lcf.volcado(ruta), "db"), fork.carpeta_chipsets()):
+    huella = [ruta, lcf.REFIT_TEXTS, lcf.DECORATE_TRANSLUCENT]
+    for carpeta in (os.path.join(lcf.dump_dir(ruta), "db"), fork.chipsets_folder()):
         if os.path.isdir(carpeta):
             for nombre in sorted(os.listdir(carpeta)):
                 estado = os.stat(os.path.join(carpeta, nombre))
@@ -2460,8 +2460,8 @@ def variables_de(game_dir, map_ids=None, extra=()):
         db = base_de_datos(game_dir)
         for tropa in db.troops.values():
             for pagina in tropa.pages:
-                if "variable" in pagina.activos:
-                    ids.add(pagina.condicion["variable_id"])
+                if "variable" in pagina.active:
+                    ids.add(pagina.condition["variable_id"])
         for comandos in comandos_de_las_tropas(db):
             ids |= variables_de_comandos(comandos)
     return {variable: ranura for ranura, variable in enumerate(sorted(ids))}
@@ -2487,11 +2487,11 @@ def barrer_los_mapas(game_dir, map_ids, barrido):
     result is a set, so the order does not matter.
     """
     from rpgmaker import lcf
-    from comun.paralelo import en_paralelo
+    from common.parallel import in_parallel
     rutas = [os.path.join(game_dir, "Map%04d.lmu" % m) for m in map_ids]
     tandas = max(1, min(len(rutas), os.cpu_count() or 1))
     hallado = set()
-    for parte in en_paralelo(
+    for parte in in_parallel(
             lambda suyas: set().union(*(barrido(lcf.Map(r)) for r in suyas)),
             [rutas[k::tandas] for k in range(tandas)]):
         hallado |= parte
@@ -2688,12 +2688,12 @@ def indexar_terminos(game_dir):
     """
     from rpgmaker import lcf
     db = base_de_datos(game_dir)
-    terminos = db.secciones["terms"]
+    terminos = db.sections["terms"]
     TERMINOS_POSADA.clear()
-    TERMINOS_POSADA["gold"] = lcf.campo(terminos, "gold")
+    TERMINOS_POSADA["gold"] = lcf.field(terminos, "gold")
     for tipo, letra in ((0, "a"), (1, "b")):
         TERMINOS_POSADA[tipo] = tuple(
-            lcf.campo(terminos, "inn_%s_%s" % (letra, nombre))
+            lcf.field(terminos, "inn_%s_%s" % (letra, nombre))
             for nombre in _TERMINOS_DE_POSADA)
     return dict(TERMINOS_POSADA)
 
@@ -3184,21 +3184,21 @@ def disparo_de_tropa(pagina):
 
     HP is in percent, from 0 to 100: an enemy's by its place in the troop,
     an actor's by its LDB number."""
-    if not pagina.activos:
+    if not pagina.active:
         return None
-    if any(a not in TROPA_DISPAROS for a in pagina.activos):
+    if any(a not in TROPA_DISPAROS for a in pagina.active):
         return None
-    c = pagina.condicion
+    c = pagina.condition
     flags = 0
-    for a in pagina.activos:
+    for a in pagina.active:
         flags |= TROPA_DISPAROS[a]
-    switch_a = c["switch_a_id"] if "switch_a" in pagina.activos else 0
-    switch_b = c["switch_b_id"] if "switch_b" in pagina.activos else 0
+    switch_a = c["switch_a_id"] if "switch_a" in pagina.active else 0
+    switch_b = c["switch_b_id"] if "switch_b" in pagina.active else 0
     for s in (switch_a, switch_b):
         if not 0 <= s < SWITCH_MAX:
             return None
     ranura, valor = 0, 0
-    if "variable" in pagina.activos:
+    if "variable" in pagina.active:
         valor = c["variable_value"]
         if not -0x8000 <= valor <= 0x7FFF:
             return None
@@ -3207,19 +3207,19 @@ def disparo_de_tropa(pagina):
         except NoSePuede:
             return None
     base, mult = 0, 0
-    if "turn" in pagina.activos:
+    if "turn" in pagina.active:
         base, mult = c["turn_b"], c["turn_a"]
         if not (0 <= base <= 0xFFFF and 0 <= mult < 0x8000):
             return None     # `ba_div` requires the divisor below 32768
     enemigo, e_min, e_max = 0, 0, 0
-    if "enemy_hp" in pagina.activos:
+    if "enemy_hp" in pagina.active:
         enemigo, e_min, e_max = (c["enemy_id"], c["enemy_hp_min"],
                                  c["enemy_hp_max"])
         if not (0 <= enemigo < 256 and 0 <= e_min <= 100
                 and 0 <= e_max <= 100):
             return None
     actor, a_min, a_max = 0, 0, 0
-    if "actor_hp" in pagina.activos:
+    if "actor_hp" in pagina.active:
         actor, a_min, a_max = (c["actor_id"], c["actor_hp_min"],
                                c["actor_hp_max"])
         if not (0 <= actor < 256 and 0 <= a_min <= 100
@@ -5352,7 +5352,7 @@ SWITCH_DE_PRUEBA = 1023
 VARIABLE_DE_CASO = 1000
 COMPARAR_AL_MENOS = 1   # the `>=` of RM2k's page conditions
 # The switch that is never turned on: it is what a page with a condition the
-# port cannot meet —an item, see `rm2k.CONDICIONES_IMPOSIBLES`— carries as
+# port cannot meet —an item, see `rm2k.IMPOSSIBLE_CONDITIONS`— carries as
 # `switch_a`, so the ROM never picks it, and does pick the event's other
 # pages. The game checks switches up to 1003 and 1023 is the test page's.
 # Measured against A Blurred Line: an assumption of the engine, not a fact of
@@ -5392,7 +5392,7 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
     """
     salida = []
     del_mapa = Eventos(game_map)
-    chipset = getattr(game_map, "chipset_nombre", None)
+    chipset = getattr(game_map, "chipset_filename", None)
     for numero_evento, event in enumerate(game_map.events):
         # **All** events go, whether or not they have a page that triggers
         # something: since 2026-09-05 the table also says which layer the
@@ -5409,14 +5409,14 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
         # either: its layer is as unknown as its code. The **item** condition
         # is something else: it is known that it is never met, and the page
         # is emitted as such.
-        if not rm2k.condiciones_soportadas(event):
+        if not rm2k.supported_conditions(event):
             continue
 
         grupo = []
         for numero_pagina, page in enumerate(event.pages):
             cond = page.condition
             codigo = None
-            if rm2k.pagina_imposible(page):
+            if rm2k.impossible_page(page):
                 # Never active: no code, no graphic, and with the switch that
                 # never turns on. The pages below keep winning when their turn
                 # comes, which is what RM2k does while the item is not there.
@@ -5431,7 +5431,7 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
                     "gira": False,
                 })
                 continue
-            grafico = rm2k.grafico_de_pagina(page, chipset)
+            grafico = rm2k.page_graphic(page, chipset)
             # **An automatic or parallel page without a single command starts
             # nothing.** It is `Game_Interpreter::Push`, which returns right
             # away with an empty list: the interpreter does not keep running
@@ -5487,8 +5487,8 @@ def paginas_del_mapa(game_map, indice_de_mapa, mensajes=None, temas=None,
                 # see `rm2k.collect_npcs`, and `pasa_con_evento` in
                 # tools/runtime/heroe.s, which is the one that applies them.
                 "grafico": grafico,
-                "tile_pasa": (rm2k.pasabilidad_del_tile(game_map, grafico[0],
-                                                        page.layer)
+                "tile_pasa": (rm2k.event_tile_passability(game_map, grafico[0],
+                                                          page.layer)
                               if grafico is not None else None),
                 # Whether the event turns around toward the hero with this
                 # page: a CharSet —a chipset tile has nowhere to look— and an

@@ -29,10 +29,10 @@ def cursor(una):
 def cuadros_en_que_se_mueve(una, cuadros, *botones):
     """Los cuadros, contados desde el primero con `botones` apretados, en que
     el cursor del menú cambió."""
-    una.consola.apretar(*botones)
+    una.consola.hold(*botones)
     movidas, antes = [], cursor(una)
     for n in range(cuadros):
-        una.consola.correr(1)
+        una.consola.run(1)
         ahora = cursor(una)
         if ahora != antes:
             movidas.append(n)
@@ -79,9 +79,9 @@ def test_b_sostenido_no_repite(partida):
     vuelve a abrir, que es lo que haría si repitiera —el mapa abre el menú
     con el flanco de B—."""
     una = abrir(con_grupo(partida()))
-    una.consola.apretar("b")
+    una.consola.hold("b")
     for _ in range(120):
-        una.consola.correr(1)
+        una.consola.run(1)
     assert not una.menu_abierto(), "B sostenido volvió a abrir el menú"
 
 
@@ -94,7 +94,7 @@ def test_en_las_ranuras_la_repeticion_no_da_la_vuelta(partida):
     una = partida(caso="guardar-198")
     una.correr(198 - 10)
     una.esperar_la_pantalla_de_ranuras()
-    una.consola.correr(TITULO_AIRE)
+    una.consola.run(TITULO_AIRE)
     assert cursor(una) == 0
     movidas = cuadros_en_que_se_mueve(una, 120, "down")
     primero = movidas[0]

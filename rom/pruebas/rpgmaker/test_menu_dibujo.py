@@ -77,19 +77,19 @@ def test_b_caminando_abre_el_menu_al_terminar_el_paso(partida):
     mitad de un paso el menú no se abre, y se abre en cuanto el paso termina,
     con el héroe parado en su celda."""
     una = con_grupo(partida())
-    una.consola.apretar("up")
+    una.consola.hold("up")
     for _ in range(3):
-        una.consola.correr(1)
+        una.consola.run(1)
     assert una.byte("step_left"), "el héroe no arrancó a caminar"
-    una.consola.apretar("up", "b")
-    una.consola.correr(1)
-    una.consola.apretar()
+    una.consola.hold("up", "b")
+    una.consola.run(1)
+    una.consola.hold()
     assert not una.menu_abierto(), "el menú se abrió a mitad del paso"
     assert una.acceso() & 0x80, "el B a mitad del paso no quedó anotado"
     for _ in range(20):
         if una.menu_abierto():
             break
-        una.consola.correr(1)
+        una.consola.run(1)
     assert una.menu_abierto(), "el menú no se abrió al terminar el paso"
     assert una.byte("step_left") == 0
     assert una.palabra("hero_y") % 16 == 0, "el héroe quedó entre dos celdas"
@@ -173,7 +173,7 @@ def test_los_hp_del_menu_cambian_de_verdad():
     sostiene todo".
     """
     from port import menus
-    from rpgmaker.recursos import GAME_DIR
+    from rpgmaker.resources import GAME_DIR
     db, skin = datos.base(), datos.skin()
     llena = menus.render_menu(skin, db, 4, GRUPO, ORO, 0, True, db.font_id,
                                None, GAME_DIR)

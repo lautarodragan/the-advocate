@@ -40,4 +40,4 @@ def test_titulo(nombre, sosteniendo, toques):
     """
     consola = encender("release", ARRANQUE_CON_TITULO)
     correr_hardware(consola, 20, toques=toques, sosteniendo=sosteniendo)
-    golden(nombre, consola.imagen())
+    golden(nombre, consola.image())

@@ -34,8 +34,8 @@ import hashlib
 import math
 
 from audio import muestras_brr
-from comun import ambiente
-from comun import cache_disco
+from common import environment
+from common import disk_cache
 
 # The Windows software synthesizer, which is what this game was composed and
 # listened to with. Microsoft licensed a reduced subset of the Sound Canvas
@@ -48,12 +48,12 @@ from comun import cache_disco
 # sample from the one that produced the original sound.
 #
 # `SOUNDFONT` is set by the executable from `--soundfont`, and read when used:
-# see `__getattr__` and `comun/ambiente.py`.
+# see `__getattr__` and `common/environment.py`.
 
 
 def __getattr__(nombre):
     if nombre == "SOUNDFONT":
-        return ambiente.soundfont()
+        return environment.soundfont()
     raise AttributeError("module %r has no attribute %r" % (__name__, nombre))
 
 
@@ -121,9 +121,9 @@ def _version_de_la_preparacion():
     """
     global _version
     if _version is None:
-        _version = cache_disco.clave(muestras_brr.version(),
-                                     cache_disco.version_de(
-                                         "audio/snes_samples.py"))
+        _version = disk_cache.key(muestras_brr.version(),
+                                  disk_cache.version_of(
+                                      "audio/snes_samples.py"))
     return _version
 
 
@@ -151,17 +151,17 @@ def _cacheada(memoria, clave, partes, hacer):
 
     What is stored goes inside a one-element tuple because **`None` is a
     legitimate result** —there is no such hit in the bank, or what fits in the
-    budget does not even reach one block— and `cache_disco.leer` returns
+    budget does not even reach one block— and `disk_cache.read` returns
     `None` when there is nothing. Without the wrapper, an already computed
     "does not exist" would be computed again on every run.
     """
     if clave in memoria:
         return memoria[clave]
-    en_disco = cache_disco.clave(_version_de_la_preparacion(), *partes)
-    guardado = cache_disco.leer("muestras", en_disco)
+    en_disco = disk_cache.key(_version_de_la_preparacion(), *partes)
+    guardado = disk_cache.read("muestras", en_disco)
     if guardado is None:
         guardado = (hacer(),)
-        cache_disco.guardar("muestras", en_disco, guardado)
+        disk_cache.write("muestras", en_disco, guardado)
     memoria[clave] = guardado[0]
     return guardado[0]
 

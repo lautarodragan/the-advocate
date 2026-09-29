@@ -21,7 +21,7 @@ import pytest
 from port import animacion, eventos
 from port.snes_convert import cuadro_de_animacion
 from render.render_map import Renderer
-from rpgmaker.recursos import GAME_DIR
+from rpgmaker.resources import GAME_DIR
 
 from consola import en_la_rom, en_la_wram
 from tanda import partida
@@ -42,14 +42,14 @@ def _palabra(p, nombre, valor=None):
     if valor is None:
         b = p.consola.ram(donde, 2)
         return b[0] | (b[1] << 8)
-    p.consola.escribir_ram(donde, [valor & 0xFF, valor >> 8])
+    p.consola.write_ram(donde, [valor & 0xFF, valor >> 8])
 
 
 def _byte(p, nombre, valor=None):
     donde = en_la_wram(p.simbolos[nombre])
     if valor is None:
         return p.consola.ram(donde, 1)[0]
-    p.consola.escribir_ram(donde, [valor])
+    p.consola.write_ram(donde, [valor])
 
 
 def _animaciones_del_cartucho(p):

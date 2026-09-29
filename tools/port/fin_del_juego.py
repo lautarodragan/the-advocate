@@ -54,7 +54,7 @@ ENTRA = SI
 def textos(db):
     """The question and the two commands, from the LDB, with the same
     fallback texts as easyrpg if the term is empty."""
-    t = db.terminos
+    t = db.terms
     def uno(nombre, repuesto):
         # Measured against A Blurred Line: an assumption of the engine, not a
         # fact of the game. See

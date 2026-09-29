@@ -6,12 +6,12 @@ lookup, used alike by the render, the audio and the converter.
 
 import os
 
-from comun import ambiente
+from common import environment
 
 # `GAME_DIR` is the original RM2k project, and `RTP_DIR` the RTP it was built
 # with. The executable sets them from `--game-dir` and `--rtp-dir` —see
-# `comun/ambiente.py`— and they are read when used: reading them unset fails
-# saying which flag is missing.
+# `common/environment.py`— and they are read when used: reading them unset
+# fails saying which flag is missing.
 #
 # For ABL, the RTP is Don Miguel's (June 2000), extracted from RTPE.EXE. It is
 # not the "official" RTP: the RPG Maker 2000 used outside Japan was his
@@ -21,13 +21,13 @@ from comun import ambiente
 # repo: they are not ours to redistribute. The RTP used to be `RTP/` inside
 # the repo, excluded by .gitignore, which is the worst combination —it took up
 # space, was not versioned, and looked like part of the project—.
-_DEL_AMBIENTE = {"GAME_DIR": ambiente.juego, "RTP_DIR": ambiente.rtp}
+_FROM_ENVIRONMENT = {"GAME_DIR": environment.game, "RTP_DIR": environment.rtp}
 
 
-def __getattr__(nombre):
-    if nombre in _DEL_AMBIENTE:
-        return _DEL_AMBIENTE[nombre]()
-    raise AttributeError("module %r has no attribute %r" % (__name__, nombre))
+def __getattr__(name):
+    if name in _FROM_ENVIRONMENT:
+        return _FROM_ENVIRONMENT[name]()
+    raise AttributeError("module %r has no attribute %r" % (__name__, name))
 
 
 def find_resource(dirs, folder, name, extensions=(".png", ".bmp")):

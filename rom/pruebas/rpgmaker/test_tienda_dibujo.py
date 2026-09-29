@@ -34,8 +34,8 @@ def entrar(partida, x=42, y=6, oro=ORO, inventario=None, switches=()):
     una.poner_grupo(KERSH)
     una.poner_oro(oro)
     for numero, cuantos in (inventario or {}).items():
-        una.consola.escribir_ram(una.simbolos["FAR_ITEMS"] + numero,
-                                 [cuantos])
+        una.consola.write_ram(una.simbolos["FAR_ITEMS"] + numero,
+                              [cuantos])
     una.prender(*switches)
     una.ir_al_mapa(10, x, y)
     una.poner_byte("hero_dir", una.simbolos["DIR_UP"])  # mirando al vendedor
@@ -46,9 +46,9 @@ def entrar(partida, x=42, y=6, oro=ORO, inventario=None, switches=()):
     for _ in range(60):
         if una.menu_abierto():
             break
-        una.consola.correr(1)
+        una.consola.run(1)
     assert una.menu_abierto(), "la tienda no se abrió"
-    una.consola.correr(TITULO_AIRE)
+    una.consola.run(TITULO_AIRE)
     return una
 
 
@@ -83,7 +83,7 @@ def test_comprar_y_vender(partida):
     assert una.item(CANO) == 2
     ver(P.TI_COMPRADO, {CANO: 2}, queda, 1, nombre="comprado",
         congelar=True)
-    una.consola.correr(P.TI_SEGUNDO)
+    una.consola.run(P.TI_SEGUNDO)
     ver(P.TI_COMPRAR, {CANO: 2}, queda, 1, nombre="comprar-despues")
     una.tocar_cuadros("b", 8)
     ver(P.TI_PRINCIPAL, {CANO: 2}, queda, 0, resaludo=True,
@@ -97,7 +97,7 @@ def test_comprar_y_vender(partida):
     una.tocar_cuadros("a", 8)
     assert una.oro() == queda + 2 * (65 // 2)
     assert una.item(CANO) == 0
-    una.consola.correr(P.TI_SEGUNDO)
+    una.consola.run(P.TI_SEGUNDO)
     una.tocar_cuadros("b", 8)
     una.tocar_cuadros("down", 8)
     una.tocar_cuadros("down", 8)
@@ -150,7 +150,7 @@ def test_el_resaludo_de_dos_renglones_y_vender_con_la_lista_corrida(partida):
     inv[ultimo] = 0
     # Vendido el último, el cursor sube al que queda último.
     ver(P.TI_VENDIDO, oro, 8, nombre="vendido", congelar=True)
-    una.consola.correr(P.TI_SEGUNDO)
+    una.consola.run(P.TI_SEGUNDO)
     ver(P.TI_VENDER, oro, 8, 2, nombre="vender-despues")
 
 

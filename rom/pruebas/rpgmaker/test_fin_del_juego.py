@@ -92,7 +92,7 @@ def test_si_vuelve_al_titulo(partida):
     assert una.byte("bgm_fundido"), "\"Yes\" no fundió el tema"
     assert cuadros_hasta_reiniciar(una, 120) is not None, (
         "\"Yes\" no reinició la ROM")
-    una.consola.correr(TITULO_QUIETO)
+    una.consola.run(TITULO_QUIETO)
     golden("titulo", una.imagen())
     assert cuadros_hasta_volver(una) is not None, (
         "después de End Game el arranque no volvió a correr")
