@@ -1,8 +1,8 @@
 ---
 name: "Las responsabilidades de snes_convert.py"
-description: "Un archivo de ~8.200 líneas y ~140 funciones: repasar qué hace y partirlo por responsabilidad"
+description: "snes_convert.py partido en dieciocho módulos por recurso de la consola, sin cambiar la ROM; queda main()"
 type: refactor
-assignee: Ñacurutú
+assignee: taro
 ---
 
 `tools/port/snes_convert.py` es enorme (cuántas líneas y funciones: `wc -l` y
@@ -160,3 +160,69 @@ vez de arreglarse:
 * **los textos del `.inc` que nombran `snes_convert.py`** —el encabezado,
   `anim_table`, `escribir_msu`— siguen diciendo eso: corregirlos cambia el
   `.inc`, y cada commit de éstos lo deja igual.
+
+## Hecho, el 2026-09-29
+
+La propuesta, tal cual, en un commit por módulo y en el orden de las
+dependencias: `snes_format` (+2 constantes), `asm`, `map_layers`, `sprites`,
+`obj_extras`, `baking`, `vram`, `message_window`, `blocks`, `materials`,
+`map_record`, `battle_animations`, `battle_scenes`, `battle_tables`, `music`,
+`game_scan`, `options`, `cases`, `mapdata` y `map_convert`. Después, un
+commit de prosa guiado por el diff de ésos. Cuántas líneas tiene cada uno lo
+dice `wc -l tools/port/*.py`; `snes_convert.py` quedó con una sola función,
+`main()`.
+
+**Cómo se verificó cada commit:** `NO_CACHE=1 just cartuchos` con
+`rom/build/release` y `rom/build/tests` borrados, y el sha256 de todo
+`rom/build/` salvo el caché, los `.o`, `sello.txt` y `conversor.log`
+—`.sfc`, `.msu`, `.pcm`, `.inc`, `.sym`, `.dbg` sin `mtime`, `.json`,
+crudos—: los 999 archivos iguales al de `d4811ece` en los veinte. Además
+`just pruebas` y `just -f tools/justfile test`, en verde en todos. Con el
+caché prendido, frío y tibio, también iguales, en los dos commits que tocan
+lo cacheado (`map_layers` y `map_convert`). Y un chequeo con `symtable` de
+que ningún módulo nuevo usa un nombre que no define ni importa. El merge de
+`main` con lo de Hocó no movió ninguno de los 999.
+
+**La clave del caché de las capas** suma `port/snes_format.py` y
+`port/map_layers.py`, en el commit que mudó lo que usan. `port/snes_convert.py`
+sigue en la lista aunque ya no tiene nada de las capas: sacarlo es una
+decisión aparte —dejaría de invalidar el caché cada vez que se toca
+`main()`—, y el docstring de `_layers_version` lo dice.
+
+## Lo que no se pudo partir sin cambiar lógica
+
+* **Los ganchos a `lcf`.** `snes_convert` le pone a `lcf`
+  `DECORATE_TRANSLUCENT` y `REFIT_TEXTS` al importarse, así que un proceso
+  que importe sólo `sprites`, `game_scan` o `map_record` lee los mapas sin
+  ellos. Las seis pruebas que importaban `snes_convert` y ya no usan nada de
+  él —`test_horneados`, `test_paginas`, `test_lideres`, `test_timer_paleta`,
+  `test_destello_paleta` y `test_msu_datos`— lo siguen importando por eso,
+  con un comentario. Lo limpio sería que `lcf` los reciba como parámetro o
+  que los ponga un módulo del port que todos importen; las dos cosas cambian
+  cuándo se ponen.
+* **`_layers_in_memory`** es un diccionario de `map_layers` que llena
+  `precompute_layers`, en `map_convert`. No pudieron quedar juntos:
+  `_map_layers` prepara el mapa como `convert_map` —hornea, separa del
+  héroe, lee los casos— y eso arriba de `map_layers` es un ciclo.
+* **`args_game_dir`** es una lista global de `game_scan` que `main` escribe
+  y `_game` lee. Ya era así; ahora cruza de módulo.
+* **Los privados que cruzan de módulo**: `main` llama a `_check_slots`,
+  `_check_items_border`, `_check_target`, `_check_shop` y `_check_splits`
+  de `vram`; `mapdata` usa `_columns` de `message_window`; `map_convert`
+  usa `_bake_unless_cgram_moves` de `baking` y `_layers_in_memory` de
+  `map_layers`; `test_horneados` usa `_tile_alphas`. Renombrarlos es un
+  commit mecánico aparte.
+* **`emit()`, `main()` y `convert_map()` enteros**, de 2.234, ~960 y ~540
+  líneas. Sus tramos comparten locales, y partirlos es decidir qué pasa de
+  uno a otro. La tabla de tramos de `emit()` está en
+  `docs/research/el-mapa-de-las-herramientas-de-python.md`, §2.
+* **Los textos del `.inc` que nombran `snes_convert.py`**: el encabezado de
+  `mapdata.inc`, el comentario de `anim_table` (que además nombra
+  `rom/src/`) y el del `.msu` (que dice `escribir_msu`). Corregirlos cambia
+  los `.inc` y no la ROM; va en un commit que acepte eso.
+
+## Para taro
+
+No hay nada que jugar: la ROM sale byte por byte igual. Lo que hay que
+mirar es si el corte es el que querés para la migración a Rust; la tabla
+de la propuesta dice qué entra y qué sale de cada módulo.
