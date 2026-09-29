@@ -1,16 +1,16 @@
-"""Los formatos del PPU de la SNES: un tile, un color de CGRAM y una celda
-del tilemap, como bytes o palabras listas para la consola.
+"""The formats of the SNES PPU: a tile, a CGRAM color and a tilemap cell,
+as bytes or words ready for the console.
 """
 
 
 def pack_tile(indices, planes=8):
-    """Formato del PPU: planos de bits, no dos pixeles por byte.
+    """The PPU format: bitplanes, not two pixels per byte.
 
-    Cada plano guarda un bit de cada pixel, una fila por byte y el pixel de más
-    a la izquierda en el bit más alto. Los planos van de a pares y de a 16
-    bytes: 0 y 1 primero, después 2 y 3, y así. Por eso un tile de 4 bits es
-    exactamente la primera mitad de uno de 8, y el mismo código sirve para los
-    dos con sólo cambiar cuántos planos recorre.
+    Each plane holds one bit of each pixel, one row per byte, with the
+    leftmost pixel in the highest bit. Planes come in pairs, 16 bytes per
+    pair: 0 and 1 first, then 2 and 3, and so on. That is why a 4-bit tile is
+    exactly the first half of an 8-bit one, and the same code serves both by
+    changing only how many planes it walks.
     """
     data = bytearray(planes * 8)
     for y, row in enumerate(indices):
@@ -23,17 +23,17 @@ def pack_tile(indices, planes=8):
 
 
 def cgram_word(color):
-    """Palabra de CGRAM: 0BBB BBGG GGGR RRRR."""
+    """A CGRAM word: 0BBB BBGG GGGR RRRR."""
     red, green, blue = color
     return (blue << 10) | (green << 5) | red
 
 
 def entry(tile, horizontal, vertical, priority=0):
-    """Una celda del tilemap: vhop ppcc cccc cccc.
+    """A tilemap cell: vhop ppcc cccc cccc.
 
-    Los tres bits de paleta no se ponen acá: en 8 bits por pixel el índice ya
-    alcanza CGRAM entero y el PPU los ignora. Las celdas de la pantalla de
-    ranuras, que es BG2 a 4bpp, ya vienen de `menus.py` con la paleta puesta
-    en `tile`, y esto la deja pasar.
+    The three palette bits are not set here: at 8 bits per pixel the index
+    already reaches all of CGRAM and the PPU ignores them. The cells of the
+    slot screen, which is BG2 at 4bpp, already come from `menus.py` with the
+    palette set in `tile`, and this lets it through.
     """
     return (tile | (priority << 13) | (horizontal << 14) | (vertical << 15))

@@ -1,30 +1,31 @@
-"""Las fuentes de 6x12 de easyrpg-player, medio ancho, ASCII imprimible.
+"""easyrpg-player's 6x12 fonts, half width, printable ASCII.
 
-Generado desde `/extras/ref/easyrpg-player/src/generated/bitmapfont_*.h`.
-No lo edites a mano: se regenera desde ahí, por la misma razón que
-`event_codes.py` se genera desde liblcf.
+Generated from `/extras/ref/easyrpg-player/src/generated/bitmapfont_*.h`.
+Do not edit it by hand: it is regenerated from there, for the same reason
+that `event_codes.py` is generated from liblcf.
 
-**Cuál de las dos se usa lo dice el juego, no nosotros.** El System de la base
-trae `font_id`, y `Font::Default()` de easyrpg elige rmg2000 cuando vale 1
-—Mincho— y ttyp0 cuando vale 0 —Gothic—. Este juego tiene `font_id = 1`, así
-que le toca **rmg2000**. Se probó primero con ttyp0 y la ventana difería de una
-captura de EasyRPG en el 4,57% de los pixeles: los colores daban exactos y las
-letras no. Las dos están acá para que la elección salga del dato.
+**Which of the two is used is decided by the game, not by us.** The
+database's System carries `font_id`, and easyrpg's `Font::Default()` picks
+rmg2000 when it is 1 —Mincho— and ttyp0 when it is 0 —Gothic—. This game has
+`font_id = 1`, so it gets **rmg2000**. ttyp0 was tried first and the window
+differed from an EasyRPG capture in 4.57% of the pixels: the colors were
+exact and the letters were not. Both are here so the choice comes from the
+data.
 
-El texto del juego es ASCII puro: 93 caracteres distintos en las 18.614 líneas
-de mensaje, sin acentos y sin nada de ancho completo.
+The game's text is pure ASCII: 93 distinct characters in the 18,614 message
+lines, with no accents and nothing full-width.
 
-Cada glifo son 12 filas de 6 bits, y el bit `b` de una fila es el pixel de la
-columna `b` —el bit 0 es el de la izquierda—. Ese orden está verificado contra
-la captura: con el otro, la 'S' sale espejada.
+Each glyph is 12 rows of 6 bits, and bit `b` of a row is the pixel of column
+`b` —bit 0 is the leftmost—. That order is verified against the capture:
+with the other one, the 'S' comes out mirrored.
 """
 
 ANCHO, ALTO = 6, 12
 
-# Los dos valores de `font_id` en el System de RM2k (lcf::rpg::System::Font).
+# The two values of `font_id` in RM2k's System (lcf::rpg::System::Font).
 GOTHIC, MINCHO = 0, 1
 
-# ttyp0, la que easyrpg usa para font_id = 0 (Gothic).
+# ttyp0, the one easyrpg uses for font_id = 0 (Gothic).
 GOTICA = {
      32: (0x000,0x000,0x000,0x000,0x000,0x000,0x000,0x000,0x000,0x000,0x000,0x000),   # ' '
      33: (0x000,0x008,0x008,0x008,0x008,0x008,0x000,0x008,0x008,0x000,0x000,0x000),   # '!'
@@ -123,7 +124,7 @@ GOTICA = {
     126: (0x000,0x024,0x02A,0x012,0x000,0x000,0x000,0x000,0x000,0x000,0x000,0x000),   # '~'
 }
 
-# rmg2000, la que easyrpg usa para font_id = 1 (Mincho).
+# rmg2000, the one easyrpg uses for font_id = 1 (Mincho).
 MINCHO_TABLA = {
      32: (0x000,0x000,0x000,0x000,0x000,0x000,0x000,0x000,0x000,0x000,0x000,0x000),   # ' '
      33: (0x000,0x004,0x004,0x004,0x004,0x004,0x004,0x004,0x000,0x004,0x000,0x000),   # '!'
@@ -223,19 +224,19 @@ MINCHO_TABLA = {
 }
 
 
-# Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
-# Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
+# Measured against A Blurred Line: an assumption of the engine, not a fact of
+# the game. See `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 def glifos(font_id=MINCHO):
     return MINCHO_TABLA if font_id == MINCHO else GOTICA
 
 
 def filas(ch, font_id=MINCHO):
-    """Las 12 filas del glifo, o las del espacio si no lo tenemos."""
+    """The 12 rows of the glyph, or those of the space if we do not have it."""
     tabla = glifos(font_id)
     return tabla.get(ord(ch), tabla[32])
 
 
 def pixeles(ch, font_id=MINCHO):
-    """Los (x, y) encendidos del glifo."""
+    """The lit (x, y) of the glyph."""
     return [(x, y) for y, fila in enumerate(filas(ch, font_id))
             for x in range(ANCHO) if fila >> x & 1]

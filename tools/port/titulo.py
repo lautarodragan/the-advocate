@@ -1,22 +1,25 @@
-"""La pantalla de título: de `Title/ABL20Title.png` a tiles, paleta y tilemap.
+"""The title screen: from `Title/ABL20Title.png` to tiles, palette and tilemap.
 
-Vive aparte de `snes_convert.py` porque no es un mapa: no tiene chipset, ni
-eventos, ni capa de encima. Es una imagen sola, y el único trabajo es meterla
-en el modo 3 sin que pierda nada que se note.
+It lives apart from `snes_convert.py` because it is not a map: it has no
+chipset, no events, no upper layer. It is a lone image, and the only job is
+to fit it into mode 3 without losing anything noticeable.
 
-**Va en BG1, que en modo 3 tiene ocho bits por pixel**, o sea que direcciona
-CGRAM entera y no necesita repartir nada en paletas de dieciséis. Es el único
-lugar del port donde eso vale la pena: un mapa gasta sus 256 colores en varias
-paletas porque los sprites necesitan las suyas, y acá no hay sprites.
+**It goes on BG1, which in mode 3 has eight bits per pixel**, so it
+addresses all of CGRAM and does not need to split anything into palettes of
+sixteen. It is the only place in the port where that is worth it: a map
+spends its 256 colors across several palettes because the sprites need
+theirs, and here there are no sprites.
 
-**Se escala y no se recorta**, y eso costó mirar la imagen: el original es de
-320x240 y la pantalla de 256x224, así que el recorte centrado se come el "2.1"
-del título por la derecha y los créditos de `Additional Graphics` por abajo. Lo
-que se paga a cambio es que la imagen queda 20% más angosta —el aspecto del
-original no es el de la consola— y que los colores suben de 133 a 369, porque
-interpolar inventa tonos entre los que había.
+**It is scaled and not cropped**, and that took looking at the image: the
+original is 320x240 and the screen 256x224, so the centered crop eats the
+"2.1" of the title on the right and the `Additional Graphics` credits at the
+bottom. What is paid in exchange is that the image ends up 20% narrower —the
+original's aspect ratio is not the console's— and that the colors go up from
+133 to 369, because interpolating invents shades between the ones there
+were.
 
-De ahí sale el único paso que no es mecánico: de 369 colores a 256.
+From there comes the only step that is not mechanical: from 369 colors to
+256.
 """
 
 import collections
@@ -26,7 +29,7 @@ from port.paleta import NEGRO, convertir
 
 
 def informe(imagen):
-    """Los números que justifican el reparto, para que la receta los imprima."""
+    """The numbers that justify the layout, for the recipe to print."""
     tiles, paleta, tilemap = convertir(imagen)
     return {
         "tiles": len(tiles),
@@ -37,19 +40,20 @@ def informe(imagen):
 
 
 def render(imagen, sys_img=None, textos=None, elegida=0, font_id=None):
-    """La pantalla de título como la tiene que mostrar la consola.
+    """The title screen as the console has to show it.
 
-    Es `convertir` deshecho: los tiles vueltos a poner en su lugar según el
-    tilemap, con los colores de la paleta llevados de 15 bits a 24. Que salga de
-    los mismos datos que la ROM sube no lo hace una comparación vacía: lo que se
-    verifica es el otro tramo del camino —el DMA a la VRAM, las dos bases del
-    PPU, el scroll de una línea que ya costó un rojo en los mapas— y ahí la ROM
-    puede equivocarse sin que la referencia se entere.
+    It is `convertir` undone: the tiles put back in their place according to
+    the tilemap, with the palette colors taken from 15 bits to 24. Coming
+    from the same data the ROM uploads does not make it an empty
+    comparison: what is checked is the other stretch of the path —the DMA to
+    VRAM, the PPU's two bases, the one-line scroll that already cost a red
+    on the maps— and there the ROM can get it wrong without the reference
+    noticing.
 
-    Lo que esta comparación **no** puede ver es que la imagen esté mal
-    convertida: si `convertir` eligiera mal los 256 colores, los dos lados se
-    equivocarían igual y el resultado seguiría dando cero. Eso se mira con los
-    ojos, una vez, y no vuelve a cambiar.
+    What this comparison **cannot** see is the image being converted wrong:
+    if `convertir` picked the 256 colors badly, both sides would be wrong
+    the same way and the result would still be zero. That is checked with
+    the eyes, once, and it does not change again.
     """
     from PIL import Image
     tiles, paleta, tilemap = convertir(imagen)
@@ -64,11 +68,11 @@ def render(imagen, sys_img=None, textos=None, elegida=0, font_id=None):
                 px[tx + x, ty + y] = tuple(v << 3 for v in color)
     if sys_img is None:
         return fuera
-    # El menú va encima, y **por el mismo camino que la ROM**: los tiles de
-    # 4bpp que emite `menu`, no la capa de texto de la que salieron. Dibujar
-    # acá el texto con la fuente y allá con los tiles dejaría afuera justo el
-    # paso que puede salir mal —cuantizar el degradé del skin a quince colores—
-    # y la comparación no lo vería.
+    # The menu goes on top, and **by the same path as the ROM**: the 4bpp
+    # tiles that `menu` emits, not the text layer they came from. Drawing the
+    # text here with the font and there with the tiles would leave out
+    # exactly the step that can go wrong —quantizing the skin's gradient to
+    # fifteen colors— and the comparison would not see it.
     tiles_menu, paleta_menu, mapas = menu(sys_img, textos, font_id)
     for i, indice in enumerate(mapas[elegida]):
         tx, ty = (i % COLS) * CELL, (i // COLS) * CELL
@@ -78,52 +82,53 @@ def render(imagen, sys_img=None, textos=None, elegida=0, font_id=None):
         for y in range(CELL):
             for x in range(CELL):
                 valor = celda[y][x]
-                if valor:       # el índice 0 no se dibuja: deja ver la imagen
+                if valor:       # index 0 is not drawn: the image shows through
                     px[tx + x, ty + y] = tuple(
                         v << 3 for v in paleta_menu[valor])
     return fuera
 
 
-# --- el menú -----------------------------------------------------------------
+# --- the menu ----------------------------------------------------------------
 #
-# Las dos opciones del título van en **BG2, que en modo 3 tiene cuatro bits por
-# pixel**, y no en BG1 con la imagen. Dos razones, y las dos se miden: en BG1
-# habría que mezclar el texto con la imagen al convertir, o sea un tile nuevo
-# por cada celda donde el texto pisa el fondo, y el texto dejaría de poder
-# moverse; y en 4bpp cada tile cuesta la mitad.
+# The two title options go on **BG2, which in mode 3 has four bits per
+# pixel**, and not on BG1 with the image. Two reasons, and both are measured:
+# on BG1 the text would have to be mixed with the image when converting, that
+# is a new tile for every cell where the text covers the background, and the
+# text could no longer move; and at 4bpp each tile costs half.
 #
-# El cursor **no se dibuja aparte**: se emite un tilemap por opción
-# seleccionada, y mover el cursor es subir el otro. Son 2048 B por tilemap y un
-# DMA que sólo corre cuando el jugador aprieta arriba o abajo. La alternativa
-# —escribir a mano las dos palabras del tilemap que cambian— ahorra 2 KB de
-# cartucho y pide saber en qué celda cae cada flecha, que es justo la clase de
-# número que se escribe mal en un lado y no en el otro.
-# Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
-# Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
-MENU_Y = 152                    # dónde arranca la primera opción, en pixeles
-MENU_ALTO = 24                  # y cada cuánto va la siguiente
+# The cursor **is not drawn separately**: one tilemap is emitted per selected
+# option, and moving the cursor is uploading the other one. That is 2048 B per
+# tilemap and a DMA that only runs when the player presses up or down. The
+# alternative —writing by hand the two tilemap words that change— saves 2 KB
+# of cartridge and requires knowing which cell each arrow falls on, which is
+# exactly the kind of number that gets written wrong on one side and not the
+# other.
+# Measured against A Blurred Line: an assumption of the engine, not a fact of
+# the game. See `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
+MENU_Y = 152                    # where the first option starts, in pixels
+MENU_ALTO = 24                  # and how far apart the next one is
 MENU_X = 72
 CURSOR = "> "
 SIN_CURSOR = "  "
 
 
 def opciones(db):
-    """Los textos del menú, como los dice el juego y no como los diríamos.
+    """The menu texts, as the game says them and not as we would.
 
-    En el ABL son 'Begin the Story' y 'Resume the Story'; el motor de fábrica
-    diría 'New Game' y 'Load Game'. Salen de los términos del LDB.
+    In ABL they are 'Begin the Story' and 'Resume the Story'; the stock
+    engine would say 'New Game' and 'Load Game'. They come from the LDB
+    terms.
     """
     return [db.term_new_game, db.term_load_game]
 
 
 def _capa_de_texto(sys_img, textos, elegida, font_id=None):
-    """Una pantalla transparente con las opciones dibujadas, y el cursor puesto.
+    """A transparent screen with the options drawn, and the cursor in place.
 
-    Se dibuja con `ventana.dibujar_linea`, que es la misma que compone los
-    mensajes: misma fuente, mismo degradé de color, misma sombra corrida uno.
-    Que el menú del título y un mensaje del juego se vean iguales no es un
-    detalle estético: es lo que hace que no haya una segunda fuente que
-    mantener.
+    It is drawn with `ventana.dibujar_linea`, the same one that composes the
+    messages: same font, same color gradient, same shadow shifted by one.
+    That the title menu and a game message look the same is not an aesthetic
+    detail: it is what means there is no second font to maintain.
     """
     from PIL import Image
     from port import ventana as ventana_mod
@@ -136,21 +141,21 @@ def _capa_de_texto(sys_img, textos, elegida, font_id=None):
 
 
 def menu(sys_img, textos, font_id=None):
-    """Los tiles de 4bpp del menú, su paleta, y un tilemap por opción.
+    """The menu's 4bpp tiles, its palette, and one tilemap per option.
 
-    Los tiles se juntan de **todas** las variantes antes de deduplicar: el
-    banco es uno solo y los tilemaps lo indexan, así que armar cada variante por
-    separado daría índices que no coinciden.
+    The tiles are gathered from **all** the variants before deduplicating:
+    there is a single bank and the tilemaps index it, so building each
+    variant separately would give indices that do not match.
 
-    El índice 0 de la paleta es transparente y le toca a la celda vacía, que es
-    casi toda la pantalla: por eso el banco termina siendo chico aunque el
-    tilemap tenga 1024 entradas.
+    Palette index 0 is transparent and goes to the empty cell, which is
+    almost the whole screen: that is why the bank ends up small even though
+    the tilemap has 1024 entries.
     """
     capas = [_capa_de_texto(sys_img, textos, n, font_id)
              for n in range(len(textos))]
 
-    # Los colores de todas las capas juntos, a 15 bits. El transparente no
-    # cuenta: es el índice 0 y no se dibuja.
+    # The colors of all the layers together, at 15 bits. The transparent one
+    # does not count: it is index 0 and is not drawn.
     vistos = collections.Counter()
     for capa in capas:
         for r, g, b, a in capa.get_flattened_data():
@@ -158,8 +163,8 @@ def menu(sys_img, textos, font_id=None):
                 vistos[(r >> 3, g >> 3, b >> 3)] += 1
     if len(vistos) > 15:
         raise SystemExit(
-            "el menú del título usa %d colores y en 4bpp entran 15. El degradé "
-            "del skin es el sospechoso: mirar `color_de_texto` en ventana.py"
+            "the title menu uses %d colors and 4bpp fits 15. The skin's "
+            "gradient is the suspect: look at `color_de_texto` in ventana.py"
             % len(vistos))
     paleta = [NEGRO] + sorted(vistos, key=lambda c: (-vistos[c], c))
     indice = {color: i for i, color in enumerate(paleta)}

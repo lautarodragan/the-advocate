@@ -1,45 +1,46 @@
-"""El tinte de pantalla de RM2k sobre un color de 15 bits.
+"""RM2k's screen tint applied to a 15-bit color.
 
-Es la cuenta de `ToneBlit` de easyrpg, puesta en los cinco bits por canal de la
-consola. La ROM hace la misma cuenta al subir la paleta.
+It is easyrpg's `ToneBlit` math, brought to the console's five bits per
+channel. The ROM does the same math when it uploads the palette.
 """
 
-# El tinte de RM2k va de 0 a 200 con 100 como neutro. En la ROM se guarda tal
-# cual y se aplica al subir la paleta.
+# The RM2k tint goes from 0 to 200 with 100 as neutral. The ROM stores it as
+# is and applies it when uploading the palette.
 TINTE_NEUTRO = 100
 
 
-# Los pesos de luminancia de RM2k, que son los de Y' del Y'CbCr: la cuenta de
-# `saturation_tone` en easyrpg es `(7471*b + 38470*g + 19595*r) >> 16`. Suman
-# exactamente 65536, así que aplicados a canales de cinco bits dan una
-# luminancia de cinco bits sin tener que reescalar nada.
+# RM2k's luminance weights, which are those of Y' in Y'CbCr: the math of
+# `saturation_tone` in easyrpg is `(7471*b + 38470*g + 19595*r) >> 16`. They
+# add up to exactly 65536, so applied to five-bit channels they give a
+# five-bit luminance without rescaling anything.
 LUZ_R, LUZ_G, LUZ_B = 19595, 38470, 7471
 LUZ_TOTAL = 65536
 
 
 def luminancia(r, g, b):
-    """La luminancia de un color de 15 bits, en cinco bits."""
+    """The luminance of a 15-bit color, in five bits."""
     return (LUZ_R * r + LUZ_G * g + LUZ_B * b) // LUZ_TOTAL
 
 
 def saturar(canal, luz, s):
-    """Un canal acercado o alejado del gris, con `s` en las unidades de RM2k.
+    """A channel moved toward or away from gray, with `s` in RM2k units.
 
-    Es `saturation_tone` de easyrpg puesto en cinco bits y en las unidades de
-    RM2k en vez de las suyas. Allá el factor es
-    `sat = gray > 128 ? 1024 + (gray - 128) * 16 : gray * 8` sobre 1024, con
-    `gray = s * 128 / 100`; hecha la cuenta, eso es `s / 100` para `s <= 100` y
-    `(2s - 100) / 100` para `s > 100`. O sea que 0 lleva todo al gris, 100 no
-    hace nada, y 200 triplica la distancia al gris.
+    It is easyrpg's `saturation_tone` brought to five bits and to RM2k's
+    units instead of its own. There the factor is
+    `sat = gray > 128 ? 1024 + (gray - 128) * 16 : gray * 8` over 1024, with
+    `gray = s * 128 / 100`; working it out, that is `s / 100` for `s <= 100`
+    and `(2s - 100) / 100` for `s > 100`. So 0 takes everything to gray, 100
+    does nothing, and 200 triples the distance to gray.
 
-    El caso de más de 100 va con el signo separado y truncando, en vez de con
-    el desplazamiento aritmético de easyrpg, que redondea hacia abajo también
-    con números negativos. La diferencia es de un valor de 31 y sólo cuando
-    sobresatura; hacerlo con signo en el 65816 costaría bastante más que eso.
+    The above-100 case is done with the sign split off and truncating,
+    instead of with easyrpg's arithmetic shift, which rounds down with
+    negative numbers too. The difference is one step out of 31 and only when
+    oversaturating; doing it signed on the 65816 would cost quite a lot more
+    than that.
     """
     if s <= TINTE_NEUTRO:
-        # Una interpolación entre el gris y el color, con los dos términos
-        # positivos: es la forma que el 65816 puede hacer sin signo.
+        # An interpolation between gray and the color, with both terms
+        # positive: it is the form the 65816 can do unsigned.
         return (luz * (TINTE_NEUTRO - s) + canal * s) // TINTE_NEUTRO
     m = s - TINTE_NEUTRO
     if canal >= luz:
@@ -48,27 +49,28 @@ def saturar(canal, luz, s):
 
 
 def tenir_canal(canal, valor):
-    """Un canal de cinco bits pasado por el tinte de RM2k, que es un hard light.
+    """A five-bit channel passed through RM2k's tint, which is a hard light.
 
-    RM2k no escala el canal: lo compone con un *hard light* —`hard_light.table`
-    en easyrpg, que es `2ab` para la mitad de abajo y el screen `1-2(1-a)(1-b)`
-    para la de arriba—. En las unidades de RM2k, con 100 neutro, eso es:
+    RM2k does not scale the channel: it composites it with a *hard light*
+    —`hard_light.table` in easyrpg, which is `2ab` for the lower half and the
+    screen `1-2(1-a)(1-b)` for the upper one—. In RM2k units, with 100
+    neutral, that is:
 
         valor <= 100:  canal * valor / 100
         valor  > 100:  31 - (200 - valor) * (31 - canal) / 100
 
-    La primera mitad es exactamente lo que este repo venía haciendo, y por eso
-    los tintes que oscurecen no cambian. La segunda no lo era.
-    `canal * valor / 100` con valor hasta 200 multiplica por dos y topa, y eso
-    **no es** lo que hace RM2k: la diferencia llega a 31 de 31 con valor 200, o
-    sea la pantalla entera. No lo cobró nadie porque ninguna página que
-    compilara usaba un tinte que aclare; las dos que lo destraba la saturación
-    —los mapas 229 y 230— sí, con (0, 120, 120).
+    The first half is exactly what this repo had been doing, and that is why
+    the tints that darken do not change. The second one was not.
+    `canal * valor / 100` with valor up to 200 multiplies by two and clamps,
+    and that **is not** what RM2k does: the difference reaches 31 out of 31
+    at valor 200, that is, the whole screen. Nobody caught it because no page
+    that compiled used a brightening tint; the two that saturation unlocks
+    —maps 229 and 230— do, with (0, 120, 120).
 
-    Medido contra la cuenta de easyrpg sobre ocho bits, esta versión difiere en
-    **un valor de 31 como mucho**, para todos los tintes que el juego usa. Es la
-    misma tolerancia que ya tenía la mitad de abajo, y viene de que RM2k hace la
-    cuenta con ocho bits y la consola tiene cinco.
+    Measured against easyrpg's math over eight bits, this version differs by
+    **one step out of 31 at most**, for every tint the game uses. It is the
+    same tolerance the lower half already had, and it comes from RM2k doing
+    the math in eight bits while the console has five.
     """
     if valor <= TINTE_NEUTRO:
         return min(31, canal * valor // TINTE_NEUTRO)
@@ -76,21 +78,22 @@ def tenir_canal(canal, valor):
 
 
 def tenir(palabra, tinte):
-    """Un color de 15 bits pasado por el tinte de pantalla.
+    """A 15-bit color passed through the screen tint.
 
-    Primero la saturación y después el color, que es el orden de `ToneBlit`:
-    allá `saturation_tone` corre antes que `color_tone`. Hacerlo al revés da
-    otra cosa —el gris se calcularía sobre el color ya teñido— y es de las que
-    una golden no vería: se sacaría con el error puesto y lo defendería.
+    Saturation first and color second, which is the order of `ToneBlit`:
+    there `saturation_tone` runs before `color_tone`. Doing it the other way
+    around gives something else —the gray would be computed over the already
+    tinted color— and it is one of those a golden would not see: it would be
+    captured with the bug in place and would defend it.
 
-    La cuenta va con enteros y sobre los 15 bits, no sobre los 24 del PNG: la
-    consola tiene cinco bits por canal y redondearía distinto.
+    The math is done with integers and on the 15 bits, not on the PNG's 24:
+    the console has five bits per channel and would round differently.
     """
     canales = [palabra & 0x1F, (palabra >> 5) & 0x1F, (palabra >> 10) & 0x1F]
     if len(tinte) > 3 and tinte[3] != TINTE_NEUTRO:
-        # Sólo cuando hace falta, igual que el `apply_sat` de easyrpg: la
-        # saturación no se puede hacer canal por canal —necesita el gris del
-        # color entero— y es lo caro de esto en la consola.
+        # Only when needed, like easyrpg's `apply_sat`: saturation cannot be
+        # done channel by channel —it needs the gray of the whole color— and
+        # it is the expensive part of this on the console.
         luz = luminancia(*canales)
         canales = [saturar(c, luz, tinte[3]) for c in canales]
     salida = 0

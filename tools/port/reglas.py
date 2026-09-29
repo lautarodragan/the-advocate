@@ -1,22 +1,22 @@
-"""Reglas de RM2k que usan varios módulos del port: qué sabe un actor, qué
-parámetros tiene a su nivel y cómo se llaman los términos de la pelea.
+"""RM2k rules that several port modules use: what an actor knows, which
+parameters it has at its level and what the battle terms are called.
 
-Son de `Game_Actor` y del LDB, no de ninguna pantalla.
+They belong to `Game_Actor` and the LDB, not to any screen.
 """
 
 
 def aprendidas_de(db, numero, nivel=None):
-    """Las habilidades que este actor **sabe**, usables o no, ordenadas.
+    """The skills this actor **knows**, usable or not, sorted.
 
-    Es `Game_Actor::LearnLevelSkills` a secas: las de nivel menor o igual al
-    suyo. Va aparte de `habilidades_de` porque son dos preguntas distintas y
-    confundirlas se paga de un solo lado: el menú de la pelea sólo puede
-    ofrecer las que este port sabe ejecutar —ése es el filtro de
-    `habilidad_usable`— pero `IsSkillLearned`, que es lo que pregunta la rama
-    de `ConditionalBranch`, no filtra nada.
+    It is plain `Game_Actor::LearnLevelSkills`: the ones with a level lower
+    than or equal to its own. It is separate from `habilidades_de` because
+    they are two different questions and mixing them up is paid on one side
+    only: the battle menu can only offer the ones this port knows how to run
+    —that is the `habilidad_usable` filter— but `IsSkillLearned`, which is
+    what the `ConditionalBranch` branch asks, filters nothing.
 
-    Las dos salen de acá para que no puedan separarse: la rama y el menú tienen
-    que estar de acuerdo en qué sabe cada uno.
+    Both come from here so they cannot drift apart: the branch and the menu
+    have to agree on what each one knows.
     """
     actor = db.actors[numero]
     if nivel is None:
@@ -25,37 +25,37 @@ def aprendidas_de(db, numero, nivel=None):
                    if s and aprende <= nivel})
 
 
-# El nivel de cada actor sale del LDB desde el 2026-09-13: es su
-# `initial_level`, que en el ABL no es 1 —Kersh arranca en 20, Core y Manta en
-# 15— y de él salen los HP, los SP y los cuatro parámetros.
+# Each actor's level comes from the LDB since 2026-09-13: it is its
+# `initial_level`, which in ABL is not 1 —Kersh starts at 20, Core and Manta
+# at 15— and the HP, the SP and the four parameters come from it.
 #
-# Hasta ese día acá había un `NIVEL = 1` mockeado, y **no era sólo cosmético**:
-# con él Kersh mostraba 40 HP en vez de 168 y peleaba con ataque 17 en vez de
-# 80, así que el balance entero de la pelea era otro. Y de ahí salió además la
-# conclusión equivocada de que nadie sabía ninguna habilidad: todas se aprenden
-# en el nivel 3 o más arriba, y con el nivel inicial de verdad los tres las
-# saben desde la primera pelea.
+# Until that day there was a mocked `NIVEL = 1` here, and **it was not just
+# cosmetic**: with it Kersh showed 40 HP instead of 168 and fought with attack
+# 17 instead of 80, so the whole balance of the battle was different. And it
+# also led to the wrong conclusion that nobody knew any skill: all of them are
+# learned at level 3 or higher, and with the real initial level all three
+# know them from the first battle.
 #
-# Subir de nivel sigue sin existir, y eso sí es una decisión: no hay
-# experiencia. El nivel es un dato estático del LDB.
+# Leveling up still does not exist, and that one is a decision: there is no
+# experience. The level is a static fact of the LDB.
 
 
 def nivel_de(actor):
-    """El nivel con el que arranca un actor: `Game_Actor::Setup`, que llama a
-    `ChangeLevel(initial_level)` cuando el campo está."""
+    """The level an actor starts at: `Game_Actor::Setup`, which calls
+    `ChangeLevel(initial_level)` when the field is there."""
     return actor.initial_level
 
 
 def parametro_de(actor, cual, nivel=None):
-    """Un parámetro del actor a su nivel: `maxhp`, `maxsp`, `attack`,
-    `defense`, `spirit` o `agility`.
+    """A parameter of the actor at its level: `maxhp`, `maxsp`, `attack`,
+    `defense`, `spirit` or `agility`.
 
-    La tabla del LDB va desde el nivel 1, así que el índice es el nivel menos
-    uno. Un actor sin la tabla —o con una más corta que su nivel, que no pasa
-    en este juego— da cero, que es lo que hacía el código de antes.
+    The LDB table starts at level 1, so the index is the level minus one. An
+    actor without the table —or with one shorter than its level, which does
+    not happen in this game— gives zero, which is what the old code did.
 
-    Sin `nivel` es el de arranque; con él, el que haya subido peleando: ver
-    `port.experiencia`.
+    Without `nivel` it is the starting one; with it, whatever it reached by
+    fighting: see `port.experiencia`.
     """
     valores = actor.params.get(cual) or []
     if nivel is None:
@@ -67,9 +67,9 @@ PARAM_MAX = 999
 
 
 def parametros(db, actor, equipo, nivel=None):
-    """Ataque, defensa, espíritu y agilidad: los del nivel más lo que suma el
-    equipo, topados en [1, 999] como `Game_Actor::GetAtk` y sus hermanas. Sin
-    `nivel`, el de arranque."""
+    """Attack, defense, spirit and agility: the level's plus what the
+    equipment adds, clamped to [1, 999] like `Game_Actor::GetAtk` and its
+    siblings. Without `nivel`, the starting one."""
     base = [parametro_de(db.actors[actor], k, nivel)
             for k in ("attack", "defense", "spirit", "agility")]
     for item in equipo:
@@ -78,11 +78,11 @@ def parametros(db, actor, equipo, nivel=None):
     return [max(1, min(PARAM_MAX, b)) for b in base]
 
 
-# Los términos del LDB que la pantalla usa, en el orden en que el conversor los
-# emite. Los nombres son los de liblcf —`fields.csv`, struct `Terms`— y no de
-# memoria: ver rom/data/README.md. Hasta el 2026-09-20 eran los números de chunk
-# de `ldb/chunks.h`, con el nombre al lado en un comentario; hoy el nombre es
-# el dato y el comentario es lo que dice el término en el juego.
+# The LDB terms the screen uses, in the order the converter emits them. The
+# names are liblcf's —`fields.csv`, struct `Terms`— and not from memory: see
+# rom/data/README.md. Until 2026-09-20 they were the chunk numbers from
+# `ldb/chunks.h`, with the name beside them in a comment; today the name is
+# the data and the comment is what the term says in the game.
 BA_TERMINOS = (
     ("atacar", "command_attack"),        # "Attack"
     ("defender", "command_defend"),      # "Defend"
@@ -99,19 +99,19 @@ BA_TERMINOS = (
     ("derrota", "defeat"),
     ("huyo", "escape_success"),
     ("no_huyo", "escape_failure"),
-    # Los cuatro del 2026-09-13: las dos órdenes que faltaban y los dos
-    # renglones del mensaje de usar un ítem.
+    # The four from 2026-09-13: the two missing commands and the two lines
+    # of the use-an-item message.
     ("usar", "command_item"),            # "Use Item"
     ("habilidad", "command_skill"),      # "Tech Skill"
     ("uso", "use_item"),                 # " used."
     ("recupero", "hp_recovery"),         # " Recovered"
-    # Los cuatro de lo que la victoria cuenta, desde el 2026-09-26: ver
-    # `ba_vic_mensaje` en batalla_victoria.s.
+    # The four of what the victory reports, since 2026-09-26: see
+    # `ba_vic_mensaje` in batalla_victoria.s.
     ("exp_recibida", "exp_received"),    # " EXP"
     ("nivel", "level"),                  # "LEVEL"
     ("subio", "level_up"),               # " achieved!"
     ("aprendio", "skill_learned"),       # " acquired!"
-    # Y los del oro y los ítems que se ganan, desde el 2026-09-27.
+    # And those of the gold and items won, since 2026-09-27.
     ("oro_a", "gold_recieved_a"),        # " You found"
     ("moneda", "gold"),                  # "Cr"
     ("oro_b", "gold_recieved_b"),        # " credits!"

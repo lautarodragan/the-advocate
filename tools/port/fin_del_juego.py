@@ -1,30 +1,30 @@
-"""La pantalla de End Game del menú de pausa: `Scene_End` de RM2k.
+"""The End Game screen of the pause menu: RM2k's `Scene_End`.
 
-Son dos ventanas sobre negro: arriba la pregunta —el término
-`exit_game_message` del LDB, "End game?" en el ABL— y abajo "Yes" y "No"
-—`yes` y `no`—, con la barra del System sobre la que se elige. Las reglas
-salen de `Scene_End::CreateCommandWindow` y `CreateHelpWindow` de
-easyrpg-player, y las medidas se compararon contra el RPG_RT de 2015
-corriendo con Wine: con estas mismas cuentas a 320x240, las ventanas, el
-texto y la barra caen en los mismos pixeles que en la captura del original.
-Lo que difiere son cosas de `ventana.py` y de la fuente, que valen para todas
-las ventanas del port: la franja clara del fondo estirado cae unas filas
-corrida, y un par de glifos —la "g"— no son idénticos.
+It is two windows over black: on top the question —the LDB term
+`exit_game_message`, "End game?" in ABL— and below "Yes" and "No" —`yes` and
+`no`—, with the System's bar over the one being chosen. The rules come from
+easyrpg-player's `Scene_End::CreateCommandWindow` and `CreateHelpWindow`,
+and the measurements were compared against the 2015 RPG_RT running under
+Wine: with these same computations at 320x240, the windows, the text and the
+bar land on the same pixels as in the capture of the original. What differs
+are things of `ventana.py` and of the font, which apply to every window of
+the port: the light band of the stretched background lands a few rows off,
+and a couple of glyphs —the "g"— are not identical.
 
-**Va dibujada entera, como una imagen**, y no con la fuente de a una letra
-por celda de la pantalla de ítems: es una pantalla fija de tres palabras, así
-que la letra puede ir a los 6 pixeles de la fuente, como en RM2k, y las
-ventanas medir lo que miden allá. Va en BG1 de 8bpp, que en modo 3 direcciona
-CGRAM entera.
+**It is drawn whole, as an image**, and not with the one-letter-per-cell
+font of the item screen: it is a fixed screen of three words, so the letters
+can go at the font's 6 pixels, as in RM2k, and the windows can measure what
+they measure there. It goes on BG1 at 8bpp, which in mode 3 addresses all of
+CGRAM.
 
-**El cursor no mueve tiles: cambia colores.** Las dos imágenes —con la barra
-en "Yes" y con la barra en "No"— comparten los tiles y el tilemap, y lo que
-las distingue son los pixeles de las dos barras. Cada par (color con el
-cursor en Yes, color con el cursor en No) que aparece en la imagen es una
-entrada de CGRAM propia: los pixeles que no cambian tienen el mismo color en
-las dos, y los de las barras, uno distinto. Mover el cursor es escribir esas
-pocas entradas con la paleta de la otra imagen, en el vblank. Así no hay un
-segundo tilemap ni tiles de más.
+**The cursor does not move tiles: it changes colors.** The two images —with
+the bar on "Yes" and with the bar on "No"— share the tiles and the tilemap,
+and what tells them apart are the pixels of the two bars. Each pair (color
+with the cursor on Yes, color with the cursor on No) that appears in the
+image is a CGRAM entry of its own: the pixels that do not change have the
+same color in both, and those of the bars, a different one. Moving the
+cursor is writing those few entries with the other image's palette, during
+vblank. That way there is no second tilemap and no extra tiles.
 """
 
 from port import constantes
@@ -34,30 +34,31 @@ ANCHO, ALTO = constantes.ANCHO, constantes.ALTO
 CELL = constantes.CELL
 NEGRO = (0, 0, 0)
 
-# `menu_item_height` de Window_Selectable y los bordes de Window.
+# `menu_item_height` of Window_Selectable and the borders of Window.
 LINEA = 16
 BORDE = 8
-# Las dos ventanas en RM2k, que es de 320x240: la pregunta en y=72 y las
-# órdenes 48 más abajo, centradas en x. Acá la pantalla mide 256x224, así que
-# se centran en 256 y se suben 8, la mitad de las 16 filas que faltan.
+# The two windows in RM2k, which is 320x240: the question at y=72 and the
+# commands 48 further down, centered in x. Here the screen is 256x224, so
+# they are centered on 256 and moved up 8, half of the 16 missing rows.
 Y_PREGUNTA = 72
 Y_ORDENES = 72 + 48
 SUBIR = (240 - ALTO) // 2
 
-# Qué orden marca el cursor al entrar. El RPG_RT de 2015 entra con "Yes",
-# medido con Wine; easyrpg-player entra con "No" (`SetIndex(1)`). Vale el
-# original.
+# Which command the cursor marks on entering. The 2015 RPG_RT enters on
+# "Yes", measured under Wine; easyrpg-player enters on "No" (`SetIndex(1)`).
+# The original wins.
 SI, NO = 0, 1
 ENTRA = SI
 
 
 def textos(db):
-    """La pregunta y las dos órdenes, del LDB, con los mismos textos de
-    repuesto que easyrpg si el término está vacío."""
+    """The question and the two commands, from the LDB, with the same
+    fallback texts as easyrpg if the term is empty."""
     t = db.terminos
     def uno(nombre, repuesto):
-        # Medido contra A Blurred Line: un supuesto del motor, no un dato del juego.
-        # Ver `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
+        # Measured against A Blurred Line: an assumption of the engine, not a
+        # fact of the game. See
+        # `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
         valor = t.get(nombre, b"").decode("cp1252")
         return valor or repuesto
     return (uno("exit_game_message", "Do you really want to quit?"),
@@ -71,31 +72,32 @@ def _ancho_de(texto):
 
 def dibujar(sys_img, db, elegida, font_id=None, ancho=ANCHO, alto=ALTO,
             subir=SUBIR):
-    """La pantalla en RGB, con el cursor en `elegida`. `ancho`, `alto` y
-    `subir` en 320, 240 y 0 dan la de RM2k, que es con la que se compara
-    contra la captura del original."""
+    """The screen in RGB, with the cursor on `elegida`. `ancho`, `alto` and
+    `subir` at 320, 240 and 0 give RM2k's, which is the one compared against
+    the capture of the original."""
     from PIL import Image
     pregunta, si, no = textos(db)
     if _ancho_de(pregunta) + 2 * BORDE > ancho:
-        # RM2k la dejaría salirse de la pantalla; acá se cortaría sin avisar.
-        raise SystemExit("la pregunta de End Game, %r, no entra en %d "
-                         "pixeles" % (pregunta, ancho))
+        # RM2k would let it run off the screen; here it would be cut
+        # without warning.
+        raise SystemExit("the End Game question, %r, does not fit in %d "
+                         "pixels" % (pregunta, ancho))
     fuera = Image.new("RGBA", (ancho, alto), NEGRO + (255,))
 
     def pegar(una, x, y):
         fuera.paste(una, (x, y), una)
 
-    # La pregunta: `Window_Help`, del ancho del texto más los bordes, con el
-    # texto en (0, 2) de su contenido.
+    # The question: `Window_Help`, as wide as the text plus the borders, with
+    # the text at (0, 2) of its contents.
     w = _ancho_de(pregunta) + 2 * BORDE
     x, y = ancho // 2 - w // 2, Y_PREGUNTA - subir
     pegar(ventana_mod.ventana(sys_img, w, 2 * LINEA), x, y)
     ventana_mod.dibujar_linea(fuera, sys_img, x + BORDE, y + BORDE + 2,
                               pregunta, font_id=font_id)
 
-    # Las órdenes: `Window_Command`, del ancho de la más larga más los bordes
-    # y de dieciséis por orden más los bordes. La barra es la de
-    # `UpdateCursorRect`: cuatro más a cada lado del contenido.
+    # The commands: `Window_Command`, as wide as the longest plus the borders
+    # and sixteen per command plus the borders tall. The bar is
+    # `UpdateCursorRect`'s: four more on each side of the contents.
     ordenes = (si, no)
     w = max(_ancho_de(o) for o in ordenes) + 2 * BORDE
     x, y = ancho // 2 - w // 2, Y_ORDENES - subir
@@ -110,46 +112,46 @@ def dibujar(sys_img, db, elegida, font_id=None, ancho=ANCHO, alto=ALTO,
     return fuera.convert("RGB")
 
 
-# --- lo que va al cartucho ----------------------------------------------------
+# --- what goes into the cartridge ---------------------------------------------
 #
-# BG2, a 4bpp y con la paleta 0: los tiles desde `RANURA_VRAM` y el tilemap en
-# `RANURA_MAP`, que son los lugares de la VRAM que ya escriben el menú y la
-# pantalla de ranuras —ver `volver_al_mapa`—, así que el mapa vuelve sin que
-# haya que reponer nada más. La paleta es la de las entradas 0 a 15, que
-# también repone el menú al volver.
+# BG2, at 4bpp and with palette 0: the tiles from `RANURA_VRAM` and the tilemap
+# at `RANURA_MAP`, which are the VRAM places the menu and the slot screen
+# already write —see `volver_al_mapa`—, so the map comes back without anything
+# else having to be restored. The palette is entries 0 to 15, which the menu
+# also restores on the way back.
 COLORES_MAX = 16
-# Cuántos cuadros dura el fundido a negro de "Yes", y cuánto el del tema: el
-# de la pantalla medido en el RPG_RT de 2015 —unos 330 ms—, y el del tema el
-# `BgmFade(400)` de `Scene_End`.
+# How many frames the fade to black of "Yes" lasts, and how long the song's:
+# the screen's measured on the 2015 RPG_RT —about 330 ms—, and the song's is
+# `Scene_End`'s `BgmFade(400)`.
 CUADROS_FUNDIDO = 20
 MS_FUNDIDO_TEMA = 400
 
 
 def rampa():
-    """El brillo de INIDISP en cada cuadro del fundido a negro: una recta de
-    15 a 0 en `CUADROS_FUNDIDO` pasos, el último en negro."""
+    """The INIDISP brightness on each frame of the fade to black: a straight
+    line from 15 to 0 in `CUADROS_FUNDIDO` steps, the last one black."""
     ultimo = CUADROS_FUNDIDO - 1
     return [15 * (ultimo - n) // ultimo for n in range(CUADROS_FUNDIDO)]
 
 
 def convertir(sys_img, db, font_id=None):
-    """La pantalla como la sube la ROM: `(tiles, filas, fila0, paletas)`.
+    """The screen as the ROM uploads it: `(tiles, filas, fila0, paletas)`.
 
-    `tiles[i][y][x]` son índices de 0 a 15, y el 0 es el tile vacío;
-    `filas` las palabras del tilemap de las filas de celdas que tienen algo,
-    desde la `fila0`; el resto del tilemap va en cero. `paletas` son dos
-    listas de 16 colores de 15 bits: la de la barra en "Yes" y la de la barra
-    en "No". Ver el encabezado: un índice por par de colores.
+    `tiles[i][y][x]` are indices from 0 to 15, and 0 is the empty tile;
+    `filas` the tilemap words of the cell rows that have something, from
+    `fila0`; the rest of the tilemap is zero. `paletas` are two lists of 16
+    15-bit colors: the one with the bar on "Yes" and the one with the bar on
+    "No". See the header: one index per pair of colors.
     """
     quince = [[tuple(v >> 3 for v in p) for p in
                dibujar(sys_img, db, n, font_id).get_flattened_data()]
               for n in (SI, NO)]
     pares = sorted(set(zip(*quince)))
     pares.remove((NEGRO, NEGRO))
-    pares.insert(0, (NEGRO, NEGRO))     # el 0: transparente, el fondo negro
+    pares.insert(0, (NEGRO, NEGRO))     # 0: transparent, the black background
     if len(pares) > COLORES_MAX:
-        raise SystemExit("la pantalla de End Game usa %d pares de colores y "
-                         "una paleta de 4bpp tiene %d" % (len(pares),
+        raise SystemExit("the End Game screen uses %d pairs of colors and "
+                         "a 4bpp palette has %d" % (len(pares),
                                                            COLORES_MAX))
     indice = {par: i for i, par in enumerate(pares)}
     pixeles = [indice[par] for par in zip(*quince)]
@@ -161,8 +163,8 @@ def convertir(sys_img, db, font_id=None):
                                         + col * CELL:(fila * CELL + y) * ANCHO
                                         + col * CELL + CELL])
                           for y in range(CELL))
-            # Espejados también, con los bits de volteo del tilemap: el marco
-            # de las ventanas es simétrico.
+            # Mirrored too, with the tilemap's flip bits: the window frame is
+            # symmetric.
             h = tuple(tuple(reversed(r)) for r in celda)
             for volteo, forma in ((0, celda), (0x4000, h),
                                   (0x8000, tuple(reversed(celda))),
@@ -183,10 +185,10 @@ def convertir(sys_img, db, font_id=None):
 
 
 def render(sys_img, db, elegida, font_id=None):
-    """Lo que la ROM tiene que mostrar, reconstruido desde `convertir` y no
-    desde `dibujar`: los tiles, el tilemap y la paleta, a 15 bits. Así el
-    dibujo contra el que se compara la ROM pasa por la misma cuenta de pares
-    de colores que ella."""
+    """What the ROM has to show, rebuilt from `convertir` and not from
+    `dibujar`: the tiles, the tilemap and the palette, at 15 bits. That way
+    the drawing the ROM is compared against goes through the same color-pair
+    math as the ROM does."""
     from PIL import Image
     tiles, filas, fila0, paletas = convertir(sys_img, db, font_id)
     paleta = paletas[elegida]

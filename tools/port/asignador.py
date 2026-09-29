@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
-"""Las primitivas del asignador: qué colores se pierden y cómo se agrupan.
+"""The allocator's primitives: which colors are lost and how they are grouped.
 
-Todo lo que está acá **cambia lo que se ve**: fusionar un color con otro,
-decidir qué colores van juntos en una paleta, medir cuánto se mueve una imagen
-si se le saca un color. Es la mitad artística del pipeline de gráficos, y por
-eso no está en `tools/voodoo/`, que sólo convierte lo que ya entra y nunca toca un
-pixel: ver "`tools/voodoo/` no decide colores" en `AGENTS.md`.
+Everything here **changes what is seen**: merging one color into another,
+deciding which colors go together in a palette, measuring how much an image
+moves if a color is taken out of it. It is the artistic half of the graphics
+pipeline, and that is why it is not in `tools/voodoo/`, which only converts
+what already fits and never touches a pixel: see "`tools/voodoo/` no decide
+colores" in `AGENTS.md`.
 
-Quien lo usa todavía vive repartido en `snes_convert.py` —`repartir_encima`,
-`build_palette`, `npcs_dibujables`— y en `menus.py`. El día que el asignador
-pase a Rust, esto es lo que se lleva primero.
+Its users are still spread across `snes_convert.py` —`repartir_encima`,
+`build_palette`, `npcs_dibujables`— and `menus.py`. The day the allocator
+moves to Rust, this is what goes first.
 
-Hasta el 2026-09-17 se llamaba `pixeles.py` y hacía también la parte que no
-decide nada —indexar un tile en su paleta, probar sus espejados—, que pasó a
-Voodoo.
+Until 2026-09-17 it was called `pixeles.py` and also did the part that
+decides nothing —indexing a tile into its palette, trying its mirrored
+versions—, which moved to Voodoo.
 """
 
 import collections
@@ -23,24 +24,25 @@ import numpy
 
 CELL = 8
 
-# Cuántos colores entra en una paleta de cuatro bits, menos el índice 0 que es
-# transparente: el de los sprites y la capa de encima. El fondo va en ocho bits
-# y pasa su propio límite por parámetro.
+# How many colors fit in a four-bit palette, minus index 0, which is
+# transparent: that of the sprites and the upper layer. The lower layer is at
+# eight bits and passes its own limit as a parameter.
 COLORS_PER_PALETTE = 16
 USABLE_COLORS = COLORS_PER_PALETTE - 1
 
 
 def tile_colors(tile):
-    """Los colores de un tile, sin contar los píxeles transparentes."""
+    """The colors of a tile, not counting the transparent pixels."""
     return frozenset(p for row in tile for p in row if p is not None)
 
 
 def try_pack(sets, limit, por_paleta=USABLE_COLORS):
-    """Reparte los colores en paletas de forma que cada tile use una sola.
+    """Splits the colors into palettes so that each tile uses only one.
 
-    Los colores pueden repetirse entre paletas: lo que hay que lograr es que el
-    conjunto de colores de cada tile quede contenido en alguna. Best-fit, los
-    tiles con más colores primero, cada uno al grupo que menos crezca.
+    Colors may repeat across palettes: what has to be achieved is that the
+    set of colors of each tile is contained in one of them. Best-fit, the
+    tiles with the most colors first, each into the group that grows the
+    least.
     """
     groups = []
     for colors in sorted(sets, key=lambda s: -len(s)):
@@ -59,50 +61,53 @@ def try_pack(sets, limit, por_paleta=USABLE_COLORS):
 
 
 def luma_distance(a, b):
-    """Distancia entre colores, pesada como la percibe el ojo.
+    """Distance between colors, weighted as the eye perceives it.
 
-    Los pesos son los de la luma de siempre —0,30 / 0,59 / 0,11— multiplicados
-    por cien para que la cuenta sea **entera**. El orden que produce es el
-    mismo que con los coeficientes fraccionarios, y a cambio dos distancias
-    iguales comparan iguales: `merge_least_visible` multiplica esto por la
-    cuenta de píxeles y después ordena, y ahí un empate resuelto por el último
-    bit de un float es exactamente la clase de diferencia que cambia la ROM
-    sin que nadie haya tocado nada.
+    The weights are the usual luma ones —0.30 / 0.59 / 0.11— multiplied by a
+    hundred so the math is **integer**. The order it produces is the same as
+    with the fractional coefficients, and in exchange two equal distances
+    compare equal: `merge_least_visible` multiplies this by the pixel count
+    and then sorts, and there a tie resolved by the last bit of a float is
+    exactly the kind of difference that changes the ROM without anyone having
+    touched anything.
     """
     return (30 * (a[0] - b[0]) ** 2 + 59 * (a[1] - b[1]) ** 2
             + 11 * (a[2] - b[2]) ** 2)
 
 
 def merge_least_visible(counts, keep, accept=None):
-    """Fusiona el par de colores que menos se note, hasta que pase.
+    """Merges the pair of colors that shows the least, until it passes.
 
-    "Lo que menos se note" es **cuántos píxeles se mueven por cuánto se
-    mueven**: el costo de mandar el color `a` al color `b` es
-    `pixeles(a) * luma_distance(a, b)`, que es el error que el cambio agrega a
-    la imagen. Se fusiona el par más barato, se suman los píxeles del que se
-    fue al que quedó, y se repite.
+    "What shows the least" is **how many pixels move times how far they
+    move**: the cost of sending color `a` to color `b` is
+    `pixeles(a) * luma_distance(a, b)`, which is the error the change adds to
+    the image. The cheapest pair is merged, the pixels of the one that went
+    are added to the one that stayed, and it repeats.
 
-    Antes el criterio era sólo `pixeles(a)`: se mataba al color menos usado sin
-    mirar a qué distancia estaba su vecino. Eso es lo que dejaba grises a Talan
-    y al save point. Un color puede cubrir pocos píxeles y aun así **definir el
-    dibujo** —un brillo, un ojo, el borde de un casco—, y mandarlo a diez de
-    distancia se ve; mientras tanto dos grises casi iguales que cubren media
-    lámina sobrevivían los dos porque ninguno era el menos usado. Con el costo
-    de arriba pasa justo al revés: los dos grises se funden en uno —cuesta
-    casi cero— y el brillo se queda, que es la entrada de CGRAM bien gastada.
+    The criterion used to be just `pixeles(a)`: the least used color was
+    killed without looking at how far away its neighbor was. That is what
+    left Talan and the save point gray. A color can cover few pixels and
+    still **define the drawing** —a highlight, an eye, the edge of a
+    helmet—, and sending it ten steps away shows; meanwhile two nearly equal
+    grays covering half the sheet both survived because neither was the least
+    used. With the cost above it is exactly the other way around: the two
+    grays melt into one —it costs almost nothing— and the highlight stays,
+    which is a CGRAM entry well spent.
 
-    No inventa colores: el que queda es siempre uno de los que ya estaban, así
-    que no hay que volver a cuantizar a 15 bits y no depende de la versión de
-    PIL. Y es determinista: el costo es entero y el desempate es por el color.
+    It does not invent colors: the one that stays is always one of those that
+    were already there, so there is no need to quantize to 15 bits again and
+    it does not depend on the PIL version. And it is deterministic: the cost
+    is an integer and ties are broken by the color.
 
-    `accept` decide cuándo parar: para el mapa es "los tiles entran en las
-    paletas", para el sprite es "quedan 15 colores o menos". Devuelve el mapeo
-    de color viejo a color nuevo y la lista de fusiones hechas.
+    `accept` decides when to stop: for the map it is "the tiles fit in the
+    palettes", for the sprite it is "15 colors or fewer are left". Returns
+    the mapping from old color to new color and the list of merges done.
 
-    Sin `accept` se recuerda: el mismo personaje se cuantiza igual en cada mapa
-    donde aparece, y la cuenta es pura. La clave lleva los colores **en su
-    orden**, porque el mapeo sale en ese orden, y se devuelven copias, porque
-    hay quien completa el mapeo que recibe.
+    Without `accept` it is memoized: the same character is quantized the
+    same way on every map where it appears, and the math is pure. The key
+    carries the colors **in their order**, because the mapping comes out in
+    that order, and copies are returned, because some callers complete the
+    mapping they receive.
     """
     if accept is None:
         clave = (tuple(counts.items()), keep)
@@ -119,10 +124,11 @@ _fusionados = {}
 def _merge_least_visible(counts, keep, accept):
     mapping = {c: c for c in counts}
     merged = []
-    # Con numpy, y cada color por su puesto en el orden de las tuplas: así el
-    # desempate por color de los `min` —el vecino por `(distancia, color)`,
-    # la víctima por `(costo, color)`— es el desempate por puesto, entero y
-    # sin floats. `luma_distance` y el costo son los de siempre.
+    # With numpy, and each color by its rank in the order of the tuples: that
+    # way the by-color tie-break of the `min`s —the neighbor by
+    # `(distancia, color)`, the victim by `(costo, color)`— is the tie-break
+    # by rank, integer and without floats. `luma_distance` and the cost are
+    # the usual ones.
     colores = sorted(counts)
     puesto = {c: i for i, c in enumerate(colores)}
     n = len(colores)
@@ -132,13 +138,14 @@ def _merge_least_visible(counts, keep, accept):
     peso = numpy.array([counts[c] for c in colores], dtype=numpy.int64)
     vivo = numpy.ones(n, dtype=bool)
     nunca = numpy.iinfo(numpy.int64).max
-    # Qué colores originales están hoy en cada uno, para no recorrer el
-    # mapeo entero en cada fusión.
+    # Which original colors are in each one today, so as not to walk the
+    # whole mapping on every merge.
     adentro = [[c] for c in colores]
-    # El vecino más barato de cada color vivo, y lo que cuesta mandarlo ahí.
-    # Se recalcula sólo para los que lo tenían al muerto —y para el que
-    # engordó—, que es lo que hace que esto no sea cúbico: las láminas del
-    # fondo llegan a trescientos colores y fusionan cien.
+    # The cheapest neighbor of each living color, and what it costs to send
+    # it there. It is recomputed only for those whose neighbor was the dead
+    # one —and for the one that grew—, which is what keeps this from being
+    # cubic: the lower layer's sheets reach three hundred colors and merge a
+    # hundred.
     costo = numpy.zeros(n, dtype=numpy.int64)
     vecino = numpy.full(n, -1, dtype=numpy.int64)
 
@@ -168,7 +175,7 @@ def _merge_least_visible(counts, keep, accept):
                 return mapping, merged, result
 
         if vivos <= 1:
-            sys.exit("No se pudo reducir la paleta lo suficiente.")
+            sys.exit("The palette could not be reduced enough.")
 
         candidatos = numpy.where(vivo, costo, nunca)
         victima = int(numpy.flatnonzero(vivo & (candidatos
@@ -189,15 +196,16 @@ def _merge_least_visible(counts, keep, accept):
 
 
 def reduce_colors(grid, budget):
-    """Fusiona colores hasta que los tiles entren en `budget` paletas.
+    """Merges colors until the tiles fit in `budget` palettes.
 
-    El límite real no es la cantidad de colores sino cómo se reparten: un tile
-    con 14 colores obliga a que esos 14 estén en la misma paleta. La cola de la
-    distribución suele ser colores de uno o dos píxeles, así que fusionar el
-    menos usado con su vecino más cercano y reintentar cuesta muy poco.
+    The real limit is not the number of colors but how they are distributed:
+    a tile with 14 colors forces those 14 to be in the same palette. The tail
+    of the distribution is usually colors of one or two pixels, so merging
+    the least used one into its nearest neighbor and retrying costs very
+    little.
 
-    El trabajo se hace sobre los tiles únicos, que son unos cientos, y no sobre
-    las celdas del mapa, que en Lashe City son 22500.
+    The work is done on the unique tiles, which are a few hundred, and not on
+    the map's cells, which in Lashe City are 22500.
     """
     counts = collections.Counter(p for row in grid for tile in row
                                  for line in tile for p in line

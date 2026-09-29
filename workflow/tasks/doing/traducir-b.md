@@ -16,3 +16,22 @@ módulos, funciones, variables, símbolos del runtime, flags—: eso es la fase
 importan. Los términos salen de `tools/GLOSSARY.md`.
 
 Alcance de esta parte: tools/port/, todo menos snes_convert.py.
+
+## Cómo se verifica
+
+Cada grupo de archivos va en su commit, y se verifica con tres cosas:
+
+* el AST de cada archivo contra `66152183`, sin docstrings: sólo pueden
+  cambiar strings, y cada string que cambió se mira a mano —mensaje o
+  dato—;
+* `SIN_CACHE=1 just cartuchos` y el sha256 de todos los `.sfc`, `.msu` y
+  `.pcm` de `rom/build/` contra los de antes de empezar;
+* los `.inc` generados, con un diff que sólo puede mostrar comentarios.
+
+## Hecho
+
+* Los módulos chicos: `animacion`, `asignador`, `color`, `comprimir`,
+  `constantes`, `experiencia`, `fin_del_juego`, `formato_snes`, `fuente`,
+  `imagen`, `msu_datos`, `paleta`, `pantalla_completa`, `reglas`, `textos`,
+  `tiles_bin`, `titulo`, `ventana`. `event_opcodes.py` es generado y ya
+  estaba en inglés.

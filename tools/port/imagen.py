@@ -1,38 +1,40 @@
 #!/usr/bin/env python3
-"""El cartel de un `ShowPicture` en la pantalla de la consola.
+"""The picture of a `ShowPicture` on the console screen.
 
-Vive aparte de `snes_convert.py` por la misma razón que `titulo.py`: no es un
-mapa. Es una imagen suelta que hay que meter en la pantalla, y lo único que
-hay que decidir es **exactamente dónde cae y de qué color es cada pixel**.
+It lives apart from `snes_convert.py` for the same reason as `titulo.py`: it
+is not a map. It is a loose image that has to be put on the screen, and the
+only thing to decide is **exactly where each pixel lands and what color it
+is**.
 
-Tres decisiones, y las tres se pagan:
+Three decisions, and all three are paid for:
 
-**Va en objetos de OAM, no en una capa.** En modo 3 las dos capas son del mapa,
-y la alternativa —prestarle una al cartel mientras dura— obliga a recargar el
-mapa al borrarlo: 30 KB de DMA y dos cuadros negros, que es lo que cuesta
-`volver_al_mapa`. Con objetos el cartel se pone y se saca sin tocar nada de lo
-que hay debajo, que además es lo que hace RM2k: la imagen se compone encima.
-El precio son **quince colores**, los de una paleta de sprite, contra los 226
-del PNG; y el presupuesto de objetos por línea, que en las 29 líneas del cartel
-baja de 34 tiles a 10.
+**It goes in OAM objects, not in a layer.** In mode 3 both layers belong to
+the map, and the alternative —lending one to the picture while it lasts—
+forces reloading the map when erasing it: 30 KB of DMA and two black frames,
+which is what `volver_al_mapa` costs. With objects the picture is put up and
+taken down without touching anything underneath, which is also what RM2k
+does: the image is composited on top. The price is **fifteen colors**, those
+of a sprite palette, against the PNG's 226; and the per-line object budget,
+which on the picture's 29 lines drops from 34 tiles to 10.
 
-**La pantalla de RM2k mide 320x240 y la de la consola 256x224**, así que el
-cartel se escala como la imagen del título: las dos esquinas de su rectángulo
-pasan por la misma cuenta y la imagen se lleva al tamaño que queda. Es el mismo
-20% más angosto que ya tiene la pantalla de título, y por la misma razón: el
-aspecto del original no es el de la consola.
+**RM2k's screen is 320x240 and the console's 256x224**, so the picture is
+scaled like the title image: the two corners of its rectangle go through the
+same math and the image is brought to the size that results. It is the same
+20% narrower that the title screen already has, and for the same reason: the
+original's aspect ratio is not the console's.
 
-**La posición de RM2k es el centro de la imagen**, no su esquina: `Sprite_Picture`
-hace `SetOx(width / 2)`. El cartel del "One year previously" está centrado en
-(100, 175) de 320x240 y mide 233x31, o sea que **arranca en -16 y se le come el
-borde izquierdo**. Eso no es un error nuestro: es lo que el juego muestra.
+**RM2k's position is the center of the image**, not its corner:
+`Sprite_Picture` does `SetOx(width / 2)`. The "One year previously" picture
+is centered at (100, 175) of 320x240 and measures 233x31, so **it starts at
+-16 and its left edge gets cut off**. That is not our bug: it is what the
+game shows.
 
-Lo que **no** se hace, y por lo tanto tampoco se acepta —ver `Imagenes.cabe` en
-eventos.py—: mover la imagen de lugar, escalarla, hacerla translúcida
-(`top_trans`), el color transparente, la saturación y los efectos de rotación y
-onda. De los tres `Picture` de la página del "1 year earlier" ninguno pide nada
-de eso: lo único que cambia entre uno y otro es el **tono**, que es lo que
-dibuja el fundido.
+What is **not** done, and therefore not accepted either —see
+`Imagenes.cabe` in eventos.py—: moving the image, scaling it, making it
+translucent (`top_trans`), the transparent color, saturation, and the
+rotation and wave effects. Of the three `Picture`s on the "1 year earlier"
+page none asks for any of that: the only thing that changes between one and
+the next is the **tone**, which is what draws the fade.
 """
 
 import collections
@@ -40,30 +42,30 @@ import collections
 from port.color import tenir
 from port.paleta import reducir
 
-# La pantalla de RM2k y la de la consola.
+# RM2k's screen and the console's.
 ANCHO_RM, ALTO_RM = 320, 240
 ANCHO, ALTO = 256, 224
 
-# El objeto grande de este port, que es el que `OBSEL_VALUE` deja fijo en 32x32.
+# This port's large object, which `OBSEL_VALUE` fixes at 32x32.
 OBJ = 32
-# Los tiles de 8x8 que mide de lado, y cuántos hay en una fila de la grilla de
-# nombres de OAM.
+# The 8x8 tiles it measures on a side, and how many there are in a row of the
+# OAM name grid.
 OBJ_LADO = OBJ // 8
 GRILLA = 16
-# Los quince de una paleta de sprite: el índice 0 no se dibuja.
+# The fifteen of a sprite palette: index 0 is not drawn.
 COLORES = 15
-# Cuántos objetos de ancho se aceptan. Ocho son 256 pixeles, o sea la pantalla
-# entera, y 128 tiles de sprite; más que eso no es un cartel.
+# How many objects wide are accepted. Eight are 256 pixels, that is the whole
+# screen, and 128 sprite tiles; more than that is not a picture.
 OBJETOS_MAX = 8
 NEGRO = (0, 0, 0)
 
 
 def escalar_x(v):
-    """Una coordenada horizontal de la pantalla de RM2k, en la de la consola.
+    """A horizontal coordinate of RM2k's screen, on the console's.
 
-    División entera hacia abajo **también con negativos**, que es lo que hace
-    `//` en Python: el cartel arranca en -16 y las dos puntas tienen que sacar
-    el mismo -13.
+    Integer division rounding down **with negatives too**, which is what
+    `//` does in Python: the picture starts at -16 and both ends have to get
+    the same -13.
     """
     return v * ANCHO // ANCHO_RM
 
@@ -73,12 +75,13 @@ def escalar_y(v):
 
 
 def caja(ancho, alto, cx, cy):
-    """Dónde cae en la pantalla de la consola una imagen de `ancho` x `alto`
-    centrada en (cx, cy) de las de RM2k: (x, y, ancho, alto).
+    """Where on the console screen an image of `ancho` x `alto` centered at
+    (cx, cy) of RM2k's lands: (x, y, ancho, alto).
 
-    Las dos esquinas pasan por la misma cuenta y el tamaño sale de restarlas.
-    Escalar el tamaño por su lado daría 28 de alto donde las esquinas dan 29, y
-    un pixel de diferencia entre las dos puntas es una comparación que falla.
+    Both corners go through the same math and the size comes from
+    subtracting them. Scaling the size on its own would give a height of 28
+    where the corners give 29, and one pixel of difference between the two
+    ends is a comparison that fails.
     """
     x0, y0 = cx - ancho // 2, cy - alto // 2
     ex0, ey0 = escalar_x(x0), escalar_y(y0)
@@ -86,10 +89,10 @@ def caja(ancho, alto, cx, cy):
 
 
 def _quince(imagen, ancho, alto):
-    """La imagen escalada y con los colores a 15 bits, fila por fila.
+    """The image scaled and with its colors at 15 bits, row by row.
 
-    LANCZOS como `paleta._quince`, y por lo mismo: es el que menos ensucia los
-    bordes del texto.
+    LANCZOS like `paleta._quince`, and for the same reason: it is the one
+    that smears the edges of text the least.
     """
     from PIL import Image
     chica = imagen.convert("RGB").resize((ancho, alto), Image.LANCZOS)
@@ -98,17 +101,18 @@ def _quince(imagen, ancho, alto):
 
 
 def convertir(imagen, cx, cy):
-    """El cartel listo para las dos puntas.
+    """The picture ready for both ends.
 
-    Devuelve un diccionario con dónde cae —`x`, `y`, `ancho`, `alto`—, cuántos
-    objetos de 32x32 se lleva, su paleta de quince colores de 15 bits y la
-    imagen como índices de esa paleta **corridos uno**, que es como los numera
-    una paleta de sprite: el 0 es el transparente y no se dibuja.
+    Returns a dictionary with where it lands —`x`, `y`, `ancho`, `alto`—,
+    how many 32x32 objects it takes, its palette of fifteen 15-bit colors and
+    the image as indices into that palette **shifted by one**, which is how a
+    sprite palette numbers them: 0 is the transparent one and is not drawn.
 
-    Los colores salen de `paleta.reducir`, el mismo de la pantalla de título, y
-    por la misma razón: no promedia, así que no inventa colores que haya que
-    volver a cuantizar, y no depende de la versión de PIL. De 226 colores a
-    quince el degradé del resplandor se escalona; se ve y está declarado.
+    The colors come from `paleta.reducir`, the same as the title screen's,
+    and for the same reason: it does not average, so it does not invent
+    colors that would have to be quantized again, and it does not depend on
+    the PIL version. From 226 colors to fifteen the glow's gradient becomes
+    stepped; it shows and it is declared.
     """
     x, y, ancho, alto = caja(imagen.width, imagen.height, cx, cy)
     filas = _quince(imagen, ancho, alto)
@@ -125,24 +129,25 @@ def convertir(imagen, cx, cy):
 
 
 def cabe(info):
-    """Si el cartel entra en el modelo: un objeto de alto y hasta `OBJETOS_MAX`
-    de ancho. Lo pregunta `eventos.Imagenes` al elegir el cartel."""
+    """Whether the picture fits the model: one object tall and up to
+    `OBJETOS_MAX` wide. `eventos.Imagenes` asks this when choosing the
+    picture."""
     return 0 < info["alto"] <= OBJ and 0 < info["objetos"] <= OBJETOS_MAX
 
 
 def celdas(info):
-    """El cartel cortado en tiles de 8x8, en el orden en que los numera OAM.
+    """The picture cut into 8x8 tiles, in the order OAM numbers them.
 
-    Un objeto de 32x32 lee cuatro tiles de cuatro filas seguidas de la grilla de
-    nombres, que es de dieciséis de ancho: o sea que en una **fila de bloques**
-    —64 tiles— entran cuatro objetos y no más. El objeto `o` arranca entonces en
-    `(o // 4) * 64 + (o % 4) * 4`, y adentro de él el tile (tx, ty) está `ty`
-    filas de la grilla más adelante.
+    A 32x32 object reads four tiles from four consecutive rows of the name
+    grid, which is sixteen wide: so a **row of blocks** —64 tiles— fits four
+    objects and no more. Object `o` therefore starts at
+    `(o // 4) * 64 + (o % 4) * 4`, and inside it tile (tx, ty) is `ty` grid
+    rows further on.
 
-    Devuelve {número de tile relativo a la base: celda de 8x8}. Lo que queda
-    afuera de la imagen —los pixeles de relleno hasta los 32 del objeto— es el
-    índice 0, o sea transparente: ahí se ve lo que haya debajo, que es lo que
-    corresponde.
+    Returns {tile number relative to the base: 8x8 cell}. What falls outside
+    the image —the padding pixels up to the object's 32— is index 0, that is
+    transparent: whatever is underneath shows there, which is what should
+    happen.
     """
     salida = {}
     indices = info["indices"]
@@ -165,23 +170,25 @@ def celdas(info):
 
 
 def tiles_reservados(info):
-    """Cuántos tiles de 8x8 del banco de sprites se lleva el cartel.
+    """How many 8x8 tiles of the sprite bank the picture takes.
 
-    Filas de bloques enteras, no los 96 que usa: la aritmética de arriba las
-    necesita enteras, y `digitos_del_timer` ya redondea a lo mismo y por lo
-    mismo. Con seis objetos son dos filas, 128 tiles, de los cuales 96 se usan.
+    Whole rows of blocks, not the 96 it uses: the arithmetic above needs them
+    whole, and `digitos_del_timer` already rounds to the same thing for the
+    same reason. With six objects that is two rows, 128 tiles, of which 96
+    are used.
     """
     return -(-info["objetos"] // 4) * (4 * GRILLA)
 
 
 def render(info, tono):
-    """El cartel como se ve en la pantalla, con su tono aplicado: una imagen
-    RGBA de `ancho` x `alto` para pegar en (x, y).
+    """The picture as it looks on screen, with its tone applied: an RGBA
+    image of `ancho` x `alto` to paste at (x, y).
 
-    El tono es el de RM2k —(r, g, b, sat), 100 neutro— y pasa por
-    `color.tenir`, que es la misma cuenta del tinte de pantalla: allá y acá es
-    `ToneBlit`. La consola no tiñe pixeles sino las quince entradas de CGRAM del
-    cartel, así que teñir la paleta y pintar da exactamente lo mismo.
+    The tone is RM2k's —(r, g, b, sat), 100 neutral— and goes through
+    `color.tenir`, which is the same math as the screen tint: there and here
+    it is `ToneBlit`. The console does not tint pixels but the picture's
+    fifteen CGRAM entries, so tinting the palette and painting gives exactly
+    the same thing.
     """
     from PIL import Image
     paleta = [tenir(c[0] | (c[1] << 5) | (c[2] << 10), tono)
@@ -195,7 +202,7 @@ def render(info, tono):
 
 
 def informe(info):
-    """Los números que justifican el reparto, para que la receta los imprima."""
+    """The numbers that justify the layout, for the recipe to print."""
     return {
         "donde": (info["x"], info["y"]),
         "tamano": (info["ancho"], info["alto"]),
