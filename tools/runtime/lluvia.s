@@ -1,26 +1,26 @@
 .segment "CODE"
 
-; --- la lluvia ------------------------------------------------------------------
+; --- the rain -------------------------------------------------------------------
 ;
-; `Game_Screen::UpdateRain` y `Weather::DrawRain`, con la regla de RM2k sobre
-; la pantalla de 256x224: ver OP_WEATHER en eventos.py, que tiene el porqué. El
-; estado vive en la RAM lejana: el tipo y la fuerza del clima, cuántas gotas
-; hay y el azar de la lluvia —un xorshift propio, sembrado cada vez que el
-; clima cambia— en `FAR_CLIMA`, y tres bytes por gota —x, y y la vida— en
-; `FAR_LLUVIA`. La x y la y son de la superficie de 256x256 que va pegada al
-; mapa, así que un byte alcanza y el paso de cada cuadro da la vuelta solo; en
-; pantalla es eso menos el scroll. El clima no viaja en la partida: al cargar
-; no llueve.
+; `Game_Screen::UpdateRain` and `Weather::DrawRain`, with RM2k's rule applied
+; to the 256x224 screen: see OP_WEATHER in eventos.py, which has the why. The
+; state lives in far RAM: the weather's type and strength, how many drops
+; there are and the rain's randomness —its own xorshift, seeded every time
+; the weather changes— in `FAR_CLIMA`, and three bytes per drop —x, y and its
+; life— in `FAR_LLUVIA`. The x and the y are on the 256x256 surface stuck to
+; the map, so one byte is enough and each frame's step wraps around by
+; itself; on screen it is that minus the scroll. The weather does not travel
+; in the save: after loading it does not rain.
 ;
-; `lluvia_tick` y `lluvia_oam` corren en cada cuadro que llueve y leen con el
-; direccionamiento largo, que va de a una instrucción por byte: con la
-; ventana de WMADD cada gota pagaba apuntarla.
+; `lluvia_tick` and `lluvia_oam` run on every frame it rains and read with
+; long addressing, which is one instruction per byte: with the WMADD window
+; every drop paid for pointing at it.
 FAR_CLIMA  = $2EF0
 FAR_LLUVIA = $2F00
 CLIMA_L    = $7E0000 + FAR_CLIMA
 LLUVIA_L   = $7E0000 + FAR_LLUVIA
 
-; El clima en cero: sin lluvia. En el reset.
+; The weather at zero: no rain. On reset.
 .proc clima_limpiar
 .a8
 .i16
@@ -39,10 +39,11 @@ otro:
     rts
 .endproc
 
-; `SetWeatherEffect`: `temp` el tipo, `temp + 1` la fuerza. Si no cambia nada
-; no toca nada; si cambia, las gotas arrancan apagadas y el azar vuelve a su
-; semilla. Se llama desde el intérprete, con el banco de datos donde esté el
-; bytecode: sólo toca registros y la RAM baja.
+; `SetWeatherEffect`: `temp` the type, `temp + 1` the strength. If nothing
+; changes it touches nothing; if it changes, the drops start off and the
+; randomness goes back to its seed. It is called from the interpreter, with
+; the data bank wherever the bytecode is: it only touches registers and low
+; RAM.
 .proc clima_poner
 .a8
 .i16
@@ -94,7 +95,7 @@ cuantas:
     sta WMDATA
     lda #>LLUVIA_SEMILLA
     sta WMDATA
-    ; Todas apagadas.
+    ; All off.
     rep #$20
 .a16
     lda #FAR_LLUVIA
@@ -109,8 +110,8 @@ apagar:
     rts
 .endproc
 
-; El azar de la lluvia, en `comp_mask`: el mismo xorshift que
-; `eventos.azar_siguiente`. Vuelve con el número nuevo en A, de dieciséis.
+; The rain's randomness, in `comp_mask`: the same xorshift as
+; `eventos.azar_siguiente`. Returns with the new number in A, sixteen bits.
 .proc lluvia_azar
 .a8
 .i16
@@ -144,10 +145,11 @@ apagar:
     rts
 .endproc
 
-; Un cuadro de la lluvia —`Game_Screen::UpdateRain`—: la gota viva baja y se
-; corre, y la que se quedó sin vida vuelve a nacer donde diga el azar. `comp_col`
-; cuenta las gotas y `comp_mask` lleva el azar; son del compositor de
-; mensajes, que las recalcula en cada carácter. X es la gota, de a tres bytes.
+; One frame of rain —`Game_Screen::UpdateRain`—: a live drop falls and
+; drifts, and one that ran out of life is born again wherever the randomness
+; says. `comp_col` counts the drops and `comp_mask` carries the randomness;
+; they belong to the message composer, which recomputes them on every
+; character. X is the drop, three bytes at a time.
 .proc lluvia_tick
 .a8
 .i16
@@ -155,7 +157,7 @@ apagar:
     bne hay
     rts
 hay:
-    sta comp_col                ; cuántas
+    sta comp_col                ; how many
     rep #$20
 .a16
     lda f:CLIMA_L + 3
@@ -164,9 +166,9 @@ hay:
 .a8
     ldx #0
 gota:
-    lda f:LLUVIA_L + 2, x       ; la vida
+    lda f:LLUVIA_L + 2, x       ; its life
     beq apagada
-    ; Viva: baja cuatro, corre uno a la izquierda, y le queda uno menos.
+    ; Alive: down four, one to the left, and one less life left.
     dec a
     sta f:LLUVIA_L + 2, x
     lda f:LLUVIA_L, x
@@ -178,8 +180,8 @@ gota:
     sta f:LLUVIA_L + 1, x
     bra siguiente
 apagada:
-    ; Nace con LLUVIA_NACE de 256 de chance, en un lugar al azar.
-    ; `lluvia_azar` vuelve con A de dieciséis y no toca X.
+    ; It is born with a LLUVIA_NACE in 256 chance, at a random place.
+    ; `lluvia_azar` returns with a 16-bit A and does not touch X.
     jsr lluvia_azar
     sep #$20
 .a8
@@ -204,21 +206,22 @@ siguiente:
     rep #$20
 .a16
     lda comp_mask
-    sta f:CLIMA_L + 3           ; el azar, de vuelta a su lugar
+    sta f:CLIMA_L + 3           ; the randomness, back in its place
     sep #$20
 .a8
     rts
 .endproc
 
-; Las gotas en OAM: dos objetos de 8x8 por gota viva, con prioridad 2, al
-; final de todo —cualquier personaje las tapa— y hasta que se llene la OAM.
-; Un mapa sin lugar para sus colores tiene `M_LLUVIA_BASE` en cero y no dibuja
-; lluvia. Ver `gotas_en_oam` en snes_expect.py, que tiene la regla de qué se
-; descarta.
+; The drops in OAM: two 8x8 objects per live drop, with priority 2, at the
+; very end —any character covers them— and until the OAM fills up. A map
+; with no room for their colors has `M_LLUVIA_BASE` at zero and draws no
+; rain. See `gotas_en_oam` in snes_expect.py, which has the rule for what is
+; dropped.
 ;
-; No pasa por `emit_object`, que para 150 objetos era más de media pantalla:
-; la X de una gota queda siempre entre 0 y 255 —el noveno bit y el tamaño son
-; cero—, así que se escribe directo. X es la gota y Y el objeto.
+; It does not go through `emit_object`, which for 150 objects was more than
+; half a screen: a drop's X always stays between 0 and 255 —the ninth bit and
+; the size are zero—, so it is written directly. X is the drop and Y the
+; object.
 .proc lluvia_oam
 .a8
 .i16
@@ -232,14 +235,14 @@ con_gotas:
     bne hay
     rts
 hay:
-    sta comp_col                ; cuántas
+    sta comp_col                ; how many
     rep #$20
 .a16
     lda f:mapa_tabla + M_LLUVIA_BASE, x
-    sta comp_base               ; el primer tile
+    sta comp_base               ; the first tile
     sep #$20
 .a8
-    ; vhoopppN: prioridad 2 y la paleta de las gotas; el noveno bit va aparte.
+    ; vhoopppN: priority 2 and the drops' palette; the ninth bit goes apart.
     lda f:mapa_tabla + M_LLUVIA_PAL, x
     and #$07
     asl a
@@ -252,7 +255,7 @@ gota:
     bne viva
     jmp siguiente
 viva:
-    ; El tono: 0 con nueve o más de vida, 1 con cinco o más, 2 si no.
+    ; The shade: 0 with nine or more life, 1 with five or more, 2 otherwise.
     cmp #9
     bcs tono0
     cmp #5
@@ -266,7 +269,7 @@ tono1:
     lda #1
 tono:
     sta comp_dup + 2
-    ; En pantalla: menos el scroll del mapa, en ocho bits.
+    ; On screen: minus the map's scroll, in eight bits.
     lda f:LLUVIA_L, x
     sec
     sbc pantalla_x
@@ -275,13 +278,13 @@ tono:
     sec
     sbc camara_y
     sta comp_dup + 1
-    stz comp_fila               ; la mitad: 0 arriba, 1 abajo
+    stz comp_fila               ; the half: 0 top, 1 bottom
 mitad:
     lda comp_dup + 1
     cmp #224
     bcc se_ve
     cmp #248
-    bcs se_ve                   ; asoma por arriba
+    bcs se_ve                   ; peeks in from the top
     jmp otra_mitad
 se_ve:
     rep #$20
@@ -297,7 +300,7 @@ queda_lugar:
     asl a
     asl a
     tay
-    ; El tile: base + 16 * mitad + tono, de nueve bits.
+    ; The tile: base + 16 * half + shade, nine bits.
     lda comp_fila
     and #$00FF
     asl a
@@ -319,7 +322,7 @@ queda_lugar:
     sta oam, y
     lda comp_dup + 1
     sta oam + 1, y
-    ; Sus dos bits en la tabla chica, los dos en cero: `push_high`.
+    ; Its two bits in the small table, both zero: `push_high`.
     lda high_acc
     lsr a
     lsr a
