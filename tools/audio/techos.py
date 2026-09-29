@@ -7,7 +7,7 @@
     rm2k-snes-volume-ceilings --medir    only measures the `release` that
                                          is built, and writes nothing
 
-The reason for the table is in `leer_techos` (tools/audio/snes_music.py).
+The reason for the table is in `read_ceilings` (tools/audio/snes_music.py).
 This is how it comes out:
 
 1. **A copy of `release` with every song at half the headroom**
@@ -204,7 +204,7 @@ def temas_armados(directorio):
     each. The converter writes them in `musica.json`, next to
     `musicdata.inc`.
 
-    Until 2026-09-26 they were rebuilt here with `build_varios`, which gave
+    Until 2026-09-26 they were rebuilt here with `build_all`, which gave
     the same result because the bank depended only on the songs. Since the
     per-package budget it also depends on each map's packages and on which
     song may be playing in each one, which come from compiling the pages:
@@ -220,14 +220,14 @@ def db(pico):
 
 def escribir(techos, medido, huellas, ruta=None):
     """The table, with its reason on top."""
-    ruta = ruta or snes_music.ruta_de_techos()
+    ruta = ruta or snes_music.ceilings_path()
     lineas = [
         "# The volume ceiling of each song of `release`: the headroom",
-        "# `build_varios` builds its stream with, instead of `sdsp.HEADROOM`.",
+        "# `build_all` builds its stream with, instead of `sdsp.HEADROOM`.",
         "#",
         "# **Not edited by hand**: `just techos` writes it, playing each song",
         "# in the ROM and giving it the highest headroom that does not clip.",
-        "# The reason, in `leer_techos`, which is where the converter reads it;",
+        "# The reason, in `read_ceilings`, which is where the converter reads it;",
         "# how it is measured, in `rm2k-snes-volume-ceilings`.",
         "# `test_musica_techos.py` fails if any song clips or if the mix of",
         "# any of them is no longer the one measured: the fingerprint. Any",
@@ -237,7 +237,7 @@ def escribir(techos, medido, huellas, ruta=None):
         "# Per song: `aire`, the ceiling; `pico`, in dB against the cap, and",
         "# `lufs`, the level, both measured with that headroom; `hasta`, how",
         "# many frames from the start it has to be played to go through its",
-        "# peak; and `huella`, that of `huella_de_la_mezcla`.",
+        "# peak; and `huella`, that of `mix_fingerprint`.",
         "",
         "[medida]",
         "aire_de_medida = %s" % AIRE_DE_MEDIDA,
@@ -324,7 +324,7 @@ def main():
     # stamp looks only at the table's headrooms (see `cartuchos.huella`).
     escribir(techos, medido, huellas)
     imprimir(medido, techos)
-    print("-> %s" % os.path.relpath(snes_music.ruta_de_techos()))
+    print("-> %s" % os.path.relpath(snes_music.ceilings_path()))
 
 
 if __name__ == "__main__":

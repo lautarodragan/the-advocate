@@ -37,3 +37,10 @@ ejecutable corrido por su nombre desde /tmp con `--project`.
 - `audio/sdsp.py` y `audio/midi.py`: los nombres; los archivos ya estaban
   en inglés.
 - `audio/snes_samples.py`: los nombres.
+- `audio/snes_music.py`: los nombres, con los atributos de `Bank`,
+  `SoundEffect`, `Constraint`, `Group`, `NoteSetup` y `_Voice`. Quedan en
+  castellano, a propósito, las claves de los dicts que arma —`leido["voces"]`,
+  `tema["sonidos"]`…—, que leen el conversor y las pruebas y terminan en
+  `musica.json`; las etiquetas del driver del SPC700; y lo que va adentro
+  del texto de `musicdata.inc`, que tiene que salir igual: nombra todavía
+  `lugares_de_efectos` y `build_efectos`.

@@ -66,7 +66,7 @@ def test_las_pistas_de_release_no_llegan_al_core(tmp_path):
 # --- todo tema tiene su pista -----------------------------------------------
 #
 # Lo pidió taro el 2026-09-26: con MSU-1, **todos** los temas suenan desde su
-# pista. El número lo da `snes_music.pista_msu` y las pistas las arma
+# pista. El número lo da `snes_music.msu_track` y las pistas las arma
 # `tools/audio/msu.py` al lado de `release`; esto mira las tres cosas juntas
 # —el `musica.json` del conversor, la `tema_msu` de la ROM y los `.pcm`—,
 # porque cada una por separado puede estar bien y no coincidir con las otras.
@@ -86,7 +86,7 @@ def test_todo_tema_tiene_su_pista():
     for i, tema in enumerate(temas):
         # "(OFF)", o un nombre que no está ni en Music/ ni en el del RTP: no
         # hay de dónde sacar la pista, y el tema no suena ni por el SPC700.
-        if not snes_music.ruta_del_tema(tema["nombre"], GAME_DIR):
+        if not snes_music.song_path(tema["nombre"], GAME_DIR):
             continue
         numero = tema.get("pista")
         if not numero:

@@ -800,7 +800,7 @@ class Temas:
     def sonido(self, nombre, volumen, tempo, balance, al_paquete=True):
         """The effect's index. Without `al_paquete` it is not noted in the
         map's package: it only sounds if something else puts it there. See
-        `se_de_ruta_sin_paquete` in snes_music.py. It does not count in
+        `se_route_left_out` in snes_music.py. It does not count in
         `pedidos` either: one that is not in the package does not sound, so
         it does not keep a song from being an exit song."""
         clave = (nombre, volumen, tempo, balance)
@@ -1798,7 +1798,7 @@ def lluvia_pixeles(x, y):
 # the index of its entry in `Temas.sonidos`, and the ROM's table says with
 # which sample, what pitch, what volume on each side and how many frames. The
 # samples go in ARAM next to the music's bank, with a budget of their own: see
-# `build_efectos` in snes_music.py. They play on voice 7, which is stolen from
+# `build_sound_effects` in snes_music.py. They play on voice 7, which is stolen from
 # the music while they last. They cost no tick, as in RM2k.
 #
 # OP_SOUND: index (word)
@@ -3256,7 +3256,7 @@ class PaginasDeTropa:
         """A troop's pages. With `temas`, a `PlaySound` is compiled with its
         effect, which counts for **the battle's audio package** —the one
         loaded when the page runs, see `PAQUETE_BATALLA`— and not for the
-        map's; and it goes into it only if it is in `se_de_tropa_al_paquete`
+        map's; and it goes into it only if it is in `se_troop_in_package`
         (snes_music.py): otherwise it is asked for and does not sound, like a
         route one that does not fit. Without `temas` it is accepted and not
         done."""
@@ -4406,8 +4406,8 @@ def indice_de_sonido(temas, indice_de_mapa, nombre, volumen, tempo, balance,
 
     The ones that on some map sound with another sample —map 1's whole
     thunder— carry another name for the same WAV, so the other maps keep
-    theirs. See `se_del_mapa` in snes_music.py. And the route ones of the
-    `se_de_ruta_sin_paquete` maps do not go into the package: see there."""
+    theirs. See `se_per_map` in snes_music.py. And the route ones of the
+    `se_route_left_out` maps do not go into the package: see there."""
     from audio import snes_music
 
     def es(mapa):
@@ -4418,17 +4418,17 @@ def indice_de_sonido(temas, indice_de_mapa, nombre, volumen, tempo, balance,
 
     al_paquete = True
     if temas.mapa is not None:
-        for (base, mapa), alias in snes_music.se_del_mapa().items():
+        for (base, mapa), alias in snes_music.se_per_map().items():
             if nombre == base and es(mapa):
                 nombre = alias
                 break
         if de_ruta:
             al_paquete = not any(
                 es(m) and (cuales is None or nombre in cuales)
-                for m, cuales in snes_music.se_de_ruta_sin_paquete().items())
+                for m, cuales in snes_music.se_route_left_out().items())
     if temas.mapa == PAQUETE_BATALLA:
-        # A troop page's: see `se_de_tropa_al_paquete`.
-        al_paquete = nombre in snes_music.se_de_tropa_al_paquete()
+        # A troop page's: see `se_troop_in_package`.
+        al_paquete = nombre in snes_music.se_troop_in_package()
     return temas.sonido(nombre, volumen, tempo, balance, al_paquete)
 
 

@@ -131,14 +131,14 @@ def test_con_msu_el_efecto_suena_entero_y_a_su_tasa(tmp_path):
         "en el mapa 10 no tenía que sonar ninguna pista: el audio del efecto "
         "no se puede mirar solo")
     altura = int.from_bytes(nuevo[1:3], "little")
-    esperada = snes_music.altura_de_efecto(
-        snes_music.Efecto("Success2", b"", 22050, None, 0), 100)
+    esperada = snes_music.effect_pitch(
+        snes_music.SoundEffect("Success2", b"", 22050, None, 0), 100)
     assert altura == esperada, (
         "Success2 arrancó con la altura %d y la de 22.050 Hz es %d: la ROM no "
         "tomó la del .msu, o el paquete del 10 dejó de entrar a la tasa del "
         "WAV" % (altura, esperada))
 
-    crudo, fuente = snes_music.leer_wav("Success2")
+    crudo, fuente = snes_music.read_wav("Success2")
     del_wav = _envolvente(numpy.array(crudo, float), fuente)
     grabada = _envolvente(muestras, tasa)
     n = min(len(grabada), len(del_wav)) - 5
@@ -175,12 +175,12 @@ def test_con_msu_el_efecto_de_una_ruta_suena_entero(tmp_path):
         "con MSU-1 y el .msu del cartucho, la ROM no lo aceptó para los "
         "efectos")
     altura = int.from_bytes(nuevo[1:3], "little")
-    esperada = snes_music.altura_de_efecto(
-        snes_music.Efecto("Close1", b"", 22050, None, 0), 100)
+    esperada = snes_music.effect_pitch(
+        snes_music.SoundEffect("Close1", b"", 22050, None, 0), 100)
     assert altura == esperada, (
         "Close1 arrancó con la altura %d y la de 22.050 Hz es %d" % (
             altura, esperada))
-    crudo, fuente = snes_music.leer_wav("Close1")
+    crudo, fuente = snes_music.read_wav("Close1")
     del_wav = _envolvente(numpy.array(crudo, float), fuente)
     grabada = _envolvente(muestras, tasa)
     n = min(len(grabada), len(del_wav)) - 5

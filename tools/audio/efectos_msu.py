@@ -41,21 +41,21 @@ from audio import snes_samples
 # one package —the BRR cache encodes it once—.
 TASAS = (22050, 20000, 18000, 16000, 14000, 12000, 11025, 10000, 9000, 8000,
          7500, 7000, 6500, 6000, 5500, 5000, 4500, 4000, 3500, 3000)
-# What is left free in each package, as with the music: `ARAM_MARGEN`.
-MARGEN = snes_music.ARAM_MARGEN
+# What is left free in each package, as with the music: `ARAM_MARGIN`.
+MARGEN = snes_music.ARAM_MARGIN
 
 
-# `rate` and not `tasa`: that is how `snes_music.altura_de_efecto` reads it,
-# the same as an `Efecto`.
+# `rate` and not `tasa`: that is how `snes_music.effect_pitch` reads it,
+# the same as a `SoundEffect`.
 Version = collections.namedtuple("Version", "nombre rate data")
 
 
 def armar(nombre, tasa, game_dir):
     """The whole sound effect, without a loop, at `tasa` —or at its WAV's rate,
-    if lower—, in BRR. It is what `snes_music.build_efecto` does with a sound
-    effect from `se_enteros()`, and the normalization is the same: it sounds
+    if lower—, in BRR. It is what `snes_music.build_sound_effect` does with a sound
+    effect from `se_whole()`, and the normalization is the same: it sounds
     as loud as the ROM's."""
-    crudo, fuente = snes_music.leer_wav(nombre.split("@")[0], game_dir)
+    crudo, fuente = snes_music.read_wav(nombre.split("@")[0], game_dir)
     tasa = min(tasa, fuente)
     salen = max(brr_samples.BLOCK_SAMPLES,
                 int(round(len(crudo) * tasa / float(fuente)))
@@ -78,7 +78,7 @@ def tasas(paquetes, efectos, libre, game_dir):
 
     `paquetes` are (name, sound effects, bytes of the music that does get
     uploaded with MSU-1): that of the package's songs that have no track.
-    `efectos` is `banco.efectos` —{name: (SRCN, Efecto)}—, which gives each
+    `efectos` is `bank.effects` —{name: (SRCN, SoundEffect)}—, which gives each
     one's floor: the cartridge's rate if it goes whole there. `libre` is what
     the ARAM has for samples.
     """
@@ -90,9 +90,9 @@ def tasas(paquetes, efectos, libre, game_dir):
             continue
         for e in suyos:
             if e not in wavs:
-                crudo, fuente = snes_music.leer_wav(e.split("@")[0], game_dir)
+                crudo, fuente = snes_music.read_wav(e.split("@")[0], game_dir)
                 wavs[e] = (len(crudo), fuente)
-        piso = {e: 0 if efectos[e][1].repite else efectos[e][1].rate
+        piso = {e: 0 if efectos[e][1].repeats else efectos[e][1].rate
                 for e in suyos}
         hay = libre - MARGEN - musica
         elegida = {}

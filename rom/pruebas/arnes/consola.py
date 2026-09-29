@@ -57,7 +57,7 @@ WRAM = 0x20000
 # Cómo cuentan `muestras_en_la_aram` y `muestras_del_paquete` a un efecto de
 # sonido: este número más el del efecto. Una entrada del directorio no alcanza
 # para nombrarlo, porque varios efectos comparten lugar —ver
-# `lugares_de_efectos` en snes_music.py—, y ninguna entrada llega a 256, así
+# `effect_places` en snes_music.py—, y ninguna entrada llega a 256, así
 # que no se confunde con una muestra de la música.
 EFECTO = 0x100
 
@@ -907,7 +907,7 @@ class Partida:
         cartucho**.
 
         Es la misma tabla que mira `tema_asegurar`, y se lee de la ROM en vez
-        de recalcularla con `snes_music.muestras_del_tema`: recalcularla
+        de recalcularla con `snes_music.song_samples`: recalcularla
         sería una segunda manera de contestar la pregunta, y las dos se pueden
         equivocar igual. Un índice de desplazamientos de dos bytes por tema
         —`TEMA_TOTAL` de ellos— y detrás una lista por tema cerrada con $FF.
@@ -988,12 +988,12 @@ class Partida:
     def escrituras_del_tema(self, indice):
         """Lo que el stream del tema le escribe al DSP, (cuadro, registro,
         valor), una vuelta: sus bytes en el cartucho, decodificados con
-        `snes_music.decodificar`, que es el modelo de `music_frame`."""
+        `snes_music.decode`, que es el modelo de `music_frame`."""
         from audio import snes_music
         direccion, sonidos = self.stream_del_tema(indice)
         with open(self.sfc, "rb") as archivo:
             rom = archivo.read()
-        return snes_music.decodificar(DelCartucho(rom, direccion), sonidos)
+        return snes_music.decode(DelCartucho(rom, direccion), sonidos)
 
     def acceso(self):
         """El byte de permisos: bit 0 guardar prohibido, bit 1 el menú

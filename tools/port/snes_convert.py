@@ -7328,7 +7328,7 @@ def parser_de_flags():
                              "the volume ceiling table: it is what "
                              "`tools/audio/techos.py` builds the ROM where it "
                              "measures each song's peak with. See "
-                             "`leer_techos` in tools/audio/snes_music.py")
+                             "`read_ceilings` in tools/audio/snes_music.py")
     parser.add_argument("--hp-de-enemigos", action="store_true",
                         help="the battle shows the enemies' HP, which RM2k "
                              "never shows: for debugging. It is asked for by "
@@ -8171,7 +8171,7 @@ def main():
     # map the ROM boots in plays; the others are started by a `PlayBGM`, or
     # by the map that is entered if it brings its own —see `mapa_tema_callar`
     # in tools/runtime/cargar_mapa.s—. What rate each sample ends up at is
-    # decided by the ARAM, package by package: see `Banco` in snes_music.py.
+    # decided by the ARAM, package by package: see `Bank` in snes_music.py.
     musica = os.path.join(os.path.dirname(os.path.abspath(args.output)),
                           "musicdata.inc")
     pedidos, arranque, tema_titulo, tema_de_mapa, tema_game_over = (
@@ -8185,9 +8185,9 @@ def main():
     # first —in the demo, the rain and the thunder of the opening—. Only the
     # ones that are in some package: one that isn't in any doesn't sound
     # anywhere —its row of `sonido_tabla` stays at $FF— and building it would
-    # cost the music, because `snes_music.copias` counts the cartridge's
+    # cost the music, because `snes_music.copies` counts the cartridge's
     # sound effects. It happens with the route ones of
-    # `se_de_ruta_sin_paquete`.
+    # `se_route_left_out`.
     empaquetados = {n for pide in temas.por_mapa.values()
                     for n in pide["sonidos"]}
     pedidos_se = []
@@ -8200,7 +8200,7 @@ def main():
     # they appear, which is the priority the ROM uploads them with if they
     # don't all fit. See `paquete_cargar` in tools/runtime/paquete_de_audio.s.
     # They are built **before** the bank, by name, because each sample's
-    # budget comes from them: see `snes_music.Banco`.
+    # budget comes from them: see `snes_music.Bank`.
     paquetes, apartes = [], []
     for i, _mapa in enumerate(mapas):
         pide = temas.por_mapa.get(i, {"temas": [], "sonidos": []})
@@ -8226,8 +8226,8 @@ def main():
         suyos = [t for t in suyos if t not in salida]
         # And the separate ones, which don't go with the other songs either:
         # their `PlayBGM` uploads them with the package's sound effects. See
-        # `temas_aparte`.
-        aparte = [t for t in suyos if pedidos[t] in snes_music.temas_aparte().get(
+        # `separate_songs`.
+        aparte = [t for t in suyos if pedidos[t] in snes_music.separate_songs().get(
                       _mapa["id"], ()) and t != tema_de_mapa[i]
                   and not (i == args.inicial and t == arranque)]
         suyos = [t for t in suyos if t not in aparte]
@@ -8270,9 +8270,9 @@ def main():
                                apartes, no_se_dan=settings.value(
                                    "music", "jumps_that_never_happen",
                                    kind=list))
-    driver, muestras, hechos, banco = snes_music.build_varios(
+    driver, muestras, hechos, banco = snes_music.build_all(
         pedidos, args.game_dir, pedidos_se, por_nombre, herencia,
-        aire_de_medida=args.aire_de_medida)
+        measuring_headroom=args.aire_de_medida)
     # And what `tools/audio/techos.py` needs from each song —how long it lasts
     # and the fingerprint of its mix—, written next to it: the bank can no
     # longer be rebuilt without compiling the pages, which is where the
@@ -8288,12 +8288,12 @@ def main():
              "pista": t["pista"]} for t in hechos]},
             handle, indent=1)
     # Each package's sound effects go by number and not by SRCN: several share
-    # the directory's place. See `snes_music.lugares_de_efectos`.
-    efectos = getattr(banco, "efectos", {})
-    efecto_id = getattr(banco, "efecto_id", {})
+    # the directory's place. See `snes_music.effect_places`.
+    efectos = getattr(banco, "effects", {})
+    efecto_id = getattr(banco, "effect_id", {})
     paquetes = [(suyos, [efecto_id[n] for n in suyas if n in efectos], salida)
                 for suyos, suyas, salida in paquetes]
-    directorio = (len(banco.voces), getattr(banco, "lugares", 0))
+    directorio = (len(banco.voices), getattr(banco, "places", 0))
     efecto_lugar = [srcn - directorio[0] for srcn, _e in sorted(
         efectos.values(), key=lambda v: efecto_id[v[1].name])]
     if pide:
@@ -8307,11 +8307,11 @@ def main():
     # the boot map's package took longer, it would come out later and the
     # tests —which count from there— would count wrong. See the comment on
     # `BOOT_CUADROS` in tools/runtime/ram_lejana.s.
-    cuadros, del_paquete = snes_music.cuadros_del_arranque(
+    cuadros, del_paquete = snes_music.boot_frames_estimate(
         driver, muestras, hechos, paquetes[args.inicial],
         cuadros_de_descomprimir(mapas[args.inicial], comprimidos),
         directorio)
-    tope = snes_music.boot_cuadros()
+    tope = snes_music.boot_frames()
     if cuadros > tope:
         raise SystemExit(
             "the boot doesn't fit in BOOT_CUADROS: the boot map's package is "
@@ -8322,7 +8322,7 @@ def main():
     print("  boot: the boot map's package is %d B, %.0f of "
           "the %d frames of BOOT_CUADROS" % (del_paquete, cuadros, tope))
     snes_music.emit(musica, hechos, driver, muestras, arranque, tema_titulo,
-                    snes_music.tabla_de_sonidos(temas.sonidos, banco),
+                    snes_music.sound_table(temas.sonidos, banco),
                     [p + (aparte,) for p, aparte in zip(paquetes, apartes)],
                     tema_de_mapa, directorio, efecto_lugar,
                     game_over=(tema_game_over, paquete_game_over))
@@ -8382,36 +8382,36 @@ def main():
     if hechos:
         print("  shared bank: %d samples, %d B in the cartridge; each "
               "package has %d B of ARAM for its samples"
-              % (len(banco.voces), sum(len(v.data) for v in banco.voces),
-                 banco.libre))
+              % (len(banco.voices), sum(len(v.data) for v in banco.voices),
+                 banco.free))
         # What rate each sample ended up at and which package limited it: it
         # is what is heard, and what says where to look for room if needed. A
         # key with copies comes out once per copy, with the songs that use it:
-        # see `snes_music.copias`.
+        # see `snes_music.copies`.
         usan = collections.defaultdict(list)
-        for tema, suya in zip(hechos, banco.asignacion):
+        for tema, suya in zip(hechos, banco.assignment):
             for muestra in suya.values():
                 usan[muestra].append(tema["nombre"])
-        for clave, voz in zip(banco.claves, banco.voces):
+        for clave, voz in zip(banco.keys, banco.voices):
             print("    %s %3d %-10s %5.1f kHz, %5d B%s%s%s"
                   % ("program " if clave[0] == "p" else "hit     ", clave[1],
                      voz.name.strip()[:10], voz.rate / 1000.0, len(voz.data),
                      ", root %d" % voz.root if clave[0] == "p" else "",
-                     ", limited by " + banco.limita[clave]
-                     if clave in banco.limita else "",
+                     ", limited by " + banco.limited_by[clave]
+                     if clave in banco.limited_by else "",
                      ", for " + " ".join(usan[clave])
                      if len(clave) > (3 if clave[0] == "p" else 2)
                      or any(len(k) > len(clave) and k[:len(clave)] == clave
-                            for k in banco.claves) else ""))
+                            for k in banco.keys) else ""))
         # And how much each package has left over, with its sound effects: the
         # whole ones with what they really take, not with what the music
         # budgeted for them. The bank's constraints already bring them that way
-        # —they are those of `reales`, see `snes_music.copias`—: subtracting
+        # —they are those of `reales`, see `snes_music.copies`—: subtracting
         # the extra again gave packages that didn't fit and did fit.
-        for r in banco.restricciones:
+        for r in banco.constraints:
             print("    package %-28s %5d B of samples, %5d left over"
-                  % (r.nombre[:28], banco.ocupa(r.claves),
-                     r.libre - banco.ocupa(r.claves)))
+                  % (r.name[:28], banco.takes(r.keys),
+                     r.free - banco.takes(r.keys)))
 
 
 def escribir_msu(ruta, musica, fondos, por_nombre, paquetes, hechos, muestras,
@@ -8430,13 +8430,13 @@ def escribir_msu(ruta, musica, fondos, por_nombre, paquetes, hechos, muestras,
     sound effect that is in two packages goes twice even if at the same rate:
     a seek costs Mednafen one or two frames, and the file has no cap.
 
-    `por_nombre` are the ROM's packages as `build_varios` sees them —with the
+    `por_nombre` are the ROM's packages as `build_all` sees them —with the
     names of their sound effects— and `paquetes` the same as `emit` emits them
     —with their sound effect numbers—, in the same order. See
     tools/audio/efectos_msu.py.
     """
-    efectos = getattr(banco, "efectos", {})
-    de_numero = {i: n for n, i in getattr(banco, "efecto_id", {}).items()}
+    efectos = getattr(banco, "effects", {})
+    de_numero = {i: n for n, i in getattr(banco, "effect_id", {}).items()}
     # What the music takes with MSU-1 in each package: only the songs without
     # a track, which `tema_por_msu` doesn't skip.
     pesa = {}
@@ -8446,12 +8446,12 @@ def escribir_msu(ruta, musica, fondos, por_nombre, paquetes, hechos, muestras,
         for t in temas:
             if hechos[t]["pista"] is None:
                 if t not in pesa:
-                    pesa[t] = snes_music.muestras_del_tema(hechos[t])
+                    pesa[t] = snes_music.song_samples(hechos[t])
                 suyas |= set(pesa[t])
         return sum(len(muestras[i].data) for i in suyas)
     pedidos = [(str(p[0]), list(p[2]), musica_de(p[1]))
                for p in por_nombre]
-    tasas = efectos_msu.tasas(pedidos, efectos, banco.libre, game_dir)
+    tasas = efectos_msu.tasas(pedidos, efectos, banco.free, game_dir)
     unicas = sorted({(e, t) for suyas in tasas.values()
                      for e, t in suyas.items()})
     hechas = dict(zip(unicas, in_parallel(
@@ -8506,7 +8506,7 @@ def escribir_msu(ruta, musica, fondos, por_nombre, paquetes, hechos, muestras,
         for k, (efecto, _volumen, tempo, _balance) in enumerate(sonidos):
             altura = 0
             if efecto in suyas:
-                altura = snes_music.altura_de_efecto(
+                altura = snes_music.effect_pitch(
                     hechas[efecto, suyas[efecto]], tempo)
             # Zero is "not from here" for the ROM, so it isn't stored.
             if altura:
@@ -8565,7 +8565,7 @@ def escribir_msu(ruta, musica, fondos, por_nombre, paquetes, hechos, muestras,
 def temas_heredados(temas, tema_de_mapa, inicial, titulo, nombres_de_paquete,
                     del_paquete=None, apartes=None, no_se_dan=()):
     """[(package name, index of a song that can be already playing when it
-    loads)], for `snes_music.build_varios`.
+    loads)], for `snes_music.build_all`.
 
     Almost no map of the game brings its own song: a page starts it, and
     until then the previous map's keeps going, and `paquete_cargar_ya`
@@ -8600,7 +8600,7 @@ def temas_heredados(temas, tema_de_mapa, inicial, titulo, nombres_de_paquete,
     `lleva`.
 
     `apartes` are the separate songs of each package —see
-    `snes_music.temas_aparte()`—: they don't leave the map, so they don't
+    `snes_music.separate_songs()`—: they don't leave the map, so they don't
     count in what goes out.
 
     `no_se_dan` are the jumps of compiled pages that can't happen, as
@@ -8664,7 +8664,7 @@ def temas_de_la_rom(map_id, temas, game_dir, titulo=None, map_ids=(),
     the map where the ROM boots, which is the one that plays without anything
     happening. **And all of them fit**: the index is given by the list and
     costs no ARAM. What the ARAM limits is the samples, and that is allocated
-    by `snes_music.build_varios` per package: at the rate the worst package of
+    by `snes_music.build_all` per package: at the rate the worst package of
     each one gives, but all of them.
 
     The indices are those of `Temas` and aren't touched: the bytecode already
@@ -8678,7 +8678,7 @@ def temas_de_la_rom(map_id, temas, game_dir, titulo=None, map_ids=(),
     through a teleport. They go behind all, for the same reason, and as each
     one's index or $FF, which is "entering doesn't change the music".
     """
-    propio = snes_music.tema_del_mapa(map_id, game_dir)
+    propio = snes_music.song_of_map(map_id, game_dir)
     if propio:
         temas.indice(propio)            # adds it at the end if it wasn't there
     # The title screen's goes after, for the same reason: adding at the end is
@@ -8694,7 +8694,7 @@ def temas_de_la_rom(map_id, temas, game_dir, titulo=None, map_ids=(),
     if game_over:
         temas.indice(game_over)
     de_cada_mapa = []
-    for nombre in snes_music.temas_de_los_mapas(map_ids, game_dir):
+    for nombre in snes_music.songs_of_maps(map_ids, game_dir):
         indice = temas.indice(nombre) if nombre else 0xFF
         # $FF is "doesn't change": a song with that number couldn't be
         # started. A `PlayBGM`, which carries the index in one byte, wouldn't

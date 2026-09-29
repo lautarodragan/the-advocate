@@ -219,7 +219,7 @@ def pitch_for(note, root, rate, length=None):
 # drops about 3.6 dB where it did not clip before —`escape_newyork` comes out
 # at -17.3 LUFS—. **And it is the ceiling, not everyone's**: since 2026-09-26
 # the song that would clip at 0.5 gets a lower one, its own, measured and
-# versioned —see `leer_techos` in snes_music.py—. What does not clip stays at
+# versioned —see `read_ceilings` in snes_music.py—. What does not clip stays at
 # 0.5. Measured against A Blurred Line: an assumption of the engine, not data
 # from the game. See `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 HEADROOM = 0.5

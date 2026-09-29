@@ -22,7 +22,7 @@ That is why **there is no batch mode**, which was the other way to do this.
 Launching the binary costs 0.0005 s —0.30 s for the 608, measured one by
 one—, so gathering all the samples into a single invocation would save
 0.35 s, in exchange for one more mode in Gunter. And on top of that they
-cannot be gathered completely: `snes_music`'s `Banco` rebuilds the samples
+cannot be gathered completely: `snes_music`'s `Bank` rebuilds the samples
 of a package that went over by looking at how much they took, so the jobs
 never all exist together at any point.
 

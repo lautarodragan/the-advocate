@@ -207,7 +207,7 @@ def huella():
     # measured —the peak, the mix fingerprint— after building, and that does
     # not change the ROM.
     from audio import snes_music
-    h.update(repr(sorted(snes_music.leer_techos().items())).encode())
+    h.update(repr(sorted(snes_music.read_ceilings().items())).encode())
     return h.hexdigest()[:16]
 
 

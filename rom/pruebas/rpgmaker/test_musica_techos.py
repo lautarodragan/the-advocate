@@ -8,7 +8,7 @@ ROM —`just techos`, ver tools/audio/techos.py—. Medirlo cuesta unos cuatro
 minutos, así que acá no se mide: se cobra que lo medido siga valiendo.
 
 * **La huella**: lo que el pico de un tema puede mover —lo que le escribe al
-  DSP y las muestras que toca, ver `huella_de_la_mezcla`— tiene que ser lo
+  DSP y las muestras que toca, ver `mix_fingerprint`— tiene que ser lo
   que se midió. El paso 6 cambia las muestras y con ellas los picos; sin
   esto, la tabla quedaría vieja sin avisar.
 * **Los que quedaron cerca del tope**, tocados en la ROM hasta pasar por su
@@ -34,7 +34,7 @@ CERCA = 1.5
 
 
 def _tabla():
-    with open(snes_music.ruta_de_techos(), "rb") as archivo:
+    with open(snes_music.ceilings_path(), "rb") as archivo:
         return tomllib.load(archivo)["temas"]
 
 
@@ -56,7 +56,7 @@ def test_la_tabla_de_techos_es_la_de_esta_mezcla():
     assert not viejos, (
         "la mezcla de %s cambió desde que se midió su techo, así que su pico "
         "ya no es el de la tabla: correr `just techos` y mirar el diff de %s"
-        % (", ".join(viejos), os.path.relpath(snes_music.ruta_de_techos())))
+        % (", ".join(viejos), os.path.relpath(snes_music.ceilings_path())))
 
 
 @pytest.mark.parametrize("nombre", _cerca())

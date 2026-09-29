@@ -3,7 +3,7 @@
 
 MSU-1 is not Super Nintendo hardware: it is an extension supported by the FX
 Pak Pro and by emulators, with the music in PCM files next to the ROM. Every
-song has a track —the number comes from `pista_msu`, in snes_music.py—, and
+song has a track —the number comes from `msu_track`, in snes_music.py—, and
 with MSU-1 the ROM silences the SPC700 and plays the track; without MSU-1 the
 signature is not there and everything sounds as always. See
 `workflow/tasks/done/audio-msu-1.md`, and for the battle backgrounds that
@@ -311,7 +311,7 @@ def _una_pista(base, nombre, numero, game_dir, soundfont, ganancia,
     audio = reemplazo(reemplazos, nombre)
     midi = None
     if not audio:
-        fuente = snes_music.ruta_del_tema(nombre, game_dir)
+        fuente = snes_music.song_path(nombre, game_dir)
         if not fuente:
             sys.exit("cannot find the music for %s" % nombre)
         if fuente.lower().endswith(".mid"):
