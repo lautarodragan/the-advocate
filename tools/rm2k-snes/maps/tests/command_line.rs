@@ -181,6 +181,15 @@ fn check(out: &Path, want: &rm2k_snes_map_background::Converted) {
         .collect();
     let wanted: Vec<&str> = want.pictures.iter().map(|p| p.name.as_str()).collect();
     assert_eq!(pictures, wanted);
+    // The blocks: one per cell, each block sixteen bytes of the table and
+    // one of passability and one of terrain.
+    let cells = answer["blocks"]["cells"].as_array().unwrap();
+    assert_eq!(cells.len(), WIDTH * HEIGHT);
+    let count = std::fs::read(out.join("block-passability.bin")).unwrap().len();
+    assert_eq!(std::fs::read(out.join("blocks.bin")).unwrap().len(), 16 * count);
+    assert_eq!(std::fs::read(out.join("block-terrain.bin")).unwrap().len(), count);
+    assert!(cells.iter().all(|c| (c.as_u64().unwrap() as usize) < count));
+    assert_eq!(answer["passability"].as_array().unwrap().len(), WIDTH * HEIGHT);
     for p in answer["pictures"].as_array().unwrap() {
         let read = voodoo::image::read(&out.join(p["file"].as_str().unwrap())).unwrap();
         let decided = &want.pictures.iter().find(|d| d.name == p["name"]).unwrap().picture;

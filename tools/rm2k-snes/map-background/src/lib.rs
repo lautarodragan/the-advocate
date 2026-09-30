@@ -5,12 +5,15 @@
 //!
 //! * [`layers`]: the lower half of colour memory split between the two, the
 //!   colours at 15 bits, what is lost when they do not fit —Adeleine's
-//!   decision— and each layer cut into tiles —Voodoo's work—.
+//!   decision— and each layer cut into tiles —Voodoo's work—;
+//! * [`blocks`]: the map as indices into a table of 16x16 blocks, each with
+//!   its cells of both layers, its passability and its terrain.
 //!
 //! It knows nothing of the sprites, which get the upper half of colour
 //! memory and their own VRAM bank, and nothing of which game the map is
 //! from.
 
+pub mod blocks;
 pub mod fail;
 pub mod grid;
 pub mod layers;

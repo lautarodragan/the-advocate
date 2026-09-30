@@ -360,6 +360,9 @@ class Renderer:
                 _layer_bytes(game_map.lower_layer),
                 _layer_bytes(game_map.upper_layer),
                 bytes(chipset.passable_lower), bytes(chipset.passable_upper),
+                # The terrain, which the stage that converts the layers
+                # also puts in the map's 16x16 blocks.
+                _layer_bytes(chipset.terrain or []),
                 image]
 
     def chipset_fingerprint(self, filename):

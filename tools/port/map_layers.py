@@ -473,6 +473,17 @@ def _stage_layers(renderer, game_map, baked):
         "imagenes": pictures,
         "fusiones": {"fondo": merges(bg["merges"]),
                      "encima": merges(above["merges"])},
+        # The map in blocks of 16x16 and each cell's passability, which the
+        # stage makes from the same map and the two tilemaps. They go in the
+        # summary and not in a third element for the reason `fusiones` does:
+        # `_same_cgram_split` compares the layers' tuples whole, and the
+        # summary field by field.
+        "pasabilidad": bytes(answer["passability"]),
+        "bloques": {"celdas": answer["blocks"]["cells"],
+                    "tabla": written["blocks.bin"],
+                    "pass": written["block-passability.bin"],
+                    "terreno": written["block-terrain.bin"],
+                    "combos": [tuple(c) for c in answer["blocks"]["combos"]]},
     }
     return ((written["background.bin"], bg["cgram"], bg["tilemap"], stats),
             (written["above.bin"], written["above-cgram.bin"],

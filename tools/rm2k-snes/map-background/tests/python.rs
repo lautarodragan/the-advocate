@@ -12,11 +12,18 @@
 //! background with both families of the ChipSet's animation, each moving
 //! its own cells. Colours go in at 24 bits, so the 15-bit cut is in it too.
 //!
+//! The blocks are made of those layers' tilemaps, over made-up tile ids of
+//! every family, passability and terrain: the terrain from a ChipSet whose
+//! table is not all 1, through `rm2k-rules`.
+//!
 //! **If one of these changes, a byte of the cartridge changed.** The
 //! hashes are not to be regenerated to make a test pass: the Python that
 //! produced them is gone, and with it the only independent answer.
 
+use ditto::schema::Chipset;
 use rm2k_render::{Family, Layers, Picture};
+use rm2k_rules::chipset::terrain_of;
+use rm2k_snes_map_background::blocks::{blocks, Map};
 use rm2k_snes_map_background::{convert, Merge};
 use sha2::{Digest, Sha256};
 
@@ -326,4 +333,116 @@ fn the_pictures_are_what_was_decided() {
     let above = &done.pictures[6].picture;
     let first = done.above.first * 16;
     assert!(above.pixels.iter().all(|&i| i == 0 || i as usize > first));
+}
+
+struct ExpectedBlocks {
+    cells: &'static str,
+    table: &'static str,
+    passability: &'static str,
+    terrain: &'static str,
+    combos: &'static str,
+    blocks: usize,
+}
+
+const BLOCKS: [(&str, ExpectedBlocks); 5] = [
+    ("plain", ExpectedBlocks {
+        cells: "a46b67c8fb1c4c35fdfc8387c647f8c442a84e1520334a92a127f740b4c1dd5c",
+        table: "696185753d9192ea3dd865b327d72b09307ccd80c6e1aea6652c544a0629b015",
+        passability: "284359ab75a4a675946435affff13377bda58ecb26dbd58197156fd422e96fbb",
+        terrain: "93b6673a6e95d9375e47cb83e7c1775af73446f74bc9f18811a9ae37f7d48869",
+        combos: "e07d93c5fd046f6bce3a37b978d5bcfaa677a05e4154ba53b2c404b11774c584",
+        blocks: 12,
+    }),
+    ("crowded", ExpectedBlocks {
+        cells: "e88624bf274aff4f35798f4bc27027683e9c1d78f132211a3cc4ae5b3decd4e3",
+        table: "f06d3e029489100b2b4571155d3b52366b8b2675d738f85abd2dfaf28c9460b0",
+        passability: "4abdce997ed94d2d3f7353f3707701ebf205e7642c357d4a1d21e8ae1304848c",
+        terrain: "4d0fe0acaf91c4ffbe8f9316fde2ee6b7ecb5b82b6c41cb8cd1b2c889133676e",
+        combos: "c5189adc8a8b6c4d49ec1a22b6e07cd0950a36402cc7aaba6777df6774498894",
+        blocks: 24,
+    }),
+    ("animated", ExpectedBlocks {
+        cells: "cf6cf8ff894814c395340e3b27ff21b83897b43f30ccad058d8340de5dd46ed8",
+        table: "c39c7d9e6240b2ce8edc31c80ad7f337676fd9fa1d141ad70a0013d5d8754f31",
+        passability: "ccb9d89a0f646e1157f45fb6cab35a984ae2af6c4912046ab4289a159e05bea4",
+        terrain: "65c7dccad540e49232e4cc6f4797b7c3031a8b87fc11927adf7ec36f01ff68cb",
+        combos: "76a222edc33d23aca20e582091aca43cede959a5095b782f0206723df6bb0365",
+        blocks: 20,
+    }),
+    ("split", ExpectedBlocks {
+        cells: "64a240d34d0c29ec867f653721a1532de6e665e602e7c03e0b853c9ef3094126",
+        table: "574bbdf71866c22bd2172a3ea8eeec299bda3e588dbef1fbb396f2bb87fb6169",
+        passability: "0d1339c5569dfa55c85cd91580f301ecf44f51759cfbc61f6a98815c97b12da2",
+        terrain: "d4368535d31cd5698b1766f38381b24b33c2611f57c7fcdb50f01affba6f8b97",
+        combos: "64fd309ebf75eb8984569262e42839e9d2ed452614583982c169a5835492d664",
+        blocks: 16,
+    }),
+    ("above", ExpectedBlocks {
+        cells: "64a240d34d0c29ec867f653721a1532de6e665e602e7c03e0b853c9ef3094126",
+        table: "66d4ecc11d1169dfd48b38f2e07beb634f8f42b7ac1dc23fb4103fae75626f42",
+        passability: "0d1339c5569dfa55c85cd91580f301ecf44f51759cfbc61f6a98815c97b12da2",
+        terrain: "d4368535d31cd5698b1766f38381b24b33c2611f57c7fcdb50f01affba6f8b97",
+        combos: "64fd309ebf75eb8984569262e42839e9d2ed452614583982c169a5835492d664",
+        blocks: 16,
+    }),
+];
+
+/// Tile ids for `n` cells, as the Python's test made them: water, animated,
+/// terrain and plain ones below, a few plain ones above.
+fn tile_ids(n: usize, seed: u64) -> (Vec<i32>, Vec<i32>) {
+    (0..n as u64)
+        .map(|i| {
+            let r = h(i * 13 + seed);
+            let lower = [r % 3000, 3000 + r % 150, 4000 + r % 600, 5000 + r % 144, 5000 + r % 3]
+                [(r % 5) as usize];
+            (lower as i32, (10000 + h(i * 17 + seed) % 4) as i32)
+        })
+        .unzip()
+}
+
+#[test]
+fn the_blocks_are_the_ones_the_python_made() {
+    let chipset = Chipset {
+        terrain_data: (0..162).map(|k| (1 + h(k * 11) % 3) as i16).collect(),
+        ..Chipset::default()
+    };
+    for (name, want) in &BLOCKS {
+        let done = convert(&case(name)).unwrap();
+        let tilemap = &done.background.tilemap;
+        let (width, height) = (tilemap[0].len() / 2, tilemap.len() / 2);
+        let seed = name.len() as u64;
+        let (lower, upper) = tile_ids(width * height, seed);
+        let passability: Vec<u8> = (0..(width * height) as u64)
+            .map(|i| (h(i * 7 + seed) % 4) as u8)
+            .collect();
+        let terrain: Vec<i32> = lower.iter().map(|&id| terrain_of(&chipset, id)).collect();
+        let made = blocks(
+            &Map {
+                width,
+                height,
+                lower: &lower,
+                upper: &upper,
+                passability: &passability,
+                terrain: &terrain,
+            },
+            tilemap,
+            &done.above.tilemap,
+        )
+        .unwrap();
+        let combos: Vec<String> = made
+            .combos
+            .iter()
+            .map(|((l, u), b)| format!("[{l}, {u}, {b}]"))
+            .collect();
+        assert_eq!(sha(&words(made.cells.iter().copied())), want.cells, "{name}: the cells");
+        assert_eq!(sha(&made.table), want.table, "{name}: the table");
+        assert_eq!(sha(&made.passability), want.passability, "{name}: the passability");
+        assert_eq!(sha(&made.terrain), want.terrain, "{name}: the terrain");
+        assert_eq!(
+            sha(format!("[{}]", combos.join(", ")).as_bytes()),
+            want.combos,
+            "{name}: the combinations"
+        );
+        assert_eq!(made.passability.len(), want.blocks, "{name}: how many blocks");
+    }
 }

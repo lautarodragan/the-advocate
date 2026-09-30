@@ -14,4 +14,6 @@ rm2k-render = { path = "../../rm2k/rm2k-render" }
 voodoo = { path = "../../snes/voodoo" }
 
 [dev-dependencies]
+ditto = { path = "../../rm2k/ditto" }
+rm2k-rules = { path = "../../rm2k/rules" }
 sha2 = "0.10"

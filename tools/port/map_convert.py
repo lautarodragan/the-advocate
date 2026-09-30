@@ -16,8 +16,7 @@ from port import animation as animation_mod
 from port import picture
 from port.adeleine import CELL
 from port.snes_format import BYTES_PER_TILE, cgram_word
-from rpgmaker.rm2k import collect_npcs, passability_map
-from render.render_map import build_passability
+from rpgmaker.rm2k import collect_npcs
 from port.map_layers import BG_PALETTES, _layers_in_memory, converted_layers
 from port.sprites import (INITIAL_POSE, OBJ_PALETTES, block_tile,
                           build_characters, changes_graphic,
@@ -30,7 +29,7 @@ from port.obj_extras import (map_animation, map_palette_cap,
 from port.baking import (_bake_unless_cgram_moves, bake_into_map,
                          bakeable_events)
 from port.vram import WINDOW_H, WINDOW_W, vram_layout
-from port.blocks import BLOCK_BYTES, build_blocks
+from port.blocks import BLOCK_BYTES
 from port.map_record import (NPC_MAX, ROUTE_GFX_MAX, TURN_NONE, anim_bytes,
                              ev_pos_bytes, npc_table)
 from port.game_scan import images_of, map_start
@@ -517,8 +516,7 @@ def convert_map(renderer, map_id, args):
     # it is decoration, that wall faces are always crossed— is decided here,
     # not on the console.
     chipset = renderer.database.chipsets[game_map.chipset_id]
-    flags = build_passability(chipset)
-    passable = passability_map(game_map, flags)
+    passable = summary["pasabilidad"]
     # The cells with an NPC are left out: if the hero started on one, both
     # would have the same sort key and which one stays on top would depend on
     # a tie-breaker that has no reason to match between the console and the
@@ -563,9 +561,15 @@ def convert_map(renderer, map_id, args):
           % (len(above_data[0]) // 32, len(above_data[1]) // 2,
              BG_PALETTES - above_data[3], above_data[3], above_data[4]))
 
-    cells, blocks, block_pass, block_terrain, combos = build_blocks(
-        game_map, tilemap, above_data[2], passable,
-        game_map.width, game_map.height, chipset)
+    # The map in 16x16 blocks, which `rm2k-snes-maps` made with the layers.
+    # Copies, because `Substitutions` grows them while the pages compile,
+    # and the summary is what the layers' cache keeps.
+    made = summary["bloques"]
+    cells = list(made["celdas"])
+    blocks = bytearray(made["tabla"])
+    block_pass = bytearray(made["pass"])
+    block_terrain = bytearray(made["terreno"])
+    combos = {(low, high): block for low, high, block in made["combos"]}
     print("  the map fits in %d 16x16 blocks for %d cells: %d B of "
           "grid plus %d B of table, against the %d B of the expanded tilemap"
           % (len(blocks) // BLOCK_BYTES, len(cells), 2 * len(cells),

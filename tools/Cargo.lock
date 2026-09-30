@@ -423,7 +423,9 @@ name = "rm2k-snes-map-background"
 version = "0.1.0"
 dependencies = [
  "adeleine",
+ "ditto",
  "rm2k-render",
+ "rm2k-rules",
  "sha2",
  "voodoo",
 ]
