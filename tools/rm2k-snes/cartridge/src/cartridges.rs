@@ -58,6 +58,7 @@ pub const TRACKS: &str = "rm2k-snes-msu";
 /// The tools the converter runs, besides `ca65` and `ld65`: what they write
 /// goes into the ROM, so their binaries go into the fingerprint.
 const CONVERTER_TOOLS: &[&str] = &[
+    "adeleine",
     "voodoo",
     "lz2",
     "rm2k-render",

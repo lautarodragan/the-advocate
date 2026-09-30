@@ -65,6 +65,8 @@ have layers of their own, one folder each:
       protocol/  declares a bytecode and generates the constants for both
                  sides; generic, but its constants are for the 65816
                  assembler
+      adeleine/  Adeleine: which colors a picture loses and how the ones
+                 left are grouped into palettes
       gunter/    Gunter: BRR codec and SoundFont reader
       voodoo/    Voodoo: from an image to tiles, palettes and tilemap
       lz2/       Nintendo's LC_LZ2, with an optimal parser

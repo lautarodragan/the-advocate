@@ -94,6 +94,7 @@ port —ver `tools/README.md`—:
     tools/snes/        los formatos de la consola, sin saber de RPG Maker
       protocol/        declara un bytecode y genera las constantes de sus dos lados
       gunter/          Gunter: códec BRR y lector de SoundFont
+      adeleine/        Adeleine: qué colores se pierden y cómo se agrupan en paletas
       voodoo/          Voodoo: de una imagen a tiles, paletas y tilemap
       lz2/             el LC_LZ2 de Nintendo, con el que se comprimen los mapas
     tools/rm2k/        los de RPG Maker 2000, sin saber de la consola
@@ -147,15 +148,16 @@ Las pruebas de esos proyectos no dependen del juego. Ditto recibe el corpus por
 `DITTO_CORPUS`, y sin esa variable las que lo necesitan se saltean con un
 mensaje; `tools/rm2k-snes/rm2k-snes-audio/` recibe el SoundFont por `SOUNDFONT`, igual;
 y `tools/snes/protocol/`, `tools/snes/gunter/`, `tools/snes/voodoo/`, `tools/snes/lz2/`,
-`tools/rm2k/rules/`, `tools/rm2k/rm2k-render/`, `tools/rm2k-snes/battle/` y
+`tools/snes/adeleine/`, `tools/rm2k/rules/`, `tools/rm2k/rm2k-render/`, `tools/rm2k-snes/battle/` y
 `tools/rm2k-snes/events/` no necesitan nada.
 
 ### `tools/snes/voodoo/` no decide colores, y eso no se arregla
 
 `tools/snes/voodoo/` convierte una imagen **que ya entra**: recibe PNG indexados cuyos
 índices son entradas de CGRAM, y si la imagen rompe el formato, dice dónde y no
-la arregla. Qué colores se pierden y cómo se agrupan en paletas lo decide el
-Adeleine, `tools/port/adeleine.py`, que corre **antes** y deja lo que decidió como
+la arregla. Qué colores se pierden y cómo se agrupan en paletas lo decide
+Adeleine, `tools/snes/adeleine/` —el conversor lo llama por
+`tools/port/adeleine.py`—, que corre **antes** y deja lo que decidió como
 imágenes en `rom/build/<cartucho>/adeleine/`. La prueba para saber de qué lado
 va algo es si cambia un pixel de lo que se ve.
 
