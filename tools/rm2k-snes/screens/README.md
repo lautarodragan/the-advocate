@@ -44,15 +44,17 @@ a request what the cartridge decided, and writes a JSON.
 
 `convert` is the one the converter calls, once per cartridge:
 
-    {"slots": 4, "actors": [11, 12, 14], "items": [1, 2, 7], "title": true,
-     "cgram_reserved": 9,
+    {"slots": 4, "actors": [11, 12, 14], "items": [1, 2, 7],
+     "bank_items": [1, 2], "title": true, "cgram_reserved": 9,
      "vram": {"slot_vram": 8192, "slot_map": 15360,
               "bg1_banks": [["WINDOW", 4096, 20480]]}}
 
 What the cartridge decided: `slots`, how many save slots; `actors`, who can
 be in the party —their faces and the letters of their names go in the
-bank—; `items`, the items it knows, in its order; `title`, whether it has a
-title screen.
+bank—; `items`, the items it knows, in its order, whose names and
+descriptions go as text; `bank_items`, the ones whose medicines' names the
+menu's bank carries the letters of, which is `items` if it is not there;
+`title`, whether it has a title screen.
 
 **What other domains answered, as data**: `cgram_reserved`, where the maps'
 background starts in colour memory —the message window goes below—; and

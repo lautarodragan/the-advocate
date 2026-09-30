@@ -24,8 +24,12 @@ pub struct Request {
     /// The actors that can be in the party: their faces go in the bank,
     /// and the letters of their names.
     pub actors: Vec<i32>,
-    /// The items the cartridge knows, in its order.
+    /// The items the cartridge knows, in its order: their names and
+    /// descriptions go as text.
     pub items: Vec<i32>,
+    /// The items whose medicines' names the menu's bank carries the
+    /// letters of: the actor choice writes them with its glyphs.
+    pub bank_items: Vec<i32>,
     /// Whether the cartridge has a title screen.
     pub title: bool,
     /// Where what follows the message window starts in colour memory.
@@ -72,12 +76,15 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     // The letters of the medicines, which the actor choice writes with the
     // menu bank's glyphs.
     let mut medicine_letters = String::new();
+    for &n in &request.bank_items {
+        if game.item(n)?.r#type.to_i32() == ITEM_MEDICINE {
+            medicine_letters.push_str(&game.item_name(n)?);
+        }
+    }
     let mut medicines = Vec::new();
     for &n in &request.items {
         if game.item(n)?.r#type.to_i32() == ITEM_MEDICINE {
-            let name = game.item_name(n)?;
-            medicine_letters.push_str(&name);
-            medicines.push((n, name));
+            medicines.push((n, game.item_name(n)?));
         }
     }
     let slots = slots::slots_screen(game, &skin, request.slots, &request.actors, &medicine_letters)?;

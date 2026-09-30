@@ -15,9 +15,8 @@ from port import compiler, events
 from rpgmaker import lcf
 from rpgmaker import rm2k
 from port import picture
-from port import menus as menus_mod
-from port import end_game as end_game_mod
-from port import screens as screens_mod
+from port import battle_screen
+from port import screen_stage
 from port import battle as battle_mod
 from port import experience as X
 from port import color as color_mod
@@ -33,12 +32,8 @@ from port.sprites import (OBJ_COLORS, OBJ_PRIORITY, OBJ_PRIORITY_ABOVE,
                           POSE_BYTES, SPRITE_POSES)
 from port.obj_extras import TIMER_GLYPHS, TIMER_GLYPH_W, TIMER_X, TIMER_Y
 from port.vram import (MAP_LAYOUT, SLOTS, SLOT_MAP, SLOT_TEXT_LEVEL,
-                       SLOT_TEXT_MAX, SLOT_TEXT_WIDTH, SLOT_VRAM,
-                       VRAM_ABOVE_MAP, WINDOW_BASES, items_border_first)
-from port.message_window import (FONT_HEIGHT, FONT_PRE_CHAR, FONT_PRE_ROWS,
-                                 FONT_WIDTH, WINDOW_COLS_INC, WINDOW_ROWS_INC,
-                                 WINDOW_TEXT_COL, WINDOW_TEXT_COLS,
-                                 WINDOW_TEXT_ROW, WINDOW_TEXT_ROWS, _columns)
+                       SLOT_TEXT_WIDTH, SLOT_VRAM, VRAM_ABOVE_MAP,
+                       WINDOW_BASES)
 from port.materials import (LZ2_CAP_ABOVE_AND_SPRITES, LZ2_CAP_ANIM,
                             LZ2_CAP_BACKDROP, LZ2_CAP_GRID, Materials,
                             compress_blocks, write_raw)
@@ -99,6 +94,12 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
     `party_common` is `{common event: its code}` of the equipment common
     events, compiled: see `events.PARTY_COMMON_EVENTS`.
     """
+    # The geometry the screens were drawn with, which is what their tables
+    # are written with —see `rm2k-snes-screens layout`—, and the battle's
+    # text screen, which is `battle_screen.py`.
+    T = P = screen_stage.layout()
+    BS = battle_screen
+    slot_text_max = SLOT_TEXT_LEVEL + T.LEVEL_DIGITS
     for number, map_info in enumerate(maps):
         layout = map_info["layout"]
         for count, name in (
@@ -539,13 +540,13 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
            CGRAM_RESERVED,
            window_palette() * COLORS_PER_PALETTE,
            len(window["tiles"]) // 32,
-           WINDOW_ROWS_INC, WINDOW_COLS_INC,
+           T.WINDOW_ROWS_INC, T.WINDOW_COLS_INC,
            window["base"],
-           WINDOW_TEXT_ROW, WINDOW_TEXT_ROWS,
-           WINDOW_TEXT_COL, WINDOW_TEXT_COLS, _columns(),
-           FONT_HEIGHT, FONT_WIDTH,
+           T.WINDOW_TEXT_ROW, T.WINDOW_TEXT_ROWS,
+           T.WINDOW_TEXT_COL, T.WINDOW_TEXT_COLS, constants.COLUMNS,
+           T.FONT_HEIGHT, T.FONT_WIDTH,
            window["sombra"],
-           FONT_PRE_ROWS, FONT_PRE_CHAR,
+           T.FONT_PRE_ROWS, T.FONT_PRE_CHAR,
            len(FAMILIES), ANIM_STRIDE, ANIM_FAM_STRIDE,
            rm2k.WATER_FRAMES_SLOW,
            FAMILIES[0][1],
@@ -558,21 +559,21 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
            SLOT_VRAM, SLOT_MAP,
            len(slots["filas"]),
            len(slots["tiles"]),
-           menus_mod.HEADER_Y // constants.CELL,
-           menus_mod.HEADER_ROWS,
-           menus_mod.HEADER_ROWS * constants.COLS,
-           menus_mod.SLOT_Y // constants.CELL,
-           menus_mod.SLOT_STEP // constants.CELL,
-           menus_mod.SLOT_ROWS,
-           menus_mod.SLOT_ROWS * constants.COLS,
-           menus_mod.HEADER_Y // constants.CELL * 32,
-           menus_mod.FACES_MAX, menus_mod.FACE_CELLS,
-           menus_mod.FACE_CELLS, menus_mod.NAME_COLS,
-           SLOT_TEXT_WIDTH, SLOT_TEXT_LEVEL, SLOT_TEXT_MAX,
-           menus_mod.LEVEL_DIGITS,
-           ((menus_mod.LEVEL_ROW - menus_mod.NAME_ROW) * 32
-            + menus_mod.LEVEL_COL - menus_mod.NAME_COL),
-           (ord("0") - menus_mod.ITEM_FIRST_CHAR) * 4,
+           T.HEADER_Y // constants.CELL,
+           T.HEADER_ROWS,
+           T.HEADER_ROWS * constants.COLS,
+           T.SLOT_Y // constants.CELL,
+           T.SLOT_STEP // constants.CELL,
+           T.SLOT_ROWS,
+           T.SLOT_ROWS * constants.COLS,
+           T.HEADER_Y // constants.CELL * 32,
+           T.FACES_MAX, T.FACE_CELLS,
+           T.FACE_CELLS, T.NAME_COLS,
+           SLOT_TEXT_WIDTH, SLOT_TEXT_LEVEL, slot_text_max,
+           T.LEVEL_DIGITS,
+           ((T.LEVEL_ROW - T.NAME_ROW) * 32
+            + T.LEVEL_COL - T.NAME_COL),
+           (ord("0") - T.ITEM_FIRST_CHAR) * 4,
            (max(list(slots["caras"]) + list(slots["actores"]) + [-1])
             + 1),
            len(slots["paletas"]) * constants.MENU_CGRAM,
@@ -943,9 +944,9 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # from the third palette on are the backdrop's —`scene.CGRAM_BASE`—
         # and uploading them there wouldn't help anyone.
         handle.write(block("items_cgram", palettes_cgram(
-            slots["items_paletas"][:menus_mod.ITEM_UP])) + "\n")
+            slots["items_paletas"][:T.ITEM_UP])) + "\n")
         handle.write(block("item_cgram_uploads", palettes_cgram(
-            slots["items_paletas"][menus_mod.ITEM_UP:])) + "\n")
+            slots["items_paletas"][T.ITEM_UP:])) + "\n")
         # The windows of the item and equipment screens, on BG1: see
         # `ITEM_WINDOWS` and `screens.EQ_WINDOWS`. The tiles and the
         # colors are the same for both. Each tilemap goes without the bottom
@@ -975,7 +976,6 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # `ti_border_rows`, bytes)`, terminated by three zeros; the bars,
         # `(VRAM word, source byte in `ti_border_patches`, bytes per row,
         # rows)`.
-        PM = screens_mod
         ti_tiles, ti_colors, (ti_rows, ti_top, ti_layers, ti_patches,
                               ti_bars) = slots["tienda_marco"]
 
@@ -995,7 +995,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         for layer in ti_layers:
             layer_stretches.append(2 * len(stretches))
             for row, origin, how_many in layer:
-                stretches += [PM.TI_MAP + row * cols, origin * 2 * cols,
+                stretches += [P.TI_MAP + row * cols, origin * 2 * cols,
                               how_many * 2 * cols]
             stretches += [0, 0, 0]
         handle.write(block("ti_stretches", le_words(stretches)) + "\n")
@@ -1003,13 +1003,13 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
                      + "\n")
         handle.write(block("ti_bars", le_words(
             v for layer in ti_bars for row, col, rows, width, origin in layer
-            for v in (PM.TI_MAP + row * cols + col, 2 * origin, 2 * width,
+            for v in (P.TI_MAP + row * cols + col, 2 * origin, 2 * width,
                       rows))) + "\n")
         base_bars = [0]
         for layer in ti_bars:
             base_bars.append(base_bars[-1] + len(layer))
         handle.write(block("ti_bar_base", bytes(base_bars[:-1])) + "\n")
-        handle.write(block("ti_layer_mode", bytes(PM.TI_LAYER_OF_MODE))
+        handle.write(block("ti_layer_mode", bytes(P.TI_LAYER_OF_MODE))
                      + "\n")
         handle.write(
             "TI_BORDER_VRAM    = $%04X\n"
@@ -1017,7 +1017,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
             "TI_BORDER_TILES   = %d\n"
             "TI_BORDER_COLORS  = %d\n"
             "TI_BORDER_UP      = %d\n"
-            % (PM.TI_VRAM, PM.TI_MAP, len(ti_tiles), len(ti_colors),
+            % (P.TI_VRAM, P.TI_MAP, len(ti_tiles), len(ti_colors),
                ti_top))
         # The End Game screen, whole: see tools/port/end_game.py. The two
         # palettes go one after the other, the "Yes" one first: the ROM picks
@@ -1028,7 +1028,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         handle.write(block("end_map", b"".join(
             word.to_bytes(2, "little") for word in end_rows)) + "\n")
         handle.write(block("end_cgram", palettes_cgram(end_palettes)) + "\n")
-        handle.write(block("end_ramp", bytes(end_game_mod.ramp())) + "\n")
+        handle.write(block("end_ramp", bytes(T.END_RAMP)) + "\n")
         handle.write(
             "END_TILES   = %d\n"
             "END_ROW0    = %d\n"
@@ -1038,21 +1038,19 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
             "END_FRAMES = %d\n"
             "END_STEP_SONG = %d\n"
             % (len(end_tiles), end_row0, len(end_rows) // constants.COLS,
-               end_game_mod.DEFAULT_CHOICE, end_game_mod.NO, end_game_mod.FADE_FRAMES,
-               events.fade_step(end_game_mod.SONG_FADE_MS)))
+               T.END_DEFAULT_CHOICE, T.END_NO, T.END_FADE_FRAMES,
+               events.fade_step(T.END_SONG_FADE_MS)))
         item_texts, item_texts_ofs = bytearray(), []
 
         def new_text(text):
-            text = menus_mod.item_text(text, 255)
+            text = BS.item_text(text, 255)
             item_texts_ofs.append((len(item_texts), len(text)))
             item_texts.extend(text.encode("ascii"))
             return len(item_texts_ofs) - 1
 
-        for number in slots["items"]:
-            item = slots["items_db"][number]
-            for text in ([menus_mod.item_text(
-                    item.name, menus_mod.ITEM_NAME_WIDTH)]
-                    + menus_mod.split_description(item.description)):
+        textos = slots["textos"]
+        for item in textos["items"]:
+            for text in item["texts"]:
                 new_text(text)
         # Dead texts **after the item ones and before all the others**, so
         # that the battle's indices go past 255 in a one-map cartridge:
@@ -1077,37 +1075,25 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
             item_texts_ofs.append((0, 0))
         # And the fixed ones, behind: the parameters and the equipment slots,
         # and the name of each actor that can join the party. See screens.py.
-        P = screens_mod
         B = battle_mod
         db = slots["db"]
-        param_text = [new_text(t[:P.EQ_PARAM_VALUE - 1])
-                      for t in db.term_params]
-        slot_text = [new_text(t[:P.EQ_SLOT_TERM_WIDTH])
-                     for t in db.term_equipment]
+        param_text = [new_text(t) for t in textos["params"]]
+        slot_text = [new_text(t) for t in textos["equipment"]]
         actor_text = {a: new_text(db.actors[a].name)
                       for a in slots["actores"]}
         # The shop's: the eleven messages of each of the three sets, two lines
         # each —`split_description`, as in screens.py—, and "Owned Items",
         # "Equipped Items" and the currency.
         shop_text = None
-        for names_in_game in range(3):
-            term = P.shop_terms(db, names_in_game)
-            for name, _term in P.TI_TERMS:
-                lines = menus_mod.split_description(term[name])
-                # Outside the main one, the message goes in a one-line window:
-                # `ti_message` writes only the first.
-                if lines[1] and name not in ("saludo", "resaludo"):
-                    raise SystemExit(
-                        "the shop message %r, of set %d, takes two "
-                        "lines and its window has one"
-                        % (term[name], names_in_game))
+        for messages in textos["shop"]:
+            for lines in messages:
                 for line in lines:
                     t = new_text(line)
                     if shop_text is None:
                         shop_text = t
-        owned_text = new_text(P.lcf_term(db, P.TI_TERM_OWNED))
-        carried_text = new_text(P.lcf_term(db, P.TI_TERM_CARRIED))
-        currency_text = new_text(db.term_gold)
+        owned_text = new_text(textos["owned"])
+        carried_text = new_text(textos["carried"])
+        currency_text = new_text(textos["currency"])
         # And the battle's: the fifteen LDB terms the screen uses —in the order
         # of `rules.BATTLE_TERMS`, which is the one the ROM indexes— and the
         # name of each enemy some troop of the cartridge brings. The three
@@ -1116,15 +1102,15 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # their column.
         battle_term = rules.battle_terms(db)
         battle_text = None
-        victory = P.victory_lines(battle_term["victory"])
-        if len(victory) > P.BA_VICTORY_TERM_MAX:
+        victory = BS.victory_lines(battle_term["victory"])
+        if len(victory) > BS.BA_VICTORY_TERM_MAX:
             raise SystemExit("the victory term takes %d lines and "
                              "the window leaves it %d: %r"
-                             % (len(victory), P.BA_VICTORY_TERM_MAX, victory))
+                             % (len(victory), BS.BA_VICTORY_TERM_MAX, victory))
         for name, _term in rules.BATTLE_TERMS:
             text = battle_term[name]
             if name in ("attack", "defend", "escape"):
-                text = P.command_text(text)
+                text = BS.command_text(text)
             if name == "victory":
                 text = victory[0]
             t = new_text(text)
@@ -1134,15 +1120,15 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # `message_recovery`, which goes stuck to the name —"Core has
         # revived!"—. It isn't a term but a piece of the state's data, so it
         # goes separately and with its own index. See `ba_message`.
-        revived_text = new_text(P.revived_text(db))
+        revived_text = new_text(BS.revived_text(db))
         # The second line of the victory, empty if it fits in one: it goes
         # separately so as not to shift the indices of `BATTLE_TERMS`.
         victory2_text = new_text((victory + [""])[1])
         rom_enemies = sorted({e for number in troops
                               if number in db.troops
                               for e in db.troops[number].members})
-        enemy_text = {e: new_text(menus_mod.item_text(
-            db.enemies[e].name, P.BA_NAME_WIDTH)) for e in rom_enemies}
+        enemy_text = {e: new_text(BS.item_text(
+            db.enemies[e].name, BS.BA_NAME_WIDTH)) for e in rom_enemies}
         # And the skills': the ones some actor that can join the party knows,
         # **at their LDB level** —see `battle.skills_of`—, sorted by
         # number, which is the order the menu puts them in. With the intro's
@@ -1163,11 +1149,11 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
              if a in slots["actores"] and B.skill_usable(db.skills[h])}
             | {skill.id for values in rom_actions.values()
                for _r, skill, _ef in values if skill is not None})
-        skill_text = {h: new_text(menus_mod.item_text(
-            db.skills[h].name, P.BA_SKILL_NAME_WIDTH))
+        skill_text = {h: new_text(BS.item_text(
+            db.skills[h].name, BS.BA_SKILL_NAME_WIDTH))
             for h in rom_skills}
-        skill_desc_text = {h: new_text(menus_mod.item_text(
-            db.skills[h].description, P.BA_SKILL_DESC_WIDTH))
+        skill_desc_text = {h: new_text(BS.item_text(
+            db.skills[h].description, BS.BA_SKILL_DESC_WIDTH))
             for h in rom_skills}
         # And the **whole** name of the ones learned on leveling up, which is
         # what "<skill> acquired!" says at the victory: the list's is cut to
@@ -1179,7 +1165,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
                   and B.level_learned(db, a, h)
                   > X.initial_level(db.actors[a])}
         whole_skill_text = {
-            h: new_text(menus_mod.item_text(db.skills[h].name, 255))
+            h: new_text(BS.item_text(db.skills[h].name, 255))
             for h in sorted(taught)}
         # The two lines RM2k says when using it: `using_message1` goes after
         # the name of the one using it and `using_message2` alone, on the line
@@ -1192,7 +1178,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # that is its `skill_name` —"AgentTrain", "Telepathy", "Slicing"— and
         # not the LDB's `command_skill`. It goes trimmed like the other four
         # commands.
-        skill_command_text = {a: new_text(P.command_text(
+        skill_command_text = {a: new_text(BS.command_text(
             B.skill_command_name(db, a))) for a in slots["actores"]}
         handle.write(block("item_texts", bytes(item_texts) or b"\x00")
                      + "\n")
@@ -1228,8 +1214,8 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
             handle.write("slot_block_%s:\n       .byte %s\n"
                          % (field, ", ".join(prefix + e
                                              for e in slot_blocks)))
-        row_of = [SLOT_MAP + (menus_mod.SLOT_Y
-                              + n * menus_mod.SLOT_STEP)
+        row_of = [SLOT_MAP + (T.SLOT_Y
+                              + n * T.SLOT_STEP)
                   // constants.CELL * 32 for n in range(SLOTS)]
         handle.write("slot_vram:\n      .word %s\n" % ", ".join(
             str(v) for v in row_of))
@@ -1237,13 +1223,13 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # slot times four plus the place, without multiplying by three— and
         # the leader's name.
         handle.write("slot_face_vram:\n      .word %s\n" % ", ".join(
-            str(row_of[n] + menus_mod.FACE_COL
-                + place * menus_mod.FACE_STEP if place < menus_mod.FACES_MAX
+            str(row_of[n] + T.FACE_COL
+                + place * T.FACE_STEP if place < T.FACES_MAX
                 else 0)
             for n in range(SLOTS) for place in range(4)))
         handle.write("slot_name_vram:\n        .word %s\n" % ", ".join(
-            str(row_of[n] + menus_mod.NAME_ROW * 32
-                + menus_mod.NAME_COL) for n in range(SLOTS)))
+            str(row_of[n] + T.NAME_ROW * 32
+                + T.NAME_COL) for n in range(SLOTS)))
         n_actors = max(list(face_block) + list(slots["actores"])
                        + [-1]) + 1
         handle.write("slot_face_block:\n       .byte %s\n" % (", ".join(
@@ -1252,9 +1238,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # The pause menu: its blocks, and where each thing goes in the
         # tilemap, in words. The geometry is `menus.py`'s and comes from
         # there.
-        T = menus_mod
-        from port import font as font_mod
-
+        
         def vram_cell(row, col):
             return SLOT_MAP + row * 32 + col
 
@@ -1329,15 +1313,15 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         empty = "$%04X, $%04X" % (entry(0, False, False),
                                   entry(0, False, False))
         handle.write(".block %d\nslot_glyph_cells:\n        .word %s\n"
-                     % (menus_mod.ITEM_CHARS * 4, ", ".join(
+                     % (T.ITEM_CHARS * 4, ", ".join(
                          ", ".join("$%04X" % entry(c, False, False,
                                                    priority=1)
                                    for c in menu["glifos"][letter])
                          if letter in menu["glifos"] else empty
                          for letter in map(
-                             chr, range(menus_mod.ITEM_FIRST_CHAR,
-                                        menus_mod.ITEM_FIRST_CHAR
-                                        + menus_mod.ITEM_CHARS)))))
+                             chr, range(T.ITEM_FIRST_CHAR,
+                                        T.ITEM_FIRST_CHAR
+                                        + T.ITEM_CHARS)))))
         # The experience line, which the ROM draws with sprites: see
         # `MENU_EXP_X` in menus.py. The term is four tiles —two wide, top and
         # bottom— and the digits come from `slot_glyph_cells`.
@@ -1363,8 +1347,9 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
             for word in bar)) + "\n")
         handle.write(block("target_cgram", b"".join(
             cgram_word(c).to_bytes(2, "little") for c in obj_colors)) + "\n")
-        medicines = [n for n in slots["items"]
-                     if slots["items_db"][n].type == lcf.ITEM_TYPE_MEDICINE]
+        medicine_lines = {m["number"]: m["lines"]
+                          for m in textos["medicines"]}
+        medicines = [n for n in slots["items"] if n in medicine_lines]
         if len(medicines) > 255:
             raise SystemExit("%d medicines don't fit in `target_name`"
                              % len(medicines))
@@ -1372,7 +1357,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
             medicines.index(n) if n in medicines else 0xFF
             for n in slots["items"])) + "\n")
         handle.write(block("target_names", b"".join(
-            "".join(T.name_in_lines(slots["items_db"][n].name))
+            "".join(medicine_lines[n])
             .encode("ascii", "replace") for n in medicines)) + "\n")
         handle.write(
             "TARGET_VRAM       = $%04X\n"
@@ -1405,25 +1390,22 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
             "MENU_ACTOR_HEIGHT = %d\n"
             % (T.MENU_EXP_X,
                T.MENU_EXP_X + T.MENU_EXP_NUM_DX - T.GLYPH_DX,
-               T.MENU_EXP_Y - T.GLYPH_DY, font_mod.WIDTH, T.MENU_EXP_DIGITS,
+               T.MENU_EXP_Y - T.GLYPH_DY, T.FONT_WIDTH, T.MENU_EXP_DIGITS,
                T.MENU_EXP_LETTERS, T.MENU_ACTOR_ROWS * constants.CELL))
         # Each actor's text, in ASCII: the name —with trailing spaces, which
         # are what erase whatever was there—, the two digits of the level and
         # max HP after its bar. **The three together, in one row per actor**,
         # so the ROM has a single address to compute and three offsets that
         # are constants.
-        db_slots = slots["db"]
-        if (SLOT_TEXT_LEVEL < menus_mod.MENU_NAME_COLS
-                or SLOT_TEXT_MAX + menus_mod.MENU_MAX_DIGITS
+        if (SLOT_TEXT_LEVEL < T.MENU_NAME_COLS
+                or slot_text_max + T.MENU_MAX_DIGITS
                 > SLOT_TEXT_WIDTH):
             raise SystemExit("the actor's three strips don't fit in the %d "
                              "bytes of its row" % SLOT_TEXT_WIDTH)
         strip = bytearray()
         for a in range(n_actors):
-            row = (menus_mod.name_text(db_slots, a)
-                   .ljust(SLOT_TEXT_LEVEL)
-                   + menus_mod.level_text(db_slots, a)
-                   + menus_mod.max_text(db_slots, a))
+            name, level, maximum = textos["actors"][a]
+            row = name.ljust(SLOT_TEXT_LEVEL) + level + maximum
             strip += row.ljust(SLOT_TEXT_WIDTH).encode("ascii")
         handle.write(".block %d\nslot_actor_text:\n        .byte %s\n"
                      % (max(1, len(strip)),
@@ -1463,14 +1445,14 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
             "ITEM_BORDER_ROWS  = %d\n"
             "ITEM_BORDER_LIST  = %d\n"
             % (len(items), len(slots["items_tiles"]),
-               menus_mod.ITEM_UP * constants.MENU_CGRAM,
+               T.ITEM_UP * constants.MENU_CGRAM,
                T.ITEM_ROWS, T.ITEM_CURSOR_COL, T.ITEM_NAME_COL,
                T.ITEM_COLON_COL, T.ITEM_DIGITS_COL,
                vram_cell(T.ITEM_DESC_Y // constants.CELL, T.ITEM_DESC_COL),
                T.ITEM_DESC_COL,
                T.ITEM_FIRST_CHAR, T.ITEM_CHARS * 4,
                SLOT_VRAM
-               + items_border_first(len(slots["items_tiles"])) * 32,
+               + slots["items_marco_primero"] * 32,
                len(border_tiles), T.ITEM_BORDER_MAP, T.ITEM_BORDER_CGRAM,
                len(border_colors), constants.ROWS,
                T.ITEM_LIST_Y // constants.CELL))
@@ -1495,12 +1477,15 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
                   declare=True)
         handle.write('.segment "TABLES"\n')
         words_asm("item_id", items)
+        # Whether it goes in white and does something on the map, and whether
+        # it opens the actor choice: the stage's, which draws the list.
+        flags = {i["number"]: i for i in textos["items"]}
         bytes_asm("item_use", [
-            (1 if T.item_usable(db_items[n]) else 0)
-            | (2 if T.item_usable(db_items[n])
-               and not T.item_needs_actor(db_items[n])
+            (1 if flags[n]["usable"] else 0)
+            | (2 if flags[n]["usable"]
+               and not flags[n]["needs_actor"]
                and db_items[n].uses else 0)
-            | (4 if T.item_needs_actor(db_items[n]) else 0)
+            | (4 if flags[n]["needs_actor"] else 0)
             | (8 if db_items[n].two_handed else 0)
             for n in items])
         # `item_switch` goes outside bank 0 —it is read with
@@ -1920,7 +1905,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         words_asm("troop_gold", troop_gold, declare=True)
         # What the victory writes has to fit on its line: the ROM builds it
         # with a number or a name in the middle and doesn't split it.
-        P.collect_victory(
+        BS.collect_victory(
             battle_term, max(troop_exp, default=0),
             [db.actors[a].name for a in slots["actores"] if a in db.actors],
             [db.skills[h].name for h in sorted(taught)],
@@ -2137,14 +2122,14 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
             "TPAGE_WITH_HEADER = $%02X\n"
             "TPAGE_HEADER      = %d\n"
             % (len(used), B.BATTLE_SEED, battle_text,
-               pos(P.BA_ENEMY_ROW0, 0), pos(P.BA_PARTY_ROW0, 0),
-               pos(P.BA_MSG_ROW1, 0), pos(P.BA_MSG_ROW2, 0), 2 * 64,
-               P.BA_CURSOR_COL * 2, P.BA_NAME_COL * 2, P.BA_NAME_WIDTH,
-               P.BA_HP_COL * 2, P.BA_HP_NUM * 2, int(enemy_hp),
-               P.BA_BAR_COL * 2,
-               P.BA_HP_MAX_NUM * 2, 1 * 2,
-               pos(P.BA_PAGE_MSG_ROW0, 0), P.BA_PAGE_MSG_COL * 2,
-               P.BA_PAGE_MSG_WIDTH, events.TROOP_PAGES_MAX,
+               pos(BS.BA_ENEMY_ROW0, 0), pos(BS.BA_PARTY_ROW0, 0),
+               pos(BS.BA_MSG_ROW1, 0), pos(BS.BA_MSG_ROW2, 0), 2 * 64,
+               BS.BA_CURSOR_COL * 2, BS.BA_NAME_COL * 2, BS.BA_NAME_WIDTH,
+               BS.BA_HP_COL * 2, BS.BA_HP_NUM * 2, int(enemy_hp),
+               BS.BA_BAR_COL * 2,
+               BS.BA_HP_MAX_NUM * 2, 1 * 2,
+               pos(BS.BA_PAGE_MSG_ROW0, 0), BS.BA_PAGE_MSG_COL * 2,
+               BS.BA_PAGE_MSG_WIDTH, events.TROOP_PAGES_MAX,
                events.TROOP_TRIGGER_SWITCH_A, events.TROOP_TRIGGER_SWITCH_B,
                events.TROOP_TRIGGER_VARIABLE, events.TROOP_TRIGGER_TURN,
                events.TROOP_TRIGGER_ENEMY, events.TROOP_TRIGGER_ACTOR,
@@ -2192,13 +2177,13 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # because since 2026-09-13 **they aren't three in a row on one line**:
         # they are the five of ABL's menu spread over two. See
         # `screens.BA_COMMANDS`.
-        handle.write("BA_COMMANDS_N     = %d\n" % len(P.BA_COMMANDS))
-        handle.write("BA_ITEM_COUNT_DX = %d\n" % (P.BA_ITEM_COUNT_COL * 2))
-        handle.write("BA_COMMAND_USE    = %d\n" % P.BA_COMMAND_USE)
-        handle.write("BA_COMMAND_ESCAPE = %d\n" % P.BA_COMMAND_ESCAPE)
-        handle.write("BA_COMMAND_ATTACK = %d\n" % P.BA_COMMAND_ATTACK)
-        handle.write("BA_COMMAND_DEFEND = %d\n" % P.BA_COMMAND_DEFEND)
-        handle.write("BA_COMMAND_SKILL= %d\n" % P.BA_COMMAND_SKILL)
+        handle.write("BA_COMMANDS_N     = %d\n" % len(BS.BA_COMMANDS))
+        handle.write("BA_ITEM_COUNT_DX = %d\n" % (BS.BA_ITEM_COUNT_COL * 2))
+        handle.write("BA_COMMAND_USE    = %d\n" % BS.BA_COMMAND_USE)
+        handle.write("BA_COMMAND_ESCAPE = %d\n" % BS.BA_COMMAND_ESCAPE)
+        handle.write("BA_COMMAND_ATTACK = %d\n" % BS.BA_COMMAND_ATTACK)
+        handle.write("BA_COMMAND_DEFEND = %d\n" % BS.BA_COMMAND_DEFEND)
+        handle.write("BA_COMMAND_SKILL= %d\n" % BS.BA_COMMAND_SKILL)
         # The skills screen: two columns with the name and the cost, and the
         # description of the one under the cursor at the very top. The
         # geometry comes from `screens.py`, like the item list's.
@@ -2215,16 +2200,16 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
             "BA_SKILL_COST_DX  = %d\n"
             "BA_SKILL_COST_DIGITS = %d\n"
             % (len(rom_skills),
-               pos(P.BA_SKILL_DESC_ROW, P.BA_SKILL_DESC_COL),
-               pos(P.BA_SKILL_ROW0, 0), P.BA_SKILL_ROWS, P.BA_SKILL_COLUMNS,
-               P.BA_SKILL_COLUMN_DX * 2, P.BA_SKILL_NAME_COL * 2,
-               P.BA_SKILL_NAME_WIDTH, P.BA_SKILL_DASH_COL * 2,
-               P.BA_SKILL_COST_COL * 2, P.BA_SKILL_COST_DIGITS))
+               pos(BS.BA_SKILL_DESC_ROW, BS.BA_SKILL_DESC_COL),
+               pos(BS.BA_SKILL_ROW0, 0), BS.BA_SKILL_ROWS, BS.BA_SKILL_COLUMNS,
+               BS.BA_SKILL_COLUMN_DX * 2, BS.BA_SKILL_NAME_COL * 2,
+               BS.BA_SKILL_NAME_WIDTH, BS.BA_SKILL_DASH_COL * 2,
+               BS.BA_SKILL_COST_COL * 2, BS.BA_SKILL_COST_DIGITS))
         handle.write('.segment "RODATA"\n')
         words_asm("ba_command_row", [
-            pos((P.BA_MSG_ROW1, P.BA_MSG_ROW2)[f], 0)
-            for _n, f, _c in P.BA_COMMANDS], declare=True)
-        words_asm("ba_command_dx", [c * 2 for _n, _f, c in P.BA_COMMANDS],
+            pos((BS.BA_MSG_ROW1, BS.BA_MSG_ROW2)[f], 0)
+            for _n, f, _c in BS.BA_COMMANDS], declare=True)
+        words_asm("ba_command_dx", [c * 2 for _n, _f, c in BS.BA_COMMANDS],
                   declare=True)
         # **Two bytes.** A text index doesn't fit in one: with the 29 maps of
         # `abl` the battle's start at 273, and the one-byte table that was here
@@ -2232,10 +2217,10 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # to truncate them without saying anything.
         words_asm("ba_command_txt", [
             battle_text + [n for n, _c in rules.BATTLE_TERMS].index(name)
-            for name, _f, _c in P.BA_COMMANDS], declare=True)
+            for name, _f, _c in BS.BA_COMMANDS], declare=True)
         bytes_asm("ba_command_gray", [
-            1 if k in P.BA_COMMAND_UNDONE else 0
-            for k in range(len(P.BA_COMMANDS))], declare=True)
+            1 if k in BS.BA_COMMAND_UNDONE else 0
+            for k in range(len(BS.BA_COMMANDS))], declare=True)
         handle.write('.segment "TABLES"\n')
 
         glyphs = slots["items_glifos"]

@@ -627,8 +627,13 @@ def main():
     # description.
     items_rom = possible_items(every, members, renderer.database,
                                file_commands)
+    # The items the enemies of the cartridge's troops drop can also reach
+    # the inventory: see `drop_items`. The menu bank's letters are those of
+    # the medicines of `items_rom` alone.
+    items_all = sorted(set(items_rom)
+                       | drop_items(renderer.database, troops.ids))
     window_data, slots_data, title_menu, screen_texts, says = \
-        screen_stage.convert(args.game_dir, members, items_rom,
+        screen_stage.convert(args.game_dir, members, items_all, items_rom,
                              not args.no_title)
     window_data["mensajes"] = messages.bytes()
     print("  message window: %d fixed tiles + %d of text, %d colors; "
@@ -760,10 +765,7 @@ def main():
              troop_pages.pages, len(troop_pages.where),
              len(troop_pages.bodies), len(troop_pages.messages.data),
              len(troop_pages.messages.texts)))
-    # The items the enemies of those troops drop can also reach the
-    # inventory: see `drop_items`.
-    slots_data["items"] = sorted(
-        set(items_rom) | drop_items(renderer.database, troops.ids))
+    slots_data["items"] = items_all
     compressed = compress_blocks(maps)
     report = emit(args.output, maps, args.start_index, args.hero_above, party,
                   window_data, title_data, slots_data,

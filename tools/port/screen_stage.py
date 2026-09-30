@@ -136,10 +136,12 @@ def _color(c):
     return tuple(c)
 
 
-def convert(game_dir, members, items, title):
+def convert(game_dir, members, items, bank_items, title):
     """What the cartridge carries of its screens, for `members` —the actors
     that can join the party— and `items` —the ones the cartridge knows—,
-    with the title's menu if `title`.
+    with the title's menu if `title`. The letters of the medicines of
+    `bank_items` go in the menu's bank, which the actor choice writes their
+    names with.
 
     Returns `(window, slots, title_menu, texts, says)`, in the shape
     `mapdata` emits, and what the stage has to say, in order.
@@ -148,6 +150,7 @@ def convert(game_dir, members, items, title):
         "slots": vram.SLOTS,
         "actors": list(members),
         "items": list(items),
+        "bank_items": list(bank_items),
         "title": bool(title),
         # The message window goes in the lowest palette, and the background
         # starts after it: see `map_layers.CGRAM_RESERVED`.

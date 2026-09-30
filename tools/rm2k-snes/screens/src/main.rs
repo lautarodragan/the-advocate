@@ -50,7 +50,7 @@ enum Command {
     precomposed tables), the title's menu, the slot and menu bank, the text screens' font, \
     the windows of the item, equipment, shop and actor-choice screens as the cartridge \
     stores them, End Game, the texts the cartridge composes, the geometry, and what the \
-    conversion says. Its request carries `slots`, `actors`, `items`, `title`, \
+    conversion says. Its request carries `slots`, `actors`, `items`, `bank_items`, `title`, \
     `cgram_reserved` and `vram` (`slot_vram`, `slot_map` and each layout's BG1 bank as \
     [name, from, to]).\n\n\
     `render` writes screen.png, RGB. Its request carries `screen` —menu, items, target, \
