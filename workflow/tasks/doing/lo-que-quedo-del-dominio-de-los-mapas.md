@@ -70,3 +70,14 @@ lado de Python; no se tocó, porque es de otro crate y no estorba.
 Cómo se verificó: la tabla `timer_mask` de los `mapdata.inc` tiene
 máscaras distintas de cero en 93 de los 102 mapas de los tres cartuchos, y
 salió igual; `rom/build/` entero igual.
+
+### 3. `voodoo` sale de la huella
+
+`CONVERTER_TOOLS` de `cartridge` lista los binarios que el conversor
+**corre**; `voodoo` ya no lo corre nadie —los mapas y las pantallas lo usan
+como biblioteca, y entra en la huella por sus binarios—. Cómo se verificó
+que ningún camino lo corre: leyendo, todos los `shutil.which` y
+`stage.run` de `tools/` y todo `process::Command` de los crates (ninguno
+nombra a `voodoo`); y corriendo, `NO_CACHE=1 just cartuchos` con un
+`voodoo` falso primero en el PATH que anota y sale con error: no se llamó
+nunca, y `rom/build/` salió igual.

@@ -59,9 +59,12 @@ pub const TRACKS: &str = "rm2k-snes-msu";
 /// goes into the ROM, so their binaries go into the fingerprint. And
 /// `rm2k-snes-patches`, whose files go next to it: the check reads them from
 /// the build, so a cartridge built by an older one is stale too.
+///
+/// Only the ones it **runs**: a library goes in through the binaries it is
+/// compiled into. `voodoo` is not here because nobody runs it any more —the
+/// maps and the screens cut their tiles with it as a library—.
 const CONVERTER_TOOLS: &[&str] = &[
     "adeleine",
-    "voodoo",
     "lz2",
     "rm2k-render",
     "rm2k-snes-audio",
