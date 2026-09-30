@@ -6,9 +6,19 @@ use crate::fail::{Step, Stop};
 use crate::game::Page;
 use serde_json::{json, Value};
 
-/// The frequency a route is walked at: only 8 waits nothing between one
-/// command and the next, and 1 would wait 256 frames after each step, which
-/// do not fit in the ROM's wait byte. The game uses 2, 3, 4, 7 and 8.
+/// The frequency a route is walked at. It governs two things: how long it
+/// waits between one command and the next —`1 << (9 - frequency)` frames,
+/// and zero with 8— and how long a `wait` lasts. Only 8 is accepted, which
+/// is the one 3463 of the game's 3509 routes use and **all** of those of the
+/// pages that compile; with any other the wait between
+/// commands has to be modeled, and since 2026-09-04 it is: it is RM2k's stop
+/// counter. After each command the character stays still `max_stop_count`
+/// frames —`SetMaxStopCountForStep` after a step, `ForTurn` after a turn,
+/// `ForWait` on a `wait`— and with 8 the first two give zero, which is why
+/// the model of "turning is free and steps go back to back" was exact
+/// without knowing it. The game uses 2, 3, 4, 7 and 8; 1 would give 256
+/// frames after each step, which do not fit in the ROM's wait byte, and
+/// nobody uses it: it is rejected.
 pub const FREQUENCY: i32 = 8;
 pub const FREQUENCY_MIN: i32 = 2;
 
@@ -37,12 +47,21 @@ impl Extra {
 
 /// The commands of a forced route, with whatever each one drags along.
 ///
-/// The route is not a list of codes: three commands carry operands inside
-/// the same stream, two of them a text with one integer per letter. The
-/// integers are RM2k's, seven bits each with bit 7 saying another follows
-/// —`DecodeMove` and `DecodeInt`—. Running out in the middle of an operand
-/// is a broken route and does not compile; running out between two
-/// commands is the normal end.
+/// It is needed because **the route is not a list of codes**: three
+/// commands carry operands inside the same stream of integers, and two of
+/// them a text —the CharSet's name, the sound's— with one integer per
+/// letter. Walking it flat worked while the first unknown command cut
+/// everything; as soon as one of those is accepted, the letters of the text
+/// would be read as commands.
+///
+/// The integers come in RM2k's format: seven bits per integer and bit 7
+/// says another follows. It is `Game_Interpreter_Shared::DecodeMove` and
+/// `DecodeInt`.
+///
+/// Running out of data in the middle of an operand is a broken route and
+/// does not compile; running out of data between one command and the next
+/// is the normal end. The difference matters: mixing them up left out 258
+/// pages that are perfectly fine.
 pub fn decode(params: &[i32]) -> Step<Vec<(i32, Vec<Extra>)>> {
     let n = params.len();
     let mut i = 0;
@@ -101,11 +120,20 @@ pub fn decode(params: &[i32]) -> Step<Vec<(i32, Vec<Extra>)>> {
     Ok(commands)
 }
 
-/// The lowest frequency a route with commands 30 and 31 goes through, which
-/// decides whether it can be compiled. With `repeats` the commands are
-/// walked nine times: the frequency is clamped at 8 and at 1, so nine
-/// passes take a repeating route that goes down more than up all the way
-/// to 1.
+/// The lowest frequency a route with commands 30 and 31 goes through.
+///
+/// It is what decides whether the route can be compiled: with frequency 1
+/// the wait after a step is 256 frames and the `route_after_step` byte
+/// cannot hold it, so a route that goes down that far is rejected whole.
+///
+/// `commands` are bare codes, without operands: the two callers pass what
+/// [`decode`] returned, which already separated them. It is not the same as
+/// a compiled route, where 34 drags a byte along that has to be skipped.
+///
+/// With `repeats` the commands are walked nine times and not once. It is
+/// not just in case: the frequency is clamped at 8 and at 1, so a repeating
+/// route that goes down more than it goes up ends at 1 no matter what, and
+/// nine passes are enough for it to get there from any starting point.
 pub fn min_frequency(frequency: i32, commands: &[i32], repeats: bool) -> i32 {
     let mut current = frequency;
     let mut lowest = frequency;
@@ -122,7 +150,53 @@ pub fn min_frequency(frequency: i32, commands: &[i32], repeats: bool) -> i32 {
     lowest
 }
 
-/// The four turns, the eight moves and the rest the ROM knows how to walk.
+/// The four turns, the eight moves and the rest the ROM knows how to walk,
+/// in a single place.
+///
+/// The four turns, the four moves and the wait were the first. The moves
+/// came in last because in RM2k the character walks cell by cell over
+/// several frames, and that has to be compared *while* it walks: comparing
+/// only where it ends lets the whole animation cycle slip through. The
+/// `move_*` codes **are** the direction, and 4 to 7 are the diagonals: see
+/// [`diagonal`].
+///
+/// * Facing the hero, 21: `GetDirectionToCharacter`. The axis with more
+///   distance wins, and on a tie the vertical one; on the same cell it looks
+///   down. Only on events: no page uses the hero facing itself.
+/// * Moving toward the hero, 9: `move_towards_hero`. It is not a new command
+///   but two that already exist stuck together —in `UpdateMoveRoute` it is
+///   `TurnTowardCharacter(hero)` and then `Move(GetDirection())`—, that is
+///   21 and a `move_*` on the same frame, with the same step cost as any
+///   other.
+///
+///   It is the command that unlocks the most of the ones that were missing,
+///   by far: measured over the whole game, **+31 pages**, against +1 for the
+///   other nine together —random, fleeing the hero, forward and the five
+///   in-place turns—. It is used 267 times in forced routes on four maps, 9,
+///   11, 38 and 166; map 9 is the Lazer Teeth battle.
+///
+///   Only on events, like 21: no route in the game asks for the hero moving
+///   toward itself —measured, zero— and it would mean nothing.
+/// * Turning without moving —`turn_90_degree_right` and its siblings— is
+///   still out, and not because of cost: RM2k turns relative to the
+///   direction the character already had, and for an event that has not
+///   turned yet that is its page's, which the route does not read.
+/// * The jump, 24 and 25: what lies between the two is added up as an offset
+///   and the character does it in one go, in an arc.
+/// * Walking through walls, 36 and 37, and stopping or resuming the walking
+///   animation, 38 and 39.
+/// * Locking and unlocking the facing —`lock_facing`, 26 and 27—, and
+///   raising and lowering the speed by one, between 1 and 6, 28 and 29. They
+///   came in on 2026-09-05 with the pages' own routes: map 2's droids use
+///   them. On the hero see `compile_route`.
+/// * Raising and lowering the frequency in the middle of a route, 30 and 31:
+///   `increase/decrease_movement_frequence`, which RM2k clamps at 8 and 1. **A
+///   single route in the whole game** uses them —the one that shakes Manta
+///   in the Emitter Room scene, which goes down twice from 8 to 6— and
+///   without them that page does not compile.
+/// * Changing the graphic in the middle of a route, 34. It is the **only
+///   command with an operand**: the bytecode carries after it the CharSet's
+///   index in `Graphics`.
 pub fn known(command: i32) -> bool {
     (0..=7).contains(&command)
         || (12..=15).contains(&command)
@@ -148,20 +222,38 @@ pub fn known(command: i32) -> bool {
 }
 
 /// The four diagonals, `move_upright` to `move_upleft`: only events walk
-/// them.
+/// them. Each has its two components, vertical first and then horizontal
+/// —4 up and right, 5 down and right, 6 down and left, 7 up and left—.
+///
+/// **Only events** walk them. Of the game's 26 routes that use them none is
+/// the hero's, so the ROM does not have them on it: walking diagonally with
+/// the pad does not exist and giving the hero a diagonal step would require
+/// duplicating `try_up` and its three siblings for nothing. The compiler
+/// rejects the page that tries it —see `compile_route`—, which is what keeps
+/// the ROM from silently walking something else.
 pub fn diagonal(command: i32) -> bool {
     (4..=7).contains(&command)
 }
 
-/// A page's own route —`move_type` 6—, or None if it has none or it cannot
-/// be done.
+/// A page's own route —`move_type` 6, the route it walks on its own—, or
+/// None if it has none or it cannot be done.
 ///
-/// The same commands as a `MoveEvent`'s go, with the transparency and the
-/// sound dropped —a page's route is a bare list of codes, with no room for
-/// the sound's operand—. Moving toward the hero, facing it and changing the
-/// graphic are left out: nothing in the game walks them on a page's own
-/// route, and a path nothing exercises is not opened. Turning in place
-/// (`spin`) and the other move types are another machine.
+/// The same commands as in a MoveEvent go, with the transparency dropped
+/// and also the sound, which in a MoveEvent does play: here there is nowhere
+/// to put its operand —see `ROUTE_SOUND` in `compile_route`—. The diagonals
+/// go in: an own route is always an event's, which is what the ROM walks
+/// them on. What is left out: moving toward or away from the hero, changing
+/// the graphic —none uses it— and the switches; and turning in place
+/// (`AnimType_spin`), which neither of the game's two pages that use it is
+/// in the first maps. The other movement types —random, vertical,
+/// horizontal, toward the hero— neither: they are another machine.
+///
+/// **Moving toward the hero is left out here too**, even though since
+/// 2026-09-12 the ROM walks it in a forced route: they are two pages of map
+/// 105 —measured, the only ones of the game's 37 own routes that use it—
+/// and no test gets there, so accepting it would be opening the path with
+/// nothing exercising it. 21 is out for the same reason since before: zero
+/// own routes use it.
 pub fn own(page: &Page) -> Option<Value> {
     if page.move_type != MOVE_CUSTOM || page.route.is_empty() {
         return None;
@@ -181,11 +273,17 @@ pub fn own(page: &Page) -> Option<Value> {
             return None;
         }
         if command == ROUTE_CHANGE_GRAPHIC {
+            // Here there is nowhere to put the operand —a page's route is a
+            // bare list of codes, not a MoveEvent with its text— and it is
+            // not needed: **none of the game's 3509 own routes changes
+            // graphic**, measured. The day one shows up, this rejects it
+            // instead of compiling a 34 with nothing to change to.
             return None;
         }
         commands.push(command);
     }
     if min_frequency(page.move_frequency, &commands, page.route_repeat) < FREQUENCY_MIN {
+        // Commands 30 and 31 would take it down to 1.
         return None;
     }
     if commands.is_empty() || commands.len() > 255 {
