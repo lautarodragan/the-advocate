@@ -5,6 +5,8 @@ is `scene.py`'s.
 """
 
 import collections
+import json
+import os
 
 from port import events
 from port import scene as scene_mod
@@ -153,13 +155,14 @@ def patch_uses(maps, db, tree):
     whose page or random encounter asks for it, or `"caso"` if a test page
     asks for it.
 
-    It is what lets `patches.check` know what isn't the game's in the ROM
-    that is played, which also carries the suite's maps and pages: an
+    It is what lets `rm2k-snes-patches --check` know what isn't the game's
+    in the ROM that is played, which also carries the suite's maps and
+    pages: an
     animation only a case asks for, or a battler that only shows up in a test
     map, isn't versioned. The bytecode is walked, as in
     `rom_animations`, so it counts what ended up emitted. A troop
     someone asked for and no emitted page names —a page that fell out after
-    asking for it— has no origin, and `patches.check` treats it as the game's: the
+    asking for it— has no origin, and the check treats it as the game's: the
     doubt leans toward asking for the patch.
     """
     E = scene_mod
@@ -192,6 +195,25 @@ def patch_uses(maps, db, tree):
                 battlers[E.key(e.battler_name,
                                getattr(e, "battler_hue", 0) or 0)] |= origins
     return {"animacion": animations, "battler": battlers}
+
+
+# Where `write_patch_uses` leaves them, next to the cartridge's patches and
+# **not versioned**: `rm2k-snes-patches` reads it from there. It is the shape
+# of the build, which imitates the project's patches: not where those are in
+# the repo, and it does not move with them.
+USES_FILE = os.path.join("parches", "usos.json")
+
+
+def write_patch_uses(dest, uses):
+    """`uses` is what `patch_uses` returns, into the build at `dest`. The
+    origins go sorted as text, so a map id and `"caso"` can share a list;
+    and the keys by the text of their `(key, origins)` pair, which is what
+    `key=str` sorts an item by: it is the order the file always had, and
+    nobody reads it in order."""
+    with open(os.path.join(dest, USES_FILE), "w") as f:
+        json.dump({kind: {str(k): sorted(v, key=str)
+                          for k, v in sorted(which_ones.items(), key=str)}
+                   for kind, which_ones in uses.items()}, f, indent=1)
 
 
 def backdrop_bytes(info):

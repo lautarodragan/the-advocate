@@ -46,7 +46,7 @@ one in its own row or above.
                  event_opcodes, battle, experience, screens, menus,
                  title, picture, window, font, scene, animation, texts,
                  adeleine, compress, fullscreen, end_game,
-                 msu_data, patches; and beneath all of them, because they
+                 msu_data; and beneath all of them, because they
                  import nothing from the port, rules (from Game_Actor and
                  the LDB), constants, color (the screen tint), palette (an
                  image down to N colors), snes_format (a tile, a color and a
@@ -85,6 +85,11 @@ have layers of their own, one folder each:
       cartridge/ `rm2k-snes-cartridges`, `rm2k-snes-assemble` and
                  `rm2k-snes-space`: which cartridges there are and building
                  them, the bank packing, ca65 + ld65, and the space left
+      patches/   `rm2k-snes-patches`: what the converter decided to lose
+                 —a map's colors, an animation's size, a battler's
+                 palette—, written as TOML next to each ROM, copied to the
+                 project and checked against every cartridge; the
+                 converter hands it the decisions in a request
       rm2k-snes-audio/  a game's music for the SPC700: the shared sample
                  bank, a stream per song, an audio package per map; the
                  converter runs it, and it uses `gunter` as a library
@@ -146,8 +151,9 @@ still inside a function no longer hide any cycle.
 Until 2026-09-29 there was one exception, `assembly/cartridges.py`, the
 orchestrator: it lived at the bottom, imported from `port/` and `audio/`,
 and `port/patches.py` imported it back. It went to Rust —`rm2k-snes-cartridges`—,
-and whoever needs what it knows asks the executable: `patches` and
-`ceilings` run it with `--list --json`.
+and whoever needs what it knows asks it: `ceilings` runs it with `--list
+--json`, and `rm2k-snes-patches`, in Rust since 2026-09-30, uses it as a
+library.
 
 The graph, per file and per package, is printed by the script in appendix D
 of `docs/research/el-mapa-de-las-herramientas-de-python.md`. That script puts
@@ -178,7 +184,6 @@ a file path. The `justfile` calls them by name and does not know where they
 are:
 
     rm2k-snes-convert           port/snes_convert.py
-    rm2k-snes-patches           port/patches.py
     abl-entregar                assembly/entregar.py
 
 and next to them the ones that are Rust binaries —`rm2k-snes-cartridges`,
@@ -186,8 +191,9 @@ and next to them the ones that are Rust binaries —`rm2k-snes-cartridges`,
 the runtime through the checkout they were installed from; and
 `rm2k-snes-msu` and `rm2k-snes-volume-ceilings`, from
 `rm2k-snes/rm2k-snes-audio/`; `rm2k-snes-battle`, from
-`rm2k-snes/battle/`; `rm2k-snes-events`, from `rm2k-snes/events/`; and
-`rm2k-snes-maps`, from `rm2k-snes/maps/`—.
+`rm2k-snes/battle/`; `rm2k-snes-events`, from `rm2k-snes/events/`;
+`rm2k-snes-maps`, from `rm2k-snes/maps/`; and `rm2k-snes-patches`, from
+`rm2k-snes/patches/`—.
 
 The reason for the names is in `tools/justfile`. A new one is added in
 `_install`, and the `.py` finds its packages by resolving the symlink with

@@ -56,3 +56,26 @@ def run(binary, project, command, request, *flags, raw=False):
             with open(os.path.join(out, name), "rb" if raw else "r") as handle:
                 written[name] = handle.read()
         return written
+
+
+def hand_over(binary, project, request, *args):
+    """`binary --request <request> *args`, for a program that does not make
+    a piece of the conversion but takes one of its answers somewhere: it
+    writes where `args` say, and what it prints goes out with what the
+    converter prints. The first one is `rm2k-snes-patches`, which writes
+    what the converter decided to lose next to the ROM.
+
+    What it answers no to stops the conversion with its message."""
+    path = shutil.which(binary)
+    if path is None:
+        raise SystemExit(MISSING % (binary, project))
+    with tempfile.TemporaryDirectory(prefix=binary + "-") as directory:
+        request_path = os.path.join(directory, "request.json")
+        with open(request_path, "w") as handle:
+            json.dump(request, handle)
+        sys.stdout.flush()
+        done = subprocess.run([path, "--request", request_path] + list(args),
+                              stderr=subprocess.PIPE, text=True)
+        if done.returncode:
+            raise SystemExit(done.stderr.strip()
+                             or "%s exited with %d" % (binary, done.returncode))

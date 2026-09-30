@@ -48,7 +48,7 @@ That they are fifteen colors **is an artistic decision**: color is lost
 compared with the baked scene, where the battlers shared the 96 entries with
 the backdrop. What was merged with what is written per battler in
 `rom/parches/auto/battlers/`, like the map layers. See
-`tools/port/patches.py`.
+`rm2k-snes-patches`, in `tools/rm2k-snes/patches/`.
 
 The edge changes too: before, the battler blended with the backdrop when
 shrunk —`alpha_composite`— and now each pixel is either the battler's or the

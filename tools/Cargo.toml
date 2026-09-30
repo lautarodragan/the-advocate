@@ -23,6 +23,7 @@ members = [
     "rm2k-snes/map-background",
     "rm2k-snes/map-sprites",
     "rm2k-snes/maps",
+    "rm2k-snes/patches",
     "rm2k-snes/project",
     "rm2k-snes/rm2k-snes-audio",
 ]
