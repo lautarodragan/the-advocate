@@ -159,4 +159,5 @@ TEXT_BUF_BYTES = WINDOW_TEXT_COLS * 2 * 32
 .include "far_npcs.s"
 .include "menu_experience.s"
 .include "end_game.s"
+.include "counter.s"
 .include "header.s"

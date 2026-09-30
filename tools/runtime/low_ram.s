@@ -398,6 +398,13 @@ timer_dig:  .res 4
 timer_i:     .res 1
 timer_half: .res 1
 timer_glyph: .res 1
+; The counter —see `op_counter`—: whether it is on screen, the top-left
+; corner of its number, and its two glyphs, the tens being $FF under ten.
+counter_visible: .res 1
+counter_x:       .res 1
+counter_y:       .res 1
+counter_tens:    .res 1
+counter_ones:    .res 1
 ; The size the next object goes out with, already shifted into its place in
 ; OAM's small table: $02 is the characters' 32x32 and $00 the digits' 8x8. It
 ; is the only thing the two OBSEL sizes need to tell apart.

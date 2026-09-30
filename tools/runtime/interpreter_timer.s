@@ -84,3 +84,11 @@ timer_end:
     jmp run_code::other
 
 .endproc
+
+; `OP_COUNTER`: a common event the project declared as a counter, instead of
+; its body —see `compile_counter` in the event compiler—. The work is
+; `counter_set`'s, in bank 1.
+.proc op_counter
+    jsl f:counter_set + FAST    ; see MEMSEL
+    jmp run_code::other
+.endproc

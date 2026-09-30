@@ -28,6 +28,7 @@
     lda #0                      ; and the picture is erased: it is the
     sta f:PICTURE_ACTIVE        ; `erase_on_map_change` of Game_Pictures, and
     sta f:PICTURE_READY         ; besides, its tiles belong to a single map
+    stz counter_visible         ; and the counter, which in RM2k is pictures
     jsr package_load            ; the map's audio, during the fade
     rep #$20
 .a16

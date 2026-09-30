@@ -212,6 +212,9 @@ party_ready:
     ; it with $55— so without this it would be seen running by itself.
     stz timer_active
     stz timer_visible
+    stz counter_visible         ; `enter_map` clears it too, but the title
+                                ; screen comes first and draws the timer's
+                                ; palette entries by that flag
     stz timer_sub
     rep #$20
 .a16

@@ -262,6 +262,17 @@ impl Request {
                 Ok(table)
             })?;
         }
+        if let Some(counters) = data.get("counters") {
+            for c in counters
+                .as_array()
+                .ok_or_else(|| Bad::answer(format!("{whose}: `counters` is not a list")))?
+            {
+                r.patches.counters.insert(
+                    int(field(c, "common_event", whose)?, whose)? as i32,
+                    int(field(c, "variable", whose)?, whose)? as i32,
+                );
+            }
+        }
         if let Some(p) = data.get("picture") {
             if !p.is_null() {
                 r.picture = Some(Picture {
@@ -603,7 +614,7 @@ pub fn compile(game: &Game, request: &Request) -> Result<Value> {
                 if compile_page(&mut ctx, &page.commands, None, 0, 0)?.is_none() {
                     continue;
                 }
-                debts.extend(compile::page_debts(&page.commands, picture)?);
+                debts.extend(compile::page_debts(game, &page.commands, picture)?);
             }
         }
         let asked: Vec<Value> = subs

@@ -148,6 +148,9 @@ pub struct Patches {
     /// Graphics that go by another name: (map, event, page id) and the name.
     /// It is how a translucent page gets a graphic of its own.
     pub names: HashMap<(i32, i32, i32), String>,
+    /// Common events the project declares as counters: the common event's
+    /// number and the variable it shows. See `compile_counter`.
+    pub counters: BTreeMap<i32, i32>,
 }
 
 /// The game.

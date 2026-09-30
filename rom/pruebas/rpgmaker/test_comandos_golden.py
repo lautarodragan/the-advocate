@@ -283,6 +283,28 @@ def test_timer(nombre, cuadros):
         golden("%s-%d" % (nombre, cuadro), p.imagen())
 
 
+def test_contador():
+    """`contador`: la Fortitude de Eisen, el común 9 declarado como contador.
+
+    En el mapa 95, como la escena de entrada: la variable 48 en 99 y las dos
+    imágenes de dígitos a mano, que muestran el contador. Después dos saltos
+    de verdad —las páginas de los eventos 15 y 16, llamadas con `CallEvent`—,
+    que restan 5 y llaman al común 9: el primero desde 99 y el segundo desde
+    12, que deja **7 sin decena**, como el original, que borra la imagen de
+    la decena debajo de 10. Después un tinte negro, que al contador no lo
+    toca —las imágenes de RM2k 2000 no se tiñen—, y un `Teleport` a otro
+    mapa, que se lo lleva: `erase_on_map_change`.
+
+    Los ticks: 110 con 99, 190 con 94, 300 con 7, 360 con 7 sobre negro y
+    470 ya en el 6, sin nada. Lo que hace el original, medido con el RPG_RT,
+    está en `workflow/tasks/*/el-contador-de-fortitude-no-se-ve.md`.
+    """
+    for cuadro in (110, 190, 300, 360, 470):
+        p = partida("contador")
+        p.correr(cuadro)
+        golden("contador-%d" % cuadro, p.imagen())
+
+
 @pytest.mark.parametrize("nombre", ("rama-item", "rama-item-no"))
 def test_rama_item(nombre):
     """`rama-item`: la rama de `ConditionalBranch` por objeto.

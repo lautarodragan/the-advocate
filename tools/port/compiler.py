@@ -141,6 +141,17 @@ def request(dump, map_ids, test_commands=(), extra_variables=(),
     }
 
 
+def counters():
+    """The common events the project declares as the display of a variable
+    in two digit pictures: `[events] counters`, which the compiler turns
+    into one opcode each instead of their bodies."""
+    out = []
+    for c in settings.value("events", "counters", kind=list):
+        out.append({"common_event": c["common_event"],
+                    "variable": c["variable"]})
+    return out
+
+
 def run(command_name, dump, req):
     written = stage.run(BINARY, PROJECT, command_name, req, "--data", dump)
     return json.loads(written["events.json"])
@@ -256,6 +267,7 @@ def compile_cartridge(dump, maps, cases, test_commands, extra_variables,
     req["substitutions"] = {
         str(m["id"]): substitution_table(m, common) for m in maps}
     req["picture"] = picture
+    req["counters"] = counters()
     req["sound_effects"] = {
         name: settings.value("sound_effects", name, kind=list)
         for name in ("per_map", "route_effects_left_out",
@@ -426,6 +438,7 @@ def loose_request(dump, maps, cases=(), encounter_troops=()):
     req.update({
         "substitutions": _map_substitutions(dump, maps),
         "picture": None,
+        "counters": counters(),
         "sound_effects": {
             name: settings.value("sound_effects", name, kind=list)
             for name in ("per_map", "route_effects_left_out",

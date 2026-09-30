@@ -504,3 +504,18 @@ args = [
 name = "OP_RETURN_TO_TITLE"
 code = 0x34
 args = []
+
+# A counter: a common event the project declares as the display of a
+# variable, in two digit pictures, called with `CallEvent`. Instead of its
+# body, this: show the variable's value **now**, clamped to 0..99 and with no
+# leading zero, in the timer's glyphs, with the tens' top-left corner at
+# (`x`, `y`) of the console's screen and the ones eight pixels to its right.
+# It stays until the map changes. `slot` is the variable's.
+[[opcode]]
+name = "OP_COUNTER"
+code = 0x35
+args = [
+  { name = "slot", type = "byte" },
+  { name = "x", type = "byte" },
+  { name = "y", type = "byte" },
+]
