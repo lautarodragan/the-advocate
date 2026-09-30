@@ -9,8 +9,9 @@ care of the events.
 **The layers are drawn by `rm2k-render`**, a Rust binary on the PATH, like
 `voodoo` or `lz2`: this file hands it the map as the converter has it —with
 the fork applied and whatever was baked into it— and reads back the PNGs it
-writes. What stays here is what is not a map's layers: the CharSets, the one
-upper tile an event is drawn with, and `load_image`, which the rest of
+writes. **So are the CharSets**, the sheets the events are drawn with
+—`Charsets`, which asks for them all at once—. What stays here is what the
+port does to them for the console, and `load_image`, which the rest of
 `port/` uses.
 """
 
@@ -32,7 +33,8 @@ from rpgmaker.resources import find_resource
 from rpgmaker.rm2k import TILE
 from render import chipset_recipe
 
-MISSING = """`rm2k-render` is missing, the one that draws a map's layers.
+MISSING = """`rm2k-render` is missing, the one that draws a map's layers and
+the CharSets of its events.
 
 It is a Rust binary that lives in `tools/rm2k/rm2k-render/` and is installed as
 a system tool:
@@ -59,23 +61,6 @@ def version():
 # The families of `rm2k.ANIMATED_FAMILIES`, by the name `rm2k-render` gives
 # their files: drawing `d` of the water is `water-<d>.png`.
 _FAMILY_FILES = {"agua": "water", "animado": "animated"}
-
-
-def upper_tile(chipset, index):
-    """Upper-layer tile `index` of a ChipSet, 16x16 over transparency.
-
-    It is the tile an event without a CharSet is drawn with. It is copied
-    through its alpha **twice**, the way it reached the tile when the whole
-    ChipSet was expanded here into an atlas and drawn from it: with a ChipSet
-    whose alpha is only 0 or 255 it is a plain copy, but with half
-    transparencies each pass rounds, and the pixels have to be those.
-    """
-    region = chipset.crop(rm2k.common_box(rm2k.TILES_PER_LAYER + index))
-    cell = Image.new("RGBA", (TILE, TILE), (0, 0, 0, 0))
-    cell.paste(region, (0, 0), region)
-    tile = Image.new("RGBA", (TILE, TILE), (0, 0, 0, 0))
-    tile.paste(cell, (0, 0), cell)
-    return tile
 
 
 def load_image(path):
@@ -132,36 +117,144 @@ DITHERS = {
 
 
 class Charsets:
-    """Cache of CharSets, which repeat a lot among a map's events."""
+    """The CharSet sheets the events are drawn with, by the name the port
+    gives them, remembered: they repeat a lot among a map's events.
 
-    def __init__(self, search_dirs, chipset_by_name=None,
+    **`rm2k-render charset` draws them**: a CharSet with its color key, the
+    made-up sheet of an event drawn with a tile of the ChipSet
+    (`rm2k.TILE_PREFIX`), and a translucent one blended into what is behind
+    it (`rm2k.BAKED_SUFFIX`). Those are RM2k's drawings, the ones a viewer of
+    the game on a PC would make. What stays here is the port's, for the
+    console: the dithered sheet (`rm2k.DITHER_SUFFIX`), which exists because
+    the SNES has no translucency to spare, and the copy with its own palette
+    (`rm2k.COPY_SUFFIX`), which is the same drawing. **Which** background a
+    translucent one is baked against is also the port's: see `_baked`.
+
+    Each call to the binary is a process, so `draw` asks for a whole list in
+    one; `get` of a name nobody asked for before costs one call of its own.
+    """
+
+    def __init__(self, search_dirs, chipset_file=None,
                  lower_layer_image=None):
         self.search_dirs = search_dirs
         self.images = {}
-        self.chipset_by_name = chipset_by_name
+        self.chipset_file = chipset_file
         self.lower_layer_image = lower_layer_image
 
     def get(self, name):
         if name not in self.images:
-            base, where = rm2k.baked_parts(name)
-            if name.endswith(rm2k.COPY_SUFFIX):
-                self.images[name] = self.get(name[:-len(rm2k.COPY_SUFFIX)])
-            elif where is not None:
-                self.images[name] = self._baked(base, *where)
-            elif name.endswith(rm2k.DITHER_SUFFIX):
-                self.images[name] = self._dithered(
-                    name[:-len(rm2k.DITHER_SUFFIX)])
-            elif name.startswith(rm2k.TILE_PREFIX):
-                self.images[name] = self._from_tile(name)
-            else:
-                path = find_resource(self.search_dirs, "CharSet", name)
-                self.images[name] = load_image(path) if path else None
+            self.draw([name])
         return self.images[name]
 
-    def _dithered(self, name):
+    def draw(self, names):
+        """Draws every sheet of `names` not drawn yet, with a single call to
+        `rm2k-render`, and the port's own sheets made from them."""
+        wanted = {}
+        behind = {}
+        for name in names:
+            self._plan(name, wanted, behind)
+        if wanted:
+            self._render(wanted, behind)
+        for name in names:
+            self._derive(name)
+
+    def _plan(self, name, wanted, behind):
+        """Puts in `wanted` the entry of the request that draws `name`, or
+        that of the sheet the port makes it from."""
+        if name in self.images or name in wanted:
+            return
+        for suffix in (rm2k.COPY_SUFFIX, rm2k.DITHER_SUFFIX):
+            if name.endswith(suffix):
+                self._plan(name[:-len(suffix)], wanted, behind)
+                return
+        base, where = rm2k.baked_parts(name)
+        entry = self._source(base)
+        if entry is None:
+            self.images[name] = None
+            return
+        if where is not None:
+            baked = self._baked(entry, *where, behind)
+            if baked is None:
+                self._plan(base, wanted, behind)
+                return
+            entry = baked
+        wanted[name] = entry
+
+    def _source(self, name):
+        """The request's entry for a CharSet or a tile, or `None` if its
+        picture is missing."""
+        if name.startswith(rm2k.TILE_PREFIX):
+            _, chipset, index = name.split(":", 2)
+            path = self.chipset_file(chipset) if self.chipset_file else None
+            return {"chipset_file": path, "tile": int(index)} if path else None
+        path = find_resource(self.search_dirs, "CharSet", name)
+        return {"charset_file": path} if path else None
+
+    def _baked(self, entry, map_id, tile_x, tile_y, behind):
+        """The entry of a translucent event, with the blend already computed,
+        or `None` if there is nothing to blend it with.
+
+        RM2k draws it at 160 out of 255 over whatever is behind, and
+        `rm2k-render` does that blend. **Keeping it in the graphic** is the
+        port's: since the event is static —all 70 in the game are— and so is
+        the background, the blend is computed once, against the real
+        background of the cell where it stands, and the sprite comes out
+        opaque and with the exact colors, no dither.
+
+        The background is the map's **lower layer**, which is the only thing
+        left behind the sprite: the upper one is drawn afterwards and covers
+        it, so on the pixels where the sprite shows the background is this
+        one.
+        """
+        if map_id not in behind:
+            background = (self.lower_layer_image(map_id)
+                          if self.lower_layer_image else None)
+            if background is None:
+                return None
+            behind[map_id] = background
+        return dict(entry, translucent={"behind": "behind-%d.png" % map_id,
+                                        "x": tile_x, "y": tile_y})
+
+    def _render(self, wanted, behind):
+        """One call to `rm2k-render charset` for every entry of `wanted`."""
+        names = list(wanted)
+        with tempfile.TemporaryDirectory(prefix="rm2k-render-") as out:
+            for map_id, background in behind.items():
+                background.save(os.path.join(out, "behind-%d.png" % map_id))
+            request_path = os.path.join(out, "charsets.json")
+            with open(request_path, "w", encoding="utf-8") as f:
+                json.dump([wanted[n] for n in names], f)
+            sheets = os.path.join(out, "sheets")
+            done = subprocess.run(
+                [binary(), "charset", "--request", request_path,
+                 "--out", sheets], capture_output=True, text=True)
+            if done.returncode != 0:
+                raise SystemExit("rm2k-render could not draw the CharSets "
+                                 "%s:\n%s" % (", ".join(names),
+                                              done.stderr.strip()))
+            for i, name in enumerate(names):
+                # `convert` reads it now, before the directory goes away.
+                with Image.open(os.path.join(sheets, "%d.png" % i)) as image:
+                    self.images[name] = image.convert("RGBA")
+
+    def _derive(self, name):
+        """The sheet of `name`, made from what `_render` drew."""
+        if name not in self.images:
+            if name.endswith(rm2k.COPY_SUFFIX):
+                self.images[name] = self._derive(
+                    name[:-len(rm2k.COPY_SUFFIX)])
+            elif name.endswith(rm2k.DITHER_SUFFIX):
+                self.images[name] = self._dithered(self._derive(
+                    name[:-len(rm2k.DITHER_SUFFIX)]))
+            else:
+                # Baked, with nothing to bake it against: the sheet as is.
+                self.images[name] = self._derive(rm2k.unbaked(name))
+        return self.images[name]
+
+    @staticmethod
+    def _dithered(base):
         """The CharSet of a translucent event: the same one, with part of its
         pixels transparent. See `rm2k.DITHER_SUFFIX` and `DITHERS`."""
-        base = self.get(name)
         if base is None:
             return None
         image = base.convert("RGBA")
@@ -171,69 +264,6 @@ class Charsets:
             for x in range(image.width):
                 if drops(x, y):
                     pix[x, y] = (0, 0, 0, 0)
-        return image
-
-    def _baked(self, base, map_id, tile_x, tile_y):
-        """The CharSet of a translucent event, with the blend already computed.
-
-        RM2k draws it at 160 out of 255 over whatever is behind. Since the
-        event is static —all 70 in the game are— and so is the background,
-        the blend is computed once here, against the real background of the
-        cell where it stands, and stays baked into the graphic: the sprite
-        comes out opaque and with the exact colors, no dither.
-
-        The background is the map's **lower layer**, which is the only thing
-        left behind the sprite: the upper one is drawn afterwards and covers
-        it, so on the pixels where the sprite shows the background is this
-        one. And it is taken at `(x*16 - 4, y*16 - 16)`, which is where
-        `charset.draw` rests the 24x32 frame on the cell; since all the
-        CharSet's poses land on the same place on the screen, each one is
-        blended against the same piece and it is enough to look at the
-        pixel's position inside its frame.
-        """
-        sheet = self.get(base)
-        background = (self.lower_layer_image(map_id)
-                      if self.lower_layer_image else None)
-        if sheet is None or background is None:
-            return sheet
-        image = sheet.convert("RGBA")
-        pix = image.load()
-        behind = background.load()
-        ox = tile_x * TILE + rm2k.OFFSET_X
-        oy = tile_y * TILE + rm2k.OFFSET_Y
-        alpha = rm2k.TRANSLUCENT_OPACITY
-        for y in range(image.height):
-            fy = oy + y % rm2k.SPRITE_HEIGHT
-            for x in range(image.width):
-                r, g, b, a = pix[x, y]
-                if not a:
-                    continue
-                fx = ox + x % rm2k.SPRITE_WIDTH
-                if 0 <= fx < background.width and 0 <= fy < background.height:
-                    br, bg, bb = behind[fx, fy][:3]
-                else:
-                    br = bg = bb = 0        # outside the map the console sees black
-                pix[x, y] = ((r * alpha + br * (255 - alpha)) // 255,
-                             (g * alpha + bg * (255 - alpha)) // 255,
-                             (b * alpha + bb * (255 - alpha)) // 255, 255)
-        return image
-
-    def _from_tile(self, name):
-        """A made-up CharSet with a tile from the chipset's upper page in the
-        twelve poses of character 0, resting on the cell: a character's frame
-        is 24x32 and is drawn at (x - 4, y - 16), so the 16x16 tile goes at
-        (4, 16) of each frame. It is how RM2k draws an event without a
-        CharSet, only as a sprite, so that it moves and
-        changes place like any other."""
-        _, chipset, index = name.split(":", 2)
-        image = (self.chipset_by_name(chipset) if self.chipset_by_name
-                 else None)
-        if image is None:
-            return None
-        tile = upper_tile(image, int(index))
-        image = Image.new("RGBA", (288, 256), (0, 0, 0, 0))
-        for pose in range(12):
-            image.paste(tile, ((pose % 3) * 24 + 4, (pose // 3) * 32 + 16))
         return image
 
 
@@ -254,9 +284,8 @@ class Renderer:
         self.search_dirs.insert(0, chipset_recipe.build_images(
             lambda folder, name: find_resource(self.search_dirs, folder,
                                                name)))
-        self.charsets = Charsets(self.search_dirs, self.chipset_by_name,
+        self.charsets = Charsets(self.search_dirs, self.chipset_file,
                                  self.lower_layer_image)
-        self.chipsets = {}
         self.lower_layers = {}
         self.fingerprints = {}
         self.missing_chipsets = set()
@@ -274,15 +303,12 @@ class Renderer:
             self.lower_layers[map_id] = self.animated_layers(game_map)[0]
         return self.lower_layers[map_id]
 
-    def chipset_by_name(self, filename):
-        """The ChipSet's image with its color key, or `None` if it is
-        missing. Remembered by name: maps share ChipSets."""
-        if filename not in self.chipsets:
-            path = find_resource(self.search_dirs, "ChipSet", filename)
-            if not path:
-                self.missing_chipsets.add(filename)
-            self.chipsets[filename] = load_image(path) if path else None
-        return self.chipsets[filename]
+    def chipset_file(self, filename):
+        """The path of the ChipSet's picture, or `None` if it is missing."""
+        path = find_resource(self.search_dirs, "ChipSet", filename)
+        if not path:
+            self.missing_chipsets.add(filename)
+        return path
 
     def layer_inputs(self, game_map):
         """Everything that goes into a map's drawn layers, without drawing them.

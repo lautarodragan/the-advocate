@@ -6,7 +6,6 @@ if that doesn't move anyone else's colors in CGRAM.
 from port import events
 from rpgmaker import rm2k
 from rpgmaker.rm2k import collect_npcs
-from render import render_map
 from port.map_layers import converted_layers
 
 
@@ -43,9 +42,21 @@ MOVING_COMMANDS = (events.MOVE_EVENT, events.CHANGE_EVENT_LOCATION,
                    events.TRADE_EVENT_LOCATIONS, events.FLASH_SPRITE)
 
 
-def _tile_alphas(chipset, index):
-    """The alpha of the 16x16 pixels of upper-layer tile `index`."""
-    return render_map.upper_tile(chipset, index).getchannel("A").tobytes()
+def _tile_alphas(renderer, chipset, index):
+    """The alpha of the 16x16 pixels of upper-layer tile `index`, or `None`
+    if the ChipSet is missing.
+
+    Taken from the sheet the event is drawn with, `rm2k.tile_name`: the tile
+    stands on its cell in every pose, so pose 0 has it whole where the cell
+    is. What is asked is whether the **sprite** covers the cell, and this is
+    the sprite's picture.
+    """
+    sheet = renderer.charsets.get(rm2k.tile_name(chipset, index))
+    if sheet is None:
+        return None
+    x, y = -rm2k.OFFSET_X, -rm2k.OFFSET_Y
+    tile = sheet.crop((x, y, x + rm2k.TILE, y + rm2k.TILE))
+    return tile.getchannel("A").tobytes()
 
 
 def bakeable_events(renderer, game_map):
@@ -83,17 +94,26 @@ def bakeable_events(renderer, game_map):
     layer and `animated_layers` renders all of them from there. What is lost is
     the animation the opaque tile already covered.
     """
-    chipset = renderer.chipset_by_name(getattr(game_map, "chipset_filename",
-                                               None))
+    chipset = getattr(game_map, "chipset_filename", None)
     flags = getattr(game_map, "passability_table", None)
     if chipset is None or flags is None:
+        return {}
+    # The tiles this can ask about, drawn in a single call to `rm2k-render`.
+    renderer.charsets.draw(
+        [rm2k.tile_name(chipset, 0)]
+        + sorted({rm2k.unbaked(npc["charset"])
+                  for npc in collect_npcs(game_map)
+                  if rm2k.unbaked(npc["charset"]).startswith(
+                      rm2k.TILE_PREFIX)}))
+    tile_zero = _tile_alphas(renderer, chipset, 0)
+    if tile_zero is None:
         return {}
     # That tile 0 of the upper layer —the one an empty cell carries— draws
     # nothing is checked, not assumed: it is what makes putting the event's
     # tile there cover nothing. The ChipSets of this game satisfy it; one that
     # doesn't leaves the map without baked events instead of changing what is
     # seen.
-    if any(_tile_alphas(chipset, 0)):
+    if any(tile_zero):
         return {}
     # The events that some page moves, flashes or sends walking. It goes by
     # the RM2k id, which is what the commands carry, and it is translated by
@@ -167,8 +187,8 @@ def bakeable_events(renderer, game_map):
                 game_map.upper_layer[cell]):
             continue
         if index not in opaque:
-            opaque[index] = all(a == 255
-                                for a in _tile_alphas(chipset, index))
+            opaque[index] = all(a == 255 for a in _tile_alphas(
+                renderer, chipset, index))
         if not opaque[index]:
             continue
         bakeable[number] = (cell, tile)

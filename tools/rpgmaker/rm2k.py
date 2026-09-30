@@ -231,8 +231,8 @@ LAYER_ABOVE = 2
 # An event without a CharSet is drawn with a tile from the chipset's upper
 # page: that is how doors, chests and a good part of the decoration are
 # made. For the rest of the program it is one more CharSet, with this made-up
-# name, which carries the chipset and the tile's index;
-# `render_map.Charsets` knows how to build its image.
+# name, which carries the chipset and the tile's index; `rm2k-render
+# charset` draws its image, which `render_map.Charsets` asks it for.
 TILE_PREFIX = "@tile:"
 
 
@@ -277,8 +277,9 @@ TRANSLUCENT_OPACITY = 160
 # For the rest of the program it is, again, another CharSet: the name carries
 # this suffix with the map and the cell where the event stands, which is all
 # that is needed to rebuild the background. The reader sticks it on —see
-# `lcf.DECORATE_TRANSLUCENT`, which the converter turns on— and
-# `render_map.Charsets` builds the image.
+# `lcf.DECORATE_TRANSLUCENT`, which the converter turns on—, `rm2k-render
+# charset` does the blend, and `render_map.Charsets` hands it the
+# background.
 BAKED_SUFFIX = "~horneado"
 
 # Which of the two paths runs. It is switched with TRANSLUCENT_MODE=dither to

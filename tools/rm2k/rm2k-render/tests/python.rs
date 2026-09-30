@@ -17,56 +17,14 @@
 //! regenerated to make a test pass: the Python that produced them is gone,
 //! and with it the only independent answer.
 
-use rm2k_render::{picture, Atlas, Family, Map, Picture};
-use sha2::{Digest, Sha256};
+mod common;
+
+use common::{indexed_chipset, rgba_chipset, sha};
+use rm2k_render::{picture, Atlas, Family, Map};
 use std::path::PathBuf;
 
 const WIDTH: usize = 48;
 const HEIGHT: usize = 32;
-
-fn indexed_chipset(path: &std::path::Path) {
-    let mut encoder = png::Encoder::new(std::fs::File::create(path).unwrap(), 480, 256);
-    encoder.set_color(png::ColorType::Indexed);
-    encoder.set_depth(png::BitDepth::Eight);
-    let palette: Vec<u8> = (0..256usize)
-        .flat_map(|i| {
-            [
-                (i * 37 % 256) as u8,
-                (i * 101 % 256) as u8,
-                (i * 211 % 256) as u8,
-            ]
-        })
-        .collect();
-    encoder.set_palette(palette);
-    let pixels: Vec<u8> = (0..256usize)
-        .flat_map(|y| {
-            (0..480usize).map(move |x| ((x * 7 + y * 13 + (x / 5) * (y / 3)) % 256) as u8)
-        })
-        .collect();
-    let mut writer = encoder.write_header().unwrap();
-    writer.write_image_data(&pixels).unwrap();
-}
-
-fn rgba_chipset(path: &std::path::Path) {
-    const ALPHAS: [u8; 5] = [0, 255, 128, 37, 200];
-    let mut rgba = Vec::with_capacity(480 * 256 * 4);
-    for y in 0..256usize {
-        for x in 0..480usize {
-            rgba.extend_from_slice(&[
-                (x * 3 % 256) as u8,
-                (y * 5 % 256) as u8,
-                ((x + y) % 256) as u8,
-                ALPHAS[(x * y + x) % 5],
-            ]);
-        }
-    }
-    let picture = Picture {
-        width: 480,
-        height: 256,
-        rgba,
-    };
-    picture::write_png(path, &picture).unwrap();
-}
 
 fn map() -> Map {
     let mut lower: Vec<i64> = Vec::new();
@@ -107,13 +65,6 @@ fn map() -> Map {
             .collect(),
         passable_upper: (0..144usize).map(|i| ((i * 53 + 7) % 256) as u8).collect(),
     }
-}
-
-fn sha(picture: &Picture) -> String {
-    Sha256::digest(&picture.rgba)
-        .iter()
-        .map(|b| format!("{b:02x}"))
-        .collect()
 }
 
 fn scratch(name: &str) -> PathBuf {

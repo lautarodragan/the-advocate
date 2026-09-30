@@ -1,14 +1,19 @@
-//! The tile layers of an RPG Maker 2000 map, as pictures.
+//! An RPG Maker 2000 game's graphics, drawn the way RM2k draws them.
 //!
-//! A map is two layers of tile ids and a ChipSet; this expands the ChipSet
-//! into every tile it can draw —the autotiles combined with their
-//! neighbours— and draws the map as RM2k stacks it: what goes behind the
-//! hero, what goes in front, and the other drawings of the ChipSet's
-//! animation, the water's and the animated tiles'.
+//! **A map's tile layers**: a map is two layers of tile ids and a ChipSet;
+//! this expands the ChipSet into every tile it can draw —the autotiles
+//! combined with their neighbours— and draws the map as RM2k stacks it: what
+//! goes behind the hero, what goes in front, and the other drawings of the
+//! ChipSet's animation, the water's and the animated tiles'.
 //!
-//! No panorama, no events, no picture of the hero: those are drawn by
+//! **What an event is drawn with** ([`charset`]): a CharSet, an event drawn
+//! with a tile of the ChipSet, and a translucent one over what is behind it,
+//! all as CharSet sheets.
+//!
+//! No panorama and no placing of events on the map: those are drawn by
 //! whoever uses the layers. Nothing here knows which game the map is from.
 
+pub mod charset;
 pub mod chipset;
 pub mod fail;
 pub mod layers;
