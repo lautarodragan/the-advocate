@@ -18,6 +18,7 @@ use rm2k_rules::chipset::TILE;
 use rm2k_rules::passability::{cell, ABOVE};
 use rm2k_snes_map_sprites::npc::Npc;
 use rm2k_snes_map_sprites::split::TILE_PREFIX;
+use std::collections::hash_map::Entry;
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 /// The commands that move an event to another cell or touch its drawing:
@@ -146,9 +147,9 @@ pub fn bakeable(
         if imposed & !cell(map.flags, map.lower[at], map.upper[at]) != 0 {
             continue;
         }
-        if !opaque.contains_key(&index) {
+        if let Entry::Vacant(slot) = opaque.entry(index) {
             let alphas = tile_alphas(drawer, map.chipset, index)?;
-            opaque.insert(index, alphas.is_some_and(|a| a.iter().all(|&v| v == 255)));
+            slot.insert(alphas.is_some_and(|a| a.iter().all(|&v| v == 255)));
         }
         if !opaque[&index] {
             continue;

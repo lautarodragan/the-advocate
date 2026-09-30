@@ -146,7 +146,7 @@ ready:
 ; hundred percent one too, which is what `Rand::ChanceOf` does—, and if it
 ; comes up the item goes to the inventory, capped at ITEM_MAX like
 ; `Game_Party::AddItem`, and its `k` to `BA_DROP_K` so the page can tell it.
-; The order of the rolls is that of `battle.roll_drops`. Everyone in the
+; The rolls go in the order of `roll_drops`, the model's. Everyone in the
 ; troop is dead —which is what `IsDead` asks for— except those still hidden.
 ; Clobbers `BA_S0` to `BA_S2`, `BA_T*`, A, X and Y.
 .proc ba_vic_drop
@@ -353,7 +353,7 @@ first:
     stz BA_S3
     stz BA_S4
     ; The victory term, on the lines the converter split it into —see
-    ; `screens.victory_lines`—.
+    ; `victory_lines` in `rm2k-snes-battle`—.
     jsr ba_vic_line
     bcc no_v1
     ldx #BA_TXT_VICTORY

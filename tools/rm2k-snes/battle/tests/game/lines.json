@@ -1,0 +1,83 @@
+{
+ "request": {
+  "item_name_width": 20,
+  "lines": [
+   [
+    "victory"
+   ],
+   [
+    "exp",
+    90
+   ],
+   [
+    "exp",
+    123456
+   ],
+   [
+    "gold",
+    285
+   ],
+   [
+    "item",
+    3
+   ],
+   [
+    "item",
+    10
+   ],
+   [
+    "level",
+    1,
+    21
+   ],
+   [
+    "level",
+    6,
+    9
+   ],
+   [
+    "skill",
+    4
+   ],
+   [
+    "skill",
+    13
+   ]
+  ]
+ },
+ "answer": {
+  "lines": [
+   [
+    "  The fight is over, and your",
+    "side has won it!"
+   ],
+   [
+    "90 EXP"
+   ],
+   [
+    "123456 EXP"
+   ],
+   [
+    " Found 285G in coins!"
+   ],
+   [
+    "Item 3 found!"
+   ],
+   [
+    "Item 10 found!"
+   ],
+   [
+    "Actor1 LV 21 reached!"
+   ],
+   [
+    "Actor6 LV 9 reached!"
+   ],
+   [
+    "Skill number 4 learned!"
+   ],
+   [
+    "Skill number 13 learned!"
+   ]
+  ]
+ }
+}

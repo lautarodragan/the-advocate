@@ -1,0 +1,893 @@
+[
+ {
+  "id": 1,
+  "members": [
+   {
+    "enemy_id": 1,
+    "id": 1,
+    "invisible": false,
+    "x": 40,
+    "y": 80
+   },
+   {
+    "enemy_id": 2,
+    "id": 2,
+    "invisible": false,
+    "x": 70,
+    "y": 85
+   }
+  ],
+  "name": "Troop 1",
+  "pages": [],
+  "terrain_set": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   false,
+   false
+  ]
+ },
+ {
+  "id": 2,
+  "members": [
+   {
+    "enemy_id": 3,
+    "id": 1,
+    "invisible": false,
+    "x": 40,
+    "y": 80
+   },
+   {
+    "enemy_id": 2,
+    "id": 2,
+    "invisible": true,
+    "x": 70,
+    "y": 85
+   },
+   {
+    "enemy_id": 2,
+    "id": 3,
+    "invisible": true,
+    "x": 100,
+    "y": 90
+   }
+  ],
+  "name": "Troop 2",
+  "pages": [
+   {
+    "condition": {
+     "actor_hp_max": 100,
+     "actor_hp_min": 0,
+     "actor_id": 1,
+     "enemy_hp_max": 60,
+     "enemy_hp_min": 0,
+     "enemy_id": 0,
+     "fatigue_max": 100,
+     "fatigue_min": 0,
+     "flags": {
+      "actor_hp": false,
+      "enemy_hp": true,
+      "fatigue": false,
+      "switch_a": false,
+      "switch_b": false,
+      "turn": false,
+      "variable": false
+     },
+     "switch_a_id": 1,
+     "switch_b_id": 1,
+     "turn_a": 0,
+     "turn_b": 0,
+     "variable_id": 1,
+     "variable_value": 0
+    },
+    "event_commands": [
+     {
+      "code": 10110,
+      "indent": 0,
+      "parameters": [],
+      "string": "Help!"
+     },
+     {
+      "code": 13150,
+      "indent": 0,
+      "parameters": [
+       1
+      ],
+      "string": ""
+     },
+     {
+      "code": 0,
+      "indent": 0,
+      "parameters": [],
+      "string": ""
+     }
+    ],
+    "id": 1
+   },
+   {
+    "condition": {
+     "actor_hp_max": 100,
+     "actor_hp_min": 0,
+     "actor_id": 1,
+     "enemy_hp_max": 30,
+     "enemy_hp_min": 0,
+     "enemy_id": 0,
+     "fatigue_max": 100,
+     "fatigue_min": 0,
+     "flags": {
+      "actor_hp": false,
+      "enemy_hp": true,
+      "fatigue": false,
+      "switch_a": false,
+      "switch_b": false,
+      "turn": false,
+      "variable": false
+     },
+     "switch_a_id": 1,
+     "switch_b_id": 1,
+     "turn_a": 0,
+     "turn_b": 0,
+     "variable_id": 1,
+     "variable_value": 0
+    },
+    "event_commands": [
+     {
+      "code": 13150,
+      "indent": 0,
+      "parameters": [
+       2
+      ],
+      "string": ""
+     },
+     {
+      "code": 0,
+      "indent": 0,
+      "parameters": [],
+      "string": ""
+     }
+    ],
+    "id": 2
+   }
+  ],
+  "terrain_set": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   false,
+   false
+  ]
+ },
+ {
+  "id": 3,
+  "members": [
+   {
+    "enemy_id": 4,
+    "id": 1,
+    "invisible": false,
+    "x": 40,
+    "y": 80
+   },
+   {
+    "enemy_id": 5,
+    "id": 2,
+    "invisible": false,
+    "x": 70,
+    "y": 85
+   },
+   {
+    "enemy_id": 8,
+    "id": 3,
+    "invisible": true,
+    "x": 100,
+    "y": 90
+   }
+  ],
+  "name": "Troop 3",
+  "pages": [
+   {
+    "condition": {
+     "actor_hp_max": 100,
+     "actor_hp_min": 0,
+     "actor_id": 1,
+     "enemy_hp_max": 100,
+     "enemy_hp_min": 0,
+     "enemy_id": 0,
+     "fatigue_max": 100,
+     "fatigue_min": 0,
+     "flags": {
+      "actor_hp": false,
+      "enemy_hp": false,
+      "fatigue": false,
+      "switch_a": false,
+      "switch_b": false,
+      "turn": true,
+      "variable": false
+     },
+     "switch_a_id": 1,
+     "switch_b_id": 1,
+     "turn_a": 0,
+     "turn_b": 1,
+     "variable_id": 1,
+     "variable_value": 0
+    },
+    "event_commands": [
+     {
+      "code": 10210,
+      "indent": 0,
+      "parameters": [
+       0,
+       7,
+       7,
+       0
+      ],
+      "string": ""
+     },
+     {
+      "code": 0,
+      "indent": 0,
+      "parameters": [],
+      "string": ""
+     }
+    ],
+    "id": 1
+   },
+   {
+    "condition": {
+     "actor_hp_max": 100,
+     "actor_hp_min": 0,
+     "actor_id": 1,
+     "enemy_hp_max": 100,
+     "enemy_hp_min": 0,
+     "enemy_id": 0,
+     "fatigue_max": 100,
+     "fatigue_min": 0,
+     "flags": {
+      "actor_hp": false,
+      "enemy_hp": false,
+      "fatigue": false,
+      "switch_a": true,
+      "switch_b": false,
+      "turn": false,
+      "variable": false
+     },
+     "switch_a_id": 7,
+     "switch_b_id": 1,
+     "turn_a": 0,
+     "turn_b": 0,
+     "variable_id": 1,
+     "variable_value": 0
+    },
+    "event_commands": [
+     {
+      "code": 13310,
+      "indent": 0,
+      "parameters": [
+       0,
+       8,
+       0
+      ],
+      "string": ""
+     },
+     {
+      "code": 13150,
+      "indent": 1,
+      "parameters": [
+       2
+      ],
+      "string": ""
+     },
+     {
+      "code": 23310,
+      "indent": 0,
+      "parameters": [],
+      "string": ""
+     },
+     {
+      "code": 10210,
+      "indent": 1,
+      "parameters": [
+       0,
+       8,
+       8,
+       0
+      ],
+      "string": ""
+     },
+     {
+      "code": 0,
+      "indent": 1,
+      "parameters": [],
+      "string": ""
+     },
+     {
+      "code": 10,
+      "indent": 0,
+      "parameters": [],
+      "string": ""
+     },
+     {
+      "code": 0,
+      "indent": 0,
+      "parameters": [],
+      "string": ""
+     }
+    ],
+    "id": 2
+   },
+   {
+    "condition": {
+     "actor_hp_max": 100,
+     "actor_hp_min": 40,
+     "actor_id": 2,
+     "enemy_hp_max": 100,
+     "enemy_hp_min": 0,
+     "enemy_id": 0,
+     "fatigue_max": 100,
+     "fatigue_min": 0,
+     "flags": {
+      "actor_hp": true,
+      "enemy_hp": false,
+      "fatigue": false,
+      "switch_a": false,
+      "switch_b": false,
+      "turn": true,
+      "variable": false
+     },
+     "switch_a_id": 1,
+     "switch_b_id": 1,
+     "turn_a": 2,
+     "turn_b": 2,
+     "variable_id": 1,
+     "variable_value": 0
+    },
+    "event_commands": [
+     {
+      "code": 10210,
+      "indent": 0,
+      "parameters": [
+       0,
+       9,
+       9,
+       1
+      ],
+      "string": ""
+     },
+     {
+      "code": 0,
+      "indent": 0,
+      "parameters": [],
+      "string": ""
+     }
+    ],
+    "id": 3
+   }
+  ],
+  "terrain_set": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   false,
+   false
+  ]
+ },
+ {
+  "id": 4,
+  "members": [
+   {
+    "enemy_id": 6,
+    "id": 1,
+    "invisible": false,
+    "x": 40,
+    "y": 80
+   },
+   {
+    "enemy_id": 6,
+    "id": 2,
+    "invisible": false,
+    "x": 70,
+    "y": 85
+   },
+   {
+    "enemy_id": 6,
+    "id": 3,
+    "invisible": false,
+    "x": 100,
+    "y": 90
+   },
+   {
+    "enemy_id": 6,
+    "id": 4,
+    "invisible": false,
+    "x": 130,
+    "y": 95
+   },
+   {
+    "enemy_id": 6,
+    "id": 5,
+    "invisible": false,
+    "x": 160,
+    "y": 100
+   },
+   {
+    "enemy_id": 6,
+    "id": 6,
+    "invisible": false,
+    "x": 190,
+    "y": 105
+   },
+   {
+    "enemy_id": 6,
+    "id": 7,
+    "invisible": false,
+    "x": 220,
+    "y": 110
+   },
+   {
+    "enemy_id": 6,
+    "id": 8,
+    "invisible": false,
+    "x": 250,
+    "y": 115
+   },
+   {
+    "enemy_id": 6,
+    "id": 9,
+    "invisible": false,
+    "x": 280,
+    "y": 120
+   }
+  ],
+  "name": "Troop 4",
+  "pages": [
+   {
+    "condition": {
+     "actor_hp_max": 100,
+     "actor_hp_min": 0,
+     "actor_id": 1,
+     "enemy_hp_max": 100,
+     "enemy_hp_min": 0,
+     "enemy_id": 0,
+     "fatigue_max": 100,
+     "fatigue_min": 0,
+     "flags": {
+      "actor_hp": false,
+      "enemy_hp": false,
+      "fatigue": true,
+      "switch_a": false,
+      "switch_b": true,
+      "turn": false,
+      "variable": false
+     },
+     "switch_a_id": 1,
+     "switch_b_id": 5,
+     "turn_a": 0,
+     "turn_b": 0,
+     "variable_id": 1,
+     "variable_value": 0
+    },
+    "event_commands": [
+     {
+      "code": 13150,
+      "indent": 0,
+      "parameters": [
+       0
+      ],
+      "string": ""
+     },
+     {
+      "code": 0,
+      "indent": 0,
+      "parameters": [],
+      "string": ""
+     }
+    ],
+    "id": 1
+   }
+  ],
+  "terrain_set": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   false,
+   false
+  ]
+ },
+ {
+  "id": 5,
+  "members": [
+   {
+    "enemy_id": 7,
+    "id": 1,
+    "invisible": false,
+    "x": 40,
+    "y": 80
+   },
+   {
+    "enemy_id": 1,
+    "id": 2,
+    "invisible": false,
+    "x": 70,
+    "y": 85
+   },
+   {
+    "enemy_id": 6,
+    "id": 3,
+    "invisible": true,
+    "x": 100,
+    "y": 90
+   }
+  ],
+  "name": "Troop 5",
+  "pages": [
+   {
+    "condition": {
+     "actor_hp_max": 100,
+     "actor_hp_min": 0,
+     "actor_id": 1,
+     "enemy_hp_max": 100,
+     "enemy_hp_min": 0,
+     "enemy_id": 0,
+     "fatigue_max": 100,
+     "fatigue_min": 0,
+     "flags": {
+      "actor_hp": false,
+      "enemy_hp": false,
+      "fatigue": false,
+      "switch_a": true,
+      "switch_b": false,
+      "turn": false,
+      "variable": true
+     },
+     "switch_a_id": 9,
+     "switch_b_id": 1,
+     "turn_a": 0,
+     "turn_b": 0,
+     "variable_id": 1,
+     "variable_value": 0
+    },
+    "event_commands": [
+     {
+      "code": 13150,
+      "indent": 0,
+      "parameters": [
+       2
+      ],
+      "string": ""
+     },
+     {
+      "code": 0,
+      "indent": 0,
+      "parameters": [],
+      "string": ""
+     }
+    ],
+    "id": 1
+   },
+   {
+    "condition": {
+     "actor_hp_max": 100,
+     "actor_hp_min": 0,
+     "actor_id": 1,
+     "enemy_hp_max": 100,
+     "enemy_hp_min": 0,
+     "enemy_id": 0,
+     "fatigue_max": 100,
+     "fatigue_min": 0,
+     "flags": {
+      "actor_hp": false,
+      "enemy_hp": false,
+      "fatigue": false,
+      "switch_a": false,
+      "switch_b": false,
+      "turn": true,
+      "variable": false
+     },
+     "switch_a_id": 1,
+     "switch_b_id": 1,
+     "turn_a": 0,
+     "turn_b": 2,
+     "variable_id": 1,
+     "variable_value": 0
+    },
+    "event_commands": [
+     {
+      "code": 13150,
+      "indent": 0,
+      "parameters": [
+       2
+      ],
+      "string": ""
+     },
+     {
+      "code": 0,
+      "indent": 0,
+      "parameters": [],
+      "string": ""
+     }
+    ],
+    "id": 2
+   }
+  ],
+  "terrain_set": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   false,
+   false
+  ]
+ },
+ {
+  "id": 6,
+  "members": [
+   {
+    "enemy_id": 1,
+    "id": 1,
+    "invisible": false,
+    "x": 40,
+    "y": 80
+   },
+   {
+    "enemy_id": 3,
+    "id": 2,
+    "invisible": false,
+    "x": 70,
+    "y": 85
+   },
+   {
+    "enemy_id": 5,
+    "id": 3,
+    "invisible": true,
+    "x": 100,
+    "y": 90
+   },
+   {
+    "enemy_id": 8,
+    "id": 4,
+    "invisible": false,
+    "x": 130,
+    "y": 95
+   }
+  ],
+  "name": "Troop 6",
+  "pages": [
+   {
+    "condition": {
+     "actor_hp_max": 100,
+     "actor_hp_min": 0,
+     "actor_id": 1,
+     "enemy_hp_max": 100,
+     "enemy_hp_min": 0,
+     "enemy_id": 0,
+     "fatigue_max": 100,
+     "fatigue_min": 0,
+     "flags": {
+      "actor_hp": false,
+      "enemy_hp": false,
+      "fatigue": false,
+      "switch_a": false,
+      "switch_b": false,
+      "turn": false,
+      "variable": false
+     },
+     "switch_a_id": 1,
+     "switch_b_id": 1,
+     "turn_a": 0,
+     "turn_b": 0,
+     "variable_id": 1,
+     "variable_value": 0
+    },
+    "event_commands": [
+     {
+      "code": 13150,
+      "indent": 0,
+      "parameters": [
+       2
+      ],
+      "string": ""
+     },
+     {
+      "code": 0,
+      "indent": 0,
+      "parameters": [],
+      "string": ""
+     }
+    ],
+    "id": 1
+   },
+   {
+    "condition": {
+     "actor_hp_max": 100,
+     "actor_hp_min": 0,
+     "actor_id": 1,
+     "enemy_hp_max": 100,
+     "enemy_hp_min": 0,
+     "enemy_id": 7,
+     "fatigue_max": 100,
+     "fatigue_min": 0,
+     "flags": {
+      "actor_hp": false,
+      "enemy_hp": true,
+      "fatigue": false,
+      "switch_a": false,
+      "switch_b": false,
+      "turn": false,
+      "variable": false
+     },
+     "switch_a_id": 1,
+     "switch_b_id": 1,
+     "turn_a": 0,
+     "turn_b": 0,
+     "variable_id": 1,
+     "variable_value": 0
+    },
+    "event_commands": [
+     {
+      "code": 13310,
+      "indent": 0,
+      "parameters": [
+       0,
+       3,
+       1
+      ],
+      "string": ""
+     },
+     {
+      "code": 13150,
+      "indent": 1,
+      "parameters": [
+       2
+      ],
+      "string": ""
+     },
+     {
+      "code": 23310,
+      "indent": 0,
+      "parameters": [],
+      "string": ""
+     },
+     {
+      "code": 0,
+      "indent": 1,
+      "parameters": [],
+      "string": ""
+     },
+     {
+      "code": 0,
+      "indent": 0,
+      "parameters": [],
+      "string": ""
+     }
+    ],
+    "id": 2
+   },
+   {
+    "condition": {
+     "actor_hp_max": 100,
+     "actor_hp_min": 0,
+     "actor_id": 6,
+     "enemy_hp_max": 100,
+     "enemy_hp_min": 0,
+     "enemy_id": 0,
+     "fatigue_max": 100,
+     "fatigue_min": 0,
+     "flags": {
+      "actor_hp": true,
+      "enemy_hp": false,
+      "fatigue": false,
+      "switch_a": false,
+      "switch_b": false,
+      "turn": false,
+      "variable": false
+     },
+     "switch_a_id": 1,
+     "switch_b_id": 1,
+     "turn_a": 0,
+     "turn_b": 0,
+     "variable_id": 1,
+     "variable_value": 0
+    },
+    "event_commands": [
+     {
+      "code": 13150,
+      "indent": 0,
+      "parameters": [
+       2
+      ],
+      "string": ""
+     },
+     {
+      "code": 0,
+      "indent": 0,
+      "parameters": [],
+      "string": ""
+     }
+    ],
+    "id": 3
+   },
+   {
+    "condition": {
+     "actor_hp_max": 100,
+     "actor_hp_min": 0,
+     "actor_id": 1,
+     "enemy_hp_max": 100,
+     "enemy_hp_min": 0,
+     "enemy_id": 0,
+     "fatigue_max": 100,
+     "fatigue_min": 0,
+     "flags": {
+      "actor_hp": false,
+      "enemy_hp": false,
+      "fatigue": false,
+      "switch_a": true,
+      "switch_b": false,
+      "turn": true,
+      "variable": false
+     },
+     "switch_a_id": 3,
+     "switch_b_id": 1,
+     "turn_a": 1,
+     "turn_b": 3,
+     "variable_id": 1,
+     "variable_value": 0
+    },
+    "event_commands": [
+     {
+      "code": 10210,
+      "indent": 0,
+      "parameters": [
+       0,
+       3,
+       4,
+       0
+      ],
+      "string": ""
+     },
+     {
+      "code": 0,
+      "indent": 0,
+      "parameters": [],
+      "string": ""
+     }
+    ],
+    "id": 4
+   }
+  ],
+  "terrain_set": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   true,
+   false,
+   false
+  ]
+ }
+]

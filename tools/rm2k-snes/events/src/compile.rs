@@ -2190,6 +2190,28 @@ pub fn size_of(op: u8) -> usize {
         .unwrap()
 }
 
+/// How many bytes the instruction at `code[at]` takes, the variable-size
+/// ones included.
+pub fn instruction_size(code: &[u8], at: usize) -> usize {
+    let op = code[at];
+    match VARIABLE_SIZE.iter().find(|(o, ..)| *o == op) {
+        Some(&(_, base, count, entry)) => base + entry * code[at + count] as usize,
+        None => size_of(op),
+    }
+}
+
+/// The offset of each instruction of already compiled code.
+pub fn instructions(code: &[u8]) -> impl Iterator<Item = usize> + '_ {
+    let mut at = 0;
+    std::iter::from_fn(move || {
+        (at < code.len()).then(|| {
+            let here = at;
+            at += instruction_size(code, here);
+            here
+        })
+    })
+}
+
 /// The `VAR_REFRESH` bit for a write to variable `number`.
 ///
 /// It is `SetNeedRefreshForVarChange` resolved at compile time: only the

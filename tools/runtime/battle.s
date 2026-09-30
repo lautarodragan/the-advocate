@@ -70,8 +70,8 @@ no_enters:
 .endproc
 
 ; A16 = n; returns with A16 = a number from 0 to n, inclusive. It is easyrpg's
-; `Rand::GetRandomNumber(0, n)` with our randomness: see
-; `battle.Rng.hasta`.
+; `Rand::GetRandomNumber(0, n)` with our randomness: see `Rng::up_to` in
+; `rm2k-snes-battle`.
 .proc ba_until
 .a16
 .i16
@@ -250,7 +250,7 @@ no:
 .endproc
 
 ; The `sp_cost` of the weapon the actor in `BA_S0` has equipped, in A8, or
-; zero: `battle.weapon_sp_of`. The weapon is slot 0 of `FAR_EQUIPMENT`, which is
+; zero: `weapon_sp_of`. The weapon is slot 0 of `FAR_EQUIPMENT`, which is
 ; read directly because the battle runs with the data bank at $7E, and the cost
 ; comes from `item_sp`, which is zero for anything that is not a weapon.
 ; Clobbers X and `BA_T0`.
@@ -454,7 +454,7 @@ with_actor:
     sep #$20
 .a8
     ; And what attacking costs it, which does not change in the equipment
-    ; while the battle lasts: `battle.weapon_sp_of`.
+    ; while the battle lasts: `weapon_sp_of`.
     jsr ba_weapon_sp
     pha
     lda BA_S1
@@ -654,7 +654,7 @@ troop_list:
 ;
 ; easyrpg's `Normal::vExecute`: **three rolls in this order** —hit, critical
 ; and variance— and the critical one is rolled even if the chance is zero.
-; That order is the contract with `tools/port/battle.py`: changing it on one
+; That order is the contract with `rm2k-snes-battle`: changing it on one
 ; side throws the other side's randomness out of step and it does not show
 ; until a hit comes out different.
 ;
@@ -729,7 +729,7 @@ agi_has:
     asl a
     sta temp + 2                ; the divisor: twice the agility
     ; Rounding up, which is what easyrpg's truncation on `100 - x` does:
-    ; see `battle.hit_rate_by_agility`.
+    ; see `hit_rate_by_agility` in `rm2k-snes-battle`.
     lda BA_S3
     clc
     adc temp + 2
@@ -876,8 +876,8 @@ hp_ready:
 
 ; The enemies' actions: `CreateEnemyActions`. Each living one chooses what to
 ; do —`ba_enemy_action`— and then against whom, which is the order of
-; `MakeAttack` and `MakeSkillAction` and the contract with
-; `battle.enemy_actions`:
+; `MakeAttack` and `MakeSkillAction` and the contract with `enemy_actions`
+; in `rm2k-snes-battle`:
 ;
 ; * attacking, or a skill with `enemy` scope: a random living actor, **one
 ;   roll**;
@@ -1005,7 +1005,7 @@ ready:
     rts
 .endproc
 
-; What enemy A8 does: `battle.enemy_action`, which is
+; What enemy A8 does: `enemy_action` in `rm2k-snes-battle`, which is
 ; `SelectEnemyAiActionRpgRtCompat` with its list of `eacc_*`. Answers in A8
 ; the skill's `k`, `BA_EACC_ATTACK` or `BA_EACC_NOTHING`.
 ;
@@ -1262,7 +1262,7 @@ sorted:
 ; --- the screen -----------------------------------------------------------
 ;
 ; Text on black, on the same grid of 32 by 28 cells as the equipment screen
-; and the shop. The geometry comes from `tools/port/battle_screen.py` and the
+; and the shop. The geometry comes from `rm2k-snes-battle` and the
 ; converter emits the positions, so it is written **by only one of the two
 ; sides**. The enemies at the top, the party at the bottom, and the last line
 ; is either the command menu or the message's two lines.

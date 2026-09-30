@@ -1,7 +1,7 @@
 """El hito 4 de Lashe City: AG7-17 en la pelea, y los enemigos de la planta.
 
 Tres cosas que la pelea no hacía hasta el 2026-09-27, y las tres se miran
-acá contra el número exacto de `port.battle`, como el resto de las peleas:
+acá contra el número exacto del modelo, como el resto de las peleas:
 
 * **los enemigos eligen qué hacer** —`EnemyAi`, con el `rating` de cada
   acción— y usan habilidades: el Tangle Wire de la tropa 113 tira
@@ -21,10 +21,10 @@ AG7— en el piso 1 de la planta, y prenden el 150 con el `ControlSwitches` de
 siempre: `ag7-componentes` para lo del menú y `pelea-113` para pelear.
 """
 
-from port import battle as modelo
 
 from batalla import Pelea, hab_id, sabe
 import datos
+import modelo
 import menu
 
 TALAN, AG7 = 14, 18
@@ -153,12 +153,12 @@ def modelo_de_la_planta(base, equipo_de_ag7=None):
     equipo = list(base.actors[AG7].initial_equipment)
     if equipo_de_ag7:
         equipo[0] = equipo_de_ag7
-    ag7 = modelo.actor_of(base, AG7, equipo)
+    ag7 = modelo.actor_of(AG7, equipo)
     pares = habilidades_del_evento_37()
     ag7.skills = sorted(pares[p] for p in equipo if p in pares)
     return modelo.Battle(
-        [modelo.actor_of(base, TALAN), ag7],
-        [modelo.enemy_of(base, e, n)
+        [modelo.actor_of(TALAN), ag7],
+        [modelo.enemy_of(e, n)
          for n, e in enumerate(base.troops[TROPA].members)])
 
 
@@ -179,20 +179,20 @@ def test_la_tropa_es_la_que_se_espera():
     no las deje pasando por el camino equivocado."""
     base = datos.base()
     assert base.troops[TROPA].members == [TANGLE_WIRE, GIANT_RAT]
-    acciones = modelo.actions_of_enemy(base, TANGLE_WIRE)
-    assert [(r, s and s.id) for r, s, _ef in acciones] == [
+    acciones = modelo.actions_of_enemy(TANGLE_WIRE)
+    assert [(r, s) for r, s, _ef in acciones] == [
         (50, None), (50, SHORT_CIRCUIT)]
     # Y los tres de la planta que la traen con menos rating no la usan nunca:
     # diez puntos por debajo de la mejor pesan cero.
     for enemigo in (62, 65, 66):
-        batalla = modelo.Battle([], [modelo.enemy_of(base, enemigo, 0)])
+        batalla = modelo.Battle([], [modelo.enemy_of(enemigo, 0)])
         for _ in range(20):
             _r, skill, _ef = batalla.enemy_action(batalla.enemies[0])
             assert skill is None
 
 
 def test_el_tangle_wire_usa_short_circuit_y_deja_el_hp_del_modelo(partida):
-    """Turno por turno contra `battle.Battle`: los dos se defienden dos
+    """Turno por turno contra `modelo.Battle`: los dos se defienden dos
     turnos —para darle tiempo al Tangle Wire— y después AG7 le pega a la rata,
     y muerta ella, al Tangle Wire. Adentro están la elección del enemigo —un
     tiro para la acción, porque el Tangle Wire tiene dos de peso, y otro para
@@ -266,7 +266,7 @@ def test_bombs_away_pega_a_los_dos_enemigos(partida):
     pelea.ordenar(("habilidad", 0))
     pelea.correr_turno()
     esperado.play_turn([(modelo.COMMAND_DEFEND, 0),
-                        (modelo.COMMAND_SKILL, (bombs, 0))])
+                        (modelo.COMMAND_SKILL, (BOMBS_AWAY, 0))])
     assert estado(pelea, una) == estado_del_modelo(esperado), \
         "la consola dejó %r y el modelo %r" % (estado(pelea, una),
                                                estado_del_modelo(esperado))

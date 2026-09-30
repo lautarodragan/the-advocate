@@ -12,6 +12,7 @@ use crate::events::{changes_graphic, collect_npcs, events, Event};
 use crate::fail::{Bad, Result};
 use crate::game::Game;
 use crate::layers::{self as stage_layers, draw, Drawn};
+use crate::moves::{moves, Moves, ScannedPage};
 use crate::request::LayersRequest;
 use crate::sheets::Drawer;
 use adeleine::Color;
@@ -25,7 +26,8 @@ use rm2k_snes_map_sprites::character::{
     character_palette, sprite_colors, Key, INITIAL_POSE, OBJ_PALETTES,
 };
 use rm2k_snes_map_sprites::extras::{
-    first_place, map_animation, picture_of_image, rain_drops, timer_colors, timer_digits, Image,
+    first_place, map_animation, picture_of_image, rain_drops, timer_colors, timer_digits, timer_mask,
+    Image,
 };
 use rm2k_snes_map_sprites::npc::{map_poses, Npc};
 use rm2k_snes_map_sprites::split::{drawable_npcs, Ask, TILE_PREFIX};
@@ -53,14 +55,15 @@ pub struct MapRequest {
     /// The actors that can lead the party, in order: the first is who
     /// leads when the game starts.
     pub leaders: Vec<i32>,
-    /// What the event compiler's answer says of this map: the events that
-    /// walk, the graphics routes change to —in the order the bytecode
-    /// numbers them—, the still ones that animate, and the ones that turn
-    /// toward the hero with their graphics.
-    pub movable: BTreeSet<usize>,
+    /// What the event compiler's scan answered of this map: its pages
+    /// —who walks and who turns comes from them, see [`crate::moves`]—
+    /// and the graphics routes change to, in the order the bytecode
+    /// numbers them.
+    pub pages: Vec<ScannedPage>,
     pub route_graphics: Vec<Key>,
-    pub animates_still: BTreeSet<usize>,
-    pub turning: Vec<(usize, BTreeSet<Key>)>,
+    /// The events someone other than the map's pages sends walking: a test
+    /// page's route.
+    pub also_walk: BTreeSet<usize>,
     /// The System picture, if the cartridge carries the timer in this map.
     pub timer: Option<PathBuf>,
     pub rain: bool,
@@ -121,14 +124,17 @@ fn same_split(without: &Converted, with: &Converted) -> bool {
         && without.background.merges.len() == with.background.merges.len()
 }
 
+/// The events baked into the map: by event, its cell and its tile id.
+type Baked = BTreeMap<usize, (usize, i32)>;
+
 /// Bakes `baked` unless it moves the split: the layers and what was baked.
 fn bake_unless_split_moves(
     game: &Game,
     id: i32,
     without: Layered,
-    baked: BTreeMap<usize, (usize, i32)>,
+    baked: Baked,
     notes: &mut Vec<Note>,
-) -> Result<(Layered, BTreeMap<usize, (usize, i32)>)> {
+) -> Result<(Layered, Baked)> {
     let with = layered(game, id, &baked)?;
     if same_split(&without.converted, &with.converted) {
         return Ok((with, baked));
@@ -172,6 +178,9 @@ pub struct Objects {
     /// or nothing for one without a graphic.
     pub actors: Vec<(i32, usize, Option<usize>, Vec<u16>)>,
     pub timer: Option<(usize, usize)>,
+    /// Which entries of its palette the timer's digits take: see
+    /// `timer_mask`. 0 without a timer.
+    pub timer_mask: u16,
     pub animated: Vec<Key>,
     pub banks: Vec<(Key, Vec<u8>)>,
     pub route_gfx: Vec<(usize, usize)>,
@@ -191,6 +200,9 @@ pub struct Whole {
     pub palette_cap: usize,
     pub objects: Option<Objects>,
     pub start: (i32, i32),
+    /// Who walks, animates still and turns: what the page table is built
+    /// with, so the caller gets it back.
+    pub moves: Moves,
 }
 
 /// The final layers and their blocks.
@@ -244,7 +256,8 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
             .ok_or_else(|| Bad::answer(format!("actor {actor} is not in the database")))
     };
     let leaders: Vec<Key> = request.leaders.iter().map(leader).collect::<Result<_>>()?;
-    let turning: BTreeMap<usize, BTreeSet<Key>> = request.turning.iter().cloned().collect();
+    let who = moves(&request.pages, &events, &npcs0, &chipset_name, &request.also_walk);
+    let turning = &who.turning;
     let mut wanted: Vec<String> = leaders.iter().map(|k| k.0.clone()).collect();
     for npc in &npcs0 {
         wanted.extend(npc.keys().into_iter().map(|k| k.0));
@@ -262,10 +275,10 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
     let poses = map_poses(
         &leaders,
         &npcs0,
-        &request.movable,
-        &turning,
+        &who.movable,
+        turning,
         &request.route_graphics,
-        &request.animates_still,
+        &who.animates_still,
     );
 
     let sheets = drawer.sheets().clone();
@@ -362,6 +375,7 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
         palette_cap,
         objects: None,
         start,
+        moves: who.clone(),
     };
 
     for (event, tile) in &d.discarded {
@@ -406,7 +420,7 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
     animated.sort_by_key(|k| *k != first);
     for npc in &npcs {
         let key = (npc.charset.clone(), npc.index);
-        if request.movable.contains(&npc.event) && !animated.contains(&key) {
+        if who.movable.contains(&npc.event) && !animated.contains(&key) {
             animated.push(key);
         }
     }
@@ -419,7 +433,7 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
             animated.push(key.clone());
         }
     }
-    for (_, pairs) in &request.turning {
+    for pairs in turning.values() {
         for pair in pairs {
             if split.palette_of.contains(pair) && !animated.contains(pair) {
                 animated.push(pair.clone());
@@ -454,7 +468,7 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
         slots.push(SlotPose { slot: Slot::Hero, charset, index, pose: INITIAL_POSE });
     }
     for npc in npcs.iter_mut() {
-        if request.movable.contains(&npc.event) {
+        if who.movable.contains(&npc.event) {
             if npc.changes {
                 // Walking wins over the page's graphic; whether the row is
                 // visible still follows the page.
@@ -490,7 +504,7 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
     // hero; only the event the hero triggered turns, one at a time.
     let still_turning = npcs.iter().find(|n| {
         turning.contains_key(&n.event)
-            && !request.movable.contains(&n.event)
+            && !who.movable.contains(&n.event)
             && turning[&n.event].iter().any(|p| split.palette_of.contains(p))
     });
     if let Some(n) = still_turning {
@@ -639,12 +653,16 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
     let turn_block = bank.place.iter().find(|(s, ..)| *s == Slot::Turn).map(|(_, b, _)| *b);
     done.baked = baked;
     done.npcs = npcs;
+    // On the palettes as they end: the rain may still have grown the
+    // timer's, and a colour's first entry is where the glyphs have it.
+    let timer_mask = timer_at.map_or(0, |(_, palette)| timer_mask(&timer, &palettes[palette]));
     done.objects = Some(Objects {
         tiles,
         palettes,
         place: bank.place,
         actors: actor_rows,
         timer: timer_at,
+        timer_mask,
         animated,
         banks,
         route_gfx,
@@ -717,6 +735,7 @@ pub fn write(out: &Path, done: &Whole) -> Result<()> {
                 "place": o.place.iter().map(|(s, b, p)| json!([slot_json(s), b, p])).collect::<Vec<_>>(),
                 "actors": o.actors.iter().map(|(a, p, k, w)| json!([a, p, k, w])).collect::<Vec<_>>(),
                 "timer": o.timer.map(|(b, p)| json!([b, p])),
+                "timer_mask": o.timer_mask,
                 "animated": o.animated.iter().map(key_json).collect::<Vec<_>>(),
                 "banks": banks,
                 "route_gfx": o.route_gfx.iter().map(|(k, p)| json!([k, p])).collect::<Vec<_>>(),
@@ -735,6 +754,9 @@ pub fn write(out: &Path, done: &Whole) -> Result<()> {
         "palette_cap": done.palette_cap,
         "start": [done.start.0, done.start.1],
         "sprite": objects,
+        "movable": done.moves.movable,
+        "animates_still": done.moves.animates_still,
+        "turning": done.moves.turning.iter().map(|(e, pairs)| json!([e, pairs.iter().map(key_json).collect::<Vec<_>>()])).collect::<Vec<_>>(),
     });
     file(ANSWER_FILE, answer.to_string().as_bytes())
 }

@@ -442,7 +442,7 @@ h_faces_a:
     ; RM2k.
     ;
     ; Nor do the ones on many or on oneself, whose target is decided by the
-    ; scope: only `enemy` and `ally` ask for it —`battle.needs_target`—.
+    ; scope: only `enemy` and `ally` ask for it —see `needs_target`—.
     lda BA_S0
     jsr ba_ax
     lda f:skill_type, x

@@ -10,6 +10,7 @@ use crate::events::{collect_npcs, events, UPPER_BASE};
 use crate::fail::{Bad, Result};
 use crate::game::Game;
 use crate::map::MapRequest;
+use crate::moves::moves;
 use crate::sheets::Drawer;
 use rm2k_render::picture;
 use rm2k_rules::chipset::passability_table;
@@ -19,7 +20,6 @@ use rm2k_snes_map_sprites::extras::timer_colors;
 use rm2k_snes_map_sprites::npc::map_poses;
 use rm2k_snes_map_sprites::split::{drawable_npcs, Ask};
 use serde_json::{json, Value};
-use std::collections::BTreeMap;
 
 /// The alpha of the 16x16 pixels of upper tile `index`, as the event's sheet
 /// has it standing on its cell.
@@ -84,14 +84,14 @@ pub fn split_report(game: &Game, request: &MapRequest, palettes: usize) -> Resul
         .iter()
         .map(|a| actors.get(a).cloned().ok_or_else(|| Bad::answer(format!("actor {a} is not in the database"))))
         .collect::<Result<_>>()?;
-    let turning: BTreeMap<usize, _> = request.turning.iter().cloned().collect();
+    let who = moves(&request.pages, &events, &npcs, &chipset.chipset_name, &request.also_walk);
     let poses = map_poses(
         &leaders,
         &npcs,
-        &request.movable,
-        &turning,
+        &who.movable,
+        &who.turning,
         &request.route_graphics,
-        &request.animates_still,
+        &who.animates_still,
     );
     let mut drawer = Drawer::new(game, &request.dither);
     let mut names: Vec<String> = leaders.iter().map(|k| k.0.clone()).collect();

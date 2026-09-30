@@ -115,12 +115,16 @@ pub fn sprite_colors(image: &Picture, index: i32, poses: Option<&BTreeSet<i32>>)
 ///
 /// Returns the palette, sorted; each colour of it to its index, from 1; and
 /// each colour of the sheet to the one of the palette it becomes.
+/// What [`character_palette`] makes: the palette, each colour's index, and
+/// what each colour of the sheet becomes.
+pub type CharacterPalette = (Vec<Color>, HashMap<Color, u8>, HashMap<Color, Color>);
+
 pub fn character_palette(
     image: &Picture,
     index: i32,
     cap: Option<usize>,
     poses: Option<&BTreeSet<i32>>,
-) -> Result<(Vec<Color>, HashMap<Color, u8>, HashMap<Color, Color>)> {
+) -> Result<CharacterPalette> {
     let cap = cap.unwrap_or(OBJ_COLORS);
     let counts = sprite_colors(image, index, poses);
     let mut mapping: HashMap<Color, Color> = if counts.len() <= cap {
@@ -160,7 +164,7 @@ pub fn pose_tiles(
     let (ox, oy) = pose_origin(index, pose);
     let margin = (OBJ_W - SPRITE_W) / 2;
     let mut whole = [[0u8; OBJ_W]; OBJ_H];
-    for y in 0..SPRITE_H {
+    for (y, row) in whole.iter_mut().enumerate().take(SPRITE_H) {
         for x in 0..SPRITE_W {
             let p = image.get(ox + x as i64, oy + y as i64);
             if p[3] == 0 {
@@ -171,7 +175,7 @@ pub fn pose_tiles(
                 .get(&c)
                 .and_then(|m| lookup.get(m))
                 .ok_or_else(|| Bad::new(format!("colour {c:?} of pose {pose} has no palette entry")))?;
-            whole[y][margin + x] = *entry;
+            row[margin + x] = *entry;
         }
     }
     let mut tiles = Vec::with_capacity(16);

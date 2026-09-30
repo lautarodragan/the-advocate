@@ -11,19 +11,18 @@ habilidad aprendida. Acá van en los cuatro renglones del grupo —ver
 No se compara contra una golden sino **contra el texto**: se lee el tilemap de
 la pantalla, `text_buf`, y se traduce cada celda con la tabla de glifos del
 cartucho. Así la prueba dice qué renglón está mal y con qué letras, y los
-renglones esperados salen de `screens.renglon_de_*`, que es el armado de
-`game_message_terms.cpp` y lo mismo con que el conversor cobra que entren. Los
-niveles y las habilidades salen de `experience.add_exp` y del LDB, no de acá.
+renglones esperados salen de `modelo.renglones`, que le pide a
+`rm2k-snes-battle` el armado de `game_message_terms.cpp`: lo mismo con que el
+conversor cobra que entren. Los niveles y las habilidades salen de
+`experience.add_exp` y del LDB, no de acá.
 """
 
-from port import battle as modelo
 from port import experience
-from port import battle_screen as screens
-from port import rules
 
 from batalla import (ARDEN, GRUPO, Pelea, en_el_droide, paginas, poner_exp,
                      primera_pagina)
 import datos
+import modelo
 
 TROPA_DROIDE = 82
 KERSH, CORE, MANTA = GRUPO
@@ -43,15 +42,14 @@ def ganar_hasta_el_fin(una, grupo):
     raise AssertionError("la pelea no terminó")
 
 
-def pagina_de_nivel(term, base, actor, antes, despues):
+def pagina_de_nivel(base, actor, antes, despues):
     """El renglón del nivel y los de las habilidades que enseñan los niveles
     que pasó, nivel por nivel, en el orden de la tabla del LDB."""
-    nombres = [base.skills[s].name
-               for nivel in range(antes + 1, despues + 1)
-               for n, s in base.actors[actor].skills if n == nivel]
-    return ([screens.level_line(term, base.actors[actor].name,
-                                despues)]
-            + [screens.skill_line(term, h) for h in nombres])
+    habilidades = [s for nivel in range(antes + 1, despues + 1)
+                   for n, s in base.actors[actor].skills if n == nivel]
+    return [r for rs in modelo.renglones(
+        ("level", actor, despues), *[("skill", h) for h in habilidades])
+        for r in rs]
 
 
 def test_la_victoria_dice_la_experiencia_y_se_cierra(partida):
@@ -63,7 +61,6 @@ def test_la_victoria_dice_la_experiencia_y_se_cierra(partida):
     pasaba al renglón de abajo, cortado a la mitad de "victory!"."""
     una = en_el_droide(partida)
     base = datos.base()
-    term = rules.battle_terms(base)
     ganada = experience.troop_exp(base, TROPA_DROIDE)
     for actor in GRUPO:
         nivel = experience.initial_level(base.actors[actor])
@@ -71,7 +68,7 @@ def test_la_victoria_dice_la_experiencia_y_se_cierra(partida):
         assert experience.add_exp(base.actors[actor], nivel, exp, ganada)[0] \
             == nivel, "el caso quiere que nadie suba: el %d sube" % actor
     pelea = ganar_hasta_el_fin(una, GRUPO)
-    assert paginas(una, pelea) == [primera_pagina(term, ganada)]
+    assert paginas(una, pelea) == [primera_pagina(ganada)]
 
 
 def test_el_que_sube_tiene_su_pagina_y_el_que_no_no(partida):
@@ -85,7 +82,6 @@ def test_el_que_sube_tiene_su_pagina_y_el_que_no_no(partida):
     igual, que es lo que hace RM2k."""
     una = en_el_droide(partida)
     base = datos.base()
-    term = rules.battle_terms(base)
     ganada = experience.troop_exp(base, TROPA_DROIDE)
     grupo = (ARDEN, KERSH, MANTA)
     una.poner_grupo(*grupo)
@@ -107,9 +103,9 @@ def test_el_que_sube_tiene_su_pagina_y_el_que_no_no(partida):
              if pelea.hp_del_combatiente(k) > 0}
     assert vivos == set(grupo), "el caso quiere a los tres en pie: %r" % vivos
     assert paginas(una, pelea) == [
-        primera_pagina(term, ganada),
-        pagina_de_nivel(term, base, ARDEN, 3, 6),
-        pagina_de_nivel(term, base, MANTA, nivel_m, nivel_m + 1),
+        primera_pagina(ganada),
+        pagina_de_nivel(base, ARDEN, 3, 6),
+        pagina_de_nivel(base, MANTA, nivel_m, nivel_m + 1),
     ]
 
 
@@ -120,19 +116,18 @@ def test_las_habilidades_que_no_entran_siguen_en_otra_pagina(partida):
     mensaje de más de cuatro renglones."""
     una = en_el_droide(partida)
     base = datos.base()
-    term = rules.battle_terms(base)
     ganada = experience.troop_exp(base, TROPA_DROIDE)
     grupo = (ARDEN, KERSH)
     una.poner_grupo(*grupo)
     exp_arden = experience.exp_list(base.actors[ARDEN])[8] - 50
     poner_exp(una, ARDEN, exp_arden, 3)
     assert experience.add_exp(base.actors[ARDEN], 3, exp_arden, ganada)[0] == 9
-    esperada = pagina_de_nivel(term, base, ARDEN, 3, 9)
+    esperada = pagina_de_nivel(base, ARDEN, 3, 9)
     assert len(esperada) == 7, "el caso quiere seis habilidades: %r" % esperada
     pelea = ganar_hasta_el_fin(una, grupo)
     assert pelea.hp_del_combatiente(0) > 0, "Arden tiene que quedar en pie"
     assert paginas(una, pelea) == [
-        primera_pagina(term, ganada), esperada[:4], esperada[4:]]
+        primera_pagina(ganada), esperada[:4], esperada[4:]]
 
 
 # --- el oro y los ítems -------------------------------------------------------
@@ -140,7 +135,7 @@ def test_las_habilidades_que_no_entran_siguen_en_otra_pagina(partida):
 # Tres Crazed Marauder, que dan 95 de oro cada uno y sueltan una Healing
 # Draught-HP con chance 35: tres tiros de botín, uno por enemigo. **La semilla
 # la elige el modelo**: se escribe en `BA_SEED` al abrir la pelea, y es la
-# primera con la que `battle.Battle` gana sin que caiga nadie y alguno suelta
+# primera con la que `modelo.Battle` gana sin que caiga nadie y alguno suelta
 # su ítem y otro no. Así la prueba pasa por los dos lados del tiro y no depende
 # de que la semilla de fábrica caiga en uno. Los tres enemigos arrancan con 1
 # HP, en la ROM y en el modelo, para que la pelea dure lo que dura un golpe.
@@ -152,8 +147,8 @@ HEALING_DRAUGHT = 257
 
 def modelo_de_los_merodeadores(base, semilla):
     esperado = modelo.Battle(
-        [modelo.actor_of(base, a) for a in GRUPO],
-        [modelo.enemy_of(base, e, n)
+        [modelo.actor_of(a) for a in GRUPO],
+        [modelo.enemy_of(e, n)
          for n, e in enumerate(base.troops[TROPA_MERODEADORES].members)],
         semilla)
     for enemigo in esperado.enemies:
@@ -187,7 +182,7 @@ def test_la_tropa_del_botin_es_la_que_se_espera():
     assert base.troops[TROPA_MERODEADORES].members == [MERODEADOR] * 3
     e = base.enemies[MERODEADOR]
     assert (e.gold, e.drop_id, e.drop_prob) == (95, HEALING_DRAUGHT, 35)
-    assert modelo.troop_gold(base, TROPA_MERODEADORES) == 285
+    assert modelo.troop_gold(TROPA_MERODEADORES) == 285
 
 
 def a_los_merodeadores(partida, semilla, tope=600):
@@ -218,7 +213,6 @@ def test_la_victoria_da_el_oro_y_los_items_y_los_cuenta(partida):
     de la tropa. El número de ítems y cuáles lo dice el modelo, que tira el
     botín con el mismo azar después del último golpe."""
     base = datos.base()
-    term = rules.battle_terms(base)
     semilla, esperado = semilla_con_botin_a_medias(base)
     una, pelea = a_los_merodeadores(partida, semilla)
     oro_antes = una.oro()
@@ -238,9 +232,8 @@ def test_la_victoria_da_el_oro_y_los_items_y_los_cuenta(partida):
     ganada = experience.troop_exp(base, TROPA_MERODEADORES)
     vistas = paginas(una, pelea)
     assert vistas[:2] == [
-        primera_pagina(term, ganada) + [screens.gold_line(term, 285)],
-        [screens.item_line(term, base.items[i].name)
-         for i in esperado.drops],
+        primera_pagina(ganada) + [modelo.renglon_de_oro(285)],
+        [modelo.renglon_de_item(i) for i in esperado.drops],
     ]
 
 

@@ -390,7 +390,7 @@ BAF_HAS   = $04             ; the slot is taken
 ; other: see `ba_show_hidden`.
 BAF_HIDDEN = $08
 
-; The three results and the three commands, in the order of `tools/port/battle.py`.
+; The three results and the commands, in the order of the battle's model.
 BA_VICTORY = 0
 BA_ESCAPE_R = 1
 BA_DEFEAT   = 2
@@ -399,7 +399,7 @@ BA_DEFEND = 1
 BA_FLEE     = 2
 BA_ITEM     = 3
 BA_SKILL = 4
-; The screen modes, like `screens.BA_ELIGE_ORDEN` and company. **The order
+; The screen modes. **The order
 ; matters**: more than one place asks `cmp #BA_M_MESSAGE / bcs` to say
 ; "message or end", so the ones that choose something all go first.
 BA_M_COMMAND = 0
@@ -453,15 +453,15 @@ BA_PARAM_MAX = 999
 BA_SKILL_TYPE_SWITCH = 3
 ; The five scopes of `rpg::Skill::Scope`, which is what `skill_scope` carries.
 ; Only `enemy` and `ally` ask for a target when chosen; for the other three
-; the scope decides it: see `battle.skill_targets`.
+; the scope decides it: see `skill_targets` in `rm2k-snes-battle`.
 BA_SCOPE_ENEMY      = 0
 BA_SCOPE_ENEMIES = 1
 BA_SCOPE_ONE        = 2
 BA_SCOPE_ALLY       = 3
 BA_SCOPE_PARTY      = 4
 ; An enemy action that is not a skill: the basic attack, in `eacc_skill`, and
-; what `ba_enemy_action` answers when it has none left. See
-; `battle.enemy_action`.
+; what `ba_enemy_action` answers when it has none left. See `enemy_action`
+; in `rm2k-snes-battle`.
 BA_EACC_ATTACK = $FF
 BA_EACC_NOTHING = $FE
 BA_EACC_NO_EFFECTIVE = $80      ; the `eacc_weight` bit
@@ -842,7 +842,7 @@ REMEMBERED_SONG = $7E7940
 ; `ba_build` builds it at the start of each battle, so it does not travel in
 ; the save and there is no need to set it on reset.
 BA_WEAPON_SP = $7E7960          ; BA_PARTY_MAX bytes: what attacking costs
-                                ; each party place, `battle.weapon_sp_of`
+                                ; each party place, `weapon_sp_of`
 BA_SKILL_I = $7E7964            ; which combatant a multi-target skill is on:
                                 ; `ba_skill_use` calls `ba_skill_one` for each
                                 ; one, and that one clobbers the `BA_S*`

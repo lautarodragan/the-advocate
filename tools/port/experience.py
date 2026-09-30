@@ -1,6 +1,7 @@
 """Experience and level of the actors, as RM2k does them.
 
-It is the sibling of `battle.py` for what happens **after** the battle: how
+It is the sibling of `rm2k-snes-battle`'s model for what happens **after**
+the battle —what the tests compare against, like it—: how
 much experience it gives, when a level goes up and which parameters are
 left. The ROM does the same math, and the tests demand the same number on
 both sides.
@@ -113,6 +114,6 @@ def troop_exp(db, troop):
     them all dead except the ones that stayed hidden, so this is the sum of
     the whole troop, up to `ENEMIES_MAX` like the battle, and the ROM
     subtracts the hidden ones' when winning: see `ba_no_hidden` and
-    `battle.Battle.experience`."""
+    `Battle::experience` in `rm2k-snes-battle`."""
     return sum(db.enemies[e].exp
                for e in db.troops[troop].members[:ENEMIES_MAX])
