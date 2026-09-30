@@ -228,8 +228,8 @@ def map_shows_animation(game_map, renderer, commands=()):
         if (cmd.code == events.SHOW_BATTLE_ANIMATION
                 and len(cmd.parameters) >= 3):
             numbers.add(cmd.parameters[0])
-    return any(animation_mod.by_number(renderer, n) is not None
-               for n in numbers)
+    return any(info is not None for info
+               in animation_mod.by_numbers(renderer, sorted(numbers)).values())
 
 
 def map_animation(tiles, palettes, used=0):

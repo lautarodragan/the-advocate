@@ -6,7 +6,7 @@
 
 use clap::{Args as ClapArgs, Parser, Subcommand};
 use rm2k_render::fail::{Bad, Result};
-use rm2k_render::{charset, picture, source, Atlas};
+use rm2k_render::{battle, battle_animation, charset, picture, source, Atlas};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -40,6 +40,11 @@ enum Command {
     /// What events are drawn with, as CharSet sheets: CharSets, tiles of a
     /// ChipSet, and translucent ones over what is behind them
     Charset(CharsetArgs),
+    /// A battle animation's cells, cut from its sheet and placed as RM2k
+    /// places them, for the caller to tone and stack
+    BattleAnimation(BattleAnimationArgs),
+    /// A battle's backdrops and its enemies' pictures
+    Battle(BattleArgs),
 }
 
 /// Where a ChipSet is looked for: a file, or a name in the game and the RTP.
@@ -145,6 +150,48 @@ struct CharsetArgs {
     out: PathBuf,
 }
 
+#[derive(ClapArgs)]
+#[command(
+    after_help = "The request is a JSON list with an entry per animation, {\"sheet_file\": \
+                        path, \"animation\": {...}}, the animation named as in a Ditto dump: \
+                        its `large` and its `frames`, each with its `cells`. For animation i \
+                        it writes <i>.json, {\"box\": [x, y, width, height], \"frames\": \
+                        [[{\"x\", \"y\", \"tone\"}, ...], ...]}: the box holds every valid \
+                        cell of every frame, relative to the anchor, and is null if there \
+                        are none. Each cell RM2k draws of frame f, cut from the sheet, \
+                        zoomed and faded, is <i>-<f>-<k>.png, an RGBA PNG: toned by its \
+                        tone —red, green, blue, gray— and stacked in order at (x, y) of the \
+                        box, the cells are the frame. Relative paths are relative to the \
+                        request."
+)]
+struct BattleAnimationArgs {
+    /// The animations to draw, as a JSON request
+    #[arg(long, value_name = "PATH")]
+    request: PathBuf,
+
+    /// The directory to write the cells to
+    #[arg(long, value_name = "DIRECTORY")]
+    out: PathBuf,
+}
+
+#[derive(ClapArgs)]
+#[command(
+    after_help = "The request is a JSON list with an entry per picture, and picture i is \
+                        written as <i>.png, an RGBA PNG. An entry is {\"backdrop_file\": \
+                        path}, a battle backdrop, drawn opaque, or {\"monster_file\": path, \
+                        \"hue\": degrees}, an enemy's picture with its colour key, turned by \
+                        its battler_hue. Relative paths are relative to the request."
+)]
+struct BattleArgs {
+    /// The pictures to draw, as a JSON request
+    #[arg(long, value_name = "PATH")]
+    request: PathBuf,
+
+    /// The directory to write the pictures to
+    #[arg(long, value_name = "DIRECTORY")]
+    out: PathBuf,
+}
+
 /// The ChipSet's picture: the file given, or the one the name finds.
 fn chipset(place: &Where, name: Option<&str>) -> Result<picture::Picture> {
     if let Some(path) = &place.chipset_file {
@@ -199,12 +246,22 @@ fn do_charset(args: &CharsetArgs) -> Result<()> {
     charset::write(&args.out, &charset::request(&args.request)?)
 }
 
+fn do_battle_animation(args: &BattleAnimationArgs) -> Result<()> {
+    battle_animation::write(&args.out, &battle_animation::request(&args.request)?)
+}
+
+fn do_battle(args: &BattleArgs) -> Result<()> {
+    battle::write(&args.out, &battle::request(&args.request)?)
+}
+
 fn main() -> ExitCode {
     let cli = Cli::parse();
     let done = match &cli.command {
         Command::Layers(args) => do_layers(args),
         Command::Atlas(args) => do_atlas(args),
         Command::Charset(args) => do_charset(args),
+        Command::BattleAnimation(args) => do_battle_animation(args),
+        Command::Battle(args) => do_battle(args),
     };
     match done {
         Ok(()) => ExitCode::SUCCESS,

@@ -10,14 +10,21 @@
 //! with a tile of the ChipSet, and a translucent one over what is behind it,
 //! all as CharSet sheets.
 //!
+//! **What a battle is drawn with**: a battle animation's cells, placed as
+//! RM2k places them ([`battle_animation`]), and a battle's backdrop and its
+//! enemies' pictures ([`battle`]).
+//!
 //! No panorama and no placing of events on the map: those are drawn by
 //! whoever uses the layers. Nothing here knows which game the map is from.
 
+pub mod battle;
+pub mod battle_animation;
 pub mod charset;
 pub mod chipset;
 pub mod fail;
 pub mod layers;
 pub mod picture;
+pub mod resample;
 pub mod source;
 
 pub use chipset::Atlas;

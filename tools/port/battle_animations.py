@@ -26,12 +26,9 @@ def rom_animations(maps, renderer):
                 if (c[i] == events.OP_ANIMATION
                         and c[i + 1] != events.ANIM_NO_DRAWING):
                     numbers.add(c[i + 1])
-    out = {}
-    for number in sorted(numbers):
-        info = animation_mod.by_number(renderer, number)
-        if info is not None:
-            out[number] = info
-    return out
+    converted = animation_mod.by_numbers(renderer, sorted(numbers))
+    return {number: info for number, info in converted.items()
+            if info is not None}
 
 
 def animation_frame(frame):

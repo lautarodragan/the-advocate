@@ -219,10 +219,13 @@ def scale(value):
     return max(1, (value * SCALE_NUM + SCALE_DEN // 2) // SCALE_DEN)
 
 
-def _open(game_dir, folder, name, rtp=False):
-    """A game PNG with color 0 as transparent, which is RM2k's rule. It comes
-    from `render_map.load_image` so as not to have two ways of reading the
-    same thing.
+def _open(game_dir, folder, name, rtp=False, hue=0):
+    """A backdrop or a battler as RM2k draws it, RGBA, or None if the game
+    does not have it.
+
+    **`rm2k-render battle` draws it**: a backdrop opaque —RM2k gives it no
+    color key— and a battler with its color key, turned by its `hue` —see
+    `battler`—. Those are RM2k's drawings; this only finds the file.
 
     With `rtp`, if the game does not have it, it is looked up in the RTP,
     like RM2k. Only the backdrops ask for it: thirteen of the game's are from
@@ -230,6 +233,10 @@ def _open(game_dir, folder, name, rtp=False):
     was not needed because the ROM's three are the game's. The battlers still
     do not look there, so as not to change which ones get in without looking
     at it."""
+    import json
+    import subprocess
+    import tempfile
+    from PIL import Image
     from render import render_map
     from rpgmaker import resources
     places = [game_dir] + ([resources.RTP_DIR] if rtp else [])
@@ -237,95 +244,21 @@ def _open(game_dir, folder, name, rtp=False):
                                    (".png", ".bmp", ".xyz"))
     if path is None:
         return None
-    return render_map.load_image(path)
-
-
-# --- the battler's hue -------------------------------------------------------
-
-def _div(a, b):
-    """C's integer division, which truncates toward zero. `//` rounds down,
-    and with negative numerators —the hue of a color where green is less
-    than blue— it would give a hue off by one."""
-    q = abs(a) // abs(b)
-    return q if (a >= 0) == (b >= 0) else -q
-
-
-def _to_hsl(r, g, b):
-    """easyrpg-player's `RGB_to_HSL`, `bitmap_hslrgb.h`, with its integers."""
-    if r > g:
-        order = ("rbg" if g < b else "rgb") if r > b else "brg"
-    else:
-        order = ("gbr" if g > b else "bgr") if r < b else "grb"
-    if order == "rgb":
-        c = r - b; h = 0 if c == 0 else _div(0x100 * (g - b), c); l2 = r + b
-    elif order == "rbg":
-        c = r - g; h = 0 if c == 0 else _div(0x100 * (g - b), c) + 0x600
-        l2 = r + g
-    elif order == "grb":
-        c = g - b; h = 0 if c == 0 else _div(0x100 * (b - r), c) + 0x200
-        l2 = g + b
-    elif order == "gbr":
-        c = g - r; h = 0 if c == 0 else _div(0x100 * (b - r), c) + 0x200
-        l2 = g + r
-    elif order == "brg":
-        c = b - g; h = 0 if c == 0 else _div(0x100 * (r - g), c) + 0x400
-        l2 = b + g
-    else:
-        c = b - r; h = 0 if c == 0 else _div(0x100 * (r - g), c) + 0x400
-        l2 = b + r
-    if l2 == 0:
-        return h, 0, 0
-    s = _div(0x100 * c, (0x1FF - l2) if l2 > 0xFF else l2)
-    return h, s, l2 // 2
-
-
-def _from_hsl(h, s, l):
-    """easyrpg-player's `HSL_to_RGB`."""
-    l2 = 2 * l
-    c = _div(s * ((0x1FF - l2) if l2 > 0xFF else l2), 0x100)
-    m = _div(l2 - c, 2)
-    h0 = h & 0xFF
-    h1 = 0xFF - h0
-    sector = h >> 8
-    if sector == 0:
-        return m + c, m + _div(h0 * c, 0x100), m
-    if sector == 1:
-        return m + _div(h1 * c, 0x100), m + c, m
-    if sector == 2:
-        return m, m + c, m + _div(h0 * c, 0x100)
-    if sector == 3:
-        return m, m + _div(h1 * c, 0x100), m + c
-    if sector == 4:
-        return m + _div(h0 * c, 0x100), m, m + c
-    return m + c, m, m + _div(h1 * c, 0x100)
-
-
-def rotate_hue(image, degrees):
-    """`Bitmap::HueChangeBlit`: the enemy's `battler_hue`, in degrees.
-
-    It is what makes the same `BLmouse` be the GiantRat, the MutantMouse and
-    the HairyVermin. The baked scene ignored it; now, with one battler per
-    enemy and not per image, ignoring it would draw all three the same.
-    """
-    hue = int(degrees / 60.0 * 0x100)
-    if hue < 0:
-        hue += ((-hue + 0x5FF) // 0x600) * 0x600
-    elif hue > 0x600:
-        hue -= (hue // 0x600) * 0x600
-    out = image.copy()
-    data = []
-    for r, g, b, a in image.get_flattened_data():
-        if a > 0:
-            h, s, l = _to_hsl(r, g, b)
-            h += hue
-            if h >= 0x600:
-                h -= 0x600
-            s = min(s, 0xFF)
-            l = max(0, min(l, 0xFF))
-            r, g, b = (max(0, min(255, v)) for v in _from_hsl(h, s, l))
-        data.append((r, g, b, a))
-    out.putdata(data)
-    return out
+    entry = ({"backdrop_file": path} if folder == "Backdrop"
+             else {"monster_file": path, "hue": hue})
+    with tempfile.TemporaryDirectory(prefix="rm2k-render-") as out:
+        request_path = os.path.join(out, "battle.json")
+        with open(request_path, "w", encoding="utf-8") as f:
+            json.dump([entry], f)
+        done = subprocess.run(
+            [render_map.binary(), "battle", "--request", request_path,
+             "--out", out], capture_output=True, text=True)
+        if done.returncode != 0:
+            raise SystemExit("rm2k-render could not draw %s/%s:\n%s"
+                             % (folder, name, done.stderr.strip()))
+        # `convert` reads it now, before the directory goes away.
+        with Image.open(os.path.join(out, "0.png")) as image:
+            return image.convert("RGBA")
 
 
 # --- the backdrop -------------------------------------------------------------
@@ -455,12 +388,13 @@ def battler(name, hue, game_dir):
     """
     from PIL import Image
     from port import adeleine
-    image = _open(game_dir, "Monster", name)
+    # The enemy's `battler_hue` is what makes the same `BLmouse` be the
+    # GiantRat, the MutantMouse and the HairyVermin. The baked scene ignored
+    # it; now, with one battler per enemy and not per image, ignoring it
+    # would draw all three the same.
+    image = _open(game_dir, "Monster", name, hue=hue)
     if image is None:
         return None
-    image = image.convert("RGBA")
-    if hue:
-        image = rotate_hue(image, hue)
     width, height = scale(image.width), scale(image.height)
     small = image.resize((width, height), Image.LANCZOS)
     # A pixel is either the battler's or the backdrop's: half the alpha
