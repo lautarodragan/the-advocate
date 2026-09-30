@@ -58,12 +58,13 @@ def run(binary, project, command, request, *flags, raw=False):
         return written
 
 
-def hand_over(binary, project, request, *args):
-    """`binary --request <request> *args`, for a program that does not make
-    a piece of the conversion but takes one of its answers somewhere: it
-    writes where `args` say, and what it prints goes out with what the
-    converter prints. The first one is `rm2k-snes-patches`, which writes
-    what the converter decided to lose next to the ROM.
+def hand_over(binary, project, request, *args, command=None):
+    """`binary [command] --request <request> *args`, for a program that
+    writes what it makes where `args` say, and whose output goes out with
+    what the converter prints. The first one is `rm2k-snes-patches`, which
+    writes what the converter decided to lose next to the ROM; the music,
+    `rm2k-snes-audio cartridge`, writes its pieces next to the ROM too,
+    because the rest of the conversion reads none of them.
 
     What it answers no to stops the conversion with its message."""
     path = shutil.which(binary)
@@ -74,7 +75,8 @@ def hand_over(binary, project, request, *args):
         with open(request_path, "w") as handle:
             json.dump(request, handle)
         sys.stdout.flush()
-        done = subprocess.run([path, "--request", request_path] + list(args),
+        done = subprocess.run([path] + ([command] if command else [])
+                              + ["--request", request_path] + list(args),
                               stderr=subprocess.PIPE, text=True)
         if done.returncode:
             raise SystemExit(done.stderr.strip()

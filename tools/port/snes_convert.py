@@ -95,8 +95,6 @@ from port.battle_scenes import (fallback_bytes, patch_uses, rom_scene,
 from port import stage
 from port import battle_stage
 from port import compiler
-from port.music import (boot_frames, compile_music, inherited_songs,
-                        rom_songs, separate_songs, write_msu)
 from port.game_scan import (args_game_dir, drop_items, has_rain,
                             possible_items, possible_leaders,
                             possible_members)
@@ -862,189 +860,37 @@ def main():
     # in tools/runtime/enter_map.s—. What rate each sample ends up at is
     # decided by the ARAM, package by package: see `Bank` in the `bank.rs`
     # of `rm2k-snes-audio`.
-    music = os.path.join(os.path.dirname(os.path.abspath(args.output)),
-                         "musicdata.inc")
-    requested, boot, title_song, map_song, game_over_song = (
-        rom_songs(
-            maps[args.start_index]["id"], songs, args.game_dir,
-            renderer.database.title_music if not args.no_title else None,
-            [m["id"] for m in maps],
-            renderer.database.gameover_music if game_over_data else None))
-    # The sound effects, in the order the compiled pages ask for them: the
-    # maps are compiled in ROM order, so those of the map where it boots go
-    # first —in the demo, the rain and the thunder of the opening—. Only the
-    # ones that are in some package: one that isn't in any doesn't sound
-    # anywhere —its row of `sound_table` stays at $FF— and building it would
-    # cost the music, because the copies of `rm2k-snes-audio` count the
-    # cartridge's sound effects. It happens with the route ones of
-    # `[sound_effects] route_effects_left_out`.
-    packed = {n for palettes_needed in songs.per_map.values()
-              for n in palettes_needed["sonidos"]}
-    requested_se = []
-    for name, _v, _t, _b in songs.sounds:
-        if name not in requested_se and name in packed:
-            requested_se.append(name)
-    # Each map's audio package, in the order of the map table: the songs its
-    # pages can start —plus, in the boot one, the one that plays from the
-    # start, and in all the map's own— and its sound effects, in the order
-    # they appear, which is the priority the ROM uploads them with if they
-    # don't all fit. See `package_load` in tools/runtime/audio_package.s.
-    # They are built **before** the bank, by name, because each sample's
-    # budget comes from them: see `Bank` in `rm2k-snes-audio`.
-    packages, separate_ones = [], []
-    for i, _map in enumerate(maps):
-        palettes_needed = songs.per_map.get(i, {"temas": [], "sonidos": []})
-        owned = list(palettes_needed["temas"])
-        if i == args.start_index and boot != 0xFF and boot not in owned:
-            owned.insert(0, boot)
-        # And the map's own song, **in front**: it is the only one on the list
-        # that surely plays on entering, so if the ARAM isn't enough for
-        # everything it is the last one that has to fall. Without it in the
-        # package, its samples would have to be uploaded by `song_ensure`
-        # when starting it, rebuilding the whole package a second time.
-        if map_song[i] != 0xFF:
-            if map_song[i] in owned:
-                owned.remove(map_song[i])
-            owned.insert(0, map_song[i])
-        # And the exit ones, separate and after the sound effects: the ones
-        # the map starts only to leave have no reason to go in with its sound
-        # effects. See `Songs.exit_songs`. Not the map's own nor the boot one:
-        # those play on entering.
-        out = [t for t in songs.exit_songs(i)
-               if t in owned and t != map_song[i]
-               and not (i == args.start_index and t == boot)]
-        owned = [t for t in owned if t not in out]
-        # And the separate ones, which don't go with the other songs either:
-        # their `PlayBGM` uploads them with the package's sound effects. See
-        # `separate_songs`.
-        separate = [t for t in owned if requested[t] in separate_songs().get(
-                      _map["id"], ()) and t != map_song[i]
-                    and not (i == args.start_index and t == boot)]
-        owned = [t for t in owned if t not in separate]
-        separate_ones.append(separate)
-        packages.append((owned, list(palettes_needed["sonidos"]), out))
-    # And the battle's package, after the maps: the battle song and its sound
-    # effects, which the ROM uploads when opening the battle and unloads when
-    # closing it. It goes separately and not inside the map's package because
-    # the battle song alone fills the ARAM; see `events.BATTLE_PACKAGE`.
-    palettes_needed = songs.per_map.get(events.BATTLE_PACKAGE)
-    if palettes_needed:
-        packages.append((list(palettes_needed["temas"]), list(palettes_needed["sonidos"]), []))
-        separate_ones.append([])
-    package_names = ([str(m["id"]) for m in maps]
-                     + (["pelea"] if palettes_needed else []))
-    # And the Game Over screen's, last: its song alone and no sound effects.
-    # The ROM uploads it with the screen black, before the fade in —see
-    # `game_over_black` in tools/runtime/game_over.s—, and with a package of
-    # its own it uploads only that: arriving with `song_ensure` would
-    # rebuild the whole map package behind it, which is one more second of
-    # black. For the allocation it is a one-song package, which doesn't lower
-    # anyone's rate: its samples fit alone in the ARAM.
-    game_over_package = 0xFFFF
-    if game_over_song != 0xFF:
-        game_over_package = len(packages)
-        packages.append(([game_over_song], [], []))
-        separate_ones.append([])
-        package_names.append("gameover")
-    per_name = [(name, owned, theirs, out, separate)
-                for name, (owned, theirs, out), separate
-                in zip(package_names, packages, separate_ones)]
-    # And the title screen's, which isn't in the table: `song_ensure`
-    # uploads its song with the boot map's package behind.
-    if title_song != 0xFF:
-        owned, theirs, _out = packages[args.start_index]
-        per_name.append(("titulo", [title_song] + owned, theirs))
-    inheritance = inherited_songs(songs, map_song, args.start_index,
-                                  title_song, package_names,
-                                  [owned for owned, _e, _s in packages],
-                                  separate_ones, not_given=settings.value(
-                                   "music", "jumps_that_never_happen",
-                                   kind=list))
-    # The music itself is `rm2k-snes-audio`'s: it gets what was decided
-    # here —the songs, the sound effects, the packages—, and writes
-    # `musicdata.inc`, `musica.json` —what `rm2k-snes-msu` and
-    # `rm2k-snes-volume-ceilings` read of each song— and `audio.json`, what
-    # the rest of this function needs from the music. The job stays next to
-    # them, so the music of a cartridge can be rebuilt alone.
-    # Each package's sound effects go by number and not by SRCN: several
-    # share the directory's place, which is its business.
-    job = {
-        "songs": requested,
-        "effects": requested_se,
-        "packages": [{"name": name, "songs": list(owned),
-                      "effects": list(theirs), "exits": list(out),
-                      "separate": list(separate)}
-                     for name, owned, theirs, out, separate
-                     in per_name[:len(packages)]]
-                    + [{"name": p[0], "songs": list(p[1]),
-                        "effects": list(p[2])}
-                       for p in per_name[len(packages):]],
-        "inheritance": [[name, t] for name, t in inheritance],
+    # What each map's package carries, which song may already be playing
+    # when it loads, whether the boot fits and the `.msu` with the quality
+    # backdrops and sound effects are `rm2k-snes-audio cartridge`'s: it gets
+    # the songs and sounds the pages numbered, and reads the rest from the
+    # dump and the project. It writes next to the ROM `musicdata.inc`,
+    # `musica.json` —what `rm2k-snes-msu` and `rm2k-snes-volume-ceilings`
+    # read of each song—, `audio.json`, `efectos.json` and the job it built,
+    # so the music of a cartridge can be rebuilt alone. The `.msu` is always
+    # written, even if the cartridge carries neither backdrops nor sound
+    # effects, because it is also the file that turns on the MSU-1 for the
+    # tracks.
+    directory = os.path.dirname(os.path.abspath(args.output))
+    stage.hand_over("rm2k-snes-audio", "rm2k-snes-audio", {
+        "songs": compiled["songs"],
+        "maps": [m["id"] for m in maps],
+        "start": args.start_index,
+        "title": not args.no_title,
+        "game_over": bool(game_over_data),
+        "decompress_frames": decompress_frames(maps[args.start_index],
+                                               compressed),
         "measuring_headroom": args.measure_headroom,
-        "system_songs": lcf.system_songs(
-            os.path.join(args.game_dir, "RPG_RT.ldb")),
-        "emit": {
-            "packages": len(packages),
-            "boot": boot,
-            "title": title_song,
-            "game_over": [game_over_song, game_over_package],
-            "map_song": list(map_song),
-            "sounds": [list(sound) for sound in songs.sounds],
-            "start": args.start_index,
-            "decompress_frames": decompress_frames(maps[args.start_index],
-                                                   compressed),
-        },
-    }
-    audio = compile_music(job, os.path.dirname(music))
-    done_ones = audio["songs"]
-    effects = {e["name"]: e for e in audio["effects"]}
-    packages = [(owned, theirs, out)
-                for owned, theirs, out, _separate in audio["packages"]]
-    if palettes_needed:
-        assert package_names[len(maps)] == "pelea", (
-            "the battle's package has to end up at the index `emit` emitted "
-            "as PAQUETE_BATALLA")
-        print("  battle audio package: %d song(s), %d sound effect(s)"
-              % (len(palettes_needed["temas"]), len(packages[-1][1])))
-    # **And that the boot fits in `BOOT_FRAMES`**: the ROM waits until that
-    # frame so that the loop always starts on the same one, and if uploading
-    # the boot map's package took longer, it would come out later and the
-    # tests —which count from there— would count wrong. See the comment on
-    # `BOOT_FRAMES` in tools/runtime/far_ram.s.
-    frames, in_package = audio["boot"]["frames"], audio["boot"]["bytes"]
-    cap = boot_frames()
-    if frames > cap:
-        raise SystemExit(
-            "the boot doesn't fit in BOOT_FRAMES: the boot map's package is "
-            "%d B and with the map, the driver and the directory the "
-            "computation gives %.0f frames, against %d. Raise BOOT_FRAMES in "
-            "tools/runtime/far_ram.s, or shrink that package"
-            % (in_package, frames, cap))
-    print("  boot: the boot map's package is %d B, %.0f of "
-          "the %d frames of BOOT_FRAMES" % (in_package, frames, cap))
-    # The `.msu`: the quality backdrops and the quality sound effects, to read
-    # them through the MSU-1 when it is there. It is always written, even if
-    # the cartridge carries neither backdrops nor sound effects, because it is
-    # also the file that turns on the MSU-1 for the tracks.
-    write_msu(args.msu or os.path.join(os.path.dirname(os.path.abspath(
-        args.output)), "datos.msu"), music, scenes["calidad"],
-        audio, songs.sounds)
-    for i, (owned, theirs, out) in enumerate(packages[:len(maps)]):
-        if owned or theirs or out or separate_ones[i]:
-            print("  audio package of map %d: %d song(s), %d sound effect(s)%s%s"
-                  % (maps[i]["id"], len(owned), len(theirs),
-                     ", and for exit %s" % ", ".join(done_ones[t]["name"]
-                                                     for t in out)
-                     if out else "",
-                     ", and separate %s" % ", ".join(done_ones[t]["name"]
-                                                     for t in separate_ones[i])
-                     if separate_ones[i] else ""))
-    if requested_se:
-        print("  sound effects: %d, %d B in the cartridge"
-              % (len(effects), sum(e["bytes"] for e in effects.values())))
-    print("music -> %s: %s"
-          % (music, ", ".join(t["name"] for t in done_ones)
-             or "none, it comes out silent"))
+        # The quality backdrops are the emission's bytes: the stage only
+        # puts them in their place in the `.msu`.
+        "backdrops": [[tiles.hex(), colors.hex()]
+                      for tiles, colors in scenes["calidad"]],
+        "tree_nodes": list(renderer.tree.added_nodes.values()),
+    }, "--out", directory,
+        "--msu", args.msu or os.path.join(directory, "datos.msu"),
+        "--data", renderer.tree.dump, "--project", project.directory(),
+        *environment.as_flags("game_dir", "rtp_dir", "soundfont"),
+        command="cartridge")
     # The bank packing is not decided here: both files send everything to
     # RODATA, with a `.block` or a `.crossbank` in front of each piece, and
     # `rm2k-snes-assemble` spreads it into banks and writes the memory map
