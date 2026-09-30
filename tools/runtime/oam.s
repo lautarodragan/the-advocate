@@ -139,6 +139,20 @@ no_end:
 
 with_end:
     jsr jump_to_cells           ; the offset, signed and in sixteen bits
+    ; Which way it ends up facing, and it goes **before** asking whether it
+    ; can land: `Game_Character::Jump` turns and only then calls `MakeWay`,
+    ; so a jump that cannot land still leaves the hero facing where it
+    ; wanted to go. RM2k then retries the jump, which here is skipped —see
+    ; `step_route`—; the turn is the part of it that shows. In place nothing
+    ; changes: RM2k only sets the facing when the jump moves. The hero has
+    ; no `lock_facing` to look at: `step_route` ignores 26 and 27.
+    ; See `test_salto_bloqueado.py`.
+    lda jump_dx
+    ora jump_dy
+    beq no_turn
+    jsr jump_direction
+    sta hero_dir
+no_turn:
     rep #$20
 .a16
     lda tile_x
@@ -182,14 +196,6 @@ se_can:
     sep #$20
 .a8
     jsr init_hero_ptr
-    ; Which way it ends up facing. In place nothing changes: RM2k only sets
-    ; the facing when the jump moves.
-    lda jump_dx
-    ora jump_dy
-    beq no_turn
-    jsr jump_direction
-    sta hero_dir
-no_turn:
     ; The first decrement goes in the same frame that builds the jump, as in
     ; `Game_Character::Update`, which after `UpdateNextMovementAction` already
     ; sees it jumping and calls `UpdateMovement`. JUMP_STEP is 256 and does
@@ -499,13 +505,34 @@ with_end:
     ; Core's memory is a closed cell and the jump is skipped; taro saw it as
     ; Core moving on top of his little island and never jumping, and the move
     ; route that moves him starts precisely with an `atravesar_on`.
+    jsr jump_to_cells
+    ; Which way it ends up facing, before asking whether it can land, as on
+    ; the hero: `Game_Character::Jump` turns and only then calls `MakeWay`.
+    ; A jump that cannot land leaves it facing where it wanted to go, and with
+    ; the move route not skippable RM2k retries it from there —see
+    ; `ev_route_frame`—. With it skippable RM2k puts the facing back, and the
+    ; ROM does not: forced move routes are all skippable here and it cannot
+    ; tell them apart, and only 6 of the game's 410 forced routes with a jump
+    ; are skippable in RM2k —none of them the hero's—.
+    ; `Jump` does not touch a locked facing —`lock_facing` or the page's
+    ; animation type—, and until 2026-09-30 the ROM turned it anyway, also on
+    ; the jumps that land. In place nothing changes.
+    ; See `test_salto_bloqueado.py`.
+    lda jump_dx
+    ora jump_dy
+    beq no_turn
+    lda route_ev + 18, x
+    and #$08
+    bne no_turn
+    jsr jump_direction
+    sta route_ev + 8, x
+no_turn:
     lda route_ev + 12, x
     and #$01
     sta crossing
     stz crossing + 1
     phx
     jsr event_cell              ; its cell, which `can_fall` needs
-    jsr jump_to_cells
     rep #$20
 .a16
     lda cell_x
@@ -536,15 +563,6 @@ se_can:
     sta route_ev + 14, x
     lda jump_dy
     sta route_ev + 15, x
-    ; Which way it ends up facing. In place nothing changes.
-    lda jump_dx
-    ora jump_dy
-    beq no_turn
-    phx
-    jsr jump_direction
-    plx
-    sta route_ev + 8, x
-no_turn:
     jsr slot_jump
     sta temp
     lda #0                      ; 256 minus this frame's, in eight bits
