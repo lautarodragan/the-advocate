@@ -61,6 +61,20 @@ impl Picture {
         }
     }
 
+    /// Copies all of `src` to `(dx, dy)`, ignoring alpha, like
+    /// [`paste`](Self::paste) at an offset: what does not fit is cut.
+    pub fn put(&mut self, dx: usize, dy: usize, src: &Picture) {
+        if dx >= self.width || dy >= self.height {
+            return;
+        }
+        let width = src.width.min(self.width - dx);
+        for y in 0..src.height.min(self.height - dy) {
+            let to = ((dy + y) * self.width + dx) * 4;
+            let from = y * src.width * 4;
+            self.rgba[to..to + width * 4].copy_from_slice(&src.rgba[from..from + width * 4]);
+        }
+    }
+
     /// Copies the `w`x`h` rectangle of `src` at `(sx, sy)` to `(dx, dy)`,
     /// **through its alpha**. The destination's edges clip it: a rectangle
     /// partly outside draws its inside part.

@@ -2,7 +2,7 @@
 name = "rm2k-render"
 version = "0.1.0"
 edition = "2021"
-description = "Draws the tile layers of an RPG Maker 2000 map, and the other drawings of its ChipSet animation, from the map and its ChipSet"
+description = "Draws an RPG Maker 2000 game's graphics the way RM2k draws them: the tile layers of a map and the other drawings of its ChipSet animation, and the CharSet sheets its events are drawn with"
 
 [lib]
 name = "rm2k_render"
