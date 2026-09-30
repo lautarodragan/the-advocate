@@ -30,7 +30,8 @@ FAR_WANTS   = $7E3300           ; one byte per sample: 2 for the ones that do no
 APU_READY   = $7E30D0           ; whether the driver is already running
 PKG_EXTRA   = $7E30D1           ; a song that goes first, or $FF
 PKG_COMPACT = $7E30D2           ; 1 if the package is being rearranged again
-                                ; from scratch: see `package_load_done`
+                                ; from scratch, 2 if that could not make it
+                                ; fit: see `package_load_done`
 PKG_LENGTH  = $7E30D4
 PKG_DEST    = $7E30D6
 PKG_S       = $7E30D8           ; the sample being placed
@@ -750,6 +751,21 @@ other_q:
     inx
     bra other_q
 exit_q:
+    ; If what is marked so far —the song playing, the extra, the package's
+    ; songs and its sound effects— does not fit in ARAM even empty,
+    ; rebuilding from scratch cannot complete the package: it would only
+    ; upload again, somewhere else, what was already there. 2 says so to
+    ; `placed`, which then rebuilds only if one of the songs was left out.
+    ; It is measured here, before the exit songs are marked, because those
+    ; do not have to fit: see `from_exit`. The game's case is the `PlayBGM` of
+    ; TF3_1_awe on map 3, which uploaded again what was there and more than
+    ; doubled the time the picture stayed frozen and the music silent: see
+    ; `test_el_paso_del_2_al_3_no_vuelve_a_subir_lo_que_estaba`.
+    jsr wanted_fits
+    bcs fits_q
+    lda #2
+    sta f:PKG_COMPACT
+fits_q:
     ; And the exit songs, which are wanted anyway: if they were already there,
     ; they stay. With a separate song, not.
     jsr extra_separate
@@ -841,6 +857,17 @@ songs:
     inx
     bra songs
 effects:
+    ; A song that did not fit, with a package that cannot fit whole: the
+    ; rebuild does help, because it places the songs first and does not
+    ; leave them out for a gap.
+    lda f:PKG_PARTIAL
+    beq songs_in
+    lda f:PKG_COMPACT
+    cmp #2
+    bne songs_in
+    lda #0
+    sta f:PKG_COMPACT
+songs_in:
     inx
 other_effect:
     lda f:packages, x
@@ -885,11 +912,13 @@ placed:
     ; fits on its own: coming back from a battle, or from one map to another
     ; with the music silenced. That is why where each one goes is decided
     ; first and the upload is done at the end: redoing the whole upload would
-    ; cost twice the frames.
+    ; cost twice the frames. **Not when it cannot help** —PKG_COMPACT at 2,
+    ; see `exit_q`—: the missing sound effects wait for the next `PlayBGM`.
     lda f:PKG_PARTIAL
     beq upload
     lda f:PKG_COMPACT
-    bne upload                  ; already redone: it is the song playing
+    bne upload                  ; 1: already redone, it is the song playing;
+                                ; 2: it would not fit even so
     lda #1
     sta f:PKG_COMPACT
     lda #0
@@ -1113,6 +1142,66 @@ other:
     inx
     bra other
 ready:
+    rts
+.endproc
+
+; C at 1 if the samples marked in FAR_WANTS, added up, fit between ARAM_DATA
+; and ARAM_END: with the lengths `place_sample` gives them. What is left is
+; carried on the stack, counting down, so a sum past sixteen bits is a
+; borrow and not a wrap. Saves X, which is the index of the loops in
+; `package_load_done`.
+.proc wanted_fits
+.a8
+.i16
+    phx
+    rep #$20
+.a16
+    lda #(ARAM_END - ARAM_DATA)
+    pha
+    sep #$20
+.a8
+    ldx #0
+other:
+    lda f:FAR_WANTS, x
+    beq next
+    phx
+    txa
+    sta f:PKG_S
+    jsr sample_row
+    rep #$20
+.a16
+    lda f:sample_table + 3, x
+    sta f:PKG_LENGTH
+    jsl se_msu_length           ; PKG_S is what it reads
+.a16
+    lda 3, s                    ; what is left, behind X
+    sec
+    sbc f:PKG_LENGTH
+    bcc over
+    sta 3, s
+    sep #$20
+.a8
+    plx
+next:
+    inx
+    cpx #SAMPLES_N
+    bcc other
+    rep #$20
+.a16
+    pla
+    sep #$20
+.a8
+    plx
+    sec
+    rts
+.a16
+over:
+    pla                         ; the index
+    pla                         ; and what was left
+    sep #$20
+.a8
+    plx
+    clc
     rts
 .endproc
 
