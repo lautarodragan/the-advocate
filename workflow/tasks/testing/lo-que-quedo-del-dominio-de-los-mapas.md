@@ -2,7 +2,7 @@
 name: "Lo que quedó del dominio de los mapas"
 description: "Los cabos sueltos que dejó Mara al pasar los mapas a Rust"
 type: refactor
-assignee: Ceibo
+assignee: taro
 ---
 
 De `testing/rust-el-dominio-de-los-mapas.md` (Mara, 2026-09-30):
@@ -104,3 +104,64 @@ paletas y de filas por referencia, el `entry` del caché de opacos del
 horneado, los módulos de prueba al final del archivo y `is_multiple_of` en
 las pruebas. Mismo comportamiento: `rom/build/` igual y `cargo test -p` de
 los tres en verde.
+
+### 6. Los translúcidos tramados (`TRANSLUCENT_MODE=dither`): sólo anotado
+
+No se agregó nada. Lo medido: `TRANSLUCENT_MODE=dither NO_CACHE=1 just
+cartuchos` arma los tres cartuchos sin quejarse; la ROM de `release` sale
+distinta (`271ffcede687…`) y las de prueba iguales, porque no llevan
+eventos translúcidos. O sea que el camino anda de punta a punta, pero nadie
+miró cómo se ve.
+
+Lo que ninguna prueba cubre es chico: el `~trama` de `Drawer::draw` en
+`sheets.rs` —quince líneas: dibujar la hoja base y vaciar los pixeles que
+`drops` dice— y `drops` con sus cinco tramas. **Vale la pena una prueba
+del crate**, sin juego, que dibuje un `~trama` sobre un CharSet inventado
+y mire qué pixeles quedaron; cuesta poco y cubre todo lo que es del
+camino. **Un cartucho no vale la pena**: el modo existe para comparar las
+dos salidas en el mismo árbol, `release` no lo usa, y un cartucho más es
+tiempo de cada `just cartuchos` para un camino que no se juega. No la
+agregué porque el encargo pedía anotarlo; si taro dice que sí, es una
+prueba en `rm2k-snes-maps`.
+
+**Una trampa que encontré de paso**: ni `TRANSLUCENT_MODE` ni
+`DITHER_PATTERN` entran en la huella de los cartuchos. Armar con una de
+ésas y después sin ella deja la ROM tramada dada por buena hasta que algo
+más cambie: para volver hay que borrar los `sello.txt` (o armar con
+`NO_CACHE=1` y los sellos borrados, que es lo que hice). No lo arreglé:
+es de `cartridge` y del proyecto, y conviene decidir antes si el modo se
+queda.
+
+## Cómo quedó verificado
+
+Con los scripts de huellas de Mara, copiados a `<scratchpad>/ceibo/`:
+`NO_CACHE=1 just cartuchos` con los sellos borrados, y el sha256 de todo
+`rom/build/` —1032 archivos, menos el caché, los `.o`, `sello.txt` y
+`conversor.log`; el `.dbg` sin `mtime`— contra la base de `968af650`,
+armada con los binarios locales de este worktree. Iguales después de cada
+uno de los cinco commits. Las ROMs:
+
+* `release/abl.sfc` `cdcc323197ee6c66d82b1304ce20c3c37f4124d13a6867e851fd13226046b7df`
+* `tests/special/prueba.sfc` `15e4f331fe8ff8123803ae3819a2212a5b84d71cd0a053b7261a9188bbab84b9`
+* `tests/encounter-every-step/prueba.sfc` `dc83ed698b348032514dbb76eaf5f535b6296944075fcba786087533ed5b8a4b`
+
+Después de mergear `main` (`be94c1d8`, la pelea de Cardón) las tres ROMs
+siguen iguales; cambian sólo los tres `.dbg`, por los comentarios del
+runtime que trajo ese merge.
+
+Las tandas sobre el árbol mergeado: `just pruebas`, 878 pasan; `just -f
+tools/justfile test`, 49. `cargo test -p` de `events`, `map-background`, `map-sprites`, `maps` y
+`cartridge`, en verde.
+
+## Al mergear
+
+* Instalar en el global `events` —el scan contesta `route_targets`—,
+  `maps` —lee `pages` y `also_walk`, y devuelve quién se mueve y la
+  máscara del cronómetro— y `cartridge` —la huella sin `voodoo`—: `just -f
+  tools/justfile install events maps cartridge`. **Tienen que ir juntos
+  con el Python**: el `map_convert` nuevo le manda a la etapa un pedido
+  que la vieja no entiende, y la vieja le contestaba sin `movable` ni
+  `timer_mask`.
+  `map-background` y `map-sprites` son bibliotecas: entran con `maps`.
+* No mueve la ROM ni las goldens. Los cartuchos se rearman una vez, porque
+  cambia la huella.
