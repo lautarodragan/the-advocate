@@ -71,8 +71,10 @@ reproduce. Las rutas de abajo que terminan en `.rs` son de su `src/`.
   faltado en la tarjeta: `song_per_msu`, en `tools/runtime/audio_package.s`.
 * **Los efectos con MSU-1**: mientras el SPC700 no toca música, los efectos
   tienen también las voces 0 a 5; y si el `.msu` es el de este cartucho, los
-  de cada paquete se suben de ahí, enteros y a la tasa que les entra ahora
-  que la música no ocupa la ARAM —una versión por paquete—. Sin MSU-1, o con
+  de cada paquete se suben de ahí, enteros y cada uno a la tasa que le deja
+  el paquete ahora que la música no ocupa la ARAM —una versión por paquete—:
+  si no entran todos arriba, baja primero el que menos pierde de lo que se
+  oye (`rates_per_package`, en `effects.rs`). Sin MSU-1, o con
   otro `.msu`, lo de siempre. El reparto, en `msu.rs`; la ROM, en
   `tools/runtime/msu_effects.s`.
 

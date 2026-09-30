@@ -67,7 +67,7 @@ pub struct Voice {
 // vertical and what goes past half aliases. And how many cycles of the
 // cutoff frequency its kernel spans: more is a steeper roll-off and a longer
 // filter.
-const CUTOFF: f64 = 0.9;
+pub(crate) const CUTOFF: f64 = 0.9;
 const CYCLES: f64 = 12.0;
 
 /// numpy's Blackman window of `m` points.

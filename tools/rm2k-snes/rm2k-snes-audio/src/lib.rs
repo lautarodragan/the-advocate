@@ -15,6 +15,7 @@
 //! Until 2026-09-29 this was a Python program, and what it writes into a
 //! cartridge has to keep coming out byte for byte the same: see [`num`].
 
+pub mod audible;
 pub mod bank;
 pub mod cartridge;
 pub mod ceilings;
