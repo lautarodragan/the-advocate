@@ -8,10 +8,11 @@
 //!
 //! And their MSU-1 versions: with MSU-1 the SPC700 plays no music, so the
 //! ARAM is left for the sound effects, and each package gets its own version
-//! of each, whole and at the highest rate that fits —see
+//! of each, whole and at the highest rates that fit —see
 //! [`rates_per_package`]—. The cartridge cannot carry that many, so they go
 //! in the `.msu`, which has no cap.
 
+use crate::audible::Audible;
 use crate::fail::Result;
 use crate::num;
 use crate::samples::{self, BLOCK, BLOCK_BYTES};
@@ -225,9 +226,8 @@ pub fn volume(volume: i64, balance: i64) -> (i64, i64) {
 // --- the MSU-1 versions ----------------------------------------------------
 
 /// The rates to choose from, highest to lowest. 22,050 Hz is the rate of
-/// the RTP's WAVs, so there is no resampling; one fixed rate for all the
-/// sound effects of a package, and stepped so that the same version serves
-/// more than one package.
+/// the RTP's WAVs, so there is no resampling; stepped so that the same
+/// version serves more than one package.
 const RATES: [i64; 20] = [
     22050, 20000, 18000, 16000, 14000, 12000, 11025, 10000, 9000, 8000, 7500, 7000, 6500, 6000,
     5500, 5000, 4500, 4000, 3500, 3000,
@@ -264,21 +264,47 @@ pub struct MsuPackage {
     pub music_bytes: i64,
 }
 
+/// What [`rates_per_package`] needs of a sound effect's WAV: how many
+/// samples it has, at which rate, and how much of what is heard of it each
+/// rate loses.
+pub struct MsuSource {
+    pub length: usize,
+    pub rate: i64,
+    pub audible: Audible,
+}
+
+impl MsuSource {
+    pub fn new(wav: &(Vec<i64>, i64)) -> MsuSource {
+        MsuSource { length: wav.0.len(), rate: wav.1, audible: Audible::new(&wav.0, wav.1) }
+    }
+
+    fn size(&self, rate: i64) -> i64 {
+        msu_size(self.length, self.rate, rate)
+    }
+}
+
 /// {package: [(sound effect, rate)]}: at which rate each sound effect of
 /// each package goes in the `.msu`.
 ///
-/// **Always whole, and at the highest rate that fits**: the same for all the
-/// sound effects of the package unless the cartridge's is higher. A sound
-/// effect the cartridge already carries whole ends up no worse than without
-/// MSU-1: its rate is the floor. One the cartridge carries trimmed may end
-/// up at a lower rate than there, but whole.
+/// **Always whole, and each one at its own rate**: all of them start at the
+/// highest, and while the package does not fit, one of them goes down a
+/// step —see [`fit`]—. A sound effect the cartridge already carries whole
+/// ends up no worse than without MSU-1: its rate is the floor. One the
+/// cartridge carries trimmed may end up at a lower rate than there, but
+/// whole.
+///
+/// Until 2026-09-30 it was a single rate per package, the highest at which
+/// all of them fit: a two-second thunder took the battle's sound effects to
+/// 12,000 Hz, and the sword's `Attack2`, which is almost all above 5 kHz,
+/// lost more than half of what is heard of it so that the thunder, which is
+/// almost all rumble, could fit.
 ///
 /// `effects` are the cartridge's; `free` is what the ARAM has for samples,
 /// of which `margin` is left.
 pub fn rates_per_package(
     packages: &[MsuPackage],
     effects: &BTreeMap<String, SoundEffect>,
-    wavs: &HashMap<String, (usize, i64)>,
+    sources: &HashMap<String, MsuSource>,
     free: i64,
     margin: i64,
 ) -> Vec<(String, Vec<(String, i64)>)> {
@@ -293,32 +319,115 @@ pub fn rates_per_package(
         if own.is_empty() {
             continue;
         }
-        let floor = |e: &String| if effects[e].repeats { 0 } else { effects[e].rate };
         let room = free - margin - p.music_bytes;
-        let mut chosen = Vec::new();
-        let mut fits = false;
-        for rate in RATES {
-            chosen = own.iter().map(|e| ((*e).clone(), rate.max(floor(e)))).collect();
-            let total: i64 = chosen.iter().map(|(e, r)| {
-                let (length, source) = wavs[e];
-                msu_size(length, source, *r)
-            }).sum();
-            if total <= room {
-                fits = true;
-                break;
-            }
-        }
-        if !fits {
+        let bottom = || own.iter().map(|e| RATES[RATES.len() - 1].max(floor(effects, e))).collect();
+        let rates = fit(&own, effects, sources, room).unwrap_or_else(|| {
             println!(
                 "  high-quality sound effects: package {} does not fit even at {} Hz; the \
                  ones that do not fit do not play with MSU-1",
                 p.name,
                 RATES[RATES.len() - 1]
             );
-        }
-        out.push((p.name.clone(), chosen));
+            bottom()
+        });
+        out.push((p.name.clone(), own.iter().map(|e| e.to_string()).zip(rates).collect()));
     }
     out
+}
+
+/// The rate a sound effect cannot go below: the cartridge's, if it carries
+/// it whole.
+fn floor(effects: &BTreeMap<String, SoundEffect>, e: &str) -> i64 {
+    if effects[e].repeats {
+        0
+    } else {
+        effects[e].rate
+    }
+}
+
+/// Each sound effect's rate so that all of them fit in `room`, or None if
+/// not even all of them at the bottom do.
+///
+/// **The one that goes down a step is the one that loses the least of what
+/// is heard for each byte it frees**, as [`Audible`] measures it; if two
+/// lose the same, the heavier. The obvious rule —the heaviest goes down
+/// first, since it frees the most— was measured against this one on
+/// `release`'s packages on 2026-09-30, and in five of them it left the
+/// package's worst sound effect worse off than the single rate did: the
+/// long ones are often the ones whose sound is all up high, and a breaking
+/// glass went to 7,500 Hz and lost four fifths of what is heard of it. With
+/// this one, no package's worst ended up worse. Measuring what each one
+/// loses is what that rule was trying to guess: a low rumble like the
+/// thunder loses little, so it goes down, and the glass does not.
+///
+/// What it does not look at is how the sum is split: it minimizes what the
+/// package loses in all, so in a crowded one —18 and 20 sound effects in
+/// maps 2 and 3— some end up lower than with the single rate so that
+/// others end up much higher.
+///
+/// And once it fits, what is left over goes back, a step at a time, to the
+/// one that gets the most back for each byte: the steps down are greedy and
+/// the last one may have freed more than was missing. **Only while it gets
+/// something back**: a step up that sounds the same is only more bytes to
+/// upload on every load of the package.
+fn fit(
+    own: &[&String],
+    effects: &BTreeMap<String, SoundEffect>,
+    sources: &HashMap<String, MsuSource>,
+    room: i64,
+) -> Option<Vec<i64>> {
+    let source = |i: usize| &sources[own[i].as_str()];
+    let floors: Vec<i64> = own.iter().map(|e| floor(effects, e)).collect();
+    // A step of RATES, raised to the floor. Each starts at the first rate its
+    // WAV has, so that a step down is always a lower rate.
+    let rate = |i: usize, step: usize| RATES[step].max(floors[i]);
+    let top: Vec<usize> = (0..own.len())
+        .map(|i| RATES.iter().position(|&r| r <= source(i).rate).unwrap_or(RATES.len() - 1))
+        .collect();
+    let mut steps = top.clone();
+    let size = |i: usize, step: usize| source(i).size(rate(i, step));
+    let lost = |i: usize, step: usize| source(i).audible.lost_at(rate(i, step));
+    let used = |steps: &[usize]| -> i64 { (0..own.len()).map(|i| size(i, steps[i])).sum() };
+
+    while used(&steps) > room {
+        let mut best: Option<(f64, i64, usize)> = None;
+        for i in 0..own.len() {
+            let s = steps[i];
+            if s + 1 >= RATES.len() || rate(i, s) <= floors[i] {
+                continue;
+            }
+            let freed = size(i, s) - size(i, s + 1);
+            let cost = (lost(i, s + 1) - lost(i, s)) / freed.max(1) as f64;
+            let heavy = size(i, s);
+            if best.is_none_or(|(c, h, _)| cost < c || (cost == c && heavy > h)) {
+                best = Some((cost, heavy, i));
+            }
+        }
+        let (_, _, i) = best?;
+        steps[i] += 1;
+    }
+
+    loop {
+        let spare = room - used(&steps);
+        let mut best: Option<(f64, usize)> = None;
+        for i in 0..own.len() {
+            let s = steps[i];
+            if s == top[i] {
+                continue;
+            }
+            let more = size(i, s - 1) - size(i, s);
+            if more > spare {
+                continue;
+            }
+            let gain = (lost(i, s) - lost(i, s - 1)) / more.max(1) as f64;
+            if gain > 0.0 && best.is_none_or(|(g, _)| gain > g) {
+                best = Some((gain, i));
+            }
+        }
+        let Some((_, i)) = best else { break };
+        steps[i] -= 1;
+    }
+    Some((0..own.len()).map(|i| rate(i, steps[i])).collect())
 }
 
 #[cfg(test)]
@@ -358,6 +467,45 @@ mod tests {
         w[20] = 3; // IEEE float
         assert!(read_wav_bytes(&w).is_none());
         assert!(read_wav_bytes(b"RIFX").is_none());
+    }
+
+    fn tone(hz: f64, seconds: f64) -> (Vec<i64>, i64) {
+        let n = (22050.0 * seconds) as usize;
+        ((0..n).map(|i| (8000.0 * (2.0 * std::f64::consts::PI * hz * i as f64 / 22050.0).sin()) as i64).collect(), 22050)
+    }
+
+    fn rates_of(wavs: &[(&str, (Vec<i64>, i64))], floor: i64, room: i64) -> Vec<(String, i64)> {
+        let effects: BTreeMap<String, SoundEffect> = wavs
+            .iter()
+            .map(|(n, _)| {
+                let e = SoundEffect { name: n.to_string(), data: vec![], rate: floor, loop_block: 0, repeats: floor == 0, seconds: 1.0 };
+                (n.to_string(), e)
+            })
+            .collect();
+        let sources = wavs.iter().map(|(n, w)| (n.to_string(), MsuSource::new(w))).collect();
+        let package = MsuPackage { name: "p".into(), effects: wavs.iter().map(|(n, _)| n.to_string()).collect(), music_bytes: 0 };
+        rates_per_package(&[package], &effects, &sources, room, 0).remove(0).1
+    }
+
+    #[test]
+    fn the_crack_keeps_what_is_heard_even_if_it_weighs_more() {
+        // Two seconds of a 7 kHz tone and one of a 60 Hz one: 24,804 and
+        // 12,402 bytes at 22050 Hz. The tone goes down while it loses
+        // nothing —to 16,000 Hz, which lets up to 7,200 through— and the
+        // rumble after it. Lowering the heaviest first would have taken the
+        // tone to 14,000, where it is gone.
+        let wavs = [("crack", tone(7000.0, 2.0)), ("rumble", tone(60.0, 1.0))];
+        assert_eq!(rates_of(&wavs, 0, 30000), [("crack".into(), 16000), ("rumble".into(), 20000)]);
+    }
+
+    #[test]
+    fn what_is_left_over_goes_back_only_if_it_is_heard() {
+        // Everything fits at the top: nothing goes down.
+        let wavs = [("a", tone(440.0, 0.2)), ("b", tone(880.0, 0.2))];
+        assert_eq!(rates_of(&wavs, 0, 100_000), [("a".into(), 22050), ("b".into(), 22050)]);
+        // A floor of the cartridge's is kept even if the rest does not fit.
+        let wavs = [("a", tone(440.0, 2.0))];
+        assert_eq!(rates_of(&wavs, 6000, 10), [("a".into(), 6000)]);
     }
 
     #[test]

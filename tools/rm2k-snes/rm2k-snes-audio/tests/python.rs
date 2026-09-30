@@ -94,7 +94,15 @@ fn the_music_is_the_one_the_python_wrote() {
     assert_eq!(boot, (44.07861328125, 21420), "the boot's estimate");
     assert_eq!(sha(data_of(&inc).as_bytes()), "d2a34be276994b01a5a73339058b1bda9fb0ce3b71b1fd197fec05b6636dca14", "musicdata.inc");
     assert_eq!(sha(songs.as_bytes()), "c5feb36f38f182aa9dc1fc40dac8bf8e7ed208ca3b12e85fe0df83c23c240d66", "musica.json");
-    assert_eq!(sha(quality.as_bytes()), "bd9599b5508c5c16076ffc79b39eb889ec28c5bc5e1c3301414b31253f257337", "the MSU-1 sound effects");
+    // **Not the Python's since 2026-09-30**, on purpose: that day each sound
+    // effect got its own rate in the package (`effects::rates_per_package`),
+    // where the Python gave all of them one. The Python's was
+    // bd9599b5508c5c16…, and against it only package 3 changed —Boom@big
+    // 16000 to 18000, Ping 9000 to 18000, Rumble 9000 to 7500, and so its
+    // pitches— and package 1's Rumble, whose WAV is at 11025 Hz, is written
+    // with that rate instead of 22050: the same bytes. Everything else came
+    // out the same, the versions' bytes included.
+    assert_eq!(sha(quality.as_bytes()), "409543a88da28c6fb38a3ca7d3e30995cf141f5b2bece7e3c4937bc8ae6d034a", "the MSU-1 sound effects");
 }
 
 /// Writes the game, and what this compiles from it, to `FIXTURE_OUT`: what

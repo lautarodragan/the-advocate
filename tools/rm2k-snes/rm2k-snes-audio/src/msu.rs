@@ -43,7 +43,7 @@ pub struct Effects {
 /// The ROM's packages' quality sound effects.
 ///
 /// **Each package has its own version of each sound effect**, at the rate
-/// that fits it: a single one per sound effect —the one that fits its worst
+/// it gets there —see [`effects::rates_per_package`]—: a single one per sound effect —the one that fits its worst
 /// package— left at 4.7 kHz the ones a crowded package shares with ten
 /// others that have room to spare. What it costs is that the ROM uploads
 /// the sound effects again on every package even if they were already in
@@ -82,9 +82,9 @@ pub fn effects(music: &Music, emit: &Emit, game: &Game) -> Result<Effects> {
             }
         }
     }
-    let lengths: HashMap<String, (usize, i64)> =
-        wavs.iter().map(|(e, (raw, rate))| (e.clone(), (raw.len(), *rate))).collect();
-    let rates = effects::rates_per_package(&requested, &cartridge, &lengths, music.bank.free, crate::bank::ARAM_MARGIN);
+    let sources: HashMap<String, effects::MsuSource> =
+        wavs.iter().map(|(e, wav)| (e.clone(), effects::MsuSource::new(wav))).collect();
+    let rates = effects::rates_per_package(&requested, &cartridge, &sources, music.bank.free, crate::bank::ARAM_MARGIN);
 
     let unique: BTreeSet<(String, i64)> =
         rates.iter().flat_map(|(_, own)| own.iter().cloned()).collect();
