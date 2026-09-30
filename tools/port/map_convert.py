@@ -190,7 +190,7 @@ def convert_map(renderer, map_id, args):
     if map_id in args.timer_maps:
         from port import window as window_mod
         timer_colors = sorted(timer_colors_of(window_mod.skin(
-            args.game_dir, renderer.database.system_name)))
+            args.game_dir, renderer.database)))
     singles = {c for c, n in getattr(args, "maps_per_character", {}).items()
                if n == 1}
     palette_cap = map_palette_cap(
@@ -401,7 +401,7 @@ def convert_map(renderer, map_id, args):
     timer_base, timer_pal = 0, None
     if map_id in args.timer_maps:
         from port import window as window_mod
-        sys_img = window_mod.skin(args.game_dir, renderer.database.system_name)
+        sys_img = window_mod.skin(args.game_dir, renderer.database)
         tiles, timer_base, timer_pal = timer_digits(
             sys_img, tiles, palettes, split[3],
             palette_cap)

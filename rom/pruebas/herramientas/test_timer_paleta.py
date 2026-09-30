@@ -93,7 +93,7 @@ def test_los_digitos_entran_en_una_paleta_que_ya_existe():
     """Con las ocho paletas ocupadas pero con lugar, no se agrega ninguna."""
     from port import window as ventana_mod
     ren = render_map.Renderer(JUEGO)
-    sys_img = ventana_mod.skin(JUEGO, ren.database.system_name)
+    sys_img = ventana_mod.skin(JUEGO, ren.database)
     palettes = paletas_de(13)
     _tiles, _base, cual = obj_extras.timer_digits(
         sys_img, bytes(32 * 64), palettes)
@@ -107,7 +107,7 @@ def test_si_de_verdad_no_entra_lo_dice():
     """Con las ocho llenas no hay magia posible, y tiene que cortar."""
     from port import window as ventana_mod
     ren = render_map.Renderer(JUEGO)
-    sys_img = ventana_mod.skin(JUEGO, ren.database.system_name)
+    sys_img = ventana_mod.skin(JUEGO, ren.database)
     with pytest.raises(SystemExit):
         obj_extras.timer_digits(sys_img, bytes(32 * 64), paletas_de(15))
 
@@ -129,7 +129,7 @@ def test_el_cronometro_no_cae_en_la_ranura_de_un_lider():
     """
     from port import window as ventana_mod
     ren = render_map.Renderer(JUEGO)
-    sys_img = ventana_mod.skin(JUEGO, ren.database.system_name)
+    sys_img = ventana_mod.skin(JUEGO, ren.database)
     # Dos paletas con lugar de sobra; la primera es la del líder.
     palettes = [[(1, 1, k) for k in range(4)], [(2, 2, k) for k in range(4)]]
     _tiles, _base, cual = obj_extras.timer_digits(

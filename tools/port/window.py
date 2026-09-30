@@ -1,30 +1,24 @@
 """RM2k's message window, built from the game's System.
 
-The rules come from easyrpg-player's `Window::RefreshBackground` and
-`Window::RefreshFrame`, and the text from `Font::Render`. Nothing is made up
-here: if something does not match the original, it is fixed by looking at
-those functions.
+**What comes from the System is drawn by `rm2k-render system`**: the empty
+window —its background stretched or tiled as the database's
+`message_stretch` says, and the frame—, the cursor, the 16x16 blocks the
+text and its shadow take their colors from, and the timer's glyphs. Which
+piece of the System is which is `rm2k-rules`' (`system`), and how they are
+put together is easyrpg-player's `Window::RefreshBackground`,
+`RefreshFrame` and `RefreshCursor`: a viewer of the game on a PC would draw
+them the same way.
 
-The System is a 160x80 image with everything inside:
-
-    (0,0,32,32)     the background, which is **stretched** to the window size
-    (32,0,8,8)      the top-left corner of the frame
-    (40,0,16,8)     the top edge, repeated across the width
-    (56,0,8,8)      the top-right corner
-    (32,8,8,16)     the left edge, repeated down the height
-    (56,8,8,16)     the right edge
-    (56,0,8,8)      the top-right corner
-    (...,24,...)    the same for the bottom
-    (16,32,16,16)   the color of the text shadow
-    (c%10*16, c//10*16+48, 16, 16)   text color number c
+What stays here is the port's: the window's size and the text's place on a
+screen 256 wide, the lines cut to what fits, and the text drawn with the
+port's 8-pixel font (`font.py`), which is `Font::Render`'s rule over the
+System's blocks.
 
 The text and shadow colors are **16x16 blocks**, not single colors: each
 pixel of the glyph takes the color at the same position inside the block, so
 a letter comes out with a vertical gradient. It is what `MaskedBlit` does.
 """
 import os
-
-from PIL import Image
 
 from port.constants import COLUMNS, LINES
 from render import render_map
@@ -38,97 +32,99 @@ BORDER = 8                       # `border_x` and `border_y` of Window
 LINE_HEIGHT = 16                 # `contents_y += 16` of Window_Message
 TEXT_Y = 2                     # the `contents_y = 2` of the first line
 
+# How many text colors the System has: `rm2k-render` draws them all at once.
+TEXT_COLORS = 20
 
-def skin(game_dir, name):
-    """The game's System, in RGBA and with the color key already resolved.
 
-    It goes through `render_map.load_image` and not `Image.open` on purpose:
-    in RM2k **palette index 0 is transparent**, and that rule is already
-    written there. Writing it again here would mean two conventions that
-    have to be kept the same.
+class Skin:
+    """The game's System, and what `rm2k-render` drew from it, remembered:
+    the same window and the same blocks are asked for many times."""
 
-    It is not a detail: in `ablskin` index 0 is a strong orange, and the
-    window frame uses it for its whole inside. Drawing it opaque gave an
-    8 px orange frame where the game has a 2 px one and the rest
-    transparent. The EasyRPG capture found it, not the eye.
+    def __init__(self, path, message_stretch):
+        self.path = path
+        self.message_stretch = message_stretch
+        self._drawn = {}
+        self._blocks = None
+
+    def _draw(self, entries):
+        return render_map.draw("system", [
+            dict(entry, system_file=self.path) for entry in entries])
+
+    def _block(self, name):
+        """The small pieces, all in one call the first time one is asked
+        for: the twenty text colors, the shadow and the timer."""
+        if self._blocks is None:
+            names = ([("text_color", n) for n in range(TEXT_COLORS)]
+                     + [("shadow",), ("timer",)])
+            drawn = self._draw([{"draw": "text_color", "color": n[1]}
+                                if n[0] == "text_color" else {"draw": n[0]}
+                                for n in names])
+            self._blocks = dict(zip(names, drawn))
+        return self._blocks[name]
+
+    def window(self, width, height):
+        key = ("window", width, height)
+        if key not in self._drawn:
+            self._drawn[key] = self._draw([{
+                "draw": "window", "width": width, "height": height,
+                "message_stretch": self.message_stretch}])[0]
+        return self._drawn[key].copy()
+
+    def cursor(self, width, height):
+        key = ("cursor", width, height)
+        if key not in self._drawn:
+            self._drawn[key] = self._draw([{
+                "draw": "cursor", "width": width, "height": height}])[0]
+        return self._drawn[key].copy()
+
+    def text_color(self, number):
+        return self._block(("text_color", number))
+
+    def shadow(self):
+        return self._block(("shadow",))
+
+    def timer(self):
+        return self._block(("timer",))
+
+
+_SKINS = {}
+
+
+def skin(game_dir, database):
+    """The game's System, the one `database` names, with the way its
+    windows fill their background.
+
+    The System is looked for in the game's `System/`, and then in the
+    game's folder itself.
     """
+    name = database.system_name
     for base in (os.path.join(game_dir, "System"), game_dir):
-        path = os.path.join(base, name + ".png")
+        path = os.path.abspath(os.path.join(base, name + ".png"))
         if os.path.exists(path):
-            return render_map.load_image(path)
+            key = (path, database.message_stretch)
+            if key not in _SKINS:
+                _SKINS[key] = Skin(path, database.message_stretch)
+            return _SKINS[key]
     raise FileNotFoundError("System %r is not in %s" % (name, game_dir))
 
 
 def text_color(sys_img, number):
     """The 16x16 block of text color number `number`."""
-    x, y = number % 10 * 16, number // 10 * 16 + 48
-    return sys_img.crop((x, y, x + 16, y + 16))
+    return sys_img.text_color(number)
 
 
 def shadow_color(sys_img):
-    return sys_img.crop((16, 32, 32, 48))
-
-
-def _tiled(source, width, height):
-    """`TiledBlit`: repeat a crop until it fills ancho x alto."""
-    out = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-    for y in range(0, height, source.height):
-        for x in range(0, width, source.width):
-            out.paste(source, (x, y))
-    return out.crop((0, 0, width, height))
-
-
-def _paste(dest, piece, x, y):
-    """Paste honoring the color key, like `chipset.blit`."""
-    dest.paste(piece, (x, y), piece)
+    return sys_img.shadow()
 
 
 def window(sys_img, width=WIDTH, height=HEIGHT):
-    """The empty window: the stretched background and the frame on top."""
-    # The background is stretched, not tiled: it is the `stretch` RM2k has on
-    # by default.
-    background = sys_img.crop((0, 0, 32, 32)).resize((width, height), Image.NEAREST)
-    frame_img = background.copy()
-    # The top and bottom edges, repeated between the corners.
-    _paste(frame_img, _tiled(sys_img.crop((40, 0, 56, 8)), width - 16, 8), 8, 0)
-    _paste(frame_img, _tiled(sys_img.crop((40, 24, 56, 32)), width - 16, 8),
-           8, height - 8)
-    # The side ones.
-    _paste(frame_img, _tiled(sys_img.crop((32, 8, 40, 24)), 8, height - 16), 0, 8)
-    _paste(frame_img, _tiled(sys_img.crop((56, 8, 64, 24)), 8, height - 16),
-           width - 8, 8)
-    # And the four corners, which go last because they overwrite the edges.
-    _paste(frame_img, sys_img.crop((32, 0, 40, 8)), 0, 0)
-    _paste(frame_img, sys_img.crop((56, 0, 64, 8)), width - 8, 0)
-    _paste(frame_img, sys_img.crop((32, 24, 40, 32)), 0, height - 8)
-    _paste(frame_img, sys_img.crop((56, 24, 64, 32)), width - 8, height - 8)
-    return frame_img
+    """The empty window: the background and the frame on top."""
+    return sys_img.window(width, height)
 
 
 def cursor(sys_img, width, height=16):
-    """The cursor of a list, the first of the System's two frames: Window's
-    `RefreshCursor` in easyrpg, 8x8 corners and the rest repeated between
-    them. What is transparent in the System stays transparent."""
-    x0 = 64
-    out = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-    if width > 16 and height > 16:
-        _paste(out, _tiled(sys_img.crop((x0 + 8, 8, x0 + 24, 24)),
-                           width - 16, height - 16), 8, 8)
-    _paste(out, _tiled(sys_img.crop((x0 + 8, 0, x0 + 24, 8)),
-                       width - 16, 8), 8, 0)
-    _paste(out, _tiled(sys_img.crop((x0 + 8, 24, x0 + 24, 32)),
-                       width - 16, 8), 8, height - 8)
-    if height > 16:
-        _paste(out, _tiled(sys_img.crop((x0, 8, x0 + 8, 24)),
-                           8, height - 16), 0, 8)
-        _paste(out, _tiled(sys_img.crop((x0 + 24, 8, x0 + 32, 24)),
-                           8, height - 16), width - 8, 8)
-    _paste(out, sys_img.crop((x0, 0, x0 + 8, 8)), 0, 0)
-    _paste(out, sys_img.crop((x0 + 24, 0, x0 + 32, 8)), width - 8, 0)
-    _paste(out, sys_img.crop((x0, 24, x0 + 8, 32)), 0, height - 8)
-    _paste(out, sys_img.crop((x0 + 24, 24, x0 + 32, 32)), width - 8,
-           height - 8)
-    return out
+    """The cursor of a list, the first of the System's two drawings."""
+    return sys_img.cursor(width, height)
 
 
 # Where the color of each glyph pixel comes from, according to easyrpg-player's
@@ -141,7 +137,6 @@ def cursor(sys_img, width, height=16):
 # The `16 - 12` is what rests the 12-row glyph against the foot of the 16 block.
 # None of these numbers is guessed: they come from font.cpp.
 TEXT_OFFSET = (2, 4)
-SHADOW_ORIGIN = (16, 32)
 
 
 def draw_line(dest, sys_img, x, y, text, color=0,

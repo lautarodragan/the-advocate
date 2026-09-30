@@ -19,5 +19,8 @@ pub mod animation;
 pub mod charset;
 pub mod chipset;
 pub mod event;
+pub mod faceset;
 pub mod passability;
+pub mod picture;
+pub mod system;
 pub mod tree;

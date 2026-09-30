@@ -39,7 +39,7 @@ def skin():
     """El System del juego, con el que se dibujan las ventanas de los
     dibujos de Python contra los que se comparan las pantallas."""
     from port import window
-    return window.skin(GAME_DIR, base().system_name)
+    return window.skin(GAME_DIR, base())
 
 
 def maximos():

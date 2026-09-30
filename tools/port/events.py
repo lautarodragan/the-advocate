@@ -1002,13 +1002,19 @@ class Pictures:
         self.number = None      # the RM2k picture number that shows it
         self.where = None       # where its ShowPicture centered it
 
-    def _read(self, name):
+    def _read(self, name, p):
+        """The picture of a `ShowPicture` with parameters `p`, as RM2k puts
+        it on the screen —`rm2k-render picture`—, or None if the game does
+        not have it."""
         import os
-        from PIL import Image
-        path = os.path.join(self.game_dir, "Picture", name + ".png")
+        from render import render_map
+        path = os.path.abspath(os.path.join(self.game_dir, "Picture",
+                                            name + ".png"))
         if not os.path.exists(path):
             return None
-        return Image.open(path)
+        return render_map.draw("picture", [{
+            "picture_file": path, "use_transparent_color": bool(p[7]),
+            "top_trans": p[6]}])[0]
 
     def choose(self, game_maps):
         """Which of the ROM's `ShowPicture`s takes the slot.
@@ -1030,10 +1036,10 @@ class Pictures:
                             continue
                         if cmd.parameters[7]:
                             continue    # the PNG's transparent color
-                        im = self._read(cmd.string)
+                        p = cmd.parameters
+                        im = self._read(cmd.string, p)
                         if im is None:
                             continue
-                        p = cmd.parameters
                         info = picture_mod.convert(im, p[2], p[3])
                         if not picture_mod.fits(info):
                             continue

@@ -770,6 +770,9 @@ class Database:
         # The game's System: the PNG with the window frame, the text colors
         # and the shadow. This game uses `ablskin`.
         self.system_name = field(system, "system_name")
+        # How a window fills its background from the System: 0 stretched, 1
+        # tiled. `rm2k-render system` takes the number as it is.
+        self.message_stretch = field(system, "message_stretch")
         # Which font it draws text with: 0 Gothic, 1 Mincho. easyrpg picks
         # ttyp0 or rmg2000 with this, and the letters come out different.
         # This game asks for Mincho.
