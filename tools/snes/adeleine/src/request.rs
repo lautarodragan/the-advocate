@@ -77,12 +77,16 @@ pub fn packed_answer(palettes: Option<&[Colors]>) -> Value {
     json!({ "palettes": palettes.map(palettes_value) })
 }
 
-/// `{"mapping": ..., "palettes": ..., "merges": ...}`.
+/// `{"mapping": ..., "merges": ..., "palettes": ...}`.
 pub fn reduced_answer(reduced: &Reduced) -> Value {
+    // The keys go in alphabetical order on purpose. Built alone, serde_json
+    // sorts them; built in the workspace, another crate switches on
+    // `preserve_order` and they come out as written here. In this order the
+    // answer is the same bytes either way.
     json!({
         "mapping": reduced.mapping.iter().map(|c| color_value(*c)).collect::<Vec<_>>(),
-        "palettes": palettes_value(&reduced.palettes),
         "merges": merges_value(&reduced.merges),
+        "palettes": palettes_value(&reduced.palettes),
     })
 }
 
