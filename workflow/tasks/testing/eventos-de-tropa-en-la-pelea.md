@@ -2,7 +2,7 @@
 name: "Los eventos de tropa"
 description: "Los 32 sistemas de batalla de los personajes, además del de Talan"
 type: feature
-assignee: Yarará
+assignee: taro
 ---
 
 **Correr las páginas de evento de las tropas durante la pelea.**
@@ -61,7 +61,19 @@ sistemas tienen efectos propios y van a chocar con eso.
 
 # Status
 
-2026-09-30, Yarará, sobre `main` en 1a82726. En curso.
+2026-09-30, en `testing/`: hecho por Yarará en su rama, sobre `main` en
+1a82726 y con `main` mergeado en 3afc819. Commits: a23eedf (las tablas por
+página a RODATA, **la decisión de espacio que tiene que ver taro**), 9a5fcb0
+(los sistemas) y e23bd8f (`Play Radio`). Andan 30 de los 32 sistemas; lo que
+queda es de taro: la decisión de espacio, la de la música de la radio, la del
+común 35, y jugarlo (ver abajo).
+
+**Al mergear, instalar** `just -f tools/justfile install events battle`: son
+los dos proyectos de Rust que cambiaron. El runtime y el Python no piden nada
+—ningún `.py` se renombró ni se agregó—. `tools/snes/protocol/events.toml`
+suma dos opcodes y los generados ya están en los commits.
+
+**Ninguna golden se movió**, y `test_musica_techos.py` pasó.
 
 # Lo medido al empezar (2026-09-30, sobre 1a82726)
 
@@ -216,3 +228,37 @@ otro. Es una decisión para taro; con ella, el común 35 corre después de cada
 pelea al azar, que es mucho más que las invocaciones —cura a las 18, le saca
 a Emily la radio, le rearma a Talan las habilidades de aura y a AG7 las de
 sus piezas— y hay que medirlo aparte.
+
+# Qué tiene que probar taro
+
+Con una partida donde el grupo tenga a Lerle, a Talan o a Emily y sus
+habilidades de sistema (no se midió en qué punto del juego llegan):
+
+- **Una invocación de Lerle** (`Droid`, `Wolf`… 268 a 285): en la pelea, al
+  terminar su acción, Lerle sale y la invocación aparece **en su renglón**, y
+  da órdenes desde el turno siguiente. **Después de la pelea sigue en el
+  grupo en lugar de Lerle**: es el común 35, ver arriba.
+- **`LifeForStrength` y `Sacrifice` de Talan**: con 40 HP o más, Talan cae;
+  la primera le saca 70 al enemigo y la segunda levanta con 1 HP a los
+  caídos. Con menos, el mensaje "TALAN does not have enough HP…".
+- **`Play Radio` de Emily**, con una cinta puesta: el efecto de la cinta
+  sale, y la música no cambia.
+
+# Números usados
+
+- Opcodes: 0x36 (OP_ACTOR) y 0x37 (OP_ENEMY).
+- RAM lejana: `$7E7A2A`, `BA_SYNC_I`, dentro de lo que ya era de las páginas
+  de tropa ($7A10-$7A3F).
+- Tuplas de `test_*_golden.py`: ninguna.
+- Casos nuevos: `pelea-invocacion`, `pelea-vida-por-fuerza`,
+  `pelea-vida-por-fuerza-sin-hp`, `pelea-sacrificio`, `pelea-radio` y
+  `curar-restar`.
+
+# Las tandas
+
+`just pruebas`: 893 en verde (882 al empezar). `just -f tools/justfile test`:
+49. `cargo test -p rm2k-snes-events -p rm2k-snes-battle` en verde. Con
+`NO_CACHE=1 just cartuchos` las tres ROMs salen iguales que con el caché:
+`abl.sfc` `e20182d1bd905de7…`, `special` `6784ab8fc7161ab7…`,
+`encounter-every-step` `5dc9114cd97ff691…` (antes de mergear 3afc819, que
+sólo movió tareas).
