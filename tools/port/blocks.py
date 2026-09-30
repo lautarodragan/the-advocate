@@ -25,63 +25,6 @@ BLOCK_BYTES = 16                # four BG1 cells and four BG2 cells
 MAX_BLOCKS = 1024
 
 
-def build_blocks(game_map, tilemap, above_tilemap, passable, width, height,
-                 chipset=None):
-    """The map as indices into 16x16 blocks, with its table.
-
-    Returns (cells, block table, passability per block, combinations). The
-    cells go row by row, which is how the ROM walks them.
-
-    The **combinations** are `(lower tile, upper tile) -> block`, with the
-    RM2k ids and nothing from the console. They don't take part in the block's
-    key, so they don't change a single byte of the output: they are what
-    `TileSubstitution` needs to know which block a tile substituted by another
-    ends up in, because the bytecode talks about tiles and the ROM about
-    blocks. A block is exactly one RM2k 16x16 cell, so the correspondence
-    exists.
-    """
-    blocks, cells, combos = {}, [], {}
-    for by in range(height):
-        for bx in range(width):
-            bottom = game_map.lower_layer[by * width + bx]
-            key = (tuple(tilemap[by * 2 + dy][bx * 2 + dx]
-                         for dy in (0, 1) for dx in (0, 1)),
-                   tuple(above_tilemap[by * 2 + dy][bx * 2 + dx]
-                         for dy in (0, 1) for dx in (0, 1)),
-                   passable[by * width + bx],
-                   # The terrain goes into the key for the same reason as the
-                   # passability: two cells drawn the same can come from tiles
-                   # with different terrain, and the ROM reads it per block.
-                   # It doesn't split any extra block in this game, where the
-                   # terrain of every ChipSet is 1.
-                   rm2k.terrain_of(chipset, bottom) if chipset else 1)
-            if key not in blocks:
-                blocks[key] = len(blocks)
-            cells.append(blocks[key])
-            combos.setdefault((bottom,
-                               game_map.upper_layer[by * width + bx]),
-                              blocks[key])
-
-    if len(blocks) > MAX_BLOCKS:
-        raise SystemExit("the map uses %d distinct blocks and the table can't "
-                         "go over %d" % (len(blocks), MAX_BLOCKS))
-
-    table = bytearray(BLOCK_BYTES * len(blocks))
-    pass_bytes = bytearray(len(blocks))
-    terrain_bytes = bytearray(len(blocks))
-    for (base, above, permissions, terrain), number in blocks.items():
-        entries = list(base) + list(above)
-        for i, cell in enumerate(entries):
-            table[number * BLOCK_BYTES + i * 2:
-                  number * BLOCK_BYTES + i * 2 + 2] = cell.to_bytes(2, "little")
-        pass_bytes[number] = permissions
-        if not 0 <= terrain <= 0xFF:
-            raise SystemExit("a tile with terrain %d and the ROM's table "
-                             "carries one byte per block" % terrain)
-        terrain_bytes[number] = terrain
-    return cells, table, pass_bytes, terrain_bytes, combos
-
-
 # How many block pairs the ROM's substitution table can hold at once. It is
 # `SUB_MAX` in tools/runtime/low_ram.s and it is written on both sides on
 # purpose —the converter has to be able to refuse **before** emitting a map

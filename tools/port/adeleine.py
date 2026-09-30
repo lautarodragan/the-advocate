@@ -26,10 +26,7 @@ versions—, which moved to Voodoo. Until 2026-09-29 the decisions were made
 here, in Python.
 """
 
-import collections
-import hashlib
 import json
-import shutil
 
 from port import stage
 
@@ -42,22 +39,6 @@ COLORS_PER_PALETTE = 16
 USABLE_COLORS = COLORS_PER_PALETTE - 1
 
 BINARY = "adeleine"
-
-
-def version():
-    """The installed binary's hash, for the key of whatever caches what it
-    decided: recompiling it without touching any `.py` has to invalidate
-    it."""
-    path = shutil.which(BINARY)
-    if path is None:
-        raise SystemExit(stage.MISSING % (BINARY, BINARY))
-    with open(path, "rb") as f:
-        return hashlib.sha256(f.read()).hexdigest()
-
-
-def tile_colors(tile):
-    """The colors of a tile, not counting the transparent pixels."""
-    return frozenset(p for row in tile for p in row if p is not None)
 
 
 def luma_distance(a, b):
@@ -87,27 +68,8 @@ def _merges(answer):
     return [(_color(v), _color(t), n) for v, t, n in answer["merges"]]
 
 
-def _palettes(answer):
-    return [set(map(_color, p)) for p in answer["palettes"]]
-
-
 def _counts(counts):
     return [list(c) + [n] for c, n in counts.items()]
-
-
-def try_pack(sets, limit, per_palette=USABLE_COLORS):
-    """Splits the colors into palettes so that each tile uses only one.
-
-    Colors may repeat across palettes: what has to be achieved is that the
-    set of colors of each tile is contained in one of them. `None` if they
-    do not fit in `limit` palettes. How they are split is `adeleine pack`'s
-    business.
-    """
-    answer = _run("pack", {"tiles": [sorted(s) for s in sets],
-                           "palettes": limit, "per_palette": per_palette})
-    if answer["palettes"] is None:
-        return None
-    return _palettes(answer)
 
 
 def merge_least_visible(counts, keep):
@@ -136,23 +98,3 @@ def merge_least_visible(counts, keep):
 _merged_cache = {}
 
 
-def reduce_colors(grid, budget):
-    """Merges colors until the tiles fit in `budget` palettes.
-
-    Adeleine gets the pixels of each color over the whole grid and the
-    colors of each distinct tile, which are a few hundred, and not the
-    map's cells, which in Lashe City are 22500. Returns the grid with the
-    merges applied, the palettes and the merges.
-    """
-    counts = collections.Counter(p for row in grid for tile in row
-                                 for line in tile for p in line
-                                 if p is not None)
-    unique = {tile for row in grid for tile in row}
-    answer = _run("reduce", {"counts": _counts(counts),
-                             "tiles": [sorted(tile_colors(t)) for t in unique],
-                             "palettes": budget})
-    mapping = dict(zip(counts, map(_color, answer["mapping"])))
-    remap = {tile: tuple(tuple(mapping.get(p) for p in line) for line in tile)
-             for tile in unique}
-    return ([[remap[tile] for tile in row] for row in grid],
-            _palettes(answer), _merges(answer))

@@ -7,11 +7,9 @@ game directory comes from `main` through `args_game_dir`.
 """
 
 import os
-import sys
 
 from port import compiler, events
 from rpgmaker import lcf
-from rpgmaker.rm2k import hero_start
 from rpgmaker import resources
 
 
@@ -33,49 +31,6 @@ def has_rain(map_ids, extra=()):
                     if rains(cmd):
                         return True
     return False
-
-
-def map_start(renderer, map_id, passable, width, height, used=()):
-    """Where the hero stands on entering this map, in 16x16 cells.
-
-    In the map where the game really starts, the LCF says it and there is
-    nothing to choose: A Blurred Line starts in Map0004, which is an empty
-    room whose only job is to trigger an event and teleport. That room doesn't
-    have a single cell open on all four sides, so the heuristic below would
-    have nowhere to put anyone.
-
-    In any other map there is no real answer yet —it is reached by teleport,
-    and where one comes from depends on where it came in— so the open tile
-    nearest the center is used, which is what the tests need: a place from
-    which one can walk.
-
-    **And there are maps where no cell is open on all four sides**: the
-    cutscene rooms, which are a black screen that is always reached by
-    teleport with the coordinates set. `LasheCityVehicle` —map 36, the one
-    that asks where to go with the car— is one, and without it the teleport
-    of 34 doesn't compile and the whole car chain falls. There the emitted
-    number is used by nobody, but the table carries it anyway, so the
-    geometric center is used instead of stopping. The error from `hero_start`
-    still holds for whoever asks it about a map where walking will happen.
-    """
-    if map_id == renderer.tree.start_map_id:
-        return renderer.tree.start_x, renderer.tree.start_y
-    try:
-        return hero_start(passable, width, height, used)
-    except ValueError:
-        return width // 2, height // 2
-
-
-def images_of(renderer, args, charset):
-    """An actor's CharSet, loaded and cached."""
-    if charset not in _charsets:
-        _charsets[charset] = renderer.charsets.get(charset)
-        if _charsets[charset] is None:
-            sys.exit("can't find CharSet %r" % charset)
-    return _charsets[charset]
-
-
-_charsets = {}
 
 
 def possible_leaders(renderer, map_ids, party, scan=None):
