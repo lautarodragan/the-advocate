@@ -12,9 +12,7 @@ the fork applied and whatever was baked into it— and reads back the PNGs it
 writes. **So are the CharSets**, the sheets the events are drawn with
 —`Charsets`, which asks for them all at once—. `draw` is the call the
 screens use: the faces, the System's windows and the `ShowPicture`
-pictures. What stays here is what the port does to them for the console,
-and `load_image`, which the battle still uses (`scene.py`,
-`animation.py`).
+pictures. What stays here is what the port does to them for the console.
 """
 
 import array
@@ -88,14 +86,6 @@ def draw(command, entries):
 # The families of `rm2k.ANIMATED_FAMILIES`, by the name `rm2k-render` gives
 # their files: drawing `d` of the water is `water-<d>.png`.
 _FAMILY_FILES = {"agua": "water", "animado": "animated"}
-
-
-def load_image(path):
-    image = Image.open(path)
-    if image.mode == "P":
-        # In RM2k palette color 0 is the color key.
-        image.info["transparency"] = 0
-    return image.convert("RGBA")
 
 
 def _layer_bytes(tiles):
