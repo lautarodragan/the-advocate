@@ -100,9 +100,23 @@ key_save:
     ; off while the map was loading. That stopped being true: the interpreter
     ; runs from the main loop, with the screen on, and an RM2k wait is time the
     ; player watches go by.
+    ;
+    ; And the frame that runs the wait **is the first one of it**, so what is
+    ; left to count is one less. In easyrpg `SetupWait` sets `wait_time` and
+    ; returns true, and the interpreter loop goes back to its top in the same
+    ; frame, where `wait_time--; break;` already spends one
+    ; (`game_interpreter.cpp:447`): a `Wait 15` runs the next command 90
+    ; frames later, not 91. Storing the whole count was one frame more per
+    ; wait, and against the RPG_RT it showed: the map 16 cutscene went 161
+    ; frames per round instead of 158, and the tint after `Wait 2` in
+    ; `timer-cero` came out at +13 and not +12. A zero —`Wait 0`— still ends
+    ; the frame, which is RM2k's "0.0 waits 1 frame".
     rep #$20
 .a16
     lda [code_ptr], y           ; how many frames, sixteen bits
+    beq store                   ; `lda` leaves Z: zero stays zero
+    dec a
+store:
     sta ev_waiting
     sep #$20
 .a8

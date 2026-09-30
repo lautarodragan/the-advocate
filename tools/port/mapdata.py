@@ -295,14 +295,13 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         "; distance.\n"
         "JUMP_STEP = %d\n"
         "TINT_NEUTRAL = %d\n"
-        "; The teleport fade: 35 frames out and 35 back, like RM2k, and of\n"
-        "; each 35 the ramp is 24. The map is loaded on the first black\n"
-        "; frame, which is number %d. These numbers and the table below come\n"
-        "; from the fade constants of tools/port/events.py.\n"
-        "FADE_FRAMES = %d\n"
+        "; The teleport fade: the ticks from the jump's, which already\n"
+        "; darkens, to the first live one, and of those the ramp is 24 going\n"
+        "; down and 24 going up. The map is loaded on tick %d, in the black.\n"
+        "; These numbers and the table below come from the fade constants of\n"
+        "; tools/port/events.py.\n"
         "FADE_TOTAL      = %d\n"
         "FADE_RAMP       = %d\n"
-        "FADE_BLACK      = %d\n"
         "FADE_LOAD       = %d\n"
         "BRIGHTNESS_MAX  = %d\n"
         "; The teleport transitions the ROM does with the mosaic and with\n"
@@ -529,8 +528,8 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
            events.JUMP_STEP,
            color_mod.NEUTRAL_TINT,
            events.FADE_RAMP,
-           events.FADE_FRAMES, events.FADE_TOTAL,
-           events.FADE_RAMP, events.FADE_BLACK,
+           events.FADE_TOTAL,
+           events.FADE_RAMP,
            events.FADE_RAMP, events.BRIGHTNESS_MAX,
            events.TRANSITION_MOSAIC, events.TRANSITION_CUT,
            color_mod.LUMA_R, color_mod.LUMA_G, color_mod.LUMA_B, SWITCH_BYTES,
