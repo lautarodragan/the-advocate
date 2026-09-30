@@ -26,7 +26,7 @@ import tomllib
 
 from lugares import ABL
 import musica
-from consola import EMPEZAR, SEGUIR, en_la_rom, en_la_wram
+from consola import EMPEZAR, SEGUIR, en_la_rom, en_la_wram, indice_del_tema
 
 
 def test_el_tema_del_titulo_tiene_sus_muestras_en_la_aram(partida):
@@ -267,17 +267,21 @@ def test_el_paquete_que_no_entro_con_otro_tema_sonando_se_completa(partida):
     Las muestras del tema que suena no se mueven al cargar el paquete del mapa
     nuevo —la música sigue durante el fundido—, así que lo que el paquete
     trae entra en lo que queda al lado, y lo último de la lista, los efectos,
-    puede no entrar. Es el paso del mapa 2 al 3 del juego: la página del
-    ascensor salta al 3 y recién ahí vuelve a pedir el tema del 2, así que el
-    3 se carga con él sonando y algunos de sus efectos quedaban afuera hasta
-    el cambio de mapa siguiente, aunque la página del 3 prendiera enseguida
-    su propio tema.
+    puede no entrar. El `PlayBGM` siguiente calla ese tema y es el que
+    completa el paquete, si entra con el tema nuevo.
 
-    El caso hace ese paso con el tema del 2 sonando y después prende
-    el del 3. Se pide primero que el paquete haya quedado incompleto al
-    llegar —si no, el caso no ejercita nada: pasaría también sin el arreglo,
-    por ejemplo si el reparto de la ARAM cambia y todo entra—, y después que
-    con el tema nuevo sonando estén todos los efectos del 3.
+    En el juego pasa en el paso del 2 al 3, pero no así: en el 2 suena
+    `escape_newyork`, que viene del 1, y el `PlayBGM` que sigue al salto es
+    el de TF3_1_awe, que no es de ningún paquete y con el que el del 3 no
+    entra entero: eso lo mira la prueba que sigue. Lo completa recién el
+    `PlayBGM` de evilrhys, el tema del 3.
+
+    El caso ejercita ese último tramo: prende TF3_1_awe en el 2, a mano,
+    salta al 3 con él sonando y después prende evilrhys. Se pide primero
+    que el paquete haya quedado incompleto al llegar —si no, el caso no
+    ejercita nada: pasaría también sin el arreglo, por ejemplo si el
+    reparto de la ARAM cambia y todo entra—, y después que con el tema
+    nuevo sonando estén todos los efectos del 3.
     """
     una = partida(caso="paquete-incompleto")
     s = una.simbolos
@@ -309,6 +313,86 @@ def test_el_paquete_que_no_entro_con_otro_tema_sonando_se_completa(partida):
         "con el tema del mapa 3 sonando, a su paquete le siguen faltando los "
         "efectos %s de %s: el `PlayBGM` tenía que completar lo que no entró "
         "al llegar con el tema del 2" % (faltan, sorted(efectos)))
+
+
+# Cuánto puede durar, en cuadros de hardware, el silencio del `PlayBGM` de
+# TF3_1_awe al llegar al 3: un segundo. Es un tope y no una medida: rearmando
+# la ARAM entera, como antes, pasaba de los ochenta; subiendo lo que falta,
+# queda bastante debajo. Ver la prueba que sigue.
+TOPE_DEL_PASO_AL_3 = 60
+
+
+def test_el_paso_del_2_al_3_no_vuelve_a_subir_lo_que_estaba(partida):
+    """El `PlayBGM` de TF3_1_awe apenas se llega al 3, sin MSU-1: congela la
+    imagen y calla la música mientras sube el tema, y tiene que subir sólo lo
+    que falta.
+
+    Es el paso del juego: en el 2 suena `escape_newyork`, que viene de la
+    apertura del 1, y la página del ascensor salta al 3 y recién ahí pide
+    TF3, que no es de ningún paquete. El paquete del 3 llega incompleto —al
+    lado del tema que suena no entran todos sus efectos—, y el `PlayBGM`
+    tiene que subir TF3 con el paquete detrás. Pero TF3, los temas del 3 y
+    sus efectos juntos no entran en la ARAM de ninguna manera, así que
+    rearmarla desde cero no completa nada: sólo vuelve a subir en otro lugar
+    lo que ya estaba, y eso hacía `package_load_done` hasta el 2026-09-30.
+
+    Se pide que lo que estaba antes del `PlayBGM` y sigue estando no se haya
+    movido, y que el silencio no pase de `TOPE_DEL_PASO_AL_3`. Antes, que el
+    caso ejercite algo: que el paquete haya llegado incompleto y que haya
+    algo suyo en la ARAM para no mover.
+
+    El caso, `paso-al-3`, espera ocho segundos en el 2 y no lo necesita la
+    prueba: es para escucharlo grabado. La primera nota de escape_newyork
+    llega a los tres segundos, y con menos el paso se oía mudo de punta a
+    punta.
+    """
+    una = partida(caso="paso-al-3")
+    s = una.simbolos
+    tf3 = indice_del_tema(una, "TF3_1_awe")
+    tres = una.mapas.index(3)
+    antes = None
+    incompleto = False
+    callada = 0
+    # De a un cuadro de hardware y no de a un tick: congelada, la ROM no
+    # cuenta ticks.
+    for _ in range(900):
+        una.consola.run(1)
+        if una.mapa() != tres:
+            continue
+        if una.byte("music_off"):
+            callada += 1
+            continue
+        if una.palabra("song_current") == tf3:
+            break
+        # Lo último antes del `PlayBGM`, con el tema del 2 sonando.
+        antes = una.lugares_en_la_aram()
+        incompleto = bool(una.consola.ram(en_la_wram(s["PKG_PARTIAL"]), 1)[0])
+    else:
+        raise AssertionError("el caso no llegó a prender TF3_1_awe en el 3")
+    assert antes is not None, "el tema del 2 no llegó a sonar en el 3"
+    assert incompleto, (
+        "el paquete del 3 entró entero al lado del tema del 2, así que el "
+        "`PlayBGM` no tiene nada que completar y el caso no mira nada")
+
+    temas, efectos = una.muestras_del_paquete(tres)
+    quiere = set(efectos) | set(una.muestras_del_tema(tf3))
+    for tema in temas:
+        quiere |= set(una.muestras_del_tema(tema))
+    estaban = quiere & set(antes)
+    assert estaban, (
+        "no había nada del paquete del 3 en la ARAM antes del `PlayBGM`: el "
+        "caso no mira si se vuelve a subir")
+    ahora = una.lugares_en_la_aram()
+    movidas = sorted(m for m in estaban if ahora.get(m) != antes[m])
+    assert not movidas, (
+        "el `PlayBGM` de TF3_1_awe volvió a subir, o sacó, %s de las %d "
+        "muestras que ya estaban: rearmó la ARAM desde cero para un paquete "
+        "que igual no entra" % (movidas, len(estaban)))
+    faltan = sorted(set(una.muestras_del_tema(tf3)) - set(ahora))
+    assert not faltan, "TF3_1_awe suena sin las muestras %s" % faltan
+    assert callada <= TOPE_DEL_PASO_AL_3, (
+        "el `PlayBGM` de TF3_1_awe dejó %d cuadros la música callada, y el "
+        "tope es %d" % (callada, TOPE_DEL_PASO_AL_3))
 
 
 # Un `PlayBGM` seguido de un salto a otro mapa, sin efectos ni ramas en el
