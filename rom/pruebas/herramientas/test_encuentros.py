@@ -193,7 +193,7 @@ def test_la_chance_es_la_de_la_formula():
     `65536 // pasos`, así que la diferencia es el truncado de esa división y
     nada más. Se exige eso: menos de una parte en `pasos` de distancia.
     """
-    for pasos in (8, 25, 35, 40, 55, 65, 70, 75, 80, 85):
+    for pasos in (1, 2, 8, 25, 35, 40, 55, 65, 70, 75, 80, 85):
         base = events.enc_base(pasos)
         for fila, (_minimo, corrimiento) in enumerate(events.ENC_TABLE):
             pmod = 2.0 ** corrimiento if corrimiento > 0 else 1 / 2 ** -corrimiento
@@ -203,6 +203,15 @@ def test_la_chance_es_la_de_la_formula():
                 assert exacta >= 1, (pasos, fila, exacta)
                 continue
             assert abs(umbral / 65536.0 - exacta) < (1 + pmod) / 65536.0
+
+
+def test_un_paso_pelea_en_cada_paso():
+    """`encounter_steps` 1: la base satura en 65535 —65536 no entra en la
+    palabra— y sigue siendo un encuentro por paso, como en RM2k, donde el
+    primer paso ya está en la fila 4 y la chance es 2."""
+    assert events.enc_base(1) == 0xFFFF
+    enc = events.Encounters(1, [(0, 0, 10, 10, [1])])
+    assert all(enc.step() for _ in range(50))
 
 
 def test_apagados_no_tiran_azar():

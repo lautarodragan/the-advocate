@@ -468,6 +468,8 @@ excluded_cases = [
     "pelea-82-grupo-11-12",
     # Acá correría el bloque de textos de todos los casos.
     "empujon",
+    # El de `test-encounter-every-step`: acá no hace falta.
+    "encuentro-cada-paso",
 ]
 
 # Lo que en `release` cambiaría las imágenes de los demás: los sprites de los
@@ -485,3 +487,18 @@ flags = ["--no-title", "--no-timer",
 cases = ["parado-tapado", "grupo-11-12-13",
          "grupo-11-en-255", "batalla", "batalla-item", "batalla-droide",
          "pelea-82-grupo-11-12", "empujon"]
+
+# Un encuentro cada un paso, que ningún mapa del juego tiene: la chance de
+# `1 / 1` no entra en la palabra de `ENC_BASE` y hasta el 2026-09-29 el
+# ensamblado fallaba. Es el mapa y el grupo del encuentro de `test-special`
+# —el caso `encuentro-cada-paso` es una copia de `grupo-11-12-13`: un caso en
+# dos cartuchos tiene que estar en el que lleva todos—, con otro
+# `--test-encounters` y nada más, para que la diferencia sea ésa. Ver
+# `test_encuentro_cada_paso.py`.
+[cartridges.test-encounter-every-step]
+start_map = 6
+party = []
+maps = [21]
+test_graphics = []
+flags = ["--no-title", "--no-timer", "--test-encounters", "1"]
+cases = ["encuentro-cada-paso"]

@@ -188,9 +188,14 @@ fn the_encounters_of_the_game_are_the_pythons() {
     assert_eq!(e.per_map, [0, 1, 255, 2, 255, 3, 255, 4]);
     assert_eq!(e.troops, [9, 9, 8, 2, 3, 3, 1, 4, 5, 6, 1, 11]);
     assert_eq!((e.bases.len(), e.zones.len()), (5, 7));
+    // **Not the Python's any more, on purpose, and by one number.** The
+    // Python wrote `8bec7277…` with map 5's `enc_base` at 65536, which does
+    // not fit in the ROM's word and did not assemble; since 2026-09-29 one
+    // step saturates at 65535 —see `base`—. This is the Python's text with
+    // that one `.word` changed from 65536 to 65535, and nothing else.
     assert_eq!(
         sha256(&e.tables()),
-        "8bec72779043d311c16dd8c8453f64adff00f058363e1f0f175834fc0c2be860"
+        "c5075af500432035c0754ca58593fd593f535dfc9bfa2718724a0491df87d1da"
     );
 }
 
