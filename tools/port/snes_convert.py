@@ -11,8 +11,8 @@ in its own module of `port/`, one per piece that can be replaced alone:
     map_convert         a whole map: what goes into `rm2k-snes-maps map`
                         and its `map_info`, from what comes back
       map_layers        the layers' answer, and the CGRAM constants
-      sprites           who walks, the hero's flash, the object constants
-      obj_extras        the timer's colors, and whether a map animates
+      sprites           the hero's flash, the object constants
+      obj_extras        where the timer goes, and whether a map animates
       vram              the VRAM layouts
       blocks            `TileSubstitution` translated to 16x16 blocks
     screen_stage        the screens, `rm2k-snes-screens`: the message
@@ -85,7 +85,6 @@ from rpgmaker import resources
 from rpgmaker.resources import find_resource
 from port.sprites import (OBJ_PRIORITY, OBJ_PRIORITY_ABOVE, block_tile,
                           maps_per_character)
-from port.obj_extras import timer_colors_of
 from port.vram import SLOTS, _check_splits
 from port.blocks import SUB_MAX, Substitutions, substitution_triples
 from port.materials import compress_blocks, decompress_frames
@@ -792,20 +791,9 @@ def main():
     # uploads **those** again untinted and not the whole palette, because the
     # palette belongs to a character that is tinted. It goes separately and
     # not as a record field because the record is at exactly its 128. The
-    # index is the same `index + 1` the timer's glyphs were painted with
-    # —`timer_digits`, in `rm2k-snes-map-sprites`—: the first one that has
-    # that color.
-    from port import window as window_mod
-    skin = window_mod.skin(args.game_dir, renderer.database)
-    timer_color_list = sorted(timer_colors_of(skin))
-    masks = []
-    for map_info in maps:
-        sprite, mask = map_info["sprite"], 0
-        if sprite and sprite[5]:
-            palette = sprite[1][sprite[6]]
-            for color in timer_color_list:
-                mask |= 1 << (palette.index(color) + 1)
-        masks.append(mask)
+    # stage that painted the glyphs says which: `timer_mask`, in
+    # `rm2k-snes-map-sprites`.
+    masks = [map_info["timer_mask"] for map_info in maps]
     with open(args.output, "a") as handle:
         handle.write('\n.segment "RODATA"\n.block %d\ntimer_mask:\n'
                      '    .word %s\n'

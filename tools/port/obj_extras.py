@@ -3,13 +3,12 @@ side of the converter.
 
 **The bank is `rm2k-snes-maps`'s** —the timer's digits, the raindrops, the
 `ShowPicture` picture and the battle animation box; see `extras.rs` in
-`rm2k-snes-map-sprites`—. What stays here is what the emission reads —the
-timer's glyphs, where it is drawn, its colors— and whether some page of a
-map shows a battle animation, which is the animations' to know and goes to
-the stage in its request.
+`rm2k-snes-map-sprites`—, and so are the timer's colors and which entries
+of its palette they take, which the emission reads back. What stays here is
+what the emission reads —the timer's glyphs and where it is drawn— and
+whether some page of a map shows a battle animation, which is the
+animations' to know and goes to the stage in its request.
 """
-
-import collections
 
 from port import events
 from port import animation as animation_mod
@@ -24,25 +23,6 @@ TIMER_GLYPH_W, TIMER_GLYPH_H = 8, 16
 # and `menu_offset_y + 4`, and with a screen narrower than the menu both
 # offsets come out zero.
 TIMER_X, TIMER_Y = 4, 4
-
-
-def timer_colors_of(sys_img):
-    """The colors the timer's eleven glyphs use.
-
-    It is needed **before** splitting the palettes and not only when packing
-    the digits: if a map fills all eight, someone has to be chosen to lose a
-    color to make room for it, and that decision changes how that character is
-    quantized.
-    """
-    glyphs = sys_img.timer()
-    colors = collections.Counter()
-    for i in range(TIMER_GLYPHS):
-        for y in range(TIMER_GLYPH_H):
-            for x in range(TIMER_GLYPH_W):
-                r, g, b, a = glyphs.getpixel((i * TIMER_GLYPH_W + x, y))
-                if a:
-                    colors[(r >> 3, g >> 3, b >> 3)] += 1
-    return colors
 
 
 def map_shows_animation(game_map, renderer, commands=()):

@@ -2,10 +2,10 @@
 //! to resolve them.
 
 use crate::codes::*;
-use crate::compile::{compile_page, Ctx, Indices, ROUTE_HERO, ROUTE_THIS_EVENT};
+use crate::compile::{compile_page, instructions, Ctx, Indices, ROUTE_HERO, ROUTE_THIS_EVENT};
 use crate::fail::{Bad, Result, Step, Stop};
 use crate::game::{Command, Map, Page, CONDITION_OPERATOR};
-use crate::opcodes::OP_DONE;
+use crate::opcodes::{OP_DONE, OP_ROUTE};
 use crate::route;
 use serde_json::{json, Value};
 use std::cell::RefCell;
@@ -376,6 +376,7 @@ pub fn map_pages(ctx: &mut Ctx, map: &Map, map_events: &MapEvents) -> Result<Vec
                 "layer": page.layer,
                 "frequency": page.move_frequency,
                 "speed": page.move_speed,
+                "route_targets": code.as_deref().map(route_targets).unwrap_or_default(),
                 "code": code.map(|c| hex(&c)),
                 "own_route": route::own(page),
                 "turns": turns(page),
@@ -383,6 +384,20 @@ pub fn map_pages(ctx: &mut Ctx, map: &Map, map_events: &MapEvents) -> Result<Vec
         }
     }
     Ok(out)
+}
+
+/// The events a compiled page sends a route to, by index in the map's
+/// table, sorted. The bytecode is walked and not the commands, which is what
+/// makes it the truth and not a guess: what counts is what ended up emitted.
+/// Target 0 is the hero, who is not an event.
+fn route_targets(code: &[u8]) -> Vec<usize> {
+    let mut targets: Vec<usize> = instructions(code)
+        .filter(|&at| code[at] == OP_ROUTE && code[at + 1] != 0)
+        .map(|at| code[at + 1] as usize - 1)
+        .collect();
+    targets.sort();
+    targets.dedup();
+    targets
 }
 
 /// A page condition's variable has a slot always: the sweep saw it.

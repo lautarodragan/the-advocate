@@ -93,7 +93,7 @@ impl Drawing {
                     + (kind % self.groups) * self.colors;
                 let channel = |i: u64| (h(k * 3 + i + self.seed) & 255) as u8;
                 let mut a = 255;
-                if self.holes > 0 && h(kind + 77) % 256 < self.holes && h(kind * 5 + (x % 8) * 3 + y % 8) % 3 != 0 {
+                if self.holes > 0 && h(kind + 77) % 256 < self.holes && !h(kind * 5 + (x % 8) * 3 + y % 8).is_multiple_of(3) {
                     a = 0;
                 }
                 if self.holes > 0 && h(kind + 91) % 256 < self.holes / 2 {

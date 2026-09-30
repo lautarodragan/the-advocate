@@ -13,7 +13,7 @@
 //! the background layers, `rm2k-snes-map-sprites` the upper half and the
 //! objects. What needs both halves at once —baking an event, which takes a
 //! sprite into a layer— is this crate's, and so is reading the map's events
-//! ([`events`]) and drawing the sheets its characters are cut from
+//! ([`events`]), who among them moves ([`moves`]), and drawing the sheets its characters are cut from
 //! ([`sheets`]).
 
 pub mod baking;
@@ -23,6 +23,7 @@ pub mod game;
 pub mod inspect;
 pub mod layers;
 pub mod map;
+pub mod moves;
 pub mod request;
 pub mod sheets;
 

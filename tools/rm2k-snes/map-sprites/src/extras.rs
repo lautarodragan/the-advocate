@@ -58,6 +58,18 @@ pub fn timer_colors(glyphs: &Picture) -> Vec<Color> {
     colors.into_iter().collect()
 }
 
+/// Which entries of `palette` the timer's `colors` take, one bit per entry,
+/// counting the transparent one as entry 0: each colour at the first entry
+/// that has it, which is the one its glyphs were painted with. The console
+/// uploads **those** again untinted after a tint, and not the whole
+/// palette, because the palette belongs to a character that is tinted.
+pub fn timer_mask(colors: &[Color], palette: &[Color]) -> u16 {
+    colors
+        .iter()
+        .map(|c| palette.iter().position(|p| p == c).expect("`timer_digits` put the timer's colours in its palette"))
+        .fold(0, |mask, at| mask | 1 << (at + 1))
+}
+
 /// The first palette —but the leaders'— where `colors` fit without merging
 /// anything, or a new one if one is left under `cap`: it is grown or added,
 /// and its number returned. `None` if there is no room.
@@ -67,14 +79,14 @@ pub fn first_place(
     colors: &[Color],
     cap: usize,
 ) -> Option<usize> {
-    for number in 0..palettes.len() {
+    for (number, palette) in palettes.iter_mut().enumerate() {
         if avoid.contains(&number) {
             continue;
         }
-        let mut union = palettes[number].clone();
-        union.extend(colors.iter().filter(|c| !palettes[number].contains(c)));
+        let mut union = palette.clone();
+        union.extend(colors.iter().filter(|c| !palette.contains(c)));
         if union.len() <= OBJ_COLORS {
-            palettes[number] = union;
+            *palette = union;
             return Some(number);
         }
     }
@@ -105,14 +117,14 @@ pub fn timer_digits(
         )));
     }
     let mut which = None;
-    for number in 0..palettes.len() {
+    for (number, palette) in palettes.iter_mut().enumerate() {
         if leader_owned.contains(&number) {
             continue;
         }
-        let mut union = palettes[number].clone();
-        union.extend(wanted.iter().filter(|c| !palettes[number].contains(c)));
+        let mut union = palette.clone();
+        union.extend(wanted.iter().filter(|c| !palette.contains(c)));
         if union.len() <= OBJ_COLORS {
-            palettes[number] = union;
+            *palette = union;
             which = Some(number);
             break;
         }
@@ -238,6 +250,19 @@ pub fn picture_of_image(
     Some((base, which))
 }
 
+/// The battle animation's box at the end of the bank: its tiles, left
+/// blank —the console uploads each frame—, and a whole palette, after the
+/// picture's if it took one. `None` without a palette.
+pub fn map_animation(tiles: &mut Vec<u8>, palettes: &[Vec<Color>], used: usize) -> Option<(usize, usize)> {
+    let which = palettes.len() + used;
+    if which >= OBJ_PALETTES {
+        return None;
+    }
+    let base = rounded_to_row(tiles.len() / 32);
+    grow(tiles, base + ANIMATION_TILES);
+    Some((base, which))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -302,6 +327,19 @@ mod tests {
         assert_ne!(which, 0);
     }
 
+    /// The mask names the entries the glyphs were painted with: a palette
+    /// that already had one of the timer's colours keeps it where it was,
+    /// and the other is appended.
+    #[test]
+    fn the_mask_is_where_the_digits_colours_ended_up() {
+        let mut p = vec![vec![[9, 9, 9], [0, 0, 0], [5, 5, 5]]];
+        let mut tiles = vec![0; 32 * 64];
+        let (_, which) = timer_digits(&glyphs(), &mut tiles, &mut p, &BTreeSet::new(), OBJ_PALETTES).unwrap();
+        assert_eq!(p[which], [[9, 9, 9], [0, 0, 0], [5, 5, 5], [31, 0, 0]]);
+        // Black is entry 2 and red entry 4, counting the transparent one.
+        assert_eq!(timer_mask(&timer_colors(&glyphs()), &p[which]), 0b10100);
+    }
+
     /// The glyphs start at a row of blocks, eleven across and two tiles
     /// tall.
     #[test]
@@ -312,17 +350,4 @@ mod tests {
         assert_eq!(base, 128);
         assert_eq!(tiles.len(), (base + 16 + TIMER_GLYPHS) * 32);
     }
-}
-
-/// The battle animation's box at the end of the bank: its tiles, left
-/// blank —the console uploads each frame—, and a whole palette, after the
-/// picture's if it took one. `None` without a palette.
-pub fn map_animation(tiles: &mut Vec<u8>, palettes: &[Vec<Color>], used: usize) -> Option<(usize, usize)> {
-    let which = palettes.len() + used;
-    if which >= OBJ_PALETTES {
-        return None;
-    }
-    let base = rounded_to_row(tiles.len() / 32);
-    grow(tiles, base + ANIMATION_TILES);
-    Some((base, which))
 }

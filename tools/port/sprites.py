@@ -1,12 +1,11 @@
-"""The characters as SNES objects, from the side of the converter that
-still decides who walks.
+"""The characters as SNES objects, from the side of the converter.
 
 **The characters are converted by `rm2k-snes-maps`** —which poses each
 shows, how the eight OBJ palettes are split, the VRAM bank and the pose
-bank; see `rm2k-snes-map-sprites`—. What stays here is what that stage
-gets from other domains and what the emission reads: who walks, animates
-standing still or turns toward the hero, which the event compiler's answer
-says (`movable_events`); the graphics drawn apart from the hero so its
+bank; see `rm2k-snes-map-sprites`—, and so is who walks, animates standing
+still or turns toward the hero (`moves.rs`). What stays here is what that
+stage gets from other domains and what the emission reads: the graphics
+drawn apart from the hero so its
 flash does not spread (`separate_from_hero`); how many maps of the ROM
 each character is in; the constants of the objects; and the warning that
 stops the build when a mechanism is not drawn (`discard_warning`).
@@ -16,7 +15,7 @@ import collections
 import os
 import sys
 
-from port import compiler, events
+from port import events
 from rpgmaker import rm2k
 
 
@@ -130,86 +129,6 @@ def maps_per_character(renderer, map_ids, game_dir):
                     theirs.add((name, page.character_index))
         counts.update(theirs)
     return counts
-
-
-# How many still events with continuous animation a map animates. See the
-# reason —and the measured number— inside `movable_events`.
-# Measured against A Blurred Line: an assumption of the engine, not a piece of
-# the game's data. See `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
-ANIMATES_STILL_MAX = 4
-
-
-def movable_events(game_map, scanned):
-    """The events with a graphic that some compilable page sends walking, and
-    the graphics some route changes to with command 34.
-
-    `scanned` is what the compiler's first call answered for this map —see
-    `compiler.scan`—: its pages compiled with a text block of their own and
-    without songs, and the graphics they numbered.
-
-    It is needed before building the sprite bank: the ones that move have to
-    get **the twelve poses** of the walking cycle, and the others the single
-    one they declare. Giving them to anyone that shows up in a MoveEvent would
-    be simpler and doesn't fit: there are maps with seven, and that is 1232
-    sprite tiles.
-
-    The graphics of command 34 come from the same pass and for the same
-    reason: an event that changes graphic needs the twelve poses of the new
-    graphic put in the cartridge, and that is decided before building the
-    bank. **The order has to be the same as the real compilation's**, because
-    the bytecode carries the index: what guarantees it is that both passes
-    compile the same pages, with the same text block. Without `Graphics` here
-    a route with command 34 wouldn't compile in this pass and would in the
-    other, and the two lists would drift apart.
-
-    The pages are compiled to find out and what was compiled is thrown away.
-    It is repeated work —the second call compiles them again with the real
-    text block— but it isn't a repeated **rule**: the decision of what
-    compiles is made by the same compiler both times.
-    """
-    pages = compiler.pages(scanned["pages"], game_map)
-    route_graphics = [tuple(g) for g in scanned["graphics"]]
-    npcs = rm2k.collect_npcs(game_map)
-    visible = {npc["event"] for npc in npcs}
-    # And the ones that walk on their own with some page's own route, which
-    # need the twelve poses just like the ones a MoveEvent sends walking.
-    own = {p["event"] for p in pages if p.get("ruta_propia")}
-    # And the still ones with continuous animation —the save point in Lashe
-    # City—, which don't walk but **change column all the same**. Without the
-    # twelve poses their VRAM slot would carry a single one and there would be
-    # nothing to animate them with: the still ones share a slot by (CharSet,
-    # index, pose) and don't have one of their own.
-    with_route = (events.route_targets(pages) | own) & visible
-    animated = {npc["event"] for npc in npcs
-                if npc.get("animates")} & visible - with_route
-    # And the cap: a still event that animates **costs a whole VRAM slot**
-    # —twelve tiles— because it stops sharing that of its (CharSet, index,
-    # pose) and gets the twelve poses of its own, like the walking ones. A map
-    # with thirty —52 has thirty— asks for 572 sprite tiles and 384 fit.
-    #
-    # So a map with more than `ANIMATES_STILL_MAX` animates **none**, and not
-    # some yes and some no: two equal fountains, one moving and the other
-    # frozen, looks worse than both still. Measured over the 328 maps of the
-    # game: 312 have four or fewer, and of the maps the ROMs carry today the
-    # only one that goes over is 52.
-    if len(animated) > ANIMATES_STILL_MAX:
-        animated = set()
-    # And the ones that turn toward the hero when it talks to them: the events
-    # with some action or touch page that compiled and turns —see TURN in
-    # events.py—, with the graphics of **all** their pages that turn. The
-    # twelve poses of each go to the cartridge, which is where the ROM takes
-    # the one facing the hero from; the refresh compares the pages' graphics
-    # to know whether the turn survives a page change.
-    turning = {}
-    for p in pages:
-        if (p["codigo"] and p.get("gira")
-                and p["trigger"] in (events.TRIGGER_ACTION,
-                                     events.TRIGGER_TOUCH_HERO)):
-            turning[p["event"]] = set()
-    for p in pages:
-        if p["event"] in turning and p.get("gira") and p["grafico"]:
-            turning[p["event"]].add(tuple(p["grafico"][:2]))
-    return with_route | animated, route_graphics, animated, turning
 
 
 def separate_from_hero(renderer, game_map, args, commands=()):

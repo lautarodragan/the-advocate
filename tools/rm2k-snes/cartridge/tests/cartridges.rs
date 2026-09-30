@@ -225,7 +225,6 @@ fn everything_that_builds_the_rom_is_in_the_fingerprint() {
         "ca65",
         "ld65",
         "adeleine",
-        "voodoo",
         "lz2",
         "rm2k-render",
         "rm2k-snes-audio",

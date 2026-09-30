@@ -50,7 +50,7 @@ fn sheet(seed: u64, colors: u64) -> Picture {
     for y in 0..256u64 {
         for x in 0..288u64 {
             let k = h(seed * 131 + x / 4 + 97 * (y / 4)) % colors;
-            let a = if h(x * 7 + y * 13 + seed) % 5 == 0 { 0 } else { 255 };
+            let a = if h(x * 7 + y * 13 + seed).is_multiple_of(5) { 0 } else { 255 };
             rgba.extend_from_slice(&[
                 (h(k * 3 + seed) & 255) as u8,
                 (h(k * 3 + 1 + seed) & 255) as u8,
@@ -150,8 +150,8 @@ fn glyphs() -> Picture {
     let mut picture = Picture::transparent(88, 16);
     for y in 0..16u64 {
         for x in 0..88u64 {
-            if h(x * 3 + y * 31) % 3 != 0 {
-                let color = if h(x + y) % 2 != 0 { [248, 0, 0, 255] } else { [0, 0, 0, 255] };
+            if !h(x * 3 + y * 31).is_multiple_of(3) {
+                let color = if !h(x + y).is_multiple_of(2) { [248, 0, 0, 255] } else { [0, 0, 0, 255] };
                 let at = ((y * 88 + x) * 4) as usize;
                 picture.rgba[at..at + 4].copy_from_slice(&color);
             }

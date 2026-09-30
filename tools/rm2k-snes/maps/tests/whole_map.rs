@@ -109,8 +109,8 @@ fn game(dir: &Path) -> (PathBuf, PathBuf) {
         json!({"chipset_id": 2, "width": 6, "height": 4, "events": events}).to_string(),
     )
     .unwrap();
-    let lower: Vec<String> = (0..4).map(|_| vec!["  5000"; 6].concat()).collect();
-    let upper: Vec<String> = (0..4).map(|_| vec![" 10000"; 6].concat()).collect();
+    let lower: Vec<String> = (0..4).map(|_| ["  5000"; 6].concat()).collect();
+    let upper: Vec<String> = (0..4).map(|_| [" 10000"; 6].concat()).collect();
     std::fs::write(
         dump.join("maps/Map0007.tiles"),
         format!("# 6x4\n# lower\n{}\n# upper\n{}\n", lower.join("\n"), upper.join("\n")),
@@ -137,11 +137,15 @@ fn game(dir: &Path) -> (PathBuf, PathBuf) {
 }
 
 fn request(dir: &Path, pictures: &Path, test_event: bool) -> PathBuf {
+    // The test's empty event takes index 0.
+    let first = usize::from(test_event);
     let body = json!({
         "map": 7, "map_files": {}, "chipset_files": {}, "names": [],
         "test_event": test_event, "leaders": [1, 2],
-        "movable": [if test_event { 3 } else { 2 }], "route_graphics": [],
-        "animates_still": [], "turning": [],
+        // The hero-looking event's page sends the other one walking.
+        "pages": [{"event": first + 1, "page": 0, "trigger": 3, "code": "00",
+                   "route_targets": [first + 2], "own_route": null, "turns": false}],
+        "route_graphics": [], "also_walk": [],
         "timer": pictures.join("System/system.png"), "rain": true, "picture": null,
         "battle_animation": true, "singles": [["Hero", 0]], "palette_weight": {},
         "dither": "five_of_eight",
@@ -187,6 +191,11 @@ fn a_whole_map_bakes_draws_and_says_what_it_did() {
     let combos = layers["blocks"]["combos"].as_array().unwrap();
     assert!(combos.iter().any(|c| c[0] == json!(5000) && c[1] == json!(10005)), "{combos:?}");
 
+    // Who moves comes back with the answer.
+    assert_eq!(answer["movable"], json!([2]));
+    assert_eq!(answer["animates_still"], json!([]));
+    assert_eq!(answer["turning"], json!([]));
+
     let sprite = &answer["sprite"];
     // The leader first, then the one that walks; the one without a graphic
     // gets no bank.
@@ -201,6 +210,8 @@ fn a_whole_map_bakes_draws_and_says_what_it_did() {
     // pose; the timer, the rain and the animation box at the end.
     assert_eq!(sprite["place"][0][0], json!({"hero": true}));
     assert!(sprite["timer"].is_array());
+    // Its two colours, each at one entry of its palette.
+    assert_eq!(sprite["timer_mask"].as_u64().unwrap().count_ones(), 2);
     assert_ne!(sprite["rain"][0], json!(0));
     assert!(sprite["animation"]["base"].as_u64().unwrap() > 0);
     // Where the hero starts: the open cell nearest the centre with no event.

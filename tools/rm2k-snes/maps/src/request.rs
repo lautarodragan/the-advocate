@@ -133,6 +133,27 @@ fn indices(data: &Value, name: &str, whose: &str) -> Result<std::collections::BT
         .collect()
 }
 
+/// A page record of the event compiler's scan.
+fn scanned_page(p: &Value, whose: &str) -> Result<crate::moves::ScannedPage> {
+    let flag = |name: &str| -> Result<bool> {
+        field(p, name, whose)?
+            .as_bool()
+            .ok_or_else(|| Bad::answer(format!("{whose}: a page's `{name}` is not true or false")))
+    };
+    Ok(crate::moves::ScannedPage {
+        event: index(field(p, "event", whose)?, "a page's event", whose)?,
+        page: index(field(p, "page", whose)?, "a page's number", whose)?,
+        trigger: small(field(p, "trigger", whose)?, "a page's trigger", whose)?,
+        compiles: !field(p, "code", whose)?.is_null(),
+        route_targets: list(p, "route_targets", whose)?
+            .iter()
+            .map(|v| index(v, "a route target", whose))
+            .collect::<Result<_>>()?,
+        own_route: !field(p, "own_route", whose)?.is_null(),
+        turns: flag("turns")?,
+    })
+}
+
 impl crate::map::MapRequest {
     /// A request that only says some of what a whole map's says —the
     /// questions of [`crate::inspect`] need less—: what it leaves out is
@@ -140,8 +161,8 @@ impl crate::map::MapRequest {
     pub fn partial(data: &Value, whose: &str) -> Result<crate::map::MapRequest> {
         let mut full = serde_json::json!({
             "map_files": {}, "chipset_files": {}, "names": [], "test_event": false,
-            "leaders": [], "movable": [], "route_graphics": [], "animates_still": [],
-            "turning": [], "timer": null, "rain": false, "picture": null,
+            "leaders": [], "pages": [], "route_graphics": [], "also_walk": [],
+            "timer": null, "rain": false, "picture": null,
             "battle_animation": false, "singles": [], "palette_weight": {},
             "dither": "five_of_eight",
         });
@@ -160,12 +181,18 @@ impl crate::map::MapRequest {
     /// {"map": 7, "map_files": {}, "chipset_files": {},
     ///  "names": [[3, 1, "Ghost~horneado:7:4:5"]], "test_event": false,
     ///  "leaders": [10, 1],
-    ///  "movable": [2], "route_graphics": [["People1", 3]],
-    ///  "animates_still": [], "turning": [[4, [["People1", 2]]]],
+    ///  "pages": [{"event": 2, "page": 0, "trigger": 0, "code": "0600…",
+    ///             "route_targets": [2], "own_route": null, "turns": true}],
+    ///  "route_graphics": [["People1", 3]], "also_walk": [],
     ///  "timer": null, "rain": false, "picture": null,
     ///  "battle_animation": false, "singles": [["People1", 3]],
     ///  "palette_weight": {"savept": 1}, "dither": "five_of_eight"}
     /// ```
+    ///
+    /// `pages` are the records the event compiler's scan answered for this
+    /// map, as it wrote them: of each, only `event`, `page`, `trigger`,
+    /// whether `code` is null, `route_targets`, whether `own_route` is null
+    /// and `turns` are read.
     ///
     /// A `picture` is `{"name", "objects", "tiles", "cells": [[tile,
     /// [64 indices]], ...]}`, already cut by whoever decided it.
@@ -183,14 +210,10 @@ impl crate::map::MapRequest {
                 text(&a[2], "a name", whose)?,
             );
         }
-        let mut turning = Vec::new();
-        for t in list(data, "turning", whose)? {
-            let a = t
-                .as_array()
-                .filter(|a| a.len() == 2)
-                .ok_or_else(|| Bad::answer(format!("{whose}: a turning event is {t}")))?;
-            turning.push((index(&a[0], "an event", whose)?, keys(&a[1], whose)?.into_iter().collect()));
-        }
+        let pages = list(data, "pages", whose)?
+            .iter()
+            .map(|p| scanned_page(p, whose))
+            .collect::<Result<_>>()?;
         let picture = match field(data, "picture", whose)? {
             Value::Null => None,
             p => {
@@ -234,10 +257,9 @@ impl crate::map::MapRequest {
                 .iter()
                 .map(|v| small(v, "a leader", whose))
                 .collect::<Result<_>>()?,
-            movable: indices(data, "movable", whose)?,
+            pages,
             route_graphics: keys(field(data, "route_graphics", whose)?, whose)?,
-            animates_still: indices(data, "animates_still", whose)?,
-            turning,
+            also_walk: indices(data, "also_walk", whose)?,
             timer: match field(data, "timer", whose)? {
                 Value::Null => None,
                 v => Some(PathBuf::from(text(v, "`timer`", whose)?)),

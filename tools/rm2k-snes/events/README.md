@@ -143,8 +143,9 @@ Both calls read these:
   `party_common_events` with their code.
 
 A page's record is its trigger, its conditions —a variable one with its
-slot—, its layer, frequency and speed, its code or null, its own route if
-it can be walked, and whether it turns toward the hero. What it **draws**
+slot—, its layer, frequency and speed, its code or null, the events its
+code sends a route to —by index in the map's table, walking the bytecode—,
+its own route if it can be walked, and whether it turns toward the hero. What it **draws**
 is not here: that is the caller's, who knows the ChipSet and what it drew.
 
 ## Where the numbers come from
