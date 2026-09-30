@@ -2,7 +2,7 @@
 name: "A quién equipar, desde el menú"
 description: "Elegir a quién equipar sobre el menú principal, como Scene_Menu, y no en la pantalla de la elección de actor con la mitad izquierda vacía"
 type: feature
-assignee: Tatú
+assignee: taro
 ---
 
 Apareció el 2026-09-28, mirando la golden `equipo-a-quien` de la elección de
@@ -85,3 +85,67 @@ se haga la pantalla, la elección es la misma que ésta.
   no tiene sprites—. `menu_exp_close` repone ahora 128..159 al cerrar.
 - **La referencia**: `render::menu` con `choosing`, y `pantallas.menu(...,
   eligiendo=k)` y `menu.comparar(..., eligiendo=k)` del lado de las pruebas.
+- **Lo que quedó muerto se fue**, en su propio commit: la elección de actor
+  sin ítem —las guardas de `pick_cancel`, las celdas borradas de la
+  izquierda, la capa sin ítem de `rm2k-snes-screens` y sus campos
+  `erase_*`—. La prosa que la nombraba, en otro, con las ROMs byte por byte
+  iguales.
+- **No se usó RAM nueva**: durante la elección, la fila va en `title_sel`,
+  y al salir vuelve a ser la orden.
+
+## Qué no entra
+
+- **La barra en la orden**: en RM2k la orden queda marcada con la barra
+  roja, quieta. La ROM marca las órdenes con un ">" desde antes, y sigue así.
+- **El latido de la barra**: la de RM2k late mientras está activa
+  (`cursor_frame`); la de la ROM es fija, como en todas las pantallas.
+- **Habilidades**: ver arriba; en la ROM no hace nada todavía.
+
+## Pruebas
+
+- Nueva `test_a_quien_equipar_se_elige_en_el_menu`
+  (`test_menu_equipo_dibujo.py`): el menú con la barra en el primero, en el
+  segundo, dando la vuelta desde el primero, después de B y otra vez en el
+  primero, contra `render::menu`; que A abra el equipo del segundo
+  (`comp_char`) y se vea como `pantallas.equipo`; y que el equipo vuelva al
+  menú con el cursor en Equipment y sin barra. **Antes del cambio de la ROM
+  dio rojo** en la primera comparación, con 6.661 pixeles distintos.
+- `rm2k-snes-screens`: un caso nuevo del menú con la barra, y el hash de la
+  conversión de su juego de prueba cambia: la barra del menú le suma tres
+  tiles —41 a 44— y la capa sin ítem se fue.
+- **Cambia una sola golden, `equipo-a-quien`**, en su commit. El antes, el
+  después y el original lado a lado, y las capturas del RPG_RT, en
+  `/shared/capturas/2026-09-30-a-quien-equipar/`. **El merge espera el
+  visto bueno de taro.** Las escenas de `test_menu_golden.py` son una
+  captura por caso, así que no hay más cuadros que cambien: la tanda entera
+  corrió y ésa fue la única en rojo.
+- `just pruebas`, `just -f tools/justfile test` y `cargo test -p
+  rm2k-snes-screens`, en verde sobre la rama con `main` mergeado
+  (`d0979c06`): **894** y **49**. `test_musica_techos.py` y `test_cores.py`
+  pasaron.
+
+## Espacio
+
+`just espacio`, `release`: contra `main` en `3afc8199`, el banco 0 pasó de
+50 a 51 bytes libres, el banco 1 de 3.126 a 2.769, y los huecos de datos de
+8.799 a 8.603 (los 196 de `menu_bar_cells`). Con `main` en `d0979c06`
+mergeado, el banco 0 queda en **14** —`main` solo tenía 13— y el banco 1 en
+4.697.
+
+## Al mergear
+
+Instalar en el global `screens` y `cartridge` —`just -f tools/justfile
+install screens cartridge`—, además de lo que pide el merge de Yarará
+(`events battle`). Ningún `.py` se renombró ni se agregó.
+
+## Qué tiene que mirar taro
+
+- Menú, Equipment: el menú queda como está, con el ">" en Equipment, y la
+  barra roja sobre Kersh —las cuatro líneas, sin la cara—. Abajo y arriba la
+  mueven y dan la vuelta; B vuelve a las órdenes.
+- A sobre el segundo abre su equipo; B desde el equipo vuelve al menú con
+  el cursor en Equipment y sin barra.
+- La línea "Ex" se sigue viendo, también debajo de la barra, y al cerrar el
+  menú el héroe y los NPC tienen sus colores de siempre: la experiencia se
+  mudó a la paleta 1 de los sprites y el cierre repone las dos.
+- Ítems, una medicina: la elección de actor, igual que antes.
