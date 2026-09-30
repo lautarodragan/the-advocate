@@ -23,12 +23,12 @@ Acá se pelea la primera. La tropa de cuatro enemigos la ejercitan los casos
 """
 
 from port import rules
-from port import battle as modelo
 
 from batalla import (DROIDE, GRUPO, TROPA_DROIDE, Pelea, en_el_droide, hab_id,
                      modelo_de)
 from consola import en_la_rom, en_la_wram
 import datos
+import modelo
 from tanda import LINKAGE
 
 # Las habilidades que el grupo de la intro sabe, por si alguna prueba quiere
@@ -147,8 +147,7 @@ def test_la_pelea_del_droide_se_abre_con_la_tropa_del_juego(partida):
     """
     una = en_el_droide(partida)
     pelea = Pelea(una).abrir()
-    base = datos.base()
-    esperado = modelo_de(base)
+    esperado = modelo_de()
     assert pelea.byte("BA_NACTORS") == 3
     assert pelea.byte("BA_KID") == 1
     for k, quien in enumerate(esperado.actors + [None] + esperado.enemies):
@@ -166,7 +165,7 @@ def test_la_chance_de_huir_es_la_de_rm2k(partida):
     lados. Con el droide da cero: es cinco veces más ágil que el grupo."""
     una = en_el_droide(partida)
     pelea = Pelea(una).abrir()
-    assert pelea.byte("BA_ESCAPE") == modelo_de(datos.base()).escape_chance
+    assert pelea.byte("BA_ESCAPE") == modelo_de().escape_chance
 
 
 def test_la_pelea_entera_da_los_mismos_hp_que_el_modelo(partida):
@@ -185,7 +184,7 @@ def test_la_pelea_entera_da_los_mismos_hp_que_el_modelo(partida):
     """
     una = en_el_droide(partida)
     pelea = Pelea(una).abrir()
-    esperado = modelo_de(datos.base())
+    esperado = modelo_de()
     for turno in range(1, 8):
         pelea.turno(len(esperado.living(esperado.actors)))
         esperado.play_turn(
@@ -216,8 +215,8 @@ def test_la_pelea_entera_da_los_mismos_hp_que_el_modelo(partida):
 # turno ya no coincidiría.
 
 
-def habilidades(base, actor):
-    return modelo.skills_of(base, actor)
+def habilidades(actor):
+    return modelo.skills_of(actor)
 
 
 def test_cada_actor_sabe_las_habilidades_de_su_nivel(partida):
@@ -230,12 +229,11 @@ def test_cada_actor_sabe_las_habilidades_de_su_nivel(partida):
     """
     una = en_el_droide(partida)
     pelea = Pelea(una).abrir()
-    base = datos.base()
     esperado = {11: [131, 146], 12: [129, 150], 13: [130, 143, 144, 150]}
     for actor, cuales in esperado.items():
-        assert habilidades(base, actor) == cuales, (
+        assert habilidades(actor) == cuales, (
             "el modelo dice que el actor %d sabe %r y el LDB %r"
-            % (actor, habilidades(base, actor), cuales))
+            % (actor, habilidades(actor), cuales))
     # Y la ROM, que arma la lista al entrar al menú de cada actor.
     for k, actor in enumerate(GRUPO):
         pelea.esperar("COMMAND")
@@ -272,10 +270,9 @@ def test_una_habilidad_de_dano_da_el_mismo_hp_y_los_mismos_sp(partida):
     """
     una = en_el_droide(partida)
     pelea = Pelea(una).abrir()
-    base = datos.base()
-    esperado = modelo_de(base)
-    fury = base.skills[FURY_PUNCH]
-    assert habilidades(base, GRUPO[1])[0] == FURY_PUNCH
+    esperado = modelo_de()
+    fury = FURY_PUNCH
+    assert habilidades(GRUPO[1])[0] == FURY_PUNCH
     for turno in range(1, 4):
         pelea.ordenar(("defender",))
         pelea.ordenar(("habilidad", 0, 0))
@@ -312,7 +309,7 @@ def test_una_habilidad_de_switch_prende_su_switch(partida):
     una = en_el_droide(partida)
     pelea = Pelea(una).abrir()
     base = datos.base()
-    assert habilidades(base, GRUPO[2])[1] == MINDSHIELD
+    assert habilidades(GRUPO[2])[1] == MINDSHIELD
     switch = base.skills[MINDSHIELD].switch_id
     assert not pelea.switch(switch), \
         "el switch tenía que arrancar apagado: si ya estuviera prendido el " \
@@ -323,11 +320,11 @@ def test_una_habilidad_de_switch_prende_su_switch(partida):
     pelea.correr_turno()
     assert pelea.switch(switch), \
         "MindShield tenía que prender el switch %d" % switch
-    esperado = modelo_de(base)
+    esperado = modelo_de()
     esperado.play_turn([(modelo.COMMAND_DEFEND, 0),
                         (modelo.COMMAND_DEFEND, 0),
                         (modelo.COMMAND_SKILL,
-                         (base.skills[MINDSHIELD], 0))])
+                         (MINDSHIELD, 0))])
     assert esperado.switches == [switch]
     assert pelea.sp_del_combatiente(2) == esperado.actors[2].sp, \
         "los SP de Manta, %d contra %d" % (pelea.sp_del_combatiente(2),
@@ -350,11 +347,11 @@ def test_una_habilidad_que_cura_apunta_al_grupo(partida):
     """
     una = en_el_droide(partida)
     base = datos.base()
-    assert habilidades(base, GRUPO[0])[0] == HEALING_SYRINGE
+    assert habilidades(GRUPO[0])[0] == HEALING_SYRINGE
     lastimado = rules.param_of(base.actors[GRUPO[1]], "maxhp") // 2
     una.poner_hp(GRUPO[1], lastimado)
     pelea = Pelea(una).abrir()
-    esperado = modelo_de(base)
+    esperado = modelo_de()
     esperado.actors[1].hp = lastimado
     assert pelea.hp_del_combatiente(1) == lastimado, \
         "la pelea tenía que arrancar con Core lastimado"
@@ -363,7 +360,7 @@ def test_una_habilidad_que_cura_apunta_al_grupo(partida):
     pelea.ordenar(("defender",))
     pelea.correr_turno()
     esperado.play_turn([(modelo.COMMAND_SKILL,
-                         (base.skills[HEALING_SYRINGE], 1)),
+                         (HEALING_SYRINGE, 1)),
                         (modelo.COMMAND_DEFEND, 0),
                         (modelo.COMMAND_DEFEND, 0)])
     assert pelea.hp_del_combatiente(1) == esperado.actors[1].hp, \
@@ -387,9 +384,8 @@ def test_una_habilidad_modifica_los_parametros_del_blanco(partida):
     """
     una = en_el_droide(partida)
     pelea = Pelea(una).abrir()
-    base = datos.base()
-    assert habilidades(base, GRUPO[0])[1] == AGENCY_BADGE
-    esperado = modelo_de(base)
+    assert habilidades(GRUPO[0])[1] == AGENCY_BADGE
+    esperado = modelo_de()
     # La ranura del droide: la primera de enemigos, detrás de las del grupo.
     s = una.simbolos
     del_droide = s["BA_ONE"] + s["BA_PARTY_MAX"] * s["BA_BYTES"]
@@ -399,7 +395,7 @@ def test_una_habilidad_modifica_los_parametros_del_blanco(partida):
     pelea.ordenar(("defender",))
     pelea.correr_turno()
     esperado.play_turn([(modelo.COMMAND_SKILL,
-                         (base.skills[AGENCY_BADGE], 0)),
+                         (AGENCY_BADGE, 0)),
                         (modelo.COMMAND_DEFEND, 0),
                         (modelo.COMMAND_DEFEND, 0)])
     droide = esperado.enemies[0]
@@ -425,7 +421,7 @@ def test_ganar_sigue_por_el_victory_handler(partida):
     """
     una = en_el_droide(partida)
     pelea = Pelea(una).abrir()
-    esperado = modelo_de(datos.base())
+    esperado = modelo_de()
     while esperado.result is None:
         pelea.turno(len(esperado.living(esperado.actors)))
         esperado.play_turn(
@@ -608,7 +604,7 @@ def test_ganar_prende_el_tema_de_la_victoria(partida):
     """
     una = en_el_droide(partida)
     pelea = Pelea(una).abrir()
-    esperado = modelo_de(datos.base())
+    esperado = modelo_de()
     antes = None
     while esperado.result is None:
         antes = cursor_del_stream(una)
@@ -646,7 +642,7 @@ def test_al_terminar_vuelve_lo_que_sonaba_en_el_mapa(partida, con_musica):
     pelea = Pelea(una).abrir()
     assert una.palabra("song_current") == una.simbolos["BA_SONG"], \
         "la pelea tiene que tapar el tema del mapa"
-    esperado = modelo_de(datos.base())
+    esperado = modelo_de()
     while esperado.result is None:
         pelea.turno(len(esperado.living(esperado.actors)))
         esperado.play_turn(
@@ -807,8 +803,7 @@ def test_la_lista_de_items_es_la_que_se_puede_usar(partida):
     pelea.tocar_cuadros()
     assert pelea.modo() == "ITEM", "A sobre `Use Item` abre la lista"
     base = datos.base()
-    esperados = [n for n in sorted(base.items)
-                 if modelo.item_usable_in_battle(base.items[n])]
+    esperados = modelo.items_usable_in_battle(sorted(base.items))
     # De ésos, los que hay en el inventario.
     hay = [n for n in esperados if una.item(n)]
     assert hay, "el caso no puso ningún ítem usable: no mide nada"
@@ -830,8 +825,7 @@ def test_usar_una_pocion_cura_lo_que_dice_el_modelo(partida):
     """
     una = en_el_droide_con_pocion(partida)
     pelea = Pelea(una).abrir()
-    base = datos.base()
-    esperado = modelo_de(base)
+    esperado = modelo_de()
     for quien in esperado.actors:
         quien.hp = quien.hp_max - 20
     antes = una.item(POCION)
@@ -858,7 +852,7 @@ def test_usar_una_pocion_cura_lo_que_dice_el_modelo(partida):
             break
         pelea.tocar_cuadros()
     esperado.play_turn(
-        [(modelo.COMMAND_ITEM, (base.items[POCION], 0)),
+        [(modelo.COMMAND_ITEM, (POCION, 0)),
          (modelo.COMMAND_ATTACK, 0), (modelo.COMMAND_ATTACK, 0)])
     de_la_rom = [pelea.hp_del_combatiente(k) for k in range(len(GRUPO))]
     del_modelo = [c.hp for c in esperado.actors]
@@ -896,11 +890,11 @@ def test_el_elixir_levanta_a_un_caido_en_la_pelea(partida):
     una.poner_byte("hero_dir", una.simbolos["DIR_UP"])
     base = datos.base()
     una.poner_hp(GRUPO[1], 0)
-    esperado = modelo_de(base)
+    esperado = modelo_de()
     esperado.actors[1].hp = 0
     antes = exp_y_nivel(una, GRUPO[1])
     assert una.item(ELIXIR) == 1, "el caso no puso el elixir"
-    assert modelo.item_usable_in_battle(base.items[ELIXIR])
+    assert modelo.items_usable_in_battle([ELIXIR])
     pelea = Pelea(una).abrir()
     assert pelea.hp_del_combatiente(1) == 0, "Core tenía que entrar caído"
     # Kersh: `Use Item`, el elixir —el único de la lista— y a quién.
@@ -923,7 +917,7 @@ def test_el_elixir_levanta_a_un_caido_en_la_pelea(partida):
     assert una.item(ELIXIR) == 0, "el elixir se gasta al elegirlo"
     pelea.ordenar(("atacar", 0))
     pelea.correr_turno()
-    esperado.play_turn([(modelo.COMMAND_ITEM, (base.items[ELIXIR], 1)),
+    esperado.play_turn([(modelo.COMMAND_ITEM, (ELIXIR, 1)),
                         (modelo.COMMAND_ATTACK, 0)])
     levantado = max(1, 25 * esperado.actors[1].hp_max // 100)
     assert esperado.actors[1].hp == levantado or not esperado.actors[1].alive
@@ -979,9 +973,8 @@ def test_el_segundo_elixir_sobre_el_mismo_caido_no_hace_nada(partida):
     una.ir_al_mapa(2, *DROIDE)
     una.poner_byte("hero_dir", una.simbolos["DIR_UP"])
     una.consola.write_ram(una.simbolos["FAR_ITEMS"] + ELIXIR, [2])
-    base = datos.base()
     una.poner_hp(GRUPO[1], 0)
-    esperado = modelo_de(base)
+    esperado = modelo_de()
     esperado.actors[1].hp = 0
     pelea = Pelea(una).abrir()
     for quien in (0, 2):
@@ -999,8 +992,8 @@ def test_el_segundo_elixir_sobre_el_mismo_caido_no_hace_nada(partida):
         pelea.tocar_cuadros()
     assert una.item(ELIXIR) == 0, "los dos elixires se gastan al elegirlos"
     pelea.correr_turno()
-    esperado.play_turn([(modelo.COMMAND_ITEM, (base.items[ELIXIR], 1)),
-                        (modelo.COMMAND_ITEM, (base.items[ELIXIR], 1))])
+    esperado.play_turn([(modelo.COMMAND_ITEM, (ELIXIR, 1)),
+                        (modelo.COMMAND_ITEM, (ELIXIR, 1))])
     de_la_rom = [pelea.hp_del_combatiente(k) for k in range(len(GRUPO))]
     del_modelo = [c.hp for c in esperado.actors]
     assert de_la_rom == del_modelo, (
@@ -1052,8 +1045,7 @@ def test_un_actor_sin_habilidades_no_abre_la_lista(partida):
     Talan siga sin saber ninguna, porque si algún día aprendiera una dejaría de
     probar lo que dice probar.
     """
-    base = datos.base()
-    assert not modelo.skills_of(base, 14), \
+    assert not modelo.skills_of(14), \
         "Talan tenía que no saber ninguna: si supiera, este caso no distingue"
     una = partida(caso=LINKAGE)
     una.poner_grupo(14, 12, 13)

@@ -24,15 +24,14 @@ los mensajes de cada página, con un recorrido que no comparte nada con el
 compilador.
 """
 
-from port import battle as modelo
 from port import compiler, events
-from port import rules
 from rpgmaker.resources import GAME_DIR
 
 from batalla import (Pelea, mensaje_en_pantalla, modelo_de, paginas,
                      primera_pagina)
 from consola import en_la_rom
 import datos
+import modelo
 
 KERSH, TALAN, AG7 = 11, 14, 18
 KING_RAT, GIANT_RAT = 56, 64
@@ -82,10 +81,6 @@ def lo_que_dicen(pagina):
         elif cmd.code == events.SHOW_MESSAGE_2 and mensajes:
             mensajes[-1].append(cmd.string)
     return mensajes
-
-
-def paginas_del_modelo(base, tropa):
-    return [modelo.TroopPage(p) for p in base.troops[tropa].pages]
 
 
 def turno_contando(una, pelea, ordenes, tope=3000, cada_cuadro=None):
@@ -140,12 +135,10 @@ def test_las_tropas_son_las_que_se_espera():
 
 def test_la_condicion_de_turno_es_la_de_easyrpg():
     """`CheckTurns(turno, base, múltiplo)`: sin múltiplo, justo en la base; con
-    él, en la base y cada tantos. Y la página de los Lazer Teeth: base 1,
-    cada 3."""
-    assert [t for t in range(10) if modelo._turns(t, 1, 0)] == [1]
-    assert [t for t in range(10) if modelo._turns(t, 0, 0)] == [0]
-    assert [t for t in range(10) if modelo._turns(t, 1, 3)] == [1, 4, 7]
-    assert [t for t in range(10) if modelo._turns(t, 0, 2)] == [0, 2, 4, 6, 8]
+    él, en la base y cada tantos. La cuenta es del modelo de la pelea y la
+    prueban las pruebas de `rm2k-snes-battle` (`check_turns_is_easyrpgs`);
+    acá, que la página de los Lazer Teeth sea de base 1, cada 3, que es lo que
+    `test_la_pagina_de_los_lazer_teeth_vuelve_cada_tres_turnos` supone."""
     d = disparadores(TROPA_LAZER)[0]
     assert (d.turn_base, d.turn_mult, d.actor) == (1, 3, TALAN)
 
@@ -165,8 +158,7 @@ def test_el_rat_king_empieza_solo_y_llama_a_sus_ratas(partida):
     llaman = [lo_que_dicen(p)[0] for p in rey.pages if p.active == ["enemy_hp"]]
     una = partida(caso="pelea-97")
     pelea = a_la_pelea(una)
-    esperado = modelo_de(base, (AG7,), TROPA_RAT_KING,
-                         pages=paginas_del_modelo(base, TROPA_RAT_KING))
+    esperado = modelo_de((AG7,), TROPA_RAT_KING, pages=TROPA_RAT_KING)
     esperado.start()
     g = una.simbolos["BA_PARTY_MAX"]
     assert ocultos_de_la_rom(una, 3) == [False, True, True]
@@ -221,7 +213,6 @@ def test_un_oculto_no_es_blanco_ni_cuenta_para_ganar(partida):
     la victoria da la experiencia y el oro **del rey solo** —`GetExp` y
     `GetMoney` suman los muertos—."""
     base = datos.base()
-    term = rules.battle_terms(base)
     una = partida(caso="pelea-97-sin-ratas")
     pelea = a_la_pelea(una)
     assert pelea.switch(1005) and pelea.switch(1006)
@@ -245,14 +236,14 @@ def test_un_oculto_no_es_blanco_ni_cuenta_para_ganar(partida):
     assert pelea.modo() == "END"
     assert pelea.byte("BA_RESULT") == modelo.VICTORY
     assert ocultos_de_la_rom(una, 3) == [False, True, True]
-    esperado = modelo_de(base, (KERSH,), TROPA_RAT_KING)
+    esperado = modelo_de((KERSH,), TROPA_RAT_KING)
     esperado.enemies[0].hp = 0
     assert esperado.experience() == base.enemies[KING_RAT].exp
     assert una.oro() == oro_antes + esperado.gold() == oro_antes + \
         base.enemies[KING_RAT].gold
     vistas = paginas(una, pelea)
-    assert vistas[0][:len(primera_pagina(term, esperado.experience()))] \
-        == primera_pagina(term, esperado.experience())
+    assert vistas[0][:len(primera_pagina(esperado.experience()))] \
+        == primera_pagina(esperado.experience())
 
 
 # --- los agentes ------------------------------------------------------------
@@ -362,8 +353,8 @@ def test_la_pagina_de_los_lazer_teeth_vuelve_cada_tres_turnos(partida):
         salieron[turno] = [m for m, t in vistos]
         assert all(t == turno for _m, t in vistos)
         assert pelea.modo() == "COMMAND"
-    esperados = {t: (lo_que_dicen(primera)
-                     if modelo._turns(t, 1, 3) else [])
+    # Base 1, cada 3: `CheckTurns` la da en el 1 y en el 4.
+    esperados = {t: (lo_que_dicen(primera) if t in (1, 4) else [])
                  for t in range(1, 6)}
     assert salieron == esperados, salieron
     assert salieron[1] and salieron[4] and not salieron[2]

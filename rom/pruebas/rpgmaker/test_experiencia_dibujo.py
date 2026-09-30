@@ -8,12 +8,12 @@ cartucho, así que lo que se cobra acá es que la ROM la lea bien, sume bien y
 suba cuando tiene que subir.
 """
 
-from port import battle as modelo
 from port import experience
 
 from batalla import (ARDEN, GRUPO, TROPA_DROIDE, Pelea, en_el_droide,
                      exp_y_nivel, poner_exp, ranura_exp)
 import datos
+import modelo
 from dibujo import diferencia
 
 
@@ -31,11 +31,11 @@ def ganar_al_droide(una, caidos=(), niveles=None, grupo=GRUPO):
     niveles = niveles or {}
     base = datos.base()
     esperado = modelo.Battle(
-        [modelo.actor_of(base, a, level=niveles.get(a)) for a in grupo],
-        [modelo.enemy_of(base, e, n)
+        [modelo.actor_of(a, level=niveles.get(a)) for a in grupo],
+        [modelo.enemy_of(e, n)
          for n, e in enumerate(base.troops[TROPA_DROIDE].members)])
     for quien in esperado.actors:
-        quien.hp = min(quien.hp_max, modelo.actor_of(base, quien.number).hp)
+        quien.hp = min(quien.hp_max, modelo.actor_of(quien.number).hp)
         if quien.number in caidos:
             quien.hp = 0
         una.poner_hp(quien.number, quien.hp)
@@ -195,8 +195,8 @@ def test_la_pelea_usa_los_parametros_del_nivel_de_ahora(partida):
               "attack": d + s["BA_ATK"], "defense": d + s["BA_DEF"],
               "spirit": d + s["BA_SPI"], "agility": d + s["BA_AGI"]}
     de_la_rom = {k: pelea.palabra(v) for k, v in campos.items()}
-    en_30 = modelo.actor_of(base, kersh, level=30)
-    en_20 = modelo.actor_of(base, kersh)
+    en_30 = modelo.actor_of(kersh, level=30)
+    en_20 = modelo.actor_of(kersh)
     esperado = {k: getattr(en_30, k) for k in campos}
     assert de_la_rom == esperado
     assert all(esperado[k] != getattr(en_20, k) for k in campos), \
@@ -214,10 +214,10 @@ def test_full_heal_llena_hasta_el_maximo_del_nivel_de_ahora(partida):
     actor = next(a for a in grupo_de(una) if ranura_exp(una, a) is not None)
     poner_exp(una, actor, experience.exp_list(base.actors[actor])[29], 30)
     una.correr(DESPUES_DE_PERDER)
-    en_30 = modelo.actor_of(base, actor, level=30)
+    en_30 = modelo.actor_of(actor, level=30)
     assert (una.hp(actor),
             una.sp(actor)) == (en_30.hp_max, en_30.sp_max)
-    assert en_30.hp_max != modelo.actor_of(base, actor).hp_max
+    assert en_30.hp_max != modelo.actor_of(actor).hp_max
 
 
 # --- las habilidades del nivel ----------------------------------------------

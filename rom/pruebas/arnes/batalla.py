@@ -1,19 +1,18 @@
 """La pelea de la consola, manejada desde afuera, y lo que las pruebas de
 pelea comparten: el droide del mapa 2, el grupo de la intro, el modelo de
-`port.battle`, perder sin pelear, la experiencia, los textos de la pantalla y
-volver del Game Over.
+`rm2k-snes-battle` —ver `modelo.py`—, perder sin pelear, la experiencia, los
+textos de la pantalla y volver del Game Over.
 
 **Todo en cuadros de hardware**: la pelea corre su propio lazo y `ticks` no
 avanza mientras dura.
 """
 
-from port import battle as modelo
 from port import events
-from port import battle_screen as screens
 from port import screen_stage
 
 from consola import EMPEZAR, en_la_rom, en_la_wram
 import datos
+import modelo
 from tanda import LINKAGE
 
 # El droide del mapa 2 está en (30,55) y se le habla desde abajo.
@@ -27,7 +26,7 @@ GRUPO = (11, 12, 13)
 # la ROM sin el prefijo —"COMMAND", "TARGET", "END"...— y las órdenes son
 # `BA_COMMAND_ATTACK` y compañía. El orden es el del original —Attack /
 # <habilidad> / Defend / Use Item— y `Escape` va quinta, que es la
-# simplificación que `port/battle.py` declara.
+# simplificación que la pantalla de la pelea declara en `rm2k-snes-battle`.
 
 
 class Pelea:
@@ -212,10 +211,9 @@ class Pelea:
         raise AssertionError("el mapa no volvió a correr después de la pelea")
 
 
-def modelo_de(base, actores=GRUPO, tropa=TROPA_DROIDE, **extra):
-    return modelo.Battle(
-        [modelo.actor_of(base, a) for a in actores],
-        modelo.troop_enemies(base, tropa), **extra)
+def modelo_de(actores=GRUPO, tropa=TROPA_DROIDE, **extra):
+    return modelo.Battle([modelo.actor_of(a) for a in actores], troop=tropa,
+                         **extra)
 
 
 def en_el_droide(partida, con_musica=None):
@@ -441,9 +439,10 @@ def ventana(una):
     """Lo que dice la ventana de la victoria: los cuatro renglones del grupo,
     desde la columna del mensaje, y los dos de abajo, que tienen que quedar
     vacíos."""
-    arriba = renglones(una, screens.BA_PAGE_MSG_ROW0, 4)
-    abajo = renglones(una, screens.BA_MSG_ROW1, 2)
-    col = screens.BA_PAGE_MSG_COL
+    geometria = modelo.disposicion()
+    arriba = renglones(una, geometria.BA_PAGE_MSG_ROW0, 4)
+    abajo = renglones(una, geometria.BA_MSG_ROW1, 2)
+    col = geometria.BA_PAGE_MSG_COL
     assert all(r[:col].strip() == "" for r in arriba), arriba
     return [r[col:] for r in arriba], abajo
 
@@ -469,9 +468,10 @@ def paginas(una, pelea, tope=10):
     raise AssertionError("la victoria no se cerró en %d páginas" % tope)
 
 
-def primera_pagina(term, exp):
-    return (screens.victory_lines(term["victory"])
-            + [screens.exp_line(term, exp)])
+def primera_pagina(exp):
+    """La victoria partida en sus renglones y la experiencia."""
+    victoria, experiencia = modelo.renglones(("victory",), ("exp", exp))
+    return victoria + experiencia
 
 
 # --- volver del Game Over ---------------------------------------------------

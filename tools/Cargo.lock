@@ -390,6 +390,7 @@ dependencies = [
  "clap",
  "ditto",
  "rm2k-rules",
+ "rm2k-snes-text",
  "serde_json",
  "sha2",
 ]

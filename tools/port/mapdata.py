@@ -15,10 +15,7 @@ from port import compiler, events
 from rpgmaker import lcf
 from rpgmaker import rm2k
 from port import picture
-from port import battle_screen
 from port import screen_stage
-from port import battle as battle_mod
-from port import experience as X
 from port import color as color_mod
 from port import constants
 from port import rules
@@ -75,7 +72,8 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
          window=None, title=None, slots=None, picture_info=None,
          animations=None, troops=(), battle_audio=None, scenes=None,
          battle_tables=None, troop_pages=None, compressed=None,
-         enemy_hp=False, game_over=None, party_common=None):
+         enemy_hp=False, game_over=None, party_common=None,
+         battle_model=None):
     """The .inc that is assembled together with main.s.
 
     `enemy_hp` is `--enemy-hp`: whether the battle draws the
@@ -93,12 +91,16 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
 
     `party_common` is `{common event: its code}` of the equipment common
     events, compiled: see `events.PARTY_COMMON_EVENTS`.
+
+    `battle_model` is what `rm2k-snes-battle model` answered for this
+    cartridge: see `port/battle_stage.py`.
     """
     # The geometry the screens were drawn with, which is what their tables
     # are written with —see `rm2k-snes-screens layout`—, and the battle's
-    # text screen, which is `battle_screen.py`.
+    # text screen's, which is `rm2k-snes-battle`'s.
     T = P = screen_stage.layout()
-    BS = battle_screen
+    M = battle_model
+    BS = M["layout"]
     slot_text_max = SLOT_TEXT_LEVEL + T.LEVEL_DIGITS
     for number, map_info in enumerate(maps):
         layout = map_info["layout"]
@@ -1044,7 +1046,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         item_texts, item_texts_ofs = bytearray(), []
 
         def new_text(text):
-            text = BS.item_text(text, 255)
+            text = screen_stage.item_text(text, 255)
             item_texts_ofs.append((len(item_texts), len(text)))
             item_texts.extend(text.encode("ascii"))
             return len(item_texts_ofs) - 1
@@ -1077,7 +1079,6 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # And the fixed ones, behind: the parameters and the equipment slots,
         # and the name of each actor that can join the party, the first two as
         # the screens stage cuts them.
-        B = battle_mod
         db = slots["db"]
         param_text = [new_text(t) for t in textos["params"]]
         slot_text = [new_text(t) for t in textos["equipment"]]
@@ -1099,20 +1100,18 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # And the battle's: the fifteen LDB terms the screen uses —in the order
         # of `rules.BATTLE_TERMS`, which is the one the ROM indexes— and the
         # name of each enemy some troop of the cartridge brings. The three
-        # commands go **already trimmed**, by `screens.command_text`: the
-        # LDB brings them with leading spaces and that would shift the text of
-        # their column.
+        # commands go **already trimmed**, as the battle stage answers them:
+        # the LDB brings them with leading spaces and that would shift the
+        # text of their column. The victory term, split in the lines the
+        # stage checked that fit.
         battle_term = rules.battle_terms(db)
         battle_text = None
-        victory = BS.victory_lines(battle_term["victory"])
-        if len(victory) > BS.BA_VICTORY_TERM_MAX:
-            raise SystemExit("the victory term takes %d lines and "
-                             "the window leaves it %d: %r"
-                             % (len(victory), BS.BA_VICTORY_TERM_MAX, victory))
+        texts = M["texts"]
+        victory = texts["victory"]
         for name, _term in rules.BATTLE_TERMS:
             text = battle_term[name]
             if name in ("attack", "defend", "escape"):
-                text = BS.command_text(text)
+                text = texts[name]
             if name == "victory":
                 text = victory[0]
             t = new_text(text)
@@ -1122,15 +1121,13 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # `message_recovery`, which goes stuck to the name —"Core has
         # revived!"—. It isn't a term but a piece of the state's data, so it
         # goes separately and with its own index. See `ba_message`.
-        revived_text = new_text(BS.revived_text(db))
+        revived_text = new_text(texts["revived"])
         # The second line of the victory, empty if it fits in one: it goes
         # separately so as not to shift the indices of `BATTLE_TERMS`.
         victory2_text = new_text((victory + [""])[1])
-        rom_enemies = sorted({e for number in troops
-                              if number in db.troops
-                              for e in db.troops[number].members})
-        enemy_text = {e: new_text(BS.item_text(
-            db.enemies[e].name, BS.BA_NAME_WIDTH)) for e in rom_enemies}
+        rom_enemies = M["enemies"]
+        enemy_text = {e: new_text(texts["enemies"][str(e)])
+                      for e in rom_enemies}
         # And the skills': the ones some actor that can join the party knows,
         # **at their LDB level** —see `battle.skills_of`—, sorted by
         # number, which is the order the menu puts them in. With the intro's
@@ -1145,30 +1142,19 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # And the ones some enemy of the cartridge's troops uses, since
         # 2026-09-27: `ShortCircuit`, from the ones at the recycling plant. See
         # `battle.actions_of_enemy`.
-        rom_actions = {e: B.actions_of_enemy(db, e) for e in rom_enemies}
-        rom_skills = sorted(
-            {h for (a, h) in events.SKILL_SLOT
-             if a in slots["actores"] and B.skill_usable(db.skills[h])}
-            | {skill.id for values in rom_actions.values()
-               for _r, skill, _ef in values if skill is not None})
-        skill_text = {h: new_text(BS.item_text(
-            db.skills[h].name, BS.BA_SKILL_NAME_WIDTH))
-            for h in rom_skills}
-        skill_desc_text = {h: new_text(BS.item_text(
-            db.skills[h].description, BS.BA_SKILL_DESC_WIDTH))
-            for h in rom_skills}
+        rom_actions = {e: M["actions"][str(e)] for e in rom_enemies}
+        rom_skills = M["skills"]
+        skill_text = {h: new_text(texts["skills"][str(h)]["name"])
+                      for h in rom_skills}
+        skill_desc_text = {h: new_text(texts["skills"][str(h)]["description"])
+                           for h in rom_skills}
         # And the **whole** name of the ones learned on leveling up, which is
         # what "<skill> acquired!" says at the victory: the list's is cut to
         # its column, and some of these the battle doesn't know how to offer
         # —Lurk In Shadows, Arden's— and aren't in the list. See
         # `skill_pair_learns_txt`.
-        taught = {h for (a, h) in events.SKILL_SLOT
-                  if a in slots["actores"] and a in db.actors
-                  and B.level_learned(db, a, h)
-                  > X.initial_level(db.actors[a])}
-        whole_skill_text = {
-            h: new_text(BS.item_text(db.skills[h].name, 255))
-            for h in sorted(taught)}
+        taught = M["taught"]
+        whole_skill_text = {h: new_text(db.skills[h].name) for h in taught}
         # The two lines RM2k says when using it: `using_message1` goes after
         # the name of the one using it and `using_message2` alone, on the line
         # below. `GetSkillFirstStartMessage2k` and its sibling.
@@ -1180,8 +1166,8 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # that is its `skill_name` —"AgentTrain", "Telepathy", "Slicing"— and
         # not the LDB's `command_skill`. It goes trimmed like the other four
         # commands.
-        skill_command_text = {a: new_text(BS.command_text(
-            B.skill_command_name(db, a))) for a in slots["actores"]}
+        skill_command_text = {a: new_text(texts["skill_commands"][str(a)])
+                              for a in slots["actores"]}
         handle.write(block("item_texts", bytes(item_texts) or b"\x00")
                      + "\n")
         if len(slot_blocks) > 255:
@@ -1509,9 +1495,9 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # maps of `abl` the code area ended up at 32775 of 32704 when putting
         # them here. The battle reads them with `lda f:item_battle, x`.
         handle.write('.segment "RODATA"\n')
-        bytes_asm("item_battle", [
-            1 if B.item_usable_in_battle(db_items[n]) else 0 for n in items],
-            declare=True)
+        bytes_asm("item_battle", [1 if usable else 0
+                                  for usable in M["item_battle"]],
+                  declare=True)
         bytes_asm("item_heal_rate", [db_items[n].recover_hp_rate
                                      for n in items], declare=True)
         words_asm("item_heal_hp", [min(db_items[n].recover_hp, 0xFFFF)
@@ -1723,20 +1709,10 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # everything the battle reads with `lda f:`: the code's bank is full,
         # and a table split between two banks would be read wrong from the
         # middle on.
+        # That all of them are of the kind the battle knows how to offer
+        # —a two-digit cost, a type it does— is the stage's: `skill_usable`
+        # is the filter it answers them with.
         skill_place = {h: k for k, h in enumerate(rom_skills)}
-        # That all the ones that reach here are of the kind the battle knows
-        # how to offer is guaranteed by `battle.skill_usable`, which is
-        # the filter `skills_of` applies on both sides. It is checked
-        # again in case they were ever emitted from somewhere else: a
-        # multi-target scope or a three-digit cost would be drawn wrong
-        # silently.
-        for h in rom_skills:
-            if not B.skill_usable(db.skills[h]):
-                raise SystemExit(
-                    "skill %d —type %d, scope %d, %d SP— isn't one of the "
-                    "ones this battle knows how to offer" % (h, db.skills[h].type,
-                                                             db.skills[h].scope,
-                                                             db.skills[h].sp_cost))
         words_asm("skill_id", rom_skills, declare=True)
         words_asm("skill_txt", [skill_text[h] for h in rom_skills],
                   declare=True)
@@ -1853,15 +1829,15 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # if it doesn't —the ones only a `ChangeSkills` gives—: on leveling
         # up, `exp_add` sets the bits of the pairs whose level it just
         # passed, which is `LearnLevelSkills(old_level + 1, new_level)`.
-        bytes_asm("skill_pair_level", [B.level_learned(db, a, h)
-                                    if a in db.actors else 0
-                                    for (a, h), _r in pairs], declare=True)
+        pair_levels = M["pair_levels"]
+        bytes_asm("skill_pair_level", pair_levels, declare=True)
         # And the name the victory tells it by —"<skill> acquired!"—, or $FFFF
         # if it isn't learned by leveling up from the starting one.
         words_asm("skill_pair_learns_txt", [
             whole_skill_text[h] if a in slots["actores"]
-            and B.level_learned(db, a, h) > 0 and h in whole_skill_text
-            else 0xFFFF for (a, h), _r in pairs], "$%04X", declare=True)
+            and level > 0 and h in whole_skill_text
+            else 0xFFFF for ((a, h), _r), level in zip(pairs, pair_levels)],
+            "$%04X", declare=True)
         # 254 and not 256: `eacc_skill` uses $FF for the attack and
         # `ba_enemy_action` answers $FE when it has none left.
         if len(rom_skills) > 254:
@@ -1891,7 +1867,11 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # The experience beating each one gives, already added up: see
         # `experience.troop_exp`. It goes outside bank 0, like
         # everything here, because it is read once per battle.
-        troop_exp = [X.troop_exp(db, n) for n in used]
+        if [t["id"] for t in M["troops"]] != used:
+            raise SystemExit("the battle stage answered for troops %r and the "
+                             "cartridge carries %r"
+                             % ([t["id"] for t in M["troops"]], used))
+        troop_exp = [t["exp"] for t in M["troops"]]
         for n, exp in zip(used, troop_exp):
             if exp > 0xFFFF:
                 raise SystemExit("troop %d gives %d experience and the ROM "
@@ -1899,22 +1879,15 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         words_asm("troop_exp", troop_exp, declare=True)
         # And the gold, the same: `battle.troop_gold`. The victory tells
         # it with `ba_vic_number`, which reaches five digits.
-        troop_gold = [B.troop_gold(db, n) for n in used]
+        troop_gold = [t["gold"] for t in M["troops"]]
         for n, gold in zip(used, troop_gold):
             if gold > 0xFFFF:
                 raise SystemExit("troop %d gives %d gold and the ROM adds it "
                                  "in sixteen bits" % (n, gold))
         words_asm("troop_gold", troop_gold, declare=True)
-        # What the victory writes has to fit on its line: the ROM builds it
-        # with a number or a name in the middle and doesn't split it.
-        BS.collect_victory(
-            battle_term, max(troop_exp, default=0),
-            [db.actors[a].name for a in slots["actores"] if a in db.actors],
-            [db.skills[h].name for h in sorted(taught)],
-            max(troop_gold, default=0),
-            [db_items[i].name for i in sorted({db.enemies[e].drop_id
-                                               for e in rom_enemies}
-                                              - {0})])
+        # That what the victory writes fits on its line —the ROM builds it
+        # with a number or a name in the middle and doesn't split it— is
+        # checked by the battle stage, which builds the same lines.
         bytes_asm("troop_init", starts, declare=True)
         # Which members of each troop start **hidden** —the troop's
         # `invisible`—, one bit per place: a page with `ShowHiddenMonster`
@@ -2039,24 +2012,18 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # zero. See `ba_enemy_action` in tools/runtime/battle.s.
         eacc_start, eacc_skill, eacc_weight = [], [], []
         for e in rom_enemies:
-            if len(rom_actions[e]) > B.ACTIONS_MAX:
-                raise SystemExit("enemy %d brings %d actions and the ROM "
-                                 "weighs %d: see `battle.ACTIONS_MAX`"
-                                 % (e, len(rom_actions[e]), B.ACTIONS_MAX))
+            # How many there are and their ratings' seven bits are checked by
+            # the battle stage.
             eacc_start.append(len(eacc_skill))
             for rating, skill, effective in rom_actions[e]:
-                if not 0 < rating < 0x80:
-                    raise SystemExit("enemy %d brings an action with rating "
-                                     "%d and the ROM carries it in seven bits"
-                                     % (e, rating))
                 eacc_skill.append(0xFF if skill is None
-                                  else skill_place[skill.id])
+                                  else skill_place[skill])
                 eacc_weight.append(rating | (0 if effective else 0x80))
         if len(eacc_skill) > 255:
             raise SystemExit("the actions of the cartridge's enemies are %d "
                              "and `enemy_acc_init` is one byte"
                              % len(eacc_skill))
-        handle.write("ACTIONS_MAX = %d\n" % B.ACTIONS_MAX)
+        handle.write("ACTIONS_MAX = %d\n" % BS.ACTIONS_MAX)
         bytes_asm("enemy_acc_init", eacc_start, declare=True)
         bytes_asm("enemy_acc_n", [len(rom_actions[e]) for e in rom_enemies],
                   declare=True)
@@ -2123,7 +2090,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
             "TPAGE_ACTOR       = $%02X\n"
             "TPAGE_WITH_HEADER = $%02X\n"
             "TPAGE_HEADER      = %d\n"
-            % (len(used), B.BATTLE_SEED, battle_text,
+            % (len(used), BS.BATTLE_SEED, battle_text,
                pos(BS.BA_ENEMY_ROW0, 0), pos(BS.BA_PARTY_ROW0, 0),
                pos(BS.BA_MSG_ROW1, 0), pos(BS.BA_MSG_ROW2, 0), 2 * 64,
                BS.BA_CURSOR_COL * 2, BS.BA_NAME_COL * 2, BS.BA_NAME_WIDTH,
