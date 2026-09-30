@@ -2,6 +2,7 @@
 name: "Lo que quedó del dominio de los mapas"
 description: "Los cabos sueltos que dejó Mara al pasar los mapas a Rust"
 type: refactor
+assignee: Ceibo
 ---
 
 De `testing/rust-el-dominio-de-los-mapas.md` (Mara, 2026-09-30):
