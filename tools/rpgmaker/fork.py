@@ -270,3 +270,12 @@ def chipsets():
                 % (entry, data["chipset"]["id"]))
         added[int(base)] = data
     return added
+
+
+def chipset_files():
+    """{id: path} of the files `chipsets` reads, validated the same way: a
+    stage of the converter that reads the database itself gets these."""
+    added = chipsets()
+    folder = chipsets_folder()
+    return {int(os.path.splitext(entry)[0]): os.path.join(folder, entry)
+            for entry in sorted(os.listdir(folder))} if added else {}

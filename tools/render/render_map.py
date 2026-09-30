@@ -1,24 +1,18 @@
-"""The layers of an A Blurred Line (RPG Maker 2000) map as images.
+"""What the converter asks `rm2k-render` to draw, and the game it reads.
 
-The two tile layers resolved against their ChipSet, with the drawings of the
-water animation and of the animated tiles, and the CharSets placed on top of
-them. It is what the converter cuts into tiles: see
-`Renderer.animated_layers`. No panorama and no events: the converter takes
-care of the events.
+**`rm2k-render` draws**, a Rust binary on the PATH, like `lz2`: `draw` is
+the call the screens use —the faces, the System's windows and the
+`ShowPicture` pictures— and the battle's backdrops and battlers
+(`scene.py`); the battle animations have their own shape
+(`animation.draw`). `Renderer` holds the game the converter reads —its
+database, its map tree, where the pictures are looked up— and reads a map
+the way the converter keeps it.
 
-**The layers are drawn by `rm2k-render`**, a Rust binary on the PATH, like
-`voodoo` or `lz2`: this file hands it the map as the converter has it —with
-the fork applied and whatever was baked into it— and reads back the PNGs it
-writes. **So are the CharSets**, the sheets the events are drawn with
-—`Charsets`, which asks for them all at once—. `draw` is the call the
-screens use —the faces, the System's windows and the `ShowPicture`
-pictures— and the battle's backdrops and battlers (`scene.py`); the
-battle animations have their own shape (`animation.draw`). What stays here
-is what the port does to them for the console.
+A map's layers and the CharSets its events are drawn with are not asked
+from here: since 2026-09-30 `rm2k-snes-maps` draws them, with
+`rm2k-render` as a library, as part of converting the map.
 """
 
-import array
-import hashlib
 import json
 import os
 import shutil
@@ -29,15 +23,13 @@ from PIL import Image
 
 from common import project
 from rpgmaker import lcf
-from rpgmaker import rm2k
 from rpgmaker import resources
 from rpgmaker.resources import find_resource
 from rpgmaker.rm2k import TILE
 from render import chipset_recipe
 
-MISSING = """`rm2k-render` is missing, the one that draws a map's layers, the
-CharSets of its events, the faces, windows and pictures of the screens, and
-what the battles are drawn with.
+MISSING = """`rm2k-render` is missing, the one that draws the faces, windows and
+pictures of the screens, and what the battles are drawn with.
 
 It is a Rust binary that lives in `tools/rm2k/rm2k-render/` and is installed as
 a system tool:
@@ -52,13 +44,6 @@ def binary():
     if path is None:
         raise SystemExit(MISSING)
     return path
-
-
-def version():
-    """The installed binary's hash, for the key of whatever caches what it
-    drew: recompiling it without touching any `.py` has to invalidate it."""
-    with open(binary(), "rb") as f:
-        return hashlib.sha256(f.read()).hexdigest()
 
 
 def draw(command, entries):
@@ -87,20 +72,6 @@ def draw(command, entries):
         return images
 
 
-# The families of `rm2k.ANIMATED_FAMILIES`, by the name `rm2k-render` gives
-# their files: drawing `d` of the water is `water-<d>.png`.
-_FAMILY_FILES = {"agua": "water", "animado": "animated"}
-
-
-def _layer_bytes(tiles):
-    """A tile layer as bytes, to put it in a cache key.
-
-    Four bytes per tile and not one: a tile ID goes up to 10143, so `bytes()`
-    does not work.
-    """
-    return array.array("i", tiles).tobytes()
-
-
 def build_passability(chipset):
     """Table of flags per tile ID, as lmu2png builds it (main.cpp).
 
@@ -123,171 +94,6 @@ def build_passability(chipset):
     return flags
 
 
-# The dithers a translucent event is drawn with, and which pixel drops out.
-# RM2k draws at 160 out of 255, that is, at 63%: `five_of_eight` is the one
-# that comes closest. The rest are here to be able to compare on a real TV,
-# which is where this is decided: a CRT's scan blurs **along the line**, so
-# alternating columns blend and the checkerboard does not.
-DITHERS = {
-    "checkerboard":  lambda x, y: (x + y) % 2 == 1,
-    "columns":       lambda x, y: x % 2 == 1,
-    "rows":          lambda x, y: y % 2 == 1,
-    "five_of_eight":  lambda x, y: ((y % 2) * 4 + (x % 4)) in (1, 4, 7),
-    "three_of_four":  lambda x, y: x % 2 == 1 and y % 2 == 1,
-}
-
-
-class Charsets:
-    """The CharSet sheets the events are drawn with, by the name the port
-    gives them, remembered: they repeat a lot among a map's events.
-
-    **`rm2k-render charset` draws them**: a CharSet with its color key, the
-    made-up sheet of an event drawn with a tile of the ChipSet
-    (`rm2k.TILE_PREFIX`), and a translucent one blended into what is behind
-    it (`rm2k.BAKED_SUFFIX`). Those are RM2k's drawings, the ones a viewer of
-    the game on a PC would make. What stays here is the port's, for the
-    console: the dithered sheet (`rm2k.DITHER_SUFFIX`), which exists because
-    the SNES has no translucency to spare, and the copy with its own palette
-    (`rm2k.COPY_SUFFIX`), which is the same drawing. **Which** background a
-    translucent one is baked against is also the port's: see `_baked`.
-
-    Each call to the binary is a process, so `draw` asks for a whole list in
-    one; `get` of a name nobody asked for before costs one call of its own.
-    """
-
-    def __init__(self, search_dirs, chipset_file=None,
-                 lower_layer_image=None):
-        self.search_dirs = search_dirs
-        self.images = {}
-        self.chipset_file = chipset_file
-        self.lower_layer_image = lower_layer_image
-
-    def get(self, name):
-        if name not in self.images:
-            self.draw([name])
-        return self.images[name]
-
-    def draw(self, names):
-        """Draws every sheet of `names` not drawn yet, with a single call to
-        `rm2k-render`, and the port's own sheets made from them."""
-        wanted = {}
-        behind = {}
-        for name in names:
-            self._plan(name, wanted, behind)
-        if wanted:
-            self._render(wanted, behind)
-        for name in names:
-            self._derive(name)
-
-    def _plan(self, name, wanted, behind):
-        """Puts in `wanted` the entry of the request that draws `name`, or
-        that of the sheet the port makes it from."""
-        if name in self.images or name in wanted:
-            return
-        for suffix in (rm2k.COPY_SUFFIX, rm2k.DITHER_SUFFIX):
-            if name.endswith(suffix):
-                self._plan(name[:-len(suffix)], wanted, behind)
-                return
-        base, where = rm2k.baked_parts(name)
-        entry = self._source(base)
-        if entry is None:
-            self.images[name] = None
-            return
-        if where is not None:
-            baked = self._baked(entry, *where, behind)
-            if baked is None:
-                self._plan(base, wanted, behind)
-                return
-            entry = baked
-        wanted[name] = entry
-
-    def _source(self, name):
-        """The request's entry for a CharSet or a tile, or `None` if its
-        picture is missing."""
-        if name.startswith(rm2k.TILE_PREFIX):
-            _, chipset, index = name.split(":", 2)
-            path = self.chipset_file(chipset) if self.chipset_file else None
-            return {"chipset_file": path, "tile": int(index)} if path else None
-        path = find_resource(self.search_dirs, "CharSet", name)
-        return {"charset_file": path} if path else None
-
-    def _baked(self, entry, map_id, tile_x, tile_y, behind):
-        """The entry of a translucent event, with the blend already computed,
-        or `None` if there is nothing to blend it with.
-
-        RM2k draws it at 160 out of 255 over whatever is behind, and
-        `rm2k-render` does that blend. **Keeping it in the graphic** is the
-        port's: since the event is static —all 70 in the game are— and so is
-        the background, the blend is computed once, against the real
-        background of the cell where it stands, and the sprite comes out
-        opaque and with the exact colors, no dither.
-
-        The background is the map's **lower layer**, which is the only thing
-        left behind the sprite: the upper one is drawn afterwards and covers
-        it, so on the pixels where the sprite shows the background is this
-        one.
-        """
-        if map_id not in behind:
-            background = (self.lower_layer_image(map_id)
-                          if self.lower_layer_image else None)
-            if background is None:
-                return None
-            behind[map_id] = background
-        return dict(entry, translucent={"behind": "behind-%d.png" % map_id,
-                                        "x": tile_x, "y": tile_y})
-
-    def _render(self, wanted, behind):
-        """One call to `rm2k-render charset` for every entry of `wanted`."""
-        names = list(wanted)
-        with tempfile.TemporaryDirectory(prefix="rm2k-render-") as out:
-            for map_id, background in behind.items():
-                background.save(os.path.join(out, "behind-%d.png" % map_id))
-            request_path = os.path.join(out, "charsets.json")
-            with open(request_path, "w", encoding="utf-8") as f:
-                json.dump([wanted[n] for n in names], f)
-            sheets = os.path.join(out, "sheets")
-            done = subprocess.run(
-                [binary(), "charset", "--request", request_path,
-                 "--out", sheets], capture_output=True, text=True)
-            if done.returncode != 0:
-                raise SystemExit("rm2k-render could not draw the CharSets "
-                                 "%s:\n%s" % (", ".join(names),
-                                              done.stderr.strip()))
-            for i, name in enumerate(names):
-                # `convert` reads it now, before the directory goes away.
-                with Image.open(os.path.join(sheets, "%d.png" % i)) as image:
-                    self.images[name] = image.convert("RGBA")
-
-    def _derive(self, name):
-        """The sheet of `name`, made from what `_render` drew."""
-        if name not in self.images:
-            if name.endswith(rm2k.COPY_SUFFIX):
-                self.images[name] = self._derive(
-                    name[:-len(rm2k.COPY_SUFFIX)])
-            elif name.endswith(rm2k.DITHER_SUFFIX):
-                self.images[name] = self._dithered(self._derive(
-                    name[:-len(rm2k.DITHER_SUFFIX)]))
-            else:
-                # Baked, with nothing to bake it against: the sheet as is.
-                self.images[name] = self._derive(rm2k.unbaked(name))
-        return self.images[name]
-
-    @staticmethod
-    def _dithered(base):
-        """The CharSet of a translucent event: the same one, with part of its
-        pixels transparent. See `rm2k.DITHER_SUFFIX` and `DITHERS`."""
-        if base is None:
-            return None
-        image = base.convert("RGBA")
-        pix = image.load()
-        drops = DITHERS[rm2k.DITHER_PATTERN]
-        for y in range(image.height):
-            for x in range(image.width):
-                if drops(x, y):
-                    pix[x, y] = (0, 0, 0, 0)
-        return image
-
-
 class Renderer:
     """Everything shared between maps: the game, the RTP and the caches."""
 
@@ -305,83 +111,6 @@ class Renderer:
         self.search_dirs.insert(0, chipset_recipe.build_images(
             lambda folder, name: find_resource(self.search_dirs, folder,
                                                name)))
-        self.charsets = Charsets(self.search_dirs, self.chipset_file,
-                                 self.lower_layer_image)
-        self.lower_layers = {}
-        self.fingerprints = {}
-        self.missing_chipsets = set()
-
-    def lower_layer_image(self, map_id):
-        """A map's lower layer, to bake the translucent ones.
-
-        It is cached because a map with several translucent events would ask
-        for it once per event, and rendering the layers of a big map is not
-        free.
-        """
-        if map_id not in self.lower_layers:
-            game_map = self.load_map(
-                os.path.join(self.game_dir, "Map%04d.lmu" % map_id))
-            self.lower_layers[map_id] = self.animated_layers(game_map)[0]
-        return self.lower_layers[map_id]
-
-    def chipset_file(self, filename):
-        """The path of the ChipSet's picture, or `None` if it is missing."""
-        path = find_resource(self.search_dirs, "ChipSet", filename)
-        if not path:
-            self.missing_chipsets.add(filename)
-        return path
-
-    def layer_inputs(self, game_map):
-        """Everything that goes into a map's drawn layers, without drawing them.
-
-        It is a list of parts for a cache key, and it exists so that whoever
-        caches what comes out of `animated_layers` can ask **before** paying
-        for the drawing. It returns `None` when the ChipSet is missing: then
-        there is no input that counts and the caller has to take the usual
-        path, which is the one that knows how to fail.
-
-        It lives here and not in the converter because this file is the one
-        that knows what `animated_layers` hands `rm2k-render`: the map's two
-        layers, its size, and from the ChipSet the passability —which decides
-        which tile goes on which layer— and the image. Nothing else from the
-        `.lmu` reaches the drawing. If some day the request carries something
-        not on this list, the cache goes stale without warning, and the only
-        place where that can be seen is right next to it here.
-
-        What is **not** here, on purpose: the drawing code and the Pillow
-        version. They do not belong to the map but to the run, and whoever
-        builds the key adds them.
-        """
-        chipset = self.database.chipsets[game_map.chipset_id]
-        image = self.chipset_fingerprint(chipset.filename)
-        if image is None:
-            return None
-        return [b"mapa %dx%d" % (game_map.width, game_map.height),
-                _layer_bytes(game_map.lower_layer),
-                _layer_bytes(game_map.upper_layer),
-                bytes(chipset.passable_lower), bytes(chipset.passable_upper),
-                image]
-
-    def chipset_fingerprint(self, filename):
-        """The sha256 of the ChipSet file that wins the search, or `None`.
-
-        The bytes and not the path: whether the file comes from the game or
-        from the RTP does not change a pixel if it is the same file, and
-        coming from the same side does not guarantee nobody touched it.
-
-        It is remembered by name because maps share ChipSets: a cartridge has
-        quite a few fewer ChipSets than maps, and reading the file once per
-        map would add nothing.
-        """
-        if filename not in self.fingerprints:
-            path = find_resource(self.search_dirs, "ChipSet", filename)
-            if path is None:
-                self.fingerprints[filename] = None
-            else:
-                with open(path, "rb") as f:
-                    self.fingerprints[filename] = hashlib.sha256(
-                        f.read()).digest()
-        return self.fingerprints[filename]
 
     def load_map(self, path):
         """The map, with its chipset's name set: `collect_npcs` needs it for
@@ -393,70 +122,3 @@ class Renderer:
         # the lower layer: see `rm2k.event_tile_passability`.
         game_map.passability_table = build_passability(chipset)
         return game_map
-
-    def animated_layers(self, game_map):
-        """The map's layers and the other drawings of the ChipSet's animation.
-
-        Returns `(base, above, variants)`: `base` is what goes behind the
-        hero, opaque; `above` carries only the tiles marked "above the hero"
-        and is transparent everywhere else; and `variants` is in the shape
-        `map_layers._convert_layers` asks for: per family, the drawings
-        that are **not** 0, which is `base`.
-
-        `rm2k-render` draws them, from the map **as it is here** —with the
-        fork applied and what was baked into its upper layer—, which is why
-        it gets a request and not a map number. And it decides which drawings
-        there are: only what the map can end up moving, so a map without
-        water or animated tiles pays nothing. That all the drawings of a
-        family come out the same —map 3's water does, because the ChipSet has
-        it drawn three times the same— does not need detecting here:
-        `convert` will not find any cell that changes and the run comes out
-        empty.
-
-        The ChipSet is found here and passed as a file, and not looked up by
-        name over there: it has to be the same file `chipset_fingerprint`
-        hashed for the cache key.
-        """
-        chipset = self.database.chipsets[game_map.chipset_id]
-        path = find_resource(self.search_dirs, "ChipSet", chipset.filename)
-        if path is None:
-            self.missing_chipsets.add(chipset.filename)
-            return None, None, {}
-        request = {
-            "width": game_map.width,
-            "height": game_map.height,
-            "lower_layer": list(game_map.lower_layer),
-            "upper_layer": list(game_map.upper_layer),
-            "chipset": {
-                "chipset_name": chipset.filename,
-                "passable_data_lower": list(chipset.passable_lower),
-                "passable_data_upper": list(chipset.passable_upper),
-            },
-        }
-        with tempfile.TemporaryDirectory(prefix="rm2k-render-") as out:
-            request_path = os.path.join(out, "map.json")
-            with open(request_path, "w", encoding="utf-8") as f:
-                json.dump(request, f)
-            done = subprocess.run(
-                [binary(), "layers", "--request", request_path,
-                 "--chipset-file", path, "--out", out],
-                capture_output=True, text=True)
-            if done.returncode != 0:
-                raise SystemExit("rm2k-render could not draw map %d:\n%s"
-                                 % (game_map.map_id, done.stderr.strip()))
-
-            def read(name):
-                # `convert` and not a plain `open`: it reads the file now,
-                # before the directory goes away, and returns an image of
-                # its own and not a handle on the file.
-                with Image.open(os.path.join(out, name)) as image:
-                    return image.convert("RGBA")
-
-            base, above = read("lower.png"), read("upper.png")
-            variants = {}
-            for family, drawings in rm2k.ANIMATED_FAMILIES:
-                prefix = _FAMILY_FILES[family]
-                if os.path.exists(os.path.join(out, prefix + "-1.png")):
-                    variants[family] = [read("%s-%d.png" % (prefix, d))
-                                        for d in range(1, drawings)]
-        return base, above, variants

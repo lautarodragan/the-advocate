@@ -10,7 +10,7 @@ converter reads it. The rule it keeps is the one this module had:
 
 What stays here is what others read and is not the compiler: the numbers
 the ROM's tables are emitted with (`mapdata.py`), the command codes a few
-scans look for (`game_scan.py`, `baking.py`, `cases.py`), the registries the
+scans look for (`game_scan.py`, `cases.py`), the registries the
 compiler's answer is read into (`Songs`, `Troops`, `Trigger`), the indices it
 answers (`VARIABLE_SLOT`, `SKILL_SLOT`, `PARTY_COMMON_EVENTS`), which picture
 takes the cartridge's place (`Pictures`), the escape tail `texts.py`

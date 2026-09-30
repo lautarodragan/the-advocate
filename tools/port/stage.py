@@ -26,9 +26,10 @@ It is a Rust binary of the suite, and is installed as a system tool:
     just -f tools/justfile install %s"""
 
 
-def run(binary, project, command, request, *flags):
+def run(binary, project, command, request, *flags, raw=False):
     """`binary command --request <request> --out <dir> *flags`, and
-    `{name: text}` of every file it wrote. `project` is the name `install`
+    `{name: text}` of every file it wrote —`{name: bytes}` with `raw`, for a
+    stage that writes tiles and pictures—. `project` is the name `install`
     knows it by, for the message when it is not on the PATH.
 
     What it answers no to stops the conversion with its message."""
@@ -52,6 +53,6 @@ def run(binary, project, command, request, *flags):
                              % (binary, command, done.returncode))
         written = {}
         for name in sorted(os.listdir(out)):
-            with open(os.path.join(out, name)) as handle:
+            with open(os.path.join(out, name), "rb" if raw else "r") as handle:
                 written[name] = handle.read()
         return written

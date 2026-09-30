@@ -1,0 +1,17 @@
+[package]
+name = "rm2k-snes-map-sprites"
+version = "0.1.0"
+edition = "2021"
+description = "An RPG Maker 2000 map's characters as Super Nintendo objects: which poses each one shows, how the eight object palettes are split among them, the VRAM bank of poses and the cartridge's, and what goes at the end of the bank"
+
+[lib]
+name = "rm2k_snes_map_sprites"
+path = "src/lib.rs"
+
+[dependencies]
+adeleine = { path = "../../snes/adeleine" }
+rm2k-render = { path = "../../rm2k/rm2k-render" }
+voodoo = { path = "../../snes/voodoo" }
+
+[dev-dependencies]
+sha2 = "0.10"

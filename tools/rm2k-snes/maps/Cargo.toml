@@ -1,0 +1,27 @@
+[package]
+name = "rm2k-snes-maps"
+version = "0.1.0"
+edition = "2021"
+description = "An rm2k-snes game's maps as a cartridge carries them: the background layers, the sprites and the VRAM each map gets"
+
+[lib]
+name = "rm2k_snes_maps"
+path = "src/lib.rs"
+
+[[bin]]
+name = "rm2k-snes-maps"
+path = "src/main.rs"
+
+[dependencies]
+adeleine = { path = "../../snes/adeleine" }
+clap = { version = "4", features = ["derive"] }
+ditto = { path = "../../rm2k/ditto" }
+rm2k-render = { path = "../../rm2k/rm2k-render" }
+rm2k-rules = { path = "../../rm2k/rules" }
+rm2k-snes-map-background = { path = "../map-background" }
+rm2k-snes-map-sprites = { path = "../map-sprites" }
+serde_json = "1"
+voodoo = { path = "../../snes/voodoo" }
+
+[dev-dependencies]
+sha2 = "0.10"

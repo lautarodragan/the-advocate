@@ -65,6 +65,7 @@ const CONVERTER_TOOLS: &[&str] = &[
     "rm2k-snes-audio",
     "rm2k-snes-battle",
     "rm2k-snes-events",
+    "rm2k-snes-maps",
 ];
 
 /// The line the tracks end with, which this prints in its place.

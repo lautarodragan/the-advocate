@@ -231,6 +231,7 @@ fn everything_that_builds_the_rom_is_in_the_fingerprint() {
         "rm2k-snes-audio",
         "rm2k-snes-battle",
         "rm2k-snes-events",
+        "rm2k-snes-maps",
         "rm2k-snes-assemble",
     ] {
         let path = bin.join(tool);
