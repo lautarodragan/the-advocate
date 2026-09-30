@@ -340,6 +340,11 @@ def test_el_paso_del_2_al_3_no_vuelve_a_subir_lo_que_estaba(partida):
     movido, y que el silencio no pase de `TOPE_DEL_PASO_AL_3`. Antes, que el
     caso ejercite algo: que el paquete haya llegado incompleto y que haya
     algo suyo en la ARAM para no mover.
+
+    El caso, `paso-al-3`, espera ocho segundos en el 2 y no lo necesita la
+    prueba: es para escucharlo grabado. La primera nota de escape_newyork
+    llega a los tres segundos, y con menos el paso se oía mudo de punta a
+    punta.
     """
     una = partida(caso="paso-al-3")
     s = una.simbolos
