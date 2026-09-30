@@ -33,3 +33,34 @@ Lo que dejó Tordo, sin commitear, está en su worktree
 bloques de `compile.rs`. Su mapeo de qué se queda en Python, qué va a los
 dos lados y qué va sólo a Rust está en su informe, copiado abajo por
 Hornero.
+
+### El mapeo de Tordo
+
+- **Se queda en Python** (el código sigue ahí): el fundido, `PAUSE_FRAMES`,
+  `STEP_PER_SPEED`, `JUMP_*`, el modelo de la lluvia, las notas de `KEY_*`,
+  `CELL_*`, `TEST_SWITCH`, `CASE_VARIABLE`, `SWITCH_IMPOSSIBLE`, `ENC_*` y
+  `Encounters`, `PartyState`, `database`, `Pictures`, `SHAKE_SINE`.
+- **Va a los dos lados** (el código existe en los dos): `escape_tail`, el
+  encabezado de los mensajes y `MESSAGES_STEP`, la frecuencia de las rutas,
+  la numeración de `Songs`, `BATTLE_PACKAGE`, los disparadores y el
+  encabezado de las tropas, `encounter_backdrop`, `picture_fits`,
+  `MapEvents` (los 39 mapas).
+- **Va sólo a Rust**: el resto.
+- **No va a ningún lado**: las dos advertencias de "el número se elige
+  mirando los que hay" (OP_ACTOR_SPRITE, OP_PLACE_VAR), que ya cubren
+  AGENTS.md y `test_no_opcode_shares_a_number_with_another`.
+- **Constantes de Python muertas**: `CHOICE_CURSOR` no la usa ningún código;
+  `SHOW_PICTURE` sólo adentro de `events.py`.
+- **Los comentarios de los opcodes** van al brazo de `compile.rs` que emite
+  cada uno, no a `events.toml`: `protocol` descarta los comentarios del
+  TOML, su README dice que qué hace un opcode se escribe a mano, y esos
+  comentarios nombran el juego, que `protocol` no puede conocer.
+- El docstring del módulo `events.py` (renglones 20-21) dice que los porqués
+  siguen al lado de cada constante: se actualiza cuando se muden.
+- Tordo borró sin reponer, en su worktree, una línea de Guazú que estaba
+  mal pegada al doc de `ITEMS_N` (el tope de oro): hay que reponer ese dato
+  en `CHANGE_GOLD`.
+
+Su diff sin commitear está guardado en
+`<scratchpad>/porques-tordo/tordo-parcial.diff`: sirve de punto de partida,
+salvo que toque el bloque de `branch_bytes`.
