@@ -1,18 +1,19 @@
-# El techo de volumen de cada tema del `release`: el aire con que
-# `build_all` le arma el stream, en vez de `sdsp.HEADROOM`.
+# The volume ceiling of each song of `release`: the headroom
+# `build_all` builds its stream with, instead of `sdsp.HEADROOM`.
 #
-# **No se edita a mano**: lo escribe `just techos`, que toca cada
-# tema en la ROM y le da el aire más alto que no recorta. El porqué,
-# en `read_ceilings`, que es donde el conversor la lee; cómo se mide,
-# en `rm2k-snes-volume-ceilings`. `test_musica_techos.py` falla si
-# algún tema recorta o si la mezcla de alguno ya no es la que se
-# midió: la huella. Cualquier cambio de la mezcla —las muestras, las
-# envolventes, el reparto— pide volver a correr `just techos`.
+# **Not edited by hand**: `just techos` writes it, playing each song
+# in the ROM and giving it the highest headroom that does not clip.
+# The reason, in `read_ceilings`, which is where the converter reads it;
+# how it is measured, in `rm2k-snes-volume-ceilings`.
+# `test_musica_techos.py` fails if any song clips or if the mix of
+# any of them is no longer the one measured: the fingerprint. Any
+# change to the mix —the samples, the envelopes, the allocation—
+# calls for running `just techos` again.
 #
-# Por tema: `aire`, el techo; `pico`, en dB contra el tope, y `lufs`,
-# el nivel, los dos medidos con ese aire; `hasta`, cuántos cuadros
-# desde que arranca hay que tocarlo para pasar por su pico; y
-# `huella`, la de `mix_fingerprint`.
+# Per song: `aire`, the ceiling; `pico`, in dB against the cap, and
+# `lufs`, the level, both measured with that headroom; `hasta`, how
+# many frames from the start it has to be played to go through its
+# peak; and `huella`, that of `mix_fingerprint`.
 
 [medida]
 measuring_headroom = 0.25
@@ -20,23 +21,23 @@ margen_db = -0.5
 
 [temas."11h035"]
 aire = 0.500
-pico = -5.1
+pico = -4.7
 lufs = -20.5
-hasta = 2599
+hasta = 6207
 huella = "6b542076a90d11d3"
 
 [temas."3D-Galax"]
-aire = 0.331
+aire = 0.335
 pico = -0.6
-lufs = -14.6
+lufs = -14.5
 hasta = 8326
-huella = "accf882ccd8aac87"
+huella = "bfcad191fc51ba5a"
 
 [temas."Astpgmarch"]
 aire = 0.500
-pico = -1.4
+pico = -1.2
 lufs = -14.2
-hasta = 1236
+hasta = 1364
 huella = "b970a2d3227a8148"
 
 [temas."C3classi"]
@@ -50,7 +51,7 @@ huella = "14475ecfdadfb029"
 aire = 0.343
 pico = -0.6
 lufs = -15.5
-hasta = 2680
+hasta = 3079
 huella = "11c8e525d4c58113"
 
 [temas."Fantasia_Of_The_Wind"]
@@ -78,7 +79,7 @@ huella = "4d99a25a6d0f6deb"
 aire = 0.500
 pico = -2.1
 lufs = -12.6
-hasta = 2230
+hasta = 6830
 huella = "1f62118f0be8da02"
 
 [temas."GameOver3"]
@@ -90,7 +91,7 @@ huella = "7f42574de27e5906"
 
 [temas."KSSMKEND"]
 aire = 0.500
-pico = -6.6
+pico = -6.4
 lufs = -19.3
 hasta = 1496
 huella = "42988bffac1484a0"
@@ -106,15 +107,15 @@ huella = "2fc3e9c36279f09b"
 aire = 0.300
 pico = -0.5
 lufs = -15.4
-hasta = 8136
+hasta = 5397
 huella = "9a81ad47e1e1e0fb"
 
 [temas."MML2_MotherZone"]
-aire = 0.491
-pico = -1.0
+aire = 0.493
+pico = -0.7
 lufs = -12.7
-hasta = 3021
-huella = "c51dda84ebb95074"
+hasta = 2784
+huella = "5c2aa658433ec083"
 
 [temas."Story Music"]
 aire = 0.500
@@ -139,9 +140,9 @@ huella = "af51f11be76a52b2"
 
 [temas."T_VGFighterMAX_Masako"]
 aire = 0.337
-pico = -0.4
+pico = -0.5
 lufs = -12.2
-hasta = 5333
+hasta = 12521
 huella = "fa659e85a48c96d2"
 
 [temas."Tnt07"]
@@ -153,9 +154,9 @@ huella = "84a67609eb5a8484"
 
 [temas."bmlv2-sbl"]
 aire = 0.500
-pico = -0.9
-lufs = -15.4
-hasta = 4310
+pico = -1.0
+lufs = -15.3
+hasta = 7922
 huella = "8ffc19ef38ffe45e"
 
 [temas."bubstix"]
@@ -169,22 +170,22 @@ huella = "61d2006b28227256"
 aire = 0.500
 pico = -3.2
 lufs = -15.5
-hasta = 1050
+hasta = 6333
 huella = "b6961bfd108f7a29"
 
 [temas."cd4"]
 aire = 0.499
-pico = -0.7
+pico = -0.6
 lufs = -15.7
-hasta = 7025
+hasta = 8249
 huella = "3225adce8f36fdc7"
 
 [temas."dcbest"]
-aire = 0.354
-pico = -0.5
-lufs = -12.8
+aire = 0.325
+pico = -1.2
+lufs = -13.5
 hasta = 1729
-huella = "5f00c1202dfdf193"
+huella = "774fa2a0ded22507"
 
 [temas."escape_newyork"]
 aire = 0.500
@@ -194,11 +195,11 @@ hasta = 6577
 huella = "0bc7452d3f6b1130"
 
 [temas."evilrhys"]
-aire = 0.285
+aire = 0.287
 pico = -0.6
 lufs = -14.2
 hasta = 5239
-huella = "bd5b41d9c8c79bdf"
+huella = "861d219948bcc919"
 
 [temas."fm2bar_gs"]
 aire = 0.500
@@ -215,10 +216,10 @@ hasta = 306
 huella = "776f350cff957967"
 
 [temas."hzbreach"]
-aire = 0.386
+aire = 0.382
 pico = -0.5
 lufs = -11.0
-hasta = 2206
+hasta = 3183
 huella = "b820c0cc95d340e9"
 
 [temas."hzstream"]
@@ -237,7 +238,7 @@ huella = "2d894f1121b44718"
 
 [temas."jackalstg2"]
 aire = 0.281
-pico = -0.4
+pico = -0.5
 lufs = -13.8
 hasta = 1038
 huella = "26e284c24bda9b97"
@@ -271,11 +272,11 @@ hasta = 311
 huella = "20c68215412c5951"
 
 [temas."rshinld"]
-aire = 0.272
-pico = -0.4
-lufs = -12.5
+aire = 0.269
+pico = -0.6
+lufs = -12.7
 hasta = 631
-huella = "8c8934c56b22ae06"
+huella = "0a58dd78a9120e1f"
 
 [temas."susan"]
 aire = 0.500
@@ -294,7 +295,7 @@ huella = "fdf9fd4bd2c67270"
 [temas."vswar"]
 aire = 0.455
 pico = -0.7
-lufs = -16.2
+lufs = -16.3
 hasta = 6809
 huella = "921940325a3df8a7"
 
