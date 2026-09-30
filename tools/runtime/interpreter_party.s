@@ -68,6 +68,14 @@ gfx_no_leads:
 
 .endproc
 
+; `ChangeHP` that subtracts or reads a variable, `ChangeSP`, and the
+; `ChangeCondition` that removes death: the same, with `actor_change`.
+.proc op_actor
+    jsl f:actor_change
+    jmp run_code::other
+
+.endproc
+
 ; `ChangeEquipment` and `ChangeSkills`: like `op_heal`, only the entry. The
 ; bodies are `equipment_remove` and `skill_change`, outside bank 0.
 .proc op_equipment

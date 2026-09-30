@@ -31,11 +31,19 @@ use std::collections::HashMap;
 /// —see `TroopPages::compile`—, and `ShakeScreen` moves the scene: see
 /// `ba_shake`. Its wait, an OP_DELAY, is counted by `ba_page_step`.
 ///
+/// **What changes the party**, since 2026-09-30 —`ChangePartyMembers`,
+/// `ChangeHP`, `FullHeal`, the `ChangeCondition` that revives, and
+/// `ControlVars` with an actor's HP—, is the map's opcode as it is: the
+/// battle keeps its HP in `BA_ONE`, but each stretch of a page runs between
+/// `ba_sync_out` and `ba_sync_in`, which take them to `FAR_HP` and bring them
+/// back with whoever joined or left. `ChangeMonsterHP` and `ChangeMonsterMP`
+/// are OP_ENEMY.
+///
 /// The ones left out that the game uses, in case someone wants to add them:
-/// `ChangeHP` and `FullHeal` —in battle HP lives in `BA_ONE` and `FAR_HP` is
-/// overwritten when closing it—, `ChangePartyMembers`, `ChangeEquipment`,
-/// `Wait`, `TintScreen` and five of the six that only exist in battle.
-const TROOP_COMMANDS: [i32; 15] = [
+/// `ChangeEquipment` to equip, `PlayBGM` —its song would go into the battle's
+/// audio package—, `FlashScreen`, `Wait`, `TintScreen`,
+/// `ChangeMonsterCondition` —the battle has no states— and `TerminateBattle`.
+const TROOP_COMMANDS: [i32; 21] = [
     END,
     SHOW_MESSAGE,
     SHOW_MESSAGE_2,
@@ -44,8 +52,14 @@ const TROOP_COMMANDS: [i32; 15] = [
     CHANGE_SKILLS,
     CHANGE_GOLD,
     CHANGE_ITEMS,
+    CHANGE_PARTY_MEMBERS,
+    CHANGE_HP,
+    FULL_HEAL,
+    CHANGE_CONDITION,
     PLAY_SOUND,
     SHAKE_SCREEN,
+    CHANGE_MONSTER_HP,
+    CHANGE_MONSTER_MP,
     SHOW_HIDDEN_MONSTER,
     COND_BRANCH,
     COND_ELSE,

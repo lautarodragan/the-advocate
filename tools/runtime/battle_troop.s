@@ -507,6 +507,10 @@ no_wait:
     sep #$20
 other_stretch:
 .a8
+    ; The party's HP and SP out to the saved game's, where the map's opcodes
+    ; —`ChangeHP`, `ControlVars` with an actor's HP, `ChangePartyMembers`—
+    ; read and write them, and back after the stretch. See `ba_sync_out`.
+    jsr ba_sync_out
     rep #$20
 .a16
     ; `ev_waiting` belongs to the map's interpreter, which was left halfway
@@ -523,6 +527,11 @@ other_stretch:
     sta BA_PAGE_WAIT
     pla
     sta ev_waiting
+    sep #$20
+.a8
+    jsr ba_sync_in
+    rep #$20
+.a16
     lda BA_PAGE_MSG
     cmp #$FFFF
     sep #$20
@@ -614,4 +623,340 @@ end_line:
     bra line
 ready:
     rts
+.endproc
+
+; --- what a page does to the party ------------------------------------------
+;
+; In RM2k the battle has no HP of its own: an actor's are those of its
+; `Game_Actor`, the same one the map sees, so a `ChangeHP` or a `FullHeal` in
+; a troop page, a `ControlVars` that reads Talan's HP or a
+; `ChangePartyMembers` do in battle what they do on the map. Here the battle
+; keeps them in `BA_ONE` and hands them back to `FAR_HP` and `FAR_SP` when it
+; ends. So that those opcodes do not need to know there is a battle, a page's
+; stretch runs between these two: the HP and SP go out to the saved game's
+; before, and come back after, together with whatever changed in `party`.
+
+; The HP and SP of each actor who is fighting, to `FAR_HP` and `FAR_SP`. It is
+; also what the battle does when it closes. Clobbers `BA_T0` to `BA_T2`, A
+; and X.
+.proc ba_sync_out
+.a8
+.i16
+    stz BA_T0
+other:
+    lda BA_T0
+    cmp #BA_PARTY_MAX
+    bcs ready
+    jsr ba_x
+    lda BA_ONE + BA_FLAGS, x
+    and #BAF_HAS
+    beq next                    ; nobody, or one a page took out: see below
+    rep #$20
+.a16
+    lda BA_ONE + BA_HP, x
+    sta BA_T1
+    lda BA_ONE + BA_SP, x
+    sta BA_T2
+    lda BA_ONE + BA_NUMBER, x
+    and #$00FF
+    asl a
+    tax
+    lda BA_T1
+    sta FAR_HP, x
+    lda BA_T2
+    sta FAR_SP, x
+    sep #$20
+.a8
+next:
+    inc BA_T0
+    bra other
+ready:
+    rts
+.endproc
+
+; And back: the HP and SP of whoever is still in `party`, and the party's
+; changes.
+;
+; **One who leaves** keeps its place empty, with `BAF_HIDDEN` and without
+; `BAF_HAS`, which is what everything that looks at who is there skips
+; —`Exists()`— and what `ba_line` does not draw. Its pending action is lost,
+; as with easyrpg's `RemoveCurrentAction` for one who does not exist.
+;
+; **One who joins** goes to the first place without `BAF_HAS`, from the
+; saved game's HP and SP as `ba_build` would have brought it. It has no
+; action this turn —`CreateBattleActions` already ran—, and if the place
+; had one pending from whoever left it, it is dropped.
+;
+; RM2k compacts the list instead: the one who leaves takes its line with it
+; and the one who joins goes last. Here the places do not move, because
+; everything pending —the commands, the order, the targets— points at them.
+; With the game's summons, which take Emily out and put the summon in, it
+; shows as the summon in Emily's line and not at the bottom. See
+; `workflow/divergencias/`.
+;
+; Clobbers `BA_S0` to `BA_S6`, `BA_T*`, A, X and Y.
+.proc ba_sync_in
+.a8
+.i16
+    stz BA_T0
+present:
+    lda BA_T0
+    cmp #BA_PARTY_MAX
+    bcs to_added
+    jsr ba_x
+    lda BA_ONE + BA_FLAGS, x
+    and #BAF_HAS
+    beq next_present
+    lda BA_ONE + BA_NUMBER, x
+    jsr ba_in_party
+    bne stays
+    lda BA_T0
+    jsr ba_x
+    lda #(BAF_ACTOR | BAF_HIDDEN)
+    sta BA_ONE + BA_FLAGS, x
+    bra next_present
+stays:
+    lda BA_T0
+    jsr ba_x
+    rep #$20
+.a16
+    lda BA_ONE + BA_NUMBER, x
+    and #$00FF
+    asl a
+    tay
+    lda FAR_HP, y
+    sta BA_ONE + BA_HP, x
+    lda FAR_SP, y
+    sta BA_ONE + BA_SP, x
+    sep #$20
+.a8
+next_present:
+    inc BA_T0
+    bra present
+to_added:
+    stz BA_SYNC_I
+member:
+    rep #$20
+.a16
+    lda BA_SYNC_I
+    and #$00FF
+    cmp party_n
+    sep #$20
+.a8
+    bcs ready
+    rep #$20
+.a16
+    lda BA_SYNC_I
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda party, x
+    sta BA_S0
+    jsr ba_fighting
+    bne next_member
+    stz BA_S1
+free:
+    lda BA_S1
+    cmp #BA_PARTY_MAX
+    bcs next_member             ; cannot happen: the party is four at most
+    jsr ba_x
+    lda BA_ONE + BA_FLAGS, x
+    and #BAF_HAS
+    beq found
+    inc BA_S1
+    bra free
+found:
+    jsr ba_actor_setup
+    lda BA_S1
+    inc a
+    cmp BA_NACTORS
+    bcc counted
+    sta BA_NACTORS
+counted:
+    lda BA_S1
+    jsr ba_drop_actions
+next_member:
+    inc BA_SYNC_I
+    bra member
+ready:
+    rts
+.endproc
+
+; Z=0 if actor A8 is in `party`, which is the list the map's opcodes change.
+; With the data bank at $7E it is in its usual place: it lives in low RAM.
+; Clobbers `BA_T2` and X.
+.proc ba_in_party
+.a8
+.i16
+    sta BA_T2
+    ldx #0
+other:
+    cpx party_n
+    bcs no
+    lda party, x
+    cmp BA_T2
+    beq yes
+    inx
+    bra other
+yes:
+    lda #1
+    rts
+no:
+    lda #0
+    rts
+.endproc
+
+; Z=0 if actor `BA_S0` is fighting: in a place of the party with `BAF_HAS`.
+; Clobbers `BA_T2` and X.
+.proc ba_fighting
+.a8
+.i16
+    stz BA_T2
+other:
+    lda BA_T2
+    cmp #BA_PARTY_MAX
+    bcs no
+    jsr ba_x
+    lda BA_ONE + BA_FLAGS, x
+    and #BAF_HAS
+    beq next
+    lda BA_ONE + BA_NUMBER, x
+    cmp BA_S0
+    beq yes
+next:
+    inc BA_T2
+    bra other
+yes:
+    lda #1
+    rts
+no:
+    lda #0
+    rts
+.endproc
+
+; The actions still pending in this turn's order —from `BA_I` on— of
+; combatant A8, out of the list. Clobbers `BA_T2`, A, X and Y.
+.proc ba_drop_actions
+.a8
+.i16
+    sta BA_T2
+    rep #$20
+.a16
+    lda BA_I
+    and #$00FF
+    tax                         ; the one read
+    tay                         ; and the one written
+    sep #$20
+.a8
+other:
+    txa
+    cmp BA_NACTIONS
+    bcs ready
+    lda BA_EXEC, x
+    cmp BA_T2
+    beq drop
+    sta BA_EXEC, y
+    iny
+drop:
+    inx
+    bra other
+ready:
+    tya
+    sta BA_NACTIONS
+    rts
+.endproc
+
+; `ChangeMonsterHP` and `ChangeMonsterMP`, OP_ENEMY: `Game_Interpreter_Battle`'s
+; two, on the enemy at a place of the troop. Called by `op_enemy` from the
+; interpreter, with the data bank at 0 and Y on the operands: it sets the
+; battle's and leaves Y after them.
+;
+; The HP one is `ChangeHp`: a dead one does not change, it does not go past
+; the maximum, and a loss that is not lethal leaves it at 1. One that dies
+; sounds like one killed by a hit —`SFX_EnemyKill`, the `BA_SE_DEATH` of
+; `ba_hit_sound`— and `scene_tick` erases it as it erases that one. A hidden
+; one is changed all the same: `GetEnemy` does not ask. The SP one is `SetSp`,
+; between zero and the maximum.
+ENEMY_SP     = $01              ; what: the SP and not the HP
+ENEMY_LETHAL = $80              ; and on top, that a loss of HP can kill
+.proc ba_enemy_change
+.a8
+.i16
+    phb
+    lda #$7E
+    pha
+    plb
+    lda [code_ptr], y           ; the place
+    iny
+    sta BA_T0
+    lda [code_ptr], y           ; what
+    iny
+    sta BA_T0 + 1
+    rep #$20
+.a16
+    lda [code_ptr], y           ; and how much, signed
+    iny
+    iny
+    sta BA_T1
+    sep #$20
+.a8
+    phy
+    lda BA_T0
+    cmp BA_KID
+    bcs ready
+    clc
+    adc #BA_PARTY_MAX
+    jsr ba_x
+    lda BA_T0 + 1
+    and #ENEMY_SP
+    bne sp
+    rep #$20
+.a16
+    lda BA_ONE + BA_HP, x
+    beq ready16                 ; dead: `ChangeHp` does nothing to it
+    clc
+    adc BA_T1
+    bmi down
+    beq down
+    cmp BA_ONE + BA_HPMAX, x
+    bcc put
+    lda BA_ONE + BA_HPMAX, x
+put:
+    sta BA_ONE + BA_HP, x
+ready16:
+    sep #$20
+.a8
+ready:
+    ply
+    plb
+    rtl
+.a16
+down:
+    lda BA_T0
+    and #(ENEMY_LETHAL * 256)
+    bne dies
+    lda #1
+    bra put
+dies:
+    stz BA_ONE + BA_HP, x
+    lda #BA_SE_DEATH
+    jsl f:ba_t_sound
+.a8
+    bra ready
+sp:
+    rep #$20
+.a16
+    lda BA_ONE + BA_SP, x
+    clc
+    adc BA_T1
+    bpl sp_positive
+    lda #0
+sp_positive:
+    cmp BA_ONE + BA_SPMAX, x
+    bcc sp_put
+    lda BA_ONE + BA_SPMAX, x
+sp_put:
+    sta BA_ONE + BA_SP, x
+    bra ready16
 .endproc

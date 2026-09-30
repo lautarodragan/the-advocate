@@ -290,54 +290,15 @@ nothing8:
     rts
 .endproc
 
-.proc ba_build
+; Actor `BA_S0` into party slot `BA_S1`, as the battle starts it: the HP and
+; SP of the saved game, the parameters of its level and equipment, and no
+; modifiers. It is `ba_build`'s, and since 2026-09-30 also `ba_sync_in`'s, for
+; whoever a troop page brings into the party halfway through: in RM2k one who
+; joins the battle is the same `Game_Actor` it was on the map. Clobbers
+; `BA_S2` to `BA_S6`, `BA_T*`, A, X and Y.
+.proc ba_actor_setup
 .a8
 .i16
-    ; All slots empty: the screen and the sweeps look at `BAF_HAS`.
-    lda #0
-other_slot:
-    pha
-    jsr ba_x
-    lda #0
-    sta BA_ONE + BA_FLAGS, x
-    pla
-    inc a
-    cmp #BA_COMB_MAX
-    bcc other_slot
-    stz BA_NACTORS
-    stz BA_KID
-
-    ; --- the party ---
-    lda #0
-    sta BA_S1                 ; the place in the party
-other_actor:
-    rep #$20
-.a16
-    lda BA_S1
-    and #$00FF
-    cmp party_n
-    sep #$20
-.a8
-    bcc has_place
-    jmp party_ready
-has_place:
-    lda BA_S1
-    cmp #BA_PARTY_MAX
-    bcc has_slot
-    jmp party_ready
-has_slot:
-    rep #$20
-.a16
-    lda BA_S1
-    and #$00FF
-    tax
-    sep #$20
-.a8
-    lda party, x
-    bne with_actor
-    jmp next_actor              ; a party slot with nobody in it
-with_actor:
-    sta BA_S0                 ; the actor from the LDB
     ldy #0
     jsl f:level_param
     stx BA_S2                 ; the max HP for its level
@@ -461,6 +422,58 @@ with_actor:
     jsr ba_ax
     pla
     sta f:BA_WEAPON_SP, x
+    rts
+.endproc
+
+.proc ba_build
+.a8
+.i16
+    ; All slots empty: the screen and the sweeps look at `BAF_HAS`.
+    lda #0
+other_slot:
+    pha
+    jsr ba_x
+    lda #0
+    sta BA_ONE + BA_FLAGS, x
+    pla
+    inc a
+    cmp #BA_COMB_MAX
+    bcc other_slot
+    stz BA_NACTORS
+    stz BA_KID
+
+    ; --- the party ---
+    lda #0
+    sta BA_S1                 ; the place in the party
+other_actor:
+    rep #$20
+.a16
+    lda BA_S1
+    and #$00FF
+    cmp party_n
+    sep #$20
+.a8
+    bcc has_place
+    jmp party_ready
+has_place:
+    lda BA_S1
+    cmp #BA_PARTY_MAX
+    bcc has_slot
+    jmp party_ready
+has_slot:
+    rep #$20
+.a16
+    lda BA_S1
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda party, x
+    bne with_actor
+    jmp next_actor              ; a party slot with nobody in it
+with_actor:
+    sta BA_S0                 ; the actor from the LDB
+    jsr ba_actor_setup
     inc BA_NACTORS
 next_actor:
     inc BA_S1

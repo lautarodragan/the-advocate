@@ -20,6 +20,7 @@ pub const CHANGE_PARTY_MEMBERS: i32 = 10330;
 pub const CHANGE_SKILLS: i32 = 10440;
 pub const CHANGE_EQUIPMENT: i32 = 10450;
 pub const CHANGE_HP: i32 = 10460;
+pub const CHANGE_SP: i32 = 10470;
 pub const CHANGE_CONDITION: i32 = 10480;
 pub const FULL_HEAL: i32 = 10490;
 pub const CHANGE_HERO_TITLE: i32 = 10620;
@@ -72,6 +73,8 @@ pub const CALL_EVENT: i32 = 12330;
 pub const COMMENT: i32 = 12410;
 pub const GAME_OVER: i32 = 12420;
 pub const RETURN_TO_TITLE: i32 = 12510;
+pub const CHANGE_MONSTER_HP: i32 = 13110;
+pub const CHANGE_MONSTER_MP: i32 = 13120;
 pub const SHOW_HIDDEN_MONSTER: i32 = 13150;
 pub const CHANGE_BATTLE_BG: i32 = 13210;
 pub const BATTLE_COND_BRANCH: i32 = 13310;
@@ -156,6 +159,7 @@ mod tests {
             (CHANGE_SKILLS, C::ChangeSkills),
             (CHANGE_EQUIPMENT, C::ChangeEquipment),
             (CHANGE_HP, C::ChangeHP),
+            (CHANGE_SP, C::ChangeSP),
             (CHANGE_CONDITION, C::ChangeCondition),
             (FULL_HEAL, C::FullHeal),
             (CHANGE_HERO_TITLE, C::ChangeHeroTitle),
@@ -208,6 +212,8 @@ mod tests {
             (COMMENT, C::Comment),
             (GAME_OVER, C::GameOver),
             (RETURN_TO_TITLE, C::ReturntoTitleScreen),
+            (CHANGE_MONSTER_HP, C::ChangeMonsterHP),
+            (CHANGE_MONSTER_MP, C::ChangeMonsterMP),
             (SHOW_HIDDEN_MONSTER, C::ShowHiddenMonster),
             (CHANGE_BATTLE_BG, C::ChangeBattleBG),
             (BATTLE_COND_BRANCH, C::ConditionalBranchB),

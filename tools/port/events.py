@@ -1067,6 +1067,12 @@ VAR_CONSTANT, VAR_VARIABLE, VAR_RANDOM, VAR_OTHER = 0, 1, 3, 7
 #   worth making up a coordinate that is not the one there for one page.
 VAR_CHARACTER = 6
 CHARACTER_X, CHARACTER_Y = 1, 2
+# And kind 5, **an actor's data**: `a` the actor and `b` which one, with the
+# numbers of easyrpg's `ControlVariables::Actor`. The ROM does the HP, the SP
+# and their maximums —2 to 5—, which are the ones the game asks for: the
+# characters' systems read Talan's HP in battle, and `ResetAfterBattles`
+# the four. See `actor_stat` in tools/runtime/level.s.
+VAR_ACTOR = 5
 CMP_EQUAL, CMP_GREATER_EQUAL, CMP_LESS_EQUAL, CMP_GREATER, CMP_LESS, \
     CMP_NOT_EQUAL = range(6)
 # The random generator: a sixteen-bit xorshift —x ^= x << 7; x ^= x >> 9;

@@ -35,9 +35,9 @@
 //!   that matters, and it divides **rounding up**: see
 //!   [`hit_rate_by_agility`].
 //! * **What is missing.** States, attributes, rows and the double attack.
-//!   Of a troop's event pages this knows **when they run and whom they bring
-//!   into the battle** —[`TroopPage`]— and nothing else: none of the rest
-//!   draws battle randomness, and who fights is what changes it.
+//!   Of a troop's event pages this knows **when they run and what they do
+//!   to who fights** —[`TroopPage`]—: whom they bring in or take out and
+//!   what they do to their HP. None of the rest draws battle randomness.
 
 use crate::db::{
     self, Db, SCOPE_ALLY, SCOPE_ENEMIES, SCOPE_ENEMY, SCOPE_PARTY, SCOPE_SELF, SKILL_SWITCH,
@@ -77,12 +77,24 @@ pub const DAMAGE_MAX: i64 = 999;
 /// declared debt.
 const ACTOR_HIT: i64 = 90;
 
-/// `ConditionalBranchB` and `ElseBranchB`, and the two commands a troop
-/// page runs here: see [`TroopPage::run`].
+/// `ConditionalBranchB` and `ElseBranchB`, and the commands a troop page
+/// runs here: see [`TroopPage::run`].
 const BRANCH: i32 = 13310;
 const ELSE_BRANCH: i32 = 23310;
 const CONTROL_SWITCHES: i32 = 10210;
+const CONTROL_VARS: i32 = 10220;
+const CHANGE_PARTY_MEMBERS: i32 = 10330;
+const CHANGE_HP: i32 = 10460;
+const CHANGE_CONDITION: i32 = 10480;
+const FULL_HEAL: i32 = 10490;
+const CHANGE_MONSTER_HP: i32 = 13110;
+const CHANGE_MONSTER_MP: i32 = 13120;
 const SHOW_HIDDEN_MONSTER: i32 = 13150;
+
+/// How many the party holds: `Game_Party::AddActor` does not add a fifth.
+const PARTY_MAX: usize = 4;
+/// RM2k's death state, `State::kDeathID`.
+const DEATH_STATE: i64 = 1;
 
 /// The xorshift step, in sixteen bits.
 pub fn next_random(x: i64) -> i64 {
@@ -256,9 +268,23 @@ pub struct Combatant {
 }
 
 impl Combatant {
-    /// `Exists()`: it has HP left and is not hidden.
+    /// `Exists()`: it has HP left and is not hidden. An actor a troop page
+    /// took out of the party is hidden too: see [`Battle::leave`].
     pub fn alive(&self) -> bool {
         self.hp > 0 && !self.hidden
+    }
+
+    /// `Game_Battler::ChangeHp`: a dead one does not change, it does not go
+    /// past the maximum, and a loss that is not lethal leaves it at 1.
+    pub fn change_hp(&mut self, amount: i64, lethal: bool) {
+        if self.hp == 0 {
+            return;
+        }
+        let mut hp = self.hp + amount;
+        if !lethal {
+            hp = hp.max(1);
+        }
+        self.hp = hp.clamp(0, self.hp_max);
     }
 
     fn param(&self, k: usize) -> i64 {
@@ -429,6 +455,20 @@ pub fn check_turns(turn: i64, base: i64, multiple: i64) -> bool {
     turn >= base && (turn - base).rem_euclid(multiple) == 0
 }
 
+/// The comparison of a `ConditionalBranch` on a variable: `==`, `>=`,
+/// `<=`, `>`, `<` and `!=`, in RM2k's order.
+fn compare(a: i64, op: i64, b: i64) -> Result<bool> {
+    Ok(match op {
+        0 => a == b,
+        1 => a >= b,
+        2 => a <= b,
+        3 => a > b,
+        4 => a < b,
+        5 => a != b,
+        _ => return Err(Bad::answer(format!("there is no comparison {op}"))),
+    })
+}
+
 /// Which side, and which place on it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Who {
@@ -457,11 +497,13 @@ pub struct Command {
 }
 
 /// A troop's event page, **with what the battle needs**: when it is met
-/// —`AreConditionsMet`— and whom it brings in. Of its commands it runs
-/// `ShowHiddenMonster`, the single-switch `ControlSwitches` and the
-/// battle's branches on a switch, which is what it takes to know whether a
-/// `ShowHiddenMonster` inside a branch runs. The rest does not change who
-/// fights nor draws battle randomness.
+/// —`AreConditionsMet`— and what it does to who fights. Of its commands it
+/// runs `ShowHiddenMonster`, `ChangePartyMembers`, `ChangeHP`, `FullHeal`,
+/// the `ChangeCondition` that revives, `ChangeMonsterHP` and
+/// `ChangeMonsterMP`; and, to know which of those run, the single
+/// `ControlSwitches`, the `ControlVars` the console does in battle and the
+/// battle's branches on a switch or a variable. The rest does not change
+/// who fights nor draws battle randomness.
 #[derive(Debug, Clone)]
 pub struct TroopPage {
     pub condition: TroopPageCondition,
@@ -537,7 +579,11 @@ impl TroopPage {
         }
         if f.actor_hp {
             // Only if it is in the party, like the console.
-            let Some(a) = battle.actors.iter().find(|a| a.number == c.actor_id as i64) else {
+            let Some(a) = battle
+                .actors
+                .iter()
+                .find(|a| a.number == c.actor_id as i64 && !a.hidden)
+            else {
                 return Ok(false);
             };
             let p = percent(a)?;
@@ -548,10 +594,9 @@ impl TroopPage {
         Ok(true)
     }
 
-    /// The commands, with the switch branches resolved: a branch not taken
-    /// skips everything nested deeper than it, and its `else` is where it
-    /// ends.
-    fn run(&self, battle: &mut Battle) -> Result<()> {
+    /// The commands, with the branches resolved: a branch not taken skips
+    /// everything nested deeper than it, and its `else` is where it ends.
+    fn run(&self, db: &Db, battle: &mut Battle) -> Result<()> {
         let mut skip_from: Option<i32> = None;
         for (code, indent, p) in &self.commands {
             let (code, indent) = (*code, *indent);
@@ -566,11 +611,23 @@ impl TroopPage {
             }
             match code {
                 BRANCH => {
-                    if parameter(p, 0)? != 0 {
-                        return Err(Bad::answer("a battle branch that is not on a switch"));
-                    }
-                    let lit = battle.switch(parameter(p, 1)?);
-                    if lit != (parameter(p, 2)? == 0) {
+                    let taken = match parameter(p, 0)? {
+                        0 => battle.switch(parameter(p, 1)?) == (parameter(p, 2)? == 0),
+                        1 => {
+                            let value = battle.variable(parameter(p, 1)?)?;
+                            let other = match parameter(p, 2)? {
+                                0 => parameter(p, 3)?,
+                                _ => battle.variable(parameter(p, 3)?)?,
+                            };
+                            compare(value, parameter(p, 4)?, other)?
+                        }
+                        _ => {
+                            return Err(Bad::answer(
+                                "a battle branch that is not on a switch or a variable",
+                            ))
+                        }
+                    };
+                    if !taken {
                         skip_from = Some(indent);
                     }
                 }
@@ -587,7 +644,9 @@ impl TroopPage {
                         return Err(Bad::answer("a ControlSwitches the battle does not know"));
                     }
                     battle.state.insert(first, op == 0);
+                    battle.lit_by_skills.remove(&first);
                 }
+                CONTROL_VARS => battle.control_vars(p)?,
                 SHOW_HIDDEN_MONSTER => {
                     let k = parameter(p, 0)?;
                     if let Some(e) = usize::try_from(k)
@@ -595,6 +654,71 @@ impl TroopPage {
                         .and_then(|k| battle.enemies.get_mut(k))
                     {
                         e.hidden = false;
+                    }
+                }
+                CHANGE_PARTY_MEMBERS => {
+                    if parameter(p, 1)? != 0 {
+                        return Err(Bad::answer("a ChangePartyMembers by variable"));
+                    }
+                    let actor = parameter(p, 2)?;
+                    if parameter(p, 0)? == 0 {
+                        battle.join(db, actor)?;
+                    } else {
+                        battle.leave(actor);
+                    }
+                }
+                CHANGE_HP => {
+                    if parameter(p, 3)? != 0 {
+                        return Err(Bad::answer("a ChangeHP by variable"));
+                    }
+                    let mut amount = parameter(p, 4)?;
+                    if parameter(p, 2)? != 0 {
+                        amount = -amount;
+                    }
+                    let lethal = parameter(p, 5)? != 0;
+                    for k in battle.targets(p)? {
+                        battle.actors[k].change_hp(amount, lethal);
+                    }
+                }
+                FULL_HEAL => {
+                    for k in battle.targets(p)? {
+                        let a = &mut battle.actors[k];
+                        a.hp = a.hp_max;
+                        a.sp = a.sp_max;
+                    }
+                }
+                CHANGE_CONDITION => {
+                    // Only removing death does anything here: the battle has
+                    // no other states, and adding one does not compile.
+                    if parameter(p, 2)? == 1 && parameter(p, 3)? == DEATH_STATE {
+                        for k in battle.targets(p)? {
+                            let a = &mut battle.actors[k];
+                            if a.hp == 0 {
+                                a.hp = 1;
+                            }
+                        }
+                    }
+                }
+                CHANGE_MONSTER_HP | CHANGE_MONSTER_MP => {
+                    if parameter(p, 2)? != 0 {
+                        return Err(Bad::answer("a ChangeMonsterHP or MP not by a constant"));
+                    }
+                    let mut amount = parameter(p, 3)?;
+                    if parameter(p, 1)? != 0 {
+                        amount = -amount;
+                    }
+                    let k = parameter(p, 0)?;
+                    let hp = code == CHANGE_MONSTER_HP;
+                    let lethal = hp && parameter(p, 4)? != 0;
+                    if let Some(e) = usize::try_from(k)
+                        .ok()
+                        .and_then(|k| battle.enemies.get_mut(k))
+                    {
+                        if hp {
+                            e.change_hp(amount, lethal);
+                        } else {
+                            e.sp = (e.sp + amount).clamp(0, e.sp_max);
+                        }
                     }
                 }
                 _ => {}
@@ -648,6 +772,23 @@ pub struct Battle {
     pub done_pages: BTreeSet<usize>,
     /// The switches the pages look at, from the ones given.
     pub state: BTreeMap<i64, bool>,
+    /// The variables the pages look at: the ones given and the ones a page
+    /// set. **One that is in neither is not known**, and a branch that looks
+    /// at it is an error: the console has it from the game, and making up a
+    /// zero would compare against something else.
+    pub variables: BTreeMap<i64, i64>,
+    /// The HP and SP of those a page took out of the party, by actor
+    /// number: they are the `FAR_HP` of the console, which keeps them.
+    pub outside: BTreeMap<i64, (i64, i64)>,
+    /// The switches a `switch` skill turned on and no page turned off since.
+    /// They go apart from `state` so that the answer's `state` stays what
+    /// was given and what the pages wrote, which is what it said before
+    /// skills turned them on here —the hashes in `tests/model.rs`—.
+    pub lit_by_skills: BTreeSet<i64>,
+    /// The places a page put someone in during this turn: whatever action
+    /// was pending there belonged to whoever left it, and is lost. See
+    /// [`Battle::join`].
+    pub joined: BTreeSet<usize>,
     pub result: Option<i64>,
     pub escape_chance: i64,
     pub log: Vec<Logged>,
@@ -684,6 +825,10 @@ impl Battle {
             pages,
             done_pages: BTreeSet::new(),
             state: switches,
+            variables: BTreeMap::new(),
+            outside: BTreeMap::new(),
+            lit_by_skills: BTreeSet::new(),
+            joined: BTreeSet::new(),
             result: None,
             escape_chance: 0,
             log: Vec::new(),
@@ -705,7 +850,135 @@ impl Battle {
     }
 
     fn switch(&self, id: i64) -> bool {
-        self.state.get(&id).copied().unwrap_or(false)
+        self.lit_by_skills.contains(&id) || self.state.get(&id).copied().unwrap_or(false)
+    }
+
+    fn variable(&self, id: i64) -> Result<i64> {
+        self.variables.get(&id).copied().ok_or_else(|| {
+            Bad::answer(format!(
+                "a troop page looks at variable {id}, which this battle does not know"
+            ))
+        })
+    }
+
+    /// `ControlVars` on one variable, with what the console does in battle:
+    /// set, add or subtract a constant, another variable or an actor's HP,
+    /// SP or their maximums. Any other is not known and the variable stops
+    /// being known: see `variables`.
+    fn control_vars(&mut self, p: &[i32]) -> Result<()> {
+        let (mode, first, last, op, kind, a, b) = (
+            parameter(p, 0)?,
+            parameter(p, 1)?,
+            parameter(p, 2)?,
+            parameter(p, 3)?,
+            parameter(p, 4)?,
+            parameter(p, 5)?,
+            parameter(p, 6)?,
+        );
+        let value = match kind {
+            _ if mode != 0 || first != last || op > 2 => None,
+            0 => Some(a),
+            1 => self.variables.get(&a).copied(),
+            5 => self.actor_stat(a, b),
+            _ => None,
+        };
+        let now = match (value, op) {
+            (Some(v), 0) => Some(v),
+            (Some(v), 1) => self.variables.get(&first).map(|x| x + v),
+            (Some(v), 2) => self.variables.get(&first).map(|x| x - v),
+            _ => None,
+        };
+        match now {
+            Some(v) => {
+                self.variables.insert(first, v);
+            }
+            None => {
+                for id in first..=last {
+                    self.variables.remove(&id);
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// `ControlVariables::Actor` for the four the console does: 2 the HP, 3
+    /// the SP, 4 and 5 their maximums. Of one who is not fighting only what
+    /// a page left in `outside` is known.
+    fn actor_stat(&self, actor: i64, which: i64) -> Option<i64> {
+        if let Some(a) = self
+            .actors
+            .iter()
+            .find(|a| a.number == actor && !a.hidden)
+        {
+            return match which {
+                2 => Some(a.hp),
+                3 => Some(a.sp),
+                4 => Some(a.hp_max),
+                5 => Some(a.sp_max),
+                _ => None,
+            };
+        }
+        match which {
+            2 => self.outside.get(&actor).map(|x| x.0),
+            3 => self.outside.get(&actor).map(|x| x.1),
+            _ => None,
+        }
+    }
+
+    /// The places of the actors a command's `[type, id]` names, among those
+    /// fighting: 0 the whole party, 1 one actor. One who is not fighting is
+    /// left out; the console changes its `FAR_HP`, which the model only
+    /// follows in `outside` for whom a page took out.
+    fn targets(&self, p: &[i32]) -> Result<Vec<usize>> {
+        let (kind, id) = (parameter(p, 0)?, parameter(p, 1)?);
+        Ok((0..self.actors.len())
+            .filter(|&k| !self.actors[k].hidden)
+            .filter(|&k| kind == 0 || (kind == 1 && self.actors[k].number == id))
+            .collect())
+    }
+
+    /// `Game_Party::RemoveActor` in battle: the actor stops existing, and
+    /// keeps its place, which the console does not move —see `ba_sync_in` in
+    /// its `battle_troop.s`—. Its HP and SP stay in `outside`.
+    fn leave(&mut self, actor: i64) {
+        if let Some(a) = self
+            .actors
+            .iter_mut()
+            .find(|a| a.number == actor && !a.hidden)
+        {
+            a.hidden = true;
+            self.outside.insert(actor, (a.hp, a.sp));
+        }
+    }
+
+    /// `Game_Party::AddActor` in battle: nothing if it is already fighting
+    /// or the party is full; otherwise into the first place without anyone,
+    /// which is where the console puts it, with the HP and SP it had —those
+    /// of `outside`, or full—, its starting level and equipment, and no
+    /// action this turn.
+    fn join(&mut self, db: &Db, actor: i64) -> Result<()> {
+        let present = self.actors.iter().filter(|a| !a.hidden).count();
+        if present >= PARTY_MAX || self.actors.iter().any(|a| a.number == actor && !a.hidden) {
+            return Ok(());
+        }
+        let mut who = Combatant::actor(db, actor as i32, None, None)?;
+        if let Some(&(hp, sp)) = self.outside.get(&actor) {
+            who.hp = hp;
+            who.sp = sp;
+        }
+        self.outside.remove(&actor);
+        let k = match self.actors.iter().position(|a| a.hidden) {
+            Some(k) => {
+                self.actors[k] = who;
+                k
+            }
+            None => {
+                self.actors.push(who);
+                self.actors.len() - 1
+            }
+        };
+        self.joined.insert(k);
+        Ok(())
     }
 
     pub fn get(&self, who: Who) -> &Combatant {
@@ -751,14 +1024,14 @@ impl Battle {
     /// `CheckBattleEndAndScheduleEvents` until none is left: with a whole
     /// side out nothing runs; otherwise, the first page that is met and has
     /// not run this turn, and then again from the first.
-    pub fn check_pages(&mut self) -> Result<()> {
+    pub fn check_pages(&mut self, db: &Db) -> Result<()> {
         while !self.living(false).is_empty() && !self.living(true).is_empty() {
             let mut ran = false;
             for i in 0..self.pages.len() {
                 if !self.done_pages.contains(&i) && self.pages[i].met(self)? {
                     self.done_pages.insert(i);
                     let page = self.pages[i].clone();
-                    page.run(self)?;
+                    page.run(db, self)?;
                     ran = true;
                     break;
                 }
@@ -772,8 +1045,8 @@ impl Battle {
 
     /// Before the first commands, on turn 0: the `eCheckEvents` of
     /// `ProcessSceneActionFightAutoEscape`.
-    pub fn start(&mut self) -> Result<()> {
-        self.check_pages()
+    pub fn start(&mut self, db: &Db) -> Result<()> {
+        self.check_pages(db)
     }
 
     /// What this enemy does: `SelectEnemyAiActionRpgRtCompat` over its
@@ -931,7 +1204,10 @@ impl Battle {
         let src = self.get_mut(source);
         src.sp = (src.sp - s.sp_cost as i64).max(0);
         if s.r#type.to_i32() == SKILL_SWITCH {
+            // Turned on for the troop's pages too, which look at it before
+            // the next action: it is how a character's system starts.
             self.switches.push(s.switch_id as i64);
+            self.lit_by_skills.insert(s.switch_id as i64);
             self.logged(source, source, true, false, 0);
             return Ok(());
         }
@@ -1048,6 +1324,7 @@ impl Battle {
     pub fn play_turn(&mut self, db: &Db, commands: &[Command]) -> Result<Option<i64>> {
         self.turn += 1;
         self.done_pages.clear();
+        self.joined.clear();
         for c in self.actors.iter_mut().chain(self.enemies.iter_mut()) {
             c.defending = false;
         }
@@ -1082,9 +1359,14 @@ impl Battle {
         }
         actions.extend(self.enemy_actions(db)?);
         for i in self.execution_order(&actions) {
-            self.check_pages()?;
+            self.check_pages(db)?;
             let (who, command, target) = actions[i];
             if !self.get(who).alive() {
+                continue;
+            }
+            // One a page put in this turn has no action: the one pending in
+            // its place was of whoever left it.
+            if matches!(who, Who::Actor(k) if self.joined.contains(&k)) {
                 continue;
             }
             match (command, target) {
@@ -1127,7 +1409,7 @@ impl Battle {
                 }
             }
         }
-        self.check_pages()?;
+        self.check_pages(db)?;
         if self.living(false).is_empty() {
             self.result = Some(VICTORY);
             self.drops = self.roll_drops();
@@ -1171,6 +1453,49 @@ mod tests {
         assert_eq!(at(0, 0), [0]);
         assert_eq!(at(1, 3), [1, 4, 7]);
         assert_eq!(at(0, 2), [0, 2, 4, 6, 8]);
+    }
+
+    #[test]
+    fn change_hp_is_easyrpgs() {
+        let one = |hp: i64, amount: i64, lethal: bool| {
+            let mut c = Combatant {
+                name: String::new(),
+                number: 1,
+                is_actor: true,
+                hp_max: 40,
+                hp,
+                sp_max: 0,
+                sp: 0,
+                base: [1; 4],
+                modifier: [0; 4],
+                hit_rate: 90,
+                critical: 0,
+                skills: vec![],
+                actions: vec![],
+                weapon_sp: 0,
+                defending: false,
+                command: 0,
+                hidden: false,
+                exp: 0,
+                gold: 0,
+                drop_item: 0,
+                drop_chance: 0,
+            };
+            c.change_hp(amount, lethal);
+            c.hp
+        };
+        assert_eq!(one(40, -999, true), 0);
+        assert_eq!(one(40, -999, false), 1, "a loss that is not lethal leaves 1");
+        assert_eq!(one(0, 50, false), 0, "a dead one does not change");
+        assert_eq!(one(30, 50, false), 40, "nor goes past its maximum");
+    }
+
+    #[test]
+    fn a_branch_compares_in_rm2ks_order() {
+        let ops: Vec<bool> = (0..6).map(|op| compare(40, op, 40).unwrap()).collect();
+        assert_eq!(ops, [true, true, true, false, false, false]);
+        assert!(compare(39, 1, 40).is_ok_and(|x| !x));
+        assert!(compare(1, 6, 1).is_err());
     }
 
     #[test]

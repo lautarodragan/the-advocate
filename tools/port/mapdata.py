@@ -235,6 +235,9 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         "VAR_CHARACTER = %d\n"
         "CHARACTER_X   = %d\n"
         "CHARACTER_Y   = %d\n"
+        "; Class 5, an actor's HP, SP or their maximums: `a` is the actor and\n"
+        "; `b` which. See VAR_ACTOR in events.py.\n"
+        "VAR_ACTOR     = %d\n"
         "; The high bits of each OP_CELL_TEST write. See CELL_Y in\n"
         "; events.py.\n"
         "CELL_Y        = $%04X\n"
@@ -511,6 +514,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
            events.VAR_ADD, events.VAR_VARIABLE, events.VAR_RANDOM,
            events.VAR_OTHER,
            events.VAR_CHARACTER, events.CHARACTER_X, events.CHARACTER_Y,
+           events.VAR_ACTOR,
            events.CELL_Y, events.CELL_REFRESH,
            events.RANDOM_SEED, events.ENC_SEED,
            events.TIMER_SET_VAR,
