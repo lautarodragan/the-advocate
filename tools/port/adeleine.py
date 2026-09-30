@@ -43,9 +43,14 @@ def try_pack(sets, limit, per_palette=USABLE_COLORS):
     set of colors of each tile is contained in one of them. Best-fit, the
     tiles with the most colors first, each into the group that grows the
     least.
+
+    Tiles with the same number of colors go **in the order of their
+    colors**. Until 2026-09-29 they went in the order of the Python `set`
+    they came in, which is the order of CPython's hashes: nothing a program
+    in another language can reproduce, and Adeleine was moving to Rust.
     """
     groups = []
-    for colors in sorted(sets, key=lambda s: -len(s)):
+    for colors in sorted(sets, key=lambda s: (-len(s), sorted(s))):
         best = None
         for index, group in enumerate(groups):
             size = len(group | colors)
