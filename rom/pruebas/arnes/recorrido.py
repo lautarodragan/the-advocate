@@ -616,12 +616,19 @@ class Recorrido:
 
     # --- esperar, que es la mitad del juego --------------------------------
 
-    def esperar(self, que, cond, tope, a_cada=A_CADA, mirando=None):
+    def esperar(self, que, cond, tope, a_cada=A_CADA, mirando=None,
+                tocar_si=None):
         """Corre tocando A hasta que `cond(partida)` sea verdad.
 
         `a_cada` None es esperar sin tocar nada, para las cinemáticas que
         avanzan solas: tocar A donde el juego no lo pide puede abrir el menú o
         hablarle a un evento de al lado.
+
+        `tocar_si(partida)` se mira justo antes de cada toque, y si da falso
+        ese toque no se da: la ventana dura lo mismo, sólo que sin A. Es para
+        `esperar_el_control`, donde la condición se mira al principio de cada
+        ventana y la página puede terminar a mitad: el A que caía después le
+        hablaba al evento de enfrente con el control ya devuelto.
 
         `mirando(partida)` corre en cada muestra, antes de avanzar, y sirve para
         lo que hay que comprobar **durante** un tramo y no al final: un invariante
@@ -636,7 +643,14 @@ class Recorrido:
             if cond(self.p):
                 return self
             paso = min(a_cada or 16, tope - gastado)
-            if a_cada:
+            if a_cada and tocar_si is not None and paso >= 4:
+                # El toque es el del tick `paso - 3` de la ventana —el
+                # `paso - 2` de `apretar_a`, apretado uno antes—: se corre
+                # hasta ahí, se pregunta, y el resto de la ventana sale igual.
+                self.p.correr(paso - 4)
+                toque = [self.p.cuadro + 2] if tocar_si(self.p) else []
+                self.p.correr(4, apretar_a=toque)
+            elif a_cada:
                 self.p.correr(paso, apretar_a=[self.p.cuadro + paso - 2])
             else:
                 self.p.correr(paso)
@@ -691,10 +705,18 @@ class Recorrido:
 
     def esperar_el_control(self, tope=3000, a_cada=A_CADA):
         """Hasta que no haya ninguna página corriendo, que es cuando el pad
-        vuelve a mover al héroe: `Game_Map::IsAnyEventStarting`."""
+        vuelve a mover al héroe: `Game_Map::IsAnyEventStarting`.
+
+        El A es para los mensajes de la página, así que sólo se toca mientras
+        haya una corriendo: con el control devuelto, un A es el jugador
+        hablándole a lo que tiene enfrente. Al llegar al Sector 35 enfrente
+        está el auto, y tocarlo vuelve al 36 con la elección abierta; se vio el
+        2026-09-29, cuando el fundido del teletransporte pasó a durar dos ticks
+        menos y la página terminó antes del A de su ventana."""
         return self.esperar("que el jugador tome el control",
                             lambda p: not p.corriendo_una_pagina(),
-                            tope, a_cada)
+                            tope, a_cada,
+                            tocar_si=lambda p: p.corriendo_una_pagina())
 
     # --- caminar -----------------------------------------------------------
 

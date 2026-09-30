@@ -369,6 +369,27 @@ set:
     ; The start is set by `fade_from`, in bank 1, because with the cut it
     ; is not `ticks`: see `teleport_transition.s`.
     jsl f:fade_from
+    ; And **this** tick is already the fade's first: it darkens, and the
+    ; animations do not count it. It is what the RPG_RT does, measured on
+    ; 2026-09-29 with the map 16 cutscene: the first darker frame is 90 after
+    ; the `Wait 15` that comes before the `Teleport` —the teleport's own
+    ; frame— and the ChipSet's water stays still from that one to the last
+    ; one of the fade, both included. Here it went dark one tick later, with
+    ; the jump's tick still lit, and the round lasted a tick more than the
+    ; original. Only the brightness is written: the load, if this tick is
+    ; already past `FADE_LOAD` —the cut's is—, waits for the next one's
+    ; `fade_tick`, at the top of the loop, and not here in the middle of it.
+    lda ticks
+    sec
+    sbc fade_base
+    jsr fade_brightness
+    rep #$20
+.a16
+    lda f:frozen_ticks
+    inc a
+    sta f:frozen_ticks
+    sep #$20
+.a8
     rts
 .endproc
 
@@ -386,7 +407,7 @@ set:
 .i16
     lda fade
     beq none
-    lda ticks                   ; the low byte is enough: the fade lasts 70
+    lda ticks                   ; the low byte is enough: the fade lasts 68
     sec
     sbc fade_base
     cmp #FADE_TOTAL
@@ -397,20 +418,38 @@ set:
     jsr load_requested          ; only once: it turns itself off
     pla
 ramp:
-    ; This frame's brightness. Going down, the ramp is read backwards.
-    cmp #FADE_RAMP
-    bcs uploading
+    jsr fade_brightness
+    lda #1                      ; the game stays frozen
+    rts
+finish:
+    stz fade
+    lda #BRIGHTNESS_MAX
+    sta brightness
+none:
+    lda #0
+    rts
+.endproc
+
+; The brightness on tick A of the fade, counted from the teleport's own tick,
+; which is 0 and already one step darker. Going down, the ramp is read
+; backwards and starts at its second to last step —the last one is full
+; brightness, which is what the tick before showed—; then the black in the
+; middle; and going up the ramp ends on the fade's last tick, FADE_TOTAL - 1.
+.proc fade_brightness
+.a8
+.i16
+    cmp #(FADE_RAMP - 1)
+    bcs down_done
     eor #$FF
     clc
-    adc #FADE_RAMP              ; FADE_RAMP - 1 - t
+    adc #(FADE_RAMP - 1)        ; FADE_RAMP - 2 - t
     bra in_ramp
-uploading:
+down_done:
     sec
-    sbc #(FADE_FRAMES + FADE_BLACK)
+    sbc #(FADE_TOTAL - FADE_RAMP)
     bcs in_ramp                 ; past the load: the ramp back up
-    lda #0                      ; the black in the middle
-    sta brightness
-    bra continues
+    stz brightness              ; the black in the middle
+    rts
 in_ramp:
     rep #$20
 .a16
@@ -420,15 +459,6 @@ in_ramp:
 .a8
     lda fade_ramp, x
     sta brightness
-continues:
-    lda #1                      ; the game stays frozen
-    rts
-finish:
-    stz fade
-    lda #BRIGHTNESS_MAX
-    sta brightness
-none:
-    lda #0
     rts
 .endproc
 

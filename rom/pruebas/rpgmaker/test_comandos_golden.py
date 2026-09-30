@@ -588,19 +588,20 @@ def _el_borrar(nombre, desde=25, hasta=60):
 def test_borrar_con_el_corte(nombre):
     """`transicion-corte` y `transicion-ninguna`: `ChangeScreenTransitions`
     al corte (19) y a "ninguna" (20) para borrar, que la ROM hace igual —ver
-    `RM2K_CUT_TRANSITIONS` en el compilador de eventos—: el primer tick del
-    fundido ya es negro y ya cargó el mapa. Lo piden el 93 y el 95. "El
-    primero" es el tick siguiente al que ve prendido `fundido`: el salto lo
-    pide al final de una vuelta y `fade_tick` corre en la que sigue.
+    `RM2K_CUT_TRANSITIONS` en el compilador de eventos—: el tick del salto,
+    el primero que ve prendido `fade`, ya es negro, y el siguiente ya cargó
+    el mapa. Lo piden el 93 y el 95. La carga no cae en el del salto porque
+    el salto se pide a mitad de la vuelta, y la carga la hace `fade_tick`, al
+    principio de la que sigue.
 
     No hay golden: lo que se ve es negro, y el mostrar es el fundido de
     siempre. Lo filoso es el contraste con el fundido del mismo salto, que
     tarda la rampa entera en llegar a negro."""
     llego, cargo = _el_borrar(nombre)
-    assert llego == 1 and cargo == 1, (
-        "%s: con el corte el brillo tiene que estar en cero y el mapa cargado "
-        "en el primer tick del fundido; llegó a cero en el %s y cargó en el %s"
-        % (nombre, llego, cargo))
+    assert llego == 0 and cargo == 1, (
+        "%s: con el corte el brillo tiene que estar en cero en el tick del "
+        "salto y el mapa cargado en el siguiente; llegó a cero en el %s y "
+        "cargó en el %s" % (nombre, llego, cargo))
     fundido, _ = _el_borrar("transicion-zoom")
     assert fundido is not None and fundido > 10, (
         "el fundido del mismo salto tendría que tardar la rampa en llegar a "

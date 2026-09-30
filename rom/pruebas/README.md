@@ -89,6 +89,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `rpgmaker/test_sonido_en_ruta.py`: el efecto de sonido adentro de una ruta
   forzada, sobre el héroe, sobre un evento y adentro de un salto
 * `rpgmaker/test_puerta_misma.py`: una puerta al mismo mapa
+* `rpgmaker/test_teletransporte_contra_rm2k.py`: cuánto duran un `Wait` y
+  el fundido de un `Teleport`, con los números medidos en el RPG_RT
 * `rpgmaker/test_lugar_recordado.py`: `MemorizeLocation`, `RecallToLocation`
   —el piso que se rompe, ida y vuelta, un mapa ausente— y el tema recordado
 * `rpgmaker/test_carga_descomprimida.py`: la VRAM, la grilla y los dibujos

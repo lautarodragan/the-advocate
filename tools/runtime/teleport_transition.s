@@ -18,9 +18,9 @@
 ;                which explains why the mosaic also darkens, and in RM2k it
 ;                does not: the load has to fall inside the black—
 ;   the cut      only for erasing: the fade started at its last outgoing
-;                frame, so the first frame is already black and loads the
-;                map, and the way back is the usual one. `fade_from` sets
-;                it
+;                tick, so the jump's own tick is already black, the next
+;                one loads the map, and the way back is the usual one.
+;                `fade_from` sets it
 ;
 ; The PPU's mosaic is for the backgrounds and nothing else: **sprites do not
 ; get pixelated**, and in RM2k they do, because there the whole screen gets
@@ -65,12 +65,15 @@ show:
 ; The byte of `ticks` from which the fade being started counts, into
 ; `fade_base`. From `start_fade`.
 ;
-; With the cut for erasing it starts `FADE_FRAMES - 1` ticks back: the
-; first `fade_tick` lands on the last frame of the outgoing half, which is
-; already past `FADE_LOAD` —so it loads the map right there— and in the
-; black in the middle. It is `TransitionCutOut`, which lasts one frame in RM2k,
-; followed by the usual show. `fade_tick` knows nothing about it.
-.assert FADE_LOAD < FADE_FRAMES, error, "the cut has to land past the load"
+; With the cut for erasing it starts `FADE_CUT` ticks back, on the last
+; tick of the outgoing half: the jump's own tick —the one `start_fade`
+; already paints— is in the black in the middle, and the first `fade_tick`
+; is past `FADE_LOAD`, so it loads the map right there. It is
+; `TransitionCutOut`, which lasts one frame in RM2k, followed by the usual
+; show. `fade_tick` knows nothing about it.
+FADE_CUT = FADE_TOTAL / 2 - 1
+.assert FADE_CUT >= FADE_RAMP - 1, error, "the cut has to start in the black"
+.assert FADE_CUT + 1 >= FADE_LOAD, error, "the cut has to land past the load"
 .proc fade_from
 .a8
 .i16
@@ -82,7 +85,7 @@ show:
 cutoff:
     lda ticks
     sec
-    sbc #(FADE_FRAMES - 1)
+    sbc #FADE_CUT
 put:
     sta f:fade_base
     rtl

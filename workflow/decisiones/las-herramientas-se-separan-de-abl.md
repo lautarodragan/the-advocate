@@ -15,7 +15,7 @@ tiene el plan de seis pasos y las preguntas con sus opciones.
   Cuándo se traduce —antes del corte o al reescribir cada parte— no se
   decidió todavía.
 - **Los límites del motor medidos sobre ABL se quedan fijos** (`ITEMS_N`,
-  `ENC_RATE`, `FADE_FRAMES`, los anchos…), con un comentario que diga
+  `ENC_RATE`, `FADE_TOTAL`, los anchos…), con un comentario que diga
   que se midieron contra A Blurred Line. En una segunda etapa pasan a ser
   parámetros, y los mide una herramienta sobre el juego ya volcado a JSON.
   La idea de taro es que **la estimación no se separe de la implementación**:

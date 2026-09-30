@@ -602,20 +602,25 @@ FRAMES_PER_CELL = CELL_PX // WALK_SPEED
 # `Player::Update(false)`, which does not update the scene.
 # Measured against A Blurred Line: an assumption of the engine, not a fact of
 # the game. See `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
-FADE_FRAMES = 35
-FADE_TOTAL = FADE_FRAMES * 2
+#
+# The ROM does not count 35 + 35, though, but what the RPG_RT **shows**,
+# measured on 2026-09-29 against the 2015 one with the map 16 cutscene: the
+# teleport's own frame is already the first darker one, the last one of the
+# fade is the 68th counting it, and the page goes on on the next. That is
+# FADE_TOTAL: ticks from the jump to the first live one. With 70 each round
+# of that cutscene lasted a tick more than the original.
+FADE_TOTAL = 68
 
-# Of those 35, the ramp is 24 and the other 11 are plain black. The console
-# cannot fade any other way: INIDISP's master brightness has sixteen steps and
-# nothing more, so stretching the ramp over the 35 frames does not give a
-# finer fade, it only repeats steps. And the black at the end is not padding:
-# **it is where the map is loaded**. The load writes VRAM and CGRAM by DMA and
-# costs six or seven frames; inside the black they are not seen and they do
-# not run the clock, because the fade is counted in hardware frames and not
-# in loop turns. Between the map being loaded —frame 24— and the ramp back
-# leaving zero —frame 47— there are 23 frames of margin.
+# The ramp is 24 of those ticks going down and 24 going up, and the rest is
+# plain black. The console cannot fade any other way: INIDISP's master
+# brightness has sixteen steps and nothing more, so stretching the ramp over
+# more frames does not give a finer fade, it only repeats steps. And the
+# black is not padding: **it is where the map is loaded**. The load writes
+# VRAM and CGRAM by DMA and costs six or seven frames; inside the black they
+# are not seen and they do not run the clock, because the fade is counted in
+# loop turns and not in hardware frames. Between the map being loaded —tick
+# 24— and the ramp back leaving zero —tick 45— there are 21 of margin.
 FADE_RAMP = 24
-FADE_BLACK = FADE_FRAMES - FADE_RAMP
 BRIGHTNESS_MAX = 15
 
 # `ChangeScreenTransitions` (10690) changes that transition from then on:
