@@ -772,12 +772,11 @@ move:
 ; --- the actor choice --------------------------------------------------------
 ;
 ; `Scene_ActorTarget`, over the menu's bank: the party panel, and the System
-; windows and bar on BG1, which belong to `actor_choice.s`. `pick_cancel`
-; says what for: at 1, to choose whom to equip, and A returns with the row; at
-; 0, for the medicine `k` in `pick_edges`, and A uses it on the row
-; —`medicine_use`— and **stays**, with that row's HP repainted, which is what
-; `UpdateItem` does. B returns with $FF. The screens stage's `render` is the
-; reference.
+; windows and bar on BG1, which belong to `actor_choice.s`. It is for the
+; medicine `k` in `pick_edges`: A uses it on the row —`medicine_use`— and
+; **stays**, with that row's HP repainted, which is what `UpdateItem` does.
+; B returns. The screens stage's `render` is the reference. Whom to equip
+; is not chosen here but on the menu itself: see `menu_choose`.
 ;
 ; Until 2026-09-21 A did nothing with a medicine: it was written when outside
 ; battle nobody could have HP below the maximum, and it stayed that way when

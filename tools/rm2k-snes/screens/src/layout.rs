@@ -262,8 +262,8 @@ pub type Rect = (usize, usize, usize, usize);
 // at eight its letters fill the window and leave no room for the quantity,
 // and the red has no free palette on BG2. The quantity goes with the glyphs.
 //
-// To choose whom to equip, the screen is the same without the two windows on
-// the left.
+// It is only for medicines: whom to equip is chosen on the pause menu, with
+// `MENU_BAR`.
 pub const TARGET_LEFT: usize = 104;
 pub const TARGET_NAME_HEIGHT: usize = 48;
 pub const TARGET_COUNT_HEIGHT: usize = 32;

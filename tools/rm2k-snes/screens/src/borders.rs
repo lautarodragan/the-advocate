@@ -238,13 +238,11 @@ pub fn borders(screens: &[Screen], first_tile: usize, cgram: usize, cap: usize) 
 /// What the cartridge stores of the actor choice's windows.
 #[derive(Debug, Clone)]
 pub struct CompactTarget {
-    /// **A single tilemap**, the with-item one: the without-item one is the
-    /// same with the cells of the two left windows at zero, and the
-    /// cartridge erases them when uploading it.
+    /// The tilemap, without the bar.
     pub map: Vec<u16>,
     /// **The bar, only where it changes**: the rectangle covering what
     /// differs between each party row with the bar and without it, the same
-    /// for the four rows and with and without an item.
+    /// for the four rows.
     pub bars: Vec<Vec<u16>>,
     pub row0: usize,
     pub rows: usize,

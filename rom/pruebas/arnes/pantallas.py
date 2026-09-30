@@ -47,7 +47,8 @@ def items(inventario, elegida=0, arriba=0, conocidos=None):
 def objetivo(ranuras, grupo, elegida=0, actores=None, hp=None, item=None,
              cantidad=0):
     """La elección de actor: con `item`, la medicina que se usa y
-    `cantidad` las que quedan; sin él, a quién equipar."""
+    `cantidad` las que quedan. A quién equipar se elige en el menú: ver
+    `menu(eligiendo=...)`."""
     return screen_stage.render(
         "target", slots=ranuras, party=list(grupo), chosen=elegida,
         actors=actores, hp=hp or {}, item=item, amount=cantidad)

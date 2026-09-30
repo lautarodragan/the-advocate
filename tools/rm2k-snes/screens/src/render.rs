@@ -238,8 +238,8 @@ pub fn menu(
     Ok(p.picture())
 }
 
-/// The actor choice: the party panel, and with `item`, the medicine being
-/// used with how many are left; without it, the choice of whom to equip.
+/// The actor choice: the party panel, and `item`, the medicine being used,
+/// with how many are left.
 pub fn target(
     game: &Game,
     skin: &Skin,

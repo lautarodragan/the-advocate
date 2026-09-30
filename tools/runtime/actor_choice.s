@@ -15,13 +15,13 @@
 ; —`_check_target` checks it—, and the colors go in 128..143, which are
 ; the menu sprites' and are restored by `menu_exp_close`.
 ;
-; `pick_cancel` says which one: at 0, for the medicine in `pick_edges`, with
-; the two windows on the left; otherwise, for choosing whom to equip, without
-; them. Entered with `jsl`, with the data bank at 0: the registers and
-; `item_id` are addressed absolute.
+; It only opens for a medicine, the one in `pick_edges`: whom to equip is
+; chosen on the pause menu itself —`menu_choose`, below—. Entered with
+; `jsl`, with the data bank at 0: the registers and `item_id` are addressed
+; absolute.
 
-; The windows, and the name and count if it is a medicine. With the screen
-; off, after `slot_bank_upload`.
+; The windows, and the medicine's name and count. With the screen off,
+; after `slot_bank_upload`.
 .proc target_upload
 .a8
 .i16
@@ -45,9 +45,7 @@
     sta BBAD0
     lda #$01
     sta MDMAEN
-    ; The tilemap, which is a single one: the one with an item. Without an
-    ; item, the cells of the two left windows are erased —see
-    ; `compact_target`—.
+    ; The tilemap.
     rep #$20
 .a16
     lda #TARGET_MAP
@@ -248,9 +246,8 @@ glyph:
 ; —`TARGET_BAR_ROWS` by `TARGET_BAR_COLS` cells, see
 ; `compact_target`—: from `target_bars`, which has it with the bar, or
 ; from the tilemap. One DMA per row of cells, which fit in the vblank with the
-; erasing one and the painting one. With an item or without it is the same:
-; the rectangle does not touch the left windows. It clobbers `temp` through
-; `temp + 3`: the caller sets `temp + 3` again before each time.
+; erasing one and the painting one. It clobbers `temp` through `temp + 3`:
+; the caller sets `temp + 3` again before each time.
 BAR_BYTES = TARGET_BAR_ROWS * TARGET_BAR_COLS * 2
 .proc target_bar
 .a8
