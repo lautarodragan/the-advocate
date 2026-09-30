@@ -130,14 +130,20 @@ fn do_render(args: &GameArgs) -> Result<()> {
             json.number_or("gold", 0)?,
             chosen,
             json.flag("save_allowed", true)?,
+            match json.number_or("choosing", -1)? {
+                n if n < 0 => None,
+                n => Some(n as usize),
+            },
         )?,
-        "target" => {
-            let item = match json.number_or("item", 0)? {
-                0 => None,
-                n => Some(n as i32),
-            };
-            render::target(&game, &skin, slots, &json.party()?, chosen, item, json.number_or("amount", 0)?)?
-        }
+        "target" => render::target(
+            &game,
+            &skin,
+            slots,
+            &json.party()?,
+            chosen,
+            json.number("item")? as i32,
+            json.number_or("amount", 0)?,
+        )?,
         "items" => {
             let known = json.known_items("items")?.map(|k| k.into_iter().collect::<Vec<_>>());
             render::item_screen(

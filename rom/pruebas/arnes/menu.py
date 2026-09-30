@@ -36,11 +36,15 @@ def con_grupo(una):
     return una
 
 
-def comparar(una, elegida, guardar=True, nombre="menu", hp=None):
+def comparar(una, elegida, guardar=True, nombre="menu", hp=None,
+             eligiendo=None):
     """El menú en pantalla contra `pantallas.menu` con `GRUPO` y `ORO`,
-    y el cursor en `elegida`. Vivía en `test_menu_dibujo.py` hasta el
-    2026-09-29; lo usa también End Game, que vuelve al menú."""
+    el cursor en `elegida` y, con `eligiendo`, la barra en esa fila del
+    grupo. Vivía en `test_menu_dibujo.py` hasta el 2026-09-29; lo usa
+    también End Game, que vuelve al menú."""
     esperada = pantallas.menu(una.simbolos["SRAM_SLOTS"], GRUPO, ORO,
-                              elegida, guardar, hp=hp)
+                              elegida, guardar, hp=hp, eligiendo=eligiendo)
     comparar_pantalla(una, esperada, nombre,
-                      "el menú con el cursor en la %d" % elegida)
+                      "el menú con el cursor en la %d" % elegida
+                      + ("" if eligiendo is None
+                         else " y la barra en la fila %d" % eligiendo))

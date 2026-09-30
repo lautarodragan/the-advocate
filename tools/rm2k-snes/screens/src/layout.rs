@@ -262,8 +262,8 @@ pub type Rect = (usize, usize, usize, usize);
 // at eight its letters fill the window and leave no room for the quantity,
 // and the red has no free palette on BG2. The quantity goes with the glyphs.
 //
-// To choose whom to equip, the screen is the same without the two windows on
-// the left.
+// It is only for medicines: whom to equip is chosen on the pause menu, with
+// `MENU_BAR`.
 pub const TARGET_LEFT: usize = 104;
 pub const TARGET_NAME_HEIGHT: usize = 48;
 pub const TARGET_COUNT_HEIGHT: usize = 32;
@@ -284,7 +284,20 @@ pub const TARGET_COUNT_COL: usize = TARGET_NAME_COL + TARGET_NAME_WIDTH - 2;
 /// top frame, and it ends on a cell boundary: with the bottom tip
 /// mid-cell it was 64 tiles, exactly what fits before the tilemap.
 pub const TARGET_BAR: Rect = (MENU_TEXT_X - 4, 2, WIDTH - MENU_TEXT_X, 3 * LINE - 2);
-/// BG1's colours: those of sprite palette 0, which on this screen are off.
+/// The same bar on the pause menu, where `Scene_Menu` chooses whom to equip
+/// over its own party panel: there are no windows under it, so it is drawn
+/// over nothing, and it is taller because the row has a fourth line, the
+/// experience. It covers every pixel of the row's text and its shadows —the
+/// cursor's edge is one dark pixel, so the red starts one in—: the name
+/// starts at y = 3 and the experience, which is sprites below the cell
+/// grid, ends at y = 56, one past the row. So the bar goes from y = 2 to
+/// y = 57 —red from 3 to 56— and reaches into the next row, which has no
+/// bar then. Measured against the capture on 2026-09-30: at y = 2..53 the
+/// bottom of "Ex" was left over black. Starting at 2 and not higher, the
+/// top cells are the actor choice's and the bar costs two tiles.
+pub const MENU_BAR: Rect = (MENU_TEXT_X - 4, 2, WIDTH - MENU_TEXT_X, MENU_ACTOR_ROWS * CELL + 1);
+/// BG1's colours: those of sprite palette 0, which on this screen are off
+/// and on the pause menu are not used: the experience goes in palette 1.
 /// There is no room in 0..127: they are the menu bank's palettes.
 pub const TARGET_CGRAM: usize = 128;
 pub const TARGET_COLORS_MAX: usize = 16;

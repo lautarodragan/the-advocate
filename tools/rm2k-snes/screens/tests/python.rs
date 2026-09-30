@@ -72,9 +72,13 @@ fn everything_a_cartridge_carries() {
     let mut answer = convert::convert(&game(), &request).unwrap();
     // The geometry is constants, and the Python had them as its own.
     answer.as_object_mut().unwrap().remove("layout");
+    // The actor choice is no longer the Python's since 2026-09-30: whom to
+    // equip is chosen on the pause menu, over nothing, which adds that bar's
+    // tiles and rectangle, and the choice without an item and its erased
+    // cells went away. Everything else is still the Python's.
     assert_eq!(
         sha(canon(&answer).as_bytes()),
-        "4fe418aa88acfafb6d29264ce667fa5ad0d7fdaac3e8e8f3f27d05357e662522"
+        "e568fef1b16c41321baf8bdfa7d5763cbce648c89bca6802743783233bb59914"
     );
     assert_eq!(
         answer["says"],
@@ -119,8 +123,15 @@ fn the_screens_as_the_console_shows_them() {
     };
     check(
         "menu",
-        render::menu(&game, &skin, 4, &party(&[1, 2, 5]), 1234, 2, false).unwrap(),
+        render::menu(&game, &skin, 4, &party(&[1, 2, 5]), 1234, 2, false, None).unwrap(),
         "385725e4540ce73c8cc0f936c8ecc3540574c8a1e0325e1a506ae806498b6531",
+    );
+    // Choosing whom to equip, with the bar on the second row: not drawn by
+    // the Python, which never had it.
+    check(
+        "menu-choosing",
+        render::menu(&game, &skin, 4, &party(&[1, 2, 5]), 1234, 2, false, Some(1)).unwrap(),
+        "7aeb78f03237b9a6aea75bf9d02712061d9e093fcd200fa975190f680903d858",
     );
     let state = Party {
         members: vec![2, 7, 8, 4],
@@ -131,21 +142,12 @@ fn the_screens_as_the_console_shows_them() {
     };
     check(
         "menu-state",
-        render::menu(&game, &skin, 4, &state, 999_999, 0, true).unwrap(),
+        render::menu(&game, &skin, 4, &state, 999_999, 0, true, None).unwrap(),
         "dc9748330fd80647a550df9481f80ce7dd52a4aeaa7bea99cfa5776e2739c21b",
-    );
-    let hurt = Party {
-        hp: [(1, 3)].into_iter().collect(),
-        ..party(&[1, 2])
-    };
-    check(
-        "target",
-        render::target(&game, &skin, 4, &hurt, 1, None, 0).unwrap(),
-        "cb749a65a17839f4997282e4ebe063b9789f9ecf1e1bdd808980369153097c55",
     );
     check(
         "target-item",
-        render::target(&game, &skin, 4, &party(&[1, 2, 3]), 2, Some(2), 7).unwrap(),
+        render::target(&game, &skin, 4, &party(&[1, 2, 3]), 2, 2, 7).unwrap(),
         "1fe4cd2469ae066fa13905f97412cb005694dacda7e48a2dae7e36881caf0867",
     );
     check(
