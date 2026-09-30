@@ -2,7 +2,7 @@
 name: "El contador de Fortitude no se ve"
 description: "El minijuego de Eisen (mapa 95) lleva la cuenta en la variable 48 y la muestra con una imagen que la ROM no dibuja"
 type: bug
-assignee: Chimango
+assignee: taro
 ---
 
 Del plan `el-mundo-y-lo-que-sigue.md` (pregunta 4). El minijuego del 95 compila
@@ -128,3 +128,36 @@ Por qué así y no las otras formas:
 * **Encima de la ventana**: como el cronómetro y la imagen, prioridad 3. En
   RM2k la ventana tapa las imágenes; se nota sólo con un mensaje arriba con el
   contador puesto (el "What are you doing, Professor?" del EV0055).
+
+**Los dos viven en el banco 1** (`tools/runtime/counter.s`): después de
+mergear el `wanted_fits` de Cachirla el banco 0 se pasaba por 32 bytes. En
+el 0 quedan el despacho de `op_counter`, el puente `glyph_oam_far` y las
+tres líneas del borrado, la paleta y el arranque. `just espacio`: 55 bytes
+libres en el banco 0 de `release`.
+
+## La prueba
+
+`test_contador` (`rom/pruebas/rpgmaker/test_comandos_golden.py`), con el caso
+`contador`: en el 95, la 48 en 99 y las imágenes 2 y 3 con "9" como la escena
+de entrada; después los saltos de verdad —las páginas de los eventos 15 y
+16, llamadas con `CallEvent`, que restan 5 y llaman al común 9—, el segundo
+desde 12; un tinte negro y un `Teleport` al 6. Cinco goldens nuevas: 99, 94,
+7 sin decena, 7 sin teñir sobre negro, y el 6 sin contador.
+
+Del bytecode: con el compilador local, la petición de `release` con y sin la
+declaración, contra la respuesta de base, cambian **sólo 33 páginas del mapa
+95** —los 31 saltos, la paralela 56 y las dos escenas de entrada—.
+
+## Para taro
+
+* **Las goldens nuevas esperan tu visto bueno.** Lado a lado con el original,
+  en `/shared/capturas/2026-09-30-fortitude/`: `original-*` (Wine),
+  `ahora-contador-*` (la ROM) y `lado-a-lado-99.png` / `lado-a-lado-94.png`.
+  El "antes" es que no había nada: `antes-capitulo-95-llegada-sin-contador.png`.
+  Ninguna golden existente se movió.
+* **Al mergear hay que instalar** `events` y `cartridge`: `just -f
+  tools/justfile install events cartridge` (el runtime cambia, y el
+  compilador lee `[events] counters`).
+* Lo que no cubre `just pruebas`: la escena de entrada de verdad (EV0001) y el
+  "So... tired" de la paralela 56. Los dos compilan a `OP_COUNTER` —está en el
+  diff del bytecode— pero ninguna prueba los juega; jugarlos es lo que falta.
