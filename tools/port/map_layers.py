@@ -214,7 +214,7 @@ def split_above(grid, limit):
         #
         # Both are fixed by the same thing: merging the least used color with
         # its nearest neighbor and retrying.
-        grid, groups, merged, _ = adeleine.reduce_colors(grid, limit)
+        grid, groups, merged = adeleine.reduce_colors(grid, limit)
     return grid, [sorted(g) for g in groups], merged
 
 
@@ -322,7 +322,7 @@ def _layers_version():
     """Which version of the code produced whatever is stored under `layers`.
 
     It is the sources that take part in drawing or converting, plus the
-    three programs that aren't sources of this tree:
+    programs that aren't sources of this tree:
 
     * **the `rm2k-render` binary** draws the layers and expands the
       ChipSet, and `render/render_map.py` is what hands it the map and reads
@@ -334,7 +334,10 @@ def _layers_version():
       `rpgmaker/resources.py` goes with them because it is where `render_map`
       gets how it finds the ChipSet, and `common/project.py` because it is
       where the directories it searches in come from;
-    * `port/adeleine.py` decides which colors are lost, `rpgmaker/rm2k.py`
+    * **the `adeleine` binary** decides which colors are lost and how they
+      are grouped, and `port/adeleine.py` is what hands it the colors and
+      applies what it decided: recompiling it without touching any `.py`
+      has to invalidate what is stored. `rpgmaker/rm2k.py`
       has the constants of the split and of the animated families,
       `port/snes_format.py` the sizes of a tile and of a palette, and this
       file does the rest. `port/snes_convert.py` is still in the list
@@ -368,6 +371,7 @@ def _layers_version():
                                                  "rpgmaker/resources.py",
                                                  "common/project.py")
                            + render_map.version()
+                           + adeleine.version()
                            + tiles_bin.version()
                            + " Pillow " + PIL.__version__)
     return _LAYERS_VERSION

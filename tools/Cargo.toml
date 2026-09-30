@@ -8,6 +8,7 @@
 # cannot nest another one, and Ditto had its own for it.
 [workspace]
 members = [
+    "snes/adeleine",
     "snes/gunter",
     "snes/lz2",
     "snes/protocol",
