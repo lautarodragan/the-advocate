@@ -81,3 +81,15 @@ que ningún camino lo corre: leyendo, todos los `shutil.which` y
 nombra a `voodoo`); y corriendo, `NO_CACHE=1 just cartuchos` con un
 `voodoo` falso primero en el PATH que anota y sale con error: no se llamó
 nunca, y `rom/build/` salió igual.
+
+### 4. `rm2k-snes-maps layers` se queda
+
+Decidido que se queda. Lo que cuesta es poco: la entrada de la línea de
+comandos y `layers::run`, cuatro líneas sobre las mismas funciones que usa
+`map` (`draw`, `blocks`, `write`). Lo que da: es la única manera de
+convertir las capas de **un** mapa sin armar el pedido entero —líderes,
+respuesta del compilador, cartucho—, para mirar qué decidió Adeleine de
+ese fondo solo; y las pruebas de línea de comandos del crate ejercitan por
+ahí el dibujo de las capas —directorios de búsqueda, celdas pintadas,
+errores— con un pedido de tres campos. Sacarlo obligaba a reescribirlas
+contra `map`, que mezcla todo lo demás. Quedó dicho en su README.

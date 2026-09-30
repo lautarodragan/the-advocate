@@ -96,6 +96,13 @@ them: an event that changes graphic and does not fit is a door the player
 cannot open, and a build that does not stop there is worse than one that
 does.
 
+`layers` makes only the two background layers and their blocks, from a
+request with nothing but the map and the cells painted over it: no
+leaders, no compiler's answer, no cartridge. It is the smallest way to see
+one map's background —and what Adeleine decided of it— on its own, and it
+is what this crate's command-line tests drive the layers through; `map`
+writes the same files for the layers it ends up with.
+
 `bakeable` and `split` answer two questions a whole map does not show,
 for whoever checks them against a real game: which events are baked and
 what the table says of their cells, and how the palettes are split with a
