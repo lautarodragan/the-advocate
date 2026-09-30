@@ -84,7 +84,7 @@ entere. El porqué de cada mecánica va en el comentario de su rutina.
 | Cambiar el gráfico a mitad de una ruta (la orden 34) | `load_route_graphics`, `refresh_npc` | `Graphics`, en el compilador |
 | La colisión con los eventos | `cell_blocked`, `event_crossable` | — |
 | El gráfico sigue a la página, y el tile manda sobre el terreno | `page_graphic`, `pass_with_event`, `fit_npc` | `drawable_npcs` |
-| Los eventos dibujados con un tile del chipset | `load_npcs` | `drawable_npcs`, `Charsets` en `tools/render/render_map.py` |
+| Los eventos dibujados con un tile del chipset | `load_npcs` | `drawable_npcs`; la hoja la dibuja `rm2k-render charset`, pedida por `Charsets` en `tools/render/render_map.py` |
 | Los que además son opacos y fijos: horneados en el mapa y sin fila que dibujar | `build_oam` saltea la fila escondida | `bakeable_events` |
 | El fundido de los teletransportes, con el mapa cargando adentro del negro | `start_fade`, `fade_tick` | `fade_ramp`, y las constantes `FADE_*` |
 | El tope de teletransportes encadenados | `JUMPS_MAX` y sus usos | lo cobra `rom/pruebas/rpgmaker/test_saltos.py` |

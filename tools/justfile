@@ -154,14 +154,16 @@ voodoo-test:
 lz2-test:
   cd snes/lz2 && cargo test --release
 
-# rm2k-render: a map's tile layers, and the other drawings of its ChipSet
-# animation, as PNGs —see `render/render_map.py`, which is what calls it—.
-# The directory is named after the binary because `render/` is the Python
-# that stays: the CharSets and `load_image`.
+# rm2k-render: a map's tile layers, the other drawings of its ChipSet
+# animation, and the CharSet sheets its events are drawn with, as PNGs —see
+# `render/render_map.py`, which is what calls it—. The directory is named
+# after the binary because `render/` is the Python that stays: what the port
+# does to the CharSets for the console, and `load_image`.
 #
-# Its tests draw a ChipSet and a map generated inside the test, and compare
-# against the hashes of what the Python that drew them until 2026-09-29 gave
-# for the same input: they need neither the game nor the RTP.
+# Its tests draw ChipSets, CharSets and a map generated inside the test, and
+# compare against the hashes of what the Python that drew them gave for the
+# same input —until 2026-09-29 the layers, until 2026-09-30 the CharSets—:
+# they need neither the game nor the RTP.
 render-test:
   cd rm2k/rm2k-render && cargo test --release
 
