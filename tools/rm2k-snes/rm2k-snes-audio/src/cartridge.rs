@@ -619,7 +619,7 @@ pub fn msu(backdrops: &[(Vec<u8>, Vec<u8>)], quality: &Effects, magic: &[u8; 4])
     .map(|(label, data)| block(label, data))
     .collect();
     let inc = format!(
-        "\n; The `.msu`: see `escribir_msu` in tools/port/snes_convert.py.\n\
+        "\n; The `.msu`: see `msu` in rm2k-snes-audio's cartridge.rs.\n\
          ; How many entries of the .msu are backdrops —two per backdrop,\n\
          ; the first ones— and how many are sound effects, behind: for\n\
          ; the tests.\n\

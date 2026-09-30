@@ -113,6 +113,9 @@ fn the_msu_is_the_one_the_python_built() {
     };
     let msu = cartridge::msu(&backdrops, &quality, b"TEST").unwrap();
     assert_eq!(sha(&msu.blob), "3abd8f1c1580d53a6b36d5751aa12d1a0d42769c593e9123089bf26430f771de");
-    assert_eq!(sha(msu.inc.as_bytes()), "607f647d6a8ebd866f7a4663a4d621b1348ae1a3106b002b685916c4d5c3ade2");
+    // What the assembler reads: the comments explain the file, and are free
+    // to change.
+    let data: Vec<&str> = msu.inc.split('\n').filter(|l| !l.starts_with(';')).collect();
+    assert_eq!(sha(data.join("\n").as_bytes()), "118408b373795f46f64c0a1799f9e7c81adb59ac1064bef4672507c6e7ea434f");
     assert_eq!((msu.backdrops, msu.effects), (2, 3));
 }

@@ -308,8 +308,8 @@ def main():
     # The random encounters of each map, which ask for their troops. They go
     # after the maps' battles and **before** those of the test pages, which
     # go at the end: that way the cartridge's troops are numbered by the maps
-    # and the invented one goes last, which is the same `rom_songs` does with
-    # the map's song. Asking for it first always gave it index 0, and with
+    # and the invented one goes last, which is the same `rm2k-snes-audio cartridge`
+    # does with the map's song. Asking for it first always gave it index 0, and with
     # that no case of the suite exercised that `scene_troop_backdrop` and
     # `troop_id` are really indexed. That is why a test page compiles without
     # `Troops`. The compiler numbers them all, below.

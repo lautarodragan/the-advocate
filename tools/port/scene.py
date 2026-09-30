@@ -99,7 +99,7 @@ those of the terrains —see `game_backdrops`—. Each one has a **number**,
 its place in that list sorted by name, and the number does not depend on
 which maps the cartridge carries: it is what gives each backdrop a fixed
 place in the `.msu`, which carries **all** of them, in quality
-(tools/port/msu_data.py).
+(`msu_data.rs` in `rm2k-snes-audio`).
 
 **The ROM carries, in the light fallback, all the ones the cartridge's
 battles can ask for**: those a troop names, those of the maps with random

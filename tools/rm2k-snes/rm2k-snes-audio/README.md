@@ -2,6 +2,9 @@
 
     rm2k-snes-audio compile --job job.json --out build/ \
         --game-dir game/ --rtp-dir rtp/ --soundfont bank.sf2
+    rm2k-snes-audio cartridge --request request.json --out build/ \
+        --msu build/game.msu --data dump/ --game-dir game/ --soundfont bank.sf2
+    rm2k-snes-audio msu-index build/game.msu
     rm2k-snes-audio decode --stream stream.bin --sounds sounds.bin
     rm2k-snes-audio keys song-a song-b --game-dir game/ --soundfont bank.sf2
     rm2k-snes-msu build/game.sfc --game-dir game/ --soundfont bank.sf2
@@ -75,6 +78,36 @@ And to standard output, what each song and the bank came out as.
 * **Sound effects share the directory's last entries**: two that are never
   in the same package go to the same place.
 
+## A cartridge's music, as a converter's stage
+
+`cartridge` is what a converter calls, with the shape of the one described
+in `../battle/README.md`, "One stage of a converter". It builds the job
+itself, compiles it in the same process, and leaves the job next to what it
+made —`audio-job.json`— so `compile` can rebuild that music alone. What it
+decides that `compile` does not:
+
+* **Which songs the cartridge carries**: the ones the event compiler
+  numbered, and after them —so as not to renumber what the bytecode
+  already carries— the boot map's, the title's, the Game Over's and each
+  map's own, from the map tree.
+* **Each map's audio package**: its own song in front, the boot one, its
+  sound effects in the order its pages ask for them; apart, its exit songs
+  and its separate ones —the project's `[music] apart_themes`—; and the
+  battle's, the Game Over's and the title's.
+* **Which song may be playing when each one loads**, following the jumps of
+  the compiled pages without looking at conditions, minus the project's
+  `[music] jumps_that_never_happen`: see `inherited_songs`.
+* **That the boot fits in the ROM's `BOOT_FRAMES`**, read from the runtime.
+* **The `.msu`** with the data the MSU-1 serves the ROM: the quality battle
+  backdrops, which come made in the request, and behind them each
+  package's quality sound effects —see `msu_data.rs` for the format—, and
+  the tables the ROM reads it with, at the end of `musicdata.inc`.
+
+It reads the map tree and the database's `System` from a Ditto dump
+(`--data`), with Ditto's library and `rm2k-rules`' tree. `--help` lists what
+the request carries. `msu-index` and `msu-sign` are for whoever looks
+inside a `.msu`: its entries, and the same file signed again.
+
 ## Exactly those bytes
 
 Until 2026-09-29 the same music was compiled by a Python program, and this
@@ -84,7 +117,10 @@ floors its integer divisions, filters the samples with numpy's kernel summed
 in numpy's order and calls the C library's `pow` even for a square. What
 `tests/python.rs` keeps is the SHA-256 of what that Python wrote for a small
 game generated inside the test —see `tests/fixture/`—, so the check needs
-neither the Python nor a game.
+neither the Python nor a game. The same goes for `cartridge`, whose
+decisions were the converter's Python until 2026-09-30: `tests/cartridge.rs`
+keeps the SHA-256 of the job and of the `.msu` it gave for the small game of
+`tests/cartridge.json`.
 
 Two tests read a real SoundFont's envelopes, in `SOUNDFONT`; without the
 variable they are skipped with a message.

@@ -11,7 +11,7 @@
 ; `PlayBGM`. The operand is the song's index in `Songs`, and the cartridge
 ; carries the ones that fit in ARAM: the first `SONG_TOTAL`. A higher index is
 ; a song that did not fit and does not play, which is what happened to all but
-; one of them until 2026-09-06. See `rom_songs` in the converter.
+; one of them until 2026-09-06. See `plan` in rm2k-snes-audio's cartridge.rs.
 .proc op_bgm
     lda [code_ptr], y
     iny

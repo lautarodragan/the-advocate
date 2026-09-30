@@ -241,7 +241,7 @@ take:
 ;
 ; The package's list is (index, pitch) pairs sorted by index and terminated with
 ; $FFFF, only with the sounds whose sound effect is from there: see
-; `write_msu` in tools/port/snes_convert.py. It is walked whole at most
+; `msu` in rm2k-snes-audio's cartridge.rs. It is walked whole at most
 ; —a few dozen pairs—, and since they are sorted, it stops on going past; the
 ; $FFFF stops it too, because no index gets there.
 .proc msu_pitch

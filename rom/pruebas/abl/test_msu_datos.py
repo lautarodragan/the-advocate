@@ -18,7 +18,7 @@ mismo `.msu` con los tiles del fondo cambiados y la firma de la cabecera
 intacta —la ROM no puede hashear 98 KB— tiene que dibujar otra cosa.
 
 **Y el `.msu` lleva todos los fondos del juego**, cada uno en su lugar fijo
-—ver "El formato" en tools/port/msu_data.py—, y la ROM los que piden las
+—ver "El formato" en docs/port/msu-datos.md—, y la ROM los que piden las
 peleas del cartucho. Lo prueba una pelea del mundo, el 66, cuyo fondo es el
 del terreno que pisa el héroe: con el `.msu` sale el de calidad, y sin él su
 respaldo. El reemplazo, para un fondo que la ROM no lleva, lo prueba
@@ -285,7 +285,8 @@ def test_msu_la_rom_sabe_donde_esta_cada_fondo():
                           len(juego)))
         pos = en_la_rom(s["msu_backdrop_pos"])
         # Los fondos van primero, dos entradas cada uno, y detrás los efectos
-        # de sonido de calidad: ver `write_msu` en music.py.
+        # de sonido de calidad: ver `msu` en el cartridge.rs de
+        # `rm2k-snes-audio`.
         assert len(indice) == 2 * s["MSU_BACKDROPS_N"] + s["MSU_EFFECTS_N"], (
             "%s: el .msu tiene %d entradas y la ROM cuenta con %d fondos y %d "
             "efectos" % (nombre, len(indice), s["MSU_BACKDROPS_N"],

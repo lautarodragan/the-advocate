@@ -37,7 +37,7 @@ implementan, en `docs/snes/emulators.md`.
 
 ## El formato
 
-Lo arma `tools/port/msu_data.py`, y su docstring es la referencia: una firma
+Lo arma `rm2k-snes-audio`, en `msu_data.rs`, y su documentación es la referencia: una firma
 de 8 bytes (del sha256 de lo que sigue), `"ABLD"`, la versión, un índice de
 `(posición, largo)` por entrada, y las entradas. Cada fondo son dos: sus 512
 tiles de 8bpp y sus 96 colores, tal cual van a la WRAM y a la CGRAM. La ROM
@@ -85,7 +85,7 @@ pelea.
 
 Las posiciones salen del `.inc` y no del índice del archivo: aceptada la
 firma son el mismo dato, y leer el índice sería una búsqueda más por pelea.
-El índice queda para las herramientas (`msu_data.read`) y para sumar
+El índice queda para las herramientas (`rm2k-snes-audio msu-index`) y para sumar
 entradas sin cambiar el formato.
 
 ## Los fondos
@@ -165,8 +165,8 @@ enteros y a la tasa que le entra a ese paquete con la ARAM libre de música
 —el reparto es de `rm2k-snes-audio`, en su `msu.rs`—: por paquete, en el orden de la
 tabla, y adentro de cada uno en orden de SRCN, que es como los sube
 `upload_placed`. Así la ROM **busca una vez por paquete** y lee de corrido;
-un efecto que está en dos paquetes va dos veces. Lo escribe `write_msu`
-en `tools/port/music.py`, que también emite lo que la ROM necesita:
+un efecto que está en dos paquetes va dos veces. Lo escribe `cartridge::msu`
+en `rm2k-snes-audio`, que también emite lo que la ROM necesita:
 `se_msu_pkg` y `se_msu_rows` —dónde está cada efecto de cada paquete y
 cuánto mide— y `se_msu_pitch_pkg` y `se_msu_pitch` —la altura de cada
 sonido con la versión de cada paquete, sólo de los sonidos cuyo efecto es
