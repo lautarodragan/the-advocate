@@ -238,6 +238,82 @@ pub fn picture_of_image(
     Some((base, which))
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The timer's eleven glyphs in two colours, black and pure red, like
+    /// the System's.
+    fn glyphs() -> Picture {
+        let mut picture = Picture::transparent(88, 16);
+        for (i, px) in picture.rgba.chunks_mut(4).enumerate() {
+            if i % 3 != 0 {
+                px.copy_from_slice(if i % 2 == 0 { &[248, 0, 0, 255] } else { &[0, 0, 0, 255] });
+            }
+        }
+        picture
+    }
+
+    /// Made-up palettes, with colours the timer does not use.
+    fn palettes(colors: u8, how_many: u8) -> Vec<Vec<Color>> {
+        (0..how_many).map(|i| (0..colors).map(|k| [1, i, k]).collect()).collect()
+    }
+
+    /// With the eight palettes taken but with room, the digits go into one
+    /// that exists and none is added.
+    #[test]
+    fn the_digits_go_into_a_palette_that_exists() {
+        let mut p = palettes(13, 8);
+        let mut tiles = vec![0; 32 * 64];
+        let (_, which) = timer_digits(&glyphs(), &mut tiles, &mut p, &BTreeSet::new(), OBJ_PALETTES).unwrap();
+        assert_eq!(p.len(), OBJ_PALETTES);
+        assert!(p[which].len() <= OBJ_COLORS);
+    }
+
+    /// With the eight full there is nothing to be done, and it says so.
+    #[test]
+    fn if_they_really_do_not_fit_it_says_so() {
+        let mut p = palettes(15, 8);
+        let mut tiles = vec![0; 32 * 64];
+        assert!(timer_digits(&glyphs(), &mut tiles, &mut p, &BTreeSet::new(), OBJ_PALETTES).is_err());
+    }
+
+    /// The console overwrites the leaders' slot with the colours of whoever
+    /// leads, so a digit there would lose its red: the first palette with
+    /// room is skipped if it is a leader's. No map of the game reaches this
+    /// path, which is why it is made up.
+    #[test]
+    fn the_timer_does_not_land_in_a_leaders_slot() {
+        let mut p = vec![(0..4).map(|k| [1, 1, k]).collect(), (0..4).map(|k| [2, 2, k]).collect()];
+        let mut tiles = vec![0; 32 * 64];
+        let (_, which) = timer_digits(&glyphs(), &mut tiles, &mut p, &BTreeSet::from([0]), OBJ_PALETTES).unwrap();
+        assert_eq!(which, 1);
+    }
+
+    /// The other palette the console uploads again untinted is the
+    /// timer's: the digits go above the screen's tint and the rain below
+    /// it, so a drop in there would stay grey on a tinted screen.
+    #[test]
+    fn the_drops_do_not_land_in_the_timers_palette() {
+        let mut p = vec![(0..4).map(|k| [1, 1, k]).collect(), (0..4).map(|k| [2, 2, k]).collect()];
+        let mut tiles = vec![0; 32 * 64];
+        let (base, which) = rain_drops(&mut tiles, &mut p, &BTreeSet::new(), Some((64, 0)), OBJ_PALETTES).unwrap();
+        assert_eq!(base, 64 + TIMER_GLYPHS);
+        assert_ne!(which, 0);
+    }
+
+    /// The glyphs start at a row of blocks, eleven across and two tiles
+    /// tall.
+    #[test]
+    fn the_digits_start_at_a_row_of_blocks() {
+        let mut p = palettes(4, 2);
+        let mut tiles = vec![0; 32 * 70];
+        let (base, _) = timer_digits(&glyphs(), &mut tiles, &mut p, &BTreeSet::new(), OBJ_PALETTES).unwrap();
+        assert_eq!(base, 128);
+        assert_eq!(tiles.len(), (base + 16 + TIMER_GLYPHS) * 32);
+    }
+}
+
 /// The battle animation's box at the end of the bank: its tiles, left
 /// blank —the console uploads each frame—, and a whole palette, after the
 /// picture's if it took one. `None` without a palette.

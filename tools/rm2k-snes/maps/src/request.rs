@@ -134,6 +134,26 @@ fn indices(data: &Value, name: &str, whose: &str) -> Result<std::collections::BT
 }
 
 impl crate::map::MapRequest {
+    /// A request that only says some of what a whole map's says —the
+    /// questions of [`crate::inspect`] need less—: what it leaves out is
+    /// empty, nothing, or no.
+    pub fn partial(data: &Value, whose: &str) -> Result<crate::map::MapRequest> {
+        let mut full = serde_json::json!({
+            "map_files": {}, "chipset_files": {}, "names": [], "test_event": false,
+            "leaders": [], "movable": [], "route_graphics": [], "animates_still": [],
+            "turning": [], "timer": null, "rain": false, "picture": null,
+            "battle_animation": false, "singles": [], "palette_weight": {},
+            "dither": "five_of_eight",
+        });
+        let given = data
+            .as_object()
+            .ok_or_else(|| Bad::answer(format!("{whose}: not an object")))?;
+        for (k, v) in given {
+            full[k] = v.clone();
+        }
+        Self::from_json(&full, whose)
+    }
+
     /// A request for a whole map:
     ///
     /// ```json

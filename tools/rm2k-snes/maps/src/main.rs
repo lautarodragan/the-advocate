@@ -6,7 +6,7 @@
 
 use clap::{Args as ClapArgs, Parser, Subcommand};
 use rm2k_snes_maps::map::{self, MapRequest};
-use rm2k_snes_maps::{layers, request, Bad, Game, LayersRequest, Result};
+use rm2k_snes_maps::{inspect, layers, request, Bad, Game, LayersRequest, Result};
 use std::path::PathBuf;
 use std::process::ExitCode;
 
@@ -35,6 +35,10 @@ enum Command {
     /// A whole map: its layers, the events baked into them, its characters
     /// as objects, its blocks and where the hero starts
     Map(MapArgs),
+    /// Which events of a map can be baked, and why that is safe
+    Bakeable(MapArgs),
+    /// How a map's object palettes are split with a given number of them
+    Split(MapArgs),
 }
 
 /// Where the game is: the dump, and where its pictures are.
@@ -128,11 +132,35 @@ fn do_map(args: &MapArgs) -> Result<()> {
     map::write(&args.place.out, &done)
 }
 
+fn write_answer(out: &std::path::Path, name: &str, answer: &serde_json::Value) -> Result<()> {
+    std::fs::create_dir_all(out).map_err(|e| Bad::usage(format!("{}: {e}", out.display())))?;
+    std::fs::write(out.join(name), answer.to_string())
+        .map_err(|e| Bad::usage(format!("{}: {e}", out.join(name).display())))
+}
+
+fn do_bakeable(args: &MapArgs) -> Result<()> {
+    let (game, data, whose) = game(&args.place)?;
+    let request = MapRequest::partial(&data, &whose)?;
+    write_answer(&args.place.out, "bakeable.json", &inspect::bakeable_report(&game, &request)?)
+}
+
+fn do_split(args: &MapArgs) -> Result<()> {
+    let (game, data, whose) = game(&args.place)?;
+    let request = MapRequest::partial(&data, &whose)?;
+    let palettes = data
+        .get("palettes")
+        .and_then(serde_json::Value::as_u64)
+        .ok_or_else(|| Bad::answer(format!("{whose}: no `palettes`, how many the split gets")))?;
+    write_answer(&args.place.out, "split.json", &inspect::split_report(&game, &request, palettes as usize)?)
+}
+
 fn main() -> ExitCode {
     let cli = Cli::parse();
     let done = match &cli.command {
         Command::Layers(args) => do_layers(args),
         Command::Map(args) => do_map(args),
+        Command::Bakeable(args) => do_bakeable(args),
+        Command::Split(args) => do_split(args),
     };
     match done {
         Ok(()) => ExitCode::SUCCESS,

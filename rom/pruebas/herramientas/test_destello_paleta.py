@@ -21,7 +21,6 @@ este juego y es el único que se puede saber al convertir.
 """
 
 import collections
-import os
 
 import pytest
 
@@ -31,9 +30,9 @@ from rpgmaker import resources
 # los lee el conversor.
 from port import snes_convert                            # noqa: F401
 from port import game_scan
-from port import sprites
 
 from datos import DEMO
+from etapa_mapas import preguntar
 
 # El juego original, del mismo lugar que el conversor: `ABL_GAME_DIR`.
 JUEGO = resources.GAME_DIR
@@ -48,10 +47,9 @@ MAPAS = [3, 2, 1]
 def test_ningun_tile_entra_en_la_paleta_de_un_lider(map_id):
     ren = render_map.Renderer(JUEGO)
     lideres = game_scan.possible_leaders(ren, DEMO, GRUPO)
-    game_map = ren.load_map(os.path.join(JUEGO, "Map%04d.lmu" % map_id))
-    _npcs, _fuera, reparto = sprites.drawable_npcs(
-        ren, game_map, lideres, sprites.OBJ_PALETTES, [])
-    paletas, paleta_de = reparto[0], reparto[1]
+    # El reparto de la etapa del conversor, con las ocho paletas.
+    respuesta = preguntar("split", map_id, ren, leaders=lideres, palettes=8)
+    paleta_de = {(c, i): n for c, i, n in respuesta["palette_of"]}
 
     de_lider = set()
     for actor in lideres:

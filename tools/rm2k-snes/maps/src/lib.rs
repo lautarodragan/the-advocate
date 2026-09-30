@@ -20,6 +20,7 @@ pub mod baking;
 pub mod events;
 pub mod fail;
 pub mod game;
+pub mod inspect;
 pub mod layers;
 pub mod map;
 pub mod request;

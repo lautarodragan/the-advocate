@@ -208,6 +208,57 @@ fn a_whole_map_bakes_draws_and_says_what_it_did() {
     std::fs::remove_dir_all(&dir).unwrap();
 }
 
+fn ask(command: &str, dump: &Path, pictures: &Path, dir: &Path, body: Value) -> Value {
+    let request = dir.join(format!("{command}.request.json"));
+    std::fs::write(&request, body.to_string()).unwrap();
+    let out = dir.join(format!("{command}-out"));
+    let done = Command::new(env!("CARGO_BIN_EXE_rm2k-snes-maps"))
+        .args([command, "--data"])
+        .arg(dump)
+        .arg("--search-dir")
+        .arg(pictures)
+        .arg("--request")
+        .arg(&request)
+        .arg("--out")
+        .arg(&out)
+        .output()
+        .unwrap();
+    assert!(done.status.success(), "{}", String::from_utf8_lossy(&done.stderr));
+    serde_json::from_str(&std::fs::read_to_string(out.join(format!("{command}.json"))).unwrap()).unwrap()
+}
+
+#[test]
+fn bakeable_says_what_is_baked_and_why_it_is_safe() {
+    let dir = scratch("bakeable");
+    let (dump, pictures) = game(&dir);
+    let answer = ask("bakeable", &dump, &pictures, &dir, json!({"map": 7, "map_files": {}, "chipset_files": {}}));
+    let baked = answer["baked"].as_array().unwrap();
+    assert_eq!(baked.len(), 1);
+    let b = &baked[0];
+    assert_eq!((b["event"].clone(), b["cell"].clone(), b["tile"].clone()), (json!(0), json!(7), json!(10005)));
+    // What the row imposed is what the table says once the tile is in.
+    assert_eq!(b["imposed"], b["after"]);
+    assert!(b["alphas"].as_array().unwrap().iter().all(|a| a == 255));
+    assert!(answer["tile_zero"].as_array().unwrap().iter().all(|a| a == 0));
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn split_answers_with_the_palettes_it_is_given() {
+    let dir = scratch("split");
+    let (dump, pictures) = game(&dir);
+    let answer = ask("split", &dump, &pictures, &dir, json!({"map": 7, "map_files": {}, "chipset_files": {}, "leaders": [1], "palettes": 8}));
+    let owners: Vec<Value> = answer["palette_of"].as_array().unwrap().clone();
+    assert!(owners.contains(&json!(["Hero", 0, 0])), "{owners:?}");
+    assert_eq!(answer["leader_owned"], json!([0]));
+    assert_eq!(answer["discarded"], json!([]));
+    // With a single palette, the leader's, nobody else can be drawn: the
+    // tile is left out.
+    let tight = ask("split", &dump, &pictures, &dir, json!({"map": 7, "map_files": {}, "chipset_files": {}, "leaders": [1], "palettes": 1}));
+    assert_eq!(tight["discarded"], json!([[0, "@tile:tiles:5"]]));
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
 #[test]
 fn the_test_event_goes_first() {
     let dir = scratch("test-event");

@@ -2,32 +2,30 @@
 siga pasándose igual.
 
 Un evento dibujado con un tile opaco del ChipSet deja de dibujarse y su tile se
-mete en la capa alta del mapa —ver `bakeable_events` en baking.py—. Lo
+mete en la capa alta del mapa —ver `baking.rs` en `rm2k-snes-maps`—. Lo
 que sostiene que eso no cambie nada son dos invariantes, y las dos se miran acá
 porque ninguna se ve en una captura:
 
 * **la pasabilidad de la celda no cambia.** La fila del evento imponía los bits
-  de su tile (`rm2k.event_tile_passability`) y `pass_with_event` saltea las
-  filas escondidas, así que si la tabla del mapa no llegara al mismo valor, la
-  celda pasaría a pasarse distinto y no habría un pixel que lo delatara;
+  de su tile y `pass_with_event` saltea las filas escondidas, así que si la
+  tabla del mapa no llegara al mismo valor, la celda pasaría a pasarse distinto
+  y no habría un pixel que lo delatara;
 * **el tile tapa las 16x16.** Un pixel transparente deja ver el tile de abajo,
   y en una golden del mapa 11 eso serían unos pocos pixeles en una celda:
   exactamente lo que una comparación con tope no cobra.
 
-No arranca ninguna ROM: mira al conversor.
+No arranca ninguna ROM: le pregunta a la etapa del conversor, `rm2k-snes-maps
+bakeable`, qué hornea en cada mapa, con lo que imponía cada fila y lo que
+dice la tabla después.
 """
-
-import os
 
 # Por los ganchos que pone en `lcf` al importarse: los mapas se leen como
 # los lee el conversor.
 from port import snes_convert                            # noqa: F401
-from port import baking
-from render.render_map import Renderer, build_passability
-from rpgmaker.resources import GAME_DIR
-from rpgmaker import rm2k
+from render.render_map import Renderer
 
 import cartuchos
+from etapa_mapas import preguntar
 
 # Los mapas que se miran: los del cartucho de pruebas, que son los que las
 # goldens dibujan. Salen de `cartuchos` y no copiados acá, que es lo que evita
@@ -35,10 +33,9 @@ import cartuchos
 MAPAS = cartuchos.mapas()
 
 
-def horneados_de(renderer, map_id):
-    game_map = renderer.load_map(
-        os.path.join(GAME_DIR, "Map%04d.lmu" % map_id))
-    return game_map, baking.bakeable_events(renderer, game_map)
+def horneados():
+    renderer = Renderer()
+    return {m: preguntar("bakeable", m, renderer) for m in MAPAS}
 
 
 def test_la_regla_sigue_alcanzando_a_algun_mapa_del_cartucho():
@@ -47,29 +44,22 @@ def test_la_regla_sigue_alcanzando_a_algun_mapa_del_cartucho():
     Sin número escrito: un filtro de más y no se hornea nada, y nadie se
     entera. Cuántos son lo dice el conversor en su informe.
     """
-    renderer = Renderer()
-    horneados = {m: horneados_de(renderer, m)[1] for m in MAPAS}
-    assert any(horneados.values()), \
+    assert any(r["baked"] for r in horneados().values()), \
         "ningún mapa del cartucho hornea un evento: la regla dejó de alcanzar"
 
 
 def test_lo_que_se_hornea_tapa_la_celda_entera():
     """Opaco en las 16x16, con el tile 0 —el de una celda vacía— transparente."""
-    renderer = Renderer()
-    for map_id in MAPAS:
-        game_map, horneados = horneados_de(renderer, map_id)
-        if not horneados:
+    for map_id, respuesta in horneados().items():
+        if not respuesta["baked"]:
             continue
-        chipset = game_map.chipset_filename
-        assert not any(baking._tile_alphas(renderer, chipset, 0)), \
+        assert not any(respuesta["tile_zero"]), \
             "mapa %d: el tile 0 de la capa alta dibuja algo, así que la celda " \
             "vacía donde se hornea no estaba vacía" % map_id
-        for evento, (_celda, tile) in horneados.items():
-            alfas = baking._tile_alphas(renderer, chipset,
-                                        tile - rm2k.UPPER_BASE)
-            assert all(a == 255 for a in alfas), \
+        for h in respuesta["baked"]:
+            assert all(a == 255 for a in h["alphas"]), \
                 "mapa %d: el evento %d se hornea con un tile que tiene " \
-                "pixeles transparentes" % (map_id, evento + 1)
+                "pixeles transparentes" % (map_id, h["event"] + 1)
 
 
 def test_hornear_no_cambia_la_pasabilidad_de_la_celda():
@@ -78,26 +68,12 @@ def test_hornear_no_cambia_la_pasabilidad_de_la_celda():
     Es la invariante que permite esconder la fila: `pass_with_event` no mira las
     escondidas, así que el valor tiene que estar en la tabla.
     """
-    renderer = Renderer()
-    for map_id in MAPAS:
-        game_map, horneados = horneados_de(renderer, map_id)
-        if not horneados:
-            continue
-        chipset = renderer.database.chipsets[game_map.chipset_id]
-        flags = build_passability(chipset)
-        # Lo que la fila imponía, antes de hornear.
-        antes = {}
-        for npc in rm2k.collect_npcs(game_map):
-            if npc["event"] in horneados:
-                antes[npc["event"]] = rm2k.event_tile_passability(
-                    game_map, npc["charset"], npc["layer"])
-        baking.bake_into_map(game_map, horneados)
-        pasable = rm2k.passability_map(game_map, flags)
-        for evento, (celda, _tile) in horneados.items():
-            assert antes[evento] is not None, \
+    for map_id, respuesta in horneados().items():
+        for h in respuesta["baked"]:
+            assert h["imposed"] is not None, \
                 "mapa %d: el evento %d se hornea y no imponía pasabilidad, " \
-                "así que hornearlo le cambia la celda" % (map_id, evento + 1)
-            assert pasable[celda] == antes[evento], \
+                "así que hornearlo le cambia la celda" % (map_id, h["event"] + 1)
+            assert h["after"] == h["imposed"], \
                 "mapa %d: el evento %d imponía %#x a su celda y horneado la " \
-                "tabla dice %#x" % (map_id, evento + 1, antes[evento],
-                                    pasable[celda])
+                "tabla dice %#x" % (map_id, h["event"] + 1, h["imposed"],
+                                    h["after"])
