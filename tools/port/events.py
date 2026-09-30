@@ -17,8 +17,14 @@ takes the cartridge's place (`Pictures`), the escape tail `texts.py`
 rebuilds boxes around, and the models the game's tests predict the ROM with
 (`Encounters`, `key_value`, `PartyState`).
 
-The comments next to each command's constant still say what the ROM does
-with it and why; the code that does it is the crate's.
+The whys of how each command compiles live next to the code that compiles
+it, in the crate: `tools/rm2k-snes/events/src/compile.rs` and its
+neighbors. What stays here is what protects code that is still here, or
+that both sides share —the escapes and the box's header, the routes'
+frequency, the songs' numbering, the troops' triggers—, and the notes the
+runtime and `mapdata.inc` cite as "see X in events.py": until those
+citations point at the crate, the note stays here too, with its copy
+there.
 
 The command codes come from tools/rpgmaker/event_codes.py, which is
 generated from liblcf. Never from memory: the first version of the door
@@ -44,29 +50,14 @@ TELEPORT = 10810
 CHANGE_PARTY_MEMBERS = 10330
 
 MOVE_EVENT = 11330
-# Placing an event on a cell. It is `CommandChangeEventLocation`: `MoveTo`,
-# which sets the cell and leaves the step at zero, and nothing else —only RM2k3
-# touches the direction, and this game is RM2k—. The opening cutscene uses it
-# six times to bring Core, Manta and the droid into the scene.
 CHANGE_EVENT_LOCATION = 10860
 TRADE_EVENT_LOCATIONS = 10870
-# Changing one map tile for another, on every cell where it is:
-# `CommandTileSubstitution`. It is by **tile number** and not by cell, and
-# that is why in the ROM it is a small table that translates blocks while
-# drawing, and not a write to the grid —which lives in ROM and cannot be
-# written—. The converter resolves which block goes to which: see
-# `Substitutions`.
 TILE_SUBSTITUTION = 11750
 
 SHAKE_SCREEN = 11050
 
 PAN_LOCK, PAN_UNLOCK, PAN_SHIFT, PAN_RETURN = 0, 1, 2, 3
 
-# A text box. RM2k emits a `ShowMessage` with the first line and a
-# `ShowMessage_2` for each of the following lines of the same box: they are a
-# single command —one window, one wait for the player— and whoever counts them
-# separately measures nonsense. It already happened: counting them apart, the
-# text boxes seemed to unlock three pages instead of fifty-five.
 SHOW_MESSAGE = 10110
 SHOW_MESSAGE_2 = 20110
 
@@ -148,16 +139,6 @@ def escape_tail(lines):
     return tuple(lines), pauses, auto_close
 
 
-# A forced MoveEvent route. The parameters are (whom, frequency, a repeat
-# bitmask, whether it is skippable) and from there on the route's commands,
-# with the codes of liblcf's `rpg::MoveCommand::Code`.
-#
-# The four turns, the four moves and the wait are accepted. The moves came in
-# last because in RM2k the character walks cell by cell over several frames,
-# and that has to be compared *while* it walks: comparing only where it ends
-# lets the whole animation cycle slip through. A blocked move is skipped,
-# which is our decision and not RM2k's —RM2k would retry forever and a hung
-# test says nothing—.
 ROUTE_HERO = 10001
 ROUTE_THIS_EVENT = 10005                    # "this event", the page's owner
 
@@ -210,14 +191,6 @@ STEP_PER_SPEED = (4, 8, 16, 32, 64, 128)
 JUMP_STEP = 256
 JUMP_PER_SPEED = (8, 12, 16, 24, 32, 64)
 
-# A flash on a character: `Game_Character::Flash`. The parameters are whom, r,
-# g and b from 0 to 31, the power, how many **tenths of a second** it lasts,
-# and whether the page waits for it to finish.
-#
-# The tenths are not a detail: `CommandFlashSprite` does
-# `event->Flash(r, g, b, p, tenths * DEFAULT_FPS / 10)` and, if it waits,
-# `SetupWait(tenths)`, which is the same wait as the Wait command. So the
-# time comes for free: it is an OP_DELAY after it.
 FLASH_SPRITE = 11320
 
 # ChangePartyMembers: the first parameter says whether it adds or removes, the
@@ -227,101 +200,18 @@ PARTY_ADD, PARTY_REMOVE = 0, 1
 PARTY_FIXED_ID = 0
 PARTY_MAX = 4           # `Game_Party::AddActor` does not add if there are four
 
-# WeatherEffects turns the rain on or off. It is accepted without drawing it,
-# and the debt is one of the big ones, so it is spelled out.
-#
-# **In mode 3 there is no layer left to put it on.** BG1 is the map's eight
-# bits and BG2 the upper layer plus the message window; there is no third.
-# Not with objects either: RM2k's rain is up to 100 streaks of 6x24 spread
-# across the whole screen, and the console draws 34 sprite tiles per line —a
-# 32x32 object takes four—, so a rain that covers the screen blows the budget
-# on almost every line.
-#
-# And even if it fit: each drop has its own transparency —`alpha = min((5 +
-# fuerza) * t, 255)` in `Weather::DrawParticles`— and the console has a single
-# color operation for the whole screen, not one per object. The positions also
-# come from a random number generator that would have to be reproduced.
-#
-# What is lost, measured on an EasyRPG capture of the opening: thin diagonal
-# streaks 24 pixels tall, which between two consecutive frames move 3.9% of
-# the screen. They show mostly in the dark areas.
-#
-# It is accepted because **it is the only thing blocking the opening
-# cutscene**. Without this the ROM does not start the story; with it, it
-# starts, without rain.
-#
-# **Since 2026-09-11 the rain is drawn**: see OP_WEATHER. Snow, fog and
-# sandstorm are still not drawn, and they turn the rain off.
 WEATHER_EFFECTS = 11070
 
-# PlaySound plays an effect: a door, a hit, Talan's Insta-Shave. It sounds
-# since 2026-09-11 (see OP_SOUND); until then it was accepted without playing
-# it, and it was the cheapest debt of all the ones here: **it does not
-# show**. The screen being compared is exactly the same with and without
-# sound.
-#
-# What made it costly was ARAM. The effects go in each map's audio package,
-# together with its songs —`package_load`, in
-# tools/runtime/audio_package.s—, with the same per-pack budget as the
-# music's samples: `workflow/decisiones/un-solo-banco-de-muestras.md`. One
-# that does not fit in its pack does not sound.
-#
-# How much it unlocks, measured and not assumed: **+10 action-key pages and +6
-# automatic ones**. It is much less than it seems: `PlaySound` is the command
-# that cuts *first* in 349 pages, but almost all of them are also cut by
-# something else: the command that cuts first is not the only one that cuts,
-# and counting by it promises more than it unlocks.
-#
-# What it does unlock is concrete: the Insta-Shave on Talan's pad plays four
-# effects before its message, so without this that branch does not run.
-#
-# **Since 2026-09-11 they sound**: see OP_SOUND.
 PLAY_SOUND = 11550
 
-# `ShowBattleAnimation` on the map —`CommandShowBattleAnimation`, 11210—: the
-# battle animation is drawn over the character, with its own graphics and its
-# own sound. The ROM carries no battle animations, so the command is accepted
-# and nothing is done: what is lost is the drawing. In the opening it is the
-# explosion with which CORE breaks map 2's security door; the page that asks
-# for it continues with a `FlashScreen`, which does show, and with the
-# message "CORE performs FURY PUNCH!". With the command cutting, that page did
-# not run and the game was left without the corridor to the elevator.
 SHOW_BATTLE_ANIMATION = 11210
 
 CHANGE_ITEMS = 10320
 
-# `ShowPicture` (11110), `MovePicture` (11120) and `ErasePicture` (11130): an
-# image on top of everything, moved and erased.
-#
-# **Since 2026-09-12 one is done**: the "One year previously" picture, and any
-# other that fits the same mold. See `Pictures`, OP_PICTURE and
-# workflow/tasks/done/show-picture-phase-1.md. The ones that do not fit —27 of
-# the 34 the game has— are still accepted without being done, and what follows
-# applies to those.
-#
-# In mode 3 both background layers are taken by the map, so an image on top
-# requires a video decision, not one more opcode. But there is a shortcut this
-# game allows and it is worth noting: **the cutscenes tint to black before
-# showing the picture**, that is the map is invisible while it lasts and the
-# image could borrow a whole layer instead of being composited on top. That
-# does not work for the game's custom systems, which use them over the map,
-# but it does for the pictures.
-#
-# How much it unlocks, measured: +8 automatic pages, the three together. The
-# one that matters is the "1 year earlier" one, where the image is the "One
-# year previous" picture: accepting it, the player sees black where the
-# picture goes and the scene continues up to Talan's Pad.
 SHOW_PICTURE = 11110
 
-# The two command codes of the variables, which are used further down and in
-# the list here: see "RM2k's variables".
 CONTROL_VARS = 10220
 
-# And the shop: `OpenShop`. Forty-three in the game, none with the
-# "bought"/"did not buy" branches. From the night of 2026-09-10 to the 11th it
-# was accepted without opening anything, so that the Lashe City Interiors
-# vendors —EV0021 and EV0023— would answer; since the 11th it opens the real
-# shop: see OP_SHOP.
 OPEN_SHOP = 10720
 
 
@@ -396,88 +286,9 @@ class Songs:
 
 
 # --- the opcodes we emit ----------------------------------------------------
-# One per command, with the operands already resolved: the ROM does not look
-# at the LCF again nor knows its numbers.
-#
-# **The numbers and layouts are in `tools/snes/protocol/events.toml`**, not here:
-# this is what there is to know about each one that a declaration cannot say.
-#
-# OP_SWITCH: id (word), value (byte)
-#
-# OP_TELEPORT: map (word), x (word), y (word). The map used to go in a
-#     byte and that put a ceiling of 256 maps **on the
-#     format**: the game has 328. Today it does not
-#     matter —the demos carry 29— but it was a written
-#     ceiling, and removing it while it is still cheap
-#     is cheaper than removing it the day a demo goes
-#     over.
-#
-# OP_DELAY: frames (word): the cutscene waits six
-#     seconds, that is 360, and they do not fit in a byte
-#
-# OP_TINT: r, g, b, sat (a byte each)
-#
-# OP_PARTY: operation (byte), actor (byte)
-#
-# OP_ROUTE: target (byte), frequency (byte), how many commands (byte), and
-#     the commands. The target is 0 for the hero, and
-#     otherwise the event's index in the map's table plus
-#     one.
-#
-#     **The index is not the RM2k id.** 39 maps of this
-#     game have gaps in the event numbering, so a route
-#     aimed at id 8 would move whichever is eighth in the
-#     list, which can be any other. The converter
-#     translates it, being the only one that sees the map.
-#
-# OP_MESSAGE: offset (word) within the `messages` block: opens
-#     that window and blocks the page until the player
-#     presses A
-#
-# OP_WAIT_ROUTES: no operands: the page does not continue until no forced
-#     route is left running
-#
-# OP_FLASH: target (byte), r, g, b, power (a byte each, 0 to
-#     31) and how many frames it lasts (byte)
-#
-# OP_PLACE: target (byte, as in OP_ROUTE: the event's index
-#     plus one), x (word), y (word). Places the event on
-#     the cell and cuts the step in progress; it does not
-#     touch its route nor where it faces, which is what
-#     `MoveTo` does.
-#
-# OP_SWAP: two targets (a byte each, as in OP_PLACE): the two
-#     events trade cells, each one with `MoveTo`, which is
-#     `CommandTradeEventLocations`.
-#
-# OP_SHAKE: power (byte), speed (byte), frames (word):
-#     `ShakeOnce`. With zero frames it is `ShakeEnd`: the
-#     screen goes back to its place. The math is
-#     `shake_tick` in tools/runtime/camera.s.
-#
-# OP_FLASH_SCREEN: r, g, b, power (a byte each, 0..31) and frames
-#     (byte): `FlashOnce`, the whole-screen flash. The
-#     math is `flash_tick` in
-#     tools/runtime/screen_flash.s.
-#
-# OP_IF: kind (byte), operand (word), polarity (byte),
-#     destination (word):
-#     `ConditionalBranch` with a switch condition. If it
-#     is not met, the cursor jumps to the destination,
-#     which is the `else` or the `end` of that same
-#     branch. The polarity is RM2k's reversed and on
-#     purpose: there `parameters[2] == 0` means "has to be
-#     on", so here 0 is "on" and 1 is "off", same as the
-#     data.
-#
-#     The destination is **absolute** within the page,
-#     not relative: the ROM's cursor is a 16-bit index
-#     into the same array, so assigning it is the whole
-#     jump.
-#
-# OP_GOTO: destination (word): the unconditional jump emitted
-#     where the `else` was, so the branch above skips the
-#     one below.
+# What each opcode carries and why is in the crate, next to the arm of
+# `compile_command` that emits it. This one stays here too because
+# tools/runtime/interpreter_save.s cites it:
 #
 # OP_SAVE: no operands: the save to the cartridge's SRAM.
 #     It is `OpenSaveMenu`, but without a menu: there is
@@ -486,88 +297,7 @@ class Songs:
 #     tools/runtime/bank1.s, which is the only place
 #     where it is written. It costs no frame: in RM2k the
 #     menu blocks, and here there is nothing to look at.
-#
-# OP_GOLD: sign (byte: 0 adds, 1 subtracts) and a 24-bit amount.
-#     It is `ChangeGold`, and it goes in three bytes
-#     because RM2k's cap is 999999 and the game uses the
-#     whole value: there is a command that gives exactly
-#     that.
-#
-#     The ROM clamps to [0, GOLD_MAX] like
-#     `Game_Party::GainGold`. There is still nowhere to
-#     show it —the menu does not exist— but there is who
-#     asks for it: the gold branch of `ConditionalBranch`.
-#
-# OP_CHOICE: how many options (byte), what cancel does (byte), and
-#     then one entry per option: the text box (word) and
-#     the destination (word). It is `ShowChoice`.
-#
-#     **One text box per option, not a single one.** The
-#     boxes carry the same lines and differ in where the
-#     cursor is, so moving the cursor is recomposing the
-#     window with another offset and not drawing anything
-#     new. It costs a few dozen bytes per choice and saves
-#     a sprite tile, a palette and all the code to draw
-#     it: on the console there is nowhere to put a cursor
-#     that is not a sprite, and this map's sprites are
-#     already spread among the characters.
-#
-#     The destination is absolute within the page, like
-#     OP_IF's, and each option's body ends in an OP_GOTO
-#     to the end of the choice.
-#
-# OP_PAN: operation (byte: PAN_RUN or PAN_RETURN), how far
-#     the destination moves in x and in y (a signed word
-#     each, in 1/16 of a pixel), the step per frame
-#     (byte) and whether the page waits (byte).
-#
-#     The direction and the distance come resolved to a
-#     signed offset, and the speed to its step: they are
-#     fixed computations and the converter does them
-#     once. What **cannot** be resolved here are the
-#     frames the page waits: they come from what the pan
-#     has left when the command runs, and with one still
-#     in progress that is not what this command asked for.
-#     See `GetPanWait` and `CommandPanScreen`'s comment on
-#     the maximum.
-#
-# OP_FADE_BGM: step (word): how much the song's volume goes down
-#     per frame, in 1/65536 of whatever was playing.
-#
-#     The step goes and not the milliseconds RM2k brings
-#     because the 65816 does not divide without hardware
-#     and the math is always the same:
-#     `ceil(65536 / frames)`. It is the same kind of
-#     number as a teleport's map index —resolved by the
-#     converter so the ROM does not look at it again—, and
-#     `fade_step` does it.
-#
-# OP_BGM: the song's index in `Songs` (byte). The ROM plays the
-#     ones it carried —the first `SONG_TOTAL`— and with
-#     any other it does nothing. See `Songs`.
-#
-# OP_TIMER: operation (byte), seconds (word), visible (byte).
-#     The five bytes are fixed even though each operation
-#     uses two: that way the interpreter skips it without
-#     looking at which one it is, which is what the
-#     converter's `walk_code` does.
 
-# The operand is an offset and not a text, and that is what makes it fit. An
-# already composed message page is ~240 tiles at 4bpp, that is 7.5 KB, and
-# emitting one for every text box in the game does not come close to fitting
-# in a 256 KB cartridge: the 2895 boxes would be 21 MB. What is emitted is the
-# text —one byte per letter— and the 65816 composes it on the fly, with the
-# font in ROM, which is FF6's way out. The same 2895 boxes are 180 KB of text,
-# and a single map quite a lot less.
-#
-# Sixteen bits are enough because the block has to fit in a 32 KB bank:
-# `lda [msg_ptr], y` reads it with a pointer that increments one byte at a
-# time and does **not** carry into the bank byte, so `bloque()` emits it with
-# `.block`, which keeps it whole in one bank. If some day it does not fit,
-# what has to grow is the pointer, not the operand.
-
-# TimerOperation. The parameters are (operation, where the seconds come from,
-# seconds, visible, in battle): liblcf, TimerOperation::Operation.
 TIMER_OPERATION = 10230
 TIMER_SET, TIMER_START, TIMER_STOP = 0, 1, 2
 
@@ -918,32 +648,6 @@ ITEM_MAX = 99
 # no math to do and accepts whatever permissions are needed.
 #
 # OP_ACCESS: the bit in FAR_ACCESS (byte), allowed (byte)
-# HP, SP and states. Until 2026-09-12 outside battle they never went down
-# —measured over the 328 maps: the 11 `ChangeHP`s add, the 16
-# `ChangeCondition`s remove a state and the 54 `FullHeal`s fill up— so the
-# three commands compiled to nothing and it was exact. **It stopped being so
-# the next day**, with the battle: HP and SP became state, in `FAR_HP` and
-# `FAR_SP`, and a `FullHeal` that does not heal leaves the party down. That
-# blocked the demo until 2026-09-19, because the battle on map 9 is lost by
-# script and its defeat handler is precisely a `FullHeal`.
-#
-# Today `FullHeal` and the `ChangeHP` that adds are both OP_HEAL, and the
-# amount tells them apart; the one that subtracts still does not compile.
-# `ChangeCondition` that removes a state still compiles to nothing, and that
-# is **not** debt: outside battle states do not exist —the battle sets them
-# up and throws them away— so there is nothing to remove. The one that sets a
-# state still does not compile.
-#
-# OP_HEAL: actor (byte), amount (word). Actor 0 is the whole party and amount
-#     0 is `FullHeal`, that is HP and SP to the maximum.
-# The shop, since 2026-09-11: `OpenShop` compiles to OP_SHOP with the type
-# —0 buys and sells, 1 only buys, 2 only sells—, the message set and the list
-# of what it sells, by item number. It is variable-length, like OP_CHOICE.
-# Like saving, the screen opens inside the interpreter and costs no tick: the
-# map does not run while it is shown. The "bought" and "did not buy" branches
-# do not compile; none of the game's 43 shops uses them.
-#
-# OP_SHOP: type, set, how many (bytes), and two bytes per item
 # The weather, since 2026-09-11: `WeatherEffects` compiles to OP_WEATHER with
 # the type and the power, and the rain is drawn. It is
 # `Game_Screen::UpdateRain` with RM2k's rule —each drop lives twelve frames,
@@ -988,15 +692,6 @@ def rain_pixels(x, y):
     down to the left, one pixel every four rows."""
     return [(x + 3 - r // 4, y + r) for r in range(16)]
 
-
-# The sound effects, since 2026-09-11: `PlaySound` compiles to OP_SOUND with
-# the index of its entry in `Songs.sounds`, and the ROM's table says with
-# which sample, what pitch, what volume on each side and how many frames. The
-# samples go in ARAM next to the music's bank, in what it leaves free: see
-# `effects.rs` in `rm2k-snes-audio`. They play on voice 7, which is stolen from
-# the music while they last. They cost no tick, as in RM2k.
-#
-# OP_SOUND: index (word)
 
 # The battle animations on the map, since 2026-09-11: their sounds and their
 # flashes, **without the drawing**. `ShowBattleAnimation` compiles to
@@ -1062,24 +757,6 @@ ANIM_TARGET_SCREEN = 0xFF     # "screen" scope: goes to the center, no target
 # looks at it in `op_battle`.
 BATTLE_LOSE = 0xFFFF
 
-# `HaltAllMovement`: all of the map's forced routes are abandoned at once. It
-# is `Game_Map::RemoveAllPendingMoves`, that is a `CancelMoveRoute` on the
-# hero and on each event, and what cancelling means is written only once: it
-# is **the same as what happens when the route ends on its own** —whoever had
-# a page route of its own goes back to it, whoever did not stands still— and
-# that is why the ROM calls `resume_page`.
-#
-# What it **does not** touch, same as `CancelMoveRoute`: the step or jump in
-# progress are finished, and where each one faces stays where the route left
-# it.
-#
-# In the whole game there is **a single one** —map 11, the event that
-# rearranges the Lazer Teeth hideout when you are discovered— and that is why
-# it is worth it: without it that page does not compile and the HQ cannot be
-# played again after you get caught.
-#
-# OP_STOP_ROUTES: no operands
-
 # The two actor questions that do not fit in `OP_IF`, since 2026-09-13: "does
 # it have this item equipped?" and "does it know this skill?". They do not fit
 # because they carry **two** operands —the actor and the item or the skill—
@@ -1137,12 +814,6 @@ BATTLE_LOSE = 0xFFFF
 # drawn. It is the difference with command 34, which there hides the row, and
 # it is chosen: here the target is the hero, and an invisible hero on a map
 # where the CharSet did not fit is worse than a hero with the old graphic.
-# **The number is chosen by looking at the ones already there, not the last
-# one you remember.** On 2026-09-13 three sub-agent branches chose "the next
-# free one" at the same time without seeing each other: $23 came out twice
-# and $24 twice, git merged them without a single conflict —each on its own
-# line— and what broke was the walk over the bytecode.
-# `test_no_opcode_shares_a_number_with_another` guards it.
 #
 # OP_ACTOR_SPRITE: actor (byte), graphic (byte)
 
@@ -1200,9 +871,6 @@ KEY_VALUE_DIR = {0: 4, 1: 3, 3: 2, 2: 1}
 # minigame on map 11, which without this cannot place the stone where the
 # player is standing and therefore none can be thrown.
 #
-# **The number is chosen by looking at the ones already there**, not the last
-# one you remember: see `OP_ACTOR_SPRITE`'s warning.
-#
 # OP_PLACE_VAR: target (byte, as in OP_PLACE), slot of x
 #     (byte), slot of y (byte)
 #
@@ -1245,12 +913,6 @@ def key_value(flags, pressed):
 
 ENEMY_ENCOUNTER = 10710
 
-# The parameters of `EnemyEncounter`, from `Game_Interpreter_Map::
-# CommandEnemyEncounter`: [troop by variable, troop, where the backdrop comes
-# from, what happens on escape, what happens on defeat, whether it strikes
-# first]. This port only does the case the game's 51 battles use —troop by
-# constant— and stops on the others, as always: better to emit nothing than
-# to emit something the ROM does differently.
 # Where the backdrop comes from, parameter [2] of `CommandEnemyEncounter`: 0
 # the local one —the map's, or that of the terrain the hero stands on: it is
 # `Game_Map::SetupBattle`—, 1 the one the command names and 2 that of a given
@@ -1659,6 +1321,48 @@ Trigger = collections.namedtuple("Trigger", (
     "flags", "switch_a", "switch_b", "slot", "value",
     "turn_base", "turn_mult", "enemy", "enemy_min", "enemy_max",
     "actor", "actor_min", "actor_max"))
+
+# --- random encounters -------------------------------------------------------
+#
+# Everything here comes from easyrpg-player —`Game_Player::UpdateEncounterSteps`,
+# `Game_Map::GetEncountersAt` and `Game_Map::PrepareEncounter`— and not from
+# intuition, which in this repo has already cost three times.
+#
+# **Where the data lives**: not in the `.lmu` but in the tree, `RPG_RT.lmt`.
+# Each node —map or *area*— carries `encounters` (a list of troops),
+# `encounter_steps` (25 by default, 0 = off) and `area_rect`. An area is a
+# type 2 node: it has no `.lmu`, hangs from a map and covers a rectangle of it.
+# See `lcf.TreeMap`.
+#
+# **How it triggers**, step by step of the hero and only those from the pad —a
+# forced route leaves through `IsMoveRouteOverwritten` before `IncSteps`, so
+# it does not count—:
+#
+#     accumulated += encounter_rate of the terrain it stands on
+#     ratio = accumulated / encounter_steps         (integer)
+#     while ratio >= TABLE[idx + 1][0]: idx++       (idx never goes down)
+#     p = (1 / encounter_steps) * pmod * (rate / 100)
+#     if it hits, accumulated = 0 and idx = 0, and an encounter is pending
+#
+# The pending one is collected on the next frame, with the hero already
+# standing: the map's troops plus those of each area covering its cell are
+# gathered and one is chosen at random. If there is none —the hero is outside
+# all areas— nothing happens, which is what `PrepareEncounter` does when it
+# returns `false`.
+#
+# **Two simplifications, both measured over the whole game** and enforced by
+# `rom/pruebas/herramientas/test_encuentros.py`, which is what keeps them
+# from becoming a lie the day someone touches the data:
+#
+# * **the terrain changes nothing**: the eleven terrain tags the 53 maps with
+#   encounters step on have `encounter_rate` 100, so the accumulated goes up
+#   by 100 always and the `rate / 100` factor is 1;
+# * **no troop filters by terrain**: the 129 the encounters name have an
+#   empty `terrain_set`, and in RM2k empty means "on all of them".
+#
+# With that the model stays entirely in integers, which is what the console
+# can do without floating point: see `enc_step_thresholds`. The compiler has
+# the same note, next to its `ENC_TABLE`.
 
 # The tree node type that is an area. See `lcf.TreeMap.map_types`.
 TREE_AREA = 2
