@@ -4,13 +4,17 @@
     rm2k-render layers --request map.json --chipset-file ChipSet/Town.png --out map7/
     rm2k-render atlas --chipset Town --game-dir game/ --rtp-dir rtp/ -o town-atlas.png
     rm2k-render charset --request charsets.json --out sheets/
+    rm2k-render face --request faces.json --out faces/
+    rm2k-render system --request windows.json --out windows/
+    rm2k-render picture --request pictures.json --out pictures/
 
 `cargo build --release`, or `cargo test`. `--help` on any subcommand prints
 what it writes.
 
 It draws what RM2k draws, the way RM2k draws it, and nothing about what
-anyone does with the pictures afterwards. Today that is a map's tile layers
-and what its events are drawn with; where the line is drawn, piece by
+anyone does with the pictures afterwards. Today that is a map's tile layers,
+what its events are drawn with, and what the screens are drawn with: faces,
+windows and `ShowPicture` pictures. Where the line is drawn, piece by
 piece, is whether a viewer of the game on a PC would draw it the same way.
 
 A map is two layers of tile ids and a ChipSet. `layers` draws them the way
@@ -144,10 +148,73 @@ alpha twice, like a tile of the layers. Both are what the Python that drew
 these before gave, and `tests/charsets.rs` keeps its hashes for CharSets,
 ChipSets and a background generated inside the test.
 
+## What the screens are drawn with
+
+`face`, `system` and `picture` take a request like `charset`'s —a JSON
+list, paths relative to it— and write picture `i` as `<i>.png`, RGBA. Each
+entry names its own file, and a file several entries share is read once.
+Every entry is checked and drawn before anything is written: a request with
+a bad entry leaves the directory as it was.
+
+    [{"faceset_file": "FaceSet/Actors.png", "index": 5}]
+
+`face` cuts face `index` —0 to 15, four across— from a FaceSet, 48x48,
+with its colour key: in a FaceSet too, index 0 is transparent.
+
+    [{"system_file": "System/Blue.png", "draw": "window",
+      "width": 256, "height": 80, "message_stretch": 0},
+     {"system_file": "System/Blue.png", "draw": "cursor",
+      "width": 120, "height": 16},
+     {"system_file": "System/Blue.png", "draw": "text_color", "color": 0},
+     {"system_file": "System/Blue.png", "draw": "shadow"},
+     {"system_file": "System/Blue.png", "draw": "timer"}]
+
+`system` draws from the System, the 160x80 picture every window is made
+of:
+
+* **`window`**: an empty window of that size, as easyrpg's `Window` makes
+  it. The 32x32 background fills it **stretched** or **tiled**, as the
+  database's `message_stretch` says —0 or 1, the number as the database
+  has it; EasyRPG's own third value is refused—, and the frame goes on top:
+  the 8x8 corners, and the edges repeated between them.
+* **`cursor`**: the cursor of a list, laid out like the frame over
+  transparency, with its middle repeated inside. `drawing` 1 is the second
+  of the two it blinks between.
+* **`text_color`** `color`, 0 to 19, and **`shadow`**: the 16x16 blocks a
+  letter takes its pixels from, which is why RM2k's text has a gradient.
+  Drawing letters with them is the caller's, with whatever font it has.
+* **`timer`**: the timer's eleven 8x16 glyphs in a row, the digits and the
+  colon.
+
+Where each piece is in the System is `rm2k-rules`' (`system`). Two things
+are the drawing this replaces' and not easyrpg's, and they are said here
+because they only show with some Systems: the stretch picks the nearest
+pixel the way Pillow's `NEAREST` does, and the edges repeat from where they
+start —next to the corner—, where easyrpg repeats them from the window's
+corner, half an edge off. With an edge that repeats every 8 pixels the two
+are the same.
+
+    [{"picture_file": "Picture/Sign.png",
+      "use_transparent_color": true, "top_trans": 30}]
+
+`picture` is the picture of a `ShowPicture` as RM2k puts it on the screen:
+index 0 transparent **only** if the command asks for its transparent
+colour, and every pixel at the opacity of `top_trans`, the transparency
+from 0 to 100 —`255 * (100 - top_trans) / 100`, rounded down, which is
+`rm2k-rules`' (`picture`)—. Where it goes, at what size and in which tone
+is the caller's.
+
+`tests/screens.rs` keeps the SHA-256 of what the Python that drew these
+before gave for Systems —an indexed one and a half-transparent one—,
+FaceSets and a picture generated inside the test; what that Python never
+drew —the tiled background, the second cursor, a transparency— is checked
+there against RM2k's rules.
+
 ## Exit codes
 
 `1` when the answer is no: the ChipSet is not there, a layer does not have
 `width * height` tiles, a tile id is outside 0 to 65535, the passability is
 shorter than 162 and 144 entries, a `charset` entry is neither of the two
-kinds or asks for a tile past 143. `2` when the call is wrong: a missing
-flag, a file that cannot be read.
+kinds or asks for a tile past 143, an entry of `face`, `system` or
+`picture` lacks a field or has one out of its range. `2` when the call is
+wrong: a missing flag, a file that cannot be read.
