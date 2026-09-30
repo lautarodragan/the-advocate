@@ -2,7 +2,7 @@
 name: "Rust: el dominio de los mapas"
 description: "Las capas, los sprites, la VRAM, los bloques y el horneado del conversor (map_layers, sprites, vram, blocks, baking, map_convert) a un crate de dominio en Rust, con las ROMs byte por byte iguales"
 type: refactor
-assignee: Mara
+assignee: taro
 ---
 
 De taro, el 2026-09-30: seguir con la migración del conversor a Rust, por
@@ -151,34 +151,113 @@ Por partes, cada una en su commit, con las ROMs iguales:
 
 ## Hecho
 
-**1. Las capas** (`7db8c984`). `rm2k-snes-map-background` hace lo que
-hacía `map_layers.py` de la cuantización para abajo, y `rm2k-snes-maps
-layers` es la etapa: lee el mapa y el ChipSet con Ditto, con los forks del
-pedido (`map_files`, `chipset_files`) y las celdas horneadas (`baked`), lo
-dibuja con `rm2k-render` como biblioteca, y usa Adeleine y Voodoo como
-bibliotecas. `converted_layers` la llama; el caché en disco y el precómputo
-en paralelo quedaron como estaban, con el hash del binario en la clave.
-`rm2k-snes-maps` entró en la huella de los cartuchos.
+**Todo el dominio de los mapas está en Rust**, en tres crates, y el Python
+que lo hacía se borró. La ROM, los `.inc`, los `.sym` y todo `rom/build/`
+salen byte por byte iguales a los de `main` con el Python; los PNG de
+`adeleine/`, iguales decodificados.
+
+| commit | qué |
+|---|---|
+| `90c6ff35` | la tarea: inventario y frontera |
+| `7db8c984` | las capas: `rm2k-snes-map-background` y `rm2k-snes-maps layers` |
+| `5a16e0c7` | merge de `main` (`591855c0`, lo de Cachirla) |
+| `f046e563` | los bloques de 16x16, con las capas |
+| `d96f565d` | la tarea al día |
+| `756fe507` | el mapa entero: `rm2k-snes-map-sprites` y `rm2k-snes-maps map` |
+| `df133150` | las pruebas de Rust contra el Python, y la del mapa entero |
+| `eb8624c9` | las tres pruebas de ABL que miraban el Python le preguntan a la etapa (`bakeable`, `split`) |
+| `dde35b1a` | el borrado, sólo borrado |
+| `890d5587` | la prosa que nombraba lo borrado, y los README |
+
+**Los crates** (`wc -l` de `src/`, sin las pruebas):
+
+* `rm2k-snes/map-background/`, biblioteca: `layers.rs` (el reparto de la
+  CGRAM baja, la cuantización, las dos conversiones), `grid.rs`,
+  `blocks.rs`. Depende de `adeleine`, `voodoo` y `rm2k-render`.
+* `rm2k-snes/map-sprites/`, biblioteca: `character.rs` (colores, paleta,
+  poses), `npc.rs` (qué poses muestra cada gráfico), `split.rs` (el reparto
+  de las ocho paletas), `bank.rs` (el banco de VRAM y el de poses),
+  `extras.rs` (cronómetro, gotas, imagen, recuadro). Depende de `adeleine`,
+  `voodoo` y `rm2k-render`. **No depende del fondo, ni el fondo de él.**
+* `rm2k-snes/maps/`, la etapa `rm2k-snes-maps`: `game.rs` (el volcado y los
+  forks), `events.rs` (los eventos y `collect_npcs`), `sheets.rs` (las
+  hojas de CharSet con lo del port: translúcidos horneados, tramados, la
+  copia aparte), `baking.rs`, `layers.rs`, `map.rs` (el mapa entero),
+  `inspect.rs` (las dos preguntas para las pruebas), `request.rs`,
+  `main.rs`. Depende de los dos de arriba, de `ditto`, `rm2k-rules`,
+  `rm2k-render`, `adeleine` y `voodoo`. Su README dice el pedido y lo que
+  escribe.
+
+Subcomandos: `map` —el que usa el conversor, uno por mapa, en paralelo con
+hilos—, `layers` —sólo las capas; hoy lo usan sus pruebas—, y `bakeable` y
+`split`, que contestan lo que las pruebas de ABL miran y una captura no
+muestra.
+
+**Lo que cambió de la frontera planeada:**
+
+* **`movable_events` se quedó en Python.** Quién camina es lo que el
+  bytecode compilado manda a caminar, y eso se sabe recorriendo el
+  bytecode con los tamaños de los opcodes, que son del compilador. La etapa
+  recibe el resultado —`movable`, `route_graphics`, `animates_still`,
+  `turning`—. Lo limpio es que `rm2k-snes-events scan` conteste los blancos
+  de ruta de cada página; es un cambio en el compilador.
+* **Los nombres de los gráficos translúcidos y de los separados del héroe
+  los sigue poniendo Python** (`lcf.DECORATE_TRANSLUCENT`,
+  `separate_from_hero`), y llegan en `names`, igual que al compilador.
+* **El reparto de VRAM se quedó en Python** (`vram.py`): la tabla la leen
+  también las pantallas y la emisión, y tenerla dos veces era peor. La
+  etapa devuelve cuántos tiles gasta cada cosa, y Python elige y chequea el
+  recuadro de la animación contra el reparto.
+* **Dónde arranca el héroe pasó a Rust**, con la colisión.
+* La imagen de `ShowPicture` la elige y la corta Python (`events.Pictures`,
+  `picture.cells`), y viaja ya cortada.
+* `npc_table`, `ev_pos_bytes` y `Substitutions` quedaron donde estaban:
+  son de la emisión y de la compilación.
+
+**Las globales de Ñacurutú:** `_layers_in_memory` y `precompute_layers` se
+fueron, y con ellos el caché en disco de las capas: la etapa convierte un
+mapa entero sin caché, y los mapas van en paralelo. `NO_CACHE=1 just
+cartuchos` bajó de 54 s a 39 s. Los ganchos a `lcf` siguen.
+
+## Cómo se verificó
+
+Con scripts descartables en `<scratchpad>/mara/`:
+
+* **Mapa por mapa, Python contra Rust**:
+  * las capas y los bloques de los 93 mapas de `release` —`test-special`
+    usa un subconjunto—, sin hornear y con los horneados de los cuatro que
+    tienen, campo por campo: 0 diferencias (`comparar_capas.py`);
+  * el mapa entero: un `rm2k-snes-convert` descartable
+    (`convert_compara.py`) que en cada cartucho convierte cada mapa con el
+    `convert_map` de Python y con la etapa, y compara el `map_info` entero
+    y lo que imprime: iguales los 93 de `release`, los 7 de `test-special`
+    y los 2 de `test-encounter-every-step`, y la salida igual línea por
+    línea.
+* **Los cartuchos**: `NO_CACHE=1 just cartuchos` y el sha256 de todo
+  `rom/build/` —menos el caché, los `.o`, `sello.txt` y `conversor.log`;
+  el `.dbg` sin `mtime`—: 766 archivos, más los 266 PNG de `adeleine/`
+  decodificados. Después de cada paso, iguales al anterior; y al final,
+  **el árbol entero contra el Python de `main` (`591855c0`)** —los `.py` de
+  `tools/port`, `render`, `rpgmaker` y `common` de `main` puestos en el
+  árbol, armado, y vueltos—: los 766 iguales y los 266 PNG iguales
+  decodificados. Con el caché prendido, frío y tibio, también iguales.
+* **Los sha256 de las ROMs**, iguales en `main` y acá:
+  * `release/abl.sfc` `e97a574b5a2c8205f4a527f747499f0f122cabaacc94c36ace119ed3db2080a0`
+  * `tests/special/prueba.sfc` `08862e741912ace6f6f5614c5520240b81d4973ab27c7ddb194cfe266c9162b5`
+  * `tests/encounter-every-step/prueba.sfc` `ad16736073318221ae418dc7b103e18edc7a2b98d9bbd856e7d1549e27f73a30`
+* **Las tandas**: `just pruebas`, 879 —eran 883: las cuatro de
+  `test_timer_paleta` que probaban el mecanismo con paletas inventadas
+  pasaron a `extras.rs`, porque no necesitan el juego—;
+  `just -f tools/justfile test`, 90; `cargo test` de los tres crates y de
+  `cartridge`, en verde.
+* **Las pruebas de los crates no dependen de ABL**: las de las capas, los
+  bloques y los sprites comparan contra los sha256 de lo que daba el Python
+  para entradas armadas adentro de la prueba, sacados antes de borrarlo
+  (`referencia_capas.py`, `referencia_sprites.py`); las de la etapa arman
+  un juego chico.
 
 **Los PNG de `adeleine/` cambian de bytes y no de pixeles**: los escribe
-el crate `png` y no Pillow, que comprime distinto. Se comparan
-decodificados.
-
-**2. Los bloques** (`f046e563`), con las capas: salen de los mismos datos y
-de los dos tilemaps. También la pasabilidad de cada celda. El terreno del
-ChipSet entró en la clave del caché.
-
-Cómo se verificó cada paso, con scripts descartables en el scratchpad:
-
-* **mapa por mapa**: los 93 de `release` —`test-special` usa un
-  subconjunto—, sin hornear y con los horneados de los cuatro que tienen,
-  Python contra Rust, campo por campo: 0 diferencias;
-* **los cartuchos**: `NO_CACHE=1 just cartuchos` y el sha256 de todo
-  `rom/build/` —766 archivos más los 266 PNG, decodificados—. El paso 1
-  contra el mismo árbol con el Python de `3d83de68`; el 2 contra el 1
-  mergeado con `main` (`591855c0`, `abl.sfc` en `e97a574b…`). Con el
-  caché prendido, frío y tibio, también iguales;
-* `just pruebas` (883) y `just -f tools/justfile test` (90) en verde.
+el crate `png` y no Pillow, que comprime distinto.
 
 **Una trampa de la verificación**: el `.dbg` cambia según qué
 `rm2k-snes-assemble` arma, porque nombra los fuentes relativos a su
@@ -186,6 +265,31 @@ checkout. Con `cartridge` instalado en el `bin/` local —hace falta, porque
 la huella nombra a `rm2k-snes-maps`— la base hay que armarla también con
 el local, o los tres `.dbg` salen distintos sin que cambie nada.
 
+## Al mergear
+
+* Instalar en el global `maps` —el binario nuevo— y `cartridge` —la huella
+  de los cartuchos lo nombra—: `just -f tools/justfile install maps
+  cartridge`. Sin `rm2k-snes-maps` en el PATH el conversor para y dice
+  cómo instalarlo.
+* `rom/build/cache/capas/` queda viejo: nadie lo lee más, y se puede
+  borrar.
+* No mueve goldens ni la ROM.
+
 ## Lo que falta
 
-(se va escribiendo)
+* **Que el compilador conteste quién camina** —los blancos de las rutas de
+  cada página compilada— y `movable_events` se vaya de Python.
+* **Los repartos de VRAM en un solo lado**: hoy los elige y chequea
+  `vram.py`. Si se mudan a la etapa, que los publique para las pantallas,
+  como `rm2k-snes-cartridges --list --json`.
+* **Los colores del cronómetro están dos veces**: `timer_colors_of` en
+  Python, para la máscara que emite `snes_convert`, y `timer_colors` en
+  `extras.rs`. Es la misma regla; la máscara podría salir de la etapa.
+* **`voodoo` en la huella**: el conversor ya no corre el binario —la etapa
+  lo usa como biblioteca—, pero sigue en `CONVERTER_TOOLS`. Sacarlo es un
+  cambio de `cartridge`.
+* **`rm2k-snes-maps layers`** sólo lo usan sus pruebas: decidir si se
+  queda como entrada o se va.
+* El camino de los translúcidos tramados (`TRANSLUCENT_MODE=dither`) no lo
+  ejercita ningún cartucho; está portado, sin prueba contra el juego.
+* Los avisos de `clippy` de los tres crates.
