@@ -201,8 +201,8 @@ impl MapEvents {
 ///   events on the hero's layer count —`CheckEventTriggerThere` asks for
 ///   `GetLayer() == Layers_same`—. An action event on the **own** cell does
 ///   exist in RM2k, but it asks for the opposite layer
-///   —`CheckEventTriggerHere` asks for `!= Layers_same`— and we do not do
-///   those.
+///   —`CheckEventTriggerHere` asks for `!= Layers_same`—, and since
+///   2026-09-07 those trigger too: see `can_trigger`.
 /// * **Touch**: it triggers on stepping on the cell, and there it is the
 ///   other way around: the layer has to be different from the hero's,
 ///   because an event on the same layer blocks its way and it would never

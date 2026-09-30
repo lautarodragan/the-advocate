@@ -801,7 +801,8 @@ fn page(
                 // `escape_mode` 0 —escape forbidden—, so there the exit does
                 // not exist; here the battle lets you escape anyway, because
                 // the permission does not travel in the opcode:
-                // `ChangeEscapeAccess` is accepted and not done.
+                // `ChangeEscapeAccess` is stored —see `CHANGE_ESCAPE_ACCESS`—
+                // but the battle does not read it.
                 let next_at = length + 9;
                 let lose = if losing_is_game_over {
                     BATTLE_LOSE
@@ -2337,9 +2338,10 @@ pub fn compile_command(
             // `CommandChangeEquipment` does not ask for it.
             //
             // The 35 the game runs outside battle all unequip a slot; the 560
-            // that equip belong to the troops, which this port does not run.
-            // So equipping does not compile, and unequipping everything does
-            // not either: nobody uses it.
+            // that equip belong to the troops. When this was written the port
+            // did not run troop pages; it does since 2026-09-21, but equipping
+            // still does not compile. Unequipping everything does not either:
+            // nobody uses it.
             if n < 4 {
                 return cannot();
             }
@@ -2953,8 +2955,9 @@ pub fn compile_command(
         // OP_LOCATION: mode (byte), and the slots of the map, x and y (a byte
         // each). `MemorizeLocation` and `RecallToLocation` are the same
         // opcode because they are the same location read or written: bit 0
-        // of the mode says which —`PLACE_JUMP`—, and when recalling bits 7,
-        // 6 and 5 are the VAR_REFRESH of each of the three writes. **The map
+        // of the mode says which —`PLACE_JUMP`—, and when memorizing, which
+        // is what writes the three variables, bits 7, 6 and 5 are the
+        // VAR_REFRESH of each of those writes. **The map
         // in the variable is the RM2k id**, which is what any other page
         // reads and writes; the ROM translates it with `map_rm2k`. They
         // unlock 55 pages of Lashe City's milestone 3 —the plant's floors, 28

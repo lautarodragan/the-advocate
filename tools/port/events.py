@@ -877,8 +877,9 @@ KEY_VALUE_DIR = {0: 4, 1: 3, 3: 2, 2: 1}
 # OP_LOCATION: mode (byte), and the slots of the map, x and y (a byte each).
 #     `MemorizeLocation` and `RecallToLocation` are the same opcode because
 #     they are the same location read or written: bit 0 of the mode says
-#     which —`PLACE_JUMP`, in the compiler—, and when recalling bits 7, 6
-#     and 5 are the VAR_REFRESH of each of the three writes. **The map in the variable is
+#     which —`PLACE_JUMP`, in the compiler—, and when memorizing, which is
+#     what writes the three variables, bits 7, 6 and 5 are the VAR_REFRESH
+#     of each of those writes. **The map in the variable is
 #     the RM2k id**, which is what any other page reads and writes; the ROM
 #     translates it with `map_rm2k`. They unlock 55 pages of Lashe City's
 #     milestone 3 —the plant's floors, 28 on 60 and 26 on 62, and the droid
