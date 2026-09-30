@@ -493,13 +493,10 @@ fn do_cartridge(args: &CartridgeArgs) -> Result<()> {
         let _ = writeln!(stdout, "{line}");
     };
     if let Some(songs) = plan.battle_songs {
-        // The count of sound effects is that of the last ROM package, which
-        // is the Game Over's when the cartridge has one: it is what the
-        // converter printed, and the log is compared whole.
-        say(format!(
-            "  battle audio package: {songs} song(s), {} sound effect(s)",
-            rom.last().map_or(0, |p| p.1.len())
-        ));
+        // The battle's package goes right after the maps'. Until 2026-09-30
+        // this counted the last ROM package's sound effects, which is the
+        // Game Over's when there is one, and said 0.
+        say(format!("  battle audio package: {songs} song(s), {} sound effect(s)", rom[c.maps.len()].1.len()));
     }
     // **And that the boot fits in `BOOT_FRAMES`**: see
     // `cartridge::boot_frames_cap`.
