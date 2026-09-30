@@ -340,16 +340,16 @@ video cual salida +jugadas: _herramientas_del_checkout (build cual)
 # imagen fija, para ver en la consola si la alta resolución se lee por la
 # salida de video. No es el juego —no pasa por el conversor ni por
 # `cartuchos`, ni toca el runtime—, pero es de ABL: sus imágenes son el menú
-# de ABL, y por eso vive acá y no en `tools/`. Qué muestra y cómo, en los
+# de ABL, y por eso vive acá y no con las herramientas. Qué muestra y cómo, en los
 # encabezados de `experimentos/menu-modo-5/`.
 #
 # Arma y después la corre en los emuladores, comparando cada pantalla con su
 # maqueta a 15 bits; con un directorio, deja ahí las capturas.
 #
 #     just menu-modo-5
-#     just menu-modo-5 /shared/capturas/<fecha>-<tema>
+#     just menu-modo-5 <directorio de capturas>
 #
 # Arma la ROM de prueba del menú en modo 5 y la verifica en los emuladores.
 menu-modo-5 *capturas:
   experimentos/menu-modo-5/armar.py build/menu-modo-5/menu-modo-5.sfc
-  PYTHONPATH=../tools experimentos/menu-modo-5/verificar.py build/menu-modo-5/menu-modo-5.sfc {{capturas}}
+  experimentos/menu-modo-5/verificar.py build/menu-modo-5/menu-modo-5.sfc {{capturas}}

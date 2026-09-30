@@ -17,10 +17,14 @@ import sys
 
 from PIL import Image
 
-from emulator import retro
-
 AQUI = os.path.dirname(os.path.abspath(__file__))
+# Corre como script y no pasa por pytest, así que se arma el camino él mismo,
+# como `pruebas/arnes/video.py`: el emulador es un paquete de las
+# herramientas, y la receta no puede nombrarlas (`test_lado_de_abl.py`).
+RAIZ = os.path.dirname(os.path.dirname(AQUI))
+sys.path.insert(0, os.path.join(RAIZ, os.pardir, "tools"))
 sys.path.insert(0, AQUI)
+from emulator import retro  # noqa: E402
 from armar import PANTALLAS, MARCA_X, MARCA_Y  # noqa: E402
 
 CORES = ["snes9x", "bsnes", "mesen-s"]
