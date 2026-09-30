@@ -87,17 +87,8 @@ timer_end:
 
 ; `OP_COUNTER`: a common event the project declared as a counter, instead of
 ; its body —see `compile_counter` in the event compiler—. The work is
-; `counter_set`'s, in bank 1; what stays here is what bank 1 cannot call: the
-; repaint, when the glyphs' palette entries change owner.
+; `counter_set`'s, in bank 1.
 .proc op_counter
-.a8
-.i16
-    lda counter_visible
-    pha
     jsl f:counter_set + FAST    ; see MEMSEL
-    pla                         ; `pla` sets Z from what it pulls, which is
-    bne already                 ; what this asks: was it already on screen?
-    jsr timer_repaint
-already:
     jmp run_code::other
 .endproc

@@ -240,61 +240,10 @@ each_half:
     rts
 .endproc
 
-; --- the counter -------------------------------------------------------------
-; A variable as a two-digit number, in the timer's glyphs: what `op_counter`
-; left in `counter_*`. It is what a common event of RM2k draws with two digit
-; pictures, and it goes **after the timer and before the picture**: in RM2k it
-; is two pictures, under the timer, and they never share the screen with the
-; one the ROM draws. Priority 3, like both.
-.proc counter_oam
-.a8
-.i16
-    lda counter_visible
-    beq none
-    ldx map_ofs
-    lda f:map_table + M_TIMER_BASE, x
-    ora f:map_table + M_TIMER_BASE + 1, x
-    beq none                    ; this map does not carry the glyphs
-    stz obj_big                 ; the digits are 8x8
-    rep #$20
-.a16
-    lda counter_x
-    and #$00FF
-    sta obj_x
-    sep #$20
-.a8
-    lda counter_tens
-    bmi ones                    ; under ten there are no tens: see `counter_set`
-    jsr counter_glyph
-ones:
-    rep #$20
-.a16
-    lda obj_x                   ; the ones, one glyph to the right
-    clc
-    adc #8
-    sta obj_x
-    sep #$20
-.a8
-    lda counter_ones
-    jsr counter_glyph
-    lda #$02                    ; and whatever follows is 32x32 again
-    sta obj_big
-none:
-    rts
-.endproc
-
-; A: the glyph, at `obj_x` and the counter's `y`.
-.proc counter_glyph
-.a8
-.i16
-    sta timer_glyph
-    rep #$20
-.a16
-    lda counter_y
-    and #$00FF
-    sta obj_y
-    sep #$20
-.a8
-    jmp glyph_oam
+; `glyph_oam` for bank 1, where `counter_oam` lives: a `jsl` cannot come back
+; with `rts`.
+.proc glyph_oam_far
+    jsr glyph_oam
+    rtl
 .endproc
 
