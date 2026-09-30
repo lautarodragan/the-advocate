@@ -818,7 +818,8 @@ nothing:
 .a8
 .i16
     lda timer_visible
-    bne visible
+    ora counter_visible         ; the counter's glyphs are the same entries,
+    bne visible                 ; and RM2k does not tint its pictures either
     rts
 visible:
     rep #$20

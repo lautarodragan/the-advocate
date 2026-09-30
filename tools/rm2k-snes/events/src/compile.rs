@@ -1239,6 +1239,9 @@ fn compile_call(
     if p.len() < 2 || depth >= CALL_MAX {
         return Ok(vec![]);
     }
+    if p[0] == 0 && ctx.game.patches.counters.contains_key(&p[1]) {
+        return compile_counter(ctx, p[1]);
+    }
     let (body, context) = if p[0] == 0 {
         // A common event, by number. The game's are cut almost all of them
         // at `ControlVars` and at the original's own menus.
@@ -2056,6 +2059,126 @@ pub fn compile_picture(cmd: &Command, picture: Option<&Picture>) -> Step<Option<
     Ok(Some(out))
 }
 
+// --- counters ----------------------------------------------------------------------------
+
+/// RM2k's screen and the console's: a picture's position is given on the
+/// first and drawn on the second.
+const RM_SCREEN: (i64, i64) = (320, 240);
+const CONSOLE_SCREEN: (i64, i64) = (256, 224);
+/// What the ROM draws a counter's digits with: the timer's glyphs, eight by
+/// sixteen, two side by side.
+const COUNTER_GLYPH: (i64, i64) = (8, 16);
+
+/// The digit a picture's image name is, if it is one: `"0"` to `"9"`.
+fn digit_image(name: &str) -> Option<u8> {
+    match name.as_bytes() {
+        [d @ b'0'..=b'9'] => Some(d - b'0'),
+        _ => None,
+    }
+}
+
+/// Where a counter's number goes on the console's screen: the top-left
+/// corner of its two glyphs.
+///
+/// It comes from the common event's own `ShowPicture`s of a digit, and the
+/// declaration is checked against them: **two pictures**, the tens and the
+/// ones, each always at the same place of the screen. The number is centered
+/// on the midpoint of their two centers —RM2k's position is the center of
+/// the image—, scaled from RM2k's screen to the console's like any picture.
+/// It is not the images' own boxes: the glyphs are eight wide and the
+/// images sixteen, and each glyph centered in its image would leave a gap
+/// between the tens and the ones. The counter is a number, so it is drawn as
+/// one.
+fn counter_place(game: &Game, common: i32) -> Result<(u8, u8)> {
+    let whose = format!("the counter of common event {common}");
+    let Some(c) = game.common_events.get(&common) else {
+        return Err(Bad::answer(format!("{whose}: there is no such common event")));
+    };
+    let mut places: BTreeMap<i32, (i64, i64)> = BTreeMap::new();
+    for cmd in &c.commands {
+        let p = &cmd.parameters;
+        if cmd.code != SHOW_PICTURE || digit_image(&cmd.string).is_none() {
+            continue;
+        }
+        if p.len() < 4 || p[1] != 0 {
+            return Err(Bad::answer(format!(
+                "{whose}: picture {} is placed by variable",
+                p.first().copied().unwrap_or(0)
+            )));
+        }
+        let here = (p[2] as i64, p[3] as i64);
+        if *places.entry(p[0]).or_insert(here) != here {
+            return Err(Bad::answer(format!(
+                "{whose}: picture {} is shown in two places",
+                p[0]
+            )));
+        }
+    }
+    if places.len() != 2 {
+        return Err(Bad::answer(format!(
+            "{whose}: it shows digits on {} pictures, and a counter is two, the tens and the ones",
+            places.len()
+        )));
+    }
+    let n = places.len() as i64;
+    let cx = places.values().map(|p| p.0).sum::<i64>() / n;
+    let cy = places.values().map(|p| p.1).sum::<i64>() / n;
+    let x = cx * CONSOLE_SCREEN.0 / RM_SCREEN.0 - COUNTER_GLYPH.0;
+    let y = cy * CONSOLE_SCREEN.1 / RM_SCREEN.1 - COUNTER_GLYPH.1 / 2;
+    match (u8::try_from(x), u8::try_from(y)) {
+        (Ok(x), Ok(y)) => Ok((x, y)),
+        _ => Err(Bad::answer(format!("{whose}: it falls off the screen, at ({x}, {y})"))),
+    }
+}
+
+/// The counter a `ShowPicture` belongs to, if it shows a digit on one of
+/// the pictures of a declared counter: the common event's number.
+fn counter_of_picture(game: &Game, cmd: &Command) -> Option<i32> {
+    if cmd.code != SHOW_PICTURE || digit_image(&cmd.string).is_none() {
+        return None;
+    }
+    let number = *cmd.parameters.first()?;
+    game.patches.counters.keys().copied().find(|common| {
+        game.common_events.get(common).is_some_and(|c| {
+            c.commands.iter().any(|d| {
+                d.code == SHOW_PICTURE
+                    && digit_image(&d.string).is_some()
+                    && d.parameters.first() == Some(&number)
+            })
+        })
+    })
+}
+
+/// A counter: a common event the project declares as the display of a
+/// variable —`counters` in the request—, as `OP_COUNTER`.
+///
+/// What such a common event does in RM2k is draw the variable's value with
+/// two pictures whose images are digits, and to choose which image it
+/// branches on every value: ten `ConditionalBranch` for the tens and ten for
+/// the ones, the ones usually in a second common event. Pasted in place,
+/// like every `CallEvent`, that chain costs its whole size **at each call**,
+/// and the game that brought this calls its counter after every jump: 31
+/// calls on one map. So the project says what the chain means, and the ROM
+/// does it in one opcode: the value clamped to 0..99, the tens erased under
+/// ten. What the declaration takes on trust is that the chain means that;
+/// what it checks is where it draws, in [`counter_place`].
+///
+/// It is also what a `ShowPicture` of a digit on one of its pictures
+/// compiles to, outside the common event: a page that sets the counter up
+/// by hand —the variable just set, and the two pictures shown with the
+/// digits of that value— **shows the counter**, the variable's value and not
+/// the image's. It is the same only as long as the page shows the digits of
+/// the value it just set, and that is also taken on trust.
+///
+/// The rest of the pictures' life is the ROM's: they go away when the map
+/// changes, like every RM2k 2000 picture —`erase_on_map_change`—.
+fn compile_counter(ctx: &Ctx, common: i32) -> Step<Vec<u8>> {
+    let variable = ctx.game.patches.counters[&common];
+    let slot = ctx.indices.variable_slot(variable as i64)?;
+    let (x, y) = counter_place(ctx.game, common)?;
+    Ok(vec![OP_COUNTER, slot, x, y])
+}
+
 // --- one command -------------------------------------------------------------------------
 
 /// The size of an opcode that has a fixed one.
@@ -2813,6 +2936,9 @@ pub fn compile_command(
         // nothing to look at.
         OPEN_SAVE_MENU => Ok(vec![OP_SAVE]),
         SHOW_PICTURE | MOVE_PICTURE | ERASE_PICTURE => {
+            if let Some(common) = counter_of_picture(ctx.game, cmd) {
+                return compile_counter(ctx, common);
+            }
             // None is "this picture does not fit the model": it is accepted
             // without being done, which is what the three did until
             // 2026-09-12. Cutting the page would take away from the game the
@@ -3876,10 +4002,18 @@ fn compile_animation(
 /// the picture the ROM does draw**: warning anyway would be the warning
 /// nobody reads, which is how a real debt gets lost among the ones that no
 /// longer are.
-pub fn page_debts(commands: &[Command], picture: Option<&Picture>) -> Result<Vec<i32>> {
+pub fn page_debts(
+    game: &Game,
+    commands: &[Command],
+    picture: Option<&Picture>,
+) -> Result<Vec<i32>> {
     let mut out = BTreeSet::new();
     for cmd in commands {
         if !ACCEPTED_UNDONE.contains(&cmd.code) {
+            continue;
+        }
+        // A digit on a counter's picture is done: it shows the counter.
+        if counter_of_picture(game, cmd).is_some() {
             continue;
         }
         if matches!(cmd.code, SHOW_PICTURE | MOVE_PICTURE | ERASE_PICTURE) {
@@ -3898,6 +4032,7 @@ pub fn page_debts(commands: &[Command], picture: Option<&Picture>) -> Result<Vec
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::game::CommonEvent;
 
     fn cmd(code: i32, parameters: &[i32], string: &str) -> Command {
         Command::new(code, 0, string, parameters.to_vec())
@@ -3925,6 +4060,111 @@ mod tests {
             troops: None,
         };
         compile_page(&mut ctx, commands, None, 0, 0).unwrap()
+    }
+
+    /// A game whose common event 9 shows variable 48 in two digit pictures,
+    /// 2 and 3, the way the one this was built for does: the tens centered at
+    /// (55, 30) and the ones at (70, 30).
+    fn with_counter(declared: bool, pictures: &[(i32, i32, i32)]) -> Game {
+        let mut game = Game::default();
+        let mut commands = Vec::new();
+        for &(number, x, y) in pictures {
+            for d in ["0", "9"] {
+                commands.push(cmd(
+                    SHOW_PICTURE,
+                    &[number, 0, x, y, 0, 100, 0, 1, 100, 100, 100, 100, 0, 0],
+                    d,
+                ));
+            }
+        }
+        game.common_events.insert(
+            9,
+            CommonEvent {
+                trigger: 5,
+                switch_flag: false,
+                switch_id: 1,
+                commands,
+            },
+        );
+        if declared {
+            game.patches.counters.insert(9, 48);
+        }
+        game
+    }
+
+    fn compile_with(game: &Game, commands: &[Command]) -> Result<Option<Vec<u8>>> {
+        let indices = Indices {
+            variables: BTreeMap::from([(48, 5)]),
+            ..Default::default()
+        };
+        let sound = SoundSettings::default();
+        let mut ctx = Ctx {
+            game,
+            indices: &indices,
+            sound: &sound,
+            map_index: &|_| None,
+            messages: None,
+            songs: None,
+            graphics: None,
+            picture: None,
+            troops: None,
+        };
+        compile_page(&mut ctx, commands, None, 0, 0)
+    }
+
+    const FORTITUDE: [(i32, i32, i32); 2] = [(2, 55, 30), (3, 70, 30)];
+
+    #[test]
+    fn a_declared_counter_is_one_opcode_and_not_its_body() {
+        // The middle of the two centers is (62, 30), which on the console is
+        // (49, 28): the two glyphs, sixteen by sixteen, start eight to the
+        // left and eight up.
+        let game = with_counter(true, &FORTITUDE);
+        let code = compile_with(&game, &[cmd(CALL_EVENT, &[0, 9, 0], "")]);
+        assert_eq!(code.unwrap().unwrap(), [OP_COUNTER, 5, 41, 20, OP_DONE]);
+    }
+
+    #[test]
+    fn a_digit_on_a_counters_picture_shows_the_counter() {
+        let game = with_counter(true, &FORTITUDE);
+        let show = |number: i32, name: &str| {
+            cmd(
+                SHOW_PICTURE,
+                &[number, 0, 55, 30, 0, 100, 0, 1, 100, 100, 100, 100, 0, 0],
+                name,
+            )
+        };
+        let code = compile_with(&game, &[show(2, "9")]);
+        assert_eq!(code.unwrap().unwrap(), [OP_COUNTER, 5, 41, 20, OP_DONE]);
+        // Another image on it, or a digit on a picture that is not the
+        // counter's, is still any picture: accepted without being done.
+        for other in [show(2, "Fortitude"), show(1, "9")] {
+            let code = compile_with(&game, &[other.clone()]);
+            assert_eq!(code.unwrap().unwrap(), [OP_DONE]);
+            assert_eq!(page_debts(&game, &[other], None).unwrap(), [SHOW_PICTURE]);
+        }
+        assert!(page_debts(&game, &[show(3, "4")], None).unwrap().is_empty());
+    }
+
+    #[test]
+    fn an_undeclared_common_event_is_not_a_counter() {
+        // Its body in place, and its pictures are any picture's.
+        let game = with_counter(false, &FORTITUDE);
+        let code = compile_with(&game, &[cmd(CALL_EVENT, &[0, 9, 0], "")]);
+        assert_eq!(code.unwrap().unwrap(), [OP_DONE]);
+    }
+
+    #[test]
+    fn a_counter_that_is_not_two_digits_in_fixed_places_stops() {
+        let call = [cmd(CALL_EVENT, &[0, 9, 0], "")];
+        for pictures in [
+            vec![(2, 55, 30)],
+            vec![(2, 55, 30), (3, 70, 30), (4, 85, 30)],
+            vec![(2, 55, 30), (3, 70, 30), (3, 70, 40)],
+        ] {
+            let game = with_counter(true, &pictures);
+            assert!(compile_with(&game, &call).is_err());
+        }
     }
 
     #[test]

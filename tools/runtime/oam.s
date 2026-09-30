@@ -37,6 +37,7 @@
     lda #$02
     sta obj_big
     jsr timer_oam
+    jsr counter_oam             ; the counter under it: see `counter_oam`
     jsr picture_oam             ; and the picture behind it: see `picture_oam`
     jsr anim_drawing_oam        ; and the battle animation behind the picture:
                                 ; `Priority_BattleAnimation` is 110 against

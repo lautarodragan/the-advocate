@@ -93,6 +93,7 @@ Both calls read these:
 
     {"substitutions": {"4": [{"upper": false, "old": 5, "new": 6, "pairs": [[1, 2]]}]},
      "picture": {"name": "Pic", "number": 1, "x": 160, "y": 120},
+     "counters": [{"common_event": 9, "variable": 48}],
      "sound_effects": {"per_map": [...], "route_effects_left_out": [...],
                        "troop_effects_in_package": [...]},
      "cases": [{"map": 4, "commands": [...]}],
@@ -107,6 +108,10 @@ Both calls read these:
   the caller's bug. Which ones some page asked for comes back.
 * `picture`: which `ShowPicture` took the cartridge's one place, or null.
   Whether a picture fits is decided converting it, which is not this.
+* `counters`: common events the project declares as the display of a
+  variable in two digit pictures. A `CallEvent` to one compiles to
+  `OP_COUNTER` instead of its body, and so does a `ShowPicture` of a digit
+  on one of its pictures; see `compile_counter`. Optional: none if left out.
 * `sound_effects`: what the project decided by ear —an effect that plays
   with another sample on some map, route effects left out of a map's
   package, troop effects that go into the battle's—, as its project file

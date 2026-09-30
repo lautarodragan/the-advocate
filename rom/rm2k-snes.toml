@@ -159,6 +159,22 @@ apart_themes = [
 # 2026-09-27: con los dos, un golpe de `bubstix` bajaba de 19,3 a 13,9 kHz.
 effect_slots_of_first_copies = 92
 
+# --- Los eventos -------------------------------------------------------------
+[events]
+# Los contadores: un común que muestra una variable con dos imágenes de
+# dígitos —decena y unidad—, que el compilador de eventos convierte en un
+# opcode, con los dígitos del cronómetro, en vez de pegar su cuerpo en cada
+# llamada. Ver `compile_counter` en `tools/rm2k-snes/events/`.
+#
+# Hoy es uno: la Fortitude de Eisen en el mapa 95, "Into The Machine". El
+# común 9, `FortitudeDisplay`, dibuja la variable 48 con las imágenes 2 y 3
+# —la unidad la elige el común 10 sobre la 49—, y se llama después de cada
+# salto y cada escalera: treinta y una llamadas. Pegado, son 1.345 bytes cada
+# una. Ver `workflow/tasks/*/el-contador-de-fortitude-no-se-ve.md`.
+counters = [
+    { common_event = 9, variable = 48 },
+]
+
 # --- Los efectos de sonido ---------------------------------------------------
 [sound_effects]
 # Los enteros que **sí** paga la música: los de `[sound_effects.whole]` que, si

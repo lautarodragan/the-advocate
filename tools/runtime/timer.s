@@ -157,8 +157,6 @@ no_adjust:
     lda timer_dig, x
 with_glyph:
     sta timer_glyph
-    stz timer_half
-each_half:
     ; Where it lands on screen. The X does not carry the characters' offset:
     ; the digits are 8x8 and their corner is their corner.
     rep #$20
@@ -172,17 +170,32 @@ each_half:
     clc
     adc #TIMER_X
     sta obj_x
-    lda timer_half
-    and #$00FF
-    asl a
-    asl a
-    asl a
-    clc
-    adc #TIMER_Y
+    lda #TIMER_Y
     sta obj_y
+    sep #$20
+.a8
+    jsr glyph_oam
+next:
+    inc timer_i
+    jmp each_glyph
+end:
+    lda #$02                    ; and whatever follows is 32x32 again
+    sta obj_big
+    rts
+.endproc
 
-    ; And which tile: the eleven glyphs fit in a row of sixteen, so the lower
-    ; half is exactly sixteen further on.
+; One glyph of the timer's, as two stacked 8x8 objects: `timer_glyph` says
+; which, and its top-left corner is (`obj_x`, `obj_y`). It leaves `obj_y`
+; sixteen lower. The timer draws its five with this, and the counter its two.
+.proc glyph_oam
+.a8
+.i16
+    stz timer_half
+each_half:
+    ; Which tile: the eleven glyphs fit in a row of sixteen, so the lower half
+    ; is exactly sixteen further on.
+    rep #$20
+.a16
     lda timer_half
     and #$00FF
     asl a
@@ -212,17 +225,76 @@ each_half:
     ora temp + 2
     sta obj_attr
     jsr emit_object
-
+    rep #$20
+.a16
+    lda obj_y                   ; the lower half, eight further down
+    clc
+    adc #8
+    sta obj_y
+    sep #$20
+.a8
     inc timer_half
     lda timer_half
     cmp #2
     bcc each_half
-next:
-    inc timer_i
-    jmp each_glyph
-end:
+    rts
+.endproc
+
+; --- the counter -------------------------------------------------------------
+; A variable as a two-digit number, in the timer's glyphs: what `op_counter`
+; left in `counter_*`. It is what a common event of RM2k draws with two digit
+; pictures, and it goes **after the timer and before the picture**: in RM2k it
+; is two pictures, under the timer, and they never share the screen with the
+; one the ROM draws. Priority 3, like both.
+.proc counter_oam
+.a8
+.i16
+    lda counter_visible
+    beq none
+    ldx map_ofs
+    lda f:map_table + M_TIMER_BASE, x
+    ora f:map_table + M_TIMER_BASE + 1, x
+    beq none                    ; this map does not carry the glyphs
+    stz obj_big                 ; the digits are 8x8
+    rep #$20
+.a16
+    lda counter_x
+    and #$00FF
+    sta obj_x
+    sep #$20
+.a8
+    lda counter_tens
+    bmi ones                    ; under ten there are no tens: see `counter_set`
+    jsr counter_glyph
+ones:
+    rep #$20
+.a16
+    lda obj_x                   ; the ones, one glyph to the right
+    clc
+    adc #8
+    sta obj_x
+    sep #$20
+.a8
+    lda counter_ones
+    jsr counter_glyph
     lda #$02                    ; and whatever follows is 32x32 again
     sta obj_big
+none:
     rts
+.endproc
+
+; A: the glyph, at `obj_x` and the counter's `y`.
+.proc counter_glyph
+.a8
+.i16
+    sta timer_glyph
+    rep #$20
+.a16
+    lda counter_y
+    and #$00FF
+    sta obj_y
+    sep #$20
+.a8
+    jmp glyph_oam
 .endproc
 

@@ -58,6 +58,7 @@ OP_CELL_TEST     = 0x31
 OP_ENCOUNTER_STEPS = 0x32
 OP_SHOW_ENEMY    = 0x33
 OP_RETURN_TO_TITLE = 0x34
+OP_COUNTER       = 0x35
 
 
 # How many bytes each fixed-size instruction takes, opcode included.
@@ -111,6 +112,7 @@ OPCODE_SIZE = {
     OP_ENCOUNTER_STEPS: 11,
     OP_SHOW_ENEMY: 2,
     OP_RETURN_TO_TITLE: 1,
+    OP_COUNTER: 4,
 }
 
 # The variable-size ones, as (base, where the count is, how big one
@@ -178,6 +180,7 @@ LAYOUT = {
     OP_ENCOUNTER_STEPS: (("base", 2, False), ("row_1", 1, False), ("row_2", 1, False), ("row_3", 1, False), ("row_4", 1, False), ("row_5", 1, False), ("row_6", 1, False), ("row_7", 1, False), ("pad", 1, False)),
     OP_SHOW_ENEMY: (("member", 1, False),),
     OP_RETURN_TO_TITLE: (),
+    OP_COUNTER: (("slot", 1, False), ("x", 1, False), ("y", 1, False)),
 }
 
 
