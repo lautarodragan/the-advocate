@@ -427,6 +427,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "rm2k-snes-images"
+version = "0.1.0"
+dependencies = [
+ "adeleine",
+ "clap",
+ "ditto",
+ "resample",
+ "rm2k-render",
+ "serde",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
 name = "rm2k-snes-map-background"
 version = "0.1.0"
 dependencies = [

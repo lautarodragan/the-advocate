@@ -100,3 +100,22 @@ el pedido para que sigan escritos una sola vez.
   `scene.position`, `drawing_order`, `compose`; son geometría de la ROM y no
   tocan píxeles del juego.
 * **`msu_data.py`**: el formato del `.msu`, que no toca píxeles.
+
+## Diario
+
+* **La etapa, entera de una vez.** Las cinco piezas salieron iguales en la
+  primera corrida: `NO_CACHE=1 just cartuchos`, 1032 archivos de
+  `rom/build/` iguales a la base —con `cartridge` en el `bin/` local
+  también para la base, por la trampa del `.dbg` que anotó Mara—; `just
+  pruebas` 882, `just -f tools/justfile test` 49. Las pruebas del crate
+  comparan contra los sha256 del Python viejo (`<scratchpad>/lapacho/
+  referencia.py`, que corre el `tools/` de `1a827260` sacado con `git
+  archive`) sobre un juego chico que arma `juego_chico.py`; las de
+  `keep_most_used`, en Adeleine, contra `palette.reduce` igual.
+* **Las animaciones se leen del volcado**, por número, y no del pedido
+  como las recibía `rm2k-render battle-animation`: es la forma de una
+  etapa. Salió igual, así que el volcado y lo que armaba
+  `events.ANIMATIONS` dicen lo mismo.
+* **Lo que el conversor imprime** no se comparó contra la base: la base
+  corrió antes de guardar los `conversor.log`. Los de la etapa están en
+  `<scratchpad>/lapacho/logs-etapa/`.

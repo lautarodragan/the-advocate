@@ -48,6 +48,18 @@ It never invents a colour: the one that stays was already in the picture. It
 is also deterministic. The costs are integers, and every tie is broken by the
 colour, red first.
 
+## Keeping the most used
+
+The library has a blunter way down to N colours, `keep_most_used`, with no
+subcommand: keep the colours that cover the most pixels, and send each of
+the others to its nearest neighbour among them —plain Euclidean distance,
+ties broken by the colour—. One colour the caller names goes first whether
+the picture has it or not, which is how a picture keeps the colour a
+screen paints where there is nothing at index 0. It is blunter than
+merging, because a highlight of a few pixels goes wherever is nearest; it
+is here because pictures converted with it look like that, and changing a
+picture's reducer changes its pixels.
+
 ## How it packs
 
 Best fit, with the tiles that have the most colours first. Each tile goes

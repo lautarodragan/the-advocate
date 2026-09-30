@@ -304,8 +304,14 @@ mod tests {
     #[test]
     fn a_flat_picture_stays_flat() {
         let rgb: Vec<u8> = [9u8, 120, 250].repeat(37 * 23);
-        assert_eq!(lanczos_rgb(&rgb, 37, 23, 11, 7), [9u8, 120, 250].repeat(11 * 7));
-        assert_eq!(lanczos_rgb(&rgb, 37, 23, 80, 50), [9u8, 120, 250].repeat(80 * 50));
+        assert_eq!(
+            lanczos_rgb(&rgb, 37, 23, 11, 7),
+            [9u8, 120, 250].repeat(11 * 7)
+        );
+        assert_eq!(
+            lanczos_rgb(&rgb, 37, 23, 80, 50),
+            [9u8, 120, 250].repeat(80 * 50)
+        );
     }
 
     #[test]

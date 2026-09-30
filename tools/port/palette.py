@@ -67,7 +67,7 @@ def _to_15_bits(image):
     return [(r >> 3, g >> 3, b >> 3) for r, g, b in small.get_flattened_data()]
 
 
-def convert(image, first_color=MENU_CGRAM, cap=COLORS):
+def convert(path, first_color=MENU_CGRAM, cap=COLORS):
     """A full-screen image as (tiles, paleta, tilemap).
 
     `tiles` are the unique tiles at 8 bits per pixel; `palette` their colors,
@@ -78,23 +78,9 @@ def convert(image, first_color=MENU_CGRAM, cap=COLORS):
 
     The indices the tiles carry are already shifted, so whoever emits them
     does not have to remember to add anything: the shift is written once and
-    here.
+    there. `rm2k-snes-images fullscreen` does it: the scaling —LANCZOS, the
+    one that smears the edges of the title's text the least— and the
+    colors, as `reduce` here.
     """
-    pixels = _to_15_bits(image)
-    palette, mapping = reduce(pixels, cap)
-    index = {color: i + first_color for i, color in enumerate(palette)}
-    # The image as palette indices, row by row.
-    rows = []
-    for y in range(HEIGHT):
-        rows.append([index[mapping[pixels[y * WIDTH + x]]] for x in range(WIDTH)])
-
-    tiles, where, tilemap = [], {}, []
-    for ty in range(ROWS):
-        for tx in range(COLS):
-            cell = tuple(tuple(rows[ty * CELL + y][tx * CELL:(tx + 1) * CELL])
-                         for y in range(CELL))
-            if cell not in where:
-                where[cell] = len(tiles)
-                tiles.append(cell)
-            tilemap.append(where[cell])
-    return tiles, palette, tilemap
+    from port import image_stage
+    return image_stage.fullscreen(path, WIDTH, HEIGHT, CELL, first_color, cap)

@@ -100,31 +100,31 @@ def _to_15_bits(image, width, height):
     return [data[y * width:(y + 1) * width] for y in range(height)]
 
 
-def convert(image, cx, cy):
-    """The picture ready for both ends.
+def convert(path, p):
+    """The picture of the file at `path`, shown by a `ShowPicture` with
+    parameters `p`, ready for both ends.
 
     Returns a dictionary with where it lands —`x`, `y`, `width`, `height`—,
     how many 32x32 objects it takes, its palette of fifteen 15-bit colors and
     the image as indices into that palette **shifted by one**, which is how a
     sprite palette numbers them: 0 is the transparent one and is not drawn.
 
-    The colors come from `palette.reduce`, the same as the title screen's,
-    and for the same reason: it does not average, so it does not invent
-    colors that would have to be quantized again, and it does not depend on
-    the PIL version. From 226 colors to fifteen the glow's gradient becomes
-    stepped; it shows and it is declared.
+    `rm2k-snes-images picture` does it: RM2k's drawing of the picture —with
+    its transparent color and its transparency, which the console drops—,
+    `box` and the scaling, and the colors, which are kept by use like the
+    title screen's and for the same reason: it does not average, so it does
+    not invent colors that would have to be quantized again. From 226 colors
+    to fifteen the glow's gradient becomes stepped; it shows and it is
+    declared.
     """
-    x, y, width, height = box(image.width, image.height, cx, cy)
-    rows = _to_15_bits(image, width, height)
-    pixels = [c for row in rows for c in row]
-    palette, mapping = reduce(pixels, COLORS)
-    where = {color: i + 1 for i, color in enumerate(palette)}
-    indices = [[where[mapping[c]] for c in row] for row in rows]
+    from port import image_stage
+    a = image_stage.picture(path, p[7], p[6], p[2], p[3],
+                            (RM_WIDTH, RM_HEIGHT), (WIDTH, HEIGHT), COLORS)
     return {
-        "x": x, "y": y, "ancho": width, "alto": height,
-        "objetos": -(-width // OBJ),
-        "paleta": palette,
-        "indices": indices,
+        "x": a["x"], "y": a["y"], "ancho": a["width"], "alto": a["height"],
+        "objetos": -(-a["width"] // OBJ),
+        "paleta": [tuple(c) for c in a["palette"]],
+        "indices": a["indices"],
     }
 
 

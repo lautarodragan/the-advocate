@@ -285,10 +285,12 @@ def by_numbers(renderer, numbers):
     per process.
 
     Converting one is a handful of large `resize`s, and the converter asks
-    for it once per map that shows it. The ones not converted yet are drawn
-    with a single call to `rm2k-render`.
+    for it once per map that shows it. The ones not converted yet are
+    converted with a single call to `rm2k-snes-images animations`, which
+    reads each animation from the game's dump and does all of `convert`:
+    RM2k's cells, toned, stacked, shrunk into the box and reduced.
     """
-    from port import events
+    from port import events, image_stage
     new = sorted(set(numbers) - set(_CACHE))
     wanted = []
     for number in new:
@@ -298,9 +300,19 @@ def by_numbers(renderer, numbers):
             _CACHE[number] = None
         else:
             wanted.append((number, anim, sheet))
-    drawn = draw([(anim, sheet) for _n, anim, sheet in wanted])
-    for (number, anim, _sheet), one in zip(wanted, drawn):
-        _CACHE[number] = convert(anim, one)
+    answers = image_stage.animations(
+        [(number, sheet) for number, _anim, sheet in wanted],
+        renderer.game_dir)
+    for (number, anim, _sheet), a in zip(wanted, answers):
+        _CACHE[number] = a and {
+            "cuadros": a["frames"],
+            "paleta": [tuple(c) for c in a["palette"]],
+            "ancla": tuple(a["anchor"]),
+            "tam": tuple(a["size"]),
+            "caja_rm": tuple(a["rm_box"]),
+            "alcance": anim.get("alcance", 0),
+            "posicion": anim.get("posicion", POS_CENTER),
+        }
     return {number: _CACHE[number] for number in numbers}
 
 

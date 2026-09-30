@@ -10,6 +10,7 @@
 use sha2::{Digest, Sha256};
 
 /// (width, height, new width, new height, channels, sha256 of Pillow's).
+#[rustfmt::skip]
 const CASES: &[(usize, usize, usize, usize, usize, &str)] = &[
     (320, 240, 256, 224, 3, "5a63804bad2ab13dabcd1db3d50faa4a6acbfe55f2c73f222c24a32b2421a1ee"),
     (320, 160, 256, 128, 3, "52f4e74e3e26e5788598ded8b2df1e5229eb764d2aa161d9ba19a715845be8e6"),

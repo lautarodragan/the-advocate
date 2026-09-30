@@ -31,7 +31,7 @@ export PATH := if path_exists(local_tools / "bin") == "true" { local_tools / "bi
 # `*-test` recipes run `cargo test` standing in the project, which tests
 # only that one, and `cargo install --locked --path` takes the workspace's
 # lock.
-rust_projects := "protocol gunter ditto rules adeleine voodoo lz2 rm2k-render project cartridge patches rm2k-snes-audio battle events map-background map-sprites maps text screens"
+rust_projects := "protocol gunter ditto rules adeleine voodoo lz2 resample rm2k-render project cartridge patches rm2k-snes-audio battle events map-background map-sprites maps text screens images"
 
 # The directories the projects live in, one per layer: each project is
 # `<layer>/<name>`, and the recipes find it by its name.
@@ -155,6 +155,14 @@ voodoo-test:
 lz2-test:
   cd snes/lz2 && cargo test --release
 
+# resample: Pillow's LANCZOS resize, to the bit, which the pictures of the
+# converter are scaled with —see `rm2k-snes-images`—. A library.
+#
+# Its tests resize noise made inside the test and compare against the
+# hashes of what Pillow wrote for it: they do not need the game.
+resample-test:
+  cd snes/resample && cargo test
+
 # rm2k-render: what RPG Maker 2000 draws, as PNGs —a map's tile layers and
 # the other drawings of its ChipSet animation, the CharSet sheets its events
 # are drawn with, a battle's animations, backdrops and enemies, and the faces,
@@ -249,6 +257,17 @@ maps-test:
 screens-test:
   cd rm2k-snes/text && cargo test
   cd rm2k-snes/screens && cargo test
+
+# rm2k-snes-images: a game's pictures brought to the console —the title and
+# the Game Over, the picture of a `ShowPicture`, the battle backdrops and
+# battlers, the battle animations—: scaled, toned, down to their palettes;
+# see `port/image_stage.py`.
+#
+# Its tests build their pictures inside the test, and compare against the
+# hashes of what the Python that did this until 2026-09-30 gave for the
+# same input: they need no game.
+images-test:
+  cd rm2k-snes/images && cargo test
 
 # --- Installation ----------------------------------------------------------
 # The Rust projects, in `snes/`, `rm2k/` and `rm2k-snes/`, are separate
@@ -360,6 +379,6 @@ _install root *projects:
 # `.local-tools/bin/` if it is there, otherwise the global one.
 which:
   #!/usr/bin/env sh
-  for x in protocol gunter ditto adeleine voodoo lz2 rm2k-render rm2k-snes-cartridges rm2k-snes-assemble rm2k-snes-space rm2k-snes-convert rm2k-snes-patches rm2k-snes-msu rm2k-snes-volume-ceilings rm2k-snes-battle rm2k-snes-events rm2k-snes-maps rm2k-snes-screens abl-entregar; do
+  for x in protocol gunter ditto adeleine voodoo lz2 rm2k-render rm2k-snes-cartridges rm2k-snes-assemble rm2k-snes-space rm2k-snes-convert rm2k-snes-patches rm2k-snes-msu rm2k-snes-volume-ceilings rm2k-snes-battle rm2k-snes-events rm2k-snes-maps rm2k-snes-screens rm2k-snes-images abl-entregar; do
     printf '%-26s %s\n' "$x" "$(command -v "$x" || echo missing)"
   done

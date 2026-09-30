@@ -195,6 +195,9 @@ FALLBACK_HEIGHT = HEIGHT // FALLBACK_SCALE
 BATTLER_PALETTE = 8
 BATTLER_PALETTES = 8
 BATTLER_COLORS = 15
+# The alpha from which a pixel of a shrunk battler is its: half, rounding
+# up. A pixel is either the battler's or the backdrop's.
+ALPHA_MIN = 128
 
 CELL = 8
 TILES_X, TILES_Y = WIDTH // CELL, HEIGHT // CELL
@@ -251,6 +254,17 @@ def _open(game_dir, folder, name, rtp=False, hue=0):
     return render_map.draw("battle", [entry])[0]
 
 
+def _file(game_dir, folder, name, rtp=False):
+    """The file of a backdrop or a battler, or None if the game does not
+    have it. With `rtp`, if the game does not have it, it is looked up in
+    the RTP, like RM2k; only the backdrops ask for it —see `_open`—."""
+    from rpgmaker import resources
+    places = [game_dir] + ([resources.RTP_DIR] if rtp else [])
+    path = resources.find_resource(places, folder, name,
+                                   (".png", ".bmp", ".xyz"))
+    return None if path is None else os.path.abspath(path)
+
+
 # --- the backdrop -------------------------------------------------------------
 
 def game_backdrops(named, tree, terrains, game_dir):
@@ -290,20 +304,11 @@ def backdrop(name, game_dir):
       `indices`  256x128 CGRAM indices, row by row, already shifted by
                  `CGRAM_BASE`: it is what the console reads.
       `palette`   its `COLORS` 15-bit colors, from `CGRAM_BASE`.
+
+    `rm2k-snes-images backdrops` does it —RM2k's drawing, opaque, scaled
+    with LANCZOS and kept by use—; `backdrops` asks for several at once.
     """
-    from PIL import Image
-    from port.palette import reduce
-    image = _open(game_dir, "Backdrop", name, rtp=True)
-    if image is None:
-        return None
-    image = image.convert("RGB").resize((WIDTH, HEIGHT), Image.LANCZOS)
-    pixels = [(r >> 3, g >> 3, b >> 3)
-              for r, g, b in image.get_flattened_data()]
-    palette, mapping = reduce(pixels, COLORS)
-    offset = {color: i + CGRAM_BASE for i, color in enumerate(palette)}
-    indices = [[offset[mapping[pixels[y * WIDTH + x]]] for x in range(WIDTH)]
-               for y in range(HEIGHT)]
-    return {"nombre": name, "indices": indices, "paleta": palette}
+    return backdrops([name], game_dir, light=False)[0][0]
 
 
 def light_backdrop(name, game_dir):
@@ -311,7 +316,7 @@ def light_backdrop(name, game_dir):
     `FALLBACK_COLORS` and at half resolution.
 
     The same image as `backdrop`, shrunk to `FALLBACK_WIDTH` x `FALLBACK_HEIGHT`
-    and with sixteen colors merged by `adeleine.merge_least_visible`: see
+    and with sixteen colors merged by `adeleine::merge_least_visible`: see
     "The light fallback". The palette goes from most used to least, and on
     equal counts by color, so it always comes out the same.
 
@@ -319,28 +324,30 @@ def light_backdrop(name, game_dir):
       `indices`  the same, doubled to 256x128 as the ROM leaves them in
                  WRAM: it is what the tests compare.
     """
-    from PIL import Image
-    from port import adeleine
-    image = _open(game_dir, "Backdrop", name, rtp=True)
-    if image is None:
-        return None
-    image = image.convert("RGB").resize((FALLBACK_WIDTH, FALLBACK_HEIGHT),
-                                        Image.LANCZOS)
-    pixels = [(r >> 3, g >> 3, b >> 3)
-              for r, g, b in image.get_flattened_data()]
-    counts = collections.Counter(pixels)
-    mapping, _merges = adeleine.merge_least_visible(counts, FALLBACK_COLORS)
-    final = collections.Counter()
-    for color, n in counts.items():
-        final[mapping[color]] += n
-    palette = sorted(final, key=lambda c: (-final[c], c))
-    offset = {color: i + CGRAM_BASE for i, color in enumerate(palette)}
-    small = [[offset[mapping[pixels[y * FALLBACK_WIDTH + x]]]
-              for x in range(FALLBACK_WIDTH)] for y in range(FALLBACK_HEIGHT)]
-    indices = [[small[y // FALLBACK_SCALE][x // FALLBACK_SCALE]
-                for x in range(WIDTH)] for y in range(HEIGHT)]
-    return {"nombre": name, "chico": small, "indices": indices,
-            "paleta": palette}
+    return backdrops([name], game_dir, quality=False)[0][1]
+
+
+def backdrops(names, game_dir, quality=True, light=True):
+    """`backdrop` and `light_backdrop` of each of `names`, with a single call
+    to the stage: `(quality, light)` per name, None where the game does not
+    have it or it was not asked for."""
+    from port import image_stage
+    paths = [_file(game_dir, "Backdrop", name, rtp=True) for name in names]
+    found = [(p, quality, light) for p in paths if p is not None]
+    answers = iter(image_stage.backdrops(found))
+    out = []
+    for name, path in zip(names, paths):
+        if path is None:
+            out.append((None, None))
+            continue
+        q, li = next(answers)
+        out.append((
+            q and {"nombre": name, "indices": q["indices"],
+                   "paleta": [tuple(c) for c in q["palette"]]},
+            li and {"nombre": name, "chico": li["small"],
+                    "indices": li["indices"],
+                    "paleta": [tuple(c) for c in li["palette"]]}))
+    return out
 
 
 def tiles(indices):
@@ -374,42 +381,40 @@ def battler(name, hue, game_dir):
       `colores`        how many distinct ones the drawing had, already
                        shrunk.
       `merges`       what was merged with what to get to fifteen, as
-                       `adeleine.merge_least_visible` returns them.
+                       `adeleine::merge_least_visible` returns them.
+
+    The enemy's `battler_hue` is what makes the same `BLmouse` be the
+    GiantRat, the MutantMouse and the HairyVermin. The baked scene ignored
+    it; now, with one battler per enemy and not per image, ignoring it would
+    draw all three the same. `rm2k-snes-images battlers` does it —RM2k's
+    drawing, turned by its hue, shrunk with LANCZOS, cut at half the alpha
+    and merged by what shows the least—; `battlers` asks for several at
+    once.
     """
-    from PIL import Image
-    from port import adeleine
-    # The enemy's `battler_hue` is what makes the same `BLmouse` be the
-    # GiantRat, the MutantMouse and the HairyVermin. The baked scene ignored
-    # it; now, with one battler per enemy and not per image, ignoring it
-    # would draw all three the same.
-    image = _open(game_dir, "Monster", name, hue=hue)
-    if image is None:
-        return None
-    width, height = scale(image.width), scale(image.height)
-    small = image.resize((width, height), Image.LANCZOS)
-    # A pixel is either the battler's or the backdrop's: half the alpha
-    # decides.
-    data = small.get_flattened_data()
-    opaque = [(r >> 3, g >> 3, b >> 3) if a >= 128 else None
-              for r, g, b, a in data]
-    counts = collections.Counter(c for c in opaque if c is not None)
-    mapping, merges = adeleine.merge_least_visible(counts, BATTLER_COLORS)
-    final = collections.Counter()
-    for color, n in counts.items():
-        final[mapping[color]] += n
-    palette = sorted(final, key=lambda c: (-final[c], c))
-    slot_of = {c: i + 1 for i, c in enumerate(palette)}
-    # What goes past the scene is not stored: a battler taller than it ends
-    # up clamped at the top —see `position`— and its bottom rows are not
-    # seen.
-    width, height = min(width, WIDTH), min(height, HEIGHT)
-    pixels = [[0 if opaque[y * small.width + x] is None
-               else slot_of[mapping[opaque[y * small.width + x]]]
-               for x in range(width)] for y in range(height)]
-    return {"clave": key(name, hue), "imagen": name, "tono": hue,
-            "ancho": width, "alto": height, "pixeles": pixels,
-            "alto_rm": image.height,
-            "paleta": palette, "colores": len(counts), "fusiones": merges}
+    return battlers([(name, hue)], game_dir)[0]
+
+
+def battlers(wanted, game_dir):
+    """`battler` of each `(name, hue)` of `wanted`, with a single call to the
+    stage."""
+    from port import image_stage
+    paths = [_file(game_dir, "Monster", name) for name, _hue in wanted]
+    answers = iter(image_stage.battlers(
+        [(p, hue) for p, (_n, hue) in zip(paths, wanted) if p is not None]))
+    out = []
+    for (name, hue), path in zip(wanted, paths):
+        if path is None:
+            out.append(None)
+            continue
+        a = next(answers)
+        out.append({
+            "clave": key(name, hue), "imagen": name, "tono": hue,
+            "ancho": a["width"], "alto": a["height"], "pixeles": a["pixels"],
+            "alto_rm": a["rm_height"],
+            "paleta": [tuple(c) for c in a["palette"]],
+            "colores": a["colors"],
+            "fusiones": [(tuple(v), tuple(t), n) for v, t, n in a["merges"]]})
+    return out
 
 
 def columns(info):
