@@ -1263,33 +1263,6 @@ class Troops:
 # `ba_show_hidden`.
 SHOW_HIDDEN_MONSTER = 13150
 
-# The battle's three branch commands, with their map twin. Of the six
-# questions of `CommandConditionalBranchBattle` the game uses **only two** —the
-# switch and the variable, in 1108 branches of 295 distinct bodies, measured
-# on 2026-09-21— and those have the operands in the same place as the map's:
-# `[kind, number, polarity or value kind, value, comparison, else]`. So they
-# are translated to the map's code and compile to OP_IF and OP_IF_VAR without
-# a new opcode. The other four —whether an actor or an enemy can act, whom it
-# targets, which command it gave— ask for battle state and do not compile.
-# The translation is `battle_branch`, in the compiler's `indices.rs`.
-
-# What a troop page can do in this port. **It is a list of the ones that do,
-# not of the ones that do not**, on purpose: almost everything that compiles
-# on a map assumes the map —a teleport, a route, a tint, a choice, which opens
-# the map's window— and inside the battle it would do something else without
-# warning.
-#
-# `PlaySound` sounds in the battle's audio package if its effect fits there
-# —see `TroopPages::compile` in the compiler—, and `ShakeScreen` moves
-# the scene: see `ba_shake`. Its wait, an OP_DELAY, is counted by
-# `ba_page_step`.
-#
-# The ones left out that the game uses, in case someone wants to add them:
-# `ChangeHP` and `FullHeal` —in battle HP lives in `BA_ONE` and `FAR_HP` is
-# overwritten when closing it—, `ChangePartyMembers`, `ChangeEquipment`,
-# `Wait`, `TintScreen` and five of the six that only exist in battle. The
-# list is `TROOP_COMMANDS`, in the compiler's `troops.rs`.
-
 # Which triggers the ROM knows how to look at, with their bit in
 # `tpage_flags`: RM2k's six. The three from 2003 —an actor's or an enemy's
 # turn, fatigue and an actor's command— do not exist in a 2000 game, and a
