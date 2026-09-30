@@ -363,7 +363,6 @@ def main():
         encounters["troops"])
     messages = compiler.messages(compiled["messages"]["data"],
                                  compiled["messages"]["count"])
-    songs = compiler.songs(compiled)
     troops = compiler.troops(compiled)
     test_party = {}
     for k, code in enumerate(compiled["cases"]):

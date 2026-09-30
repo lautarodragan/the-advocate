@@ -289,28 +289,6 @@ class Registry:
         self.__dict__.update(fields)
 
 
-def songs(answer):
-    """The `Songs` the compiler filled, as `events.Songs`: the music
-    numbers what it adds after these."""
-    s = events.Songs()
-    data = answer["songs"]
-
-    def key(k):
-        return events.BATTLE_PACKAGE if k == "battle" else k
-    s.names = list(data["names"])
-    s.sounds = [tuple(x) for x in data["sounds"]]
-    s.per_map = {key(k): {"temas": list(w["songs"]),
-                          "sonidos": list(w["sounds"]),
-                          "destinos": list(w["destinations"])}
-                 for k, w in data["per_package"]}
-    s.exits = {key(k): {song: is_exit for song, is_exit in e}
-               for k, e in data["exits"]}
-    s.jumps = {key(k): {dest: set(songs) for dest, songs in j}
-               for k, j in data["jumps"]}
-    s.requested = data["requested"]
-    return s
-
-
 def troops(answer):
     t = events.Troops()
     t.ids = list(answer["troops"]["ids"])
