@@ -359,6 +359,9 @@ def _map_info(renderer, prepared, written, args):
             len(sprite[0]) // 32 if sprite else 0,
             len(above_data[0]) // 32),
         "resumen": summary,
+        # Which entries of its palette the timer's digits take, one bit each:
+        # `timer_mask` in `rm2k-snes-map-sprites`. 0 without a timer.
+        "timer_mask": s["timer_mask"],
         "anim": anim_bytes(summary["animacion"]),
         "imagenes_fondo": summary["imagenes"],
         # The whole map is stored because the events' pages can't be compiled

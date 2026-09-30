@@ -52,3 +52,21 @@ cartuchos (102 llamadas) con un `assert`: iguales todas. Las pruebas de
 que `route_targets` se saca antes de hashear y tiene su prueba, con los
 valores contrastados contra la regla de Python; `moves.rs` tiene las suyas
 (sin juego).
+
+### 2. Los colores del cronómetro, en un solo lado
+
+La máscara de qué entradas de su paleta toman los dígitos —la que
+`upload_timer_pal` vuelve a subir sin tinte— la calcula la etapa
+(`timer_mask`, en `extras.rs` de `rm2k-snes-map-sprites`, sobre las
+paletas como terminan) y viaja en `sprite.timer_mask` de `map.json`;
+`snes_convert` la emite tal cual. Se fueron `timer_colors_of` de
+`obj_extras.py` y `Skin.timer()` de `window.py`, que ya no los llamaba
+nadie. Quedan en `obj_extras.py` las constantes de dónde se dibuja el
+cronómetro, que son de la emisión (`mapdata.py`).
+
+El pedido `draw: timer` de `rm2k-render system` quedó sin llamadores del
+lado de Python; no se tocó, porque es de otro crate y no estorba.
+
+Cómo se verificó: la tabla `timer_mask` de los `mapdata.inc` tiene
+máscaras distintas de cero en 93 de los 102 mapas de los tres cartuchos, y
+salió igual; `rom/build/` entero igual.

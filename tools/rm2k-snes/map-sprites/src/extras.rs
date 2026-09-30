@@ -58,6 +58,18 @@ pub fn timer_colors(glyphs: &Picture) -> Vec<Color> {
     colors.into_iter().collect()
 }
 
+/// Which entries of `palette` the timer's `colors` take, one bit per entry,
+/// counting the transparent one as entry 0: each colour at the first entry
+/// that has it, which is the one its glyphs were painted with. The console
+/// uploads **those** again untinted after a tint, and not the whole
+/// palette, because the palette belongs to a character that is tinted.
+pub fn timer_mask(colors: &[Color], palette: &[Color]) -> u16 {
+    colors
+        .iter()
+        .map(|c| palette.iter().position(|p| p == c).expect("`timer_digits` put the timer's colours in its palette"))
+        .fold(0, |mask, at| mask | 1 << (at + 1))
+}
+
 /// The first palette —but the leaders'— where `colors` fit without merging
 /// anything, or a new one if one is left under `cap`: it is grown or added,
 /// and its number returned. `None` if there is no room.
@@ -300,6 +312,19 @@ mod tests {
         let (base, which) = rain_drops(&mut tiles, &mut p, &BTreeSet::new(), Some((64, 0)), OBJ_PALETTES).unwrap();
         assert_eq!(base, 64 + TIMER_GLYPHS);
         assert_ne!(which, 0);
+    }
+
+    /// The mask names the entries the glyphs were painted with: a palette
+    /// that already had one of the timer's colours keeps it where it was,
+    /// and the other is appended.
+    #[test]
+    fn the_mask_is_where_the_digits_colours_ended_up() {
+        let mut p = vec![vec![[9, 9, 9], [0, 0, 0], [5, 5, 5]]];
+        let mut tiles = vec![0; 32 * 64];
+        let (_, which) = timer_digits(&glyphs(), &mut tiles, &mut p, &BTreeSet::new(), OBJ_PALETTES).unwrap();
+        assert_eq!(p[which], [[9, 9, 9], [0, 0, 0], [5, 5, 5], [31, 0, 0]]);
+        // Black is entry 2 and red entry 4, counting the transparent one.
+        assert_eq!(timer_mask(&timer_colors(&glyphs()), &p[which]), 0b10100);
     }
 
     /// The glyphs start at a row of blocks, eleven across and two tiles

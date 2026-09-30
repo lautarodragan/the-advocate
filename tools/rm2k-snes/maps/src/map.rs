@@ -26,7 +26,8 @@ use rm2k_snes_map_sprites::character::{
     character_palette, sprite_colors, Key, INITIAL_POSE, OBJ_PALETTES,
 };
 use rm2k_snes_map_sprites::extras::{
-    first_place, map_animation, picture_of_image, rain_drops, timer_colors, timer_digits, Image,
+    first_place, map_animation, picture_of_image, rain_drops, timer_colors, timer_digits, timer_mask,
+    Image,
 };
 use rm2k_snes_map_sprites::npc::{map_poses, Npc};
 use rm2k_snes_map_sprites::split::{drawable_npcs, Ask, TILE_PREFIX};
@@ -174,6 +175,9 @@ pub struct Objects {
     /// or nothing for one without a graphic.
     pub actors: Vec<(i32, usize, Option<usize>, Vec<u16>)>,
     pub timer: Option<(usize, usize)>,
+    /// Which entries of its palette the timer's digits take: see
+    /// `timer_mask`. 0 without a timer.
+    pub timer_mask: u16,
     pub animated: Vec<Key>,
     pub banks: Vec<(Key, Vec<u8>)>,
     pub route_gfx: Vec<(usize, usize)>,
@@ -646,12 +650,16 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
     let turn_block = bank.place.iter().find(|(s, ..)| *s == Slot::Turn).map(|(_, b, _)| *b);
     done.baked = baked;
     done.npcs = npcs;
+    // On the palettes as they end: the rain may still have grown the
+    // timer's, and a colour's first entry is where the glyphs have it.
+    let timer_mask = timer_at.map_or(0, |(_, palette)| timer_mask(&timer, &palettes[palette]));
     done.objects = Some(Objects {
         tiles,
         palettes,
         place: bank.place,
         actors: actor_rows,
         timer: timer_at,
+        timer_mask,
         animated,
         banks,
         route_gfx,
@@ -724,6 +732,7 @@ pub fn write(out: &Path, done: &Whole) -> Result<()> {
                 "place": o.place.iter().map(|(s, b, p)| json!([slot_json(s), b, p])).collect::<Vec<_>>(),
                 "actors": o.actors.iter().map(|(a, p, k, w)| json!([a, p, k, w])).collect::<Vec<_>>(),
                 "timer": o.timer.map(|(b, p)| json!([b, p])),
+                "timer_mask": o.timer_mask,
                 "animated": o.animated.iter().map(key_json).collect::<Vec<_>>(),
                 "banks": banks,
                 "route_gfx": o.route_gfx.iter().map(|(k, p)| json!([k, p])).collect::<Vec<_>>(),

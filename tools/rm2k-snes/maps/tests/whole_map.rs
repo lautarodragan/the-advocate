@@ -210,6 +210,8 @@ fn a_whole_map_bakes_draws_and_says_what_it_did() {
     // pose; the timer, the rain and the animation box at the end.
     assert_eq!(sprite["place"][0][0], json!({"hero": true}));
     assert!(sprite["timer"].is_array());
+    // Its two colours, each at one entry of its palette.
+    assert_eq!(sprite["timer_mask"].as_u64().unwrap().count_ones(), 2);
     assert_ne!(sprite["rain"][0], json!(0));
     assert!(sprite["animation"]["base"].as_u64().unwrap() > 0);
     // Where the hero starts: the open cell nearest the centre with no event.
