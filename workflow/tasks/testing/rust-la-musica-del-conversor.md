@@ -2,7 +2,7 @@
 name: "Rust: la música del conversor"
 description: "Lo que el conversor decide de la música y del .msu (music.py, msu_data.py) a rm2k-snes-audio, con las ROMs y el .msu byte por byte iguales"
 type: refactor
-assignee: Calandria
+assignee: taro
 ---
 
 De taro, el 2026-09-30, en la migración del conversor a Rust. `music.py`
@@ -88,7 +88,7 @@ válido— y `msu-sign` —la firma de nuevo, para armar "el `.msu` de otro
 build"—, y `constants` suma las del formato. Así el formato vive en un solo
 lado; el arnés las llama desde `musica.py`, como ya hace con `constants`.
 `test_inherited_songs.py` pasa a pruebas del crate, así que
-`just -f tools/justfile test` va a dar una menos.
+`just -f tools/justfile test` da tres menos, sus tres casos.
 
 ## Diario
 
@@ -108,8 +108,9 @@ lado; el arnés las llama desde `musica.py`, como ya hace con `constants`.
 * **Una rareza del log, heredada tal cual**: "battle audio package: N
   song(s), M sound effect(s)" cuenta los efectos del **último** paquete de
   la ROM, que es el del Game Over cuando el cartucho lo tiene, así que dice
-  0. Se copió igual para poder comparar el log entero; va arreglado en un
-  commit aparte.
+  0. Se copió igual para poder comparar el log entero, y se arregló en un
+  commit aparte: el conteo es de cuando la pelea era el último paquete
+  (546fb17d), y el del Game Over llegó después (9b2abb3b).
 * **Las pruebas del crate contra el Python**: un juego chico hecho a mano
   (`tests/cartridge.json`: seis mapas, uno sin páginas, temas de salida,
   temas aparte, un salto que nunca pasa, saltos que llevan su tema y lo que
@@ -118,3 +119,78 @@ lado; el arnés las llama desde `musica.py`, como ya hace con `constants`.
   `<scratchpad>/calandria/musica/referencia.py`, que corre `music.py`,
   `msu_data.py` y el bloque viejo de `snes_convert.py` sacado con `git show`.
   `test_inherited_songs.py` pasó entera a pruebas de `cartridge.rs`.
+
+## Hecho
+
+**Lo que el conversor decide de la música y el `.msu` está en Rust**, en
+`rm2k-snes-audio cartridge`, y el Python que lo hacía se borró. Las tres
+ROMs, los tres `.msu` y todo `rom/build/` salen byte por byte iguales a los
+de `3afc8199` hasta el borrado; después de la prosa cambian sólo los
+`mapdata.inc` y los `.dbg` (un comentario del `.inc`, ver abajo).
+
+| commit | qué |
+|---|---|
+| `e75b3b2c` | la etapa: `cartridge.rs`, `msu_data.rs`, `pyjson` con floats; el conversor la llama por `stage.hand_over` |
+| `5fc096d7` | las pruebas de ABL leen y firman el `.msu` por `msu-index` y `msu-sign`, desde `musica.py` |
+| `cab90f2b` | el borrado, sólo borrado: `music.py`, `msu_data.py`, `events.Songs`, `compiler.songs`, `test_inherited_songs.py` |
+| `eb58cd9a` | la prosa que nombraba lo borrado, y el README del crate |
+| `20eef3e1` | el log de la pelea cuenta los efectos de su paquete |
+| `540e8916` | merge de `main` (`d0979c06`, los eventos de tropa de Yarará) |
+
+**Lo que cambió de la frontera planeada**: nada. Los archivos no vuelven a
+Python: la etapa los escribe directo en `--out` y el `.msu` en `--msu`,
+porque el resto de la conversión no lee ninguno y así lo que imprime cita
+las rutas de verdad. Para eso `stage.hand_over` aprendió a pasar un
+subcomando.
+
+## Cómo se verificó
+
+* **Los cartuchos**: `NO_CACHE=1 just cartuchos` y el sha256 de los 1032
+  archivos de `rom/build/`, iguales a la base después de la etapa, de las
+  pruebas y del borrado, **y los `conversor.log` iguales línea por línea**.
+  Después de la prosa, iguales salvo los tres `mapdata.inc` y los tres
+  `.dbg`: el `.inc` llevaba arriba de las tablas del `.msu` "see
+  `escribir_msu` in tools/port/snes_convert.py", viejo desde antes, y ahora
+  dice dónde está. Después del arreglo del log, iguales a la prosa.
+* **Los sha256**, antes del merge los mismos que en `3afc8199`:
+  * `release/abl.sfc` `241dc9ad2bf8b43c205a6abef97fbe84ba25f3986626d5f0d058e27c742b123e`
+  * `release/abl.msu` `905decd20b48411fb509d60ca7a61b3ddbfe1fd5fcf618519972ddba86b83cee`
+  * `tests/special/prueba.sfc` `63779e111ee18923fc3335b725c92c55a0587f9ecd6e7a1908ae1a852e5e3710`
+  * `tests/special/prueba.msu` `d9e96eab79aa9a0e30685c5f74f09c0a387ff57ab19d37635a24ba63102b1578`
+  * `tests/encounter-every-step/prueba.sfc` `200a0b73552897001dcc22509e356c421cd88cf771dd894e0f13e3e19e4fb89c`
+  * `tests/encounter-every-step/prueba.msu` `97ed9b74c7fb498279f562067cff9c04694edb4066fe3e12c791c38f333fd455`
+* **Después del merge** —con `events`, `battle` y `cartridge` también en el
+  `bin/` local—: `abl.sfc` `e20182d1bd905de7…`, el de `main`; los tres
+  `.msu`, los mismos de arriba; `special` `6784ab8fc7161ab7…`,
+  `encounter-every-step` `5dc9114cd97ff691…`.
+* **Las tandas**: `just pruebas` 882 en cada commit con código, 893 después
+  del merge; `just -f tools/justfile test` 49 en la etapa, 46 desde el
+  borrado. `cargo test -p rm2k-snes-audio` con `SOUNDFONT`, en verde.
+
+## Al mergear
+
+* Instalar en el global **`rm2k-snes-audio`**: `just -f tools/justfile
+  install rm2k-snes-audio`. Sin él el conversor falla, porque el viejo no
+  tiene `cartridge`; y las pruebas del `.msu` también, porque no tiene
+  `msu-index` ni `msu-sign`. Ahora depende de `ditto` y `rm2k-rules`, que
+  son bibliotecas.
+* `install-scripts` no hace falta: se borraron `port/music.py` y
+  `port/msu_data.py`, módulos y no programas.
+* Toca comentarios de cuatro archivos del runtime (`interpreter_music.s`,
+  `audio_package.s`, `msu1.s`, `msu_effects.s`), con los mismos renglones.
+* No mueve la ROM ni goldens.
+
+## Lo que falta
+
+* **Tres citas a `inherited_songs` en `music.py`** siguen en el compilador
+  de eventos (`registry.rs` dos veces, y `exit_songs` "in the converter's
+  `Songs`" en `compile.rs`): no se tocaron porque ese crate era de Yarará.
+  Van a `cartridge.rs` de `rm2k-snes-audio`.
+* **La música de las páginas de tropa** (lo que dejó abierto Yarará): la
+  etapa arma el paquete de la pelea con lo que el compilador anota en
+  `per_package` bajo `battle`. Si las páginas de tropa empiezan a pedir
+  temas, llegan por ahí sin tocar la etapa; lo que hay que decidir es si
+  van a ese paquete —y le bajan la tasa al tema de pelea— o a uno aparte,
+  como el Game Over, y eso sí es de `cartridge::plan`.
+* Los estudios fechados de `docs/research/` citan `snes_music.py` y
+  `escribir_msu`: son fotos de su día y no se tocaron.
