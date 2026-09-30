@@ -34,14 +34,6 @@ def base():
     return lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
 
 
-@functools.lru_cache(maxsize=None)
-def skin():
-    """El System del juego, con el que se dibujan las ventanas de los
-    dibujos de Python contra los que se comparan las pantallas."""
-    from port import window
-    return window.skin(GAME_DIR, base())
-
-
 def maximos():
     """Los HP y SP máximos de cada actor, sacados del LDB y no de la ROM.
 

@@ -75,9 +75,6 @@ SHOW_MESSAGE_2 = 20110
 # three `\V` of the common events —the value of a variable inserted into the
 # text— require composing the text when opening it, which is something else.
 # Drawing them as two letters would show.
-ESCAPE = "\\"
-ESCAPE_PAUSE = "|"
-ESCAPE_CLOSE = "^"
 
 # What a `\|` costs. **It is not one second**: it is the
 # `SetWaitForNonPrintable(61)` of `window_message.cpp`, with its comment next to
@@ -85,59 +82,6 @@ ESCAPE_CLOSE = "^"
 # is 61 and not 60, and that difference is exactly the kind of number that
 # cannot be written from memory.
 PAUSE_FRAMES = 61
-
-# How many pauses fit in the box's header. The most the game uses is three in a
-# row (`\|\|\|\^`, twice, on map 108); more than fifteen does not fit in the
-# high nibble and the page does not compile instead of lasting too little.
-PAUSES_MAX = 15
-
-
-def escape_tail(lines):
-    r"""The lines without their escape tail, how many pauses it has and
-    whether it closes on its own.
-
-    Across the 328 maps both escapes appear **always as a tail at the end of
-    the box's last line** —measured: 40 boxes, and not one with an escape in
-    the middle nor on a line other than the last—, so that is the only thing
-    accepted. One in the middle still does not compile, which is the honest
-    thing: with the window drawn all at once, a pause halfway through the text
-    cannot be modeled without making up how much text had been drawn.
-
-    The tail may carry spaces in between —it happens only once, in map 98's
-    `RunDirectorScene`, which writes `\| \| \| \^`— and it eats them: a space
-    at the end of a line does not draw a single pixel, so removing it does not
-    change the screen.
-
-    The compiler has the same rule, in its `messages.rs`: this copy is the
-    one `texts.py` rebuilds the boxes around, before the compiler sees them.
-    `rm2k-snes/events/tests/escapes.json` holds the two together.
-    """
-    lines = list(lines)
-    pauses = 0
-    auto_close = False
-    if lines:
-        text = lines[-1]
-        i = cut = len(text)
-        escapes = 0
-        while i > 0:
-            if i >= 2 and text[i - 2] == ESCAPE \
-                    and text[i - 1] in (ESCAPE_PAUSE, ESCAPE_CLOSE):
-                i -= 2
-                cut = i
-                escapes += 1
-            elif text[i - 1] == " ":
-                i -= 1
-            else:
-                break
-        if escapes:
-            tail = text[cut:]
-            pauses = tail.count(ESCAPE + ESCAPE_PAUSE)
-            auto_close = ESCAPE + ESCAPE_CLOSE in tail
-            lines[-1] = text[:cut]
-    if any(ESCAPE in t for t in lines) or pauses > PAUSES_MAX:
-        raise CannotCompile()
-    return tuple(lines), pauses, auto_close
-
 
 ROUTE_HERO = 10001
 ROUTE_THIS_EVENT = 10005                    # "this event", the page's owner

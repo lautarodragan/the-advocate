@@ -44,8 +44,6 @@ has to exist: `test_index.py` enforces it.
   introduced them
 * `test_substitutions.py`: the `TileSubstitution` cap, the same in the
   converter and in the runtime
-* `test_texts.py`, `test_escapes.py`: the rebuilt text boxes and the `\|`
-  and `\^` escapes
 * `test_inherited_songs.py`: which song may be playing when each map's
   package is loaded, which is what the layout reserves for it
 * `test_project.py`: that where each thing is —the root, the repo's

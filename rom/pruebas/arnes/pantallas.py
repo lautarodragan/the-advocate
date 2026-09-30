@@ -10,8 +10,7 @@ a Rust: dibujar con otro código que el que arma la ROM sería comparar contra
 algo que no corre.
 
 Lo que se le pasa es el estado del juego que la pantalla muestra, con los
-nombres del pedido de la etapa; ver `render.rs` en
-`tools/rm2k-snes/screens/`.
+nombres del pedido de la etapa; ver `render.rs` en `rm2k-snes-screens`.
 """
 
 from port import screen_stage
