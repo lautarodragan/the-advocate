@@ -267,17 +267,21 @@ def test_el_paquete_que_no_entro_con_otro_tema_sonando_se_completa(partida):
     Las muestras del tema que suena no se mueven al cargar el paquete del mapa
     nuevo —la música sigue durante el fundido—, así que lo que el paquete
     trae entra en lo que queda al lado, y lo último de la lista, los efectos,
-    puede no entrar. Es el paso del mapa 2 al 3 del juego: la página del
-    ascensor salta al 3 y recién ahí vuelve a pedir el tema del 2, así que el
-    3 se carga con él sonando y algunos de sus efectos quedaban afuera hasta
-    el cambio de mapa siguiente, aunque la página del 3 prendiera enseguida
-    su propio tema.
+    puede no entrar. El `PlayBGM` siguiente calla ese tema y es el que
+    completa el paquete, si entra con el tema nuevo.
 
-    El caso hace ese paso con el tema del 2 sonando y después prende
-    el del 3. Se pide primero que el paquete haya quedado incompleto al
-    llegar —si no, el caso no ejercita nada: pasaría también sin el arreglo,
-    por ejemplo si el reparto de la ARAM cambia y todo entra—, y después que
-    con el tema nuevo sonando estén todos los efectos del 3.
+    En el juego pasa en el paso del 2 al 3, pero no así: en el 2 suena
+    `escape_newyork`, que viene del 1, y el `PlayBGM` que sigue al salto es
+    el de TF3_1_awe, que no es de ningún paquete y con el que el del 3 no
+    entra entero: eso lo mira la prueba que sigue. Lo completa recién el
+    `PlayBGM` de evilrhys, el tema del 3.
+
+    El caso ejercita ese último tramo: prende TF3_1_awe en el 2, a mano,
+    salta al 3 con él sonando y después prende evilrhys. Se pide primero
+    que el paquete haya quedado incompleto al llegar —si no, el caso no
+    ejercita nada: pasaría también sin el arreglo, por ejemplo si el
+    reparto de la ARAM cambia y todo entra—, y después que con el tema
+    nuevo sonando estén todos los efectos del 3.
     """
     una = partida(caso="paquete-incompleto")
     s = una.simbolos

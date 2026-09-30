@@ -1257,14 +1257,19 @@ ran:
 ; And the same if the map's package **was left incomplete**, even if the song
 ; is missing nothing. It happens when entering a map with another's song
 ; playing: its samples do not move —see `package_load_done`— and what does
-; not fit beside them is the last part of the package, the sound effects. The
-; game's case is the passage from map 2 to 3, which happens with map 2's song
-; playing and left out some of map 3's sound effects until the next map
-; change, even though its page started its own song right away. A `PlayBGM`
-; starts the song from zero and silences what was playing, so it is the first
-; moment those samples can be let go: it is rebuilt, and only what was
-; missing is uploaded. If the package does not fit even so, the rebuild
-; uploads nothing and costs less than a frame.
+; not fit beside them is the last part of the package, the sound effects. A
+; `PlayBGM` starts the song from zero and silences what was playing, so it is
+; the first moment those samples can be let go: the package is loaded again
+; with this song first, and only what was missing is uploaded.
+;
+; The game's case is the passage from map 2 to 3. What plays on map 2 is not
+; a song of its own but `escape_newyork`, which comes from the opening on
+; map 1; the elevator page jumps to 3 with it playing, and map 3 arrives
+; without most of its sound effects. Right after, the same page starts
+; TF3_1_awe, which is in no package: it goes up first, and what is still
+; missing, because TF3 and the package do not fit together, waits for the
+; `PlayBGM` of evilrhys, which completes it. None of the sound effects left
+; out is asked for before that one.
 .proc song_ensure
 .a8
 .i16
