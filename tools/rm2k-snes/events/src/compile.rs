@@ -1319,11 +1319,13 @@ fn target_actor(p: &[i32]) -> Step<u8> {
 }
 
 /// A step's chance of an encounter, `1 / steps` in 1/65536; zero is off.
+/// One step saturates at `$FFFF`, which still fights on every step: see
+/// `base` in `rm2k-snes-battle`, the same number for the map's steps.
 pub fn enc_base(steps: i64) -> i64 {
     if steps <= 0 {
         0
     } else {
-        0x10000 / steps
+        (0x10000 / steps).min(0xFFFF)
     }
 }
 
@@ -2469,6 +2471,21 @@ mod tests {
             &|_| Some(300),
         );
         assert_eq!(code.unwrap(), [OP_TELEPORT, 44, 1, 12, 0, 34, 0, OP_DONE]);
+    }
+
+    #[test]
+    fn one_encounter_step_saturates_instead_of_not_compiling() {
+        // `$10000 / 1` does not fit in the operand's word: it saturates, and
+        // every threshold is the first step.
+        let code = with_songs(
+            &[cmd(CHANGE_ENCOUNTER_STEPS, &[1], "")],
+            &mut Songs::default(),
+            &|_| None,
+        );
+        assert_eq!(
+            code.unwrap(),
+            [OP_ENCOUNTER_STEPS, 0xFF, 0xFF, 1, 1, 1, 1, 2, 2, 2, 0xFF, OP_DONE]
+        );
     }
 
     #[test]

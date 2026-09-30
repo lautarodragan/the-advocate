@@ -33,11 +33,19 @@ pub const ROWS: [i64; 7] = [20, 40, 60, 100, 140, 160, 180];
 /// shifts it by the row's `pmod` and compares it with a 16-bit random
 /// number. **The truncation is part of the contract.** Zero is off, which
 /// is what `encounter_steps` 0 means in RM2k.
+///
+/// **One step saturates at `$FFFF`**: `$10000` does not fit in the word the
+/// ROM keeps it in. It is still "an encounter on every step", which is what
+/// RM2k does with 1: the first step already reaches row 4 —`100 * 1 / 1`
+/// is 100—, whose `pmod` is 2, so the chance is 2, and the ROM's `$FFFF << 1`
+/// carries, which is its "always". Rows 0 to 3 are never rolled with one
+/// step, because every threshold is 1 and the count is at least 1 when it
+/// rolls; were they, `$FFFF >> k` is `$10000 >> k` less one part in 65536.
 pub fn base(steps: i64) -> i64 {
     if steps <= 0 {
         0
     } else {
-        0x10000 / steps
+        (0x10000 / steps).min(0xFFFF)
     }
 }
 
@@ -165,5 +173,21 @@ impl Encounters {
         asm::bytes(&mut out, "enc_troop_n", &troop_n);
         asm::words(&mut out, "enc_troop", &self.troops);
         out
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn one_step_saturates_and_still_always_fights() {
+        assert_eq!(base(1), 0xFFFF);
+        assert_eq!(base(2), 0x8000);
+        assert_eq!(base(0), 0);
+        // With one step every threshold is the first step, so the roll is
+        // on row 4 or past it, whose shift already carries: "always".
+        assert!(step_thresholds(1)[..4].iter().all(|&t| t == 1));
+        assert!(base(1) << 1 > 0xFFFF);
     }
 }

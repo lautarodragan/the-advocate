@@ -1697,9 +1697,12 @@ def enc_base(steps):
     model's and `ChangeEncounterSteps`', and the tests compare the ROM
     against it.
 
-    Zero means off, which is what `encounter_steps` 0 means in RM2k.
+    Zero means off, which is what `encounter_steps` 0 means in RM2k. One
+    step saturates at `$FFFF`, because `$10000` does not fit in the word:
+    it still fights on every step —see `base` in `rm2k-snes-battle`, which
+    has the arithmetic—.
     """
-    return 0 if steps <= 0 else 0x10000 // steps
+    return 0 if steps <= 0 else min(0xFFFF, 0x10000 // steps)
 
 
 def enc_step_thresholds(steps):
