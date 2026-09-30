@@ -263,7 +263,7 @@ no_enemy:
     ; party**: `Game_Actors::GetActor` answers for anyone, but the HP of one
     ; who is not fighting live in `FAR_HP` without its maximum at hand, and
     ; the game's two pages that check this are Talan's in the Lazer Teeth
-    ; battle, where he is. See `battle.TroopPage`, which does the same.
+    ; battle, where he is. `rm2k-snes-battle`'s `TroopPage` does the same.
     lda BA_COND + BA_COND_AMIN
     sta BA_PCT_MIN
     lda BA_COND + BA_COND_AMAX
@@ -546,11 +546,11 @@ to_screen:
 .endproc
 
 ; The page's message, in the party's lines: see `BA_PAGE_MSG_ROW0` in
-; battle_screen.py. It reads it from `messages_troop` in the usual format —the
-; header with the lines and each line with its length, one byte per letter
-; with the ASCII minus 32— and writes it with the screen's glyphs, cut at
-; `BA_PAGE_MSG_WIDTH`. The block fits in one bank —the converter guarantees
-; it—, so the pointer is advanced with Y and the bank stays fixed.
+; `rm2k-snes-battle`'s `screen.rs`. It reads it from `messages_troop` in the
+; usual format —the header with the lines and each line with its length, one
+; byte per letter with the ASCII minus 32— and writes it with the screen's
+; glyphs, cut at `BA_PAGE_MSG_WIDTH`. The block fits in one bank —the converter
+; guarantees it—, so the pointer is advanced with Y and the bank stays fixed.
 .proc ba_page_message
 .a8
 .i16

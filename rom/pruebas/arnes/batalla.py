@@ -113,7 +113,7 @@ class Pelea:
 
         `que` es `("atacar", enemigo)`, `("defender",)` o
         `("habilidad", k, blanco)`, donde `k` es el lugar en la lista de
-        habilidades del actor —la misma que `battle.skills_of` arma— y
+        habilidades del actor —la misma que `modelo.skills_of` contesta— y
         `blanco` el lugar del enemigo o del actor al que apunta, según su
         `scope`. Una de switch va sin blanco, `("habilidad", k)`: no lo pide.
         """

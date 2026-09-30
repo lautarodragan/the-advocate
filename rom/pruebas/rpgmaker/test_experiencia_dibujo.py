@@ -180,7 +180,7 @@ def test_la_pelea_usa_los_parametros_del_nivel_de_ahora(partida):
 
     Se le pone el nivel 30 a Kersh y se abre la pelea: los seis parámetros que
     la pelea arma —HP y SP máximos, ataque, defensa, espíritu y agilidad—
-    tienen que ser los de `battle.actor_of` con ese nivel, y distintos de
+    tienen que ser los de `modelo.actor_of` con ese nivel, y distintos de
     los del 20, que si no el caso no distingue nada. Los cuatro del medio
     pasan por `eq_parameter`, que es también la de la pantalla de equipo.
     """

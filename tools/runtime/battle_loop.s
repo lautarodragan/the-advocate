@@ -3,8 +3,8 @@
 ; --- the battle loop -------------------------------------------------------
 
 ; The average agility of one side: A8 at 0 the party and at 1 the troop. If
-; nobody is left alive everyone counts, which is the `or list(quienes)` of
-; `battle.Battle._average`. The result goes in `BA_T1`, capped at
+; nobody is left alive everyone counts, which is what `average_agility` of
+; `rm2k-snes-battle` does. The result goes in `BA_T1`, capped at
 ; `BA_AGI_CAP`: through memory and not the accumulator, for the same reason
 ; as `ba_param`.
 .proc ba_average
@@ -97,7 +97,7 @@ ready:
 ;     chance = clamp(150 - base, 0, 100)
 ;
 ; The rounding is `(2a + b) / (2b)`, which is `RoundTo` with integers and no
-; floats: see `battle.Battle._escape_chance`.
+; floats: see `initial_escape_chance` in `rm2k-snes-battle`.
 .proc ba_flee_chance
 .a8
 .i16
@@ -218,7 +218,7 @@ none:
 ; Records command A8 for actor `BA_ACTOR`, with the target in `BA_T0`, and
 ; pushes it onto the execution list. The order it is pushed in **matters**:
 ; the tie-break of the turn order is stable, so the party goes first and then
-; the troop, as in `battle.Battle.play_turn`.
+; the troop, as in `play_turn` of `rm2k-snes-battle`.
 .proc ba_record
 .a8
 .i16

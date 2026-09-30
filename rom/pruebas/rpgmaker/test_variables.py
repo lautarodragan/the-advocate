@@ -49,8 +49,8 @@ def test_las_operaciones_dan_lo_que_dan_en_python(con_variables):
 
 def test_el_azar_es_el_mismo_de_los_dos_lados(con_variables):
     """El primer número al azar de la ROM es el primero del xorshift de
-    `events.py` desde la misma semilla. Es el generador del modelo de
-    `port/battle.py`, así que si se separaran, las pruebas que comparan una
+    `events.py` desde la misma semilla. Es el generador del modelo de la
+    pelea, `rm2k-snes-battle`, así que si se separaran, las pruebas que comparan una
     pelea número por número se separarían con él."""
     una, r = con_variables, ranuras()
     esperado = events.next_random(events.RANDOM_SEED) % 101

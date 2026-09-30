@@ -1,7 +1,7 @@
 """El hito 4 de Lashe City: AG7-17 en la pelea, y los enemigos de la planta.
 
 Tres cosas que la pelea no hacía hasta el 2026-09-27, y las tres se miran
-acá contra el número exacto de `port.battle`, como el resto de las peleas:
+acá contra el número exacto del modelo, como el resto de las peleas:
 
 * **los enemigos eligen qué hacer** —`EnemyAi`, con el `rating` de cada
   acción— y usan habilidades: el Tangle Wire de la tropa 113 tira
@@ -192,7 +192,7 @@ def test_la_tropa_es_la_que_se_espera():
 
 
 def test_el_tangle_wire_usa_short_circuit_y_deja_el_hp_del_modelo(partida):
-    """Turno por turno contra `battle.Battle`: los dos se defienden dos
+    """Turno por turno contra `modelo.Battle`: los dos se defienden dos
     turnos —para darle tiempo al Tangle Wire— y después AG7 le pega a la rata,
     y muerta ella, al Tangle Wire. Adentro están la elección del enemigo —un
     tiro para la acción, porque el Tangle Wire tiene dos de peso, y otro para

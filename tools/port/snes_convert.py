@@ -18,11 +18,12 @@ in its own module of `port/`, one per piece that can be replaced alone:
     screen_stage        the screens, `rm2k-snes-screens`: the message
                         window and its font, the title's menu, the menus,
                         and the message boxes reflowed for the window
-    battle_screen       the battle's text screen: its geometry and texts
     battle_scenes       backdrops and battlers
     battle_animations   the battle animations
     stage               runs a part that is a program of its own:
                         `rm2k-snes-battle`, experience and encounters
+    battle_stage        the battle's model and its text screen, from
+                        `rm2k-snes-battle`
     compiler            the event compiler, `rm2k-snes-events`: what goes
                         into its two calls and what comes back
     music               the job for `rm2k-snes-audio`, and the `.msu`

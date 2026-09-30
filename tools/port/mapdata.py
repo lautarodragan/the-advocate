@@ -1129,9 +1129,9 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         enemy_text = {e: new_text(texts["enemies"][str(e)])
                       for e in rom_enemies}
         # And the skills': the ones some actor that can join the party knows,
-        # **at their LDB level** —see `battle.skills_of`—, sorted by
-        # number, which is the order the menu puts them in. With the intro's
-        # party they are seven: 129, 130, 131, 143, 144, 146 and 150.
+        # **at their LDB level** —see `skills_of` in `rm2k-snes-battle`—,
+        # sorted by number, which is the order the menu puts them in. With the
+        # intro's party they are seven: 129, 130, 131, 143, 144, 146 and 150.
         #
         # **All the ones they can end up knowing**, and not only the LDB's: a
         # `ChangeSkills` teaches the actor what the learning table doesn't
@@ -1141,7 +1141,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         #
         # And the ones some enemy of the cartridge's troops uses, since
         # 2026-09-27: `ShortCircuit`, from the ones at the recycling plant. See
-        # `battle.actions_of_enemy`.
+        # `actions_of_enemy` in `rm2k-snes-battle`.
         rom_actions = {e: M["actions"][str(e)] for e in rom_enemies}
         rom_skills = M["skills"]
         skill_text = {h: new_text(texts["skills"][str(h)]["name"])
@@ -1487,8 +1487,9 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         handle.write('.segment "TABLES"\n')
         # What each item does in a battle: whether it goes in the list that is
         # offered and how much it heals. The rule for which ones go in is
-        # `battle.item_usable_in_battle`, that is `Game_Party::IsItemUsable`
-        # with the battle open plus what this port knows how to do; the
+        # the battle stage's `item_usable_in_battle`, that is
+        # `Game_Party::IsItemUsable` with the battle open plus what this port
+        # knows how to do; the
         # computation of how much it heals is
         # `Game_BattleAlgorithm::Item::vExecute`.
         # **Outside bank 0**, like `item_k` and for the same reason: with the
@@ -1558,8 +1559,8 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
                                   for p in db_items[n].points],
                   declare=True)
         # And what attacking with each one costs: the weapons' `sp_cost`, zero
-        # for the rest —`battle.weapon_sp_of`—. The battle reads it once per
-        # actor when it is set up.
+        # for the rest —`weapon_sp_of` in `rm2k-snes-battle`—. The battle
+        # reads it once per actor when it is set up.
         bytes_asm("item_sp", [db_items[n].sp_cost
                               if db_items[n].type == lcf.ITEM_TYPE_WEAPON
                               else 0 for n in items], declare=True)
@@ -1701,9 +1702,9 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         #
         # One row per skill the cartridge carries, in the order of
         # `rom_skills`, which is by RM2k number. The fields are those of
-        # `lcf.Skill` and the computations that use them are in `battle.py`:
-        # `skill_effect` is `Algo::CalcSkillEffect` and `cost_of` is
-        # `CalcSkillCost`.
+        # `lcf.Skill` and the computations that use them are in
+        # `rm2k-snes-battle`: `skill_effect` is `Algo::CalcSkillEffect`, and
+        # `CalcSkillCost` is the `sp_cost` as it is.
         #
         # They go **outside bank 0** and declared with `.block`, like
         # everything the battle reads with `lda f:`: the code's bank is full,
@@ -1757,7 +1758,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
             for h in rom_skills], "$%02X", declare=True)
         # And the scope as is, `rpg::Skill::Scope`: 0 one enemy, 1 all, 2
         # oneself, 3 one ally, 4 the whole party. Since 2026-09-27 the battle
-        # knows all five: see `battle.skill_targets`.
+        # knows all five: see `skill_targets` in `rm2k-snes-battle`.
         bytes_asm("skill_scope", [db.skills[h].scope for h in rom_skills],
                   declare=True)
         # The parallel common events that only look at the equipment,
@@ -1877,8 +1878,8 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
                 raise SystemExit("troop %d gives %d experience and the ROM "
                                  "adds it in sixteen bits" % (n, exp))
         words_asm("troop_exp", troop_exp, declare=True)
-        # And the gold, the same: `battle.troop_gold`. The victory tells
-        # it with `ba_vic_number`, which reaches five digits.
+        # And the gold, the same, as the battle stage adds it up. The victory
+        # tells it with `ba_vic_number`, which reaches five digits.
         troop_gold = [t["gold"] for t in M["troops"]]
         for n, gold in zip(used, troop_gold):
             if gold > 0xFFFF:
@@ -1992,9 +1993,9 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         words_asm("enemy_gold", [db.enemies[e].gold for e in rom_enemies],
                   declare=True)
         # What it drops on dying: the LDB item, or 0 if it drops nothing, and
-        # the chance as a percentage. See `ba_vic_drop` and
-        # `battle.roll_drops`. Every item that can be dropped is in
-        # `items`: see `drop_items`, which adds it.
+        # the chance as a percentage. See `ba_vic_drop` and `roll_drops` in
+        # `rm2k-snes-battle`. Every item that can be dropped is in `items`:
+        # see `drop_items`, which adds it.
         for e in rom_enemies:
             if db.enemies[e].drop_id and db.enemies[e].drop_id not in k_of:
                 raise SystemExit("enemy %d drops item %d and the "
@@ -2005,7 +2006,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         bytes_asm("enemy_drop_pct", [db.enemies[e].drop_prob
                                         for e in rom_enemies], declare=True)
         # What each enemy can do on its turn: its list from
-        # `battle.actions_of_enemy`, contiguous in `eacc_*` —where it
+        # `rm2k-snes-battle`, contiguous in `eacc_*` —where it
         # starts and how many there are—. Per action, the skill as a `k` of the
         # `hab_*` tables or $FF for the attack, and its `rating` with bit 7 set
         # if it isn't `effective`: it counts for the maximum and then weighs
@@ -2144,8 +2145,8 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # line and which column it goes in, which term names it and whether it
         # always goes in gray. They go in tables and not in a computation
         # because since 2026-09-13 **they aren't three in a row on one line**:
-        # they are the five of ABL's menu spread over two. See
-        # `screens.BA_COMMANDS`.
+        # they are the five of ABL's menu spread over two. See `BA_COMMANDS`
+        # in `rm2k-snes-battle`.
         handle.write("BA_COMMANDS_N     = %d\n" % len(BS.BA_COMMANDS))
         handle.write("BA_ITEM_COUNT_DX = %d\n" % (BS.BA_ITEM_COUNT_COL * 2))
         handle.write("BA_COMMAND_USE    = %d\n" % BS.BA_COMMAND_USE)
@@ -2155,7 +2156,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         handle.write("BA_COMMAND_SKILL= %d\n" % BS.BA_COMMAND_SKILL)
         # The skills screen: two columns with the name and the cost, and the
         # description of the one under the cursor at the very top. The
-        # geometry comes from `battle_screen.py`, and the item list's from
+        # geometry comes from `rm2k-snes-battle`, and the item list's from
         # the screens stage.
         handle.write(
             "SKILLS_N          = %d\n"

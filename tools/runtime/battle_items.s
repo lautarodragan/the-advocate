@@ -3,13 +3,13 @@
 ; --- using an item in battle -----------------------------------------------
 ;
 ; `Game_BattleAlgorithm::Item` with what this port knows how to do: the
-; medicines that recover HP, and since 2026-09-26 the ones that revive a
-; fallen actor. What goes in the list and how much it heals is not decided
-; here but in `battle.item_usable_in_battle` and `battle.item_effect`,
-; which is the model `rom/pruebas/rpgmaker/test_batalla.py` uses to predict
-; the exact HP; the converter emits the result in `item_battle`,
-; `item_heal_rate`, `item_heal_hp` and `item_medicine`, which is the same one
-; `medicine_use` uses.
+; medicines that recover HP, and since 2026-09-26 the ones that revive a fallen
+; actor. What goes in the list and how much it heals is not decided here but in
+; `rm2k-snes-battle`, by `item_usable_in_battle` and `item_effect`, which is
+; the model `rom/pruebas/rpgmaker/test_batalla.py` uses to predict the exact
+; HP; the converter emits the result in `item_battle`, `item_heal_rate`,
+; `item_heal_hp` and `item_medicine`, which is the same one `medicine_use`
+; uses.
 ;
 ; All of this runs with the data bank at $7E, so **the inventory is read with
 ; absolute addressing**: `FAR_ITEMS` lives in that bank and in it the
@@ -202,7 +202,7 @@ if:
 ; coming, the item is spent anyway and does whatever `vExecute` does with it
 ; as it is now.
 ;
-; It is `battle.item_effect`, branch by branch:
+; It is `item_effect` of `rm2k-snes-battle`, branch by branch:
 ;
 ; * standing and `ko_only`: nothing, `SetIsSuccess` with no effect;
 ; * standing: the heal from `ba_item_heal`;

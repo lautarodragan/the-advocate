@@ -7,7 +7,7 @@ Tres peleas del juego, cada una con su caso:
 * **el Rat King** (tropa 97, `pelea-97`): empieza solo, con sus dos ratas
   ocultas, y las llama con dos páginas **por HP del enemigo 0** —el 60% y el
   30%— que hacen `ShowHiddenMonster`. Se juega turno por turno contra
-  `battle.Battle` con las páginas del LDB, que dice en qué turno aparece cada
+  `modelo.Battle` con las páginas del LDB, que dice en qué turno aparece cada
   una y con qué HP queda cada uno;
 * **los agentes** (tropa 102, `pelea-102`): una página de **turno 1** con el
   `PlaySound`, la sacudida y "The Captain has taken off in the ship!";

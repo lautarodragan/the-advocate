@@ -8,7 +8,7 @@ cuesta ningún tick —ver `OP_BATTLE` en tools/port/events.py—. Lo que pasa a
 se mira desde acá.
 
 **Lo que hace fuerte a este archivo** es que no se conforma con "bajó": el
-modelo de `tools/port/battle.py` juega la misma pelea con el mismo azar y las
+modelo de `rm2k-snes-battle` juega la misma pelea con el mismo azar y las
 mismas fórmulas, y la prueba exige que la consola dé **el número exacto** en
 cada HP, turno por turno. Si la ROM y el modelo se separan en un tiro de dado
 o en una división, el primer turno ya no coincide.
@@ -32,7 +32,7 @@ import modelo
 from tanda import LINKAGE
 
 # Las habilidades que el grupo de la intro sabe, por si alguna prueba quiere
-# nombrarlas. Salen de `battle.skills_of`, que es lo que decide el orden.
+# nombrarlas. Salen de `modelo.skills_of`, que es lo que decide el orden.
 FURY_PUNCH, MINDSHIELD, HEALING_SYRINGE, AGENCY_BADGE = 129, 143, 131, 146
 # La Potion del LDB: cincuenta HP planos, que es el ítem de curar más barato
 # y el único que hace falta para cobrar la cuenta.
@@ -141,7 +141,7 @@ def test_la_pelea_del_droide_se_abre_con_la_tropa_del_juego(partida):
 
     Los parámetros del enemigo salen del LDB y los del grupo de
     `eq_parameter`, la misma función que la pantalla de equipo. Que coincidan
-    con `battle.py` es lo que hace que el resto de este archivo signifique
+    con el modelo es lo que hace que el resto de este archivo signifique
     algo: si la ROM peleara con otros números, los turnos también darían otra
     cosa y no se sabría cuál de las dos está mal.
     """
@@ -172,7 +172,7 @@ def test_la_pelea_entera_da_los_mismos_hp_que_el_modelo(partida):
     """El corazón de todo esto: turno por turno, el mismo número.
 
     Los tres actores atacan al droide y la consola tiene que llegar al mismo HP
-    que `battle.Battle` en cada uno de los doce valores. Ahí adentro están el
+    que `modelo.Battle` en cada uno de los doce valores. Ahí adentro están el
     orden de turnos, los tres tiros de cada golpe —acierto, crítico y
     varianza—, el daño con `atk / 2 - def / 4`, la mitad del que se defiende y
     el reapuntado del blanco muerto. **Si cualquiera de esos se separa, el
@@ -207,7 +207,7 @@ def test_la_pelea_entera_da_los_mismos_hp_que_el_modelo(partida):
 
 # --- las habilidades ---------------------------------------------------------
 #
-# Todas comparan contra `battle.Battle.use_skill`, que es
+# Todas comparan contra `use_skill` del modelo, que es
 # `Game_BattleAlgorithm::Skill` de easyrpg. Lo que hace fuerte a esta tanda es
 # lo mismo que al resto del archivo: no se conforma con "bajó", exige **el
 # número exacto**, y el número sale de un modelo que consume el azar en el
@@ -220,7 +220,7 @@ def habilidades(actor):
 
 
 def test_cada_actor_sabe_las_habilidades_de_su_nivel(partida):
-    """`actor_hab`, contra `battle.skills_of`.
+    """`actor_hab`, contra `modelo.skills_of`.
 
     Kersh 131 y 146, Core 129 y 150, Manta 130, 143, 144 y 150: las que el LDB
     dice que se aprenden en un nivel menor o igual al suyo. Con nivel 1 **las
@@ -726,7 +726,7 @@ def test_el_golpe_suena_con_el_efecto_que_le_toca(partida):
     espera su turno.
 
     Lo que se compara no es circular: `BA_MDMG` y `BA_MTGT` son la mecánica,
-    que el resto de este archivo ya cobra contra `battle.py` número por
+    que el resto de este archivo ya cobra contra el modelo número por
     número; lo que se mide acá es la elección del efecto, que es lo nuevo.
     """
     una = en_el_droide(partida)
@@ -760,7 +760,7 @@ def test_el_golpe_suena_con_el_efecto_que_le_toca(partida):
 # --- usar un ítem ----------------------------------------------------------
 #
 # `Use Item`. Lo que se mide acá es lo mismo que en el
-# resto del archivo: **el número exacto**. `battle.healing` dice cuánto
+# resto del archivo: **el número exacto**. El modelo dice cuánto
 # tendría que curar y la consola tiene que dejar ese HP, ni uno más.
 
 def en_el_droide_con_pocion(partida):
@@ -789,7 +789,7 @@ def en_el_droide_con_pocion(partida):
 
 def test_la_lista_de_items_es_la_que_se_puede_usar(partida):
     """`Game_Party::IsItemUsable` con la pelea abierta, más lo que este port
-    sabe hacer: ver `battle.item_usable_in_battle`.
+    sabe hacer: ver `modelo.items_usable_in_battle`.
 
     La lista la arma la ROM recorriendo el inventario, y lo que se compara es
     contra la misma regla en Python. Si la ROM ofreciera un ítem que no cura
@@ -867,7 +867,7 @@ def test_usar_una_pocion_cura_lo_que_dice_el_modelo(partida):
 # El `Pungent Elixir-LIFE`: `ko_only`, con el estado de muerto en su
 # `state_set` y el 25% de los HP. Lo que se cobra es la tarea entera —
 # workflow/tasks/*/el-elixir-en-la-pelea.md—: que el cursor se pare en el
-# caído, que el HP sea el de `battle.item_effect`, que el levantado vuelva
+# caído, que el HP sea el que dice el modelo, que el levantado vuelva
 # a pedir órdenes y que cobre la experiencia al ganar.
 
 ELIXIR = 115
@@ -1010,7 +1010,7 @@ def test_el_menu_va_en_el_orden_del_original(partida):
     Attack / Slicing / Defend / Use Item. La habilidad va
     **segunda**. `Escape` no
     está en el original —huir es una orden del grupo— y acá va quinta, que es
-    la simplificación que `battle.py` declara.
+    la simplificación que el modelo declara.
 
     Lo que se cobra es el recorrido del cursor: que llegue hasta la quinta, que
     vuelva, y que A sobre la segunda abra la lista de habilidades y B la

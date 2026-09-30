@@ -135,7 +135,7 @@ def test_las_habilidades_que_no_entran_siguen_en_otra_pagina(partida):
 # Tres Crazed Marauder, que dan 95 de oro cada uno y sueltan una Healing
 # Draught-HP con chance 35: tres tiros de botín, uno por enemigo. **La semilla
 # la elige el modelo**: se escribe en `BA_SEED` al abrir la pelea, y es la
-# primera con la que `battle.Battle` gana sin que caiga nadie y alguno suelta
+# primera con la que `modelo.Battle` gana sin que caiga nadie y alguno suelta
 # su ítem y otro no. Así la prueba pasa por los dos lados del tiro y no depende
 # de que la semilla de fábrica caiga en uno. Los tres enemigos arrancan con 1
 # HP, en la ROM y en el modelo, para que la pelea dure lo que dura un golpe.
