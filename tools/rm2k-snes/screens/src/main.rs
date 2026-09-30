@@ -40,6 +40,8 @@ enum Command {
     Render(GameArgs),
     /// Every message box of the game reflowed for the console's window
     Boxes(BoxesArgs),
+    /// The message boxes of the request reflowed for the console's window
+    Refit(LayoutArgs),
     /// The geometry the screens are drawn with, by name
     Layout(LayoutArgs),
 }
@@ -89,8 +91,11 @@ struct BoxesArgs {
 }
 
 #[derive(ClapArgs)]
-#[command(after_help = "Writes layout.json into --out. The request is ignored: it is \
-    taken so every subcommand is called the same way.")]
+#[command(after_help = "`layout` writes layout.json into --out, and its request is \
+    ignored: it is taken so every subcommand is called the same way.\n\n\
+    `refit` writes refit.json: for each of the request's `boxes`, each a list of lines, \
+    {\"to\": the boxes it becomes, \"speaker\": whether its first line names who speaks}. \
+    The request carries `columns` and `lines` too, the window's size in characters.")]
 struct LayoutArgs {
     #[arg(long, value_name = "PATH")]
     request: Option<PathBuf>,
@@ -206,6 +211,32 @@ fn do_layout(args: &LayoutArgs) -> Result<()> {
     write(&args.out, "layout.json", &layout::publish().to_string())
 }
 
+fn do_refit(args: &LayoutArgs) -> Result<()> {
+    let path = args
+        .request
+        .as_ref()
+        .ok_or_else(|| Bad::usage("refit needs --request, with the boxes"))?;
+    let json = Json::read(path)?;
+    let bad = || Bad::answer(format!("{}: `boxes` is not a list of lists of lines", json.whose));
+    let boxes: Vec<Vec<String>> = json
+        .data
+        .get("boxes")
+        .and_then(|b| b.as_array())
+        .ok_or_else(bad)?
+        .iter()
+        .map(|lines| {
+            lines
+                .as_array()
+                .ok_or_else(bad)?
+                .iter()
+                .map(|l| l.as_str().map(str::to_string).ok_or_else(bad))
+                .collect()
+        })
+        .collect::<Result<_>>()?;
+    let answer = boxes::refit_each(&boxes, json.index_or("columns", 0)?, json.index_or("lines", 0)?);
+    write(&args.out, "refit.json", &answer.to_string())
+}
+
 fn main() -> ExitCode {
     let cli = Cli::parse();
     let done = match &cli.command {
@@ -213,6 +244,7 @@ fn main() -> ExitCode {
         Command::Render(args) => do_render(args),
         Command::Boxes(args) => do_boxes(args),
         Command::Layout(args) => do_layout(args),
+        Command::Refit(args) => do_refit(args),
     };
     match done {
         Ok(()) => ExitCode::SUCCESS,

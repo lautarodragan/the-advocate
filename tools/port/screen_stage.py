@@ -79,6 +79,15 @@ def boxes(dump):
     return _BOXES[key]
 
 
+def refit(boxes):
+    """Each of `boxes`, a list of lines, reflowed for the console's window:
+    `[{"to": boxes, "speaker": bool}]`. For whoever checks the reflow over a
+    whole game."""
+    return _answer("refit", "refit.json", {
+        "boxes": [list(b) for b in boxes],
+        "columns": constants.COLUMNS, "lines": constants.LINES})
+
+
 _TABLES = {}
 
 

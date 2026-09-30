@@ -10,11 +10,9 @@ Lo que se ve sin comparar contra Python lo cobran las goldens `fin` y
 `fin-no` de `test_menu_golden.py`.
 """
 
-from port import end_game
-
 from consola import TITULO_AIRE
-import datos
 from dibujo import comparar_pantalla
+import pantallas
 from menu import abrir, con_grupo
 from menu import comparar as comparar_menu
 from tanda import golden
@@ -22,6 +20,8 @@ from batalla import (TITULO_QUIETO, cuadros_hasta_reiniciar,
                      cuadros_hasta_volver)
 
 MENU_FIN = 4
+# Las dos órdenes: "Yes" y "No".
+SI, NO = 0, 1
 
 
 def entrar(una):
@@ -35,8 +35,7 @@ def entrar(una):
 
 
 def comparar(una, elegida, nombre):
-    db, skin = datos.base(), datos.skin()
-    esperada = end_game.render(skin, db, elegida, db.font_id)
+    esperada = pantallas.fin(elegida)
     comparar_pantalla(una, esperada, nombre,
                       "End Game con el cursor en %d" % elegida)
 
@@ -45,11 +44,11 @@ def test_la_pantalla_se_ve_como_la_referencia(partida):
     """Entra con el cursor en "Yes", como el RPG_RT, y abajo lo pasa a "No"
     —que es subir la otra paleta—; abajo otra vez da la vuelta."""
     una = entrar(con_grupo(partida()))
-    comparar(una, end_game.YES, "fin")
+    comparar(una, SI, "fin")
     una.tocar_cuadros("down")
-    comparar(una, end_game.NO, "fin-no")
+    comparar(una, NO, "fin-no")
     una.tocar_cuadros("down")
-    comparar(una, end_game.YES, "fin-vuelta")
+    comparar(una, SI, "fin-vuelta")
 
 
 def test_no_vuelve_al_menu_como_estaba(partida):

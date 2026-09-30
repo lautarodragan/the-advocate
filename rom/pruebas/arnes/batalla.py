@@ -9,8 +9,8 @@ avanza mientras dura.
 
 from port import battle as modelo
 from port import events
-from port import menus
-from port import screens
+from port import battle_screen as screens
+from port import screen_stage
 
 from consola import EMPEZAR, en_la_rom, en_la_wram
 import datos
@@ -410,10 +410,11 @@ def glifos(una):
         rom = archivo.read()
     base = en_la_rom(una.simbolos["item_glyph_cells"])
     de = {}
-    for n in range(menus.ITEM_CHARS):
+    fuente = screen_stage.layout()
+    for n in range(fuente.ITEM_CHARS):
         b = rom[base + 4 * n:base + 4 * n + 4]
         de.setdefault((b[0] | (b[1] << 8), b[2] | (b[3] << 8)),
-                      chr(menus.ITEM_FIRST_CHAR + n))
+                      chr(fuente.ITEM_FIRST_CHAR + n))
     return de
 
 

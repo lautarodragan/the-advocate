@@ -38,6 +38,24 @@ fn boxes_of(commands: &[EventCommand], out: &mut Vec<Vec<String>>) {
     }
 }
 
+/// Each of `boxes` reflowed for a window of `columns` by `rows`, as
+/// `{"to": boxes, "speaker": whether its first line names who speaks}`: a
+/// box that fits comes back as itself. It is for whoever checks the reflow
+/// over a whole game.
+pub fn refit_each(boxes: &[Vec<String>], columns: usize, rows: usize) -> Value {
+    Value::from(
+        boxes
+            .iter()
+            .map(|lines| {
+                json!({
+                    "to": refit(lines, columns, rows),
+                    "speaker": lines.len() > 1 && rm2k_snes_text::refit::is_speaker(&lines[0]),
+                })
+            })
+            .collect::<Vec<_>>(),
+    )
+}
+
 /// The boxes that change, as `{"from": lines, "to": boxes}`, in the order
 /// they are first found: the dump's maps by file name, then `map_files`
 /// —the project's, which override the dump's: both are read, which only

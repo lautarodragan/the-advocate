@@ -9,7 +9,6 @@ mitad de un paso.
 """
 
 from consola import TITULO_AIRE
-import datos
 from dibujo import pixeles_distintos
 from menu import GRUPO, ORO, abrir, comparar, con_grupo
 
@@ -172,13 +171,9 @@ def test_los_hp_del_menu_cambian_de_verdad():
     falla de toda comparación de dos lados: ver AGENTS.md, "La regla que
     sostiene todo".
     """
-    from port import menus
-    from rpgmaker.resources import GAME_DIR
-    db, skin = datos.base(), datos.skin()
-    llena = menus.render_menu(skin, db, 4, GRUPO, ORO, 0, True, db.font_id,
-                               None, GAME_DIR)
-    herida = menus.render_menu(skin, db, 4, GRUPO, ORO, 0, True, db.font_id,
-                                None, GAME_DIR, HP_DE_PELEA)
+    import pantallas
+    llena = pantallas.menu(4, GRUPO, ORO)
+    herida = pantallas.menu(4, GRUPO, ORO, hp=HP_DE_PELEA)
     distintos = pixeles_distintos(llena, herida)
     assert distintos > 50, (
         "la referencia dibuja lo mismo con el grupo entero y con el grupo "

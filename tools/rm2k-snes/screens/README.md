@@ -77,6 +77,10 @@ shows in the request. It is for whoever compares a capture against it.
 project's maps over them, for a window of `columns` by `lines`: the table
 the event compiler reads its boxes through.
 
+`refit` reflows the boxes of the request, and says of each whether its
+first line names who speaks: it is for whoever checks the reflow over a
+whole game.
+
 `layout` writes the geometry alone.
 
 ## Its tests

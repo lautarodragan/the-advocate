@@ -20,7 +20,6 @@ import pytest
 
 import consola
 from consola import EMPEZAR, SEGUIR
-import datos
 from dibujo import comparar_pantalla
 
 
@@ -259,21 +258,18 @@ def test_la_pantalla_de_ranuras_muestra_el_grupo_guardado(partida):
     estar en el grupo con los mapas de esta ROM—: Talan tiene cara y nombre,
     DummyHero no tiene cara, así que se ven las dos cosas y un hueco.
     """
-    from port import menus
-    from rpgmaker.resources import GAME_DIR
+    import pantallas
 
     una = con_el_control(partida)
     una.poner_grupo(14, 10)
     una.guardar_por_el_menu(1)
     una.abrir_ranuras_desde_el_titulo()
 
-    db, skin = datos.base(), datos.skin()
     ranuras = una.simbolos["SRAM_SLOTS"]
 
     def comparar(elegida):
-        esperada = menus.render_slots(skin, db, ranuras, [False] * ranuras,
-                                         elegida, 0, db.font_id,
-                                         {1: [14, 10]}, GAME_DIR)
+        esperada = pantallas.pantalla_de_ranuras(
+            ranuras, [False] * ranuras, elegida, 0, {1: [14, 10]})
         comparar_pantalla(una, esperada, "ranuras-grupo-%d" % elegida,
                           "la pantalla de ranuras con la partida de Talan y "
                           "el cursor en la %d" % elegida)
@@ -337,8 +333,7 @@ def test_una_partida_de_otro_build_se_ve_vacia_y_no_carga(partida, como):
     la comparación de pixeles —la ranura se ve con el grupo guardado— y,
     salteando esa, en el switch: la partida corrida carga.
     """
-    from port import menus
-    from rpgmaker.resources import GAME_DIR
+    import pantallas
 
     una = con_el_control(partida)
     una.poner_grupo(14, 10)
@@ -352,10 +347,9 @@ def test_una_partida_de_otro_build_se_ve_vacia_y_no_carga(partida, como):
                    ranura + bytes(s["SRAM_STRIDE"] - len(ranura)))
     una.abrir_ranuras_desde_el_titulo()
 
-    db, skin = datos.base(), datos.skin()
     ranuras = s["SRAM_SLOTS"]
-    esperada = menus.render_slots(skin, db, ranuras, [False] * ranuras,
-                                     0, 0, db.font_id, {}, GAME_DIR)
+    esperada = pantallas.pantalla_de_ranuras(ranuras, [False] * ranuras,
+                                             0, 0, {})
     comparar_pantalla(una, esperada, "ranuras-otro-build-%s" % como,
                       "la pantalla de ranuras con una partida de otro build "
                       "en la 1")

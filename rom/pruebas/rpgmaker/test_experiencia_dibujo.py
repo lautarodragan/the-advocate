@@ -274,15 +274,10 @@ def test_subir_de_nivel_ensena_las_habilidades_de_cada_nivel_que_pasa(partida):
 NIVELES_DEL_MENU = {14: 9, 11: 30}
 
 
-def referencias():
-    from rpgmaker.resources import GAME_DIR
-    return datos.base(), datos.skin(), GAME_DIR
-
-
 def test_el_menu_muestra_el_nivel_y_el_maximo_de_ahora(partida):
-    from port import menus
+    import pantallas
     from menu import GRUPO as GRUPO_MENU, ORO, abrir, con_grupo
-    base, skin, game_dir = referencias()
+    base = datos.base()
     assert set(NIVELES_DEL_MENU) == set(GRUPO_MENU)
     una = con_grupo(partida())
     exps = {}
@@ -290,12 +285,9 @@ def test_el_menu_muestra_el_nivel_y_el_maximo_de_ahora(partida):
         exps[actor] = experience.exp_list(base.actors[actor])[nivel - 1]
         poner_exp(una, actor, exps[actor], nivel)
     abrir(una)
-    ahora = menus.render_menu(skin, base, una.simbolos["SRAM_SLOTS"],
-                               GRUPO_MENU, ORO, 0, True, base.font_id, None,
-                               game_dir, levels=NIVELES_DEL_MENU, exps=exps)
-    antes = menus.render_menu(skin, base, una.simbolos["SRAM_SLOTS"],
-                               GRUPO_MENU, ORO, 0, True, base.font_id, None,
-                               game_dir)
+    ahora = pantallas.menu(una.simbolos["SRAM_SLOTS"], GRUPO_MENU, ORO,
+                           niveles=NIVELES_DEL_MENU, exps=exps)
+    antes = pantallas.menu(una.simbolos["SRAM_SLOTS"], GRUPO_MENU, ORO)
     assert diferencia(una, ahora) == 0
     assert diferencia(una, antes) > 20, \
         "con los niveles de arranque el menú tendría que verse distinto"
@@ -306,9 +298,9 @@ def test_el_menu_muestra_guiones_en_el_nivel_tope(partida):
     escribe guiones en las dos mitades. Es el otro camino de
     `menu_exp_paint`, que ningún nivel de arranque recorre: se pone a un
     actor en el tope y al otro un nivel antes, que todavía muestra números."""
-    from port import menus
+    import pantallas
     from menu import GRUPO as GRUPO_MENU, ORO, abrir, con_grupo
-    base, skin, game_dir = referencias()
+    base = datos.base()
     una = con_grupo(partida())
     niveles, exps = {}, {}
     for n, actor in enumerate(GRUPO_MENU):
@@ -317,11 +309,11 @@ def test_el_menu_muestra_guiones_en_el_nivel_tope(partida):
         exps[actor] = experience.exp_list(base.actors[actor])[tope - n - 1]
         poner_exp(una, actor, exps[actor], niveles[actor])
     abrir(una)
-    ahora = menus.render_menu(skin, base, una.simbolos["SRAM_SLOTS"],
-                               GRUPO_MENU, ORO, 0, True, base.font_id, None,
-                               game_dir, levels=niveles, exps=exps)
-    assert "-" in menus.exp_text(base, GRUPO_MENU[0], niveles[
-        GRUPO_MENU[0]], exps[GRUPO_MENU[0]])
+    ahora = pantallas.menu(una.simbolos["SRAM_SLOTS"], GRUPO_MENU, ORO,
+                           niveles=niveles, exps=exps)
+    # En el tope `GetNextExp` da -1, que es lo que escribe los guiones.
+    assert experience.next_exp(base.actors[GRUPO_MENU[0]],
+                               niveles[GRUPO_MENU[0]]) == -1
     assert diferencia(una, ahora) == 0
 
 
@@ -329,10 +321,10 @@ def test_la_ranura_muestra_el_nivel_que_tenia_esa_partida(partida):
     """`Window_SaveFile`: el nivel del líder **de la partida guardada**. Se
     guarda con Talan en el 9 y se lo baja al 5 antes de volver a abrir la
     pantalla, así que un 9 en la ranura sólo puede haber salido de la SRAM."""
-    from port import menus
+    import pantallas
     from consola import TITULO_AIRE
     from menu import GRUPO as GRUPO_MENU, abrir, con_grupo
-    base, skin, game_dir = referencias()
+    base = datos.base()
     lider = GRUPO_MENU[0]
     una = con_grupo(partida())
     poner_exp(una, lider, experience.exp_list(base.actors[lider])[8], 9)
@@ -347,9 +339,9 @@ def test_la_ranura_muestra_el_nivel_que_tenia_esa_partida(partida):
     ranuras = una.simbolos["SRAM_SLOTS"]
     llenas = [True] + [False] * (ranuras - 1)
     grupos = {0: GRUPO_MENU}
-    ahora = menus.render_slots(skin, base, ranuras, llenas, 0, 1,
-                                  base.font_id, grupos, game_dir, {0: 9})
+    ahora = pantallas.pantalla_de_ranuras(ranuras, llenas, 0, 1, grupos,
+                                          {0: 9})
     assert diferencia(una, ahora) == 0
-    otra = menus.render_slots(skin, base, ranuras, llenas, 0, 1,
-                                 base.font_id, grupos, game_dir, {0: 5})
+    otra = pantallas.pantalla_de_ranuras(ranuras, llenas, 0, 1, grupos,
+                                         {0: 5})
     assert diferencia(una, otra) > 0
