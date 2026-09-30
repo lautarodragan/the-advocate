@@ -13,13 +13,16 @@
 //! that changes which maps go in makes the cartridge stale only if the list
 //! travels expanded.
 
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet};
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
+use ditto::dump::Dump;
+use ditto::schema::{MapInfo, TreeMapMapType};
 use rm2k_project::environment::Environment;
 use rm2k_project::{cache, relative, suite, Project};
+use rm2k_rules::tree::Tree;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 
@@ -101,8 +104,8 @@ pub struct Cartridges {
     excluded_cases: BTreeSet<String>,
     pub real_game: String,
     pub debug_map_entry: String,
-    /// The map tree's node types, by id: 1 is a real map.
-    map_types: HashMap<i64, i64>,
+    /// The map tree, with the new maps' nodes in it.
+    tree: Tree,
 }
 
 fn read_json(path: &Path) -> Result<Value, String> {
@@ -128,7 +131,7 @@ fn entries(directory: &Path) -> Result<Vec<String>, String> {
 /// The maps the game does not have: `{id: tree node}` of each `MapNNNN.json`
 /// in the patches' `nuevos/`. A map that does not exist has no node in the
 /// tree either, so each one brings its own, in its `arbol` field.
-fn new_maps(project: &Project) -> Result<BTreeMap<i64, Value>, String> {
+fn new_maps(project: &Project) -> Result<BTreeMap<i64, MapInfo>, String> {
     let folder = project.manual_patches()?.join("nuevos");
     let mut found = BTreeMap::new();
     if !folder.is_dir() {
@@ -151,7 +154,10 @@ fn new_maps(project: &Project) -> Result<BTreeMap<i64, Value>, String> {
                      file name have to be the same"
                 )
             })?;
-        found.insert(id, node.clone());
+        // A node in the dump's shape: Ditto's type reads it.
+        let node = serde_json::from_value(node.clone())
+            .map_err(|e| format!("{entry}: arbol: {e}"))?;
+        found.insert(id, node);
     }
     Ok(found)
 }
@@ -190,21 +196,13 @@ impl Cartridges {
         // The enemies' HP in battle, in every cartridge.
         let with_enemy_hp = p.boolean(&["debug", "enemy_hp"])?;
 
-        let tree = read_json(&p.data()?.join("maps.json"))?;
-        let mut map_types = HashMap::new();
-        for node in tree
-            .get("maps")
-            .and_then(Value::as_array)
-            .ok_or_else(|| format!("{}: has no maps", p.data().unwrap().join("maps.json").display()))?
-            .iter()
-            .chain(new.values())
-        {
-            if let (Some(id), Some(kind)) = (
-                node.get("id").and_then(Value::as_i64),
-                node.get("type").and_then(Value::as_i64),
-            ) {
-                map_types.insert(id, kind);
-            }
+        // The tree comes from Ditto's reader, into the schema's types: this
+        // crate keeps no model of the dump. A new map's node goes over the
+        // game's one with its number, if there is one.
+        let dump = Dump::open(&p.data()?).map_err(|e| e.0)?;
+        let mut tree = Tree::from(&dump.tree().map_err(|e| e.0)?);
+        for node in new.into_values() {
+            tree.insert(node);
         }
 
         let mut cartridges = Cartridges {
@@ -224,7 +222,7 @@ impl Cartridges {
             excluded_cases: BTreeSet::new(),
             real_game: p.string(&["cases", "real_game"])?.to_string(),
             debug_map_entry: p.string(&["cases", "debug_map_entry"])?.to_string(),
-            map_types,
+            tree,
             project: project.clone(),
             environment,
         };
@@ -327,11 +325,19 @@ impl Cartridges {
     /// that of the ROM's table**, so changing it moves the table.
     pub fn rule_maps(&self, excluded: &[i64], added: &[i64]) -> Vec<i64> {
         let mut maps: Vec<i64> = (1..self.maps_below)
-            .filter(|m| self.map_types.get(m) == Some(&1) && !excluded.contains(m))
+            .filter(|&m| self.is_map(m) && !excluded.contains(&m))
             .collect();
         let from_rule = maps.clone();
         maps.extend(added.iter().filter(|m| !from_rule.contains(m)));
         maps
+    }
+
+    /// Whether the tree's node `id` is a real map, and not the root or an area.
+    fn is_map(&self, id: i64) -> bool {
+        i32::try_from(id)
+            .ok()
+            .and_then(|id| self.tree.get(id))
+            .is_some_and(|n| n.r#type == TreeMapMapType::Map)
     }
 
     /// The game's maps and the test ones: what "game" means in a cartridge.

@@ -76,6 +76,8 @@ fn game(name: &str, cartridges: &str) -> PathBuf {
         .iter()
         .map(|(id, kind)| format!("{{\"id\": {id}, \"type\": {kind}}}"))
         .collect();
+    // What makes `data/` a Ditto dump, and which view it is.
+    fs::write(dir.join("data/ditto.json"), r#"{"ditto": 2, "view": "resolved"}"#).unwrap();
     fs::write(
         dir.join("data/maps.json"),
         format!("{{\"maps\": [{}]}}", nodes.join(", ")),

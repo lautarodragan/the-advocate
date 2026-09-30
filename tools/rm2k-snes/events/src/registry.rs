@@ -13,6 +13,14 @@ use serde_json::{json, Value};
 /// Where what a page asks for plays: a map's audio package, by its index
 /// in the cartridge, or the battle's, which is a package of its own that
 /// the ROM loads when a battle opens.
+///
+/// The battle's is not a map: it is **an audio package of its own**, which
+/// the ROM loads when opening the battle and unloads when closing it. It
+/// goes separately and not ahead of the map's package, and that is
+/// measured: the battle song is 18 samples and 51,480 B of ARAM's 64,512, so
+/// putting it in map 2's package the 24 effects of that map —49,068 B, which
+/// all fit today— dropped almost entirely. With its own package the map pays
+/// nothing while there is no battle.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Package {
     Map(usize),
@@ -59,16 +67,41 @@ pub type Jumps = Vec<(usize, Vec<Option<usize>>)>;
 
 /// The songs the `PlayBGM`s ask for and the effects the `PlaySound`s ask
 /// for, numbered in the order they appear; and which package asks for what.
+///
+/// It is the sibling of `Messages`: the bytecode carries an index and not a
+/// name, and the compiler is the one that resolves the index. The ROM
+/// carries **the first `SONG_TOTAL`**, which are the ones that fit in ARAM:
+/// all of them share the samples and the shared bank lives in the SPC700's
+/// 64 KB, which are uploaded only once at boot. A higher index is a song
+/// that did not fit and does not sound.
+///
+/// Numbering all of them and not only the ones that fit is what keeps the
+/// bytecode from depending on which were chosen. Until 2026-09-06 only one
+/// fit and this was already written this way; the day four fit nothing
+/// different had to be recompiled.
 #[derive(Debug, Clone, Default)]
 pub struct Songs {
     pub names: Vec<String>,
+    /// And the `PlaySound` effects, the same way: each combination of effect,
+    /// volume, tempo and pan is an entry, and the bytecode carries its index.
+    /// They live here and not apart because this is what already passes from
+    /// compilation to compilation.
     pub sounds: Vec<Sound>,
     /// The package being compiled: what is asked for is noted in its own.
     /// None notes nothing.
     pub current: Option<Package>,
+    /// And who asks for what: each song and each effect is noted in the
+    /// package being compiled, in the order they appear. It is what builds
+    /// each map's audio package: see `package_load` in
+    /// tools/runtime/audio_package.s. And which ROM maps each one jumps to
+    /// —`destinations`, indices into the map table—, which is where it comes
+    /// from which song may be playing when a package is loaded: see
+    /// `inherited_songs` in music.py.
     pub per_package: Vec<(Package, Wants)>,
     /// Per package, each song a `PlayBGM` of it turns on, and whether all of
-    /// them are right before a jump to another map.
+    /// them are right before a jump to another map. A song is an exit song
+    /// on a map if **all** its `PlayBGM`s there are: see `exit_songs` in the
+    /// converter's `Songs`.
     pub exits: Vec<(Package, Vec<(usize, bool)>)>,
     /// Per package, each map it jumps to and with which song —None is
     /// whatever is playing—.
@@ -102,6 +135,12 @@ impl Songs {
         self.note(|w| push_new(&mut w.destinations, map));
     }
 
+    /// Notes a jump from the package being compiled to `dest`: with `song`
+    /// if it goes right after a `PlayBGM` of that song, with no branches or
+    /// effects in between —the one it surely carries—, or with None if it
+    /// carries whatever is playing. The page notes it when it compiles, and
+    /// `recalled_destination` that of a `RecallToLocation`, always with None.
+    /// See `inherited_songs` in music.py.
     pub fn jump(&mut self, dest: usize, song: Option<usize>) {
         if let Some(current) = self.current {
             let dests = entry(&mut self.jumps, current);
@@ -109,6 +148,10 @@ impl Songs {
         }
     }
 
+    /// Notes a `PlayBGM` of the song in the package being compiled: `is_exit`
+    /// if after it, with no branches or effects in between, the page jumps
+    /// to another map. A song is an exit song on a map if **all** its
+    /// `PlayBGM`s there are.
     pub fn note_exit(&mut self, song: usize, is_exit: bool) {
         if let Some(current) = self.current {
             let noted = entry(&mut self.exits, current);
@@ -121,7 +164,9 @@ impl Songs {
 
     /// The effect's index. Without `in_package` it is not noted in the
     /// package and does not count in `requested`: it only sounds if
-    /// something else puts it there.
+    /// something else puts it there —see `route_left_out`—. One that is not
+    /// in the package does not sound, so it does not keep a song from being
+    /// an exit song.
     pub fn sound(&mut self, sound: Sound, in_package: bool) -> usize {
         if !self.sounds.contains(&sound) {
             self.sounds.push(sound.clone());
@@ -148,11 +193,27 @@ impl Songs {
     }
 }
 
-/// The graphics the routes change to and the ones actors can be given,
-/// numbered **per map**: their poses live in each map's sprite bank. The
-/// first ones are the same in every map —see `associations` in
-/// [`crate::indices`]—, because the graphic an actor is given crosses the
-/// teleport.
+/// The graphics the routes change to with command 34 and the ones actors
+/// can be given, numbered in the order they appear.
+///
+/// Sibling of `Songs` and `Messages`, with a difference that matters: it is
+/// **per map**. What the ROM needs from a graphic —its twelve poses and its
+/// palette— lives in the sprite bank, and the bank belongs to each map; two
+/// maps that change to the same CharSet number it each on their own.
+///
+/// The bytecode carries the index and not the name, as with songs and maps:
+/// the compiler is the one that resolves it, and the ROM does not look at
+/// the LCF again.
+///
+/// `associations` half breaks the "per map", and it is worth understanding
+/// why: they are the graphics `ChangeSpriteAssociation` can give an actor,
+/// and that **survives the map change** —every time the game uses it, the
+/// command is right next to a teleport and what shows is the graphic on the
+/// other side—. So its index cannot mean one thing here and another there.
+/// It is solved by reserving the first slots of the table of **every** ROM
+/// map for them, in the same order: see `associations` in
+/// [`crate::indices`], which is the prior pass that gathers them, and the
+/// converter's `Pictures.choose`, which is the same pattern.
 #[derive(Debug, Clone, Default)]
 pub struct Graphics {
     pub pairs: Vec<(String, i32)>,
@@ -188,11 +249,22 @@ pub enum Backdrop {
     Place,
 }
 
-/// The troops the battles ask for, to know which tables to emit. The
-/// bytecode carries RM2k's number, so this changes no byte of any page.
+/// The troops the battles ask for, to know which tables to emit.
+///
+/// Sibling of `Songs`, with a difference that matters: **the bytecode does
+/// not depend on it**. `Songs` numbers and the opcode carries the number;
+/// here the opcode carries the RM2k id and this only gathers the list, so a
+/// registry with other troops inside does not change a single byte of any
+/// page. It is what allows compiling a loose page without knowing which
+/// tables the cartridge has.
 #[derive(Debug, Clone, Default)]
 pub struct Troops {
     pub ids: Vec<i32>,
+    /// And which backdrop each one fights with, which is the text of the
+    /// `EnemyEncounter` itself —`SJBackdropABL04` on map 2— and not
+    /// something to look up in the LDB. It goes here and not in a separate
+    /// registry because it is a fact of the battle, like the troop. See
+    /// tools/port/scene.py.
     pub backdrops: Vec<(i32, Backdrop)>,
 }
 
@@ -210,6 +282,9 @@ impl Troops {
 /// The one picture the cartridge carries: which `ShowPicture` took its
 /// place, which the caller decides —it has to convert the image to know
 /// whether it fits—.
+///
+/// **A single one per ROM**, and that is the decision that bounds the
+/// scope: see the converter's `Pictures`, which chooses it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Picture {
     pub name: String,
@@ -225,8 +300,9 @@ impl Picture {
     }
 
     /// Whether the picture this command names is this one and it does not
-    /// move from where it is; `MovePicture` and `ErasePicture` do not carry
-    /// the name.
+    /// move from where it is. `MovePicture` and `ErasePicture` ask it, since
+    /// they do not carry the name: in RM2k the picture number is all that
+    /// ties them to their `ShowPicture`.
     pub fn owns(&self, number: i32, at: Option<(i32, i32)>) -> bool {
         self.number == number && at.is_none_or(|a| a == (self.x, self.y))
     }
