@@ -22,7 +22,7 @@ export PATH := if path_exists(local_tools / "bin") == "true" { local_tools / "bi
 
 # The Rust projects, in the order they are installed. `project` and `rules`
 # are libraries: they have nothing to install, and they go into the
-# binaries that use them —`project` into `cartridge`'s, `rules` into
+# binaries that use them —`project` into `cartridge`'s and the others', `rules` into
 # `rm2k-render` and `battle`—, which are compiled with them. So a branch
 # that changes `rules` reinstalls those two, not `rules`.
 #
@@ -31,7 +31,7 @@ export PATH := if path_exists(local_tools / "bin") == "true" { local_tools / "bi
 # `*-test` recipes run `cargo test` standing in the project, which tests
 # only that one, and `cargo install --locked --path` takes the workspace's
 # lock.
-rust_projects := "protocol gunter ditto rules adeleine voodoo lz2 rm2k-render project cartridge rm2k-snes-audio battle events map-background map-sprites maps"
+rust_projects := "protocol gunter ditto rules adeleine voodoo lz2 rm2k-render project cartridge patches rm2k-snes-audio battle events map-background map-sprites maps"
 
 # The directories the projects live in, one per layer: each project is
 # `<layer>/<name>`, and the recipes find it by its name.
@@ -181,6 +181,15 @@ project-test:
 cartridge-test:
   cd rm2k-snes/cartridge && cargo test
 
+# `rm2k-snes-patches`: what the converter decided to lose —the colors of a
+# map's layers and of each battler, the size of each battle animation—,
+# written as TOML next to each ROM, copied to the project and checked
+# against every cartridge. Its tests write and check a small game made of
+# requests, in `tests/game/`, and compare against what the Python that did
+# this until 2026-09-30 answered for it: they need no game.
+patches-test:
+  cd rm2k-snes/patches && cargo test
+
 # rm2k-snes-audio: the music, from each song's MIDI and the SoundFont to
 # `musicdata.inc` —see `port/snes_convert.py`, which is what calls it—. It
 # uses Gunter as a library, for the SoundFont and the BRR.
@@ -329,7 +338,6 @@ _install root *projects:
     cargo install --locked --path "$dir" --root "{{root}}"
   done
   ln -sfn "{{justfile_directory()}}/port/snes_convert.py" "{{root}}/bin/rm2k-snes-convert"
-  ln -sfn "{{justfile_directory()}}/port/patches.py" "{{root}}/bin/rm2k-snes-patches"
   ln -sfn "{{justfile_directory()}}/assembly/entregar.py" "{{root}}/bin/abl-entregar"
   echo "in {{root}}/bin: the Python scripts, and from Rust: {{ if projects == "" { "none" } else { projects } }}"
 

@@ -62,6 +62,8 @@ PERMITIDOS = {
     # The shape of each cartridge's directory, which imitates `rom/parches/`:
     # it is not where `rom/parches/` is in the repo, and does not move with it.
     ("port/patches.py", "parches"),
+    # The same shape, for who asked for each patch: see `USES_FILE`.
+    ("port/battle_scenes.py", "parches"),
 }
 
 

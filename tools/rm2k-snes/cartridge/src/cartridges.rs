@@ -56,7 +56,9 @@ pub const ASSEMBLE: &str = "rm2k-snes-assemble";
 pub const TRACKS: &str = "rm2k-snes-msu";
 
 /// The tools the converter runs, besides `ca65` and `ld65`: what they write
-/// goes into the ROM, so their binaries go into the fingerprint.
+/// goes into the ROM, so their binaries go into the fingerprint. And
+/// `rm2k-snes-patches`, whose files go next to it: the check reads them from
+/// the build, so a cartridge built by an older one is stale too.
 const CONVERTER_TOOLS: &[&str] = &[
     "adeleine",
     "voodoo",
@@ -66,6 +68,7 @@ const CONVERTER_TOOLS: &[&str] = &[
     "rm2k-snes-battle",
     "rm2k-snes-events",
     "rm2k-snes-maps",
+    "rm2k-snes-patches",
 ];
 
 /// The line the tracks end with, which this prints in its place.

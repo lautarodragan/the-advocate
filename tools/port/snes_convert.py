@@ -69,7 +69,6 @@ lcf.DECORATE_TRANSLUCENT = rm2k.decorate_translucent
 from port import texts
 lcf.REFIT_TEXTS = texts.refit_commands
 from port import animation as animation_mod
-from port import patches as patches_mod
 from port import title as title_mod
 from port import menus as menus_mod
 from port import fullscreen
@@ -94,7 +93,8 @@ from port.blocks import SUB_MAX, Substitutions, substitution_triples
 from port.materials import compress_blocks, decompress_frames
 from port.map_record import PARALLEL_MAX, ROUTE_EV_MAX
 from port.battle_animations import rom_animations
-from port.battle_scenes import fallback_bytes, patch_uses, rom_scene
+from port.battle_scenes import (fallback_bytes, patch_uses, rom_scene,
+                                write_patch_uses)
 from port import stage
 from port import compiler
 from port.music import (boot_frames, compile_music, inherited_songs,
@@ -114,6 +114,40 @@ from port.map_convert import convert_maps
 # The bytecode walk lives in events.py, with the length table: there was a
 # copy here and the one there went stale without anyone seeing it.
 walk_code = events.walk_code
+
+
+def patch_of_map(map_info):
+    """A map's decision, as `rm2k-snes-patches` takes it: its colors, the
+    budget the upper layer left and each layer's merges, in order. The
+    summary is the one `map_layers.layers_answer` leaves."""
+    summary = map_info["resumen"]
+    merges = summary.get("fusiones", {})
+    return {"id": map_info["id"], "name": map_info["nombre"],
+            "colors": summary["colores"], "budget": summary["presupuesto"],
+            "background": merges.get("fondo", []),
+            "above": merges.get("encima", [])}
+
+
+def patch_of_animation(number, info):
+    """An animation's decision: the rectangle it is drawn at, and what it
+    came from, from `animation.report`."""
+    report = animation_mod.report(number, info)
+    return {"number": number,
+            "name": events.ANIMATIONS[number].get("nombre", ""),
+            "sheet": events.ANIMATIONS[number].get("imagen", ""),
+            "side": animation_mod.BOX, "size": report["caja"],
+            "original": report["original"], "frames": report["cuadros"]}
+
+
+def patch_of_battler(info):
+    """A battler's decision: the palette that remained. `info` is the one
+    `scene.battler` returns; of its merges only how many travel, because
+    that is all that is written —see `battler_text` in
+    `rm2k-snes-patches`—."""
+    return {"key": info["clave"], "image": info["imagen"],
+            "hue": info["tono"], "width": info["ancho"],
+            "height": info["alto"], "colors": info["colores"],
+            "palette": info["paleta"], "merges": len(info["fusiones"])}
 
 
 def main():
@@ -825,40 +859,32 @@ def main():
                                    % (map_info["id"], name)), "wb") as handle:
                 handle.write(png)
     # And **what it decided to lose**, written down: which color was merged
-    # with which in each layer. It goes next to the images because it comes
-    # from the same decision, but it is something else: the images are for
-    # looking at and this is for reading back and for the diff to warn. What
-    # is versioned is in `rom/parches/`, and `just parches --check` compares.
-    # See tools/port/patches.py.
+    # with which in each layer, at what size each battle animation is drawn,
+    # and which fifteen colors each battler is reduced to. It goes next to the
+    # images because it comes from the same decisions, but it is something
+    # else: the images are for looking at and this is for reading back and
+    # for the diff to warn. What is versioned is in the project's patches,
+    # and `just parches --check` compares. **What travels is the decision**,
+    # in a request: the text each one is written as, and what is done with
+    # it afterwards, are `rm2k-snes-patches`'s.
     patches_dest = os.path.dirname(os.path.abspath(args.output))
-    count, weigh = patches_mod.write_maps(patches_dest, maps)
-    print("patches of %d map(s) -> %s (%d B)"
-          % (count, patches_mod.MAPS_IN_BUILD, weigh))
-    # And the other decision that is already written down: **at what size
-    # each battle animation is drawn**. It comes from the same round above;
-    # here it is joined with the name and the sheet the animation has in the
-    # LDB, which nobody looks at to draw and are there so that the diff says
-    # which one it is about.
-    count, weigh = patches_mod.write_animations(
-        patches_dest,
-        [dict(animation_mod.report(number, animations[number]),
-              nombre=events.ANIMATIONS[number].get("nombre", ""),
-              hoja=events.ANIMATIONS[number].get("imagen", ""),
-              lado=animation_mod.BOX)
-         for number in sorted(animations)])
-    print("patches of %d animation(s) -> %s (%d B)"
-          % (count, patches_mod.ANIMS_IN_BUILD, weigh))
-    # And **which fifteen colors each battler is reduced to**, which is the
-    # decision the scene composed on the console brought: see
-    # tools/port/scene.py.
-    count, weigh = patches_mod.write_battlers(patches_dest,
-                                              scenes["battlers"])
-    print("patches of %d battler(s) -> %s (%d B)"
-          % (count, patches_mod.BATTLERS_IN_BUILD, weigh))
+    stage.hand_over("rm2k-snes-patches", "patches", {
+        "maps": [patch_of_map(m) for m in maps],
+        # The animations' come from the same round above; here they are
+        # joined with the name and the sheet the animation has in the LDB,
+        # which nobody looks at to draw and are there so that the diff says
+        # which one it is about.
+        "animations": [patch_of_animation(number, animations[number])
+                       for number in sorted(animations)],
+        # The battlers', from the scene composed on the console: see
+        # tools/port/scene.py.
+        "battlers": [patch_of_battler(info) for info in scenes["battlers"]],
+    }, patches_dest)
     # And who asked for each one, which isn't versioned: it is what separates,
     # in the ROM that is played, what belongs to the game from what only
-    # exists because of the suite.
-    patches_mod.write_uses(patches_dest, patch_uses(
+    # exists because of the suite. The converter is the one that knows, and
+    # `rm2k-snes-patches` reads it.
+    write_patch_uses(patches_dest, patch_uses(
         maps, renderer.database, renderer.tree))
     if report:
         print("material compressed and shared between maps:")

@@ -1,0 +1,22 @@
+{
+  "maps": [
+    {"id": 3, "name": "Cave \"B\" \\ 1", "colors": 175, "budget": 96,
+     "background": [[[1, 2, 3], [4, 5, 7], 12], [[7, 8, 9], [4, 5, 6], 4]],
+     "above": [[[0, 0, 31], [0, 1, 30], 40], [[9, 9, 9], [8, 8, 8], 2]]},
+    {"id": 12, "name": "Town", "colors": 40, "budget": 96},
+    {"id": 99, "name": "Only in this cartridge", "colors": 3, "budget": 96}
+  ],
+  "animations": [
+    {"number": 1, "name": "Hit", "sheet": "hit2", "side": 64,
+     "size": [64, 56], "original": [96, 111], "frames": 8},
+    {"number": 82, "name": "Opening \"flash\"", "sheet": "it's big", "side": 64,
+     "size": [64, 49], "original": [536, 416], "frames": 30}
+  ],
+  "battlers": [
+    {"key": "sentry drone", "image": "sentry drone", "hue": 0, "width": 77,
+     "height": 51, "colors": 312,
+     "palette": [[2, 2, 2], [1, 1, 1], [3, 3, 3], [31, 31, 31]], "merges": 308},
+    {"key": "slime-60", "image": "slime", "hue": 90, "width": 40, "height": 31,
+     "colors": 21, "palette": [[10, 0, 0], [0, 11, 0]], "merges": 19}
+  ]
+}
