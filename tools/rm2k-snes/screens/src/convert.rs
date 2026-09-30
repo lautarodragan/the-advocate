@@ -87,6 +87,26 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
             medicines.push((n, game.item_name(n)?));
         }
     }
+    // A medicine only an enemy drops is in `items` but not in `bank_items`,
+    // so its letters do not go in the bank, and the actor choice would draw
+    // a gap for one nobody else has. Adding them moves the ROM, and no
+    // cartridge has one today (measured 2026-09-30): until one does, say so
+    // instead of drawing the gap.
+    let bank = crate::texts::glyphs_of(game, &request.actors, &medicine_letters)?;
+    for (n, name) in &medicines {
+        let mut missing = String::new();
+        for c in name.chars().filter(|c| !bank.contains(c)) {
+            if !missing.contains(c) {
+                missing.push(c);
+            }
+        }
+        if !missing.is_empty() {
+            return Err(Bad::answer(format!(
+                "the medicine {n} ({name:?}) has letters the menu's bank does not carry: \
+                 {missing:?}; the actor choice would draw them as a gap"
+            )));
+        }
+    }
     let slots = slots::slots_screen(game, &skin, request.slots, &request.actors, &medicine_letters)?;
     if !slots.lent.is_empty() {
         let names: Vec<String> = {
