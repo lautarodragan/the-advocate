@@ -83,7 +83,7 @@ pub fn system() -> Picture {
             return [10, 10, 10, 255];
         }
         if (32..48).contains(&y) && (32..120).contains(&x) {
-            return if (x + y) % 3 != 0 { [255, 255, 0, 255] } else { [0; 4] };
+            return if !(x + y).is_multiple_of(3) { [255, 255, 0, 255] } else { [0; 4] };
         }
         if y >= 48 {
             let n = x / 16 + 10 * ((y - 48) / 16);

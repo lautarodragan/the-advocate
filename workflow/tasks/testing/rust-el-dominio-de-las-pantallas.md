@@ -2,7 +2,7 @@
 name: "Rust: el dominio de las pantallas"
 description: "Los menús, el título, la tienda, la ventana de mensajes y el reparto de textos del conversor (menus, screens, texts, font, message_window, end_game, title) a un crate de dominio en Rust, con las ROMs byte por byte iguales"
 type: refactor
-assignee: Tataupá
+assignee: taro
 ---
 
 De taro, el 2026-09-30, en la migración del conversor a Rust: el dominio de
@@ -149,3 +149,162 @@ Por partes, cada una en su commit, con las ROMs iguales:
    etapa.
 5. **Los dibujos de las pruebas**, pedidos a la etapa.
 6. Borrar el Python que ya no use nadie, y la prosa.
+
+## Hecho
+
+**Todo el dominio de las pantallas está en Rust**, en dos crates, y el
+Python que lo hacía se borró. Las tres ROMs, los `.sym`, los `.inc` y todo
+`rom/build/` salen byte por byte iguales a los de `main` con el Python; la
+única diferencia es de la prosa del último commit: un comentario del
+`.inc` y el tamaño de los fuentes del runtime que nombran los `.dbg`, ver
+abajo.
+
+| commit | qué |
+|---|---|
+| `40963731` | la tarea: inventario y frontera |
+| `1083d4c7` | merge de `main` (`248c0134`, los parches de Yacutoro) |
+| `2b017b2e` | `rm2k-snes-text` y la etapa `rm2k-snes-screens`; `snes_convert` la llama una vez, y `compiler.boxes` y `lcf.REFIT_TEXTS` le piden las cajas |
+| `7ef985d1` | la emisión lee la geometría y los textos de la etapa; la pantalla de texto de la pelea, a `battle_screen.py` |
+| `ea8eb3c3` | las pruebas de ABL piden los dibujos a la etapa (`pruebas/arnes/pantallas.py`) |
+| `44cae8e1` | las pruebas de los dos crates contra los hashes del Python, con su juego chico |
+| `04e31c5e` | el borrado, sólo borrado |
+| `d431b9e3` | `luma_distance` de adeleine.py, que quedó sin uso |
+| `eab433fa` | la prosa que nombraba lo borrado |
+
+El plan se hizo en menos commits que las seis partes: la conversión entera
+en uno, porque las piezas comparten el System, el banco y la fuente, y
+partirla dejaba commits intermedios con las dos mitades a la vez.
+
+**Los crates** (`wc -l` de `src/`, sin las pruebas):
+
+* `rm2k-snes/text/` (`rm2k-snes-text`, biblioteca, ~990 líneas):
+  `glyphs.rs` (las dos fuentes, generado de easyrpg), `font.rs`,
+  `line.rs` (una línea sobre los bloques del System, `Font::Render`) y
+  `refit.rs` (el reparto de las cajas, con su copia de la cola de
+  escapes). Depende de `rm2k-render`.
+* `rm2k-snes/screens/` (`rm2k-snes-screens`, la etapa, ~4550 líneas):
+  `game.rs` (el volcado y el System), `cells.rs` (cortar una pantalla
+  dibujada en celdas, bancos y paletas), `layout.rs` (la geometría, y
+  `publish`), `texts.rs`, `message_window.rs`, `title.rs`, `slots.rs` (el
+  banco de las ranuras y el menú, con las caras), `items.rs` (la fuente de
+  las pantallas de texto), `borders.rs` (los marcos y sus compactados),
+  `end_game.rs`, `checks.rs` (dónde caen en la VRAM), `boxes.rs`,
+  `convert.rs`, `render.rs` (los dibujos de las pruebas, con las reglas
+  del equipo y la tienda), `request.rs`, `main.rs`. Depende de
+  `rm2k-snes-text`, `rm2k-render`, `rm2k-rules`, `adeleine`, `voodoo` y
+  `ditto`. Su README dice los subcomandos, el pedido y lo que escribe.
+
+Subcomandos: `convert` —el del conversor, uno por cartucho—, `boxes` —la
+tabla de cajas, para `compiler.boxes` y `lcf.REFIT_TEXTS`—, `render` —las
+pantallas para las pruebas de ABL—, `refit` —rearmar cajas sueltas, para
+`test_textos_del_juego`— y `layout`.
+
+Del lado de Python quedan `port/screen_stage.py` (el pedido y la forma de
+la respuesta que `mapdata` emite), `port/battle_screen.py` (la pantalla de
+texto de la pelea, movida tal cual de screens.py) y `window.py` reducido al
+System y el cronómetro, que son de los mapas.
+
+**Lo que cambió de la frontera planeada:**
+
+* **La lista de ítems no es una sola.** La emisión escribe los textos de
+  `items_rom` más lo que sueltan los enemigos (`drop_items`), y el banco
+  del menú lleva las letras de las medicinas de `items_rom` solo. El
+  pedido lleva las dos (`items` y `bank_items`), y la larga se arma antes
+  de llamar a la etapa. Ver "Lo que falta".
+* **La geometría la publica la etapa** (`layout.rs`, `publish`), y
+  `mapdata` la lee por los mismos nombres (`screen_stage.layout()`): no
+  quedó una segunda copia de ningún número de las pantallas. Las pruebas
+  de ABL la piden igual (`pantallas.disposicion()`).
+* **`compact_target`, `compact_shop` y `font_prerender` se mudaron a la
+  etapa**, que devuelve lo que guarda la ROM.
+* **La cola de escapes quedó en Rust dos veces**: en el compilador y en
+  `rm2k-snes-text`, con los mismos casos (`escapes.json`); la de Python
+  se fue con `texts.py`.
+* **`equip`** —`Game_Actor::ChangeEquipment`— quedó en dos lados: en
+  `render.rs`, para dibujar la lista, y en `pruebas/arnes/pantallas.py`,
+  para que la prueba sepa qué esperar de la RAM.
+* **La imagen del título** siguió en Python (`palette.convert` y
+  `fullscreen`), como estaba planeado; el menú encima es de la etapa.
+* **Los colores del cronómetro** siguen saliendo de `window.py`: son de los
+  mapas (ya lo anotó Mara).
+
+## Cómo se verificó
+
+Con scripts descartables en `<scratchpad>/tataupa/`:
+
+* **Pieza por pieza, Python contra Rust** (`compara_convert.py`): un
+  conversor que corre el Python de siempre y compara cada pieza contra
+  `rm2k-snes-screens` con las mismas entradas —la ventana, la fuente y sus
+  cuatro tablas, el menú del título, el banco de las ranuras y el menú con
+  las caras (cinco prestadas en `release`), la fuente de las pantallas, los
+  tres marcos y sus compactados, End Game, los textos, cada número de la
+  geometría contra su constante de Python y las 1245 cajas del juego—:
+  todo igual en `release`, `test-special` y `test-encounter-every-step`.
+* **Los dibujos** (`compara_render.py`): 297 pantallas del modelo de Python
+  contra `render`, a ocho bits —el menú con cuatro grupos, cada cursor y
+  los dos permisos, con HP, niveles y experiencia; la elección de actor
+  con y sin medicina; los ítems con la lista corrida; las ranuras en los
+  dos modos con partidas; el equipo en cada ranura y fila; la tienda en
+  sus siete modos, tres tipos y tres juegos de mensajes, con los errores
+  en los mismos casos; End Game—: todas iguales.
+* **Los cartuchos**: `NO_CACHE=1 just cartuchos` y el sha256 de todo
+  `rom/build/` —menos el caché, los `.o`, `sello.txt` y `conversor.log`;
+  el `.dbg` sin `mtime`; los PNG decodificados—: 1032 archivos, iguales a
+  los de `main` (`248c0134`, con el Python) después de cada commit hasta
+  el borrado; lo que imprime el conversor, igual línea por línea. Después
+  de la prosa, iguales salvo los tres `mapdata.inc` —puesto el comentario
+  viejo, el mismo sha256— y los tres `.dbg` —puestos los tamaños viejos de
+  los fuentes, el mismo sha256—.
+* **Los sha256 de las ROMs**, iguales en `main` y acá:
+  * `release/abl.sfc` `cdcc323197ee6c66d82b1304ce20c3c37f4124d13a6867e851fd13226046b7df`
+  * `tests/special/prueba.sfc` `15e4f331fe8ff8123803ae3819a2212a5b84d71cd0a053b7261a9188bbab84b9`
+  * `tests/encounter-every-step/prueba.sfc` `dc83ed698b348032514dbb76eaf5f535b6296944075fcba786087533ed5b8a4b`
+* **Las tandas**: `just pruebas`, 878 —las mismas que `main`—;
+  `just -f tools/justfile test`, 49 —eran 85: las 36 de `test_texts.py` y
+  `test_escapes.py` pasaron a `rm2k-snes-text`—; `cargo test` de `text`,
+  `screens`, `events` y `cartridge`, en verde.
+* **Las pruebas de los crates no dependen de ABL**: `rm2k-snes-screens`
+  compara contra los sha256 de lo que daba el Python sobre un juego chico
+  que vive en `tests/game/` —la respuesta entera de `convert`, diecinueve
+  pantallas y la tabla de cajas—, y `rm2k-snes-text` sobre trescientos
+  cuadros que arma una congruencia y una línea en las dos fuentes; más las
+  reglas del reparto una por una, que eran `test_texts.py`. Los hizo
+  `referencia.py`, antes de borrar.
+* `cargo test --workspace` (`just -f tools/justfile rust-test`) da rojo en
+  tres pruebas de **Adeleine**, que no se tocó: comparan el JSON que
+  escribe como texto, y con todo el workspace junto `serde_json` sale con
+  `preserve_order` —lo prende `rm2k-snes-audio—` y las claves cambian de
+  orden. Está así en `main`: las dos cosas son del 2026-09-29. Las pruebas
+  de `rm2k-snes-screens` comparan la respuesta ordenando las claves, y
+  pasan con y sin.
+
+## Al mergear
+
+* Instalar en el global `screens` —el binario nuevo— y `cartridge` —la
+  huella de los cartuchos lo nombra—: `just -f tools/justfile install
+  screens cartridge`. `text` es biblioteca. Sin `rm2k-snes-screens` en el
+  PATH el conversor para y dice cómo instalarlo, y las pruebas de las
+  pantallas también.
+* No mueve goldens ni la ROM.
+
+## Lo que falta
+
+* **Las letras de las medicinas que sólo sueltan los enemigos no van al
+  banco del menú.** Es lo que hacía el Python —`medicine_letters` salía de
+  `items_rom`, antes de sumar `drop_items`— y se conservó para que la ROM
+  saliera igual, pero la elección de actor escribe el nombre de cualquier
+  medicina de la lista larga con esos glifos: una que sólo se consigue
+  peleando y tiene una letra que nadie más usa se vería con un hueco. No
+  se averiguó si es a propósito: `git log -S` llega sólo hasta la
+  traducción. Arreglarlo es pasar la misma lista en los dos campos, y
+  mueve la ROM.
+* **`equip` está dos veces**, en la etapa y en el arnés de las pruebas.
+* **La cola de escapes está dos veces en Rust**: el compilador podría usar
+  la de `rm2k-snes-text`, que es la biblioteca de abajo.
+* **`lcf.REFIT_TEXTS` busca en la tabla del juego que se convierte**
+  (`resources.GAME_DIR`): Python sólo lee de las cajas cuántos comandos
+  son, pero si un día lee otro juego sin convertirlo, lo lee sin rearmar.
+* **La imagen del título y la de Game Over** siguen en Python
+  (`palette.convert`, el `LANCZOS` de Pillow): son de las pantallas
+  completas, junto con las imágenes y los fondos de pelea.
+* El rojo de Adeleine en `rust-test`, de arriba.
