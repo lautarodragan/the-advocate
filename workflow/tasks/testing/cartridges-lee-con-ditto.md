@@ -2,7 +2,7 @@
 name: "rm2k-snes-cartridges lee el volcado con Ditto"
 description: "El tercer lector del volcado a mano: cartridges.rs lee maps.json por su cuenta para el tipo de cada nodo; que use la biblioteca de Ditto, y una prueba que impida un cuarto"
 type: refactor
-assignee: Cardenal
+assignee: taro
 ---
 
 Lo dejó anotado Zorzal el 2026-09-29 (`testing/rust-ditto-como-biblioteca.md`):
@@ -44,3 +44,13 @@ de `cartridges.rs` y la de `events`.
 
 **Al mergear hay que instalar** `cartridge` y `events`:
 `just -f tools/justfile install cartridge events`.
+
+**Verificado**, con `NO_CACHE=1 just cartuchos` y el sha256 de los 999
+archivos de `rom/build/` (sin caché, `.o`, `sello.txt`, `conversor.log`, y
+el `.dbg` sin `mtime`): con los binarios de este cambio, con los del `main`
+de partida compilados igual (instalados en el `bin/` local desde `5dc54ff7`)
+y sobre el merge con `main`, las tres corridas dan **todo igual**. Contra
+la corrida con los binarios globales difieren sólo los dos `.dbg`, y
+difieren igual con los binarios locales de `5dc54ff7`: es el global contra
+el local, no este cambio. `just pruebas` y `just -f tools/justfile test` en
+verde sobre el merge; `cargo test -p` de `cartridge` y `events`, también.
