@@ -92,7 +92,12 @@ fn the_music_is_the_one_the_python_wrote() {
     let (inc, songs, quality, boot) = compile_fixture(&dir);
     let _ = std::fs::remove_dir_all(&dir);
     assert_eq!(boot, (44.07861328125, 21420), "the boot's estimate");
-    assert_eq!(sha(data_of(&inc).as_bytes()), "d2a34be276994b01a5a73339058b1bda9fb0ce3b71b1fd197fec05b6636dca14", "musicdata.inc");
+    // Changed once on purpose, on 2026-09-30, when `song_lo`, `song_hi`,
+    // `song_bk` and `song_msu` moved out of bank 0: the only difference with
+    // what the Python wrote was those four tables going from `TABLES` to
+    // `RODATA`, each behind its `.block`, with the same bytes. Measured with
+    // `write_the_fixture` before and after.
+    assert_eq!(sha(data_of(&inc).as_bytes()), "89ec531ef3d4f2ce5c6e3972fcf8503415a24bd225c529d4cf8599506d7e5c10", "musicdata.inc");
     assert_eq!(sha(songs.as_bytes()), "c5feb36f38f182aa9dc1fc40dac8bf8e7ed208ca3b12e85fe0df83c23c240d66", "musica.json");
     // **Not the Python's since 2026-09-30**, on purpose: that day each sound
     // effect got its own rate in the package (`effects::rates_per_package`),

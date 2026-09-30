@@ -1096,8 +1096,8 @@ fn page(
 fn follow_exit(ctx: &mut Ctx, cmd: &Command, exit: &mut Exit, played_sound: bool) {
     let songs = ctx.songs.as_deref_mut().unwrap();
     let current = songs.current;
-    // A troop page leaves no map: its `PlayBGM` is not done —see
-    // `PLAY_BGM`— and it has no `Teleport`.
+    // A troop page leaves no map: it has no `Teleport`, and its `PlayBGM`
+    // plays in the battle and not on the way out of a map.
     if current == Some(Package::Battle) {
         return;
     }
@@ -2974,21 +2974,22 @@ pub fn compile_command(
             // the index is emitted and the ROM plays the song if it got to
             // carry it.
             //
-            // **A troop page's is accepted and not done**, since 2026-09-30:
-            // its song would go into the battle's audio package, which
-            // already has no room without lowering the battle theme's rate,
-            // and that is the same thing that keeps a troop page's effects
-            // out —`troop_effects_in_package`—. It is `Play Radio`'s, which
-            // puts on one of three songs; the rest of what the page does, it
-            // does. Declared in
-            // `workflow/divergencias/lo-que-las-paginas-de-tropa-no-modelan.md`.
+            // A troop page's is done too, since the evening of 2026-09-30:
+            // its song is noted in the battle's audio package, like the
+            // battle theme, and also as a troop song, which the cartridge's
+            // plan puts apart —see `troop_songs`—. It is `Play Radio`'s,
+            // which puts on one of three songs.
             let Some(songs) = ctx.songs.as_deref_mut() else {
                 return Ok(vec![]);
             };
-            if cmd.string.is_empty() || songs.current == Some(Package::Battle) {
+            if cmd.string.is_empty() {
                 return Ok(vec![]);
             }
-            Ok(vec![OP_BGM, (songs.index(&cmd.string) & 0xFF) as u8])
+            let index = songs.index(&cmd.string);
+            if songs.current == Some(Package::Battle) && !songs.troop_songs.contains(&index) {
+                songs.troop_songs.push(index);
+            }
+            Ok(vec![OP_BGM, (index & 0xFF) as u8])
         }
         PAN_SCREEN => {
             // Moving the camera without the hero: `CommandPanScreen`.
@@ -4404,6 +4405,37 @@ mod tests {
             songs.jumps,
             [(Package::Map(0), vec![(1, vec![None]), (2, vec![Some(0)])])]
         );
+    }
+
+    /// A troop page's `PlayBGM` plays its song, which goes into the battle's
+    /// package and also into `troop_songs`, for the plan to put apart; a
+    /// map's goes only into its map's package.
+    #[test]
+    fn a_troop_pages_song_is_played_and_noted_as_a_troop_song() {
+        let mut songs = Songs::default();
+        let map_page = [cmd(PLAY_BGM, &[0, 100, 100, 50], "map")];
+        assert_eq!(with_songs(&map_page, &mut songs, &|_| None), Some(vec![OP_BGM, 0, OP_DONE]));
+        let game = Game::default();
+        let indices = Indices::default();
+        let sound = SoundSettings::default();
+        songs.current = Some(Package::Battle);
+        let mut ctx = Ctx {
+            game: &game,
+            indices: &indices,
+            sound: &sound,
+            map_index: &|_| None,
+            messages: None,
+            songs: Some(&mut songs),
+            graphics: None,
+            picture: None,
+            troops: None,
+        };
+        let troop_page = [cmd(PLAY_BGM, &[0, 100, 100, 50], "radio")];
+        let code = compile_page(&mut ctx, &troop_page, None, 0, 0).unwrap();
+        assert_eq!(code, Some(vec![OP_BGM, 1, OP_DONE]));
+        assert_eq!(songs.troop_songs, [1]);
+        assert_eq!(songs.per_package[1].0, Package::Battle);
+        assert_eq!(songs.per_package[1].1.songs, [1]);
     }
 
     #[test]

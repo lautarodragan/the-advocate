@@ -74,6 +74,26 @@ fn the_job_is_the_one_the_python_built() {
     }
 }
 
+/// A song a troop page starts goes apart in the battle's package: not with
+/// the battle song, and separate, as a map's `apart_themes`. The Python
+/// never did this —until 2026-09-30 a troop page's `PlayBGM` was not done—,
+/// so it is checked against the plan's own answer.
+#[test]
+fn a_troop_song_goes_apart_in_the_battle_package() {
+    let mut c = cartridge("full");
+    let battle = c.songs.per_package.get_mut(&cartridge::Key::Battle).unwrap();
+    let radio = c.songs.names.len();
+    c.songs.names.push("Radio".into());
+    battle.songs.push(radio);
+    c.songs.troop_songs = vec![radio];
+    let plan = cartridge::plan(&c).unwrap();
+    let packages = plan.job["packages"].as_array().unwrap();
+    let pelea = packages.iter().position(|p| p["name"] == "pelea").unwrap();
+    assert_eq!(packages[pelea]["separate"], serde_json::json!([radio]));
+    assert!(!packages[pelea]["songs"].as_array().unwrap().contains(&serde_json::json!(radio)));
+    assert_eq!(plan.separate[pelea], [radio]);
+}
+
 #[test]
 fn the_msu_is_the_one_the_python_built() {
     let game: Value = serde_json::from_str(GAME).unwrap();

@@ -33,10 +33,16 @@ apaga el 498. Lo prende la página de turno 0 que trae cada tropa, que corre
 desde que la pelea sabe mirar el turno
 (`tasks/*/eventos-de-tropa-de-release.md`).
 
-**Lo que cuesta**: el común 35 no corre, y el 498 queda prendido para
-siempre. En RM2k cura a los actores 36 a 53 y los saca del grupo —las
-invocaciones de los sistemas, que `release` no tiene—, y le vuelve a dar a AG7
-las habilidades de sus piezas, que el port ya hace al cerrar el menú (ver
-`los-comunes-del-equipo-corren-al-cerrar-el-menu.md`). No compila por un
-`ControlVars` con los datos de un actor, `ChangeEquipment` para equipar y
-`ChangeSP`.
+**Desde el 2026-09-30 el común 35 corre**: lo que lo trababa eran las
+variables que sólo él nombra —las 53 de las invocaciones y de los HP de
+Talan—, que no tenían ranura en la partida porque el barrido de variables no
+miraba los comunes. Ahora los mira (`variables`, en los índices de
+`rm2k-snes-events`), y el común compila en el lugar de su `CallEvent`. Lo
+cuida `test_despues_de_la_pelea_lerle_vuelve_al_grupo`, en
+`rom/pruebas/rpgmaker/test_sistemas_de_tropa.py`.
+
+Lo que cuesta ahora es espacio: el común entero se copia en cada mapa con
+encuentros, porque `CallEvent` compila en el lugar y no hay llamada a un
+cuerpo compartido. El día que se lo agregó, eso fue un banco de datos más en
+`release`. Si algún día hace falta el lugar, es lo primero que se puede
+compartir.

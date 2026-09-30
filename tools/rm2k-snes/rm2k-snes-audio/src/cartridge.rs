@@ -55,6 +55,9 @@ pub struct Songs {
     /// Per package, each map it jumps to and with which songs —None is
     /// whatever is playing—.
     pub jumps: HashMap<Key, Vec<(usize, Vec<Option<usize>>)>>,
+    /// The songs a troop page's `PlayBGM` starts: in the battle's package,
+    /// they go apart. A request without them has none.
+    pub troop_songs: Vec<usize>,
 }
 
 impl Songs {
@@ -150,7 +153,11 @@ impl Songs {
                 .collect::<Result<_>>()?;
             jumps.insert(k, theirs);
         }
-        Ok(Songs { names, sounds, per_package, exits, jumps })
+        let troop_songs = match v.get("troop_songs") {
+            None => Vec::new(),
+            some => indices(some, "troop_songs")?,
+        };
+        Ok(Songs { names, sounds, per_package, exits, jumps, troop_songs })
     }
 }
 
@@ -310,10 +317,19 @@ pub fn plan(c: &Cartridge) -> Result<Plan> {
     // sound effects, which the ROM uploads when opening the battle and
     // unloads when closing it. It goes separately and not inside the map's
     // package because the battle song alone fills the ARAM.
+    //
+    // The songs a troop page starts —`troop_songs`, `Play Radio`'s three in
+    // the game— are **separate**, like `[music] apart_themes` on a map: they
+    // play instead of the battle song, never next to it, so they do not have
+    // to fit alongside it and do not lower its rate. Their `PlayBGM` uploads
+    // them with the package's sound effects. Until 2026-09-30 they were not
+    // done at all.
     let battle = s.per_package.get(&Key::Battle);
     if let Some(w) = battle {
-        packages.push((w.songs.clone(), w.sounds.clone(), Vec::new()));
-        separate_ones.push(Vec::new());
+        let (apart, owned): (Vec<usize>, Vec<usize>) =
+            w.songs.iter().partition(|t| s.troop_songs.contains(t));
+        packages.push((owned, w.sounds.clone(), Vec::new()));
+        separate_ones.push(apart);
     }
     let mut package_names: Vec<String> = c.maps.iter().map(|m| m.to_string()).collect();
     if battle.is_some() {

@@ -109,6 +109,11 @@ pub struct Songs {
     /// How many effects went into a package, so a page can see whether a
     /// command made one sound.
     pub requested: u64,
+    /// The songs a troop page's `PlayBGM` starts, which are also in the
+    /// battle's package: they play instead of the battle song and not next
+    /// to it, and the cartridge's plan puts them apart so they do not lower
+    /// its rate.
+    pub troop_songs: Vec<usize>,
 }
 
 impl Songs {
@@ -180,7 +185,7 @@ impl Songs {
     }
 
     pub fn to_json(&self) -> Value {
-        json!({
+        let mut out = json!({
             "names": self.names,
             "sounds": self.sounds.iter().map(|(n, v, t, b)| json!([n, v, t, b])).collect::<Vec<_>>(),
             "per_package": self.per_package.iter().map(|(p, w)| json!([p.key(), {
@@ -189,7 +194,14 @@ impl Songs {
             "exits": self.exits.iter().map(|(p, e)| json!([p.key(), e])).collect::<Vec<_>>(),
             "jumps": self.jumps.iter().map(|(p, j)| json!([p.key(), j])).collect::<Vec<_>>(),
             "requested": self.requested,
-        })
+        });
+        // Only when there are some: without them the answer stays the one
+        // `tests/python.rs` holds the hashes of, and the reader takes a
+        // missing list as an empty one.
+        if !self.troop_songs.is_empty() {
+            out["troop_songs"] = json!(self.troop_songs);
+        }
+        out
     }
 }
 
