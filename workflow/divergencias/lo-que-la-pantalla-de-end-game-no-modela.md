@@ -6,7 +6,7 @@ negro. "Yes" funde el tema y la pantalla y va al título; "No" o cancelar
 vuelven al menú.
 
 Desde el 2026-09-28 la ROM lo hace —ver `tools/runtime/end_game.s` y
-`tools/port/fin_del_juego.py`—, con las ventanas, el texto y la barra del
+el `end_game.rs` de `rm2k-snes-screens`—, con las ventanas, el texto y la barra del
 System en los mismos pixeles que el original, corridos al centro de 256x224.
 Hasta ese día la orden iba en gris y no hacía nada.
 

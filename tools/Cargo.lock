@@ -470,6 +470,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "rm2k-snes-screens"
+version = "0.1.0"
+dependencies = [
+ "adeleine",
+ "clap",
+ "ditto",
+ "rm2k-render",
+ "rm2k-rules",
+ "rm2k-snes-text",
+ "serde_json",
+ "sha2",
+ "voodoo",
+]
+
+[[package]]
+name = "rm2k-snes-text"
+version = "0.1.0"
+dependencies = [
+ "rm2k-render",
+ "rm2k-rules",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
 name = "serde"
 version = "1.0.229"
 source = "registry+https://github.com/rust-lang/crates.io-index"

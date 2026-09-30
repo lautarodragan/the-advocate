@@ -1,0 +1,268 @@
+//! The message window as a cartridge carries it: its tiles, its palette,
+//! its cells, and the font with the tables the cartridge composes the text
+//! with.
+//!
+//! **Why the text is composed on the fly.** A composed page of the window
+//! is some 240 4bpp tiles, 7.5 KB, and a game has thousands of lines of
+//! text: one window per message does not come close to fitting. The way
+//! out is Final Fantasy VI's —the font in the cartridge and the text built
+//! by the 65816—, so what goes here is the empty window, the font, and the
+//! numbers the cartridge needs to draw a letter the way RM2k's
+//! `Font::Render` draws it.
+
+use crate::cells::{rgb15, Color, BLACK, CELL};
+use crate::fail::{Bad, Result};
+use crate::game::Skin;
+use crate::layout::*;
+use rm2k_render::picture::Picture;
+use rm2k_snes_text::{font, line};
+use std::collections::{BTreeSet, HashMap};
+use voodoo::pack::{pack_tile, Indices};
+
+/// How many colours a 4bpp palette has, 0 being transparent.
+const COLORS_PER_PALETTE: usize = 16;
+
+/// The message window, cut.
+#[derive(Debug, Clone)]
+pub struct Window {
+    /// The tiles of the empty window, deduplicated, 4bpp.
+    pub tiles: Vec<u8>,
+    /// The sixteen colour-memory words of its palette.
+    pub cgram: Vec<u16>,
+    /// The 32x10 tilemap, with the text area's tiles already numbered.
+    pub cells: Vec<Vec<usize>>,
+    /// The first tile of the text area.
+    pub base: usize,
+    /// The text area's tiles without text, in order, 4bpp.
+    pub background: Vec<u8>,
+    /// The palette index of each of the glyph's twelve rows.
+    pub color: Vec<u8>,
+    /// The shadow's palette index.
+    pub shadow: u8,
+}
+
+/// `picture` over opaque black, at fifteen bits: Pillow's
+/// `alpha_composite`, whose rounding this copies.
+fn over_black(picture: &Picture) -> Vec<Color> {
+    const PRECISION: u32 = 7;
+    let div255 = |a: u32| ((a >> 8) + a) >> 8;
+    picture
+        .rgba
+        .chunks_exact(4)
+        .map(|p| {
+            let a = p[3] as u32;
+            if a == 0 {
+                return BLACK;
+            }
+            let blend = 255 * (255 - a);
+            let outa255 = a * 255 + blend;
+            let coef1 = a * 255 * 255 * (1 << PRECISION) / outa255;
+            let channel = |v: u8| (div255(v as u32 * coef1 + (0x80 << PRECISION)) >> PRECISION) as u8;
+            rgb15([channel(p[0]), channel(p[1]), channel(p[2]), 255])
+        })
+        .collect()
+}
+
+/// The message window: tiles, palette, cells and what the font needs.
+///
+/// The picture is the empty window of the System, cut into 8x8 cells, with
+/// the fixed part separated from what the cartridge composes. The palette
+/// carries the colours of the empty window **plus** those of the text and
+/// the shadow, even though the empty window does not use them: they are
+/// the ones the cartridge is going to write. Index 0 is left free, which is
+/// BG2's transparent and no window tile uses.
+///
+/// `reserved` is where whatever follows the window in colour memory
+/// starts: the window may not reach it.
+pub fn convert(skin: &Skin, reserved: usize) -> Result<Window> {
+    let empty = skin.window(WINDOW_WIDTH, WINDOW_HEIGHT);
+    let pixels = over_black(&empty);
+    let (width, height) = (empty.width, empty.height);
+
+    // The text colours come from the System's 16x16 block, the ones
+    // `Font::Render` uses as a mask. Each row of the glyph takes a single
+    // one —the gradient is horizontally uniform—, so they are twelve
+    // colours, not a block, and the shadow is a single one.
+    let ink = line::Ink::new(&skin.picture, 0);
+    let mut color_row = Vec::new();
+    for py in 0..font::HEIGHT {
+        let row: BTreeSet<Color> = (0..font::WIDTH).map(|px| rgb15(ink.text_at(px, py))).collect();
+        if row.len() != 1 {
+            return Err(Bad::answer(format!(
+                "row {py} of the text colour has {} distinct colours; the cartridge composes it \
+                 with a single one",
+                row.len()
+            )));
+        }
+        color_row.push(*row.iter().next().expect("one colour"));
+    }
+    let shadow = rgb15(ink.shadow_at(0, 0));
+
+    let mut colors: BTreeSet<Color> = pixels.iter().copied().collect();
+    colors.extend(color_row.iter().copied());
+    colors.insert(shadow);
+    if colors.len() > COLORS_PER_PALETTE - 1 {
+        return Err(Bad::answer(format!(
+            "the window uses {} colours and {} fit",
+            colors.len(),
+            COLORS_PER_PALETTE - 1
+        )));
+    }
+    let colors: Vec<Color> = colors.into_iter().collect();
+    let index: HashMap<Color, u8> = colors.iter().enumerate().map(|(i, c)| (*c, i as u8 + 1)).collect();
+
+    let cell_at = |tx: usize, ty: usize| -> Indices {
+        let mut cell = [[0u8; CELL]; CELL];
+        for (y, row) in cell.iter_mut().enumerate() {
+            for (x, v) in row.iter_mut().enumerate() {
+                *v = index[&pixels[(ty * CELL + y) * width + tx * CELL + x]];
+            }
+        }
+        cell
+    };
+    let in_text = |tx: usize, ty: usize| {
+        (WINDOW_TEXT_ROW..WINDOW_TEXT_ROW + WINDOW_TEXT_ROWS).contains(&ty)
+            && (WINDOW_TEXT_COL..WINDOW_TEXT_COL + WINDOW_TEXT_COLS).contains(&tx)
+    };
+
+    // The cells without text are deduplicated as always; the ones in the
+    // text area are numbered consecutively from there.
+    let mut tiles: Vec<Indices> = Vec::new();
+    let mut seen: HashMap<Indices, usize> = HashMap::new();
+    let mut cells = vec![vec![0usize; width / CELL]; height / CELL];
+    for (ty, row) in cells.iter_mut().enumerate() {
+        for (tx, cell) in row.iter_mut().enumerate() {
+            if in_text(tx, ty) {
+                continue;
+            }
+            let c = cell_at(tx, ty);
+            *cell = *seen.entry(c).or_insert_with(|| {
+                tiles.push(c);
+                tiles.len() - 1
+            });
+        }
+    }
+    let base = tiles.len();
+    let mut background = Vec::new();
+    for (n, ty) in (WINDOW_TEXT_ROW..WINDOW_TEXT_ROW + WINDOW_TEXT_ROWS).enumerate() {
+        for (m, tx) in (WINDOW_TEXT_COL..WINDOW_TEXT_COL + WINDOW_TEXT_COLS).enumerate() {
+            cells[ty][tx] = base + n * WINDOW_TEXT_COLS + m;
+            background.extend(pack_tile(&cell_at(tx, ty), 4));
+        }
+    }
+    if base + WINDOW_TEXT_ROWS * WINDOW_TEXT_COLS > 256 {
+        return Err(Bad::answer(format!(
+            "the window needs {} tiles and the bank has 256",
+            base + WINDOW_TEXT_ROWS * WINDOW_TEXT_COLS
+        )));
+    }
+
+    let mut cgram = vec![0u16];
+    cgram.extend(colors.iter().map(|c| cgram_word(*c)));
+    cgram.resize(COLORS_PER_PALETTE, 0);
+    // What follows starts where this ends, so if the window grew it would
+    // step on it and the cartridge would draw the text with a colour of the
+    // map. The highest index really used is checked —the shadow's or that of
+    // some row of the glyph— and not how many words are nonzero: a black
+    // colour has word zero and would not be counted.
+    let color: Vec<u8> = color_row.iter().map(|c| index[c]).collect();
+    let highest = color.iter().copied().chain([index[&shadow]]).max().unwrap_or(0) as usize;
+    if highest >= reserved {
+        return Err(Bad::answer(format!(
+            "the message window uses colour-memory entry {highest} and what follows starts at \
+             {reserved}"
+        )));
+    }
+    Ok(Window {
+        tiles: tiles.iter().flat_map(|t| pack_tile(t, 4)).collect(),
+        cgram,
+        cells,
+        base,
+        background,
+        color,
+        shadow: index[&shadow],
+    })
+}
+
+/// A colour-memory word: 0BBB BBGG GGGR RRRR.
+pub fn cgram_word(c: Color) -> u16 {
+    (c[2] as u16) << 10 | (c[1] as u16) << 5 | c[0] as u16
+}
+
+/// The 95 glyphs, twelve rows of six bits each, **with the bits
+/// reversed**: in the font's table bit 0 is the leftmost pixel, and in the
+/// console's tile format the leftmost is bit 7. Reversing them here and not
+/// in the cartridge comes for free.
+pub fn font_bytes(font_id: i32) -> Vec<u8> {
+    let mut out = Vec::with_capacity(font::GLYPHS * font::HEIGHT);
+    for glyph in font::table(font_id) {
+        for &row in glyph {
+            let mut reversed = 0u8;
+            for px in 0..FONT_WIDTH {
+                if row >> px & 1 != 0 {
+                    reversed |= 1 << (7 - px);
+                }
+            }
+            out.push(reversed);
+        }
+    }
+    out
+}
+
+/// The window's glyphs already composed, for each of the four phases a
+/// character can land on: x is the border plus six times the column, so
+/// modulo 8 it gives 0, 6, 4 or 2 and never anything else. Per glyph and
+/// phase go the cell rows it touches —its twelve, and one more of shadow—
+/// and per row the two cells it can step on, each with three words: what
+/// is kept of what is there, and what is set in planes 0-1 and in 2-3. The
+/// cartridge does `buf = buf & keep | set`.
+///
+/// The shadow and the glyph come already combined, with `Font::Render`'s
+/// order: on a row land the glyph and the shadow of the row above, shifted
+/// one pixel, and where they overlap the glyph wins.
+///
+/// `source` is [`font_bytes`], `colors` the palette index of each glyph
+/// row and `shadow` the shadow's. The four tables, one per phase: 0, 2, 4,
+/// 6.
+pub fn font_prerender(source: &[u8], colors: &[u8], shadow: u8) -> Vec<Vec<u8>> {
+    let glyphs = source.len() / FONT_HEIGHT;
+    let mut tables = Vec::new();
+    for phase in [0u32, 2, 4, 6] {
+        let mut out = Vec::new();
+        for c in 0..glyphs {
+            let rows = &source[c * FONT_HEIGHT..(c + 1) * FONT_HEIGHT];
+            let run: Vec<u32> = rows.iter().map(|&f| ((f as u32) << 8) >> phase).collect();
+            for k in 0..FONT_PRE_ROWS {
+                let glyph = if k < FONT_HEIGHT { run[k] } else { 0 };
+                let color = if k < FONT_HEIGHT { colors[k] as u32 } else { 0 };
+                let mut shadow_m = if k >= 1 { run[k - 1] >> 1 } else { 0 };
+                shadow_m &= !glyph & 0xFFFF;
+                for cell in 0..2 {
+                    let shift = if cell == 0 { 8 } else { 0 };
+                    let g = (glyph >> shift) & 0xFF;
+                    let s = (shadow_m >> shift) & 0xFF;
+                    let keep = !((g | s) * 0x0101) & 0xFFFF;
+                    let mut words = vec![keep];
+                    for bits in [0u32, 2] {
+                        let mut word = 0u32;
+                        for (m, col) in [(g, color), (s, shadow as u32)] {
+                            if col >> bits & 1 != 0 {
+                                word |= m;
+                            }
+                            if col >> (bits + 1) & 1 != 0 {
+                                word |= m << 8;
+                            }
+                        }
+                        words.push(word);
+                    }
+                    for word in words {
+                        out.push((word & 0xFF) as u8);
+                        out.push((word >> 8) as u8);
+                    }
+                }
+            }
+        }
+        tables.push(out);
+    }
+    tables
+}

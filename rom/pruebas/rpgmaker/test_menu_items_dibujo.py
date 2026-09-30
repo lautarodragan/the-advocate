@@ -1,5 +1,5 @@
 """La pantalla de ítems del menú de pausa: que se vea como
-`menus.render_items` pixel por pixel, que la lista se corra cuando el cursor
+`pantallas.items` pixel por pixel, que la lista se corra cuando el cursor
 se sale, y que usar un ítem de switch lo prenda y vuelva al mapa.
 
 El inventario lo da la página de prueba con `ChangeItems` de verdad, así que
@@ -7,10 +7,9 @@ la ROM lo tiene por el mismo camino que el juego. El mapa después de usar la
 consola lo mira `items` en `test_menu_golden.py`.
 """
 
-from port import menus
 
 from consola import TITULO_AIRE
-import datos
+import pantallas
 from dibujo import comparar_pantalla
 from menu import abrir
 
@@ -36,9 +35,7 @@ def entrar(una):
 
 
 def comparar(una, inventario, elegida, arriba=0, nombre="items"):
-    db, skin = datos.base(), datos.skin()
-    esperada = menus.render_items(skin, db, inventario, elegida, arriba,
-                                   db.font_id)
+    esperada = pantallas.items(inventario, elegida, arriba)
     comparar_pantalla(una, esperada, nombre,
                       "la pantalla de ítems con el cursor en %d" % elegida)
 
@@ -82,17 +79,14 @@ def test_la_medicina_abre_la_eleccion_de_actor_y_no_se_gasta(partida):
     HP llenos, así que A no le sirve a nadie y la poción no se gasta —curar de
     verdad es `test_menu_curar_dibujo.py`—; B vuelve a la lista con el cursor
     donde estaba."""
-    from rpgmaker.resources import GAME_DIR
     una = partida(caso="items-pantalla")
     una.correr(5)
     una.poner_grupo(14, 11)
     entrar(una)
     una.tocar_cuadros("a", TITULO_AIRE)  # la poción
-    db, skin = datos.base(), datos.skin()
     for elegida in (0, 1):
-        esperada = menus.render_target(skin, db, 4, (14, 11), elegida,
-                                          db.font_id, None, GAME_DIR,
-                                          item=1, amount=INVENTARIO[1])
+        esperada = pantallas.objetivo(4, (14, 11), elegida, item=1,
+                                      cantidad=INVENTARIO[1])
         comparar_pantalla(una, esperada,
                           que="la elección de actor con el cursor en %d"
                           % elegida)
@@ -109,10 +103,10 @@ def test_la_lista_se_corre_cuando_el_cursor_se_sale(partida):
     una = entrar(partida(caso="items-pantalla-muchos"))
     for _ in range(13):
         una.tocar_cuadros("down")
-    comparar(una, MUCHOS, 13, arriba=14 - menus.ITEM_ROWS,
+    comparar(una, MUCHOS, 13, arriba=14 - pantallas.disposicion().ITEM_ROWS,
              nombre="items-abajo")
     una.tocar_cuadros("down")           # no hay más: se queda
-    comparar(una, MUCHOS, 13, arriba=14 - menus.ITEM_ROWS,
+    comparar(una, MUCHOS, 13, arriba=14 - pantallas.disposicion().ITEM_ROWS,
              nombre="items-abajo")
     for _ in range(13):
         una.tocar_cuadros("up")

@@ -1,7 +1,7 @@
 """La tienda: tres tenderos de Lashe City Interiors, el mapa 10, abiertos por
 el camino de verdad —A para el mensaje y A para cerrarlo—, y cada modo de
-`Scene_Shop` pixel por pixel contra `screens.shop_screen`, con las
-ventanas y la barra.
+`Scene_Shop` pixel por pixel contra `pantallas.tienda`, con las ventanas
+y la barra.
 
 * El de armas, EV0021: `OpenShop` tipo 0 y juego de mensajes 0, tres ítems.
   Cada modo, una vez.
@@ -12,15 +12,18 @@ ventanas y la barra.
 
 Entre los tres, la barra pasa por cada lugar cuyo parche es distinto —la
 última fila de cada lista y la última orden, que cruzan la franja del fondo
-de su ventana: ver `screens.compact_shop`—.
+de su ventana: ver `compact_shop` en `rm2k-snes-screens`—.
 """
-
-from port import screens as P
 
 from consola import TITULO_AIRE
 import datos
 from dibujo import comparar_pantalla
+import pantallas
 from tanda import golden
+
+# Los modos de la tienda y el segundo del "hecho", de la geometría con que la
+# dibuja la etapa.
+P = pantallas.disposicion()
 
 VENDE = [96, 92, 93]                    # el cuchillo, el caño y la cachiporra
 CANO = 92
@@ -53,15 +56,15 @@ def entrar(partida, x=42, y=6, oro=ORO, inventario=None, switches=()):
 
 
 def test_comprar_y_vender(partida):
-    db, skin = datos.base(), datos.skin()
+    db = datos.base()
     una = entrar(partida)
     equipos = [list(db.actors[KERSH].initial_equipment)]
 
     def ver(modo, inv, oro_, elegido=0, cuantos=1, resaludo=False, nombre="",
             congelar=False):
-        comparar_pantalla(una, P.shop_screen(
-            db, 0, 0, VENDE, oro_, inv, equipos, modo, elegido, 0, cuantos,
-            resaludo).render(skin, db.font_id), "tienda-" + nombre)
+        comparar_pantalla(una, pantallas.tienda(
+            0, 0, VENDE, oro_, inv, equipos, modo, elegido, 0, cuantos,
+            resaludo), "tienda-" + nombre)
         if congelar:
             golden("tienda-" + nombre, una.imagen())
 
@@ -112,17 +115,16 @@ INVENTARIO = {n: 1 for n in (92, 93, 96, 110, 111, 112, 113, 124, 125, 127)}
 
 
 def test_el_resaludo_de_dos_renglones_y_vender_con_la_lista_corrida(partida):
-    db, skin = datos.base(), datos.skin()
+    db = datos.base()
     una = entrar(partida, 42, 37, 5000, INVENTARIO)
     equipos = [list(db.actors[KERSH].initial_equipment)]
     inv = dict(INVENTARIO)
 
     def ver(modo, oro_, elegido=0, arriba=0, cuantos=1, resaludo=False,
             nombre="", congelar=False):
-        comparar_pantalla(una, P.shop_screen(
-            db, 0, 1, ARMADURAS, oro_, inv, equipos, modo, elegido, arriba,
-            cuantos, resaludo).render(skin, db.font_id),
-            "tienda-armaduras-" + nombre)
+        comparar_pantalla(una, pantallas.tienda(
+            0, 1, ARMADURAS, oro_, inv, equipos, modo, elegido, arriba,
+            cuantos, resaludo), "tienda-armaduras-" + nombre)
         if congelar:
             golden("tienda-armaduras-" + nombre, una.imagen())
 
@@ -159,14 +161,14 @@ REPUESTOS = [129, 130, 282, 278, 279, 135, 269, 283, 271, 270, 287]
 
 
 def test_comprar_con_la_lista_corrida(partida):
-    db, skin = datos.base(), datos.skin()
+    db = datos.base()
     una = entrar(partida, 47, 7, 5000, switches=(150,))
     equipos = [list(db.actors[KERSH].initial_equipment)]
 
     def ver(elegido, arriba, nombre, congelar=False):
-        comparar_pantalla(una, P.shop_screen(
-            db, 0, 0, REPUESTOS, 5000, {}, equipos, P.TI_BUY, elegido,
-            arriba).render(skin, db.font_id), "tienda-repuestos-" + nombre)
+        comparar_pantalla(una, pantallas.tienda(
+            0, 0, REPUESTOS, 5000, {}, equipos, P.TI_BUY, elegido,
+            arriba), "tienda-repuestos-" + nombre)
         if congelar:
             golden("tienda-repuestos-" + nombre, una.imagen())
 

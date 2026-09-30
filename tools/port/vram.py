@@ -6,8 +6,6 @@ The input is how many tiles each layer spends; the output, which layout the
 map gets. The ROM chooses nothing: the layout travels in the `.inc`.
 """
 
-from port import menus as menus_mod
-from port import screens as screens_mod
 from port.snes_format import BYTES_PER_TILE
 
 
@@ -267,7 +265,6 @@ SLOT_VRAM = 0x2000
 # not of a multiplication written in assembly.
 SLOT_TEXT_WIDTH = 32
 SLOT_TEXT_LEVEL = 16         # the name fits in thirteen, and three are left over
-SLOT_TEXT_MAX = SLOT_TEXT_LEVEL + menus_mod.LEVEL_DIGITS
 SLOT_MAP = 0x3C00
 
 # The upper layer's tilemap is fixed: the background's is chosen by the layout
@@ -313,111 +310,6 @@ def vram_layout(tiles, sprites=0, above=0):
         "this map can't carry a message window: it spends %d background tiles, "
         "%d sprite tiles and %d upper tiles, and there is no layout that leaves "
         "8 KB of tiles plus 2 KB of tilemap for the window" % (tiles, sprites, above))
-
-
-def _check_slots(slot_tiles):
-    """That the slots screen lands in the BG1 bank of every layout.
-
-    It is what lets `back_to_map` restore the map with `load_map` and
-    nothing else; see the comment on SLOT_MAP.
-    """
-    end_tiles = SLOT_VRAM + slot_tiles * 16
-    end_map = SLOT_MAP + 32 * 32
-    if not (end_tiles <= SLOT_MAP or end_map <= SLOT_VRAM):
-        raise SystemExit(
-            "the %d tiles of the slots screen reach $%04X and overwrite its "
-            "tilemap at $%04X" % (slot_tiles, end_tiles, SLOT_MAP))
-    for name, layout in LAYOUTS:
-        base, count = layout["tiles"]
-        cap = base + count * (BYTES_PER_TILE // 2)
-        for what, first, last in (("the tiles", SLOT_VRAM, end_tiles),
-                                  ("the tilemap", SLOT_MAP, end_map)):
-            if first < base or last > cap:
-                raise SystemExit(
-                    "the slots screen puts %s at $%04X..$%04X and the "
-                    "BG1 bank of LAYOUT_%s is $%04X..$%04X: when coming back "
-                    "from the menu `load_map` wouldn't restore it"
-                    % (what, first, last, name, base, cap))
-
-
-def items_border_first(source):
-    """The first 8bpp tile of the item and equipment windows, counted from
-    `SLOT_VRAM`, which is the BG1 base and the BG2 one: the first free one
-    after the `source` tiles of the font, which are 4bpp and half the size."""
-    return (source + 1) // 2
-
-
-def _check_items_border(source, border):
-    """That the font and the windows of the item and equipment screens, one
-    after the other, don't reach the BG1 tilemap, and that everything stays
-    in the BG1 bank of the layouts, like the rest of the screen —see
-    `_check_slots`—."""
-    end = SLOT_VRAM + (items_border_first(source) + border) * 32
-    if end > menus_mod.ITEM_BORDER_MAP:
-        raise SystemExit(
-            "the item screen's font (%d 4bpp tiles) and the item and "
-            "equipment windows (%d 8bpp ones) reach $%04X and the windows' "
-            "tilemap is at $%04X" % (source, border, end, menus_mod.ITEM_BORDER_MAP))
-    end_map = menus_mod.ITEM_BORDER_MAP + 32 * 32
-    for name, layout in LAYOUTS:
-        base, count = layout["tiles"]
-        cap = base + count * (BYTES_PER_TILE // 2)
-        if SLOT_VRAM < base or end_map > cap:
-            raise SystemExit(
-                "the item and equipment windows reach $%04X and the BG1 "
-                "bank of LAYOUT_%s is $%04X..$%04X" % (end_map, name, base,
-                                                       cap))
-
-
-def _check_target(tiles):
-    """That the tiles and the tilemap of the actor-choice windows fit between
-    their BG1 base and their tilemap, and that everything lands in the BG1
-    bank of every layout, which is what `load_map` restores when closing the
-    menu —like `_check_slots`—, and outside what the menu already uses:
-    its tiles and its tilemap end at `SLOT_MAP` + 1024."""
-    T = menus_mod
-    end_tiles = T.TARGET_VRAM + tiles * 32
-    end_map = T.TARGET_MAP + 32 * 32
-    if end_tiles > T.TARGET_MAP:
-        raise SystemExit(
-            "the actor-choice windows are %d 8bpp tiles and "
-            "reach $%04X, and their tilemap is at $%04X"
-            % (tiles, end_tiles, T.TARGET_MAP))
-    if T.TARGET_VRAM < SLOT_MAP + 32 * 32:
-        raise SystemExit("the actor-choice windows overwrite the "
-                         "menu's tilemap")
-    for name, layout in LAYOUTS:
-        base, count = layout["tiles"]
-        cap = base + count * (BYTES_PER_TILE // 2)
-        if T.TARGET_VRAM < base or end_map > cap:
-            raise SystemExit(
-                "the actor-choice windows go at $%04X..$%04X and "
-                "the BG1 bank of LAYOUT_%s is $%04X..$%04X: when closing the "
-                "menu `load_map` wouldn't restore them"
-                % (T.TARGET_VRAM, end_map, name, base, cap))
-
-
-def _check_shop(tiles):
-    """That the tiles of the shop windows, from their BG1 base, don't reach
-    beyond what `load_map` restores when closing in any layout —like
-    `_check_target`—, nor what the screen uses: the font and the BG2
-    tilemap end at `SLOT_MAP` + 1024. The tilemap is the item and equipment
-    one, which `_check_items_border` already checks."""
-    P = screens_mod
-    end_tiles = P.TI_VRAM + tiles * 32
-    if P.TI_VRAM < SLOT_MAP + 32 * 32:
-        raise SystemExit("the shop windows overwrite the text "
-                         "tilemap")
-    for name, layout in LAYOUTS:
-        base, count = layout["tiles"]
-        cap = base + count * (BYTES_PER_TILE // 2)
-        if P.TI_VRAM < base or end_tiles > cap:
-            raise SystemExit(
-                "the shop windows are %d 8bpp tiles, at "
-                "$%04X..$%04X, and the BG1 bank of LAYOUT_%s is "
-                "$%04X..$%04X: when closing the shop `load_map` wouldn't "
-                "restore them" % (tiles, P.TI_VRAM, end_tiles, name, base,
-                                  cap))
 
 
 def _check_splits():

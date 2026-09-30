@@ -18,7 +18,7 @@ niveles y las habilidades salen de `experience.add_exp` y del LDB, no de acá.
 
 from port import battle as modelo
 from port import experience
-from port import screens
+from port import battle_screen as screens
 from port import rules
 
 from batalla import (ARDEN, GRUPO, Pelea, en_el_droide, paginas, poner_exp,

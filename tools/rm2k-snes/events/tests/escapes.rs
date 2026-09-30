@@ -1,5 +1,5 @@
-//! A text box's escape tail, against the copy the converter keeps in Python
-//! to rebuild boxes for the window: both answer what `escapes.json` says.
+//! A text box's escape tail, against the copy `rm2k-snes-text` reflows
+//! boxes for the window around: both answer what `escapes.json` says.
 //! A change on one side only goes red on that side.
 
 use rm2k_snes_events::messages::escape_tail;

@@ -20,8 +20,8 @@ que cortarían distinto que en el original.
 # Cómo se ve hoy
 
 Igual que en RM2k: 39 caracteres por línea. Lo que cuesta es VRAM, no algo que
-se vea. Por qué 39 y no 40 está en `tools/port/message_window.py`, al lado
-de los 240 tiles.
+se vea. Por qué 39 y no 40 está en el `layout.rs` de `rm2k-snes-screens`,
+al lado de los 240 tiles.
 
 # Cuándo deja de alcanzar
 

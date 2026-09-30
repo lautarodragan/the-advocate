@@ -115,6 +115,10 @@ port —ver `tools/README.md`—:
       map-background/  las dos capas del fondo de un mapa y sus bloques de 16x16
       map-sprites/     los personajes de un mapa como objetos: paletas y bancos
       maps/            un mapa entero, con esas dos: capas, horneado, sprites
+      text/            la fuente, una línea de texto sobre el System y el
+                       reparto de las cajas al ancho de la ventana
+      screens/         las pantallas: la ventana de mensajes, el título, las
+                       ranuras, el menú, las pantallas de texto, End Game
 
 Las capas sólo dependen hacia abajo —`rm2k-snes/` de las otras dos, y
 ésas de nada de las demás—, y lo cuida `tools/tests/test_layers.py`. Todos
@@ -155,16 +159,17 @@ Las pruebas de esos proyectos no dependen del juego. Ditto recibe el corpus por
 mensaje; `tools/rm2k-snes/rm2k-snes-audio/` recibe el SoundFont por `SOUNDFONT`, igual;
 y `tools/snes/protocol/`, `tools/snes/gunter/`, `tools/snes/voodoo/`, `tools/snes/lz2/`,
 `tools/snes/adeleine/`, `tools/rm2k/rules/`, `tools/rm2k/rm2k-render/`, `tools/rm2k-snes/battle/`,
-`tools/rm2k-snes/events/`, `tools/rm2k-snes/patches/` y los tres de los mapas no
-necesitan nada.
+`tools/rm2k-snes/events/`, `tools/rm2k-snes/patches/`, los tres de los mapas y
+los dos de las pantallas no necesitan nada.
 
 ### `tools/snes/voodoo/` no decide colores, y eso no se arregla
 
 `tools/snes/voodoo/` convierte una imagen **que ya entra**: recibe PNG indexados cuyos
 índices son entradas de CGRAM, y si la imagen rompe el formato, dice dónde y no
 la arregla. Qué colores se pierden y cómo se agrupan en paletas lo decide
-Adeleine, `tools/snes/adeleine/` —las pantallas lo llaman por
-`tools/port/adeleine.py`, y `rm2k-snes-maps` como biblioteca—, que corre
+Adeleine, `tools/snes/adeleine/` —la pelea lo llama por
+`tools/port/adeleine.py`, y `rm2k-snes-maps` y `rm2k-snes-screens` como
+biblioteca—, que corre
 **antes**; lo que decidió de cada mapa queda como imágenes en
 `rom/build/<cartucho>/adeleine/`. La prueba para saber de qué lado
 va algo es si cambia un pixel de lo que se ve.

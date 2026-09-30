@@ -87,10 +87,10 @@
 ;
 ; The only two of the ones using this bank that have windows: the System's
 ; frame and background, on BG1, behind BG2's text —see `ITEM_WINDOWS` in
-; menus.py and `EQ_WINDOWS` in screens.py—. BG1 reads its tiles from the
+; `rm2k-snes-screens` and `EQ_WINDOWS`—. BG1 reads its tiles from the
 ; same base as BG2, and the windows' tiles go after the font. The tiles and the
-; colors are **the same for both** —see `menus.borders`—; what changes is the
-; tilemap.
+; colors are **the same for both** —see the stage's `borders`—; what
+; changes is the tilemap.
 
 ; The screen's bank and the item windows, with the screen off: it is entered
 ; with `jsl`, like `items_bank_upload`.

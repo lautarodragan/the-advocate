@@ -15,7 +15,10 @@ in its own module of `port/`, one per piece that can be replaced alone:
       obj_extras        the timer's colors, and whether a map animates
       vram              the VRAM layouts
       blocks            `TileSubstitution` translated to 16x16 blocks
-    message_window      the message window and the font
+    screen_stage        the screens, `rm2k-snes-screens`: the message
+                        window and its font, the title's menu, the menus,
+                        and the message boxes reflowed for the window
+    battle_screen       the battle's text screen: its geometry and texts
     battle_scenes       backdrops and battlers
     battle_animations   the battle animations
     stage               runs a part that is a program of its own:
@@ -65,15 +68,11 @@ from rpgmaker import rm2k
 # —baked against the background, dithered, or opaque—.
 lcf.DECORATE_TRANSLUCENT = rm2k.decorate_translucent
 # And the text boxes, rebuilt for the SNES window: see
-# `lcf.REFIT_TEXTS` and `port/texts.py`.
-from port import texts
-lcf.REFIT_TEXTS = texts.refit_commands
+# `lcf.REFIT_TEXTS` and `port/screen_stage.py`.
+from port import screen_stage
+lcf.REFIT_TEXTS = screen_stage.refit_commands
 from port import animation as animation_mod
-from port import title as title_mod
-from port import menus as menus_mod
 from port import fullscreen
-from port import end_game as end_game_mod
-from port import screens as screens_mod
 from port import scene as scene_mod
 from port import constants
 from common import settings
@@ -86,9 +85,7 @@ from rpgmaker.resources import find_resource
 from port.sprites import (OBJ_PRIORITY, OBJ_PRIORITY_ABOVE, block_tile,
                           maps_per_character)
 from port.obj_extras import timer_colors_of
-from port.vram import (SLOTS, _check_items_border, _check_shop, _check_slots,
-                       _check_splits, _check_target, items_border_first)
-from port.message_window import convert_window, font_bytes
+from port.vram import SLOTS, _check_splits
 from port.blocks import SUB_MAX, Substitutions, substitution_triples
 from port.materials import compress_blocks, decompress_frames
 from port.map_record import PARALLEL_MAX, ROUTE_EV_MAX
@@ -623,11 +620,24 @@ def main():
 
     if not 0 <= args.start_index < len(maps):
         sys.exit("--start-index %d but there are %d maps" % (args.start_index, len(maps)))
-    from port import window as window_mod
-    skin = window_mod.skin(args.game_dir, renderer.database)
-    font_id = renderer.database.font_id
-    window_data = convert_window(skin, font_id)
-    window_data["fuente"] = font_bytes(font_id)
+    # The screens, all at once: the message window and its font, the slots
+    # screen and the pause menu, the text screens with their windows, End
+    # Game and the title's menu. See `port/screen_stage.py`.
+    #
+    # The slots screen goes in every ROM: the save point opens it from inside
+    # the game, and "Resume the Story" from the title when there is one. And
+    # the items that can be in the inventory, to carry their name and their
+    # description.
+    items_rom = possible_items(every, members, renderer.database,
+                               file_commands)
+    # The items the enemies of the cartridge's troops drop can also reach
+    # the inventory: see `drop_items`. The menu bank's letters are those of
+    # the medicines of `items_rom` alone.
+    items_all = sorted(set(items_rom)
+                       | drop_items(renderer.database, troops.ids))
+    window_data, slots_data, title_menu, screen_texts, says = \
+        screen_stage.convert(args.game_dir, members, items_all, items_rom,
+                             not args.no_title)
     window_data["mensajes"] = messages.bytes()
     print("  message window: %d fixed tiles + %d of text, %d colors; "
           "font %d B, %d text box(es) in %d B"
@@ -636,80 +646,34 @@ def main():
              sum(1 for w in window_data["cram"] if w),
              len(window_data["fuente"]), len(messages.texts),
              len(window_data["mensajes"])))
-    # The slots screen goes in every ROM: the save point opens it from inside
-    # the game, and "Resume the Story" from the title when there is one. It is
-    # drawn with the same font and the same skin as the message window, and
-    # lives in the title's VRAM, where there is no map.
-    # And the items that can be in the inventory, to carry their name and
-    # their description: see "la pantalla de ítems" in menus.py.
-    items_rom = possible_items(every, members, renderer.database,
-                               file_commands)
-    # With the letters of the medicines, which the actor choice writes with
-    # the bank's glyphs: see `TARGET_WINDOWS`.
-    medicine_letters = "".join(
-        renderer.database.items[n].name for n in items_rom
-        if renderer.database.items[n].type == lcf.ITEM_TYPE_MEDICINE)
-    (slot_tiles, slot_palettes, slot_headers, slot_rows, slot_faces,
-     slot_menu) = menus_mod.slots_screen(
-        skin, renderer.database, SLOTS, renderer.database.font_id,
-        members, args.game_dir, medicine_letters)
-    target = menus_mod.borders(
-        skin, 0, menus_mod.target_layers(skin, renderer.database,
-                                           renderer.database.font_id),
-        menus_mod.TARGET_CGRAM,
-        menus_mod.TARGET_CGRAM + menus_mod.TARGET_COLORS_MAX)
-    _check_target(len(target[0]))
-    items_tiles, items_palettes, items_glyphs = menus_mod.items_screen(
-        skin, renderer.database.font_id)
-    # The item and equipment windows share tiles and colors: see
-    # `menus.borders`.
-    items_border = menus_mod.borders(
-        skin, items_border_first(len(items_tiles)),
-        [menus_mod.item_layers(skin), screens_mod.equipment_layers(skin)])
-    _check_items_border(len(items_tiles), len(items_border[0]))
-    # The shop's, with their own tiles and colors: see
-    # `screens.TI_WINDOWS`.
-    shop_border = menus_mod.borders(
-        skin, 0, screens_mod.shop_layers(skin),
-        menus_mod.ITEM_BORDER_CGRAM, menus_mod.TARGET_CGRAM)
-    _check_shop(len(shop_border[0]))
-    # The End Game screen's tiles go where the slots' do, so what is checked
-    # is the same.
-    end = end_game_mod.convert(skin, renderer.database, renderer.database.font_id)
-    _check_slots(len(end[0]))
-    slots_data = {"tiles": slot_tiles, "paletas": slot_palettes,
-                  "cabeceras": slot_headers, "filas": slot_rows,
-                  "caras": slot_faces,
-                  "menu": slot_menu, "items": items_rom,
-                  "db": renderer.database, "actores": members,
-                  "relleno_textos": args.text_padding,
-                  "items_db": renderer.database.items,
-                  "items_tiles": items_tiles,
-                  "items_paletas": items_palettes,
-                  "items_glifos": items_glyphs,
-                  "items_marco": items_border, "fin": end,
-                  "tienda_marco": shop_border,
-                  "objetivo": target}
-    _check_slots(len(slot_tiles))
+    for line in says:
+        print(line)
+    slots_data.update({"items": items_rom, "db": renderer.database,
+                       "actores": members,
+                       "relleno_textos": args.text_padding,
+                       "items_db": renderer.database.items,
+                       "textos": screen_texts})
     _check_splits()
+    slot_tiles, slot_headers = slots_data["tiles"], slots_data["cabeceras"]
     print("  slots screen: %d, %d 4bpp tiles (%d B) + %d palettes, "
           "%d B of cells; %d actors with a face: %s"
           % (SLOTS, len(slot_tiles), len(slot_tiles) * 32,
-             len(slot_palettes),
+             len(slots_data["paletas"]),
              (len(slot_headers) * len(slot_headers[0])
-              + SLOTS * 4 * len(slot_rows[0][0][0])) * 2,
-             len(slot_faces),
+              + SLOTS * 4 * len(slots_data["filas"][0][0][0])) * 2,
+             len(slots_data["caras"]),
              ", ".join("%d %s" % (a, renderer.database.actors[a].name)
-                       for a in sorted(slot_faces)) or "none"))
+                       for a in sorted(slots_data["caras"])) or "none"))
     title_data = None
-    if not args.no_title:
+    if title_menu is not None:
         from PIL import Image
         name = renderer.database.title_name
         picture = Image.open(os.path.join(args.game_dir, "Title",
                                           name + ".png"))
-        texts = title_mod.options(renderer.database)
-        menu_tiles, menu_palette, menu_maps = title_mod.menu(
-            skin, texts, renderer.database.font_id)
+        texts = title_menu["texts"]
+        menu_tiles = title_menu["tiles"]
+        menu_palette = title_menu["palette"]
+        menu_maps = title_menu["tilemaps"]
         # The image, compressed like the Game Over one, and with the menu's
         # colors below its own in the same stream: the whole CGRAM at once,
         # the menu's palette at the bottom because a 4-bit BG only reaches
@@ -804,10 +768,7 @@ def main():
              troop_pages.pages, len(troop_pages.where),
              len(troop_pages.bodies), len(troop_pages.messages.data),
              len(troop_pages.messages.texts)))
-    # The items the enemies of those troops drop can also reach the
-    # inventory: see `drop_items`.
-    slots_data["items"] = sorted(
-        set(items_rom) | drop_items(renderer.database, troops.ids))
+    slots_data["items"] = items_all
     compressed = compress_blocks(maps)
     report = emit(args.output, maps, args.start_index, args.hero_above, party,
                   window_data, title_data, slots_data,
@@ -824,6 +785,8 @@ def main():
     # index is the same `index + 1` the timer's glyphs were painted with
     # —`timer_digits`, in `rm2k-snes-map-sprites`—: the first one that has
     # that color.
+    from port import window as window_mod
+    skin = window_mod.skin(args.game_dir, renderer.database)
     timer_color_list = sorted(timer_colors_of(skin))
     masks = []
     for map_info in maps:

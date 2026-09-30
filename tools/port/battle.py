@@ -1,6 +1,6 @@
 """RM2k's turn-based battle, modeled with the same rules as the ROM.
 
-It is the sibling of `screens.py` for the battle: the formulas —damage,
+It is the sibling of `battle_screen.py` for the battle: the formulas —damage,
 hit, critical, variance, turn order, escape— and the turn machine live here,
 and the ROM copies them. Both sides doing the same math is what lets
 `rom/pruebas/rpgmaker/test_batalla.py` predict **the exact number** the

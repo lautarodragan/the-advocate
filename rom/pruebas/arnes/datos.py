@@ -9,7 +9,7 @@ Todo sale de `resources.GAME_DIR`, que es `ABL_GAME_DIR` si está puesta.
 
 **La base se lee una vez por proceso y se comparte**, y eso vale mientras
 nadie la modifique: ni las pruebas ni lo que llaman del conversor le
-escriben —`screens.equip` y el modelo de la pelea copian lo que toman—.
+escriben —`pantallas.equipar` y el modelo de la pelea copian lo que toman—.
 Antes cada prueba la leía de nuevo, así que una que le escribiera a la
 compartida sería un cambio de comportamiento, no de arnés.
 """
@@ -32,14 +32,6 @@ def base():
     """`RPG_RT.ldb`, ya leído."""
     from rpgmaker import lcf
     return lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
-
-
-@functools.lru_cache(maxsize=None)
-def skin():
-    """El System del juego, con el que se dibujan las ventanas de los
-    dibujos de Python contra los que se comparan las pantallas."""
-    from port import window
-    return window.skin(GAME_DIR, base())
 
 
 def maximos():

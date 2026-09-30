@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The picture of a `ShowPicture` on the console screen.
 
-It lives apart from `snes_convert.py` for the same reason as `title.py`: it
+It lives apart from `snes_convert.py` for the same reason as the title: it
 is not a map. It is a loose image that has to be put on the screen, and the
 only thing to decide is **exactly where each pixel lands and what color it
 is**.

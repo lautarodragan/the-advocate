@@ -13,9 +13,8 @@ the ROM's tables are emitted with (`mapdata.py`), the command codes a few
 scans look for (`game_scan.py`, `cases.py`), the registries the
 compiler's answer is read into (`Songs`, `Troops`, `Trigger`), the indices it
 answers (`VARIABLE_SLOT`, `SKILL_SLOT`, `PARTY_COMMON_EVENTS`), which picture
-takes the cartridge's place (`Pictures`), the escape tail `texts.py`
-rebuilds boxes around, and the models the game's tests predict the ROM with
-(`Encounters`, `key_value`, `PartyState`).
+takes the cartridge's place (`Pictures`), and the models the game's tests
+predict the ROM with (`Encounters`, `key_value`, `PartyState`).
 
 The whys of how each command compiles live next to the code that compiles
 it, in the crate: `tools/rm2k-snes/events/src/compile.rs` and its
@@ -74,10 +73,8 @@ SHOW_MESSAGE_2 = 20110
 # **Any other escape still does not compile**, and that is on purpose: the
 # three `\V` of the common events —the value of a variable inserted into the
 # text— require composing the text when opening it, which is something else.
-# Drawing them as two letters would show.
-ESCAPE = "\\"
-ESCAPE_PAUSE = "|"
-ESCAPE_CLOSE = "^"
+# Drawing them as two letters would show. The rule is the compiler's
+# `escape_tail`, and `rm2k-snes-text` reflows the boxes around the same one.
 
 # What a `\|` costs. **It is not one second**: it is the
 # `SetWaitForNonPrintable(61)` of `window_message.cpp`, with its comment next to
@@ -85,59 +82,6 @@ ESCAPE_CLOSE = "^"
 # is 61 and not 60, and that difference is exactly the kind of number that
 # cannot be written from memory.
 PAUSE_FRAMES = 61
-
-# How many pauses fit in the box's header. The most the game uses is three in a
-# row (`\|\|\|\^`, twice, on map 108); more than fifteen does not fit in the
-# high nibble and the page does not compile instead of lasting too little.
-PAUSES_MAX = 15
-
-
-def escape_tail(lines):
-    r"""The lines without their escape tail, how many pauses it has and
-    whether it closes on its own.
-
-    Across the 328 maps both escapes appear **always as a tail at the end of
-    the box's last line** —measured: 40 boxes, and not one with an escape in
-    the middle nor on a line other than the last—, so that is the only thing
-    accepted. One in the middle still does not compile, which is the honest
-    thing: with the window drawn all at once, a pause halfway through the text
-    cannot be modeled without making up how much text had been drawn.
-
-    The tail may carry spaces in between —it happens only once, in map 98's
-    `RunDirectorScene`, which writes `\| \| \| \^`— and it eats them: a space
-    at the end of a line does not draw a single pixel, so removing it does not
-    change the screen.
-
-    The compiler has the same rule, in its `messages.rs`: this copy is the
-    one `texts.py` rebuilds the boxes around, before the compiler sees them.
-    `rm2k-snes/events/tests/escapes.json` holds the two together.
-    """
-    lines = list(lines)
-    pauses = 0
-    auto_close = False
-    if lines:
-        text = lines[-1]
-        i = cut = len(text)
-        escapes = 0
-        while i > 0:
-            if i >= 2 and text[i - 2] == ESCAPE \
-                    and text[i - 1] in (ESCAPE_PAUSE, ESCAPE_CLOSE):
-                i -= 2
-                cut = i
-                escapes += 1
-            elif text[i - 1] == " ":
-                i -= 1
-            else:
-                break
-        if escapes:
-            tail = text[cut:]
-            pauses = tail.count(ESCAPE + ESCAPE_PAUSE)
-            auto_close = ESCAPE + ESCAPE_CLOSE in tail
-            lines[-1] = text[:cut]
-    if any(ESCAPE in t for t in lines) or pauses > PAUSES_MAX:
-        raise CannotCompile()
-    return tuple(lines), pauses, auto_close
-
 
 ROUTE_HERO = 10001
 ROUTE_THIS_EVENT = 10005                    # "this event", the page's owner
@@ -523,7 +467,7 @@ HEADER_AUTO_CLOSE = 0x08
 
 # The `OP_MESSAGE` offset in the game's block counts by four bytes, so the
 # block can be 256 KB with a 16-bit operand. It went by two from when the
-# texts were reflowed for the window (`port/texts.py`) until 2026-09-27, when
+# texts were reflowed for the window (`rm2k-snes-text`) until 2026-09-27, when
 # the main path of the world chapter went past 128 KB; the whole game is about
 # 161 KB. It costs a byte and a half of padding per box, on average, against
 # half a byte by two: step 3 was measured (half the padding, 192 KB, and a

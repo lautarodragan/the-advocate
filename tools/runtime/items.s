@@ -7,7 +7,7 @@
 ; `items_tiles`: each font character in two cells, in white and in gray, and
 ; the text —name and two lines of description per item— goes in ASCII in
 ; `item_texts`. Writing a letter is two tilemap words. The geometry comes
-; from `menus.py` and `render_items` is the reference.
+; from `rm2k-snes-screens`, whose `render` is the reference.
 ;
 ; The windows and the cursor —the System's bar— go on BG1, and belong to
 ; `screen_bank.s`: the BG2 text knows nothing about them.

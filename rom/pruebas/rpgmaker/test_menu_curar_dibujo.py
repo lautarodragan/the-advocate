@@ -22,7 +22,7 @@ son lo último que la pantalla de ítems pinta antes de abrir la elección.
 """
 
 from consola import TITULO_AIRE
-import datos
+import pantallas
 from dibujo import comparar_pantalla, diferencia
 from datos import maximos
 from menu import abrir
@@ -58,14 +58,10 @@ def usar_sobre_la_segunda(una, fila_del_item):
 
 
 def diferencia_con_la_eleccion(una, elegida, hp, sandwiches):
-    """Cuántos pixeles, a 15 bits, difiere la pantalla de `render_target`,
+    """Cuántos pixeles, a 15 bits, difiere la pantalla de `pantallas.objetivo`,
     con el sándwich y los que quedan de él al lado de "Owned Items"."""
-    from port import menus
-    from rpgmaker.resources import GAME_DIR
-    db, skin = datos.base(), datos.skin()
-    esperada = menus.render_target(skin, db, 4, (TALAN, ARDEN), elegida,
-                                      db.font_id, None, GAME_DIR, hp,
-                                      SANDWICH, sandwiches)
+    esperada = pantallas.objetivo(4, (TALAN, ARDEN), elegida, hp=hp,
+                                  item=SANDWICH, cantidad=sandwiches)
     return diferencia(una, esperada, "curar-eleccion")
 
 
@@ -188,14 +184,11 @@ def test_el_elixir_no_sirve_sobre_uno_en_pie(partida):
 def test_el_ultimo_elixir_sale_de_la_lista_al_volver(partida):
     """`Scene_Item::Continue` rehace la lista: el elixir, gastado, ya no está,
     y el cursor que estaba sobre él baja al que ahora ocupa su lugar."""
-    from port import menus
     una = en_los_items(partida, 0)
     usar_sobre_la_segunda(una, FILA_ELIXIR)
     una.tocar_cuadros("b", TITULO_AIRE)
-    db, skin = datos.base(), datos.skin()
     quedan = {SANDWICH: 2, VINO: 1, BOTAS: 1}
-    esperada = menus.render_items(skin, db, quedan, FILA_ELIXIR, 0,
-                                   db.font_id)
+    esperada = pantallas.items(quedan, FILA_ELIXIR, 0)
     comparar_pantalla(una, esperada,
                       que="la lista, al volver sin el elixir,")
 
@@ -204,7 +197,7 @@ def test_el_ultimo_elixir_sale_de_la_lista_al_volver(partida):
 
 def test_la_eleccion_se_ve_igual_al_volver_a_entrar(partida):
     """La elección entrando derecho desde la lista, y otra vez después de
-    volver con B, contra `render_target`: las dos tienen que ser la misma.
+    volver con B, contra `pantallas.objetivo`: las dos tienen que ser la misma.
 
     Lo que la rompía era la última fila de la lista, que acá son las botas, en
     gris: `slot_rect_upload` leía de `temp` los bytes por fila **en dieciséis

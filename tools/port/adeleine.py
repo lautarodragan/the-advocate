@@ -12,14 +12,12 @@ touches a pixel: see "`tools/snes/voodoo/` no decide colores" in
 **The decisions are made by `adeleine`**, a Rust binary on the PATH
 —`tools/snes/adeleine/`—, which this runs with `stage.run`: the colors go
 in a request, what was decided comes back. What stays here is the shape
-the converter wants them in —tuples, `Counter`s— and
-`luma_distance`, which is not a decision but the distance the callers
-look the nearest color up with, and is called too often to cross a
-process: see its comment.
+the converter wants them in: tuples, `Counter`s.
 
-Its users are `menus.py` and `scene.py`. A map's layers and characters,
-which used to be the rest, are `rm2k-snes-maps`'s since 2026-09-30, and it
-uses Adeleine as a library.
+Its user is `scene.py`. A map's layers and characters and the screens'
+faces, which used to be the rest, are `rm2k-snes-maps`'s and
+`rm2k-snes-screens`'s since 2026-09-30, and they use Adeleine as a
+library.
 
 Until 2026-09-17 it was called `pixeles.py` and also did the part that
 decides nothing —indexing a tile into its palette, trying its mirrored
@@ -40,20 +38,6 @@ COLORS_PER_PALETTE = 16
 USABLE_COLORS = COLORS_PER_PALETTE - 1
 
 BINARY = "adeleine"
-
-
-def luma_distance(a, b):
-    """Distance between colors, weighted as the eye perceives it: the same
-    function `adeleine` merges with —see `luma_distance` in its `merge.rs`,
-    which says why it is integer—.
-
-    It stays in Python because its callers do not ask for a decision but
-    for the nearest color of a palette, inside a `min`, for every color of
-    every character: tens of thousands of calls a build, where a process
-    each would cost minutes. It goes to Rust when they do.
-    """
-    return (30 * (a[0] - b[0]) ** 2 + 59 * (a[1] - b[1]) ** 2
-            + 11 * (a[2] - b[2]) ** 2)
 
 
 def _run(command, request):
