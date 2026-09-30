@@ -1,7 +1,10 @@
-"""RM2k's screen tint applied to a 15-bit color.
+"""The constants of RM2k's screen tint, for the ROM.
 
-It is easyrpg's `ToneBlit` math, brought to the console's five bits per
-channel. The ROM does the same math when it uploads the palette.
+The tint is easyrpg's `ToneBlit` math, brought to the console's five bits
+per channel. The ROM does it when it uploads the palette —see
+tools/runtime/tint.s—, and `mapdata` emits these for it. The same math on
+this side, which tones the cells of the battle animations, is `tint.rs` in
+`rm2k-snes-images`.
 """
 
 # The RM2k tint goes from 0 to 200 with 100 as neutral. The ROM stores it as

@@ -1,16 +1,13 @@
-"""What the converter asks `rm2k-render` to draw, and the game it reads.
+"""The game the converter reads.
 
-**`rm2k-render` draws**, a Rust binary on the PATH, like `lz2`: `draw` is
-the call the screens use —the faces, the System's windows and the
-`ShowPicture` pictures— and the battle's backdrops and battlers
-(`scene.py`); the battle animations have their own shape
-(`animation.draw`). `Renderer` holds the game the converter reads —its
-database, its map tree, where the pictures are looked up— and reads a map
-the way the converter keeps it.
+`Renderer` holds it —its database, its map tree, where the pictures are
+looked up— and reads a map the way the converter keeps it.
 
-A map's layers and the CharSets its events are drawn with are not asked
-from here: since 2026-09-30 `rm2k-snes-maps` draws them, with
-`rm2k-render` as a library, as part of converting the map.
+Nothing is drawn from here any more. A map's layers and the CharSets its
+events are drawn with are `rm2k-snes-maps`'s, the screens are
+`rm2k-snes-screens`', and the pictures, the battle's backdrops and
+battlers and its animations are `rm2k-snes-images`'; since 2026-09-30 all
+three draw with `rm2k-render` as a library.
 """
 
 import os

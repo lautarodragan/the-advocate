@@ -7,11 +7,13 @@ the only thing to decide is **exactly where each pixel lands and what color
 it is**. The sounds and flashes of the same animation are not here: those
 are `OP_ANIMATION` in `events.py`, and they exist since 2026-09-11.
 
-**RM2k's part of the drawing is `rm2k-render battle-animation`'s**, since
-2026-09-30: which cells each frame has, cut from the sheet, zoomed, faded,
-and where they go in the animation's box. What is left here is the port's:
-toning each cell —with the console's tint, see `_paint_frame`— and stacking
-them, and everything after that.
+**The drawing is `rm2k-snes-images animations`'s**, since 2026-09-30
+—see `by_numbers`—: RM2k's part —which cells each frame has, cut from the
+sheet, zoomed, faded, and where they go in the animation's box— with
+`rm2k-render` as a library, and the port's after it: toning each cell with
+the console's tint, stacking them, shrinking the whole into the box and
+bringing its colors down. What is left here is which animations, the box
+the ROM draws them in, and their bytes.
 
 The budget, which is where everything else comes from:
 

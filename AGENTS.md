@@ -97,6 +97,8 @@ port —ver `tools/README.md`—:
       adeleine/        Adeleine: qué colores se pierden y cómo se agrupan en paletas
       voodoo/          Voodoo: de una imagen a tiles, paletas y tilemap
       lz2/             el LC_LZ2 de Nintendo, con el que se comprimen los mapas
+      resample/        el LANCZOS de Pillow, bit por bit, con el que se escalan
+                       las imágenes
     tools/rm2k/        los de RPG Maker 2000, sin saber de la consola
       ditto/           lee y escribe sus formatos; como biblioteca, el único
                        lugar en Rust que lee el volcado
@@ -120,6 +122,9 @@ port —ver `tools/README.md`—:
                        reparto de las cajas al ancho de la ventana
       screens/         las pantallas: la ventana de mensajes, el título, las
                        ranuras, el menú, las pantallas de texto, End Game
+      images/          las imágenes: el título y el Game Over, la de
+                       `ShowPicture`, los fondos y battlers de la pelea y sus
+                       animaciones, escalados y con sus paletas
 
 Las capas sólo dependen hacia abajo —`rm2k-snes/` de las otras dos, y
 ésas de nada de las demás—, y lo cuida `tools/tests/test_layers.py`. Todos
@@ -161,16 +166,16 @@ mensaje; `tools/rm2k-snes/rm2k-snes-audio/` recibe el SoundFont por `SOUNDFONT`,
 y `tools/snes/protocol/`, `tools/snes/gunter/`, `tools/snes/voodoo/`, `tools/snes/lz2/`,
 `tools/snes/adeleine/`, `tools/rm2k/rules/`, `tools/rm2k/rm2k-render/`, `tools/rm2k-snes/battle/`,
 `tools/rm2k-snes/events/`, `tools/rm2k-snes/patches/`, los tres de los mapas y
-los dos de las pantallas no necesitan nada.
+los dos de las pantallas, `tools/snes/resample/` y `tools/rm2k-snes/images/`
+no necesitan nada.
 
 ### `tools/snes/voodoo/` no decide colores, y eso no se arregla
 
 `tools/snes/voodoo/` convierte una imagen **que ya entra**: recibe PNG indexados cuyos
 índices son entradas de CGRAM, y si la imagen rompe el formato, dice dónde y no
 la arregla. Qué colores se pierden y cómo se agrupan en paletas lo decide
-Adeleine, `tools/snes/adeleine/` —la pelea lo llama por
-`tools/port/adeleine.py`, y `rm2k-snes-maps` y `rm2k-snes-screens` como
-biblioteca—, que corre
+Adeleine, `tools/snes/adeleine/` —`rm2k-snes-maps`, `rm2k-snes-screens`
+y `rm2k-snes-images` lo usan como biblioteca—, que corre
 **antes**; lo que decidió de cada mapa queda como imágenes en
 `rom/build/<cartucho>/adeleine/`. La prueba para saber de qué lado
 va algo es si cambia un pixel de lo que se ve.

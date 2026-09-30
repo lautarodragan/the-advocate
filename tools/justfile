@@ -131,7 +131,7 @@ rules-test:
 
 # Adeleine: which colors a picture loses and how the ones left are grouped
 # into palettes, in Rust. It is what decides the colors Voodoo later
-# converts; see AGENTS.md. The converter calls it through `port/adeleine.py`.
+# converts; see AGENTS.md. The converter's stages use it as a library.
 #
 # Its tests generate their colors and tiles inside the test, and compare
 # against the hashes of what the Python it replaced gave for the same input

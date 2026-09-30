@@ -45,7 +45,7 @@ def compressed(path, first_color=0, cap=256, below=()):
 
     `first_color` and `cap` are those of `palette.convert`: by default the
     image takes all of CGRAM, from 0. Index 0 is also the PPU's backdrop
-    color, and `palette.reduce` leaves black there.
+    color, and the reduction leaves black there.
 
     `below` are colors that are not the image's and go in CGRAM right before
     its own —on the title, the menu's—: they travel in the same stream and

@@ -26,8 +26,10 @@ before:
   which with four 64-pixel-wide battlers was at 32 with no margin.
 
 The pictures as RM2k draws them —the backdrop opaque, the battler with its
-color key and turned by its `battler_hue`— come from `rm2k-render battle`,
-since 2026-09-30: see `_open`. Everything from there on is the console's.
+color key and turned by its `battler_hue`— are `rm2k-render`'s, and
+everything from there on is the console's: since 2026-09-30 both are done
+by `rm2k-snes-images`, which draws with `rm2k-render` as a library. See
+`backdrops` and `battlers`.
 
 ## How a battler is overlaid
 
@@ -153,9 +155,9 @@ The other way out was for the `.msu` to carry 4bpp too, "more quality within
 the same format"; but sixteen colors are the ceiling of 4bpp, so the quality
 would have nowhere to grow.
 
-The sixteen come from `adeleine.merge_least_visible`, the battlers' one,
-and not from `palette.reduce`, which is the one that builds the 96: reducir
-keeps the most used, and in a backdrop the sixteen most used are all from
+The sixteen come from `adeleine::merge_least_visible`, the battlers' one,
+and not from `adeleine::keep_most_used`, which is the one that builds the
+96: that one keeps the most used, and in a backdrop the sixteen most used are all from
 the floor and the walls —the green sign and the violet water turned gray—.
 Merging by what shows the least keeps the accents. The 96 did not change
 reducer because they are the bytes of the `.msu`, and with them its
@@ -227,8 +229,14 @@ def scale(value):
 
 def _file(game_dir, folder, name, rtp=False):
     """The file of a backdrop or a battler, or None if the game does not
-    have it. With `rtp`, if the game does not have it, it is looked up in
-    the RTP, like RM2k; only the backdrops ask for it —see `_open`—."""
+    have it.
+
+    With `rtp`, if the game does not have it, it is looked up in the RTP,
+    like RM2k. Only the backdrops ask for it: thirteen of the game's are
+    from the RTP —`Cave1`, `Castle`, the terrain ones—, and until 2026-09-27
+    it was not needed because the ROM's three are the game's. The battlers
+    still do not look there, so as not to change which ones get in without
+    looking at it."""
     from rpgmaker import resources
     places = [game_dir] + ([resources.RTP_DIR] if rtp else [])
     path = resources.find_resource(places, folder, name,
