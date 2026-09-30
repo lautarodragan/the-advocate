@@ -29,6 +29,9 @@ Indices are kept to the lower half of CGRAM. Sprites always use palettes 8 to
 """
 
 import collections
+import json
+import os
+import shutil
 
 import numpy
 
@@ -322,36 +325,22 @@ def _layers_version():
     """Which version of the code produced whatever is stored under `layers`.
 
     It is the sources that take part in drawing or converting, plus the
-    programs that aren't sources of this tree:
+    program that isn't a source of this tree:
 
-    * **the `rm2k-render` binary** draws the layers and expands the
-      ChipSet, and `render/render_map.py` is what hands it the map and reads
-      back what it drew. Until 2026-09-20 they weren't needed, because the
-      key was the already drawn pixels: changing the drawing changed the key
-      by itself. Since the key comes from the inputs, the only way for a change
-      in the drawing to invalidate what is stored is this one: recompiling
-      the binary without touching any `.py` has to invalidate it.
-      `rpgmaker/resources.py` goes with them because it is where `render_map`
-      gets how it finds the ChipSet, and `common/project.py` because it is
-      where the directories it searches in come from;
-    * **the `adeleine` binary** decides which colors are lost and how they
-      are grouped, and `port/adeleine.py` is what hands it the colors and
-      applies what it decided: recompiling it without touching any `.py`
-      has to invalidate what is stored. `rpgmaker/rm2k.py`
-      has the constants of the split and of the animated families,
-      `port/snes_format.py` the sizes of a tile and of a palette, and this
-      file does the rest. `port/snes_convert.py` is still in the list
-      from before 2026-09-29, when all of this lived there: taking it out
-      is a decision of its own, and it would stop a change in `main` from
-      invalidating what is stored;
-    * **the Voodoo binary**, which is the one that emits the tiles:
-      recompiling it without touching any `.py` has to invalidate what is
-      stored;
-    * **the Pillow version**, which reads back the layers `rm2k-render`
-      wrote and is what the conversion works on. Until 2026-09-29 it also
-      decoded the ChipSet and composed the tiles; reading a PNG is not
-      supposed to change between versions, but nothing proves it, and it
-      costs nothing to keep.
+    * **the `rm2k-snes-maps` binary** draws the layers —with `rm2k-render`
+      as a library—, decides which colors are lost and how they are grouped
+      —Adeleine, also a library— and cuts the tiles —Voodoo—: recompiling
+      it without touching any `.py` has to invalidate what is stored. Until
+      2026-09-30 those were three binaries of their own and Pillow, and
+      this list carried each one's hash;
+    * `render/render_map.py`, which is where the search directories the
+      stage gets come from, with `rpgmaker/resources.py` and
+      `common/project.py`; and this file, which asks the stage and reads its
+      answer. `port/adeleine.py`, `port/snes_format.py` and
+      `rpgmaker/rm2k.py` no longer take part, and `port/snes_convert.py`
+      has not since 2026-09-29: they stay in the list because taking one
+      out is a decision of its own, and costs only a cold cache when they
+      change.
 
     What does **not** go in, on purpose: `rpgmaker/lcf.py`. What it reads from
     the dump —the two layers, the size, the ChipSet's passability— goes in by
@@ -360,7 +349,6 @@ def _layers_version():
     """
     global _LAYERS_VERSION
     if _LAYERS_VERSION is None:
-        import PIL
         from common import disk_cache
         _LAYERS_VERSION = (disk_cache.version_of("port/snes_convert.py",
                                                  "port/map_layers.py",
@@ -370,20 +358,32 @@ def _layers_version():
                                                  "render/render_map.py",
                                                  "rpgmaker/resources.py",
                                                  "common/project.py")
-                           + render_map.version()
-                           + adeleine.version()
-                           + tiles_bin.version()
-                           + " Pillow " + PIL.__version__)
+                           + _stage_version())
     return _LAYERS_VERSION
 
 
-def converted_layers(renderer, game_map):
+def _stage_version():
+    """The installed stage's hash: recompiling it without touching any
+    `.py` has to invalidate what is stored."""
+    import hashlib
+    from port import stage
+    path = shutil.which(STAGE)
+    if path is None:
+        raise SystemExit(stage.MISSING % (STAGE, "maps"))
+    with open(path, "rb") as f:
+        return hashlib.sha256(f.read()).hexdigest()
+
+
+def converted_layers(renderer, game_map, baked=None):
     """The map's layers converted, remembered on disk. `None` if there is no
-    ChipSet.
+    ChipSet. `baked` are the events `baking` painted into its upper layer,
+    `{event: (cell, tile)}`: `game_map` already carries them, and the stage
+    that converts gets them as cells.
 
     It is the most expensive part of the converter end to end: **drawing** the
-    two layers and the drawings of their animations with Pillow, and then
-    quantizing them, cutting them into tiles and splitting CGRAM.
+    two layers and the drawings of their animations, and then quantizing
+    them, cutting them into tiles and splitting CGRAM. Since 2026-09-30 all
+    of it is `rm2k-snes-maps layers`'s —see `_stage_layers`—.
 
     The key comes from **the inputs** —the map, its ChipSet and the version of
     the code that draws and converts— and not from the result. Until
@@ -404,23 +404,80 @@ def converted_layers(renderer, game_map):
     """
     from common import disk_cache
     inputs = renderer.layer_inputs(game_map)
-    on_disk = None
-    if inputs is not None:
-        on_disk = disk_cache.key(_layers_version(), *inputs)
-        if on_disk in _layers_in_memory:
-            return _layers_in_memory[on_disk]
-        done = disk_cache.read("capas", on_disk)
-        if done is not None:
-            _layers_in_memory[on_disk] = done
-            return done
-    base, above_img, variants = renderer.animated_layers(game_map)
-    if base is None:
+    if inputs is None:
         return None
-    done = _convert_layers(base, above_img, variants)
-    if on_disk is not None:
-        disk_cache.write("capas", on_disk, done)
+    on_disk = disk_cache.key(_layers_version(), *inputs)
+    if on_disk in _layers_in_memory:
+        return _layers_in_memory[on_disk]
+    done = disk_cache.read("capas", on_disk)
+    if done is not None:
         _layers_in_memory[on_disk] = done
+        return done
+    done = _stage_layers(renderer, game_map, baked)
+    disk_cache.write("capas", on_disk, done)
+    _layers_in_memory[on_disk] = done
     return done
+
+
+STAGE = "rm2k-snes-maps"
+
+# The families by the name the stage gives them.
+_FAMILY_NAMES = {"water": "agua", "animated": "animado"}
+
+
+def _stage_layers(renderer, game_map, baked):
+    """`rm2k-snes-maps layers` on this map, and its answer in the shape the
+    rest of the converter reads: what `_convert_layers` returned."""
+    from port import compiler, stage
+    dump = compiler.dump_of(renderer.game_dir)
+    flags = ["--data", dump]
+    for directory in renderer.search_dirs:
+        flags += ["--search-dir", os.path.abspath(directory)]
+    written = stage.run(STAGE, "maps", "layers", {
+        "map": game_map.map_id,
+        "map_files": compiler.map_files(dump),
+        "chipset_files": compiler.chipset_files(dump),
+        "baked": [list(cell) for cell in sorted((baked or {}).values())],
+    }, *flags, raw=True)
+    answer = json.loads(written["layers.json"])
+    bg, above = answer["background"], answer["above"]
+
+    def merges(listed):
+        return [(tuple(v), tuple(t), n) for v, t, n in listed]
+
+    animation = {}
+    for run in bg["runs"]:
+        animation[_FAMILY_NAMES[run["family"]]] = {
+            "base": run["base"], "tiles": run["tiles"],
+            "dibujos": [written[name] for name in run["drawings"]]}
+    pictures, above_png = [], None
+    for picture in answer["pictures"]:
+        name, png = picture["name"], written[picture["file"]]
+        if name == "above":
+            above_png = png
+            continue
+        if name == "background":
+            name = "fondo"
+        else:
+            family, drawing = name.rsplit("-", 1)
+            name = "%s-%s" % (_FAMILY_NAMES[family], drawing)
+        pictures.append((name, png))
+    stats = {
+        "colores": bg["colors"],
+        "usados": bg["used"],
+        "presupuesto": bg["budget"],
+        "fusionados": len(bg["merges"]),
+        "tiles": bg["tiles"],
+        "celdas": bg["cells"],
+        "animacion": animation,
+        "imagenes": pictures,
+        "fusiones": {"fondo": merges(bg["merges"]),
+                     "encima": merges(above["merges"])},
+    }
+    return ((written["background.bin"], bg["cgram"], bg["tilemap"], stats),
+            (written["above.bin"], written["above-cgram.bin"],
+             above["tilemap"], above["first"], len(above["merges"]),
+             above_png))
 
 
 # The layers already converted in this run, keyed by the disk cache key.

@@ -80,7 +80,7 @@ def _map_layers(map_id):
             baked = bakeable_events(renderer, game_map)
             if baked:
                 bake_into_map(game_map, baked)
-                converted_layers(renderer, game_map)
+                converted_layers(renderer, game_map, baked)
     except BaseException:
         # If it fails, let it fail in `convert_map`, which can say why.
         pass

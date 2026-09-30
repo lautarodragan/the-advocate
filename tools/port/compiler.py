@@ -53,6 +53,15 @@ def map_files(dump):
     return {str(m): os.path.abspath(p) for m, p in sorted(out.items())}
 
 
+def chipset_files(dump):
+    """The ChipSets the project adds to the database, by the file each one
+    is in: `lcf.Database`'s rule, which adds them only to this game's."""
+    if not _this_game(dump):
+        return {}
+    return {str(m): os.path.abspath(p)
+            for m, p in sorted(fork.chipset_files().items())}
+
+
 _BOXES = {}
 
 

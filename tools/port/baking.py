@@ -223,7 +223,7 @@ def _bake_unless_cgram_moves(renderer, game_map, map_id, without_baked,
     CGRAM split didn't move, and otherwise those of `without_baked`, with none.
     See `_same_cgram_split`."""
     bake_into_map(game_map, baked)
-    with_baked = converted_layers(renderer, game_map)
+    with_baked = converted_layers(renderer, game_map, baked)
     if _same_cgram_split(without_baked, with_baked):
         return with_baked, baked
     print("  map %d: baking %d event(s) moved its CGRAM split, "

@@ -31,7 +31,7 @@ export PATH := if path_exists(local_tools / "bin") == "true" { local_tools / "bi
 # `*-test` recipes run `cargo test` standing in the project, which tests
 # only that one, and `cargo install --locked --path` takes the workspace's
 # lock.
-rust_projects := "protocol gunter ditto rules adeleine voodoo lz2 rm2k-render project cartridge rm2k-snes-audio battle events"
+rust_projects := "protocol gunter ditto rules adeleine voodoo lz2 rm2k-render project cartridge rm2k-snes-audio battle events map-background maps"
 
 # The directories the projects live in, one per layer: each project is
 # `<layer>/<name>`, and the recipes find it by its name.
@@ -213,6 +213,16 @@ battle-test:
 events-test:
   cd rm2k-snes/events && cargo test
 
+# rm2k-snes-maps: a game's maps as the cartridge carries them —today, a
+# map's two background layers—, which the converter calls; see
+# `port/map_layers.py`. The work is `map-background`'s, a library.
+#
+# Their tests build a small game and a ChipSet inside the test: they need no
+# game.
+maps-test:
+  cd rm2k-snes/map-background && cargo test
+  cd rm2k-snes/maps && cargo test
+
 # --- Installation ----------------------------------------------------------
 # The Rust projects, in `snes/`, `rm2k/` and `rm2k-snes/`, are separate
 # projects, and the port consumes them **from the PATH**, the way it
@@ -324,6 +334,6 @@ _install root *projects:
 # `.local-tools/bin/` if it is there, otherwise the global one.
 which:
   #!/usr/bin/env sh
-  for x in protocol gunter ditto adeleine voodoo lz2 rm2k-render rm2k-snes-cartridges rm2k-snes-assemble rm2k-snes-space rm2k-snes-convert rm2k-snes-patches rm2k-snes-msu rm2k-snes-volume-ceilings rm2k-snes-battle rm2k-snes-events abl-entregar; do
+  for x in protocol gunter ditto adeleine voodoo lz2 rm2k-render rm2k-snes-cartridges rm2k-snes-assemble rm2k-snes-space rm2k-snes-convert rm2k-snes-patches rm2k-snes-msu rm2k-snes-volume-ceilings rm2k-snes-battle rm2k-snes-events rm2k-snes-maps abl-entregar; do
     printf '%-26s %s\n' "$x" "$(command -v "$x" || echo missing)"
   done
