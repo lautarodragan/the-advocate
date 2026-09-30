@@ -25,8 +25,9 @@ compilador.
 """
 
 from port import battle as modelo
-from port import events
+from port import compiler, events
 from port import rules
+from rpgmaker.resources import GAME_DIR
 
 from batalla import (Pelea, mensaje_en_pantalla, modelo_de, paginas,
                      primera_pagina)
@@ -113,6 +114,13 @@ def turno_contando(una, pelea, ordenes, tope=3000, cada_cuadro=None):
 
 # --- lo que las pruebas suponen del LDB -------------------------------------
 
+def disparadores(tropa):
+    """{página: disparador} de las páginas de la tropa que entran al
+    cartucho, como las compila `rm2k-snes-events`: lo que la pelea lee para
+    saber cuándo corre cada una."""
+    return compiler.troop_triggers(compiler.dump_of(GAME_DIR), tropa)
+
+
 def test_las_tropas_son_las_que_se_espera():
     """Si el juego cambiara, los casos de abajo pasarían por otro camino."""
     base = datos.base()
@@ -123,10 +131,10 @@ def test_las_tropas_son_las_que_se_espera():
     assert [(p.condition["enemy_id"], p.condition["enemy_hp_max"])
             for p in llaman] == [(0, 60), (0, 30)]
     # Y la del despegue, en el turno 1: `turn_b` es la base.
-    despegue = [p for p in base.troops[TROPA_AGENTES].pages
+    despegue = [k for k, p in enumerate(base.troops[TROPA_AGENTES].pages)
                 if any(c.code == events.SHAKE_SCREEN for c in p.commands)]
     assert len(despegue) == 1
-    d = events.troop_trigger(despegue[0])
+    d = disparadores(TROPA_AGENTES)[despegue[0]]
     assert (d.turn_base, d.turn_mult) == (1, 0)
 
 
@@ -138,9 +146,7 @@ def test_la_condicion_de_turno_es_la_de_easyrpg():
     assert [t for t in range(10) if modelo._turns(t, 0, 0)] == [0]
     assert [t for t in range(10) if modelo._turns(t, 1, 3)] == [1, 4, 7]
     assert [t for t in range(10) if modelo._turns(t, 0, 2)] == [0, 2, 4, 6, 8]
-    base = datos.base()
-    primera = base.troops[TROPA_LAZER].pages[0]
-    d = events.troop_trigger(primera)
+    d = disparadores(TROPA_LAZER)[0]
     assert (d.turn_base, d.turn_mult, d.actor) == (1, 3, TALAN)
 
 

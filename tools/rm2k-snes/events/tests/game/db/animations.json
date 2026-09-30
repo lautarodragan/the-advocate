@@ -1,0 +1,78 @@
+[
+ {
+  "id": 1,
+  "name": "Slash",
+  "animation_name": "Sword",
+  "large": false,
+  "scope": 0,
+  "position": 1,
+  "frames": [
+   {
+    "id": 1,
+    "cells": []
+   },
+   {
+    "id": 2,
+    "cells": []
+   },
+   {
+    "id": 3,
+    "cells": []
+   },
+   {
+    "id": 4,
+    "cells": []
+   }
+  ],
+  "timings": [
+   {
+    "id": 2,
+    "frame": 2,
+    "se": {
+     "name": "",
+     "volume": 100,
+     "tempo": 100,
+     "balance": 50
+    },
+    "flash_scope": 1,
+    "flash_red": 31,
+    "flash_green": 8,
+    "flash_blue": 0,
+    "flash_power": 15,
+    "screen_shake": 0
+   },
+   {
+    "id": 1,
+    "frame": 1,
+    "se": {
+     "name": "Slash1",
+     "volume": 90,
+     "tempo": 100,
+     "balance": 50
+    },
+    "flash_scope": 0,
+    "flash_red": 31,
+    "flash_green": 31,
+    "flash_blue": 31,
+    "flash_power": 31,
+    "screen_shake": 0
+   },
+   {
+    "id": 3,
+    "frame": 3,
+    "se": {
+     "name": "(OFF)",
+     "volume": 100,
+     "tempo": 100,
+     "balance": 50
+    },
+    "flash_scope": 2,
+    "flash_red": 40,
+    "flash_green": -2,
+    "flash_blue": 10,
+    "flash_power": 40,
+    "screen_shake": 0
+   }
+  ]
+ }
+]

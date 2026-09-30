@@ -11,10 +11,11 @@ import os
 import pytest
 
 from port import event_opcodes
-from port import events
-from rpgmaker import lcf
+from port import compiler, events
+from rpgmaker import lcf, rm2k
 from rpgmaker.resources import GAME_DIR
 import cartuchos
+import datos
 import tanda
 
 
@@ -74,32 +75,26 @@ def test_la_entrada_k_de_la_tabla_salta_al_manejador_del_opcode_k(nombre):
 
 
 def paginas_del_juego():
-    """Todas las páginas disparables de los 328 mapas, ya compiladas."""
-    # **Todos** los índices que llena el conversor antes de compilar, y no sólo
-    # el de variables: son globales de `events`, así que con uno solo las
-    # páginas que compilan dependían de qué otra prueba había corrido antes en
-    # el mismo proceso, y con xdist eso es el reparto.
-    for indexar in (events.index_variables, events.index_animations,
-                    events.index_common_events, events.index_battle_audio,
-                    events.index_terms, events.index_actors,
-                    events.index_skills):
-        indexar(GAME_DIR)
-    for nombre in sorted(os.listdir(GAME_DIR)):
-        if not (nombre.startswith("Map") and nombre.endswith(".lmu")):
-            continue
-        game_map = lcf.Map(os.path.join(GAME_DIR, nombre))
-        del_mapa = events.MapEvents(game_map)
-        for ev in game_map.events:
+    """Todas las páginas disparables de los 328 mapas, ya compiladas: cada
+    una sola, en un cartucho con todos. Es la primera llamada del compilador
+    —ver `compiler.scan`—, que arma los índices del juego entero antes de
+    compilar la primera."""
+    todo = datos.todo_el_juego()
+    for entrada in todo["maps"]:
+        mapa = entrada["id"]
+        game_map = lcf.Map(os.path.join(GAME_DIR, "Map%04d.lmu" % mapa))
+        compiladas = compiler.compiled_pages(todo, mapa)
+        for e, ev in enumerate(game_map.events):
             for numero, page in enumerate(ev.pages):
-                if page.trigger not in events.TRIGGERS \
-                        or not events.can_trigger(page):
+                # Las que la ROM sabe disparar: las cuatro, y la de tocar
+                # sólo en otra capa que la del héroe.
+                if page.trigger not in events.TRIGGERS or (
+                        page.trigger == events.TRIGGER_TOUCH_HERO
+                        and page.layer == rm2k.LAYER_SAME):
                     continue
-                codigo = events.compile_page(
-                    page, lambda m: 0, events.Messages(),
-                    del_mapa.for_event(ev.id), events.Songs(), events.Graphics(),
-                    events.Pictures(GAME_DIR))
+                codigo = compiladas.get((e, numero))
                 if codigo:
-                    yield nombre, ev.id, numero, codigo
+                    yield "Map%04d" % mapa, ev.id, numero, codigo
 
 
 @pytest.mark.skipif(not os.path.isdir(GAME_DIR),

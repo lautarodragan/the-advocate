@@ -41,9 +41,13 @@ one in its own row or above.
                  map_layers, baking, sprites, obj_extras, vram, blocks,
                  message_window, battle_scenes, battle_animations,
                  music, mapdata, map_record, materials, and stage, which
-                 runs the parts that are programs of their own; the
-                 docstring of snes_convert says what each one is), and
-                 events, event_opcodes, battle, experience, screens, menus,
+                 runs the parts that are programs of their own, and
+                 compiler, what goes into the event compiler's two calls
+                 and what comes back; the docstring of snes_convert says
+                 what each one is), and events —what the converter keeps of
+                 the event compiler: the constants, the registries its
+                 answer is read into, the models the tests use—,
+                 event_opcodes, battle, experience, screens, menus,
                  title, picture, window, font, scene, animation, texts,
                  adeleine, tiles_bin, compress, fullscreen, end_game,
                  msu_data, patches; and beneath all of them, because they
@@ -88,6 +92,9 @@ have layers of their own, one folder each:
                  level per actor, each map's random encounters—; the
                  converter runs it as a stage, through `port/stage.py`,
                  and its README says what shape a stage has
+      events/    `rm2k-snes-events`: the event compiler —a game's event
+                 pages to the bytecode the ROM runs—; the converter calls
+                 it twice, through `port/compiler.py`
 
 `rm2k-snes/` may depend on the other two; `snes/` and `rm2k/` on nothing
 outside themselves —not on each other, and not on `rm2k-snes/`—. So either
@@ -119,6 +126,7 @@ time but are still dependencies, there is no import cycle among the `.py`
 files of `tools/`. Inside `port/`, the ones at the bottom are those that
 import nothing from the port; above them, those that ask another for
 something —`battle` from `events`, `screens` from `menus` and `events`,
+`game_scan`, `sprites` and `mapdata` from `compiler`,
 `title` and `menus` from `palette`—; and on top of everything `snes_convert`,
 which uses all of them. The parts `snes_convert` was split into import
 from each other in one direction —`map_convert` and `mapdata` on top,
@@ -167,8 +175,8 @@ and next to them the ones that are Rust binaries —`rm2k-snes-cartridges`,
 `rm2k-snes-assemble` and `rm2k-snes-space`, from `rm2k-snes/cartridge/`, which find
 the runtime through the checkout they were installed from; and
 `rm2k-snes-msu` and `rm2k-snes-volume-ceilings`, from
-`rm2k-snes/rm2k-snes-audio/`; and `rm2k-snes-battle`, from
-`rm2k-snes/battle/`—.
+`rm2k-snes/rm2k-snes-audio/`; `rm2k-snes-battle`, from
+`rm2k-snes/battle/`; and `rm2k-snes-events`, from `rm2k-snes/events/`—.
 
 The reason for the names is in `tools/justfile`. A new one is added in
 `_install`, and the `.py` finds its packages by resolving the symlink with

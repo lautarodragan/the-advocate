@@ -4,12 +4,17 @@ Cada página de evento que se puede compilar viaja en el cartucho como
 **bytecode**, y ese bytecode tiene tres dueños que no se pisan:
 
     tools/snes/protocol/events.toml  lo declara: cada opcode, su número y los bytes que lleva
-    tools/port/events.py             lo emite: `_compilar`, un caso por comando de RM2k
+    tools/rm2k-snes/events/          lo emite: `rm2k-snes-events`, en Rust;
+                                     `compile_command`, un caso por comando de RM2k
     tools/runtime/interpreter*.s     lo ejecuta: `run_code` y un `.proc op_*` por opcode
 
-De `tools/snes/protocol/events.toml` salen generados `tools/port/event_opcodes.py` y
-`tools/runtime/event_opcodes.inc`; ver `tools/snes/protocol/README.md`, que está en inglés porque
-ahí adentro no se sabe nada de este juego. **Un opcode nuevo se declara ahí y en
+De `tools/snes/protocol/events.toml` salen generados `tools/port/event_opcodes.py`,
+`tools/rm2k-snes/events/src/opcodes.rs` y `tools/runtime/event_opcodes.inc`; ver
+`tools/snes/protocol/README.md`, que está en inglés porque ahí adentro no se sabe
+nada de este juego. El compilador está en inglés por lo mismo, y su README dice
+qué recibe y qué contesta; el conversor lo llama dos veces, por
+`tools/port/compiler.py`. Hasta el 2026-09-29 era `tools/port/events.py`, que
+quedó con las constantes y los modelos que leen los demás. **Un opcode nuevo se declara ahí y en
 ningún otro lado**: antes el número lo elegía el compilador y le llegaba al
 intérprete adentro de `mapdata.inc`, y así dos ramas eligieron el mismo sin que
 git viera nada.
@@ -25,7 +30,7 @@ eslabón por opcode, y era el punto donde chocaban dos ramas que agregaban uno
 cada una.
 
 **Una página se emite sólo si todos sus comandos se pueden ejecutar.**
-`compile_page` corta con `CannotCompile` y el evento se queda sin código:
+`compile_page` corta —`Stop::Cannot`— y el evento se queda sin código:
 ejecutar la mitad de un script dejaría al juego en un estado que no existe, y la
 comparación no lo vería: la golden es una captura de la propia ROM. Por lo
 mismo, un evento con una condición que no sabemos evaluar queda entero afuera:
@@ -72,11 +77,11 @@ entere. El porqué de cada mecánica va en el comentario de su rutina.
 | Hablarle a un evento con la tecla de acción | `try_action`, `queue_by_action` | — |
 | Una página esperando turno es un bit por evento, no una cola | `mark_waiting` | — |
 | Qué página está activa, congelada hasta el refresco | `pick_pages`, `apply_pages` | — |
-| Las rutas propias de la página, y la velocidad que traen | `page_routes`, `animate_ev_route` | `own_route` |
+| Las rutas propias de la página, y la velocidad que traen | `page_routes`, `animate_ev_route` | `route::own`, en el compilador |
 | La frecuencia de la ruta, y encarar al héroe | `step_route`, `toward_hero`, `after_step`, `after_turn` | `wait_after_step`, `wait_after_turn` |
-| La frecuencia se sube y se baja a mitad de una ruta (las órdenes 30 y 31) | `step_route` | `min_frequency` |
+| La frecuencia se sube y se baja a mitad de una ruta (las órdenes 30 y 31) | `step_route` | `route::min_frequency`, en el compilador |
 | Las diagonales, y hacia dónde dejan mirando | `cell_allowed_diag`, `face_diagonal` | — |
-| Cambiar el gráfico a mitad de una ruta (la orden 34) | `load_route_graphics`, `refresh_npc` | `Graphics` |
+| Cambiar el gráfico a mitad de una ruta (la orden 34) | `load_route_graphics`, `refresh_npc` | `Graphics`, en el compilador |
 | La colisión con los eventos | `cell_blocked`, `event_crossable` | — |
 | El gráfico sigue a la página, y el tile manda sobre el terreno | `page_graphic`, `pass_with_event`, `fit_npc` | `drawable_npcs` |
 | Los eventos dibujados con un tile del chipset | `load_npcs` | `drawable_npcs`, `Charsets` en `tools/render/render_map.py` |
@@ -84,7 +89,7 @@ entere. El porqué de cada mecánica va en el comentario de su rutina.
 | El fundido de los teletransportes, con el mapa cargando adentro del negro | `start_fade`, `fade_tick` | `fade_ramp`, y las constantes `FADE_*` |
 | El tope de teletransportes encadenados | `JUMPS_MAX` y sus usos | lo cobra `rom/pruebas/rpgmaker/test_saltos.py` |
 | La pantalla se prende en el vblank y en ningún otro lado | `flush_video` | — |
-| La ventana de mensaje, clavada abajo por HDMA | `build_hdma`, `msg_start`, `msg_ptr_next` | `tools/port/window.py`, `Messages` |
+| La ventana de mensaje, clavada abajo por HDMA | `build_hdma`, `msg_start`, `msg_ptr_next` | `tools/port/window.py`, y `Messages` en el compilador |
 | El texto compuesto en caliente, con los glifos ya pre-renderizados | `message_tick`, `compose_char`, `prime_line` | `font_prerender` en `tools/port/message_window.py` |
 | El arranque dura siempre lo mismo | `BOOT_FRAMES` | lo corre `Partida` en `rom/pruebas/arnes/consola.py` |
 | Los cuadros perdidos se cuentan | `count_lost` | los lee `Partida.cuadros_perdidos` de la WRAM |

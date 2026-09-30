@@ -11,8 +11,10 @@ one of its own" carried those to all its destinations instead of what was
 playing.
 
 It is built by hand, without a ROM: the song table of five maps shaped like
-the game's. What the pages compile —`Songs.jump` and `Songs.note_exit`— is
-covered by `test_a_teleport_notes_the_song_it_carries`.
+the game's. What the pages note while they compile —which song each jump
+carries, which songs are exit ones— is the compiler's, and its tests cover
+it: `a_teleport_notes_the_song_it_carries` in
+`tools/rm2k-snes/events/src/compile.rs`.
 """
 
 from port import events                                      # noqa: E402
@@ -86,25 +88,3 @@ def test_a_separate_song_does_not_leave_its_map():
     assert (2, V) in _inheritance(temas, 3)
     herencia = _inheritance(temas, 3, apartes=[[], [V], []])
     assert (2, V) not in herencia and (2, G) in herencia
-
-
-def test_a_teleport_notes_the_song_it_carries():
-    """What `inherited_songs` reads is noted by the page when it compiles: the
-    jump right after a `PlayBGM` takes that song along, and the one that is
-    not, None."""
-    temas = events.Songs()
-    temas.names = ["K"]
-    temas.current_map = 0
-
-    class Cmd:
-        def __init__(self, code, parameters=(), string=""):
-            self.code, self.parameters, self.string = code, list(parameters), \
-                string
-    bgm = [None, [], []]
-    for cmd in (Cmd(events.TELEPORT, [20, 1, 1]),
-                Cmd(events.PLAY_BGM, [0, 100, 100, 50], "K"),
-                Cmd(events.TELEPORT, [30, 1, 1])):
-        events._follow_exit(cmd, bgm, temas,
-                            lambda mapa: {20: 1, 30: 2}.get(mapa),
-                            False)
-    assert bgm[2] == [(1, None), (2, 0)]

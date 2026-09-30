@@ -227,6 +227,7 @@ fn everything_that_builds_the_rom_is_in_the_fingerprint() {
         "rm2k-render",
         "rm2k-snes-audio",
         "rm2k-snes-battle",
+        "rm2k-snes-events",
         "rm2k-snes-assemble",
     ] {
         let path = bin.join(tool);
@@ -245,6 +246,7 @@ fn everything_that_builds_the_rom_is_in_the_fingerprint() {
     assert!(files.contains(&bin.join("rm2k-render")));
     assert!(files.contains(&bin.join("rm2k-snes-audio")));
     assert!(files.contains(&bin.join("rm2k-snes-battle")));
+    assert!(files.contains(&bin.join("rm2k-snes-events")));
     assert!(files.contains(&dir.join("rm2k-snes.toml")));
     assert!(files.contains(&dir.join("patches/manual/nuevos/Map0900.json")));
     // The real runtime too: the fingerprint of the cartridges reads it.

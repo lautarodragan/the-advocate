@@ -203,7 +203,7 @@ def cuadro_de_texto(cartucho, renglon):
     `.sym` más los bytes son las dos cosas que la ROM misma usa.
 
     El bloque se recorre desde el principio, cuadro por cuadro, con el formato
-    que emite `events.message_bytes` y que lee `msg_start`: un byte de
+    que emite el compilador de eventos y que lee `msg_start`: un byte de
     cabecera con los renglones en los tres bits de abajo, y cada renglón con
     su largo delante. Cada cuadro arranca en un múltiplo del paso, así que
     entre uno y otro puede haber relleno, y se saltea. Se para al primer byte

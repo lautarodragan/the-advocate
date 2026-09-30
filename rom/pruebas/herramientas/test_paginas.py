@@ -1,14 +1,16 @@
-"""Las tablas de páginas, del lado de Python: lo que la ROM va a leer, así que
-conviene mirar acá que digan lo que tienen que decir.
+"""Las tablas de páginas: lo que la ROM va a leer, así que conviene mirar
+acá que digan lo que tienen que decir.
 
-No corre ninguna ROM. Es la red para las decisiones de `map_pages` que
-no cambian un pixel por sí solas pero deciden qué página está activa.
+No corre ninguna ROM. Es la red para las decisiones del compilador
+—`rm2k-snes-events`, al que se le pregunta por `port/compiler.py`— que no
+cambian un pixel por sí solas pero deciden qué página está activa.
 """
 
 import os
 import re
 
-from port import events
+from datos import pagina_de
+from port import compiler, events
 # Por los ganchos que pone en `lcf` al importarse: los mapas se leen como
 # los lee el conversor.
 from port import snes_convert                            # noqa: F401
@@ -17,14 +19,24 @@ from rpgmaker import lcf
 from rpgmaker import rm2k
 from rpgmaker.resources import GAME_DIR
 
+DUMP = compiler.dump_of(GAME_DIR)
+
 
 def paginas_de(map_id, evento_id):
+    """Las páginas del evento como las contesta la primera llamada del
+    compilador en un cartucho de ese mapa solo: con un bloque de textos
+    propio y sin temas."""
     game_map = lcf.Map(os.path.join(GAME_DIR, "Map%04d.lmu" % map_id))
-    indices = {map_id: 0}
     numero = [n for n, e in enumerate(game_map.events) if e.id == evento_id][0]
-    return [p for p in events.map_pages(game_map, indices.get,
-                                        events.Messages())
+    registros = compiler.map_entry(compiler.scan(DUMP, [map_id]),
+                                   map_id)["pages"]
+    return [p for p in compiler.pages(registros, game_map)
             if p["event"] == numero]
+
+
+def ranuras_del_juego(extra=()):
+    """{variable: ranura} del juego entero, con `extra`."""
+    return compiler.slots(DUMP, (), extra)[0]
 
 
 def test_la_pagina_con_item_lleva_el_item():
@@ -50,11 +62,10 @@ def test_la_condicion_por_variable_va_en_la_pagina():
     comparación y el valor de la primera, nada en la segunda, y el ítem en la
     tercera. Que la ROM elija con eso lo cobran `cofre` y `cofre-llave` en
     `test_comandos_golden.py`."""
-    events.index_variables(GAME_DIR)
     paginas = paginas_de(133, 2)
     assert len(paginas) == 3
     primera, segunda, tercera = paginas
-    assert primera["variable"] == (events.variable_slot(123),
+    assert primera["variable"] == (ranuras_del_juego()[123],
                                    events.CMP_GREATER_EQUAL, 8)
     assert segunda["variable"] is None and segunda["switch_a"] == 411
     assert tercera["item"] == 151 and tercera["variable"] is None \
@@ -67,7 +78,7 @@ def test_las_ranuras_son_las_del_juego_entero():
     """Las mismas ranuras en cualquier ROM: una partida guardada con la demo
     tiene que valer para una ROM con más mapas.
 
-    Eran 81 hasta el 2026-09-13: `variables_named` no miraba el `KeyInputProc`,
+    Eran 81 hasta el 2026-09-13: el barrido no miraba el `KeyInputProc`,
     que es el único comando de este juego que le escribe a una variable sin ser
     un `ControlVars`. Las dos que aparecieron son la 5 —el motor del minijuego
     de las piedras del mapa 11— y la 151, y a ninguna de las dos la nombra
@@ -77,7 +88,8 @@ def test_las_ranuras_son_las_del_juego_entero():
     Y desde el 2026-09-21 son 123: el índice mira también las páginas de las
     tropas, que corren en la pelea, y los sistemas de batalla de los personajes
     suman cuarenta variables que ningún mapa nombra —la 81 y la 106 de Talan
-    cuentan cuántas veces absorbió cada técnica—. Ver `variables_named`.
+    cuentan cuántas veces absorbió cada técnica—. Ver `variables`, en los
+    índices de `rm2k-snes-events`.
 
     Y desde el 2026-09-27 son 132: `MemorizeLocation` y `RecallToLocation`
     nombran nueve que nadie más nombra —127 a 129, 158 a 160 y 169 a 171—, y
@@ -89,7 +101,7 @@ def test_las_ranuras_son_las_del_juego_entero():
     el juego nombra** justamente para que no le corran la ranura a ninguna: una
     partida guardada antes del rediseño sigue leyendo las mismas.
     """
-    ranuras = events.index_variables(GAME_DIR)
+    ranuras = ranuras_del_juego()
     assert list(ranuras.values()) == list(range(len(ranuras)))
     assert 5 in ranuras and 151 in ranuras
     del_juego = [v for v in ranuras if v <= 204]
@@ -98,7 +110,7 @@ def test_las_ranuras_son_las_del_juego_entero():
     assert max(del_juego) == 201
     assert all(ranuras[v] == r for r, v in enumerate(sorted(del_juego)))
     # Las de la página de prueba se suman al final, sin correr a las demás.
-    con_extra = events.index_variables(GAME_DIR, extra=(3000,))
+    con_extra = ranuras_del_juego(extra=(3000,))
     assert con_extra[3000] == len(ranuras)
     assert all(con_extra[v] == r for v, r in ranuras.items())
 
@@ -106,27 +118,17 @@ def test_las_ranuras_son_las_del_juego_entero():
 def test_el_tram_officer_compila_con_las_variables():
     """El Tram Officer del mapa 9 pide variables —azar, resta, los segundos del
     cronómetro, una rama por variable— y un CallEvent que se acepta sin hacer.
-    Con las ranuras indexadas compila; sin ellas, no. Las suyas son la 17, la
-    21 y de la 39 a la 42."""
+    Compila, y las suyas tienen ranura: la 17, la 21 y de la 39 a la 42.
+
+    Hasta el 2026-09-29 esta prueba miraba también que **sin** las ranuras
+    no compilara: el índice era un global de `events.py` que el conversor
+    tenía que llenar antes de compilar, y dos veces lo llenó tarde. Desde que
+    compila `rm2k-snes-events`, el compilador arma el índice él mismo antes
+    de la primera página, y ese orden ya no se puede equivocar."""
     game_map = lcf.Map(os.path.join(GAME_DIR, "Map0009.lmu"))
-    del_mapa = events.MapEvents(game_map)
     oficial = [e for e in game_map.events if e.name == "Tram Officer"][0]
-    # Vaciar el índice es global a todo el proceso: se repone aunque la
-    # aserción falle, o la prueba que corra después en este proceso compila
-    # sin variables.
-    antes = dict(events.VARIABLE_SLOT)
-    events.VARIABLE_SLOT.clear()
-    try:
-        assert events.compile_page(oficial.pages[0], {9: 0}.get,
-                                   events.Messages(),
-                                   del_mapa.for_event(oficial.id)) is None
-    finally:
-        events.VARIABLE_SLOT.update(antes)
-    ranuras = events.index_variables(GAME_DIR)
-    assert {17, 21, 39, 40, 41, 42} <= set(ranuras), ranuras
-    codigo = events.compile_page(oficial.pages[0], {9: 0}.get,
-                                 events.Messages(),
-                                 del_mapa.for_event(oficial.id))
+    assert {17, 21, 39, 40, 41, 42} <= set(ranuras_del_juego())
+    codigo = pagina_de(9, oficial.id, 0)
     assert codigo is not None and events.OP_VAR in codigo \
         and events.OP_IF_VAR in codigo
 
@@ -135,11 +137,7 @@ def _escritura_de_la_123(comandos, desde):
     """Compila `comandos` como una página del mapa `desde` y devuelve el byte
     de la operación del `OP_VAR` que escribe la variable 123, que es el que
     lleva el bit del refresco."""
-    events.index_variables(GAME_DIR)
-    game_map = lcf.Map(os.path.join(GAME_DIR, "Map%04d.lmu" % desde))
-    codigo = events.compile_page(
-        events._Commands(comandos), {desde: 0, 133: 1}.get,
-        events.Messages(), events.MapEvents(game_map).for_event(0))
+    codigo = compiler.loose_page(DUMP, desde, comandos, maps=[desde, 133])
     assert codigo is not None, "la página no compila"
     operaciones = [c[i + 2] for i, c in events.walk_code(codigo)
                    if c[i] == events.OP_VAR]
@@ -243,11 +241,7 @@ PRENDER_172 = (events.CONTROL_SWITCHES, 2, (0, 172, 172, 0))
 
 
 def _compilar_celda(comandos):
-    events.index_variables(GAME_DIR)
-    game_map = lcf.Map(os.path.join(GAME_DIR, "Map0049.lmu"))
-    codigo = events.compile_page(
-        events._Commands(comandos), {49: 0}.get, events.Messages(),
-        events.MapEvents(game_map).for_event(0))
+    codigo = compiler.loose_page(DUMP, 49, comandos)
     assert codigo is not None, "la página no compila"
     return codigo
 
@@ -267,7 +261,7 @@ def test_las_cuatro_de_la_celda_van_en_un_opcode():
         (events.COND_END, 0, ())))
     ops = [c[i] for i, c in events.walk_code(codigo)]
     assert ops == [events.OP_CELL_TEST, events.OP_SWITCH, events.OP_DONE]
-    r = events.variable_slot
+    r = ranuras_del_juego().get
     assert codigo[1] == 0, "el blanco es el héroe"
     assert _palabra(codigo, 2) & ~events.CELL_REFRESH \
         == r(36) * 2 | events.CELL_Y

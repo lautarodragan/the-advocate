@@ -65,20 +65,20 @@ RECETAS_QUE_NOMBRAN_TOOLS = {
 # pedazos que se quedaron ya no nombran `tools/`. Ese mismo día salieron seis
 # más, cuando el armado pasó a Rust y el arnés dejó de importarlo: le pregunta
 # a los ejecutables —ver `arnes/cartuchos.py`—. Y cuatro de música cuando
-# pasó a Rust el compilador de música: ver `arnes/musica.py`.
+# pasó a Rust el compilador de música: ver `arnes/musica.py`. Y dos más
+# cuando pasó el de eventos, que las citaban para decir dónde estaba una
+# constante que se fue con él.
 PRUEBAS_QUE_TODAVIA_NOMBRAN_TOOLS = {
     "pytest.ini",
     "pruebas/README.md",
     "pruebas/abl/test_msu_datos.py",
     "pruebas/abl/test_recorrido_capitulo_golden.py",
-    "pruebas/abl/test_recorrido_carrera_golden.py",
     "pruebas/arnes/dibujo.py",
     "pruebas/arnes/lz2.py",
     "pruebas/arnes/video.py",
     "pruebas/herramientas/test_lz2.py",
     "pruebas/rpgmaker/test_batalla.py",
     "pruebas/rpgmaker/test_batalla_escena_dibujo.py",
-    "pruebas/rpgmaker/test_comandos_golden.py",
     "pruebas/rpgmaker/test_experiencia_dibujo.py",
 }
 

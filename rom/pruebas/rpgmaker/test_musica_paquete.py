@@ -311,51 +311,12 @@ def test_el_paquete_que_no_entro_con_otro_tema_sonando_se_completa(partida):
         "al llegar con el tema del 2" % (faltan, sorted(efectos)))
 
 
-def test_un_tema_que_suena_para_irse_va_aparte_del_paquete():
-    """Un `PlayBGM` seguido de un salto a otro mapa, sin efectos ni ramas en
-    el medio, es **de salida**: el tema no tiene que caber con los efectos
-    del mapa. Es `lufsorr` en el mapa 3, que suena al final de la secuencia
-    de efectos, cuando ya no queda ninguno, y el mapa se deja enseguida.
-
-    Se compilan páginas a mano, sin ROM: la de salida, una con un efecto en
-    el medio, una que salta al mismo mapa, una que no salta, y un tema que
-    sale en una página y en otra no. Sólo el primero cuenta: un tema es de
-    salida en el mapa si **todos** sus `PlayBGM` de ahí lo son.
-    """
-    from rpgmaker import lcf
-    from port import events
-
-    def pagina(*comandos):
-        return events._Commands(lcf.handwritten_commands(
-            {"event_commands": list(comandos)}))
-
-    def tema(nombre):
-        return {"code": "PlayBGM", "parameters": [0, 100, 100, 50],
-                "string": nombre}
-
-    efecto = {"code": "PlaySound", "parameters": [100, 100, 50],
-              "string": "Thunder9"}
-    esperar = {"code": "Wait", "parameters": [10]}
-    switch = {"code": "ControlSwitches", "parameters": [0, 15, 15, 0]}
-    al_4 = {"code": "Teleport", "parameters": [4, 9, 9]}
-    al_3 = {"code": "Teleport", "parameters": [3, 9, 9]}
-    indice = {3: 0, 4: 1}.get
-
-    temas = events.Songs()
-    temas.current_map = 0
-    for comandos in ([tema("sale"), esperar, switch, al_4],
-                     [tema("suena"), efecto, al_4],
-                     [tema("vuelve"), esperar, al_3],
-                     [tema("queda"), esperar],
-                     [tema("dos_veces"), al_4],
-                     [tema("dos_veces"), esperar]):
-        assert events.compile_page(pagina(*comandos), indice,
-                                   songs=temas) is not None, (
-            "la página %r no compiló: la prueba no mira nada" % (comandos,))
-    de_salida = {temas.names[t] for t in temas.exit_songs(0)}
-    assert de_salida == {"sale"}, (
-        "de salida en el mapa: %s, y sólo tenía que serlo `sale`"
-        % sorted(de_salida))
+# Un `PlayBGM` seguido de un salto a otro mapa, sin efectos ni ramas en el
+# medio, es **de salida**: el tema no tiene que caber con los efectos del mapa.
+# Es `lufsorr` en el mapa 3. Qué tema es de salida lo decide el compilador, y
+# lo cobra su prueba `a_song_is_an_exit_one_only_if_every_playbgm_of_it_is`,
+# en `rm2k-snes-events`, que compila las mismas páginas a mano que compilaba
+# acá hasta el 2026-09-29.
 
 
 def test_el_tema_de_salida_sube_solo(partida):

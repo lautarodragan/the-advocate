@@ -1,0 +1,125 @@
+[
+ {
+  "id": 1,
+  "name": "Called",
+  "trigger": 5,
+  "switch_flag": false,
+  "switch_id": 1,
+  "event_commands": [
+   {
+    "code": 10110,
+    "indent": 0,
+    "string": "From a common event",
+    "parameters": []
+   },
+   {
+    "code": 10210,
+    "indent": 0,
+    "string": "",
+    "parameters": [
+     0,
+     8,
+     8,
+     0
+    ]
+   },
+   {
+    "code": 11750,
+    "indent": 0,
+    "string": "",
+    "parameters": [
+     1,
+     7,
+     8
+    ]
+   }
+  ]
+ },
+ {
+  "id": 2,
+  "name": "Equipment",
+  "trigger": 4,
+  "switch_flag": true,
+  "switch_id": 40,
+  "event_commands": [
+   {
+    "code": 10440,
+    "indent": 0,
+    "string": "",
+    "parameters": [
+     1,
+     1,
+     1,
+     0,
+     2
+    ]
+   },
+   {
+    "code": 12010,
+    "indent": 0,
+    "string": "",
+    "parameters": [
+     5,
+     1,
+     5,
+     3,
+     0,
+     1
+    ]
+   },
+   {
+    "code": 10440,
+    "indent": 1,
+    "string": "",
+    "parameters": [
+     1,
+     1,
+     0,
+     0,
+     2
+    ]
+   },
+   {
+    "code": 10,
+    "indent": 1,
+    "string": "",
+    "parameters": []
+   },
+   {
+    "code": 22010,
+    "indent": 0,
+    "string": "",
+    "parameters": []
+   },
+   {
+    "code": 10,
+    "indent": 1,
+    "string": "",
+    "parameters": []
+   },
+   {
+    "code": 22011,
+    "indent": 0,
+    "string": "",
+    "parameters": []
+   }
+  ]
+ },
+ {
+  "id": 3,
+  "name": "Broken",
+  "trigger": 5,
+  "switch_flag": false,
+  "switch_id": 1,
+  "event_commands": [
+   {
+    "code": 12110,
+    "indent": 0,
+    "string": "",
+    "parameters": [
+     1
+    ]
+   }
+  ]
+ }
+]

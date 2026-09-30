@@ -1,0 +1,22 @@
+[package]
+name = "rm2k-snes-events"
+version = "0.1.0"
+edition = "2021"
+description = "An rm2k-snes game's event pages, compiled to the bytecode a Super Nintendo cartridge runs"
+
+[lib]
+name = "rm2k_snes_events"
+path = "src/lib.rs"
+
+[[bin]]
+name = "rm2k-snes-events"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+ditto = { path = "../../rm2k/ditto" }
+rm2k-rules = { path = "../../rm2k/rules" }
+serde_json = "1"
+
+[dev-dependencies]
+sha2 = "0.10"

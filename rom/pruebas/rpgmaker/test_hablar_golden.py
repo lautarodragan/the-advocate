@@ -114,7 +114,7 @@ def test_hablar(nombre, caso, apretar, cuadros):
 # El evento al que las dos páginas de abajo le hablan, que es el mismo que
 # `gemelo-ruta` y `gemelo-fija` mandan a mirar a la derecha. El `MoveEvent` lo
 # nombra **14**, que es su id de RM2k, y la ROM lo llama **13**: su número es
-# el índice en `game_map.events`, que `map_pages` cuenta desde cero.
+# el índice en `game_map.events`, que el compilador cuenta desde cero.
 EVENTO_QUE_GIRA = 13
 
 

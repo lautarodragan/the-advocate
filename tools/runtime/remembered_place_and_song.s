@@ -19,7 +19,7 @@
 ; `MemorizeLocation` and `RecallToLocation`: the hero's location in three
 ; variables —the map, x and y—, and the jump to whatever they say. The
 ; operands are the mode and the three slots. In the mode, bit 0 says which of
-; the two: 0 memorize, 1 jump (`PLACE_JUMP` in events.py); when memorizing,
+; the two: 0 memorize, 1 jump (`PLACE_JUMP` in the compiler); when memorizing,
 ; bits 7, 6 and 5 are the VAR_REFRESH of the writes of the map, x and y, in
 ; that order, so it is enough to shift it once per write.
 ;

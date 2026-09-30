@@ -1,0 +1,515 @@
+[
+ {
+  "id": 1,
+  "name": "One",
+  "terrain_set": [],
+  "members": [
+   {
+    "id": 1,
+    "enemy_id": 1,
+    "x": 100,
+    "y": 100,
+    "invisible": true
+   }
+  ],
+  "pages": [
+   {
+    "id": 1,
+    "condition": {
+     "flags": {
+      "switch_a": true,
+      "switch_b": false,
+      "variable": false,
+      "turn": false,
+      "fatigue": false,
+      "enemy_hp": false,
+      "actor_hp": false
+     },
+     "switch_a_id": 11,
+     "switch_b_id": 1,
+     "variable_id": 1,
+     "variable_value": 0,
+     "turn_a": 0,
+     "turn_b": 0,
+     "fatigue_min": 0,
+     "fatigue_max": 100,
+     "enemy_id": 0,
+     "enemy_hp_min": 0,
+     "enemy_hp_max": 100,
+     "actor_id": 1,
+     "actor_hp_min": 0,
+     "actor_hp_max": 100
+    },
+    "event_commands": [
+     {
+      "code": 10110,
+      "indent": 0,
+      "string": "Ouch",
+      "parameters": []
+     },
+     {
+      "code": 11550,
+      "indent": 0,
+      "string": "Hit",
+      "parameters": [
+       90,
+       100,
+       50
+      ]
+     },
+     {
+      "code": 11550,
+      "indent": 0,
+      "string": "Miss",
+      "parameters": [
+       90,
+       100,
+       50
+      ]
+     }
+    ]
+   },
+   {
+    "id": 2,
+    "condition": {
+     "flags": {
+      "switch_a": false,
+      "switch_b": false,
+      "variable": false,
+      "turn": true,
+      "fatigue": false,
+      "enemy_hp": false,
+      "actor_hp": false
+     },
+     "switch_a_id": 1,
+     "switch_b_id": 1,
+     "variable_id": 1,
+     "variable_value": 0,
+     "turn_a": 2,
+     "turn_b": 1,
+     "fatigue_min": 0,
+     "fatigue_max": 100,
+     "enemy_id": 0,
+     "enemy_hp_min": 0,
+     "enemy_hp_max": 100,
+     "actor_id": 1,
+     "actor_hp_min": 0,
+     "actor_hp_max": 100
+    },
+    "event_commands": [
+     {
+      "code": 13150,
+      "indent": 0,
+      "string": "",
+      "parameters": [
+       0
+      ]
+     }
+    ]
+   },
+   {
+    "id": 3,
+    "condition": {
+     "flags": {
+      "switch_a": false,
+      "switch_b": false,
+      "variable": false,
+      "turn": false,
+      "fatigue": false,
+      "enemy_hp": true,
+      "actor_hp": false
+     },
+     "switch_a_id": 1,
+     "switch_b_id": 1,
+     "variable_id": 1,
+     "variable_value": 0,
+     "turn_a": 0,
+     "turn_b": 0,
+     "fatigue_min": 0,
+     "fatigue_max": 100,
+     "enemy_id": 0,
+     "enemy_hp_min": 0,
+     "enemy_hp_max": 50,
+     "actor_id": 1,
+     "actor_hp_min": 0,
+     "actor_hp_max": 100
+    },
+    "event_commands": [
+     {
+      "code": 13310,
+      "indent": 0,
+      "string": "",
+      "parameters": [
+       0,
+       12,
+       0,
+       0,
+       0,
+       1
+      ]
+     },
+     {
+      "code": 10210,
+      "indent": 1,
+      "string": "",
+      "parameters": [
+       0,
+       13,
+       13,
+       0
+      ]
+     },
+     {
+      "code": 10,
+      "indent": 1,
+      "string": "",
+      "parameters": []
+     },
+     {
+      "code": 23310,
+      "indent": 0,
+      "string": "",
+      "parameters": []
+     },
+     {
+      "code": 10,
+      "indent": 1,
+      "string": "",
+      "parameters": []
+     },
+     {
+      "code": 23311,
+      "indent": 0,
+      "string": "",
+      "parameters": []
+     }
+    ]
+   },
+   {
+    "id": 4,
+    "condition": {
+     "flags": {
+      "switch_a": true,
+      "switch_b": false,
+      "variable": false,
+      "turn": false,
+      "fatigue": false,
+      "enemy_hp": false,
+      "actor_hp": false
+     },
+     "switch_a_id": 14,
+     "switch_b_id": 1,
+     "variable_id": 1,
+     "variable_value": 0,
+     "turn_a": 0,
+     "turn_b": 0,
+     "fatigue_min": 0,
+     "fatigue_max": 100,
+     "enemy_id": 0,
+     "enemy_hp_min": 0,
+     "enemy_hp_max": 100,
+     "actor_id": 1,
+     "actor_hp_min": 0,
+     "actor_hp_max": 100
+    },
+    "event_commands": [
+     {
+      "code": 11410,
+      "indent": 0,
+      "string": "",
+      "parameters": [
+       1
+      ]
+     }
+    ]
+   },
+   {
+    "id": 5,
+    "condition": {
+     "flags": {
+      "switch_a": false,
+      "switch_b": false,
+      "variable": false,
+      "turn": false,
+      "fatigue": true,
+      "enemy_hp": false,
+      "actor_hp": false
+     },
+     "switch_a_id": 1,
+     "switch_b_id": 1,
+     "variable_id": 1,
+     "variable_value": 0,
+     "turn_a": 0,
+     "turn_b": 0,
+     "fatigue_min": 0,
+     "fatigue_max": 100,
+     "enemy_id": 0,
+     "enemy_hp_min": 0,
+     "enemy_hp_max": 100,
+     "actor_id": 1,
+     "actor_hp_min": 0,
+     "actor_hp_max": 100
+    },
+    "event_commands": [
+     {
+      "code": 10110,
+      "indent": 0,
+      "string": "Tired",
+      "parameters": []
+     }
+    ]
+   },
+   {
+    "id": 6,
+    "condition": {
+     "flags": {
+      "switch_a": false,
+      "switch_b": false,
+      "variable": false,
+      "turn": false,
+      "fatigue": false,
+      "enemy_hp": false,
+      "actor_hp": false
+     },
+     "switch_a_id": 1,
+     "switch_b_id": 1,
+     "variable_id": 1,
+     "variable_value": 0,
+     "turn_a": 0,
+     "turn_b": 0,
+     "fatigue_min": 0,
+     "fatigue_max": 100,
+     "enemy_id": 0,
+     "enemy_hp_min": 0,
+     "enemy_hp_max": 100,
+     "actor_id": 1,
+     "actor_hp_min": 0,
+     "actor_hp_max": 100
+    },
+    "event_commands": [
+     {
+      "code": 10110,
+      "indent": 0,
+      "string": "Never",
+      "parameters": []
+     }
+    ]
+   },
+   {
+    "id": 7,
+    "condition": {
+     "flags": {
+      "switch_a": false,
+      "switch_b": false,
+      "variable": true,
+      "turn": false,
+      "fatigue": false,
+      "enemy_hp": false,
+      "actor_hp": true
+     },
+     "switch_a_id": 1,
+     "switch_b_id": 1,
+     "variable_id": 60,
+     "variable_value": 3,
+     "turn_a": 0,
+     "turn_b": 0,
+     "fatigue_min": 0,
+     "fatigue_max": 100,
+     "enemy_id": 0,
+     "enemy_hp_min": 0,
+     "enemy_hp_max": 100,
+     "actor_id": 1,
+     "actor_hp_min": 10,
+     "actor_hp_max": 20
+    },
+    "event_commands": [
+     {
+      "code": 10220,
+      "indent": 0,
+      "string": "",
+      "parameters": [
+       0,
+       60,
+       60,
+       1,
+       0,
+       1,
+       0
+      ]
+     }
+    ]
+   },
+   {
+    "id": 8,
+    "condition": {
+     "flags": {
+      "switch_a": true,
+      "switch_b": false,
+      "variable": false,
+      "turn": false,
+      "fatigue": false,
+      "enemy_hp": false,
+      "actor_hp": false
+     },
+     "switch_a_id": 15,
+     "switch_b_id": 1,
+     "variable_id": 1,
+     "variable_value": 0,
+     "turn_a": 0,
+     "turn_b": 0,
+     "fatigue_min": 0,
+     "fatigue_max": 100,
+     "enemy_id": 0,
+     "enemy_hp_min": 0,
+     "enemy_hp_max": 100,
+     "actor_id": 1,
+     "actor_hp_min": 0,
+     "actor_hp_max": 100
+    },
+    "event_commands": [
+     {
+      "code": 13310,
+      "indent": 0,
+      "string": "",
+      "parameters": [
+       2,
+       1,
+       0,
+       0,
+       0,
+       1
+      ]
+     },
+     {
+      "code": 10,
+      "indent": 1,
+      "string": "",
+      "parameters": []
+     },
+     {
+      "code": 23311,
+      "indent": 0,
+      "string": "",
+      "parameters": []
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": 2,
+  "name": "Two",
+  "terrain_set": [],
+  "members": [
+   {
+    "id": 1,
+    "enemy_id": 1,
+    "x": 100,
+    "y": 100,
+    "invisible": false
+   }
+  ],
+  "pages": [
+   {
+    "id": 1,
+    "condition": {
+     "flags": {
+      "switch_a": true,
+      "switch_b": false,
+      "variable": false,
+      "turn": false,
+      "fatigue": false,
+      "enemy_hp": false,
+      "actor_hp": false
+     },
+     "switch_a_id": 11,
+     "switch_b_id": 1,
+     "variable_id": 1,
+     "variable_value": 0,
+     "turn_a": 0,
+     "turn_b": 0,
+     "fatigue_min": 0,
+     "fatigue_max": 100,
+     "enemy_id": 0,
+     "enemy_hp_min": 0,
+     "enemy_hp_max": 100,
+     "actor_id": 1,
+     "actor_hp_min": 0,
+     "actor_hp_max": 100
+    },
+    "event_commands": [
+     {
+      "code": 10110,
+      "indent": 0,
+      "string": "Ouch",
+      "parameters": []
+     },
+     {
+      "code": 11550,
+      "indent": 0,
+      "string": "Hit",
+      "parameters": [
+       90,
+       100,
+       50
+      ]
+     },
+     {
+      "code": 11550,
+      "indent": 0,
+      "string": "Miss",
+      "parameters": [
+       90,
+       100,
+       50
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": 3,
+  "name": "Three",
+  "terrain_set": [],
+  "members": [],
+  "pages": [
+   {
+    "id": 1,
+    "condition": {
+     "flags": {
+      "switch_a": false,
+      "switch_b": true,
+      "variable": false,
+      "turn": false,
+      "fatigue": false,
+      "enemy_hp": false,
+      "actor_hp": false
+     },
+     "switch_a_id": 1,
+     "switch_b_id": 16,
+     "variable_id": 1,
+     "variable_value": 0,
+     "turn_a": 0,
+     "turn_b": 0,
+     "fatigue_min": 0,
+     "fatigue_max": 100,
+     "enemy_id": 0,
+     "enemy_hp_min": 0,
+     "enemy_hp_max": 100,
+     "actor_id": 1,
+     "actor_hp_min": 0,
+     "actor_hp_max": 100
+    },
+    "event_commands": [
+     {
+      "code": 10110,
+      "indent": 0,
+      "string": "Ouch",
+      "parameters": []
+     }
+    ]
+   }
+  ]
+ }
+]

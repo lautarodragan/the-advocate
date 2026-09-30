@@ -1,0 +1,75 @@
+{
+ "chipset_id": 1,
+ "width": 20,
+ "height": 15,
+ "scroll_type": 0,
+ "parallax_flag": false,
+ "parallax_name": "",
+ "parallax_loop_x": false,
+ "parallax_loop_y": false,
+ "parallax_auto_loop_x": false,
+ "parallax_auto_loop_y": false,
+ "parallax_sx": 0,
+ "parallax_sy": 0,
+ "lower_layer": [],
+ "upper_layer": [],
+ "events": [
+  {
+   "id": 1,
+   "name": "EV0001",
+   "x": 3,
+   "y": 4,
+   "pages": [
+    {
+     "id": 1,
+     "character_name": "",
+     "character_index": 0,
+     "character_direction": 2,
+     "character_pattern": 1,
+     "translucent": false,
+     "move_type": 0,
+     "move_frequency": 8,
+     "move_speed": 4,
+     "trigger": 0,
+     "layer": 1,
+     "overlap_forbidden": false,
+     "animation_type": 0,
+     "event_commands": [
+      {
+       "code": 10630,
+       "indent": 0,
+       "string": "Nowhere",
+       "parameters": [
+        3,
+        1,
+        0
+       ]
+      }
+     ],
+     "move_route": {
+      "move_commands": [],
+      "repeat": true,
+      "skippable": false
+     },
+     "condition": {
+      "flags": {
+       "switch_a": false,
+       "switch_b": false,
+       "variable": false,
+       "item": false,
+       "actor": false,
+       "timer": false
+      },
+      "switch_a_id": 1,
+      "switch_b_id": 1,
+      "variable_id": 1,
+      "variable_value": 0,
+      "item_id": 1,
+      "actor_id": 1,
+      "timer_sec": 0
+     }
+    }
+   ]
+  }
+ ]
+}

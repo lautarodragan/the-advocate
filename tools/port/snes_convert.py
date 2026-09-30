@@ -20,6 +20,8 @@ in its own module of `port/`, one per piece that can be replaced alone:
     battle_animations   the battle animations
     stage               runs a part that is a program of its own:
                         `rm2k-snes-battle`, experience and encounters
+    compiler            the event compiler, `rm2k-snes-events`: what goes
+                        into its two calls and what comes back
     music               the job for `rm2k-snes-audio`, and the `.msu`
     mapdata             `emit`: the whole `mapdata.inc`
       map_record        the tables of each map
@@ -94,13 +96,14 @@ from port.map_record import PARALLEL_MAX, ROUTE_EV_MAX
 from port.battle_animations import rom_animations
 from port.battle_scenes import fallback_bytes, patch_uses, rom_scene
 from port import stage
+from port import compiler
 from port.music import (boot_frames, compile_music, inherited_songs,
                         rom_songs, separate_songs, write_msu)
 from port.game_scan import (args_game_dir, drop_items, has_rain,
                             possible_items, possible_leaders,
                             possible_members)
 from port.options import flags_parser, map_order
-from port.cases import (case_commands, case_map, case_page, page_party,
+from port.cases import (case_commands, case_map, page_party,
                         split_cases, test_cases, test_graphics, test_maps)
 from port.mapdata import emit
 from port.map_convert import convert_map, precompute_layers
@@ -163,48 +166,47 @@ def main():
     args_game_dir[0] = args.game_dir
     every = map_order(args)
     # **The indices go before anything that compiles a page**, and
-    # `possible_leaders` compiles pages. They were after, and the price was
-    # concrete: without `index_variables`, no `ControlVars` compiles, so
-    # `RaceController1` of map 49 —which starts with a `PlayBGM` and goes on
-    # with two `ControlVars`— didn't compile **in that pass** and did in the
-    # real one. The actors it adds to the party were lost: `CarRED` didn't go
-    # into the map's actor table and the chase's hero was drawn **with no
-    # graphic**, that is the car wasn't visible. It is the same hole that was
-    # already noted for the page counts, in another place.
+    # `possible_leaders` looks at which pages compile. They were after, and
+    # the price was concrete: without the variables' slots no `ControlVars`
+    # compiled **in that pass** —`RaceController1` of map 49 starts with a
+    # `PlayBGM` and goes on with two `ControlVars`— and did in the real one.
+    # The actors it adds to the party were lost: `CarRED` didn't go into the
+    # map's actor table and the chase's hero was drawn **with no graphic**.
     #
-    # The variables of the whole game, with their slot.
-    extra = events.command_variables(file_commands)
+    # Since 2026-09-29 the compiler is `rm2k-snes-events`, which answers
+    # both in its first call: the whole game's indices —each variable's slot
+    # and each (actor, skill) pair's bit, with those of the test pages—,
+    # which pages of each map compile, and each map's pages as `convert_map`
+    # needs them to know who walks. See `port/compiler.py`.
+    extra = set()
     if len(args.cases) > 1:
         # The one that picks the case: see `events.CASE_VARIABLE`. With a
         # single one it isn't needed, and that way that cartridge comes out
         # the same as before `--case`.
         extra.add(events.CASE_VARIABLE)
-    events.index_variables(args.game_dir, extra)
-    # And the battle animations, which `ShowBattleAnimation` compiles with its
-    # timeline inside: see OP_ANIMATION.
+    args.dump = compiler.dump_of(args.game_dir)
+    # The boot map carries an event without pages at index 0 when there are
+    # cases: see `convert_map`.
+    args.test_event_map = every[args.start_index] if args.cases else None
+    args.extra_variables = extra
+    args.scan = compiler.scan(args.dump, every, file_commands, extra,
+                              args.test_event_map)
+    # The slots and bits, where the rest of the converter reads them; and
+    # the slots `ChangeSpriteAssociation` reserves in the graphics table of
+    # **all** maps: the graphic it gives an actor crosses the teleport, so
+    # its index has to mean the same in both maps. See `associations` in
+    # the crate.
+    args.associations = compiler.apply_indices(args.scan)
+    # And the battle animations, which `animation.py` draws.
     events.index_animations(args.game_dir)
-    # And the common events, which `CallEvent` compiles in place.
-    events.index_common_events(args.game_dir)
-    events.index_battle_audio(args.game_dir)
-    # And the inn terms, which `ShowInn` builds its greeting with.
-    events.index_terms(args.game_dir)
-    # And the equipment and skills of each actor of the LDB: it is what the
-    # two actor branches with two operands answer. **Before
-    # `possible_leaders`**, which compiles pages: see its comment.
-    events.index_actors(args.game_dir)
-    # And the (actor, skill) pairs of the whole game, with those of the test
-    # pages: it is the operand of `ChangeSkills` and of the branch that asks
-    # whether it knows one, so it goes before compiling anything, same as the
-    # variables.
-    events.index_skills(
-        args.game_dir, events.command_skill_pairs(file_commands))
-    args.leaders = possible_leaders(renderer, every, party)
+    args.leaders = possible_leaders(renderer, every, party, args.scan)
     # And those of the party each test page continues with, behind: the test
     # can start with it in any map of the cartridge.
     for case in args.cases:
         test_party = page_party(case, party)
         if test_party:
-            for actor in possible_leaders(renderer, every, test_party):
+            for actor in possible_leaders(renderer, every, test_party,
+                                          args.scan):
                 if actor not in args.leaders:
                     args.leaders.append(actor)
     # If some map sets rain, all of them carry the drops: see `has_rain`.
@@ -223,19 +225,6 @@ def main():
     # walks them in.
     args.pictures = events.Pictures(args.game_dir)
     args.pictures.map_id = None
-    # And the slots `ChangeSpriteAssociation` reserves in the graphics table
-    # of **all** maps, for the same reason as the picture: the graphic it gives
-    # an actor crosses the teleport, so its index has to mean the same in both
-    # maps. See `events.sprite_associations`.
-    #
-    # The test pages' ones come in through the same door: if they went by
-    # `--test-graphic` they would have an index only in the maps where a
-    # case runs, and what the command does —crossing the teleport— couldn't
-    # be tested.
-    args.associations = events.sprite_associations(
-        [lcf.Map(os.path.join(args.game_dir, "Map%04d.lmu" % m))
-         for m in every], file_commands)
-
     precompute_layers(renderer, every, args)
     maps = [convert_map(renderer, map_id, args) for map_id in every]
     # The maps whose upper layer started higher than the window's palette used
@@ -255,11 +244,11 @@ def main():
         chipset = renderer.database.chipsets[map_info["game_map"].chipset_id]
         map_info["sustituciones"] = Substitutions(
             map_info, build_passability(chipset), chipset)
-        # It hangs from the map so it reaches `events.MapEvents`, which is what
-        # the compiler already passes around.
-        map_info["game_map"].substitutions = map_info["sustituciones"]
         triples = substitution_triples(map_info["game_map"], args.cases,
                                        map_info["id"])
+        # The compiler gets each one already translated: see
+        # `compiler.substitution_table`.
+        map_info["triples"] = triples
         for absent in map_info["sustituciones"].close(triples):
             # It doesn't stop the conversion: the page that asks for it
             # doesn't compile, which is what any command that can't be run
@@ -281,40 +270,88 @@ def main():
                   % (map_info["id"], absent[1], absent[2],
                      "upper" if absent[0] else "lower"))
 
-    # The text block belongs to the whole ROM and is built while the pages
-    # are compiled: each `ShowMessage` leaves its text here and takes an
-    # offset, which is what goes in the bytecode.
-    messages = events.Messages(step=events.MESSAGES_STEP)
-    # The songs the pages' PlayBGMs ask for, numbered in the order they
-    # appear. The ROM carries a single one —see `Songs`— and picks it further
-    # down, when all are compiled and it is known which ones are asked for.
-    songs = events.Songs()
-    # And the troops the EnemyEncounters ask for. It doesn't number anything
-    # —the bytecode carries the RM2k id— so it only says which enemy tables
-    # have to be emitted. See `events.Troops`.
-    troops = events.Troops()
-    # The test pages' texts go **first**, before all the maps, and that isn't
-    # aesthetic: that way their offset doesn't depend on how many texts the
-    # map the ROM boots in brings nor on the order they are compiled in —the
-    # first is 0—. They are stored here and the page's compilation, further
-    # down, finds them stored, because the block deduplicates by content.
-    for cmd, extra_lines in events.group_boxes(file_commands):
-        if cmd.code == events.SHOW_MESSAGE:
-            messages.add([cmd.string] + extra_lines)
-    # The test pages already compiled, per case: see the second round.
+    # The actors that can be in the party when saving, to have their face and
+    # their name in the cartridge: the starting ones and all the ones some
+    # `ChangePartyMembers` of these maps adds, whether their pages compile or
+    # not. It is a superset on purpose: one face too many costs 36 tiles and
+    # one too few leaves a hole in the menu.
+    members = possible_members(every, party, file_commands)
+    # The random encounters of each map, which ask for their troops. They go
+    # after the maps' battles and **before** those of the test pages, which
+    # go at the end: that way the cartridge's troops are numbered by the maps
+    # and the invented one goes last, which is the same `rom_songs` does with
+    # the map's song. Asking for it first always gave it index 0, and with
+    # that no case of the suite exercised that `scene_troop_backdrop` and
+    # `troop_id` are really indexed. That is why a test page compiles without
+    # `Troops`. The compiler numbers them all, below.
+    #
+    # They come from `rm2k-snes-battle`, with the experience tables: it
+    # reads the game from the same dump as `renderer.tree`, plus the nodes
+    # the project added on top. Which actors fight is the party's, and which
+    # troops the cartridge carries is the compiler's, so the one goes in the
+    # request and the other comes back as a list, in the order they are met,
+    # which goes to the compiler.
+    written = stage.run("rm2k-snes-battle", "battle", "tables", {
+        "party": list(members),
+        "maps": [{"id": m["id"], "width": m["game_map"].width,
+                  "height": m["game_map"].height} for m in maps],
+        "encounter_steps": args.test_encounters,
+        "tree_nodes": list(renderer.tree.added_nodes.values()),
+    }, "--data", renderer.tree.dump)
+    answer = json.loads(written["battle.json"])
+    encounters = answer["encounters"]
+    battle_tables = {"experience": written["experience.inc"],
+                     "slots": answer["experience"]["slots"],
+                     "encounters": written["encounters.inc"]}
+    if encounters["records"]:
+        print("  random encounters: %d map(s), %d zone(s), %d troop(s)"
+              % (encounters["records"], encounters["zones"],
+                 len(encounters["troops"])))
+    # Every page of the cartridge, compiled: `rm2k-snes-events`'s second
+    # call. What it fills while it compiles comes back with it —see
+    # `port/compiler.py`—:
+    #
+    # * the text block, which belongs to the whole ROM: each `ShowMessage`
+    #   leaves its text there and takes an offset. The test pages' texts go
+    #   **first**, so their offset depends on nothing else;
+    # * the songs the pages' `PlayBGM`s ask for and the effects, numbered in
+    #   the order they appear, with what each map's audio package asks for;
+    # * the troops the `EnemyEncounter`s ask for —the maps', then the random
+    #   encounters', then the test pages'—, which say which enemy tables
+    #   have to be emitted: the bytecode carries the RM2k number;
+    # * each test page, compiled with the context of the map it runs in
+    #   —see `case_map`—, which the second round puts in the boot map.
+    picture = None
+    if args.pictures.name is not None:
+        picture = {"name": args.pictures.name,
+                   "number": args.pictures.number,
+                   "x": args.pictures.where[0], "y": args.pictures.where[1]}
+    compiled = compiler.compile_cartridge(
+        args.dump, maps, [(case.run_map, case.commands) for case in args.cases],
+        file_commands, args.extra_variables, args.test_event_map, picture,
+        {m: test_graphics(args.test_graphic) for m in test_maps(args)}
+        if args.test_graphic else {},
+        encounters["troops"])
+    messages = compiler.messages(compiled["messages"]["data"],
+                                 compiled["messages"]["count"])
+    songs = compiler.songs(compiled)
+    troops = compiler.troops(compiled)
     test_party = {}
+    for k, code in enumerate(compiled["cases"]):
+        if code is None:
+            sys.exit("%s: the test page doesn't compile"
+                     % args.cases[k].test_commands)
+        test_party[k] = bytes.fromhex(code)
 
     for map_info in maps:
-        # The automatic events: their pages with the conditions, and the code
-        # of the ones that can be run, all together in a single block.
-        # One graphics registry per map: command 34 carries the index and the
-        # map's `ruta_grafico` table resolves it. See `events.Graphics`.
-        graphics = events.Graphics(args.associations)
-        songs.current_map = maps.index(map_info)      # for its audio package
-        pages = events.map_pages(map_info["game_map"], indices.get,
-                                 messages, songs, graphics,
-                                 args.pictures, troops)
-        songs.current_map = None
+        entry = compiler.map_entry(compiled, map_info["id"])
+        # The pages of the map's events: their conditions, and the code of
+        # the ones that can be run.
+        pages = compiler.pages(entry["pages"], map_info["game_map"])
+        # And which substitutions they asked for, which are the keys of the
+        # ROM's table: see `SUB_MAX`.
+        for upper, old, new in entry["substitutions"]:
+            map_info["sustituciones"].pairs(upper, old, new)
         # One interpreter per event with some parallel page that compiles. The
         # ROM carries them in a fixed-cap list and **doesn't warn** if it goes
         # over —the extra ones wouldn't run and nothing would say so—, so the
@@ -329,9 +366,6 @@ def main():
         if with_parallel:
             print("  map %d: %d event(s) with a parallel page"
                   % (map_info["id"], len(with_parallel)))
-        if args.test_graphic and map_info["id"] in test_maps(args):
-            for charset, index in test_graphics(args.test_graphic):
-                graphics.index(charset, index)
         # **Only the map that took its tiles can show the picture.** The sprite
         # bank belongs to each map, so from another one the six objects would
         # read whatever was in those tiles. It doesn't happen today —the "1
@@ -351,23 +385,18 @@ def main():
                         "`cartel_de_imagen`."
                         % (map_info["id"], args.pictures.name,
                            args.pictures.map_id))
-        if graphics.pairs != map_info["graficos_de_ruta"]:
+        # The graphics command 34 and `ChangeSpriteAssociation` carry by
+        # index, with those of `--test-graphic` after: the map's
+        # `ruta_grafico` table resolves them.
+        graphics = [tuple(g) for g in entry["graphics"]]
+        if graphics != map_info["graficos_de_ruta"]:
             # The two passes compiled different things. It can't happen —both
-            # use `map_pages` with the same text block— and if it did,
-            # the bytecode would end up pointing at the wrong table without
-            # anything saying so.
+            # are `map_pages` with the same rules— and if it did, the bytecode
+            # would end up pointing at the wrong table without anything
+            # saying so.
             sys.exit("map %d: the two passes numbered the route graphics "
                      "differently: %s against %s"
-                     % (map_info["id"], graphics.pairs, map_info["graficos_de_ruta"]))
-        # The pages of the cases that run in this map, compiled with its
-        # context even though they will live in the boot map: see
-        # `case_map`. They are put there in the second round, when all
-        # are done.
-        for k, case in enumerate(args.cases):
-            if case.run_map == map_info["id"]:
-                test_party[k] = case_page(case, map_info, songs, graphics,
-                                          messages, indices,
-                                          args.pictures)
+                     % (map_info["id"], graphics, map_info["graficos_de_ruta"]))
         map_info["pages"] = pages
         # And which maps outside the ROM the ones that don't compile point to.
         #
@@ -401,25 +430,11 @@ def main():
         # Debts are warned about. A page that is accepted without doing
         # everything it asks for is a difference from the original game, and
         # keeping quiet about it is how it becomes invisible: here the command
-        # and what is lost are named.
-        debts = set()
-        for event in map_info["game_map"].events:
-            for page in event.pages:
-                if page.trigger != events.TRIGGER_AUTOSTART:
-                    continue
-                # With the same text block as above: if it were None here, a
-                # page with a text box wouldn't compile and its debt —a
-                # PlayBGM, say— would go unwarned even though the ROM does run
-                # it. Adding a text that is already there again doesn't grow
-                # the block: the key is the content.
-                if events.compile_page(page, indices.get,
-                                       messages) is None:
-                    continue
-                debts |= set(events.page_debts(page,
-                                               args.pictures))
-        for cmd_code in sorted(debts):
+        # and what is lost are named. The compiler says which, of the
+        # automatic pages that compile.
+        for cmd_code in entry["debts"]:
             print("  map %d: WARNING, a page uses %s and the ROM doesn't do it; "
-                  "see ACCEPTED_UNDONE in tools/port/events.py"
+                  "see ACCEPTED_UNDONE in tools/rm2k-snes/events"
                   % (map_info["id"], event_codes.EVENT_CODES.get(cmd_code,
                                                                  cmd_code)))
 
@@ -592,12 +607,6 @@ def main():
     # the game, and "Resume the Story" from the title when there is one. It is
     # drawn with the same font and the same skin as the message window, and
     # lives in the title's VRAM, where there is no map.
-    # The actors that can be in the party when saving, to have their face and
-    # their name in the cartridge: the starting ones and all the ones some
-    # `ChangePartyMembers` of these maps adds, whether their pages compile or
-    # not. It is a superset on purpose: one face too many costs 36 tiles and
-    # one too few leaves a hole in the menu.
-    members = possible_members(every, party, file_commands)
     # And the items that can be in the inventory, to carry their name and
     # their description: see "la pantalla de ítems" in menus.py.
     items_rom = possible_items(every, members, renderer.database,
@@ -713,46 +722,10 @@ def main():
               % (data["animacion"], data["cuadros"], data["caja"][0],
                  data["caja"][1], data["original"][0], data["original"][1],
                  data["porciento"], data["colores"], data["bytes"]))
-    # The random encounters of each map, which ask for their troops. They go
-    # **before** those of the test pages, which go at the end: that way the
-    # cartridge's troops are numbered by the maps and the invented one goes
-    # last, which is the same `rom_songs` does with the map's song.
-    # Asking for it first always gave it index 0, and with that no case of the
-    # suite exercised that `scene_troop_backdrop` and `troop_id` are really
-    # indexed. That is why `case_page` compiles without `Troops`.
-    #
-    # They come from `rm2k-snes-battle`, with the experience tables: it
-    # reads the game from the same dump as `renderer.tree`, plus the nodes
-    # the project added on top. Which actors fight is the party's, and which
-    # troops the cartridge carries is `troops`', so the one goes in the
-    # request and the other comes back as a list, in the order they are met.
-    written = stage.run("rm2k-snes-battle", "battle", "tables", {
-        "party": list(members),
-        "maps": [{"id": m["id"], "width": m["game_map"].width,
-                  "height": m["game_map"].height} for m in maps],
-        "encounter_steps": args.test_encounters,
-        "tree_nodes": list(renderer.tree.added_nodes.values()),
-    }, "--data", renderer.tree.dump)
-    answer = json.loads(written["battle.json"])
-    encounters = answer["encounters"]
-    battle_tables = {"experience": written["experience.inc"],
-                     "slots": answer["experience"]["slots"],
-                     "encounters": written["encounters.inc"]}
-    for number in encounters["troops"]:
-        troops.request(number)
-    if encounters["records"]:
-        print("  random encounters: %d map(s), %d zone(s), %d troop(s)"
-              % (encounters["records"], encounters["zones"],
-                 len(encounters["troops"])))
-    for cmd in file_commands:
-        if cmd.code == events.ENEMY_ENCOUNTER:
-            troops.request(events.encounter_troop(cmd),
-                           events.encounter_backdrop(cmd))
-    # The battle's audio, with the indices it already got from `songs` while
-    # the pages compiled. It is asked for again only to read them: `Songs`
-    # numbers once and returns the same, and what was noted goes to the
-    # battle's package and not to any map's.
-    battle_audio = events.battle_audio(songs) if troops.ids else None
+    # The battle's audio, with the indices it got from `songs` while the
+    # pages compiled: what was noted goes to the battle's package and not to
+    # any map's.
+    battle_audio = compiled["battle_audio"]
     # The backdrops and the battlers the cartridge's battles ask for, each one
     # once: the ROM composes them when each battle starts. See
     # tools/port/scene.py, which is where the reason and the budget are.
@@ -788,16 +761,10 @@ def main():
               % (d["clave"], d["ancho"], d["alto"], d["bytes"], d["quedan"],
                  d["colores"]))
     # The event pages of the troops some battle of the cartridge asks for,
-    # with **all** the troops already asked for: the maps', the random
-    # encounters' and the test pages'. See `events.TroopPages`, which is
-    # also why their messages go to a separate block. With `songs`, because a
-    # page's `PlaySound` sounds in the battle's package, which isn't built
-    # yet: it is built further down.
-    troop_pages = events.TroopPages()
-    for number in troops.ids:
-        if number in renderer.database.troops:
-            troop_pages.compile(number, renderer.database.troops[number],
-                                songs)
+    # with **all** the troops asked for: the maps', the random encounters'
+    # and the test pages'. The compiler compiled them with the rest, with
+    # their messages in a separate block.
+    troop_pages = compiler.troop_pages(compiled)
     print("  troop pages: %d of %d in %d distinct body(ies), %d B of "
           "code and %d B in %d message(s)"
           % (troop_pages.pages - troop_pages.left_out,
@@ -813,6 +780,7 @@ def main():
                   window_data, title_data, slots_data,
                   args.pictures.info, animations, troops.ids, battle_audio,
                   scenes, battle_tables, troop_pages, compressed,
+                  party_common=compiler.party_common_events(compiled),
                   enemy_hp=args.enemy_hp,
                   game_over=game_over_data)
     # Which entries of their palette the timer digits use, one bit per entry
@@ -925,7 +893,7 @@ def main():
     # anywhere —its row of `sound_table` stays at $FF— and building it would
     # cost the music, because the copies of `rm2k-snes-audio` count the
     # cartridge's sound effects. It happens with the route ones of
-    # `se_route_left_out`.
+    # `[sound_effects] route_effects_left_out`.
     packed = {n for palettes_needed in songs.per_map.values()
               for n in palettes_needed["sonidos"]}
     requested_se = []

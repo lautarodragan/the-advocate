@@ -11,7 +11,7 @@ import os
 import sys
 import zlib
 
-from port import events
+from port import compiler, events
 from rpgmaker import lcf
 from rpgmaker import rm2k
 from port import picture
@@ -81,7 +81,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
          window=None, title=None, slots=None, picture_info=None,
          animations=None, troops=(), battle_audio=None, scenes=None,
          battle_tables=None, troop_pages=None, compressed=None,
-         enemy_hp=False, game_over=None):
+         enemy_hp=False, game_over=None, party_common=None):
     """The .inc that is assembled together with main.s.
 
     `enemy_hp` is `--enemy-hp`: whether the battle draws the
@@ -96,6 +96,9 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
     `slots` is the slots screen and **always goes**: the save point opens it
     from inside the game, whether the ROM has a title or not. See
     `slots_screen` in menus.py.
+
+    `party_common` is `{common event: its code}` of the equipment common
+    events, compiled: see `events.PARTY_COMMON_EVENTS`.
     """
     for number, map_info in enumerate(maps):
         layout = map_info["layout"]
@@ -1818,7 +1821,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
                   declare=True)
         for _sw, n in party_ones:
             handle.write(block("common_equipment_%d" % n,
-                               events.compile_party_common_event(n)) + "\n")
+                               party_common[n]) + "\n")
         # And what each actor knows, which since 2026-09-21 is state: one bit
         # per (actor, skill) pair in `FAR_SKILL`, with the slots of
         # `events.SKILL_SLOT`. It is answered by branch 4 of
@@ -1946,8 +1949,8 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # compile: skipping them doesn't change the order of the others. Per
         # troop, where they start and how many there are; per page, its
         # trigger and where its code is inside `troop_code`, which
-        # deduplicates them. See `events.TroopPages` and `ba_page_test`
-        # in tools/runtime/battle_troop.s.
+        # deduplicates them. See `TroopPages` in the compiler's `troops.rs`
+        # and `ba_page_test` in tools/runtime/battle_troop.s.
         #
         # **The small tables go to bank 1, `FAR`; the two big blocks —the code
         # and the messages—, to RODATA.** Until 2026-09-27 all four went to
@@ -1958,7 +1961,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # four hundred bytes. Both are read with a long pointer whose bank
         # comes from `^troop_code` and `^messages_troop`, so it is enough
         # for each to fit whole in one bank, which is what `block` asks for.
-        pt = troop_pages or events.TroopPages()
+        pt = troop_pages or compiler.no_troop_pages()
         entries, page_start, page_n = [], [], []
         for number in used:
             theirs = pt.per_troop.get(number, [])
@@ -1979,7 +1982,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # them: the characters' 32 systems only look at `switch_a`, and with
         # none the ROM never reads them —the bit in `tpage_flags` is zero—, so
         # the label is enough. The turn and the HP have no table: they go in
-        # front of the code, see `events.troop_header`.
+        # front of the code, see `Trigger::header` in the compiler.
         for name, field, bit in (
                 ("tpage_sw_b", "switch_b", events.TROOP_TRIGGER_SWITCH_B),
                 ("tpage_var", "ranura", events.TROOP_TRIGGER_VARIABLE),
@@ -2152,8 +2155,8 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # The audio: the battle song, the victory one and the five sound
         # effects, with the index they got from `Songs`. $FF and $FFFF mean
         # "the LDB has it turned off", which is the case of `battle_se` in
-        # this game. Who sounds at which moment is in `events.BATTLE_AUDIO`,
-        # taken from easyrpg-player; only the numbers travel here.
+        # this game. Who sounds at which moment is in `battle_audio`, in the
+        # compiler, taken from easyrpg-player; only the numbers travel here.
         audio = battle_audio or {}
         # The battle's audio package goes after the maps' ones, so its index
         # is how many maps the ROM carries. It is emitted here and checked by

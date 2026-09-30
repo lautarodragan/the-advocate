@@ -14,7 +14,7 @@ esto se cae.
 el cronómetro del caso `tecla-dir` muestra un número por ROM, así que cubrir las
 cuatro y B por pixeles serían cinco casos para medir lo mismo. Acá cuesta un
 toque cada uno. La que sigue afuera es la forma que **no espera**, y el porqué,
-con el número, está en `KEY_INPUT_PROC` en `events.py`.
+con el número, está en `KEY_WAIT` en `events.py`.
 """
 
 from port import events

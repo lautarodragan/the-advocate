@@ -12,7 +12,7 @@ import sys
 
 import numpy
 
-from port import events
+from port import compiler, events
 from rpgmaker import rm2k
 from port import adeleine
 from common import settings
@@ -803,9 +803,13 @@ def maps_per_character(renderer, map_ids, game_dir):
 ANIMATES_STILL_MAX = 4
 
 
-def movable_events(game_map, map_index, associations=()):
+def movable_events(game_map, scanned):
     """The events with a graphic that some compilable page sends walking, and
     the graphics some route changes to with command 34.
+
+    `scanned` is what the compiler's first call answered for this map —see
+    `compiler.scan`—: its pages compiled with a text block of their own and
+    without songs, and the graphics they numbered.
 
     It is needed before building the sprite bank: the ones that move have to
     get **the twelve poses** of the walking cycle, and the others the single
@@ -823,14 +827,12 @@ def movable_events(game_map, map_index, associations=()):
     other, and the two lists would drift apart.
 
     The pages are compiled to find out and what was compiled is thrown away.
-    It is repeated work —main() compiles them again with the real text
-    block— but it isn't a repeated **rule**: the decision of what compiles is
-    made by the same function both times.
+    It is repeated work —the second call compiles them again with the real
+    text block— but it isn't a repeated **rule**: the decision of what
+    compiles is made by the same compiler both times.
     """
-    graphics = events.Graphics(associations)
-    pages = events.map_pages(
-        game_map, map_index,
-        events.Messages(), graphics=graphics)
+    pages = compiler.pages(scanned["pages"], game_map)
+    route_graphics = [tuple(g) for g in scanned["graphics"]]
     npcs = rm2k.collect_npcs(game_map)
     visible = {npc["event"] for npc in npcs}
     # And the ones that walk on their own with some page's own route, which
@@ -871,7 +873,7 @@ def movable_events(game_map, map_index, associations=()):
     for p in pages:
         if p["event"] in turning and p.get("gira") and p["grafico"]:
             turning[p["event"]].add(tuple(p["grafico"][:2]))
-    return with_route | animated, list(graphics.pairs), animated, turning
+    return with_route | animated, route_graphics, animated, turning
 
 
 def separate_from_hero(renderer, game_map, args, commands=()):

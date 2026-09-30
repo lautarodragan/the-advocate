@@ -281,7 +281,13 @@ class EventPage:
     """One of the versions an event can take."""
 
     def __init__(self, data):
+        self.id = field(data, "id")
         self.character_name = field(data, "character_name")
+        # The name as the dump has it, before whatever the port calls it:
+        # the translucent ones —see DECORATE_TRANSLUCENT— and the ones drawn
+        # apart from the hero. The event compiler reads the dump itself, and
+        # is told only the ones that changed.
+        self.dump_name = self.character_name
         self.translucent = field(data, "translucent")
         self.character_index = field(data, "character_index")
         self.character_direction = field(data, "character_direction")
@@ -664,8 +670,7 @@ SECTIONS = ("actors", "skills", "items", "enemies", "troops", "terrains",
 # a single object.
 LIST_SECTIONS = tuple(s for s in SECTIONS if s not in ("system", "terms"))
 
-# The sound effects `Game_System::GetSystemSE` hands out, in the order
-# `events.BATTLE_AUDIO_SE` walks.
+# The sound effects `Game_System::GetSystemSE` hands out.
 SYSTEM_SE = ("battle_se", "escape_se", "enemy_attack_se", "enemy_damaged_se",
              "actor_damaged_se", "dodge_se", "enemy_death_se", "item_se")
 

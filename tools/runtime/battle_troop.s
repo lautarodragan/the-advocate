@@ -301,7 +301,7 @@ no:
 ; puts in front of its code, `TPAGE_HEADER` bytes before where `tpage_code`
 ; points— into `BA_COND`. It is read with the data bank at that of
 ; `troop_code`, which fits whole in one bank, and written with `f:`.
-; Clobbers A, X and Y. See `events.troop_header`.
+; Clobbers A, X and Y. See `Trigger::header` in the event compiler.
 .proc ba_page_header
 .a8
 .i16

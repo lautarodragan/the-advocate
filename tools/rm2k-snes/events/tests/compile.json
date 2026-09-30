@@ -1,0 +1,325 @@
+{
+ "map_files": {},
+ "boxes": [
+  {
+   "from": [
+    "KERSH",
+    "Hello there, this line is far too long to fit in the window of the console and has to be rebuilt\\|\\^"
+   ],
+   "to": [
+    [
+     "KERSH",
+     "Hello there, this line is far too long",
+     "to fit in the window of the console and",
+     "has to be rebuilt\\|\\^"
+    ]
+   ]
+  }
+ ],
+ "names": [
+  [
+   1,
+   7,
+   1,
+   "Ghost~horneado:1:3:4"
+  ]
+ ],
+ "window": {
+  "columns": 39,
+  "lines": 4
+ },
+ "maps": [
+  1,
+  3,
+  2
+ ],
+ "test_commands": [
+  {
+   "code": 10110,
+   "indent": 0,
+   "string": "Test page",
+   "parameters": []
+  },
+  {
+   "code": 11330,
+   "indent": 0,
+   "string": "",
+   "parameters": [
+    10005,
+    8,
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "code": 10220,
+   "indent": 0,
+   "string": "",
+   "parameters": [
+    0,
+    1000,
+    1000,
+    0,
+    0,
+    1,
+    0
+   ]
+  },
+  {
+   "code": 10710,
+   "indent": 0,
+   "string": "",
+   "parameters": [
+    0,
+    3,
+    0,
+    0,
+    1,
+    0
+   ]
+  },
+  {
+   "code": 10810,
+   "indent": 0,
+   "string": "",
+   "parameters": [
+    3,
+    1,
+    1,
+    0
+   ]
+  },
+  {
+   "code": 10110,
+   "indent": 0,
+   "string": "Test page",
+   "parameters": []
+  },
+  {
+   "code": 10110,
+   "indent": 0,
+   "string": "Second test\\^",
+   "parameters": []
+  },
+  {
+   "code": 10440,
+   "indent": 0,
+   "string": "",
+   "parameters": [
+    1,
+    2,
+    0,
+    0,
+    3
+   ]
+  }
+ ],
+ "extra_variables": [
+  1000
+ ],
+ "test_event_map": 1,
+ "substitutions": {
+  "1": [
+   {
+    "upper": false,
+    "old": 5,
+    "new": 6,
+    "pairs": [
+     [
+      1,
+      2
+     ],
+     [
+      3,
+      4
+     ]
+    ]
+   },
+   {
+    "upper": true,
+    "old": 7,
+    "new": 8,
+    "pairs": null
+   }
+  ],
+  "2": [
+   {
+    "upper": true,
+    "old": 7,
+    "new": 8,
+    "pairs": []
+   }
+  ],
+  "3": [
+   {
+    "upper": true,
+    "old": 7,
+    "new": 8,
+    "pairs": [
+     [
+      9,
+      9
+     ]
+    ]
+   }
+  ]
+ },
+ "picture": {
+  "name": "Pic",
+  "number": 1,
+  "x": 160,
+  "y": 120
+ },
+ "sound_effects": {
+  "per_map": [
+   {
+    "effect": "Door",
+    "map": 1,
+    "sample": "Door2"
+   }
+  ],
+  "route_effects_left_out": [
+   {
+    "map": 2,
+    "effects": "all"
+   },
+   {
+    "map": 1,
+    "effects": [
+     "Door2"
+    ]
+   }
+  ],
+  "troop_effects_in_package": [
+   "Hit"
+  ]
+ },
+ "cases": [
+  {
+   "map": 1,
+   "commands": [
+    {
+     "code": 10210,
+     "indent": 0,
+     "string": "",
+     "parameters": [
+      0,
+      1023,
+      1023,
+      0
+     ]
+    },
+    {
+     "code": 10110,
+     "indent": 0,
+     "string": "Test page",
+     "parameters": []
+    },
+    {
+     "code": 11330,
+     "indent": 0,
+     "string": "",
+     "parameters": [
+      10005,
+      8,
+      0,
+      0,
+      0
+     ]
+    },
+    {
+     "code": 10220,
+     "indent": 0,
+     "string": "",
+     "parameters": [
+      0,
+      1000,
+      1000,
+      0,
+      0,
+      1,
+      0
+     ]
+    },
+    {
+     "code": 10710,
+     "indent": 0,
+     "string": "",
+     "parameters": [
+      0,
+      3,
+      0,
+      0,
+      1,
+      0
+     ]
+    }
+   ]
+  },
+  {
+   "map": 3,
+   "commands": [
+    {
+     "code": 10210,
+     "indent": 0,
+     "string": "",
+     "parameters": [
+      0,
+      1023,
+      1023,
+      0
+     ]
+    },
+    {
+     "code": 10810,
+     "indent": 0,
+     "string": "",
+     "parameters": [
+      3,
+      1,
+      1,
+      0
+     ]
+    },
+    {
+     "code": 10110,
+     "indent": 0,
+     "string": "Test page",
+     "parameters": []
+    },
+    {
+     "code": 10110,
+     "indent": 0,
+     "string": "Second test\\^",
+     "parameters": []
+    },
+    {
+     "code": 10440,
+     "indent": 0,
+     "string": "",
+     "parameters": [
+      1,
+      2,
+      0,
+      0,
+      3
+     ]
+    }
+   ]
+  }
+ ],
+ "test_graphics": {
+  "1": [
+   [
+    "Extra",
+    0
+   ]
+  ]
+ },
+ "messages_step": 4,
+ "encounter_troops": [
+  3,
+  1
+ ]
+}

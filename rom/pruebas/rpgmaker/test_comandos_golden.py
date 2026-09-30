@@ -588,7 +588,7 @@ def _el_borrar(nombre, desde=25, hasta=60):
 def test_borrar_con_el_corte(nombre):
     """`transicion-corte` y `transicion-ninguna`: `ChangeScreenTransitions`
     al corte (19) y a "ninguna" (20) para borrar, que la ROM hace igual —ver
-    `RM2K_CUT_TRANSITIONS` en tools/port/events.py—: el primer tick del
+    `RM2K_CUT_TRANSITIONS` en el compilador de eventos—: el primer tick del
     fundido ya es negro y ya cargó el mapa. Lo piden el 93 y el 95. "El
     primero" es el tick siguiente al que ve prendido `fundido`: el salto lo
     pide al final de una vuelta y `fade_tick` corre en la que sigue.
