@@ -35,7 +35,7 @@ one in its own row or above.
                  everything only it uses: the parts it was split into on
                  2026-09-29 (options, cases, game_scan, map_convert,
                  map_layers, sprites, obj_extras, vram, blocks,
-                 screen_stage, battle_stage, battle_scenes,
+                 screen_stage, battle_stage, image_stage, battle_scenes,
                  battle_animations, music, mapdata, map_record, materials,
                  and stage, which runs the parts that are programs of their
                  own, and compiler, what goes into the event compiler's two
@@ -44,10 +44,10 @@ one in its own row or above.
                  keeps of the event compiler: the constants, the registries
                  its answer is read into, the models the tests use—,
                  event_opcodes, experience, picture, window, scene,
-                 animation, adeleine, compress, fullscreen, msu_data; and beneath all of them, because they
+                 animation, compress, fullscreen, msu_data; and beneath all of them, because they
                  import nothing from the port, rules (from Game_Actor and
-                 the LDB), constants, color (the screen tint), palette (an
-                 image down to N colors), snes_format (a tile, a color and a
+                 the LDB), constants, color (the screen tint's constants),
+                 palette (a full screen at 8 bpp), snes_format (a tile, a color and a
                  cell as the PPU reads them) and asm (a data block and a
                  pointer, as ca65 reads them)
 
@@ -64,6 +64,7 @@ have layers of their own, one folder each:
       gunter/    Gunter: BRR codec and SoundFont reader
       voodoo/    Voodoo: from an image to tiles, palettes and tilemap
       lz2/       Nintendo's LC_LZ2, with an optimal parser
+      resample/  Pillow's LANCZOS resize, to the bit, as a library
 
     rm2k/        RPG Maker 2000's, knowing nothing of the console
       ditto/     reads and writes its formats; and as a library, the one
@@ -120,6 +121,12 @@ have layers of their own, one folder each:
                  reflowed; the converter runs it once per cartridge,
                  through `port/screen_stage.py`, and the game's tests ask it
                  for the screens they compare against
+      images/    `rm2k-snes-images`: the pictures —the title and the Game
+                 Over, the picture of a `ShowPicture`, the battle's
+                 backdrops, battlers and animations—, scaled with
+                 `resample`, toned and brought down to their palettes with
+                 Adeleine; the converter runs it through
+                 `port/image_stage.py`
 
 `rm2k-snes/` may depend on the other two; `snes/` and `rm2k/` on nothing
 outside themselves —not on each other, and not on `rm2k-snes/`—. So either

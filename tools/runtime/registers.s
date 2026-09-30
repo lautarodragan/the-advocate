@@ -36,8 +36,8 @@ APU_CMD_IPL = 4
 ; The console multiplies and divides in hardware, which is all the screen
 ; tint needs: it scales each channel by a value from 0 to 200 with 100 as
 ; neutral, that is, multiply and divide by a hundred. Both are exact and on
-; integers, so the same computation in Python —`color.apply_tint`— always gives
-; the same result.
+; integers, so the same computation on the converter's side —`tint.rs`, in
+; `rm2k-snes-images`— always gives the same result.
 ;
 ; The product takes 8 cycles to be ready and the quotient 16. There is no need
 ; to wait for them in a loop: it is enough not to read the result right away,

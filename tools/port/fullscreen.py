@@ -37,14 +37,15 @@ from port.palette import convert
 TILEMAP_BYTES = 32 * 32 * 2
 
 
-def compressed(image, first_color=0, cap=256, below=()):
-    """The image as a dict: `flujo` is the LZ2 with the three parts, and
+def compressed(path, first_color=0, cap=256, below=()):
+    """The image in the file at `path` as a dict: `flujo` is the LZ2 with
+    the three parts, and
     `tiles`, `colors` and `first_color` are what the ROM needs to split
     it.
 
     `first_color` and `cap` are those of `palette.convert`: by default the
     image takes all of CGRAM, from 0. Index 0 is also the PPU's backdrop
-    color, and `palette.reduce` leaves black there.
+    color, and the reduction leaves black there.
 
     `below` are colors that are not the image's and go in CGRAM right before
     its own —on the title, the menu's—: they travel in the same stream and
@@ -54,7 +55,7 @@ def compressed(image, first_color=0, cap=256, below=()):
     if len(below) > first_color:
         raise ValueError("%d colors below the image, and the image starts "
                          "at %d" % (len(below), first_color))
-    tiles, palette, tilemap = convert(image, first_color, cap)
+    tiles, palette, tilemap = convert(path, first_color, cap)
     data = bytearray()
     for cell in tiles:
         data += pack_tile(cell, planes=8)

@@ -1,0 +1,25 @@
+[package]
+name = "rm2k-snes-images"
+version = "0.1.0"
+edition = "2021"
+description = "An rm2k-snes game's pictures brought to the console: the full screens, the picture of a ShowPicture, the battle backdrops and battlers, and the battle animations, scaled, toned and down to their palettes"
+
+[lib]
+name = "rm2k_snes_images"
+path = "src/lib.rs"
+
+[[bin]]
+name = "rm2k-snes-images"
+path = "src/main.rs"
+
+[dependencies]
+adeleine = { path = "../../snes/adeleine" }
+clap = { version = "4", features = ["derive"] }
+ditto = { path = "../../rm2k/ditto" }
+resample = { path = "../../snes/resample" }
+rm2k-render = { path = "../../rm2k/rm2k-render" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[dev-dependencies]
+sha2 = "0.10"

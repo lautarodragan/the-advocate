@@ -23,7 +23,7 @@ from rpgmaker import lcf
 from rpgmaker import rm2k
 from port import animation as animation_mod
 from port import picture
-from port.adeleine import CELL
+from port.constants import CELL
 from port.snes_format import BYTES_PER_TILE
 from port.map_layers import BG_PALETTES, layers_answer
 from port.sprites import block_tile, discard_warning, separate_from_hero

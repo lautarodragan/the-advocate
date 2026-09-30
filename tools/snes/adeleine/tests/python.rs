@@ -8,7 +8,9 @@
 //! picture looks like.
 
 use adeleine::request::{merged_answer, packed_answer, reduced_answer};
-use adeleine::{merge_least_visible, reduce_colors, try_pack, Bad, Color, Colors, USABLE_COLORS};
+use adeleine::{
+    keep_most_used, merge_least_visible, reduce_colors, try_pack, Bad, Color, Colors, USABLE_COLORS,
+};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
@@ -196,4 +198,73 @@ fn a_colour_given_twice_is_a_bad_call() {
         merge_least_visible(&counts, 1),
         Err(Bad::Usage(_))
     ));
+}
+
+/// Keeping the most used, the other way down to N colours, against what
+/// the converter's `palette.reduce` gave on 2026-09-30 for the same
+/// colours: black first, and with black in the picture or not. The answer
+/// is written by hand, keys in order, as the Python wrote it.
+#[test]
+fn keeping_the_most_used_is_the_pythons() {
+    let cases: &[(u64, usize, usize, bool, &str)] = &[
+        (
+            11,
+            300,
+            16,
+            false,
+            "0ead955370a25d35ce6e07223891a07bf19ac2e5681c4901e143b848c96e80ea",
+        ),
+        (
+            12,
+            300,
+            96,
+            true,
+            "2f7f8f08d5cf44efc700b0592ed9638b4e8482f6607d8018e514c4c1cdb95167",
+        ),
+        (
+            13,
+            40,
+            15,
+            false,
+            "5637024fe2d407998c678f263729f31c39d3450fc9f92d3eca1eee15bce395d6",
+        ),
+        (
+            14,
+            10,
+            16,
+            true,
+            "eb2ae1268fb6da8e0f7f856e5181a9bbefc7376abfb264acaa8829991b695bf2",
+        ),
+        (
+            15,
+            2000,
+            256,
+            true,
+            "4255093032494dae4005ad916dbf00bade486b241b051a3a5fffa0f423151b6f",
+        ),
+    ];
+    let list = |colors: &[Color]| {
+        let each: Vec<String> = colors
+            .iter()
+            .map(|c| format!("[{},{},{}]", c[0], c[1], c[2]))
+            .collect();
+        format!("[{}]", each.join(","))
+    };
+    for &(seed, n, keep, black, expected) in cases {
+        let mut counts = counts_case(seed, n);
+        if black {
+            counts.push(([0, 0, 0], 7));
+        }
+        let kept = keep_most_used(&counts, keep, [0, 0, 0]);
+        let text = format!(
+            "{{\"mapping\":{},\"palette\":{}}}",
+            list(&kept.mapping),
+            list(&kept.palette)
+        );
+        let got: String = Sha256::digest(text.as_bytes())
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect();
+        assert_eq!(got, expected, "seed {seed}");
+    }
 }

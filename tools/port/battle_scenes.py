@@ -11,7 +11,6 @@ import os
 from port import events
 from port import scene as scene_mod
 from port import constants
-from common.parallel import in_parallel
 from port.snes_format import cgram_word, pack_tile
 from port.asm import block
 
@@ -119,33 +118,42 @@ def rom_scene(db, troops, maps, tree, encounters, game_dir):
         replacement = number_of[E.replacement().lower()]
         if replacement not in theirs:
             theirs.append(replacement)
-    for k in theirs:
-        info = E.light_backdrop(names_in_game[k], game_dir)
+    lights = E.backdrops([names_in_game[k] for k in theirs], game_dir,
+                         quality=False)
+    for k, (_quality, info) in zip(theirs, lights):
         data["fondos"].append({"nombre": names_in_game[k], "numero": k,
                                "respaldo": info})
     place = {k: i for i, k in enumerate(theirs)}
     replacement = place.get(number_of[E.replacement().lower()], 0)
     data["respaldo_de"] = [place.get(k, replacement) for k in range(len(names_in_game))]
     # The quality ones, for the `.msu`: all of them, whether in the ROM or not.
-    data["calidad"] = in_parallel(
-        lambda name: backdrop_bytes(E.backdrop(name, game_dir)), names_in_game)
-    battler_k = {}
+    data["calidad"] = [backdrop_bytes(quality) for quality, _light
+                       in E.backdrops(names_in_game, game_dir, light=False)]
+    # Which enemies ask for which battler, in the order they are asked for;
+    # then the battlers, with a single call to the stage.
+    asked, first_asked = [], {}
     for number in troops.ids:
         if number not in db.troops:
             continue
         for enemy in db.troops[number].members[:constants.ENEMIES_MAX]:
-            if enemy in data["battler_de"] or enemy not in db.enemies:
+            if enemy in first_asked or enemy not in db.enemies:
                 continue
             e = db.enemies[enemy]
             name = e.battler_name or ""
             hue = getattr(e, "battler_hue", 0) or 0
-            k = E.key(name, hue)
-            if k not in battler_k:
-                info = E.battler(name, hue, game_dir) if name else None
-                battler_k[k] = 0xFF if info is None else len(data["battlers"])
-                if info is not None:
-                    data["battlers"].append(info)
-            data["battler_de"][enemy] = battler_k[k]
+            first_asked[enemy] = (name, hue)
+            if name and (name, hue) not in asked:
+                asked.append((name, hue))
+    drawn = dict(zip(asked, E.battlers(asked, game_dir)))
+    battler_k = {}
+    for enemy, (name, hue) in first_asked.items():
+        k = E.key(name, hue)
+        if k not in battler_k:
+            info = drawn[(name, hue)] if name else None
+            battler_k[k] = 0xFF if info is None else len(data["battlers"])
+            if info is not None:
+                data["battlers"].append(info)
+        data["battler_de"][enemy] = battler_k[k]
     return data
 
 
