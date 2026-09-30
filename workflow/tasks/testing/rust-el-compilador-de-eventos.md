@@ -2,7 +2,7 @@
 name: "Rust: el compilador de eventos"
 description: "tools/port/events.py (páginas de evento a bytecode) como crate propio en Rust, sobre la biblioteca de Ditto y rm2k-rules, con las ROMs byte por byte iguales"
 type: refactor
-assignee: Guazú
+assignee: taro
 ---
 
 La pieza más cara del conversor, charlada con taro el 2026-09-29: el
@@ -157,18 +157,126 @@ con la forma del piloto. Dos subcomandos:
 
 Los números de opcode salen de `events.toml` con `protocol --rust`.
 
-## Dónde va
+## Lo que quedó
 
-- `cc001fba`: el crate, sin que nadie lo llame todavía.
-- La comparación descartable, adentro de una conversión real (un módulo
-  temporal que corre las dos cosas con las mismas entradas y compara
-  campo por campo): **0 diferencias** en `release` (93 mapas, 2.064
-  páginas, 1.995 con código, 236 casos, 69 tropas) y en `test-special`
-  (7 mapas, 249 páginas, 8 casos, 11 tropas). Compara el bytecode de cada
-  página y todo su registro, los gráficos de cada mapa, las deudas, qué
-  sustituciones pidió, cada caso, el bloque de textos, los temas y
-  efectos con sus paquetes, salidas y saltos, las tropas y sus fondos, las
-  páginas de tropa, el audio de la pelea, los eventos comunes de equipo, y
-  las dos pasadas del `scan` —qué páginas compilan y las de quién camina—.
-- Falta: que el conversor use el crate, la prueba del crate con el juego
-  chico, borrar el Python, la prosa.
+### La frontera, como quedó
+
+La de arriba, con tres ajustes que pidieron las pruebas de la ROM al dejar
+de compilar con Python:
+
+- el `scan` devuelve también **el código** de cada página compilada sola,
+  no sólo si compila: es lo que una prueba pregunta de una página del
+  juego (`datos.pagina_de`);
+- la página de prueba llega **con** el `ControlSwitches` que la apaga, que
+  pone el conversor: es convención del arnés y no del compilador; y una que
+  no compila vuelve `null` y el conversor dice cuál;
+- las páginas de tropa dicen **de qué página son**, para que una prueba
+  lea el disparador de una en particular.
+
+Y una que no estaba en la propuesta: la página con que arranca un evento
+—para saber quién comparte gráfico, y con eso paleta— la da
+`rm2k-rules` (`starting_page`), no una copia propia.
+
+### El crate
+
+`tools/rm2k-snes/events/`, `rm2k-snes-events`, biblioteca y ejecutable,
+con la forma del piloto. Depende de `ditto`, `rm2k-rules`, `clap` y
+`serde_json` (`sha2` en las pruebas). Fuentes, contadas con `wc -l` tras
+`cargo fmt`: `compile.rs` (cada comando, las ramas, elecciones, peleas,
+posada, llamadas en línea, celdas fusionadas, la canción de salida, 2.548),
+`lib.rs` (el pedido y las dos llamadas, 717), `game.rs` (el volcado con
+Ditto, las cajas rearmadas, los nombres, 506), `troops.rs` (308),
+`indices.rs` (los barridos, 266), `pages.rs` (`MapEvents` y `map_pages`,
+265), `codes.rs` (los códigos, atados a liblcf por una prueba, 263),
+`messages.rs` (252), `route.rs` (240), `registry.rs` (`Songs`, `Graphics`,
+`Troops`, `Picture`, 233), `main.rs` (89), `fail.rs` (60) y `opcodes.rs`,
+generado por `protocol --rust` desde `events.toml` (122). README en inglés.
+
+Pruebas: 13 unitarias; `tests/python.rs`, un juego chico en `tests/game/`
+con los dos pedidos y el sha256 de cada parte de lo que contestaba el
+Python (`tests/python.json`); `tests/escapes.rs`, que ata la cola de
+escapes a la copia de Python con `tests/escapes.json`; y
+`tests/command_line.rs`, los dos códigos de salida. El script que armó el
+juego y sacó los hashes fue descartable: corría el `events.py` de antes.
+
+### La comparación página por página
+
+Descartable, adentro de una conversión real: un módulo temporal que corría
+las dos cosas con las mismas entradas y comparaba campo por campo.
+**0 diferencias** en `release` (93 mapas, 2.064 páginas, 1.995 con
+código, 236 casos, 69 tropas) y en `test-special` (7 mapas, 249 páginas,
+8 casos, 11 tropas): el bytecode y el registro de cada página, los gráficos
+de cada mapa, las deudas, las sustituciones pedidas, cada caso, el bloque
+de textos, temas y efectos con sus paquetes, salidas y saltos, las tropas
+y sus fondos, las páginas de tropa, el audio de la pelea, los eventos
+comunes de equipo, y las dos pasadas del `scan`. Y además el `scan` sobre
+**los 328 mapas** como un solo cartucho: 5.601 páginas, 5.352 con código,
+0 diferencias.
+
+### Verificación
+
+Sobre `b0001b6b`, con `events` y `cartridge` instalados en el `bin/`
+local:
+
+- `NO_CACHE=1 just cartuchos`: de los 999 archivos de `rom/build/`, los
+  997 que no son `.dbg` iguales byte por byte a los de la base, armada
+  antes de tocar nada; los dos `.dbg`, iguales a los de la base después de
+  deshacer dos cosas que no son del compilador: que el `rm2k-snes-assemble`
+  local escribe las rutas del armado relativas al worktree y el global
+  relativas al checkout principal, y el tamaño de los diez `.s` del
+  runtime cuyos comentarios cambió el último commit. Antes de ese commit,
+  con el `cartridge` global, los 999 salieron iguales en cada paso.
+  `abl.sfc` 7a3c6483…, `abl.msu` 905decd2…, `prueba.sfc` fb6db844…;
+- `just pruebas`: 872 (eran 874: dos pasaron al crate, el tema de salida
+  y la posada gratis);
+- `just -f tools/justfile test`: 88 (84, menos dos que pasaron al crate y
+  las ocho de las cajas con cola, que ahora son catorce casos
+  compartidos con el crate);
+- `cargo test` de `rm2k-snes-events` (20), de `cartridge` (43) y de
+  `rm2k-rules` (9).
+
+### Qué se borró de `events.py`, y qué quedó
+
+De 5.600 líneas a 2.037. Se fue el compilador entero —`compile_page`,
+`_compile`, las ramas, las rutas, los mensajes, los índices, las páginas
+de tropa, `map_pages`— y `cases.case_page`. Quedó, y por qué:
+
+- las constantes que emiten tablas de `mapdata.inc` o que leen otros
+  módulos y las pruebas;
+- `VARIABLE_SLOT`, `SKILL_SLOT` y `PARTY_COMMON_EVENTS`, que llena
+  `compiler.apply_indices` con la respuesta y lee `mapdata`;
+- `Songs`, `Troops` y `Trigger`: la forma en que el resto del conversor lee
+  lo que llenó el compilador, y sobre `Songs` la música numera después;
+- `Pictures.choose`: qué imagen se queda el lugar lo decide el conversor,
+  que la convierte;
+- `MapEvents`, reducido al id de RM2k contra el índice de la tabla, que usan
+  `baking`, `map_convert` y el arnés de las piedras;
+- `escape_tail`, porque `texts.py` rearma las cajas alrededor de la cola:
+  **está en las dos puntas**, y las ata `tests/escapes.json` con una prueba
+  de cada lado;
+- `database`, `index_animations` y `ANIMATIONS`, de `animation.py`;
+  `named_backdrops` y `encounter_zones`, de las escenas;
+- los modelos de las pruebas: `Encounters` y los `enc_*`, `key_value`,
+  `next_random`, `PartyState`, `walk_code`, `route_targets`;
+- y los comentarios de qué hace la ROM con cada opcode y comando, que
+  siguen al lado de lo que queda de cada cosa.
+
+### Lo que falta, o queda para después
+
+- **Los comentarios largos de cada comando** —cuánto destrabó, cuándo
+  entró, qué se midió— viven todavía en `events.py`, junto a las
+  constantes que quedaron, y el código que protegen está en Rust con
+  comentarios más cortos. Moverlos al crate es trabajo de prosa, no de
+  código, y no lo hice.
+- Los comentarios del runtime que ya citaban nombres viejos en castellano
+  de `events.py` (`PASO_POR_VELOCIDAD`, `RUTA_DIAGONALES`, `ACCESO_BIT`,
+  `VAR_RANURA_MAX`, `MENSAJES_PASO`…) siguen así: venían de antes.
+- El `scan` y el `compile` leen cada uno el volcado entero; no medí cuánto
+  suma a la conversión, que no cambió de forma visible.
+
+## Al mergear
+
+Reinstalar en el global lo de Rust que cambió: `just -f tools/justfile
+install events cartridge` —`events` es nuevo, y `cartridge` suma su binario
+a la huella de los cartuchos—. `protocol` no cambió: sólo se le pide un
+archivo más.
