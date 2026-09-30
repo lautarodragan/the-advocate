@@ -1,8 +1,8 @@
 ---
 name: "El teletransporte tarda tres cuadros de más"
-description: "Contra el RPG_RT, cada Wait+Teleport de la escena del mapa 16 dura 161 ticks en la ROM y 158 en el original: dos en la espera y uno en el fundido"
+description: "Contra el RPG_RT, cada Wait+Teleport de la escena del mapa 16 duraba 161 ticks en la ROM y 158 en el original: uno en la espera y dos en el fundido. Arreglado; el merge espera que taro mire las goldens"
 type: bug
-assignee: Benteveo
+assignee: taro
 ---
 
 Apareció el 2026-09-29 midiendo contra el RPG_RT las tres divergencias que
@@ -157,3 +157,14 @@ incluidos.
   antes: es el arnés, que pide el fundido desde afuera.
 * Lo que no cubre `just pruebas`: el corte medido contra el RPG_RT. Se
   movió por analogía con el fundido, no se grabó.
+
+## Al mergear
+
+Nada que instalar: no cambia ningún proyecto de Rust ni se renombra ningún
+script, y el runtime lo lee el `rm2k-snes-cartridges` del global desde el
+checkout principal. Con `main` mergeado (`2be90714`), `just pruebas` y
+`just -f tools/justfile test` en verde.
+
+Qué mirar jugando: cualquier puerta o `Teleport` —el fundido arranca en el
+mismo cuadro del salto y es dos cuadros más corto— y las esperas de las
+cinemáticas, un cuadro más cortas cada una.
