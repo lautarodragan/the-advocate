@@ -135,8 +135,8 @@ De `animation.py`: `sheet_of` (ahora `sheet_file`, que da la ruta),
 `_live_cells`, `_side`, `rm_box`, `CELL`, `BIG_CELL`, `COLUMNS` y, de
 `_paint_frame`, el recorte, el zoom y la transparencia. De `scene.py`:
 `rotate_hue`, `_to_hsl`, `_from_hsl` y `_div`, y leer con `load_image`.
-**`load_image` se queda**: la usan `snes_convert.py`, `window.py` y
-`menus.py`.
+`load_image` se quedaba porque la usaban `snes_convert.py`, `window.py` y
+`menus.py`; después del merge con Hurra ya no, y se borró: ver abajo.
 
 **Los commits:** el cambio (`d8a56790`), con las ROMs byte por byte
 iguales, y la prosa (`a13b4b6a`): README del crate, AGENTS.md,
@@ -152,5 +152,12 @@ verde; `cargo test` de `rm2k-render` y de `rm2k-rules`, en verde, y
 **Al mergear:** `just -f tools/justfile install rm2k-render` (lleva
 `rules` adentro). Nada de Python se renombró ni se agregó, así que
 `install-scripts` no hace falta.
+
+**Después del merge con Hurra** (`d23f52f4`, los dos lados en cada
+choque): `battle` y `battle-animation` leen el pedido con su `request.rs`,
+`scene._open` llama a `render_map.draw`, y **`load_image` se borró**, porque
+ya no la usa nadie (`c523d9ff`). Sobre el árbol mergeado, otra vez: la
+comparación sin diferencias, los 1032 sha256 iguales a los de antes de
+todo, `just pruebas` 882 y `just -f tools/justfile test` 90 en verde.
 
 **Para taro:** no hay nada que jugar, porque no cambia un pixel.
