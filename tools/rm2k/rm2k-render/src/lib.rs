@@ -10,15 +10,23 @@
 //! with a tile of the ChipSet, and a translucent one over what is behind it,
 //! all as CharSet sheets.
 //!
+//! **What the screens are drawn with** ([`face`], [`system`],
+//! [`show_picture`]): an actor's face, a window and its cursor from the
+//! System, and the picture of a `ShowPicture`.
+//!
 //! No panorama and no placing of events on the map: those are drawn by
 //! whoever uses the layers. Nothing here knows which game the map is from.
 
 pub mod charset;
 pub mod chipset;
+pub mod face;
 pub mod fail;
 pub mod layers;
 pub mod picture;
+pub mod request;
+pub mod show_picture;
 pub mod source;
+pub mod system;
 
 pub use chipset::Atlas;
 pub use fail::{Bad, Result};

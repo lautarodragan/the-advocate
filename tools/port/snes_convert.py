@@ -80,7 +80,7 @@ from port import constants
 from common import settings
 from common import project
 from rpgmaker.rm2k import TILE
-from render.render_map import Renderer, build_passability, load_image
+from render.render_map import Renderer, build_passability
 from common import environment
 from rpgmaker import resources
 from rpgmaker.resources import find_resource
@@ -591,7 +591,7 @@ def main():
     if not 0 <= args.start_index < len(maps):
         sys.exit("--start-index %d but there are %d maps" % (args.start_index, len(maps)))
     from port import window as window_mod
-    skin = window_mod.skin(args.game_dir, renderer.database.system_name)
+    skin = window_mod.skin(args.game_dir, renderer.database)
     font_id = renderer.database.font_id
     window_data = convert_window(skin, font_id)
     window_data["fuente"] = font_bytes(font_id)

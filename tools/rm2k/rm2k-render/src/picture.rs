@@ -50,6 +50,22 @@ impl Picture {
         ]
     }
 
+    /// The `w`x`h` rectangle at `(x, y)`, as is: what falls outside the
+    /// picture comes out transparent black, as [`get`](Self::get) says.
+    pub fn crop(&self, x: i64, y: i64, w: usize, h: usize) -> Picture {
+        let mut rgba = Vec::with_capacity(w * h * 4);
+        for dy in 0..h as i64 {
+            for dx in 0..w as i64 {
+                rgba.extend_from_slice(&self.get(x + dx, y + dy));
+            }
+        }
+        Picture {
+            width: w,
+            height: h,
+            rgba,
+        }
+    }
+
     /// Copies `src` over this one from its top left corner, ignoring alpha:
     /// what does not fit is cut, and what `src` does not cover is left alone.
     pub fn paste(&mut self, src: &Picture) {
@@ -130,6 +146,16 @@ fn open(path: &Path) -> Result<png::Reader<std::io::BufReader<std::fs::File>>> {
 /// ChipSet anyone has handed this is one, and a decoder with nothing to be
 /// checked against is not worth carrying.
 pub fn read_rm2k(path: &Path) -> Result<Picture> {
+    read(path, true)
+}
+
+/// Like [`read_rm2k`], but with index 0 of an indexed picture as opaque as
+/// the others: a `ShowPicture` without its transparent colour is drawn so.
+pub fn read_unkeyed(path: &Path) -> Result<Picture> {
+    read(path, false)
+}
+
+fn read(path: &Path, key: bool) -> Result<Picture> {
     if path
         .extension()
         .map(|e| e.eq_ignore_ascii_case("bmp"))
@@ -168,7 +194,12 @@ pub fn read_rm2k(path: &Path) -> Result<Picture> {
                     let index = ((byte >> shift) as usize) & ((1 << depth) - 1);
                     let palette = info.palette.as_deref().unwrap_or(&[]);
                     let rgb = palette.get(index * 3..index * 3 + 3).unwrap_or(&[0, 0, 0]);
-                    [rgb[0], rgb[1], rgb[2], if index == 0 { 0 } else { 255 }]
+                    [
+                        rgb[0],
+                        rgb[1],
+                        rgb[2],
+                        if key && index == 0 { 0 } else { 255 },
+                    ]
                 }
                 (png::ColorType::Grayscale, 8) => {
                     let g = line[x];

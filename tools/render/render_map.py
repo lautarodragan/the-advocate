@@ -10,9 +10,11 @@ care of the events.
 `voodoo` or `lz2`: this file hands it the map as the converter has it —with
 the fork applied and whatever was baked into it— and reads back the PNGs it
 writes. **So are the CharSets**, the sheets the events are drawn with
-—`Charsets`, which asks for them all at once—. What stays here is what the
-port does to them for the console, and `load_image`, which the rest of
-`port/` uses.
+—`Charsets`, which asks for them all at once—. `draw` is the call the
+screens use: the faces, the System's windows and the `ShowPicture`
+pictures. What stays here is what the port does to them for the console,
+and `load_image`, which the battle still uses (`scene.py`,
+`animation.py`).
 """
 
 import array
@@ -33,8 +35,8 @@ from rpgmaker.resources import find_resource
 from rpgmaker.rm2k import TILE
 from render import chipset_recipe
 
-MISSING = """`rm2k-render` is missing, the one that draws a map's layers and
-the CharSets of its events.
+MISSING = """`rm2k-render` is missing, the one that draws a map's layers, the
+CharSets of its events, and the faces, windows and pictures of the screens.
 
 It is a Rust binary that lives in `tools/rm2k/rm2k-render/` and is installed as
 a system tool:
@@ -56,6 +58,31 @@ def version():
     drew: recompiling it without touching any `.py` has to invalidate it."""
     with open(binary(), "rb") as f:
         return hashlib.sha256(f.read()).hexdigest()
+
+
+def draw(command, entries):
+    """One call to `rm2k-render <command>` with `entries` as its request, a
+    list: the pictures it drew, in RGBA and in the same order. The paths
+    in the entries have to be absolute, because the request is written in a
+    temporary directory. `face`, `system` and `picture` take this shape."""
+    with tempfile.TemporaryDirectory(prefix="rm2k-render-") as out:
+        request_path = os.path.join(out, "request.json")
+        with open(request_path, "w", encoding="utf-8") as f:
+            json.dump(entries, f)
+        drawn = os.path.join(out, "drawn")
+        done = subprocess.run(
+            [binary(), command, "--request", request_path, "--out", drawn],
+            capture_output=True, text=True)
+        if done.returncode != 0:
+            raise SystemExit("rm2k-render %s could not draw %s:\n%s"
+                             % (command, json.dumps(entries),
+                                done.stderr.strip()))
+        images = []
+        for i in range(len(entries)):
+            # Read now, before the directory goes away.
+            with Image.open(os.path.join(drawn, "%d.png" % i)) as image:
+                images.append(image.convert("RGBA"))
+        return images
 
 
 # The families of `rm2k.ANIMATED_FAMILIES`, by the name `rm2k-render` gives

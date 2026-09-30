@@ -6,7 +6,7 @@
 
 use clap::{Args as ClapArgs, Parser, Subcommand};
 use rm2k_render::fail::{Bad, Result};
-use rm2k_render::{charset, picture, source, Atlas};
+use rm2k_render::{charset, face, picture, show_picture, source, system, Atlas};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -40,6 +40,33 @@ enum Command {
     /// What events are drawn with, as CharSet sheets: CharSets, tiles of a
     /// ChipSet, and translucent ones over what is behind them
     Charset(CharsetArgs),
+    /// Faces cut from their FaceSets
+    #[command(
+        after_help = "An entry is {\"faceset_file\": path, \"index\": n}: face n, 0 \
+                            to 15, of the FaceSet, with its colour key, as a 48x48 RGBA PNG. \
+                            Relative paths are relative to the request."
+    )]
+    Face(ListArgs),
+    /// What the System draws: windows, cursors, the text's colours, the timer
+    #[command(
+        after_help = "An entry is {\"system_file\": path, \"draw\": what}, and what \
+                            is one of: \"window\", with width, height and message_stretch \
+                            (0 stretched, 1 tiled, as the database has it), an empty window; \
+                            \"cursor\", with width, height and optionally drawing (0 or 1); \
+                            \"text_color\", with color (0 to 19), the 16x16 block its \
+                            letters take their pixels from; \"shadow\", the shadow's block; \
+                            \"timer\", the timer's eleven 8x16 glyphs in a row. All RGBA \
+                            PNGs, and relative paths are relative to the request."
+    )]
+    System(ListArgs),
+    /// Pictures of `ShowPicture`, with their transparent colour and
+    /// transparency
+    #[command(after_help = "An entry is {\"picture_file\": path}, and it can carry \
+                            \"use_transparent_color\": true, index 0 transparent, and \
+                            \"top_trans\": n, the transparency from 0 to 100: the picture \
+                            as RM2k puts it on the screen, as an RGBA PNG of its size. \
+                            Relative paths are relative to the request.")]
+    Picture(ListArgs),
 }
 
 /// Where a ChipSet is looked for: a file, or a name in the game and the RTP.
@@ -145,6 +172,19 @@ struct CharsetArgs {
     out: PathBuf,
 }
 
+/// A request that is a list of pictures to draw: what an entry is, is in
+/// each subcommand's `after_help`.
+#[derive(ClapArgs)]
+struct ListArgs {
+    /// The pictures to draw, as a JSON list: picture i is written as <i>.png
+    #[arg(long, value_name = "PATH")]
+    request: PathBuf,
+
+    /// The directory to write the pictures to
+    #[arg(long, value_name = "DIRECTORY")]
+    out: PathBuf,
+}
+
 /// The ChipSet's picture: the file given, or the one the name finds.
 fn chipset(place: &Where, name: Option<&str>) -> Result<picture::Picture> {
     if let Some(path) = &place.chipset_file {
@@ -205,6 +245,9 @@ fn main() -> ExitCode {
         Command::Layers(args) => do_layers(args),
         Command::Atlas(args) => do_atlas(args),
         Command::Charset(args) => do_charset(args),
+        Command::Face(args) => face::write(&args.out, &args.request),
+        Command::System(args) => system::write(&args.out, &args.request),
+        Command::Picture(args) => show_picture::write(&args.out, &args.request),
     };
     match done {
         Ok(()) => ExitCode::SUCCESS,

@@ -242,21 +242,19 @@ def glyphs_of(db, actors, extra=""):
 def face_of(db, actor, game_dir):
     """The actor's face, 48x48 in RGBA, or None if it has none.
 
-    It goes through `render_map.load_image` and not `Image.open`, like the
-    skin: in RM2k palette index 0 is transparent in a FaceSet too, and in
-    `ABLFaces` it is a red that fills almost the whole face. Drawn opaque,
-    each face was a red square with a figure inside.
+    `rm2k-render face` cuts it, with the FaceSet's color key: in
+    `ABLFaces` index 0 is a red that fills almost the whole face, and drawn
+    opaque each face was a red square with a figure inside.
     """
     import os
     from render import render_map
     a = db.actors[actor]
     if not a.face_name:
         return None
-    sheet = render_map.load_image(os.path.join(game_dir, "FaceSet",
-                                               a.face_name + ".png"))
-    col, row = a.face_index % 4, a.face_index // 4
-    return sheet.crop((col * FACE, row * FACE, (col + 1) * FACE,
-                       (row + 1) * FACE))
+    path = os.path.abspath(os.path.join(game_dir, "FaceSet",
+                                        a.face_name + ".png"))
+    return render_map.draw("face", [{"faceset_file": path,
+                                     "index": a.face_index}])[0]
 
 
 def _face_palette(face):

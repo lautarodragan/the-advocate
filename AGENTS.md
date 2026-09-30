@@ -102,7 +102,8 @@ port —ver `tools/README.md`—:
                        lugar en Rust que lee el volcado
       rules/           rm2k-rules: lo que el formato significa —pasabilidad,
                        páginas, experiencia—, la copia en Rust de rm2k.py
-      rm2k-render/     las capas de un mapa y sus CharSets, dibujados como RM2k
+      rm2k-render/     las capas de un mapa, sus CharSets y las caras, ventanas
+                       y carteles de las pantallas, dibujados como RM2k
     tools/rm2k-snes/   los que unen las dos cosas
       project/         la biblioteca: qué juego, sus perillas, los flags de la máquina
       cartridge/       los cartuchos: el reparto en bancos, ca65 + ld65, el espacio

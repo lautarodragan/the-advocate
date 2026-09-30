@@ -14,11 +14,11 @@ from port.snes_format import pack_tile
 from port.sprites import OBJ_COLORS, OBJ_PALETTES, drawable_npcs
 
 
-# The timer: eleven 8x16 glyphs in the System, starting at (32, 32). Ten digits
-# and the colon, which is all `Sprite_Timer::Draw` draws.
+# The timer: eleven 8x16 glyphs of the System, which `rm2k-render system`
+# hands over in a row. Ten digits and the colon, which is all
+# `Sprite_Timer::Draw` draws.
 TIMER_GLYPHS = 11
 TIMER_GLYPH_W, TIMER_GLYPH_H = 8, 16
-TIMER_ORIGIN = (32, 32)
 # Where it is drawn on screen. `Sprite_Timer` puts it at `menu_offset_x + 4`
 # and `menu_offset_y + 4`, and with a screen narrower than the menu both
 # offsets come out zero.
@@ -33,12 +33,12 @@ def timer_colors_of(sys_img):
     color to make room for it, and that decision changes how that character is
     quantized.
     """
+    glyphs = sys_img.timer()
     colors = collections.Counter()
     for i in range(TIMER_GLYPHS):
         for y in range(TIMER_GLYPH_H):
             for x in range(TIMER_GLYPH_W):
-                r, g, b, a = sys_img.getpixel((TIMER_ORIGIN[0] + i * 8 + x,
-                                               TIMER_ORIGIN[1] + y))
+                r, g, b, a = glyphs.getpixel((i * TIMER_GLYPH_W + x, y))
                 if a:
                     colors[(r >> 3, g >> 3, b >> 3)] += 1
     return colors
@@ -106,15 +106,15 @@ def timer_digits(sys_img, tiles, palettes, leader_owned=(),
     base = -(-(len(tiles) // 32) // 64) * 64
     if (base + 16 + TIMER_GLYPHS) * 32 > len(tiles):
         tiles += bytes((base + 16 + TIMER_GLYPHS) * 32 - len(tiles))
+    glyphs = sys_img.timer()
     for i in range(TIMER_GLYPHS):
         for half in (0, 1):
             cell = []
             for y in range(CELL):
                 row = []
                 for x in range(CELL):
-                    r, g, b, a = sys_img.getpixel(
-                        (TIMER_ORIGIN[0] + i * 8 + x,
-                         TIMER_ORIGIN[1] + half * CELL + y))
+                    r, g, b, a = glyphs.getpixel(
+                        (i * TIMER_GLYPH_W + x, half * CELL + y))
                     row.append(index[(r >> 3, g >> 3, b >> 3)] if a else 0)
                 cell.append(tuple(row))
             number = base + half * 16 + i
