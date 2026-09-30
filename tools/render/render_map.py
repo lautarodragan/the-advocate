@@ -11,8 +11,10 @@ care of the events.
 the fork applied and whatever was baked into it— and reads back the PNGs it
 writes. **So are the CharSets**, the sheets the events are drawn with
 —`Charsets`, which asks for them all at once—. `draw` is the call the
-screens use: the faces, the System's windows and the `ShowPicture`
-pictures. What stays here is what the port does to them for the console.
+screens use —the faces, the System's windows and the `ShowPicture`
+pictures— and the battle's backdrops and battlers (`scene.py`); the
+battle animations have their own shape (`animation.draw`). What stays here
+is what the port does to them for the console.
 """
 
 import array
@@ -34,7 +36,8 @@ from rpgmaker.rm2k import TILE
 from render import chipset_recipe
 
 MISSING = """`rm2k-render` is missing, the one that draws a map's layers, the
-CharSets of its events, and the faces, windows and pictures of the screens.
+CharSets of its events, the faces, windows and pictures of the screens, and
+what the battles are drawn with.
 
 It is a Rust binary that lives in `tools/rm2k/rm2k-render/` and is installed as
 a system tool:
@@ -62,7 +65,8 @@ def draw(command, entries):
     """One call to `rm2k-render <command>` with `entries` as its request, a
     list: the pictures it drew, in RGBA and in the same order. The paths
     in the entries have to be absolute, because the request is written in a
-    temporary directory. `face`, `system` and `picture` take this shape."""
+    temporary directory. `face`, `system`, `picture` and `battle` take this
+    shape."""
     with tempfile.TemporaryDirectory(prefix="rm2k-render-") as out:
         request_path = os.path.join(out, "request.json")
         with open(request_path, "w", encoding="utf-8") as f:

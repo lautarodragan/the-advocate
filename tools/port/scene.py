@@ -237,10 +237,6 @@ def _open(game_dir, folder, name, rtp=False, hue=0):
     was not needed because the ROM's three are the game's. The battlers still
     do not look there, so as not to change which ones get in without looking
     at it."""
-    import json
-    import subprocess
-    import tempfile
-    from PIL import Image
     from render import render_map
     from rpgmaker import resources
     places = [game_dir] + ([resources.RTP_DIR] if rtp else [])
@@ -248,21 +244,11 @@ def _open(game_dir, folder, name, rtp=False, hue=0):
                                    (".png", ".bmp", ".xyz"))
     if path is None:
         return None
+    # Absolute: `draw` writes the request in a temporary directory.
+    path = os.path.abspath(path)
     entry = ({"backdrop_file": path} if folder == "Backdrop"
              else {"monster_file": path, "hue": hue})
-    with tempfile.TemporaryDirectory(prefix="rm2k-render-") as out:
-        request_path = os.path.join(out, "battle.json")
-        with open(request_path, "w", encoding="utf-8") as f:
-            json.dump([entry], f)
-        done = subprocess.run(
-            [render_map.binary(), "battle", "--request", request_path,
-             "--out", out], capture_output=True, text=True)
-        if done.returncode != 0:
-            raise SystemExit("rm2k-render could not draw %s/%s:\n%s"
-                             % (folder, name, done.stderr.strip()))
-        # `convert` reads it now, before the directory goes away.
-        with Image.open(os.path.join(out, "0.png")) as image:
-            return image.convert("RGBA")
+    return render_map.draw("battle", [entry])[0]
 
 
 # --- the backdrop -------------------------------------------------------------

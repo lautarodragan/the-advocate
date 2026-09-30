@@ -24,6 +24,7 @@
 
 use crate::fail::{Bad, Result};
 use crate::picture::{self, Picture};
+use crate::request::Request;
 use crate::resample::bilinear_resize;
 use ditto::schema::{Animation, AnimationCellData};
 use rm2k_rules::battle_animation::{cell_origin, cell_side};
@@ -149,32 +150,18 @@ pub struct Wanted {
 /// Ditto's dump —only `large` and `frames` are read—. A relative path is
 /// relative to the request's directory.
 pub fn request(path: &Path) -> Result<Vec<Wanted>> {
-    let text = std::fs::read_to_string(path)
-        .map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
-    let whose = path.display().to_string();
-    let bad = |what: String| Bad::answer(format!("{whose}: {what}"));
-    let data: serde_json::Value = serde_json::from_str(&text).map_err(|e| bad(e.to_string()))?;
-    let base = path.parent().unwrap_or(Path::new(""));
-    let entries = data
-        .as_array()
-        .ok_or_else(|| bad("not a list".to_string()))?;
-    let mut wanted = Vec::with_capacity(entries.len());
-    for (i, entry) in entries.iter().enumerate() {
-        let sheet = entry
-            .get("sheet_file")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| bad(format!("entry {i}: `sheet_file` is not a path")))?;
-        let animation = entry
-            .get("animation")
-            .ok_or_else(|| bad(format!("entry {i}: no `animation`")))?;
-        let animation: Animation = serde_json::from_value(animation.clone())
-            .map_err(|e| bad(format!("entry {i}: `animation`: {e}")))?;
-        wanted.push(Wanted {
-            sheet: base.join(sheet),
-            animation,
-        });
-    }
-    Ok(wanted)
+    let request = Request::read(path)?;
+    (0..request.entries.len())
+        .map(|i| {
+            let sheet = request.file(i, "sheet_file")?;
+            let animation = request.entries[i]
+                .get("animation")
+                .ok_or_else(|| request.bad(i, "no `animation`"))?;
+            let animation: Animation = serde_json::from_value(animation.clone())
+                .map_err(|e| request.bad(i, format!("`animation`: {e}")))?;
+            Ok(Wanted { sheet, animation })
+        })
+        .collect()
 }
 
 /// The file cell `k` of frame `f` of animation `i` is written to.

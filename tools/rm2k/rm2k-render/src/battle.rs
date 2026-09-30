@@ -11,9 +11,10 @@
 //! Where a battler stands, and which covers which, is the caller's: nothing
 //! here puts a troop together.
 
-use crate::fail::{Bad, Result};
+use crate::fail::Result;
 use crate::picture::{self, Picture};
-use std::path::{Path, PathBuf};
+use crate::request::{self, Request};
+use std::path::Path;
 
 /// A backdrop's picture, opaque.
 pub fn backdrop(path: &Path) -> Result<Picture> {
@@ -123,71 +124,23 @@ pub fn rotate_hue(picture: &mut Picture, degrees: i32) {
     }
 }
 
-/// One picture a request asks for.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Wanted {
-    Backdrop(PathBuf),
-    Battler { picture: PathBuf, hue: i32 },
-}
-
-/// A request: a JSON list, one entry per picture, and picture `i` is
-/// written as `<i>.png`. An entry is `{"backdrop_file": path}` or
-/// `{"monster_file": path, "hue": degrees}`, the hue 0 if left out. A
-/// relative path is relative to the request's directory.
-pub fn request(path: &Path) -> Result<Vec<Wanted>> {
-    let text = std::fs::read_to_string(path)
-        .map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
-    let whose = path.display().to_string();
-    let bad = |what: String| Bad::answer(format!("{whose}: {what}"));
-    let data: serde_json::Value = serde_json::from_str(&text).map_err(|e| bad(e.to_string()))?;
-    let base = path.parent().unwrap_or(Path::new(""));
-    let entries = data
-        .as_array()
-        .ok_or_else(|| bad("not a list".to_string()))?;
-    let mut wanted = Vec::with_capacity(entries.len());
-    for (i, entry) in entries.iter().enumerate() {
-        let file = |key: &str| {
-            entry.get(key).map(|v| {
-                v.as_str()
-                    .map(|s| base.join(s))
-                    .ok_or_else(|| bad(format!("entry {i}: `{key}` is not a path")))
-            })
-        };
-        wanted.push(match (file("backdrop_file"), file("monster_file")) {
-            (Some(backdrop), None) => Wanted::Backdrop(backdrop?),
-            (None, Some(monster)) => {
-                let hue = match entry.get("hue") {
-                    None => 0,
-                    Some(v) => v
-                        .as_i64()
-                        .and_then(|h| i32::try_from(h).ok())
-                        .ok_or_else(|| bad(format!("entry {i}: `hue` is not a number")))?,
-                };
-                Wanted::Battler {
-                    picture: monster?,
-                    hue,
-                }
+/// Draws a request: each entry is `{"backdrop_file": path}` or
+/// `{"monster_file": path, "hue": degrees}`, the hue 0 if left out, and
+/// picture `i` is written as `<i>.png`.
+pub fn write(dir: &Path, request_path: &Path) -> Result<()> {
+    let request = Request::read(request_path)?;
+    request::write(dir, &request, |r, i| {
+        let entry = &r.entries[i];
+        match (entry.get("backdrop_file"), entry.get("monster_file")) {
+            (Some(_), None) => backdrop(&r.file(i, "backdrop_file")?),
+            (None, Some(_)) => {
+                let hue = r.number_in(i, "hue", Some(0), i32::MIN as i64..i32::MAX as i64)?;
+                battler(&r.file(i, "monster_file")?, hue as i32)
             }
-            _ => {
-                return Err(bad(format!(
-                    "entry {i}: it needs `backdrop_file` or `monster_file`, and only one"
-                )))
-            }
-        });
-    }
-    Ok(wanted)
-}
-
-/// Draws every picture of a request into `dir`, which is created if it is
-/// not there.
-pub fn write(dir: &Path, wanted: &[Wanted]) -> Result<()> {
-    std::fs::create_dir_all(dir).map_err(|e| Bad::usage(format!("{}: {e}", dir.display())))?;
-    for (i, w) in wanted.iter().enumerate() {
-        let picture = match w {
-            Wanted::Backdrop(path) => backdrop(path)?,
-            Wanted::Battler { picture, hue } => battler(picture, *hue)?,
-        };
-        picture::write_png(&dir.join(format!("{i}.png")), &picture)?;
-    }
-    Ok(())
+            _ => Err(r.bad(
+                i,
+                "it needs `backdrop_file` or `monster_file`, and only one",
+            )),
+        }
+    })
 }

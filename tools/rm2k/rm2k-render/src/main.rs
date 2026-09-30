@@ -293,7 +293,7 @@ fn do_battle_animation(args: &BattleAnimationArgs) -> Result<()> {
 }
 
 fn do_battle(args: &BattleArgs) -> Result<()> {
-    battle::write(&args.out, &battle::request(&args.request)?)
+    battle::write(&args.out, &args.request)
 }
 
 fn main() -> ExitCode {
