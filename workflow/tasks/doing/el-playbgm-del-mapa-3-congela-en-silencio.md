@@ -2,6 +2,7 @@
 name: "El PlayBGM del mapa 3 congela en silencio"
 description: "Sin MSU-1, al aparecer el mapa 3 el juego queda 86 cuadros congelado y en silencio subiendo TF3_1_awe, y la mitad es volver a subir lo que ya estaba"
 type: bug
+assignee: Cachirla
 ---
 
 Medido el 2026-09-26 al verificar `done/al-mapa-3-le-falta-un-efecto.md`:
@@ -26,3 +27,10 @@ y el comentario de `tema_asegurar` dicen que el paso real del 2 al 3 se hace
 "con el tema del 2 sonando"; no es así (en el 2 suena escape_newyork, que
 viene del 1). El caso `paquete-incompleto` prende TF3 a mano y ejercita el
 mismo mecanismo: corregir la prosa.
+
+## Tomada el 2026-09-30
+
+Decidido por Hornero: se hace la propuesta 1 —no rearmar la ARAM cuando lo
+que se quiere igual no entra— y, si el tiempo medido lo justifica, la 2 —no
+callar el tema que suena mientras sube el nuevo—. Sin bajarle calidad a
+nada. De paso, la prosa que dice mal cómo se llega del 2 al 3.
