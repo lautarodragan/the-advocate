@@ -2,6 +2,7 @@
 name: "Los efectos del .msu, cada uno a su tasa y sólo los que conviven"
 description: "Con MSU-1 todos los efectos de un paquete van a una sola tasa, la que entra con todos juntos en la ARAM: uno largo baja a los demás"
 type: feature
+assignee: Zorzal
 ---
 
 De taro, el 2026-09-28, al meter el `Thunder9` del despegue en la pelea: con
