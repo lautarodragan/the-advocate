@@ -121,22 +121,24 @@ se haga la pantalla, la elección es la misma que ésta.
   corrió y ésa fue la única en rojo.
 - `just pruebas`, `just -f tools/justfile test` y `cargo test -p
   rm2k-snes-screens`, en verde sobre la rama con `main` mergeado
-  (`d0979c06`): **894** y **49**. `test_musica_techos.py` y `test_cores.py`
-  pasaron.
+  (`f7e53b3a`), con `NO_CACHE=1 just cartuchos` antes: **894** y **46**.
+  `test_musica_techos.py` y `test_cores.py` pasaron. `abl.sfc` sale
+  `2f8d1888…`.
 
 ## Espacio
 
 `just espacio`, `release`: contra `main` en `3afc8199`, el banco 0 pasó de
 50 a 51 bytes libres, el banco 1 de 3.126 a 2.769, y los huecos de datos de
-8.799 a 8.603 (los 196 de `menu_bar_cells`). Con `main` en `d0979c06`
+8.799 a 8.603 (los 196 de `menu_bar_cells`). Con `main` en `f7e53b3a`
 mergeado, el banco 0 queda en **14** —`main` solo tenía 13— y el banco 1 en
 4.697.
 
 ## Al mergear
 
 Instalar en el global `screens` y `cartridge` —`just -f tools/justfile
-install screens cartridge`—, además de lo que pide el merge de Yarará
-(`events battle`). Ningún `.py` se renombró ni se agregó.
+install screens cartridge`—, además de lo que piden los merges de Yarará
+(`events battle`) y Calandria (`rm2k-snes-audio`). Esta rama no renombró ni
+agregó ningún `.py`.
 
 ## Qué tiene que mirar taro
 
