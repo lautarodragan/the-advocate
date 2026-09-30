@@ -16,6 +16,7 @@
 
 pub mod actor;
 pub mod animation;
+pub mod battle_animation;
 pub mod charset;
 pub mod chipset;
 pub mod event;

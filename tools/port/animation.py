@@ -7,6 +7,12 @@ the only thing to decide is **exactly where each pixel lands and what color
 it is**. The sounds and flashes of the same animation are not here: those
 are `OP_ANIMATION` in `events.py`, and they exist since 2026-09-11.
 
+**RM2k's part of the drawing is `rm2k-render battle-animation`'s**, since
+2026-09-30: which cells each frame has, cut from the sheet, zoomed, faded,
+and where they go in the animation's box. What is left here is the port's:
+toning each cell —with the console's tint, see `_paint_frame`— and stacking
+them, and everything after that.
+
 The budget, which is where everything else comes from:
 
 * The sprite VRAM a map has left free is **101 tiles on map 2 and 162 on
@@ -63,13 +69,6 @@ OBJECTS = (BOX // OBJ) ** 2
 TILES = 4 * GRID          # one row of blocks: the four objects
 COLORS = 15
 
-# The `Battle` sheet: five cells per row, of 96x96 —or 128x128 if the
-# animation is `large`, which none is in ABL—. It is the `size` of
-# `BattleAnimation::DrawAt`.
-CELL = 96
-BIG_CELL = 128
-COLUMNS = 5
-
 # `character_height` of `BattleAnimationMap::DrawSingle`, and the center of
 # RM2k's screen, which is where those with "screen" scope land.
 CHARACTER_HEIGHT = 24
@@ -88,58 +87,79 @@ ALPHA_MIN = 128
 _CACHE = {}
 
 
-def sheet_of(renderer, anim):
-    """The `Battle` sheet of this animation, or None if it has none or it is
-    not there."""
-    from render import render_map
+def sheet_file(renderer, anim):
+    """The path of this animation's `Battle` sheet, or None if it has none
+    or it is not there."""
     from rpgmaker import resources
     name = anim.get("imagen") or ""
     if not name:
         return None
     folder = "Battle2" if anim.get("grande") else "Battle"
-    path = resources.find_resource(renderer.search_dirs, folder, name)
-    return render_map.load_image(path) if path else None
+    return resources.find_resource(renderer.search_dirs, folder, name)
 
 
-def _live_cells(anim, i):
-    """The valid cells of frame `i`, in the LDB's order.
+def _request(anim, sheet):
+    """An entry of `rm2k-render battle-animation`: the sheet and the
+    animation, named as in the dump. The cells go in the LDB's order, which
+    is the order they are stacked in."""
+    return {"sheet_file": sheet,
+            "animation": {
+                "large": bool(anim.get("grande")),
+                "frames": [{"cells": [c for _k, c in sorted(
+                    (frame or {}).items())]}
+                           for frame in anim["cuadros"]]}}
 
-    `valid` defaults to 1 —liblcf, `AnimationCellData`— so a cell without the
-    field counts. The invalid ones are the holes the editor leaves when a
-    cell in the middle is deleted.
+
+def draw(wanted):
+    """The cells of each animation of `wanted` —`(anim, sheet)` pairs—, with
+    one call to `rm2k-render battle-animation`: for each one, `(box,
+    frames)`, where `box` is `(x0, y0, width, height)` relative to the
+    anchor, or None if it has no cell, and each frame is a list of
+    `(image, (x, y), tone)`, the cells in the order they are stacked.
+
+    Cutting the cells, zooming and fading them and where they go in the box
+    is RM2k's drawing, and `rm2k-render` does it. **The tone is not**: see
+    `_paint_frame`.
     """
-    return [c for _k, c in sorted((anim["cuadros"][i] or {}).items())
-            if c.get("valid", 1)]
-
-
-def _side(anim, cell):
-    """How big a cell is on screen with its zoom, in RM2k pixels."""
-    side = BIG_CELL if anim.get("grande") else CELL
-    return max(1, side * cell.get("zoom", 100) // 100)
-
-
-def rm_box(anim):
-    """The rectangle the whole animation takes in RM2k pixels, relative to
-    its anchor: (x0, y0, ancho, alto).
-
-    It is the union of all the cells of all the frames, not that of the
-    biggest frame: the console box is a single one for the whole animation,
-    so a frame that shifts to one side has to fit all the same.
-    """
-    x0 = y0 = None
-    x1 = y1 = None
-    for i in range(len(anim["cuadros"])):
-        for cell in _live_cells(anim, i):
-            side = _side(anim, cell)
-            cx, cy = cell.get("x", 0), cell.get("y", 0)
-            a, b = cx - side // 2, cy - side // 2
-            x0 = a if x0 is None else min(x0, a)
-            y0 = b if y0 is None else min(y0, b)
-            x1 = a + side if x1 is None else max(x1, a + side)
-            y1 = b + side if y1 is None else max(y1, b + side)
-    if x0 is None:
-        return None
-    return x0, y0, x1 - x0, y1 - y0
+    import json
+    import os
+    import subprocess
+    import tempfile
+    from PIL import Image
+    from render import render_map
+    if not wanted:
+        return []
+    with tempfile.TemporaryDirectory(prefix="rm2k-render-") as out:
+        request_path = os.path.join(out, "animations.json")
+        with open(request_path, "w", encoding="utf-8") as f:
+            json.dump([_request(anim, sheet) for anim, sheet in wanted], f)
+        cells_dir = os.path.join(out, "cells")
+        done = subprocess.run(
+            [render_map.binary(), "battle-animation", "--request",
+             request_path, "--out", cells_dir],
+            capture_output=True, text=True)
+        if done.returncode != 0:
+            raise SystemExit("rm2k-render could not draw the battle "
+                             "animations:\n%s" % done.stderr.strip())
+        drawn = []
+        for i in range(len(wanted)):
+            with open(os.path.join(cells_dir, "%d.json" % i),
+                      encoding="utf-8") as f:
+                listed = json.load(f)
+            frames = []
+            for k, cells in enumerate(listed["frames"]):
+                frame = []
+                for c, cell in enumerate(cells):
+                    path = os.path.join(cells_dir, "%d-%d-%d.png" % (i, k, c))
+                    # `convert` reads it now, before the directory goes away.
+                    with Image.open(path) as image:
+                        frame.append((image.convert("RGBA"),
+                                      (cell["x"], cell["y"]),
+                                      tuple(cell["tone"])))
+                frames.append(frame)
+            box = listed["box"]
+            drawn.append((tuple(box) if box else None, frames))
+    return drawn
 
 
 def fit_size(width, height):
@@ -154,39 +174,22 @@ def fit_size(width, height):
     return max(1, width * BOX // den), max(1, height * BOX // den)
 
 
-def _paint_frame(anim, sheet, i, box):
-    """A frame in RM2k pixels, the size of `box`, with alpha.
+def _paint_frame(cells, box):
+    """A frame in RM2k pixels, the size of `box`, with alpha: the cells
+    `rm2k-render` cut, zoomed and faded, each toned and stacked in order.
 
-    It is `BattleAnimation::DrawAt` without the screen: each cell comes from
-    the sheet, is scaled by its zoom, gets its tone and transparency applied,
-    and is composited centered at its (x, y).
+    **The tone is the port's**, and it is why the stacking is done here and
+    not in `rm2k-render`: RM2k tones each cell before stacking it, and here
+    the tone is the console's, on fifteen bits —see `_tint`—. A viewer on a
+    PC would tone at eight.
     """
     from PIL import Image
-    from port import events
-    x0, y0, width, height = box
+    _x0, _y0, width, height = box
     canvas = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-    sheet_side = BIG_CELL if anim.get("grande") else CELL
-    for cell in _live_cells(anim, i):
-        cid = cell.get("cell_id", 0)
-        sx, sy = (cid % COLUMNS) * sheet_side, (cid // COLUMNS) * sheet_side
-        if sx + sheet_side > sheet.width or sy + sheet_side > sheet.height:
-            continue            # a cell the sheet does not have: RM2k draws nothing
-        piece = sheet.crop((sx, sy, sx + sheet_side, sy + sheet_side))
-        side = _side(anim, cell)
-        if side != sheet_side:
-            piece = piece.resize((side, side), Image.BILINEAR)
-        hue = (cell.get("tone_red", 100), cell.get("tone_green", 100),
-               cell.get("tone_blue", 100), cell.get("tone_gray", 100))
+    for piece, where, hue in cells:
         if hue != (100, 100, 100, 100):
             piece = _tint(piece, hue)
-        opacity = 100 - max(0, min(100, cell.get("transparency", 0)))
-        if opacity != 100:
-            alpha = piece.getchannel("A").point(
-                lambda v: v * opacity // 100)
-            piece.putalpha(alpha)
-        canvas.alpha_composite(
-            piece, (cell.get("x", 0) - side // 2 - x0,
-                    cell.get("y", 0) - side // 2 - y0))
+        canvas.alpha_composite(piece, where)
     return canvas
 
 
@@ -214,9 +217,10 @@ def _tint(piece, hue):
     return out
 
 
-def convert(anim, sheet):
+def convert(anim, drawn):
     """The animation ready for both ends, or None if it cannot be drawn.
 
+    `drawn` is what `draw` gave for it, or None if it has no sheet.
     Returns a dictionary with:
 
       `frames`  for each RM2k frame, the 64x64 box as palette indices
@@ -226,19 +230,19 @@ def convert(anim, sheet):
       `ancla`    where inside the box the point that RM2k puts over the
                  target lands. The ROM subtracts this from the target's
                  position and gets the corner of the box.
-      `tam`      what it was shrunk to, and `rm_box` what it came from.
+      `tam`      what it was shrunk to, and `caja_rm` what it came from.
     """
-    box = rm_box(anim)
-    if box is None or sheet is None:
+    if drawn is None or drawn[0] is None:
         return None
     from PIL import Image
     from port.palette import reduce
+    box, cells = drawn
     x0, y0, width, height = box
     box_w, box_h = fit_size(width, height)
     ox, oy = (BOX - box_w) // 2, (BOX - box_h) // 2
     frames = []
-    for i in range(len(anim["cuadros"])):
-        small = _paint_frame(anim, sheet, i, box).resize(
+    for frame_cells in cells:
+        small = _paint_frame(frame_cells, box).resize(
             (box_w, box_h), Image.LANCZOS)
         whole = Image.new("RGBA", (BOX, BOX), (0, 0, 0, 0))
         whole.paste(small, (ox, oy))
@@ -276,19 +280,33 @@ def convert(anim, sheet):
     }
 
 
-def by_number(renderer, number):
-    """Animation `number` converted, cached per process.
+def by_numbers(renderer, numbers):
+    """The animations `numbers` converted, `{number: info or None}`, cached
+    per process.
 
     Converting one is a handful of large `resize`s, and the converter asks
-    for it once per map that shows it.
+    for it once per map that shows it. The ones not converted yet are drawn
+    with a single call to `rm2k-render`.
     """
     from port import events
-    if number in _CACHE:
-        return _CACHE[number]
-    anim = events.ANIMATIONS.get(number)
-    out = convert(anim, sheet_of(renderer, anim)) if anim else None
-    _CACHE[number] = out
-    return out
+    new = sorted(set(numbers) - set(_CACHE))
+    wanted = []
+    for number in new:
+        anim = events.ANIMATIONS.get(number)
+        sheet = sheet_file(renderer, anim) if anim else None
+        if sheet is None:
+            _CACHE[number] = None
+        else:
+            wanted.append((number, anim, sheet))
+    drawn = draw([(anim, sheet) for _n, anim, sheet in wanted])
+    for (number, anim, _sheet), one in zip(wanted, drawn):
+        _CACHE[number] = convert(anim, one)
+    return {number: _CACHE[number] for number in numbers}
+
+
+def by_number(renderer, number):
+    """Animation `number` converted: see `by_numbers`."""
+    return by_numbers(renderer, [number])[number]
 
 
 def rom_anchor(info):

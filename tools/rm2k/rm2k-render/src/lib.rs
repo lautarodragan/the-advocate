@@ -14,9 +14,15 @@
 //! [`show_picture`]): an actor's face, a window and its cursor from the
 //! System, and the picture of a `ShowPicture`.
 //!
+//! **What a battle is drawn with**: a battle animation's cells, placed as
+//! RM2k places them ([`battle_animation`]), and a battle's backdrop and its
+//! enemies' pictures ([`battle`]).
+//!
 //! No panorama and no placing of events on the map: those are drawn by
 //! whoever uses the layers. Nothing here knows which game the map is from.
 
+pub mod battle;
+pub mod battle_animation;
 pub mod charset;
 pub mod chipset;
 pub mod face;
@@ -24,6 +30,7 @@ pub mod fail;
 pub mod layers;
 pub mod picture;
 pub mod request;
+pub mod resample;
 pub mod show_picture;
 pub mod source;
 pub mod system;

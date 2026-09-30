@@ -7,14 +7,17 @@
     rm2k-render face --request faces.json --out faces/
     rm2k-render system --request windows.json --out windows/
     rm2k-render picture --request pictures.json --out pictures/
+    rm2k-render battle-animation --request animations.json --out cells/
+    rm2k-render battle --request battle.json --out pictures/
 
 `cargo build --release`, or `cargo test`. `--help` on any subcommand prints
 what it writes.
 
 It draws what RM2k draws, the way RM2k draws it, and nothing about what
 anyone does with the pictures afterwards. Today that is a map's tile layers,
-what its events are drawn with, and what the screens are drawn with: faces,
-windows and `ShowPicture` pictures. Where the line is drawn, piece by
+what its events are drawn with, what its battles are drawn with —the
+cells of a battle animation, backdrops and enemies—, and what the screens
+are drawn with: faces, windows and `ShowPicture` pictures. Where the line is drawn, piece by
 piece, is whether a viewer of the game on a PC would draw it the same way.
 
 A map is two layers of tile ids and a ChipSet. `layers` draws them the way
@@ -209,6 +212,68 @@ before gave for Systems —an indexed one and a half-transparent one—,
 FaceSets and a picture generated inside the test; what that Python never
 drew —the tiled background, the second cursor, a transparency— is checked
 there against RM2k's rules.
+
+## What a battle is drawn with
+
+`battle-animation` draws **the cells of a battle animation**. A frame of
+one is a list of cells, each a square of the animation's sheet —five
+across, of 96, or of 128 if the animation is `large`— drawn centred on its
+`(x, y)` from the anchor, zoomed by `zoom` percent, faded by
+`transparency` percent, and toned. It takes a JSON request, a list with an
+entry per animation, the animation named as in a Ditto dump:
+
+    [{"sheet_file": "Battle/Hit.png",
+      "animation": {"large": false, "frames": [{"cells": [
+        {"cell_id": 3, "x": 0, "y": -8, "zoom": 75, "transparency": 20,
+         "tone_red": 150, "tone_green": 100, "tone_blue": 100,
+         "tone_gray": 100}]}]}}]
+
+and for animation `i` it writes, in `--out`:
+
+* `<i>.json`: `{"box": [x, y, width, height], "frames": [[{"x": x, "y": y,
+  "tone": [red, green, blue, gray]}, ...], ...]}`. The **box** is the
+  smallest rectangle that holds every valid cell of every frame, relative
+  to the anchor, and is `null` if there are none: every frame is in its
+  coordinates, and the anchor is at minus its corner. Each frame lists the
+  cells RM2k draws of it, in the order they are stacked, with their corner
+  in the box.
+* `<i>-<f>-<k>.png`: cell `k` of frame `f`, cut from the sheet, zoomed and
+  faded, an RGBA PNG.
+
+**What comes out is the cells, not the frames**, and that is because of
+the tone. RM2k tones each cell before stacking it, and a tone depends on
+the depth the pictures are shown at —eight bits a channel on a PC, fewer
+elsewhere—, which is the caller's to know. So each cell goes out with its
+tone unapplied, and toning and stacking them is the caller's. A cell
+marked not `valid` —the hole the editor leaves when one in the middle is
+deleted— is not drawn and does not count for the box; one the sheet does
+not have is not drawn either, but the box still makes room for it.
+
+The zoom is **bilinear**, with the colour premultiplied by the alpha so a
+transparent pixel does not bleed into its neighbours, and weights as
+integers of 22 fractional bits: it is the arithmetic of Pillow's `resize`,
+copied to the bit, because that is what the drawings this replaces used.
+The zoomed side is the sheet's times `zoom` percent, rounded down and at
+least a pixel; the fade multiplies the alpha by `100 - transparency`
+percent, rounded down, with the transparency clamped to 0..100.
+
+`battle` draws **a battle's backdrops and its enemies' pictures**, one per
+entry, as `<i>.png`:
+
+    [{"backdrop_file": "Backdrop/Forest.png"},
+     {"monster_file": "Monster/Slime.png", "hue": 120}]
+
+* A **backdrop** comes out opaque: RM2k gives it no colour key, so index 0
+  is a colour like any other.
+* A **battler** has its colour key, and is turned `hue` degrees around the
+  colour wheel —the enemy's `battler_hue`, which is what makes one picture
+  two enemies—, with easyrpg's integer HSL. A transparent pixel keeps
+  whatever colour it had.
+
+Where each enemy stands, which one covers which, and what size any of this
+is shown at are the caller's. Paths are relative to the request.
+`tests/battle.rs` keeps the hashes of what the Python drew before, for
+cells, battlers and backdrops of pictures generated inside the test.
 
 ## Exit codes
 
