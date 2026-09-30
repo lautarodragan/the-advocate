@@ -88,9 +88,24 @@ fn sorted_jumps(answer: &mut Value) {
     }
 }
 
+/// `route_targets` came into the page records after the Python was gone,
+/// so it is not in its hashes: it is taken out here and has a test of its
+/// own, `route_targets_are_the_routes_of_the_code`.
+fn without_route_targets(answer: &mut Value) {
+    let Some(maps) = answer.get_mut("maps").and_then(Value::as_array_mut) else {
+        return;
+    };
+    for map in maps {
+        for page in map["pages"].as_array_mut().into_iter().flatten() {
+            page.as_object_mut().unwrap().remove("route_targets");
+        }
+    }
+}
+
 fn check(which: &str, answer: Value) {
     let mut answer = answer;
     sorted_jumps(&mut answer);
+    without_route_targets(&mut answer);
     let expected = read("python.json");
     let expected = expected[which].as_object().unwrap();
     let got = answer.as_object().unwrap();
@@ -108,6 +123,34 @@ fn check(which: &str, answer: Value) {
             "{which}: {part}"
         );
     }
+}
+
+/// Who each page sends walking. The answer was checked against the
+/// converter's Python rule, `events.route_targets`, before it was deleted:
+/// map 1's first page routes the hero and events 1 and 3 —the hero is not
+/// an event and does not count—, and the test page on map 3, which the
+/// request puts first, sends event 0.
+#[test]
+fn route_targets_are_the_routes_of_the_code() {
+    let request = Request::from_json(&read("scan.json"), "scan.json").unwrap();
+    let answer = scan(&game(&request), &request).unwrap();
+    let mut routed = Vec::new();
+    for map in answer["maps"].as_array().unwrap() {
+        for page in map["pages"].as_array().unwrap() {
+            let targets = page["route_targets"].as_array().unwrap();
+            if page["code"].is_null() {
+                assert!(targets.is_empty(), "a page without code routes nobody");
+            }
+            if !targets.is_empty() {
+                routed.push((map["id"].clone(), page["event"].clone(), page["page"].clone(), targets.clone()));
+            }
+        }
+    }
+    let expected: Vec<(Value, Value, Value, Vec<Value>)> = vec![
+        (1.into(), 1.into(), 0.into(), vec![1.into(), 3.into()]),
+        (3.into(), 0.into(), 0.into(), vec![0.into()]),
+    ];
+    assert_eq!(routed, expected);
 }
 
 fn game(request: &Request) -> Game {

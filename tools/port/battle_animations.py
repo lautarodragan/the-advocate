@@ -16,7 +16,7 @@ def rom_animations(maps, renderer):
     The bytecode is walked and not the commands, which is what makes it the
     truth and not a guess: what counts is what ended up emitted, after the
     page filter decided which ones go in. It is the same rule as
-    `events.route_targets`.
+    `route_targets` in the event compiler's scan.
     """
     numbers = set()
     for map_info in maps:

@@ -5,8 +5,9 @@ layout, gathered into the `map_info` that the emission reads.
 —`tools/rm2k-snes/maps/`—, one call per map: it reads the map from the
 dump, draws and converts its layers, bakes the opaque events into them,
 splits the object palettes and builds the sprite bank. What stays here is
-what the stage gets from other domains —who walks and which graphics the
-routes change to, from the event compiler's answer; the test cases; the
+what the stage gets from other domains —the event compiler's scan of the
+map's pages, from which the stage says who walks, and which graphics the
+routes change to; the test cases; the
 timer's System, the picture and whether a battle animation is drawn— and
 what the rest of the converter reads back: the `map_info`, with the NPC
 table (`map_record`'s), the VRAM layout (`vram`'s) and the messages.
@@ -25,8 +26,7 @@ from port import picture
 from port.adeleine import CELL
 from port.snes_format import BYTES_PER_TILE
 from port.map_layers import BG_PALETTES, layers_answer
-from port.sprites import (block_tile, discard_warning, movable_events,
-                          separate_from_hero)
+from port.sprites import block_tile, discard_warning, separate_from_hero
 from port.obj_extras import map_shows_animation
 from port.vram import WINDOW_H, WINDOW_W, vram_layout
 from port.blocks import BLOCK_BYTES
@@ -87,9 +87,18 @@ def _prepare(renderer, map_id, args):
                        case_commands(args, map_id))
 
     # Who is going to walk and which graphics the routes change to: it
-    # comes from the compiler's first call, which walked the bytecode.
-    movable, route_graphics, animates_still, turning = movable_events(
-        game_map, compiler.map_entry(args.scan, map_id))
+    # comes from the compiler's first call, which walked the bytecode. Its
+    # page records go to the stage as they came, and the stage answers who
+    # walks, who animates still and who turns —`moves.rs`—.
+    #
+    # The graphics of command 34 come from the same pass and for the same
+    # reason: an event that changes graphic needs the twelve poses of the new
+    # graphic put in the cartridge, and that is decided before building the
+    # bank. **The order has to be the same as the real compilation's**,
+    # because the bytecode carries the index: what guarantees it is that both
+    # passes compile the same pages, with the same text block.
+    scanned = compiler.map_entry(args.scan, map_id)
+    route_graphics = [tuple(g) for g in scanned["graphics"]]
     # And the ones from `--test-graphic`, which go only in the maps where
     # some case runs, and for the same reason their pages are compiled with
     # that map's context. They are added **after** the game's, which is the
@@ -98,6 +107,7 @@ def _prepare(renderer, map_id, args):
         for charset, index in test_graphics(args.test_graphic):
             if (charset, index) not in route_graphics:
                 route_graphics.append((charset, index))
+    also_walk = set()
     if case_commands(args, map_id):
         # And the ones the test pages send walking, which don't come from
         # the map's pages: they have to be added by hand or the NPC would
@@ -109,7 +119,7 @@ def _prepare(renderer, map_id, args):
                     and cmd.parameters[0] != events.ROUTE_HERO:
                 target = map_events.route_target(cmd.parameters[0])
                 if target:
-                    movable = movable | {target - 1}
+                    also_walk.add(target - 1)
 
     timer = None
     if map_id in args.timer_maps:
@@ -135,8 +145,7 @@ def _prepare(renderer, map_id, args):
     dump = compiler.dump_of(args.game_dir)
     p = _Prepared()
     p.map_id, p.game_map, p.dump = map_id, game_map, dump
-    p.movable, p.route_graphics = movable, route_graphics
-    p.animates_still, p.turning = animates_still, turning
+    p.route_graphics = route_graphics
     p.request = {
         "map": map_id,
         "map_files": compiler.map_files(dump),
@@ -144,11 +153,9 @@ def _prepare(renderer, map_id, args):
         "names": [entry[1:] for entry in compiler.names([game_map])],
         "test_event": test_event,
         "leaders": list(args.leaders),
-        "movable": sorted(movable),
+        "pages": scanned["pages"],
         "route_graphics": [list(g) for g in route_graphics],
-        "animates_still": sorted(animates_still),
-        "turning": [[event, sorted(list(p) for p in pairs)]
-                    for event, pairs in turning.items()],
+        "also_walk": sorted(also_walk),
         "timer": timer,
         "rain": bool(args.with_rain),
         "picture": shown,
@@ -243,7 +250,7 @@ def _map_info(renderer, prepared, written, args):
              for slot, block, palette in s["place"]}
     animated = [tuple(k) for k in s["animated"]]
     animated_index = {p: k for k, p in enumerate(animated)}
-    movable, animates_still = prepared.movable, prepared.animates_still
+    movable, animates_still = set(answer["movable"]), set(answer["animates_still"])
     table = npc_table(npcs, where, movable, animated_index, animates_still)
     tiles = written[s["tiles"]]
     palettes = [[tuple(c) for c in p] for p in s["palettes"]]
@@ -365,7 +372,7 @@ def _map_info(renderer, prepared, written, args):
         # For the turn toward the hero: which entry of `npc_poses` the twelve
         # poses of each graphic are in, which is the page's +30.
         "giro_k": {pair: animated_index[pair] for pair in animated},
-        "giran": set(prepared.turning),
+        "giran": {event for event, _pairs in answer["turning"]},
         "cambian": {npc["event"] for npc in npcs if npc["changes"]},
         # And the ones that only appear and disappear with it: the ones that
         # walk, whose graphic was pinned further up.

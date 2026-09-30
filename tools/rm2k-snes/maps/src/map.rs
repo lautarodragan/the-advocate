@@ -12,6 +12,7 @@ use crate::events::{changes_graphic, collect_npcs, events, Event};
 use crate::fail::{Bad, Result};
 use crate::game::Game;
 use crate::layers::{self as stage_layers, draw, Drawn};
+use crate::moves::{moves, Moves, ScannedPage};
 use crate::request::LayersRequest;
 use crate::sheets::Drawer;
 use adeleine::Color;
@@ -53,14 +54,15 @@ pub struct MapRequest {
     /// The actors that can lead the party, in order: the first is who
     /// leads when the game starts.
     pub leaders: Vec<i32>,
-    /// What the event compiler's answer says of this map: the events that
-    /// walk, the graphics routes change to —in the order the bytecode
-    /// numbers them—, the still ones that animate, and the ones that turn
-    /// toward the hero with their graphics.
-    pub movable: BTreeSet<usize>,
+    /// What the event compiler's scan answered of this map: its pages
+    /// —who walks and who turns comes from them, see [`crate::moves`]—
+    /// and the graphics routes change to, in the order the bytecode
+    /// numbers them.
+    pub pages: Vec<ScannedPage>,
     pub route_graphics: Vec<Key>,
-    pub animates_still: BTreeSet<usize>,
-    pub turning: Vec<(usize, BTreeSet<Key>)>,
+    /// The events someone other than the map's pages sends walking: a test
+    /// page's route.
+    pub also_walk: BTreeSet<usize>,
     /// The System picture, if the cartridge carries the timer in this map.
     pub timer: Option<PathBuf>,
     pub rain: bool,
@@ -191,6 +193,9 @@ pub struct Whole {
     pub palette_cap: usize,
     pub objects: Option<Objects>,
     pub start: (i32, i32),
+    /// Who walks, animates still and turns: what the page table is built
+    /// with, so the caller gets it back.
+    pub moves: Moves,
 }
 
 /// The final layers and their blocks.
@@ -244,7 +249,8 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
             .ok_or_else(|| Bad::answer(format!("actor {actor} is not in the database")))
     };
     let leaders: Vec<Key> = request.leaders.iter().map(leader).collect::<Result<_>>()?;
-    let turning: BTreeMap<usize, BTreeSet<Key>> = request.turning.iter().cloned().collect();
+    let who = moves(&request.pages, &events, &npcs0, &chipset_name, &request.also_walk);
+    let turning = &who.turning;
     let mut wanted: Vec<String> = leaders.iter().map(|k| k.0.clone()).collect();
     for npc in &npcs0 {
         wanted.extend(npc.keys().into_iter().map(|k| k.0));
@@ -262,10 +268,10 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
     let poses = map_poses(
         &leaders,
         &npcs0,
-        &request.movable,
-        &turning,
+        &who.movable,
+        turning,
         &request.route_graphics,
-        &request.animates_still,
+        &who.animates_still,
     );
 
     let sheets = drawer.sheets().clone();
@@ -362,6 +368,7 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
         palette_cap,
         objects: None,
         start,
+        moves: who.clone(),
     };
 
     for (event, tile) in &d.discarded {
@@ -406,7 +413,7 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
     animated.sort_by_key(|k| *k != first);
     for npc in &npcs {
         let key = (npc.charset.clone(), npc.index);
-        if request.movable.contains(&npc.event) && !animated.contains(&key) {
+        if who.movable.contains(&npc.event) && !animated.contains(&key) {
             animated.push(key);
         }
     }
@@ -419,7 +426,7 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
             animated.push(key.clone());
         }
     }
-    for (_, pairs) in &request.turning {
+    for pairs in turning.values() {
         for pair in pairs {
             if split.palette_of.contains(pair) && !animated.contains(pair) {
                 animated.push(pair.clone());
@@ -454,7 +461,7 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
         slots.push(SlotPose { slot: Slot::Hero, charset, index, pose: INITIAL_POSE });
     }
     for npc in npcs.iter_mut() {
-        if request.movable.contains(&npc.event) {
+        if who.movable.contains(&npc.event) {
             if npc.changes {
                 // Walking wins over the page's graphic; whether the row is
                 // visible still follows the page.
@@ -490,7 +497,7 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
     // hero; only the event the hero triggered turns, one at a time.
     let still_turning = npcs.iter().find(|n| {
         turning.contains_key(&n.event)
-            && !request.movable.contains(&n.event)
+            && !who.movable.contains(&n.event)
             && turning[&n.event].iter().any(|p| split.palette_of.contains(p))
     });
     if let Some(n) = still_turning {
@@ -735,6 +742,9 @@ pub fn write(out: &Path, done: &Whole) -> Result<()> {
         "palette_cap": done.palette_cap,
         "start": [done.start.0, done.start.1],
         "sprite": objects,
+        "movable": done.moves.movable,
+        "animates_still": done.moves.animates_still,
+        "turning": done.moves.turning.iter().map(|(e, pairs)| json!([e, pairs.iter().map(key_json).collect::<Vec<_>>()])).collect::<Vec<_>>(),
     });
     file(ANSWER_FILE, answer.to_string().as_bytes())
 }

@@ -1618,22 +1618,6 @@ def walk_code(code):
         i += opcode_size(code, i)
 
 
-def route_targets(pages):
-    """The events these already compiled pages send a route to.
-
-    It walks the bytecode and not the RM2k commands, which is what makes it
-    the truth and not a guess: what counts is what ended up emitted, after
-    the filter decided which pages go in.
-    """
-    targets = set()
-    for page in pages:
-        code = page.get("codigo")
-        for i, c in walk_code(code or b""):
-            if c[i] == OP_ROUTE and c[i + 1]:
-                targets.add(c[i + 1] - 1)
-    return targets
-
-
 # The switch with which the test page turns itself off: the last one of the
 # ROM's bitmap —`SWITCH_BYTES` is 128, that is 0 to 1023— and the game goes up
 # to 1003. A higher one would be written **outside** the bitmap, which is what

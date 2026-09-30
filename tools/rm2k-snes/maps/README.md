@@ -52,8 +52,9 @@ layer, it is a dependency somebody has to write.
      "map_files": {"11": "…/Map0011.json"}, "chipset_files": {"53": "…/0053.json"},
      "names": [[3, 1, "Ghost~horneado:7:4:5"]], "test_event": false,
      "leaders": [10, 1],
-     "movable": [2], "route_graphics": [["People1", 3]],
-     "animates_still": [], "turning": [[4, [["People1", 2]]]],
+     "pages": [{"event": 2, "page": 0, "trigger": 0, "code": "0603…",
+                "route_targets": [2], "own_route": null, "turns": true}],
+     "route_graphics": [["People1", 3]], "also_walk": [],
      "timer": null, "rain": false, "picture": null,
      "battle_animation": false, "singles": [["People1", 3]],
      "palette_weight": {"savept": 1}, "dither": "five_of_eight"}
@@ -70,11 +71,16 @@ this map; `rain`; `picture`, a `ShowPicture` picture this map owns, already
 cut into tiles; `singles`, the graphics no other map of the cartridge has;
 `palette_weight`, which CharSets are served first; and `dither`.
 
-**What other domains answered, as data**: `movable`, `route_graphics`,
-`animates_still` and `turning` come from the event compiler's answer —who
-walks is what the compiled bytecode sends walking, which only the compiler
-knows—; `battle_animation`, whether some page draws a battle animation, is
-the animations'.
+**What other domains answered, as data**: `pages` and `route_graphics` are
+the event compiler's scan of the map, as it answered them —who walks is
+what the compiled bytecode sends walking, and the compiler walks it: each
+page record says whether it compiled, whom its code sends a route to,
+whether it walks a route of its own and whether it turns—; from them and
+the events that are drawn this stage decides who gets the twelve poses,
+which still ones animate and who turns toward the hero (`moves.rs`), and
+says so in its answer. `also_walk` are the events someone other than the
+map's pages sends walking, like a test page. `battle_animation`, whether
+some page draws a battle animation, is the animations'.
 
 ## What comes out
 
@@ -83,7 +89,8 @@ colour-memory words and tilemaps, the runs, the block table, the pictures
 of what Adeleine decided, and `layers.json`—, `sprites.bin` and
 `poses-<k>.bin`, and `map.json`, with the events baked, the events drawn,
 the palettes and slots, the leader candidates' rows, the extras, the table
-of command 34, where the hero starts, and **what the conversion says, in
+of command 34, where the hero starts, who walks, animates still and turns,
+and **what the conversion says, in
 order**, each note marked if it stops the conversion. The caller prints
 them: an event that changes graphic and does not fit is a door the player
 cannot open, and a build that does not stop there is worse than one that

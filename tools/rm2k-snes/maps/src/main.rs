@@ -95,11 +95,12 @@ struct LayersArgs {
                     with what stops it; the events drawn; the palettes, the \
                     slots, the leader candidates, the timer, the rain, the \
                     picture, the animation box and the table of command 34; \
-                    and where the hero starts\n\n\
+                    where the hero starts; and who walks, animates still and \
+                    turns toward the hero\n\n\
     The request is a JSON with `map`, `map_files` and `chipset_files` as for \
     `layers`, and what the cartridge and the other domains decided: `names`, \
-    `test_event`, `leaders`, `movable`, `route_graphics`, `animates_still`, \
-    `turning`, `timer`, `rain`, `picture`, `battle_animation`, `singles`, \
+    `test_event`, `leaders`, `pages` —the event compiler's scan of the map—, \
+    `route_graphics`, `also_walk`, `timer`, `rain`, `picture`, `battle_animation`, `singles`, \
     `palette_weight` and `dither`. See `MapRequest::from_json`.")]
 struct MapArgs {
     #[command(flatten)]
