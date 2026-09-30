@@ -26,6 +26,8 @@ members = [
     "rm2k-snes/patches",
     "rm2k-snes/project",
     "rm2k-snes/rm2k-snes-audio",
+    "rm2k-snes/screens",
+    "rm2k-snes/text",
 ]
 # A virtual manifest has no edition to take the resolver from, and would fall
 # back to the old one. "2" is what every member, on edition 2021, used alone.

@@ -4,7 +4,7 @@ requests and what comes back.
 It reads the game from the dump itself. What it is told is what the dump
 does not say: the cartridge's maps and test pages, and what the project
 changed on top of the dump —the forks' files, the text boxes rebuilt for
-the console's window (`texts.py`), the names the port gives some graphics
+the console's window (`rm2k-snes-screens`), the names the port gives some graphics
 (`rm2k.decorate_translucent` and `sprites.separate_from_hero`), how a
 `TileSubstitution` translates to the map's blocks, which picture took the
 cartridge's place, the sound effects decided by ear—. See the crate's
@@ -19,7 +19,7 @@ import json
 import os
 
 from common import project, settings
-from port import constants, events, stage, texts
+from port import constants, events, screen_stage, stage
 from rpgmaker import fork, lcf, rm2k
 
 BINARY = "rm2k-snes-events"
@@ -62,54 +62,14 @@ def chipset_files(dump):
             for m, p in sorted(fork.chipset_files().items())}
 
 
-_BOXES = {}
-
-
 def boxes(dump):
     """Every text box of the game the port rebuilds for the console's
-    window, with the boxes that go in its place: `lcf.REFIT_TEXTS`, which
-    is `texts.refit_commands`, applied to one box. Empty if nobody set it.
-
-    All the boxes of all the maps and of the common events, whether or not
-    the cartridge carries them: it is cheaper than knowing which it reads.
-    """
+    window, with the boxes that go in its place: `lcf.REFIT_TEXTS`'s
+    table, which `rm2k-snes-screens boxes` makes. Empty if nobody set
+    `REFIT_TEXTS`: then the game is compiled as it is."""
     if not lcf.REFIT_TEXTS:
         return []
-    key = (os.path.abspath(dump), constants.COLUMNS, constants.LINES)
-    if key in _BOXES:
-        return _BOXES[key]
-    lists = []
-    paths = [os.path.join(dump, "maps", name)
-             for name in sorted(os.listdir(os.path.join(dump, "maps")))
-             if name.endswith(".json")]
-    paths += list(map_files(dump).values())
-    for path in paths:
-        # A fork's file overrides the dump's: both are read, which only
-        # adds boxes that nobody asks for.
-        for event in lcf.read_json(path)["events"]:
-            for page in event["pages"]:
-                lists.append(page["event_commands"])
-    for common in lcf.read_json(dump, "db", "commonevents.json"):
-        lists.append(common["event_commands"])
-    table = {}
-    for raw in lists:
-        i = 0
-        while i < len(raw):
-            if raw[i]["code"] != events.SHOW_MESSAGE:
-                i += 1
-                continue
-            j = i + 1
-            while j < len(raw) and raw[j]["code"] == events.SHOW_MESSAGE_2:
-                j += 1
-            lines = [c["string"] for c in raw[i:j]]
-            if tuple(lines) not in table:
-                frames = texts.refit(lines)
-                table[tuple(lines)] = frames
-            i = j
-    out = [{"from": list(k), "to": v} for k, v in table.items()
-           if v != [list(k)]]
-    _BOXES[key] = out
-    return out
+    return screen_stage.boxes(dump)
 
 
 def names(game_maps):

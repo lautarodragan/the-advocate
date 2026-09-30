@@ -1,0 +1,26 @@
+[package]
+name = "rm2k-snes-screens"
+version = "0.1.0"
+edition = "2021"
+description = "An rm2k-snes game's screens as a cartridge carries them: the message window and its font, the title's menu, the save slots and the pause menu, the text screens with their windows, and End Game"
+
+[lib]
+name = "rm2k_snes_screens"
+path = "src/lib.rs"
+
+[[bin]]
+name = "rm2k-snes-screens"
+path = "src/main.rs"
+
+[dependencies]
+adeleine = { path = "../../snes/adeleine" }
+clap = { version = "4", features = ["derive"] }
+ditto = { path = "../../rm2k/ditto" }
+rm2k-render = { path = "../../rm2k/rm2k-render" }
+rm2k-rules = { path = "../../rm2k/rules" }
+rm2k-snes-text = { path = "../text" }
+serde_json = "1"
+voodoo = { path = "../../snes/voodoo" }
+
+[dev-dependencies]
+sha2 = "0.10"

@@ -38,8 +38,7 @@ from port.vram import (MAP_LAYOUT, SLOTS, SLOT_MAP, SLOT_TEXT_LEVEL,
 from port.message_window import (FONT_HEIGHT, FONT_PRE_CHAR, FONT_PRE_ROWS,
                                  FONT_WIDTH, WINDOW_COLS_INC, WINDOW_ROWS_INC,
                                  WINDOW_TEXT_COL, WINDOW_TEXT_COLS,
-                                 WINDOW_TEXT_ROW, WINDOW_TEXT_ROWS, _columns,
-                                 font_prerender)
+                                 WINDOW_TEXT_ROW, WINDOW_TEXT_ROWS, _columns)
 from port.materials import (LZ2_CAP_ABOVE_AND_SPRITES, LZ2_CAP_ANIM,
                             LZ2_CAP_BACKDROP, LZ2_CAP_GRID, Materials,
                             compress_blocks, write_raw)
@@ -725,9 +724,9 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
             # 16x16 mask, but each row is a single color, so twelve bytes are
             # enough and the ROM doesn't have to sample anything.
             handle.write(block("font_table", window["fuente"]) + "\n")
-            pre = font_prerender(window["fuente"], window["color"],
-                                 window["sombra"])
-            for phase, data in enumerate(pre):
+            # And the glyphs already composed for each phase: see
+            # `font_prerender` in `rm2k-snes-screens`.
+            for phase, data in enumerate(window["pre"]):
                 handle.write(block("font_pre%d" % phase, data) + "\n")
             handle.write(block("messages", window["mensajes"]) + "\n")
             # How big it is and how big it can be: the ROM doesn't use them,
@@ -977,9 +976,8 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # `(VRAM word, source byte in `ti_border_patches`, bytes per row,
         # rows)`.
         PM = screens_mod
-        ti_tiles, ti_colors, ti_maps = slots["tienda_marco"]
-        ti_rows, ti_top, ti_layers, ti_patches, ti_bars = \
-            PM.compact_shop(ti_maps)
+        ti_tiles, ti_colors, (ti_rows, ti_top, ti_layers, ti_patches,
+                              ti_bars) = slots["tienda_marco"]
 
         def le_words(values):
             return b"".join(v.to_bytes(2, "little") for v in values)
@@ -1353,9 +1351,9 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # the name of each medicine on two lines, in ASCII, with a table of
         # one byte per `k` that says which one it is —$FF if it isn't a
         # medicine—: only medicines open this screen.
-        obj_tiles, obj_colors, obj_maps = slots["objetivo"]
-        (obj_map, obj_bars, obj_row0, obj_rows, obj_col0, obj_cols,
-         obj_erase_rows, obj_erase_cols) = T.compact_target(obj_maps)
+        obj_tiles, obj_colors, (obj_map, obj_bars, obj_row0, obj_rows,
+                                obj_col0, obj_cols, obj_erase_rows,
+                                obj_erase_cols) = slots["objetivo"]
         handle.write(block("target_tiles", b"".join(
             pack_tile(cell, planes=8) for cell in obj_tiles)) + "\n")
         handle.write(block("target_map", b"".join(
