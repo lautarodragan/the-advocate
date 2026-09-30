@@ -82,6 +82,8 @@ pub fn command_variables(commands: &[Command]) -> BTreeSet<i32> {
             ids.insert(p[3]);
         } else if matches!(code, MEMORIZE_LOCATION | RECALL_TO_LOCATION) && p.len() >= 3 {
             ids.extend(&p[..3]);
+        } else if matches!(code, CHANGE_HP | CHANGE_SP) && p.len() >= 5 && p[3] == 1 {
+            ids.insert(p[4]);
         }
     }
     ids

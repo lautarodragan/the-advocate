@@ -102,6 +102,11 @@ const VAR_RANDOM: i64 = 3;
 //   would unlock **one** more page —measured, 5135 against 5136—: it is not
 //   worth making up a coordinate that is not the one there for one page.
 pub const VAR_CHARACTER: i64 = 6;
+// And kind 5, an actor's data, of which the ROM does 2 to 5: the HP, the SP
+// and their maximums. See `actor_stat` in tools/runtime/level.s.
+const VAR_ACTOR: i64 = 5;
+const ACTOR_STAT_HP: i64 = 2;
+const ACTOR_STAT_SP_MAX: i64 = 5;
 const VAR_OTHER: i64 = 7;
 const OTHER_GOLD: i64 = 0;
 const OTHER_TIMER: i64 = 1;
@@ -1091,6 +1096,11 @@ fn page(
 fn follow_exit(ctx: &mut Ctx, cmd: &Command, exit: &mut Exit, played_sound: bool) {
     let songs = ctx.songs.as_deref_mut().unwrap();
     let current = songs.current;
+    // A troop page leaves no map: its `PlayBGM` is not done —see
+    // `PLAY_BGM`— and it has no `Teleport`.
+    if current == Some(Package::Battle) {
+        return;
+    }
     let here = |dest: Option<usize>| match (current, dest) {
         (Some(Package::Map(c)), Some(d)) => c == d,
         (None, None) => true,
@@ -1849,6 +1859,52 @@ pub fn battle_audio(ctx: &mut Ctx) -> Option<Vec<(String, usize)>> {
 /// —measured on 2026-09-19 over the 328 maps and the common events—, nor by
 /// any `ChangeEquipment` —on 2026-09-21—, so it does not compile instead of
 /// being resolved in the ROM with nothing exercising it.
+/// OP_ACTOR's `what`: the SP and not the HP, getting a fallen one up with 1,
+/// the amount as a variable's slot, a loss that can kill, and subtracting.
+/// The ROM reads them with the same numbers: `ACT_*` in
+/// tools/runtime/level.s.
+const ACT_SP: u8 = 0x01;
+const ACT_REVIVE: u8 = 0x02;
+const ACT_EQUIP: u8 = 0x04;
+/// With `ACT_EQUIP`, OP_ACTOR's amount is the item with its slot on top.
+const EQUIP_SLOT_SHIFT: i64 = 13;
+/// The item types that equip without the weapon's business: armor, helmet
+/// and accessory, which are their slot plus one.
+const EQUIP_ARMOR: i64 = 3;
+const EQUIP_ACCESSORY: i64 = 5;
+const ACT_VARIABLE: u8 = 0x20;
+const ACT_LETHAL: u8 = 0x40;
+const ACT_SUBTRACT: u8 = 0x80;
+
+/// OP_ENEMY's `what`: the SP and not the HP, and that a loss of HP can kill.
+/// `ENEMY_*` in tools/runtime/battle_troop.s.
+const ENEMY_SP: u8 = 0x01;
+const ENEMY_LETHAL: u8 = 0x80;
+
+/// RM2k's death state, `State::kDeathID`.
+const DEATH_STATE: i64 = 1;
+
+/// OP_ACTOR for `ChangeHP` and `ChangeSP`, which share their first five
+/// parameters: [type, id, subtracts, amount by variable, amount]. `what`
+/// brings what the caller already knows —the SP, lethal—.
+fn actor_change(ctx: &Ctx, p: &[i32], mut what: u8) -> Step<Vec<u8>> {
+    let q = |i: usize| -> i64 { p[i] as i64 };
+    if q(2) != 0 {
+        what |= ACT_SUBTRACT;
+    }
+    let amount = if q(3) != 0 {
+        what |= ACT_VARIABLE;
+        ctx.indices.variable_slot(q(4))? as i64
+    } else if (0..=0x7FFF).contains(&q(4)) {
+        q(4)
+    } else {
+        return cannot();
+    };
+    let mut out = vec![OP_ACTOR, target_actor(p)?, what];
+    out.extend(word(amount)?);
+    Ok(out)
+}
+
 fn target_actor(p: &[i32]) -> Step<u8> {
     if p[0] == 0 {
         return Ok(0);
@@ -2428,24 +2484,45 @@ pub fn compile_command(
             // emitted: in OP_HEAL zero means `FullHeal`.
             //
             // The 11 that add outside battle are constants —seven of 1 to the
-            // party, four of 300 and 999 to one actor—, so the amount in a
-            // variable does not compile. The ones that subtract are still
-            // out: they can kill, and `lethal` asks what to do about that.
-            if n < 5 || q(2) != 0 {
+            // party, four of 300 and 999 to one actor—.
+            //
+            // **The rest is OP_ACTOR**, since 2026-09-30: the one that
+            // subtracts —`Sacrifice` and `LifeForStrength` take 999 from
+            // Talan in battle, lethal— and the one by a variable
+            // —`ResetAfterBattles` gives Talan back the HP he had—. Without
+            // `lethal` a loss leaves the actor at 1. In battle it lands on
+            // the battle's HP: see `ba_sync_out` in
+            // tools/runtime/battle_troop.s. What it does not do is
+            // `CheckGameOver` on the map, which no page of the game needs.
+            if n < 6 {
                 return cannot();
             }
-            if q(3) != 0 {
+            if q(3) == 0 && q(2) == 0 {
+                if !(0..=0xFFFF).contains(&q(4)) {
+                    return cannot();
+                }
+                if q(4) == 0 {
+                    return Ok(vec![]);
+                }
+                let mut out = vec![OP_HEAL, target_actor(p)?];
+                out.extend(word(q(4))?);
+                return Ok(out);
+            }
+            let mut what = 0;
+            if q(5) != 0 {
+                what |= ACT_LETHAL;
+            }
+            actor_change(ctx, p, what)
+        }
+        CHANGE_SP => {
+            // `ChangeSP`: [type, id, subtracts, amount by variable, amount].
+            // It is `SetSp(GetSp() + amount)`, between zero and the maximum.
+            // The game's are `ResetAfterBattles`', which gives Talan back his
+            // SP by a variable. OP_ACTOR with `ACT_SP`.
+            if n < 5 {
                 return cannot();
             }
-            if !(0..=0xFFFF).contains(&q(4)) {
-                return cannot();
-            }
-            if q(4) == 0 {
-                return Ok(vec![]);
-            }
-            let mut out = vec![OP_HEAL, target_actor(p)?];
-            out.extend(word(q(4))?);
-            Ok(out)
+            actor_change(ctx, p, ACT_SP)
         }
         CHANGE_SKILLS => {
             // [type, id, forgets, skill by variable, skill]. It is easyrpg's
@@ -2485,12 +2562,42 @@ pub fn compile_command(
             // `CommandChangeEquipment` does not ask for it.
             //
             // The 35 the game runs outside battle all unequip a slot; the 560
-            // that equip belong to the troops. When this was written the port
-            // did not run troop pages; it does since 2026-09-21, but equipping
-            // still does not compile. Unequipping everything does not either:
-            // nobody uses it.
+            // that equip belong to the troops. Unequipping everything does
+            // not compile: nobody uses it.
+            //
+            // **Equipping**, operation 0 with the item in `b`, compiles since
+            // 2026-09-30, for `Play Radio`: it puts one of four accessories on
+            // Emily in battle. It is OP_ACTOR with `ACT_EQUIP`, and the item's
+            // slot goes on top of its number, because the ROM does not carry
+            // every item's type. Only on one actor, only a constant, and only
+            // armor, helmet or accessory: the weapon and the shield are where
+            // `CommandChangeEquipment` does its two-handed business, and the
+            // game does not equip either from an event. One the actor cannot
+            // use does nothing in RM2k —`IsItemUsable`— and here it is not
+            // emitted.
             if n < 4 {
                 return cannot();
+            }
+            if q(2) == 0 {
+                if n < 5 || q(0) != 1 || q(3) != 0 {
+                    return cannot();
+                }
+                let actor = target_actor(p)?;
+                let Some((kind, users)) = ctx.game.items.get(&(q(4) as i32)) else {
+                    return cannot();
+                };
+                if !(EQUIP_ARMOR..=EQUIP_ACCESSORY).contains(&(*kind as i64))
+                    || !(1..ITEMS_N).contains(&q(4))
+                {
+                    return cannot();
+                }
+                if !users.get(actor as usize - 1).copied().unwrap_or(false) {
+                    return Ok(vec![]);
+                }
+                let slot = *kind as i64 - 1;
+                let mut out = vec![OP_ACTOR, actor, ACT_EQUIP];
+                out.extend(word(q(4) | slot << EQUIP_SLOT_SHIFT)?);
+                return Ok(out);
             }
             if q(2) != 1 {
                 return cannot();
@@ -2519,8 +2626,20 @@ pub fn compile_command(
             // that is **not** debt: outside battle states do not exist —the
             // battle sets them up and throws them away— so there is nothing
             // to remove. The one that sets a state still does not compile.
-            if n < 3 || q(2) != 1 {
+            //
+            // **Except death**, since 2026-09-30: an actor with no HP is one
+            // with the death state, inside battle and out, and removing it
+            // gets it up with 1 —the `SetHp(1)` of `RemoveStates`—. It is
+            // OP_ACTOR with `ACT_REVIVE`, on the actor or the party. The
+            // characters' systems use it in battle, `Sacrifice` and
+            // `Inscribe`, always on the party.
+            //
+            // [type, id, removes, state]
+            if n < 4 || q(2) != 1 {
                 return cannot();
+            }
+            if q(3) == DEATH_STATE {
+                return Ok(vec![OP_ACTOR, target_actor(p)?, ACT_REVIVE, 0, 0]);
             }
             Ok(vec![])
         }
@@ -2854,10 +2973,19 @@ pub fn compile_command(
             // what this repo did with PlayBGM from the start. With a registry
             // the index is emitted and the ROM plays the song if it got to
             // carry it.
+            //
+            // **A troop page's is accepted and not done**, since 2026-09-30:
+            // its song would go into the battle's audio package, which
+            // already has no room without lowering the battle theme's rate,
+            // and that is the same thing that keeps a troop page's effects
+            // out —`troop_effects_in_package`—. It is `Play Radio`'s, which
+            // puts on one of three songs; the rest of what the page does, it
+            // does. Declared in
+            // `workflow/divergencias/lo-que-las-paginas-de-tropa-no-modelan.md`.
             let Some(songs) = ctx.songs.as_deref_mut() else {
                 return Ok(vec![]);
             };
-            if cmd.string.is_empty() {
+            if cmd.string.is_empty() || songs.current == Some(Package::Battle) {
                 return Ok(vec![]);
             }
             Ok(vec![OP_BGM, (songs.index(&cmd.string) & 0xFF) as u8])
@@ -3305,6 +3433,20 @@ pub fn compile_command(
                     return cannot();
                 }
                 b = 0;
+            } else if operand_kind == VAR_ACTOR {
+                // An actor's data: `a` the actor and `b` which one, with the
+                // numbers of `ControlVariables::Actor`. The ROM does the HP,
+                // the SP and their maximums, 2 to 5, which is what the game
+                // asks for: the characters' systems read Talan's HP in
+                // battle —where they are the battle's, see `ba_sync_out`—
+                // and `ResetAfterBattles` the four. See `actor_stat` in
+                // tools/runtime/level.s.
+                if !(ACTOR_STAT_HP..=ACTOR_STAT_SP_MAX).contains(&b)
+                    || !(1..=0xFF).contains(&a)
+                    || !ctx.game.actors.contains_key(&(a as i32))
+                {
+                    return cannot();
+                }
             } else if operand_kind == VAR_CHARACTER {
                 // A character's cell. `a` becomes the same target byte
                 // OP_ROUTE carries —0 the hero, the event's index plus one—
@@ -3530,6 +3672,32 @@ pub fn compile_command(
                 return cannot();
             }
             Ok(vec![OP_SHOW_ENEMY, q(0) as u8])
+        }
+        CHANGE_MONSTER_HP | CHANGE_MONSTER_MP => {
+            // `ChangeMonsterHP` —[place, loses, from where, amount, lethal]—
+            // and `ChangeMonsterMP` —the same without lethal—, which only
+            // exist in battle: `Game_Interpreter_Battle`. The game's are all
+            // a constant that is subtracted, on places 0 to 2; the percentage
+            // and the variable do not compile.
+            //
+            // OP_ENEMY: place (byte), what (byte: `ENEMY_SP` for the SP, and
+            // `ENEMY_LETHAL` on top), amount (signed word). See
+            // `ba_enemy_change` in tools/runtime/battle_troop.s.
+            let hp = cmd.code == CHANGE_MONSTER_HP;
+            if n < if hp { 5 } else { 4 } {
+                return cannot();
+            }
+            if !(0..256).contains(&q(0)) || q(2) != 0 || !(0..=0x7FFF).contains(&q(3)) {
+                return cannot();
+            }
+            let amount = if q(1) != 0 { -q(3) } else { q(3) };
+            let mut what = if hp { 0 } else { ENEMY_SP };
+            if hp && q(4) != 0 {
+                what |= ENEMY_LETHAL;
+            }
+            let mut out = vec![OP_ENEMY, q(0) as u8, what];
+            out.extend((amount as i16).to_le_bytes());
+            Ok(out)
         }
         SHAKE_SCREEN => {
             // `CommandShakeScreen`, in its RM2k form: power, speed, tenths and
@@ -4289,5 +4457,80 @@ mod tests {
             &|_| None,
         );
         assert_eq!(code.unwrap(), [OP_HEAL, 0, 0, 0, OP_DONE]);
+    }
+
+    #[test]
+    fn what_the_characters_systems_do_to_the_party() {
+        // The forms the troop pages use, each as the ROM reads it: see
+        // `actor_change`, `actor_stat` and `ba_enemy_change`.
+        let mut game = Game::default();
+        game.actors.insert(14, vec![]);
+        let one = |c: Command| compile_with(&game, &[c]).unwrap().unwrap();
+        // `LifeForStrength`: 999 off Talan, lethal.
+        assert_eq!(
+            one(cmd(CHANGE_HP, &[1, 14, 1, 0, 999, 1], "")),
+            [OP_ACTOR, 14, ACT_SUBTRACT | ACT_LETHAL, 0xE7, 0x03, OP_DONE]
+        );
+        // The one that adds a constant is still OP_HEAL.
+        assert_eq!(
+            one(cmd(CHANGE_HP, &[0, 0, 0, 0, 50, 0], "")),
+            [OP_HEAL, 0, 50, 0, OP_DONE]
+        );
+        // By a variable: its slot, and 48 is the fifth.
+        assert_eq!(
+            one(cmd(CHANGE_SP, &[1, 14, 1, 1, 48], "")),
+            [OP_ACTOR, 14, ACT_SP | ACT_SUBTRACT | ACT_VARIABLE, 5, 0, OP_DONE]
+        );
+        // Removing death gets the party up; another state, nothing.
+        assert_eq!(
+            one(cmd(CHANGE_CONDITION, &[0, 0, 1, 1], "")),
+            [OP_ACTOR, 0, ACT_REVIVE, 0, 0, OP_DONE]
+        );
+        assert_eq!(one(cmd(CHANGE_CONDITION, &[0, 0, 1, 5], "")), [OP_DONE]);
+        // Talan's HP into variable 48, asking for the refresh: without a map
+        // there is no knowing that no page looks at it.
+        assert_eq!(
+            one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 5, 14, 2], "")),
+            [OP_VAR, 5, 0x80, 5, 14, 0, 2, 0, OP_DONE]
+        );
+        // Equipping an accessory: its slot, 4, on top of its number.
+        let mut game = game.clone();
+        let mut users = vec![false; 25];
+        users[13] = true;
+        game.items.insert(386, (5, users));
+        game.items.insert(200, (1, vec![true; 25]));
+        let equip = |game: &Game, item: i32| {
+            compile_with(game, &[cmd(CHANGE_EQUIPMENT, &[1, 14, 0, 0, item], "")]).unwrap()
+        };
+        assert_eq!(
+            equip(&game, 386).unwrap(),
+            [OP_ACTOR, 14, ACT_EQUIP, 0x82, 0x81, OP_DONE]
+        );
+        // A weapon does not compile; one the actor cannot use does nothing.
+        assert!(equip(&game, 200).is_none());
+        game.items.insert(386, (5, vec![false; 25]));
+        assert_eq!(equip(&game, 386).unwrap(), [OP_DONE]);
+        // An enemy: 70 off the first, lethal; 40 SP off the second.
+        assert_eq!(
+            one(cmd(CHANGE_MONSTER_HP, &[0, 1, 0, 70, 1], "")),
+            [OP_ENEMY, 0, ENEMY_LETHAL, 0xBA, 0xFF, OP_DONE]
+        );
+        assert_eq!(
+            one(cmd(CHANGE_MONSTER_MP, &[1, 1, 0, 40], "")),
+            [OP_ENEMY, 1, ENEMY_SP, 0xD8, 0xFF, OP_DONE]
+        );
+    }
+
+    #[test]
+    fn what_the_rom_cannot_do_to_the_party_does_not_compile() {
+        let mut game = Game::default();
+        game.actors.insert(14, vec![]);
+        let fails = |c: Command| compile_with(&game, &[c]).unwrap().is_none();
+        // An actor's level, and one the database does not have.
+        assert!(fails(cmd(CONTROL_VARS, &[0, 48, 48, 0, 5, 14, 0], "")));
+        assert!(fails(cmd(CONTROL_VARS, &[0, 48, 48, 0, 5, 15, 2], "")));
+        // An enemy's HP by a percentage, and adding a state.
+        assert!(fails(cmd(CHANGE_MONSTER_HP, &[0, 1, 2, 50, 1], "")));
+        assert!(fails(cmd(CHANGE_CONDITION, &[0, 0, 0, 1], "")));
     }
 }

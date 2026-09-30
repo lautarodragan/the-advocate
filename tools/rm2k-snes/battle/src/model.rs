@@ -362,7 +362,7 @@ fn play(db: &Db, battle: &mut Battle, step: &Value) -> Result<Value> {
     let (name, arg) = step.iter().next().unwrap();
     match name.as_str() {
         "start" => {
-            battle.start()?;
+            battle.start(db)?;
             Ok(Value::Null)
         }
         "flee" => Ok(json!(battle.flee())),

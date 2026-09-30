@@ -38,6 +38,13 @@
     beq var_random
     cmp #VAR_OTHER
     beq other_var
+    cmp #VAR_ACTOR
+    bne :+
+    jsl f:actor_stat            ; in far RAM and outside bank 0: see level.s
+.a16
+    bra operand16
+.a8
+:
     rep #$20
 .a16
     lda [code_ptr], y           ; a constant
@@ -49,6 +56,7 @@ variable_var:
     lda [code_ptr], y           ; the slot it comes from
     jsr var_read
 .a16
+operand16:
     sta temp + 2
     sep #$20
 .a8
