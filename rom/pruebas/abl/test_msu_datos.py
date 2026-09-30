@@ -36,7 +36,7 @@ import shutil
 
 import pytest
 
-from port import scene, events, snes_format, msu_data, battle_scenes
+from port import scene, events, snes_format, battle_scenes
 # Por los ganchos que pone en `lcf` al importarse: los mapas se leen como
 # los lee el conversor.
 from port import snes_convert                            # noqa: F401
@@ -44,6 +44,7 @@ from rpgmaker.resources import GAME_DIR
 from rpgmaker import lcf, rm2k
 
 import tanda
+import musica
 from consola import Partida, en_la_rom, en_la_wram
 import cartuchos
 
@@ -136,7 +137,7 @@ def _msu_del_cartucho():
 def _tiles_cambiados(msu, fondo):
     """Una copia del `.msu` con los tiles del fondo `fondo` negados, y la
     cabecera tal cual: la firma sigue siendo la que la ROM espera."""
-    donde, largo = msu_data.index(msu)[2 * fondo]
+    donde, largo = musica.msu_indice(msu)[2 * fondo]
     otro = bytearray(msu)
     for i in range(donde, donde + largo):
         otro[i] ^= 0xFF
@@ -190,11 +191,9 @@ def test_msu_de_otro_build_cae_al_cartucho(tmp_path, nucleo):
     msu = _msu_del_cartucho()
     sin, _de_donde, fondo, _imagen, _limpio = _pelea(tmp_path, "sin", nucleo,
                                                      None)
-    entradas = [bytearray(e) for e in msu_data.read(msu)]
-    for i in range(len(entradas[2 * fondo])):
-        entradas[2 * fondo][i] ^= 0xFF
-    otro, _posiciones = msu_data.build([bytes(e) for e in entradas])
-    assert otro[:msu_data.SIGNATURE_SIZE] != msu[:msu_data.SIGNATURE_SIZE]
+    otro = musica.msu_firmado(_tiles_cambiados(msu, fondo))
+    firma = musica.constantes()["msu_signature_size"]
+    assert otro[:firma] != msu[:firma]
     for nombre, archivo in (("otro", otro), ("vacio", b"")):
         imagen, de_donde, _fondo, _captura, _limpio = _pelea(
             tmp_path, nombre, nucleo, archivo)
@@ -275,10 +274,11 @@ def test_msu_la_rom_sabe_donde_esta_cada_fondo():
             rom = archivo.read()
         with open(cartuchos.msu_de(nombre), "rb") as archivo:
             msu = archivo.read()
-        indice = msu_data.index(msu)
+        indice = musica.msu_indice(msu)
         s = uno.simbolos
-        assert msu[:msu_data.SIGNATURE_SIZE] == rom[en_la_rom(s["msu_data_signature"]):][
-            :msu_data.SIGNATURE_SIZE], "%s: la firma de la ROM no es la del .msu" % nombre
+        firma = musica.constantes()["msu_signature_size"]
+        assert msu[:firma] == rom[en_la_rom(s["msu_data_signature"]):][
+            :firma], "%s: la firma de la ROM no es la del .msu" % nombre
         assert s["MSU_BACKDROPS_N"] == s["BACKDROPS_GAME"] == len(juego), (
             "%s: el .msu lleva %d fondos, la ROM cuenta con %d y el juego "
             "tiene %d" % (nombre, s["MSU_BACKDROPS_N"], s["BACKDROPS_GAME"],
@@ -292,8 +292,8 @@ def test_msu_la_rom_sabe_donde_esta_cada_fondo():
                          s["MSU_EFFECTS_N"]))
         for k in range(s["MSU_BACKDROPS_N"]):
             (dt, lt), (dc, lc) = indice[2 * k], indice[2 * k + 1]
-            assert (dt, dc) == (msu_data.backdrop_offset(k),
-                                msu_data.backdrop_offset(k) + msu_data.COLORS_AT), (
+            assert (dt, dc) == (musica.msu_fondo(k), musica.msu_fondo(k)
+                                + musica.constantes()["msu_colors_at"]), (
                 "%s: el fondo %d no está en su lugar fijo" % (nombre, k))
             assert rom[pos + 8 * k:pos + 8 * k + 8] == (
                 dt.to_bytes(4, "little") + dc.to_bytes(4, "little")), (
@@ -301,8 +301,8 @@ def test_msu_la_rom_sabe_donde_esta_cada_fondo():
                 % (nombre, k))
             assert (lt, lc) == (scene.TILES * 64, scene.COLORS * 2), (
                 "%s: el fondo %d del .msu mide %d y %d" % (nombre, k, lt, lc))
-        regiones[nombre] = msu[msu_data.BACKDROPS_START:
-                               msu_data.backdrop_offset(len(juego))]
+        regiones[nombre] = msu[musica.msu_fondo(0):
+                               musica.msu_fondo(len(juego))]
     assert len(set(regiones.values())) == 1, (
         "la región de los fondos del .msu no es la misma en todos los "
         "cartuchos: %s" % sorted(regiones))

@@ -29,8 +29,6 @@ from array import array
 
 import numpy
 
-from port import msu_data
-
 import tanda
 import musica
 from consola import Partida, en_la_rom, en_la_wram
@@ -76,18 +74,16 @@ def _efectos_cambiados(msu, firma):
     cabecera tal cual, o recalculada si `firma`: con ella es el `.msu` de otro
     build, que la ROM no tiene que leer."""
     fondos = 2 * tanda.cartucho(cartuchos.RELEASE).simbolos["MSU_BACKDROPS_N"]
-    entradas = [bytearray(e) for e in msu_data.read(msu)]
+    donde = musica.msu_indice(msu)
+    entradas = [bytearray(e) for e in musica.msu_entradas(msu)]
     for entrada in entradas[fondos:]:
         for i in range(len(entrada)):
             if i % musica.constantes()["block_bytes"]:
                 entrada[i] ^= 0xFF
-    if firma:
-        return msu_data.build([bytes(e) for e in entradas])[0]
-    donde = msu_data.index(msu)
     otro = bytearray(msu)
     for (inicio, largo), entrada in zip(donde[fondos:], entradas[fondos:]):
         otro[inicio:inicio + largo] = entrada
-    return bytes(otro)
+    return musica.msu_firmado(bytes(otro)) if firma else bytes(otro)
 
 
 def _el_efecto(una, cuadros=400):
@@ -195,7 +191,8 @@ def test_con_un_msu_de_otro_build_los_efectos_salen_de_la_rom(tmp_path):
     el de la ROM, con su altura."""
     msu = _msu_del_cartucho()
     otro = _efectos_cambiados(msu, firma=True)
-    assert otro[:msu_data.SIGNATURE_SIZE] != msu[:msu_data.SIGNATURE_SIZE]
+    firma = musica.constantes()["msu_signature_size"]
+    assert otro[:firma] != msu[:firma]
     grabados = {}
     for nombre, archivo in (("vacio", b""), ("otro", otro)):
         una = _partida(tmp_path, nombre, "efecto-de-calidad", archivo)

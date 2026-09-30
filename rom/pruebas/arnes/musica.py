@@ -46,6 +46,42 @@ def constantes():
     return json.loads(_correr("constants"))
 
 
+def msu_indice(msu):
+    """Las entradas del `.msu` con datos `msu` —sus bytes—, como `(dónde,
+    largo)`; falla si no es uno válido de este juego. El formato es de
+    `rm2k-snes-audio` (`msu_data.rs`), y las pruebas se lo preguntan en vez
+    de tener otra copia."""
+    with tempfile.TemporaryDirectory() as carpeta:
+        ruta = os.path.join(carpeta, "datos.msu")
+        with open(ruta, "wb") as archivo:
+            archivo.write(msu)
+        return [tuple(e) for e in json.loads(
+            _correr("msu-index", ruta, "--project", lugares.ABL))]
+
+
+def msu_entradas(msu):
+    """Los bytes de cada entrada del `.msu`, en el orden del índice."""
+    return [msu[donde:donde + largo] for donde, largo in msu_indice(msu)]
+
+
+def msu_firmado(msu):
+    """El mismo `.msu` con la firma recalculada: con otros bytes adentro, es
+    el `.msu` bien formado de otro build."""
+    with tempfile.TemporaryDirectory() as carpeta:
+        ruta, otro = (os.path.join(carpeta, n) for n in ("a.msu", "b.msu"))
+        with open(ruta, "wb") as archivo:
+            archivo.write(msu)
+        _correr("msu-sign", ruta, "--out", otro)
+        with open(otro, "rb") as archivo:
+            return archivo.read()
+
+
+def msu_fondo(k):
+    """Dónde están los tiles del fondo `k` en el `.msu`: su lugar fijo."""
+    c = constantes()
+    return c["msu_backdrops_start"] + k * c["msu_backdrop_span"]
+
+
 class Banco:
     """El banco de muestras compartido, como lo dejó `compile`: sus claves
     —`p:programa:tecla`, `g:golpe`, y las copias con `@grupo`—, cuánto pesa
