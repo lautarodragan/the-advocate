@@ -36,9 +36,10 @@ what builds a cartridge are tested in Rust, in `rm2k-snes/cartridge/`.
 Every `test_*.py` in this folder has to be named here, and everything named
 has to exist: `test_index.py` enforces it.
 
-* `test_protocol.py`: the bytecode: the declarations, the generated files
-  up to date, that both ends say the same numbers and that the runtime does
-  not use an undeclared opcode
+* `test_protocol.py`: the bytecode: the generated files up to date, that
+  the runtime does not use an undeclared opcode, and that the two
+  declarations share no name; what a declaration checks on its own is in
+  `protocol`'s tests
 * `test_vram_layouts.py`: the VRAM layouts, their order and the maps that
   introduced them
 * `test_substitutions.py`: the `TileSubstitution` cap, the same in the
