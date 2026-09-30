@@ -284,7 +284,14 @@ pub const TARGET_COUNT_COL: usize = TARGET_NAME_COL + TARGET_NAME_WIDTH - 2;
 /// top frame, and it ends on a cell boundary: with the bottom tip
 /// mid-cell it was 64 tiles, exactly what fits before the tilemap.
 pub const TARGET_BAR: Rect = (MENU_TEXT_X - 4, 2, WIDTH - MENU_TEXT_X, 3 * LINE - 2);
-/// BG1's colours: those of sprite palette 0, which on this screen are off.
+/// The same bar on the pause menu, where `Scene_Menu` chooses whom to equip
+/// over its own party panel: there are no windows under it, so it is drawn
+/// over nothing, and it is taller because the row has a fourth line, the
+/// experience. Two pixels in from the top and the bottom of the row, so the
+/// bottom cells are the top ones mirrored and cost no tiles.
+pub const MENU_BAR: Rect = (MENU_TEXT_X - 4, 2, WIDTH - MENU_TEXT_X, MENU_ACTOR_ROWS * CELL - 4);
+/// BG1's colours: those of sprite palette 0, which on this screen are off
+/// and on the pause menu are not used: the experience goes in palette 1.
 /// There is no room in 0..127: they are the menu bank's palettes.
 pub const TARGET_CGRAM: usize = 128;
 pub const TARGET_COLORS_MAX: usize = 16;

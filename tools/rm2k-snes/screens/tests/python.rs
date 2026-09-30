@@ -72,9 +72,13 @@ fn everything_a_cartridge_carries() {
     let mut answer = convert::convert(&game(), &request).unwrap();
     // The geometry is constants, and the Python had them as its own.
     answer.as_object_mut().unwrap().remove("layout");
+    // The pause menu's bar came after the Python, on 2026-09-30, and it is
+    // no longer its answer: the bar over nothing adds three tiles at the end
+    // of the actor choice's —41 to 44— in this game, and the two fields of
+    // its rectangle. Everything else is still the Python's.
     assert_eq!(
         sha(canon(&answer).as_bytes()),
-        "4fe418aa88acfafb6d29264ce667fa5ad0d7fdaac3e8e8f3f27d05357e662522"
+        "8d175bbc96a5b757546193526961182f42501c3ef84c4b1c9e2d90d3dd0e6689"
     );
     assert_eq!(
         answer["says"],
@@ -119,8 +123,15 @@ fn the_screens_as_the_console_shows_them() {
     };
     check(
         "menu",
-        render::menu(&game, &skin, 4, &party(&[1, 2, 5]), 1234, 2, false).unwrap(),
+        render::menu(&game, &skin, 4, &party(&[1, 2, 5]), 1234, 2, false, None).unwrap(),
         "385725e4540ce73c8cc0f936c8ecc3540574c8a1e0325e1a506ae806498b6531",
+    );
+    // Choosing whom to equip, with the bar on the second row: not drawn by
+    // the Python, which never had it.
+    check(
+        "menu-choosing",
+        render::menu(&game, &skin, 4, &party(&[1, 2, 5]), 1234, 2, false, Some(1)).unwrap(),
+        "02d068ec453398d9db0e1eb104f25a5f2245ce5bbb9ae12a6f54ba1abcbe9a2b",
     );
     let state = Party {
         members: vec![2, 7, 8, 4],
@@ -131,7 +142,7 @@ fn the_screens_as_the_console_shows_them() {
     };
     check(
         "menu-state",
-        render::menu(&game, &skin, 4, &state, 999_999, 0, true).unwrap(),
+        render::menu(&game, &skin, 4, &state, 999_999, 0, true, None).unwrap(),
         "dc9748330fd80647a550df9481f80ce7dd52a4aeaa7bea99cfa5776e2739c21b",
     );
     let hurt = Party {

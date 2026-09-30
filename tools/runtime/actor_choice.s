@@ -384,3 +384,257 @@ bar_ofs:
     sta INIDISP
     rtl
 .endproc
+
+; --- the bar on the pause menu -----------------------------------------------
+;
+; `Scene_Menu` chooses whom a command is for over its own party panel: the
+; commands stay on the left with their cursor, and the red bar goes over
+; the row's text —`UpdateActorSelection`—. It is the actor choice's bar,
+; with its tiles and colours, but over nothing: the menu has no windows, so
+; outside the bar BG1 is empty and erasing it is writing zeros. The geometry
+; is `MENU_BAR` of `rm2k-snes-screens`, whose `render` of the menu is the
+; reference.
+;
+; Its colours go in 128..143, the sprites' palette 0: that is why the
+; menu's experience goes in palette 1 —see `menu_exp_paint`—. Everything is
+; in what `load_map` and `menu_exp_close` restore when the menu closes, as
+; with the actor choice.
+
+; The tiles, the colours and an empty BG1, from `menu_upload`: with the
+; screen off. BG1 is turned on by `menu_exp_paint`, with the rest.
+.proc menu_bar_upload
+.a8
+.i16
+    lda #$80
+    sta VMAIN
+    rep #$20
+.a16
+    lda #TARGET_VRAM
+    sta VMADDL
+    lda #(TARGET_TILES * 64)
+    sta DAS0L
+    lda #.loword(target_tiles)
+    sta A1T0L
+    sep #$20
+.a8
+    lda #^(target_tiles)
+    sta A1B0
+    lda #$01
+    sta DMAP0
+    lda #$18
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+    ; The tilemap, all zeros: a fixed source —`zero`, in `bank1.s`— writes
+    ; the same byte to both halves of each word.
+    rep #$20
+.a16
+    lda #TARGET_MAP
+    sta VMADDL
+    lda #(32 * 32 * 2)
+    sta DAS0L
+    lda #.loword(zero)
+    sta A1T0L
+    sep #$20
+.a8
+    lda #^zero
+    sta A1B0
+    lda #$09
+    sta DMAP0
+    lda #$01
+    sta MDMAEN
+    lda #TARGET_CGRAM
+    sta CGADD
+    rep #$20
+.a16
+    lda #(TARGET_COLORS * 2)
+    sta DAS0L
+    lda #.loword(target_cgram)
+    sta A1T0L
+    sep #$20
+.a8
+    lda #^(target_cgram)
+    sta A1B0
+    stz DMAP0
+    lda #$22
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+    lda #(TARGET_MAP / 1024 * 4)
+    sta BG1SC
+    stz BG1HOFS
+    stz BG1HOFS
+    lda #$FF
+    sta BG1VOFS
+    sta BG1VOFS
+    rtl
+.endproc
+
+; The bar on party row A: `temp + 3` at 1 paints it and at 0 erases it. One
+; DMA per row of cells, like `target_bar`, which fits in the vblank. It
+; clobbers `temp` through `temp + 2`.
+.proc menu_bar
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda f:row_vram, x           ; the rectangle's first cell
+    sta temp
+    sep #$20
+.a8
+    lda #$80
+    sta VMAIN
+    lda #$18
+    sta BBAD0
+    lda temp + 3
+    beq erase
+    lda #$01
+    sta DMAP0
+    lda #^(menu_bar_cells)
+    sta A1B0
+    rep #$20
+.a16
+    lda #.loword(menu_bar_cells)
+    ldy #(MENU_BAR_COLS * 2)    ; the rectangle is contiguous
+    bra rows
+.a8
+erase:
+    lda #$09                    ; a fixed source: zeros
+    sta DMAP0
+    lda #^zero
+    sta A1B0
+    rep #$20
+.a16
+    lda #.loword(zero)
+    ldy #0
+rows:
+    sty temp + 2                ; how much the source advances per row
+    ldx #MENU_BAR_ROWS
+row:
+    sta A1T0L
+    pha
+    lda temp
+    sta VMADDL
+    clc
+    adc #32
+    sta temp
+    lda #(MENU_BAR_COLS * 2)
+    sta DAS0L
+    sep #$20
+.a8
+    lda #$01
+    sta MDMAEN
+    rep #$20
+.a16
+    pla
+    clc
+    adc temp + 2
+    dex
+    bne row
+    sep #$20
+.a8
+    rtl
+
+FIRST = TARGET_MAP + MENU_BAR_ROW0 * 32 + MENU_BAR_COL0
+ROW = MENU_ACTOR_ROWS * 32
+row_vram:
+    .word FIRST, FIRST + ROW, FIRST + 2 * ROW, FIRST + 3 * ROW
+    .assert MENU_ROWS_PARTY = 4, error, "one word per party row"
+.endproc
+
+; --- whom a command is for ---------------------------------------------------
+;
+; `Scene_Menu::UpdateActorSelection`: the menu stays as it is, with the
+; cursor on the command, and the bar goes over the party panel —see
+; `menu_bar`—, always starting on the first row. Up and down wrap around,
+; like any `Window_Selectable`. Returns with the row in A, or $FF if B was
+; pressed, with the bar erased. Called with `jsl` and the data bank at 0,
+; just after `read_pad`, still inside the vblank; `title_sel` is the row
+; while it lasts: the caller puts the command back. It lives here and not
+; next to the menu because bank 0 has no room for it.
+;
+; Confirmed against the RPG_RT of 2015 under Wine and easyrpg's
+; `scene_menu.cpp`: see the task `a-quien-equipar-desde-el-menu`.
+.proc menu_choose
+.a8
+.i16
+    stz title_sel
+    lda #1
+    sta temp + 3
+    lda #0
+    jsl f:menu_bar
+wait:
+    jsl f:ba_t_vblank
+    jsl f:ba_t_pad
+    lda pad
+    eor pad_prev
+    and pad
+    sta title_edges
+    and #PAD_UP
+    beq no_up
+    lda title_sel
+    bne up
+    jsr rows_n                  ; from the first, up wraps around
+up:
+    dec a
+    jsr move
+    bra wait
+no_up:
+    lda title_edges
+    and #PAD_DOWN
+    beq no_down
+    jsr rows_n
+    dec a
+    cmp title_sel
+    beq first                   ; from the last, down wraps around
+    lda title_sel
+    inc a
+    bra down
+first:
+    lda #0
+down:
+    jsr move
+    bra wait
+no_down:
+    lda title_edges
+    and #PAD_B
+    beq no_b
+    stz temp + 3
+    lda title_sel
+    jsl f:menu_bar
+    lda #$FF                    ; B: nothing chosen
+    rtl
+no_b:
+    lda pad_a
+    beq wait
+    lda pad_a_prev
+    bne wait                    ; it was already held: not an edge
+    lda title_sel
+    rtl
+
+; How many rows the panel shows, in A.
+rows_n:
+    lda party_n
+    cmp #MENU_ROWS_PARTY
+    bcc rows_ready
+    lda #MENU_ROWS_PARTY
+rows_ready:
+    rts
+
+; The bar from the row it was on to the one in A.
+move:
+    pha
+    stz temp + 3
+    lda title_sel
+    jsl f:menu_bar
+    pla
+    sta title_sel
+    lda #1
+    sta temp + 3
+    lda title_sel
+    jsl f:menu_bar
+    rts
+.endproc

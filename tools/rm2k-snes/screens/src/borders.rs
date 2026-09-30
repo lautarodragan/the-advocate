@@ -131,6 +131,26 @@ pub fn target_windows(game: &Game, skin: &Skin, with_item: bool, cursor: Option<
     Ok(out)
 }
 
+/// The pause menu's bar, over nothing: with `cursor`, on that party row.
+/// It shares the actor choice's tiles and colours —see `MENU_BAR`—.
+pub fn menu_bar(skin: &Skin, cursor: Option<usize>) -> Picture {
+    let mut out = cells::layer();
+    if let Some(k) = cursor {
+        let (x, y, width, height) = MENU_BAR;
+        bar(skin, &mut out, x, k * MENU_ACTOR_ROWS * CELL + y, width, height);
+    }
+    out
+}
+
+/// The pause menu's bar as one more screen for `borders`: the same on
+/// every row, so only the first one's.
+pub fn menu_bar_layer(skin: &Skin) -> Screen {
+    Screen {
+        background: menu_bar(skin, None),
+        bars: vec![(menu_bar(skin, Some(0)), 0, MENU_ACTOR_ROWS)],
+    }
+}
+
 /// With an item and without, each with the bar on each party row, from
 /// the first cell row of the actor's row.
 pub fn target_layers(game: &Game, skin: &Skin) -> Result<Vec<Screen>> {
@@ -246,13 +266,20 @@ pub struct CompactTarget {
     pub cols: usize,
     pub erase_rows: usize,
     pub erase_cols: usize,
+    /// The pause menu's bar: its rectangle on the first party row, as
+    /// `(row0, rows, col0, cols)`, and its words row by row. Outside it
+    /// BG1 is empty, so erasing it is writing zeros.
+    pub menu_bar: Vec<u16>,
+    pub menu_bar_at: (usize, usize, usize, usize),
 }
 
-/// The actor choice's windows as the cartridge stores them. If what it
-/// assumes does not hold, it is an error and not a different tilemap.
+/// The actor choice's windows as the cartridge stores them, with the pause
+/// menu's bar third. If what it assumes does not hold, it is an error and
+/// not a different tilemap.
 pub fn compact_target(maps: &[(Vec<u16>, Vec<Vec<u16>>)]) -> Result<CompactTarget> {
     let (with_map, bars_with) = &maps[0];
     let (without_map, bars_without) = &maps[1];
+    let (menu_map, menu_bars) = &maps[2];
     let erase_cols = TARGET_LEFT / CELL;
     let erase_rows = (TARGET_NAME_HEIGHT + TARGET_COUNT_HEIGHT) / CELL;
     let expected: Vec<u16> = with_map
@@ -294,6 +321,20 @@ pub fn compact_target(maps: &[(Vec<u16>, Vec<Vec<u16>>)]) -> Result<CompactTarge
     if bars != bars_without.iter().map(clip).collect::<Vec<_>>() {
         return Err(Bad::answer("the actor choice's bar is not the same with and without an item"));
     }
+    if menu_map.iter().any(|&w| w != 0) {
+        return Err(Bad::answer("the pause menu's BG1 is not empty without the bar"));
+    }
+    let menu_bar = &menu_bars[0];
+    let used: Vec<(usize, usize)> =
+        (0..menu_bar.len()).filter(|&i| menu_bar[i] != 0).map(|i| (i / COLS, i % COLS)).collect();
+    let m_row0 = used.iter().map(|d| d.0).min().unwrap_or(0);
+    let m_rows = used.iter().map(|d| d.0).max().unwrap_or(0) + 1 - m_row0;
+    let m_col0 = used.iter().map(|d| d.1).min().unwrap_or(0);
+    let m_cols = used.iter().map(|d| d.1).max().unwrap_or(0) + 1 - m_col0;
+    let menu_bar_words = (0..m_rows)
+        .flat_map(|f| (0..m_cols).map(move |c| (f, c)))
+        .map(|(f, c)| menu_bar[(m_row0 + f) * COLS + m_col0 + c])
+        .collect();
     Ok(CompactTarget {
         map: with_map.clone(),
         bars,
@@ -303,6 +344,8 @@ pub fn compact_target(maps: &[(Vec<u16>, Vec<Vec<u16>>)]) -> Result<CompactTarge
         cols,
         erase_rows,
         erase_cols,
+        menu_bar: menu_bar_words,
+        menu_bar_at: (m_row0, m_rows, m_col0, m_cols),
     })
 }
 

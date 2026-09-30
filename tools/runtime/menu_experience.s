@@ -9,11 +9,12 @@
 ; `rm2k-snes-screens`, whose `render` is the reference.
 ;
 ; Sprites read their tiles from `SLOT_VRAM`, so a glyph's tile in the bank
-; is the same number, and their palette 0 is a copy of the text's. No other
+; is the same number, and their palette 1 is a copy of the text's: palette
+; 0, colors 128 to 143, is the menu bar's —see `menu_bar_upload`—. No other
 ; screen turns sprites on —`slot_ppu_on` leaves only BG2—, so the
 ; actor choice, which shares the panel, does not show it, which is what
 ; `Window_ActorTarget` does. What this changes from the map —OBSEL and colors
-; 128 to 143— is restored by `menu_exp_close` on the way back.
+; 128 to 159— is restored by `menu_exp_close` on the way back.
 ;
 ; It runs with the screen off: the OAM is written straight through the port,
 ; and nothing overwrites it while the menu is shown because `flush_video`
@@ -51,8 +52,8 @@ MENU_EXP_SPRITES = 128
     ; 8x8 sprites with the tiles from `SLOT_VRAM`.
     lda #(SLOT_VRAM / $2000)
     sta OBSEL
-    ; Sprite palette 0, the text's.
-    lda #128
+    ; Sprite palette 1, the text's.
+    lda #144
     sta CGADD
     rep #$20
 .a16
@@ -110,7 +111,11 @@ table_small:
     bne table_small
 
     jsl f:ba_t_ppu              ; the screen, on with BG2 alone
-    lda #$12                    ; and the sprites on top
+    ; And BG1, with its own base, for the bar: empty until something is
+    ; chosen. `slot_ppu_on` left BG2's base, which does not change.
+    lda #(SLOT_VRAM / 4096 * 16 + TARGET_VRAM / 4096)
+    sta BG12NBA
+    lda #$13                    ; and the sprites on top
     sta TM
     plb
     rtl
@@ -315,7 +320,7 @@ put:
     sta OAMDATA
     xba                         ; the word's high byte: bit 8 of the
     and #$01                    ; tile, and the BG2 palette, which is 0
-    ora #$30                    ; priority 3, sprite palette 0
+    ora #$32                    ; priority 3, sprite palette 1
     sta OAMDATA
     inc comp_base
     rts
@@ -382,7 +387,8 @@ powers:
 
 ; When closing the menu, before `back_to_map`: what `menu_exp_paint`
 ; changed on the map and the map does not restore by itself. OBSEL, which
-; `back_to_map` does not touch, and the colors of sprite palette 0, from
+; `back_to_map` does not touch, and the colors of sprite palettes 0 and 1
+; —the bar's and the experience's—, from
 ; `cgram_shadow`, which has the map's even if the tint or a picture changed
 ; them. It turns the screen off, which `back_to_map` turns off anyway.
 .proc menu_exp_close
@@ -403,7 +409,7 @@ powers:
 .a16
     lda #.loword(cgram_shadow + 2 * 128)
     sta A1T0L
-    lda #(16 * 2)
+    lda #(32 * 2)
     sta DAS0L
     sep #$20
 .a8

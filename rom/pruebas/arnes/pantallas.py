@@ -23,15 +23,17 @@ def disposicion():
 
 
 def menu(ranuras, grupo, oro, elegida=0, guardar=True, actores=None,
-         hp=None, niveles=None, exps=None):
+         hp=None, niveles=None, exps=None, eligiendo=None):
     """El menú de pausa con `grupo` y `oro`, el cursor en `elegida` y el
     permiso de guardar. `actores` son los que conoce la ROM —sin ellos, el
     grupo—; `hp`, `niveles` y `exps`, de actor a valor, los de la partida
-    —sin ellos, los de arranque—."""
+    —sin ellos, los de arranque—. Con `eligiendo`, la fila del grupo con la
+    barra, mientras se elige para quién es la orden."""
     return screen_stage.render(
         "menu", slots=ranuras, party=list(grupo), gold=oro, chosen=elegida,
         save_allowed=guardar, actors=actores, hp=hp or {},
-        levels=niveles or {}, exps=exps or {})
+        levels=niveles or {}, exps=exps or {},
+        choosing=-1 if eligiendo is None else eligiendo)
 
 
 def items(inventario, elegida=0, arriba=0, conocidos=None):

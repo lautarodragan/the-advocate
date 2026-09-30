@@ -161,7 +161,11 @@ fn actor_row(
 }
 
 /// The pause menu. `slots` are the save slots, `chosen` the command with
-/// the cursor and `save_allowed` what `ChangeSaveAccess` left.
+/// the cursor and `save_allowed` what `ChangeSaveAccess` left. With
+/// `choosing`, the party row the bar is on while choosing whom a command
+/// is for —`Scene_Menu::UpdateActorSelection`—; the command keeps its
+/// cursor.
+#[allow(clippy::too_many_arguments)]
 pub fn menu(
     game: &Game,
     skin: &Skin,
@@ -170,11 +174,13 @@ pub fn menu(
     gold: i64,
     chosen: usize,
     save_allowed: bool,
+    choosing: Option<usize>,
 ) -> Result<Picture> {
     let known = party.known();
     let bank = slots::slots_screen(game, skin, slots, &known, "")?;
     let menu = &bank.menu;
     let mut p = Painter::new(&bank.tiles, &bank.palettes);
+    p.under(&borders::menu_bar(skin, choosing));
     for option in 0..MENU_OPTIONS {
         let done = MENU_DONE.contains(&option) && (option != MENU_SAVE || save_allowed);
         p.paste(

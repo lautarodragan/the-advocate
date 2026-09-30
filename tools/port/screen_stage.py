@@ -236,7 +236,8 @@ def convert(game_dir, members, items, bank_items, title):
                      [_color(c) for c in target["colors"]],
                      (target["map"], target["bars"], target["row0"],
                       target["rows"], target["col0"], target["cols"],
-                      target["erase_rows"], target["erase_cols"])),
+                      target["erase_rows"], target["erase_cols"]),
+                     (target["menu_bar"], target["menu_bar_at"])),
         "fin": ([_tile(c) for c in end["tiles"]], end["rows"], end["row0"],
                 [[_color(c) for c in p] for p in end["palettes"]]),
     }

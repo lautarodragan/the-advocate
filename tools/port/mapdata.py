@@ -1234,6 +1234,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
                        // constants.CELL for n in range(T.MENU_OPTIONS)]
         handle.write(
             "MENU_OPTIONS      = %d\n"
+            "MENU_EQUIPMENT    = %d\n"
             "MENU_SAVE         = %d\n"
             "MENU_END          = %d\n"
             "MENU_BLK_OPTION   = %d\n"
@@ -1254,7 +1255,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
             "MENU_LEVEL_OFS    = %d\n"
             "MENU_MAX_DIGITS   = %d\n"
             "MENU_MAX_OFS      = %d\n"
-            % (T.MENU_OPTIONS, T.MENU_SAVE, T.MENU_END, menu_option_block,
+            % (T.MENU_OPTIONS, T.MENU_EQUIPMENT, T.MENU_SAVE, T.MENU_END, menu_option_block,
                menu_currency_block, menu_row_block,
                T.MENU_OPT_COLS, T.MENU_CURRENCY_COLS,
                vram_cell(T.MENU_GOLD_Y // constants.CELL, T.MENU_CURRENCY_COL),
@@ -1325,7 +1326,8 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # medicine—: only medicines open this screen.
         obj_tiles, obj_colors, (obj_map, obj_bars, obj_row0, obj_rows,
                                 obj_col0, obj_cols, obj_erase_rows,
-                                obj_erase_cols) = slots["objetivo"]
+                                obj_erase_cols), (menu_bar, menu_bar_at) = \
+            slots["objetivo"]
         handle.write(block("target_tiles", b"".join(
             pack_tile(cell, planes=8) for cell in obj_tiles)) + "\n")
         handle.write(block("target_map", b"".join(
@@ -1333,6 +1335,13 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         handle.write(block("target_bars", b"".join(
             word.to_bytes(2, "little") for bar in obj_bars
             for word in bar)) + "\n")
+        # The pause menu's bar, with the same tiles and colours, over
+        # nothing: only its rectangle, the same on every party row.
+        handle.write(block("menu_bar_cells", b"".join(
+            word.to_bytes(2, "little") for word in menu_bar)) + "\n")
+        handle.write(
+            "MENU_BAR_ROW0 = %d\nMENU_BAR_ROWS = %d\n"
+            "MENU_BAR_COL0 = %d\nMENU_BAR_COLS = %d\n" % tuple(menu_bar_at))
         handle.write(block("target_cgram", b"".join(
             cgram_word(c).to_bytes(2, "little") for c in obj_colors)) + "\n")
         medicine_lines = {m["number"]: m["lines"]

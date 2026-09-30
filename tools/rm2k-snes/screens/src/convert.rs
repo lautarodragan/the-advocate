@@ -119,7 +119,8 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
             names.join(", ")
         ));
     }
-    let target_screens = borders::target_layers(game, &skin)?;
+    let mut target_screens = borders::target_layers(game, &skin)?;
+    target_screens.push(borders::menu_bar_layer(&skin));
     let target = borders::borders(&target_screens, 0, TARGET_CGRAM, TARGET_CGRAM + TARGET_COLORS_MAX)?;
     request.vram.target(target.tiles.len())?;
     let items_font = items::items_screen(game, &skin)?;
@@ -261,6 +262,13 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
             "cols": target_compact.cols,
             "erase_rows": target_compact.erase_rows,
             "erase_cols": target_compact.erase_cols,
+            "menu_bar": target_compact.menu_bar,
+            "menu_bar_at": [
+                target_compact.menu_bar_at.0,
+                target_compact.menu_bar_at.1,
+                target_compact.menu_bar_at.2,
+                target_compact.menu_bar_at.3
+            ],
         },
         "end_game": {
             "tiles": tiles_json(&end.tiles),

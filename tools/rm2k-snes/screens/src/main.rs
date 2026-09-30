@@ -130,6 +130,10 @@ fn do_render(args: &GameArgs) -> Result<()> {
             json.number_or("gold", 0)?,
             chosen,
             json.flag("save_allowed", true)?,
+            match json.number_or("choosing", -1)? {
+                n if n < 0 => None,
+                n => Some(n as usize),
+            },
         )?,
         "target" => {
             let item = match json.number_or("item", 0)? {
