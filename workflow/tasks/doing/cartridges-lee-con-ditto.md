@@ -2,6 +2,7 @@
 name: "rm2k-snes-cartridges lee el volcado con Ditto"
 description: "El tercer lector del volcado a mano: cartridges.rs lee maps.json por su cuenta para el tipo de cada nodo; que use la biblioteca de Ditto, y una prueba que impida un cuarto"
 type: refactor
+assignee: Cardenal
 ---
 
 Lo dejó anotado Zorzal el 2026-09-29 (`testing/rust-ditto-como-biblioteca.md`):

@@ -2,6 +2,7 @@
 name: "El teletransporte tarda tres cuadros de más"
 description: "Contra el RPG_RT, cada Wait+Teleport de la escena del mapa 16 dura 161 ticks en la ROM y 158 en el original: dos en la espera y uno en el fundido"
 type: bug
+assignee: Benteveo
 ---
 
 Apareció el 2026-09-29 midiendo contra el RPG_RT las tres divergencias que
@@ -50,3 +51,8 @@ que usó el autor (ver lo que dice de eso la receta de Wine).
 
 Las capturas, con el número de cuadro relativo en el nombre, están en
 `/shared/capturas/2026-09-29-divergencias/mapa16-*` y `cronometro-*`.
+
+## Tomada el 2026-09-29
+
+taro aceptó que la ROM cambie para igualar a RM2k. Si el arreglo mueve
+goldens, **no se mergea hasta que taro las vea**, lado a lado.
