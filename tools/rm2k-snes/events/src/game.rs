@@ -408,11 +408,12 @@ impl Game {
 
     /// Map `id`: the project's file if it has one, the dump's otherwise.
     pub fn map(&self, id: i32) -> Result<Map> {
-        let path = match self.patches.map_files.get(&id) {
-            Some(p) => p.clone(),
-            None => self.dump.join("maps").join(format!("Map{id:04}.json")),
-        };
-        let raw = read_map(&path).map_err(answer)?;
+        let raw = match self.patches.map_files.get(&id) {
+            Some(p) => read_map(p),
+            // Where the dump keeps a map is Ditto's to know.
+            None => Dump::open(&self.dump).and_then(|d| d.map(id as u32)),
+        }
+        .map_err(answer)?;
         Ok(self.convert(id, &raw))
     }
 
