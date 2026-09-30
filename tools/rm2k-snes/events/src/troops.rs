@@ -40,8 +40,8 @@ use std::collections::HashMap;
 /// are OP_ENEMY.
 ///
 /// `ChangeEquipment` equips, and the battle takes up the parameters it changes
-/// —`ba_reparam`—. `PlayBGM` is accepted and not done: see `PLAY_BGM` in
-/// the compiler.
+/// —`ba_reparam`—. `PlayBGM` goes into the battle's audio package: see
+/// `PLAY_BGM` in the compiler.
 ///
 /// The ones left out that the game uses, in case someone wants to add them:
 /// `FlashScreen`, `Wait`, `TintScreen`, `ChangeMonsterCondition` —the battle

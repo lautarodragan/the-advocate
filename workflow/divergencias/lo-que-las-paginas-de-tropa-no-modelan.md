@@ -26,13 +26,16 @@ no tiene lugar sin bajarle la tasa al tema de batalla, y ésa es la regla de
 taro para los efectos. Hoy es uno solo, el `Thunder9` del despegue de la pelea
 de los agentes; los números están al lado de la lista.
 
-**Un `PlayBGM` de página se acepta y no se hace.** Es el de `Play Radio`
-(el sistema del 809), que pone uno de tres temas —`dd2shad2`, `patchb` y el de
-Ryan Bury— mientras la pelea sigue. Meterlos en el paquete de audio de la
-pelea le baja la tasa al tema de batalla, que es lo mismo que deja afuera a
-los efectos de las páginas, y ninguno tiene pista de MSU-1. Lo demás que hace
-la página —el accesorio, la cura, el daño— sí. Ver `PLAY_BGM` en el
-compilador de eventos.
+**Un `PlayBGM` de página se hace desde el 2026-09-30, con menos calidad.** Es
+el de `Play Radio` (el sistema del 809), que pone uno de tres temas
+—`dd2shad2`, `patchb` y el de Ryan Bury—. Van **aparte** en el paquete de la
+pelea: no suben con el tema de batalla, los sube su `PlayBGM` solos con los
+efectos del paquete, así que el tema de batalla no baja. Lo que baja es lo
+que comparten con otros temas: con tres temas más, al banco de muestras le
+quedan menos entradas para copias, y varias muestras de otros temas quedan a
+la tasa del peor paquete. Lo midió la tarea
+`tasks/*/el-comun-35-y-la-radio.md`. Con el MSU-1 los tres tienen su pista y
+suenan enteros.
 
 **El que entra al grupo en la pelea toma el lugar del que salió.** En RM2k
 `RemoveActor` saca al actor de la lista del grupo y `AddActor` pone al nuevo
