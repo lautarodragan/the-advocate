@@ -894,14 +894,24 @@ class Partida:
         efecto anotado en `FAR_EFFECT_IN`, como `EFECTO + su número`, que es
         como los cuenta `muestras_del_paquete`.
         """
+        return set(self.lugares_en_la_aram())
+
+    def lugares_en_la_aram(self):
+        """Lo mismo que `muestras_en_la_aram`, con dónde está cada una: {la
+        muestra: su dirección en la ARAM}. Sirve para ver si una carga
+        volvió a subir algo que ya estaba, porque eso la mueve."""
         s = self.simbolos
         n = s["SAMPLES_N"]
         crudo = self.consola.ram(en_la_wram(s["FAR_ARAM_OF"]), 2 * n)
         anotados = self.consola.ram(en_la_wram(s["FAR_EFFECT_IN"]),
                                     max(1, s["SE_PLACES"]))
-        return {i if i < s["SE_FIRST"]
-                else EFECTO + anotados[i - s["SE_FIRST"]]
-                for i in range(n) if crudo[2 * i] | (crudo[2 * i + 1] << 8)}
+        lugares = {}
+        for i in range(n):
+            donde = crudo[2 * i] | (crudo[2 * i + 1] << 8)
+            if donde:
+                lugares[i if i < s["SE_FIRST"]
+                        else EFECTO + anotados[i - s["SE_FIRST"]]] = donde
+        return lugares
 
     def muestras_del_tema(self, indice):
         """Qué muestras necesita el tema, leídas de `song_samples` **en el
