@@ -78,9 +78,10 @@ tiene el plan de seis pasos y las preguntas con sus opciones.
   Adeleine y de `voodoo`.
 - **El asignador se llama Adeleine.** De taro, el 2026-09-29, al charlar si
   tenía sentido separarlo de Voodoo (lo tiene: es la regla de AGENTS.md de
-  que Voodoo no decide colores). Hoy es `tools/port/adeleine.py` y deja lo
-  que decidió en `rom/build/<cartucho>/adeleine/`; cuando pase a Rust es un
-  crate propio en `tools/snes/`, al lado de Voodoo y no adentro.
+  que Voodoo no decide colores). Es un crate propio, `tools/snes/adeleine/`,
+  al lado de Voodoo y no adentro, desde el 2026-09-29; el conversor lo
+  llama por `tools/port/adeleine.py` y deja lo que decidió en
+  `rom/build/<cartucho>/adeleine/`.
 - **ABL sólo conoce ejecutables del PATH, no `tools/`.** Es la idea de taro
   para el primer paso: el `justfile` no sabe que existe Python, y los `.py`
   que se ejecutan pasan a ser ejecutables de verdad, con hashbang y
