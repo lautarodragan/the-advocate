@@ -26,9 +26,11 @@
 ;
 ; **The quality sound effects from the `.msu`.** If the `.msu` is this
 ; cartridge's —the signature, `msu_data_valid`—, each package's sound effects
-; are uploaded to ARAM from there and not from ROM: whole, and at the rate
-; they fit at now that the music takes no room. Each package has its version of
-; each sound effect —the rate depends on how heavy the package is, see
+; are uploaded to ARAM from there and not from ROM: whole, and each at the rate
+; the package leaves it now that the music takes no room —not one rate for the
+; whole package: see `rates_per_package` in rm2k-snes-audio's effects.rs—. Each
+; package has its version of each sound effect —the rate depends on how heavy
+; the package is, see
 ; tools/rm2k-snes/rm2k-snes-audio/src/msu.rs— and the ROM does not keep which version was
 ; left in ARAM, so **on every package they are all uploaded again**, even if they
 ; were already there. Each sound's pitch comes from `se_msu_pitch`, which the
