@@ -162,13 +162,25 @@ pub struct Game {
     pub animations: BTreeMap<i32, Animation>,
     /// The terms the inn's greeting is built with: the gold's, and per inn
     /// type the three greetings, yes and no.
+    ///
+    /// They are the game's and not ours —the game this was built with
+    /// charges in "Cr"— so they come from the LDB and not from a literal,
+    /// for the same reason as the title screen's. The two sets are
+    /// `ShowInn`'s `inn_type`: 0 set A and 1 set B.
+    ///
+    /// Without them `ShowInn` does not compile —and says so—, instead of
+    /// building the greeting with made-up words: the price and the currency
+    /// are the only thing the player is going to read to decide.
     pub gold_term: String,
     pub inn_terms: [[String; 5]; 2],
     pub battle_music: String,
     pub battle_end_music: String,
     /// The system effects, by their name in `System`.
     pub system_se: BTreeMap<&'static str, Sound>,
-    /// The actors, with the skills they learn by level.
+    /// The actors, with the skills they learn by level. It is what the two
+    /// actor questions of `ConditionalBranch` and `ChangeEquipment` look at
+    /// to know an actor exists: it is read once before compiling anything,
+    /// so all pages read the same reading of the LDB.
     pub actors: BTreeMap<i32, Vec<(i32, i32)>>,
     pub skills: BTreeSet<i32>,
 }
