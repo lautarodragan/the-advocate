@@ -2,6 +2,7 @@
 name: "Un salto que falla no gira al héroe"
 description: "RM2k fija la dirección del salto antes de ver si puede caer; la ROM sólo si puede"
 type: bug
+assignee: Guanaco
 ---
 
 Apareció leyendo la reja del mapa 12 —el evento 1 de (1,47)— para
