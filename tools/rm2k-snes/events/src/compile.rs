@@ -1493,6 +1493,12 @@ fn branch_bytes(ctx: &Ctx, cmd: &Command) -> Step<Vec<u8>> {
             return cannot();
         }
     } else if kind == COND_ITEM {
+        // The inventory **already exists** —`OP_ITEM` and `FAR_ITEMS`,
+        // since 2026-09-10—: the item branch is `GetItemCount(id) > 0`,
+        // exactly the same question as the page condition by item, which the
+        // ROM already answers by reading `FAR_ITEMS`. Equipment does not
+        // count, as in `conditions_ok`: `GetEquippedItemCount` asks for
+        // equipment, which there is none.
         if !(0..ITEMS_N).contains(&number) {
             return cannot();
         }
@@ -1508,6 +1514,35 @@ fn branch_bytes(ctx: &Ctx, cmd: &Command) -> Step<Vec<u8>> {
             out.extend([0, 0, 0]);
             return Ok(out);
         }
+        // The two actor questions that do not fit in `OP_IF`, since
+        // 2026-09-13: "does it have this item equipped?" and "does it know
+        // this skill?". They do not fit because they carry **two** operands
+        // —the actor and the item or the skill— and `OP_IF` has a single
+        // one; the actor fits in a byte because the LDB has 60 and
+        // `ACTORS_N` counts them, and the data does not, because the items go
+        // up to 450.
+        //
+        // It carries no polarity: RM2k gives none to these two —the branch
+        // below is the `else`— same as to "is in the party". The destination
+        // goes last, as in all of them, because it is what `with_dest`
+        // patches when closing the branch.
+        //
+        // OP_IF_ACTOR: sub (byte), actor (byte), data (word), destination
+        // (word)
+        //
+        // The skill: `actor->IsSkillLearned(p[3])`. Since 2026-09-21 it is
+        // state: the bit of the (actor, skill) pair in `FAR_SKILL`, which
+        // starts with what `rules.learned_skills` says from the LDB and which
+        // `ChangeSkills` turns on and off. The operand that travels is the
+        // pair's slot and not the skill; see `skills` in [`crate::indices`].
+        //
+        // The equipment: easyrpg's five `Get*Id()`s compared against `p[3]`:
+        // weapon, shield, armor, helmet and accessory. This **is** real state
+        // —`FAR_EQUIPMENT`, which the equipment screen writes and which
+        // travels in the save— and it starts from the LDB's
+        // `initial_equipment`. Asking about item 0 says yes as soon as there
+        // is an empty slot, which is what RM2k does; no page of the game
+        // does it.
         if question == COND_ACTOR_SKILL || question == COND_ACTOR_EQUIPMENT {
             if cmd.parameters.len() < 4 {
                 return cannot();
