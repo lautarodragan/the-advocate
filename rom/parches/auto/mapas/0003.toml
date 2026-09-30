@@ -20,7 +20,4 @@ fusiones = []
 # Each merge sends color `de` to color `a`, in 15-bit RGB, and
 # `pixeles` is how many it moved when it was decided. They go **in
 # order**: applying them top to bottom rebuilds the whole mapping.
-fusiones = [
-  { de = [18, 18, 18], a = [17, 17, 17], pixeles = 2 },
-  { de = [3, 8, 10], a = [2, 7, 8], pixeles = 4 },
-]
+fusiones = []
