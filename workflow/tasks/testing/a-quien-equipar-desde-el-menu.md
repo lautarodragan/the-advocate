@@ -72,11 +72,17 @@ se haga la pantalla, la elección es la misma que ésta.
   pero sobre nada: el menú no tiene ventanas, así que afuera de la barra BG1
   está vacío y borrarla es escribir ceros. Es `MENU_BAR` en el layout de
   `rm2k-snes-screens`: de x = 148 al borde, como la de la elección, y de
-  y = 2 a y = 53 de la fila —dos pixeles adentro arriba y abajo—, porque la
-  fila del menú tiene una cuarta línea, la experiencia, y RM2k tapa las
-  tres suyas. Así las celdas de abajo son las de arriba espejadas: **en el
-  juego no cuesta ni un tile** (siguen siendo 60 de 64) ni un color; se
-  guarda sólo su rectángulo, 7 x 14 celdas, `menu_bar_cells`.
+  y = 2 a y = 58 —el rojo de 3 a 57—, porque la fila del menú tiene una
+  cuarta línea, la experiencia, que llega a y = 56, uno más allá de la
+  fila, y RM2k tapa todas las suyas. Cuesta **dos tiles** (la elección pasa
+  de 60 a 62 de los 64 que entran) y ningún color; se guarda sólo su
+  rectángulo, 8 x 14 celdas, `menu_bar_cells`.
+- **La primera versión quedaba corta**: iba de y = 2 a 53, simétrica para
+  no costar tiles, y taro vio con zoom que la parte de abajo de "Ex" y su
+  sombra caían sobre negro. Medido en la captura, el rojo terminaba en
+  y = 52 y el texto en 56; ahora baja cinco pixeles más y ningún pixel de
+  texto ni de sombra de la fila queda afuera. El recorte ×4, antes y
+  después, está en `/shared/capturas/2026-09-30-a-quien-equipar/`.
 - **BG1 prendido en el menú**, vacío, con la base de la elección
   (`TARGET_VRAM`): `menu_bar_upload` sube los tiles, los colores y un
   tilemap en cero al armar el menú, con la pantalla apagada.
@@ -111,8 +117,8 @@ se haga la pantalla, la elección es la misma que ésta.
   menú con el cursor en Equipment y sin barra. **Antes del cambio de la ROM
   dio rojo** en la primera comparación, con 6.661 pixeles distintos.
 - `rm2k-snes-screens`: un caso nuevo del menú con la barra, y el hash de la
-  conversión de su juego de prueba cambia: la barra del menú le suma tres
-  tiles —41 a 44— y la capa sin ítem se fue.
+  conversión de su juego de prueba cambia: la barra del menú le suma tiles
+  y la capa sin ítem se fue.
 - **Cambia una sola golden, `equipo-a-quien`**, en su commit. El antes, el
   después y el original lado a lado, y las capturas del RPG_RT, en
   `/shared/capturas/2026-09-30-a-quien-equipar/`. **El merge espera el
@@ -121,17 +127,17 @@ se haga la pantalla, la elección es la misma que ésta.
   corrió y ésa fue la única en rojo.
 - `just pruebas`, `just -f tools/justfile test` y `cargo test -p
   rm2k-snes-screens`, en verde sobre la rama con `main` mergeado
-  (`f7e53b3a`), con `NO_CACHE=1 just cartuchos` antes: **894** y **46**.
+  (`d5680b99`) y la barra más alta: **894** y **46**.
   `test_musica_techos.py` y `test_cores.py` pasaron. `abl.sfc` sale
-  `2f8d1888…`.
+  `3423c711…`, igual con `NO_CACHE=1`.
 
 ## Espacio
 
 `just espacio`, `release`: contra `main` en `3afc8199`, el banco 0 pasó de
 50 a 51 bytes libres, el banco 1 de 3.126 a 2.769, y los huecos de datos de
-8.799 a 8.603 (los 196 de `menu_bar_cells`). Con `main` en `f7e53b3a`
-mergeado, el banco 0 queda en **14** —`main` solo tenía 13— y el banco 1 en
-4.697.
+8.799 a 8.603 (los 196 de `menu_bar_cells`, de la primera barra). Con
+`main` en `d5680b99` mergeado y la barra más alta, el banco 0 queda en
+**14** —`main` solo tenía 13— y el banco 1 en 4.697.
 
 ## Al mergear
 
@@ -143,7 +149,8 @@ agregó ningún `.py`.
 ## Qué tiene que mirar taro
 
 - Menú, Equipment: el menú queda como está, con el ">" en Equipment, y la
-  barra roja sobre Kersh —las cuatro líneas, sin la cara—. Abajo y arriba la
+  barra roja sobre Kersh —las cuatro líneas enteras, "Ex" con su sombra,
+  sin la cara—. Abajo y arriba la
   mueven y dan la vuelta; B vuelve a las órdenes.
 - A sobre el segundo abre su equipo; B desde el equipo vuelve al menú con
   el cursor en Equipment y sin barra.
