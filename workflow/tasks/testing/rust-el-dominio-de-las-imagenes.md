@@ -2,7 +2,7 @@
 name: "Rust: el dominio de las imágenes"
 description: "El escalado y la reducción de colores de las imágenes (palette, picture, title, Game Over, fondos de batalla) y, sobre eso, los dibujos de la pelea (scene, battle_scenes, animation, battle_animations) a Rust, con las ROMs byte por byte iguales"
 type: refactor
-assignee: Lapacho
+assignee: taro
 ---
 
 De taro, el 2026-09-30, en la migración del conversor a Rust. Es lo que
@@ -119,3 +119,83 @@ el pedido para que sigan escritos una sola vez.
 * **Lo que el conversor imprime** no se comparó contra la base: la base
   corrió antes de guardar los `conversor.log`. Los de la etapa están en
   `<scratchpad>/lapacho/logs-etapa/`.
+
+## Hecho
+
+**Los píxeles de las imágenes están en Rust**, en `rm2k-snes-images`,
+sobre dos bibliotecas nuevas o crecidas —`resample` y `adeleine`—, y el
+Python que los hacía se borró. Las tres ROMs y todo `rom/build/` salen
+byte por byte iguales a los de `1a827260`; la única diferencia es de la
+prosa del último commit, en los `.dbg`: ver abajo.
+
+| commit | qué |
+|---|---|
+| `140c840e` | `resample` —el LANCZOS de Pillow— con el piloto medido, y la frontera en esta tarea |
+| `32e58392` | la etapa `rm2k-snes-images` y `adeleine::keep_most_used`; el conversor la llama por `port/image_stage.py` |
+| `c938b060` | la prueba de la huella de `cartridge`, que el commit anterior dejó en rojo (se me pasó correrla) |
+| `f6877a8b` | el borrado, sólo borrado; `adeleine` y `rm2k-render` salen de la huella, porque el conversor ya no los corre |
+| `0bc9b02c` | `port/adeleine.py` se va: sólo le quedaba `CELL`, que ya estaba en `constants.py` |
+| `b1939e75` | la prosa que nombraba lo borrado |
+
+**Lo que cambió de la frontera planeada**: nada de fondo. Las animaciones
+la etapa las lee del volcado por número, en vez de recibirlas en el pedido.
+El título y el Game Over dejaron de abrirse con Pillow en `snes_convert`:
+`fullscreen.compressed` y `palette.convert` reciben la ruta.
+
+## Cómo se verificó
+
+* **El piloto** —arriba—: 377 escalados, ningún píxel distinto.
+* **Los cartuchos**: `NO_CACHE=1 just cartuchos` y el sha256 de 1032
+  archivos de `rom/build/` —sin caché, `.o`, `sello.txt` ni
+  `conversor.log`; el `.dbg` sin `mtime`; los PNG decodificados—, iguales
+  a la base después de cada commit hasta el de `adeleine.py`. Después de
+  la prosa, iguales salvo los tres `.dbg`, que nombran el tamaño de
+  `registers.s`: con el tamaño de antes dan el mismo sha256.
+* **Los sha256 de las ROMs**, los mismos que en `1a827260`:
+  * `release/abl.sfc` `241dc9ad2bf8b43c205a6abef97fbe84ba25f3986626d5f0d058e27c742b123e`
+  * `tests/special/prueba.sfc` `63779e111ee18923fc3335b725c92c55a0587f9ecd6e7a1908ae1a852e5e3710`
+  * `tests/encounter-every-step/prueba.sfc` `200a0b73552897001dcc22509e356c421cd88cf771dd894e0f13e3e19e4fb89c`
+* **Las tandas**, después de cada commit con código: `just pruebas` 882,
+  `just -f tools/justfile test` 49; `cargo test -p` de `resample`,
+  `adeleine`, `rm2k-snes-images` y `rm2k-snes-cartridge`, en verde.
+* **Las pruebas de los crates no dependen de ABL**: `resample` contra
+  Pillow sobre ruido; `rm2k-snes-images` contra el Python viejo sobre el
+  juego chico de `tests/game/` —dos pantallas completas, dos imágenes, un
+  fondo en sus dos versiones, un battler con y sin tono, tres animaciones
+  con zoom, transparencia, tonos con y sin saturación, una celda inválida y
+  una que la hoja no tiene—; `adeleine` suma `keep_most_used` contra
+  `palette.reduce`.
+
+## Al mergear
+
+* Instalar en el global `images` —el binario nuevo— y `cartridge` —la
+  huella nombra a `rm2k-snes-images` y ya no a `adeleine` ni a
+  `rm2k-render`—: `just -f tools/justfile install images cartridge`.
+  `resample` es biblioteca, y `adeleine` cambió sólo como biblioteca: su
+  binario no hace falta reinstalarlo. Sin `rm2k-snes-images` en el PATH el
+  conversor para y dice cómo instalarlo, y las pruebas de la escena y de
+  las animaciones también.
+* `install-scripts` no hace falta: se agregó `port/image_stage.py` y se
+  borró `port/adeleine.py`, módulos y no programas.
+* `registers.s` cambia un comentario, con los mismos renglones: si Yarará
+  tocó la misma zona, es un conflicto de prosa.
+* No mueve la ROM ni goldens.
+
+## Lo que falta
+
+* **`battle_scenes.py` y `battle_animations.py` siguen en Python**: qué
+  fondos, battlers y animaciones lleva el cartucho, y sus bytes y su
+  `.inc`. Es la emisión y la elección, que dependen de los mapas, las
+  tropas y el bytecode; el encargo dejaba la emisión en Python. Lo mismo
+  `picture.cells`, `animation.cells`, `rom_anchor`, y `scene.position`,
+  `drawing_order` y `compose`, que usan las pruebas.
+* **Dos copias de la convolución de Pillow**: el bilineal de
+  `rm2k-render` (`resample.rs`, el zoom de las celdas) y el LANCZOS de
+  `resample`. `rm2k/` no puede depender de `snes/`; juntarlas pide una
+  capa común o mover el zoom.
+* **Un fondo que va a la ROM se dibuja dos veces**: `rom_scene` pide los de
+  calidad y los livianos en dos llamados. Cuesta poco; se juntan pidiendo
+  las dos versiones por fondo.
+* **Lo que imprime el conversor** no se comparó contra la base (ver el
+  diario).
+* `animation.RM_SCREEN` no lo usa nadie, desde antes de esta tarea.
