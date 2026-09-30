@@ -340,6 +340,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "resample"
+version = "0.1.0"
+dependencies = [
+ "sha2",
+]
+
+[[package]]
 name = "rm2k-project"
 version = "0.1.0"
 dependencies = [
@@ -415,6 +422,20 @@ dependencies = [
  "clap",
  "ditto",
  "rm2k-rules",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
+name = "rm2k-snes-images"
+version = "0.1.0"
+dependencies = [
+ "adeleine",
+ "clap",
+ "ditto",
+ "resample",
+ "rm2k-render",
+ "serde",
  "serde_json",
  "sha2",
 ]

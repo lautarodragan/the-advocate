@@ -667,10 +667,8 @@ def main():
                        for a in sorted(slots_data["caras"])) or "none"))
     title_data = None
     if title_menu is not None:
-        from PIL import Image
         name = renderer.database.title_name
-        picture = Image.open(os.path.join(args.game_dir, "Title",
-                                          name + ".png"))
+        picture = os.path.join(args.game_dir, "Title", name + ".png")
         texts = title_menu["texts"]
         menu_tiles = title_menu["tiles"]
         menu_palette = title_menu["palette"]
@@ -703,8 +701,7 @@ def main():
     path = find_resource([args.game_dir, resources.RTP_DIR], "GameOver",
                          renderer.database.gameover_name)
     if renderer.database.gameover_name and path:
-        from PIL import Image
-        game_over_data = fullscreen.compressed(Image.open(path))
+        game_over_data = fullscreen.compressed(path)
         print("  Game Over screen %r: %d 8bpp tiles + %d colors, "
               "%d B in an LZ2 stream of %d B"
               % (os.path.basename(path), game_over_data["tiles"],

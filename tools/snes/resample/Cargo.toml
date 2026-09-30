@@ -1,0 +1,14 @@
+[package]
+name = "resample"
+version = "0.1.0"
+edition = "2021"
+description = "Pillow's LANCZOS resize, to the bit: the convolution, its fixed point and its rounding, for RGB and premultiplied RGBA"
+
+[lib]
+name = "resample"
+path = "src/lib.rs"
+
+[dependencies]
+
+[dev-dependencies]
+sha2 = "0.10"

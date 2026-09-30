@@ -238,12 +238,11 @@ fn everything_that_builds_the_rom_is_in_the_fingerprint() {
     for tool in [
         "ca65",
         "ld65",
-        "adeleine",
         "lz2",
-        "rm2k-render",
         "rm2k-snes-audio",
         "rm2k-snes-battle",
         "rm2k-snes-events",
+        "rm2k-snes-images",
         "rm2k-snes-maps",
         "rm2k-snes-patches",
         "rm2k-snes-screens",
@@ -262,11 +261,10 @@ fn everything_that_builds_the_rom_is_in_the_fingerprint() {
         assert!(files.contains(&source), "{} is not in the fingerprint", source.display());
     }
     assert!(files.contains(&bin.join("rm2k-snes-assemble")));
-    assert!(files.contains(&bin.join("adeleine")));
-    assert!(files.contains(&bin.join("rm2k-render")));
     assert!(files.contains(&bin.join("rm2k-snes-audio")));
     assert!(files.contains(&bin.join("rm2k-snes-battle")));
     assert!(files.contains(&bin.join("rm2k-snes-events")));
+    assert!(files.contains(&bin.join("rm2k-snes-images")));
     assert!(files.contains(&bin.join("rm2k-snes-patches")));
     assert!(files.contains(&bin.join("rm2k-snes-screens")));
     assert!(files.contains(&dir.join("rm2k-snes.toml")));
