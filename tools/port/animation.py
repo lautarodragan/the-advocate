@@ -7,6 +7,12 @@ the only thing to decide is **exactly where each pixel lands and what color
 it is**. The sounds and flashes of the same animation are not here: those
 are `OP_ANIMATION` in `events.py`, and they exist since 2026-09-11.
 
+**RM2k's part of the drawing is `rm2k-render battle-animation`'s**, since
+2026-09-30: which cells each frame has, cut from the sheet, zoomed, faded,
+and where they go in the animation's box. What is left here is the port's:
+toning each cell —with the console's tint, see `_paint_frame`— and stacking
+them, and everything after that.
+
 The budget, which is where everything else comes from:
 
 * The sprite VRAM a map has left free is **101 tiles on map 2 and 162 on
@@ -224,7 +230,7 @@ def convert(anim, drawn):
       `ancla`    where inside the box the point that RM2k puts over the
                  target lands. The ROM subtracts this from the target's
                  position and gets the corner of the box.
-      `tam`      what it was shrunk to, and `rm_box` what it came from.
+      `tam`      what it was shrunk to, and `caja_rm` what it came from.
     """
     if drawn is None or drawn[0] is None:
         return None

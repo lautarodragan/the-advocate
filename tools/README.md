@@ -80,7 +80,8 @@ have layers of their own, one folder each:
                  game starts on and what it draws, the experience curve,
                  what a map inherits from the tree. The converter's Python
                  has the same rules, and a test holds the two together
-      rm2k-render/  a map's tile layers and its CharSets, as pictures
+      rm2k-render/  a map's tile layers, its CharSets, and what its battles are
+                 drawn with —animation cells, backdrops, enemies—, as pictures
 
     rm2k-snes/   what joins the two: an RPG Maker game made into a cartridge
       project/   `rm2k-project`, the library: which game, its settings, the

@@ -25,6 +25,10 @@ before:
 * **There are no objects**: no OAM to build and no 34-tiles-per-line limit,
   which with four 64-pixel-wide battlers was at 32 with no margin.
 
+The pictures as RM2k draws them —the backdrop opaque, the battler with its
+color key and turned by its `battler_hue`— come from `rm2k-render battle`,
+since 2026-09-30: see `_open`. Everything from there on is the console's.
+
 ## How a battler is overlaid
 
 The SNES 8bpp is **planar**: each row of a tile is eight bytes, one per
