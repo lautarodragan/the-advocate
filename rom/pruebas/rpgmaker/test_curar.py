@@ -126,6 +126,54 @@ def test_change_hp_topa_en_el_maximo_y_no_levanta_a_un_caido(partida):
         % una.hp(13))
 
 
+# --- lo que OP_HEAL no hace: `ChangeHP` que resta o lee una variable, --------
+# `ChangeSP` y el `ChangeCondition` que revive
+#
+# Es OP_ACTOR, que los sistemas de los personajes usan en la pelea —ver
+# `test_sistemas_de_tropa.py`— y que acá se prueba en el mapa, que es donde
+# corren los opcodes: la pelea sólo les copia los HP. `curar-restar` espera
+# los mismos 18 ticks, pone la variable 161 en 7 y después: al 11 le resta la
+# variable, al 12 le resta 999 sin matar, al 13 le resta 999 letal, al 14 le
+# saca la muerte, al 11 le resta 5 de SP y al 12 le suma la variable de SP.
+
+def restada(partida, hp, sp):
+    una = partida(caso="curar-restar")
+    for actor, valor in hp.items():
+        una.poner_hp(actor, valor)
+    for actor, valor in sp.items():
+        una.poner_sp(actor, valor)
+    una.correr(DESPUES_DE_PERDER)
+    return una
+
+
+def test_change_hp_que_resta_mata_solo_si_es_letal(partida):
+    """`Game_Battler::ChangeHp`: una pérdida que no es letal deja en 1, la
+    letal deja en 0, y la cantidad puede venir de una variable."""
+    una = restada(partida, {11: 50, 12: 30, 13: 30, 14: 0}, {})
+    assert una.hp(11) == 43, "restarle la variable (7) a 50 dio %d" % una.hp(11)
+    assert una.hp(12) == 1, "999 sin matar dejó al 12 en %d" % una.hp(12)
+    assert una.hp(13) == 0, "999 letal dejó al 13 en %d" % una.hp(13)
+
+
+def test_sacar_la_muerte_levanta_con_uno(partida):
+    """El `SetHp(1)` de `RemoveStates`: el 14 estaba caído y queda en 1; uno
+    parado no cambia —el 11, con los 50 de antes menos la variable—."""
+    una = restada(partida, {11: 50, 14: 0}, {})
+    assert una.hp(14) == 1, "sacarle la muerte al 14 lo dejó en %d" % una.hp(14)
+    assert una.hp(11) == 43
+
+
+def test_change_sp_resta_y_suma_sin_pasarse(partida):
+    """`SetSp`: entre cero y el máximo de su nivel. Al 11 le resta 5; al 12,
+    lleno de SP, sumarle la variable no lo pasa del máximo."""
+    maximo_12 = maximos()[12][1]
+    una = restada(partida, {}, {11: 20, 12: maximo_12})
+    assert una.sp(11) == 15, "restarle 5 de SP a 20 dio %d" % una.sp(11)
+    assert una.sp(12) == maximo_12, (
+        "sumarle 7 a uno lleno lo dejó en %d, y el máximo es %d"
+        % (una.sp(12), maximo_12))
+
+
 # --- y el `FullHeal` que el jugador usa a propósito --------------------------
 
 def test_el_balde_del_mapa_23_deja_los_hp_llenos(partida):

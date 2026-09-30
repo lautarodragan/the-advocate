@@ -147,6 +147,13 @@ op_shop_done:
     jmp run_code::other
 .endproc
 
+; `ChangeMonsterHP` and `ChangeMonsterMP`: only the entry, like `op_heal`.
+; `ba_enemy_change` reads the operands and leaves Y after them.
+.proc op_enemy
+    jsl f:ba_enemy_change
+    jmp run_code::other
+.endproc
+
 ; A battle from start to finish, with the troop already set in `BA_TROOP`:
 ; save the map's song, load the battle's audio, fight it and go back to the
 ; map.

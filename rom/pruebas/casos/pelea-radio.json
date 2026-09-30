@@ -1,0 +1,12 @@
+{
+  "event_commands": [
+    {"code": "Teleport", "parameters": [60, 4, 11]},
+    {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
+    {"code": "ChangePartyMembers", "parameters": [0, 0, 11]},
+    {"code": "ChangeHP", "parameters": [1, 25, 1, 0, 100, 0]},
+    {"code": "ControlSwitches", "parameters": [0, 806, 806, 0]},
+    {"code": "ControlSwitches", "parameters": [0, 809, 809, 0]},
+    {"code": "Wait", "parameters": [10]},
+    {"code": "EnemyEncounter", "parameters": [0, 128, 0, 0, 1, 0]}
+  ]
+}

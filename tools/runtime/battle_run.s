@@ -573,39 +573,10 @@ mode_end:
     jmp recompose
 close:
     ; The party's HP and SP go back to the saved game: since there are battles
-    ; they are real state and travel in the SRAM slot.
-    lda #0
-    sta BA_S0
-saves:
-    lda BA_S0
-    cmp BA_NACTORS
-    bcs saved
-    lda BA_S0
-    jsr ba_x
-    rep #$20
-.a16
-    lda BA_ONE + BA_HP, x
-    sta BA_T0
-    lda BA_ONE + BA_SP, x
-    sta BA_T1
-    sep #$20
-.a8
-    lda BA_ONE + BA_NUMBER, x
-    jsr ba_ax
-    rep #$20
-.a16
-    txa
-    asl a
-    tax
-    lda BA_T0
-    sta FAR_HP, x
-    lda BA_T1
-    sta FAR_SP, x
-    sep #$20
-.a8
-    inc BA_S0
-    bra saves
-saved:
+    ; they are real state and travel in the SRAM slot. It is the same copy a
+    ; troop page's stretch does before running, and it skips, like that one,
+    ; the places a page left empty.
+    jsr ba_sync_out
     rtl
 
 recompose:

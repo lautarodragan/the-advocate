@@ -689,6 +689,309 @@ ready:
     rts
 .endproc
 
+; `ChangeHP` in the forms `FullHeal` does not share —subtracting, or by a
+; variable—, `ChangeSP`, and the `ChangeCondition` that removes the death
+; state: OP_ACTOR, since 2026-09-30. The characters' systems hurt Talan and
+; get the party back up from a troop page, and `ResetAfterBattles` gives
+; Talan back the HP and SP he had before its `FullHeal`.
+;
+; `what` says which: the SP and not the HP (`ACT_SP`), getting a fallen one
+; up with 1 HP and nothing else (`ACT_REVIVE`, the `SetHp(1)` of
+; `RemoveStates`), equipping (`ACT_EQUIP`, see `actor_equip`), the amount as
+; a variable's slot (`ACT_VARIABLE`), a loss of HP that can kill
+; (`ACT_LETHAL`) and subtracting (`ACT_SUBTRACT`). The compiler writes them
+; with the same numbers: `ACT_*` in its `compile.rs`.
+; In a battle it lands on the battle's HP, because `ba_page_step` copies
+; them here before the page and back after it: see `ba_sync_out`.
+;
+; Like `heal`: entered from `op_actor` with Y on the operands, returns with Y
+; after them, lives outside bank 0 and walks `party` for actor 0. Clobbers
+; A, X and `temp`.
+ACT_SP       = $01
+ACT_REVIVE   = $02
+ACT_EQUIP    = $04
+ACT_VARIABLE = $20
+ACT_LETHAL   = $40
+ACT_SUBTRACT = $80
+.proc actor_change
+.a8
+.i16
+    lda [code_ptr], y           ; the actor, 0 the whole party
+    iny
+    sta temp + 2
+    lda [code_ptr], y           ; what
+    iny
+    sta temp + 3
+    rep #$20
+.a16
+    lda [code_ptr], y           ; the amount, or the variable's slot
+    iny
+    iny
+    sta temp
+    sep #$20
+.a8
+    phy
+    lda temp + 3
+    and #ACT_VARIABLE
+    beq constant
+    rep #$20
+.a16
+    lda temp
+    and #$00FF
+    asl a
+    tax
+    lda f:FAR_LENGTH + FAR_VARIABLES, x
+    sta temp
+    sep #$20
+.a8
+constant:
+    lda temp + 3
+    bpl adds
+    rep #$20
+.a16
+    lda #0
+    sec
+    sbc temp
+    sta temp                    ; the change, signed
+    sep #$20
+.a8
+adds:
+    lda temp + 2
+    bne one
+    ldx #0
+slot:
+    cpx party_n
+    bcs ready
+    lda party, x
+    phx
+    jsr actor_change_one
+    plx
+    inx
+    bra slot
+ready:
+    ply
+    rtl
+one:
+    jsr actor_change_one
+    ply
+    rtl
+.endproc
+
+; Actor A, by the signed change in `temp` and the bits in `temp + 3`. The HP
+; is `Game_Battler::ChangeHp`: a fallen one does not change, it does not go
+; past the maximum of its level and a loss that is not lethal leaves it at 1.
+; The SP is `SetSp`, between zero and its maximum. Clobbers X and Y.
+.proc actor_change_one
+.a8
+.i16
+    pha                         ; the actor
+    lda temp + 3
+    and #ACT_EQUIP
+    beq not_equip
+    pla
+    jmp actor_equip
+not_equip:
+    ldy #0                      ; `level_param`'s HP
+    lda temp + 3
+    and #ACT_SP
+    beq which
+    iny                         ; or its SP
+which:
+    lda 1, s
+    jsl f:level_param
+    phx                         ; its maximum: stack = maximum, actor
+    lda 3, s
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    sep #$20
+.a8
+    lda temp + 3
+    and #ACT_REVIVE
+    bne revive
+    lda temp + 3
+    and #ACT_SP
+    bne sp
+    rep #$20
+.a16
+    lda f:FAR_LENGTH + FAR_HP, x
+    beq ready                   ; fallen: `ChangeHp` does nothing to it
+    clc
+    adc temp
+    bmi down
+    beq down
+    cmp 1, s
+    bcc put_hp
+    lda 1, s
+put_hp:
+    sta f:FAR_LENGTH + FAR_HP, x
+    bra ready
+down:
+    lda temp + 2                ; with `what` in the high byte
+    and #(ACT_LETHAL * 256)
+    beq one_left                ; `std::max(1, ...)` when it is not lethal
+    lda #0
+    bra put_hp
+one_left:
+    lda #1
+    bra put_hp
+.a8
+revive:
+    rep #$20
+.a16
+    lda f:FAR_LENGTH + FAR_HP, x
+    bne ready                   ; standing: there is no death to remove
+    lda #1
+    bra put_hp
+.a8
+sp:
+    rep #$20
+.a16
+    lda f:FAR_LENGTH + FAR_SP, x
+    clc
+    adc temp
+    bpl sp_positive
+    lda #0
+sp_positive:
+    cmp 1, s
+    bcc put_sp
+    lda 1, s
+put_sp:
+    sta f:FAR_LENGTH + FAR_SP, x
+ready:
+    pla                         ; the maximum
+    sep #$20
+.a8
+    pla                         ; the actor
+    rts
+.endproc
+
+; `ChangeEquipment` that equips, for actor A: the item in the low thirteen
+; bits of `temp` and its slot, 0 to 4, in the top three —the compiler knows
+; the item's type and the ROM does not carry every item's—. It is
+; `Game_Actor::ChangeEquipment`: the item goes into the slot, what was there
+; goes back to the inventory, capped at ITEM_MAX, and then one of the new one
+; comes out of it, if there is one. In that order: re-equipping what it
+; already had leaves the inventory as it was. The compiler only lets through
+; armor, helmet and accessory, which have none of the weapons' two-handed
+; business, and one the actor can use. In a battle the parameters it changes
+; are taken up by `ba_sync_in`. Clobbers X.
+.proc actor_equip
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    pha                         ; the actor
+    asl a
+    asl a
+    clc
+    adc 1, s
+    asl a                       ; times ten, which is what a row measures
+    sta 1, s
+    lda temp
+    xba
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a                       ; the slot, from the top three bits
+    and #$0007
+    asl a                       ; the slot is a word
+    clc
+    adc 1, s
+    tax
+    pla
+    lda f:FAR_LENGTH + FAR_EQUIPMENT, x
+    pha                         ; what it had
+    lda temp
+    and #$1FFF
+    sta f:FAR_LENGTH + FAR_EQUIPMENT, x
+    pla
+    beq taken                   ; it had nothing
+    cmp #ITEMS_N
+    bcs taken                   ; an item the inventory does not carry
+    tax
+    sep #$20
+.a8
+    lda f:FAR_LENGTH + FAR_ITEMS, x
+    cmp #ITEM_MAX
+    bcs taken8
+    inc a
+    sta f:FAR_LENGTH + FAR_ITEMS, x
+taken8:
+    rep #$20
+.a16
+taken:
+    lda temp
+    and #$1FFF
+    tax
+    sep #$20
+.a8
+    lda f:FAR_LENGTH + FAR_ITEMS, x
+    beq none                    ; `RemoveItem` does not go below zero
+    dec a
+    sta f:FAR_LENGTH + FAR_ITEMS, x
+none:
+    rts
+.endproc
+
+; The first of the `ControlVariables::Actor` numbers `actor_stat` does.
+ACTOR_STAT_HP = 2
+
+; `ControlVars` with an actor's data, class 5, for `op_var`: Y on its `a`
+; —the actor— with `b` —which one— after it. The ones the game asks for: 2
+; the HP, 3 the SP, 4 and 5 their maximums, which are `ControlVariables::Actor`'s
+; numbers. The first two are the saved game's —in battle, the battle's, through
+; `ba_sync_out`—; the maximums, those of its current level, like
+; `GetMaxHp` without equipment. The compiler lets no other through. Returns
+; the value in A16 **with the accumulator at sixteen bits**, and Y as it came.
+; Clobbers X.
+.proc actor_stat
+.a8
+.i16
+    phy
+    rep #$20
+.a16
+    lda [code_ptr], y           ; the actor
+    and #$00FF
+    pha
+    iny
+    iny
+    lda [code_ptr], y           ; and which one
+    sec
+    sbc #ACTOR_STAT_HP
+    cmp #2
+    bcs maximum
+    tax                         ; 0 the HP, 1 the SP
+    pla
+    asl a
+    cpx #0
+    beq hp
+    clc
+    adc #(FAR_SP - FAR_HP)
+hp:
+    tax
+    lda f:FAR_LENGTH + FAR_HP, x
+    ply
+    rtl
+maximum:
+    dec a
+    dec a
+    tay                         ; 0 the HP, 1 the SP: `level_param`'s order
+    pla
+    sep #$20
+.a8
+    jsl f:level_param
+    rep #$20
+.a16
+    txa
+    ply
+    rtl
+.endproc
+
 ; `Game_Actor::ChangeExp(GetExp() + BA_T1)` for actor A: adds, caps at
 ; `MaxExpValue()` and levels up while it is enough. An actor with no
 ; experience slot gains nothing. Runs with the data bank at $7E, like the

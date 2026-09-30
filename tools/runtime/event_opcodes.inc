@@ -58,10 +58,12 @@ OP_ENCOUNTER_STEPS = $32
 OP_SHOW_ENEMY    = $33
 OP_RETURN_TO_TITLE = $34
 OP_COUNTER       = $35
+OP_ACTOR         = $36
+OP_ENEMY         = $37
 
 ; How many opcodes there are: every number below this one is declared,
 ; so an opcode at or above it is not one, and must not index the table.
-EVENT_OPCODE_COUNT = $36
+EVENT_OPCODE_COUNT = $38
 
 ; One `.addr` per opcode, in the order of their numbers, to expand where a
 ; `jmp (table, x)` reads it with X = opcode * 2. Each opcode's handler is
@@ -121,4 +123,6 @@ EVENT_OPCODE_COUNT = $36
     .addr op_show_enemy        ; $33
     .addr op_return_to_title   ; $34
     .addr op_counter           ; $35
+    .addr op_actor             ; $36
+    .addr op_enemy             ; $37
 .endmacro

@@ -235,6 +235,9 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         "VAR_CHARACTER = %d\n"
         "CHARACTER_X   = %d\n"
         "CHARACTER_Y   = %d\n"
+        "; Class 5, an actor's HP, SP or their maximums: `a` is the actor and\n"
+        "; `b` which. See VAR_ACTOR in events.py.\n"
+        "VAR_ACTOR     = %d\n"
         "; The high bits of each OP_CELL_TEST write. See CELL_Y in\n"
         "; events.py.\n"
         "CELL_Y        = $%04X\n"
@@ -511,6 +514,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
            events.VAR_ADD, events.VAR_VARIABLE, events.VAR_RANDOM,
            events.VAR_OTHER,
            events.VAR_CHARACTER, events.CHARACTER_X, events.CHARACTER_Y,
+           events.VAR_ACTOR,
            events.CELL_Y, events.CELL_REFRESH,
            events.RANDOM_SEED, events.ENC_SEED,
            events.TIMER_SET_VAR,
@@ -1910,15 +1914,22 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # deduplicates them. See `TroopPages` in the compiler's `troops.rs`
         # and `ba_page_test` in tools/runtime/battle_troop.s.
         #
-        # **The small tables go to bank 1, `FAR`; the two big blocks —the code
-        # and the messages—, to RODATA.** Until 2026-09-27 all four went to
-        # bank 1, because with them in RODATA the `names_in_game` cartridge went over
-        # 4 MB (measured on 2026-09-21); that cartridge no longer exists,
-        # `release` is around 71%, and in bank 1 the two blocks were almost
-        # eleven KB of which the battle's hand-written code didn't have even
-        # four hundred bytes. Both are read with a long pointer whose bank
-        # comes from `^troop_code` and `^messages_troop`, so it is enough
-        # for each to fit whole in one bank, which is what `block` asks for.
+        # **All of it goes to RODATA**, the tables and the two big blocks —the
+        # code and the messages—. Until 2026-09-27 everything went to bank 1,
+        # because with it in RODATA the `names_in_game` cartridge went over 4
+        # MB (measured on 2026-09-21); that cartridge no longer exists, and in
+        # bank 1 the two blocks were almost eleven KB of which the battle's
+        # hand-written code didn't have even four hundred bytes. The two
+        # blocks are read with a long pointer whose bank comes from
+        # `^troop_code` and `^messages_troop`, so it is enough for each to fit
+        # whole in one bank, which is what `block` asks for.
+        #
+        # The small tables followed them on 2026-09-30, for the same reason:
+        # they are five bytes per page, and with the characters' systems the
+        # pages of `release` go from about five hundred to about fifteen
+        # hundred —measured, 8.4 KB where bank 1 had 3.1 left—. They are read
+        # with `lda f:table, x`, and each one goes in a `.block` like the other
+        # tables of RODATA, so that the packing does not split it.
         pt = troop_pages or compiler.no_troop_pages()
         entries, page_start, page_n = [], [], []
         for number in used:
@@ -1929,13 +1940,15 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         if max(page_n, default=0) > events.TROOP_PAGES_MAX:
             raise SystemExit("a troop brings %d pages and the battle tracks %d"
                              % (max(page_n), events.TROOP_PAGES_MAX))
-        handle.write('.segment "FAR"\n')
-        words_asm("troop_page_init", page_start)
-        bytes_asm("troop_page_n", page_n)
-        bytes_asm("tpage_flags", [d.flags for d, _ofs in entries], "$%02X")
-        words_asm("tpage_sw_a", [d.switch_a for d, _ofs in entries])
+        handle.write('.segment "RODATA"\n')
+        words_asm("troop_page_init", page_start, declare=True)
+        bytes_asm("troop_page_n", page_n, declare=True)
+        bytes_asm("tpage_flags", [d.flags for d, _ofs in entries], "$%02X",
+                  declare=True)
+        words_asm("tpage_sw_a", [d.switch_a for d, _ofs in entries],
+                  declare=True)
         words_asm("tpage_code", [".loword(troop_code + %d)" % ofs
-                               for _d, ofs in entries], "%s")
+                               for _d, ofs in entries], "%s", declare=True)
         # The three for `switch_b` and the variable only if some page uses
         # them: the characters' 32 systems only look at `switch_a`, and with
         # none the ROM never reads them —the bit in `tpage_flags` is zero—, so
@@ -1947,8 +1960,8 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
                 ("tpage_value", "valor", events.TROOP_TRIGGER_VARIABLE)):
             uses_it = any(d.flags & bit for d, _ofs in entries)
             words_asm(name, [getattr(d, field) & 0xFFFF
-                             for d, _ofs in entries] if uses_it else [])
-        handle.write('.segment "RODATA"\n')
+                             for d, _ofs in entries] if uses_it else [],
+                      declare=True)
         handle.write(block("troop_code", bytes(pt.bodies) or b"\x00")
                      + "\n")
         handle.write(block("messages_troop", pt.messages.bytes())
