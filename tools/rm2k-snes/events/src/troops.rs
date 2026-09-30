@@ -2,6 +2,14 @@
 //! interpreter as the maps: compiled with the same compiler, with a
 //! narrower list of what is accepted and their messages in a block of
 //! their own.
+//!
+//! `Game_Interpreter_Battle`: each troop brings its pages, and the battle
+//! runs them **with the same interpreter as the maps**, `run_code`, so they
+//! are compiled with the same `compile_page`. The only thing that changes is
+//! what is accepted: see `TROOP_COMMANDS`.
+//!
+//! When each one runs is decided by the ROM and it is copied from
+//! `Scene_Battle_Rpg2k`; see `ba_page_test` in tools/runtime/battle_troop.s.
 
 use crate::codes::*;
 use crate::compile::{compile_page, Ctx};
@@ -13,9 +21,20 @@ use crate::registry::Package;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 
-/// What a troop page can do in this port: a list of what does, not of what
-/// does not, because almost everything that compiles on a map assumes the
-/// map.
+/// What a troop page can do in this port. **It is a list of the ones that
+/// do, not of the ones that do not**, on purpose: almost everything that
+/// compiles on a map assumes the map —a teleport, a route, a tint, a choice,
+/// which opens the map's window— and inside the battle it would do
+/// something else without warning.
+///
+/// `PlaySound` sounds in the battle's audio package if its effect fits there
+/// —see `TroopPages::compile`—, and `ShakeScreen` moves the scene: see
+/// `ba_shake`. Its wait, an OP_DELAY, is counted by `ba_page_step`.
+///
+/// The ones left out that the game uses, in case someone wants to add them:
+/// `ChangeHP` and `FullHeal` —in battle HP lives in `BA_ONE` and `FAR_HP` is
+/// overwritten when closing it—, `ChangePartyMembers`, `ChangeEquipment`,
+/// `Wait`, `TintScreen` and five of the six that only exist in battle.
 const TROOP_COMMANDS: [i32; 15] = [
     END,
     SHOW_MESSAGE,
@@ -34,14 +53,21 @@ const TROOP_COMMANDS: [i32; 15] = [
     MESSAGE_OPTIONS,
 ];
 
-// The triggers the ROM looks at, with their bit in `tpage_flags`.
+// Which triggers the ROM knows how to look at, with their bit in
+// `tpage_flags`: RM2k's six. The three from 2003 —an actor's or an enemy's
+// turn, fatigue and an actor's command— do not exist in a 2000 game, and a
+// page that asked for them is left out.
 const SWITCH_A: u8 = 0x01;
 const SWITCH_B: u8 = 0x02;
 const VARIABLE: u8 = 0x04;
 const TURN: u8 = 0x08;
 const ENEMY: u8 = 0x10;
 const ACTOR: u8 = 0x20;
-/// The triggers that carry a header in front of the page's code.
+/// The triggers that carry a **header**: the turn and HP numbers do not go
+/// in per-page tables in bank 1 —which no longer has room for ten bytes for
+/// each of the five hundred— but in front of the page's code, in
+/// `troop_code`, which is in RODATA. See [`Trigger::header`] and
+/// `ba_page_header`.
 const WITH_HEADER: u8 = TURN | ENEMY | ACTOR;
 /// How many switches the ROM's bitmap holds.
 const SWITCH_MAX: i32 = 1024;
@@ -85,8 +111,9 @@ impl Trigger {
     }
 
     /// The ten bytes in front of a page that looks at the turn or the HP:
-    /// the turn's base and multiple, a word each, and the enemy, the actor
-    /// and their ranges, a byte each.
+    /// the turn's base and multiple, a word each, and the enemy's place, the
+    /// actor and their ranges, a byte each. Empty if it looks at none of
+    /// that. The order is `BA_COND`'s in tools/runtime/far_ram.s.
     fn header(&self) -> Vec<u8> {
         if self.flags & WITH_HEADER == 0 {
             return vec![];
@@ -109,8 +136,18 @@ impl Trigger {
 /// A troop page's `Trigger`, or None if it looks at something the ROM does
 /// not know how to look at, or at nothing —then it never runs—.
 ///
-/// The turn goes base first: easyrpg's `CheckTurns(turn, turn_b, turn_a)`
-/// takes `(turns, base, multiple)`.
+/// A page **without any trigger never runs** —`AreConditionsMet` returns
+/// false right away— and it also gives None: there is no point carrying it.
+/// The variable one is `>=`, always: RM2k gives it no operator.
+///
+/// **The turn goes with base and multiple in that order**, and not in the
+/// names' order: easyrpg calls `CheckTurns(turn, turn_b, turn_a)` and its
+/// signature is `(turns, base, multiple)`, so `turn_b` is the base. With the
+/// other order the agents' takeoff page —`turn_a` 0, `turn_b` 1— would run
+/// on every turn instead of on the first.
+///
+/// HP is in percent, from 0 to 100: an enemy's by its place in the troop,
+/// an actor's by its LDB number.
 fn trigger(ctx: &Ctx, page: &TroopPage) -> Option<Trigger> {
     let c = &page.condition;
     let f = &c.flags;
@@ -206,6 +243,18 @@ pub type Entry = (Trigger, usize, usize);
 /// The pages of the cartridge's troops, compiled and deduplicated: the
 /// game copies its systems' pages into every troop, so the key is the
 /// compiled bytecode, header included.
+///
+/// `bodies` is the code of all of them, one after the other and **each
+/// distinct body only once**: the game copies its systems' pages into every
+/// troop —4588 pages and 295 distinct bodies—, so the key is the already
+/// compiled bytecode, same as the converter's `Materials` with the map's
+/// blocks.
+///
+/// The messages go to **their own block**, `messages_troop`, and not to the
+/// maps': `OP_MESSAGE` carries a sixteen-bit offset and the maps' block of
+/// the test cartridge is already around 65 KB. The battle draws them on its
+/// screen and not in the map's window, so reading them from elsewhere costs
+/// it nothing.
 pub struct TroopPages {
     pub messages: Messages,
     pub bodies: Vec<u8>,
@@ -229,7 +278,12 @@ impl TroopPages {
         }
     }
 
-    /// A troop's pages. A `PlaySound` counts for the battle's package.
+    /// A troop's pages. With songs, a `PlaySound` is compiled with its
+    /// effect, which counts for **the battle's audio package** —the one
+    /// loaded when the page runs, see [`Package`]— and not for the map's;
+    /// and it goes into it only if it is in `troop_in_package`: otherwise it
+    /// is asked for and does not sound, like a route one that does not fit.
+    /// Without songs it is accepted and not done.
     pub fn compile(&mut self, ctx: &mut Ctx, number: i32, pages: &[TroopPage]) -> Result<()> {
         let previous = ctx.songs.as_ref().and_then(|s| s.current);
         if let Some(songs) = ctx.songs.as_deref_mut() {
@@ -243,11 +297,7 @@ impl TroopPages {
         Ok(())
     }
 
-    fn pages_of(
-        &mut self,
-        ctx: &mut Ctx,
-        pages: &[TroopPage],
-    ) -> Result<Vec<Entry>> {
+    fn pages_of(&mut self, ctx: &mut Ctx, pages: &[TroopPage]) -> Result<Vec<Entry>> {
         let mut theirs = Vec::new();
         for (k, page) in pages.iter().enumerate() {
             self.pages += 1;
@@ -274,6 +324,10 @@ impl TroopPages {
                 self.left_out += 1;
                 continue;
             };
+            // The header goes right in front and is part of the key: two pages
+            // with the same code and another turn are two bodies. The offset
+            // noted is the code's, so the ROM finds the header ten bytes
+            // before it.
             let header = t.header();
             let mut key = header.clone();
             key.extend(code);

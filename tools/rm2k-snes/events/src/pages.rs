@@ -48,14 +48,27 @@ struct Shared {
     /// RM2k's event id to its index in the ROM's table. **They are not the
     /// same**: many maps have gaps in the numbering.
     indices: HashMap<i32, usize>,
-    /// Each event's pages' commands, for `CallEvent`.
+    /// Each event's pages' commands, for `CallEvent`: calling a map event
+    /// compiles its page in place. The pages go and not their commands
+    /// because the number the call brings is the page's, and in RM2k it
+    /// starts at one.
     pages: HashMap<i32, Vec<Vec<Command>>>,
     /// Which graphic each one is drawn with on its first page: two with the
-    /// same share a palette on the console, and flash together.
+    /// same share a palette on the console, and flash together. On the
+    /// console the flash is done on the character's palette, so two events
+    /// with the same graphic would flash together: see `FlashSprite` in
+    /// `compile_command`.
     graphic: HashMap<i32, (String, i32)>,
 }
 
 /// The map's events, pointed at the page being compiled.
+///
+/// It exists for a reason that was measured and is paid dearly otherwise:
+/// **RM2k's event id is not the index in the ROM's table**. 39 maps of the
+/// game have gaps in the numbering —events deleted in the editor— so a
+/// route aimed at id 8 would move whichever is eighth in the list, which can
+/// be any other. The translation is done here, once, and the bytecode never
+/// sees an RM2k id again.
 #[derive(Debug, Clone)]
 pub struct MapEvents {
     shared: Rc<Shared>,
@@ -64,8 +77,21 @@ pub struct MapEvents {
     /// Which variables some page condition of the map looks at: a write to
     /// one of them asks for the refresh. None is "not known" —after the page
     /// jumped to another map— and every write asks for it.
+    ///
+    /// It is `Game_Map::RefreshEvent`'s `map_cache`, which is filled with
+    /// each page's `pg.condition.variable_id`. `refresh` in the compiler
+    /// reads it. Measured over the 328 maps: at most **one** per map, and
+    /// 314 have none.
     pub watched: Option<Rc<HashSet<i32>>>,
+    /// Which map it belongs to, to know when a page leaves it: see
+    /// `after_jump`.
     pub map_id: i32,
+    /// How a `TileSubstitution` translates to ROM block pairs. The converter
+    /// sets it on the map, because it depends on how the blocks ended up
+    /// —which is the console's business— and not on RM2k. Without it the
+    /// command does not compile, which is what happens in any ROM built
+    /// without going through the converter.
+    ///
     /// None after a jump: the blocks there are another map's.
     pub substitutions: Option<Rc<Substitutions>>,
 }
@@ -126,9 +152,15 @@ impl MapEvents {
         }
     }
 
-    /// The same, for what the page does after jumping to another map: which
-    /// variables the pages there look at is not known here, and the blocks
-    /// there are not these.
+    /// The same, for what the page does **after jumping to another map**: it
+    /// keeps running there, and which variables the pages there look at
+    /// cannot be known from here, so every write asks for a refresh. And the
+    /// blocks there are not these: a substitution after the jump would talk
+    /// about the new map's tiles and the translation is the old one's.
+    ///
+    /// The rest does not change, and not because it is right: an event named
+    /// by id after the jump is translated against this map and not against
+    /// the destination. No page of the game that compiles today does it.
     pub fn after_jump(&self) -> MapEvents {
         MapEvents {
             watched: None,
@@ -142,7 +174,9 @@ impl MapEvents {
     }
 
     /// The target byte of a route: 0 the hero, and an event its index plus
-    /// one; None for a vehicle or an id the map does not have.
+    /// one; None for a vehicle or an id the map does not have. Vehicles do
+    /// not exist in this ROM and neither does an id the map does not have:
+    /// both return None, which cuts the page.
     pub fn route_target(&self, who: i64) -> Option<usize> {
         if who == ROUTE_HERO {
             return Some(0);
@@ -159,14 +193,46 @@ impl MapEvents {
 
 /// Whether the ROM knows how to trigger this page. Touching it asks for a
 /// layer other than the hero's: one on the same layer blocks the way.
+///
+/// The two layer rules come from `Game_Player`, and they are opposite on
+/// purpose:
+///
+/// * **Action key**: the cell in front is looked at, and there only the
+///   events on the hero's layer count —`CheckEventTriggerThere` asks for
+///   `GetLayer() == Layers_same`—. An action event on the **own** cell does
+///   exist in RM2k, but it asks for the opposite layer
+///   —`CheckEventTriggerHere` asks for `!= Layers_same`—, and since
+///   2026-09-07 those trigger too: see `can_trigger`.
+/// * **Touch**: it triggers on stepping on the cell, and there it is the
+///   other way around: the layer has to be different from the hero's,
+///   because an event on the same layer blocks its way and it would never
+///   get to step on it. Of the game's 983 touch pages, 978 are on the lower
+///   layer.
+///
+/// **Turning toward the hero does not stop the page.** Until 2026-09-08 it
+/// did, and that cost **1572 action pages across 1224 events on 220 maps**:
+/// half the game's NPCs could not be used. Since 2026-09-11 the event also
+/// turns for real: see `turns`.
 pub fn can_trigger(page: &Page) -> bool {
+    // An action page: both cells count, and each one asks for the opposite
+    // layer. The one in front is `CheckEventTriggerThere`, which asks for
+    // `Layers_same`; the own one is `CheckEventTriggerHere`, which asks for
+    // `!= Layers_same` —it has to be so: an event on the hero's layer closes
+    // its way and it would never get to stand on it—.
+    //
+    // The own one was not done until 2026-09-07 and taro found it while
+    // playing: the door out of Talan's pad is `TalDoorTop`, action and
+    // **layer 2**, and it opens by standing on it. Without this it never
+    // triggered and there was no way out of the pad.
     if page.trigger == TRIGGER_TOUCH_HERO {
         return page.layer != LAYER_SAME;
     }
     true
 }
 
-/// What triggers a page that the ROM knows how to trigger.
+/// What triggers a page that the ROM knows how to trigger. The rest of an
+/// event's pages are emitted anyway —they are needed to know which one is
+/// active— but without code.
 fn triggerable(trigger: i32) -> bool {
     matches!(
         trigger,
@@ -176,6 +242,40 @@ fn triggerable(trigger: i32) -> bool {
 
 /// The animation types that fix the direction, plus `spin`: an event with
 /// one does not turn toward the hero.
+///
+/// An event with a graphic **turns toward the hero** when he triggers it,
+/// unless it has a fixed direction: it is the
+/// `SetFacing(GetDirectionToCharacter(GetPlayer()))` of
+/// `Game_Event::ScheduleForegroundExecution`. Since 2026-09-11 it is done,
+/// on both sides —before, it answered facing wherever it was—. The rules, which the ROM
+/// follows in `turn_fire` and company:
+///
+/// * It turns if its page turns —a CharSet, since a chipset tile has nowhere
+///   to look, and an animation that does not fix the direction: this— and it
+///   has no route: with a route, the route decides where it looks. The ones
+///   that walk on their own always have a route, so they do not turn; in
+///   RM2k they pause while their page runs and they do, and that is not
+///   modeled.
+/// * It looks toward the hero while **that event's page** lasts, and at the
+///   end it goes back to its pose: `OnFinishForegroundEvent`'s
+///   `UpdateFacing`.
+/// * A refresh that changes its page undoes it if the new one does not turn
+///   or draws something else; with the same graphic it stays turned, as in
+///   `RefreshPage`. If the new one brings another CharSet with the same
+///   direction and column, RM2k leaves it turned with the new drawing and
+///   here it is undone: declared.
+/// * A route that grabs it undoes it, and so does loading a map.
+///
+/// On the console a still one shares its VRAM slot with the other still
+/// ones of the same pose, so to turn it moves to **the map's turn slot** —a
+/// single one, because one turns at a time— and there the pose is uploaded
+/// from the twelve of its graphic, which is why they go into the cartridge.
+/// The one that walks or animates while still turns in its own slot.
+///
+/// The animation types with a fixed direction are the `fixed_*` of
+/// `rpg::EventPage::AnimType`, plus `spin`, which turns on its own and does
+/// not obey either. The whole rule is also next to `TURN` in the
+/// converter's events.py, which the converter's side cites.
 fn turns(page: &Page) -> bool {
     !page.character_name.is_empty()
         && !matches!(
@@ -187,9 +287,22 @@ fn turns(page: &Page) -> bool {
 /// The pages the ROM needs to resolve the map's events, one record each.
 ///
 /// **All** the pages of an event go, not only the ones that trigger: which
-/// one is active depends on the conditions of all of them. An event with a
-/// condition the ROM cannot evaluate —a timer— is left out whole: running
-/// the wrong page is worse than running none.
+/// one stays active depends on the conditions of all of them, and a later
+/// page that triggers nothing still wins and keeps the one below from
+/// running. An event with a condition the ROM cannot evaluate —a timer— is
+/// left out whole: running the wrong page is worse than running none.
+///
+/// And **all** events go, whether or not they have a page that triggers
+/// something: since 2026-09-05 the table also says which layer the active
+/// page is on, which is what decides whether the event blocks the hero's
+/// way —or another event's—, and any event does that, even one that runs
+/// nothing. Before, only the ones with code were stored, and a droid without
+/// a compilable page —the battle one— would not have stopped anyone.
+///
+/// If some page of the event asks for a condition the ROM does not know how
+/// to evaluate then it is not known which page is active, and running the
+/// wrong one is worse than running none. The whole event is left out, and
+/// it does not block either: its layer is as unknown as its code.
 ///
 /// What each page draws is not here: it is the caller's, who knows the
 /// ChipSet and what it drew.
@@ -202,9 +315,22 @@ pub fn map_pages(ctx: &mut Ctx, map: &Map, map_events: &MapEvents) -> Result<Vec
         for (page_number, page) in event.pages.iter().enumerate() {
             let c = &page.condition;
             let mut code = None;
-            // An automatic or parallel page without a command starts
-            // nothing, and one that compiles to nothing neither: here it
-            // would run every tick and freeze the map.
+            // **An automatic or parallel page without a single command starts
+            // nothing.** It is `Game_Interpreter::Push`, which returns right
+            // away with an empty list: the interpreter does not keep running
+            // and the player walks. Here, instead, the empty page became the
+            // active one, ran in one tick, ended, and since an automatic page
+            // repeats while it stays active, it started again: the map stayed
+            // frozen forever and the hero did not take a step.
+            //
+            // It is the idiom with which RM2k deactivates an event —a page
+            // below turns on the switch that activates one above, and that one
+            // is empty—, so it is not a rare case: in Rat Tracks B1 there are
+            // two, and the map was unplayable.
+            //
+            // It is turned off by leaving its code out, which is what the
+            // converter already looks at to decide whether an automatic page
+            // counts: the page's bit 7.
             let empty = page.commands.is_empty()
                 && matches!(page.trigger, TRIGGER_AUTOSTART | TRIGGER_PARALLEL);
             if triggerable(page.trigger) && can_trigger(page) && !empty {
@@ -215,6 +341,16 @@ pub fn map_pages(ctx: &mut Ctx, map: &Map, map_events: &MapEvents) -> Result<Vec
                     0,
                     0,
                 )?;
+                // **And the same with one that compiles to nothing**: all it
+                // had were calls that got skipped —see `compile_call`—. In
+                // RM2k it is not empty, and what it calls is what turns it
+                // off; here it would be the empty page above, with the map
+                // frozen. It is `AfterBattleMint` on the maps with
+                // encounters: with switch 498, which turns on each troop's
+                // turn 0 page, it calls common event 35, `ResetAfterBattles`,
+                // which does not compile and is the one that turns 498 off.
+                // Without this, the first battle on those maps left the hero
+                // unable to take a step.
                 if code.as_deref() == Some(&[OP_DONE][..])
                     && matches!(page.trigger, TRIGGER_AUTOSTART | TRIGGER_PARALLEL)
                 {

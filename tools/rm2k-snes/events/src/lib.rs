@@ -655,7 +655,11 @@ pub fn compile(game: &Game, request: &Request) -> Result<Value> {
             troop_pages.compile(&mut ctx, number, pages)?;
         }
     }
-    // The equipment common events, which the ROM runs when the menu closes.
+    // The equipment common events, which the ROM runs when the menu closes:
+    // each body as a loose page, with its `OP_DONE`. It needs no map nor
+    // texts —it does not use them—, and if it does not compile it is a
+    // compiler bug: `party_common_events` only lets through what always
+    // compiles.
     let mut party = Vec::new();
     for (&switch, &number) in &indices.party_common_events {
         let body = game.common_events[&number].commands.clone();
