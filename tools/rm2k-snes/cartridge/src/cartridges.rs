@@ -82,9 +82,7 @@ pub const TRACKS: &str = "rm2k-snes-msu";
 /// compiled into. `voodoo` is not here because nobody runs it any more —the
 /// maps and the screens cut their tiles with it as a library—.
 const CONVERTER_TOOLS: &[&str] = &[
-    "adeleine",
     "lz2",
-    "rm2k-render",
     "rm2k-snes-audio",
     "rm2k-snes-battle",
     "rm2k-snes-events",

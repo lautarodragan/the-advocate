@@ -37,11 +37,6 @@ page none asks for any of that: the only thing that changes between one and
 the next is the **tone**, which is what draws the fade.
 """
 
-import collections
-
-from port.color import apply_tint
-from port.palette import reduce
-
 # RM2k's screen and the console's.
 RM_WIDTH, RM_HEIGHT = 320, 240
 WIDTH, HEIGHT = 256, 224
@@ -57,47 +52,6 @@ COLORS = 15
 # How many objects wide are accepted. Eight are 256 pixels, that is the whole
 # screen, and 128 sprite tiles; more than that is not a picture.
 OBJECTS_MAX = 8
-BLACK = (0, 0, 0)
-
-
-def scale_x(v):
-    """A horizontal coordinate of RM2k's screen, on the console's.
-
-    Integer division rounding down **with negatives too**, which is what
-    `//` does in Python: the picture starts at -16 and both ends have to get
-    the same -13.
-    """
-    return v * WIDTH // RM_WIDTH
-
-
-def scale_y(v):
-    return v * HEIGHT // RM_HEIGHT
-
-
-def box(width, height, cx, cy):
-    """Where on the console screen an image of `width` x `height` centered at
-    (cx, cy) of RM2k's lands: (x, y, ancho, alto).
-
-    Both corners go through the same math and the size comes from
-    subtracting them. Scaling the size on its own would give a height of 28
-    where the corners give 29, and one pixel of difference between the two
-    ends is a comparison that fails.
-    """
-    x0, y0 = cx - width // 2, cy - height // 2
-    ex0, ey0 = scale_x(x0), scale_y(y0)
-    return ex0, ey0, scale_x(x0 + width) - ex0, scale_y(y0 + height) - ey0
-
-
-def _to_15_bits(image, width, height):
-    """The image scaled and with its colors at 15 bits, row by row.
-
-    LANCZOS like `palette._to_15_bits`, and for the same reason: it is the one
-    that smears the edges of text the least.
-    """
-    from PIL import Image
-    small = image.convert("RGB").resize((width, height), Image.LANCZOS)
-    data = [(r >> 3, g >> 3, b >> 3) for r, g, b in small.get_flattened_data()]
-    return [data[y * width:(y + 1) * width] for y in range(height)]
 
 
 def convert(path, p):
@@ -178,27 +132,6 @@ def reserved_tiles(info):
     are used.
     """
     return -(-info["objetos"] // 4) * (4 * GRID)
-
-
-def render(info, hue):
-    """The picture as it looks on screen, with its tone applied: an RGBA
-    image of `width` x `height` to paste at (x, y).
-
-    The tone is RM2k's —(r, g, b, sat), 100 neutral— and goes through
-    `color.apply_tint`, which is the same math as the screen tint: there and here
-    it is `ToneBlit`. The console does not tint pixels but the picture's
-    fifteen CGRAM entries, so tinting the palette and painting gives exactly
-    the same thing.
-    """
-    from PIL import Image
-    palette = [apply_tint(c[0] | (c[1] << 5) | (c[2] << 10), hue)
-               for c in info["paleta"]]
-    colors = [(0, 0, 0, 0)] + [(((p & 0x1F) << 3), (((p >> 5) & 0x1F) << 3),
-                                (((p >> 10) & 0x1F) << 3), 255)
-                               for p in palette]
-    out = Image.new("RGBA", (info["ancho"], info["alto"]))
-    out.putdata([colors[i] for row in info["indices"] for i in row])
-    return out
 
 
 def report(info):

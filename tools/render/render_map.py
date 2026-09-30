@@ -13,13 +13,7 @@ from here: since 2026-09-30 `rm2k-snes-maps` draws them, with
 `rm2k-render` as a library, as part of converting the map.
 """
 
-import json
 import os
-import shutil
-import subprocess
-import tempfile
-
-from PIL import Image
 
 from common import project
 from rpgmaker import lcf
@@ -27,49 +21,6 @@ from rpgmaker import resources
 from rpgmaker.resources import find_resource
 from rpgmaker.rm2k import TILE
 from render import chipset_recipe
-
-MISSING = """`rm2k-render` is missing, the one that draws the faces, windows and
-pictures of the screens, and what the battles are drawn with.
-
-It is a Rust binary that lives in `tools/rm2k/rm2k-render/` and is installed as
-a system tool:
-
-    just -f tools/justfile install rm2k-render"""
-
-
-def binary():
-    """The path of the `rm2k-render` on the PATH. Exits with the message if
-    it is not there."""
-    path = shutil.which("rm2k-render")
-    if path is None:
-        raise SystemExit(MISSING)
-    return path
-
-
-def draw(command, entries):
-    """One call to `rm2k-render <command>` with `entries` as its request, a
-    list: the pictures it drew, in RGBA and in the same order. The paths
-    in the entries have to be absolute, because the request is written in a
-    temporary directory. `face`, `system`, `picture` and `battle` take this
-    shape."""
-    with tempfile.TemporaryDirectory(prefix="rm2k-render-") as out:
-        request_path = os.path.join(out, "request.json")
-        with open(request_path, "w", encoding="utf-8") as f:
-            json.dump(entries, f)
-        drawn = os.path.join(out, "drawn")
-        done = subprocess.run(
-            [binary(), command, "--request", request_path, "--out", drawn],
-            capture_output=True, text=True)
-        if done.returncode != 0:
-            raise SystemExit("rm2k-render %s could not draw %s:\n%s"
-                             % (command, json.dumps(entries),
-                                done.stderr.strip()))
-        images = []
-        for i in range(len(entries)):
-            # Read now, before the directory goes away.
-            with Image.open(os.path.join(drawn, "%d.png" % i)) as image:
-                images.append(image.convert("RGBA"))
-        return images
 
 
 def build_passability(chipset):

@@ -162,7 +162,6 @@ reducer because they are the bytes of the `.msu`, and with them its
 signature.
 """
 
-import collections
 import os
 
 from common import settings
@@ -224,34 +223,6 @@ def scale(value):
     integers: `//` would round differently from the hardware divider only
     with negatives, and there are none here."""
     return max(1, (value * SCALE_NUM + SCALE_DEN // 2) // SCALE_DEN)
-
-
-def _open(game_dir, folder, name, rtp=False, hue=0):
-    """A backdrop or a battler as RM2k draws it, RGBA, or None if the game
-    does not have it.
-
-    **`rm2k-render battle` draws it**: a backdrop opaque —RM2k gives it no
-    color key— and a battler with its color key, turned by its `hue` —see
-    `battler`—. Those are RM2k's drawings; this only finds the file.
-
-    With `rtp`, if the game does not have it, it is looked up in the RTP,
-    like RM2k. Only the backdrops ask for it: thirteen of the game's are from
-    the RTP —`Cave1`, `Castle`, the terrain ones—, and until 2026-09-27 it
-    was not needed because the ROM's three are the game's. The battlers still
-    do not look there, so as not to change which ones get in without looking
-    at it."""
-    from render import render_map
-    from rpgmaker import resources
-    places = [game_dir] + ([resources.RTP_DIR] if rtp else [])
-    path = resources.find_resource(places, folder, name,
-                                   (".png", ".bmp", ".xyz"))
-    if path is None:
-        return None
-    # Absolute: `draw` writes the request in a temporary directory.
-    path = os.path.abspath(path)
-    entry = ({"backdrop_file": path} if folder == "Backdrop"
-             else {"monster_file": path, "hue": hue})
-    return render_map.draw("battle", [entry])[0]
 
 
 def _file(game_dir, folder, name, rtp=False):

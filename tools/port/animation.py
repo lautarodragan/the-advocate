@@ -98,70 +98,6 @@ def sheet_file(renderer, anim):
     return resources.find_resource(renderer.search_dirs, folder, name)
 
 
-def _request(anim, sheet):
-    """An entry of `rm2k-render battle-animation`: the sheet and the
-    animation, named as in the dump. The cells go in the LDB's order, which
-    is the order they are stacked in."""
-    return {"sheet_file": sheet,
-            "animation": {
-                "large": bool(anim.get("grande")),
-                "frames": [{"cells": [c for _k, c in sorted(
-                    (frame or {}).items())]}
-                           for frame in anim["cuadros"]]}}
-
-
-def draw(wanted):
-    """The cells of each animation of `wanted` —`(anim, sheet)` pairs—, with
-    one call to `rm2k-render battle-animation`: for each one, `(box,
-    frames)`, where `box` is `(x0, y0, width, height)` relative to the
-    anchor, or None if it has no cell, and each frame is a list of
-    `(image, (x, y), tone)`, the cells in the order they are stacked.
-
-    Cutting the cells, zooming and fading them and where they go in the box
-    is RM2k's drawing, and `rm2k-render` does it. **The tone is not**: see
-    `_paint_frame`.
-    """
-    import json
-    import os
-    import subprocess
-    import tempfile
-    from PIL import Image
-    from render import render_map
-    if not wanted:
-        return []
-    with tempfile.TemporaryDirectory(prefix="rm2k-render-") as out:
-        request_path = os.path.join(out, "animations.json")
-        with open(request_path, "w", encoding="utf-8") as f:
-            json.dump([_request(anim, sheet) for anim, sheet in wanted], f)
-        cells_dir = os.path.join(out, "cells")
-        done = subprocess.run(
-            [render_map.binary(), "battle-animation", "--request",
-             request_path, "--out", cells_dir],
-            capture_output=True, text=True)
-        if done.returncode != 0:
-            raise SystemExit("rm2k-render could not draw the battle "
-                             "animations:\n%s" % done.stderr.strip())
-        drawn = []
-        for i in range(len(wanted)):
-            with open(os.path.join(cells_dir, "%d.json" % i),
-                      encoding="utf-8") as f:
-                listed = json.load(f)
-            frames = []
-            for k, cells in enumerate(listed["frames"]):
-                frame = []
-                for c, cell in enumerate(cells):
-                    path = os.path.join(cells_dir, "%d-%d-%d.png" % (i, k, c))
-                    # `convert` reads it now, before the directory goes away.
-                    with Image.open(path) as image:
-                        frame.append((image.convert("RGBA"),
-                                      (cell["x"], cell["y"]),
-                                      tuple(cell["tone"])))
-                frames.append(frame)
-            box = listed["box"]
-            drawn.append((tuple(box) if box else None, frames))
-    return drawn
-
-
 def fit_size(width, height):
     """The size an animation of `width` x `height` is shrunk to in order to
     fit in the box, keeping its proportions.
@@ -172,112 +108,6 @@ def fit_size(width, height):
     """
     den = max(width, height, BOX)
     return max(1, width * BOX // den), max(1, height * BOX // den)
-
-
-def _paint_frame(cells, box):
-    """A frame in RM2k pixels, the size of `box`, with alpha: the cells
-    `rm2k-render` cut, zoomed and faded, each toned and stacked in order.
-
-    **The tone is the port's**, and it is why the stacking is done here and
-    not in `rm2k-render`: RM2k tones each cell before stacking it, and here
-    the tone is the console's, on fifteen bits —see `_tint`—. A viewer on a
-    PC would tone at eight.
-    """
-    from PIL import Image
-    _x0, _y0, width, height = box
-    canvas = Image.new("RGBA", (width, height), (0, 0, 0, 0))
-    for piece, where, hue in cells:
-        if hue != (100, 100, 100, 100):
-            piece = _tint(piece, hue)
-        canvas.alpha_composite(piece, where)
-    return canvas
-
-
-def _tint(piece, hue):
-    """The tone of a cell, with the same math as the screen tint.
-
-    `color.apply_tint` works on the console's fifteen bits, which is where the
-    comparison looks: tinting the PNG's eight and truncating afterwards would
-    give a different number from the screen tint's on the same color.
-    """
-    from port.color import apply_tint
-    from PIL import Image
-    out = Image.new("RGBA", piece.size)
-    memo = {}
-    data = []
-    for r, g, b, a in piece.convert("RGBA").get_flattened_data():
-        key = (r >> 3, g >> 3, b >> 3)
-        if key not in memo:
-            p = apply_tint(key[0] | (key[1] << 5) | (key[2] << 10),
-                              hue)
-            memo[key] = ((p & 0x1F) << 3, ((p >> 5) & 0x1F) << 3,
-                         ((p >> 10) & 0x1F) << 3)
-        data.append(memo[key] + (a,))
-    out.putdata(data)
-    return out
-
-
-def convert(anim, drawn):
-    """The animation ready for both ends, or None if it cannot be drawn.
-
-    `drawn` is what `draw` gave for it, or None if it has no sheet.
-    Returns a dictionary with:
-
-      `frames`  for each RM2k frame, the 64x64 box as palette indices
-                 shifted by one: 0 is the console's transparent.
-      `palette`   its fifteen 15-bit colors, chosen **over all the frames at
-                 once**: the palette is uploaded only once at the start.
-      `ancla`    where inside the box the point that RM2k puts over the
-                 target lands. The ROM subtracts this from the target's
-                 position and gets the corner of the box.
-      `tam`      what it was shrunk to, and `caja_rm` what it came from.
-    """
-    if drawn is None or drawn[0] is None:
-        return None
-    from PIL import Image
-    from port.palette import reduce
-    box, cells = drawn
-    x0, y0, width, height = box
-    box_w, box_h = fit_size(width, height)
-    ox, oy = (BOX - box_w) // 2, (BOX - box_h) // 2
-    frames = []
-    for frame_cells in cells:
-        small = _paint_frame(frame_cells, box).resize(
-            (box_w, box_h), Image.LANCZOS)
-        whole = Image.new("RGBA", (BOX, BOX), (0, 0, 0, 0))
-        whole.paste(small, (ox, oy))
-        frames.append(whole)
-    # The colors of all the frames together, down to fifteen.
-    # `palette.reduce` does not average, so it does not invent a color that
-    # would have to be quantized again.
-    pixels = []
-    for whole in frames:
-        for r, g, b, a in whole.get_flattened_data():
-            if a >= ALPHA_MIN:
-                pixels.append((r >> 3, g >> 3, b >> 3))
-    if not pixels:
-        return None
-    palette, mapping = reduce(pixels, COLORS)
-    where = {color: i + 1 for i, color in enumerate(palette)}
-    indices = []
-    for whole in frames:
-        data = whole.get_flattened_data()
-        indices.append([
-            [where[mapping[(data[y * BOX + x][0] >> 3,
-                            data[y * BOX + x][1] >> 3,
-                            data[y * BOX + x][2] >> 3)]]
-             if data[y * BOX + x][3] >= ALPHA_MIN else 0
-             for x in range(BOX)]
-            for y in range(BOX)])
-    return {
-        "cuadros": indices,
-        "paleta": palette,
-        "ancla": (ox + (-x0) * box_w // width, oy + (-y0) * box_h // height),
-        "tam": (box_w, box_h),
-        "caja_rm": (width, height),
-        "alcance": anim.get("alcance", 0),
-        "posicion": anim.get("posicion", POS_CENTER),
-    }
 
 
 def by_numbers(renderer, numbers):
@@ -359,18 +189,6 @@ def cells(frame):
                           for px in range(8))
                     for py in range(8))
                 out[start + ty * GRID + tx] = cell
-    return out
-
-
-def render(info, frame):
-    """The frame as it looks on screen: a 64x64 RGBA image to paste wherever
-    `ancla_en_pantalla` says."""
-    from PIL import Image
-    colors = [(0, 0, 0, 0)] + [(r << 3, g << 3, b << 3, 255)
-                               for r, g, b in info["paleta"]]
-    out = Image.new("RGBA", (BOX, BOX))
-    out.putdata([colors[i] for row in info["cuadros"][frame]
-                 for i in row])
     return out
 
 
