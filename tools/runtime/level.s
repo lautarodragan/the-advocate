@@ -697,9 +697,10 @@ ready:
 ;
 ; `what` says which: the SP and not the HP (`ACT_SP`), getting a fallen one
 ; up with 1 HP and nothing else (`ACT_REVIVE`, the `SetHp(1)` of
-; `RemoveStates`), the amount as a variable's slot (`ACT_VARIABLE`), a loss
-; of HP that can kill (`ACT_LETHAL`) and subtracting (`ACT_SUBTRACT`). The
-; compiler writes them with the same numbers: `ACT_*` in its `compile.rs`.
+; `RemoveStates`), equipping (`ACT_EQUIP`, see `actor_equip`), the amount as
+; a variable's slot (`ACT_VARIABLE`), a loss of HP that can kill
+; (`ACT_LETHAL`) and subtracting (`ACT_SUBTRACT`). The compiler writes them
+; with the same numbers: `ACT_*` in its `compile.rs`.
 ; In a battle it lands on the battle's HP, because `ba_page_step` copies
 ; them here before the page and back after it: see `ba_sync_out`.
 ;
@@ -708,6 +709,7 @@ ready:
 ; A, X and `temp`.
 ACT_SP       = $01
 ACT_REVIVE   = $02
+ACT_EQUIP    = $04
 ACT_VARIABLE = $20
 ACT_LETHAL   = $40
 ACT_SUBTRACT = $80
@@ -783,6 +785,12 @@ one:
 .a8
 .i16
     pha                         ; the actor
+    lda temp + 3
+    and #ACT_EQUIP
+    beq not_equip
+    pla
+    jmp actor_equip
+not_equip:
     ldy #0                      ; `level_param`'s HP
     lda temp + 3
     and #ACT_SP
@@ -857,6 +865,76 @@ ready:
     sep #$20
 .a8
     pla                         ; the actor
+    rts
+.endproc
+
+; `ChangeEquipment` that equips, for actor A: the item in the low thirteen
+; bits of `temp` and its slot, 0 to 4, in the top three —the compiler knows
+; the item's type and the ROM does not carry every item's—. It is
+; `Game_Actor::ChangeEquipment`: the item goes into the slot, what was there
+; goes back to the inventory, capped at ITEM_MAX, and then one of the new one
+; comes out of it, if there is one. In that order: re-equipping what it
+; already had leaves the inventory as it was. The compiler only lets through
+; armor, helmet and accessory, which have none of the weapons' two-handed
+; business, and one the actor can use. In a battle the parameters it changes
+; are taken up by `ba_sync_in`. Clobbers X.
+.proc actor_equip
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    pha                         ; the actor
+    asl a
+    asl a
+    clc
+    adc 1, s
+    asl a                       ; times ten, which is what a row measures
+    sta 1, s
+    lda temp
+    xba
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a                       ; the slot, from the top three bits
+    and #$0007
+    asl a                       ; the slot is a word
+    clc
+    adc 1, s
+    tax
+    pla
+    lda f:FAR_LENGTH + FAR_EQUIPMENT, x
+    pha                         ; what it had
+    lda temp
+    and #$1FFF
+    sta f:FAR_LENGTH + FAR_EQUIPMENT, x
+    pla
+    beq taken                   ; it had nothing
+    cmp #ITEMS_N
+    bcs taken                   ; an item the inventory does not carry
+    tax
+    sep #$20
+.a8
+    lda f:FAR_LENGTH + FAR_ITEMS, x
+    cmp #ITEM_MAX
+    bcs taken8
+    inc a
+    sta f:FAR_LENGTH + FAR_ITEMS, x
+taken8:
+    rep #$20
+.a16
+taken:
+    lda temp
+    and #$1FFF
+    tax
+    sep #$20
+.a8
+    lda f:FAR_LENGTH + FAR_ITEMS, x
+    beq none                    ; `RemoveItem` does not go below zero
+    dec a
+    sta f:FAR_LENGTH + FAR_ITEMS, x
+none:
     rts
 .endproc
 

@@ -26,6 +26,14 @@ no tiene lugar sin bajarle la tasa al tema de batalla, y ésa es la regla de
 taro para los efectos. Hoy es uno solo, el `Thunder9` del despegue de la pelea
 de los agentes; los números están al lado de la lista.
 
+**Un `PlayBGM` de página se acepta y no se hace.** Es el de `Play Radio`
+(el sistema del 809), que pone uno de tres temas —`dd2shad2`, `patchb` y el de
+Ryan Bury— mientras la pelea sigue. Meterlos en el paquete de audio de la
+pelea le baja la tasa al tema de batalla, que es lo mismo que deja afuera a
+los efectos de las páginas, y ninguno tiene pista de MSU-1. Lo demás que hace
+la página —el accesorio, la cura, el daño— sí. Ver `PLAY_BGM` en el
+compilador de eventos.
+
 **El que entra al grupo en la pelea toma el lugar del que salió.** En RM2k
 `RemoveActor` saca al actor de la lista del grupo y `AddActor` pone al nuevo
 al final, así que la ventana de la pelea se reacomoda. Acá los lugares de la
@@ -57,4 +65,4 @@ pelea no hace falta, porque perder es de la pelea.
 
 `rom/pruebas/rpgmaker/test_eventos_de_tropa.py`, con los casos `pelea-86` y
 `pelea-102`; y `rom/pruebas/rpgmaker/test_sistemas_de_tropa.py`, con
-`pelea-invocacion`.
+`pelea-invocacion` y `pelea-radio`.

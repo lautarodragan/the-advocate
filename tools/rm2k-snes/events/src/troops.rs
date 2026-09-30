@@ -39,11 +39,14 @@ use std::collections::HashMap;
 /// back with whoever joined or left. `ChangeMonsterHP` and `ChangeMonsterMP`
 /// are OP_ENEMY.
 ///
+/// `ChangeEquipment` equips, and the battle takes up the parameters it changes
+/// —`ba_reparam`—. `PlayBGM` is accepted and not done: see `PLAY_BGM` in
+/// the compiler.
+///
 /// The ones left out that the game uses, in case someone wants to add them:
-/// `ChangeEquipment` to equip, `PlayBGM` —its song would go into the battle's
-/// audio package—, `FlashScreen`, `Wait`, `TintScreen`,
-/// `ChangeMonsterCondition` —the battle has no states— and `TerminateBattle`.
-const TROOP_COMMANDS: [i32; 21] = [
+/// `FlashScreen`, `Wait`, `TintScreen`, `ChangeMonsterCondition` —the battle
+/// has no states— and `TerminateBattle`.
+const TROOP_COMMANDS: [i32; 23] = [
     END,
     SHOW_MESSAGE,
     SHOW_MESSAGE_2,
@@ -53,10 +56,12 @@ const TROOP_COMMANDS: [i32; 21] = [
     CHANGE_GOLD,
     CHANGE_ITEMS,
     CHANGE_PARTY_MEMBERS,
+    CHANGE_EQUIPMENT,
     CHANGE_HP,
     FULL_HEAL,
     CHANGE_CONDITION,
     PLAY_SOUND,
+    PLAY_BGM,
     SHAKE_SCREEN,
     CHANGE_MONSTER_HP,
     CHANGE_MONSTER_MP,

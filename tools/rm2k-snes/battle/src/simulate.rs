@@ -84,6 +84,7 @@ const ELSE_BRANCH: i32 = 23310;
 const CONTROL_SWITCHES: i32 = 10210;
 const CONTROL_VARS: i32 = 10220;
 const CHANGE_PARTY_MEMBERS: i32 = 10330;
+const CHANGE_EQUIPMENT: i32 = 10450;
 const CHANGE_HP: i32 = 10460;
 const CHANGE_CONDITION: i32 = 10480;
 const FULL_HEAL: i32 = 10490;
@@ -255,6 +256,11 @@ pub struct Combatant {
     pub actions: Vec<Action>,
     /// What attacking costs it: [`rules::weapon_sp_of`].
     pub weapon_sp: i64,
+    /// An actor's equipment —weapon, shield, armor, helmet, accessory— and
+    /// its level, None the starting one: what its `base` comes from, for a
+    /// `ChangeEquipment` in a troop page. An enemy has neither.
+    pub equipment: Vec<i32>,
+    pub level: Option<i64>,
     pub defending: bool,
     /// The last turn's `agi + rand`: see [`Battle::execution_order`].
     pub command: i64,
@@ -348,6 +354,8 @@ impl Combatant {
                 effective: true,
             }],
             weapon_sp: rules::weapon_sp_of(db, &equipment)?,
+            equipment,
+            level,
             defending: false,
             command: 0,
             hidden: false,
@@ -393,6 +401,8 @@ impl Combatant {
             skills: Vec::new(),
             actions: rules::actions_of_enemy(db, id)?,
             weapon_sp: 0,
+            equipment: Vec::new(),
+            level: None,
             defending: false,
             command: 0,
             hidden,
@@ -667,6 +677,7 @@ impl TroopPage {
                         battle.leave(actor);
                     }
                 }
+                CHANGE_EQUIPMENT => battle.change_equipment(db, p)?,
                 CHANGE_HP => {
                     if parameter(p, 3)? != 0 {
                         return Err(Bad::answer("a ChangeHP by variable"));
@@ -935,6 +946,55 @@ impl Battle {
             .filter(|&k| !self.actors[k].hidden)
             .filter(|&k| kind == 0 || (kind == 1 && self.actors[k].number == id))
             .collect())
+    }
+
+    /// `ChangeEquipment` on one who is fighting, in the two forms the console
+    /// does: unequipping a slot, and equipping armor, a helmet or an
+    /// accessory the actor can use —`IsItemUsable`—. Its base parameters
+    /// come from its equipment again and the modifiers stay, which is what
+    /// `ba_reparam` does. The inventory is not followed.
+    fn change_equipment(&mut self, db: &Db, p: &[i32]) -> Result<()> {
+        let (kind, id, op, a, b) = (
+            parameter(p, 0)?,
+            parameter(p, 1)?,
+            parameter(p, 2)?,
+            parameter(p, 3)?,
+            parameter(p, 4)?,
+        );
+        let (slot, item) = match op {
+            0 if kind == 1 && a == 0 => {
+                let it = db.item(b as i32)?;
+                let usable = it
+                    .actor_set
+                    .get(id as usize - 1)
+                    .copied()
+                    .unwrap_or(false);
+                let t = it.r#type.to_i32() as i64;
+                if !(3..=5).contains(&t) {
+                    return Err(Bad::answer("equipping a weapon or a shield from a troop page"));
+                }
+                if !usable {
+                    return Ok(());
+                }
+                (t - 1, b as i32)
+            }
+            1 if (0..5).contains(&a) => (a, 0),
+            _ => return Err(Bad::answer("a ChangeEquipment the battle does not know")),
+        };
+        let targets: Vec<usize> = (0..self.actors.len())
+            .filter(|&k| !self.actors[k].hidden)
+            .filter(|&k| kind == 0 || self.actors[k].number == id)
+            .collect();
+        for k in targets {
+            let a = &mut self.actors[k];
+            if a.equipment.len() < 5 {
+                continue;
+            }
+            a.equipment[slot as usize] = item;
+            a.base = rules::equipped_params(db, a.number as i32, &a.equipment, a.level)?;
+            a.weapon_sp = rules::weapon_sp_of(db, &a.equipment)?;
+        }
+        Ok(())
     }
 
     /// `Game_Party::RemoveActor` in battle: the actor stops existing, and
@@ -1473,6 +1533,8 @@ mod tests {
                 skills: vec![],
                 actions: vec![],
                 weapon_sp: 0,
+                equipment: vec![],
+                level: None,
                 defending: false,
                 command: 0,
                 hidden: false,

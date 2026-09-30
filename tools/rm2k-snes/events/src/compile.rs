@@ -1096,6 +1096,11 @@ fn page(
 fn follow_exit(ctx: &mut Ctx, cmd: &Command, exit: &mut Exit, played_sound: bool) {
     let songs = ctx.songs.as_deref_mut().unwrap();
     let current = songs.current;
+    // A troop page leaves no map: its `PlayBGM` is not done —see
+    // `PLAY_BGM`— and it has no `Teleport`.
+    if current == Some(Package::Battle) {
+        return;
+    }
     let here = |dest: Option<usize>| match (current, dest) {
         (Some(Package::Map(c)), Some(d)) => c == d,
         (None, None) => true,
@@ -1860,6 +1865,13 @@ pub fn battle_audio(ctx: &mut Ctx) -> Option<Vec<(String, usize)>> {
 /// tools/runtime/level.s.
 const ACT_SP: u8 = 0x01;
 const ACT_REVIVE: u8 = 0x02;
+const ACT_EQUIP: u8 = 0x04;
+/// With `ACT_EQUIP`, OP_ACTOR's amount is the item with its slot on top.
+const EQUIP_SLOT_SHIFT: i64 = 13;
+/// The item types that equip without the weapon's business: armor, helmet
+/// and accessory, which are their slot plus one.
+const EQUIP_ARMOR: i64 = 3;
+const EQUIP_ACCESSORY: i64 = 5;
 const ACT_VARIABLE: u8 = 0x20;
 const ACT_LETHAL: u8 = 0x40;
 const ACT_SUBTRACT: u8 = 0x80;
@@ -2550,12 +2562,42 @@ pub fn compile_command(
             // `CommandChangeEquipment` does not ask for it.
             //
             // The 35 the game runs outside battle all unequip a slot; the 560
-            // that equip belong to the troops. When this was written the port
-            // did not run troop pages; it does since 2026-09-21, but equipping
-            // still does not compile. Unequipping everything does not either:
-            // nobody uses it.
+            // that equip belong to the troops. Unequipping everything does
+            // not compile: nobody uses it.
+            //
+            // **Equipping**, operation 0 with the item in `b`, compiles since
+            // 2026-09-30, for `Play Radio`: it puts one of four accessories on
+            // Emily in battle. It is OP_ACTOR with `ACT_EQUIP`, and the item's
+            // slot goes on top of its number, because the ROM does not carry
+            // every item's type. Only on one actor, only a constant, and only
+            // armor, helmet or accessory: the weapon and the shield are where
+            // `CommandChangeEquipment` does its two-handed business, and the
+            // game does not equip either from an event. One the actor cannot
+            // use does nothing in RM2k —`IsItemUsable`— and here it is not
+            // emitted.
             if n < 4 {
                 return cannot();
+            }
+            if q(2) == 0 {
+                if n < 5 || q(0) != 1 || q(3) != 0 {
+                    return cannot();
+                }
+                let actor = target_actor(p)?;
+                let Some((kind, users)) = ctx.game.items.get(&(q(4) as i32)) else {
+                    return cannot();
+                };
+                if !(EQUIP_ARMOR..=EQUIP_ACCESSORY).contains(&(*kind as i64))
+                    || !(1..ITEMS_N).contains(&q(4))
+                {
+                    return cannot();
+                }
+                if !users.get(actor as usize - 1).copied().unwrap_or(false) {
+                    return Ok(vec![]);
+                }
+                let slot = *kind as i64 - 1;
+                let mut out = vec![OP_ACTOR, actor, ACT_EQUIP];
+                out.extend(word(q(4) | slot << EQUIP_SLOT_SHIFT)?);
+                return Ok(out);
             }
             if q(2) != 1 {
                 return cannot();
@@ -2931,10 +2973,19 @@ pub fn compile_command(
             // what this repo did with PlayBGM from the start. With a registry
             // the index is emitted and the ROM plays the song if it got to
             // carry it.
+            //
+            // **A troop page's is accepted and not done**, since 2026-09-30:
+            // its song would go into the battle's audio package, which
+            // already has no room without lowering the battle theme's rate,
+            // and that is the same thing that keeps a troop page's effects
+            // out —`troop_effects_in_package`—. It is `Play Radio`'s, which
+            // puts on one of three songs; the rest of what the page does, it
+            // does. Declared in
+            // `workflow/divergencias/lo-que-las-paginas-de-tropa-no-modelan.md`.
             let Some(songs) = ctx.songs.as_deref_mut() else {
                 return Ok(vec![]);
             };
-            if cmd.string.is_empty() {
+            if cmd.string.is_empty() || songs.current == Some(Package::Battle) {
                 return Ok(vec![]);
             }
             Ok(vec![OP_BGM, (songs.index(&cmd.string) & 0xFF) as u8])
@@ -4442,6 +4493,23 @@ mod tests {
             one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 5, 14, 2], "")),
             [OP_VAR, 5, 0x80, 5, 14, 0, 2, 0, OP_DONE]
         );
+        // Equipping an accessory: its slot, 4, on top of its number.
+        let mut game = game.clone();
+        let mut users = vec![false; 25];
+        users[13] = true;
+        game.items.insert(386, (5, users));
+        game.items.insert(200, (1, vec![true; 25]));
+        let equip = |game: &Game, item: i32| {
+            compile_with(game, &[cmd(CHANGE_EQUIPMENT, &[1, 14, 0, 0, item], "")]).unwrap()
+        };
+        assert_eq!(
+            equip(&game, 386).unwrap(),
+            [OP_ACTOR, 14, ACT_EQUIP, 0x82, 0x81, OP_DONE]
+        );
+        // A weapon does not compile; one the actor cannot use does nothing.
+        assert!(equip(&game, 200).is_none());
+        game.items.insert(386, (5, vec![false; 25]));
+        assert_eq!(equip(&game, 386).unwrap(), [OP_DONE]);
         // An enemy: 70 off the first, lethal; 40 SP off the second.
         assert_eq!(
             one(cmd(CHANGE_MONSTER_HP, &[0, 1, 0, 70, 1], "")),

@@ -15,12 +15,16 @@ el modelo de la pelea, `modelo.Battle`, que corre las mismas páginas del LDB:
   lo mata y le saca 70 al enemigo; con menos, lo dice
   (`pelea-vida-por-fuerza-sin-hp`);
 * **`Sacrifice`** (`pelea-sacrificio`, el 802): revive al grupo y mata a
-  Talan.
+  Talan;
+* **`Play Radio`** (`pelea-radio`, el 809 con la cinta del 806): le pone a
+  Emily un accesorio o la cura, según el azar.
 
 Las tres primeras prueban también lo del mapa que las páginas usan: el
 `ChangeHP` que resta, el `ControlVars` con los HP de un actor y el
 `ChangeCondition` que revive.
 """
+
+import pytest
 
 from batalla import Pelea, grupo_de, mensaje_en_pantalla, modelo_de
 import datos
@@ -204,3 +208,86 @@ def test_el_sacrificio_revive_al_grupo_y_mata_a_talan(partida):
     pasar_turno(una, pelea, [("defender",)])
     esperado.play_turn([(modelo.COMMAND_DEFEND, 0)])
     assert hp_de_todos(una, pelea, esperado) == hp_del_modelo(esperado)
+
+
+# --- la radio -----------------------------------------------------------------
+
+EMILY = 25
+# Lo que cada número de la variable 163 pone con la cinta del 806: los tres
+# caminos de la página del 809, en el orden de sus ramas.
+RADIO_806 = {1: 386, 2: None, 3: 387}
+
+
+def semilla_para(cual):
+    """Una semilla del azar del mapa con la que el `ControlVars` de 1 a 3 de
+    la página da `cual`: el xorshift de `random_next` y el resto de la
+    división por 3 que hace OP_VAR. Si esta cuenta no fuera la de la ROM, la
+    prueba lo cobra al leer la variable."""
+    for semilla in range(1, 0x10000):
+        x = semilla
+        x ^= (x << 7) & 0xFFFF
+        x ^= x >> 9
+        x ^= (x << 8) & 0xFFFF
+        if 1 + x % 3 == cual:
+            return semilla
+    raise AssertionError("ninguna semilla da %d" % cual)
+
+
+@pytest.mark.parametrize("cual", sorted(RADIO_806))
+def test_la_radio_equipa_a_emily_o_la_cura(partida, cual):
+    """Con la cinta del 806 y el 809 prendidos, la página de `Play Radio`
+    corre al abrir la pelea: saca un número de 1 a 3 en la variable 163 y,
+    según cuál, le pone a Emily un accesorio —el 386 o el 387— o le suma 60
+    HP. El tema no cambia: el `PlayBGM` de una página de tropa se acepta y no
+    se hace. El número sale del azar del mapa, y la prueba le pone la semilla
+    justo cuando la pelea arranca para pasar por los tres caminos.
+
+    **Emily no pelea**, a propósito: la página la nombra a ella, y ponerla
+    en el grupo del caso la vuelve un actor del cartucho, con sus ítems y su
+    nivel en las tablas del banco 0, que no tiene lugar —medido, 15 B contra
+    13 libres—. Así se prueba lo que la página le hace en la partida; lo que
+    la pelea toma de un equipo nuevo, `ba_reparam`, corre en cada tramo de
+    página de las demás pruebas, y un parámetro mal recalculado cambiaría el
+    daño que el modelo predice."""
+    una = partida(caso="pelea-radio")
+    s = una.simbolos
+    antes = una.equipo(EMILY)
+    for _ in range(600):
+        if pelea_de(una) == TROPA_GIGANTE:
+            break
+        una.consola.run(1)
+    else:
+        raise AssertionError("la pelea no arrancó")
+    semilla = semilla_para(cual)
+    una.consola.write_ram(s["FAR_RANDOM"], bytes([semilla & 0xFF, semilla >> 8]))
+    pelea = a_la_pelea(una)
+    pelea.esperar("PAGE")
+    assert una.variable(datos.ranuras_de_variable()[163]) == cual
+    item = RADIO_806[cual]
+    # El mensaje va antes de lo que hace: A, hasta que la página termina.
+    for n in range(600):
+        if pelea.modo() == "COMMAND":
+            break
+        una.consola.hold(*(("a",) if n % 6 < 2 else ()))
+        una.consola.run(1)
+    assert pelea.modo() == "COMMAND"
+    # El caso le resta 100 sin matarla, así que se ve si suma.
+    maximo = datos.maximos()[EMILY][0]
+    restados = max(1, maximo - 100)
+    if item is None:
+        assert una.hp(EMILY) == min(maximo, restados + 60)
+        assert una.equipo(EMILY) == antes
+        return
+    assert una.hp(EMILY) == restados
+    assert una.equipo(EMILY) == antes[:4] + [item]
+    # Lo que tenía vuelve al inventario, y del nuevo no había ninguno.
+    if antes[4]:
+        assert una.item(antes[4]) == 1
+    assert una.item(item) == 0
+
+
+def pelea_de(una):
+    """La tropa que `op_battle` dejó en `BA_TROOP`: la pelea ya arrancó
+    aunque todavía no se vea."""
+    bajo, alto = una.consola.ram(una.simbolos["BA_TROOP"], 2)
+    return bajo | alto << 8

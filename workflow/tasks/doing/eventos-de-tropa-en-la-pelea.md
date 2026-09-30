@@ -153,6 +153,10 @@ RM2k está en `divergencias/lo-que-las-paginas-de-tropa-no-modelan.md`.
     ControlVars de actor   la clase 5 de OP_VAR: HP, SP y sus máximos
     ChangeMonsterHP y MP   OP_ENEMY (nuevo, 0x37)
     FullHeal               ya andaba en el mapa; entra por lo mismo
+    ChangeEquipment        equipar armadura, casco o accesorio a un actor:
+                           OP_ACTOR con ACT_EQUIP, y la pelea toma los
+                           parámetros nuevos en `ba_reparam`
+    PlayBGM                se acepta y no se hace (ver abajo)
 
 OP_ACTOR, `ChangeSP` y el `ChangeHP` por variable se prueban también en el
 mapa: `rom/pruebas/rpgmaker/test_curar.py`, con el caso `curar-restar`.
@@ -166,16 +170,31 @@ por variable. Una habilidad de switch ahora prende su switch para las
 páginas (`lit_by_skills`), sin cambiar el `state` de la respuesta: los 400
 hashes de `tests/model.rs` siguen iguales, medido.
 
-**Cuántos sistemas andan en `release`**: 29 de 32 —los 9 de antes, el 801, el
-802 y las 18 invocaciones—; el 803 en 33 de sus 51 páginas. Traban el 799 y el
-803 (`ChangeMonsterCondition`: la pelea no tiene estados) y el 809 (`PlayBGM`,
-`ChangeEquipment` para equipar). "troop pages: 1551 of 1671 in 146 distinct
-body(ies), 9217 B of code and 9181 B in 163 message(s)".
+**Cuántos sistemas andan en `release`**: 30 de 32 —los 9 de antes, el 801,
+el 802, las 18 invocaciones y el 809, `Play Radio`, sin su música—; el 803 en
+33 de sus 51 páginas. Traban el 799 (`Inscribe`) y el resto del 803
+(`ControlMachines`), los dos por `ChangeMonsterCondition`: la pelea no tiene
+estados, y hacerlos es un sistema entero —duración, restricciones, lo que
+hacen BarkWall (23) y Control (22)—. El 799 además pide `FlashScreen` en la
+pelea, que hoy tiñe la paleta del mapa y no la de la escena. "troop pages:
+1602 of 1671 in 149 distinct body(ies), 9941 B of code and 9515 B in 172
+message(s)". En el juego entero entran 4285 de las 4451 páginas.
+
+**La música de `Play Radio` no suena**: el `PlayBGM` de una página de tropa
+se acepta y no se hace, porque su tema iría al paquete de la pelea y le
+bajaría la tasa al de batalla —la misma regla que deja afuera a los efectos
+de las páginas— y ninguno de los tres tiene pista de MSU-1. Es una decisión
+de audio para taro; está en
+`divergencias/lo-que-las-paginas-de-tropa-no-modelan.md`.
 
 **El espacio después** (`just espacio`, `release`): banco 0 **13 B** (de 50),
-banco 1 5.309 B (de 3.126, con las tablas afuera), bancos de datos 116 de 124.
-El banco 0 se come con las dos entradas de opcode (9 B cada una), la de
-`ControlVars` de actor (10 B) y los cinco casos nuevos.
+banco 1 5.054 B (de 3.126, con las tablas afuera), bancos de datos 116 de 124
+y 8 libres. El banco 0 se come con las dos entradas de opcode (9 B cada una),
+la de `ControlVars` de actor (10 B) y los casos nuevos. **Es el límite que
+sigue**: la prueba de `Play Radio` quería a Emily en el grupo del caso, y eso
+la vuelve un actor del cartucho con sus ítems y su nivel en tablas del banco
+0 —medido, 15 B contra 13—, así que la prueba la deja afuera. Lo próximo que
+sume un actor al cartucho, o un opcode, no entra sin mover algo del banco 0.
 
 **Números usados**: opcodes 0x36 (OP_ACTOR) y 0x37 (OP_ENEMY). RAM lejana:
 `$7E7A2A` (`BA_SYNC_I`), dentro de lo que ya era de las páginas

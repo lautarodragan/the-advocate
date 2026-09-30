@@ -694,13 +694,16 @@ ready:
 ; shows as the summon in Emily's line and not at the bottom. See
 ; `workflow/divergencias/`.
 ;
+; And whoever stays takes up what a page changed of its equipment:
+; `ba_reparam`.
+;
 ; Clobbers `BA_S0` to `BA_S6`, `BA_T*`, A, X and Y.
 .proc ba_sync_in
 .a8
 .i16
-    stz BA_T0
+    stz BA_S1
 present:
-    lda BA_T0
+    lda BA_S1
     cmp #BA_PARTY_MAX
     bcs to_added
     jsr ba_x
@@ -708,19 +711,20 @@ present:
     and #BAF_HAS
     beq next_present
     lda BA_ONE + BA_NUMBER, x
+    sta BA_S0
     jsr ba_in_party
     bne stays
-    lda BA_T0
+    lda BA_S1
     jsr ba_x
     lda #(BAF_ACTOR | BAF_HIDDEN)
     sta BA_ONE + BA_FLAGS, x
     bra next_present
 stays:
-    lda BA_T0
+    lda BA_S1
     jsr ba_x
     rep #$20
 .a16
-    lda BA_ONE + BA_NUMBER, x
+    lda BA_S0
     and #$00FF
     asl a
     tay
@@ -730,8 +734,9 @@ stays:
     sta BA_ONE + BA_SP, x
     sep #$20
 .a8
+    jsr ba_reparam
 next_present:
-    inc BA_T0
+    inc BA_S1
     bra present
 to_added:
     stz BA_SYNC_I
@@ -781,6 +786,80 @@ next_member:
     bra member
 ready:
     rts
+.endproc
+
+; The four parameters of actor `BA_S0`, in party place `BA_S1`, from its
+; level and its equipment again, with the modifiers the battle gave it kept:
+; in RM2k `GetAtk` and its siblings add the equipment every time they are
+; asked, so a `ChangeEquipment` in a troop page counts from the next action.
+; And what attacking costs it, which the weapon says. The same arithmetic as
+; `ba_build` and `ba_mod`. Clobbers `BA_S2`, `BA_T*`, A, X and Y.
+.proc ba_reparam
+.a8
+.i16
+    stz BA_S2                   ; which one: 0 attack, 1 defense, 2 spirit,
+                                ; 3 agility
+other:
+    lda BA_S2
+    jsr ba_param                ; `BA_T2`: its base
+    lda BA_S1
+    jsr ba_x
+    stx BA_T0                   ; the place's offset
+    lda BA_S2
+    asl a
+    jsr ba_ax
+    rep #$20
+.a16
+    lda f:base, x
+    clc
+    adc BA_T0
+    tay
+    lda BA_T2
+    sta BA_ONE, y
+    lda f:modifier, x
+    clc
+    adc BA_T0
+    tay
+    lda BA_ONE, y
+    clc
+    adc BA_T2                   ; base + modifier, in [1, BA_PARAM_MAX]
+    bmi to_one
+    cmp #1
+    bcs not_zero
+to_one:
+    lda #1
+    bra fits
+not_zero:
+    cmp #(BA_PARAM_MAX + 1)
+    bcc fits
+    lda #BA_PARAM_MAX
+fits:
+    sta BA_T1
+    lda f:effective, x
+    clc
+    adc BA_T0
+    tay
+    lda BA_T1
+    sta BA_ONE, y
+    sep #$20
+.a8
+    inc BA_S2
+    lda BA_S2
+    cmp #4
+    bcc other
+    jsr ba_weapon_sp
+    pha
+    lda BA_S1
+    jsr ba_ax
+    pla
+    sta f:BA_WEAPON_SP, x
+    rts
+base:
+    .word BA_BATK, BA_BDEF, BA_BSPI, BA_BAGI
+modifier:
+    .word BA_MATK, BA_MDEF, BA_MSPI, BA_MAGI
+effective:
+    .word BA_ATK, BA_DEF, BA_SPI, BA_AGI
 .endproc
 
 ; Z=0 if actor A8 is in `party`, which is the list the map's opcodes change.
