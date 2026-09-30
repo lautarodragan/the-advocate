@@ -69,7 +69,9 @@ first to be written to it:
   error.
 * **Its tests need no game**: a small one is built inside the test, and
   what comes out is compared against the hashes of what the Python it
-  replaced wrote for the same input (`tests/python.rs`).
+  replaced wrote for the same input (`tests/python.rs`). The model's game
+  is bigger and lives in `tests/game/`, with the requests and their hashes
+  (`tests/model.rs`).
 
 ## The request of `tables`
 
