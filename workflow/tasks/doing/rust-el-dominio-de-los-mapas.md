@@ -151,7 +151,40 @@ Por partes, cada una en su commit, con las ROMs iguales:
 
 ## Hecho
 
-(se va escribiendo)
+**1. Las capas** (`7db8c984`). `rm2k-snes-map-background` hace lo que
+hacía `map_layers.py` de la cuantización para abajo, y `rm2k-snes-maps
+layers` es la etapa: lee el mapa y el ChipSet con Ditto, con los forks del
+pedido (`map_files`, `chipset_files`) y las celdas horneadas (`baked`), lo
+dibuja con `rm2k-render` como biblioteca, y usa Adeleine y Voodoo como
+bibliotecas. `converted_layers` la llama; el caché en disco y el precómputo
+en paralelo quedaron como estaban, con el hash del binario en la clave.
+`rm2k-snes-maps` entró en la huella de los cartuchos.
+
+**Los PNG de `adeleine/` cambian de bytes y no de pixeles**: los escribe
+el crate `png` y no Pillow, que comprime distinto. Se comparan
+decodificados.
+
+**2. Los bloques** (`f046e563`), con las capas: salen de los mismos datos y
+de los dos tilemaps. También la pasabilidad de cada celda. El terreno del
+ChipSet entró en la clave del caché.
+
+Cómo se verificó cada paso, con scripts descartables en el scratchpad:
+
+* **mapa por mapa**: los 93 de `release` —`test-special` usa un
+  subconjunto—, sin hornear y con los horneados de los cuatro que tienen,
+  Python contra Rust, campo por campo: 0 diferencias;
+* **los cartuchos**: `NO_CACHE=1 just cartuchos` y el sha256 de todo
+  `rom/build/` —766 archivos más los 266 PNG, decodificados—. El paso 1
+  contra el mismo árbol con el Python de `3d83de68`; el 2 contra el 1
+  mergeado con `main` (`591855c0`, `abl.sfc` en `e97a574b…`). Con el
+  caché prendido, frío y tibio, también iguales;
+* `just pruebas` (883) y `just -f tools/justfile test` (90) en verde.
+
+**Una trampa de la verificación**: el `.dbg` cambia según qué
+`rm2k-snes-assemble` arma, porque nombra los fuentes relativos a su
+checkout. Con `cartridge` instalado en el `bin/` local —hace falta, porque
+la huella nombra a `rm2k-snes-maps`— la base hay que armarla también con
+el local, o los tres `.dbg` salen distintos sin que cambie nada.
 
 ## Lo que falta
 
