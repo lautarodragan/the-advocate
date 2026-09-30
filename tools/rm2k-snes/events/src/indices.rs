@@ -3,9 +3,8 @@
 //! graphics an actor can be given, and which common events are the
 //! equipment ones.
 //!
-//! The slots come from sweeping **every map of the game** —and the troops',
-//! and the common events' for the pairs—, whether their pages compile or
-//! not: a cheap superset, and a page that starts compiling later shifts
+//! The slots come from sweeping **every map of the game**, its troops' pages
+//! and its common events, whether they compile or not: a cheap superset, and a page that starts compiling later shifts
 //! nobody's slot, so a game saved with one cartridge loads in another.
 
 use crate::codes::*;
@@ -135,8 +134,8 @@ fn troop_page_commands(game: &Game) -> Vec<Vec<Command>> {
         .collect()
 }
 
-/// Each variable some page of the game names —its maps' and its troops'—,
-/// plus `extra`, with its slot.
+/// Each variable some page of the game names —its maps', its troops' and
+/// its common events'—, plus `extra`, with its slot.
 ///
 /// The game declares five thousand and uses **81**, the highest being 201.
 /// The ROM does not carry the five thousand: this looks at which variables
@@ -190,6 +189,16 @@ pub fn variables(game: &Game, maps: &[Map], extra: &BTreeSet<i32>) -> BTreeMap<i
     }
     for commands in troop_page_commands(game) {
         ids.extend(command_variables(&commands));
+    }
+    // And the common events', which a `CallEvent` compiles in place: a
+    // variable only a common event names —the fifty-three of common 35,
+    // `ResetAfterBattles`, which count each summon's uses and put back
+    // Talan's HP— had no slot until 2026-09-30, and the whole common event
+    // was skipped for it. Adding them shifted the other slots, so a game
+    // saved with an older cartridge does not load in a newer one: that was
+    // a deliberate choice, not an oversight.
+    for c in game.common_events.values() {
+        ids.extend(command_variables(&c.commands));
     }
     ids.into_iter()
         .enumerate()
@@ -392,4 +401,33 @@ pub fn build(
         skills: skills(game, maps, extra_pairs)?,
         party_common_events: party_common_events(game),
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::game::CommonEvent;
+
+    fn control_var(variable: i32) -> Command {
+        Command::new(CONTROL_VARS, 0, "", vec![0, variable, variable, 0, 0, 1, 0])
+    }
+
+    /// A variable that only a common event names gets a slot, in order with
+    /// the others: a `CallEvent` compiles the common event in place, and one
+    /// naming a variable without a slot does not compile.
+    #[test]
+    fn a_variable_only_a_common_event_names_has_a_slot() {
+        let mut game = Game::default();
+        game.common_events.insert(
+            35,
+            CommonEvent {
+                trigger: 5,
+                switch_flag: false,
+                switch_id: 1,
+                commands: vec![control_var(70), control_var(134)],
+            },
+        );
+        let slots = variables(&game, &[], &BTreeSet::from([100]));
+        assert_eq!(slots, BTreeMap::from([(70, 0), (100, 1), (134, 2)]));
+    }
 }

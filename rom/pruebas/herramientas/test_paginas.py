@@ -95,6 +95,14 @@ def test_las_ranuras_son_las_del_juego_entero():
     nombran nueve que nadie más nombra —127 a 129, 158 a 160 y 169 a 171—, y
     con eso la ranura dejó de caber en siete bits: ver VAR_SLOT_MAX.
 
+    Y desde el 2026-09-30 son 169: el índice mira también los eventos comunes,
+    que un `CallEvent` compila en el lugar. El 35, `ResetAfterBattles`, nombra
+    53 que nadie más nombra —cuántas veces se usó cada invocación, los HP de
+    Talan—, y sin ranura el común entero se salteaba. Corrió las ranuras de
+    las demás, y eso rompe las partidas de los cartuchos de antes: está
+    aprobado, ver `decisiones/primero-el-juego-entero-despues-la-calidad.md`.
+    Con ellos la más alta que el juego nombra pasó a ser la 204.
+
     Las cuatro de arriba de la 204 son nuestras y no del juego: las usa el
     evento paralelo que reemplazó a las 52 baldosas de luz del mapa 11 —ver
     `parches/manual/README.md`—. Están elegidas **por encima de la más alta que
@@ -105,9 +113,9 @@ def test_las_ranuras_son_las_del_juego_entero():
     assert list(ranuras.values()) == list(range(len(ranuras)))
     assert 5 in ranuras and 151 in ranuras
     del_juego = [v for v in ranuras if v <= 204]
-    assert len(del_juego) == 132, del_juego
+    assert len(del_juego) == 169, del_juego
     assert {127, 128, 129, 158, 159, 160, 169, 170, 171} <= set(del_juego)
-    assert max(del_juego) == 201
+    assert max(del_juego) == 204
     assert all(ranuras[v] == r for r, v in enumerate(sorted(del_juego)))
     # Las de la página de prueba se suman al final, sin correr a las demás.
     con_extra = ranuras_del_juego(extra=(3000,))

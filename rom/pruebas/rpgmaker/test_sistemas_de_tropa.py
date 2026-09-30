@@ -59,6 +59,14 @@ def quienes(una):
             for k in range(s["BA_PARTY_MAX"])]
 
 
+def apagar(una, numero):
+    """Apaga un switch en el bitmap, sin el refresco de `OP_SWITCH`: sirve
+    antes de que el mapa vuelva, que refresca solo al volver."""
+    direccion = una.simbolos["switches"] + numero // 8
+    octeto = una.consola.ram(direccion, 1)[0] & ~(1 << (numero % 8))
+    una.consola.write_ram(direccion, bytes([octeto]))
+
+
 def del_modelo(esperado):
     """Lo mismo, del modelo: un actor que una página sacó queda oculto."""
     return [a.number if not a.hidden else None for a in esperado.actors]
@@ -122,7 +130,12 @@ def test_la_invocacion_cambia_a_lerle_por_el_droide(partida):
     droide, en ese orden, como en RM2k. Desde el turno 2 el droide recibe
     órdenes. Cada turno, los HP de todos y quién está en cada lugar son los
     del modelo, hasta que la pelea termina; y al cerrarla, los HP del droide
-    vuelven a la partida."""
+    vuelven a la partida.
+
+    Para ver eso último, la prueba apaga el 498 antes de cerrar: si no, la
+    automática del mapa llama al común 35 en cuanto el mapa vuelve, y el
+    común cura al droide y lo saca del grupo. Eso lo mira
+    `test_despues_de_la_pelea_lerle_vuelve_al_grupo`."""
     una = partida(caso="pelea-invocacion")
     pelea = a_la_pelea(una).esperar("COMMAND")
     lerle = modelo.actor_of(LERLE)
@@ -150,9 +163,38 @@ def test_la_invocacion_cambia_a_lerle_por_el_droide(partida):
         assert hp_de_todos(una, pelea, esperado) == \
             hp_del_modelo(esperado), "turno %d" % turno
     assert pelea.modo() == "END"
+    apagar(una, 498)
     pelea.cerrar()
     assert grupo_de(una) == [KERSH, DROIDE]
     assert una.hp(DROIDE) == esperado.actors[1].hp
+
+
+def test_despues_de_la_pelea_lerle_vuelve_al_grupo(partida):
+    """Lo que hace el común 35, `ResetAfterBattles`, en RM2k: la página de
+    turno 0 de la tropa prende el 498 al abrir la pelea, y al volver al mapa
+    la automática `AfterBattleMint` del 60 —hay una en cada mapa con
+    encuentros— lo llama. El común cura a las invocaciones, saca del grupo a
+    la que esté y devuelve a Lerle al final, y apaga el 498. Así que después
+    de ganar con el droide, el grupo es otra vez Kersh y Lerle, y el droide
+    quedó con todos sus HP para la próxima."""
+    una = partida(caso="pelea-invocacion")
+    pelea = a_la_pelea(una).esperar("COMMAND")
+    assert pelea.switch(498), "la página de turno 0 prende el 498"
+    pasar_turno(una, pelea, [("defender",), ("habilidad", 0)])
+    assert grupo_de(una) == [KERSH, DROIDE]
+    for _ in range(30):
+        if pelea.modo() == "END":
+            break
+        pasar_turno(una, pelea, [("atacar", 0), ("atacar", 0)])
+    assert pelea.modo() == "END"
+    pelea.cerrar()
+    for _ in range(600):
+        if not pelea.switch(498):
+            break
+        una.consola.run(1)
+    assert not pelea.switch(498), "el común 35 apaga el 498 al terminar"
+    assert grupo_de(una) == [KERSH, LERLE]
+    assert una.hp(DROIDE) == datos.maximos()[DROIDE][0]
 
 
 def test_vida_por_fuerza_mata_a_talan_y_hiere_al_enemigo(partida):
