@@ -1,0 +1,110 @@
+{
+ "events": [
+  {
+   "id": 1,
+   "pages": [
+    {
+     "id": 1,
+     "event_commands": [
+      {
+       "code": 10110,
+       "indent": 0,
+       "string": "KERSH",
+       "parameters": []
+      },
+      {
+       "code": 20110,
+       "indent": 0,
+       "string": "I have pressing business within the Linkage",
+       "parameters": []
+      },
+      {
+       "code": 20110,
+       "indent": 0,
+       "string": "Block. No turning back.",
+       "parameters": []
+      },
+      {
+       "code": 10110,
+       "indent": 1,
+       "string": "MANTA",
+       "parameters": []
+      },
+      {
+       "code": 20110,
+       "indent": 1,
+       "string": "According to this, the Catch Colony is connected",
+       "parameters": []
+      },
+      {
+       "code": 20110,
+       "indent": 1,
+       "string": "to the Block by an electromagnetic Link, which",
+       "parameters": []
+      },
+      {
+       "code": 20110,
+       "indent": 1,
+       "string": "keeps the Colony from drifting into space.",
+       "parameters": []
+      },
+      {
+       "code": 12010,
+       "indent": 0,
+       "string": "",
+       "parameters": [
+        1
+       ]
+      },
+      {
+       "code": 10110,
+       "indent": 0,
+       "string": "Short and sweet.",
+       "parameters": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "pages": [
+    {
+     "id": 1,
+     "event_commands": [
+      {
+       "code": 10110,
+       "indent": 0,
+       "string": "CORE",
+       "parameters": []
+      },
+      {
+       "code": 20110,
+       "indent": 0,
+       "string": "Thank you, Manta. And maybe... after all this,",
+       "parameters": []
+      },
+      {
+       "code": 20110,
+       "indent": 0,
+       "string": "you'll be able to tell me the answer to the",
+       "parameters": []
+      },
+      {
+       "code": 20110,
+       "indent": 0,
+       "string": "question none of my abilities... can.\\|\\^",
+       "parameters": []
+      },
+      {
+       "code": 10110,
+       "indent": 0,
+       "string": "a \\| in the middle, which does not compile and stays as it is, however long",
+       "parameters": []
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

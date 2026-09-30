@@ -1,0 +1,44 @@
+[
+ {
+  "id": 1,
+  "name": "c",
+  "event_commands": [
+   {
+    "code": 10110,
+    "indent": 0,
+    "string": "TALAN",
+    "parameters": []
+   },
+   {
+    "code": 20110,
+    "indent": 0,
+    "string": "I'd better not go back through Sector 33. The Lazer",
+    "parameters": []
+   },
+   {
+    "code": 20110,
+    "indent": 0,
+    "string": "Teeth wouldn't be happy to see me...",
+    "parameters": []
+   },
+   {
+    "code": 10110,
+    "indent": 0,
+    "string": "KERSH",
+    "parameters": []
+   },
+   {
+    "code": 20110,
+    "indent": 0,
+    "string": "I have pressing business within the Linkage",
+    "parameters": []
+   },
+   {
+    "code": 20110,
+    "indent": 0,
+    "string": "Block. No turning back.",
+    "parameters": []
+   }
+  ]
+ }
+]
