@@ -50,6 +50,16 @@ def layout():
     return _LAYOUT[0]
 
 
+def item_text(text, width):
+    """What the text screens' font can write: the characters it has, with a
+    '?' instead of the others, and cut to the width. It is the stage's rule
+    —`item_text` in its `texts.rs`—, over the same range of characters, and
+    every text the emission writes for those screens goes through it."""
+    first, count = layout().ITEM_FIRST_CHAR, layout().ITEM_CHARS
+    return "".join(c if first <= ord(c) < first + count else "?"
+                   for c in text)[:width]
+
+
 def dump_of(game_dir):
     """The dump the game is read from: `lcf`'s rule."""
     from rpgmaker import lcf

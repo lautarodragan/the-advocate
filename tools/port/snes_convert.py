@@ -18,11 +18,12 @@ in its own module of `port/`, one per piece that can be replaced alone:
     screen_stage        the screens, `rm2k-snes-screens`: the message
                         window and its font, the title's menu, the menus,
                         and the message boxes reflowed for the window
-    battle_screen       the battle's text screen: its geometry and texts
     battle_scenes       backdrops and battlers
     battle_animations   the battle animations
     stage               runs a part that is a program of its own:
                         `rm2k-snes-battle`, experience and encounters
+    battle_stage        the battle's model and its text screen, from
+                        `rm2k-snes-battle`
     compiler            the event compiler, `rm2k-snes-events`: what goes
                         into its two calls and what comes back
     music               the job for `rm2k-snes-audio`, and the `.msu`
@@ -92,6 +93,7 @@ from port.battle_animations import rom_animations
 from port.battle_scenes import (fallback_bytes, patch_uses, rom_scene,
                                 write_patch_uses)
 from port import stage
+from port import battle_stage
 from port import compiler
 from port.music import (boot_frames, compile_music, inherited_songs,
                         rom_songs, separate_songs, write_msu)
@@ -768,6 +770,14 @@ def main():
              len(troop_pages.bodies), len(troop_pages.messages.data),
              len(troop_pages.messages.texts)))
     slots_data["items"] = items_all
+    # The battle's model, `rm2k-snes-battle`'s second call: now that the
+    # pages compiled it knows every troop and every (actor, skill) pair. See
+    # `port/battle_stage.py`.
+    battle_model = battle_stage.model(
+        renderer.tree.dump, members, troops.ids, items_all,
+        [pair for pair, _slot in sorted(events.SKILL_SLOT.items(),
+                                        key=lambda x: x[1])],
+        screen_stage.layout().ITEM_NAME_WIDTH)
     compressed = compress_blocks(maps)
     report = emit(args.output, maps, args.start_index, args.hero_above, party,
                   window_data, title_data, slots_data,
@@ -775,7 +785,7 @@ def main():
                   scenes, battle_tables, troop_pages, compressed,
                   party_common=compiler.party_common_events(compiled),
                   enemy_hp=args.enemy_hp,
-                  game_over=game_over_data)
+                  game_over=game_over_data, battle_model=battle_model)
     # Which entries of their palette the timer digits use, one bit per entry
     # and one word per map, in the order of `map_table`. `upload_timer_pal`
     # uploads **those** again untinted and not the whole palette, because the

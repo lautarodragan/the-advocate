@@ -2,7 +2,7 @@
 name = "rm2k-snes-battle"
 version = "0.1.0"
 edition = "2021"
-description = "An rm2k-snes game's battle tables: experience and level per actor, and each map's random encounters"
+description = "An rm2k-snes game's battle: its tables, its model and text screen, and the battle played turn by turn"
 
 [lib]
 name = "rm2k_snes_battle"
@@ -16,6 +16,7 @@ path = "src/main.rs"
 clap = { version = "4", features = ["derive"] }
 ditto = { path = "../../rm2k/ditto" }
 rm2k-rules = { path = "../../rm2k/rules" }
+rm2k-snes-text = { path = "../text" }
 serde_json = "1"
 
 [dev-dependencies]

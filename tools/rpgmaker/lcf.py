@@ -513,8 +513,7 @@ class Skill:
     def __init__(self, data):
         for name in SKILL_FIELDS:
             setattr(self, name, field(data, name))
-        # Its number, which an enemy's action list needs to name it: see
-        # `battle.actions_of_enemy`.
+        # Its number, by which an enemy's action list names it.
         self.id = field(data, "id")
 
     @property
@@ -545,7 +544,7 @@ class Item:
     outside battle" and `ko_only` "only on a dead one". `state_set` are the
     states it removes, one per LDB state from 1, which is the dead one: it is
     what decides whether it revives a fallen one. See
-    `battle.item_usable_in_battle` and `medicine_use` in
+    `item_usable_in_battle` in `rm2k-snes-battle` and `medicine_use` in
     tools/runtime/medicine.s.
     """
 
@@ -589,7 +588,7 @@ class Enemy:
             setattr(self, name, field(data, name))
         self.critical_hit_chance = field(data, "critical_hit_chance") or 30
         # What it can do on its turn, in the LDB's order: see
-        # `battle.actions_of_enemy`.
+        # `actions_of_enemy` in `rm2k-snes-battle`.
         self.actions = [EnemyAction(a) for _, a in
                         sorted(by_id(list_field(data, "actions")).items())]
 

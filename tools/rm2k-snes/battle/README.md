@@ -1,12 +1,13 @@
-# rm2k-snes-battle: an RPG Maker 2000 game's battle, as a cartridge's tables
+# rm2k-snes-battle: an RPG Maker 2000 game's battle, as a cartridge carries it
 
     rm2k-snes-battle tables --data dump/ --request request.json --out build/battle/
+    rm2k-snes-battle model --data dump/ --request request.json --out build/battle/
 
 `cargo build --release`, or `cargo test`. `--help` on any subcommand prints
 what it takes and what it writes.
 
-A cartridge's battle is RM2k's, computed ahead of time into tables the
-console only reads. Today this makes two of them:
+A cartridge's battle is RM2k's, computed ahead of time into what the
+console only reads. `tables` makes two tables:
 
 * **experience and level per actor**: RM2k's experience curve —in floating
   point, which the console does not have— for every level, the starting
@@ -16,8 +17,21 @@ console only reads. Today this makes two of them:
   whole map or an area of it—, and RM2k's odds per step, turned into
   integers the console shifts and compares.
 
-The rest of the battle is still made by the converter that calls this; it
-comes here as it moves.
+`model` answers the rest of what the battle carries, as data the caller
+writes into its tables:
+
+* **the model**: which skills the battle offers and to whom, what each
+  enemy can do, which items go in its list, what a troop gives;
+* **its text screen**: where each thing goes on the grid of cells the
+  console writes the battle on, and the texts it writes there —the
+  commands, the victory's lines, the names—, already cut to what fits.
+
+And `simulate` **plays a battle**, turn by turn, with the same rules and
+the same randomness as the console, for whoever compares a console's
+battle against it; `lines` builds the victory's lines the same way.
+
+The battle's pictures —the backdrops, the battlers, the animations— are
+still made by the converter that calls this.
 
 ## One stage of a converter
 
@@ -55,9 +69,11 @@ first to be written to it:
   error.
 * **Its tests need no game**: a small one is built inside the test, and
   what comes out is compared against the hashes of what the Python it
-  replaced wrote for the same input (`tests/python.rs`).
+  replaced wrote for the same input (`tests/python.rs`). The model's game
+  is bigger and lives in `tests/game/`, with the requests and their hashes
+  (`tests/model.rs`).
 
-## The request
+## The request of `tables`
 
     {"party": [1, 3, 8],
      "maps": [{"id": 4, "width": 40, "height": 30}, ...],
@@ -73,7 +89,7 @@ first to be written to it:
   a player wants and not what a test does.
 * `tree_nodes`: nodes of `maps.json`, in the dump's shape, over the dump's.
 
-## What comes out
+## What `tables` writes
 
 Into `--out`:
 
@@ -93,6 +109,70 @@ Every table has a `.block` in front: the ROM reads them with
 `lda f:table, x`, and one split across two banks would read its second half
 from the next.
 
+## `model`
+
+It is the converter's second call, after the event pages compiled: by then
+it knows every troop the cartridge fights and every (actor, skill) pair
+the compiler gave a slot.
+
+    {"actors": [11, 12], "troops": [82, 97], "items": [1, 2],
+     "skill_pairs": [[11, 131], [11, 146]], "item_name_width": 20}
+
+* `actors`: the ones that can be in the party.
+* `troops`: the ones the cartridge's battles ask for, in its order.
+* `items`: the ones the cartridge knows.
+* `skill_pairs`: every (actor, skill) the event compiler gave a slot, in
+  the slots' order. They are the skills an actor can end up knowing, which
+  are more than its learning table's.
+* `item_name_width`: how much of an item's name the item screens write,
+  which is theirs: the victory names what it found with it.
+
+It writes `model.json`: `layout`, the geometry and the model's constants
+—see `layout`—; `enemies`, those of the troops, and `actions`, what each
+can do, as `[rating, skill or null, effective]`; `skills`, the ones the
+cartridge carries, and `taught`, the ones leveling up teaches; per pair,
+the level its learning table teaches it at (`pair_levels`); per item,
+whether the battle offers it (`item_battle`); per troop, its experience and
+gold; and `texts`, what the battle writes, cut to its place. The answer is
+no if the victory does not fit in its window or an enemy carries more
+actions than the console weighs.
+
+## `simulate`
+
+A battle and its steps:
+
+    {"seed": null,
+     "actors": [{"id": 11, "equipment": null, "level": null, "skills": null}],
+     "troop": 82, "enemies": null, "pages": null, "switches": {},
+     "steps": [{"start": null}, {"set": {"side": "enemies", "place": 0, "hp": 1}},
+               {"turn": [[0, 0], [1, 0], [4, 150, 0], [3, 12, 1]]},
+               {"flee": null}, {"enemy_action": 0}]}
+
+The actors with their equipment, level and skills —each `null` for the
+database's—; the enemies of a `troop`, or loose ones in `enemies`, each
+with its `id`, `place` and whether it is `hidden`; the troop whose event
+`pages` run, and the `switches` they look at. A turn carries a command per
+living actor, in party order: `[0, enemy]` attack, `[1]` defend, `[2]`
+escape, `[3, item, actor]` an item, `[4, skill, target]` a skill.
+
+It writes `simulate.json`: what each step returned —the outcome of a turn,
+whether fleeing worked, the action an enemy chose— and the battle as it
+was left, every combatant with every number. It keeps nothing between
+calls: whoever wants to look at a battle turn by turn sends it again with
+one more step, and it comes out the same, because the randomness is the
+battle's own.
+
+## `lines` and `layout`
+
+`lines` builds the victory's lines as the console does:
+
+    {"item_name_width": 20,
+     "lines": [["victory"], ["exp", 90], ["gold", 285], ["item", 257],
+               ["level", 11, 21], ["skill", 148]]}
+
+`layout` writes the battle screen's geometry, in cells, and the model's
+constants —the seed, the commands, the outcomes—, by name.
+
 ## Where the numbers come from
 
 The experience curve, the level cap, the starting experience and level are
@@ -102,6 +182,12 @@ hold is its `GetEncountersAt`: both in `rm2k-rules`. The encounter odds are its
 `Game_Player::UpdateEncounterSteps`, whose eight rows of `pmod` are powers
 of two, so `1 / steps` in 1/65536 is shifted instead of multiplied. The
 source says which function each one is.
+
+The model's formulas —damage, hit, critical, variance, turn order, escape,
+what an enemy chooses— are easyrpg-player's too, and `simulate.rs` says
+which function each is. What is not RM2k's is on purpose and declared
+there: the randomness is a sixteen-bit xorshift with the battle's own seed,
+the divisions are integer, and states, attributes and rows do not exist.
 
 The encounters assume **the terrain changes nothing**: RM2k adds the
 terrain's `encounter_rate` each step, and this assumes 100 everywhere,

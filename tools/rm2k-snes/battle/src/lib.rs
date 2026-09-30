@@ -1,18 +1,26 @@
-//! An RPG Maker 2000 game's battle, as the tables a Super Nintendo
-//! cartridge carries: for now, experience and level per actor, and each
-//! map's random encounters.
+//! An RPG Maker 2000 game's battle, as a Super Nintendo cartridge carries
+//! it: experience and level per actor, and each map's random encounters,
+//! as tables; the battle's model —which skills, actions and items it
+//! offers, what a troop gives— and its text screen, as data the rest of
+//! the conversion writes; and the battle itself, played turn by turn with
+//! the console's randomness, for whoever compares a console against it.
 //!
-//! It reads the game from a Ditto dump —see [`game`]— and what the
-//! cartridge decided —which actors fight, which maps it carries— from a
-//! [`Request`]. What comes out is two pieces of a ca65 `.inc`, which the
-//! caller puts where they go, and a [`Tables`] with what the rest of the
-//! conversion needs to know about them.
+//! It reads the game from a Ditto dump —see [`game`] and [`db`]— and what
+//! the cartridge decided from a request. The tables come out as two pieces
+//! of a ca65 `.inc`, which the caller puts where they go, and a [`Tables`]
+//! with what the rest of the conversion needs to know about them; the rest,
+//! as JSON: see [`model`].
 
 pub mod asm;
+pub mod db;
 pub mod encounters;
 pub mod experience;
 pub mod fail;
 pub mod game;
+pub mod model;
+pub mod rules;
+pub mod screen;
+pub mod simulate;
 
 pub use encounters::{Encounters, Map};
 pub use fail::{Bad, Result};

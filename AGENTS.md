@@ -110,7 +110,8 @@ port —ver `tools/README.md`—:
       cartridge/       los cartuchos: el reparto en bancos, ca65 + ld65, el espacio
       patches/         los parches: lo que el conversor decide perder, en TOML
       rm2k-snes-audio/ la música: del MIDI y el SoundFont a musicdata.inc
-      battle/          las tablas de la pelea: experiencia y encuentros
+      battle/          la pelea: experiencia y encuentros, el modelo y su
+                       pantalla de texto, y la pelea jugada para las pruebas
       events/          el compilador de eventos: de las páginas de RM2k al bytecode
       map-background/  las dos capas del fondo de un mapa y sus bloques de 16x16
       map-sprites/     los personajes de un mapa como objetos: paletas y bancos

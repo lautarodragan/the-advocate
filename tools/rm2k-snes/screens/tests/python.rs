@@ -82,6 +82,23 @@ fn everything_a_cartridge_carries() {
     );
 }
 
+#[test]
+fn a_medicine_whose_letters_the_bank_lacks_is_refused() {
+    // Without Elixir in the bank nobody has an "x" or an "r", and the
+    // medicine 2 has both: the actor choice would draw a gap.
+    let request = Request {
+        slots: 4,
+        actors: (1..=8).collect(),
+        items: (1..=12).collect(),
+        bank_items: vec![1, 4],
+        title: true,
+        cgram_reserved: 9,
+        vram: vram(),
+    };
+    let bad = convert::convert(&game(), &request).unwrap_err();
+    assert!(bad.message().contains("the menu's bank does not carry: \"xr\""), "{}", bad.message());
+}
+
 fn inventory() -> BTreeMap<i32, i64> {
     [(1, 3), (2, 1), (3, 99), (4, 1), (5, 2), (6, 2), (7, 1), (8, 1), (9, 1), (10, 4), (11, 1), (12, 7)]
         .into_iter()
