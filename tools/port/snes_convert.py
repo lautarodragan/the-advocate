@@ -106,7 +106,7 @@ from port.options import flags_parser, map_order
 from port.cases import (case_commands, case_map, page_party,
                         split_cases, test_cases, test_graphics, test_maps)
 from port.mapdata import emit
-from port.map_convert import convert_map, precompute_layers
+from port.map_convert import convert_maps
 
 
 # How much each opcode takes, to walk the bytecode without running it. The
@@ -225,8 +225,7 @@ def main():
     # walks them in.
     args.pictures = events.Pictures(args.game_dir)
     args.pictures.map_id = None
-    precompute_layers(renderer, every, args)
-    maps = [convert_map(renderer, map_id, args) for map_id in every]
+    maps = convert_maps(renderer, every, args)
     # The maps whose upper layer started higher than the window's palette used
     # to be reconverted here, to squeeze their background below it. With the
     # window in palette 0 there is nothing to squeeze: each map's background

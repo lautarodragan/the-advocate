@@ -431,14 +431,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "rm2k-snes-map-sprites"
+version = "0.1.0"
+dependencies = [
+ "adeleine",
+ "rm2k-render",
+ "sha2",
+ "voodoo",
+]
+
+[[package]]
 name = "rm2k-snes-maps"
 version = "0.1.0"
 dependencies = [
+ "adeleine",
  "clap",
  "ditto",
  "rm2k-render",
  "rm2k-rules",
  "rm2k-snes-map-background",
+ "rm2k-snes-map-sprites",
  "serde_json",
  "sha2",
  "voodoo",

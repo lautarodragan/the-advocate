@@ -63,6 +63,24 @@ impl Game {
         }
     }
 
+    /// The CharSet each actor is drawn with: `(character_name,
+    /// character_index)`, by actor number.
+    pub fn actors(&self) -> Result<std::collections::HashMap<i32, (String, i32)>> {
+        let dump = Dump::open(&self.data).map_err(answer)?;
+        let actors: Vec<ditto::schema::Actor> = dump.section("actors").map_err(answer)?;
+        Ok(actors
+            .into_iter()
+            .map(|a| (a.id, (a.character_name, a.character_index)))
+            .collect())
+    }
+
+    /// Where a new game starts: `(map, x, y)`.
+    pub fn start(&self) -> Result<(i32, i32, i32)> {
+        let dump = Dump::open(&self.data).map_err(answer)?;
+        let tree = dump.tree().map_err(answer)?;
+        Ok((tree.start.party_map_id, tree.start.party_x, tree.start.party_y))
+    }
+
     /// The picture file of a resource, looked up by name in every search
     /// directory, without regard to case.
     pub fn resource(&self, folder: &str, name: &str) -> Option<PathBuf> {

@@ -439,6 +439,13 @@ def _stage_layers(renderer, game_map, baked):
         "chipset_files": compiler.chipset_files(dump),
         "baked": [list(cell) for cell in sorted((baked or {}).values())],
     }, *flags, raw=True)
+    return layers_answer(written)
+
+
+def layers_answer(written):
+    """What `rm2k-snes-maps` wrote of a map's layers —`layers` and `map`
+    write them the same—, in the shape the rest of the converter reads:
+    what `_convert_layers` returned."""
     answer = json.loads(written["layers.json"])
     bg, above = answer["background"], answer["above"]
 

@@ -5,6 +5,7 @@
 //! has a default path.
 
 use clap::{Args as ClapArgs, Parser, Subcommand};
+use rm2k_snes_maps::map::{self, MapRequest};
 use rm2k_snes_maps::{layers, request, Bad, Game, LayersRequest, Result};
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -31,6 +32,9 @@ struct Cli {
 enum Command {
     /// A map's two background layers, in mode 3
     Layers(LayersArgs),
+    /// A whole map: its layers, the events baked into them, its characters
+    /// as objects, its blocks and where the hero starts
+    Map(MapArgs),
 }
 
 /// Where the game is: the dump, and where its pictures are.
@@ -77,6 +81,27 @@ struct LayersArgs {
     place: Where,
 }
 
+#[derive(ClapArgs)]
+#[command(after_help = "Writes into --out what `layers` writes, for the layers as they end \
+    up, and:\n  \
+    sprites.bin     the sprite bank, 4bpp, one pose per slot and the extras \
+                    at its end\n  \
+    poses-<k>.bin   the twelve poses of the k-th character that changes pose\n  \
+    map.json        the baked events; what the conversion says, in order, \
+                    with what stops it; the events drawn; the palettes, the \
+                    slots, the leader candidates, the timer, the rain, the \
+                    picture, the animation box and the table of command 34; \
+                    and where the hero starts\n\n\
+    The request is a JSON with `map`, `map_files` and `chipset_files` as for \
+    `layers`, and what the cartridge and the other domains decided: `names`, \
+    `test_event`, `leaders`, `movable`, `route_graphics`, `animates_still`, \
+    `turning`, `timer`, `rain`, `picture`, `battle_animation`, `singles`, \
+    `palette_weight` and `dither`. See `MapRequest::from_json`.")]
+struct MapArgs {
+    #[command(flatten)]
+    place: Where,
+}
+
 fn game(place: &Where) -> Result<(Game, serde_json::Value, String)> {
     let (data, whose) = request::read(&place.request)?;
     let mut game = Game {
@@ -94,10 +119,20 @@ fn do_layers(args: &LayersArgs) -> Result<()> {
     layers::run(&game, &request, &args.place.out)
 }
 
+fn do_map(args: &MapArgs) -> Result<()> {
+    let (game, data, whose) = game(&args.place)?;
+    let request = MapRequest::from_json(&data, &whose)?;
+    let done = map::convert(&game, &request)?;
+    std::fs::create_dir_all(&args.place.out)
+        .map_err(|e| Bad::usage(format!("{}: {e}", args.place.out.display())))?;
+    map::write(&args.place.out, &done)
+}
+
 fn main() -> ExitCode {
     let cli = Cli::parse();
     let done = match &cli.command {
         Command::Layers(args) => do_layers(args),
+        Command::Map(args) => do_map(args),
     };
     match done {
         Ok(()) => ExitCode::SUCCESS,
