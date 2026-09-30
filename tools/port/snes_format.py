@@ -36,7 +36,7 @@ def entry(tile, horizontal, vertical, priority=0):
 
     The three palette bits are not set here: at 8 bits per pixel the index
     already reaches all of CGRAM and the PPU ignores them. The cells of the
-    slot screen, which is BG2 at 4bpp, already come from `menus.py` with the
-    palette set in `tile`, and this lets it through.
+    slot screen, which is BG2 at 4bpp, already come from `rm2k-snes-screens`
+    with the palette set in `tile`, and this lets it through.
     """
     return (tile | (priority << 13) | (horizontal << 14) | (vertical << 15))

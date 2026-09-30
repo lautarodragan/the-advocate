@@ -1,9 +1,9 @@
 """Las pantallas que se comparan contra un dibujo de Python y no contra una
 golden: el menú, la tienda, los ítems, el equipo, las ranuras.
 
-El dibujo lo hace `tools/port/` —`menus.render_menu`, `screens.shop_screen`
-y compañía— con la base de datos y el System de `arnes/datos.py`, y se compara
-a 15 bits, que es lo que la consola puede mostrar.
+El dibujo lo hace la etapa de las pantallas del conversor —ver
+`arnes/pantallas.py`— con el mismo juego que el conversor, y se compara a 15
+bits, que es lo que la consola puede mostrar.
 """
 
 import os

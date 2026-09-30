@@ -1,12 +1,12 @@
 """End Game, la última orden del menú de pausa: `Scene_End`.
 
-Que la pantalla se vea como `end_game.render` pixel por pixel, con el
+Que la pantalla se vea como `pantallas.fin` pixel por pixel, con el
 cursor en cada orden; que "No" y B vuelvan al menú como estaba, con el cursor
 en End Game; y que "Yes" funda el tema y la pantalla y termine en la
 pantalla de título, igual que al encender —la golden `titulo`—, con el juego
 que arranca de nuevo al elegir "Begin the Story".
 
-Lo que se ve sin comparar contra Python lo cobran las goldens `fin` y
+Lo que se ve sin comparar contra la etapa lo cobran las goldens `fin` y
 `fin-no` de `test_menu_golden.py`.
 """
 

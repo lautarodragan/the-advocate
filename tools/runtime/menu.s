@@ -3,8 +3,8 @@
 ; --- the pause menu ----------------------------------------------------------
 ;
 ; `Scene_Menu`, over the bank of the slot screen: the geometry and the blocks
-; come from `menus.py`, and `render_menu` is the reference. It opens with B,
-; when the hero is standing still: `request_menu` notes the request and
+; come from `rm2k-snes-screens`, whose `render` is the reference. It opens
+; with B, when the hero is standing still: `request_menu` notes the request and
 ; `move_hero` serves it, which is how RM2k does it with `menu_calling`. The
 ; game clock does not run while it is shown —as on the slot screen— so the
 ; menu costs no tick.
@@ -771,7 +771,7 @@ move:
 ; says what for: at 1, to choose whom to equip, and A returns with the row; at
 ; 0, for the medicine `k` in `pick_edges`, and A uses it on the row
 ; —`medicine_use`— and **stays**, with that row's HP repainted, which is what
-; `UpdateItem` does. B returns with $FF. `render_target` in menus.py is the
+; `UpdateItem` does. B returns with $FF. The screens stage's `render` is the
 ; reference.
 ;
 ; Until 2026-09-21 A did nothing with a medicine: it was written when outside

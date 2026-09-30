@@ -25,9 +25,9 @@ one in its own row or above.
     emulator/    the libretro core from Python (retro), and the bsnes-libretro
                  patch that exposes the WRAM
 
-    render/      the call the screens use to ask `rm2k-render` for faces,
-                 windows and pictures, the `Renderer` that holds the game
-                 the converter reads, and the image of the fork's ChipSets
+    render/      the call the converter uses to ask `rm2k-render` for
+                 pictures, the `Renderer` that holds the game the converter
+                 reads, and the image of the fork's ChipSets
                  (chipset_recipe); uses rpgmaker. A map's layers and its
                  CharSets are drawn by `rm2k-snes-maps`, below
 
@@ -35,18 +35,16 @@ one in its own row or above.
                  everything only it uses: the parts it was split into on
                  2026-09-29 (options, cases, game_scan, map_convert,
                  map_layers, sprites, obj_extras, vram, blocks,
-                 message_window, battle_scenes, battle_animations,
-                 music, mapdata, map_record, materials, and stage, which
-                 runs the parts that are programs of their own, and
-                 compiler, what goes into the event compiler's two calls
-                 and what comes back; the docstring of snes_convert says
-                 what each one is), and events —what the converter keeps of
-                 the event compiler: the constants, the registries its
-                 answer is read into, the models the tests use—,
-                 event_opcodes, battle, experience, screens, menus,
-                 title, picture, window, font, scene, animation, texts,
-                 adeleine, compress, fullscreen, end_game,
-                 msu_data; and beneath all of them, because they
+                 screen_stage, battle_screen, battle_scenes,
+                 battle_animations, music, mapdata, map_record, materials,
+                 and stage, which runs the parts that are programs of their
+                 own, and compiler, what goes into the event compiler's two
+                 calls and what comes back; the docstring of snes_convert
+                 says what each one is), and events —what the converter
+                 keeps of the event compiler: the constants, the registries
+                 its answer is read into, the models the tests use—,
+                 event_opcodes, battle, experience, picture, window, scene,
+                 animation, adeleine, compress, fullscreen, msu_data; and beneath all of them, because they
                  import nothing from the port, rules (from Game_Actor and
                  the LDB), constants, color (the screen tint), palette (an
                  image down to N colors), snes_format (a tile, a color and a
@@ -110,6 +108,16 @@ have layers of their own, one folder each:
                  into them, its objects, its blocks—, with those two; the
                  converter runs it once per map, through
                  `port/map_convert.py`
+      text/      `rm2k-snes-text`, a library: easyrpg-player's fonts, a line
+                 of text drawn over the System, and a message box reflowed
+                 for a narrower window
+      screens/   `rm2k-snes-screens`: the screens —the message window and
+                 its font, the title's menu, the save slots and the pause
+                 menu, the text screens with their windows, End Game—, the
+                 geometry they are drawn with, and every message box
+                 reflowed; the converter runs it once per cartridge,
+                 through `port/screen_stage.py`, and the game's tests ask it
+                 for the screens they compare against
 
 `rm2k-snes/` may depend on the other two; `snes/` and `rm2k/` on nothing
 outside themselves —not on each other, and not on `rm2k-snes/`—. So either

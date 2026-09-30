@@ -1262,7 +1262,7 @@ sorted:
 ; --- the screen -----------------------------------------------------------
 ;
 ; Text on black, on the same grid of 32 by 28 cells as the equipment screen
-; and the shop. The geometry comes from `tools/port/screens.py` and the
+; and the shop. The geometry comes from `tools/port/battle_screen.py` and the
 ; converter emits the positions, so it is written **by only one of the two
 ; sides**. The enemies at the top, the party at the bottom, and the last line
 ; is either the command menu or the message's two lines.

@@ -1,5 +1,5 @@
 {
- "about": "A text box's escape tail, in its two copies: `escape_tail` in src/messages.rs, which compiles the box, and in tools/port/events.py, which `texts.py` uses to rebuild boxes for the window. Each case is the box's lines and what both answer: the lines without the tail, how many pauses and whether it closes on its own; or null, which is that the box does not compile. tests/escapes.rs and tools/tests/test_escapes.py read this file.",
+ "about": "A text box's escape tail, in its two copies: `escape_tail` in src/messages.rs, which compiles the box, and in rm2k-snes-text's src/refit.rs, which reflows boxes for the window around it. Each case is the box's lines and what both answer: the lines without the tail, how many pauses and whether it closes on its own; or null, which is that the box does not compile. tests/escapes.rs and rm2k-snes-text's tests/refit.rs read this file.",
  "cases": [
   {"lines": ["HELP!!", "That bandit... has a bow...\\|\\^"],
    "answer": [["HELP!!", "That bandit... has a bow..."], 1, true]},

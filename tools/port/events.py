@@ -13,9 +13,8 @@ the ROM's tables are emitted with (`mapdata.py`), the command codes a few
 scans look for (`game_scan.py`, `cases.py`), the registries the
 compiler's answer is read into (`Songs`, `Troops`, `Trigger`), the indices it
 answers (`VARIABLE_SLOT`, `SKILL_SLOT`, `PARTY_COMMON_EVENTS`), which picture
-takes the cartridge's place (`Pictures`), the escape tail `texts.py`
-rebuilds boxes around, and the models the game's tests predict the ROM with
-(`Encounters`, `key_value`, `PartyState`).
+takes the cartridge's place (`Pictures`), and the models the game's tests
+predict the ROM with (`Encounters`, `key_value`, `PartyState`).
 
 The whys of how each command compiles live next to the code that compiles
 it, in the crate: `tools/rm2k-snes/events/src/compile.rs` and its
@@ -74,7 +73,8 @@ SHOW_MESSAGE_2 = 20110
 # **Any other escape still does not compile**, and that is on purpose: the
 # three `\V` of the common events —the value of a variable inserted into the
 # text— require composing the text when opening it, which is something else.
-# Drawing them as two letters would show.
+# Drawing them as two letters would show. The rule is the compiler's
+# `escape_tail`, and `rm2k-snes-text` reflows the boxes around the same one.
 
 # What a `\|` costs. **It is not one second**: it is the
 # `SetWaitForNonPrintable(61)` of `window_message.cpp`, with its comment next to
@@ -467,7 +467,7 @@ HEADER_AUTO_CLOSE = 0x08
 
 # The `OP_MESSAGE` offset in the game's block counts by four bytes, so the
 # block can be 256 KB with a 16-bit operand. It went by two from when the
-# texts were reflowed for the window (`port/texts.py`) until 2026-09-27, when
+# texts were reflowed for the window (`rm2k-snes-text`) until 2026-09-27, when
 # the main path of the world chapter went past 128 KB; the whole game is about
 # 161 KB. It costs a byte and a half of padding per box, on average, against
 # half a byte by two: step 3 was measured (half the padding, 192 KB, and a

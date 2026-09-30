@@ -187,7 +187,7 @@ class EventCommand:
 
 # Text boxes rebuilt for another screen: a function that receives a page's
 # commands as they are in the JSON and returns different ones. The port sets
-# `texts.refit_commands`; the reader knows nothing about screens, and
+# `screen_stage.refit_commands`; the reader knows nothing about screens, and
 # with nobody setting it the game is read as is.
 #
 # It is a step separate from `rom/parches/`, and runs after it: it reads

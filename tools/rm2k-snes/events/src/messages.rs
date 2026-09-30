@@ -86,8 +86,8 @@ pub struct Window {
 /// at the end of a line does not draw a single pixel, so removing it does
 /// not change the screen.
 ///
-/// The converter has the same rule, in `escape_tail` of its events.py: that
-/// copy is the one `texts.py` rebuilds the boxes around, before the
+/// `rm2k-snes-text` has the same rule, in its `refit.rs`: that copy is the
+/// one the boxes are reflowed around for the console's window, before the
 /// compiler sees them. `tests/escapes.json` holds the two together.
 pub fn escape_tail(lines: &[String]) -> Step<(Vec<String>, usize, bool)> {
     let mut lines: Vec<String> = lines.to_vec();

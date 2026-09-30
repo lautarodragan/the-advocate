@@ -12,7 +12,7 @@ from dibujo import comparar_pantalla
 import pantallas
 
 # El grupo y el oro con que se abre el menú en las pruebas que lo comparan
-# contra `menus.render_menu`: tienen que ser los mismos de los dos lados.
+# contra `pantallas.menu`: tienen que ser los mismos de los dos lados.
 GRUPO = (14, 11)
 ORO = 1234
 
@@ -37,7 +37,7 @@ def con_grupo(una):
 
 
 def comparar(una, elegida, guardar=True, nombre="menu", hp=None):
-    """El menú en pantalla contra `menus.render_menu` con `GRUPO` y `ORO`,
+    """El menú en pantalla contra `pantallas.menu` con `GRUPO` y `ORO`,
     y el cursor en `elegida`. Vivía en `test_menu_dibujo.py` hasta el
     2026-09-29; lo usa también End Game, que vuelve al menú."""
     esperada = pantallas.menu(una.simbolos["SRAM_SLOTS"], GRUPO, ORO,

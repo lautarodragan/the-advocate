@@ -1,7 +1,7 @@
 """La tienda: tres tenderos de Lashe City Interiors, el mapa 10, abiertos por
 el camino de verdad —A para el mensaje y A para cerrarlo—, y cada modo de
-`Scene_Shop` pixel por pixel contra `screens.shop_screen`, con las
-ventanas y la barra.
+`Scene_Shop` pixel por pixel contra `pantallas.tienda`, con las ventanas
+y la barra.
 
 * El de armas, EV0021: `OpenShop` tipo 0 y juego de mensajes 0, tres ítems.
   Cada modo, una vez.
@@ -12,7 +12,7 @@ ventanas y la barra.
 
 Entre los tres, la barra pasa por cada lugar cuyo parche es distinto —la
 última fila de cada lista y la última orden, que cruzan la franja del fondo
-de su ventana: ver `screens.compact_shop`—.
+de su ventana: ver `compact_shop` en `rm2k-snes-screens`—.
 """
 
 from consola import TITULO_AIRE

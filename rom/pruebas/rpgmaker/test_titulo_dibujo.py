@@ -250,7 +250,7 @@ def test_cada_ranura_carga_lo_que_se_guardo_en_ella(partida, ranura):
 def test_la_pantalla_de_ranuras_muestra_el_grupo_guardado(partida):
     """Una ranura con partida muestra el nombre del líder y las caras del
     grupo, como `Window_SaveFile` en RM2k, y **pixel por pixel** contra
-    `menus.render_slots` con ese mismo grupo.
+    `pantallas.pantalla_de_ranuras` con ese mismo grupo.
 
     Es la única prueba de pixeles de la variante "llena": la tanda no puede
     llegar a ella porque la SRAM del emulador arranca virgen, y acá sí, porque

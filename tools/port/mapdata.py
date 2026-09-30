@@ -89,7 +89,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
     `fullscreen.compressed` returns.
     `slots` is the slots screen and **always goes**: the save point opens it
     from inside the game, whether the ROM has a title or not. See
-    `slots_screen` in menus.py.
+    `slots.rs` in `rm2k-snes-screens`.
 
     `party_common` is `{common event: its code}` of the equipment common
     events, compiled: see `events.PARTY_COMMON_EVENTS`.
@@ -450,9 +450,9 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         "; The name and the level aren't blocks: they are composed one letter\n"
         "; per cell with `slot_glyph_cells`, and each actor's text comes\n"
         "; from its row of `slot_actor_text` —the name, the two digits of\n"
-        "; the level and max HP, one after the other—. See 'lo que depende\n"
-        "; del actor' in menus.py: it is what keeps the tile bank from\n"
-        "; growing with the number of actors.\n"
+        "; the level and max HP, one after the other—. See 'what depends on\n"
+        "; the actor' in rm2k-snes-screens: it is what keeps the tile bank\n"
+        "; from growing with the number of actors.\n"
         "SLOT_FACES_MAX    = %d\n"
         "SLOT_FACE_COLS    = %d\n"
         "SLOT_FACE_ROWS = %d\n"
@@ -896,8 +896,9 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # is BG2 at 4bpp.
         #
         # Its name and its level are **not** blocks: the ROM composes them with
-        # glyphs, see "what depends on the actor" in menus.py. That is what
-        # keeps the bank from growing with the number of actors.
+        # glyphs, see "what depends on the actor" in the screens stage's
+        # `layout.rs`. That is what keeps the bank from growing with the
+        # number of actors.
         face_block = {}
         for actor in sorted(slots["caras"]):
             name = "slot_face_%d" % actor
@@ -948,10 +949,10 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         handle.write(block("item_cgram_uploads", palettes_cgram(
             slots["items_paletas"][T.ITEM_UP:])) + "\n")
         # The windows of the item and equipment screens, on BG1: see
-        # `ITEM_WINDOWS` and `screens.EQ_WINDOWS`. The tiles and the
-        # colors are the same for both. Each tilemap goes without the bottom
-        # rows the screen doesn't show, and each cursor as the two rows of
-        # cells it takes, which the ROM copies on top: 128 bytes.
+        # `ITEM_WINDOWS` and `EQ_WINDOWS` in the screens' layout. The tiles
+        # and the colors are the same for both. Each tilemap goes without the
+        # bottom rows the screen doesn't show, and each cursor as the two rows
+        # of cells it takes, which the ROM copies on top: 128 bytes.
         border_tiles, border_colors, ((border_map, border_bars),
                                       (eq_map, eq_bars)) = \
             slots["items_marco"]
@@ -971,11 +972,11 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
             cgram_word(c).to_bytes(2, "little")
             for c in border_colors)) + "\n")
         # The shop windows, on BG1 with their own base: see
-        # `screens.TI_WINDOWS` and `compact_shop`, which says what is
-        # stored. The stretches of each layer are `(VRAM word, source byte in
-        # `ti_border_rows`, bytes)`, terminated by three zeros; the bars,
-        # `(VRAM word, source byte in `ti_border_patches`, bytes per row,
-        # rows)`.
+        # `ti_windows` and `compact_shop` in `rm2k-snes-screens`, which says
+        # what is stored. The stretches of each layer are `(VRAM word, source
+        # byte in `ti_border_rows`, bytes)`, terminated by three zeros; the
+        # bars, `(VRAM word, source byte in `ti_border_patches`, bytes per
+        # row, rows)`.
         ti_tiles, ti_colors, (ti_rows, ti_top, ti_layers, ti_patches,
                               ti_bars) = slots["tienda_marco"]
 
@@ -1019,9 +1020,9 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
             "TI_BORDER_UP      = %d\n"
             % (P.TI_VRAM, P.TI_MAP, len(ti_tiles), len(ti_colors),
                ti_top))
-        # The End Game screen, whole: see tools/port/end_game.py. The two
-        # palettes go one after the other, the "Yes" one first: the ROM picks
-        # one by multiplying.
+        # The End Game screen, whole: see `end_game.rs` in
+        # `rm2k-snes-screens`. The two palettes go one after the other, the
+        # "Yes" one first: the ROM picks one by multiplying.
         end_tiles, end_rows, end_row0, end_palettes = slots["fin"]
         handle.write(block("end_tiles", b"".join(
             pack_tile(cell, planes=4) for cell in end_tiles)) + "\n")
@@ -1074,7 +1075,8 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         for _ in range(slots.get("relleno_textos") or 0):
             item_texts_ofs.append((0, 0))
         # And the fixed ones, behind: the parameters and the equipment slots,
-        # and the name of each actor that can join the party. See screens.py.
+        # and the name of each actor that can join the party, the first two as
+        # the screens stage cuts them.
         B = battle_mod
         db = slots["db"]
         param_text = [new_text(t) for t in textos["params"]]
@@ -1082,7 +1084,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         actor_text = {a: new_text(db.actors[a].name)
                       for a in slots["actores"]}
         # The shop's: the eleven messages of each of the three sets, two lines
-        # each —`split_description`, as in screens.py—, and "Owned Items",
+        # each as the screens stage splits them, and "Owned Items",
         # "Equipped Items" and the currency.
         shop_text = None
         for messages in textos["shop"]:
@@ -1236,8 +1238,8 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
             str(face_block.get(actor, 0xFF))
             for actor in range(n_actors)) or "$FF"))
         # The pause menu: its blocks, and where each thing goes in the
-        # tilemap, in words. The geometry is `menus.py`'s and comes from
-        # there.
+        # tilemap, in words. The geometry is the one the screens stage drew
+        # with, and comes from its `layout`.
         
         def vram_cell(row, col):
             return SLOT_MAP + row * 32 + col
@@ -1323,15 +1325,15 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
                                         T.ITEM_FIRST_CHAR
                                         + T.ITEM_CHARS)))))
         # The experience line, which the ROM draws with sprites: see
-        # `MENU_EXP_X` in menus.py. The term is four tiles —two wide, top and
-        # bottom— and the digits come from `slot_glyph_cells`.
+        # `MENU_EXP_X` in the screens' layout. The term is four tiles —two
+        # wide, top and bottom— and the digits come from `slot_glyph_cells`.
         handle.write(".block %d\nmenu_exp_finished:\n    .word %s\n" % (
             2 * len(menu["exp_termino"]), ", ".join(
                 "$%04X" % entry(c, False, False)
                 for c in menu["exp_termino"])))
-        # The actor choice: its windows on BG1 —see `TARGET_WINDOWS` in
-        # menus.py—. A single tilemap, the one with an item, and the bar only
-        # in the rectangle that changes: see `menus.compact_target`. And
+        # The actor choice: its windows on BG1 —see `TARGET_WINDOWS` in the
+        # screens' layout—. A single tilemap, the one with an item, and the bar
+        # only in the rectangle that changes: see `compact_target` there. And
         # the name of each medicine on two lines, in ASCII, with a table of
         # one byte per `k` that says which one it is —$FF if it isn't a
         # medicine—: only medicines open this screen.
@@ -2186,7 +2188,8 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         handle.write("BA_COMMAND_SKILL= %d\n" % BS.BA_COMMAND_SKILL)
         # The skills screen: two columns with the name and the cost, and the
         # description of the one under the cursor at the very top. The
-        # geometry comes from `screens.py`, like the item list's.
+        # geometry comes from `battle_screen.py`, and the item list's from
+        # the screens stage.
         handle.write(
             "SKILLS_N          = %d\n"
             "BA_SKILL_DESC_POS = %d\n"

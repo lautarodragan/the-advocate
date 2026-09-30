@@ -73,7 +73,6 @@ PRUEBAS_QUE_TODAVIA_NOMBRAN_TOOLS = {
     "pruebas/README.md",
     "pruebas/abl/test_msu_datos.py",
     "pruebas/abl/test_recorrido_capitulo_golden.py",
-    "pruebas/arnes/dibujo.py",
     "pruebas/arnes/lz2.py",
     "pruebas/arnes/video.py",
     "pruebas/herramientas/test_lz2.py",

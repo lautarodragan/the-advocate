@@ -1,5 +1,5 @@
 """El menú de pausa: que se abra con B como en RM2k, que se vea como
-`menus.render_menu` pixel por pixel, y que guardar ande desde ahí.
+`pantallas.menu` pixel por pixel, y que guardar ande desde ahí.
 
 El mapa después de cerrarlo lo cobra `menu` en `test_menu_golden.py`; acá se
 mira lo que una captura suelta no puede: el menú con un grupo y oro

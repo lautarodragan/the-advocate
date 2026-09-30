@@ -1,5 +1,5 @@
 """El equipo: la pantalla de `Scene_Equip` desde el menú, pixel por pixel
-contra `screens.equipment_screen`, y lo que equipar cambia en la RAM.
+contra `pantallas.equipo`, y lo que equipar cambia en la RAM.
 
 El inventario lo da la página de prueba con `ChangeItems` de verdad. Talan
 arranca con su ropa de trabajo, que es el equipo inicial del LDB copiado a

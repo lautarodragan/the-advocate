@@ -24,7 +24,7 @@
 ; they have on; A on a slot shows the list of what can be put on there —it
 ; replaces the slots while it lasts— with the parameters that would result.
 ; The empty line at the end is taking off what is in the slot. B goes back.
-; `screens.equipment_screen` is the reference, and `screens.equip` the
+; `equipment_screen` of `rm2k-snes-screens` is the reference, and `equip` the
 ; rule. The windows and the cursor bar go on BG1, which BG2's text does not
 ; touch: see `eq_screen_upload` and `eq_bar`.
 ;   eq_actor     is comp_char      ; the actor number
@@ -185,7 +185,7 @@ no:
 
 ; The item slot A would have: the one it has, or —while choosing— the one
 ; under the cursor if it is the chosen slot, and none in the other if the
-; weapon is two-handed. It is `screens.equip` without touching anything.
+; weapon is two-handed. It is the stage's `equip` without touching anything.
 ; Returns in `eq_id`.
 .proc eq_effective
 .a8
@@ -529,7 +529,7 @@ nothing:
     rts
 .endproc
 
-; The whole screen, in the buffer: `screens.equipment_screen`.
+; The whole screen, in the buffer: the stage's `equipment_screen`.
 .proc eq_compose
 .a8
 .i16
@@ -816,7 +816,7 @@ row_pos_list:
 .a8
 .endproc
 
-; A on the list: `screens.equip` with what the cursor is on.
+; A on the list: the stage's `equip` with what the cursor is on.
 .proc eq_equip
 .a8
 .i16

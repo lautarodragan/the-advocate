@@ -7,7 +7,7 @@
 ; on the right the party, and the red bar over the selected row. The screen is
 ; still `target_screen`, in bank 0, with the menu's bank on BG2; this is
 ; what it adds, outside bank 0. The geometry and the why are in
-; `TARGET_WINDOWS`, in menus.py, and `render_target` is the reference.
+; `TARGET_WINDOWS` of `rm2k-snes-screens`, whose `render` is the reference.
 ;
 ; BG1 has **its own base**, `TARGET_VRAM`, behind the menu's tilemap: there
 ; is no room left in BG2's, because the menu's bank reaches almost up to its

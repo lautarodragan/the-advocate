@@ -1,5 +1,5 @@
 """La pantalla de ítems del menú de pausa: que se vea como
-`menus.render_items` pixel por pixel, que la lista se corra cuando el cursor
+`pantallas.items` pixel por pixel, que la lista se corra cuando el cursor
 se sale, y que usar un ítem de switch lo prenda y vuelva al mapa.
 
 El inventario lo da la página de prueba con `ChangeItems` de verdad, así que

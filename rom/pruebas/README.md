@@ -280,7 +280,7 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `herramientas/test_fork_mapas.py`: el fork de `parches/manual/`
 * `herramientas/test_horneados.py`: los eventos horneados en el mapa
 * `herramientas/test_textos_del_juego.py`: los cuadros de texto de `data/`
-  rearmados
+  rearmados por `rm2k-snes-screens`
 * `herramientas/test_encuentros.py`: los encuentros al azar
 * `herramientas/test_lideres.py`: quién puede ser líder
 * `herramientas/test_destello_paleta.py`: la paleta de sprite de los líderes

@@ -15,7 +15,10 @@ in its own module of `port/`, one per piece that can be replaced alone:
       obj_extras        the timer's colors, and whether a map animates
       vram              the VRAM layouts
       blocks            `TileSubstitution` translated to 16x16 blocks
-    message_window      the message window and the font
+    screen_stage        the screens, `rm2k-snes-screens`: the message
+                        window and its font, the title's menu, the menus,
+                        and the message boxes reflowed for the window
+    battle_screen       the battle's text screen: its geometry and texts
     battle_scenes       backdrops and battlers
     battle_animations   the battle animations
     stage               runs a part that is a program of its own:

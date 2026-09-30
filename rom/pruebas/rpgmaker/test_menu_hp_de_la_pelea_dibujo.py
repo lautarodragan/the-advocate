@@ -3,7 +3,7 @@
 Es lo que taro hizo jugando y lo que ninguna prueba hacía: *"el hp se reduce en
 batalla, pero en el menú siempre se muestra en 40"*. Las dos mitades estaban
 cubiertas por separado —`test_batalla.py` exige el HP exacto turno por turno y
-`test_menu_dibujo.py` compara el menú contra `menus.render_menu`— y justo la
+`test_menu_dibujo.py` compara el menú contra `pantallas.menu`— y justo la
 costura entre las dos no la miraba nadie, porque la referencia del menú
 dibujaba el máximo horneado y la ROM también: **los dos lados se equivocaban
 igual**.

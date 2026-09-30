@@ -5,9 +5,9 @@
 ; `Scene_Shop`, opened by `OP_SHOP` from the interpreter, like saving: the
 ; screen blocks inside the page, it costs no tick, and on exit the map comes
 ; back and the page goes on. It is a text screen —see "the text
-; screens"— and `screens.shop_screen` is the reference for each mode. The
+; screens"— and `shop_screen` of `rm2k-snes-screens` is the reference. The
 ; System's windows and the bar go on BG1, with their own base: see
-; `ti_screen_upload` and `ti_windows`, and `screens.TI_WINDOWS`. What
+; `ti_screen_upload` and `ti_windows`, and the stage's `ti_windows`. What
 ; it sells goes as `k` in `FAR_SHOP`; the selling list, in
 ; `FAR_ITEM_LIST`.
 ;
@@ -359,7 +359,7 @@ sale:
     rts
 .endproc
 
-; The whole screen, in the buffer: `screens.shop_screen`. The windows and
+; The whole screen, in the buffer: the stage's `shop_screen`. The windows and
 ; the bar are not: they go on BG1, and `ti_windows` puts them there every frame.
 .proc ti_compose
 .a8
@@ -1125,7 +1125,7 @@ ready:
 ; `ti_border_patches`. Without remembering anything: every frame restores
 ; everything, so neither the bar nor the previous layer can be left painted. It
 ; is 1408 bytes, plus the bar's, which together with the text's 1792 fit in the
-; vblank —see `screens.compact_shop`—.
+; vblank —see `compact_shop` in `rm2k-snes-screens`—.
 .proc ti_windows
 .a8
 .i16
@@ -1257,7 +1257,7 @@ row:
 no_bar:
     rts
 
-; A16 = the mode's layer, `screens.TI_LAYER_OF_MODE`. Returns with 16-bit A.
+; A16 = the mode's layer, `TI_LAYER_OF_MODE`. Returns with 16-bit A.
 layer:
     lda comp_col
     rep #$20

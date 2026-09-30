@@ -200,9 +200,9 @@ row:
 ; The name, the level and the max HP **are not baked** into one block of
 ; cells per actor: they are composed one letter per cell, with the glyphs in
 ; `slot_glyph_cells`. The reason is in "what depends on the actor" in
-; menus.py and is the same one that already holds for the gold and for the
-; item screen: the tile bank is a single one and deduplicated, so a block per
-; actor made it grow with every one who could be in the party.
+; the screens stage's `layout.rs` and is the same one that holds for the
+; gold and the item screen: the tile bank is a single one and deduplicated,
+; so a block per actor made it grow with every one who could be in the party.
 
 ; `msg_ptr` pointing at one of the strips of the actor in A, offset by the X
 ; bytes of `SLOT_TEXT_NAME`, `_LEVEL` or `_MAX`. Clobbers A and X, and

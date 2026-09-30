@@ -1,22 +1,10 @@
-"""RM2k's message window, built from the game's System.
+"""The game's System, as the rest of the converter still reads it: where
+its picture is, and the timer's glyphs, which `rm2k-render system` cuts.
 
-**What comes from the System is drawn by `rm2k-render system`**: the empty
-window —its background stretched or tiled as the database's
-`message_stretch` says, and the frame—, the cursor, the 16x16 blocks the
-text and its shadow take their colors from, and the timer's glyphs. Which
-piece of the System is which is `rm2k-rules`' (`system`), and how they are
-put together is easyrpg-player's `Window::RefreshBackground`,
-`RefreshFrame` and `RefreshCursor`: a viewer of the game on a PC would draw
-them the same way.
-
-What stays here is the port's: the window's size and the text's place on a
-screen 256 wide, the lines cut to what fits, and the text drawn with the
-port's 8-pixel font (`font.py`), which is `Font::Render`'s rule over the
-System's blocks.
-
-The text and shadow colors are **16x16 blocks**, not single colors: each
-pixel of the glyph takes the color at the same position inside the block, so
-a letter comes out with a vertical gradient. It is what `MaskedBlit` does.
+The maps use it: `map_convert` hands the System to `rm2k-snes-maps` for
+the timer's digits, and `snes_convert` masks the timer's colors with it.
+Everything else that comes from the System —the windows, the cursors, the
+text— is drawn by `rm2k-snes-screens`, which finds the System itself.
 """
 import os
 
@@ -24,8 +12,8 @@ from render import render_map
 
 
 class Skin:
-    """The game's System, and what `rm2k-render` drew from it, remembered:
-    the same window and the same blocks are asked for many times."""
+    """The game's System, and its timer's glyphs once `rm2k-render` drew
+    them."""
 
     def __init__(self, path, message_stretch):
         self.path = path
