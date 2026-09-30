@@ -12,11 +12,20 @@ optimicen código"*: el conversor ya es un compilador de RM2k a bytecode.
 
 Ideas, de la más barata a la más ambiciosa:
 
-1. **Correr las paralelas cada N cuadros** en vez de cada cuadro. El
-   experimento está en curso: diez ROMs con N de 1 a 60 para que taro busque
-   a mano el punto donde deja de funcionar (`/shared/experimentos/
-   2026-09-26-paralelos-cada-n/`). Además dice si el lag es de las paralelas o
-   de otra cosa.
+1. **Correr las paralelas cada N cuadros** en vez de cada cuadro. Se probó
+   el 2026-09-26 (`PARALELOS_CADA`, en `ef59e199`) y se descartó el
+   2026-09-30 sin mergear; la rama se borró. Lo que midió:
+   - en el mapa 11 el costo promedio de las paralelas bajó de 125 líneas
+     por vuelta a 36 (N = 60), pero **el peor cuadro no bajó** (~344),
+     porque en la vuelta que toca corren las 13 páginas juntas: para bajar
+     el pico hay que repartirlas entre vueltas, no espaciarlas;
+   - en la terraza el gasto no eran las paralelas sino el recálculo de
+     paletas de los destellos, y en el mapa 8 no había nada que ganar;
+   - la reacción del "me atraparon" pasó de 62 cuadros a 65-69 con N = 4 y
+     a 149-160 con N = 60; con N = 4 fallaban 7 casos de la tanda,
+     animaciones de paralelas con Wait en otra fase y dos de las piedras;
+   - el 50 % de lag que siente taro en el mapa 11 no se reprodujo en
+     ningún emulador: hace falta su camino exacto.
 2. **Un disparador sintético "al moverse"**: además de "paralelo", páginas
    que corren sólo cuando un evento (o el héroe) **cambia de celda** —no de
    pixel—. El código que mueve un evento hace una llamada que recorre las
