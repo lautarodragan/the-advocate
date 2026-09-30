@@ -25,6 +25,6 @@ faltaba. En el juego, los mapas 2 y 3 prenden su tema antes de usar sus
 efectos.
 
 Dónde vive: el conversor presupuesta cada paquete con los temas que pueden
-venir sonando (`inherited_songs` en `tools/port/music.py`), la ROM
+venir sonando (`inherited_songs` en el `cartridge.rs` de `rm2k-snes-audio`), la ROM
 anota `PKG_PARTIAL` y `song_ensure` completa el paquete. Lo cobra
 `test_el_paquete_que_no_entro_con_otro_tema_sonando_se_completa`.

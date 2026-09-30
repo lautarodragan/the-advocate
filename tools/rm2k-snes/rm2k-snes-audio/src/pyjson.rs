@@ -38,7 +38,10 @@ fn write(out: &mut String, value: &Value, level: usize) {
     match value {
         Value::Null => out.push_str("null"),
         Value::Bool(b) => out.push_str(if *b { "true" } else { "false" }),
-        Value::Number(n) => out.push_str(&n.to_string()),
+        Value::Number(n) => match n.as_f64() {
+            Some(x) if n.is_f64() => out.push_str(&float(x)),
+            _ => out.push_str(&n.to_string()),
+        },
         Value::String(s) => string(out, s),
         Value::Array(items) => {
             if items.is_empty() {
@@ -77,8 +80,42 @@ fn write(out: &mut String, value: &Value, level: usize) {
     }
 }
 
-/// The text Python would write for `value`. Only integers are written as
-/// numbers the same way Python does; a float would need its `repr`.
+/// A float as Python's `repr` writes it: the shortest digits that read back
+/// the same —Rust finds those too—, positional from 1e-4 up to 1e16 and with
+/// at least one decimal, and scientific outside, with a sign and at least
+/// two digits of exponent: `1e-05`, `1.5e+16`.
+pub fn float(x: f64) -> String {
+    if x.is_nan() {
+        return "NaN".into();
+    }
+    if x.is_infinite() {
+        return if x > 0.0 { "Infinity" } else { "-Infinity" }.into();
+    }
+    if x == 0.0 {
+        return if x.is_sign_negative() { "-0.0" } else { "0.0" }.into();
+    }
+    let scientific = format!("{:e}", x.abs());
+    let (mantissa, exponent) = scientific.split_once('e').unwrap();
+    let exponent: i32 = exponent.parse().unwrap();
+    let digits: String = mantissa.chars().filter(|c| *c != '.').collect();
+    let sign = if x < 0.0 { "-" } else { "" };
+    if (-4..16).contains(&exponent) {
+        let text = if exponent >= 0 {
+            let point = exponent as usize + 1;
+            let whole = format!("{digits:0<point$}");
+            let (int, frac) = whole.split_at(point);
+            format!("{int}.{}", if frac.is_empty() { "0" } else { frac })
+        } else {
+            format!("0.{}{digits}", "0".repeat((-exponent - 1) as usize))
+        };
+        return format!("{sign}{text}");
+    }
+    let (first, rest) = digits.split_at(1);
+    let rest = if rest.is_empty() { String::new() } else { format!(".{rest}") };
+    format!("{sign}{first}{rest}e{}{:02}", if exponent < 0 { '-' } else { '+' }, exponent.abs())
+}
+
+/// The text Python would write for `value`.
 pub fn to_string(value: &Value) -> String {
     let mut out = String::new();
     write(&mut out, value, 0);
@@ -89,6 +126,23 @@ pub fn to_string(value: &Value) -> String {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn floats_are_written_like_repr() {
+        for (x, text) in [
+            (2.542840700201702, "2.542840700201702"),
+            (3.0, "3.0"),
+            (0.5, "0.5"),
+            (1e-5, "1e-05"),
+            (0.0001, "0.0001"),
+            (1.5e16, "1.5e+16"),
+            (1e15, "1000000000000000.0"),
+            (-12.25, "-12.25"),
+            (0.1 + 0.2, "0.30000000000000004"),
+        ] {
+            assert_eq!(float(x), text);
+        }
+    }
 
     #[test]
     fn it_indents_like_python() {

@@ -6,16 +6,20 @@
 //! default path.
 
 use clap::{Args as ClapArgs, Parser, Subcommand};
-use rm2k_project::Project;
+use ditto::dump::Dump;
+use ditto::schema::System;
+use rm2k_project::{suite, Project};
+use rm2k_rules::tree::Tree;
 use rm2k_snes_audio::bank::{self, Key, Samples};
 use rm2k_snes_audio::compile;
 use rm2k_snes_audio::emit;
 use rm2k_snes_audio::fail::{Bad, Result};
 use rm2k_snes_audio::game::Game;
 use rm2k_snes_audio::samples::SoundFontSamples;
-use rm2k_snes_audio::{effects, job, msu, pyjson, sdsp, stream};
+use rm2k_snes_audio::cartridge::{self, Cartridge};
+use rm2k_snes_audio::{effects, job, msu, msu_data, pyjson, sdsp, stream};
 use serde_json::{json, Map, Value};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -43,6 +47,14 @@ struct Cli {
 enum Command {
     /// A cartridge's music, from a job: musicdata.inc, musica.json and audio.json
     Compile(CompileArgs),
+    /// A cartridge's music as a stage of its converter: from what the event compiler asked for
+    /// to musicdata.inc, the .msu and what goes with them
+    Cartridge(CartridgeArgs),
+    /// The entries of a .msu with data, as JSON: [where, length] each; refuses one that is not
+    /// valid
+    MsuIndex(MsuFileArgs),
+    /// A .msu with data, signed again: what a changed one needs to pass as another build's
+    MsuSign(MsuSignArgs),
     /// The samples each song asks for, and what each weighs untrimmed
     Keys(KeysArgs),
     /// What a stream writes to the DSP —(frame, register, value)— and how long it is
@@ -123,6 +135,64 @@ struct CompileArgs {
 }
 
 #[derive(ClapArgs)]
+#[command(after_help = "The request is a JSON object:\n  \
+    songs               the event compiler's `songs`, as it answers them\n  \
+    maps                the cartridge's maps, by number, in the order of the map table\n  \
+    start               the index of the one it boots in\n  \
+    title, game_over    whether it has those screens: their songs come from the System\n  \
+    decompress_frames   how many frames decompressing the boot map takes\n  \
+    measuring_headroom  every song's headroom, instead of its ceiling, or null\n  \
+    backdrops           [[tiles, colors]] in hex: every quality battle backdrop, by number\n  \
+    tree_nodes          map tree nodes in the dump's shape, over the dump's\n\n\
+    It writes into --out musicdata.inc, musica.json, audio.json, audio-job.json and \
+    efectos.json, and the .msu to --msu.")]
+struct CartridgeArgs {
+    /// What the cartridge decided, as JSON
+    #[arg(long, value_name = "PATH")]
+    request: PathBuf,
+
+    /// The directory to write to
+    #[arg(long, value_name = "DIRECTORY")]
+    out: PathBuf,
+
+    /// Where the .msu goes
+    #[arg(long, value_name = "PATH")]
+    msu: PathBuf,
+
+    /// The game's Ditto dump: the map tree and the database's System
+    #[arg(long, value_name = "DIRECTORY")]
+    data: PathBuf,
+
+    #[command(flatten)]
+    place: Where,
+
+    /// The bank the samples come from
+    #[arg(long, value_name = "PATH")]
+    soundfont: PathBuf,
+}
+
+#[derive(ClapArgs)]
+struct MsuFileArgs {
+    /// The .msu
+    msu: PathBuf,
+
+    /// The directory where rm2k-snes.toml is, which says the game's signature. Without this,
+    /// it is looked up from the current directory upwards
+    #[arg(long, value_name = "DIRECTORY")]
+    project: Option<PathBuf>,
+}
+
+#[derive(ClapArgs)]
+struct MsuSignArgs {
+    /// The .msu
+    msu: PathBuf,
+
+    /// Where the signed one goes
+    #[arg(long, value_name = "PATH")]
+    out: PathBuf,
+}
+
+#[derive(ClapArgs)]
 struct KeysArgs {
     /// The songs, by name
     songs: Vec<String>,
@@ -188,9 +258,32 @@ fn hex(data: &[u8]) -> String {
 fn do_compile(args: &CompileArgs) -> Result<()> {
     let game = args.place.game()?;
     let (job, emit) = job::parse(&read_json(&args.job)?, args.aram_end)?;
-    let samples = Samples { font: SoundFontSamples::open(&args.soundfont)? };
-    let music = compile::build(&job, &game, &samples)?;
-    std::fs::create_dir_all(&args.out).map_err(|e| Bad::usage(format!("{}: {e}", args.out.display())))?;
+    let done = compile_into(&job, emit.as_ref(), &game, &args.soundfont, &args.out, args.detail)?;
+    write_file(&args.out.join("audio.json"), &serde_json::to_string(&Value::Object(done.audio)).unwrap())
+}
+
+/// A job's music, compiled: what `audio.json` says, and with `emit`, the
+/// sound effects' MSU-1 versions.
+struct Compiled {
+    music: compile::Music,
+    audio: Map<String, Value>,
+    quality: Option<msu::Effects>,
+}
+
+/// Compiles a job into `out`: `musicdata.inc` and `musica.json` with
+/// `emit`, and what each song and the bank came out as, to standard output.
+/// `audio.json` is the caller's to write, with whatever it adds.
+fn compile_into(
+    job: &compile::Job,
+    emit: Option<&emit::Emit>,
+    game: &Game,
+    soundfont: &Path,
+    out_dir: &Path,
+    detail: bool,
+) -> Result<Compiled> {
+    let samples = Samples { font: SoundFontSamples::open(soundfont)? };
+    let music = compile::build(job, game, &samples)?;
+    std::fs::create_dir_all(out_dir).map_err(|e| Bad::usage(format!("{}: {e}", out_dir.display())))?;
 
     let bank = &music.bank;
     let mut out = Map::new();
@@ -213,7 +306,7 @@ fn do_compile(args: &CompileArgs) -> Result<()> {
                     "lost": t.lost.map(|(l, f)| vec![l, f]),
                     "length": t.length(),
                 });
-                if args.detail {
+                if detail {
                     let m = s.as_object_mut().unwrap();
                     m.insert("writes".into(), json!(t.writes));
                     if let Some(p) = &t.parsed {
@@ -271,15 +364,16 @@ fn do_compile(args: &CompileArgs) -> Result<()> {
         }),
     );
 
-    if let Some(emit) = &emit {
+    let mut quality = None;
+    if let Some(emit) = emit {
         let text = emit::musicdata(&music, emit)?;
-        write_file(&args.out.join("musicdata.inc"), &text)?;
-        write_file(&args.out.join("musica.json"), &pyjson::to_string(&emit::songs_json(&music.songs)))?;
+        write_file(&out_dir.join("musicdata.inc"), &text)?;
+        write_file(&out_dir.join("musica.json"), &pyjson::to_string(&emit::songs_json(&music.songs)))?;
         let rom = emit::rom_packages(&music, emit);
         out.insert("packages".into(), json!(rom));
         let (frames, bytes) = emit::boot_frames(&music, &rom[emit.start], emit.decompress_frames)?;
         out.insert("boot".into(), json!({"frames": frames, "bytes": bytes}));
-        let effects = msu::effects(&music, emit, &game)?;
+        let effects = msu::effects(&music, emit, game)?;
         out.insert(
             "msu".into(),
             json!({
@@ -297,8 +391,203 @@ fn do_compile(args: &CompileArgs) -> Result<()> {
         for line in compile::report(&music, boot) {
             let _ = writeln!(stdout, "{line}");
         }
+        quality = Some(effects);
     }
-    write_file(&args.out.join("audio.json"), &serde_json::to_string(&Value::Object(out)).unwrap())
+    Ok(Compiled { music, audio: out, quality })
+}
+
+/// The game's four bytes for the `.msu`: `[rom] msu_data_signature`.
+fn msu_magic(project: &Project) -> Result<[u8; 4]> {
+    let text = project.ascii(&["rom", "msu_data_signature"], Some(4), None)?;
+    Ok(text.as_bytes().try_into().expect("four ASCII characters are four bytes"))
+}
+
+fn do_cartridge(args: &CartridgeArgs) -> Result<()> {
+    let game = args.place.game()?;
+    let request = read_json(&args.request)?;
+    let whose = args.request.display().to_string();
+    let bad = |what: &str| Bad::usage(format!("{whose}: `{what}` is not what it should be"));
+
+    // The game, from the dump, with the nodes the project added on top.
+    let answer = |e: ditto::lcf::Error| Bad::answer(e.0);
+    let dump = Dump::open(&args.data).map_err(answer)?;
+    let mut tree = Tree::from(&dump.tree().map_err(answer)?);
+    for node in request.get("tree_nodes").and_then(Value::as_array).ok_or_else(|| bad("tree_nodes"))? {
+        tree.insert(serde_json::from_value(node.clone()).map_err(|e| Bad::usage(format!("{whose}: tree_nodes: {e}")))?);
+    }
+    let system: System = dump.section("system").map_err(answer)?;
+    // Every song the System names —the title's, the battle's, Game Over's,
+    // the vehicles'...—, for the MSU-1 numbering. Song names are ASCII: the
+    // Shift-JIS leftovers of the RTP are in four messages of the database.
+    let system_songs: BTreeSet<String> = [
+        &system.title_music,
+        &system.battle_music,
+        &system.battle_end_music,
+        &system.inn_music,
+        &system.boat_music,
+        &system.ship_music,
+        &system.airship_music,
+        &system.gameover_music,
+    ]
+    .iter()
+    .map(|m| m.name.clone())
+    .collect();
+
+    let maps: Vec<i64> = request
+        .get("maps")
+        .and_then(Value::as_array)
+        .ok_or_else(|| bad("maps"))?
+        .iter()
+        .map(|m| m.as_i64().ok_or_else(|| bad("maps")))
+        .collect::<Result<_>>()?;
+    let start = request.get("start").and_then(Value::as_u64).ok_or_else(|| bad("start"))? as usize;
+    if start >= maps.len() {
+        return Err(bad("start"));
+    }
+    let flag = |key: &str| request.get(key).and_then(Value::as_bool).ok_or_else(|| bad(key));
+    let backdrops: Vec<(Vec<u8>, Vec<u8>)> = request
+        .get("backdrops")
+        .and_then(Value::as_array)
+        .ok_or_else(|| bad("backdrops"))?
+        .iter()
+        .map(|pair| {
+            let part = |k: usize| pair.get(k).and_then(Value::as_str).and_then(unhex).ok_or_else(|| bad("backdrops"));
+            Ok((part(0)?, part(1)?))
+        })
+        .collect::<Result<_>>()?;
+    let project = &game.project;
+    let c = Cartridge {
+        songs: cartridge::Songs::from_json(request.get("songs").ok_or_else(|| bad("songs"))?)?,
+        map_music: maps
+            .iter()
+            .map(|&m| tree.music(m as i32).map(|music| music.name.clone()).unwrap_or_default())
+            .collect(),
+        maps,
+        start,
+        title: flag("title")?.then(|| system.title_music.name.clone()),
+        game_over: flag("game_over")?.then(|| system.gameover_music.name.clone()),
+        apart: cartridge::apart_themes(project.list(&["music", "apart_themes"])?)?,
+        not_given: cartridge::never_happen(project.list(&["music", "jumps_that_never_happen"])?)?,
+        system_songs: system_songs.into_iter().collect(),
+        measuring_headroom: request.get("measuring_headroom").and_then(Value::as_f64),
+        decompress_frames: request
+            .get("decompress_frames")
+            .and_then(Value::as_f64)
+            .ok_or_else(|| bad("decompress_frames"))?,
+    };
+    let magic = msu_magic(project)?;
+
+    // The job stays next to what it makes, so the music of a cartridge can
+    // be rebuilt alone with `compile`.
+    let plan = cartridge::plan(&c)?;
+    std::fs::create_dir_all(&args.out).map_err(|e| Bad::usage(format!("{}: {e}", args.out.display())))?;
+    write_file(&args.out.join("audio-job.json"), &pyjson::to_string(&plan.job))?;
+    let (job, emit) = job::parse(&plan.job, bank::ARAM_END)?;
+    let emit = emit.expect("the plan always says what to emit");
+    let done = compile_into(&job, Some(&emit), &game, &args.soundfont, &args.out, false)?;
+    write_file(&args.out.join("audio.json"), &serde_json::to_string(&Value::Object(done.audio.clone())).unwrap())?;
+    let music = &done.music;
+    let rom = emit::rom_packages(music, &emit);
+    let mut stdout = std::io::stdout().lock();
+    let mut say = |line: String| {
+        let _ = writeln!(stdout, "{line}");
+    };
+    if let Some(songs) = plan.battle_songs {
+        // The battle's package goes right after the maps'. Until 2026-09-30
+        // this counted the last ROM package's sound effects, which is the
+        // Game Over's when there is one, and said 0.
+        say(format!("  battle audio package: {songs} song(s), {} sound effect(s)", rom[c.maps.len()].1.len()));
+    }
+    // **And that the boot fits in `BOOT_FRAMES`**: see
+    // `cartridge::boot_frames_cap`.
+    let boot = &done.audio["boot"];
+    let (frames, bytes) = (boot["frames"].as_f64().unwrap_or(0.0), boot["bytes"].as_i64().unwrap_or(0));
+    let far_ram = suite::runtime().join("far_ram.s");
+    let source = std::fs::read_to_string(&far_ram).map_err(|e| Bad::usage(format!("{}: {e}", far_ram.display())))?;
+    let cap = cartridge::boot_frames_cap(&source)
+        .ok_or_else(|| Bad::usage(format!("{}: no BOOT_FRAMES", far_ram.display())))?;
+    if frames > cap as f64 {
+        return Err(Bad::answer(format!(
+            "the boot doesn't fit in BOOT_FRAMES: the boot map's package is {bytes} B and with the map, the \
+             driver and the directory the computation gives {frames:.0} frames, against {cap}. Raise \
+             BOOT_FRAMES in tools/runtime/far_ram.s, or shrink that package"
+        )));
+    }
+    say(format!("  boot: the boot map's package is {bytes} B, {frames:.0} of the {cap} frames of BOOT_FRAMES"));
+
+    // The `.msu`: the quality backdrops and the quality sound effects, to
+    // read them through the MSU-1 when it is there. It is always written,
+    // even if the cartridge carries neither, because it is also the file
+    // that turns on the MSU-1 for the tracks.
+    let quality = done.quality.as_ref().expect("with emit there are quality sound effects");
+    let written = cartridge::msu(&backdrops, quality, &magic)?;
+    let fresh = PathBuf::from(format!("{}.nuevo", args.msu.display()));
+    std::fs::write(&fresh, &written.blob).map_err(|e| Bad::usage(format!("{}: {e}", fresh.display())))?;
+    std::fs::rename(&fresh, &args.msu).map_err(|e| Bad::usage(format!("{}: {e}", args.msu.display())))?;
+    say(format!(
+        "  .msu: {} backdrop(s) and {} sound effect(s) in {} B, signature {} -> {}",
+        written.backdrops,
+        written.effects,
+        written.blob.len(),
+        hex(&written.blob[..msu_data::SIGNATURE_SIZE]),
+        args.msu.display()
+    ));
+    let musicdata = args.out.join("musicdata.inc");
+    let mut text = std::fs::read_to_string(&musicdata).map_err(|e| Bad::usage(format!("{}: {e}", musicdata.display())))?;
+    text.push_str(&written.inc);
+    write_file(&musicdata, &text)?;
+    let rates = &done.audio["msu"]["rates"];
+    write_file(&args.out.join("efectos.json"), &pyjson::to_string(&cartridge::effects_json(music, &c.songs.sounds, rates)))?;
+    for package in &quality.packages {
+        if let Some(theirs) = rates.get(&package.name).and_then(Value::as_object).filter(|t| !t.is_empty()) {
+            say(format!("  quality sound effects of package {}: {}", package.name, cartridge::rates_line(theirs)));
+        }
+    }
+    let names = |songs: &[usize]| songs.iter().map(|&t| music.songs[t].name.as_str()).collect::<Vec<_>>().join(", ");
+    for (i, (owned, theirs, out, _)) in rom[..c.maps.len()].iter().enumerate() {
+        let separate = &plan.separate[i];
+        if !owned.is_empty() || !theirs.is_empty() || !out.is_empty() || !separate.is_empty() {
+            say(format!(
+                "  audio package of map {}: {} song(s), {} sound effect(s){}{}",
+                c.maps[i],
+                owned.len(),
+                theirs.len(),
+                if out.is_empty() { String::new() } else { format!(", and for exit {}", names(out)) },
+                if separate.is_empty() { String::new() } else { format!(", and separate {}", names(separate)) },
+            ));
+        }
+    }
+    if !job.effects.is_empty() {
+        let unique: BTreeMap<&str, usize> = music.effects.iter().map(|e| (e.name.as_str(), e.data.len())).collect();
+        say(format!("  sound effects: {}, {} B in the cartridge", unique.len(), unique.values().sum::<usize>()));
+    }
+    let all: Vec<usize> = (0..music.songs.len()).collect();
+    say(format!(
+        "music -> {}: {}",
+        musicdata.display(),
+        if all.is_empty() { "none, it comes out silent".to_string() } else { names(&all) }
+    ));
+    Ok(())
+}
+
+fn unhex(text: &str) -> Option<Vec<u8>> {
+    if text.len() % 2 != 0 {
+        return None;
+    }
+    (0..text.len()).step_by(2).map(|i| u8::from_str_radix(text.get(i..i + 2)?, 16).ok()).collect()
+}
+
+fn do_msu_index(args: &MsuFileArgs) -> Result<()> {
+    let project = Project::locate(args.project.as_deref())?;
+    let blob = std::fs::read(&args.msu).map_err(|e| Bad::usage(format!("{}: {e}", args.msu.display())))?;
+    let entries = msu_data::index(&blob, &msu_magic(&project)?)?;
+    println!("{}", json!(entries));
+    Ok(())
+}
+
+fn do_msu_sign(args: &MsuSignArgs) -> Result<()> {
+    let blob = std::fs::read(&args.msu).map_err(|e| Bad::usage(format!("{}: {e}", args.msu.display())))?;
+    std::fs::write(&args.out, msu_data::sign(&blob)?).map_err(|e| Bad::usage(format!("{}: {e}", args.out.display())))
 }
 
 fn do_keys(args: &KeysArgs) -> Result<()> {
@@ -359,6 +648,9 @@ fn main() -> ExitCode {
     let cli = Cli::parse();
     let done = match &cli.command {
         Command::Compile(a) => do_compile(a),
+        Command::Cartridge(a) => do_cartridge(a),
+        Command::MsuIndex(a) => do_msu_index(a),
+        Command::MsuSign(a) => do_msu_sign(a),
         Command::Keys(a) => do_keys(a),
         Command::Decode(a) => do_decode(a),
         Command::Wav(a) => do_wav(a),
@@ -380,6 +672,10 @@ fn main() -> ExitCode {
                     "block_bytes": rm2k_snes_audio::samples::BLOCK_BYTES,
                     "samples_addr": bank::SAMPLES_ADDR,
                     "silence_bytes": bank::SILENCE.len(),
+                    "msu_signature_size": msu_data::SIGNATURE_SIZE,
+                    "msu_backdrops_start": msu_data::BACKDROPS_START,
+                    "msu_colors_at": msu_data::COLORS_AT,
+                    "msu_backdrop_span": msu_data::BACKDROP_SPAN,
                 })
             );
             Ok(())

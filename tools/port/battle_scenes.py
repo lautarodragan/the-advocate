@@ -329,8 +329,8 @@ def scenes_asm(data, troops, db):
                             `fallback_bytes`.
       `backdrop_cgram`      its 16 colors, which go to CGRAM from 32 on.
 
-    Where each backdrop is in the `.msu` is emitted by `write_msu`, by
-    number.
+    Where each backdrop is in the `.msu` is emitted by `rm2k-snes-audio
+    cartridge`, by number.
       `fallback_height`       planes 4 to 7, which the ROM appends to each tile.
       `battler_*`           per battler: how many bytes a row of one plane is,
                             how many rows, how big a plane is, where its bytes
