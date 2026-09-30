@@ -203,3 +203,62 @@ pub fn nearest(palette: &[Color], color: Color) -> Color {
     }
     best
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A sheet whose character 0 draws `colors` colours in blocks.
+    fn sheet(colors: u8) -> Picture {
+        let mut picture = Picture::transparent(288, 256);
+        for y in 0..128 {
+            for x in 0..72 {
+                let k = ((x / 3 + y / 4) % colors as usize) as u8;
+                let at = (y * 288 + x) * 4;
+                picture.rgba[at..at + 4].copy_from_slice(&[k * 8, 255 - k * 8, k * 4, 255]);
+            }
+        }
+        picture
+    }
+
+    #[test]
+    fn a_block_is_a_four_by_four_square_of_the_grid() {
+        assert_eq!(block_tile(0), 0);
+        assert_eq!(block_tile(3), 12);
+        assert_eq!(block_tile(4), 64);
+        assert_eq!(block_tile(5), 68);
+    }
+
+    #[test]
+    fn a_palette_is_fifteen_colours_and_covers_every_pose() {
+        let image = sheet(30);
+        let (palette, lookup, mapping) = character_palette(&image, 0, None, None).unwrap();
+        assert_eq!(palette.len(), OBJ_COLORS);
+        assert!(palette.windows(2).all(|w| w[0] < w[1]), "sorted");
+        assert_eq!(lookup[&palette[0]], 1);
+        for (c, _) in sprite_colors(&image, 0, None) {
+            assert!(palette.contains(&mapping[&c]));
+        }
+        // Counting one pose, the colours of the others still map somewhere.
+        let one = BTreeSet::from([7]);
+        let (_, _, mapping) = character_palette(&image, 0, Some(4), Some(&one)).unwrap();
+        for (c, _) in sprite_colors(&image, 0, None) {
+            assert!(mapping.contains_key(&c));
+        }
+    }
+
+    #[test]
+    fn a_pose_is_sixteen_tiles() {
+        let image = sheet(5);
+        let (_, lookup, mapping) = character_palette(&image, 0, None, None).unwrap();
+        let tiles = pose_tiles(&image, 0, INITIAL_POSE, &lookup, &mapping).unwrap();
+        assert_eq!(tiles.len(), 16);
+        assert!(tiles.iter().all(|t| t.len() == 32));
+    }
+
+    #[test]
+    fn the_nearest_colour_is_the_first_on_a_tie() {
+        let palette = [[0, 0, 0], [2, 0, 0]];
+        assert_eq!(nearest(&palette, [1, 0, 0]), [0, 0, 0]);
+    }
+}
