@@ -159,6 +159,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
   encuentro al azar
 * `rpgmaker/test_pasos_de_encuentro.py`: `ChangeEncounterSteps`, la chance y
   las filas del mapa, y la vuelta a las del mapa al cargar otro
+* `rpgmaker/test_encuentro_cada_paso.py`: un mapa con un paso de encuentro
+  pelea en cada paso, en su propio cartucho
 * `rpgmaker/test_batalla_escena_dibujo.py`: el fondo y los battlers compuestos
 * `rpgmaker/test_fundido_de_pelea.py`: la transición de entrada y de salida
   tapa la carga del paquete de audio
@@ -325,6 +327,8 @@ mapa de arranque, su grupo, sus mapas, sus flags y sus casos, y
 Los encuentros de prueba son un flag de `test-special` y no un
 `ChangeEncounterSteps`: el encuentro de la tanda cuenta con ocho pasos en
 todos los mapas de ese cartucho, y su golden con el paso en que sale.
+El de un paso, que ningún mapa del juego tiene, va en
+`test-encounter-every-step`, aparte, para no mover ese paso.
 
 ## Una `Partida` viva por vez
 
