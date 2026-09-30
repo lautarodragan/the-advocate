@@ -73,7 +73,7 @@ LO_NUESTRO = (SFC, DBG, NOMBRE + ".msu", "LEEME.txt",
               RUNTIME.split(os.sep)[0])
 
 # **El `abl.msu` es del build, no de las pistas.** Lleva los fondos de batalla
-# que el MSU-1 le sirve a la ROM —ver tools/port/msu_data.py—, así que cambia
+# que el MSU-1 le sirve a la ROM —ver docs/port/msu-datos.md—, así que cambia
 # con lo que cambie el conversor, y pesa 32 KB por fondo y no medio giga. Va en
 # el build, para que cada `abl.sfc` tenga el suyo al lado, y se copia siempre a
 # /shared/msu/, que es donde taro juega con MSU-1: ahí tiene que estar el del

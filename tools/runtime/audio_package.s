@@ -966,7 +966,7 @@ ready:
 
 ; C at 1 if PKG_EXTRA is one of the exit songs of PKG_MAP's package: the
 ; third list in `packages`. They are the ones the map starts only to leave
-; —see `Songs.exit_songs` in tools/port/events.py—, and the game's case is
+; —see `exit_songs` in rm2k-snes-audio's cartridge.rs—, and the game's case is
 ; `lufsorr` on map 3: it plays after the sequence of sound effects, so it has
 ; no reason to fit alongside them, and the converter gives it the rate of a
 ; song on its own. When its `PlayBGM` asks for it and it is not there, it is

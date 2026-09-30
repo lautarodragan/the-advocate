@@ -36,7 +36,7 @@ one in its own row or above.
                  2026-09-29 (options, cases, game_scan, map_convert,
                  map_layers, sprites, obj_extras, vram, blocks,
                  screen_stage, battle_stage, image_stage, battle_scenes,
-                 battle_animations, music, mapdata, map_record, materials,
+                 battle_animations, mapdata, map_record, materials,
                  and stage, which runs the parts that are programs of their
                  own, and compiler, what goes into the event compiler's two
                  calls and what comes back; the docstring of snes_convert
@@ -44,7 +44,7 @@ one in its own row or above.
                  keeps of the event compiler: the constants, the registries
                  its answer is read into, the models the tests use—,
                  event_opcodes, experience, picture, window, scene,
-                 animation, compress, fullscreen, msu_data; and beneath all of them, because they
+                 animation, compress, fullscreen; and beneath all of them, because they
                  import nothing from the port, rules (from Game_Actor and
                  the LDB), constants, color (the screen tint's constants),
                  palette (a full screen at 8 bpp), snes_format (a tile, a color and a
@@ -90,8 +90,10 @@ have layers of their own, one folder each:
                  project and checked against every cartridge; the
                  converter hands it the decisions in a request
       rm2k-snes-audio/  a game's music for the SPC700: the shared sample
-                 bank, a stream per song, an audio package per map; the
-                 converter runs it, and it uses `gunter` as a library
+                 bank, a stream per song, an audio package per map, and
+                 the `.msu` with the data the MSU-1 serves; the converter
+                 runs it as a stage, `cartridge`, and it uses `gunter` as
+                 a library
       battle/    `rm2k-snes-battle`: the battle's tables —experience and
                  level per actor, each map's random encounters—, its model
                  and text screen, and the battle played for the tests; the

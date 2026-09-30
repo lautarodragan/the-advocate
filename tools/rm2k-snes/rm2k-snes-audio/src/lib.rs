@@ -16,6 +16,7 @@
 //! cartridge has to keep coming out byte for byte the same: see [`num`].
 
 pub mod bank;
+pub mod cartridge;
 pub mod ceilings;
 pub mod compile;
 pub mod effects;
@@ -25,6 +26,7 @@ pub mod game;
 pub mod job;
 pub mod midi;
 pub mod msu;
+pub mod msu_data;
 #[rustfmt::skip]
 pub mod music_opcodes;
 pub mod num;
