@@ -111,6 +111,9 @@ port —ver `tools/README.md`—:
       rm2k-snes-audio/ la música: del MIDI y el SoundFont a musicdata.inc
       battle/          las tablas de la pelea: experiencia y encuentros
       events/          el compilador de eventos: de las páginas de RM2k al bytecode
+      map-background/  las dos capas del fondo de un mapa y sus bloques de 16x16
+      map-sprites/     los personajes de un mapa como objetos: paletas y bancos
+      maps/            un mapa entero, con esas dos: capas, horneado, sprites
 
 Las capas sólo dependen hacia abajo —`rm2k-snes/` de las otras dos, y
 ésas de nada de las demás—, y lo cuida `tools/tests/test_layers.py`. Todos
@@ -150,17 +153,18 @@ Las pruebas de esos proyectos no dependen del juego. Ditto recibe el corpus por
 `DITTO_CORPUS`, y sin esa variable las que lo necesitan se saltean con un
 mensaje; `tools/rm2k-snes/rm2k-snes-audio/` recibe el SoundFont por `SOUNDFONT`, igual;
 y `tools/snes/protocol/`, `tools/snes/gunter/`, `tools/snes/voodoo/`, `tools/snes/lz2/`,
-`tools/snes/adeleine/`, `tools/rm2k/rules/`, `tools/rm2k/rm2k-render/`, `tools/rm2k-snes/battle/` y
-`tools/rm2k-snes/events/` no necesitan nada.
+`tools/snes/adeleine/`, `tools/rm2k/rules/`, `tools/rm2k/rm2k-render/`, `tools/rm2k-snes/battle/`,
+`tools/rm2k-snes/events/` y los tres de los mapas no necesitan nada.
 
 ### `tools/snes/voodoo/` no decide colores, y eso no se arregla
 
 `tools/snes/voodoo/` convierte una imagen **que ya entra**: recibe PNG indexados cuyos
 índices son entradas de CGRAM, y si la imagen rompe el formato, dice dónde y no
 la arregla. Qué colores se pierden y cómo se agrupan en paletas lo decide
-Adeleine, `tools/snes/adeleine/` —el conversor lo llama por
-`tools/port/adeleine.py`—, que corre **antes** y deja lo que decidió como
-imágenes en `rom/build/<cartucho>/adeleine/`. La prueba para saber de qué lado
+Adeleine, `tools/snes/adeleine/` —las pantallas lo llaman por
+`tools/port/adeleine.py`, y `rm2k-snes-maps` como biblioteca—, que corre
+**antes**; lo que decidió de cada mapa queda como imágenes en
+`rom/build/<cartucho>/adeleine/`. La prueba para saber de qué lado
 va algo es si cambia un pixel de lo que se ve.
 
 Es de taro, el 2026-09-17. Voodoo tuvo un `--merge` que fusionaba colores; se

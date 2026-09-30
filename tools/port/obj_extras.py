@@ -1,7 +1,12 @@
-"""What goes at the end of the sprite bank besides the characters: the timer
-digits, the raindrops, the `ShowPicture` picture and the battle animation
-box, each with its tiles and the palette it takes; and how many palettes that
-leaves for the characters.
+"""What goes at the end of the sprite bank besides the characters, from the
+side of the converter.
+
+**The bank is `rm2k-snes-maps`'s** —the timer's digits, the raindrops, the
+`ShowPicture` picture and the battle animation box; see `extras.rs` in
+`rm2k-snes-map-sprites`—. What stays here is what the emission reads —the
+timer's glyphs, where it is drawn, its colors— and whether some page of a
+map shows a battle animation, which is the animations' to know and goes to
+the stage in its request.
 """
 
 import collections

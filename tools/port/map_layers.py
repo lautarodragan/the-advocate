@@ -1,31 +1,16 @@
-"""The map's two background layers in mode 3: how CGRAM is split between
-them, the 15-bit quantization, the conversion with Voodoo, and the disk cache
-of what comes out.
+"""The map's two background layers in mode 3, as the rest of the converter
+reads them.
 
-The input is the two layers already drawn —by `rm2k-render`, through
-`render_map`— and the output, per layer, its tiles, its CGRAM words and its
-tilemap.
+**They are converted by `rm2k-snes-maps`** —the lower half of CGRAM split
+between them, the 15-bit quantization, what Adeleine merges, the tiles
+Voodoo cuts; see `layers.rs` in `rm2k-snes-map-background`—. What stays
+here is its answer in the shape `map_record`, `mapdata` and `patches` read
+(`layers_answer`), and the constants of the split the emission needs: where
+the background starts in CGRAM, the upper layer's priority, the backdrop
+color and the palette of the message window.
 
-Splitting colors into palettes, and merging the least used ones when they
-don't fit, lives in `adeleine.py`, and reusing mirrored tiles in Voodoo.
-What is left here is what depends on the hardware:
-
-  * **Color is 15 bits, five per channel.** Of the 72 colors in the render of
-    Map0007, 60 survive.
-  * **The background goes in mode 3, at 8 bits per pixel.** There each pixel is
-    a direct index into CGRAM and there is no per-tile palette, so the problem
-    of splitting the colors into groups simply does not exist. With 4 bits and
-    8 palettes, Map0007 lost 32 of its 60 colors; with 8 bits it loses none.
-
-    It costs twice the VRAM per tile, 64 bytes instead of 32. With 92 tiles
-    that is 5.8 KB of the 64 available, so it is not a real constraint.
-  * **The tile format is planar**, not packed in nibbles: each bit of a pixel
-    lives in a different bitmap, in pairs and 16 bytes at a time. That is why
-    a 4-bit tile is exactly the first half of an 8-bit one.
-
-Indices are kept to the lower half of CGRAM. Sprites always use palettes 8 to
-15, that is indices 128 to 255, and at 8 bits the background reaches up to
-255: staying low avoids stepping on them.
+Until 2026-09-30 all of it was here, in Python, with a disk cache of what
+came out and a precomputation in parallel, which went with it.
 """
 
 import json
@@ -39,7 +24,7 @@ from rpgmaker import rm2k
 # and therefore counts its index within a palette of 16.
 #
 # Where the split between the two falls is not fixed: the converter decides it
-# map by map, in _convert_layers(). With one palette above, the background has
+# map by map, in `rm2k-snes-maps`. With one palette above, the background has
 # 111 colors; with three, 79. It used to be two always, and 27 maps didn't fit
 # —the first three of the game among them— while the background left colors
 # unused.
@@ -108,7 +93,7 @@ _FAMILY_NAMES = {"water": "agua", "animated": "animado"}
 def layers_answer(written):
     """What `rm2k-snes-maps` wrote of a map's layers —`layers` and `map`
     write them the same—, in the shape the rest of the converter reads:
-    what `_convert_layers` returned."""
+    (background, above), each a tuple, the background's with its summary."""
     answer = json.loads(written["layers.json"])
     bg, above = answer["background"], answer["above"]
 
@@ -145,9 +130,8 @@ def layers_answer(written):
                      "encima": merges(above["merges"])},
         # The map in blocks of 16x16 and each cell's passability, which the
         # stage makes from the same map and the two tilemaps. They go in the
-        # summary and not in a third element for the reason `fusiones` does:
-        # `_same_cgram_split` compares the layers' tuples whole, and the
-        # summary field by field.
+        # summary and not in a third element, where the rest of the converter
+        # reads the layers' tuples by position.
         "pasabilidad": bytes(answer["passability"]),
         "bloques": {"celdas": answer["blocks"]["cells"],
                     "tabla": written["blocks.bin"],

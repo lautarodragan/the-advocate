@@ -161,7 +161,7 @@ def hero_start(passable, width, height, blocked=()):
 # does not take the same time; what has to match is the cadence and that both
 # sides look at the same tick.
 # The two families, with how many drawings each one has. The order is that of
-# the tile runs in VRAM; see `convert` in port/map_layers.py.
+# the tile runs in VRAM; see `layers.rs` in `rm2k-snes-map-background`.
 ANIMATED_FAMILIES = (("agua", 3), ("animado", 4))
 # The ROM's clock is `ticks`, sixteen bits, so it wraps around every 65536
 # ticks —eighteen minutes— and there the cycle skips a drawing; RM2k's is
@@ -232,7 +232,7 @@ LAYER_ABOVE = 2
 # page: that is how doors, chests and a good part of the decoration are
 # made. For the rest of the program it is one more CharSet, with this made-up
 # name, which carries the chipset and the tile's index; `rm2k-render
-# charset` draws its image, which `render_map.Charsets` asks it for.
+# charset` draws its image; `rm2k-snes-maps` asks for it (`sheets.rs`).
 TILE_PREFIX = "@tile:"
 
 
@@ -245,8 +245,8 @@ TILE_PREFIX = "@tile:"
 # like semi-transparency. For the port it is another CharSet, with this
 # suffix in the name: the reader sticks it on translucent pages —see
 # `decorate_translucent`, which `snes_convert` turns on— and
-# `render_map.Charsets` builds the dithered image. Everything else —palettes,
-# slots, poses, the reference— treats it like any other.
+# `rm2k-snes-maps` builds the dithered image (`sheets.rs`). Everything else
+# —palettes, slots, poses, the reference— treats it like any other.
 DITHER_SUFFIX = "~trama"
 
 # A CharSet with this suffix is **the same drawing, counted as another
@@ -256,8 +256,8 @@ DITHER_SUFFIX = "~trama"
 # flashed too. See `separate_from_hero` in port/sprites.py.
 COPY_SUFFIX = "~aparte"
 
-# Which dither. The options are in `render_map.DITHERS`; it is chosen by
-# looking at a CRT TV, which is where this shows.
+# Which dither. The options are `drops`', in `sheets.rs` of `rm2k-snes-maps`;
+# it is chosen by looking at a CRT TV, which is where this shows.
 DITHER_PATTERN = os.environ.get("DITHER_PATTERN", "five_of_eight")
 
 
@@ -278,7 +278,7 @@ TRANSLUCENT_OPACITY = 160
 # this suffix with the map and the cell where the event stands, which is all
 # that is needed to rebuild the background. The reader sticks it on —see
 # `lcf.DECORATE_TRANSLUCENT`, which the converter turns on—, `rm2k-render
-# charset` does the blend, and `render_map.Charsets` hands it the
+# charset` does the blend, and `rm2k-snes-maps` hands it the
 # background.
 BAKED_SUFFIX = "~horneado"
 

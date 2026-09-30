@@ -1,20 +1,16 @@
-"""The layers of an A Blurred Line (RPG Maker 2000) map as images.
+"""What the converter asks `rm2k-render` to draw, and the game it reads.
 
-The two tile layers resolved against their ChipSet, with the drawings of the
-water animation and of the animated tiles, and the CharSets placed on top of
-them. It is what the converter cuts into tiles: see
-`Renderer.animated_layers`. No panorama and no events: the converter takes
-care of the events.
+**`rm2k-render` draws**, a Rust binary on the PATH, like `lz2`: `draw` is
+the call the screens use —the faces, the System's windows and the
+`ShowPicture` pictures— and the battle's backdrops and battlers
+(`scene.py`); the battle animations have their own shape
+(`animation.draw`). `Renderer` holds the game the converter reads —its
+database, its map tree, where the pictures are looked up— and reads a map
+the way the converter keeps it.
 
-**The layers are drawn by `rm2k-render`**, a Rust binary on the PATH, like
-`voodoo` or `lz2`: this file hands it the map as the converter has it —with
-the fork applied and whatever was baked into it— and reads back the PNGs it
-writes. **So are the CharSets**, the sheets the events are drawn with
-—`Charsets`, which asks for them all at once—. `draw` is the call the
-screens use —the faces, the System's windows and the `ShowPicture`
-pictures— and the battle's backdrops and battlers (`scene.py`); the
-battle animations have their own shape (`animation.draw`). What stays here
-is what the port does to them for the console.
+A map's layers and the CharSets its events are drawn with are not asked
+from here: since 2026-09-30 `rm2k-snes-maps` draws them, with
+`rm2k-render` as a library, as part of converting the map.
 """
 
 import json
@@ -32,9 +28,8 @@ from rpgmaker.resources import find_resource
 from rpgmaker.rm2k import TILE
 from render import chipset_recipe
 
-MISSING = """`rm2k-render` is missing, the one that draws a map's layers, the
-CharSets of its events, the faces, windows and pictures of the screens, and
-what the battles are drawn with.
+MISSING = """`rm2k-render` is missing, the one that draws the faces, windows and
+pictures of the screens, and what the battles are drawn with.
 
 It is a Rust binary that lives in `tools/rm2k/rm2k-render/` and is installed as
 a system tool:

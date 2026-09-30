@@ -12,13 +12,14 @@ touches a pixel: see "`tools/snes/voodoo/` no decide colores" in
 **The decisions are made by `adeleine`**, a Rust binary on the PATH
 —`tools/snes/adeleine/`—, which this runs with `stage.run`: the colors go
 in a request, what was decided comes back. What stays here is the shape
-the converter wants them in —tuples, `Counter`s, grids of tiles— and
+the converter wants them in —tuples, `Counter`s— and
 `luma_distance`, which is not a decision but the distance the callers
 look the nearest color up with, and is called too often to cross a
 process: see its comment.
 
-Its users are `map_layers.py` —`split_above`, `build_palette`—,
-`sprites.py` —`drawable_npcs`—, `menus.py` and `scene.py`.
+Its users are `menus.py` and `scene.py`. A map's layers and characters,
+which used to be the rest, are `rm2k-snes-maps`'s since 2026-09-30, and it
+uses Adeleine as a library.
 
 Until 2026-09-17 it was called `pixeles.py` and also did the part that
 decides nothing —indexing a tile into its palette, trying its mirrored

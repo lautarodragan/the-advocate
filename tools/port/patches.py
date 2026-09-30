@@ -68,8 +68,8 @@ its own, writes what it decided next to its ROM —in
 `rom/build/<cartucho>/parches/`, which is not versioned— and `--check` asks
 nothing of it. In this kind of decision, moreover, the question never even
 comes up: the layer merges depend on the map and its ChipSet and nothing
-else —it is the same reason `converted_layers` can cache them with a key
-that does not know which cartridge is being built—. That this is true **is
+else —the request `rm2k-snes-maps` gets for the layers does not say which
+cartridge is being built—. That this is true **is
 not assumed**: `--check` compares against what is versioned **every**
 cartridge that carries a versioned map, so if any decided differently, the
 suite says so with its name on it. Measured on 2026-09-21: the three test
@@ -104,8 +104,9 @@ a versioned animation, and
 redoes the math from what is written.
 
 What **does** depend on the map is something else and is not here: whether
-the animation is drawn, which is what `map_animation` decides when the
-map already took the eight sprite palettes. It is another decision —and
+the animation is drawn, which is what `map_animation` decides —in
+`rm2k-snes-map-sprites`— when the map already took the eight sprite
+palettes. It is another decision —and
 another kind—, and putting it in this file would mix the cartridge with the
 game again.
 
@@ -122,7 +123,8 @@ already shrunk drawing and nothing else.
 
 What **is not here yet**, and is left for later: the character palettes
 —which do depend on the cartridge, because who pays the timer's entry is
-decided by `drawable_npcs` looking at the whole map—, the voices dropped
+decided by the palette split looking at the whole map, `drawable_npcs` in
+`rm2k-snes-map-sprites`—, the voices dropped
 from a MIDI, the trimmed samples, the fifteen colors each animation is
 reduced to, and `DECORATE_TRANSLUCENT`.
 """
@@ -168,7 +170,8 @@ def _color(c):
 def map_text(map_id, name, summary):
     """A map's file, exactly as it goes to disk.
 
-    `summary` is the one `_convert_layers` leaves in `mapa["resumen"]`.
+    `summary` is the one `map_layers.layers_answer` leaves in
+    `mapa["resumen"]`.
     """
     merges = summary.get("fusiones", {"fondo": [], "encima": []})
     lines = [

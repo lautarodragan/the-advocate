@@ -8,13 +8,13 @@ in its own module of `port/`, one per piece that can be replaced alone:
     options             the flags, and the ROM's maps in table order
     cases               the test cases, split at each `--case`
     game_scan           what is deduced from the whole game: leaders, items
-    map_convert         a whole map, gathered into its `map_info`
-      map_layers        the two background layers and how CGRAM is split
-      baking            the events baked into the upper layer
-      sprites           the characters as objects, and the sprite bank
-      obj_extras        timer, rain, picture and battle animation box
+    map_convert         a whole map: what goes into `rm2k-snes-maps map`
+                        and its `map_info`, from what comes back
+      map_layers        the layers' answer, and the CGRAM constants
+      sprites           who walks, the hero's flash, the object constants
+      obj_extras        the timer's colors, and whether a map animates
       vram              the VRAM layouts
-      blocks            the map as 16x16 blocks
+      blocks            `TileSubstitution` translated to 16x16 blocks
     message_window      the message window and the font
     battle_scenes       backdrops and battlers
     battle_animations   the battle animations
@@ -787,8 +787,9 @@ def main():
     # uploads **those** again untinted and not the whole palette, because the
     # palette belongs to a character that is tinted. It goes separately and
     # not as a record field because the record is at exactly its 128. The
-    # index is the same `index + 1` `timer_digits` painted the glyphs
-    # with: the first one that has that color.
+    # index is the same `index + 1` the timer's glyphs were painted with
+    # —`timer_digits`, in `rm2k-snes-map-sprites`—: the first one that has
+    # that color.
     timer_color_list = sorted(timer_colors_of(skin))
     masks = []
     for map_info in maps:

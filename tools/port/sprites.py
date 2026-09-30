@@ -1,9 +1,15 @@
-"""The characters as SNES objects: their poses, their palettes, which NPCs
-of a map get drawn, and the bank of poses that goes to VRAM.
+"""The characters as SNES objects, from the side of the converter that
+still decides who walks.
 
-The input is the map, its CharSets and the leader candidates; the output,
-the sprite tiles and how the eight OBJ palettes are split among the
-characters.
+**The characters are converted by `rm2k-snes-maps`** —which poses each
+shows, how the eight OBJ palettes are split, the VRAM bank and the pose
+bank; see `rm2k-snes-map-sprites`—. What stays here is what that stage
+gets from other domains and what the emission reads: who walks, animates
+standing still or turns toward the hero, which the event compiler's answer
+says (`movable_events`); the graphics drawn apart from the hero so its
+flash does not spread (`separate_from_hero`); how many maps of the ROM
+each character is in; the constants of the objects; and the warning that
+stops the build when a mechanism is not drawn (`discard_warning`).
 """
 
 import collections

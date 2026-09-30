@@ -82,7 +82,7 @@ class Substitutions:
         # is going to take room in the RAM table.
         self.known_keys = set()
         # And the blocks by content, to deduplicate the ones built the same way
-        # `build_blocks` deduplicates the map's. It isn't to save room: two
+        # the map's are —`blocks.rs`, in `rm2k-snes-map-background`—. It isn't to save room: two
         # combinations that already share a block —the two water autotiles of
         # map 6 draw the same thing— have to keep sharing it after
         # substituting, or the substitution would send a single block to two

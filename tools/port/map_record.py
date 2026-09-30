@@ -150,7 +150,7 @@ TURN_NONE = 0xFFFF
 # They are there because leaders **share a CGRAM slot**: one leads at a time,
 # so reserving a palette for each is having it taken by someone who isn't on
 # screen. The ROM uploads the leader's when the party changes and when the map
-# loads. See `drawable_npcs`.
+# loads. See `drawable_npcs`, in `rm2k-snes-map-sprites`.
 ACTOR_COLORS = 2 * OBJ_COLORS
 ACTOR_BYTES = 2 + ACTOR_COLORS + 3 * 12
 
@@ -559,8 +559,8 @@ def map_data(map_info, number, global_index, materials):
     """A map's data blocks, with the number attached to each label.
 
     `global_index` are the labels of the twelve poses of each (CharSet,
-    index) **as this map quantized it**: see `pose_bank`, and the pose
-    split in `emit`.
+    index) **as this map quantized it**: see `pose_bank`, in
+    `rm2k-snes-map-sprites`, and the pose split in `emit`.
     """
     above, sprite = map_info["above"], map_info["sprite"]
     pairs = [
