@@ -2,6 +2,7 @@
 name: "Los eventos de tropa"
 description: "Los 32 sistemas de batalla de los personajes, además del de Talan"
 type: feature
+assignee: Yarará
 ---
 
 **Correr las páginas de evento de las tropas durante la pelea.**
