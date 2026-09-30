@@ -25,8 +25,8 @@ pide nada; cuáles son los imprime `just parches-check`. Todo lo demás que
 convierte `release` tiene que estar versionado.
 
 Lo que no depende del juego —que armar otra vez no deje los parches de la
-corrida anterior, qué es "sólo de la tanda"— lo prueba el crate,
-`tools/rm2k-snes/patches/`.
+corrida anterior, qué es "sólo de la tanda"— lo prueban las pruebas de
+`rm2k-snes-patches`, que no necesitan el juego.
 """
 
 import os
