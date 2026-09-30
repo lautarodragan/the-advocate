@@ -10,15 +10,51 @@ use std::collections::{BTreeMap, HashMap};
 
 /// The escape that starts a code, and the two this compiler knows how to
 /// run: a pause and "close without waiting".
+///
+/// The escape codes the game's text uses: `\|` is a pause and `\^` closes
+/// the box without waiting for the player to press anything. Both are time
+/// and not text, and since 2026-09-13 both are done: they travel in the
+/// box's header —see `HEADER_LINES`— and the ROM's interpreter reads them
+/// from there.
+///
+/// They are done for real and not by quietly deleting them, which was the
+/// cheap temptation: with `\^` the box closes on its own, so the ROM would
+/// be left waiting for an A that RM2k never asked for and the whole page
+/// would last as long as the player takes.
+///
+/// **Any other escape still does not compile**, and that is on purpose: the
+/// three `\V` of the common events —the value of a variable inserted into
+/// the text— require composing the text when opening it, which is something
+/// else. Drawing them as two letters would show.
 const ESCAPE: char = '\\';
 const ESCAPE_PAUSE: char = '|';
 const ESCAPE_CLOSE: char = '^';
 
-/// How many pauses fit in the box's header: four bits.
+/// How many pauses fit in the box's header: four bits. The most the game
+/// uses is three in a row (`\|\|\|\^`, twice, on map 108); more than fifteen
+/// does not fit in the high nibble and the page does not compile instead of
+/// lasting too little.
 pub const PAUSES_MAX: usize = 15;
 
 /// The header byte of a box: bits 0-2 are how many lines, bit 3 is "it
 /// closes on its own" and bits 4-7 how many pauses.
+///
+/// The escapes go here and not in one more operand of `OP_MESSAGE` because
+/// here they come for free: a window's lines are four at most, so the byte
+/// that counts them had five unused bits. One more operand would cost one
+/// byte for each of the game's 2895 boxes and it would have to be emitted
+/// anyway in the 2855 that carry no tail.
+///
+/// ```text
+/// bits 0-2   how many lines it carries, from 0 to 4
+/// bit  3     it closes on its own: the `\^`
+/// bits 4-7   how many pauses, from 0 to 15: the `\|`s
+/// ```
+///
+/// The order is not arbitrary: the lines go at the bottom because it is what
+/// the ROM reads in the compositor's loop —`and #HEADER_LINES` and done— and
+/// the pauses at the top because they are read only once, on opening, where
+/// an extra `lsr` does not show.
 pub const HEADER_LINES: u8 = 0x07;
 pub const HEADER_AUTO_CLOSE: u8 = 0x08;
 
@@ -37,6 +73,22 @@ pub struct Window {
 /// line, spaces in between included —a space at the end of a line draws
 /// nothing—. Any other escape, or one in the middle, does not compile: a
 /// pause halfway through a window drawn all at once cannot be modeled.
+///
+/// Across the 328 maps both escapes appear **always as a tail at the end of
+/// the box's last line** —measured: 40 boxes, and not one with an escape in
+/// the middle nor on a line other than the last—, so that is the only thing
+/// accepted. One in the middle still does not compile, which is the honest
+/// thing: with the window drawn all at once, a pause halfway through the
+/// text cannot be modeled without making up how much text had been drawn.
+///
+/// The tail may carry spaces in between —it happens only once, in map 98's
+/// `RunDirectorScene`, which writes `\| \| \| \^`— and it eats them: a space
+/// at the end of a line does not draw a single pixel, so removing it does
+/// not change the screen.
+///
+/// The converter has the same rule, in `escape_tail` of its events.py: that
+/// copy is the one `texts.py` rebuilds the boxes around, before the
+/// compiler sees them. `tests/escapes.json` holds the two together.
 pub fn escape_tail(lines: &[String]) -> Step<(Vec<String>, usize, bool)> {
     let mut lines: Vec<String> = lines.to_vec();
     let mut pauses = 0;
@@ -76,7 +128,9 @@ pub fn escape_tail(lines: &[String]) -> Step<(Vec<String>, usize, bool)> {
 
 /// A box as the ROM reads it: the header, and each line with its length.
 /// The characters go as an index into the font, that is ASCII minus 32; a
-/// letter the font does not have stops the conversion.
+/// letter the font does not have stops the conversion. All of the game's
+/// text fits there: it was measured, and it does not have a single accented
+/// letter.
 pub fn message_bytes(
     lines: &[String],
     pauses: usize,
@@ -108,10 +162,21 @@ pub fn message_bytes(
 type Key = (Vec<String>, usize, bool);
 
 /// The ROM's text block, and the offset of each box.
+///
+/// It belongs to the whole ROM and not to the map: `OP_MESSAGE` carries an
+/// offset within this block, so all maps share the numbering and the
+/// converter emits it only once. What is repeated is stored only once —the
+/// game repeats whole boxes, 418 of 2895— and it comes for free because the
+/// content already is the key.
 #[derive(Debug, Clone)]
 pub struct Messages {
     /// How many bytes at a time the offset in the bytecode counts: each box
-    /// starts at a multiple of it. Inside, everything is in bytes.
+    /// starts at a multiple of it. Inside, everything is in bytes: the step
+    /// is applied going in and going out.
+    ///
+    /// The game's block goes by four —`MESSAGES_STEP` in the converter's
+    /// events.py, which has the why—, so the block can be 256 KB with a
+    /// 16-bit operand; the others, like the troops', by one.
     pub step: usize,
     pub window: Window,
     pub data: Vec<u8>,
@@ -132,11 +197,23 @@ impl Messages {
 
     /// The offset of this box, storing it the first time.
     ///
-    /// The escape tail comes off **here**, so that every box goes through
-    /// the same place; then each line is trimmed to what fits, and only
-    /// then deduplicated —two texts that differ only in what gets cut are
-    /// the same box on screen—. The key carries the tail: the same text
-    /// with another tail lasts another time.
+    /// The escape tail comes off **here** —see `escape_tail`— and not in the
+    /// compiler, so that everyone who builds a box goes through the same
+    /// place: the game's `ShowMessage`s and those of the test pages —which
+    /// is how this is tested: `autocierre` in the suite— and a
+    /// `ShowChoice`'s options.
+    ///
+    /// Trimming to what fits in a line is done after the tail and before
+    /// deduplicating: two texts that differ only in what gets cut are the
+    /// same box on screen, and giving them two different offsets would emit
+    /// the same bytes twice. The other way around —trimming first— a
+    /// 39-character line would eat its own `\|\^` and the box would be left
+    /// waiting for an A that RM2k does not ask for.
+    ///
+    /// **The deduplication key carries the tail**, and it is not a detail:
+    /// two boxes with the same text and different tails are two different
+    /// boxes —one waits for the player and the other does not— and sharing
+    /// an offset would make them last the same.
     pub fn add(&mut self, lines: &[String]) -> Step<usize> {
         let (lines, pauses, auto_close) = escape_tail(lines)?;
         let lines: Vec<String> = lines
@@ -172,6 +249,12 @@ impl Messages {
 
     /// Undoes what was added since `mark`: a page that is cut at its last
     /// command leaves none of its texts behind.
+    ///
+    /// It is needed because a page is compiled command by command and can be
+    /// cut at the last one: without this, the text of all the pages that
+    /// **do not** compile would stay in the cartridge anyway. It is not a
+    /// micro-optimization, it is the whole game's 161 KB against the few
+    /// that are needed.
     pub fn rewind(&mut self, mark: usize) {
         self.data.truncate(mark);
         self.where_.retain(|_, v| *v < mark);
