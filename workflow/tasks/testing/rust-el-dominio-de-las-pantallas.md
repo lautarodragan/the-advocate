@@ -273,7 +273,7 @@ Con scripts descartables en `<scratchpad>/tataupa/`:
 * `cargo test --workspace` (`just -f tools/justfile rust-test`) da rojo en
   tres pruebas de **Adeleine**, que no se tocó: comparan el JSON que
   escribe como texto, y con todo el workspace junto `serde_json` sale con
-  `preserve_order` —lo prende `rm2k-snes-audio—` y las claves cambian de
+  `preserve_order` —lo prende `rm2k-snes-audio`— y las claves cambian de
   orden. Está así en `main`: las dos cosas son del 2026-09-29. Las pruebas
   de `rm2k-snes-screens` comparan la respuesta ordenando las claves, y
   pasan con y sin.
