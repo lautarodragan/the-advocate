@@ -186,6 +186,10 @@ pub struct Game {
     /// so all pages read the same reading of the LDB.
     pub actors: BTreeMap<i32, Vec<(i32, i32)>>,
     pub skills: BTreeSet<i32>,
+    /// The items `ChangeEquipment` can equip: by number, its type —1 the
+    /// weapon to 5 the accessory, the slot plus one— and who can use it,
+    /// `actor_set` by actor number minus one.
+    pub items: BTreeMap<i32, (i32, Vec<bool>)>,
 }
 
 #[derive(Debug, Clone)]
@@ -391,6 +395,14 @@ impl Game {
             .collect();
         let raw: Vec<schema::Skill> = dump.section("skills").map_err(answer)?;
         let skills = raw.iter().map(|s| s.id).collect();
+        // A dump without items equips nothing: `ChangeEquipment` to equip
+        // then does not compile, which is what it did before it read them.
+        // The small game of this crate's tests has none.
+        let raw: Vec<schema::Item> = dump.section("items").unwrap_or_default();
+        let items = raw
+            .iter()
+            .map(|i| (i.id, (i.r#type.to_i32(), i.actor_set.clone())))
+            .collect();
 
         Ok(Game {
             dump: data.to_path_buf(),
@@ -406,6 +418,7 @@ impl Game {
             system_se,
             actors,
             skills,
+            items,
         })
     }
 

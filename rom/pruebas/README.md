@@ -174,6 +174,9 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `rpgmaker/test_tropa.py`: las páginas de tropa
 * `rpgmaker/test_eventos_de_tropa.py`: las páginas por turno y por HP, los
   enemigos ocultos que aparecen —el Rat King— y el despegue de los agentes
+* `rpgmaker/test_sistemas_de_tropa.py`: los sistemas de los personajes en la
+  pelea —una invocación que cambia a Lerle por el droide, `LifeForStrength`
+  y `Sacrifice`—, turno por turno contra el modelo
 * `rpgmaker/test_experiencia_dibujo.py`: la experiencia y el nivel, en la RAM
   y en el menú
 * `rpgmaker/test_victoria.py`: lo que la victoria da y cuenta —la

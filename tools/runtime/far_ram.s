@@ -212,6 +212,12 @@ BA_COND_ACT   = 7               ; the actor, by LDB number
 BA_COND_AMIN  = 8
 BA_COND_AMAX  = 9
 .assert BA_COND + TPAGE_HEADER <= $7A40, error, "the pages' state overflows its range"
+; And the one for the party a page changes, on 2026-09-30, after the header:
+; which place of `party` `ba_sync_in` is on, which `ba_actor_setup` does not
+; clobber.
+BA_SYNC_I     = $7A2A
+.assert BA_SYNC_I < $7A40, error, "the pages' state overflows its range"
+.assert BA_SYNC_I >= BA_COND + TPAGE_HEADER, error, "BA_SYNC_I steps on the header"
 
 ; --- a medicine outside battle: its scratch space in far RAM -----------------
 ;

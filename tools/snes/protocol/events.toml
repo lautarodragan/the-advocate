@@ -519,3 +519,31 @@ args = [
   { name = "x", type = "byte" },
   { name = "y", type = "byte" },
 ]
+
+# What `OP_HEAL` does not do to an actor —0 the whole party—: the `ChangeHP`
+# that subtracts or reads a variable, `ChangeSP`, and the `ChangeCondition`
+# that removes the death state. `what` carries bits: the SP and not the HP
+# ($01), getting a fallen one up with 1 HP and nothing else ($02), `amount`
+# as a variable's slot ($20), a loss of HP that can kill ($40), and
+# subtracting ($80).
+[[opcode]]
+name = "OP_ACTOR"
+code = 0x36
+args = [
+  { name = "actor", type = "byte" },
+  { name = "what", type = "byte" },
+  { name = "amount", type = "word" },
+]
+
+# `ChangeMonsterHP` and `ChangeMonsterMP`: the enemy at `member` of the troop
+# —from 0, in troop order— gains or loses `amount`. `what` is 0 for the HP and
+# 1 for the SP, and bit 7 on top lets a loss of HP kill. It only runs in a
+# troop page, inside a battle.
+[[opcode]]
+name = "OP_ENEMY"
+code = 0x37
+args = [
+  { name = "member", type = "byte" },
+  { name = "what", type = "byte" },
+  { name = "amount", type = "word", signed = true },
+]
