@@ -2,6 +2,7 @@
 name: "A quién equipar, desde el menú"
 description: "Elegir a quién equipar sobre el menú principal, como Scene_Menu, y no en la pantalla de la elección de actor con la mitad izquierda vacía"
 type: feature
+assignee: Tatú
 ---
 
 Apareció el 2026-09-28, mirando la golden `equipo-a-quien` de la elección de
