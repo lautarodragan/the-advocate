@@ -363,6 +363,10 @@ fn convert_above(
     ))
 }
 
+/// What [`build_palette`] makes: the colours, the grid and the other
+/// drawings' grids in their indices, and what was merged.
+type BuiltPalette = (Vec<Color>, Grid, Vec<Grid>, Vec<Merge>);
+
 /// The background's colours in one table, merging only if there are more
 /// than `budget`. `others` are the grids of the animation's other drawings:
 /// they count like drawing 0 and come out merged with the same mapping,
@@ -371,7 +375,7 @@ fn build_palette(
     grid: &Grid,
     budget: usize,
     others: &[&Grid],
-) -> Result<(Vec<Color>, Grid, Vec<Grid>, Vec<Merge>)> {
+) -> Result<BuiltPalette> {
     let mut all = vec![grid];
     all.extend(others.iter().copied());
     let totals = counts(&all);

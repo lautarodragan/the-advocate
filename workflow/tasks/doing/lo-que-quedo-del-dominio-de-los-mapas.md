@@ -93,3 +93,14 @@ ese fondo solo; y las pruebas de línea de comandos del crate ejercitan por
 ahí el dibujo de las capas —directorios de búsqueda, celdas pintadas,
 errores— con un pedido de tres campos. Sacarlo obligaba a reescribirlas
 contra `map`, que mezcla todo lo demás. Quedó dicho en su README.
+
+### 5. clippy en los tres crates
+
+`cargo clippy -p rm2k-snes-map-background -p rm2k-snes-map-sprites -p
+rm2k-snes-maps --all-targets` sin avisos de los tres. Lo que queda son
+avisos de `ditto` y `rm2k-rules`, que son dependencias y no se tocaron.
+Tipos con nombre para las respuestas de tres funciones, los recorridos de
+paletas y de filas por referencia, el `entry` del caché de opacos del
+horneado, los módulos de prueba al final del archivo y `is_multiple_of` en
+las pruebas. Mismo comportamiento: `rom/build/` igual y `cargo test -p` de
+los tres en verde.

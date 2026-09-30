@@ -124,14 +124,17 @@ fn same_split(without: &Converted, with: &Converted) -> bool {
         && without.background.merges.len() == with.background.merges.len()
 }
 
+/// The events baked into the map: by event, its cell and its tile id.
+type Baked = BTreeMap<usize, (usize, i32)>;
+
 /// Bakes `baked` unless it moves the split: the layers and what was baked.
 fn bake_unless_split_moves(
     game: &Game,
     id: i32,
     without: Layered,
-    baked: BTreeMap<usize, (usize, i32)>,
+    baked: Baked,
     notes: &mut Vec<Note>,
-) -> Result<(Layered, BTreeMap<usize, (usize, i32)>)> {
+) -> Result<(Layered, Baked)> {
     let with = layered(game, id, &baked)?;
     if same_split(&without.converted, &with.converted) {
         return Ok((with, baked));

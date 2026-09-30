@@ -109,8 +109,8 @@ fn game(dir: &Path) -> (PathBuf, PathBuf) {
         json!({"chipset_id": 2, "width": 6, "height": 4, "events": events}).to_string(),
     )
     .unwrap();
-    let lower: Vec<String> = (0..4).map(|_| vec!["  5000"; 6].concat()).collect();
-    let upper: Vec<String> = (0..4).map(|_| vec![" 10000"; 6].concat()).collect();
+    let lower: Vec<String> = (0..4).map(|_| ["  5000"; 6].concat()).collect();
+    let upper: Vec<String> = (0..4).map(|_| [" 10000"; 6].concat()).collect();
     std::fs::write(
         dump.join("maps/Map0007.tiles"),
         format!("# 6x4\n# lower\n{}\n# upper\n{}\n", lower.join("\n"), upper.join("\n")),

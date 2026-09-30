@@ -79,14 +79,14 @@ pub fn first_place(
     colors: &[Color],
     cap: usize,
 ) -> Option<usize> {
-    for number in 0..palettes.len() {
+    for (number, palette) in palettes.iter_mut().enumerate() {
         if avoid.contains(&number) {
             continue;
         }
-        let mut union = palettes[number].clone();
-        union.extend(colors.iter().filter(|c| !palettes[number].contains(c)));
+        let mut union = palette.clone();
+        union.extend(colors.iter().filter(|c| !palette.contains(c)));
         if union.len() <= OBJ_COLORS {
-            palettes[number] = union;
+            *palette = union;
             return Some(number);
         }
     }
@@ -117,14 +117,14 @@ pub fn timer_digits(
         )));
     }
     let mut which = None;
-    for number in 0..palettes.len() {
+    for (number, palette) in palettes.iter_mut().enumerate() {
         if leader_owned.contains(&number) {
             continue;
         }
-        let mut union = palettes[number].clone();
-        union.extend(wanted.iter().filter(|c| !palettes[number].contains(c)));
+        let mut union = palette.clone();
+        union.extend(wanted.iter().filter(|c| !palette.contains(c)));
         if union.len() <= OBJ_COLORS {
-            palettes[number] = union;
+            *palette = union;
             which = Some(number);
             break;
         }
@@ -250,6 +250,19 @@ pub fn picture_of_image(
     Some((base, which))
 }
 
+/// The battle animation's box at the end of the bank: its tiles, left
+/// blank —the console uploads each frame—, and a whole palette, after the
+/// picture's if it took one. `None` without a palette.
+pub fn map_animation(tiles: &mut Vec<u8>, palettes: &[Vec<Color>], used: usize) -> Option<(usize, usize)> {
+    let which = palettes.len() + used;
+    if which >= OBJ_PALETTES {
+        return None;
+    }
+    let base = rounded_to_row(tiles.len() / 32);
+    grow(tiles, base + ANIMATION_TILES);
+    Some((base, which))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -337,17 +350,4 @@ mod tests {
         assert_eq!(base, 128);
         assert_eq!(tiles.len(), (base + 16 + TIMER_GLYPHS) * 32);
     }
-}
-
-/// The battle animation's box at the end of the bank: its tiles, left
-/// blank —the console uploads each frame—, and a whole palette, after the
-/// picture's if it took one. `None` without a palette.
-pub fn map_animation(tiles: &mut Vec<u8>, palettes: &[Vec<Color>], used: usize) -> Option<(usize, usize)> {
-    let which = palettes.len() + used;
-    if which >= OBJ_PALETTES {
-        return None;
-    }
-    let base = rounded_to_row(tiles.len() / 32);
-    grow(tiles, base + ANIMATION_TILES);
-    Some((base, which))
 }

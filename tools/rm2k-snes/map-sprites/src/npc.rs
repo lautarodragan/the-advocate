@@ -59,16 +59,6 @@ pub fn pose_row(pose: i32) -> BTreeSet<i32> {
     (pose / 3 * 3..pose / 3 * 3 + 3).collect()
 }
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn a_still_animation_keeps_the_row_of_its_pose() {
-        use super::pose_row;
-        assert_eq!(pose_row(7), [6, 7, 8].into());
-        assert_eq!(pose_row(0), [0, 1, 2].into());
-    }
-}
-
 /// Which poses each character can end up showing in this map.
 ///
 /// These take all twelve: the leader candidates, because the hero walks;
@@ -131,4 +121,14 @@ pub fn map_poses(
         }
     }
     poses
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn a_still_animation_keeps_the_row_of_its_pose() {
+        use super::pose_row;
+        assert_eq!(pose_row(7), [6, 7, 8].into());
+        assert_eq!(pose_row(0), [0, 1, 2].into());
+    }
 }
