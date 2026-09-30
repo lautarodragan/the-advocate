@@ -35,7 +35,7 @@ one in its own row or above.
                  everything only it uses: the parts it was split into on
                  2026-09-29 (options, cases, game_scan, map_convert,
                  map_layers, sprites, obj_extras, vram, blocks,
-                 screen_stage, battle_screen, battle_scenes,
+                 screen_stage, battle_stage, battle_scenes,
                  battle_animations, music, mapdata, map_record, materials,
                  and stage, which runs the parts that are programs of their
                  own, and compiler, what goes into the event compiler's two
@@ -43,7 +43,7 @@ one in its own row or above.
                  says what each one is), and events —what the converter
                  keeps of the event compiler: the constants, the registries
                  its answer is read into, the models the tests use—,
-                 event_opcodes, battle, experience, picture, window, scene,
+                 event_opcodes, experience, picture, window, scene,
                  animation, adeleine, compress, fullscreen, msu_data; and beneath all of them, because they
                  import nothing from the port, rules (from Game_Actor and
                  the LDB), constants, color (the screen tint), palette (an
@@ -92,9 +92,11 @@ have layers of their own, one folder each:
                  bank, a stream per song, an audio package per map; the
                  converter runs it, and it uses `gunter` as a library
       battle/    `rm2k-snes-battle`: the battle's tables —experience and
-                 level per actor, each map's random encounters—; the
-                 converter runs it as a stage, through `port/stage.py`,
-                 and its README says what shape a stage has
+                 level per actor, each map's random encounters—, its model
+                 and text screen, and the battle played for the tests; the
+                 converter runs it as a stage, through `port/stage.py` and
+                 `port/battle_stage.py`, and its README says what shape a
+                 stage has
       events/    `rm2k-snes-events`: the event compiler —a game's event
                  pages to the bytecode the ROM runs—; the converter calls
                  it twice, through `port/compiler.py`
@@ -148,7 +150,7 @@ Counting the imports inside functions, which Python does not see at load
 time but are still dependencies, there is no import cycle among the `.py`
 files of `tools/`. Inside `port/`, the ones at the bottom are those that
 import nothing from the port; above them, those that ask another for
-something —`battle` from `events`, `screens` from `menus` and `events`,
+something —`screens` from `menus` and `events`,
 `game_scan`, `sprites` and `mapdata` from `compiler`,
 `title` and `menus` from `palette`—; and on top of everything `snes_convert`,
 which uses all of them. The parts `snes_convert` was split into import

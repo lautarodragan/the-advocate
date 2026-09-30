@@ -17,12 +17,12 @@ enemigos, uno por enemigo.
 """
 
 from port import scene
-from port import battle as modelo
 from rpgmaker.resources import GAME_DIR
 
 from consola import en_la_rom, en_la_wram
 from batalla import Pelea, en_el_droide, modelo_de
 import datos
+import modelo
 
 # El encuentro al azar de Sector 27: la celda cae adentro del área 31, y con esa
 # semilla sale la tropa 100 —un DecayingShambler y dos AlleyMuck, que se tapan
@@ -256,7 +256,7 @@ def test_escena_el_droide_muerto_peleando_desaparece(partida):
     """
     una = en_el_droide(partida)
     pelea = Pelea(una).abrir()
-    esperado = modelo_de(datos.base())
+    esperado = modelo_de()
     while esperado.result is None:
         pelea.turno(len(esperado.living(esperado.actors)))
         esperado.play_turn(

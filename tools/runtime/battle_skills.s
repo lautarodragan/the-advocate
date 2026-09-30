@@ -3,8 +3,8 @@
 ; --- executing a skill ----------------------------------------------------
 ;
 ; `Game_BattleAlgorithm::Skill::vStart` and `vExecute`. **The order in which
-; it consumes randomness is the contract with
-; `battle.Battle.use_skill`**: a switch skill finishes before any roll;
+; it consumes randomness is the contract with `use_skill` in
+; `rm2k-snes-battle`**: a switch skill finishes before any roll;
 ; then comes the critical, which is always rolled even if the chance is zero;
 ; then the variance; and then one roll against the hit rate for each thing the
 ; skill affects, in the order HP, SP, attack, defense, spirit and agility.
@@ -476,7 +476,7 @@ sp_ok:
 .a8
     jmp ba_switch
 not_switch:
-    ; --- on whom: `battle.skill_targets` ---
+    ; --- on whom: `skill_targets` ---
     ;
     ; `enemy` and `ally` on the chosen one, `self` on the user, and `enemies`
     ; and `party` on each living one on the opposing side or its own, in
@@ -692,8 +692,8 @@ no_agi:
 ;
 ; `Game_BattleAlgorithm::Skill` with what this port knows how to do. What each
 ; actor knows at the start, how much it costs and how much it does **is not
-; decided here**: it comes from `battle.skills_of`, `battle.cost_of`
-; and `battle.skill_effect`, which is the model with which
+; decided here**: it comes from `skills_of`, the skill's `sp_cost` and
+; `skill_effect` in `rm2k-snes-battle`, which is the model with which
 ; `rom/pruebas/rpgmaker/test_batalla.py` predicts the exact number, and the
 ; converter emits it in `skill_pair_*` and `skill_*`. What it knows **now** is
 ; `FAR_SKILL`, which `ChangeSkills` changes.
