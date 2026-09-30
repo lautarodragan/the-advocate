@@ -46,6 +46,24 @@ pub const FROM_ENVIRONMENT: &[&str] = &[
     "replacements",
 ];
 
+/// The variables the converter reads by itself, which no flag carries: they
+/// change the ROM, so they go in the stamp. Without them, a cartridge built
+/// with `TRANSLUCENT_MODE=dither` stayed "up to date" when built again
+/// without it, and the other way round.
+pub const CONVERTER_VARIABLES: &[&str] = &["TRANSLUCENT_MODE", "DITHER_PATTERN"];
+
+/// The stamp's line for each of `CONVERTER_VARIABLES`, with its value as
+/// `lookup` gives it: unset is not the same as empty.
+pub fn variables_stamp(lookup: impl Fn(&str) -> Option<String>) -> String {
+    CONVERTER_VARIABLES
+        .iter()
+        .map(|name| match lookup(name) {
+            Some(value) => format!("variable {name}={value:?}\n"),
+            None => format!("variable {name} unset\n"),
+        })
+        .collect()
+}
+
 /// What the MSU-1 tracks need: the RTP too, because a song can come from
 /// there; and the cache, where they remember which tracks are already there.
 const TO_TRACKS: &[&str] = &["game_dir", "rtp_dir", "soundfont", "replacements", "cache"];
@@ -611,13 +629,14 @@ impl Cartridges {
     }
 
     /// What the cartridge's stamp has to say for it to be up to date: the
-    /// fingerprint, the converter flags, and each case with the hash of its
+    /// fingerprint, the converter flags, the variables it reads, and each case with the hash of its
     /// file.
     pub fn stamp(&self, name: &str, inputs: &str) -> Result<String, String> {
         let cartridge = self.cartridge(name)?;
         let mut out = format!(
-            "inputs {inputs}\nflags {}\n",
-            serde_json::to_string(&cartridge.flags).unwrap()
+            "inputs {inputs}\nflags {}\n{}",
+            serde_json::to_string(&cartridge.flags).unwrap(),
+            variables_stamp(|name| std::env::var(name).ok())
         );
         for case in self.cases(name)? {
             let path = self.case_path(&case);

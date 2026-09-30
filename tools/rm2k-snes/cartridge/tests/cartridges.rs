@@ -6,7 +6,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use cartridge::assemble::sources;
-use cartridge::cartridges::Cartridges;
+use cartridge::cartridges::{variables_stamp, Cartridges};
 use rm2k_project::environment::Environment;
 use rm2k_project::Project;
 
@@ -205,6 +205,20 @@ fn the_stamp_says_when_a_cartridge_is_stale() {
     assert!(c.stale("test-small", other).unwrap().is_some());
     fs::write(dir.join("cases/both.json"), r#"{"event_commands": []}"#).unwrap();
     assert!(c.stale("test-small", inputs).unwrap().is_some());
+}
+
+#[test]
+fn the_converter_variables_are_in_the_stamp() {
+    // Through `lookup` and not the process's environment, which the tests
+    // running in parallel share.
+    let unset = variables_stamp(|_| None);
+    let dither = variables_stamp(|name| (name == "TRANSLUCENT_MODE").then(|| "dither".to_string()));
+    let empty = variables_stamp(|name| (name == "TRANSLUCENT_MODE").then(String::new));
+    assert_ne!(unset, dither);
+    assert_ne!(unset, empty);
+    assert_ne!(dither, empty);
+    let pattern = variables_stamp(|name| (name == "DITHER_PATTERN").then(|| "checker".to_string()));
+    assert_ne!(unset, pattern);
 }
 
 #[test]
