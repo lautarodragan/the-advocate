@@ -62,25 +62,6 @@
     sta A1B0
     lda #$01
     sta MDMAEN
-    lda pick_cancel
-    beq colors
-    rep #$20
-.a16
-    lda #TARGET_MAP
-erase_row:
-    sta VMADDL
-    ldx #TARGET_ERASE_COLS
-erase_cell:
-    stz VMDATAL                 ; both halves of the word: 16-bit A
-    dex
-    bne erase_cell
-    clc
-    adc #32
-    cmp #(TARGET_MAP + TARGET_ERASE_ROWS * 32)
-    bcc erase_row
-    sep #$20
-.a8
-colors:
     ; The colors.
     lda #TARGET_CGRAM
     sta CGADD
@@ -99,10 +80,6 @@ colors:
     sta BBAD0
     lda #$01
     sta MDMAEN
-    lda pick_cancel
-    beq name
-    rtl
-name:
     ; The two lines of the name: `target_names` has
     ; 2 * TARGET_NAME_WIDTH letters per medicine, and `target_name`
     ; says which one belongs to `k`.
@@ -193,10 +170,6 @@ letter:
 .proc target_count
 .a8
 .i16
-    lda pick_cancel
-    beq medicine
-    rtl
-medicine:
     rep #$20
 .a16
     lda pick_edges

@@ -50,7 +50,7 @@ def objetivo(ranuras, grupo, elegida=0, actores=None, hp=None, item=None,
     `cantidad` las que quedan; sin él, a quién equipar."""
     return screen_stage.render(
         "target", slots=ranuras, party=list(grupo), chosen=elegida,
-        actors=actores, hp=hp or {}, item=item or 0, amount=cantidad)
+        actors=actores, hp=hp or {}, item=item, amount=cantidad)
 
 
 def pantalla_de_ranuras(ranuras, llenas, elegida, modo=0, grupos=None,

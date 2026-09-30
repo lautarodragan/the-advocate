@@ -1325,8 +1325,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # one byte per `k` that says which one it is —$FF if it isn't a
         # medicine—: only medicines open this screen.
         obj_tiles, obj_colors, (obj_map, obj_bars, obj_row0, obj_rows,
-                                obj_col0, obj_cols, obj_erase_rows,
-                                obj_erase_cols), (menu_bar, menu_bar_at) = \
+                                obj_col0, obj_cols), (menu_bar, menu_bar_at) = \
             slots["objetivo"]
         handle.write(block("target_tiles", b"".join(
             pack_tile(cell, planes=8) for cell in obj_tiles)) + "\n")
@@ -1369,14 +1368,11 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
             "TARGET_BAR_ROWS = %d\n"
             "TARGET_BAR_COL0 = %d\n"
             "TARGET_BAR_COLS = %d\n"
-            "TARGET_ERASE_ROWS = %d\n"
-            "TARGET_ERASE_COLS = %d\n"
             % (T.TARGET_VRAM, T.TARGET_MAP, len(obj_tiles),
                T.TARGET_CGRAM, len(obj_colors), T.TARGET_NAME_WIDTH,
                vram_cell(T.TARGET_NAME_ROW, T.TARGET_NAME_COL),
                vram_cell(T.TARGET_COUNT_ROW, T.TARGET_COUNT_COL),
-               obj_row0, obj_rows, obj_col0, obj_cols, obj_erase_rows,
-               obj_erase_cols))
+               obj_row0, obj_rows, obj_col0, obj_cols))
         handle.write(
             "MENU_EXP_X        = %d\n"
             "MENU_EXP_NUM_X    = %d\n"

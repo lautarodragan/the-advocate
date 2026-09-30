@@ -72,13 +72,13 @@ fn everything_a_cartridge_carries() {
     let mut answer = convert::convert(&game(), &request).unwrap();
     // The geometry is constants, and the Python had them as its own.
     answer.as_object_mut().unwrap().remove("layout");
-    // The pause menu's bar came after the Python, on 2026-09-30, and it is
-    // no longer its answer: the bar over nothing adds three tiles at the end
-    // of the actor choice's —41 to 44— in this game, and the two fields of
-    // its rectangle. Everything else is still the Python's.
+    // The actor choice is no longer the Python's since 2026-09-30: whom to
+    // equip is chosen on the pause menu, over nothing, which adds that bar's
+    // tiles and rectangle, and the choice without an item and its erased
+    // cells went away. Everything else is still the Python's.
     assert_eq!(
         sha(canon(&answer).as_bytes()),
-        "8d175bbc96a5b757546193526961182f42501c3ef84c4b1c9e2d90d3dd0e6689"
+        "93266460e505cfeeff1577fd6f0ab19e7c2eaf4161b3e263e6a7c94555907f35"
     );
     assert_eq!(
         answer["says"],
@@ -145,18 +145,9 @@ fn the_screens_as_the_console_shows_them() {
         render::menu(&game, &skin, 4, &state, 999_999, 0, true, None).unwrap(),
         "dc9748330fd80647a550df9481f80ce7dd52a4aeaa7bea99cfa5776e2739c21b",
     );
-    let hurt = Party {
-        hp: [(1, 3)].into_iter().collect(),
-        ..party(&[1, 2])
-    };
-    check(
-        "target",
-        render::target(&game, &skin, 4, &hurt, 1, None, 0).unwrap(),
-        "cb749a65a17839f4997282e4ebe063b9789f9ecf1e1bdd808980369153097c55",
-    );
     check(
         "target-item",
-        render::target(&game, &skin, 4, &party(&[1, 2, 3]), 2, Some(2), 7).unwrap(),
+        render::target(&game, &skin, 4, &party(&[1, 2, 3]), 2, 2, 7).unwrap(),
         "1fe4cd2469ae066fa13905f97412cb005694dacda7e48a2dae7e36881caf0867",
     );
     check(

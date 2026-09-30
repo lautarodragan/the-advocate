@@ -109,21 +109,18 @@ pub fn shop_layers(skin: &Skin) -> Vec<Screen> {
         .collect()
 }
 
-/// The actor choice's windows: with `with_item`, the two on the left with
-/// "Owned Items"; with `cursor`, the bar on that party row.
-pub fn target_windows(game: &Game, skin: &Skin, with_item: bool, cursor: Option<usize>) -> Result<Picture> {
-    let rects: Vec<Rect> = if with_item { TARGET_WINDOWS.to_vec() } else { vec![TARGET_PARTY] };
-    let mut out = windows(skin, &rects);
-    if with_item {
-        skin.draw_line(
-            &mut out,
-            (TARGET_NAME_COL * CELL + GLYPH_DX) as i64,
-            (TARGET_COUNT_ROW * CELL + GLYPH_DY) as i64,
-            &game.term(TI_TERM_OWNED)?,
-            1,
-            game.font_id(),
-        );
-    }
+/// The actor choice's windows: the two on the left with "Owned Items";
+/// with `cursor`, the bar on that party row.
+pub fn target_windows(game: &Game, skin: &Skin, cursor: Option<usize>) -> Result<Picture> {
+    let mut out = windows(skin, &TARGET_WINDOWS);
+    skin.draw_line(
+        &mut out,
+        (TARGET_NAME_COL * CELL + GLYPH_DX) as i64,
+        (TARGET_COUNT_ROW * CELL + GLYPH_DY) as i64,
+        &game.term(TI_TERM_OWNED)?,
+        1,
+        game.font_id(),
+    );
     if let Some(k) = cursor {
         let (x, y, width, height) = TARGET_BAR;
         bar(skin, &mut out, x, k * MENU_ACTOR_ROWS * CELL + y, width, height);
@@ -151,26 +148,15 @@ pub fn menu_bar_layer(skin: &Skin) -> Screen {
     }
 }
 
-/// With an item and without, each with the bar on each party row, from
-/// the first cell row of the actor's row.
-pub fn target_layers(game: &Game, skin: &Skin) -> Result<Vec<Screen>> {
-    [true, false]
-        .iter()
-        .map(|&with_item| {
-            Ok(Screen {
-                background: target_windows(game, skin, with_item, None)?,
-                bars: (0..MENU_PARTY_ROWS)
-                    .map(|k| {
-                        Ok((
-                            target_windows(game, skin, with_item, Some(k))?,
-                            k * MENU_ACTOR_ROWS,
-                            MENU_ACTOR_ROWS,
-                        ))
-                    })
-                    .collect::<Result<_>>()?,
-            })
-        })
-        .collect()
+/// The actor choice, with the bar on each party row, from the first cell
+/// row of the actor's row.
+pub fn target_layer(game: &Game, skin: &Skin) -> Result<Screen> {
+    Ok(Screen {
+        background: target_windows(game, skin, None)?,
+        bars: (0..MENU_PARTY_ROWS)
+            .map(|k| Ok((target_windows(game, skin, Some(k))?, k * MENU_ACTOR_ROWS, MENU_ACTOR_ROWS)))
+            .collect::<Result<_>>()?,
+    })
 }
 
 /// The windows of several screens as the cartridge uploads them.
@@ -264,8 +250,6 @@ pub struct CompactTarget {
     pub rows: usize,
     pub col0: usize,
     pub cols: usize,
-    pub erase_rows: usize,
-    pub erase_cols: usize,
     /// The pause menu's bar: its rectangle on the first party row, as
     /// `(row0, rows, col0, cols)`, and its words row by row. Outside it
     /// BG1 is empty, so erasing it is writing zeros.
@@ -278,21 +262,7 @@ pub struct CompactTarget {
 /// not a different tilemap.
 pub fn compact_target(maps: &[(Vec<u16>, Vec<Vec<u16>>)]) -> Result<CompactTarget> {
     let (with_map, bars_with) = &maps[0];
-    let (without_map, bars_without) = &maps[1];
-    let (menu_map, menu_bars) = &maps[2];
-    let erase_cols = TARGET_LEFT / CELL;
-    let erase_rows = (TARGET_NAME_HEIGHT + TARGET_COUNT_HEIGHT) / CELL;
-    let expected: Vec<u16> = with_map
-        .iter()
-        .enumerate()
-        .map(|(i, &p)| if i / COLS < erase_rows && i % COLS < erase_cols { 0 } else { p })
-        .collect();
-    if &expected != without_map {
-        return Err(Bad::answer(
-            "the actor choice's without-item tilemap is not the with-item one with the left \
-             windows erased",
-        ));
-    }
+    let (menu_map, menu_bars) = &maps[1];
     let mut distinct = std::collections::BTreeSet::new();
     for (k, bar) in bars_with.iter().enumerate() {
         let base = &with_map[k * MENU_ACTOR_ROWS * COLS..(k + 1) * MENU_ACTOR_ROWS * COLS];
@@ -306,11 +276,6 @@ pub fn compact_target(maps: &[(Vec<u16>, Vec<Vec<u16>>)]) -> Result<CompactTarge
     let rows = distinct.iter().map(|d| d.0).max().unwrap_or(0) + 1 - row0;
     let col0 = distinct.iter().map(|d| d.1).min().unwrap_or(0);
     let cols = distinct.iter().map(|d| d.1).max().unwrap_or(0) + 1 - col0;
-    if col0 < erase_cols {
-        return Err(Bad::answer(format!(
-            "the actor choice's bar reaches column {col0}, which belongs to the item windows"
-        )));
-    }
     let clip = |bar: &Vec<u16>| -> Vec<u16> {
         (0..rows)
             .flat_map(|f| (0..cols).map(move |c| (f, c)))
@@ -318,9 +283,6 @@ pub fn compact_target(maps: &[(Vec<u16>, Vec<Vec<u16>>)]) -> Result<CompactTarge
             .collect()
     };
     let bars: Vec<Vec<u16>> = bars_with.iter().map(clip).collect();
-    if bars != bars_without.iter().map(clip).collect::<Vec<_>>() {
-        return Err(Bad::answer("the actor choice's bar is not the same with and without an item"));
-    }
     if menu_map.iter().any(|&w| w != 0) {
         return Err(Bad::answer("the pause menu's BG1 is not empty without the bar"));
     }
@@ -342,8 +304,6 @@ pub fn compact_target(maps: &[(Vec<u16>, Vec<Vec<u16>>)]) -> Result<CompactTarge
         rows,
         col0,
         cols,
-        erase_rows,
-        erase_cols,
         menu_bar: menu_bar_words,
         menu_bar_at: (m_row0, m_rows, m_col0, m_cols),
     })

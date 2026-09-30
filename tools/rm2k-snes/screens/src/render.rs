@@ -246,28 +246,23 @@ pub fn target(
     slots: usize,
     party: &Party,
     chosen: usize,
-    item: Option<i32>,
+    item: i32,
     amount: i64,
 ) -> Result<Picture> {
     let known = party.known();
-    let name = match item {
-        Some(n) => game.item_name(n)?,
-        None => String::new(),
-    };
+    let name = game.item_name(item)?;
     let bank = slots::slots_screen(game, skin, slots, &known, &name)?;
     let mut p = Painter::new(&bank.tiles, &bank.palettes);
-    p.under(&borders::target_windows(game, skin, item.is_some(), Some(chosen))?);
+    p.under(&borders::target_windows(game, skin, Some(chosen))?);
     for (row, actor) in party.members.iter().take(MENU_PARTY_ROWS).copied().enumerate() {
         if known.contains(&actor) {
             actor_row(&mut p, game, &bank, row, actor, party, false)?;
         }
     }
-    if item.is_some() {
-        for (n, line) in texts::name_in_lines(&name, TARGET_NAME_WIDTH, 2).iter().enumerate() {
-            paste_text(&mut p, &bank.menu, line, TARGET_NAME_ROW + 2 * n, TARGET_NAME_COL)?;
-        }
-        paste_text(&mut p, &bank.menu, &format!("{:2}", amount.min(99)), TARGET_COUNT_ROW, TARGET_COUNT_COL)?;
+    for (n, line) in texts::name_in_lines(&name, TARGET_NAME_WIDTH, 2).iter().enumerate() {
+        paste_text(&mut p, &bank.menu, line, TARGET_NAME_ROW + 2 * n, TARGET_NAME_COL)?;
     }
+    paste_text(&mut p, &bank.menu, &format!("{:2}", amount.min(99)), TARGET_COUNT_ROW, TARGET_COUNT_COL)?;
     Ok(p.picture())
 }
 

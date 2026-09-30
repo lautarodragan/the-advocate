@@ -837,11 +837,6 @@ faces_a:
     beq wait
     lda pad_a_prev
     bne wait                    ; it was already held: not an edge
-    lda pick_cancel
-    beq medicine
-    lda title_sel               ; choosing: the chosen row
-    rts
-medicine:
     jsr actor_row
     jsl f:medicine_use
     beq wait                    ; it did not work: RM2k plays a sound and does nothing
