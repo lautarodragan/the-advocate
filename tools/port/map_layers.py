@@ -4,7 +4,7 @@ reads them.
 **They are converted by `rm2k-snes-maps`** —the lower half of CGRAM split
 between them, the 15-bit quantization, what Adeleine merges, the tiles
 Voodoo cuts; see `layers.rs` in `rm2k-snes-map-background`—. What stays
-here is its answer in the shape `map_record`, `mapdata` and `patches` read
+here is its answer in the shape `map_record`, `mapdata` and the patches read
 (`layers_answer`), and the constants of the split the emission needs: where
 the background starts in CGRAM, the upper layer's priority, the backdrop
 color and the palette of the message window.

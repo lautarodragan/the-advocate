@@ -108,6 +108,7 @@ port —ver `tools/README.md`—:
     tools/rm2k-snes/   los que unen las dos cosas
       project/         la biblioteca: qué juego, sus perillas, los flags de la máquina
       cartridge/       los cartuchos: el reparto en bancos, ca65 + ld65, el espacio
+      patches/         los parches: lo que el conversor decide perder, en TOML
       rm2k-snes-audio/ la música: del MIDI y el SoundFont a musicdata.inc
       battle/          las tablas de la pelea: experiencia y encuentros
       events/          el compilador de eventos: de las páginas de RM2k al bytecode
@@ -154,7 +155,8 @@ Las pruebas de esos proyectos no dependen del juego. Ditto recibe el corpus por
 mensaje; `tools/rm2k-snes/rm2k-snes-audio/` recibe el SoundFont por `SOUNDFONT`, igual;
 y `tools/snes/protocol/`, `tools/snes/gunter/`, `tools/snes/voodoo/`, `tools/snes/lz2/`,
 `tools/snes/adeleine/`, `tools/rm2k/rules/`, `tools/rm2k/rm2k-render/`, `tools/rm2k-snes/battle/`,
-`tools/rm2k-snes/events/` y los tres de los mapas no necesitan nada.
+`tools/rm2k-snes/events/`, `tools/rm2k-snes/patches/` y los tres de los mapas no
+necesitan nada.
 
 ### `tools/snes/voodoo/` no decide colores, y eso no se arregla
 

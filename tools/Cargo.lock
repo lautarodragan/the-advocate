@@ -457,6 +457,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "rm2k-snes-patches"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "rm2k-project",
+ "rm2k-snes-cartridge",
+ "serde",
+ "serde_json",
+ "sha2",
+ "toml",
+]
+
+[[package]]
 name = "serde"
 version = "1.0.229"
 source = "registry+https://github.com/rust-lang/crates.io-index"

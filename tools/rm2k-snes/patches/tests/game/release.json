@@ -1,0 +1,29 @@
+{
+  "maps": [
+    {"id": 3, "name": "Cave \"B\" \\ 1", "colors": 176, "budget": 96,
+     "background": [[[1, 2, 3], [4, 5, 6], 12], [[7, 8, 9], [4, 5, 6], 3],
+                    [[31, 0, 0], [30, 1, 0], 1]],
+     "above": [[[0, 0, 31], [0, 1, 30], 40]]},
+    {"id": 12, "name": "Town", "colors": 40, "budget": 96},
+    {"id": 52, "name": "A test map", "colors": 9, "budget": 96,
+     "background": [[[2, 2, 2], [3, 3, 3], 1]]},
+    {"id": 1234, "name": "", "colors": 0, "budget": 0, "background": [], "above": []}
+  ],
+  "animations": [
+    {"number": 1, "name": "Hit", "sheet": "hit", "side": 64,
+     "size": [56, 64], "original": [96, 110], "frames": 7},
+    {"number": 82, "name": "Opening \"flash\"", "sheet": "it's big", "side": 64,
+     "size": [64, 49], "original": [536, 416], "frames": 30},
+    {"number": 91, "name": "Only a test page", "sheet": "test", "side": 64,
+     "size": [16, 16], "original": [16, 16], "frames": 1}
+  ],
+  "battlers": [
+    {"key": "sentry drone", "image": "sentry drone", "hue": 0, "width": 77,
+     "height": 51, "colors": 312,
+     "palette": [[1, 1, 1], [2, 2, 2], [3, 3, 3], [31, 31, 31]], "merges": 308},
+    {"key": "slime-60", "image": "slime", "hue": 60, "width": 40, "height": 30,
+     "colors": 20, "palette": [[10, 0, 0], [0, 10, 0]], "merges": 18},
+    {"key": "ghost", "image": "ghost", "hue": 0, "width": 8, "height": 8,
+     "colors": 1, "palette": [[5, 5, 5]], "merges": 0}
+  ]
+}

@@ -1,0 +1,26 @@
+[package]
+name = "rm2k-snes-patches"
+version = "0.1.0"
+edition = "2021"
+description = "What an rm2k-snes converter decided to lose, written down as TOML, versioned, and checked against every built cartridge"
+
+[lib]
+name = "rm2k_snes_patches"
+path = "src/lib.rs"
+
+[[bin]]
+name = "rm2k-snes-patches"
+path = "src/main.rs"
+
+[dependencies]
+clap = "4"
+# Only for which cartridges there are and where each one is built, which
+# `--check` looks at when it is given none.
+rm2k-snes-cartridge = { path = "../cartridge" }
+rm2k-project = { path = "../project" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "1"
+
+[dev-dependencies]
+sha2 = "0.10"

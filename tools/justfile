@@ -22,7 +22,7 @@ export PATH := if path_exists(local_tools / "bin") == "true" { local_tools / "bi
 
 # The Rust projects, in the order they are installed. `project` and `rules`
 # are libraries: they have nothing to install, and they go into the
-# binaries that use them —`project` into `cartridge`'s, `rules` into
+# binaries that use them —`project` into `cartridge`'s and the others', `rules` into
 # `rm2k-render` and `battle`—, which are compiled with them. So a branch
 # that changes `rules` reinstalls those two, not `rules`.
 #
@@ -31,7 +31,7 @@ export PATH := if path_exists(local_tools / "bin") == "true" { local_tools / "bi
 # `*-test` recipes run `cargo test` standing in the project, which tests
 # only that one, and `cargo install --locked --path` takes the workspace's
 # lock.
-rust_projects := "protocol gunter ditto rules adeleine voodoo lz2 rm2k-render project cartridge rm2k-snes-audio battle events map-background map-sprites maps"
+rust_projects := "protocol gunter ditto rules adeleine voodoo lz2 rm2k-render project cartridge patches rm2k-snes-audio battle events map-background map-sprites maps"
 
 # The directories the projects live in, one per layer: each project is
 # `<layer>/<name>`, and the recipes find it by its name.
@@ -39,9 +39,10 @@ rust_layers := "snes rm2k rm2k-snes"
 
 # The event opcodes: their number and their layout. The declaration lives in
 # `snes/protocol/events.toml` and belongs neither to the compiler nor to the
-# interpreter; from it the two Python modules and the two `.inc` files of
-# `tools/runtime/` are generated, and the music's Rust module for
-# `rm2k-snes/rm2k-snes-audio/`, all committed. There are two declarations:
+# interpreter; from it are generated, all committed: the two `.inc` files of
+# `tools/runtime/`, the two Rust modules (the event compiler's and
+# `rm2k-snes/rm2k-snes-audio/`'s), and the event opcodes' Python module, which
+# the converter still reads. There are two declarations:
 # the event bytecode and the music stream the SPC700 reads.
 #
 # The event one takes `--jump-table`: that produces `run_code`'s dispatch
@@ -54,7 +55,7 @@ protocol *args:
       --python port/event_opcodes.py --asm runtime/event_opcodes.inc \
       --rust rm2k-snes/events/src/opcodes.rs --jump-table {{args}}
   protocol snes/protocol/music.toml \
-      --python audio/music_opcodes.py --asm runtime/music_opcodes.inc \
+      --asm runtime/music_opcodes.inc \
       --rust rm2k-snes/rm2k-snes-audio/src/music_opcodes.rs {{args}}
 
 # The tools' Python tests, the ones in `tests/`: those that need neither the
@@ -180,6 +181,15 @@ project-test:
 # the game's suite, which runs them; building a real cartridge needs a game.
 cartridge-test:
   cd rm2k-snes/cartridge && cargo test
+
+# `rm2k-snes-patches`: what the converter decided to lose —the colors of a
+# map's layers and of each battler, the size of each battle animation—,
+# written as TOML next to each ROM, copied to the project and checked
+# against every cartridge. Its tests write and check a small game made of
+# requests, in `tests/game/`, and compare against what the Python that did
+# this until 2026-09-30 answered for it: they need no game.
+patches-test:
+  cd rm2k-snes/patches && cargo test
 
 # rm2k-snes-audio: the music, from each song's MIDI and the SoundFont to
 # `musicdata.inc` —see `port/snes_convert.py`, which is what calls it—. It
@@ -329,7 +339,6 @@ _install root *projects:
     cargo install --locked --path "$dir" --root "{{root}}"
   done
   ln -sfn "{{justfile_directory()}}/port/snes_convert.py" "{{root}}/bin/rm2k-snes-convert"
-  ln -sfn "{{justfile_directory()}}/port/patches.py" "{{root}}/bin/rm2k-snes-patches"
   ln -sfn "{{justfile_directory()}}/assembly/entregar.py" "{{root}}/bin/abl-entregar"
   echo "in {{root}}/bin: the Python scripts, and from Rust: {{ if projects == "" { "none" } else { projects } }}"
 
