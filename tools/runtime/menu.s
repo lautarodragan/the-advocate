@@ -10,9 +10,10 @@
 ; menu costs no tick.
 ;
 ; Today the things that do something are using items —the item screen, in
-; `items.s`—, equipment, saving, which opens the slot screen and returns to
-; the menu, and End Game, which opens its own —`end_game.s`—. Skills is
-; drawn in gray and A does nothing with it.
+; `items.s`—, equipment, which chooses whom on this same menu —`menu_choose`,
+; in `actor_choice.s`— and opens their screen, saving, which opens the slot
+; screen and returns to the menu, and End Game, which opens its own
+; —`end_game.s`—. Skills is drawn in gray and A does nothing with it.
 
 ; The permissions byte, in A. Only A, and the `lda`'s flags: bit 7 ends up in
 ; N.
@@ -447,6 +448,7 @@ other_option:
     jsr slot_rect_upload
 
     jsr menu_party_paint
+    jsl f:menu_bar_upload       ; BG1, empty, for choosing an actor
     jsl f:menu_exp_paint        ; the experience, which goes in sprites, and turns on
     lda #1
     sta menu_open
@@ -674,14 +676,14 @@ no_down:
     jsr menu_enabled
     beq wait                    ; in gray: RM2k plays a sound and does nothing
     lda title_sel
-    cmp #2
+    cmp #MENU_EQUIPMENT
     bne no_equipment
-    ; Equipment: whom, and their screen. Both return to the menu.
-    lda #1
-    sta pick_cancel             ; for choosing
-    jsr target_screen
+    ; Equipment: whom, on this same menu, and their screen. B while
+    ; choosing returns to the commands as they are; the screen returns to
+    ; the menu with the cursor on the command, like `Scene_Menu`.
+    jsl f:menu_choose
     cmp #$FF
-    beq equipment_return
+    beq equipment_cancel
     rep #$20
 .a16
     and #$00FF
@@ -690,10 +692,13 @@ no_down:
 .a8
     lda party, x
     jsl f:equipment_screen
-equipment_return:
-    lda #2
+    lda #MENU_EQUIPMENT
     sta title_sel
     jmp build
+equipment_cancel:
+    lda #MENU_EQUIPMENT
+    sta title_sel
+    jmp wait
 no_equipment:
     lda title_sel
     bne no_items
@@ -767,12 +772,11 @@ move:
 ; --- the actor choice --------------------------------------------------------
 ;
 ; `Scene_ActorTarget`, over the menu's bank: the party panel, and the System
-; windows and bar on BG1, which belong to `actor_choice.s`. `pick_cancel`
-; says what for: at 1, to choose whom to equip, and A returns with the row; at
-; 0, for the medicine `k` in `pick_edges`, and A uses it on the row
-; —`medicine_use`— and **stays**, with that row's HP repainted, which is what
-; `UpdateItem` does. B returns with $FF. The screens stage's `render` is the
-; reference.
+; windows and bar on BG1, which belong to `actor_choice.s`. It is for the
+; medicine `k` in `pick_edges`: A uses it on the row —`medicine_use`— and
+; **stays**, with that row's HP repainted, which is what `UpdateItem` does.
+; B returns. The screens stage's `render` is the reference. Whom to equip
+; is not chosen here but on the menu itself: see `menu_choose`.
 ;
 ; Until 2026-09-21 A did nothing with a medicine: it was written when outside
 ; battle nobody could have HP below the maximum, and it stayed that way when
@@ -832,11 +836,6 @@ faces_a:
     beq wait
     lda pad_a_prev
     bne wait                    ; it was already held: not an edge
-    lda pick_cancel
-    beq medicine
-    lda title_sel               ; choosing: the chosen row
-    rts
-medicine:
     jsr actor_row
     jsl f:medicine_use
     beq wait                    ; it did not work: RM2k plays a sound and does nothing

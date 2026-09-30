@@ -23,15 +23,17 @@ def disposicion():
 
 
 def menu(ranuras, grupo, oro, elegida=0, guardar=True, actores=None,
-         hp=None, niveles=None, exps=None):
+         hp=None, niveles=None, exps=None, eligiendo=None):
     """El menú de pausa con `grupo` y `oro`, el cursor en `elegida` y el
     permiso de guardar. `actores` son los que conoce la ROM —sin ellos, el
     grupo—; `hp`, `niveles` y `exps`, de actor a valor, los de la partida
-    —sin ellos, los de arranque—."""
+    —sin ellos, los de arranque—. Con `eligiendo`, la fila del grupo con la
+    barra, mientras se elige para quién es la orden."""
     return screen_stage.render(
         "menu", slots=ranuras, party=list(grupo), gold=oro, chosen=elegida,
         save_allowed=guardar, actors=actores, hp=hp or {},
-        levels=niveles or {}, exps=exps or {})
+        levels=niveles or {}, exps=exps or {},
+        choosing=-1 if eligiendo is None else eligiendo)
 
 
 def items(inventario, elegida=0, arriba=0, conocidos=None):
@@ -45,10 +47,11 @@ def items(inventario, elegida=0, arriba=0, conocidos=None):
 def objetivo(ranuras, grupo, elegida=0, actores=None, hp=None, item=None,
              cantidad=0):
     """La elección de actor: con `item`, la medicina que se usa y
-    `cantidad` las que quedan; sin él, a quién equipar."""
+    `cantidad` las que quedan. A quién equipar se elige en el menú: ver
+    `menu(eligiendo=...)`."""
     return screen_stage.render(
         "target", slots=ranuras, party=list(grupo), chosen=elegida,
-        actors=actores, hp=hp or {}, item=item or 0, amount=cantidad)
+        actors=actores, hp=hp or {}, item=item, amount=cantidad)
 
 
 def pantalla_de_ranuras(ranuras, llenas, elegida, modo=0, grupos=None,

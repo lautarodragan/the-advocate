@@ -1,5 +1,6 @@
-"""El equipo: la pantalla de `Scene_Equip` desde el menú, pixel por pixel
-contra `pantallas.equipo`, y lo que equipar cambia en la RAM.
+"""El equipo: a quién equipar, sobre el menú mismo, y la pantalla de
+`Scene_Equip`, pixel por pixel contra `pantallas.menu` y `pantallas.equipo`,
+y lo que equipar cambia en la RAM.
 
 El inventario lo da la página de prueba con `ChangeItems` de verdad. Talan
 arranca con su ropa de trabajo, que es el equipo inicial del LDB copiado a
@@ -9,7 +10,7 @@ arranca con su ropa de trabajo, que es el equipo inicial del LDB copiado a
 from consola import TITULO_AIRE
 import datos
 from dibujo import comparar_pantalla
-from menu import abrir
+from menu import GRUPO, abrir, comparar, con_grupo
 import pantallas
 
 TALAN, KERSH = 14, 11
@@ -34,6 +35,40 @@ def entrar(una):
     una.tocar_cuadros("a", TITULO_AIRE)  # a quién
     una.tocar_cuadros("a", TITULO_AIRE)  # Talan
     return una
+
+
+def test_a_quien_equipar_se_elige_en_el_menu(partida):
+    """`Scene_Menu` con Equipment: A deja el menú como está, con el cursor
+    en la orden, y pone la barra sobre el primero del grupo; abajo la pasa
+    al segundo, arriba desde el primero da la vuelta, B vuelve a las
+    órdenes sin barra, y A abre el equipo del de la barra. Al volver del
+    equipo, el cursor está en las órdenes, sobre Equipment. Lo mismo en el
+    RPG_RT, capturado con Wine: ver la tarea `a-quien-equipar-desde-el-menu`.
+    """
+    una = con_grupo(partida())
+    abrir(una)
+    una.tocar_cuadros("down")
+    una.tocar_cuadros("down")
+    una.tocar_cuadros("a", TITULO_AIRE)
+    comparar(una, 2, nombre="menu-a-quien", eligiendo=0)
+    una.tocar_cuadros("down")
+    comparar(una, 2, nombre="menu-a-quien-2", eligiendo=1)
+    una.tocar_cuadros("up")
+    una.tocar_cuadros("up")             # desde el primero, da la vuelta
+    comparar(una, 2, nombre="menu-a-quien-vuelta", eligiendo=1)
+    una.tocar_cuadros("b", TITULO_AIRE)
+    comparar(una, 2, nombre="menu-a-quien-b")
+    assert una.menu_abierto(), "B en la elección cerró el menú"
+    una.tocar_cuadros("a", TITULO_AIRE)  # arranca otra vez en el primero
+    comparar(una, 2, nombre="menu-a-quien-otra-vez", eligiendo=0)
+    una.tocar_cuadros("down")
+    una.tocar_cuadros("a", TITULO_AIRE)  # el segundo: Kersh
+    assert una.byte("comp_char") == GRUPO[1], "el equipo no es del segundo"
+    comparar_pantalla(una, pantallas.equipo(
+        GRUPO[1], datos.base().actors[GRUPO[1]].initial_equipment, {}, 0),
+        "equipo-del-segundo")
+    una.tocar_cuadros("b", TITULO_AIRE)
+    comparar(una, 2, nombre="menu-vuelta-del-equipo")
 
 
 def test_arranca_con_el_equipo_inicial(partida):

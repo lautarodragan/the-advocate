@@ -161,7 +161,11 @@ fn actor_row(
 }
 
 /// The pause menu. `slots` are the save slots, `chosen` the command with
-/// the cursor and `save_allowed` what `ChangeSaveAccess` left.
+/// the cursor and `save_allowed` what `ChangeSaveAccess` left. With
+/// `choosing`, the party row the bar is on while choosing whom a command
+/// is for —`Scene_Menu::UpdateActorSelection`—; the command keeps its
+/// cursor.
+#[allow(clippy::too_many_arguments)]
 pub fn menu(
     game: &Game,
     skin: &Skin,
@@ -170,11 +174,13 @@ pub fn menu(
     gold: i64,
     chosen: usize,
     save_allowed: bool,
+    choosing: Option<usize>,
 ) -> Result<Picture> {
     let known = party.known();
     let bank = slots::slots_screen(game, skin, slots, &known, "")?;
     let menu = &bank.menu;
     let mut p = Painter::new(&bank.tiles, &bank.palettes);
+    p.under(&borders::menu_bar(skin, choosing));
     for option in 0..MENU_OPTIONS {
         let done = MENU_DONE.contains(&option) && (option != MENU_SAVE || save_allowed);
         p.paste(
@@ -232,36 +238,31 @@ pub fn menu(
     Ok(p.picture())
 }
 
-/// The actor choice: the party panel, and with `item`, the medicine being
-/// used with how many are left; without it, the choice of whom to equip.
+/// The actor choice: the party panel, and `item`, the medicine being used,
+/// with how many are left.
 pub fn target(
     game: &Game,
     skin: &Skin,
     slots: usize,
     party: &Party,
     chosen: usize,
-    item: Option<i32>,
+    item: i32,
     amount: i64,
 ) -> Result<Picture> {
     let known = party.known();
-    let name = match item {
-        Some(n) => game.item_name(n)?,
-        None => String::new(),
-    };
+    let name = game.item_name(item)?;
     let bank = slots::slots_screen(game, skin, slots, &known, &name)?;
     let mut p = Painter::new(&bank.tiles, &bank.palettes);
-    p.under(&borders::target_windows(game, skin, item.is_some(), Some(chosen))?);
+    p.under(&borders::target_windows(game, skin, Some(chosen))?);
     for (row, actor) in party.members.iter().take(MENU_PARTY_ROWS).copied().enumerate() {
         if known.contains(&actor) {
             actor_row(&mut p, game, &bank, row, actor, party, false)?;
         }
     }
-    if item.is_some() {
-        for (n, line) in texts::name_in_lines(&name, TARGET_NAME_WIDTH, 2).iter().enumerate() {
-            paste_text(&mut p, &bank.menu, line, TARGET_NAME_ROW + 2 * n, TARGET_NAME_COL)?;
-        }
-        paste_text(&mut p, &bank.menu, &format!("{:2}", amount.min(99)), TARGET_COUNT_ROW, TARGET_COUNT_COL)?;
+    for (n, line) in texts::name_in_lines(&name, TARGET_NAME_WIDTH, 2).iter().enumerate() {
+        paste_text(&mut p, &bank.menu, line, TARGET_NAME_ROW + 2 * n, TARGET_NAME_COL)?;
     }
+    paste_text(&mut p, &bank.menu, &format!("{:2}", amount.min(99)), TARGET_COUNT_ROW, TARGET_COUNT_COL)?;
     Ok(p.picture())
 }
 

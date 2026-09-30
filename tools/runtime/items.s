@@ -550,7 +550,6 @@ faces_a:
     pha
     lda pick_sel
     pha
-    stz pick_cancel             ; for a medicine, the one in `pick_edges`
     jsr target_screen
     pla
     sta pick_sel
