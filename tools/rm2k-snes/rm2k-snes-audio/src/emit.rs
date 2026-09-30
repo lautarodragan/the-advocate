@@ -194,16 +194,23 @@ pub fn musicdata(music: &Music, emit: &Emit) -> Result<String> {
     let end = vec![OP_END];
     let streams: Vec<&[u8]> =
         if songs.is_empty() { vec![&end] } else { songs.iter().map(|t| t.stream.as_slice()).collect() };
-    let mut table = [("song_lo", "<"), ("song_hi", ">"), ("song_bk", "^")]
+    // Where each song's stream starts, split into three tables because they
+    // are read with an index. Outside bank 0, since 2026-09-30: they are
+    // read once per song start, with `lda f:`, and each song the cartridge
+    // carries cost bank 0 four bytes —these three and `song_msu`— when it
+    // had one left.
+    let mut far_songs = [("song_lo", "<"), ("song_hi", ">"), ("song_bk", "^")]
         .iter()
         .map(|(name, prefix)| {
             format!(
-                "{name}:\n    .byte {}",
+                ".block {}\n{name}:\n    .byte {}",
+                labels.len(),
                 labels.iter().map(|l| format!("{prefix}{l}")).collect::<Vec<_>>().join(", ")
             )
         })
         .collect::<Vec<_>>()
         .join("\n");
+    let mut table = String::new();
     // The DSP prologue, for the MSU-1 path. With a track the stream never
     // runs, and it is the start of the stream that takes the DSP out of the
     // mute the SPC700 boots with, sets its master volume and tells it where
@@ -218,7 +225,7 @@ pub fn musicdata(music: &Music, emit: &Emit) -> Result<String> {
     // with an index.
     let init: Vec<(u8, u8)> =
         stream::init_writes().into_iter().filter(|(r, _)| *r != sdsp::KON && *r != sdsp::KOF).collect();
-    write!(table, "\ndsp_init_reg:\n    .byte {}, $FF", bytes_list(init.iter().map(|w| w.0))).unwrap();
+    write!(table, "dsp_init_reg:\n    .byte {}, $FF", bytes_list(init.iter().map(|w| w.0))).unwrap();
     write!(table, "\ndsp_init_val:\n    .byte {}, $00", bytes_list(init.iter().map(|w| w.1))).unwrap();
     // And which MSU-1 track each one gets, or $FF.
     let tracks: Vec<u8> = if songs.is_empty() {
@@ -226,7 +233,7 @@ pub fn musicdata(music: &Music, emit: &Emit) -> Result<String> {
     } else {
         songs.iter().map(|t| t.track.filter(|&n| n != 0).unwrap_or(0xFF)).collect()
     };
-    write!(table, "\nsong_msu:\n    .byte {}", bytes_list(tracks)).unwrap();
+    write!(far_songs, "\n.block {}\nsong_msu:\n    .byte {}", tracks.len(), bytes_list(tracks)).unwrap();
     // And each map's own song. Outside bank 0: it is read once per teleport.
     let per_map = if emit.map_song.is_empty() { vec![0xFF] } else { emit.map_song.clone() };
     let mut map_song_table =
@@ -419,11 +426,11 @@ pub fn musicdata(music: &Music, emit: &Emit) -> Result<String> {
          SE2_BIT          = ${:02X}\n\
          SE2_REG          = ${:02X}\n\
          SOUNDS_N         = {}\n\n\
-         ; Where each song's stream starts, split into three tables\n\
-         ; because they are read with an index: they go in bank 0 like\n\
-         ; everything the CPU walks with `lda tabla, x`.\n\
+         ; The DSP prologue of the MSU-1 path, in bank 0 like everything\n\
+         ; the CPU walks with `lda tabla, x`. Where each song starts and\n\
+         ; its MSU-1 track are outside it, and are read with `f:`.\n\
          .segment \"TABLES\"\n{}\n\n\
-         .segment \"RODATA\"\n{}\n{}\n{}\n{}\n\
+         .segment \"RODATA\"\n{}\n{}\n{}\n{}\n{}\n\
          .block {}\nsample_table:\n{}\n{}\n{}\n{}\n{}\n",
         songs.len(),
         emit.boot,
@@ -452,6 +459,7 @@ pub fn musicdata(music: &Music, emit: &Emit) -> Result<String> {
         SE_VOICE2 as u32 * 16,
         emit.sounds.len(),
         table,
+        far_songs,
         se_table,
         map_song_table,
         block("spc_driver", driver, false),

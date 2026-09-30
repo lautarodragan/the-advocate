@@ -157,11 +157,11 @@ no_track:
     sta song_current
     stz song_current + 1
     ldx song_current
-    lda song_lo, x
+    lda f:song_lo, x             ; outside bank 0: see `song_lo` in musicdata.inc
     sta music
-    lda song_hi, x
+    lda f:song_hi, x
     sta music + 1
-    lda song_bk, x
+    lda f:song_bk, x
     sta music + 2
     ; The decoder from scratch: no wait, no pending key-ons, and with nothing
     ; valid in the cache —each voice's first note rewrites it—. This also

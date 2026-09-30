@@ -146,7 +146,7 @@ ready:
     tax
     sep #$20
 .a8
-    lda song_msu, x
+    lda f:song_msu, x            ; outside bank 0, like `song_lo`
     cmp #$FF
     beq no
     ; **Before writing the track, wait for the MSU-1 to be free.** With
