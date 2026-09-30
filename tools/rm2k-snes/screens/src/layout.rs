@@ -287,9 +287,15 @@ pub const TARGET_BAR: Rect = (MENU_TEXT_X - 4, 2, WIDTH - MENU_TEXT_X, 3 * LINE 
 /// The same bar on the pause menu, where `Scene_Menu` chooses whom to equip
 /// over its own party panel: there are no windows under it, so it is drawn
 /// over nothing, and it is taller because the row has a fourth line, the
-/// experience. Two pixels in from the top and the bottom of the row, so the
-/// bottom cells are the top ones mirrored and cost no tiles.
-pub const MENU_BAR: Rect = (MENU_TEXT_X - 4, 2, WIDTH - MENU_TEXT_X, MENU_ACTOR_ROWS * CELL - 4);
+/// experience. It covers every pixel of the row's text and its shadows —the
+/// cursor's edge is one dark pixel, so the red starts one in—: the name
+/// starts at y = 3 and the experience, which is sprites below the cell
+/// grid, ends at y = 56, one past the row. So the bar goes from y = 2 to
+/// y = 57 —red from 3 to 56— and reaches into the next row, which has no
+/// bar then. Measured against the capture on 2026-09-30: at y = 2..53 the
+/// bottom of "Ex" was left over black. Starting at 2 and not higher, the
+/// top cells are the actor choice's and the bar costs two tiles.
+pub const MENU_BAR: Rect = (MENU_TEXT_X - 4, 2, WIDTH - MENU_TEXT_X, MENU_ACTOR_ROWS * CELL + 1);
 /// BG1's colours: those of sprite palette 0, which on this screen are off
 /// and on the pause menu are not used: the experience goes in palette 1.
 /// There is no room in 0..127: they are the menu bank's palettes.

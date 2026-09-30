@@ -78,7 +78,7 @@ fn everything_a_cartridge_carries() {
     // cells went away. Everything else is still the Python's.
     assert_eq!(
         sha(canon(&answer).as_bytes()),
-        "93266460e505cfeeff1577fd6f0ab19e7c2eaf4161b3e263e6a7c94555907f35"
+        "e568fef1b16c41321baf8bdfa7d5763cbce648c89bca6802743783233bb59914"
     );
     assert_eq!(
         answer["says"],
@@ -131,7 +131,7 @@ fn the_screens_as_the_console_shows_them() {
     check(
         "menu-choosing",
         render::menu(&game, &skin, 4, &party(&[1, 2, 5]), 1234, 2, false, Some(1)).unwrap(),
-        "02d068ec453398d9db0e1eb104f25a5f2245ce5bbb9ae12a6f54ba1abcbe9a2b",
+        "7aeb78f03237b9a6aea75bf9d02712061d9e093fcd200fa975190f680903d858",
     );
     let state = Party {
         members: vec![2, 7, 8, 4],

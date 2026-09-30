@@ -140,11 +140,13 @@ pub fn menu_bar(skin: &Skin, cursor: Option<usize>) -> Picture {
 }
 
 /// The pause menu's bar as one more screen for `borders`: the same on
-/// every row, so only the first one's.
+/// every row, so only the first one's, with every cell row it reaches
+/// —one more than the party row's, see `MENU_BAR`—.
 pub fn menu_bar_layer(skin: &Skin) -> Screen {
+    let (_, y, _, height) = MENU_BAR;
     Screen {
         background: menu_bar(skin, None),
-        bars: vec![(menu_bar(skin, Some(0)), 0, MENU_ACTOR_ROWS)],
+        bars: vec![(menu_bar(skin, Some(0)), 0, (y + height).div_ceil(CELL))],
     }
 }
 
