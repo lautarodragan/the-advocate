@@ -804,6 +804,30 @@ MENU_EXP_TEXT_END = $7E7A50
 ; card and not about the game.
 MSU_MISSING    = $7E7820
 MSU_MISSING_BYTES = 16
+
+; --- what goes on running after a teleport -----------------------------------
+;
+; The event bytecode lives in WRAM, behind the map's grid, since 2026-10-01,
+; and the next map's takes its place. A page that goes on after a `Teleport`
+; to another map —a cutscene that jumps and keeps talking, and every test
+; case of the harness— would read the new map's: `code_carry_before` and
+; `code_carry_after`, in decompress.s, carry it.
+;
+; $7E7EF0 to $7E7FFF, reserved on 2026-10-01:
+;
+;   $7E7EF0  which map's bytecode is in `CODE_CARRY`, word; $FFFF none
+;   $7E7F00  the hero's move route, copied whole when the map changes under
+;            it: it is at most 255 bytes, which is what `route_n` counts
+;
+; And `CODE_CARRY`, in `LZ2_BUFFER`, which on the map is free once it is
+; loaded: above the two places of the battle animation's frame —see
+; `anim_frame_build`— and below the ChipSet animation's drawings. Loading a
+; map overwrites it, and so does `back_to_map` —after the menu, the shop, the
+; slots or a battle—: both decompress it again at the end.
+CARRY_MAP      = $7E7EF0
+ROUTE_CARRY    = $7E7F00
+.assert ROUTE_CARRY + 256 <= GRID, error, "the carried move route would go into the grid"
+CODE_CARRY     = LZ2_BUFFER + $1100
 LZ2_BUFFER     = $7F0000
 ANIM_DRAWINGS  = $7F6000
 ANIM_DRAWINGS_END = $7F8000
@@ -923,6 +947,9 @@ GO_FRAMES = $7E7A34             ; how many frames each fade level lasts
 ; that was still free. What is lost, how it is reverted and what catches it,
 ; in workflow/decisiones/la-grilla-vive-en-la-wram.md;
 ; `test_reservas_de_la_wram.py` fails if another symbol lands inside.
+;
+; Right behind it, in $7F's half, go the block table and its passability,
+; which `lz2_grid` decompresses with it: see there.
 ;
 ; It shares the $7F half with `SCN_SCENE`: the battle overwrites it, and
 ; `back_from_battle` decompresses the whole grid again.

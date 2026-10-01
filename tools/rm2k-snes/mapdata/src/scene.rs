@@ -7,6 +7,7 @@
 //! request. Here they are only written.
 
 use crate::asm::block;
+use crate::compress;
 use crate::fail::{Bad, Result};
 use crate::json::{at, bytes_at, colors, int, int_at, ints, ints_at, list, list_at};
 use crate::snes::{cgram_bytes, pack_tile};
@@ -91,6 +92,9 @@ pub fn scenes_asm(scene: &Value, used: &[i64]) -> Result<String> {
         ),
         format!("FALLBACK_SCALE = {}", n("FALLBACK_SCALE")?),
         format!("SCENE_BAT_PALETTE = {}", n("BATTLER_PALETTE")?),
+        "; How many bytes of battlers a troop has, at most: they are".into(),
+        "; decompressed together when the battle starts.".into(),
+        format!("LZ2_CAP_BATTLERS = ${BATTLERS_CAP:04X}"),
         "; The tile that covers what is left below the scene. It falls".into(),
         "; **outside** the tile block: 512 8bpp tiles are the 16,384 words".into(),
         "; that go from SCENE_VRAM to the end of VRAM, so 512 wraps around".into(),
@@ -151,10 +155,16 @@ pub fn scenes_asm(scene: &Value, used: &[i64]) -> Result<String> {
     // Sixty-four zeros: the transparent tile under the scene, and the fixed
     // source of the DMA that fills the plain backdrop.
     out.push(block("scene_zero", &[0; 64]));
-    // Each fallback in a block that does not cross a bank: the console reads
-    // it with `[pointer]` and adds to it only the low sixteen bits.
-    for (k, b) in backdrops.iter().enumerate() {
-        out.push(block(&format!("backdrop_{k}"), &bytes_at(b, "tiles")?));
+    // Each fallback in LZ2, in a block that does not cross a bank, which is
+    // what the decompressor asks for: `scn_double` decompresses it into WRAM
+    // and enlarges it from there, before the battlers take that place.
+    let tiles: Vec<Vec<u8>> = backdrops
+        .iter()
+        .map(|b| bytes_at(b, "tiles"))
+        .collect::<Result<_>>()?;
+    let refs: Vec<&[u8]> = tiles.iter().map(Vec::as_slice).collect();
+    for (k, stream) in compress::compress_many(&refs)?.iter().enumerate() {
+        out.push(block(&format!("backdrop_{k}"), stream));
     }
     // The battlers: their tables and then their bytes.
     let columns: Vec<i64> = battlers
@@ -221,11 +231,42 @@ pub fn scenes_asm(scene: &Value, used: &[i64]) -> Result<String> {
     out.push(block("member_x", &byte_list(member_x, 0)));
     out.push(block("member_y", &byte_list(member_y, 0)));
     out.push(block("member_command", &byte_list(member_command, 0)));
-    for (k, b) in battlers.iter().enumerate() {
-        out.push(block(&format!("battler_{k}"), &bytes_at(b, "bytes")?));
+    // Each battler in LZ2: the console decompresses a troop's into WRAM when
+    // the battle starts —see `scn_battlers_load`— and reads them from there
+    // whenever it draws one, so a troop's distinct battlers have to fit in
+    // their place together.
+    let raw: Vec<Vec<u8>> = battlers
+        .iter()
+        .map(|b| bytes_at(b, "bytes"))
+        .collect::<Result<_>>()?;
+    for (number, (members, _)) in used.iter().map(|n| (n, &placed[n])) {
+        let mut distinct: Vec<usize> = Vec::new();
+        for m in members.iter() {
+            let b = ints(m)?[0];
+            if b != 0xFF && !distinct.contains(&(b as usize)) {
+                distinct.push(b as usize);
+            }
+        }
+        let total: usize = distinct.iter().map(|&b| raw[b].len()).sum();
+        if total > BATTLERS_CAP {
+            return Err(Bad::answer(format!(
+                "troop {number}: its battlers are {total} bytes and {BATTLERS_CAP} fit in WRAM: \
+                 see `scn_battlers_load` in tools/runtime/battle_scene.s"
+            )));
+        }
+    }
+    let refs: Vec<&[u8]> = raw.iter().map(Vec::as_slice).collect();
+    for (k, stream) in compress::compress_many(&refs)?.iter().enumerate() {
+        out.push(block(&format!("battler_{k}"), stream));
     }
     Ok(out.join("\n") + "\n")
 }
+
+/// How many bytes of battlers a troop can have, the distinct ones together:
+/// the place the console decompresses them into, which is the grid's in
+/// bank $7E —the battle borrows it, and `back_from_battle` decompresses the
+/// grid again—. The runtime checks it against its own with `.assert`.
+pub const BATTLERS_CAP: usize = 0x8000;
 
 #[cfg(test)]
 mod tests {

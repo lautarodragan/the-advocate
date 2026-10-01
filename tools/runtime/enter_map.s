@@ -14,6 +14,16 @@
 .proc enter_map_no_events
 .a16
 .i16
+    ; A page that goes on after the jump keeps its bytecode, which is about
+    ; to be overwritten: see `code_carry_before`. With `map_current` still
+    ; the one being left.
+    pha
+    sep #$20
+.a8
+    jsl f:code_carry_before + FAST
+    rep #$20
+.a16
+    pla
     sta map_current             ; to know whether the next jump changes map
     sep #$20
 .a8
@@ -81,10 +91,12 @@
 .assert NPC_STRIDE = 16, error, "the computation above multiplies by sixteen by hand"
     sta npc_total
 
-    ; The pointers to the two tables that are read from ROM. The second points
-    ; eight bytes further, which is where each block stores its upper layer;
-    ; adding eight cannot overflow the bank because the placement in
-    ; `tools/ensamblado/banks.py` guarantees the whole table fits in one.
+    ; The pointers to the poses, in ROM, and to the block table and its
+    ; passability, which live in WRAM behind the grid —`lz2_grid` puts them
+    ; there, below—. The second block pointer points eight bytes further,
+    ; which is where each block stores its upper layer; adding eight cannot
+    ; overflow the bank because the converter keeps the whole table inside
+    ; $7F's half: see `check_map` in `rm2k-snes-mapdata`.
     lda f:map_table + M_PTR_NPC_POSES, x
     sta poses_ptr
     lda f:map_table + M_PTR_MAP_BLOCKS, x
@@ -216,6 +228,8 @@ set:
                                 ; belongs to this map; the next frame
                                 ; builds it again if the flash goes on
     jsr upload_tint             ; the screen is off: it goes now
+    ; And the carried bytecode, now that nothing else uses `LZ2_BUFFER`.
+    jsl f:code_carry_after + FAST
     rts
 .endproc
 
@@ -295,6 +309,14 @@ set:
     stz flash_ready             ; `pal_buf` was from before; if the flash goes on,
                                 ; the next frame builds it again
     jsr upload_tint
+    ; `load_map` and `load_above` decompress into `LZ2_BUFFER`, and so does
+    ; the battle —it is `SCN_CLEAN`—: the battle animation's last frame was
+    ; there, and its tiles can no longer be erased one by one. Its box starts
+    ; clean, and the next frame is built over it. See `anim_buf_clear`.
+    jsl f:anim_buf_clear
+    ; And for the same reason the bytecode of a page that goes on from
+    ; another map: see `code_carry_after`.
+    jsl f:code_carry_after + FAST
     rts
 .endproc
 
@@ -338,10 +360,10 @@ set:
     jsr load_sprite             ; the pose bank, the object palette and OBSEL
     jsr npc_poses_forget
     jsr load_window
-    ; The grid, which the scene overwrote in the middle of bank $7F —it is
-    ; `SCN_SCENE`— if the map has more than 32 KB of grid. It is
-    ; decompressed again in full, which is simpler than tracking where the
-    ; second stream starts and costs the same as entering the map. Before
+    ; The grid, which the battle overwrote: its half of bank $7E holds the
+    ; troop's battlers —`SCN_BATTLERS`—, and in the middle of bank $7F is
+    ; `SCN_SCENE`, over the rest of the grid and what lives behind it. It is
+    ; decompressed again in full, as when entering the map. Before
     ; `fill_window`, which reads it.
     jsl f:lz2_grid + FAST
     jsr fill_window

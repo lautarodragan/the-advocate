@@ -19,9 +19,12 @@
 ; face_up/right/down/left are 12, 13, 14 and 15, and our directions are
 ; 0, 1, 2 and 3 in the same order, so subtracting twelve is enough.
 ;
-; Both are kept as a pointer into the bytecode, which lives in the ROM and
-; goes nowhere. The hero's was copied to RAM, with a 32-byte cap, until
-; 2026-09-27: see `hero_route`.
+; Both are kept as a pointer into the bytecode. It lived in the ROM and went
+; nowhere until 2026-10-01; now it lives in WRAM behind the map's grid, and
+; the next map's takes its place: an event's route does not outlive the map,
+; and the hero's, which does, is copied when the map changes —see
+; `code_carry_before`—. The hero's was copied to RAM, with a 32-byte cap,
+; until 2026-09-27: see `hero_route`.
 .proc op_route
     lda [code_ptr], y           ; on whom
     sta route_target

@@ -123,3 +123,69 @@ def test_la_caja_tiene_cada_cuadro_de_cada_animacion(esperados, nucleo):
                            % (numero, k, distintos))
     assert not mal, "%d de %d cuadros no son los que tienen que ser:\n%s" % (
         len(mal), cuadros_vistos, "\n".join(mal[:20]))
+
+
+def test_la_caja_vuelve_entera_del_menu(esperados):
+    """Con una animación a medio dibujar, abrir y cerrar el menú de pausa no
+    deja tiles de más en la caja.
+
+    Desde el 2026-10-01 cada cuadro se descomprime a `LZ2_BUFFER` y el
+    anterior se borra leyendo sus tiles de ahí; volver del menú —o de la
+    tienda, de las ranuras o de una pelea— pasa por `back_to_map`, que sube
+    otra vez los tiles del mapa por ese mismo buffer. Sin `anim_buf_clear` al
+    final de `back_to_map`, el cuadro anterior se borraba leyendo tiles de
+    fondo como si fueran números de la caja: quedaban tiles viejos y se
+    escribía más allá de `ANIMB_BUF`.
+    """
+    p = partida(CASO)
+    p.correr(20)
+    filas = _animaciones_del_cartucho(p)
+    numero, fila = max(filas.items(), key=lambda f: len(esperados(f[0])))
+    quiero = esperados(numero)
+    # Que termine la página del caso, que espera a su animación: el menú
+    # sólo se abre con el héroe libre.
+    for _ in range(600):
+        if not p.byte("ev_active"):
+            break
+        p.correr(1)
+    else:
+        raise AssertionError("la página del caso %s no terminó" % CASO)
+    _palabra(p, "ANIMB_ROW", fila * ANIM_B_STRIDE)
+    _palabra(p, "ANIMB_N", len(quiero))
+    _palabra(p, "ANIMB_T", 0)
+    _palabra(p, "ANIMB_FRAME", 0xFFFF)
+    _byte(p, "ANIMB_ACTIVE", 1)
+    p.correr(6)
+    assert _palabra(p, "ANIMB_FRAME") > 0, "la animación no avanzó"
+    p.consola.hold("b")
+    p.consola.run(2)
+    p.consola.hold()
+    for _ in range(120):
+        if p.byte("menu_open"):
+            break
+        p.consola.run(1)
+    else:
+        raise AssertionError("B no abrió el menú de pausa")
+    p.consola.run(30)
+    p.consola.hold("b")
+    p.consola.run(2)
+    p.consola.hold()
+    for _ in range(120):
+        if not p.byte("menu_open"):
+            break
+        p.consola.run(1)
+    else:
+        raise AssertionError("B no cerró el menú de pausa")
+    mal = []
+    for _ in range(2 * len(quiero)):
+        p.correr(1)
+        if not _byte(p, "ANIMB_ACTIVE"):
+            break
+        if _byte(p, "ANIMB_UPLOAD"):
+            continue
+        k = _palabra(p, "ANIMB_FRAME")
+        if _caja(p, None) != quiero[k]:
+            mal.append(k)
+    assert not mal, (
+        "después del menú, la animación %d mostró mal los cuadros %s"
+        % (numero, sorted(set(mal))))

@@ -23,8 +23,11 @@ import cartuchos
 
 # Cada rango con los símbolos que tienen derecho a caer adentro.
 RESERVAS = (
-    ((0x7E8000, 0x7F0000), {"GRID"}),
-    ((0x7F0000, 0x800000), {"GRID_END", "GRID_HIGH", "LZ2_BUFFER",
+    # Y los battlers de la tropa mientras dura la pelea: `back_from_battle`
+    # vuelve a descomprimir la grilla. Ver runtime/battle_scene.s.
+    ((0x7E8000, 0x7F0000), {"GRID", "SCN_BATTLERS"}),
+    # `CODE_CARRY` es parte del buffer de carga: ver runtime/far_ram.s.
+    ((0x7F0000, 0x800000), {"GRID_END", "GRID_HIGH", "LZ2_BUFFER", "CODE_CARRY",
                             "ANIM_DRAWINGS", "ANIM_DRAWINGS_END",
                             "SCN_CLEAN", "SCN_SCENE",
                             # Las pantallas de Game Over y de título: pisan

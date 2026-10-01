@@ -807,23 +807,35 @@ fn animations_section(out: &mut String, r: &Emit) -> Result<()> {
     }
     lines.push(block("anim_battle_cgram", &cgram));
     // The pointers, declared with `.block` like the page table's: the
-    // console reads it with a 24-bit pointer.
+    // console reads it with a 24-bit pointer. Each frame is an LZ2 stream,
+    // which `anim_frame_build` decompresses when the frame is due: one
+    // frame at a time and not the whole animation, so that starting one
+    // does not stop the map for frames while a big one decompresses.
     let mut pointers = vec![
         format!(".block {}", 4 * first),
         "anim_battle_frames:".to_string(),
     ];
+    let mut frames: Vec<Vec<u8>> = Vec::new();
     for x in &list {
-        for k in 0..x.frames.len() {
+        for (k, frame) in x.frames.iter().enumerate() {
             pointers.push(format!("    .dword anim_battle_{}_{k}", x.number));
+            frames.push(frame_without_gaps(frame, a.tiles as usize));
         }
     }
     lines.push(pointers.join("\n"));
+    // Where they land: two places, one for the frame being built and one for
+    // the previous one, whose tiles are erased first. The largest a frame
+    // can be is every tile of the box with its number, and the `$FF`.
+    lines.push(format!(
+        "ANIM_B_FRAME_MAX = {}",
+        (a.tiles as usize) * 33 + 1
+    ));
+    let refs: Vec<&[u8]> = frames.iter().map(Vec::as_slice).collect();
+    let mut streams = crate::compress::compress_many(&refs)?.into_iter();
     for x in &list {
-        for (k, frame) in x.frames.iter().enumerate() {
-            lines.push(block(
-                &format!("anim_battle_{}_{k}", x.number),
-                &frame_without_gaps(frame, a.tiles as usize),
-            ));
+        for k in 0..x.frames.len() {
+            let stream = streams.next().expect("one stream per frame");
+            lines.push(block(&format!("anim_battle_{}_{k}", x.number), &stream));
         }
     }
     // Per map, where and with which palette it is drawn: bit 7 "drawn
