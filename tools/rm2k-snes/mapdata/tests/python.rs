@@ -22,9 +22,9 @@
 //! They are regenerated when the cartridge changes **on purpose**, and the
 //! commit says so. Since then they are this code's and not the Python's:
 //! on 2026-10-01 the block table and its passability went into LZ2, behind
-//! the grid —`map_ram` in `materials.rs`—, and so did the battlers
-//! —`scene.rs`— and the battle animations' frames; what the console makes
-//! of the new bytes is checked by the game's tests, not here.
+//! the grid —`map_ram` in `materials.rs`—, and so did the battlers, the
+//! backdrops —`scene.rs`— and the battle animations' frames; what the
+//! console makes of the new bytes is checked by the game's tests, not here.
 
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_mapdata::record;
@@ -140,20 +140,20 @@ fn db() -> Db {
 #[test]
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
-    assert_eq!(emitted.text.lines().count(), 3523);
+    assert_eq!(emitted.text.lines().count(), 3273);
     assert_eq!(
         sha(&emitted.text),
-        "e0ca18afe0ff609add865032fcbe170b4fb66974162f1b0468514a3e0291dd31"
+        "4be7fe615d801dc51379b8d9cf6b1bde6718ef46b249584c77fa1aa0ec4d2e1c"
     );
 }
 
 #[test]
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
-    assert_eq!(emitted.text.lines().count(), 3643);
+    assert_eq!(emitted.text.lines().count(), 3393);
     assert_eq!(
         sha(&emitted.text),
-        "4baf2ae6da57520d69c19f38b2367e82aacd421e56af23cdce3ff54c621475c9"
+        "96cf214639d1c075d2bf77dd38b30165060d515fcb2a62120faa9ccd1deb5043"
     );
 }
 

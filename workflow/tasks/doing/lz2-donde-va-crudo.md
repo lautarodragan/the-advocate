@@ -85,3 +85,17 @@ tick pasa de un cuadro.
 * **Lo que ninguna prueba corre**: una pelea con una animación a medio
   dibujar en el mapa, que es lo que cubre la llamada a `anim_buf_clear` en
   `scene_upload`.
+
+### 4. Los fondos de batalla livianos: hecho
+
+Se pueden: la CPU lee el respaldo liviano una sola vez, en `scn_double`, que
+lo agranda a los dos búferes de la escena al empezar la pelea. Ahora se
+descomprime antes a la mitad de la grilla en el `$7E` (`SCN_BATTLERS`), y
+los battlers se descomprimen después, encima: `scn_battlers_load` se mudó de
+antes de `scn_backdrop` a después. La tanda corre sin MSU-1, así que el
+camino del respaldo es el que miran las goldens y `test_batalla_escena_dibujo.py`.
+
+* En `release`: 73.728 B crudos (18 fondos de 4 KB), 55.331 en LZ2. Los
+  huecos de `just espacio` pasan de 27.331 B a 45.728.
+* La pelea del droide compone en 12 cuadros en vez de 11 (10 en la base), a
+  negro.

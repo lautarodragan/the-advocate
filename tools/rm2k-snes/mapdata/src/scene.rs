@@ -155,10 +155,16 @@ pub fn scenes_asm(scene: &Value, used: &[i64]) -> Result<String> {
     // Sixty-four zeros: the transparent tile under the scene, and the fixed
     // source of the DMA that fills the plain backdrop.
     out.push(block("scene_zero", &[0; 64]));
-    // Each fallback in a block that does not cross a bank: the console reads
-    // it with `[pointer]` and adds to it only the low sixteen bits.
-    for (k, b) in backdrops.iter().enumerate() {
-        out.push(block(&format!("backdrop_{k}"), &bytes_at(b, "tiles")?));
+    // Each fallback in LZ2, in a block that does not cross a bank, which is
+    // what the decompressor asks for: `scn_double` decompresses it into WRAM
+    // and enlarges it from there, before the battlers take that place.
+    let tiles: Vec<Vec<u8>> = backdrops
+        .iter()
+        .map(|b| bytes_at(b, "tiles"))
+        .collect::<Result<_>>()?;
+    let refs: Vec<&[u8]> = tiles.iter().map(Vec::as_slice).collect();
+    for (k, stream) in compress::compress_many(&refs)?.iter().enumerate() {
+        out.push(block(&format!("backdrop_{k}"), stream));
     }
     // The battlers: their tables and then their bytes.
     let columns: Vec<i64> = battlers

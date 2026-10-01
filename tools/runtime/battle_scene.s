@@ -62,7 +62,8 @@ SCN_FALLBACK = $664B
 SCN_BAT_PTR  = $6650            ; 8 words
 SCN_BAT_PTR_END = SCN_BAT_PTR + 16
 ; Where a troop's battlers are decompressed, when the battle starts: the
-; grid's half of bank $7E. The battle borrows it —the map is not read while
+; grid's half of bank $7E. Before them, for a moment, the background's light
+; fallback, which `scn_double` enlarges from there. The battle borrows it —the map is not read while
 ; it lasts— and `back_from_battle` decompresses the grid again, as it already
 ; did for $7F's half. The converter keeps a troop's battlers under
 ; `LZ2_CAP_BATTLERS`.
@@ -733,7 +734,6 @@ allocated:
     bne has_scene
     jmp no_scene                ; neither background nor battlers: on black, as before
 has_scene:
-    jsr scn_battlers_load
     lda #0
     sta BA_SCENE
 
@@ -763,6 +763,8 @@ no_msu:
 backdrop_ready:
 
     ; --- the battlers, in drawing order: the later one covers ---
+    ; Decompressed first, over the fallback `scn_double` already used.
+    jsr scn_battlers_load
     rep #$20
 .a16
     lda #0
@@ -917,9 +919,10 @@ no_scene:
 ; those of its palettes— decompressed one after the other into
 ; `SCN_BATTLERS`, and where each one landed in `SCN_BAT_PTR`, by slot. They
 ; stay there the whole battle: `scene_tick` draws them again over an erased
-; enemy, and a hidden one that appears is drawn then. It runs before
-; anything else touches the grid's half, and after `scn_terrain`, which
-; reads the grid: see `scene_upload`.
+; enemy, and a hidden one that appears is drawn then. It runs after
+; `scn_terrain`, which reads the grid, and after `scn_double`, which
+; decompresses the background's fallback in the same place: see
+; `scene_upload`.
 .proc scn_battlers_load
 .a8
 .i16
@@ -968,8 +971,8 @@ done:
 ; answer —see `op_terrain`, which is where this comes from—, for the
 ; background of a battle on a map that does not name its own. It runs when
 ; the battle starts, before `scn_fill` overwrites the upper half of $7F,
-; which may belong to the grid, and before `scn_battlers_load` overwrites
-; the lower one. `cell_replaced` is in bank 0, so its lookup is copied here.
+; which may belong to the grid, and before `scn_double` and
+; `scn_battlers_load` overwrite the lower one. `cell_replaced` is in bank 0, so its lookup is copied here.
 .proc scn_terrain
 .a8
 .i16
@@ -1263,7 +1266,10 @@ tile:
 .proc scn_double
 .a8
 .i16
-    jsr scn_dp_take
+    ; The fallback comes in LZ2: it is decompressed where the battlers will
+    ; go, which `scn_battlers_load` fills only after this.
+    lda #^SCN_BATTLERS
+    sta f:LZ2_BANK
     lda SCN_FALLBACK
     rep #$20
 .a16
@@ -1272,11 +1278,22 @@ tile:
     asl a                       ; times 4: the row of `backdrop_dir`
     tax
     lda f:backdrop_dir, x
+    pha
+    sep #$20
+.a8
+    lda f:backdrop_dir + 2, x
+    plx
+    ldy #.loword(SCN_BATTLERS)
+    jsl f:lz2_decompress + FAST
+    jsr scn_dp_take
+    rep #$20
+.a16
+    lda #.loword(SCN_BATTLERS)
     sta ED_FONT
     sep #$20
 .a8
-    lda f:backdrop_dir + 2, x   ; the fallback's bank, the one it is read
-    sta ED_FONT + 2             ; from: see `lz2_decompress`
+    lda #^SCN_BATTLERS
+    sta ED_FONT + 2
     phb
     lda #^SCN_CLEAN
     pha
@@ -1311,8 +1328,8 @@ word:
     sta a:.loword(SCN_CLEAN) + 66, y
     sta a:.loword(SCN_SCENE) + 64, y
     sta a:.loword(SCN_SCENE) + 66, y
-    ; The fallback does not cross a bank —it is a `.block`—, so the low
-    ; sixteen bits are enough.
+    ; The fallback does not cross a bank —it is in the grid's half of
+    ; bank $7E—, so the low sixteen bits are enough.
     inc ED_FONT
     inc ED_FONT
     ; The next two rows: four bytes further on. Those of planes 2/3 start at
