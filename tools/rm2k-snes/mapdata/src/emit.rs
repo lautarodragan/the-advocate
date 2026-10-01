@@ -1305,12 +1305,13 @@ impl Rest<'_> {
             .collect::<Result<_>>()?;
         line(out, &block("slot_cgram", &palettes_cgram(&slot_palettes)));
 
-        out.push_str("\n.segment \"TABLES\"\n");
-        // The tables that name the cell blocks, and where each row goes in the
-        // tilemap: in bank 0, read with `lda slot_block_lo, x`.
+        // The tables that name the cell blocks: outside bank 0, read with
+        // `lda f:slot_block_lo, x`, because they grow with every face.
+        out.push_str("\n.segment \"RODATA\"\n");
         for (field, prefix) in [("lo", "<"), ("hi", ">"), ("bk", "^")] {
             out.push_str(&format!(
-                "slot_block_{field}:\n       .byte {}\n",
+                ".block {}\nslot_block_{field}:\n       .byte {}\n",
+                slot_blocks.len(),
                 slot_blocks
                     .iter()
                     .map(|e| format!("{prefix}{e}"))
@@ -1318,6 +1319,8 @@ impl Rest<'_> {
                     .join(", ")
             ));
         }
+        // Where each row goes in the tilemap: in bank 0.
+        out.push_str("\n.segment \"TABLES\"\n");
         let row_of: Vec<i64> = (0..i64::from(SLOTS))
             .map(|n| {
                 i64::from(SLOT_MAP) + (t.n("SLOT_Y") + n * t.n("SLOT_STEP")).div_euclid(cell) * 32

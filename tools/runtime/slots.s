@@ -57,11 +57,11 @@ no:
     sty VMADDL
     lda #$80
     sta VMAIN
-    lda slot_block_lo, x
+    lda f:slot_block_lo, x
     sta A1T0L
-    lda slot_block_hi, x
+    lda f:slot_block_hi, x
     sta A1T0L + 1
-    lda slot_block_bk, x
+    lda f:slot_block_bk, x
     sta A1B0
     rep #$20
 .a16
@@ -165,11 +165,11 @@ no_party:
 .i16
     lda #$80
     sta VMAIN
-    lda slot_block_lo, x
+    lda f:slot_block_lo, x
     sta A1T0L
-    lda slot_block_hi, x
+    lda f:slot_block_hi, x
     sta A1T0L + 1
-    lda slot_block_bk, x
+    lda f:slot_block_bk, x
     sta A1B0
     lda #$01
     sta DMAP0
