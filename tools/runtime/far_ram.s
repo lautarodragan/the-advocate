@@ -688,6 +688,39 @@ MUS_LOG_LENGTH = $200
 FADE_N        = $7E7860          ; word
 FADE_BEFORE = $7E7862            ; word
 
+; How loud and how fast the song plays, which is what a `PlayBGM` asks for
+; besides the song: see `bgm_level_set`, in bgm_level.s. Each level is four
+; bytes, as `OP_BGM` carries them: the gain of the left and the right side in
+; 128ths, and the music frames per video frame in 256ths. 128, 128 and 256 is
+; the song as written.
+;
+;   BGM_ASK     the one the next `music_play` puts on
+;   BGM_NOW     the one playing; `irq_music` reads its step
+;   BGM_BEFORE_BATTLE  the map's, put back when the battle ends
+;   BGM_REMEMBERED     `MemorizeBGM`'s, next to `REMEMBERED_SONG`
+;   SONG_GAIN   BGM_NOW's two gains as `song_gain_scale` multiplies them,
+;               from 0 to 256 (word each, left first)
+;   TEMPO_ACC   the music frames owed, in 256ths: see `music_tempo`
+;   MSU_BASE    the MSU-1 volume at that gain (word, high byte at zero)
+;   SONG_SCALED whether the gains are not both 128: without it, no multiply
+;   GAIN_DIRTY  the gain changed with the song playing: `irq_music` rewrites
+;               the volume of every voice
+;
+; **They do not travel in the save**: a loaded game plays its song as
+; written. $25C6 to $25DF, from the $25E0 down that was allotted to this on
+; 2026-09-30 —other agents were choosing RAM at the same time—, in the gap
+; between `FAR_PAIR_LIST`'s end and `FAR_SPEED_BONUS`. Reset gives them a
+; value: see `bgm_level_reset`.
+BGM_ASK           = $7E25DC        ; 4 bytes
+BGM_NOW           = $7E25D8        ; 4 bytes
+BGM_BEFORE_BATTLE = $7E25D4        ; 4 bytes
+BGM_REMEMBERED    = $7E25D0        ; 4 bytes
+SONG_GAIN         = $7E25CC        ; 2 words
+TEMPO_ACC         = $7E25CA        ; word
+GAIN_DIRTY        = $7E25C9
+SONG_SCALED       = $7E25C8
+MSU_BASE          = $7E25C6        ; word
+
 ; --- the battle animation frame, in far RAM ---------------------------------
 ;
 ; The 2 KB of the frame the vblank uploads to the box. The cartridge does not

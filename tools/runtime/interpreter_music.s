@@ -8,13 +8,29 @@
 ; to each one with Y on its first operand, and each one returns to the loop
 ; with `jmp run_code::other` or ends the frame with `rts`.
 
-; `PlayBGM`. The operand is the song's index in `Songs`, and the cartridge
-; carries the ones that fit in ARAM: the first `SONG_TOTAL`. A higher index is
-; a song that did not fit and does not play, which is what happened to all but
-; one of them until 2026-09-06. See `plan` in rm2k-snes-audio's cartridge.rs.
+; `PlayBGM`. The first operand is the song's index in `Songs`, and the
+; cartridge carries the ones that fit in ARAM: the first `SONG_TOTAL`. A higher
+; index is a song that did not fit and does not play, which is what happened
+; to all but one of them until 2026-09-06. See `plan` in rm2k-snes-audio's
+; cartridge.rs. The other four are its level —volume, balance and tempo—,
+; which go to `BGM_ASK` as they come: see bgm_level.s.
 .proc op_bgm
     lda [code_ptr], y
     iny
+    pha
+    rep #$20
+.a16
+    lda [code_ptr], y           ; left and right
+    sta f:BGM_ASK
+    iny
+    iny
+    lda [code_ptr], y           ; the step
+    sta f:BGM_ASK + 2
+    iny
+    iny
+    sep #$20
+.a8
+    pla
 touch:
     cmp #SONG_TOTAL
     bcs other_song
