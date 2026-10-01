@@ -1845,7 +1845,6 @@ impl Rest<'_> {
             &decimal(texts.offsets.iter().map(|(_, n)| *n)),
             true,
         );
-        out.push_str(".segment \"TABLES\"\n");
         // --- the equipment: per item its type, what it adds and who can
         // equip it; per actor its parameters and initial equipment.
         let n_actors = db
@@ -1859,9 +1858,8 @@ impl Rest<'_> {
             out,
             "item_type",
             &per_item(&|i| i.r#type.to_i32().into())?,
-            false,
+            true,
         );
-        out.push_str(".segment \"RODATA\"\n");
         let mut points = Vec::new();
         for &n in items {
             points.extend(rules::points(item(n)?).map(|p| p & 0xFFFF));

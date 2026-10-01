@@ -348,7 +348,7 @@ other:
 .a8
     lda comp_col
     inc a
-    cmp item_type, x
+    cmp f:item_type, x
     bne no_goes
     ; Can the actor use it? One bit per actor, eight bytes per item.
     rep #$20
