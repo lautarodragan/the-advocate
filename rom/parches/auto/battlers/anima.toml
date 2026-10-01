@@ -1,0 +1,39 @@
+# The artistic decision of battler anima: **which colors are lost** when
+# taking it to fifteen, which is what the battle scene leaves each one.
+# The converter writes it and `just parches` regenerates it, which is
+# what has to be run when a change moves it; `just parches --check`
+# —and the suite— fail if it is stale. See `rm2k-snes-patches`.
+
+battler = "anima"
+imagen = "anima"
+tono = 0
+
+# What it came from, already shrunk to 80%: the size in scene pixels
+# and how many distinct 15-bit colors it brought. It is not decided, it
+# is measured.
+tamano = [26, 26]
+colores = 248
+
+# What remained, in palette order: index 1 is the first one.
+paleta = [
+  [3, 2, 2],
+  [7, 8, 9],
+  [5, 6, 7],
+  [5, 4, 4],
+  [9, 10, 12],
+  [10, 12, 14],
+  [19, 24, 28],
+  [13, 17, 18],
+  [14, 15, 22],
+  [12, 14, 16],
+  [12, 10, 8],
+  [16, 17, 28],
+  [23, 21, 21],
+  [27, 29, 31],
+  [27, 21, 6],
+]
+
+# How many merges it took to get there, with
+# `adeleine.merge_least_visible`: each one sends the least noticeable
+# color to its nearest neighbor.
+fusiones = 233

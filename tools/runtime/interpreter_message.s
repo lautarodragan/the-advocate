@@ -62,6 +62,7 @@ open:
     ; finishes; meanwhile the page is already blocked.
     stz msg_open
     stz pick_active
+window:                         ; `op_number` comes in here: see there
     rep #$20
 .a16
     lda [code_ptr], y           ; the offset, which goes in A to msg_start
@@ -111,3 +112,30 @@ cancel_ready:
 
 .endproc
 
+
+; `InputNumber`, with the `ShowMessage` before it: opens the message's window
+; and ends the frame, like `op_message`. The digits go on the line below the
+; text once it is composed, and from there it is `number_tick`'s, through
+; `choice_tick`: see number_input.s. The cursor is left on the next command,
+; and the page goes on from there when the player presses A.
+;
+; A parallel waits for someone else's window, as with a message. Opening is
+; `number_open`'s, in bank 1, and then `op_message`'s from its box on: in bank
+; 0 this is the guard and two jumps. There is no troop page branch, as
+; `op_message` has: the troop pages' filter, `TROOP_COMMANDS` in the event
+; compiler, does not take `InputNumber`.
+.proc op_number
+    lda pair_ev
+    cmp #$FF
+    beq open                    ; foreground
+    lda msg_open
+    ora msg_state
+    ora pick_active
+    beq open
+    dey                         ; the cursor goes back to this same opcode
+    sty ev_cur
+    rts
+open:
+    jsl number_open             ; leaves Y on the box
+    jmp op_message::window
+.endproc

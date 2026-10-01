@@ -721,6 +721,22 @@ GAIN_DIRTY        = $7E25C9
 SONG_SCALED       = $7E25C8
 MSU_BASE          = $7E25C6        ; word
 
+; --- `InputNumber`: the digits' line ------------------------------------------
+;
+; The line the composer reads for the digits —see number_input.s—: its length
+; and two letters per digit, the cursor's column and the digit itself, in the
+; font's numbering. `msg_ptr` points here while the line is being composed, and
+; the digits the player has entered are the ones on it: there is no other copy.
+; And the number, once A is pressed, before it goes to the variable.
+;
+; $25B0 to $25BF, allotted on 2026-10-01 with other agents choosing RAM at the
+; same time. **They do not travel in the save**: an open number input is a
+; page blocked in the middle, which the save does not keep either.
+NUMBER_LINE  = $7E25B0             ; 1 + 2 * NUMBER_DIGITS_MAX bytes
+NUMBER_VALUE = $7E25BE             ; word
+NUMBER_DIGITS_MAX = 6
+.assert NUMBER_LINE + 1 + 2 * NUMBER_DIGITS_MAX <= NUMBER_VALUE, error, "the digits' line overflows"
+
 ; --- the battle animation frame, in far RAM ---------------------------------
 ;
 ; The 2 KB of the frame the vblank uploads to the box. The cartridge does not

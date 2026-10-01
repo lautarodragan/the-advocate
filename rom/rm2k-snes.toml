@@ -78,6 +78,19 @@ msu_data_signature = "ABLD"
 # Por nombre de CharSet, sin distinguir mayúsculas.
 opaque = ["savept"]
 
+# Los mapas donde el cronómetro **no puede estar corriendo**, aunque una
+# página que lo deja corriendo lleve a ellos: el conversor le pone los dígitos
+# —y les cuesta una paleta de sprite— sólo a los mapas a los que llega
+# andando, y el camino que sigue no mira switches. Ver `timer_reach` en
+# `tools/port/game_scan.py`.
+#
+# El 66, el mundo: el cronómetro de la mañana arranca en el 7 y para al llegar
+# al trabajo (el 9, el 11 o el 16), y a Lashe Area se sale recién con la
+# despedida del 64, días después; el del bosque en llamas para en la salida
+# del 312, antes de volver al mundo. Sin esto, con el cronómetro en todos los
+# mapas, Yun Town (67) no entraba: sus ocho paletas están llenas.
+timer_never_runs_in = [66]
+
 # Cuando un mapa tiene más personajes que paletas de sprite, el que llega
 # último **no se queda sin dibujar**: se le presta una ajena y se lo dibuja con
 # los colores de otro. Quién llega último era el orden de los eventos del mapa,
@@ -374,13 +387,6 @@ excluded = [
     # que nada lleva. Battle Rink Ladder cuelga del 199 y ningún `Teleport`
     # lleva a él. Inalcanzables.
     46, 75, 96, 97, 98,
-    # Lo opcional del mundo, que no entra todavía: Yun Town (67, y su armería
-    # y su posada) y Drust Camp (68 y sus minas). El 70 y el 73, que también
-    # son de Yun Town, entran igual: ya estaban en la ROM como mapas de
-    # prueba, y sin el 67 nada lleva a ellos. Ver "Lo que sigue" en
-    # `el-mundo-y-lo-que-sigue.md`, el hito 5.
-    67, 71, 72,
-    68, 103,
 ]
 
 # El tutorial del droide no cuelga de Lashe City sino de `Tutorials`, pero salta
@@ -389,10 +395,13 @@ excluded = [
 # cruzarlo. Y Tangle Forest, que **no es opcional** aunque nada de la historia
 # dependa de él: del puente al túnel no se llega caminando por el mundo, se
 # cruza el bosque —310, 311, 313 y 312, que sale al oeste del 66—. Ver
-# `workflow/tasks/*/mundo-5-tangle-forest.md`.
+# `workflow/tasks/*/mundo-5-tangle-forest.md`. Y lo de Drust Camp que no tiene
+# un id chico: el ring (199), la taberna (200) y la tienda de Net (201), la de
+# la clave; el 68 y sus minas (103) entran por `below`. Ver
+# `workflow/tasks/*/mundo-6-yun-y-drust.md`.
 #
 # El mapa de debug no va acá: lo agrega `[debug] debug_map`.
-added = [164, 259, 255, 310, 311, 312, 313]
+added = [164, 259, 255, 310, 311, 312, 313, 199, 200, 201]
 
 # Y los que sólo existen por la tanda: situaciones que ningún mapa del juego
 # que entra ejercita. `rm2k-snes-patches` no les pide parche versionado.

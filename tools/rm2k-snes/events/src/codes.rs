@@ -11,6 +11,7 @@ pub const END: i32 = 10;
 pub const SHOW_MESSAGE: i32 = 10110;
 pub const MESSAGE_OPTIONS: i32 = 10120;
 pub const SHOW_CHOICE: i32 = 10140;
+pub const INPUT_NUMBER: i32 = 10150;
 pub const CONTROL_SWITCHES: i32 = 10210;
 pub const CONTROL_VARS: i32 = 10220;
 pub const TIMER_OPERATION: i32 = 10230;
@@ -151,6 +152,7 @@ mod tests {
             (SHOW_MESSAGE, C::ShowMessage),
             (MESSAGE_OPTIONS, C::MessageOptions),
             (SHOW_CHOICE, C::ShowChoice),
+            (INPUT_NUMBER, C::InputNumber),
             (CONTROL_SWITCHES, C::ControlSwitches),
             (CONTROL_VARS, C::ControlVars),
             (TIMER_OPERATION, C::TimerOperation),

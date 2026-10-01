@@ -1,0 +1,83 @@
+# The artistic decisions of map 67: what is lost when taking it to the
+# SNES. The converter writes it and `just parches` regenerates it,
+# which is what has to be run when a change moves it; `just parches
+# --check` —and the suite— fail if it is stale. See `rm2k-snes-patches`.
+
+mapa = 67
+nombre = "Yun Town"
+
+[capas.fondo]
+# How many distinct colors the drawing brought and how many
+# CGRAM entries the upper layer left it.
+colores = 108
+presupuesto = 103
+# Each merge sends color `de` to color `a`, in 15-bit RGB, and
+# `pixeles` is how many it moved when it was decided. They go **in
+# order**: applying them top to bottom rebuilds the whole mapping.
+fusiones = [
+  { de = [13, 13, 13], a = [14, 13, 11], pixeles = 3 },
+  { de = [9, 10, 8], a = [10, 10, 8], pixeles = 14 },
+  { de = [8, 8, 8], a = [8, 8, 7], pixeles = 45 },
+  { de = [23, 14, 14], a = [20, 15, 13], pixeles = 2 },
+  { de = [9, 9, 9], a = [10, 10, 8], pixeles = 7 },
+]
+
+[capas.encima]
+# Each merge sends color `de` to color `a`, in 15-bit RGB, and
+# `pixeles` is how many it moved when it was decided. They go **in
+# order**: applying them top to bottom rebuilds the whole mapping.
+fusiones = [
+  { de = [13, 5, 2], a = [13, 7, 2], pixeles = 1 },
+  { de = [8, 5, 2], a = [7, 5, 2], pixeles = 10 },
+  { de = [15, 17, 1], a = [14, 18, 0], pixeles = 3 },
+  { de = [3, 2, 3], a = [3, 3, 2], pixeles = 5 },
+  { de = [13, 4, 8], a = [11, 6, 7], pixeles = 1 },
+  { de = [11, 6, 7], a = [10, 5, 6], pixeles = 6 },
+  { de = [13, 8, 8], a = [12, 9, 5], pixeles = 5 },
+  { de = [10, 4, 3], a = [9, 5, 2], pixeles = 16 },
+  { de = [15, 2, 0], a = [18, 3, 0], pixeles = 6 },
+  { de = [11, 10, 11], a = [12, 10, 7], pixeles = 10 },
+  { de = [15, 18, 11], a = [19, 16, 10], pixeles = 3 },
+  { de = [27, 22, 18], a = [29, 24, 20], pixeles = 8 },
+  { de = [5, 6, 1], a = [7, 5, 2], pixeles = 19 },
+  { de = [20, 9, 3], a = [19, 11, 8], pixeles = 7 },
+  { de = [14, 18, 0], a = [16, 18, 0], pixeles = 32 },
+  { de = [24, 17, 8], a = [23, 17, 12], pixeles = 19 },
+  { de = [14, 8, 4], a = [13, 7, 2], pixeles = 30 },
+  { de = [11, 1, 0], a = [8, 3, 0], pixeles = 8 },
+  { de = [9, 12, 7], a = [9, 11, 2], pixeles = 15 },
+  { de = [19, 11, 8], a = [19, 12, 6], pixeles = 49 },
+  { de = [8, 6, 4], a = [7, 6, 5], pixeles = 132 },
+  { de = [31, 21, 0], a = [24, 22, 12], pixeles = 2 },
+  { de = [19, 10, 12], a = [16, 11, 12], pixeles = 26 },
+  { de = [25, 5, 0], a = [31, 8, 0], pixeles = 6 },
+  { de = [19, 12, 6], a = [19, 13, 8], pixeles = 118 },
+  { de = [24, 22, 12], a = [22, 22, 22], pixeles = 12 },
+  { de = [8, 6, 0], a = [8, 5, 0], pixeles = 264 },
+  { de = [21, 16, 9], a = [19, 16, 10], pixeles = 139 },
+  { de = [18, 3, 0], a = [13, 7, 2], pixeles = 12 },
+  { de = [13, 9, 2], a = [12, 9, 5], pixeles = 179 },
+  { de = [29, 24, 20], a = [22, 22, 22], pixeles = 16 },
+  { de = [7, 6, 5], a = [6, 5, 6], pixeles = 302 },
+  { de = [19, 15, 3], a = [18, 15, 8], pixeles = 103 },
+  { de = [10, 6, 1], a = [9, 5, 2], pixeles = 321 },
+  { de = [31, 17, 15], a = [23, 17, 12], pixeles = 17 },
+  { de = [20, 18, 15], a = [23, 17, 12], pixeles = 84 },
+  { de = [19, 16, 10], a = [18, 15, 8], pixeles = 296 },
+  { de = [12, 10, 7], a = [11, 9, 6], pixeles = 441 },
+  { de = [10, 5, 6], a = [9, 5, 2], pixeles = 231 },
+  { de = [16, 11, 12], a = [15, 10, 7], pixeles = 146 },
+  { de = [13, 14, 5], a = [12, 15, 0], pixeles = 165 },
+  { de = [8, 8, 7], a = [11, 9, 6], pixeles = 180 },
+  { de = [9, 11, 2], a = [11, 13, 0], pixeles = 155 },
+  { de = [11, 8, 1], a = [13, 7, 2], pixeles = 360 },
+  { de = [11, 9, 6], a = [12, 9, 5], pixeles = 1936 },
+  { de = [31, 8, 0], a = [19, 13, 8], pixeles = 14 },
+  { de = [8, 5, 0], a = [7, 5, 2], pixeles = 1531 },
+  { de = [18, 21, 0], a = [16, 18, 0], pixeles = 200 },
+  { de = [3, 3, 2], a = [5, 4, 0], pixeles = 755 },
+  { de = [16, 11, 5], a = [15, 10, 7], pixeles = 1315 },
+  { de = [16, 14, 11], a = [18, 15, 8], pixeles = 762 },
+  { de = [19, 13, 8], a = [18, 15, 8], pixeles = 867 },
+  { de = [6, 5, 6], a = [7, 5, 2], pixeles = 1202 },
+]

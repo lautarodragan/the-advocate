@@ -60,6 +60,7 @@ pub const OP_RETURN_TO_TITLE: u8 = 0x34;
 pub const OP_COUNTER: u8 = 0x35;
 pub const OP_ACTOR: u8 = 0x36;
 pub const OP_ENEMY: u8 = 0x37;
+pub const OP_NUMBER: u8 = 0x38;
 
 /// How many bytes each fixed-size instruction takes, opcode included.
 /// Derived from the declared arguments; never written down.
@@ -115,6 +116,7 @@ pub const OPCODE_SIZE: &[(u8, usize)] = &[
     (OP_COUNTER, 4),
     (OP_ACTOR, 5),
     (OP_ENEMY, 5),
+    (OP_NUMBER, 5),
 ];
 
 /// The variable-size ones, as (opcode, base, where the count is, how big

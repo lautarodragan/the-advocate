@@ -132,6 +132,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
   página por el cronómetro
 * `rpgmaker/test_borrar_evento.py`: `EraseEvent` después de un `Teleport`
 * `rpgmaker/test_elegir.py`: `ShowChoice`
+* `rpgmaker/test_numero.py`: `InputNumber`, en la ventana del mensaje, y
+  comparar contra más de 32767
 * `rpgmaker/test_tecla.py`: `KeyInputProc`
 * `rpgmaker/test_autofire.py`: X sostenido es el autofire de A, que RM2k no
   tiene
@@ -271,6 +273,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
   demo: el tram, las latas de fuego, el bosque en llamas contra el
   cronómetro, la pelea con la nave y el túnel a Paradise
 * `abl/test_tangle.py`: el bosque y el claro recién llegados
+* `abl/test_yun_y_drust.py`: Yun Town, Drust Camp y sus minas recién
+  llegados, y las dos entradas del mundo
 * `abl/test_escenas_golden.py`: las escenas y cinemáticas
 * `abl/test_recuerdo.py`: el recuerdo de CORE y MANTA
 * `abl/test_un_ano_antes.py`: el cartel de "1 year earlier"

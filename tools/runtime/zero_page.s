@@ -15,7 +15,15 @@ pad_a_prev: .res 1      ; how it was last frame, to see the edge
 ; frame per option**, identical except for where the ">" is, so moving it is
 ; recomposing the window with another offset. That is why there is no more
 ; state here than which one is highlighted.
+;
+; **An `InputNumber` uses the same bytes**, with `pick_active` at
+; `PICK_NUMBER`: the window and the blocked page are the same, and what is
+; different goes through `choice_tick` to `number_tick`. There `pick_n` is how
+; many digits, `pick_sel` the one under the cursor, `pick_cancel` the digits'
+; line plus one —zero while the message's lines are still being composed— and
+; `pick_table` where the opcode's operands are. See number_input.s.
 pick_active: .res 1
+PICK_NUMBER = 2
 pick_n:      .res 1     ; how many options
 pick_sel:    .res 1     ; which one is highlighted, from zero
 pick_cancel: .res 1     ; which option the B button picks, plus one; 0 is "cannot

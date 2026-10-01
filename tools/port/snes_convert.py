@@ -92,7 +92,7 @@ from port import battle_stage
 from port import compiler
 from port.game_scan import (args_game_dir, drop_items, has_rain,
                             possible_items, possible_leaders,
-                            possible_members)
+                            possible_members, timer_reach)
 from port.options import flags_parser, map_order
 from port.cases import (case_commands, case_map, page_party,
                         split_cases, test_cases, test_graphics, test_maps)
@@ -173,17 +173,6 @@ def main():
     for case in args.cases:
         case.run_map = case_map(case, order, args.start_index)
     file_commands = case_commands(args)
-    # Which maps carry the timer digits, which cost a sprite palette.
-    # Normally, all: it is what the game asks for, where the countdown starts
-    # in one map and is seen in the following ones. With `--no-timer`, the
-    # maps where a case that touches it runs: until step 9e one was enough for
-    # every map of the cartridge to carry them, and in the single cartridge of
-    # 9f that took the palette away from every map —measured, fifteen goldens
-    # moved—. A map without digits doesn't draw them: `TIMER_BASE` at zero,
-    # see `timer_oam`.
-    args.timer_maps = set(order) if not args.no_timer else {
-        case.run_map for case in args.cases
-        if any(cmd.code == events.TIMER_OPERATION for cmd in case.commands)}
 
     renderer = Renderer(args.game_dir)
 
@@ -249,6 +238,28 @@ def main():
                                           args.scan):
                 if actor not in args.leaders:
                     args.leaders.append(actor)
+    # Which maps carry the timer digits, which cost a sprite palette: the
+    # ones the timer can be running in, see `timer_reach`. Until 2026-10-01
+    # it was every map of the cartridge, and Yun Town (67) didn't fit: its
+    # eight palettes are full and the timer only runs in Lashe City in the
+    # morning and in the burning forest. With `--no-timer`, only the maps
+    # where a case that touches it runs: until step 9e one was enough for
+    # every map of the cartridge to carry them, and in the single cartridge
+    # of 9f that took the palette away from every map —measured, fifteen
+    # goldens moved—. The cases' maps go with the reach too: a test page can
+    # start the timer anywhere. A map without digits doesn't draw them:
+    # `TIMER_BASE` at zero, see `timer_oam`.
+    args.timer_maps = {
+        case.run_map for case in args.cases
+        if any(cmd.code == events.TIMER_OPERATION for cmd in case.commands)}
+    if not args.no_timer:
+        args.timer_maps |= timer_reach(
+            every, args.scan, renderer.database.common_events,
+            settings.value("graphics", "timer_never_runs_in", kind=list),
+            [c["common_event"] for c in compiler.counters()])
+    print("  the timer's digits go in %d of the %d maps: %s"
+          % (len(args.timer_maps), len(every),
+             " ".join(str(m) for m in sorted(args.timer_maps))))
     # If some map sets rain, all of them carry the drops: see `has_rain`.
     args.with_rain = has_rain(every, file_commands)
     # How many maps of this ROM each character appears in. The palette split
