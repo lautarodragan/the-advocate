@@ -57,7 +57,7 @@ def _objeto(p, indice):
 
 
 def _distintos(a, b, caja):
-    return sum(1 for u, v in zip(a.crop(caja).getdata(), b.crop(caja).getdata())
+    return sum(1 for u, v in zip(a.crop(caja).get_flattened_data(), b.crop(caja).get_flattened_data())
                if u != v)
 
 
