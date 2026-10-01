@@ -163,7 +163,7 @@ def test_la_musica_viaja_en_la_partida(con_musica):
              - una.simbolos["ACTORS_N"]
              - una.simbolos["SKILL_BYTES"]
              - 4 * una.simbolos["EXP_K"])
-    cola = una.sram(una.simbolos["SRAM_DATA"] + largo - 3, 3)
+    cola = una.sram(una.en_la_sram(una.simbolos["SRAM_DATA"]) + largo - 3, 3)
     assert cola[0] == una.byte("music_off"), (
         "la SRAM guardó music_off = %d y la consola lo tenía en %d"
         % (cola[0], una.byte("music_off")))
@@ -341,9 +341,9 @@ def test_una_partida_de_otro_build_se_ve_vacia_y_no_carga(partida, como):
     una.guardar_por_el_menu(1)
     s = una.simbolos
     base = s["SRAM_STRIDE"]
-    guardado = una.sram(base + s["SRAM_DATA"], s["SAVE_BYTES"])
+    guardado = una.sram(base + una.en_la_sram(s["SRAM_DATA"]), s["SAVE_BYTES"])
     ranura = _de_otro_build(s, guardado, como)
-    una.poner_sram(base + s["SRAM_MAGIC"],
+    una.poner_sram(base + una.en_la_sram(s["SRAM_MAGIC"]),
                    ranura + bytes(s["SRAM_STRIDE"] - len(ranura)))
     una.abrir_ranuras_desde_el_titulo()
 

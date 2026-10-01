@@ -78,7 +78,7 @@ TEXTOS = (
     # **encima** del borde de banco: la cabecera y el primer largo quedan en un
     # banco y el texto sigue en el otro. El compositor avanzaba `msg_ptr` con un `inc` de
     # dieciséis bits, así que a partir del borde leía el $0000 del mismo
-    # banco, que en LoROM no es ROM. Verificado en rojo con ese `inc`:
+    # banco, que no es donde sigue el bloque. Verificado en rojo con ese `inc`:
     # **3414 pixeles**.
     ("texto-cruza", "grupo-11-en-255", "test-special", (60,), PRIMER_CUADRO,
      "cruza"),
@@ -120,8 +120,8 @@ def test_texto(nombre, caso, en, cuadros, renglon, donde):
     if donde:
         desplazamiento, byte, largo = cuadro_de_texto(cartucho(en), renglon)
         # Un cuadro cruza si sus bytes no caen todos en el mismo banco, y los
-        # 32 KB del archivo que arrancan en `banco * $8000` **son** el banco.
-        cruza = byte >> 15 != (byte + largo - 1) >> 15
+        # 64 KB del archivo que arrancan en `banco * $10000` **son** el banco.
+        cruza = byte >> 16 != (byte + largo - 1) >> 16
         # Y "del otro lado" es que el operando de 16 bits sumado a la
         # dirección del bloque se pase de $FFFF, que es la cuenta que hace
         # `msg_start`.

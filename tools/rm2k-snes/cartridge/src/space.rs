@@ -1,11 +1,12 @@
 //! How much space a built ROM has left, from what the build left next to it
 //! —`ld65`'s debug file and the memory map—: nothing is relinked.
 //!
-//! * **Data banks**: the `BANKnn` from [`banks::FIRST_BANK`], against the
-//!   ones that fit in the `.cfg`. A "used" bank is one that has something;
-//!   the "free" ones are those after the last used one. **It is the number
-//!   that matters**, and not a percentage: the packing leaves gaps, and the
-//!   reserved banks are not ROM.
+//! * **Data banks**: the `BANKnn` of [`banks::slots`] that the `.cfg`
+//!   declares. A "used" one has something, and a free one nothing. **The
+//!   free whole banks are the number that matters**, 64 KB each, and not a
+//!   percentage: the packing leaves gaps, and not all of the 8 MB is data.
+//!   They are counted apart from the free halves, which only take pieces of
+//!   up to 32 KB, and the fast ones —the first 4 MB— apart from the rest.
 //! * **Gaps**: what is left over inside the used ones.
 //! * **Bank 0**: the `.cfg`'s `ROM` area minus `CODE` and `TABLES`, which
 //!   share it.
@@ -21,16 +22,21 @@ use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 use crate::assemble::MEMORY_MAP;
-use crate::banks::{self, segment_of, BANK_SIZE, FIRST_BANK};
+use crate::banks::{self, segment_of, BANK_SIZE};
 use crate::dbg::{self, number};
 
 /// What [`show`] prints.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Measure {
     pub banks: usize,
-    pub first: usize,
-    pub last: usize,
+    pub used: usize,
+    /// How many of the used ones are in the slow 4 MB.
+    pub slow: usize,
+    /// Free whole banks, and how many of those are fast.
     pub free: usize,
+    pub free_fast: usize,
+    /// Free halves.
+    pub free_halves: usize,
     pub gaps: i64,
     pub largest_gap: i64,
     pub bank0: i64,
@@ -119,22 +125,19 @@ pub fn measure(sfc: &Path, runtime: &Path) -> Result<Measure, String> {
         .filter_map(|s| Some((s.get("name")?.clone(), number(s.get("size")?)?)))
         .collect();
     let used_of = |name: &str| used.get(name).copied().unwrap_or(0);
-    let data_banks: Vec<usize> = (FIRST_BANK..banks::BANKS)
-        .filter(|&b| areas.contains_key(&segment_of(b)))
+    let data: Vec<banks::Slot> = banks::slots()
+        .into_iter()
+        .filter(|s| areas.contains_key(&segment_of(s.bank)))
         .collect();
-    let first = *data_banks
-        .first()
-        .ok_or_else(|| format!("{}: declares no data bank", cfg_path.display()))?;
-    let last = data_banks
+    if data.is_empty() {
+        return Err(format!("{}: declares no data bank", cfg_path.display()));
+    }
+    let used_slot = |s: &banks::Slot| used_of(&segment_of(s.bank)) != 0;
+    let free: Vec<&banks::Slot> = data.iter().filter(|s| !used_slot(s)).collect();
+    let gaps: Vec<i64> = data
         .iter()
-        .copied()
-        .filter(|&b| used_of(&segment_of(b)) != 0)
-        .max()
-        .unwrap_or(FIRST_BANK - 1);
-    let gaps: Vec<i64> = data_banks
-        .iter()
-        .filter(|&&b| b <= last)
-        .map(|&b| BANK_SIZE as i64 - used_of(&segment_of(b)))
+        .filter(|s| used_slot(s))
+        .map(|s| s.size as i64 - used_of(&segment_of(s.bank)))
         .collect();
     let area = |name: &str| {
         areas
@@ -144,10 +147,12 @@ pub fn measure(sfc: &Path, runtime: &Path) -> Result<Measure, String> {
     };
     let symbols = dbg::symbols(&dbg_text);
     Ok(Measure {
-        banks: data_banks.len(),
-        first,
-        last,
-        free: data_banks.iter().filter(|&&b| b > last).count(),
+        banks: data.len(),
+        used: data.len() - free.len(),
+        slow: data.iter().filter(|s| used_slot(s) && !s.fast()).count(),
+        free: free.iter().filter(|s| s.size == BANK_SIZE).count(),
+        free_fast: free.iter().filter(|s| s.size == BANK_SIZE && s.fast()).count(),
+        free_halves: free.iter().filter(|s| s.size != BANK_SIZE).count(),
         gaps: gaps.iter().sum(),
         largest_gap: gaps.iter().copied().max().unwrap_or(0),
         bank0: area("ROM")? - used_of("CODE") - used_of("TABLES"),
@@ -176,12 +181,12 @@ fn b(n: i64) -> String {
 pub fn show(title: &str, m: &Measure) -> String {
     let mut out = format!("{title}\n");
     out += &format!(
-        "  data banks       {} of {} used, ${:02X}-${:02X}; {} free after them\n",
-        m.last as i64 - m.first as i64 + 1,
-        m.banks,
-        m.first,
-        m.last,
-        m.free
+        "  data banks       {} of {} used, {} of them in the slow 4 MB\n",
+        m.used, m.banks, m.slow
+    );
+    out += &format!(
+        "  free             {} whole banks of 64 KB, {} of them fast; and {} halves of 32 KB\n",
+        m.free, m.free_fast, m.free_halves
     );
     out += &format!(
         "  gaps             {} in the used ones, the largest {}\n",
@@ -224,7 +229,8 @@ mod tests {
         let areas = areas(&banks::cfg());
         assert_eq!(areas["ROM"], 0x7FC0);
         assert_eq!(areas["RAM"], 0x1F00 - banks::STACK as i64);
-        assert_eq!(areas["BANK02"], 0x8000);
+        assert_eq!(areas["BANKC2"], 0x10000);
+        assert_eq!(areas["BANK70"], 0x8000);
         assert!(!areas.contains_key("BANK7E"));
     }
 }

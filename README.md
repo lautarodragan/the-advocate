@@ -17,6 +17,7 @@ el mapa de arriba de `AGENTS.md`, y cada una con README explica lo suyo.
 * [Cómo se arma](#cómo-se-arma)
 * [La arquitectura](#la-arquitectura)
     * [El fondo va en modo 3, siempre](#el-fondo-va-en-modo-3-siempre)
+    * [El cartucho es ExHiROM, de 8 MB](#el-cartucho-es-exhirom-de-8-mb)
     * [Las tablas van en el banco 0](#las-tablas-van-en-el-banco-0)
 * [Lo que falta](#lo-que-falta)
 * [Referencias](#referencias)
@@ -92,10 +93,41 @@ sprites siguen en 4 bits: 15 colores y el transparente, que elige Adeleine
 (`tools/snes/adeleine/`). Cómo se reparten la VRAM y la CGRAM mapa por mapa,
 en `docs/port/vram.md` y `docs/port/cgram.md`.
 
+### El cartucho es ExHiROM, de 8 MB
+
+Desde el 2026-10-01, porque el juego entero no entra en 4 MB con ningún
+recorte: ver `workflow/decisiones/el-cartucho-pasa-a-8-mb.md`. Hasta ese día
+era **LoROM**, y el código se escribió para LoROM; lo que cambió y lo que no
+tiene una razón que no está en ninguna línea:
+
+* **Los datos van en bancos de 64 KB, desde `$0000`**, y el banco siguiente
+  sigue al anterior: lo que se recorre a mano cruzando bancos —el stream de
+  la música, las muestras que se suben al SPC700, el bloque de textos— sólo
+  le suma uno al banco. En LoROM cada banco eran los 32 KB de `$8000` a
+  `$FFFF`, y el siguiente seguía desde su `$8000`.
+* **El código sigue viendo los bancos 0 y 1 como en LoROM**: 32 KB desde
+  `$8000`, en `$00` y en su espejo rápido, `$80`. En ExHiROM ésos no son la
+  misma ROM —`$80` es de los primeros 4 MB y `$00` de los segundos—, así que
+  el armado pone los dos bancos de código dos veces en el archivo. Cuesta
+  64 KB, y a cambio el runtime no se enteró: los vectores siguen cayendo en
+  `$00`, el `jml` a `+ FAST` sigue llevando al espejo rápido, y Mednafen
+  —que con `snes_faust` lee `$80-$BF` de los segundos 4 MB, distinto del
+  cartucho— ve lo mismo que la consola.
+* **Sólo los primeros 4 MB son rápidos**: el FastROM no llega a los bancos
+  `$40-$7D`. El reparto llena primero los rápidos.
+* **Hay ROM que no se usa**: las mitades bajas de `$70-$7D`, donde Mesen2 y
+  mesen-s ponen la SRAM aunque el cartucho tenga ROM, y las de `$7E` y `$7F`,
+  que son la WRAM.
+* **La SRAM está en `$20:6000`**, 8 KB, y las partidas de LoROM no cargan.
+
+Todo eso salió de una ROM de prueba corrida en cinco emuladores antes de mudar
+el juego, `just exhirom`; el detalle, en la documentación de `banks.rs`, en
+`tools/rm2k-snes/cartridge/src/`.
+
 ### Las tablas van en el banco 0
 
-El cartucho es **LoROM**: cada banco tiene sólo sus 32 KB de arriba, de
-`$8000` a `$FFFF`.
+El banco 0 es el del código, y la CPU ve sus 32 KB de `$8000` a `$FFFF`: ver
+arriba.
 
 `lda tabla, x` direcciona **el registro de banco de datos**, no el banco donde
 esté la tabla. Ese registro vale 0 y nunca lo tocamos —salvo en la pelea, que
@@ -116,15 +148,16 @@ Lo que no entra en un banco no puede recorrerse con un índice: la grilla de
 celdas de un mapa grande no entra, y se lee con un puntero de 24 bits. Vive
 descomprimida en la mitad alta de los dos bancos de la WRAM —ver
 `workflow/decisiones/la-grilla-vive-en-la-wram.md` y `docs/port/maps.md`—,
-que tiene la misma forma que LoROM: pasarse del `$FFFF` no lleva al `$0000`
-del banco siguiente sino a su `$8000`. `ptr_more` y `ptr_minus` son las únicas
+que tiene la misma forma que un banco de LoROM: pasarse del `$FFFF` no lleva
+al `$0000` del banco siguiente sino a su `$8000`. `ptr_more` y `ptr_minus` son las únicas
 rutinas que saben eso; todo lo demás las usa y se olvida del tema.
 
 Y una tabla mudada, o una que se recorra con `[ptr], y`, **tiene que
 declararse con `.block`** para no quedar partida entre dos bancos: ver
 `block` en el `asm.rs` de `tools/rm2k-snes/mapdata/`. El acomodo se niega a armar con una
 etiqueta de RODATA sin declarar, y lo que cruza a propósito —el stream de la
-música, lo que se sube al SPC700— lleva `.crossbank`: el reparto lo hace
+música, lo que se sube al SPC700— lleva `.crossbank`, y cruza sólo entre dos
+bancos que se siguen: el reparto lo hace
 `rm2k-snes-assemble` antes de `ca65`, ver `resolve` en
 `tools/rm2k-snes/cartridge/src/banks.rs`.
 

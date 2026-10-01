@@ -1204,9 +1204,8 @@ tile:
     sta ED_FONT
     sep #$20
 .a8
-    lda f:backdrop_dir + 2, x
-    ora #^FAST                  ; the fallback, through the fast mirror
-    sta ED_FONT + 2
+    lda f:backdrop_dir + 2, x   ; the fallback's bank, the one it is read
+    sta ED_FONT + 2             ; from: see `lz2_decompress`
     phb
     lda #^SCN_CLEAN
     pha
@@ -1226,7 +1225,7 @@ word:
     and #$00FF
     asl a
     tax
-    lda f:fallback_double + FAST, x
+    lda f:fallback_double, x
     sta a:.loword(SCN_CLEAN), y
     sta a:.loword(SCN_CLEAN) + 2, y
     sta a:.loword(SCN_SCENE), y
@@ -1236,7 +1235,7 @@ word:
     and #$00FF
     asl a
     tax
-    lda f:fallback_double + FAST, x
+    lda f:fallback_double, x
     sta a:.loword(SCN_CLEAN) + 64, y
     sta a:.loword(SCN_CLEAN) + 66, y
     sta a:.loword(SCN_SCENE) + 64, y

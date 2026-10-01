@@ -10,7 +10,9 @@ use std::fmt::Write;
 /// The same holds for a table walked with `[ptr], y` or with
 /// `lda f:table, x`: it has to stay whole on one side, and its pointers
 /// being symbolic is not enough. Split, the console reads the second half
-/// from `$0000` of the next bank, which in LoROM is the WRAM mirror. It is
+/// from `$0000` of the next bank, which is not where the packing put it
+/// unless the two banks continue each other —and in LoROM, where this
+/// first bit, was the WRAM mirror—. It is
 /// an error that appears or disappears when a byte is added anywhere else
 /// in the cartridge.
 pub fn block(label: &str, data: &[u8]) -> String {

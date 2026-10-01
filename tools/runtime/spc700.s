@@ -112,14 +112,12 @@ wait_byte:
 
     inx
     dey
-    ; The same bank crossing as in `advance`: the samples go past 32 KB, so
-    ; the upload to the SPC700 also crosses from one LoROM bank to the next.
+    ; The same bank crossing as in `advance`: the samples go past a bank, so
+    ; the upload to the SPC700 also crosses from one to the next, at $0000.
     inc source
     bne send
     inc source + 1
     bne send
-    lda #$80
-    sta source + 1
     inc source + 2
     bra send
 

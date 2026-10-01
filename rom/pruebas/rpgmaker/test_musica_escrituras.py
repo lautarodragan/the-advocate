@@ -27,7 +27,7 @@ cada vuelta. Cada uno se mira entero y un poco de la segunda vuelta.
 
 import pytest
 
-from consola import (EMPEZAR, TITULO_AIRE, WRAM, en_la_rom, en_la_wram,
+from consola import (EMPEZAR, TITULO_AIRE, WRAM, desde_la_rom, en_la_rom, en_la_wram,
                      indice_del_tema)
 
 # Los que más formas del stream ejercitan, además del título —el pedal—: el
@@ -56,9 +56,8 @@ def _por_cuadro(vuelta, largo):
 def _fin_del_stream(direccion, largo):
     """La dirección del `OP_END` del stream que empieza en `direccion` y
     ocupa `largo` bytes, el `OP_END` incluido: el último."""
-    # El desplazamiento en el archivo vuelve a ser una dirección de LoROM.
-    archivo = en_la_rom(direccion) + largo - 1
-    return (archivo // 0x8000) << 16 | 0x8000 | (archivo & 0x7FFF)
+    # El desplazamiento en el archivo vuelve a ser una dirección.
+    return desde_la_rom(en_la_rom(direccion) + largo - 1)
 
 
 def _escribir(una, direccion, datos):

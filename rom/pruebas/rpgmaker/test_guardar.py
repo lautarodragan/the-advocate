@@ -80,7 +80,8 @@ def test_sin_partida_arranca_de_cero(partida):
 
 def _base(simbolos, ranura):
     """Dónde arranca la ranura en la SRAM, con los números de la ROM."""
-    return simbolos["SRAM_MAGIC"] + ranura * simbolos["SRAM_STRIDE"]
+    return (simbolos["SRAM_MAGIC"] - simbolos["SRAM_WINDOW"]
+            + ranura * simbolos["SRAM_STRIDE"])
 
 
 def test_guardar_escribe_en_la_ranura_elegida(partida):
@@ -126,7 +127,7 @@ def test_cancelar_no_guarda_ni_cambia_la_ranura(partida):
 
 
 def test_las_cuatro_ranuras_entran_en_la_sram(partida):
-    """La última ranura termina adentro de los 32 KB de SRAM del cartucho.
+    """La última ranura termina adentro de la SRAM del cartucho.
 
     Es una cuenta y no una medición, pero conviene que la haga la prueba y no
     yo: `SAVE_BYTES` crece cada vez que se agrega un campo a la partida —ya
@@ -142,5 +143,6 @@ def test_las_cuatro_ranuras_entran_en_la_sram(partida):
         "una partida ocupa %d bytes y las ranuras van cada %d: la %d pisaría "
         "el final de la anterior" % (largo, stride, ranuras))
     fin = _base(simbolos, ranuras - 1) + stride
-    assert fin <= 0x8000, (
-        "las %d ranuras terminan en $%04X y la SRAM son 32 KB" % (ranuras, fin))
+    assert fin <= simbolos["SRAM_SIZE"], (
+        "las %d ranuras terminan en $%04X y la SRAM son $%04X bytes"
+        % (ranuras, fin, simbolos["SRAM_SIZE"]))

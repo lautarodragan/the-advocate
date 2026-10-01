@@ -306,9 +306,8 @@ letter:
 ; `Window_SaveFile::Refresh` draws per file, minus the hit points, which this
 ; port does not have.
 ;
-; The party is read from the slot's SRAM, with the data bank at $70 just long
-; enough to read one byte: the block tables and the DMA registers address
-; bank 0. An actor with no face —DummyHero— draws nothing, which is what
+; The party is read from the slot's SRAM, with the data bank at the SRAM's
+; just long enough to read one byte: the block tables address bank 0. An actor with no face —DummyHero— draws nothing, which is what
 ; `DrawFace` does with an empty name. And where each face and each name goes
 ; is said by two converter tables, `slot_face_vram` and
 ; `slot_name_vram`, like `slot_vram` for the rows: the computation lives

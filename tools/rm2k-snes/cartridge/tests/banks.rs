@@ -2,22 +2,39 @@
 //!
 //! What these guard is not that the filling is pretty but that it respects
 //! what the generated data declares: a block that crosses a bank is uploaded
-//! by DMA reading the WRAM from the middle onwards, and that does not fail at
-//! assembly, it fails by drawing garbage. The big net is whatever runs the
+//! by DMA reading the start of its own bank from the middle onwards, and that
+//! does not fail at assembly, it fails by drawing garbage. The big net is whatever runs the
 //! ROMs; this is the small one, and it makes an error show up here and not
 //! in a screenshot.
 
-use cartridge::banks::{self, cfg, pack_texts, segment_of, size, BANK_SIZE, FIRST_BANK};
+use cartridge::banks::{
+    self, cfg, file_offset, pack_texts, segment_of, size, slots, Slot, BANK_SIZE, HALF,
+};
 
-const B2: &str = ".segment \"BANK02\"";
-const B3: &str = ".segment \"BANK03\"";
+const B2: &str = ".segment \"BANKC2\"";
+const B3: &str = ".segment \"BANKC3\"";
 
-/// Runs the packing over one or two texts: what each becomes, and (pieces,
-/// banks).
-fn resolve(texts: &[&str]) -> Result<(Vec<String>, (usize, usize)), String> {
+/// Runs the packing over one or two texts, into `slots`: what each becomes,
+/// and (pieces, banks).
+fn resolve_into(texts: &[&str], slots: &[Slot]) -> Result<(Vec<String>, (usize, usize)), String> {
     let names: Vec<String> = (0..texts.len()).map(|i| format!("part{i}.inc")).collect();
-    let (out, packing) = pack_texts(&names, texts, FIRST_BANK)?;
+    let (out, packing) = pack_texts(&names, texts, slots)?;
     Ok((out, (packing.pieces, packing.banks)))
+}
+
+/// The same, into the cartridge's.
+fn resolve(texts: &[&str]) -> Result<(Vec<String>, (usize, usize)), String> {
+    resolve_into(texts, &slots())
+}
+
+/// What the packing wrote in `bank`'s segment.
+fn bank(text: &str, bank: usize) -> &str {
+    let (_, rest) = split_at(text, &format!(".segment \"{}\"", segment_of(bank)));
+    rest.split(".segment").next().unwrap()
+}
+
+fn whole(bank: usize) -> Slot {
+    Slot { bank, start: 0, size: BANK_SIZE }
 }
 
 fn one(text: &str) -> (String, (usize, usize)) {
@@ -152,16 +169,92 @@ fn the_banks_go_at_the_end_of_the_last_file() {
 
 #[test]
 fn what_does_not_fit_in_the_cartridge_says_so() {
-    let fit = banks::BANKS - banks::RESERVED_BANKS - FIRST_BANK;
+    let fit = slots().iter().filter(|s| s.size == BANK_SIZE).count();
     let mut text = rodata();
     for k in 0..=fit {
         text += &format!(".block {0}\nb{k}:\n     .res {0}\n", BANK_SIZE);
     }
     let error = resolve(&[&text]).unwrap_err();
-    assert!(
-        error.contains(&format!("needs {} banks and {fit} fit", fit + 1)),
-        "{error}"
-    );
+    assert!(error.contains("does not fit"), "{error}");
+}
+
+#[test]
+fn the_fast_banks_go_first() {
+    let mut text = rodata();
+    let fast = slots().iter().filter(|s| s.size == BANK_SIZE && s.fast()).count();
+    for k in 0..=fast {
+        text += &format!(".block {0}\nb{k}:\n     .res {0}\n", BANK_SIZE);
+    }
+    let (out, _) = one(&text);
+    let (before, after) = split_at(&out, ".segment \"BANK42\"");
+    assert!(before.contains(".segment \"BANKFF\"") && !after.contains("BANKC"));
+    assert!(after.contains(&format!("b{fast}:")));
+}
+
+#[test]
+fn a_half_takes_what_fits_in_it() {
+    // The 40 KB one does not fit in what the big one leaves, nor in the half:
+    // it opens the slow bank. The 30 KB one fits in neither of the two open
+    // ones, and opens the half.
+    let slots = [whole(0xC2), Slot { bank: 0xC0, start: 0, size: HALF }, whole(0x42)];
+    let text = rodata()
+        + ".block 61440\nbig:\n     .res 61440\n"
+        + ".block 40960\nmiddle:\n     .res 40960\n"
+        + ".block 30720\nsmall:\n     .res 30720\n";
+    let (out, count) = resolve_into(&[&text], &slots).unwrap();
+    assert_eq!(count, (3, 3));
+    assert!(bank(&out[0], 0xC0).contains("small:"), "{}", out[0]);
+    assert!(bank(&out[0], 0x42).contains("middle:"), "{}", out[0]);
+}
+
+#[test]
+fn a_chain_does_not_cross_between_two_runs() {
+    // `$C2:FFFF` is not followed by `$42:0000`: the stream that does not fit
+    // in the 16 bytes left starts in the next bank instead of crossing.
+    let slots = [whole(0xC2), whole(0x42)];
+    let text = rodata()
+        + &format!(".block {0}\nbig:\n     .res {0}\n", BANK_SIZE - 16)
+        + ".crossbank\nstream:\n"
+        + &bytes(16).repeat(4);
+    let (out, _) = resolve_into(&[&text], &slots).unwrap();
+    assert!(bank(&out[0], 0x42).contains("stream:"), "{}", out[0]);
+}
+
+#[test]
+fn a_piece_longer_than_its_run_is_an_error() {
+    let slots = [whole(0xC2), whole(0x42)];
+    let text = rodata() + ".crossbank\nstream:\n" + &bytes(16).repeat(BANK_SIZE / 16 + 1);
+    let error = resolve_into(&[&text], &slots).unwrap_err();
+    assert!(error.contains("no free bank continues it"), "{error}");
+}
+
+#[test]
+fn the_cartridge_decodes_addresses_like_exhirom() {
+    assert_eq!(file_offset(0xC00000), Some(0x000000));
+    assert_eq!(file_offset(0x808000), Some(0x008000));
+    assert_eq!(file_offset(0xFFFFFF), Some(0x3FFFFF));
+    assert_eq!(file_offset(0x400000), Some(0x400000));
+    assert_eq!(file_offset(0x008000), Some(0x408000));
+    assert_eq!(file_offset(0x3F8000), Some(0x7F8000));
+    assert_eq!(file_offset(0x7D0000), Some(0x7D0000));
+    assert_eq!(file_offset(0x7E0000), None, "the WRAM");
+    assert_eq!(file_offset(0x802000), None, "the registers");
+}
+
+#[test]
+fn every_slot_is_rom_and_none_overlaps() {
+    let mut seen = std::collections::HashSet::new();
+    for slot in slots() {
+        let start = file_offset(slot.address()).expect("ROM");
+        assert_eq!(file_offset(slot.address() + slot.size - 1), Some(start + slot.size - 1));
+        for half in (start..start + slot.size).step_by(HALF) {
+            assert!(seen.insert(half), "${:06X} twice", slot.address());
+            // Neither the code banks nor their copies.
+            assert!(banks::MIRRORS.iter().all(|&(a, b, _)| half != a && half != b));
+            // Nor the low halves of `$70-$7D`, which some emulators make SRAM.
+            assert!(!(0x700000..0x7E0000).contains(&half) || half & 0x8000 != 0);
+        }
+    }
 }
 
 #[test]
@@ -210,9 +303,10 @@ fn a_block_outside_rodata_is_not_silent() {
 #[test]
 fn a_table_without_a_block_is_not_silent() {
     // A table read with `lda f:table, x` cannot cross a bank: the index
-    // carries the address to the next bank's `$0000`, which in LoROM is not
-    // ROM. So the packing **always** refuses, not only on the day the cut
-    // lands on it: the error is latent.
+    // carries the address to the next bank's `$0000`, which is not where the
+    // packing put the rest unless the two banks continue each other. So the
+    // packing **always** refuses, not only on the day the cut lands on it:
+    // the error is latent.
     let error = resolve(&[&(rodata()
         + ".block 4\ncovered:\n    .word $1111,$2222\n"
         + "loose_table:\n    .word $3333,$4444\n")])
@@ -240,7 +334,7 @@ fn what_crosses_on_purpose_is_declared() {
     );
     let (before, after) = split_at(&out, B3);
     assert!(before.contains("stream:") && !out.contains(".crossbank"));
-    // The continuation goes first in the next bank, at its `$8000`.
+    // The continuation goes first in the next bank, at its `$0000`.
     assert!(after.split('\n').nth(1).unwrap().starts_with("    .byte"));
 }
 
@@ -283,23 +377,32 @@ fn line_endings_and_blank_lines_come_back_as_they_were() {
 #[test]
 fn the_memory_map_puts_each_bank_in_place() {
     let text = cfg();
+    assert!(text.contains("ROM:  start = $008000, size = $7FC0, fill = yes;"));
     assert!(text.contains("BANK01: start = $018000, size = $8000, fill = yes;"));
+    assert!(text.contains("BANKC2: start = $C20000, size = $10000, fill = yes;"));
     assert!(text.contains("BANK7D: start = $7D8000, size = $8000, fill = yes;"));
     assert!(!text.contains("BANK7E"), "banks $7E and $7F are the WRAM");
     assert!(text.contains("FAR:      load = BANK01"));
-    let first = segment_of(FIRST_BANK);
-    assert!(text.contains(&format!("{first}: load = {first}")));
-    // The file has to be 4 MB: 126 data banks, plus bank 0 split into three
-    // areas, plus the two reserved ones.
-    let total: usize = text
-        .lines()
-        .filter_map(|l| {
-            let rest = l.split("size = $").nth(1)?;
-            let (hex, tail) = rest.split_once(',')?;
-            tail.trim_start()
-                .starts_with("fill")
-                .then(|| usize::from_str_radix(hex, 16).unwrap())
-        })
-        .sum();
-    assert_eq!(total, 4 * 1024 * 1024);
+    assert!(text.contains("BANKC2: load = BANKC2"));
+    // The areas go in file order, and add up to the 8 MB.
+    let mut offset = 0;
+    let mut bank0 = None;
+    for line in text.lines() {
+        let Some(rest) = line.split("size = $").nth(1) else { continue };
+        let Some((hex, tail)) = rest.split_once(',') else { continue };
+        if !tail.trim_start().starts_with("fill") {
+            continue;
+        }
+        if line.trim_start().starts_with("ROM:") {
+            bank0 = Some(offset);
+        }
+        let start = line.split("start = $").nth(1).unwrap().split(',').next().unwrap();
+        let start = usize::from_str_radix(start, 16).unwrap();
+        if line.trim_start().starts_with("BANK") && !line.contains("BANK01") {
+            assert_eq!(file_offset(start), Some(offset), "{line}");
+        }
+        offset += usize::from_str_radix(hex, 16).unwrap();
+    }
+    assert_eq!(offset, banks::ROM_SIZE);
+    assert_eq!(bank0, Some(0x008000), "where the console sees $80:8000");
 }
