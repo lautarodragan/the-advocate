@@ -65,7 +65,14 @@ pub const RANDOM_SEED: u32 = 0xACE1;
 pub const ENC_SEED: u32 = 0x5A17;
 /// The timer's fourth operation: the seconds from a variable.
 pub const TIMER_SET_VAR: u32 = 3;
-/// The `ConditionalBranch` classes, RM2k's numbers.
+/// The slot a page's variable condition carries to mean "the timer's
+/// seconds": `TIMER_SLOT` in rm2k-snes-events, which writes it, and
+/// `conditions_ok`, which reads `timer_sec` instead of a variable.
+pub const TIMER_SLOT: u32 = 0xFE;
+/// The `ConditionalBranch` classes, RM2k's numbers: the timer's seconds is
+/// `CommandConditionalBranch`'s case 2, the gold's question with another
+/// value.
+pub const COND_TIMER: u32 = 2;
 pub const COND_GOLD: u32 = 3;
 pub const COND_ITEM: u32 = 4;
 pub const COND_ACTOR: u32 = 5;

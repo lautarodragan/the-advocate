@@ -417,6 +417,9 @@ COND_BRANCH = 12010
 COND_ELSE = 22010
 COND_END = 22011
 
+# The timer's seconds, `CommandConditionalBranch` case 2: the gold's question
+# with another value. See `branch_bytes` in rm2k-snes-events.
+COND_TIMER = 2
 COND_GOLD = 3
 # The inventory **already exists** —`OP_ITEM` and `FAR_ITEMS`, since
 # 2026-09-10— so the line above is stale: the item branch is
@@ -1006,6 +1009,10 @@ CMP_EQUAL, CMP_GREATER_EQUAL, CMP_LESS_EQUAL, CMP_GREATER, CMP_LESS, \
 RANDOM_SEED = 0xACE1
 TIMER_SET_VAR = 3     # the timer's fourth operation: the seconds from a
                         # variable. RM2k's three are 0, 1 and 2.
+# The slot a page record's variable condition carries to mean "the timer's
+# seconds": `TIMER_SLOT` in rm2k-snes-events, which writes it, and
+# `conditions_ok`, which reads `timer_sec` instead of a variable.
+TIMER_SLOT = 0xFE
 
 VARIABLE_SLOT = {}      # RM2k variable -> slot in the ROM
 

@@ -94,6 +94,10 @@ pub struct MapEvents {
     ///
     /// None after a jump: the blocks there are another map's.
     pub substitutions: Option<Rc<Substitutions>>,
+    /// Whether the page already jumped to another map. Then "this event" is
+    /// nobody: `Game_Interpreter_Map::OnMapChange` puts 0 in every frame's
+    /// event id, which is what `EraseEvent` looks at.
+    pub jumped: bool,
 }
 
 impl MapEvents {
@@ -134,6 +138,7 @@ impl MapEvents {
             watched: Some(Rc::new(watched)),
             map_id: map.id,
             substitutions,
+            jumped: false,
         }
     }
 
@@ -165,6 +170,7 @@ impl MapEvents {
         MapEvents {
             watched: None,
             substitutions: None,
+            jumped: true,
             ..self.clone()
         }
     }
@@ -289,8 +295,9 @@ fn turns(page: &Page) -> bool {
 /// **All** the pages of an event go, not only the ones that trigger: which
 /// one stays active depends on the conditions of all of them, and a later
 /// page that triggers nothing still wins and keeps the one below from
-/// running. An event with a condition the ROM cannot evaluate —a timer— is
-/// left out whole: running the wrong page is worse than running none.
+/// running. An event with a condition the ROM cannot evaluate —a timer next
+/// to a variable— is left out whole: running the wrong page is worse than
+/// running none.
 ///
 /// And **all** events go, whether or not they have a page that triggers
 /// something: since 2026-09-05 the table also says which layer the active
@@ -309,7 +316,11 @@ fn turns(page: &Page) -> bool {
 pub fn map_pages(ctx: &mut Ctx, map: &Map, map_events: &MapEvents) -> Result<Vec<Value>> {
     let mut out = Vec::new();
     for (number, event) in map.events.iter().enumerate() {
-        if event.pages.iter().any(|p| p.condition.timer) {
+        if event
+            .pages
+            .iter()
+            .any(|p| p.condition.timer.is_some() && p.condition.variable.is_some())
+        {
             continue;
         }
         for (page_number, page) in event.pages.iter().enumerate() {
@@ -357,12 +368,20 @@ pub fn map_pages(ctx: &mut Ctx, map: &Map, map_events: &MapEvents) -> Result<Vec
                     code = None;
                 }
             }
-            let variable = match c.variable {
-                Some((v, value)) => {
+            // **The timer travels in the variable's place**, with a slot no
+            // variable has: the page record has no room for another condition
+            // and the BSS none for a copy of it. It is
+            // `Game_Event::AreConditionsMet`: the page holds while the seconds
+            // left are at most `timer_sec`. Only one event of the game asks
+            // for it —the 81 of map 312, the fire's Game Over— and no page
+            // asks for both; one that did is left out above.
+            let variable = match (c.variable, c.timer) {
+                (Some((v, value)), _) => {
                     let slot = variable_slot(ctx.indices, v)?;
                     json!([slot, CONDITION_OPERATOR, value])
                 }
-                None => Value::Null,
+                (None, Some(seconds)) => json!([TIMER_SLOT, AT_MOST, seconds]),
+                (None, None) => Value::Null,
             };
             out.push(json!({
                 "event": number,
@@ -400,12 +419,29 @@ fn route_targets(code: &[u8]) -> Vec<usize> {
     targets
 }
 
-/// A page condition's variable has a slot always: the sweep saw it.
+/// A page condition's variable has a slot always: the sweep saw it. And
+/// not one of the two the record reserves —`$FF` is "none" and
+/// [`TIMER_SLOT`] the timer—: 174 slots are used today, so this is a wall
+/// for a game with many more, not a case that happens.
 fn variable_slot(indices: &Indices, v: i32) -> Result<u8> {
-    indices
+    let slot = indices
         .variable_slot(v as i64)
-        .map_err(|_| Bad::answer(format!("variable {v} of a page condition has no slot")))
+        .map_err(|_| Bad::answer(format!("variable {v} of a page condition has no slot")))?;
+    if slot >= TIMER_SLOT {
+        return Err(Bad::answer(format!(
+            "variable {v} of a page condition takes slot {slot}, which the page record reserves"
+        )));
+    }
+    Ok(slot)
 }
+
+/// The slot a page record's variable condition carries to mean "the
+/// timer's seconds": `conditions_ok` reads `timer_sec` instead.
+pub const TIMER_SLOT: u8 = 0xFE;
+
+/// `compare_var`'s `<=`: the codes are `CheckOperator`'s, `==` `>=` `<=` `>`
+/// `<` `!=`.
+const AT_MOST: i32 = 2;
 
 pub fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()

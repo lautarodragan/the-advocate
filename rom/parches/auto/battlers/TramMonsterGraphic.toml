@@ -1,0 +1,39 @@
+# The artistic decision of battler TramMonsterGraphic: **which colors are lost** when
+# taking it to fifteen, which is what the battle scene leaves each one.
+# The converter writes it and `just parches` regenerates it, which is
+# what has to be run when a change moves it; `just parches --check`
+# —and the suite— fail if it is stale. See `rm2k-snes-patches`.
+
+battler = "TramMonsterGraphic"
+imagen = "TramMonsterGraphic"
+tono = 0
+
+# What it came from, already shrunk to 80%: the size in scene pixels
+# and how many distinct 15-bit colors it brought. It is not decided, it
+# is measured.
+tamano = [192, 115]
+colores = 302
+
+# What remained, in palette order: index 1 is the first one.
+paleta = [
+  [0, 0, 0],
+  [13, 11, 8],
+  [4, 4, 3],
+  [3, 2, 1],
+  [12, 10, 8],
+  [9, 8, 6],
+  [3, 3, 2],
+  [10, 9, 7],
+  [5, 5, 4],
+  [8, 7, 5],
+  [6, 6, 5],
+  [8, 4, 3],
+  [16, 14, 10],
+  [19, 16, 12],
+  [28, 25, 21],
+]
+
+# How many merges it took to get there, with
+# `adeleine.merge_least_visible`: each one sends the least noticeable
+# color to its nearest neighbor.
+fusiones = 287

@@ -459,6 +459,8 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         RANDOM_SEED.into(),
         ENC_SEED.into(),
         TIMER_SET_VAR.into(),
+        TIMER_SLOT.into(),
+        COND_TIMER.into(),
         COND_GOLD.into(),
         COND_ITEM.into(),
         COND_ACTOR.into(),

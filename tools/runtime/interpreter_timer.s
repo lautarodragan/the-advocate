@@ -29,6 +29,10 @@ timer_set_16:
     ; nothing else.
     lda #MORE_TIMER
     sta timer_sub
+    ; `SetTimer` asks for the refresh too, like the second changing in
+    ; `timer_tick`.
+    lda timer_watch
+    tsb refresh
     jsr timer_digits
     bra timer_end
 no_sets:

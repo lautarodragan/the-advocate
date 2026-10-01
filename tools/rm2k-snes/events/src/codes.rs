@@ -69,6 +69,7 @@ pub const JUMP_TO_LABEL: i32 = 12120;
 pub const LOOP: i32 = 12210;
 pub const BREAK_LOOP: i32 = 12220;
 pub const END_EVENT_PROCESSING: i32 = 12310;
+pub const ERASE_EVENT: i32 = 12320;
 pub const CALL_EVENT: i32 = 12330;
 pub const COMMENT: i32 = 12410;
 pub const GAME_OVER: i32 = 12420;
@@ -208,6 +209,7 @@ mod tests {
             (LOOP, C::Loop),
             (BREAK_LOOP, C::BreakLoop),
             (END_EVENT_PROCESSING, C::EndEventProcessing),
+            (ERASE_EVENT, C::EraseEvent),
             (CALL_EVENT, C::CallEvent),
             (COMMENT, C::Comment),
             (GAME_OVER, C::GameOver),

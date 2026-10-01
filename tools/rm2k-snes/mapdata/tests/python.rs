@@ -132,20 +132,20 @@ fn db() -> Db {
 #[test]
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
-    assert_eq!(emitted.text.lines().count(), 3550);
+    assert_eq!(emitted.text.lines().count(), 3552);
     assert_eq!(
         sha(&emitted.text),
-        "9423872fc489e5f5f6fa8295a4658e6ee10405b9e4ad903ac232a2156d9c21dd"
+        "0d2344e269f96fe50ed1fe06772981e754f81d0b3e8390ad1c538f05d0578b2e"
     );
 }
 
 #[test]
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
-    assert_eq!(emitted.text.lines().count(), 3747);
+    assert_eq!(emitted.text.lines().count(), 3749);
     assert_eq!(
         sha(&emitted.text),
-        "e4bdfcd333b27616398077d0bc7c5b87761b56575ba29fe7b4cf7be5ad9de0cb"
+        "873631055dc837727fea64928db5b6e892047ec652477c0186935c04c78b3cbe"
     );
 }
 

@@ -1228,9 +1228,10 @@
               "parameters": [],
               "string": "it there before it's too dark to see."
             },
-            {"code": 10810, "indent": 1, "parameters": [105, 68, 19], "string": ""},
-            {"code": 10210, "indent": 1, "parameters": [0, 236, 236, 1], "string": ""},
-            {"code": 11330, "indent": 1, "parameters": [10001, 8, 0, 0, 15], "string": ""},
+            {"code": 10110, "indent": 1, "parameters": [], "string": "END OF THE DEMO"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "Paradise is not in the"},
+            {"code": 20110, "indent": 1, "parameters": [], "string": "cartridge yet. Thanks for playing!"},
+            {"code": 12510, "indent": 1, "parameters": [], "string": ""},
             {"code": 10, "indent": 1, "parameters": [], "string": ""},
             {"code": 20141, "indent": 0, "parameters": [], "string": ""}
           ],
@@ -1276,6 +1277,7 @@
             "variable_value": 0
           },
           "event_commands": [
+            {"code": 10810, "indent": 0, "parameters": [310, 48, 22], "string": ""},
             {"code": 12010, "indent": 0, "parameters": [0, 880, 1, 0, 0, 1], "string": ""},
             {"code": 10110, "indent": 1, "parameters": [], "string": "TALAN"},
             {
@@ -1309,10 +1311,7 @@
             {"code": 22010, "indent": 0, "parameters": [], "string": ""},
             {"code": 10, "indent": 1, "parameters": [], "string": ""},
             {"code": 22011, "indent": 0, "parameters": [], "string": ""},
-            {"code": 10110, "indent": 0, "parameters": [], "string": "END OF THE DEMO"},
-            {"code": 20110, "indent": 0, "parameters": [], "string": "The forest is not in the"},
-            {"code": 20110, "indent": 0, "parameters": [], "string": "cartridge yet. Thanks for playing!"},
-            {"code": 12510, "indent": 0, "parameters": [], "string": ""}
+            {"code": 10210, "indent": 0, "parameters": [0, 236, 236, 1], "string": ""}
           ],
           "id": 1,
           "layer": 0,

@@ -92,7 +92,7 @@ fn table(which: &str) -> Vec<Row> {
         (7, 9, 9, vec![("savept", 3, 0, 3, 1, 3, 3, vec![])]),
         (8, 4, 8, vec![("ghost", 4, 2, 1, 2, 3, 0, vec!["switch_a"])]),
         (9, 6, 6, vec![("", 0, 2, 1, 1, 3, 0, vec![])]),
-        (10, 8, 3, vec![("crowd", 7, 1, 1, 1, 3, 0, vec!["timer"]), ("people", 2, 2, 1, 1, 3, 0, vec![])]),
+        (10, 8, 3, vec![("crowd", 7, 1, 1, 1, 3, 0, vec!["timer", "variable"]), ("people", 2, 2, 1, 1, 3, 0, vec![])]),
         (11, 10, 3, vec![("future", 1, 2, 1, 1, 3, 0, vec![])]),
         (12, 11, 3, vec![("", 11, 2, 1, 0, 3, 0, vec![])]),
     ];
@@ -128,6 +128,7 @@ fn events(which: &str) -> Vec<Event> {
                         .into_iter()
                         .map(|c| match c {
                             "switch_a" => "switch_a",
+                            "variable" => "variable",
                             _ => "timer",
                         })
                         .collect(),
