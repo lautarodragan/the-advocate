@@ -39,3 +39,23 @@ de la pelea del 52.
 * Ninguna golden se movió; las dos tandas en verde.
 * Los hashes de `tests/python.rs` de `rm2k-snes-mapdata` cambiaron a
   propósito: son los bytes del cartucho.
+
+### 2. Los battlers: hecho
+
+Se pueden, pero no "al empezar y listo": la CPU los vuelve a leer **durante
+toda la pelea** —`scene_tick` redibuja a los que siguen vivos encima de un
+enemigo borrado, y un enemigo oculto se dibuja cuando aparece—, así que
+tienen que quedarse en la WRAM. Van a la mitad de la grilla en el `$7E`
+(`SCN_BATTLERS = GRID`): la pelea no lee el mapa, y `back_from_battle` ya
+descomprimía la grilla entera. `scn_battlers_load` descomprime los battlers
+distintos de la tropa —los de `SCN_PAL_BAT`— uno detrás del otro y anota
+dónde cayó cada uno por ranura de paleta (`SCN_BAT_PTR`, `$7E6650`); el
+conversor corta si los de una tropa pasan de 32 KB (en `release`, la más
+pesada son 15 KB). `scn_terrain`, que lee la grilla, corre antes.
+
+* En `release`: los huecos de `just espacio` pasan de 0 a 62.525 B (147 KB
+  de battlers crudos).
+* La pelea del droide en el 52 compone en 11 cuadros en vez de 10; los mapas
+  no cambian. La entrada a la pelea es a negro, así que no se ve.
+* `test_reservas_de_la_wram.py` deja pasar `SCN_BATTLERS`, y la decisión de
+  la grilla lo dice.

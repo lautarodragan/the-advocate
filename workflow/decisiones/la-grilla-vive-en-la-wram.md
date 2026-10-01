@@ -83,3 +83,9 @@ esto**: viven en la WRAM justo detrás de la grilla, en un tercer flujo que
 pide también devolverlas al cartucho, sin comprimir: en
 `rm2k-snes-mapdata`, sacar `map_ram` de `COMPRESSED_KINDS` y volver a
 guardarlas como bloques sueltos con sus etiquetas en el registro.
+
+**Y la pelea le pide prestada la mitad del `$7E`**, también desde el
+2026-10-01: ahí descomprime los battlers de la tropa (`SCN_BATTLERS` en
+`battle_scene.s`), porque `back_from_battle` ya volvía a descomprimir la
+grilla entera. Revertir la grilla no los obliga a irse: la mitad del `$7E`
+quedaría libre para ellos solos.

@@ -57,6 +57,17 @@ SCN_MSU      = $664A
 ; cartridge carries it, the replacement if not. Only valid with SCN_BACKDROP
 ; set.
 SCN_FALLBACK = $664B
+; Where each palette slot's battler was decompressed, in bank $7E: one word
+; per slot, in the order of `SCN_PAL_BAT`. See `scn_battlers_load`.
+SCN_BAT_PTR  = $6650            ; 8 words
+SCN_BAT_PTR_END = SCN_BAT_PTR + 16
+; Where a troop's battlers are decompressed, when the battle starts: the
+; grid's half of bank $7E. The battle borrows it —the map is not read while
+; it lasts— and `back_from_battle` decompresses the grid again, as it already
+; did for $7F's half. The converter keeps a troop's battlers under
+; `LZ2_CAP_BATTLERS`.
+SCN_BATTLERS = GRID
+.assert SCN_BATTLERS + LZ2_CAP_BATTLERS <= GRID_END, error, "a troop's battlers do not fit in the grid's half of bank $7E"
 ; What was on the direct page that gets borrowed: see `scn_dp_take`.
 SCN_DP_SAVE = $6680
 SCN_DP_BYTES = 48
@@ -350,18 +361,21 @@ scn_bits:
     rts
 has:
     ; --- the battler: its measurements and its five pointers ---
+    ; Its bytes are where `scn_battlers_load` decompressed them, by its
+    ; palette slot: two enemies with the same battler share both.
     rep #$20
 .a16
     and #$00FF
     tay                         ; Y: the battler
+    lda SCN_E_PAL, x
+    and #$0007
     asl a
-    asl a
-    tax                         ; X: its 24-bit pointer
-    lda f:battler_dir, x
+    tax                         ; X: its slot's pointer
+    lda SCN_BAT_PTR, x
     sta ED_M
     sep #$20
 .a8
-    lda f:battler_dir + 2, x
+    lda #^SCN_BATTLERS
     sta ED_M + 2
     sta ED_P0 + 2
     sta ED_P1 + 2
@@ -714,6 +728,7 @@ allocated:
     bne has_scene
     jmp no_scene                ; neither background nor battlers: on black, as before
 has_scene:
+    jsr scn_battlers_load
     lda #0
     sta BA_SCENE
 
@@ -893,12 +908,63 @@ no_scene:
     rts
 .endproc
 
+; The troop's distinct battlers —the ones `SCN_PAL_BAT` lists, which are
+; those of its palettes— decompressed one after the other into
+; `SCN_BATTLERS`, and where each one landed in `SCN_BAT_PTR`, by slot. They
+; stay there the whole battle: `scene_tick` draws them again over an erased
+; enemy, and a hidden one that appears is drawn then. It runs before
+; anything else touches the grid's half, and after `scn_terrain`, which
+; reads the grid: see `scene_upload`.
+.proc scn_battlers_load
+.a8
+.i16
+    lda #^SCN_BATTLERS
+    sta f:LZ2_BANK
+    ldy #.loword(SCN_BATTLERS)
+    ldx #0
+slot:
+    txa                         ; the slot's low byte: there are eight at most
+    cmp SCN_PAL_N
+    bcs done
+    phx
+    rep #$20
+.a16
+    txa
+    asl a
+    tax
+    tya
+    sta SCN_BAT_PTR, x          ; this one lands where the previous one ended
+    sep #$20
+.a8
+    plx
+    phx
+    lda SCN_PAL_BAT, x          ; which battler
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    tax
+    lda f:battler_dir, x        ; its LZ2 stream
+    pha
+    sep #$20
+.a8
+    lda f:battler_dir + 2, x
+    plx
+    jsl f:lz2_decompress + FAST ; leaves Y after the last byte it wrote
+    plx
+    inx
+    bra slot
+done:
+    rts
+.endproc
+
 ; The terrain of the cell the hero is on, in A: what `StoreTerrainID` would
 ; answer —see `op_terrain`, which is where this comes from—, for the
 ; background of a battle on a map that does not name its own. It runs when
 ; the battle starts, before `scn_fill` overwrites the upper half of $7F,
-; which may belong to the grid. `cell_replaced` is in bank 0, so its
-; lookup is copied here.
+; which may belong to the grid, and before `scn_battlers_load` overwrites
+; the lower one. `cell_replaced` is in bank 0, so its lookup is copied here.
 .proc scn_terrain
 .a8
 .i16

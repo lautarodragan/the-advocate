@@ -23,7 +23,9 @@ import cartuchos
 
 # Cada rango con los símbolos que tienen derecho a caer adentro.
 RESERVAS = (
-    ((0x7E8000, 0x7F0000), {"GRID"}),
+    # Y los battlers de la tropa mientras dura la pelea: `back_from_battle`
+    # vuelve a descomprimir la grilla. Ver runtime/battle_scene.s.
+    ((0x7E8000, 0x7F0000), {"GRID", "SCN_BATTLERS"}),
     ((0x7F0000, 0x800000), {"GRID_END", "GRID_HIGH", "LZ2_BUFFER",
                             "ANIM_DRAWINGS", "ANIM_DRAWINGS_END",
                             "SCN_CLEAN", "SCN_SCENE",

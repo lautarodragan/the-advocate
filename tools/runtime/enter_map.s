@@ -340,10 +340,10 @@ set:
     jsr load_sprite             ; the pose bank, the object palette and OBSEL
     jsr npc_poses_forget
     jsr load_window
-    ; The grid, which the scene overwrote in the middle of bank $7F —it is
-    ; `SCN_SCENE`— if the map has more than 32 KB of grid. It is
-    ; decompressed again in full, which is simpler than tracking where the
-    ; second stream starts and costs the same as entering the map. Before
+    ; The grid, which the battle overwrote: its half of bank $7E holds the
+    ; troop's battlers —`SCN_BATTLERS`—, and in the middle of bank $7F is
+    ; `SCN_SCENE`, over the rest of the grid and what lives behind it. It is
+    ; decompressed again in full, as when entering the map. Before
     ; `fill_window`, which reads it.
     jsl f:lz2_grid + FAST
     jsr fill_window
