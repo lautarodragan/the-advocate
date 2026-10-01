@@ -2,6 +2,7 @@
 name: "Los textos sin comprimir"
 description: "119 KB de textos a un byte por letra: mensajes repetidos, nombres y DTE los bajarían uno o dos bancos, sin perder el acceso directo a cada cuadro"
 type: feature
+assignee: Guayacán
 ---
 
 No urge: se hace cuando apriete el espacio, probablemente con el capítulo
