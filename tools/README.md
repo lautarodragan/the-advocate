@@ -108,7 +108,7 @@ have layers of their own, one folder each:
       map-sprites/  `rm2k-snes-map-sprites`, a library: a map's characters
                  as objects —the palette split, the VRAM bank and the pose
                  bank— and the extras at the end of the bank
-      wally/     `wally`: a whole map —its layers, the events baked
+      wally/     Wally, `wally`: a whole map —its layers, the events baked
                  into them, its objects, its blocks—, with those two; the
                  converter runs it once per map, through
                  `port/map_convert.py`

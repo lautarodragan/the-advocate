@@ -117,7 +117,7 @@ port —ver `tools/README.md`—:
       events/          el compilador de eventos: de las páginas de RM2k al bytecode
       map-background/  las dos capas del fondo de un mapa y sus bloques de 16x16
       map-sprites/     los personajes de un mapa como objetos: paletas y bancos
-      wally/           un mapa entero, con esas dos: capas, horneado, sprites
+      wally/           Wally: un mapa entero, con esas dos: capas, horneado, sprites
       text/            la fuente, una línea de texto sobre el System y el
                        reparto de las cajas al ancho de la ventana
       screens/         las pantallas: la ventana de mensajes, el título, las

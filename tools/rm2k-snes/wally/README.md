@@ -1,4 +1,4 @@
-# wally: an RPG Maker 2000 game's maps, as a cartridge carries them
+# Wally: an RPG Maker 2000 game's maps, as a cartridge carries them
 
     wally map --data dump/ --search-dir pictures/ --request request.json --out build/map/
 

@@ -41,3 +41,8 @@ ec9436950f7b868eb87587acb5ac3a495b4a87ac
 # 45 archivos. Los cartuchos, las siete demos y sus 48 `.inc`, mapas de memoria
 # y tablas de símbolos salieron byte por byte iguales.
 e8b9287b9d740a0339bad09f53f910730111b566
+
+# rm2k-snes-maps pasó a llamarse Wally: el directorio, el crate, la biblioteca
+# y el binario, y cada lugar que los nombraba. 80 líneas en 43 archivos. Las
+# tres ROMs salieron byte por byte iguales con NO_CACHE=1.
+0480deecf6ba8b7ef477552482033f2d60f1d045
