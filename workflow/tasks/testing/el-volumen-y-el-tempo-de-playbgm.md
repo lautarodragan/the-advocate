@@ -2,7 +2,7 @@
 name: "El volumen y el tempo de PlayBGM"
 description: "La ROM ignora el volumen y el tempo que pide un PlayBGM: 69 de los 168 del juego piden otro volumen y 13 otro tempo"
 type: feature
-assignee: Chingolo
+assignee: taro
 ---
 
 De taro, el 2026-09-30, como siguiente tarea después de
@@ -129,3 +129,33 @@ sólo salteaba los cuatro bytes:
   aplicaba el fundido). Con MSU-1 todo tema tiene pista y el SPC700 no toca
   música, así que no debería oírse.
 - `ChangeSystemBGM` sigue sin hacerse, desde antes.
+
+## Para escuchar
+
+`/shared/audio/2026-09-30-volumen-y-tempo/`, con su `LEEME.txt`: el mapa 93
+(`jackalstg2` a 50 y después a 80, sin reiniciar) y la entrada al 41 desde
+el 37 (`Kfmus5` a tempo 110), antes y después, con MSU-1 y sin él. Medido
+sobre las grabaciones: el 93 queda en un cuarto y en 0,64 de lo de antes, y
+con MSU-1 el `Kfmus5` sale igual que antes, a propósito.
+
+## Al mergear
+
+- **Instalar `events` en el global** (`just -f tools/justfile install
+  events`): el compilador emite el `OP_BGM` nuevo, y con el viejo el
+  intérprete leería cuatro bytes de más. `cartridge` no hace falta: sólo
+  cambió `tools/runtime/`, que el global lee del checkout principal.
+- `bgm_level.s` es un archivo nuevo de `tools/runtime/`, incluido en
+  `main.s` después de `remembered_place_and_song.s`.
+- RAM lejana: $25C6 a $25DF.
+- No hay goldens nuevas ni movidas, y `test_musica_techos.py` pasó.
+- Con `main` mergeado (`4a94948c`): `NO_CACHE=1 just cartuchos` igual byte
+  por byte que con caché, `just pruebas` 919 en verde, `just -f
+  tools/justfile test` 46, `cargo test -p rm2k-snes-events` en verde.
+  `just espacio` en `release`: banco 0 de 581 a 364 B, banco 1 de 4.544 a
+  4.233 B, bancos de datos 120 de 124 como antes.
+
+## Qué escuchar jugando
+
+La apertura y el mapa 3 tienen su tema a 80, un poco más bajo que antes. En
+la agencia (mapa 93) el tema arranca bajo y sube cuando el guardia avisa del
+misil. Y sin MSU-1, el `Kfmus5` del 41 un poco más rápido.
