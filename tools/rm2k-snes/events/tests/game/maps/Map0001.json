@@ -1923,14 +1923,14 @@
       "flags": {
        "switch_a": false,
        "switch_b": false,
-       "variable": false,
+       "variable": true,
        "item": false,
        "actor": false,
        "timer": true
       },
       "switch_a_id": 1,
       "switch_b_id": 1,
-      "variable_id": 1,
+      "variable_id": 10,
       "variable_value": 0,
       "item_id": 1,
       "actor_id": 1,

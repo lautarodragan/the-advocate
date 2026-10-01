@@ -54,7 +54,8 @@ pub struct Condition {
     pub variable: Option<(i32, i32)>,
     pub item: Option<i32>,
     pub actor: Option<i32>,
-    pub timer: bool,
+    /// The seconds the timer has to be at or under.
+    pub timer: Option<i32>,
 }
 
 /// `compare_operator` is RPG Maker 2003's, and a 2000 game always holds
@@ -483,7 +484,7 @@ impl Game {
                                         .then_some((c.variable_id, c.variable_value)),
                                     item: f.item.then_some(c.item_id),
                                     actor: f.actor.then_some(c.actor_id),
-                                    timer: f.timer,
+                                    timer: f.timer.then_some(c.timer_sec),
                                 },
                             }
                         })

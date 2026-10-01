@@ -16,9 +16,9 @@ Tasgarde al final de su viaje en auto. El recorrido, por la rama de Arden:
     66  del lado de Sorbe, el puente (evento 15, con el 252) -> 259
     259 el plan de Arden: por debajo -> 255
     255 los crujidos, una pelea, y el evento 64 (849) -> 66 (73, 7)
-    66  la entrada a Tangle Forest, el evento 19: el fin de la demo, en el
-        fork del 66. El túnel a Paradise (el 18) está del otro lado del
-        bosque, y el bosque no entra todavía
+    66  la entrada a Tangle Forest, el evento 19 -> 310 (48, 22), con los
+        dos mensajes de Talan. El bosque lo juega
+        `test_recorrido_tangle_golden.py`
 
 **Los encuentros al azar del mundo se apagan** al llegar, como en el
 recorrido de Sorbe. La pelea de debajo del puente se juega, con los HP del
@@ -62,9 +62,9 @@ PISADOS = ((66, 8), (65, 8), (60, 5), (59, 5), (42, 11), (40, 1), (32, 7),
 DEL_OTRO_LADO = (1, 0)
 CRUZARON = 849
 # Del otro lado, la entrada a Tangle Forest, el 66 ev19: el camino al túnel a
-# Paradise cruza el bosque, que no entra todavía, así que la demo termina ahí
-# (el fork del 66).
+# Paradise cruza el bosque. Lleva al 310, a (48, 22), y Talan dice lo suyo ahí.
 EL_BOSQUE = (43, 57)
+TANGLE, EN_TANGLE = 310, (48, 22)
 # Lo prende la automática del 81 al terminar de contar Vago lo de Paradise.
 SE_VAN_A_PARADISE = 310
 
@@ -254,22 +254,20 @@ def test_tasgarde_eisen_y_el_puente(recorrido):
     sin_encuentros(p)
     r.caminar_a(EL_BOSQUE, tope=8000, hasta=lambda p: p.corriendo_una_pagina())
 
-    r.empezar("el fin de la demo")
-    # Los mensajes de la entrada, de a uno: dos de Talan y el cartel del fin.
+    r.empezar("la entrada al bosque")
+    # Los mensajes de la entrada, de a uno: los dos de Talan, ya en el 310.
     mensajes = []
 
     def contar(p):
-        mensajes.append((grupo_de(p), p.heroe()))
+        mensajes.append((p.mapa(), grupo_de(p), p.heroe()))
         return False
-    jugar(r, "el fin de la demo hasta el título",
-          lambda p: len(mensajes) >= 3 and not p.byte("msg_open"),
+    jugar(r, "la llegada al bosque",
+          lambda p: len(mensajes) >= 2 and not p.corriendo_una_pagina()
+          and not p.byte("fade"),
           fotos={"contar": contar,
-                 "el-bosque": lambda p: len(mensajes) == 1,
-                 "el-fin-de-la-demo": lambda p: len(mensajes) == 3})
-    assert len(mensajes) == 3 and all(
-        m == ([TALAN, ARDEN], EL_BOSQUE) for m in mensajes), (
-        "a la entrada del bosque salen dos mensajes de Talan y el cartel del "
-        "fin, con el grupo de Talan y Arden parado en %s; salieron %s. %s"
-        % (EL_BOSQUE, mensajes, r.estado()))
-    p.consola.run(p.simbolos["BOOT_FRAMES"] + 60)
-    r.foto("el-titulo-despues-del-fin", asentar=False)
+                 "el-bosque": lambda p: len(mensajes) == 1})
+    assert len(mensajes) == 2 and all(
+        m == (TANGLE, [TALAN, ARDEN], EN_TANGLE) for m in mensajes), (
+        "a la entrada del bosque salen dos mensajes de Talan, ya en el %d en "
+        "%s y con el grupo de Talan y Arden; salieron %s. %s"
+        % (TANGLE, EN_TANGLE, mensajes, r.estado()))

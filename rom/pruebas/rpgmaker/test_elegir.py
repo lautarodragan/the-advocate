@@ -122,3 +122,38 @@ def test_cancelar_elige_la_que_dice_el_dato(partida):
     una.correr(60)
     assert not una.switch(USADO), "cancelar corrió la rama equivocada"
     assert not una.corriendo_una_pagina(), "la página no terminó"
+
+
+
+def test_cancelar_a_una_opcion_que_no_esta_no_corre_ninguna(partida):
+    """`cancel_type` 4 con dos opciones: B no corre ninguna y la página termina.
+
+    Es la tienda del 348, del mundo: el dueño, con el switch 975 que deja su
+    primera charla, pregunta "Would you like to buy something?/Would you like
+    to rest awhile?" con un `cancel_type` de 4. `choice_result` queda en 3,
+    ningún `ShowChoiceOption` tiene ese índice —`CommandOptionGeneric` los
+    saltea todos— y la página sigue después del `ShowChoiceEnd`, donde no hay
+    nada. O sea: ni la tienda ni la posada.
+    """
+    una = partida(switch=[975])
+    una.ir_al_mapa(348, 9, 9)
+    una.poner_byte("hero_dir", una.simbolos["DIR_UP"])
+    for _ in range(30):
+        if abierta(una):
+            break
+        una.tocar_ticks("a")
+        for _ in range(60):
+            if abierta(una):
+                break
+            una.correr(1)
+        if abierta(una):
+            break
+    else:
+        raise AssertionError(
+            "la elección del dueño no se abrió: la página no compiló")
+    assert una.byte("pick_cancel") == 3 and una.byte("pick_n") == 2, (
+        "cancelar tiene que caer después de las dos opciones")
+    una.tocar_ticks("b")
+    una.correr(60)
+    assert not una.corriendo_una_pagina(), "la página no terminó"
+    assert not una.byte("msg_open"), "quedó algo abierto: corrió una opción"

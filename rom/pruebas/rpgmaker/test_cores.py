@@ -58,6 +58,10 @@ del frontend.
                   elección de los enemigos, que pesa sus acciones en
                   `BA_SKILL_LIST`, y el SP del arma en `BA_WEAPON_SP`, que
                   `ba_build` escribe al empezar cada pelea y el reset no toca.
+    fuego         el bosque en llamas del 312 con el cronómetro bajando: la
+                  página del fuego, que pide el cronómetro, se activa sola
+                  con el cambio de segundo —`timer_watch`, que la carga del
+                  mapa pone en cero y `conditions_ok` prende—.
     game-over     la pantalla de Game Over después de perder una pelea: el
                   destino de la derrota que anota `game_over_record`, el
                   flujo que se descomprime en el banco $7F —el mismo que
@@ -189,6 +193,23 @@ def test_lugar_recordado():
     en los dos cores. A los 600 ticks ya volvió al 6."""
     iguales("lugar-ida-y-vuelta-600",
             *dos_cores("lugar-ida-y-vuelta", 600))
+
+
+def test_el_fuego_del_cronometro():
+    """El 312 con el cronómetro en 3: a los 200 ticks queda 1 y la página
+    del fuego —el evento 81, que pide el cronómetro en 1 o menos— ya tiñó
+    la pantalla de rojo y abrió su mensaje. Ver `test_cronometro_condiciones.py`."""
+    imagenes = []
+    for nucleo in (SNES9X, BSNES):
+        una = partida("en-5", nucleo=nucleo)
+        una.consola.write_ram(una.simbolos["timer_sec"], [3, 0])
+        una.consola.write_ram(una.simbolos["timer_sub"], [59])
+        una.consola.write_ram(una.simbolos["timer_active"], [1])
+        una.ir_al_mapa(312, 11, 53, cuadros=40)
+        una.correr(200)
+        assert una.corriendo_una_pagina(), "la página del fuego no corrió"
+        imagenes.append(una.imagen())
+    iguales("fuego-312", *imagenes)
 
 
 @pytest.mark.parametrize("caso,cuadro", (("transicion-mosaico", 44),

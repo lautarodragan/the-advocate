@@ -389,6 +389,11 @@ timer_sec:  .res 2
 timer_sub:  .res 1
 timer_active:  .res 1
 timer_visible: .res 1
+; Nonzero if some page of this map asks for the timer —the fire of map 312—:
+; `conditions_ok` sets it when it reads that condition, and the map load
+; clears it. Then the second changing asks for the refresh, which is what
+; `Game_Party::UpdateTimers` does on every map.
+timer_watch: .res 1
 ; The four digits already separated, from minutes to seconds. They are
 ; recomputed when the second changes and not every frame: dividing by 60 and
 ; by 10 sixty times a second would be work for nothing.

@@ -73,8 +73,18 @@ el-capitulo/12-debajo-del-puente.png
 el-capitulo/13-la-pelea-debajo-del-puente.png
 el-capitulo/14-del-otro-lado.png
 el-capitulo/15-el-bosque.png
-el-capitulo/16-el-fin-de-la-demo.png
-el-capitulo/17-el-titulo-despues-del-fin.png
+tangle/01-el-bosque.png
+tangle/02-el-claro.png
+tangle/03-la-pelea-del-claro.png
+tangle/04-el-tram.png
+tangle/05-las-latas.png
+tangle/06-el-bosque-en-llamas.png
+tangle/07-los-guardias-bajan.png
+tangle/08-la-nave.png
+tangle/09-la-pelea-con-la-nave.png
+tangle/10-del-otro-lado-del-bosque.png
+tangle/11-el-fin-de-la-demo.png
+tangle/12-el-titulo-despues-del-fin.png
 
 # abl/test_recorrido_lashe_golden.py:
 # sus capturas **no están bendecidas**, dice su docstring: son

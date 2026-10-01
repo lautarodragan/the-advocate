@@ -1886,8 +1886,23 @@ no_item:
     sep #$20
 .a8
     pla
+    ; **Or the timer**, which travels in the variable's place with a slot no
+    ; variable has: `Game_Event::AreConditionsMet` asks for its seconds to be
+    ; at most the page's, and the converter wrote `<=` and that number. And a
+    ; map that asked is a map whose pages can change with the second: see
+    ; `timer_watch`.
+    cmp #TIMER_SLOT
+    bne read_var
+    sta timer_watch             ; nonzero
+    rep #$20
+.a16
+    lda timer_sec
+    bra have_value
+.a8
+read_var:
     jsr var_read                ; A = the variable, sixteen bits
 .a16
+have_value:
     jsr compare_var
 .a8
     beq fails8
@@ -1948,6 +1963,9 @@ fails:
     stz waiting_n
     stz auto_n
     stz refresh_frame
+    ; And whether some page asks for the timer: the new map's refresh, right
+    ; after this, says it again if one does.
+    stz timer_watch
     ; And whose page is running: if it survived a teleport, its index no
     ; longer means anything on the new map.
     rep #$20
