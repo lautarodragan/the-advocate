@@ -276,10 +276,11 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `abl/test_yun_y_drust.py`: Yun Town, Drust Camp y sus minas recién
   llegados, y las dos entradas del mundo
 * `abl/test_recorrido_paradise_golden.py`: el camino a Paradise, del 105 al
-  fin de la demo: los vehículos de la Agency, la emboscada, la amnistía y
-  el túnel de Isabella
-* `abl/test_paradise.py`: Mountain Path, la amnistía y el túnel recién
-  llegados
+  fin de la demo: los vehículos de la Agency, la emboscada, la amnistía, el
+  túnel de Isabella y la llegada al 108
+* `abl/test_paradise.py`: Mountain Path, la amnistía, el túnel y Distant
+  Paradise recién llegados, y los quietos del 108 turnándose las ranuras
+  de VRAM: caminando, con un salto dentro del mapa y cargando la partida
 * `abl/test_escenas_golden.py`: las escenas y cinemáticas
 * `abl/test_recuerdo.py`: el recuerdo de CORE y MANTA
 * `abl/test_un_ano_antes.py`: el cartel de "1 year earlier"

@@ -721,6 +721,22 @@ GAIN_DIRTY        = $7E25C9
 SONG_SCALED       = $7E25C8
 MSU_BASE          = $7E25C6        ; word
 
+; --- the slots still events take turns in ---------------------------------------
+;
+; See shared_poses.s. How many shared slots the loaded map has —0 in every
+; map that does not need them— and which pose each one holds, by its index
+; in the map's pose table, or $FF if nobody knows: `load_sprite` has just
+; uploaded the bank. **They do not travel in the save**: they describe VRAM,
+; and loading a map uploads it again.
+;
+; $2590 to $259F, allotted on 2026-10-01 with other agents choosing RAM at
+; the same time. `SHARE_MAX` is also `SHARED_MAX` in `rm2k-snes-mapdata` and
+; in `rm2k-snes-map-sprites`: the `.inc` asserts every map against it.
+SHARE_N      = $7E2590
+SHARE_OWNER  = $7E2591             ; SHARE_MAX bytes
+SHARE_MAX    = 15
+.assert SHARE_OWNER + SHARE_MAX <= $7E25A0, error, "the shared slots overflow their RAM"
+
 ; --- `InputNumber`: the digits' line ------------------------------------------
 ;
 ; The line the composer reads for the digits —see number_input.s—: its length

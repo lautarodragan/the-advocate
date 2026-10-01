@@ -60,7 +60,7 @@
 .proc battle_fade_to_map
 .a8
 .i16
-    jsr build_oam
+    jsr build_oam_settled
     ldx #0
 upload:
     lda fade_ramp, x

@@ -60,7 +60,8 @@ layer, it is a dependency somebody has to write.
      "route_graphics": [["People1", 3]], "also_walk": [],
      "timer": null, "rain": false, "picture": null,
      "battle_animation": false, "singles": [["People1", 3]],
-     "palette_weight": {"savept": 1}, "dither": "five_of_eight"}
+     "palette_weight": {"savept": 1}, "dither": "five_of_eight",
+     "layouts": [[448, 448, 128], [480, 384, 128]]}
 
 What the project put over the dump: `map_files` and `chipset_files`, its
 own maps and the ChipSets it adds; `names`, the names the caller gives some
@@ -76,7 +77,12 @@ cut into tiles; `singles`, the graphics no other map of the cartridge has;
 `substitutions`, the `TileSubstitution`s the map's events and its test
 pages can run, as `[upper layer, old tile, new tile]` —their blocks are
 built—, and `common_substitutions`, the common events', which a
-`CallEvent` can bring into any map and are only translated.
+`CallEvent` can bring into any map and are only translated; and `layouts`,
+the VRAM layouts a map can get, as `[background, sprite, upper]` tiles.
+A map that fits none of them with every still pose in VRAM is converted
+again with the still events no camera shows together **taking turns in a
+slot** —`share` in `rm2k-snes-map-sprites`—, and its answer says which; a
+map that fits comes out as if `layouts` were empty.
 
 **What other domains answered, as data**: `pages` and `route_graphics` are
 the event compiler's scan of the map, as it answered them —who walks is
@@ -96,7 +102,8 @@ colour-memory words and tilemaps, the runs, the block table, the pictures
 of what Adeleine decided, and `layers.json`—, `sprites.bin` and
 `poses-<k>.bin`, and `map.json`, with the events baked, the events drawn,
 the palettes and slots, the leader candidates' rows, the extras, the table
-of command 34, where the hero starts, who walks, animates still and turns,
+of command 34, the slots still events take turns in, where the hero
+starts, who walks, animates still and turns,
 each substitution with its `(old block, new block)` pairs —null if the page
 that asks for it cannot compile— and the ones whose blocks could not be
 built, and **what the conversion says, in

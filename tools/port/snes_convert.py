@@ -556,7 +556,8 @@ def main():
                                  0xFF if test_page.get("tile_pass") is None
                                  else test_page["tile_pass"])
                 continue
-            block, slot = map_info["where"][graphic]
+            shared = map_info["compartidos"].get(test_page["event"])
+            block, slot = shared or map_info["where"][graphic]
             tile = block_tile(block)
             priority = (OBJ_PRIORITY_ABOVE
                         if test_page["capa"] == rm2k.LAYER_ABOVE

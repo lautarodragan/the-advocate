@@ -21,6 +21,10 @@ pub enum Slot {
     Still(String, i32, i32),
     /// The one a still event that turns toward the hero moves to.
     Turn,
+    /// One that still events showing different poses take turns in, because
+    /// no camera shows two of them at once: see [`crate::share`]. It holds
+    /// whichever pose the console last uploaded.
+    Shared(usize),
 }
 
 /// A slot of the bank: whose it is, and the pose it holds.

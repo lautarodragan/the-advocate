@@ -70,3 +70,21 @@ lleva dos planos de la ventana —640 bytes cada uno— y `stamp_window` elige
 el suyo por la distancia entre la ventana y la base de BG2. `vram_layout` mira
 desde entonces también la capa de encima; los mapas que ya convertían entraban
 todos en 128, así que ninguno cambió de reparto.
+
+## Cuando ningún reparto alcanza: los quietos se turnan
+
+El techo de arriba es del hardware, y **Distant Paradise**, el mapa 108, lo
+pasa: 462 tiles de fondo —sólo "+fondo", "+ambos" y "+techo" le sirven— y
+42 ranuras de sprite, 696 tiles, contra las 24 que deja el mejor. Casi todo
+eso son poses quietas —quince vecinos mirando para tres o cuatro lados—, y
+en pantalla nunca hay más de la mitad.
+
+Así que en un mapa que no entra en ningún reparto, y **sólo ahí**, los quietos
+que nunca están juntos en pantalla comparten una ranura aunque muestren poses
+distintas, y la ROM sube la pose del que entra en pantalla. Quién se turna con
+quién lo decide `wally` —`plan_sharing` en su `map.rs`, con el coloreo de
+`share` en `rm2k-snes-map-sprites`—, la tabla la emite `share_table` en
+`rm2k-snes-mapdata`, y lo que hace la ROM está en
+`tools/runtime/shared_poses.s`. El 108 queda en 22 ranuras, 376 tiles, y entra
+en "+ambos". Los demás mapas convierten como siempre: `wally` prueba primero
+sin turnos y sólo si eso no entra vuelve a convertir con ellos.

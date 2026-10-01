@@ -149,6 +149,7 @@ fn request(dir: &Path, pictures: &Path, test_event: bool) -> PathBuf {
         "timer": pictures.join("System/system.png"), "rain": true, "picture": null,
         "battle_animation": true, "singles": [["Hero", 0]], "palette_weight": {},
         "dither": "five_of_eight", "substitutions": [], "common_substitutions": [],
+        "layouts": [],
     });
     let path = dir.join("request.json");
     std::fs::write(&path, body.to_string()).unwrap();
