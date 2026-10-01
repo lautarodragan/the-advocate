@@ -6,11 +6,19 @@ que taro vea en su SNES si las columnas de un pixel del modo 5 se leen por
 su salida de video. Lo corre `just menu-modo-5`, que después la verifica en
 los emuladores con `verificar.py`.
 
-    armar.py <salida.sfc>
+    armar.py <salida.sfc> [<maqueta.png> ...]
 
 Convierte las tres imágenes de `maqueta/` a lo que lee la PPU, escribe
 `datos.inc` y los `.bin` al lado de la salida, y arma `menu.s` con `ca65` y
 `ld65`.
+
+**Con imágenes, arma ésas en vez de las tres**: es la ROM hermana de las
+fuentes (`experimentos/fuentes/`), con el mismo código. El modo sale del
+ancho —512 es el 5, 256 el 3—, y dónde están las caras, de un `.json` al
+lado de la imagen con `{"caras": [x0, x1, y0, y1]}`, o `null` si no hay;
+sin `.json`, las de las maquetas de acá (`FRANJA_CARAS`). La ROM tiene los
+bancos que hagan falta. Al lado de la salida queda `<salida>.pantallas`, la
+lista de lo que se armó, que es lo que lee `verificar.py`.
 
 **Por qué no usa Voodoo ni Adeleine.** Agrupar los colores de cada celda en
 paletas es de Adeleine, y acá se hace a mano porque no hay nada que perder:
@@ -20,7 +28,9 @@ modo 5 —dos tiles de 8x8 consecutivos por entrada del tilemap—: numera los
 tiles de a uno y los reusa espejados, así que el par se le parte. Para el
 menú de verdad le haría falta ese modo.
 """
+import json
 import os
+import re
 import subprocess
 import sys
 
@@ -28,14 +38,12 @@ from PIL import Image
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 
-# Las tres pantallas, en el orden en que las muestra la ROM. `modo` es el
-# BGMODE: 5 es la alta resolución, 3 el menú de hoy (BG1 de 8 bits, el modo
-# del juego). La marca es el número que se dibuja en la esquina.
-PANTALLAS = [
-    ("04-modo5-x1.5.png", 5, 1),
-    ("02-modo5-simple.png", 5, 2),
-    ("01-hoy.png", 3, 3),
-]
+# Las tres pantallas, en el orden en que las muestra la ROM. El modo es el
+# BGMODE, y sale del ancho: 5 es la alta resolución, 3 el menú de hoy (BG1
+# de 8 bits, el modo del juego). La marca es el número que se dibuja en la
+# esquina: su lugar en la lista.
+PANTALLAS = [os.path.join(AQUI, "maqueta", m) for m in
+             ("04-modo5-x1.5.png", "02-modo5-simple.png", "01-hoy.png")]
 
 # **Dónde están las caras en las maquetas de 512**: la franja entre la
 # ventana de las órdenes y el texto del grupo. Adentro no hay otra cosa —se
@@ -61,7 +69,10 @@ PALETA_MARCA = 7
 MARCA_X, MARCA_Y = 8, 206
 TILE_MARCA = 255
 
-BANCOS = 4           # 128 KB: el banco 0 es el código, los otros tres datos
+# El banco 0 es el código y los demás, datos. Con las tres de acá son
+# cuatro, 128 KB; con otra lista, los que hagan falta, en potencias de dos
+# para que el tamaño del encabezado diga la verdad.
+BANCOS_MINIMO = 4
 BANCO = 0x8000
 
 # Los dígitos de la marca, 5x7: blanco con un borde negro, para que se lea
@@ -70,6 +81,12 @@ DIGITOS = {
     1: ["..#..", ".##..", "..#..", "..#..", "..#..", "..#..", ".###."],
     2: [".###.", "#...#", "....#", "...#.", "..#..", ".#...", "#####"],
     3: [".###.", "#...#", "....#", "..##.", "....#", "#...#", ".###."],
+    4: ["...#.", "..##.", ".#.#.", "#..#.", "#####", "...#.", "...#."],
+    5: ["#####", "#....", "####.", "....#", "....#", "#...#", ".###."],
+    6: ["..##.", ".#...", "#....", "####.", "#...#", "#...#", ".###."],
+    7: ["#####", "....#", "...#.", "..#..", ".#...", ".#...", ".#..."],
+    8: [".###.", "#...#", "#...#", ".###.", "#...#", "#...#", ".###."],
+    9: [".###.", "#...#", "#...#", ".####", "....#", "...#.", ".##.."],
 }
 
 
@@ -135,7 +152,7 @@ def tile_marca(digito):
     return planar(filas, 4)
 
 
-def caras(pix, ancho, alto):
+def caras(pix, ancho, alto, franja):
     """Saca las caras de la imagen y las devuelve como bandas de sprites.
 
     Cada cara se corta en bandas de filas de hasta 15 colores, de arriba
@@ -143,7 +160,9 @@ def caras(pix, ancho, alto):
     su primera fila: dos bandas se tocan pero no se pisan, porque cada una
     deja transparente lo que no es suyo. Deja el lugar de la cara en negro,
     que es lo que había abajo."""
-    x0, x1, y0, y1 = FRANJA_CARAS
+    if franja is None:
+        return []
+    x0, x1, y0, y1 = franja
     filas = {}
     for y in range(y0, y1):
         for x in range(x0, x1):
@@ -170,12 +189,30 @@ def caras(pix, ancho, alto):
     return bandas
 
 
-def convertir(archivo, modo, marca):
-    imagen = Image.open(os.path.join(AQUI, "maqueta", archivo)).convert("RGB")
+def modo_de(ruta):
+    """El BGMODE de una maqueta, por su ancho."""
+    ancho, alto = Image.open(ruta).size
+    if alto != 224 or ancho not in (256, 512):
+        sys.exit("%s: %dx%d no es una pantalla de 256 ni de 512 por 224"
+                 % (ruta, ancho, alto))
+    return 5 if ancho == 512 else 3
+
+
+def franja_de(ruta):
+    """Dónde están las caras: el `.json` de al lado, o las de acá."""
+    lado = os.path.splitext(ruta)[0] + ".json"
+    if not os.path.exists(lado):
+        return FRANJA_CARAS
+    with open(lado) as f:
+        caja = json.load(f)["caras"]
+    return tuple(caja) if caja else None
+
+
+def convertir(ruta, marca):
+    archivo = os.path.basename(ruta)
+    modo = modo_de(ruta)
+    imagen = Image.open(ruta).convert("RGB")
     ancho, alto = imagen.size
-    if (modo == 5) != (ancho == 512) or alto != 224:
-        sys.exit("%s: %dx%d no es una pantalla de modo %d"
-                 % (archivo, ancho, alto, modo))
     datos = imagen.load()
     # El negro es el 0: el fondo de la pantalla, y lo que muestra la
     # subpantalla donde no hay nada (COLDATA en negro).
@@ -188,7 +225,7 @@ def convertir(archivo, modo, marca):
     sprites = bytearray(bytes(32) * 256)
 
     if modo == 5:
-        bandas = caras(pix, ancho, alto)
+        bandas = caras(pix, ancho, alto, franja_de(ruta))
         # El fondo: celdas de 16x8, cada una con una paleta de 15.
         celdas = {}
         for cy in range(28):
@@ -298,21 +335,26 @@ def convertir(archivo, modo, marca):
 
 
 def main():
-    if len(sys.argv) != 2:
+    if len(sys.argv) < 2:
         sys.exit(__doc__)
     salida = os.path.abspath(sys.argv[1])
+    pantallas = [os.path.abspath(p) for p in sys.argv[2:]] or PANTALLAS
+    if len(pantallas) > max(DIGITOS):
+        sys.exit("%d pantallas, y la marca sabe dibujar hasta %d"
+                 % (len(pantallas), max(DIGITOS)))
     directorio = os.path.dirname(salida)
     os.makedirs(directorio, exist_ok=True)
 
     # Cada bloque va a un banco de datos, el primero donde entre; uno de más
-    # de 32 KB se parte, porque el DMA no cruza de banco en LoROM.
-    libre = [BANCO] * BANCOS
-    libre[0] = 0
-    segmentos = {b: [] for b in range(1, BANCOS)}
+    # de 32 KB se parte, porque el DMA no cruza de banco en LoROM. Los
+    # bancos se agregan a medida que hacen falta.
+    libre = [0]
+    segmentos = {}
     inc = ["; Generado por `armar.py`: no se edita.", ""]
     trabajos = []
-    for n, (archivo, modo, marca) in enumerate(PANTALLAS):
-        datos = convertir(archivo, modo, marca)
+    for n, ruta in enumerate(pantallas):
+        archivo, modo, marca = os.path.basename(ruta), modo_de(ruta), n + 1
+        datos = convertir(ruta, marca)
         lista = []
         for nombre, tipo, destino in (("cgram", 2, 0), ("oam", 3, 0),
                                       ("sprites", 1, VRAM_SPRITES),
@@ -321,10 +363,12 @@ def main():
             contenido = datos[nombre]
             for parte in range(0, len(contenido), BANCO):
                 trozo = contenido[parte:parte + BANCO]
-                banco = next((b for b in range(1, BANCOS)
+                banco = next((b for b in range(1, len(libre))
                               if libre[b] >= len(trozo)), None)
                 if banco is None:
-                    sys.exit("no entra: %s de %s" % (nombre, archivo))
+                    libre.append(BANCO)
+                    banco = len(libre) - 1
+                    segmentos[banco] = []
                 libre[banco] -= len(trozo)
                 etiqueta = "p%d_%s_%d" % (n, nombre, parte // BANCO)
                 with open(os.path.join(directorio, etiqueta + ".bin"), "wb") as f:
@@ -335,6 +379,11 @@ def main():
         print("%s: modo %d, %d bytes de tiles de fondo"
               % (archivo, modo, len(datos["tiles"])))
 
+    bancos = BANCOS_MINIMO
+    while bancos < len(libre):
+        bancos *= 2
+    if bancos > 0x7E - 0x40:
+        sys.exit("%d bancos no entran en LoROM" % bancos)
     for banco, etiquetas in segmentos.items():
         if etiquetas:
             inc.append('.segment "BANCO%d"' % banco)
@@ -357,12 +406,35 @@ def main():
     with open(os.path.join(directorio, "datos.inc"), "w") as f:
         f.write("\n".join(inc) + "\n")
 
+    # El mapa de memoria, con un banco por cada 32 KB. Lo de arriba es igual
+    # a `memoria.cfg`, que es el de 128 KB y queda de muestra.
+    with open(os.path.join(AQUI, "memoria.cfg")) as f:
+        cfg = f.read()
+    memoria = "".join(
+        "    ROM%d:   start = $%02X8000, size = $8000, fill = yes, fillval = $FF;\n"
+        % (b, 0x80 + b) for b in range(bancos))
+    segs = "".join("    BANCO%d:   load = ROM%d, type = ro, optional = yes;\n" % (b, b)
+                   for b in range(1, bancos))
+    cfg = re.sub(r"(?m)^    ROM\d+:.*\n", "", cfg)
+    cfg = re.sub(r"(?m)^    BANCO\d+:.*\n", "", cfg)
+    cfg = cfg.replace("MEMORY {\n", "MEMORY {\n", 1)
+    cfg = re.sub(r"(    ZP: [^\n]*\n)", lambda m: m.group(1) + memoria, cfg, count=1)
+    cfg = re.sub(r"(    VECTORS: [^\n]*\n)", lambda m: m.group(1) + segs, cfg, count=1)
+    ruta_cfg = os.path.join(directorio, "memoria.cfg")
+    with open(ruta_cfg, "w") as f:
+        f.write(cfg)
+
     objeto = os.path.join(directorio, "menu.o")
+    # El tamaño del encabezado: log2 de los KB.
+    tamano = (bancos * 32).bit_length() - 1
     subprocess.run(["ca65", "-g", "--cpu", "65816", "-I", directorio,
+                    "-D", "TAMANO_ROM=%d" % tamano,
                     os.path.join(AQUI, "menu.s"), "-o", objeto], check=True)
-    subprocess.run(["ld65", "-C", os.path.join(AQUI, "memoria.cfg"), objeto,
+    subprocess.run(["ld65", "-C", ruta_cfg, objeto,
                     "-o", salida, "--dbgfile", salida + ".dbg"],
                    check=True, cwd=directorio)
+    with open(salida + ".pantallas", "w") as f:
+        json.dump([[ruta, modo_de(ruta)] for ruta in pantallas], f, indent=1)
 
     # La suma del encabezado: los emuladores no la miran, pero los
     # cartuchos flash como el FX Pak sí la muestran. Con la suma en 0 y el
