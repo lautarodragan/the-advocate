@@ -144,12 +144,14 @@ with_end:
     ; so a jump that cannot land still leaves the hero facing where it
     ; wanted to go. RM2k then retries the jump, which here is skipped —see
     ; `step_route`—; the turn is the part of it that shows. In place nothing
-    ; changes: RM2k only sets the facing when the jump moves. The hero has
-    ; no `lock_facing` to look at: `step_route` ignores 26 and 27.
+    ; changes: RM2k only sets the facing when the jump moves, and not over a
+    ; `lock_facing`, which on the hero is `hero_lock`.
     ; See `test_salto_bloqueado.py`.
     lda jump_dx
     ora jump_dy
     beq no_turn
+    lda hero_lock
+    bne no_turn
     jsr jump_direction
     sta hero_dir
 no_turn:

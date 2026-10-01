@@ -1554,7 +1554,8 @@ ready:
 
 ; The layer of the active page of the event whose index comes in A, or $FF if
 ; it has none. It is the same pass as `queue_by_action`: the last page
-; whose conditions are met wins. Keeps X and Y; clobbers `page_*` and `pg_*`,
+; whose conditions are met wins. Its +13 is left in `found_flags`, or 0
+; without one. Keeps X and Y; clobbers `page_*` and `pg_*`,
 ; which nobody has half used when this runs —it is called from a step, not
 ; from inside a page search—.
 .proc active_layer
@@ -1570,6 +1571,7 @@ ready:
 .a8
     lda #$FF
     sta found_layer
+    stz found_flags
     ldx map_ofs
     rep #$20
 .a16
@@ -1600,6 +1602,8 @@ walk:
     beq next
     lda pg_layer
     sta found_layer
+    lda pg_flags
+    sta found_flags
 next:
     rep #$20
 .a16

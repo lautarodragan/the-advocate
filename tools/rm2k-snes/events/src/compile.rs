@@ -3958,27 +3958,16 @@ fn compile_route(ctx: &mut Ctx, cmd: &Command, map_events: Option<&MapEvents>) -
             // The hero facing or moving toward itself.
             return cannot();
         }
-        if (command == ROUTE_LOCK_DIR || command == ROUTE_UNLOCK_DIR) && target == 0 {
-            // Locking and unlocking the facing on **the hero**: accepted and
-            // dropped, like the sound and the transparency. On events they
-            // are done. Raising and lowering the speed were also dropped on
-            // the hero, and they are done since 2026-09-10 —the Tram Officer
-            // asks for it, and 170 routes in the game— and they stay: RM2k
-            // restores the frequency when the route ends and not the speed,
-            // so the pad walks afterwards at the speed the route left.
-            //
-            // Dropping them and not rejecting the whole page, which was the
-            // first thing tried, is from 2026-09-06: **Talan's scene has a
-            // hero route that starts with 28**, so the scene that motivated
-            // that day's six points did not compile and the player could not
-            // leave the Emitter Room corridor.
-            continue;
-        }
+        // Locking and unlocking the facing —26 and 27— go to the hero too since
+        // 2026-09-30, and stay locked after the route like the speed does:
+        // the race car of maps 49 to 54 is the hero with a CharSet whose rows
+        // are other cars, locked with a 26 that only map 64 releases. Until
+        // then they were dropped on the hero, and each arrow drew another car.
         if route::diagonal(command) && target == 0 {
             // And the hero diagonally: the ROM does not know how to do it and
             // none of the game's 26 routes with diagonals is the hero's.
             // Without this cut the ROM would go left —the mover of
-            // `step_route` falls into `try_left` by elimination—.
+            // `try_toward` falls into `try_left` by elimination—.
             return cannot();
         }
         if command == ROUTE_CHANGE_GRAPHIC {

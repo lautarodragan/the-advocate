@@ -205,6 +205,7 @@ party_ready:
     ; this were after, it would overwrite what the route just decided.
     lda #DIR_DOWN
     sta hero_dir
+    stz hero_lock               ; and free to turn: RAM starts with garbage
 
     ; The timer starts off and at zero. It goes here and not in `enter_map`
     ; because in RM2k it lives in `Game_Party`: it survives maps, which is

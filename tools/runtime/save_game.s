@@ -337,6 +337,8 @@ square:
     plb
     lda #$00                    ; from the SRAM to the WRAM window
     jsr save_copy
+    ; Every save is of a hero free to turn: see `hero_lock`.
+    stz hero_lock
     lda #$01
     rts
 none:

@@ -483,14 +483,17 @@ def page_table(map_info, number, evcode):
                        % (dest, dest, dest))
             out.append("    .byte %-4d ; +19 how many" % len(own["ordenes"]))
         else:
+            # Bit 3 is the same as in an own route's: a forced route that
+            # takes the event keeps it from turning —see `route_for_event`—.
             out.append("    .byte %-4d ; +13 no own route; bit 6 says whether "
                        "another page of the event has one, 5 whether the "
                        "graphic follows the page, 7 whether the event has some "
-                       "automatic one"
+                       "automatic one, 3 whether it always faces the same way"
                        % ((64 if page["event"] in with_route else 0)
                           | (32 if page["event"] in changing
                                    or page["event"] in appear else 0)
-                          | (128 if page["event"] in with_autostart else 0)))
+                          | (128 if page["event"] in with_autostart else 0)
+                          | (8 if page.get("dir_fija") else 0)))
             out.append("    .byte %-4d ; +14 its frequency" % page["frecuencia"])
             out.append("    .byte %-4d ; +15 and its speed, that of a route "
                        "forced on the event" % page["speed"])
