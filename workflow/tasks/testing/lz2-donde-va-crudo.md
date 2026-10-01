@@ -2,7 +2,7 @@
 name: "LZ2 donde va crudo"
 description: "Comprimir con LZ2 lo que hoy va crudo y se sube al cargar: la tabla de bloques, el bytecode, los battlers, las animaciones de las cinemáticas, la fuente y los fondos de batalla livianos; unos 470 KB en el juego entero, sin perder nada"
 type: feature
-assignee: Quirquincho
+assignee: taro
 ---
 
 Fase 1 del plan de `docs/research/2026-10-01-el-juego-entero-sin-msu-1.md`
@@ -151,3 +151,65 @@ la animación de batalla (el commit aparte de arriba).
   `crudos/N.map_code.bin` y `map_code` contra dónde quedó;
   `test_la_ruta_del_heroe_sigue_entera_en_el_mapa_nuevo` mira la copia de la
   ruta, que ningún caso corre.
+
+### 6. La fuente: no se puede
+
+La CPU la lee **cada vez que compone texto** (`messages.s`, `font_pre_lo` y
+`font_pre_bk`): las cuatro fases precorridas, 59.280 B en `release`, tendrían
+que vivir descomprimidas en la WRAM todo el tiempo, en el mapa y en la pelea,
+y no hay 58 KB libres en ningún momento —en el mapa queda `LZ2_BUFFER`, 24 KB,
+y en la pelea ni eso—. Una sola fase y correrla en la ROM sería otro formato,
+no LZ2. Y los textos son de Guayacán.
+
+## Lo que queda (Quirquincho, al entregar)
+
+Los commits, sobre `cd3dce0d`:
+
+    86343e26  la tabla de bloques y su pasabilidad, detrás de la grilla
+    25f90404  los battlers, a la mitad de la grilla durante la pelea
+    496a0f25  los cuadros de las animaciones de batalla, uno por uno
+    c3c958ab  los fondos de batalla livianos
+    6b7569ce  arreglo: la caja de la animación se limpia al volver al mapa
+    14139ad9  el bytecode de los eventos, detrás de la grilla, y acarreado
+
+Lo ahorrado en `release`, en bytes de ROM usados (bancos × 64 KB menos los
+huecos de `just espacio`):
+
+    tabla de bloques + pasabilidad   58.130
+    battlers                         62.525
+    animaciones de batalla           30.342
+    fondos livianos                  18.397
+    bytecode                         44.853
+    total                           214.247   (209 KB)
+
+`just espacio`, antes y después:
+
+    release                62 bancos, huecos 7.406 B   ->  59, huecos 25.045 B
+                           banco 0 269 B, banco 1 4.241 B -> 247 B y 3.890 B
+    test-special           16 bancos, huecos 57.838 B  ->  15, huecos 21.304 B
+    test-encounter-every-step  7 bancos, 30.784 B      ->  7, 36.716 B
+
+El tiempo de carga, en cuadros de hardware de la vuelta que carga (el método
+de `_cargar`), sobre los 97 mapas de `release`: **+76 entre todos, +0,8 de
+media, mediana +1, máximo +6** (el 4, que lleva los casos de la tanda). La
+pelea del droide compone en 12 cuadros contra 10, a negro. Las pantallas
+(título, Game Over) no cambian: no tocan nada de esto. Volver del menú, de la
+tienda o de las ranuras con una página acarreada cuesta una descompresión
+más del bytecode.
+
+Ninguna golden se movió. `just pruebas`: 936 (934 + las dos nuevas);
+`just -f tools/justfile test`: 39; `cargo test` de `rm2k-snes-mapdata`.
+`test_musica_techos.py` pasa.
+
+**Al mergear**:
+
+* Instalar `mapdata`: `just -f tools/justfile install mapdata`. Nada más de
+  Rust cambió, y ningún script de Python.
+* **Choca con Guayacán** en `rm2k-snes-mapdata`: yo toqué `materials.rs`,
+  `record.rs`, `scene.rs`, `emit.rs` (la sección de las animaciones) y los
+  hashes de `tests/python.rs`, que son los bytes del `.inc`: con los dos
+  cambios juntos hay que volver a sacarlos, a propósito.
+* RAM lejana tomada: `$7E7EF0-$7E7FFF` (`CARRY_MAP`, `ROUTE_CARRY`) y
+  `$7E6650-$7E665F` (`SCN_BAT_PTR`, adentro del rango de la escena). Si
+  Guayacán tomó algo en `$7E7A50-$7E7FFF`, chocan sin que git diga nada.
+* El banco 0 bajó 22 B: el que más aprieta sigue siendo `release`.
