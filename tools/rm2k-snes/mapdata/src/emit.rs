@@ -1944,7 +1944,9 @@ impl Rest<'_> {
             })
             .collect::<Result<_>>()?;
         words_asm(out, "eq_param_pos", &decimal(eq_params), false);
-        words_asm(out, "item_price", &per_item(&|i| i.price.into())?, false);
+        out.push_str(".segment \"RODATA\"\n");
+        words_asm(out, "item_price", &per_item(&|i| i.price.into())?, true);
+        out.push_str(".segment \"TABLES\"\n");
         out.push_str(&pyf!(
             "TI_TEXT           = %d\nTI_TEXT_HAVE      = %d\nTI_TEXT_CARRIED   = %d\nTI_TEXT_CURRENCY  = %d\n\
              TI_SECOND         = %d\nTI_MAIN_MSG_POS = %d\nTI_MSG_POS        = %d\nTI_COMMAND_POS0   = %d\n\
