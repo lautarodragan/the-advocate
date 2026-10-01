@@ -1305,12 +1305,13 @@ impl Rest<'_> {
             .collect::<Result<_>>()?;
         line(out, &block("slot_cgram", &palettes_cgram(&slot_palettes)));
 
-        out.push_str("\n.segment \"TABLES\"\n");
-        // The tables that name the cell blocks, and where each row goes in the
-        // tilemap: in bank 0, read with `lda slot_block_lo, x`.
+        // The tables that name the cell blocks: outside bank 0, read with
+        // `lda f:slot_block_lo, x`, because they grow with every face.
+        out.push_str("\n.segment \"RODATA\"\n");
         for (field, prefix) in [("lo", "<"), ("hi", ">"), ("bk", "^")] {
             out.push_str(&format!(
-                "slot_block_{field}:\n       .byte {}\n",
+                ".block {}\nslot_block_{field}:\n       .byte {}\n",
+                slot_blocks.len(),
                 slot_blocks
                     .iter()
                     .map(|e| format!("{prefix}{e}"))
@@ -1318,6 +1319,8 @@ impl Rest<'_> {
                     .join(", ")
             ));
         }
+        // Where each row goes in the tilemap: in bank 0.
+        out.push_str("\n.segment \"TABLES\"\n");
         let row_of: Vec<i64> = (0..i64::from(SLOTS))
             .map(|n| {
                 i64::from(SLOT_MAP) + (t.n("SLOT_Y") + n * t.n("SLOT_STEP")).div_euclid(cell) * 32
@@ -1364,14 +1367,11 @@ impl Rest<'_> {
         let face_blocks: Vec<String> = (0..n_actors_slots)
             .map(|a| face_block.get(&a).map_or(0xFF, |&b| b as i64).to_string())
             .collect();
-        out.push_str(&format!(
-            "slot_face_block:\n       .byte {}\n",
-            if face_blocks.is_empty() {
-                "$FF".to_string()
-            } else {
-                face_blocks.join(", ")
-            }
-        ));
+        // By actor id: outside bank 0, read with `lda f:slot_face_block, x`,
+        // because it grows with every actor.
+        out.push_str(".segment \"RODATA\"\n");
+        bytes_asm(out, "slot_face_block", &face_blocks, true);
+        out.push_str(".segment \"TABLES\"\n");
         // The pause menu: its blocks, and where each thing goes, in words.
         let vram_cell = |row: i64, col: i64| i64::from(SLOT_MAP) + row * 32 + col;
         let option_rows: Vec<i64> = (0..t.n("MENU_OPTIONS"))
@@ -1715,7 +1715,8 @@ impl Rest<'_> {
             ROWS,
             t.n("ITEM_LIST_Y").div_euclid(cell)
         ));
-        // `item_k` goes outside bank 0, read with `lda f:item_k, x`.
+        // The item tables go outside bank 0, read with `lda f:item_k, x`:
+        // they grow with every item the maps bring.
         out.push_str(".segment \"RODATA\"\n");
         bytes_asm(
             out,
@@ -1723,8 +1724,7 @@ impl Rest<'_> {
             &decimal((0..ITEMS_N as i64).map(|n| k_of.get(&n).map_or(0xFF, |&k| k as i64))),
             true,
         );
-        out.push_str(".segment \"TABLES\"\n");
-        words_asm(out, "item_id", &decimal(items.iter()), false);
+        words_asm(out, "item_id", &decimal(items.iter()), true);
         // Whether it goes in white and does something on the map, whether
         // using it spends one, whether it opens the actor choice, and whether
         // it is a two-handed weapon.
@@ -1753,8 +1753,7 @@ impl Rest<'_> {
                     | if it.two_handed { 8 } else { 0 },
             );
         }
-        bytes_asm(out, "item_use", &decimal(uses), false);
-        out.push_str(".segment \"RODATA\"\n");
+        bytes_asm(out, "item_use", &decimal(uses), true);
         words_asm(
             out,
             "item_switch",
@@ -1846,7 +1845,6 @@ impl Rest<'_> {
             &decimal(texts.offsets.iter().map(|(_, n)| *n)),
             true,
         );
-        out.push_str(".segment \"TABLES\"\n");
         // --- the equipment: per item its type, what it adds and who can
         // equip it; per actor its parameters and initial equipment.
         let n_actors = db
@@ -1860,9 +1858,8 @@ impl Rest<'_> {
             out,
             "item_type",
             &per_item(&|i| i.r#type.to_i32().into())?,
-            false,
+            true,
         );
-        out.push_str(".segment \"RODATA\"\n");
         let mut points = Vec::new();
         for &n in items {
             points.extend(rules::points(item(n)?).map(|p| p & 0xFFFF));
@@ -1947,7 +1944,9 @@ impl Rest<'_> {
             })
             .collect::<Result<_>>()?;
         words_asm(out, "eq_param_pos", &decimal(eq_params), false);
-        words_asm(out, "item_price", &per_item(&|i| i.price.into())?, false);
+        out.push_str(".segment \"RODATA\"\n");
+        words_asm(out, "item_price", &per_item(&|i| i.price.into())?, true);
+        out.push_str(".segment \"TABLES\"\n");
         out.push_str(&pyf!(
             "TI_TEXT           = %d\nTI_TEXT_HAVE      = %d\nTI_TEXT_CARRIED   = %d\nTI_TEXT_CURRENCY  = %d\n\
              TI_SECOND         = %d\nTI_MAIN_MSG_POS = %d\nTI_MSG_POS        = %d\nTI_COMMAND_POS0   = %d\n\
