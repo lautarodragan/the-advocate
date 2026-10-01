@@ -70,13 +70,19 @@ impl<'a> Substitutions<'a> {
             // is drawn stuck to the background, so the lower half of that
             // block is the two together and not the lower tile alone.
             if !bakes(flags, high) {
-                cells[0].entry(low).or_insert_with(|| half(blocks, block, 0));
+                cells[0]
+                    .entry(low)
+                    .or_insert_with(|| half(blocks, block, 0));
             }
-            cells[1].entry(high).or_insert_with(|| half(blocks, block, 1));
+            cells[1]
+                .entry(high)
+                .or_insert_with(|| half(blocks, block, 1));
         }
         let mut by_bytes = HashMap::new();
         for block in 0..blocks.passability.len() {
-            by_bytes.entry(fingerprint(blocks, block)).or_insert(block as u16);
+            by_bytes
+                .entry(fingerprint(blocks, block))
+                .or_insert(block as u16);
         }
         Substitutions {
             id,
@@ -171,7 +177,9 @@ impl<'a> Substitutions<'a> {
         if bakes(self.flags, high) {
             return Ok(None);
         }
-        let (Some(lower_half), Some(upper_half)) = (self.cells[0].get(&low), self.cells[1].get(&high)) else {
+        let (Some(lower_half), Some(upper_half)) =
+            (self.cells[0].get(&low), self.cells[1].get(&high))
+        else {
             return Ok(None);
         };
         let bytes: Vec<u8> = lower_half.iter().chain(upper_half).copied().collect();
@@ -329,9 +337,15 @@ mod tests {
         let answer = substitute(7, &mut b, &flags, &chipset, &[(false, 0, 1)], &[]).unwrap();
         assert!(answer.missing.is_empty());
         // (0, empty) -> (1, empty) exists; (0, 2) -> (1, 2) is built.
-        assert_eq!(answer.table, vec![((false, 0, 1), Some(vec![(0, 1), (2, 3)]))]);
+        assert_eq!(
+            answer.table,
+            vec![((false, 0, 1), Some(vec![(0, 1), (2, 3)]))]
+        );
         assert_eq!(b.passability.len(), 4);
-        assert_eq!(&b.table[48..64], &[1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2]);
+        assert_eq!(
+            &b.table[48..64],
+            &[1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2]
+        );
     }
 
     #[test]
@@ -339,9 +353,20 @@ mod tests {
         let flags = flags_with(&[UPPER + 2]);
         let chipset = Chipset::default();
         let mut b = blocks();
-        let answer = substitute(7, &mut b, &flags, &chipset, &[(false, 0, 9)], &[(true, 2, 3)]).unwrap();
+        let answer = substitute(
+            7,
+            &mut b,
+            &flags,
+            &chipset,
+            &[(false, 0, 9)],
+            &[(true, 2, 3)],
+        )
+        .unwrap();
         assert_eq!(answer.missing, vec![(false, 0, 9)]);
-        assert_eq!(answer.table, vec![((false, 0, 9), None), ((true, 2, 3), None)]);
+        assert_eq!(
+            answer.table,
+            vec![((false, 0, 9), None), ((true, 2, 3), None)]
+        );
         assert_eq!(b.passability.len(), 3, "nothing was built");
     }
 

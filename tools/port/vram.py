@@ -64,17 +64,22 @@ def __getattr__(name):
     raise AttributeError("module %r has no attribute %r" % (__name__, name))
 
 
-def vram_layout(tiles, sprites=0, above=0):
-    """Which VRAM layout a map gets, according to what it spends: the first
-    that fits, as the stage answers it. The same three numbers give the same
-    layout, so each answer is asked once."""
+def choose(tiles, sprites=0, above=0):
+    """`(name, layout)` of the VRAM layout a map gets, according to what it
+    spends: the first that fits, as the stage answers it. The same three
+    numbers give the same layout, so each answer is asked once."""
     key = (tiles, sprites, above)
     if key not in _CHOSEN:
         _CHOSEN[key] = _ask([list(key)])["maps"][0]
     chosen = _CHOSEN[key]
     if "refused" in chosen:
         raise SystemExit(chosen["refused"])
-    return dict(published()["layouts"])[chosen["layout"]]
+    return chosen["layout"], dict(published()["layouts"])[chosen["layout"]]
+
+
+def vram_layout(tiles, sprites=0, above=0):
+    """The layout of `choose`, without its name."""
+    return choose(tiles, sprites, above)[1]
 
 
 def _check_splits():

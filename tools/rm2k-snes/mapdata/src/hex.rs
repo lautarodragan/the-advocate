@@ -23,7 +23,16 @@ pub fn decode(text: &str) -> Result<Vec<u8>> {
     if !bytes.len().is_multiple_of(2) {
         return Err(Bad::answer("hex text of an odd length"));
     }
-    bytes.chunks(2).map(|p| Ok((digit(p[0])? << 4) | digit(p[1])?)).collect()
+    bytes
+        .chunks(2)
+        .map(|p| Ok((digit(p[0])? << 4) | digit(p[1])?))
+        .collect()
+}
+
+/// For `#[serde(deserialize_with = "hex::bytes")]`: a request's bytes.
+pub fn bytes<'de, D: serde::Deserializer<'de>>(d: D) -> std::result::Result<Vec<u8>, D::Error> {
+    let text: String = serde::Deserialize::deserialize(d)?;
+    decode(&text).map_err(|bad| serde::de::Error::custom(bad.message()))
 }
 
 #[cfg(test)]

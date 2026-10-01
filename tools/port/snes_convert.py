@@ -86,7 +86,6 @@ from rpgmaker.resources import find_resource
 from port.sprites import (OBJ_PRIORITY, OBJ_PRIORITY_ABOVE, block_tile,
                           maps_per_character)
 from port import vram
-from port.materials import compress_blocks
 from port.map_record import PARALLEL_MAX, ROUTE_EV_MAX
 from port.battle_animations import rom_animations
 from port.battle_scenes import (fallback_bytes, patch_uses, rom_scene,
@@ -776,15 +775,15 @@ def main():
         [pair for pair, _slot in sorted(events.SKILL_SLOT.items(),
                                         key=lambda x: x[1])],
         screen_stage.layout().ITEM_NAME_WIDTH)
-    compressed, decompress_frames = compress_blocks(maps)
-    report = emit(args.output, maps, args.start_index, args.hero_above, party,
-                  window_data, title_data, slots_data,
-                  args.pictures.info, animations, troops.ids, battle_audio,
-                  scenes, battle_tables, troop_pages, compressed,
-                  party_common=compiler.party_common_events(compiled),
-                  enemy_hp=args.enemy_hp,
-                  speed_keys=not args.no_speed_keys,
-                  game_over=game_over_data, battle_model=battle_model)
+    report, decompress_frames = emit(
+        args.output, maps, args.start_index, args.hero_above, party,
+        window_data, title_data, slots_data,
+        args.pictures.info, animations, troops.ids, battle_audio,
+        scenes, battle_tables, troop_pages,
+        party_common=compiler.party_common_events(compiled),
+        enemy_hp=args.enemy_hp,
+        speed_keys=not args.no_speed_keys,
+        game_over=game_over_data, battle_model=battle_model)
     # Which entries of their palette the timer digits use, one bit per entry
     # and one word per map, in the order of `map_table`. `upload_timer_pal`
     # uploads **those** again untinted and not the whole palette, because the

@@ -26,7 +26,9 @@ pub fn compress_many(blocks: &[&[u8]]) -> Result<Vec<Vec<u8>>> {
             )));
         }
     }
-    let workers = thread::available_parallelism().map_or(1, |n| n.get()).max(1);
+    let workers = thread::available_parallelism()
+        .map_or(1, |n| n.get())
+        .max(1);
     let mut out: Vec<Option<Result<Vec<u8>>>> = (0..blocks.len()).map(|_| None).collect();
     let chunk = blocks.len().div_ceil(workers).max(1);
     thread::scope(|scope| {
@@ -38,7 +40,9 @@ pub fn compress_many(blocks: &[&[u8]]) -> Result<Vec<Vec<u8>>> {
             });
         }
     });
-    out.into_iter().map(|r| r.expect("every block was compressed")).collect()
+    out.into_iter()
+        .map(|r| r.expect("every block was compressed"))
+        .collect()
 }
 
 /// One block, as a stream the console reads.
@@ -117,14 +121,24 @@ mod tests {
 
     #[test]
     fn the_two_commands_the_console_does_not_read_are_named() {
-        assert_eq!(what_the_rom_does_not_read(&[0x62, 0xFE, 0xFF]), Some("an increasing fill"));
-        assert_eq!(what_the_rom_does_not_read(&[0x40, 7, 8, 0xFF]), Some("a one-byte word"));
+        assert_eq!(
+            what_the_rom_does_not_read(&[0x62, 0xFE, 0xFF]),
+            Some("an increasing fill")
+        );
+        assert_eq!(
+            what_the_rom_does_not_read(&[0x40, 7, 8, 0xFF]),
+            Some("a one-byte word")
+        );
     }
 
     #[test]
     fn many_blocks_come_back_in_order_and_round_trip() {
         let blocks: Vec<Vec<u8>> = (0..37u8)
-            .map(|k| (0..(k as usize * 97)).map(|i| (i * k as usize % 7) as u8).collect())
+            .map(|k| {
+                (0..(k as usize * 97))
+                    .map(|i| (i * k as usize % 7) as u8)
+                    .collect()
+            })
             .collect();
         let refs: Vec<&[u8]> = blocks.iter().map(Vec::as_slice).collect();
         let streams = compress_many(&refs).unwrap();
@@ -138,6 +152,9 @@ mod tests {
     fn a_block_longer_than_a_stream_is_refused() {
         let big = vec![0u8; OUTPUT_MAX + 1];
         let message = compress_many(&[&big]).unwrap_err().message().to_string();
-        assert_eq!(message, "a block of 65537 bytes does not fit in an LZ2 stream: the limit is 65536");
+        assert_eq!(
+            message,
+            "a block of 65537 bytes does not fit in an LZ2 stream: the limit is 65536"
+        );
     }
 }

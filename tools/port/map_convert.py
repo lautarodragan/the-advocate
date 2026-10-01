@@ -29,8 +29,7 @@ from port.map_layers import BG_PALETTES, layers_answer
 from port.sprites import block_tile, discard_warning, separate_from_hero
 from port.obj_extras import map_shows_animation
 from port import vram
-from port.map_record import (NPC_MAX, ROUTE_GFX_MAX, TURN_NONE, anim_bytes,
-                             ev_pos_bytes, npc_table)
+from port.map_record import TURN_NONE
 from port.options import map_order
 from port.cases import case_commands, test_graphics, test_maps
 from common import settings
@@ -285,8 +284,6 @@ def _map_info(renderer, prepared, written, args):
              for slot, block, palette in s["place"]}
     animated = [tuple(k) for k in s["animated"]]
     animated_index = {p: k for k, p in enumerate(animated)}
-    movable, animates_still = set(answer["movable"]), set(answer["animates_still"])
-    table = npc_table(npcs, where, movable, animated_index, animates_still)
     tiles = written[s["tiles"]]
     palettes = [[tuple(c) for c in p] for p in s["palettes"]]
     banks = {(charset, index): written[name]
@@ -299,7 +296,10 @@ def _map_info(renderer, prepared, written, args):
     actors = [(actor, palette, k, list(words))
               for actor, palette, k, words in s["actors"]]
     route_gfx = [tuple(r) for r in s["route_gfx"]]
-    sprite = (tiles, palettes, where, table, actors, timer_base, timer_pal,
+    # The fourth is the NPC table, which is the emission's: see
+    # `npc_table` in `rm2k-snes-mapdata`, which builds it from `objects`
+    # and `npcs`, below.
+    sprite = (tiles, palettes, where, None, actors, timer_base, timer_pal,
               animated, banks, route_gfx, rain_base, rain_pal,
               turn_tile, image_base, image_pal, anim_base, anim_pal)
 
@@ -307,13 +307,6 @@ def _map_info(renderer, prepared, written, args):
     start_x, start_y = answer["start"]
     collision = (passable, start_x, start_y, game_map.width, game_map.height)
     route_graphics = prepared.route_graphics
-
-    if len(table) > NPC_MAX:
-        sys.exit("map %d has %d NPCs and %d fit in OAM"
-                 % (map_id, len(table), NPC_MAX))
-    if len(route_gfx) > ROUTE_GFX_MAX:
-        sys.exit("map %d has %d graphics of command 34 and %d fit: see "
-                 "ROUTE_GFX_MAX" % (map_id, len(route_gfx), ROUTE_GFX_MAX))
 
     name = renderer.tree.map_names.get(map_id, "?")
     print("Map %d %r: %dx%d cells of %dx%d px"
@@ -330,7 +323,7 @@ def _map_info(renderer, prepared, written, args):
           "%d with their twelve poses in the cartridge"
           % (s["characters"], len(where), len(tiles) // 32, len(palettes),
              len(animated)))
-    print("  %d NPCs with a CharSet out of %d events" % (len(table), len(game_map.events)))
+    print("  %d NPCs with a CharSet out of %d events" % (len(npcs), len(game_map.events)))
 
     open_ones = sum(1 for b in passable if b == 0x0F)
     print("  collision: %d cells, %d open on all four sides (%.0f%%), "
@@ -369,6 +362,9 @@ def _map_info(renderer, prepared, written, args):
         colors += word.to_bytes(2, "little")
 
     chipset = renderer.database.chipsets[game_map.chipset_id]
+    layout_name, layout = vram.choose(len(tile_data) // BYTES_PER_TILE,
+                                      len(tiles) // 32,
+                                      len(above_data[0]) // 32)
     return {
         "id": map_id, "nombre": name,
         "tiles": tile_data, "cram": bytes(colors), "cram_words": cram,
@@ -379,7 +375,6 @@ def _map_info(renderer, prepared, written, args):
         # indices of a table that says something else.
         "graficos_de_ruta": route_graphics,
         "collision": collision, "celdas": bytes(words),
-        "ev_pos": ev_pos_bytes(game_map),
         # Both grow while the pages are compiled, if some substitutes tiles:
         # see `Substitutions`. That is why they are mutable and are frozen
         # only when emitted.
@@ -389,15 +384,19 @@ def _map_info(renderer, prepared, written, args):
         # ChipSet's index 0, that is the first autotile, and not that of any
         # cell. See `op_terrain`.
         "terreno_fuera": rm2k.terrain_of(chipset, 0),
-        "layout": vram.vram_layout(
-            len(tile_data) // BYTES_PER_TILE,
-            len(sprite[0]) // 32 if sprite else 0,
-            len(above_data[0]) // 32),
+        "layout": layout, "layout_name": layout_name,
         "resumen": summary,
         # Which entries of its palette the timer's digits take, one bit each:
         # `timer_mask` in `rm2k-snes-map-sprites`. 0 without a timer.
         "timer_mask": s["timer_mask"],
-        "anim": anim_bytes(summary["animacion"]),
+        # The objects and the drawn events as the stage answered them, with
+        # the bytes of its files: what the emission builds the NPC table,
+        # the leaders' and the pose tables from.
+        "objects": dict(s, tiles=tiles.hex(),
+                        banks=[[charset, index, written[name].hex()]
+                               for charset, index, name in s["banks"]]),
+        "npcs": answer["npcs"], "movable": answer["movable"],
+        "animates_still": answer["animates_still"],
         "imagenes_fondo": summary["imagenes"],
         # The whole map is stored because the events' pages can't be compiled
         # until all the maps are there: a `Teleport` translates map ids to
@@ -407,8 +406,6 @@ def _map_info(renderer, prepared, written, args):
         # the sprite bank, which events change graphic with the page and which
         # of their graphics were left out of the palettes.
         "where": where,
-        # For the turn toward the hero: which entry of `npc_poses` the twelve
-        # poses of each graphic are in, which is the page's +30.
         # Each `TileSubstitution` the map can run, translated to its blocks
         # —which already include the ones the stage built for them—, as the
         # compiler takes it; and the ones that couldn't be built, which the
@@ -418,6 +415,8 @@ def _map_info(renderer, prepared, written, args):
             for upper, old, new, pairs in answer["substitutions"]["table"]],
         "missing_substitutions": [
             tuple(t) for t in answer["substitutions"]["missing"]],
+        # For the turn toward the hero: which entry of `npc_poses` the twelve
+        # poses of each graphic are in, which is the page's +30.
         "giro_k": {pair: animated_index[pair] for pair in animated},
         "giran": {event for event, _pairs in answer["turning"]},
         "cambian": {npc["event"] for npc in npcs if npc["changes"]},

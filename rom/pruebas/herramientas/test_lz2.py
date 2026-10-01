@@ -12,6 +12,7 @@ escrita aparte a propósito. Lo que la ROM hace con esos flujos lo mira
 
 import collections
 import glob
+import json
 import os
 
 import pytest
@@ -19,7 +20,7 @@ import pytest
 import tanda
 import cartuchos
 from lz2 import descomprimir
-from port.materials import COMPRESSED_KINDS, compress_blocks
+from port import stage
 
 
 def _crudos(nombre):
@@ -29,25 +30,9 @@ def _crudos(nombre):
     return {os.path.basename(r): open(r, "rb").read() for r in rutas}
 
 
-class _Mapa(dict):
-    """Lo que `compress_blocks` lee de un mapa: sus cinco bloques crudos, con
-    los nombres del `map_info`."""
-
-    def __init__(self, numero, bloques):
-        super().__init__(id=numero, tiles=bloques["map_tiles"],
-                         above=(bloques["above_tiles"],),
-                         sprite=(bloques["sprite_tiles"],),
-                         anim=bloques["anim_tiles"],
-                         celdas=bloques["map_cells"])
-
-
 @pytest.mark.parametrize("nombre", sorted(cartuchos.nombres()))
 def test_cada_bloque_vuelve_igual_por_la_referencia(nombre):
     crudos = _crudos(nombre)
-    clases = {r.split(".")[1] for r in crudos}
-    assert clases == set(COMPRESSED_KINDS), (
-        "crudos/ trae %s y las clases que se comprimen son %s"
-        % (sorted(clases), sorted(COMPRESSED_KINDS)))
     por_mapa = collections.defaultdict(dict)
     for archivo, datos in crudos.items():
         numero, clase, _bin = archivo.split(".")
@@ -56,17 +41,26 @@ def test_cada_bloque_vuelve_igual_por_la_referencia(nombre):
     # devuelve los flujos de cada bloque pegados —las grillas van en dos, y
     # los fondos de más de un buffer también—, y la referencia los lee uno
     # detrás del otro.
-    flujos, _cuadros = compress_blocks(
-        [_Mapa(n, por_mapa[n]) for n in sorted(por_mapa)])
+    pedido = {"maps": [dict({clase: datos.hex()
+                             for clase, datos in por_mapa[n].items()}, id=n)
+                       for n in sorted(por_mapa)]}
+    respuesta = json.loads(stage.run("rm2k-snes-mapdata", "mapdata",
+                                     "compress", pedido)["compress.json"])
     mal = []
-    for (clase, crudo), pegados in flujos.items():
-        vuelta, fin = bytearray(), 0
-        while fin < len(pegados):
-            uno, fin = descomprimir(pegados, fin)
-            vuelta += uno
-        if bytes(vuelta) != crudo:
-            mal.append("%s de %d bytes: volvieron %d"
-                       % (clase, len(crudo), len(vuelta)))
+    for n, flujos in zip(sorted(por_mapa), respuesta["maps"]):
+        clases = set(flujos) - {"frames"}
+        assert clases == set(por_mapa[n]), (
+            "crudos/ trae %s del mapa %d y las clases que se comprimen son %s"
+            % (sorted(por_mapa[n]), n, sorted(clases)))
+        for clase in sorted(clases):
+            crudo, pegados = por_mapa[n][clase], bytes.fromhex(flujos[clase])
+            vuelta, fin = bytearray(), 0
+            while fin < len(pegados):
+                uno, fin = descomprimir(pegados, fin)
+                vuelta += uno
+            if bytes(vuelta) != crudo:
+                mal.append("%d.%s de %d bytes: volvieron %d"
+                           % (n, clase, len(crudo), len(vuelta)))
     assert not mal, "\n".join(mal)
     assert sum(len(c) for c in crudos.values()) > 0, "no había nada que comprimir"
 

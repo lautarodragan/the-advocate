@@ -15,7 +15,11 @@ pub mod compress;
 pub mod fail;
 pub mod hex;
 pub mod materials;
+pub mod objects;
+pub mod record;
+pub mod request;
 pub mod snes;
+pub mod text;
 pub mod vram;
 
 pub use fail::{Bad, Result};

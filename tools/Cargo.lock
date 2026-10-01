@@ -470,6 +470,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "lz2",
+ "serde",
  "serde_json",
  "sha2",
 ]

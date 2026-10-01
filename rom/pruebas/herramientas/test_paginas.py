@@ -14,7 +14,7 @@ from port import compiler, events
 # Por los ganchos que pone en `lcf` al importarse: los mapas se leen como
 # los lee el conversor.
 from port import snes_convert                            # noqa: F401
-from port import map_record
+from port import stage
 from rpgmaker import lcf
 from rpgmaker import rm2k
 from rpgmaker.resources import GAME_DIR
@@ -206,16 +206,19 @@ def test_la_ruta_propia_apunta_al_bloque_que_recibe():
     tabla es texto, y lo que importa es a qué símbolo nombra.
     """
     pagina = {
-        "event": 0, "pagina": 1, "trigger": events.TRIGGER_PARALLEL,
-        "switch_a": 0, "switch_b": 0, "actor": 0, "capa": 1, "item": 0,
-        "codigo": b"\x00", "offset": 0, "ruta_offset": 1,
-        "frecuencia": 3, "speed": 4,
-        "ruta_propia": {"repite": True, "saltable": False, "dir_fija": False,
-                        "anim_continues": False, "frecuencia": 3,
-                        "speed": 4, "ordenes": [0]},
+        "event": 0, "page": 1, "trigger": events.TRIGGER_PARALLEL,
+        "switch_a": 0, "switch_b": 0, "actor": 0, "layer": 1, "item": 0,
+        "has_code": True, "offset": 0, "route_offset": 1,
+        "frequency": 3, "speed": 4,
+        "own_route": {"repeats": True, "skippable": False,
+                      "fixed_direction": False, "animation_continues": False,
+                      "frequency": 3, "speed": 4, "orders": 1},
     }
-    tabla = map_record.page_table({"pages": [pagina]}, 7,
-                                    "evcode_3")
+    # La tabla la escribe `rm2k-snes-mapdata`, que es la emisión: se le
+    # pide la de un mapa solo.
+    tabla = stage.run("rm2k-snes-mapdata", "mapdata", "pages",
+                      {"number": 7, "evcode": "evcode_3",
+                       "pages": [pagina]})["pages.inc"]
     nombrados = set(re.findall(r"evcode_\d+", tabla))
     assert nombrados == {"evcode_3"}, (
         "la tabla del mapa 7, cuyo código es el bloque evcode_3, nombra %s"

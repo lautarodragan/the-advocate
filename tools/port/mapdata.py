@@ -28,15 +28,12 @@ from port.map_layers import (CGRAM_RESERVED, FAMILIES, PRIORITY_ABOVE,
 from port.sprites import (OBJ_COLORS, OBJ_PRIORITY, OBJ_PRIORITY_ABOVE,
                           POSE_BYTES, SPRITE_POSES)
 from port.obj_extras import TIMER_GLYPHS, TIMER_GLYPH_W, TIMER_X, TIMER_Y
-from port.materials import (LZ2_CAP_ABOVE_AND_SPRITES, LZ2_CAP_ANIM,
-                            LZ2_CAP_BACKDROP, LZ2_CAP_GRID, Materials,
-                            compress_blocks, write_raw)
+from port import stage
 from port.map_record import (ACTOR_BYTES, ACTOR_COLORS, ANIM_FAM_STRIDE,
                              ANIM_STRIDE, EV_MAX, EV_STRIDE, FLASH_MAX,
                              MAP_STRIDE, NPC_MAX, NPC_STILL, NPC_STRIDE,
                              PAGE_BYTES, PARALLEL_MAX, ROUTE_EV_MAX,
-                             ROUTE_GFX_MAX, TURN_NONE, anim_table, map_data,
-                             map_table, offsets)
+                             ROUTE_GFX_MAX, TURN_NONE)
 from port.battle_animations import animations_asm
 from port.battle_scenes import scenes_asm
 
@@ -65,13 +62,85 @@ def rom_identity():
             % (title.ljust(TITLE_HEADER), signature))
 
 
+_FAMILIES = {"agua": "water", "animado": "animated"}
+
+
+def _page_record(page):
+    """A page as `rm2k-snes-mapdata` takes it, from the converter's."""
+    own = page.get("ruta_propia")
+    graphic = page.get("grafico")
+    return {
+        "event": page["event"], "page": page["pagina"],
+        "trigger": page["trigger"], "switch_a": page["switch_a"],
+        "switch_b": page["switch_b"], "actor": page["actor"],
+        "layer": page["capa"], "item": page["item"],
+        "has_code": bool(page["codigo"]), "offset": page.get("offset", 0),
+        "route_offset": page.get("ruta_offset", 0),
+        "frequency": page["frecuencia"], "speed": page["speed"],
+        "fixed_direction": bool(page.get("dir_fija")),
+        "own_route": None if not own else {
+            "repeats": bool(own["repite"]),
+            "skippable": bool(own["saltable"]),
+            "fixed_direction": bool(own["dir_fija"]),
+            "animation_continues": bool(own["anim_continues"]),
+            "frequency": own["frecuencia"], "speed": own["speed"],
+            "orders": len(own["ordenes"])},
+        "oam": list(page["oam"]) if page.get("oam") is not None else None,
+        "variable": (list(page["variable"])
+                     if page.get("variable") is not None else None),
+        "graphic": list(graphic) if graphic else None,
+        "turns": bool(page.get("gira")),
+    }
+
+
+def _map_record(map_info):
+    """A map as `rm2k-snes-mapdata maps` takes it: see `Map` in its
+    `request.rs`."""
+    _passable, start_x, start_y, width, height = map_info["collision"]
+    above = map_info["above"]
+    return {
+        "id": map_info["id"], "name": map_info["nombre"],
+        "tilemap": [len(map_info["tilemap"][0]), len(map_info["tilemap"])],
+        "size": [width, height], "start": [start_x, start_y],
+        "layout": map_info["layout_name"],
+        "tiles": bytes(map_info["tiles"]).hex(),
+        "cgram": bytes(map_info["cram"]).hex(),
+        "above_tiles": bytes(above[0]).hex(),
+        "above_cgram": bytes(above[1]).hex(), "above_first": above[3],
+        "runs": [{"family": _FAMILIES[family], "base": run["base"],
+                  "tiles": run["tiles"],
+                  "drawings": [bytes(d).hex() for d in run["dibujos"]]}
+                 for family, run in map_info["resumen"]["animacion"].items()],
+        "cells": bytes(map_info["celdas"]).hex(),
+        "blocks": bytes(map_info["bloques"]).hex(),
+        "block_pass": bytes(map_info["pass"]).hex(),
+        "block_terrain": bytes(map_info["terreno"]).hex(),
+        "terrain_outside": map_info["terreno_fuera"],
+        "sprite": map_info["objects"],
+        "npcs": map_info["npcs"], "movable": map_info["movable"],
+        "animates_still": map_info["animates_still"],
+        "events": [[e.x, e.y] for e in map_info["game_map"].events],
+        "pages": [_page_record(p) for p in map_info["pages"]],
+        "evcode": bytes(map_info["evcode"]).hex(),
+        "changing": sorted(map_info.get("cambian", ())),
+        "appearing": sorted(map_info.get("aparecen", ())),
+        "turning": sorted(map_info.get("giran", ())),
+    }
+
+
 def emit(path, maps, initial=0, hero_above=False, initial_party=(),
          window=None, title=None, slots=None, picture_info=None,
          animations=None, troops=(), battle_audio=None, scenes=None,
-         battle_tables=None, troop_pages=None, compressed=None,
+         battle_tables=None, troop_pages=None,
          enemy_hp=False, game_over=None, party_common=None,
          battle_model=None, speed_keys=True):
-    """The .inc that is assembled together with main.s.
+    """The .inc that is assembled together with main.s, and
+    `(what was shared and compressed, per map how many frames decompressing
+    it takes)`.
+
+    What goes per map —the record, the blocks, the pages, the poses— is
+    `rm2k-snes-mapdata maps`'s; it also leaves next to the `.inc` what the
+    console decompresses of each map, uncompressed, in `crudos/`.
 
     `enemy_hp` is `--enemy-hp`: whether the battle draws the
     enemies' HP, which RM2k doesn't show.
@@ -79,9 +148,6 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
     `speed_keys` is the opposite of `--no-speed-keys`: whether L and R
     change the hero's speed, which RM2k doesn't do. See
     `hero_speed_keys.s`.
-
-    `compressed` is the streams `compress_blocks` returns; if missing it
-    is compressed here.
 
     `title` is the title screen —the image and its menu— and may be missing;
     `game_over`, the Game Over one, too: it is what
@@ -108,18 +174,14 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
     M = battle_model
     BS = M["layout"]
     slot_text_max = SLOT_TEXT_LEVEL + T.LEVEL_DIGITS
-    for number, map_info in enumerate(maps):
-        layout = map_info["layout"]
-        for count, name in (
-                (len(map_info["tiles"]) // BYTES_PER_TILE, "tiles"),
-                (len(map_info["above"][0]) // 32, "encima"),
-                (len(map_info["sprite"][0]) // 32 if map_info["sprite"] else 0,
-                 "sprites")):
-            if count > layout[name][1]:
-                raise SystemExit(
-                    "map %d: with this VRAM layout, %s needs %d tiles and "
-                    "%d fit" % (map_info["id"], name, count,
-                                layout[name][1]))
+    # Everything that goes per map, first: it is also where what each map
+    # spends is checked against its VRAM layout.
+    per_map = stage.run(
+        "rm2k-snes-mapdata", "mapdata", "maps",
+        {"maps": [_map_record(m) for m in maps]},
+        "--raw", os.path.join(os.path.dirname(os.path.abspath(path)),
+                              "crudos"))
+    per_map_answer = json.loads(per_map["maps.json"])
 
     # Where the picture ended up: the map of the table that took its tiles, and
     # at which tile and with which palette. It comes from the already
@@ -594,7 +656,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
     with open(path, "w") as handle:
         handle.write(header)
         handle.write(rom_identity())
-        handle.write(offsets())
+        handle.write(per_map["offsets.inc"])
         handle.write("\n\n")
         handle.write("; Whether L and R change the hero's speed: see "
                      "`hero_speed_keys.s`.\nHERO_SPEED_KEYS = %d\n\n"
@@ -613,78 +675,11 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         # walks with a bare `lda tabla, x`, which addresses the data bank.
         # `map_table` is no longer among those: see `map_table`.
         handle.write('.segment "RODATA"\n')
-        # The twelve poses of each character that changes pose, **once per
-        # quantization** and not once per ROM: two maps that draw the same
-        # character with the same palette share the bank, and if one quantized
-        # it differently —because it lent it someone else's palette, as map 8
-        # does to Chara2:0, or took a color off— it carries its own. Until
-        # 2026-09-10 this was a `sys.exit`, and the palette split had a rule to
-        # dodge it that the lending didn't look at: adding Lashe City 33,36 to
-        # the demo stopped there. One extra bank is 6 KB of cartridge; a stop
-        # is a map that doesn't fit.
-        global_index, banks, index_per_map = {}, [], []
-        for map_info in maps:
-            own = {}
-            for pair, data in (map_info["sprite"][8].items()
-                               if map_info["sprite"] else ()):
-                key = (pair, data)
-                if key not in global_index:
-                    if any(k[0] == pair for k in global_index):
-                        print("  map %d: %s:%d goes with a pose bank of its "
-                              "own, quantized differently than in another map"
-                              % (map_info["id"], pair[0], pair[1]))
-                    global_index[key] = len(banks)
-                    banks.append(data)
-                own[pair] = global_index[key]
-            index_per_map.append(own)
-        handle.write("; --- the poses of the characters that change pose, "
-                     "for the whole ROM ---\n")
-        # **Each pose once**, even if several characters or the same one
-        # repeat it: the pose tables carry one pointer per pose —`npc_poses`,
-        # `actor_table`—, so two equal ones point to the same block and the
-        # ROM uploads the same bytes from another place. It happens a lot: the
-        # equal walking frames of the same CharSet, and the characters that
-        # repeat across maps with another quantization that didn't change a
-        # pose. Each one with its `.block`, because it is uploaded by DMA.
-        pose_label, bank_poses = {}, []
-        for data in banks:
-            theirs = []
-            for pose in range(SPRITE_POSES):
-                bytes_ = data[pose * POSE_BYTES:(pose + 1) * POSE_BYTES]
-                if bytes_ not in pose_label:
-                    pose_label[bytes_] = "pose_%d" % len(pose_label)
-                    handle.write(block(pose_label[bytes_], bytes_) + "\n")
-                theirs.append(pose_label[bytes_])
-            bank_poses.append(theirs)
-        handle.write("\n")
-        print("  poses: %d distinct out of %d, %.1f KB less"
-              % (len(pose_label), SPRITE_POSES * len(banks),
-                 (SPRITE_POSES * len(banks) - len(pose_label))
-                 * POSE_BYTES / 1024.0))
-        index_per_map = [{pair: bank_poses[g] for pair, g in own.items()}
-                         for own in index_per_map]
-        write_raw(os.path.dirname(os.path.abspath(path)), maps)
-        materials = Materials(dedupe=True,
-                              compressed=compressed
-                              or compress_blocks(maps)[0])
-        handle.write("; The LZ2 caps, which decompress.s enforces\n"
-                     "LZ2_CAP_BACKDROP = $%04X\n"
-                     "LZ2_CAP_ABOVE_Y_SPRITES = $%04X\n"
-                     "LZ2_CAP_ANIM = $%04X\n"
-                     "LZ2_CAP_GRID = $%05X\n\n"
-                     % (LZ2_CAP_BACKDROP, LZ2_CAP_ABOVE_AND_SPRITES,
-                        LZ2_CAP_ANIM, LZ2_CAP_GRID))
-        labels = []
-        for number, map_info in enumerate(maps):
-            # `mapas_de` in rom/pruebas/arnes/consola.py reads the table
-            # order from this line with a regex that expects "map".
-            handle.write("; --- %d: map %d %r ---\n"
-                         % (number, map_info["id"], map_info["nombre"]))
-            text, theirs = map_data(map_info, number,
-                                    index_per_map[number], materials)
-            labels.append(theirs)
-            handle.write(text)
-            handle.write("\n")
+        # The poses of whoever changes pose, the LZ2 caps and each map's
+        # blocks: `rm2k-snes-mapdata maps`'s, and what it said while.
+        for note in per_map_answer["notes"]:
+            print(note)
+        handle.write(per_map["maps.inc"])
         if True:
             # The message window is a single one for the whole ROM —the same
             # skin, the same size— so it goes as a global block and not in the
@@ -2262,12 +2257,10 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
             "%d" % (events.wait_after_turn(f)
                     if f >= events.ROUTE_FREQUENCY_MIN else 0)
             for f in range(events.ROUTE_FREQUENCY + 1)))
-        handle.write(map_table(maps, labels))
-        handle.write("\n\n")
-        # After the map one, which already left the segment in RODATA.
-        handle.write(anim_table(maps))
-        handle.write("\n")
-    return materials.report()
+        # The map table and, after it, the ChipSet animation's, which
+        # `rm2k-snes-mapdata maps` wrote with the maps' blocks.
+        handle.write(per_map["tables.inc"])
+    return per_map_answer["report"], per_map_answer["frames"]
 
 
 def save_signature(pairs, slots_exp, n_actors):

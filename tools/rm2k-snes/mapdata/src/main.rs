@@ -7,7 +7,7 @@
 use clap::{Args as ClapArgs, Parser, Subcommand};
 use rm2k_snes_mapdata::fail::{Bad, Result};
 use rm2k_snes_mapdata::materials::{self, RawBlocks, COMPRESSED_KINDS};
-use rm2k_snes_mapdata::{cgram, hex, vram};
+use rm2k_snes_mapdata::{cgram, hex, record, request, vram};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -53,6 +53,36 @@ enum Command {
         no if a stream does not fit in its place in WRAM."
     )]
     Compress(Plain),
+    /// What the cartridge carries per map: its record, its data blocks, its
+    /// pages and its tables, and the poses of whoever changes pose
+    #[command(
+        after_help = "The request: {\"maps\": [a map as the conversion left it: see `Map` in \
+        request.rs]}, in the order of the cartridge's table. It writes offsets.inc —the \
+        record's fields—, maps.inc —the poses, the LZ2 caps and each map's blocks, in RODATA— \
+        and tables.inc —the map table and the ChipSet animation's—, and maps.json: {\"notes\": \
+        what it says, in order, \"report\": what was shared and compressed, \"frames\": per \
+        map, how many frames decompressing it takes}. With --raw, what the console \
+        decompresses of each map, uncompressed, into that directory."
+    )]
+    Maps(MapsArgs),
+    /// One map's page table, alone
+    #[command(
+        after_help = "The request: {\"number\": the map's index in the cartridge, \"evcode\": \
+        the label of its code block, \"pages\": [a page: see `Page` in request.rs], \
+        \"changing\", \"appearing\", \"turning\": [events], \"animated\": [[CharSet, index]]}. \
+        It writes pages.inc."
+    )]
+    Pages(Plain),
+}
+
+#[derive(ClapArgs)]
+struct MapsArgs {
+    #[command(flatten)]
+    plain: Plain,
+
+    /// Where to leave each map's blocks, uncompressed
+    #[arg(long, value_name = "DIRECTORY")]
+    raw: Option<PathBuf>,
 }
 
 #[derive(ClapArgs)]
@@ -132,7 +162,9 @@ fn do_compress(args: &Plain) -> Result<()> {
     let request = read(&args.request)?;
     let mut maps: Vec<(i64, RawBlocks)> = Vec::new();
     for m in request["maps"].as_array().map(Vec::as_slice).unwrap_or(&[]) {
-        let id = m["id"].as_i64().ok_or_else(|| Bad::answer("a map without an id"))?;
+        let id = m["id"]
+            .as_i64()
+            .ok_or_else(|| Bad::answer("a map without an id"))?;
         let mut blocks = RawBlocks::new();
         for kind in COMPRESSED_KINDS {
             let text = m[kind].as_str().unwrap_or("");
@@ -159,11 +191,67 @@ fn do_compress(args: &Plain) -> Result<()> {
     write(&args.out, "compress", &json!({"maps": answer}))
 }
 
+fn write_text(out: &Path, name: &str, text: &str) -> Result<()> {
+    std::fs::create_dir_all(out).map_err(|e| Bad::usage(format!("{}: {e}", out.display())))?;
+    let path = out.join(name);
+    std::fs::write(&path, text).map_err(|e| Bad::usage(format!("{}: {e}", path.display())))
+}
+
+fn do_maps(args: &MapsArgs) -> Result<()> {
+    let request: request::Maps = request::read(&args.plain.request)?;
+    let written = record::maps(&request.maps)?;
+    if let Some(raw) = &args.raw {
+        materials::write_raw(raw, &written.raw)?;
+    }
+    let out = &args.plain.out;
+    write_text(out, "offsets.inc", &written.offsets)?;
+    write_text(out, "maps.inc", &written.maps)?;
+    write_text(out, "tables.inc", &written.tables)?;
+    write(
+        out,
+        "maps",
+        &json!({"notes": written.notes, "report": written.report, "frames": written.frames}),
+    )
+}
+
+#[derive(serde::Deserialize)]
+struct PagesRequest {
+    number: usize,
+    evcode: String,
+    pages: Vec<request::Page>,
+    #[serde(default)]
+    changing: Vec<i64>,
+    #[serde(default)]
+    appearing: Vec<i64>,
+    #[serde(default)]
+    turning: Vec<i64>,
+    #[serde(default)]
+    animated: Vec<(String, i64)>,
+}
+
+fn do_pages(args: &Plain) -> Result<()> {
+    let r: PagesRequest = request::read(&args.request)?;
+    let map = record::PageMap {
+        pages: &r.pages,
+        changing: &r.changing,
+        appearing: &r.appearing,
+        turning: &r.turning,
+        animated: &r.animated,
+    };
+    write_text(
+        &args.out,
+        "pages.inc",
+        &record::page_table(&map, r.number, &r.evcode),
+    )
+}
+
 fn main() -> ExitCode {
     let cli = Cli::parse();
     let done = match &cli.command {
         Command::Vram(args) => do_vram(args),
         Command::Compress(args) => do_compress(args),
+        Command::Maps(args) => do_maps(args),
+        Command::Pages(args) => do_pages(args),
     };
     match done {
         Ok(()) => ExitCode::SUCCESS,

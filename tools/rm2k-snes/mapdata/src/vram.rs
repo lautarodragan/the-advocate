@@ -221,8 +221,10 @@ pub fn window_base(layout: &Layout) -> u32 {
 /// The console picks between the two by the distance between the window
 /// and the BG2 base, so there cannot be a third without touching
 /// `stamp_window`; [`check_splits`] enforces it.
-pub const WINDOW_BASES: [u32; 2] =
-    [(LAYOUT_WINDOW.window.base - LAYOUT_WINDOW.above.base) / 16, 256];
+pub const WINDOW_BASES: [u32; 2] = [
+    (LAYOUT_WINDOW.window.base - LAYOUT_WINDOW.above.base) / 16,
+    256,
+];
 
 /// Which VRAM layout a map gets, according to what it spends: the first
 /// one where the three numbers fit.
@@ -248,7 +250,11 @@ pub fn check_splits() -> Result<()> {
         // The sprite and upper-layer tiles are 4bpp, 16 words.
         let pieces = [
             ("sprites", layout.sprites.count * 16, 0x2000),
-            ("tiles", layout.tiles.count * (BYTES_PER_TILE as u32 / 2), 0x1000),
+            (
+                "tiles",
+                layout.tiles.count * (BYTES_PER_TILE as u32 / 2),
+                0x1000,
+            ),
             ("encima", layout.above.count * 16, 0x1000),
             ("ventana", layout.window.count * 16, 1),
             ("ventana_map", 32 * 32, 0x400),
@@ -264,7 +270,11 @@ pub fn check_splits() -> Result<()> {
             "ventana_map" => layout.window_map.base,
             _ => layout.map.base,
         };
-        let mut stretches = vec![("upper map", VRAM_ABOVE_MAP, VRAM_ABOVE_MAP + WINDOW_W * WINDOW_H)];
+        let mut stretches = vec![(
+            "upper map",
+            VRAM_ABOVE_MAP,
+            VRAM_ABOVE_MAP + WINDOW_W * WINDOW_H,
+        )];
         for (piece, length, step) in pieces {
             let base = base_of(piece);
             if base % step != 0 {
@@ -307,7 +317,10 @@ pub fn check_splits() -> Result<()> {
         }
         let last = stretches[stretches.len() - 1];
         if last.2 > 0x8000 {
-            return Err(Bad::answer(format!("LAYOUT_{name}: {} goes past VRAM", last.0)));
+            return Err(Bad::answer(format!(
+                "LAYOUT_{name}: {} goes past VRAM",
+                last.0
+            )));
         }
     }
     Ok(())
