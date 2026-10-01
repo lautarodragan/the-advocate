@@ -25,9 +25,10 @@ def declarados(modulo):
 
 
 def desde_la_rom(datos, direccion):
-    """El byte de LoROM que cae en `direccion`, sea del banco que sea o de su
-    espejo rápido (`$80xxxx`)."""
-    return ((direccion >> 16) & 0x7F) * 0x8000 + (direccion & 0x7FFF)
+    """Dónde cae `direccion` en el archivo, sea del banco que sea o de su
+    espejo rápido (`$80xxxx`): el código va en los dos —ver `en_la_rom` en
+    `arnes/consola.py`—, y esto es sólo para código."""
+    return ((direccion >> 16) & 0x7F) << 16 | 0x400000 | (direccion & 0xFFFF)
 
 
 @pytest.mark.parametrize("nombre", sorted(cartuchos.nombres()))

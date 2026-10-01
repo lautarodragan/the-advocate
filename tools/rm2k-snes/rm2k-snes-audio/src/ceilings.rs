@@ -132,22 +132,35 @@ fn symbol(symbols: &BTreeMap<String, i64>, name: &str) -> Result<i64> {
     symbols.get(name).copied().ok_or_else(|| Bad::usage(format!("the ROM has no {name}")))
 }
 
+/// How far apart the two copies of the code are in an 8 MB ExHiROM: the
+/// console runs it from the first 4 MB and takes the vectors from the
+/// second, so the cartridge carries it in both.
+const CODE_COPY: usize = 0x400000;
+
 /// The ROM with the title screen playing `song`: the immediate of the
-/// `lda #SONG_TITLE` it starts it with is changed. It is the only way for a
-/// song to play on its own, with its samples uploaded, without playing
-/// anything.
+/// `lda #SONG_TITLE` it starts it with is changed —in each copy of the
+/// code, if there are two—. It is the only way for a song to play on its
+/// own, with its samples uploaded, without playing anything.
 pub fn with_song_on_title(rom: &[u8], song_title: u8, song: u8) -> Result<Vec<u8>> {
     let pattern = [0xA9, song_title, 0xC9, 0xFF, 0xF0];
-    let mut found = rom.windows(pattern.len()).enumerate().filter(|(_, w)| *w == pattern).map(|(i, _)| i);
-    let (Some(at), None) = (found.next(), found.next()) else {
+    let found: Vec<usize> =
+        rom.windows(pattern.len()).enumerate().filter(|(_, w)| *w == pattern).map(|(i, _)| i).collect();
+    let one_place = match found[..] {
+        [_] => true,
+        [a, b] => b - a == CODE_COPY,
+        _ => false,
+    };
+    if !one_place {
         return Err(Bad::usage(
             "cannot find the title screen's `lda #SONG_TITLE`: how it starts its song has changed, \
              and this has to change too"
                 .to_string(),
         ));
-    };
+    }
     let mut patched = rom.to_vec();
-    patched[at + 1] = song;
+    for at in found {
+        patched[at + 1] = song;
+    }
     Ok(patched)
 }
 
@@ -359,6 +372,19 @@ mod tests {
         let twice = [0xA9, 7, 0xC9, 0xFF, 0xF0, 0xA9, 7, 0xC9, 0xFF, 0xF0];
         assert!(with_song_on_title(&twice, 7, 12).is_err());
         assert!(with_song_on_title(&rom, 8, 12).is_err());
+    }
+
+    #[test]
+    fn both_copies_of_the_code_are_patched() {
+        let mut rom = vec![0u8; 2 * CODE_COPY];
+        for base in [0x9000, 0x9000 + CODE_COPY] {
+            rom[base..base + 5].copy_from_slice(&[0xA9, 7, 0xC9, 0xFF, 0xF0]);
+        }
+        let patched = with_song_on_title(&rom, 7, 12).unwrap();
+        assert_eq!((patched[0x9001], patched[0x9001 + CODE_COPY]), (12, 12));
+        rom[0x9000 + CODE_COPY..0x9005 + CODE_COPY].fill(0);
+        rom[0x9100..0x9105].copy_from_slice(&[0xA9, 7, 0xC9, 0xFF, 0xF0]);
+        assert!(with_song_on_title(&rom, 7, 12).is_err(), "two places that are not the copies");
     }
 
     #[test]

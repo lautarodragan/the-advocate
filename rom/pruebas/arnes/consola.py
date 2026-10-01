@@ -465,9 +465,15 @@ class Partida:
         build."""
         self.consola.write_sram(direccion, datos)
 
+    def en_la_sram(self, direccion):
+        """De una dirección de la SRAM como la ve la CPU —`SRAM_MAGIC`,
+        `SRAM_DATA`…— al desplazamiento en la SRAM del cartucho, que es lo
+        que lee `sram`: en ExHiROM la SRAM se ve desde `SRAM_WINDOW`."""
+        return direccion - self.simbolos["SRAM_WINDOW"]
+
     def magia(self, ranura=0):
         """Los cuatro bytes de la marca de la ranura, en la SRAM."""
-        return self.sram(self.simbolos["SRAM_MAGIC"]
+        return self.sram(self.en_la_sram(self.simbolos["SRAM_MAGIC"])
                          + ranura * self.simbolos["SRAM_STRIDE"], 4)
 
     def hay_partida(self, ranura=0):
@@ -1011,11 +1017,10 @@ class Partida:
         direccion, sonidos = self.stream_del_tema(indice)
         with open(self.sfc, "rb") as archivo:
             rom = archivo.read()
-        # Desde el principio del stream hasta el final del archivo: en LoROM
-        # el byte que sigue a $xxFFFF está en $(xx+1)8000, que en el archivo
-        # es el siguiente —es el salto de banco de `advance` en
-        # runtime/music.s, visto desde el archivo—, y lo que sigue al
-        # `OP_END` no se lee.
+        # Desde el principio del stream hasta el final del archivo: el byte
+        # que sigue a $xxFFFF está en $(xx+1)0000, que en el archivo es el
+        # siguiente —es el salto de banco de `advance` en runtime/music.s,
+        # visto desde el archivo—, y lo que sigue al `OP_END` no se lee.
         return musica.decodificar(rom[en_la_rom(direccion):], sonidos)
 
     def acceso(self):
@@ -1126,9 +1131,32 @@ def indice_del_tema(una, nombre):
 def en_la_rom(direccion):
     """De una dirección larga del cartucho al desplazamiento en el archivo.
 
-    Es el mapeo LoROM y nada más: cada banco expone sus 32 KB desde $8000.
+    Es el mapeo de ExHiROM y nada más —`file_offset`, en el `banks.rs` de
+    `rm2k-snes-assemble`—: los primeros 4 MB en `$C0-$FF`,
+    con sus mitades altas también en `$80-$BF`, y los segundos en `$40-$7D`,
+    con las suyas en `$00-$3F`. El código se enlaza en `$00` y `$01`, que
+    caen en la copia de los bancos 0 y 1 de los segundos 4 MB: es igual a la
+    de los primeros.
     """
-    return ((direccion >> 16) * 0x8000) + (direccion & 0x7FFF)
+    banco, adentro = direccion >> 16, direccion & 0xFFFF
+    if banco >= 0xC0:
+        return (banco - 0xC0) << 16 | adentro
+    if banco >= 0x80:
+        assert adentro >= 0x8000, hex(direccion)
+        return (banco - 0x80) << 16 | adentro
+    if banco >= 0x40:
+        assert banco < 0x7E, hex(direccion)
+        return 0x400000 | (banco - 0x40) << 16 | adentro
+    assert adentro >= 0x8000, hex(direccion)
+    return 0x400000 | banco << 16 | adentro
+
+
+def desde_la_rom(archivo):
+    """Al revés que `en_la_rom`: la dirección por la que el cartucho se lee
+    —la rápida en los primeros 4 MB—."""
+    if archivo < 0x400000:
+        return 0xC00000 + archivo
+    return archivo
 
 
 def mapas_de(inc):

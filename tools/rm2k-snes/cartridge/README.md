@@ -52,13 +52,15 @@ case runs in, the maps, and the files in the fingerprint.
     rm2k-snes-assemble --sources runtime/main.s
     rm2k-snes-assemble --memory-map
 
-**The bank packing.** A DMA that crosses a bank reads the WRAM, not the next
-bank, so everything the ROM uploads by DMA has to fit whole in one bank. `ld65`
+**The bank packing.** A DMA that crosses a bank wraps around inside it, and
+does not read the next bank, so everything the ROM uploads by DMA has to fit whole in one bank. `ld65`
 cannot pack variable-size blocks, so the generated data sends everything to
 `RODATA` with a directive in front of each piece —`.block N` for one that
 must not be split, `.crossbank` for one walked by code that jumps banks by
 hand—, and this packs the pieces first-fit decreasing into `BANKnn` segments,
-**rewriting the generated files in place**, before `ca65` runs. Every label
+**rewriting the generated files in place**, before `ca65` runs. The fast
+banks fill first, and what crosses banks by hand only crosses between two
+that continue each other. Every label
 of more than one byte has to be covered by one of the two directives, and
 that is enforced on every build, not on the day the cut lands on one.
 
@@ -68,10 +70,13 @@ is refused, because `ca65` would read that one first and the ROM would come
 out with another build's data.
 
 Then it writes the memory map, `memoria.cfg`, next to the generated files
-—4 MB LoROM, one area per bank, the last two banks reserved because on the
-console they are the WRAM—, runs `ca65` and `ld65` standing in the directory
-above the tools so the debug file names sources by relative paths, writes the
-header checksum and, with `--symbols`, a table of `name value` lines.
+—8 MB ExHiROM, one area per data bank, and the code's two banks linked as
+LoROM's banks 0 and 1—, runs `ca65` and `ld65` standing in the directory
+above the tools so the debug file names sources by relative paths, copies the
+two code banks to the second 4 MB, where the console reaches them through
+banks `$00` and `$01`, writes the header checksum and, with `--symbols`, a
+table of `name value` lines. Why the map is the way it is, in the docs of
+`src/banks.rs`.
 
 `--sources` prints the `.s` files a main file includes, in the order `ca65`
 reads them; `--memory-map`, the map's numbers as JSON.
@@ -84,10 +89,10 @@ reads them; `--memory-map`, the map's numbers as JSON.
     rm2k-snes-space --json …        the same, as JSON
 
 It reads what the build left —the debug file and the memory map— and relinks
-nothing: data banks used and free, the gaps inside the used ones, what is
-left in bank 0 and bank 1, in the BSS and the zero page, and in the text
-block. **The number that matters is how many banks are free**, not a
-percentage. A stale cartridge is refused.
+nothing: data banks used and free —whole banks of 64 KB, fast and slow, and
+halves—, the gaps inside the used ones, what is left in bank 0 and bank 1,
+in the BSS and the zero page, and in the text block. **The number that
+matters is how many whole banks are free**, not a percentage. A stale cartridge is refused.
 
 ## Tests
 

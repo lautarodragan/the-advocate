@@ -8,19 +8,22 @@ ve con la ROM linkeada: dónde terminó el código a mano.
 import tanda
 
 
-def test_el_codigo_a_mano_entra_en_el_banco_1():
-    """`FAR` va entero en el banco 1, y lo generado arranca pegado al 2.
+def test_el_codigo_a_mano_entra_en_el_banco_1_y_lo_generado_en_los_suyos():
+    """`FAR` va entero en el banco 1, y lo generado arranca en el primer banco
+    del reparto, `$C2:0000`.
 
-    El ensamblador no puede cuidarlo: `.controlar` se evalúa antes de que haya
-    direcciones. Si el código a mano de `runtime/` pasara de 32 KB, el
-    `.alinear $8000` del final empujaría lo generado al banco 3 sin decir nada,
-    y los `jsr` que cruzaran del 1 al 2 saltarían a cualquier lado. Así que se
-    mira el resultado: **lo primero que hay pasando el banco 1 tiene que estar
-    en `$02:8000` justo**. Si `FAR` se pasa, lo primero es una etiqueta suya a
-    mitad del banco 2; si lo generado arranca más lejos, no hay nada en
-    `$02:8000`.
+    El ensamblador no puede cuidarlo: `.assert` se evalúa antes de que haya
+    direcciones. En LoROM, si el código a mano de `runtime/` pasaba de 32 KB,
+    el `.align $8000` del final empujaba lo generado al banco siguiente sin
+    decir nada. En ExHiROM cada uno tiene su área en el `.cfg` y `ld65` se
+    queja, pero lo que se mira es el resultado: **ninguna etiqueta del código
+    a mano pasa de `$01:FFFF`, y lo primero de lo generado está en
+    `$C2:0000` justo**.
     """
     simbolos = tanda.cartucho().simbolos
-    rom = [int(v) for v in simbolos.tabla.values()
-           if 0x028000 <= int(v) < 0x7E0000]
-    assert min(rom) == 0x028000, "lo primero pasando el banco 1 está en $%06X" % min(rom)
+    valores = [int(v) for v in simbolos.tabla.values()]
+    banco1 = [v for v in valores if 0x018000 <= v < 0x020000]
+    assert banco1, "no hay nada en el banco 1"
+    generado = [v for v in valores if 0xC00000 <= v <= 0xFFFFFF]
+    assert min(generado) == 0xC20000, (
+        "lo primero de lo generado está en $%06X" % min(generado))

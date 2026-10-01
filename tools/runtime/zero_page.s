@@ -37,8 +37,9 @@ pick_edges: .res 1      ; the buttons just pressed this frame. It does not
 ; not fit.
 ;
 ; It lives in the **direct page** on purpose, and not for room but for the
-; bank: the routines that work with SRAM have the data bank at $70, and a BSS
-; variable read with absolute addressing would give them SRAM. The direct page
+; bank: the routines that work with SRAM have the data bank at the SRAM's, and
+; in LoROM —at $70— a BSS variable read with absolute addressing gave them
+; SRAM. The direct page
 ; always points to bank 0, so from there it reads correctly whatever the bank.
 slot: .res 1
 title_sel:      .res 1  ; which option is selected, from zero

@@ -55,9 +55,8 @@ erase:
     phb
     lda f:ANIMB_PREV + 2
     beq no_previous
-    ora #^FAST                  ; its fast mirror: see MEMSEL
-    pha
-    plb                         ; the previous frame's bank
+    pha                         ; its bank is already the one it is read
+    plb                         ; from: see `lz2_decompress`
     rep #$20
 .a16
     lda f:ANIMB_PREV
@@ -110,7 +109,6 @@ no_previous:
 .a8
     lda f:anim_battle_frames + 2, x
     sta f:ANIMB_PREV + 2
-    ora #^FAST
     pha
     plb                         ; the new frame's bank
 copy:

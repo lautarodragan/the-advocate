@@ -689,7 +689,7 @@ pub fn anim_table(maps: &[Map], rows: &[Vec<NpcRow>]) -> Result<String> {
 ///
 /// It does not go through [`block`] because its pointers are symbolic, but
 /// it is declared with `.block`: the console walks it with `[page_ptr], y`,
-/// and a table that crosses a bank continues in the WRAM mirror.
+/// and a table that crosses a bank continues wherever the next bank is.
 pub fn page_table(map: &PageMap, number: usize, evcode: &str) -> String {
     let mut out = vec![
         format!(".block {}", PAGE_BYTES * map.pages.len()),

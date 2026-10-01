@@ -589,25 +589,23 @@ plays:
 
 ; Advances the music pointer by one byte, returning in A what was already read.
 ;
-; In LoROM each bank exposes only its upper half, $8000-$FFFF, so the byte after
-; $00FFFF is not $010000 but $018000. A plain 24-bit increment would land in
-; bank 1's RAM and read garbage. With the whole song plus the samples going
-; past 64 KB, this is not theoretical: it is crossed for sure.
+; The pointer is 24 bits and the 65816 only increments 16 at a time: when they
+; wrap, the bank goes up by hand. In ExHiROM the next bank follows from its
+; $0000 —the packing only lets a stream cross between two banks that continue
+; each other—; in LoROM it followed from $8000, and this set it. With the
+; whole song plus the samples going past 64 KB, this is not theoretical: it is
+; crossed for sure.
 .proc advance
 .a8
 .i16
 ; The accumulator holds the byte the caller just read, so it has to be
-; returned intact: hence the pha/pla in the bank-crossing branch.
+; returned intact.
     inc music
     bne done
 height:                         ; where `READ` continues when the low byte wrapped
     inc music + 1
     bne done                    ; if the high part did not wrap, done
-    pha
-    lda #$80                    ; it wrapped: to the next bank, at $8000
-    sta music + 1
-    pla
-    inc music + 2
+    inc music + 2               ; it wrapped: to the next bank, at $0000
 done:
     rts
 .endproc

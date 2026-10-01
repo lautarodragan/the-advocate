@@ -84,9 +84,11 @@ fn run() -> Result<(), String> {
                 json!({
                     "rom": sfc,
                     "banks": m.banks,
-                    "first": m.first,
-                    "last": m.last,
+                    "used": m.used,
+                    "slow": m.slow,
                     "free": m.free,
+                    "free_fast": m.free_fast,
+                    "free_halves": m.free_halves,
                     "gaps": m.gaps,
                     "largest_gap": m.largest_gap,
                     "bank0": m.bank0,

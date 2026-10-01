@@ -237,8 +237,9 @@ TEXT_OFS_Y = 2
 ;
 ; `msg_ptr` is a long pointer but the composer advanced it with a 16-bit
 ; `inc`, so on going past $FFFF it went back to $0000 of the **same** bank.
-; In LoROM there is no ROM there: what follows $FFFF is $8000 of the next
-; bank, which is what `ptr_more` and `msg_start` already knew.
+; What follows $FFFF is $0000 of the next one —the packing only lets the text
+; block cross between two banks that continue each other—, which is what
+; `msg_start` also knows. In LoROM it was $8000.
 ;
 ; It is not theoretical and fixing `msg_start` was not enough: `abl`'s text
 ; block is 56 KB, so it crosses, and **a box whose bytes fall across the
@@ -251,8 +252,6 @@ TEXT_OFS_Y = 2
 .i16
     inc msg_ptr
     bne ready
-    lda #$8000
-    sta msg_ptr
     sep #$20
 .a8
     inc msg_ptr + 2
@@ -274,19 +273,15 @@ ready:
 .a16
 .i16
     ; The offset is sixteen bits and the text block can be **larger than a
-    ; LoROM bank's window**: with the 29 maps of `abl` it is 48972 bytes and
-    ; starts at $46:8000, so from offset $8000 on the sum goes past $FFFF.
-    ; What follows $FFFF is not $0000 of the next bank but its $8000, which
-    ; is the same thing `ptr_more` already knew for the map grid; here it was
-    ; added sixteen bits at a time and the carry was lost, so **every text box
-    ; past the first bank read from somewhere else**: the header and the line
-    ; lengths came out of anything. The loop adds one bank per pass because a
-    ; 64 KB block crosses up to twice.
+    ; bank**, so the sum can go past $FFFF: the carry goes into the bank.
+    ; When it was added sixteen bits at a time and the carry was lost, **every
+    ; text box past the first bank read from somewhere else**: the header and
+    ; the line lengths came out of anything.
     ;
     ; And the offset counts in steps of four bytes —`MESSAGES_STEP` in
     ; events.py—, so the block reaches 256 KB: the two bits that fall out of
     ; the `asl`s go to `temp`, and each unit of what it gathers is 64 KB, that
-    ; is two LoROM banks. With `rol` and not with a branch per bit on purpose:
+    ; is one bank. With `rol` and not with a branch per bit on purpose:
     ; that way the top bit —more than 128 KB, which no cartridge in the suite
     ; reaches— runs the same instructions as the bottom one, which does.
     phx
@@ -296,20 +291,15 @@ ready:
     asl a
     rol temp
     pha
-    lda temp
-    asl a                       ; two banks per 64 KB
+    lda temp                    ; one bank per 64 KB
     clc
     adc #^messages
     tax
     pla
     clc
     adc #.loword(messages)
-other_bank:
     bcc in_bank
-    inx
-    clc
-    adc #$8000
-    bra other_bank
+    inx                         ; the carry, into the next bank
 in_bank:
     sta msg_ptr
     sep #$20

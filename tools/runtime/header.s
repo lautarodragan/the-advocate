@@ -1,19 +1,23 @@
 .segment "FAR"
 
-; Up to the next bank: the generated data starts flush against one, which is
-; the only thing `tools/ensamblado/banks.py` assumes about the memory map.
+; Up to the end of bank 1, which is the end of `FAR`'s area: what it pads is
+; what `rm2k-snes-space` reports as bank 1's free space.
 .align $8000
 
 ; --- header and vectors ----------------------------------------------------
+; The console reads this at `$00:FFC0`, which in ExHiROM is `$40FFC0` of the
+; file: bank 0's copy, which the assembler writes next to the original —see
+; `MIRRORS` in tools/rm2k-snes/cartridge/src/banks.rs—. The vectors below,
+; the same.
 .segment "HEADER"
     ; This is what the FX Pak menu shows and what any ROM database reads. The
     ; game declares it in its project file, and the converter emits it already
     ; padded to 21 characters: see `rom_identity`.
     .byte ROM_TITLE
-    .byte $30                      ; LoROM, FastROM: see MEMSEL
+    .byte $35                      ; ExHiROM, FastROM: see MEMSEL
     .byte $02                      ; ROM and battery-backed RAM: the saved game
-    .byte $0C                      ; size: 4 MB (the byte is log2 of the KB)
-    .byte $05                      ; SRAM: 32 KB, and four slots of 2048 are used
+    .byte $0D                      ; size: 8 MB (the byte is log2 of the KB)
+    .byte $03                      ; SRAM: 8 KB, four slots of 2048
     .byte $01                      ; region
     .byte $00                      ; developer
     .byte $00                      ; version

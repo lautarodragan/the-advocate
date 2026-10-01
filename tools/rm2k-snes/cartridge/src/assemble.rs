@@ -26,9 +26,10 @@ use rm2k_project::{absolute, relative};
 use crate::banks;
 
 /// Where the checksum goes in the file: bank 0's `$FFDE`, and its complement
-/// at `$FFDC`.
-pub const CHECKSUM: usize = 0x7FDE;
-pub const COMPLEMENT: usize = 0x7FDC;
+/// at `$FFDC`, in each of its two copies —the console reads the one at
+/// `$40FFC0`, and flash cart menus score both—. See [`banks::MIRRORS`].
+pub const CHECKSUM: usize = 0x00FFDE;
+pub const COMPLEMENT: usize = 0x00FFDC;
 
 /// What `ld65` links against, written next to the generated data.
 pub const MEMORY_MAP: &str = "memoria.cfg";
@@ -146,18 +147,38 @@ pub fn generated(main: &Path, include: &Path) -> Result<Vec<PathBuf>, String> {
     Ok(found)
 }
 
+/// Copies banks 0 and 1 to the second 4 MB, where `ld65` left zeros: see
+/// [`banks::MIRRORS`]. Before the checksum, which counts both copies.
+pub fn mirror(rom: &mut [u8]) -> Result<(), String> {
+    if rom.len() != banks::ROM_SIZE {
+        return Err(format!(
+            "the linked ROM is {} bytes and the memory map says {}",
+            rom.len(),
+            banks::ROM_SIZE
+        ));
+    }
+    for (from, to, size) in banks::MIRRORS {
+        rom.copy_within(from..from + size, to);
+    }
+    Ok(())
+}
+
 /// Writes the header checksum, in place, and returns it.
 ///
 /// It is the sum of all the bytes modulo 65536, with its complement next to
 /// it. The source leaves `$FFFF` and `$0000` in those four bytes on purpose:
 /// since the complement is the inverted checksum, the four always add up to
 /// 510, so the sum does not change when they are written and there is no
-/// need to iterate.
+/// need to iterate. That holds for each copy of the header.
 pub fn checksum(rom: &mut [u8]) -> Result<u16, String> {
     let sum = |rom: &[u8]| rom.iter().fold(0u16, |s, &b| s.wrapping_add(b as u16));
     let before = sum(rom);
-    rom[CHECKSUM..CHECKSUM + 2].copy_from_slice(&before.to_le_bytes());
-    rom[COMPLEMENT..COMPLEMENT + 2].copy_from_slice(&(before ^ 0xFFFF).to_le_bytes());
+    let (from, to, _) = banks::MIRRORS[0];
+    for base in [0, to - from] {
+        rom[base + CHECKSUM..base + CHECKSUM + 2].copy_from_slice(&before.to_le_bytes());
+        rom[base + COMPLEMENT..base + COMPLEMENT + 2]
+            .copy_from_slice(&(before ^ 0xFFFF).to_le_bytes());
+    }
     let after = sum(rom);
     if after != before {
         return Err(format!(
@@ -211,8 +232,8 @@ pub fn assemble(
     let [ca65, ld65] = binaries()?;
     let packing = banks::resolve(&generated)?;
     println!(
-        "bank packing: {} piece(s) in {} bank(s)",
-        packing.pieces, packing.banks
+        "bank packing: {} piece(s) in {} bank(s), {} of them slow",
+        packing.pieces, packing.banks, packing.slow
     );
     let cfg = include.join(MEMORY_MAP);
     std::fs::write(&cfg, banks::cfg()).map_err(|e| format!("{}: {e}", cfg.display()))?;
@@ -244,6 +265,7 @@ pub fn assemble(
             .current_dir(&root),
     )?;
     let mut data = std::fs::read(rom).map_err(|e| format!("{}: {e}", rom.display()))?;
+    mirror(&mut data)?;
     checksum(&mut data)?;
     std::fs::write(rom, &data).map_err(|e| format!("{}: {e}", rom.display()))?;
     if let Some(table) = table {
@@ -291,23 +313,46 @@ mod tests {
         assert_eq!(includes(text), ["a.s", "b.inc"]);
     }
 
-    #[test]
-    fn checksum_and_complement_do_not_move_the_sum() {
-        let mut rom = vec![0u8; 4 * 1024 * 1024];
-        rom[1234] = 0x56;
+    /// A linked ROM: zeros, with bank 0's header carrying the usual four
+    /// bytes, and one more byte inside bank 0.
+    fn linked() -> Vec<u8> {
+        let mut rom = vec![0u8; banks::ROM_SIZE];
+        rom[0x9234] = 0x56;
         rom[CHECKSUM] = 0xFF;
         rom[CHECKSUM + 1] = 0xFF;
+        rom
+    }
+
+    #[test]
+    fn checksum_and_complement_do_not_move_the_sum() {
+        let mut rom = linked();
+        mirror(&mut rom).unwrap();
         let sum = checksum(&mut rom).unwrap();
-        assert_eq!(sum, 0x56 + 0xFF + 0xFF);
-        assert_eq!(rom[CHECKSUM..CHECKSUM + 2], sum.to_le_bytes());
-        assert_eq!(rom[COMPLEMENT..COMPLEMENT + 2], (sum ^ 0xFFFF).to_le_bytes());
+        assert_eq!(sum, 2 * (0x56 + 0xFF + 0xFF));
+        for base in [0, 0x400000] {
+            assert_eq!(rom[base + CHECKSUM..base + CHECKSUM + 2], sum.to_le_bytes());
+            assert_eq!(
+                rom[base + COMPLEMENT..base + COMPLEMENT + 2],
+                (sum ^ 0xFFFF).to_le_bytes()
+            );
+        }
         let total = rom.iter().fold(0u16, |s, &b| s.wrapping_add(b as u16));
         assert_eq!(total, sum);
     }
 
     #[test]
+    fn the_code_banks_go_twice() {
+        let mut rom = linked();
+        rom[0x18000] = 0x77;
+        mirror(&mut rom).unwrap();
+        assert_eq!(rom[0x409234], 0x56);
+        assert_eq!(rom[0x418000], 0x77);
+        assert_eq!(rom[0x40FFC0..0x410000], rom[0xFFC0..0x10000]);
+    }
+
+    #[test]
     fn a_header_without_the_usual_four_bytes_is_an_error() {
-        let mut rom = vec![0u8; 4 * 1024 * 1024];
+        let mut rom = vec![0u8; banks::ROM_SIZE];
         rom[5] = 1;
         assert!(checksum(&mut rom).unwrap_err().contains("did not settle"));
     }

@@ -55,7 +55,7 @@ def test_el_banco_1_es_lo_que_rellena_el_align():
     sirve si el código terminara en un `.byte 0`, pero sí para controlar."""
     sfc = cartuchos.rom_de(cartuchos.RELEASE)
     with open(sfc, "rb") as archivo:
-        banco1 = archivo.read()[0x8000:0x10000]
+        banco1 = archivo.read()[0x18000:0x20000]
     assert cartuchos.espacio(cartuchos.RELEASE)["bank1"] == (
         len(banco1) - len(banco1.rstrip(b"\0")))
 

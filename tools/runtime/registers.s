@@ -12,15 +12,20 @@ IRQ_LINE = 112
 HVBJOY   = $4212        ; bit 7: we are in vblank
 MEMSEL   = $420D        ; bit 0: the ROM from bank $80 onwards, fast
 ; The code runs from the bank $80 mirror, not from bank 0. Banks $80 to $BF
-; are the same as $00 to $3F —low RAM, the registers and the ROM in the same
-; places—, but with MEMSEL at 1 the ROM there is read at 3.58 MHz instead of
-; 2.68: everything the CPU fetches from the cartridge, starting with the
-; instructions, goes a third faster. It is the header's FastROM. All that has
-; to be done is get in: reset and the interrupts arrive through sixteen-bit
-; vectors, that is, into bank 0, and jump to the mirror with a `jml`; from
-; there on every `jsr` and every `rts` stays in the bank it is in. Since
-; 2026-09-11, because the opening with rain, thunder and text dropped one
-; frame out of three.
+; have low RAM and the registers in the same places as $00 to $3F, and with
+; MEMSEL at 1 their ROM is read at 3.58 MHz instead of 2.68: everything the CPU
+; fetches from the cartridge, starting with the instructions, goes a third
+; faster. It is the header's FastROM. All that has to be done is get in: reset
+; and the interrupts arrive through sixteen-bit vectors, that is, into bank 0,
+; and jump to the mirror with a `jml`; from there on every `jsr` and every
+; `rts` stays in the bank it is in. Since 2026-09-11, because the opening with
+; rain, thunder and text dropped one frame out of three.
+;
+; **In ExHiROM, $80 and $00 are not the same ROM**: they are the first and the
+; second 4 MB. The two code banks go in both —the assembler copies them, see
+; `MIRRORS` in tools/rm2k-snes/cartridge/src/banks.rs—, so for the code this
+; is still a mirror. For the generated data it is not, and nothing adds
+; `FAST` to a data address: its bank is already the one it is read from.
 FAST     = $800000
 STAT78   = $213F        ; bit 4: 0 = NTSC console, 1 = PAL
 HDMAEN   = $420C        ; per-scanline DMA channels

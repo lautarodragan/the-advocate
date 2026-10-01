@@ -30,14 +30,16 @@
 ; two —$7E or $7F—, so the body is written twice, once per bank, with the
 ; output-onto-itself `mvn` inside: that is where almost all the bytes go
 ; through —the tiles and even more so the grid are mostly repeats and fills—
-; and this way it is read from the ROM's fast mirror. The stream's changes from
+; and this way it is read from the ROM's fast half. The stream's changes from
 ; block to block, so the literal's `mvn` is built in RAM at the start
 ; —`LZ2_TRAMPOLINE_LIT`— and called with `jsl`; running from WRAM costs it a few
 ; cycles per byte, because `mvn` reads its code again for each one.
 ;
-; The stream is read with the data bank set to its own and `lda a:0, x`, through
-; the fast mirror: the direct page is full and there is nowhere to put a 24-bit
-; pointer. That is why each compressed block fits whole in one bank —the
+; The stream is read with the data bank set to its own and `lda a:0, x`: the
+; direct page is full and there is nowhere to put a 24-bit pointer. In ExHiROM
+; its bank is already the one it is read from —fast in the first 4 MB—; in
+; LoROM it was ORed with `^FAST`, which in ExHiROM would take a bank of the
+; second 4 MB to the first. That is why each compressed block fits whole in one bank —the
 ; converter declares it with `.block`—: X cannot go past $FFFF.
 
 ; Decompresses a stream. Enters with an 8-bit A and 16-bit X and Y: X and A
@@ -54,7 +56,6 @@
 .i16
     php
     phb
-    ora #^FAST                  ; the stream, through the fast mirror
     pha
     ; The literal's trampoline. In `mvn`'s machine code the destination bank
     ; goes first and the source bank after.

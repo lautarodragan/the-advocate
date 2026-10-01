@@ -63,9 +63,8 @@ fn main() -> ExitCode {
     if matches.get_flag("memory_map") {
         let map = json!({
             "bank_size": banks::BANK_SIZE,
-            "banks": banks::BANKS,
-            "reserved_banks": banks::RESERVED_BANKS,
-            "first_bank": banks::FIRST_BANK,
+            "rom_size": banks::ROM_SIZE,
+            "data_banks": banks::slots().len(),
             "stack": banks::STACK,
         });
         println!("{map}");

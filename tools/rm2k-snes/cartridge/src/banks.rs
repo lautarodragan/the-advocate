@@ -1,9 +1,9 @@
 //! The bank packing, and the memory map `ld65` links against.
 //!
-//! A DMA that crosses a bank does not read the next bank's ROM: it reads the
-//! WRAM. So everything the ROM uploads by DMA —a pose, a tilemap, a block of
-//! samples— has to fit **whole** in a bank, and when it does not fit in what
-//! is left of the current one, it has to go to another.
+//! A DMA that crosses a bank does not read the next bank's ROM: the address
+//! wraps inside the same bank. So everything the ROM uploads by DMA —a pose,
+//! a tilemap, a block of samples— has to fit **whole** in a bank, and when it
+//! does not fit in what is left of the current one, it has to go to another.
 //!
 //! `ld65` cannot pack variable-size blocks, so it is done here, before the
 //! assembler runs: the generated data sends everything to one segment,
@@ -11,28 +11,117 @@
 //! is, and this rewrites the files so that what reaches the assembler is one
 //! segment per bank, `BANKnn`, which is what [`cfg`] declares.
 //!
-//! **The only thing this module assumes about the memory map is which bank
-//! the generated data starts in**, [`FIRST_BANK`]. The `.cfg` knows the rest.
+//! # The map: 8 MB, ExHiROM
+//!
+//! The cartridge inverts the address's top bit before it reaches the ROM.
+//! The file's first 4 MB are banks `$C0-$FF`, whole, and their upper halves
+//! show again at `$80-$BF:8000`; the second 4 MB are banks `$40-$7D`, and
+//! their upper halves show again at `$00-$3F:8000`. [`file_offset`] is that,
+//! and nothing else here computes it. What it means for the data:
+//!
+//! * **A bank starts at `$0000` and the next one follows it**: inside a run
+//!   of whole banks, the byte after `$C2:FFFF` is `$C3:0000`. What jumps
+//!   banks by hand only has to carry into the bank byte.
+//! * **Only `$80-$FF` is fast.** `MEMSEL` speeds up the first 4 MB and
+//!   nothing else: the second are read at 2.68 MHz always. That is why the
+//!   packing fills the first 4 MB before touching the second.
+//! * **Banks 0 and 1, the code, go twice**: at `$008000` and `$018000` of
+//!   the file —what the console sees at `$80:8000` and `$81:8000`, the fast
+//!   mirror the code runs from— and at `$408000` and `$418000` —what it sees
+//!   at `$00` and `$01`, where the vectors land—. In LoROM those were one and
+//!   the same ROM, and the runtime still assumes so: it is linked at
+//!   `$00:8000` and jumps to `+ FAST`. The second copy is also what Mednafen's
+//!   `snes_faust` reads at `$80-$BF`, where it does not invert the top bit:
+//!   measured with a test ROM, and it is what its `cart.cpp` does.
+//!   [`MIRRORS`] says which; the
+//!   assembler writes the copy after linking.
+//! * **The low halves of `$70-$7D` are not used.** On the cartridge they are
+//!   ROM, but mesen-s, Mesen2 —unless its strict board mappings are on— and
+//!   Mednafen's `snes` module put LoROM's SRAM there in ExHiROM too, and
+//!   Mesen2 is the debugger. Nor are those of `$7E` and `$7F`, which are the
+//!   WRAM on every console: what is left of those sixteen banks is their
+//!   upper halves, through `$70-$7D:8000` and `$3E-$3F:8000`.
+//!
+//! **What this module assumes about the runtime** is that banks 0 and 1 are
+//! its two code banks and the generated data goes in the rest: [`slots`].
 
 use std::path::Path;
 
 use crate::text::{code, first_word, is_constant, is_label, split_lines};
 
-/// A LoROM bank, as the CPU sees it at `$8000-$FFFF`.
-pub const BANK_SIZE: usize = 0x8000;
+/// A whole ExHiROM bank: 64 KB, from `$0000`.
+pub const BANK_SIZE: usize = 0x10000;
 
-/// 4 MB LoROM: 128 banks of 32 KB.
-pub const BANKS: usize = 128;
+/// Half a bank: the data that shares a bank with something else gets this.
+pub const HALF: usize = 0x8000;
 
-/// The last two are not used for data: on the console, banks `$7E` and `$7F`
-/// **are** the WRAM, and data there would be read as RAM. They still go into
-/// the file, as zeros, so the image is the 4 MB its header says.
-pub const RESERVED_BANKS: usize = 2;
+/// The cartridge: 8 MB.
+pub const ROM_SIZE: usize = 0x800000;
 
-/// The bank where the generated data starts. Bank 0 is the code and the
-/// tables, and bank 1 is `FAR`, the hand-written code that lives outside
-/// bank 0.
-pub const FIRST_BANK: usize = 2;
+/// The two code banks, by file offset: where `ld65` puts them, where the
+/// assembler copies them, and how long they are. See the module's docs.
+pub const MIRRORS: [(usize, usize, usize); 2] =
+    [(0x008000, 0x408000, HALF), (0x018000, 0x418000, HALF)];
+
+/// The file offset of a CPU address, as the cartridge decodes it, or `None`
+/// if the cartridge does not answer there.
+pub fn file_offset(address: usize) -> Option<usize> {
+    let (bank, inside) = (address >> 16, address & 0xFFFF);
+    match bank {
+        0xC0..=0xFF => Some((bank - 0xC0) << 16 | inside),
+        0x80..=0xBF if inside >= 0x8000 => Some((bank - 0x80) << 16 | inside),
+        0x40..=0x7D => Some(0x400000 | (bank - 0x40) << 16 | inside),
+        0x00..=0x3F if inside >= 0x8000 => Some(0x400000 | bank << 16 | inside),
+        _ => None,
+    }
+}
+
+/// A place the packing can put data: the bank as the CPU sees it, where in
+/// the bank it starts, and how long it is.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Slot {
+    pub bank: usize,
+    pub start: usize,
+    pub size: usize,
+}
+
+impl Slot {
+    /// Its first byte, in 24 bits.
+    pub fn address(&self) -> usize {
+        self.bank << 16 | self.start
+    }
+
+    /// Whether `next` continues it: the byte after its last is `next`'s
+    /// first. That is what a piece walked by hand needs to cross.
+    pub fn continues_into(&self, next: &Slot) -> bool {
+        self.address() + self.size == next.address()
+    }
+
+    /// Whether the CPU reads it at 3.58 MHz, with `MEMSEL` on.
+    pub fn fast(&self) -> bool {
+        self.bank >= 0x80
+    }
+}
+
+/// Where the generated data can go, **in the order the packing fills it**:
+/// the first 4 MB before the second, because they are fast, and in each the
+/// whole banks before the halves.
+pub fn slots() -> Vec<Slot> {
+    let whole = |bank| Slot { bank, start: 0, size: BANK_SIZE };
+    let low = |bank| Slot { bank, start: 0, size: HALF };
+    let high = |bank| Slot { bank, start: 0x8000, size: HALF };
+    let mut out: Vec<Slot> = (0xC2..=0xFF).map(whole).collect();
+    // The low halves of the code banks, whose upper halves are banks 0 and 1.
+    out.extend([low(0xC0), low(0xC1)]);
+    out.extend((0x42..=0x6F).map(whole));
+    // The low halves of the copies of banks 0 and 1, the upper halves of the
+    // banks whose low one is not used, and those of `$7E` and `$7F`, which
+    // only show through `$3E` and `$3F`.
+    out.extend([low(0x40), low(0x41)]);
+    out.extend((0x70..=0x7D).map(high));
+    out.extend([high(0x3E), high(0x3F)]);
+    out
+}
 
 /// The stack starts at `$1FFF` and grows downwards, towards the BSS: the two
 /// share the low 8 KB of the WRAM. This is what the stack is given, and the
@@ -46,7 +135,8 @@ pub const STACK: usize = 128;
 /// The segment the generated data sends everything to.
 pub const SEGMENT: &str = "RODATA";
 
-/// The name of the segment pinned at the start of `bank`.
+/// The name of the segment pinned at the start of the CPU bank `bank`. No
+/// bank has two slots, so the bank alone names it.
 pub fn segment_of(bank: usize) -> String {
     format!("BANK{bank:02X}")
 }
@@ -179,11 +269,13 @@ struct Label {
     crosses: bool,
 }
 
-/// How many pieces were packed, and into how many banks.
+/// How many pieces were packed, into how many banks, and how many of those
+/// are in the slow 4 MB.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Packing {
     pub pieces: usize,
     pub banks: usize,
+    pub slow: usize,
 }
 
 /// Splits into banks what `paths` send to `RODATA`, and rewrites them.
@@ -193,18 +285,24 @@ pub struct Packing {
 /// whoever wrote the files, and there are three kinds.
 ///
 /// * **A `.block N` of up to one bank** fits whole in one: almost all of
-///   them are uploaded by DMA, and a DMA that crosses a bank reads the WRAM.
-///   It carries everything that follows up to the next directive —the tables
+///   them are uploaded by DMA, and a DMA that crosses a bank goes back to
+///   the bank's start. One of up to half a bank may go in a half. It carries everything that follows up to the next directive —the tables
 ///   the `.block` measures together, and the one-byte labels after them—.
-/// * **One of more than a bank** starts a bank and goes on into the
+/// * **One of more than a bank** starts a whole bank and goes on into the
 ///   following ones, split between operands: it is walked by code that jumps
 ///   banks by hand. What is left over in its last bank is used by the
 ///   others.
-/// * **A `.crossbank`** can be split anywhere **between two consecutive
-///   banks**: the code that walks it jumps from `$FFFF` to the next bank's
-///   `$8000`, not to any bank. First it is tried whole in a gap; the ones
-///   that do not fit go at the end, one after the other, as a chain that
-///   starts in whatever is left of the last bank and continues in new banks.
+/// * **A `.crossbank`** can be split anywhere **between two banks that
+///   continue each other** ([`Slot::continues_into`]): the code that walks it
+///   carries from `$FFFF` into the next bank's `$0000`, not to any bank.
+///   First it is tried whole in a gap; the ones that do not fit go at the
+///   end, one after the other, as a chain that starts in whatever is left of
+///   the last whole bank and continues in new ones. A piece of the chain
+///   that would have to cross into a bank that does not continue its own
+///   —from `$FF` to `$42`— starts in a new bank instead.
+///
+/// The banks are taken in the order of [`slots`]: a new one is the first
+/// that is free and where the piece fits.
 ///
 /// **To move the pieces they have to be taken out of their place**, because
 /// in `ca65` a segment is filled in the order of the text: what is left of
@@ -220,18 +318,14 @@ pub struct Packing {
 /// **Every label of more than one byte has to be covered by a `.block`**, or
 /// carry `.crossbank` in front if it is walked by code that jumps banks by
 /// hand. What is read with `lda f:table, x` or with `[ptr], y` does not jump:
-/// split, the second half is read from the next bank's `$0000`, which in
-/// LoROM is not ROM. The rule is enforced on every build, and not on the day
+/// split, the second half is read from the next bank's `$0000`, which is
+/// not where the packing put it unless the two banks continue each other.
+/// The rule is enforced on every build, and not on the day
 /// the cut lands on one.
 ///
 /// Running it twice changes nothing: the second time there is no `RODATA`
 /// left, and the banks the first one wrote stay as they are.
 pub fn resolve<P: AsRef<Path>>(paths: &[P]) -> Result<Packing, String> {
-    resolve_from(paths, FIRST_BANK)
-}
-
-/// [`resolve`], with the data starting at `first_bank`.
-pub fn resolve_from<P: AsRef<Path>>(paths: &[P], first_bank: usize) -> Result<Packing, String> {
     let mut texts = Vec::new();
     for path in paths {
         let path = path.as_ref();
@@ -244,7 +338,7 @@ pub fn resolve_from<P: AsRef<Path>>(paths: &[P], first_bank: usize) -> Result<Pa
         .map(|p| p.as_ref().display().to_string())
         .collect();
     let refs: Vec<&str> = texts.iter().map(String::as_str).collect();
-    let (kept, packing) = pack_texts(&names, &refs, first_bank)?;
+    let (kept, packing) = pack_texts(&names, &refs, &slots())?;
     for (path, own) in paths.iter().zip(kept) {
         let path = path.as_ref();
         std::fs::write(path, own).map_err(|e| format!("{}: {e}", path.display()))?;
@@ -252,12 +346,13 @@ pub fn resolve_from<P: AsRef<Path>>(paths: &[P], first_bank: usize) -> Result<Pa
     Ok(packing)
 }
 
-/// The packing over texts already read: what each file becomes, and the
-/// count. `names` are only for the messages.
+/// The packing over texts already read, into `slots` —[`slots`], except in
+/// the tests—: what each file becomes, and the count. `names` are only for
+/// the messages.
 pub fn pack_texts(
     names: &[String],
     texts: &[&str],
-    first_bank: usize,
+    slots: &[Slot],
 ) -> Result<(Vec<String>, Packing), String> {
     let mut pieces: Vec<Piece> = Vec::new();
     let mut kept: Vec<Vec<String>> = Vec::new();
@@ -380,24 +475,15 @@ pub fn pack_texts(
         ));
     }
 
-    let banks = pack(&pieces)?;
-    let fitting = BANKS - RESERVED_BANKS - first_bank;
-    if banks.len() > fitting {
-        // Without this the one complaining is `ld65`, with an internal error
-        // that does not say that space ran out.
-        return Err(format!(
-            "the data needs {} banks and {fitting} fit: from ${first_bank:02X} to ${:02X}",
-            banks.len(),
-            first_bank + fitting - 1
-        ));
-    }
+    let banks = pack(&pieces, slots)?;
     let packing = Packing {
         pieces: pieces.len(),
         banks: banks.len(),
+        slow: banks.iter().filter(|b| !slots[b.slot].fast()).count(),
     };
     if let Some(last) = kept.last_mut() {
-        for (k, bank) in banks.into_iter().enumerate() {
-            last.push(format!(".segment \"{}\"", segment_of(first_bank + k)));
+        for bank in banks {
+            last.push(format!(".segment \"{}\"", segment_of(slots[bank.slot].bank)));
             last.extend(bank.lines);
         }
     }
@@ -431,27 +517,142 @@ fn undeclared(labels: &[Label]) -> Vec<String> {
 }
 
 struct Bank {
+    /// Which of the slots it is.
+    slot: usize,
     used: usize,
     lines: Vec<String>,
-}
-
-impl Bank {
-    fn new() -> Bank {
-        Bank {
-            used: 0,
-            lines: Vec::new(),
-        }
-    }
 }
 
 fn padding(used: usize, align: usize) -> usize {
     (align - used % align) % align
 }
 
-/// The banks, with the pieces inside. See [`resolve`], which says what each
-/// kind is.
-fn pack(pieces: &[Piece]) -> Result<Vec<Bank>, String> {
-    let mut banks: Vec<Bank> = Vec::new();
+/// The banks being filled, out of `slots`.
+struct Packer<'a> {
+    slots: &'a [Slot],
+    taken: Vec<bool>,
+    banks: Vec<Bank>,
+}
+
+impl Packer<'_> {
+    fn capacity(&self, bank: usize) -> usize {
+        self.slots[self.banks[bank].slot].size
+    }
+
+    fn take(&mut self, slot: usize) -> usize {
+        self.taken[slot] = true;
+        self.banks.push(Bank { slot, used: 0, lines: Vec::new() });
+        self.banks.len() - 1
+    }
+
+    /// A new bank: the first free slot where `need` bytes fit.
+    fn open(&mut self, need: usize) -> Result<usize, String> {
+        match (0..self.slots.len()).find(|&k| !self.taken[k] && self.slots[k].size >= need) {
+            Some(k) => Ok(self.take(k)),
+            // Without this the one complaining is `ld65`, with an internal
+            // error that does not say that space ran out.
+            None => Err(format!(
+                "the data does not fit: a piece of {need} bytes needs a new bank, and the \
+                 {} banks the cartridge has for data are taken",
+                self.slots.len()
+            )),
+        }
+    }
+
+    /// The slot that continues `bank`'s, if it is free.
+    fn after(&self, bank: usize) -> Option<usize> {
+        let k = self.banks[bank].slot;
+        (k + 1 < self.slots.len()
+            && !self.taken[k + 1]
+            && self.slots[k].continues_into(&self.slots[k + 1]))
+        .then_some(k + 1)
+    }
+
+    /// The new bank a piece crossing out of `bank` goes on into.
+    fn continue_after(&mut self, bank: usize) -> Result<usize, String> {
+        match self.after(bank) {
+            Some(k) => Ok(self.take(k)),
+            None => {
+                let slot = self.slots[self.banks[bank].slot];
+                Err(format!(
+                    "a piece walked by hand would cross from ${:06X}, and no free bank \
+                     continues it: the data does not fit, or one piece is longer than a \
+                     run of whole banks",
+                    slot.address() + slot.size - 1
+                ))
+            }
+        }
+    }
+
+    fn fits(&self, bank: usize, u: &Piece) -> bool {
+        // A lone label takes space too: at the end of a bank it would point
+        // to the address after `$FFFF`, which is not the next bank.
+        let b = &self.banks[bank];
+        b.used + padding(b.used, u.align) + u.fit_size().max(1) <= self.capacity(bank)
+    }
+
+    fn put(&mut self, bank: usize, u: &Piece) {
+        let b = &mut self.banks[bank];
+        b.used += padding(b.used, u.align) + u.size;
+        b.lines.extend(u.lines.iter().cloned());
+    }
+
+    /// First fit over the banks already open.
+    fn place(&mut self, u: &Piece) -> bool {
+        match (0..self.banks.len()).find(|&b| self.fits(b, u)) {
+            Some(b) => {
+                self.put(b, u);
+                true
+            }
+            None => false,
+        }
+    }
+
+    /// Writes `lines` from the end of `bank`, splitting between operands and
+    /// continuing in the banks that continue it: the sequential packing, for
+    /// what can or has to cross. Returns the bank it ended in.
+    fn spill(&mut self, mut bank: usize, lines: &[String]) -> Result<usize, String> {
+        for line in lines {
+            let directive = code(line);
+            // A full bank is left behind before writing anything else,
+            // labels included: a label at the end of a bank would point to
+            // the address after `$FFFF`.
+            if self.banks[bank].used == self.capacity(bank) && !directive.is_empty() {
+                bank = self.continue_after(bank)?;
+            }
+            if directive.starts_with(".align ") {
+                let b = &mut self.banks[bank];
+                b.used += padding(b.used, number(directive, line)?);
+                b.lines.push(line.clone());
+                continue;
+            }
+            let mut line = line.clone();
+            let mut n = size(&line)?;
+            while self.banks[bank].used + n > self.capacity(bank) {
+                let room = self.capacity(bank) - self.banks[bank].used;
+                let (first, rest, rest_size) = split(&line, room)?;
+                let full = self.capacity(bank);
+                let b = &mut self.banks[bank];
+                if let Some(first) = first {
+                    b.lines.push(first);
+                }
+                b.used = full;
+                bank = self.continue_after(bank)?;
+                line = rest;
+                n = rest_size;
+            }
+            let b = &mut self.banks[bank];
+            b.used += n;
+            b.lines.push(line);
+        }
+        Ok(bank)
+    }
+}
+
+/// The banks, with the pieces inside, in the order they were opened. See
+/// [`resolve`], which says what each kind is.
+fn pack(pieces: &[Piece], slots: &[Slot]) -> Result<Vec<Bank>, String> {
+    let mut packer = Packer { slots, taken: vec![false; slots.len()], banks: Vec::new() };
     let large: Vec<&Piece> = pieces
         .iter()
         .filter(|u| !u.crosses && u.fit_size() > BANK_SIZE)
@@ -462,98 +663,68 @@ fn pack(pieces: &[Piece]) -> Result<Vec<Bank>, String> {
         .collect();
     let mut crossing: Vec<&Piece> = pieces.iter().filter(|u| u.crosses).collect();
 
-    fn fits(bank: &Bank, u: &Piece) -> bool {
-        // A lone label takes space too: at the end of a bank it would point
-        // to the address after `$FFFF`, which is not the ROM.
-        bank.used + padding(bank.used, u.align) + u.fit_size().max(1) <= BANK_SIZE
-    }
-
-    fn place(banks: &mut [Bank], u: &Piece) -> bool {
-        for bank in banks.iter_mut() {
-            if fits(bank, u) {
-                bank.used += padding(bank.used, u.align) + u.size;
-                bank.lines.extend(u.lines.iter().cloned());
-                return true;
-            }
-        }
-        false
-    }
-
-    // The large ones first, each from a new bank: what is left over in their
-    // last bank is used by the others.
+    // The large ones first, each from a new whole bank: what is left over in
+    // their last bank is used by the others.
     for u in large {
-        banks.push(Bank::new());
-        spill(&mut banks, &u.lines)?;
+        let bank = packer.open(BANK_SIZE)?;
+        packer.spill(bank, &u.lines)?;
     }
     let by_size = |u: &&Piece| (std::cmp::Reverse(u.fit_size()), u.order);
     whole.sort_by_key(by_size);
     for u in whole {
-        if !place(&mut banks, u) {
-            banks.push(Bank::new());
-            place(&mut banks, u);
+        if !packer.place(u) {
+            let bank = packer.open(u.fit_size().max(1))?;
+            packer.put(bank, u);
         }
     }
     crossing.sort_by_key(by_size);
     let mut chain: Vec<&Piece> = Vec::new();
     for u in crossing {
-        if u.fit_size() > BANK_SIZE || !place(&mut banks, u) {
+        if u.fit_size() > BANK_SIZE || !packer.place(u) {
             chain.push(u);
         }
     }
-    if !chain.is_empty() && banks.is_empty() {
-        banks.push(Bank::new());
+    if chain.is_empty() {
+        return Ok(packer.banks);
     }
+    // The chain starts in what is left of the last whole bank opened, which
+    // is the one a crossing can go on from.
+    let last_whole = (0..packer.banks.len())
+        .rev()
+        .find(|&b| packer.capacity(b) == BANK_SIZE);
+    let mut bank = match last_whole {
+        Some(b) => b,
+        None => packer.open(BANK_SIZE)?,
+    };
     chain.sort_by_key(|u| u.order);
     for u in chain {
-        spill(&mut banks, &u.lines)?;
+        // A piece that does not fit in what is left, where no bank continues
+        // this one, starts in a new bank: it may cross inside a run of whole
+        // banks, never between two runs.
+        let left = packer.capacity(bank) - packer.banks[bank].used;
+        if u.fit_size() > left && packer.after(bank).is_none() {
+            bank = packer.open(BANK_SIZE)?;
+        }
+        bank = packer.spill(bank, &u.lines)?;
     }
-    Ok(banks)
+    Ok(packer.banks)
 }
 
-/// Writes `lines` from the end of the last bank, splitting between operands
-/// and continuing in new banks: the sequential packing, for what can or has
-/// to cross.
-fn spill(banks: &mut Vec<Bank>, lines: &[String]) -> Result<(), String> {
-    for line in lines {
-        let directive = code(line);
-        // A full bank is left behind before writing anything else, labels
-        // included: a label at the end of a bank would point to the address
-        // after `$FFFF`, which is not the ROM.
-        if banks.last().unwrap().used == BANK_SIZE && !directive.is_empty() {
-            banks.push(Bank::new());
-        }
-        let bank = banks.last_mut().unwrap();
-        if directive.starts_with(".align ") {
-            bank.used += padding(bank.used, number(directive, line)?);
-            bank.lines.push(line.clone());
-            continue;
-        }
-        let mut line = line.clone();
-        let mut n = size(&line)?;
-        while banks.last().unwrap().used + n > BANK_SIZE {
-            let bank = banks.last_mut().unwrap();
-            let (first, rest, rest_size) = split(&line, BANK_SIZE - bank.used)?;
-            if let Some(first) = first {
-                bank.lines.push(first);
-            }
-            banks.push(Bank::new());
-            line = rest;
-            n = rest_size;
-        }
-        let bank = banks.last_mut().unwrap();
-        bank.used += n;
-        bank.lines.push(line);
-    }
-    Ok(())
-}
-
-/// The `ld65` `.cfg`: one area per bank, and each segment in its own.
+/// The `ld65` `.cfg`: the 8 MB in file order, one area per data slot, and
+/// each segment in its own.
 ///
 /// An area with `fill = yes` is padded to the end, so each bank takes its
-/// 32 KB in the file even if its segment does not fill them, and a segment
+/// place in the file even if its segment does not fill it, and a segment
 /// that overflows makes the link fail instead of spilling into the next
 /// one. The `BANKnn` are optional because how many are used depends on the
-/// cartridge.
+/// cartridge. What is not data —the copies of banks 0 and 1, the low halves
+/// [`slots`] leaves out— goes in as zeros, in areas no segment loads.
+///
+/// **Banks 0 and 1 are linked at `$00:8000` and `$01:8000`**, as in LoROM,
+/// and sit at `$008000` and `$018000` of the file: the addresses are the
+/// ones the runtime was written against, and the place is the one the code
+/// runs from, which is what `ld65`'s debug file tells Mesen2. See the
+/// module's docs.
 ///
 /// The `align = $8000` moves nothing —each segment starts at the beginning
 /// of its area, which is already aligned to that—, but `ld65` requires a
@@ -567,11 +738,6 @@ pub fn cfg() -> String {
             "RAM:  start = $0100, size = ${:04X}, type = rw, file = \"\";",
             0x1F00 - STACK
         ),
-        // Bank 0: the code and the tables, and the header and the vectors at
-        // the end, where the console looks for them.
-        "ROM:  start = $008000, size = $7FC0, fill = yes;".to_string(),
-        "HEAD: start = $00FFC0, size = $0020, fill = yes;".to_string(),
-        "VECT: start = $00FFE0, size = $0020, fill = yes;".to_string(),
     ];
     let mut segments = vec![
         "ZEROPAGE: load = ZP,   type = zp;".to_string(),
@@ -583,29 +749,52 @@ pub fn cfg() -> String {
         // The hand-written code that lives outside bank 0.
         format!("FAR:      load = {}, type = ro, align = $8000;", segment_of(1)),
     ];
-    for bank in 1..BANKS - RESERVED_BANKS {
-        memory.push(format!(
-            "{}: start = ${bank:02X}8000, size = $8000, fill = yes;",
-            segment_of(bank)
-        ));
-        if bank >= FIRST_BANK {
-            segments.push(format!(
-                "{}: load = {}, type = ro, align = $8000, optional = yes;",
-                segment_of(bank),
-                segment_of(bank)
-            ));
+    let data = slots();
+    let area = |name: String, start: usize, size: usize| {
+        format!("{name}: start = ${start:06X}, size = ${size:X}, fill = yes;")
+    };
+    let mut gap = 0;
+    // Walking the file in steps of half a bank, which is the finest grain
+    // anything in it has.
+    let mut offset = 0;
+    while offset < ROM_SIZE {
+        if offset == 0x008000 {
+            // Bank 0: the code and the tables, and the header and the
+            // vectors at the end, where the console looks for them.
+            memory.push("ROM:  start = $008000, size = $7FC0, fill = yes;".to_string());
+            memory.push("HEAD: start = $00FFC0, size = $0020, fill = yes;".to_string());
+            memory.push("VECT: start = $00FFE0, size = $0020, fill = yes;".to_string());
+            offset += HALF;
+            continue;
+        }
+        if offset == 0x018000 {
+            memory.push(area(segment_of(1), 0x018000, HALF));
+            offset += HALF;
+            continue;
+        }
+        let slot = data
+            .iter()
+            .find(|s| file_offset(s.address()) == Some(offset));
+        match slot {
+            Some(slot) => {
+                memory.push(area(segment_of(slot.bank), slot.address(), slot.size));
+                segments.push(format!(
+                    "{0}: load = {0}, type = ro, align = $8000, optional = yes;",
+                    segment_of(slot.bank)
+                ));
+                offset += slot.size;
+            }
+            None => {
+                // The copies of banks 0 and 1, which the assembler writes
+                // after linking, and what the cartridge has but the data
+                // cannot use. The start is the file offset: nothing is
+                // linked there.
+                memory.push(area(format!("NODATA{gap}"), offset, HALF));
+                gap += 1;
+                offset += HALF;
+            }
         }
     }
-    // The two reserved ones go into the file anyway, as zeros: the cartridge
-    // is 4 MB, which is what the header says and what flash carts expect.
-    // The area keeps the name it had when this map was written by a script in
-    // Spanish: renaming it changes the `.cfg` every ROM has been built with,
-    // and nothing reads the name.
-    memory.push(format!(
-        "RESERVADO: start = ${:02X}8000, size = ${:X}, fill = yes;",
-        BANKS - RESERVED_BANKS,
-        0x8000 * RESERVED_BANKS
-    ));
     let indent = |v: Vec<String>| {
         v.into_iter()
             .map(|l| format!("    {l}"))
