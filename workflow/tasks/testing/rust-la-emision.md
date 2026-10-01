@@ -2,7 +2,7 @@
 name: "Rust: la emisión"
 description: "Lo que escribe mapdata.inc (mapdata, map_record, materials, blocks, vram, map_layers, compress) a Rust, con mapdata.inc igual línea por línea y las ROMs byte por byte"
 type: refactor
-assignee: Timbó
+assignee: taro
 ---
 
 De taro, el 2026-10-01: "en paralelo, ¿podemos avanzar con alguna migración
@@ -128,9 +128,138 @@ todo `rom/build/` byte por byte, con `NO_CACHE=1`.
   contra los sha256 del Python de la base, sobre un pedido armado
   (`tests/maps.json`).
 
-Después de cada commit: `NO_CACHE=1 just cartuchos`, todo `rom/build/` (1035
-archivos) y los tres `mapdata.inc` iguales a la base.
+### 3. `mapdata`
+
+* `ac8b075b`: `rm2k-snes-mapdata emit` escribe el `.inc` entero —el
+  encabezado de constantes, la ventana y la fuente, la imagen, las
+  animaciones, el título y las pantallas completas, las ranuras y el menú,
+  las pantallas de texto, el equipo, la pelea, las habilidades, las tropas
+  y sus páginas, la escena, las tablas del banco 0, y `timer_mask` y
+  `CASE_SLOT`, que `snes_convert` agregaba después—. `mapdata.py` queda
+  como el armado del pedido.
+* `42332816`: las pruebas del `.inc` entero contra los hashes del Python,
+  sobre dos cartuchos armados (`tests/emit-*.json`) con la base del juego de
+  prueba de `rm2k-snes-battle`: uno pelado y uno con todo.
+* `f4544820`: merge de `main` (Tangle Forest, de Tacuarita). Chocó en
+  `mapdata.py`: sus dos constantes nuevas del encabezado, `TIMER_SLOT` y
+  `COND_TIMER`, pasaron a la plantilla de `emit/header.rs` y a `engine.rs`.
+  Los hashes de las pruebas son desde ahí los del Python de `main`
+  (`601c6f9a`).
+
+Cómo quedó, por dentro:
+
+* **El pedido lleva las respuestas de los otros dominios tal cual**: la de
+  `rm2k-snes-screens convert` entera —con su geometría—, la del modelo de la
+  pelea, las páginas de tropas del compilador, las tablas de la pelea. Lo
+  que es de otro dominio que sigue en Python llega hecho bytes y números:
+  los cuadros de las animaciones con su ancla (`animations_request`) y la
+  escena con sus fondos, battlers, posiciones y orden de dibujo
+  (`scene_request`).
+* **La base la lee la etapa**: ítems, habilidades, enemigos, actores y
+  tropas, con la `Db` y las reglas de `rm2k-snes-battle`, que es de quien
+  depende.
+* **Las plantillas largas de constantes se copiaron del Python tal cual** y
+  las llena `pyfmt.rs`, un `%` de Python: así el texto sale igual carácter
+  por carácter sin transcribir a mano ciento sesenta y seis argumentos.
+* **Un error latente del Python**, corregido: `tpage_var` y `tpage_value`
+  leían los campos `ranura` y `valor` de un `Trigger` que desde la
+  traducción se llaman `slot` y `value`. Ninguna página de un juego de RM2k
+  usa esa condición, así que nunca se evaluaba; tiene su prueba.
+
+### 4. El borrado
+
+* `9470aba5`: antes de borrar, lo que el orquestador todavía tomaba de
+  `map_record` —la tupla de sprite del `map_info`, que ya nadie leía, y
+  `PARALLEL_MAX` y `ROUTE_EV_MAX`, que pasan a `snes_convert.py` al lado de
+  `SUB_MAX`—.
+* `36a6a8db`: **sólo borrados**. `map_record.py`, `materials.py`,
+  `blocks.py`, `asm.py` y `color.py` enteros; de `battle_animations.py` y
+  `battle_scenes.py` lo que escribían para el `.inc`; las constantes que
+  sólo leía la emisión en `map_layers.py`, `sprites.py`, `obj_extras.py` y
+  `constants.py`; `commands` de `compress.py`; de `rules.py`,
+  `equipped_params` y los términos de la pelea. 1812 líneas.
+* `40f7527a`: la prosa que nombraba lo borrado —docstrings, comentarios,
+  `README.md`, `tools/README.md`, `AGENTS.md`, `docs/port/maps.md` y
+  `vram.md`, tres pruebas de ABL, dos crates— y el README del crate.
+* `0a160c4d`: las combinaciones de bloques, que el `map_info` seguía
+  llevando sin que nadie las leyera.
+* `bf45a944`: la prueba de la huella de `cartridge`, que no sabía de
+  `rm2k-snes-mapdata`.
+
+## Lo que quedó en Python
+
+* **El orquestador**: `snes_convert.py`, `map_convert.py` y `layers_answer`
+  —juntan lo de cada dominio y arman los pedidos—, `mapdata.py` —el pedido
+  de la emisión— y `vram.py` —el lector de los repartos que publica la
+  etapa—.
+* `compress.py`, que usa `fullscreen.py` para el título y el Game Over.
+* Lo que el pedido de la emisión necesita de dominios que siguen en
+  Python: los cuadros de `animation.py` y lo de la escena de `scene.py`.
+
+## Cómo se verificó
+
+Con los scripts de `<scratchpad>/timbo-emision/` (`base.sh`, `huellas.py`):
+`NO_CACHE=1 just cartuchos` con los sellos borrados, y el sha256 de todo
+`rom/build/` —menos el caché, los `.o`, `sello.txt` y `conversor.log`; el
+`.dbg` sin `mtime`—, con los tres `mapdata.inc` aparte.
+
+* **Antes del merge**, después de cada commit de las etapas 1 a 3: los 1035
+  archivos y los tres `mapdata.inc` iguales a la base de `052cb999`.
+* **Después del merge**: la base se volvió a sacar sobre `main`
+  (`601c6f9a`) —su Python y sus binarios de `events`, `maps` y `cartridge`,
+  instalados en el `bin/` local—, y el árbol mergeado, con los binarios de
+  esta rama, dio **los 1075 archivos iguales**, después del merge y después
+  de cada commit del borrado. Los `mapdata.inc` de los tres cartuchos,
+  iguales línea por línea: 305476, 65718 y 28581 líneas antes del merge.
+* Las ROMs, iguales a las de `main`:
+  * `release/abl.sfc` `19e771abd78b329153a2fc77717a87f521f1afc65a499c2abe1f67d5b7465b3c`
+  * `tests/special/prueba.sfc` `4f091bfd8de4a5869d19b5bfe09dc9169f294bd48ec2a8feb9ac1ab64fcfefe9`
+  * `tests/encounter-every-step/prueba.sfc` `555c3be1d826d01759473ec8e6d52c12639f079107095a453f3e4e5729d72ec2`
+* **Contra el Python, fuera de los cartuchos**: las pruebas del crate
+  comparan con los sha256 de lo que escribía el Python sobre entradas
+  armadas para pasar por cada camino —incluidos los que ningún cartucho
+  recorre: sin título, sin Game Over, sin imagen, sin animaciones, sin audio
+  de pelea, sin páginas de tropas—. Los sacó un script descartable
+  (`gen_record.py`, `gen_emit.py`) que corría el Python sobre lo mismo; las
+  salidas eran iguales línea por línea antes de anotar los hashes.
+* Las tandas, sobre el árbol final: `just pruebas`, 934 —eran 936 en `main`;
+  dos de `test_lz2.py` se mudaron al crate—; `just -f tools/justfile test`,
+  39 —eran 46; las siete de `test_vram_layouts.py` se mudaron al crate—;
+  `cargo test -p` de `rm2k-snes-mapdata` (38), `rm2k-snes-maps`,
+  `rm2k-snes-events`, `rm2k-snes-images` y `rm2k-snes-cartridge`, en verde.
 
 Lo que el log del conversor cambia, y no está en la huella: el renglón "the
 map fits in N 16x16 blocks" cuenta ahora los bloques que armaron las
-sustituciones, porque la etapa los arma antes de contestar.
+sustituciones, porque la etapa los arma antes de contestar. Y `NO_CACHE=1
+just cartuchos` tarda lo mismo que antes, unos 45 s.
+
+## Al mergear
+
+* Instalar en el global **`mapdata`** —el binario nuevo—, **`maps`** —su
+  pedido lleva las sustituciones y el `map_convert` nuevo se las manda— y
+  **`cartridge`** —la huella nombra `rm2k-snes-mapdata`—: `just -f
+  tools/justfile install mapdata maps cartridge`. Van juntos con el Python:
+  sin `rm2k-snes-mapdata` el conversor para y dice cómo instalarlo, y el
+  `maps` viejo no entiende el pedido nuevo. `events` e `images` sólo
+  cambiaron un comentario.
+* Ningún script de Python cambió de nombre: no hace falta `install-scripts`.
+* No mueve la ROM ni las goldens.
+
+## Lo que falta
+
+* **Las constantes del motor están dos veces**: en `engine.rs`, de donde las
+  emite el `.inc`, y en `events.py`, con sus comentarios largos, porque las
+  leen pruebas de ABL. Lo mismo `SUB_MAX`, `PARALLEL_MAX` y `ROUTE_EV_MAX`
+  (`snes_convert.py` y `record.rs`) y `OBJ_PRIORITY*` con `block_tile`
+  (`sprites.py` y `objects.rs`). Se van de Python cuando el orquestador
+  pase a Rust, o antes si las pruebas de ABL las leen del `.inc`.
+* **Lo que dibuja cada página** (`oam`, en `snes_convert`) se arma todavía
+  en Python con `where` y `block_tile`: podría armarlo la emisión, que ya
+  tiene los objetos del mapa.
+* **Lo que se emite al `.inc` sigue citando el Python** ("Generated by
+  tools/port/snes_convert.py", "see `anim_table` in
+  tools/port/snes_convert.py"), y comentarios del runtime nombran archivos
+  que ya no existen (`frame_without_gaps` en `battle_animation_frames.s`,
+  `Substitutions` en `interpreter_map.s`). Las dos cosas cambian el `.inc` o
+  el `.dbg`: van en su propio commit, cuando se decida tocar lo que se emite.
+* `compress.py` se va cuando `fullscreen.py` pase a usar la etapa.
