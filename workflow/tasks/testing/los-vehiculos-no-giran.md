@@ -101,3 +101,11 @@ goldens), `c1c9305f` (main mergeado).
 events`); `cartridge` no cambió. La ROM se mueve: `test_musica_techos.py`
 pasó en la rama. No se usó RAM lejana ni opcodes nuevos; BSS gana dos bytes
 (`hero_lock`, `found_flags`).
+
+**Después del merge de Chingolo** (`b60f32ec`): `python.json` chocó porque
+las dos ramas cambiaron los mismos dos hashes; quedaron los del árbol
+mergeado, medidos (ver el mensaje del merge). No se tomó nada del rango de
+RAM lejana repartido —ni `$25C6`–`$25DF` ni de `$25C5` para abajo—. Sobre el
+árbol mergeado: 923 en `just pruebas`, 46 en las herramientas, banco 0 de
+`release` en 320 B. Al mergear, reinstalar `events`, que ahora lleva las dos
+cosas.
