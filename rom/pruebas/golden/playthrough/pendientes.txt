@@ -83,8 +83,15 @@ tangle/07-los-guardias-bajan.png
 tangle/08-la-nave.png
 tangle/09-la-pelea-con-la-nave.png
 tangle/10-del-otro-lado-del-bosque.png
-tangle/11-el-fin-de-la-demo.png
-tangle/12-el-titulo-despues-del-fin.png
+tangle/11-mountain-path.png
+paradise/01-mountain-path.png
+paradise/02-los-vehiculos.png
+paradise/03-la-emboscada.png
+paradise/04-arden-se-queda.png
+paradise/05-la-amnistia.png
+paradise/06-isabella.png
+paradise/07-el-fin-de-la-demo.png
+paradise/08-el-titulo-despues-del-fin.png
 
 # abl/test_recorrido_lashe_golden.py:
 # sus capturas **no están bendecidas**, dice su docstring: son

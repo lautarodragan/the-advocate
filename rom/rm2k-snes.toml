@@ -334,8 +334,8 @@ Annihilation2 = 8000
 # --- Los mapas ---------------------------------------------------------------
 #
 # Los mapas del juego que lleva `release`: **los de id menor a `below`, menos
-# `excluded`, más `added`**. Hoy es Lashe City entera y el camino principal del
-# capítulo del mundo, hasta el túnel a Paradise. Hasta el 2026-09-27 era una
+# `excluded`, más `added`**. Hoy es Lashe City entera, el camino principal del
+# capítulo del mundo y el camino a Paradise, hasta su puerta. Hasta el 2026-09-27 era una
 # lista escrita a mano; la regla y sus valores son de
 # `workflow/tasks/*/la-carrera-y-lo-que-sigue.md` y de
 # `workflow/tasks/*/el-mundo-y-lo-que-sigue.md` ("La regla de los mapas"), y
@@ -350,15 +350,18 @@ Annihilation2 = 8000
 # del 36 es una sola página que compila con sus cuatro destinos o con ninguno.
 # Una exclusión no los puede separar.
 #
-# La demo termina en el mundo, el 66, al final del capítulo: el "Continue
-# onward" del túnel a Paradise, que el fork del 66 cambia por el cartel del
-# fin. Los lugares del mundo cuyo destino no está —Yun Town, Drust Camp— no
-# hacen nada, porque sus páginas no compilan.
+# La demo termina al final del túnel a Paradise, el 107, cuando Isabella se va
+# y la escena salta al 108: el fork del 107 cambia ese `Teleport` por el
+# cartel del fin. Los lugares del mundo cuyo destino no está —Yun Town, Drust
+# Camp— no hacen nada, porque sus páginas no compilan.
 [maps]
-# El 105, Mountain Path, es el primero del capítulo siguiente, adonde lleva el
-# 66 ev18 —"Yes - Continue onward"—, y ahí termina la demo: el fork del 66
-# cambia ese `Teleport` por el cartel del fin.
-below = 105
+# El 108, Distant Paradise, es el primero del capítulo siguiente —su padre en
+# el árbol es la raíz—, y no entra: pide más tiles de sprite de los que hay
+# (ver `workflow/tasks/*/mundo-7-camino-a-paradise.md`). Del 105 al 107 es el
+# camino hasta su puerta —Mountain Path, la amnistía y el túnel—, y la demo
+# termina al final del túnel: el fork del 107 cambia el `Teleport` al 108 por
+# el cartel del fin.
+below = 108
 
 # Cada uno con su razón, que es lo que hay que revisar antes de sumarle otro.
 excluded = [

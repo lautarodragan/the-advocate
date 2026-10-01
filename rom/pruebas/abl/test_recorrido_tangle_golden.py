@@ -1,4 +1,4 @@
-"""Tangle Forest: del bosque al fin de la demo, en el túnel a Paradise.
+"""Tangle Forest: del bosque al túnel a Paradise.
 
 Sigue donde termina `test_recorrido_capitulo_golden.py`: Talan y Arden
 recién llegados al 310 por la entrada del mundo. El recorrido:
@@ -17,8 +17,8 @@ recién llegados al 310 por la entrada del mundo. El recorrido:
     312 la nave: la automática del evento 81 —la de la condición de
         cronómetro, que acá no vale— pelea con la tropa 239 y sale al mundo
         (847) -> 66 (34, 56)
-    66  el túnel a Paradise, el evento 18: "Yes - Continue onward" es el fin
-        de la demo, en el fork del 66
+    66  el túnel a Paradise, el evento 18: "Yes - Continue onward" salta a
+        Mountain Path (105), donde sigue `test_recorrido_paradise_golden.py`
 
 **Los encuentros al azar se apagan** al llegar a cada mapa, como en los
 recorridos de antes. Las peleas se juegan, con los HP del grupo en 999 y
@@ -61,6 +61,8 @@ DOS_MINUTOS = 120
 DEL_OTRO_LADO = (34, 56)
 EL_TUNEL = (5, 64)
 SEGUIR = 1
+# Adonde lleva: Mountain Path, al pie.
+MOUNTAIN_PATH, AL_PIE = 105, (68, 19)
 
 
 NIVEL = 20
@@ -144,18 +146,8 @@ def test_tangle_forest(recorrido):
     sin_encuentros(p)
     r.caminar_a(EL_TUNEL, tope=8000, hasta=lambda p: p.corriendo_una_pagina())
     r.elegir(SEGUIR)
-    # Lo que dice Talan al seguir, y el cartel del fin.
-    mensajes = []
-
-    def contar(p):
-        mensajes.append(grupo_de(p))
-        return False
-    jugar(r, "el fin de la demo hasta el título",
-          lambda p: len(mensajes) >= 2 and not p.byte("msg_open"),
-          fotos={"contar": contar,
-                 "el-fin-de-la-demo": lambda p: len(mensajes) == 2})
-    assert len(mensajes) == 2, (
-        "al seguir hacia Paradise salen un mensaje de Talan y el cartel del "
-        "fin; salieron %d. %s" % (len(mensajes), r.estado()))
-    p.consola.run(p.simbolos["BOOT_FRAMES"] + 60)
-    r.foto("el-titulo-despues-del-fin", asentar=False)
+    # Lo que dice Talan al seguir, y el salto a Mountain Path: lo que sigue lo
+    # juega `test_recorrido_paradise_golden.py`.
+    jugar(r, "hasta Mountain Path", quieto_en(MOUNTAIN_PATH))
+    assert r.celda() == AL_PIE, r.estado()
+    r.foto("mountain-path")

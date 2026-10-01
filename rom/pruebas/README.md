@@ -267,10 +267,15 @@ lista, y todo lo nombrado tiene que existir: lo cobra
   puente
 * `abl/test_capitulo.py`: Tasgarde, su laboratorio, el minijuego de Eisen, el
   puente y lo de debajo recién llegados
-* `abl/test_recorrido_tangle_golden.py`: Tangle Forest, del 310 al fin de la
-  demo: el tram, las latas de fuego, el bosque en llamas contra el
+* `abl/test_recorrido_tangle_golden.py`: Tangle Forest, del 310 a Mountain
+  Path: el tram, las latas de fuego, el bosque en llamas contra el
   cronómetro, la pelea con la nave y el túnel a Paradise
 * `abl/test_tangle.py`: el bosque y el claro recién llegados
+* `abl/test_recorrido_paradise_golden.py`: el camino a Paradise, del 105 al
+  fin de la demo: los vehículos de la Agency, la emboscada, la amnistía y
+  el túnel de Isabella
+* `abl/test_paradise.py`: Mountain Path, la amnistía y el túnel recién
+  llegados
 * `abl/test_escenas_golden.py`: las escenas y cinemáticas
 * `abl/test_recuerdo.py`: el recuerdo de CORE y MANTA
 * `abl/test_un_ano_antes.py`: el cartel de "1 year earlier"
