@@ -2,6 +2,7 @@
 name: "La música pesa 789 KB"
 description: "El stream eran escrituras crudas al DSP; el formato por nota (hecho) lo bajó al 29% sin cambiar ni una escritura, y quedan tres ideas más"
 type: refactor
+assignee: Tijereta
 ---
 
 **La idea 1, el formato por nota, está hecha desde el 2026-09-26**: es el
