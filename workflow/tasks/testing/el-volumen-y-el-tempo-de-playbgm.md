@@ -38,7 +38,7 @@ los temas de este juego.
 ## Lo que pide el juego
 
 En los mapas de `release` hay 62 `PlayBGM`: 12 con otro volumen —el 80 es
-el más común: `TF3_1_awe` en la apertura (mapa 2), `evilrhys` en el 3,
+el más común: `TF3_1_awe` en el mapa 2, `evilrhys` en el 3,
 `dcbest`, `tsmedit`, `bubstix`, `jackalstg2`— y uno solo con otro tempo,
 `Kfmus5` a 110 (mapa 37, al entrar al 41). El 93 tiene el caso de "el
 mismo tema con otro volumen": su automática pide `jackalstg2` a 50 y, a
@@ -156,6 +156,6 @@ con MSU-1 el `Kfmus5` sale igual que antes, a propósito.
 
 ## Qué escuchar jugando
 
-La apertura y el mapa 3 tienen su tema a 80, un poco más bajo que antes. En
+`TF3_1_awe` en el mapa 2 y `evilrhys` en el 3 piden 80: un poco más bajos que antes. En
 la agencia (mapa 93) el tema arranca bajo y sube cuando el guardia avisa del
 misil. Y sin MSU-1, el `Kfmus5` del 41 un poco más rápido.
