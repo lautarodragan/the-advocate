@@ -354,6 +354,22 @@ menu-modo-5 *capturas:
   experimentos/menu-modo-5/armar.py build/menu-modo-5/menu-modo-5.sfc
   experimentos/menu-modo-5/verificar.py build/menu-modo-5/menu-modo-5.sfc {{capturas}}
 
+# **La ROM de prueba del puerto de datos del MSU-1**: cuánto tarda leer del
+# `.msu` y si lo que llega es lo que hay, para saber si los mapas pueden
+# venir de ahí —ver `docs/research/2026-10-01-los-mapas-por-el-msu-1.md`—.
+# Arma una ROM de 32 KB con un `.msu` de 1 MB al lado y la mide en los
+# emuladores, que dan el techo del bus. Lo que no dan es el FX Pak, que
+# llena su búfer desde la tarjeta: en la consola la pantalla sale **verde**
+# si los 576 KB llegaron bien, **roja** si no, y **azul** sin MSU-1. Qué
+# lee y en qué orden, en el encabezado de `experimentos/msu-puerto/puerto.s`.
+#
+#     just msu-puerto
+#
+# Arma y mide la ROM de prueba del puerto de datos del MSU-1.
+msu-puerto:
+  experimentos/msu-puerto/armar.py build/msu-puerto/msu-puerto.sfc
+  experimentos/msu-puerto/medir.py build/msu-puerto/msu-puerto.sfc
+
 # **La ROM de prueba de las fuentes**: las candidatas para el texto del menú
 # y de la pelea, dibujadas desde las hojas de glifos de
 # `experimentos/fuentes/hojas/`, que se editan a mano. Es la hermana de
