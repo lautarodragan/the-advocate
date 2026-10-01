@@ -33,6 +33,84 @@ def has_rain(map_ids, extra=()):
     return False
 
 
+def timer_reach(map_ids, scan, common_events, never=(), counters=()):
+    """The maps of the ROM where the timer can be running: the ones that
+    carry its digits, which cost a sprite palette.
+
+    In RM2k the timer is global: once started it is seen in any map it is
+    carried to. So it is the maps where a page that compiles starts it, plus
+    the ones a `Teleport` takes it to while it runs, until a page stops it.
+    Each page is walked **in order and without looking at its branches**,
+    following the map it is on: a start after a `Teleport` is the
+    destination's —311's latas start it after the jump to 312—, and a
+    `Teleport` after a stop does not carry it —312's exit stops it and then
+    goes to 313—. A page of a map the timer reaches starts with it running.
+    A `CallEvent` to a common event walks its commands in place.
+
+    It is an approximation, and **it can only fail by leaving a map
+    without digits**, which then do not show: which page runs, and in what
+    order, depends on switches nobody knows here. That is what `never` is
+    for: the maps the game says the timer never runs in although a page
+    takes it there. They are `[graphics] timer_never_runs_in` of the project
+    file, each with its reason.
+
+    **And the maps with a counter**, which draws a variable with the same
+    digits —`OP_COUNTER`, the Fortitude of map 95—: a page that calls one of
+    `counters`, the common events of `[events] counters`, asks for them
+    whether the timer runs there or not. It is the call and not the
+    bytecode because the first answer of the compiler, `scan`, does not
+    know the counters: there the call is compiled in place."""
+    in_rom = set(map_ids)
+    never = set(never)
+    counters = set(counters)
+    pages = []
+    for map_id in map_ids:
+        game_map = lcf.Map(os.path.join(_game(), "Map%04d.lmu" % map_id))
+        compiling = compiler.compiling_pages(scan, map_id)
+        for e, event in enumerate(game_map.events):
+            for k, page in enumerate(event.pages):
+                if (e, k) in compiling:
+                    pages.append((map_id, page.commands))
+
+    def walk(commands, depth=0):
+        for cmd in commands:
+            yield cmd
+            p = cmd.parameters
+            if (cmd.code == events.CALL_EVENT and len(p) >= 2
+                    and p[0] == events.CALL_COMMON and depth < 8):
+                yield from walk(common_events.get(p[1], []), depth + 1)
+
+    reach, counted = set(), set()
+    grew = True
+    while grew:
+        grew = False
+        for map_id, commands in pages:
+            here, running = map_id, map_id in reach
+            for cmd in walk(commands):
+                if (cmd.code == events.CALL_EVENT and len(cmd.parameters) >= 2
+                        and cmd.parameters[0] == events.CALL_COMMON
+                        and cmd.parameters[1] in counters):
+                    counted.add(here)
+                    continue
+                if cmd.code == events.TELEPORT and cmd.parameters:
+                    here = cmd.parameters[0]
+                elif cmd.code == events.TIMER_OPERATION and cmd.parameters:
+                    if cmd.parameters[0] == events.TIMER_START:
+                        running = True
+                    elif cmd.parameters[0] == events.TIMER_STOP:
+                        running = False
+                    else:
+                        continue
+                else:
+                    continue
+                if here in never:
+                    running = False
+                if running and here in in_rom and here not in reach:
+                    reach.add(here)
+                    grew = True
+    return reach | (counted & in_rom)
+
+
 def possible_leaders(renderer, map_ids, party, scan=None):
     """The actors that can end up drawn as the hero in this ROM.
 

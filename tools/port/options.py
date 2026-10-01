@@ -79,8 +79,9 @@ def flags_parser():
                              "image at the end of the sprite bank, which "
                              "share a palette with a character— only in the "
                              "maps where a case that uses them runs, and not "
-                             "in all. It is what the suite's cartridges ask "
-                             "for: see `args.timer_en`")
+                             "in the ones the game's timer can reach. It is "
+                             "what the suite's cartridges ask for: see "
+                             "`args.timer_maps`")
     parser.add_argument("--test-graphic", nargs=2, action="append",
                         default=None, metavar=("CHARSET", "INDEX"),
                         help="puts this graphic in the sprite bank of the\n"

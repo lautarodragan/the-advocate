@@ -177,6 +177,11 @@ OPEN_SHOP = 10720
 TIMER_OPERATION = 10230
 TIMER_SET, TIMER_START, TIMER_STOP = 0, 1, 2
 
+# `CallEvent`, and its first parameter when it calls a common event by its
+# number —1 and 2 are a map event's page, fixed or from variables—.
+CALL_EVENT = 12330
+CALL_COMMON = 0
+
 # `Game_Party::SetTimer` stores `segundos * 60 + 59`, not `segundos * 60`. The
 # extra 59 are what makes the first second show whole: without them the timer
 # would show the requested value for a single frame.

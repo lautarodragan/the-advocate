@@ -78,6 +78,19 @@ msu_data_signature = "ABLD"
 # Por nombre de CharSet, sin distinguir mayúsculas.
 opaque = ["savept"]
 
+# Los mapas donde el cronómetro **no puede estar corriendo**, aunque una
+# página que lo deja corriendo lleve a ellos: el conversor le pone los dígitos
+# —y les cuesta una paleta de sprite— sólo a los mapas a los que llega
+# andando, y el camino que sigue no mira switches. Ver `timer_reach` en
+# `tools/port/game_scan.py`.
+#
+# El 66, el mundo: el cronómetro de la mañana arranca en el 7 y para al llegar
+# al trabajo (el 9, el 11 o el 16), y a Lashe Area se sale recién con la
+# despedida del 64, días después; el del bosque en llamas para en la salida
+# del 312, antes de volver al mundo. Sin esto, con el cronómetro en todos los
+# mapas, Yun Town (67) no entraba: sus ocho paletas están llenas.
+timer_never_runs_in = [66]
+
 # Cuando un mapa tiene más personajes que paletas de sprite, el que llega
 # último **no se queda sin dibujar**: se le presta una ajena y se lo dibuja con
 # los colores de otro. Quién llega último era el orden de los eventos del mapa,
