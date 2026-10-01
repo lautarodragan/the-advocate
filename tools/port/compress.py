@@ -99,12 +99,6 @@ def walk(stream):
         yield command, length
 
 
-def commands(stream):
-    """How many commands a stream has: what it costs to decompress it
-    depends on this and on how many bytes come out."""
-    return sum(1 for _ in walk(stream))
-
-
 # The two commands the format has and `lz2_decompress` does not read, on
 # purpose: no block used them, and a path no test runs is the one that has
 # bitten this repo the most times. The compressor does not emit the

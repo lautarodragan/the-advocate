@@ -15,8 +15,6 @@ came out and a precomputation in parallel, which went with it.
 
 import json
 
-from rpgmaker import rm2k
-
 
 # CGRAM has 256 entries. The upper half belongs to the sprites; the lower half
 # is shared by the background, which goes at 8 bits per pixel and addresses
@@ -33,54 +31,6 @@ from rpgmaker import rm2k
 # background has to keep at least one palette. How many the upper layer really
 # takes comes from what the background doesn't need.
 BG_PALETTES = 8                          # the lower half of CGRAM, in palettes
-
-
-# The CGRAM entries the background **cannot** use, at the very bottom: entry 0,
-# which is the screen's backdrop color, and the seven of the message window.
-#
-# The window goes in **palette 0** and not floating below the upper layer, and
-# that is what gives the background back everything that used to be thrown
-# away. BG1 goes at 8 bits per pixel and addresses CGRAM directly: it doesn't
-# need palettes of 16, it is enough that nobody steps on its entries. With the
-# window at the very bottom, the background is contiguous from 8 up to where
-# the upper layer starts, with no gaps.
-#
-# The window used to go in the lowest palette of the whole ROM —`paleta_de_la
-# ventana`— and the background got only the block below. In the opening ROM
-# that left it at 47 colors while palettes 4, 5 and 6 were used by **nobody**:
-# 57 entries thrown away in map 7. The nine maps of the PoC merged 97 colors
-# among them and now they merge 8.
-#
-# And there is a property that comes for free from putting it at the bottom:
-# `apply_tint` tints from where the background starts, so the window is
-# outside the range without anyone having to remember. In RM2k the tone is
-# applied to the map and not to the window.
-# **Eight and not seven.** Counting them with `sum(1 for w in cram if w)` gives
-# seven because one of the window colors is pure black and its CGRAM word is
-# zero. With seven, the ROM drew the text with a color nobody had uploaded and
-# the suite caught 79 pixels in the text lines. What rules is the highest
-# index the window uses, and `convert_window` makes sure of that.
-WINDOW_COLORS = 8
-CGRAM_RESERVED = 1 + WINDOW_COLORS
-
-
-# The priority order of mode 3, from front to back, is:
-#
-#     objects 3 / BG1 1 / objects 2 / BG2 1 / objects 1 / BG1 0 / objects 0
-#
-# which is exactly what is needed: the map in BG1 with priority 0, the hero and
-# the regular NPCs in objects with priority 1, the upper layer in BG2 with
-# priority 1, and the events marked "above" in objects with priority 2. The
-# RM2k order comes out of the hardware with no tricks.
-PRIORITY_ABOVE = 1                       # for the BG2 cells
-
-
-# CGRAM color 0 is the backdrop: it shows where no layer draws, and also where
-# a tile uses index 0. Black, which is what RM2k draws where the map has
-# nothing and beyond its edges, and since 2026-09-05 that shows: the screen
-# shake reveals what is at the sides. It used to be magenta, a sentinel for the
-# eye —"if it shows inside the screen, something is wrong"—.
-BACKDROP = (0, 0, 0)
 
 
 # --- conversion -------------------------------------------------------------
@@ -143,29 +93,3 @@ def layers_answer(written):
             (written["above.bin"], written["above-cgram.bin"],
              above["tilemap"], above["first"], len(above["merges"]),
              above_png))
-
-
-def window_palette(first_ones=None):
-    """Which palette the message window goes in: **0**, always.
-
-    The window cells are emitted only once with the three palette bits
-    inside, so the palette has to be a single one for the whole ROM. It used
-    to take the lowest of the upper layers of all maps —`min(primeras) - 1`—
-    and the background of **all** of them was squeezed below it, even if the
-    map had half of CGRAM free above.
-
-    Putting it in 0 makes the problem go away: the window takes entries 1 to 7
-    —0 is the screen's backdrop color, which in a BG2 palette is transparent
-    and the window doesn't draw—, and the background is contiguous from 8 up
-    to where each map's upper layer starts. `first_ones` is no longer used and
-    stays so as not to break callers.
-    """
-    return 0
-
-
-# The two tile families the ChipSet animates, with how many drawings each one
-# has and in the order their runs go to VRAM. It lives in rm2k.py together with
-# each one's cadence, which is what says which drawing is due.
-FAMILIES = rm2k.ANIMATED_FAMILIES
-
-

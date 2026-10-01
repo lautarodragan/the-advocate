@@ -48,10 +48,6 @@ OBJ_PRIORITY_ABOVE = 0x20                # priority 2: above it
 # Sprites are always 4 bits per pixel, no exceptions: there is no mode 3 for
 # them. That is, Talan has to fit in 15 colors, and has 36.
 
-OBJ_COLORS = 15                    # 4 bits per pixel, and 0 is transparent
-SPRITE_POSES = 12
-OBJ_PALETTES = 8                   # 8 to 15, with or without the timer
-
 
 # --- the NPCs ---------------------------------------------------------------
 #
@@ -110,10 +106,6 @@ def discard_warning(text, dangerous):
         "that is, it is a mechanism and not decoration. Without being drawn, the\n"
         "change is never seen, and since the event still blocks the way and\n"
         "triggers, what is left is an invisible wall where the game expected a door." % text)
-
-
-# A pose in the cartridge: the 16 tiles in a row, by rows.
-POSE_BYTES = 16 * 32
 
 
 def maps_per_character(renderer, map_ids, game_dir):

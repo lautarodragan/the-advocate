@@ -14,17 +14,6 @@ from port import events
 from port import animation as animation_mod
 
 
-# The timer: eleven 8x16 glyphs of the System, which `rm2k-render system`
-# hands over in a row. Ten digits and the colon, which is all
-# `Sprite_Timer::Draw` draws.
-TIMER_GLYPHS = 11
-TIMER_GLYPH_W, TIMER_GLYPH_H = 8, 16
-# Where it is drawn on screen. `Sprite_Timer` puts it at `menu_offset_x + 4`
-# and `menu_offset_y + 4`, and with a screen narrower than the menu both
-# offsets come out zero.
-TIMER_X, TIMER_Y = 4, 4
-
-
 def map_shows_animation(game_map, renderer, commands=()):
     """Whether some page of this map can draw a battle animation.
 
