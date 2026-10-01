@@ -81,6 +81,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `rpgmaker/test_rutas_golden.py`: rutas forzadas —`MoveEvent`, NPCs,
   gráficos, anclados—
 * `rpgmaker/test_velocidad.py`: la velocidad del héroe
+* `rpgmaker/test_velocidad_con_l_y_r.py`: L y R suben y bajan la velocidad
+  del héroe, que no es de RM2k
 * `rpgmaker/test_saltos.py`: teletransportes encadenados
 * `rpgmaker/test_salto_atraviesa.py`, `rpgmaker/test_salto_colgado.py`: saltos
   con atravesar, y al final de una ruta forzada

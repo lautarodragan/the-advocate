@@ -209,7 +209,7 @@ other:
 .proc hero_anim_frames
 .a8
 .i16
-    jsr hero_speed_read
+    jsl f:hero_speed_now        ; the game's speed, or with L and R's bonus
     rep #$20
 .a16
     and #$00FF

@@ -107,6 +107,10 @@ PAD_START = $10
 PAD_A     = $80
 ; And X, the next one: RM2k does not use it, and here it is A's autofire. See `read_pad`.
 PAD_X     = $40
+; And L and R, the next two: RM2k has nothing like them, and here they change
+; the hero's speed. See `hero_speed_keys.s`.
+PAD_L     = $20
+PAD_R     = $10
 
 ; B lives with the others in JOY1H, and it is the highest of the sixteen. The
 ; choice uses it to cancel; walking does not look at it.
