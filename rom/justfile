@@ -370,6 +370,22 @@ msu-puerto:
   experimentos/msu-puerto/armar.py build/msu-puerto/msu-puerto.sfc
   experimentos/msu-puerto/medir.py build/msu-puerto/msu-puerto.sfc
 
+# **La ROM de prueba de ExHiROM**, el mapa de 8 MB: si cada banco se ve
+# donde el cartucho lo pone, si la SRAM está en `$20-$3F:6000`, y si la ROM
+# rápida es rápida —ver `decisiones/el-cartucho-pasa-a-8-mb.md`—. Arma un
+# archivo de 8 MB y lo corre en snes9x, bsnes, mesen-s y los dos módulos de
+# Mednafen, dos veces cada uno para ver que la SRAM sobrevive. En la
+# consola son nueve franjas de colores; qué es cada una, en el encabezado
+# de `experimentos/exhirom/prueba.s`, y qué hace distinto cada emulador, en
+# `experimentos/exhirom/verificar.py`.
+#
+#     just exhirom
+#
+# Arma la ROM de prueba de ExHiROM y la verifica en los emuladores.
+exhirom:
+  experimentos/exhirom/armar.py build/exhirom/exhirom.sfc
+  experimentos/exhirom/verificar.py build/exhirom/exhirom.sfc
+
 # **La ROM de prueba de las fuentes**: las candidatas para el texto del menú
 # y de la pelea, dibujadas desde las hojas de glifos de
 # `experimentos/fuentes/hojas/`, que se editan a mano. Es la hermana de
