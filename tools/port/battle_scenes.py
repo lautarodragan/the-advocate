@@ -1,7 +1,8 @@
 """The battle backdrops and battlers the cartridge carries: which ones, who
 asks for each, and their bytes —the full backdrop for the `.msu` and the
-light fallback the ROM carries— ready for the `.inc`. What a scene looks like
-is `scene.py`'s.
+light fallback the ROM carries— as the emission takes them
+(`scene_request`): `scene.rs` in `rm2k-snes-mapdata` writes them. What a
+scene looks like is `scene.py`'s.
 """
 
 import collections
@@ -243,7 +244,8 @@ def fallback_bytes(info):
     """The light fallback of a backdrop, as the ROM carries it: `(bytes,
     colors)`, its 4 KB of 128x64 at 4bpp and its `FALLBACK_COLORS` colors.
     They store the index **within their palette**: the ROM adds the planes of
-    `CGRAM_BASE` separately, see `fallback_height`.
+    `CGRAM_BASE` separately, see `fallback_height` in the emission's
+    `scene.rs`.
 
     **The bytes don't go in tile order**, but in the one `scn_double` enlarges
     them in without doing any arithmetic. Each small tile becomes four large
@@ -256,7 +258,7 @@ def fallback_bytes(info):
     small row that gives planes `p` and `p+1`, the first carries the high
     nibble of both —the four leftmost pixels, which go to the left large
     tile— and the second the two low nibbles. That way each byte, duplicated
-    bit by bit with `fallback_double`, is already the two-plane word of a row
+    bit by bit with `fallback_double` —also there—, is already the two-plane word of a row
     of a large tile, and the ROM writes it whole without separating the planes.
     """
     E = scene_mod

@@ -4,10 +4,11 @@ reads them.
 **They are converted by `rm2k-snes-maps`** —the lower half of CGRAM split
 between them, the 15-bit quantization, what Adeleine merges, the tiles
 Voodoo cuts; see `layers.rs` in `rm2k-snes-map-background`—. What stays
-here is its answer in the shape `map_record`, `mapdata` and the patches read
-(`layers_answer`), and the constants of the split the emission needs: where
-the background starts in CGRAM, the upper layer's priority, the backdrop
-color and the palette of the message window.
+here is its answer in the shape the rest of the converter and the patches
+read (`layers_answer`), and how many palettes the background has. Where the
+background starts in CGRAM, the upper layer's priority, the backdrop color
+and the message window's palette are the emission's: `cgram.rs` in
+`rm2k-snes-mapdata`.
 
 Until 2026-09-30 all of it was here, in Python, with a disk cache of what
 came out and a precomputation in parallel, which went with it.

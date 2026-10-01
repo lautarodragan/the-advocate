@@ -219,7 +219,8 @@ def compile_cartridge(dump, maps, cases, test_commands, extra_variables,
                       encounter_troops):
     """The second call: every page of the cartridge. `maps` are the
     converter's `map_info`s, in the cartridge's order, with their
-    `game_map` and their `sustituciones`; `cases` are `(map, commands)`.
+    `game_map` and their `substitution_table`; `cases` are `(map,
+    commands)`.
     A test page that does not compile comes back as None."""
     req = request(dump, [m["id"] for m in maps], test_commands,
                   extra_variables, test_event_map)

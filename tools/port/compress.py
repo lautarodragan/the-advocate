@@ -1,4 +1,6 @@
-"""LZ2, the binary that compresses what the ROM decompresses when loading a map.
+"""LZ2, the binary that compresses the full screens —the title, the Game
+Over— the ROM decompresses. What it decompresses when loading a map is
+compressed by the emission, `rm2k-snes-mapdata`, with `lz2` as a library.
 
 The format is Nintendo's LC_LZ2, and taro chose it on 2026-09-26 with what
 was measured in `workflow/tasks/*/la-compresion-de-mapas-y-graficos.md`: it

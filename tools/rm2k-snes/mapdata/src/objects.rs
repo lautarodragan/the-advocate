@@ -14,11 +14,16 @@ pub const OBJ_PRIORITY: u32 = 0x10;
 /// Priority 2: above it, for the events marked "above".
 pub const OBJ_PRIORITY_ABOVE: u32 = 0x20;
 
-/// A sprite palette's colours: 4 bits a pixel, and 0 is transparent.
+/// A sprite palette's colours: objects are always 4 bits a pixel —there is
+/// no mode 3 for them—, and 0 is transparent.
 pub const OBJ_COLORS: usize = 15;
-/// A CharSet's poses: three walking frames for four directions.
+/// A CharSet's poses: three walking frames for four directions, each
+/// 24x32.
 pub const SPRITE_POSES: usize = 12;
 /// A pose in the cartridge: the sixteen tiles of a 32x32 object, in a row.
+/// The console has no 24x32 objects; the smallest that covers a pose is
+/// 32x32, padded with transparency at the sides. Splitting it into 16x32
+/// objects would spend the same and multiply the OAM entries.
 pub const POSE_BYTES: usize = 16 * 32;
 
 /// How many 32x32 blocks fit across the sprite bank's name grid, which is

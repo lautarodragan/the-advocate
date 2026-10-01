@@ -38,7 +38,9 @@ Lo mismo pasa con los tiles del fondo, de la capa de encima, de los sprites y
 con los dibujos de la animación del ChipSet: viajan en LZ2, se descomprimen a
 `$7F0000` y se suben con el mismo DMA de antes. Los dibujos de la animación
 quedan en `$7F6000` mientras dure el mapa, porque se suben cada vez que cambia
-el reloj. El formato y el compresor: `tools/port/compress.py` y `tools/snes/lz2/`.
+el reloj. Cómo se parte cada bloque en flujos y con qué topes de la WRAM: el
+`materials.rs` de `tools/rm2k-snes/mapdata/`; el formato y el compresor:
+`tools/snes/lz2/`, que la emisión usa como biblioteca.
 Lo que queda en la VRAM y en la WRAM después de cargar lo compara
 `rom/pruebas/rpgmaker/test_carga_descomprimida.py` contra lo que el conversor deja
 sin comprimir en `rom/build/<cartucho>/crudos/`.

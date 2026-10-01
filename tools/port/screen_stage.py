@@ -174,7 +174,7 @@ def convert(game_dir, members, items, bank_items, title):
         "bank_items": list(bank_items),
         "title": bool(title),
         # The message window goes in the lowest palette, and the background
-        # starts after it: see `map_layers.CGRAM_RESERVED`.
+        # starts after it: see `cgram.rs` in `rm2k-snes-mapdata`.
         "cgram_reserved": _cgram_reserved(),
         "vram": {
             "slot_vram": vram.SLOT_VRAM,

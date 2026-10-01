@@ -34,9 +34,9 @@ one in its own row or above.
     port/        the converter to SNES —snes_convert, which is `main`— and
                  everything only it uses: the parts it was split into on
                  2026-09-29 (options, cases, game_scan, map_convert,
-                 map_layers, sprites, obj_extras, vram, blocks,
-                 screen_stage, battle_stage, image_stage, battle_scenes,
-                 battle_animations, mapdata, map_record, materials,
+                 map_layers, sprites, obj_extras, vram, screen_stage,
+                 battle_stage, image_stage, battle_scenes,
+                 battle_animations, mapdata —the request of the emission—,
                  and stage, which runs the parts that are programs of their
                  own, and compiler, what goes into the event compiler's two
                  calls and what comes back; the docstring of snes_convert
@@ -46,10 +46,9 @@ one in its own row or above.
                  event_opcodes, experience, picture, window, scene,
                  animation, compress, fullscreen; and beneath all of them, because they
                  import nothing from the port, rules (from Game_Actor and
-                 the LDB), constants, color (the screen tint's constants),
-                 palette (a full screen at 8 bpp), snes_format (a tile, a color and a
-                 cell as the PPU reads them) and asm (a data block and a
-                 pointer, as ca65 reads them)
+                 the LDB), constants, palette (a full screen at 8 bpp) and
+                 snes_format (a tile, a color and a cell as the PPU reads
+                 them)
 
 And the Rust projects, which are not layers of the port but separate tools,
 in English and without a single mention of this game (see AGENTS.md). They
@@ -129,6 +128,12 @@ have layers of their own, one folder each:
                  `resample`, toned and brought down to their palettes with
                  Adeleine; the converter runs it through
                  `port/image_stage.py`
+      mapdata/   `rm2k-snes-mapdata`: the emission —the cartridge's data
+                 `.inc`, written from what every other stage answered—,
+                 the LZ2 streams of what the console decompresses, and the
+                 VRAM layouts, which it publishes for the maps and the
+                 screens; the converter runs it through `port/mapdata.py`
+                 and `port/vram.py`
 
 `rm2k-snes/` may depend on the other two; `snes/` and `rm2k/` on nothing
 outside themselves —not on each other, and not on `rm2k-snes/`—. So either
@@ -164,7 +169,7 @@ something —`screens` from `menus` and `events`,
 `title` and `menus` from `palette`—; and on top of everything `snes_convert`,
 which uses all of them. The parts `snes_convert` was split into import
 from each other in one direction —`map_convert` and `mapdata` on top,
-`asm` at the bottom— and none imports from `snes_convert`. The imports
+`stage` at the bottom— and none imports from `snes_convert`. The imports
 still inside a function no longer hide any cycle.
 
 Until 2026-09-29 there was one exception, `assembly/cartridges.py`, the
@@ -211,7 +216,8 @@ the runtime through the checkout they were installed from; and
 `rm2k-snes-msu` and `rm2k-snes-volume-ceilings`, from
 `rm2k-snes/rm2k-snes-audio/`; `rm2k-snes-battle`, from
 `rm2k-snes/battle/`; `rm2k-snes-events`, from `rm2k-snes/events/`;
-`rm2k-snes-maps`, from `rm2k-snes/maps/`; and `rm2k-snes-patches`, from
+`rm2k-snes-maps`, from `rm2k-snes/maps/`; `rm2k-snes-mapdata`, from
+`rm2k-snes/mapdata/`; and `rm2k-snes-patches`, from
 `rm2k-snes/patches/`—.
 
 The reason for the names is in `tools/justfile`. A new one is added in

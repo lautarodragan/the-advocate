@@ -4,9 +4,9 @@ side of the converter.
 **The bank is `rm2k-snes-maps`'s** —the timer's digits, the raindrops, the
 `ShowPicture` picture and the battle animation box; see `extras.rs` in
 `rm2k-snes-map-sprites`—, and so are the timer's colors and which entries
-of its palette they take, which the emission reads back. What stays here is
-what the emission reads —the timer's glyphs and where it is drawn— and
-whether some page of a map shows a battle animation, which is the
+of its palette they take, which the emission reads back; where the timer is
+drawn is the emission's, `engine.rs` in `rm2k-snes-mapdata`. What stays here
+is whether some page of a map shows a battle animation, which is the
 animations' to know and goes to the stage in its request.
 """
 

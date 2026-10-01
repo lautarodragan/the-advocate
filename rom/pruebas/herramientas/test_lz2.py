@@ -4,7 +4,7 @@ descomprime al cargar un mapa, en todos los cartuchos.
 `tools/snes/lz2/` tiene sus propias pruebas, en inglés y sin nada de este juego,
 y `rm2k-snes-mapdata` las suyas de cómo parte cada bloque en flujos y qué tope
 de la WRAM tiene cada uno; éstas son las del port: que cada bloque que el
-conversor dejó en `crudos/` —ver `write_raw` en materials.py— vuelva igual
+conversor dejó en `crudos/` —ver `write_raw` en `rm2k-snes-mapdata`— vuelva igual
 pasando por los flujos que arma la etapa y por `pruebas/arnes/lz2.py`, que está
 escrita aparte a propósito. Lo que la ROM hace con esos flujos lo mira
 `test_carga_descomprimida.py`.

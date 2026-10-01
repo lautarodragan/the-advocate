@@ -1,6 +1,7 @@
 """The battle animations the cartridge carries: which ones the emitted
-bytecode shows, and their frames as the cartridge stores them, ready for the
-`.inc`. The images themselves come from `animation.py`.
+bytecode shows, and their frames as they end up in VRAM, as the emission
+takes them (`animations_request`): `rm2k-snes-mapdata` writes them, without
+their empty tiles. The images themselves come from `animation.py`.
 """
 
 from port import events

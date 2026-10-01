@@ -10,11 +10,11 @@ in its own module of `port/`, one per piece that can be replaced alone:
     game_scan           what is deduced from the whole game: leaders, items
     map_convert         a whole map: what goes into `rm2k-snes-maps map`
                         and its `map_info`, from what comes back
-      map_layers        the layers' answer, and the CGRAM constants
-      sprites           the hero's flash, the object constants
-      obj_extras        where the timer goes, and whether a map animates
-      vram              the VRAM layouts
-      blocks            `TileSubstitution` translated to 16x16 blocks
+      map_layers        the layers' answer
+      sprites           the hero's flash, the objects' priorities
+      obj_extras        whether a map draws a battle animation
+      vram              the VRAM layouts, as `rm2k-snes-mapdata`
+                        publishes them
     screen_stage        the screens, `rm2k-snes-screens`: the message
                         window and its font, the title's menu, the menus,
                         and the message boxes reflowed for the window
@@ -27,10 +27,8 @@ in its own module of `port/`, one per piece that can be replaced alone:
     compiler            the event compiler, `rm2k-snes-events`: what goes
                         into its two calls and what comes back
     music               the job for `rm2k-snes-audio`, and the `.msu`
-    mapdata             `emit`: the whole `mapdata.inc`
-      map_record        the tables of each map
-      materials         the data blocks and their LZ2 streams
-      asm               `block` and `pointer`
+    mapdata             `emit`: what goes into `rm2k-snes-mapdata emit`,
+                        which writes the whole `mapdata.inc`
 
 Usage:
     rm2k-snes-convert --map-id 7 -o rom/build/inc/mapdata.inc

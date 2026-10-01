@@ -8,9 +8,11 @@ splits the object palettes and builds the sprite bank. What stays here is
 what the stage gets from other domains —the event compiler's scan of the
 map's pages, from which the stage says who walks, and which graphics the
 routes change to; the test cases; the
-timer's System, the picture and whether a battle animation is drawn— and
-what the rest of the converter reads back: the `map_info`, with the NPC
-table (`map_record`'s), the VRAM layout (`vram`'s) and the messages.
+timer's System, the picture and whether a battle animation is drawn, and
+the `TileSubstitution`s that can run in the map— and what the rest of the
+converter reads back: the `map_info`, with the VRAM layout (`vram`'s), what
+the stage answered of the objects and the blocks —which the emission,
+`rm2k-snes-mapdata`, writes— and the messages.
 """
 
 import concurrent.futures
@@ -318,8 +320,8 @@ def _map_info(renderer, prepared, written, args):
           % (len(above_data[0]) // 32, len(above_data[1]) // 2,
              BG_PALETTES - above_data[3], above_data[3], above_data[4]))
 
-    # The map in 16x16 blocks, which `rm2k-snes-maps` made with the layers.
-    # Copies, because `Substitutions` grows them while the pages compile.
+    # The map in 16x16 blocks, which `rm2k-snes-maps` made with the layers,
+    # with the ones the map's `TileSubstitution`s need already built.
     made = summary["bloques"]
     cells = list(made["celdas"])
     blocks = bytearray(made["tabla"])
@@ -357,9 +359,8 @@ def _map_info(renderer, prepared, written, args):
         # indices of a table that says something else.
         "graficos_de_ruta": route_graphics,
         "collision": collision, "celdas": bytes(words),
-        # Both grow while the pages are compiled, if some substitutes tiles:
-        # see `Substitutions`. That is why they are mutable and are frozen
-        # only when emitted.
+        # The blocks, with the ones the substitutions need: see
+        # `substitutions.rs` in `rm2k-snes-maps`.
         "bloques": blocks, "pass": block_pass, "terreno": block_terrain,
         "combos": combos,
         # The terrain of a cell **outside the map**: `GetTerrainTag` uses the
