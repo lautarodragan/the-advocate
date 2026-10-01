@@ -40,6 +40,15 @@ FAR_RANDOM     = $25FE
 ; `original_move_frequency`; not the speed—. It travels in the save. It is
 ; read once per step.
 FAR_HERO_SPEED = $25FD
+; And how much the player added to that speed with L and R, signed, and which
+; of the two were held on the last frame, for the edge: see
+; `hero_speed_keys.s`. They do **not** travel in the save —it is a taste of
+; whoever is playing, not world state— and reset clears them. They sit apart
+; from the ones above, in the gap between `FAR_PAIR_LIST`'s end ($2580) and
+; them, so that whoever takes "the next free byte" below `FAR_ACCESS` does not
+; land on them.
+FAR_SPEED_BONUS = $25F0
+FAR_SPEED_KEYS  = $25F1
 ; And the permissions, one byte before: `ChangeSaveAccess`,
 ; `ChangeMainMenuAccess` and `ChangeEscapeAccess` turn them off and on, and
 ; bit 7 is RM2k's menu request, `menu_calling`: B sets it and the hero

@@ -233,6 +233,7 @@ party_ready:
     stz bgm_fade                ; and the same with the song's
     jsl f:boot_transition           ; and the teleport, with fade
     jsl f:encounter_boot        ; the encounters' random seed
+    jsl f:speed_keys_boot       ; and L and R's bonus on the hero's speed
 
     ; If the cartridge has a saved game, it is loaded here: the switches it
     ; carries decide which page is active on each event, so they have to be
@@ -419,6 +420,9 @@ loop:
                                 ; and tied; with it below, leaving them down
                                 ; there broke the tie, and `parar-rutas` showed
                                 ; it with the NPC one frame ahead of the hero.
+.if ::HERO_SPEED_KEYS
+    jsl f:speed_keys            ; L and R, before the hero walks: not RM2k's
+.endif
     jsr move_hero               ; `game_player->Update()`
     jsr request_menu            ; B, at the end of the hero: see `request_menu`
     ; The timer goes **before** the interpreter, which is where

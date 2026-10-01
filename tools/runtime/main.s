@@ -160,4 +160,5 @@ TEXT_BUF_BYTES = WINDOW_TEXT_COLS * 2 * 32
 .include "menu_experience.s"
 .include "end_game.s"
 .include "counter.s"
+.include "hero_speed_keys.s"
 .include "header.s"

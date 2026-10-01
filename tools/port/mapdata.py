@@ -73,11 +73,15 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
          animations=None, troops=(), battle_audio=None, scenes=None,
          battle_tables=None, troop_pages=None, compressed=None,
          enemy_hp=False, game_over=None, party_common=None,
-         battle_model=None):
+         battle_model=None, speed_keys=True):
     """The .inc that is assembled together with main.s.
 
     `enemy_hp` is `--enemy-hp`: whether the battle draws the
     enemies' HP, which RM2k doesn't show.
+
+    `speed_keys` is the opposite of `--no-speed-keys`: whether L and R
+    change the hero's speed, which RM2k doesn't do. See
+    `hero_speed_keys.s`.
 
     `compressed` is what `compress_blocks` returns; if missing it is
     compressed here.
@@ -590,6 +594,9 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         handle.write(rom_identity())
         handle.write(offsets())
         handle.write("\n\n")
+        handle.write("; Whether L and R change the hero's speed: see "
+                     "`hero_speed_keys.s`.\nHERO_SPEED_KEYS = %d\n\n"
+                     % int(speed_keys))
         # The fade ramp, in bank 0 because `fade_tick` reads it with
         # `lda fade_ramp, x`. It comes from `events.fade_ramp()`:
         # writing it in tools/runtime/ too would be having two copies that can

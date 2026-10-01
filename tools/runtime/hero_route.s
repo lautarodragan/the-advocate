@@ -225,6 +225,15 @@ move:
     ; them is the hero's. Without that cut, the elimination below would send
     ; the hero to the left.
     sta hero_dir                ; move_* faces where it goes
+    ; The step is noted as the move route's **before** trying it, and not
+    ; once it started: `begin_step` already advances the first frame, and
+    ; `hero_speed_now` has to know by then that the route rules, or the first
+    ; frame of the route's last step —with no commands left— goes at the
+    ; speed L and R left. Blocked, it stays at 1 with no step, which
+    ; `any_routes` does not count —it asks for `step_left` too— and the next
+    ; frame without a step clears.
+    lda #1
+    sta route_step
     ; Going through walls, both sides say yes. It is
     ; `Game_Map::CheckOrMakeWayEx`'s `if (self.GetThrough()) return true;`,
     ; and it is turned on only around this step: `can_leave` and `can_enter`
@@ -259,11 +268,9 @@ see_yes_started:
     bne started                 ; blocked: skipped and the next one is tried
     jmp other_command
 started:
-    ; The step started, and it is noted that the move route started it:
-    ; `any_routes` needs this to know the last step of a move route still
-    ; counts.
-    lda #1
-    sta route_step
+    ; The step started, and `route_step`, set above, says the move route
+    ; started it: `any_routes` needs this to know the last step of a move
+    ; route still counts.
 ready:
     rts
 speed:

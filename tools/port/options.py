@@ -69,6 +69,11 @@ def flags_parser():
                         help="the battle shows the enemies' HP, which RM2k "
                              "never shows: for debugging. It is asked for by "
                              "`[debug] enemy_hp` of the project file")
+    parser.add_argument("--no-speed-keys", action="store_true",
+                        help="L and R do not change the hero's speed. "
+                             "They are a port addition, not RM2k's: without "
+                             "them the hero walks exactly at the speed the "
+                             "game gives him")
     parser.add_argument("--no-timer", action="store_true",
                         help="the timer digits —eleven glyphs of the System "
                              "image at the end of the sprite bank, which "
