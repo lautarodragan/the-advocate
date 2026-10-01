@@ -555,3 +555,17 @@ args = [
   { name = "what", type = "byte" },
   { name = "amount", type = "word", signed = true },
 ]
+
+# `InputNumber`, together with the `ShowMessage` right before it: the box
+# `window` opens with its lines and, on the line below them, `digits` digits
+# the player changes one at a time. A writes the number to the variable at
+# `slot`, saturated at 65535 —the variables are sixteen bits—, and the page
+# goes on.
+[[opcode]]
+name = "OP_NUMBER"
+code = 0x38
+args = [
+  { name = "slot", type = "byte" },
+  { name = "digits", type = "byte" },
+  { name = "window", type = "word" },
+]

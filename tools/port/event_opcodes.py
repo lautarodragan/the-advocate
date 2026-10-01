@@ -61,6 +61,7 @@ OP_RETURN_TO_TITLE = 0x34
 OP_COUNTER       = 0x35
 OP_ACTOR         = 0x36
 OP_ENEMY         = 0x37
+OP_NUMBER        = 0x38
 
 
 # How many bytes each fixed-size instruction takes, opcode included.
@@ -117,6 +118,7 @@ OPCODE_SIZE = {
     OP_COUNTER: 4,
     OP_ACTOR: 5,
     OP_ENEMY: 5,
+    OP_NUMBER: 5,
 }
 
 # The variable-size ones, as (base, where the count is, how big one
@@ -187,6 +189,7 @@ LAYOUT = {
     OP_COUNTER: (("slot", 1, False), ("x", 1, False), ("y", 1, False)),
     OP_ACTOR: (("actor", 1, False), ("what", 1, False), ("amount", 2, False)),
     OP_ENEMY: (("member", 1, False), ("what", 1, False), ("amount", 2, True)),
+    OP_NUMBER: (("slot", 1, False), ("digits", 1, False), ("window", 2, False)),
 }
 
 

@@ -266,6 +266,11 @@ const CHOICE_MAX: i64 = 4;
 // the text does not shift from line to line.
 const CHOICE_CURSOR: &str = ">";
 const CHOICE_INDENT: &str = " ";
+/// The most digits an `InputNumber` asks for that the ROM takes: six, which
+/// is RM2k 2000's editor's cap. The ROM writes the number into a sixteen-bit
+/// variable, saturating —see `number_value` in tools/runtime/number_input.s—,
+/// and its line is a cursor column and a digit per digit: twelve letters.
+const NUMBER_DIGITS_MAX: i64 = 6;
 // Where the two destinations go inside `OP_CELL_TEST` —see events.toml—, and
 // the top two bits of each write, over the variable's offset: y instead of
 // x, and the refresh. See `cell_test` in tools/runtime/interpreter_cells.s.
@@ -754,6 +759,11 @@ fn page(
         }
     }
     let mut cell_piece: HashMap<usize, usize> = HashMap::new();
+    // Each `ShowMessage` an `InputNumber` follows, with the `InputNumber`:
+    // they go in one window. See [`compile_number`].
+    let numbers = number_inputs(commands);
+    let input_after: HashMap<usize, usize> = numbers.iter().copied().collect();
+    let joined: BTreeSet<usize> = numbers.iter().map(|&(_, j)| j).collect();
     let mut choices: Vec<Choice> = Vec::new();
     let mut battles: Vec<Battle> = Vec::new();
     // The pending `PlayBGM`, what was noted and the jumps: see `follow_exit`.
@@ -765,6 +775,10 @@ fn page(
 
     for (i, extra) in group_boxes(commands) {
         let cmd = &commands[i];
+        if joined.contains(&i) {
+            // Its window is the message's, already emitted.
+            continue;
+        }
         let requested = ctx.songs.as_ref().map_or(0, |s| s.requested);
         let mut role = cell_role.get(&i).copied();
         if let Some((0, _)) = role {
@@ -1067,6 +1081,8 @@ fn page(
             return cannot();
         } else if cmd.code == CALL_EVENT {
             piece = compile_call(ctx, cmd, length, depth, map_events.as_ref())?;
+        } else if let Some(&j) = input_after.get(&i) {
+            piece = compile_number(ctx, cmd, &extra, &commands[j])?;
         } else {
             let mut p = compile_command(ctx, cmd, &extra, map_events.as_ref())?;
             // A jump to another map: the page keeps running there. See
@@ -1543,6 +1559,65 @@ fn choice_boxes(options: &[(i64, String)], messages: &mut Messages) -> Step<Vec<
     Ok(out)
 }
 
+/// Where a `ShowMessage` is followed by an `InputNumber` that goes in its
+/// window, as (the message's position, the `InputNumber`'s).
+///
+/// It is `CommandShowMessage`: after gathering the `ShowMessage_2`s it looks
+/// at the next command, and an `InputNumber` there goes into the same
+/// message if the box leaves it a line —`pm.NumLines() < 4`—. Otherwise
+/// the `InputNumber` is one on its own, a window with no text, which the
+/// ROM does not do: the game's two are both after a message of two and
+/// three lines.
+fn number_inputs(commands: &[Command]) -> Vec<(usize, usize)> {
+    let groups = group_boxes(commands);
+    groups
+        .windows(2)
+        .filter(|w| {
+            let (i, extra) = &w[0];
+            commands[*i].code == SHOW_MESSAGE
+                && commands[w[1].0].code == INPUT_NUMBER
+                && 1 + extra.len() < 4
+        })
+        .map(|w| (w[0].0, w[1].0))
+        .collect()
+}
+
+/// `ShowMessage` and the `InputNumber` that goes in its window, in one
+/// opcode.
+///
+/// OP_NUMBER: the variable's slot (byte), how many digits (byte) and the
+/// message's box (word). The box is the message's as it is, and the ROM
+/// writes the digits' line below its lines, from RAM: what changes when the
+/// player presses up or down is that line, and nothing of it is in the text
+/// block. See `op_number` in tools/runtime/number_input.s.
+///
+/// It is **one** opcode and not `OP_MESSAGE` and then another one because
+/// in RM2k the message does not wait for A when a number follows it: the
+/// digits appear when its text finishes, and A is what enters the number.
+fn compile_number(
+    ctx: &mut Ctx,
+    cmd: &Command,
+    extra: &[String],
+    input: &Command,
+) -> Step<Vec<u8>> {
+    let (Some(digits), Some(variable)) = (input.p(0), input.p(1)) else {
+        return cannot();
+    };
+    if !(1..=NUMBER_DIGITS_MAX).contains(&digits) {
+        return cannot();
+    }
+    let slot = ctx.indices.variable_slot(variable)?;
+    let Some(messages) = ctx.messages.as_deref_mut() else {
+        return cannot();
+    };
+    let mut lines = vec![cmd.string.clone()];
+    lines.extend_from_slice(extra);
+    let at = messages.add(&lines)?;
+    let mut out = vec![OP_NUMBER, slot, digits as u8];
+    out.extend(usize_word(at)?);
+    Ok(out)
+}
+
 // --- branches ----------------------------------------------------------------------
 
 /// A `ConditionalBranch` of the kinds this knows, with the destination
@@ -1648,10 +1723,22 @@ fn branch_bytes(ctx: &Ctx, cmd: &Command) -> Step<Vec<u8>> {
             return cannot();
         }
         let slot = ctx.indices.variable_slot(number)?;
+        let comparison = p(4).unwrap();
         let (operand_kind, value) = match p(2).unwrap() {
             0 => {
                 let v = p(3).unwrap();
-                if !(-0x8000..=0x7FFF).contains(&v) {
+                // **Equal and not equal take up to 65534**, as the sixteen
+                // bits of the variable: the ROM compares the words, and
+                // there the sign does not matter. It is Drust Camp's door
+                // (map 68, event 10), which asks for 35421 after an
+                // `InputNumber`, and `OP_NUMBER` writes what was entered
+                // that way —saturated at 65535, which is why that one is
+                // left out: it would also be every number above it—. Any
+                // other comparison with a constant like that would be
+                // signed, and it does not compile.
+                let as_word = matches!(comparison, CMP_EQUAL | CMP_NOT_EQUAL)
+                    && (0x8000..=0xFFFE).contains(&v);
+                if !(-0x8000..=0x7FFF).contains(&v) && !as_word {
                     return cannot();
                 }
                 (VAR_CONSTANT, v)
@@ -1662,7 +1749,6 @@ fn branch_bytes(ctx: &Ctx, cmd: &Command) -> Step<Vec<u8>> {
             ),
             _ => return cannot(),
         };
-        let comparison = p(4).unwrap();
         if !(0..=CMP_NOT_EQUAL).contains(&comparison) {
             return cannot();
         }
@@ -4424,17 +4510,21 @@ mod tests {
     /// A page compiled as map 5's, with a window, songs and the map
     /// table answering 1 for any other map.
     fn on_a_map(commands: &[Command]) -> Option<Vec<u8>> {
+        on_a_map_with(&Indices::default(), commands)
+    }
+
+    /// The same, with these indices.
+    fn on_a_map_with(indices: &Indices, commands: &[Command]) -> Option<Vec<u8>> {
         use crate::game::Map;
         use crate::messages::{Messages, Window};
         let game = Game::default();
-        let indices = Indices::default();
         let sound = SoundSettings::default();
         let mut songs = Songs::default();
         songs.current = Some(Package::Map(0));
         let mut messages = Messages::new(1, Window { columns: 39, lines: 4 });
         let mut ctx = Ctx {
             game: &game,
-            indices: &indices,
+            indices,
             sound: &sound,
             map_index: &|_| Some(1),
             messages: Some(&mut messages),
@@ -4494,6 +4584,75 @@ mod tests {
         let at = branch.len() - 1;
         branch.insert(at, Command::new(SHOW_CHOICE_OPTION, 0, "", vec![4]));
         assert_eq!(on_a_map(&branch), None);
+    }
+
+    /// Variable 143 in slot 3, as the door of Drust Camp needs it.
+    fn with_the_password() -> Indices {
+        Indices {
+            variables: BTreeMap::from([(143, 3)]),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn a_number_goes_in_the_window_of_the_message_before_it() {
+        // Map 68, event 10: two lines, and six digits into variable 143.
+        let page = [
+            cmd(SHOW_MESSAGE, &[], "VOICE"),
+            cmd(SHOW_MESSAGE_2, &[], "What's the password?"),
+            cmd(INPUT_NUMBER, &[6, 143], ""),
+        ];
+        let code = on_a_map_with(&with_the_password(), &page).unwrap();
+        assert_eq!(code, [OP_NUMBER, 3, 6, 0, 0, OP_DONE]);
+        assert_eq!(instruction_size(&code, 0), 5);
+    }
+
+    #[test]
+    fn a_number_the_rom_cannot_show_does_not_compile() {
+        let indices = with_the_password();
+        let message = |lines: usize| -> Vec<Command> {
+            (0..lines)
+                .map(|k| cmd(if k == 0 { SHOW_MESSAGE } else { SHOW_MESSAGE_2 }, &[], "line"))
+                .collect()
+        };
+        let input = |digits: i32| cmd(INPUT_NUMBER, &[digits, 143], "");
+        // On its own: RM2k opens a window with no text, and the ROM does
+        // not.
+        assert_eq!(on_a_map_with(&indices, &[input(6)]), None);
+        // After four lines it does not fit in the message's window, so it
+        // is one on its own too.
+        let mut four = message(4);
+        four.push(input(4));
+        assert_eq!(on_a_map_with(&indices, &four), None);
+        let mut three = message(3);
+        three.push(input(4));
+        assert!(on_a_map_with(&indices, &three).is_some());
+        // Seven digits are more than the ROM's line takes.
+        let mut seven = message(1);
+        seven.push(input(7));
+        assert_eq!(on_a_map_with(&indices, &seven), None);
+    }
+
+    #[test]
+    fn equal_takes_a_constant_as_the_variables_sixteen_bits() {
+        let indices = with_the_password();
+        let branch = |comparison: i32, value: i32| {
+            on_a_map_with(
+                &indices,
+                &[
+                    cmd(COND_BRANCH, &[1, 143, 0, value, comparison, 1], ""),
+                    cmd(COND_END, &[], ""),
+                ],
+            )
+        };
+        let code = branch(CMP_EQUAL as i32, 35421).unwrap();
+        assert_eq!(&code[..6], [OP_IF_VAR, 3, VAR_CONSTANT as u8, 0, 0x5D, 0x8A]);
+        assert!(branch(CMP_NOT_EQUAL as i32, 35421).is_some());
+        // Ordered, it would be signed; and 65535 is also everything an
+        // `InputNumber` saturates to.
+        assert_eq!(branch(1, 35421), None);
+        assert_eq!(branch(CMP_EQUAL as i32, 65535), None);
+        assert_eq!(branch(CMP_EQUAL as i32, 65536), None);
     }
 
     #[test]

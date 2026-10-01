@@ -70,6 +70,8 @@ pub fn command_variables(commands: &[Command]) -> BTreeSet<i32> {
             }
         } else if code == KEY_INPUT_PROC && !p.is_empty() {
             ids.insert(p[0]);
+        } else if code == INPUT_NUMBER && p.len() >= 2 {
+            ids.insert(p[1]);
         } else if code == TIMER_OPERATION && p.len() >= 3 && p[0] == 0 && p[1] != 0 {
             ids.insert(p[2]);
         } else if code == CHANGE_EVENT_LOCATION && p.len() >= 4 && p[1] == 1 {

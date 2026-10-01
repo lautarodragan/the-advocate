@@ -405,6 +405,13 @@ less:
     lda #0                      ; still being composed: nobody chooses
     rts
 open:
+    lda pick_active
+    cmp #PICK_NUMBER
+    bne a_choice
+    jsl number_tick             ; an `InputNumber`: see number_input.s
+    cmp #0                      ; its answer, and not whatever `rtl` left
+    rts
+a_choice:
     lda pad
     eor pad_prev
     and pad                     ; what was pressed **on this frame**

@@ -67,6 +67,9 @@ del frontend.
                   flujo que se descomprime en el banco $7F —el mismo que
                   bsnes enciende con basura— y los registros del PPU que la
                   pelea dejó puestos.
+    clave         los dígitos del `InputNumber` de la puerta de Drust Camp:
+                  la línea que el compositor lee de la RAM lejana en vez del
+                  bloque de textos.
 
 ## El tercer core, mesen-s, queda afuera, y no por lo que parecía
 
@@ -323,3 +326,32 @@ def test_game_over():
         una.consola.run(2)
         imagenes.append(una.imagen())
     iguales("game-over", *imagenes)
+
+
+def test_los_digitos_de_la_clave():
+    """La puerta de Drust Camp con los dígitos abiertos y dos teclas
+    apretadas, en los dos cores: la línea de los dígitos vive en la RAM
+    lejana —`NUMBER_LINE`—, que `number_open` llena entera antes de que el
+    compositor la lea, y `pick_cancel` dice si ya se compuso. Ver
+    `test_numero.py`."""
+    def esperar_los_digitos(una):
+        for _ in range(300):
+            if (una.byte("pick_active") == una.simbolos["PICK_NUMBER"]
+                    and una.byte("msg_open") and una.byte("pick_cancel")
+                    and not una.byte("msg_state")):
+                return
+            una.correr(1)
+        raise AssertionError("los dígitos no se abrieron")
+
+    imagenes = []
+    for nucleo in (SNES9X, BSNES):
+        una = partida("en-5", nucleo=nucleo)
+        una.ir_al_mapa(68, 1, 3)
+        una.sostener(20, "left")
+        una.soltar()
+        esperar_los_digitos(una)
+        for boton in ("left", "down"):
+            una.tocar_ticks(boton)
+            esperar_los_digitos(una)
+        imagenes.append(una.imagen())
+    iguales("clave-68", *imagenes)
