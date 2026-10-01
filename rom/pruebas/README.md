@@ -168,7 +168,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
   pelea en cada paso, en su propio cartucho
 * `rpgmaker/test_batalla_escena_dibujo.py`: el fondo y los battlers compuestos
 * `rpgmaker/test_fundido_de_pelea.py`: la transición de entrada y de salida
-  tapa la carga del paquete de audio
+  tapa la carga del paquete de audio, y el mapa se tapa con el mismo mosaico
+  con que se va la pelea
 * `abl/test_msu_datos.py`: el fondo leído del `.msu` por el MSU-1, y el
   respaldo del cartucho cuando el `.msu` no es el suyo
 * `rpgmaker/test_tropa.py`: las páginas de tropa
