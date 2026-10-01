@@ -26,10 +26,9 @@ from port import picture
 from port.constants import CELL
 from port.snes_format import BYTES_PER_TILE
 from port.map_layers import BG_PALETTES, layers_answer
-from port.sprites import block_tile, discard_warning, separate_from_hero
+from port.sprites import discard_warning, separate_from_hero
 from port.obj_extras import map_shows_animation
 from port import vram
-from port.map_record import TURN_NONE
 from port.options import map_order
 from port.cases import case_commands, test_graphics, test_maps
 from common import settings
@@ -257,7 +256,6 @@ def _map_info(renderer, prepared, written, args):
     (tile_data, cram, tilemap, summary), above_data = layers_answer(written)
     s = answer["sprite"]
     animation = s["animation"]
-    anim_base, anim_pal = 0, 0
     if animation is not None:
         # The VRAM **stops**: whether the box fits depends on the tile
         # layout and not on the palettes.
@@ -285,23 +283,7 @@ def _map_info(renderer, prepared, written, args):
     animated = [tuple(k) for k in s["animated"]]
     animated_index = {p: k for k, p in enumerate(animated)}
     tiles = written[s["tiles"]]
-    palettes = [[tuple(c) for c in p] for p in s["palettes"]]
-    banks = {(charset, index): written[name]
-             for charset, index, name in s["banks"]}
-    timer_base, timer_pal = s["timer"] if s["timer"] else (0, None)
-    rain_base, rain_pal = s["rain"]
-    image_base, image_pal = s["image"]
-    turn_tile = (block_tile(s["turn_block"]) if s["turn_block"] is not None
-                 else TURN_NONE)
-    actors = [(actor, palette, k, list(words))
-              for actor, palette, k, words in s["actors"]]
-    route_gfx = [tuple(r) for r in s["route_gfx"]]
-    # The fourth is the NPC table, which is the emission's: see
-    # `npc_table` in `rm2k-snes-mapdata`, which builds it from `objects`
-    # and `npcs`, below.
-    sprite = (tiles, palettes, where, None, actors, timer_base, timer_pal,
-              animated, banks, route_gfx, rain_base, rain_pal,
-              turn_tile, image_base, image_pal, anim_base, anim_pal)
+    palettes = s["palettes"]
 
     passable = summary["pasabilidad"]
     start_x, start_y = answer["start"]
@@ -368,7 +350,7 @@ def _map_info(renderer, prepared, written, args):
     return {
         "id": map_id, "nombre": name,
         "tiles": tile_data, "cram": bytes(colors), "cram_words": cram,
-        "tilemap": tilemap, "above": above_data, "sprite": sprite,
+        "tilemap": tilemap, "above": above_data,
         # The graphics of command 34 as the pass that builds the bank numbered
         # them. `main()` compares against the ones it gathers compiling for
         # real: if the two passes drifted apart, the bytecode would carry

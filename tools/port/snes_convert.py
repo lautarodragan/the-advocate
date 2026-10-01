@@ -86,7 +86,6 @@ from rpgmaker.resources import find_resource
 from port.sprites import (OBJ_PRIORITY, OBJ_PRIORITY_ABOVE, block_tile,
                           maps_per_character)
 from port import vram
-from port.map_record import PARALLEL_MAX, ROUTE_EV_MAX
 from port.battle_animations import animations_request, rom_animations
 from port.battle_scenes import (fallback_bytes, patch_uses, rom_scene,
                                 scene_request, write_patch_uses)
@@ -115,6 +114,14 @@ walk_code = events.walk_code
 # purpose —the converter has to be able to refuse **before** emitting a map
 # that doesn't fit—; the test `test_substitutions.py` compares the two.
 SUB_MAX = 8
+
+# How many events with a parallel page there can be at once in a map, and
+# how many forced routes can be running at once on events: the ROM's caps,
+# which it does not warn about. The same numbers go into the `.inc` from
+# `record.rs` in `rm2k-snes-mapdata`, where the reasons are; the checks are
+# here because they look at the compiled pages.
+PARALLEL_MAX = 48
+ROUTE_EV_MAX = 12
 
 
 def patch_of_map(map_info):
