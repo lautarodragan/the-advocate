@@ -136,11 +136,11 @@ read:
 ; returns with carry set and the song in A, and `op_memorized_bgm` plays it
 ; like a `PlayBGM`.
 ;
-; Putting back the one already playing **does not restart it**: that is
-; easyrpg's `Game_System::BgmPlay`, which with the same name and no fade in
-; progress only adjusts the volume. That is exactly the game's case: the droid
-; tutorial memorizes the song it arrived with and puts it on when leaving, and
-; in between it does not change. With nothing memorized ($FF) it does nothing,
+; Putting back the one already playing **does not restart it**, but that is
+; no longer decided here: it is `music_play`, the same as any `PlayBGM`. It
+; is exactly the game's case: the droid tutorial memorizes the song it
+; arrived with and puts it on when leaving, and in between it does not
+; change. With nothing memorized ($FF) it does nothing,
 ; where RM2k would silence the music; no page in the game plays a memorized
 ; song without having memorized it earlier in the same page.
 .proc remembered_song
@@ -164,27 +164,10 @@ put:
     lda f:REMEMBERED_SONG
     cmp #SONG_TOTAL
     bcs nothing                 ; none, or one the cartridge does not carry
-    ; Is it the one playing? The same question as `map_song_mute`.
-    pha
-    lda bgm_fade
-    bne different               ; it was fading out: start over
-    lda f:MSU_PLAYING
-    bne plays
-    lda music_off
-    bne different
-plays:
-    lda song_current + 1
-    bne different
-    pla
-    cmp song_current
-    bne touch
+    sec                         ; put it on: `music_play` decides if it goes on
+    rtl
 nothing:
     clc
-    rtl
-different:
-    pla
-touch:
-    sec
     rtl
 
 .endproc

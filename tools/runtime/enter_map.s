@@ -484,9 +484,7 @@ MAP_SONG = $7E6100
 ;   theirs too: if it was fading out because of a `FadeOutBGM` —their
 ;   `music_stopping`— it does start from zero.
 ;
-; "Is playing" is not only `music_off` at zero: with an MSU-1 track the
-; SPC700 is silent on purpose and `music_off` is 1. That is why
-; `MSU_PLAYING` is checked first, which is the same thing `op_fade_bgm` does.
+; The second is `song_playing`, which is also what a `PlayBGM` asks.
 ;
 ; If it has to change, it is silenced here, with the screen already black: the
 ; MSU-1 stops and the SPC700 releases the voices, as in `battle_bgm`.
@@ -497,30 +495,16 @@ MAP_SONG = $7E6100
     lda f:map_song, x
     cmp #SONG_TOTAL
     bcs nothing                 ; $FF, or one the cartridge does not carry
-    pha
-    lda bgm_fade
-    bne changes                 ; it was fading out: it starts over
-    lda f:MSU_PLAYING
-    bne plays
-    lda music_off
-    bne changes
-plays:
-    lda song_current + 1
-    bne changes
-    pla
-    cmp song_current
-    bne changes_already
-nothing:
-    lda #$FF
-    rts
-changes:
-    pla
-changes_already:
+    jsr song_playing
+    bcs nothing                 ; it goes on
     pha
     jsr msu_stop
     lda #$FF
     jsr battle_bgm              ; silence: the voices release
     pla
+    rts
+nothing:
+    lda #$FF
     rts
 .endproc
 

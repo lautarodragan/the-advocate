@@ -17,6 +17,7 @@ import os
 import shutil
 from array import array
 
+import numpy
 import pytest
 
 from emulator import retro
@@ -398,3 +399,66 @@ def test_la_partida_guardada_vuelve_con_su_tema(tmp_path, guarda, carga):
                         - una.muestras_en_la_aram())
         assert not faltan, (
             "KSSMKEND suena por el SPC700 sin las muestras %s" % faltan)
+
+
+# --- con MSU-1, el tema que ya suena no vuelve a empezar la pista ------------
+#
+# El caso de `pruebas/rpgmaker/test_tema_que_ya_suena.py` con las pistas al
+# lado: dos `PlayBGM evilrhys` con tres segundos entre uno y otro. La pista no
+# deja nada en la RAM que diga por dónde va, así que se escucha: si el segundo
+# la reiniciara, lo que suena después de él sería lo mismo que sonó después
+# del primero, muestra por muestra salvo el redondeo del remuestreo. Cuándo
+# corre cada uno lo dice `ev_waiting`, que salta hacia arriba con cada `Wait`:
+# el primer `PlayBGM` va pegado al segundo salto —el `Wait 30`— y el segundo
+# al tercero —el `Wait 10`—.
+
+# Cuánto se compara de lo que suena después de cada uno, en cuadros, y hasta
+# cuánto puede correrse una ventana de la otra, en muestras.
+VENTANA = 20
+CORRIMIENTO = 64
+
+# La correlación por encima de la cual las dos ventanas son el mismo audio.
+# Medido: 1,00 con el error puesto y 0,12 sin él.
+IGUALES = 0.9
+
+
+def _parecido(a, b):
+    """La mejor correlación entre `a` y `b` corriendo una contra la otra."""
+    n = len(a) - CORRIMIENTO
+    a = numpy.asarray(a, float)
+    b = numpy.asarray(b, float)
+    mejor = 0.0
+    for k in range(CORRIMIENTO):
+        mejor = max(mejor, numpy.corrcoef(a[:n], b[k:k + n])[0, 1],
+                    numpy.corrcoef(a[k:k + n], b[:n])[0, 1])
+    return mejor
+
+
+def test_con_msu_el_tema_pedido_dos_veces_no_reinicia_la_pista(tmp_path):
+    una = _con_pistas(tmp_path, caso="tema-pedido-dos-veces")
+    evilrhys = indice_del_tema(una, "evilrhys")
+    una.consola.audio = bytearray()
+    saltos, antes, cuadros = [], 0, 0
+    while len(saltos) < 3 and cuadros < 900:
+        una.consola.run(1)
+        cuadros += 1
+        espera = una.palabra("ev_waiting")
+        if espera > antes:
+            saltos.append(len(una.consola.audio))
+        antes = espera
+    assert len(saltos) == 3, (
+        "en %d cuadros el caso no llegó a su tercer `Wait`" % cuadros)
+    assert una.palabra("song_current") == evilrhys and _lejano(
+        una, "MSU_PLAYING")[0], (
+        "evilrhys no está sonando por la pista: esta prueba no mide nada")
+    una.consola.run(VENTANA + 2)
+    audio = array("h", bytes(una.consola.audio))
+    largo = len(audio) * VENTANA // (cuadros + VENTANA + 2) // 2 * 2
+    primero, segundo = (audio[s // 2:s // 2 + largo:2] for s in saltos[1:])
+    assert max(abs(m) for m in primero) >= AUDIBLE, (
+        "después del primer `PlayBGM` no suena nada: no compara nada")
+    parecido = _parecido(primero, segundo)
+    assert parecido < IGUALES, (
+        "lo que suena después del segundo `PlayBGM` de evilrhys es lo mismo "
+        "que después del primero (correlación %.2f): la pista volvió a "
+        "empezar, y en RM2k el mismo tema sigue sonando" % parecido)

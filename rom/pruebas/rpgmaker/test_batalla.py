@@ -593,14 +593,18 @@ def cursor_del_stream(una):
     return bajo | (alto << 8) | (banco << 16)
 
 
-def test_ganar_prende_el_tema_de_la_victoria(partida):
+def test_ganar_deja_seguir_el_tema_de_la_victoria(partida):
     """El `BGM_Victory` de `Scene_Battle_Rpg2k`, al quedarse sin enemigos.
 
-    En el ABL `battle_end_music` es **el mismo** que `battle_music`, así que
-    mirar `song_current` no distingue nada: ya vale eso desde que la pelea
-    empezó, y sacarle el `music_start` del final da verde igual. Lo que sí se
-    ve es que el stream **vuelve a empezar**, que es lo que `music_start`
-    hace: el cursor de `music` avanza solo y nunca retrocede.
+    En el ABL `battle_end_music` es **el mismo** que `battle_music`, y la
+    victoria lo pide con `Game_System::BgmPlay`, que con el nombre que ya
+    suena no lo reinicia: el tema **sigue**, y el cursor de `music`, que
+    avanza solo, no vuelve atrás. Hasta el 2026-09-30 esta prueba pedía lo
+    contrario —que arrancara de cero— y era la ROM la que se equivocaba: ver
+    `test_tema_que_ya_suena.py`.
+
+    Por lo mismo, que la victoria pida su tema no se distingue de que no lo
+    pida: con este LDB, `song_current` vale eso desde que la pelea empezó.
     """
     una = en_el_droide(partida)
     pelea = Pelea(una).abrir()
@@ -615,10 +619,10 @@ def test_ganar_prende_el_tema_de_la_victoria(partida):
     assert una.palabra("song_current") == una.simbolos["BA_SONG_END"], \
         "al ganar tiene que sonar el battle_end_music del LDB"
     assert not una.byte("music_off")
-    assert cursor_del_stream(una) < antes, (
-        "el tema de la victoria tiene que arrancar de cero: el cursor del "
-        "stream quedó en $%06X y antes del último turno estaba en $%06X"
-        % (cursor_del_stream(una), antes))
+    assert cursor_del_stream(una) > antes, (
+        "el tema de la victoria es el de la pelea y tiene que seguir: el "
+        "cursor del stream volvió a $%06X y antes del último turno estaba en "
+        "$%06X" % (cursor_del_stream(una), antes))
 
 
 def test_al_terminar_vuelve_lo_que_sonaba_en_el_mapa(partida, con_musica):

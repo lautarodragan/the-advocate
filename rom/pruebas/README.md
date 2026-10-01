@@ -203,6 +203,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 
 * `rpgmaker/test_musica_paquete.py`: las muestras del tema, en la ARAM
 * `rpgmaker/test_tema_del_mapa.py`: el tema de cada mapa
+* `rpgmaker/test_tema_que_ya_suena.py`: que un `PlayBGM` del tema que ya
+  suena no lo vuelva a empezar
 * `rpgmaker/test_bateria_suena.py`: lo que la música les escribe a las voces
   de la batería
 * `rpgmaker/test_musica_reparto.py`: las ocho voces repartidas nota a nota,
