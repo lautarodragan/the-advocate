@@ -246,8 +246,14 @@ const ANIM_TARGET_SCREEN: u8 = 0xFF;
 // names and 2 that of a given terrain, which is RM2k3's.
 const BATTLE_BACKDROP_OF_PLACE: i64 = 0;
 const BATTLE_BACKDROP_OF_COMMAND: i64 = 1;
-/// The escape parameter: 0 cannot, 1 cuts the battle. Only 1 is asked about.
-const BATTLE_ESCAPE_CUTS: i64 = 1;
+/// The escape parameter: 0 cannot, 1 ends the event processing, 2 has its
+/// handler. Only 1 is asked about: `abort_on_escape` in easyrpg's
+/// `CommandEnemyEncounter`, whose continuation calls `EndEventProcessing`
+/// instead of `SetSubcommandIndex`. Here escaping goes to an `OP_DONE` put
+/// right after the battle for it, which ends the whole page —a battle inside
+/// a `CallEvent` compiled in place ends the caller too, which is what
+/// `EndEventProcessing` does to the whole interpreter—.
+const BATTLE_ESCAPE_ENDS: i64 = 1;
 const BATTLE_DEFEAT_GAME_OVER: i64 = 0;
 /// The destination that means "this does not continue: this is a Game
 /// Over". It goes in the defeat's place when the `EnemyEncounter` carries
@@ -623,6 +629,8 @@ struct Battle {
     troop: i64,
     destinations: [Option<usize>; 3],
     game_over: bool,
+    /// `escape_mode` 1: escaping ends the page. See `BATTLE_ESCAPE_ENDS`.
+    escape_ends: bool,
     seen: usize,
     exits: Vec<usize>,
 }
@@ -846,6 +854,7 @@ fn page(
             // package: see `battle_audio`.
             battle_audio(ctx);
             let losing_is_game_over = cmd.p(4) == Some(BATTLE_DEFEAT_GAME_OVER);
+            let escape_ends = cmd.p(3) == Some(BATTLE_ESCAPE_ENDS);
             if no_block.contains(&i) {
                 // No handlers: the battle closes right here. Winning and
                 // escaping continue with the command below —which is what
@@ -859,7 +868,12 @@ fn page(
                 // the permission does not travel in the opcode:
                 // `ChangeEscapeAccess` is stored —see `CHANGE_ESCAPE_ACCESS`—
                 // but the battle does not read it.
-                let next_at = length + 9;
+                //
+                // With `escape_mode` 1 the `OP_DONE` that escaping goes to
+                // follows the opcode, and the other two skip it.
+                let done_at = length + 9;
+                let next_at = done_at + usize::from(escape_ends);
+                let escape = if escape_ends { done_at } else { next_at };
                 let lose = if losing_is_game_over {
                     BATTLE_LOSE
                 } else {
@@ -868,8 +882,11 @@ fn page(
                 let mut p = vec![OP_BATTLE];
                 p.extend(word(troop)?);
                 p.extend(usize_word(next_at)?);
-                p.extend(usize_word(next_at)?);
+                p.extend(usize_word(escape)?);
                 p.extend(usize_word(lose)?);
+                if escape_ends {
+                    p.push(OP_DONE);
+                }
                 piece = p;
             } else {
                 battles.push(Battle {
@@ -877,6 +894,7 @@ fn page(
                     troop,
                     destinations: [None; 3],
                     game_over: losing_is_game_over,
+                    escape_ends,
                     seen: 0,
                     exits: vec![],
                 });
@@ -909,6 +927,11 @@ fn page(
             let Some(current) = battles.pop() else {
                 return cannot();
             };
+            // With `escape_mode` 1 the block ends in an `OP_DONE` for the
+            // escape, behind a jump that the last handler's body falls into
+            // and that skips it. The handlers' way out is past both.
+            let ends = current.escape_ends && current.destinations[1].is_none();
+            let end = if ends { length + 4 } else { length };
             let mut table = vec![OP_BATTLE];
             table.extend(word(current.troop)?);
             for (n, dest) in current.destinations.iter().enumerate() {
@@ -916,19 +939,28 @@ fn page(
                 // block, which is what RM2k does with a sub-index without a
                 // branch: `SetSubcommandIndex` and carry on. **Except the
                 // defeat with `defeat_mode` 0**, which there is not a missing
-                // branch but the Game Over: see `BATTLE_LOSE`.
+                // branch but the Game Over: see `BATTLE_LOSE`; and the escape
+                // with `escape_mode` 1, which ends the page.
                 let d = match dest {
                     None if n == 2 && current.game_over => BATTLE_LOSE,
-                    None => length,
+                    None if n == 1 && ends => length + 3,
+                    None => end,
                     Some(d) => *d,
                 };
                 table.extend(usize_word(d)?);
             }
             pieces[current.at] = table;
             for out in current.exits {
-                pieces[out] = with_dest(&pieces[out], length)?;
+                pieces[out] = with_dest(&pieces[out], end)?;
             }
-            piece = vec![];
+            piece = if ends {
+                let mut p = vec![OP_GOTO];
+                p.extend(usize_word(end)?);
+                p.push(OP_DONE);
+                p
+            } else {
+                vec![]
+            };
         } else if cmd.code == SHOW_CHOICE {
             if ctx.messages.is_none() {
                 return cannot();
@@ -1928,9 +1960,6 @@ pub fn encounter_troop(cmd: &Command) -> Step<i64> {
     }
     let troop = cmd.p(1).unwrap();
     if !(0 < troop && troop <= 0xFFFF) {
-        return cannot();
-    }
-    if cmd.p(3) == Some(BATTLE_ESCAPE_CUTS) {
         return cannot();
     }
     Ok(troop)
@@ -4653,6 +4682,59 @@ mod tests {
         assert_eq!(branch(1, 35421), None);
         assert_eq!(branch(CMP_EQUAL as i32, 65535), None);
         assert_eq!(branch(CMP_EQUAL as i32, 65536), None);
+    }
+
+    /// The three destinations of an `OP_BATTLE` at the start of `code`.
+    fn battle_destinations(code: &[u8]) -> [usize; 3] {
+        assert_eq!(code[0], OP_BATTLE);
+        let at = |k: usize| u16::from_le_bytes([code[3 + 2 * k], code[4 + 2 * k]]) as usize;
+        [at(0), at(1), at(2)]
+    }
+
+    #[test]
+    fn escaping_with_escape_mode_1_ends_the_page() {
+        // No handlers: escaping goes to the `OP_DONE` right after the
+        // opcode, and winning to the command that follows it.
+        let switch_on = cmd(CONTROL_SWITCHES, &[0, 7, 7, 0], "");
+        let game = Game::default();
+        let code = compile_with(&game, &[cmd(ENEMY_ENCOUNTER, &[0, 82, 1, 1, 0, 0], "bg"), switch_on.clone()])
+            .unwrap()
+            .unwrap();
+        assert_eq!(code[9], OP_DONE);
+        let [victory, escape, defeat] = battle_destinations(&code);
+        assert_eq!((victory, escape, defeat), (10, 9, BATTLE_LOSE));
+        // `escape_mode` 0 keeps its shape: nine bytes and every way out
+        // goes on.
+        let code = compile_with(&game, &[cmd(ENEMY_ENCOUNTER, &[0, 82, 1, 0, 0, 0], "bg"), switch_on])
+            .unwrap()
+            .unwrap();
+        assert_eq!(battle_destinations(&code), [9, 9, BATTLE_LOSE]);
+    }
+
+    #[test]
+    fn escaping_with_escape_mode_1_ends_the_page_also_with_handlers() {
+        // `defeat_mode` 1 brings the victory and defeat handlers. The block
+        // ends in a jump over an `OP_DONE`, which is where escaping goes;
+        // the bodies leave past it.
+        let game = Game::default();
+        let page = [
+            cmd(ENEMY_ENCOUNTER, &[0, 82, 1, 1, 1, 0], "bg"),
+            Command::new(VICTORY_HANDLER, 0, "", vec![]),
+            Command::new(CONTROL_SWITCHES, 1, "", vec![0, 7, 7, 0]),
+            Command::new(END, 1, "", vec![]),
+            Command::new(DEFEAT_HANDLER, 0, "", vec![]),
+            Command::new(CONTROL_SWITCHES, 1, "", vec![0, 8, 8, 0]),
+            Command::new(END, 1, "", vec![]),
+            Command::new(END_BATTLE, 0, "", vec![]),
+        ];
+        let code = compile_with(&game, &page).unwrap().unwrap();
+        let [victory, escape, defeat] = battle_destinations(&code);
+        assert_eq!(code[escape], OP_DONE);
+        assert_eq!(code[escape - 3], OP_GOTO);
+        let past = escape + 1;
+        assert_eq!(u16::from_le_bytes([code[escape - 2], code[escape - 1]]) as usize, past);
+        assert_eq!(code[past], OP_DONE, "the page's own end");
+        assert!(victory < defeat && defeat < escape);
     }
 
     #[test]

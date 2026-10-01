@@ -1,0 +1,8 @@
+{
+  "event_commands": [
+    {"code": "Teleport", "parameters": [5, 39, 34]},
+    {"code": "Wait", "parameters": [3]},
+    {"code": "EnemyEncounter", "parameters": [0, 82, 1, 1, 0, 0], "string": "ABLBackdropSJ03"},
+    {"code": "ControlSwitches", "parameters": [0, 1100, 1100, 0]}
+  ]
+}

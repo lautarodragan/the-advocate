@@ -490,6 +490,39 @@ def test_perder_sigue_por_el_defeat_handler(partida):
         "el DefeatHandler abre un cuadro de texto y abrió %d" % mensajes
 
 
+def test_huir_con_escape_mode_1_termina_la_pagina(partida):
+    """`escape_mode` 1 es "huir termina la página": `abort_on_escape` en
+    `CommandEnemyEncounter` de easyrpg, que al volver de la pelea llama a
+    `EndEventProcessing` y no a `SetSubcommandIndex`.
+
+    Lo usan las tres peleas de Mountain Path (105): el guardia que persigue y
+    la emboscada antes del túnel. El caso `huir-corta` pelea y después prende
+    el 1100; huyendo, el 1100 no se prende. La huida se fuerza con
+    `BA_ESCAPE` en 100: la chance es la de RM2k y la prueba no quiere azar.
+    """
+    una = partida(caso="huir-corta")
+    pelea = Pelea(una)
+    for _ in range(400):
+        if pelea.abierta():
+            break
+        una.consola.run(1)
+    else:
+        raise AssertionError("la pelea del caso no se abrió")
+    pelea.esperar("COMMAND")
+    una.consola.write_ram(pelea.s["BA_ESCAPE"], [100])
+    for _ in range(4):
+        pelea.tocar_cuadros("right")
+    assert pelea.byte("BA_COMMAND") == pelea.orden("ESCAPE")
+    pelea.tocar_cuadros()
+    pelea.cerrar()
+    assert pelea.byte("BA_RESULT") == pelea.s["BA_ESCAPE_R"], \
+        "la pelea tenía que terminar huyendo"
+    una.correr(10)
+    assert not una.corriendo_una_pagina(), "la página tenía que haber terminado"
+    assert not una.switch(1100), \
+        "huir con escape_mode 1 termina la página: el comando de después no corre"
+
+
 def test_la_pelea_no_gasta_ningun_tick(partida):
     """La regla que sostiene la comparación de pixeles: `ticks` no avanza
     mientras se ve la pantalla.
