@@ -138,6 +138,12 @@ const _: () = assert!(
 /// An event page: which event it belongs to, what activates it, and where
 /// its code is.
 pub const PAGE_BYTES: usize = 32;
+/// How many pages a map's table can have: the console walks it with a
+/// 16-bit offset (`page_ofs`, and `pick_by_ev` keeps it per event, with
+/// `$FFFD` and up as sentinels), so the last page has to start below
+/// `$FFFD` —2048 pages of 32 bytes—. It is the bound of the test pages too,
+/// which are one event of one map, with that map's own pages.
+pub const MAX_PAGES: usize = 0x1_0000 / PAGE_BYTES;
 /// No turn slot: the map has no still event that turns around.
 pub const TURN_NONE: u32 = 0xFFFF;
 /// A leader candidate's colours, as CGRAM words.
@@ -768,7 +774,13 @@ pub fn page_table(map: &PageMap, number: usize, evcode: &str) -> String {
             "    .word {:<4} ; +0  the event it belongs to",
             page.event
         ));
-        out.push(format!("    .byte {:<4} ; +2  its page number", page.page));
+        // Only its low byte, on purpose: the console never reads +2 —it is
+        // here for whoever reads the `.inc`— and the test event carries one
+        // page per case, which went past 255 on 2026-10-01 and stopped
+        // assembling with a `Range error`. Widening it would cost a byte of
+        // every page for a number nobody reads. What does bound the pages is
+        // `MAX_PAGES`.
+        out.push(format!("    .byte {:<4} ; +2  its page number", page.page & 0xFF));
         out.push(format!(
             "    .byte {:<4} ; +3  what triggers it",
             page.trigger
@@ -1086,6 +1098,13 @@ pub fn check_counts(map: &Map) -> Result<()> {
             )));
         }
     }
+    if map.pages.len() > MAX_PAGES {
+        return Err(Bad::answer(format!(
+            "map {} has {} event pages and {MAX_PAGES} fit: see MAX_PAGES",
+            map.id,
+            map.pages.len()
+        )));
+    }
     if let Some(sprite) = &map.sprite {
         if sprite.route_gfx.len() > ROUTE_GFX_MAX {
             return Err(Bad::answer(format!(
@@ -1269,4 +1288,85 @@ pub fn maps(maps: &[Map]) -> Result<Written> {
         frames,
         raw,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Each literal operand of the `.byte`s and `.word`s, with the largest
+    /// value its directive holds: what `ca65` checks, and answers with a
+    /// `Range error` when it does not fit.
+    fn literals(table: &str) -> Vec<(String, i64, i64)> {
+        let mut out = vec![];
+        for line in table.lines() {
+            let code = line.split(';').next().unwrap().trim();
+            let (max, operands) = if let Some(rest) = code.strip_prefix(".byte ") {
+                (0xFF, rest)
+            } else if let Some(rest) = code.strip_prefix(".word ") {
+                (0xFFFF, rest)
+            } else {
+                continue;
+            };
+            for operand in operands.split(',').map(str::trim) {
+                let value = match operand.strip_prefix('$') {
+                    Some(hex) => i64::from_str_radix(hex, 16).ok(),
+                    None => operand.parse().ok(),
+                };
+                if let Some(value) = value {
+                    out.push((line.to_string(), value, max));
+                }
+            }
+        }
+        out
+    }
+
+    /// The test event as the converter writes it: one page per case, the
+    /// k-th asking for the case variable to be at least k.
+    fn test_pages(count: i64) -> Vec<Page> {
+        (0..count)
+            .map(|k| Page {
+                event: 1,
+                page: k,
+                trigger: TRIGGER_AUTOSTART,
+                has_code: true,
+                offset: 4 * k as usize,
+                variable: (k > 0).then_some((7, 1, k)),
+                ..Page::default()
+            })
+            .collect()
+    }
+
+    #[test]
+    fn more_than_256_test_pages_fit_in_the_page_table() {
+        // On 2026-10-01 the release cartridge reached 256 and the next one
+        // did not assemble, because +2 carried the page number whole.
+        let pages = test_pages(300);
+        let map = PageMap {
+            pages: &pages,
+            changing: &[],
+            appearing: &[],
+            turning: &[],
+            animated: &[],
+        };
+        let table = page_table(&map, 0, "evcode_0");
+        let operands = literals(&table);
+        assert!(operands.len() > 300 * 10, "the table was not read");
+        for (line, value, max) in operands {
+            assert!((0..=max).contains(&value), "{value} does not fit in: {line}");
+        }
+        // And the page that asks for the case variable at 299 says so whole.
+        assert!(table.contains(".word 299 ; +26 against what"), "{table}");
+    }
+
+    #[test]
+    fn a_map_with_more_pages_than_the_console_walks_is_refused() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/maps.json");
+        let mut map = crate::request::read::<crate::request::Maps>(&path).unwrap().maps.remove(0);
+        map.pages = test_pages(MAX_PAGES as i64);
+        check_counts(&map).unwrap();
+        map.pages = test_pages(MAX_PAGES as i64 + 1);
+        let error = check_counts(&map).unwrap_err().to_string();
+        assert!(error.contains("2049 event pages and 2048 fit"), "{error}");
+    }
 }
