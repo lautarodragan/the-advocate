@@ -1,13 +1,16 @@
 """The ROM's data blocks with an identity of their own, what of them goes
-compressed with LZ2, in how many streams, and the WRAM caps each stream has
-to fit in; and the uncompressed copies left next to the cartridge.
+compressed with LZ2, and the uncompressed copies left next to the
+cartridge. How each block is cut into streams, whether each stream fits its
+place in WRAM and the compression itself are `rm2k-snes-mapdata`'s: see
+`compress_blocks`.
 """
 
 import collections
+import json
 import os
 import shutil
 
-from port import compress
+from port import stage
 from port.asm import block
 
 
@@ -37,21 +40,20 @@ class Materials:
         self.counts = collections.Counter()
         self.saved = collections.Counter()
         self.repeated = collections.Counter()
-        # {raw bytes: their LZ2 stream}, already compressed in one go: see
-        # `compress_blocks`. And how much each class weighed and weighs,
-        # of the blocks that were emitted.
+        # {(class, raw bytes): their LZ2 stream}, already compressed in one
+        # go: see `compress_blocks`. And how much each class weighed and
+        # weighs, of the blocks that were emitted.
         self.compressed = compressed or {}
         self.raw = collections.Counter()
         self.lz2 = collections.Counter()
 
     def store_compressed(self, kind, data):
         """Like `store`, but what goes to the cartridge is its LZ2 stream, or
-        its streams stuck together if the block goes in pieces: see
-        `compressed_parts`. It is deduplicated by the raw content, which is
-        the same as by the stream."""
+        its streams stuck together if the block goes in pieces, as
+        `compress_blocks` answered it. It is deduplicated by the stream,
+        which is the same as by the raw content."""
         data = bytes(data)
-        stream = b"".join(self.compressed[part]
-                          for part in compressed_parts(kind, data))
+        stream = self.compressed[(kind, data)]
         label, text = self.store(kind, stream)
         if text:
             self.raw[kind] += len(data)
@@ -106,112 +108,33 @@ class Materials:
 COMPRESSED_KINDS = ("map_tiles", "above_tiles", "sprite_tiles", "anim_tiles",
                     "map_cells")
 
-# The largest each decompressed stream can be, by where it lands in WRAM: see
-# the LZ2 reservation in tools/runtime/far_ram.s, which is where they come
-# from, and the `.assert` in decompress.s, which checks them against the
-# ones here. The background tiles are decompressed before the animation
-# drawings and can step on their place; the upper layer and the sprites go
-# after and can't.
-#
-# The background's is **per stream**, not per block: a background of more
-# than 32 KB —that of map 66, with the 544-tile layout— goes in two, and the
-# ROM decompresses and uploads the first before decompressing the second on
-# top of it: see `lz2_backdrop`.
+# The LZ2 caps the `.inc` carries for `decompress.s` to enforce. Which block
+# goes in how many streams and whether each fits its place in WRAM is
+# `materials.rs`'s, in `rm2k-snes-mapdata`: see `compress_blocks`.
 LZ2_CAP_BACKDROP = 0x8000
 LZ2_CAP_ABOVE_AND_SPRITES = 0x6000
 LZ2_CAP_ANIM = 0x2000
-LZ2_CAP_GRID = 0x10000       # two halves of HALF_GRID
-
-
-# What decompressing costs in the ROM, in master cycles, **on the high side**:
-# measured on 2026-09-26 over the forty maps of `release`, against loading
-# uncompressed, what was measured doesn't exceed this model by more than half
-# a frame. An NTSC frame is 357,954 master cycles. The boot computation uses
-# it.
-LZ2_CYCLES_PER_COMMAND = 700
-LZ2_CYCLES_PER_BYTE = 60
-CYCLES_PER_FRAME = 357954
-
-
-def decompress_frames(map_info, compressed):
-    """How many frames decompressing a map's blocks takes."""
-    cycles = 0
-    for kind, data in map_raw(map_info).items():
-        if kind not in COMPRESSED_KINDS:
-            continue
-        for part in compressed_parts(kind, data):
-            cycles += (compress.commands(compressed[part])
-                       * LZ2_CYCLES_PER_COMMAND
-                       + len(part) * LZ2_CYCLES_PER_BYTE)
-    return cycles / float(CYCLES_PER_FRAME)
+LZ2_CAP_GRID = 0x10000       # the grid's two halves
 
 
 def compress_blocks(maps):
-    """{raw bytes: LZ2 stream} of everything the cartridge carries
-    compressed, with a single `lz2` process. Along the way it enforces the
-    WRAM caps."""
-    parts = []
-    for map_info in maps:
+    """Everything the cartridge carries compressed, as `rm2k-snes-mapdata
+    compress` answers it: `{(class, raw bytes): its LZ2 stream}` —a block
+    that goes in pieces, its streams stuck together— and, per map in the
+    same order, how many frames the console takes to decompress it. The
+    stage cuts the blocks into streams, enforces the WRAM caps and
+    compresses each distinct part once, with `lz2` as a library."""
+    request = {"maps": [dict({kind: data.hex()
+                              for kind, data in map_raw(m).items()},
+                             id=m["id"]) for m in maps]}
+    written = stage.run("rm2k-snes-mapdata", "mapdata", "compress", request)
+    answer = json.loads(written["compress.json"])["maps"]
+    streams, frames = {}, []
+    for map_info, theirs in zip(maps, answer):
         for kind, data in map_raw(map_info).items():
-            if kind not in COMPRESSED_KINDS:
-                continue
-            check_streams(map_info["id"], kind, data)
-            parts += compressed_parts(kind, data)
-    parts = list(dict.fromkeys(parts))
-    return dict(zip(parts, compress.compress_many(parts)))
-
-
-# The grid goes to the upper half of the two WRAM banks —see `lz2_grid`—, so
-# it is compressed in two streams of up to 32 KB: each one lands whole in one
-# bank, and the decompressor doesn't have to know how to cross.
-HALF_GRID = 0x8000
-
-
-# And the background tiles, in streams of whatever fits in the load buffer:
-# the ROM decompresses one, uploads it by DMA and only then decompresses the
-# next in the same place —see `lz2_backdrop`—. A background that fits in one
-# goes in one, and that leaves the usual maps with the usual stream.
-BACKDROP_STREAMS_MAX = 2            # the ones `lz2_backdrop` reads
-
-
-def compressed_parts(kind, data):
-    """The pieces of a block that are each compressed in their own stream."""
-    if kind == "map_cells":
-        return [data[:HALF_GRID], data[HALF_GRID:]]
-    if kind == "map_tiles" and len(data) > LZ2_CAP_BACKDROP:
-        return [data[k:k + LZ2_CAP_BACKDROP]
-                for k in range(0, len(data), LZ2_CAP_BACKDROP)]
-    return [data]
-
-
-# How much of each stream fits in WRAM, and how many streams the ROM reads per
-# block. The grid always goes in two, one per half; the rest in one, except
-# the background.
-CAPS_PER_STREAM = {"map_tiles": (LZ2_CAP_BACKDROP, BACKDROP_STREAMS_MAX),
-                   "above_tiles": (LZ2_CAP_ABOVE_AND_SPRITES, 1),
-                   "sprite_tiles": (LZ2_CAP_ABOVE_AND_SPRITES, 1),
-                   "anim_tiles": (LZ2_CAP_ANIM, 1),
-                   "map_cells": (HALF_GRID, 2)}
-
-
-def check_streams(map_id, kind, data):
-    """That each stream of the block fits in its WRAM place, and that there
-    aren't more streams than the ROM reads. A stream that goes over breaks
-    nothing when building: the ROM decompresses it anyway and steps on
-    whatever is behind —with map 66's background, the upper half of the
-    grid—, and it shows or not depending on the map."""
-    cap, count = CAPS_PER_STREAM[kind]
-    parts = compressed_parts(kind, data)
-    for part in parts:
-        if len(part) > cap:
-            raise SystemExit(
-                "map %d: a stream of %s is %d bytes and %d fit in WRAM: "
-                "see the LZ2 reservation in tools/runtime/far_ram.s"
-                % (map_id, kind, len(part), cap))
-    if len(parts) > count:
-        raise SystemExit(
-            "map %d: %s is %d bytes, which is %d streams, and the ROM reads %d"
-            % (map_id, kind, len(data), len(parts), count))
+            streams[(kind, data)] = bytes.fromhex(theirs[kind])
+        frames.append(theirs["frames"])
+    return streams, frames
 
 
 def map_raw(map_info):

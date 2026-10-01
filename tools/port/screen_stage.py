@@ -251,8 +251,7 @@ def convert(game_dir, members, items, bank_items, title):
 
 
 def _cgram_reserved():
-    from port.map_layers import CGRAM_RESERVED
-    return CGRAM_RESERVED
+    return vram.published()["cgram_reserved"]
 
 
 def render(screen, **state):

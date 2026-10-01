@@ -28,9 +28,6 @@ from port.map_layers import (CGRAM_RESERVED, FAMILIES, PRIORITY_ABOVE,
 from port.sprites import (OBJ_COLORS, OBJ_PRIORITY, OBJ_PRIORITY_ABOVE,
                           POSE_BYTES, SPRITE_POSES)
 from port.obj_extras import TIMER_GLYPHS, TIMER_GLYPH_W, TIMER_X, TIMER_Y
-from port.vram import (MAP_LAYOUT, SLOTS, SLOT_MAP, SLOT_TEXT_LEVEL,
-                       SLOT_TEXT_WIDTH, SLOT_VRAM, VRAM_ABOVE_MAP,
-                       WINDOW_BASES)
 from port.materials import (LZ2_CAP_ABOVE_AND_SPRITES, LZ2_CAP_ANIM,
                             LZ2_CAP_BACKDROP, LZ2_CAP_GRID, Materials,
                             compress_blocks, write_raw)
@@ -83,8 +80,8 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
     change the hero's speed, which RM2k doesn't do. See
     `hero_speed_keys.s`.
 
-    `compressed` is what `compress_blocks` returns; if missing it is
-    compressed here.
+    `compressed` is the streams `compress_blocks` returns; if missing it
+    is compressed here.
 
     `title` is the title screen —the image and its menu— and may be missing;
     `game_over`, the Game Over one, too: it is what
@@ -99,6 +96,11 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
     `battle_model` is what `rm2k-snes-battle model` answered for this
     cartridge: see `port/battle_stage.py`.
     """
+    # The VRAM layouts' constants, as `rm2k-snes-mapdata vram` publishes
+    # them: asked when emitting, not when importing.
+    from port.vram import (MAP_LAYOUT, SLOTS, SLOT_MAP, SLOT_TEXT_LEVEL,
+                           SLOT_TEXT_WIDTH, SLOT_VRAM, VRAM_ABOVE_MAP,
+                           WINDOW_BASES)
     # The geometry the screens were drawn with, which is what their tables
     # are written with —see `rm2k-snes-screens layout`—, and the battle's
     # text screen's, which is `rm2k-snes-battle`'s.
@@ -664,7 +666,7 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         write_raw(os.path.dirname(os.path.abspath(path)), maps)
         materials = Materials(dedupe=True,
                               compressed=compressed
-                              or compress_blocks(maps))
+                              or compress_blocks(maps)[0])
         handle.write("; The LZ2 caps, which decompress.s enforces\n"
                      "LZ2_CAP_BACKDROP = $%04X\n"
                      "LZ2_CAP_ABOVE_Y_SPRITES = $%04X\n"

@@ -85,9 +85,9 @@ from rpgmaker import resources
 from rpgmaker.resources import find_resource
 from port.sprites import (OBJ_PRIORITY, OBJ_PRIORITY_ABOVE, block_tile,
                           maps_per_character)
-from port.vram import SLOTS, _check_splits
+from port import vram
 from port.blocks import SUB_MAX, Substitutions, substitution_triples
-from port.materials import compress_blocks, decompress_frames
+from port.materials import compress_blocks
 from port.map_record import PARALLEL_MAX, ROUTE_EV_MAX
 from port.battle_animations import rom_animations
 from port.battle_scenes import (fallback_bytes, patch_uses, rom_scene,
@@ -651,14 +651,14 @@ def main():
                        "relleno_textos": args.text_padding,
                        "items_db": renderer.database.items,
                        "textos": screen_texts})
-    _check_splits()
+    vram._check_splits()
     slot_tiles, slot_headers = slots_data["tiles"], slots_data["cabeceras"]
     print("  slots screen: %d, %d 4bpp tiles (%d B) + %d palettes, "
           "%d B of cells; %d actors with a face: %s"
-          % (SLOTS, len(slot_tiles), len(slot_tiles) * 32,
+          % (vram.SLOTS, len(slot_tiles), len(slot_tiles) * 32,
              len(slots_data["paletas"]),
              (len(slot_headers) * len(slot_headers[0])
-              + SLOTS * 4 * len(slots_data["filas"][0][0][0])) * 2,
+              + vram.SLOTS * 4 * len(slots_data["filas"][0][0][0])) * 2,
              len(slots_data["caras"]),
              ", ".join("%d %s" % (a, renderer.database.actors[a].name)
                        for a in sorted(slots_data["caras"])) or "none"))
@@ -772,7 +772,7 @@ def main():
         [pair for pair, _slot in sorted(events.SKILL_SLOT.items(),
                                         key=lambda x: x[1])],
         screen_stage.layout().ITEM_NAME_WIDTH)
-    compressed = compress_blocks(maps)
+    compressed, decompress_frames = compress_blocks(maps)
     report = emit(args.output, maps, args.start_index, args.hero_above, party,
                   window_data, title_data, slots_data,
                   args.pictures.info, animations, troops.ids, battle_audio,
@@ -878,8 +878,7 @@ def main():
         "start": args.start_index,
         "title": not args.no_title,
         "game_over": bool(game_over_data),
-        "decompress_frames": decompress_frames(maps[args.start_index],
-                                               compressed),
+        "decompress_frames": decompress_frames[args.start_index],
         "measuring_headroom": args.measure_headroom,
         # The quality backdrops are the emission's bytes: the stage only
         # puts them in their place in the `.msu`.

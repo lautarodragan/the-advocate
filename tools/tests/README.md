@@ -40,8 +40,6 @@ has to exist: `test_index.py` enforces it.
   the runtime does not use an undeclared opcode, and that the two
   declarations share no name; what a declaration checks on its own is in
   `protocol`'s tests
-* `test_vram_layouts.py`: the VRAM layouts, their order and the maps that
-  introduced them
 * `test_substitutions.py`: the `TileSubstitution` cap, the same in the
   converter and in the runtime
 * `test_project.py`: that where each thing is —the root, the repo's

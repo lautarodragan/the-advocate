@@ -28,7 +28,7 @@ from port.snes_format import BYTES_PER_TILE
 from port.map_layers import BG_PALETTES, layers_answer
 from port.sprites import block_tile, discard_warning, separate_from_hero
 from port.obj_extras import map_shows_animation
-from port.vram import WINDOW_H, WINDOW_W, vram_layout
+from port import vram
 from port.blocks import BLOCK_BYTES
 from port.map_record import (NPC_MAX, ROUTE_GFX_MAX, TURN_NONE, anim_bytes,
                              ev_pos_bytes, npc_table)
@@ -229,7 +229,7 @@ def _map_info(renderer, prepared, written, args):
         # layout and not on the palettes.
         count = animation["count"]
         try:
-            layout = vram_layout(len(tile_data) // BYTES_PER_TILE, count,
+            layout = vram.vram_layout(len(tile_data) // BYTES_PER_TILE, count,
                                  len(above_data[0]) // 32)
         except SystemExit:
             layout = None
@@ -320,11 +320,11 @@ def _map_info(renderer, prepared, written, args):
           "grid plus %d B of table, against the %d B of the expanded tilemap"
           % (len(blocks) // BLOCK_BYTES, len(cells), 2 * len(cells),
              len(blocks), 2 * summary["celdas"]))
-    windows_x = (len(tilemap[0]) + WINDOW_W - 1) // WINDOW_W
-    windows_y = (len(tilemap) + WINDOW_H - 1) // WINDOW_H
+    windows_x = (len(tilemap[0]) + vram.WINDOW_W - 1) // vram.WINDOW_W
+    windows_y = (len(tilemap) + vram.WINDOW_H - 1) // vram.WINDOW_H
     if windows_x > 1 or windows_y > 1:
         print("  it doesn't fit in the %dx%d window: the ROM is going to redraw"
-              % (WINDOW_W, WINDOW_H))
+              % (vram.WINDOW_W, vram.WINDOW_H))
 
     words = bytearray()
     for cell in cells:
@@ -354,7 +354,7 @@ def _map_info(renderer, prepared, written, args):
         # ChipSet's index 0, that is the first autotile, and not that of any
         # cell. See `op_terrain`.
         "terreno_fuera": rm2k.terrain_of(chipset, 0),
-        "layout": vram_layout(
+        "layout": vram.vram_layout(
             len(tile_data) // BYTES_PER_TILE,
             len(sprite[0]) // 32 if sprite else 0,
             len(above_data[0]) // 32),
