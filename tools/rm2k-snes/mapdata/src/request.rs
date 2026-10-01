@@ -106,6 +106,9 @@ pub struct Emit {
     /// The text block of every `ShowMessage`, as the event compiler left it.
     #[serde(deserialize_with = "hex::bytes")]
     pub messages: Vec<u8>,
+    /// The pair table its letters are written with: see `Pairs` in the
+    /// event compiler's `messages.rs`.
+    pub message_pairs: MessagePairs,
     /// The title's picture and the Game Over's, each one stream.
     pub title: Option<FullScreen>,
     pub game_over: Option<FullScreen>,
@@ -146,6 +149,15 @@ pub struct Emit {
 pub struct Rom {
     pub title: String,
     pub sram_signature: String,
+}
+
+/// The text block's pair table: the first byte value that stands for a
+/// pair, and two bytes per pair from there up.
+#[derive(Deserialize)]
+pub struct MessagePairs {
+    pub first: i64,
+    #[serde(deserialize_with = "hex::bytes")]
+    pub table: Vec<u8>,
 }
 
 /// A picture that fills the screen, as one LZ2 stream with its tiles,

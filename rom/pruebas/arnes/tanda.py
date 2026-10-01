@@ -205,15 +205,20 @@ def cuadro_de_texto(cartucho, renglon):
     El bloque se recorre desde el principio, cuadro por cuadro, con el formato
     que emite el compilador de eventos y que lee `msg_start`: un byte de
     cabecera con los renglones en los tres bits de abajo, y cada renglón con
-    su largo delante. Cada cuadro arranca en un múltiplo del paso, así que
-    entre uno y otro puede haber relleno, y se saltea. Se para al primer byte
-    que no puede ser una cabecera, que es lo que hay detrás del último cuadro.
+    su largo **en letras** delante. Un byte desde `MESSAGE_PAIR_FIRST` para
+    arriba son dos letras, las de `message_pairs` —ver `message_tick`—, así
+    que el largo en bytes de un renglón sale de leerlo. Cada cuadro arranca
+    en un múltiplo del paso, así que entre uno y otro puede haber relleno, y
+    se saltea. Se para al primer byte que no puede ser una cabecera, que es
+    lo que hay detrás del último cuadro.
     """
     from port.events import MESSAGES_STEP
     base = cartucho.simbolos["messages"]
     archivo = en_la_rom(base)
     with open(cartucho.sfc, "rb") as sfc:
         datos = sfc.read()
+    primero = cartucho.simbolos["MESSAGE_PAIR_FIRST"]
+    pares = en_la_rom(cartucho.simbolos["message_pairs"])
     encontrados, desplazamiento = [], 0
     while desplazamiento < 0x10000 * MESSAGES_STEP:
         cabecera = datos[archivo + desplazamiento]
@@ -224,11 +229,16 @@ def cuadro_de_texto(cartucho, renglon):
         for _ in range(cuantos):
             cuenta = datos[archivo + desplazamiento + largo]
             largo += 1
-            renglones.append("".join(
-                chr(b + 32) for b in
-                datos[archivo + desplazamiento + largo:
-                      archivo + desplazamiento + largo + cuenta]))
-            largo += cuenta
+            letras = []
+            while len(letras) < cuenta:
+                b = datos[archivo + desplazamiento + largo]
+                largo += 1
+                if b >= primero:
+                    k = pares + 2 * (b - primero)
+                    letras += datos[k:k + 2]
+                else:
+                    letras.append(b)
+            renglones.append("".join(chr(b + 32) for b in letras))
         if renglon in renglones:
             encontrados.append((desplazamiento,
                                 archivo + desplazamiento, largo))

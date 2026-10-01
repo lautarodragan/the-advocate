@@ -49,6 +49,10 @@ PICTURE_CHANGE = FAR_PICTURE + 14
 ; once per frame and never indexed, so the long addressing does not show.
 FAR_MSG_PAUSE = $7E30FB         ; word: up to PAUSAS_MAX times PAUSE_FRAMES
 FAR_MSG_AUTO  = $7E30FD
+; And the second letter of a pair the composer has drawn half of, with bit 7
+; set, or 0: see `msg_letter`. It is the fourth of those five bytes; read
+; once per letter, which the long addressing does not show either.
+FAR_MSG_SECOND = $7E30FE
 
 .proc battle_anim_clear
 .a8

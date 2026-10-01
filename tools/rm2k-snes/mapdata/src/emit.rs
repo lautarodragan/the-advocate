@@ -705,6 +705,9 @@ fn window_section(out: &mut String, r: &Emit, window: &Value) -> Result<()> {
         r.messages.len(),
         0x10000 * MESSAGES_STEP
     ));
+    // The pairs its letters are written with, for `message_tick`.
+    line(out, &block("message_pairs", &r.message_pairs.table));
+    out.push_str(&pyf!("MESSAGE_PAIR_FIRST = %d\n", r.message_pairs.first));
     Ok(())
 }
 

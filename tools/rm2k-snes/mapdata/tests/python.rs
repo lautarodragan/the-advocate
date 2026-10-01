@@ -139,12 +139,35 @@ fn db() -> Db {
     Db::from_dump(&here().join("../battle/tests/game/dump"), true).unwrap()
 }
 
+/// The text without the text block's pair table, which came after the
+/// Python: the four lines right after `MESSAGES_CAP`, checked here against
+/// the request's `5f60` —one pair—.
+fn without_pairs(text: &str) -> String {
+    let pairs = [
+        ".block 2",
+        "message_pairs:",
+        "    .byte $5F,$60",
+        "MESSAGE_PAIR_FIRST = 95",
+    ];
+    let lines: Vec<&str> = text.split('\n').collect();
+    let at = lines
+        .iter()
+        .position(|l| l.starts_with("MESSAGES_CAP = "))
+        .unwrap()
+        + 1;
+    assert_eq!(lines[at..at + pairs.len()], pairs);
+    let mut kept = lines[..at].to_vec();
+    kept.extend(&lines[at + pairs.len()..]);
+    kept.join("\n")
+}
+
 #[test]
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
-    assert_eq!(emitted.text.lines().count(), 3284);
+    let text = without_pairs(&emitted.text);
+    assert_eq!(text.lines().count(), 3284);
     assert_eq!(
-        sha(&emitted.text),
+        sha(&text),
         "24d1e7de2b6dfc95c5af9a4f78a5a8f79d219742e4435aeb53f8ce2a301c19e8"
     );
 }
@@ -152,9 +175,10 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 #[test]
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
-    assert_eq!(emitted.text.lines().count(), 3404);
+    let text = without_pairs(&emitted.text);
+    assert_eq!(text.lines().count(), 3404);
     assert_eq!(
-        sha(&emitted.text),
+        sha(&text),
         "ea056116d13d5e6a709647f4df01176e4ca88a6791ff0b41be19a9a73fab7054"
     );
 }

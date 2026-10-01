@@ -557,7 +557,9 @@ to_screen:
 ; The page's message, in the party's lines: see `BA_PAGE_MSG_ROW0` in
 ; `rm2k-snes-battle`'s `screen.rs`. It reads it from `messages_troop` in the
 ; usual format —the header with the lines and each line with its length, one
-; byte per letter with the ASCII minus 32— and writes it with the screen's
+; byte per letter with the ASCII minus 32: unlike `messages`, this block is
+; written without pairs, so this does not look up `message_pairs`— and
+; writes it with the screen's
 ; glyphs, cut at `BA_PAGE_MSG_WIDTH`. The block fits in one bank —the converter
 ; guarantees it—, so the pointer is advanced with Y and the bank stays fixed.
 .proc ba_page_message

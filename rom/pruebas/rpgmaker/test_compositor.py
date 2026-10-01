@@ -17,6 +17,8 @@ mensaje roto: lo que se quiere medir no es cómo llegó el largo malo, sino que 
 largo malo —venga de donde venga— corte el renglón en vez de romper la pantalla.
 """
 
+from consola import en_la_rom, en_la_wram
+
 # Un largo que no puede existir: el tope real son 39 columnas. Con 70 se pasan
 # 31, y alcanzan para llegar hasta la cola de VRAM: la columna 64 escribe una
 # palabra en `text_buf` + 2534, y `vq_n` cae justo en el 2535 —el buffer mide
@@ -47,6 +49,9 @@ def _componer(p, largo, ticks=TICKS):
                           ("msg_primed", 1), ("msg_upload", 0),
                           ("msg_state", 1)):
         p.poner_byte(nombre, valor)
+    # Y sin la mitad de un par esperando, que es lo otro que el arranque del
+    # renglón deja puesto: ver `msg_letter`. Vive en la RAM lejana.
+    p.consola.write_ram(en_la_wram(p.simbolos["FAR_MSG_SECOND"]), [0])
     for _ in range(ticks):
         p.correr(1)
     return p
@@ -106,7 +111,26 @@ def test_el_renglon_cortado_igual_consume_sus_bytes(partida):
     _componer(p, LARGO_INVENTADO)
     bajo, alto, banco = p.consola.ram(p.simbolos["msg_ptr"], 3)
     ptr = (banco << 16) | (alto << 8) | bajo
-    assert ptr - mensajes == LARGO_INVENTADO, (
+    esperados = _bytes_de_las_letras(p, LARGO_INVENTADO)
+    assert ptr - mensajes == esperados, (
         "el compositor tiene que consumir los %d caracteres del renglón aunque "
-        "sólo dibuje %d: avanzó %d"
-        % (LARGO_INVENTADO, p.simbolos["MESSAGE_COLS"], ptr - mensajes))
+        "sólo dibuje %d, que desde el principio del bloque son %d bytes: "
+        "avanzó %d"
+        % (LARGO_INVENTADO, p.simbolos["MESSAGE_COLS"], esperados,
+           ptr - mensajes))
+
+
+def _bytes_de_las_letras(p, letras):
+    """Cuántos bytes del principio de `messages` hacen falta para `letras`
+    letras: un byte desde `MESSAGE_PAIR_FIRST` para arriba es un par, dos
+    letras —ver `message_tick`—. Si la última cae en la primera mitad de un
+    par, ese byte igual se leyó."""
+    primero = p.simbolos["MESSAGE_PAIR_FIRST"]
+    with open(p.sfc, "rb") as archivo:
+        rom = archivo.read()
+    i = en_la_rom(p.simbolos["messages"])
+    leidas = leidos = 0
+    while leidas < letras:
+        leidas += 2 if rom[i + leidos] >= primero else 1
+        leidos += 1
+    return leidos
