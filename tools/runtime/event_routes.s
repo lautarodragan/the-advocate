@@ -89,6 +89,15 @@ with_speed:
     lda temp
     jsr active_layer            ; its layer, once and not on every step
     sta route_ev + 31, x
+    ; And whether its page always faces the same way —the animation types
+    ; 2, 3 and 4—, which is the `lock_facing` that `SetAnimationType` leaves
+    ; and a forced move route does not touch. Until 2026-09-30 only a page's
+    ; own route brought it, and the slot of an event without one was born
+    ; turning: the trams of maps 9 and 28, whose CharSet rows are other
+    ; vehicles. A reused slot already has it, or the 26 that replaced it.
+    lda found_flags
+    and #$08
+    sta route_ev + 18, x
 reused:
     lda route_ev + 18, x
     and #$FE                    ; the forced one overrides the page's, if there was one

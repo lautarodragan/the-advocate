@@ -207,6 +207,7 @@ def pages(records, game_map):
                                                       page.layer)
                           if graphic is not None else None),
             "gira": r["turns"],
+            "dir_fija": page.animation_type in rm2k.FIXED_DIRECTION,
         })
     return out
 

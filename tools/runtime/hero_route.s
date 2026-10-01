@@ -92,7 +92,11 @@ not_jump:
     jmp other_command           ; the `begin_jump` already consumed the pair
 not_end:
     cmp #28
-    bcc other_command           ; 26 and 27 do not reach the hero
+    bcs not_lock
+    cmp #26
+    bcc other_command           ; 16 to 22 are not compiled on the hero
+    jmp lock_hero               ; 26 and 27; it is far
+not_lock:
     cmp #30
     bcs not_speed
     jmp speed                   ; 28 and 29: the speed, which stays
@@ -154,6 +158,8 @@ freq_ready:
 face:
     sec
     sbc #12
+    ; Also over `hero_lock`: `UpdateMoveRoute` does `SetFacing` straight
+    ; for the `face_*`, without `UpdateFacing`.
     sta hero_dir                ; face_*: with frequency 8 it is instant and the
     lda route_freq              ; next one follows; with another, it stands
     jsr after_turn              ; still for the turn's frames
@@ -163,6 +169,14 @@ turn_wait:
     dec a
     sta route_wait
     jmp ready
+
+; 26 locks the facing and 27 releases it, so the low bit inverted is the
+; value. It stays after the route: see `try_toward`.
+lock_hero:
+    and #$01
+    eor #$01
+    sta hero_lock
+    jmp other_command
 
 ; `change_graphic` **on the hero**: 34 with its operand, the graphic's index in
 ; the map's table, same as on an event.
@@ -222,9 +236,9 @@ move:
     ; Diagonals do not get here: the converter rejects the page that gives one
     ; to the hero —see MOVE_EVENT in `events.traducir`— because the ROM only
     ; walks them on events, and none of the game's 26 move routes that use
-    ; them is the hero's. Without that cut, the elimination below would send
-    ; the hero to the left.
-    sta hero_dir                ; move_* faces where it goes
+    ; them is the hero's. Without that cut, the elimination in
+    ; `try_toward` would send the hero to the left.
+    pha                         ; move_* faces where it goes: `try_toward`
     ; The step is noted as the move route's **before** trying it, and not
     ; once it started: `begin_step` already advances the first frame, and
     ; `hero_speed_now` has to know by then that the route rules, or the first
@@ -244,24 +258,8 @@ move:
 no_cross:
     sta crossing
     stz crossing + 1
-    lda hero_dir
-    cmp #DIR_UP
-    bne not_up
-    jsr try_up
-    jmp see_yes_started
-not_up:
-    cmp #DIR_RIGHT
-    bne not_right
-    jsr try_right
-    jmp see_yes_started
-not_right:
-    cmp #DIR_DOWN
-    bne not_down
-    jsr try_down
-    jmp see_yes_started
-not_down:
-    jsr try_left
-see_yes_started:
+    pla
+    jsr try_toward
     stz crossing
     stz crossing + 1
     lda step_left

@@ -128,32 +128,26 @@ menu_no_requested:
     and #PAD_UP
     beq no_up
     lda #DIR_UP
-    sta hero_dir
-    jsr try_up
-    bra after_step
+    bra walk
 no_up:
     lda pad
     and #PAD_DOWN
     beq no_down
     lda #DIR_DOWN
-    sta hero_dir
-    jsr try_down
-    bra after_step
+    bra walk
 no_down:
     lda pad
     and #PAD_LEFT
     beq no_left
     lda #DIR_LEFT
-    sta hero_dir
-    jsr try_left
-    bra after_step
+    bra walk
 no_left:
     lda pad
     and #PAD_RIGHT
     beq no_right
     lda #DIR_RIGHT
-    sta hero_dir
-    jsr try_right
+walk:
+    jsr try_toward
 after_step:
     ; A step that really started —`step_left` says so— is an RM2k step:
     ; `IncSteps` and `UpdateEncounterSteps`, which there run after `Move()`
@@ -164,6 +158,52 @@ after_step:
     beq no_right
     jsl f:encounter_step
 no_right:
+    rts
+.endproc
+
+; A step of the hero toward direction A, from the pad or from a route. It is
+; `Game_Character::Move`: `SetDirection` and then `UpdateFacing`, which with
+; `lock_facing` leaves alone the `facing` —what is drawn—. Here there is only
+; `hero_dir` for both, and `can_enter` reads the step's direction from it, so
+; it takes A for the attempt and gets back the one it had if `hero_lock` is
+; on. That is why the action key of a locked hero looks where it faces and
+; not where it last tried to go, which RM2k's `GetDirection` would: declared,
+; no case in the game presses it locked.
+;
+; Anything that is not up, right or down goes left, by elimination: it is
+; why diagonals do not reach the hero —see `step_route`—.
+.proc try_toward
+.a8
+.i16
+    xba                         ; the direction waits in B
+    lda hero_dir
+    pha                         ; the facing it had
+    xba
+    sta hero_dir
+    cmp #DIR_UP
+    bne not_up
+    jsr try_up
+    bra tried
+not_up:
+    cmp #DIR_RIGHT
+    bne not_right
+    jsr try_right
+    bra tried
+not_right:
+    cmp #DIR_DOWN
+    bne not_down
+    jsr try_down
+    bra tried
+not_down:
+    jsr try_left
+tried:
+    lda hero_lock
+    beq free
+    pla
+    sta hero_dir
+    rts
+free:
+    pla
     rts
 .endproc
 

@@ -93,6 +93,9 @@ lista, y todo lo nombrado tiene que existir: lo cobra
   su velocidad
 * `rpgmaker/test_salto_bloqueado.py`: hacia dónde queda mirando el que salta
   cuando el salto no puede caer, y con la dirección trabada
+* `rpgmaker/test_direccion_trabada.py`: el héroe con la dirección trabada
+  por una ruta no gira con el pad ni con los pasos, y un evento de dirección
+  fija no gira con una ruta forzada
 * `rpgmaker/test_sonido_en_ruta.py`: el efecto de sonido adentro de una ruta
   forzada, sobre el héroe, sobre un evento y adentro de un salto
 * `rpgmaker/test_puerta_misma.py`: una puerta al mismo mapa

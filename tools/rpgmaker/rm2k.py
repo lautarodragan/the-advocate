@@ -451,6 +451,12 @@ def terrain_of(chipset, chip_id):
 # second type.
 CONTINUOUS_ANIMATION = (1, 3)
 
+# And the ones that always face the same way: "Fixed Dir/Non-continuous",
+# "Fixed Dir/Continuous" and "Fixed Graphic". It is easyrpg's
+# `IsDirectionFixedAnimationType`, which `SetAnimationType` copies to
+# `lock_facing`: walking does not turn them.
+FIXED_DIRECTION = (2, 3, 4)
+
 
 def collect_npcs(game_map):
     """The events that are drawn, with their pose and whether they block the

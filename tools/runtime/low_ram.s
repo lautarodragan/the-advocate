@@ -433,6 +433,14 @@ switches: .res SWITCH_BYTES
 route_crosses: .res 1   ; walk_everywhere: the move route ignores collision
 route_anim_for: .res 1  ; stop_animation: the pose stays on the middle one
 route_jump:  .res 1     ; what is left of the current jump, 0 if there is none
+; `lock_facing`: nonzero after a 26 of a hero route, until a 27. It outlives
+; the route and the map, as `party_location.lock_facing` does: see
+; `try_toward`. RM2k also saves it, and here it does not go in `save_table`
+; on purpose: the only lock the game leaves on past its route is the race
+; car's, from map 49 to map 64, none of the maps in between has a save point,
+; and the game allows saving only next to one —`ChangeSaveAccess`—. Loading
+; clears it, which is what a save made free gives back.
+hero_lock:   .res 1
 ; `ruta_salto_dx` and `ruta_salto_dy` lived here and nobody read them; their
 ; extra byte is what pays for the sixteen-bit `fade_map`.
 ; On while a step of a move route that goes through walls is being tried.
@@ -546,6 +554,7 @@ shake_lo:  .res 2
 shake_hi:  .res 2
 layer_ev:    .res 2
 found_layer: .res 1
+found_flags: .res 1     ; and the +13 of that page: see `route_for_event`
 jump_command:  .res 1  ; the index of the `begin_jump` being built
 jump_stuck: .res 1     ; 1 if the jump did not start because the cell is occupied
 ; What `build_*_jump` gathers while it walks the commands of a jump: how far it
