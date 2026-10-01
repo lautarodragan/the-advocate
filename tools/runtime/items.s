@@ -55,7 +55,7 @@ FAR_ITEM_LIST = $2A00
     and #$00FF
     asl a
     tax
-    lda item_id, x
+    lda f:item_id, x
     clc
     adc #FAR_ITEMS
     sta WMADDL
@@ -388,7 +388,7 @@ from_switch:
     and #$00FF
     asl a
     tax
-    lda item_id, x
+    lda f:item_id, x
     clc
     adc #FAR_ITEMS
     sta WMADDL

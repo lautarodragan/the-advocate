@@ -69,11 +69,13 @@ from_sale:
     rep #$20
 .a16
     and #$00FF
-    tax
     asl a
-    tay
-    lda item_id, y
+    tax
+    lda f:item_id, x            ; outside bank 0: `f:` only indexes with X
     sta comp_or23
+    txa
+    lsr a
+    tax                         ; X = k again
     sep #$20
 .a8
     rts
@@ -128,9 +130,12 @@ reaches:
 .a16
     txa
     asl a
-    tay
-    lda item_id, y
+    tax
+    lda f:item_id, x            ; outside bank 0: `f:` only indexes with X
     sta comp_or23
+    txa
+    lsr a
+    tax                         ; X = k again
     sep #$20
 .a8
     jsr eq_inv_point
@@ -588,11 +593,13 @@ near_12382:
     rep #$20
 .a16
     and #$00FF
-    tax
     asl a
-    tay
-    lda item_id, y
+    tax
+    lda f:item_id, x            ; outside bank 0: `f:` only indexes with X
     sta comp_or23
+    txa
+    lsr a
+    tax                         ; X = k again
     sep #$20
 .a8
     phx

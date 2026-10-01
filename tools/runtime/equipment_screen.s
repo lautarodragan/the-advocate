@@ -453,7 +453,7 @@ list_list:
     and #$00FF
     asl a
     tax
-    lda item_id, x
+    lda f:item_id, x
     sta comp_or23
     sep #$20
 .a8

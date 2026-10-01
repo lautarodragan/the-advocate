@@ -1715,7 +1715,8 @@ impl Rest<'_> {
             ROWS,
             t.n("ITEM_LIST_Y").div_euclid(cell)
         ));
-        // `item_k` goes outside bank 0, read with `lda f:item_k, x`.
+        // `item_k` and `item_id` go outside bank 0, read with
+        // `lda f:item_k, x`: they grow with every item the maps bring.
         out.push_str(".segment \"RODATA\"\n");
         bytes_asm(
             out,
@@ -1723,8 +1724,8 @@ impl Rest<'_> {
             &decimal((0..ITEMS_N as i64).map(|n| k_of.get(&n).map_or(0xFF, |&k| k as i64))),
             true,
         );
+        words_asm(out, "item_id", &decimal(items.iter()), true);
         out.push_str(".segment \"TABLES\"\n");
-        words_asm(out, "item_id", &decimal(items.iter()), false);
         // Whether it goes in white and does something on the map, whether
         // using it spends one, whether it opens the actor choice, and whether
         // it is a two-handed weapon.
