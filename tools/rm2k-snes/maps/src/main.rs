@@ -101,7 +101,9 @@ struct LayersArgs {
     `layers`, and what the cartridge and the other domains decided: `names`, \
     `test_event`, `leaders`, `pages` —the event compiler's scan of the map—, \
     `route_graphics`, `also_walk`, `timer`, `rain`, `picture`, `battle_animation`, `singles`, \
-    `palette_weight` and `dither`. See `MapRequest::from_json`.")]
+    `palette_weight`, `dither`, and the `TileSubstitution`s it can run —`substitutions`, \
+    whose blocks are built, and `common_substitutions`, only translated—. See \
+    `MapRequest::from_json`.")]
 struct MapArgs {
     #[command(flatten)]
     place: Where,

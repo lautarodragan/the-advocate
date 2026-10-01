@@ -15,6 +15,7 @@ use crate::layers::{self as stage_layers, draw, Drawn};
 use crate::moves::{moves, Moves, ScannedPage};
 use crate::request::LayersRequest;
 use crate::sheets::Drawer;
+use crate::substitutions::{substitute, Answer as SubstitutionAnswer, Triple};
 use adeleine::Color;
 use rm2k_render::picture;
 use rm2k_rules::chipset::passability_table;
@@ -75,6 +76,12 @@ pub struct MapRequest {
     pub weights: BTreeMap<String, i64>,
     /// Which dither a translucent CharSet is drawn with, if one is.
     pub dither: String,
+    /// The `TileSubstitution`s that can run in this map —its events' and
+    /// its test pages'—, whose blocks are built before any page compiles;
+    /// and the common events', which are only translated: a `CallEvent`
+    /// can bring them into any map. See [`crate::substitutions`].
+    pub substitutions: Vec<Triple>,
+    pub common_substitutions: Vec<Triple>,
 }
 
 /// Something the conversion says, in order. A `stop` ends it there.
@@ -203,6 +210,9 @@ pub struct Whole {
     /// Who walks, animates still and turns: what the page table is built
     /// with, so the caller gets it back.
     pub moves: Moves,
+    /// Each substitution the map can run, with its block pairs, and the
+    /// ones whose blocks could not be built.
+    pub substitutions: SubstitutionAnswer,
 }
 
 /// The final layers and their blocks.
@@ -366,7 +376,15 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
         )));
     }
 
-    let (passability, blocks) = stage_layers::blocks(&layers.drawn, &layers.converted)?;
+    let (passability, mut blocks) = stage_layers::blocks(&layers.drawn, &layers.converted)?;
+    let substituted = substitute(
+        id,
+        &mut blocks,
+        &flags,
+        &chipset,
+        &request.substitutions,
+        &request.common_substitutions,
+    )?;
     let used: HashSet<(i32, i32)> = npcs0.iter().map(|n| (n.x, n.y)).collect();
     let (start_map, start_x, start_y) = game.start()?;
     let start = if id == start_map {
@@ -387,6 +405,7 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
         objects: None,
         start,
         moves: who.clone(),
+        substitutions: substituted,
     };
 
     for (event, tile) in &d.discarded {
@@ -772,6 +791,12 @@ pub fn write(out: &Path, done: &Whole) -> Result<()> {
         "sprite": objects,
         "movable": done.moves.movable,
         "animates_still": done.moves.animates_still,
+        "substitutions": {
+            "table": done.substitutions.table.iter().map(|((u, o, n), pairs)| {
+                json!([u, o, n, pairs.as_ref().map(|p| p.iter().map(|(a, b)| json!([a, b])).collect::<Vec<_>>())])
+            }).collect::<Vec<_>>(),
+            "missing": done.substitutions.missing.iter().map(|(u, o, n)| json!([u, o, n])).collect::<Vec<_>>(),
+        },
         "turning": done.moves.turning.iter().map(|(e, pairs)| json!([e, pairs.iter().map(key_json).collect::<Vec<_>>()])).collect::<Vec<_>>(),
     });
     file(ANSWER_FILE, answer.to_string().as_bytes())

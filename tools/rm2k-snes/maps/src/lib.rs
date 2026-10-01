@@ -26,6 +26,7 @@ pub mod map;
 pub mod moves;
 pub mod request;
 pub mod sheets;
+pub mod substitutions;
 
 pub use fail::{Bad, Result};
 pub use game::Game;

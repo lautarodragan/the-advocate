@@ -20,7 +20,7 @@ pub fn decode(text: &str) -> Result<Vec<u8>> {
         _ => Err(Bad::answer(format!("{:?} is not hex", c as char))),
     };
     let bytes = text.as_bytes();
-    if bytes.len() % 2 != 0 {
+    if !bytes.len().is_multiple_of(2) {
         return Err(Bad::answer("hex text of an odd length"));
     }
     bytes.chunks(2).map(|p| Ok((digit(p[0])? << 4) | digit(p[1])?)).collect()

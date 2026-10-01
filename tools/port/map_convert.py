@@ -29,7 +29,6 @@ from port.map_layers import BG_PALETTES, layers_answer
 from port.sprites import block_tile, discard_warning, separate_from_hero
 from port.obj_extras import map_shows_animation
 from port import vram
-from port.blocks import BLOCK_BYTES
 from port.map_record import (NPC_MAX, ROUTE_GFX_MAX, TURN_NONE, anim_bytes,
                              ev_pos_bytes, npc_table)
 from port.options import map_order
@@ -165,8 +164,44 @@ def _prepare(renderer, map_id, args):
         "palette_weight": settings.value("graphics", "palette_weight",
                                          kind=dict),
         "dither": rm2k.DITHER_PATTERN,
+        # The `TileSubstitution`s that can run here, whose blocks the stage
+        # builds before any page compiles —see `substitutions.rs` there—,
+        # and the common events', which it only translates.
+        "substitutions": [list(t) for t in substitution_triples(
+            game_map, args.cases, map_id)],
+        "common_substitutions": [list(t) for t in _common_substitutions(dump)],
     }
     return p
+
+
+_COMMON = {}
+
+
+def _common_substitutions(dump):
+    """`compiler.common_substitutions`, read once per dump."""
+    if dump not in _COMMON:
+        _COMMON[dump] = compiler.common_substitutions(dump)
+    return _COMMON[dump]
+
+
+def substitution_triples(game_map, cases, map_id):
+    """The `(upper layer, old, new)` of all the `TileSubstitution`s that can
+    end up running in this map: those of its events and those of the test
+    cases that start here —which live in the boot map but are compiled with
+    this one's context, see `case_map`—."""
+    triples = []
+    lists = [page.commands
+             for event in game_map.events for page in event.pages]
+    lists += [case.commands for case in cases if case.run_map == map_id]
+    for commands in lists:
+        for cmd in commands:
+            if cmd.code != events.TILE_SUBSTITUTION or len(cmd.parameters) < 3:
+                continue
+            triple = (bool(cmd.parameters[0]),
+                      cmd.parameters[1], cmd.parameters[2])
+            if triple not in triples:
+                triples.append(triple)
+    return triples
 
 
 def _run(renderer, prepared):
@@ -318,7 +353,7 @@ def _map_info(renderer, prepared, written, args):
     combos = {(low, high): block for low, high, block in made["combos"]}
     print("  the map fits in %d 16x16 blocks for %d cells: %d B of "
           "grid plus %d B of table, against the %d B of the expanded tilemap"
-          % (len(blocks) // BLOCK_BYTES, len(cells), 2 * len(cells),
+          % (len(block_pass), len(cells), 2 * len(cells),
              len(blocks), 2 * summary["celdas"]))
     windows_x = (len(tilemap[0]) + vram.WINDOW_W - 1) // vram.WINDOW_W
     windows_y = (len(tilemap) + vram.WINDOW_H - 1) // vram.WINDOW_H
@@ -374,6 +409,15 @@ def _map_info(renderer, prepared, written, args):
         "where": where,
         # For the turn toward the hero: which entry of `npc_poses` the twelve
         # poses of each graphic are in, which is the page's +30.
+        # Each `TileSubstitution` the map can run, translated to its blocks
+        # —which already include the ones the stage built for them—, as the
+        # compiler takes it; and the ones that couldn't be built, which the
+        # orchestrator says.
+        "substitution_table": [
+            {"upper": upper, "old": old, "new": new, "pairs": pairs}
+            for upper, old, new, pairs in answer["substitutions"]["table"]],
+        "missing_substitutions": [
+            tuple(t) for t in answer["substitutions"]["missing"]],
         "giro_k": {pair: animated_index[pair] for pair in animated},
         "giran": {event for event, _pairs in answer["turning"]},
         "cambian": {npc["event"] for npc in npcs if npc["changes"]},

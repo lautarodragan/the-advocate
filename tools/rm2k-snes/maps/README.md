@@ -24,7 +24,10 @@ per call:
   do not—, the VRAM bank with one pose per slot, the cartridge's bank of
   the twelve poses of whoever changes pose, and the timer's digits, the
   raindrops, a picture and the battle animation's box at the end;
-* **the blocks and where the hero starts**.
+* **the blocks and where the hero starts**, and the blocks the map's
+  `TileSubstitution`s need: one swaps a tile for another, and on the
+  console that is a block for another, so the combinations the map does not
+  draw are built before any page compiles (`substitutions.rs`).
 
 It is a stage of a converter, with the shape `rm2k-snes/battle/README.md`
 describes in "One stage of a converter": it reads the game from a Ditto
@@ -69,7 +72,11 @@ What the cartridge decided: `leaders`, the actors that can lead, the first
 leading; `timer`, the System picture if the cartridge carries the timer in
 this map; `rain`; `picture`, a `ShowPicture` picture this map owns, already
 cut into tiles; `singles`, the graphics no other map of the cartridge has;
-`palette_weight`, which CharSets are served first; and `dither`.
+`palette_weight`, which CharSets are served first; `dither`; and
+`substitutions`, the `TileSubstitution`s the map's events and its test
+pages can run, as `[upper layer, old tile, new tile]` —their blocks are
+built—, and `common_substitutions`, the common events', which a
+`CallEvent` can bring into any map and are only translated.
 
 **What other domains answered, as data**: `pages` and `route_graphics` are
 the event compiler's scan of the map, as it answered them —who walks is
@@ -90,7 +97,9 @@ of what Adeleine decided, and `layers.json`—, `sprites.bin` and
 `poses-<k>.bin`, and `map.json`, with the events baked, the events drawn,
 the palettes and slots, the leader candidates' rows, the extras, the table
 of command 34, where the hero starts, who walks, animates still and turns,
-and **what the conversion says, in
+each substitution with its `(old block, new block)` pairs —null if the page
+that asks for it cannot compile— and the ones whose blocks could not be
+built, and **what the conversion says, in
 order**, each note marked if it stops the conversion. The caller prints
 them: an event that changes graphic and does not fit is a door the player
 cannot open, and a build that does not stop there is worse than one that

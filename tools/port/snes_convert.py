@@ -79,14 +79,13 @@ from port import constants
 from common import settings
 from common import project
 from rpgmaker.rm2k import TILE
-from render.render_map import Renderer, build_passability
+from render.render_map import Renderer
 from common import environment
 from rpgmaker import resources
 from rpgmaker.resources import find_resource
 from port.sprites import (OBJ_PRIORITY, OBJ_PRIORITY_ABOVE, block_tile,
                           maps_per_character)
 from port import vram
-from port.blocks import SUB_MAX, Substitutions, substitution_triples
 from port.materials import compress_blocks
 from port.map_record import PARALLEL_MAX, ROUTE_EV_MAX
 from port.battle_animations import rom_animations
@@ -110,6 +109,13 @@ from port.map_convert import convert_maps
 # The bytecode walk lives in events.py, with the length table: there was a
 # copy here and the one there went stale without anyone seeing it.
 walk_code = events.walk_code
+
+
+# How many block pairs the ROM's substitution table can hold at once. It is
+# `SUB_MAX` in tools/runtime/low_ram.s and it is written on both sides on
+# purpose —the converter has to be able to refuse **before** emitting a map
+# that doesn't fit—; the test `test_substitutions.py` compares the two.
+SUB_MAX = 8
 
 
 def patch_of_map(map_info):
@@ -265,20 +271,14 @@ def main():
     # other, so the destination index isn't known until the end.
     indices = {map_info["id"]: number for number, map_info in enumerate(maps)}
 
-    # The blocks the map's `TileSubstitution`s are going to need, built
-    # **before** compiling any page: see `Substitutions`. A map without that
-    # command builds nothing and doesn't grow a byte, which is the case of the
-    # game's 328 maps as of today.
+    # The blocks the map's `TileSubstitution`s are going to need were built
+    # by `rm2k-snes-maps`, **before** compiling any page: see
+    # `substitutions.rs` there. A map without that command builds nothing
+    # and doesn't grow a byte, which is the case of the game's 328 maps as of
+    # today. The compiler gets each one already translated: see
+    # `compiler.substitution_table`.
     for map_info in maps:
-        chipset = renderer.database.chipsets[map_info["game_map"].chipset_id]
-        map_info["sustituciones"] = Substitutions(
-            map_info, build_passability(chipset), chipset)
-        triples = substitution_triples(map_info["game_map"], args.cases,
-                                       map_info["id"])
-        # The compiler gets each one already translated: see
-        # `compiler.substitution_table`.
-        map_info["triples"] = triples
-        for absent in map_info["sustituciones"].close(triples):
+        for absent in map_info["missing_substitutions"]:
             # It doesn't stop the conversion: the page that asks for it
             # doesn't compile, which is what any command that can't be run
             # does. But it is said, because from outside it looks like an
@@ -290,7 +290,7 @@ def main():
             # combination that would be needed carries an upper tile **without
             # the "Above" bit**, which isn't drawn on BG2 but baked into the
             # background, and then the block's two layers stop being
-            # independent. See `Substitutions._bakes`.
+            # independent. See `bakes` in `substitutions.rs`.
             print("  map %d: TileSubstitution %d -> %d on the %s layer: the "
                   "block that would be needed can't be built. Either the new "
                   "tile isn't drawn in any cell of the map, or one of the two "
@@ -376,10 +376,14 @@ def main():
         # The pages of the map's events: their conditions, and the code of
         # the ones that can be run.
         pages = compiler.pages(entry["pages"], map_info["game_map"])
-        # And which substitutions they asked for, which are the keys of the
-        # ROM's table: see `SUB_MAX`.
+        # And which substitutions they asked for: the blocks their pairs
+        # start from are the keys of the ROM's table. See `SUB_MAX`.
+        translated = {(t["upper"], t["old"], t["new"]): t["pairs"]
+                      for t in map_info["substitution_table"]}
+        map_info["sub_keys"] = set()
         for upper, old, new in entry["substitutions"]:
-            map_info["sustituciones"].pairs(upper, old, new)
+            pairs = translated.get((bool(upper), old, new))
+            map_info["sub_keys"].update(pair[0] for pair in pairs or ())
         # One interpreter per event with some parallel page that compiles. The
         # ROM carries them in a fixed-cap list and **doesn't warn** if it goes
         # over —the extra ones wouldn't run and nothing would say so—, so the
@@ -554,7 +558,7 @@ def main():
         # of the map uses as a key, because a key is never overwritten: the
         # second round changes its value. See `op_tile_sub` in
         # tools/runtime/interpreter_map.s.
-        keys = len(map_info["sustituciones"].known_keys)
+        keys = len(map_info["sub_keys"])
         if keys > SUB_MAX:
             sys.exit("map %d substitutes %d distinct blocks and the RAM "
                      "table carries %d: see SUB_MAX"
