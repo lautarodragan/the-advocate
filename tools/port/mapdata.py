@@ -1435,10 +1435,8 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
             "ITEM_ROWS         = %d\n"
             "ITEM_CURSOR_COL   = %d\n"
             "ITEM_NAME_COL     = %d\n"
-            "ITEM_TWO_POINTS_COL = %d\n"
             "ITEM_DIGITS_COL   = %d\n"
-            "ITEM_DESC_VRAM    = %d\n"
-            "ITEM_DESC_COL     = %d\n"
+            "ITEM_LIST_POS     = %d\n"
             "ITEM_FIRST_CHAR = %d\n"
             "ITEM_GLYPHS_GRAY  = %d\n"
             "ITEM_BORDER_VRAM  = $%04X\n"
@@ -1451,9 +1449,10 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
             % (len(items), len(slots["items_tiles"]),
                T.ITEM_UP * constants.MENU_CGRAM,
                T.ITEM_ROWS, T.ITEM_CURSOR_COL, T.ITEM_NAME_COL,
-               T.ITEM_COLON_COL, T.ITEM_DIGITS_COL,
-               vram_cell(T.ITEM_DESC_Y // constants.CELL, T.ITEM_DESC_COL),
-               T.ITEM_DESC_COL,
+               T.ITEM_DIGITS_COL,
+               # The list's first row, in bytes of the text screens'
+               # buffer: row * 64. The rows go two cells apart.
+               T.ITEM_LIST_Y // constants.CELL * 64,
                T.ITEM_FIRST_CHAR, T.ITEM_CHARS * 4,
                SLOT_VRAM
                + slots["items_marco_primero"] * 32,
@@ -1551,9 +1550,6 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         bytes_asm("item_txt_n", [n for _, n in item_texts_ofs],
                   declare=True)
         handle.write('.segment "TABLES"\n')
-        words_asm("item_row_vram", [
-            vram_cell(T.ITEM_LIST_Y // constants.CELL + 2 * f, 0)
-            for f in range(T.ITEM_ROWS)])
         # The two cells of each character, top and bottom: first the 95 in
         # white, then in gray and then in the "goes up" color. Character `c`
         # in variant `g` is at

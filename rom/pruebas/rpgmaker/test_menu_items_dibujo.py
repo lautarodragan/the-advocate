@@ -10,7 +10,7 @@ consola lo mira `items` en `test_menu_golden.py`.
 
 from consola import TITULO_AIRE
 import pantallas
-from dibujo import comparar_pantalla
+from dibujo import comparar_pantalla, pantalla_distinta, pixeles_distintos
 from menu import abrir
 
 # Una poción de más de diez, un arma y la consola: el arma va en gris. Es lo
@@ -111,6 +111,64 @@ def test_la_lista_se_corre_cuando_el_cursor_se_sale(partida):
     for _ in range(13):
         una.tocar_cuadros("up")
     comparar(una, MUCHOS, 0, arriba=0, nombre="items-arriba")
+
+
+def cuadro_a_cuadro(una, boton, antes, despues, nombre):
+    """Un toque de `boton` mirado cuadro a cuadro: qué pantalla se vio en
+    cada uno —"antes", "después", "negro" u otra—. Las otras quedan en
+    `PANTALLAS` con `nombre`, para mirarlas."""
+    vistos = []
+    for cuadro, apretado in enumerate((True, True) + (False,) * 6):
+        una.consola.hold(*((boton,) if apretado else ()))
+        una.consola.run(1)
+        captura = una.imagen().convert("RGB")
+        if not pixeles_distintos(captura, antes):
+            vistos.append("antes")
+        elif not pixeles_distintos(captura, despues):
+            vistos.append("después")
+        elif max(captura.tobytes()) == 0:
+            vistos.append("negro")
+        else:
+            vistos.append("otra: %d pixeles distintos de la de después"
+                          % pixeles_distintos(captura, despues))
+            pantalla_distinta("%s-%d" % (nombre, cuadro), captura, despues, 1)
+    return vistos
+
+
+def sin_nada_en_el_medio(vistos):
+    """Unos cuadros con la de antes y después sólo la de después, que llega."""
+    primera = vistos.index("después") if "después" in vistos else len(vistos)
+    return (all(v == "antes" for v in vistos[:primera])
+            and all(v == "después" for v in vistos[primera:])
+            and primera < len(vistos))
+
+
+def test_correr_la_lista_cambia_solo_el_texto(partida):
+    """De taro, el 2026-09-30: al correrse la lista la pantalla quedaba negra
+    un cuadro y se redibujaban también los bordes de las ventanas. Cada cuadro
+    desde que se aprieta abajo con el cursor en la última fila —y arriba con
+    el cursor en la primera— tiene que ser una de dos pantallas enteras, la
+    de antes o la de después: ni uno negro, ni uno con las ventanas a medio
+    subir, ni uno con la lista a medio armar. Y la de después tiene que
+    llegar."""
+    filas = pantallas.disposicion().ITEM_ROWS
+    una = entrar(partida(caso="items-pantalla-muchos"))
+    for _ in range(filas - 1):
+        una.tocar_cuadros("down")
+    comparar(una, MUCHOS, filas - 1, nombre="items-ultima-fila")
+    vistos = cuadro_a_cuadro(una, "down", pantallas.items(MUCHOS, filas - 1, 0),
+                             pantallas.items(MUCHOS, filas, 1),
+                             "items-corre-abajo")
+    assert sin_nada_en_el_medio(vistos), (
+        "cuadro a cuadro, la lista se corrió hacia abajo así: %s" % vistos)
+    for _ in range(filas - 1):
+        una.tocar_cuadros("up")
+    comparar(una, MUCHOS, 1, arriba=1, nombre="items-primera-fila")
+    vistos = cuadro_a_cuadro(una, "up", pantallas.items(MUCHOS, 1, 1),
+                             pantallas.items(MUCHOS, 0, 0),
+                             "items-corre-arriba")
+    assert sin_nada_en_el_medio(vistos), (
+        "cuadro a cuadro, la lista se corrió hacia arriba así: %s" % vistos)
 
 
 def test_la_lista_vacia(partida):
