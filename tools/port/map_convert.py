@@ -8,9 +8,11 @@ splits the object palettes and builds the sprite bank. What stays here is
 what the stage gets from other domains —the event compiler's scan of the
 map's pages, from which the stage says who walks, and which graphics the
 routes change to; the test cases; the
-timer's System, the picture and whether a battle animation is drawn— and
-what the rest of the converter reads back: the `map_info`, with the NPC
-table (`map_record`'s), the VRAM layout (`vram`'s) and the messages.
+timer's System, the picture and whether a battle animation is drawn, and
+the `TileSubstitution`s that can run in the map— and what the rest of the
+converter reads back: the `map_info`, with the VRAM layout (`vram`'s), what
+the stage answered of the objects and the blocks —which the emission,
+`rm2k-snes-mapdata`, writes— and the messages.
 """
 
 import concurrent.futures
@@ -26,12 +28,9 @@ from port import picture
 from port.constants import CELL
 from port.snes_format import BYTES_PER_TILE
 from port.map_layers import BG_PALETTES, layers_answer
-from port.sprites import block_tile, discard_warning, separate_from_hero
+from port.sprites import discard_warning, separate_from_hero
 from port.obj_extras import map_shows_animation
-from port.vram import WINDOW_H, WINDOW_W, vram_layout
-from port.blocks import BLOCK_BYTES
-from port.map_record import (NPC_MAX, ROUTE_GFX_MAX, TURN_NONE, anim_bytes,
-                             ev_pos_bytes, npc_table)
+from port import vram
 from port.options import map_order
 from port.cases import case_commands, test_graphics, test_maps
 from common import settings
@@ -165,8 +164,44 @@ def _prepare(renderer, map_id, args):
         "palette_weight": settings.value("graphics", "palette_weight",
                                          kind=dict),
         "dither": rm2k.DITHER_PATTERN,
+        # The `TileSubstitution`s that can run here, whose blocks the stage
+        # builds before any page compiles —see `substitutions.rs` there—,
+        # and the common events', which it only translates.
+        "substitutions": [list(t) for t in substitution_triples(
+            game_map, args.cases, map_id)],
+        "common_substitutions": [list(t) for t in _common_substitutions(dump)],
     }
     return p
+
+
+_COMMON = {}
+
+
+def _common_substitutions(dump):
+    """`compiler.common_substitutions`, read once per dump."""
+    if dump not in _COMMON:
+        _COMMON[dump] = compiler.common_substitutions(dump)
+    return _COMMON[dump]
+
+
+def substitution_triples(game_map, cases, map_id):
+    """The `(upper layer, old, new)` of all the `TileSubstitution`s that can
+    end up running in this map: those of its events and those of the test
+    cases that start here —which live in the boot map but are compiled with
+    this one's context, see `case_map`—."""
+    triples = []
+    lists = [page.commands
+             for event in game_map.events for page in event.pages]
+    lists += [case.commands for case in cases if case.run_map == map_id]
+    for commands in lists:
+        for cmd in commands:
+            if cmd.code != events.TILE_SUBSTITUTION or len(cmd.parameters) < 3:
+                continue
+            triple = (bool(cmd.parameters[0]),
+                      cmd.parameters[1], cmd.parameters[2])
+            if triple not in triples:
+                triples.append(triple)
+    return triples
 
 
 def _run(renderer, prepared):
@@ -223,13 +258,12 @@ def _map_info(renderer, prepared, written, args):
     (tile_data, cram, tilemap, summary), above_data = layers_answer(written)
     s = answer["sprite"]
     animation = s["animation"]
-    anim_base, anim_pal = 0, 0
     if animation is not None:
         # The VRAM **stops**: whether the box fits depends on the tile
         # layout and not on the palettes.
         count = animation["count"]
         try:
-            layout = vram_layout(len(tile_data) // BYTES_PER_TILE, count,
+            layout = vram.vram_layout(len(tile_data) // BYTES_PER_TILE, count,
                                  len(above_data[0]) // 32)
         except SystemExit:
             layout = None
@@ -250,35 +284,13 @@ def _map_info(renderer, prepared, written, args):
              for slot, block, palette in s["place"]}
     animated = [tuple(k) for k in s["animated"]]
     animated_index = {p: k for k, p in enumerate(animated)}
-    movable, animates_still = set(answer["movable"]), set(answer["animates_still"])
-    table = npc_table(npcs, where, movable, animated_index, animates_still)
     tiles = written[s["tiles"]]
-    palettes = [[tuple(c) for c in p] for p in s["palettes"]]
-    banks = {(charset, index): written[name]
-             for charset, index, name in s["banks"]}
-    timer_base, timer_pal = s["timer"] if s["timer"] else (0, None)
-    rain_base, rain_pal = s["rain"]
-    image_base, image_pal = s["image"]
-    turn_tile = (block_tile(s["turn_block"]) if s["turn_block"] is not None
-                 else TURN_NONE)
-    actors = [(actor, palette, k, list(words))
-              for actor, palette, k, words in s["actors"]]
-    route_gfx = [tuple(r) for r in s["route_gfx"]]
-    sprite = (tiles, palettes, where, table, actors, timer_base, timer_pal,
-              animated, banks, route_gfx, rain_base, rain_pal,
-              turn_tile, image_base, image_pal, anim_base, anim_pal)
+    palettes = s["palettes"]
 
     passable = summary["pasabilidad"]
     start_x, start_y = answer["start"]
     collision = (passable, start_x, start_y, game_map.width, game_map.height)
     route_graphics = prepared.route_graphics
-
-    if len(table) > NPC_MAX:
-        sys.exit("map %d has %d NPCs and %d fit in OAM"
-                 % (map_id, len(table), NPC_MAX))
-    if len(route_gfx) > ROUTE_GFX_MAX:
-        sys.exit("map %d has %d graphics of command 34 and %d fit: see "
-                 "ROUTE_GFX_MAX" % (map_id, len(route_gfx), ROUTE_GFX_MAX))
 
     name = renderer.tree.map_names.get(map_id, "?")
     print("Map %d %r: %dx%d cells of %dx%d px"
@@ -295,7 +307,7 @@ def _map_info(renderer, prepared, written, args):
           "%d with their twelve poses in the cartridge"
           % (s["characters"], len(where), len(tiles) // 32, len(palettes),
              len(animated)))
-    print("  %d NPCs with a CharSet out of %d events" % (len(table), len(game_map.events)))
+    print("  %d NPCs with a CharSet out of %d events" % (len(npcs), len(game_map.events)))
 
     open_ones = sum(1 for b in passable if b == 0x0F)
     print("  collision: %d cells, %d open on all four sides (%.0f%%), "
@@ -308,23 +320,22 @@ def _map_info(renderer, prepared, written, args):
           % (len(above_data[0]) // 32, len(above_data[1]) // 2,
              BG_PALETTES - above_data[3], above_data[3], above_data[4]))
 
-    # The map in 16x16 blocks, which `rm2k-snes-maps` made with the layers.
-    # Copies, because `Substitutions` grows them while the pages compile.
+    # The map in 16x16 blocks, which `rm2k-snes-maps` made with the layers,
+    # with the ones the map's `TileSubstitution`s need already built.
     made = summary["bloques"]
     cells = list(made["celdas"])
     blocks = bytearray(made["tabla"])
     block_pass = bytearray(made["pass"])
     block_terrain = bytearray(made["terreno"])
-    combos = {(low, high): block for low, high, block in made["combos"]}
     print("  the map fits in %d 16x16 blocks for %d cells: %d B of "
           "grid plus %d B of table, against the %d B of the expanded tilemap"
-          % (len(blocks) // BLOCK_BYTES, len(cells), 2 * len(cells),
+          % (len(block_pass), len(cells), 2 * len(cells),
              len(blocks), 2 * summary["celdas"]))
-    windows_x = (len(tilemap[0]) + WINDOW_W - 1) // WINDOW_W
-    windows_y = (len(tilemap) + WINDOW_H - 1) // WINDOW_H
+    windows_x = (len(tilemap[0]) + vram.WINDOW_W - 1) // vram.WINDOW_W
+    windows_y = (len(tilemap) + vram.WINDOW_H - 1) // vram.WINDOW_H
     if windows_x > 1 or windows_y > 1:
         print("  it doesn't fit in the %dx%d window: the ROM is going to redraw"
-              % (WINDOW_W, WINDOW_H))
+              % (vram.WINDOW_W, vram.WINDOW_H))
 
     words = bytearray()
     for cell in cells:
@@ -334,35 +345,39 @@ def _map_info(renderer, prepared, written, args):
         colors += word.to_bytes(2, "little")
 
     chipset = renderer.database.chipsets[game_map.chipset_id]
+    layout_name, layout = vram.choose(len(tile_data) // BYTES_PER_TILE,
+                                      len(tiles) // 32,
+                                      len(above_data[0]) // 32)
     return {
         "id": map_id, "nombre": name,
         "tiles": tile_data, "cram": bytes(colors), "cram_words": cram,
-        "tilemap": tilemap, "above": above_data, "sprite": sprite,
+        "tilemap": tilemap, "above": above_data,
         # The graphics of command 34 as the pass that builds the bank numbered
         # them. `main()` compares against the ones it gathers compiling for
         # real: if the two passes drifted apart, the bytecode would carry
         # indices of a table that says something else.
         "graficos_de_ruta": route_graphics,
         "collision": collision, "celdas": bytes(words),
-        "ev_pos": ev_pos_bytes(game_map),
-        # Both grow while the pages are compiled, if some substitutes tiles:
-        # see `Substitutions`. That is why they are mutable and are frozen
-        # only when emitted.
+        # The blocks, with the ones the substitutions need: see
+        # `substitutions.rs` in `rm2k-snes-maps`.
         "bloques": blocks, "pass": block_pass, "terreno": block_terrain,
-        "combos": combos,
         # The terrain of a cell **outside the map**: `GetTerrainTag` uses the
         # ChipSet's index 0, that is the first autotile, and not that of any
         # cell. See `op_terrain`.
         "terreno_fuera": rm2k.terrain_of(chipset, 0),
-        "layout": vram_layout(
-            len(tile_data) // BYTES_PER_TILE,
-            len(sprite[0]) // 32 if sprite else 0,
-            len(above_data[0]) // 32),
+        "layout": layout, "layout_name": layout_name,
         "resumen": summary,
         # Which entries of its palette the timer's digits take, one bit each:
         # `timer_mask` in `rm2k-snes-map-sprites`. 0 without a timer.
         "timer_mask": s["timer_mask"],
-        "anim": anim_bytes(summary["animacion"]),
+        # The objects and the drawn events as the stage answered them, with
+        # the bytes of its files: what the emission builds the NPC table,
+        # the leaders' and the pose tables from.
+        "objects": dict(s, tiles=tiles.hex(),
+                        banks=[[charset, index, written[name].hex()]
+                               for charset, index, name in s["banks"]]),
+        "npcs": answer["npcs"], "movable": answer["movable"],
+        "animates_still": answer["animates_still"],
         "imagenes_fondo": summary["imagenes"],
         # The whole map is stored because the events' pages can't be compiled
         # until all the maps are there: a `Teleport` translates map ids to
@@ -372,6 +387,15 @@ def _map_info(renderer, prepared, written, args):
         # the sprite bank, which events change graphic with the page and which
         # of their graphics were left out of the palettes.
         "where": where,
+        # Each `TileSubstitution` the map can run, translated to its blocks
+        # —which already include the ones the stage built for them—, as the
+        # compiler takes it; and the ones that couldn't be built, which the
+        # orchestrator says.
+        "substitution_table": [
+            {"upper": upper, "old": old, "new": new, "pairs": pairs}
+            for upper, old, new, pairs in answer["substitutions"]["table"]],
+        "missing_substitutions": [
+            tuple(t) for t in answer["substitutions"]["missing"]],
         # For the turn toward the hero: which entry of `npc_poses` the twelve
         # poses of each graphic are in, which is the page's +30.
         "giro_k": {pair: animated_index[pair] for pair in animated},

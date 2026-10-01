@@ -1,14 +1,18 @@
 """El compresor LZ2 contra la referencia, sobre **todos** los bloques que la ROM
 descomprime al cargar un mapa, en todos los cartuchos.
 
-`tools/snes/lz2/` tiene sus propias pruebas, en inglés y sin nada de este juego;
-éstas son las del port: que cada bloque que el conversor dejó en `crudos/` —ver
-`write_raw` en materials.py— vuelva igual pasando por el binario y por
-`pruebas/arnes/lz2.py`, que está escrita aparte a propósito. Lo que la ROM hace
-con esos flujos lo mira `test_carga_descomprimida.py`.
+`tools/snes/lz2/` tiene sus propias pruebas, en inglés y sin nada de este juego,
+y `rm2k-snes-mapdata` las suyas de cómo parte cada bloque en flujos y qué tope
+de la WRAM tiene cada uno; éstas son las del port: que cada bloque que el
+conversor dejó en `crudos/` —ver `write_raw` en `rm2k-snes-mapdata`— vuelva igual
+pasando por los flujos que arma la etapa y por `pruebas/arnes/lz2.py`, que está
+escrita aparte a propósito. Lo que la ROM hace con esos flujos lo mira
+`test_carga_descomprimida.py`.
 """
 
+import collections
 import glob
+import json
 import os
 
 import pytest
@@ -16,9 +20,7 @@ import pytest
 import tanda
 import cartuchos
 from lz2 import descomprimir
-from port import compress
-from port.materials import (COMPRESSED_KINDS, LZ2_CAP_BACKDROP,
-                            check_streams, compressed_parts)
+from port import stage
 
 
 def _crudos(nombre):
@@ -31,27 +33,36 @@ def _crudos(nombre):
 @pytest.mark.parametrize("nombre", sorted(cartuchos.nombres()))
 def test_cada_bloque_vuelve_igual_por_la_referencia(nombre):
     crudos = _crudos(nombre)
-    clases = {r.split(".")[1] for r in crudos}
-    assert clases == set(COMPRESSED_KINDS), (
-        "crudos/ trae %s y las clases que se comprimen son %s"
-        % (sorted(clases), sorted(COMPRESSED_KINDS)))
-    # La ida y vuelta se hace sobre lo mismo que va al cartucho: las grillas
-    # van en dos flujos, y los fondos de más de un buffer también. Ver
-    # `compressed_parts`.
-    trozos = []
+    por_mapa = collections.defaultdict(dict)
     for archivo, datos in crudos.items():
-        partes = compressed_parts(archivo.split(".")[1], datos)
-        trozos += [(archivo, k, parte) for k, parte in enumerate(partes)]
-    flujos = compress.compress_many([t[2] for t in trozos])
+        numero, clase, _bin = archivo.split(".")
+        por_mapa[int(numero)][clase] = datos
+    # La ida y vuelta se hace sobre lo mismo que va al cartucho: la etapa
+    # devuelve los flujos de cada bloque pegados —las grillas van en dos, y
+    # los fondos de más de un buffer también—, y la referencia los lee uno
+    # detrás del otro.
+    pedido = {"maps": [dict({clase: datos.hex()
+                             for clase, datos in por_mapa[n].items()}, id=n)
+                       for n in sorted(por_mapa)]}
+    respuesta = json.loads(stage.run("rm2k-snes-mapdata", "mapdata",
+                                     "compress", pedido)["compress.json"])
     mal = []
-    for (archivo, k, parte), flujo in zip(trozos, flujos):
-        vuelta, fin = descomprimir(flujo)
-        if vuelta != parte or fin != len(flujo):
-            mal.append("%s, trozo %d: %d bytes, volvieron %d y el flujo termina "
-                       "en %d de %d" % (archivo, k, len(parte), len(vuelta), fin,
-                                        len(flujo)))
+    for n, flujos in zip(sorted(por_mapa), respuesta["maps"]):
+        clases = set(flujos) - {"frames"}
+        assert clases == set(por_mapa[n]), (
+            "crudos/ trae %s del mapa %d y las clases que se comprimen son %s"
+            % (sorted(por_mapa[n]), n, sorted(clases)))
+        for clase in sorted(clases):
+            crudo, pegados = por_mapa[n][clase], bytes.fromhex(flujos[clase])
+            vuelta, fin = bytearray(), 0
+            while fin < len(pegados):
+                uno, fin = descomprimir(pegados, fin)
+                vuelta += uno
+            if bytes(vuelta) != crudo:
+                mal.append("%d.%s de %d bytes: volvieron %d"
+                           % (n, clase, len(crudo), len(vuelta)))
     assert not mal, "\n".join(mal)
-    assert sum(len(t[2]) for t in trozos) > 0, "no había nada que comprimir"
+    assert sum(len(c) for c in crudos.values()) > 0, "no había nada que comprimir"
 
 
 def test_la_referencia_lee_los_cinco_comandos_y_los_encabezados_largos():
@@ -69,26 +80,3 @@ def test_la_referencia_lee_los_cinco_comandos_y_los_encabezados_largos():
     esperado = (bytes([1, 2, 3]) + bytes([9] * 4) + bytes([7, 8, 7, 8, 7])
                 + bytes([0xFE, 0xFF, 0x00]) + bytes([2, 3]) + bytes([5] * 33))
     assert descomprimir(flujo) == (esperado, len(flujo))
-
-
-def test_un_fondo_de_mas_de_un_buffer_va_en_dos_flujos_y_de_tres_no_arma():
-    """El fondo se parte en tramos de `LZ2_CAP_BACKDROP` exactos, que es lo que
-    `lz2_backdrop` supone para saber cuántos tiles trae cada flujo; uno que entra
-    en el buffer va entero, como antes. Y la ROM lee dos: con tres, el
-    conversor se niega en vez de dejar un fondo a medias."""
-    tope = LZ2_CAP_BACKDROP
-    assert compressed_parts("map_tiles", bytes(tope)) == [bytes(tope)]
-    dos = bytes(range(256)) * ((tope + 960) // 256) + bytes(192)
-    partes = compressed_parts("map_tiles", dos)
-    assert [len(t) for t in partes] == [tope, len(dos) - tope]
-    assert b"".join(partes) == dos
-    check_streams(66, "map_tiles", dos)
-    with pytest.raises(SystemExit, match="3 streams"):
-        check_streams(66, "map_tiles", bytes(2 * tope + 64))
-
-
-def test_un_flujo_que_no_entra_en_su_lugar_de_la_wram_no_arma():
-    """La capa de encima y los sprites van en un solo flujo, y más grande que
-    su lugar pisaría los dibujos de la animación."""
-    with pytest.raises(SystemExit, match="a stream of sprite_tiles"):
-        check_streams(1, "sprite_tiles", bytes(0x6000 + 32))

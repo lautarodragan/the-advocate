@@ -1,0 +1,26 @@
+[package]
+name = "rm2k-snes-mapdata"
+version = "0.1.0"
+edition = "2021"
+description = "The data .inc of an rm2k-snes cartridge: what every domain of the conversion answered, written for ca65, with the cartridge's memory laid out"
+
+[lib]
+name = "rm2k_snes_mapdata"
+path = "src/lib.rs"
+
+[[bin]]
+name = "rm2k-snes-mapdata"
+path = "src/main.rs"
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+ditto = { path = "../../rm2k/ditto" }
+lz2 = { path = "../../snes/lz2" }
+# The database as the battle reads it, and its rules for what an actor has
+# at its level: the tables of items, skills, enemies and troops come from it.
+rm2k-snes-battle = { path = "../battle" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[dev-dependencies]
+sha2 = "0.10"

@@ -1,4 +1,6 @@
-"""LZ2, the binary that compresses what the ROM decompresses when loading a map.
+"""LZ2, the binary that compresses the full screens —the title, the Game
+Over— the ROM decompresses. What it decompresses when loading a map is
+compressed by the emission, `rm2k-snes-mapdata`, with `lz2` as a library.
 
 The format is Nintendo's LC_LZ2, and taro chose it on 2026-09-26 with what
 was measured in `workflow/tasks/*/la-compresion-de-mapas-y-graficos.md`: it
@@ -97,12 +99,6 @@ def walk(stream):
             i += 1
         i += {0: length, 1: 1, 2: 2, 3: 1, 4: 2}[command]
         yield command, length
-
-
-def commands(stream):
-    """How many commands a stream has: what it costs to decompress it
-    depends on this and on how many bytes come out."""
-    return sum(1 for _ in walk(stream))
 
 
 # The two commands the format has and `lz2_decompress` does not read, on

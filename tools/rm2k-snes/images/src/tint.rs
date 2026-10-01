@@ -3,7 +3,8 @@
 //!
 //! It is easyrpg's `ToneBlit` brought to five bits a channel, and **the
 //! ROM does the same arithmetic** when it uploads a tinted palette —the
-//! screen tint—; the converter emits its constants (`port/color.py`). Here
+//! screen tint—; the emission writes its constants (`engine.rs` in
+//! `rm2k-snes-mapdata`). Here
 //! it tones the cells of a battle animation, which RM2k tones one by one
 //! before stacking them: doing it at the console's fifteen bits, and not
 //! at the PNG's twenty-four, is what makes a cell come out as the screen

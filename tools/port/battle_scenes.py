@@ -1,7 +1,8 @@
 """The battle backdrops and battlers the cartridge carries: which ones, who
 asks for each, and their bytes —the full backdrop for the `.msu` and the
-light fallback the ROM carries— ready for the `.inc`. What a scene looks like
-is `scene.py`'s.
+light fallback the ROM carries— as the emission takes them
+(`scene_request`): `scene.rs` in `rm2k-snes-mapdata` writes them. What a
+scene looks like is `scene.py`'s.
 """
 
 import collections
@@ -12,7 +13,6 @@ from port import events
 from port import scene as scene_mod
 from port import constants
 from port.snes_format import cgram_word, pack_tile
-from port.asm import block
 
 
 # What goes in the backdrop tables instead of a backdrop number: the plain one
@@ -244,7 +244,8 @@ def fallback_bytes(info):
     """The light fallback of a backdrop, as the ROM carries it: `(bytes,
     colors)`, its 4 KB of 128x64 at 4bpp and its `FALLBACK_COLORS` colors.
     They store the index **within their palette**: the ROM adds the planes of
-    `CGRAM_BASE` separately, see `fallback_height`.
+    `CGRAM_BASE` separately, see `fallback_height` in the emission's
+    `scene.rs`.
 
     **The bytes don't go in tile order**, but in the one `scn_double` enlarges
     them in without doing any arithmetic. Each small tile becomes four large
@@ -257,7 +258,7 @@ def fallback_bytes(info):
     small row that gives planes `p` and `p+1`, the first carries the high
     nibble of both —the four leftmost pixels, which go to the left large
     tile— and the second the two low nibbles. That way each byte, duplicated
-    bit by bit with `fallback_double`, is already the two-plane word of a row
+    bit by bit with `fallback_double` —also there—, is already the two-plane word of a row
     of a large tile, and the ROM writes it whole without separating the planes.
     """
     E = scene_mod
@@ -286,178 +287,48 @@ def fallback_bytes(info):
     return bytes(tiles_), bytes(cgram)
 
 
-def fallback_height():
-    """The upper half of an 8bpp tile of the fallback: planes 4 to 7, which
-    are those of `CGRAM_BASE` in every pixel. It is what the ROM appends
-    after each 4bpp tile."""
+def scene_request(data, troops, db):
+    """The cartridge's battle scene as `rm2k-snes-mapdata emit` takes it:
+    what `rom_scene` decided, with what a backdrop and a battler look like,
+    where each member stands and in which order the troop is drawn already
+    as bytes and numbers —those are the scene's, `scene.py`—. The emission
+    only writes them: see `scene.rs` there."""
     E = scene_mod
-    full = [[E.CGRAM_BASE] * E.CELL for _ in range(E.CELL)]
-    return pack_tile(full, planes=8)[E.FALLBACK_PLANES * 8:]
-
-
-def fallback_double():
-    """The table `scn_double` enlarges the fallback with: for each byte of
-    `fallback_bytes`, a word with its two nibbles duplicated bit by bit, the
-    high one in the low byte. Each nibble is four pixels of one plane, and
-    duplicated they are the eight of a row of that plane in a large tile."""
-    def double(nibble):
-        return sum(0b11 << (2 * b) for b in range(4) if nibble >> b & 1)
-    return b"".join((double(s >> 4) | double(s & 0xF) << 8).to_bytes(2, "little")
-                    for s in range(256))
-
-
-def scenes_asm(data, troops, db):
-    """The cartridge's battle scene, ready for the `.inc`.
-
-    The backdrops and the battlers **separately**, which the ROM composes when
-    the battle starts: the reason and the format are in tools/port/scene.py.
-    What is emitted:
-
-      `scene_troop_backdrop` per troop index —the order of `troop_id`—, the
-                            number of the backdrop its `EnemyEncounter` names,
-                            `PLACE_BACKDROP` or `FLAT_BACKDROP`.
-      `scene_map_backdrop`  per map index, that of its random encounters: a
-                            number, `PLACE_BACKDROP` —the terrain's— or
-                            `FLAT_BACKDROP`.
-      `backdrop_terrain`    per terrain, the number of its backdrop or
-                            `FLAT_BACKDROP`.
-      `backdrop_fallback`   per backdrop number, which one of the ROM replaces
-                            it without MSU-1: its own, or that of
-                            `scene.replacement()`.
-      `backdrop_dir`        per ROM backdrop, the 24-bit pointer to the 4 KB
-                            of its light fallback, in the order of
-                            `fallback_bytes`.
-      `backdrop_cgram`      its 16 colors, which go to CGRAM from 32 on.
-
-    Where each backdrop is in the `.msu` is emitted by `rm2k-snes-audio
-    cartridge`, by number.
-      `fallback_height`       planes 4 to 7, which the ROM appends to each tile.
-      `battler_*`           per battler: how many bytes a row of one plane is,
-                            how many rows, how big a plane is, where its bytes
-                            are and its fifteen colors.
-      `miembro_*`           per troop member —the order of `troop_member`—,
-                            which battler it is, where its corner falls and
-                            which one of the troop goes in that place of the
-                            drawing order.
-
-    The tilemap isn't emitted: it is the 512 tiles in order and the ROM builds
-    it with a loop. Emitting it would be 2 KB of cartridge to write 0, 1, 2...
-    """
-    E = scene_mod
-    backdrops, battlers = data["fondos"], data["battlers"]
-    out = [
-        "\n; --- the battle scene: the backdrops and the battlers ---",
-        ";",
-        "; They go separately and the ROM composes them in an 8bpp layer of",
-        "; 256x128, which is the seven text lines at the top. The reason is",
-        "; in tools/port/scene.py; only the bytes travel here.",
-        "; The game's backdrops, which the .msu carries all of, and the ROM's.",
-        "BACKDROPS_GAME  = %d" % len(data.get("juego", ())),
-        "SCENE_BACKDROPS = %d" % len(backdrops),
-        "BACKDROP_PLAIN  = $%02X" % FLAT_BACKDROP,
-        "PLACE_BACKDROP = $%02X" % PLACE_BACKDROP,
-        "BACKDROP_TERRAINS = %d" % len(data.get("terreno_fondo") or [0]),
-        "SCENE_BATTLERS = %d" % len(battlers),
-        "SCENE_WIDTH     = %d" % E.WIDTH,
-        "SCENE_HEIGHT    = %d" % E.HEIGHT,
-        "SCENE_TILES     = %d" % E.TILES,
-        "SCENE_ROWS      = %d" % E.TILES_Y,
-        "SCENE_COLUMNS = %d" % E.TILES_X,
-        "SCENE_COLORS    = %d" % E.COLORS,
-        "SCENE_CGRAM     = %d" % E.CGRAM_BASE,
-        "SCENE_VRAM      = $%04X" % E.VRAM_TILES,
-        "SCENE_MAP       = $%04X" % E.VRAM_MAP,
-        "; The ROM's light fallback: 4bpp and a single palette. See",
-        "; tools/port/scene.py.",
-        "FALLBACK_COLORS = %d" % E.FALLBACK_COLORS,
-        "FALLBACK_TILE   = %d" % (E.FALLBACK_PLANES * 8),
-        "FALLBACK_BYTES  = %d" % (E.FALLBACK_WIDTH * E.FALLBACK_HEIGHT
-                                  * E.FALLBACK_PLANES // 8),
-        "FALLBACK_SCALE = %d" % E.FALLBACK_SCALE,
-        "SCENE_BAT_PALETTE = %d" % E.BATTLER_PALETTE,
-        "; The tile that covers what is left below the scene. It falls",
-        "; **outside** the tile block: 512 8bpp tiles are the 16,384 words",
-        "; that go from SCENE_VRAM to the end of VRAM, so 512 wraps around",
-        "; and lands on word 0, which during the battle is map VRAM that",
-        "; nobody uses.",
-        "SCENE_TARGET    = %d" % E.TILES,
-    ]
-    used = [n for n in troops if n in db.troops]
-    out.append(block("scene_troop_backdrop", bytes(
-        data["tropa_fondo"].get(n, 0xFF) for n in used) or b"\xFF"))
-    out.append(block("scene_map_backdrop",
-                     bytes(data["mapa_fondo"]) or b"\xFF"))
-    out.append(block("backdrop_terrain",
-                     bytes(data.get("terreno_fondo") or [FLAT_BACKDROP])))
-    out.append(block("backdrop_fallback",
-                     bytes(data.get("respaldo_de") or [0])))
-    pointers = [".block %d" % (4 * max(1, len(backdrops))), "backdrop_dir:"]
-    for k in range(len(backdrops)):
-        pointers.append("    .dword backdrop_%d" % k)
-    if not backdrops:
-        pointers.append("    .dword 0")
-    out.append("\n".join(pointers))
-    drawing_bytes = [fallback_bytes(info) for info in backdrops]
-    cgram = b"".join(colors for _tiles, colors in drawing_bytes)
-    out.append(block("backdrop_cgram", cgram or b"\x00\x00"))
-    out.append(block("fallback_height", fallback_height()))
-    out.append(block("fallback_double", fallback_double()))
-    # Where each quality backdrop is in the `.msu` and the signature the ROM
-    # expects to find at the start don't go here: the `.msu` also carries the
-    # sound effects, which come from the audio, and that is built later. See
-    # `msu_asm`.
-    # Sixty-four zeros: the transparent tile that covers what is left below
-    # the scene, and incidentally the fixed source of the DMA that fills the
-    # plain backdrop with zero.
-    out.append(block("scene_zero", bytes(64)))
-    # Each fallback in a block, which doesn't cross a bank because the ROM
-    # reads it with `[puntero]` and adds to the pointer only the low sixteen
-    # bits.
-    for k, (tiles_, _colors) in enumerate(drawing_bytes):
-        out.append(block("backdrop_%d" % k, tiles_))
-    # The battlers: their tables and then their bytes, each in a block that
-    # doesn't cross a bank because the ROM reads it with `[puntero], y`.
-    out.append(block("battler_n", bytes(
-        E.columns(b) for b in battlers) or b"\x00"))
-    out.append(block("battler_height", bytes(
-        b["alto"] for b in battlers) or b"\x00"))
-    planes = bytearray()
-    for b in battlers:
-        planes += ((E.columns(b) + 1) * b["alto"]).to_bytes(2, "little")
-    out.append(block("battler_plane", bytes(planes) or b"\x00\x00"))
-    pointers = [".block %d" % (4 * max(1, len(battlers))), "battler_dir:"]
-    pointers += ["    .dword battler_%d" % k for k in range(len(battlers))]
-    if not battlers:
-        pointers.append("    .dword 0")
-    out.append("\n".join(pointers))
-    cgram = bytearray()
-    for b in battlers:
-        colors = [(0, 0, 0)] + list(b["paleta"])
-        colors += [(0, 0, 0)] * (16 - len(colors))
-        for color in colors:
-            cgram += cgram_word(color).to_bytes(2, "little")
-    out.append(block("battler_cgram", bytes(cgram) or b"\x00\x00"))
-    member_b, member_x, member_y, member_command = [], [], [], []
-    for number in used:
+    geometry = {name: getattr(E, name) for name in (
+        "WIDTH", "HEIGHT", "TILES", "TILES_X", "TILES_Y", "COLORS",
+        "CGRAM_BASE", "VRAM_TILES", "VRAM_MAP", "FALLBACK_COLORS",
+        "FALLBACK_PLANES", "FALLBACK_WIDTH", "FALLBACK_HEIGHT",
+        "FALLBACK_SCALE", "BATTLER_PALETTE")}
+    backdrops = []
+    for info in data["fondos"]:
+        tiles_, colors = fallback_bytes(info)
+        backdrops.append({"tiles": tiles_.hex(), "colors": colors.hex()})
+    battlers = data["battlers"]
+    placed = []
+    for number in troops:
+        if number not in db.troops:
+            continue
         troop = db.troops[number]
         theirs = list(zip(troop.members,
                           troop.positions))[:constants.ENEMIES_MAX]
-        infos = []
+        members, infos = [], []
         for enemy, center in theirs:
             k = data["battler_de"].get(enemy, 0xFF)
-            member_b.append(k)
             infos.append(battlers[k] if k != 0xFF else None)
             x, y = (E.position(center, battlers[k]) if k != 0xFF else (0, 0))
-            member_x.append(x)
-            member_y.append(y)
-        # And the order they are drawn in, which isn't the troop's: see
-        # `scene.drawing_order`. It goes per member, with the place in the
-        # troop.
-        member_command += E.drawing_order([c for _e, c in theirs], infos)
-    out.append(block("member_battler", bytes(member_b) or b"\xFF"))
-    out.append(block("member_x", bytes(member_x) or b"\x00"))
-    out.append(block("member_y", bytes(member_y) or b"\x00"))
-    out.append(block("member_command", bytes(member_command) or b"\x00"))
-    for k, b in enumerate(battlers):
-        out.append(block("battler_%d" % k, E.battler_bytes(b)))
-    return "\n".join(out) + "\n"
+            members.append([k, x, y])
+        placed.append([number, members,
+                       E.drawing_order([c for _e, c in theirs], infos)])
+    return {
+        "geometry": geometry,
+        "game": len(data.get("juego", ())),
+        "troop_backdrop": [[n, k] for n, k in data["tropa_fondo"].items()],
+        "map_backdrop": list(data["mapa_fondo"]),
+        "terrains": list(data.get("terreno_fondo") or []),
+        "fallback_of": list(data.get("respaldo_de") or []),
+        "backdrops": backdrops,
+        "battlers": [{"columns": E.columns(b), "height": b["alto"],
+                      "palette": [list(c) for c in b["paleta"]],
+                      "bytes": E.battler_bytes(b).hex()} for b in battlers],
+        "troops": placed,
+    }

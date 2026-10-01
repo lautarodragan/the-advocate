@@ -219,14 +219,14 @@ def compile_cartridge(dump, maps, cases, test_commands, extra_variables,
                       encounter_troops):
     """The second call: every page of the cartridge. `maps` are the
     converter's `map_info`s, in the cartridge's order, with their
-    `game_map` and their `sustituciones`; `cases` are `(map, commands)`.
+    `game_map` and their `substitution_table`; `cases` are `(map,
+    commands)`.
     A test page that does not compile comes back as None."""
     req = request(dump, [m["id"] for m in maps], test_commands,
                   extra_variables, test_event_map)
     req["names"] = names([m["game_map"] for m in maps])
-    common = common_substitutions(dump)
     req["substitutions"] = {
-        str(m["id"]): substitution_table(m, common) for m in maps}
+        str(m["id"]): substitution_table(m) for m in maps}
     req["picture"] = picture
     req["counters"] = counters()
     req["sound_effects"] = {
@@ -265,21 +265,13 @@ def common_substitutions(dump):
     return triples
 
 
-def substitution_table(map_info, common=()):
+def substitution_table(map_info):
     """Each `TileSubstitution` the map can end up running —its events', the
     test pages' that run there, and the common events'— with the blocks it
-    translates to. `pure_pairs` and not `pairs`: which ones a page asked for
-    comes back in the answer, and those are the ones counted."""
-    subs = map_info["sustituciones"]
-    triples = list(map_info.get("triples", ()))
-    triples += [t for t in common if t not in triples]
-    out = []
-    for upper, old, new in triples:
-        pairs = subs.pure_pairs(upper, old, new)
-        out.append({"upper": upper, "old": old, "new": new,
-                    "pairs": None if pairs is None
-                    else [list(p) for p in pairs]})
-    return out
+    translates to, as `rm2k-snes-maps` answered it when it built them.
+    Which ones a page asked for comes back in the answer, and those are the
+    ones counted."""
+    return map_info["substitution_table"]
 
 
 class Registry:

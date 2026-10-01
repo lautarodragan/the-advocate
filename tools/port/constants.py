@@ -10,8 +10,6 @@ to ask `screens` how many equipment slots there are, and `screens` imports
 CELL = 8
 WIDTH = 256
 HEIGHT = 224
-COLS = WIDTH // CELL            # 32
-ROWS = HEIGHT // CELL            # 28
 
 # How many CGRAM entries the menu takes, since it sits on BG2 at four bits per
 # pixel: one palette of sixteen, palette 0. They are the **first** ones in
@@ -41,8 +39,6 @@ LINES = 4
 # the game. See `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 COLUMNS = 39
 
-# How many equipment slots an RM2k actor has.
-EQUIPMENT_SLOTS = 5              # weapon, shield, armor, helmet, accessory
 
 # How many enemies fit in a battle: what fits on the text screen without
 # covering anything of the party. The largest troop in the game has eight

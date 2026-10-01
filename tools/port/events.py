@@ -9,7 +9,9 @@ converter reads it. The rule it keeps is the one this module had:
     **a page is emitted only if all its commands can be run.**
 
 What stays here is what others read and is not the compiler: the numbers
-the ROM's tables are emitted with (`mapdata.py`), the command codes a few
+the ROM's tables are emitted with —the emission, `rm2k-snes-mapdata`, has
+its copy in `engine.rs`; these and their reasons stay for the converter and
+the game's tests—, the command codes a few
 scans look for (`game_scan.py`, `cases.py`), the registries the
 compiler's answer is read into (`Songs`, `Troops`, `Trigger`), the indices it
 answers (`VARIABLE_SLOT`, `SKILL_SLOT`, `PARTY_COMMON_EVENTS`), which picture
