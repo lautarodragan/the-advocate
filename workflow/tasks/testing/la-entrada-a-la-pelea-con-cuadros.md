@@ -2,7 +2,7 @@
 name: "La entrada a la pelea, del lado del mapa, con la transición de cuadros"
 description: "Al salir de la pelea y al entrar del lado de la pelea ya es la de los cuadros; al entrar, del lado del mapa, es un fundido"
 type: feature
-assignee: Biguá
+assignee: taro
 ---
 
 De taro, el 2026-09-30: "hagamos que la transición de entrar a batalla sea
@@ -55,3 +55,13 @@ cae adentro de la transición, que no gasta ticks.
 Las tiras, del caso `linkage` hablándole al droide —los 26 cuadros antes del
 negro—: `/shared/capturas/2026-09-30-entrada-a-la-pelea/antes.png` y
 `despues.png`.
+
+## Para taro
+
+Entrar a una pelea —el droide de la apertura, o cualquier encuentro—: después
+de los dos destellos el mapa se tiene que hacer bloques hasta el negro, con el
+héroe nítido encima. Y decir si la vuelta al mapa también la querés en
+cuadros.
+
+Al mergear no hay nada que instalar: es sólo el runtime, que el ensamblador
+global lee del árbol principal.

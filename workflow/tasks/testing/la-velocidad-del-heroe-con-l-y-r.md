@@ -2,7 +2,7 @@
 name: "La velocidad del héroe con L y R"
 description: "L baja y R sube la velocidad de movimiento del héroe"
 type: feature
-assignee: Biguá
+assignee: taro
 ---
 
 De taro, el 2026-09-30: "poder incrementar o disminuir la velocidad del
@@ -66,3 +66,14 @@ arranque y el lazo, y un `jsr` que pasó a `jsl`); el banco 1, de 4.679 B a
 las 7 de ésta); `just -f tools/justfile test`: 46. Ninguna golden se movió.
 `NO_CACHE=1 just cartuchos` sale byte por byte igual que con caché (lo único
 del conversor que cambió es una constante más en `mapdata.inc`).
+
+## Para taro
+
+En cualquier mapa, R y caminar: una R es la 5 (el doble de rápido), dos la 6;
+L baja hasta la 1, que es muy lenta. Mirar si te sirve que no se guarde en la
+partida y que una escena que mueve al héroe lo haga a su velocidad.
+
+Al mergear no hay nada que instalar: cambió el runtime y el contenido de tres
+scripts del conversor (`options.py`, `snes_convert.py`, `mapdata.py`),
+ninguno nuevo ni renombrado, y ningún crate de Rust. Sí hay que mirar que
+nadie más haya tomado `$25F0` y `$25F1` de la RAM lejana.
