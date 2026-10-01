@@ -89,7 +89,7 @@ entere. El porqué de cada mecánica va en el comentario de su rutina.
 | El fundido de los teletransportes, con el mapa cargando adentro del negro | `start_fade`, `fade_tick` | `fade_ramp`, y las constantes `FADE_*` |
 | El tope de teletransportes encadenados | `JUMPS_MAX` y sus usos | lo cobra `rom/pruebas/rpgmaker/test_saltos.py` |
 | La pantalla se prende en el vblank y en ningún otro lado | `flush_video` | — |
-| La ventana de mensaje, clavada abajo por HDMA | `build_hdma`, `msg_start`, `msg_ptr_next` | `rm2k-snes-screens`, que la arma con `rm2k-render` como biblioteca, y `Messages` en el compilador |
+| La ventana de mensaje, clavada abajo por HDMA | `build_hdma`, `msg_start`, `msg_ptr_next`, `msg_letter` (los pares del DTE) | `rm2k-snes-screens`, que la arma con `rm2k-render` como biblioteca, y `Messages` en el compilador |
 | El texto compuesto en caliente, con los glifos ya pre-renderizados | `message_tick`, `compose_char`, `prime_line` | `font_prerender` en `rm2k-snes-screens` |
 | El arranque dura siempre lo mismo | `BOOT_FRAMES` | lo corre `Partida` en `rom/pruebas/arnes/consola.py` |
 | Los cuadros perdidos se cuentan | `count_lost` | los lee `Partida.cuadros_perdidos` de la WRAM |

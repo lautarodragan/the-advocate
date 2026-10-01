@@ -290,11 +290,15 @@ def troops(answer):
     return t
 
 
-def messages(data, count):
-    """A text block, as much as the converter reads of one."""
+def messages(data, count, pairs=None):
+    """A text block, as much as the converter reads of one: `pairs` is the
+    compiler's `pairs` and `pair_first` of it, which only the game's block
+    has —see `Pairs` in the compiler's `messages.rs`—."""
     block = bytes.fromhex(data)
     return Registry(data=bytearray(block), texts=range(count),
-                    bytes=lambda: block)
+                    bytes=lambda: block,
+                    pairs=pairs and {"first": pairs["pair_first"],
+                                     "table": pairs["pairs"]})
 
 
 def troop_pages(answer):

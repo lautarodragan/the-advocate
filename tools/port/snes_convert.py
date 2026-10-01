@@ -366,7 +366,8 @@ def main():
         if args.test_graphic else {},
         encounters["troops"])
     messages = compiler.messages(compiled["messages"]["data"],
-                                 compiled["messages"]["count"])
+                                 compiled["messages"]["count"],
+                                 compiled["messages"])
     troops = compiler.troops(compiled)
     test_party = {}
     for k, code in enumerate(compiled["cases"]):
@@ -782,7 +783,7 @@ def main():
         screen_stage.layout().ITEM_NAME_WIDTH)
     report, decompress_frames = emit(
         args.output, maps, args.dump, args.start_index, args.hero_above,
-        party, screens, window_data["mensajes"], title_data and
+        party, screens, window_data["mensajes"], messages.pairs, title_data and
         title_data["pantalla"], game_over_data, args.pictures.info,
         animations_request(animations), troops.ids, battle_audio,
         scene_request(scenes, troops.ids, renderer.database), battle_tables,

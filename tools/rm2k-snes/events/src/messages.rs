@@ -8,6 +8,114 @@
 use crate::fail::{Bad, Result, Step, Stop};
 use std::collections::{BTreeMap, HashMap};
 
+/// The first byte value that stands for a pair of letters and not for one.
+///
+/// A letter goes as its index in the font, ASCII minus 32, and the font has
+/// the 95 printable ASCII characters: 0 to 94. Every value from 95 up is one
+/// the text never uses, so each can mean two letters: that is DTE, dual tile
+/// encoding, of a single level —a pair is two letters, never a letter and
+/// another pair—. The ROM's composer looks a value from here up in the pair
+/// table and draws the two letters one after the other, as if they had come
+/// in two bytes.
+pub const PAIR_FIRST: u8 = 95;
+
+/// How many pairs fit: the values from `PAIR_FIRST` to 255.
+pub const PAIRS_MAX: usize = 256 - PAIR_FIRST as usize;
+
+/// The pair table of a text block: which two letters each value from
+/// `PAIR_FIRST` up stands for.
+///
+/// **A pair never leaves a line**, and that is what keeps it from splitting
+/// anything: a line is only letters —the escapes travel in the box's header,
+/// see `HEADER_LINES`, and the length goes in its own byte before the line—,
+/// so two neighbouring letters of a line are always two letters. And the
+/// length byte keeps counting letters, not bytes: the composer goes letter
+/// by letter, at the same pace as without pairs, and a box draws exactly the
+/// same.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct Pairs {
+    table: Vec<(u8, u8)>,
+    code: HashMap<(u8, u8), u8>,
+}
+
+impl Pairs {
+    /// The `PAIRS_MAX` most frequent pairs of neighbouring letters across
+    /// `lines`, each line as font indices.
+    ///
+    /// By plain frequency, ties broken by the pair itself so that the table
+    /// does not depend on the order of a `HashMap`. Re-counting after each
+    /// choice —the one-level variant of byte pair encoding— was measured
+    /// too, on `release`'s block, and came out 144 bytes bigger out of
+    /// 94 KB: not worth the loop.
+    pub fn choose<'a>(lines: impl IntoIterator<Item = &'a [u8]>) -> Pairs {
+        let mut count: HashMap<(u8, u8), usize> = HashMap::new();
+        for line in lines {
+            for w in line.windows(2) {
+                *count.entry((w[0], w[1])).or_default() += 1;
+            }
+        }
+        let mut ranked: Vec<((u8, u8), usize)> = count.into_iter().collect();
+        ranked.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
+        Pairs::from_table(ranked.into_iter().take(PAIRS_MAX).map(|(p, _)| p).collect())
+    }
+
+    pub fn from_table(table: Vec<(u8, u8)>) -> Pairs {
+        assert!(table.len() <= PAIRS_MAX);
+        let code = table
+            .iter()
+            .enumerate()
+            .map(|(i, &p)| (p, PAIR_FIRST + i as u8))
+            .collect();
+        Pairs { table, code }
+    }
+
+    /// One line of letters in as few bytes as the table allows.
+    ///
+    /// Greedy from the left, and it is not a shortcut: each pair taken saves
+    /// one byte, so the fewest bytes is the most pairs that do not overlap,
+    /// and along a line that is choosing intervals of two —taking the one
+    /// that ends first, which is the one that starts here, is optimal—.
+    pub fn encode(&self, letters: &[u8]) -> Vec<u8> {
+        let mut out = Vec::with_capacity(letters.len());
+        let mut i = 0;
+        while i < letters.len() {
+            match letters
+                .get(i + 1)
+                .and_then(|&b| self.code.get(&(letters[i], b)))
+            {
+                Some(&code) => {
+                    out.push(code);
+                    i += 2;
+                }
+                None => {
+                    out.push(letters[i]);
+                    i += 1;
+                }
+            }
+        }
+        out
+    }
+
+    /// The table as the ROM reads it: two bytes per value from `PAIR_FIRST`
+    /// up, the first letter and then the second, so that one 16-bit read
+    /// brings both. Never empty: the assembler needs the label resolved even
+    /// if the ROM never reads it.
+    pub fn bytes(&self) -> Vec<u8> {
+        if self.table.is_empty() {
+            return vec![0];
+        }
+        self.table.iter().flat_map(|&(a, b)| [a, b]).collect()
+    }
+
+    pub fn len(&self) -> usize {
+        self.table.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.table.is_empty()
+    }
+}
+
 /// The escape that starts a code, and the two this compiler knows how to
 /// run: a pause and "close without waiting".
 ///
@@ -126,16 +234,34 @@ pub fn escape_tail(lines: &[String]) -> Step<(Vec<String>, usize, bool)> {
     Ok((lines, pauses, auto_close))
 }
 
-/// A box as the ROM reads it: the header, and each line with its length.
-/// The characters go as an index into the font, that is ASCII minus 32; a
-/// letter the font does not have stops the conversion. All of the game's
-/// text fits there: it was measured, and it does not have a single accented
-/// letter.
+/// The letters of a line as font indices, that is ASCII minus 32; a letter
+/// the font does not have stops the conversion. All of the game's text fits
+/// there: it was measured, and it does not have a single accented letter.
+fn letters(text: &str, columns: usize) -> Result<Vec<u8>> {
+    text.chars()
+        .take(columns)
+        .map(|ch| {
+            let c = ch as u32;
+            if !(32..127).contains(&c) {
+                return Err(Bad::answer(format!(
+                    "the message has a character that is not in the font: {ch:?}"
+                )));
+            }
+            Ok((c - 32) as u8)
+        })
+        .collect()
+}
+
+/// A box as the ROM reads it: the header, and each line with its length
+/// **in letters** and then its letters through the pair table —see
+/// `Pairs`—. With an empty table each letter is its byte, as it was before
+/// there were pairs.
 pub fn message_bytes(
     lines: &[String],
     pauses: usize,
     auto_close: bool,
     window: Window,
+    pairs: &Pairs,
 ) -> Result<Vec<u8>> {
     assert!(pauses <= PAUSES_MAX);
     let mut out = vec![
@@ -144,17 +270,9 @@ pub fn message_bytes(
             | (pauses << 4) as u8,
     ];
     for text in lines.iter().take(window.lines) {
-        let text: Vec<char> = text.chars().take(window.columns).collect();
+        let text = letters(text, window.columns)?;
         out.push(text.len() as u8);
-        for ch in text {
-            let c = ch as u32;
-            if !(32..127).contains(&c) {
-                return Err(Bad::answer(format!(
-                    "the message has a character that is not in the font: {ch:?}"
-                )));
-            }
-            out.push((c - 32) as u8);
-        }
+        out.extend(pairs.encode(&text));
     }
     Ok(out)
 }
@@ -180,6 +298,11 @@ pub struct Messages {
     pub step: usize,
     pub window: Window,
     pub data: Vec<u8>,
+    /// The pairs its letters are written with; empty, one byte per letter.
+    pub pairs: Pairs,
+    /// Whether a block past what the operand reaches stops the compilation.
+    /// Only `measuring` turns it off: see there.
+    capped: bool,
     where_: HashMap<Key, usize>,
     texts: BTreeMap<usize, Vec<String>>,
 }
@@ -190,9 +313,43 @@ impl Messages {
             step,
             window,
             data: Vec::new(),
+            pairs: Pairs::default(),
+            capped: true,
             where_: HashMap::new(),
             texts: BTreeMap::new(),
         }
+    }
+
+    /// One that writes its letters with `pairs`.
+    pub fn with_pairs(step: usize, window: Window, pairs: Pairs) -> Messages {
+        Messages {
+            pairs,
+            ..Messages::new(step, window)
+        }
+    }
+
+    /// One that only gathers the texts so that the pairs can be chosen over
+    /// them —see `choose_pairs`—, without the cap of the operand: without
+    /// pairs the block can pass the 256 KB that it will not pass with them,
+    /// and stopping there would stop the cartridge for a block that is never
+    /// emitted.
+    pub fn measuring(step: usize, window: Window) -> Messages {
+        Messages {
+            capped: false,
+            ..Messages::new(step, window)
+        }
+    }
+
+    /// The pair table for the boxes it holds: the ones left after every
+    /// `rewind`, which are the ones that go into the cartridge.
+    pub fn choose_pairs(&self) -> Result<Pairs> {
+        let lines = self
+            .texts
+            .values()
+            .flatten()
+            .map(|t| letters(t, self.window.columns))
+            .collect::<Result<Vec<_>>>()?;
+        Ok(Pairs::choose(lines.iter().map(|l| l.as_slice())))
     }
 
     /// The offset of this box, storing it the first time.
@@ -229,9 +386,10 @@ impl Messages {
             self.data.push(0);
         }
         let w = self.data.len();
-        let bytes = message_bytes(&key.0, pauses, auto_close, self.window).map_err(Stop::Fatal)?;
+        let bytes = message_bytes(&key.0, pauses, auto_close, self.window, &self.pairs)
+            .map_err(Stop::Fatal)?;
         self.data.extend(bytes);
-        if w / self.step > 0xFFFF {
+        if self.capped && w / self.step > 0xFFFF {
             return Err(Stop::Fatal(Bad::answer(format!(
                 "this ROM's messages are {} bytes and the OP_MESSAGE operand is 16 bits, counting by {} bytes",
                 self.data.len(),
@@ -320,6 +478,52 @@ mod tests {
         assert_eq!(m.data[bare], 1);
         assert_eq!(m.data[tailed], 1 | HEADER_AUTO_CLOSE | 1 << 4);
         assert_eq!(m.add(&s(&["Ready?\\|\\^"])).ok(), Some(tailed));
+    }
+
+    #[test]
+    fn a_pair_is_one_byte_and_the_length_still_counts_letters() {
+        // "e " and " t" are the two pairs; "the tee" is t, h, `e `, t, e, e:
+        // the greedy split takes `e ` and so cannot take ` t`.
+        let pairs = Pairs::from_table(vec![(69, 0), (0, 84)]);
+        let mut m = Messages::with_pairs(1, WINDOW, pairs.clone());
+        let at = m.add(&s(&["the tee"])).ok().unwrap();
+        assert_eq!(m.data[at..], [1, 7, 84, 72, PAIR_FIRST, 84, 69, 69]);
+        assert_eq!(pairs.bytes(), [69, 0, 0, 84]);
+        // A line never borrows a letter from the next one.
+        let at = m.add(&s(&["e", " t"])).ok().unwrap();
+        assert_eq!(m.data[at..], [2, 1, 69, 2, PAIR_FIRST + 1]);
+    }
+
+    #[test]
+    fn the_pairs_are_chosen_by_how_often_and_then_by_the_pair() {
+        let mut m = Messages::measuring(4, WINDOW);
+        m.add(&s(&["abab", "ba"])).ok().unwrap();
+        let mark = m.mark();
+        // One that is taken back does not count.
+        m.add(&s(&["zzzzzzzz"])).ok().unwrap();
+        m.rewind(mark);
+        let pairs = m.choose_pairs().unwrap();
+        // ab twice, ba twice: the tie goes to the smaller pair.
+        assert_eq!(pairs.bytes(), [65, 66, 66, 65]);
+        assert_eq!(pairs.len(), 2);
+        let many = Messages::measuring(1, WINDOW);
+        assert!(many.choose_pairs().unwrap().is_empty());
+    }
+
+    #[test]
+    fn measuring_does_not_stop_at_the_operand() {
+        let mut m = Messages::measuring(1, WINDOW);
+        for k in 0..2000 {
+            let line = format!("{k:>39}");
+            assert!(m.add(&s(&[&line, &line])).is_ok());
+        }
+        assert!(m.mark() > 0x10000);
+        let mut capped = Messages::new(1, WINDOW);
+        let stopped = (0..2000).any(|k| {
+            let line = format!("{k:>39}");
+            matches!(capped.add(&s(&[&line, &line])), Err(Stop::Fatal(_)))
+        });
+        assert!(stopped);
     }
 
     #[test]

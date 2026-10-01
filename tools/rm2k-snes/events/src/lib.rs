@@ -490,7 +490,45 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
 }
 
 /// The second call: every page of the cartridge, compiled with everything.
+///
+/// **Twice**, and the first one only to gather the texts. The pair table of
+/// the text block —see `messages::Pairs`— is chosen over the boxes that go
+/// into the cartridge, and which ones those are is known only after
+/// compiling every page: the ones that do not compile take theirs back. But
+/// the offset of each box is already written into the bytecode when it is
+/// compiled, and with pairs every box measures something else. So the first
+/// pass gathers, and the second one compiles with the table: the same pages
+/// compile in both, because whether one compiles never depends on its texts'
+/// bytes.
 pub fn compile(game: &Game, request: &Request) -> Result<Value> {
+    let window = request.window();
+    let (_, gathered) = compile_pass(
+        game,
+        request,
+        Messages::measuring(request.messages_step, window),
+    )?;
+    let pairs = gathered.choose_pairs()?;
+    let (answer, _) = compile_pass(
+        game,
+        request,
+        Messages::with_pairs(request.messages_step, window, pairs),
+    )?;
+    Ok(answer)
+}
+
+/// The same, with one byte per letter: what the compiler answered before
+/// there were pairs. No cartridge uses it; the tests compare against it,
+/// because the hashes of `tests/python.rs` are of an answer without pairs.
+pub fn compile_without_pairs(game: &Game, request: &Request) -> Result<Value> {
+    let messages = Messages::new(request.messages_step, request.window());
+    Ok(compile_pass(game, request, messages)?.0)
+}
+
+fn compile_pass(
+    game: &Game,
+    request: &Request,
+    mut messages: Messages,
+) -> Result<(Value, Messages)> {
     let (indices, associations, maps) = prepare(game, request)?;
     let order: HashMap<i64, usize> = request
         .maps
@@ -500,7 +538,6 @@ pub fn compile(game: &Game, request: &Request) -> Result<Value> {
         .collect();
     let map_index = |m: i64| order.get(&m).copied();
     let window = request.window();
-    let mut messages = Messages::new(request.messages_step, window);
     let mut songs = Songs::default();
     let mut troops = Troops::default();
     let picture = request.picture.as_ref();
@@ -698,7 +735,12 @@ pub fn compile(game: &Game, request: &Request) -> Result<Value> {
     answer.insert("cases".into(), json!(cases_out));
     answer.insert(
         "messages".into(),
-        json!({"data": hex(&messages.bytes()), "count": messages.count()}),
+        json!({
+            "data": hex(&messages.bytes()),
+            "count": messages.count(),
+            "pairs": hex(&messages.pairs.bytes()),
+            "pair_first": messages::PAIR_FIRST,
+        }),
     );
     answer.insert("songs".into(), songs.to_json());
     answer.insert(
@@ -720,7 +762,7 @@ pub fn compile(game: &Game, request: &Request) -> Result<Value> {
         },
     );
     answer.insert("party_common_events".into(), json!(party));
-    Ok(Value::Object(answer))
+    Ok((Value::Object(answer), messages))
 }
 
 /// Writes the answer into `dir`, which is created if it is not there.

@@ -99,7 +99,8 @@ def _full_screen(data):
 
 
 def emit(path, maps, dump, initial, hero_above, initial_party, screens,
-         messages, title, game_over, picture_info, animations, troops,
+         messages, message_pairs, title, game_over, picture_info,
+         animations, troops,
          battle_audio, scene, battle_tables, troop_pages, party_common,
          battle_model, items, actors, text_padding, case_slot, enemy_hp,
          speed_keys):
@@ -109,7 +110,9 @@ def emit(path, maps, dump, initial, hero_above, initial_party, screens,
     takes)`.
 
     `screens` is what `rm2k-snes-screens convert` answered, as it came;
-    `messages`, the text block of the pages; `title` and `game_over`, what
+    `messages`, the text block of the pages, and `message_pairs` the pair
+    table its letters are written with, `{"first", "table"}` as the event
+    compiler answered them; `title` and `game_over`, what
     `fullscreen.compressed` returns, or None; `animations` and `scene`, what
     `battle_animations.animations_request` and
     `battle_scenes.scene_request` build; `troop_pages`, the compiler's
@@ -133,6 +136,7 @@ def emit(path, maps, dump, initial, hero_above, initial_party, screens,
                                                  length=4)},
         "screens": screens,
         "messages": bytes(messages).hex(),
+        "message_pairs": message_pairs,
         "title": _full_screen(title),
         "game_over": _full_screen(game_over),
         "picture": None if not picture_info else {

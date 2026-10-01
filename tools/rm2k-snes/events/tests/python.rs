@@ -26,7 +26,7 @@
 //! are not to be regenerated to make a test pass: the Python that produced
 //! them is gone, and with it the only independent answer.
 
-use rm2k_snes_events::{compile, scan, Game, Request};
+use rm2k_snes_events::{compile, compile_without_pairs, scan, Game, Request};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::path::PathBuf;
@@ -102,10 +102,22 @@ fn without_route_targets(answer: &mut Value) {
     }
 }
 
+/// The text block's pair table came after the Python too: the answer
+/// compared is the one without pairs, and the two fields that say which
+/// table it was written with —an empty one— are taken out. That the pairs
+/// write the same text is `the_pairs_write_the_same_boxes`.
+fn without_pairs(answer: &mut Value) {
+    if let Some(m) = answer.get_mut("messages").and_then(Value::as_object_mut) {
+        m.remove("pairs");
+        m.remove("pair_first");
+    }
+}
+
 fn check(which: &str, answer: Value) {
     let mut answer = answer;
     sorted_jumps(&mut answer);
     without_route_targets(&mut answer);
+    without_pairs(&mut answer);
     let expected = read("python.json");
     let expected = expected[which].as_object().unwrap();
     let got = answer.as_object().unwrap();
@@ -142,7 +154,12 @@ fn route_targets_are_the_routes_of_the_code() {
                 assert!(targets.is_empty(), "a page without code routes nobody");
             }
             if !targets.is_empty() {
-                routed.push((map["id"].clone(), page["event"].clone(), page["page"].clone(), targets.clone()));
+                routed.push((
+                    map["id"].clone(),
+                    page["event"].clone(),
+                    page["page"].clone(),
+                    targets.clone(),
+                ));
             }
         }
     }
@@ -166,5 +183,72 @@ fn the_scan_is_the_pythons() {
 #[test]
 fn the_compilation_is_the_pythons() {
     let request = Request::from_json(&read("compile.json"), "compile.json").unwrap();
-    check("compile", compile(&game(&request), &request).unwrap());
+    check(
+        "compile",
+        compile_without_pairs(&game(&request), &request).unwrap(),
+    );
+}
+
+/// The boxes of a text block, in order and as letters: each one at a
+/// multiple of `step`, its header, and each line with its length in
+/// letters, a byte from `pair_first` up being two of them.
+fn boxes(messages: &Value, step: usize) -> Vec<(u8, Vec<Vec<u8>>)> {
+    let bytes = |key: &str| -> Vec<u8> {
+        let hex = messages[key].as_str().unwrap();
+        (0..hex.len())
+            .step_by(2)
+            .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).unwrap())
+            .collect()
+    };
+    let (data, pairs) = (bytes("data"), bytes("pairs"));
+    let first = messages["pair_first"].as_u64().unwrap() as u8;
+    let mut out = Vec::new();
+    let mut at = 0;
+    while at < data.len() {
+        let header = data[at];
+        at += 1;
+        let mut lines = Vec::new();
+        for _ in 0..header & 7 {
+            let n = data[at] as usize;
+            at += 1;
+            let mut line = Vec::new();
+            while line.len() < n {
+                let b = data[at];
+                at += 1;
+                if b >= first {
+                    let k = 2 * (b - first) as usize;
+                    line.extend([pairs[k], pairs[k + 1]]);
+                } else {
+                    line.push(b);
+                }
+            }
+            assert_eq!(line.len(), n, "a pair crossed the end of a line");
+            lines.push(line);
+        }
+        out.push((header, lines));
+        while at % step != 0 && at < data.len() {
+            assert_eq!(data[at], 0, "the padding between boxes");
+            at += 1;
+        }
+    }
+    out
+}
+
+/// With pairs, the same boxes in the same order, and in fewer bytes: the
+/// offsets in the code change, the text does not.
+#[test]
+fn the_pairs_write_the_same_boxes() {
+    let request = Request::from_json(&read("compile.json"), "compile.json").unwrap();
+    let plain = compile_without_pairs(&game(&request), &request).unwrap();
+    let paired = compile(&game(&request), &request).unwrap();
+    let step = request.messages_step;
+    let (a, b) = (
+        boxes(&plain["messages"], step),
+        boxes(&paired["messages"], step),
+    );
+    assert!(!a.is_empty());
+    assert_eq!(a, b);
+    let size = |v: &Value| v["messages"]["data"].as_str().unwrap().len();
+    assert!(size(&paired) < size(&plain));
+    assert_eq!(paired["messages"]["count"], plain["messages"]["count"]);
 }

@@ -381,6 +381,13 @@ no_upload:
     ; holds the previous message's text and it has to be covered.
     jsr prime_line
     stz msg_length
+    ; No half of a pair waiting: this is the only place it is cleared, and
+    ; every line —the first of a box too— comes through here before its
+    ; first letter. A pair never crosses the end of a line in a box the
+    ; converter wrote, but a broken length —the column cap, below— could
+    ; leave one, and the WRAM does not boot at zero.
+    lda #0
+    sta f:FAR_MSG_SECOND
     lda msg_lines
     and #HEADER_LINES           ; the header also carries the escape queue
     sta temp
@@ -406,8 +413,11 @@ other:
     lda msg_col
     cmp msg_length
     bcs end_line
-    ldy #0
-    lda [msg_ptr], y
+    ; The letter, which may be half of a pair: see `msg_letter`.
+    ; **`MSG_CHARS` counts letters, not bytes**, and so does `msg_length`: a
+    ; pair is two passes of this loop, so the text comes out at the same
+    ; pace and drawn the same as when each letter was its byte.
+    jsl msg_letter
     rep #$20
 .a16
     and #$00FF
@@ -415,7 +425,6 @@ other:
     lda msg_col
     and #$00FF
     sta comp_col
-    jsr msg_ptr_next
     sep #$20
 .a8
     inc msg_col

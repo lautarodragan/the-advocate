@@ -47,7 +47,11 @@ different context:
   cartridge's order and through the same registries —the text block, the
   songs and effects with the audio package each map asks for, the troops—;
   the test pages; the debts; the troops' pages; the battle's audio; and the
-  equipment common events.
+  equipment common events. It runs twice: the first pass only gathers the
+  boxes that go into the cartridge, and the text block is then written with
+  a pair table chosen over them —DTE, a byte from 95 up standing for two
+  letters; see `Pairs` in `messages.rs`—, which the answer carries next to
+  the block.
 
 The indices come from sweeping **every map of the game**, whether its pages
 compile or not, and the troops' pages: a cheap superset, and a page that
