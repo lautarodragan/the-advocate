@@ -2,7 +2,7 @@
 name: "El scroll de la lista de ítems redibuja la pantalla entera"
 description: "Al bajar por la lista de ítems la pantalla queda negra un cuadro y se redibujan también los bordes de las ventanas, no sólo el texto"
 type: bug
-assignee: Hurón
+assignee: taro
 ---
 
 De taro, el 2026-09-30, jugando: "el scroll en el menú de ítems parece causar
@@ -55,7 +55,8 @@ pantalla y no correr una lista).
 `/shared/capturas/2026-09-30-scroll-de-items/`.
 
 **Espacio**: el banco 0 de `release` ganó 422 B (de 182 a 604 libres sobre la
-base `69164d82`, con `just espacio`).
+base `69164d82`, con `just espacio`; después de mergear `d94ec1b8`, de 159 a
+581). `NO_CACHE=1 just cartuchos` y el armado con caché dan las mismas ROMs.
 
 **Al mergear**: nada de Rust para instalar por esta rama;
 `tools/port/mapdata.py` cambió de contenido, sin renombres.
