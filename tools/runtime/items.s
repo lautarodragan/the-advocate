@@ -187,7 +187,7 @@ ready:
     tax
     sep #$20
 .a8
-    lda item_use, x
+    lda f:item_use, x
     and #1
     eor #1
     sta temp + 1
@@ -331,10 +331,10 @@ faces_a:
     tax
     sep #$20
 .a8
-    lda item_use, x
+    lda f:item_use, x
     and #1
     beq wait                    ; grayed out: RM2k plays a sound and does nothing
-    lda item_use, x
+    lda f:item_use, x
     and #4
     beq from_switch
     ; A medicine: the actor choice, and back to the list with the cursor where
@@ -375,7 +375,7 @@ from_switch:
     ; A switch item: `ConsumeItemUse` if it has uses, the switch turned on and
     ; straight to the map. `set_switch` asks for the page refresh, which is
     ; the `SetNeedRefresh(true)` over there.
-    lda item_use, x
+    lda f:item_use, x
     and #2
     beq no_consume
     lda pick_edges

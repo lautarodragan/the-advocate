@@ -1715,8 +1715,8 @@ impl Rest<'_> {
             ROWS,
             t.n("ITEM_LIST_Y").div_euclid(cell)
         ));
-        // `item_k` and `item_id` go outside bank 0, read with
-        // `lda f:item_k, x`: they grow with every item the maps bring.
+        // The item tables go outside bank 0, read with `lda f:item_k, x`:
+        // they grow with every item the maps bring.
         out.push_str(".segment \"RODATA\"\n");
         bytes_asm(
             out,
@@ -1725,7 +1725,6 @@ impl Rest<'_> {
             true,
         );
         words_asm(out, "item_id", &decimal(items.iter()), true);
-        out.push_str(".segment \"TABLES\"\n");
         // Whether it goes in white and does something on the map, whether
         // using it spends one, whether it opens the actor choice, and whether
         // it is a two-handed weapon.
@@ -1754,8 +1753,7 @@ impl Rest<'_> {
                     | if it.two_handed { 8 } else { 0 },
             );
         }
-        bytes_asm(out, "item_use", &decimal(uses), false);
-        out.push_str(".segment \"RODATA\"\n");
+        bytes_asm(out, "item_use", &decimal(uses), true);
         words_asm(
             out,
             "item_switch",

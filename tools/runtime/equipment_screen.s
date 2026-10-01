@@ -175,7 +175,7 @@ ready:
 .i16
     jsr eq_k
     beq no
-    lda item_use, x
+    lda f:item_use, x
     and #8
     rts
 no:
