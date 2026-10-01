@@ -125,6 +125,8 @@ port —ver `tools/README.md`—:
       images/          las imágenes: el título y el Game Over, la de
                        `ShowPicture`, los fondos y battlers de la pelea y sus
                        animaciones, escalados y con sus paletas
+      mapdata/         la emisión: el `.inc` del cartucho con lo que contestó
+                       cada etapa, los flujos de LZ2 y los repartos de VRAM
 
 Las capas sólo dependen hacia abajo —`rm2k-snes/` de las otras dos, y
 ésas de nada de las demás—, y lo cuida `tools/tests/test_layers.py`. Todos
@@ -166,8 +168,8 @@ mensaje; `tools/rm2k-snes/rm2k-snes-audio/` recibe el SoundFont por `SOUNDFONT`,
 y `tools/snes/protocol/`, `tools/snes/gunter/`, `tools/snes/voodoo/`, `tools/snes/lz2/`,
 `tools/snes/adeleine/`, `tools/rm2k/rules/`, `tools/rm2k/rm2k-render/`, `tools/rm2k-snes/battle/`,
 `tools/rm2k-snes/events/`, `tools/rm2k-snes/patches/`, los tres de los mapas y
-los dos de las pantallas, `tools/snes/resample/` y `tools/rm2k-snes/images/`
-no necesitan nada.
+los dos de las pantallas, `tools/snes/resample/`, `tools/rm2k-snes/images/` y
+`tools/rm2k-snes/mapdata/` no necesitan nada.
 
 ### `tools/snes/voodoo/` no decide colores, y eso no se arregla
 

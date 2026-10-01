@@ -243,6 +243,7 @@ fn everything_that_builds_the_rom_is_in_the_fingerprint() {
         "rm2k-snes-battle",
         "rm2k-snes-events",
         "rm2k-snes-images",
+        "rm2k-snes-mapdata",
         "rm2k-snes-maps",
         "rm2k-snes-patches",
         "rm2k-snes-screens",
@@ -265,6 +266,7 @@ fn everything_that_builds_the_rom_is_in_the_fingerprint() {
     assert!(files.contains(&bin.join("rm2k-snes-battle")));
     assert!(files.contains(&bin.join("rm2k-snes-events")));
     assert!(files.contains(&bin.join("rm2k-snes-images")));
+    assert!(files.contains(&bin.join("rm2k-snes-mapdata")));
     assert!(files.contains(&bin.join("rm2k-snes-patches")));
     assert!(files.contains(&bin.join("rm2k-snes-screens")));
     assert!(files.contains(&dir.join("rm2k-snes.toml")));

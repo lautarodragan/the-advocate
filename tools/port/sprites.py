@@ -4,11 +4,13 @@
 shows, how the eight OBJ palettes are split, the VRAM bank and the pose
 bank; see `rm2k-snes-map-sprites`—, and so is who walks, animates standing
 still or turns toward the hero (`moves.rs`). What stays here is what that
-stage gets from other domains and what the emission reads: the graphics
-drawn apart from the hero so its
-flash does not spread (`separate_from_hero`); how many maps of the ROM
-each character is in; the constants of the objects; and the warning that
-stops the build when a mechanism is not drawn (`discard_warning`).
+stage gets from other domains: the graphics drawn apart from the hero so
+its flash does not spread (`separate_from_hero`); how many maps of the ROM
+each character is in; the objects' priorities and where a 32x32 block
+starts, with which the orchestrator builds what a page draws; and the
+warning that stops the build when a mechanism is not drawn
+(`discard_warning`). The objects as the `.inc` writes them are the
+emission's: `objects.rs` in `rm2k-snes-mapdata`.
 """
 
 import collections
@@ -22,35 +24,17 @@ from rpgmaker import rm2k
 # The priorities for objects, already shifted into place in the vhoopppN
 # byte: the priority is bits 5 and 4, not 0 and 1: writing $20 thinking it
 # is priority 1 gives priority 2, and in the order of mode 3 —see
-# `PRIORITY_ABOVE` in map_layers.py— that one extra place
+# `PRIORITY_ABOVE` in the `cgram.rs` of `rm2k-snes-mapdata`— that one extra place
 # crosses exactly the upper layer. Nothing fails and the sprite is still
 # visible: only on the wrong side of a layer, that is covering the roof it
 # should be walking under.
 #
-# These two values are the only ones in the program: the ROM gets the hero's
-# in HERO_PRIORITY and each NPC's comes built into its attribute byte. They are
-# not written in `tools/runtime/` too: a second copy is one more place to get
-# it wrong without anything noticing.
+# The ROM gets the hero's in HERO_PRIORITY and each NPC's comes built into its
+# attribute byte; they are not written in `tools/runtime/` too. The emission
+# has its copy, `objects.rs` in `rm2k-snes-mapdata`, until what a page draws
+# —`oam` in `snes_convert`— is built there as well.
 OBJ_PRIORITY = 0x10                      # priority 1: below BG2 1
 OBJ_PRIORITY_ABOVE = 0x20                # priority 2: above it
-
-
-# --- the character sprite ---------------------------------------------------
-#
-# An RM2k CharSet is 4 characters wide by 2 high; each one takes 72x128 and has
-# 12 poses of 24x32: 3 walking frames for 4 directions.
-#
-# The SNES has no 24x32 sprites. The smallest one that covers that pose is
-# 32x32, so it is padded with transparency at the sides and a quarter of the
-# tiles is lost. The alternative was splitting each pose into several 16x32
-# objects, which spends the same and multiplies the OAM entries.
-#
-# Sprites are always 4 bits per pixel, no exceptions: there is no mode 3 for
-# them. That is, Talan has to fit in 15 colors, and has 36.
-
-OBJ_COLORS = 15                    # 4 bits per pixel, and 0 is transparent
-SPRITE_POSES = 12
-OBJ_PALETTES = 8                   # 8 to 15, with or without the timer
 
 
 # --- the NPCs ---------------------------------------------------------------
@@ -110,10 +94,6 @@ def discard_warning(text, dangerous):
         "that is, it is a mechanism and not decoration. Without being drawn, the\n"
         "change is never seen, and since the event still blocks the way and\n"
         "triggers, what is left is an invisible wall where the game expected a door." % text)
-
-
-# A pose in the cartridge: the 16 tiles in a row, by rows.
-POSE_BYTES = 16 * 32
 
 
 def maps_per_character(renderer, map_ids, game_dir):

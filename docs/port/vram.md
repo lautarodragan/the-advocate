@@ -18,9 +18,11 @@ uno al final no le cambia el reparto a ningún mapa que ya lo tenía:
     ventana+techo  sprites 256 | fondo 544  | ventana_map | mapa $5800 | encima 128 | ventana 256
     ventana+encima sprites 384 | mapa $1800 | fondo 384  | encima 256 | ventana 256 | ventana_map
 
-Los detalles, con las direcciones, están en `LAYOUT_WINDOW*` de
-`tools/port/vram.py`, y `_check_splits` comprueba que cada uno
-respete las alineaciones del hardware y lo que la ROM supone.
+Los detalles, con las direcciones, están en `LAYOUT_WINDOW*` del `vram.rs` de
+`tools/rm2k-snes/mapdata/`, y `check_splits` comprueba que cada uno respete
+las alineaciones del hardware y lo que la ROM supone. Los razonamientos largos
+de cada reparto quedaron en la historia de `tools/port/vram.py`, donde vivían
+hasta el 2026-10-01.
 
 El "+sprite" lo pide **Delcentric Factory**, el camino al auditorio: gasta 217
 tiles de fondo y **475 de sprite** —26 NPCs con CharSet son 28 ranuras, o sea

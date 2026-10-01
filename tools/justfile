@@ -31,7 +31,7 @@ export PATH := if path_exists(local_tools / "bin") == "true" { local_tools / "bi
 # `*-test` recipes run `cargo test` standing in the project, which tests
 # only that one, and `cargo install --locked --path` takes the workspace's
 # lock.
-rust_projects := "protocol gunter ditto rules adeleine voodoo lz2 resample rm2k-render project cartridge patches rm2k-snes-audio battle events map-background map-sprites maps text screens images"
+rust_projects := "protocol gunter ditto rules adeleine voodoo lz2 resample rm2k-render project cartridge patches rm2k-snes-audio battle events map-background map-sprites maps text screens images mapdata"
 
 # The directories the projects live in, one per layer: each project is
 # `<layer>/<name>`, and the recipes find it by its name.
@@ -268,6 +268,17 @@ screens-test:
 # same input: they need no game.
 images-test:
   cd rm2k-snes/images && cargo test
+
+# rm2k-snes-mapdata: the cartridge's data `.inc` —what every domain of the
+# conversion answered, written for ca65—, the LZ2 streams of what the
+# console decompresses, and the VRAM layouts, which it publishes for the
+# maps and the screens; see `port/mapdata.py`.
+#
+# Its tests build what they emit inside the test, and compare against the
+# hashes of what the Python that wrote it until 2026-10-01 gave for the same
+# input: they need no game.
+mapdata-test:
+  cd rm2k-snes/mapdata && cargo test
 
 # --- Installation ----------------------------------------------------------
 # The Rust projects, in `snes/`, `rm2k/` and `rm2k-snes/`, are separate

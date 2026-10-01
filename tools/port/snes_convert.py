@@ -10,11 +10,11 @@ in its own module of `port/`, one per piece that can be replaced alone:
     game_scan           what is deduced from the whole game: leaders, items
     map_convert         a whole map: what goes into `rm2k-snes-maps map`
                         and its `map_info`, from what comes back
-      map_layers        the layers' answer, and the CGRAM constants
-      sprites           the hero's flash, the object constants
-      obj_extras        where the timer goes, and whether a map animates
-      vram              the VRAM layouts
-      blocks            `TileSubstitution` translated to 16x16 blocks
+      map_layers        the layers' answer
+      sprites           the hero's flash, the objects' priorities
+      obj_extras        whether a map draws a battle animation
+      vram              the VRAM layouts, as `rm2k-snes-mapdata`
+                        publishes them
     screen_stage        the screens, `rm2k-snes-screens`: the message
                         window and its font, the title's menu, the menus,
                         and the message boxes reflowed for the window
@@ -27,10 +27,8 @@ in its own module of `port/`, one per piece that can be replaced alone:
     compiler            the event compiler, `rm2k-snes-events`: what goes
                         into its two calls and what comes back
     music               the job for `rm2k-snes-audio`, and the `.msu`
-    mapdata             `emit`: the whole `mapdata.inc`
-      map_record        the tables of each map
-      materials         the data blocks and their LZ2 streams
-      asm               `block` and `pointer`
+    mapdata             `emit`: what goes into `rm2k-snes-mapdata emit`,
+                        which writes the whole `mapdata.inc`
 
 Usage:
     rm2k-snes-convert --map-id 7 -o rom/build/inc/mapdata.inc
@@ -79,19 +77,16 @@ from port import constants
 from common import settings
 from common import project
 from rpgmaker.rm2k import TILE
-from render.render_map import Renderer, build_passability
+from render.render_map import Renderer
 from common import environment
 from rpgmaker import resources
 from rpgmaker.resources import find_resource
 from port.sprites import (OBJ_PRIORITY, OBJ_PRIORITY_ABOVE, block_tile,
                           maps_per_character)
-from port.vram import SLOTS, _check_splits
-from port.blocks import SUB_MAX, Substitutions, substitution_triples
-from port.materials import compress_blocks, decompress_frames
-from port.map_record import PARALLEL_MAX, ROUTE_EV_MAX
-from port.battle_animations import rom_animations
+from port import vram
+from port.battle_animations import animations_request, rom_animations
 from port.battle_scenes import (fallback_bytes, patch_uses, rom_scene,
-                                write_patch_uses)
+                                scene_request, write_patch_uses)
 from port import stage
 from port import battle_stage
 from port import compiler
@@ -110,6 +105,21 @@ from port.map_convert import convert_maps
 # The bytecode walk lives in events.py, with the length table: there was a
 # copy here and the one there went stale without anyone seeing it.
 walk_code = events.walk_code
+
+
+# How many block pairs the ROM's substitution table can hold at once. It is
+# `SUB_MAX` in tools/runtime/low_ram.s and it is written on both sides on
+# purpose —the converter has to be able to refuse **before** emitting a map
+# that doesn't fit—; the test `test_substitutions.py` compares the two.
+SUB_MAX = 8
+
+# How many events with a parallel page there can be at once in a map, and
+# how many forced routes can be running at once on events: the ROM's caps,
+# which it does not warn about. The same numbers go into the `.inc` from
+# `record.rs` in `rm2k-snes-mapdata`, where the reasons are; the checks are
+# here because they look at the compiled pages.
+PARALLEL_MAX = 48
+ROUTE_EV_MAX = 12
 
 
 def patch_of_map(map_info):
@@ -265,20 +275,14 @@ def main():
     # other, so the destination index isn't known until the end.
     indices = {map_info["id"]: number for number, map_info in enumerate(maps)}
 
-    # The blocks the map's `TileSubstitution`s are going to need, built
-    # **before** compiling any page: see `Substitutions`. A map without that
-    # command builds nothing and doesn't grow a byte, which is the case of the
-    # game's 328 maps as of today.
+    # The blocks the map's `TileSubstitution`s are going to need were built
+    # by `rm2k-snes-maps`, **before** compiling any page: see
+    # `substitutions.rs` there. A map without that command builds nothing
+    # and doesn't grow a byte, which is the case of the game's 328 maps as of
+    # today. The compiler gets each one already translated: see
+    # `compiler.substitution_table`.
     for map_info in maps:
-        chipset = renderer.database.chipsets[map_info["game_map"].chipset_id]
-        map_info["sustituciones"] = Substitutions(
-            map_info, build_passability(chipset), chipset)
-        triples = substitution_triples(map_info["game_map"], args.cases,
-                                       map_info["id"])
-        # The compiler gets each one already translated: see
-        # `compiler.substitution_table`.
-        map_info["triples"] = triples
-        for absent in map_info["sustituciones"].close(triples):
+        for absent in map_info["missing_substitutions"]:
             # It doesn't stop the conversion: the page that asks for it
             # doesn't compile, which is what any command that can't be run
             # does. But it is said, because from outside it looks like an
@@ -290,7 +294,7 @@ def main():
             # combination that would be needed carries an upper tile **without
             # the "Above" bit**, which isn't drawn on BG2 but baked into the
             # background, and then the block's two layers stop being
-            # independent. See `Substitutions._bakes`.
+            # independent. See `bakes` in `substitutions.rs`.
             print("  map %d: TileSubstitution %d -> %d on the %s layer: the "
                   "block that would be needed can't be built. Either the new "
                   "tile isn't drawn in any cell of the map, or one of the two "
@@ -376,10 +380,14 @@ def main():
         # The pages of the map's events: their conditions, and the code of
         # the ones that can be run.
         pages = compiler.pages(entry["pages"], map_info["game_map"])
-        # And which substitutions they asked for, which are the keys of the
-        # ROM's table: see `SUB_MAX`.
+        # And which substitutions they asked for: the blocks their pairs
+        # start from are the keys of the ROM's table. See `SUB_MAX`.
+        translated = {(t["upper"], t["old"], t["new"]): t["pairs"]
+                      for t in map_info["substitution_table"]}
+        map_info["sub_keys"] = set()
         for upper, old, new in entry["substitutions"]:
-            map_info["sustituciones"].pairs(upper, old, new)
+            pairs = translated.get((bool(upper), old, new))
+            map_info["sub_keys"].update(pair[0] for pair in pairs or ())
         # One interpreter per event with some parallel page that compiles. The
         # ROM carries them in a fixed-cap list and **doesn't warn** if it goes
         # over —the extra ones wouldn't run and nothing would say so—, so the
@@ -554,7 +562,7 @@ def main():
         # of the map uses as a key, because a key is never overwritten: the
         # second round changes its value. See `op_tile_sub` in
         # tools/runtime/interpreter_map.s.
-        keys = len(map_info["sustituciones"].known_keys)
+        keys = len(map_info["sub_keys"])
         if keys > SUB_MAX:
             sys.exit("map %d substitutes %d distinct blocks and the RAM "
                      "table carries %d: see SUB_MAX"
@@ -633,7 +641,7 @@ def main():
     # the medicines of `items_rom` alone.
     items_all = sorted(set(items_rom)
                        | drop_items(renderer.database, troops.ids))
-    window_data, slots_data, title_menu, screen_texts, says = \
+    window_data, slots_data, title_menu, screen_texts, says, screens = \
         screen_stage.convert(args.game_dir, members, items_all, items_rom,
                              not args.no_title)
     window_data["mensajes"] = messages.bytes()
@@ -651,14 +659,14 @@ def main():
                        "relleno_textos": args.text_padding,
                        "items_db": renderer.database.items,
                        "textos": screen_texts})
-    _check_splits()
+    vram._check_splits()
     slot_tiles, slot_headers = slots_data["tiles"], slots_data["cabeceras"]
     print("  slots screen: %d, %d 4bpp tiles (%d B) + %d palettes, "
           "%d B of cells; %d actors with a face: %s"
-          % (SLOTS, len(slot_tiles), len(slot_tiles) * 32,
+          % (vram.SLOTS, len(slot_tiles), len(slot_tiles) * 32,
              len(slots_data["paletas"]),
              (len(slot_headers) * len(slot_headers[0])
-              + SLOTS * 4 * len(slots_data["filas"][0][0][0])) * 2,
+              + vram.SLOTS * 4 * len(slots_data["filas"][0][0][0])) * 2,
              len(slots_data["caras"]),
              ", ".join("%d %s" % (a, renderer.database.actors[a].name)
                        for a in sorted(slots_data["caras"])) or "none"))
@@ -772,33 +780,18 @@ def main():
         [pair for pair, _slot in sorted(events.SKILL_SLOT.items(),
                                         key=lambda x: x[1])],
         screen_stage.layout().ITEM_NAME_WIDTH)
-    compressed = compress_blocks(maps)
-    report = emit(args.output, maps, args.start_index, args.hero_above, party,
-                  window_data, title_data, slots_data,
-                  args.pictures.info, animations, troops.ids, battle_audio,
-                  scenes, battle_tables, troop_pages, compressed,
-                  party_common=compiler.party_common_events(compiled),
-                  enemy_hp=args.enemy_hp,
-                  speed_keys=not args.no_speed_keys,
-                  game_over=game_over_data, battle_model=battle_model)
-    # Which entries of their palette the timer digits use, one bit per entry
-    # and one word per map, in the order of `map_table`. `upload_timer_pal`
-    # uploads **those** again untinted and not the whole palette, because the
-    # palette belongs to a character that is tinted. It goes separately and
-    # not as a record field because the record is at exactly its 128. The
-    # stage that painted the glyphs says which: `timer_mask`, in
-    # `rm2k-snes-map-sprites`.
-    masks = [map_info["timer_mask"] for map_info in maps]
-    with open(args.output, "a") as handle:
-        handle.write('\n.segment "RODATA"\n.block %d\ntimer_mask:\n'
-                     '    .word %s\n'
-                     % (2 * len(masks),
-                        ", ".join("$%04X" % m for m in masks)))
-    if len(args.cases) > 1:
+    report, decompress_frames = emit(
+        args.output, maps, args.dump, args.start_index, args.hero_above,
+        party, screens, window_data["mensajes"], title_data and
+        title_data["pantalla"], game_over_data, args.pictures.info,
+        animations_request(animations), troops.ids, battle_audio,
+        scene_request(scenes, troops.ids, renderer.database), battle_tables,
+        compiled["troop_pages"], compiler.party_common_events(compiled),
+        battle_model, items_all, members, args.text_padding,
         # Where the harness writes the case number: see `--case`.
-        with open(args.output, "a") as handle:
-            handle.write("\nCASE_SLOT = %d\n" % events.variable_slot(
-                events.CASE_VARIABLE))
+        events.variable_slot(events.CASE_VARIABLE)
+        if len(args.cases) > 1 else None,
+        enemy_hp=args.enemy_hp, speed_keys=not args.no_speed_keys)
     print("%d map(s) -> %s, boots at %d (map %d)"
           % (len(maps), args.output, args.start_index, maps[args.start_index]["id"]))
     # What Adeleine decided, as images: to look at which colors were lost
@@ -878,8 +871,7 @@ def main():
         "start": args.start_index,
         "title": not args.no_title,
         "game_over": bool(game_over_data),
-        "decompress_frames": decompress_frames(maps[args.start_index],
-                                               compressed),
+        "decompress_frames": decompress_frames[args.start_index],
         "measuring_headroom": args.measure_headroom,
         # The quality backdrops are the emission's bytes: the stage only
         # puts them in their place in the `.msu`.

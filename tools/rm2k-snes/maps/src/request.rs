@@ -133,6 +133,22 @@ fn indices(data: &Value, name: &str, whose: &str) -> Result<std::collections::BT
         .collect()
 }
 
+/// `[[upper layer, old tile, new tile]]`: `TileSubstitution`s.
+fn triples(data: &Value, name: &str, whose: &str) -> Result<Vec<crate::substitutions::Triple>> {
+    list(data, name, whose)?
+        .iter()
+        .map(|t| {
+            let bad = || Bad::answer(format!("{whose}: a substitution is {t}, not [upper, old, new]"));
+            let a = t.as_array().filter(|a| a.len() == 3).ok_or_else(bad)?;
+            Ok((
+                a[0].as_bool().ok_or_else(bad)?,
+                small(&a[1], "an old tile", whose)?,
+                small(&a[2], "a new tile", whose)?,
+            ))
+        })
+        .collect()
+}
+
 /// A page record of the event compiler's scan.
 fn scanned_page(p: &Value, whose: &str) -> Result<crate::moves::ScannedPage> {
     let flag = |name: &str| -> Result<bool> {
@@ -164,7 +180,7 @@ impl crate::map::MapRequest {
             "leaders": [], "pages": [], "route_graphics": [], "also_walk": [],
             "timer": null, "rain": false, "picture": null,
             "battle_animation": false, "singles": [], "palette_weight": {},
-            "dither": "five_of_eight",
+            "dither": "five_of_eight", "substitutions": [], "common_substitutions": [],
         });
         let given = data
             .as_object()
@@ -186,8 +202,15 @@ impl crate::map::MapRequest {
     ///  "route_graphics": [["People1", 3]], "also_walk": [],
     ///  "timer": null, "rain": false, "picture": null,
     ///  "battle_animation": false, "singles": [["People1", 3]],
-    ///  "palette_weight": {"savept": 1}, "dither": "five_of_eight"}
+    ///  "palette_weight": {"savept": 1}, "dither": "five_of_eight",
+    ///  "substitutions": [[false, 80, 81]], "common_substitutions": []}
     /// ```
+    ///
+    /// `substitutions` are the `TileSubstitution`s the map's events and its
+    /// test pages can run, as `[upper layer, old tile, new tile]`: their
+    /// blocks are built. `common_substitutions` are the common events', which
+    /// a `CallEvent` can bring into any map: they are only translated, with
+    /// the blocks there are.
     ///
     /// `pages` are the records the event compiler's scan answered for this
     /// map, as it wrote them: of each, only `event`, `page`, `trigger`,
@@ -270,6 +293,8 @@ impl crate::map::MapRequest {
             singles: keys(field(data, "singles", whose)?, whose)?.into_iter().collect(),
             weights,
             dither: text(field(data, "dither", whose)?, "`dither`", whose)?,
+            substitutions: triples(data, "substitutions", whose)?,
+            common_substitutions: triples(data, "common_substitutions", whose)?,
         })
     }
 }

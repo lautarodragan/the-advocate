@@ -4,25 +4,14 @@ side of the converter.
 **The bank is `rm2k-snes-maps`'s** —the timer's digits, the raindrops, the
 `ShowPicture` picture and the battle animation box; see `extras.rs` in
 `rm2k-snes-map-sprites`—, and so are the timer's colors and which entries
-of its palette they take, which the emission reads back. What stays here is
-what the emission reads —the timer's glyphs and where it is drawn— and
-whether some page of a map shows a battle animation, which is the
+of its palette they take, which the emission reads back; where the timer is
+drawn is the emission's, `engine.rs` in `rm2k-snes-mapdata`. What stays here
+is whether some page of a map shows a battle animation, which is the
 animations' to know and goes to the stage in its request.
 """
 
 from port import events
 from port import animation as animation_mod
-
-
-# The timer: eleven 8x16 glyphs of the System, which `rm2k-render system`
-# hands over in a row. Ten digits and the colon, which is all
-# `Sprite_Timer::Draw` draws.
-TIMER_GLYPHS = 11
-TIMER_GLYPH_W, TIMER_GLYPH_H = 8, 16
-# Where it is drawn on screen. `Sprite_Timer` puts it at `menu_offset_x + 4`
-# and `menu_offset_y + 4`, and with a screen narrower than the menu both
-# offsets come out zero.
-TIMER_X, TIMER_Y = 4, 4
 
 
 def map_shows_animation(game_map, renderer, commands=()):
