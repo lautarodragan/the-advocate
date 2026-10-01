@@ -368,7 +368,10 @@ según lo que conteste taro (preguntas 3 y 4). 74, 85 a 102, 259 y 255; el fin
 de la demo al fork del 66 ev18, "Continue onward". La regla de mapas según la
 pregunta 5.
 
-**5. Lo opcional**, detrás del 3: Yun Town (el cronómetro por alcance, y el
+**5. Lo opcional**, detrás del 3 (Tangle Forest, que resultó del camino
+principal, hecho: `testing/mundo-5-tangle-forest.md`; la demo termina ahora
+en el "Continue onward" del 66 ev18, que era la meta, y no queda ningún banco
+libre): Yun Town (el cronómetro por alcance, y el
 reparto del 2 para su capa de encima), Drust Camp (comparar contra más de
 32767), y Tangle Forest (el `EraseEvent`, las condiciones de cronómetro, el
 cancelar de un `ShowChoice` para el 348) cuando haya lugar: con el acomodo
