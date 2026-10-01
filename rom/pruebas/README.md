@@ -80,6 +80,9 @@ lista, y todo lo nombrado tiene que existir: lo cobra
   puertas, plantados, una página automática
 * `rpgmaker/test_rutas_golden.py`: rutas forzadas —`MoveEvent`, NPCs,
   gráficos, anclados—
+* `rpgmaker/test_rutas_auditorio.py`: los dos que entran caminando al
+  auditorio, un `MoveEvent` sobre eventos cuya página 1 dibuja un hueco de
+  la hoja
 * `rpgmaker/test_velocidad.py`: la velocidad del héroe
 * `rpgmaker/test_velocidad_con_l_y_r.py`: L y R suben y bajan la velocidad
   del héroe, que no es de RM2k

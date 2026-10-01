@@ -29,7 +29,7 @@ use rm2k_snes_map_sprites::extras::{
     first_place, map_animation, picture_of_image, rain_drops, timer_colors, timer_digits, timer_mask,
     Image,
 };
-use rm2k_snes_map_sprites::npc::{map_poses, Npc};
+use rm2k_snes_map_sprites::npc::{map_poses, pin_walkers, Npc};
 use rm2k_snes_map_sprites::split::{drawable_npcs, Ask, TILE_PREFIX};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
@@ -221,7 +221,7 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
     let events: Vec<Event> = events(&raw.events, &request.names, request.test_event);
     let mut drawer = Drawer::new(game, &request.dither);
     let chipset_name = chipset.chipset_name.clone();
-    let npcs0 = collect_npcs(&events, &chipset_name, &flags);
+    let mut npcs0 = collect_npcs(&events, &chipset_name, &flags);
     let mut notes = Vec::new();
 
     // The layers, and again with the opaque events baked in. **Both** are
@@ -267,6 +267,17 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
     for name in &wanted {
         drawer.draw(name)?;
     }
+    // Before anything counts poses or palettes: a walker pinned to a blank
+    // slot of its CharSet walks unseen. See `pin_walkers`.
+    let blank_pages = {
+        let sheets = drawer.sheets();
+        pin_walkers(&mut npcs0, &who.movable, |key| {
+            sheets
+                .get(&key.0)
+                .and_then(Option::as_ref)
+                .is_some_and(|s| sprite_colors(s, key.1, None).is_empty())
+        })
+    };
     let glyphs = match &request.timer {
         Some(path) => Some(rm2k_render::system::timer(&picture::read_rm2k(path)?)),
         None => None,
@@ -474,6 +485,11 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
                 // visible still follows the page.
                 npc.appears = true;
                 npc.changes = false;
+            }
+            // Its pages with a blank slot hide the row, like a page without
+            // a graphic: the row now walks with another one's poses.
+            if let Some(blanks) = blank_pages.get(&npc.event) {
+                npc.outside.extend(blanks.iter().cloned());
             }
             slots.push(SlotPose {
                 slot: Slot::Event(npc.event),
