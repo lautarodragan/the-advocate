@@ -2,7 +2,7 @@
 name: "Un tema que ya suena no vuelve a empezar"
 description: "En RM2k, PlayBGM con el tema que ya está sonando no lo reinicia; en la ROM sí: la victoria de la pelea y la caminata a la fábrica"
 type: bug
-assignee: Yacaré
+assignee: taro
 ---
 
 De taro, el 2026-09-30: "creo que en el RPG Maker, cuando se ejecuta un play
@@ -115,3 +115,14 @@ RPG_RT.
 - Instalar `cartridge` en el global no hace falta: no se tocó Rust. Sólo
   cambió `tools/runtime/`, que el global ya lee del checkout principal.
 - No hay goldens nuevas ni movidas, y `test_musica_techos.py` pasó.
+- Con `main` mergeado (`bfbabec5`) la tanda dio 904 en verde y 2 en rojo,
+  los dos de `test_rutas_auditorio.py`, de Pecarí: piden lo que cambió en
+  `map-sprites` y `maps`, y el `rm2k-snes-maps` global es de antes de su
+  merge. No los compilé acá —no son míos—; con eso reinstalado tendrían que
+  pasar.
+
+## Qué escuchar jugando
+
+La victoria de cualquier pelea: el tema no vuelve a empezar al ganar. Y la
+corrida al trabajo, al entrar al 16: `hzbreach` sigue de largo cuando arranca
+la escena.
