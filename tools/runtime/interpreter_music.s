@@ -19,7 +19,7 @@ touch:
     cmp #SONG_TOTAL
     bcs other_song
     phy
-    jsr music_start
+    jsr music_play              ; the one playing goes on: see `song_playing`
     ply
 other_song:
     jmp run_code::other

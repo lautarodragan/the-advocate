@@ -266,7 +266,8 @@ ready:
 
 ; The battle song: A is the index, or $FF to leave it silent. It is called by
 ; `op_battle` —on entering and on leaving— and by the battle on winning,
-; through the bridge above.
+; through the bridge above. A song that is already playing goes on, as with a
+; `PlayBGM`: see `music_play`.
 ;
 ; Silencing is not `FadeOutBGM`: it is the same thing `song_ensure` does
 ; before rebuilding the package, that is, releasing all eight voices and
@@ -279,7 +280,7 @@ ready:
 .i16
     cmp #$FF
     beq mute
-    jmp music_start
+    jmp music_play              ; the victory's, if it is the battle's, goes on
 mute:
     php
     sei
