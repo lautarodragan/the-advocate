@@ -327,7 +327,6 @@ def _map_info(renderer, prepared, written, args):
     blocks = bytearray(made["tabla"])
     block_pass = bytearray(made["pass"])
     block_terrain = bytearray(made["terreno"])
-    combos = {(low, high): block for low, high, block in made["combos"]}
     print("  the map fits in %d 16x16 blocks for %d cells: %d B of "
           "grid plus %d B of table, against the %d B of the expanded tilemap"
           % (len(block_pass), len(cells), 2 * len(cells),
@@ -362,7 +361,6 @@ def _map_info(renderer, prepared, written, args):
         # The blocks, with the ones the substitutions need: see
         # `substitutions.rs` in `rm2k-snes-maps`.
         "bloques": blocks, "pass": block_pass, "terreno": block_terrain,
-        "combos": combos,
         # The terrain of a cell **outside the map**: `GetTerrainTag` uses the
         # ChipSet's index 0, that is the first autotile, and not that of any
         # cell. See `op_terrain`.

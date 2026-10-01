@@ -87,8 +87,7 @@ def layers_answer(written):
         "bloques": {"celdas": answer["blocks"]["cells"],
                     "tabla": written["blocks.bin"],
                     "pass": written["block-passability.bin"],
-                    "terreno": written["block-terrain.bin"],
-                    "combos": [tuple(c) for c in answer["blocks"]["combos"]]},
+                    "terreno": written["block-terrain.bin"]},
     }
     return ((written["background.bin"], bg["cgram"], bg["tilemap"], stats),
             (written["above.bin"], written["above-cgram.bin"],
