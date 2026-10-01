@@ -353,3 +353,24 @@ video cual salida +jugadas: _herramientas_del_checkout (build cual)
 menu-modo-5 *capturas:
   experimentos/menu-modo-5/armar.py build/menu-modo-5/menu-modo-5.sfc
   experimentos/menu-modo-5/verificar.py build/menu-modo-5/menu-modo-5.sfc {{capturas}}
+
+# **La ROM de prueba de las fuentes**: las candidatas para el texto del menú
+# y de la pelea, dibujadas desde las hojas de glifos de
+# `experimentos/fuentes/hojas/`, que se editan a mano. Es la hermana de
+# `menu-modo-5`, con su mismo código: primero arma las maquetas desde las
+# hojas, después la ROM con ésas, y después la verifica igual, pantalla por
+# pantalla contra su maqueta en los emuladores. Cómo se edita una hoja, en
+# el `LEEME.md` de `experimentos/fuentes/`.
+#
+# Deja en `build/fuentes/maquetas/` las maquetas y `medidas.txt` —cuánto
+# mide cada candidata y si entra—, y en `build/fuentes/comparar/` las hojas
+# de comparación lado a lado y las hojas de glifos con la letra arriba.
+#
+#     just fuentes
+#     just fuentes <directorio de capturas>
+#
+# Arma la ROM de prueba de las fuentes desde las hojas y la verifica.
+fuentes *capturas:
+  experimentos/fuentes/maquetas.py build/fuentes/maquetas --game-dir "$ABL_GAME_DIR" --comparar build/fuentes/comparar
+  experimentos/menu-modo-5/armar.py build/fuentes/fuentes.sfc $(cat build/fuentes/maquetas/pantallas.txt)
+  experimentos/menu-modo-5/verificar.py build/fuentes/fuentes.sfc {{capturas}}
