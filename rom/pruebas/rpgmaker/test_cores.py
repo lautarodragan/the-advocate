@@ -70,6 +70,9 @@ del frontend.
     clave         los dígitos del `InputNumber` de la puerta de Drust Camp:
                   la línea que el compositor lee de la RAM lejana en vez del
                   bloque de textos.
+    turnos        los quietos del 108 que se turnan una ranura de VRAM: qué
+                  pose tiene cada una vive en la RAM lejana, y la carga del
+                  mapa la olvida.
 
 ## El tercer core, mesen-s, queda afuera, y no por lo que parecía
 
@@ -355,3 +358,24 @@ def test_los_digitos_de_la_clave():
             esperar_los_digitos(una)
         imagenes.append(una.imagen())
     iguales("clave-68", *imagenes)
+
+
+def test_los_quietos_que_se_turnan_una_ranura():
+    """Distant Paradise con el pueblo lleno, caminando hasta que un vecino
+    entra en pantalla y se turna la ranura de otro, en los dos cores: qué
+    pose tiene cada ranura compartida vive en la RAM lejana —`SHARE_OWNER`—
+    y `share_load` la olvida al subir el banco; si no, bsnes podía encender
+    con una pose que no está. Ver `test_paradise.py`."""
+    imagenes = []
+    for nucleo in (SNES9X, BSNES):
+        # Los switches del pueblo lleno y Talan, como `EL_PUEBLO_LLENO` y
+        # `TALAN` de `abl/test_paradise.py`.
+        una = partida("en-5", nucleo=nucleo, switches=(333, 396, 386, 388))
+        una.poner_grupo(14)
+        una.ir_al_mapa(108, 20, 19)
+        una.correr(40)
+        una.sostener(200, "down")
+        una.soltar()
+        una.correr(10)
+        imagenes.append(una.imagen())
+    iguales("turnos-108", *imagenes)
