@@ -16,17 +16,20 @@
 ; only one that sees the whole page; here jumping is assigning Y.
 .proc op_if
     ; The first byte says **what is being asked**, with RM2k's number as is: 0
-    ; a switch, 3 the gold, 5 whether an actor is in the party. See
-    ; `branch_bytes`.
+    ; a switch, 2 the timer, 3 the gold, 5 whether an actor is in the party.
+    ; See `branch_bytes`.
     ;
     ; Each branch leaves in A whether the condition holds —zero or nonzero—
     ; and Y pointing at the polarity byte; from there on there is a single
     ; path. The switch is the only one that uses the polarity to decide: for
-    ; the gold it is already inside the comparison and the actor has none.
+    ; the gold and the timer it is already inside the comparison and the actor
+    ; has none.
     lda [code_ptr], y
     iny                         ; Y -> the operand
     cmp #COND_GOLD
     beq if_gold
+    cmp #COND_TIMER
+    beq if_timer
     cmp #COND_ACTOR
     beq if_actor
     cmp #COND_ITEM
@@ -81,57 +84,56 @@ if_actor:
     cmp #0
     bra if_decides
 
-    ; --- the gold ---
-    ; `CommandConditionalBranch` case 3: with the polarity at zero it is
-    ; `gold >= operand` and with anything else `gold <= operand`. **They are
-    ; not the negation of each other**: on equality both hold, so they are
-    ; computed separately instead of flipping a bit.
-if_gold:
+    ; --- the gold and the timer ---
+    ; `CommandConditionalBranch` cases 3 and 2: with the polarity at zero it
+    ; is `value >= operand` and with anything else `value <= operand`. **They
+    ; are not the negation of each other**: on equality both hold, so the one
+    ; the polarity asks for is computed, instead of flipping a bit. The value
+    ; is the gold, or the timer's seconds: `GetTimerSeconds` is the frames over
+    ; 60, which is `timer_sec`.
+if_timer:
     rep #$20
 .a16
-    lda [code_ptr], y           ; against how much, 16 bits
-    sta temp + 2
-    sep #$20
+    lda timer_sec
+    bra if_value
 .a8
+if_gold:
+    lda gold + 2
+    beq if_gold_word
+    ; The gold is past 65535: greater than any operand, which fits in a word.
+    ; The >= holds and the <= does not, and the converter only emits 0 and 1.
     iny
     iny                         ; Y -> the polarity
-    lda gold + 2
-    bne if_gold_big             ; the gold is past 65535: greater than any
-                                ; operand, which fits in a word
+    lda [code_ptr], y
+    eor #$01
+    bra if_decides
+if_gold_word:
     rep #$20
 .a16
     lda gold
-    cmp temp + 2                ; C=1 if gold >= operand
+if_value:
+    sta temp                    ; the value
+    lda [code_ptr], y           ; against how much, 16 bits
+    sta temp + 2
+    iny
+    iny                         ; Y -> the polarity
     sep #$20
 .a8
-    lda #$01
-    bcs if_gold_ge
-    lda #$00
-if_gold_ge:
-    sta temp
-    rep #$20
-.a16
-    lda temp + 2
-    cmp gold                    ; C=1 if operand >= gold, i.e. gold <= operand
-    sep #$20
-.a8
-    lda #$01
-    bcs if_gold_le
-    lda #$00
-if_gold_le:
-    sta temp + 1
-    bra if_gold_picks
-if_gold_big:
-    lda #$01
-    sta temp                    ; the >= holds
-    stz temp + 1                ; and the <= does not
-if_gold_picks:
-    lda [code_ptr], y           ; the polarity
-    beq if_gold_uses_ge
-    lda temp + 1
-    bra if_decides
-if_gold_uses_ge:
+    lda [code_ptr], y
+    rep #$20                    ; `rep` does not touch Z: the branch looks at
+.a16                            ; the polarity
+    bne if_at_most
     lda temp
+    cmp temp + 2                ; C=1 if value >= operand
+    bra if_carry
+if_at_most:
+    lda temp + 2
+    cmp temp                    ; C=1 if operand >= value, i.e. value <= operand
+if_carry:
+    sep #$20
+.a8
+    lda #0
+    rol a                       ; A = the carry, and Z with it
     bra if_decides
 
     ; --- the item: `CommandConditionalBranch` case 4 ---

@@ -22,10 +22,11 @@ pub const UPPER_BASE: i32 = 10000;
 pub const LAYER_BELOW: i32 = 0;
 pub const LAYER_SAME: i32 = 1;
 
-/// The conditions the console checks. An event with a page that asks for
-/// another —the timer— is left out of the page table, and its graphic does
-/// not follow its pages.
-const SUPPORTED: [&str; 5] = ["switch_a", "switch_b", "actor", "variable", "item"];
+/// The conditions the console checks. The timer travels in the variable's
+/// place in the page record, so a page that asks for both leaves its event
+/// out of the page table —see `map_pages` in rm2k-snes-events— and its
+/// graphic does not follow its pages.
+const SUPPORTED: [&str; 6] = ["switch_a", "switch_b", "actor", "variable", "item", "timer"];
 
 /// An event page, with what the port reads of it.
 #[derive(Clone, Debug)]
@@ -182,7 +183,10 @@ pub fn collect_npcs(events: &[Event], chipset: &str, flags: &[u8]) -> Vec<Npc> {
         let supported = event
             .pages
             .iter()
-            .all(|p| p.conditions.iter().all(|c| SUPPORTED.contains(c)));
+            .all(|p| {
+                p.conditions.iter().all(|c| SUPPORTED.contains(c))
+                    && !(p.conditions.contains(&"timer") && p.conditions.contains(&"variable"))
+            });
         let changes = possible.len() > 1 && supported;
         let active = active_page(event);
         let visible = active.is_some_and(|p| page_graphic(p, chipset).is_some());

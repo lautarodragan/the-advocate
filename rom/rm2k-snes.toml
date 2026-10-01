@@ -350,16 +350,14 @@ Annihilation2 = 8000
 # del 36 es una sola página que compila con sus cuatro destinos o con ninguno.
 # Una exclusión no los puede separar.
 #
-# La demo termina en el mundo, el 66, al entrar a Tangle Forest: el fork del
-# 66 cambia ese `Teleport` por el cartel del fin. Los lugares del mundo cuyo
-# destino no está —Yun Town, Drust Camp, el bosque en llamas— no hacen nada,
-# porque sus páginas no compilan.
+# La demo termina en el mundo, el 66, al final del capítulo: el "Continue
+# onward" del túnel a Paradise, que el fork del 66 cambia por el cartel del
+# fin. Los lugares del mundo cuyo destino no está —Yun Town, Drust Camp— no
+# hacen nada, porque sus páginas no compilan.
 [maps]
 # El 105, Mountain Path, es el primero del capítulo siguiente, adonde lleva el
-# 66 ev18. La demo termina antes: al entrar a Tangle Forest (el 66 ev19, que
-# el fork del 66 cambia por el cartel del fin), porque el camino del puente
-# al túnel **cruza el bosque** —310, 311, 313 y 312, que sale al oeste del
-# 66— y el bosque todavía no entra.
+# 66 ev18 —"Yes - Continue onward"—, y ahí termina la demo: el fork del 66
+# cambia ese `Teleport` por el cartel del fin.
 below = 105
 
 # Cada uno con su razón, que es lo que hay que revisar antes de sumarle otro.
@@ -388,10 +386,13 @@ excluded = [
 # El tutorial del droide no cuelga de Lashe City sino de `Tutorials`, pero salta
 # ahí la página del 48 que mete a AG7-17 en el grupo. Y el puente del norte
 # (259) y lo que hay debajo (255), que es donde se prende el 849 que deja
-# cruzarlo: el final del camino principal antes del túnel.
+# cruzarlo. Y Tangle Forest, que **no es opcional** aunque nada de la historia
+# dependa de él: del puente al túnel no se llega caminando por el mundo, se
+# cruza el bosque —310, 311, 313 y 312, que sale al oeste del 66—. Ver
+# `workflow/tasks/*/mundo-5-tangle-forest.md`.
 #
 # El mapa de debug no va acá: lo agrega `[debug] debug_map`.
-added = [164, 259, 255]
+added = [164, 259, 255, 310, 311, 312, 313]
 
 # Y los que sólo existen por la tanda: situaciones que ningún mapa del juego
 # que entra ejercita. `rm2k-snes-patches` no les pide parche versionado.

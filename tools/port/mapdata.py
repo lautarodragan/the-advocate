@@ -252,8 +252,10 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
         "; ENC_SEED in events.py.\n"
         "ENC_SEED      = $%04X\n"
         "TIMER_SET_VAR = %d\n"
+        "TIMER_SLOT    = $%02X\n"
         "; The ConditionalBranch condition classes we know, with the RM2k\n"
         "; number as is.\n"
+        "COND_TIMER  = %d\n"
         "COND_GOLD   = %d\n"
         "COND_ITEM   = %d\n"
         "COND_ACTOR  = %d\n"
@@ -521,8 +523,8 @@ def emit(path, maps, initial=0, hero_above=False, initial_party=(),
            events.VAR_ACTOR,
            events.CELL_Y, events.CELL_REFRESH,
            events.RANDOM_SEED, events.ENC_SEED,
-           events.TIMER_SET_VAR,
-           events.COND_GOLD, events.COND_ITEM,
+           events.TIMER_SET_VAR, events.TIMER_SLOT,
+           events.COND_TIMER, events.COND_GOLD, events.COND_ITEM,
            events.COND_ACTOR, events.COND_ACTOR_SKILL,
            events.COND_ACTOR_EQUIPMENT,
            events.GOLD_MAX,

@@ -128,6 +128,9 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `rpgmaker/test_hablar_golden.py`: hablarle a algo: condiciones, giro, cola
 * `rpgmaker/test_condicional.py`: `ConditionalBranch`
 * `rpgmaker/test_rama_grupo.py`: `ConditionalBranch` "¿está en el grupo?"
+* `rpgmaker/test_cronometro_condiciones.py`: la rama y la condición de
+  página por el cronómetro
+* `rpgmaker/test_borrar_evento.py`: `EraseEvent` después de un `Teleport`
 * `rpgmaker/test_elegir.py`: `ShowChoice`
 * `rpgmaker/test_tecla.py`: `KeyInputProc`
 * `rpgmaker/test_autofire.py`: X sostenido es el autofire de A, que RM2k no
@@ -258,12 +261,16 @@ lista, y todo lo nombrado tiene que existir: lo cobra
   su viaje en auto hasta la entrada de Tasgarde
 * `abl/test_sorbe.py`: Sorbe, la montaña y la casa de Vago recién llegados, y
   la ventana en el reparto de la capa de encima de 256
-* `abl/test_recorrido_capitulo_golden.py`: de la entrada de Tasgarde al fin
-  de la demo, en la entrada de Tangle Forest: el laboratorio, la historia de
-  Eisen con su minijuego jugado entero, la vuelta a Sorbe, el puente y la
-  pelea de debajo del puente
+* `abl/test_recorrido_capitulo_golden.py`: de la entrada de Tasgarde a la
+  de Tangle Forest: el laboratorio, la historia de Eisen con su minijuego
+  jugado entero, la vuelta a Sorbe, el puente y la pelea de debajo del
+  puente
 * `abl/test_capitulo.py`: Tasgarde, su laboratorio, el minijuego de Eisen, el
   puente y lo de debajo recién llegados
+* `abl/test_recorrido_tangle_golden.py`: Tangle Forest, del 310 al fin de la
+  demo: el tram, las latas de fuego, el bosque en llamas contra el
+  cronómetro, la pelea con la nave y el túnel a Paradise
+* `abl/test_tangle.py`: el bosque y el claro recién llegados
 * `abl/test_escenas_golden.py`: las escenas y cinemáticas
 * `abl/test_recuerdo.py`: el recuerdo de CORE y MANTA
 * `abl/test_un_ano_antes.py`: el cartel de "1 year earlier"

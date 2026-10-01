@@ -88,6 +88,16 @@ open:
     sta pick_n
     iny
     lda [code_ptr], y           ; which option cancel picks, plus one
+    ; Or $FF: cancel picks past the options, which in RM2k runs none
+    ; —`CANCEL_PAST` in the event compiler—. The table carries one more entry,
+    ; the last, that jumps to the end of the choice: the cursor does not
+    ; reach it, and cancel picks it.
+    cmp #$FF
+    bne cancel_ready
+    dec pick_n
+    lda pick_n
+    inc a
+cancel_ready:
     sta pick_cancel
     iny
     sty pick_table

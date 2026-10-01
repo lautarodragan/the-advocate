@@ -27,6 +27,12 @@ other_second:
     sta timer_sec
     sep #$20
 .a8
+    ; The second changed, and in RM2k that is `SetNeedRefresh`: a page that
+    ; asks for the timer can become the active one. Only on a map where one
+    ; asks —`timer_watch`—: refreshing every second on the others costs frames
+    ; and changes nothing.
+    lda timer_watch
+    tsb refresh
     jsr timer_digits
     lda timer_sec
     ora timer_sec + 1

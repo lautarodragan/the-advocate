@@ -154,6 +154,12 @@ const TIMER_SET_VAR: i64 = 3;
 // ConditionalBranch: the kinds, and the actor's questions.
 pub const COND_SWITCH: i64 = 0;
 pub const COND_VARIABLE: i64 = 1;
+/// `OP_CHOICE`'s cancel byte when cancel picks past the options: the
+/// table's last entry is cancel's alone, and the cursor does not reach it.
+/// See `op_choice`.
+const CANCEL_PAST: i64 = 0xFF;
+/// The timer's seconds: `CommandConditionalBranch` case 2.
+pub const COND_TIMER: i64 = 2;
 const COND_GOLD: i64 = 3;
 const COND_ITEM: i64 = 4;
 pub const COND_ACTOR: i64 = 5;
@@ -599,6 +605,8 @@ struct Choice {
     at: usize,
     n: usize,
     cancel: i64,
+    /// Whether cancel picks past the options: see `SHOW_CHOICE`.
+    past: bool,
     frames: Vec<usize>,
     destinations: Vec<Option<usize>>,
     seen: usize,
@@ -918,12 +926,25 @@ fn page(
             if options.iter().enumerate().any(|(k, (n, _))| *n != k as i64) {
                 return cannot();
             }
-            let cancel = cmd.p(0).unwrap_or(0);
-            if cancel > options.len() as i64 {
-                // `cancel_type` 5 with four options is the "cancel branch", a
-                // fifth one that is not in the list. Nobody uses it in the
-                // game and doing it blindly would be making things up.
-                return cannot();
+            let mut cancel = cmd.p(0).unwrap_or(0);
+            // **Cancelling to an option that is not there runs none**:
+            // `choice_result` is `cancel_type - 1`, no `ShowChoiceOption`
+            // carries that index —`CommandOptionGeneric` skips them all— and
+            // the page goes on after the `ShowChoiceEnd`. It is the shop of
+            // map 348, which gives 4 to a choice of two. Here it is one more
+            // entry in the table, after the options, whose destination is the
+            // end of the choice; the cursor never reaches it, only cancel.
+            // The length counts it —it is what walks the code past the
+            // table— and the cancel byte is [`CANCEL_PAST`], which tells the
+            // ROM that the last entry is cancel's alone.
+            //
+            // `cancel_type` 5 with four options is the "cancel branch", a
+            // fifth `ShowChoiceOption` with index 4: that one still does not
+            // compile, because the option's index is checked against the
+            // list. Nobody uses it in the game.
+            let past = cancel > options.len() as i64;
+            if past {
+                cancel = CANCEL_PAST;
             }
             // OP_CHOICE: how many options (byte), what cancel does (byte),
             // and then one entry per option: the text box (word) and the
@@ -945,13 +966,14 @@ fn page(
                 at: pieces.len(),
                 n: options.len(),
                 cancel,
+                past,
                 frames,
                 destinations: vec![None; options.len()],
                 seen: 0,
                 exits: vec![],
             });
             // The table's room, filled in at the `ShowChoiceEnd`.
-            piece = vec![0; 3 + 4 * options.len()];
+            piece = vec![0; 3 + 4 * (options.len() + past as usize)];
         } else if cmd.code == SHOW_CHOICE_OPTION {
             let Some(current) = choices.last_mut() else {
                 return cannot();
@@ -981,10 +1003,17 @@ fn page(
             if current.destinations.iter().any(|d| d.is_none()) {
                 return cannot();
             }
-            let mut table = vec![OP_CHOICE, byte(current.n as i64)?, byte(current.cancel)?];
+            let entries = current.n + current.past as usize;
+            let mut table = vec![OP_CHOICE, byte(entries as i64)?, byte(current.cancel)?];
             for (frame, dest) in current.frames.iter().zip(&current.destinations) {
                 table.extend(usize_word(*frame)?);
                 table.extend(usize_word(dest.unwrap())?);
+            }
+            if current.past {
+                // The box is the last option's, which is never drawn from
+                // here: cancelling closes the window.
+                table.extend(usize_word(*current.frames.last().unwrap())?);
+                table.extend(usize_word(length)?);
             }
             pieces[current.at] = table;
             for out in current.exits {
@@ -1531,7 +1560,10 @@ fn branch_bytes(ctx: &Ctx, cmd: &Command) -> Step<Vec<u8>> {
         if !(0..SWITCH_MAX).contains(&number) {
             return cannot();
         }
-    } else if kind == COND_GOLD {
+    } else if kind == COND_GOLD || kind == COND_TIMER {
+        // The timer is the gold's question with another value: the seconds
+        // left —`GetTimerSeconds`— against the operand, `>=` with polarity 0
+        // and `<=` with anything else. `CommandConditionalBranch` case 2.
         if !(0..=0xFFFF).contains(&number) {
             return cannot();
         }
@@ -3210,6 +3242,15 @@ pub fn compile_command(
         // farewell asked for it, whose only command that did not compile was
         // the "LYS" note the author left after the `Teleport` to the world.
         COMMENT | COMMENT_2 => Ok(vec![]),
+        // `EraseEvent` **after the page jumped to another map** does
+        // nothing: the jump put 0 in the event id of every frame of the
+        // interpreter's stack —`Game_Interpreter_Map::OnMapChange`— and
+        // `CommandEraseEvent` with 0 returns without erasing anyone. It is the
+        // one of map 311, the clearing in Tangle Forest, which teleports to
+        // 312 and erases itself there. Before the jump it would erase the
+        // event until the map is loaded again, which the ROM does not model;
+        // the only one of the game is map 150's.
+        ERASE_EVENT if map_events.is_some_and(|m| m.jumped) => Ok(vec![]),
         CONTROL_SWITCHES => {
             // OP_SWITCH: id (word), value (byte)
             if n < 4 || !(q(0) == SWITCH_SINGLE || q(0) == SWITCH_RANGE) {
@@ -4377,6 +4418,81 @@ mod tests {
             let game = with_counter(true, &pictures);
             assert!(compile_with(&game, &call).is_err());
         }
+    }
+
+    /// A page compiled as map 5's, with a window, songs and the map
+    /// table answering 1 for any other map.
+    fn on_a_map(commands: &[Command]) -> Option<Vec<u8>> {
+        use crate::game::Map;
+        use crate::messages::{Messages, Window};
+        let game = Game::default();
+        let indices = Indices::default();
+        let sound = SoundSettings::default();
+        let mut songs = Songs::default();
+        songs.current = Some(Package::Map(0));
+        let mut messages = Messages::new(1, Window { columns: 39, lines: 4 });
+        let mut ctx = Ctx {
+            game: &game,
+            indices: &indices,
+            sound: &sound,
+            map_index: &|_| Some(1),
+            messages: Some(&mut messages),
+            songs: Some(&mut songs),
+            graphics: None,
+            picture: None,
+            troops: None,
+        };
+        let map = Map { id: 5, events: Vec::new() };
+        let me = MapEvents::new(&map, None);
+        compile_page(&mut ctx, commands, Some(me), 0, 0).unwrap()
+    }
+
+    #[test]
+    fn erasing_the_event_after_a_jump_is_nothing() {
+        // After the jump "this event" is 0 —`OnMapChange`— and
+        // `CommandEraseEvent` does nothing; before it, it would erase, which
+        // the ROM does not do.
+        let erase = cmd(ERASE_EVENT, &[], "");
+        let jump = cmd(TELEPORT, &[7, 1, 2], "");
+        assert_eq!(
+            on_a_map(&[jump.clone(), erase.clone()]).unwrap(),
+            [OP_TELEPORT, 1, 0, 1, 0, 2, 0, OP_DONE]
+        );
+        assert_eq!(on_a_map(&[erase, jump]), None);
+    }
+
+    #[test]
+    fn the_timer_branch_is_the_golds_question_with_its_own_kind() {
+        let code = on_a_map(&[
+            cmd(COND_BRANCH, &[2, 30, 1, 0, 0, 0], ""),
+            cmd(COND_END, &[], ""),
+        ]);
+        assert_eq!(code.unwrap(), [OP_IF, COND_TIMER as u8, 30, 0, 1, 7, 0, OP_DONE]);
+    }
+
+    #[test]
+    fn cancelling_past_the_options_runs_none() {
+        // Two options and `cancel_type` 4: three entries, the cancel byte
+        // says the third is cancel's, and it jumps to the end of the choice.
+        let mut choice = vec![cmd(SHOW_CHOICE, &[4], "A/B")];
+        for (n, text) in ["A", "B"].iter().enumerate() {
+            choice.push(Command::new(SHOW_CHOICE_OPTION, 0, text, vec![n as i32]));
+            choice.push(Command::new(END, 1, "", vec![]));
+        }
+        choice.push(cmd(SHOW_CHOICE_END, &[], ""));
+        let code = on_a_map(&choice).unwrap();
+        assert_eq!(&code[..3], [OP_CHOICE, 3, 0xFF]);
+        assert_eq!(instruction_size(&code, 0), 3 + 4 * 3);
+        let entry = |k: usize| u16::from_le_bytes([code[3 + 4 * k + 2], code[3 + 4 * k + 3]]) as usize;
+        let end = code.len() - 1;
+        assert_eq!(entry(2), end, "cancel lands after the choice");
+        assert!(entry(0) < entry(1) && entry(1) <= end);
+        // A fifth option, the cancel branch, still does not compile.
+        let mut branch = choice.clone();
+        branch[0] = cmd(SHOW_CHOICE, &[5], "A/B");
+        let at = branch.len() - 1;
+        branch.insert(at, Command::new(SHOW_CHOICE_OPTION, 0, "", vec![4]));
+        assert_eq!(on_a_map(&branch), None);
     }
 
     #[test]
