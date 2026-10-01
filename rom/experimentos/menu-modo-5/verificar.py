@@ -9,9 +9,13 @@ con la marca, la maqueta salvo el cuadrado del número. Lo que capture lo
 deja en `<capturas>`, si se da: `<core>-<n>.png` con la marca y
 `<core>-<n>-sin-marca.png` sin ella, a la resolución que da el core.
 
+Las pantallas son las que armó `armar.py`: las lee de `<rom>.pantallas`,
+así que verifica también la ROM hermana de las fuentes.
+
 Sale con 1 si alguna difiere. Un core que no está instalado se saltea con
 un aviso; si no hay ninguno, es un error.
 """
+import json
 import os
 import sys
 
@@ -25,7 +29,7 @@ RAIZ = os.path.dirname(os.path.dirname(AQUI))
 sys.path.insert(0, os.path.join(RAIZ, os.pardir, "tools"))
 sys.path.insert(0, AQUI)
 from emulator import retro  # noqa: E402
-from armar import PANTALLAS, MARCA_X, MARCA_Y  # noqa: E402
+from armar import MARCA_X, MARCA_Y  # noqa: E402
 
 CORES = ["snes9x", "bsnes", "mesen-s"]
 
@@ -86,7 +90,7 @@ def diferencias(captura, maqueta, salvo=None):
     return malos
 
 
-def correr(core, rom, capturas):
+def correr(core, rom, capturas, pantallas):
     ruta = "/usr/lib/libretro/%s_libretro.so" % core
     if not os.path.exists(ruta):
         print("%s: no está instalado, se saltea" % core)
@@ -101,8 +105,9 @@ def correr(core, rom, capturas):
         consola.hold()
         consola.run(20)
 
-    for n, (archivo, modo, marca) in enumerate(PANTALLAS):
-        maqueta = Image.open(os.path.join(AQUI, "maqueta", archivo)).convert("RGB")
+    for n, (ruta, modo) in enumerate(pantallas):
+        archivo = os.path.basename(ruta)
+        maqueta = Image.open(ruta).convert("RGB")
         con_marca = a_la_maqueta(pantalla(consola), maqueta.width)
         apretar("b")
         sin_marca = a_la_maqueta(pantalla(consola), maqueta.width)
@@ -123,12 +128,13 @@ def correr(core, rom, capturas):
         apretar("right")
     # Derecha dio la vuelta: tiene que estar otra vez en la primera, y
     # izquierda tiene que llevar a la última.
-    primera = Image.open(os.path.join(AQUI, "maqueta", PANTALLAS[0][0])).convert("RGB")
-    if diferencias(pantalla(consola), primera, (MARCA_X, MARCA_Y)) != 0:
+    primera = Image.open(pantallas[0][0]).convert("RGB")
+    if diferencias(a_la_maqueta(pantalla(consola), primera.width), primera,
+                   (MARCA_X, MARCA_Y)) != 0:
         print("%s: derecha desde la última no vuelve a la primera" % core)
         fallas += 1
     apretar("left")
-    ultima = Image.open(os.path.join(AQUI, "maqueta", PANTALLAS[-1][0])).convert("RGB")
+    ultima = Image.open(pantallas[-1][0]).convert("RGB")
     if diferencias(a_la_maqueta(pantalla(consola), ultima.width), ultima,
                    (MARCA_X, MARCA_Y)) != 0:
         print("%s: izquierda desde la primera no va a la última" % core)
@@ -143,7 +149,9 @@ def main():
     capturas = sys.argv[2] if len(sys.argv) == 3 else None
     if capturas:
         os.makedirs(capturas, exist_ok=True)
-    resultados = [correr(core, rom, capturas) for core in CORES]
+    with open(rom + ".pantallas") as f:
+        pantallas = json.load(f)
+    resultados = [correr(core, rom, capturas, pantallas) for core in CORES]
     corridos = [r for r in resultados if r is not None]
     if not corridos:
         sys.exit("no hay ningún core instalado")

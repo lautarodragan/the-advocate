@@ -58,7 +58,7 @@ sin_marca:  .res 1      ; distinto de 0: la marca escondida
     .byte "ABL MENU MODO 5      "   ; 21 caracteres
     .byte $30                       ; LoROM, FastROM: ver MEMSEL
     .byte $00                       ; sólo ROM
-    .byte $07                       ; 128 KB (log2 de los KB)
+    .byte TAMANO_ROM                ; log2 de los KB: lo pasa `armar.py`
     .byte $00                       ; sin SRAM
     .byte $01                       ; región
     .byte $00                       ; desarrollador
