@@ -512,7 +512,7 @@ known:
     tax
     sep #$20
 .a8
-    lda slot_face_block, x
+    lda f:slot_face_block, x
     cmp #$FF
     beq no_face
     rep #$20

@@ -349,7 +349,7 @@ other_member:
     tax
     sep #$20
 .a8
-    lda slot_face_block, x
+    lda f:slot_face_block, x
     cmp #$FF
     beq next                    ; no face
     pha                         ; the block, while the destination is built

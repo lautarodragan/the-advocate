@@ -1367,14 +1367,11 @@ impl Rest<'_> {
         let face_blocks: Vec<String> = (0..n_actors_slots)
             .map(|a| face_block.get(&a).map_or(0xFF, |&b| b as i64).to_string())
             .collect();
-        out.push_str(&format!(
-            "slot_face_block:\n       .byte {}\n",
-            if face_blocks.is_empty() {
-                "$FF".to_string()
-            } else {
-                face_blocks.join(", ")
-            }
-        ));
+        // By actor id: outside bank 0, read with `lda f:slot_face_block, x`,
+        // because it grows with every actor.
+        out.push_str(".segment \"RODATA\"\n");
+        bytes_asm(out, "slot_face_block", &face_blocks, true);
+        out.push_str(".segment \"TABLES\"\n");
         // The pause menu: its blocks, and where each thing goes, in words.
         let vram_cell = |row: i64, col: i64| i64::from(SLOT_MAP) + row * 32 + col;
         let option_rows: Vec<i64> = (0..t.n("MENU_OPTIONS"))
