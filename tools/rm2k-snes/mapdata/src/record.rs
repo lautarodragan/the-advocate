@@ -242,9 +242,15 @@ pub fn npc_table(map: &Map) -> Result<Vec<NpcRow>> {
     // stands for the id: the events come sorted by id.
     order.sort_by_key(|n| std::cmp::Reverse((n.layer, n.y, n.x, n.event)));
     let mut rows = Vec::new();
+    let shared = sprite.and_then(|s| s.shared.as_ref());
     for npc in order {
         let walks = movable.contains(&npc.event);
-        let wanted = if walks {
+        // One that takes turns in a shared slot is drawn with its own
+        // character's palette: the slot's is only the first one's.
+        let turns = shared.and_then(|s| s.events.iter().find(|e| e.0 == npc.event));
+        let wanted = if let Some(&(_, slot, ..)) = turns {
+            Slot::Shared { shared: slot as i64 }
+        } else if walks {
             Slot::Event { event: npc.event }
         } else {
             Slot::Still {
@@ -260,6 +266,7 @@ pub fn npc_table(map: &Map) -> Result<Vec<NpcRow>> {
                 map.id, npc.event
             )));
         };
+        let palette = turns.map_or(palette, |t| t.3);
         let poses = if walks {
             let animated = sprite.map(|s| s.animated.as_slice()).unwrap_or(&[]);
             Some(
@@ -650,6 +657,100 @@ pub fn map_table(maps: &[Map], labels: &[Labels], rows: &[Vec<NpcRow>]) -> Resul
             .collect::<Vec<_>>()
             .join(", ")
     ));
+    Ok(out.join("\n"))
+}
+
+/// How many shared slots the runtime keeps track of: its `SHARE_MAX`, which
+/// the `.inc` asserts against.
+pub const SHARED_MAX: usize = 15;
+
+/// The slots still events take turns in, for the maps that have them: see
+/// `share` in `rm2k-snes-map-sprites` and `share_want` in the runtime.
+///
+/// `share_maps` has a word per map, in the order of `map_table`: where its
+/// record starts inside `share_data`, or 0 if it shares nothing —offset 0 is
+/// a byte nobody points at—. A record is
+///
+/// ```text
+///   +0  word  where its event table starts, inside share_data
+///   +2  word  where its pose table starts
+///   +4  byte  how many slots
+///   +5  word per slot: where it starts in VRAM, in words from the sprites'
+///   then, per event of the map: the slot or $FF, and its pose
+///   then, per pose: where it is in `npc_poses`, (entry * 12 + pose) * 3
+/// ```
+///
+/// Both in one `.block`: `share_want` reads them with `lda f:share_data, x`,
+/// and the offsets are sixteen bits.
+pub fn share_table(maps: &[Map]) -> Result<String> {
+    let mut data: Vec<String> = vec!["    .byte $00 ; offset 0: no map shares".into()];
+    let mut size = 1usize;
+    let mut starts = Vec::with_capacity(maps.len());
+    for map in maps {
+        let Some(shared) = map.sprite.as_ref().and_then(|s| s.shared.as_ref()) else {
+            starts.push(0);
+            continue;
+        };
+        let n = shared.slots.len();
+        if n == 0 || n > SHARED_MAX {
+            return Err(Bad::answer(format!(
+                "map {}: {n} shared slots, and the console keeps between 1 and {SHARED_MAX}",
+                map.id
+            )));
+        }
+        let start = size;
+        let events_at = start + 5 + 2 * n;
+        let poses_at = events_at + 2 * map.events.len();
+        starts.push(start);
+        data.push(format!("    ; map {} {}", map.id, quoted(&map.name)));
+        data.push(format!("    .word {events_at}, {poses_at}"));
+        data.push(format!("    .byte {n}"));
+        data.push(format!(
+            "    .word {}",
+            shared.slots.iter().map(|&b| (block_tile(b) * 16).to_string()).collect::<Vec<_>>().join(", ")
+        ));
+        let mut by_event = vec![(0xFFu8, 0u8); map.events.len()];
+        for &(event, slot, pose, _) in &shared.events {
+            let e = usize::try_from(event).ok().filter(|&e| e < by_event.len()).ok_or_else(|| {
+                Bad::answer(format!("map {}: event {event} takes turns and is not in the map", map.id))
+            })?;
+            by_event[e] = (slot as u8, pose as u8);
+        }
+        for chunk in by_event.chunks(8) {
+            data.push(format!(
+                "    .byte {}",
+                chunk.iter().map(|(s, p)| format!("${s:02X},{p}")).collect::<Vec<_>>().join(", ")
+            ));
+        }
+        data.push(format!(
+            "    .word {}",
+            shared
+                .poses
+                .iter()
+                .map(|&(k, pose)| ((k * SPRITE_POSES as usize + pose) * 3).to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        ));
+        data.push(format!(".assert {n} <= SHARE_MAX, error, \"map {}: more shared slots than SHARE_MAX\"", map.id));
+        size = poses_at + 2 * shared.poses.len();
+    }
+    let mut out = vec![
+        ".segment \"RODATA\"".to_string(),
+        "; The slots still events take turns in: see `share_table` in rm2k-snes-mapdata.".into(),
+        format!(".block {}", 2 * maps.len().max(1)),
+        "share_maps:".into(),
+        format!(
+            "    .word {}",
+            if starts.is_empty() {
+                "0".to_string()
+            } else {
+                starts.iter().map(|s| s.to_string()).collect::<Vec<_>>().join(", ")
+            }
+        ),
+        format!(".block {size}"),
+        "share_data:".into(),
+    ];
+    out.extend(data);
     Ok(out.join("\n"))
 }
 
@@ -1274,10 +1375,11 @@ pub fn maps(maps: &[Map]) -> Result<Written> {
         labels.push(theirs);
     }
     let tables = format!(
-        "{}\n\n{}\n\n{}\n",
+        "{}\n\n{}\n\n{}\n\n{}\n",
         map_table(maps, &labels, &rows)?,
         anim_table(maps, &rows)?,
-        map_code_table(maps, &labels)
+        map_code_table(maps, &labels),
+        share_table(maps)?
     );
     Ok(Written {
         offsets: offsets(),
@@ -1368,5 +1470,42 @@ mod tests {
         map.pages = test_pages(MAX_PAGES as i64 + 1);
         let error = check_counts(&map).unwrap_err().to_string();
         assert!(error.contains("2049 event pages and 2048 fit"), "{error}");
+    }
+
+    #[test]
+    fn the_shared_slots_go_where_the_console_reads_them() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/maps.json");
+        let mut maps = crate::request::read::<crate::request::Maps>(&path).unwrap().maps;
+        // Nobody shares: a zero per map, and the byte offset 0 points at.
+        let none = share_table(&maps).unwrap();
+        assert!(none.contains(&format!("share_maps:\n    .word {}\n", vec!["0"; maps.len()].join(", "))), "{none}");
+        // A map with objects and three events shares two slots, blocks 5 and
+        // 6, among its first three events; the third one does not take turns.
+        let k = maps.iter().position(|m| m.sprite.is_some() && m.events.len() >= 3).unwrap();
+        let events = maps[k].events.len();
+        maps[k].sprite.as_mut().unwrap().shared = Some(crate::request::Shared {
+            events: vec![(0, 0, 1, 2), (1, 1, 0, 3)],
+            poses: vec![(2, 7), (0, 4)],
+            slots: vec![5, 6],
+        });
+        let table = share_table(&maps).unwrap();
+        let mut starts = vec!["0"; maps.len()];
+        starts[k] = "1";
+        assert!(table.contains(&format!("share_maps:\n    .word {}\n", starts.join(", "))), "{table}");
+        // Its record: the event table after the header and two slots, the
+        // pose table after one entry per event of the map.
+        let events_at = 1 + 5 + 4;
+        let poses_at = events_at + 2 * events;
+        assert!(table.contains(&format!("    .word {events_at}, {poses_at}\n    .byte 2\n")), "{table}");
+        // A block's VRAM is its first tile times sixteen words.
+        assert!(table.contains(&format!("    .word {}, {}\n", block_tile(5) * 16, block_tile(6) * 16)), "{table}");
+        assert!(table.contains("    .byte $00,1, $01,0, $FF,0"), "{table}");
+        // Each pose's place in `npc_poses`: three bytes a pose, twelve a
+        // character.
+        assert!(table.contains(&format!("    .word {}, {}\n", (2 * 12 + 7) * 3, 4 * 3)), "{table}");
+        assert!(table.contains(&format!(".block {}\nshare_data:", poses_at + 4)), "{table}");
+        for (line, value, max) in literals(&table) {
+            assert!((0..=max).contains(&value), "{value} does not fit in: {line}");
+        }
     }
 }

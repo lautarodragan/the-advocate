@@ -609,7 +609,7 @@ made:
     ; loop does not rebuild it while the fade lasts —`build_oam` is one of the
     ; things it skips— so the ramp back up would draw the new map with the old
     ; sprites.
-    jsr build_oam
+    jsr build_oam_settled
 ready:
     rts
 .endproc

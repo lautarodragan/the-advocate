@@ -247,6 +247,9 @@ pub enum Slot {
     Event {
         event: i64,
     },
+    Shared {
+        shared: i64,
+    },
     Still {
         charset: String,
         index: i64,
@@ -287,6 +290,21 @@ pub struct Sprite {
     pub turn_block: Option<u32>,
     pub image: (i64, i64),
     pub animation: Option<Animation>,
+    /// The slots still events take turns in, if the map needed them: see
+    /// `share` in `rm2k-snes-map-sprites`.
+    #[serde(default)]
+    pub shared: Option<Shared>,
+}
+
+/// The slots still events take turns in, as `wally` answered them.
+#[derive(Deserialize)]
+pub struct Shared {
+    /// `[event, slot, pose, palette]`: the pose is an index into `poses`.
+    pub events: Vec<(i64, usize, usize, u32)>,
+    /// `[entry in the pose table, pose]`.
+    pub poses: Vec<(usize, usize)>,
+    /// Each slot's block in the sprite bank.
+    pub slots: Vec<u32>,
 }
 
 /// Where the battle animation's box landed.

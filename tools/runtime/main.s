@@ -164,4 +164,5 @@ TEXT_BUF_BYTES = WINDOW_TEXT_COLS * 2 * 32
 .include "hero_speed_keys.s"
 .include "message_letter.s"
 .include "number_input.s"
+.include "shared_poses.s"
 .include "header.s"

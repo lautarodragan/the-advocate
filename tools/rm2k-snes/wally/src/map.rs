@@ -30,7 +30,8 @@ use rm2k_snes_map_sprites::extras::{
     first_place, map_animation, picture_of_image, rain_drops, timer_colors, timer_digits, timer_mask,
     Image,
 };
-use rm2k_snes_map_sprites::npc::{map_poses, pin_walkers, Npc};
+use rm2k_snes_map_sprites::npc::{map_poses, pin_walkers, Graphic, Npc};
+use rm2k_snes_map_sprites::share::{share_slots, Sharer, SHARED_MAX};
 use rm2k_snes_map_sprites::split::{drawable_npcs, Ask, TILE_PREFIX};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
@@ -82,6 +83,10 @@ pub struct MapRequest {
     /// can bring them into any map. See [`crate::substitutions`].
     pub substitutions: Vec<Triple>,
     pub common_substitutions: Vec<Triple>,
+    /// The VRAM layouts the cartridge can give a map, as `(background
+    /// tiles, sprite tiles, upper tiles)`. A map that fits none of them is
+    /// converted again with still events sharing slots; empty, never.
+    pub layouts: Vec<(usize, usize, usize)>,
 }
 
 /// Something the conversion says, in order. A `stop` ends it there.
@@ -196,6 +201,23 @@ pub struct Objects {
     pub image: (usize, usize),
     pub animation: Option<(usize, usize, usize)>,
     pub characters: usize,
+    /// The still events that take turns in shared slots, if the map needed
+    /// them.
+    pub shared: Option<SharedObjects>,
+}
+
+/// The slots still events take turns in, as the console reads them.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SharedObjects {
+    /// Each event that takes turns: its slot, its pose —an index into
+    /// `poses`— and the palette its character got.
+    pub events: Vec<(usize, usize, usize, usize)>,
+    /// The poses they show, as `(entry in the pose table, pose)`: the twelve
+    /// poses of each character are in the cartridge, and the console uploads
+    /// the one that comes into view.
+    pub poses: Vec<(usize, i32)>,
+    /// Each slot's block in the sprite bank.
+    pub slots: Vec<usize>,
 }
 
 /// Everything the map came out as.
@@ -223,7 +245,133 @@ pub struct Final {
 }
 
 /// The map `request.map`, whole.
+///
+/// As it always was, unless that fits none of `request.layouts`: then it is
+/// converted again with the still events that are never on screen together
+/// taking turns in the same slots —see [`plan_sharing`]—, and that one goes,
+/// fitting or not. Only a map that does not fit changes: every other map
+/// comes out byte for byte the same as without sharing.
 pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
+    let plain = convert_with(game, request, false)?;
+    if request.layouts.is_empty() || fits(&plain, &request.layouts) {
+        return Ok(plain);
+    }
+    let shared = convert_with(game, request, true)?;
+    Ok(if shared.objects.as_ref().is_some_and(|o| o.shared.is_some()) { shared } else { plain })
+}
+
+/// Whether the map fits some layout: what `rm2k-snes-mapdata` will ask
+/// of it. A map that stopped fits: what it says is the stop.
+fn fits(done: &Whole, layouts: &[(usize, usize, usize)]) -> bool {
+    let Some(objects) = &done.objects else {
+        return true;
+    };
+    let converted = &done.layers.converted;
+    let background = converted.background.tiles.len() / 64;
+    let above = converted.above.tiles.len() / 32;
+    let sprites = objects.tiles.len() / 32;
+    layouts.iter().any(|&(b, s, a)| background <= b && sprites <= s && above <= a)
+}
+
+/// `SetEventLocation` and `SwapEventLocations`: they move an event without
+/// a route, so one moved by them is not still where it stands.
+const SET_EVENT_LOCATION: i32 = 10860;
+const SWAP_EVENT_LOCATIONS: i32 = 10870;
+/// "This event" in a command's event parameter.
+const THIS_EVENT: i32 = 10005;
+
+/// The events something can place elsewhere: the map's pages' and the
+/// common events' `SetEventLocation` and `SwapEventLocations`. `None` if a
+/// common event places "this event", which can be anyone that calls it.
+fn placed(events: &[Event], common: &[(i32, Vec<i32>)]) -> Option<BTreeSet<usize>> {
+    let targets = |code: i32, params: &[i32]| -> Vec<i32> {
+        match code {
+            SET_EVENT_LOCATION => params.iter().take(1).copied().collect(),
+            SWAP_EVENT_LOCATIONS => params.iter().take(2).copied().collect(),
+            _ => Vec::new(),
+        }
+    };
+    let by_id = |id: i32| events.iter().position(|e| e.id == id);
+    let mut out = BTreeSet::new();
+    for (k, event) in events.iter().enumerate() {
+        for page in &event.pages {
+            for (code, params) in &page.commands {
+                for t in targets(*code, params) {
+                    out.extend(if t == THIS_EVENT { Some(k) } else { by_id(t) });
+                }
+            }
+        }
+    }
+    for (code, params) in common {
+        for t in targets(*code, params) {
+            if t == THIS_EVENT {
+                return None;
+            }
+            out.extend(by_id(t));
+        }
+    }
+    Some(out)
+}
+
+/// Which still events take turns in shared slots.
+#[derive(Default)]
+struct Plan {
+    /// By event: its slot and the pose it shows.
+    of: BTreeMap<usize, (usize, Graphic)>,
+    /// Each slot's poses, in order: the first is the one the bank starts
+    /// with.
+    slots: Vec<Vec<Graphic>>,
+}
+
+/// The still events that take turns in shared slots, or `None` if no slot
+/// would hold two different poses.
+///
+/// One takes turns if nothing moves it —no route, no animation in place,
+/// no `SetEventLocation`—, it is not baked into the map, and every page that
+/// draws it draws the same pose: the console uploads the pose of whoever
+/// comes into view, and that is only right if where it stands and what it
+/// shows never change. One whose pose a still event that does not take
+/// turns already shows keeps that one's slot, as always. The rest are
+/// coloured by [`share_slots`]; a slot where everyone shows the same pose
+/// is an ordinary still slot, and only those with more than one go to the
+/// console.
+fn plan_sharing(npcs: &[Npc], movable: &BTreeSet<usize>, baked: &Baked, placed: &BTreeSet<usize>) -> Option<Plan> {
+    let shows = |npc: &Npc| -> BTreeSet<Graphic> {
+        let mut out = BTreeSet::from([(npc.charset.clone(), npc.index, npc.pose)]);
+        if npc.changes {
+            out.extend(npc.graphics.iter().flatten().filter(|g| !npc.outside.contains(&(g.0.clone(), g.1))).cloned());
+        }
+        out
+    };
+    let mut fixed: BTreeSet<Graphic> = BTreeSet::new();
+    let mut candidates = Vec::new();
+    for npc in npcs.iter().filter(|n| !movable.contains(&n.event)) {
+        let poses = shows(npc);
+        let takes_turns = poses.len() == 1 && !baked.contains_key(&npc.event) && !placed.contains(&npc.event);
+        if takes_turns {
+            candidates.push(Sharer { event: npc.event, x: npc.x, y: npc.y, pose: poses.into_iter().next()? });
+        } else {
+            fixed.extend(poses);
+        }
+    }
+    let sharers: Vec<Sharer> = candidates.into_iter().filter(|c| !fixed.contains(&c.pose)).collect();
+    let mut plan = Plan::default();
+    for group in share_slots(&sharers) {
+        let poses: Vec<Graphic> =
+            group.iter().map(|&i| sharers[i].pose.clone()).collect::<BTreeSet<_>>().into_iter().collect();
+        if poses.len() < 2 {
+            continue;
+        }
+        let slot = plan.slots.len();
+        for &i in &group {
+            plan.of.insert(sharers[i].event, (slot, sharers[i].pose.clone()));
+        }
+        plan.slots.push(poses);
+    }
+    (!plan.slots.is_empty()).then_some(plan)
+}
+
+fn convert_with(game: &Game, request: &MapRequest, share: bool) -> Result<Whole> {
     let id = request.map;
     let raw = game.map(id)?;
     let chipset = game.chipset(raw.chipset_id)?;
@@ -489,9 +637,35 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
         }
     }
 
+    // The still ones that take turns, if this conversion is the one that
+    // shares: see `plan_sharing`.
+    let plan = if share {
+        match placed(&events, &game.common_commands()?) {
+            None => {
+                done.notes.push(note(format!(
+                    "  map {id}: a common event places \"this event\", so no still event takes turns in a slot"
+                )));
+                None
+            }
+            Some(placed) => plan_sharing(&npcs, &who.movable, &baked, &placed),
+        }
+    } else {
+        None
+    };
+    let plan = match plan {
+        Some(p) if p.slots.len() > SHARED_MAX => {
+            done.notes.push(note(format!(
+                "  map {id}: still events would take turns in {} slots and the console keeps {SHARED_MAX}",
+                p.slots.len()
+            )));
+            None
+        }
+        p => p,
+    };
+
     // The slots of the VRAM bank, one pose each: the hero in block 0, each
-    // event that walks with its own, and the still ones shared by
-    // (CharSet, index, pose).
+    // event that walks with its own, the still ones shared by (CharSet,
+    // index, pose), and the ones they take turns in.
     let mut slots: Vec<SlotPose> = Vec::new();
     if !with_graphic.is_empty() {
         let (charset, index) = animated[0].clone();
@@ -516,6 +690,8 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
                 index: npc.index,
                 pose: npc.pose,
             });
+        } else if plan.as_ref().is_some_and(|p| p.of.contains_key(&npc.event)) {
+            // It takes turns in a shared slot, which goes after the turn's.
         } else {
             let mut poses = vec![(npc.charset.clone(), npc.index, npc.pose)];
             if npc.changes {
@@ -544,6 +720,31 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
     });
     if let Some(n) = still_turning {
         slots.push(SlotPose { slot: Slot::Turn, charset: n.charset.clone(), index: n.index, pose: n.pose });
+    }
+    // The shared ones start with their first pose: the console does not
+    // trust it anyway and uploads whichever comes into view. Their twelve
+    // poses go to the cartridge, which is where it uploads them from.
+    let mut shared_poses: Vec<Graphic> = Vec::new();
+    if let Some(plan) = &plan {
+        for (s, poses) in plan.slots.iter().enumerate() {
+            let (charset, index, pose) = poses[0].clone();
+            slots.push(SlotPose { slot: Slot::Shared(s), charset, index, pose });
+            for p in poses {
+                let key = (p.0.clone(), p.1);
+                if !animated.contains(&key) {
+                    animated.push(key);
+                }
+                if !shared_poses.contains(p) {
+                    shared_poses.push(p.clone());
+                }
+            }
+        }
+        shared_poses.sort();
+        done.notes.push(note(format!(
+            "  map {id}: {} still events take turns in {} slots, never two of them on screen at once",
+            plan.of.len(),
+            plan.slots.len()
+        )));
     }
     let mut characters = animated.clone();
     for s in &slots {
@@ -686,6 +887,25 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
         ));
     }
     let turn_block = bank.place.iter().find(|(s, ..)| *s == Slot::Turn).map(|(_, b, _)| *b);
+    let shared = plan.as_ref().map(|plan| SharedObjects {
+        events: plan
+            .of
+            .iter()
+            .map(|(event, (slot, pose))| {
+                let key = (pose.0.clone(), pose.1);
+                (
+                    *event,
+                    *slot,
+                    shared_poses.iter().position(|p| p == pose).unwrap(),
+                    bank.palette_of.get(&key).unwrap_or(0),
+                )
+            })
+            .collect(),
+        poses: shared_poses.iter().map(|p| (animated_index[&(p.0.clone(), p.1)], p.2)).collect(),
+        slots: (0..plan.slots.len())
+            .map(|s| bank.place.iter().find(|(slot, ..)| *slot == Slot::Shared(s)).map(|(_, b, _)| *b).unwrap())
+            .collect(),
+    });
     done.baked = baked;
     done.npcs = npcs;
     // On the palettes as they end: the rain may still have grown the
@@ -706,6 +926,7 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
         image,
         animation,
         characters: characters.len(),
+        shared,
     });
     Ok(done)
 }
@@ -724,6 +945,7 @@ fn slot_json(s: &Slot) -> Value {
         Slot::Event(e) => json!({"event": e}),
         Slot::Still(c, i, p) => json!({"charset": c, "index": i, "pose": p}),
         Slot::Turn => json!({"turn": true}),
+        Slot::Shared(s) => json!({"shared": s}),
     }
 }
 
@@ -779,6 +1001,11 @@ pub fn write(out: &Path, done: &Whole) -> Result<()> {
                 "image": [o.image.0, o.image.1],
                 "animation": o.animation.map(|(c, b, p)| json!({"count": c, "base": b, "palette": p})),
                 "characters": o.characters,
+                "shared": o.shared.as_ref().map(|sh| json!({
+                    "events": sh.events.iter().map(|(e, s, p, pal)| json!([e, s, p, pal])).collect::<Vec<_>>(),
+                    "poses": sh.poses.iter().map(|(k, p)| json!([k, p])).collect::<Vec<_>>(),
+                    "slots": sh.slots,
+                })),
             })
         }
     };

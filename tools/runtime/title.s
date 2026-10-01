@@ -265,7 +265,7 @@ title_load_map:
     plx                         ; the index, no longer needed
     pha
     jsr clear_oam
-    jsr build_oam
+    jsr build_oam_settled
     jsr flush_video
     pla
     sta music_off

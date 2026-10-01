@@ -112,6 +112,29 @@ close:
     rts
 .endproc
 
+; `build_oam` for a map's first frame, with the screen off: the frame of
+; entering it, of coming back from a battle, of a teleport within it and of
+; loading a game. In a map with shared slots —see shared_poses.s— the rows
+; whose pose is not up are left out of the OAM, so the queue is uploaded now
+; and the OAM built again until nobody is missing. Every other map builds it
+; once, as always.
+.proc build_oam_settled
+.a8
+.i16
+again:
+    jsr build_oam
+    lda f:SHARE_N
+    beq ready
+    lda vq_n
+    beq ready
+    lda #VQ_PER_FRAME
+    sta vq_cap
+    jsr vram_drain
+    bra again
+ready:
+    rts
+.endproc
+
 ; The hero's jump: consumes the move commands up to `end_jump`, adds up what
 ; they contribute and puts it on the other side at once. How long it lasts
 ; does not depend on the distance: `remaining_step` goes down from 256 to 0 by
@@ -770,6 +793,19 @@ no:
     bcs outside
     sep #$20
 .a8
+    ; A slot that still events take turns in: see shared_poses.s. If it
+    ; holds another pose, this one goes up in the next vblank and the row is
+    ; drawn from the frame after.
+    lda f:SHARE_N
+    beq own
+    jsl f:share_want + FAST
+    bcc own
+    jsr vram_queue
+    beq later                   ; the queue was full: it asks again next frame
+    jsl f:share_took + FAST
+later:
+    rts
+own:
     lda npc_buf + 6, x
     sta obj_tile
     lda npc_buf + 7, x

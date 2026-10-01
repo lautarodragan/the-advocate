@@ -21,3 +21,14 @@ Lo que cuesta: un DMA por pose que cambia, con un tope por vblank —lo que sobr
 espera al siguiente—, y la cola tiene que subir la pose en el mismo vblank que
 la OAM que ya cuenta con ella. Cómo, en `vram_queue`
 (`tools/runtime/load_graphics.s`) y su cola en `tools/runtime/low_ram.s`.
+
+# Y los quietos lejanos se turnan una ranura
+
+De taro, el 2026-10-01, para que entre Distant Paradise (108): en un mapa que
+no entra en ningún reparto de VRAM, y sólo ahí, los quietos que ninguna
+cámara muestra juntos comparten una ranura aunque muestren poses distintas, y
+la pose se sube cuando el que la necesita entra en pantalla, por la misma cola.
+Sólo los que nadie mueve y muestran un solo gráfico. Era la opción A de Puma
+en `workflow/tasks/*/mundo-7-camino-a-paradise.md`; la B —todos los quietos
+de un personaje mirando para el mismo lado— cambiaba lo que se ve. Cómo, en
+`tools/runtime/shared_poses.s` y en `workflow/tasks/*/el-108-con-poses-compartidas.md`.

@@ -170,6 +170,12 @@ def _prepare(renderer, map_id, args):
         "substitutions": [list(t) for t in substitution_triples(
             game_map, args.cases, map_id)],
         "common_substitutions": [list(t) for t in _common_substitutions(dump)],
+        # The VRAM layouts a map can get: one that fits none with every still
+        # pose in VRAM is converted again with the still ones that are never
+        # on screen together taking turns in a slot. See `convert` in
+        # `wally`'s `map.rs`.
+        "layouts": [[layout["tiles"][1], layout["sprites"][1],
+                     layout["encima"][1]] for _name, layout in vram.LAYOUTS],
     }
     return p
 
@@ -221,6 +227,8 @@ def _key(slot):
         return "giro"
     if "event" in slot:
         return ("ev", slot["event"])
+    if "shared" in slot:
+        return ("compartida", slot["shared"])
     return (slot["charset"], slot["index"], slot["pose"])
 
 
@@ -405,4 +413,11 @@ def _map_info(renderer, prepared, written, args):
         # walk, whose graphic was pinned further up.
         "aparecen": {npc["event"] for npc in npcs if npc.get("aparece")},
         "afuera": {npc["event"]: npc["afuera"] for npc in npcs},
+        # The still ones that take turns in a shared slot: their pages draw
+        # in that slot and not in the one of their (CharSet, index, pose),
+        # which they do not have. `(block, palette)` by event.
+        "compartidos": {
+            event: (s["shared"]["slots"][slot], palette)
+            for event, slot, _pose, palette
+            in (s["shared"] or {"events": []})["events"]},
     }

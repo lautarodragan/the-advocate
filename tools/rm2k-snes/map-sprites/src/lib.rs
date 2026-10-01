@@ -11,6 +11,8 @@
 //!   characters, and which events drawn with a tile fit;
 //! * [`bank`]: the VRAM bank, one pose per slot, and the cartridge's bank
 //!   of the twelve poses of whoever changes pose;
+//! * [`share`]: the still ones that take turns in a slot because they are
+//!   never on screen together;
 //! * [`extras`]: the timer's digits, the raindrops, a picture and the
 //!   battle animation's box, at the end of the bank.
 //!
@@ -22,6 +24,7 @@ pub mod character;
 pub mod extras;
 pub mod fail;
 pub mod npc;
+pub mod share;
 pub mod split;
 
 pub use fail::{Bad, Result};

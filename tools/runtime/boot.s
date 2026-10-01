@@ -235,6 +235,7 @@ party_ready:
     jsl f:boot_transition           ; and the teleport, with fade
     jsl f:encounter_boot        ; the encounters' random seed
     jsl f:speed_keys_boot       ; and L and R's bonus on the hero's speed
+    jsl f:share_boot + FAST     ; and no map with shared slots yet
 
     ; If the cartridge has a saved game, it is loaded here: the switches it
     ; carries decide which page is active on each event, so they have to be
@@ -296,7 +297,7 @@ load:
     sta anim_step               ; the middle frame: the standing pose
     stz anim_timer
 
-    jsr build_oam
+    jsr build_oam_settled
     jsr flush_video
 
     lda #$0F

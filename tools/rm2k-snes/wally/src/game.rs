@@ -74,6 +74,17 @@ impl Game {
             .collect())
     }
 
+    /// Every command of the common events, as `(code, parameters)`: a
+    /// `CallEvent` can bring any of them into any map.
+    pub fn common_commands(&self) -> Result<Vec<(i32, Vec<i32>)>> {
+        let dump = Dump::open(&self.data).map_err(answer)?;
+        let common: Vec<ditto::schema::CommonEvent> = dump.section("commonevents").map_err(answer)?;
+        Ok(common
+            .iter()
+            .flat_map(|c| c.event_commands.iter().map(|e| (e.code.to_i32(), e.parameters.clone())))
+            .collect())
+    }
+
     /// Where a new game starts: `(map, x, y)`.
     pub fn start(&self) -> Result<(i32, i32, i32)> {
         let dump = Dump::open(&self.data).map_err(answer)?;

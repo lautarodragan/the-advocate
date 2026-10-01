@@ -181,6 +181,7 @@ impl crate::map::MapRequest {
             "timer": null, "rain": false, "picture": null,
             "battle_animation": false, "singles": [], "palette_weight": {},
             "dither": "five_of_eight", "substitutions": [], "common_substitutions": [],
+            "layouts": [],
         });
         let given = data
             .as_object()
@@ -203,8 +204,15 @@ impl crate::map::MapRequest {
     ///  "timer": null, "rain": false, "picture": null,
     ///  "battle_animation": false, "singles": [["People1", 3]],
     ///  "palette_weight": {"savept": 1}, "dither": "five_of_eight",
-    ///  "substitutions": [[false, 80, 81]], "common_substitutions": []}
+    ///  "substitutions": [[false, 80, 81]], "common_substitutions": [],
+    ///  "layouts": [[448, 448, 128], [480, 256, 128]]}
     /// ```
+    ///
+    /// `layouts` are the VRAM layouts the cartridge can give a map, as
+    /// `[background tiles, sprite tiles, upper tiles]`: a map that fits none
+    /// of them with every still pose in VRAM is converted again with the
+    /// still ones that are never on screen together sharing slots —see
+    /// `rm2k_snes_map_sprites::share`—. Empty, nothing is shared.
     ///
     /// `substitutions` are the `TileSubstitution`s the map's events and its
     /// test pages can run, as `[upper layer, old tile, new tile]`: their
@@ -295,6 +303,18 @@ impl crate::map::MapRequest {
             dither: text(field(data, "dither", whose)?, "`dither`", whose)?,
             substitutions: triples(data, "substitutions", whose)?,
             common_substitutions: triples(data, "common_substitutions", whose)?,
+            layouts: list(data, "layouts", whose)?
+                .iter()
+                .map(|l| {
+                    let bad = || Bad::answer(format!("{whose}: a layout is {l}"));
+                    let a = l.as_array().filter(|a| a.len() == 3).ok_or_else(bad)?;
+                    Ok((
+                        index(&a[0], "a layout's tiles", whose)?,
+                        index(&a[1], "a layout's sprites", whose)?,
+                        index(&a[2], "a layout's upper tiles", whose)?,
+                    ))
+                })
+                .collect::<Result<_>>()?,
         })
     }
 }
