@@ -82,9 +82,14 @@ tick pasa de un cuadro.
   de datos a 60.
 * `test_animacion_cuadros.py` arma cada cuadro de cada animación por el
   camino del juego y lo compara con la cuenta sin comprimir.
-* **Lo que ninguna prueba corre**: una pelea con una animación a medio
-  dibujar en el mapa, que es lo que cubre la llamada a `anim_buf_clear` en
-  `scene_upload`.
+* **Se me escapó un camino**, y lo arreglé en un commit aparte: volver del
+  menú, de la tienda, de las ranuras o de una pelea pasa por `back_to_map`,
+  que sube los tiles del mapa por `LZ2_BUFFER` y pisa el cuadro anterior;
+  borrarlo leía tiles de fondo como números de la caja, dejaba tiles viejos
+  y escribía más allá de `ANIMB_BUF`. `back_to_map` llama ahora a
+  `anim_buf_clear` (en vez de `scene_upload`), y
+  `test_la_caja_vuelve_entera_del_menu` lo cobra: en rojo sin el arreglo
+  (cuadros 4 y 5 de la 148), en verde con él.
 
 ### 4. Los fondos de batalla livianos: hecho
 

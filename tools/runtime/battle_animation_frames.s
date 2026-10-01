@@ -33,9 +33,12 @@
 
 ; The whole buffer at zero and no frame built. Called by `enter_map`, with
 ; the screen off; it is needed at least once after power-on, because WRAM
-; starts out with garbage on the console —and in bsnes—. And by the battle,
-; which overwrites `LZ2_BUFFER`, where the last frame was decompressed: its
-; tiles can no longer be erased one by one.
+; starts out with garbage on the console —and in bsnes—. And by
+; `back_to_map`, after the menu, the shop, the slots or a battle, which
+; overwrite `LZ2_BUFFER`, where the last frame was decompressed: its tiles
+; can no longer be erased one by one, and erasing whatever is there now
+; would write past `ANIMB_BUF`, whose tile numbers go up to 63 and a byte up
+; to 127.
 .proc anim_buf_clear
 .a8
 .i16

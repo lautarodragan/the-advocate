@@ -297,6 +297,11 @@ set:
     stz flash_ready             ; `pal_buf` was from before; if the flash goes on,
                                 ; the next frame builds it again
     jsr upload_tint
+    ; `load_map` and `load_above` decompress into `LZ2_BUFFER`, and so does
+    ; the battle —it is `SCN_CLEAN`—: the battle animation's last frame was
+    ; there, and its tiles can no longer be erased one by one. Its box starts
+    ; clean, and the next frame is built over it. See `anim_buf_clear`.
+    jsl f:anim_buf_clear
     rts
 .endproc
 
