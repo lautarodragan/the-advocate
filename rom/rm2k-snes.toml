@@ -348,7 +348,7 @@ Annihilation2 = 8000
 #
 # Los mapas del juego que lleva `release`: **los de id menor a `below`, menos
 # `excluded`, más `added`**. Hoy es Lashe City entera, el camino principal del
-# capítulo del mundo y el camino a Paradise, hasta su puerta. Hasta el 2026-09-27 era una
+# capítulo del mundo, el camino a Paradise y su primer mapa. Hasta el 2026-09-27 era una
 # lista escrita a mano; la regla y sus valores son de
 # `workflow/tasks/*/la-carrera-y-lo-que-sigue.md` y de
 # `workflow/tasks/*/el-mundo-y-lo-que-sigue.md` ("La regla de los mapas"), y
@@ -363,18 +363,19 @@ Annihilation2 = 8000
 # del 36 es una sola página que compila con sus cuatro destinos o con ninguno.
 # Una exclusión no los puede separar.
 #
-# La demo termina al final del túnel a Paradise, el 107, cuando Isabella se va
-# y la escena salta al 108: el fork del 107 cambia ese `Teleport` por el
-# cartel del fin. Yun Town y Drust Camp, lo opcional del mundo, están: casi
-# todo entra por `below`, y lo de Drust con id grande, por `added`.
+# La demo termina en Distant Paradise, el 108, cuando Isabella lleva a Talan
+# al Consejo (110): el fork del 108 cambia ese `Teleport` por el cartel del
+# fin. Yun Town y Drust Camp, lo opcional del mundo, están: casi todo entra
+# por `below`, y lo de Drust con id grande, por `added`.
 [maps]
-# El 108, Distant Paradise, es el primero del capítulo siguiente —su padre en
-# el árbol es la raíz—, y no entra: pide más tiles de sprite de los que hay
-# (ver `workflow/tasks/*/mundo-7-camino-a-paradise.md`). Del 105 al 107 es el
-# camino hasta su puerta —Mountain Path, la amnistía y el túnel—, y la demo
-# termina al final del túnel: el fork del 107 cambia el `Teleport` al 108 por
-# el cartel del fin.
-below = 108
+# Del 105 al 107 es el camino hasta Paradise —Mountain Path, la amnistía y el
+# túnel—, y el 108, Distant Paradise, es el primero del capítulo siguiente:
+# su padre en el árbol es la raíz. Entra porque sus quietos se turnan las
+# ranuras de VRAM —ver `workflow/tasks/*/el-108-con-poses-compartidas.md`—.
+# Lo que hay del otro lado de sus puertas —el Consejo, las casas, la granja,
+# la cantera— no entra todavía: la demo termina con la escena de la llegada,
+# y el fork del 108 cambia el `Teleport` al Consejo por el cartel del fin.
+below = 109
 
 # Cada uno con su razón, que es lo que hay que revisar antes de sumarle otro.
 excluded = [

@@ -11,9 +11,11 @@ mundo (66 ev18), que ahora salta al 105. El recorrido:
         antes del túnel: otra pelea con la 184, Arden se queda atrás y salta
         al 106
     106 la amnistía: la automática del evento 7, que salta al 107
-    107 el túnel: la automática del evento 4, Isabella. Antes de que la
-        escena salte al 108 —Distant Paradise, que no entra— el fork del 107
-        pone el cartel del fin, y vuelve al título
+    107 el túnel: la automática del evento 4, Isabella, que salta al 108 y
+        pregunta si se guarda: se contesta que no
+    108 Distant Paradise: la automática del evento 5, Isabella que lleva a
+        Talan al Consejo. Antes de que la escena salte al 110 —que no entra—
+        el fork del 108 pone el cartel del fin, y vuelve al título
 
 **Los encuentros al azar se apagan** al llegar, como en los recorridos de
 antes, y el grupo va en el nivel 20 con los HP en 999, igual que en Tangle:
@@ -31,7 +33,7 @@ from batalla import grupo_de, poner_exp
 from tramo_lashe import CON_ARDEN
 from tramo_sorbe import ARDEN, TALAN, jugar, en_pelea_hace, sin_encuentros
 
-MOUNTAIN_PATH, AMNISTIA, EL_TUNEL = 105, 106, 107
+MOUNTAIN_PATH, AMNISTIA, EL_TUNEL, PARADISE = 105, 106, 107, 108
 # Donde deja el túnel del mundo.
 AL_PIE = (68, 19)
 # El evento 4, que trae los vehículos, y el 7, la emboscada.
@@ -81,25 +83,32 @@ def test_el_camino_a_paradise(recorrido):
     r.caminar_a(LA_EMBOSCADA, tope=12000,
                 hasta=lambda p: (p.corriendo_una_pagina()
                                  and r.celda() == LA_EMBOSCADA))
-    # Los mensajes del túnel, con la imagen del último: el cartel del fin es
-    # el que se ve antes de que la ROM vuelva al título.
-    en_el_tunel = []
-
-    def contar(p):
-        if p.mapa() == EL_TUNEL:
-            en_el_tunel.append(p.imagen())
-        return False
+    # Hasta la pregunta de guardar, que el túnel hace ya en el 108: se le
+    # contesta que no, que es seguir sin abrir la pantalla de ranuras.
     jugar(r, "la emboscada, la amnistía y el túnel",
-          lambda p: bool(en_el_tunel) and p.mapa() != EL_TUNEL,
+          lambda p: p.mapa() == PARADISE and p.byte("pick_active"),
           fotos={"arden-se-queda": lambda p: p.mapa() == MOUNTAIN_PATH
                  and grupo_de(p) == [TALAN],
                  "la-amnistia": lambda p: p.mapa() == AMNISTIA,
-                 "isabella": lambda p: p.mapa() == EL_TUNEL,
-                 "contar": contar},
+                 "isabella": lambda p: p.mapa() == EL_TUNEL},
           momentos={"la-emboscada": en_pelea_hace(120)})
-    assert len(en_el_tunel) >= 2, (
-        "en el túnel habla Isabella y después sale el cartel del fin; "
-        "salieron %d mensajes. %s" % (len(en_el_tunel), r.estado()))
-    r.foto("el-fin-de-la-demo", asentar=False, imagen=en_el_tunel[-1])
+    r.elegir(1)
+
+    # Los mensajes del 108, con la imagen del último: el cartel del fin es
+    # el que se ve antes de que la ROM vuelva al título.
+    en_paradise = []
+
+    def contar(p):
+        if p.mapa() == PARADISE:
+            en_paradise.append(p.imagen())
+        return False
+    jugar(r, "la llegada a Paradise",
+          lambda p: bool(en_paradise) and p.mapa() != PARADISE,
+          fotos={"paradise": lambda p: p.mapa() == PARADISE,
+                 "contar": contar})
+    assert len(en_paradise) >= 2, (
+        "en el 108 hablan Talan e Isabella y después sale el cartel del fin; "
+        "salieron %d mensajes. %s" % (len(en_paradise), r.estado()))
+    r.foto("el-fin-de-la-demo", asentar=False, imagen=en_paradise[-1])
     p.consola.run(p.simbolos["BOOT_FRAMES"] + 60)
     r.foto("el-titulo-despues-del-fin", asentar=False)

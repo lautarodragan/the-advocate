@@ -90,8 +90,9 @@ paradise/03-la-emboscada.png
 paradise/04-arden-se-queda.png
 paradise/05-la-amnistia.png
 paradise/06-isabella.png
-paradise/07-el-fin-de-la-demo.png
-paradise/08-el-titulo-despues-del-fin.png
+paradise/07-paradise.png
+paradise/08-el-fin-de-la-demo.png
+paradise/09-el-titulo-despues-del-fin.png
 
 # abl/test_recorrido_lashe_golden.py:
 # sus capturas **no están bendecidas**, dice su docstring: son
