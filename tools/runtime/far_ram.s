@@ -924,6 +924,9 @@ GO_FRAMES = $7E7A34             ; how many frames each fade level lasts
 ; in workflow/decisiones/la-grilla-vive-en-la-wram.md;
 ; `test_reservas_de_la_wram.py` fails if another symbol lands inside.
 ;
+; Right behind it, in $7F's half, go the block table and its passability,
+; which `lz2_grid` decompresses with it: see there.
+;
 ; It shares the $7F half with `SCN_SCENE`: the battle overwrites it, and
 ; `back_from_battle` decompresses the whole grid again.
 GRID        = $7E8000

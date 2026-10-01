@@ -81,10 +81,12 @@
 .assert NPC_STRIDE = 16, error, "the computation above multiplies by sixteen by hand"
     sta npc_total
 
-    ; The pointers to the two tables that are read from ROM. The second points
-    ; eight bytes further, which is where each block stores its upper layer;
-    ; adding eight cannot overflow the bank because the placement in
-    ; `tools/ensamblado/banks.py` guarantees the whole table fits in one.
+    ; The pointers to the poses, in ROM, and to the block table and its
+    ; passability, which live in WRAM behind the grid —`lz2_grid` puts them
+    ; there, below—. The second block pointer points eight bytes further,
+    ; which is where each block stores its upper layer; adding eight cannot
+    ; overflow the bank because the converter keeps the whole table inside
+    ; $7F's half: see `check_map` in `rm2k-snes-mapdata`.
     lda f:map_table + M_PTR_NPC_POSES, x
     sta poses_ptr
     lda f:map_table + M_PTR_MAP_BLOCKS, x

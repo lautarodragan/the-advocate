@@ -57,6 +57,10 @@ class Registro:
     def byte(self, campo):
         return self.rom[self.base + self.s[campo]]
 
+    def puntero(self, campo):
+        k = self.base + self.s[campo]
+        return self.rom[k] | (self.rom[k + 1] << 8) | (self.rom[k + 2] << 16)
+
 
 def _corridas_animadas(p, rom, indice):
     """[(palabra de VRAM, bytes por dibujo, desplazamiento del dibujo 0)] de
@@ -186,12 +190,37 @@ def _mirar_la_grilla(p, indice):
             % (len(celdas), celdas[0])]
 
 
+def _mirar_detras_de_la_grilla(p, indice):
+    """La tabla de bloques y su pasabilidad, que viven en la WRAM justo
+    donde termina la grilla —ver `lz2_grid`—: que el registro apunte ahí y
+    que esté lo que el conversor dice. La dirección la pone el conversor y
+    el lugar lo decide el descompresor, así que esto mira que coincidan."""
+    s = p.simbolos
+    crudo = _crudo(p, indice, "map_ram")
+    registro = Registro(p, p.rom, indice)
+    mitad = s["GRID_END"] - s["GRID"]
+    lugar = s["GRID_HIGH"] + max(0, len(_crudo(p, indice, "map_cells")) - mitad)
+    mal = []
+    if registro.puntero("M_PTR_MAP_BLOCKS") != lugar:
+        mal.append("la tabla de bloques está en $%06X y el registro apunta a $%06X"
+                   % (lugar, registro.puntero("M_PTR_MAP_BLOCKS")))
+    pasabilidad = registro.puntero("M_PTR_BLOCK_PASS")
+    if not lugar <= pasabilidad <= lugar + len(crudo):
+        mal.append("la pasabilidad apunta a $%06X, afuera de lo que hay detrás "
+                   "de la grilla" % pasabilidad)
+    visto = bytes(p.consola.ram(en_la_wram(lugar), len(crudo)))
+    if visto != crudo:
+        k = next(k for k in range(len(crudo)) if visto[k] != crudo[k])
+        mal.append("lo que hay detrás de la grilla es distinto desde el byte %d" % k)
+    return mal
+
+
 def _mirar_la_wram(p, indice):
     """Lo que no coincide en la WRAM: la grilla, los dibujos de la animación,
     que quedan todo lo que dure el mapa, y el buffer de carga, que tiene lo
     último que se descomprimió —los sprites: ver `enter_map_no_events`—."""
     s = p.simbolos
-    mal = _mirar_la_grilla(p, indice)
+    mal = _mirar_la_grilla(p, indice) + _mirar_detras_de_la_grilla(p, indice)
     for simbolo, clase in (("ANIM_DRAWINGS", "anim_tiles"),
                            ("LZ2_BUFFER", "sprite_tiles")):
         crudo = _crudo(p, indice, clase)
@@ -229,7 +258,8 @@ def test_lo_cargado_es_lo_que_el_conversor_dice_en_cada_mapa(nucleo):
 #
 # La mitad alta del banco $7F es a la vez el final de las grillas de más de 32
 # KB y `SCN_SCENE`, la escena compuesta de la pelea: pelear la pisa, y
-# `back_from_battle` vuelve a descomprimir la grilla. El mapa 52 es el de la
+# `back_from_battle` vuelve a descomprimir la grilla, y con ella lo que vive
+# detrás —la tabla de bloques y su pasabilidad—. El mapa 52 es el de la
 # grilla más grande, 40.000 B, y el caso `pelea-en-52` pelea ahí contra el
 # droide con Kersh, que lo gana.
 
@@ -271,7 +301,9 @@ def test_la_grilla_vuelve_entera_de_una_pelea(nucleo):
         if p.palabra("ticks") - antes >= 2:
             break
     assert p.mapa() == 52, "la pelea no volvió al mapa 52: volvió al %d" % p.mapa()
-    mal = _mirar_la_grilla(p, indice)
+    with open(p.sfc, "rb") as f:
+        p.rom = f.read()
+    mal = _mirar_la_grilla(p, indice) + _mirar_detras_de_la_grilla(p, indice)
     assert not mal, "la grilla después de la pelea: %s" % mal
 
 
@@ -301,12 +333,15 @@ def test_un_fondo_de_dos_flujos_no_se_sale_del_buffer():
     assert len(_crudo(p, indice, "map_cells")) <= mitad, (
         "la grilla del mapa %d usa la mitad alta, y ahí el testigo lo pisaría "
         "ella: hace falta otro mapa" % map_id)
-    alta = en_la_wram(s["GRID_HIGH"])
+    # El testigo va después de lo que vive detrás de la grilla —la tabla de
+    # bloques y su pasabilidad, que la carga escribe ahí a propósito—, y eso
+    # se mira contra el conversor.
+    alta = en_la_wram(s["GRID_HIGH"]) + len(_crudo(p, indice, "map_ram"))
     testigo = bytes(range(256)) * 16
     p.consola.write_ram(alta, list(testigo))
     _cargar(p, map_id)
     assert bytes(p.consola.ram(alta, len(testigo))) == testigo, (
         "cargar el mapa %d pisó `GRID_HIGH`: el fondo se salió del buffer "
         "de carga" % map_id)
-    mal = _mirar_la_vram(p, indice)
+    mal = _mirar_la_vram(p, indice) + _mirar_detras_de_la_grilla(p, indice)
     assert not mal, "el mapa %d: %s" % (map_id, "; ".join(mal))

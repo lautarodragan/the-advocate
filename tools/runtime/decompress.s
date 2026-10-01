@@ -375,15 +375,23 @@ stream:
 ; so no output crosses a bank; the second comes right after the first, and may
 ; have nothing more than its $FF.
 ;
+; And a third stream after those two: what of the map the CPU reads while it
+; is played —the block table and its passability—, which goes **right where
+; the grid ended**, in $7F's half. It is that Y the decompressor leaves, so
+; this does not compute the address: the converter does, and puts it in the
+; record's `M_PTR_MAP_BLOCKS` and `M_PTR_BLOCK_PASS` —see `map_ram_pointers`
+; in `rm2k-snes-mapdata`—. It caps it so that it does not cross the bank.
+;
 ; Battle overwrites $7F's half —it is `SCN_SCENE`—, so `back_from_battle`
-; decompresses it again. See the decision in
+; decompresses it again, the three streams. See the decision in
 ; workflow/decisiones/la-grilla-vive-en-la-wram.md.
 .proc lz2_grid
 .a8
 .i16
     ldy #M_PTR_MAP_CELLS
     jsr lz2_from_field
-    pha                         ; the stream's bank, for the second one
+    pha                         ; the stream's bank, for the third one
+    pha                         ; and for the second
     lda #^GRID
     sta f:LZ2_BANK
     pla
@@ -394,6 +402,8 @@ stream:
     sta f:LZ2_BANK
     pla
     ldy #.loword(GRID_HIGH)
+    jsl f:lz2_decompress + FAST         ; X on the third, Y where the grid ended
+    pla
     jsl f:lz2_decompress + FAST
     rtl
 .endproc

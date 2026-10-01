@@ -18,6 +18,12 @@
 //! **If one of these changes, a byte of the cartridge changed.** The hashes
 //! are not to be regenerated to make a test pass: the Python that produced
 //! them is gone.
+//!
+//! They are regenerated when the cartridge changes **on purpose**, and the
+//! commit says so. Since then they are this code's and not the Python's:
+//! on 2026-10-01 the block table and its passability went into LZ2, behind
+//! the grid —`map_ram` in `materials.rs`—, and what the console makes of
+//! the new bytes is checked by the game's tests, not here.
 
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_mapdata::record;
@@ -45,11 +51,11 @@ fn what_goes_per_map_comes_out_as_the_python_wrote_it() {
     );
     assert_eq!(
         sha(&written.maps),
-        "ea442d16df61339c4262bd32108e54dd3b829af1a89d015d16044127d0a69807"
+        "f50f5ddb1bbb489f102fe5928b9a8faf983ef2a50b6df947db0a7c1c131538e4"
     );
     assert_eq!(
         sha(&written.tables),
-        "acba6054928ecdddcc976fa6e356982285a5f87c13898832e41b1d5358c754b2"
+        "5c92d2735deee22b2af3594b590873b172cf17d4777fde8191f96f3f4d13be61"
     );
 }
 
@@ -72,13 +78,14 @@ fn what_it_says_is_what_the_python_said() {
             "  sprite_tiles      0.3 KB in LZ2, was    0.4",
             "  anim_tiles        0.3 KB in LZ2, was    0.6",
             "  map_cells         0.7 KB in LZ2, was    1.6",
-            "                    1.6 KB in LZ2, was    2.8: 1.2 KB less",
+            "  map_ram           0.1 KB in LZ2, was    0.1",
+            "                    1.7 KB in LZ2, was    2.9: 1.2 KB less",
             "  map_tiles       1 shared block(s),    0.2 KB",
             "  map_cgram       1 shared block(s),    0.0 KB",
             "                  2                 0.2 KB in total"
         ]
     );
-    assert_eq!(written.frames, [0.4246914407996558, 0.3328360627343178]);
+    assert_eq!(written.frames, [0.43519558379009593, 0.34244623610855024]);
 }
 
 #[test]
@@ -132,20 +139,20 @@ fn db() -> Db {
 #[test]
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
-    assert_eq!(emitted.text.lines().count(), 3552);
+    assert_eq!(emitted.text.lines().count(), 3542);
     assert_eq!(
         sha(&emitted.text),
-        "0d2344e269f96fe50ed1fe06772981e754f81d0b3e8390ad1c538f05d0578b2e"
+        "4d2499a177281a311d515a673adc229757fef1ac5615205bcd02fda09aeee5fd"
     );
 }
 
 #[test]
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
-    assert_eq!(emitted.text.lines().count(), 3749);
+    assert_eq!(emitted.text.lines().count(), 3739);
     assert_eq!(
         sha(&emitted.text),
-        "873631055dc837727fea64928db5b6e892047ec652477c0186935c04c78b3cbe"
+        "21166d63d5baca782ea36bebc359ceccf9106bc090e8583578f5030e1f62717c"
     );
 }
 

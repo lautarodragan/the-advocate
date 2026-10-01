@@ -121,7 +121,7 @@ map_ch:      .res 2     ; because the redraw looks at it on every column and row
 npc_total:   .res 2     ; how many bytes this map's NPC table takes
 cam_max_x:   .res 2     ; how far the camera can go without leaving the map
 cam_max_y:   .res 2
-blocks_ptr: .res 3      ; the block table, which no longer fits in bank 0
+blocks_ptr: .res 3      ; the block table, in WRAM behind the grid: see `lz2_grid`
 blocks8_ptr: .res 3     ; the same shifted eight bytes, which is where the upper
                         ; layer starts inside the block. Two pointers come out
                         ; cheaper than eight `iny` in the hottest loop.

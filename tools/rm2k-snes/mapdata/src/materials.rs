@@ -7,12 +7,18 @@ use std::collections::{BTreeMap, HashMap};
 
 /// What the console decompresses when it loads a map, per block class: see
 /// `lz2_decompress` in the runtime's `decompress.s`.
-pub const COMPRESSED_KINDS: [&str; 5] = [
+///
+/// `map_ram` is what of the map the CPU reads while it is played and lives
+/// in WRAM right behind the grid: the block table and its passability, one
+/// after the other —see [`map_ram`]—. It travels as a third stream after
+/// the grid's two, and `lz2_grid` decompresses the three.
+pub const COMPRESSED_KINDS: [&str; 6] = [
     "map_tiles",
     "above_tiles",
     "sprite_tiles",
     "anim_tiles",
     "map_cells",
+    "map_ram",
 ];
 
 // The largest each decompressed stream can be, by where it lands in WRAM:
@@ -49,6 +55,23 @@ pub const LZ2_CYCLES_PER_BYTE: usize = 60;
 /// An NTSC frame, in master cycles.
 pub const CYCLES_PER_FRAME: usize = 357_954;
 
+/// Where the grid ends in WRAM, as an offset from `GRID_HIGH`: the second
+/// half starts there, so a grid of up to 32 KB leaves the upper half of
+/// bank $7F whole. It is where [`map_ram`] lands.
+pub fn grid_high_used(cells: usize) -> usize {
+    cells.saturating_sub(HALF_GRID)
+}
+
+/// What of a map lives in WRAM behind its grid, in this order: the block
+/// table, and the passability of each block. The record points into it
+/// —see `map_ram_pointers` in record.rs— and the console decompresses it
+/// with the grid, so it is there whenever the grid is.
+pub fn map_ram(blocks: &[u8], pass: &[u8]) -> Vec<u8> {
+    let mut out = blocks.to_vec();
+    out.extend_from_slice(pass);
+    out
+}
+
 /// The pieces of a block that are each compressed in their own stream.
 pub fn compressed_parts<'a>(kind: &str, data: &'a [u8]) -> Vec<&'a [u8]> {
     if kind == "map_cells" {
@@ -70,8 +93,31 @@ pub fn caps_per_stream(kind: &str) -> (usize, usize) {
         "above_tiles" | "sprite_tiles" => (LZ2_CAP_ABOVE_AND_SPRITES, 1),
         "anim_tiles" => (LZ2_CAP_ANIM, 1),
         "map_cells" => (HALF_GRID, 2),
+        // Its real cap is what the grid leaves of the upper half of bank
+        // $7F: see [`check_map`].
+        "map_ram" => (HALF_GRID, 1),
         _ => panic!("{kind} is not compressed"),
     }
+}
+
+/// [`check_streams`] for each of a map's classes, and that what lives
+/// behind the grid fits in what the grid leaves of bank $7F: the
+/// decompressor's output cannot cross a bank.
+pub fn check_map(map_id: i64, blocks: &RawBlocks) -> Result<()> {
+    let of = |kind: &str| blocks.get(kind).map(Vec::as_slice).unwrap_or(&[]);
+    for kind in COMPRESSED_KINDS {
+        check_streams(map_id, kind, of(kind))?;
+    }
+    let used = grid_high_used(of("map_cells").len());
+    let ram = of("map_ram").len();
+    if used + ram > HALF_GRID {
+        return Err(Bad::answer(format!(
+            "map {map_id}: what lives behind its grid is {ram} bytes and the grid leaves {} of \
+             the upper half of bank $7F: see `lz2_grid` in tools/runtime/decompress.s",
+            HALF_GRID - used
+        )));
+    }
+    Ok(())
 }
 
 /// That each stream of the block fits in its WRAM place, and that there
@@ -110,9 +156,9 @@ pub fn compress_blocks(maps: &[(i64, &RawBlocks)]) -> Result<HashMap<Vec<u8>, Ve
     let mut parts: Vec<&[u8]> = Vec::new();
     let mut seen: HashMap<&[u8], ()> = HashMap::new();
     for (map_id, blocks) in maps {
+        check_map(*map_id, blocks)?;
         for kind in COMPRESSED_KINDS {
             let data = blocks.get(kind).map(Vec::as_slice).unwrap_or(&[]);
-            check_streams(*map_id, kind, data)?;
             for part in compressed_parts(kind, data) {
                 if seen.insert(part, ()).is_none() {
                     parts.push(part);
@@ -255,6 +301,25 @@ impl Materials {
         if !text.is_empty() {
             add(&mut self.raw, kind, data.len());
             add(&mut self.lz2, kind, stream.len());
+        }
+        (label, text)
+    }
+
+    /// Like [`Materials::store_compressed`], with the streams of several
+    /// classes one after the other under the first one's label: the console
+    /// reads them in a row, each from where the one before ended. Each
+    /// class counts its own bytes in the report.
+    pub fn store_compressed_joined(&mut self, parts: &[(&str, &[u8])]) -> (String, String) {
+        let streams: Vec<Vec<u8>> = parts
+            .iter()
+            .map(|(kind, data)| stream_of(kind, data, &self.compressed))
+            .collect();
+        let (label, text) = self.store(parts[0].0, &streams.concat());
+        if !text.is_empty() {
+            for ((kind, data), stream) in parts.iter().zip(&streams) {
+                add(&mut self.raw, kind, data.len());
+                add(&mut self.lz2, kind, stream.len());
+            }
         }
         (label, text)
     }

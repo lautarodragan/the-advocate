@@ -9,7 +9,7 @@
 use crate::asm::{block, pointer};
 use crate::cgram::BACKDROP;
 use crate::fail::{Bad, Result};
-use crate::materials::{Materials, COMPRESSED_KINDS};
+use crate::materials::{grid_high_used, map_ram, Materials, COMPRESSED_KINDS};
 use crate::objects::{
     block_tile, LAYER_ABOVE, OBJ_COLORS, OBJ_PRIORITY, OBJ_PRIORITY_ABOVE, POSE_BYTES, SPRITE_POSES,
 };
@@ -421,7 +421,23 @@ pub fn raw_blocks(map: &Map) -> crate::materials::RawBlocks {
     );
     raw.insert("anim_tiles".into(), anim_bytes(map));
     raw.insert("map_cells".into(), map.cells.clone());
+    raw.insert("map_ram".into(), map_ram(&map.blocks, &map.block_pass));
     raw
+}
+
+/// Where the record's pointers into what lives behind the grid land: WRAM
+/// addresses, which the converter knows because it is the one that lays
+/// it out —the grid's second half, then the block table, then its
+/// passability—, and the runtime does not compute: `lz2_grid` only
+/// decompresses the third stream where the second one ended. If both sides
+/// disagreed, `test_carga_descomprimida.py` sees it.
+pub fn map_ram_pointers(map: &Map) -> [(&'static str, String); 2] {
+    let start = grid_high_used(map.cells.len());
+    let pass = start + map.blocks.len();
+    [
+        ("map_blocks", format!("GRID_HIGH + ${start:04X}")),
+        ("block_pass", format!("GRID_HIGH + ${pass:04X}")),
+    ]
 }
 
 /// The values of a map's record, by field.
@@ -947,7 +963,7 @@ pub fn map_data(
                 .collect()
         })
         .unwrap_or_default();
-    let pairs: [(&'static str, Vec<u8>); 14] = [
+    let pairs: [(&'static str, Vec<u8>); 12] = [
         ("map_tiles", map.tiles.clone()),
         ("map_cgram", map.cgram.clone()),
         ("above_tiles", map.above_tiles.clone()),
@@ -957,8 +973,6 @@ pub fn map_data(
             sprite.map_or_else(Vec::new, |s| s.tiles.clone()),
         ),
         ("sprite_cgram", sprite_colors_bytes(map)),
-        ("map_blocks", map.blocks.clone()),
-        ("block_pass", map.block_pass.clone()),
         // The terrain per block, or one byte for a flat map: see
         // `TERRAIN_PLANE`.
         ("block_terrain", map_terrain(&map.block_terrain)),
@@ -993,11 +1007,17 @@ pub fn map_data(
     let animated = sprite.map_or(&[][..], |s| s.animated.as_slice());
     out.push(npc_poses_asm(number, animated, poses));
     out.push(actor_table_asm(number, map, poses));
-    // The grid, in its two streams: see `lz2_grid`.
-    let (label, text) = materials.store_compressed("map_cells", &map.cells);
+    // The grid, in its two streams, and what lives behind it in a third:
+    // see `lz2_grid`.
+    let ram = map_ram(&map.blocks, &map.block_pass);
+    let (label, text) =
+        materials.store_compressed_joined(&[("map_cells", &map.cells), ("map_ram", &ram)]);
     labels.insert("map_cells", label);
     if !text.is_empty() {
         out.push(text);
+    }
+    for (name, address) in map_ram_pointers(map) {
+        labels.insert(name, address);
     }
     out.push(page_table(&PageMap::of(map), number, &labels["evcode"]));
     // The three that are not shared carry symbolic pointers inside, whose
