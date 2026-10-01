@@ -114,6 +114,7 @@ ba_t_bgm:
     phb
     phk
     plb
+    jsl f:bgm_level_full        ; the LDB's songs play as written
     jsr battle_bgm
     plb
     rtl

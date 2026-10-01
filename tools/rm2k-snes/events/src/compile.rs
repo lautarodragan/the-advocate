@@ -538,6 +538,35 @@ fn cannot<T>() -> Step<T> {
     Err(Stop::Cannot)
 }
 
+/// A `PlayBGM`'s volume, tempo and balance as `OP_BGM` carries them: the
+/// gain of each side in 128ths and the music frames per video frame in
+/// 256ths. 100, 100 and 50 —the editor's defaults— are 128, 128 and 256: the
+/// song as written.
+///
+/// * **The volume** is what easyrpg's MIDI path does, and the game's songs
+///   are all MIDI: it scales each channel's CC7 —`AudioDecoderMidi::SetVolume`
+///   sends `channel_volumes[i] * volume`—. The stream already went through
+///   that CC7 squared —see `volume` in rm2k-snes-audio's sdsp.rs—, so a
+///   volume of 50 is a quarter of the amplitude.
+/// * **The balance** is easyrpg's curve for audio without MIDI messages
+///   —`ApplyLogVolume`—: the opposite side drops 6 dB every 10 away from 50.
+///   Its MIDI path moves each channel's pan instead, which the stream already
+///   baked into each voice; scaling the sides is the cheap approximation, and
+///   only one `PlayBGM` of the game asks for a balance other than 50.
+/// * **The tempo** is the MIDI one: the song goes faster or slower and the
+///   pitch stays —`AudioDecoderMidi` advances its clock by `pitch / 100`—.
+///   It is clamped to the editor's range, 50 to 150, which also keeps
+///   `irq_music` at two music frames at most per video frame; the game asks
+///   for 50 to 110.
+pub fn bgm_level(volume: i64, tempo: i64, balance: i64) -> (u8, u8, u16) {
+    let gain = (volume.clamp(0, 100) as f64 / 100.0).powi(2);
+    let balance = balance.clamp(0, 100);
+    let drop = |away: i64| 0.5012f64.powf(away.max(0) as f64 / 10.0);
+    let side = |g: f64| (128.0 * gain * g).round().clamp(0.0, 128.0) as u8;
+    let step = (256.0 * tempo.clamp(50, 150) as f64 / 100.0).round() as u16;
+    (side(drop(balance - 50)), side(drop(50 - balance)), step)
+}
+
 // --- the page ------------------------------------------------------------------
 
 /// Where a branch still has its destination blank: the piece, and for a
@@ -2967,7 +2996,8 @@ pub fn compile_command(
             //
             // OP_BGM: the song's index in `Songs` (byte). The ROM plays the
             // ones it carried —the first `SONG_TOTAL`— and with any other it
-            // does nothing. See `Songs`.
+            // does nothing. See `Songs`. After it, the volume, the balance
+            // and the tempo, in the console's units: see [`bgm_level`].
             //
             // Without a song registry it is accepted and not done, which is
             // what this repo did with PlayBGM from the start. With a registry
@@ -2989,7 +3019,9 @@ pub fn compile_command(
             if songs.current == Some(Package::Battle) && !songs.troop_songs.contains(&index) {
                 songs.troop_songs.push(index);
             }
-            Ok(vec![OP_BGM, (index & 0xFF) as u8])
+            let at = |i: usize, default: i64| cmd.parameters.get(i).map_or(default, |&v| v as i64);
+            let (left, right, step) = bgm_level(at(1, 100), at(2, 100), at(3, 50));
+            Ok(vec![OP_BGM, (index & 0xFF) as u8, left, right, step as u8, (step >> 8) as u8])
         }
         PAN_SCREEN => {
             // Moving the camera without the hero: `CommandPanScreen`.
@@ -4407,6 +4439,28 @@ mod tests {
         );
     }
 
+    /// The volume, the balance and the tempo of a `PlayBGM`, in the units
+    /// `OP_BGM` carries: the defaults leave the song as written, a volume of
+    /// 50 is a quarter of the amplitude —the stream's CC7 is squared—, and
+    /// the tempo is clamped to the editor's 50 to 150.
+    #[test]
+    fn a_play_bgms_level_in_the_consoles_units() {
+        assert_eq!(bgm_level(100, 100, 50), (128, 128, 256));
+        assert_eq!(bgm_level(50, 150, 50), (32, 32, 384));
+        assert_eq!(bgm_level(40, 80, 50), (20, 20, 205));
+        assert_eq!(bgm_level(0, 50, 50), (0, 0, 128));
+        assert_eq!(bgm_level(100, 300, 50), (128, 128, 384));
+        // the balance: the opposite side drops, 6 dB every 10
+        assert_eq!(bgm_level(100, 100, 100), (4, 128, 256));
+        assert_eq!(bgm_level(100, 100, 40), (128, 64, 256));
+        let page = [cmd(PLAY_BGM, &[0, 50, 150, 50], "K")];
+        let mut songs = Songs::default();
+        assert_eq!(
+            with_songs(&page, &mut songs, &|_| None),
+            Some(vec![OP_BGM, 0, 32, 32, 0x80, 1, OP_DONE])
+        );
+    }
+
     /// A troop page's `PlayBGM` plays its song, which goes into the battle's
     /// package and also into `troop_songs`, for the plan to put apart; a
     /// map's goes only into its map's package.
@@ -4414,7 +4468,7 @@ mod tests {
     fn a_troop_pages_song_is_played_and_noted_as_a_troop_song() {
         let mut songs = Songs::default();
         let map_page = [cmd(PLAY_BGM, &[0, 100, 100, 50], "map")];
-        assert_eq!(with_songs(&map_page, &mut songs, &|_| None), Some(vec![OP_BGM, 0, OP_DONE]));
+        assert_eq!(with_songs(&map_page, &mut songs, &|_| None), Some(vec![OP_BGM, 0, 128, 128, 0, 1, OP_DONE]));
         let game = Game::default();
         let indices = Indices::default();
         let sound = SoundSettings::default();
@@ -4432,7 +4486,7 @@ mod tests {
         };
         let troop_page = [cmd(PLAY_BGM, &[0, 100, 100, 50], "radio")];
         let code = compile_page(&mut ctx, &troop_page, None, 0, 0).unwrap();
-        assert_eq!(code, Some(vec![OP_BGM, 1, OP_DONE]));
+        assert_eq!(code, Some(vec![OP_BGM, 1, 128, 128, 0, 1, OP_DONE]));
         assert_eq!(songs.troop_songs, [1]);
         assert_eq!(songs.per_package[1].0, Package::Battle);
         assert_eq!(songs.per_package[1].1.songs, [1]);

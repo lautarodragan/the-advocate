@@ -205,6 +205,9 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `rpgmaker/test_tema_del_mapa.py`: el tema de cada mapa
 * `rpgmaker/test_tema_que_ya_suena.py`: que un `PlayBGM` del tema que ya
   suena no lo vuelva a empezar
+* `rpgmaker/test_volumen_y_tempo.py`: el volumen y el tempo de un
+  `PlayBGM`, en lo que la ROM le escribe al DSP, y el mismo tema con otro
+  volumen, que baja sin reiniciar
 * `rpgmaker/test_bateria_suena.py`: lo que la música les escribe a las voces
   de la batería
 * `rpgmaker/test_musica_reparto.py`: las ocho voces repartidas nota a nota,
@@ -217,7 +220,7 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `rpgmaker/test_fundido_del_tema.py`: que el `FadeOutBGM` y la salida del
   título bajen el tema y no los efectos, escuchando el audio del core
 * `abl/test_msu.py`: las pistas de MSU-1, y lo que pasa con ellas al salir
-  del título y en un fundido
+  del título, en un fundido y con el volumen de un `PlayBGM`
 * `abl/test_msu_efectos.py`: los efectos con MSU-1: los de calidad del
   `.msu`, enteros y a su tasa, la caída a los del cartucho con otro `.msu`, y
   tres a la vez con las voces que la música no usa

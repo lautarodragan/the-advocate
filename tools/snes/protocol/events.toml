@@ -109,11 +109,19 @@ args = [
   { name = "visible", type = "byte" },
 ]
 
+# `PlayBGM`: the song, and how loud and how fast, already in the console's
+# units. `left` and `right` are the gain of each side in 128ths —128 is the
+# song as written—, which is RM2k's volume and balance together; `step` is
+# how much of a music frame each video frame advances, in 256ths —256 is
+# RM2k's tempo 100—.
 [[opcode]]
 name = "OP_BGM"
 code = 0x0B
 args = [
   { name = "track", type = "byte" },
+  { name = "left", type = "byte" },
+  { name = "right", type = "byte" },
+  { name = "step", type = "word" },
 ]
 
 [[opcode]]
