@@ -1578,7 +1578,8 @@ TEST_SWITCH = 1023
 # condition, and since the highest-numbered one that is met wins, with the
 # variable at k page k runs and no other. With a single variable it is enough
 # for any number of cases; with one switch per case it is not: free ones are
-# 1004 to 1020 and 1022.
+# 1004 to 1020 and 1022. What bounds them is the page table of the map the
+# test event goes in: `MAX_PAGES`, in `rm2k-snes-mapdata`'s `record.rs`.
 #
 # The number does not matter, because the ROM talks in slots, and no page of
 # the game names 1000. It goes higher than all of the game's, so its slot is
