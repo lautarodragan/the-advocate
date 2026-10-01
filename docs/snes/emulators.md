@@ -62,6 +62,25 @@ The data port running in Mednafen was checked on 2026-09-26 by saving a
 Mednafen state (F5) in the droid fight and reading the WRAM out of the
 `.mc0` file: the backdrop came from the `.msu`.
 
+## The 8 MB map, ExHiROM
+
+Since 2026-10-01 the cartridge is ExHiROM, and not every emulator maps it
+like the cartridge does. Measured with `just exhirom` on a test ROM that
+sums stretches of the whole map:
+
+- **snes9x** and **bsnes**: like the cartridge.
+- **mesen-s**, **Mesen2** —unless "strict board mappings" is on— and
+  **Mednafen's default `snes` module** put LoROM's SRAM at
+  `$70-$7D:0000-7FFF` in ExHiROM too, where the cartridge has ROM
+  (`BaseCartridge.cpp` in both Mesens, "some old romhacks seem to depend on
+  this"). The ROM keeps no data there.
+- **Mednafen's `snes_faust`** reads `$80-$BF:8000-FFFF` from the second
+  4 MB, where the cartridge has the first (`cart.cpp`). The ROM's two code
+  banks are in both places, so it runs the same.
+
+`mednafen -force_module snes_faust` is still the one to play with: it is the
+one with the MSU-1.
+
 ## Debugging with Mesen2
 
 Mesen2's debugger can show our routine names and, next to the
