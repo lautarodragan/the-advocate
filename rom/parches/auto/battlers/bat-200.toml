@@ -1,0 +1,39 @@
+# The artistic decision of battler bat-200: **which colors are lost** when
+# taking it to fifteen, which is what the battle scene leaves each one.
+# The converter writes it and `just parches` regenerates it, which is
+# what has to be run when a change moves it; `just parches --check`
+# —and the suite— fail if it is stale. See `rm2k-snes-patches`.
+
+battler = "bat-200"
+imagen = "bat"
+tono = 200
+
+# What it came from, already shrunk to 80%: the size in scene pixels
+# and how many distinct 15-bit colors it brought. It is not decided, it
+# is measured.
+tamano = [51, 51]
+colores = 204
+
+# What remained, in palette order: index 1 is the first one.
+paleta = [
+  [2, 2, 2],
+  [8, 8, 8],
+  [12, 12, 12],
+  [26, 22, 23],
+  [4, 4, 4],
+  [17, 13, 14],
+  [23, 19, 20],
+  [9, 6, 6],
+  [12, 8, 9],
+  [19, 15, 16],
+  [14, 11, 12],
+  [21, 17, 18],
+  [18, 18, 18],
+  [15, 15, 15],
+  [31, 29, 29],
+]
+
+# How many merges it took to get there, with
+# `adeleine.merge_least_visible`: each one sends the least noticeable
+# color to its nearest neighbor.
+fusiones = 189

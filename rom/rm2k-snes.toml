@@ -387,13 +387,6 @@ excluded = [
     # que nada lleva. Battle Rink Ladder cuelga del 199 y ningún `Teleport`
     # lleva a él. Inalcanzables.
     46, 75, 96, 97, 98,
-    # Lo opcional del mundo, que no entra todavía: Yun Town (67, y su armería
-    # y su posada) y Drust Camp (68 y sus minas). El 70 y el 73, que también
-    # son de Yun Town, entran igual: ya estaban en la ROM como mapas de
-    # prueba, y sin el 67 nada lleva a ellos. Ver "Lo que sigue" en
-    # `el-mundo-y-lo-que-sigue.md`, el hito 5.
-    67, 71, 72,
-    68, 103,
 ]
 
 # El tutorial del droide no cuelga de Lashe City sino de `Tutorials`, pero salta
@@ -402,10 +395,13 @@ excluded = [
 # cruzarlo. Y Tangle Forest, que **no es opcional** aunque nada de la historia
 # dependa de él: del puente al túnel no se llega caminando por el mundo, se
 # cruza el bosque —310, 311, 313 y 312, que sale al oeste del 66—. Ver
-# `workflow/tasks/*/mundo-5-tangle-forest.md`.
+# `workflow/tasks/*/mundo-5-tangle-forest.md`. Y lo de Drust Camp que no tiene
+# un id chico: el ring (199), la taberna (200) y la tienda de Net (201), la de
+# la clave; el 68 y sus minas (103) entran por `below`. Ver
+# `workflow/tasks/*/mundo-6-yun-y-drust.md`.
 #
 # El mapa de debug no va acá: lo agrega `[debug] debug_map`.
-added = [164, 259, 255, 310, 311, 312, 313]
+added = [164, 259, 255, 310, 311, 312, 313, 199, 200, 201]
 
 # Y los que sólo existen por la tanda: situaciones que ningún mapa del juego
 # que entra ejercita. `rm2k-snes-patches` no les pide parche versionado.

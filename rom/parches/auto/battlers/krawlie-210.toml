@@ -1,0 +1,39 @@
+# The artistic decision of battler krawlie-210: **which colors are lost** when
+# taking it to fifteen, which is what the battle scene leaves each one.
+# The converter writes it and `just parches` regenerates it, which is
+# what has to be run when a change moves it; `just parches --check`
+# —and the suite— fail if it is stale. See `rm2k-snes-patches`.
+
+battler = "krawlie-210"
+imagen = "krawlie"
+tono = 210
+
+# What it came from, already shrunk to 80%: the size in scene pixels
+# and how many distinct 15-bit colors it brought. It is not decided, it
+# is measured.
+tamano = [37, 30]
+colores = 265
+
+# What remained, in palette order: index 1 is the first one.
+paleta = [
+  [6, 4, 7],
+  [9, 8, 11],
+  [8, 7, 10],
+  [4, 2, 5],
+  [7, 6, 9],
+  [13, 11, 14],
+  [19, 15, 18],
+  [24, 22, 24],
+  [11, 9, 21],
+  [16, 13, 16],
+  [22, 19, 22],
+  [1, 0, 9],
+  [1, 1, 19],
+  [13, 21, 14],
+  [10, 15, 11],
+]
+
+# How many merges it took to get there, with
+# `adeleine.merge_least_visible`: each one sends the least noticeable
+# color to its nearest neighbor.
+fusiones = 250
