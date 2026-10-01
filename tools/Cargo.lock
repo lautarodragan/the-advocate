@@ -469,7 +469,9 @@ name = "rm2k-snes-mapdata"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "ditto",
  "lz2",
+ "rm2k-snes-battle",
  "serde",
  "serde_json",
  "sha2",

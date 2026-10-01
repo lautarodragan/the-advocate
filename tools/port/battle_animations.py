@@ -65,6 +65,25 @@ def frame_without_gaps(data):
     return bytes(out)
 
 
+def animations_request(animations):
+    """The cartridge's battle animations as `rm2k-snes-mapdata emit` takes
+    them: the box they are drawn in, and per animation its frames as they
+    end up in VRAM, its anchor as the console's table carries it and its
+    colors. How a frame is cut into the box and where its anchor falls are
+    `animation.py`'s; the emission only writes them."""
+    return {
+        "box": animation_mod.BOX, "obj": animation_mod.OBJ,
+        "objects": animation_mod.OBJECTS, "tiles": animation_mod.TILES,
+        "screen": list(animation_mod.SCREEN),
+        "list": [{"number": number,
+                  "frames": [animation_frame(f).hex()
+                             for f in info["cuadros"]],
+                  "anchor": list(animation_mod.rom_anchor(info)),
+                  "palette": [list(c) for c in info["paleta"]]}
+                 for number, info in sorted(animations.items())],
+    }
+
+
 def animations_asm(animations, maps):
     """The cartridge's battle animations, ready for the `.inc`.
 

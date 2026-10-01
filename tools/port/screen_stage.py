@@ -162,8 +162,10 @@ def convert(game_dir, members, items, bank_items, title):
     `bank_items` go in the menu's bank, which the actor choice writes their
     names with.
 
-    Returns `(window, slots, title_menu, texts, says)`, in the shape
-    `mapdata` emits, and what the stage has to say, in order.
+    Returns `(window, slots, title_menu, texts, says, answer)`: in the
+    shape the converter prints them, what the stage has to say, in order,
+    and its answer as it came, which is what `rm2k-snes-mapdata emit`
+    takes.
     """
     request = {
         "slots": vram.SLOTS,
@@ -247,7 +249,7 @@ def convert(game_dir, members, items, bank_items, title):
                       "tiles": [_tile(c) for c in t["tiles"]],
                       "palette": [_color(c) for c in t["palette"]],
                       "tilemaps": t["tilemaps"]}
-    return window, slots, title_menu, answer["texts"], answer["says"]
+    return window, slots, title_menu, answer["texts"], answer["says"], answer
 
 
 def _cgram_reserved():

@@ -12,12 +12,17 @@
 pub mod asm;
 pub mod cgram;
 pub mod compress;
+pub mod emit;
+pub mod engine;
 pub mod fail;
 pub mod hex;
+pub mod json;
 pub mod materials;
 pub mod objects;
+pub mod pyfmt;
 pub mod record;
 pub mod request;
+pub mod scene;
 pub mod snes;
 pub mod text;
 pub mod vram;

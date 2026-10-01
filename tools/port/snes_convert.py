@@ -87,9 +87,9 @@ from port.sprites import (OBJ_PRIORITY, OBJ_PRIORITY_ABOVE, block_tile,
                           maps_per_character)
 from port import vram
 from port.map_record import PARALLEL_MAX, ROUTE_EV_MAX
-from port.battle_animations import rom_animations
+from port.battle_animations import animations_request, rom_animations
 from port.battle_scenes import (fallback_bytes, patch_uses, rom_scene,
-                                write_patch_uses)
+                                scene_request, write_patch_uses)
 from port import stage
 from port import battle_stage
 from port import compiler
@@ -636,7 +636,7 @@ def main():
     # the medicines of `items_rom` alone.
     items_all = sorted(set(items_rom)
                        | drop_items(renderer.database, troops.ids))
-    window_data, slots_data, title_menu, screen_texts, says = \
+    window_data, slots_data, title_menu, screen_texts, says, screens = \
         screen_stage.convert(args.game_dir, members, items_all, items_rom,
                              not args.no_title)
     window_data["mensajes"] = messages.bytes()
@@ -776,32 +776,17 @@ def main():
                                         key=lambda x: x[1])],
         screen_stage.layout().ITEM_NAME_WIDTH)
     report, decompress_frames = emit(
-        args.output, maps, args.start_index, args.hero_above, party,
-        window_data, title_data, slots_data,
-        args.pictures.info, animations, troops.ids, battle_audio,
-        scenes, battle_tables, troop_pages,
-        party_common=compiler.party_common_events(compiled),
-        enemy_hp=args.enemy_hp,
-        speed_keys=not args.no_speed_keys,
-        game_over=game_over_data, battle_model=battle_model)
-    # Which entries of their palette the timer digits use, one bit per entry
-    # and one word per map, in the order of `map_table`. `upload_timer_pal`
-    # uploads **those** again untinted and not the whole palette, because the
-    # palette belongs to a character that is tinted. It goes separately and
-    # not as a record field because the record is at exactly its 128. The
-    # stage that painted the glyphs says which: `timer_mask`, in
-    # `rm2k-snes-map-sprites`.
-    masks = [map_info["timer_mask"] for map_info in maps]
-    with open(args.output, "a") as handle:
-        handle.write('\n.segment "RODATA"\n.block %d\ntimer_mask:\n'
-                     '    .word %s\n'
-                     % (2 * len(masks),
-                        ", ".join("$%04X" % m for m in masks)))
-    if len(args.cases) > 1:
+        args.output, maps, args.dump, args.start_index, args.hero_above,
+        party, screens, window_data["mensajes"], title_data and
+        title_data["pantalla"], game_over_data, args.pictures.info,
+        animations_request(animations), troops.ids, battle_audio,
+        scene_request(scenes, troops.ids, renderer.database), battle_tables,
+        compiled["troop_pages"], compiler.party_common_events(compiled),
+        battle_model, items_all, members, args.text_padding,
         # Where the harness writes the case number: see `--case`.
-        with open(args.output, "a") as handle:
-            handle.write("\nCASE_SLOT = %d\n" % events.variable_slot(
-                events.CASE_VARIABLE))
+        events.variable_slot(events.CASE_VARIABLE)
+        if len(args.cases) > 1 else None,
+        enemy_hp=args.enemy_hp, speed_keys=not args.no_speed_keys)
     print("%d map(s) -> %s, boots at %d (map %d)"
           % (len(maps), args.output, args.start_index, maps[args.start_index]["id"]))
     # What Adeleine decided, as images: to look at which colors were lost

@@ -73,6 +73,27 @@ enum Command {
         It writes pages.inc."
     )]
     Pages(Plain),
+    /// The whole .inc of a cartridge
+    #[command(
+        after_help = "The request: what every domain of the conversion answered —see `Emit` in \
+        request.rs—. The database's items, skills, enemies, actors and troops are read from \
+        the dump in --data. It writes mapdata.inc and mapdata.json: {\"notes\": what it says, in \
+        order, \"report\": what was shared and compressed, \"frames\": per map, how many frames \
+        decompressing it takes}. With --raw, what the console decompresses of each map, \
+        uncompressed, into that directory. The answer is no if something does not fit where \
+        the console reads it."
+    )]
+    Emit(EmitArgs),
+}
+
+#[derive(ClapArgs)]
+struct EmitArgs {
+    /// The Ditto dump the database is read from: the directory with db/
+    #[arg(long, value_name = "DIRECTORY")]
+    data: PathBuf,
+
+    #[command(flatten)]
+    maps: MapsArgs,
 }
 
 #[derive(ClapArgs)]
@@ -245,6 +266,23 @@ fn do_pages(args: &Plain) -> Result<()> {
     )
 }
 
+fn do_emit(args: &EmitArgs) -> Result<()> {
+    let request: request::Emit = request::read(&args.maps.plain.request)?;
+    let db = rm2k_snes_battle::db::Db::from_dump(&args.data, true)
+        .map_err(|b| Bad::answer(b.message().to_string()))?;
+    let emitted = rm2k_snes_mapdata::emit::emit(&request, &db)?;
+    if let Some(raw) = &args.maps.raw {
+        materials::write_raw(raw, &emitted.raw)?;
+    }
+    let out = &args.maps.plain.out;
+    write_text(out, "mapdata.inc", &emitted.text)?;
+    write(
+        out,
+        "mapdata",
+        &json!({"notes": emitted.notes, "report": emitted.report, "frames": emitted.frames}),
+    )
+}
+
 fn main() -> ExitCode {
     let cli = Cli::parse();
     let done = match &cli.command {
@@ -252,6 +290,7 @@ fn main() -> ExitCode {
         Command::Compress(args) => do_compress(args),
         Command::Maps(args) => do_maps(args),
         Command::Pages(args) => do_pages(args),
+        Command::Emit(args) => do_emit(args),
     };
     match done {
         Ok(()) => ExitCode::SUCCESS,

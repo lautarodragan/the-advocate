@@ -81,6 +81,126 @@ pub struct Map {
     pub turning: Vec<i64>,
 }
 
+/// `emit`: everything the cartridge carries, from every domain.
+#[derive(Deserialize)]
+pub struct Emit {
+    /// The maps, in the order of the cartridge's table: see [`Map`].
+    pub maps: Vec<Map>,
+    /// The map the cartridge boots in, by its index.
+    pub start: i64,
+    /// Whether the hero goes above the upper layer, which only a test asks
+    /// for; whether L and R change its speed; whether the battle draws the
+    /// enemies' HP.
+    pub hero_above: bool,
+    pub speed_keys: bool,
+    pub enemy_hp: bool,
+    /// The party the game starts with.
+    pub party: Vec<i64>,
+    /// Who the cartridge is: its header title and its SRAM signature.
+    pub rom: Rom,
+    /// What `rm2k-snes-screens convert` answered, as it is: the message
+    /// window and its font, the title's menu, the slots and the pause
+    /// menu, the text screens with their windows, End Game, the texts they
+    /// compose, and the geometry they were drawn with.
+    pub screens: serde_json::Value,
+    /// The text block of every `ShowMessage`, as the event compiler left it.
+    #[serde(deserialize_with = "hex::bytes")]
+    pub messages: Vec<u8>,
+    /// The title's picture and the Game Over's, each one stream.
+    pub title: Option<FullScreen>,
+    pub game_over: Option<FullScreen>,
+    /// The `ShowPicture` picture the cartridge carries.
+    pub picture: Option<ShowPicture>,
+    /// The battle animations the compiled pages show.
+    pub animations: Animations,
+    /// The troops some battle of the cartridge asks for, in its order.
+    pub troops: Vec<i64>,
+    /// The battle's songs and sounds, as the compiler numbered them.
+    pub battle_audio: Option<serde_json::Value>,
+    /// The battle scene: the backdrops and the battlers, already as bytes.
+    pub scene: serde_json::Value,
+    /// What `rm2k-snes-battle tables` wrote —the experience's and the
+    /// encounters' pieces— and its experience slots.
+    pub battle_tables: BattleTables,
+    /// The troops' event pages, as the compiler answered them, if any.
+    pub troop_pages: Option<serde_json::Value>,
+    /// The common events the menu runs on closing: `[switch, number,
+    /// code]`.
+    pub party_common: Vec<(i64, i64, String)>,
+    /// What `rm2k-snes-battle model` answered.
+    pub battle_model: serde_json::Value,
+    /// The compiler's indices: each variable's slot, and each (actor,
+    /// skill) pair's bit.
+    pub variables: Vec<(i64, i64)>,
+    pub skill_pairs: Vec<(i64, i64, i64)>,
+    /// The items and actors the cartridge knows.
+    pub items: Vec<i64>,
+    pub actors: Vec<i64>,
+    /// Dead texts after the items', for a test.
+    pub text_padding: usize,
+    /// Where the harness writes the case number, if there is more than one.
+    pub case_slot: Option<i64>,
+}
+
+#[derive(Deserialize)]
+pub struct Rom {
+    pub title: String,
+    pub sram_signature: String,
+}
+
+/// A picture that fills the screen, as one LZ2 stream with its tiles,
+/// tilemap and colours.
+#[derive(Deserialize)]
+pub struct FullScreen {
+    pub tiles: i64,
+    pub colors: i64,
+    pub first_color: i64,
+    #[serde(deserialize_with = "hex::bytes")]
+    pub stream: Vec<u8>,
+}
+
+/// The `ShowPicture` picture: where its corner lands, how many objects it
+/// takes, and its fifteen colours.
+#[derive(Deserialize)]
+pub struct ShowPicture {
+    pub x: i64,
+    pub y: i64,
+    pub objects: i64,
+    pub palette: Vec<Color>,
+}
+
+/// The battle animations, and the box they are drawn in.
+#[derive(Deserialize)]
+pub struct Animations {
+    /// The box's side, an object's, how many objects and tiles it takes,
+    /// and the console's screen.
+    #[serde(rename = "box")]
+    pub side: i64,
+    pub obj: i64,
+    pub objects: i64,
+    pub tiles: i64,
+    pub screen: [i64; 2],
+    pub list: Vec<BattleAnimation>,
+}
+
+/// One battle animation: its frames as they end up in VRAM, its anchor as
+/// the console's table carries it, and its colours.
+#[derive(Deserialize)]
+pub struct BattleAnimation {
+    pub number: i64,
+    #[serde(deserialize_with = "drawings")]
+    pub frames: Vec<Vec<u8>>,
+    pub anchor: [i64; 2],
+    pub palette: Vec<Color>,
+}
+
+#[derive(Deserialize)]
+pub struct BattleTables {
+    pub experience: String,
+    pub encounters: String,
+    pub slots: serde_json::Value,
+}
+
 /// A family's run of the ChipSet's animation.
 #[derive(Deserialize)]
 pub struct Run {
@@ -137,6 +257,10 @@ pub struct Sprite {
     /// The timer's digits, `[first tile, palette]`, if this map carries
     /// them; the palette may be missing.
     pub timer: Option<(i64, Option<i64>)>,
+    /// Which entries of its palette the digits take, one bit each, as
+    /// `rm2k-snes-maps` answered it: 0 without a timer.
+    #[serde(default)]
+    pub timer_mask: i64,
     /// The characters that change pose, `[CharSet, index]`, in the order of
     /// the pose table.
     pub animated: Vec<(String, i64)>,

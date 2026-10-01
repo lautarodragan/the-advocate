@@ -306,6 +306,53 @@ def fallback_double():
                     for s in range(256))
 
 
+def scene_request(data, troops, db):
+    """The cartridge's battle scene as `rm2k-snes-mapdata emit` takes it:
+    what `rom_scene` decided, with what a backdrop and a battler look like,
+    where each member stands and in which order the troop is drawn already
+    as bytes and numbers —those are the scene's, `scene.py`—. The emission
+    only writes them: see `scene.rs` there."""
+    E = scene_mod
+    geometry = {name: getattr(E, name) for name in (
+        "WIDTH", "HEIGHT", "TILES", "TILES_X", "TILES_Y", "COLORS",
+        "CGRAM_BASE", "VRAM_TILES", "VRAM_MAP", "FALLBACK_COLORS",
+        "FALLBACK_PLANES", "FALLBACK_WIDTH", "FALLBACK_HEIGHT",
+        "FALLBACK_SCALE", "BATTLER_PALETTE")}
+    backdrops = []
+    for info in data["fondos"]:
+        tiles_, colors = fallback_bytes(info)
+        backdrops.append({"tiles": tiles_.hex(), "colors": colors.hex()})
+    battlers = data["battlers"]
+    placed = []
+    for number in troops:
+        if number not in db.troops:
+            continue
+        troop = db.troops[number]
+        theirs = list(zip(troop.members,
+                          troop.positions))[:constants.ENEMIES_MAX]
+        members, infos = [], []
+        for enemy, center in theirs:
+            k = data["battler_de"].get(enemy, 0xFF)
+            infos.append(battlers[k] if k != 0xFF else None)
+            x, y = (E.position(center, battlers[k]) if k != 0xFF else (0, 0))
+            members.append([k, x, y])
+        placed.append([number, members,
+                       E.drawing_order([c for _e, c in theirs], infos)])
+    return {
+        "geometry": geometry,
+        "game": len(data.get("juego", ())),
+        "troop_backdrop": [[n, k] for n, k in data["tropa_fondo"].items()],
+        "map_backdrop": list(data["mapa_fondo"]),
+        "terrains": list(data.get("terreno_fondo") or []),
+        "fallback_of": list(data.get("respaldo_de") or []),
+        "backdrops": backdrops,
+        "battlers": [{"columns": E.columns(b), "height": b["alto"],
+                      "palette": [list(c) for c in b["paleta"]],
+                      "bytes": E.battler_bytes(b).hex()} for b in battlers],
+        "troops": placed,
+    }
+
+
 def scenes_asm(data, troops, db):
     """The cartridge's battle scene, ready for the `.inc`.
 
