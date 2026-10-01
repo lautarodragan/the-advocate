@@ -104,3 +104,33 @@ escena).
 
 Cada etapa: `mapdata.inc` de los tres cartuchos igual línea por línea, y
 todo `rom/build/` byte por byte, con `NO_CACHE=1`.
+
+## Hecho, etapa por etapa
+
+### 1. Las hojas
+
+* `74055585`: la compresión y los flujos (`compress.rs`, `materials.rs`), los
+  repartos de VRAM (`vram.rs`, que la etapa publica con `vram`) y las
+  constantes de la CGRAM baja (`cgram.rs`). `vram.py` queda como lector de
+  lo publicado. Las pruebas de los repartos y de los flujos se mudaron al
+  crate.
+* `68038577`: `Substitutions` a `rm2k-snes-maps` (`substitutions.rs`): el
+  pedido del mapa lleva los `TileSubstitution` y la respuesta trae los
+  bloques agrandados, la tabla para el compilador y los que faltan. `SUB_MAX`
+  pasó a `snes_convert.py`. `blocks.py` queda sin usar.
+
+### 2. `map_record`
+
+* `260c36ed`: `rm2k-snes-mapdata maps` escribe todo lo que va por mapa
+  —registro, tablas, páginas, NPC, poses, bloques con su LZ2, crudos— en tres
+  pedazos que `emit` pone en su lugar. `pages` escribe una tabla de páginas
+  sola, para la prueba de ABL que la mira. Las pruebas del crate comparan
+  contra los sha256 del Python de la base, sobre un pedido armado
+  (`tests/maps.json`).
+
+Después de cada commit: `NO_CACHE=1 just cartuchos`, todo `rom/build/` (1035
+archivos) y los tres `mapdata.inc` iguales a la base.
+
+Lo que el log del conversor cambia, y no está en la huella: el renglón "the
+map fits in N 16x16 blocks" cuenta ahora los bloques que armaron las
+sustituciones, porque la etapa los arma antes de contestar.
