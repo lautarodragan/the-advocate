@@ -59,3 +59,29 @@ pesada son 15 KB). `scn_terrain`, que lee la grilla, corre antes.
   no cambian. La entrada a la pelea es a negro, así que no se ve.
 * `test_reservas_de_la_wram.py` deja pasar `SCN_BATTLERS`, y la decisión de
   la grilla lo dice.
+
+### 3. Las animaciones de batalla (las de las cinemáticas): hecho, cuadro por cuadro
+
+Se pueden, pero no "al empezar la pelea", como decía el estudio: las dibuja
+`ShowBattleAnimation` **en el mapa** —las páginas de tropa no lo compilan— y
+`anim_frame_build` las arma en el lazo principal, con la pantalla prendida.
+Cada cuadro va en su propio flujo de LZ2 y se descomprime cuando toca en uno
+de dos lugares de `LZ2_BUFFER` —libre en el mapa una vez cargado—, el que no
+tiene el cuadro anterior, cuyos tiles se borran primero. La pelea pisa
+`LZ2_BUFFER`, así que `scene_upload` llama a `anim_buf_clear`.
+
+**Probé primero la animación entera en un flujo**, descomprimida al armar su
+primer cuadro: ahorraba más —67.696 B a 28.171, contra 37.354 cuadro por
+cuadro—, pero el primer tick de la animación tardaba hasta 4 cuadros de
+hardware (la 148, de 13,7 KB) y 2 la mayoría: el mapa se frenaba al empezar
+cada animación. Cuadro por cuadro, medido sobre las 21 animaciones de
+`release` en el mapa 6 con el método de `test_animacion_cuadros.py`, ningún
+tick pasa de un cuadro.
+
+* En `release`: 67.696 B crudos, 37.354 en LZ2. `just espacio`: de 61 bancos
+  de datos a 60.
+* `test_animacion_cuadros.py` arma cada cuadro de cada animación por el
+  camino del juego y lo compara con la cuenta sin comprimir.
+* **Lo que ninguna prueba corre**: una pelea con una animación a medio
+  dibujar en el mapa, que es lo que cubre la llamada a `anim_buf_clear` en
+  `scene_upload`.

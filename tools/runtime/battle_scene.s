@@ -567,6 +567,11 @@ outside:
 .proc scene_upload
 .a8
 .i16
+    ; The map's battle animation decompresses its last frame in
+    ; `LZ2_BUFFER`, which is `SCN_CLEAN`: it is forgotten here, and if the
+    ; drawing goes on after the battle it starts from a clean box. See
+    ; `anim_buf_clear`.
+    jsl f:anim_buf_clear
     lda f:boot_frames
     sta SCN_FRAMES
     lda #0

@@ -9,10 +9,17 @@
 ; whole from: what ends up in VRAM is the same as when the cartridge carried
 ; them complete.
 ;
+; And since 2026-10-01 each frame comes in LZ2: it is decompressed when it is
+; due into one of two places in `LZ2_BUFFER` —free on the map once it is
+; loaded—, the one the previous frame is not in, and rebuilt from there.
+; One frame at a time and not the whole animation when it starts: the
+; biggest one decompressed whole stopped the map for three frames.
+;
 ; The buffer is kept at zero except for the tiles of the last frame built,
-; which `ANIMB_PREV` points to. So building a new one means clearing those and
-; copying the new one's, and it costs what the two weigh, not the 2 KB: the
-; frames are almost all transparency. It runs in the main loop, with the
+; which `ANIMB_PREV` points to —in WRAM, where it was decompressed—. So
+; building a new one means clearing those and copying the new one's, and it
+; costs what the two weigh, not the 2 KB: the frames are almost all
+; transparency. It runs in the main loop, with the
 ; screen on, and that is why the CPU copies and not a DMA to $2180: a general
 ; DMA outside vblank collides with the HDMA of the message window, and on the
 ; console's first CPU revision that collision can hang it.
@@ -26,7 +33,9 @@
 
 ; The whole buffer at zero and no frame built. Called by `enter_map`, with
 ; the screen off; it is needed at least once after power-on, because WRAM
-; starts out with garbage on the console —and in bsnes—.
+; starts out with garbage on the console —and in bsnes—. And by the battle,
+; which overwrites `LZ2_BUFFER`, where the last frame was decompressed: its
+; tiles can no longer be erased one by one.
 .proc anim_buf_clear
 .a8
 .i16
@@ -89,7 +98,7 @@ erase:
     jmp erase
 
 no_previous:
-    ; The new one's pointer: the animation's first plus the one that is due,
+    ; The new one's stream: the animation's first plus the one that is due,
     ; four bytes per pointer. It is the same arithmetic vblank did when it
     ; uploaded the frame straight from the cartridge.
     rep #$20
@@ -102,13 +111,35 @@ no_previous:
     asl a
     asl a
     tax
-    lda f:anim_battle_frames, x
+    ; Where it is decompressed: of the two places, the one the previous
+    ; frame is not in. With none built, either.
+    lda f:ANIMB_PREV
+    cmp #.loword(LZ2_BUFFER)
+    beq second
+    lda #.loword(LZ2_BUFFER)
+    bra chosen
+second:
+    lda #.loword(LZ2_BUFFER + ANIM_B_FRAME_MAX)
+chosen:
     sta f:ANIMB_PREV
+    tay
+    lda f:anim_battle_frames, x
+    pha
+    sep #$20
+.a8
+    lda #^LZ2_BUFFER
+    sta f:LZ2_BANK
+    sta f:ANIMB_PREV + 2
+    lda f:anim_battle_frames + 2, x
+    plx
+    jsl f:lz2_decompress + FAST
+    rep #$20
+.a16
+    lda f:ANIMB_PREV
     tay
     sep #$20
 .a8
-    lda f:anim_battle_frames + 2, x
-    sta f:ANIMB_PREV + 2
+    lda #^LZ2_BUFFER
     pha
     plb                         ; the new frame's bank
 copy:
@@ -138,3 +169,5 @@ tile:
 .a8
     jmp copy
 .endproc
+
+.assert LZ2_BUFFER + 2 * ANIM_B_FRAME_MAX <= ANIM_DRAWINGS, error, "the two places of the battle animation's frame would overwrite the ChipSet animation's drawings"
