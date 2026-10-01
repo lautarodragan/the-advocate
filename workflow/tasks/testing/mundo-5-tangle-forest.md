@@ -2,7 +2,7 @@
 name: "Mundo 5: Tangle Forest"
 description: "Los mapas 310 a 313 en release, hasta el túnel a Paradise: medido que entran, el EraseEvent después de un salto, el cronómetro en ramas y en condiciones de página, el cancelar fuera de las opciones, y el fin de la demo en el Continue onward del 66 ev18"
 type: feature
-assignee: Tacuarita
+assignee: taro
 ---
 
 De taro, el 2026-10-01: "¿podemos agregar más mapas?". El plan es
@@ -117,8 +117,9 @@ condición que la ROM no evalúa": ahora esa página pide cronómetro **y**
 variable, que sigue sin evaluarse, y los hashes del Python no se tocaron.
 
 `just pruebas`: todo verde salvo `test_musica_techos.py` (los dos casos, ver
-abajo). `just -f tools/justfile test` en verde. `NO_CACHE=1 just cartuchos`
-da las mismas huellas que con caché.
+abajo), también sobre el árbol con `main` mergeado (`aef95674`, el estudio de
+Lechuza, que no toca la ROM). `just -f tools/justfile test` en verde.
+`NO_CACHE=1 just cartuchos` da las mismas huellas que con caché.
 
 # Goldens
 
