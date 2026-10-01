@@ -1,7 +1,7 @@
 """The map's two background layers in mode 3, as the rest of the converter
 reads them.
 
-**They are converted by `rm2k-snes-maps`** —the lower half of CGRAM split
+**They are converted by `wally`** —the lower half of CGRAM split
 between them, the 15-bit quantization, what Adeleine merges, the tiles
 Voodoo cuts; see `layers.rs` in `rm2k-snes-map-background`—. What stays
 here is its answer in the shape the rest of the converter and the patches
@@ -23,7 +23,7 @@ import json
 # and therefore counts its index within a palette of 16.
 #
 # Where the split between the two falls is not fixed: the converter decides it
-# map by map, in `rm2k-snes-maps`. With one palette above, the background has
+# map by map, in `wally`. With one palette above, the background has
 # 111 colors; with three, 79. It used to be two always, and 27 maps didn't fit
 # —the first three of the game among them— while the background left colors
 # unused.
@@ -42,7 +42,7 @@ _FAMILY_NAMES = {"water": "agua", "animated": "animado"}
 
 
 def layers_answer(written):
-    """What `rm2k-snes-maps` wrote of a map's layers —`layers` and `map`
+    """What `wally` wrote of a map's layers —`layers` and `map`
     write them the same—, in the shape the rest of the converter reads:
     (background, above), each a tuple, the background's with its summary."""
     answer = json.loads(written["layers.json"])

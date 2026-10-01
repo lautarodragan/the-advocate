@@ -31,7 +31,7 @@ use rm2k_snes_map_sprites::extras::{
 };
 use rm2k_snes_map_sprites::npc::{map_poses, Npc};
 use rm2k_snes_map_sprites::split::{drawable_npcs, Ask};
-use rm2k_snes_maps::events::{collect_npcs, Event, Page};
+use wally::events::{collect_npcs, Event, Page};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet, HashSet};

@@ -117,7 +117,7 @@ port —ver `tools/README.md`—:
       events/          el compilador de eventos: de las páginas de RM2k al bytecode
       map-background/  las dos capas del fondo de un mapa y sus bloques de 16x16
       map-sprites/     los personajes de un mapa como objetos: paletas y bancos
-      maps/            un mapa entero, con esas dos: capas, horneado, sprites
+      wally/           un mapa entero, con esas dos: capas, horneado, sprites
       text/            la fuente, una línea de texto sobre el System y el
                        reparto de las cajas al ancho de la ventana
       screens/         las pantallas: la ventana de mensajes, el título, las
@@ -176,7 +176,7 @@ los dos de las pantallas, `tools/snes/resample/`, `tools/rm2k-snes/images/` y
 `tools/snes/voodoo/` convierte una imagen **que ya entra**: recibe PNG indexados cuyos
 índices son entradas de CGRAM, y si la imagen rompe el formato, dice dónde y no
 la arregla. Qué colores se pierden y cómo se agrupan en paletas lo decide
-Adeleine, `tools/snes/adeleine/` —`rm2k-snes-maps`, `rm2k-snes-screens`
+Adeleine, `tools/snes/adeleine/` —`wally`, `rm2k-snes-screens`
 y `rm2k-snes-images` lo usan como biblioteca—, que corre
 **antes**; lo que decidió de cada mapa queda como imágenes en
 `rom/build/<cartucho>/adeleine/`. La prueba para saber de qué lado

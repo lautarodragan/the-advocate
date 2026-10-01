@@ -1,6 +1,6 @@
-# rm2k-snes-maps: an RPG Maker 2000 game's maps, as a cartridge carries them
+# wally: an RPG Maker 2000 game's maps, as a cartridge carries them
 
-    rm2k-snes-maps map --data dump/ --search-dir pictures/ --request request.json --out build/map/
+    wally map --data dump/ --search-dir pictures/ --request request.json --out build/map/
 
 `cargo build --release`, or `cargo test`. `--help` on any subcommand prints
 what it takes and what it writes.
@@ -42,7 +42,7 @@ joins them:
 * `rm2k-snes-map-background`: the lower half of colour memory and the two
   background layers, and the blocks;
 * `rm2k-snes-map-sprites`: the upper half and the objects;
-* `rm2k-snes-maps`: reading the map and its events, drawing the sheets,
+* `wally`: reading the map and its events, drawing the sheets,
   baking —which takes a sprite into a layer, so it needs both halves— and
   the whole map.
 

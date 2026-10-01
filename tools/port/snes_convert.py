@@ -8,7 +8,7 @@ in its own module of `port/`, one per piece that can be replaced alone:
     options             the flags, and the ROM's maps in table order
     cases               the test cases, split at each `--case`
     game_scan           what is deduced from the whole game: leaders, items
-    map_convert         a whole map: what goes into `rm2k-snes-maps map`
+    map_convert         a whole map: what goes into `wally map`
                         and its `map_info`, from what comes back
       map_layers        the layers' answer
       sprites           the hero's flash, the objects' priorities
@@ -276,7 +276,7 @@ def main():
     indices = {map_info["id"]: number for number, map_info in enumerate(maps)}
 
     # The blocks the map's `TileSubstitution`s are going to need were built
-    # by `rm2k-snes-maps`, **before** compiling any page: see
+    # by `wally`, **before** compiling any page: see
     # `substitutions.rs` there. A map without that command builds nothing
     # and doesn't grow a byte, which is the case of the game's 328 maps as of
     # today. The compiler gets each one already translated: see

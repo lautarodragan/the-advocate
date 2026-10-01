@@ -3682,7 +3682,7 @@ pub fn compile_command(
             let Some(subs) = map_events.and_then(|m| m.substitutions.as_ref()) else {
                 // Without the converter in between there are no blocks to
                 // translate against. See `substitutions.rs` in
-                // `rm2k-snes-maps`, which builds them.
+                // `wally`, which builds them.
                 return cannot();
             };
             let Some(pairs) = subs.pairs(q(0) != 0, q(1), q(2))? else {

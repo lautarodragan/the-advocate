@@ -1,4 +1,4 @@
-//! `rm2k-snes-maps map`: a whole map from the command line —what it reads,
+//! `wally map`: a whole map from the command line —what it reads,
 //! what it bakes, the objects it makes and what it says—.
 //!
 //! A small game is generated inside each test: one map with an opaque tile
@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
 fn scratch(name: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!("rm2k-snes-maps-map-{}-{name}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("wally-map-{}-{name}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     dir
@@ -156,7 +156,7 @@ fn request(dir: &Path, pictures: &Path, test_event: bool) -> PathBuf {
 }
 
 fn run(dump: &Path, pictures: &Path, request: &Path, out: &Path) -> Output {
-    Command::new(env!("CARGO_BIN_EXE_rm2k-snes-maps"))
+    Command::new(env!("CARGO_BIN_EXE_wally"))
         .args(["map", "--data"])
         .arg(dump)
         .arg("--search-dir")
@@ -223,7 +223,7 @@ fn ask(command: &str, dump: &Path, pictures: &Path, dir: &Path, body: Value) -> 
     let request = dir.join(format!("{command}.request.json"));
     std::fs::write(&request, body.to_string()).unwrap();
     let out = dir.join(format!("{command}-out"));
-    let done = Command::new(env!("CARGO_BIN_EXE_rm2k-snes-maps"))
+    let done = Command::new(env!("CARGO_BIN_EXE_wally"))
         .args([command, "--data"])
         .arg(dump)
         .arg("--search-dir")

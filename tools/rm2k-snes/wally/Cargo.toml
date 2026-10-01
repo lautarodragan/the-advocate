@@ -1,15 +1,15 @@
 [package]
-name = "rm2k-snes-maps"
+name = "wally"
 version = "0.1.0"
 edition = "2021"
 description = "An rm2k-snes game's maps as a cartridge carries them: the background layers, the sprites and the VRAM each map gets"
 
 [lib]
-name = "rm2k_snes_maps"
+name = "wally"
 path = "src/lib.rs"
 
 [[bin]]
-name = "rm2k-snes-maps"
+name = "wally"
 path = "src/main.rs"
 
 [dependencies]

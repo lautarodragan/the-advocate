@@ -31,7 +31,7 @@ and writes pieces and a JSON.
 ## The subcommands
 
 * `emit`: the whole `.inc`. The request is `Emit` in `src/request.rs`: the
-  maps as `rm2k-snes-maps` and the event compiler left them, the answer of
+  maps as `wally` and the event compiler left them, the answer of
   `rm2k-snes-screens convert` as it came, the battle model and tables of
   `rm2k-snes-battle`, the troops' pages of the compiler, and what other
   domains decided already as bytes and numbers —the battle animations'

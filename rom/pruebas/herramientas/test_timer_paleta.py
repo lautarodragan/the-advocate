@@ -12,7 +12,7 @@ pasar. El evento 30 es la celda del medio de esa puerta —(71,69), de tile 25 a
 28— y con siete paletas se caía.
 
 Ninguna de estas pruebas arranca una ROM: le preguntan a la etapa del
-conversor, `rm2k-snes-maps split`, que es donde está la decisión. Las del
+conversor, `wally split`, que es donde está la decisión. Las del
 mecanismo —que los dígitos entren en una paleta que ya existe, que corte si
 de verdad no entran, que no caigan en la ranura de un líder ni las gotas en
 la del cronómetro— no necesitan el juego y están con él, en `extras.rs` de

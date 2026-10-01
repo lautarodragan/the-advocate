@@ -5,8 +5,8 @@
 //! has a default path.
 
 use clap::{Args as ClapArgs, Parser, Subcommand};
-use rm2k_snes_maps::map::{self, MapRequest};
-use rm2k_snes_maps::{inspect, layers, request, Bad, Game, LayersRequest, Result};
+use wally::map::{self, MapRequest};
+use wally::{inspect, layers, request, Bad, Game, LayersRequest, Result};
 use std::path::PathBuf;
 use std::process::ExitCode;
 
@@ -17,7 +17,7 @@ const MISUSE: u8 = 2;
 
 #[derive(Parser)]
 #[command(
-    name = "rm2k-snes-maps",
+    name = "wally",
     about = "An RPG Maker 2000 game's maps, for a Super Nintendo cartridge",
     after_help = "Exit codes: 1 the answer is no (it does not fit, the dump is broken), 2 bad \
                   usage.",
@@ -168,7 +168,7 @@ fn main() -> ExitCode {
     match done {
         Ok(()) => ExitCode::SUCCESS,
         Err(bad) => {
-            eprintln!("rm2k-snes-maps: {bad}");
+            eprintln!("wally: {bad}");
             ExitCode::from(match bad {
                 Bad::Answer(_) => NO,
                 Bad::Usage(_) => MISUSE,

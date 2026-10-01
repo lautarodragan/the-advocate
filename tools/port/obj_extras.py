@@ -1,7 +1,7 @@
 """What goes at the end of the sprite bank besides the characters, from the
 side of the converter.
 
-**The bank is `rm2k-snes-maps`'s** —the timer's digits, the raindrops, the
+**The bank is `wally`'s** —the timer's digits, the raindrops, the
 `ShowPicture` picture and the battle animation box; see `extras.rs` in
 `rm2k-snes-map-sprites`—, and so are the timer's colors and which entries
 of its palette they take, which the emission reads back; where the timer is

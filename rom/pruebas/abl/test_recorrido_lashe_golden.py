@@ -147,7 +147,7 @@ def test_irse_de_la_ciudad_lleva_a_la_carrera(recorrido):
 
 
 # La puerta de arriba de la casa de empeño del 37: el evento 11, `PawnDoorTop`,
-# un tile opaco de `BLchp1` que la regla del horneado —`baking.rs`, en `rm2k-snes-maps`— alcanza, pero
+# un tile opaco de `BLchp1` que la regla del horneado —`baking.rs`, en `wally`— alcanza, pero
 # que el reparto de paletas dibuja con una prestada. Horneado se vería con los
 # colores de verdad y el sprite con los prestados, así que va dibujado.
 LA_PUERTA_DE_LA_CASA_DE_EMPENO = (67, 29)

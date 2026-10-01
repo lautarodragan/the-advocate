@@ -1,4 +1,4 @@
-"""Preguntarle a `rm2k-snes-maps` por un mapa del juego, como le pregunta el
+"""Preguntarle a `wally` por un mapa del juego, como le pregunta el
 conversor: con el volcado, los forks del proyecto, los nombres que el port
 les da a los gráficos y los mismos directorios de búsqueda.
 
@@ -21,7 +21,7 @@ from rpgmaker import resources
 
 
 def preguntar(comando, map_id, renderer=None, **pedido):
-    """La respuesta de `rm2k-snes-maps <comando>` sobre ese mapa; `pedido`
+    """La respuesta de `wally <comando>` sobre ese mapa; `pedido`
     completa lo que la pregunta necesita, con los nombres del pedido."""
     renderer = renderer or Renderer()
     dump = compiler.dump_of(resources.GAME_DIR)
@@ -34,5 +34,5 @@ def preguntar(comando, map_id, renderer=None, **pedido):
                    map_files=compiler.map_files(dump),
                    chipset_files=compiler.chipset_files(dump),
                    names=[entry[1:] for entry in compiler.names([game_map])])
-    written = stage.run("rm2k-snes-maps", "maps", comando, request, *flags)
+    written = stage.run("wally", "maps", comando, request, *flags)
     return json.loads(written[comando + ".json"])

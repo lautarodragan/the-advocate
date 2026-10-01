@@ -88,7 +88,7 @@ const CONVERTER_TOOLS: &[&str] = &[
     "rm2k-snes-events",
     "rm2k-snes-images",
     "rm2k-snes-mapdata",
-    "rm2k-snes-maps",
+    "wally",
     "rm2k-snes-patches",
     "rm2k-snes-screens",
 ];

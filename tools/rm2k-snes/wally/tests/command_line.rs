@@ -13,14 +13,14 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
 fn scratch(name: &str) -> PathBuf {
-    let dir = std::env::temp_dir().join(format!("rm2k-snes-maps-cli-{}-{name}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("wally-cli-{}-{name}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(&dir).unwrap();
     dir
 }
 
 fn run(args: &[&str]) -> Output {
-    Command::new(env!("CARGO_BIN_EXE_rm2k-snes-maps"))
+    Command::new(env!("CARGO_BIN_EXE_wally"))
         .args(args)
         .output()
         .unwrap()

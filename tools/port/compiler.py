@@ -268,7 +268,7 @@ def common_substitutions(dump):
 def substitution_table(map_info):
     """Each `TileSubstitution` the map can end up running —its events', the
     test pages' that run there, and the common events'— with the blocks it
-    translates to, as `rm2k-snes-maps` answered it when it built them.
+    translates to, as `wally` answered it when it built them.
     Which ones a page asked for comes back in the answer, and those are the
     ones counted."""
     return map_info["substitution_table"]

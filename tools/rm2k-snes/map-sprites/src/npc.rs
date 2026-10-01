@@ -128,7 +128,7 @@ pub fn map_poses(
 /// the CharSet without a single pixel—.
 ///
 /// The row of an event that walks carries the twelve poses of one graphic,
-/// and walking wins over the page's —see "walking wins" in `rm2k-snes-maps`—.
+/// and walking wins over the page's —see "walking wins" in `wally`—.
 /// The one it gets is its row's: the page active at load, or the first that
 /// draws something. When that is a blank slot the event walks and is never
 /// seen. In RM2k a blank slot draws exactly what no graphic draws, so this

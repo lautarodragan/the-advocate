@@ -21,7 +21,7 @@ pub struct Maps {
     pub maps: Vec<Map>,
 }
 
-/// A map, as the conversion left it: what `rm2k-snes-maps` answered, the
+/// A map, as the conversion left it: what `wally` answered, the
 /// pages the event compiler compiled, and what the cartridge decided.
 #[derive(Deserialize)]
 pub struct Map {
@@ -61,7 +61,7 @@ pub struct Map {
     #[serde(deserialize_with = "hex::bytes")]
     pub block_terrain: Vec<u8>,
     pub terrain_outside: i64,
-    /// The objects, as `rm2k-snes-maps` answered them.
+    /// The objects, as `wally` answered them.
     pub sprite: Option<Sprite>,
     /// The events that are drawn, and who among them walks and who
     /// animates standing still.
@@ -258,7 +258,7 @@ pub struct Sprite {
     /// them; the palette may be missing.
     pub timer: Option<(i64, Option<i64>)>,
     /// Which entries of its palette the digits take, one bit each, as
-    /// `rm2k-snes-maps` answered it: 0 without a timer.
+    /// `wally` answered it: 0 without a timer.
     #[serde(default)]
     pub timer_mask: i64,
     /// The characters that change pose, `[CharSet, index]`, in the order of

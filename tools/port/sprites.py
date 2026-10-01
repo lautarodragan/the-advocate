@@ -1,6 +1,6 @@
 """The characters as SNES objects, from the side of the converter.
 
-**The characters are converted by `rm2k-snes-maps`** —which poses each
+**The characters are converted by `wally`** —which poses each
 shows, how the eight OBJ palettes are split, the VRAM bank and the pose
 bank; see `rm2k-snes-map-sprites`—, and so is who walks, animates standing
 still or turns toward the hero (`moves.rs`). What stays here is what that

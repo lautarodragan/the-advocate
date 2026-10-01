@@ -2,7 +2,7 @@
 siga pasándose igual.
 
 Un evento dibujado con un tile opaco del ChipSet deja de dibujarse y su tile se
-mete en la capa alta del mapa —ver `baking.rs` en `rm2k-snes-maps`—. Lo
+mete en la capa alta del mapa —ver `baking.rs` en `wally`—. Lo
 que sostiene que eso no cambie nada son dos invariantes, y las dos se miran acá
 porque ninguna se ve en una captura:
 
@@ -14,7 +14,7 @@ porque ninguna se ve en una captura:
   y en una golden del mapa 11 eso serían unos pocos pixeles en una celda:
   exactamente lo que una comparación con tope no cobra.
 
-No arranca ninguna ROM: le pregunta a la etapa del conversor, `rm2k-snes-maps
+No arranca ninguna ROM: le pregunta a la etapa del conversor, `wally
 bakeable`, qué hornea en cada mapa, con lo que imponía cada fila y lo que
 dice la tabla después.
 """

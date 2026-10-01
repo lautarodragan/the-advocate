@@ -29,7 +29,7 @@ one in its own row or above.
                  pictures, the `Renderer` that holds the game the converter
                  reads, and the image of the fork's ChipSets
                  (chipset_recipe); uses rpgmaker. A map's layers and its
-                 CharSets are drawn by `rm2k-snes-maps`, below
+                 CharSets are drawn by `wally`, below
 
     port/        the converter to SNES —snes_convert, which is `main`— and
                  everything only it uses: the parts it was split into on
@@ -108,7 +108,7 @@ have layers of their own, one folder each:
       map-sprites/  `rm2k-snes-map-sprites`, a library: a map's characters
                  as objects —the palette split, the VRAM bank and the pose
                  bank— and the extras at the end of the bank
-      maps/      `rm2k-snes-maps`: a whole map —its layers, the events baked
+      wally/     `wally`: a whole map —its layers, the events baked
                  into them, its objects, its blocks—, with those two; the
                  converter runs it once per map, through
                  `port/map_convert.py`
@@ -216,7 +216,7 @@ the runtime through the checkout they were installed from; and
 `rm2k-snes-msu` and `rm2k-snes-volume-ceilings`, from
 `rm2k-snes/rm2k-snes-audio/`; `rm2k-snes-battle`, from
 `rm2k-snes/battle/`; `rm2k-snes-events`, from `rm2k-snes/events/`;
-`rm2k-snes-maps`, from `rm2k-snes/maps/`; `rm2k-snes-mapdata`, from
+`wally`, from `rm2k-snes/wally/`; `rm2k-snes-mapdata`, from
 `rm2k-snes/mapdata/`; and `rm2k-snes-patches`, from
 `rm2k-snes/patches/`—.
 

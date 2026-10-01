@@ -1,8 +1,8 @@
 """A whole map, converted: its layers, its sprites, its blocks and its VRAM
 layout, gathered into the `map_info` that the emission reads.
 
-**The conversion is `rm2k-snes-maps map`'s**, a Rust stage on the PATH
-—`tools/rm2k-snes/maps/`—, one call per map: it reads the map from the
+**The conversion is `wally map`'s**, a Rust stage on the PATH
+—`tools/rm2k-snes/wally/`—, one call per map: it reads the map from the
 dump, draws and converts its layers, bakes the opaque events into them,
 splits the object palettes and builds the sprite bank. What stays here is
 what the stage gets from other domains —the event compiler's scan of the
@@ -35,7 +35,7 @@ from port.options import map_order
 from port.cases import case_commands, test_graphics, test_maps
 from common import settings
 
-STAGE = "rm2k-snes-maps"
+STAGE = "wally"
 
 
 def convert_maps(renderer, map_ids, args):
@@ -208,7 +208,7 @@ def _run(renderer, prepared):
     flags = ["--data", prepared.dump]
     for directory in renderer.search_dirs:
         flags += ["--search-dir", os.path.abspath(directory)]
-    return stage.run(STAGE, "maps", "map", prepared.request, *flags,
+    return stage.run(STAGE, "wally", "map", prepared.request, *flags,
                      raw=True)
 
 
@@ -320,7 +320,7 @@ def _map_info(renderer, prepared, written, args):
           % (len(above_data[0]) // 32, len(above_data[1]) // 2,
              BG_PALETTES - above_data[3], above_data[3], above_data[4]))
 
-    # The map in 16x16 blocks, which `rm2k-snes-maps` made with the layers,
+    # The map in 16x16 blocks, which `wally` made with the layers,
     # with the ones the map's `TileSubstitution`s need already built.
     made = summary["bloques"]
     cells = list(made["celdas"])
@@ -359,7 +359,7 @@ def _map_info(renderer, prepared, written, args):
         "graficos_de_ruta": route_graphics,
         "collision": collision, "celdas": bytes(words),
         # The blocks, with the ones the substitutions need: see
-        # `substitutions.rs` in `rm2k-snes-maps`.
+        # `substitutions.rs` in `wally`.
         "bloques": blocks, "pass": block_pass, "terreno": block_terrain,
         # The terrain of a cell **outside the map**: `GetTerrainTag` uses the
         # ChipSet's index 0, that is the first autotile, and not that of any

@@ -31,7 +31,7 @@ export PATH := if path_exists(local_tools / "bin") == "true" { local_tools / "bi
 # `*-test` recipes run `cargo test` standing in the project, which tests
 # only that one, and `cargo install --locked --path` takes the workspace's
 # lock.
-rust_projects := "protocol gunter ditto rules adeleine voodoo lz2 resample rm2k-render project cartridge patches rm2k-snes-audio battle events map-background map-sprites maps text screens images mapdata"
+rust_projects := "protocol gunter ditto rules adeleine voodoo lz2 resample rm2k-render project cartridge patches rm2k-snes-audio battle events map-background map-sprites wally text screens images mapdata"
 
 # The directories the projects live in, one per layer: each project is
 # `<layer>/<name>`, and the recipes find it by its name.
@@ -231,7 +231,7 @@ battle-test:
 events-test:
   cd rm2k-snes/events && cargo test
 
-# rm2k-snes-maps: a game's maps as the cartridge carries them —each map's
+# wally: a game's maps as the cartridge carries them —each map's
 # layers, its baked events, its characters as objects and its blocks—, which
 # the converter calls once per map; see `port/map_convert.py`. The work is
 # two libraries': `map-background`, the layers and the blocks, and
@@ -239,10 +239,10 @@ events-test:
 #
 # Their tests build a small game, its ChipSets and CharSets inside the test:
 # they need no game.
-maps-test:
+wally-test:
   cd rm2k-snes/map-background && cargo test
   cd rm2k-snes/map-sprites && cargo test
-  cd rm2k-snes/maps && cargo test
+  cd rm2k-snes/wally && cargo test
 
 # rm2k-snes-screens: a game's screens as the cartridge carries them —the
 # message window and its font, the title's menu, the save slots and the
@@ -390,6 +390,6 @@ _install root *projects:
 # `.local-tools/bin/` if it is there, otherwise the global one.
 which:
   #!/usr/bin/env sh
-  for x in protocol gunter ditto adeleine voodoo lz2 rm2k-render rm2k-snes-cartridges rm2k-snes-assemble rm2k-snes-space rm2k-snes-convert rm2k-snes-patches rm2k-snes-msu rm2k-snes-volume-ceilings rm2k-snes-battle rm2k-snes-events rm2k-snes-maps rm2k-snes-screens rm2k-snes-images abl-entregar; do
+  for x in protocol gunter ditto adeleine voodoo lz2 rm2k-render rm2k-snes-cartridges rm2k-snes-assemble rm2k-snes-space rm2k-snes-convert rm2k-snes-patches rm2k-snes-msu rm2k-snes-volume-ceilings rm2k-snes-battle rm2k-snes-events wally rm2k-snes-screens rm2k-snes-images abl-entregar; do
     printf '%-26s %s\n' "$x" "$(command -v "$x" || echo missing)"
   done

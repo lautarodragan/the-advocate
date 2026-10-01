@@ -4,7 +4,7 @@
 looked up— and reads a map the way the converter keeps it.
 
 Nothing is drawn from here any more. A map's layers and the CharSets its
-events are drawn with are `rm2k-snes-maps`'s, the screens are
+events are drawn with are `wally`'s, the screens are
 `rm2k-snes-screens`', and the pictures, the battle's backdrops and
 battlers and its animations are `rm2k-snes-images`'; since 2026-09-30 all
 three draw with `rm2k-render` as a library.
