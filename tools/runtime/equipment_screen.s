@@ -175,7 +175,7 @@ ready:
 .i16
     jsr eq_k
     beq no
-    lda item_use, x
+    lda f:item_use, x
     and #8
     rts
 no:
@@ -348,7 +348,7 @@ other:
 .a8
     lda comp_col
     inc a
-    cmp item_type, x
+    cmp f:item_type, x
     bne no_goes
     ; Can the actor use it? One bit per actor, eight bytes per item.
     rep #$20
@@ -453,7 +453,7 @@ list_list:
     and #$00FF
     asl a
     tax
-    lda item_id, x
+    lda f:item_id, x
     sta comp_or23
     sep #$20
 .a8

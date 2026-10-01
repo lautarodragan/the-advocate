@@ -17,8 +17,7 @@
 ;
 ; It only opens for a medicine, the one in `pick_edges`: whom to equip is
 ; chosen on the pause menu itself —`menu_choose`, below—. Entered with
-; `jsl`, with the data bank at 0: the registers and `item_id` are addressed
-; absolute.
+; `jsl`, with the data bank at 0: the registers are addressed absolute.
 
 ; The windows, and the medicine's name and count. With the screen off,
 ; after `slot_bank_upload`.
@@ -174,7 +173,7 @@ letter:
     and #$00FF
     asl a
     tax
-    lda item_id, x
+    lda f:item_id, x
     clc
     adc #FAR_ITEMS
     sta WMADDL
