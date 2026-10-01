@@ -779,6 +779,7 @@ def main():
                   scenes, battle_tables, troop_pages, compressed,
                   party_common=compiler.party_common_events(compiled),
                   enemy_hp=args.enemy_hp,
+                  speed_keys=not args.no_speed_keys,
                   game_over=game_over_data, battle_model=battle_model)
     # Which entries of their palette the timer digits use, one bit per entry
     # and one word per map, in the order of `map_table`. `upload_timer_pal`

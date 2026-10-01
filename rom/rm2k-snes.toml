@@ -497,9 +497,11 @@ start_map = 6
 party = []
 maps = [74, 1, 2, 5, 21, 255]
 test_graphics = []
+# `--no-speed-keys` es para que alguna prueba arme sin L y R, que el juego
+# lleva: ver `test_velocidad_con_l_y_r.py`. Ninguno de estos casos los toca.
 flags = ["--no-title", "--no-timer",
          "--hero-above", "--test-encounters", "8",
-         "--text-padding", "200"]
+         "--text-padding", "200", "--no-speed-keys"]
 cases = ["parado-tapado", "grupo-11-12-13",
          "grupo-11-en-255", "batalla", "batalla-item", "batalla-droide",
          "pelea-82-grupo-11-12", "empujon"]

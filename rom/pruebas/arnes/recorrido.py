@@ -571,7 +571,7 @@ class Recorrido:
                 "el hito %r mide %s y su golden %s" % (nombre, actual.size,
                                                        esperada.size))
         total = esperada.size[0] * esperada.size[1]
-        distintos = sum(1 for a, b in zip(actual.getdata(), esperada.getdata())
+        distintos = sum(1 for a, b in zip(actual.get_flattened_data(), esperada.get_flattened_data())
                         if a != b)
         if distintos > total * GOLDEN_TOLERANCIA:
             raise AssertionError(

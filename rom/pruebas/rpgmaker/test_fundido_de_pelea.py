@@ -28,6 +28,7 @@ class Grabador:
     def __init__(self, una):
         self.una = una
         self.cuadros = []
+        self.mosaicos = []
         self._paquete = self._leer_paquete()
 
     def _leer_paquete(self):
@@ -39,7 +40,9 @@ class Grabador:
     def cuadro(self, *botones):
         self.una.consola.hold(*botones)
         self.una.consola.run(1)
-        negro = max(self.una.imagen().tobytes()) == 0
+        imagen = self.una.imagen()
+        negro = max(imagen.tobytes()) == 0
+        self.mosaicos.append(None if negro else tamano_del_mosaico(imagen))
         paquete = self._leer_paquete()
         self.cuadros.append((negro, paquete != self._paquete))
         self._paquete = paquete
@@ -111,3 +114,64 @@ def test_la_carga_al_volver_al_mapa_se_ve_negra(partida):
         "el paquete del mapa se sube con la pantalla a la vista en %d de "
         "%d cuadros (el primero, el %d desde la A que cierra la pelea)"
         % (len(visibles), len(grabador.cargando()), visibles[0]))
+
+
+def tamano_del_mosaico(imagen, umbral=0.75):
+    """El lado de los bloques del mosaico que se ve en `imagen`, o 1 si no
+    hay mosaico.
+
+    No se lee el registro MOSAIC: se mira la pantalla. Con bloques de lado
+    `n`, en una línea un pixel sólo puede ser distinto del de su izquierda en
+    las columnas múltiplos de `n`, porque la grilla del PPU arranca en la
+    columna 0 de la pantalla. Así que de cada línea se miran las columnas
+    donde cambia el color, y el lado es el más grande que divide a todas, en
+    casi todas las líneas. Casi y no todas: los sprites no se pixelan —ver
+    `battle_fade.s`—, y las líneas que cruzan al héroe cambian en cualquier
+    columna. Se cuenta por línea y no por pixel porque, cerca del negro, el
+    mapa en bloques grandes cambia de color pocas veces y el héroe muchas.
+    """
+    ancho, alto = imagen.size
+    pixeles = imagen.load()
+    lineas = []
+    for y in range(alto):
+        cambios = [x for x in range(1, ancho)
+                   if pixeles[x, y] != pixeles[x - 1, y]]
+        if cambios:
+            lineas.append(cambios)
+    if not lineas:
+        return 1
+    for lado in range(16, 1, -1):
+        de_acuerdo = sum(all(x % lado == 0 for x in cambios)
+                         for cambios in lineas)
+        if de_acuerdo >= umbral * len(lineas):
+            return lado
+    return 1
+
+
+def _antes_del_negro(grabador):
+    """Los lados del mosaico de los cuadros que se vieron justo antes del
+    primer negro, en orden: la bajada a negro, y lo que haya antes de ella
+    hasta el primer cuadro sin mosaico."""
+    primero = grabador.mosaicos.index(None)
+    lados = []
+    for lado in reversed(grabador.mosaicos[:primero]):
+        if lado == 1:
+            break
+        lados.append(lado)
+    return lados[::-1]
+
+
+def test_la_entrada_tapa_el_mapa_con_el_mosaico_de_la_salida(partida):
+    """El mapa se va a negro haciéndose bloques, igual que la pelea al
+    terminar: la misma rampa, cuadro por cuadro.
+
+    Es de taro, el 2026-09-30, y no de RM2k: la base de datos pide el zoom
+    para tapar el mapa —ver `battle_fade.s`—. Hasta ese día era un fundido.
+    """
+    una = en_el_droide(partida)
+    entrada = _antes_del_negro(_entrar(una))
+    salida = _antes_del_negro(_salir(una))
+    assert salida, "la pelea no terminó en mosaico: la prueba no mide nada"
+    assert entrada == salida, (
+        "el mapa no se tapa con los cuadros de la salida: al entrar %s, al "
+        "salir %s" % (entrada, salida))

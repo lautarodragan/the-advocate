@@ -15,9 +15,14 @@
 ;
 ;   the flashes        with the fixed color added to the whole screen: color
 ;                      math, which the game uses for nothing else
-;   the zoom           **as a fade**, which is what taro decided for the
-;                      transitions the console does not do: zooming the map
-;                      is mode 7, and the map is in mode 3
+;   the zoom           out of the map, entering, **as the mosaic of the way
+;                      out**: taro's, on 2026-09-30, so that entering and
+;                      leaving look the same. Until then it was a fade, which
+;                      is what taro decided for the transitions the console
+;                      does not do: zooming the map is mode 7, and the map is
+;                      in mode 3. Sprites do not get pixelated, as in the
+;                      teleport's mosaic. Coming back to the map, the zoom is
+;                      still a fade
 ;   the mosaic         with the PPU's mosaic, which is exactly that, **and
 ;                      fading at the same time**. The battle is two
 ;                      backgrounds —BG1 the scene, BG2 the text— and on the
@@ -76,7 +81,7 @@ upload:
 ; bridge, live here: bank 0 has no room to spare. They do not depend on the
 ; data bank —the battle's runs with $7E—, so everything goes with `f:`.
 
-; The two flashes and the map down to black. From `battle_start`, with the
+; The two flashes and the map down to black, in a mosaic. From `battle_start`, with the
 ; map on screen. It leaves the screen on with brightness zero: the load that
 ; follows does not write VRAM.
 .proc battle_fade_in
@@ -106,9 +111,10 @@ flash:
     bcc flash
     dey
     bne other_flash
-    ; And the map down to black. The first frame turns off the flash, in the
-    ; same vblank; the ramp starts one step below full so as not to spend a
-    ; frame on the brightness that was already there.
+    ; And the map down to black, in a mosaic: the same ramp as the battle's
+    ; way out, `battle_fade_out`, frame by frame. The first frame turns off
+    ; the flash, in the same vblank; the ramp starts one step below full so
+    ; as not to spend a frame on the brightness that was already there.
     ldx #(FADE_RAMP - 2)
 lower:
     jsl f:ba_t_vblank
@@ -120,8 +126,20 @@ lower:
     sta f:COLDATA
     lda f:fade_ramp, x
     sta f:INIDISP
+    eor #$0F                    ; the mosaic, tied to brightness: see above
+    asl a
+    asl a
+    asl a
+    asl a
+    ora #$03                    ; BG1 and BG2: the map and the layer above
+    sta f:MOSAIC
     dex
     bpl lower
+    ; Already black. Turned off here and not left to the battle: one that
+    ; never turns anything on —see `battle_fade_out`— goes back to the map
+    ; without writing it.
+    lda #0
+    sta f:MOSAIC
     rtl
 .endproc
 

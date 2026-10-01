@@ -80,7 +80,12 @@ lista, y todo lo nombrado tiene que existir: lo cobra
   puertas, plantados, una página automática
 * `rpgmaker/test_rutas_golden.py`: rutas forzadas —`MoveEvent`, NPCs,
   gráficos, anclados—
+* `rpgmaker/test_rutas_auditorio.py`: los dos que entran caminando al
+  auditorio, un `MoveEvent` sobre eventos cuya página 1 dibuja un hueco de
+  la hoja
 * `rpgmaker/test_velocidad.py`: la velocidad del héroe
+* `rpgmaker/test_velocidad_con_l_y_r.py`: L y R suben y bajan la velocidad
+  del héroe, que no es de RM2k
 * `rpgmaker/test_saltos.py`: teletransportes encadenados
 * `rpgmaker/test_salto_atraviesa.py`, `rpgmaker/test_salto_colgado.py`: saltos
   con atravesar, y al final de una ruta forzada
@@ -168,7 +173,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
   pelea en cada paso, en su propio cartucho
 * `rpgmaker/test_batalla_escena_dibujo.py`: el fondo y los battlers compuestos
 * `rpgmaker/test_fundido_de_pelea.py`: la transición de entrada y de salida
-  tapa la carga del paquete de audio
+  tapa la carga del paquete de audio, y el mapa se tapa con el mismo mosaico
+  con que se va la pelea
 * `abl/test_msu_datos.py`: el fondo leído del `.msu` por el MSU-1, y el
   respaldo del cartucho cuando el `.msu` no es el suyo
 * `rpgmaker/test_tropa.py`: las páginas de tropa
@@ -197,6 +203,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 
 * `rpgmaker/test_musica_paquete.py`: las muestras del tema, en la ARAM
 * `rpgmaker/test_tema_del_mapa.py`: el tema de cada mapa
+* `rpgmaker/test_tema_que_ya_suena.py`: que un `PlayBGM` del tema que ya
+  suena no lo vuelva a empezar
 * `rpgmaker/test_bateria_suena.py`: lo que la música les escribe a las voces
   de la batería
 * `rpgmaker/test_musica_reparto.py`: las ocho voces repartidas nota a nota,

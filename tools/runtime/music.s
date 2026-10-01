@@ -70,9 +70,56 @@ ready:
     jmp se_after
 .endproc
 
-; Starts from the beginning the song whose index is in A. The start of the
-; stream carries the DSP setup —the volumes, the sample directory— so calling
-; here again is exactly what a `PlayBGM` does: start from scratch.
+; C at 1 if song A is the one playing and is not fading out; A is kept. It is
+; the question `Game_System::BgmPlay` asks before touching anything: with the
+; same name and no `FadeOutBGM` in between —its `music_stopping`— the song
+; goes on where it was. A `FadeOutBGM` that already reached zero left
+; `music_off` at 1, so that one starts over too, as in RM2k.
+;
+; "Is playing" is not only `music_off` at zero: with an MSU-1 track the
+; SPC700 is silent on purpose and `music_off` is 1. That is why `MSU_PLAYING`
+; is checked first, which is the same thing `op_fade_bgm` does.
+.proc song_playing
+.a8
+.i16
+    pha
+    lda bgm_fade
+    bne no                      ; it was fading out: it starts over
+    lda f:MSU_PLAYING
+    bne plays
+    lda music_off
+    bne no
+plays:
+    lda song_current + 1
+    bne no
+    pla
+    cmp song_current
+    bne other                   ; C is not the answer when they differ
+    rts                         ; equal: `cmp` left C at 1
+no:
+    pla
+other:
+    clc
+    rts
+.endproc
+
+; What a `PlayBGM` of song A does: nothing if it is already playing —see
+; `song_playing`—, and otherwise start it from the beginning. The battle's
+; songs come through here too, because RM2k asks for them with the same
+; `BgmPlay`: in ABL the victory's is the battle's, and it did start over
+; until 2026-09-30. `test_tema_que_ya_suena.py` catches both.
+.proc music_play
+.a8
+.i16
+    jsr song_playing
+    bcc music_start
+    rts
+.endproc
+
+; Starts from the beginning the song whose index is in A, even if it is the
+; one playing: the title and a loaded game want that. A `PlayBGM` goes
+; through `music_play`. The start of the stream carries the DSP setup —the
+; volumes, the sample directory—.
 ;
 ; The cartridge has carried several songs since 2026-09-06 and **they all share
 ; the sample bank**, which is uploaded only once at boot: changing song is
