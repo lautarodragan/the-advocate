@@ -77,12 +77,14 @@ La grilla vuelve al cartucho, en LZ2 no: sin comprimir, o en trozos de 4×4.
 Son 246 KB de cartucho de vuelta. El resto de la compresión —los tiles— no
 depende de esto: su buffer está en el banco $7F, que la pelea ya usaba.
 
-**Desde el 2026-10-01 la tabla de bloques y su pasabilidad dependen de
-esto**: viven en la WRAM justo detrás de la grilla, en un tercer flujo que
-`lz2_grid` descomprime con ella (ver `docs/port/maps.md`). Revertir la grilla
-pide también devolverlas al cartucho, sin comprimir: en
-`rm2k-snes-mapdata`, sacar `map_ram` de `COMPRESSED_KINDS` y volver a
-guardarlas como bloques sueltos con sus etiquetas en el registro.
+**Desde el 2026-10-01 la tabla de bloques, su pasabilidad y el bytecode de
+los eventos dependen de esto**: viven en la WRAM justo detrás de la grilla, y
+`lz2_grid` los descomprime con ella (ver `docs/port/maps.md`). Revertir la
+grilla pide también devolverlos al cartucho, sin comprimir: en
+`rm2k-snes-mapdata`, sacar `map_ram` y `map_code` de `COMPRESSED_KINDS` y
+volver a guardarlos como bloques sueltos con sus etiquetas en el registro y
+en la tabla de páginas; y en la ROM, sacar `code_carry_before` y
+`code_carry_after`, que sólo existen porque el bytecode se muda.
 
 **Y la pelea le pide prestada la mitad del `$7E`**, también desde el
 2026-10-01: ahí descomprime los battlers de la tropa (`SCN_BATTLERS` en

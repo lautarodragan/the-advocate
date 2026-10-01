@@ -422,21 +422,25 @@ pub fn raw_blocks(map: &Map) -> crate::materials::RawBlocks {
     raw.insert("anim_tiles".into(), anim_bytes(map));
     raw.insert("map_cells".into(), map.cells.clone());
     raw.insert("map_ram".into(), map_ram(&map.blocks, &map.block_pass));
+    raw.insert("map_code".into(), map.evcode.clone());
     raw
 }
 
-/// Where the record's pointers into what lives behind the grid land: WRAM
-/// addresses, which the converter knows because it is the one that lays
-/// it out —the grid's second half, then the block table, then its
-/// passability—, and the runtime does not compute: `lz2_grid` only
-/// decompresses the third stream where the second one ended. If both sides
-/// disagreed, `test_carga_descomprimida.py` sees it.
-pub fn map_ram_pointers(map: &Map) -> [(&'static str, String); 2] {
+/// Where the pointers into what lives behind the grid land: WRAM addresses,
+/// which the converter knows because it is the one that lays it out —the
+/// grid's second half, then the block table, then its passability, then
+/// the bytecode—, and the runtime does not compute: `lz2_grid` only
+/// decompresses each stream where the one before ended. If both sides
+/// disagreed, `test_carga_descomprimida.py` sees it. `evcode` is where the
+/// bytecode starts, which the page table adds each page's offset to.
+pub fn map_ram_pointers(map: &Map) -> [(&'static str, String); 3] {
     let start = grid_high_used(map.cells.len());
     let pass = start + map.blocks.len();
+    let code = pass + map.block_pass.len();
     [
         ("map_blocks", format!("GRID_HIGH + ${start:04X}")),
         ("block_pass", format!("GRID_HIGH + ${pass:04X}")),
+        ("evcode", format!("GRID_HIGH + ${code:04X}")),
     ]
 }
 
@@ -641,6 +645,33 @@ pub fn map_table(maps: &[Map], labels: &[Labels], rows: &[Vec<NpcRow>]) -> Resul
             .join(", ")
     ));
     Ok(out.join("\n"))
+}
+
+/// One entry per map, `MAP_CODE_STRIDE` bytes: where its bytecode's LZ2
+/// stream is, where in bank $7F the bytecode lands behind the grid, and
+/// how long it is. It is what the console needs to carry a page that goes
+/// on running after a teleport: see `code_carry_before` in the runtime's
+/// `decompress.s`.
+pub fn map_code_table(maps: &[Map], labels: &[Labels]) -> String {
+    let mut out = vec![
+        ".segment \"RODATA\"".to_string(),
+        "MAP_CODE_STRIDE = 8".to_string(),
+        format!("LZ2_CAP_CODE = ${:04X}", crate::materials::LZ2_CAP_CODE),
+        format!(".block {}", 8 * maps.len().max(1)),
+        "map_code:".to_string(),
+    ];
+    for (map, labels) in maps.iter().zip(labels) {
+        out.push(format!(
+            "    .byte {}, $00\n    .word .loword({}), {}",
+            pointer(&labels["code_stream"]),
+            labels["evcode"],
+            map.evcode.len()
+        ));
+    }
+    if maps.is_empty() {
+        out.push("    .byte 0, 0, 0, 0, 0, 0, 0, 0".into());
+    }
+    out.join("\n")
 }
 
 /// One entry per map with both runs of the ChipSet's animation already
@@ -963,7 +994,7 @@ pub fn map_data(
                 .collect()
         })
         .unwrap_or_default();
-    let pairs: [(&'static str, Vec<u8>); 12] = [
+    let pairs: [(&'static str, Vec<u8>); 11] = [
         ("map_tiles", map.tiles.clone()),
         ("map_cgram", map.cgram.clone()),
         ("above_tiles", map.above_tiles.clone()),
@@ -988,7 +1019,6 @@ pub fn map_data(
         // $FF, which is hiding— and its palette.
         ("route_graphic", route_graphic),
         ("ev_pos", ev_pos_bytes(map)?),
-        ("evcode", map.evcode.clone()),
         ("anim_tiles", anim_bytes(map)),
     ];
     let mut labels = Labels::new();
@@ -1007,15 +1037,23 @@ pub fn map_data(
     let animated = sprite.map_or(&[][..], |s| s.animated.as_slice());
     out.push(npc_poses_asm(number, animated, poses));
     out.push(actor_table_asm(number, map, poses));
-    // The grid, in its two streams, and what lives behind it in a third:
-    // see `lz2_grid`.
+    // The grid, in its two streams, and the block table and its passability
+    // in a third: see `lz2_grid`.
     let ram = map_ram(&map.blocks, &map.block_pass);
     let (label, text) =
         materials.store_compressed_joined(&[("map_cells", &map.cells), ("map_ram", &ram)]);
-    labels.insert("map_cells", label);
     if !text.is_empty() {
         out.push(text);
     }
+    labels.insert("map_cells", label);
+    // And the bytecode, which lands behind them, in a block of its own:
+    // `map_code_table` names it. Joined to the others, two maps with the
+    // same grid and different events would not share the grid.
+    let (label, text) = materials.store_compressed("map_code", &map.evcode);
+    if !text.is_empty() {
+        out.push(text);
+    }
+    labels.insert("code_stream", label);
     for (name, address) in map_ram_pointers(map) {
         labels.insert(name, address);
     }
@@ -1217,9 +1255,10 @@ pub fn maps(maps: &[Map]) -> Result<Written> {
         labels.push(theirs);
     }
     let tables = format!(
-        "{}\n\n{}\n",
+        "{}\n\n{}\n\n{}\n",
         map_table(maps, &labels, &rows)?,
-        anim_table(maps, &rows)?
+        anim_table(maps, &rows)?,
+        map_code_table(maps, &labels)
     );
     Ok(Written {
         offsets: offsets(),

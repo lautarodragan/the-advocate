@@ -42,11 +42,14 @@ el reloj. Cómo se parte cada bloque en flujos y con qué topes de la WRAM: el
 `materials.rs` de `tools/rm2k-snes/mapdata/`; el formato y el compresor:
 `tools/snes/lz2/`, que la emisión usa como biblioteca.
 
-Y desde el 2026-10-01, **la tabla de bloques y su pasabilidad**: la CPU las
-lee mientras se juega, así que no se suben a la VRAM sino que viven en la
-WRAM **justo detrás de la grilla**, en la mitad del `$7F`. Viajan como un
-tercer flujo pegado a los dos de la grilla, `lz2_grid` lo descomprime donde
-terminó el segundo, y vuelven con ella después de una pelea. La dirección no
+Y desde el 2026-10-01, **la tabla de bloques, su pasabilidad y el bytecode de
+los eventos**: la CPU los lee mientras se juega, así que no se suben a la VRAM
+sino que viven en la WRAM **justo detrás de la grilla**, en la mitad del `$7F`.
+Los bloques viajan como un tercer flujo pegado a los dos de la grilla, y el
+bytecode en uno suyo, que nombra la tabla `map_code`; `lz2_grid` los
+descomprime donde terminó el anterior, y vuelven con ella después de una
+pelea. Qué pasa con una página que sigue corriendo en otro mapa: ver
+`docs/port/events.md`. La dirección no
 la calcula la ROM: la pone el conversor en el registro del mapa
 (`map_ram_pointers` en `record.rs`), y la prueba de abajo mira que coincida
 con dónde quedó. El conversor corta si un mapa no entra: lo que la grilla

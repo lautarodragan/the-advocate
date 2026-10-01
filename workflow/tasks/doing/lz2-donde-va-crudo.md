@@ -104,3 +104,50 @@ camino del respaldo es el que miran las goldens y `test_batalla_escena_dibujo.py
   huecos de `just espacio` pasan de 27.331 B a 45.728.
 * La pelea del droide compone en 12 cuadros en vez de 11 (10 en la base), a
   negro.
+
+### 5. El bytecode de los eventos: hecho, con lo que sigue corriendo en otro mapa
+
+Se lee de la ROM mientras corre —`[code_ptr], y`—, así que va a la WRAM:
+detrás de la tabla de bloques, en un bloque de LZ2 propio que nombra la tabla
+`map_code` (puesto pegado a la grilla, dos mapas con la misma grilla y otros
+eventos dejaban de compartirla: eran 6 KB). La tabla de páginas apunta a la
+WRAM. Los saltos de una página son relativos a donde empieza.
+
+**El problema era lo que sigue corriendo después de un `Teleport` a otro
+mapa**: el mapa nuevo pone su bytecode en el mismo lugar. En `release` son
+282 páginas que siguen después de saltar (contado sobre el volcado, con los
+`CallEvent` adentro), y además **cada caso de la tanda** empieza saltando y
+sigue. Y la ruta forzada del héroe apunta al bytecode de la página que la dio
+y sigue caminando en el mapa nuevo (`Game_Player::PerformTeleport` no la
+corta). Lo que se hace:
+
+* `code_carry_before`, al empezar `enter_map_no_events` y con el mapa viejo
+  todavía en `map_current`: si la página en primer plano está en el bytecode
+  de ese mapa, su puntero se muda a `CODE_CARRY` (en `LZ2_BUFFER`, arriba de
+  los cuadros de la animación de batalla); y la ruta del héroe, si apunta al
+  banco del bytecode, se copia entera a `ROUTE_CARRY` (`$7E7F00`, 256 B).
+* `code_carry_after`, al final de la carga y de `back_to_map` —que sube los
+  tiles por `LZ2_BUFFER`—: descomprime ahí el bytecode del mapa acarreado
+  (`CARRY_MAP`, `$7E7EF0`).
+* Lo demás que apunta al bytecode no sobrevive al cambio de mapa: las
+  paralelas, las rutas de los eventos y la línea de tiempo de la animación
+  empiezan de nuevo con el mapa nuevo.
+
+La primera versión olvidaba `back_to_map`: con el menú, las ranuras o una
+pelea en el medio de una página acarreada, la página leía tiles de fondo.
+Lo cobraron siete pruebas de la tanda —`test_guardar_golden.py`,
+`test_curar.py`, `test_experiencia_dibujo.py`—, y destapó el mismo error en
+la animación de batalla (el commit aparte de arriba).
+
+* En `release`: 124,7 KB de bytecode, 80,2 en LZ2. `just espacio`: de 60
+  bancos de datos a 59, y los huecos de 45.728 B a 25.045 —44.853 B menos—.
+* Carga: +0,4 cuadros de media sobre los 97 mapas, +6 en el 4 (que en
+  `release` lleva los 262 casos). Acarrear cuesta otra descompresión adentro
+  del fundido.
+* La carrera, que es lo más justo de CPU, no pierde cuadros por leer el
+  bytecode de la WRAM (8 ciclos por byte contra 6): manejando, el 49 pierde
+  35 cuadros en 976 ticks antes y después, el 52 5 y 4, el 54 0 y 1.
+* `test_carga_descomprimida.py` mira el bytecode en la WRAM contra
+  `crudos/N.map_code.bin` y `map_code` contra dónde quedó;
+  `test_la_ruta_del_heroe_sigue_entera_en_el_mapa_nuevo` mira la copia de la
+  ruta, que ningún caso corre.

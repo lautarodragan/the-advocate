@@ -14,6 +14,16 @@
 .proc enter_map_no_events
 .a16
 .i16
+    ; A page that goes on after the jump keeps its bytecode, which is about
+    ; to be overwritten: see `code_carry_before`. With `map_current` still
+    ; the one being left.
+    pha
+    sep #$20
+.a8
+    jsl f:code_carry_before + FAST
+    rep #$20
+.a16
+    pla
     sta map_current             ; to know whether the next jump changes map
     sep #$20
 .a8
@@ -218,6 +228,8 @@ set:
                                 ; belongs to this map; the next frame
                                 ; builds it again if the flash goes on
     jsr upload_tint             ; the screen is off: it goes now
+    ; And the carried bytecode, now that nothing else uses `LZ2_BUFFER`.
+    jsl f:code_carry_after + FAST
     rts
 .endproc
 
@@ -302,6 +314,9 @@ set:
     ; there, and its tiles can no longer be erased one by one. Its box starts
     ; clean, and the next frame is built over it. See `anim_buf_clear`.
     jsl f:anim_buf_clear
+    ; And for the same reason the bytecode of a page that goes on from
+    ; another map: see `code_carry_after`.
+    jsl f:code_carry_after + FAST
     rts
 .endproc
 

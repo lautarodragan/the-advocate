@@ -191,12 +191,15 @@ def _mirar_la_grilla(p, indice):
 
 
 def _mirar_detras_de_la_grilla(p, indice):
-    """La tabla de bloques y su pasabilidad, que viven en la WRAM justo
-    donde termina la grilla —ver `lz2_grid`—: que el registro apunte ahí y
-    que esté lo que el conversor dice. La dirección la pone el conversor y
-    el lugar lo decide el descompresor, así que esto mira que coincidan."""
+    """La tabla de bloques, su pasabilidad y el bytecode, que viven en la
+    WRAM justo donde termina la grilla —ver `lz2_grid`—: que el registro y
+    `map_code` apunten ahí y que esté lo que el conversor dice. La dirección
+    la pone el conversor y el lugar lo decide el descompresor, así que esto
+    mira que coincidan."""
     s = p.simbolos
-    crudo = _crudo(p, indice, "map_ram")
+    bloques = _crudo(p, indice, "map_ram")
+    codigo = _crudo(p, indice, "map_code")
+    crudo = bloques + codigo
     registro = Registro(p, p.rom, indice)
     mitad = s["GRID_END"] - s["GRID"]
     lugar = s["GRID_HIGH"] + max(0, len(_crudo(p, indice, "map_cells")) - mitad)
@@ -208,6 +211,14 @@ def _mirar_detras_de_la_grilla(p, indice):
     if not lugar <= pasabilidad <= lugar + len(crudo):
         mal.append("la pasabilidad apunta a $%06X, afuera de lo que hay detrás "
                    "de la grilla" % pasabilidad)
+    fila = en_la_rom(s["map_code"]) + indice * s["MAP_CODE_STRIDE"]
+    base = p.rom[fila + 4] | (p.rom[fila + 5] << 8)
+    largo = p.rom[fila + 6] | (p.rom[fila + 7] << 8)
+    if (base, largo) != ((lugar + len(bloques)) & 0xFFFF, len(codigo)):
+        mal.append("map_code dice que el bytecode está en $%04X y mide %d; está "
+                   "en $%04X y mide %d" % (base, largo,
+                                           (lugar + len(bloques)) & 0xFFFF,
+                                           len(codigo)))
     visto = bytes(p.consola.ram(en_la_wram(lugar), len(crudo)))
     if visto != crudo:
         k = next(k for k in range(len(crudo)) if visto[k] != crudo[k])
@@ -334,9 +345,10 @@ def test_un_fondo_de_dos_flujos_no_se_sale_del_buffer():
         "la grilla del mapa %d usa la mitad alta, y ahí el testigo lo pisaría "
         "ella: hace falta otro mapa" % map_id)
     # El testigo va después de lo que vive detrás de la grilla —la tabla de
-    # bloques y su pasabilidad, que la carga escribe ahí a propósito—, y eso
-    # se mira contra el conversor.
-    alta = en_la_wram(s["GRID_HIGH"]) + len(_crudo(p, indice, "map_ram"))
+    # bloques, su pasabilidad y el bytecode, que la carga escribe ahí a
+    # propósito—, y eso se mira contra el conversor.
+    alta = en_la_wram(s["GRID_HIGH"]) + len(_crudo(p, indice, "map_ram")) \
+        + len(_crudo(p, indice, "map_code"))
     testigo = bytes(range(256)) * 16
     p.consola.write_ram(alta, list(testigo))
     _cargar(p, map_id)
@@ -345,3 +357,41 @@ def test_un_fondo_de_dos_flujos_no_se_sale_del_buffer():
         "de carga" % map_id)
     mal = _mirar_la_vram(p, indice) + _mirar_detras_de_la_grilla(p, indice)
     assert not mal, "el mapa %d: %s" % (map_id, "; ".join(mal))
+
+
+# --- lo que sigue corriendo en otro mapa ---------------------------------------
+#
+# El bytecode vive detrás de la grilla desde el 2026-10-01, y el mapa que se
+# carga pone el suyo en ese lugar. Una página que sigue después de un
+# `Teleport` se lleva el suyo a `CODE_CARRY`, y eso lo corre cada caso de la
+# tanda, que empieza saltando y sigue. La ruta forzada del héroe, que sigue
+# caminando en el mapa nuevo como en RM2k, se copia entera a `ROUTE_CARRY`:
+# eso no lo corre ningún caso, y por eso se mira acá, con el estado escrito
+# desde afuera como en `test_animacion_cuadros.py`.
+
+ESPERAR = 23  # la orden de ruta `wait`: veinte cuadros cada una
+
+
+def test_la_ruta_del_heroe_sigue_entera_en_el_mapa_nuevo():
+    p = partida(None, en=cartuchos.RELEASE)
+    with open(p.sfc, "rb") as f:
+        p.rom = f.read()
+    s = p.simbolos
+    # Una ruta de esperas en el banco del bytecode, al final de la mitad del
+    # $7F, donde no llega lo de atrás de la grilla de ningún mapa de `release`.
+    donde = s["GRID_HIGH"] + 0x7F00
+    ruta = bytes([ESPERAR] * 40)
+    p.consola.write_ram(en_la_wram(donde), list(ruta))
+    p.consola.write_ram(s["hero_route"],
+                        [donde & 0xFF, (donde >> 8) & 0xFF, donde >> 16])
+    p.consola.write_ram(s["route_n"], [len(ruta)])
+    p.consola.write_ram(s["route_i"], [0])
+    otro = next(m for m in p.mapas if m != p.mapa())
+    _cargar(p, otro)
+    b = p.consola.ram(s["hero_route"], 3)
+    assert b[0] | (b[1] << 8) | (b[2] << 16) == s["ROUTE_CARRY"], (
+        "la ruta del héroe no se mudó a ROUTE_CARRY al cambiar de mapa")
+    assert p.byte("route_i") < len(ruta), (
+        "la ruta terminó antes de cambiar de mapa: esto no mira nada")
+    copiada = bytes(p.consola.ram(en_la_wram(s["ROUTE_CARRY"]), len(ruta)))
+    assert copiada == ruta, "la ruta copiada no es la que el héroe venía haciendo"

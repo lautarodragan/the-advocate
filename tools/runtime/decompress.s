@@ -375,15 +375,17 @@ stream:
 ; so no output crosses a bank; the second comes right after the first, and may
 ; have nothing more than its $FF.
 ;
-; And a third stream after those two: what of the map the CPU reads while it
-; is played —the block table and its passability—, which goes **right where
-; the grid ended**, in $7F's half. It is that Y the decompressor leaves, so
-; this does not compute the address: the converter does, and puts it in the
-; record's `M_PTR_MAP_BLOCKS` and `M_PTR_BLOCK_PASS` —see `map_ram_pointers`
-; in `rm2k-snes-mapdata`—. It caps it so that it does not cross the bank.
+; And what of the map the CPU reads while it is played —the block table and
+; its passability, in a third stream right after those two, and then the
+; event bytecode, in a stream that `map_code` names—, which goes **right
+; where the grid ended**, in $7F's half. It is that Y the decompressor
+; leaves, so this does not compute the addresses: the converter does, and
+; puts them in the record's `M_PTR_MAP_BLOCKS` and `M_PTR_BLOCK_PASS`, in the
+; page table and in `map_code` —see `map_ram_pointers` in
+; `rm2k-snes-mapdata`—. It caps them so that they do not cross the bank.
 ;
 ; Battle overwrites $7F's half —it is `SCN_SCENE`—, so `back_from_battle`
-; decompresses it again, the three streams. See the decision in
+; decompresses it all again. See the decision in
 ; workflow/decisiones/la-grilla-vive-en-la-wram.md.
 .proc lz2_grid
 .a8
@@ -391,7 +393,7 @@ stream:
     ldy #M_PTR_MAP_CELLS
     jsr lz2_from_field
     pha                         ; the stream's bank, for the third one
-    pha                         ; and for the second
+    pha                         ; and the second
     lda #^GRID
     sta f:LZ2_BANK
     pla
@@ -404,7 +406,173 @@ stream:
     ldy #.loword(GRID_HIGH)
     jsl f:lz2_decompress + FAST         ; X on the third, Y where the grid ended
     pla
+    jsl f:lz2_decompress + FAST         ; the blocks and their passability
+    ; The bytecode goes in a block of its own and not after these three, so
+    ; that two maps with the same grid and different events still share
+    ; theirs: its stream is the one `map_code` names.
+    phy                         ; where it goes: where the passability ended
+    rep #$20
+.a16
+    lda map_current
+    asl a
+    asl a
+    asl a                       ; times MAP_CODE_STRIDE
+    tax
+    lda f:map_code, x
+    pha
+    sep #$20
+.a8
+    lda f:map_code + 2, x
+    plx
+    ply
     jsl f:lz2_decompress + FAST
+    rtl
+.endproc
+
+; --- a page that goes on running on another map ------------------------------
+;
+; The bytecode lives behind the grid, and loading another map puts that
+; map's in its place. RM2k lets a page go on after a `Teleport` —the
+; interpreter keeps its list and its index—, and the game does it all the
+; time: a cutscene jumps and keeps talking, and every test case of the
+; harness starts with a jump and goes on. Here that page's bytecode is
+; carried: `code_carry_before`, with the old map still loaded, moves the
+; cursor to `CODE_CARRY`, and `code_carry_after`, with the new one loaded,
+; decompresses the old map's bytecode there, alone —it is a stream of its
+; own: see `map_code`—. The page's jumps are relative to where it starts,
+; so moving the pointer is enough. `back_to_map` —after the menu, the shop,
+; the slots or a battle— uploads the map's tiles through `LZ2_BUFFER` again,
+; and calls `code_carry_after` again too.
+;
+; And the same with the hero's move route, which points into the bytecode
+; of the page that gave it and goes on walking on the new map, as in
+; `Game_Player::PerformTeleport`: it is copied whole to `ROUTE_CARRY`.
+;
+; The rest of what points into the bytecode does not survive a map change:
+; the parallel pages, the events' routes and the battle animation's
+; timeline start over with the new map.
+
+; With the map that is being left still loaded and still in `map_current`:
+; `enter_map_no_events` calls it before anything else.
+.proc code_carry_before
+.a8
+.i16
+    ; --- the hero's move route ---
+    lda route_i
+    cmp route_n
+    bcs route_done              ; none, or it ended
+    lda f:hero_route + 2
+    cmp #^GRID_HIGH
+    bne route_done              ; from the cartridge, or already carried
+    rep #$20
+.a16
+    lda f:hero_route
+    sta route_ptr
+    sep #$20
+.a8
+    lda f:hero_route + 2
+    sta route_ptr + 2
+    ldy #0
+route_copy:
+    tya                         ; Y's low byte: `route_n` is a byte
+    cmp route_n
+    bcs route_copied
+    lda [route_ptr], y
+    tyx
+    sta f:ROUTE_CARRY, x
+    iny
+    bra route_copy
+route_copied:
+    rep #$20
+.a16
+    lda #.loword(ROUTE_CARRY)
+    sta f:hero_route
+    sep #$20
+.a8
+    lda #^ROUTE_CARRY
+    sta f:hero_route + 2
+route_done:
+
+    ; --- the foreground page ---
+    lda ev_active
+    beq none
+    lda code_ptr + 2
+    cmp #^GRID_HIGH
+    bne none                    ; from the cartridge, where it does not move
+    rep #$20
+.a16
+    lda map_current
+    asl a
+    asl a
+    asl a                       ; times MAP_CODE_STRIDE
+    tax
+    lda code_ptr
+    sec
+    sbc f:map_code + 4, x       ; where this map's bytecode starts
+    bcc not_this_one
+    cmp f:map_code + 6, x       ; and how long it is
+    bcs not_this_one
+    clc
+    adc #.loword(CODE_CARRY)
+    sta code_ptr                ; the same byte, where it will be carried
+    lda map_current
+    sta f:CARRY_MAP
+    sep #$20
+.a8
+    rtl
+not_this_one:
+.a16
+    ; Or it was already carried, from an earlier jump: it stays where it is,
+    ; and `CARRY_MAP` too.
+    lda code_ptr
+    cmp #.loword(CODE_CARRY)
+    bcc none_16
+    cmp #.loword(CODE_CARRY + LZ2_CAP_CODE)
+    bcs none_16
+    sep #$20
+.a8
+    rtl
+none_16:
+    sep #$20
+.a8
+none:
+    rep #$20
+.a16
+    lda #$FFFF
+    sta f:CARRY_MAP
+    sep #$20
+.a8
+    rtl
+.endproc
+
+; With the new map loaded —`LZ2_BUFFER` already used— or after the battle:
+; the carried map's bytecode, if there is one, into `CODE_CARRY`.
+.proc code_carry_after
+.a8
+.i16
+    rep #$20
+.a16
+    lda f:CARRY_MAP
+    cmp #$FFFF
+    beq none
+    asl a
+    asl a
+    asl a                       ; times MAP_CODE_STRIDE
+    tax
+    lda f:map_code, x
+    pha
+    sep #$20
+.a8
+    lda #^CODE_CARRY
+    sta f:LZ2_BANK
+    lda f:map_code + 2, x
+    plx
+    ldy #.loword(CODE_CARRY)
+    jsl f:lz2_decompress + FAST
+    rtl
+none:
+    sep #$20
+.a8
     rtl
 .endproc
 
@@ -416,3 +584,6 @@ stream:
 .assert ANIM_DRAWINGS + LZ2_CAP_ANIM <= ANIM_DRAWINGS_END, error, "the animation drawings do not fit in their place"
 .assert GRID_HIGH = GRID + $10000, error, "the two halves of the grid must be the same address in two consecutive banks: that is how `ptr_more` walks them"
 .assert LZ2_CAP_GRID <= 2 * (GRID_END - GRID), error, "the largest grid does not fit in the two upper halves of WRAM"
+.assert MAP_CODE_STRIDE = 8, error, "code_carry_before and code_carry_after multiply by eight"
+.assert LZ2_BUFFER + 2 * ANIM_B_FRAME_MAX <= CODE_CARRY, error, "the carried bytecode would overwrite the battle animation's frames"
+.assert CODE_CARRY + LZ2_CAP_CODE <= ANIM_DRAWINGS, error, "the carried bytecode would overwrite the ChipSet animation's drawings"

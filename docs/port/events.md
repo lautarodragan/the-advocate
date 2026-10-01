@@ -8,6 +8,15 @@ Cada página de evento que se puede compilar viaja en el cartucho como
                                      `compile_command`, un caso por comando de RM2k
     tools/runtime/interpreter*.s     lo ejecuta: `run_code` y un `.proc op_*` por opcode
 
+**El intérprete lo lee de la WRAM, no del cartucho**, desde el 2026-10-01:
+viaja en LZ2 y se descomprime con la grilla, detrás de ella (ver
+`docs/port/maps.md`). Como el mapa siguiente ocupa ese lugar, una página que
+sigue corriendo después de un `Teleport` a otro mapa —una cinemática que salta
+y sigue hablando, y cada caso de la tanda— se lleva su bytecode a
+`CODE_CARRY`, y la ruta forzada del héroe se copia entera: ver
+`code_carry_before` en `tools/runtime/decompress.s`. Los saltos adentro de una
+página son relativos a donde empieza, así que mudarla es mover un puntero.
+
 De `tools/snes/protocol/events.toml` salen generados `tools/port/event_opcodes.py`,
 `tools/rm2k-snes/events/src/opcodes.rs` y `tools/runtime/event_opcodes.inc`; ver
 `tools/snes/protocol/README.md`, que está en inglés porque ahí adentro no se sabe

@@ -8,17 +8,22 @@ use std::collections::{BTreeMap, HashMap};
 /// What the console decompresses when it loads a map, per block class: see
 /// `lz2_decompress` in the runtime's `decompress.s`.
 ///
-/// `map_ram` is what of the map the CPU reads while it is played and lives
-/// in WRAM right behind the grid: the block table and its passability, one
-/// after the other —see [`map_ram`]—. It travels as a third stream after
-/// the grid's two, and `lz2_grid` decompresses the three.
-pub const COMPRESSED_KINDS: [&str; 6] = [
+/// `map_ram` and `map_code` are what of the map the CPU reads while it is
+/// played, and live in WRAM right behind the grid: the block table and its
+/// passability, one after the other —see [`map_ram`]—, and then the event
+/// bytecode. The first travel as a third stream after the grid's two; the
+/// bytecode, in a block of its own —two maps with the same grid and
+/// different events share the grid that way, and the console sometimes
+/// decompresses the bytecode alone: see `code_carry_after` in the
+/// runtime's `decompress.s`—. `lz2_grid` decompresses the four.
+pub const COMPRESSED_KINDS: [&str; 7] = [
     "map_tiles",
     "above_tiles",
     "sprite_tiles",
     "anim_tiles",
     "map_cells",
     "map_ram",
+    "map_code",
 ];
 
 // The largest each decompressed stream can be, by where it lands in WRAM:
@@ -36,6 +41,12 @@ pub const LZ2_CAP_ABOVE_AND_SPRITES: usize = 0x6000;
 pub const LZ2_CAP_ANIM: usize = 0x2000;
 /// Two halves of [`HALF_GRID`].
 pub const LZ2_CAP_GRID: usize = 0x10000;
+/// A map's bytecode: besides behind its grid, it has to fit where the
+/// console carries it when a page goes on running on another map —see
+/// `CODE_CARRY` in the runtime's `far_ram.s`—, which is what of
+/// `LZ2_BUFFER` the battle animation's frames leave below the ChipSet
+/// animation's drawings.
+pub const LZ2_CAP_CODE: usize = 0x4E00;
 
 /// The grid goes to the upper half of the two WRAM banks —see `lz2_grid`—,
 /// so it is compressed in two streams of up to 32 KB: each one lands whole
@@ -93,9 +104,10 @@ pub fn caps_per_stream(kind: &str) -> (usize, usize) {
         "above_tiles" | "sprite_tiles" => (LZ2_CAP_ABOVE_AND_SPRITES, 1),
         "anim_tiles" => (LZ2_CAP_ANIM, 1),
         "map_cells" => (HALF_GRID, 2),
-        // Its real cap is what the grid leaves of the upper half of bank
+        // Their real cap is what the grid leaves of the upper half of bank
         // $7F: see [`check_map`].
         "map_ram" => (HALF_GRID, 1),
+        "map_code" => (LZ2_CAP_CODE, 1),
         _ => panic!("{kind} is not compressed"),
     }
 }
@@ -109,7 +121,7 @@ pub fn check_map(map_id: i64, blocks: &RawBlocks) -> Result<()> {
         check_streams(map_id, kind, of(kind))?;
     }
     let used = grid_high_used(of("map_cells").len());
-    let ram = of("map_ram").len();
+    let ram = of("map_ram").len() + of("map_code").len();
     if used + ram > HALF_GRID {
         return Err(Bad::answer(format!(
             "map {map_id}: what lives behind its grid is {ram} bytes and the grid leaves {} of \
@@ -433,6 +445,29 @@ mod tests {
         );
         let big = vec![7u8; HALF_GRID + 2];
         assert_eq!(compressed_parts("map_cells", &big)[1], &[7, 7]);
+    }
+
+    #[test]
+    fn what_lives_behind_the_grid_has_to_fit_in_what_it_leaves_of_bank_7f() {
+        let blocks = |cells: usize, ram: usize, code: usize| -> RawBlocks {
+            [
+                ("map_cells", cells),
+                ("map_ram", ram),
+                ("map_code", code),
+            ]
+            .into_iter()
+            .map(|(k, n)| (k.to_string(), vec![0; n]))
+            .collect()
+        };
+        // A grid of 40,000 bytes takes 7,232 of $7F's half.
+        check_map(52, &blocks(40_000, 0x8000 - 7_232 - 100, 100)).unwrap();
+        assert_eq!(
+            check_map(52, &blocks(40_000, 0x8000 - 7_232 - 100, 101))
+                .unwrap_err()
+                .message(),
+            "map 52: what lives behind its grid is 25537 bytes and the grid leaves 25536 of \
+             the upper half of bank $7F: see `lz2_grid` in tools/runtime/decompress.s"
+        );
     }
 
     #[test]
