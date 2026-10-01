@@ -158,9 +158,25 @@ remember:
     lda song_current
 record:
     sta f:REMEMBERED_SONG
+    rep #$20                    ; and its level, which RM2k memorizes with it
+.a16
+    lda f:BGM_NOW
+    sta f:BGM_REMEMBERED
+    lda f:BGM_NOW + 2
+    sta f:BGM_REMEMBERED + 2
+    sep #$20
+.a8
     clc
     rtl
 put:
+    rep #$20
+.a16
+    lda f:BGM_REMEMBERED
+    sta f:BGM_ASK
+    lda f:BGM_REMEMBERED + 2
+    sta f:BGM_ASK + 2
+    sep #$20
+.a8
     lda f:REMEMBERED_SONG
     cmp #SONG_TOTAL
     bcs nothing                 ; none, or one the cartridge does not carry

@@ -74,7 +74,7 @@ pub const OPCODE_SIZE: &[(u8, usize)] = &[
     (OP_WAIT_ROUTES, 1),
     (OP_FLASH, 7),
     (OP_TIMER, 5),
-    (OP_BGM, 2),
+    (OP_BGM, 6),
     (OP_PLACE, 6),
     (OP_SWAP, 3),
     (OP_SHAKE, 5),

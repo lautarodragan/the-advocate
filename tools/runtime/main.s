@@ -155,6 +155,7 @@ TEXT_BUF_BYTES = WINDOW_TEXT_COLS * 2 * 32
 .include "shop.s"
 .include "msu_effects.s"
 .include "remembered_place_and_song.s"
+.include "bgm_level.s"
 .include "interpreter_cells.s"
 .include "far_npcs.s"
 .include "menu_experience.s"

@@ -52,12 +52,18 @@ fast:
     beq no_fade
     jsr bgm_fade_tick
 no_fade:
+    ; A `PlayBGM` of the song that plays with another volume: after the fade,
+    ; which may have rewritten some voices with the gain already new.
+    lda f:GAIN_DIRTY
+    beq no_gain
+    jsr gain_refresh
+no_gain:
     ; The sound effects wrap around the music, and run even when it is silent:
     ; see "sound effects" in `sound_effects.s`.
     jsr se_before
     lda music_off
     bne ready
-    jsr music_frame
+    jsr music_tempo
     lda is_pal
     beq ready
     inc pal_tick
@@ -65,9 +71,63 @@ no_fade:
     cmp #5
     bcc ready
     stz pal_tick
-    jsr music_frame             ; the frame PAL is missing
+    jsr music_tempo             ; the frame PAL is missing
 ready:
     jmp se_after
+.endproc
+
+; The music frames this video frame owes, at the `PlayBGM`'s tempo: the step
+; —256ths of a frame, 256 at tempo 100— goes into `TEMPO_ACC`, and a frame
+; runs for each whole one. At 100 that is one and the same frame as before
+; the tempo existed; at 150, two every other one; at 50, one every two. It is
+; the tempo of a MIDI —RM2k's for these songs—: the stream goes faster and
+; each note keeps its pitch.
+.proc music_tempo
+.a8
+.i16
+    rep #$21                    ; and carry at zero
+.a16
+    lda f:TEMPO_ACC
+    adc f:BGM_NOW + 2           ; the step
+    sta f:TEMPO_ACC
+    sep #$20
+.a8
+other:
+    lda f:TEMPO_ACC + 1
+    beq ready
+    dec a
+    sta f:TEMPO_ACC + 1
+    jsr music_frame
+    lda music_off
+    beq other
+    lda #0                      ; it went silent: nothing is owed to the next
+    sta f:TEMPO_ACC + 1
+ready:
+    rts
+.endproc
+
+; Every voice of the song at the gain that just changed: `voices_refresh`
+; with `GAIN_DIRTY` set writes them all, without asking what the DSP has.
+; Its factor is the fade's, which without one is 256.
+.proc gain_refresh
+.a8
+.i16
+    lda music_off
+    bne clean                   ; the SPC700 is silent: nothing to rewrite
+    lda bgm_fade
+    bne fading
+    rep #$20
+.a16
+    lda #256
+    sta f:FADE_N
+    sep #$20
+.a8
+fading:
+    jsr voices_refresh
+clean:
+    lda #0
+    sta f:GAIN_DIRTY
+    rts
 .endproc
 
 ; C at 1 if song A is the one playing and is not fading out; A is kept. It is
@@ -103,23 +163,27 @@ other:
     rts
 .endproc
 
-; What a `PlayBGM` of song A does: nothing if it is already playing —see
-; `song_playing`—, and otherwise start it from the beginning. The battle's
-; songs come through here too, because RM2k asks for them with the same
-; `BgmPlay`: in ABL the victory's is the battle's, and it did start over
-; until 2026-09-30. `test_tema_que_ya_suena.py` catches both.
+; What a `PlayBGM` of song A does: if it is already playing —see
+; `song_playing`— only its level changes, and otherwise it starts from the
+; beginning at that level. The level is the one in `BGM_ASK`: see
+; bgm_level.s. The battle's songs come through here too, because RM2k asks
+; for them with the same `BgmPlay`: in ABL the victory's is the battle's, and
+; it did start over until 2026-09-30. `test_tema_que_ya_suena.py` catches
+; both, and `test_volumen_y_tempo.py` the level.
 .proc music_play
 .a8
 .i16
     jsr song_playing
-    bcc music_start
+    jsl f:bgm_level_set         ; with C as `song_playing` left it
+    bcc music_start_level
     rts
 .endproc
 
 ; Starts from the beginning the song whose index is in A, even if it is the
-; one playing: the title and a loaded game want that. A `PlayBGM` goes
-; through `music_play`. The start of the stream carries the DSP setup —the
-; volumes, the sample directory—.
+; one playing, and as written: the title, a loaded game and a map's own song
+; want that. A `PlayBGM` goes through `music_play`, which starts it at its
+; level with `music_start_level`. The start of the stream carries the DSP
+; setup —the volumes, the sample directory—.
 ;
 ; The cartridge has carried several songs since 2026-09-06 and **they all share
 ; the sample bank**, which is uploaded only once at boot: changing song is
@@ -130,6 +194,13 @@ other:
 ; needs to start over when the stream ends: without it the loop always went
 ; back to the first one.
 .proc music_start
+.a8
+.i16
+    jsl f:bgm_level_full
+    ; falls through into music_start_level
+.endproc
+
+.proc music_start_level
 .a8
 .i16
     ; The main code calls it with the music running —`PlayBGM`, the title—,
@@ -278,7 +349,8 @@ continues:
     bne track
     jmp voices_refresh
 track:
-    ; With a track, the fade lowers **its** volume: MSU_VOLUME_MAX times the
+    ; With a track, the fade lowers **its** volume: the track's volume at the
+    ; `PlayBGM`'s gain —`MSU_BASE`, MSU_VOLUME_MAX as written— times the
     ; level, over 256. **Not with the CPU's multiplier**: this runs in
     ; `irq_music`, and the main code uses it in thirty places —the divider
     ; shares the result register—; an interrupt between its write and its read
@@ -287,7 +359,7 @@ track:
     ; at a time, with `dsp_value` as scratch: it belongs to the music only.
     rep #$20
 .a16
-    lda #MSU_VOLUME_MAX
+    lda f:MSU_BASE
     sta f:MSU_FACTOR            ; the loop adds it with `adc f:`: there is
     sep #$20                    ; nowhere to keep a partial, and no `,s` here
 .a8
@@ -389,33 +461,84 @@ next:
     lda f:FADE_BEFORE + 1
     sta M7A
     lda MPYM
+    jsr song_gain_scale
     pha                         ; what the DSP has
-    lda f:FADE_N
-    sta M7A
-    lda f:FADE_N + 1
-    sta M7A
-    lda MPYM                    ; what it should have
-    cmp 1, s
-    beq equal
-    jsr dsp_music
-equal:
-    pla
-    rts
-.endproc
-
-; A: a voice volume the stream is about to write to the DSP. Returns with it
-; times FADE_N, over 256. It is the same computation as `volume_refresh`,
-; so what the music writes in the middle of a fade and what the fade rewrites
-; afterwards match. Does not touch X, Y or V.
-.proc volume_fade
-.a8
-.i16
+    lda f:MUS_SHADOW, x         ; again: the gain wrote over M7B
     sta M7B
     lda f:FADE_N
     sta M7A
     lda f:FADE_N + 1
     sta M7A
     lda MPYM
+    jsr song_gain_scale         ; what it should have
+    cmp 1, s
+    bne write
+    ; Equal, unless the gain just changed: then what the DSP has is the
+    ; previous gain's, and every voice is written. See `gain_refresh`.
+    lda f:GAIN_DIRTY
+    beq equal
+    lda 1, s
+write:
+    jsr dsp_music
+equal:
+    pla
+    rts
+.endproc
+
+; A: a voice volume the stream is about to write to the DSP, and X its
+; register. Returns with it times FADE_N, over 256, if a fade is going on,
+; and then times the song's gain. It is the same computation as
+; `volume_refresh`, so what the music writes in the middle of a fade and what
+; the fade rewrites afterwards match. Does not touch X, Y or V.
+.proc volume_fade
+.a8
+.i16
+    pha
+    lda bgm_fade
+    beq whole
+    pla
+    sta M7B
+    lda f:FADE_N
+    sta M7A
+    lda f:FADE_N + 1
+    sta M7A
+    lda MPYM
+    pha
+whole:
+    pla
+    ; falls through into song_gain_scale
+.endproc
+
+; A: a voice volume, and X its register: VOL_L if even, VOL_R if odd. Returns
+; with it times that side's `SONG_GAIN`, over 256, which is the `PlayBGM`'s
+; volume and balance; as written, it does not multiply. With the PPU's
+; multiplier, like the fade. Does not touch X, Y or V.
+.proc song_gain_scale
+.a8
+.i16
+    pha
+    lda f:SONG_SCALED
+    beq as_written
+    pla
+    sta M7B
+    txa
+    lsr a                       ; the side, in carry
+    bcs right
+    lda f:SONG_GAIN
+    sta M7A
+    lda f:SONG_GAIN + 1
+    sta M7A
+    lda MPYM
+    rts
+right:
+    lda f:SONG_GAIN + 2
+    sta M7A
+    lda f:SONG_GAIN + 3
+    sta M7A
+    lda MPYM
+    rts
+as_written:
+    pla
     rts
 .endproc
 
@@ -746,6 +869,7 @@ write:
     ; voice's first two registers.
     pha
     lda bgm_fade
+    ora f:SONG_SCALED
     beq such_which
     txa
     and #$0E
@@ -945,5 +1069,6 @@ other:
     sta f:MUS_LOG_YES
     sta f:MUS_LOG_I
     sta f:MUS_LOG_I + 1
+    jsl f:bgm_level_reset
     rts
 .endproc

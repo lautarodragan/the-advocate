@@ -462,3 +462,51 @@ def test_con_msu_el_tema_pedido_dos_veces_no_reinicia_la_pista(tmp_path):
         "lo que suena después del segundo `PlayBGM` de evilrhys es lo mismo "
         "que después del primero (correlación %.2f): la pista volvió a "
         "empezar, y en RM2k el mismo tema sigue sonando" % parecido)
+
+
+# --- con MSU-1, el volumen de un `PlayBGM` es el de la pista -----------------
+#
+# El mismo caso de arriba con el segundo `PlayBGM` a volumen 50,
+# `tema-que-baja`, contra `tema-pedido-dos-veces`, que lo pide a 100: los dos
+# corren igual hasta el segundo, y después de él la pista sigue en el mismo
+# lugar en los dos —no se reinicia—, así que lo que suena es el mismo audio
+# por dos volúmenes. Con el MSU-1 el volumen es su registro, `MSU_VOLUME`,
+# que no se puede leer: se escucha. A 50 la amplitud es un cuarto —el CC7
+# escalado, al cuadrado, como sin MSU-1—, así que la energía de la ventana
+# tiene que ser un cuarto de la otra, con margen para el remuestreo.
+
+# Entre cuánto y cuánto puede quedar la amplitud del tema bajado.
+UN_CUARTO = (0.18, 0.32)
+
+
+def _despues_del_segundo(tmp_path, caso):
+    """Lo que suena en los VENTANA cuadros después del segundo `PlayBGM`."""
+    una = _con_pistas(tmp_path / caso, caso=caso)
+    saltos, antes, cuadros = 0, 0, 0
+    while saltos < 3 and cuadros < 900:
+        una.consola.run(1)
+        cuadros += 1
+        espera = una.palabra("ev_waiting")
+        if espera > antes:
+            saltos += 1
+        antes = espera
+    assert saltos == 3, "en %d cuadros %s no llegó a su tercer `Wait`" % (
+        cuadros, caso)
+    assert _lejano(una, "MSU_PLAYING")[0], (
+        "el tema no está sonando por la pista: esta prueba no mide nada")
+    una.consola.run(2)
+    una.consola.audio = bytearray()
+    una.consola.run(VENTANA)
+    return numpy.asarray(array("h", bytes(una.consola.audio)), float)
+
+
+def test_con_msu_el_volumen_de_un_tema_que_sigue_baja_la_pista(tmp_path):
+    entero = _despues_del_segundo(tmp_path, "tema-pedido-dos-veces")
+    bajo = _despues_del_segundo(tmp_path, "tema-que-baja")
+    rms = lambda a: float(numpy.sqrt(numpy.mean(a * a)))
+    assert rms(entero) >= AUDIBLE / 4, (
+        "con el tema a 100 no suena nada: no compara nada")
+    proporcion = rms(bajo) / rms(entero)
+    assert UN_CUARTO[0] <= proporcion <= UN_CUARTO[1], (
+        "el `PlayBGM` a volumen 50 dejó la pista a %.2f de la amplitud del "
+        "mismo a 100: tenía que quedar en un cuarto" % proporcion)

@@ -1,0 +1,8 @@
+{
+  "event_commands": [
+    {"code": "Teleport", "parameters": [3, 41, 56]},
+    {"code": "Wait", "parameters": [3]},
+    {"code": "PlayBGM", "parameters": [0, 50, 100, 50], "string": "evilrhys"},
+    {"code": "Wait", "parameters": [100]}
+  ]
+}

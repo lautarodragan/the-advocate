@@ -207,6 +207,7 @@ recorded:
     ldx #BA_PACKAGE
     jsr battle_audio_load
     lda #BA_SONG
+    jsl f:bgm_level_battle_in   ; the map's level, kept; the battle's, as written
     jsr battle_bgm
     plb
     ; The data bank, at $7E: that is what lets the battle code use absolute
@@ -239,6 +240,7 @@ recorded:
     ldx map_current             ; and the map's audio goes back to the SPC700
     jsr battle_audio_load
     lda f:BAT_LENGTH + BA_SONG_PREV
+    jsl f:bgm_level_battle_out  ; at the level it had
     jsr battle_bgm              ; the map's song, or the silence there was
     plb
     jsr back_from_battle

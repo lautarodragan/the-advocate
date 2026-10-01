@@ -172,7 +172,7 @@ ready:
     and #$08                    ; the track is not on the card
     bne fails
     plx
-    lda #MSU_VOLUME_MAX
+    lda f:MSU_BASE              ; MSU_VOLUME_MAX at the `PlayBGM`'s volume
     sta MSU_VOLUME
     lda #$03                    ; play and repeat
     sta MSU_CONTROL
