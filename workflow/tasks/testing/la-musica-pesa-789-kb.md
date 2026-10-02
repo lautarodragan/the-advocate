@@ -1,9 +1,139 @@
 ---
 name: "La música pesa 789 KB"
-description: "El stream eran escrituras crudas al DSP; el formato por nota (hecho) lo bajó al 29% sin cambiar ni una escritura, y quedan tres ideas más"
+description: "El stream eran escrituras crudas al DSP; el formato por nota (hecho) lo bajó al 29% sin cambiar ni una escritura, los saltos (hechos) un 23,5% más, y quedan la 3 y la 4"
 type: refactor
-assignee: Tijereta
+assignee: taro
 ---
+
+# Para taro
+
+**La idea 2, los saltos, está hecha** (Tijereta, 2026-10-01): lo que un tema
+repite se dice una vez. Las escrituras al DSP son las mismas, cuadro por
+cuadro, así que **no tendría que sonar nada distinto**: lo que hay que
+probar es que la música suene como antes, sobre todo los temas largos —el de
+batalla, `3D-Galax`, `patchb`— y la vuelta al principio de cada uno.
+
+**Al mergear, instalar `rm2k-snes-audio`** (`just -f tools/justfile install
+rm2k-snes-audio`). `protocol` no cambió —cambió `music.toml`, y lo generado
+va commiteado—, y `cartridge` tampoco: el runtime lo lee del checkout.
+
+`test_musica_techos.py` pasa sin volver a medir: la mezcla es la misma. No
+hay goldens que se muevan.
+
+## Lo que quedó (la idea 2)
+
+`OP_REPEAT back events`, 4 B: vuelve `back` bytes atrás desde el final de
+sí mismo, lee `events` eventos —1 a 254— y sigue después del salto. De un
+solo nivel: lo que lee no puede ser otro salto, ni `OP_INIT` ni `OP_END`.
+Escribe lo mismo porque el estado del decodificador —el caché de registros,
+el sonido de cada voz— depende sólo de los bytes que leyó, y lo que el salto
+lee son los mismos bytes.
+
+* **El codificador**, `fold` en `stream.rs`: de izquierda a derecha, en cada
+  evento la repetición que más ahorra, con un paso perezoso. **La más corta
+  que acepta es de 7 B**, no de 5, que es la primera que ahorra: una corta se
+  lleva lo que cubre de lo que las siguientes pueden leer. Sobre los 103
+  temas: con 5, −20%; con 6, −22,9%; con 7, −23,5%; con 8, −23,1%; con 10,
+  −21,3%. El paso perezoso suma un 0,1%.
+* **El 65816**: cuenta los eventos en `music_frame::read`, por donde pasan
+  todos —fuera de un salto, una carga y un salto condicional por evento—, y
+  `ev_repeat` guarda la vuelta y resta en 24 bits. **4 B de RAM lejana**,
+  `MUS_BACK_TO` y `MUS_LEFT`, en el rango de la música (`$6C8B`–`$6C8E`).
+  La resta en 24 bits vale porque un stream sólo se parte entre bancos que se
+  continúan (`.crossbank`); en el `release` hay 2.814 saltos, en siete temas,
+  que vuelven por encima del principio de un banco.
+
+### Cuánto bajó
+
+| | Antes | Después | |
+|---|---:|---:|---:|
+| `release`, 51 temas | 702.978 B | 526.487 B | −25,1% |
+| El juego entero, 103 temas | 1.432.782 B | 1.096.211 B | −23,5% |
+
+El juego entero es el trabajo de audio de Tucu-tucu (la unión de las once
+corridas de Lechuza), compilado con `rm2k-snes-audio compile`: 329 KB menos.
+El estudio decía −26% y −367 KB, y la diferencia es del estimador, no de los
+temas: corrido sobre los mismos streams da −24,8%, pero cuenta en bytes —un
+salto que empieza o termina en la mitad de un evento, que el decodificador
+no puede leer como opcode— y busca sólo entre los últimos 32 candidatos.
+Restringido a bordes de evento da −23,0%, y `fold` saca −23,5%.
+
+### Cómo se verificó
+
+* **Tema por tema, los 103**, con un script descartable: el stream de la
+  base, decodificado por el `rm2k-snes-audio` de la base, contra el nuevo,
+  decodificado por el nuevo siguiendo los saltos y también desplegado
+  (`decode --unfold`). **Iguales los 103**, 1.852.332 escrituras, cada una
+  con su cuadro; los sonidos de cada tema, byte por byte iguales. Los 17 que
+  Tucu-tucu no pudo leer del `.inc` entran, porque los streams salen del
+  compilador y no del `.inc`.
+* **En cada build**, el compilador decodifica cada tema plano y con saltos,
+  y los dos tienen que dar las escrituras de `writes`; y `fold` se niega si
+  desplegar lo que devuelve no da el stream que recibió.
+* **En la ROM**, `test_musica_escrituras.py`:
+  * `test_la_rom_vuelve_de_cada_repeticion` toca `wb3shop` (169 saltos) y
+    compara lo que la ROM le pide al DSP contra el stream **desplegado**, sin
+    pasar por el modelo del salto. **Vista fallar** rompiendo la ROM dos
+    veces: volviendo un byte de más, la música se calla (la prueba lo dice
+    como "`music_frame` no corre en cada cuadro"); leyendo un evento de
+    menos, da distinto en el cuadro 144. Las otras cinco del archivo
+    fallaron también las dos veces: sus temas llevan saltos.
+  * `test_la_rom_vuelve_atras_por_encima_de_un_banco` busca en el cartucho
+    el tema más corto con un salto que cruza el principio de un banco y lo
+    compara igual. **Vista fallar** con `ev_repeat` sin el préstamo al
+    banco: fallan ésta y la de `3D-Galax`.
+* **Tres pruebas cambiaron cómo miden, no lo que esperan**:
+  `test_tema_que_ya_suena`, `test_lugar_recordado` y `test_volumen_y_tempo`
+  decían "no se reinició" porque el puntero del stream no bajaba, y un salto
+  lo baja. Miran ahora `avance_del_stream` (`consola.py`), que adentro de un
+  salto es adonde vuelve. Siguen viendo un reinicio: lleva al principio.
+* El fixture de `tests/python.rs` cambió de hash: fuera de los streams, el
+  `musicdata.inc` es línea por línea igual, y cada stream, desplegado por una
+  copia aparte en Python, es byte por byte el de antes.
+
+### Los ciclos
+
+La sonda de `la-calidad-de-la-musica.md` —la línea de barrido al entrar y
+salir de `music_tick`—, en una copia descartable, en snes9x, los 50 temas
+del `release` con música, cada uno entero desde su vuelta al principio
+(385.910 cuadros). La IRQ cae en la línea 112.
+
+| | Antes | Después |
+|---|---:|---:|
+| El peor cuadro (la vuelta al principio del de batalla) | 109 líneas | 110 |
+| El peor a mitad de un tema (sin los últimos 31 cuadros) | 98 | 99 |
+| Todas las líneas de música | 2.263.834 | 2.309.059 (+2,0%) |
+
+No se pierde ningún cuadro, pero **el peor termina en la línea 222**, tres
+antes del vblank. Ya era 221 antes de esto; la calidad lo había dejado en 100
+(212). Lo que lo sube es la vuelta al principio, no los saltos.
+
+### El espacio
+
+`just espacio`, antes y después:
+
+| | `release` | `test-special` | `test-encounter-every-step` |
+|---|---|---|---|
+| Bancos de datos | 64 → 62 (2 → 0 en los 4 MB lentos) | 15 → 14 | 7 → 7 |
+| Huecos | 11.204 → 56.623 B | 19.903 → 2.938 B | 36.527 → 60.739 B |
+| Banco 0 libre | 1.165 → 1.053 B | 1.183 → 1.071 B | 1.179 → 1.067 B |
+
+`BSS`, `ZEROPAGE` y el banco 1, iguales. Los 112 B del banco 0 son el código
+nuevo de `music.s`.
+
+### La 3 y la 4
+
+* **La 3, LZSS con ventana de 4 KB**: no se hizo, como se pidió. No busqué la
+  RAM más allá del rango de la música: ahí quedan libres `$6C8F`–`$6DFF`,
+  unos 370 B, lejos de 4 KB.
+* **La 4, no escribir las notas que nunca suenan**: medida, y **ya no vale
+  la pena**. Sacando la preparación de una nota que otra pisa en el mismo
+  cuadro, el juego entero baja 1.592 B planos y 1.188 con saltos: el 0,1%.
+  Los 116.805 B del 2026-09-25 eran del reparto de voces de entonces; el de
+  hoy —la rampa un cuadro antes de reusar una voz, de la calidad— casi no los
+  produce.
+
+# Lo de antes
 
 **La idea 1, el formato por nota, está hecha desde el 2026-09-26**: es el
 paso 4 de `la-calidad-de-la-musica.md`, que tiene el formato, los bytes, los
