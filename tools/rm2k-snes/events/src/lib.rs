@@ -43,7 +43,7 @@ use crate::fail::Stop;
 use crate::game::{Command, Event, Map, Patches};
 use crate::messages::{Messages, Window};
 use crate::pages::{hex, map_pages, MapEvents, SubstitutionTable, Substitutions};
-use crate::registry::{Graphics, Package, Picture, Songs, Troops};
+use crate::registry::{Graphics, Package, PictureKey, Pictures, Songs, Troops};
 use crate::troops::TroopPages;
 use serde_json::{json, Map as JsonMap, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
@@ -71,7 +71,9 @@ pub struct Request {
     pub test_event_map: Option<i32>,
     // What only `compile` reads.
     pub substitutions: BTreeMap<i32, SubstitutionTable>,
-    pub picture: Option<Picture>,
+    /// Per map, the pictures it carries and each one's slot: see
+    /// [`Pictures`]. A map that is not here carries none.
+    pub pictures: BTreeMap<i32, Pictures>,
     pub sound: SoundSettings,
     /// Each test page and the map it runs in, compiled with that map's
     /// context and as its event 0. What the caller puts in front of it —the
@@ -143,6 +145,34 @@ fn pair(v: &Value, whose: &str) -> Result<(String, i32)> {
         .filter(|a| a.len() == 2)
         .ok_or_else(|| Bad::answer(format!("{whose}: {v} is not a pair")))?;
     Ok((text(&a[0], whose)?, int(&a[1], whose)? as i32))
+}
+
+/// A picture as the scan answers it and the caller sends it back: see
+/// [`PictureKey::to_json`].
+fn picture_key(v: &Value, whose: &str) -> Result<PictureKey> {
+    let flag = |name: &str| -> Result<bool> {
+        field(v, name, whose)?
+            .as_bool()
+            .ok_or_else(|| Bad::answer(format!("{whose}: a picture's `{name}` is not a flag")))
+    };
+    let at = field(v, "at", whose)?;
+    Ok(PictureKey {
+        number: int(field(v, "number", whose)?, whose)? as i32,
+        name: text(field(v, "name", whose)?, whose)?,
+        zoom: int(field(v, "zoom", whose)?, whose)? as i32,
+        transparent_color: flag("transparent_color")?,
+        map_fixed: flag("map_fixed")?,
+        by_variable: flag("by_variable")?,
+        at: if at.is_null() {
+            None
+        } else {
+            let a = at
+                .as_array()
+                .filter(|a| a.len() == 2)
+                .ok_or_else(|| Bad::answer(format!("{whose}: a picture's `at` is {at}")))?;
+            Some((int(&a[0], whose)? as i32, int(&a[1], whose)? as i32))
+        },
+    })
 }
 
 fn by_map<T>(
@@ -273,15 +303,19 @@ impl Request {
                 );
             }
         }
-        if let Some(p) = data.get("picture") {
-            if !p.is_null() {
-                r.picture = Some(Picture {
-                    name: text(field(p, "name", whose)?, whose)?,
-                    number: int(field(p, "number", whose)?, whose)? as i32,
-                    x: int(field(p, "x", whose)?, whose)? as i32,
-                    y: int(field(p, "y", whose)?, whose)? as i32,
-                });
-            }
+        if let Some(p) = data.get("pictures") {
+            r.pictures = by_map(p, whose, |v| {
+                let table = v
+                    .as_array()
+                    .ok_or_else(|| Bad::answer(format!("{whose}: a map's pictures are not a list")))?
+                    .iter()
+                    .map(|e| Ok((picture_key(e, whose)?, int(field(e, "slot", whose)?, whose)? as u8)))
+                    .collect::<Result<_>>()?;
+                Ok(Pictures {
+                    table,
+                    gathering: false,
+                })
+            })?;
         }
         if let Some(s) = data.get("sound_effects") {
             for a in list(s, "per_map", whose)? {
@@ -449,7 +483,7 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
                     messages: Some(&mut messages),
                     songs: Some(&mut songs),
                     graphics: Some(&mut graphics),
-                    picture: None,
+                    pictures: None,
                     troops: None,
                 };
                 if let Some(code) =
@@ -473,15 +507,51 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
             messages: Some(&mut messages),
             songs: None,
             graphics: Some(&mut graphics),
-            picture: None,
+            pictures: None,
             troops: None,
         };
         let pages = map_pages(&mut ctx, &map, &me)?;
+        // And the pictures the map can show, gathered apart: its pages' first
+        // and then the test pages' that run here, which is the order the
+        // caller converts them in. Each page with everything a real
+        // compilation has —without songs, the pages above stop at the first
+        // `PlayBGM`, and the "Meanwhile" sign of map 81 comes after one—.
+        let mut pictures = Pictures::gathering();
+        let bodies = map
+            .events
+            .iter()
+            .flat_map(|event| event.pages.iter().map(move |page| (event.id, &page.commands)));
+        let cases = request
+            .cases
+            .iter()
+            .filter(|(run_map, _)| *run_map == map.id)
+            .map(|(_, case)| (0, case));
+        for (event, commands) in bodies.chain(cases) {
+            // Its texts are only measured, with the cartridge's step: a test
+            // page can carry more than sixty-four kilobytes of them —the one
+            // that pads the text block does—.
+            let mut messages = Messages::measuring(request.messages_step, request.window());
+            let mut songs = Songs::default();
+            let mut graphics = Graphics::new(&associations);
+            let mut ctx = Ctx {
+                game,
+                indices: &indices,
+                sound: &sound,
+                map_index: &map_index,
+                messages: Some(&mut messages),
+                songs: Some(&mut songs),
+                graphics: Some(&mut graphics),
+                pictures: Some(&mut pictures),
+                troops: None,
+            };
+            compile_page(&mut ctx, commands, Some(me.for_event(event)), 0, 0)?;
+        }
         out.push(json!({
             "id": map.id,
             "compiled": compiled,
             "pages": pages,
             "graphics": graphics.pairs,
+            "pictures": pictures.keys_json(),
         }));
     }
     let mut answer = indices_json(&indices, &associations);
@@ -540,7 +610,6 @@ fn compile_pass(
     let window = request.window();
     let mut songs = Songs::default();
     let mut troops = Troops::default();
-    let picture = request.picture.as_ref();
 
     // The test pages' texts go first, so their offsets depend on nothing.
     let tc = &request.test_commands;
@@ -579,6 +648,7 @@ fn compile_pass(
         });
         let me = MapEvents::new(&map, Some(subs.clone()));
         let mut graphics = Graphics::new(&associations);
+        let mut pictures = request.pictures.get(&map.id).cloned().unwrap_or_default();
         songs.current = Some(Package::Map(k));
         let pages = {
             let mut ctx = Ctx {
@@ -589,7 +659,7 @@ fn compile_pass(
                 messages: Some(&mut messages),
                 songs: Some(&mut songs),
                 graphics: Some(&mut graphics),
-                picture,
+                pictures: Some(&mut pictures),
                 troops: Some(&mut troops),
             };
             map_pages(&mut ctx, &map, &me)?
@@ -615,7 +685,7 @@ fn compile_pass(
                 messages: Some(&mut messages),
                 songs: Some(&mut songs),
                 graphics: Some(&mut graphics),
-                picture,
+                pictures: Some(&mut pictures),
                 troops: None,
             };
             let code = compile_page(
@@ -645,13 +715,13 @@ fn compile_pass(
                     messages: Some(&mut messages),
                     songs: None,
                     graphics: None,
-                    picture: None,
+                    pictures: None,
                     troops: None,
                 };
                 if compile_page(&mut ctx, &page.commands, None, 0, 0)?.is_none() {
                     continue;
                 }
-                debts.extend(compile::page_debts(game, &page.commands, picture)?);
+                debts.extend(compile::page_debts(game, &indices, &page.commands, Some(&pictures))?);
             }
         }
         let asked: Vec<Value> = subs
@@ -689,7 +759,7 @@ fn compile_pass(
         messages: None,
         songs: Some(&mut songs),
         graphics: None,
-        picture: None,
+        pictures: None,
         troops: None,
     };
     let battle_audio = if troops.ids.is_empty() {
@@ -719,7 +789,7 @@ fn compile_pass(
             messages: None,
             songs: None,
             graphics: None,
-            picture: None,
+            pictures: None,
             troops: None,
         };
         let Some(code) = compile_page(&mut ctx, &body, None, 0, 0)? else {

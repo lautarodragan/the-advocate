@@ -1,0 +1,9 @@
+{
+  "event_commands": [
+    {"code": "Teleport", "parameters": [12, 25, 25]},
+    {"code": "ShowPicture", "parameters": [1, 0, 160, 120, 1, 50, 0, 1, 100, 100, 100, 100, 0, 0], "string": "ABLrec"},
+    {"code": "Wait", "parameters": [5]},
+    {"code": "PanScreen", "parameters": [2, 1, 3, 4, 1]},
+    {"code": "PanScreen", "parameters": [2, 2, 2, 4, 1]}
+  ]
+}

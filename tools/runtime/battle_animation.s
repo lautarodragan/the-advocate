@@ -11,31 +11,12 @@ ANIM_PTR   = $7E30E2            ; three bytes
 ANIM_N     = $7E30E5
 ANIM_T     = $7E30E6
 
-; And the picture's state, fifteen bytes in the same far RAM. **It is not in
-; bank 0 because it does not fit there**: the BSS was at 7680 of 7680 and this
-; is fifteen bytes more. It lives where the battle animation does and for the
-; same reason: it is read and written a few times per frame, so the long
-; addressing does not show, and it need not be indexed by anything other than
-; the channel.
-;
-; The tone is **three** bytes and not four: a picture's saturation is always
-; the neutral one —`picture_fits` accepts no other— so there is nothing to
-; interpolate there and `picture_palette` sets `tint_s` to `TINT_NEUTRAL`.
+; And $30EC to $30FA, the pictures' slots: see `PIC_IMG` in far_ram.s.
 ; **$30E8 to $30EB belong to the MSU-1** —`MSU_HAS`, `MSU_PLAYING` and
-; `MSU_FACTOR`—, so this starts at $30EC and goes up to $30FA; the next block
-; is `FAR_ARAM_OF`, at $3100. It started at $30E8 and overwrote them: the ROM
-; stopped detecting the MSU-1 and the title music went silent. No test saw it
-; —the suite compares pixels— and taro found it by listening.
-FAR_PICTURE   = $7E30EC
-PICTURE_ACTIVE = FAR_PICTURE + 0
-PICTURE_TONE  = FAR_PICTURE + 1 ; r, g, b, with 100 neutral like the tint
-PICTURE_FROM  = FAR_PICTURE + 4
-PICTURE_TO    = FAR_PICTURE + 7
-PICTURE_STEP  = FAR_PICTURE + 10
-PICTURE_STEPS = FAR_PICTURE + 11
-PICTURE_READY = FAR_PICTURE + 12 ; a new palette is waiting for vblank
-PICTURE_I     = FAR_PICTURE + 13
-PICTURE_CHANGE = FAR_PICTURE + 14
+; `MSU_FACTOR`—, so they start at $30EC; the next block is the message's
+; tail, at $30FB. The one picture of before started at $30E8 and overwrote
+; them: the ROM stopped detecting the MSU-1 and the title music went silent.
+; No test saw it —the suite compares pixels— and taro found it by listening.
 
 ; And the tail of escapes of whatever text box is open: how many frames are
 ; left in the `\|` pause and whether it closes by itself when done —the `\^`—.

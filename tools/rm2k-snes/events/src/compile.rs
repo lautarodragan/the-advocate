@@ -16,7 +16,7 @@ use crate::game::{Command, Game, Sound};
 use crate::messages::Messages;
 use crate::opcodes::*;
 use crate::pages::MapEvents;
-use crate::registry::{Backdrop, Graphics, Package, Picture, Songs, Troops};
+use crate::registry::{Backdrop, Graphics, Package, PictureKey, Pictures, Songs, Troops};
 use crate::route;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
@@ -526,7 +526,9 @@ pub struct Ctx<'a> {
     pub messages: Option<&'a mut Messages>,
     pub songs: Option<&'a mut Songs>,
     pub graphics: Option<&'a mut Graphics>,
-    pub picture: Option<&'a Picture>,
+    /// The pictures the map carries —or, in the scan, the ones being
+    /// gathered—: see [`Pictures`].
+    pub pictures: Option<&'a mut Pictures>,
     /// The troops the cartridge is going to have to carry. **It does not
     /// change the bytecode** —the troop number emitted is RM2k's— so a ROM
     /// without a registry compiles exactly the same; the only thing lost is
@@ -2173,104 +2175,158 @@ fn sound_index(ctx: &mut Ctx, sound: Sound, from_route: bool) -> usize {
 
 // --- pictures --------------------------------------------------------------------------
 
+/// `OP_PICTURE`'s `mode`: the position is two variable slots.
+pub const PICTURE_BY_VARIABLE: u8 = 0x01;
+/// And the picture goes with the map.
+pub const PICTURE_MAP_FIXED: u8 = 0x02;
+
 /// Whether the parameters of a `ShowPicture` or a `MovePicture` fall within
-/// what the console's picture knows how to do.
+/// what the console's pictures know how to do: no rotation nor waves, the
+/// saturation neutral, a zoom that shrinks, and a tone the tint's tables
+/// cover.
 ///
 /// The indices come from easyrpg-player's `CommandShowPicture` and
 /// `CommandMovePicture`, **not from memory**: the color and the saturation
 /// go in 8..11 and the effect mode in 12, which is not what one would
-/// guess.
+/// guess. The position is by variable with `p[1]` at 1 —`ValueOrVariable`—
+/// and goes with the map with `p[4]`.
 fn picture_fits(p: &[i32]) -> bool {
     p.len() >= 14
-        && p[1] == 0 // position by variable
-        && p[4] == 0 // attached to the map
-        && p[5] == 100 // the zoom
-        && p[6] == 0 // translucent
+        && (0..=1).contains(&p[1]) // position by constant or by variable
+        && (1..=100).contains(&p[5]) // the zoom, which only shrinks
+        && (0..=100).contains(&p[6]) // the transparency
         && p[11] == 100 // the saturation
         && p[12] == 0 // rotate or wave
-        && p[8..12].iter().all(|&v| (0..=200).contains(&v))
+        && p[8..11].iter().all(|&v| (0..=200).contains(&v))
 }
 
-/// The three `Picture` commands, or None if this picture does not fit.
+/// What a `ShowPicture` shows, if the console can show it: see
+/// [`PictureKey`].
+pub fn picture_key(cmd: &Command) -> Option<PictureKey> {
+    let p = &cmd.parameters;
+    if cmd.code != SHOW_PICTURE || !picture_fits(p) {
+        return None;
+    }
+    let (by_variable, map_fixed) = (p[1] == 1, p[4] != 0);
+    Some(PictureKey {
+        number: p[0],
+        name: cmd.string.clone(),
+        zoom: p[5],
+        transparent_color: p[7] != 0,
+        map_fixed,
+        by_variable,
+        at: (!by_variable && !map_fixed).then_some((p[2], p[3])),
+    })
+}
+
+/// The three `Picture` commands, or None if the map does not carry this
+/// picture.
 ///
 /// `ShowPicture` (11110), `MovePicture` (11120) and `ErasePicture` (11130):
-/// an image on top of everything, moved and erased. **Since 2026-09-12 one
-/// is done**: the "One year previously" picture, and any other that fits the
-/// same mold. See the converter's `Pictures` and
-/// workflow/tasks/done/show-picture-phase-1.md. The ones that do not fit
-/// —27 of the 34 the game has— are still accepted without being done, and
-/// what follows applies to those.
-///
-/// In mode 3 both background layers are taken by the map, so an image on
-/// top requires a video decision, not one more opcode. But there is a
-/// shortcut the game allows and it is worth noting: **the cutscenes tint to
-/// black before showing the picture**, that is the map is invisible while it
-/// lasts and the image could borrow a whole layer instead of being
-/// composited on top. That does not work for the game's custom systems,
-/// which use them over the map, but it does for the pictures.
-///
-/// How much it unlocks, measured: +8 automatic pages, the three together.
-/// The one that matters is the "1 year earlier" one, where the image is the
-/// "One year previous" picture: accepting it, the player sees black where
-/// the picture goes and the scene continues up to Talan's Pad.
-///
-/// The ROM carries **a single one** —see `Picture` in [`crate::registry`]—
-/// and that is why the three opcodes do not say which: they say what to do
-/// to it.
+/// an image on top of everything, moved and erased. Since 2026-09-12 one
+/// was done, the "One year previously" picture; **since 2026-10-01, the
+/// ones each map carries in its sprite bank** —see [`Pictures`]—, as many as
+/// the console has slots for. What the caller did not put in is still
+/// accepted without being done, and that is what the pictures too big for
+/// the sprites are until they have a plane of their own.
 ///
 /// ```text
-/// OP_PICTURE        r, g, b, sat (bytes, 100 neutral): puts it up with
-///                   that tone.
-/// OP_PICTURE_MOVE   the tone it goes to, and in how many frames (byte). It
-///                   does not cut the frame: if the page waits, an OP_DELAY
-///                   goes after it, as with `FlashScreen` and the shake.
-/// OP_PICTURE_ERASE  takes it down.
+/// OP_PICTURE        slot, image, mode, x, y, r, g, b, transparency: puts
+///                   the image up in the slot, centred at (x, y) of RM2k's
+///                   screen —or of two variables—, with that tone.
+/// OP_PICTURE_MOVE   slot, and the tone and transparency it goes to in how
+///                   many frames (byte). It does not cut the frame: if the
+///                   page waits, an OP_DELAY goes after it, as with
+///                   `FlashScreen` and the shake.
+/// OP_PICTURE_ERASE  slot: takes it down.
 /// ```
 ///
-/// **The picture's fade is the tone and not the transparency**, which is
-/// what had to be checked: the two `MovePicture`s of the "1 year earlier"
-/// page leave `top_trans` at 0 and move (r, g, b) between 0 and 100 with the
-/// saturation still at 100. So the image appears **black**, goes up to its
-/// color and back to black; on the console that is tinting its fifteen CGRAM
-/// entries, which is exactly the math the screen tint already did.
+/// **A `MovePicture` does not move**: the console keeps the place a picture
+/// was put in and changes its tone and its transparency, which is all the
+/// game's moves on pictures that fit do —the fades of the signs, the shadow
+/// that appears—. So one compiles only if a picture of the map under that
+/// number stays where it is: placed by a constant at the move's place, or
+/// going with the map, whose position RM2k 2000 does not move either
+/// (`Picture::Move`, `ignore_position` with `IsLegacy`). Nor does it zoom:
+/// the zoom has to be the one it was shown with.
 ///
-/// The parameter indices come from easyrpg-player's `CommandShowPicture` and
-/// `CommandMovePicture`, **not from memory**: the two read fourteen and
-/// sixteen, and the order is not the one one would guess.
-pub fn compile_picture(cmd: &Command, picture: Option<&Picture>) -> Step<Option<Vec<u8>>> {
+/// **The picture's fade is the tone and not the transparency**: the two
+/// `MovePicture`s of the "1 year earlier" page leave `top_trans` at 0 and
+/// move (r, g, b) between 0 and 100. The image appears **black**, goes up to
+/// its color and back to black; on the console that is tinting its fifteen
+/// CGRAM entries, the math the screen tint already did.
+pub fn compile_picture(
+    cmd: &Command,
+    pictures: Option<&Pictures>,
+    indices: &Indices,
+) -> Step<Option<Vec<u8>>> {
     let p = &cmd.parameters;
-    let Some(picture) = picture else {
+    let Some(pictures) = pictures else {
         return Ok(None);
     };
     if cmd.code == ERASE_PICTURE {
-        if p.is_empty() || !picture.owns(p[0], None) {
+        let Some(&(_, slot)) = p.first().and_then(|&n| pictures.numbered(n).next()) else {
             return Ok(None);
-        }
-        return Ok(Some(vec![OP_PICTURE_ERASE]));
+        };
+        return Ok(Some(vec![OP_PICTURE_ERASE, slot]));
     }
     if !picture_fits(p) {
         return Ok(None);
     }
-    let tone = [p[8] as u8, p[9] as u8, p[10] as u8, p[11] as u8];
+    let tone = [p[8] as u8, p[9] as u8, p[10] as u8, p[6] as u8];
     if cmd.code == SHOW_PICTURE {
-        // `use_transparent_color`: whether the PNG's index 0 is drawn or
-        // not. The "1 year earlier" picture has it off, so it is an opaque
-        // rectangle; making it transparent would require one palette color
-        // less and knowing which was index 0 before reducing.
-        if p[7] != 0 || !picture.shows(p[0], &cmd.string, p[2], p[3]) {
+        let Some(key) = picture_key(cmd) else {
             return Ok(None);
+        };
+        let Some((image, slot)) = pictures.image(&key) else {
+            return Ok(None);
+        };
+        let mut mode = 0;
+        let (x, y) = if key.by_variable {
+            mode |= PICTURE_BY_VARIABLE;
+            // A variable without a slot is a picture this cartridge cannot
+            // place: accepted without being done, like one it does not carry.
+            match (
+                indices.variable_slot(p[2] as i64),
+                indices.variable_slot(p[3] as i64),
+            ) {
+                (Ok(sx), Ok(sy)) => (sx as i64, sy as i64),
+                _ => return Ok(None),
+            }
+        } else {
+            (p[2] as i64, p[3] as i64)
+        };
+        if key.map_fixed {
+            mode |= PICTURE_MAP_FIXED;
         }
-        let mut out = vec![OP_PICTURE];
+        let (Ok(x), Ok(y)) = (i16::try_from(x), i16::try_from(y)) else {
+            return Ok(None);
+        };
+        let mut out = vec![OP_PICTURE, slot, image, mode];
+        out.extend(x.to_le_bytes());
+        out.extend(y.to_le_bytes());
         out.extend(tone);
         return Ok(Some(out));
     }
-    // MovePicture: the same picture, in the same place, with another tone.
-    // The duration comes in **tenths** —`data.time_left = duration *
-    // DEFAULT_FPS / 10`—, which is what had to be looked up: the first one's
-    // 35 are three and a half seconds, not half a second.
-    if !picture.owns(p[0], Some((p[2], p[3]))) {
+    // MovePicture: the same pictures, where they are and at their size,
+    // with another tone and transparency. The duration comes in **tenths**
+    // —`data.time_left = duration * DEFAULT_FPS / 10`—, which is what had to
+    // be looked up: the first one's 35 are three and a half seconds, not half
+    // a second.
+    // Which one it moves is not known until it runs —the number can show
+    // another picture by then—, so it is enough that one of them stays: the
+    // one this page showed, almost always. If another one is up, it gets the
+    // tone and stays where it is, where RM2k would have moved it too.
+    let Some(slot) = pictures
+        .numbered(p[0])
+        .find(|(key, _)| {
+            let stays = key.map_fixed || (p[1] == 0 && key.at == Some((p[2], p[3])));
+            stays && key.zoom == p[5]
+        })
+        .map(|(_, s)| *s)
+    else {
         return Ok(None);
-    }
+    };
     let Some(&tenths) = p.get(14) else {
         return Err(Stop::Fatal(Bad::answer(
             "a MovePicture without its duration",
@@ -2280,7 +2336,7 @@ pub fn compile_picture(cmd: &Command, picture: Option<&Picture>) -> Step<Option<
     if !(0..=PICTURE_FRAMES_MAX).contains(&frames) {
         return Ok(None);
     }
-    let mut out = vec![OP_PICTURE_MOVE];
+    let mut out = vec![OP_PICTURE_MOVE, slot];
     out.extend(tone);
     out.push(frames as u8);
     // `options.wait`: the page waits as long as it lasts, like `FlashScreen`.
@@ -3269,11 +3325,19 @@ pub fn compile_command(
             if let Some(common) = counter_of_picture(ctx.game, cmd) {
                 return compile_counter(ctx, common);
             }
-            // None is "this picture does not fit the model": it is accepted
+            // The scan gathers what the page shows and emits nothing: its
+            // bytecode is for knowing who walks, and a picture moves nobody.
+            if let Some(p) = ctx.pictures.as_deref_mut().filter(|p| p.gathering) {
+                if let Some(key) = picture_key(cmd) {
+                    p.gather(key);
+                }
+                return Ok(Vec::new());
+            }
+            // None is "the map does not carry this picture": it is accepted
             // without being done, which is what the three did until
             // 2026-09-12. Cutting the page would take away from the game the
-            // eight that compile today because of it.
-            Ok(compile_picture(cmd, ctx.picture)?.unwrap_or_default())
+            // pages that compile today because of it.
+            Ok(compile_picture(cmd, ctx.pictures.as_deref(), ctx.indices)?.unwrap_or_default())
         }
         // `ChangeSystemBGM` (10660): changes the song the system uses for
         // fighting, for winning, for the inn. The game uses it **130 times on
@@ -4367,14 +4431,14 @@ fn compile_animation(
 /// Which commands of this page are accepted without being done, so the
 /// converter can warn instead of the debt going silent.
 ///
-/// The three `Picture` ones are debt only **if this page is not the one of
-/// the picture the ROM does draw**: warning anyway would be the warning
-/// nobody reads, which is how a real debt gets lost among the ones that no
-/// longer are.
+/// The three `Picture` ones are debt only **if the map does not carry the
+/// picture**: warning anyway would be the warning nobody reads, which is how
+/// a real debt gets lost among the ones that no longer are.
 pub fn page_debts(
     game: &Game,
+    indices: &Indices,
     commands: &[Command],
-    picture: Option<&Picture>,
+    pictures: Option<&Pictures>,
 ) -> Result<Vec<i32>> {
     let mut out = BTreeSet::new();
     for cmd in commands {
@@ -4386,7 +4450,7 @@ pub fn page_debts(
             continue;
         }
         if matches!(cmd.code, SHOW_PICTURE | MOVE_PICTURE | ERASE_PICTURE) {
-            match compile_picture(cmd, picture) {
+            match compile_picture(cmd, pictures, indices) {
                 Ok(Some(_)) => continue,
                 Ok(None) => {}
                 Err(Stop::Fatal(b)) => return Err(b),
@@ -4425,7 +4489,7 @@ mod tests {
             messages: None,
             songs: Some(songs),
             graphics: None,
-            picture: None,
+            pictures: None,
             troops: None,
         };
         compile_page(&mut ctx, commands, None, 0, 0).unwrap()
@@ -4475,7 +4539,7 @@ mod tests {
             messages: None,
             songs: None,
             graphics: None,
-            picture: None,
+            pictures: None,
             troops: None,
         };
         compile_page(&mut ctx, commands, None, 0, 0)
@@ -4510,9 +4574,9 @@ mod tests {
         for other in [show(2, "Fortitude"), show(1, "9")] {
             let code = compile_with(&game, &[other.clone()]);
             assert_eq!(code.unwrap().unwrap(), [OP_DONE]);
-            assert_eq!(page_debts(&game, &[other], None).unwrap(), [SHOW_PICTURE]);
+            assert_eq!(page_debts(&game, &Indices::default(), &[other], None).unwrap(), [SHOW_PICTURE]);
         }
-        assert!(page_debts(&game, &[show(3, "4")], None).unwrap().is_empty());
+        assert!(page_debts(&game, &Indices::default(), &[show(3, "4")], None).unwrap().is_empty());
     }
 
     #[test]
@@ -4559,7 +4623,7 @@ mod tests {
             messages: Some(&mut messages),
             songs: Some(&mut songs),
             graphics: None,
-            picture: None,
+            pictures: None,
             troops: None,
         };
         let map = Map { id: 5, events: Vec::new() };
@@ -4828,7 +4892,7 @@ mod tests {
             messages: None,
             songs: Some(&mut songs),
             graphics: None,
-            picture: None,
+            pictures: None,
             troops: None,
         };
         let troop_page = [cmd(PLAY_BGM, &[0, 100, 100, 50], "radio")];
@@ -4952,6 +5016,125 @@ mod tests {
             one(cmd(CHANGE_MONSTER_MP, &[1, 1, 0, 40], "")),
             [OP_ENEMY, 1, ENEMY_SP, 0xD8, 0xFF, OP_DONE]
         );
+    }
+
+    /// A `ShowPicture` of `name` on `number`: centred at (cx, cy), with
+    /// `mode` —RM2k's p[1], 1 by variables—, with the map if `map`, at
+    /// `zoom`, transparency `trans`.
+    fn picture(number: i32, name: &str, mode: i32, at: (i32, i32), map: bool, zoom: i32, trans: i32) -> Command {
+        cmd(
+            SHOW_PICTURE,
+            &[number, mode, at.0, at.1, i32::from(map), zoom, trans, 1, 100, 90, 80, 100, 0, 0],
+            name,
+        )
+    }
+
+    fn moving(number: i32, at: (i32, i32), zoom: i32, trans: i32, tenths: i32, wait: bool) -> Command {
+        cmd(
+            MOVE_PICTURE,
+            &[number, 0, at.0, at.1, 0, zoom, trans, 0, 0, 0, 0, 100, 0, 0, tenths, i32::from(wait)],
+            "",
+        )
+    }
+
+    /// `commands` compiled for a map that carries `table`.
+    fn with_pictures(table: &[(PictureKey, u8)], indices: &Indices, commands: &[Command]) -> Vec<u8> {
+        let game = Game::default();
+        let sound = SoundSettings::default();
+        let mut pictures = Pictures {
+            table: table.to_vec(),
+            gathering: false,
+        };
+        let mut ctx = Ctx {
+            game: &game,
+            indices,
+            sound: &sound,
+            map_index: &|_| None,
+            messages: None,
+            songs: None,
+            graphics: None,
+            pictures: Some(&mut pictures),
+            troops: None,
+        };
+        compile_page(&mut ctx, commands, None, 0, 0).unwrap().unwrap()
+    }
+
+    #[test]
+    fn two_pictures_take_their_slots() {
+        let a = picture(3, "Sign", 0, (100, 175), false, 100, 0);
+        let b = picture(1, "Rec", 0, (250, 200), false, 50, 0);
+        let table = [(picture_key(&a).unwrap(), 0), (picture_key(&b).unwrap(), 1)];
+        let code = with_pictures(&table, &Indices::default(), &[a, b, cmd(ERASE_PICTURE, &[3], "")]);
+        assert_eq!(
+            code,
+            [
+                OP_PICTURE, 0, 0, 0, 100, 0, 175, 0, 100, 90, 80, 0,
+                OP_PICTURE, 1, 1, 0, 250, 0, 200, 0, 100, 90, 80, 0,
+                OP_PICTURE_ERASE, 0,
+                OP_DONE
+            ]
+        );
+    }
+
+    #[test]
+    fn a_picture_the_map_does_not_carry_is_accepted_undone() {
+        let a = picture(3, "Sign", 0, (100, 175), false, 100, 0);
+        let elsewhere = picture(3, "Sign", 0, (101, 175), false, 100, 0);
+        let table = [(picture_key(&a).unwrap(), 0)];
+        // The same file somewhere else is another picture: its pixels round
+        // differently.
+        let code = with_pictures(&table, &Indices::default(), &[elsewhere, cmd(ERASE_PICTURE, &[4], "")]);
+        assert_eq!(code, [OP_DONE]);
+    }
+
+    #[test]
+    fn by_variables_and_with_the_map() {
+        let smoke = picture(8, "smoke1", 1, (153, 154), true, 35, 40);
+        let key = picture_key(&smoke).unwrap();
+        assert!(key.by_variable && key.map_fixed && key.at.is_none());
+        let mut indices = Indices::default();
+        indices.variables.insert(153, 7);
+        indices.variables.insert(154, 9);
+        let code = with_pictures(&[(key, 1)], &indices, &[smoke.clone()]);
+        let mode = PICTURE_BY_VARIABLE | PICTURE_MAP_FIXED;
+        assert_eq!(code, [OP_PICTURE, 1, 0, mode, 7, 0, 9, 0, 100, 90, 80, 40, OP_DONE]);
+        // Without a slot for its variables it cannot be placed.
+        let code = with_pictures(&[(picture_key(&smoke).unwrap(), 1)], &Indices::default(), &[smoke]);
+        assert_eq!(code, [OP_DONE]);
+    }
+
+    #[test]
+    fn a_move_changes_tone_and_transparency_and_waits() {
+        let sign = picture(3, "Sign", 0, (100, 175), false, 100, 0);
+        let table = [(picture_key(&sign).unwrap(), 0)];
+        let code = with_pictures(&table, &Indices::default(), &[moving(3, (100, 175), 100, 50, 35, true)]);
+        assert_eq!(code, [OP_PICTURE_MOVE, 0, 0, 0, 0, 50, 210, OP_DELAY, 210, 0, OP_DONE]);
+        // Somewhere else, or at another zoom, it does not: the console does
+        // not move pictures.
+        for elsewhere in [moving(3, (120, 175), 100, 0, 10, false), moving(3, (100, 175), 50, 0, 10, false)] {
+            assert_eq!(with_pictures(&table, &Indices::default(), &[elsewhere]), [OP_DONE]);
+        }
+        // Two pictures under one number: one of them staying is enough.
+        let other = picture(3, "Other", 0, (10, 10), false, 100, 0);
+        let both = [table[0].clone(), (picture_key(&other).unwrap(), 0)];
+        let code = with_pictures(&both, &Indices::default(), &[moving(3, (10, 10), 100, 0, 1, false)]);
+        assert_eq!(code, [OP_PICTURE_MOVE, 0, 0, 0, 0, 0, 6, OP_DONE]);
+        // With the map, RM2k 2000 does not move it either, so the place does
+        // not matter.
+        let shadow = picture(17, "shadow", 0, (100, 115), true, 55, 100);
+        let table = [(picture_key(&shadow).unwrap(), 1)];
+        let code = with_pictures(&table, &Indices::default(), &[moving(17, (0, 0), 55, 50, 10, true)]);
+        assert_eq!(code, [OP_PICTURE_MOVE, 1, 0, 0, 0, 50, 60, OP_DELAY, 60, 0, OP_DONE]);
+    }
+
+    #[test]
+    fn rotating_or_enlarging_is_not_a_picture() {
+        let mut spin = picture(1, "x", 0, (0, 0), false, 100, 0);
+        spin.parameters[12] = 1;
+        let mut big = picture(1, "x", 0, (0, 0), false, 150, 0);
+        big.parameters[12] = 0;
+        assert!(picture_key(&spin).is_none());
+        assert!(picture_key(&big).is_none());
     }
 
     #[test]

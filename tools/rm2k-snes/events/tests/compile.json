@@ -165,11 +165,22 @@
    }
   ]
  },
- "picture": {
-  "name": "Pic",
-  "number": 1,
-  "x": 160,
-  "y": 120
+ "pictures": {
+  "1": [
+   {
+    "number": 1,
+    "name": "Pic",
+    "zoom": 100,
+    "transparent_color": false,
+    "map_fixed": false,
+    "by_variable": false,
+    "at": [
+     160,
+     120
+    ],
+    "slot": 0
+   }
+  ]
  },
  "sound_effects": {
   "per_map": [

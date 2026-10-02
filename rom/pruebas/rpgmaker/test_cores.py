@@ -379,3 +379,14 @@ def test_los_quietos_que_se_turnan_una_ranura():
         una.correr(10)
         imagenes.append(una.imagen())
     iguales("turnos-108", *imagenes)
+
+
+@pytest.mark.parametrize("caso,cuadro", (
+    ("imagen-dos", 10), ("imagen-tono", 40), ("imagen-mapa", 120)))
+def test_imagenes(caso, cuadro):
+    """Las imágenes en los sprites, en los dos cores: dos ranuras a la vez,
+    una rampa de tono y transparencia, y una pegada al mapa con la cámara
+    corrida. Su estado vive en la RAM lejana —`PIC_IMG` y los suyos— y
+    `pic_clear` lo pone en limpio al cargar el mapa; una ranura que quedara
+    con basura se dibujaría en bsnes."""
+    iguales("%s-%d" % (caso, cuadro), *dos_cores(caso, cuadro))

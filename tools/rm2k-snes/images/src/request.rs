@@ -67,6 +67,17 @@ pub struct ShowPicture {
     pub rm_screen: (i64, i64),
     pub screen: (i64, i64),
     pub colors: usize,
+    /// The zoom, in percent: 100 if it does not say.
+    #[serde(default = "hundred")]
+    pub zoom: i64,
+    /// Whether the picture goes with the map: then it is not scaled to the
+    /// console's screen, and its corner is relative to its centre.
+    #[serde(default)]
+    pub map_fixed: bool,
+}
+
+fn hundred() -> i64 {
+    100
 }
 
 impl Paths for ShowPicture {

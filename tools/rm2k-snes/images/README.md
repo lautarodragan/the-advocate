@@ -27,6 +27,10 @@ picture that cannot be read, a broken dump—, 2 is the call being wrong.
   than the console's, and the position is the picture's centre: both
   corners go through the same arithmetic, and the picture is brought to the
   size between them. Fifteen colours, kept by use, for a sprite palette.
+  At a zoom, if the request says one, and with its transparent colour at
+  index 0; and if it goes with the map, not scaled to the console's
+  screen —the map is not—, only zoomed, with its corner relative to its
+  centre.
 * **`backdrops`**: a battle's backdrop, in quality —kept by use, from a
   CGRAM entry on— and in the light fallback, a fraction of the size with
   its colours merged by what shows the least.

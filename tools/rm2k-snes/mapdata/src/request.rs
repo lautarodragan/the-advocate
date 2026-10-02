@@ -79,6 +79,30 @@ pub struct Map {
     pub changing: Vec<i64>,
     pub appearing: Vec<i64>,
     pub turning: Vec<i64>,
+    /// The `ShowPicture` pictures the map carries in its sprite bank, if
+    /// any: see [`MapPictures`].
+    #[serde(default)]
+    pub pictures: Option<MapPictures>,
+}
+
+/// A map's `ShowPicture` pictures: the first tile of its sprite bank they
+/// start at, and each picture, in the order the bytecode numbers them.
+#[derive(Deserialize)]
+pub struct MapPictures {
+    pub base: i64,
+    pub images: Vec<PictureImage>,
+}
+
+/// One picture: half its size in RM2k's pixels —the console computes its
+/// corner from its centre with it—, the first of its 32x32 objects among the
+/// map's pictures' ones, each object's place from the picture's corner, and
+/// its fifteen colours.
+#[derive(Deserialize)]
+pub struct PictureImage {
+    pub half: [i64; 2],
+    pub first: i64,
+    pub objects: Vec<[i64; 2]>,
+    pub palette: Vec<Color>,
 }
 
 /// `emit`: everything the cartridge carries, from every domain.
@@ -112,8 +136,6 @@ pub struct Emit {
     /// The title's picture and the Game Over's, each one stream.
     pub title: Option<FullScreen>,
     pub game_over: Option<FullScreen>,
-    /// The `ShowPicture` picture the cartridge carries.
-    pub picture: Option<ShowPicture>,
     /// The battle animations the compiled pages show.
     pub animations: Animations,
     /// The troops some battle of the cartridge asks for, in its order.
@@ -169,16 +191,6 @@ pub struct FullScreen {
     pub first_color: i64,
     #[serde(deserialize_with = "hex::bytes")]
     pub stream: Vec<u8>,
-}
-
-/// The `ShowPicture` picture: where its corner lands, how many objects it
-/// takes, and its fifteen colours.
-#[derive(Deserialize)]
-pub struct ShowPicture {
-    pub x: i64,
-    pub y: i64,
-    pub objects: i64,
-    pub palette: Vec<Color>,
 }
 
 /// The battle animations, and the box they are drawn in.

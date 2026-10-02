@@ -256,9 +256,8 @@ party_ready:
     jsr turn_clear
     jsr aram_clear
     jsr battle_anim_clear
-    lda #0                      ; RAM starts with garbage
-    sta f:PICTURE_ACTIVE
-    sta f:PICTURE_READY
+    jsl f:pic_clear + FAST      ; RAM starts with garbage
+    lda #0
     sta f:GO_WAIT               ; the harness looks at it: see game_over.s
     ; The slot screen's flag too: with $55 the harness would see it open from
     ; the reset. That is what happened on 2026-09-10 with the two counters
@@ -460,7 +459,7 @@ no_jump_pending:
     jsr flashes_tick            ; and the flashes, in the same place
     jsr shake_tick              ; and one of the screen shake
     jsr pan_tick                ; and one of the camera panned away from the hero
-    jsr picture_tick            ; and one of the picture's fade. It goes **before**
+    jsl f:pic_tick + FAST       ; and one of a picture's fade. It goes **before**
                                 ; the flash and not after: both build their
                                 ; palette in `pal_buf`, and the flash leaves
                                 ; its own there waiting for the vblank. The

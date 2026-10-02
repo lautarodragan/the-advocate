@@ -124,27 +124,20 @@ def _prepare(renderer, map_id, args):
     if map_id in args.timer_maps:
         from port import window as window_mod
         timer = window_mod.skin(args.game_dir, renderer.database).path
-    # The `ShowPicture` picture, if its own belongs to this map. The slot is
-    # chosen by `Pictures.choose` **in the order of the map table**, which is
-    # the order maps are prepared in.
-    shown = None
-    record = getattr(args, "pictures", None)
-    if record is not None:
-        info = record.choose([game_map])
-        if info is not None and record.map_id is None:
-            record.map_id = map_id
-        if info is not None and record.map_id == map_id:
-            shown = {"name": record.name, "objects": info["objetos"],
-                     "tiles": picture.reserved_tiles(info),
-                     "cells": [[number, [v for line in cell for v in line]]
-                               for number, cell
-                               in sorted(picture.cells(info).items())]}
+    # The `ShowPicture` pictures this map's pages and test pages can show,
+    # which the scan gathered: what goes into the sprite bank, and what the
+    # compiler and the emission get if the stage finds room for it. See
+    # `picture.for_map`.
+    pictures = picture.for_map(args.game_dir, scanned.get("pictures", []),
+                               map_id)
+    shown = pictures[0] if pictures else None
     singles = sorted(c for c, n in getattr(args, "maps_per_character",
                                              {}).items() if n == 1)
     dump = compiler.dump_of(args.game_dir)
     p = _Prepared()
     p.map_id, p.game_map, p.dump = map_id, game_map, dump
     p.route_graphics = route_graphics
+    p.pictures = pictures
     p.request = {
         "map": map_id,
         "map_files": compiler.map_files(dump),
@@ -287,6 +280,15 @@ def _map_info(renderer, prepared, written, args):
               "tiles from %d, palette %d"
               % (map_id, animation_mod.TILES, anim_base, anim_pal))
 
+    # The pictures, if the stage found room for them in the bank: `image` is
+    # where they start and how many slots they took, zero if they didn't go
+    # in. The compiler numbers against `table` and the emission writes
+    # `images`; a map without them compiles its pictures to nothing.
+    pictures = None
+    if prepared.pictures and s["image"][0]:
+        _asked, table, images = prepared.pictures
+        pictures = {"base": s["image"][0], "table": table, "images": images}
+
     npcs = [_npc(n) for n in answer["npcs"]]
     where = {_key(slot): (block, palette)
              for slot, block, palette in s["place"]}
@@ -420,4 +422,6 @@ def _map_info(renderer, prepared, written, args):
             event: (s["shared"]["slots"][slot], palette)
             for event, slot, _pose, palette
             in (s["shared"] or {"events": []})["events"]},
+        # The `ShowPicture` pictures it carries, or None: see above.
+        "pictures": pictures,
     }

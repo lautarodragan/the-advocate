@@ -37,12 +37,15 @@ use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
-/// A `ShowPicture` picture this map owns, already decided and cut.
+/// The `ShowPicture` pictures this map carries, already decided and cut:
+/// their names, for the notes; how many objects; their tiles; and how many
+/// slots the console keeps them in, each of which takes a palette.
 #[derive(Clone, Debug, Default)]
 pub struct PictureAsked {
     pub name: String,
     pub objects: usize,
     pub image: Image,
+    pub slots: usize,
 }
 
 /// What the cartridge decided about a map, and what other domains answered
@@ -255,6 +258,25 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
     let plain = convert_with(game, request, false)?;
     if request.layouts.is_empty() || fits(&plain, &request.layouts) {
         return Ok(plain);
+    }
+    // A map that fits no layout **with its pictures** is converted again
+    // without them, before anything else: the pictures are what came last,
+    // and they are the one thing whose absence the map survives —their
+    // commands are accepted without being done—.
+    if let Some(asked) = &request.picture {
+        let without = MapRequest {
+            picture: None,
+            ..request.clone()
+        };
+        let mut done = convert(game, &without)?;
+        done.notes.push(note(format!(
+            "  map {}: WARNING, the pictures {} aren't drawn here: with their {} tiles the map \
+             fits no VRAM layout",
+            request.map,
+            quoted(&asked.name),
+            asked.image.tiles
+        )));
+        return Ok(done);
     }
     let shared = convert_with(game, request, true)?;
     Ok(if shared.objects.as_ref().is_some_and(|o| o.shared.is_some()) { shared } else { plain })
@@ -819,14 +841,26 @@ fn convert_with(game: &Game, request: &MapRequest, share: bool) -> Result<Whole>
             ))),
         }
     }
+    // The pictures, with a palette per slot from the top. They yield to the
+    // battle animation's box, which was there first: a map whose palettes
+    // leave room for one of the two keeps the animation, and its pictures
+    // are not drawn —the caller sees `image` at zero and compiles none—.
     let mut image = (0, 0);
     if let Some(asked) = &request.picture {
         let previous = if rain.0 != 0 { rain.0 } else { timer_at.map_or(0, |t| t.0) };
-        match picture_of_image(&asked.image, &mut tiles, &palettes, previous) {
+        let box_palette = usize::from(request.battle_animation);
+        let mut trial = tiles.clone();
+        let placed = if palettes.len() + box_palette + asked.slots <= OBJ_PALETTES {
+            picture_of_image(&asked.image, &mut trial, &palettes, previous, asked.slots)
+        } else {
+            None
+        };
+        match placed {
             Some(at) => {
                 image = at;
+                tiles = trial;
                 done.notes.push(note(format!(
-                    "  map {id}: the picture {}, {} objects in {} tiles from {}, palette {}",
+                    "  map {id}: the pictures {}, {} objects in {} tiles from {}, {} palette(s) from the top",
                     quoted(&asked.name),
                     asked.objects,
                     asked.image.tiles,
@@ -834,24 +868,20 @@ fn convert_with(game: &Game, request: &MapRequest, share: bool) -> Result<Whole>
                     at.1
                 )));
             }
-            None => {
-                done.notes.push(Note {
-                    kind: "stop",
-                    text: format!(
-                        "map {id}: the picture {} doesn't fit: the map already uses the {OBJ_PALETTES} \
-                         sprite palettes and the fade needs a whole one. See `cartel_de_imagen`.",
-                        quoted(&asked.name)
-                    ),
-                    stop: true,
-                });
-                return Ok(done);
-            }
+            None => done.notes.push(note(format!(
+                "  map {id}: WARNING, the pictures {} aren't drawn here: the map uses {} sprite \
+                 palettes{} and they need {} more",
+                quoted(&asked.name),
+                palettes.len(),
+                if box_palette != 0 { " and the battle animation's box one" } else { "" },
+                asked.slots
+            ))),
         }
     }
     let mut animation = None;
     if request.battle_animation {
         let mut trial = tiles.clone();
-        match map_animation(&mut trial, &palettes, usize::from(image.0 != 0)) {
+        match map_animation(&mut trial, &palettes, image.1) {
             None => done.notes.push(note(format!(
                 "  map {id}: WARNING, battle animations aren't drawn here: the map already uses the \
                  {OBJ_PALETTES} sprite palettes and the box needs a whole one"

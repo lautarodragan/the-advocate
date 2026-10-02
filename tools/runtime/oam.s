@@ -38,7 +38,7 @@
     sta obj_big
     jsr timer_oam
     jsl f:counter_oam + FAST    ; the counter under it: see `counter_oam`
-    jsr picture_oam             ; and the picture behind it: see `picture_oam`
+    jsl f:pic_oam + FAST        ; and the pictures behind it: see `pic_oam`
     jsr anim_drawing_oam        ; and the battle animation behind the picture:
                                 ; `Priority_BattleAnimation` is 110 against
                                 ; `Priority_PictureOld`'s 120
@@ -974,6 +974,16 @@ no_draw:
     rep #$20
 .a16
     lda oam_slot
+    ; And the 128 of OAM: past them the low table would run into the high
+    ; one. Since 2026-10-01 a map can put up to two pictures in front of its
+    ; characters, and the converter does not count both together.
+    cmp #128
+    bcc has_room
+    sep #$20
+.a8
+    rts
+.a16
+has_room:
     asl a
     asl a
     tax                         ; four bytes per object

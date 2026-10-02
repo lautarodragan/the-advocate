@@ -14,8 +14,8 @@ rengo:
         ataca. La pelea es contra la tropa 178, y al ganarla -> 81 (10, 7)
     81  la curación (evento 6, página 1): prende el 267, el 270 y el 266; con
         el 270, la página 3: Talan cuenta su historia, el cartel "Meanwhile,
-        in Lashe City" —en el original una imagen, en el fork del 81 un
-        mensaje—, el grupo pasa a `DummyHero` -> 82 (8, 8)
+        in Lashe City" —una imagen, que se va sola con su fundido—, el grupo
+        pasa a `DummyHero` -> 82 (8, 8)
     82  la oficina del director (evento 3): Dalia -> 83 (68, 68)
     83  la fábrica: la automática 9 la hace pasar al capataz, y se camina a
         la salida de abajo -> 84 (9, 10)
@@ -51,6 +51,17 @@ from tramo_sorbe import (
 # Con `RECHAZO_A_WICK`, la llegada al mundo prende el 239 y Talan renguea
 # hasta la casa de Vago.
 RENGO = 239
+
+
+def el_cartel(p):
+    """Si el cartel "Meanwhile, in Lashe City" está arriba y quieto: una
+    imagen en la ranura 0 y ninguna rampa, o sea pasado el fundido de
+    entrada. No es un mensaje —hasta el 2026-10-01 lo era, en el fork del
+    81—, así que la foto se saca en cualquier cuadro y no al componer uno."""
+    def byte(nombre):
+        return p.consola.ram(p.simbolos[nombre] & 0xFFFF, 1)[0]
+    ninguna = p.simbolos["PIC_NONE"]
+    return byte("PIC_IMG") != ninguna and byte("PIC_RAMP") == ninguna
 
 
 LA_OFICINA, LA_FABRICA, AFUERA_DE_LA_FABRICA = 82, 83, 84
@@ -120,9 +131,9 @@ def test_sorbe_la_curacion_y_el_viaje_de_dalia(recorrido):
     r.empezar("la curación")
     jugar(r, "la curación y la historia",
           lambda p: p.mapa() == LA_OFICINA,
-          fotos={"la-curacion": lambda p: p.mapa() == LA_CASA_DE_VAGO,
-                 "meanwhile-in-lashe-city":
-                     lambda p: p.switch(CONTO_LA_HISTORIA)})
+          fotos={"la-curacion": lambda p: p.mapa() == LA_CASA_DE_VAGO},
+          momentos={"meanwhile-in-lashe-city":
+                    lambda p: p.switch(CONTO_LA_HISTORIA) and el_cartel(p)})
     assert p.switch(TOBILLO_CURADO), r.estado()
     assert grupo_de(p) == [DUMMY], (
         "la historia de Talan deja a `DummyHero` solo, y el grupo es %s. %s"

@@ -35,9 +35,9 @@
     stz sub_refresh             ; loading a map, as in RM2k: see `sub_n`
     sep #$20
 .a8
-    lda #0                      ; and the picture is erased: it is the
-    sta f:PICTURE_ACTIVE        ; `erase_on_map_change` of Game_Pictures, and
-    sta f:PICTURE_READY         ; besides, its tiles belong to a single map
+    jsl f:pic_clear + FAST      ; and the pictures are erased: it is the
+                                ; `erase_on_map_change` of Game_Pictures, and
+                                ; besides, their tiles belong to the map
     stz counter_visible         ; and the counter, which in RM2k is pictures
     jsr package_load            ; the map's audio, during the fade
     rep #$20

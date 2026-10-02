@@ -1,0 +1,8 @@
+{
+  "event_commands": [
+    {"code": "Teleport", "parameters": [12, 25, 25]},
+    {"code": "ShowPicture", "parameters": [3, 0, 160, 120, 0, 100, 100, 1, 100, 100, 100, 100, 0, 0], "string": "Fortitude"},
+    {"code": "MovePicture", "parameters": [3, 0, 160, 120, 0, 100, 0, 0, 200, 50, 50, 100, 0, 0, 20, 1]},
+    {"code": "TintScreen", "parameters": [50, 50, 50, 100, 0, 0]}
+  ]
+}

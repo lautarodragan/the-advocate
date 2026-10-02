@@ -214,30 +214,32 @@ pub fn rain_drops(
     Some((base, which))
 }
 
-/// A `ShowPicture` picture, already cut into tiles by whoever decided it
-/// is this map's: tile number (from the base) to its 8x8 cell of 4-bit
-/// indices, and how many tiles it reserves.
+/// The `ShowPicture` pictures of a map, already cut into tiles by whoever
+/// decided they are this map's: tile number (from the base) to its 8x8
+/// cell of 4-bit indices, and how many tiles they reserve.
 #[derive(Clone, Debug, Default)]
 pub struct Image {
     pub tiles: usize,
     pub cells: Vec<(usize, [[u8; 8]; 8])>,
 }
 
-/// The picture at the end of the bank, and **a whole palette just for it**,
-/// the first free one —not added to the list: it goes above the characters'
-/// and its colours are uploaded with its fade—. `None` if the map already
-/// uses all eight. After the timer or the drops, it starts two rows of
-/// sixteen later, rounded to a row of blocks.
+/// The pictures at the end of the bank, and **a whole palette for each of
+/// the `slots` the console keeps them in**, from the last one down —slot 0
+/// takes palette 7—: not added to the list, because a picture's colours are
+/// its own and are uploaded with its fade, and from the top because the
+/// palettes 4 to 7 are the ones the console can blend. `None` if the map's
+/// palettes leave fewer than that. After the timer or the drops, they start
+/// two rows of sixteen later, rounded to a row of blocks.
 pub fn picture_of_image(
     image: &Image,
     tiles: &mut Vec<u8>,
     palettes: &[Vec<Color>],
     previous_base: usize,
+    slots: usize,
 ) -> Option<(usize, usize)> {
-    if palettes.len() >= OBJ_PALETTES {
+    if palettes.len() + slots > OBJ_PALETTES {
         return None;
     }
-    let which = palettes.len();
     let base = if previous_base != 0 {
         (previous_base + 2 * 16).div_ceil(BLOCK_ROW) * BLOCK_ROW
     } else {
@@ -247,15 +249,15 @@ pub fn picture_of_image(
     for (number, cell) in &image.cells {
         put(tiles, base + number, cell);
     }
-    Some((base, which))
+    Some((base, slots))
 }
 
 /// The battle animation's box at the end of the bank: its tiles, left
-/// blank —the console uploads each frame—, and a whole palette, after the
-/// picture's if it took one. `None` without a palette.
-pub fn map_animation(tiles: &mut Vec<u8>, palettes: &[Vec<Color>], used: usize) -> Option<(usize, usize)> {
-    let which = palettes.len() + used;
-    if which >= OBJ_PALETTES {
+/// blank —the console uploads each frame—, and a whole palette, the first
+/// free one under the `top` the pictures took. `None` without a palette.
+pub fn map_animation(tiles: &mut Vec<u8>, palettes: &[Vec<Color>], top: usize) -> Option<(usize, usize)> {
+    let which = palettes.len();
+    if which + top >= OBJ_PALETTES {
         return None;
     }
     let base = rounded_to_row(tiles.len() / 32);

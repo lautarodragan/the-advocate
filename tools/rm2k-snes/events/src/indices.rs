@@ -85,6 +85,11 @@ pub fn command_variables(commands: &[Command]) -> BTreeSet<i32> {
             ids.extend(&p[..3]);
         } else if matches!(code, CHANGE_HP | CHANGE_SP) && p.len() >= 5 && p[3] == 1 {
             ids.insert(p[4]);
+        } else if code == SHOW_PICTURE && p.len() >= 4 && p[1] == 1 {
+            // A picture placed by two variables, since 2026-10-01. In the
+            // game they are the smoke's and the aura numbers', and they add
+            // none: a `ControlVars` names all four.
+            ids.extend([p[2], p[3]]);
         }
     }
     ids

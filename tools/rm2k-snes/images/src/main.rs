@@ -47,8 +47,10 @@ enum Command {
     #[command(
         after_help = "The request: {\"file\", \"use_transparent_color\", \"top_trans\", \
         \"x\", \"y\" (its centre on RM2k's screen), \"rm_screen\": [w, h], \"screen\": [w, h], \
-        \"colors\"}. The answer: {\"x\", \"y\", \"width\", \"height\", \"palette\", \
-        \"indices\": rows of palette indices plus one}."
+        \"colors\", \"zoom\" (percent, 100 by default), \"map_fixed\" (false by default: \
+        with the map it is not scaled to the console's screen)}. The answer: {\"x\", \"y\" \
+        (its corner; with the map, relative to its centre), \"width\", \"height\", \"palette\", \
+        \"indices\": rows of palette indices plus one, 0 where it is transparent}."
     )]
     Picture(Plain),
     /// Battle backdrops, in quality and in the light fallback
@@ -139,7 +141,12 @@ fn do_picture(args: &Plain) -> Result<()> {
         rm: r.rm_screen,
         console: r.screen,
     };
-    let converted = show_picture::convert(&drawn, r.x, r.y, screens, r.colors)?;
+    let shown = show_picture::Shown {
+        zoom: r.zoom,
+        map_fixed: r.map_fixed,
+        ..show_picture::Shown::PLAIN
+    };
+    let converted = show_picture::convert_shown(&drawn, r.x, r.y, screens, r.colors, shown)?;
     write(&args.out, "picture", &request::picture_answer(&converted))
 }
 

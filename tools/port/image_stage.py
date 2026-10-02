@@ -44,16 +44,24 @@ def fullscreen(path, width, height, cell, first_color, cap):
 
 
 def picture(path, use_transparent_color, top_trans, cx, cy, rm_screen,
-            screen, colors):
+            screen, colors, zoom=100, map_fixed=False):
     """The picture of a `ShowPicture` centred at `(cx, cy)` of RM2k's
-    screen, as the stage answers it: where it lands, its palette and its
-    indices plus one."""
-    return _answer("picture", {
+    screen, at `zoom` percent and with the map or with the screen, as the
+    stage answers it: where it lands, its palette and its indices plus
+    one, 0 where it is transparent."""
+    request = {
         "file": os.path.abspath(path),
         "use_transparent_color": bool(use_transparent_color),
         "top_trans": top_trans, "x": cx, "y": cy,
         "rm_screen": list(rm_screen), "screen": list(screen),
-        "colors": colors})
+        "colors": colors}
+    # Only when they say something, so the request of a plain picture is
+    # the one it always was.
+    if zoom != 100:
+        request["zoom"] = zoom
+    if map_fixed:
+        request["map_fixed"] = True
+    return _answer("picture", request)
 
 
 def _scene():
