@@ -98,6 +98,7 @@ var_random:
     ; modulo done with the hardware's eight-bit divider: the converter does
     ; not let through a range wider than 255.
     jsr random_next
+.a16                            ; `random_next` comes back with A16
     sta WRDIVL                  ; the dividend, sixteen bits
     lda [code_ptr], y           ; a
     sta temp + 2

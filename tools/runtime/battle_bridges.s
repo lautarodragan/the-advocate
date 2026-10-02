@@ -103,6 +103,7 @@ ba_t_param:
     rtl
 ; The two for audio, which are from this round: a sound effect —A16 the index
 ; into `sound_table`, $FFFF none— and the song, with A8.
+.a16
 ba_t_sound:
     phb
     phk
@@ -110,6 +111,7 @@ ba_t_sound:
     jsr sound_play
     plb
     rtl
+.a8
 ba_t_bgm:
     phb
     phk
