@@ -1,4 +1,4 @@
-.segment "FAR"
+.segment "FAR2"
 
 ; --- the troop's event pages --------------------------------------------------
 ;

@@ -1,4 +1,4 @@
-.segment "FAR"
+.segment "FAR2"
 
 ; The window's lines: the party's, which is what it covers.
 BA_VIC_LINES = BA_PARTY_MAX

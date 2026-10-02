@@ -1,4 +1,4 @@
-.segment "FAR"
+.segment "FAR2"
 
 ; The whole battle. It is entered with `jsl` from `op_battle`, with the data
 ; bank already at $7E, and returns with the result in `BA_RESULT`.

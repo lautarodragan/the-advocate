@@ -1,4 +1,4 @@
-.segment "FAR"
+.segment "FAR2"
 
 ; --- the battle scene --------------------------------------------------------
 ;
@@ -1025,7 +1025,7 @@ ready:
     lda SCN_BACKDROP
     cmp #$FF
     beq ready                   ; the plain one is already there: it is zeros
-    jsl f:scn_double + FAST     ; from the fast mirror: see MEMSEL
+    jsl f:scn_double            ; FAR2 is fast already: no `+ FAST`
 ready:
     rts
 .endproc

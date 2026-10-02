@@ -1,4 +1,4 @@
-.segment "FAR"
+.segment "FAR2"
 
 ; The battle's xorshift, the same as `events.next_random` and
 ; `rain_random`, but on `BA_SEED`, which has **its own seed**: fighting does
