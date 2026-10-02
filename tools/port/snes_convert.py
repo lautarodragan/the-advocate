@@ -372,6 +372,15 @@ def main():
                                  compiled["messages"]["count"],
                                  compiled["messages"])
     troops = compiler.troops(compiled)
+    commons = compiled.get("commons")
+    if commons:
+        print("shared common events: %d bodies, %d bytes; automatic ones that"
+              " run: %s; left out, not compiling: %s"
+              % (len(commons["bodies"]),
+                 sum(len(code) // 2 for _, code in commons["bodies"]),
+                 ", ".join(str(commons["bodies"][i][0])
+                           for _, i in commons["autostart"]),
+                 ", ".join(map(str, commons["left_out"])) or "none"))
     test_party = {}
     for k, code in enumerate(compiled["cases"]):
         if code is None:
@@ -773,6 +782,7 @@ def main():
         animations_request(animations), troops.ids, battle_audio,
         scene_request(scenes, troops.ids, renderer.database), battle_tables,
         compiled["troop_pages"], compiler.party_common_events(compiled),
+        compiled.get("commons"),
         battle_model, items_all, members, args.text_padding,
         # Where the harness writes the case number: see `--case`.
         events.variable_slot(events.CASE_VARIABLE)

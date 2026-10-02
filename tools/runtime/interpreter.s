@@ -75,6 +75,30 @@ other:
     rts
 .endproc
 
+; The numbers `events.toml` holds for opcodes other branches are adding: until
+; they land, each one ends the page, like a number that is not an opcode.
+op_reserved_39 = op_done
+op_reserved_3a = op_done
+op_reserved_3b = op_done
+op_reserved_3c = op_done
+op_reserved_3d = op_done
+op_reserved_3e = op_done
+
+; OP_CALL and OP_RETURN: a shared common event body is entered and left. The
+; work is in bank 1, `call_enter` and `call_leave` in common_events.s.
+.proc op_call
+    jsl f:call_enter + FAST
+    jmp run_code::other
+.endproc
+
+.proc op_return
+    jsl f:call_leave + FAST
+    bcs nobody
+    jmp run_code::other
+nobody:
+    jmp op_done                 ; an automatic one's end: the page ends
+.endproc
+
 ; Entry k is the handler for opcode k. tools/snes/protocol/ emits it from
 ; events.toml, so a new opcode does not touch this: the handler for `OP_X`
 ; has to be called `op_x`, and if it is missing it does not assemble. It has to

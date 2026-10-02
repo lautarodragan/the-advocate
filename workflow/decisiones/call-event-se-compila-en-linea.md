@@ -1,3 +1,10 @@
+> **Reemplazada en parte el 2026-10-02** por
+> `call-event-a-un-cuerpo-compartido.md`: un común se llama con `OP_CALL`
+> a un cuerpo compartido cuando la página corre en primer plano y el cuerpo
+> no depende del mapa. Lo de abajo sigue valiendo para lo que se pega: las
+> páginas paralelas, los cuerpos que dependen del mapa y las llamadas a
+> páginas de eventos del mapa.
+
 # Qué
 
 **`CallEvent` se compila en línea** desde el 2026-09-12, sin pila de

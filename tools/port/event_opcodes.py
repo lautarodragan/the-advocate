@@ -62,6 +62,14 @@ OP_COUNTER       = 0x35
 OP_ACTOR         = 0x36
 OP_ENEMY         = 0x37
 OP_NUMBER        = 0x38
+OP_RESERVED_39   = 0x39
+OP_RESERVED_3A   = 0x3A
+OP_RESERVED_3B   = 0x3B
+OP_RESERVED_3C   = 0x3C
+OP_RESERVED_3D   = 0x3D
+OP_RESERVED_3E   = 0x3E
+OP_CALL          = 0x3F
+OP_RETURN        = 0x40
 
 
 # How many bytes each fixed-size instruction takes, opcode included.
@@ -119,6 +127,14 @@ OPCODE_SIZE = {
     OP_ACTOR: 5,
     OP_ENEMY: 5,
     OP_NUMBER: 5,
+    OP_RESERVED_39: 1,
+    OP_RESERVED_3A: 1,
+    OP_RESERVED_3B: 1,
+    OP_RESERVED_3C: 1,
+    OP_RESERVED_3D: 1,
+    OP_RESERVED_3E: 1,
+    OP_CALL: 2,
+    OP_RETURN: 1,
 }
 
 # The variable-size ones, as (base, where the count is, how big one
@@ -190,6 +206,14 @@ LAYOUT = {
     OP_ACTOR: (("actor", 1, False), ("what", 1, False), ("amount", 2, False)),
     OP_ENEMY: (("member", 1, False), ("what", 1, False), ("amount", 2, True)),
     OP_NUMBER: (("slot", 1, False), ("digits", 1, False), ("window", 2, False)),
+    OP_RESERVED_39: (),
+    OP_RESERVED_3A: (),
+    OP_RESERVED_3B: (),
+    OP_RESERVED_3C: (),
+    OP_RESERVED_3D: (),
+    OP_RESERVED_3E: (),
+    OP_CALL: (("body", 1, False),),
+    OP_RETURN: (),
 }
 
 

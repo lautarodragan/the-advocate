@@ -107,6 +107,7 @@ def emit(path, maps, dump, initial, hero_above, initial_party, screens,
          messages, message_pairs, title, game_over,
          animations, troops,
          battle_audio, scene, battle_tables, troop_pages, party_common,
+         commons,
          battle_model, items, actors, text_padding, case_slot, enemy_hp,
          speed_keys):
     """Writes the `.inc` at `path`, with what the console decompresses of
@@ -122,9 +123,10 @@ def emit(path, maps, dump, initial, hero_above, initial_party, screens,
     `battle_animations.animations_request` and
     `battle_scenes.scene_request` build; `troop_pages`, the compiler's
     answer of them; `party_common`, `{common event: its code}` of the ones
-    the menu runs on closing; `battle_model`, what `rm2k-snes-battle model`
-    answered. `case_slot` is where the harness writes the case number, if
-    there is more than one.
+    the menu runs on closing; `commons`, the shared common event bodies as
+    the compiler answered them, or None; `battle_model`, what
+    `rm2k-snes-battle model` answered. `case_slot` is where the harness
+    writes the case number, if there is more than one.
     """
     request = {
         "maps": [_map_record(m) for m in maps],
@@ -155,6 +157,8 @@ def emit(path, maps, dump, initial, hero_above, initial_party, screens,
         "party_common": [[switch, number, party_common[number].hex()]
                          for switch, number
                          in sorted(events.PARTY_COMMON_EVENTS.items())],
+        # The automatic common events and what they call, each body once.
+        "commons": commons,
         "battle_model": dict(battle_model,
                              layout=vars(battle_model["layout"])),
         # The compiler's indices: each variable's slot and each (actor,

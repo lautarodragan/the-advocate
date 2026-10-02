@@ -19,8 +19,39 @@ use std::collections::{BTreeMap, HashMap};
 /// in two bytes.
 pub const PAIR_FIRST: u8 = 95;
 
-/// How many pairs fit: the values from `PAIR_FIRST` to 255.
-pub const PAIRS_MAX: usize = 256 - PAIR_FIRST as usize;
+/// The byte that stands for **a variable's value**, `\V[n]`: the next byte
+/// is the variable's slot, and the ROM's composer writes its digits there
+/// when it opens the box —see `msg_letter` in tools/runtime/message_letter.s—.
+///
+/// It is the last of the pair range, taken from the pairs, and not a value
+/// below `PAIR_FIRST`: those are the font's 95 letters, all of them used. The
+/// pair it displaces is the least frequent of the table.
+pub const VARIABLE: u8 = 0xFF;
+
+/// How many pairs fit: the values from `PAIR_FIRST` up to the one before
+/// [`VARIABLE`].
+pub const PAIRS_MAX: usize = VARIABLE as usize - PAIR_FIRST as usize;
+
+/// How a `\V[n]` travels inside a line between the compiler and this
+/// module: one character of Unicode's last private use plane, this plus the
+/// slot. No text of a game can carry it —[`units`] stops at anything outside
+/// printable ASCII— so it cannot be mistaken for a letter, and as a single
+/// character it goes through the escape tail, the trimming and the
+/// deduplication key like any other.
+const VARIABLE_MARK: u32 = 0xF0000;
+
+/// The mark of a variable's value, with its slot: see [`VARIABLE_MARK`].
+pub fn variable_mark(slot: u8) -> char {
+    char::from_u32(VARIABLE_MARK + slot as u32).unwrap()
+}
+
+/// One unit of a line: a letter, as its index in the font, or a variable's
+/// value, as its slot.
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum Unit {
+    Letter(u8),
+    Variable(u8),
+}
 
 /// The pair table of a text block: which two letters each value from
 /// `PAIR_FIRST` up stands for.
@@ -130,10 +161,11 @@ impl Pairs {
 /// be left waiting for an A that RM2k never asked for and the whole page
 /// would last as long as the player takes.
 ///
-/// **Any other escape still does not compile**, and that is on purpose: the
-/// three `\V` of the common events —the value of a variable inserted into
-/// the text— require composing the text when opening it, which is something
-/// else. Drawing them as two letters would show.
+/// **Any other escape still does not compile**, and that is on purpose:
+/// drawing one as its letters would show. `\V[n]`, the value of a variable,
+/// is the exception, and it does not come through here: the compiler turns
+/// it into a mark before —see [`VARIABLE`]— and the ROM writes the digits
+/// when the box opens.
 const ESCAPE: char = '\\';
 const ESCAPE_PAUSE: char = '|';
 const ESCAPE_CLOSE: char = '^';
@@ -234,28 +266,53 @@ pub fn escape_tail(lines: &[String]) -> Step<(Vec<String>, usize, bool)> {
     Ok((lines, pauses, auto_close))
 }
 
-/// The letters of a line as font indices, that is ASCII minus 32; a letter
-/// the font does not have stops the conversion. All of the game's text fits
-/// there: it was measured, and it does not have a single accented letter.
-fn letters(text: &str, columns: usize) -> Result<Vec<u8>> {
+/// The units of a line: each letter as its font index, that is ASCII minus
+/// 32, and each variable mark as its slot; a letter the font does not have
+/// stops the conversion. All of the game's text fits there: it was
+/// measured, and it does not have a single accented letter.
+fn units(text: &str, columns: usize) -> Result<Vec<Unit>> {
     text.chars()
         .take(columns)
         .map(|ch| {
             let c = ch as u32;
+            if (VARIABLE_MARK..VARIABLE_MARK + 0x100).contains(&c) {
+                return Ok(Unit::Variable((c - VARIABLE_MARK) as u8));
+            }
             if !(32..127).contains(&c) {
                 return Err(Bad::answer(format!(
                     "the message has a character that is not in the font: {ch:?}"
                 )));
             }
-            Ok((c - 32) as u8)
+            Ok(Unit::Letter((c - 32) as u8))
         })
         .collect()
+}
+
+/// The runs of letters of a line, cut at each variable: a pair never takes
+/// a letter from each side of one, because between them the ROM writes
+/// digits.
+fn letter_runs(units: &[Unit]) -> Vec<Vec<u8>> {
+    let mut runs = vec![vec![]];
+    for u in units {
+        match *u {
+            Unit::Letter(l) => runs.last_mut().unwrap().push(l),
+            Unit::Variable(_) => runs.push(vec![]),
+        }
+    }
+    runs.retain(|r| !r.is_empty());
+    runs
 }
 
 /// A box as the ROM reads it: the header, and each line with its length
 /// **in letters** and then its letters through the pair table —see
 /// `Pairs`—. With an empty table each letter is its byte, as it was before
 /// there were pairs.
+///
+/// A variable's value is [`VARIABLE`] and its slot, and counts as **one**
+/// letter in the length: how many digits it takes is known only when the
+/// box opens, and the ROM adds the rest to the line's length there. A line
+/// that grows past the window is cut by the composer's column cap, at the
+/// edge.
 pub fn message_bytes(
     lines: &[String],
     pauses: usize,
@@ -270,9 +327,20 @@ pub fn message_bytes(
             | (pauses << 4) as u8,
     ];
     for text in lines.iter().take(window.lines) {
-        let text = letters(text, window.columns)?;
+        let text = units(text, window.columns)?;
         out.push(text.len() as u8);
-        out.extend(pairs.encode(&text));
+        let mut run = Vec::new();
+        for u in text {
+            match u {
+                Unit::Letter(l) => run.push(l),
+                Unit::Variable(slot) => {
+                    out.extend(pairs.encode(&run));
+                    run.clear();
+                    out.extend([VARIABLE, slot]);
+                }
+            }
+        }
+        out.extend(pairs.encode(&run));
     }
     Ok(out)
 }
@@ -343,13 +411,11 @@ impl Messages {
     /// The pair table for the boxes it holds: the ones left after every
     /// `rewind`, which are the ones that go into the cartridge.
     pub fn choose_pairs(&self) -> Result<Pairs> {
-        let lines = self
-            .texts
-            .values()
-            .flatten()
-            .map(|t| letters(t, self.window.columns))
-            .collect::<Result<Vec<_>>>()?;
-        Ok(Pairs::choose(lines.iter().map(|l| l.as_slice())))
+        let mut runs = Vec::new();
+        for t in self.texts.values().flatten() {
+            runs.extend(letter_runs(&units(t, self.window.columns)?));
+        }
+        Ok(Pairs::choose(runs.iter().map(|l| l.as_slice())))
     }
 
     /// The offset of this box, storing it the first time.
@@ -508,6 +574,22 @@ mod tests {
         assert_eq!(pairs.len(), 2);
         let many = Messages::measuring(1, WINDOW);
         assert!(many.choose_pairs().unwrap().is_empty());
+    }
+
+    #[test]
+    fn a_pair_never_takes_a_letter_from_each_side_of_a_variable() {
+        // "ab" twice in a row, and the variable between the b and the a: the
+        // pair "ba" is not there to count, and the line goes out as a pair,
+        // the variable, and the pair again.
+        let line = format!("ab{}ab", variable_mark(3));
+        let mut m = Messages::measuring(1, WINDOW);
+        m.add(&[line.clone()]).ok().unwrap();
+        let pairs = m.choose_pairs().unwrap();
+        assert_eq!(pairs.bytes(), [65, 66]);
+        let mut m = Messages::with_pairs(1, WINDOW, pairs);
+        let at = m.add(&[line]).ok().unwrap();
+        assert_eq!(m.data[at..], [1, 5, PAIR_FIRST, VARIABLE, 3, PAIR_FIRST]);
+        assert_eq!(PAIRS_MAX, 160);
     }
 
     #[test]

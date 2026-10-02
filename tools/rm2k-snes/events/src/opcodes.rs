@@ -61,6 +61,14 @@ pub const OP_COUNTER: u8 = 0x35;
 pub const OP_ACTOR: u8 = 0x36;
 pub const OP_ENEMY: u8 = 0x37;
 pub const OP_NUMBER: u8 = 0x38;
+pub const OP_RESERVED_39: u8 = 0x39;
+pub const OP_RESERVED_3A: u8 = 0x3A;
+pub const OP_RESERVED_3B: u8 = 0x3B;
+pub const OP_RESERVED_3C: u8 = 0x3C;
+pub const OP_RESERVED_3D: u8 = 0x3D;
+pub const OP_RESERVED_3E: u8 = 0x3E;
+pub const OP_CALL: u8 = 0x3F;
+pub const OP_RETURN: u8 = 0x40;
 
 /// How many bytes each fixed-size instruction takes, opcode included.
 /// Derived from the declared arguments; never written down.
@@ -117,6 +125,14 @@ pub const OPCODE_SIZE: &[(u8, usize)] = &[
     (OP_ACTOR, 5),
     (OP_ENEMY, 5),
     (OP_NUMBER, 5),
+    (OP_RESERVED_39, 1),
+    (OP_RESERVED_3A, 1),
+    (OP_RESERVED_3B, 1),
+    (OP_RESERVED_3C, 1),
+    (OP_RESERVED_3D, 1),
+    (OP_RESERVED_3E, 1),
+    (OP_CALL, 2),
+    (OP_RETURN, 1),
 ];
 
 /// The variable-size ones, as (opcode, base, where the count is, how big

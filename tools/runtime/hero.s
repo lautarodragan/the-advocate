@@ -124,6 +124,10 @@ menu_no_requested:
     bne no_right
     lda waiting_n
     bne no_right
+    ; And an automatic common event about to start: the other half of
+    ; `IsAnyEventStarting`.
+    jsl f:common_waiting + FAST
+    bne no_right
     lda pad
     and #PAD_UP
     beq no_up
