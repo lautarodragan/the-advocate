@@ -7,8 +7,8 @@
 
 use ditto::schema::{Event as DumpEvent, EventPage};
 use rm2k_rules::passability::{ABOVE, ALL};
-use rm2k_snes_map_sprites::npc::{Graphic, Npc};
-use rm2k_snes_map_sprites::split::TILE_PREFIX;
+use crate::sprites::npc::{Graphic, Npc};
+use crate::sprites::split::TILE_PREFIX;
 use std::collections::BTreeMap;
 
 /// The suffix a translucent CharSet baked against its cell carries, with

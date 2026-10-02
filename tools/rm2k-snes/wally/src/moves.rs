@@ -15,8 +15,8 @@
 //! from the map.
 
 use crate::events::{page_graphic, Event};
-use rm2k_snes_map_sprites::character::Key;
-use rm2k_snes_map_sprites::npc::Npc;
+use crate::sprites::character::Key;
+use crate::sprites::npc::Npc;
 use std::collections::{BTreeMap, BTreeSet};
 
 /// A page as the event compiler's scan answered it, with what this stage

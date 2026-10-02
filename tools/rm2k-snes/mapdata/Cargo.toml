@@ -22,7 +22,7 @@ rm2k-snes-battle = { path = "../battle" }
 # The sprite bank as the map's characters are laid out in it —where a
 # 32x32 block starts, how big a pose is— and the timer's glyphs: that
 # stage's numbers, written as it decided them.
-rm2k-snes-map-sprites = { path = "../map-sprites" }
+wally = { path = "../wally" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 

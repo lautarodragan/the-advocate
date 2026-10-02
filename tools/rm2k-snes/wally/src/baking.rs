@@ -16,8 +16,8 @@ use rm2k_render::Picture;
 use rm2k_rules::charset::{OFFSET_X, OFFSET_Y};
 use rm2k_rules::chipset::TILE;
 use rm2k_rules::passability::{cell, ABOVE};
-use rm2k_snes_map_sprites::npc::Npc;
-use rm2k_snes_map_sprites::split::TILE_PREFIX;
+use crate::sprites::npc::Npc;
+use crate::sprites::split::TILE_PREFIX;
 use std::collections::hash_map::Entry;
 use std::collections::{BTreeMap, HashMap, HashSet};
 

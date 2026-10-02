@@ -24,7 +24,7 @@ use crate::fail::{Bad, Result};
 use ditto::schema::Chipset;
 use rm2k_rules::chipset::{terrain_of, LOWER, TILES_PER_LAYER, UPPER};
 use rm2k_rules::passability::{cell, ABOVE};
-use rm2k_snes_map_background::blocks::{Blocks, BLOCK_BYTES, MAX_BLOCKS};
+use crate::background::blocks::{Blocks, BLOCK_BYTES, MAX_BLOCKS};
 use std::collections::{BTreeMap, HashMap};
 
 /// A `TileSubstitution`: whether it is the upper layer's, and the old and

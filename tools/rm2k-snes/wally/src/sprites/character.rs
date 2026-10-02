@@ -7,7 +7,7 @@
 //! so it is padded with transparency at the sides. And objects are always
 //! 4 bits a pixel: a character has to fit in fifteen colours.
 
-use crate::fail::{Bad, Result};
+use crate::sprites::fail::{Bad, Result};
 use adeleine::{luma_distance, merge_least_visible, Color};
 use rm2k_render::Picture;
 use std::collections::{BTreeSet, HashMap};

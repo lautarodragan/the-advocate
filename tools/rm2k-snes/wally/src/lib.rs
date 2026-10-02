@@ -16,6 +16,7 @@
 //! ([`events`]), who among them moves ([`moves`]), and drawing the sheets its characters are cut from
 //! ([`sheets`]).
 
+pub mod background;
 pub mod baking;
 pub mod events;
 pub mod fail;
@@ -26,6 +27,7 @@ pub mod map;
 pub mod moves;
 pub mod request;
 pub mod sheets;
+pub mod sprites;
 pub mod substitutions;
 
 pub use fail::{Bad, Result};

@@ -31,7 +31,7 @@ export PATH := if path_exists(local_tools / "bin") == "true" { local_tools / "bi
 # `*-test` recipes run `cargo test` standing in the project, which tests
 # only that one, and `cargo install --locked --path` takes the workspace's
 # lock.
-rust_projects := "gunter goombario ditto rules adeleine voodoo lz2 resample rm2k-render project bytecode cartridge patches rm2k-snes-audio battle events map-background map-sprites wally text screens images mapdata convert"
+rust_projects := "gunter goombario ditto rules adeleine voodoo lz2 resample rm2k-render project bytecode cartridge patches rm2k-snes-audio battle events wally text screens images mapdata convert"
 
 # The directories the projects live in, one per layer: each project is
 # `<layer>/<name>`, and the recipes find it by its name.
@@ -230,8 +230,6 @@ events-test:
 # Their tests build a small game, its ChipSets and CharSets inside the test:
 # they need no game.
 wally-test:
-  cd rm2k-snes/map-background && cargo test
-  cd rm2k-snes/map-sprites && cargo test
   cd rm2k-snes/wally && cargo test
 
 # rm2k-snes-screens: a game's screens as the cartridge carries them —the

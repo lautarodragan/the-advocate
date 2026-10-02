@@ -1,9 +1,9 @@
 //! How the eight object palettes are split among a map's characters, and
 //! which events drawn with a tile get drawn at all.
 
-use crate::character::{character_palette, sheet, sprite_colors, Key, Sheets, OBJ_COLORS, OBJ_PALETTES};
-use crate::fail::Result;
-use crate::npc::Npc;
+use crate::sprites::character::{character_palette, sheet, sprite_colors, Key, Sheets, OBJ_COLORS, OBJ_PALETTES};
+use crate::sprites::fail::Result;
+use crate::sprites::npc::Npc;
 use adeleine::{merge_least_visible, Color};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 

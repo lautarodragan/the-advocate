@@ -24,13 +24,13 @@
 //! produced them is gone, and with it the only independent answer.
 
 use rm2k_render::Picture;
-use rm2k_snes_map_sprites::bank::{build_characters, pose_bank, Slot, SlotPose};
-use rm2k_snes_map_sprites::character::{Key, Sheets, INITIAL_POSE};
-use rm2k_snes_map_sprites::extras::{
+use wally::sprites::bank::{build_characters, pose_bank, Slot, SlotPose};
+use wally::sprites::character::{Key, Sheets, INITIAL_POSE};
+use wally::sprites::extras::{
     map_animation, picture_of_image, rain_drops, timer_colors, timer_digits, Image,
 };
-use rm2k_snes_map_sprites::npc::{map_poses, Npc};
-use rm2k_snes_map_sprites::split::{drawable_npcs, Ask};
+use wally::sprites::npc::{map_poses, Npc};
+use wally::sprites::split::{drawable_npcs, Ask};
 use wally::events::{collect_npcs, Event, Page};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};

@@ -212,7 +212,7 @@ impl crate::map::MapRequest {
     /// `[background tiles, sprite tiles, upper tiles]`: a map that fits none
     /// of them with every still pose in VRAM is converted again with the
     /// still ones that are never on screen together sharing slots —see
-    /// `rm2k_snes_map_sprites::share`—. Empty, nothing is shared.
+    /// `crate::sprites::share`—. Empty, nothing is shared.
     ///
     /// `substitutions` are the `TileSubstitution`s the map's events and its
     /// test pages can run, as `[upper layer, old tile, new tile]`: their
@@ -231,7 +231,7 @@ impl crate::map::MapRequest {
     /// —one if it does not say—.
     pub fn from_json(data: &Value, whose: &str) -> Result<crate::map::MapRequest> {
         use crate::map::{MapRequest, PictureAsked};
-        use rm2k_snes_map_sprites::extras::Image;
+        use crate::sprites::extras::Image;
         let mut names = BTreeMap::new();
         for n in list(data, "names", whose)? {
             let a = n

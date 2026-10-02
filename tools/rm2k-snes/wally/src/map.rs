@@ -20,19 +20,19 @@ use adeleine::Color;
 use rm2k_render::picture;
 use rm2k_rules::chipset::passability_table;
 use rm2k_rules::passability::ALL;
-use rm2k_snes_map_background::blocks::Blocks;
-use rm2k_snes_map_background::Converted;
-use rm2k_snes_map_sprites::bank::{build_characters, pose_bank, Slot, SlotPose};
-use rm2k_snes_map_sprites::character::{
+use crate::background::blocks::Blocks;
+use crate::background::Converted;
+use crate::sprites::bank::{build_characters, pose_bank, Slot, SlotPose};
+use crate::sprites::character::{
     character_palette, sprite_colors, Key, INITIAL_POSE, OBJ_PALETTES,
 };
-use rm2k_snes_map_sprites::extras::{
+use crate::sprites::extras::{
     first_place, map_animation, picture_of_image, rain_drops, timer_colors, timer_digits, timer_mask,
     Image,
 };
-use rm2k_snes_map_sprites::npc::{map_poses, pin_walkers, Graphic, Npc};
-use rm2k_snes_map_sprites::share::{share_slots, Sharer, SHARED_MAX};
-use rm2k_snes_map_sprites::split::{drawable_npcs, Ask, TILE_PREFIX};
+use crate::sprites::npc::{map_poses, pin_walkers, Graphic, Npc};
+use crate::sprites::share::{share_slots, Sharer, SHARED_MAX};
+use crate::sprites::split::{drawable_npcs, Ask, TILE_PREFIX};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -119,7 +119,7 @@ fn layered(game: &Game, id: i32, baked: &BTreeMap<usize, (usize, i32)>) -> Resul
     let mut cells: Vec<(usize, i16)> = baked.values().map(|&(c, t)| (c, t as i16)).collect();
     cells.sort();
     let drawn = draw(game, &LayersRequest { map: id, baked: cells })?;
-    let converted = rm2k_snes_map_background::convert(&drawn.layers)?;
+    let converted = crate::background::convert(&drawn.layers)?;
     Ok(Layered { drawn, converted })
 }
 
@@ -907,7 +907,7 @@ fn convert_with(game: &Game, request: &MapRequest, share: bool) -> Result<Whole>
             actor_rows.push((*actor, 0, None, Vec::new()));
             continue;
         }
-        let image = rm2k_snes_map_sprites::character::sheet(&sheets, &key.0).map_err(|b| Bad::answer(b.0))?;
+        let image = crate::sprites::character::sheet(&sheets, &key.0).map_err(|b| Bad::answer(b.0))?;
         let (own, _, _) = character_palette(image, key.1, None, None).map_err(|b| Bad::answer(b.0))?;
         actor_rows.push((
             *actor,
@@ -961,7 +961,7 @@ fn convert_with(game: &Game, request: &MapRequest, share: bool) -> Result<Whole>
     Ok(done)
 }
 
-fn drawer_missing(sheets: &rm2k_snes_map_sprites::character::Sheets, name: &str) -> bool {
+fn drawer_missing(sheets: &crate::sprites::character::Sheets, name: &str) -> bool {
     !matches!(sheets.get(name), Some(Some(_)))
 }
 

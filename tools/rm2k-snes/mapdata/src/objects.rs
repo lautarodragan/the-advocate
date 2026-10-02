@@ -3,7 +3,7 @@
 //! where a 32x32 block of the sprite bank starts, and what a page draws.
 
 use crate::request::Draws;
-use rm2k_snes_map_sprites::character;
+use wally::sprites::character;
 
 /// The objects' priorities, already shifted into their place in the
 /// `vhoopppN` byte: the priority is bits 5 and 4, not 0 and 1. Writing $20
@@ -27,7 +27,7 @@ pub const OBJ_PRIORITY_ABOVE: u32 = 0x20;
 ///
 /// Both are `rm2k-snes-map-sprites`', which cuts the poses and lays out the
 /// sprite bank: the emission writes what that stage decided.
-pub use rm2k_snes_map_sprites::character::{OBJ_COLORS, POSE_BYTES};
+pub use wally::sprites::character::{OBJ_COLORS, POSE_BYTES};
 
 /// A CharSet's poses: three walking frames for four directions, each
 /// 24x32. `rm2k-snes-map-sprites`' number, as the emission counts.
