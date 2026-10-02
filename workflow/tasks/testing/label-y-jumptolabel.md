@@ -2,7 +2,7 @@
 name: "Label y JumpToLabel"
 description: "Los dos comandos que no tienen caso en el compilador de eventos: los usan la portable console y 8 páginas de mapas"
 type: feature
-assignee: Pitogüé
+assignee: taro
 ---
 
 Fase 1 de `docs/research/2026-10-01-el-sistema-de-imagenes.md` (Jilguero),
@@ -83,3 +83,10 @@ y 39) tienen los bloqueos que dice el estudio de Jilguero.
   estaban, sin regenerar.
 - Sin el caso, `abl.sfc` sale igual a la base (`645b6b86…`); con el caso
   cambia (una página de prueba más) y no se mueve ninguna golden.
+
+## Al mergear
+
+- Instalar `events` en el global: `just -f tools/justfile install events`.
+- Ninguna golden cambia, y no hay nada que jugar todavía: ninguna página del
+  juego compila por esto solo. Lo que se puede mirar es el caso `etiquetas`,
+  que corre en la tanda.
