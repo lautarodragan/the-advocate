@@ -321,6 +321,9 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `herramientas/test_reservas_de_la_wram.py`: que nadie más caiga en la mitad
   alta de la WRAM, que es de la grilla y de la pelea
 * `herramientas/test_bancos.py`: que el código a mano entre en el banco 1
+* `herramientas/test_saltos_entre_bancos.py`: que ningún `jsr`, `jmp`, salto
+  por tabla ni acceso absoluto a datos caiga en otro banco que el símbolo que
+  nombra, sobre el `.dbg` de cada cartucho
 * `herramientas/test_espacio.py`: `just espacio`, contra el `.res` linkeado a
   mano que reemplazó
 * `herramientas/test_cartuchos.py`: la huella y el `.dbg` de los cartuchos,

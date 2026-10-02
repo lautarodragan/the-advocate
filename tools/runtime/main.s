@@ -61,10 +61,15 @@
 ; own bank gets an entry `_l` —`jsr` it and `rtl`—, like `dsp_pair_l`. A
 ; `jmp (table, x)` reads its table from the program bank, and an `lda table,
 ; x` from the data bank, which is 0 —`$7E` in the battle—: a table in
-; another bank goes with `f:`. **Nothing checks any of this**: a `jsr` to a
-; routine in another bank assembles and links, and lands at the same address
-; in the caller's bank. Moving a file is a `grep` of every caller of every
-; routine in it.
+; another bank goes with `f:`. **The assembler checks none of this**: a `jsr`
+; to a routine in another bank assembles and links, and lands at the same
+; address in the caller's bank. Since 2026-10-02 a test does, over each
+; built cartridge: rom/pruebas/herramientas/test_saltos_entre_bancos.py
+; reads the `.dbg` and flags every absolute `jsr`/`jmp`, jump table and
+; absolute data access that lands somewhere other than the symbol it names.
+; It assumes the data bank per file —its `BANCO_DE_DATOS`—, so code that
+; runs with another one is listed there. A `jsl` to `FAR2` with `+ FAST`
+; does not need it: `ld65` refuses it with a range error.
 ;
 ; What stays written here is what is not a subsystem: where the generated
 ; `.inc` files come in —the two bytecodes and the cartridge's data—. A new
