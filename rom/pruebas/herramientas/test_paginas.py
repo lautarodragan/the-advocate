@@ -2,41 +2,38 @@
 acá que digan lo que tienen que decir.
 
 No corre ninguna ROM. Es la red para las decisiones del compilador
-—`rm2k-snes-events`, al que se le pregunta por `port/compiler.py`— que no
-cambian un pixel por sí solas pero deciden qué página está activa.
+—`rm2k-snes-events`, al que se le pregunta como le pregunta el conversor:
+`conversor.py`— que no cambian un pixel por sí solas pero deciden qué página
+está activa.
 """
 
 import os
 import re
 
+import conversor
 from datos import pagina_de
-from port import compiler, events
-# Por los ganchos que pone en `lcf` al importarse: los mapas se leen como
-# los lee el conversor.
-from port import snes_convert                            # noqa: F401
-from port import stage
-from rpgmaker import lcf
-from rpgmaker import rm2k
-from rpgmaker.resources import GAME_DIR
-
-DUMP = compiler.dump_of(GAME_DIR)
+import events
+import stage
+import lcf
+from resources import GAME_DIR
 
 
 def paginas_de(map_id, evento_id):
     """Las páginas del evento como las contesta la primera llamada del
     compilador en un cartucho de ese mapa solo: con un bloque de textos
-    propio y sin temas."""
+    propio y sin temas. De cada una, sus condiciones y su código."""
     game_map = lcf.Map(os.path.join(GAME_DIR, "Map%04d.lmu" % map_id))
     numero = [n for n, e in enumerate(game_map.events) if e.id == evento_id][0]
-    registros = compiler.map_entry(compiler.scan(DUMP, [map_id]),
-                                   map_id)["pages"]
-    return [p for p in compiler.pages(registros, game_map)
-            if p["event"] == numero]
+    registros = conversor.entrada(conversor.escaneo([map_id]),
+                                  map_id)["pages"]
+    return [dict(r, codigo=r["code"] and bytes.fromhex(r["code"]),
+                 variable=tuple(r["variable"]) if r["variable"] else None)
+            for r in registros if r["event"] == numero]
 
 
 def ranuras_del_juego(extra=()):
     """{variable: ranura} del juego entero, con `extra`."""
-    return compiler.slots(DUMP, (), extra)[0]
+    return conversor.ranuras(conversor.escaneo([], extra=extra))[0]
 
 
 def test_la_pagina_con_item_lleva_el_item():
@@ -145,7 +142,7 @@ def _escritura_de_la_123(comandos, desde):
     """Compila `comandos` como una página del mapa `desde` y devuelve el byte
     de la operación del `OP_VAR` que escribe la variable 123, que es el que
     lleva el bit del refresco."""
-    codigo = compiler.loose_page(DUMP, desde, comandos, maps=[desde, 133])
+    codigo = conversor.pagina_suelta(desde, comandos, mapas=[desde, 133])
     assert codigo is not None, "la página no compila"
     operaciones = [c[i + 2] for i, c in events.walk_code(codigo)
                    if c[i] == events.OP_VAR]
@@ -252,7 +249,7 @@ PRENDER_172 = (events.CONTROL_SWITCHES, 2, (0, 172, 172, 0))
 
 
 def _compilar_celda(comandos):
-    codigo = compiler.loose_page(DUMP, 49, comandos)
+    codigo = conversor.pagina_suelta(49, comandos)
     assert codigo is not None, "la página no compila"
     return codigo
 

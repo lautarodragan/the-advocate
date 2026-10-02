@@ -31,7 +31,7 @@ export PATH := if path_exists(local_tools / "bin") == "true" { local_tools / "bi
 # `*-test` recipes run `cargo test` standing in the project, which tests
 # only that one, and `cargo install --locked --path` takes the workspace's
 # lock.
-rust_projects := "protocol gunter goombario ditto rules adeleine voodoo lz2 resample rm2k-render project cartridge patches rm2k-snes-audio battle events map-background map-sprites wally text screens images mapdata"
+rust_projects := "protocol gunter goombario ditto rules adeleine voodoo lz2 resample rm2k-render project cartridge patches rm2k-snes-audio battle events map-background map-sprites wally text screens images mapdata convert"
 
 # The directories the projects live in, one per layer: each project is
 # `<layer>/<name>`, and the recipes find it by its name.
@@ -40,10 +40,11 @@ rust_layers := "snes rm2k rm2k-snes"
 # The event opcodes: their number and their layout. The declaration lives in
 # `snes/protocol/events.toml` and belongs neither to the compiler nor to the
 # interpreter; from it are generated, all committed: the two `.inc` files of
-# `tools/runtime/`, the two Rust modules (the event compiler's and
-# `rm2k-snes/rm2k-snes-audio/`'s), and the event opcodes' Python module, which
-# the converter still reads. There are two declarations:
-# the event bytecode and the music stream the SPC700 reads.
+# `tools/runtime/` and the two Rust modules (the event compiler's and
+# `rm2k-snes/rm2k-snes-audio/`'s). A game whose tests read the bytecode in
+# another language generates its own module from the same declaration. There
+# are two declarations: the event bytecode and the music stream the SPC700
+# reads.
 #
 # The event one takes `--jump-table`: that produces `run_code`'s dispatch
 # table, so a new opcode touches the interpreter only in its `.proc op_x`.
@@ -52,7 +53,7 @@ rust_layers := "snes rm2k rm2k-snes"
 # `--check` is what the suite runs: it fails if any of them is stale.
 protocol *args:
   protocol snes/protocol/events.toml \
-      --python port/event_opcodes.py --asm runtime/event_opcodes.inc \
+      --asm runtime/event_opcodes.inc \
       --rust rm2k-snes/events/src/opcodes.rs --jump-table {{args}}
   protocol snes/protocol/music.toml \
       --asm runtime/music_opcodes.inc \
@@ -90,9 +91,9 @@ protocol-test:
 gunter-test:
   cd snes/gunter && cargo test
 
-# .ldb/.lmu/.lmt ⇄ JSON in Rust. It does not replace `rpgmaker/lcf.py` or the
-# converter yet: it lives alongside them. See DITTO.md, at the root, which is
-# what ties Ditto to the port; inside `rm2k/ditto/` there is not a single reference
+# .ldb/.lmu/.lmt ⇄ JSON in Rust, and as a library the one place in Rust that
+# reads a dump: the converter and every stage read the game through it. See
+# DITTO.md, at the root, which is what ties Ditto to the port; inside `rm2k/ditto/` there is not a single reference
 # to us, on purpose.
 #
 # The game it is measured against **is passed by whoever runs it**, in
@@ -156,7 +157,8 @@ goombario-test:
   cd snes/goombario && cargo test
 
 # LZ2: Nintendo's LC_LZ2, which the converter uses to compress the tiles and
-# grids the ROM decompresses when loading a map —see `port/compress.py`—.
+# grids the ROM decompresses when loading a map, as a library of the emission
+# and the converter.
 # Its tests do not need the game; the ones that run every block of the
 # cartridge through the reference are the port's.
 lz2-test:
@@ -173,9 +175,9 @@ resample-test:
 # rm2k-render: what RPG Maker 2000 draws, as PNGs —a map's tile layers and
 # the other drawings of its ChipSet animation, the CharSet sheets its events
 # are drawn with, a battle's animations, backdrops and enemies, and the faces,
-# windows and pictures of the screens—; see `render/render_map.py`, which is
-# what calls it. The directory is named after the binary because `render/` is
-# the Python that stays: what the port does to those pictures for the console.
+# windows and pictures of the screens—, as a library of the stages that draw.
+# The directory is named after the binary because `render/` was, until
+# 2026-10-02, the converter's Python that asked it for pictures.
 #
 # Its tests draw ChipSets, CharSets and a map generated inside the test, and
 # compare against the hashes of what the Python that drew them gave for the
@@ -207,7 +209,7 @@ patches-test:
   cd rm2k-snes/patches && cargo test
 
 # rm2k-snes-audio: the music, from each song's MIDI and the SoundFont to
-# `musicdata.inc` —see `port/snes_convert.py`, which is what calls it—. It
+# `musicdata.inc` —`rm2k-snes-convert` calls it last—. It
 # uses Gunter as a library, for the SoundFont and the BRR.
 #
 # Its tests are notes, streams and banks built inside the test, plus the
@@ -221,7 +223,7 @@ audio-test:
 
 # rm2k-snes-battle: the battle's tables —experience and level per actor,
 # each map's random encounters— from the dump and a request, as pieces of
-# `mapdata.inc`; see `port/snes_convert.py`, which is what calls it.
+# `mapdata.inc`; `rm2k-snes-convert` calls it.
 #
 # Its tests build a small game inside the test, and compare against the
 # hashes of what the Python that wrote these tables until 2026-09-29 gave for
@@ -230,7 +232,8 @@ battle-test:
   cd rm2k-snes/battle && cargo test
 
 # rm2k-snes-events: the event compiler —RM2k's pages to the bytecode the ROM
-# runs—, which the converter calls twice; see `port/compiler.py`.
+# runs—, which the converter calls twice; see `compiler.rs` in
+# `rm2k-snes-convert`.
 #
 # Its tests compile a small game kept in `tests/game/`, and compare against
 # the hashes of what the Python compiler it replaced answered for the same
@@ -240,7 +243,7 @@ events-test:
 
 # wally: a game's maps as the cartridge carries them —each map's
 # layers, its baked events, its characters as objects and its blocks—, which
-# the converter calls once per map; see `port/map_convert.py`. The work is
+# the converter calls once per map; see `maps.rs` in `rm2k-snes-convert`. The work is
 # two libraries': `map-background`, the layers and the blocks, and
 # `map-sprites`, the objects.
 #
@@ -254,8 +257,8 @@ wally-test:
 # rm2k-snes-screens: a game's screens as the cartridge carries them —the
 # message window and its font, the title's menu, the save slots and the
 # pause menu, the text screens with their windows, End Game— and the
-# message boxes reflowed for the console's window; see
-# `port/screen_stage.py`. The letters, a line of them and the reflow are
+# message boxes reflowed for the console's window; see `screens.rs` in
+# `rm2k-snes-convert`. The letters, a line of them and the reflow are
 # `text`, a library.
 #
 # Their tests build a small game and its System inside the test, and compare
@@ -268,7 +271,7 @@ screens-test:
 # rm2k-snes-images: a game's pictures brought to the console —the title and
 # the Game Over, the picture of a `ShowPicture`, the battle backdrops and
 # battlers, the battle animations—: scaled, toned, down to their palettes;
-# see `port/image_stage.py`.
+# see `images.rs` in `rm2k-snes-convert`.
 #
 # Its tests build their pictures inside the test, and compare against the
 # hashes of what the Python that did this until 2026-09-30 gave for the
@@ -279,13 +282,23 @@ images-test:
 # rm2k-snes-mapdata: the cartridge's data `.inc` —what every domain of the
 # conversion answered, written for ca65—, the LZ2 streams of what the
 # console decompresses, and the VRAM layouts, which it publishes for the
-# maps and the screens; see `port/mapdata.py`.
+# maps and the screens; see `emit.rs` in `rm2k-snes-convert`.
 #
 # Its tests build what they emit inside the test, and compare against the
 # hashes of what the Python that wrote it until 2026-10-01 gave for the same
 # input: they need no game.
 mapdata-test:
   cd rm2k-snes/mapdata && cargo test
+
+# The converter, `rm2k-snes-convert`: the orchestrator that asks each stage
+# above, in order, what the cartridge needs, and hands each what the others
+# answered. What it decides itself —who can lead the party, which items,
+# where the timer runs, which pictures and backdrops go in— is tested with
+# small games made inside the test; that every stage gets the request it
+# always got is what the cartridges of the game, built byte by byte the same,
+# say.
+convert-test:
+  cd rm2k-snes/convert && cargo test
 
 # --- Installation ----------------------------------------------------------
 # The Rust projects, in `snes/`, `rm2k/` and `rm2k-snes/`, are separate
@@ -389,7 +402,6 @@ _install root *projects:
     fi
     cargo install --locked --path "$dir" --root "{{root}}"
   done
-  ln -sfn "{{justfile_directory()}}/port/snes_convert.py" "{{root}}/bin/rm2k-snes-convert"
   ln -sfn "{{justfile_directory()}}/assembly/entregar.py" "{{root}}/bin/abl-entregar"
   echo "in {{root}}/bin: the Python scripts, and from Rust: {{ if projects == "" { "none" } else { projects } }}"
 

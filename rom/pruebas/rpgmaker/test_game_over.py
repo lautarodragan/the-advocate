@@ -28,7 +28,7 @@ página sigue. Sin él, un reinicio por cualquier otra causa —una pelea que
 cuelgue, una pila que se desborde— pasaría por verde.
 """
 
-from port import events
+import events
 
 from batalla import (TITULO_QUIETO, VOLVER_TOPE, con_encuentros,
                      cuadros_hasta_el_game_over, cuadros_hasta_volver,

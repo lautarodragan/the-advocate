@@ -10,7 +10,7 @@
 //! come made.
 //!
 //! Until 2026-09-30 this was the converter's Python (`music.py`, and the
-//! part of `snes_convert.py` that built the packages), and what it writes
+//! part of the old `snes_convert.py` that built the packages), and what it writes
 //! into a cartridge has to keep coming out byte for byte the same.
 
 use crate::compile::Music;

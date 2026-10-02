@@ -20,7 +20,7 @@ import pytest
 import tanda
 import cartuchos
 from lz2 import descomprimir
-from port import stage
+import stage
 
 
 def _crudos(nombre):

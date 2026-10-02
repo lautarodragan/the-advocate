@@ -14,7 +14,7 @@ siempre. Lo que se cuenta acá son los ticks con `route_jump` distinto de cero.
 
 import pytest
 
-from port import events
+import events
 
 
 def cuadros_en_el_aire(una, tope=200):

@@ -7,8 +7,8 @@ textos de la pantalla y volver del Game Over.
 avanza mientras dura.
 """
 
-from port import events
-from port import screen_stage
+import events
+import screen_stage
 
 from consola import EMPEZAR, en_la_rom, en_la_wram
 import datos

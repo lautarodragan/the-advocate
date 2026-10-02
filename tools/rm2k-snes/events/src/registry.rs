@@ -276,7 +276,7 @@ pub struct Troops {
     /// `EnemyEncounter` itself —`SJBackdropABL04` on map 2— and not
     /// something to look up in the LDB. It goes here and not in a separate
     /// registry because it is a fact of the battle, like the troop. See
-    /// tools/port/scene.py.
+    /// `scene.rs` in rm2k-snes-convert.
     pub backdrops: Vec<(i32, Backdrop)>,
 }
 

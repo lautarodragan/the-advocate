@@ -55,10 +55,11 @@ cambia qué hacer cuando se pone rojo:
   golden falla, salvo que esté en `golden/playthrough/pendientes.txt`. Si el
   render cambió a propósito, **cambiar la golden es un acto deliberado**: va
   a git, se mira, y el commit dice por qué. Si no, es una regresión. Ver `golden/tanda/LEEME.md`.
-* **`_dibujo`**: contra lo que dibuja `tools/port/` —`title.render_*`,
-  `pantallas.*`, `escena.*`—, casi siempre por `arnes/dibujo.py`. La captura y
-  la esperada quedan en `pruebas/snapshots/pantallas/`, y el que está mal
-  puede ser cualquiera de los dos: la ROM o el dibujo de Python.
+* **`_dibujo`**: contra lo que dibujan las etapas del conversor
+  —`pantallas.*`, que le pide las pantallas a `rm2k-snes-screens`, y
+  `scene.*`—, casi siempre por `arnes/dibujo.py`. La captura y la esperada
+  quedan en `pruebas/snapshots/pantallas/`, y el que está mal puede ser
+  cualquiera de los dos: la ROM o el dibujo.
 * **sin sufijo**: miran estado —WRAM, VRAM, SRAM, ARAM, registros—, o
   pixeles sin nada guardado contra qué compararlos —dos corridas, dos cores,
   una propiedad de la imagen—, o no corren ROM. Lo que falló lo dice el

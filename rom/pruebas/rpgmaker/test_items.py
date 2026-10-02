@@ -7,7 +7,7 @@ está. Acá se le pregunta a la ROM por la RAM lejana, que es donde vive la
 cuenta de cada ítem, con la página de prueba dando y quitando.
 """
 
-from port import events
+import events
 
 import datos
 

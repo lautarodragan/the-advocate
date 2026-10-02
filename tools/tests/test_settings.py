@@ -51,9 +51,9 @@ def test_a_text_that_goes_to_the_rom_is_measured(tmp_path):
 
 
 def test_the_tools_import_without_a_game(tmp_path):
-    """The converter and what it uses read the settings and the project paths
-    when they use them, not at import: otherwise importing `port.snes_convert`
-    —which is what the tests here do— would require a game's project file.
+    """The tools' Python reads the settings and the project paths when it
+    uses them, not at import: otherwise importing it —which is what a game's
+    tests do— would require a game's project file.
     It runs separately, standing in an empty directory —where searching
     upwards for the file finds none—, because in this process the modules may
     already be imported. And at the end the project is requested, to see that
@@ -62,9 +62,8 @@ def test_the_tools_import_without_a_game(tmp_path):
     import subprocess
     import sys
     codigo = (
-        "import port.snes_convert, port.events, port.scene\n"
-        "import rpgmaker.rm2k\n"
-        "import render.render_map, render.chipset_recipe\n"
+        "import common.settings, common.environment\n"
+        "import emulator.retro, assembly.entregar\n"
         "from common import project\n"
         "project.directory()\n")
     vacio = tmp_path / "vacio"

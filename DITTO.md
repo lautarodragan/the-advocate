@@ -35,9 +35,11 @@ El formato de RM2k se lee **una sola vez**, en Ditto, y de ahí sale el JSON que
 el resto del toolchain consume. No se lee el binario en cada build ni se
 mantienen dos decodificadores.
 
-**Ya pasó.** Desde el 2026-09-14, `rom/data/` es el volcado de Ditto y
-`tools/rpgmaker/lcf.py` lo lee: el conversor, la referencia en Python y las pruebas
-están todas mirando esos archivos, y ningún `.lmu` se abre para armar una ROM.
+**Ya pasó.** Desde el 2026-09-14, `rom/data/` es el volcado de Ditto, y desde
+el 2026-10-02 lo leen el conversor y todas sus etapas en Rust, con la biblioteca
+de Ditto; las pruebas de ABL, con su propio lector en Python
+(`rom/pruebas/arnes/lcf.py`, que fue el del conversor hasta ese día). Ningún
+`.lmu` se abre para armar una ROM.
 Los tres pasos, decididos con taro:
 
 1. Que Ditto **omita los defaults** al serializar y emita **la estructura de
@@ -96,15 +98,19 @@ binario. Las dos vistas se leen a los mismos valores, y lo exigen sus
 pruebas.
 
 Las **reglas** —qué significa lo que el formato dice— no son de Ditto:
-son de `rm2k-rules`, `tools/rm2k/rules/`, sobre esos tipos. Es la copia
-en Rust de `tools/rpgmaker/rm2k.py`, que se queda porque el conversor
-sigue en Python; las dos las ata `tools/tests/test_rm2k_rules.py`.
+son de `rm2k-rules`, `tools/rm2k/rules/`, sobre esos tipos. Hasta el
+2026-10-02 tuvo una copia en Python para el conversor, `tools/rpgmaker/rm2k.py`;
+se fue con el conversor de Python, y lo que quedó de ella es el oráculo de las
+pruebas de ABL.
 
 Lo que **cuesta** son 19,4 MB contra 30,9: un 59% más. Se paga una sola vez, en
-un árbol que es derivado, y a cambio `tools/rpgmaker/lcf.py` no tiene adentro
+un árbol que es derivado, y a cambio el que lo lee no necesita adentro
 ninguna regla del formato.
 
 ### Paso 3: cómo quedó `tools/rpgmaker/lcf.py`, y qué costó
+
+(Es la foto de cuando el conversor era Python. Desde el 2026-10-02 ese lector
+es el de las pruebas de ABL, en `rom/pruebas/arnes/lcf.py`.)
 
 Las clases —`Map`, `Database`, `TreeMap` y todo lo que cuelga— tienen los
 mismos atributos que antes, con los mismos tipos, y siguen recibiendo la ruta a

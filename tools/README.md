@@ -4,51 +4,24 @@ Everything that runs outside the console: what reads the RPG Maker game, what
 converts it, what builds the ROM, and what runs it in the tests. Nothing
 loose: each thing lives in the folder of its responsibility.
 
-## The layers
+## The Python that is left
 
-From the bottom up. A folder imports only from the ones below it, never from
-one in its own row or above.
+The converter is Rust since 2026-10-02 —`rm2k-snes/convert/`, below—, and
+so is everything it runs. What is left in Python is small, and none of it
+converts anything:
 
-    common/      where everything is (project), the converter's disk cache
-                 (disk_cache), and spreading pure work across forked
-                 processes (parallel). It imports nothing from `tools/`, and
-                 any of the ones above may import it
-
-    rpgmaker/    the game as data: the JSON dump of rom/data/ (lcf), what is
-                 ours and overrides it (fork), the RM2k command codes
-                 (event_codes), its rules and the geometry of its images
-                 (rm2k), and where the game and the RTP are (resources). No
-                 rule of the format lives here: rom/data/ comes resolved. It
-                 has its own README
+    common/      where everything is (project), the project file's settings
+                 (settings) and the machine's values (environment). It
+                 imports nothing from `tools/`
     assembly/    only `entregar`, which is A Blurred Line's and not the
                  suite's: what builds the ROM is `rm2k-snes/cartridge/`, in Rust
     emulator/    the libretro core from Python (retro), and the bsnes-libretro
-                 patch that exposes the WRAM
+                 patch that exposes the WRAM: what the game's tests run the
+                 ROM with
 
-    render/      the call the converter uses to ask `rm2k-render` for
-                 pictures, the `Renderer` that holds the game the converter
-                 reads, and the image of the fork's ChipSets
-                 (chipset_recipe); uses rpgmaker. A map's layers and its
-                 CharSets are drawn by `wally`, below
-
-    port/        the converter to SNES —snes_convert, which is `main`— and
-                 everything only it uses: the parts it was split into on
-                 2026-09-29 (options, cases, game_scan, map_convert,
-                 map_layers, sprites, obj_extras, vram, screen_stage,
-                 battle_stage, image_stage, battle_scenes,
-                 battle_animations, mapdata —the request of the emission—,
-                 and stage, which runs the parts that are programs of their
-                 own, and compiler, what goes into the event compiler's two
-                 calls and what comes back; the docstring of snes_convert
-                 says what each one is), and events —what the converter
-                 keeps of the event compiler: the constants, the registries
-                 its answer is read into, the models the tests use—,
-                 event_opcodes, experience, picture, window, scene,
-                 animation, compress, fullscreen; and beneath all of them, because they
-                 import nothing from the port, rules (from Game_Actor and
-                 the LDB), constants, palette (a full screen at 8 bpp) and
-                 snes_format (a tile, a color and a cell as the PPU reads
-                 them)
+What the game's tests read of their game —a reader of the dump, the models
+they predict the console with, the clients of the stages they ask— went to
+their harness, `rom/pruebas/arnes/`, the same day: it is theirs.
 
 And the Rust projects, which are not layers of the port but separate tools,
 in English and without a single mention of this game (see AGENTS.md). They
@@ -73,8 +46,8 @@ have layers of their own, one folder each:
       rules/     `rm2k-rules`, the library of what the format means:
                  passability, which layer covers which, the page a new
                  game starts on and what it draws, the experience curve,
-                 what a map inherits from the tree. The converter's Python
-                 has the same rules, and a test holds the two together
+                 what a map inherits from the tree. Its tests hold it to the
+                 answers the converter's Python gave, in `tests/python.json`
       rm2k-render/  a map's tile layers, its CharSets, what its battles are
                  drawn with —animation cells, backdrops, enemies—, and the
                  faces, windows and pictures of the screens, as pictures
@@ -98,12 +71,11 @@ have layers of their own, one folder each:
       battle/    `rm2k-snes-battle`: the battle's tables —experience and
                  level per actor, each map's random encounters—, its model
                  and text screen, and the battle played for the tests; the
-                 converter runs it as a stage, through `port/stage.py` and
-                 `port/battle_stage.py`, and its README says what shape a
-                 stage has
+                 converter runs it as a stage, and its README says what
+                 shape a stage has
       events/    `rm2k-snes-events`: the event compiler —a game's event
                  pages to the bytecode the ROM runs—; the converter calls
-                 it twice, through `port/compiler.py`
+                 it twice
       map-background/  `rm2k-snes-map-background`, a library: a map's two
                  background layers in the lower half of colour memory, and
                  its 16x16 blocks
@@ -112,8 +84,7 @@ have layers of their own, one folder each:
                  bank— and the extras at the end of the bank
       wally/     Wally, `wally`: a whole map —its layers, the events baked
                  into them, its objects, its blocks—, with those two; the
-                 converter runs it once per map, through
-                 `port/map_convert.py`
+                 converter runs it once per map
       text/      `rm2k-snes-text`, a library: easyrpg-player's fonts, a line
                  of text drawn over the System, and a message box reflowed
                  for a narrower window
@@ -122,20 +93,27 @@ have layers of their own, one folder each:
                  menu, the text screens with their windows, End Game—, the
                  geometry they are drawn with, and every message box
                  reflowed; the converter runs it once per cartridge,
-                 through `port/screen_stage.py`, and the game's tests ask it
+                 and the game's tests ask it
                  for the screens they compare against
       images/    `rm2k-snes-images`: the pictures —the title and the Game
                  Over, the picture of a `ShowPicture`, the battle's
                  backdrops, battlers and animations—, scaled with
                  `resample`, toned and brought down to their palettes with
-                 Adeleine; the converter runs it through
-                 `port/image_stage.py`
+                 Adeleine; the converter runs it
       mapdata/   `rm2k-snes-mapdata`: the emission —the cartridge's data
                  `.inc`, written from what every other stage answered—,
                  the LZ2 streams of what the console decompresses, and the
                  VRAM layouts, which it publishes for the maps and the
-                 screens; the converter runs it through `port/mapdata.py`
-                 and `port/vram.py`
+                 screens; the converter runs it, and reads the layouts
+                 from it as a library
+      convert/   `rm2k-snes-convert`, the converter: it asks each stage
+                 above, in order, what the cartridge needs and hands each
+                 what the others answered; what it decides itself is what
+                 joins them —which maps and test pages, who can lead the
+                 party, which items, pictures, backdrops and battlers go
+                 in, the checks of the compiled pages—. It also answers
+                 the game's tests how it asks: `scan`, `compile`,
+                 `leaders`, `map-context`, `boxes`
 
 `rm2k-snes/` may depend on the other two; `snes/` and `rm2k/` on nothing
 outside themselves —not on each other, and not on `rm2k-snes/`—. So either
@@ -160,45 +138,10 @@ They are used from the PATH: no `.py` here builds them or looks for them in
 `target/`. The same goes for the Python scripts that get executed: see "The
 ones that run".
 
-## Cycles
-
-Counting the imports inside functions, which Python does not see at load
-time but are still dependencies, there is no import cycle among the `.py`
-files of `tools/`. Inside `port/`, the ones at the bottom are those that
-import nothing from the port; above them, those that ask another for
-something —`screens` from `menus` and `events`,
-`game_scan`, `sprites` and `mapdata` from `compiler`,
-`title` and `menus` from `palette`—; and on top of everything `snes_convert`,
-which uses all of them. The parts `snes_convert` was split into import
-from each other in one direction —`map_convert` and `mapdata` on top,
-`stage` at the bottom— and none imports from `snes_convert`. The imports
-still inside a function no longer hide any cycle.
-
-Until 2026-09-29 there was one exception, `assembly/cartridges.py`, the
-orchestrator: it lived at the bottom, imported from `port/` and `audio/`,
-and `port/patches.py` imported it back. It went to Rust —`rm2k-snes-cartridges`—,
-and whoever needs what it knows asks it: `ceilings` runs it with `--list
---json`, and `rm2k-snes-patches`, in Rust since 2026-09-30, uses it as a
-library.
-
-The graph, per file and per package, is printed by the script in appendix D
-of `docs/research/el-mapa-de-las-herramientas-de-python.md`. That script puts
-`comun` —`common` since 2026-09-29— in the same row as `rpgmaker`, as it
-was when it was written; since it has `project` it goes at the very bottom,
-with `"common": -1` in its `NIVEL`.
-
 ## How imports work
 
 Each folder is a Python package, and is imported by its name, with `tools/`
-—and only `tools/`— on `sys.path`:
-
-    from rpgmaker import lcf
-    from rpgmaker.resources import find_resource
-
-A bare `import lcf` fails, on purpose: if it worked too, the same module
-could be loaded twice under two names, and what one changes on the other
-—`snes_convert` changes `DECORATE_TRANSLUCENT` on `lcf`— would not get
-through.
+—and only `tools/`— on `sys.path`: `from common import project`.
 
 ## The ones that run
 
@@ -207,12 +150,12 @@ install` installs them as symlinks in the same `bin/` as the Rust
 binaries; `just install-scripts`, the symlinks alone, without compiling
 anything, which is what a renamed or new script needs: a symlink points to
 a file path. The `justfile` calls them by name and does not know where they
-are:
+are. There is one left:
 
-    rm2k-snes-convert           port/snes_convert.py
     abl-entregar                assembly/entregar.py
 
-and next to them the ones that are Rust binaries —`rm2k-snes-cartridges`,
+and next to it the ones that are Rust binaries —`rm2k-snes-convert`, from
+`rm2k-snes/convert/`; `rm2k-snes-cartridges`,
 `rm2k-snes-assemble` and `rm2k-snes-space`, from `rm2k-snes/cartridge/`, which find
 the runtime through the checkout they were installed from; and
 `rm2k-snes-msu` and `rm2k-snes-volume-ceilings`, from

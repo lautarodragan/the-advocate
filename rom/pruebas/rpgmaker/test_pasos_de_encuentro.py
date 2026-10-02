@@ -19,7 +19,7 @@ from batalla import grupo_de
 from consola import en_la_wram
 from tanda import partida
 
-from port import events
+import events
 
 EL_MUNDO = 66
 LA_LLEGADA = (71, 29)

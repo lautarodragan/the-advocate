@@ -34,7 +34,7 @@ import subprocess
 import tomllib
 
 from common import project                                    # noqa: E402
-from port import animation                                    # noqa: E402
+import animation  # noqa: E402
 
 import cartuchos
 import lugares

@@ -8,31 +8,27 @@ comparte paleta con un líder—: desde el 2026-09-30 esas decisiones son de la
 etapa, y ésta es la única manera de verlas. `bakeable` y `split` son las dos
 preguntas que la etapa contesta para eso; ver `inspect.rs`.
 
-Hay que importar `port.snes_convert` antes, por los ganchos que pone en
-`lcf`: los nombres de los translúcidos salen de ahí.
+Lo que no es la pregunta —el volcado, los forks, los nombres, dónde se
+buscan las imágenes— se lo pide al conversor (`conversor.contexto_de_mapa`),
+que es el que se lo da a la etapa al convertir.
 """
 
 import json
-import os
 
-from port import compiler, stage
-from render.render_map import Renderer
-from rpgmaker import resources
+import conversor
+import stage
 
 
-def preguntar(comando, map_id, renderer=None, **pedido):
+def preguntar(comando, map_id, **pedido):
     """La respuesta de `wally <comando>` sobre ese mapa; `pedido`
     completa lo que la pregunta necesita, con los nombres del pedido."""
-    renderer = renderer or Renderer()
-    dump = compiler.dump_of(resources.GAME_DIR)
-    game_map = renderer.load_map(
-        os.path.join(resources.GAME_DIR, "Map%04d.lmu" % map_id))
-    flags = ["--data", dump]
-    for directory in renderer.search_dirs:
-        flags += ["--search-dir", os.path.abspath(directory)]
+    contexto = conversor.contexto_de_mapa(map_id)
+    flags = ["--data", contexto["data"]]
+    for directorio in contexto["search_dirs"]:
+        flags += ["--search-dir", directorio]
     request = dict(pedido, map=map_id,
-                   map_files=compiler.map_files(dump),
-                   chipset_files=compiler.chipset_files(dump),
-                   names=[entry[1:] for entry in compiler.names([game_map])])
+                   map_files=contexto["map_files"],
+                   chipset_files=contexto["chipset_files"],
+                   names=contexto["names"])
     written = stage.run("wally", "maps", comando, request, *flags)
     return json.loads(written[comando + ".json"])

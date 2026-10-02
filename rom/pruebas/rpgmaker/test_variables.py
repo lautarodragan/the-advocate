@@ -13,7 +13,7 @@ de eventos, que arma el índice del juego entero: ver
 
 import pytest
 
-from port import events
+import events
 
 import datos
 

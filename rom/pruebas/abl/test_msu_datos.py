@@ -2,7 +2,7 @@
 
 El cartucho lleva en la ROM el respaldo liviano de cada fondo —128x64 en
 4bpp, 16 colores, que la ROM agranda al doble— y el conversor escribe en el `.msu` el de calidad —8bpp, 96—: ver
-"El respaldo liviano" en tools/port/scene.py. Con MSU-1 y el `.msu` de este
+"The light fallback" en `arnes/scene.py`. Con MSU-1 y el `.msu` de este
 cartucho la ROM lee el de calidad; sin MSU-1, o con otro `.msu`, el suyo. La
 tanda entera corre sin MSU-1 —el arnés le esconde el `.msu` al core, ver
 `retro.Console`—, así que cubre el respaldo; esto cubre el otro camino, y que
@@ -36,12 +36,12 @@ import shutil
 
 import pytest
 
-from port import scene, events, snes_format, battle_scenes
-# Por los ganchos que pone en `lcf` al importarse: los mapas se leen como
-# los lee el conversor.
-from port import snes_convert                            # noqa: F401
-from rpgmaker.resources import GAME_DIR
-from rpgmaker import lcf, rm2k
+import scene
+import events
+import snes_format
+from resources import GAME_DIR
+import lcf
+import rm2k
 
 import tanda
 import musica
@@ -121,7 +121,7 @@ def _fondo_8bpp(liviano, nombre=FONDO_SECTOR_27):
     `fallback_bytes`: así lo que se compara es lo que hace la ROM contra la
     imagen, y no contra el mismo orden de bytes del que ella lee."""
     if not liviano:
-        return battle_scenes.backdrop_bytes(
+        return scene.backdrop_bytes(
             scene.backdrop(nombre, GAME_DIR))[0]
     grande = scene.light_backdrop(nombre, GAME_DIR)["indices"]
     return b"".join(snes_format.pack_tile(celda, planes=8)

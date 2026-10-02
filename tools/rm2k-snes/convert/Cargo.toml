@@ -1,0 +1,27 @@
+[package]
+name = "rm2k-snes-convert"
+version = "0.1.0"
+edition = "2021"
+description = "Converts an rm2k-snes game into a Super Nintendo cartridge's data: it asks each stage of the conversion what it needs, in order, and hands each one what the others answered"
+
+[[bin]]
+name = "rm2k-snes-convert"
+path = "src/main.rs"
+
+[dependencies]
+clap = "4"
+ditto = { path = "../../rm2k/ditto" }
+png = "0.17"
+rm2k-project = { path = "../project" }
+rm2k-rules = { path = "../../rm2k/rules" }
+# The command codes and the opcodes' sizes, to walk a compiled page; and
+# how the compiler reads a map, which this reads the same way.
+rm2k-snes-events = { path = "../events" }
+# The engine's numbers, the VRAM layouts and the console's formats —a tile,
+# a colour, an LZ2 stream—: the emission's, which publishes them.
+rm2k-snes-mapdata = { path = "../mapdata" }
+# `preserve_order`: a request's keys go in the order they are written, as
+# they always went, and an object read from a stage's answer or from the
+# project keeps its order on the way to the next.
+serde_json = { version = "1", features = ["preserve_order"] }
+toml = { version = "1", features = ["preserve_order"] }

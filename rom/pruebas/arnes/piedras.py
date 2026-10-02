@@ -5,9 +5,9 @@ para que Talan tenga las piedras, y dónde está cada evento.
 import functools
 import os
 
-from port import events
-from rpgmaker import lcf
-from rpgmaker.resources import GAME_DIR
+import events
+import lcf
+from resources import GAME_DIR
 
 import datos
 

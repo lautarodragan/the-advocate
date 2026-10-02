@@ -1,20 +1,18 @@
-"""Un fork de `parches/manual/` no se puede quedar a medias ni apuntar al mapa
-de al lado.
+"""Los forks de `parches/manual/`: lo que los de este juego tienen que
+cuidar para que el juego siga jugándose.
 
 Un fork reemplaza un archivo entero de `data/` —ver
-`parches/manual/README.md`—, y sus dos modos de falla no dan error por sí
-solos: se ven bien hasta que no.
+`parches/manual/README.md`—, y sus modos de falla no dan error por sí solos:
+se ven bien hasta que no. Lo que vale para cualquier fork —que no quede a
+medias, que el id de adentro sea el del nombre, que reemplace un mapa que
+existe, que un mapa nuevo no tape uno del juego, qué hace cada operación de
+la receta de un ChipSet— lo mira el conversor en cada armado, y sus pruebas
+están con él: `fork.rs` y `chipsets.rs` en `rm2k-snes-convert`. Hasta el
+2026-10-02 estaban acá, armadas en un directorio temporal.
 
-* **A medias.** Las capas de tiles viven afuera del JSON, así que un `.json`
-  sin su `.tiles` deja el build con las capas viejas y los eventos nuevos.
-* **Apuntando al mapa equivocado.** El pipeline elige el mapa por el **nombre
-  del archivo** y los teleports lo nombran por su **id**: un fork copiado de
-  otro mapa y renombrado a medias no falla, manda al jugador a otro lado.
-
-Los dos primeros casos se arman en un directorio temporal, porque son sobre lo
-que el mecanismo **rechaza** y un árbol sano no tiene ninguno: sin eso serían
-un camino que ninguna prueba ejecuta. Los dos últimos miran los forks que hay
-de verdad.
+Lo que queda acá mira los forks que hay de verdad: que no cambien el tamaño
+del mapa, no borren un evento que otro nombra, no abran una celda donde había
+gente, no tapen un teleport, no pisen arte que el mapa dibuja.
 """
 
 import json
@@ -24,11 +22,11 @@ import shutil
 import pytest
 
 from common import project                                      # noqa: E402
-from render import chipset_recipe                             # noqa: E402
-from render.render_map import build_passability                # noqa: E402
-from rpgmaker import fork                                      # noqa: E402
-from rpgmaker import lcf                                       # noqa: E402
-from rpgmaker import rm2k                                      # noqa: E402
+import conversor  # noqa: E402
+from render_map import build_passability  # noqa: E402
+import fork  # noqa: E402
+import lcf  # noqa: E402
+import rm2k# noqa: E402
 
 TELEPORT = 10810
 # Los comandos cuyo primer parámetro es el id de un evento del mapa. Son los
@@ -45,65 +43,13 @@ CAPA_DEL_HEROE = 1
 PISABLE = rm2k.PASS_ALL
 
 
-@pytest.fixture
-def fork_de_mentira(tmp_path, monkeypatch):
-    """Un `parches/manual/` armable a mano, para los casos que el árbol no
-    tiene."""
-    mapas = tmp_path / "mapas"
-    mapas.mkdir()
-    monkeypatch.setattr(fork, "maps_folder", lambda: str(mapas))
-    monkeypatch.setattr(fork, "chipsets_folder",
-                        lambda: str(tmp_path / "chipsets"))
-    return mapas
-
+# Los mapas nuevos, `parches/manual/nuevos/`: la regla de los forks dada
+# vuelta. Ver `fork.new_maps`.
 
 def _un_mapa_de_verdad():
     """Un mapa cualquiera de `data/`, para copiar de ahí y no inventar uno."""
     return os.path.join(project.data(), "maps", "Map0011")
 
-
-def test_fork_a_medias_no_arma(fork_de_mentira):
-    """El `.json` sin su `.tiles`: el modo de falla que se ve bien."""
-    shutil.copy(_un_mapa_de_verdad() + ".json",
-                str(fork_de_mentira / "Map0011.json"))
-    with pytest.raises(fork.BrokenFork) as roto:
-        fork.maps()
-    assert "incomplete" in str(roto.value)
-
-
-def test_fork_con_las_capas_solas_tampoco_arma(fork_de_mentira):
-    """Y al revés, que es el mismo agujero por el otro lado."""
-    shutil.copy(_un_mapa_de_verdad() + ".tiles",
-                str(fork_de_mentira / "Map0011.tiles"))
-    with pytest.raises(fork.BrokenFork):
-        fork.maps()
-
-
-def test_fork_que_dice_ser_otro_mapa_no_arma(fork_de_mentira):
-    """El fork copiado de otro mapa y renombrado a medias."""
-    datos = json.load(open(_un_mapa_de_verdad() + ".json", encoding="utf-8"))
-    datos["id"] = 12
-    with open(str(fork_de_mentira / "Map0011.json"), "w",
-              encoding="utf-8") as handle:
-        json.dump(datos, handle)
-    shutil.copy(_un_mapa_de_verdad() + ".tiles",
-                str(fork_de_mentira / "Map0011.tiles"))
-    with pytest.raises(fork.BrokenFork) as roto:
-        fork.maps()
-    assert "map 12" in str(roto.value)
-
-
-def test_fork_de_un_mapa_que_no_existe_no_arma(fork_de_mentira):
-    """Un nombre mal escrito no hace nada en silencio."""
-    for extension in (".json", ".tiles"):
-        shutil.copy(_un_mapa_de_verdad() + extension,
-                    str(fork_de_mentira / ("Map9999" + extension)))
-    with pytest.raises(fork.BrokenFork):
-        fork.maps()
-
-
-# Los mapas nuevos, `parches/manual/nuevos/`: la regla de los forks dada
-# vuelta. Ver `fork.new_maps`.
 
 @pytest.fixture
 def nuevos_de_mentira(tmp_path, monkeypatch):
@@ -125,31 +71,6 @@ def _un_mapa_nuevo(directorio, map_id, id_del_nodo=None):
     with open(str(base) + ".json", "w", encoding="utf-8") as handle:
         json.dump(datos, handle)
     shutil.copy(_un_mapa_de_verdad() + ".tiles", str(base) + ".tiles")
-
-
-def test_un_mapa_nuevo_no_pisa_uno_del_juego(nuevos_de_mentira):
-    """Con el id de un mapa que `data/` tiene lo taparía sin avisar: eso es un
-    fork, y va en la otra carpeta."""
-    _un_mapa_nuevo(nuevos_de_mentira, 11)
-    with pytest.raises(fork.BrokenFork) as roto:
-        fork.new_maps()
-    assert "already exists" in str(roto.value)
-
-
-def test_un_mapa_nuevo_trae_su_nodo_con_su_id(nuevos_de_mentira):
-    """El nodo del árbol es lo que le da nombre, padre y música: con otro id
-    se los daría a otro mapa."""
-    _un_mapa_nuevo(nuevos_de_mentira, 9998, id_del_nodo=9997)
-    with pytest.raises(fork.BrokenFork):
-        fork.new_maps()
-
-
-def test_un_mapa_nuevo_a_medias_no_arma(nuevos_de_mentira):
-    _un_mapa_nuevo(nuevos_de_mentira, 9998)
-    os.remove(str(nuevos_de_mentira / "Map9998.tiles"))
-    with pytest.raises(fork.BrokenFork) as roto:
-        fork.new_maps()
-    assert "incomplete" in str(roto.value)
 
 
 def test_un_mapa_nuevo_se_lee_como_cualquiera(nuevos_de_mentira):
@@ -373,140 +294,6 @@ def test_fork_un_tile_duplicado_hereda_la_pasabilidad_de_su_origen():
                     "igual" % (numero, hasta, desde))
 
 
-def test_podar_conserva_las_ranuras_que_solo_nombra_un_evento():
-    """Podar el ChipSet borra lo que el mapa no dibuja, y **un evento sin
-    CharSet dibuja con un tile de la página alta** que no está en ninguna capa.
-
-    Es el que se escapó: el mapa 32 perdía la ranura 13 —la de una página de
-    `EV0023`— y la ROM salía con 78 bytes de gráficos en cero. No lo cobró
-    ninguna prueba, lo cobró comparar la ROM byte por byte, y por eso esta
-    prueba existe.
-    """
-    forkeados = fork.maps()
-    chipsets = fork.chipsets()
-    mirados = 0
-    for map_id, (ruta_json, _) in forkeados.items():
-        datos = json.load(open(ruta_json, encoding="utf-8"))
-        receta = chipsets.get(datos["chipset_id"], {}).get("imagen", {})
-        if "podar" not in receta:
-            continue
-        mirados += 1
-        _, _, comunes = chipset_recipe._what_it_draws(map_id)
-        mapa = lcf.Map(os.path.join(project.data(), "maps",
-                                    "Map%04d.json" % map_id))
-        for evento in mapa.events:
-            for pagina in evento.pages:
-                if not pagina.character_name:
-                    assert 144 + pagina.character_index in comunes, (
-                        "el mapa %d dibuja un evento con el tile alto %d y el "
-                        "podado no lo conserva"
-                        % (map_id, pagina.character_index))
-    assert mirados, "ningún ChipSet forkeado poda: la prueba no miró nada"
-
-
-def test_podar_se_planta_si_el_mapa_elige_tiles_en_caliente(tmp_path):
-    """Con `ChangeMapTileset` o `TileSubstitution` adentro, las capas dejan de
-    decir qué dibuja el mapa, así que el podado no puede saber qué guardar.
-
-    Se planta en vez de adivinar: perder arte en silencio es justo lo que este
-    archivo existe para evitar. Ningún mapa forkeado los usa, así que el camino
-    se ejercita metiéndole el comando a un fork de mentira.
-    """
-    map_id = next(iter(fork.maps()))
-    ruta_json, ruta_tiles = fork.maps()[map_id]
-    datos = json.load(open(ruta_json, encoding="utf-8"))
-    codigo, nombre = sorted(
-        chipset_recipe.TILE_PICKING_COMMANDS.items())[0]
-    datos["events"][0]["pages"][0].setdefault("event_commands", []).append(
-        {"code": codigo, "indent": 0, "string": "", "parameters": [0]})
-
-    mapas_antes = fork.maps_folder
-    fork.maps_folder = lambda: str(tmp_path)
-    try:
-        with open(os.path.join(tmp_path, "Map%04d.json" % map_id), "w",
-                  encoding="utf-8") as handle:
-            json.dump(datos, handle)
-        shutil.copy(ruta_tiles, os.path.join(tmp_path,
-                                             "Map%04d.tiles" % map_id))
-        with pytest.raises(fork.BrokenFork) as caida:
-            chipset_recipe._what_it_draws(map_id)
-    finally:
-        fork.maps_folder = mapas_antes
-    assert nombre in str(caida.value)
-
-
-def test_desde_imagen_trae_el_png_a_quince_bits_y_compone_sobre_su_base(tmp_path):
-    """`desde_imagen` mete un PNG que no es un ChipSet en las ranuras altas.
-
-    Las tres cosas que tiene que hacer bien, y que si se rompen no dan error:
-
-    * **escalar con vecino más cercano**, que es lo que hace RM2k;
-    * **redondear a 15 bits**, que es lo que la consola muestra y lo que hace
-      entrar el dibujo en los 256 índices del PNG indexado;
-    * **componer sobre la ranura que se le nombre** en vez de pisarla, que es
-      lo que deja viva una pared donde el dibujo sólo apoya unos pixeles.
-    """
-    from PIL import Image
-    from rpgmaker.rm2k import common_box
-
-    # Un ChipSet de mentira, con la ranura alta 5 pintada de su único color.
-    base = Image.new("P", (480, 256))
-    base.putpalette([0, 0, 0] + [7, 7, 7] + [0, 0, 0] * 254)
-    base.paste(Image.new("P", (16, 16), 1), common_box(144 + 5)[:2])
-    ruta_chip = tmp_path / "base.png"
-    base.save(ruta_chip)
-
-    # Y un dibujo de 32x32 cuya mitad de arriba a la izquierda tiene un color
-    # que **no** es múltiplo de 8, para que el redondeo a 15 bits se note.
-    dibujo = Image.new("P", (32, 32))
-    dibujo.putpalette([255, 0, 255] + [250, 130, 66] + [0, 0, 0] * 254)
-    dibujo.paste(Image.new("P", (16, 16), 1), (0, 0))
-    ruta_dibujo = tmp_path / "dibujo.png"
-    dibujo.save(ruta_dibujo)
-
-    datos = {
-        "chipset": {"id": 999, "chipset_name": "salida"},
-        "imagen": {
-            "base": "base",
-            "desde_imagen": {
-                "carpeta": "Picture", "imagen": "dibujo", "escala": 50,
-                "desfase": [0, 0],
-                # La 6 se pisa entera; la 7 compone sobre el dibujo de la 5.
-                "celdas": [[0, 0, 6], [0, 0, 7, 5]],
-            },
-        },
-    }
-
-    def buscar(carpeta, nombre):
-        return str(ruta_chip if carpeta == "ChipSet" else ruta_dibujo)
-
-    anterior = chipset_recipe.output_dir
-    chipset_recipe.output_dir = lambda: str(tmp_path / "build")
-    try:
-        salida = Image.open(
-            chipset_recipe.build_chipset_image(datos, buscar))
-        salida.load()
-    finally:
-        chipset_recipe.output_dir = anterior
-    paleta = salida.getpalette()
-
-    def color(ranura, x, y):
-        indice = salida.crop(common_box(144 + ranura)).load()[x, y]
-        return indice, tuple(paleta[indice * 3:indice * 3 + 3])
-
-    # Al 50% el dibujo de 32x32 queda de 16x16: sus 8x8 de arriba a la
-    # izquierda pintados y el resto transparente.
-    indice, rgb = color(6, 0, 0)
-    assert indice, "el dibujo cayó en el índice 0, que es el transparente"
-    assert rgb == (248, 128, 64), "no redondeó a 15 bits: %s" % (rgb,)
-    assert color(6, 12, 12)[0] == 0, "lo transparente del dibujo pintó algo"
-
-    # La 7 arranca del dibujo de la 5 y el nuevo la tapa **sólo donde pinta**:
-    # donde el dibujo es transparente tiene que seguir el color de la 5.
-    assert color(7, 0, 0)[1] == (248, 128, 64), "no compuso encima"
-    assert color(7, 12, 12)[1] == (7, 7, 7), "componer borró la base"
-
-
 def test_los_colores_declarados_transparentes_no_llegan_al_chipset():
     """Un color que la receta declara transparente no puede quedar en el PNG.
 
@@ -529,7 +316,10 @@ def test_los_colores_declarados_transparentes_no_llegan_al_chipset():
         if not declarados:
             continue
         mirados += 1
-        ruta = os.path.join(chipset_recipe.output_dir(), "ChipSet",
+        # Donde el conversor deja las imágenes que arma: el primer lugar
+        # donde se buscan.
+        armadas = conversor.contexto_de_mapa(11)["search_dirs"][0]
+        ruta = os.path.join(armadas, "ChipSet",
                             datos["chipset"]["chipset_name"] + ".png")
         if not os.path.isfile(ruta):
             pytest.skip("el PNG del ChipSet %d no está armado" % numero)

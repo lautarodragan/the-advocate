@@ -12,7 +12,7 @@ que nombren las páginas de prueba del cartucho**, así que la prueba rearma el
 la 152 —se la enseña el mapa 48— y le hace olvidar la 147, que el LDB le da.
 """
 
-from port import events
+import events
 
 import datos
 from datos import pagina_de

@@ -4,7 +4,7 @@ la página.
 Es la mitad de la red que la tanda de pixeles no puede cubrir. Los casos
 de `test_batalla_golden.py` comparan **la pantalla** contra su
 golden y no pueden hacer más: la pelea bloquea adentro del intérprete y no
-cuesta ningún tick —ver `OP_BATTLE` en tools/port/events.py—. Lo que pasa adentro
+cuesta ningún tick —ver `OP_BATTLE` en `arnes/events.py`—. Lo que pasa adentro
 se mira desde acá.
 
 **Lo que hace fuerte a este archivo** es que no se conforma con "bajó": el
@@ -915,7 +915,7 @@ def test_el_elixir_levanta_a_un_caido_en_la_pelea(partida):
     segundo, y al ganar Core cobra la experiencia de la tropa entera, que es lo
     que `ba_exp_allocate` le da a los que quedaron en pie.
     """
-    from port import experience
+    import experience
     from batalla import exp_y_nivel
     una = partida(caso="elixir-en-la-pelea")
     una.poner_grupo(*GRUPO)

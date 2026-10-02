@@ -103,12 +103,12 @@ def _require(name):
 
 
 def game():
-    """The original RM2k project: see `rpgmaker/resources.py`."""
+    """The original RM2k project: where the pictures and the music are."""
     return _require("game_dir")
 
 
 def rtp():
-    """Don Miguel's RTP: see `rpgmaker/resources.py`."""
+    """Don Miguel's RTP: what the game does not ship is looked up there."""
     return _require("rtp_dir")
 
 
@@ -126,7 +126,7 @@ def msu_replacements():
 
 
 def cache():
-    """The converter's disk cache: see `common/disk_cache.py`."""
+    """The disk cache: see `cache.rs` in `rm2k-project`."""
     return _values.get("cache") or os.path.join(project.build(), "cache")
 
 

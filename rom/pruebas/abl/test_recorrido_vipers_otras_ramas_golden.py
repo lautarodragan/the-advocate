@@ -46,7 +46,7 @@ lo que cobra esta prueba es la RAM.
 """
 
 from recorrido import A_CADA
-from port import events
+import events
 
 # Los mismos de `test_recorrido_vipers_golden.py`, que se repiten porque
 # ninguna prueba importa de otra —ver `pruebas/README.md`—.

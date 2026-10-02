@@ -41,8 +41,8 @@ El primer mapa de verdad es el 1.
 
 `rom/data/` tiene los mismos datos que los `.lmu` pero en un formato que git puede
 versionar de verdad: se puede ver qué cambió, revisarlo y editarlo a mano. Y
-**es de donde el port lee el juego**: `tools/rpgmaker/lcf.py` sale de acá, así
-que el conversor y las pruebas están mirando estos archivos y no los binarios.
+**es de donde el port lee el juego**: el conversor, sus etapas y las pruebas
+están mirando estos archivos y no los binarios.
 Quién lo escribe es **Ditto** (`tools/rm2k/ditto/`), que además sabe volver: `ditto
 pack` rearma los archivos del juego byte por byte desde el volcado exacto, que
 la misma corrida deja en `rom/build/ditto-exacto/` y que no se versiona. El

@@ -10,7 +10,7 @@ way. When a term is missing, pick one, use it consistently, and add it here.
 | tanda | test suite, suite | the whole pytest run |
 | caso | case | a test case under `pruebas/casos/` |
 | golden | golden | a frozen capture a test compares against |
-| conversor | converter | `snes_convert` and friends |
+| conversor | converter | `rm2k-snes-convert`, the orchestrator, and its stages |
 | runtime, motor | runtime | the 65816 code in `runtime/` |
 | perilla | setting | a value from the project file |
 | archivo de proyecto | project file | `rm2k-snes.toml` |

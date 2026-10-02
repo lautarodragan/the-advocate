@@ -28,8 +28,9 @@ import os
 
 import pytest
 
-from rpgmaker import lcf, rm2k
-from rpgmaker.resources import GAME_DIR
+import lcf
+import rm2k
+from resources import GAME_DIR
 
 import datos
 from tanda import partida

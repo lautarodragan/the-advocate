@@ -25,7 +25,7 @@ pasa a ser un líder posible del cartucho de pruebas, que le pondría su sprite
 en todos los mapas y le podría mover los colores a más de una golden.
 """
 
-from port import events
+import events
 
 from batalla import Pelea, hab_id, mensaje_en_pantalla, sabe
 import datos

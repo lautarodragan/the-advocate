@@ -30,7 +30,7 @@ El orden de los toques importa y es el del juego: A primero, y la dirección
 ("I'll have to be careful about pressing the OK button...").
 """
 
-from port import events
+import events
 
 from piedras import (DEBAJO_DE_LA_REJA, MAPAS, STONE, celda_de,
                      eventos_del_11, hablarle_a_la_reja, ranura)

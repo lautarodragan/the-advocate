@@ -48,7 +48,7 @@ def indice_de(nombre):
 
     La tabla va en el orden de los ids, que es como la emite el conversor.
     """
-    from rpgmaker import lcf
+    import lcf
     game_map = lcf.Map("Map0011.lmu")
     for indice, evento in enumerate(game_map.events):
         if evento.name == nombre:

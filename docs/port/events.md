@@ -17,13 +17,15 @@ y sigue hablando, y cada caso de la tanda— se lleva su bytecode a
 `code_carry_before` en `tools/runtime/decompress.s`. Los saltos adentro de una
 página son relativos a donde empieza, así que mudarla es mover un puntero.
 
-De `tools/snes/protocol/events.toml` salen generados `tools/port/event_opcodes.py`,
-`tools/rm2k-snes/events/src/opcodes.rs` y `tools/runtime/event_opcodes.inc`; ver
+De `tools/snes/protocol/events.toml` salen generados
+`tools/rm2k-snes/events/src/opcodes.rs` y `tools/runtime/event_opcodes.inc` —y
+el módulo de Python con que las pruebas leen el bytecode,
+`rom/pruebas/arnes/event_opcodes.py`—; ver
 `tools/snes/protocol/README.md`, que está en inglés porque ahí adentro no se sabe
 nada de este juego. El compilador está en inglés por lo mismo, y su README dice
-qué recibe y qué contesta; el conversor lo llama dos veces, por
-`tools/port/compiler.py`. Hasta el 2026-09-29 era `tools/port/events.py`, que
-quedó con las constantes y los modelos que leen los demás. **Un opcode nuevo se declara ahí y en
+qué recibe y qué contesta; el conversor, `rm2k-snes-convert`, lo llama dos
+veces. Hasta el 2026-09-29 era `tools/port/events.py`, cuyas constantes y
+modelos quedaron para las pruebas, en `rom/pruebas/arnes/events.py`. **Un opcode nuevo se declara ahí y en
 ningún otro lado**: antes el número lo elegía el compilador y le llegaba al
 intérprete adentro de `mapdata.inc`, y así dos ramas eligieron el mismo sin que
 git viera nada.
@@ -52,8 +54,9 @@ emite, y el evento se dibuja, se pisa y no hace nada. Por eso el conversor
 nombra los mapas que le faltan a cada página que se cae por esto: es la única
 razón de las veinte que se arregla sumando el mapa a la ROM.
 
-Los códigos de comando con que el conversor decide todo esto salen de
-`tools/rpgmaker/event_codes.json`, que se saca de liblcf y de ningún otro lado.
+Los códigos de comando con que el conversor decide todo esto salen de liblcf
+y de ningún otro lado: `codes.rs` del compilador se sostiene contra los nombres
+del esquema de Ditto, que se genera desde liblcf.
 Cuando se pusieron de memoria —en el filtro que reconocía puertas, que ya no
 existe— tres estaban mal, y dos de ésos eran `PlayBGM` y
 `ChangeSpriteAssociation`: el filtro aceptaba como puertas eventos que cambian
@@ -93,7 +96,7 @@ entere. El porqué de cada mecánica va en el comentario de su rutina.
 | Cambiar el gráfico a mitad de una ruta (la orden 34) | `load_route_graphics`, `refresh_npc` | `Graphics`, en el compilador |
 | La colisión con los eventos | `cell_blocked`, `event_crossable` | — |
 | El gráfico sigue a la página, y el tile manda sobre el terreno | `page_graphic`, `pass_with_event`, `fit_npc` | `drawable_npcs` |
-| Los eventos dibujados con un tile del chipset | `load_npcs` | `drawable_npcs`; la hoja la dibuja `rm2k-render charset`, pedida por `Charsets` en `tools/render/render_map.py` |
+| Los eventos dibujados con un tile del chipset | `load_npcs` | `drawable_npcs`; la hoja la dibuja `rm2k-render`, como biblioteca de `wally` |
 | Los que además son opacos y fijos: horneados en el mapa y sin fila que dibujar | `build_oam` saltea la fila escondida | `bakeable_events` |
 | El fundido de los teletransportes, con el mapa cargando adentro del negro | `start_fade`, `fade_tick` | `fade_ramp`, y las constantes `FADE_*` |
 | El tope de teletransportes encadenados | `JUMPS_MAX` y sus usos | lo cobra `rom/pruebas/rpgmaker/test_saltos.py` |

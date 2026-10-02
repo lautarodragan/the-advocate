@@ -212,7 +212,7 @@ def cuadro_de_texto(cartucho, renglon):
     se saltea. Se para al primer byte que no puede ser una cabecera, que es
     lo que hay detrás del último cuadro.
     """
-    from port.events import MESSAGES_STEP
+    from events import MESSAGES_STEP
     base = cartucho.simbolos["messages"]
     archivo = en_la_rom(base)
     with open(cartucho.sfc, "rb") as sfc:

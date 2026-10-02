@@ -19,18 +19,10 @@ la del cronómetro— no necesitan el juego y están con él, en `extras.rs` de
 `rm2k-snes-map-sprites`.
 """
 
-from render import render_map
-from rpgmaker import resources
-# Por los ganchos que pone en `lcf` al importarse: los mapas se leen como
-# los lee el conversor.
-from port import snes_convert                            # noqa: F401
-from port import game_scan
-
+import conversor
 from datos import DEMO
 from etapa_mapas import preguntar
 
-# El juego original, del mismo lugar que el conversor: `ABL_GAME_DIR`.
-JUEGO = resources.GAME_DIR
 MAPA = 2
 PUERTA = 30 - 1          # la etapa numera los eventos desde cero
 
@@ -48,9 +40,8 @@ PALETAS = 6
 
 def reparto():
     """El reparto del mapa 2 con seis paletas de sprite."""
-    ren = render_map.Renderer(JUEGO)
-    lideres = game_scan.possible_leaders(ren, DEMO, GRUPO)
-    return preguntar("split", MAPA, ren, leaders=lideres, palettes=PALETAS)
+    lideres = conversor.lideres(DEMO, GRUPO)
+    return preguntar("split", MAPA, leaders=lideres, palettes=PALETAS)
 
 
 def test_no_se_descarta_ningun_grafico(partida=None):

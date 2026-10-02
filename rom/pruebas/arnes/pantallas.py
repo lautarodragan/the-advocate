@@ -13,7 +13,7 @@ Lo que se le pasa es el estado del juego que la pantalla muestra, con los
 nombres del pedido de la etapa; ver `render.rs` en `rm2k-snes-screens`.
 """
 
-from port import screen_stage
+import screen_stage
 
 
 def disposicion():

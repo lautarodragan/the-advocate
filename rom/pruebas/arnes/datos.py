@@ -15,11 +15,11 @@ compartida sería un cambio de comportamiento, no de arnés.
 """
 
 import functools
-import json
 import os
 
 import cartuchos
-from rpgmaker.resources import GAME_DIR
+import conversor
+from resources import GAME_DIR
 
 
 # Los mapas de la apertura, en el orden en que se le pasan al conversor: el 4,
@@ -30,7 +30,7 @@ DEMO = [4, 1, 2, 3, 5, 6, 7]
 @functools.lru_cache(maxsize=None)
 def base():
     """`RPG_RT.ldb`, ya leído."""
-    from rpgmaker import lcf
+    import lcf
     return lcf.Database(os.path.join(GAME_DIR, "RPG_RT.ldb"))
 
 
@@ -59,23 +59,17 @@ def pagina_de(map_id, evento_id, numero):
     """La página `numero` del evento `evento_id` del mapa, compilada sola:
     con su bloque de textos, sus temas y sus gráficos, en un cartucho con
     todos los mapas del juego. Es lo que contesta la primera llamada del
-    compilador —ver `compiler.scan`—; None si no compila."""
-    from port import compiler
-    from rpgmaker import lcf
+    compilador —ver `conversor.escaneo`—; None si no compila."""
+    import lcf
     game_map = lcf.Map(os.path.join(GAME_DIR, "Map%04d.lmu" % map_id))
     evento = [n for n, e in enumerate(game_map.events) if e.id == evento_id][0]
-    return compiler.compiled_pages(todo_el_juego(), map_id).get(
+    return conversor.paginas_compiladas(todo_el_juego(), map_id).get(
         (evento, numero))
 
 
-@functools.lru_cache(maxsize=None)
 def todo_el_juego():
     """La primera llamada del compilador con todos los mapas del juego."""
-    from port import compiler
-    dump = compiler.dump_of(GAME_DIR)
-    mapas = sorted(int(n[3:7]) for n in os.listdir(os.path.join(dump, "maps"))
-                   if n.startswith("Map") and n.endswith(".json"))
-    return compiler.scan(dump, mapas)
+    return conversor.escaneo()
 
 
 # --- los índices del cartucho --------------------------------------------------
@@ -86,17 +80,11 @@ def todo_el_juego():
 # van por número de variable y una de un caso que el juego no nombra corre a
 # todas las que vienen detrás.
 
-@functools.lru_cache(maxsize=None)
-def comandos_de_los_casos(cartucho=cartuchos.RELEASE):
-    """Los comandos de todos los casos del cartucho, seguidos: lo que barre
-    `case_commands` en el conversor."""
-    from rpgmaker import lcf
-    comandos = []
-    for nombre in cartuchos.casos_de(cartucho):
-        with open(os.path.join(cartuchos.carpeta_de_casos(), nombre + ".json"),
-                  encoding="utf-8") as archivo:
-            comandos += lcf.handwritten_commands(json.load(archivo))
-    return tuple(comandos)
+def archivos_de_los_casos(cartucho=cartuchos.RELEASE):
+    """Los archivos de todos los casos del cartucho, en orden: sus comandos,
+    seguidos, son lo que el conversor barre como páginas de prueba."""
+    return tuple(os.path.join(cartuchos.carpeta_de_casos(), nombre + ".json")
+                 for nombre in cartuchos.casos_de(cartucho))
 
 
 @functools.lru_cache(maxsize=None)
@@ -105,17 +93,16 @@ def ranuras_de_variable(cartucho=cartuchos.RELEASE):
     casos y, si lleva más de uno, la que elige el caso —ver
     `events.CASE_VARIABLE`—. Las contesta el compilador, igual que al
     conversor."""
-    from port import compiler, events
+    import events
     extra = ({events.CASE_VARIABLE}
              if len(cartuchos.casos_de(cartucho)) > 1 else set())
-    return compiler.slots(compiler.dump_of(GAME_DIR),
-                          comandos_de_los_casos(cartucho), extra)[0]
+    return conversor.ranuras(conversor.escaneo(
+        [], archivos_de_los_casos(cartucho), extra))[0]
 
 
 @functools.lru_cache(maxsize=None)
 def ranuras_de_habilidad(cartucho=cartuchos.RELEASE):
     """{(actor, habilidad): bit} del cartucho: los pares del juego con los que
     nombran sus casos, que es lo que contesta el compilador al conversor."""
-    from port import compiler
-    return compiler.slots(compiler.dump_of(GAME_DIR),
-                          comandos_de_los_casos(cartucho))[1]
+    return conversor.ranuras(conversor.escaneo(
+        [], archivos_de_los_casos(cartucho)))[1]

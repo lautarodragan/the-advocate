@@ -25,7 +25,7 @@ What they do use from outside: `test_protocol.py` runs `protocol` from the
 PATH, and `test_layers.py` runs `cargo metadata`, which reads only the
 workspace's manifests. The music stream's tests, which read a SoundFont, are
 in Rust, in `rm2k-snes/rm2k-snes-audio/`: `just audio-test`.
-`test_protocol.py` and `test_substitutions.py` also read the runtime, in `tools/runtime/`, which
+`test_protocol.py` also reads the runtime, in `tools/runtime/`, which
 travels with the tools: the files it is made of are the ones
 `rm2k-snes-assemble --sources` lists, from the PATH, glued together by the
 `runtime_source` fixture of `conftest.py`. The bank packing and the rest of
@@ -40,8 +40,6 @@ has to exist: `test_index.py` enforces it.
   the runtime does not use an undeclared opcode, and that the two
   declarations share no name; what a declaration checks on its own is in
   `protocol`'s tests
-* `test_substitutions.py`: the `TileSubstitution` cap, the same in the
-  converter and in the runtime
 * `test_project.py`: that where each thing is —the root, the repo's
   folders— is known only to `common/project.py`, that no tool reads the
   environment on its own, and that none knows about A Blurred Line: no
@@ -53,8 +51,4 @@ has to exist: `test_index.py` enforces it.
   and that neither of the first two names `rm2k-snes.toml`
 * `test_dump_readers.py`: that no Rust project but Ditto names a file of
   a Ditto dump: the others read it with `ditto::dump::Dump`
-* `test_rm2k_rules.py`: that the RPG Maker rules the converter uses in
-  Python —`rpgmaker/rm2k.py` and the few in `lcf.py`, `render_map.py` and
-  `experience.py`— still answer what `rm2k-rules`, their Rust copy, is
-  held to, in `rm2k/rules/tests/python.json`
 * `test_index.py`: that this list is up to date

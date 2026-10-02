@@ -12,7 +12,7 @@ cuadro.
 """
 
 import tanda
-from port import events
+import events
 
 # Lo que tarda una celda a cada velocidad, de RM2k.
 CUADROS = {v: events.JUMP_STEP // events.STEP_PER_SPEED[v - 1]
