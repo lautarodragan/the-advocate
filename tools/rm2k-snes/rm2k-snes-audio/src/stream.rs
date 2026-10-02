@@ -795,9 +795,14 @@ pub fn unfold(stream: &[u8]) -> Result<Vec<u8>> {
     Ok(out)
 }
 
-/// How many `OP_REPEAT` the stream has.
-pub fn repeats(stream: &[u8]) -> Result<usize> {
-    Ok(events_of(stream)?.iter().filter(|e| stream[e.start] == OP_REPEAT).count())
+/// The stream's `OP_REPEAT`, as (where it is, where it goes back to): byte
+/// offsets from the start of the stream.
+pub fn repeats(stream: &[u8]) -> Result<Vec<(usize, usize)>> {
+    Ok(events_of(stream)?
+        .iter()
+        .filter(|e| stream[e.start] == OP_REPEAT)
+        .map(|e| (e.start, e.end - (stream[e.start + 1] as usize | (stream[e.start + 2] as usize) << 8)))
+        .collect())
 }
 
 /// That a song's stream, decoded, writes the same as `writes`: every
@@ -883,7 +888,7 @@ mod tests {
         let (flat, sounds) = bars();
         let folded = fold(&flat).unwrap();
         assert!(folded.len() < flat.len(), "{} bytes, and before {}", folded.len(), flat.len());
-        assert!(repeats(&folded).unwrap() >= 2);
+        assert!(repeats(&folded).unwrap().len() >= 2);
         assert_eq!(unfold(&folded).unwrap(), flat);
         assert_eq!(decode(&folded, &sounds).unwrap(), decode(&flat, &sounds).unwrap());
         // `length` is the folded stream's: whoever reads it from a cartridge

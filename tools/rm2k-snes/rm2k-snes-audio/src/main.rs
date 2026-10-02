@@ -217,7 +217,8 @@ struct DecodeArgs {
 
     /// Decode it with each OP_REPEAT replaced by the events it reads, which
     /// is the stream as it was before they were folded; `length` and
-    /// `repeats` are still the stream's as given
+    /// `repeats` —each OP_REPEAT, as [where it is, where it goes back to],
+    /// offsets from the stream's start— are still the stream's as given
     #[arg(long)]
     unfold: bool,
 }

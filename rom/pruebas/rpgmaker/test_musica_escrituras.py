@@ -153,10 +153,37 @@ def test_la_rom_vuelve_de_cada_repeticion(partida):
     una = partida(titulo=EMPEZAR).quedarse_en_el_titulo()
     tema = indice_del_tema(una, TEMA_CON_REPETICIONES)
     vuelta, repeticiones = una.escrituras_del_tema_desplegado(tema)
-    assert repeticiones >= 50, (
+    assert len(repeticiones) >= 50, (
         "%s lleva %d repeticiones: la prueba ya no mira lo que dice"
-        % (TEMA_CON_REPETICIONES, repeticiones))
+        % (TEMA_CON_REPETICIONES, len(repeticiones)))
     _comparar(TEMA_CON_REPETICIONES, _tocar_desde_el_loop(una, tema, vuelta),
+              vuelta)
+
+
+def test_la_rom_vuelve_atras_por_encima_de_un_banco(partida):
+    """Un `OP_REPEAT` que vuelve por encima del principio de un banco:
+    `ev_repeat` resta en 24 bits, que vale porque un stream sólo se parte
+    entre dos bancos que se continúan. Dónde cae cada stream lo decide el
+    reparto en bancos, así que el tema sale del cartucho: el más corto que
+    tenga uno. El 2026-10-01 eran siete temas del `release` y 2.814
+    saltos.
+
+    Vista fallar ese día, con `ev_repeat` sin restarle el préstamo al
+    banco: falla ésta, y de las otras sólo la de 3D-Galax, que también
+    tiene saltos así."""
+    una = partida(titulo=EMPEZAR).quedarse_en_el_titulo()
+    candidatos = []
+    for tema in range(una.simbolos["SONG_TOTAL"]):
+        direccion = una.stream_del_tema(tema)[0]
+        vuelta, repeticiones = una.escrituras_del_tema_desplegado(tema)
+        cruzan = [r for r in repeticiones
+                  if (direccion + r[0]) >> 16 != (direccion + r[1]) >> 16]
+        if cruzan:
+            candidatos.append((vuelta[-1][0], tema, vuelta))
+    if not candidatos:
+        pytest.skip("ningún salto del cartucho vuelve por encima de un banco")
+    _, tema, vuelta = min(candidatos)
+    _comparar("el tema %d" % tema, _tocar_desde_el_loop(una, tema, vuelta),
               vuelta)
 
 

@@ -1029,8 +1029,9 @@ class Partida:
 
     def escrituras_del_tema_desplegado(self, indice):
         """(lo que escribiría el stream del tema sin sus `OP_REPEAT`, cada
-        uno reemplazado por lo que lee; cuántos tiene): el formato de antes
-        de las repeticiones, decodificado sin pasar por el salto."""
+        uno reemplazado por lo que lee; dónde está cada uno y adónde vuelve,
+        en bytes desde el principio del stream): el formato de antes de las
+        repeticiones, decodificado sin pasar por el salto."""
         return self._stream_decodificado(indice, musica.decodificar_desplegado)
 
     def _stream_decodificado(self, indice, como=None):

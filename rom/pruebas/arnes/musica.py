@@ -155,9 +155,11 @@ def decodificar(flujo, sonidos):
 def decodificar_desplegado(flujo, sonidos):
     """Como `decodificar`, pero con cada `OP_REPEAT` reemplazado antes por
     los eventos que lee —el stream como era antes de las repeticiones—:
-    ([(cuadro, registro, valor)], cuántos `OP_REPEAT` tenía)."""
+    ([(cuadro, registro, valor)], [(dónde está cada `OP_REPEAT`, adónde
+    vuelve)]), estos dos en bytes desde el principio del stream."""
     hecho = _decode(flujo, sonidos, "--unfold")
-    return [tuple(e) for e in hecho["writes"]], hecho["repeats"]
+    return ([tuple(e) for e in hecho["writes"]],
+            [tuple(r) for r in hecho["repeats"]])
 
 
 def _decode(flujo, sonidos, *opciones):
