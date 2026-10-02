@@ -406,3 +406,36 @@ fuentes *capturas:
   experimentos/fuentes/maquetas.py build/fuentes/maquetas --game-dir "$ABL_GAME_DIR" --comparar build/fuentes/comparar
   experimentos/menu-modo-5/armar.py build/fuentes/fuentes.sfc $(cat build/fuentes/maquetas/pantallas.txt)
   experimentos/menu-modo-5/verificar.py build/fuentes/fuentes.sfc {{capturas}}
+
+# **La ROM de prueba del zoom en modo 7**: las cuatro fotos *Diff* de los
+# recuerdos de Memnosyne (mapas 212, 213, 214 y 216) achicándose del 100 al
+# 0 % en dos segundos, como en RM2k, con un destello al aparecer. El modo 7
+# escala, pero su mapa nombra 256 tiles y una foto entera tiene 896: las
+# cuatro variantes son cuatro maneras de que entre —qué es cada una, en
+# `VARIANTES` de `experimentos/zoom-modo-7/armar.py`, y los botones en el
+# encabezado de `zoom.s`—. No es el juego: no pasa por el conversor ni por
+# `cartuchos`.
+#
+# Arma y después la corre en snes9x, bsnes y mesen-s: la foto quieta pixel
+# por pixel contra la que tiene que ser, el ancho y el centro en una docena
+# de cuadros del zoom contra la curva medida del original, y los tres cores
+# iguales entre sí. Con un directorio, deja ahí las capturas.
+#
+#     just zoom-modo-7
+#     just zoom-modo-7 <directorio de capturas>
+#
+# Arma la ROM de prueba del zoom en modo 7 y la verifica en los emuladores.
+zoom-modo-7 *capturas:
+  experimentos/zoom-modo-7/armar.py build/zoom-modo-7/zoom-modo-7.sfc --game-dir "$ABL_GAME_DIR"
+  experimentos/zoom-modo-7/verificar.py build/zoom-modo-7/zoom-modo-7.sfc {{capturas}}
+
+# Los videos de la ROM de prueba del zoom, uno por foto y variante, al lado
+# del original: `<originales>` es el directorio de las escenas capturadas
+# del RPG_RT, una carpeta por foto con su nombre y un `escena*.mp4` adentro.
+# Se sincronizan por el final del zoom.
+#
+#     just zoom-modo-7-videos <originales> <salida>
+#
+# Graba la ROM de prueba del zoom al lado del original.
+zoom-modo-7-videos originales salida: zoom-modo-7
+  experimentos/zoom-modo-7/videos.py build/zoom-modo-7/zoom-modo-7.sfc {{quote(originales)}} {{quote(salida)}}
