@@ -83,6 +83,11 @@ whole game.
 
 `layout` writes the geometry alone.
 
+`equip` answers what equipping an item leaves —the five slots and the
+inventory—, with the rule the equipment screen draws its list with,
+`Game_Actor::ChangeEquipment` of `rm2k-rules`: for whoever predicts what a
+console that runs the same rule keeps.
+
 ## Its tests
 
 They build a small game and its System inside the test, and compare what

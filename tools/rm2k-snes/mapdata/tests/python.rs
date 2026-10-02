@@ -26,6 +26,12 @@
 //! `materials.rs`—, and so did the battlers, the
 //! backdrops —`scene.rs`— and the battle animations' frames; what the
 //! console makes of the new bytes is checked by the game's tests, not here.
+//!
+//! On 2026-10-02 a page that changes graphic stopped coming with its OAM
+//! bytes and came with where its poses are, which `page_oam` turns into
+//! them. The made-up bytes the map carried, `$01, $02`, are not a tile any
+//! block starts at, so it asks for block 5 with palette 1 now: that one
+//! line of the page table is what moved the three hashes.
 
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_mapdata::record;
@@ -53,7 +59,7 @@ fn what_goes_per_map_comes_out_as_the_python_wrote_it() {
     );
     assert_eq!(
         sha(&written.maps),
-        "5e35fafe6db60a9978bdbdd3aedc6d2a4f75b09489c2594978e672fad05884b0"
+        "311c1588dfb474732073d856435cb4e9567cf26a89322e1a9131551dedb71324"
     );
     assert_eq!(
         sha(&written.tables),
@@ -192,7 +198,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     assert_eq!(text.lines().count(), 3300);
     assert_eq!(
         sha(&text),
-        "f1364696975d88535b0afada5fa958d5155194dcc8aa66b8564bd1a0a337cc83"
+        "1ba9dada4a27cc962bb66e03d3dc08382eb4e627f0fb18e9c1fca3289cb02c7d"
     );
 }
 
@@ -203,7 +209,7 @@ fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     assert_eq!(text.lines().count(), 3419);
     assert_eq!(
         sha(&text),
-        "3ac0195db5a3059eba13eeb51cca12d6299dc4897ced9b99028dc796bcf1ebc1"
+        "0ee081eac15aaebdbfc701ca57c35c0b371bd61d3242bcda28c9a7f11af5abdb"
     );
 }
 

@@ -165,11 +165,11 @@ fn what_is_reflowed_fits_and_does_not_change_again() {
     }
 }
 
-/// The escape tail's cases, which the event compiler's copy of the rule
-/// reads too: `rm2k-snes/events/tests/escapes.json`.
+/// The escape tail's cases, which the event compiler cuts boxes with too:
+/// `tests/escapes.json`.
 #[test]
 fn the_escape_tail_is_the_compilers() {
-    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../events/tests/escapes.json");
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/escapes.json");
     let data: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
     for case in data["cases"].as_array().unwrap() {
         let lines: Vec<String> = serde_json::from_value(case["lines"].clone()).unwrap();

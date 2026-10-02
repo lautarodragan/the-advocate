@@ -105,10 +105,10 @@ pub struct CannotCompile;
 /// between, and it eats them. An escape anywhere else, or more pauses than
 /// [`PAUSES_MAX`], is [`CannotCompile`].
 ///
-/// It is the event compiler's rule, `escape_tail` in `rm2k-snes-events`,
-/// which cuts the tail off when it compiles the box: this copy is the one
-/// the reflow works around, before the compiler sees the boxes. The two
-/// read the same cases, the compiler's `tests/escapes.json`.
+/// It is the only copy: the reflow works around it before the event
+/// compiler sees the boxes, and the compiler, `rm2k-snes-events`, cuts the
+/// tail off with it when it compiles the box. Its cases are
+/// `tests/escapes.json`.
 pub fn escape_tail(lines: &[String]) -> Result<(Vec<String>, usize, bool), CannotCompile> {
     let mut lines = lines.to_vec();
     let mut pauses = 0;

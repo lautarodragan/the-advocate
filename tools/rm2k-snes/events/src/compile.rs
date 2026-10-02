@@ -46,7 +46,7 @@ const SWITCH_MAX: i64 = 1024;
 pub const ITEMS_N: i64 = 451;
 /// The equipment slots of an actor: weapon, shield, armor, helmet and
 /// accessory.
-const EQUIPMENT_SLOTS: i64 = 5;
+const EQUIPMENT_SLOTS: i64 = rm2k_rules::actor::EQUIPMENT_SLOTS as i64;
 /// How many graphics fit in a map's table: the operand is a byte.
 const GRAPHICS_MAX: usize = 0xFF;
 /// The variable slot is a byte, and far RAM has room for 256: see
@@ -1927,9 +1927,10 @@ fn branch_bytes(ctx: &Ctx, cmd: &Command) -> Step<Vec<u8>> {
         //
         // The skill: `actor->IsSkillLearned(p[3])`. Since 2026-09-21 it is
         // state: the bit of the (actor, skill) pair in `FAR_SKILL`, which
-        // starts with what `rules.learned_skills` says from the LDB and which
-        // `ChangeSkills` turns on and off. The operand that travels is the
-        // pair's slot and not the skill; see `skills` in [`crate::indices`].
+        // starts with what `learned_skills` of `rm2k-rules` says from the
+        // LDB and which `ChangeSkills` turns on and off. The operand that
+        // travels is the pair's slot and not the skill; see `skills` in
+        // [`crate::indices`].
         //
         // The equipment: easyrpg's five `Get*Id()`s compared against `p[3]`:
         // weapon, shield, armor, helmet and accessory. This **is** real state

@@ -5,6 +5,7 @@ use crate::fail::Result;
 use crate::game::{Game, ITEM_MEDICINE, ITEM_SWITCH};
 use crate::layout::*;
 use ditto::schema::{Actor, Item};
+use rm2k_rules::actor as rules;
 use std::collections::BTreeSet;
 
 /// What the screen can write: the characters the font has, with a '?'
@@ -96,59 +97,29 @@ pub fn name_in_lines(name: &str, width: usize, rows: usize) -> Vec<String> {
     out.iter().map(|r| ljust(r, width)).collect()
 }
 
-/// The level an actor starts at, as the database says it: `initial_level`,
-/// or 1 if it says 0.
-pub fn level_of(actor: &Actor) -> i64 {
-    match actor.initial_level {
-        0 => 1,
-        level => level as i64,
-    }
-}
-
-/// An actor's max HP at `level` —its starting one without it—: the
-/// database's curve, from level 1, and 0 past its end.
+/// An actor's max HP at `level` —its starting one without it—: RM2k's
+/// curve ([`rules::curve_at`]), and 0 where it has nothing.
 pub fn max_hp(actor: &Actor, level: Option<i64>) -> i64 {
-    let values = &actor.parameters.maxhp;
-    let level = level.unwrap_or_else(|| level_of(actor));
-    let at = level - 1;
-    if at >= values.len() as i64 {
-        return 0;
-    }
-    // A level of 0 or less counts from the end, which is how the drawing
-    // this replaces indexed it.
-    let at = if at < 0 { values.len() as i64 + at } else { at };
-    values.get(at as usize).map_or(0, |&v| v as i64)
+    let level = level.unwrap_or_else(|| rules::level_of(actor));
+    rules::curve_at(&actor.parameters.maxhp, level).unwrap_or(0)
 }
 
-/// An actor's four parameters with its equipment on: the level's plus what
-/// the items add, each clamped to 1..999, like `Game_Actor::GetAtk` and its
-/// siblings.
+/// An actor's four parameters at its starting level with this equipment
+/// on: RM2k's ([`rules::with_equipment`]), with a curve that has nothing
+/// at the level read as 0 and an item the database lacks left out.
 pub fn equipped_params(game: &Game, actor: i32, equipment: &[i32]) -> Vec<i64> {
     let a = &game.actors[&actor];
-    let level = level_of(a);
-    let curve = |values: &[i16]| -> i64 {
-        let at = level - 1;
-        if at >= values.len() as i64 {
-            0
-        } else {
-            let at = if at < 0 { values.len() as i64 + at } else { at };
-            values.get(at as usize).map_or(0, |&v| v as i64)
-        }
-    };
-    let p = &a.parameters;
-    let mut base = [curve(&p.attack), curve(&p.defense), curve(&p.spirit), curve(&p.agility)];
-    for &item in equipment {
-        if item == 0 {
-            continue;
-        }
-        if let Some(it) = game.items.get(&item) {
-            let points = [it.atk_points1, it.def_points1, it.spi_points1, it.agi_points1];
-            for (b, p) in base.iter_mut().zip(points) {
-                *b += p as i64;
-            }
-        }
-    }
-    base.iter().map(|b| (*b).clamp(1, 999)).collect()
+    let level = rules::level_of(a);
+    let base = rules::EQUIPPED.map(|which| {
+        rules::curve(a, which)
+            .and_then(|values| rules::curve_at(values, level))
+            .unwrap_or(0)
+    });
+    let items = equipment
+        .iter()
+        .filter(|&&item| item != 0)
+        .filter_map(|item| game.items.get(item));
+    rules::with_equipment(base, items).to_vec()
 }
 
 /// The actor's name as the cartridge composes it: one letter per cell,
@@ -161,7 +132,7 @@ pub fn name_text(game: &Game, actor: i32, cols: usize) -> Result<String> {
 /// The two digits of the level, right-aligned as RM2k says them. Without
 /// `level`, the starting one.
 pub fn level_text(game: &Game, actor: i32, level: Option<i64>) -> String {
-    let level = level.unwrap_or_else(|| game.actors.get(&actor).map_or(0, level_of));
+    let level = level.unwrap_or_else(|| game.actors.get(&actor).map_or(0, rules::level_of));
     right(level, LEVEL_DIGITS)
 }
 
@@ -177,7 +148,6 @@ pub fn max_text(game: &Game, actor: i32, level: Option<i64>) -> String {
 /// and the one the next level asks for, or dashes at the cap. Without
 /// `level` or `exp`, the starting ones.
 pub fn exp_text(game: &Game, actor: i32, level: Option<i64>, exp: Option<i64>) -> String {
-    use rm2k_rules::actor as rules;
     let a = &game.actors[&actor];
     let level = level.unwrap_or_else(|| rules::initial_level(a));
     let exp = exp.unwrap_or_else(|| rules::initial_exp(a));

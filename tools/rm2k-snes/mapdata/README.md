@@ -48,6 +48,10 @@ and writes pieces and a JSON.
 * `vram`: the VRAM layouts, the constants of the cartridge's memory, and
   which layout each of the request's maps gets. The layouts are checked
   against the hardware on every call.
+* `engine`: the engine's numbers by name —every one of `src/engine.rs`,
+  and the caps of `src/record.rs` the compiled pages are checked
+  against—, for whoever needs one of them and is not this program: so
+  they are written in a single place.
 
 ## Where the numbers come from
 

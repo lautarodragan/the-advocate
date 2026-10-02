@@ -44,6 +44,11 @@ enum Command {
     Refit(LayoutArgs),
     /// The geometry the screens are drawn with, by name
     Layout(LayoutArgs),
+    /// What equipping an item leaves, as the equipment screen does it
+    #[command(after_help = "Writes equip.json into --out: {\"equipment\": the five slots, \
+        \"inventory\": item number to how many}, after `Game_Actor::ChangeEquipment`. The \
+        request carries `equipment`, `inventory`, `slot` and `item`, 0 to unequip.")]
+    Equip(GameArgs),
 }
 
 #[derive(ClapArgs)]
@@ -213,6 +218,22 @@ fn do_boxes(args: &BoxesArgs) -> Result<()> {
     write(&args.out, "boxes.json", &table.to_string())
 }
 
+fn do_equip(args: &GameArgs) -> Result<()> {
+    let game = Game::from_dump(&args.data, &args.game_dir)?;
+    let json = Json::read(&args.request)?;
+    let mut equipment: Vec<i32> = json.numbers("equipment")?.into_iter().map(|n| n as i32).collect();
+    let mut inventory = json.by_number("inventory")?;
+    let slot = json.index_or("slot", 0)?;
+    if slot >= equipment.len() {
+        return Err(Bad::answer(format!("{}: there is no slot {slot}", json.whose)));
+    }
+    render::equip(&game, &mut equipment, &mut inventory, slot, json.number("item")? as i32)?;
+    let inventory: serde_json::Map<String, serde_json::Value> =
+        inventory.into_iter().map(|(k, v)| (k.to_string(), v.into())).collect();
+    let answer = serde_json::json!({"equipment": equipment, "inventory": inventory});
+    write(&args.out, "equip.json", &answer.to_string())
+}
+
 fn do_layout(args: &LayoutArgs) -> Result<()> {
     write(&args.out, "layout.json", &layout::publish().to_string())
 }
@@ -251,6 +272,7 @@ fn main() -> ExitCode {
         Command::Boxes(args) => do_boxes(args),
         Command::Layout(args) => do_layout(args),
         Command::Refit(args) => do_refit(args),
+        Command::Equip(args) => do_equip(args),
     };
     match done {
         Ok(()) => ExitCode::SUCCESS,

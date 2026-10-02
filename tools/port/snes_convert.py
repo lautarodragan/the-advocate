@@ -59,7 +59,7 @@ if __name__ == "__main__":
     sys.path[0] = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 from rpgmaker import event_codes
-from port import events
+from port import engine, events
 from rpgmaker import lcf
 from rpgmaker import rm2k
 
@@ -81,8 +81,7 @@ from render.render_map import Renderer
 from common import environment
 from rpgmaker import resources
 from rpgmaker.resources import find_resource
-from port.sprites import (OBJ_PRIORITY, OBJ_PRIORITY_ABOVE, block_tile,
-                          maps_per_character)
+from port.sprites import maps_per_character
 from port import vram
 from port.battle_animations import animations_request, rom_animations
 from port.battle_scenes import (fallback_bytes, patch_uses, rom_scene,
@@ -116,11 +115,10 @@ SUB_MAX = 8
 
 # How many events with a parallel page there can be at once in a map, and
 # how many forced routes can be running at once on events: the ROM's caps,
-# which it does not warn about. The same numbers go into the `.inc` from
-# `record.rs` in `rm2k-snes-mapdata`, where the reasons are; the checks are
-# here because they look at the compiled pages.
-PARALLEL_MAX = 48
-ROUTE_EV_MAX = 12
+# which it does not warn about. They are `record.rs`'s, in
+# `rm2k-snes-mapdata`, which puts them in the `.inc` and has the reasons; the
+# checks are here because they look at the compiled pages, and read them by
+# `port.engine`: `engine.PARALLEL_MAX` and `engine.ROUTE_EV_MAX`.
 
 
 def patch_of_map(map_info):
@@ -412,10 +410,10 @@ def main():
         with_parallel = {p["event"] for p in pages
                          if p["trigger"] == events.TRIGGER_PARALLEL
                          and p["codigo"]}
-        if len(with_parallel) > PARALLEL_MAX:
+        if len(with_parallel) > engine.PARALLEL_MAX:
             sys.exit("map %d has %d events with a parallel page and %d "
                      "fit: see PARALLEL_MAX"
-                     % (map_info["id"], len(with_parallel), PARALLEL_MAX))
+                     % (map_info["id"], len(with_parallel), engine.PARALLEL_MAX))
         if with_parallel:
             print("  map %d: %d event(s) with a parallel page"
                   % (map_info["id"], len(with_parallel)))
@@ -522,9 +520,10 @@ def main():
                 test_page["ruta_offset"] = len(code)
                 code += bytes(own["ordenes"])
         map_info["pages"] = pages
-        # What each page of the events that change graphic draws, already as
-        # OAM wants it: it is what the ROM copies to the NPC's row when the
-        # active page changes. See `page_table`, +20.
+        # What each page of the events that change graphic draws: where its
+        # poses are in the sprite bank, which the emission turns into what the
+        # ROM copies to the NPC's row when the active page changes —`page_oam`
+        # in `rm2k-snes-mapdata`'s `objects.rs`; see `page_table`, +20—.
         for test_page in pages:
             continues = test_page["event"] in map_info["cambian"]
             if not continues and test_page["event"] not in map_info["aparecen"]:
@@ -533,26 +532,15 @@ def main():
             if graphic is None \
                     or graphic[:2] in map_info["afuera"].get(test_page["event"], ()):
                 continue
-            if not continues:
-                # The one that only appears carries no tile or attributes: its
-                # own point to its slot of twelve poses and the ROM doesn't
-                # touch them. The pose goes —with bit 7, which is "this page
-                # draws something"— and what its tile imposes on the cell.
-                test_page["oam"] = (0, 0, graphic[2] | 0x80,
-                                 0xFF if test_page.get("tile_pass") is None
-                                 else test_page["tile_pass"])
-                continue
-            shared = map_info["compartidos"].get(test_page["event"])
-            block, slot = shared or map_info["where"][graphic]
-            tile = block_tile(block)
-            priority = (OBJ_PRIORITY_ABOVE
-                        if test_page["capa"] == rm2k.LAYER_ABOVE
-                        else OBJ_PRIORITY)
-            test_page["oam"] = (tile & 0xFF,
-                             priority | ((slot & 0x07) << 1) | ((tile >> 8) & 1),
-                             graphic[2] | 0x80,
-                             0xFF if test_page.get("tile_pass") is None
-                             else test_page["tile_pass"])
+            draws = {"block": None, "palette": 0, "pose": graphic[2],
+                     "tile_pass": test_page.get("tile_pass")}
+            if continues:
+                # The one that only appears goes without a block: its own row
+                # points at its slot of twelve poses.
+                shared = map_info["compartidos"].get(test_page["event"])
+                draws["block"], draws["palette"] = \
+                    shared or map_info["where"][graphic]
+            test_page["draws"] = draws
         map_info["evcode"] = bytes(code)
         # The ROM's substitution table has a fixed cap and **doesn't warn** if
         # it goes over: the pairs that don't fit wouldn't be applied and the
@@ -613,11 +601,11 @@ def main():
                             "palette and both would flash"
                             % (map_info["id"], actor, a.charset, a.charset_index))
 
-        if len(targets) > ROUTE_EV_MAX:
+        if len(targets) > engine.ROUTE_EV_MAX:
             raise SystemExit(
                 "map %d: its pages send %d distinct events walking and "
                 "the ROM has %d route slots"
-                % (map_info["id"], len(targets), ROUTE_EV_MAX))
+                % (map_info["id"], len(targets), engine.ROUTE_EV_MAX))
         runnable = sum(1 for p in pages if p["codigo"])
         if pages:
             print("  map %d: %d automatic event page(s), %d runnable"

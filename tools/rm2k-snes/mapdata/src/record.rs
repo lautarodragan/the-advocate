@@ -11,7 +11,8 @@ use crate::cgram::BACKDROP;
 use crate::fail::{Bad, Result};
 use crate::materials::{grid_high_used, map_ram, Materials, COMPRESSED_KINDS};
 use crate::objects::{
-    block_tile, LAYER_ABOVE, OBJ_COLORS, OBJ_PRIORITY, OBJ_PRIORITY_ABOVE, POSE_BYTES, SPRITE_POSES,
+    block_tile, page_oam, LAYER_ABOVE, OBJ_COLORS, OBJ_PRIORITY, OBJ_PRIORITY_ABOVE, POSE_BYTES,
+    SPRITE_POSES,
 };
 use crate::request::{Map, Page, Slot};
 use crate::snes::{cgram_word, BYTES_PER_TILE, COLORS_PER_PALETTE};
@@ -950,7 +951,7 @@ pub fn page_table(map: &PageMap, number: usize, evcode: &str) -> String {
             out.push("    .byte 0,0,0,0".into());
         }
         // +20: what the page draws, for the events that change graphic.
-        match page.oam {
+        match page.draws.as_ref().map(|d| page_oam(d, page.layer)) {
             None => out.push("    .byte $00, $00, $00, $FF ; +20 no graphic".into()),
             Some([a, b, c, d]) => out.push(format!(
                 "    .byte ${a:02X}, ${b:02X}, ${c:02X}, ${d:02X} ; +20 its graphic: tile, attributes, \

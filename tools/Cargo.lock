@@ -424,6 +424,7 @@ dependencies = [
  "clap",
  "ditto",
  "rm2k-rules",
+ "rm2k-snes-text",
  "serde_json",
  "sha2",
 ]
@@ -473,6 +474,7 @@ dependencies = [
  "ditto",
  "lz2",
  "rm2k-snes-battle",
+ "rm2k-snes-map-sprites",
  "serde",
  "serde_json",
  "sha2",

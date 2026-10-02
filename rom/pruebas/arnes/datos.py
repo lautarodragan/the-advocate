@@ -35,16 +35,24 @@ def base():
 
 
 def maximos():
-    """Los HP y SP máximos de cada actor, sacados del LDB y no de la ROM.
+    """Los HP y SP máximos de cada actor en su nivel inicial, sacados del LDB
+    y no de la ROM.
 
     Es la misma cuenta que emite `actor_hpmax`, pero leída del otro lado: si
     la ROM copiara de una tabla equivocada, comparar contra esa misma tabla
-    daría verde.
+    daría verde. La hace el modelo de la pelea —una pelea con todos los
+    actores y ningún paso—, que la toma de `rm2k-rules`: hasta el 2026-10-02
+    había una copia en Python, `port/rules.py`, y era lo único que la usaba.
     """
-    from port import rules
-    return {a: (rules.param_of(actor, "maxhp"),
-                rules.param_of(actor, "maxsp"))
-            for a, actor in base().actors.items()}
+    return dict(_maximos())
+
+
+@functools.lru_cache(maxsize=None)
+def _maximos():
+    import modelo
+    actores = sorted(base().actors)
+    pelea = modelo.Battle([modelo.actor_of(a) for a in actores])
+    return {a: (c.hp_max, c.sp_max) for a, c in zip(actores, pelea.actors)}
 
 
 def pagina_de(map_id, evento_id, numero):

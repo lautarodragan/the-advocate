@@ -12,9 +12,14 @@ use crate::db::{
 };
 use crate::fail::{Bad, Result};
 use ditto::schema::{Actor, Item, Skill};
+use rm2k_rules::actor;
 
-/// The cap of a parameter, like `Game_Actor::GetAtk` and its siblings.
-pub const PARAM_MAX: i64 = 999;
+/// The actor's own rules —its level, its curves, what equipment adds, what
+/// it knows— are RM2k's and not this battle's: they live in `rm2k-rules`,
+/// and the ones the other stages reach through this crate are re-exported.
+pub use rm2k_rules::actor::{
+    initial_equipment, learned_skills, level_learned, level_of, points, EQUIPMENT_SLOTS, PARAM_MAX,
+};
 
 /// How many actions an enemy can carry: the console weighs them in a list
 /// that long (`BA_SKILL_LIST`). The answer is no if one carries more.
@@ -44,59 +49,20 @@ pub fn floor_div(a: i64, b: i64) -> i64 {
     }
 }
 
-/// The level an actor starts at: `Game_Actor::Setup`, which calls
-/// `ChangeLevel(initial_level)`. A 0 in the database is 1.
-pub fn level_of(actor: &Actor) -> i64 {
-    match actor.initial_level {
-        0 => 1,
-        level => level as i64,
-    }
-}
-
-/// A curve of the actor at `level`: the database's table starts at level
-/// 1, so the index is the level minus one, and past its end it is 0. A
-/// level of 0 or less counts from the end, which is how the model this
-/// replaces indexed it; it is not a level RM2k has.
-fn curve_at(values: &[i16], level: i64) -> Result<i64> {
-    let at = level - 1;
-    if at >= values.len() as i64 {
-        return Ok(0);
-    }
-    let at = if at < 0 { values.len() as i64 + at } else { at };
-    values
-        .get(at as usize)
-        .map(|&v| v as i64)
+/// A curve of the actor at `level` —without it, the starting one—, by its
+/// name: [`actor::curve_at`], and no if there is no such curve or no such
+/// level in it.
+pub fn param_of(actor: &Actor, which: &str, level: Option<i64>) -> Result<i64> {
+    let values = actor::curve(actor, which)
+        .ok_or_else(|| Bad::usage(format!("there is no curve {which:?}")))?;
+    let level = level.unwrap_or_else(|| level_of(actor));
+    actor::curve_at(values, level)
         .ok_or_else(|| Bad::answer(format!("there is no level {level} in a curve")))
 }
 
-/// The six curves by name.
-pub fn param_of(actor: &Actor, which: &str, level: Option<i64>) -> Result<i64> {
-    let p = &actor.parameters;
-    let values = match which {
-        "maxhp" => &p.maxhp,
-        "maxsp" => &p.maxsp,
-        "attack" => &p.attack,
-        "defense" => &p.defense,
-        "spirit" => &p.spirit,
-        "agility" => &p.agility,
-        _ => return Err(Bad::usage(format!("there is no curve {which:?}"))),
-    };
-    curve_at(values, level.unwrap_or_else(|| level_of(actor)))
-}
-
-/// What an item adds when equipped: attack, defense, spirit, agility.
-pub fn points(item: &Item) -> [i64; 4] {
-    [
-        item.atk_points1 as i64,
-        item.def_points1 as i64,
-        item.spi_points1 as i64,
-        item.agi_points1 as i64,
-    ]
-}
-
 /// Attack, defense, spirit and agility: the level's plus what the
-/// equipment adds, clamped to 1..999 like `Game_Actor::GetAtk` and its
-/// siblings. Without `level`, the starting one.
+/// equipment adds, clamped ([`actor::with_equipment`]). Without `level`,
+/// the starting one; an item the database lacks is a no.
 pub fn equipped_params(
     db: &Db,
     actor: i32,
@@ -105,49 +71,16 @@ pub fn equipped_params(
 ) -> Result<[i64; 4]> {
     let a = db.actor(actor)?;
     let mut base = [0; 4];
-    for (b, which) in base
-        .iter_mut()
-        .zip(["attack", "defense", "spirit", "agility"])
-    {
+    for (b, which) in base.iter_mut().zip(actor::EQUIPPED) {
         *b = param_of(a, which, level)?;
     }
+    let mut items = Vec::new();
     for &item in equipment {
         if item != 0 {
-            for (b, p) in base.iter_mut().zip(points(db.item(item)?)) {
-                *b += p;
-            }
+            items.push(db.item(item)?);
         }
     }
-    Ok(base.map(|b| b.clamp(1, PARAM_MAX)))
-}
-
-/// An actor's starting equipment: weapon, shield, armor, helmet and
-/// accessory, by item number, 0 for none.
-pub fn initial_equipment(actor: &Actor) -> Vec<i32> {
-    let e = &actor.initial_equipment;
-    vec![
-        e.weapon_id,
-        e.shield_id,
-        e.armor_id,
-        e.helmet_id,
-        e.accessory_id,
-    ]
-}
-
-/// The skills this actor **knows**, usable or not, sorted:
-/// `Game_Actor::LearnLevelSkills`, the ones with a level lower than or
-/// equal to its own. Without `level`, the starting one.
-pub fn learned_skills(actor: &Actor, level: Option<i64>) -> Vec<i32> {
-    let level = level.unwrap_or_else(|| level_of(actor));
-    let mut out: Vec<i32> = actor
-        .skills
-        .iter()
-        .filter(|l| l.skill_id != 0 && l.level as i64 <= level)
-        .map(|l| l.skill_id)
-        .collect();
-    out.sort_unstable();
-    out.dedup();
-    out
+    Ok(actor::with_equipment(base, items))
 }
 
 /// Whether this battle knows how to offer this skill: of type `normal` or
@@ -191,19 +124,6 @@ pub fn skills_of(db: &Db, actor: i32, level: Option<i64>) -> Result<Vec<i32>> {
         }
     }
     Ok(out)
-}
-
-/// At which level this actor learns this skill: the lowest of the rows of
-/// its table that name it, or 0 if none does —that one only a
-/// `ChangeSkills` teaches—.
-pub fn level_learned(actor: &Actor, skill: i32) -> i64 {
-    actor
-        .skills
-        .iter()
-        .filter(|l| l.skill_id == skill)
-        .map(|l| l.level as i64)
-        .min()
-        .unwrap_or(0)
 }
 
 /// What the actor's skill command is called: `Game_Actor::GetSkillName`,

@@ -438,29 +438,12 @@ pub fn candidates(
     Ok(out)
 }
 
-/// `Game_Actor::ChangeEquipment`: what it had goes back to the inventory
-/// and the new one comes out of there. A two-handed weapon removes the
-/// shield, and a shield removes the two-handed weapon. `item` 0 is
-/// unequipping the slot.
+/// `Game_Actor::ChangeEquipment` ([`rm2k_rules::actor::change_equipment`])
+/// with this game's items: an item it does not have is a no.
 pub fn equip(game: &Game, equipment: &mut [i32], inventory: &mut BTreeMap<i32, i64>, slot: usize, item: i32) -> Result<()> {
-    let remove = |equipment: &mut [i32], inventory: &mut BTreeMap<i32, i64>, r: usize| {
-        if equipment[r] != 0 {
-            *inventory.entry(equipment[r]).or_insert(0) += 1;
-            equipment[r] = 0;
-        }
-    };
-    remove(equipment, inventory, slot);
-    if item != 0 {
-        *inventory.entry(item).or_insert(0) -= 1;
-        equipment[slot] = item;
-        if slot == EQ_WEAPON && game.item(item)?.two_handed {
-            remove(equipment, inventory, EQ_SHIELD);
-        }
-        if slot == EQ_SHIELD && equipment[EQ_WEAPON] != 0 && game.item(equipment[EQ_WEAPON])?.two_handed {
-            remove(equipment, inventory, EQ_WEAPON);
-        }
-    }
-    Ok(())
+    rm2k_rules::actor::change_equipment(equipment, inventory, slot, item, |i| {
+        Ok(game.item(i)?.two_handed)
+    })
 }
 
 /// `Window_EquipStatus::GetNewParameterColor`: the value that would result
