@@ -98,8 +98,8 @@ ESCENAS = (
     # transparente, arriba del contador.
     ("escena-95", (550,)),
     # El 311, el claro: la sombra del hovertram, pegada al mapa y al 55 %, que
-    # aparece desde 100 de transparencia y se queda en 50. Se dibuja opaca:
-    # ver `PIC_HIDDEN` en picture_far.s.
+    # aparece desde 100 de transparencia y se queda en 50, mezclada a medias
+    # con el mapa por la consola: ver `pic_blend` en picture.s.
     ("escena-311", (250,)),
 )
 

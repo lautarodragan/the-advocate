@@ -30,10 +30,11 @@
 ; and `Priority_Player` 40. In OAM that is the order of the list, because
 ; the lowest index wins; and priority 3 puts them in front of both layers.
 ;
-; The transparency is kept but **not drawn**: a picture is opaque, and one
-; three quarters transparent or more is not drawn at all —the shadow on map
-; 311 appears from 100 and stays at 50—. It is a debt, written in
-; `divergencias/`; see `PIC_HIDDEN`.
+; The transparency goes in three steps: one three quarters transparent or
+; more is not drawn at all, from a quarter it is mixed half and half with
+; what is under it —the experiment of `pic_blend`, in picture.s—, and under
+; that it is opaque. The shadow on map 311 appears from 100 and stays at 50.
+; What is lost is written in `divergencias/`.
 
 ; From this transparency up a picture is not drawn.
 PIC_HIDDEN = 76

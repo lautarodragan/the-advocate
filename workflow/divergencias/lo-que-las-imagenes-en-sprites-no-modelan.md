@@ -4,10 +4,15 @@ Las imágenes de `ShowPicture` que van en los sprites —ver
 `tools/runtime/picture_far.s` y `tools/port/picture.py`— no hacen todo lo
 que hacen en RM2k:
 
-* **La transparencia no se dibuja**: una imagen con 76 % o más no se ve, y
-  las demás van opacas. El humo del 207 (40 %) y la sombra del 311 (que
-  llega a 50 %) salen opacos; la sombra aparece de golpe a mitad de su
-  segundo de fundido.
+* **La transparencia va en tres escalones**: con 76 % o más no se ve, de
+  25 % a 75 % se mezcla a medias con lo de abajo —el color math de la
+  consola, que mezcla al 50 % o suma, y nada en el medio—, y con menos va
+  opaca. El humo del 207 (40 %) sale al 50 %, y la sombra del 311 aparece
+  de golpe a mitad de su segundo de fundido, ya al 50 %. Mientras haya una
+  mezclada, también se mezclan los personajes que el mapa tenga en las
+  paletas de sprite 4 y 5 y la caja de la animación de batalla si cae ahí:
+  el hardware mezcla las paletas 4 a 7 enteras. Es el experimento de
+  `pic_blend`, en `tools/runtime/picture.s`, y se saca con su commit.
 * **`MovePicture` no mueve ni agranda**: cambia tono y transparencia. Uno
   que pide otro lugar u otro zoom no compila y se acepta sin hacerse.
 * **Dos a la vez**, una por número, las dos primeras que muestre el mapa:

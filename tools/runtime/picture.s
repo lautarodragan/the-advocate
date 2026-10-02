@@ -151,6 +151,58 @@ next:
     inx
     cpx #PIC_SLOTS
     bne each
+    ; fall through to `pic_blend`
+.endproc
+
+; **The translucency experiment**, 2026-10-01: a picture half transparent
+; —from `PIC_HALF` to `PIC_HIDDEN`— is mixed half and half with what is
+; under it, with the console's color math. Only the objects take part, and
+; the hardware only mixes the ones in sprite palettes 4 to 7: the pictures
+; are in 7 and 6, and the hero and the events stay opaque **if their map
+; leaves them in 0 to 3** —a map with five or six character palettes, or the
+; battle animation's box in 4 or 5, gets those mixed too while the picture
+; is up—. The subscreen is the map's two layers; the message window, which
+; is BG2, is not mixed because only the objects are, and the objects are
+; masked on its lines anyway.
+;
+; The console mixes at 50 % or adds; RM2k's transparency is any
+; percentage. So 25 to 75 is half, under 25 opaque, 76 and over not drawn:
+; the shadow of 311, 100 to 50, is not there and then half; the smoke of
+; 207, 40, is half.
+;
+; It is written on every vblank of the map, from the slots: off is
+; `ppu_reset`'s, and the battle's fade leaves it that way too. See
+; `decisiones/el-color-math-no-se-usa.md`, which was about translucent
+; **events** and not pictures.
+PIC_HALF = 25
+.proc pic_blend
+.a8
+.i16
+    ldx #$0000
+each:
+    lda f:PIC_IMG, x
+    cmp #PIC_NONE
+    beq next
+    lda f:PIC_TRANS, x
+    cmp #PIC_HALF
+    bcc next
+    cmp #PIC_HIDDEN
+    bcs next
+    lda #$02                    ; CGWSEL: add the subscreen, always
+    sta CGWSEL
+    lda #$50                    ; CGADSUB: add, halved, on the objects
+    sta CGADSUB
+    lda #$03                    ; TS: the map's two layers under them
+    sta TS
+    rts
+next:
+    inx
+    cpx #PIC_SLOTS
+    bne each
+    lda #$30                    ; color math off, as `ppu_reset` leaves it
+    sta CGWSEL
+    stz CGADSUB
+    stz TS
     rts
 .endproc
 
