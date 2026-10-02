@@ -680,6 +680,82 @@ fn group_boxes(commands: &[Command]) -> Vec<(usize, Vec<String>)> {
     out
 }
 
+/// The commands that close a block: what follows a label for a jump into
+/// that block to be the same in RM2k and here. See [`label_targets`].
+const BLOCK_ENDS: [i32; 6] = [
+    COND_END,
+    SHOW_CHOICE_END,
+    END_BATTLE,
+    INN_END,
+    END_LOOP,
+    BATTLE_COND_END,
+];
+
+/// Where each `JumpToLabel` lands: the index of its `Label`, or None if the
+/// page has none with its number. It is what `CommandJumpToLabel` does:
+///
+/// * **The first `Label` of the list with that number wins**, wherever it
+///   is: before or after the jump, and at any indentation —the search
+///   walks the whole list from the top and looks at nothing but the
+///   number—. A second one with the same number is never reached.
+/// * **A jump to a number with no `Label` does nothing**: the page goes on
+///   with the next command.
+/// * The list is the frame's: a `CallEvent`'s body looks only at its own
+///   labels, which is what compiling it apart with `page` already does.
+///
+/// **Landing inside a block is where it stops being free.** RM2k keeps no
+/// stack of open blocks, only a sub-index per indentation
+/// (`subcommand_path`), and what follows the body decides: an `ElseBranch`,
+/// a `ShowChoiceOption` or a battle handler **runs or skips its body by that
+/// sub-index**, which is whatever the last block at that indentation left
+/// in it —usually "none", but a branch that was false and had no `else`
+/// leaves "else", and then the `else` would run too—. Here those are jumps
+/// to the end of the block, always. So a jump compiles only if every block
+/// the label is in and the jump is not, the label is in its **last** body:
+/// after it comes the block's end, which does nothing in RM2k and nothing
+/// here. The game's jumps into blocks —the 13 of common event 39, into the
+/// `else` of a chain of branches— are all like that. Jumping **out** of a
+/// block is free: the ROM keeps no state for the ones that compile, and
+/// `Loop`, the one that might, does not compile.
+fn label_targets(commands: &[Command]) -> Step<HashMap<usize, Option<usize>>> {
+    let mut first: HashMap<i32, usize> = HashMap::new();
+    for (i, c) in commands.iter().enumerate() {
+        if c.code == LABEL {
+            first
+                .entry(c.parameters.first().copied().unwrap_or(0))
+                .or_insert(i);
+        }
+    }
+    let mut out = HashMap::new();
+    for (i, c) in commands.iter().enumerate() {
+        if c.code != JUMP_TO_LABEL {
+            continue;
+        }
+        let Some(&t) = first.get(&c.parameters.first().copied().unwrap_or(0)) else {
+            out.insert(i, None);
+            continue;
+        };
+        // The bodies both are in: the indentations below the shallowest
+        // command between them, inclusive. A command at indentation k in
+        // between —an `else`, an option, another block— means that from k
+        // on they are in different bodies.
+        let shared = commands[i.min(t)..=i.max(t)]
+            .iter()
+            .map(|c| c.indent)
+            .min()
+            .unwrap_or(0);
+        for k in shared..commands[t].indent {
+            let after = commands[t + 1..].iter().find(|c| c.indent <= k);
+            match after {
+                Some(c) if c.indent == k && BLOCK_ENDS.contains(&c.code) => {}
+                _ => return cannot(),
+            }
+        }
+        out.insert(i, Some(t));
+    }
+    Ok(out)
+}
+
 /// A page's commands as bytes, or None if it cannot be done.
 ///
 /// `map_events` is the map's `MapEvents`, already pointed at the page's
@@ -780,6 +856,11 @@ fn page(
     // see `recalled_destination`.
     let mut constants: HashMap<i64, i64> = HashMap::new();
     let mut faded: Vec<u8> = Vec::new();
+    // Where each `JumpToLabel` lands, where each `Label` was emitted, and the
+    // jumps forward, patched at the end: see [`label_targets`].
+    let targets = label_targets(commands)?;
+    let mut label_at: HashMap<usize, usize> = HashMap::new();
+    let mut forward: Vec<(usize, usize)> = Vec::new();
 
     for (i, extra) in group_boxes(commands) {
         let cmd = &commands[i];
@@ -1098,6 +1179,26 @@ fn page(
             };
             patch(&mut pieces, open, length)?;
             piece = vec![];
+        } else if cmd.code == LABEL {
+            label_at.insert(i, length);
+            piece = vec![];
+        } else if cmd.code == JUMP_TO_LABEL {
+            // OP_GOTO to where the label was emitted, or nothing if the page
+            // has no label with that number.
+            piece = match targets[&i] {
+                None => vec![],
+                Some(t) => match label_at.get(&t) {
+                    Some(&dest) => {
+                        let mut p = vec![OP_GOTO];
+                        p.extend(usize_word(dest)?);
+                        p
+                    }
+                    None => {
+                        forward.push((pieces.len(), t));
+                        vec![OP_GOTO, 0, 0]
+                    }
+                },
+            };
         } else if cmd.code == SHOW_INN {
             piece = compile_inn(ctx, cmd, length)?;
         } else if cmd.code == CONTROL_SWITCHES
@@ -1161,6 +1262,9 @@ fn page(
     }
     if !stack.is_empty() || !choices.is_empty() || !battles.is_empty() {
         return cannot();
+    }
+    for (at, t) in forward {
+        patch(&mut pieces, Open::End(at), label_at[&t])?;
     }
     // What was noted from the `PlayBGM`s counts only if the page compiles:
     // one that does not, does not run, and says nothing about how the map is
@@ -4613,6 +4717,194 @@ mod tests {
         let at = branch.len() - 1;
         branch.insert(at, Command::new(SHOW_CHOICE_OPTION, 0, "", vec![4]));
         assert_eq!(on_a_map(&branch), None);
+    }
+
+    fn label(n: i32, indent: i32) -> Command {
+        Command::new(LABEL, indent, "", vec![n])
+    }
+
+    fn jump(n: i32, indent: i32) -> Command {
+        Command::new(JUMP_TO_LABEL, indent, "", vec![n])
+    }
+
+    /// Switch 1 on, at this indentation: two bytes of something that is
+    /// not a jump.
+    fn switch_on(indent: i32) -> Command {
+        Command::new(CONTROL_SWITCHES, indent, "", vec![0, 1, 1, 0])
+    }
+
+    fn branch(code: i32, indent: i32) -> Command {
+        let parameters = if code == COND_BRANCH {
+            vec![0, 1, 0, 0, 0, 0]
+        } else {
+            vec![]
+        };
+        Command::new(code, indent, "", parameters)
+    }
+
+    /// Where each `OP_GOTO` of the code goes, in order.
+    fn gotos(code: &[u8]) -> Vec<usize> {
+        let mut out = vec![];
+        let mut at = 0;
+        while at < code.len() {
+            if code[at] == OP_GOTO {
+                out.push(u16::from_le_bytes([code[at + 1], code[at + 2]]) as usize);
+            }
+            at += instruction_size(code, at);
+        }
+        out
+    }
+
+    #[test]
+    fn a_jump_forward_lands_on_its_label() {
+        let code = on_a_map(&[jump(1, 0), switch_on(0), label(1, 0), switch_on(0)]).unwrap();
+        let on = on_a_map(&[switch_on(0)]).unwrap().len() - 1;
+        assert_eq!(code[0], OP_GOTO);
+        assert_eq!(gotos(&code), [3 + on]);
+        assert_eq!(code.len(), 3 + 2 * on + 1);
+    }
+
+    #[test]
+    fn a_jump_back_lands_on_its_label() {
+        let code = on_a_map(&[switch_on(0), label(1, 0), switch_on(0), jump(1, 0)]).unwrap();
+        let on = on_a_map(&[switch_on(0)]).unwrap().len() - 1;
+        assert_eq!(gotos(&code), [on]);
+    }
+
+    #[test]
+    fn a_jump_out_of_a_branch_lands_past_its_end() {
+        // The maps 332 to 339: from inside two branches to after them.
+        let code = on_a_map(&[
+            branch(COND_BRANCH, 0),
+            branch(COND_BRANCH, 1),
+            jump(1, 2),
+            branch(COND_END, 1),
+            branch(COND_END, 0),
+            label(1, 0),
+            switch_on(0),
+        ])
+        .unwrap();
+        let end = code.len() - 1 - (on_a_map(&[switch_on(0)]).unwrap().len() - 1);
+        assert_eq!(gotos(&code), [end]);
+    }
+
+    #[test]
+    fn the_first_label_with_the_number_wins_wherever_it_is() {
+        // Two labels 1, one before the jump and one after it, and one deeper:
+        // RM2k searches from the top and looks only at the number.
+        let code = on_a_map(&[
+            switch_on(0),
+            label(1, 0),
+            jump(1, 0),
+            label(1, 0),
+            switch_on(0),
+        ])
+        .unwrap();
+        let on = on_a_map(&[switch_on(0)]).unwrap().len() - 1;
+        assert_eq!(gotos(&code), [on]);
+    }
+
+    #[test]
+    fn a_jump_to_a_label_the_page_does_not_have_does_nothing() {
+        let code = on_a_map(&[jump(7, 0), switch_on(0)]).unwrap();
+        assert_eq!(code, on_a_map(&[switch_on(0)]).unwrap());
+    }
+
+    #[test]
+    fn a_jump_into_the_last_body_of_a_block_compiles() {
+        // Into the `else`, as common event 39 does: after the body comes the
+        // `EndBranch`, which does nothing in RM2k either.
+        let page = [
+            jump(1, 0),
+            branch(COND_BRANCH, 0),
+            switch_on(1),
+            branch(COND_ELSE, 0),
+            label(1, 1),
+            switch_on(1),
+            branch(COND_END, 0),
+        ];
+        let code = on_a_map(&page).unwrap();
+        // The jump, the branch, its body and the `else`'s jump: the label
+        // is after them.
+        let goto = gotos(&code);
+        assert_eq!(goto.len(), 2);
+        assert_eq!(
+            goto[0],
+            goto[1] - (on_a_map(&[switch_on(0)]).unwrap().len() - 1)
+        );
+        // And into a branch without `else`.
+        let code = on_a_map(&[
+            jump(1, 0),
+            branch(COND_BRANCH, 0),
+            label(1, 1),
+            switch_on(1),
+            branch(COND_END, 0),
+        ]);
+        assert!(code.is_some());
+    }
+
+    #[test]
+    fn a_jump_into_a_body_that_is_not_the_last_does_not_compile() {
+        // Into the true body of a branch with `else`: in RM2k, whether the
+        // `else` runs after it depends on what the last branch at that
+        // indentation left in the sub-index.
+        assert_eq!(
+            on_a_map(&[
+                jump(1, 0),
+                branch(COND_BRANCH, 0),
+                label(1, 1),
+                switch_on(1),
+                branch(COND_ELSE, 0),
+                switch_on(1),
+                branch(COND_END, 0),
+            ]),
+            None
+        );
+        // From the `else` to the true body of the same branch, too.
+        assert_eq!(
+            on_a_map(&[
+                branch(COND_BRANCH, 0),
+                label(1, 1),
+                switch_on(1),
+                branch(COND_ELSE, 0),
+                jump(1, 1),
+                branch(COND_END, 0),
+            ]),
+            None
+        );
+        // And into a choice's first option.
+        let mut choice = vec![jump(1, 0), cmd(SHOW_CHOICE, &[0], "A/B")];
+        for (n, text) in ["A", "B"].iter().enumerate() {
+            choice.push(Command::new(SHOW_CHOICE_OPTION, 0, text, vec![n as i32]));
+            if n == 0 {
+                choice.push(label(1, 1));
+            }
+            choice.push(Command::new(END, 1, "", vec![]));
+        }
+        choice.push(cmd(SHOW_CHOICE_END, &[], ""));
+        assert_eq!(on_a_map(&choice), None);
+        // Into the last one it does.
+        let last = choice.iter().rposition(|c| c.code == SHOW_CHOICE_OPTION).unwrap();
+        let first = choice.iter().position(|c| c.code == LABEL).unwrap();
+        let moved = choice.remove(first);
+        choice.insert(last, moved);
+        assert!(on_a_map(&choice).is_some());
+    }
+
+    #[test]
+    fn a_jump_inside_the_same_body_needs_nothing_else() {
+        // Both inside the true body of a branch with `else`: the label is in
+        // a body that is not the last, but the jump is in it too.
+        let code = on_a_map(&[
+            branch(COND_BRANCH, 0),
+            label(1, 1),
+            switch_on(1),
+            jump(1, 1),
+            branch(COND_ELSE, 0),
+            branch(COND_END, 0),
+        ])
+        .unwrap();
+        assert_eq!(gotos(&code)[0], 7);
     }
 
     /// Variable 143 in slot 3, as the door of Drust Camp needs it.
