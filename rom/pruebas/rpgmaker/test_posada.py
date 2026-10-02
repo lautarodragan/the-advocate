@@ -141,38 +141,17 @@ def test_con_no_no_pasa_nada(partida):
 
 # --- lo que el compilador emite -------------------------------------------
 
-def _palabra(codigo, i):
-    return codigo[i] | codigo[i + 1] << 8
+def test_la_pagina_del_bum_compila():
+    """La página del bum compila, que es lo que no pasaba el 2026-09-19.
 
-
-def test_la_pagina_del_bum_compila_y_trae_los_opcodes_de_la_posada():
-    """El bloque entero, byte por byte, que es lo único que dice si los
-    destinos de la elección y de la rama caen donde tienen que caer.
-
-    Los destinos son absolutos dentro de la página, así que el bloque no se
-    puede leer aparte: el `OP_MESSAGE` del bum que va delante lo corre tres
-    bytes, y ésos son los tres que una implementación que contara desde cero
-    se equivocaría.
-
-    Los textos son de la página, compilada sola: el del bum en el 0, el
-    saludo y las dos cajas de la elección detrás, en ese orden. La posada
-    gratis, que es sólo la cura, la mira la prueba del compilador,
-    `a_free_inn_is_only_the_heal`.
+    Qué compila, byte por byte —los destinos de la elección y de la rama,
+    que son absolutos dentro de la página y por eso los corre el mensaje
+    del bum que va delante—, es del compilador desde el 2026-10-02:
+    `an_inn_with_a_price_is_its_greeting_a_choice_and_a_gold_branch`, en
+    `compile.rs` de `rm2k-snes-events`, con la misma forma que esta página:
+    un mensaje y la posada a 5. La posada gratis, que es sólo la cura, es
+    `a_free_inn_is_only_the_heal`, al lado. Las de arriba miran que la ROM
+    haga lo que esos bytes dicen.
     """
     from datos import pagina_de
-    import events
-    codigo = pagina_de(20, 4, 0)
-    assert codigo is not None, "la página del bum no compila"
-    saludo, si, no = (_palabra(codigo, 4), _palabra(codigo, 9),
-                      _palabra(codigo, 13))
-    assert 0 < saludo < si < no, (saludo, si, no)
-    assert codigo == bytes(
-        [events.OP_MESSAGE, 0, 0]                      # el texto del bum
-        + [events.OP_MESSAGE, saludo & 0xFF, saludo >> 8]
-        + [events.OP_CHOICE, 2, 2]                     # cancelar es "No"
-        + [si & 0xFF, si >> 8, 17, 0]                   # "Yes" -> la rama
-        + [no & 0xFF, no >> 8, 33, 0]                   # "No"  -> el final
-        + [events.OP_IF, events.COND_GOLD, PRECIO, 0, 0, 33, 0]
-        + [events.OP_GOLD, 1, PRECIO, 0, 0]
-        + [events.OP_HEAL, 0, 0, 0]
-        + [events.OP_DONE]), codigo.hex(" ")
+    assert pagina_de(20, 4, 0) is not None, "la página del bum no compila"

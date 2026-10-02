@@ -28,8 +28,6 @@ página sigue. Sin él, un reinicio por cualquier otra causa —una pelea que
 cuelgue, una pila que se desborde— pasaría por verde.
 """
 
-import events
-
 from batalla import (TITULO_QUIETO, VOLVER_TOPE, con_encuentros,
                      cuadros_hasta_el_game_over, cuadros_hasta_volver,
                      pasar_el_titulo,
@@ -95,26 +93,13 @@ def test_las_tres_paginas_del_jefe_compilan():
             "la página %d del jefe de los Rat Tracks no compila" % numero)
 
 
-def test_la_derrota_del_jefe_apunta_al_game_over():
-    """Y el destino que se emite es `BATTLE_LOSE`, no el comando siguiente.
-
-    Es lo que separa "el jefe aparece" de "el jefe aparece y perder no pasa
-    nada": sin esto la página seguiría como si hubiera ganado, que es
-    exactamente la clase de mentira que el `raise` estaba evitando.
-    """
-    codigo = pagina_del_jefe(0)
-    peleas = [i for i, b in enumerate(codigo) if b == events.OP_BATTLE]
-    # El opcode puede aparecer como operando de otro comando, así que se busca
-    # el que además lleva la tropa que el LDB dice.
-    for i in peleas:
-        if codigo[i + 1] | (codigo[i + 2] << 8) != 97:
-            continue
-        derrota = codigo[i + 7] | (codigo[i + 8] << 8)
-        assert derrota == events.BATTLE_LOSE, (
-            "la derrota de la pelea del jefe va a %d y tendría que ser el "
-            "Game Over" % derrota)
-        return
-    raise AssertionError("la página del jefe no emite ninguna pelea")
+# Que la derrota de una pelea sin manejadores se emita como `BATTLE_LOSE` y
+# no como el comando siguiente —lo que separa "el jefe aparece" de "el jefe
+# aparece y perder no pasa nada"— es del compilador desde el 2026-10-02:
+# `escaping_with_escape_mode_1_ends_the_page`, en `compile.rs` de
+# `rm2k-snes-events`, con la forma de las del jefe, `escape_mode` y
+# `defeat_mode` en 0. Hasta ese día se miraba acá, buscando el opcode de la
+# pelea en el bytecode de la página del jefe.
 
 
 # --- y lo que la consola hace con eso --------------------------------------

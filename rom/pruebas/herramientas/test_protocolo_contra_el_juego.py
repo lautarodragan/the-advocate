@@ -1,18 +1,22 @@
 """El bytecode de los eventos, contra lo que sólo tiene el juego: los
-cartuchos armados y las páginas de los 328 mapas; y el módulo de Python con
-el que las pruebas leen el bytecode, que es de ellas.
+cartuchos armados y las páginas de los 328 mapas.
 
 Lo que no necesita ni una cosa ni la otra —que los generados de las
 herramientas estén al día, que las dos puntas digan los mismos números, los
 largos del layout— son pruebas de las herramientas, y viven con ellas.
+
+**Ninguna sabe los números del bytecode.** Hasta el 2026-10-02 las pruebas
+tenían su módulo de Python con los opcodes, generado de la declaración; se
+fue cuando la última que lo leía dejó de hacerlo, para que el bytecode sea
+del motor y no de las pruebas del juego. Lo que una prueba necesita del
+bytecode se lo pregunta a la ROM armada —sus símbolos— o es una prueba del
+compilador, en Rust.
 """
 
 import os
-import subprocess
 
 import pytest
 
-import event_opcodes
 import conversor
 import events
 import lcf
@@ -23,36 +27,23 @@ import datos
 import tanda
 
 
-def declarados(modulo):
-    return {n: v for n, v in vars(modulo).items()
-            if n.startswith("OP_") and isinstance(v, int)}
-
-
-def test_el_modulo_de_los_opcodes_esta_al_dia():
-    """`arnes/event_opcodes.py` sale de la declaración de las herramientas,
-    `snes/protocol/events.toml`, con `protocol`; está commiteado, como los
-    demás generados, y esto es lo que lo cuida. Se regenera con
-
-        protocol <la declaración, snes/protocol/events.toml> --python arnes/event_opcodes.py
-
-    Hasta el 2026-10-02 lo generaba la receta `protocol` de las
-    herramientas, cuando lo leía el conversor; desde que el conversor es de
-    Rust lo leen sólo estas pruebas."""
-    declaracion = os.path.join(os.path.dirname(cartuchos.runtime()), "snes",
-                               "protocol", "events.toml")
-    hecho = subprocess.run(
-        ["protocol", declaracion, "--check", "--python", event_opcodes.__file__],
-        capture_output=True, text=True)
-    assert hecho.returncode == 0, (
-        "arnes/event_opcodes.py no es lo que da la declaración:\n%s%s"
-        % (hecho.stdout, hecho.stderr))
-
-
 def desde_la_rom(datos, direccion):
     """Dónde cae `direccion` en el archivo, sea del banco que sea o de su
     espejo rápido (`$80xxxx`): el código va en los dos —ver `en_la_rom` en
     `arnes/consola.py`—, y esto es sólo para código."""
     return ((direccion >> 16) & 0x7F) << 16 | 0x400000 | (direccion & 0xFFFF)
+
+
+def de_eventos(simbolos):
+    """{número: manejador} de los opcodes de eventos, leídos de los símbolos
+    del cartucho: el `.inc` de la declaración define cada número con el
+    nombre del opcode, y su manejador es un `.proc` con el mismo nombre en
+    minúsculas. Los del stream de música caen en el mismo espacio de
+    símbolos pero no tienen manejador, así que no entran."""
+    tabla = simbolos.tabla
+    return {int(v): n.lower() for n, v in tabla.items()
+            if n.isupper() and n.lower() in tabla
+            and n.lower().startswith("op_")}
 
 
 @pytest.mark.parametrize("nombre", sorted(cartuchos.nombres()))
@@ -71,11 +62,14 @@ def test_la_entrada_k_de_la_tabla_salta_al_manejador_del_opcode_k(nombre):
         datos = archivo.read()
     tabla = uno.simbolos["opcode_handlers"]
     banco = uno.simbolos["run_code"] >> 16
-    codigos = {v: n for n, v in declarados(event_opcodes).items()}
+    codigos = de_eventos(uno.simbolos)
+    assert codigos, (
+        "los símbolos del cartucho no traen ningún opcode con manejador: la "
+        "prueba ya no mira lo que dice")
     assert sorted(codigos) == list(range(len(codigos))), (
         "los números de events.toml tienen huecos: la tabla no puede ser")
     for k in sorted(codigos):
-        manejador = codigos[k].lower()
+        manejador = codigos[k]
         direccion = uno.simbolos[manejador]
         en = desde_la_rom(datos, tabla + 2 * k)
         entrada = datos[en] | datos[en + 1] << 8
@@ -94,9 +88,13 @@ def test_la_entrada_k_de_la_tabla_salta_al_manejador_del_opcode_k(nombre):
 # cuenten los mismos bytes**. Si no coinciden, el intérprete lee el bytecode
 # corrido y eso no da ningún error: da una página que hace cualquier cosa. Por eso
 # no se mira sólo el teletransporte sino **todos los opcodes de todas
-# las páginas del juego**: recorre el bytecode con los largos de
-# `OPCODE_SIZE` y exige caer justo en el final. Un opcode al que el emisor le
-# ponga un byte de más o de menos se cae ahí, sea cual sea.
+# las páginas del juego**.
+#
+# Desde el 2026-10-02 el recorrido lo hace el compilador, sobre cada página
+# que emite —`whole_instructions`, en `compile.rs` de `rm2k-snes-events`—, y
+# una que no cae justo en su final para la conversión. Hasta ese día lo
+# hacía esta prueba, en Python, con los largos del módulo generado. Lo que
+# queda acá es que el juego entero pase por ahí.
 
 
 def paginas_del_juego():
@@ -124,17 +122,8 @@ def paginas_del_juego():
 
 @pytest.mark.skipif(not os.path.isdir(GAME_DIR),
                     reason="hace falta el juego original en GAME_DIR")
-def test_los_largos_de_opcode_cuadran_en_todo_el_juego():
-    cuantas = 0
-    for nombre, evento, numero, codigo in paginas_del_juego():
-        cuantas += 1
-        i = 0
-        while i < len(codigo):
-            i += events.opcode_size(codigo, i)
-        assert i == len(codigo), (
-            "%s evento %d página %d: el recorrido por OPCODE_SIZE termina "
-            "en %d y la página mide %d" % (nombre, evento, numero, i,
-                                           len(codigo)))
+def test_todas_las_paginas_del_juego_pasan_por_el_recorrido():
+    cuantas = sum(1 for _ in paginas_del_juego())
     # Que no pase por vacío: si `paginas_del_juego` dejara de devolver nada,
-    # este test sería verde sin haber mirado ni un byte.
+    # este test sería verde sin que el compilador hubiera recorrido nada.
     assert cuantas > 3000

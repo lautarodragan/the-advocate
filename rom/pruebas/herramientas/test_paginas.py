@@ -133,58 +133,15 @@ def test_el_tram_officer_compila_con_las_variables():
     game_map = lcf.Map(os.path.join(GAME_DIR, "Map0009.lmu"))
     oficial = [e for e in game_map.events if e.name == "Tram Officer"][0]
     assert {17, 21, 39, 40, 41, 42} <= set(ranuras_del_juego())
-    codigo = pagina_de(9, oficial.id, 0)
-    assert codigo is not None and events.OP_VAR in codigo \
-        and events.OP_IF_VAR in codigo
+    assert pagina_de(9, oficial.id, 0) is not None
 
 
-def _escritura_de_la_123(comandos, desde):
-    """Compila `comandos` como una página del mapa `desde` y devuelve el byte
-    de la operación del `OP_VAR` que escribe la variable 123, que es el que
-    lleva el bit del refresco."""
-    codigo = conversor.pagina_suelta(desde, comandos, mapas=[desde, 133])
-    assert codigo is not None, "la página no compila"
-    operaciones = [c[i + 2] for i, c in events.walk_code(codigo)
-                   if c[i] == events.OP_VAR]
-    assert len(operaciones) == 1
-    return operaciones[0]
-
-
-def _comandos(*crudos):
-    return [lcf.EventCommand(codigo, 0, "", list(p)) for codigo, p in crudos]
-
-
-PONER_123_EN_8 = (events.CONTROL_VARS, (0, 123, 123, 0, 0, 8, 0))
-
-
-def test_la_escritura_despues_de_saltar_a_otro_mapa_pide_refresco():
-    """Una página que salta a otro mapa sigue corriendo allá, así que lo que
-    escribe después lo miran las páginas **del destino**. El refresco se
-    decide al compilar, con las variables que miran las páginas del mapa de la
-    página, y el mapa de la página ya no es donde corre: la escritura tiene
-    que pedirlo siempre, que es lo que se hace cuando no se sabe quién mira.
-
-    Es el cofre del mapa 133 —su primera página pide la variable 123 >= 8—
-    que en la medición del 9e no aparecía después de un `Teleport` desde el
-    mapa 6 aunque la variable ya valía 8: el 6 no mira la 123.
-    """
-    operacion = _escritura_de_la_123(_comandos(
-        (events.TELEPORT, (133, 4, 7)), PONER_123_EN_8), desde=6)
-    assert operacion & events.VAR_REFRESH, \
-        "después de saltar al 133 la escritura a la 123 no pide refresco"
-
-
-def test_sin_saltar_la_escritura_mira_las_variables_del_mapa():
-    """El control del anterior: en el mapa 6, que no mira la 123, escribirla
-    no pide refresco; en el 133, que sí, lo pide. Y un salto **al mismo**
-    mapa no cambia quién mira."""
-    assert not _escritura_de_la_123(_comandos(PONER_123_EN_8), desde=6) \
-        & events.VAR_REFRESH
-    assert _escritura_de_la_123(_comandos(PONER_123_EN_8), desde=133) \
-        & events.VAR_REFRESH
-    assert not _escritura_de_la_123(_comandos(
-        (events.TELEPORT, (6, 22, 12)), PONER_123_EN_8), desde=6) \
-        & events.VAR_REFRESH
+# El refresco que pide cada escritura —el del cofre del mapa 133, que no
+# aparecía después de un `Teleport` desde el 6 aunque la variable ya valía
+# 8— lo miran desde el 2026-10-02 las pruebas del compilador:
+# `a_write_after_jumping_to_another_map_asks_for_the_refresh` y su control,
+# en `compile.rs` de `rm2k-snes-events`. Leían el bytecode, y el bytecode es
+# del compilador.
 
 
 def test_la_ruta_propia_apunta_al_bloque_que_recibe():
@@ -222,100 +179,7 @@ def test_la_ruta_propia_apunta_al_bloque_que_recibe():
         % sorted(nombrados))
 
 
-# "¿Está el héroe en la celda de las variables 34 y 35?", como lo escriben las
-# páginas paralelas de RM2k: la y y la x del héroe a la 36 y la 37, y dos
-# ramas anidadas que las comparan con la 34 y la 35. Es la forma de los
-# cuarenta autos de cada vuelta de la carrera, con el héroe de blanco.
-def _celda(*cuerpo):
-    comandos = [
-        lcf.EventCommand(events.CONTROL_VARS, 0, "",
-                         [0, 36, 36, events.VAR_SET, events.VAR_CHARACTER,
-                          events.ROUTE_HERO, events.CHARACTER_Y]),
-        lcf.EventCommand(events.CONTROL_VARS, 0, "",
-                         [0, 37, 37, events.VAR_SET, events.VAR_CHARACTER,
-                          events.ROUTE_HERO, events.CHARACTER_X]),
-        lcf.EventCommand(events.COND_BRANCH, 0, "",
-                         [events.COND_VARIABLE, 36, 1, 34, events.CMP_EQUAL,
-                          1]),
-        lcf.EventCommand(events.COND_BRANCH, 1, "",
-                         [events.COND_VARIABLE, 37, 1, 35, events.CMP_EQUAL,
-                          1]),
-    ]
-    return comandos + [lcf.EventCommand(c, i, "", list(p))
-                       for c, i, p in cuerpo]
-
-
-PRENDER_172 = (events.CONTROL_SWITCHES, 2, (0, 172, 172, 0))
-
-
-def _compilar_celda(comandos):
-    codigo = conversor.pagina_suelta(49, comandos)
-    assert codigo is not None, "la página no compila"
-    return codigo
-
-
-def _palabra(codigo, i):
-    return codigo[i] | codigo[i + 1] << 8
-
-
-def test_las_cuatro_de_la_celda_van_en_un_opcode():
-    """Las dos escrituras y las dos ramas salen en un solo `OP_CELL_TEST`,
-    con lo mismo que llevarían sueltas: el blanco, las cuatro variables como
-    desplazamientos —la ranura por dos—, cuál coordenada va a cada una y los
-    dos destinos, que sin `else` son los dos el final de su rama."""
-    codigo = _compilar_celda(_celda(
-        PRENDER_172,
-        (events.COND_END, 1, ()),
-        (events.COND_END, 0, ())))
-    ops = [c[i] for i, c in events.walk_code(codigo)]
-    assert ops == [events.OP_CELL_TEST, events.OP_SWITCH, events.OP_DONE]
-    r = ranuras_del_juego().get
-    assert codigo[1] == 0, "el blanco es el héroe"
-    assert _palabra(codigo, 2) & ~events.CELL_REFRESH \
-        == r(36) * 2 | events.CELL_Y
-    assert _palabra(codigo, 4) & ~events.CELL_REFRESH == r(37) * 2
-    assert (_palabra(codigo, 6), _palabra(codigo, 8)) == (r(36) * 2, r(34) * 2)
-    assert (_palabra(codigo, 12), _palabra(codigo, 14)) \
-        == (r(37) * 2, r(35) * 2)
-    fin = len(codigo) - 1                     # el OP_DONE
-    assert _palabra(codigo, events.CELL_DEST_A) == fin
-    assert _palabra(codigo, events.CELL_DEST_B) == fin
-
-
-def test_el_else_de_la_rama_de_adentro_sale_de_su_destino():
-    """Con un `else` en la rama de adentro, su destino es el cuerpo del
-    `else` —después del `OP_GOTO` que saca a la de arriba—, y el de la de
-    afuera sigue siendo su final. Es el mismo parche que el de una rama
-    suelta, sobre el segundo destino del opcode."""
-    codigo = _compilar_celda(_celda(
-        PRENDER_172,
-        (events.COND_ELSE, 1, ()),
-        (events.CONTROL_SWITCHES, 2, (0, 173, 173, 0)),
-        (events.COND_END, 1, ()),
-        (events.COND_END, 0, ())))
-    ops = [(i, c[i]) for i, c in events.walk_code(codigo)]
-    assert [o for _, o in ops] == [
-        events.OP_CELL_TEST, events.OP_SWITCH, events.OP_GOTO,
-        events.OP_SWITCH, events.OP_DONE]
-    goto, sino, fin = ops[2][0], ops[3][0], ops[4][0]
-    assert _palabra(codigo, events.CELL_DEST_B) == sino
-    assert _palabra(codigo, goto + 1) == fin
-    assert _palabra(codigo, events.CELL_DEST_A) == fin
-
-
-def test_sin_la_forma_exacta_no_se_funde():
-    """Una comparación que no es por igualdad, o una rama que no es lo
-    primero adentro de la otra, va como antes: cuatro opcodes sueltos."""
-    distinta = _celda(PRENDER_172, (events.COND_END, 1, ()),
-                      (events.COND_END, 0, ()))
-    distinta[3].parameters[4] = events.CMP_GREATER_EQUAL
-    ops = [c[i] for i, c in events.walk_code(_compilar_celda(distinta))]
-    assert events.OP_CELL_TEST not in ops
-    assert ops[:4] == [events.OP_VAR, events.OP_VAR, events.OP_IF_VAR,
-                       events.OP_IF_VAR]
-
-    afuera = _celda(PRENDER_172, (events.COND_END, 1, ()),
-                    (events.COND_END, 0, ()))
-    afuera[3].indent = 0                      # la segunda, al lado de la otra
-    ops = [c[i] for i, c in events.walk_code(_compilar_celda(afuera))]
-    assert events.OP_CELL_TEST not in ops
+# "¿Está el héroe en la celda de las variables 34 y 35?", las dos
+# escrituras y las dos ramas fundidas en un opcode: también son del
+# compilador desde el 2026-10-02, `the_four_of_the_cell_go_in_one_opcode` y
+# sus dos vecinas en `compile.rs`.

@@ -40,12 +40,13 @@ import os
 import engine
 
 
-# The opcodes' numbers, lengths and layout. **They are not declared here**:
-# they come from `snes/protocol/events.toml`, which belongs to both sides —this
-# one and the interpreter in runtime/interpreter*.s— and to neither. See
-# snes/protocol/README.md.
-from event_opcodes import *   # noqa: F401,F403
-from event_opcodes import OPCODE_SIZE, opcode_size  # noqa: F401
+# The opcodes' numbers, lengths and layout are not here either, and no test
+# of the game reads them: they are the engine's, declared in
+# `snes/protocol/events.toml`. Until 2026-10-02 this module re-exported a
+# Python module generated from that declaration, and the tests that read
+# the bytecode with it became tests of the compiler, in
+# `rm2k-snes-events`. The opcodes named in the notes below are names, for
+# the reader.
 
 CONTROL_SWITCHES = 10210
 TELEPORT = 10810
@@ -1301,22 +1302,11 @@ def named_backdrops(game_dir):
     return names
 
 
-# Where the two destinations go inside `OP_CELL_TEST`: see events.toml.
-CELL_DEST_A = 10
-CELL_DEST_B = 16
 # The top two bits of each `OP_CELL_TEST` write, over the variable's offset:
 # y instead of x, and the refresh. See `cell_test` in
 # runtime/interpreter_cells.s.
 # CELL_Y (engine.rs).
 # CELL_REFRESH (engine.rs).
-
-
-# How much each opcode takes is derived from its declared arguments, so
-# `OPCODE_SIZE` and `opcode_size` come from `opcodes.py`, generated from
-# `snes/protocol/events.toml`. They used to be written by hand, and there
-# were two copies —one here and another in the converter—: this one kept the
-# old OP_ROUTE when the new one added the frequency, and that was twelve
-# suite cases in red.
 
 
 # The screen shake, easyrpg's `Shake::NextPosition`:
@@ -1332,14 +1322,6 @@ CELL_DEST_B = 16
 # 256-byte table at scale 127 and the division is integer, so the ROM may
 # differ from RPG_RT by one pixel on some frame. The emission writes the table
 # to mapdata.inc: SHAKE_SINE, `shake_sine` in engine.rs.
-
-
-def walk_code(code):
-    """(offset, code) of each opcode of an already compiled page."""
-    i = 0
-    while i < len(code):
-        yield i, code
-        i += opcode_size(code, i)
 
 
 # The switch with which the test page turns itself off: the last one of the

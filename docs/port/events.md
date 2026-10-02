@@ -18,9 +18,10 @@ y sigue hablando, y cada caso de la tanda— se lleva su bytecode a
 página son relativos a donde empieza, así que mudarla es mover un puntero.
 
 De `tools/snes/protocol/events.toml` salen generados
-`tools/rm2k-snes/events/src/opcodes.rs` y `tools/runtime/event_opcodes.inc` —y
-el módulo de Python con que las pruebas leen el bytecode,
-`rom/pruebas/arnes/event_opcodes.py`—; ver
+`tools/rm2k-snes/events/src/opcodes.rs` y `tools/runtime/event_opcodes.inc`
+—hasta el 2026-10-02 también un módulo de Python con que las pruebas de ABL
+leían el bytecode; desde ese día ninguna lo lee, y lo cuida
+`test_lado_de_abl.py`—; ver
 `tools/snes/protocol/README.md`, que está en inglés porque ahí adentro no se sabe
 nada de este juego. El compilador está en inglés por lo mismo, y su README dice
 qué recibe y qué contesta; el conversor, `rm2k-snes-convert`, lo llama dos
