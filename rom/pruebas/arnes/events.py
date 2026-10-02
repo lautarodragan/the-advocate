@@ -42,7 +42,7 @@ import engine
 
 # The opcodes' numbers, lengths and layout are not here either, and no test
 # of the game reads them: they are the engine's, declared in
-# `snes/protocol/events.toml`. Until 2026-10-02 this module re-exported a
+# `rm2k-snes-bytecode`. Until 2026-10-02 this module re-exported a
 # Python module generated from that declaration, and the tests that read
 # the bytecode with it became tests of the compiler, in
 # `rm2k-snes-events`. The opcodes named in the notes below are names, for

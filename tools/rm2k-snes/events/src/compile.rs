@@ -277,7 +277,8 @@ const CHOICE_INDENT: &str = " ";
 /// variable, saturating —see `number_value` in tools/runtime/number_input.s—,
 /// and its line is a cursor column and a digit per digit: twelve letters.
 const NUMBER_DIGITS_MAX: i64 = 6;
-// Where the two destinations go inside `OP_CELL_TEST` —see events.toml—, and
+// Where the two destinations go inside `OP_CELL_TEST` —see its declaration
+// in rm2k-snes-bytecode—, and
 // the top two bits of each write, over the variable's offset: y instead of
 // x, and the refresh. See `cell_test` in tools/runtime/interpreter_cells.s.
 const CELL_DEST_A: usize = 10;
@@ -2821,7 +2822,7 @@ pub fn instruction_size(code: &[u8], at: usize) -> usize {
 ///
 /// What it catches is the emitter and the interpreter counting different
 /// bytes for one opcode: each piece is written by hand, and the
-/// interpreter advances by what `events.toml` declares. If they disagree
+/// interpreter advances by what `rm2k-snes-bytecode` declares. If they disagree
 /// the ROM reads the bytecode shifted, and that is no error: it is a page
 /// that does anything. So every page is checked as it comes out, the
 /// game's included —until 2026-10-02 it was a test of the game's that
@@ -2937,7 +2938,7 @@ pub fn with_variables(lines: &[String], indices: &Indices) -> Step<Vec<String>> 
 ///
 /// One opcode per command, with the operands already resolved: the ROM does
 /// not look at the LCF again nor knows its numbers. **The numbers and
-/// layouts are in `tools/snes/protocol/events.toml`**, not here: what each
+/// layouts are in `rm2k-snes-bytecode`**, not here: what each
 /// arm says is what there is to know about each one that a declaration
 /// cannot say.
 pub fn compile_command(

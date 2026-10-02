@@ -28,9 +28,6 @@ in English and without a single mention of this game (see AGENTS.md). They
 have layers of their own, one folder each:
 
     snes/        the console's formats, knowing nothing of RPG Maker
-      protocol/  declares a bytecode and generates the constants for both
-                 sides; generic, but its constants are for the 65816
-                 assembler
       adeleine/  Adeleine: which colors a picture loses and how the ones
                  left are grouped into palettes
       gunter/    Gunter: BRR codec and SoundFont reader
@@ -55,6 +52,11 @@ have layers of their own, one folder each:
     rm2k-snes/   what joins the two: an RPG Maker game made into a cartridge
       project/   `rm2k-project`, the library: which game, its settings, the
                  machine's flags and the disk cache's key
+      bytecode/  `rm2k-snes-bytecode`, the library that declares the two
+                 bytecodes a cartridge reads —the events one and the music
+                 stream—, once: the Rust side takes its constants with a
+                 `use`, and `rm2k-snes-assemble` writes the 65816 side's
+                 equates at every build
       cartridge/ `rm2k-snes-cartridges`, `rm2k-snes-assemble` and
                  `rm2k-snes-space`: which cartridges there are and building
                  them, the bank packing, ca65 + ld65, and the space left
@@ -126,7 +128,7 @@ depending on it, by reading its files, it also fails if anything in
 They are one Cargo workspace, `Cargo.toml` here: one `Cargo.lock` and one
 `target/`, so what they share is compiled once and at one version. The
 build profiles are the workspace's too, because Cargo ignores a member's;
-`ditto` and `protocol` keep optimizing for size there. They are still
+`ditto` keeps optimizing for size there. They are still
 separate projects, installed and tested one by one:
 
     just -f tools/justfile install lz2    one, with `cargo install --locked

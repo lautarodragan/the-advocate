@@ -46,8 +46,8 @@ lto = true
 codegen-units = 1
 strip = true
 
-# Ditto and protocol optimized for size. Their `panic = "abort"` did not come
-# along: Cargo does not allow `panic` per package, and unwinding changes how
-# big the binaries are, not what they do.
+# Ditto optimized for size. Its `panic = "abort"` did not come along: Cargo
+# does not allow `panic` per package, and unwinding changes how big the
+# binaries are, not what they do.
 [profile.release.package.ditto]
 opt-level = "z"

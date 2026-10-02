@@ -218,11 +218,13 @@ const SHORT_WAIT: i64 = 32;
 pub fn check_families() -> std::result::Result<(), String> {
     for (k, (family, first)) in FAMILIES.iter().enumerate() {
         if *first as usize != 8 * k {
-            return Err(format!("music.toml: OP_{family}_V0 is not where the family expects it"));
+            return Err(format!(
+                "the music bytecode: OP_{family}_V0 is not where the family expects it"
+            ));
         }
     }
     if OP_WAIT_1 as usize != 8 * FAMILIES.len() || OP_WAIT_32 as i64 != OP_WAIT_1 as i64 + SHORT_WAIT - 1 {
-        return Err("music.toml: the short waits are not after the families".into());
+        return Err("the music bytecode: the short waits are not after the families".into());
     }
     Ok(())
 }

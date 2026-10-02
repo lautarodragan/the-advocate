@@ -11,10 +11,10 @@
 # default, is better.
 cargo_root := env_var_or_default("CARGO_ROOT", "/usr/local")
 
-# A worktree's tools, used by the recipes in this file: `protocol` and
-# `test` run the worktree's `protocol` if the agent is modifying it and
-# installed it here, with `just install-local
-# <this directory>/.local-tools protocol`. Each game puts its own wherever
+# A worktree's tools, used by the recipes in this file: they run the
+# worktree's if the agent is modifying one and installed it here, with
+# `just install-local <this directory>/.local-tools <project>`. Each game
+# puts its own wherever
 # it wants and tells `install-local` where: this file does not know where
 # any of them lives.
 local_tools := justfile_directory() / ".local-tools"

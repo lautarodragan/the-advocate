@@ -37,7 +37,7 @@ tiene el plan de seis pasos y las preguntas con sus opciones.
   de llamar a `ca65`. La idea de taro es que un `pacman -S` alcance, sin git
   ni descargas.
   - **No se versiona aparte:** el conversor y el motor comparten un contrato
-    (el formato de los `.inc` y los opcodes de `tools/snes/protocol/`), así que un
+    (el formato de los `.inc` y los opcodes de `rm2k-snes-bytecode`), así que un
     motor viejo necesita también el conversor de su época.
   - **El juego declara con qué versión de la suite se arma**, en su archivo de
     proyecto (el del paso 3), y las herramientas se niegan a armar con otra.

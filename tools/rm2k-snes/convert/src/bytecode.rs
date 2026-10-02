@@ -1,7 +1,7 @@
 //! Walking a page already compiled, without running it: what the converter
 //! asks of the bytecode —which events a page sends walking, who it flashes,
 //! which battle animations and troops it shows—. The sizes come from the
-//! protocol's declaration, through the compiler's generated module.
+//! bytecode's declaration, in `rm2k-snes-bytecode`.
 
 use crate::fail::{Result, Stop};
 use rm2k_snes_bytecode::events::BYTECODE;
