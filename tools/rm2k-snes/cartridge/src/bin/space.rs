@@ -93,6 +93,7 @@ fn run() -> Result<(), String> {
                     "largest_gap": m.largest_gap,
                     "bank0": m.bank0,
                     "bank1": m.bank1,
+                    "bank_far2": m.bank_far2,
                     "bss": m.bss,
                     "zeropage": m.zeropage,
                     "texts": m.texts,

@@ -59,7 +59,7 @@ pub const HALF: usize = 0x8000;
 /// The cartridge: 8 MB.
 pub const ROM_SIZE: usize = 0x800000;
 
-/// The two code banks, by file offset: where `ld65` puts them, where the
+/// The two LoROM code banks, by file offset: where `ld65` puts them, where the
 /// assembler copies them, and how long they are. See the module's docs.
 pub const MIRRORS: [(usize, usize, usize); 2] =
     [(0x008000, 0x408000, HALF), (0x018000, 0x418000, HALF)];
