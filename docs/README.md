@@ -9,6 +9,11 @@
 
     jetbrains.md  lo que hay que configurar en el IDE para este repo.
 
+Los research sobre A Blurred Line —cuánto pesa entero, hasta dónde llega su
+cartucho, la inspección del repo de antes del corte— se fueron con el juego
+a su repo el 2026-10-02, junto con lo de ABL de `pipeline.md` y `rtp.md`.
+Los que hablan del motor se quedaron, aunque lo hayan medido sobre ABL.
+
 La diferencia que importa es entre `port/` y `research/`:
 
 * **Un doc de `port/` tiene que estar al día, o miente.** Por eso conviene que

@@ -12,16 +12,18 @@ converts anything:
 
     common/      where everything is (project), the project file's settings
                  (settings) and the machine's values (environment). It
-                 imports nothing from `tools/`
-    assembly/    only `entregar`, which is A Blurred Line's and not the
-                 suite's: what builds the ROM is `rm2k-snes/cartridge/`, in Rust
+                 imports nothing from `tools/`. And `python_path.py`, which
+                 tells a game where these packages are imported from
     emulator/    the libretro core from Python (retro), and the bsnes-libretro
                  patch that exposes the WRAM: what the game's tests run the
                  ROM with
 
 What the game's tests read of their game —a reader of the dump, the models
 they predict the console with, the clients of the stages they ask— went to
-their harness, `rom/pruebas/arnes/`, the same day: it is theirs.
+their harness the same day: it is theirs. And on 2026-10-02 the game itself,
+A Blurred Line, went to its own repo, with its tests and their harness; it
+imports `common` and `emulator` from here, asking `rm2k-snes-python-path`
+where they are.
 
 And the Rust projects, which are not layers of the port but separate tools,
 in English and without a single mention of this game (see AGENTS.md). They
@@ -154,7 +156,12 @@ anything, which is what a renamed or new script needs: a symlink points to
 a file path. The `justfile` calls them by name and does not know where they
 are. There is one left:
 
-    abl-entregar                assembly/entregar.py
+    rm2k-snes-python-path       common/python_path.py
+
+which prints the directory `common` and `emulator` are imported from: a
+game's tests ask it, because they do not know where the tools live. Until
+2026-10-02 there was also `abl-entregar`, which went to A Blurred Line's
+repo with the game.
 
 and next to it the ones that are Rust binaries —`rm2k-snes-convert`, from
 `rm2k-snes/convert/`; `rm2k-snes-cartridges`,
@@ -174,10 +181,9 @@ The reason for the names is in `tools/justfile`. A new one is added in
 `common/project.py`, and by nobody else: `tests/test_project.py` enforces
 it. What belongs to the repo —the root, the runtime— comes from where that
 file is; what belongs to the game, from its project file: see "How they find
-the game". The tests put `tools/` on the path themselves, from
-`pytest.ini`: A Blurred Line's, from `rom/pytest.ini`, and the tools'
-—`tests/`, the ones that do not need the game—, from the one here. See
-`tests/README.md`.
+the game". The tools' tests —`tests/`— put `tools/` on the path from the
+`pytest.ini` here; a game's tests, from what `rm2k-snes-python-path`
+answers. See `tests/README.md`.
 
 A worktree that modifies the tools uses its own with `just -f
 tools/justfile install-local <destination>`, which builds a `bin/` of its
@@ -234,27 +240,28 @@ their location.
 
 **What belongs to the machine arrives by flags**: `--game-dir`, `--rtp-dir`,
 `--soundfont`, `--replacements` (the MSU-1 tracks that come from an audio file
-and not from the MIDI), `--cache`, `--test-cartridges` and, in
-`abl-entregar`, `--shared`. Each executable adds the ones it uses and
+and not from the MIDI), `--cache`, `--test-cartridges` and `--shared`, where
+a game delivers its builds. Each executable adds the ones it uses and
 sets them in `common/environment.py`, where the rest read them from;
 `resources.GAME_DIR` and `resources.RTP_DIR` are resolved there when
 read. **None has a default value**, except the cache and the test
 cartridges, which have their place in the project's `build`: a machine's
-value belongs to the caller. In A Blurred Line, `rom/justfile` translates its
-variables into flags.
+value belongs to the caller. A Blurred Line's `justfile`, in its repo,
+translates its variables into flags.
 
 `tests/test_project.py` enforces it: it fails if a `.py` here reads an
 `ABL_*` variable or writes `rom/` as a path.
 
 ## `tools/justfile`
 
-The tools' recipes —generating the bytecode, running their tests,
-installing— live in `tools/justfile`, and A Blurred Line's in
-`rom/justfile`, which names this directory only once: to say how a
-worktree's tools are installed. The root `justfile` imports ABL's and not
-this one. From the root they are run with `just -f tools/justfile <recipe>`;
-standing here, with `just <recipe>`. Both forms run the recipe standing in
-`tools/`.
+The tools' recipes —running their tests, installing— live in
+`tools/justfile`, and A Blurred Line's in its own repo. There is no root
+`justfile`: until 2026-10-02 it imported ABL's. From the root they are run
+with `just -f tools/justfile <recipe>`; standing here, with `just
+<recipe>`. Both forms run the recipe standing in `tools/`. It is not
+imported from a root `justfile` on purpose: its recipes find what they
+install through `justfile_directory()`, which in an imported file would be
+the root.
 
 ## The bsnes patch
 
@@ -264,7 +271,7 @@ every id— and the tests' clock asks the ROM which tick of the loop it is on,
 which lives in `ticks`, in the WRAM. Without the patch, whatever runs under
 bsnes falls back to counting hardware frames, which works as long as the ROM
 does not fall behind. And without bsnes there is nothing to answer what
-`rom/pruebas/rpgmaker/test_cores.py` exists to answer.
+A Blurred Line's `pruebas/rpgmaker/test_cores.py` exists to answer.
 
 The patch exposes only `RETRO_MEMORY_SYSTEM_RAM` and leaves the rest as it
 is: bsnes's comment on that function is about the SRAM, which is not touched,

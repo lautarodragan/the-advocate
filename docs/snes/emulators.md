@@ -85,33 +85,35 @@ one with the MSU-1.
 
 Mesen2's debugger can show our routine names and, next to the
 disassembly, the assembly source. It gets both from the `.dbg` file
-that `ld65` leaves next to each ROM (`rom/build/release/abl.sfc.dbg`,
-`rom/build/tests/<name>/prueba.sfc.dbg`).
+that `ld65` leaves next to each ROM, in the game's `build/<cartridge>/`.
 
 - **It loads by itself.** With *Options > Integration > Auto-load .DBG
   files* on (the default), opening `abl.sfc` loads `abl.sfc.dbg` from
   the same folder.
 - **Names work wherever the `.dbg` sits next to the ROM**, including a
-  build handed over with `just entregar`. Labels inside a `.proc` lose their
+  build a game hands over —A Blurred Line's `just entregar`—. Labels inside a `.proc` lose their
   scope: Mesen2 uses the bare name and numbers the repeats, so the
   many `ready` labels show up as `ready`, `ready_2`, `ready_3`… The
   macro-local `LOCAL-MACRO_SYMBOL-*` names are skipped, since Mesen2
   rejects the dash.
 - **The source shows when Mesen2 finds `tools/runtime/` above the `.dbg`.** The
-  `.dbg` names each file relative to the repo root (`tools/runtime/main.s`,
-  `rom/build/release/mapdata.inc`) and Mesen2 looks for that path next to
-  the `.dbg`, then one folder up, and so on until it finds it. That works
-  opening `rom/build/release/abl.sfc` in the clone, and also from a build
-  handed over with `just entregar`, which puts the commit's `tools/runtime/` next
-  to the ROM. The generated `mapdata.inc` and `musicdata.inc` are not copied
-  (~15 MB), so code that lands in them only shows as disassembly there.
+  `.dbg` names each runtime file relative to the root of the tools' checkout
+  (`tools/runtime/main.s`) and Mesen2 looks for that path next to the
+  `.dbg`, then one folder up, and so on until it finds it. That works from a
+  build handed over with `just entregar`, which puts the commit's
+  `tools/runtime/` next to the ROM. The generated `mapdata.inc` and
+  `musicdata.inc` live in the cartridge's directory; since 2026-10-02 the
+  game is outside the tools' checkout, and the `.dbg` names them with an
+  absolute path. They are not copied either (~15 MB), so code that lands in
+  them only shows as disassembly in a handed-over build.
   *Ctrl+Q* in the code window switches between disassembly and source.
 
 This was checked by reimplementing Mesen2's lookup (`DbgImporter.cs`,
 commit `b9fa69d`) and running it against every cartridge. taro confirmed
 the names in the Mesen2 UI on 2026-09-25 —disassembly, RAM variables and
 call stack, stopped on a breakpoint in `wait_button`—, and the source
-view with the ROM opened from `rom/build/release/`. From a `just entregar`
+view with the ROM opened from `rom/build/release/`, when the game lived in
+this repo. From a `just entregar`
 build the lookup finds every `.s` and misses only the two generated `.inc`
 files; that was checked with the same reimplementation, not yet in the UI.
 

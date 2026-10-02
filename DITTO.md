@@ -11,6 +11,12 @@ Este archivo es la otra mitad: **por qué existe acá**, qué decisión de este
 repo implementa, y en qué estado está esa decisión. Si Ditto se mudara a su
 propio repositorio, lo de acá se quedaría y lo de allá se iría con él.
 
+**Se escribió cuando A Blurred Line vivía en este repo.** Desde el
+2026-10-02 vive en el suyo, y lo que acá dice `rom/data/`, `rom/parches/` o
+`rom/pruebas/` es el `data/`, los `parches/` y las `pruebas/` de allá. La
+decisión es de las herramientas —el conversor lee el volcado, no el
+binario—, y ABL es el juego sobre el que se tomó.
+
 ## El bug que lo originó
 
 Hasta el 2026-09-14 el conversor a SNES leía los binarios de RM2k **cada vez**,

@@ -33,7 +33,7 @@ reproduce. Las rutas de abajo que terminan en `.rs` son de su `src/`.
   nota toma una voz libre o le roba a otra por prioridad. Ver `assign`,
   `victim` y `frame_order` en `voices.rs`.
 * **El volumen tiene un techo por tema**, medido y versionado en
-  `rom/parches/auto/musica/techos.toml` (`just techos`): ver `ceilings` en
+  `parches/auto/musica/techos.toml` de ABL (`just techos`): ver `ceilings` en
   `game.rs`.
 * **Las muestras salen del SoundFont** con el que se compuso el juego
   (`samples.rs`; `ABL_SOUNDFONT` apunta a otro), y las pasa a BRR Gunter, que
@@ -82,7 +82,7 @@ reproduce. Las rutas de abajo que terminan en `.rs` son de su `src/`.
   otro `.msu`, lo de siempre. El reparto, en `msu.rs`; la ROM, en
   `tools/runtime/msu_effects.s`.
 
-Qué prueba cubre qué: `rom/pruebas/rpgmaker/test_musica_*.py` corren la ROM
+Qué prueba cubre qué: `pruebas/rpgmaker/test_musica_*.py` de ABL corren la ROM
 —las escrituras, el reparto, el paquete, los techos— y las pruebas de
 `rm2k-snes-audio` (`just -f tools/justfile audio-test`) miran el stream sin
 ROM.

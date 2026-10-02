@@ -66,6 +66,6 @@ pelea no hace falta, porque perder es de la pelea.
 
 # Cómo reproducirlo
 
-`rom/pruebas/rpgmaker/test_eventos_de_tropa.py`, con los casos `pelea-86` y
-`pelea-102`; y `rom/pruebas/rpgmaker/test_sistemas_de_tropa.py`, con
+`pruebas/rpgmaker/test_eventos_de_tropa.py` de ABL, con los casos `pelea-86` y
+`pelea-102`; y `pruebas/rpgmaker/test_sistemas_de_tropa.py` de ABL, con
 `pelea-invocacion` y `pelea-radio`.

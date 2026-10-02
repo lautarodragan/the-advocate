@@ -12,3 +12,8 @@ Lo que **no** va acá: lo que nos gustaría hacer y nadie está haciendo, que es
 `divergencias/`; y lo que está a medias hoy, que es `tasks/doing/`. Si una decisión deja de valer
 porque otra posterior la reemplazó, **no se edita en silencio**: se cambia
 diciendo cuál la reemplazó, o se borra y lo cuenta el mensaje del commit.
+
+Las de **A Blurred Line** —qué lleva su cartucho, qué se hace con su
+contenido— están en su repo desde el 2026-10-02. Las que valen para los dos
+lados están copiadas en los dos, tal como estaban ese día: cuáles, en
+`tasks/testing/abl-a-su-propio-repo.md`.

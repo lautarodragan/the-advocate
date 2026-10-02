@@ -56,5 +56,5 @@ con dónde quedó. El conversor corta si un mapa no entra: lo que la grilla
 ocupa del `$7F` más lo que va detrás no puede pasar de sus 32 KB.
 
 Lo que queda en la VRAM y en la WRAM después de cargar lo compara
-`rom/pruebas/rpgmaker/test_carga_descomprimida.py` contra lo que el conversor deja
-sin comprimir en `rom/build/<cartucho>/crudos/`.
+`pruebas/rpgmaker/test_carga_descomprimida.py` de ABL contra lo que el conversor deja
+sin comprimir en `build/<cartucho>/crudos/` de ABL.

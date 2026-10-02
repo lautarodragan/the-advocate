@@ -1,20 +1,25 @@
-# A Blurred Line en Super Nintendo
+# De RPG Maker 2000 a la Super Nintendo
 
-Un port de *A Blurred Line*, un juego hecho en RPG Maker 2000, a la Super
-Nintendo: cómo se lee el juego original, cómo se lo vuelca a un formato que se
-pueda mirar, y el port con los porqués que no tienen una línea de código donde
-vivir.
+Las herramientas que portan un juego hecho en RPG Maker 2000 a la Super
+Nintendo, y el runtime —el motor en ensamblador— que lo corre en la consola:
+cómo se lee un juego de RM2k, cómo se lo convierte, y los porqués de
+arquitectura que no tienen una línea de código donde vivir. La idea es un
+"RPG Maker 2000 PLUS": compatible con RM2k, y con lo que se agregue
+disponible para cualquier juego (`workflow/decisiones/rm2k-plus.md`).
+
+Nació portando *A Blurred Line*, y **ABL vive en su propio repo** desde el
+2026-10-02: sus datos, sus parches, sus pruebas y sus goldens. La historia
+de lo que era suyo se quedó acá, en `git log`.
 
 Lo que **no** está acá: dónde quedamos, que es `workflow/`; cómo funciona hoy
 cada parte del port, que es `docs/port/` y los comentarios del código; y el
 relato de cómo se llegó, que está en `git log`. Qué hay en cada carpeta lo dice
-el mapa de arriba de `AGENTS.md`, y cada una con README explica lo suyo.
+el mapa de arriba de `AGENTS.md`, y `tools/README.md` el de `tools/`.
 
 ## Índice
 
-* [El juego original](#el-juego-original)
-* [Los datos en formato versionable](#los-datos-en-formato-versionable)
-* [Cómo se arma](#cómo-se-arma)
+* [Cómo se instala](#cómo-se-instala)
+* [Las pruebas de ROM están en ABL, por ahora](#las-pruebas-de-rom-están-en-abl-por-ahora)
 * [La arquitectura](#la-arquitectura)
     * [El fondo va en modo 3, siempre](#el-fondo-va-en-modo-3-siempre)
     * [El cartucho es ExHiROM, de 8 MB](#el-cartucho-es-exhirom-de-8-mb)
@@ -22,58 +27,47 @@ el mapa de arriba de `AGENTS.md`, y cada una con README explica lo suyo.
 * [Lo que falta](#lo-que-falta)
 * [Referencias](#referencias)
 
-## El juego original
+## Cómo se instala
 
-**No está en el repo**: se lee de la carpeta que diga `ABL_GAME_DIR` —que
-`rom/justfile` le pasa a las herramientas como `--game-dir`—, y de ahí
-salen los mapas (`.lmu`), la base de datos (`RPG_RT.ldb`), el árbol de mapas
-(`RPG_RT.lmt`), las imágenes, los MIDI y los WAV. Lo que el juego no trae lo
-pone el RTP de Don Miguel, que tampoco es nuestro para redistribuir: ver
-`docs/rpgmaker/rtp.md`. Lo que hay que saber del formato —los ChipSets, las dos
-capas— está en `docs/rpgmaker/`.
-
-El mapa de arranque del juego es el 4, un cuarto vacío que sólo teletransporta.
-El primer mapa de verdad es el 1.
-
-## Los datos en formato versionable
-
-    just datos         # el juego -> rom/data/ y rom/build/ditto-exacto/, con Ditto
-
-`rom/data/` tiene los mismos datos que los `.lmu` pero en un formato que git puede
-versionar de verdad: se puede ver qué cambió, revisarlo y editarlo a mano. Y
-**es de donde el port lee el juego**: el conversor, sus etapas y las pruebas
-están mirando estos archivos y no los binarios.
-Quién lo escribe es **Ditto** (`tools/rm2k/ditto/`), que además sabe volver: `ditto
-pack` rearma los archivos del juego byte por byte desde el volcado exacto, que
-la misma corrida deja en `rom/build/ditto-exacto/` y que no se versiona. El
-porqué de la decisión está en `DITTO.md` y lo que hay adentro, en
-`rom/data/README.md`.
-
-## Cómo se arma
-
-**Hace falta `python`, un core de libretro y `ca65` + `ld65`**, más las
-herramientas del repo —los proyectos de Rust y los scripts de Python que se
-ejecutan, que lista `tools/README.md`—, que **se consumen desde el PATH**: se
-instalan una vez, y ningún script ni prueba de este juego llama a `cargo`. El porqué está en `AGENTS.md`. `ca65` y `ld65` salen de
-cc65, que no viene empaquetado en todas las distribuciones y se compila de sus
-fuentes: ver "Referencias".
+**Hace falta `python`, un core de libretro y `ca65` + `ld65`**, y se instalan
+las herramientas —los proyectos de Rust y los scripts de Python que se
+ejecutan, que lista `tools/README.md`— en el PATH. Un juego las consume de
+ahí, y ningún script ni prueba de un juego llama a `cargo`: el porqué está
+en `AGENTS.md`. `ca65` y `ld65` salen de cc65, que no viene empaquetado en
+todas las distribuciones y se compila de sus fuentes: ver "Referencias".
 
     just -f tools/justfile install   # instala las herramientas en el PATH
-    just cartuchos                   # arma las ROMs: release y las de prueba
-    just pruebas                     # la tanda entera; arma antes lo que haga falta
+    just -f tools/justfile test      # las pruebas de Python de tools/
+    just -f tools/justfile rust-test # las de todos los proyectos de Rust
 
-El repo tiene dos mitades: `tools/`, las herramientas y el runtime
-—`tools/runtime/`, el motor en ensamblador, que se arma junto con los `.inc`
-de cada juego—, y `rom/`, que es A Blurred Line: su `justfile`, `data/`,
-`parches/`, `pruebas/` y `build/`. Las recetas de ABL corren desde la raíz
-del repo, porque el `justfile` de ahí importa el de `rom/`, o parado en
-`rom/`; las de las herramientas, con `just -f tools/justfile`.
+El runtime viaja con las herramientas: `rm2k-snes-cartridges` lo arma desde
+`tools/runtime/` del checkout del que se instaló, junto con los `.inc` que el
+conversor escribe para cada juego. Qué pasa entre el juego y la ROM está en
+`docs/port/pipeline.md`, y el audio en `docs/port/audio.md`.
 
-La ROM que se juega sale en `rom/build/release/abl.sfc`, con su `abl.msu` y las
-pistas de MSU-1 al lado. Qué pasa entre el juego y la ROM está en
-`docs/port/pipeline.md`, y el audio en `docs/port/audio.md`; qué ROMs hay y
-qué prueba cubre qué, en `rom/pruebas/README.md`; qué hace cada carpeta de
-`tools/`, en `tools/README.md`.
+Un juego es un directorio con un `rm2k-snes.toml`, que las herramientas
+buscan desde donde corren hacia arriba, como cargo su `Cargo.toml`; lo de la
+máquina —dónde está el juego original, el RTP, el SoundFont— les llega por
+flags. **No hay `justfile` en la raíz**: hasta el 2026-10-02 era el de ABL,
+que importaba el suyo, y el de las herramientas usa `justfile_directory()`
+para encontrar lo suyo, así que importado desde la raíz lo buscaría en el
+lugar equivocado.
+
+## Las pruebas de ROM están en ABL, por ahora
+
+**Hoy este repo no tiene pruebas que corran una ROM.** Las que hay —las de
+`tools/tests/` y las de cada proyecto de Rust— prueban cada etapa sola, con
+juegos chicos hechos adentro de la prueba. Las que arman un cartucho y lo
+corren en un emulador, contra goldens, son de A Blurred Line y se fueron
+con él, porque necesitan un juego: la mayoría prueba el motor usando a ABL
+de escenario.
+
+Así que **un cambio en `tools/` se verifica corriendo la tanda de ABL con
+las herramientas del cambio**: cómo, en "Dónde corre esto" de `AGENTS.md`.
+Es el riesgo que señaló el estudio que planeó la separación
+(`docs/research/2026-10-02-el-juego-de-pruebas.md`), y lo corta su fase 2:
+un juego de pruebas propio, hecho de cero y sin assets con derechos, adonde
+se mudan las pruebas del motor.
 
 ## La arquitectura
 
@@ -125,8 +119,8 @@ tiene una razón que no está en ninguna línea:
 * **La SRAM está en `$20:6000`**, 8 KB, y las partidas de LoROM no cargan.
 
 Todo eso salió de una ROM de prueba corrida en cinco emuladores antes de mudar
-el juego, `just exhirom`; el detalle, en la documentación de `banks.rs`, en
-`tools/rm2k-snes/cartridge/src/`.
+el juego, que es la receta `exhirom` de ABL; el detalle, en la documentación
+de `banks.rs`, en `tools/rm2k-snes/cartridge/src/`.
 
 ### Las tablas van en el banco 0
 
@@ -176,7 +170,7 @@ No se escribe acá, porque acá envejecía sin que nadie lo notara:
   `ACCEPTED_UNDONE`, en el compilador de eventos
   (`tools/rm2k-snes/events/`), que es una lista ejecutable y no puede
   desincronizarse;
-* y lo que ninguna prueba mira, en `rom/pruebas/UNTESTED.md`.
+* y lo que ninguna prueba mira, en `pruebas/UNTESTED.md` de ABL.
 
 ## Referencias
 

@@ -43,4 +43,4 @@ Y dos cosas que valen aunque no entre:
 * **snes9x redondea distinto que el hardware en la suma de color math**: bsnes
   y mesen-s truncan, que es lo que hace el chip, y snes9x redondea para arriba
   cuando la suma de un canal es impar. Como las goldens son capturas de
-  snes9x, un caso con color math va a `rom/pruebas/rpgmaker/test_cores.py`.
+  snes9x, un caso con color math va a `pruebas/rpgmaker/test_cores.py` de ABL.

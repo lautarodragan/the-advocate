@@ -40,7 +40,7 @@ el juego y después en el RTP, como en RM2k, y las pistas de MSU-1 de los temas
 del RTP que nombra el `System` van numeradas detrás de las del juego: ver
 `track_numbers` en tools/rm2k-snes/rm2k-snes-audio/src/game.rs.
 
-Lo cubren `rom/pruebas/rpgmaker/test_game_over.py` —los tres caminos, la golden,
+Lo cubren `pruebas/rpgmaker/test_game_over.py` de ABL —los tres caminos, la golden,
 la tecla y el título— y `test_game_over` en `test_cores.py`.
 
 # Cuándo deja de alcanzar

@@ -44,7 +44,7 @@ como las páginas paralelas de los mapas— se midió el 2026-09-27 contra esto:
   cuadro. El cuerpo compilado son 307 bytes en RODATA y otros tantos pegados
   en la página 5 del evento 2 del mapa 57.
 
-Lo cobran los tres casos de AG7 en `rom/pruebas/rpgmaker/test_ag7_y_la_planta.py`:
+Lo cobran los tres casos de AG7 en `pruebas/rpgmaker/test_ag7_y_la_planta.py` de ABL:
 al entrar sabe la de su arma, cambiarla y cerrar el menú la cambia —comprobado
 en rojo sin la llamada desde el menú—, y con el switch apagado cerrar el menú
 no toca nada.

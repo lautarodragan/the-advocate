@@ -1,12 +1,6 @@
 __pycache__/
 
 wt/
-rom/build/
-# Lo que escriben las pruebas mientras corren —las fotos del recorrido y las
-# capturas que difieren de su golden—, al lado de `rom/pruebas/golden/`, que es
-# contra lo que se comparan. Es salida de las pruebas y no del build, por eso
-# no va en `rom/build/`.
-rom/pruebas/snapshots/
 # Los worktrees de los sub-agentes. Son repositorios de git adentro del repo, y
 # un `git add -A` los mete al índice como submódulos rotos: pasó el 2026-09-13.
 .claude/worktrees/
@@ -34,7 +28,6 @@ rom/pruebas/snapshots/
 tools/target/
 tools/rm2k/ditto/.idea/
 # Las herramientas de un worktree: `install-local`, ver `tools/justfile`. El
-# destino lo elige quien las usa: ABL, `rom/.herramientas-locales/`; las
-# recetas de `tools/justfile`, `tools/.local-tools/`.
-.herramientas-locales/
+# destino lo elige quien las usa; las recetas de `tools/justfile` buscan las
+# suyas en `tools/.local-tools/`.
 .local-tools/

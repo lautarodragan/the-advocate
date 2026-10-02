@@ -37,7 +37,7 @@ Con el RPG_RT de 2015 corriendo con Wine, sobre una copia del juego cuyo mapa
 entrar, B y "No" de vuelta al menú con el cursor en End Game. El dibujo de
 `fin_del_juego.dibujar` a 320x240 cae en esas mismas cajas.
 
-Lo cubren `rom/pruebas/rpgmaker/test_fin_del_juego.py` —la pantalla contra
+Lo cubren `pruebas/rpgmaker/test_fin_del_juego.py` de ABL —la pantalla contra
 `fin_del_juego.render` con el cursor en cada orden, "No", B, y "Yes" hasta la
 golden `titulo`— y las goldens `fin` y `fin-no` de `test_menu_golden.py`.
 

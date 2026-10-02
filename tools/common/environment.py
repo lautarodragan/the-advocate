@@ -138,5 +138,6 @@ def test_cartridges():
 
 
 def shared():
-    """Where what gets built is delivered: see `assembly/entregar.py`."""
+    """Where what gets built is delivered, for a game that delivers its
+    builds somewhere: `--shared`."""
     return _require("shared")

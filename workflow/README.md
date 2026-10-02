@@ -31,3 +31,8 @@ Estos son:
 las que esperan algo de él —jugar, mirar unas goldens—, y el nombre del agente
 para las de `doing/`. Ver "Tomar una tarea" en `AGENTS.md`. En `todo/`, sin
 `assignee`, la toma quien llegue. Las de `done/` son de antes de estos campos y no los llevan.
+
+Las tareas de A Blurred Line —su contenido, sus pruebas, sus recetas, lo
+que lleva su cartucho— están en su repo desde el 2026-10-02; `tasks/done/`
+quedó entero acá, como registro. Cuáles se fueron, en
+`tasks/testing/abl-a-su-propio-repo.md`.
