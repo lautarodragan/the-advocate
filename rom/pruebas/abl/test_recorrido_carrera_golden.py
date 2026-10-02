@@ -239,17 +239,19 @@ def pasar_mensajes(r, cuantos, fotos=None, tope=3000):
 
 def largar(r):
     """La intro del 49 hasta el 170: los tres mensajes de Talan, el cartel de
-    los controles en dos cuadros sobre la pantalla negra, y el auto en el
-    grupo.
+    los controles sobre la pantalla negra, y el auto en el grupo.
 
-    El cartel es del fork del 49 (`parches/manual/mapas/Map0049.json`): en el
-    original es la imagen `EscapeInst` y un `KeyInputProc` que espera
-    cualquier tecla, y en la ROM son dos `ShowMessage` con el mismo texto, que
-    se cierran con A."""
+    El cartel es la imagen `EscapeInst`, en BG1 —ver `big_picture.s`—, y un
+    `KeyInputProc` que espera cualquier tecla: el A de `esperar` la pasa.
+    Hasta el 2026-10-02 eran dos `ShowMessage` de un fork del 49."""
     r.empezar("la intro de la carrera")
     r.p.ir_al_mapa(*LA_LARGADA)
     assert r.p.mapa() == 49, r.estado()
-    pasar_mensajes(r, 5, fotos={4: "el-cartel-1", 5: "el-cartel-2"})
+    pasar_mensajes(r, 3)
+    r.esperar("el cartel", lambda p: p.imagen_grande(), tope=600, a_cada=None)
+    r.foto("el-cartel", asentar=False)
+    r.esperar("que se vaya el cartel", lambda p: not p.imagen_grande(),
+              tope=600)
     r.esperar("el switch 170", lambda p: p.switch(CORRIENDO), tope=3000)
     assert r.p.switch(ARRANCO), r.estado()
     assert grupo_de(r.p) == [AUTO_ROJO], (

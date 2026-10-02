@@ -5,7 +5,7 @@
 //! cartridge decided. A relative path is relative to the request.
 
 use crate::fail::{Bad, Result};
-use crate::{animation, fullscreen, scene, show_picture};
+use crate::{animation, background, fullscreen, scene, show_picture};
 use adeleine::Color;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
@@ -74,6 +74,32 @@ pub struct ShowPicture {
     /// console's screen, and its corner is relative to its centre.
     #[serde(default)]
     pub map_fixed: bool,
+}
+
+/// `background`: the file and what the `ShowPicture` says of it, the two
+/// screens, and the room the layer gets: how many palettes from which one,
+/// how many tiles and how many rows of cells.
+#[derive(Deserialize)]
+pub struct Background {
+    pub file: PathBuf,
+    #[serde(default)]
+    pub use_transparent_color: bool,
+    pub x: i64,
+    pub y: i64,
+    pub rm_screen: (i64, i64),
+    pub screen: (i64, i64),
+    #[serde(default = "hundred")]
+    pub zoom: i64,
+    pub palettes: usize,
+    pub first_palette: usize,
+    pub tiles: usize,
+    pub rows: usize,
+}
+
+impl Paths for Background {
+    fn resolve(&mut self, base: &Path) {
+        resolve(&mut self.file, base);
+    }
 }
 
 fn hundred() -> i64 {
@@ -208,6 +234,15 @@ pub fn fullscreen_answer(s: &fullscreen::Screen) -> Value {
 pub fn picture_answer(p: &show_picture::Converted) -> Value {
     json!({"x": p.x, "y": p.y, "width": p.width, "height": p.height,
            "palette": colors(&p.palette), "indices": p.indices})
+}
+
+pub fn background_answer(b: &background::Background) -> Value {
+    let hex: String = b.tiles.iter().map(|v| format!("{v:02x}")).collect();
+    json!({
+        "top": b.top, "rows": b.rows, "columns": b.columns, "wider": b.wider,
+        "tile_count": b.tile_count, "tiles": hex, "tilemap": b.tilemap,
+        "palettes": b.palettes.iter().map(|p| colors(p)).collect::<Vec<_>>(),
+    })
 }
 
 pub fn backdrop_answer(b: &scene::Backdrop) -> Value {

@@ -64,6 +64,7 @@ flags:
     sta f:PIC_FLAGS, x
     dex
     bpl flags
+    jsr big_clear               ; and the big one: see big_picture.s
     rtl
 .endproc
 
@@ -445,6 +446,13 @@ shown:
     lda f:PIC_RAMP
     cmp #PIC_NONE
     beq free
+    cmp #PIC_BIG
+    bne slot_ramp
+    phx
+    jsr big_arrive              ; the big one's, in big_picture.s
+    plx
+    bra free
+slot_ramp:
     txa
     cmp f:PIC_RAMP
     beq free
@@ -543,6 +551,10 @@ ramp:
 .a8
 .i16
     lda [code_ptr], y
+    bpl slot                    ; before the `iny`, which leaves N of Y
+    iny
+    jmp big_erase               ; PIC_BIG: the big one, in its layer
+slot:
     iny
     cmp f:PIC_RAMP
     bne still
@@ -575,9 +587,9 @@ still:
 .proc pic_tick
 .a8
 .i16
+    jsr big_frame               ; the big one's wave and ramp: big_picture.s
     lda f:PIC_RAMP
-    cmp #PIC_NONE
-    bne ramping
+    bpl ramping                 ; PIC_NONE and PIC_BIG have bit 7
     rtl
 ramping:
     lda f:PIC_STEP

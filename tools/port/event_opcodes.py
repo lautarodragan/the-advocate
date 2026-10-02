@@ -66,8 +66,8 @@ OP_RESERVED_39   = 0x39
 OP_RESERVED_3A   = 0x3A
 OP_RESERVED_3B   = 0x3B
 OP_RESERVED_3C   = 0x3C
-OP_RESERVED_3D   = 0x3D
-OP_RESERVED_3E   = 0x3E
+OP_BIG_SHOW      = 0x3D
+OP_BIG_MOVE      = 0x3E
 OP_CALL          = 0x3F
 OP_RETURN        = 0x40
 
@@ -131,8 +131,8 @@ OPCODE_SIZE = {
     OP_RESERVED_3A: 1,
     OP_RESERVED_3B: 1,
     OP_RESERVED_3C: 1,
-    OP_RESERVED_3D: 1,
-    OP_RESERVED_3E: 1,
+    OP_BIG_SHOW: 8,
+    OP_BIG_MOVE: 10,
     OP_CALL: 2,
     OP_RETURN: 1,
 }
@@ -210,8 +210,8 @@ LAYOUT = {
     OP_RESERVED_3A: (),
     OP_RESERVED_3B: (),
     OP_RESERVED_3C: (),
-    OP_RESERVED_3D: (),
-    OP_RESERVED_3E: (),
+    OP_BIG_SHOW: (("image", 1, False), ("red", 1, False), ("green", 1, False), ("blue", 1, False), ("transparency", 1, False), ("saturation", 1, False), ("wave", 1, False)),
+    OP_BIG_MOVE: (("red", 1, False), ("green", 1, False), ("blue", 1, False), ("transparency", 1, False), ("frames", 1, False), ("y", 2, True), ("wave", 1, False), ("saturation", 1, False)),
     OP_CALL: (("body", 1, False),),
     OP_RETURN: (),
 }

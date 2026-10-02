@@ -619,6 +619,12 @@ class Partida:
         self.consola.hold()
         return self
 
+    def imagen_grande(self):
+        """Si hay una imagen grande arriba, en BG1 y en modo 1: `BIG_ON` de
+        `BIG_FLAGS`, en la RAM lejana. Ver `big_picture.s`."""
+        banderas = self.consola.ram(en_la_wram(self.simbolos["BIG_FLAGS"]), 1)
+        return bool(banderas[0] & 1)
+
     def velocidad_del_heroe(self):
         """La velocidad de RM2k del héroe, de 1 a 6, leída de la RAM lejana."""
         return self.consola.ram(self.simbolos["FAR_HERO_SPEED"], 1)[0]

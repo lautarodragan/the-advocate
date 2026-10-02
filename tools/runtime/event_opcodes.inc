@@ -65,8 +65,8 @@ OP_RESERVED_39   = $39
 OP_RESERVED_3A   = $3A
 OP_RESERVED_3B   = $3B
 OP_RESERVED_3C   = $3C
-OP_RESERVED_3D   = $3D
-OP_RESERVED_3E   = $3E
+OP_BIG_SHOW      = $3D
+OP_BIG_MOVE      = $3E
 OP_CALL          = $3F
 OP_RETURN        = $40
 
@@ -139,8 +139,8 @@ EVENT_OPCODE_COUNT = $41
     .addr op_reserved_3a       ; $3A
     .addr op_reserved_3b       ; $3B
     .addr op_reserved_3c       ; $3C
-    .addr op_reserved_3d       ; $3D
-    .addr op_reserved_3e       ; $3E
+    .addr op_big_show          ; $3D
+    .addr op_big_move          ; $3E
     .addr op_call              ; $3F
     .addr op_return            ; $40
 .endmacro

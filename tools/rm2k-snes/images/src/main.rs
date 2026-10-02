@@ -8,8 +8,10 @@ use clap::{Args as ClapArgs, Parser, Subcommand};
 use ditto::dump::Dump;
 use ditto::schema::Animation;
 use rm2k_render::{battle, picture, show_picture as rm2k_picture};
-use rm2k_snes_images::request::{self, Animations, Backdrops, Battlers, Fullscreen, ShowPicture};
-use rm2k_snes_images::{animation, fullscreen, scene, show_picture, Bad, Result};
+use rm2k_snes_images::request::{
+    self, Animations, Backdrops, Background, Battlers, Fullscreen, ShowPicture,
+};
+use rm2k_snes_images::{animation, background, fullscreen, scene, show_picture, Bad, Result};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -53,6 +55,18 @@ enum Command {
         \"indices\": rows of palette indices plus one, 0 where it is transparent}."
     )]
     Picture(Plain),
+    /// The picture of a ShowPicture too big for the sprites, as a 4bpp layer
+    #[command(
+        after_help = "The request: {\"file\", \"use_transparent_color\", \"x\", \"y\" (its \
+        centre on RM2k's screen), \"rm_screen\", \"screen\", \"zoom\" (100 by default), \
+        \"palettes\", \"first_palette\", \"tiles\" (the most distinct tiles, the blank one \
+        included), \"rows\" (the most rows of cells)}. The answer, null if not even cut to the screen do its tiles fit: {\"top\" (where the canvas \
+        starts, from the top of the screen), \"rows\", \"columns\", \"wider\" (whether it goes \
+        past the screen's sides), \"tile_count\", \"tiles\" \
+        (4bpp, hex), \"tilemap\" (an entry per cell, row by row), \"palettes\" (sixteen \
+        colours each, from first_palette on)}."
+    )]
+    Background(Plain),
     /// Battle backdrops, in quality and in the light fallback
     #[command(
         after_help = "The request: {\"scene\": the geometry, \"backdrops\": [{\"file\", \
@@ -150,6 +164,29 @@ fn do_picture(args: &Plain) -> Result<()> {
     write(&args.out, "picture", &request::picture_answer(&converted))
 }
 
+fn do_background(args: &Plain) -> Result<()> {
+    let r: Background = request::read(&args.request)?;
+    let drawn = rm2k_picture::picture(
+        &picture::read_unkeyed(&r.file)?,
+        &picture::read_rm2k(&r.file)?,
+        r.use_transparent_color,
+        0,
+    );
+    let screens = show_picture::Screens {
+        rm: r.rm_screen,
+        console: r.screen,
+    };
+    let room = background::Room {
+        palettes: r.palettes,
+        first_palette: r.first_palette,
+        tiles: r.tiles,
+        rows: r.rows,
+    };
+    let layer = background::convert(&drawn, r.x, r.y, screens, r.zoom, room)?;
+    let answer = layer.as_ref().map_or(Value::Null, request::background_answer);
+    write(&args.out, "background", &answer)
+}
+
 fn do_backdrops(args: &Plain) -> Result<()> {
     let r: Backdrops = request::read(&args.request)?;
     let g: scene::Geometry = r.scene.into();
@@ -214,6 +251,7 @@ fn main() -> ExitCode {
     let done = match &cli.command {
         Command::Fullscreen(args) => do_fullscreen(args),
         Command::Picture(args) => do_picture(args),
+        Command::Background(args) => do_background(args),
         Command::Backdrops(args) => do_backdrops(args),
         Command::Battlers(args) => do_battlers(args),
         Command::Animations(args) => do_animations(args),

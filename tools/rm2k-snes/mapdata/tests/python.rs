@@ -189,10 +189,10 @@ fn without_commons(text: &str) -> String {
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
     let text = without_commons(&without_pairs(&emitted.text));
-    assert_eq!(text.lines().count(), 3293);
+    assert_eq!(text.lines().count(), 3300);
     assert_eq!(
         sha(&text),
-        "32110e68d1dad67caaedcf870472fa918ec95e147c3b31e81ba7e26f030fd5cc"
+        "f1364696975d88535b0afada5fa958d5155194dcc8aa66b8564bd1a0a337cc83"
     );
 }
 
@@ -200,10 +200,10 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
     let text = without_commons(&without_pairs(&emitted.text));
-    assert_eq!(text.lines().count(), 3412);
+    assert_eq!(text.lines().count(), 3419);
     assert_eq!(
         sha(&text),
-        "9720fc576f2f5c6f2c37fd86f11d9c7f59905b3127c10c64fe035216b071c16b"
+        "3ac0195db5a3059eba13eeb51cca12d6299dc4897ced9b99028dc796bcf1ebc1"
     );
 }
 

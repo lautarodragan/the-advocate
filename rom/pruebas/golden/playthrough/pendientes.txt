@@ -36,24 +36,22 @@ debug-pad/01-talan-despierto.png
 # abl/test_recorrido_carrera_golden.py:
 # sus capturas **no están bendecidas**, dice su docstring: son
 # para que taro las mire
-carrera-cinco-choques/01-el-cartel-1.png
-carrera-cinco-choques/02-el-cartel-2.png
-carrera-cinco-choques/03-la-largada.png
-carrera-cinco-choques/04-de-vuelta-en-el-49.png
-carrera-cinco-choques/05-maneja-saldra.png
-carrera-cinco-choques/06-la-despedida.png
-carrera-cinco-choques/07-llega-al-mundo.png
-carrera-cinco-choques/08-sorbe-village.png
-carrera-entera/01-el-cartel-1.png
-carrera-entera/02-el-cartel-2.png
-carrera-entera/03-la-largada.png
-carrera-entera/04-llega-al-52.png
-carrera-entera/05-llega-al-54.png
-carrera-entera/06-llega-al-51.png
-carrera-entera/07-el-premio.png
-carrera-entera/08-la-despedida.png
-carrera-entera/09-llega-al-mundo.png
-carrera-entera/10-sorbe-village.png
+carrera-cinco-choques/01-el-cartel.png
+carrera-cinco-choques/02-la-largada.png
+carrera-cinco-choques/03-de-vuelta-en-el-49.png
+carrera-cinco-choques/04-maneja-saldra.png
+carrera-cinco-choques/05-la-despedida.png
+carrera-cinco-choques/06-llega-al-mundo.png
+carrera-cinco-choques/07-sorbe-village.png
+carrera-entera/01-el-cartel.png
+carrera-entera/02-la-largada.png
+carrera-entera/03-llega-al-52.png
+carrera-entera/04-llega-al-54.png
+carrera-entera/05-llega-al-51.png
+carrera-entera/06-el-premio.png
+carrera-entera/07-la-despedida.png
+carrera-entera/08-llega-al-mundo.png
+carrera-entera/09-sorbe-village.png
 
 # abl/test_recorrido_capitulo_golden.py:
 # sus capturas **no están bendecidas**, dice su docstring: son

@@ -1,0 +1,13 @@
+{
+  "event_commands": [
+    {"code": "Teleport", "parameters": [12, 25, 25]},
+    {"code": "TintScreen", "parameters": [0, 0, 0, 100, 0, 1]},
+    {"code": "ShowPicture", "parameters": [2, 0, 160, 120, 0, 100, 0, 0, 100, 100, 100, 200, 2, 2], "string": "ShipFlash"},
+    {"code": "Wait", "parameters": [10]},
+    {"code": "ErasePicture", "parameters": [2]},
+    {"code": "ShowPicture", "parameters": [1, 0, 160, 120, 0, 100, 0, 0, 100, 100, 100, 200, 2, 2], "string": "GTest4"},
+    {"code": "Wait", "parameters": [10]},
+    {"code": "ErasePicture", "parameters": [1]},
+    {"code": "TintScreen", "parameters": [100, 100, 100, 100, 0, 1]}
+  ]
+}

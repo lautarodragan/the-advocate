@@ -27,6 +27,18 @@
     jmp run_code::other
 .endproc
 
+; And the big one's two, in the background layer: see big_picture.s.
+; `OP_PICTURE_ERASE` takes it down too, with its slot.
+.proc op_big_show
+    jsl f:big_show + FAST
+    jmp run_code::other
+.endproc
+
+.proc op_big_move
+    jsl f:big_move + FAST
+    jmp run_code::other
+.endproc
+
 ; `OP_ANIMATION`: the RM2k animation number, what it is drawn on, how many
 ; entries, and the entries, which stay in the bytecode. See OP_ANIMATION in
 ; events.py and `battle_anim_tick`. The new one replaces whatever was running,

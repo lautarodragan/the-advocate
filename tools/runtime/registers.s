@@ -140,6 +140,14 @@ A1T7L    = $4372
 A1B7     = $4374
 DAS7L    = $4375
 
+; --- HDMA, channel 4 ---------------------------------------------------------
+; The big picture's wave: BG1's horizontal scroll, line by line. See
+; big_picture.s.
+DMAP4    = $4340
+BBAD4    = $4341
+A1T4L    = $4342
+A1B4     = $4344
+
 ; --- HDMA, channels 1 and 2 -------------------------------------------------
 ; Ordinary DMA transfers everything in one go, with the screen off or in
 ; vblank. HDMA is something else: the same hardware, but fired **once per

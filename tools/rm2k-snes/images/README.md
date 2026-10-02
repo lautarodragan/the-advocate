@@ -9,6 +9,7 @@ caller's.
 
     rm2k-snes-images fullscreen --request r.json --out answer/
     rm2k-snes-images picture    --request r.json --out answer/
+    rm2k-snes-images background --request r.json --out answer/
     rm2k-snes-images backdrops  --request r.json --out answer/
     rm2k-snes-images battlers   --request r.json --out answer/
     rm2k-snes-images animations --data dump/ --request r.json --out answer/
@@ -17,7 +18,7 @@ Each writes `<subcommand>.json` into `--out`; `--help` on each prints the
 shape of its request and its answer. Exit code 1 is the answer being no —a
 picture that cannot be read, a broken dump—, 2 is the call being wrong.
 
-## The five pictures
+## The six pictures
 
 * **`fullscreen`**: a picture that fills the screen at 8 bits a pixel —a
   title, a Game Over—, as its distinct 8x8 tiles, their palette and the
@@ -31,6 +32,12 @@ picture that cannot be read, a broken dump—, 2 is the call being wrong.
   index 0; and if it goes with the map, not scaled to the console's
   screen —the map is not—, only zoomed, with its corner relative to its
   centre.
+* **`background`**: the picture of a `ShowPicture` too big for the
+  sprites, as a 4bpp background layer: drawn where it lands on a canvas
+  the width of the screen —taller, if it hangs past the top or the bottom
+  and its tiles fit—, its colours brought down by Adeleine into the
+  palettes it is given so that each cell draws with one, and cut by
+  Voodoo into distinct tiles, mirrored ones reused, and a tilemap.
 * **`backdrops`**: a battle's backdrop, in quality —kept by use, from a
   CGRAM entry on— and in the light fallback, a fraction of the size with
   its colours merged by what shows the least.
@@ -63,7 +70,8 @@ the same:
   (`composite.rs`), which computes the alpha of the result too;
 * the tone is RM2k's `ToneBlit` at fifteen bits, the same arithmetic the
   console runs on a tinted palette (`tint.rs`);
-* the colours are Adeleine's: `keep_most_used` or `merge_least_visible`.
+* the colours are Adeleine's: `keep_most_used` or `merge_least_visible`, and
+  for a background layer `reduce_colors` too; its tiles, Voodoo's.
 
 ## The tests
 

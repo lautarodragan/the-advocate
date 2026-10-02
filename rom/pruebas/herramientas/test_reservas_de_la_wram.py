@@ -26,9 +26,13 @@ RESERVAS = (
     # Y los battlers de la tropa mientras dura la pelea: `back_from_battle`
     # vuelve a descomprimir la grilla. Ver runtime/battle_scene.s.
     ((0x7E8000, 0x7F0000), {"GRID", "SCN_BATTLERS"}),
-    # `CODE_CARRY` es parte del buffer de carga: ver runtime/far_ram.s.
+    # `CODE_CARRY` es parte del buffer de carga: ver runtime/far_ram.s. Y
+    # la paleta y las ondas de una imagen grande, también: van en los dibujos
+    # de la animación del ChipSet, que no se dibuja mientras está la imagen
+    # y que la carga del mapa repone al borrarla. Ver runtime/big_picture.s.
     ((0x7F0000, 0x800000), {"GRID_END", "GRID_HIGH", "LZ2_BUFFER", "CODE_CARRY",
                             "ANIM_DRAWINGS", "ANIM_DRAWINGS_END",
+                            "BIG_PAL", "BIG_WAVE_A", "BIG_WAVE_B",
                             "SCN_CLEAN", "SCN_SCENE",
                             # Las pantallas de Game Over y de título: pisan
                             # el banco, grilla incluida, porque de ahí no se

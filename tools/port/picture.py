@@ -171,6 +171,126 @@ def block_tile(block):
     return (block // 4) * (4 * GRID) + (block % 4) * OBJ_SIDE
 
 
+# --- the big ones: a background layer ----------------------------------------
+#
+# **A picture that does not fit the plane of objects goes in BG1, in mode 1,
+# while it is shown** —`decisiones/las-imagenes-grandes-en-modo-1.md`—: the
+# map is hidden, and BG1's half of the VRAM, the background's palettes and
+# the first eight kilobytes of the sprites' are the picture's. Showing it
+# takes the screen off a moment, and erasing it reloads the map, the way
+# coming back from a battle does. See `big_picture.s` in the runtime.
+#
+# **Only with the map hidden**, then: the converter cannot know whether a
+# page tinted the screen black first, so it goes by what the picture is. One
+# that goes with the screen is drawn over black with the map gone —an
+# instructions page, the end of the game—, which is what the game's are; one
+# that goes with the map is part of it —the hovertram of map 32, with the
+# whole scene going on around it— and only takes the plane if it covers the
+# whole screen, as the photos of maps 212 to 216 do. One placed by variables
+# is not either: its place is in the layer, drawn by the conversion.
+#
+# **They are the cartridge's**, not each map's: their tiles do not go in a
+# map's bank but in streams of their own, read when one is shown. The same
+# picture on two maps is one.
+
+# The layer's room: the seven background palettes above the message
+# window's, the 1024 tiles a tilemap entry names —the 32 KB from VRAM 0—,
+# and a tilemap of 32x64, for one taller than the screen. `BIG_*` in the
+# runtime's `big_picture.s` and `big_layer` in rm2k-snes-mapdata say the same.
+BIG_PALETTES = 7
+BIG_FIRST_PALETTE = 1
+BIG_TILES = 1024
+BIG_ROWS = 64
+
+
+def on_console(path, key):
+    """The picture's size on the console's screen, as the plane of objects
+    would draw it: at its zoom, scaled unless it goes with the map."""
+    with Image.open(path) as image:
+        width, height = image.size
+    w, h = zoomed(width, key["zoom"]), zoomed(height, key["zoom"])
+    if key["map_fixed"]:
+        return w, h
+    if key["at"] is None:
+        cx, cy = w // 2, h // 2
+    else:
+        cx, cy = key["at"]
+    x0, y0 = cx - w // 2, cy - h // 2
+    return ((x0 + w) * WIDTH // RM_WIDTH - x0 * WIDTH // RM_WIDTH,
+            (y0 + h) * HEIGHT // RM_HEIGHT - y0 * HEIGHT // RM_HEIGHT)
+
+
+def is_big(path, key):
+    """Whether the picture goes in the background layer: too big for the
+    objects, and either with the screen or covering it whole."""
+    if key["by_variable"]:
+        return False
+    w, h = on_console(path, key)
+    if w <= WIDTH_MAX and h <= HEIGHT_MAX:
+        return False
+    return not key["map_fixed"] or (w >= WIDTH and h >= HEIGHT)
+
+
+def big_center(key):
+    """Where the layer is drawn from: the key's centre, or the screen's for
+    one that goes with the map, which covers it whole."""
+    if key["map_fixed"]:
+        return (RM_WIDTH // 2, RM_HEIGHT // 2)
+    return tuple(key["at"])
+
+
+def big_for_map(game_dir, keys, map_id):
+    """The big pictures of `keys`, each `(key, layer)`: the stage's answer,
+    see `image_stage.background`. The ones that do not fit even cut to the
+    screen are left out, and their commands are accepted without being
+    done."""
+    from port import image_stage
+    out = []
+    for key in keys:
+        path = path_of(game_dir, key["name"])
+        if path is None or not is_big(path, key):
+            continue
+        cx, cy = big_center(key)
+        layer = image_stage.background(
+            path, key["transparent_color"], cx, cy, (RM_WIDTH, RM_HEIGHT),
+            (WIDTH, HEIGHT), key["zoom"], BIG_PALETTES, BIG_FIRST_PALETTE,
+            BIG_TILES, BIG_ROWS)
+        if layer is None:
+            print("  map %d: the picture %r doesn't fit the background layer "
+                  "even cut to the screen" % (map_id, key["name"]))
+            continue
+        with Image.open(path) as image:
+            width, height = image.size
+        layer["half"] = [zoomed(width, key["zoom"]) // 2,
+                         zoomed(height, key["zoom"]) // 2]
+        layer["center"] = [cx, cy]
+        out.append((key, layer))
+    return out
+
+
+def number_big(maps):
+    """The cartridge's big pictures, numbered: the layers, in the order the
+    maps meet them, and in each map's `big_table` what the event compiler
+    numbers against —each key with its layer's number and its centre—. The same picture drawn the same way on two maps, or under
+    two numbers, is one layer."""
+    layers, index = [], {}
+    for map_info in maps:
+        table = []
+        for key, layer in map_info.get("big_pictures") or []:
+            ident = (key["name"], key["zoom"], key["transparent_color"],
+                     tuple(layer["center"]))
+            if ident not in index:
+                index[ident] = len(layers)
+                layers.append(layer)
+            table.append(dict(key, plane="background", image=index[ident],
+                              center=layer["center"]))
+        map_info["big_table"] = table
+    if layers:
+        print("  the cartridge carries %d big picture(s) in the background "
+              "layer" % len(layers))
+    return layers
+
+
 def for_map(game_dir, keys, map_id):
     """What a map carries of the pictures the scan says it can show —`keys`,
     in its order—: `(asked, table, images)`, or None if it carries none.
@@ -192,6 +312,10 @@ def for_map(game_dir, keys, map_id):
     block = 0
     for key in keys:
         number = key["number"]
+        # The big ones are `big_for_map`'s, and take no slot.
+        path = path_of(game_dir, key["name"])
+        if path is not None and is_big(path, key):
+            continue
         if number not in slots:
             if len(slots) == SLOTS:
                 print("  map %d: the picture %r (number %d) doesn't go in: the "

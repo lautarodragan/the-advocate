@@ -65,8 +65,8 @@ pub const OP_RESERVED_39: u8 = 0x39;
 pub const OP_RESERVED_3A: u8 = 0x3A;
 pub const OP_RESERVED_3B: u8 = 0x3B;
 pub const OP_RESERVED_3C: u8 = 0x3C;
-pub const OP_RESERVED_3D: u8 = 0x3D;
-pub const OP_RESERVED_3E: u8 = 0x3E;
+pub const OP_BIG_SHOW: u8 = 0x3D;
+pub const OP_BIG_MOVE: u8 = 0x3E;
 pub const OP_CALL: u8 = 0x3F;
 pub const OP_RETURN: u8 = 0x40;
 
@@ -129,8 +129,8 @@ pub const OPCODE_SIZE: &[(u8, usize)] = &[
     (OP_RESERVED_3A, 1),
     (OP_RESERVED_3B, 1),
     (OP_RESERVED_3C, 1),
-    (OP_RESERVED_3D, 1),
-    (OP_RESERVED_3E, 1),
+    (OP_BIG_SHOW, 8),
+    (OP_BIG_MOVE, 10),
     (OP_CALL, 2),
     (OP_RETURN, 1),
 ];

@@ -390,3 +390,15 @@ def test_imagenes(caso, cuadro):
     `pic_clear` lo pone en limpio al cargar el mapa; una ranura que quedara
     con basura se dibujaría en bsnes."""
     iguales("%s-%d" % (caso, cuadro), *dos_cores(caso, cuadro))
+
+
+@pytest.mark.parametrize("caso,cuadro", (
+    ("imagen-grande-foto", 140), ("imagen-grande-ondas", 40),
+    ("imagen-grande-vuelta", 240)))
+def test_imagenes_grandes(caso, cuadro):
+    """Las imágenes grandes, en BG1 en modo 1, en los dos cores: una foto a
+    mitad de su fundido, las ondas —dos tablas de HDMA en el banco $7F que la
+    ROM escribe antes de leer—, y el mapa de vuelta después de una. Su estado
+    vive en la RAM lejana —`BIG_FLAGS` y los suyos—, y `pic_clear` lo limpia
+    al encender: con basura, bsnes podía arrancar en modo 1."""
+    iguales("%s-%d" % (caso, cuadro), *dos_cores(caso, cuadro))

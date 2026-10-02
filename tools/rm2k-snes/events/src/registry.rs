@@ -330,6 +330,20 @@ impl PictureKey {
     }
 }
 
+/// A picture too big for the sprites, which the cartridge carries as a
+/// background layer —BG1 in mode 1, while it is shown—: its key, its entry
+/// in the cartridge's table of them, and the centre it was drawn at on
+/// RM2k's screen, which is where a `MovePicture` has to leave it sideways.
+///
+/// The centre is the key's, or, for one that goes with the map —which
+/// covers the whole screen, or it would not be here—, the screen's.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BigPicture {
+    pub key: PictureKey,
+    pub image: u8,
+    pub center: (i32, i32),
+}
+
 /// The pictures of one map: which ones the caller put into its sprite bank,
 /// each with the slot the console keeps it in.
 ///
@@ -348,6 +362,10 @@ pub struct Pictures {
     /// The pictures, in the order the cartridge numbers them, and each
     /// one's slot.
     pub table: Vec<(PictureKey, u8)>,
+    /// The big ones the map can show, which the cartridge carries as a
+    /// background layer and not in the map's sprite bank: see
+    /// [`BigPicture`].
+    pub big: Vec<BigPicture>,
     /// Whether this compilation is gathering instead: then `table` fills up
     /// with every picture met, with slot 0, and nothing is emitted.
     pub gathering: bool,
@@ -358,8 +376,19 @@ impl Pictures {
     pub fn gathering() -> Pictures {
         Pictures {
             table: Vec::new(),
+            big: Vec::new(),
             gathering: true,
         }
+    }
+
+    /// The big picture `key` is, if the cartridge carries it as one.
+    pub fn big_of(&self, key: &PictureKey) -> Option<&BigPicture> {
+        self.big.iter().find(|b| b.key == *key)
+    }
+
+    /// The big pictures shown under `number`.
+    pub fn numbered_big(&self, number: i32) -> impl Iterator<Item = &BigPicture> {
+        self.big.iter().filter(move |b| b.key.number == number)
     }
 
     /// The image and the slot of `key`, if the map carries it.
