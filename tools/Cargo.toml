@@ -9,6 +9,7 @@
 [workspace]
 members = [
     "snes/adeleine",
+    "snes/goombario",
     "snes/gunter",
     "snes/lz2",
     "snes/protocol",

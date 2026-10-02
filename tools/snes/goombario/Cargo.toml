@@ -1,0 +1,15 @@
+[package]
+name = "goombario"
+version = "0.1.0"
+edition = "2021"
+description = "Static checks for 65816 code assembled with ca65: what assembles and links fine and is wrong"
+
+[lib]
+name = "goombario"
+path = "src/lib.rs"
+
+[[bin]]
+name = "goombario"
+path = "src/main.rs"
+
+[dependencies]

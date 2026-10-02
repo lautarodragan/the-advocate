@@ -61,6 +61,8 @@ have layers of their own, one folder each:
       adeleine/  Adeleine: which colors a picture loses and how the ones
                  left are grouped into palettes
       gunter/    Gunter: BRR codec and SoundFont reader
+      goombario/ Goombario: static checks for 65816 code built with ca65
+                 and ld65, for what assembles fine and is wrong
       voodoo/    Voodoo: from an image to tiles, palettes and tilemap
       lz2/       Nintendo's LC_LZ2, with an optimal parser
       resample/  Pillow's LANCZOS resize, to the bit, as a library

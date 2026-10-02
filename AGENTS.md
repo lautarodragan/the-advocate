@@ -94,6 +94,8 @@ port —ver `tools/README.md`—:
     tools/snes/        los formatos de la consola, sin saber de RPG Maker
       protocol/        declara un bytecode y genera las constantes de sus dos lados
       gunter/          Gunter: códec BRR y lector de SoundFont
+      goombario/       Goombario: el linter de 65816, lo que ensambla bien y
+                       está mal; lee la ROM, el `.dbg` de `ld65` y el fuente
       adeleine/        Adeleine: qué colores se pierden y cómo se agrupan en paletas
       voodoo/          Voodoo: de una imagen a tiles, paletas y tilemap
       lz2/             el LC_LZ2 de Nintendo, con el que se comprimen los mapas
@@ -165,6 +167,8 @@ segundo bytecode quedó claro que hacerlo hablar castellano lo ata a este repo.
 Las pruebas de esos proyectos no dependen del juego. Ditto recibe el corpus por
 `DITTO_CORPUS`, y sin esa variable las que lo necesitan se saltean con un
 mensaje; `tools/rm2k-snes/rm2k-snes-audio/` recibe el SoundFont por `SOUNDFONT`, igual;
+`tools/snes/goombario/` ensambla programas de juguete y necesita `ca65` y
+`ld65` en el PATH, y sin ellos se saltea igual;
 y `tools/snes/protocol/`, `tools/snes/gunter/`, `tools/snes/voodoo/`, `tools/snes/lz2/`,
 `tools/snes/adeleine/`, `tools/rm2k/rules/`, `tools/rm2k/rm2k-render/`, `tools/rm2k-snes/battle/`,
 `tools/rm2k-snes/events/`, `tools/rm2k-snes/patches/`, los tres de los mapas y
