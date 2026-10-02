@@ -25,59 +25,6 @@ def _answer(command, request, *flags):
                                 *flags)[command + ".json"])
 
 
-def _colors(palette):
-    return [tuple(c) for c in palette]
-
-
-def _cells(tiles):
-    return [tuple(tuple(row) for row in cell) for cell in tiles]
-
-
-def fullscreen(path, width, height, cell, first_color, cap):
-    """A picture that fills the screen, as `(tiles, palette, tilemap)`: the
-    distinct 8x8 cells of CGRAM indices —already shifted by
-    `first_color`—, the colours at fifteen bits and a tile per cell."""
-    a = _answer("fullscreen", {
-        "file": os.path.abspath(path), "width": width, "height": height,
-        "cell": cell, "first_color": first_color, "cap": cap})
-    return _cells(a["tiles"]), _colors(a["palette"]), a["tilemap"]
-
-
-def picture(path, use_transparent_color, top_trans, cx, cy, rm_screen,
-            screen, colors, zoom=100, map_fixed=False):
-    """The picture of a `ShowPicture` centred at `(cx, cy)` of RM2k's
-    screen, at `zoom` percent and with the map or with the screen, as the
-    stage answers it: where it lands, its palette and its indices plus
-    one, 0 where it is transparent."""
-    request = {
-        "file": os.path.abspath(path),
-        "use_transparent_color": bool(use_transparent_color),
-        "top_trans": top_trans, "x": cx, "y": cy,
-        "rm_screen": list(rm_screen), "screen": list(screen),
-        "colors": colors}
-    # Only when they say something, so the request of a plain picture is
-    # the one it always was.
-    if zoom != 100:
-        request["zoom"] = zoom
-    if map_fixed:
-        request["map_fixed"] = True
-    return _answer("picture", request)
-
-
-def background(path, use_transparent_color, cx, cy, rm_screen, screen,
-               zoom, palettes, first_palette, tiles, rows):
-    """The picture of a `ShowPicture` too big for the sprites, as a 4bpp
-    layer: the stage's answer —where the canvas starts, its tiles, its
-    tilemap and its palettes—, or None if not even cut to the screen do its
-    tiles fit in `tiles`."""
-    return _answer("background", {
-        "file": os.path.abspath(path),
-        "use_transparent_color": bool(use_transparent_color),
-        "x": cx, "y": cy, "rm_screen": list(rm_screen),
-        "screen": list(screen), "zoom": zoom, "palettes": palettes,
-        "first_palette": first_palette, "tiles": tiles, "rows": rows})
-
-
 def _scene():
     import scene as E
     return {"width": E.WIDTH, "height": E.HEIGHT, "colors": E.COLORS,

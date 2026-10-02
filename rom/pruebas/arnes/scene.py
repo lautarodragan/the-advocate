@@ -396,44 +396,6 @@ def battlers(wanted, game_dir):
     return out
 
 
-def columns(info):
-    """How many bytes a row of a plane is: eight pixels per byte."""
-    return (info["ancho"] + 7) // 8
-
-
-def battler_bytes(info):
-    """A battler in the format `scene_set` reads.
-
-    **Plane by plane**, and within each plane row by row: the mask first and
-    then the four planes of the drawing. Each row of a plane is
-    `columnas + 1` bytes and goes **backwards**, the rightmost column first,
-    with a zero in front:
-
-        [0] [col n-1] ... [col 1] [col 0]
-
-    That way a sixteen-bit read at column `k` brings `k` in the low byte and
-    `k - 1` in the high one, which is exactly the word that has to be shifted
-    right to place a battler that does not fall on a tile boundary. Column
-    `-1` is the leading zero of the next row —or of the next plane—, so the
-    ROM does not have to check for the edge; the last plane carries an extra
-    zero at the end for the same reason.
-    """
-    n = columns(info)
-    planes = []
-    for plane in range(BATTLER_PLANES):
-        data = bytearray()
-        for row in info["pixeles"]:
-            row_bytes = bytearray(n)
-            for x, value in enumerate(row):
-                lit = (value != 0) if plane == 0 else \
-                    bool((value >> (plane - 1)) & 1)
-                if lit:
-                    row_bytes[x // 8] |= 0x80 >> (x % 8)
-            data += bytes([0]) + bytes(reversed(row_bytes))
-        planes.append(bytes(data))
-    return b"".join(planes) + b"\x00"
-
-
 def position(center, info):
     """Where a battler's corner lands in the scene, already clamped inside.
 
@@ -482,14 +444,6 @@ def compose(backdrop_indices, placed):
                 if value and 0 <= py + y < HEIGHT and 0 <= px + x < WIDTH:
                     scene[py + y][px + x] = palette * 16 + value
     return scene
-
-
-def battler_report(info):
-    """The battler's numbers, for the converter to print."""
-    return {"clave": info["clave"], "ancho": info["ancho"],
-            "alto": info["alto"], "bytes": len(battler_bytes(info)),
-            "colores": info["colores"], "quedan": len(info["paleta"])}
-
 
 
 def backdrop_bytes(info):

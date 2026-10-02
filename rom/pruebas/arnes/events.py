@@ -312,10 +312,6 @@ TRANSITION_FADE = 0
 # obey either.
 
 
-class CannotCompile(Exception):
-    """This page has something the ROM does not know how to do yet."""
-
-
 class MapEvents:
     """The map's events, as the compiler sees them.
 
@@ -801,7 +797,6 @@ _BASE = []
 # putting it in map 2's package the 24 effects of that map —49,068 B, which
 # all fit today— dropped almost entirely. With its own package the map pays
 # nothing while there is no battle.
-BATTLE_PACKAGE = "batalla"
 
 
 def index_animations(game_dir):
@@ -900,7 +895,6 @@ CMP_EQUAL, CMP_GREATER_EQUAL, CMP_LESS_EQUAL, CMP_GREATER, CMP_LESS, \
 # `conditions_ok`, which reads `timer_sec` instead of a variable.
 # TIMER_SLOT (engine.rs).
 
-VARIABLE_SLOT = {}      # RM2k variable -> slot in the ROM
 
 
 def game_map_ids(game_dir):
@@ -957,7 +951,6 @@ def sweep_maps(game_dir, map_ids, sweep):
 #
 # What is left out: a page's `ChangeEquipment` on the actor the event looks
 # at does not run it again. In the game there is none on 18.
-PARTY_COMMON_EVENTS = {}
 
 # --- which skills each actor knows, as state --------------------------------
 #
@@ -984,20 +977,8 @@ PARTY_COMMON_EVENTS = {}
 # way the ROM builds the list by walking a stretch, without sorting anything.
 #
 # OP_SKILL: pair slot (word), learns (byte: 1 learns, 0 forgets)
-SKILL_SLOT = {}   # (actor, skill) -> slot
 
 CHANGE_SKILLS = 10440
-
-
-def variable_slot(number):
-    if number not in VARIABLE_SLOT:
-        raise CannotCompile("variable %d has no slot in this ROM" % number)
-    slot = VARIABLE_SLOT[number]
-    if slot > engine.VAR_SLOT_MAX:
-        # The slot is a byte, and far RAM has room for 256.
-        raise CannotCompile("slot %d does not fit in a byte: see VAR_SLOT_MAX"
-                            % slot)
-    return slot
 
 
 def next_random(x):
@@ -1010,27 +991,6 @@ def next_random(x):
 # RM2k's gold cap: `Game_Party::GainGold` clamps to `MaxGoldValue()`, which
 # by default is this.
 # GOLD_MAX (engine.rs).
-
-
-class Troops:
-    """The troops the compiled battles ask for, to know which tables to emit.
-
-    Sibling of `Songs`, with a difference that matters: **the bytecode does
-    not depend on it**. `Songs` numbers and the opcode carries the number;
-    here the opcode carries the RM2k id and this only gathers the list, so a
-    registry with other troops inside does not change a single byte of any
-    page. It is what allows compiling a loose page without knowing which
-    tables the cartridge has.
-    """
-
-    def __init__(self):
-        self.ids = []
-        # And which backdrop each one fights with, which is the text of the
-        # `EnemyEncounter` itself —`SJBackdropABL04` on map 2— and not
-        # something to look up in the LDB. It goes here and not in a
-        # separate registry because it is a fact of the battle, like the
-        # troop. See port/scene.py.
-        self.backdrops = {}
 
 
 # `ShowHiddenMonster`, which only exists in battle: the troop member in that
@@ -1352,37 +1312,6 @@ CELL_DEST_B = 16
 # runtime/interpreter_cells.s.
 # CELL_Y (engine.rs).
 # CELL_REFRESH (engine.rs).
-
-
-class PartyState:
-    """The party, to simulate its changes when converting:
-    `possible_leaders` in game_scan.py and `page_party` in cases.py. It is
-    what is left of the Python interpreter's state, which went away with the
-    reference; the ROM is the only one that runs the bytecode."""
-
-    def __init__(self, party=()):
-        # The party, in order. The hero's graphic is the first one's, so the
-        # order decides which poses have to fit in VRAM.
-        self.party = list(party)
-
-    def change_party(self, operation, actor):
-        """Adds or removes an actor, with RM2k's rules.
-
-        Adding one who is already there does not duplicate it nor move it,
-        adding with a full party does nothing, and removing one who is not
-        there does nothing either: it is what
-        `Game_Party::AddActor`/`RemoveActor` do in easyrpg-player, which also
-        call `ResetGraphic` in both cases. It matters because the order
-        decides who the leader is, that is which sprite is drawn.
-        """
-        if operation == PARTY_REMOVE:
-            if actor in self.party:
-                self.party.remove(actor)
-        elif actor not in self.party and len(self.party) < engine.PARTY_MAX:
-            self.party.append(actor)
-
-    def leader(self):
-        return self.party[0] if self.party else None
 
 
 # How much each opcode takes is derived from its declared arguments, so

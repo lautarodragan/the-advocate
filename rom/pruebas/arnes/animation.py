@@ -154,22 +154,6 @@ def by_number(renderer, number):
     return by_numbers(renderer, [number])[number]
 
 
-def rom_anchor(info):
-    """The anchor as the ROM's table carries it: (ax, ay).
-
-    The vertical shift of `Animation::Position` is baked into it, since it
-    is fixed per animation, so the console only has to subtract. With
-    "screen" scope there is no shift: `DrawSingle` draws at the center
-    without asking the target anything.
-    """
-    ax, ay = info["ancla"]
-    if info["alcance"] == SCOPE_SCREEN:
-        return ax, ay
-    run = {POS_TOP: -(CHARACTER_HEIGHT // 2), POS_CENTER: 0,
-           POS_BOTTOM: CHARACTER_HEIGHT // 2}[info["posicion"]]
-    return ax, ay + CHARACTER_HEIGHT // 2 - run
-
-
 def cells(frame):
     """A frame cut into 8x8 tiles, in the order OAM numbers them.
 
@@ -193,22 +177,6 @@ def cells(frame):
                     for py in range(8))
                 out[start + ty * GRID + tx] = cell
     return out
-
-
-def report(number, info):
-    """The numbers that justify the layout, for the recipe to print."""
-    width, height = info["caja_rm"]
-    box_w, box_h = info["tam"]
-    return {
-        "animacion": number,
-        "cuadros": len(info["cuadros"]),
-        "original": (width, height),
-        "caja": (box_w, box_h),
-        "porciento": 100 * box_w // width,
-        "colores": len(info["paleta"]),
-        "bytes": len(info["cuadros"]) * TILES * 32,
-    }
-
 
 
 def animation_frame(frame):
