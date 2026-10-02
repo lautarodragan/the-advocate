@@ -2,7 +2,7 @@
 name: "La guarda de los bancos"
 description: "Una prueba que recorra el .dbg y marque todo jsr/jmp absoluto que cae en otro banco y toda lectura absoluta de ROM fuera del banco 0: la regla de main.s que el ensamblador no revisa"
 type: feature
-assignee: Ratona
+assignee: taro
 ---
 
 Lo propuso Pepitero (`testing/el-banco-1-se-lleno.md`), sin hacerlo: el
@@ -81,6 +81,9 @@ Con cuatro roturas a la vez, cada una en los tres cartuchos (`release`,
 
 Después, con la versión final, otra vez las dos primeras. Todo vuelto atrás.
 
+Commit: `d2cec449`. `main` no se movió mientras tanto (`5a93a5ca`): no hubo
+nada que mergear.
+
 **Un error propio que la prueba ahora cuida**: la primera versión no le
 sacaba el `\n` al último campo de cada renglón del `.dbg`, que es `type=lab`,
 así que no reconocía ninguna etiqueta y daba cero revisando casi nada. Por
@@ -89,7 +92,9 @@ eso la prueba exige haber mirado al menos una instrucción de cada clase
 
 ## Los números
 
-Sobre el `main` de hoy da **cero** en los tres cartuchos. `abl.sfc` de
+Sobre el `main` de hoy da **cero** en los tres cartuchos. `just pruebas`: 1005
+(1001 + las cuatro nuevas: tres cartuchos y la de `BANCO_DE_DATOS`). `just -f
+tools/justfile test`: 39. `abl.sfc` de
 `release`: `35c76500…`, el mismo de Pepitero. El comentario de `main.s` no
 mueve la ROM: `NO_CACHE=1 just cartuchos` antes y después, los tres `.sfc` y
 los tres `.msu` byte por byte iguales.
