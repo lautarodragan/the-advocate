@@ -1,8 +1,18 @@
 # Qué
 
-**Los translúcidos no se dibujan con el color math de la consola**, aunque
-está implementado y verificado en el tag `color-math`. Van horneados: ver
-`los-translucidos-van-horneados.md`.
+**Los eventos translúcidos no se dibujan con el color math de la consola**,
+aunque está implementado y verificado en el tag `color-math`. Van horneados:
+ver `los-translucidos-van-horneados.md`.
+
+**Las imágenes translúcidas sí**, desde el 2026-10-02: taro aprobó el
+experimento de Gallareta (`testing/varias-imagenes-en-sprites.md`). Las dos
+objeciones de abajo no aplican a una imagen en sprites: la mezcla se prende
+sólo en las paletas de objeto 4 a 7, así que el héroe y los eventos de las
+0 a 3 siguen opacos y animando, y la ventana de mensaje no se mezcla. Lo que
+sí cuesta, y está en `divergencias/`: mientras hay una imagen mezclada,
+también se mezclan los personajes de las paletas 4 y 5 y la caja de la
+animación si cae ahí; y la consola mezcla al 50 % o suma, así que de 25 a
+75 % sale al 50 %.
 
 # Por qué
 
