@@ -678,6 +678,10 @@ no_message:
     ; No page half run: take the one of the first event that is waiting.
     lda waiting_n
     bne has_waiting
+    ; Or else an automatic common event whose switch is on: see
+    ; `common_start`.
+    jsl f:common_start + FAST
+    bne running
 
     ; Nothing running and nothing waiting: the player has control, so the
     ; chain of teleports is over and the budget is replenished.
@@ -705,15 +709,18 @@ no_message:
     ; And only with the hero standing still: `CheckActionEvent` hangs off the
     ; `if (IsStopping())` in `Game_Player::UpdateNextMovementAction`.
     lda pad_a
-    beq nothing
+    beq nothing_here
     lda pad_a_prev
-    bne nothing                 ; it was already held: not an edge
+    bne nothing_here            ; it was already held: not an edge
     lda step_left
-    bne nothing                 ; no talking in the middle of a step
+    bne nothing_here            ; no talking in the middle of a step
     ; The hero's forced move route is checked inside: see `try_action`.
     jsr try_action
-    beq nothing
     ; It marked an event: it starts this same frame.
+    bne has_waiting
+nothing_here:
+    rts                         ; `nothing`, which the branches above no
+                                ; longer reach since the common events
 has_waiting:
     jsr start_waiting
     beq nothing                 ; none had a page to run with
@@ -762,11 +769,17 @@ no_refresh_here:
     bne was_jump
     lda ev_active
     bne nothing                 ; still running: the frame is over
-    lda waiting_n
-    beq nothing
     dec boots
     beq nothing                 ; the frame's budget ran out
+    lda waiting_n
+    beq common
     jsr start_waiting
+    bne follow_running
+    rts
+common:
+    ; With the map's queue empty, an automatic common event: on this same
+    ; frame too, which is easyrpg's loop pushing it again.
+    jsl f:common_start + FAST
     bne follow_running
     rts
 was_jump:
@@ -2117,6 +2130,11 @@ with_page:
     sta ev_running              ; so it can be re-marked when it ends
     sep #$20
 .a8
+    ; A new frame at the bottom of the call stack: whatever a page left
+    ; there that did not return —a Game Over in a common event— and the
+    ; WRAM's garbage at boot are nobody's. See common_events.s.
+    lda #0
+    sta f:CALL_DEPTH
     lda #1
     sta ev_active
     rts

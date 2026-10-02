@@ -2366,6 +2366,71 @@ impl Rest<'_> {
                 &block(&format!("common_equipment_{n}"), &crate::hex::decode(code)?),
             );
         }
+        // The shared common event bodies, by index, and the automatic ones:
+        // see `common_events.s`. A cartridge without them carries the
+        // labels anyway, with a dummy entry, so the runtime assembles.
+        let empty = crate::request::Commons {
+            bodies: vec![],
+            autostart: vec![],
+            depth: Some(0),
+        };
+        let commons = r.commons.as_ref().unwrap_or(&empty);
+        let labels: Vec<String> = commons
+            .bodies
+            .iter()
+            .map(|(n, _)| format!("common_body_{n}"))
+            .collect();
+        let or_dummy = |v: Vec<String>, dummy: &str| {
+            if v.is_empty() {
+                vec![dummy.to_string()]
+            } else {
+                v
+            }
+        };
+        // A loop of calls has no deepest chain: the ROM's stack skips what
+        // does not fit.
+        out.push_str(&format!("COMMON_DEPTH = {}\n", commons.depth.unwrap_or(0)));
+        words_asm(
+            out,
+            "common_body_lo",
+            &or_dummy(labels.iter().map(|l| format!(".loword({l})")).collect(), "0"),
+            true,
+        );
+        words_asm(
+            out,
+            "common_body_bank",
+            &or_dummy(labels.iter().map(|l| format!("^{l}")).collect(), "0"),
+            true,
+        );
+        out.push_str(&format!("COMAUTO_N = {}\n", commons.autostart.len()));
+        words_asm(
+            out,
+            "comauto_byte",
+            &or_dummy(decimal(commons.autostart.iter().map(|a| a.0 >> 3)), "0"),
+            true,
+        );
+        bytes_asm(
+            out,
+            "comauto_mask",
+            &or_dummy(
+                commons
+                    .autostart
+                    .iter()
+                    .map(|a| format!("${:02X}", 1 << (a.0 & 7)))
+                    .collect(),
+                "0",
+            ),
+            true,
+        );
+        bytes_asm(
+            out,
+            "comauto_body",
+            &or_dummy(decimal(commons.autostart.iter().map(|a| a.1)), "0"),
+            true,
+        );
+        for ((_, code), label) in commons.bodies.iter().zip(&labels) {
+            line(out, &block(label, &crate::hex::decode(code)?));
+        }
         // What each actor knows: one bit per (actor, skill) pair, and per
         // actor where its pairs start and how many there are.
         let mut pairs: Vec<(i64, i64, i64)> = r.skill_pairs.clone();

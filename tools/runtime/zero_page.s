@@ -185,7 +185,6 @@ JUMPS_MAX = 32
 ; which cannot be mistaken for anything in the game.
 panic:       .res 1
 PANIC_JUMPS = 1         ; the teleport budget ran out
-PANIC_OPCODE = 2        ; an opcode nobody emits: see `op_reserved`
 ; The interpreter runs one frame at a time, not in a single pass. Before,
 ; `enter_map` ran all the pages in one go with the screen off and the waits
 ; were skipped: that collapsed time, and everything that in RM2k happens

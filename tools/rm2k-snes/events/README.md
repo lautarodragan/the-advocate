@@ -143,8 +143,19 @@ Both calls read these:
   automatic pages that compile accept without doing— and `substitutions`
   —which ones some page asked for—; and `cases`, `messages` —the text
   block, in hex—, `songs`, `troops`, `troop_pages` —their code and their
-  messages, each distinct body once—, `battle_audio`, and
-  `party_common_events` with their code.
+  messages, each distinct body once—, `battle_audio`,
+  `party_common_events` with their code, and `commons` when there are
+  shared common event bodies —see below—.
+
+**The shared common event bodies** —`commons.rs`— are the automatic common
+events, the ones the pages that run in the foreground call, and every one
+those call, each compiled once without a map: `bodies`, `[number, code]` by
+the index an `OP_CALL` names; `autostart`, `[switch, index]` of the
+automatic ones; `depth`, the deepest chain of frames, which the ROM's call
+stack has to hold; and `left_out`, what an automatic one reaches that does
+not compile. A page calls a body instead of pasting it when the body
+compiled with the page's map is the same as without it; a parallel page
+always pastes.
 
 A page's record is its trigger, its conditions —a variable one with its
 slot—, its layer, frequency and speed, its code or null, the events its

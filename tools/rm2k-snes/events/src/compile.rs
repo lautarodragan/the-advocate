@@ -534,6 +534,30 @@ pub struct Ctx<'a> {
     /// without a registry compiles exactly the same; the only thing lost is
     /// knowing which tables have to be emitted.
     pub troops: Option<&'a mut Troops>,
+    /// Set when compiling a **shared common event body** —see
+    /// [`crate::commons`]—: each common event that has one, by number, and
+    /// its index. A `CallEvent` there is an `OP_CALL` to the callee's body
+    /// and not its body in place, and the page ends in `OP_RETURN` and not
+    /// in `OP_DONE`. None is everything else, which pastes as always.
+    pub commons: Option<&'a BTreeMap<i32, u8>>,
+    /// Set when compiling a map's page that runs in the foreground: the
+    /// shared bodies it may call instead of pasting —see `shares`—. Not a
+    /// parallel page's: the ROM has one call stack, the foreground's.
+    pub shared: Option<&'a BTreeMap<i32, u8>>,
+}
+
+impl Ctx<'_> {
+    /// What ends the frame being compiled: the page, or the shared body back
+    /// to whoever called it. It is RM2k's `END` of a frame, and also its
+    /// `EndEventProcessing`, which ends **only** the frame it runs in
+    /// —`Game_Interpreter::EndEventProcessing`, easyrpg—.
+    fn end(&self) -> u8 {
+        if self.commons.is_some() {
+            OP_RETURN
+        } else {
+            OP_DONE
+        }
+    }
 }
 
 // --- bytes ---------------------------------------------------------------------
@@ -968,7 +992,7 @@ fn page(
                 p.extend(usize_word(escape)?);
                 p.extend(usize_word(lose)?);
                 if escape_ends {
-                    p.push(OP_DONE);
+                    p.push(ctx.end());
                 }
                 piece = p;
             } else {
@@ -1039,7 +1063,7 @@ fn page(
             piece = if ends {
                 let mut p = vec![OP_GOTO];
                 p.extend(usize_word(end)?);
-                p.push(OP_DONE);
+                p.push(ctx.end());
                 p
             } else {
                 vec![]
@@ -1287,7 +1311,7 @@ fn page(
     // carrying it would end the caller's page instead of returning control
     // to it. See `base`.
     if depth == 0 {
-        code.push(OP_DONE);
+        code.push(ctx.end());
     }
     Ok(code)
 }
@@ -1464,6 +1488,22 @@ fn compile_call(
     if p[0] == 0 && ctx.game.patches.counters.contains_key(&p[1]) {
         return compile_counter(ctx, p[1]);
     }
+    if let (0, Some(commons)) = (p[0], ctx.commons) {
+        // Inside a shared body, a call to another: `OP_CALL` to its body, or
+        // nothing if it has none, which is the same skip as a pasted call
+        // whose body does not compile. See [`crate::commons`].
+        return Ok(match commons.get(&p[1]) {
+            Some(&index) => vec![OP_CALL, index],
+            None => vec![],
+        });
+    }
+    if let (0, Some(shared)) = (p[0], ctx.shared) {
+        if let Some(&index) = shared.get(&p[1]) {
+            if shares(ctx, p[1], shared, map_events)? {
+                return Ok(vec![OP_CALL, index]);
+            }
+        }
+    }
     let (body, context) = if p[0] == 0 {
         // A common event, by number. The game's are cut almost all of them
         // at `ControlVars` and at the original's own menus.
@@ -1502,6 +1542,73 @@ fn compile_call(
         return Ok(vec![]);
     }
     Ok(compile_page(ctx, &body, context, length, depth + 1)?.unwrap_or_default())
+}
+
+/// Whether a page of this map can call common event `number`'s shared body
+/// instead of pasting it: whether the body compiled **with this map** is
+/// byte for byte the body compiled **without a map**, which is the one in
+/// the cartridge. Both are compiled here, as shared bodies, with the page's
+/// registries.
+///
+/// What a map changes in a body is what it resolves against the map: a
+/// map's event —a route, a flash, "this event"—, a graphic of its sprite
+/// bank, a picture it carries, an effect that sounds with another sample
+/// there, a `TileSubstitution`. Without a map those do not compile, or
+/// compile to something else, so the two differ and the page pastes as
+/// always.
+///
+/// **Except the refresh**: a write to a variable asks for the page refresh
+/// only if a page condition of the map looks at it —see [`refresh`]—, and
+/// without a map it always asks. So the body with the map is compiled as if
+/// the map did not know who looks at what, which is what is left in the
+/// cartridge: a call asks for more refreshes than the pasted body did. It
+/// costs nothing that shows from a page that runs in the foreground: the
+/// refresh is a flag, and it runs once when the interpreter lets go, not
+/// once per write —see `events_tick`—. From a parallel one, which runs every
+/// frame, it was the thirty frames per second of Lashe City: those do not
+/// call.
+///
+/// And what compiling it here leaves in the registries is what the pasted
+/// body would leave: its effects noted in this map's package, so they sound
+/// here; its troops asked for. Its texts are taken back: the body's go into
+/// the block when it is compiled for the cartridge.
+fn shares<'a>(
+    ctx: &mut Ctx<'a>,
+    number: i32,
+    shared: &'a BTreeMap<i32, u8>,
+    map_events: Option<&MapEvents>,
+) -> Step<bool> {
+    let Some(common) = ctx.game.common_events.get(&number) else {
+        return Ok(false);
+    };
+    let commands = common.commands.clone();
+    let mark = ctx.messages.as_ref().map(|m| m.mark());
+    let mut here = map_events.cloned();
+    if let Some(m) = here.as_mut() {
+        m.watched = None;
+    }
+    let (commons, shared_before) = (ctx.commons, ctx.shared);
+    ctx.commons = Some(shared);
+    ctx.shared = None;
+    let with_map = compile_page(ctx, &commands, here, 0, 0);
+    // And as the cartridge's is compiled: no map's events, graphics or
+    // pictures, and no package, which is where an effect's sample per map
+    // comes from.
+    let (graphics, pictures) = (ctx.graphics.take(), ctx.pictures.take());
+    let package = ctx.songs.as_mut().and_then(|s| s.current.take());
+    let without = compile_page(ctx, &commands, None, 0, 0);
+    if let Some(songs) = ctx.songs.as_mut() {
+        songs.current = package;
+    }
+    ctx.graphics = graphics;
+    ctx.pictures = pictures;
+    ctx.commons = commons;
+    ctx.shared = shared_before;
+    if let (Some(m), Some(mark)) = (ctx.messages.as_deref_mut(), mark) {
+        m.rewind(mark);
+    }
+    let (with_map, without) = (with_map.map_err(Stop::Fatal)?, without.map_err(Stop::Fatal)?);
+    Ok(with_map.is_some() && with_map == without)
 }
 
 /// `ControlSwitches` that toggles: no opcode of its own, one branch per
@@ -2760,6 +2867,43 @@ fn target_of(who: i64, map_events: Option<&MapEvents>) -> Step<u8> {
         Some(t) => byte(t as i64),
         None => cannot(),
     }
+}
+
+/// A text box's lines with each `\V[n]` —the value of variable `n`— as the
+/// mark `Messages` writes as the variable's slot: see
+/// [`crate::messages::VARIABLE`]. The ROM writes the digits when the box
+/// opens, which is what easyrpg's `PendingMessage::DefaultCommandInserter`
+/// does when the `ShowMessage` runs: the value in decimal, with a minus sign
+/// if it is negative and no padding.
+///
+/// Only the plain form, `\V[` digits `]` with either case of the `V`, which
+/// is the only one the game uses —three boxes, all of the portable
+/// console—. The nested one, `\V[\V[n]]`, and one without brackets are left
+/// as they are, so the escape still stops the page in `escape_tail`. A
+/// variable without a slot does not compile.
+pub fn with_variables(lines: &[String], indices: &Indices) -> Step<Vec<String>> {
+    let mut out = Vec::with_capacity(lines.len());
+    for line in lines {
+        let chars: Vec<char> = line.chars().collect();
+        let mut text = String::new();
+        let mut i = 0;
+        while i < chars.len() {
+            if chars[i] == '\\' && matches!(chars.get(i + 1), Some('V' | 'v')) && chars.get(i + 2) == Some(&'[') {
+                let digits: String = chars[i + 3..].iter().take_while(|c| c.is_ascii_digit()).collect();
+                let close = i + 3 + digits.len();
+                if !digits.is_empty() && chars.get(close) == Some(&']') {
+                    let number: i64 = digits.parse().map_err(|_| Stop::Cannot)?;
+                    text.push(crate::messages::variable_mark(indices.variable_slot(number)?));
+                    i = close + 1;
+                    continue;
+                }
+            }
+            text.push(chars[i]);
+            i += 1;
+        }
+        out.push(text);
+    }
+    Ok(out)
 }
 
 /// One command, as its opcodes. The ones built from several —branches,
@@ -4318,7 +4462,9 @@ pub fn compile_command(
             lines.extend_from_slice(extra);
             // `Messages::add` removes the escape tail, since every box goes
             // through it; anything that is not `\|` or `\^` still cuts the
-            // page from there. See `escape_tail`.
+            // page from there —see `escape_tail`—, except `\V[n]`, which
+            // comes off here.
+            let lines = with_variables(&lines, ctx.indices)?;
             let at = messages.add(&lines)?;
             let mut out = vec![OP_MESSAGE];
             out.extend(usize_word(at)?);
@@ -4718,6 +4864,8 @@ mod tests {
             graphics: None,
             pictures: None,
             troops: None,
+            commons: None,
+            shared: None,
         };
         compile_page(&mut ctx, commands, None, 0, 0).unwrap()
     }
@@ -4768,6 +4916,8 @@ mod tests {
             graphics: None,
             pictures: None,
             troops: None,
+            commons: None,
+            shared: None,
         };
         compile_page(&mut ctx, commands, None, 0, 0)
     }
@@ -4852,6 +5002,8 @@ mod tests {
             graphics: None,
             pictures: None,
             troops: None,
+            commons: None,
+            shared: None,
         };
         let map = Map { id: 5, events: Vec::new() };
         let me = MapEvents::new(&map, None);
@@ -5309,6 +5461,8 @@ mod tests {
             graphics: None,
             pictures: None,
             troops: None,
+            commons: None,
+            shared: None,
         };
         let troop_page = [cmd(PLAY_BGM, &[0, 100, 100, 50], "radio")];
         let code = compile_page(&mut ctx, &troop_page, None, 0, 0).unwrap();
@@ -5471,6 +5625,8 @@ mod tests {
             graphics: None,
             pictures: Some(&mut pictures),
             troops: None,
+            commons: None,
+            shared: None,
         };
         compile_page(&mut ctx, commands, None, 0, 0).unwrap().unwrap()
     }
@@ -5496,6 +5652,8 @@ mod tests {
             graphics: None,
             pictures: Some(&mut pictures),
             troops: None,
+            commons: None,
+            shared: None,
         };
         compile_page(&mut ctx, commands, None, 0, 0).unwrap().unwrap()
     }
@@ -5646,5 +5804,188 @@ mod tests {
         // An enemy's HP by a percentage, and adding a state.
         assert!(fails(cmd(CHANGE_MONSTER_HP, &[0, 1, 2, 50, 1], "")));
         assert!(fails(cmd(CHANGE_CONDITION, &[0, 0, 0, 1], "")));
+    }
+
+    // --- `\V[n]` ---------------------------------------------------------------
+
+    #[test]
+    fn a_variables_value_goes_in_the_text_as_its_slot() {
+        // The portable console's: "SERN has \V[0173] enemy souls to spend".
+        // The value counts as one letter of the line, and its slot follows
+        // the escape byte.
+        let indices = Indices {
+            variables: BTreeMap::from([(173, 7)]),
+            ..Default::default()
+        };
+        let code = on_a_map_with(&indices, &[cmd(SHOW_MESSAGE, &[], "has \\V[0173] souls")]).unwrap();
+        assert_eq!(code, [OP_MESSAGE, 0, 0, OP_DONE]);
+        let mut messages = crate::messages::Messages::new(1, crate::messages::Window { columns: 39, lines: 4 });
+        let lines = with_variables(&["a\\v[173]b".to_string()], &indices).unwrap();
+        let at = messages.add(&lines).ok().unwrap();
+        // One line of three units: a, the value, b.
+        assert_eq!(messages.data[at..], [1, 3, 65, crate::messages::VARIABLE, 7, 66]);
+    }
+
+    #[test]
+    fn a_variable_the_rom_cannot_show_does_not_compile() {
+        let indices = Indices {
+            variables: BTreeMap::from([(173, 7)]),
+            ..Default::default()
+        };
+        let fails = |text: &str| on_a_map_with(&indices, &[cmd(SHOW_MESSAGE, &[], text)]).is_none();
+        // One without a slot, the nested one and one without brackets.
+        assert!(fails("\\V[0174]"));
+        assert!(fails("\\V[\\V[0173]]"));
+        assert!(fails("\\V173"));
+        assert!(!fails("\\V[173]"));
+    }
+
+    // --- the shared common event bodies -----------------------------------------
+
+    fn common(trigger: i32, switch: Option<i32>, commands: Vec<Command>) -> CommonEvent {
+        CommonEvent {
+            trigger,
+            switch_flag: switch.is_some(),
+            switch_id: switch.unwrap_or(1),
+            commands,
+        }
+    }
+
+    fn call(number: i32) -> Command {
+        cmd(CALL_EVENT, &[0, number, 0], "")
+    }
+
+    fn shared(game: &Game) -> crate::commons::Shared {
+        use crate::messages::{Messages, Window};
+        let indices = Indices::default();
+        let sound = SoundSettings::default();
+        let mut messages = Messages::new(1, Window { columns: 39, lines: 4 });
+        let mut songs = Songs::default();
+        let mut troops = Troops::default();
+        let setting = crate::commons::Setting {
+            game,
+            indices: &indices,
+            sound: &sound,
+            map_index: &|_| None,
+        };
+        let plan = crate::commons::plan(&setting, BTreeSet::new(), &messages, &songs).unwrap();
+        crate::commons::compile(&setting, &plan, &mut messages, &mut songs, &mut troops).unwrap()
+    }
+
+    #[test]
+    fn an_automatic_common_event_calls_the_others_by_index() {
+        // 4 is automatic on switch 30 and calls 2 twice and 3, which does not
+        // compile: 2 is compiled once, and the call to 3 is skipped, as a
+        // pasted call whose body does not compile is. 5 is automatic without
+        // a switch, which is not taken; 6 is called by nobody.
+        let mut game = Game::default();
+        let on = |s: i32| cmd(CONTROL_SWITCHES, &[0, s, s, 0], "");
+        game.common_events.insert(2, common(5, None, vec![on(11)]));
+        game.common_events.insert(3, common(5, None, vec![cmd(LOOP, &[], "")]));
+        game.common_events.insert(4, common(3, Some(30), vec![call(2), call(3), call(2)]));
+        game.common_events.insert(5, common(3, None, vec![on(12)]));
+        game.common_events.insert(6, common(5, None, vec![on(13)]));
+        let s = shared(&game);
+        let numbers: Vec<i32> = s.bodies.iter().map(|(n, _)| *n).collect();
+        assert_eq!(numbers, [2, 4]);
+        assert_eq!(s.bodies[0].1, [OP_SWITCH, 11, 0, 1, OP_RETURN]);
+        assert_eq!(s.bodies[1].1, [OP_CALL, 0, OP_CALL, 0, OP_RETURN]);
+        assert_eq!(s.autostart, [(30, 1)]);
+        assert_eq!(s.depth, Some(2));
+    }
+
+    #[test]
+    fn an_automatic_common_event_that_does_not_compile_has_no_body() {
+        let mut game = Game::default();
+        game.common_events.insert(2, common(5, None, vec![]));
+        game.common_events.insert(4, common(3, Some(30), vec![call(2), cmd(LOOP, &[], "")]));
+        let s = shared(&game);
+        assert!(s.bodies.is_empty());
+        assert!(s.autostart.is_empty());
+    }
+
+    #[test]
+    fn escaping_a_battle_in_a_shared_body_ends_only_its_frame() {
+        // `EndEventProcessing` ends the frame it runs in, not the caller's:
+        // in a shared body the escape goes to an `OP_RETURN`.
+        let mut game = Game::default();
+        for name in BATTLE_AUDIO_SE {
+            game.system_se.insert(name, ("(OFF)".to_string(), 100, 100, 50));
+        }
+        game.common_events.insert(
+            4,
+            common(3, Some(30), vec![cmd(ENEMY_ENCOUNTER, &[0, 7, 0, 1, 1, 0, 0], "")]),
+        );
+        let s = shared(&game);
+        let body = &s.bodies[0].1;
+        assert_eq!(body[0], OP_BATTLE);
+        assert_eq!(body[9], OP_RETURN);
+        assert_eq!(*body.last().unwrap(), OP_RETURN);
+    }
+
+    /// A page of map 5 that calls common events 2 and 3, compiled the way
+    /// the cartridge's are: it may call the shared bodies of `shared`.
+    fn calling(game: &Game, sound: &SoundSettings, shared: &BTreeMap<i32, u8>) -> Vec<u8> {
+        use crate::game::Map;
+        use crate::messages::{Messages, Window};
+        let indices = Indices {
+            variables: BTreeMap::from([(40, 0)]),
+            ..Default::default()
+        };
+        let mut songs = Songs::default();
+        songs.current = Some(Package::Map(0));
+        let mut messages = Messages::new(1, Window { columns: 39, lines: 4 });
+        let mut ctx = Ctx {
+            game,
+            indices: &indices,
+            sound,
+            map_index: &|m| (m == 5).then_some(0),
+            messages: Some(&mut messages),
+            songs: Some(&mut songs),
+            graphics: None,
+            pictures: None,
+            troops: None,
+            commons: None,
+            shared: Some(shared),
+        };
+        let map = Map { id: 5, events: Vec::new() };
+        let me = MapEvents::new(&map, None);
+        compile_page(&mut ctx, &[call(2), call(3)], Some(me), 0, 0).unwrap().unwrap()
+    }
+
+    #[test]
+    fn a_page_calls_a_body_only_if_the_map_changes_nothing_in_it() {
+        // 2 is the same with and without the map: it is called. 3 plays
+        // an effect that on map 5 sounds with another sample, so compiled
+        // with the map it is not the cartridge's body: it is pasted, with
+        // the map's sample. A variable's refresh does not count: see `shares`.
+        let mut game = Game::default();
+        game.common_events.insert(
+            2,
+            common(5, None, vec![cmd(CONTROL_VARS, &[0, 40, 40, 0, 0, 1, 0], "")]),
+        );
+        game.common_events.insert(3, common(5, None, vec![cmd(PLAY_SOUND, &[100, 100, 50], "Thunder")]));
+        let sound = SoundSettings {
+            per_map: vec![("Thunder".into(), 5, "Thunder-5".into())],
+            ..Default::default()
+        };
+        let shared = BTreeMap::from([(2, 0), (3, 1)]);
+        let code = calling(&game, &sound, &shared);
+        assert_eq!(&code[..2], [OP_CALL, 0]);
+        assert_eq!(code[2], OP_SOUND);
+        assert_eq!(*code.last().unwrap(), OP_DONE);
+        // Without the per-map sample, 3 is the same everywhere too.
+        let code = calling(&game, &SoundSettings::default(), &shared);
+        assert_eq!(code, [OP_CALL, 0, OP_CALL, 1, OP_DONE]);
+    }
+
+    #[test]
+    fn calls_that_loop_have_no_depth() {
+        let mut game = Game::default();
+        game.common_events.insert(2, common(5, None, vec![call(4)]));
+        game.common_events.insert(4, common(3, Some(30), vec![call(2)]));
+        let s = shared(&game);
+        assert_eq!(s.bodies.len(), 2);
+        assert_eq!(s.depth, None);
     }
 }

@@ -2739,8 +2739,6 @@
     {"code": "ShowMessage", "string": "EMPUJON 0685 R1 ......................."},
     {"code": "ShowMessage_2", "string": "EMPUJON 0685 R2 ......................."},
     {"code": "ShowMessage_2", "string": "EMPUJON 0685 R3 ......................."},
-    {"code": "ShowMessage_2", "string": "EMP 0685 4 ............................"},
-    {"code": "ShowMessage", "string": "Z1"},
-    {"code": "ShowMessage", "string": "Z2"}
+    {"code": "ShowMessage_2", "string": "EMP 0685 4 ............................"}
   ]
 }

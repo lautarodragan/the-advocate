@@ -161,10 +161,34 @@ fn without_pairs(text: &str) -> String {
     kept.join("\n")
 }
 
+/// The text without the shared common event bodies' tables, which came
+/// after the Python too: a cartridge without bodies carries their two
+/// constants at zero and each table with a dummy entry, checked here.
+fn without_commons(text: &str) -> String {
+    let mut lines: Vec<&str> = text.split('\n').collect();
+    for constant in ["COMMON_DEPTH = 0", "COMAUTO_N = 0"] {
+        let at = lines.iter().position(|l| *l == constant).unwrap();
+        lines.remove(at);
+    }
+    for (label, data) in [
+        ("common_body_lo:", "    .word 0"),
+        ("common_body_bank:", "    .word 0"),
+        ("comauto_byte:", "    .word 0"),
+        ("comauto_mask:", "    .byte 0"),
+        ("comauto_body:", "    .byte 0"),
+    ] {
+        let at = lines.iter().position(|l| *l == label).unwrap();
+        assert_eq!(lines[at + 1], data, "{label}");
+        let from = if at > 0 && lines[at - 1].starts_with(".block ") { at - 1 } else { at };
+        lines.drain(from..at + 2);
+    }
+    lines.join("\n")
+}
+
 #[test]
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
-    let text = without_pairs(&emitted.text);
+    let text = without_commons(&without_pairs(&emitted.text));
     assert_eq!(text.lines().count(), 3300);
     assert_eq!(
         sha(&text),
@@ -175,7 +199,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 #[test]
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
-    let text = without_pairs(&emitted.text);
+    let text = without_commons(&without_pairs(&emitted.text));
     assert_eq!(text.lines().count(), 3419);
     assert_eq!(
         sha(&text),

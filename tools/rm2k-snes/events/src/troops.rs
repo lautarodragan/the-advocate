@@ -335,6 +335,8 @@ impl TroopPages {
                         graphics: None,
                         pictures: None,
                         troops: None,
+                        commons: None,
+                        shared: None,
                     };
                     compile_page(&mut inner, &cmds, None, 0, 0)?
                 }

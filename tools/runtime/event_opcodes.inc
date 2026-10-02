@@ -67,10 +67,12 @@ OP_RESERVED_3B   = $3B
 OP_RESERVED_3C   = $3C
 OP_BIG_SHOW      = $3D
 OP_BIG_MOVE      = $3E
+OP_CALL          = $3F
+OP_RETURN        = $40
 
 ; How many opcodes there are: every number below this one is declared,
 ; so an opcode at or above it is not one, and must not index the table.
-EVENT_OPCODE_COUNT = $3F
+EVENT_OPCODE_COUNT = $41
 
 ; One `.addr` per opcode, in the order of their numbers, to expand where a
 ; `jmp (table, x)` reads it with X = opcode * 2. Each opcode's handler is
@@ -139,4 +141,6 @@ EVENT_OPCODE_COUNT = $3F
     .addr op_reserved_3c       ; $3C
     .addr op_big_show          ; $3D
     .addr op_big_move          ; $3E
+    .addr op_call              ; $3F
+    .addr op_return            ; $40
 .endmacro

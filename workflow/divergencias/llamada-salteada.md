@@ -41,8 +41,8 @@ miraba los comunes. Ahora los mira (`variables`, en los índices de
 cuida `test_despues_de_la_pelea_lerle_vuelve_al_grupo`, en
 `rom/pruebas/rpgmaker/test_sistemas_de_tropa.py`.
 
-Lo que cuesta ahora es espacio: el común entero se copia en cada mapa con
-encuentros, porque `CallEvent` compila en el lugar y no hay llamada a un
-cuerpo compartido. El día que se lo agregó, eso fue un banco de datos más en
-`release`. Si algún día hace falta el lugar, es lo primero que se puede
-compartir.
+Hasta el 2026-10-02 eso costaba espacio: el común entero se copiaba en cada
+mapa con encuentros, porque `CallEvent` compilaba en el lugar. Desde ese día
+la automática lo llama con `OP_CALL` a un cuerpo compartido —ver
+`decisiones/call-event-a-un-cuerpo-compartido.md`—, y está una sola vez en el
+cartucho.

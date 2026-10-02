@@ -583,9 +583,10 @@ args = [
   { name = "window", type = "word" },
 ]
 
-# 0x39 to 0x3C are someone else's, being written in parallel on 2026-10-02:
-# the jump table takes no gaps, so they stand here as placeholders until that
-# merge brings their real names. Nothing emits them.
+# Numbers held for opcodes that other branches are adding at the same time:
+# the dispatch table cannot have gaps, so until those land each one is here
+# and ends the page like an unknown number would. Whoever brings the real
+# opcode replaces its entry.
 [[opcode]]
 name = "OP_RESERVED_39"
 code = 0x39
@@ -644,3 +645,21 @@ args = [
   { name = "wave", type = "byte" },
   { name = "saturation", type = "byte" },
 ]
+
+# `CallEvent` inside a shared common event body: the body `body` —its index
+# among the cartridge's shared bodies— runs, and when it ends the page goes
+# on after this. The interpreter keeps where it was on a short stack; a call
+# with the stack full is skipped.
+[[opcode]]
+name = "OP_CALL"
+code = 0x3F
+args = [
+  { name = "body", type = "byte" },
+]
+
+# The end of a shared body: back to whoever called it or, if nobody did
+# —an automatic common event—, the same as `OP_DONE`.
+[[opcode]]
+name = "OP_RETURN"
+code = 0x40
+args = []

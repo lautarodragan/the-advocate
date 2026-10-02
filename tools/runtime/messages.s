@@ -400,6 +400,7 @@ no_upload:
     ; leave one, and the WRAM does not boot at zero.
     lda #0
     sta f:FAR_MSG_SECOND
+    sta f:MSG_DIGITS_N          ; and no digit of a variable's value either
     lda msg_lines
     and #HEADER_LINES           ; the header also carries the escape queue
     sta temp

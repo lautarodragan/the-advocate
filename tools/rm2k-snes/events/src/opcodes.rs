@@ -67,6 +67,8 @@ pub const OP_RESERVED_3B: u8 = 0x3B;
 pub const OP_RESERVED_3C: u8 = 0x3C;
 pub const OP_BIG_SHOW: u8 = 0x3D;
 pub const OP_BIG_MOVE: u8 = 0x3E;
+pub const OP_CALL: u8 = 0x3F;
+pub const OP_RETURN: u8 = 0x40;
 
 /// How many bytes each fixed-size instruction takes, opcode included.
 /// Derived from the declared arguments; never written down.
@@ -129,6 +131,8 @@ pub const OPCODE_SIZE: &[(u8, usize)] = &[
     (OP_RESERVED_3C, 1),
     (OP_BIG_SHOW, 8),
     (OP_BIG_MOVE, 10),
+    (OP_CALL, 2),
+    (OP_RETURN, 1),
 ];
 
 /// The variable-size ones, as (opcode, base, where the count is, how big

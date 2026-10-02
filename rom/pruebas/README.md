@@ -161,6 +161,13 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `rpgmaker/test_refresco_con_automatica.py`: el refresco de páginas con una
   automática corriendo
 * `rpgmaker/test_compositor.py`: el compositor de texto
+* `rpgmaker/test_variable_en_texto.py`: `\V[n]` en un mensaje, contra el
+  mismo mensaje con los números escritos
+* `rpgmaker/test_consola_portatil.py`: los eventos comunes automáticos y el
+  `CallEvent` compartido, con la portable console del juego: el ítem 81, las
+  flechas, el héroe quieto y el mensaje de Sern con su `\V`
+* `rpgmaker/test_llamada_compartida.py`: una página que llama a un cuerpo
+  compartido sigue después de un salto de mapa en el medio
 
 **El menú de pausa**
 

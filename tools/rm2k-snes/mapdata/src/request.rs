@@ -152,6 +152,10 @@ pub struct Emit {
     /// The common events the menu runs on closing: `[switch, number,
     /// code]`.
     pub party_common: Vec<(i64, i64, String)>,
+    /// The shared common event bodies —the automatic ones and what they
+    /// call—, as the compiler answered them, if any.
+    #[serde(default)]
+    pub commons: Option<Commons>,
     /// What `rm2k-snes-battle model` answered.
     pub battle_model: serde_json::Value,
     /// The compiler's indices: each variable's slot, and each (actor,
@@ -192,6 +196,17 @@ pub struct BigLayer {
     pub tiles: Vec<u8>,
     pub tilemap: Vec<u16>,
     pub palettes: Vec<Vec<Color>>,
+}
+
+/// The shared common event bodies: see `commons.rs` in the event compiler.
+#[derive(Deserialize)]
+pub struct Commons {
+    /// Each body's common event number and its bytecode, by index.
+    pub bodies: Vec<(i64, String)>,
+    /// The automatic ones: the switch and the body's index.
+    pub autostart: Vec<(i64, i64)>,
+    /// The deepest chain of calls, or None if they loop.
+    pub depth: Option<i64>,
 }
 
 #[derive(Deserialize)]
