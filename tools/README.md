@@ -37,7 +37,6 @@ have layers of their own, one folder each:
                  and ld65, for what assembles fine and is wrong
       voodoo/    Voodoo: from an image to tiles, palettes and tilemap
       lz2/       Nintendo's LC_LZ2, with an optimal parser
-      resample/  Pillow's LANCZOS resize, to the bit, as a library
 
     rm2k/        RPG Maker 2000's, knowing nothing of the console
       ditto/     reads and writes its formats; and as a library, the one
@@ -101,9 +100,9 @@ have layers of their own, one folder each:
                  for the screens they compare against
       images/    `rm2k-snes-images`: the pictures —the title and the Game
                  Over, the picture of a `ShowPicture`, the battle's
-                 backdrops, battlers and animations—, scaled with
-                 `resample`, toned and brought down to their palettes with
-                 Adeleine; the converter runs it
+                 backdrops, battlers and animations—, scaled with the
+                 `image` crate, toned and brought down to their palettes
+                 with Adeleine; the converter runs it
       mapdata/   `rm2k-snes-mapdata`: the emission —the cartridge's data
                  `.inc`, written from what every other stage answered—,
                  the LZ2 streams of what the console decompresses, and the

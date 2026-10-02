@@ -24,9 +24,9 @@
 //! because they are numbers of the cartridge that its caller also writes
 //! down for the console, and they are written in one place.
 //!
-//! Every step copies, to the bit, what the converter did in Python until
-//! 2026-09-30 —Pillow's resize and `alpha_composite` included—: the point
-//! is that the cartridge comes out byte for byte the same.
+//! Every step but the scaling copies, to the bit, what the converter did in
+//! Python until 2026-09-30 —Pillow's `alpha_composite` included—. The
+//! scaling did too until 2026-10-02, and is now the `image` crate's.
 
 pub mod animation;
 pub mod background;
