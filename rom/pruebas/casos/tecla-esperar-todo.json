@@ -1,7 +1,0 @@
-{
-  "event_commands": [
-    {"code": "Teleport", "parameters": [5, 39, 34]},
-    {"code": "Wait", "parameters": [5]},
-    {"code": "KeyInputProc", "parameters": [88, 1, 1, 1, 1]}
-  ]
-}

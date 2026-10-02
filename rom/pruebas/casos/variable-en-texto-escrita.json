@@ -1,8 +1,0 @@
-{
-  "event_commands": [
-    {"code": "Teleport", "parameters": [5, 39, 34]},
-    {"code": "ShowMessage", "string": "A-1234B"},
-    {"code": "ShowMessage_2", "string": "-1234 y -1234, son 0"},
-    {"code": "ShowMessage_2", "string": "El 7 vale lo mismo que el siete."}
-  ]
-}

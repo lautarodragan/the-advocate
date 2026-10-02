@@ -1,6 +1,0 @@
-{
-  "event_commands": [
-    {"code": "Teleport", "parameters": [12, 25, 25]},
-    {"code": "ShowPicture", "parameters": [3, 0, 160, 120, 0, 100, 0, 1, 100, 40, 40, 100, 0, 0], "string": "Fortitude"}
-  ]
-}

@@ -1,9 +1,0 @@
-{
-  "event_commands": [
-    {"code": "Teleport", "parameters": [2, 59, 50]},
-    {"code": "PlayBGM", "parameters": [0, 100, 100, 50], "string": "escape_newyork"},
-    {"code": "Wait", "parameters": [80]},
-    {"code": "Teleport", "parameters": [3, 67, 69]},
-    {"code": "PlayBGM", "parameters": [0, 80, 100, 50], "string": "TF3_1_awe"}
-  ]
-}

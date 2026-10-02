@@ -1,6 +1,0 @@
-{
-  "event_commands": [
-    {"code": "Teleport", "parameters": [311, 10, 12]},
-    {"code": "CallEvent", "parameters": [1, 1, 1]}
-  ]
-}

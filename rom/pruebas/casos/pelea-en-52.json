@@ -1,9 +1,0 @@
-{
-  "event_commands": [
-    {"code": "Teleport", "parameters": [52, 250, 20]},
-    {"code": "ChangePartyMembers", "parameters": [1, 0, 10]},
-    {"code": "ChangePartyMembers", "parameters": [0, 0, 11]},
-    {"code": "Wait", "parameters": [3]},
-    {"code": "EnemyEncounter", "parameters": [0, 82, 0, 0, 1, 0]}
-  ]
-}

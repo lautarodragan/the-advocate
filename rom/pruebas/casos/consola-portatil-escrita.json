@@ -1,8 +1,0 @@
-{
-  "event_commands": [
-    {"code": "Teleport", "parameters": [5, 39, 34]},
-    {"code": "ShowMessage", "string": "SERN has 42 enemy souls to spend"},
-    {"code": "ShowMessage_2", "string": "on forging weaponry. Gain more by using"},
-    {"code": "ShowMessage_2", "string": "his LEARN FROM ENEMY ability."}
-  ]
-}

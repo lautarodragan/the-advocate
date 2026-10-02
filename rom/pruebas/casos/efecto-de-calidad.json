@@ -1,8 +1,0 @@
-{
-  "event_commands": [
-    {"code": "Teleport", "parameters": [10, 25, 25]},
-    {"code": "Wait", "parameters": [5]},
-    {"code": "PlaySound", "parameters": [100, 100, 50], "string": "Success2"},
-    {"code": "Wait", "parameters": [30]}
-  ]
-}
