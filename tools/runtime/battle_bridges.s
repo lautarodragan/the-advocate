@@ -260,7 +260,7 @@ ba_t_page:
     sta f:PKG_MAP
     sep #$20
 .a8
-    jsr package_load_done
+    jsl f:package_load_done_l
 ready:
     rts
 .endproc

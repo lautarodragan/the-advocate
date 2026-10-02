@@ -1,4 +1,4 @@
-.segment "CODE"
+.segment "FAR2"
 
 ; --- each map's audio package ------------------------------------------------
 ;
@@ -636,7 +636,7 @@ ready:
     jsl se_extras_mute          ; and those of voices 0 to 5, in the same KOF
     ora #(SE_BIT | SE2_BIT)
     ldx #SE_KOF
-    jsr dsp_pair
+    jsl f:dsp_pair_l
     plp
     rts
 .endproc
@@ -1315,7 +1315,7 @@ missing:
     sta music_off
     lda #$FF
     ldx #SE_KOF
-    jsr dsp_pair                ; all voices release
+    jsl f:dsp_pair_l            ; all voices release
     plp
     lda temp + 1
     sta f:PKG_EXTRA
@@ -1326,3 +1326,32 @@ ready:
     rts
 .endproc
 
+; The four ways in from bank 0, which reaches this bank only with `jsl`.
+; Inside, the four are still called with `jsr`.
+.proc aram_clear_l
+.a8
+.i16
+    jsr aram_clear
+    rtl
+.endproc
+
+.proc package_load_l
+.a8
+.i16
+    jsr package_load
+    rtl
+.endproc
+
+.proc package_load_done_l
+.a8
+.i16
+    jsr package_load_done
+    rtl
+.endproc
+
+.proc song_ensure_l
+.a8
+.i16
+    jsr song_ensure
+    rtl
+.endproc

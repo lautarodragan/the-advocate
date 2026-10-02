@@ -253,7 +253,7 @@ no_track:
     ; the stream pointer outside its table and the ROM mute within ten frames.
     pla
     pha
-    jsr song_ensure             ; that its samples are in the ARAM
+    jsl f:song_ensure_l         ; that its samples are in the ARAM
     pla
     php
     sei

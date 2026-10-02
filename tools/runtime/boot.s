@@ -254,7 +254,7 @@ party_ready:
     jsr se_clear
     jsr music_clear
     jsr turn_clear
-    jsr aram_clear
+    jsl f:aram_clear_l
     jsr battle_anim_clear
     jsl f:pic_clear + FAST      ; RAM starts with garbage
     lda #0
@@ -334,7 +334,7 @@ load:
     ; because the driver was not running yet. See `package_load`.
     lda #1
     sta f:APU_READY
-    jsr package_load
+    jsl f:package_load_l
     jsr music_boot
 
     ; The title image, decompressed to WRAM **before** the wait, which is
