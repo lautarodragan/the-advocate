@@ -39,7 +39,7 @@ Talan—, que no tenían ranura en la partida porque el barrido de variables no
 miraba los comunes. Ahora los mira (`variables`, en los índices de
 `rm2k-snes-events`), y el común compila en el lugar de su `CallEvent`. Lo
 cuida `test_despues_de_la_pelea_lerle_vuelve_al_grupo`, en
-`rom/pruebas/rpgmaker/test_sistemas_de_tropa.py`.
+`pruebas/rpgmaker/test_sistemas_de_tropa.py` de ABL.
 
 Hasta el 2026-10-02 eso costaba espacio: el común entero se copiaba en cada
 mapa con encuentros, porque `CallEvent` compilaba en el lugar. Desde ese día

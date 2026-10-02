@@ -34,7 +34,7 @@ Lo que se decidió, y está comentado ahí:
 # Medido
 
 A cada velocidad el héroe cruza una celda en 64, 32, 16, 8, 4 y 2 cuadros.
-`rom/pruebas/rpgmaker/test_velocidad_con_l_y_r.py` lo mide con el pad: sin
+`pruebas/rpgmaker/test_velocidad_con_l_y_r.py` de ABL lo mide con el pad: sin
 tocar nada, 8; R una vez, 4; dos, 2; cinco, sigue en 2; L una vez, 16; tres,
 64; cinco, sigue en 64. Además: el toque desde el tope, que sigue después de
 un teletransporte, que `ruta-vel` con un agregado de +2 camina sus pasos a 4,

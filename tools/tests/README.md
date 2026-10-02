@@ -7,11 +7,12 @@ The Python ones: the converter, the assembly and the runtime, tested without
 the game. The Rust projects' tests each have their own recipe
 (`bytecode-test`, `ditto-test`…).
 
-**A test goes here if it does not read the game** —neither `ABL_GAME_DIR`,
-nor the RTP—, **nor `rom/data/`, nor `rom/parches/`, nor a built cartridge,
-nor the suite**. Everything it looks at it builds inside, or reads from
-`tools/` and from the runtime. The ones that need any of that belong to A
-Blurred Line's tests, in `rom/pruebas/`, even if they test a tool. A file
+**A test goes here if it does not read a game** —neither its original
+files, nor the RTP—, **nor its dump, nor its patches, nor a built
+cartridge, nor the suite**. Everything it looks at it builds inside, or
+reads from `tools/` and from the runtime. The ones that need any of that
+belong, until the test game exists, to A Blurred Line's tests, in its own
+repo, even if they test a tool. A file
 that mixes both gets split: the two sides of the same topic can have the
 same name, each in its own language, or one that says what it looks at in
 the game.

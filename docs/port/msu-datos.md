@@ -126,7 +126,7 @@ propiedad del formato, más 4 de puntero.
 ## Cuánto tarda
 
 Se mide con `SCN_FRAMES`, que `scene_upload` deja en la RAM al abrir la
-pelea: `rom/pruebas/abl/test_msu_datos.py` arma los dos caminos, y leerlo ahí es
+pelea: `pruebas/abl/test_msu_datos.py` de ABL arma los dos caminos, y leerlo ahí es
 una línea. En snes9x y en bsnes el `.msu` tarda **menos** que la ROM
 —medido en la pelea del droide—: los dos son DMA a la misma velocidad y ahí
 buscar es instantáneo, pero el respaldo lleva un DMA por tile para los planos
@@ -177,13 +177,13 @@ La firma es la misma de los fondos y se mira una vez por encendido, en la
 primera carga de paquete (`se_msu_prepare`, en `tools/runtime/msu_effects.s`).
 Sin firma, los efectos salen de la ROM como siempre. Una búsqueda que no llega
 a tiempo deja ese efecto sin subir: no suena, porque la versión de la ROM
-tiene otra altura. Lo cubre `rom/pruebas/abl/test_msu_efectos.py`, menos esa
+tiene otra altura. Lo cubre `pruebas/abl/test_msu_efectos.py` de ABL, menos esa
 espera, por lo mismo que la de los fondos.
 
 ## Cómo se prueba
 
 La tanda corre sin MSU-1, así que sus goldens de batalla son el respaldo
-liviano. `rom/pruebas/abl/test_msu_datos.py` corre los dos caminos en snes9x y
+liviano. `pruebas/abl/test_msu_datos.py` de ABL corre los dos caminos en snes9x y
 en bsnes y compara **cada uno contra su golden** —`msu-datos-rom` y
 `msu-datos-msu`— y el fondo limpio de la WRAM contra los bytes que arma el
 conversor: el de calidad tal cual y el liviano agrandado a 8bpp y al doble.
@@ -192,7 +192,7 @@ héroe —`msu-mundo-rom`, su respaldo, y `msu-mundo-msu`, el de calidad—, y
 que cada fondo esté en su lugar fijo con los mismos bytes en el `.msu` de
 todos los cartuchos. El reemplazo lo cubre
 `test_escena_una_pelea_cuyo_fondo_no_esta_usa_el_reemplazo`, en
-`rom/pruebas/rpgmaker/test_batalla_escena_dibujo.py`.
+`pruebas/rpgmaker/test_batalla_escena_dibujo.py` de ABL.
 
 **La espera no la cubre la tanda**, porque los tres cores de libretro que
 hay acá buscan en el acto, y el arnés no puede simular la demora: ve la

@@ -32,7 +32,7 @@ ventana del mensaje que abrió la pelea, si está, sí: es una capa del fondo.
 # Medido
 
 `test_la_entrada_tapa_el_mapa_con_el_mosaico_de_la_salida`, en
-`rom/pruebas/rpgmaker/test_fundido_de_pelea.py`, mide el lado de los bloques
+`pruebas/rpgmaker/test_fundido_de_pelea.py` de ABL, mide el lado de los bloques
 en cada cuadro **mirando la pantalla** —en qué columnas cambia el color de
 cada línea— y exige que la bajada del mapa al entrar sea la misma secuencia
 que la de la pelea al salir. Con el fundido daba la entrada vacía.

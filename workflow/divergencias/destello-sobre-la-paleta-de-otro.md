@@ -21,7 +21,7 @@ caso tiene un segundo sprite visible compartiendo la paleta del que destella.
 
 # Cómo se ve hoy
 
-Lo cuida `rom/pruebas/herramientas/test_destello_paleta.py`, que exige que nadie
+Lo cuida `pruebas/herramientas/test_destello_paleta.py` de ABL, que exige que nadie
 comparta la paleta de un líder posible, porque ahí el que filtra es el héroe,
 que está en pantalla todo el tiempo. **Protege al líder y no al que destella**:
 el blanco se decide corriendo y el héroe es el único que se puede saber al

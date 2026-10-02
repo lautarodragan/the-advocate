@@ -32,7 +32,7 @@ Con `AUTOFIRE_FRAMES` en 4 son cuatro cuadros prendido y cuatro apagado:
 constante con nombre para ajustarla jugando; tiene que ser potencia de dos,
 y un `.assert` lo cuida.
 
-Lo cubre `rom/pruebas/rpgmaker/test_autofire.py`: el ritmo cuadro por cuadro,
+Lo cubre `pruebas/rpgmaker/test_autofire.py` de ABL: el ritmo cuadro por cuadro,
 que la A de verdad gane, soltar X en cada una de las ocho fases, y el caso
 `autofire` —cinco mensajes seguidos— cerrado entero con X sostenido y uno
 solo con A sostenido. `test_cores.py` corre el mismo caso en los dos cores.

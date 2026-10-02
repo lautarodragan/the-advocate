@@ -29,7 +29,7 @@ de ABL leían el bytecode; desde ese día ninguna lo lee, y lo cuida
 de este juego. El compilador está en inglés por lo mismo, y su README dice
 qué recibe y qué contesta; el conversor, `rm2k-snes-convert`, lo llama dos
 veces. Hasta el 2026-09-29 era `tools/port/events.py`, cuyas constantes y
-modelos quedaron para las pruebas, en `rom/pruebas/arnes/events.py`. **Un opcode nuevo se declara ahí y en
+modelos quedaron para las pruebas, en `pruebas/arnes/events.py` de ABL. **Un opcode nuevo se declara ahí y en
 ningún otro lado**: antes el número lo elegía el compilador y le llegaba al
 intérprete adentro de `mapdata.inc`, y así dos ramas eligieron el mismo sin que
 git viera nada.
@@ -103,11 +103,11 @@ entere. El porqué de cada mecánica va en el comentario de su rutina.
 | Los eventos dibujados con un tile del chipset | `load_npcs` | `drawable_npcs`; la hoja la dibuja `rm2k-render`, como biblioteca de `wally` |
 | Los que además son opacos y fijos: horneados en el mapa y sin fila que dibujar | `build_oam` saltea la fila escondida | `bakeable_events` |
 | El fundido de los teletransportes, con el mapa cargando adentro del negro | `start_fade`, `fade_tick` | `fade_ramp`, y las constantes `FADE_*` |
-| El tope de teletransportes encadenados | `JUMPS_MAX` y sus usos | lo cobra `rom/pruebas/rpgmaker/test_saltos.py` |
+| El tope de teletransportes encadenados | `JUMPS_MAX` y sus usos | lo cobra `pruebas/rpgmaker/test_saltos.py` de ABL |
 | La pantalla se prende en el vblank y en ningún otro lado | `flush_video` | — |
 | La ventana de mensaje, clavada abajo por HDMA | `build_hdma`, `msg_start`, `msg_ptr_next`, `msg_letter` (los pares del DTE) | `rm2k-snes-screens`, que la arma con `rm2k-render` como biblioteca, y `Messages` en el compilador |
 | El texto compuesto en caliente, con los glifos ya pre-renderizados | `message_tick`, `compose_char`, `prime_line` | `font_prerender` en `rm2k-snes-screens` |
-| El arranque dura siempre lo mismo | `BOOT_FRAMES` | lo corre `Partida` en `rom/pruebas/arnes/consola.py` |
+| El arranque dura siempre lo mismo | `BOOT_FRAMES` | lo corre `Partida` en `pruebas/arnes/consola.py` de ABL |
 | Los cuadros perdidos se cuentan | `count_lost` | los lee `Partida.cuadros_perdidos` de la WRAM |
 | La música no espera al lazo: va en una IRQ vertical | `irq_music`, `IRQ_LINE` | — |
 

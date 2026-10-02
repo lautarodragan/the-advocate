@@ -1,6 +1,0 @@
-{
-  "event_commands": [
-    {"code": "Teleport", "parameters": [6, 50, 50]},
-    {"code": "MoveEvent", "parameters": [10001, 8, 0, 0, 36]}
-  ]
-}

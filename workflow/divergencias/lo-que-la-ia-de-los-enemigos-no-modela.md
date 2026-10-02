@@ -42,7 +42,7 @@ Trash Hauler y el Junkbot de la planta, entre ellos.
 
 Lo cobran `test_la_tropa_es_la_que_se_espera` y
 `test_el_tangle_wire_usa_short_circuit_y_deja_el_hp_del_modelo`, en
-`rom/pruebas/rpgmaker/test_ag7_y_la_planta.py`, y `test_la_pelea_de_la_planta` en
+`pruebas/rpgmaker/test_ag7_y_la_planta.py` de ABL, y `test_la_pelea_de_la_planta` en
 `test_cores.py`.
 
 # Cómo se ve hoy

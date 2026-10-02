@@ -11,19 +11,26 @@ fuentes mejores, y hay que ir a ellas antes que a este archivo:
                      archivo: para no rehacerlas ni contradecirlas
     divergencias/    dónde la ROM no hace lo que RM2k hace, con lo medido
     tasks/wishlist/  lo que nos gustaría hacer y nadie está haciendo
-    rom/justfile     qué se puede correr; los comentarios explican el porqué.
-                     Es el de ABL, y el `justfile` de la raíz sólo lo
-                     importa: `just cartuchos` anda desde la raíz o desde
-                     `rom/`. El de las herramientas es `tools/justfile`, y
-                     se corre con `just -f tools/justfile`
-    README.md        qué es el proyecto, cómo se arma, y los porqués de
+    tools/justfile   qué se puede correr —probar e instalar las
+                     herramientas—; los comentarios explican el porqué. Se
+                     corre con `just -f tools/justfile`, o con `just`
+                     parado en `tools/`
+    README.md        qué es el proyecto, cómo se instala, y los porqués de
                      arquitectura que no tienen línea de código donde vivir
+    tools/README.md  qué hace cada carpeta de `tools/`
     docs/            RM2k, la consola, cómo funciona el port hoy, y los
                      estudios fechados: su README dice qué va en cada carpeta
-    rom/data/        el volcado a JSON; su README lo ve desde adentro
     DITTO.md         qué es Ditto, por qué existe acá y en qué estado está
                      la idea de que los JSON sean la fuente de verdad
     git log          los mensajes son largos a propósito: son el registro
+
+**A Blurred Line no está en este repo.** Desde el 2026-10-02 vive en el
+suyo, con sus datos, sus parches, sus pruebas y sus goldens, y consume
+estas herramientas desde el PATH; la historia de lo que era suyo se quedó
+acá. Dónde está ese repo, y cómo se corre ABL con las herramientas de un
+checkout de éste, en "Dónde corre esto". **Y sus pruebas son, hasta que
+exista el juego de pruebas, las únicas pruebas de ROM del motor**: ver "La
+regla que sostiene todo".
 
 Al empezar, mirar `workflow/tasks/doing/` y `testing/`, que es dónde quedamos. La
 tarea se escribe **mientras se trabaja, no al final**, y al terminar se mueve de
@@ -47,7 +54,7 @@ código no lo lee nadie cuando hace falta.
 32.704 bytes del banco 0, los tiles de 8x8, el color de 15 bits, los 64 KB de
 ARAM: ésos no cambian. **Un número que describe el estado de nuestro trabajo no
 va escrito en ningún lado, va el comando que lo imprime**: cuántos casos
-pasan es `just pruebas`, cuánto pesa el cartucho lo dice el build.
+pasan lo dice la tanda, cuánto pesa el cartucho lo dice el build.
 
 El 2026-09-15 había **tres números distintos para la misma pregunta** —281, 314
 y 332 de 489— en dos archivos, los tres viejos, y el real era 350. Uno de ésos
@@ -185,7 +192,7 @@ la arregla. Qué colores se pierden y cómo se agrupan en paletas lo decide
 Adeleine, `tools/snes/adeleine/` —`wally`, `rm2k-snes-screens`
 y `rm2k-snes-images` lo usan como biblioteca—, que corre
 **antes**; lo que decidió de cada mapa queda como imágenes en
-`rom/build/<cartucho>/adeleine/`. La prueba para saber de qué lado
+`build/<cartucho>/adeleine/`, en el proyecto del juego. La prueba para saber de qué lado
 va algo es si cambia un pixel de lo que se ve.
 
 Es de taro, el 2026-09-17. Voodoo tuvo un `--merge` que fusionaba colores; se
@@ -261,8 +268,14 @@ los renombres sin opciones. Con las de arriba, cada línea de
 mudarse: medido sobre `main.s`, `hero.s`, `interpreter.s`, `battle.s`,
 `registers.s`, `audio_package.s` y `event_opcodes.inc`, cuatro mil
 líneas. Con `data/`, `parches/` y `pruebas/`, que se mudaron adentro de
-`rom/` en el mismo commit, alcanza el `blame` sin opciones: medido sobre
+`rom/` en el mismo commit, alcanzaba el `blame` sin opciones: medido sobre
 `rom/pruebas/arnes/consola.py`.
+
+**Lo de ABL se fue a su propio repo el 2026-10-02, sin historia**: allá
+cada archivo nace en un solo commit. Su `blame` se pide acá, sobre la ruta
+que tenía y en el padre del commit que lo borró —`git blame
+d356bfb7^ -- rom/pruebas/arnes/consola.py`—, y `git log -S` sigue
+encontrando todo lo que pasó antes de esa fecha, de los dos lados.
 
 Los IDE que no dejan pasarle opciones a `blame` —el annotate de JetBrains—
 necesitan configuración del lado del host: ver `docs/jetbrains.md`.
@@ -275,8 +288,18 @@ es contra qué.
 
 Hasta ese día se comparaba contra una **referencia en Python** que hacía lo
 mismo que la ROM. Hoy se compara contra **capturas congeladas** —las goldens de
-`rom/pruebas/golden/tanda/`, que son lo que la ROM dibujaba el día que la tanda
-estaba en verde—. De ahí salen tres obligaciones, y una de ellas es nueva.
+la tanda de ABL, en `pruebas/golden/tanda/` de su repo, que son lo que la ROM
+dibujaba el día que la tanda estaba en verde—. De ahí salen tres
+obligaciones, y una de ellas es nueva.
+
+**Las pruebas de ROM del motor viven en ABL, por ahora.** Se fueron con el
+juego el 2026-10-02, porque necesitan uno, y vuelven a este repo de a poco
+cuando exista el juego de pruebas —la fase 2 de
+`docs/research/2026-10-02-el-juego-de-pruebas.md`—. Hasta entonces **un
+cambio en `tools/` se verifica corriendo la tanda de ABL con las
+herramientas del cambio**, como dice "Dónde corre esto"; `just -f
+tools/justfile test` y las de cada crate no corren ninguna ROM. Es el riesgo
+que el estudio señaló, y es el argumento para no demorar la fase 2.
 
 **Cambiar una golden es un acto deliberado.** Va a git, se mira, y el commit
 explica por qué el render cambió. Si regenerarlas fuera automático, o si la
@@ -290,7 +313,7 @@ recorrido con un tinte pegado**, y dos de ellas **pasaban** —una con 10,3% de
 diferencia bajo un tope del 15%—. Lo que contrapesa esto es que taro juega.
 
 **Y hay una clase de error que ninguna golden puede ver, porque el emulador que
-la sacó tampoco la ve.** Para eso está `rom/pruebas/rpgmaker/test_cores.py`: corre el mismo
+la sacó tampoco la ve.** Para eso está `pruebas/rpgmaker/test_cores.py`, en ABL: corre el mismo
 cartucho en **snes9x y en bsnes** y compara las dos capturas entre sí. bsnes
 arranca la WRAM con basura y snes9x en cero, así que una diferencia significa
 que la ROM depende de memoria sin inicializar. Da rojo **cuatro de cada cinco
@@ -310,14 +333,37 @@ una prueba de tropas leyó el chunk equivocado sin fallar nunca.
 **Decir "verificado" obliga a nombrar qué se corrió.** El commit `c64e4d9`
 decía "Verificado: mapas 7 y 4 en cero" sobre un camino que ninguna prueba
 ejecutaba, y detrás había tres errores encadenados. Si un camino nuevo no lo
-cubre `just pruebas`, el mensaje tiene que decirlo con todas las letras.
+cubre la tanda, el mensaje tiene que decirlo con todas las letras.
 
 ## Dónde corre esto
 
 Adentro de un contenedor de podman que taro levanta con `box`, una función
-suya de nushell: Arch —igual que el host— con el repo montado en
-`/host/abl-sg`. **Los archivos del repo son los de verdad**: lo que se escribe
-acá queda escrito en su disco. El resto del sistema es descartable, y por eso
+suya de nushell: Arch —igual que el host— con este repo montado en
+`/host/abl-snes`. **Los archivos del repo son los de verdad**: lo que se escribe
+acá queda escrito en su disco.
+
+**ABL está en `/shared/abl-snes`**, su propio repo, desde el 2026-10-02.
+`/shared` es una carpeta que el host ve, y es **un CIFS**, con tres
+consecuencias que ya mordieron:
+
+* **no admite symlinks**: `ln -s` da "Operation not supported", así que el
+  `install-local` de las herramientas no puede dejar su `bin/` adentro de
+  ABL;
+* **no guarda bits de ejecución**: todo es 0755 y git lo sabe
+  (`core.filemode=false`), así que un archivo ejecutable nuevo se marca con
+  `git update-index --chmod=+x`;
+* **no distingue mayúsculas** (`core.ignorecase=true`).
+
+**Para correr ABL con las herramientas de un checkout de éste** —un
+worktree que cambia el runtime o el conversor—: `just -f tools/justfile
+install-local tools/.local-tools <proyectos de Rust>` en el worktree, y
+desde ABL `PATH=<worktree>/tools/.local-tools/bin:$PATH just pruebas`. El
+`justfile` de ABL arma su PATH desde el que recibe, y lo que no esté en ese
+`bin/` sale del global. **Pero arma en el `build/` del checkout de ABL donde
+corre**: el de `/shared/abl-snes` es el que se juega y el de la tanda
+principal, así que un agente que lo necesite se saca su propio worktree de
+ABL fuera de `/shared` (`git -C /shared/abl-snes worktree add <dir>`). Eso
+último no se probó todavía. El resto del sistema es descartable, y por eso
 él trabaja en auto mode y no aprueba comando por comando; lo que revisa es el
 `git diff`.
 
@@ -349,13 +395,9 @@ con `--rm --replace`, así que `/tmp` se muere con él y `/extras` no.
 
 Las herramientas llegan a `/extras` y a `/shared` por flags —`--game-dir`,
 `--rtp-dir`, `--soundfont`, `--replacements`, `--shared`—, y no saben de
-ningún valor de esta máquina. Los pone `rom/justfile`, que traduce
-`ABL_GAME_DIR`, `ABL_RTP_DIR`, `ABL_SOUNDFONT` y `SHARED` con los valores de
-acá por omisión, y los exporta para las pruebas; los reemplazos de MSU-1,
-que no tienen variable, son `reemplazos_msu` del mismo archivo. Si el
-ambiente cambia, se cambia ahí. `ABL_CACHE` y `CARTUCHOS` también se
-traducen, pero sin valor de la máquina: el caché y los cartuchos de prueba
-viven adentro de `rom/build/`, y las variables sólo los mueven.
+ningún valor de esta máquina. Los pone el `justfile` de ABL, en su repo, que
+traduce `ABL_GAME_DIR`, `ABL_RTP_DIR`, `ABL_SOUNDFONT` y `SHARED` con los
+valores de acá por omisión. Si el ambiente cambia, se cambia allá.
 
 Las dos pruebas de las herramientas que leen un SoundFont de verdad —las
 de `rm2k-snes-audio`— lo reciben en `SOUNDFONT`, como Ditto su corpus en
@@ -390,7 +432,7 @@ alterado es lo mismo que cobra cualquier regresión: las goldens y
 
 **Los repos de `/extras/ref` están clonados adentro y no son los del host.**
 `liblcf` es de donde sale el esquema de Ditto —y con él los defaults que
-`rom/data/` trae ya aplicados y los nombres de los comandos de RM2k, contra los
+el `data/` de un juego trae ya aplicados y los nombres de los comandos de RM2k, contra los
 que se sostiene `codes.rs` del compilador de eventos—: salen de ahí y de ningún
 otro lado, porque la primera versión del filtro de puertas los puso de memoria
 y tres estaban mal. Si hace
@@ -398,7 +440,7 @@ falta algo que no se consigue desde acá, se le pide a taro que lo copie a
 `/extras`.
 
 El host y el contenedor son casi simétricos a propósito, así que un comando
-que se le pida a taro —`mednafen rom/build/release/abl.sfc`, una
+que se le pida a taro —`mednafen build/release/abl.sfc` en ABL, una
 receta de `just`— suele valer tal cual de los dos lados. Las versiones pueden driftear, porque
 los paquetes no se comparten.
 
@@ -438,7 +480,7 @@ avisar: la ROM saldría con los datos de otro. Hasta el 2026-09-16 la receta
 `convert` escribía justo ahí —en `rom/src/`, donde vivía el runtime hasta el
 2026-09-29; era "estado global", y así se terminó mirando el
 mapa 6 creyendo que era la demo del hito 12—; hoy cada cartucho escribe el suyo
-en su directorio de `rom/build/`, y `rm2k-snes-assemble` se niega a armar si
+en su directorio del `build/` del proyecto, y `rm2k-snes-assemble` se niega a armar si
 encuentra uno en `tools/runtime/`. **Las
 ROMs salen de una receta, no de un `ca65` suelto.**
 
@@ -456,7 +498,7 @@ apretado cambia, y dos veces quedó
 escrito acá y se quedó viejo: **no se escribe, se mide**, y hay que medirlos
 todos: `abl` y los que arma `cartuchos`.
 
-**Se mide con `just espacio`**, que imprime para cada cartucho los bancos de
+**Se mide con `just espacio`, en ABL**, que corre `rm2k-snes-space` e imprime para cada cartucho los bancos de
 datos libres y los huecos, el banco 0, el banco 1, `BSS`, `ZEROPAGE` y el
 bloque de textos; con la ruta de una ROM armada aparte, mide ésa. Lo que
 cuenta es **cuántos bancos quedan**, no un porcentaje: los bancos `$7E` y
@@ -464,25 +506,27 @@ cuenta es **cuántos bancos quedan**, no un porcentaje: los bancos `$7E` y
 contra el `.o` de la receta; eso sigue sirviendo para lo único que la receta
 no puede, que es una ROM que no linkea: ahí `ld65` dice por cuánto se pasa.
 
-**`rom/build/cache/` es un caché en disco** —qué pistas de MSU-1 ya están—
+**`build/cache/`, en el proyecto, es un caché en disco** —qué pistas de MSU-1 ya están—
 y su clave lleva el hash de los fuentes **y el de los binarios que producen lo
 guardado**, así que no hay que borrarlo al tocar código. Lo único que pide es
 que cualquier cambio en lo que se cachea se verifique con `NO_CACHE=1`: las
 dos ROMs tienen que ser byte por byte iguales. Ver `cache.rs` en
 `rm2k-project`.
 
-**Mientras corren las pruebas no se toca ningún fuente.** La huella de
-`rm2k-snes-cartridges` cubre todo `tools/runtime/`, los `.py` de `tools/` y
-los binarios que arman —`ca65`, `ld65`, `rm2k-snes-assemble` y los que corre
-el conversor—: tocar cualquiera de ésos a mitad de una corrida, o reinstalar
-uno, mezcla dos versiones y el resultado no dice nada.
+**Mientras corren las pruebas no se toca ningún fuente**, tampoco desde el
+otro repo. La huella de `rm2k-snes-cartridges` cubre todo `tools/runtime/`
+del checkout desde el que se instalaron las herramientas, los `.py` de
+`tools/` y los binarios que arman —`ca65`, `ld65`, `rm2k-snes-assemble` y
+los que corre el conversor—: tocar cualquiera de ésos mientras corre la
+tanda de ABL, o reinstalar uno, mezcla dos versiones y el resultado no dice
+nada.
 
 Lo que **ya no hace falta** es aislarse en un worktree para eso. Hasta el
 2026-09-16 existía `just hitos-foto`, que sacaba una foto del árbol con
 `git stash create` porque la tanda corría recetas que pisaban
 `rom/src/mapdata.inc` —el runtime vivía ahí—, que entonces era estado global. Desde el 9f las
 pruebas no arman nada: corren contra los cartuchos que arma `just cartuchos`
-antes —`release` y los de `rom/build/tests/`—, y el arnés se
+antes —`release` y los de `build/tests/`—, y el arnés se
 niega a correr contra uno viejo. Dos corridas a la vez sólo se pisan si las
 dos encuentran un cartucho viejo y lo rearman juntas: con `just cartuchos`
 corrido una vez antes, lo único que se pelean es la CPU.
@@ -511,9 +555,10 @@ Siempre con `isolation: "worktree"`: cada uno en su copia, así el `mapdata.inc`
 
 Lo que hay que hacer siempre:
 
-* **Traer los builds a `/shared`, con `just entregar "<qué mirar>"`.** Los
-  worktrees viven en `/extras`, que no está montado en el host, y `/shared`
-  sí: es donde taro los encuentra. Van a `/shared/builds/<fecha>-<commit>/`, y
+* **Traer los builds a `/shared`, con `just entregar "<qué mirar>"`, desde
+  ABL.** Los worktrees viven en `/extras`, que no está montado en el host, y
+  `/shared` sí: es donde taro los encuentra. Van a
+  `/shared/builds/<fecha>-<commit de ABL>-<commit de las herramientas>/`, y
   el texto que se le pasa a la receta va al `LEEME.txt`: qué cambió, qué
   mirar y con qué limitaciones se chocó. Hasta el 2026-09-24 iban a
   `pruebas-manuales/`, adentro del repo, y hasta el 2026-09-25 se armaban a
@@ -574,7 +619,7 @@ Lo que hay que hacer siempre:
   tardan, y matarlas por impaciencia arruina la corrida.
 * **Repartirles los números de antemano.** Todo lo que se elige tomando "el
   siguiente libre" —un opcode, un índice en una tupla de
-  `rom/pruebas/*/test_*_golden.py`, una dirección de la RAM lejana— lo va a elegir cada agente
+  `pruebas/*/test_*_golden.py` de ABL, una dirección de la RAM lejana— lo va a elegir cada agente
   mirando su copia, y dos van a elegir el mismo sin que git vea nada. Sale más
   barato decirle a cada uno cuál le toca al lanzarlo que descubrirlo mergeando:
   el 2026-09-13 pasó con las tres cosas a la vez, y una colisión de opcodes
@@ -584,22 +629,18 @@ Lo que hay que hacer siempre:
   nombre obvio: el 2026-09-15 dos escribieron un `comparar.sh` cada uno en el
   mismo lugar. Uno pisa al otro y el pisado no se entera. `<scratchpad>/<lo que
   hace>/…` alcanza.
-* **Que corra `just -f tools/justfile install-local
-  rom/.herramientas-locales` al empezar**, desde la raíz del worktree. El
-  global —`just -f tools/justfile install`— apunta al checkout
-  principal, y sus scripts arman en el `rom/build/` de ése: por eso, en un
-  worktree sin su `bin/`, las recetas que corren herramientas —`cartuchos`,
-  `pruebas`, `build`…— **se niegan** y dan el comando entero, con rutas
-  absolutas. Arma un `bin/` en el destino con los scripts de Python, y
-  `rom/justfile` lo pone adelante en el PATH. **El destino es obligatorio**
-  porque ninguno de los dos lados sabe dónde vive el otro: `rom/justfile`
-  busca el suyo en `rom/`, y `tools/justfile` el suyo en `tools/`, que es
-  el que usan sus recetas. **Un proyecto de Rust se le pasa sólo si el
-  agente lo va a modificar** —`… install-local
-  rom/.herramientas-locales lz2`—: compilar cuesta, y sin nombres no
-  compila nada. Y **todo se corre por `just`**: un comando suelto no ve ese
-  `bin/` y usa el global. Es de taro, el 2026-09-29, y reemplazó a un
-  re-exec implícito que los scripts hacían solos.
+* **Que corra `just -f tools/justfile install-local tools/.local-tools`
+  al empezar, si va a modificar las herramientas**, desde la raíz del
+  worktree. El global —`just -f tools/justfile install`— apunta al
+  checkout principal, y arma un `bin/` en el destino con los scripts de
+  Python —hoy sólo `rm2k-snes-python-path`— y los proyectos de Rust que se
+  le nombren; `tools/justfile` lo pone adelante en el PATH de sus recetas, y
+  ABL lo usa si se le pone adelante en el suyo (ver "Dónde corre esto").
+  **Un proyecto de Rust se le pasa sólo si el agente lo va a modificar**
+  —`… install-local tools/.local-tools lz2`—: compilar cuesta, y sin
+  nombres no compila nada. Y **todo se corre por `just`**: un comando
+  suelto no ve ese `bin/` y usa el global. Es de taro, el 2026-09-29, y
+  reemplazó a un re-exec implícito que los scripts hacían solos.
 * **Pedirle que no deje nada esperando cuando termina.** Un sub-agente puede
   lanzar los suyos, y ésos **no aparecen** en la lista del que los mandó. 
   Lo mismo con los `sleep` largos para esperar
@@ -652,8 +693,9 @@ haya resuelto mal otro.
 
 Así que al mergear una rama de sub-agente:
 
-* **Correr `just pruebas` y la tanda sobre el árbol mergeado**, no sobre las
-  ramas. Que cada una viniera en verde no dice nada del merge.
+* **Correr `just -f tools/justfile test` y la tanda de ABL sobre el árbol
+  mergeado**, con las herramientas del merge instaladas, no sobre las ramas.
+  Que cada una viniera en verde no dice nada del merge.
 * **Reinstalar en el global sólo lo de Rust que la rama tocó**: `just -f
   tools/justfile install lz2`, desde el checkout principal, que rearma de
   paso los symlinks de Python. Lo de Python no hace falta reinstalarlo si la
@@ -724,10 +766,10 @@ que eran:
 
 El arreglo es siempre el mismo: un `cmp #0` explícito entre el `pl*` y el salto.
 Desde el 2026-10-02 lo busca Goombario —`tools/snes/goombario/`— sobre cada
-cartucho armado, en `rom/pruebas/herramientas/test_linter.py`: un salto
+cartucho armado, en `pruebas/herramientas/test_linter.py` de ABL: un salto
 condicional sobre una bandera que dejó un `pl*` es rojo, salvo los que miran
-a propósito lo que se sacó, que están en `rom/excepciones-del-linter.txt` con
-su porqué. Uno nuevo de ésos va ahí, diciendo qué es lo sacado.
+a propósito lo que se sacó, que están en `excepciones-del-linter.txt` de ABL,
+con su porqué. Uno nuevo de ésos va ahí, diciendo qué es lo sacado.
 
 ## Git
 

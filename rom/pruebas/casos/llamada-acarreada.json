@@ -1,7 +1,0 @@
-{
-  "event_commands": [
-    {"code": "Teleport", "parameters": [5, 39, 34]},
-    {"code": "CallEvent", "parameters": [0, 43, 0]},
-    {"code": "ControlSwitches", "parameters": [0, 753, 753, 0]}
-  ]
-}

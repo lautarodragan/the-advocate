@@ -45,7 +45,7 @@ de vuelta en Sorbe (la 5 del 6 del 81). En el juego entero la piden 15
 páginas; las que usan el corte para mostrar o el 7 (de los bordes al centro)
 están en mapas que no entran.
 
-Lo cubren `test_transicion` en `rom/pruebas/rpgmaker/test_comandos_golden.py`
+Lo cubren `test_transicion` en `pruebas/rpgmaker/test_comandos_golden.py` de ABL
 —goldens a mitad del mosaico y a mitad del zoom—, `test_borrar_con_el_corte`
 en el mismo archivo —el brillo en cero y el mapa cargado en el primer tick del
 fundido, contra la rampa entera del fundido—, el mosaico y el zoom también en
