@@ -2,7 +2,7 @@
 name: "Un linter de 65816, en Rust"
 description: "Chequeos de trampas comunes que ensamblan bien pero están mal: pl* antes de un salto condicional, jsl/rtl contra jsr/rts, la pila desbalanceada, y el ancho de los registros como estudio; una herramienta de tools/ que no sabe de ABL, con las excepciones del juego en rom/"
 type: feature
-assignee: Carpintero
+assignee: taro
 ---
 
 De taro, el 2026-10-02: "¿hay equivalentes a linters, formatters u otras
@@ -115,3 +115,28 @@ o de una llamada que vuelve con anchos distintos según el camino. Cero
 falsos positivos después de lo de las macros —sus `.a8` de adentro, y los
 `.repeat` adentro de una macro, que el `.dbg` no marca como de macro—, así
 que va como chequeo y no como estudio.
+
+## Los números
+
+`just pruebas`: 1008 (1005 + los tres cartuchos de `test_linter.py`).
+`just -f tools/justfile test`: 39. `cargo test -p goombario`: 5 + 8.
+`abl.sfc` de `release`: `35c76500…`, el de la base: `NO_CACHE=1 just
+cartuchos` antes y después de las declaraciones, y `just cartuchos` al final,
+con los tres `.sfc` y los tres `.msu` byte por byte iguales. Ninguna golden se
+movió. `main` no se movió mientras tanto (`a6ba9693`): no hubo nada que
+mergear.
+
+## Lo que queda
+
+* El chequeo de `pull-branch` no sabe distinguir el salto que mira lo sacado
+  a propósito del que quería mirar lo de antes: eso lo dice la excepción.
+* Un bucle que empuja deja sin revisar la pila de toda su rutina (hoy dos).
+* Una rutina que vuelve con N/Z de un `pl*` y un llamador que salta sobre eso
+  después del `jsr` no se mira: el chequeo 1 no cruza llamadas.
+
+## Al mergear
+
+**Instalar `goombario` en el global**: `just -f tools/justfile install
+goombario`, desde el checkout principal. Sin eso `test_linter.py` no
+encuentra el ejecutable. Nada más: `cartridge` se instaló en el `bin/` local
+sólo para armar con el runtime del worktree, y no cambió.
