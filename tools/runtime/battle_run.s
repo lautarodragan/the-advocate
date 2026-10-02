@@ -78,7 +78,7 @@ no_page_start:
     lda #0
     sta f:INIDISP
     jsr scene_on
-    jsr battle_fade_showing
+    jsl f:battle_fade_showing
     lda #1
     sta menu_open
 

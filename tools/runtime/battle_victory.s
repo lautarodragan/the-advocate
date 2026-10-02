@@ -78,7 +78,7 @@ recorded:
     sep #$20
 .a8
     stz comp_or01 + 2
-    jsr gold_add
+    jsl f:gold_add
 ready:
     rts
 .endproc

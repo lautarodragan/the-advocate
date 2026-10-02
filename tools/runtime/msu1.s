@@ -318,3 +318,19 @@ no:
     lda #0
     rts
 .endproc
+
+; `msu_data_seek` and `msu_data_valid` for the battle scene, which lives in
+; another bank —`FAR2`— and cannot reach them with `jsr`. They stay here and
+; not there because `msu_effects.s` calls them too.
+.proc msu_data_seek_l
+.a16
+    jsr msu_data_seek
+.a8
+    rtl
+.endproc
+
+.proc msu_data_valid_l
+.a8
+    jsr msu_data_valid
+    rtl
+.endproc

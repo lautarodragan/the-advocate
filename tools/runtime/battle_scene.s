@@ -737,7 +737,7 @@ has_scene:
     lda SCN_BACKDROP
     cmp #$FF
     beq no_msu                  ; the plain one is not read from anywhere
-    jsr msu_data_valid
+    jsl f:msu_data_valid_l
     sta SCN_MSU
 no_msu:
 
@@ -1057,7 +1057,7 @@ has:
     lda f:msu_backdrop_pos + 6, x
     tay
     lda f:msu_backdrop_pos + 4, x
-    jsr msu_data_seek
+    jsl f:msu_data_seek_l
 .a8
     bcs no_found
     rep #$20
@@ -1184,7 +1184,7 @@ with_backdrop:
     lda f:msu_backdrop_pos + 2, x
     tay
     lda f:msu_backdrop_pos, x
-    jsr msu_data_seek
+    jsl f:msu_data_seek_l
 .a8
     bcs no_found
     rep #$20

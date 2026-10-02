@@ -996,7 +996,8 @@ maximum:
 ; `MaxExpValue()` and levels up while it is enough. An actor with no
 ; experience slot gains nothing. Runs with the data bank at $7E, like the
 ; whole battle. Clobbers A, X, Y, `BA_T0` and `BA_T2`; `BA_T1` stays as it
-; was, so whoever hands it out can add it to several.
+; was, so whoever hands it out can add it to several. With `jsl`: the battle
+; that calls it lives in another bank.
 ;
 ; And for each level gained, `LearnLevelSkills` for that level: see
 ; `learn_from_level`.
@@ -1012,7 +1013,7 @@ maximum:
     lda f:actor_exp_k, x
     cmp #$FF
     bne has
-    rts
+    rtl
 has:
     phx                         ; the actor, for what it learns on leveling up
     rep #$20
@@ -1110,7 +1111,7 @@ uploads:
     bra upload
 ready:
     plx
-    rts
+    rtl
 .endproc
 
 ; `LearnLevelSkills` for a single level, A, for actor Y: sets in `FAR_SKILL` the

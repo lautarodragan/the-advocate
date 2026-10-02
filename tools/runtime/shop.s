@@ -919,7 +919,7 @@ sum:
     rts
 sell:
     ; --- sell: the gold goes up, capped at GOLD_MAX, and the items go down ---
-    jsr gold_add
+    jsl f:gold_add
     lda comp_color
     rep #$20
 .a16
@@ -940,7 +940,8 @@ removes:
 
 ; `gold` plus the 24 bits of `comp_or01`, capped at GOLD_MAX: the adding half of
 ; `Game_Party::GainGold`. The shop's selling and the victory use it
-; —`ba_vic_start`—; `op_gold` has its own because it lives in bank 0.
+; —`ba_vic_start`—; `op_gold` has its own because it lives in bank 0. With
+; `jsl`: the victory lives in another bank.
 .proc gold_add
 .a8
 .i16
@@ -976,7 +977,7 @@ cap:
     lda #^GOLD_MAX
     sta gold + 2
 ready:
-    rts
+    rtl
 .endproc
 
 ; The selling list: the inventory the ROM knows, in `FAR_ITEM_LIST`.
