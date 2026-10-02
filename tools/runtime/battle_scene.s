@@ -1256,8 +1256,9 @@ tile:
 ; written on two rows —the small row, doubled vertically— and into both
 ; buffers.
 ;
-; It is entered with `jsl` through the fast mirror, and runs with the data
-; bank at $7F, so the buffers go with `a:`.
+; It is entered with `jsl` —from when the battle ran from bank 1's slow
+; copy and this went through the fast mirror— and runs with the data bank at
+; $7F, so the buffers go with `a:`.
 .proc scn_double
 .a8
 .i16

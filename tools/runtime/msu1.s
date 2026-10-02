@@ -233,9 +233,10 @@ no:
 ; backgrounds, and **the ROM still carries its own**: this replaces them only
 ; if there is an MSU-1 and the `.msu` is this cartridge's.
 ;
-; It goes in bank 1 because it is called by the battle scene, which runs there
-; with the data bank at $7E: that is why every register goes through `f:`. A
-; bare `lda $2000` would read WRAM.
+; It goes in bank 1 because it is called by the battle scene, which runs with
+; the data bank at $7E: that is why every register goes through `f:`. A bare
+; `lda $2000` would read WRAM. The scene now lives in `FAR2`, and reaches
+; these through `msu_data_seek_l` and `msu_data_valid_l`.
 MSU_SEEK    = $2000             ; write: the position, four bytes
 MSU_DATA    = $2001             ; read: the next byte
 .segment "FAR"

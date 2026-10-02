@@ -941,7 +941,7 @@ removes:
 ; `gold` plus the 24 bits of `comp_or01`, capped at GOLD_MAX: the adding half of
 ; `Game_Party::GainGold`. The shop's selling and the victory use it
 ; —`ba_vic_start`—; `op_gold` has its own because it lives in bank 0. With
-; `jsl`: the victory lives in another bank.
+; `jsl`: the victory lives in `FAR2`.
 .proc gold_add
 .a8
 .i16

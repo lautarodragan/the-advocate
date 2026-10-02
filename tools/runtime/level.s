@@ -997,7 +997,7 @@ maximum:
 ; experience slot gains nothing. Runs with the data bank at $7E, like the
 ; whole battle. Clobbers A, X, Y, `BA_T0` and `BA_T2`; `BA_T1` stays as it
 ; was, so whoever hands it out can add it to several. With `jsl`: the battle
-; that calls it lives in another bank.
+; that calls it lives in `FAR2`.
 ;
 ; And for each level gained, `LearnLevelSkills` for that level: see
 ; `learn_from_level`.
