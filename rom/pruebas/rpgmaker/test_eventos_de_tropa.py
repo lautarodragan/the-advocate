@@ -24,12 +24,15 @@ los mensajes de cada página, con un recorrido que no comparte nada con el
 compilador.
 """
 
+import json
+import os
+
 import conversor
 import events
 
 from batalla import (Pelea, mensaje_en_pantalla, modelo_de, paginas,
                      primera_pagina)
-from consola import en_la_rom
+from consola import en_la_rom, en_la_wram
 import datos
 import modelo
 
@@ -290,40 +293,70 @@ def test_el_despegue_sale_en_el_turno_uno_con_su_sacudida(partida):
     assert turno_contando(una, pelea, [("defender",)]) == []
 
 
-def test_el_despegue_pide_su_efecto(partida):
-    """El `PlaySound` del despegue se compila: el primer opcode de la página
-    es el OP_SOUND del `Thunder9` a 60 de volumen y 50 de tempo. Que suene
-    depende de que esté en el paquete de la pelea —ver
-    `troop_effects_in_package` en el archivo de proyecto—; lo que se cobra
-    acá es que la página lo pida."""
+def _voces(una):
+    """(cuadros que le quedan, muestra) de cada una de las dos voces de
+    efectos: ver `test_sonido_en_ruta.py`."""
+    voces = []
+    for cuadros, nuevo in (("SE_FRAMES", "SE_NEW"),
+                           ("SE2_FRAMES", "SE2_NEW")):
+        c = una.consola.ram(en_la_wram(una.simbolos[cuadros]), 2)
+        n = una.consola.ram(en_la_wram(una.simbolos[nuevo]), 1)
+        voces.append((c[0] | (c[1] << 8), n[0]))
+    return voces
+
+
+def test_el_despegue_toca_su_efecto(partida):
+    """El `PlaySound` del despegue suena: el `Thunder9` a 60 de volumen y 50
+    de tempo, en el turno 1, antes de que la sacudida termine. Que esté en
+    el paquete de la pelea lo pide el archivo de proyecto
+    —`troop_effects_in_package`—; que la página lo pida y que el índice
+    sea el de ese efecto es lo que se cobra acá.
+
+    Hasta el 2026-10-02 esto leía el bytecode de la página de tropa en la
+    ROM y buscaba el opcode del efecto con su índice. Ahora se oye: arranca
+    una voz con la muestra y los cuadros de la fila de `sound_table` del
+    `Thunder9`, que se busca por `efectos.json`, como en
+    `test_sonido_en_ruta.py`."""
     base = datos.base()
     una = partida(caso="pelea-102")
-    s = una.simbolos
-    with open(una.sfc, "rb") as archivo:
-        rom = archivo.read()
-
-    def palabra(simbolo, k):
-        i = en_la_rom(s[simbolo]) + 2 * k
-        return rom[i] | rom[i + 1] << 8
-
-    tropas = [palabra("troop_id", k) for k in range(80)]
-    k = tropas.index(TROPA_AGENTES)
-    ini, n = palabra("troop_page_init", k), rom[en_la_rom(s["troop_page_n"]) + k]
-    con_turno = [j for j in range(ini, ini + n)
-                 if rom[en_la_rom(s["tpage_flags"]) + j] & s["TPAGE_TURN"]]
-    codigos = []
-    for j in con_turno:
-        ofs = palabra("tpage_code", j) - (s["troop_code"] & 0xFFFF)
-        codigos.append(rom[en_la_rom(s["troop_code"]) + ofs:][:3])
-    import json
-    import os
-    with open(os.path.join(os.path.dirname(una.sfc), "efectos.json")) as f:
-        sonidos = [tuple(x) for x in json.load(f)["sonidos"]]
     p = [c for c in la_pagina_del_despegue(base).commands
          if c.code == events.PLAY_SOUND][0]
+    with open(os.path.join(os.path.dirname(una.sfc), "efectos.json")) as f:
+        sonidos = [tuple(x) for x in json.load(f)["sonidos"]]
     trueno = sonidos.index((p.string, p.parameters[0], p.parameters[1],
                             p.parameters[2]))
-    assert bytes([events.OP_SOUND, trueno & 0xFF, trueno >> 8]) in codigos
+    with open(una.sfc, "rb") as archivo:
+        rom = archivo.read()
+    fila = rom[en_la_rom(una.simbolos["sound_table"]) + 7 * trueno:][:7]
+    muestra, dura = fila[0], fila[5] | (fila[6] << 8)
+
+    pelea = a_la_pelea(una)
+    arrancaron = []
+    antes = _voces(una)
+
+    def mirar():
+        nonlocal antes
+        ahora = _voces(una)
+        arrancaron.extend((m1, c1) for (c0, _), (c1, m1) in zip(antes, ahora)
+                          if c1 > c0)
+        antes = ahora
+
+    # La página corre apenas se dan las órdenes, así que el efecto arranca
+    # adentro de `ordenar`, y cuando se lo ve ya corrió unos cuadros: por
+    # eso el tope de abajo es la mitad y no la duración entera. Lo que
+    # descarta es otro efecto con la misma muestra.
+    pelea.ordenar(("defender",))
+    mirar()
+    for _ in range(400):
+        if pelea.palabra(una.simbolos["BA_PAGE_MSG"]) != 0xFFFF:
+            break
+        una.consola.run(1)
+        mirar()
+    assert pelea.modo() == "PAGE", "la página del despegue no llegó a hablar"
+    assert any(m == muestra and dura // 2 < c <= dura
+               for m, c in arrancaron), (
+        "la página del despegue pide %s (muestra %d, %d cuadros) y antes de "
+        "su mensaje arrancaron %s" % (p.string, muestra, dura, arrancaron))
 
 
 # --- el turno con múltiplo --------------------------------------------------

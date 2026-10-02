@@ -37,6 +37,7 @@ está: ésos se van cuando se separen las pruebas.
 
 import os
 import re
+import tokenize
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__))))
@@ -182,3 +183,42 @@ def test_las_pruebas_nuevas_no_nombran_tools():
     assert not limpias, (
         "estos ya no nombran tools/ —o no existen—: sacalos de "
         "PRUEBAS_QUE_TODAVIA_NOMBRAN_TOOLS: %s" % ", ".join(limpias))
+
+
+# --- los números del bytecode ----------------------------------------------
+#
+# El bytecode de eventos y el stream de música son el formato del motor, no
+# de ABL —ver `workflow/decisiones/rm2k-plus.md`—: agregar una feature es
+# sumar opcodes, y los números se mueven del otro lado. Así que ningún `.py`
+# de este lado nombra un opcode **en código**: ni `OP_…`, ni el largo de uno,
+# ni el módulo que los traía. En un comentario o en una docstring, sí: ahí
+# es un nombre para el que lee.
+#
+# Desde el 2026-10-02. Hasta ese día las pruebas tenían
+# `arnes/event_opcodes.py`, generado de la declaración, y con él armaban o
+# revisaban bytecode: las que revisaban lo que compiló pasaron a pruebas del
+# compilador, y las demás le preguntan a la ROM armada o la miran correr.
+# Lo que una prueba necesite del bytecode se lo pregunta a un ejecutable
+# —`rm2k-snes-audio decode`, por ejemplo— o a los símbolos del cartucho.
+
+NOMBRA_UN_OPCODE = re.compile(r"^(OP_\w+|OPCODE_SIZE|opcode_size|event_opcodes)$")
+
+
+def _opcodes_en_codigo(relativo):
+    """[(línea, nombre)] de cada nombre de opcode que aparece en el código
+    del archivo: los tokens de nombre, no los comentarios ni los strings."""
+    with open(os.path.join(RAIZ, relativo), "rb") as f:
+        return [(t.start[0], t.string) for t in tokenize.tokenize(f.readline)
+                if t.type == tokenize.NAME and NOMBRA_UN_OPCODE.match(t.string)]
+
+
+def test_ningun_py_de_abl_nombra_un_opcode_en_codigo():
+    malos = ["%s:%d %s" % (r, linea, nombre)
+             for r in _archivos("pruebas", "parches", "data")
+             if r.endswith(".py")
+             for linea, nombre in _opcodes_en_codigo(r)]
+    assert not malos, (
+        "estos .py nombran un opcode en código, y los números del bytecode "
+        "son del motor: lo que compila una página se prueba en el "
+        "compilador, y lo que la ROM hace con eso se mira corriéndola.\n"
+        + "\n".join(malos))
