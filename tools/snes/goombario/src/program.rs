@@ -59,6 +59,22 @@ struct RawSpan {
     data: bool,
 }
 
+/// The directives that put bytes in a segment and are not instructions.
+const DATA_DIRECTIVES: &[&str] = &[
+    ".byte", ".byt", ".db", ".word", ".dbyt", ".addr", ".dw", ".faraddr", ".dword", ".res",
+    ".align", ".incbin", ".asciiz", ".lobytes", ".hibytes", ".bankbytes", ".tag",
+];
+
+fn is_data_directive(text: &str) -> bool {
+    // Past a label, if the line has one.
+    let text = match text.split_once(':') {
+        Some((label, rest)) if !label.contains(char::is_whitespace) && !rest.starts_with(':') => rest,
+        _ => text,
+    };
+    let first = text.split_whitespace().next().unwrap_or("").to_ascii_lowercase();
+    DATA_DIRECTIVES.contains(&first.as_str())
+}
+
 impl Program {
     pub fn load(rom: Vec<u8>, info: &DebugInfo, root: &Path) -> Program {
         let mut segments: Vec<Segment> = info
@@ -69,8 +85,15 @@ impl Program {
             .collect();
         segments.sort_by_key(|s| s.start);
         let declared = source::declared(info, root);
+        let mut texts = source::Texts::new(root);
         let mut spans = Vec::new();
         for (&id, line) in &info.lines {
+            // Not every piece of data gets a type in the debug file: `.res`,
+            // `.align` and `.dword` do not. The directive on the line says.
+            let directive = match info.files.get(&line.file) {
+                Some(name) => is_data_directive(&texts.line(name, line.line)),
+                None => false,
+            };
             for span_id in &line.spans {
                 let Some(span) = info.spans.get(span_id) else { continue };
                 let Some(seg) = info.segments.get(&span.seg) else { continue };
@@ -84,7 +107,7 @@ impl Program {
                     size: span.size,
                     line: id,
                     in_macro: line.in_macro || declared.macro_lines.contains_key(&(line.file, line.line)),
-                    data: span.data,
+                    data: span.data || directive,
                 });
             }
         }

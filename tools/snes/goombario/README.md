@@ -19,7 +19,8 @@ need `ca65` and `ld65` on the PATH; without them they are skipped, saying so.
 debug file says, for each source line, where its bytes went: so an
 instruction is read from the ROM where its line put it, and nothing is
 disassembled by guessing where instructions start. A span with a type is
-data; a macro's expansion comes with a line per instruction; a `.repeat`,
+data, and so is one from a line with a data directive —`.res`, `.align`
+and `.dword`, among others, get no type—; a macro's expansion comes with a line per instruction; a `.repeat`,
 which has no lines of its own, is decoded from the start of its span with the
 widths that make it end exactly where the span ends. A span that cannot be
 read that way is reported, and counts as a finding: the checks would be

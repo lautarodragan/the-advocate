@@ -364,6 +364,30 @@ fn exceptions_cover_by_routine_and_text_and_say_when_they_are_stale() {
 }
 
 #[test]
+fn data_without_a_type_in_the_debug_file_is_not_code() {
+    // `.res` and `.dword` get no type in the debug file. Read as code, three
+    // zeros are a `brk` and a half, and the `.dword` a `jsl` to `wrong`.
+    let Some(r) = lint(
+        "data",
+        r#"
+.proc main
+    stp
+.endproc
+    .res 3
+    .dword $00808522
+    .byte $00
+.proc wrong
+    pha
+    rts
+.endproc
+"#,
+    ) else {
+        return;
+    };
+    assert!(r.is_empty(), "{:?}", r);
+}
+
+#[test]
 fn the_root_is_where_the_debug_file_names_are_from() {
     // Nothing to assemble: only that a missing source is said, not ignored.
     let dir = scratch("root");
