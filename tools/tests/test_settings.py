@@ -63,7 +63,7 @@ def test_the_tools_import_without_a_game(tmp_path):
     import sys
     codigo = (
         "import common.settings, common.environment\n"
-        "import emulator.retro, assembly.entregar\n"
+        "import emulator.retro\n"
         "from common import project\n"
         "project.directory()\n")
     vacio = tmp_path / "vacio"

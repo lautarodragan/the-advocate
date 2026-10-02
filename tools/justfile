@@ -368,7 +368,9 @@ _install root *projects:
   # The suite's symlinks go first, and are made again below: a name that was
   # a script and is now a Rust binary —`rm2k-snes-assemble`— would otherwise
   # stay a symlink, and `cargo install` refuses to write over what it did
-  # not install.
+  # not install. `abl-*` too, though none is installed any more: until
+  # 2026-10-02 `abl-entregar` was, and it went to the game's repo with the
+  # game; this is what clears the stale symlink.
   find "{{root}}/bin" -maxdepth 1 -type l \( -name 'rm2k-snes-*' -o -name 'abl-*' \) -delete
   for p in {{projects}}; do
     dir=""
@@ -382,13 +384,13 @@ _install root *projects:
     fi
     cargo install --locked --path "$dir" --root "{{root}}"
   done
-  ln -sfn "{{justfile_directory()}}/assembly/entregar.py" "{{root}}/bin/abl-entregar"
+  ln -sfn "{{justfile_directory()}}/common/python_path.py" "{{root}}/bin/rm2k-snes-python-path"
   echo "in {{root}}/bin: the Python scripts, and from Rust: {{ if projects == "" { "none" } else { projects } }}"
 
 # Which executable this checkout resolves for each tool: the one in
 # `.local-tools/bin/` if it is there, otherwise the global one.
 which:
   #!/usr/bin/env sh
-  for x in gunter goombario ditto adeleine voodoo lz2 rm2k-render rm2k-snes-cartridges rm2k-snes-assemble rm2k-snes-space rm2k-snes-convert rm2k-snes-patches rm2k-snes-msu rm2k-snes-volume-ceilings rm2k-snes-battle rm2k-snes-events wally rm2k-snes-screens rm2k-snes-images abl-entregar; do
+  for x in gunter goombario ditto adeleine voodoo lz2 rm2k-render rm2k-snes-cartridges rm2k-snes-assemble rm2k-snes-space rm2k-snes-convert rm2k-snes-patches rm2k-snes-msu rm2k-snes-volume-ceilings rm2k-snes-battle rm2k-snes-events wally rm2k-snes-screens rm2k-snes-images rm2k-snes-python-path; do
     printf '%-26s %s\n' "$x" "$(command -v "$x" || echo missing)"
   done
