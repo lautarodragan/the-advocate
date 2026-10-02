@@ -365,6 +365,19 @@ impl Game {
         Ok(ids)
     }
 
+    /// The numbers of every map of the dump, in order.
+    pub fn dump_map_ids(&self) -> Result<Vec<i32>> {
+        let mut ids = Vec::new();
+        for path in Dump::open(&self.dump)?.map_files()? {
+            let stem = path.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
+            if let Some(n) = stem.strip_prefix("Map").and_then(|n| n.parse::<i32>().ok()) {
+                ids.push(n);
+            }
+        }
+        ids.sort();
+        Ok(ids)
+    }
+
     pub fn chipset(&self, id: i32) -> Result<&schema::Chipset> {
         self.db
             .chipsets

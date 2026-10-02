@@ -244,6 +244,48 @@ impl<'a> Compiler<'a> {
         self.run("compile", Value::Object(r))
     }
 
+    /// A compile of a cartridge of `maps` built without converting them: no
+    /// picture, no graphic renamed, no substitution resolved —without the
+    /// maps' blocks a page that asks for one does not compile—, and `cases`
+    /// as they are, with nothing put in front. It is how a test asks what
+    /// the compiler does with one page, or with a troop's.
+    pub fn loose(&self, maps: &[i32], cases: &[(i32, Vec<Command>)], encounter_troops: &[i32]) -> Result<Value> {
+        let test_commands: Vec<Command> = cases.iter().flat_map(|(_, c)| c.iter().cloned()).collect();
+        let mut r = self.request(maps, &test_commands, &BTreeSet::new(), None);
+        let common = crate::maps::common_substitutions(self.game);
+        let mut substitutions = Map::new();
+        for m in maps {
+            let mut mine = common.clone();
+            crate::maps::substitution_triples(self.game.map(*m)?.all_commands(), &mut mine);
+            substitutions.insert(
+                m.to_string(),
+                Value::Array(
+                    mine.iter()
+                        .map(|(u, o, n)| json!({"upper": u, "old": o, "new": n, "pairs": null}))
+                        .collect(),
+                ),
+            );
+        }
+        r.insert("substitutions".into(), Value::Object(substitutions));
+        r.insert("pictures".into(), json!({}));
+        r.insert("counters".into(), Value::Array(counters(self.settings)?));
+        r.insert("sound_effects".into(), self.sound_effects()?);
+        r.insert(
+            "cases".into(),
+            Value::Array(cases.iter().map(|(m, c)| json!({"map": m, "commands": commands(c)})).collect()),
+        );
+        r.insert("test_graphics".into(), json!({}));
+        r.insert("messages_step".into(), json!(rm2k_snes_mapdata::engine::MESSAGES_STEP));
+        r.insert("encounter_troops".into(), json!(encounter_troops));
+        self.run("compile", Value::Object(r))
+    }
+
+    /// The boxes the compiler is handed: every text box of the game the
+    /// port rebuilds for the console's window.
+    pub fn boxes(&self) -> &Value {
+        &self.boxes
+    }
+
     fn sound_effects(&self) -> Result<Value> {
         let mut out = Map::new();
         for name in ["per_map", "route_effects_left_out", "troop_effects_in_package"] {

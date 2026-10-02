@@ -170,3 +170,17 @@ Cosas que cambiaron por el camino:
 * El chequeo del destello del héroe cuenta los NPC que contestó `wally` y
   no un `collect_npcs` propio: el de Python contaba distinto un evento con
   una página condicionada por el cronómetro. No cambia ningún cartucho.
+
+### 2. Lo que leen las pruebas
+
+**Las preguntas del conversor.** Las pruebas de ABL le preguntaban al
+compilador y a `game_scan` por los módulos del conversor de Python
+—`compiler.scan`, `loose_page`, `slots`, `troop_triggers`,
+`possible_leaders`, y cómo arma `etapa_mapas` el pedido de `wally`—. Ahora
+se lo preguntan al binario, que es el que decide cómo pregunta él:
+`rm2k-snes-convert scan | compile | leaders | map-context | boxes`
+(`src/queries.rs`), cada uno con su respuesta en JSON. Comparadas contra el
+Python sobre el juego (`queries_check.py`): el scan de todos los mapas, con
+una variable de más y con un caso; los líderes de la apertura; el contexto
+de los mapas 2, 11 y 32 —con forks y ChipSets del fork—; una página suelta;
+los disparadores de una tropa; las cajas. Todo igual.

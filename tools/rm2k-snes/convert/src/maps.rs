@@ -152,7 +152,7 @@ pub fn separate_from_hero(game: &Game, map: &mut GameMap, leaders: &[i32], comma
 
 /// The `(upper layer, old, new)` of the `TileSubstitution`s in `lists`,
 /// each once, in the order they are met.
-fn substitution_triples<'a>(lists: impl IntoIterator<Item = &'a Command>, into: &mut Vec<(bool, i32, i32)>) {
+pub fn substitution_triples<'a>(lists: impl IntoIterator<Item = &'a Command>, into: &mut Vec<(bool, i32, i32)>) {
     for cmd in lists {
         if cmd.code != TILE_SUBSTITUTION || cmd.parameters.len() < 3 {
             continue;

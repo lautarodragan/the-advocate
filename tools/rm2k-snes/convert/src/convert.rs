@@ -35,7 +35,7 @@ pub const SUB_MAX: usize = 8;
 
 /// The commands of a test page, as written by hand: the command by its
 /// name or its number, and only the fields that say something.
-fn handwritten_commands(path: &std::path::Path) -> Result<Vec<Command>> {
+pub fn handwritten_commands(path: &std::path::Path) -> Result<Vec<Command>> {
     let text = std::fs::read_to_string(path).map_err(|e| crate::fail::io(path, e))?;
     let data: Value = serde_json::from_str(&text).map_err(|e| Stop::new(format!("{}: {e}", path.display())))?;
     let mut out = Vec::new();
@@ -118,13 +118,7 @@ pub fn run(options: Options) -> Result<()> {
     };
     game.db.leader(&party)?;
 
-    // Where the pictures are looked for: the images of the ChipSets the
-    // project adds go first, built now —see `chipsets`—, and then the
-    // suite's, the game's and the RTP.
-    let mut search_dirs: Vec<PathBuf> = vec![rm2k_project::suite::root(), game.game_dir.clone(), rtp_dir.clone()];
-    let built = project.build()?.join("parches-manual");
-    crate::chipsets::build_images(&game, &built, &search_dirs)?;
-    search_dirs.insert(0, built);
+    let search_dirs = search_dirs(&game, &project, &rtp_dir)?;
 
     // The cartridge's maps, read once.
     let mut every: Vec<GameMap> = Vec::new();
@@ -912,6 +906,17 @@ pub fn run(options: Options) -> Result<()> {
     // The bank packing is not decided here: both files send everything to
     // RODATA, and `rm2k-snes-assemble` spreads it into banks.
     Ok(())
+}
+
+/// Where the pictures are looked for: the images of the ChipSets the
+/// project adds go first, built now —see `chipsets`—, and then the suite's,
+/// the game's and the RTP.
+pub fn search_dirs(game: &Game, project: &Project, rtp_dir: &std::path::Path) -> Result<Vec<PathBuf>> {
+    let mut dirs: Vec<PathBuf> = vec![rm2k_project::suite::root(), game.game_dir.clone(), rtp_dir.to_path_buf()];
+    let built = project.build()?.join("parches-manual");
+    crate::chipsets::build_images(game, &built, &dirs)?;
+    dirs.insert(0, built);
+    Ok(dirs)
 }
 
 /// The header title of a SNES ROM: 21 bytes, at `$FFC0`.
