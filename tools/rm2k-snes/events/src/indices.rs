@@ -90,9 +90,34 @@ pub fn command_variables(commands: &[Command]) -> BTreeSet<i32> {
             // game they are the smoke's and the aura numbers', and they add
             // none: a `ControlVars` names all four.
             ids.extend([p[2], p[3]]);
+        } else if matches!(code, SHOW_MESSAGE | SHOW_MESSAGE_2) {
+            // A variable's value in the text, `\V[n]`, since 2026-10-02. In
+            // the game they are three of the portable console and add none:
+            // its `ControlVars` and the troops' name them.
+            ids.extend(text_variables(&cmd.string));
         }
     }
     ids
+}
+
+/// The variables a text names with `\V[n]`, in its plain form: see
+/// `with_variables` in [`crate::compile`].
+fn text_variables(text: &str) -> Vec<i32> {
+    let mut out = Vec::new();
+    let mut rest = text;
+    while let Some(at) = rest.find(['\\']) {
+        rest = &rest[at + 1..];
+        let Some(tail) = rest.strip_prefix(['V', 'v']).and_then(|r| r.strip_prefix('[')) else {
+            continue;
+        };
+        let digits: String = tail.chars().take_while(|c| c.is_ascii_digit()).collect();
+        if !digits.is_empty() && tail[digits.len()..].starts_with(']') {
+            if let Ok(n) = digits.parse() {
+                out.push(n);
+            }
+        }
+    }
+    out
 }
 
 /// The (actor, skill) pairs these commands name, in the forms that

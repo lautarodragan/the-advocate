@@ -345,13 +345,21 @@ pub fn map_pages(ctx: &mut Ctx, map: &Map, map_events: &MapEvents) -> Result<Vec
             let empty = page.commands.is_empty()
                 && matches!(page.trigger, TRIGGER_AUTOSTART | TRIGGER_PARALLEL);
             if triggerable(page.trigger) && can_trigger(page) && !empty {
-                code = compile_page(
+                // A parallel page pastes what it calls: the ROM has one call
+                // stack, the foreground's. See `shared` in `Ctx`.
+                let shared = ctx.shared;
+                if page.trigger == TRIGGER_PARALLEL {
+                    ctx.shared = None;
+                }
+                let compiled = compile_page(
                     ctx,
                     &page.commands,
                     Some(map_events.for_event(event.id)),
                     0,
                     0,
-                )?;
+                );
+                ctx.shared = shared;
+                code = compiled?;
                 // **And the same with one that compiles to nothing**: all it
                 // had were calls that got skipped —see `compile_call`—. In
                 // RM2k it is not empty, and what it calls is what turns it

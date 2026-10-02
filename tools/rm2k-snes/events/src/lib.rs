@@ -20,6 +20,7 @@
 //! declaration, `events.toml`, generated into [`opcodes`].
 
 pub mod codes;
+pub mod commons;
 pub mod compile;
 pub mod fail;
 pub mod game;
@@ -485,6 +486,8 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
                     graphics: Some(&mut graphics),
                     pictures: None,
                     troops: None,
+                    commons: None,
+                    shared: None,
                 };
                 if let Some(code) =
                     compile_page(&mut ctx, &page.commands, Some(me.for_event(event.id)), 0, 0)?
@@ -509,6 +512,8 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
             graphics: Some(&mut graphics),
             pictures: None,
             troops: None,
+            commons: None,
+            shared: None,
         };
         let pages = map_pages(&mut ctx, &map, &me)?;
         // And the pictures the map can show, gathered apart: its pages' first
@@ -543,6 +548,8 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
                 graphics: Some(&mut graphics),
                 pictures: Some(&mut pictures),
                 troops: None,
+                commons: None,
+                shared: None,
             };
             compile_page(&mut ctx, commands, Some(me.for_event(event)), 0, 0)?;
         }
@@ -621,7 +628,9 @@ fn compile_pass(
                 j += 1;
             }
             let lines: Vec<String> = tc[i..j].iter().map(|c| c.string.clone()).collect();
-            match messages.add(&lines) {
+            // Through the same `\V[n]` as the page will, so both find the
+            // same box: see `with_variables`.
+            match compile::with_variables(&lines, &indices).and_then(|l| messages.add(&l)) {
                 Ok(_) => {}
                 Err(Stop::Fatal(b)) => return Err(b),
                 Err(Stop::Cannot) => {
@@ -633,6 +642,27 @@ fn compile_pass(
         }
         i = j;
     }
+
+    // Which common events get a shared body: the automatic ones, the ones
+    // the pages that run in the foreground call —the maps' and the test
+    // pages'—, and what those call. Before any page, because a page that
+    // calls one carries its index: see [`commons`].
+    let setting = commons::Setting {
+        game,
+        indices: &indices,
+        sound: &request.sound,
+        map_index: &map_index,
+    };
+    let from_pages: BTreeSet<i32> = maps
+        .iter()
+        .flat_map(|m| m.events.iter())
+        .flat_map(|e| e.pages.iter())
+        .filter(|p| p.trigger != TRIGGER_PARALLEL)
+        .map(|p| p.commands.as_slice())
+        .chain(request.cases.iter().map(|(_, c)| c.as_slice()))
+        .flat_map(|commands| commons::callees(game, commands))
+        .collect();
+    let plan = commons::plan(&setting, from_pages, &messages, &songs)?;
 
     let mut maps_out = Vec::new();
     let mut cases_out: Vec<Option<String>> = vec![None; request.cases.len()];
@@ -661,6 +691,8 @@ fn compile_pass(
                 graphics: Some(&mut graphics),
                 pictures: Some(&mut pictures),
                 troops: Some(&mut troops),
+                commons: None,
+                shared: Some(&plan.index),
             };
             map_pages(&mut ctx, &map, &me)?
         };
@@ -687,6 +719,8 @@ fn compile_pass(
                 graphics: Some(&mut graphics),
                 pictures: Some(&mut pictures),
                 troops: None,
+                commons: None,
+                shared: Some(&plan.index),
             };
             let code = compile_page(
                 &mut ctx,
@@ -717,6 +751,8 @@ fn compile_pass(
                     graphics: None,
                     pictures: None,
                     troops: None,
+                    commons: None,
+                    shared: None,
                 };
                 if compile_page(&mut ctx, &page.commands, None, 0, 0)?.is_none() {
                     continue;
@@ -751,6 +787,10 @@ fn compile_pass(
             troops.request(troop as i32, encounter_backdrop(cmd));
         }
     }
+    // The shared common event bodies themselves. After everything else, so
+    // what they number goes at the end of each registry and moves nobody's
+    // index.
+    let commons = commons::compile(&setting, &plan, &mut messages, &mut songs, &mut troops)?;
     let mut ctx = Ctx {
         game,
         indices: &indices,
@@ -761,6 +801,8 @@ fn compile_pass(
         graphics: None,
         pictures: None,
         troops: None,
+        commons: None,
+        shared: None,
     };
     let battle_audio = if troops.ids.is_empty() {
         None
@@ -791,6 +833,8 @@ fn compile_pass(
             graphics: None,
             pictures: None,
             troops: None,
+            commons: None,
+            shared: None,
         };
         let Some(code) = compile_page(&mut ctx, &body, None, 0, 0)? else {
             return Err(Bad::answer(format!(
@@ -832,6 +876,11 @@ fn compile_pass(
         },
     );
     answer.insert("party_common_events".into(), json!(party));
+    // Only when there are some, like `troop_songs`: without them the answer
+    // stays the one `tests/python.rs` holds the hashes of.
+    if !commons.bodies.is_empty() {
+        answer.insert("commons".into(), commons.to_json());
+    }
     Ok((Value::Object(answer), messages))
 }
 

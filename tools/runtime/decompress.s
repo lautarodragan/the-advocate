@@ -494,47 +494,82 @@ route_copied:
 route_done:
 
     ; --- the foreground page ---
+    ;
+    ; Its cursor and, if it is inside a shared common event body, every
+    ; frame below it on the call stack —see common_events.s—: the page that
+    ; called is the one in this map's bytecode, and it goes on when the body
+    ; returns. Each pointer goes through `carry_one`, which leaves in
+    ; `temp + 3` whether it moved one (bit 0) or found one already carried
+    ; (bit 1).
+    stz temp + 3
     lda ev_active
     beq none
-    lda code_ptr + 2
-    cmp #^GRID_HIGH
-    bne none                    ; from the cartridge, where it does not move
     rep #$20
 .a16
-    lda map_current
-    asl a
-    asl a
-    asl a                       ; times MAP_CODE_STRIDE
-    tax
     lda code_ptr
-    sec
-    sbc f:map_code + 4, x       ; where this map's bytecode starts
-    bcc not_this_one
-    cmp f:map_code + 6, x       ; and how long it is
-    bcs not_this_one
+    sta temp
+    sep #$20
+.a8
+    lda code_ptr + 2
+    sta temp + 2
+    jsr carry_one
+    rep #$20
+.a16
+    lda temp
+    sta code_ptr
+    sep #$20
+.a8
+    lda f:CALL_DEPTH
+    beq frames_done
+    rep #$20
+.a16
+    and #$00FF
+    tay                         ; how many frames: `carry_one` keeps Y
+    sep #$20
+.a8
+    ldx #0
+frame:
+    rep #$20
+.a16
+    lda f:CALL_STACK, x
+    sta temp
+    sep #$20
+.a8
+    lda f:CALL_STACK + 2, x
+    sta temp + 2
+    phx
+    jsr carry_one
+    plx
+    rep #$20
+.a16
+    lda temp
+    sta f:CALL_STACK, x
+    txa
     clc
-    adc #.loword(CODE_CARRY)
-    sta code_ptr                ; the same byte, where it will be carried
+    adc #CALL_ENTRY
+    tax
+    sep #$20
+.a8
+    dey
+    bne frame
+frames_done:
+    lda temp + 3
+    lsr a
+    bcc not_moved
+    ; One moved now: the map being left is the one to carry.
+    rep #$20
+.a16
     lda map_current
     sta f:CARRY_MAP
     sep #$20
 .a8
     rtl
-not_this_one:
-.a16
+not_moved:
+    lsr a
+    bcc none
     ; Or it was already carried, from an earlier jump: it stays where it is,
     ; and `CARRY_MAP` too.
-    lda code_ptr
-    cmp #.loword(CODE_CARRY)
-    bcc none_16
-    cmp #.loword(CODE_CARRY + LZ2_CAP_CODE)
-    bcs none_16
-    sep #$20
-.a8
     rtl
-none_16:
-    sep #$20
-.a8
 none:
     rep #$20
 .a16
@@ -543,6 +578,60 @@ none:
     sep #$20
 .a8
     rtl
+.endproc
+
+; One pointer into a page's bytecode, in `temp` to `temp + 2`: if it is in
+; the bytecode of the map being left, it moves to the same byte where it
+; will be carried —the page's jumps are relative to where it starts, so
+; moving the pointer is enough— and bit 0 of `temp + 3` goes up; if it is
+; already where a carried map lives, bit 1. One in the cartridge does not
+; move.
+.proc carry_one
+.a8
+.i16
+    lda temp + 2
+    cmp #^GRID_HIGH
+    bne done                    ; from the cartridge, where it does not move
+    rep #$20
+.a16
+    lda map_current
+    asl a
+    asl a
+    asl a                       ; times MAP_CODE_STRIDE
+    tax
+    lda temp
+    sec
+    sbc f:map_code + 4, x       ; where this map's bytecode starts
+    bcc not_this_one
+    cmp f:map_code + 6, x       ; and how long it is
+    bcs not_this_one
+    clc
+    adc #.loword(CODE_CARRY)
+    sta temp                    ; the same byte, where it will be carried
+    sep #$20
+.a8
+    lda temp + 3
+    ora #1
+    sta temp + 3
+    rts
+not_this_one:
+.a16
+    lda temp
+    cmp #.loword(CODE_CARRY)
+    bcc done_16
+    cmp #.loword(CODE_CARRY + LZ2_CAP_CODE)
+    bcs done_16
+    sep #$20
+.a8
+    lda temp + 3
+    ora #2
+    sta temp + 3
+    rts
+done_16:
+    sep #$20
+.a8
+done:
+    rts
 .endproc
 
 ; With the new map loaded —`LZ2_BUFFER` already used— or after the battle:

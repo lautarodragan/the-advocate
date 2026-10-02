@@ -1,0 +1,6 @@
+{
+  "event_commands": [
+    {"code": "CallEvent", "parameters": [0, 43, 0]},
+    {"code": "ControlSwitches", "parameters": [0, 753, 753, 0]}
+  ]
+}

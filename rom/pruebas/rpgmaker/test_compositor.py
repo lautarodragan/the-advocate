@@ -49,9 +49,11 @@ def _componer(p, largo, ticks=TICKS):
                           ("msg_primed", 1), ("msg_upload", 0),
                           ("msg_state", 1)):
         p.poner_byte(nombre, valor)
-    # Y sin la mitad de un par esperando, que es lo otro que el arranque del
-    # renglón deja puesto: ver `msg_letter`. Vive en la RAM lejana.
+    # Y sin la mitad de un par ni dígitos de una variable esperando, que es lo
+    # otro que el arranque del renglón deja puesto: ver `msg_letter`. Viven en
+    # la RAM lejana, que no arranca en cero.
     p.consola.write_ram(en_la_wram(p.simbolos["FAR_MSG_SECOND"]), [0])
+    p.consola.write_ram(en_la_wram(p.simbolos["MSG_DIGITS_N"]), [0])
     for _ in range(ticks):
         p.correr(1)
     return p
