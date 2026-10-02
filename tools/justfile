@@ -31,33 +31,11 @@ export PATH := if path_exists(local_tools / "bin") == "true" { local_tools / "bi
 # `*-test` recipes run `cargo test` standing in the project, which tests
 # only that one, and `cargo install --locked --path` takes the workspace's
 # lock.
-rust_projects := "protocol gunter goombario ditto rules adeleine voodoo lz2 resample rm2k-render project bytecode cartridge patches rm2k-snes-audio battle events map-background map-sprites wally text screens images mapdata convert"
+rust_projects := "gunter goombario ditto rules adeleine voodoo lz2 resample rm2k-render project bytecode cartridge patches rm2k-snes-audio battle events map-background map-sprites wally text screens images mapdata convert"
 
 # The directories the projects live in, one per layer: each project is
 # `<layer>/<name>`, and the recipes find it by its name.
 rust_layers := "snes rm2k rm2k-snes"
-
-# The event opcodes: their number and their layout. The declaration lives in
-# `snes/protocol/events.toml` and belongs neither to the compiler nor to the
-# interpreter; from it are generated, all committed: the two `.inc` files of
-# `tools/runtime/` and the two Rust modules (the event compiler's and
-# `rm2k-snes/rm2k-snes-audio/`'s). A game whose tests read the bytecode in
-# another language generates its own module from the same declaration. There
-# are two declarations: the event bytecode and the music stream the SPC700
-# reads.
-#
-# The event one takes `--jump-table`: that produces `run_code`'s dispatch
-# table, so a new opcode touches the interpreter only in its `.proc op_x`.
-# The music one cannot —it ends at 0xFF— and does not need it.
-#
-# `--check` is what the suite runs: it fails if any of them is stale.
-protocol *args:
-  protocol snes/protocol/events.toml \
-      --asm runtime/event_opcodes.inc \
-      --rust rm2k-snes/events/src/opcodes.rs --jump-table {{args}}
-  protocol snes/protocol/music.toml \
-      --asm runtime/music_opcodes.inc \
-      --rust rm2k-snes/rm2k-snes-audio/src/music_opcodes.rs {{args}}
 
 # The tools' Python tests, the ones in `tests/`: those that need neither the
 # game, nor its data, nor a built cartridge. Those that do are among A Blurred
@@ -76,12 +54,6 @@ test *args:
 # recipe, unless `DITTO_CORPUS` or `SOUNDFONT` are set.
 rust-test *args:
   cargo test --workspace {{args}}
-
-# The generator's tests: the errors it must give for a broken declaration,
-# and the exact shape of the text it emits. They need neither the game nor
-# the ROM.
-protocol-test:
-  cd snes/protocol && cargo test
 
 # Gunter: the BRR codec and the SoundFont reader, and **what builds the ROM's
 # samples**. Its tests are samples generated inside the test —silence, ramp,
@@ -417,6 +389,6 @@ _install root *projects:
 # `.local-tools/bin/` if it is there, otherwise the global one.
 which:
   #!/usr/bin/env sh
-  for x in protocol gunter goombario ditto adeleine voodoo lz2 rm2k-render rm2k-snes-cartridges rm2k-snes-assemble rm2k-snes-space rm2k-snes-convert rm2k-snes-patches rm2k-snes-msu rm2k-snes-volume-ceilings rm2k-snes-battle rm2k-snes-events wally rm2k-snes-screens rm2k-snes-images abl-entregar; do
+  for x in gunter goombario ditto adeleine voodoo lz2 rm2k-render rm2k-snes-cartridges rm2k-snes-assemble rm2k-snes-space rm2k-snes-convert rm2k-snes-patches rm2k-snes-msu rm2k-snes-volume-ceilings rm2k-snes-battle rm2k-snes-events wally rm2k-snes-screens rm2k-snes-images abl-entregar; do
     printf '%-26s %s\n' "$x" "$(command -v "$x" || echo missing)"
   done
