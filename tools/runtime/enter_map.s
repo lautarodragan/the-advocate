@@ -39,7 +39,7 @@
                                 ; `erase_on_map_change` of Game_Pictures, and
                                 ; besides, their tiles belong to the map
     stz counter_visible         ; and the counter, which in RM2k is pictures
-    jsr package_load            ; the map's audio, during the fade
+    jsl f:package_load_l        ; the map's audio, during the fade
     rep #$20
 .a16
     lda map_current

@@ -1,4 +1,4 @@
-.segment "FAR"
+.segment "FAR2"
 
 ; --- executing a skill ----------------------------------------------------
 ;

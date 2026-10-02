@@ -1,4 +1,4 @@
-.segment "FAR"
+.segment "FAR2"
 
 ; --- the battle scene --------------------------------------------------------
 ;
@@ -737,7 +737,7 @@ has_scene:
     lda SCN_BACKDROP
     cmp #$FF
     beq no_msu                  ; the plain one is not read from anywhere
-    jsr msu_data_valid
+    jsl f:msu_data_valid_l
     sta SCN_MSU
 no_msu:
 
@@ -1025,7 +1025,7 @@ ready:
     lda SCN_BACKDROP
     cmp #$FF
     beq ready                   ; the plain one is already there: it is zeros
-    jsl f:scn_double + FAST     ; from the fast mirror: see MEMSEL
+    jsl f:scn_double            ; FAR2 is fast already: no `+ FAST`
 ready:
     rts
 .endproc
@@ -1057,7 +1057,7 @@ has:
     lda f:msu_backdrop_pos + 6, x
     tay
     lda f:msu_backdrop_pos + 4, x
-    jsr msu_data_seek
+    jsl f:msu_data_seek_l
 .a8
     bcs no_found
     rep #$20
@@ -1184,7 +1184,7 @@ with_backdrop:
     lda f:msu_backdrop_pos + 2, x
     tay
     lda f:msu_backdrop_pos, x
-    jsr msu_data_seek
+    jsl f:msu_data_seek_l
 .a8
     bcs no_found
     rep #$20
@@ -1256,8 +1256,9 @@ tile:
 ; written on two rows —the small row, doubled vertically— and into both
 ; buffers.
 ;
-; It is entered with `jsl` through the fast mirror, and runs with the data
-; bank at $7F, so the buffers go with `a:`.
+; It is entered with `jsl` —from when the battle ran from bank 1's slow
+; copy and this went through the fast mirror— and runs with the data bank at
+; $7F, so the buffers go with `a:`.
 .proc scn_double
 .a8
 .i16

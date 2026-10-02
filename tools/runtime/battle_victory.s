@@ -1,4 +1,4 @@
-.segment "FAR"
+.segment "FAR2"
 
 ; The window's lines: the party's, which is what it covers.
 BA_VIC_LINES = BA_PARTY_MAX
@@ -78,7 +78,7 @@ recorded:
     sep #$20
 .a8
     stz comp_or01 + 2
-    jsr gold_add
+    jsl f:gold_add
 ready:
     rts
 .endproc

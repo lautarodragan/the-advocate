@@ -1,4 +1,4 @@
-.segment "FAR"
+.segment "FAR2"
 
 ; --- using an item in battle -----------------------------------------------
 ;

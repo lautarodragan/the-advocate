@@ -70,10 +70,10 @@ is refused, because `ca65` would read that one first and the ROM would come
 out with another build's data.
 
 Then it writes the memory map, `memoria.cfg`, next to the generated files
-—8 MB ExHiROM, one area per data bank, and the code's two banks linked as
-LoROM's banks 0 and 1—, runs `ca65` and `ld65` standing in the directory
+—8 MB ExHiROM, one area per data bank, the code's first two banks linked as
+LoROM's banks 0 and 1, and the third at `$C0:0000`—, runs `ca65` and `ld65` standing in the directory
 above the tools so the debug file names sources by relative paths, copies the
-two code banks to the second 4 MB, where the console reaches them through
+two LoROM code banks to the second 4 MB, where the console reaches them through
 banks `$00` and `$01`, writes the header checksum and, with `--symbols`, a
 table of `name value` lines. Why the map is the way it is, in the docs of
 `src/banks.rs`.
@@ -90,7 +90,7 @@ reads them; `--memory-map`, the map's numbers as JSON.
 
 It reads what the build left —the debug file and the memory map— and relinks
 nothing: data banks used and free —whole banks of 64 KB, fast and slow, and
-halves—, the gaps inside the used ones, what is left in bank 0 and bank 1,
+halves—, the gaps inside the used ones, what is left in the three code banks —0, 1 and `$C0`—,
 in the BSS and the zero page, and in the text block. **The number that
 matters is how many whole banks are free**, not a percentage. A stale cartridge is refused.
 

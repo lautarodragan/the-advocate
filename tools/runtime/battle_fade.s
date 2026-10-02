@@ -207,5 +207,5 @@ upload:
     bcc upload
     lda #0
     sta f:MOSAIC                ; the last one was already size 1: same thing, off
-    rts
+    rtl
 .endproc

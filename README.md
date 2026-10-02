@@ -113,6 +113,10 @@ tiene una razón que no está en ninguna línea:
   `$00`, el `jml` a `+ FAST` sigue llevando al espejo rápido, y Mednafen
   —que con `snes_faust` lee `$80-$BF` de los segundos 4 MB, distinto del
   cartucho— ve lo mismo que la consola.
+* **El tercer banco de código no es de LoROM**: `FAR2`, desde el
+  2026-10-02, es la mitad baja de `$C0`, rápida y sin copia, porque a lo que
+  vive ahí se entra sólo con `jsl` a su dirección. Qué código va en cuál de
+  los tres lo dice el encabezado de `tools/runtime/main.s`.
 * **Sólo los primeros 4 MB son rápidos**: el FastROM no llega a los bancos
   `$40-$7D`. El reparto llena primero los rápidos.
 * **Hay ROM que no se usa**: las mitades bajas de `$70-$7D`, donde Mesen2 y

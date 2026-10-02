@@ -172,7 +172,7 @@ def casos_de_release(con_mapa_de_debug):
 @functools.lru_cache(maxsize=None)
 def espacio(nombre):
     """Lo que `rm2k-snes-space` mide del cartucho, como diccionario: `bank0`,
-    `bank1`, `bss`, `zeropage`, `texts`, `texts_cap`…"""
+    `bank1`, `bank_far2`, `bss`, `zeropage`, `texts`, `texts_cap`…"""
     return json.loads(_con_el_proyecto("rm2k-snes-space", "--json",
                                        nombre))[nombre]
 
