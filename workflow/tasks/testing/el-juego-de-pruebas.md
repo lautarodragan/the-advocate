@@ -11,13 +11,28 @@ De taro, el 2026-10-02: "empezar el proyecto de tener un juego de rpg maker
 juego. Los crates ya tienen juegos chicos en `tests/game/`. Es un plan, no
 código: de él salen las tareas.
 
+# La dirección de taro (2026-10-02)
+
+"Cuando terminen estos, me gustaría proceder con el juego de pruebas, si
+Leñatero lo encuentra factible":
+
+1. **Primero, todo lo de ABL en un solo lugar, fuera de este repo**: un repo
+   propio, con su historia.
+2. **Después, pruebas en este repo 100% originales**, sin referencias a ABL
+   ni assets con copyright.
+3. **Los assets**: el reemplazo del RTP de EasyRPG
+   (https://easyrpg.org/rtp-replacement/), otros assets libres —taro tiene
+   sitios guardados—, o fabricados por ahora; efectos de sonido que taro
+   puede hacer en FL Studio; y MIDIs de obras de dominio público (Bach,
+   Beethoven, Mozart), con la licencia del archivo verificada.
+
 ## Mientras se trabaja (Leñatero, 2026-10-02)
 
 * La tanda de base: `just pruebas --junitxml=…` da 999 en 86,5 s, 643
   CPU-s. Sin las del motor (`--ignore` de cada archivo M1 y M2), 394 en
   73 s y 351 CPU-s.
 * El juego sintético se escribió como volcado exacto de Ditto (~8 KB de
-  JSON y texto, con un generador de 150 líneas) y armó un cartucho que
+  JSON y texto, con un generador de unas 120 líneas) y armó un cartucho que
   arranca y camina, con el RTP de EasyRPG y FluidR3. Para llegar hubo que
   esquivar seis supuestos de ABL en las herramientas: van al estudio.
 * taro, por el coordinador, el mismo día: la primera fase es sacar ABL a un
