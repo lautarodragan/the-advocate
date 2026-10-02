@@ -437,7 +437,12 @@ pub fn build(job: &Job, game: &Game, samples: &Samples) -> Result<Music> {
         )?;
         let init = stream::init_writes();
         let reference = stream::writes(&frames, parsed.length, &init);
-        let (bytes, sounds) = stream::pack(&frames, parsed.length, &init)?;
+        let (flat, sounds) = stream::pack(&frames, parsed.length, &init)?;
+        stream::check(name, &flat, &sounds, &reference)?;
+        // The same, with what it repeats read from where it first said it:
+        // the writes are checked again, following the repeats as the 65816
+        // does, write by write and frame by frame.
+        let bytes = stream::fold(&flat)?;
         stream::check(name, &bytes, &sounds, &reference)?;
         let fingerprint = mix_fingerprint(&reference, &bank);
         // How many of its notes reach the stream. A note whose program is not

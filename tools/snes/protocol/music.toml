@@ -22,6 +22,13 @@ name = "music"
 # are the short ones, one byte; `OP_WAIT` takes the count as a word, and a
 # count of 0 keys on without waiting.
 #
+# `OP_REPEAT` plays again something the song already played: it goes `back`
+# bytes back from the end of itself, reads `events` events there —from 1 to
+# 254— and comes back to the byte after itself. Those events cannot be another
+# `OP_REPEAT`, nor `OP_INIT` or `OP_END`: one level, so that the reader keeps a
+# single return address. They are the same bytes the stream had there, so they
+# write the same.
+#
 # See README.md for the grammar and for what is deliberately not declared here.
 
 opcode = [
@@ -139,4 +146,6 @@ opcode = [
   { name = "OP_INIT", code = 0x62, args = [] },
   # the end of the song: it starts over
   { name = "OP_END", code = 0x63, args = [] },
+  # `events` events from `back` bytes before the end of this one, and back here
+  { name = "OP_REPEAT", code = 0x64, args = [{ name = "back", type = "word" }, { name = "events", type = "byte" }] },
 ]

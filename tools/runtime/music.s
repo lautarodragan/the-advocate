@@ -290,6 +290,7 @@ no_track:
     sta f:MUS_PLAYING
     sta f:MUS_VIEWS
     sta f:MUS_GAINS
+    sta f:MUS_LEFT              ; a `PlayBGM` can land in the middle of a repeat
     rep #$20
 .a16
     lda #0                      ; again: the 8-bit `lda #0` did not
@@ -672,6 +673,24 @@ open:
     jsr dsp_music
 
 read:
+    ; Every event comes through here, so this is where an `OP_REPEAT` counts
+    ; them: MUS_LEFT is one more than what it has left, and reaching zero
+    ; means the last one was already read. Outside one it is zero, and that
+    ; is all an event pays: a load and a branch.
+    lda f:MUS_LEFT
+    beq plain
+    dec a
+    sta f:MUS_LEFT
+    bne plain
+    rep #$20                    ; the repeat is over: back after it
+.a16
+    lda f:MUS_BACK_TO
+    sta music
+    sep #$20
+.a8
+    lda f:MUS_BACK_TO + 2
+    sta music + 2
+plain:
     READ
     cmp #OP_WAIT_1
     bcs not_voice
@@ -682,6 +701,10 @@ not_voice:
     beq wait_long
     cmp #OP_DSP
     beq raw
+    cmp #OP_REPEAT
+    bne no_repeat
+    jmp ev_repeat
+no_repeat:
     cmp #OP_INIT
     bne no_init
     jmp boot
@@ -1049,6 +1072,42 @@ with_gain:
     lda [music]
     jsr advance
     jsr mus_write
+    jmp music_frame::read
+.endproc
+
+.proc ev_repeat
+.a8
+.i16
+    ; `events` events from `back` bytes before the end of this one: the
+    ; stream says again something it already said, as written. See "repeats"
+    ; in stream.rs. It is one level —what it reads is never another repeat—,
+    ; so a single return address is enough.
+    ;
+    ; The pointer goes back with a 24-bit subtraction: a stream is only split
+    ; between two banks that continue each other —`.crossbank`—, so going
+    ; back over the start of a bank lands at the end of the previous one, in
+    ; the same stream.
+    READ
+    sta f:MUS_T
+    READ
+    sta f:MUS_T + 1
+    READ
+    inc a                       ; one more: see `read`
+    sta f:MUS_LEFT
+    lda music + 2
+    sta f:MUS_BACK_TO + 2
+    rep #$20
+.a16
+    lda music
+    sta f:MUS_BACK_TO
+    sec
+    sbc f:MUS_T
+    sta music
+    sep #$20                    ; does not touch the borrow
+.a8
+    lda music + 2
+    sbc #0
+    sta music + 2
     jmp music_frame::read
 .endproc
 

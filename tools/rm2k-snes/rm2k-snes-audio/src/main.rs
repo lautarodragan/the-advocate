@@ -214,6 +214,13 @@ struct DecodeArgs {
     /// Its sounds: six bytes each
     #[arg(long, value_name = "PATH")]
     sounds: PathBuf,
+
+    /// Decode it with each OP_REPEAT replaced by the events it reads, which
+    /// is the stream as it was before they were folded; `length` and
+    /// `repeats` —each OP_REPEAT, as [where it is, where it goes back to],
+    /// offsets from the stream's start— are still the stream's as given
+    #[arg(long)]
+    unfold: bool,
 }
 
 #[derive(ClapArgs)]
@@ -622,8 +629,12 @@ fn do_decode(args: &DecodeArgs) -> Result<()> {
     let stream_bytes = bytes(&args.stream)?;
     let sounds: Vec<stream::Sound> =
         bytes(&args.sounds)?.chunks_exact(6).map(|c| c.try_into().unwrap()).collect();
-    let (writes, length) = stream::decode_counting(&stream_bytes, &sounds)?;
-    println!("{}", json!({"writes": writes, "length": length}));
+    let (mut writes, length) = stream::decode_counting(&stream_bytes, &sounds)?;
+    let repeats = stream::repeats(&stream_bytes)?;
+    if args.unfold {
+        writes = stream::decode(&stream::unfold(&stream_bytes)?, &sounds)?;
+    }
+    println!("{}", json!({"writes": writes, "length": length, "repeats": repeats}));
     Ok(())
 }
 

@@ -8,9 +8,9 @@ mismo —eso lo mira `test_ganar_deja_seguir_el_tema_de_la_victoria`, en
 `test_batalla.py`—, y la caminata a la fábrica, donde el `PlayBGM` de la
 automática del 16 pide `hzbreach`, que ya venía sonando desde el 14.
 
-Como todo lo de la música, no cambia un pixel: se mira el puntero del stream,
-`music`, que avanza mientras el tema suena y vuelve al principio si se
-reinicia. Pasar de un mapa a otro con el mismo tema ya lo cuida
+Como todo lo de la música, no cambia un pixel: se mira por dónde va el
+stream —`avance_del_stream`—, que avanza mientras el tema suena y vuelve al
+principio si se reinicia. Pasar de un mapa a otro con el mismo tema ya lo cuida
 `test_tema_del_mapa.py`, y volver al tema recordado, `test_lugar_recordado.py`.
 
 La consola de las pruebas no le deja ver al core las pistas de MSU-1: esto
@@ -19,12 +19,6 @@ mide el camino del SPC700. El del MSU-1 pasa por la misma pregunta,
 """
 
 from consola import indice_del_tema
-
-
-def puntero_del_stream(una):
-    """Por dónde va el stream que suena: `music`, tres bytes."""
-    bajo, alto, banco = una.consola.ram(una.simbolos["music"], 3)
-    return (banco << 16) | (alto << 8) | bajo
 
 
 def test_pedir_dos_veces_el_mismo_tema_no_lo_reinicia(partida):
@@ -39,10 +33,10 @@ def test_pedir_dos_veces_el_mismo_tema_no_lo_reinicia(partida):
     else:
         raise AssertionError("evilrhys no llegó a sonar: la prueba no mide "
                              "nada")
-    antes = puntero_del_stream(una)
+    antes = una.avance_del_stream()
     for _ in range(300):
         una.correr(1)
-        ahora = puntero_del_stream(una)
+        ahora = una.avance_del_stream()
         assert ahora >= antes, (
             "el stream volvió de $%06X a $%06X: el segundo `PlayBGM` de "
             "evilrhys lo reinició, y en RM2k el mismo tema sigue sonando"

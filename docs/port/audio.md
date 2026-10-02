@@ -25,6 +25,10 @@ reproduce. Las rutas de abajo que terminan en `.rs` son de su `src/`.
   stream. El formato está en "the per-note format" de `stream.rs` y los
   opcodes en `tools/snes/protocol/music.toml`; `irq_music` (`tools/runtime/music.s`)
   corre un cuadro de música por cuadro de video.
+* **Lo que el tema toca igual se dice una vez**: un `OP_REPEAT` vuelve atrás,
+  lee tantos eventos que el stream ya tenía y sigue después del salto, de un
+  solo nivel. Son los mismos bytes, así que escriben lo mismo. Ver "repeats"
+  en `stream.rs`.
 * **Las ocho voces son de todos los canales** y se reparten nota a nota: una
   nota toma una voz libre o le roba a otra por prioridad. Ver `assign`,
   `victim` y `frame_order` en `voices.rs`.

@@ -129,9 +129,69 @@ def test_la_rom_escribe_lo_que_el_stream_dice(partida, nombre):
     —`song_ensure` no corre—, así que no suena lo que se toca; las
     escrituras son las mismas."""
     una = partida(titulo=EMPEZAR).quedarse_en_el_titulo()
-    s = una.simbolos
     tema = indice_del_tema(una, nombre)
     vuelta = una.escrituras_del_tema(tema)
+    _comparar(nombre, _tocar_desde_el_loop(una, tema, vuelta), vuelta)
+
+
+# Uno corto que lleva repeticiones: ver `test_la_rom_vuelve_de_cada_repeticion`.
+TEMA_CON_REPETICIONES = "wb3shop"
+
+
+def test_la_rom_vuelve_de_cada_repeticion(partida):
+    """Desde el 2026-10-01 el stream dice una sola vez lo que el tema toca
+    igual —`OP_REPEAT`, "repeats" en `stream.rs`—: vuelve atrás, lee tantos
+    eventos y sigue después del salto. Acá lo que la ROM escribe se compara
+    contra el stream **desplegado**, sin un solo salto, que es el formato
+    de antes: no contra el modelo que sigue los saltos, que podría
+    equivocarse igual que `music_frame`.
+
+    Vista fallar el 2026-10-01, rompiendo la ROM a propósito dos veces:
+    volviendo un byte más allá de donde tenía que volver, la ROM lee basura
+    y se calla —falla porque la música deja de correr—; y leyendo un evento
+    menos de los que pide el salto, da distinto en el cuadro 144."""
+    una = partida(titulo=EMPEZAR).quedarse_en_el_titulo()
+    tema = indice_del_tema(una, TEMA_CON_REPETICIONES)
+    vuelta, repeticiones = una.escrituras_del_tema_desplegado(tema)
+    assert len(repeticiones) >= 50, (
+        "%s lleva %d repeticiones: la prueba ya no mira lo que dice"
+        % (TEMA_CON_REPETICIONES, len(repeticiones)))
+    _comparar(TEMA_CON_REPETICIONES, _tocar_desde_el_loop(una, tema, vuelta),
+              vuelta)
+
+
+def test_la_rom_vuelve_atras_por_encima_de_un_banco(partida):
+    """Un `OP_REPEAT` que vuelve por encima del principio de un banco:
+    `ev_repeat` resta en 24 bits, que vale porque un stream sólo se parte
+    entre dos bancos que se continúan. Dónde cae cada stream lo decide el
+    reparto en bancos, así que el tema sale del cartucho: el más corto que
+    tenga uno. El 2026-10-01 eran siete temas del `release` y 2.814
+    saltos.
+
+    Vista fallar ese día, con `ev_repeat` sin restarle el préstamo al
+    banco: falla ésta, y de las otras sólo la de 3D-Galax, que también
+    tiene saltos así."""
+    una = partida(titulo=EMPEZAR).quedarse_en_el_titulo()
+    candidatos = []
+    for tema in range(una.simbolos["SONG_TOTAL"]):
+        direccion = una.stream_del_tema(tema)[0]
+        vuelta, repeticiones = una.escrituras_del_tema_desplegado(tema)
+        cruzan = [r for r in repeticiones
+                  if (direccion + r[0]) >> 16 != (direccion + r[1]) >> 16]
+        if cruzan:
+            candidatos.append((vuelta[-1][0], tema, vuelta))
+    if not candidatos:
+        pytest.skip("ningún salto del cartucho vuelve por encima de un banco")
+    _, tema, vuelta = min(candidatos)
+    _comparar("el tema %d" % tema, _tocar_desde_el_loop(una, tema, vuelta),
+              vuelta)
+
+
+def _tocar_desde_el_loop(una, tema, vuelta):
+    """Lo que la ROM le pide al DSP tocando el tema desde la vuelta al
+    principio, cuadro por cuadro: ver
+    `test_la_rom_escribe_lo_que_el_stream_dice`."""
+    s = una.simbolos
     fin = _fin_del_stream(una.stream_del_tema(tema)[0],
                           una.largo_del_stream(tema))
 
@@ -144,8 +204,7 @@ def test_la_rom_escribe_lo_que_el_stream_dice(partida, nombre):
     _escribir(una, s["music_off"], [0])
     _escribir(una, s["MUS_LOG_I"], [0, 0])
     _escribir(una, s["MUS_LOG_YES"], [1])
-    cuadros = _cuadros_de_la_rom(una, vuelta[-1][0] + DESPUES_DEL_FINAL)
-    _comparar(nombre, cuadros, vuelta)
+    return _cuadros_de_la_rom(una, vuelta[-1][0] + DESPUES_DEL_FINAL)
 
 
 def test_el_tema_del_titulo_desde_el_encendido(partida):
