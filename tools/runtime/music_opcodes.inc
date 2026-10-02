@@ -104,3 +104,4 @@ OP_WAIT          = $60
 OP_DSP           = $61
 OP_INIT          = $62
 OP_END           = $63
+OP_REPEAT        = $64

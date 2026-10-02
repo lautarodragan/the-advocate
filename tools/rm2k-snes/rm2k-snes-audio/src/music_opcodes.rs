@@ -104,6 +104,7 @@ pub const OP_WAIT: u8 = 0x60;
 pub const OP_DSP: u8 = 0x61;
 pub const OP_INIT: u8 = 0x62;
 pub const OP_END: u8 = 0x63;
+pub const OP_REPEAT: u8 = 0x64;
 
 /// How many bytes each fixed-size instruction takes, opcode included.
 /// Derived from the declared arguments; never written down.
@@ -208,6 +209,7 @@ pub const OPCODE_SIZE: &[(u8, usize)] = &[
     (OP_DSP, 3),
     (OP_INIT, 1),
     (OP_END, 1),
+    (OP_REPEAT, 4),
 ];
 
 /// The variable-size ones, as (opcode, base, where the count is, how big

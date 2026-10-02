@@ -469,6 +469,9 @@ pub fn decode_counting(stream: &[u8], sounds: &[Sound]) -> Result<(Vec<Write>, u
     let (mut seen, mut with_gain): (HashSet<u8>, HashSet<u8>) = (HashSet::new(), HashSet::new());
     let mut gain_of: HashMap<u8, u8> = HashMap::new();
     let (mut frame_no, mut kon, mut sounding, mut i) = (0i64, 0u8, 0u8, 0usize);
+    // Inside an `OP_REPEAT`: where it comes back to, and how many of its
+    // events are left to read. The 65816 keeps the same two things.
+    let (mut back_to, mut left): (Option<usize>, u8) = (None, 0);
     let bad = |m: String| Bad::answer(m);
 
     let read = |i: &mut usize| -> Result<u8> {
@@ -503,9 +506,37 @@ pub fn decode_counting(stream: &[u8], sounds: &[Sound]) -> Result<(Vec<Write>, u
     }
 
     loop {
+        // Before each event, as `music_frame::read` does: once the repeat's
+        // last one was read, back to where it was.
+        if let Some(to) = back_to {
+            if left == 0 {
+                i = to;
+                back_to = None;
+            } else {
+                left -= 1;
+            }
+        }
         let op = read(&mut i)?;
+        if back_to.is_some() && !repeatable(op) {
+            return Err(bad(format!("opcode ${op:02X} inside an OP_REPEAT: it has one level")));
+        }
         if op == OP_END {
             return Ok((out, i));
+        }
+        if op == OP_REPEAT {
+            let at = i - 1;
+            let back = read(&mut i)? as usize | (read(&mut i)? as usize) << 8;
+            let events = read(&mut i)?;
+            if !(1..=REPEAT_MAX_EVENTS).contains(&events) {
+                return Err(bad(format!("an OP_REPEAT of {events} events")));
+            }
+            if back > i || i - back >= at {
+                return Err(bad(format!("the OP_REPEAT at {at} goes {back} bytes back")));
+            }
+            back_to = Some(i);
+            left = events;
+            i -= back;
+            continue;
         }
         if op == OP_INIT {
             for (r, v) in boot_writes() {
@@ -601,6 +632,174 @@ pub fn decode_counting(stream: &[u8], sounds: &[Sound]) -> Result<(Vec<Write>, u
     }
 }
 
+// --- repeats -----------------------------------------------------------------
+//
+// A song plays the same bars again, and its stream says them again byte for
+// byte: the decoder's state —the register cache, each voice's sound— depends
+// only on the bytes it read, so the same events in the same order write the
+// same. `fold` replaces a run of events the stream already has, as written,
+// with an `OP_REPEAT` that goes back and reads them there. One level: what it
+// goes back to is plain events, never another repeat, so the 65816 keeps one
+// return address and one count —see `music_frame::read`—.
+//
+// What a repeat reads is **the same bytes**, so `unfold` gives back the stream
+// `pack` wrote, and `fold` checks that before returning. The writes are
+// checked apart, through `decode`, which follows the repeats as the 65816
+// does: see `check`.
+
+/// How many events an `OP_REPEAT` may read: the 65816 counts them in a byte,
+/// starting at one more than this, and goes back when it reaches zero.
+pub const REPEAT_MAX_EVENTS: u8 = 254;
+/// What an `OP_REPEAT` takes: the opcode, how far back, how many events.
+const REPEAT_BYTES: usize = 4;
+/// How far back it can go: the distance is a word.
+const REPEAT_MAX_BACK: usize = 0xFFFF;
+/// The shortest run worth a repeat, in bytes. Not five, which is the first
+/// that saves one: a repeat leaves what it covers out of what later ones can
+/// go back to, and a short one that saves a byte or two keeps a long one from
+/// happening further on. Measured on a hundred songs, with the lazy step of
+/// `fold`: five folds 20% off the streams, seven 23.5%, eight 23.1%, ten
+/// 21.3%.
+const REPEAT_MIN_BYTES: usize = 7;
+
+fn opcode_size(op: u8) -> Option<usize> {
+    OPCODE_SIZE.iter().find(|(o, _)| *o == op).map(|(_, n)| *n)
+}
+
+/// Whether an `OP_REPEAT` may read this opcode.
+fn repeatable(op: u8) -> bool {
+    !matches!(op, OP_END | OP_INIT | OP_REPEAT)
+}
+
+/// The events of a stream, as ranges of bytes, up to its `OP_END` included.
+fn events_of(stream: &[u8]) -> Result<Vec<std::ops::Range<usize>>> {
+    let mut out = Vec::new();
+    let mut i = 0;
+    loop {
+        let op = *stream.get(i).ok_or_else(|| Bad::answer("the stream ends without OP_END"))?;
+        let n = opcode_size(op).ok_or_else(|| Bad::answer(format!("opcode ${op:02X} at {i}")))?;
+        if i + n > stream.len() {
+            return Err(Bad::answer(format!("the stream ends inside the event at {i}")));
+        }
+        out.push(i..i + n);
+        i += n;
+        if op == OP_END {
+            return Ok(out);
+        }
+    }
+}
+
+/// The stream with each run of events it already said, as written, replaced
+/// by an `OP_REPEAT` that reads it there: from left to right, at each event
+/// the run that saves the most bytes, if it is at least `REPEAT_MIN_BYTES`
+/// long. What it gives back writes exactly the same; it checks that `unfold`
+/// gives back `stream` before returning.
+pub fn fold(stream: &[u8]) -> Result<Vec<u8>> {
+    let events = events_of(stream)?;
+    let bytes = |k: usize| &stream[events[k].clone()];
+    let n = events.len();
+    let mut out: Vec<u8> = Vec::with_capacity(stream.len());
+    // Where each event went in `out`, if it went as itself: only those can be
+    // gone back to.
+    let mut placed: Vec<Option<usize>> = vec![None; n];
+    // Where each pair of consecutive placed events starts, by their bytes: a
+    // repeat that pays reads at least two, because one event takes at most
+    // four bytes, which is what the repeat costs.
+    let pair = |k: usize| &stream[events[k].start..events[k + 1].end];
+    let mut pairs: HashMap<&[u8], Vec<usize>> = HashMap::new();
+    // The run that saves the most if the repeat goes at event `k` and `out`
+    // is `at` bytes long: (saves, from, events).
+    let best_at = |k: usize, at: usize, placed: &[Option<usize>], pairs: &HashMap<&[u8], Vec<usize>>| {
+        let mut best: Option<(usize, usize, usize)> = None;
+        let candidates = if k + 1 < n { pairs.get(pair(k)).map(|v| v.as_slice()) } else { None };
+        for &from in candidates.unwrap_or(&[]).iter().rev() {
+            let start = placed[from].expect("only placed events are indexed");
+            if at + REPEAT_BYTES - start > REPEAT_MAX_BACK {
+                break; // the older ones are farther still
+            }
+            let (mut len, mut size) = (0usize, 0usize);
+            while len < REPEAT_MAX_EVENTS as usize
+                && from + len < k
+                && k + len < n
+                && placed[from + len].is_some()
+                && repeatable(stream[events[from + len].start])
+                && bytes(from + len) == bytes(k + len)
+            {
+                size += bytes(k + len).len();
+                len += 1;
+            }
+            if size >= REPEAT_MIN_BYTES && best.map_or(true, |(saves, _, _)| size - REPEAT_BYTES > saves) {
+                best = Some((size - REPEAT_BYTES, from, len));
+            }
+        }
+        best
+    };
+    let mut k = 0;
+    while k < n {
+        let mut best = best_at(k, out.len(), &placed, &pairs);
+        if let Some((saves, _, _)) = best {
+            // Lazy: if the event after this one starts a run that saves more
+            // than what this one costs as itself, this one goes as itself.
+            // It is worth little —a tenth of a percent—, and costs nothing.
+            if let Some((next, _, _)) = best_at(k + 1, out.len() + bytes(k).len(), &placed, &pairs) {
+                if next > saves + bytes(k).len() {
+                    best = None;
+                }
+            }
+        }
+        if let Some((_, from, len)) = best {
+            let back = out.len() + REPEAT_BYTES - placed[from].unwrap();
+            out.extend_from_slice(&[OP_REPEAT, back as u8, (back >> 8) as u8, len as u8]);
+            k += len;
+            continue;
+        }
+        placed[k] = Some(out.len());
+        out.extend_from_slice(bytes(k));
+        if k >= 1
+            && placed[k - 1].is_some()
+            && repeatable(stream[events[k - 1].start])
+            && repeatable(stream[events[k].start])
+        {
+            pairs.entry(pair(k - 1)).or_default().push(k - 1);
+        }
+        k += 1;
+    }
+    if unfold(&out)? != stream[..events[n - 1].end] {
+        return Err(Bad::answer("folding the stream changed what it says"));
+    }
+    Ok(out)
+}
+
+/// The stream with each `OP_REPEAT` replaced by the events it reads: what
+/// `pack` wrote before `fold`.
+pub fn unfold(stream: &[u8]) -> Result<Vec<u8>> {
+    let mut out = Vec::with_capacity(stream.len() * 2);
+    for event in events_of(stream)? {
+        let e = &stream[event.clone()];
+        if e[0] != OP_REPEAT {
+            out.extend_from_slice(e);
+            continue;
+        }
+        let back = e[1] as usize | (e[2] as usize) << 8;
+        let wrong = || Bad::answer(format!("the OP_REPEAT at {} goes {back} bytes back", event.start));
+        let mut i = event.end.checked_sub(back).filter(|&f| f < event.start).ok_or_else(wrong)?;
+        for _ in 0..e[3] {
+            let op = stream[i];
+            let size = opcode_size(op).filter(|_| repeatable(op)).ok_or_else(|| {
+                Bad::answer(format!("the OP_REPEAT at {} reads opcode ${op:02X}", event.start))
+            })?;
+            out.extend_from_slice(&stream[i..i + size]);
+            i += size;
+        }
+    }
+    Ok(out)
+}
+
+/// How many `OP_REPEAT` the stream has.
+pub fn repeats(stream: &[u8]) -> Result<usize> {
+    Ok(events_of(stream)?.iter().filter(|e| stream[e.start] == OP_REPEAT).count())
+}
+
 /// That a song's stream, decoded, writes the same as `writes`: every
 /// register, every value, in the same order and the same frame.
 pub fn check(name: &str, stream: &[u8], sounds: &[Sound], reference: &[Write]) -> Result<()> {
@@ -654,5 +853,81 @@ mod tests {
         assert_eq!(decode(&stream, &sounds).unwrap(), reference);
         assert_eq!(stream[0], OP_INIT);
         assert_eq!(*stream.last().unwrap(), OP_END);
+    }
+
+    /// A song that plays the same bar four times, the bar being a note on two
+    /// voices, a release and a wait, with another note in between the
+    /// second and the third.
+    fn bars() -> (Vec<u8>, Vec<Sound>) {
+        let sounds = vec![[0x00, 0x10, 0, 0x8F, 0xE0, 0x9C], [0x00, 0x20, 1, 0x8F, 0xE0, 0x9C]];
+        let bar = [
+            OP_NOTE_VOL_V0, 0x40, 0,
+            OP_NOTE_VOL_V1, 0x30, 1,
+            OP_WAIT_1 + 7,
+            OP_RELEASE_V0,
+            OP_RELEASE_V1,
+            OP_WAIT_1 + 3,
+        ];
+        let mut stream = vec![OP_INIT];
+        stream.extend_from_slice(&bar);
+        stream.extend_from_slice(&bar);
+        stream.extend_from_slice(&[OP_NOTE_V0, 1, OP_WAIT_1]);
+        stream.extend_from_slice(&bar);
+        stream.extend_from_slice(&bar);
+        stream.extend_from_slice(&[OP_DSP, sdsp::KOF, 0xFF, OP_END]);
+        (stream, sounds)
+    }
+
+    #[test]
+    fn folding_writes_the_same_frame_by_frame() {
+        let (flat, sounds) = bars();
+        let folded = fold(&flat).unwrap();
+        assert!(folded.len() < flat.len(), "{} bytes, and before {}", folded.len(), flat.len());
+        assert!(repeats(&folded).unwrap() >= 2);
+        assert_eq!(unfold(&folded).unwrap(), flat);
+        assert_eq!(decode(&folded, &sounds).unwrap(), decode(&flat, &sounds).unwrap());
+        // `length` is the folded stream's: whoever reads it from a cartridge
+        // finds its OP_END there.
+        assert_eq!(decode_counting(&folded, &sounds).unwrap().1, folded.len());
+    }
+
+    #[test]
+    fn a_repeat_goes_back_to_plain_events_only() {
+        let (flat, _) = bars();
+        let folded = fold(&flat).unwrap();
+        let events = events_of(&folded).unwrap();
+        for e in events.iter().filter(|e| folded[e.start] == OP_REPEAT) {
+            let back = folded[e.start + 1] as usize | (folded[e.start + 2] as usize) << 8;
+            let from = e.end - back;
+            let read: Vec<_> = events.iter().skip_while(|f| f.start != from).take(folded[e.start + 3] as usize).collect();
+            assert_eq!(read.len(), folded[e.start + 3] as usize, "it does not land on an event");
+            assert!(read.iter().all(|f| repeatable(folded[f.start]) && f.end <= e.start));
+        }
+    }
+
+    #[test]
+    fn a_repeat_that_comes_back_to_the_wrong_place_writes_something_else() {
+        let (flat, sounds) = bars();
+        let folded = fold(&flat).unwrap();
+        let at = events_of(&folded).unwrap().into_iter().find(|e| folded[e.start] == OP_REPEAT).unwrap();
+        // One event less: it comes back before the bar ends.
+        let mut wrong = folded.clone();
+        wrong[at.start + 3] -= 1;
+        assert_ne!(decode(&wrong, &sounds).ok(), Some(decode(&flat, &sounds).unwrap()));
+    }
+
+    #[test]
+    fn a_repeat_inside_a_repeat_is_refused() {
+        let (flat, sounds) = bars();
+        let mut folded = fold(&flat).unwrap();
+        let events = events_of(&folded).unwrap();
+        let first = events.iter().find(|e| folded[e.start] == OP_REPEAT).unwrap().clone();
+        // A second repeat that goes back to the first one.
+        folded.pop();
+        let end = folded.len() + REPEAT_BYTES;
+        let back = end - first.start;
+        folded.extend_from_slice(&[OP_REPEAT, back as u8, (back >> 8) as u8, 1, OP_END]);
+        assert!(decode(&folded, &sounds).is_err());
+        assert!(unfold(&folded).is_err());
     }
 }

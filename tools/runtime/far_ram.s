@@ -650,6 +650,9 @@ FAR_FLASH_PAL = $7E6900         ; FLASH_MAX * 32
 ;   MUS_GAINS    the ones that have already received a GAIN
 ;   MUS_BIT      the voice bit of the event being read
 ;   MUS_T        scratch word
+;   MUS_BACK_TO  long: where an `OP_REPEAT` comes back to
+;   MUS_LEFT     the events the `OP_REPEAT` has left to read, plus one; zero
+;                outside one. See `music_frame::read`
 FAR_MUSIC    = $7E6C00
 MUS_SHADOW   = FAR_MUSIC
 MUS_WAIT     = FAR_MUSIC + $80
@@ -660,8 +663,10 @@ MUS_VIEWS    = FAR_MUSIC + $86
 MUS_GAINS    = FAR_MUSIC + $87
 MUS_BIT      = FAR_MUSIC + $88
 MUS_T        = FAR_MUSIC + $89
-; The bytes from MUS_WAIT to MUS_T, which `music_clear` zeroes.
-MUS_STATE_BYTES = $0B
+MUS_BACK_TO  = FAR_MUSIC + $8B
+MUS_LEFT     = FAR_MUSIC + $8E
+; The bytes from MUS_WAIT to MUS_LEFT, which `music_clear` zeroes.
+MUS_STATE_BYTES = $0F
 ; The log of what the stream asks of the DSP: `dsp_music` records each
 ; (register, value) pair here if MUS_LOG_YES is not zero, and
 ; MUS_LOG_I is where the next one goes, in bytes. It is the net of

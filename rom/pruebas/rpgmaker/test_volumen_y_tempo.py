@@ -62,11 +62,6 @@ def _hasta_que_suene(una, nombre):
                          % nombre)
 
 
-def _puntero_del_stream(una):
-    bajo, alto, banco = una.consola.ram(una.simbolos["music"], 3)
-    return (banco << 16) | (alto << 8) | bajo
-
-
 def _con_signo(v):
     return v - 256 if v >= 128 else v
 
@@ -145,12 +140,12 @@ def test_el_mismo_tema_con_otro_volumen_baja_sin_reiniciar(partida):
     _hasta_que_suene(una, "evilrhys")
     j = _prender_la_bitacora(una)
     ultimos = {}
-    antes = _puntero_del_stream(una)
+    antes = una.avance_del_stream()
     for _ in range(300):
         una.correr(1)
         pares, j = _leer_la_bitacora(una, j)
         _volumenes(una, pares, ultimos)
-        ahora = _puntero_del_stream(una)
+        ahora = una.avance_del_stream()
         assert ahora >= antes, (
             "el stream volvió de $%06X a $%06X: el `PlayBGM` con otro "
             "volumen reinició el tema" % (antes, ahora))

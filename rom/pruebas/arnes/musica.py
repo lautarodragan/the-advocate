@@ -147,7 +147,20 @@ def decodificar(flujo, sonidos):
     """Lo que escribe al DSP el stream que empieza en `flujo` —bytes, que
     pueden seguir después de su `OP_END`—, con esos sonidos de seis bytes:
     ([(cuadro, registro, valor)], cuántos bytes ocupa, su `OP_END`
-    incluido). Es el modelo de `music_frame`."""
+    incluido). Es el modelo de `music_frame`, y sigue los `OP_REPEAT`."""
+    hecho = _decode(flujo, sonidos)
+    return [tuple(e) for e in hecho["writes"]], hecho["length"]
+
+
+def decodificar_desplegado(flujo, sonidos):
+    """Como `decodificar`, pero con cada `OP_REPEAT` reemplazado antes por
+    los eventos que lee —el stream como era antes de las repeticiones—:
+    ([(cuadro, registro, valor)], cuántos `OP_REPEAT` tenía)."""
+    hecho = _decode(flujo, sonidos, "--unfold")
+    return [tuple(e) for e in hecho["writes"]], hecho["repeats"]
+
+
+def _decode(flujo, sonidos, *opciones):
     with tempfile.TemporaryDirectory(prefix="abl-stream-") as carpeta:
         ruta_flujo = os.path.join(carpeta, "stream")
         ruta_sonidos = os.path.join(carpeta, "sonidos")
@@ -155,9 +168,8 @@ def decodificar(flujo, sonidos):
             archivo.write(bytes(flujo))
         with open(ruta_sonidos, "wb") as archivo:
             archivo.write(b"".join(bytes(s) for s in sonidos))
-        hecho = json.loads(_correr("decode", "--stream", ruta_flujo,
-                                   "--sounds", ruta_sonidos))
-    return [tuple(e) for e in hecho["writes"]], hecho["length"]
+        return json.loads(_correr("decode", "--stream", ruta_flujo,
+                                  "--sounds", ruta_sonidos, *opciones))
 
 
 def wav(nombre):

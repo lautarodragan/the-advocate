@@ -108,11 +108,6 @@ def test_el_tema_recordado_vuelve(partida):
     assert not una.byte("music_off")
 
 
-def puntero_del_stream(una):
-    bajo, alto, banco = una.consola.ram(una.simbolos["music"], 3)
-    return (banco << 16) | (alto << 8) | bajo
-
-
 def test_poner_el_tema_recordado_que_ya_suena_no_lo_reinicia(partida):
     """Es `Game_System::BgmPlay` con el mismo nombre: sigue por donde iba.
     Si se reiniciara, el stream volvería atrás en algún cuadro."""
@@ -120,10 +115,10 @@ def test_poner_el_tema_recordado_que_ya_suena_no_lo_reinicia(partida):
     evilrhys = indice_del_tema(una, "evilrhys")
     esperar(una, lambda u: u.palabra("song_current") == evilrhys, 200,
             "que suene evilrhys")
-    antes = puntero_del_stream(una)
+    antes = una.avance_del_stream()
     for _ in range(420):
         una.correr(1)
-        ahora = puntero_del_stream(una)
+        ahora = una.avance_del_stream()
         assert ahora >= antes, (
             "el stream volvió de $%06X a $%06X: el tema recordado se "
             "reinició, y en RM2k el mismo tema sigue sonando" % (antes, ahora))

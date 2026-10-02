@@ -987,6 +987,20 @@ class Partida:
             lista += 1
         return tuple(partes)
 
+    def avance_del_stream(self):
+        """Por dónde va el stream que suena, como dirección: `music`, salvo
+        adentro de un `OP_REPEAT`, que lee algo que el tema ya dijo más
+        atrás y vuelve después del salto —desde el 2026-10-01, "repeats" en
+        `stream.rs`—: ahí, adonde vuelve, `MUS_BACK_TO`. Así sólo baja si
+        el tema vuelve a empezar, que es lo que miran las pruebas de
+        `PlayBGM` con el tema que ya suena."""
+        s = self.simbolos
+        if self.consola.ram(en_la_wram(s["MUS_LEFT"]), 1)[0]:
+            bajo, alto, banco = self.consola.ram(en_la_wram(s["MUS_BACK_TO"]), 3)
+        else:
+            bajo, alto, banco = self.consola.ram(s["music"], 3)
+        return (banco << 16) | (alto << 8) | bajo
+
     def stream_del_tema(self, indice):
         """(dirección del stream, sus sonidos) del tema, leídos **del
         cartucho** con las mismas tablas que usa `music_start_done`: `song_lo`,
@@ -1013,7 +1027,13 @@ class Partida:
         `OP_END` incluido."""
         return self._stream_decodificado(indice)[1]
 
-    def _stream_decodificado(self, indice):
+    def escrituras_del_tema_desplegado(self, indice):
+        """(lo que escribiría el stream del tema sin sus `OP_REPEAT`, cada
+        uno reemplazado por lo que lee; cuántos tiene): el formato de antes
+        de las repeticiones, decodificado sin pasar por el salto."""
+        return self._stream_decodificado(indice, musica.decodificar_desplegado)
+
+    def _stream_decodificado(self, indice, como=None):
         direccion, sonidos = self.stream_del_tema(indice)
         with open(self.sfc, "rb") as archivo:
             rom = archivo.read()
@@ -1021,7 +1041,7 @@ class Partida:
         # que sigue a $xxFFFF está en $(xx+1)0000, que en el archivo es el
         # siguiente —es el salto de banco de `advance` en runtime/music.s,
         # visto desde el archivo—, y lo que sigue al `OP_END` no se lee.
-        return musica.decodificar(rom[en_la_rom(direccion):], sonidos)
+        return (como or musica.decodificar)(rom[en_la_rom(direccion):], sonidos)
 
     def acceso(self):
         """El byte de permisos: bit 0 guardar prohibido, bit 1 el menú
