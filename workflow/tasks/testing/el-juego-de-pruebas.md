@@ -57,3 +57,10 @@ El estudio es `docs/research/2026-10-02-el-juego-de-pruebas.md`. Lo corto:
 **Al mergear no hay que instalar nada**: son un documento y esta tarea.
 `just pruebas` dio 999 en verde sobre este árbol, y `just -f tools/justfile
 test` 36.
+
+# La historia de ABL: sin filter-repo (taro, 2026-10-02)
+
+"No sé si me preocupa tanto el git-filter-repo. Por ahora, seguimos teniendo
+el git log acá, y lo que va a quedar del lado de ABL debería ser muy poco".
+El repo de ABL nace de cero con los archivos de hoy, y la historia queda en
+este repo.

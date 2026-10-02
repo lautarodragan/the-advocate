@@ -2,6 +2,7 @@
 name: "Los bytecodes, declarados en Rust"
 description: "Los dos bytecodes en un crate de tools/rm2k-snes/ con una macro, el .inc escrito por rm2k-snes-assemble al armar, y fuera protocol, sus TOML y los cuatro archivos generados"
 type: refactor
+assignee: Benteveíto
 ---
 
 De taro, el 2026-10-02. Va **después** de `doing/las-pruebas-sin-opcodes.md`,
