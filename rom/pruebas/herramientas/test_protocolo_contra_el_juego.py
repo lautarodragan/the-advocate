@@ -67,7 +67,7 @@ def test_la_entrada_k_de_la_tabla_salta_al_manejador_del_opcode_k(nombre):
         "los símbolos del cartucho no traen ningún opcode con manejador: la "
         "prueba ya no mira lo que dice")
     assert sorted(codigos) == list(range(len(codigos))), (
-        "los números de events.toml tienen huecos: la tabla no puede ser")
+        "los números del bytecode de eventos tienen huecos: la tabla no puede ser")
     for k in sorted(codigos):
         manejador = codigos[k]
         direccion = uno.simbolos[manejador]

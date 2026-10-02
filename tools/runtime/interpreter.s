@@ -10,9 +10,9 @@
 ; jumps within the program bank. As long as they are all in `CODE` that holds,
 ; and `test_la_entrada_k_de_la_tabla_salta_al_manejador_del_opcode_k` guards it.
 ;
-; A new opcode touches two places: its number in tools/snes/protocol/events.toml
-; —which, when regenerated with `just protocolo`, yields its entry in the
-; dispatch table— and its `.proc op_x` in whichever file it belongs to, named
+; A new opcode touches two places: its number in
+; tools/rm2k-snes/bytecode/src/events.rs —which yields its entry in the dispatch
+; table at the next build— and its `.proc op_x` in whichever file it belongs to, named
 ; after the opcode in lowercase. The dispatch is not touched: if the handler is
 ; missing, the table does not assemble.
 
@@ -75,7 +75,7 @@ other:
     rts
 .endproc
 
-; The numbers `events.toml` holds for opcodes other branches are adding: until
+; The numbers the declaration holds for opcodes other branches are adding: until
 ; they land, each one ends the page, like a number that is not an opcode.
 op_reserved_39 = op_done
 op_reserved_3a = op_done
@@ -97,8 +97,8 @@ nobody:
     jmp op_done                 ; an automatic one's end: the page ends
 .endproc
 
-; Entry k is the handler for opcode k. tools/snes/protocol/ emits it from
-; events.toml, so a new opcode does not touch this: the handler for `OP_X`
+; Entry k is the handler for opcode k. `rm2k-snes-assemble` writes it from the
+; declaration, so a new opcode does not touch this: the handler for `OP_X`
 ; has to be called `op_x`, and if it is missing it does not assemble. It has to
 ; be in `run_code`'s bank, which is where the `jmp` reads it from, and so
 ; does each handler: an `.addr` is sixteen bits.

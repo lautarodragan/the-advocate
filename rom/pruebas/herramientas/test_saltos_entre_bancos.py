@@ -149,15 +149,18 @@ class Ensamblado:
         self._fuentes = {}
         # Dónde empieza cada instrucción que es sola en su span, y cada dato
         # —un `.byte`, un `.addr`—: casi todas las líneas, y cada línea de la
-        # expansión de una macro, que el `.dbg` marca con `type=2`.
+        # expansión de una macro, que el `.dbg` marca con `type=2`. Los datos,
+        # de cualquier archivo: la tabla del despacho de `run_code` es una
+        # macro del runtime que expande un `.inc` generado
+        # —`EVENT_HANDLERS`, de `event_opcodes.inc`—, y desde el 2026-10-02
+        # ese `.inc` está en el directorio del cartucho, no en el runtime.
         self.inicios, self.datos = {}, set()
         for linea in self.lineas.values():
-            if not self.del_runtime(linea):
-                continue
+            del_runtime = self.del_runtime(linea)
             for direccion, offset, largo, dato in self._spans(linea):
                 if dato:
                     self.datos.add(direccion)
-                elif self._sola(offset, largo):
+                elif del_runtime and self._sola(offset, largo):
                     self.inicios[direccion] = offset
         etiquetas = [s for s in self.simbolos.values()
                      if s.get("type") == "lab" and "val" in s]

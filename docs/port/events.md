@@ -3,10 +3,11 @@
 Cada página de evento que se puede compilar viaja en el cartucho como
 **bytecode**, y ese bytecode tiene tres dueños que no se pisan:
 
-    tools/snes/protocol/events.toml  lo declara: cada opcode, su número y los bytes que lleva
-    tools/rm2k-snes/events/          lo emite: `rm2k-snes-events`, en Rust;
-                                     `compile_command`, un caso por comando de RM2k
-    tools/runtime/interpreter*.s     lo ejecuta: `run_code` y un `.proc op_*` por opcode
+    tools/rm2k-snes/bytecode/       lo declara: cada opcode, su número y los bytes que
+                                    lleva, en `src/events.rs`
+    tools/rm2k-snes/events/         lo emite: `rm2k-snes-events`, en Rust;
+                                    `compile_command`, un caso por comando de RM2k
+    tools/runtime/interpreter*.s    lo ejecuta: `run_code` y un `.proc op_*` por opcode
 
 **El intérprete lo lee de la WRAM, no del cartucho**, desde el 2026-10-01:
 viaja en LZ2 y se descomprime con la grilla, detrás de ella (ver
@@ -17,13 +18,15 @@ y sigue hablando, y cada caso de la tanda— se lleva su bytecode a
 `code_carry_before` en `tools/runtime/decompress.s`. Los saltos adentro de una
 página son relativos a donde empieza, así que mudarla es mover un puntero.
 
-De `tools/snes/protocol/events.toml` salen generados
-`tools/rm2k-snes/events/src/opcodes.rs` y `tools/runtime/event_opcodes.inc`
-—hasta el 2026-10-02 también un módulo de Python con que las pruebas de ABL
-leían el bytecode; desde ese día ninguna lo lee, y lo cuida
-`test_lado_de_abl.py`—; ver
-`tools/snes/protocol/README.md`, que está en inglés porque ahí adentro no se sabe
-nada de este juego. El compilador está en inglés por lo mismo, y su README dice
+La declaración es una `macro_rules!`, `bytecode!`: da una constante por
+opcode, que el compilador toma con un `use`, y la tabla de la que
+`rm2k-snes-assemble` escribe `event_opcodes.inc` en el directorio del
+cartucho, en cada build. Hasta el 2026-10-02 la declaración era un TOML de
+`tools/snes/protocol/`, y de ahí salían generados y commiteados el módulo de
+Rust, el `.inc` de `tools/runtime/` y un módulo de Python con que las pruebas
+de ABL leían el bytecode; desde ese día ninguna lo lee, y lo cuida
+`test_lado_de_abl.py`. Está en inglés porque ahí adentro no se sabe nada
+de este juego. El compilador está en inglés por lo mismo, y su README dice
 qué recibe y qué contesta; el conversor, `rm2k-snes-convert`, lo llama dos
 veces. Hasta el 2026-09-29 era `tools/port/events.py`, cuyas constantes y
 modelos quedaron para las pruebas, en `rom/pruebas/arnes/events.py`. **Un opcode nuevo se declara ahí y en
@@ -32,11 +35,11 @@ intérprete adentro de `mapdata.inc`, y así dos ramas eligieron el mismo sin qu
 git viera nada.
 
 **Del lado de la ROM, un opcode nuevo es su `.proc` y nada más.** El despacho
-de `run_code` es un `jmp (tabla, x)` y la tabla la emite el mismo
-generador —la macro `EVENT_HANDLERS` de `event_opcodes.inc`, con
-`--jump-table`—, con una regla para el nombre: el manejador de `OP_X` se llama
-`op_x`, y si no existe la ROM no ensambla. Eso pide que los números de
-`events.toml` sigan contiguos desde 0, y el generador se niega si quedan huecos.
+de `run_code` es un `jmp (tabla, x)` y la tabla sale de la misma
+declaración —la macro `EVENT_HANDLERS` de `event_opcodes.inc`—, con una
+regla para el nombre: el manejador de `OP_X` se llama `op_x`, y si no existe
+la ROM no ensambla. Eso pide que los números sigan contiguos desde 0, y la
+declaración no compila si quedan huecos.
 Hasta el 2026-09-25 el despacho era una cadena de `cmp`/`bne`/`jmp`, un
 eslabón por opcode, y era el punto donde chocaban dos ramas que agregaban uno
 cada una.

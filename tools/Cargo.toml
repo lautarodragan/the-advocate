@@ -12,7 +12,6 @@ members = [
     "snes/goombario",
     "snes/gunter",
     "snes/lz2",
-    "snes/protocol",
     "snes/resample",
     "snes/voodoo",
     "rm2k/ditto",
@@ -20,6 +19,7 @@ members = [
     "rm2k/rules",
     "rm2k/rm2k-render",
     "rm2k-snes/battle",
+    "rm2k-snes/bytecode",
     "rm2k-snes/cartridge",
     "rm2k-snes/convert",
     "rm2k-snes/events",
@@ -46,11 +46,8 @@ lto = true
 codegen-units = 1
 strip = true
 
-# Ditto and protocol optimized for size. Their `panic = "abort"` did not come
-# along: Cargo does not allow `panic` per package, and unwinding changes how
-# big the binaries are, not what they do.
+# Ditto optimized for size. Its `panic = "abort"` did not come along: Cargo
+# does not allow `panic` per package, and unwinding changes how big the
+# binaries are, not what they do.
 [profile.release.package.ditto]
-opt-level = "z"
-
-[profile.release.package.protocol]
 opt-level = "z"

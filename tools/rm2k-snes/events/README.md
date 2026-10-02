@@ -17,9 +17,9 @@ be run.** One the console does not model leaves the whole page out, and its
 event does nothing: running half a script would leave the game in a state
 that does not exist.
 
-The opcodes are not declared here: they are the protocol's, `events.toml`,
-which belongs to neither the compiler nor the interpreter. `src/opcodes.rs`
-is generated from it by `protocol --rust` and committed.
+The opcodes are not declared here: they are `rm2k-snes-bytecode`'s, which
+belongs to neither the compiler nor the interpreter, and this takes them
+with a `use`.
 
 ## One stage of a converter, called twice
 

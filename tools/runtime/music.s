@@ -3,8 +3,8 @@
 ; --- music -------------------------------------------------------------------
 ; The stream is per note: notes, releases, volume or pitch changes of a voice
 ; that is playing, and waits; `music_frame` expands it into DSP writes. The
-; opcodes are declared by `tools/snes/protocol/music.toml` and the equate comes out
-; generated: until 2026-09-15 they were written by hand here **and** in the
+; opcodes are declared in `tools/rm2k-snes/bytecode/src/music.rs` and the equates
+; come out generated: until 2026-09-15 they were written by hand here **and** in the
 ; compiler that writes the stream —today tools/rm2k-snes/rm2k-snes-audio/—, with nothing
 ; tying the two copies together.
 
@@ -625,7 +625,7 @@ ready:
 
 ; One frame of music. The stream is per note —see "the per-note format" in
 ; tools/rm2k-snes/rm2k-snes-audio/src/stream.rs and the header of
-; tools/snes/protocol/music.toml— and here it is expanded into the DSP writes that
+; tools/rm2k-snes/bytecode/src/music.rs— and here it is expanded into the DSP writes that
 ; `dsp_music` sends: exactly those of `writes` in stream.rs, frame by frame,
 ; and
 ; rom/pruebas/rpgmaker/test_musica_escrituras.py checks it. It reads until it
@@ -824,7 +824,7 @@ init_ready:
 
 from_voice:
     ; The voice in the three low bits and the family in the ones above: see
-    ; the header of music.toml. Y ends up with the voice's VOL_L register.
+    ; the header of music.rs. Y ends up with the voice's VOL_L register.
     rep #$20
 .a16
     and #$00FF
@@ -856,15 +856,15 @@ from_voice:
 families:
     .addr ev_note, ev_note_vol, ev_note_pan, ev_release, ev_release_gain
     .addr ev_set_vol, ev_set_pan, ev_set_pitch
-.assert OP_NOTE_V0 = 0, error, "music.toml: the families start at 0"
-.assert OP_NOTE_VOL_V0 = OP_NOTE_V0 + 8, error, "music.toml: families out of order"
-.assert OP_NOTE_PAN_V0 = OP_NOTE_VOL_V0 + 8, error, "music.toml: families out of order"
-.assert OP_RELEASE_V0 = OP_NOTE_PAN_V0 + 8, error, "music.toml: families out of order"
-.assert OP_RELEASE_GAIN_V0 = OP_RELEASE_V0 + 8, error, "music.toml: families out of order"
-.assert OP_SET_VOL_V0 = OP_RELEASE_GAIN_V0 + 8, error, "music.toml: families out of order"
-.assert OP_SET_PAN_V0 = OP_SET_VOL_V0 + 8, error, "music.toml: families out of order"
-.assert OP_SET_PITCH_V0 = OP_SET_PAN_V0 + 8, error, "music.toml: families out of order"
-.assert OP_WAIT_1 = OP_SET_PITCH_V0 + 8, error, "music.toml: the waits go after them"
+.assert OP_NOTE_V0 = 0, error, "music.rs: the families start at 0"
+.assert OP_NOTE_VOL_V0 = OP_NOTE_V0 + 8, error, "music.rs: families out of order"
+.assert OP_NOTE_PAN_V0 = OP_NOTE_VOL_V0 + 8, error, "music.rs: families out of order"
+.assert OP_RELEASE_V0 = OP_NOTE_PAN_V0 + 8, error, "music.rs: families out of order"
+.assert OP_RELEASE_GAIN_V0 = OP_RELEASE_V0 + 8, error, "music.rs: families out of order"
+.assert OP_SET_VOL_V0 = OP_RELEASE_GAIN_V0 + 8, error, "music.rs: families out of order"
+.assert OP_SET_PAN_V0 = OP_SET_VOL_V0 + 8, error, "music.rs: families out of order"
+.assert OP_SET_PITCH_V0 = OP_SET_PAN_V0 + 8, error, "music.rs: families out of order"
+.assert OP_WAIT_1 = OP_SET_PITCH_V0 + 8, error, "music.rs: the waits go after them"
 
 voice_bit:
     .byte $01, $02, $04, $08, $10, $20, $40, $80

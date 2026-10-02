@@ -23,7 +23,7 @@ reproduce. Las rutas de abajo que terminan en `.rs` son de su `src/`.
 * **El stream es por nota**: notas, releases, cambios de volumen o de altura,
   y esperas, que el 65816 expande a las mismas escrituras que antes iban en el
   stream. El formato está en "the per-note format" de `stream.rs` y los
-  opcodes en `tools/snes/protocol/music.toml`; `irq_music` (`tools/runtime/music.s`)
+  opcodes en `tools/rm2k-snes/bytecode/src/music.rs`; `irq_music` (`tools/runtime/music.s`)
   corre un cuadro de música por cuadro de video.
 * **Lo que el tema toca igual se dice una vez**: un `OP_REPEAT` vuelve atrás,
   lee tantos eventos que el stream ya tenía y sigue después del salto, de un

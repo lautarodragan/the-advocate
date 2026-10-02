@@ -14,7 +14,7 @@ use crate::codes::*;
 use crate::fail::{Bad, Result, Step, Stop};
 use crate::game::{Command, Game, Sound};
 use crate::messages::Messages;
-use crate::opcodes::*;
+use rm2k_snes_bytecode::events::*;
 use crate::pages::MapEvents;
 use crate::registry::{Backdrop, Graphics, Package, PictureKey, Pictures, Songs, Troops};
 use crate::route;
@@ -277,7 +277,8 @@ const CHOICE_INDENT: &str = " ";
 /// variable, saturating —see `number_value` in tools/runtime/number_input.s—,
 /// and its line is a cursor column and a digit per digit: twelve letters.
 const NUMBER_DIGITS_MAX: i64 = 6;
-// Where the two destinations go inside `OP_CELL_TEST` —see events.toml—, and
+// Where the two destinations go inside `OP_CELL_TEST` —see its declaration
+// in rm2k-snes-bytecode—, and
 // the top two bits of each write, over the variable's offset: y instead of
 // x, and the refresh. See `cell_test` in tools/runtime/interpreter_cells.s.
 const CELL_DEST_A: usize = 10;
@@ -2808,28 +2809,20 @@ fn compile_counter(ctx: &Ctx, common: i32) -> Step<Vec<u8>> {
 
 /// The size of an opcode that has a fixed one.
 pub fn size_of(op: u8) -> usize {
-    OPCODE_SIZE
-        .iter()
-        .find(|(o, _)| *o == op)
-        .map(|(_, s)| *s)
-        .unwrap()
+    BYTECODE.fixed_size(op).unwrap()
 }
 
 /// How many bytes the instruction at `code[at]` takes, the variable-size
 /// ones included.
 pub fn instruction_size(code: &[u8], at: usize) -> usize {
-    let op = code[at];
-    match VARIABLE_SIZE.iter().find(|(o, ..)| *o == op) {
-        Some(&(_, base, count, entry)) => base + entry * code[at + count] as usize,
-        None => size_of(op),
-    }
+    BYTECODE.size_at(code, at).unwrap()
 }
 
 /// That walking `code` by the declared sizes lands exactly on its end.
 ///
 /// What it catches is the emitter and the interpreter counting different
 /// bytes for one opcode: each piece is written by hand, and the
-/// interpreter advances by what `events.toml` declares. If they disagree
+/// interpreter advances by what `rm2k-snes-bytecode` declares. If they disagree
 /// the ROM reads the bytecode shifted, and that is no error: it is a page
 /// that does anything. So every page is checked as it comes out, the
 /// game's included —until 2026-10-02 it was a test of the game's that
@@ -2838,14 +2831,7 @@ pub fn instruction_size(code: &[u8], at: usize) -> usize {
 fn whole_instructions(code: &[u8]) -> Result<()> {
     let mut at = 0;
     while at < code.len() {
-        let op = code[at];
-        let size = match VARIABLE_SIZE.iter().find(|(o, ..)| *o == op) {
-            Some(&(_, base, count, entry)) => code
-                .get(at + count)
-                .map(|&n| base + entry * n as usize),
-            None => OPCODE_SIZE.iter().find(|(o, _)| *o == op).map(|(_, s)| *s),
-        };
-        match size {
+        match BYTECODE.size_at(code, at) {
             Some(size) => at += size,
             None => break,
         }
@@ -2952,7 +2938,7 @@ pub fn with_variables(lines: &[String], indices: &Indices) -> Step<Vec<String>> 
 ///
 /// One opcode per command, with the operands already resolved: the ROM does
 /// not look at the LCF again nor knows its numbers. **The numbers and
-/// layouts are in `tools/snes/protocol/events.toml`**, not here: what each
+/// layouts are in `rm2k-snes-bytecode`**, not here: what each
 /// arm says is what there is to know about each one that a declaration
 /// cannot say.
 pub fn compile_command(

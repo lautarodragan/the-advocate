@@ -16,8 +16,8 @@
 //!   changes to—;
 //! * [`compile()`]: the real thing, with everything.
 //!
-//! The opcodes' numbers are not here: they come from the protocol's
-//! declaration, `events.toml`, generated into [`opcodes`].
+//! The opcodes' numbers are not here: they are declared, once, in
+//! `rm2k-snes-bytecode`.
 
 pub mod codes;
 pub mod commons;
@@ -26,8 +26,6 @@ pub mod fail;
 pub mod game;
 pub mod indices;
 pub mod messages;
-#[rustfmt::skip]
-pub mod opcodes;
 pub mod pages;
 pub mod registry;
 pub mod route;

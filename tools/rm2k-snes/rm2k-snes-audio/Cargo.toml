@@ -27,6 +27,7 @@ gunter = { path = "../../snes/gunter" }
 libc = "0.2"
 rm2k-project = { path = "../project" }
 rm2k-rules = { path = "../../rm2k/rules" }
+rm2k-snes-bytecode = { path = "../bytecode" }
 serde_json = { version = "1", features = ["preserve_order"] }
 sha2 = "0.10"
 toml = "1"

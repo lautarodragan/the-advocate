@@ -1,0 +1,9 @@
+[package]
+name = "rm2k-snes-bytecode"
+version = "0.1.0"
+edition = "2021"
+description = "The two bytecodes an rm2k-snes cartridge reads, declared once: the events one and the music stream, their numbers, their layouts and the assembler's equates"
+
+[lib]
+name = "rm2k_snes_bytecode"
+path = "src/lib.rs"

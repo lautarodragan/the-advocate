@@ -28,8 +28,6 @@ pub mod job;
 pub mod midi;
 pub mod msu;
 pub mod msu_data;
-#[rustfmt::skip]
-pub mod music_opcodes;
 pub mod num;
 pub mod pyjson;
 pub mod retro;

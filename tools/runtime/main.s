@@ -86,10 +86,12 @@
 
 .include "registers.s"
 .include "far_ram.s"
-; The two bytecodes this ROM reads, generated from tools/snes/protocol/: the events
-; one, which `run_code` interprets, and the music stream, which
-; `irq_music` reads. Each one is declared by a file that belongs neither to
-; the side that emits the bytes nor to the side that reads them.
+; The two bytecodes this ROM reads: the events one, which `run_code`
+; interprets, and the music stream, which `irq_music` reads. Each one is
+; declared in tools/rm2k-snes/bytecode/, which belongs neither to the side that
+; emits the bytes nor to the side that reads them, and `rm2k-snes-assemble`
+; writes these two next to the cartridge's other generated files: they are
+; not here, and one here would shadow them.
 ;
 ; The events one came inside mapdata.inc until 2026-09-14, which means an
 ; opcode's number arrived here inside a map's data; the music one was written

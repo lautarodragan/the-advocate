@@ -91,7 +91,6 @@ de punta a punta: código, comentarios, nombres de pruebas y README. Desde el
 2026-09-19 viven adentro de `tools/` —ver `tools/README.md`—:
 
     tools/snes/        los formatos de la consola, sin saber de RPG Maker
-      protocol/        declara un bytecode y genera las constantes de sus dos lados
       gunter/          Gunter: códec BRR y lector de SoundFont
       goombario/       Goombario: el linter de 65816, lo que ensambla bien y
                        está mal; lee la ROM, el `.dbg` de `ld65` y el fuente
@@ -110,6 +109,8 @@ de punta a punta: código, comentarios, nombres de pruebas y README. Desde el
                        como RM2k
     tools/rm2k-snes/   los que unen las dos cosas
       project/         la biblioteca: qué juego, sus perillas, los flags de la máquina
+      bytecode/        los dos bytecodes del cartucho, declarados una vez: las
+                       constantes de Rust y los `.inc` del ensamblador
       cartridge/       los cartuchos: el reparto en bancos, ca65 + ld65, el espacio
       patches/         los parches: lo que el conversor decide perder, en TOML
       rm2k-snes-audio/ la música: del MIDI y el SoundFont a musicdata.inc
@@ -170,9 +171,9 @@ Las pruebas de esos proyectos no dependen del juego. Ditto recibe el corpus por
 mensaje; `tools/rm2k-snes/rm2k-snes-audio/` recibe el SoundFont por `SOUNDFONT`, igual;
 `tools/snes/goombario/` ensambla programas de juguete y necesita `ca65` y
 `ld65` en el PATH, y sin ellos se saltea igual;
-y `tools/snes/protocol/`, `tools/snes/gunter/`, `tools/snes/voodoo/`, `tools/snes/lz2/`,
+y `tools/snes/gunter/`, `tools/snes/voodoo/`, `tools/snes/lz2/`,
 `tools/snes/adeleine/`, `tools/rm2k/rules/`, `tools/rm2k/rm2k-render/`, `tools/rm2k-snes/battle/`,
-`tools/rm2k-snes/events/`, `tools/rm2k-snes/patches/`, los tres de los mapas y
+`tools/rm2k-snes/bytecode/`, `tools/rm2k-snes/events/`, `tools/rm2k-snes/patches/`, los tres de los mapas y
 los dos de las pantallas, `tools/snes/resample/`, `tools/rm2k-snes/images/`,
 `tools/rm2k-snes/mapdata/` y `tools/rm2k-snes/convert/` no necesitan nada.
 
@@ -193,12 +194,21 @@ cualquier decisión de ésas deshace el diseño, aunque sea cómodo.
 
 ## El número de un opcode se elige en la declaración
 
-En `tools/snes/protocol/` y en ningún otro lado. Hay dos declaraciones:
-`tools/snes/protocol/events.toml`, el bytecode que interpreta `run_code`, y
-`tools/snes/protocol/music.toml`, el stream que lee `irq_music`. Los dos caen en el mismo
-espacio de símbolos del ensamblador, así que dos opcodes de bytecodes distintos
-pueden compartir **número** pero no **nombre** —por eso `OP_FIN` se llama
-`OP_DONE`: `OP_END` ya era del stream de música—, y eso lo cuida una prueba.
+En `tools/rm2k-snes/bytecode/` y en ningún otro lado. Hay dos declaraciones,
+cada una una invocación de la macro `bytecode!`: `src/events.rs`, el bytecode
+que interpreta `run_code`, y `src/music.rs`, el stream que lee `irq_music`. El
+lado de Rust toma las constantes con un `use`, y `rm2k-snes-assemble` escribe
+el del 65816 —`event_opcodes.inc` y `music_opcodes.inc`— en el directorio
+del cartucho en cada build: no hay generado commiteado que pueda quedar
+viejo. Los dos caen en el mismo espacio de símbolos del ensamblador, así que
+dos opcodes de bytecodes distintos pueden compartir **número** pero no
+**nombre** —por eso `OP_FIN` se llama `OP_DONE`: `OP_END` ya era del stream
+de música—, y eso, como un número repetido o un hueco en el despacho, **no
+compila**: son `const` asserts del crate, con el opcode en el mensaje.
+
+Hasta el 2026-10-02 los declaraban dos TOML de `tools/snes/protocol/`, un
+generador que escribía los dos lados y los commiteaba, y una prueba que
+cuidaba que no envejecieran.
 
 Antes el de eventos lo declaraba `tools/port/events.py` y le llegaba al intérprete
 adentro de `mapdata.inc`, que es cómo dos ramas pudieron elegir el mismo sin
@@ -209,12 +219,12 @@ sub-agentes sigue valiendo repartir los números de antemano, pero ahora la
 colisión es un conflicto de git en un archivo y no un bug que viaja adentro de
 un merge.
 
-Del de eventos sale también **la tabla del despacho** de `run_code`
-(`--jump-table`), así que un opcode nuevo es su entrada en `events.toml` y su
-`.proc op_x`, con el nombre del opcode en minúsculas; el despacho no se toca.
-Eso pide **números contiguos desde 0**: si se saca un opcode, el hueco hay que
-cerrarlo —renumerando, o dándole el número al próximo que se agregue—, porque
-el generador se niega a emitir una tabla con huecos.
+Del de eventos sale también **la tabla del despacho** de `run_code` (la
+macro `EVENT_HANDLERS`), así que un opcode nuevo es su entrada en
+`src/events.rs` y su `.proc op_x`, con el nombre del opcode en minúsculas; el
+despacho no se toca. Eso pide **números contiguos desde 0**: si se saca un
+opcode, el hueco hay que cerrarlo —renumerando, o dándole el número al
+próximo que se agregue—, porque la declaración no compila con huecos.
 
 ## `git blame` y los cambios mecánicos
 
@@ -584,7 +594,7 @@ Lo que hay que hacer siempre:
   `rom/justfile` lo pone adelante en el PATH. **El destino es obligatorio**
   porque ninguno de los dos lados sabe dónde vive el otro: `rom/justfile`
   busca el suyo en `rom/`, y `tools/justfile` el suyo en `tools/`, que es
-  el que usa `protocol`. **Un proyecto de Rust se le pasa sólo si el
+  el que usan sus recetas. **Un proyecto de Rust se le pasa sólo si el
   agente lo va a modificar** —`… install-local
   rom/.herramientas-locales lz2`—: compilar cuesta, y sin nombres no
   compila nada. Y **todo se corre por `just`**: un comando suelto no ve ese
@@ -663,7 +673,8 @@ Así que al mergear una rama de sub-agente:
 * **Y los números que cada rama eligió sola.** Un opcode nuevo, un índice en una tupla de prueba, una dirección de la RAM lejana: cada agente toma "el
   siguiente libre" mirando su copia, así que dos ramas eligen el mismo y git no
   ve nada. Pasó las tres cosas el mismo día. Lo de los opcodes lo cuida ahora
-  `test_no_opcode_shares_a_number_with_another`; lo demás hay que mirarlo.
+  la declaración, que no compila con un número repetido; lo demás hay que
+  mirarlo.
 
 ### Cuando un sub-agente se corta
 
