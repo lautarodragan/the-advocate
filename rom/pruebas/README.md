@@ -324,6 +324,10 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `herramientas/test_saltos_entre_bancos.py`: que ningún `jsr`, `jmp`, salto
   por tabla ni acceso absoluto a datos caiga en otro banco que el símbolo que
   nombra, sobre el `.dbg` de cada cartucho
+* `herramientas/test_linter.py`: Goombario, el linter de 65816, sobre el
+  runtime de cada cartucho: un salto sobre lo que dejó un `pl*`, `jsl` contra
+  `rts`, la pila desbalanceada y los anchos; lo que está bien y lo marca igual
+  va en `excepciones-del-linter.txt`
 * `herramientas/test_espacio.py`: `just espacio`, contra el `.res` linkeado a
   mano que reemplazó
 * `herramientas/test_cartuchos.py`: la huella y el `.dbg` de los cartuchos,

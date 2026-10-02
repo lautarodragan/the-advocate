@@ -103,6 +103,7 @@ can:
     lda f:item_heal_rate, x
     ldx MED_HP_MAX
     jsr per_hundred
+.a16                            ; `per_hundred` comes back with A16
     sta MED_HP
     jsr k_in_x
     rep #$20
@@ -123,6 +124,7 @@ hp_ready:
     lda f:item_heal_sp_rate, x
     ldx MED_SP_MAX
     jsr per_hundred
+.a16                            ; `per_hundred` comes back with A16
     sta MED_SP
     jsr k_in_x
     rep #$20

@@ -31,7 +31,7 @@ export PATH := if path_exists(local_tools / "bin") == "true" { local_tools / "bi
 # `*-test` recipes run `cargo test` standing in the project, which tests
 # only that one, and `cargo install --locked --path` takes the workspace's
 # lock.
-rust_projects := "protocol gunter ditto rules adeleine voodoo lz2 resample rm2k-render project cartridge patches rm2k-snes-audio battle events map-background map-sprites wally text screens images mapdata"
+rust_projects := "protocol gunter goombario ditto rules adeleine voodoo lz2 resample rm2k-render project cartridge patches rm2k-snes-audio battle events map-background map-sprites wally text screens images mapdata"
 
 # The directories the projects live in, one per layer: each project is
 # `<layer>/<name>`, and the recipes find it by its name.
@@ -147,6 +147,13 @@ adeleine-test:
 # so they do not need the game.
 voodoo-test:
   cd snes/voodoo && cargo test
+
+# Goombario: static checks for 65816 code built with ca65 and ld65 —a
+# branch on what a pull left, `jsl` against `rts`, the stack, the widths—.
+# Its tests assemble toy programs, so they need `ca65` and `ld65` on the
+# PATH, and skip without them; they do not need the game.
+goombario-test:
+  cd snes/goombario && cargo test
 
 # LZ2: Nintendo's LC_LZ2, which the converter uses to compress the tiles and
 # grids the ROM decompresses when loading a map —see `port/compress.py`—.
@@ -390,6 +397,6 @@ _install root *projects:
 # `.local-tools/bin/` if it is there, otherwise the global one.
 which:
   #!/usr/bin/env sh
-  for x in protocol gunter ditto adeleine voodoo lz2 rm2k-render rm2k-snes-cartridges rm2k-snes-assemble rm2k-snes-space rm2k-snes-convert rm2k-snes-patches rm2k-snes-msu rm2k-snes-volume-ceilings rm2k-snes-battle rm2k-snes-events wally rm2k-snes-screens rm2k-snes-images abl-entregar; do
+  for x in protocol gunter goombario ditto adeleine voodoo lz2 rm2k-render rm2k-snes-cartridges rm2k-snes-assemble rm2k-snes-space rm2k-snes-convert rm2k-snes-patches rm2k-snes-msu rm2k-snes-volume-ceilings rm2k-snes-battle rm2k-snes-events wally rm2k-snes-screens rm2k-snes-images abl-entregar; do
     printf '%-26s %s\n' "$x" "$(command -v "$x" || echo missing)"
   done

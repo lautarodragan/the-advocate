@@ -32,7 +32,10 @@
 ;   because it unbalances the stack: if a ROM goes off the rails for no
 ;   apparent reason, look here first. The same goes for transfers between
 ;   different widths —`tax` with a 16-bit X, `ldx` from a one-byte variable—,
-;   which drag in the neighboring byte.
+;   which drag in the neighboring byte. Since 2026-10-02 `goombario` follows
+;   the widths on every path of each built cartridge and flags an immediate
+;   assembled for the other one, and a declaration that is not what runs:
+;   rom/pruebas/herramientas/test_linter.py. What it cannot decide it skips.
 ; * **There is no calling convention**: a `jsr` returns X and Y however suits
 ;   the routine. If an index has to survive the call —the interpreter's
 ;   bytecode cursor—, the caller saves it with `phy`, since it is the only one
