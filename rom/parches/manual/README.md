@@ -165,14 +165,12 @@ un `ShowMessage`, porque la ROM llevaba una sola. Desde que cada mapa lleva
 las suyas en los sprites —`workflow/tasks/*/varias-imagenes-en-sprites.md`—
 el cartel se dibuja como en el original, y el fork se borró.
 
-Y el **mapa 49**, la primera vuelta de la carrera, por el cartel de los
-controles: en el original es una imagen, `EscapeInst`, sobre la pantalla
-negra, y la ROM lleva un solo cartel por imagen, que es el de "One year
-previously" (ver `workflow/tasks/wishlist/sistema-de-imagenes.md`). El fork
-cambia el `ShowPicture` por dos `ShowMessage` con el mismo texto, y saca el
-`KeyInputProc` que esperaba una tecla, porque cerrar el mensaje ya es esa
-tecla. Lo decidió taro el 2026-09-27. Capas del original. **Se borra el día
-que la ROM lleve más de una imagen.**
+Y el **mapa 49**, la primera vuelta de la carrera, tuvo uno del 2026-09-27 al
+2026-10-02 por el cartel de los controles, `EscapeInst`: cambiaba la imagen
+por dos `ShowMessage` con su texto, porque la ROM no tenía dónde dibujar una
+imagen de pantalla entera. Desde que las grandes van en BG1, en modo 1
+—`workflow/tasks/*/las-imagenes-grandes-en-modo-1.md`—, el cartel se dibuja
+como en el original, con su `KeyInputProc`, y el fork se borró.
 
 Antes del mundo, el fin de la demo estuvo en un fork del **64**, la despedida
 después de la carrera, que cambiaba el `Teleport` al mundo cuando el mundo no

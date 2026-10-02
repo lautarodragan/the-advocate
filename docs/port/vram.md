@@ -88,3 +88,16 @@ quién lo decide `wally` —`plan_sharing` en su `map.rs`, con el coloreo de
 `tools/runtime/shared_poses.s`. El 108 queda en 22 ranuras, 376 tiles, y entra
 en "+ambos". Los demás mapas convierten como siempre: `wally` prueba primero
 sin turnos y sólo si eso no entra vuelve a convertir con ellos.
+
+## Una imagen grande no usa el reparto
+
+Una imagen de `ShowPicture` que tapa la pantalla va en BG1, en modo 1, con
+el mapa oculto —`decisiones/las-imagenes-grandes-en-modo-1.md`—, y **ocupa
+el mismo lugar en los seis repartos**: sus tiles de 4bpp desde la palabra 0
+hasta $3FFF —los 1024 que nombra una entrada de tilemap—, encima de los
+sprites y de los tiles del mapa, y su tilemap en $4000. El tilemap de la
+ventana cae en ese rango en "ventana" ($1C00), así que mientras dura se muda
+a $4800, que en ninguno es de algo que se use mientras tanto —en algunos son
+tiles del mapa, que se recargan—; los tiles de BG2 y los de la ventana están
+de $5000 para arriba en todos. Lo que pisa lo repone, al borrarla, la
+misma carga que la vuelta de la pelea: ver `tools/runtime/big_picture.s`.

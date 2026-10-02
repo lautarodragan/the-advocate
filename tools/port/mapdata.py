@@ -108,7 +108,7 @@ def emit(path, maps, dump, initial, hero_above, initial_party, screens,
          animations, troops,
          battle_audio, scene, battle_tables, troop_pages, party_common,
          battle_model, items, actors, text_padding, case_slot, enemy_hp,
-         speed_keys):
+         speed_keys, big_pictures=()):
     """Writes the `.inc` at `path`, with what the console decompresses of
     each map, uncompressed, in `crudos/` next to it; and returns `(what was
     shared and compressed, per map how many frames decompressing it
@@ -124,7 +124,8 @@ def emit(path, maps, dump, initial, hero_above, initial_party, screens,
     answer of them; `party_common`, `{common event: its code}` of the ones
     the menu runs on closing; `battle_model`, what `rm2k-snes-battle model`
     answered. `case_slot` is where the harness writes the case number, if
-    there is more than one.
+    there is more than one. `big_pictures` are the layers of
+    `picture.number_big`.
     """
     request = {
         "maps": [_map_record(m) for m in maps],
@@ -166,6 +167,14 @@ def emit(path, maps, dump, initial, hero_above, initial_party, screens,
         "actors": list(actors),
         "text_padding": text_padding or 0,
         "case_slot": case_slot,
+        # The big pictures' layers, as `rm2k-snes-images background`
+        # answered them: see `picture.py`.
+        "big_pictures": [
+            {"top": layer["top"], "rows": layer["rows"],
+             "center": layer["center"], "half": layer["half"],
+             "wider": layer["wider"],
+             "tiles": layer["tiles"], "tilemap": layer["tilemap"],
+             "palettes": layer["palettes"]} for layer in big_pictures],
     }
     written = stage.run(
         "rm2k-snes-mapdata", "mapdata", "emit", request, "--data", dump,

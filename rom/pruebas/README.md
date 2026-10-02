@@ -126,6 +126,10 @@ lista, y todo lo nombrado tiene que existir: lo cobra
   `ErasePicture` en los sprites —dos a la vez, tono y transparencia, por
   variables, pegada al mapa, de vuelta de la pelea y del menú— y las escenas
   del juego que las usan
+* `rpgmaker/test_imagenes_grandes_golden.py`: las imágenes que tapan la
+  pantalla, en BG1 en modo 1 —las fotos y su fundido, las instrucciones que
+  suben, el final con su tono, las ondas y la saturación—, el cartel de la
+  carrera del 49, y el mapa que vuelve igual después de una
 * `rpgmaker/test_animacion_cuadros.py`: cada cuadro de cada animación de
   batalla llega entero a la caja de la VRAM, aunque el cartucho lo guarde sin
   sus tiles vacíos

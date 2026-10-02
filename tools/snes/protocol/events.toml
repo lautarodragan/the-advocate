@@ -582,3 +582,65 @@ args = [
   { name = "digits", type = "byte" },
   { name = "window", type = "word" },
 ]
+
+# 0x39 to 0x3C are someone else's, being written in parallel on 2026-10-02:
+# the jump table takes no gaps, so they stand here as placeholders until that
+# merge brings their real names. Nothing emits them.
+[[opcode]]
+name = "OP_RESERVED_39"
+code = 0x39
+args = []
+
+[[opcode]]
+name = "OP_RESERVED_3A"
+code = 0x3A
+args = []
+
+[[opcode]]
+name = "OP_RESERVED_3B"
+code = 0x3B
+args = []
+
+[[opcode]]
+name = "OP_RESERVED_3C"
+code = 0x3C
+args = []
+
+# The big pictures, the ones the cartridge carries as a background layer
+# instead of in the sprites: `image` is an entry of `big_table`, which is the
+# cartridge's and not a map's. Showing one takes the screen off a moment to
+# put BG1 in mode 1 with the picture; its place is in the layer, so it has no
+# position. The tone is RM2k's, 100 neutral; `transparency` darkens it, since
+# there is only black under it; `saturation` is RM2k's, 100 neutral; `wave`
+# is the strength of RM2k's wave effect, 0 for none. `OP_PICTURE_ERASE` with
+# slot $80 takes it down.
+[[opcode]]
+name = "OP_BIG_SHOW"
+code = 0x3D
+args = [
+  { name = "image", type = "byte" },
+  { name = "red", type = "byte" },
+  { name = "green", type = "byte" },
+  { name = "blue", type = "byte" },
+  { name = "transparency", type = "byte" },
+  { name = "saturation", type = "byte" },
+  { name = "wave", type = "byte" },
+]
+
+# And its `MovePicture`: the tone, the transparency, the centre's `y` on
+# RM2k's screen —it scrolls the layer up or down; sideways it does not move—
+# and the wave's strength it goes to in `frames`, and the saturation it
+# takes at once.
+[[opcode]]
+name = "OP_BIG_MOVE"
+code = 0x3E
+args = [
+  { name = "red", type = "byte" },
+  { name = "green", type = "byte" },
+  { name = "blue", type = "byte" },
+  { name = "transparency", type = "byte" },
+  { name = "frames", type = "byte" },
+  { name = "y", type = "word", signed = true },
+  { name = "wave", type = "byte" },
+  { name = "saturation", type = "byte" },
+]

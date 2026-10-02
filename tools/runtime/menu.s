@@ -229,6 +229,11 @@ ready:
     bne ready
     lda ev_active
     bne ready
+    ; Nor with a big picture up: the menu comes back with `back_to_map`,
+    ; which would put the map under it. See big_picture.s.
+    lda f:BIG_FLAGS
+    lsr a
+    bcs ready
     jsr access_read
     bit #ACCESS_NO_MENU
     bne ready

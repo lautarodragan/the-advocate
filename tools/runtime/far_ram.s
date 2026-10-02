@@ -766,6 +766,54 @@ PIC_MAP_FIXED   = $02
 ; And the slot's palette is waiting for the vblank.
 PIC_PENDING     = $80
 
+; --- the big picture: the one in the background layer ---------------------------
+;
+; See big_picture.s. One at a time —no scene of the game shows two big ones
+; at once—, and the ramp of its `MovePicture` is the slots' one, with
+; `PIC_RAMP` at `PIC_BIG`: its tone and transparency go through `PIC_FROM`
+; and `PIC_TO`, and what only it moves —the scroll and the wave— through
+; its own bytes here.
+;
+; $7E25E0 to $7E25EF, taken on 2026-10-02 from the gap between the music's
+; and `FAR_SPEED_BONUS`. The one allotted, $2570 to $257F, is the last two
+; entries of `FAR_PAIR_LIST`: $2400 plus PARALLEL_MAX times eight is $2580.
+; They do not travel in the save, and a map change clears them.
+BIG_IMG       = $7E25E0          ; its entry of `big_table`, or PIC_NONE
+BIG_FLAGS     = $7E25E1          ; BIG_ON, BIG_DOWN, BIG_WAVE_ON, BIG_B, BIG_PENDING
+BIG_TONE      = $7E25E2          ; r, g, b
+BIG_TRANS     = $7E25E5
+BIG_SAT       = $7E25E6
+BIG_WAVE      = $7E25E7          ; the wave's strength, 0 to 10
+BIG_PHASE     = $7E25E8          ; and where it is, 256 to a turn
+BIG_Y         = $7E25E9          ; word: the scroll, in lines
+BIG_Y_FROM    = $7E25EB          ; word: where the ramp's started
+BIG_DY        = $7E25ED          ; how far it goes from there
+BIG_WAVE_FROM = $7E25EE
+BIG_WAVE_TO   = $7E25EF
+.assert BIG_WAVE_TO < FAR_SPEED_BONUS + $7E0000, error, "the big picture steps on the speed keys"
+.assert BIG_IMG >= BGM_ASK + 4, error, "the big picture steps on the music"
+; The flags. BIG_ON is bit 0, so `lsr` leaves it in the carry; BIG_WAVE_ON
+; is HDMA channel 4's bit, so it goes straight into HDMAEN; BIG_PENDING is
+; bit 7, so `bpl` asks for it.
+BIG_ON      = $01                ; the layer is up: mode 1, the map hidden
+BIG_DOWN    = $02                ; the ramp's scroll goes down from BIG_Y_FROM
+BIG_WAVE_ON = $10                ; the wave's HDMA, on
+BIG_B       = $20                ; the HDMA reads the second wave table
+BIG_PENDING = $80                ; its palette is waiting for the vblank
+; `PIC_RAMP` when the ramp is the big one's: bit 7, like PIC_NONE, so that
+; `bmi` tells the slots' ramps from the rest. And it is the slot
+; OP_PICTURE_ERASE takes it down with: see `PICTURE_BIG` in the compiler.
+PIC_BIG     = $80
+
+; While the layer is up, part of LZ2_BUFFER is the picture's: its tilemap is
+; decompressed below `CODE_CARRY` —see `big_load`—, and its palette tinted
+; and the two tables of the wave go in the part that the ChipSet's
+; animation uses on the map, which is not drawn meanwhile. The map reloads
+; both when the picture goes.
+BIG_PAL     = $7F6000            ; BIG_PALETTES * 32 bytes
+BIG_WAVE_A  = $7F6100            ; BIG_WAVE_BYTES each
+BIG_WAVE_B  = $7F6300
+
 ; --- the slots still events take turns in ---------------------------------------
 ;
 ; See shared_poses.s. How many shared slots the loaded map has —0 in every

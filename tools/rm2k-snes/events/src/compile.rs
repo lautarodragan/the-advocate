@@ -2295,20 +2295,40 @@ pub const PICTURE_MAP_FIXED: u8 = 0x02;
 /// guess. The position is by variable with `p[1]` at 1 —`ValueOrVariable`—
 /// and goes with the map with `p[4]`.
 fn picture_fits(p: &[i32]) -> bool {
+    picture_shows(p, 1) && p[11] == 100 && p[12] == 0
+}
+
+/// RM2k's effect modes, `p[12]`, and the strongest a wave goes in the
+/// editor.
+const EFFECT_NONE: i32 = 0;
+const EFFECT_WAVE: i32 = 2;
+const WAVE_MAX: i32 = 10;
+
+/// What the console shows at all, in one plane or the other: [`picture_fits`]
+/// and, for the big ones in the background layer, any saturation —the
+/// tint's tables already do it— and the wave effect, which is a scroll per
+/// line. Rotating stays out. `zoom_min` is 1 but for a big picture's
+/// `MovePicture`, which can shrink it to nothing: see
+/// [`compile_big_picture`].
+fn picture_shows(p: &[i32], zoom_min: i32) -> bool {
     p.len() >= 14
         && (0..=1).contains(&p[1]) // position by constant or by variable
-        && (1..=100).contains(&p[5]) // the zoom, which only shrinks
+        && (zoom_min..=100).contains(&p[5]) // the zoom, which only shrinks
         && (0..=100).contains(&p[6]) // the transparency
-        && p[11] == 100 // the saturation
-        && p[12] == 0 // rotate or wave
+        && (0..=200).contains(&p[11]) // the saturation
+        && (p[12] == EFFECT_NONE || (p[12] == EFFECT_WAVE && (0..=WAVE_MAX).contains(&p[13])))
         && p[8..11].iter().all(|&v| (0..=200).contains(&v))
 }
 
 /// What a `ShowPicture` shows, if the console can show it: see
-/// [`PictureKey`].
+/// [`PictureKey`]. It takes the saturation and the wave the background
+/// layer does, so a big picture is gathered with them; a small one that
+/// asks for them is gathered and then not done, which no picture of the
+/// game is —the only ones with either are the big `GTest4` and
+/// `ShipFlash`—.
 pub fn picture_key(cmd: &Command) -> Option<PictureKey> {
     let p = &cmd.parameters;
-    if cmd.code != SHOW_PICTURE || !picture_fits(p) {
+    if cmd.code != SHOW_PICTURE || !picture_shows(p, 1) {
         return None;
     }
     let (by_variable, map_fixed) = (p[1] == 1, p[4] != 0);
@@ -2369,10 +2389,22 @@ pub fn compile_picture(
         return Ok(None);
     };
     if cmd.code == ERASE_PICTURE {
-        let Some(&(_, slot)) = p.first().and_then(|&n| pictures.numbered(n).next()) else {
-            return Ok(None);
-        };
-        return Ok(Some(vec![OP_PICTURE_ERASE, slot]));
+        // The number can name a picture in the sprites and a big one; which
+        // is up is not known until it runs, so both are taken down —the one
+        // that is not up costs a byte to read—.
+        let small = p.first().and_then(|&n| pictures.numbered(n).next()).map(|&(_, s)| s);
+        let big = p.first().is_some_and(|&n| pictures.numbered_big(n).next().is_some());
+        let mut out = Vec::new();
+        if let Some(slot) = small {
+            out.extend([OP_PICTURE_ERASE, slot]);
+        }
+        if big {
+            out.extend([OP_PICTURE_ERASE, PICTURE_BIG]);
+        }
+        return Ok((!out.is_empty()).then_some(out));
+    }
+    if let Some(out) = compile_big_picture(cmd, pictures)? {
+        return Ok(Some(out));
     }
     if !picture_fits(p) {
         return Ok(None);
@@ -2444,6 +2476,96 @@ pub fn compile_picture(
     out.extend(tone);
     out.push(frames as u8);
     // `options.wait`: the page waits as long as it lasts, like `FlashScreen`.
+    if p.len() > 15 && p[15] != 0 && frames != 0 {
+        out.push(OP_DELAY);
+        out.extend(word(frames)?);
+    }
+    Ok(Some(out))
+}
+
+/// The slot `OP_PICTURE_ERASE` names the big picture with: it has one
+/// place, the background layer, and no sprite slot. Bit 7, which no slot
+/// reaches.
+pub const PICTURE_BIG: u8 = 0x80;
+
+/// A big picture's `ShowPicture` or `MovePicture`, or None if the command
+/// is not about one the map carries as a background layer: see
+/// [`BigPicture`].
+///
+/// ```text
+/// OP_BIG_SHOW  image, r, g, b, transparency, saturation, wave: puts the
+///              image up, where the conversion drew it, with that tone.
+/// OP_BIG_MOVE  r, g, b, transparency, frames, y (word), wave, saturation:
+///              the tone, the transparency, the centre's y and the wave it
+///              goes to in how many frames; the saturation at once. Like
+///              OP_PICTURE_MOVE, it does not wait: an OP_DELAY goes after.
+/// ```
+///
+/// **The place is the conversion's**: the picture is drawn into the layer
+/// where its `ShowPicture` puts it, so the image does not move sideways.
+/// What a `MovePicture` can do is **scroll it up or down** —the layer is
+/// taller than the screen when the picture is—, which is what the
+/// instructions of map 285 do: `y` is RM2k's centre, and the console
+/// computes the corner from it as RM2k does, with half the size of the
+/// picture that is up —which one is, it only knows when it runs—.
+///
+/// **A zoom that shrinks is a fade**, which is what the photos of maps 212
+/// to 216 do: they shrink from 100 to 0 in two seconds on a black screen.
+/// The console does not scale a background without mode 7, so the picture
+/// fades to black in that time instead: the transparency it goes to is what
+/// is left of its area, `100 - (100 - t) × zoom / shown`. See
+/// `divergencias/lo-que-las-imagenes-grandes-no-modelan.md`.
+///
+/// **The transparency darkens**: under a big picture there is only the
+/// screen's backdrop, which is black, so a picture half transparent is a
+/// picture at half its colour. That is exact on a black screen, which is
+/// where the big pictures of the game are shown.
+fn compile_big_picture(cmd: &Command, pictures: &Pictures) -> Step<Option<Vec<u8>>> {
+    let p = &cmd.parameters;
+    if !picture_shows(p, 0) {
+        return Ok(None);
+    }
+    let wave = |p: &[i32]| if p[12] == EFFECT_WAVE { p[13] as u8 } else { 0 };
+    let tone = [p[8] as u8, p[9] as u8, p[10] as u8];
+    if cmd.code == SHOW_PICTURE {
+        let Some(big) = picture_key(cmd).and_then(|key| pictures.big_of(&key).cloned()) else {
+            return Ok(None);
+        };
+        let mut out = vec![OP_BIG_SHOW, big.image];
+        out.extend(tone);
+        out.extend([p[6] as u8, p[11] as u8, wave(p)]);
+        return Ok(Some(out));
+    }
+    // MovePicture: one of the number's big pictures that stays where it is
+    // sideways and does not grow. Which one is up is not known until it
+    // runs, as with the small ones, and a big one shown under the number is
+    // what the game's pages move.
+    if p[1] != 0 {
+        return Ok(None);
+    }
+    let Some(big) = pictures
+        .numbered_big(p[0])
+        .find(|b| b.center.0 == p[2] && p[5] <= b.key.zoom)
+        .cloned()
+    else {
+        return Ok(None);
+    };
+    let Some(&tenths) = p.get(14) else {
+        return Err(Stop::Fatal(Bad::answer("a MovePicture without its duration")));
+    };
+    let frames = tenths as i64 * FRAMES_PER_TENTH;
+    if !(0..=PICTURE_FRAMES_MAX).contains(&frames) {
+        return Ok(None);
+    }
+    let Ok(y) = i16::try_from(p[3]) else {
+        return Ok(None);
+    };
+    let transparency = 100 - (100 - p[6]) * p[5] / big.key.zoom;
+    let mut out = vec![OP_BIG_MOVE];
+    out.extend(tone);
+    out.extend([transparency as u8, frames as u8]);
+    out.extend(y.to_le_bytes());
+    out.extend([wave(p), p[11] as u8]);
     if p.len() > 15 && p[15] != 0 && frames != 0 {
         out.push(OP_DELAY);
         out.extend(word(frames)?);
@@ -4570,6 +4692,7 @@ pub fn page_debts(
 mod tests {
     use super::*;
     use crate::game::CommonEvent;
+    use crate::registry::BigPicture;
 
     fn cmd(code: i32, parameters: &[i32], string: &str) -> Command {
         Command::new(code, 0, string, parameters.to_vec())
@@ -5335,6 +5458,7 @@ mod tests {
         let sound = SoundSettings::default();
         let mut pictures = Pictures {
             table: table.to_vec(),
+            big: Vec::new(),
             gathering: false,
         };
         let mut ctx = Ctx {
@@ -5349,6 +5473,88 @@ mod tests {
             troops: None,
         };
         compile_page(&mut ctx, commands, None, 0, 0).unwrap().unwrap()
+    }
+
+    /// `commands` compiled for a map that carries `big` as a background
+    /// layer, and nothing in its sprites.
+    fn with_big(big: &[BigPicture], commands: &[Command]) -> Vec<u8> {
+        let game = Game::default();
+        let sound = SoundSettings::default();
+        let indices = Indices::default();
+        let mut pictures = Pictures {
+            table: Vec::new(),
+            big: big.to_vec(),
+            gathering: false,
+        };
+        let mut ctx = Ctx {
+            game: &game,
+            indices: &indices,
+            sound: &sound,
+            map_index: &|_| None,
+            messages: None,
+            songs: None,
+            graphics: None,
+            pictures: Some(&mut pictures),
+            troops: None,
+        };
+        compile_page(&mut ctx, commands, None, 0, 0).unwrap().unwrap()
+    }
+
+    #[test]
+    fn a_big_picture_goes_up_scrolls_fades_and_comes_down() {
+        // The instructions of map 285: 300x299 centred at (160, 150), that
+        // go up to 50 in four seconds; the console computes the corner.
+        let show = cmd(
+            SHOW_PICTURE,
+            &[6, 0, 160, 150, 0, 100, 0, 0, 100, 100, 100, 100, 0, 0],
+            "AdvoInstr",
+        );
+        let big = BigPicture {
+            key: picture_key(&show).unwrap(),
+            image: 2,
+            center: (160, 150),
+        };
+        let up = cmd(
+            MOVE_PICTURE,
+            &[6, 0, 160, 50, 0, 100, 0, 0, 100, 100, 100, 100, 0, 0, 40, 1],
+            "",
+        );
+        assert_eq!(
+            with_big(std::slice::from_ref(&big), &[show, up, cmd(ERASE_PICTURE, &[6], "")]),
+            [
+                OP_BIG_SHOW, 2, 100, 100, 100, 0, 100, 0,
+                OP_BIG_MOVE, 100, 100, 100, 0, 240, 50, 0, 0, 100,
+                OP_DELAY, 240, 0,
+                OP_PICTURE_ERASE, PICTURE_BIG,
+                OP_DONE
+            ]
+        );
+        // A photo of maps 212 to 216: with the map, shrinking to nothing in
+        // two seconds, which is fading to black; and the wave and the
+        // saturation of `GTest4`.
+        let photo = cmd(
+            SHOW_PICTURE,
+            &[20, 0, 160, 120, 1, 100, 0, 1, 100, 100, 100, 200, 2, 8],
+            "PhoneCallDiff",
+        );
+        let big = BigPicture {
+            key: picture_key(&photo).unwrap(),
+            image: 0,
+            center: (160, 120),
+        };
+        let shrink = cmd(
+            MOVE_PICTURE,
+            &[20, 0, 160, 120, 0, 0, 0, 0, 100, 100, 100, 100, 2, 4, 20, 0],
+            "",
+        );
+        assert_eq!(
+            with_big(&[big], &[photo, shrink]),
+            [
+                OP_BIG_SHOW, 0, 100, 100, 100, 0, 200, 8,
+                OP_BIG_MOVE, 100, 100, 100, 100, 120, 120, 0, 4, 100,
+                OP_DONE
+            ]
+        );
     }
 
     #[test]

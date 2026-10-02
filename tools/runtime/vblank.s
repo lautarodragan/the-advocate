@@ -13,6 +13,16 @@
 .a8
 .i16
     jsr push_oam
+    ; With a big picture up, BG1 and the sprites' VRAM are its own and the
+    ; map is not on screen: none of what follows down to the message window
+    ; goes up —poses, strips, the ChipSet's animation, palettes— and its own
+    ; does instead. See big_picture.s.
+    lda f:BIG_FLAGS
+    lsr a                       ; BIG_ON
+    bcc map_up
+    jsl f:big_vblank + FAST
+    jmp big_up
+map_up:
     lda flash_ready
     beq no_flash2
     jsr upload_flash            ; the flash, or the tint, go before the
@@ -176,6 +186,7 @@ no_anim_pal:
     sta BG2VOFS
 
     jsr push_strips
+big_up:
 
     ; And the message window's HDMA: on while there is one on screen, off when
     ; not. That is **all** it costs to open and close it; its own tilemap is
@@ -212,11 +223,16 @@ no_finished:
     lda scroll_y + 1
     sta hdma_ofs + 4
     sta hdma_ofs + 9
-    lda #HDMA_WINDOW
+    ; And the big picture's wave, if there is one: its flag is its channel.
+    lda f:BIG_FLAGS
+    and #BIG_WAVE_ON
+    ora #HDMA_WINDOW
     sta HDMAEN
     bra on
 no_window:
-    stz HDMAEN
+    lda f:BIG_FLAGS
+    and #BIG_WAVE_ON
+    sta HDMAEN
     ; Without HDMA the object mask stays as the last line left it, which is
     ; on: it is turned off by hand, like BG2SC down here.
     stz WOBJSEL

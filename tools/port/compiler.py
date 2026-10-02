@@ -237,8 +237,10 @@ def compile_cartridge(dump, maps, cases, test_commands, extra_variables,
     req["substitutions"] = {
         str(m["id"]): substitution_table(m) for m in maps}
     # The pictures each map carries, with their slots: see `picture.py`.
-    req["pictures"] = {str(m["id"]): m["pictures"]["table"]
-                       for m in maps if m.get("pictures")}
+    req["pictures"] = {
+        str(m["id"]): (m["pictures"]["table"] if m.get("pictures") else [])
+        + m.get("big_table", [])
+        for m in maps if m.get("pictures") or m.get("big_table")}
     req["counters"] = counters()
     req["sound_effects"] = {
         name: settings.value("sound_effects", name, kind=list)

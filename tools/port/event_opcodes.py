@@ -62,6 +62,12 @@ OP_COUNTER       = 0x35
 OP_ACTOR         = 0x36
 OP_ENEMY         = 0x37
 OP_NUMBER        = 0x38
+OP_RESERVED_39   = 0x39
+OP_RESERVED_3A   = 0x3A
+OP_RESERVED_3B   = 0x3B
+OP_RESERVED_3C   = 0x3C
+OP_BIG_SHOW      = 0x3D
+OP_BIG_MOVE      = 0x3E
 
 
 # How many bytes each fixed-size instruction takes, opcode included.
@@ -119,6 +125,12 @@ OPCODE_SIZE = {
     OP_ACTOR: 5,
     OP_ENEMY: 5,
     OP_NUMBER: 5,
+    OP_RESERVED_39: 1,
+    OP_RESERVED_3A: 1,
+    OP_RESERVED_3B: 1,
+    OP_RESERVED_3C: 1,
+    OP_BIG_SHOW: 8,
+    OP_BIG_MOVE: 10,
 }
 
 # The variable-size ones, as (base, where the count is, how big one
@@ -190,6 +202,12 @@ LAYOUT = {
     OP_ACTOR: (("actor", 1, False), ("what", 1, False), ("amount", 2, False)),
     OP_ENEMY: (("member", 1, False), ("what", 1, False), ("amount", 2, True)),
     OP_NUMBER: (("slot", 1, False), ("digits", 1, False), ("window", 2, False)),
+    OP_RESERVED_39: (),
+    OP_RESERVED_3A: (),
+    OP_RESERVED_3B: (),
+    OP_RESERVED_3C: (),
+    OP_BIG_SHOW: (("image", 1, False), ("red", 1, False), ("green", 1, False), ("blue", 1, False), ("transparency", 1, False), ("saturation", 1, False), ("wave", 1, False)),
+    OP_BIG_MOVE: (("red", 1, False), ("green", 1, False), ("blue", 1, False), ("transparency", 1, False), ("frames", 1, False), ("y", 2, True), ("wave", 1, False), ("saturation", 1, False)),
 }
 
 

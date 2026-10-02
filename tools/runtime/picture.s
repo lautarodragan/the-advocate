@@ -206,6 +206,124 @@ next:
     rts
 .endproc
 
+; --- the big picture: what stays in bank 0 ------------------------------------
+;
+; See big_picture.s. These lean on bank 0's routines: the palette on the
+; screen tint's, the window's tilemap on `stamp_window`, and the way back on
+; the battle's.
+
+; The big picture's seven palettes with its tone, its transparency and its
+; saturation, into BIG_PAL, and BIG_PENDING for the vblank. Enters with
+; `tint_ptr` on its colours. Called with `jsl` from bank 1.
+;
+; `pic_palette`'s road, with two differences: the saturation is the
+; picture's —`build_palette` already does any—, and **the transparency
+; darkens**: there is only black under the layer, so each channel's value
+; is scaled by what is left, `tone × (100 - transparency) / 100`, before its
+; table is built. It is exact for a tone that darkens; for one that
+; brightens, the hard light and the fade do not commute and this is an
+; approximation, which no picture of the game asks for.
+.proc big_palette_build
+.a8
+.i16
+    phy                         ; the bytecode's cursor: see `pic_palette`
+    lda tint_s
+    pha
+    lda f:BIG_SAT
+    sta tint_s
+    ldx #2
+fade:
+    lda f:BIG_TONE, x
+    sta WRMPYA
+    lda #TINT_NEUTRAL
+    sec
+    sbc f:BIG_TRANS
+    sta WRMPYB                  ; starts: the product takes eight cycles
+    nop
+    nop
+    nop
+    nop
+    rep #$20
+.a16
+    lda RDMPYL
+    sta WRDIVL
+    sep #$20
+.a8
+    lda #TINT_NEUTRAL
+    sta WRDIVB                  ; starts: the quotient takes sixteen cycles
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    lda RDDIVL
+    pha                         ; blue, green and red: red on top
+    dex
+    bpl fade
+    pla
+    ldx #.loword(table_r)
+    jsr channel_table
+    pla
+    ldx #.loword(table_g)
+    jsr channel_table
+    pla
+    ldx #.loword(table_b)
+    jsr channel_table
+    rep #$20
+.a16
+    lda #BIG_PALETTES * 16
+    sta tint_count
+    sep #$20
+.a8
+    jsr build_palette           ; the 112, in `pal_buf`
+    pla
+    sta tint_s
+    ldx #$0000
+copy:
+    lda pal_buf, x
+    sta f:BIG_PAL, x
+    inx
+    cpx #BIG_PALETTES * 32
+    bne copy
+    lda f:BIG_FLAGS
+    ora #BIG_PENDING
+    sta f:BIG_FLAGS
+    jsr restore_tables
+    ply
+    rtl
+.endproc
+
+; The window's tilemap at BIG_VRAM_WINDOW, with the screen off.
+.proc big_stamp_far
+.a8
+.i16
+    rep #$20
+.a16
+    lda #BIG_VRAM_WINDOW
+    jsr stamp_window_at
+    rtl
+.endproc
+
+; The map back after a big picture, with the screen off: what the layer
+; overwrote is what a battle overwrites —the sprites, BG1's tiles and
+; tilemap, the window's tilemap and HDMA, the layer above's tilemap— and is
+; put back the way `back_from_battle` puts it, without what only the battle
+; touches: the grid and the battlers' palettes. `back_to_map` sets mode 3
+; and the main screen again, and the map's palettes tinted.
+.proc big_back_far
+.a8
+.i16
+    jsr load_sprite             ; the pose bank, the object palette and OBSEL
+    jsr npc_poses_forget
+    jsr load_window
+    jsr fill_window
+    jsr back_to_map
+    rtl
+.endproc
+
 ; `emit_object` for bank 1: the pictures are drawn from there.
 .proc emit_object_far
     jsr emit_object

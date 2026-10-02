@@ -27,7 +27,7 @@ use crate::record::{
 };
 use crate::request::Emit;
 use crate::snes::{
-    cgram_bytes, entry, pack_tile, words_le, Color, BYTES_PER_TILE, COLORS_PER_PALETTE,
+    cgram_bytes, cgram_word, entry, pack_tile, words_le, Color, BYTES_PER_TILE, COLORS_PER_PALETTE,
 };
 use crate::vram::{
     MAP_LAYOUT, SLOTS, SLOT_MAP, SLOT_TEXT_LEVEL, SLOT_TEXT_WIDTH, SLOT_VRAM, VRAM_ABOVE_MAP,
@@ -605,6 +605,7 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
     let mut notes = per_map.notes.clone();
     window_section(&mut out, r, window)?;
     picture_section(&mut out, r)?;
+    big_pictures_section(&mut out, r)?;
     animations_section(&mut out, r)?;
     title_section(&mut out, title_menu.copied())?;
     full_screens_section(&mut out, r)?;
@@ -783,6 +784,158 @@ fn picture_section(out: &mut String, r: &Emit) -> Result<()> {
         .flat_map(|n| (0..32u32).map(move |d| (d * n / 31) as u8))
         .collect();
     line(out, &block("prod31_table", &products));
+    Ok(())
+}
+
+/// The big pictures' tilemap is 32x32 cells to a screen, two screens: side
+/// by side when the picture is as tall as the screen —the second one holds
+/// the mirrored edges a wave scrolls into view—, one under the other when
+/// it is taller. `BG1SC`'s size bits for each.
+const BIG_SCREEN: usize = 32;
+const BIG_WIDE: u8 = 1;
+const BIG_TALL: u8 = 2;
+/// How many columns of the edge the second screen mirrors on each side: the
+/// strongest wave of the editor, 10, moves a line 32 of RM2k's pixels,
+/// which is 25.6 of the console's.
+const BIG_MIRRORED: usize = 4;
+/// The palettes a big picture takes, always uploaded whole: the seven above
+/// the window's. `BIG_PALETTES` in picture.py.
+const BIG_PALETTES: usize = 7;
+/// The bytes of an entry of `big_table`.
+const BIG_ENTRY: usize = 32;
+/// RM2k's screen and the console's, down: a picture's corner goes from one
+/// to the other as `Screens::place` in rm2k-snes-images takes it.
+const BIG_RM_HEIGHT: i64 = 240;
+const BIG_CONSOLE_HEIGHT: i64 = 224;
+
+/// A big picture's tilemap as VRAM holds it, and its `BG1SC` size bits.
+///
+/// As tall as the screen, the left screen is the picture and the right one
+/// is what a wave brings into view past its sides: a line the wave moves
+/// right shows the columns left of 0 —the right screen's last ones— and one
+/// it moves left the ones right of 31. In RM2k that is the picture's own
+/// pixels if it is `wider` than the screen —`GTest4`—, and nothing
+/// otherwise —`ShipFlash`—. The console has no room for the first: it
+/// carries the picture's edges mirrored, so the edge goes on the way it was
+/// going instead of jumping to the other side, and with no tile of its own,
+/// since a tile flipped is the same tile.
+pub fn big_tilemap(rows: usize, cells: &[u16], wider: bool) -> Result<(Vec<u16>, u8)> {
+    let flip = |e: u16| if e == 0 { 0 } else { e ^ 0x4000 };
+    let at = |r: usize, c: usize| cells[r * BIG_SCREEN + c];
+    if cells.len() != rows * BIG_SCREEN {
+        return Err(Bad::answer(format!(
+            "a big picture's tilemap has {} cells for {rows} rows of {BIG_SCREEN}",
+            cells.len()
+        )));
+    }
+    if rows > 2 * BIG_SCREEN {
+        return Err(Bad::answer(format!("a big picture of {rows} rows: the tilemap holds 64")));
+    }
+    let mut map = vec![0u16; 2 * BIG_SCREEN * BIG_SCREEN];
+    if rows > BIG_SCREEN {
+        map[..cells.len()].copy_from_slice(cells);
+        return Ok((map, BIG_TALL));
+    }
+    let side = BIG_SCREEN * BIG_SCREEN;
+    for r in 0..rows {
+        for c in 0..BIG_SCREEN {
+            map[r * BIG_SCREEN + c] = at(r, c);
+        }
+        if !wider {
+            continue;
+        }
+        for j in 0..BIG_MIRRORED {
+            map[side + r * BIG_SCREEN + j] = flip(at(r, BIG_SCREEN - 1 - j));
+            map[side + r * BIG_SCREEN + BIG_SCREEN - 1 - j] = flip(at(r, j));
+        }
+    }
+    Ok((map, BIG_WIDE))
+}
+
+/// `big_table`, an entry of `BIG_ENTRY` bytes per big picture, and their
+/// streams:
+///
+/// ```text
+///   long  its tiles, raw
+///   long  its tilemap, an LZ2 stream of 4 KB
+///   long  its colours, BIG_PALETTES × 16 words, raw
+///   word  the tiles' bytes
+///   byte  BG1SC's size bits
+///   word  BG1VOFS with the screen's top at the canvas's: the rows above
+///         it, minus the line the PPU skips
+///   word  half its height, in RM2k's pixels
+///   word  its top on the console's screen, where it was drawn
+///   14    0, to thirty-two
+/// ```
+///
+/// The last two are what `OP_BIG_MOVE` needs to scroll it: the corner it
+/// goes to is computed by the console from the centre and the half height,
+/// against where it was drawn.
+///
+/// **The tiles go raw**, and are sent to VRAM by DMA straight from the
+/// cartridge. Decompressing them was most of the black frames a picture
+/// costs —30 KB of LZ2, and the bytecode a page carries from another map,
+/// which lives in the same buffer and had to be decompressed again after—,
+/// and the montage of map 217 changes picture every six frames. They are
+/// photos, which LZ2 hardly shrinks. The tilemap does go compressed: it is
+/// mostly empty, and its 4 KB fit in the buffer below the carried bytecode.
+///
+/// See `big_picture.s` in the runtime.
+fn big_pictures_section(out: &mut String, r: &Emit) -> Result<()> {
+    out.push_str("\n; --- the big pictures: see `big_pictures_section` in rm2k-snes-mapdata ---\n");
+    out.push_str(&format!(
+        "BIG_PICTURES = {}\nBIG_ENTRY = {BIG_ENTRY}\n",
+        r.big_pictures.len()
+    ));
+    if r.big_pictures.is_empty() {
+        line(out, &block("big_table", &[0]));
+        return Ok(());
+    }
+    let mut raw: Vec<Vec<u8>> = Vec::new();
+    let mut sizes = Vec::new();
+    for big in &r.big_pictures {
+        let (map, size) = big_tilemap(big.rows, &big.tilemap, big.wider)?;
+        raw.push(map.iter().flat_map(|w| w.to_le_bytes()).collect());
+        sizes.push(size);
+    }
+    let refs: Vec<&[u8]> = raw.iter().map(Vec::as_slice).collect();
+    let streams = crate::compress::compress_many(&refs)?;
+    out.push_str(&format!(".block {}\nbig_table:\n", BIG_ENTRY * r.big_pictures.len()));
+    for (k, big) in r.big_pictures.iter().enumerate() {
+        let vofs = (-big.top - 1) as i16 as u16;
+        let corner =
+            ((big.center[1] - big.half[1]) * BIG_CONSOLE_HEIGHT).div_euclid(BIG_RM_HEIGHT);
+        out.push_str(&format!(
+            "    .word .loword(big_tiles_{k})\n    .byte ^big_tiles_{k}\n\
+             \x20   .word .loword(big_map_{k})\n    .byte ^big_map_{k}\n\
+             \x20   .word .loword(big_colors_{k})\n    .byte ^big_colors_{k}\n\
+             \x20   .word {}\n    .byte {}\n    .word {vofs}\n\
+             \x20   .word {}\n    .word {}\n    .res 14\n",
+            big.tiles.len(),
+            sizes[k],
+            big.half[1] as i16 as u16,
+            corner as i16 as u16
+        ));
+    }
+    out.push('\n');
+    for (k, big) in r.big_pictures.iter().enumerate() {
+        if big.palettes.len() > BIG_PALETTES {
+            return Err(Bad::answer(format!(
+                "big picture {k} has {} palettes and the layer takes {BIG_PALETTES}",
+                big.palettes.len()
+            )));
+        }
+        let mut colors = Vec::with_capacity(BIG_PALETTES * 32);
+        for p in 0..BIG_PALETTES {
+            for i in 0..16 {
+                let c = big.palettes.get(p).and_then(|p| p.get(i)).copied().unwrap_or([0, 0, 0]);
+                colors.extend(cgram_word(c).to_le_bytes());
+            }
+        }
+        line(out, &block(&format!("big_tiles_{k}"), &big.tiles));
+        line(out, &block(&format!("big_map_{k}"), &streams[k]));
+        line(out, &block(&format!("big_colors_{k}"), &colors));
+    }
     Ok(())
 }
 

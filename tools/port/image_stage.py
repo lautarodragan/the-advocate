@@ -64,6 +64,20 @@ def picture(path, use_transparent_color, top_trans, cx, cy, rm_screen,
     return _answer("picture", request)
 
 
+def background(path, use_transparent_color, cx, cy, rm_screen, screen,
+               zoom, palettes, first_palette, tiles, rows):
+    """The picture of a `ShowPicture` too big for the sprites, as a 4bpp
+    layer: the stage's answer —where the canvas starts, its tiles, its
+    tilemap and its palettes—, or None if not even cut to the screen do its
+    tiles fit in `tiles`."""
+    return _answer("background", {
+        "file": os.path.abspath(path),
+        "use_transparent_color": bool(use_transparent_color),
+        "x": cx, "y": cy, "rm_screen": list(rm_screen),
+        "screen": list(screen), "zoom": zoom, "palettes": palettes,
+        "first_palette": first_palette, "tiles": tiles, "rows": rows})
+
+
 def _scene():
     from port import scene as E
     return {"width": E.WIDTH, "height": E.HEIGHT, "colors": E.COLORS,

@@ -88,6 +88,7 @@ from port.battle_animations import animations_request, rom_animations
 from port.battle_scenes import (fallback_bytes, patch_uses, rom_scene,
                                 scene_request, write_patch_uses)
 from port import stage
+from port import picture as picture_mod
 from port import battle_stage
 from port import compiler
 from port.game_scan import (args_game_dir, drop_items, has_rain,
@@ -274,6 +275,9 @@ def main():
     args.maps_per_character = maps_per_character(renderer, every,
                                                  args.game_dir)
     maps = convert_maps(renderer, every, args)
+    # The big pictures, which the cartridge carries once whatever map shows
+    # them: see `picture.number_big`.
+    big_layers = picture_mod.number_big(maps)
     # The maps whose upper layer started higher than the window's palette used
     # to be reconverted here, to squeeze their background below it. With the
     # window in palette 0 there is nothing to squeeze: each map's background
@@ -777,7 +781,8 @@ def main():
         # Where the harness writes the case number: see `--case`.
         events.variable_slot(events.CASE_VARIABLE)
         if len(args.cases) > 1 else None,
-        enemy_hp=args.enemy_hp, speed_keys=not args.no_speed_keys)
+        enemy_hp=args.enemy_hp, speed_keys=not args.no_speed_keys,
+        big_pictures=big_layers)
     print("%d map(s) -> %s, boots at %d (map %d)"
           % (len(maps), args.output, args.start_index, maps[args.start_index]["id"]))
     # What Adeleine decided, as images: to look at which colors were lost

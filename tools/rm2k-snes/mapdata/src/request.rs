@@ -165,6 +165,33 @@ pub struct Emit {
     pub text_padding: usize,
     /// Where the harness writes the case number, if there is more than one.
     pub case_slot: Option<i64>,
+    /// The big pictures, each as a background layer: see [`BigLayer`].
+    #[serde(default)]
+    pub big_pictures: Vec<BigLayer>,
+}
+
+/// A `ShowPicture` picture too big for the sprites, as `rm2k-snes-images
+/// background` drew it: where its canvas starts from the top of the screen,
+/// its rows of 32 cells, its 4bpp tiles, a tilemap entry per cell and its
+/// palettes, sixteen colours each from the first background palette above
+/// the window's.
+#[derive(Deserialize)]
+pub struct BigLayer {
+    pub top: i64,
+    /// Where it was drawn: its centre on RM2k's screen, and half its size
+    /// in RM2k's pixels at its zoom. A `MovePicture` scrolls it from there.
+    pub center: [i64; 2],
+    pub half: [i64; 2],
+    /// Whether the picture goes past the screen's sides: then a wave shows
+    /// its edges mirrored, and if not, black, as RM2k shows what is beyond
+    /// it.
+    #[serde(default)]
+    pub wider: bool,
+    pub rows: usize,
+    #[serde(deserialize_with = "hex::bytes")]
+    pub tiles: Vec<u8>,
+    pub tilemap: Vec<u16>,
+    pub palettes: Vec<Vec<Color>>,
 }
 
 #[derive(Deserialize)]

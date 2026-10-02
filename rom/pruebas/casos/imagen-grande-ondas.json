@@ -1,0 +1,18 @@
+{
+  "event_commands": [
+    {"code": "Teleport", "parameters": [12, 25, 25]},
+    {"code": "TintScreen", "parameters": [0, 0, 0, 100, 0, 1]},
+    {"code": "ShowPicture", "parameters": [1, 0, 160, 120, 0, 100, 0, 0, 100, 100, 100, 100, 2, 6], "string": "GTest4"},
+    {"code": "MovePicture", "parameters": [1, 0, 160, 120, 0, 100, 0, 0, 100, 100, 100, 100, 2, 1, 5, 1]},
+    {"code": "MovePicture", "parameters": [1, 0, 160, 120, 0, 100, 0, 0, 100, 100, 100, 100, 2, 4, 5, 1]},
+    {"code": "MessageOptions", "parameters": [0, 2, 0, 0]},
+    {"code": "ShowMessage", "parameters": [], "string": "APPARITION"},
+    {"code": "ShowMessage_2", "parameters": [], "string": "Kersh.\\|\\^"},
+    {"code": "Wait", "parameters": [5]},
+    {"code": "ErasePicture", "parameters": [1]},
+    {"code": "ShowPicture", "parameters": [1, 0, 160, 120, 0, 100, 0, 0, 100, 100, 100, 200, 2, 8], "string": "GTest4"},
+    {"code": "Wait", "parameters": [10]},
+    {"code": "ErasePicture", "parameters": [1]},
+    {"code": "TintScreen", "parameters": [100, 100, 100, 100, 0, 1]}
+  ]
+}

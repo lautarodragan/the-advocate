@@ -43,7 +43,7 @@ use crate::fail::Stop;
 use crate::game::{Command, Event, Map, Patches};
 use crate::messages::{Messages, Window};
 use crate::pages::{hex, map_pages, MapEvents, SubstitutionTable, Substitutions};
-use crate::registry::{Graphics, Package, PictureKey, Pictures, Songs, Troops};
+use crate::registry::{BigPicture, Graphics, Package, PictureKey, Pictures, Songs, Troops};
 use crate::troops::TroopPages;
 use serde_json::{json, Map as JsonMap, Value};
 use std::collections::{BTreeMap, BTreeSet, HashMap};
@@ -304,17 +304,36 @@ impl Request {
             }
         }
         if let Some(p) = data.get("pictures") {
+            // Each entry is a picture in the map's sprite bank, with its
+            // slot, or —with `"plane": "background"`— a big one, with its
+            // entry in the cartridge's table and half its size.
             r.pictures = by_map(p, whose, |v| {
-                let table = v
+                let mut pictures = Pictures::default();
+                for e in v
                     .as_array()
                     .ok_or_else(|| Bad::answer(format!("{whose}: a map's pictures are not a list")))?
-                    .iter()
-                    .map(|e| Ok((picture_key(e, whose)?, int(field(e, "slot", whose)?, whose)? as u8)))
-                    .collect::<Result<_>>()?;
-                Ok(Pictures {
-                    table,
-                    gathering: false,
-                })
+                {
+                    let key = picture_key(e, whose)?;
+                    if e.get("plane").and_then(Value::as_str) == Some("background") {
+                        let pair = |name: &str| -> Result<(i32, i32)> {
+                            let a = field(e, name, whose)?
+                                .as_array()
+                                .filter(|a| a.len() == 2)
+                                .ok_or_else(|| Bad::answer(format!("{whose}: a big picture's `{name}`")))?;
+                            Ok((int(&a[0], whose)? as i32, int(&a[1], whose)? as i32))
+                        };
+                        pictures.big.push(BigPicture {
+                            key,
+                            image: int(field(e, "image", whose)?, whose)? as u8,
+                            center: pair("center")?,
+                        });
+                    } else {
+                        pictures
+                            .table
+                            .push((key, int(field(e, "slot", whose)?, whose)? as u8));
+                    }
+                }
+                Ok(pictures)
             })?;
         }
         if let Some(s) = data.get("sound_effects") {

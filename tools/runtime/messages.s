@@ -63,6 +63,20 @@
 .proc stamp_window
 .a8
 .i16
+    ldx map_ofs
+    rep #$20
+.a16
+    lda f:map_table + M_VRAM_WINDOW_MAP, x
+    ; and on into `stamp_window_at`
+.endproc
+; The same at VRAM word A16 and not at the map's: a big picture moves the
+; window's tilemap out of its layer's way —see big_picture.s—.
+.proc stamp_window_at
+.a16
+.i16
+    sta VMADDL
+    sep #$20
+.a8
     lda #$80
     sta VMAIN
     ldx map_ofs
@@ -80,8 +94,6 @@
     cmp #$10                    ; the carry survives the `rep` and the `lda`
     rep #$20
 .a16
-    lda f:map_table + M_VRAM_WINDOW_MAP, x
-    sta VMADDL
     lda #(TEXT_WINDOW_ROWS * TEXT_WINDOW_COLS * 2)
     sta DAS0L
     bcs plane_256

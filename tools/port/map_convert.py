@@ -138,6 +138,10 @@ def _prepare(renderer, map_id, args):
     p.map_id, p.game_map, p.dump = map_id, game_map, dump
     p.route_graphics = route_graphics
     p.pictures = pictures
+    # And the big ones, which go in the background layer and not in the
+    # bank: see `picture.big_for_map`.
+    p.big_pictures = picture.big_for_map(
+        args.game_dir, scanned.get("pictures", []), map_id)
     p.request = {
         "map": map_id,
         "map_files": compiler.map_files(dump),
@@ -424,4 +428,6 @@ def _map_info(renderer, prepared, written, args):
             in (s["shared"] or {"events": []})["events"]},
         # The `ShowPicture` pictures it carries, or None: see above.
         "pictures": pictures,
+        # And the big ones, `(key, layer)`: the cartridge numbers them.
+        "big_pictures": prepared.big_pictures,
     }
