@@ -2,7 +2,7 @@
 name: "Los bytecodes, declarados en Rust"
 description: "Los dos bytecodes en un crate de tools/rm2k-snes/ con una macro, el .inc escrito por rm2k-snes-assemble al armar, y fuera protocol, sus TOML y los cuatro archivos generados"
 type: refactor
-assignee: Benteveíto
+assignee: taro
 ---
 
 De taro, el 2026-10-02. Va **después** de `doing/las-pruebas-sin-opcodes.md`,
@@ -80,3 +80,48 @@ no se mueven. El `.dbg` cambia: el archivo del `.inc` pasa de
 `tools/runtime/` a `rom/build/<cartucho>/`, con otro tamaño. Y `just
 entregar` ya no lleva los opcodes en el `tools/runtime/` que copia: Mesen2
 los ve como a los demás `.inc` generados.
+
+**Una prueba de ABL dependía de que el `.inc` estuviera en el runtime**:
+`test_saltos_entre_bancos.py` sabía que la línea de `interpreter.s` que
+expande `EVENT_HANDLERS` son datos porque juntaba los `.addr` de la
+expansión sólo de `tools/runtime/`. Dio rojo en los tres cartuchos; ahora
+junta los datos de cualquier archivo, en su propio commit.
+
+## Los commits
+
+1. `3954ce6c` el crate, los usos, el ensamblador y los cuatro generados
+   borrados —el crate los reemplaza, y los `.inc` en el runtime taparían
+   los del cartucho—;
+2. `e2baa5ef` sólo borrados: `tools/snes/protocol/`, `test_protocol.py`,
+   `conftest.py` —su único fixture lo usaba esa prueba—, las recetas, el
+   miembro y el perfil del workspace;
+3. `f6a9b6cc` la prosa, guiada por el diff del 2;
+4. `e81834de` el arreglo de `test_saltos_entre_bancos.py`.
+
+## Verificación
+
+* `NO_CACHE=1 just cartuchos` después de cada uno de los tres primeros:
+  las tres ROMs iguales a la base (`abl.sfc` `35c765009320d436…`). Contra
+  la base, `rom/build/` tiene los mismos archivos más los seis `.inc`
+  nuevos, iguales a los que estaban commiteados salvo las líneas 3 a 5; los
+  tres `.dbg` cambian en las dos líneas de esos `.inc` (ruta y tamaño:
+  comparado contra el `.dbg` del checkout principal, que tenía la misma
+  ROM, son las únicas). El 2 deja todo igual al 1; el 3 cambia otra vez
+  los `.dbg`, porque los comentarios de `main.s` e `interpreter.s` corren
+  números de línea.
+* `just pruebas`: **993**, igual que antes, con el arreglo del 4.
+* `just -f tools/justfile test`: **32** (eran 36: se fueron las cuatro de
+  `test_protocol.py`).
+* `cargo test -p` de `rm2k-snes-bytecode` (19 y la del runtime),
+  `rm2k-snes-cartridge`, `rm2k-snes-events`, `rm2k-snes-convert` y,
+  con `--release`, `rm2k-snes-audio`.
+
+## Qué instalar al mergear
+
+    just -f tools/justfile install cartridge rm2k-snes-audio events convert
+    cargo uninstall --root /usr/local protocol
+
+`bytecode` es una biblioteca: entra en esos cuatro. `convert` hace falta
+aunque no cambie lo que hace, porque tomaba las constantes del módulo de
+`events` que ya no existe. El `protocol` del global queda huérfano: nada lo
+llama, y `just which` ya no lo lista.
