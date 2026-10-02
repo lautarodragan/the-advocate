@@ -473,6 +473,7 @@ dependencies = [
  "ditto",
  "lz2",
  "rm2k-snes-battle",
+ "rm2k-snes-map-sprites",
  "serde",
  "serde_json",
  "sha2",

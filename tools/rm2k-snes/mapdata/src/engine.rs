@@ -145,8 +145,8 @@ pub const SWITCH_BYTES: u32 = 128;
 
 /// The timer's eleven glyphs —ten digits and the colon—, eight pixels wide,
 /// where `Sprite_Timer` draws the first.
-pub const TIMER_GLYPHS: u32 = 11;
-pub const TIMER_GLYPH_W: u32 = 8;
+pub const TIMER_GLYPHS: u32 = rm2k_snes_map_sprites::extras::TIMER_GLYPHS as u32;
+pub const TIMER_GLYPH_W: u32 = rm2k_snes_map_sprites::extras::TIMER_GLYPH_W as u32;
 pub const TIMER_X: u32 = 4;
 pub const TIMER_Y: u32 = 4;
 

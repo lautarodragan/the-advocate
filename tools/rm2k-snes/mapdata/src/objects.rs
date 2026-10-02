@@ -3,6 +3,7 @@
 //! where a 32x32 block of the sprite bank starts, and what a page draws.
 
 use crate::request::Draws;
+use rm2k_snes_map_sprites::character;
 
 /// The objects' priorities, already shifted into their place in the
 /// `vhoopppN` byte: the priority is bits 5 and 4, not 0 and 1. Writing $20
@@ -18,23 +19,24 @@ pub const OBJ_PRIORITY_ABOVE: u32 = 0x20;
 
 /// A sprite palette's colours: objects are always 4 bits a pixel —there is
 /// no mode 3 for them—, and 0 is transparent.
-pub const OBJ_COLORS: usize = 15;
-/// A CharSet's poses: three walking frames for four directions, each
-/// 24x32.
-pub const SPRITE_POSES: usize = 12;
+///
 /// A pose in the cartridge: the sixteen tiles of a 32x32 object, in a row.
 /// The console has no 24x32 objects; the smallest that covers a pose is
 /// 32x32, padded with transparency at the sides. Splitting it into 16x32
 /// objects would spend the same and multiply the OAM entries.
-pub const POSE_BYTES: usize = 16 * 32;
+///
+/// Both are `rm2k-snes-map-sprites`', which cuts the poses and lays out the
+/// sprite bank: the emission writes what that stage decided.
+pub use rm2k_snes_map_sprites::character::{OBJ_COLORS, POSE_BYTES};
 
-/// How many 32x32 blocks fit across the sprite bank's name grid, which is
-/// sixteen tiles wide.
-pub const BLOCKS_PER_ROW: u32 = 4;
+/// A CharSet's poses: three walking frames for four directions, each
+/// 24x32. `rm2k-snes-map-sprites`' number, as the emission counts.
+pub const SPRITE_POSES: usize = character::SPRITE_POSES as usize;
 
-/// The tile a 32x32 block starts at.
+/// The tile a 32x32 block of the sprite bank starts at:
+/// `rm2k-snes-map-sprites`' layout, where the poses were put.
 pub fn block_tile(block: u32) -> u32 {
-    (block / BLOCKS_PER_ROW) * 64 + (block % BLOCKS_PER_ROW) * 4
+    character::block_tile(block as usize) as u32
 }
 
 /// RM2k's layers of an event: under the hero, the hero's —the only one that
