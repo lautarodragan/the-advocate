@@ -666,7 +666,7 @@ pub fn map_table(maps: &[Map], labels: &[Labels], rows: &[Vec<NpcRow>]) -> Resul
 pub const SHARED_MAX: usize = 15;
 
 /// The slots still events take turns in, for the maps that have them: see
-/// `share` in `rm2k-snes-map-sprites` and `share_want` in the runtime.
+/// `sprites::share` in Wally and `share_want` in the runtime.
 ///
 /// `share_maps` has a word per map, in the order of `map_table`: where its
 /// record starts inside `share_data`, or 0 if it shares nothing —offset 0 is

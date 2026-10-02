@@ -224,8 +224,8 @@ events-test:
 # wally: a game's maps as the cartridge carries them —each map's
 # layers, its baked events, its characters as objects and its blocks—, which
 # the converter calls once per map; see `maps.rs` in `rm2k-snes-convert`. The work is
-# two libraries': `map-background`, the layers and the blocks, and
-# `map-sprites`, the objects.
+# two modules' that do not know each other: `background`, the layers and
+# the blocks, and `sprites`, the objects.
 #
 # Their tests build a small game, its ChipSets and CharSets inside the test:
 # they need no game.

@@ -1,5 +1,5 @@
 //! A map's two background layers: drawn by `rm2k-render`, converted by
-//! `rm2k-snes-map-background`, and written for the caller; and the map as
+//! [`crate::background`], and written for the caller; and the map as
 //! blocks of 16x16, which are made of what the two layers were converted to.
 
 use crate::fail::{Bad, Result};

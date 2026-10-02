@@ -83,7 +83,7 @@ Así que en un mapa que no entra en ningún reparto, y **sólo ahí**, los quiet
 que nunca están juntos en pantalla comparten una ranura aunque muestren poses
 distintas, y la ROM sube la pose del que entra en pantalla. Quién se turna con
 quién lo decide `wally` —`plan_sharing` en su `map.rs`, con el coloreo de
-`share` en `rm2k-snes-map-sprites`—, la tabla la emite `share_table` en
+`share` en su módulo `sprites`—, la tabla la emite `share_table` en
 `rm2k-snes-mapdata`, y lo que hace la ROM está en
 `tools/runtime/shared_poses.s`. El 108 queda en 22 ranuras, 376 tiles, y entra
 en "+ambos". Los demás mapas convierten como siempre: `wally` prueba primero

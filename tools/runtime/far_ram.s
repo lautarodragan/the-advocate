@@ -824,7 +824,7 @@ BIG_WAVE_B  = $7F6300
 ;
 ; $2590 to $259F, allotted on 2026-10-01 with other agents choosing RAM at
 ; the same time. `SHARE_MAX` is also `SHARED_MAX` in `rm2k-snes-mapdata` and
-; in `rm2k-snes-map-sprites`: the `.inc` asserts every map against it.
+; in Wally's `sprites`: the `.inc` asserts every map against it.
 SHARE_N      = $7E2590
 SHARE_OWNER  = $7E2591             ; SHARE_MAX bytes
 SHARE_MAX    = 15

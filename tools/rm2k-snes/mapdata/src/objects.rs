@@ -25,16 +25,16 @@ pub const OBJ_PRIORITY_ABOVE: u32 = 0x20;
 /// 32x32, padded with transparency at the sides. Splitting it into 16x32
 /// objects would spend the same and multiply the OAM entries.
 ///
-/// Both are `rm2k-snes-map-sprites`', which cuts the poses and lays out the
-/// sprite bank: the emission writes what that stage decided.
+/// Both are Wally's (`wally::sprites`), which cuts the poses and lays out
+/// the sprite bank: the emission writes what that stage decided.
 pub use wally::sprites::character::{OBJ_COLORS, POSE_BYTES};
 
 /// A CharSet's poses: three walking frames for four directions, each
-/// 24x32. `rm2k-snes-map-sprites`' number, as the emission counts.
+/// 24x32. Wally's number, as the emission counts.
 pub const SPRITE_POSES: usize = character::SPRITE_POSES as usize;
 
 /// The tile a 32x32 block of the sprite bank starts at:
-/// `rm2k-snes-map-sprites`' layout, where the poses were put.
+/// Wally's layout, where the poses were put.
 pub fn block_tile(block: u32) -> u32 {
     character::block_tile(block as usize) as u32
 }

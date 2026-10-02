@@ -80,15 +80,14 @@ have layers of their own, one folder each:
       events/    `rm2k-snes-events`: the event compiler —a game's event
                  pages to the bytecode the ROM runs—; the converter calls
                  it twice
-      map-background/  `rm2k-snes-map-background`, a library: a map's two
-                 background layers in the lower half of colour memory, and
-                 its 16x16 blocks
-      map-sprites/  `rm2k-snes-map-sprites`, a library: a map's characters
-                 as objects —the palette split, the VRAM bank and the pose
-                 bank— and the extras at the end of the bank
       wally/     Wally, `wally`: a whole map —its layers, the events baked
-                 into them, its objects, its blocks—, with those two; the
-                 converter runs it once per map
+                 into them, its objects, its blocks—; the converter runs it
+                 once per map. Its two halves are modules that do not know
+                 each other: `background`, the two background layers in the
+                 lower half of colour memory and the 16x16 blocks, and
+                 `sprites`, the characters as objects —the palette split,
+                 the VRAM bank and the pose bank— and the extras at the end
+                 of the bank
       text/      `rm2k-snes-text`, a library: easyrpg-player's fonts, a line
                  of text drawn over the System, and a message box reflowed
                  for a narrower window

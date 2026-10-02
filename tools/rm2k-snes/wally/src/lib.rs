@@ -8,10 +8,10 @@
 //! its two background layers ([`layers`]), the events baked into them
 //! ([`baking`]), its characters as objects, and its blocks.
 //!
-//! The work is two libraries' that do not know each other:
-//! `rm2k-snes-map-background` takes the lower half of colour memory and
-//! the background layers, `rm2k-snes-map-sprites` the upper half and the
-//! objects. What needs both halves at once —baking an event, which takes a
+//! The work is two modules' that do not know each other: [`background`]
+//! takes the lower half of colour memory and the background layers,
+//! [`sprites`] the upper half and the objects —`tests/halves.rs` keeps
+//! them apart—. What needs both halves at once —baking an event, which takes a
 //! sprite into a layer— is this crate's, and so is reading the map's events
 //! ([`events`]), who among them moves ([`moves`]), and drawing the sheets its characters are cut from
 //! ([`sheets`]).

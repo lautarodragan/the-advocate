@@ -345,7 +345,7 @@ pub struct Sprite {
     pub image: (i64, i64),
     pub animation: Option<Animation>,
     /// The slots still events take turns in, if the map needed them: see
-    /// `share` in `rm2k-snes-map-sprites`.
+    /// `sprites::share` in Wally.
     #[serde(default)]
     pub shared: Option<Shared>,
 }

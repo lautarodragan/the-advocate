@@ -124,9 +124,10 @@ de punta a punta: código, comentarios, nombres de pruebas y README. Desde el
       battle/          la pelea: experiencia y encuentros, el modelo y su
                        pantalla de texto, y la pelea jugada para las pruebas
       events/          el compilador de eventos: de las páginas de RM2k al bytecode
-      map-background/  las dos capas del fondo de un mapa y sus bloques de 16x16
-      map-sprites/     los personajes de un mapa como objetos: paletas y bancos
-      wally/           Wally: un mapa entero, con esas dos: capas, horneado, sprites
+      wally/           Wally: un mapa entero —capas, horneado, sprites—, con
+                       sus dos mitades como módulos que no se conocen: el
+                       fondo y sus bloques de 16x16, y los personajes como
+                       objetos
       text/            la fuente, una línea de texto sobre el System y el
                        reparto de las cajas al ancho de la ventana
       screens/         las pantallas: la ventana de mensajes, el título, las
@@ -180,7 +181,7 @@ mensaje; `tools/rm2k-snes/rm2k-snes-audio/` recibe el SoundFont por `SOUNDFONT`,
 `ld65` en el PATH, y sin ellos se saltea igual;
 y `tools/snes/gunter/`, `tools/snes/voodoo/`, `tools/snes/lz2/`,
 `tools/snes/adeleine/`, `tools/rm2k/rules/`, `tools/rm2k/rm2k-render/`, `tools/rm2k-snes/battle/`,
-`tools/rm2k-snes/bytecode/`, `tools/rm2k-snes/events/`, `tools/rm2k-snes/patches/`, los tres de los mapas y
+`tools/rm2k-snes/bytecode/`, `tools/rm2k-snes/events/`, `tools/rm2k-snes/patches/`, `tools/rm2k-snes/wally/` y
 los dos de las pantallas, `tools/snes/resample/`, `tools/rm2k-snes/images/`,
 `tools/rm2k-snes/mapdata/` y `tools/rm2k-snes/convert/` no necesitan nada.
 
