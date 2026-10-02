@@ -445,8 +445,21 @@ fn the_characters_are_the_ones_the_python_made() {
         };
         let rain = rain_drops(&mut tiles, &mut palettes, &s.leader_owned, timer_at, want.cap).unwrap_or((0, 0));
         let previous = if rain.0 != 0 { rain.0 } else { timer_at.map_or(0, |t| t.0) };
-        let image = picture_of_image(&picture_cells(), &mut tiles, &palettes, previous).unwrap_or((0, 0));
-        let animation = map_animation(&mut tiles, &palettes, usize::from(image.0 != 0)).unwrap_or((0, 0));
+        let image = picture_of_image(&picture_cells(), &mut tiles, &palettes, previous, 1).unwrap_or((0, 0));
+        let animation = map_animation(&mut tiles, &palettes, image.1).unwrap_or((0, 0));
+        // Since 2026-10-01 the pictures take their palettes from the top
+        // down —see `picture_of_image`— and the Python gave the picture the
+        // first free one and the animation the next: same tiles, other
+        // palette numbers. They are written back the Python's way here, so
+        // the tiles and the rest are still checked against it.
+        let first_free = palettes.len();
+        let image = if image.0 != 0 { (image.0, first_free) } else { image };
+        let animation = if animation.0 != 0 && image.0 != 0 {
+            assert_eq!(animation.1, first_free, "{name}: the animation's palette");
+            (animation.0, first_free + 1)
+        } else {
+            animation
+        };
         let extras = [
             Some(timer_at.map_or(0, |t| t.0)),
             timer_at.map(|t| t.1),

@@ -348,14 +348,6 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
     // spends is checked against its VRAM layout.
     let per_map = record::maps(&r.maps)?;
 
-    // Where the picture ended up: the map that took its tiles is the only
-    // one with a nonzero base.
-    let (picture_base, picture_pal) = r
-        .maps
-        .iter()
-        .filter_map(|m| m.sprite.as_ref())
-        .find(|s| s.image.0 != 0)
-        .map_or((0, 0), |s| s.image);
 
     let window = at(screens, "window")?;
     let slots = at(screens, "slots")?;
@@ -428,11 +420,6 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         KEY_VALUE_DIR[1].into(),
         KEY_VALUE_DIR[3].into(),
         KEY_VALUE_DIR[2].into(),
-        picture_base.into(),
-        picture_pal.into(),
-        r.picture.as_ref().map_or(0, |p| p.x).into(),
-        r.picture.as_ref().map_or(0, |p| p.y).into(),
-        r.picture.as_ref().map_or(0, |p| p.objects).into(),
         OBJ_SIDE.into(),
         (4 * GRID).into(),
         RAIN_DROPS.iter().copied().max().unwrap_or(0).into(),
@@ -617,7 +604,7 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
 
     let mut notes = per_map.notes.clone();
     window_section(&mut out, r, window)?;
-    picture_section(&mut out, r);
+    picture_section(&mut out, r)?;
     animations_section(&mut out, r)?;
     title_section(&mut out, title_menu.copied())?;
     full_screens_section(&mut out, r)?;
@@ -711,21 +698,92 @@ fn window_section(out: &mut String, r: &Emit, window: &Value) -> Result<()> {
     Ok(())
 }
 
-fn picture_section(out: &mut String, r: &Emit) {
-    // Its colours, entry 0 included in black so the console uploads the
-    // sixteen at once.
-    out.push_str("\n; --- the ShowPicture picture ---\n");
-    let mut colors = vec![[0, 0, 0]];
-    if let Some(p) = &r.picture {
-        colors.extend_from_slice(&p.palette);
+/// How many bytes a picture's entry takes in `picture_data`: see
+/// [`picture_tables`].
+pub const PICTURE_ENTRY: usize = 16;
+
+/// The pictures each map carries, as the console reads them with
+/// `lda f:picture_data, x`: `picture_maps` has a word per map, the offset of
+/// its block in `picture_data`, or 0 if it carries none. A map's block is
+///
+/// ```text
+///   word  the first tile of its sprite bank the pictures start at
+///   byte  how many pictures
+///   then PICTURE_ENTRY bytes per picture, in the bytecode's order:
+///     word  half its width, in RM2k's pixels
+///     word  half its height
+///     byte  how many 32x32 objects
+///     byte  the first of them, among the map's pictures' objects
+///     word  where its objects are: dx, dy per object, from its corner
+///     word  where its sixteen colours are, entry 0 included
+///     word  the first tile again, so drawing needs the entry alone
+///     four bytes of nothing, so an entry is a shift away
+/// ```
+///
+/// All in one `.block` each, so the offsets are sixteen bits and a colour
+/// pointer never crosses a bank.
+pub fn picture_tables(maps: &[crate::request::Map]) -> Result<(Vec<u8>, Vec<u8>)> {
+    let mut data = vec![0u8];
+    let mut starts = Vec::with_capacity(maps.len());
+    for map in maps {
+        let Some(p) = &map.pictures else {
+            starts.push(0u16);
+            continue;
+        };
+        let whose = |what: String| Bad::answer(format!("map {}: {what}", map.id));
+        let start = data.len();
+        let n = p.images.len();
+        if n == 0 || n > 255 {
+            return Err(whose(format!("{n} pictures")));
+        }
+        data.extend(u16::try_from(p.base).map_err(|_| whose(format!("pictures at tile {}", p.base)))?.to_le_bytes());
+        data.push(n as u8);
+        let entries = data.len();
+        data.resize(entries + n * PICTURE_ENTRY, 0);
+        for (i, image) in p.images.iter().enumerate() {
+            let objects_at = data.len() - start;
+            for &[dx, dy] in &image.objects {
+                let byte = |v: i64| u8::try_from(v).map_err(|_| whose(format!("an object at {v}")));
+                data.push(byte(dx)?);
+                data.push(byte(dy)?);
+            }
+            let colors_at = data.len() - start;
+            let mut colors = vec![[0, 0, 0]];
+            colors.extend_from_slice(&image.palette);
+            colors.resize(16, [0, 0, 0]);
+            data.extend(cgram_bytes(&colors));
+            let word = |v: i64| -> Result<[u8; 2]> {
+                Ok(i16::try_from(v).map_err(|_| whose(format!("a picture's {v}")))?.to_le_bytes())
+            };
+            let at = entries + i * PICTURE_ENTRY;
+            let mut entry = Vec::with_capacity(PICTURE_ENTRY);
+            entry.extend(word(image.half[0])?);
+            entry.extend(word(image.half[1])?);
+            entry.push(u8::try_from(image.objects.len()).map_err(|_| whose("too many objects".into()))?);
+            entry.push(u8::try_from(image.first).map_err(|_| whose("too many objects".into()))?);
+            entry.extend(word((start + objects_at) as i64)?);
+            entry.extend(word((start + colors_at) as i64)?);
+            entry.extend(word(p.base)?);
+            data[at..at + entry.len()].copy_from_slice(&entry);
+        }
+        starts.push(u16::try_from(start).map_err(|_| whose("the pictures' table passes 64 KB".into()))?);
     }
-    line(out, &block("picture_cgram", &cgram_bytes(&colors)));
+    Ok((words_le(starts.iter().map(|&s| u32::from(s))), data))
+}
+
+fn picture_section(out: &mut String, r: &Emit) -> Result<()> {
+    out.push_str("\n; --- the ShowPicture pictures: see `picture_tables` in rm2k-snes-mapdata ---\n");
+    out.push_str(&format!("PICTURE_ENTRY = {PICTURE_ENTRY}\n"));
+    let (maps, data) = picture_tables(&r.maps)?;
+    line(out, &block("picture_maps", &maps));
+    line(out, &block("picture_data", &data));
     // The screen flash's products, `d * level // 31`, so the console does not
     // multiply and divide for each of its 96 entries every odd frame.
     let products: Vec<u8> = (0..32u32)
         .flat_map(|n| (0..32u32).map(move |d| (d * n / 31) as u8))
         .collect();
     line(out, &block("prod31_table", &products));
+    Ok(())
 }
 
 /// A battle animation's frame as the cartridge stores it: only the tiles

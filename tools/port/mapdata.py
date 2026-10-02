@@ -84,6 +84,11 @@ def _map_record(map_info):
         "changing": sorted(map_info.get("cambian", ())),
         "appearing": sorted(map_info.get("aparecen", ())),
         "turning": sorted(map_info.get("giran", ())),
+        # The `ShowPicture` pictures the map carries: where they start in
+        # its sprite bank, and each one's half size, objects and colors.
+        "pictures": None if not map_info.get("pictures") else {
+            "base": map_info["pictures"]["base"],
+            "images": map_info["pictures"]["images"]},
     }
 
 
@@ -99,7 +104,7 @@ def _full_screen(data):
 
 
 def emit(path, maps, dump, initial, hero_above, initial_party, screens,
-         messages, message_pairs, title, game_over, picture_info,
+         messages, message_pairs, title, game_over,
          animations, troops,
          battle_audio, scene, battle_tables, troop_pages, party_common,
          battle_model, items, actors, text_padding, case_slot, enemy_hp,
@@ -139,10 +144,6 @@ def emit(path, maps, dump, initial, hero_above, initial_party, screens,
         "message_pairs": message_pairs,
         "title": _full_screen(title),
         "game_over": _full_screen(game_over),
-        "picture": None if not picture_info else {
-            "x": picture_info["x"], "y": picture_info["y"],
-            "objects": picture_info["objetos"],
-            "palette": [list(c) for c in picture_info["paleta"]]},
         "animations": animations,
         "troops": list(troops),
         "battle_audio": battle_audio,

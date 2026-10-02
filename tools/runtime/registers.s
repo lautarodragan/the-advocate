@@ -85,6 +85,7 @@ VMDATAL  = $2118        ; and the data, one word at a time with VMAIN at $80
 CGADD    = $2121        ; CGRAM index
 CGDATA   = $2122        ; and the color, a byte at a time: low byte first
 TM       = $212C        ; which layers show on the main screen
+TS       = $212D        ; and on the subscreen, the one color math mixes with
 MOSAIC   = $2106        ; the mosaic: size in the high nibble, layers in the low
 CGWSEL   = $2130        ; where color math applies and against which color
 CGADSUB  = $2131        ; add or subtract, and on which layers

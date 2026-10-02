@@ -36,7 +36,6 @@ import collections
 import math
 import os
 
-from port import picture as picture_mod
 
 # The opcodes' numbers, lengths and layout. **They are not declared here**:
 # they come from `tools/snes/protocol/events.toml`, which belongs to both sides —this
@@ -660,29 +659,9 @@ BATTLE_LOSE = 0xFFFF
 #
 # OP_IF_ACTOR: sub (byte), actor (byte), data (word), destination (word)
 
-# The picture of a `ShowPicture`, since 2026-09-12. The ROM carries **a
-# single one** —see `Pictures`— and that is why the three opcodes do not say
-# which: they say what to do to it.
-#
-#   OP_PICTURE        r, g, b, sat (bytes, 100 neutral): puts it up with that
-#                     tone.
-#   OP_PICTURE_MOVE  the tone it goes to, and in how many frames. It does not
-#                    cut the frame: if the page waits, the converter puts an
-#                    OP_DELAY after it, as with `FlashScreen` and the shake.
-#   OP_PICTURE_ERASE takes it down.
-#
-# **The picture's fade is the tone and not the transparency**, which is what
-# had to be checked: the two `MovePicture`s of the "1 year earlier" page leave
-# `top_trans` at 0 and move (r, g, b) between 0 and 100 with the saturation
-# still at 100. So the image appears **black**, goes up to its color and back
-# to black; on the console that is tinting its fifteen CGRAM entries, which is
-# exactly the math the screen tint already did.
-#
-# OP_PICTURE: r, g, b, sat
-#
-# OP_PICTURE_MOVE: r, g, b, sat, frames (byte)
-# How many frames a `MovePicture` can last to fit in `OP_PICTURE_MOVE`'s byte.
-# The page's two last 210 and 120.
+# The pictures of `ShowPicture`: since 2026-10-01 each map carries its own
+# —see `picture.py`— and the three opcodes say which slot they act on. What
+# they carry is `compile_picture`'s, in the event compiler.
 
 # `ChangeSpriteAssociation`: actor (byte) and which graphic of the map's table
 # (byte). It is the same as move command 34 but on an **actor**, and the
@@ -855,76 +834,6 @@ _BASE = []
 # all fit today— dropped almost entirely. With its own package the map pays
 # nothing while there is no battle.
 BATTLE_PACKAGE = "batalla"
-
-
-class Pictures:
-    """The only picture that goes into the cartridge, and which commands
-    move it.
-
-    The converter builds one, and the decision is here and not in the
-    compiler: to know whether a picture fits it has to be converted, which
-    is the images' business. The compiler is told which `ShowPicture` took
-    the place.
-
-    **A single one per ROM**, and that is the decision that bounds the
-    scope. It takes a whole sprite palette —fifteen colors that cannot be
-    merged with anyone's, because the fade tints them all— and two rows of
-    blocks of the sprite bank. A second picture would require deciding how
-    many of those there are to share, and for that one first has to know how
-    many of the game's `ShowPicture`s can be drawn; today the answer is in
-    the report and not in the code.
-
-    The one that does not fit is still accepted without being done, as
-    before: cutting the page would take away from the game the eight that
-    compile today.
-    """
-
-    def __init__(self, game_dir):
-        self.game_dir = game_dir
-        self.name = None      # the picture that took the slot
-        self.info = None        # what `picture.convert` got from it
-        self.number = None      # the RM2k picture number that shows it
-        self.where = None       # where its ShowPicture centered it
-
-    def _path(self, name):
-        """The file of the `ShowPicture` picture `name`, or None if the
-        game does not have it."""
-        import os
-        path = os.path.abspath(os.path.join(self.game_dir, "Picture",
-                                            name + ".png"))
-        return path if os.path.exists(path) else None
-
-    def choose(self, game_maps):
-        """Which of the ROM's `ShowPicture`s takes the slot.
-
-        It is decided **before compiling a single page** and looking at all
-        of the cartridge's maps in table order, and not by order of arrival:
-        that way the choice does not depend on the order the maps are
-        compiled in.
-        """
-        if self.name is not None:
-            return self.info    # the slot is already taken
-        for game_map in game_maps:
-            for event in game_map.events:
-                for page in event.pages:
-                    for cmd in page.commands:
-                        if cmd.code != SHOW_PICTURE:
-                            continue
-                        if not picture_fits(cmd.parameters):
-                            continue
-                        if cmd.parameters[7]:
-                            continue    # the PNG's transparent color
-                        p = cmd.parameters
-                        path = self._path(cmd.string)
-                        if path is None:
-                            continue
-                        info = picture_mod.convert(path, p)
-                        if not picture_mod.fits(info):
-                            continue
-                        self.name, self.info = cmd.string, info
-                        self.number, self.where = p[0], (p[2], p[3])
-                        return info
-        return None
 
 
 def index_animations(game_dir):
@@ -1478,25 +1387,6 @@ CELL_DEST_B = 16
 # tools/runtime/interpreter_cells.s.
 CELL_Y = 0x4000
 CELL_REFRESH = 0x8000
-
-
-def picture_fits(p):
-    """Whether the parameters of a `ShowPicture` or a `MovePicture` fall
-    within what the console's picture knows how to do.
-
-    The indices come from easyrpg-player's `CommandShowPicture` and
-    `CommandMovePicture`, **not from memory**: the color and the saturation
-    go in 8..11 and the effect mode in 12, which is not what one would
-    guess.
-    """
-    return (len(p) >= 14
-            and p[1] == 0               # position by variable
-            and p[4] == 0               # attached to the map
-            and p[5] == 100             # the zoom
-            and p[6] == 0               # translucent
-            and p[11] == 100            # the saturation
-            and p[12] == 0              # rotate or wave
-            and all(0 <= v <= 200 for v in p[8:12]))
 
 
 class PartyState:

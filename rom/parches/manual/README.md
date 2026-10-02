@@ -159,14 +159,11 @@ corte estaba en la entrada de Sorbe (el evento 10), que volvió a ser la del
 original. Sus capas son las del original, byte por byte. **Se muda el día que
 entre Tasgarde**: el fin de la demo pasa a la próxima entrada que no esté.
 
-Y el **mapa 81**, la casa del doctor Vago, por el cartel "Meanwhile, in Lashe
-City", que es donde la historia pasa de Talan a Dalia: en el original es una
-imagen, `MeanwhileLashe`, que aparece y se va con dos `MovePicture` sobre la
-pantalla negra, y la ROM lleva un solo cartel por imagen. El fork cambia el
-`ShowPicture` por un `ShowMessage` con el mismo texto y saca los dos
-`MovePicture`, la espera entre ellos y el `ErasePicture`, como el del 49. Lo
-decidió taro el 2026-09-27. Capas del original. **Se borra el día que la ROM
-lleve más de una imagen.**
+El **mapa 81**, la casa del doctor Vago, tuvo un fork del 2026-09-27 al
+2026-10-01 por el cartel "Meanwhile, in Lashe City": cambiaba la imagen por
+un `ShowMessage`, porque la ROM llevaba una sola. Desde que cada mapa lleva
+las suyas en los sprites —`workflow/tasks/*/varias-imagenes-en-sprites.md`—
+el cartel se dibuja como en el original, y el fork se borró.
 
 Y el **mapa 49**, la primera vuelta de la carrera, por el cartel de los
 controles: en el original es una imagen, `EscapeInst`, sobre la pantalla

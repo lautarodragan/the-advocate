@@ -726,6 +726,46 @@ GAIN_DIRTY        = $7E25C9
 SONG_SCALED       = $7E25C8
 MSU_BASE          = $7E25C6        ; word
 
+; --- the ShowPicture pictures: their slots -------------------------------------
+;
+; See picture_far.s. `PIC_SLOTS` pictures at a time, each slot one entry of
+; every array: which picture of the map's table it shows, or `PIC_NONE`;
+; its corner —on the screen, or on the map for one that goes with it—; its
+; flags; its tone, three bytes; its transparency. And **one** ramp of
+; `MovePicture` for all of them: the slot it moves, where it comes from and
+; where it goes —tone and transparency—, and how far along it is. The game
+; never moves two pictures at once; if a page does, the one that was moving
+; arrives where it was going in that same frame.
+;
+; In two places, and that is why the arrays do not share a base: $30EC to
+; $30FA is what the one picture of before had —see battle_animation.s, the
+; MSU-1 is right below and the message's tail right above—, and $2580 to
+; $258F was allotted on 2026-10-01 with other agents choosing RAM at the
+; same time. **They do not travel in the save**, and a map change clears
+; them: RM2k 2000 erases its pictures there (`erase_on_map_change`).
+PIC_SLOTS   = 2
+PIC_IMG     = $7E30EC              ; PIC_SLOTS bytes
+PIC_X       = $7E30EE              ; PIC_SLOTS words
+PIC_Y       = $7E30F2              ; PIC_SLOTS words
+PIC_TRANS   = $7E30F6              ; PIC_SLOTS bytes
+PIC_FLAGS   = $7E30F8              ; PIC_SLOTS bytes
+PIC_STEPS   = $7E30FA
+.assert PIC_STEPS < $7E30FB, error, "the pictures step on FAR_MSG_PAUSE"
+PIC_TONE    = $7E2580              ; three bytes per slot
+PIC_RAMP    = $7E2586              ; the slot the ramp moves, or PIC_NONE
+PIC_FROM    = $7E2587              ; r, g, b and transparency
+PIC_TO      = $7E258B
+PIC_STEP    = $7E258F
+.assert PIC_TONE + 3 * PIC_SLOTS <= PIC_RAMP, error, "the pictures' tones overflow"
+PIC_NONE    = $FF
+; OP_PICTURE's mode, which the slot keeps in its flags: the centre came from
+; two variables, and the picture goes with the map. See `PICTURE_BY_VARIABLE`
+; and `PICTURE_MAP_FIXED` in the event compiler.
+PIC_BY_VARIABLE = $01
+PIC_MAP_FIXED   = $02
+; And the slot's palette is waiting for the vblank.
+PIC_PENDING     = $80
+
 ; --- the slots still events take turns in ---------------------------------------
 ;
 ; See shared_poses.s. How many shared slots the loaded map has —0 in every

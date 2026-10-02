@@ -122,6 +122,10 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `rpgmaker/test_comandos_golden.py`: los comandos sueltos de página —texto,
   tecla, variables, destello, tinte, timer, pan, sacudir, animación, ventana,
   espera y las ramas de ítem y de actor—
+* `rpgmaker/test_imagenes_golden.py`: `ShowPicture`, `MovePicture` y
+  `ErasePicture` en los sprites —dos a la vez, tono y transparencia, por
+  variables, pegada al mapa, de vuelta de la pelea y del menú— y las escenas
+  del juego que las usan
 * `rpgmaker/test_animacion_cuadros.py`: cada cuadro de cada animación de
   batalla llega entero a la caja de la VRAM, aunque el cartucho lo guarde sin
   sus tiles vacíos

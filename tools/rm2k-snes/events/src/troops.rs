@@ -333,7 +333,7 @@ impl TroopPages {
                         messages: Some(&mut self.messages),
                         songs: ctx.songs.as_deref_mut(),
                         graphics: None,
-                        picture: None,
+                        pictures: None,
                         troops: None,
                     };
                     compile_page(&mut inner, &cmds, None, 0, 0)?

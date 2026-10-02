@@ -1,0 +1,11 @@
+{
+  "event_commands": [
+    {"code": "Teleport", "parameters": [12, 25, 25]},
+    {"code": "ControlVars", "parameters": [0, 17, 17, 0, 0, 220, 0]},
+    {"code": "ControlVars", "parameters": [0, 18, 18, 0, 0, 40, 0]},
+    {"code": "ShowPicture", "parameters": [1, 1, 17, 18, 0, 100, 0, 1, 100, 100, 100, 100, 0, 0], "string": "Fortitude"},
+    {"code": "Wait", "parameters": [5]},
+    {"code": "ControlVars", "parameters": [0, 17, 17, 2, 0, 230, 0]},
+    {"code": "ShowPicture", "parameters": [1, 1, 17, 18, 0, 100, 0, 1, 100, 100, 100, 100, 0, 0], "string": "Fortitude"}
+  ]
+}

@@ -305,31 +305,44 @@ repeated = { name = "frames", args = [
   { name = "spare", type = "byte" },
 ] }
 
+# The three picture ones act on a `slot` the interpreter keeps a picture in.
+# `OP_PICTURE` puts up `image` —an entry of the loaded map's picture table—
+# centred at (`x`, `y`): RM2k's screen pixels, or, with bit 0 of `mode`,
+# two variable slots in the low bytes. Bit 1 of `mode` is "it goes with the
+# map". The tone is RM2k's, 100 neutral, and `transparency` its percentage.
 [[opcode]]
 name = "OP_PICTURE"
 code = 0x1F
 args = [
+  { name = "slot", type = "byte" },
+  { name = "image", type = "byte" },
+  { name = "mode", type = "byte" },
+  { name = "x", type = "word", signed = true },
+  { name = "y", type = "word", signed = true },
   { name = "red", type = "byte" },
   { name = "green", type = "byte" },
   { name = "blue", type = "byte" },
-  { name = "saturation", type = "byte" },
+  { name = "transparency", type = "byte" },
 ]
 
 [[opcode]]
 name = "OP_PICTURE_MOVE"
 code = 0x20
 args = [
+  { name = "slot", type = "byte" },
   { name = "red", type = "byte" },
   { name = "green", type = "byte" },
   { name = "blue", type = "byte" },
-  { name = "saturation", type = "byte" },
+  { name = "transparency", type = "byte" },
   { name = "frames", type = "byte" },
 ]
 
 [[opcode]]
 name = "OP_PICTURE_ERASE"
 code = 0x21
-args = []
+args = [
+  { name = "slot", type = "byte" },
+]
 
 [[opcode]]
 name = "OP_BATTLE"

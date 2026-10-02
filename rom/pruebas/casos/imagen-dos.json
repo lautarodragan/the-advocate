@@ -1,0 +1,9 @@
+{
+  "event_commands": [
+    {"code": "Teleport", "parameters": [12, 25, 25]},
+    {"code": "ShowPicture", "parameters": [3, 0, 160, 120, 0, 100, 0, 1, 100, 100, 100, 100, 0, 0], "string": "Fortitude"},
+    {"code": "ShowPicture", "parameters": [1, 0, 250, 200, 0, 50, 0, 1, 100, 100, 100, 100, 0, 0], "string": "ABLrec"},
+    {"code": "Wait", "parameters": [10]},
+    {"code": "ErasePicture", "parameters": [3]}
+  ]
+}

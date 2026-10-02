@@ -123,11 +123,21 @@ _SCANS = {}
 
 
 def scan(dump, map_ids, test_commands=(), extra_variables=(),
-         test_event_map=None):
+         test_event_map=None, cases=()):
     """The first call, remembered: the indices, which pages of each map
-    compile, and each map's pages compiled without songs."""
+    compile, each map's pages compiled without songs, and the pictures each
+    map can show —its pages' and those of `cases`, `(map, commands)`, that
+    run on it—."""
     req = request(dump, map_ids, test_commands, extra_variables,
                   test_event_map)
+    if cases:
+        req["cases"] = [{"map": m, "commands": [command(c) for c in cmds]}
+                        for m, cmds in cases]
+        req["messages_step"] = events.MESSAGES_STEP
+    # And the counters, so a counter's digits are its and not pictures:
+    # without them its body is pasted where it is called, and its twenty
+    # `ShowPicture`s of a digit would ask for a place in the sprites.
+    req["counters"] = counters()
     key = json.dumps(req, sort_keys=True)
     if key not in _SCANS:
         _SCANS[key] = run("scan", dump, req)
@@ -215,19 +225,20 @@ def pages(records, game_map):
 # --- compile ------------------------------------------------------------------
 
 def compile_cartridge(dump, maps, cases, test_commands, extra_variables,
-                      test_event_map, picture, test_graphics,
-                      encounter_troops):
+                      test_event_map, test_graphics, encounter_troops):
     """The second call: every page of the cartridge. `maps` are the
     converter's `map_info`s, in the cartridge's order, with their
-    `game_map` and their `substitution_table`; `cases` are `(map,
-    commands)`.
+    `game_map`, their `substitution_table` and their `pictures`; `cases`
+    are `(map, commands)`.
     A test page that does not compile comes back as None."""
     req = request(dump, [m["id"] for m in maps], test_commands,
                   extra_variables, test_event_map)
     req["names"] = names([m["game_map"] for m in maps])
     req["substitutions"] = {
         str(m["id"]): substitution_table(m) for m in maps}
-    req["picture"] = picture
+    # The pictures each map carries, with their slots: see `picture.py`.
+    req["pictures"] = {str(m["id"]): m["pictures"]["table"]
+                       for m in maps if m.get("pictures")}
     req["counters"] = counters()
     req["sound_effects"] = {
         name: settings.value("sound_effects", name, kind=list)
@@ -372,7 +383,7 @@ def loose_request(dump, maps, cases=(), encounter_troops=()):
     req = request(dump, maps, [c for _m, cmds in cases for c in cmds])
     req.update({
         "substitutions": _map_substitutions(dump, maps),
-        "picture": None,
+        "pictures": {},
         "counters": counters(),
         "sound_effects": {
             name: settings.value("sound_effects", name, kind=list)

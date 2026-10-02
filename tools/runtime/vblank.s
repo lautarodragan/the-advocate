@@ -119,32 +119,9 @@ no_flash:
 .a8
     bcc other_flash
 
-    ; And the picture's palette, if the ramp rebuilt it this frame. It is
-    ; thirty-two bytes and goes separately from the map's three: the picture's
-    ; entry falls above `SPRITE_CGRAM`, that is, outside what `upload_palettes`
-    ; uploads.
-    lda f:PICTURE_READY
-    beq no_picture
-    lda #0
-    sta f:PICTURE_READY
-    lda #(128 + 16 * PICTURE_PAL)
-    sta CGADD
-    rep #$20
-.a16
-    lda #.loword(cgram_shadow + 2 * (128 + 16 * PICTURE_PAL))
-    sta A1T0L
-    lda #32
-    sta DAS0L
-    sep #$20
-.a8
-    stz A1B0
-    lda #$00
-    sta DMAP0
-    lda #$22
-    sta BBAD0
-    lda #$01
-    sta MDMAEN
-no_picture:
+    ; And the pictures' palettes, if a picture was put up or a ramp rebuilt
+    ; one this frame: see `pic_flush`.
+    jsr pic_flush
 
     ; And the battle animation's palette, if one just started. It is the same
     ; thirty-two bytes as the picture's and for the same reason: its entry falls

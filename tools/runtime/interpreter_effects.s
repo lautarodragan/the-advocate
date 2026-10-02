@@ -8,90 +8,23 @@
 ; each one with Y on its first operand, and each one goes back to the loop
 ; with `jmp run_code::other` or ends the frame with `rts`.
 
-; The three for the sign. `OP_PICTURE` shows it already with its tone
-; —`Game_Pictures::Show` leaves `time_left` at zero—, `OP_PICTURE_MOVE` starts
-; the ramp toward another tone and `OP_PICTURE_ERASE` removes it. None of them
-; ends the frame: if the page waits for as long as the fade lasts, the
-; converter puts an OP_DELAY after it, same as for `FlashScreen` and the
+; The three of the pictures, which live in bank 1: see picture_far.s. None of
+; them ends the frame: if the page waits for as long as a fade lasts, the
+; compiler puts an OP_DELAY after it, same as for `FlashScreen` and the
 ; shake.
 .proc op_picture
-    ldx #$0000
-img_set:
-    lda [code_ptr], y
-    cpx #3
-    bcs img_set_sat             ; the fourth operand is the saturation, which
-    sta f:PICTURE_TONE, x       ; is not stored: the picture's is always neutral
-    sta f:PICTURE_FROM, x
-    sta f:PICTURE_TO, x
-img_set_sat:
-    iny
-    inx
-    cpx #4
-    bne img_set
-    lda #1
-    sta f:PICTURE_ACTIVE
-    lda #0
-    sta f:PICTURE_STEP
-    sta f:PICTURE_STEPS
-    jsr picture_palette
+    jsl f:pic_show + FAST       ; see MEMSEL
     jmp run_code::other
-
 .endproc
 
 .proc op_picture_move
-    ldx #$0000
-img_move:
-    lda [code_ptr], y
-    cpx #3
-    bcs img_move_sat            ; the saturation, again
-    sta f:PICTURE_TO, x
-img_move_sat:
-    iny
-    inx
-    cpx #4
-    bne img_move
-    lda [code_ptr], y
-    sta f:PICTURE_STEPS
-    iny
-    ; A `Move` on a picture that was not shown writes the target to something
-    ; that is not drawn: the operands are consumed anyway —the stream has to
-    ; stay on the same byte on both sides— and nothing else happens.
-    lda f:PICTURE_ACTIVE
-    beq img_move_end
-    lda f:PICTURE_STEPS
-    bne img_move_ramp
-    ldx #$0000
-img_move_already:
-    lda f:PICTURE_TO, x
-    sta f:PICTURE_TONE, x
-    sta f:PICTURE_FROM, x
-    inx
-    cpx #3
-    bne img_move_already
-    lda #0
-    sta f:PICTURE_STEP
-    jsr picture_palette
+    jsl f:pic_move + FAST
     jmp run_code::other
-img_move_ramp:
-    ldx #$0000
-img_move_from:
-    lda f:PICTURE_TONE, x
-    sta f:PICTURE_FROM, x
-    inx
-    cpx #3
-    bne img_move_from
-    lda #0
-    sta f:PICTURE_STEP
-img_move_end:
-    jmp run_code::other
-
 .endproc
 
 .proc op_picture_erase
-    lda #0
-    sta f:PICTURE_ACTIVE
+    jsl f:pic_erase + FAST
     jmp run_code::other
-
 .endproc
 
 ; `OP_ANIMATION`: the RM2k animation number, what it is drawn on, how many

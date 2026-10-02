@@ -1,6 +1,6 @@
 //! What the compiler numbers while it compiles: the songs and the sound
 //! effects, the graphics a route changes to, the troops the battles ask
-//! for; and the one picture the cartridge carries.
+//! for; and the pictures each map carries.
 //!
 //! The bytecode carries an index and not a name, and the index is given
 //! here the first time something asks for it: so everything that compiles
@@ -291,31 +291,100 @@ impl Troops {
     }
 }
 
-/// The one picture the cartridge carries: which `ShowPicture` took its
-/// place, which the caller decides —it has to convert the image to know
-/// whether it fits—.
+/// What a `ShowPicture` shows, as far as the cartridge has to carry it:
+/// everything that changes the picture's pixels, and its number.
 ///
-/// **A single one per ROM**, and that is the decision that bounds the
-/// scope: see the converter's `Pictures`, which chooses it.
+/// * The **position** is in it only for a picture that goes with the
+///   screen and is placed by a constant: scaling RM2k's screen to the
+///   console's rounds both corners, so the same file comes out a pixel
+///   wider or narrower depending on where it is. One placed by variables is
+///   converted once, at a corner on the grid; one that goes with the map is
+///   not scaled at all.
+/// * The **number** is not a matter of pixels, but it is what the console
+///   keeps a picture by —see [`Pictures`]—, and the same file shown under two
+///   numbers is two pictures for it.
+/// * The tone and the transparency are not in it: the console changes them
+///   while the picture is shown.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Picture {
-    pub name: String,
+pub struct PictureKey {
     pub number: i32,
-    pub x: i32,
-    pub y: i32,
+    pub name: String,
+    pub zoom: i32,
+    pub transparent_color: bool,
+    pub map_fixed: bool,
+    pub by_variable: bool,
+    pub at: Option<(i32, i32)>,
 }
 
-impl Picture {
-    /// Whether this `ShowPicture` is the one that took the place.
-    pub fn shows(&self, number: i32, name: &str, x: i32, y: i32) -> bool {
-        self.name == name && self.number == number && (self.x, self.y) == (x, y)
+impl PictureKey {
+    pub fn to_json(&self) -> Value {
+        json!({
+            "number": self.number,
+            "name": self.name,
+            "zoom": self.zoom,
+            "transparent_color": self.transparent_color,
+            "map_fixed": self.map_fixed,
+            "by_variable": self.by_variable,
+            "at": self.at.map(|(x, y)| json!([x, y])),
+        })
+    }
+}
+
+/// The pictures of one map: which ones the caller put into its sprite bank,
+/// each with the slot the console keeps it in.
+///
+/// It goes **per map** because the pictures' tiles are part of the map's
+/// sprite bank, which is uploaded with the map: the same file shown on two
+/// maps is in both. And the caller decides it, because to know whether a
+/// picture fits it has to be converted and the bank built. What the
+/// compiler is told is the table; a `ShowPicture` whose picture is not in
+/// it is accepted without being done, as all of them were until 2026-09-12.
+///
+/// The first call, the scan, does not have the table yet: it **gathers**
+/// what each map's pages and test pages can show, in the order they are
+/// met, and that is what the caller converts.
+#[derive(Debug, Clone, Default)]
+pub struct Pictures {
+    /// The pictures, in the order the cartridge numbers them, and each
+    /// one's slot.
+    pub table: Vec<(PictureKey, u8)>,
+    /// Whether this compilation is gathering instead: then `table` fills up
+    /// with every picture met, with slot 0, and nothing is emitted.
+    pub gathering: bool,
+}
+
+impl Pictures {
+    /// A registry that gathers.
+    pub fn gathering() -> Pictures {
+        Pictures {
+            table: Vec::new(),
+            gathering: true,
+        }
     }
 
-    /// Whether the picture this command names is this one and it does not
-    /// move from where it is. `MovePicture` and `ErasePicture` ask it, since
-    /// they do not carry the name: in RM2k the picture number is all that
+    /// The image and the slot of `key`, if the map carries it.
+    pub fn image(&self, key: &PictureKey) -> Option<(u8, u8)> {
+        self.table
+            .iter()
+            .position(|(k, _)| k == key)
+            .map(|i| (i as u8, self.table[i].1))
+    }
+
+    /// The map's pictures shown under `number`: what a `MovePicture` or an
+    /// `ErasePicture` can be acting on, since in RM2k the number is all that
     /// ties them to their `ShowPicture`.
-    pub fn owns(&self, number: i32, at: Option<(i32, i32)>) -> bool {
-        self.number == number && at.is_none_or(|a| a == (self.x, self.y))
+    pub fn numbered(&self, number: i32) -> impl Iterator<Item = &(PictureKey, u8)> {
+        self.table.iter().filter(move |(k, _)| k.number == number)
+    }
+
+    /// Gathers `key`, once.
+    pub fn gather(&mut self, key: PictureKey) {
+        if !self.table.iter().any(|(k, _)| *k == key) {
+            self.table.push((key, 0));
+        }
+    }
+
+    pub fn keys_json(&self) -> Value {
+        json!(self.table.iter().map(|(k, _)| k.to_json()).collect::<Vec<_>>())
     }
 }

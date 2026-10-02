@@ -219,7 +219,9 @@ def main():
     args.test_event_map = every[args.start_index] if args.cases else None
     args.extra_variables = extra
     args.scan = compiler.scan(args.dump, every, file_commands, extra,
-                              args.test_event_map)
+                              args.test_event_map,
+                              [(case.run_map, case.commands)
+                               for case in args.cases])
     # The slots and bits, where the rest of the converter reads them; and
     # the slots `ChangeSpriteAssociation` reserves in the graphics table of
     # **all** maps: the graphic it gives an actor crosses the teleport, so
@@ -271,11 +273,6 @@ def main():
     # the other.
     args.maps_per_character = maps_per_character(renderer, every,
                                                  args.game_dir)
-    # The `ShowPicture` picture, one per ROM: see `events.Pictures`. The first
-    # map of the table that shows it keeps it, which is the order `convert_map`
-    # walks them in.
-    args.pictures = events.Pictures(args.game_dir)
-    args.pictures.map_id = None
     maps = convert_maps(renderer, every, args)
     # The maps whose upper layer started higher than the window's palette used
     # to be reconverted here, to squeeze their background below it. With the
@@ -365,14 +362,9 @@ def main():
     #   have to be emitted: the bytecode carries the RM2k number;
     # * each test page, compiled with the context of the map it runs in
     #   —see `case_map`—, which the second round puts in the boot map.
-    picture = None
-    if args.pictures.name is not None:
-        picture = {"name": args.pictures.name,
-                   "number": args.pictures.number,
-                   "x": args.pictures.where[0], "y": args.pictures.where[1]}
     compiled = compiler.compile_cartridge(
         args.dump, maps, [(case.run_map, case.commands) for case in args.cases],
-        file_commands, args.extra_variables, args.test_event_map, picture,
+        file_commands, args.extra_variables, args.test_event_map,
         {m: test_graphics(args.test_graphic) for m in test_maps(args)}
         if args.test_graphic else {},
         encounters["troops"])
@@ -414,25 +406,6 @@ def main():
         if with_parallel:
             print("  map %d: %d event(s) with a parallel page"
                   % (map_info["id"], len(with_parallel)))
-        # **Only the map that took its tiles can show the picture.** The sprite
-        # bank belongs to each map, so from another one the six objects would
-        # read whatever was in those tiles. It doesn't happen today —the "1
-        # year earlier" picture is shown by a single page— and that is why this
-        # stops instead of choosing: the day two maps show the same one, it
-        # has to be decided whether its tiles go in both, and the converter
-        # can't make that decision alone.
-        if (args.pictures.name is not None
-                and map_info["id"] != args.pictures.map_id):
-            for test_page in pages:
-                code = test_page["codigo"]
-                if code and any(code[i] == events.OP_PICTURE
-                                for i, _c in events.walk_code(code)):
-                    sys.exit(
-                        "map %d: shows the picture %r and its tiles ended up in "
-                        "map %d; the ROM carries it in a single one. See "
-                        "`cartel_de_imagen`."
-                        % (map_info["id"], args.pictures.name,
-                           args.pictures.map_id))
         # The graphics command 34 and `ChangeSpriteAssociation` carry by
         # index, with those of `--test-graphic` after: the map's
         # `ruta_grafico` table resolves them.
@@ -796,7 +769,7 @@ def main():
     report, decompress_frames = emit(
         args.output, maps, args.dump, args.start_index, args.hero_above,
         party, screens, window_data["mensajes"], messages.pairs, title_data and
-        title_data["pantalla"], game_over_data, args.pictures.info,
+        title_data["pantalla"], game_over_data,
         animations_request(animations), troops.ids, battle_audio,
         scene_request(scenes, troops.ids, renderer.database), battle_tables,
         compiled["troop_pages"], compiler.party_common_events(compiled),

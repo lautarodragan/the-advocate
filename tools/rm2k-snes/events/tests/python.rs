@@ -102,6 +102,20 @@ fn without_route_targets(answer: &mut Value) {
     }
 }
 
+/// The pictures each map can show, which the scan gathers since 2026-10-01,
+/// came after the Python too: taken out here, and checked on their own by
+/// `the_scan_gathers_the_pictures`.
+fn without_pictures(answer: &mut Value) {
+    let Some(maps) = answer.get_mut("maps").and_then(Value::as_array_mut) else {
+        return;
+    };
+    for map in maps {
+        if let Some(m) = map.as_object_mut() {
+            m.remove("pictures");
+        }
+    }
+}
+
 /// The text block's pair table came after the Python too: the answer
 /// compared is the one without pairs, and the two fields that say which
 /// table it was written with —an empty one— are taken out. That the pairs
@@ -117,6 +131,7 @@ fn check(which: &str, answer: Value) {
     let mut answer = answer;
     sorted_jumps(&mut answer);
     without_route_targets(&mut answer);
+    without_pictures(&mut answer);
     without_pairs(&mut answer);
     let expected = read("python.json");
     let expected = expected[which].as_object().unwrap();
@@ -168,6 +183,37 @@ fn route_targets_are_the_routes_of_the_code() {
         (3.into(), 0.into(), 0.into(), vec![0.into()]),
     ];
     assert_eq!(routed, expected);
+}
+
+/// What the scan gathers of each map's pictures: map 1 shows `Pic` and
+/// `Other`, in the order its page shows them, and map 2 `Other` again —each
+/// map carries its own—. Only `ShowPicture` gathers: the move and the erase
+/// say a number and nothing else.
+#[test]
+fn the_scan_gathers_the_pictures() {
+    let request = Request::from_json(&read("scan.json"), "scan.json").unwrap();
+    let answer = scan(&game(&request), &request).unwrap();
+    let names: Vec<(i64, Vec<&str>)> = answer["maps"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|m| {
+            (
+                m["id"].as_i64().unwrap(),
+                m["pictures"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .map(|p| p["name"].as_str().unwrap())
+                    .collect::<Vec<_>>(),
+            )
+        })
+        .filter(|(_, p)| !p.is_empty())
+        .collect();
+    assert_eq!(names, vec![(1, vec!["Pic", "Other"]), (2, vec!["Other"])]);
+    let pic = &answer["maps"][0]["pictures"][0];
+    assert_eq!(pic["at"], serde_json::json!([160, 120]));
+    assert_eq!(pic["number"], 1);
 }
 
 fn game(request: &Request) -> Game {
