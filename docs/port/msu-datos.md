@@ -11,8 +11,7 @@ abajo.
 
 La ROM lleva los fondos que piden las peleas del cartucho, y **livianos**:
 128x64 en 4bpp y 16 colores, que la ROM agranda al doble, contra los 256x128
-en 8bpp y 96 colores del `.msu` —ver "The light fallback" en
-`tools/port/scene.py`—. Así se ve a ojo de qué lado salió el fondo, y cada
+en 8bpp y 96 colores del `.msu` —ver `scene.rs` en `rm2k-snes-convert`—. Así se ve a ojo de qué lado salió el fondo, y cada
 uno cuesta en la ROM un octavo de lo que pesa en el `.msu`. Una pelea cuyo
 fondo la ROM no lleva usa, sin MSU-1, uno de reemplazo.
 
@@ -107,8 +106,8 @@ salen las peleas del mundo.
 
 **La ROM lleva todos los que las peleas del cartucho pueden pedir**: los que
 nombran las tropas, los de los mapas con encuentros al azar y los de los
-terrenos de esos mapas cuando no nombran ninguno —ver "Which backdrops there are" en
-`tools/port/scene.py`—. Sin MSU-1, una pelea cuyo fondo la ROM no lleva usa
+terrenos de esos mapas cuando no nombran ninguno —ver `scene.rs` en
+`rm2k-snes-convert`—. Sin MSU-1, una pelea cuyo fondo la ROM no lleva usa
 **el de reemplazo**, `[battle] fallback_backdrop` del archivo de proyecto
 —por qué ése, en su comentario—:
 `backdrop_fallback` dice, por número de fondo, cuál de la ROM se dibuja. Lo

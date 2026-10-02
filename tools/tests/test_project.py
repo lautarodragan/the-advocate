@@ -57,13 +57,10 @@ RAIZ = {"RAIZ", "REPO", "raiz", "ROOT", "root"}
 DE_AMBIENTE = {"ABL_GAME_DIR", "ABL_RTP_DIR", "ABL_SOUNDFONT", "ABL_CACHE",
                "CARTUCHOS", "SHARED"}
 
-# What is allowed, with its reason: (file relative to `tools/`, piece).
-PERMITIDOS = {
-    # The shape of each cartridge's directory, which imitates `rom/parches/`:
-    # it is not where `rom/parches/` is in the repo, and does not move with it.
-    # Here, for who asked for each patch: see `USES_FILE`.
-    ("port/battle_scenes.py", "parches"),
-}
+# What is allowed, with its reason: (file relative to `tools/`, piece). The
+# last one, the converter's `parches/usos.json`, went with the converter's
+# Python on 2026-10-02.
+PERMITIDOS = set()
 
 
 def _ours():

@@ -1,22 +1,19 @@
 #!/usr/bin/env python3
-"""What the converter keeps of the event compiler.
+"""What the game's tests keep of the event compiler.
 
 The compiler —RM2k's event pages to the bytecode the ROM runs— is
-`rm2k-snes-events` since 2026-09-29, in Rust: `port/compiler.py` says what
-goes into its two calls and puts what comes back where the rest of the
-converter reads it. The rule it keeps is the one this module had:
+`rm2k-snes-events` since 2026-09-29, in Rust, and the converter that calls
+it is `rm2k-snes-convert` since 2026-10-02. The rule it keeps is the one
+this module had:
 
     **a page is emitted only if all its commands can be run.**
 
-What stays here is what others read and is not the compiler: the names
-and the reasons of the numbers the ROM's tables are emitted with —the
-numbers are the emission's, `engine.rs` in `rm2k-snes-mapdata`, and this
-module answers them through `port.engine`—, the command codes a few
-scans look for (`game_scan.py`, `cases.py`), the registries the
-compiler's answer is read into (`Songs`, `Troops`, `Trigger`), the indices it
-answers (`VARIABLE_SLOT`, `SKILL_SLOT`, `PARTY_COMMON_EVENTS`), which picture
-takes the cartridge's place (`Pictures`), and the models the game's tests
-predict the ROM with (`Encounters`, `key_value`, `PartyState`).
+This was the converter's `port/events.py`. What stays here is what the
+tests read: the names and the reasons of the numbers the ROM's tables are
+emitted with —the numbers are the emission's, `engine.rs` in
+`rm2k-snes-mapdata`, and this module answers them through `engine`—, the
+command codes, a troop page's `Trigger`, and the models the tests predict
+the ROM with (`Encounters`, `key_value`).
 
 The whys of how each command compiles live next to the code that compiles
 it, in the crate: `rm2k-snes/events/src/compile.rs` and its
@@ -1361,7 +1358,7 @@ def walk_code(code):
 TEST_SWITCH = 1023
 
 # The variable that chooses which of the test pages runs, when a cartridge
-# carries several: see `--case` in snes_convert.py. Page k asks for it to be
+# carries several: see `--case` in `rm2k-snes-convert`. Page k asks for it to be
 # **at least** k, which is the only comparison RM2k 2000 offers in a page's
 # condition, and since the highest-numbered one that is met wins, with the
 # variable at k page k runs and no other. With a single variable it is enough
@@ -1386,7 +1383,7 @@ SWITCH_IMPOSSIBLE = 1021
 
 
 def __getattr__(name):
-    """The engine's numbers by the names they had here —see `port.engine`—,
+    """The engine's numbers by the names they had here —see `engine`—,
     and `TRIGGERS`, the page triggers the ROM knows how to run."""
     if name == "TRIGGERS":
         return (engine.TRIGGER_ACTION, engine.TRIGGER_TOUCH_HERO,

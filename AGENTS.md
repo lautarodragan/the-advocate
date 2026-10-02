@@ -88,8 +88,7 @@ tiene que decir; lo que el código ya dice, no.
 Todo este repo va en castellano —comentarios, documentación y mensajes de
 commit—, **salvo los directorios que son proyectos aparte**, que van en inglés
 de punta a punta: código, comentarios, nombres de pruebas y README. Desde el
-2026-09-19 viven adentro de `tools/`, al lado de los paquetes de Python del
-port —ver `tools/README.md`—:
+2026-09-19 viven adentro de `tools/` —ver `tools/README.md`—:
 
     tools/snes/        los formatos de la consola, sin saber de RPG Maker
       protocol/        declara un bytecode y genera las constantes de sus dos lados
@@ -105,7 +104,7 @@ port —ver `tools/README.md`—:
       ditto/           lee y escribe sus formatos; como biblioteca, el único
                        lugar en Rust que lee el volcado
       rules/           rm2k-rules: lo que el formato significa —pasabilidad,
-                       páginas, experiencia—, la copia en Rust de rm2k.py
+                       páginas, experiencia—
       rm2k-render/     las capas de un mapa, sus CharSets, lo de la pelea y las
                        caras, ventanas y carteles de las pantallas, dibujados
                        como RM2k
@@ -129,6 +128,8 @@ port —ver `tools/README.md`—:
                        animaciones, escalados y con sus paletas
       mapdata/         la emisión: el `.inc` del cartucho con lo que contestó
                        cada etapa, los flujos de LZ2 y los repartos de VRAM
+      convert/         el conversor: le pregunta a cada etapa, en orden, lo que
+                       el cartucho necesita, y le da lo que contestaron las otras
 
 Las capas sólo dependen hacia abajo —`rm2k-snes/` de las otras dos, y
 ésas de nada de las demás—, y lo cuida `tools/tests/test_layers.py`. Todos
@@ -172,8 +173,8 @@ mensaje; `tools/rm2k-snes/rm2k-snes-audio/` recibe el SoundFont por `SOUNDFONT`,
 y `tools/snes/protocol/`, `tools/snes/gunter/`, `tools/snes/voodoo/`, `tools/snes/lz2/`,
 `tools/snes/adeleine/`, `tools/rm2k/rules/`, `tools/rm2k/rm2k-render/`, `tools/rm2k-snes/battle/`,
 `tools/rm2k-snes/events/`, `tools/rm2k-snes/patches/`, los tres de los mapas y
-los dos de las pantallas, `tools/snes/resample/`, `tools/rm2k-snes/images/` y
-`tools/rm2k-snes/mapdata/` no necesitan nada.
+los dos de las pantallas, `tools/snes/resample/`, `tools/rm2k-snes/images/`,
+`tools/rm2k-snes/mapdata/` y `tools/rm2k-snes/convert/` no necesitan nada.
 
 ### `tools/snes/voodoo/` no decide colores, y eso no se arregla
 
@@ -379,9 +380,10 @@ alterado es lo mismo que cobra cualquier regresión: las goldens y
 
 **Los repos de `/extras/ref` están clonados adentro y no son los del host.**
 `liblcf` es de donde sale el esquema de Ditto —y con él los defaults que
-`rom/data/` trae ya aplicados— y de donde salen los códigos de comando de RM2k
-(`tools/rpgmaker/event_codes.json`): salen de ahí y de ningún otro lado, porque la primera
-versión del filtro de puertas los puso de memoria y tres estaban mal. Si hace
+`rom/data/` trae ya aplicados y los nombres de los comandos de RM2k, contra los
+que se sostiene `codes.rs` del compilador de eventos—: salen de ahí y de ningún
+otro lado, porque la primera versión del filtro de puertas los puso de memoria
+y tres estaban mal. Si hace
 falta algo que no se consigue desde acá, se le pide a taro que lo copie a
 `/extras`.
 
@@ -452,12 +454,12 @@ cuenta es **cuántos bancos quedan**, no un porcentaje: los bancos `$7E` y
 contra el `.o` de la receta; eso sigue sirviendo para lo único que la receta
 no puede, que es una ROM que no linkea: ahí `ld65` dice por cuánto se pasa.
 
-**`rom/build/cache/` es un caché en disco del conversor** —las capas
-convertidas, y qué pistas de MSU-1 ya están— y su clave lleva el hash de los
-fuentes **y el de los binarios que producen lo guardado**, así que no hay que
-borrarlo al tocar código. Lo único que pide es que cualquier cambio en lo que
-se cachea se verifique con `NO_CACHE=1`: las dos ROMs tienen que ser byte por
-byte iguales. Ver `tools/common/disk_cache.py`.
+**`rom/build/cache/` es un caché en disco** —qué pistas de MSU-1 ya están—
+y su clave lleva el hash de los fuentes **y el de los binarios que producen lo
+guardado**, así que no hay que borrarlo al tocar código. Lo único que pide es
+que cualquier cambio en lo que se cachea se verifique con `NO_CACHE=1`: las
+dos ROMs tienen que ser byte por byte iguales. Ver `cache.rs` en
+`rm2k-project`.
 
 **Mientras corren las pruebas no se toca ningún fuente.** La huella de
 `rm2k-snes-cartridges` cubre todo `tools/runtime/`, los `.py` de `tools/` y

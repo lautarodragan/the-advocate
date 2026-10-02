@@ -42,7 +42,7 @@ from tramo_sorbe import (
 EISEN_ACTOR = 23
 TASGARDE, EL_LABORATORIO = 74, 85
 # Lo que guarda la ROM para el corte de `ChangeScreenTransitions`: ver
-# `TRANSITION_CUTOFF` en tools/port/events.py.
+# las transiciones del teletransporte en `arnes/events.py`.
 CORTE = 2
 INTO_THE_MACHINE = 95
 LA_CASA_DE_VAGO = 81

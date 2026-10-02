@@ -3,7 +3,7 @@ y que un enemigo muerto desaparezca.
 
 La tanda de pixeles —las goldens de `batalla*`— mira la pantalla entera y dice
 **que** cambió algo; esto dice **qué**. Se compara contra una composición hecha
-de este lado desde el juego, con las mismas reglas que tools/port/scene.py
+de este lado desde el juego, con las mismas reglas que `arnes/scene.py`
 escribe y ninguna de las rutinas de la ROM: el fondo que le toca a la pelea, los
 battlers convertidos de sus PNG, sus esquinas desde las posiciones del LDB y las
 paletas repartidas en el orden de la tropa. Si la ROM corre mal un battler que

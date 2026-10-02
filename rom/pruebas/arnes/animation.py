@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """The **drawing** of a battle animation over the map.
 
-It lives apart from `snes_convert.py` for the same reason as `picture.py`: it
-is not a map. It is a loose drawing that has to be put on the screen, and
+It is not a map. It is a loose drawing that has to be put on the screen, and
 the only thing to decide is **exactly where each pixel lands and what color
 it is**. The sounds and flashes of the same animation are not here: those
 are `OP_ANIMATION` in `events.py`, and they exist since 2026-09-11.

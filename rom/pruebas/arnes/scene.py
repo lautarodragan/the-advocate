@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """The battle scene: the backdrop and the monsters, **composited on the console**.
 
-It lives apart from `snes_convert.py` for the same reason as `picture.py` and
-`animation.py`: it is not a map, it is a loose drawing. What the converter
+It is not a map, it is a loose drawing. What the converter
 and the ROM have to share is exactly where each pixel lands and what color
 it is.
 
@@ -148,8 +147,8 @@ doubles the small one with the CPU: each pixel twice across and each row
 twice down. From there on everything is the same —compositing, erasing a
 dead one, uploading to VRAM—, because what is left in WRAM is an 8bpp
 backdrop like the `.msu` one. See `scn_fill` and `scn_double` in
-runtime/battle_scene.s, and `fallback_bytes` in battle_scenes.py for
-the order the bytes travel in, which is the one that saves the ROM math.
+runtime/battle_scene.s, and `fallback_bytes` in the converter's `scene.rs`
+for the order the bytes travel in, which is the one that saves the ROM math.
 
 The other way out was for the `.msu` to carry 4bpp too, "more quality within
 the same format"; but sixteen colors are the ceiling of 4bpp, so the quality

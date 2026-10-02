@@ -2,7 +2,7 @@
 
 El cartucho lleva en la ROM el respaldo liviano de cada fondo —128x64 en
 4bpp, 16 colores, que la ROM agranda al doble— y el conversor escribe en el `.msu` el de calidad —8bpp, 96—: ver
-"El respaldo liviano" en tools/port/scene.py. Con MSU-1 y el `.msu` de este
+"The light fallback" en `arnes/scene.py`. Con MSU-1 y el `.msu` de este
 cartucho la ROM lee el de calidad; sin MSU-1, o con otro `.msu`, el suyo. La
 tanda entera corre sin MSU-1 —el arnés le esconde el `.msu` al core, ver
 `retro.Console`—, así que cubre el respaldo; esto cubre el otro camino, y que

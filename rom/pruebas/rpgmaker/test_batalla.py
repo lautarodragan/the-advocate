@@ -4,7 +4,7 @@ la página.
 Es la mitad de la red que la tanda de pixeles no puede cubrir. Los casos
 de `test_batalla_golden.py` comparan **la pantalla** contra su
 golden y no pueden hacer más: la pelea bloquea adentro del intérprete y no
-cuesta ningún tick —ver `OP_BATTLE` en tools/port/events.py—. Lo que pasa adentro
+cuesta ningún tick —ver `OP_BATTLE` en `arnes/events.py`—. Lo que pasa adentro
 se mira desde acá.
 
 **Lo que hace fuerte a este archivo** es que no se conforma con "bajó": el

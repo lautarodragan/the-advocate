@@ -86,7 +86,7 @@ impl Layout {
 // returns the first one that fits, so a new layout does not change any
 // map's. The numbers each one was made for were measured against A Blurred
 // Line; the reasons are in the runtime's comments and in the git log of
-// `tools/port/vram.py`, where they lived until 2026-10-01.
+// the converter's Python `vram.py`, where they lived until 2026-10-01.
 
 /// The usual one.
 ///

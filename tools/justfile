@@ -91,9 +91,9 @@ protocol-test:
 gunter-test:
   cd snes/gunter && cargo test
 
-# .ldb/.lmu/.lmt ⇄ JSON in Rust. It does not replace `rpgmaker/lcf.py` or the
-# converter yet: it lives alongside them. See DITTO.md, at the root, which is
-# what ties Ditto to the port; inside `rm2k/ditto/` there is not a single reference
+# .ldb/.lmu/.lmt ⇄ JSON in Rust, and as a library the one place in Rust that
+# reads a dump: the converter and every stage read the game through it. See
+# DITTO.md, at the root, which is what ties Ditto to the port; inside `rm2k/ditto/` there is not a single reference
 # to us, on purpose.
 #
 # The game it is measured against **is passed by whoever runs it**, in
@@ -157,7 +157,8 @@ goombario-test:
   cd snes/goombario && cargo test
 
 # LZ2: Nintendo's LC_LZ2, which the converter uses to compress the tiles and
-# grids the ROM decompresses when loading a map —see `port/compress.py`—.
+# grids the ROM decompresses when loading a map, as a library of the emission
+# and the converter.
 # Its tests do not need the game; the ones that run every block of the
 # cartridge through the reference are the port's.
 lz2-test:
@@ -174,9 +175,9 @@ resample-test:
 # rm2k-render: what RPG Maker 2000 draws, as PNGs —a map's tile layers and
 # the other drawings of its ChipSet animation, the CharSet sheets its events
 # are drawn with, a battle's animations, backdrops and enemies, and the faces,
-# windows and pictures of the screens—; see `render/render_map.py`, which is
-# what calls it. The directory is named after the binary because `render/` is
-# the Python that stays: what the port does to those pictures for the console.
+# windows and pictures of the screens—, as a library of the stages that draw.
+# The directory is named after the binary because `render/` was, until
+# 2026-10-02, the converter's Python that asked it for pictures.
 #
 # Its tests draw ChipSets, CharSets and a map generated inside the test, and
 # compare against the hashes of what the Python that drew them gave for the
@@ -208,7 +209,7 @@ patches-test:
   cd rm2k-snes/patches && cargo test
 
 # rm2k-snes-audio: the music, from each song's MIDI and the SoundFont to
-# `musicdata.inc` —see `port/snes_convert.py`, which is what calls it—. It
+# `musicdata.inc` —`rm2k-snes-convert` calls it last—. It
 # uses Gunter as a library, for the SoundFont and the BRR.
 #
 # Its tests are notes, streams and banks built inside the test, plus the
@@ -222,7 +223,7 @@ audio-test:
 
 # rm2k-snes-battle: the battle's tables —experience and level per actor,
 # each map's random encounters— from the dump and a request, as pieces of
-# `mapdata.inc`; see `port/snes_convert.py`, which is what calls it.
+# `mapdata.inc`; `rm2k-snes-convert` calls it.
 #
 # Its tests build a small game inside the test, and compare against the
 # hashes of what the Python that wrote these tables until 2026-09-29 gave for
@@ -231,7 +232,8 @@ battle-test:
   cd rm2k-snes/battle && cargo test
 
 # rm2k-snes-events: the event compiler —RM2k's pages to the bytecode the ROM
-# runs—, which the converter calls twice; see `port/compiler.py`.
+# runs—, which the converter calls twice; see `compiler.rs` in
+# `rm2k-snes-convert`.
 #
 # Its tests compile a small game kept in `tests/game/`, and compare against
 # the hashes of what the Python compiler it replaced answered for the same
@@ -241,7 +243,7 @@ events-test:
 
 # wally: a game's maps as the cartridge carries them —each map's
 # layers, its baked events, its characters as objects and its blocks—, which
-# the converter calls once per map; see `port/map_convert.py`. The work is
+# the converter calls once per map; see `maps.rs` in `rm2k-snes-convert`. The work is
 # two libraries': `map-background`, the layers and the blocks, and
 # `map-sprites`, the objects.
 #
@@ -255,8 +257,8 @@ wally-test:
 # rm2k-snes-screens: a game's screens as the cartridge carries them —the
 # message window and its font, the title's menu, the save slots and the
 # pause menu, the text screens with their windows, End Game— and the
-# message boxes reflowed for the console's window; see
-# `port/screen_stage.py`. The letters, a line of them and the reflow are
+# message boxes reflowed for the console's window; see `screens.rs` in
+# `rm2k-snes-convert`. The letters, a line of them and the reflow are
 # `text`, a library.
 #
 # Their tests build a small game and its System inside the test, and compare
@@ -269,7 +271,7 @@ screens-test:
 # rm2k-snes-images: a game's pictures brought to the console —the title and
 # the Game Over, the picture of a `ShowPicture`, the battle backdrops and
 # battlers, the battle animations—: scaled, toned, down to their palettes;
-# see `port/image_stage.py`.
+# see `images.rs` in `rm2k-snes-convert`.
 #
 # Its tests build their pictures inside the test, and compare against the
 # hashes of what the Python that did this until 2026-09-30 gave for the
@@ -280,7 +282,7 @@ images-test:
 # rm2k-snes-mapdata: the cartridge's data `.inc` —what every domain of the
 # conversion answered, written for ca65—, the LZ2 streams of what the
 # console decompresses, and the VRAM layouts, which it publishes for the
-# maps and the screens; see `port/mapdata.py`.
+# maps and the screens; see `emit.rs` in `rm2k-snes-convert`.
 #
 # Its tests build what they emit inside the test, and compare against the
 # hashes of what the Python that wrote it until 2026-10-01 gave for the same

@@ -1,12 +1,11 @@
-"""Running a stage of the converter that is a program of its own.
+"""Running a stage of the converter, for a test that asks it something.
 
-The converter is moving to Rust one domain at a time, and each domain that
-moves is an executable on the PATH that `snes_convert` calls: it reads the
-game from the dump itself, gets what the cartridge decided in a JSON
-request, and writes what it made into a directory —pieces of the `.inc`
-and a JSON with what the rest of the conversion needs—. This runs one of
-those and hands back what it wrote. What goes in the request and where
-each piece goes is the orchestrator's business, not this module's.
+Each domain of the conversion is an executable on the PATH that
+`rm2k-snes-convert` calls: it reads the game from the dump itself, gets a
+JSON request, and writes what it made into a directory —pieces of the
+`.inc` and a JSON with what it answers—. This runs one of those and hands
+back what it wrote. It was the converter's `port/stage.py` until the
+converter moved to Rust on 2026-10-02.
 
 The first one was `rm2k-snes-battle`; see its README, "One stage of a
 converter", for the shape.

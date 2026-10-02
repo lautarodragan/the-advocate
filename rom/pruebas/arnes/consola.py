@@ -190,7 +190,7 @@ class Partida:
         # Y el caso de prueba, por lo mismo: la página que lo corre es
         # automática y se elige en el primer cuadro. El 0 es el que no pide
         # nada, así que un cartucho de un solo caso no necesita esto. Ver
-        # `--case` en snes_convert.py.
+        # `--case` en `rm2k-snes-convert`.
         self.caso = caso
         self._elegir_el_caso()
         self.consola.run(3)

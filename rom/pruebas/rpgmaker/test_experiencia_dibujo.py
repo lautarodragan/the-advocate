@@ -1,6 +1,6 @@
 """La experiencia y el nivel: lo que la pelea deja al terminar.
 
-Como `test_batalla.py`, no se conforma con "subió": `tools/port/experience.py`
+Como `test_batalla.py`, no se conforma con "subió": `arnes/experience.py`
 es `Game_Actor::CalculateExp`, `ChangeExp` y `ChangeLevel` de easyrpg, y la
 prueba exige que la consola quede con **el mismo número** de experiencia y el
 mismo nivel. La curva la calcula el conversor en punto flotante y viaja en el

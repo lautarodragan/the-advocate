@@ -31,7 +31,7 @@ motor y las herramientas, del otro lado. El `justfile` de la raíz, `README.md`,
 directorio como pedazo de ruta en un string (`"tools"`, que es cómo se arma
 con `os.path.join`) o en el `pythonpath` de pytest. No cuenta la palabra
 suelta: `data/` tiene diálogos en inglés que dicen "tools". Y no mira los
-imports —`from rpgmaker import lcf`—, que nombran un paquete y no dónde
+imports —`from common import project`—, que nombran un paquete y no dónde
 está: ésos se van cuando se separen las pruebas.
 """
 
@@ -67,18 +67,14 @@ RECETAS_QUE_NOMBRAN_TOOLS = {
 # a los ejecutables —ver `arnes/cartuchos.py`—. Y cuatro de música cuando
 # pasó a Rust el compilador de música: ver `arnes/musica.py`. Y dos más
 # cuando pasó el de eventos, que las citaban para decir dónde estaba una
-# constante que se fue con él.
+# constante que se fue con él. Y cinco cuando el conversor pasó a Rust, el
+# 2026-10-02, y lo que citaban se mudó al arnés.
 PRUEBAS_QUE_TODAVIA_NOMBRAN_TOOLS = {
     "pytest.ini",
     "pruebas/README.md",
-    "pruebas/abl/test_msu_datos.py",
-    "pruebas/abl/test_recorrido_capitulo_golden.py",
     "pruebas/arnes/lz2.py",
     "pruebas/arnes/video.py",
     "pruebas/herramientas/test_lz2.py",
-    "pruebas/rpgmaker/test_batalla.py",
-    "pruebas/rpgmaker/test_batalla_escena_dibujo.py",
-    "pruebas/rpgmaker/test_experiencia_dibujo.py",
 }
 
 # Lo que no es fuente: salida de las pruebas y cachés de Python.

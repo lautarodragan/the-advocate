@@ -52,8 +52,7 @@ def puede_pasar(passable, width, height, x, y, dx, dy, blocked=()):
     celda tiene una puerta— y las reglas tienen que ser las mismas, no una
     copia parecida.
 
-    Vive acá y no en `rpgmaker/rm2k.py` porque este archivo es su único
-    llamador.
+    Vive acá y no en `rm2k.py` porque este archivo es su único llamador.
     """
     leaving = {(1, 0): PASS_RIGHT, (-1, 0): PASS_LEFT,
                (0, 1): PASS_DOWN, (0, -1): PASS_UP}[(dx, dy)]
