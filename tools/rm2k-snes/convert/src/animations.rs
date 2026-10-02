@@ -23,7 +23,7 @@ use crate::fail::Result;
 use crate::game::{Command, Game};
 use crate::images;
 use rm2k_snes_events::codes::SHOW_BATTLE_ANIMATION;
-use rm2k_snes_events::opcodes::OP_ANIMATION;
+use rm2k_snes_bytecode::events::OP_ANIMATION;
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};

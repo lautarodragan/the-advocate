@@ -31,7 +31,7 @@ export PATH := if path_exists(local_tools / "bin") == "true" { local_tools / "bi
 # `*-test` recipes run `cargo test` standing in the project, which tests
 # only that one, and `cargo install --locked --path` takes the workspace's
 # lock.
-rust_projects := "protocol gunter goombario ditto rules adeleine voodoo lz2 resample rm2k-render project cartridge patches rm2k-snes-audio battle events map-background map-sprites wally text screens images mapdata convert"
+rust_projects := "protocol gunter goombario ditto rules adeleine voodoo lz2 resample rm2k-render project bytecode cartridge patches rm2k-snes-audio battle events map-background map-sprites wally text screens images mapdata convert"
 
 # The directories the projects live in, one per layer: each project is
 # `<layer>/<name>`, and the recipes find it by its name.
@@ -230,6 +230,14 @@ audio-test:
 # the same input: they need no game.
 battle-test:
   cd rm2k-snes/battle && cargo test
+
+# rm2k-snes-bytecode: the two bytecodes, declared once. A broken declaration
+# —two opcodes on one number, a gap in the event dispatch, a name in both—
+# does not compile, so its tests are those messages, the shape of the
+# equates `rm2k-snes-assemble` writes, and that the runtime uses only
+# declared opcodes and writes none by hand. They need no game.
+bytecode-test:
+  cd rm2k-snes/bytecode && cargo test
 
 # rm2k-snes-events: the event compiler —RM2k's pages to the bytecode the ROM
 # runs—, which the converter calls twice; see `compiler.rs` in

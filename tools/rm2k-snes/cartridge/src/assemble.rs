@@ -12,6 +12,8 @@
 //! * **The symbol table, in a format anything can read**: one line per
 //!   symbol, `name value`, with the value in decimal. `ld65` gives it in its
 //!   debug file, which carries much more.
+//! * **The bytecodes' equates**, written next to the generated data from
+//!   their declaration in `rm2k-snes-bytecode`: see [`write_bytecodes`].
 //! * **Refusing to build with a generated file shadowed.** `ca65` looks up
 //!   `.include`s first in the directory of the including file and only then
 //!   in the `-I`s, so a stale copy next to the source would be read instead
@@ -147,6 +149,19 @@ pub fn generated(main: &Path, include: &Path) -> Result<Vec<PathBuf>, String> {
     Ok(found)
 }
 
+/// Writes the two bytecodes' equates into `include`, where the runtime's
+/// `.include`s find them: the opcodes are declared in Rust, in
+/// `rm2k-snes-bytecode`, and the 65816 side gets them from there at every
+/// build instead of from a generated file kept up to date by hand.
+pub fn write_bytecodes(include: &Path) -> Result<(), String> {
+    for (name, bytecode, jump_table) in rm2k_snes_bytecode::asm::FILES {
+        let path = include.join(name);
+        std::fs::write(&path, rm2k_snes_bytecode::asm::asm(bytecode, jump_table))
+            .map_err(|e| format!("{}: {e}", path.display()))?;
+    }
+    Ok(())
+}
+
 /// Copies banks 0 and 1 to the second 4 MB, where `ld65` left zeros: see
 /// [`banks::MIRRORS`]. Before the checksum, which counts both copies.
 pub fn mirror(rom: &mut [u8]) -> Result<(), String> {
@@ -227,7 +242,11 @@ pub fn assemble(
     table: Option<&Path>,
     root: &Path,
 ) -> Result<(), Failure> {
-    // Before touching anything: the shadowing check is part of this.
+    // The bytecodes' equates first, so that they are generated files like
+    // the others: found in `include`, and refused if a stale copy shadows
+    // them.
+    write_bytecodes(include)?;
+    // Before touching anything else: the shadowing check is part of this.
     let generated = generated(source, include)?;
     let [ca65, ld65] = binaries()?;
     let packing = banks::resolve(&generated)?;

@@ -16,6 +16,7 @@ path = "src/main.rs"
 clap = { version = "4", features = ["derive"] }
 ditto = { path = "../../rm2k/ditto" }
 rm2k-rules = { path = "../../rm2k/rules" }
+rm2k-snes-bytecode = { path = "../bytecode" }
 # A box's escape tail: the rule the boxes are reflowed around is the one
 # the compiler cuts them with.
 rm2k-snes-text = { path = "../text" }

@@ -20,6 +20,7 @@ members = [
     "rm2k/rules",
     "rm2k/rm2k-render",
     "rm2k-snes/battle",
+    "rm2k-snes/bytecode",
     "rm2k-snes/cartridge",
     "rm2k-snes/convert",
     "rm2k-snes/events",

@@ -14,8 +14,10 @@ ditto = { path = "../../rm2k/ditto" }
 png = "0.17"
 rm2k-project = { path = "../project" }
 rm2k-rules = { path = "../../rm2k/rules" }
-# The command codes and the opcodes' sizes, to walk a compiled page; and
-# how the compiler reads a map, which this reads the same way.
+# The opcodes and their sizes, to walk a compiled page.
+rm2k-snes-bytecode = { path = "../bytecode" }
+# The command codes; and how the compiler reads a map, which this reads the
+# same way.
 rm2k-snes-events = { path = "../events" }
 # The engine's numbers, the VRAM layouts and the console's formats —a tile,
 # a colour, an LZ2 stream—: the emission's, which publishes them.

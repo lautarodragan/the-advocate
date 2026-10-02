@@ -7,7 +7,7 @@
 //! is the model of the 65816's decoder.
 
 use crate::fail::{Bad, Result};
-use crate::music_opcodes::*;
+use rm2k_snes_bytecode::music::*;
 use crate::sdsp;
 use std::collections::{BTreeMap, HashMap, HashSet};
 
@@ -663,7 +663,7 @@ const REPEAT_MAX_BACK: usize = 0xFFFF;
 const REPEAT_MIN_BYTES: usize = 7;
 
 fn opcode_size(op: u8) -> Option<usize> {
-    OPCODE_SIZE.iter().find(|(o, _)| *o == op).map(|(_, n)| *n)
+    BYTECODE.fixed_size(op)
 }
 
 /// Whether an `OP_REPEAT` may read this opcode.

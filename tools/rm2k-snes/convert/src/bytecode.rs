@@ -4,19 +4,15 @@
 //! protocol's declaration, through the compiler's generated module.
 
 use crate::fail::{Result, Stop};
-use rm2k_snes_events::opcodes::{OPCODE_SIZE, VARIABLE_SIZE};
+use rm2k_snes_bytecode::events::BYTECODE;
 
 /// How many bytes the opcode starting at `code[i]` takes.
 pub fn opcode_size(code: &[u8], i: usize) -> Result<usize> {
     let op = code[i];
-    if let Some(&(_, base, count, entry)) = VARIABLE_SIZE.iter().find(|v| v.0 == op) {
-        return Ok(base + entry * code[i + count] as usize);
+    if BYTECODE.opcode(op).is_none() {
+        return Err(Stop::new(format!("unknown opcode: 0x{op:02X}")));
     }
-    OPCODE_SIZE
-        .iter()
-        .find(|v| v.0 == op)
-        .map(|v| v.1)
-        .ok_or_else(|| Stop::new(format!("unknown opcode: 0x{op:02X}")))
+    Ok(BYTECODE.size_at(code, i).unwrap())
 }
 
 /// The offset of each opcode of a compiled page.

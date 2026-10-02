@@ -6,7 +6,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use cartridge::assemble::{assemble, generated, sources, Failure};
+use cartridge::assemble::{assemble, generated, sources, write_bytecodes, Failure};
 
 fn scratch(name: &str) -> PathBuf {
     let dir = Path::new(env!("CARGO_TARGET_TMPDIR")).join("assemble").join(name);
@@ -85,4 +85,31 @@ fn refuses_a_generated_file_next_to_the_source() {
         fs::read_to_string(build.join("mapdata.inc")).unwrap(),
         ".segment \"RODATA\"\n"
     );
+}
+
+#[test]
+fn the_bytecodes_are_generated_files_too() {
+    // Written into the include directory, they are found there like the
+    // converter's files; and a stale copy next to the source, where they
+    // lived until 2026-10-02, is refused like any other.
+    let dir = scratch("bytecodes");
+    let build = dir.join("build");
+    fs::create_dir_all(&build).unwrap();
+    fs::write(
+        dir.join("main.s"),
+        ".include \"event_opcodes.inc\"\n.include \"music_opcodes.inc\"\n",
+    )
+    .unwrap();
+    write_bytecodes(&build).unwrap();
+    assert_eq!(
+        generated(&dir.join("main.s"), &build).unwrap(),
+        [build.join("event_opcodes.inc"), build.join("music_opcodes.inc")]
+    );
+    let events = fs::read_to_string(build.join("event_opcodes.inc")).unwrap();
+    assert!(events.contains("\nOP_DONE          = $00\n"), "{events}");
+    assert!(events.contains(".macro EVENT_HANDLERS"), "{events}");
+
+    fs::write(dir.join("music_opcodes.inc"), "stale").unwrap();
+    let message = generated(&dir.join("main.s"), &build).unwrap_err();
+    assert!(message.contains("music_opcodes.inc"), "{message}");
 }

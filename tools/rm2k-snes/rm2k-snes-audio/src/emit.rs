@@ -5,7 +5,7 @@ use crate::bank::{self, SILENCE};
 use crate::compile::{Built, Music};
 use crate::effects;
 use crate::fail::{Bad, Result};
-use crate::music_opcodes::OP_END;
+use rm2k_snes_bytecode::music::OP_END;
 use crate::samples::BLOCK_BYTES;
 use crate::sdsp;
 use crate::spc700::DRIVER_ADDR;

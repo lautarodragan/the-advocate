@@ -4,9 +4,10 @@
 //!     rm2k-snes-assemble runtime/main.s -I build/game -o build/game/game.sfc \
 //!         --symbols build/game/game.sfc.sym
 //!
-//! It packs the generated files into banks —rewriting them in place—, writes
-//! the memory map next to them, runs `ca65` and `ld65`, writes the header
-//! checksum and, with `--symbols`, the symbol table. See the library.
+//! It writes the bytecodes' equates next to the generated files, packs those
+//! into banks —rewriting them in place—, writes the memory map next to
+//! them, runs `ca65` and `ld65`, writes the header checksum and, with
+//! `--symbols`, the symbol table. See the library.
 
 use std::path::PathBuf;
 use std::process::ExitCode;

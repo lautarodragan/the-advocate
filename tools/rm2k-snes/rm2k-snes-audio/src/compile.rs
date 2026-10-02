@@ -10,7 +10,7 @@ use crate::effects::{self, SoundEffect};
 use crate::fail::{Bad, Result};
 use crate::game::Game;
 use crate::midi::{self, TICKS_PER_SECOND};
-use crate::music_opcodes::OP_END;
+use rm2k_snes_bytecode::music::OP_END;
 use crate::sdsp;
 use crate::song::{self, Parsed};
 use crate::spc700;

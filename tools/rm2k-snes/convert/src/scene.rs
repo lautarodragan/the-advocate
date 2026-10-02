@@ -50,7 +50,7 @@ use crate::resources;
 use crate::settings::Settings;
 use crate::text::{hex, repr};
 use rm2k_snes_events::codes::{CHANGE_BATTLE_BG, ENEMY_ENCOUNTER};
-use rm2k_snes_events::opcodes::{OP_ANIMATION, OP_BATTLE};
+use rm2k_snes_bytecode::events::{OP_ANIMATION, OP_BATTLE};
 use rm2k_snes_mapdata::snes::{cgram_word, pack_tile};
 use serde_json::{json, Map, Value};
 use std::collections::{BTreeMap, BTreeSet};

@@ -20,7 +20,7 @@ use crate::stage;
 use crate::text::{hex, repr, unhex};
 use rm2k_project::Project;
 use rm2k_snes_events::codes::{TELEPORT, TIMER_OPERATION};
-use rm2k_snes_events::opcodes::{OP_FLASH, OP_ROUTE};
+use rm2k_snes_bytecode::events::{OP_FLASH, OP_ROUTE};
 use rm2k_snes_mapdata::{engine, record, vram};
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};

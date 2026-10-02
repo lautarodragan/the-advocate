@@ -5,7 +5,7 @@ use crate::codes::*;
 use crate::compile::{compile_page, instructions, Ctx, Indices, ROUTE_HERO, ROUTE_THIS_EVENT};
 use crate::fail::{Bad, Result, Step, Stop};
 use crate::game::{Command, Map, Page, CONDITION_OPERATOR};
-use crate::opcodes::{OP_DONE, OP_ROUTE};
+use rm2k_snes_bytecode::events::{OP_DONE, OP_ROUTE};
 use crate::route;
 use serde_json::{json, Value};
 use std::cell::RefCell;

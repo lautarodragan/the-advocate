@@ -14,7 +14,7 @@ use crate::codes::*;
 use crate::fail::{Bad, Result, Step, Stop};
 use crate::game::{Command, Game, Sound};
 use crate::messages::Messages;
-use crate::opcodes::*;
+use rm2k_snes_bytecode::events::*;
 use crate::pages::MapEvents;
 use crate::registry::{Backdrop, Graphics, Package, PictureKey, Pictures, Songs, Troops};
 use crate::route;
@@ -2808,21 +2808,13 @@ fn compile_counter(ctx: &Ctx, common: i32) -> Step<Vec<u8>> {
 
 /// The size of an opcode that has a fixed one.
 pub fn size_of(op: u8) -> usize {
-    OPCODE_SIZE
-        .iter()
-        .find(|(o, _)| *o == op)
-        .map(|(_, s)| *s)
-        .unwrap()
+    BYTECODE.fixed_size(op).unwrap()
 }
 
 /// How many bytes the instruction at `code[at]` takes, the variable-size
 /// ones included.
 pub fn instruction_size(code: &[u8], at: usize) -> usize {
-    let op = code[at];
-    match VARIABLE_SIZE.iter().find(|(o, ..)| *o == op) {
-        Some(&(_, base, count, entry)) => base + entry * code[at + count] as usize,
-        None => size_of(op),
-    }
+    BYTECODE.size_at(code, at).unwrap()
 }
 
 /// That walking `code` by the declared sizes lands exactly on its end.
@@ -2838,14 +2830,7 @@ pub fn instruction_size(code: &[u8], at: usize) -> usize {
 fn whole_instructions(code: &[u8]) -> Result<()> {
     let mut at = 0;
     while at < code.len() {
-        let op = code[at];
-        let size = match VARIABLE_SIZE.iter().find(|(o, ..)| *o == op) {
-            Some(&(_, base, count, entry)) => code
-                .get(at + count)
-                .map(|&n| base + entry * n as usize),
-            None => OPCODE_SIZE.iter().find(|(o, _)| *o == op).map(|(_, s)| *s),
-        };
-        match size {
+        match BYTECODE.size_at(code, at) {
             Some(size) => at += size,
             None => break,
         }
