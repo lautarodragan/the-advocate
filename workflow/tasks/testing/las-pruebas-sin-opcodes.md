@@ -2,7 +2,7 @@
 name: "Las pruebas de ABL, sin opcodes"
 description: "Que ninguna prueba de Python necesite los números del bytecode: las que arman bytecode a mano pasan a casos con comandos de RM2k, las que revisan lo que compiló pasan a Rust, y las que decodifican la música se lo piden al binario de audio"
 type: refactor
-assignee: Cotorra
+assignee: taro
 ---
 
 De taro, el 2026-10-02, antes de pasar los bytecodes a Rust: "¿no tendría
