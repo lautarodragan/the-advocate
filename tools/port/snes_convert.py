@@ -59,7 +59,7 @@ if __name__ == "__main__":
     sys.path[0] = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 from rpgmaker import event_codes
-from port import events
+from port import engine, events
 from rpgmaker import lcf
 from rpgmaker import rm2k
 
@@ -116,11 +116,10 @@ SUB_MAX = 8
 
 # How many events with a parallel page there can be at once in a map, and
 # how many forced routes can be running at once on events: the ROM's caps,
-# which it does not warn about. The same numbers go into the `.inc` from
-# `record.rs` in `rm2k-snes-mapdata`, where the reasons are; the checks are
-# here because they look at the compiled pages.
-PARALLEL_MAX = 48
-ROUTE_EV_MAX = 12
+# which it does not warn about. They are `record.rs`'s, in
+# `rm2k-snes-mapdata`, which puts them in the `.inc` and has the reasons; the
+# checks are here because they look at the compiled pages, and read them by
+# `port.engine`: `engine.PARALLEL_MAX` and `engine.ROUTE_EV_MAX`.
 
 
 def patch_of_map(map_info):
@@ -412,10 +411,10 @@ def main():
         with_parallel = {p["event"] for p in pages
                          if p["trigger"] == events.TRIGGER_PARALLEL
                          and p["codigo"]}
-        if len(with_parallel) > PARALLEL_MAX:
+        if len(with_parallel) > engine.PARALLEL_MAX:
             sys.exit("map %d has %d events with a parallel page and %d "
                      "fit: see PARALLEL_MAX"
-                     % (map_info["id"], len(with_parallel), PARALLEL_MAX))
+                     % (map_info["id"], len(with_parallel), engine.PARALLEL_MAX))
         if with_parallel:
             print("  map %d: %d event(s) with a parallel page"
                   % (map_info["id"], len(with_parallel)))
@@ -613,11 +612,11 @@ def main():
                             "palette and both would flash"
                             % (map_info["id"], actor, a.charset, a.charset_index))
 
-        if len(targets) > ROUTE_EV_MAX:
+        if len(targets) > engine.ROUTE_EV_MAX:
             raise SystemExit(
                 "map %d: its pages send %d distinct events walking and "
                 "the ROM has %d route slots"
-                % (map_info["id"], len(targets), ROUTE_EV_MAX))
+                % (map_info["id"], len(targets), engine.ROUTE_EV_MAX))
         runnable = sum(1 for p in pages if p["codigo"])
         if pages:
             print("  map %d: %d automatic event page(s), %d runnable"

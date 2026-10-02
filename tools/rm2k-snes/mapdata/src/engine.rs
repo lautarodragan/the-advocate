@@ -172,6 +172,41 @@ pub const ENEMIES_MAX: usize = 8;
 pub const OBJ_SIDE: u32 = 4;
 pub const GRID: u32 = 16;
 
+/// Each number by its name, as a list of pairs.
+macro_rules! by_name {
+    ($($name:ident),* $(,)?) => {
+        vec![$((stringify!($name), serde_json::json!($name))),*]
+    };
+}
+
+/// Every number above by its name, and the two caps of `record.rs` the
+/// converter checks the compiled pages against: what `engine` answers, so
+/// a program that is not this one —the converter, a game's tests— reads
+/// them from here instead of writing them again.
+pub fn numbers() -> Vec<(&'static str, serde_json::Value)> {
+    use crate::record::{PARALLEL_MAX, ROUTE_EV_MAX};
+    by_name![
+        HEADER_LINES, HEADER_AUTO_CLOSE, PAUSE_FRAMES, VAR_REFRESH, VAR_SLOT_MAX,
+        ANIM_ENTRY_BYTES, ANIM_SOUND, ANIM_SCREEN_FLASH, KEY_WAIT, KEY_DIRS, KEY_DECISION,
+        KEY_CANCEL, KEY_START, KEY_VALUE_DECISION, KEY_VALUE_CANCEL, KEY_VALUE_DIR,
+        WEATHER_RAIN, RAIN_DROPS, RAIN_LIFE, RAIN_SPAWN, RAIN_SEED, ITEMS_N, ITEM_MAX, VAR_ADD,
+        VAR_VARIABLE, VAR_RANDOM, VAR_OTHER, VAR_CHARACTER, CHARACTER_X, CHARACTER_Y,
+        VAR_ACTOR, CELL_Y, CELL_REFRESH, RANDOM_SEED, ENC_SEED, TIMER_SET_VAR, TIMER_SLOT,
+        COND_TIMER, COND_GOLD, COND_ITEM, COND_ACTOR, COND_ACTOR_SKILL, COND_ACTOR_EQUIPMENT,
+        GOLD_MAX, PAN_SHIFT, PAN_RETURN, TIMER_SET, TIMER_START, FRAMES_PER_SECOND,
+        TIMER_EXTRA_FRAMES, TRIGGER_ACTION, TRIGGER_TOUCH_HERO, TRIGGER_AUTOSTART,
+        TRIGGER_PARALLEL, FRAMES_PER_CELL, ROUTE_FREQUENCY, ROUTE_FREQUENCY_MIN,
+        ROUTE_WAIT_FRAMES, JUMP_STEP, FADE_TOTAL, FADE_RAMP, BRIGHTNESS_MAX, TRANSITION_MOSAIC,
+        TRANSITION_CUT, PARTY_MAX, MESSAGES_STEP, TROOP_PAGES_MAX, TROOP_TRIGGER_SWITCH_A,
+        TROOP_TRIGGER_SWITCH_B, TROOP_TRIGGER_VARIABLE, TROOP_TRIGGER_TURN, TROOP_TRIGGER_ENEMY,
+        TROOP_TRIGGER_ACTOR, TROOP_WITH_HEADER, TROOP_HEADER_BYTES, ANIM_NO_DRAWING,
+        ANIM_TARGET_SCREEN, NEUTRAL_TINT, LUMA_R, LUMA_G, LUMA_B, SWITCH_BYTES, TIMER_GLYPHS,
+        TIMER_GLYPH_W, TIMER_X, TIMER_Y, WATER_FRAMES_SLOW, WATER_CYCLE, ANIMATED_FRAMES,
+        ANIMATED_STEPS, COLUMNS, CELL, COLS, ROWS, MENU_CGRAM, EQUIPMENT_SLOTS, ENEMIES_MAX,
+        OBJ_SIDE, GRID, PARALLEL_MAX, ROUTE_EV_MAX,
+    ]
+}
+
 /// The INIDISP brightness on each frame of the fade's ramp, from black to
 /// full: a rounded straight line over the sixteen steps.
 pub fn fade_ramp() -> Vec<u32> {
@@ -183,6 +218,11 @@ pub fn fade_ramp() -> Vec<u32> {
 
 /// How much a song's volume goes down per frame, in 1/65536, to fade out
 /// in `milliseconds`: rounded up, so it ends within the frames it asks for.
+///
+/// RM2k measures `FadeOutBGM` in milliseconds and the ROM counts frames, so
+/// the conversion is done here once: the 65816 does not divide without
+/// asking the hardware, and the hardware divider is eight bits —a 5000 ms
+/// fade is 300 frames and does not fit—.
 pub fn fade_step(milliseconds: i64) -> i64 {
     let frames = (milliseconds * i64::from(FRAMES_PER_SECOND) / 1000).max(1);
     ((0x10000 + frames - 1) / frames).min(0xFFFF)
@@ -229,6 +269,21 @@ fn round_half_even(v: f64) -> i64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn every_number_is_answered_by_its_name() {
+        let answered: Vec<&str> = numbers().iter().map(|(n, _)| *n).collect();
+        let declared: Vec<&str> = include_str!("engine.rs")
+            .lines()
+            .filter_map(|l| l.strip_prefix("pub const "))
+            .filter_map(|l| l.split(':').next())
+            .collect();
+        assert!(!declared.is_empty());
+        for name in &declared {
+            assert!(answered.contains(name), "`numbers` does not answer {name}");
+        }
+        assert_eq!(numbers().len(), declared.len() + 2, "a name answered twice");
+    }
 
     #[test]
     fn the_fade_ramp_goes_from_black_to_full() {

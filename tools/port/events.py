@@ -33,8 +33,14 @@ filter wrote them down by eye and three were wrong.
 """
 
 import collections
-import math
 import os
+
+# The engine's numbers. **They are not written here either**: they are
+# `engine.rs`'s, in `rm2k-snes-mapdata`, which hands them to the runtime in
+# the `.inc`. This module still answers them by the names it always had
+# —`events.PAUSE_FRAMES`—, see `__getattr__` at the end, and keeps the whys
+# of most, each next to the line where its name is.
+from port import engine
 
 
 # The opcodes' numbers, lengths and layout. **They are not declared here**:
@@ -56,7 +62,8 @@ TILE_SUBSTITUTION = 11750
 
 SHAKE_SCREEN = 11050
 
-PAN_LOCK, PAN_UNLOCK, PAN_SHIFT, PAN_RETURN = 0, 1, 2, 3
+PAN_LOCK, PAN_UNLOCK = 0, 1
+# PAN_SHIFT and PAN_RETURN (engine.rs).
 
 SHOW_MESSAGE = 10110
 SHOW_MESSAGE_2 = 20110
@@ -82,7 +89,7 @@ SHOW_MESSAGE_2 = 20110
 # it —"Despite documentation saying 1 second, RPG_RT waits for 61 frames"—. It
 # is 61 and not 60, and that difference is exactly the kind of number that
 # cannot be written from memory.
-PAUSE_FRAMES = 61
+# PAUSE_FRAMES (engine.rs).
 
 ROUTE_HERO = 10001
 ROUTE_THIS_EVENT = 10005                    # "this event", the page's owner
@@ -91,7 +98,7 @@ ROUTE_THIS_EVENT = 10005                    # "this event", the page's owner
 # it is `SetMaxStopCountForWait`, which gives `20 + (1 << (8 - frecuencia))`,
 # and with frequency 8 —the only one this repo accepts, see `ROUTE_FREQUENCY`—
 # that is twenty.
-ROUTE_WAIT_FRAMES = 20
+# ROUTE_WAIT_FRAMES (engine.rs).
 
 # The frequency a forced route is walked at. It governs two things: how long
 # it waits between one command and the next —`1 << (9 - frecuencia)` frames,
@@ -106,19 +113,9 @@ ROUTE_WAIT_FRAMES = 20
 # The game uses 2, 3, 4, 7 and 8; 1 would give 256 frames after each step,
 # which do not fit in the ROM's wait byte, and nobody uses it: it is
 # rejected.
-ROUTE_FREQUENCY = 8
-ROUTE_FREQUENCY_MIN = 2
-
-
-def wait_after_step(frequency):
-    """`GetMaxStopCountForStep`: the frames standing still after a step."""
-    return 0 if frequency >= 8 else 1 << (9 - frequency)
-
-
-def wait_after_turn(frequency):
-    """`GetMaxStopCountForTurn`: the frames standing still after a turn. The
-    `wait` is `ROUTE_WAIT_FRAMES` plus this."""
-    return 0 if frequency >= 8 else 1 << (8 - frequency)
+# ROUTE_FREQUENCY (engine.rs).
+# ROUTE_FREQUENCY_MIN (engine.rs).
+# `wait_after_step` and `wait_after_turn`, the stop counter: in engine.rs.
 
 
 # How far a step advances per frame by speed, out of 256 per cell: it is the
@@ -133,7 +130,7 @@ STEP_PER_SPEED = (4, 8, 16, 32, 64, 128)
 # depend on the distance**: jumping five cells costs the same as jumping in
 # place. The ROM has the same table in `jump_per_speed`; this is the one the
 # tests look at.
-JUMP_STEP = 256
+# JUMP_STEP (engine.rs).
 JUMP_PER_SPEED = (8, 12, 16, 24, 32, 64)
 
 FLASH_SPRITE = 11320
@@ -143,7 +140,7 @@ FLASH_SPRITE = 11320
 # and `Game_Interpreter::CommandChangePartyMember` in easyrpg-player.
 PARTY_ADD, PARTY_REMOVE = 0, 1
 PARTY_FIXED_ID = 0
-PARTY_MAX = 4           # `Game_Party::AddActor` does not add if there are four
+# PARTY_MAX (engine.rs): `Game_Party::AddActor` does not add if there are four
 
 WEATHER_EFFECTS = 11070
 
@@ -174,7 +171,8 @@ OPEN_SHOP = 10720
 #     menu blocks, and here there is nothing to look at.
 
 TIMER_OPERATION = 10230
-TIMER_SET, TIMER_START, TIMER_STOP = 0, 1, 2
+TIMER_STOP = 2
+# TIMER_SET and TIMER_START (engine.rs).
 
 # `CallEvent`, and its first parameter when it calls a common event by its
 # number —1 and 2 are a map event's page, fixed or from variables—.
@@ -184,19 +182,19 @@ CALL_COMMON = 0
 # `Game_Party::SetTimer` stores `segundos * 60 + 59`, not `segundos * 60`. The
 # extra 59 are what makes the first second show whole: without them the timer
 # would show the requested value for a single frame.
-TIMER_EXTRA_FRAMES = 59
+# TIMER_EXTRA_FRAMES (engine.rs).
 
 # ControlSwitches: the first parameter says where the ids come from and the
 # last what to do with them (liblcf, ControlSwitches::Operation).
 SWITCH_SINGLE, SWITCH_RANGE, SWITCH_INDIRECT = 0, 1, 2
 SWITCH_ON, SWITCH_OFF, SWITCH_TOGGLE = 0, 1, 2
 
-FRAMES_PER_SECOND = 60        # DEFAULT_FPS: it is what the timer counts with
+# FRAMES_PER_SECOND (engine.rs): DEFAULT_FPS: it is what the timer counts with
 
 # A step is sixteen pixels at WALK_SPEED = 2 per frame.
 CELL_PX = 16
 WALK_SPEED = 2
-FRAMES_PER_CELL = CELL_PX // WALK_SPEED
+# FRAMES_PER_CELL (engine.rs): CELL_PX // WALK_SPEED.
 
 # --- the teleport fade -------------------------------------------------------
 #
@@ -219,7 +217,7 @@ FRAMES_PER_CELL = CELL_PX // WALK_SPEED
 # fade is the 68th counting it, and the page goes on on the next. That is
 # FADE_TOTAL: ticks from the jump to the first live one. With 70 each round
 # of that cutscene lasted a tick more than the original.
-FADE_TOTAL = 68
+# FADE_TOTAL (engine.rs).
 
 # The ramp is 24 of those ticks going down and 24 going up, and the rest is
 # plain black. The console cannot fade any other way: INIDISP's master
@@ -230,8 +228,8 @@ FADE_TOTAL = 68
 # are not seen and they do not run the clock, because the fade is counted in
 # loop turns and not in hardware frames. Between the map being loaded —tick
 # 24— and the ramp back leaving zero —tick 45— there are 21 of margin.
-FADE_RAMP = 24
-BRIGHTNESS_MAX = 15
+# FADE_RAMP (engine.rs).
+# BRIGHTNESS_MAX (engine.rs).
 
 # `ChangeScreenTransitions` (10690) changes that transition from then on:
 # `[which, transition]`, with which 0 the teleport's erase and 1 its show —2
@@ -263,49 +261,23 @@ BRIGHTNESS_MAX = 15
 # and with nobody running them they would be a path no test walks. The
 # battle's do not either: the ROM always uses the database's.
 # What the bytecode carries: what the ROM does, and not the RM2k number.
-TRANSITION_FADE, TRANSITION_MOSAIC, TRANSITION_CUT = 0, 1, 2
-
-
-def fade_step(milliseconds):
-    """How much the song's volume goes down per frame, in 1/65536.
-
-    RM2k measures `FadeOutBGM` in milliseconds and the ROM counts frames, so
-    the conversion is done here once: the 65816 does not divide without
-    asking the hardware, and the hardware divider is eight bits —the 5000 ms
-    of map 3's door are 300 frames and do not fit—.
-
-    The level starts at 65535 and goes down by `step`; it is rounded up so
-    the fade ends **within** the frames it asks for and not one after.
-    """
-    frames = max(1, milliseconds * FRAMES_PER_SECOND // 1000)
-    return min(0xFFFF, -(-0x10000 // frames))
-
-
-def fade_ramp():
-    """The INIDISP brightness on each frame of the ramp, from black to full.
-
-    It is a rounded straight line over the sixteen steps the master
-    brightness has. The ROM does not compute it: the converter emits it in
-    `mapdata.inc` as `fade_ramp`, so the number lives in a single
-    place.
-    """
-    last = FADE_RAMP - 1
-    return [(BRIGHTNESS_MAX * s + last // 2) // last
-            for s in range(FADE_RAMP)]
+TRANSITION_FADE = 0
+# TRANSITION_MOSAIC and TRANSITION_CUT (engine.rs).
+# `fade_step` and `fade_ramp`, which the emission computes once so the ROM
+# does not: in engine.rs.
 
 
 # What triggers a page. Those of liblcf's `rpg::EventPage::Trigger`.
-TRIGGER_ACTION = 0          # the player presses the action key facing it
-TRIGGER_TOUCH_HERO = 1      # the hero walks onto it
+# TRIGGER_ACTION (engine.rs): the player presses the action key facing it
+# TRIGGER_TOUCH_HERO (engine.rs): the hero walks onto it
 # 2 is the collision —the event walks into the hero—, and it is not named here.
-TRIGGER_AUTOSTART = 3
-TRIGGER_PARALLEL = 4
+# TRIGGER_AUTOSTART (engine.rs).
+# TRIGGER_PARALLEL (engine.rs).
 
 # The ones the ROM knows how to trigger. The rest of an event's pages are
 # emitted anyway —they are needed to know which one is active— but without
 # code.
-TRIGGERS = (TRIGGER_ACTION, TRIGGER_TOUCH_HERO, TRIGGER_AUTOSTART,
-            TRIGGER_PARALLEL)
+# TRIGGERS: the four, by `__getattr__` at the end.
 
 # TURN. An event with a graphic **turns toward the hero** when he triggers it,
 # unless it has a fixed direction: it is the
@@ -398,8 +370,8 @@ class MapEvents:
 # the ROM reads in the compositor's loop —`and #HEADER_LINES` and done— and
 # the pauses at the top because they are read only once, on opening, where an
 # extra `lsr` does not show.
-HEADER_LINES = 0x07
-HEADER_AUTO_CLOSE = 0x08
+# HEADER_LINES (engine.rs).
+# HEADER_AUTO_CLOSE (engine.rs).
 
 # The `OP_MESSAGE` offset in the game's block counts by four bytes, so the
 # block can be 256 KB with a 16-bit operand. It went by two from when the
@@ -414,7 +386,7 @@ HEADER_AUTO_CLOSE = 0x08
 # both sides of the math are the same: `MESSAGES_CAP`.
 # Measured against A Blurred Line: an assumption of the engine, not a fact of
 # the game. See `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
-MESSAGES_STEP = 4
+# MESSAGES_STEP (engine.rs).
 
 # `ConditionalBranch` and its two closers. They come from `event_codes.py`,
 # which is generated from liblcf: the doors' ones were written from memory
@@ -425,29 +397,29 @@ COND_END = 22011
 
 # The timer's seconds, `CommandConditionalBranch` case 2: the gold's question
 # with another value. See `branch_bytes` in rm2k-snes-events.
-COND_TIMER = 2
-COND_GOLD = 3
+# COND_TIMER (engine.rs).
+# COND_GOLD (engine.rs).
 # The inventory **already exists** —`OP_ITEM` and `FAR_ITEMS`, since
 # 2026-09-10— so the line above is stale: the item branch is
 # `GetItemCount(id) > 0`, exactly the same question as the page condition by
 # item, which the ROM already answers by reading `FAR_ITEMS`. Equipment does
 # not count, as in `conditions_ok`: `GetEquippedItemCount` asks for
 # equipment, which there is none.
-COND_ITEM = 4
-COND_ACTOR = 5
+# COND_ITEM (engine.rs).
+# COND_ACTOR (engine.rs).
 
 # `actor->IsSkillLearned(p[3])`. Since 2026-09-21 it is state: the bit of the
 # (actor, skill) pair in `FAR_SKILL`, which starts with what
 # `rules.learned_skills` says from the LDB and which `ChangeSkills` turns on
 # and off. The operand that travels is the pair's slot and not the skill; see
 # `SKILL_SLOT`.
-COND_ACTOR_SKILL = 4
+# COND_ACTOR_SKILL (engine.rs).
 # easyrpg's five `Get*Id()`s compared against `p[3]`: weapon, shield, armor,
 # helmet and accessory. This **is** real state —`FAR_EQUIPMENT`, which the
 # equipment screen writes and which travels in the save— and it starts from
 # the LDB's `initial_equipment`. Asking about item 0 says yes as soon as there
 # is an empty slot, which is what RM2k does; no page of the game does it.
-COND_ACTOR_EQUIPMENT = 5
+# COND_ACTOR_EQUIPMENT (engine.rs).
 # The branch by variable: `[1, variable, value kind, value, comparison, has
 # else]`. The kind is 0 for a constant and 1 for another variable; the
 # comparison, `==`, `>=`, `<=`, `>`, `<` and `!=`, in that order, which is
@@ -501,10 +473,10 @@ COND_VARIABLE = 1
 # bit moved to the flags byte, which in the three opcodes had the top one
 # free, and the slot was left at eight bits: 256, which is what far RAM
 # reserves between `FAR_VARIABLES` and `FAR_ITEMS`.
-VAR_REFRESH = 0x80
+# VAR_REFRESH (engine.rs).
 # Measured against A Blurred Line: an assumption of the engine, not a fact of
 # the game. See `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
-VAR_SLOT_MAX = 0xFF
+# VAR_SLOT_MAX (engine.rs).
 #
 # OP_IF_VAR: slot (byte), kind (byte), comparison (byte), value (word),
 #     destination (word): like OP_IF, the destination goes last for patching
@@ -521,9 +493,9 @@ VAR_SLOT_MAX = 0xFF
 # OP_ITEM: item (word), delta (signed byte)
 # Measured against A Blurred Line: an assumption of the engine, not a fact of
 # the game. See `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
-ITEMS_N = 451       # the LDB's 450 items plus 0, which is not used;
+# ITEMS_N (engine.rs): the LDB's 450 items plus 0, which is not used;
                     # test_items.py enforces it against RPG_RT.ldb
-ITEM_MAX = 99
+# ITEM_MAX (engine.rs).
 # `ChangeSaveAccess`, `ChangeMainMenuAccess` and `ChangeEscapeAccess`, since
 # there is a pause menu: **the bit** of the permission and whether it stays
 # allowed. The ROM stores it in `FAR_ACCESS`. Saving from the save point does
@@ -567,11 +539,11 @@ ITEM_MAX = 99
 # spent the divider on every off drop of every frame.
 #
 # OP_WEATHER: type, power
-WEATHER_RAIN = 1
-RAIN_DROPS = (15, 45, 75)
-RAIN_LIFE = 12
-RAIN_SPAWN = 26    # out of 256
-RAIN_SEED = 0x1D2B
+# WEATHER_RAIN (engine.rs).
+# RAIN_DROPS (engine.rs).
+# RAIN_LIFE (engine.rs).
+# RAIN_SPAWN (engine.rs): out of 256
+# RAIN_SEED (engine.rs).
 RAIN_COLORS = ((16, 16, 18), (11, 11, 13), (6, 6, 7))   # 5-bit
 
 
@@ -601,8 +573,9 @@ def rain_pixels(x, y):
 # lasts the same.
 #
 # OP_ANIMATION: n, and n entries of ANIM_ENTRY_BYTES bytes
-ANIM_ENTRY_BYTES = 8
-ANIM_SOUND, ANIM_SCREEN_FLASH, ANIM_FLASH = 0, 1, 2
+# ANIM_ENTRY_BYTES (engine.rs).
+ANIM_FLASH = 2
+# ANIM_SOUND and ANIM_SCREEN_FLASH (engine.rs).
 
 ANIMATIONS = {}
 # The **drawing**, since 2026-09-12. The opcode carries two more bytes: the
@@ -614,8 +587,8 @@ ANIMATIONS = {}
 # `ANIM_NO_DRAWING` is "this animation is not drawn", and it is used by the
 # ones RM2k repeats three by three to cover the screen —`global`—, which are
 # not done.
-ANIM_NO_DRAWING = 0xFF
-ANIM_TARGET_SCREEN = 0xFF     # "screen" scope: goes to the center, no target
+# ANIM_NO_DRAWING (engine.rs).
+# ANIM_TARGET_SCREEN (engine.rs): "screen" scope: goes to the center, no target
 
 # --- the battle -------------------------------------------------------------
 #
@@ -710,18 +683,18 @@ BATTLE_LOSE = 0xFFFF
 # opcodes and not a state byte because the interpreter has nowhere to keep
 # it: the one that waits **rewinds its own cursor** and runs again frame after
 # frame, so it cannot tell the first turn from the others.
-KEY_WAIT   = 0x01    # bit 0 on purpose: `key_value` reads it with an `lsr`
-KEY_DIRS     = 0x02
-KEY_DECISION = 0x04
-KEY_CANCEL = 0x08
-KEY_START  = 0x10
+# KEY_WAIT (engine.rs): bit 0 on purpose: `key_value` reads it with an `lsr`
+# KEY_DIRS (engine.rs).
+# KEY_DECISION (engine.rs).
+# KEY_CANCEL (engine.rs).
+# KEY_START (engine.rs).
 
 # The value RM2k stores for each key, and from here also comes the order they
 # are checked in: from highest to lowest.
-KEY_VALUE_CANCEL = 6
-KEY_VALUE_DECISION = 5
+# KEY_VALUE_CANCEL (engine.rs).
+# KEY_VALUE_DECISION (engine.rs).
 # By ROM direction: 0 up, 1 right, 2 down, 3 left.
-KEY_VALUE_DIR = {0: 4, 1: 3, 3: 2, 2: 1}
+# KEY_VALUE_DIR (engine.rs).
 
 # `ChangeEventLocation` with the cell **in two variables**, which is RM2k's
 # other `LUGAR`: same effects as `OP_PLACE` —`MoveTo`, the cell changes right
@@ -770,14 +743,14 @@ def key_value(flags, pressed):
     —`Input::IsPressed`—. Here they cannot be told apart: both are "what
     counts as pressed" for this question.
     """
-    if flags & KEY_CANCEL and "b" in pressed:
-        return KEY_VALUE_CANCEL
-    if flags & KEY_DECISION and "a" in pressed:
-        return KEY_VALUE_DECISION
-    if flags & KEY_DIRS:
+    if flags & engine.KEY_CANCEL and "b" in pressed:
+        return engine.KEY_VALUE_CANCEL
+    if flags & engine.KEY_DECISION and "a" in pressed:
+        return engine.KEY_VALUE_DECISION
+    if flags & engine.KEY_DIRS:
         for direction in (0, 1, 3, 2):          # up, right, left, down
             if direction in pressed:
-                return KEY_VALUE_DIR[direction]
+                return engine.KEY_VALUE_DIR[direction]
     return 0
 
 ENEMY_ENCOUNTER = 10710
@@ -883,12 +856,14 @@ def index_animations(game_dir):
 # save, and here too.
 # The ControlVars operations that compile: set, add, subtract. Multiply,
 # divide and modulo are not used by any page of the game.
-VAR_SET, VAR_ADD, VAR_SUBTRACT = 0, 1, 2
+VAR_SET, VAR_SUBTRACT = 0, 2
+# VAR_ADD (engine.rs).
 # And where the operand comes from, with the RM2k number: a constant, another
 # variable, a random number between a and b, or "other", which here are the
 # gold and the seconds the timer has left. The random one requires b - a to be
 # less than 256: the ROM divides with the hardware's eight-bit divider.
-VAR_CONSTANT, VAR_VARIABLE, VAR_RANDOM, VAR_OTHER = 0, 1, 3, 7
+VAR_CONSTANT = 0
+# VAR_VARIABLE, VAR_RANDOM and VAR_OTHER (engine.rs).
 
 # And kind 6: **a character's coordinates**. The sub-operands are those of
 # easyrpg-player's `ControlVariables::Event` —the `op` of
@@ -908,27 +883,27 @@ VAR_CONSTANT, VAR_VARIABLE, VAR_RANDOM, VAR_OTHER = 0, 1, 3, 7
 #   game's. They are two occurrences in the whole game, and accepting them
 #   would unlock **one** more page —measured, 5135 against 5136—: it is not
 #   worth making up a coordinate that is not the one there for one page.
-VAR_CHARACTER = 6
-CHARACTER_X, CHARACTER_Y = 1, 2
+# VAR_CHARACTER (engine.rs).
+# CHARACTER_X and CHARACTER_Y (engine.rs).
 # And kind 5, **an actor's data**: `a` the actor and `b` which one, with the
 # numbers of easyrpg's `ControlVariables::Actor`. The ROM does the HP, the SP
 # and their maximums —2 to 5—, which are the ones the game asks for: the
 # characters' systems read Talan's HP in battle, and `ResetAfterBattles`
 # the four. See `actor_stat` in tools/runtime/level.s.
-VAR_ACTOR = 5
+# VAR_ACTOR (engine.rs).
 CMP_EQUAL, CMP_GREATER_EQUAL, CMP_LESS_EQUAL, CMP_GREATER, CMP_LESS, \
     CMP_NOT_EQUAL = range(6)
 # The random generator: a sixteen-bit xorshift —x ^= x << 7; x ^= x >> 9;
 # x ^= x << 8— seeded at reset. There is no real entropy, on purpose: a page
 # with randomness always gets the same sequence, and that is why what it
 # draws can be frozen in a golden.
-RANDOM_SEED = 0xACE1
-TIMER_SET_VAR = 3     # the timer's fourth operation: the seconds from a
+# RANDOM_SEED (engine.rs).
+# TIMER_SET_VAR (engine.rs): the timer's fourth operation: the seconds from a
                         # variable. RM2k's three are 0, 1 and 2.
 # The slot a page record's variable condition carries to mean "the timer's
 # seconds": `TIMER_SLOT` in rm2k-snes-events, which writes it, and
 # `conditions_ok`, which reads `timer_sec` instead of a variable.
-TIMER_SLOT = 0xFE
+# TIMER_SLOT (engine.rs).
 
 VARIABLE_SLOT = {}      # RM2k variable -> slot in the ROM
 
@@ -1023,7 +998,7 @@ def variable_slot(number):
     if number not in VARIABLE_SLOT:
         raise CannotCompile("variable %d has no slot in this ROM" % number)
     slot = VARIABLE_SLOT[number]
-    if slot > VAR_SLOT_MAX:
+    if slot > engine.VAR_SLOT_MAX:
         # The slot is a byte, and far RAM has room for 256.
         raise CannotCompile("slot %d does not fit in a byte: see VAR_SLOT_MAX"
                             % slot)
@@ -1039,7 +1014,7 @@ def next_random(x):
 
 # RM2k's gold cap: `Game_Party::GainGold` clamps to `MaxGoldValue()`, which
 # by default is this.
-GOLD_MAX = 999999
+# GOLD_MAX (engine.rs).
 
 # The cursor, and what is put in front of the options that do not have it so
 # the text does not shift from line to line.
@@ -1076,26 +1051,25 @@ SHOW_HIDDEN_MONSTER = 13150
 # `tpage_flags`: RM2k's six. The three from 2003 —an actor's or an enemy's
 # turn, fatigue and an actor's command— do not exist in a 2000 game, and a
 # page that asked for them is left out.
-TROOP_TRIGGER_SWITCH_A = 0x01
-TROOP_TRIGGER_SWITCH_B = 0x02
-TROOP_TRIGGER_VARIABLE = 0x04
-TROOP_TRIGGER_TURN = 0x08
-TROOP_TRIGGER_ENEMY = 0x10
-TROOP_TRIGGER_ACTOR = 0x20
+# TROOP_TRIGGER_SWITCH_A (engine.rs).
+# TROOP_TRIGGER_SWITCH_B (engine.rs).
+# TROOP_TRIGGER_VARIABLE (engine.rs).
+# TROOP_TRIGGER_TURN (engine.rs).
+# TROOP_TRIGGER_ENEMY (engine.rs).
+# TROOP_TRIGGER_ACTOR (engine.rs).
 
 # How many pages of a troop the battle notes as "already ran this turn", one
 # byte each in `BA_PAGE_DONE`. It is a far RAM cap and not the game's: the
 # converter stops if any troop goes over.
-TROOP_PAGES_MAX = 32
+# TROOP_PAGES_MAX (engine.rs).
 
 # The triggers that carry a **header**: the turn and HP numbers do not go in
 # per-page tables in bank 1 —which no longer has room for ten bytes for each
 # of the five hundred— but in front of the page's code, in `troop_code`,
 # which is in RODATA. See `Trigger::header` in the compiler's `troops.rs`,
 # and `ba_page_header`.
-TROOP_WITH_HEADER = (TROOP_TRIGGER_TURN | TROOP_TRIGGER_ENEMY
-                     | TROOP_TRIGGER_ACTOR)
-TROOP_HEADER_BYTES = 10
+# TROOP_WITH_HEADER (engine.rs).
+# TROOP_HEADER_BYTES (engine.rs).
 
 # The trigger of a troop page, with what the ROM reads from each one. The
 # fields of what the page does not look at go at zero.
@@ -1169,7 +1143,7 @@ ENC_RATE = 100
 # to give the same with and without encounters—. All that is asked of it is
 # not to be zero —the xorshift gets stuck— and to be the same in
 # `Encounters` and in the ROM.
-ENC_SEED = 0x5A17
+# ENC_SEED (engine.rs).
 
 
 def enc_base(steps):
@@ -1252,10 +1226,10 @@ class Encounters:
     program.
     """
 
-    def __init__(self, steps, zones, seed=ENC_SEED):
+    def __init__(self, steps, zones, seed=None):
         self.zones = list(zones)
         self.set_steps(steps)
-        self.seed = seed
+        self.seed = engine.ENC_SEED if seed is None else seed
         self.reset()
 
     def set_steps(self, steps):
@@ -1385,8 +1359,8 @@ CELL_DEST_B = 16
 # The top two bits of each `OP_CELL_TEST` write, over the variable's offset:
 # y instead of x, and the refresh. See `cell_test` in
 # tools/runtime/interpreter_cells.s.
-CELL_Y = 0x4000
-CELL_REFRESH = 0x8000
+# CELL_Y (engine.rs).
+# CELL_REFRESH (engine.rs).
 
 
 class PartyState:
@@ -1413,7 +1387,7 @@ class PartyState:
         if operation == PARTY_REMOVE:
             if actor in self.party:
                 self.party.remove(actor)
-        elif actor not in self.party and len(self.party) < PARTY_MAX:
+        elif actor not in self.party and len(self.party) < engine.PARTY_MAX:
             self.party.append(actor)
 
     def leader(self):
@@ -1439,9 +1413,8 @@ class PartyState:
 # camera when drawing the map —`GetDisplayX`—: the message window does not
 # move. RPG_RT does it in floating point and truncates; here the sine is a
 # 256-byte table at scale 127 and the division is integer, so the ROM may
-# differ from RPG_RT by one pixel on some frame. The converter emits the table
-# to mapdata.inc from this same list.
-SHAKE_SINE = [round(math.sin(t * math.pi / 128) * 127) for t in range(256)]
+# differ from RPG_RT by one pixel on some frame. The emission writes the table
+# to mapdata.inc: SHAKE_SINE, `shake_sine` in engine.rs.
 
 
 def walk_code(code):
@@ -1490,3 +1463,12 @@ COMPARE_AT_LEAST = 1   # the `>=` of RM2k's page conditions
 # Measured against A Blurred Line: an assumption of the engine, not a fact of
 # the game. See `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 SWITCH_IMPOSSIBLE = 1021
+
+
+def __getattr__(name):
+    """The engine's numbers by the names they had here —see `port.engine`—,
+    and `TRIGGERS`, the page triggers the ROM knows how to run."""
+    if name == "TRIGGERS":
+        return (engine.TRIGGER_ACTION, engine.TRIGGER_TOUCH_HERO,
+                engine.TRIGGER_AUTOSTART, engine.TRIGGER_PARALLEL)
+    return getattr(engine, name)
