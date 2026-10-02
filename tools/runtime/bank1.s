@@ -3,10 +3,11 @@
 ; ===========================================================================
 ;
 ; It is about two kilobytes of code and bank 0 had three hundred bytes left,
-; so it lives here, in RODATA, and is entered with `jsl battle_run`. What
-; that forces is in the comment on the `ba_t_*` bridges, in bank 0: from here
-; you cannot return with `jsr`, because `jsr` does not change the program
-; bank.
+; so it went out of bank 0 and is entered with `jsl battle_run`. It lived
+; here, in bank 1, until 2026-10-02, when bank 1 filled up too and it moved
+; to `FAR2`, the third code bank: see the header of main.s. What that forces
+; is in the comment on the `ba_t_*` bridges, in bank 0: from there you cannot
+; return with `jsr`, because `jsr` does not change the program bank.
 ;
 ; **The data bank is $7E for as long as the battle lasts.** `op_battle` sets
 ; it before the `jsl` and restores it on return. That is what lets this code
@@ -26,9 +27,9 @@
 ;   ba_divb   is temp + 2    ; the divisor
 ;   ba_divr   is comp_and    ; the remainder
 ;   ba_mulp   is comp_or23   ; the low partial of the product
-; **Everything that follows, up to the header, lives in bank 1 and entirely
-; within it.** Inside, they call each other with `jsr`, which does not cross
-; banks, and before it had its own segment this went after the generated
+; **Everything that follows in `FAR`, up to the header, lives in bank 1 and
+; entirely within it.** Inside, they call each other with `jsr`, which does
+; not cross banks, and before it had its own segment this went after the generated
 ; data: it fell in a different bank with each cartridge, and a padding
 ; computed by eye had to keep the battle from being split. What guarantees it
 ; fits is checked by `rom/pruebas/herramientas/test_bancos.py`, over the

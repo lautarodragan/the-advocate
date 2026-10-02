@@ -43,7 +43,8 @@
 //!   upper halves, through `$70-$7D:8000` and `$3E-$3F:8000`.
 //!
 //! **What this module assumes about the runtime** is that banks 0 and 1 are
-//! its two code banks and the generated data goes in the rest: [`slots`].
+//! its first two code banks, that the low half of `$C0` is the third
+//! —[`FAR2`]—, and that the generated data goes in the rest: [`slots`].
 
 use std::path::Path;
 
@@ -58,10 +59,20 @@ pub const HALF: usize = 0x8000;
 /// The cartridge: 8 MB.
 pub const ROM_SIZE: usize = 0x800000;
 
-/// The two code banks, by file offset: where `ld65` puts them, where the
+/// The two LoROM code banks, by file offset: where `ld65` puts them, where the
 /// assembler copies them, and how long they are. See the module's docs.
 pub const MIRRORS: [(usize, usize, usize); 2] =
     [(0x008000, 0x408000, HALF), (0x018000, 0x418000, HALF)];
+
+/// The third code bank: `FAR2`, linked at `$C0:0000` and 32 KB long.
+///
+/// Banks 0 and 1 are full, and they cannot grow: each is the upper half of a
+/// LoROM-like bank, and they go twice in the file. This one is a plain
+/// ExHiROM half, in the fast 4 MB and with no copy: the code in it is only
+/// ever entered with `jsl`, at this address, so it needs no mirror. It was the
+/// low half of `$C0`, the last data slot of the fast 4 MB, which no
+/// cartridge was using when it became code (2026-10-02).
+pub const FAR2: Slot = Slot { bank: 0xC0, start: 0, size: HALF };
 
 /// The file offset of a CPU address, as the cartridge decodes it, or `None`
 /// if the cartridge does not answer there.
@@ -111,8 +122,9 @@ pub fn slots() -> Vec<Slot> {
     let low = |bank| Slot { bank, start: 0, size: HALF };
     let high = |bank| Slot { bank, start: 0x8000, size: HALF };
     let mut out: Vec<Slot> = (0xC2..=0xFF).map(whole).collect();
-    // The low halves of the code banks, whose upper halves are banks 0 and 1.
-    out.extend([low(0xC0), low(0xC1)]);
+    // The low half of `$C1`, whose upper half is bank 1. That of `$C0` is
+    // the third code bank: see [`FAR2`].
+    out.push(low(0xC1));
     out.extend((0x42..=0x6F).map(whole));
     // The low halves of the copies of banks 0 and 1, the upper halves of the
     // banks whose low one is not used, and those of `$7E` and `$7F`, which
@@ -748,6 +760,7 @@ pub fn cfg() -> String {
         "VECTORS:  load = VECT, type = ro;".to_string(),
         // The hand-written code that lives outside bank 0.
         format!("FAR:      load = {}, type = ro, align = $8000;", segment_of(1)),
+        format!("FAR2:     load = {}, type = ro;", segment_of(FAR2.bank)),
     ];
     let data = slots();
     let area = |name: String, start: usize, size: usize| {
@@ -765,6 +778,11 @@ pub fn cfg() -> String {
             memory.push("HEAD: start = $00FFC0, size = $0020, fill = yes;".to_string());
             memory.push("VECT: start = $00FFE0, size = $0020, fill = yes;".to_string());
             offset += HALF;
+            continue;
+        }
+        if Some(offset) == file_offset(FAR2.address()) {
+            memory.push(area(segment_of(FAR2.bank), FAR2.address(), FAR2.size));
+            offset += FAR2.size;
             continue;
         }
         if offset == 0x018000 {

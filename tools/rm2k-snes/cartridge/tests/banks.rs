@@ -251,6 +251,7 @@ fn every_slot_is_rom_and_none_overlaps() {
             assert!(seen.insert(half), "${:06X} twice", slot.address());
             // Neither the code banks nor their copies.
             assert!(banks::MIRRORS.iter().all(|&(a, b, _)| half != a && half != b));
+            assert_ne!(Some(half), file_offset(banks::FAR2.address()), "the third code bank");
             // Nor the low halves of `$70-$7D`, which some emulators make SRAM.
             assert!(!(0x700000..0x7E0000).contains(&half) || half & 0x8000 != 0);
         }
@@ -383,6 +384,9 @@ fn the_memory_map_puts_each_bank_in_place() {
     assert!(text.contains("BANK7D: start = $7D8000, size = $8000, fill = yes;"));
     assert!(!text.contains("BANK7E"), "banks $7E and $7F are the WRAM");
     assert!(text.contains("FAR:      load = BANK01"));
+    assert!(text.contains("BANKC0: start = $C00000, size = $8000, fill = yes;"));
+    assert!(text.contains("FAR2:     load = BANKC0"));
+    assert!(!text.contains("BANKC0: load"), "the low half of $C0 is code, not data");
     assert!(text.contains("BANKC2: load = BANKC2"));
     // The areas go in file order, and add up to the 8 MB.
     let mut offset = 0;

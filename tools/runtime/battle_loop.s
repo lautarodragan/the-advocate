@@ -1,4 +1,4 @@
-.segment "FAR"
+.segment "FAR2"
 
 ; --- the battle loop -------------------------------------------------------
 
@@ -414,7 +414,7 @@ other:
 .a8
     beq next                    ; dead: `Exists()` leaves it out
     lda BA_ONE + BA_NUMBER, x
-    jsr exp_add
+    jsl f:exp_add
 next:
     inc BA_S0
     bra other

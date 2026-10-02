@@ -38,6 +38,34 @@
 ;   bytecode cursor—, the caller saves it with `phy`, since it is the only one
 ;   that knows it is needed.
 ;
+; **Where new code goes.** There are three code banks, each 32 KB, and
+; `just espacio` says how much each has left:
+;
+; * `CODE`, bank 0, run from its fast mirror at `$80`: what runs every frame,
+;   in the vblank or in `irq_music`, and whatever that calls with `jsr`. It
+;   shares the bank with `TABLES`, so it is the hardest to make room in:
+;   nothing goes here that can go elsewhere.
+; * `FAR`, bank 1: entered with `jsl`, and only fast if the `jsl` carries
+;   `+ FAST`.
+; * `FAR2`, the low half of `$C0` —see `FAR2` in
+;   tools/rm2k-snes/cartridge/src/banks.rs—: entered with `jsl` and
+;   **without** `+ FAST`, because `$C0` is already fast and adding it gives
+;   a wrong address. It is where new code goes by default: what is cold —a
+;   screen, a map load, the battle— goes here or in `FAR`, whichever has
+;   room. It opened on 2026-10-02, when bank 1 had 131 bytes left, with the
+;   battle and the audio package.
+;
+; **A subsystem goes whole in one bank**: inside, its routines call each
+; other with `jsr`, which does not change the program bank. Across banks it
+; is `jsl` and `rtl`, and a routine that is also called with `jsr` from its
+; own bank gets an entry `_l` —`jsr` it and `rtl`—, like `dsp_pair_l`. A
+; `jmp (table, x)` reads its table from the program bank, and an `lda table,
+; x` from the data bank, which is 0 —`$7E` in the battle—: a table in
+; another bank goes with `f:`. **Nothing checks any of this**: a `jsr` to a
+; routine in another bank assembles and links, and lands at the same address
+; in the caller's bank. Moving a file is a `grep` of every caller of every
+; routine in it.
+;
 ; What stays written here is what is not a subsystem: where the generated
 ; `.inc` files come in —the two bytecodes and the cartridge's data—. A new
 ; file is added to the list at the place it belongs in the ROM; the

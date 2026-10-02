@@ -14,6 +14,9 @@
 //!   which is what closes `FAR`. It is recognized by the source line and not
 //!   by the position: if `FAR` filled the bank exactly, there would be no
 //!   padding and it would give zero.
+//! * **Bank `$C0`**: the third code bank, [`banks::FAR2`]: its `.cfg` area
+//!   minus what `FAR2` takes. It has no `.align` to close it, nor needs one:
+//!   nothing comes after it in its area.
 //! * **BSS and ZEROPAGE**: their `.cfg` areas minus what they take.
 //! * **Texts**: `MESSAGES_BYTES` against `MESSAGES_CAP`, which the converter
 //!   emits next to the text block.
@@ -41,6 +44,7 @@ pub struct Measure {
     pub largest_gap: i64,
     pub bank0: i64,
     pub bank1: i64,
+    pub bank_far2: i64,
     pub bss: i64,
     pub zeropage: i64,
     pub texts: Option<i64>,
@@ -157,6 +161,7 @@ pub fn measure(sfc: &Path, runtime: &Path) -> Result<Measure, String> {
         largest_gap: gaps.iter().copied().max().unwrap_or(0),
         bank0: area("ROM")? - used_of("CODE") - used_of("TABLES"),
         bank1: far_padding(&dbg_text, &runtime.join("header.s"))?,
+        bank_far2: area(&segment_of(banks::FAR2.bank))? - used_of("FAR2"),
         bss: area("RAM")? - used_of("BSS"),
         zeropage: area("ZP")? - used_of("ZEROPAGE"),
         texts: symbols.get("MESSAGES_BYTES").copied(),
@@ -195,6 +200,7 @@ pub fn show(title: &str, m: &Measure) -> String {
     );
     out += &format!("  bank 0           {}\n", b(m.bank0));
     out += &format!("  bank 1           {}\n", b(m.bank1));
+    out += &format!("  bank $C0         {}\n", b(m.bank_far2));
     out += &format!("  BSS              {}\n", b(m.bss));
     out += &format!("  ZEROPAGE         {}\n", b(m.zeropage));
     match (m.texts, m.texts_cap) {
@@ -230,6 +236,7 @@ mod tests {
         assert_eq!(areas["ROM"], 0x7FC0);
         assert_eq!(areas["RAM"], 0x1F00 - banks::STACK as i64);
         assert_eq!(areas["BANKC2"], 0x10000);
+        assert_eq!(areas["BANKC0"], 0x8000, "the third code bank");
         assert_eq!(areas["BANK70"], 0x8000);
         assert!(!areas.contains_key("BANK7E"));
     }

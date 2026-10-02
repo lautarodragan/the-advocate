@@ -15,8 +15,8 @@
 ; number each HP will have. The screen is text, on black.
 ;
 ; **The battle code does not live in bank 0**: it is about two kilobytes and
-; bank 0 had three hundred bytes left. It lives in RODATA —see
-; `battle_run`, in `battle_run.s`— and is entered with `jsl`. From
+; bank 0 had three hundred bytes left. It lives in `FAR2` —see the header of
+; main.s, and `battle_run`, in `battle_run.s`— and is entered with `jsl`. From
 ; there it cannot come back here with `jsr`, which does not change the program
 ; bank, so the bank 0 routines the battle needs are called through these
 ; four-byte bridges. The data bank is still 0 on both sides, so a bridge does
@@ -260,7 +260,7 @@ ba_t_page:
     sta f:PKG_MAP
     sep #$20
 .a8
-    jsr package_load_done
+    jsl f:package_load_done_l
 ready:
     rts
 .endproc
