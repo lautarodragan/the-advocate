@@ -2,7 +2,7 @@
 name: "Las imágenes grandes, en BG1 en modo 1"
 description: "Fase 3 del sistema de imágenes: las que tapan la pantalla con el mapa oculto (las fotos Diff, las instrucciones del 49 y del 285, GTest4 con ondas, el final del 309) en BG1 pasado a modo 1 mientras se muestran"
 type: feature
-assignee: Aguilucho
+assignee: taro
 ---
 
 Fase 3 de `docs/research/2026-10-01-el-sistema-de-imagenes.md` (Jilguero),
@@ -12,7 +12,11 @@ que en RM2k se achican con un zoom, se muestran con un fundido: la SNES no
 escala sin modo 7. Lo que pasa en esas escenas, con capturas del original:
 `/shared/capturas/2026-10-01-escenas-diff/` (Bandurria).
 
-Hecha por Aguilucho, desde `main` en `83c7e3ee`.
+Hecha por Aguilucho, desde `main` en `83c7e3ee`, con `main` mergeado en
+`635c3704` (los comunes automáticos y el `CallEvent` compartido, de
+Picaflor). **Espera el visto bueno de taro a las goldens** —un commit sólo
+de goldens— y a la elección del montaje del 217, y que la juegue: el
+cartel de la carrera del 49 está en `release`.
 
 ## El diseño
 
@@ -145,10 +149,17 @@ mostrar y al borrar.
 
 * **Reinstalar en el global**: `just -f tools/justfile install images events
   mapdata cartridge`. Lo de Python no agregó ni renombró ningún script.
-* **Los opcodes**: `OP_BIG_SHOW` (`0x3D`) y `OP_BIG_MOVE` (`0x3E`). En la
-  rama, `0x39` a `0x3C` son `OP_RESERVED_*` con un solo `op_reserved` que
-  entra en pánico, en `interpreter_effects.s`; al mergear con los de
-  Picaflor quedan los suyos.
+* **Los opcodes**: `OP_BIG_SHOW` (`0x3D`) y `OP_BIG_MOVE` (`0x3E`), que
+  reemplazaron los `OP_RESERVED_3D` y `_3E` de Picaflor al mergear `main`;
+  `0x39` a `0x3C` siguen reservados.
+* **Números de hoy**, sobre el árbol mergeado: `just pruebas` da **1000**
+  (988 de `main` más 12 nuevas), `just -f tools/justfile test` **39**,
+  `cargo test` de events, images y mapdata en verde. `NO_CACHE=1 just
+  cartuchos` y el armado con caché dan los mismos tres cartuchos; `abl.sfc`
+  es `6643d2c1…`. `test_musica_techos.py` siguió en verde.
+* **Espacio**, `just espacio` sobre `release`: banco 0 con 1.063 B libres,
+  **banco 1 con 131 B** —el código de las imágenes grandes está ahí, y los
+  comunes de Picaflor también—, 43 bancos de datos libres.
 * **La RAM lejana**: la que me tocaba, `$2570`-`$257F`, es el final de
   `FAR_PAIR_LIST`. Uso `$25E0`-`$25EF`, entre la música y
   `FAR_SPEED_BONUS`. Y en el banco `$7F`, mientras hay una imagen grande,
