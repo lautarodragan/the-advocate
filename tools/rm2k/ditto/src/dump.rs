@@ -450,6 +450,21 @@ fn join_database(dir: &Path) -> Result<Value> {
     Ok(Value::Object(fields))
 }
 
+/// Where the layers of the map whose JSON is at `map` go: the `.tiles`
+/// beside it. A map kept outside a dump in the same shape —one a project
+/// changed— has its layers there too, and whoever checks such a file is
+/// whole asks here instead of copying the layout.
+pub fn layers_path(map: &Path) -> PathBuf {
+    let stem = map.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
+    map.with_file_name(format!("{stem}.tiles"))
+}
+
+/// Whether `dir` holds a dump: whether its manifest is there. It does not
+/// read it; [`Dump::open`] does, and refuses one of another version.
+pub fn is_dump(dir: &Path) -> bool {
+    dir.join(MANIFEST).is_file()
+}
+
 /// A map's JSON with its layers put back, from the `.tiles` when there is one.
 fn join_map(path: &Path, stem: &str) -> Result<Value> {
     let Value::Object(mut fields) = read_json(path)? else {

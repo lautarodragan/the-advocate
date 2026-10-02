@@ -238,7 +238,7 @@ fn everything_that_builds_the_rom_is_in_the_fingerprint() {
     for tool in [
         "ca65",
         "ld65",
-        "lz2",
+        "rm2k-snes-convert",
         "rm2k-snes-audio",
         "rm2k-snes-battle",
         "rm2k-snes-events",
@@ -262,6 +262,7 @@ fn everything_that_builds_the_rom_is_in_the_fingerprint() {
         assert!(files.contains(&source), "{} is not in the fingerprint", source.display());
     }
     assert!(files.contains(&bin.join("rm2k-snes-assemble")));
+    assert!(files.contains(&bin.join("rm2k-snes-convert")));
     assert!(files.contains(&bin.join("rm2k-snes-audio")));
     assert!(files.contains(&bin.join("rm2k-snes-battle")));
     assert!(files.contains(&bin.join("rm2k-snes-events")));

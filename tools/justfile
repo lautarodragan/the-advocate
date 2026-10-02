@@ -31,7 +31,7 @@ export PATH := if path_exists(local_tools / "bin") == "true" { local_tools / "bi
 # `*-test` recipes run `cargo test` standing in the project, which tests
 # only that one, and `cargo install --locked --path` takes the workspace's
 # lock.
-rust_projects := "protocol gunter goombario ditto rules adeleine voodoo lz2 resample rm2k-render project cartridge patches rm2k-snes-audio battle events map-background map-sprites wally text screens images mapdata"
+rust_projects := "protocol gunter goombario ditto rules adeleine voodoo lz2 resample rm2k-render project cartridge patches rm2k-snes-audio battle events map-background map-sprites wally text screens images mapdata convert"
 
 # The directories the projects live in, one per layer: each project is
 # `<layer>/<name>`, and the recipes find it by its name.
@@ -287,6 +287,16 @@ images-test:
 mapdata-test:
   cd rm2k-snes/mapdata && cargo test
 
+# The converter, `rm2k-snes-convert`: the orchestrator that asks each stage
+# above, in order, what the cartridge needs, and hands each what the others
+# answered. What it decides itself —who can lead the party, which items,
+# where the timer runs, which pictures and backdrops go in— is tested with
+# small games made inside the test; that every stage gets the request it
+# always got is what the cartridges of the game, built byte by byte the same,
+# say.
+convert-test:
+  cd rm2k-snes/convert && cargo test
+
 # --- Installation ----------------------------------------------------------
 # The Rust projects, in `snes/`, `rm2k/` and `rm2k-snes/`, are separate
 # projects, and the port consumes them **from the PATH**, the way it
@@ -389,7 +399,6 @@ _install root *projects:
     fi
     cargo install --locked --path "$dir" --root "{{root}}"
   done
-  ln -sfn "{{justfile_directory()}}/port/snes_convert.py" "{{root}}/bin/rm2k-snes-convert"
   ln -sfn "{{justfile_directory()}}/assembly/entregar.py" "{{root}}/bin/abl-entregar"
   echo "in {{root}}/bin: the Python scripts, and from Rust: {{ if projects == "" { "none" } else { projects } }}"
 
