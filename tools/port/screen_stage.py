@@ -276,3 +276,18 @@ def render(screen, **state):
     written = _run("render", request, *_game(resources.GAME_DIR), raw=True)
     with Image.open(io.BytesIO(written["screen.png"])) as image:
         return image.convert("RGB")
+
+
+def equip(equipment, inventory, slot, item):
+    """What equipping `item` in `slot` leaves —`Game_Actor::ChangeEquipment`,
+    as the equipment screen does it—: `(equipment, inventory)`, the
+    inventory from item number to how many. For the tests that predict the
+    console's RAM with the same rule that draws the screen."""
+    from rpgmaker import resources
+    answer = _answer("equip", "equip.json", {
+        "equipment": list(equipment),
+        "inventory": {str(k): v for k, v in inventory.items()},
+        "slot": slot, "item": item,
+    }, *_game(resources.GAME_DIR))
+    return (answer["equipment"],
+            {int(k): v for k, v in answer["inventory"].items()})

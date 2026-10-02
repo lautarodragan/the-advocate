@@ -315,8 +315,8 @@ pub const TARGET_MAP: usize = 0x4800;
 // three windows, one below the other: the help, same as the item screen's;
 // the actor's, with its parameters in one column; and the bottom one, which
 // shows the slots or the list.
-pub const EQ_WEAPON: usize = 0;
-pub const EQ_SHIELD: usize = 1;
+pub const EQ_WEAPON: usize = rm2k_rules::actor::SLOT_WEAPON;
+pub const EQ_SHIELD: usize = rm2k_rules::actor::SLOT_SHIELD;
 /// How many equipment slots an RM2k actor has: weapon, shield, armor,
 /// helmet, accessory.
 pub const EQUIPMENT_SLOTS: usize = 5;

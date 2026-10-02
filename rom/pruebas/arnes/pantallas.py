@@ -93,27 +93,17 @@ def fin(elegida):
     return screen_stage.render("end_game", chosen=elegida)
 
 
-def equipar(db, puesto, inventario, ranura, item):
+def equipar(puesto, inventario, ranura, item):
     """`Game_Actor::ChangeEquipment` sobre `puesto` e `inventario`, que
     cambia: lo que tenía vuelve al inventario y lo nuevo sale de ahí. Un arma
     de dos manos saca el escudo, y un escudo saca el arma de dos manos.
     `item` en 0 es desequipar la ranura.
 
-    Es la regla que corre la ROM, copiada acá para saber qué esperar de la
-    partida; la etapa tiene la suya para dibujar la lista.
+    Es la regla que corre la ROM, y se la pide a la etapa —`rm2k-snes-screens
+    equip`, que es la de `rm2k-rules`— para saber qué esperar de la partida:
+    hasta el 2026-10-02 estaba copiada acá.
     """
-    def sacar(r):
-        if puesto[r]:
-            inventario[puesto[r]] = inventario.get(puesto[r], 0) + 1
-            puesto[r] = 0
-
-    arma, escudo = disposicion().EQ_WEAPON, disposicion().EQ_SHIELD
-    sacar(ranura)
-    if item:
-        inventario[item] -= 1
-        puesto[ranura] = item
-        if ranura == arma and db.items[item].two_handed:
-            sacar(escudo)
-        if ranura == escudo and puesto[arma] \
-                and db.items[puesto[arma]].two_handed:
-            sacar(arma)
+    nuevo, quedan = screen_stage.equip(puesto, inventario, ranura, item)
+    puesto[:] = nuevo
+    inventario.clear()
+    inventario.update(quedan)

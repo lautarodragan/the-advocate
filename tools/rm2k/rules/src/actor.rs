@@ -9,6 +9,7 @@
 //! approximation to declare.
 
 use ditto::schema::{Actor, Item};
+use std::collections::BTreeMap;
 
 /// RM2k's `MaxExpValue()`.
 pub const EXP_MAX: i64 = 999_999;
@@ -186,6 +187,49 @@ pub fn initial_equipment(actor: &Actor) -> Vec<i32> {
     ]
 }
 
+/// The weapon's and the shield's slots, in the order of
+/// [`initial_equipment`].
+pub const SLOT_WEAPON: usize = 0;
+pub const SLOT_SHIELD: usize = 1;
+
+/// `Game_Actor::ChangeEquipment` on `equipment` and `inventory`, item
+/// number to how many: what the slot had goes back to the inventory and
+/// the new one comes out of there. A two-handed weapon removes the shield,
+/// and a shield removes the two-handed weapon. `item` 0 is unequipping the
+/// slot.
+///
+/// `two_handed` says whether an item is a two-handed weapon; if it says
+/// no to an item, so does this, with the change half done.
+pub fn change_equipment<E>(
+    equipment: &mut [i32],
+    inventory: &mut BTreeMap<i32, i64>,
+    slot: usize,
+    item: i32,
+    two_handed: impl Fn(i32) -> Result<bool, E>,
+) -> Result<(), E> {
+    let remove = |equipment: &mut [i32], inventory: &mut BTreeMap<i32, i64>, r: usize| {
+        if equipment[r] != 0 {
+            *inventory.entry(equipment[r]).or_insert(0) += 1;
+            equipment[r] = 0;
+        }
+    };
+    remove(equipment, inventory, slot);
+    if item != 0 {
+        *inventory.entry(item).or_insert(0) -= 1;
+        equipment[slot] = item;
+        if slot == SLOT_WEAPON && two_handed(item)? {
+            remove(equipment, inventory, SLOT_SHIELD);
+        }
+        if slot == SLOT_SHIELD
+            && equipment[SLOT_WEAPON] != 0
+            && two_handed(equipment[SLOT_WEAPON])?
+        {
+            remove(equipment, inventory, SLOT_WEAPON);
+        }
+    }
+    Ok(())
+}
+
 /// The skills this actor **knows**, usable or not, sorted and without
 /// repeats: `Game_Actor::LearnLevelSkills`, the ones with a level lower
 /// than or equal to its own. Without `level`, [`level_of`].
@@ -227,6 +271,22 @@ mod tests {
         assert_eq!(curve_at(&values, 4), Some(0));
         assert_eq!(curve_at(&values, 0), Some(30));
         assert_eq!(curve_at(&[], 0), None);
+    }
+
+    #[test]
+    fn a_two_handed_weapon_and_a_shield_take_each_other_off() {
+        let two_handed = |item: i32| Ok::<bool, ()>(item == 7);
+        let mut equipment = [0, 3, 0, 0, 0];
+        let mut inventory = BTreeMap::from([(7, 1), (5, 1)]);
+        change_equipment(&mut equipment, &mut inventory, SLOT_WEAPON, 7, two_handed).unwrap();
+        assert_eq!(equipment, [7, 0, 0, 0, 0]);
+        assert_eq!(inventory, BTreeMap::from([(3, 1), (5, 1), (7, 0)]));
+        change_equipment(&mut equipment, &mut inventory, SLOT_SHIELD, 3, two_handed).unwrap();
+        assert_eq!(equipment, [0, 3, 0, 0, 0]);
+        assert_eq!(inventory, BTreeMap::from([(3, 0), (5, 1), (7, 1)]));
+        change_equipment(&mut equipment, &mut inventory, SLOT_SHIELD, 0, two_handed).unwrap();
+        assert_eq!(equipment, [0; 5]);
+        assert_eq!(inventory[&3], 1);
     }
 
     #[test]

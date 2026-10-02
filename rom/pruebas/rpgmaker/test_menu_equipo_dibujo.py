@@ -90,7 +90,7 @@ def test_equipar_desde_el_menu(partida):
     comparar_pantalla(una, pantallas.equipo(TALAN, puesto, inv, 0, True, 0),
                       "equipo-lista")
     una.tocar_cuadros("a", 10)          # el palo
-    pantallas.equipar(db, puesto, inv, 0, PALO)
+    pantallas.equipar(puesto, inv, 0, PALO)
     assert una.equipo(TALAN) == puesto
     assert una.item(PALO) == 1
     comparar_pantalla(una, pantallas.equipo(TALAN, puesto, inv, 0),
