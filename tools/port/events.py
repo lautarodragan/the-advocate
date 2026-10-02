@@ -8,10 +8,10 @@ converter reads it. The rule it keeps is the one this module had:
 
     **a page is emitted only if all its commands can be run.**
 
-What stays here is what others read and is not the compiler: the numbers
-the ROM's tables are emitted with —the emission, `rm2k-snes-mapdata`, has
-its copy in `engine.rs`; these and their reasons stay for the converter and
-the game's tests—, the command codes a few
+What stays here is what others read and is not the compiler: the names
+and the reasons of the numbers the ROM's tables are emitted with —the
+numbers are the emission's, `engine.rs` in `rm2k-snes-mapdata`, and this
+module answers them through `port.engine`—, the command codes a few
 scans look for (`game_scan.py`, `cases.py`), the registries the
 compiler's answer is read into (`Songs`, `Troops`, `Trigger`), the indices it
 answers (`VARIABLE_SLOT`, `SKILL_SLOT`, `PARTY_COMMON_EVENTS`), which picture
@@ -81,8 +81,8 @@ SHOW_MESSAGE_2 = 20110
 # **Any other escape still does not compile**, and that is on purpose: the
 # three `\V` of the common events —the value of a variable inserted into the
 # text— require composing the text when opening it, which is something else.
-# Drawing them as two letters would show. The rule is the compiler's
-# `escape_tail`, and `rm2k-snes-text` reflows the boxes around the same one.
+# Drawing them as two letters would show. The rule is `rm2k-snes-text`'s
+# `escape_tail`: it reflows the boxes around it, and the compiler cuts with it.
 
 # What a `\|` costs. **It is not one second**: it is the
 # `SetWaitForNonPrintable(61)` of `window_message.cpp`, with its comment next to
@@ -409,9 +409,9 @@ COND_END = 22011
 # COND_ACTOR (engine.rs).
 
 # `actor->IsSkillLearned(p[3])`. Since 2026-09-21 it is state: the bit of the
-# (actor, skill) pair in `FAR_SKILL`, which starts with what
-# `rules.learned_skills` says from the LDB and which `ChangeSkills` turns on
-# and off. The operand that travels is the pair's slot and not the skill; see
+# (actor, skill) pair in `FAR_SKILL`, which starts with what `learned_skills`
+# of `rm2k-rules` says from the LDB and which `ChangeSkills` turns on and off.
+# The operand that travels is the pair's slot and not the skill; see
 # `SKILL_SLOT`.
 # COND_ACTOR_SKILL (engine.rs).
 # easyrpg's five `Get*Id()`s compared against `p[3]`: weapon, shield, armor,

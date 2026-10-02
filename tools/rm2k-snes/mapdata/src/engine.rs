@@ -1,9 +1,11 @@
 //! The numbers of the engine the `.inc` hands the runtime: RM2k's own,
 //! taken from easyrpg-player where it says, and the console's caps.
 //!
-//! They lived in the converter's `events.py` until 2026-10-01, where the
-//! long comment of each one still is, next to the compiler's use of it;
-//! the runtime only names them. The ones marked as measured against A
+//! This is the only place they are written. They lived in the converter's
+//! `events.py` until 2026-10-01, where the long comment of most still is,
+//! next to its name; the converter and the game's tests ask for them by
+//! name —`engine`, [`numbers`]— and the runtime only names them. The ones
+//! marked as measured against A
 //! Blurred Line are assumptions of the engine, not facts of a game: see
 //! `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
 

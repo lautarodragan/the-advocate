@@ -6,11 +6,10 @@ bank; see `rm2k-snes-map-sprites`—, and so is who walks, animates standing
 still or turns toward the hero (`moves.rs`). What stays here is what that
 stage gets from other domains: the graphics drawn apart from the hero so
 its flash does not spread (`separate_from_hero`); how many maps of the ROM
-each character is in; the objects' priorities and where a 32x32 block
-starts, with which the orchestrator builds what a page draws; and the
-warning that stops the build when a mechanism is not drawn
-(`discard_warning`). The objects as the `.inc` writes them are the
-emission's: `objects.rs` in `rm2k-snes-mapdata`.
+each character is in; and the warning that stops the build when a
+mechanism is not drawn (`discard_warning`). The objects as the `.inc`
+writes them —their priorities, where a 32x32 block starts, what a page
+draws— are the emission's: `objects.rs` in `rm2k-snes-mapdata`.
 """
 
 import collections
