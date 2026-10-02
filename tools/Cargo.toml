@@ -12,7 +12,6 @@ members = [
     "snes/goombario",
     "snes/gunter",
     "snes/lz2",
-    "snes/resample",
     "snes/voodoo",
     "rm2k/ditto",
     "rm2k/ditto/xtask",

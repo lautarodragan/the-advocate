@@ -30,7 +30,6 @@ pub mod fail;
 pub mod layers;
 pub mod picture;
 pub mod request;
-pub mod resample;
 pub mod show_picture;
 pub mod source;
 pub mod system;
