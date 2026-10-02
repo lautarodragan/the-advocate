@@ -1,5 +1,5 @@
 //! A map's two background layers: drawn by `rm2k-render`, converted by
-//! `rm2k-snes-map-background`, and written for the caller; and the map as
+//! [`crate::background`], and written for the caller; and the map as
 //! blocks of 16x16, which are made of what the two layers were converted to.
 
 use crate::fail::{Bad, Result};
@@ -8,8 +8,8 @@ use crate::request::LayersRequest;
 use ditto::schema::Chipset;
 use rm2k_render::{picture, Atlas, Layers, Map};
 use rm2k_rules::chipset::{passability_table, terrain_of};
-use rm2k_snes_map_background::blocks::{self, Blocks};
-use rm2k_snes_map_background::{Converted, Merge, Run};
+use crate::background::blocks::{self, Blocks};
+use crate::background::{Converted, Merge, Run};
 use serde_json::{json, Value};
 use std::path::Path;
 
@@ -184,7 +184,7 @@ fn merges_json(merges: &[Merge]) -> Vec<Value> {
 /// into `out`.
 pub fn run(game: &Game, request: &LayersRequest, out: &Path) -> Result<()> {
     let drawn = draw(game, request)?;
-    let converted = rm2k_snes_map_background::convert(&drawn.layers)?;
+    let converted = crate::background::convert(&drawn.layers)?;
     let (passability, made) = blocks(&drawn, &converted)?;
     write(out, &converted, &passability, &made)
 }

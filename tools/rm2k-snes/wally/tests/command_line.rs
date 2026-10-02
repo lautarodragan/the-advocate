@@ -7,7 +7,7 @@
 //! directly on the map the test knows it should have read.
 
 use rm2k_render::{picture, Atlas, Map, Picture};
-use rm2k_snes_map_background::convert;
+use wally::background::convert;
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -141,7 +141,7 @@ fn layers(dump: &Path, search: &[&Path], request: &Path, out: &Path) -> Output {
 
 /// What the libraries make of this map, to hold the executable's files
 /// against.
-fn expected(chipset: &Path, lower: Vec<i64>, upper: Vec<i64>) -> rm2k_snes_map_background::Converted {
+fn expected(chipset: &Path, lower: Vec<i64>, upper: Vec<i64>) -> wally::background::Converted {
     let (passable_lower, passable_upper) = passability();
     let map = Map {
         width: WIDTH,
@@ -155,7 +155,7 @@ fn expected(chipset: &Path, lower: Vec<i64>, upper: Vec<i64>) -> rm2k_snes_map_b
     convert(&map.render(&atlas).unwrap()).unwrap()
 }
 
-fn check(out: &Path, want: &rm2k_snes_map_background::Converted) {
+fn check(out: &Path, want: &wally::background::Converted) {
     assert_eq!(std::fs::read(out.join("background.bin")).unwrap(), want.background.tiles);
     assert_eq!(std::fs::read(out.join("above.bin")).unwrap(), want.above.tiles);
     assert_eq!(std::fs::read(out.join("above-cgram.bin")).unwrap(), want.above.cgram);

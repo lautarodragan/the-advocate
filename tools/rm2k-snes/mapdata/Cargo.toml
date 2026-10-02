@@ -20,9 +20,9 @@ lz2 = { path = "../../snes/lz2" }
 # at its level: the tables of items, skills, enemies and troops come from it.
 rm2k-snes-battle = { path = "../battle" }
 # The sprite bank as the map's characters are laid out in it —where a
-# 32x32 block starts, how big a pose is— and the timer's glyphs: that
-# stage's numbers, written as it decided them.
-rm2k-snes-map-sprites = { path = "../map-sprites" }
+# 32x32 block starts, how big a pose is— and the timer's glyphs: Wally's
+# numbers, from its `sprites`, written as it decided them.
+wally = { path = "../wally" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 

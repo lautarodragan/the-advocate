@@ -46,3 +46,10 @@ e8b9287b9d740a0339bad09f53f910730111b566
 # y el binario, y cada lugar que los nombraba. 80 líneas en 43 archivos. Las
 # tres ROMs salieron byte por byte iguales con NO_CACHE=1.
 0480deecf6ba8b7ef477552482033f2d60f1d045
+
+# rm2k-snes-map-background y rm2k-snes-map-sprites pasaron a ser módulos de
+# Wally (`background`, `sprites`): `git mv` de sus fuentes y los `use` que
+# los nombraban, 61 líneas en 29 archivos de Rust más los manifiestos. Los
+# 1424 archivos del `build/` de ABL salieron byte por byte iguales con
+# NO_CACHE=1.
+94ef6b1945d2425a853e95ccb3458955e1f473fc

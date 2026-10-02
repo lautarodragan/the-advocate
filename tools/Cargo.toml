@@ -24,8 +24,6 @@ members = [
     "rm2k-snes/convert",
     "rm2k-snes/events",
     "rm2k-snes/images",
-    "rm2k-snes/map-background",
-    "rm2k-snes/map-sprites",
     "rm2k-snes/wally",
     "rm2k-snes/mapdata",
     "rm2k-snes/patches",

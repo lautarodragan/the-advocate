@@ -21,7 +21,7 @@
 ; is much cheaper than rebuilding them.
 ;
 ; Slot s takes sprite palette 7 - s: see `picture_of_image` in
-; rm2k-snes-map-sprites.
+; Wally's sprites.
 .proc pic_palette
 .a8
 .i16

@@ -16,8 +16,8 @@ use crate::layers::{draw, Drawn};
 use crate::request::LayersRequest;
 use rm2k_render::charset::{tile_sheet, translucent};
 use rm2k_render::{picture, Picture};
-use rm2k_snes_map_sprites::character::Sheets;
-use rm2k_snes_map_sprites::split::{DITHER_SUFFIX, TILE_PREFIX};
+use crate::sprites::character::Sheets;
+use crate::sprites::split::{DITHER_SUFFIX, TILE_PREFIX};
 use std::collections::HashMap;
 
 /// The same drawing, counted as another graphic so it gets a palette of its

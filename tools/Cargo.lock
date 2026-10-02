@@ -463,28 +463,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rm2k-snes-map-background"
-version = "0.1.0"
-dependencies = [
- "adeleine",
- "ditto",
- "rm2k-render",
- "rm2k-rules",
- "sha2",
- "voodoo",
-]
-
-[[package]]
-name = "rm2k-snes-map-sprites"
-version = "0.1.0"
-dependencies = [
- "adeleine",
- "rm2k-render",
- "sha2",
- "voodoo",
-]
-
-[[package]]
 name = "rm2k-snes-mapdata"
 version = "0.1.0"
 dependencies = [
@@ -492,10 +470,10 @@ dependencies = [
  "ditto",
  "lz2",
  "rm2k-snes-battle",
- "rm2k-snes-map-sprites",
  "serde",
  "serde_json",
  "sha2",
+ "wally",
 ]
 
 [[package]]
@@ -703,8 +681,6 @@ dependencies = [
  "ditto",
  "rm2k-render",
  "rm2k-rules",
- "rm2k-snes-map-background",
- "rm2k-snes-map-sprites",
  "serde_json",
  "sha2",
  "voodoo",

@@ -16,9 +16,9 @@ use rm2k_render::picture;
 use rm2k_rules::chipset::passability_table;
 use rm2k_rules::charset::{OFFSET_X, OFFSET_Y};
 use rm2k_rules::passability::cell;
-use rm2k_snes_map_sprites::extras::timer_colors;
-use rm2k_snes_map_sprites::npc::map_poses;
-use rm2k_snes_map_sprites::split::{drawable_npcs, Ask};
+use crate::sprites::extras::timer_colors;
+use crate::sprites::npc::map_poses;
+use crate::sprites::split::{drawable_npcs, Ask};
 use serde_json::{json, Value};
 
 /// The alpha of the 16x16 pixels of upper tile `index`, as the event's sheet

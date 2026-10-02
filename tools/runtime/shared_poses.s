@@ -10,7 +10,7 @@
 ; most of them far from each other. In such a map, and only there, the
 ; converter puts in the same slot still events showing **different** poses
 ; that no position of the camera shows together: `share` in
-; `rm2k-snes-map-sprites`, and the decision in
+; Wally's `sprites`, and the decision in
 ; workflow/decisiones/las-poses-se-suben-en-caliente.md.
 ;
 ; So the slot holds whichever pose the console last uploaded. `place_npc`

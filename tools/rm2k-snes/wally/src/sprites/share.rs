@@ -2,7 +2,7 @@
 //! screen together.
 //!
 //! A still pose already shares its slot with every event that shows the
-//! same one —see [`crate::bank::Slot::Still`]—. A crowded map can still ask
+//! same one —see [`crate::sprites::bank::Slot::Still`]—. A crowded map can still ask
 //! for more slots than VRAM has, with most of them far from each other: a
 //! town of fifteen people facing three or four ways each. This lets two
 //! still events showing **different** poses take the same slot when no
@@ -13,8 +13,8 @@
 //! Who can share —an event nobody moves, with a single graphic— is the
 //! caller's to decide: this only knows positions and poses.
 
-use crate::character::{OBJ_H, OBJ_W};
-use crate::npc::Graphic;
+use crate::sprites::character::{OBJ_H, OBJ_W};
+use crate::sprites::npc::Graphic;
 
 /// The screen, in pixels: what the console shows of the map.
 pub const SCREEN_W: i32 = 256;

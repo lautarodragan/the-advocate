@@ -34,20 +34,33 @@ describes in "One stage of a converter": it reads the game from a Ditto
 dump itself, gets in a request what the cartridge decided and what other
 domains answered, and writes pieces and a JSON.
 
-## Three crates
+## Two halves that do not know each other
 
-The work is two libraries that do not know each other, and this one, which
-joins them:
+The work is two modules that do not know each other, and the rest of the
+crate, which joins them:
 
-* `rm2k-snes-map-background`: the lower half of colour memory and the two
-  background layers, and the blocks;
-* `rm2k-snes-map-sprites`: the upper half and the objects;
-* `wally`: reading the map and its events, drawing the sheets,
-  baking —which takes a sprite into a layer, so it needs both halves— and
-  the whole map.
+* `background`: the lower half of colour memory and the two background
+  layers —split between them, cut to 15 bits, what is lost, each
+  converted to tiles— (`layers.rs`, `grid.rs`), and the map as 16x16
+  blocks (`blocks.rs`);
+* `sprites`: the upper half and the objects —a character's colours and
+  poses (`character.rs`), which poses each graphic shows (`npc.rs`), the
+  split of the eight palettes (`split.rs`), the VRAM bank and the pose bank
+  (`bank.rs`), the still ones taking turns in a slot (`share.rs`) and the
+  extras at the end of the bank (`extras.rs`)—;
+* the rest: reading the map and its events, drawing the sheets, baking
+  —which takes a sprite into a layer, so it needs both halves—, the VRAM
+  each map gets, and the whole map.
 
-Cargo keeps the two halves apart: the day the objects want to look at a
-layer, it is a dependency somebody has to write.
+Neither half uses the other, nor the rest of the crate: the day the
+objects want to look at a layer, it has to be written in the rest.
+`tests/halves.rs` keeps that, reading the source: inside a half every
+`crate::` names that half, and no `super::` climbs out of it. Until
+2026-10-02 the halves were two crates of their own,
+`rm2k-snes-map-background` and `rm2k-snes-map-sprites`, and Cargo kept it;
+they became modules because nothing but Wally used the background, and
+`rm2k-snes-mapdata`, the only other user of the sprites, takes a few
+numbers from them and can take them from Wally's library.
 
 ## The request
 
@@ -81,7 +94,7 @@ built—, and `common_substitutions`, the common events', which a
 the VRAM layouts a map can get, as `[background, sprite, upper]` tiles.
 A map that fits none of them with every still pose in VRAM is converted
 again with the still events no camera shows together **taking turns in a
-slot** —`share` in `rm2k-snes-map-sprites`—, and its answer says which; a
+slot** —`sprites::share`—, and its answer says which; a
 map that fits comes out as if `layouts` were empty.
 
 **What other domains answered, as data**: `pages` and `route_graphics` are

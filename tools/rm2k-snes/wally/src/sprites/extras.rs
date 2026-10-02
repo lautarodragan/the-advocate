@@ -6,8 +6,8 @@
 //! whole one each, above the characters', because what is in it fades or
 //! changes with them.
 
-use crate::character::{OBJ_COLORS, OBJ_PALETTES};
-use crate::fail::{Bad, Result};
+use crate::sprites::character::{OBJ_COLORS, OBJ_PALETTES};
+use crate::sprites::fail::{Bad, Result};
 use adeleine::Color;
 use rm2k_render::Picture;
 use std::collections::{BTreeMap, BTreeSet};

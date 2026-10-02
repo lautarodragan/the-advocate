@@ -39,8 +39,8 @@ impl fmt::Display for Bad {
 
 impl std::error::Error for Bad {}
 
-impl From<rm2k_snes_map_background::Bad> for Bad {
-    fn from(bad: rm2k_snes_map_background::Bad) -> Self {
+impl From<crate::background::Bad> for Bad {
+    fn from(bad: crate::background::Bad) -> Self {
         Bad::Answer(bad.0)
     }
 }

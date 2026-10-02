@@ -11,7 +11,7 @@
 //! for free: two cells drawn the same can come from tiles with different
 //! permissions or terrain, and the console reads both per block.
 
-use crate::fail::{Bad, Result};
+use crate::background::fail::{Bad, Result};
 
 /// A block in the table: four background cells and four above, one word
 /// each.

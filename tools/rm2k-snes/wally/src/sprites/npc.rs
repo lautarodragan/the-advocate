@@ -1,6 +1,6 @@
 //! The map's events that are drawn, and which poses each graphic can show.
 
-use crate::character::{all_poses, Key};
+use crate::sprites::character::{all_poses, Key};
 use std::collections::{BTreeMap, BTreeSet};
 
 /// What a page draws: its CharSet —or the made-up sheet of a tile—, the

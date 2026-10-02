@@ -20,8 +20,8 @@
 //! Every index stays in the lower half of colour memory: the upper half is
 //! the sprites'.
 
-use crate::fail::{Bad, Result};
-use crate::grid::{colors, counts, Cell, Grid, CELL};
+use crate::background::fail::{Bad, Result};
+use crate::background::grid::{colors, counts, Cell, Grid, CELL};
 use adeleine::{Color, Merge};
 use rm2k_render::{Family, Layers};
 use std::collections::{BTreeSet, HashMap};

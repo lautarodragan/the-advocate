@@ -1,11 +1,11 @@
 //! The sprite bank that goes to VRAM —one pose per slot— and the bank of
 //! poses the cartridge carries for each character that changes pose.
 
-use crate::character::{
+use crate::sprites::character::{
     block_tile, character_palette, nearest, pose_tiles, sheet, Key, Sheets, OBJ_ROW, SPRITE_POSES,
 };
-use crate::fail::{Bad, Result};
-use crate::split::{PaletteOf, Split};
+use crate::sprites::fail::{Bad, Result};
+use crate::sprites::split::{PaletteOf, Split};
 use adeleine::Color;
 use std::collections::HashMap;
 
@@ -22,7 +22,7 @@ pub enum Slot {
     /// The one a still event that turns toward the hero moves to.
     Turn,
     /// One that still events showing different poses take turns in, because
-    /// no camera shows two of them at once: see [`crate::share`]. It holds
+    /// no camera shows two of them at once: see [`crate::sprites::share`]. It holds
     /// whichever pose the console last uploaded.
     Shared(usize),
 }

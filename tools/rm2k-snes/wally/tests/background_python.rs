@@ -23,8 +23,8 @@
 use ditto::schema::Chipset;
 use rm2k_render::{Family, Layers, Picture};
 use rm2k_rules::chipset::terrain_of;
-use rm2k_snes_map_background::blocks::{blocks, Map};
-use rm2k_snes_map_background::{convert, Merge};
+use wally::background::blocks::{blocks, Map};
+use wally::background::{convert, Merge};
 use sha2::{Digest, Sha256};
 
 fn h(n: u64) -> u64 {
