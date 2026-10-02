@@ -2,9 +2,10 @@
 //!
 //! Five kinds of picture, and the same road for all of them: the picture as
 //! RM2k draws it —`rm2k-render`, as a library—, scaled to the console's
-//! screen with Pillow's LANCZOS —[`resample`]—, toned where the console
-//! tones, down to fifteen bits a colour and down to the colours its
-//! palette holds —[`adeleine`]—, and out as indices into that palette:
+//! screen with LANCZOS —the `image` crate's, through `rm2k-render`—, toned
+//! where the console tones, down to fifteen bits a colour and down to the
+//! colours its palette holds —[`adeleine`]—, and out as indices into that
+//! palette:
 //!
 //! * [`fullscreen`]: a picture that fills the screen at 8 bits a pixel,
 //!   as unique tiles, a palette and a tilemap —the title, the Game Over—;

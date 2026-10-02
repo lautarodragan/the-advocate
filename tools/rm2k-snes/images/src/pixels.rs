@@ -2,7 +2,7 @@
 //! its colours, and down to the colours a palette holds.
 
 use adeleine::{keep_most_used, merge_least_visible, Color, Merge};
-use rm2k_render::Picture;
+use rm2k_render::picture::{FilterType, Picture};
 use std::collections::HashMap;
 
 /// The PPU's backdrop colour, which is what it paints where there is
@@ -20,20 +20,20 @@ pub fn rgb(picture: &Picture) -> Vec<u8> {
         .collect()
 }
 
-/// The picture's colour scaled to `width` x `height` with Pillow's
-/// LANCZOS, three bytes a pixel.
+/// The picture's colour scaled to `width` x `height` with LANCZOS, three
+/// bytes a pixel. The alpha is dropped **before** scaling, made opaque, so
+/// a translucent pixel scales with its colour as it is.
 pub fn scaled_rgb(picture: &Picture, width: usize, height: usize) -> Vec<u8> {
-    resample::lanczos_rgb(&rgb(picture), picture.width, picture.height, width, height)
+    let mut opaque = picture.clone();
+    for p in opaque.rgba.chunks_exact_mut(4) {
+        p[3] = 255;
+    }
+    rgb(&opaque.resized(width, height, FilterType::Lanczos3))
 }
 
-/// The picture scaled to `width` x `height` with Pillow's LANCZOS, alpha
-/// and all.
+/// The picture scaled to `width` x `height` with LANCZOS, alpha and all.
 pub fn scaled_rgba(picture: &Picture, width: usize, height: usize) -> Picture {
-    Picture {
-        width,
-        height,
-        rgba: resample::lanczos_rgba(&picture.rgba, picture.width, picture.height, width, height),
-    }
+    picture.resized(width, height, FilterType::Lanczos3)
 }
 
 /// A colour of eight bits a channel at the console's five: the low three

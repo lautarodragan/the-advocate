@@ -1,9 +1,15 @@
-//! Against what the Python this replaced gave for the same pictures: the
-//! small game in `tests/game/` —indexed PNGs with gradients and noise, a
-//! battler and an animation sheet with their colour key, and three
-//! animations in the dump's shape—, each piece converted as the stage
-//! does it and compared, as canonical JSON, against the sha256 of what the
-//! Python answered on 2026-09-30.
+//! What this crate answers for a small game, pinned: the game in
+//! `tests/game/` —indexed PNGs with gradients and noise, a battler and an
+//! animation sheet with their colour key, and three animations in the
+//! dump's shape—, each piece converted as the stage does it and compared,
+//! as canonical JSON, against a sha256.
+//!
+//! Until 2026-10-02 the hashes were what the Python this replaced answered,
+//! and the scaling was a copy of Pillow's to the bit. Since then it is the
+//! `image` crate's, which rounds differently, and the hashes are what the
+//! crate answered that day: **a regression check, not an independent
+//! answer**. If one changes, a pixel or a palette changed; whether it is
+//! the right one is for the game's screenshots to say.
 //!
 //! The animations cover zoom, translucency, tones with and without
 //! saturation, an invalid cell, an empty frame, a cell the sheet does not
@@ -21,17 +27,17 @@ use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 
 #[rustfmt::skip]
-const PYTHON: &[(&str, &str)] = &[
-    ("fullscreen-0-256", "1d504fb6ccb25a34b987d3a75ccdc919903548180cfd4b125d2b33d0e5eb19a5"),
-    ("fullscreen-16-200", "6206fe1e7f2ecad9178e152be8324c7f21aedfb1ceb3da99f30a55e8b487342b"),
-    ("picture-100-175", "64c5f73bd42dbee14b362b703354930634fd0f959302f3bc04d68e351ecbb9c9"),
-    ("picture-160-120", "5a96c8c9e8d32f0105480c04ffbc084620085e16c41e866fe28151d8bb30cde1"),
-    ("backdrop-quality", "785b5b912c60b2a0bba591b89ed09d14ee472e8faaebd30d20b3745e1de6e7ce"),
-    ("backdrop-light", "702bf2503245ff79b50d0116393c0f08da81558b889ca7bb7d87a89fb1e028bd"),
-    ("battler-0", "2d334ae45be66fbd550f6972fd2f1ac315464ca9d29ffe136033f6949f53ed43"),
-    ("battler-120", "b49547e7592ed976655232c999632b84c34b8423e3f57cec4d84db04938d687a"),
-    ("animation-1", "0017423419a3c1dd8dcfe7fd24a33158cad613478bf8168be60de532cadcb5bb"),
-    ("animation-2", "1833c91b9d5b93e2b86a2ddcb83c0a14586f07e670062a81d12f394dce0fee3c"),
+const ANSWERS: &[(&str, &str)] = &[
+    ("fullscreen-0-256", "d6105484a678a8de22f0ba02265284fe760581f43555fba1751ef4c78745b9ed"),
+    ("fullscreen-16-200", "b50aaf2bafef1b8d854e7610d312f3482839709a3fe59a6fb5c81a260222f0ba"),
+    ("picture-100-175", "999e751796914d4346c3bf2b6864109084f45200736f3cb442f809055e819551"),
+    ("picture-160-120", "04a005f9ab724de2acb474c8a0ad03e7e5044d21a7731206bc5515f968a25065"),
+    ("backdrop-quality", "b5167f454e0b3284148987e160ea3ec50586d4802e716425e9a190baabaff3c7"),
+    ("backdrop-light", "65757b8db67f09329fe37ad003af3820b5e5d9aa5633b5b39cf4f619386d0e8d"),
+    ("battler-0", "b759310b7fdb2c78ce5a2dabd0747b6fcf122a909e6fc045ccb5c66b22696daf"),
+    ("battler-120", "d9ae7cdc459fd3dcd3cca1c41ba3dfe3dc94494f62e3fd49bcc813d208f7d3ed"),
+    ("animation-1", "9558e636bfc353695d0071b85e8b0f3de0ba28fd8fb339e68bfe8df33c891696"),
+    ("animation-2", "0feddecc76599e9e5b2ed2d4e91ccd7650cff9bf53a49e63e8cbd133c70dfa7e"),
     ("animation-3", "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b"),
 ];
 
@@ -68,7 +74,7 @@ fn canonical(v: &Value) -> String {
 }
 
 fn check(name: &str, answer: &Value) {
-    let expected = PYTHON.iter().find(|(k, _)| *k == name).expect(name).1;
+    let expected = ANSWERS.iter().find(|(k, _)| *k == name).expect(name).1;
     let got = format!("{:x}", Sha256::digest(canonical(answer).as_bytes()));
     assert_eq!(got, expected, "{name}");
 }
@@ -86,7 +92,7 @@ const SCENE: scene::Geometry = scene::Geometry {
 };
 
 #[test]
-fn full_screens_are_the_pythons() {
+fn full_screens() {
     let title = picture::read_unkeyed(&game(&["Title", "title.png"])).unwrap();
     for (first, cap) in [(0, 256), (16, 200)] {
         let screen = fullscreen::convert(&title, 256, 224, 8, first, cap);
@@ -98,7 +104,7 @@ fn full_screens_are_the_pythons() {
 }
 
 #[test]
-fn pictures_are_the_pythons() {
+fn pictures() {
     let file = game(&["Picture", "picture.png"]);
     let (plain, keyed) = (
         picture::read_unkeyed(&file).unwrap(),
@@ -116,7 +122,7 @@ fn pictures_are_the_pythons() {
 }
 
 #[test]
-fn backdrops_are_the_pythons() {
+fn backdrops() {
     let drawn = battle::backdrop(&game(&["Backdrop", "backdrop.png"])).unwrap();
     check(
         "backdrop-quality",
@@ -129,7 +135,7 @@ fn backdrops_are_the_pythons() {
 }
 
 #[test]
-fn battlers_are_the_pythons() {
+fn battlers() {
     for hue in [0, 120] {
         let drawn = battle::battler(&game(&["Monster", "battler.png"]), hue).unwrap();
         check(
@@ -140,7 +146,7 @@ fn battlers_are_the_pythons() {
 }
 
 #[test]
-fn animations_are_the_pythons() {
+fn animations() {
     let text = std::fs::read_to_string(game(&["animations.json"])).unwrap();
     let animations: Vec<Animation> = serde_json::from_str(&text).unwrap();
     let sheet = picture::read_rm2k(&game(&["Battle", "sheet.png"])).unwrap();

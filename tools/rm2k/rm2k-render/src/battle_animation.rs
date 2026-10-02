@@ -23,9 +23,8 @@
 //! —the point RM2k puts over the target— is at minus the box's corner.
 
 use crate::fail::{Bad, Result};
-use crate::picture::{self, Picture};
+use crate::picture::{self, FilterType, Picture};
 use crate::request::Request;
-use crate::resample::bilinear_resize;
 use ditto::schema::{Animation, AnimationCellData};
 use rm2k_rules::battle_animation::{cell_origin, cell_side};
 use std::path::{Path, PathBuf};
@@ -98,7 +97,9 @@ pub fn cell(sheet: &Picture, large: bool, cell: &AnimationCellData) -> Option<Pi
     }
     let side = side(large, cell) as usize;
     if side != full as usize {
-        piece = bilinear_resize(&piece, side, side);
+        // `Triangle` is `image`'s name for the bilinear filter, the one the
+        // cells have always been zoomed with.
+        piece = piece.resized(side, side, FilterType::Triangle);
     }
     let opacity = 100 - cell.transparency.clamp(0, 100) as u32;
     if opacity != 100 {
