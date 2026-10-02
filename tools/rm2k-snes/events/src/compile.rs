@@ -46,7 +46,7 @@ const SWITCH_MAX: i64 = 1024;
 pub const ITEMS_N: i64 = 451;
 /// The equipment slots of an actor: weapon, shield, armor, helmet and
 /// accessory.
-const EQUIPMENT_SLOTS: i64 = 5;
+const EQUIPMENT_SLOTS: i64 = rm2k_rules::actor::EQUIPMENT_SLOTS as i64;
 /// How many graphics fit in a map's table: the operand is a byte.
 const GRAPHICS_MAX: usize = 0xFF;
 /// The variable slot is a byte, and far RAM has room for 256: see

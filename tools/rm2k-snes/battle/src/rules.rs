@@ -18,7 +18,7 @@ use rm2k_rules::actor;
 /// it knows— are RM2k's and not this battle's: they live in `rm2k-rules`,
 /// and the ones the other stages reach through this crate are re-exported.
 pub use rm2k_rules::actor::{
-    initial_equipment, learned_skills, level_learned, level_of, points, PARAM_MAX,
+    initial_equipment, learned_skills, level_learned, level_of, points, EQUIPMENT_SLOTS, PARAM_MAX,
 };
 
 /// How many actions an enemy can carry: the console weighs them in a list

@@ -319,7 +319,7 @@ pub const EQ_WEAPON: usize = rm2k_rules::actor::SLOT_WEAPON;
 pub const EQ_SHIELD: usize = rm2k_rules::actor::SLOT_SHIELD;
 /// How many equipment slots an RM2k actor has: weapon, shield, armor,
 /// helmet, accessory.
-pub const EQUIPMENT_SLOTS: usize = 5;
+pub const EQUIPMENT_SLOTS: usize = rm2k_rules::actor::EQUIPMENT_SLOTS;
 pub const EQ_STATUS_Y: usize = ITEM_HELP_HEIGHT;
 /// Four parameters of 16, and RM2k's spacing.
 pub const EQ_BOTTOM_Y: usize = 128;

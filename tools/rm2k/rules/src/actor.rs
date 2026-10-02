@@ -174,6 +174,9 @@ pub fn with_equipment<'a>(
     out.map(|o| o.clamp(1, PARAM_MAX))
 }
 
+/// An actor's equipment slots: weapon, shield, armor, helmet and accessory.
+pub const EQUIPMENT_SLOTS: usize = 5;
+
 /// An actor's starting equipment: weapon, shield, armor, helmet and
 /// accessory, by item number, 0 for none.
 pub fn initial_equipment(actor: &Actor) -> Vec<i32> {

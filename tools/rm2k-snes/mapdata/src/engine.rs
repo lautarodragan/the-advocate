@@ -168,8 +168,8 @@ pub const COLS: i64 = 32;
 pub const ROWS: i64 = 28;
 pub const MENU_CGRAM: usize = 16;
 /// An RM2k actor's equipment slots, and how many enemies a battle holds.
-pub const EQUIPMENT_SLOTS: usize = 5;
-pub const ENEMIES_MAX: usize = 8;
+pub const EQUIPMENT_SLOTS: usize = rm2k_snes_battle::rules::EQUIPMENT_SLOTS;
+pub const ENEMIES_MAX: usize = rm2k_snes_battle::db::ENEMIES_MAX;
 /// The 32x32 object's side in tiles, and the name grid's width.
 pub const OBJ_SIDE: u32 = 4;
 pub const GRID: u32 = 16;
