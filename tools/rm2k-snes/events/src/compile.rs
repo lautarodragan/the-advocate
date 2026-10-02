@@ -803,7 +803,10 @@ pub fn compile_page(
 ) -> Result<Option<Vec<u8>>> {
     let mark = ctx.messages.as_ref().map(|m| m.mark());
     match page(ctx, commands, map_events, base, depth) {
-        Ok(code) => Ok(Some(code)),
+        Ok(code) => {
+            whole_instructions(&code)?;
+            Ok(Some(code))
+        }
         Err(Stop::Cannot) => {
             if let (Some(m), Some(mark)) = (ctx.messages.as_deref_mut(), mark) {
                 m.rewind(mark);
@@ -2819,6 +2822,43 @@ pub fn instruction_size(code: &[u8], at: usize) -> usize {
     match VARIABLE_SIZE.iter().find(|(o, ..)| *o == op) {
         Some(&(_, base, count, entry)) => base + entry * code[at + count] as usize,
         None => size_of(op),
+    }
+}
+
+/// That walking `code` by the declared sizes lands exactly on its end.
+///
+/// What it catches is the emitter and the interpreter counting different
+/// bytes for one opcode: each piece is written by hand, and the
+/// interpreter advances by what `events.toml` declares. If they disagree
+/// the ROM reads the bytecode shifted, and that is no error: it is a page
+/// that does anything. So every page is checked as it comes out, the
+/// game's included —until 2026-10-02 it was a test of the game's that
+/// walked its 3000-odd pages in Python—, and a mismatch stops the
+/// conversion, because it is a bug of this compiler and not of the page.
+fn whole_instructions(code: &[u8]) -> Result<()> {
+    let mut at = 0;
+    while at < code.len() {
+        let op = code[at];
+        let size = match VARIABLE_SIZE.iter().find(|(o, ..)| *o == op) {
+            Some(&(_, base, count, entry)) => code
+                .get(at + count)
+                .map(|&n| base + entry * n as usize),
+            None => OPCODE_SIZE.iter().find(|(o, _)| *o == op).map(|(_, s)| *s),
+        };
+        match size {
+            Some(size) => at += size,
+            None => break,
+        }
+    }
+    if at == code.len() {
+        Ok(())
+    } else {
+        Err(Bad::answer(format!(
+            "the compiler emitted a page that does not walk by the declared \
+             sizes —it ends at {at} and is {} bytes long—; it starts {}",
+            code.len(),
+            code.iter().take(32).map(|b| format!("{b:02X}")).collect::<Vec<_>>().join(" ")
+        )))
     }
 }
 
@@ -4986,15 +5026,24 @@ mod tests {
 
     /// The same, with these indices.
     fn on_a_map_with(indices: &Indices, commands: &[Command]) -> Option<Vec<u8>> {
-        use crate::game::Map;
+        let map = crate::game::Map { id: 5, events: Vec::new() };
+        on_this_map(&Game::default(), indices, &map, commands)
+    }
+
+    /// The same, on this map of this game.
+    fn on_this_map(
+        game: &Game,
+        indices: &Indices,
+        map: &crate::game::Map,
+        commands: &[Command],
+    ) -> Option<Vec<u8>> {
         use crate::messages::{Messages, Window};
-        let game = Game::default();
         let sound = SoundSettings::default();
         let mut songs = Songs::default();
         songs.current = Some(Package::Map(0));
         let mut messages = Messages::new(1, Window { columns: 39, lines: 4 });
         let mut ctx = Ctx {
-            game: &game,
+            game,
             indices,
             sound: &sound,
             map_index: &|_| Some(1),
@@ -5006,8 +5055,7 @@ mod tests {
             commons: None,
             shared: None,
         };
-        let map = Map { id: 5, events: Vec::new() };
-        let me = MapEvents::new(&map, None);
+        let me = MapEvents::new(map, None);
         compile_page(&mut ctx, commands, Some(me), 0, 0).unwrap()
     }
 
@@ -5524,6 +5572,221 @@ mod tests {
             &|_| None,
         );
         assert_eq!(code.unwrap(), [OP_HEAL, 0, 0, 0, OP_DONE]);
+    }
+
+    #[test]
+    fn a_page_that_does_not_walk_by_the_declared_sizes_stops_the_conversion() {
+        assert!(whole_instructions(&[OP_SWITCH, 1, 0, 1, OP_DONE]).is_ok());
+        // A byte short, one too many that is not an opcode, and a choice
+        // whose options run past the end.
+        assert!(whole_instructions(&[OP_SWITCH, 1, 0]).is_err());
+        assert!(whole_instructions(&[OP_DONE, 0xFF]).is_err());
+        assert!(whole_instructions(&[OP_CHOICE, 2, 2, 0, 0, 0, 0, OP_DONE]).is_err());
+    }
+
+    fn word_at(code: &[u8], at: usize) -> usize {
+        u16::from_le_bytes([code[at], code[at + 1]]) as usize
+    }
+
+    #[test]
+    fn an_inn_with_a_price_is_its_greeting_a_choice_and_a_gold_branch() {
+        // The whole block, byte by byte, which is the only thing that says
+        // whether the choice's and the branch's destinations land where they
+        // should. They are absolute within the page, so the block cannot be
+        // read on its own: the message in front shifts it three bytes, and
+        // those are the three an implementation that counted from zero would
+        // get wrong. It is the shape of the inn that brought `ShowInn`, a
+        // message and then the inn at 5.
+        let mut game = Game::default();
+        game.gold_term = "G".into();
+        for terms in game.inn_terms.iter_mut() {
+            *terms = ["Stay for".into(), "?".into(), "Rested.".into(), "Yes".into(), "No".into()];
+        }
+        let map = crate::game::Map { id: 5, events: Vec::new() };
+        let code = on_this_map(
+            &game,
+            &Indices::default(),
+            &map,
+            &[cmd(SHOW_MESSAGE, &[], "Hi"), cmd(SHOW_INN, &[0, 5, 0], "")],
+        )
+        .unwrap();
+        let (greeting, yes, no) = (word_at(&code, 4), word_at(&code, 9), word_at(&code, 13));
+        assert!(0 < greeting && greeting < yes && yes < no, "{greeting} {yes} {no}");
+        let w = |v: usize| [(v & 0xFF) as u8, (v >> 8) as u8];
+        let mut expected = vec![OP_MESSAGE, 0, 0, OP_MESSAGE];
+        expected.extend(w(greeting));
+        expected.extend([OP_CHOICE, 2, 2]); // cancelling is "No"
+        expected.extend(w(yes));
+        expected.extend([17, 0]); // "Yes" goes to the branch
+        expected.extend(w(no));
+        expected.extend([33, 0]); // "No" to the end
+        expected.extend([OP_IF, COND_GOLD as u8, 5, 0, 0, 33, 0]);
+        expected.extend([OP_GOLD, 1, 5, 0, 0]);
+        expected.extend([OP_HEAL, 0, 0, 0, OP_DONE]);
+        assert_eq!(code, expected);
+    }
+
+    /// A map whose only event has a page that asks for variable `watched`.
+    fn watching(id: i32, watched: i32) -> crate::game::Map {
+        use crate::game::{Condition, Event, Page};
+        let page = Page {
+            trigger: 0,
+            layer: 1,
+            move_type: 0,
+            move_frequency: 3,
+            move_speed: 3,
+            animation_type: 0,
+            character_name: String::new(),
+            character_index: 0,
+            commands: Vec::new(),
+            route: Vec::new(),
+            route_repeat: false,
+            route_skippable: false,
+            condition: Condition {
+                variable: Some((watched, 8)),
+                ..Default::default()
+            },
+        };
+        crate::game::Map {
+            id,
+            events: vec![Event {
+                id: 1,
+                pages: vec![page],
+                starting: None,
+            }],
+        }
+    }
+
+    /// The operation byte of the one `ControlVars` write to variable 123 in
+    /// the page, compiled on `map`: the one that carries the refresh bit.
+    fn writing_123(map: &crate::game::Map, before: &[Command]) -> i64 {
+        let indices = Indices {
+            variables: BTreeMap::from([(123, 7)]),
+            ..Default::default()
+        };
+        let mut commands = before.to_vec();
+        commands.push(cmd(CONTROL_VARS, &[0, 123, 123, 0, 0, 8, 0], ""));
+        let code = on_this_map(&Game::default(), &indices, map, &commands).unwrap();
+        let writes: Vec<i64> = instructions(&code)
+            .filter(|&at| code[at] == OP_VAR)
+            .map(|at| code[at + 2] as i64)
+            .collect();
+        assert_eq!(writes.len(), 1, "{code:?}");
+        writes[0]
+    }
+
+    #[test]
+    fn a_write_after_jumping_to_another_map_asks_for_the_refresh() {
+        // A page that jumps to another map keeps running there, so what it
+        // writes afterwards is looked at by the pages **of the destination**:
+        // the write has to ask for the refresh, which is what is done when
+        // it is not known who looks. It is the chest that did not show up
+        // after a `Teleport` although its variable was already 8: the map
+        // the page was on did not look at it.
+        let quiet = crate::game::Map { id: 5, events: Vec::new() };
+        let jump = cmd(TELEPORT, &[7, 4, 7], "");
+        assert_ne!(writing_123(&quiet, &[jump]) & VAR_REFRESH, 0);
+    }
+
+    #[test]
+    fn without_jumping_a_write_asks_for_the_refresh_if_the_map_looks() {
+        // The control of the one above: on a map that does not look at 123,
+        // writing it asks for nothing; on one that does, it asks. And a
+        // jump **to the same** map does not change who looks.
+        let quiet = crate::game::Map { id: 5, events: Vec::new() };
+        assert_eq!(writing_123(&quiet, &[]) & VAR_REFRESH, 0);
+        assert_ne!(writing_123(&watching(5, 123), &[]) & VAR_REFRESH, 0);
+        let same = cmd(TELEPORT, &[5, 22, 12], "");
+        assert_eq!(writing_123(&quiet, &[same]) & VAR_REFRESH, 0);
+    }
+
+    // "Is the hero on the cell of variables 34 and 35?", as RM2k's parallel
+    // pages write it: the hero's y and x into 36 and 37, and two nested
+    // branches comparing them with 34 and 35. It is the shape of the forty
+    // cars of each lap of a race, aiming at the hero.
+    fn on_the_cell(body: &[(i32, i32, &[i32])]) -> Vec<Command> {
+        let at = |code: i32, indent: i32, p: &[i64]| {
+            Command::new(code, indent, "", p.iter().map(|&v| v as i32).collect())
+        };
+        let mut commands = vec![
+            at(CONTROL_VARS, 0, &[0, 36, 36, VAR_SET, VAR_CHARACTER, ROUTE_HERO, CHARACTER_Y]),
+            at(CONTROL_VARS, 0, &[0, 37, 37, VAR_SET, VAR_CHARACTER, ROUTE_HERO, CHARACTER_X]),
+            at(COND_BRANCH, 0, &[COND_VARIABLE, 36, 1, 34, CMP_EQUAL, 1]),
+            at(COND_BRANCH, 1, &[COND_VARIABLE, 37, 1, 35, CMP_EQUAL, 1]),
+        ];
+        commands.extend(body.iter().map(|&(code, indent, p)| Command::new(code, indent, "", p.to_vec())));
+        commands
+    }
+
+    const SWITCH_172: (i32, i32, &[i32]) = (CONTROL_SWITCHES, 2, &[0, 172, 172, 0]);
+
+    /// Each variable's slot: (34, 3), (35, 4), (36, 5), (37, 6).
+    fn on_the_cell_compiled(commands: &[Command]) -> Vec<u8> {
+        let indices = Indices {
+            variables: BTreeMap::from([(34, 3), (35, 4), (36, 5), (37, 6)]),
+            ..Default::default()
+        };
+        on_a_map_with(&indices, commands).expect("the page does not compile")
+    }
+
+    fn opcodes_of(code: &[u8]) -> Vec<u8> {
+        instructions(code).map(|at| code[at]).collect()
+    }
+
+    #[test]
+    fn the_four_of_the_cell_go_in_one_opcode() {
+        // The two writes and the two branches come out as a single
+        // `OP_CELL_TEST`, with what they would carry loose: the target, the
+        // four variables as offsets —the slot times two—, which coordinate
+        // goes to each, and the two destinations, which without an `else`
+        // are both the end of their branch.
+        let code = on_the_cell_compiled(&on_the_cell(&[SWITCH_172, (COND_END, 1, &[]), (COND_END, 0, &[])]));
+        assert_eq!(opcodes_of(&code), [OP_CELL_TEST, OP_SWITCH, OP_DONE]);
+        let refresh = CELL_REFRESH as usize;
+        assert_eq!(code[1], 0, "the target is the hero");
+        assert_eq!(word_at(&code, 2) & !refresh, 5 * 2 | CELL_Y as usize);
+        assert_eq!(word_at(&code, 4) & !refresh, 6 * 2);
+        assert_eq!((word_at(&code, 6), word_at(&code, 8)), (5 * 2, 3 * 2));
+        assert_eq!((word_at(&code, 12), word_at(&code, 14)), (6 * 2, 4 * 2));
+        let end = code.len() - 1; // the OP_DONE
+        assert_eq!(word_at(&code, CELL_DEST_A), end);
+        assert_eq!(word_at(&code, CELL_DEST_B), end);
+    }
+
+    #[test]
+    fn the_else_of_the_inner_branch_comes_from_its_destination() {
+        // With an `else` in the inner branch, its destination is the body of
+        // the `else` —after the `OP_GOTO` that takes the outer one out—, and
+        // the outer one's is still its end. It is the same patch as a loose
+        // branch's, on the opcode's second destination.
+        let code = on_the_cell_compiled(&on_the_cell(&[
+            SWITCH_172,
+            (COND_ELSE, 1, &[]),
+            (CONTROL_SWITCHES, 2, &[0, 173, 173, 0]),
+            (COND_END, 1, &[]),
+            (COND_END, 0, &[]),
+        ]));
+        let at: Vec<usize> = instructions(&code).collect();
+        assert_eq!(opcodes_of(&code), [OP_CELL_TEST, OP_SWITCH, OP_GOTO, OP_SWITCH, OP_DONE]);
+        let (goto, otherwise, end) = (at[2], at[3], at[4]);
+        assert_eq!(word_at(&code, CELL_DEST_B), otherwise);
+        assert_eq!(word_at(&code, goto + 1), end);
+        assert_eq!(word_at(&code, CELL_DEST_A), end);
+    }
+
+    #[test]
+    fn without_the_exact_shape_it_is_not_fused() {
+        // A comparison that is not equality, or a branch that is not the
+        // first thing inside the other, goes as before: four loose opcodes.
+        let body: [(i32, i32, &[i32]); 3] = [SWITCH_172, (COND_END, 1, &[]), (COND_END, 0, &[])];
+        let mut other = on_the_cell(&body);
+        other[3].parameters[4] = 1; // >=
+        let ops = opcodes_of(&on_the_cell_compiled(&other));
+        assert_eq!(ops[..4], [OP_VAR, OP_VAR, OP_IF_VAR, OP_IF_VAR]);
+
+        let mut beside = on_the_cell(&body);
+        beside[3].indent = 0; // the second one, next to the other
+        assert!(!opcodes_of(&on_the_cell_compiled(&beside)).contains(&OP_CELL_TEST));
     }
 
     #[test]
