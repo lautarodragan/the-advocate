@@ -132,6 +132,8 @@ lista, y todo lo nombrado tiene que existir: lo cobra
 * `rpgmaker/test_hablar_golden.py`: hablarle a algo: condiciones, giro, cola
 * `rpgmaker/test_condicional.py`: `ConditionalBranch`
 * `rpgmaker/test_rama_grupo.py`: `ConditionalBranch` "¿está en el grupo?"
+* `rpgmaker/test_etiquetas.py`: `Label` y `JumpToLabel`: hacia atrás, hacia
+  adelante, a una que no está y adentro de un `else`
 * `rpgmaker/test_cronometro_condiciones.py`: la rama y la condición de
   página por el cronómetro
 * `rpgmaker/test_borrar_evento.py`: `EraseEvent` después de un `Teleport`

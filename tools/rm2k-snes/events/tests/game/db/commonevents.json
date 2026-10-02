@@ -113,7 +113,7 @@
   "switch_id": 1,
   "event_commands": [
    {
-    "code": 12110,
+    "code": 12210,
     "indent": 0,
     "string": "",
     "parameters": [
