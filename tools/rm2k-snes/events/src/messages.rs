@@ -147,34 +147,11 @@ impl Pairs {
     }
 }
 
-/// The escape that starts a code, and the two this compiler knows how to
-/// run: a pause and "close without waiting".
-///
-/// The escape codes the game's text uses: `\|` is a pause and `\^` closes
-/// the box without waiting for the player to press anything. Both are time
-/// and not text, and since 2026-09-13 both are done: they travel in the
-/// box's header —see `HEADER_LINES`— and the ROM's interpreter reads them
-/// from there.
-///
-/// They are done for real and not by quietly deleting them, which was the
-/// cheap temptation: with `\^` the box closes on its own, so the ROM would
-/// be left waiting for an A that RM2k never asked for and the whole page
-/// would last as long as the player takes.
-///
-/// **Any other escape still does not compile**, and that is on purpose:
-/// drawing one as its letters would show. `\V[n]`, the value of a variable,
-/// is the exception, and it does not come through here: the compiler turns
-/// it into a mark before —see [`VARIABLE`]— and the ROM writes the digits
-/// when the box opens.
-const ESCAPE: char = '\\';
-const ESCAPE_PAUSE: char = '|';
-const ESCAPE_CLOSE: char = '^';
-
 /// How many pauses fit in the box's header: four bits. The most the game
 /// uses is three in a row (`\|\|\|\^`, twice, on map 108); more than fifteen
 /// does not fit in the high nibble and the page does not compile instead of
-/// lasting too little.
-pub const PAUSES_MAX: usize = 15;
+/// lasting too little. `rm2k-snes-text`'s number, with its escape tail.
+pub use rm2k_snes_text::refit::PAUSES_MAX;
 
 /// The header byte of a box: bits 0-2 are how many lines, bit 3 is "it
 /// closes on its own" and bits 4-7 how many pauses.
@@ -226,44 +203,29 @@ pub struct Window {
 /// at the end of a line does not draw a single pixel, so removing it does
 /// not change the screen.
 ///
-/// `rm2k-snes-text` has the same rule, in its `refit.rs`: that copy is the
-/// one the boxes are reflowed around for the console's window, before the
-/// compiler sees them. `tests/escapes.json` holds the two together.
+/// The escape codes the game's text uses: `\|` is a pause and `\^` closes
+/// the box without waiting for the player to press anything. Both are time
+/// and not text, and since 2026-09-13 both are done: they travel in the
+/// box's header —see `HEADER_LINES`— and the ROM's interpreter reads them
+/// from there.
+///
+/// They are done for real and not by quietly deleting them, which was the
+/// cheap temptation: with `\^` the box closes on its own, so the ROM would
+/// be left waiting for an A that RM2k never asked for and the whole page
+/// would last as long as the player takes.
+///
+/// **Any other escape still does not compile**, and that is on purpose:
+/// drawing one as its letters would show. `\V[n]`, the value of a variable,
+/// is the exception, and it does not come through here: the compiler turns
+/// it into a mark before —see [`VARIABLE`]— and the ROM writes the digits
+/// when the box opens.
+///
+/// **The rule is `rm2k-snes-text`'s**, `refit::escape_tail`, with its
+/// cases: the boxes are reflowed around it for the console's window before
+/// the compiler sees them, and the compiler cuts the tail off with the same
+/// one. What it cannot compile stops the page.
 pub fn escape_tail(lines: &[String]) -> Step<(Vec<String>, usize, bool)> {
-    let mut lines: Vec<String> = lines.to_vec();
-    let mut pauses = 0;
-    let mut auto_close = false;
-    if let Some(last) = lines.last() {
-        let text: Vec<char> = last.chars().collect();
-        let mut i = text.len();
-        let mut cut = text.len();
-        let mut escapes = 0;
-        while i > 0 {
-            if i >= 2
-                && text[i - 2] == ESCAPE
-                && (text[i - 1] == ESCAPE_PAUSE || text[i - 1] == ESCAPE_CLOSE)
-            {
-                i -= 2;
-                cut = i;
-                escapes += 1;
-            } else if text[i - 1] == ' ' {
-                i -= 1;
-            } else {
-                break;
-            }
-        }
-        if escapes > 0 {
-            let tail: String = text[cut..].iter().collect();
-            pauses = tail.matches("\\|").count();
-            auto_close = tail.contains("\\^");
-            let n = lines.len();
-            lines[n - 1] = text[..cut].iter().collect();
-        }
-    }
-    if lines.iter().any(|t| t.contains(ESCAPE)) || pauses > PAUSES_MAX {
-        return Err(Stop::Cannot);
-    }
-    Ok((lines, pauses, auto_close))
+    rm2k_snes_text::refit::escape_tail(lines).map_err(|_| Stop::Cannot)
 }
 
 /// The units of a line: each letter as its font index, that is ASCII minus

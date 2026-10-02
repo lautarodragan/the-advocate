@@ -180,5 +180,5 @@ two requests a caller would send for it, `tests/scan.json` and
 what the converter's Python compiler answered for them, which this
 replaced on 2026-09-29 after both gave the same bytes on every page of
 every cartridge of a whole game: **those hashes are not to be regenerated
-to make a test pass**. `tests/escapes.json` holds the escape tail of a
-text box to the copy `rm2k-snes-text` rebuilds boxes around.
+to make a test pass**. The escape tail of a text box is
+`rm2k-snes-text`'s, and its cases are there.
