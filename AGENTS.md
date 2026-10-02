@@ -710,8 +710,11 @@ que eran:
 * `IsActorInParty` daba que todos los actores están en el grupo.
 
 El arreglo es siempre el mismo: un `cmp #0` explícito entre el `pl*` y el salto.
-Vale la pena hacer `grep` de `pl[axy]` seguido de un salto condicional cada vez
-que algo "contesta siempre lo mismo".
+Desde el 2026-10-02 lo busca Goombario —`tools/snes/goombario/`— sobre cada
+cartucho armado, en `rom/pruebas/herramientas/test_linter.py`: un salto
+condicional sobre una bandera que dejó un `pl*` es rojo, salvo los que miran
+a propósito lo que se sacó, que están en `rom/excepciones-del-linter.txt` con
+su porqué. Uno nuevo de ésos va ahí, diciendo qué es lo sacado.
 
 ## Git
 
