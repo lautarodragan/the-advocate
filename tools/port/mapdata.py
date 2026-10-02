@@ -44,7 +44,7 @@ def _page_record(page):
             "animation_continues": bool(own["anim_continues"]),
             "frequency": own["frecuencia"], "speed": own["speed"],
             "orders": len(own["ordenes"])},
-        "oam": list(page["oam"]) if page.get("oam") is not None else None,
+        "draws": page.get("draws"),
         "variable": (list(page["variable"])
                      if page.get("variable") is not None else None),
         "graphic": list(graphic) if graphic else None,

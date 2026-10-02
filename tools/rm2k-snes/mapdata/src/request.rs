@@ -407,15 +407,31 @@ pub struct Page {
     pub speed: i64,
     pub fixed_direction: bool,
     pub own_route: Option<OwnRoute>,
-    /// What it draws, as the console's OAM wants it: tile, attributes,
-    /// pose and passage.
-    pub oam: Option<[u8; 4]>,
+    /// What it draws, for an event that changes graphic: see [`Draws`].
+    /// The emission writes it as the console's OAM wants it
+    /// ([`crate::objects::page_oam`]).
+    pub draws: Option<Draws>,
     /// The variable condition: slot, comparison and against what.
     pub variable: Option<(i64, i64, i64)>,
     /// Its graphic, `[CharSet, index, pose]`, and whether it turns toward
     /// the hero.
     pub graphic: Option<(String, i64, i64)>,
     pub turns: bool,
+}
+
+/// What a page of an event that changes graphic draws, as the map's
+/// conversion placed it.
+#[derive(Deserialize)]
+pub struct Draws {
+    /// The 32x32 block of the sprite bank its poses start at, and its
+    /// palette; no block for an event that only appears, whose own row
+    /// already points at its poses.
+    pub block: Option<u32>,
+    #[serde(default)]
+    pub palette: u32,
+    /// The pose it shows, and the passage its tile imposes on its cell.
+    pub pose: u32,
+    pub tile_pass: Option<u32>,
 }
 
 /// The route a page walks by itself.

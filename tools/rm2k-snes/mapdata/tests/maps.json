@@ -257,7 +257,7 @@
       "speed": 3,
       "orders": 4
      },
-     "oam": null,
+     "draws": null,
      "variable": null,
      "graphic": [
       "People1",
@@ -282,12 +282,12 @@
      "speed": 4,
      "fixed_direction": false,
      "own_route": null,
-     "oam": [
-      1,
-      2,
-      133,
-      255
-     ],
+     "draws": {
+      "block": 5,
+      "palette": 1,
+      "pose": 5,
+      "tile_pass": null
+     },
      "variable": [
       5,
       1,
@@ -316,7 +316,7 @@
      "speed": 3,
      "fixed_direction": true,
      "own_route": null,
-     "oam": null,
+     "draws": null,
      "variable": null,
      "graphic": null,
      "turns": false

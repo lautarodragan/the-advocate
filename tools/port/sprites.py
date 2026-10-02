@@ -21,22 +21,6 @@ from port import events
 from rpgmaker import rm2k
 
 
-# The priorities for objects, already shifted into place in the vhoopppN
-# byte: the priority is bits 5 and 4, not 0 and 1: writing $20 thinking it
-# is priority 1 gives priority 2, and in the order of mode 3 —see
-# `PRIORITY_ABOVE` in the `cgram.rs` of `rm2k-snes-mapdata`— that one extra place
-# crosses exactly the upper layer. Nothing fails and the sprite is still
-# visible: only on the wrong side of a layer, that is covering the roof it
-# should be walking under.
-#
-# The ROM gets the hero's in HERO_PRIORITY and each NPC's comes built into its
-# attribute byte; they are not written in `tools/runtime/` too. The emission
-# has its copy, `objects.rs` in `rm2k-snes-mapdata`, until what a page draws
-# —`oam` in `snes_convert`— is built there as well.
-OBJ_PRIORITY = 0x10                      # priority 1: below BG2 1
-OBJ_PRIORITY_ABOVE = 0x20                # priority 2: above it
-
-
 # --- the NPCs ---------------------------------------------------------------
 #
 # They are the map events that have a CharSet, standing still in the pose their
@@ -48,13 +32,6 @@ OBJ_PRIORITY_ABOVE = 0x20                # priority 2: above it
 # line cannot have more than 34 8x8 sprite tiles; a 32x32 object contributes 4,
 # so from nine characters together onward the console starts not drawing the
 # last ones.
-
-BLOCKS_PER_ROW = 4              # 4x4-tile blocks that fit in the grid
-
-
-def block_tile(block):
-    """The tile number where a 32x32 block starts."""
-    return (block // BLOCKS_PER_ROW) * 64 + (block % BLOCKS_PER_ROW) * 4
 
 
 def discard_warning(text, dangerous):
