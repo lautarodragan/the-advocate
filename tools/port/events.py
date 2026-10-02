@@ -544,13 +544,8 @@ COND_VARIABLE = 1
 # RAIN_LIFE (engine.rs).
 # RAIN_SPAWN (engine.rs): out of 256
 # RAIN_SEED (engine.rs).
-RAIN_COLORS = ((16, 16, 18), (11, 11, 13), (6, 6, 7))   # 5-bit
-
-
-def rain_pixels(x, y):
-    """The pixels of a drop with its corner at (x, y): a 4x16 streak going
-    down to the left, one pixel every four rows."""
-    return [(x + 3 - r // 4, y + r) for r in range(16)]
+# The drop's three greys and its streak: `RAIN_COLORS` and `rain_pixels` in
+# `rm2k-snes-map-sprites`' `extras.rs`, which draws it.
 
 
 # The battle animations on the map, since 2026-09-11: their sounds and their
@@ -1015,10 +1010,6 @@ def next_random(x):
 # RM2k's gold cap: `Game_Party::GainGold` clamps to `MaxGoldValue()`, which
 # by default is this.
 # GOLD_MAX (engine.rs).
-
-# The cursor, and what is put in front of the options that do not have it so
-# the text does not shift from line to line.
-CHOICE_CURSOR = ">"
 
 
 class Troops:
