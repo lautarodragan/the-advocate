@@ -17,7 +17,7 @@ conversor cobra que entren. Los niveles y las habilidades salen de
 `experience.add_exp` y del LDB, no de acá.
 """
 
-from port import experience
+import experience
 
 from batalla import (ARDEN, GRUPO, Pelea, en_el_droide, paginas, poner_exp,
                      primera_pagina)

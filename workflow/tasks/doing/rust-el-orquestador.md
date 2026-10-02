@@ -184,3 +184,42 @@ Python sobre el juego (`queries_check.py`): el scan de todos los mapas, con
 una variable de más y con un caso; los líderes de la apertura; el contexto
 de los mapas 2, 11 y 32 —con forks y ChipSets del fork—; una página suelta;
 los disparadores de una tropa; las cajas. Todo igual.
+
+**Lo que leen las pruebas, a su arnés.** Lo que del Python de `tools/` leían
+sólo las pruebas de ABL se mudó con `git mv` a `rom/pruebas/arnes/`, que es
+de ellas, sin traducirlo —está en inglés y se queda en inglés—:
+
+* el lector del volcado (`lcf.py`), los forks (`fork.py`, ahora sólo dice
+  dónde está cada archivo: validarlos es del conversor) y las reglas que las
+  pruebas usan de oráculo (`rm2k.py`, `render_map.py`, `experience.py`),
+  sin los ganchos que les ponía el conversor —`REFIT_TEXTS`,
+  `DECORATE_TRANSLUCENT`— ni lo que sólo él usaba;
+* los modelos y las constantes (`events.py`, `engine.py`), el bytecode
+  (`event_opcodes.py`, que ahora genera una prueba de ABL desde la
+  declaración: `test_el_modulo_de_los_opcodes_esta_al_dia`), y los clientes
+  de las etapas que las pruebas usan (`stage.py`, `screen_stage.py`,
+  `image_stage.py`, `scene.py`, `animation.py`, `snes_format.py`,
+  `resources.py`, `parallel.py`).
+
+Lo que preguntaban al compilador y a `game_scan` pasó a `arnes/conversor.py`,
+que le pregunta al binario. Las pruebas que importaban `port.snes_convert`
+sólo por sus ganchos dejaron de hacerlo; la que miraba que el gancho del
+reajuste estuviera puesto ahora mira que el conversor le dé al compilador
+las cajas largas del mapa 2 rearmadas (`test_textos_del_juego.py`).
+
+Pruebas que se mudaron a Rust, porque miran lo que el conversor hace con
+cualquier proyecto y no el juego:
+
+* de `test_fork_mapas.py`, las siete del fork a medias, el id cambiado, el
+  mapa que no existe y los mapas nuevos → `fork.rs`; las tres de la receta
+  del ChipSet —podar respeta lo que sólo nombra un evento, se planta con
+  `TileSubstitution`, `desde_imagen` a quince bits y compuesto— →
+  `chipsets.rs`;
+* `tools/tests/test_substitutions.py` → `convert.rs` (`SUB_MAX` contra
+  `low_ram.s`).
+
+Y una que se fue: `tools/tests/test_rm2k_rules.py` sostenía la copia de
+Python de las reglas contra la de Rust para el conversor; las reglas del
+conversor son las de Rust, y lo que queda en Python es el oráculo de las
+pruebas, que se compara contra la ROM. `rm2k-rules` sigue sosteniendo sus
+respuestas con `tests/python.json`.

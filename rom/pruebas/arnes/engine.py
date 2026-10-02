@@ -14,7 +14,7 @@ A list comes back as a tuple, which is what those names always were.
 
 import json
 
-from port import stage
+import stage
 
 BINARY = "rm2k-snes-mapdata"
 PROJECT = "mapdata"

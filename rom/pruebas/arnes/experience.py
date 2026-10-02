@@ -22,13 +22,13 @@ is Python's `float`, which is the same 64-bit IEEE 754, and the truncation
 of C++'s `(int)` is Python's `int()`. There is no approximation to declare.
 
 The table is written by `rm2k-snes-battle`, with the same functions in Rust,
-which are `rm2k-rules`' (`tools/rm2k/rules/src/actor.rs`). These stay for the
-menus and for the tests, which demand that the ROM gives what they give; and
-`tools/tests/test_rm2k_rules.py` holds them to the answers the Rust copy is
-held to: so the two copies cannot drift apart unnoticed.
+which are `rm2k-rules`' (`src/actor.rs`). These stay for the
+tests, which demand that the ROM gives what they give: the converter's copy,
+which a test held to the Rust one, went with the converter's Python on
+2026-10-02, and what is left is the tests' oracle.
 """
 
-from port.constants import ENEMIES_MAX
+import engine
 
 # RM2k's `MaxExpValue()` and `MaxLevel()`: `easyrpg_max_exp` and
 # `easyrpg_max_level` come as -1 in an RM2k LDB, and with that these apply.
@@ -116,4 +116,4 @@ def troop_exp(db, troop):
     subtracts the hidden ones' when winning: see `ba_no_hidden` and
     `Battle::experience` in `rm2k-snes-battle`."""
     return sum(db.enemies[e].exp
-               for e in db.troops[troop].members[:ENEMIES_MAX])
+               for e in db.troops[troop].members[:engine.ENEMIES_MAX])

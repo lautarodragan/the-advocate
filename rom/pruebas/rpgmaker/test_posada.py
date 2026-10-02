@@ -160,7 +160,7 @@ def test_la_pagina_del_bum_compila_y_trae_los_opcodes_de_la_posada():
     `a_free_inn_is_only_the_heal`.
     """
     from datos import pagina_de
-    from port import events
+    import events
     codigo = pagina_de(20, 4, 0)
     assert codigo is not None, "la página del bum no compila"
     saludo, si, no = (_palabra(codigo, 4), _palabra(codigo, 9),

@@ -4,7 +4,7 @@ and the shape its answer takes for the converter.
 **The pixels are the stage's**: scaling with Pillow's LANCZOS, the
 console's tint, stacking an animation's cells, bringing the colours down
 and handing back indices and palette —see its README,
-`tools/rm2k-snes/images/`—. What stays here is which pictures, found in the
+`rm2k-snes/images/`—. What stays here is which pictures, found in the
 game's folder or the RTP, and the sizes the cartridge decided, which are
 the constants of `scene.py`, `animation.py`, `picture.py` and
 `constants.py` that the emission also writes for the ROM: they travel in
@@ -14,7 +14,7 @@ the request so they are written in one place.
 import json
 import os
 
-from port import stage
+import stage
 
 BINARY = "rm2k-snes-images"
 PROJECT = "images"
@@ -79,7 +79,7 @@ def background(path, use_transparent_color, cx, cy, rm_screen, screen,
 
 
 def _scene():
-    from port import scene as E
+    import scene as E
     return {"width": E.WIDTH, "height": E.HEIGHT, "colors": E.COLORS,
             "cgram_base": E.CGRAM_BASE, "light_scale": E.FALLBACK_SCALE,
             "light_colors": E.FALLBACK_COLORS,
@@ -113,8 +113,8 @@ def animations(wanted, game_dir):
     """Each of `wanted` —`(number, sheet)`— as the stage answers it, or
     None if nothing of it is drawn. The animation itself is read from the
     game's dump."""
-    from port import animation as A
-    from port.screen_stage import dump_of
+    import animation as A
+    from screen_stage import dump_of
     if not wanted:
         return []
     return _answer("animations", {

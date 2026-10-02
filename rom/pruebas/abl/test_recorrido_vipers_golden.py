@@ -62,7 +62,7 @@ están bendecidas**: son para que taro las mire. Ver `Recorrido.foto`.
 """
 
 from recorrido import A_CADA
-from port import events
+import events
 
 # El switch que prende el despertador de Talan —"se levantó y va a trabajar"—.
 # No es decoración: la página 0 del hotplate lo pide, y las tres del caño

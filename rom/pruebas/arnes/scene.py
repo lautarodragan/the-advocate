@@ -13,7 +13,7 @@ already on top. That multiplied images per combination —six in `abl`, over
 four backdrops— and a dead enemy was still visible. Since that day, taro's
 idea, the cartridge carries **each backdrop once and each battler once**,
 and the console composites them when the battle starts. See `scene_upload`
-in tools/runtime/battle_scene.s.
+in runtime/battle_scene.s.
 
 It is still a single 8bpp layer on BG1, and that is what buys the same as
 before:
@@ -50,7 +50,7 @@ That they are fifteen colors **is an artistic decision**: color is lost
 compared with the baked scene, where the battlers shared the 96 entries with
 the backdrop. What was merged with what is written per battler in
 `rom/parches/auto/battlers/`, like the map layers. See
-`rm2k-snes-patches`, in `tools/rm2k-snes/patches/`.
+`rm2k-snes-patches`, in `rm2k-snes/patches/`.
 
 The edge changes too: before, the battler blended with the backdrop when
 shrunk —`alpha_composite`— and now each pixel is either the battler's or the
@@ -148,7 +148,7 @@ doubles the small one with the CPU: each pixel twice across and each row
 twice down. From there on everything is the same —compositing, erasing a
 dead one, uploading to VRAM—, because what is left in WRAM is an 8bpp
 backdrop like the `.msu` one. See `scn_fill` and `scn_double` in
-tools/runtime/battle_scene.s, and `fallback_bytes` in battle_scenes.py for
+runtime/battle_scene.s, and `fallback_bytes` in battle_scenes.py for
 the order the bytes travel in, which is the one that saves the ROM math.
 
 The other way out was for the `.msu` to carry 4bpp too, "more quality within
@@ -237,7 +237,7 @@ def _file(game_dir, folder, name, rtp=False):
     it was not needed because the ROM's three are the game's. The battlers
     still do not look there, so as not to change which ones get in without
     looking at it."""
-    from rpgmaker import resources
+    import resources
     places = [game_dir] + ([resources.RTP_DIR] if rtp else [])
     path = resources.find_resource(places, folder, name,
                                    (".png", ".bmp", ".xyz"))
@@ -257,7 +257,7 @@ def game_backdrops(named, tree, terrains, game_dir):
     nor in the RTP is left out: in RM2k that battle has no backdrop. Returns
     the names as the game writes them the first time, in that order.
     """
-    from rpgmaker import resources
+    import resources
     every = set(named)
     every |= {name for kind, name in tree.background.values()
               if kind == 2 and name}
@@ -310,7 +310,7 @@ def backdrops(names, game_dir, quality=True, light=True):
     """`backdrop` and `light_backdrop` of each of `names`, with a single call
     to the stage: `(quality, light)` per name, None where the game does not
     have it or it was not asked for."""
-    from port import image_stage
+    import image_stage
     paths = [_file(game_dir, "Backdrop", name, rtp=True) for name in names]
     found = [(p, quality, light) for p in paths if p is not None]
     answers = iter(image_stage.backdrops(found))
@@ -376,7 +376,7 @@ def battler(name, hue, game_dir):
 def battlers(wanted, game_dir):
     """`battler` of each `(name, hue)` of `wanted`, with a single call to the
     stage."""
-    from port import image_stage
+    import image_stage
     paths = [_file(game_dir, "Monster", name) for name, _hue in wanted]
     answers = iter(image_stage.battlers(
         [(p, hue) for p, (_n, hue) in zip(paths, wanted) if p is not None]))
@@ -489,3 +489,22 @@ def battler_report(info):
     return {"clave": info["clave"], "ancho": info["ancho"],
             "alto": info["alto"], "bytes": len(battler_bytes(info)),
             "colores": info["colores"], "quedan": len(info["paleta"])}
+
+
+
+def backdrop_bytes(info):
+    """A battle backdrop as the console reads it: `(tiles, colors)`, its 512
+    8bpp tiles in tilemap order and its `COLORS` 15-bit colors, padded with
+    black. It was `port/battle_scenes.py`'s, which wrote them for the
+    `.msu`; the converter writes them now, `scene.rs` in
+    `rm2k-snes-convert`."""
+    from snes_format import cgram_word, pack_tile
+    tiles_ = bytearray()
+    for cell in tiles(info["indices"]):
+        tiles_ += pack_tile(cell, planes=8)
+    colors = list(info["paleta"])
+    colors += [(0, 0, 0)] * (COLORS - len(colors))
+    cgram = bytearray()
+    for color in colors:
+        cgram += cgram_word(color).to_bytes(2, "little")
+    return bytes(tiles_), bytes(cgram)

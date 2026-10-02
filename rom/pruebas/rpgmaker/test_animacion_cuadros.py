@@ -18,10 +18,11 @@ camino que se prueba.
 
 import pytest
 
-from port import animation, events
-from port.battle_animations import animation_frame
-from render.render_map import Renderer
-from rpgmaker.resources import GAME_DIR
+import animation
+import events
+from animation import animation_frame
+from render_map import Renderer
+from resources import GAME_DIR
 
 from consola import en_la_rom, en_la_wram
 from tanda import partida

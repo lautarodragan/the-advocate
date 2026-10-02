@@ -21,8 +21,9 @@ layout`.
 import json
 import types
 
-from port import screen_stage, stage
-from rpgmaker.resources import GAME_DIR
+import screen_stage
+import stage
+from resources import GAME_DIR
 
 BINARIO = "rm2k-snes-battle"
 PROYECTO = "battle"

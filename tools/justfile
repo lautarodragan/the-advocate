@@ -40,10 +40,11 @@ rust_layers := "snes rm2k rm2k-snes"
 # The event opcodes: their number and their layout. The declaration lives in
 # `snes/protocol/events.toml` and belongs neither to the compiler nor to the
 # interpreter; from it are generated, all committed: the two `.inc` files of
-# `tools/runtime/`, the two Rust modules (the event compiler's and
-# `rm2k-snes/rm2k-snes-audio/`'s), and the event opcodes' Python module, which
-# the converter still reads. There are two declarations:
-# the event bytecode and the music stream the SPC700 reads.
+# `tools/runtime/` and the two Rust modules (the event compiler's and
+# `rm2k-snes/rm2k-snes-audio/`'s). A game whose tests read the bytecode in
+# another language generates its own module from the same declaration. There
+# are two declarations: the event bytecode and the music stream the SPC700
+# reads.
 #
 # The event one takes `--jump-table`: that produces `run_code`'s dispatch
 # table, so a new opcode touches the interpreter only in its `.proc op_x`.
@@ -52,7 +53,7 @@ rust_layers := "snes rm2k rm2k-snes"
 # `--check` is what the suite runs: it fails if any of them is stale.
 protocol *args:
   protocol snes/protocol/events.toml \
-      --python port/event_opcodes.py --asm runtime/event_opcodes.inc \
+      --asm runtime/event_opcodes.inc \
       --rust rm2k-snes/events/src/opcodes.rs --jump-table {{args}}
   protocol snes/protocol/music.toml \
       --asm runtime/music_opcodes.inc \

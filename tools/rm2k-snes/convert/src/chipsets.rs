@@ -20,7 +20,7 @@
 //! there takes an index the ChipSet does not use.
 
 use crate::fail::{io, Result, Stop};
-use crate::game::Game;
+use crate::game::{Game, GameMap};
 use rm2k_rules::chipset::{common_origin, terrain_origin, TILE};
 use serde_json::Value;
 use std::collections::{BTreeSet, HashMap};
@@ -134,8 +134,8 @@ fn corner(b: (usize, usize, usize, usize)) -> (usize, usize) {
 /// without a CharSet is drawn with a tile from the upper page, which does
 /// not appear on any layer: pruning without counting them once lost a
 /// slot, and the byte-for-byte comparison caught it, not a test.
-fn what_it_draws(game: &Game, map_id: i32) -> Result<(bool, BTreeSet<i32>, BTreeSet<i32>)> {
-    let map = game.map(map_id)?;
+fn what_it_draws(map: &GameMap) -> Result<(bool, BTreeSet<i32>, BTreeSet<i32>)> {
+    let map_id = map.id;
     let mut water = false;
     let (mut terrains, mut commons) = (BTreeSet::new(), BTreeSet::new());
     for layer in [&map.lower_layer, &map.upper_layer] {
@@ -173,8 +173,8 @@ fn what_it_draws(game: &Game, map_id: i32) -> Result<(bool, BTreeSet<i32>, BTree
 
 /// Erases from the ChipSet everything that map does not draw. It cannot
 /// change what is seen —it erases tiles the map does not name—.
-fn prune(game: &Game, image: &mut Indexed, map_id: i32) -> Result<()> {
-    let (water, terrains, commons) = what_it_draws(game, map_id)?;
+fn prune(map: &GameMap, image: &mut Indexed) -> Result<()> {
+    let (water, terrains, commons) = what_it_draws(map)?;
     if !water {
         image.paste(&Indexed::blank(WATER_BOX.2, WATER_BOX.3), (WATER_BOX.0, WATER_BOX.1));
     }
@@ -247,8 +247,14 @@ fn int(v: &Value) -> i64 {
 }
 
 /// Builds the PNG of a ChipSet the project adds and returns its path.
-/// `find(folder, name)` finds the originals.
-fn build(game: &Game, data: &Value, out_dir: &Path, find: &dyn Fn(&str, &str) -> Option<PathBuf>) -> Result<PathBuf> {
+/// `find(folder, name)` finds the originals, and `map_of` reads the map a
+/// pruning looks at —the forked one—.
+fn build(
+    data: &Value,
+    out_dir: &Path,
+    find: &dyn Fn(&str, &str) -> Option<PathBuf>,
+    map_of: &dyn Fn(i32) -> Result<GameMap>,
+) -> Result<PathBuf> {
     let recipe = &data["imagen"];
     let number = int(&data["chipset"]["id"]);
     let base = recipe["base"].as_str().unwrap_or("");
@@ -259,7 +265,7 @@ fn build(game: &Game, data: &Value, out_dir: &Path, find: &dyn Fn(&str, &str) ->
     // The pruning first, because it frees palette indices the operations
     // below need, and because it reads the **forked** map.
     if let Some(map) = recipe.get("podar") {
-        prune(game, &mut image, int(map) as i32)?;
+        prune(&map_of(int(map) as i32)?, &mut image)?;
     }
     for pair in recipe["bloques_bajos"].as_array().cloned().unwrap_or_default() {
         let block = image.crop(terrain_box(int(&pair[0]) as i32));
@@ -392,7 +398,122 @@ fn build(game: &Game, data: &Value, out_dir: &Path, find: &dyn Fn(&str, &str) ->
 pub fn build_images(game: &Game, out_dir: &Path, search_dirs: &[PathBuf]) -> Result<()> {
     let find = |folder: &str, name: &str| crate::resources::find(search_dirs, folder, name, &[".png", ".bmp"]);
     for (_path, data) in game.forks.chipsets.values() {
-        build(game, data, out_dir, &find)?;
+        build(data, out_dir, &find, &|id| game.map(id))?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::game::{Command, Event, Page};
+    use serde_json::json;
+
+    fn page(name: &str, index: i32, commands: Vec<Command>) -> Page {
+        Page {
+            id: 1,
+            character_name: name.to_string(),
+            dump_name: name.to_string(),
+            character_index: index,
+            direction: 2,
+            pattern: 1,
+            layer: 0,
+            animation_type: 0,
+            commands,
+        }
+    }
+
+    fn map(lower: Vec<i16>, upper: Vec<i16>, pages: Vec<Page>) -> GameMap {
+        GameMap {
+            id: 32,
+            chipset_id: 55,
+            width: 2,
+            height: 1,
+            events: vec![Event { id: 1, x: 0, y: 0, pages }],
+            lower_layer: lower,
+            upper_layer: upper,
+        }
+    }
+
+    #[test]
+    fn pruning_keeps_the_slots_only_an_event_names() {
+        // An event without a CharSet is drawn with a tile of the upper
+        // page, which is on no layer: pruning without counting it once lost
+        // a slot, and the byte-for-byte comparison caught it, not a test.
+        let m = map(vec![4050, 5003], vec![10007, 10000], vec![page("", 13, vec![]), page("Hero", 13, vec![])]);
+        let (water, terrains, commons) = what_it_draws(&m).unwrap();
+        assert!(!water);
+        assert_eq!(terrains, BTreeSet::from([1]));
+        assert_eq!(commons, BTreeSet::from([3, 144, 144 + 7, 144 + 13]));
+    }
+
+    #[test]
+    fn pruning_stops_if_the_map_picks_tiles_at_run_time() {
+        // With `ChangeMapTileset` or `TileSubstitution` the layers stop
+        // saying what the map draws: it stops instead of guessing.
+        let substitution = Command { code: 11750, indent: 0, string: String::new(), parameters: vec![0] };
+        let m = map(vec![5000, 5000], vec![10000, 10000], vec![page("", 0, vec![substitution])]);
+        let refusal = what_it_draws(&m).err().unwrap().message;
+        assert!(refusal.contains("TileSubstitution"), "{refusal}");
+    }
+
+    /// An indexed PNG of `width` by `height`, all `fill`, with `palette`.
+    fn indexed(width: usize, height: usize, fill: u8, palette: &[[u8; 3]]) -> Indexed {
+        let mut colors = palette.to_vec();
+        colors.resize(256, [0, 0, 0]);
+        Indexed { width, height, pixels: vec![fill; width * height], palette: colors }
+    }
+
+    #[test]
+    fn a_picture_comes_in_at_fifteen_bits_and_composes_over_its_base() {
+        // The three things `desde_imagen` has to do right, none of which
+        // fails on its own: scale by nearest neighbour, as RM2k does; round
+        // to fifteen bits, which is what makes a drawing fit in the 256
+        // indices; and compose over the slot it is given instead of
+        // overwriting it.
+        let dir = std::env::temp_dir().join(format!("convert-chipset-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        // A ChipSet with upper slot 5 painted its only colour.
+        let mut base = indexed(480, 256, 0, &[[0, 0, 0], [7, 7, 7]]);
+        base.paste(&indexed(16, 16, 1, &[]), corner(common_box(144 + 5)));
+        base.write(&dir.join("base.png")).unwrap();
+        // And a 32x32 drawing whose top left quarter has a colour that is
+        // not a multiple of 8, so the rounding shows.
+        let mut drawing = indexed(32, 32, 0, &[[255, 0, 255], [250, 130, 66]]);
+        drawing.paste(&indexed(16, 16, 1, &[]), (0, 0));
+        drawing.write(&dir.join("drawing.png")).unwrap();
+        let data = json!({
+            "chipset": {"id": 999, "chipset_name": "out"},
+            "imagen": {
+                "base": "base",
+                "desde_imagen": {
+                    "carpeta": "Picture", "imagen": "drawing", "escala": 50,
+                    "desfase": [0, 0],
+                    // Slot 6 is overwritten; slot 7 composes over 5's drawing.
+                    "celdas": [[0, 0, 6], [0, 0, 7, 5]],
+                },
+            },
+        });
+        let (chip, pic) = (dir.join("base.png"), dir.join("drawing.png"));
+        let find = move |folder: &str, _name: &str| Some(if folder == "ChipSet" { chip.clone() } else { pic.clone() });
+        let out = build(&data, &dir.join("build"), &find, &|_| unreachable!()).unwrap();
+        let built = Indexed::read(&out).unwrap();
+        let color = |slot: i32, x: usize, y: usize| {
+            let (cx, cy) = corner(common_box(144 + slot));
+            let index = built.get(cx + x, cy + y);
+            (index, built.palette[index as usize])
+        };
+        // At 50% the 32x32 drawing is 16x16: its top left 8x8 painted and
+        // the rest transparent.
+        let (index, rgb) = color(6, 0, 0);
+        assert_ne!(index, 0, "the drawing fell on index 0, the transparent one");
+        assert_eq!(rgb, [248, 128, 64], "it did not round to fifteen bits");
+        assert_eq!(color(6, 12, 12).0, 0, "the drawing's transparency painted something");
+        // Slot 7 starts from 5's drawing and the new one covers it only
+        // where it paints.
+        assert_eq!(color(7, 0, 0).1, [248, 128, 64], "it did not compose over the base");
+        assert_eq!(color(7, 12, 12).1, [7, 7, 7], "composing erased the base");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }

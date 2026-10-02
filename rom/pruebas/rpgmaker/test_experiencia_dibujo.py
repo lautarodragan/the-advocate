@@ -8,7 +8,7 @@ cartucho, así que lo que se cobra acá es que la ROM la lea bien, sume bien y
 suba cuando tiene que subir.
 """
 
-from port import experience
+import experience
 
 from batalla import (ARDEN, GRUPO, TROPA_DROIDE, Pelea, en_el_droide,
                      exp_y_nivel, poner_exp, ranura_exp)

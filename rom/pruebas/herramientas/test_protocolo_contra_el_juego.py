@@ -1,19 +1,23 @@
 """El bytecode de los eventos, contra lo que sólo tiene el juego: los
-cartuchos armados y las páginas de los 328 mapas.
+cartuchos armados y las páginas de los 328 mapas; y el módulo de Python con
+el que las pruebas leen el bytecode, que es de ellas.
 
-Lo que no necesita ni una cosa ni la otra —que los generados estén al día,
-que las dos puntas digan los mismos números, los largos del layout— son
-pruebas de las herramientas, y viven con ellas.
+Lo que no necesita ni una cosa ni la otra —que los generados de las
+herramientas estén al día, que las dos puntas digan los mismos números, los
+largos del layout— son pruebas de las herramientas, y viven con ellas.
 """
 
 import os
+import subprocess
 
 import pytest
 
-from port import event_opcodes
-from port import compiler, events
-from rpgmaker import lcf, rm2k
-from rpgmaker.resources import GAME_DIR
+import event_opcodes
+import conversor
+import events
+import lcf
+import rm2k
+from resources import GAME_DIR
 import cartuchos
 import datos
 import tanda
@@ -22,6 +26,26 @@ import tanda
 def declarados(modulo):
     return {n: v for n, v in vars(modulo).items()
             if n.startswith("OP_") and isinstance(v, int)}
+
+
+def test_el_modulo_de_los_opcodes_esta_al_dia():
+    """`arnes/event_opcodes.py` sale de la declaración de las herramientas,
+    `snes/protocol/events.toml`, con `protocol`; está commiteado, como los
+    demás generados, y esto es lo que lo cuida. Se regenera con
+
+        protocol <la declaración, snes/protocol/events.toml> --python arnes/event_opcodes.py
+
+    Hasta el 2026-10-02 lo generaba la receta `protocol` de las
+    herramientas, cuando lo leía el conversor; desde que el conversor es de
+    Rust lo leen sólo estas pruebas."""
+    declaracion = os.path.join(os.path.dirname(cartuchos.runtime()), "snes",
+                               "protocol", "events.toml")
+    hecho = subprocess.run(
+        ["protocol", declaracion, "--check", "--python", event_opcodes.__file__],
+        capture_output=True, text=True)
+    assert hecho.returncode == 0, (
+        "arnes/event_opcodes.py no es lo que da la declaración:\n%s%s"
+        % (hecho.stdout, hecho.stderr))
 
 
 def desde_la_rom(datos, direccion):
@@ -78,13 +102,13 @@ def test_la_entrada_k_de_la_tabla_salta_al_manejador_del_opcode_k(nombre):
 def paginas_del_juego():
     """Todas las páginas disparables de los 328 mapas, ya compiladas: cada
     una sola, en un cartucho con todos. Es la primera llamada del compilador
-    —ver `compiler.scan`—, que arma los índices del juego entero antes de
+    —ver `conversor.escaneo`—, que arma los índices del juego entero antes de
     compilar la primera."""
     todo = datos.todo_el_juego()
     for entrada in todo["maps"]:
         mapa = entrada["id"]
         game_map = lcf.Map(os.path.join(GAME_DIR, "Map%04d.lmu" % mapa))
-        compiladas = compiler.compiled_pages(todo, mapa)
+        compiladas = conversor.paginas_compiladas(todo, mapa)
         for e, ev in enumerate(game_map.events):
             for numero, page in enumerate(ev.pages):
                 # Las que la ROM sabe disparar: las cuatro, y la de tocar

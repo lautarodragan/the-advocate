@@ -92,7 +92,7 @@ _CACHE = {}
 def sheet_file(renderer, anim):
     """The path of this animation's `Battle` sheet, or None if it has none
     or it is not there."""
-    from rpgmaker import resources
+    import resources
     name = anim.get("imagen") or ""
     if not name:
         return None
@@ -122,7 +122,8 @@ def by_numbers(renderer, numbers):
     reads each animation from the game's dump and does all of `convert`:
     RM2k's cells, toned, stacked, shrunk into the box and reduced.
     """
-    from port import events, image_stage
+    import events
+    import image_stage
     new = sorted(set(numbers) - set(_CACHE))
     wanted = []
     for number in new:
@@ -207,3 +208,15 @@ def report(number, info):
         "colores": len(info["paleta"]),
         "bytes": len(info["cuadros"]) * TILES * 32,
     }
+
+
+
+def animation_frame(frame):
+    """The 2 KB of a battle animation frame as they end up in VRAM: the box's
+    64 4bpp tiles, in order. It was `port/battle_animations.py`'s, which
+    wrote them for the emission."""
+    from snes_format import pack_tile
+    data = bytearray(TILES * 32)
+    for tile, cell in cells(frame).items():
+        data[tile * 32:(tile + 1) * 32] = pack_tile(cell, planes=4)
+    return bytes(data)

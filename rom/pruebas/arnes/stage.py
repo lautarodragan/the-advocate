@@ -21,9 +21,8 @@ import tempfile
 
 MISSING = """`%s` is missing, one of the converter's stages.
 
-It is a Rust binary of the suite, and is installed as a system tool:
-
-    just -f tools/justfile install %s"""
+It is a Rust binary of the suite, and is installed as a system tool,
+with the suite's `install`: its project is `%s`."""
 
 
 def run(binary, project, command, request, *flags, raw=False):

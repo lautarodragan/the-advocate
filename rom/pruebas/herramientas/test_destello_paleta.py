@@ -24,18 +24,11 @@ import collections
 
 import pytest
 
-from render import render_map
-from rpgmaker import resources
-# Por los ganchos que pone en `lcf` al importarse: los mapas se leen como
-# los lee el conversor.
-from port import snes_convert                            # noqa: F401
-from port import game_scan
-
+import conversor
+import datos
 from datos import DEMO
 from etapa_mapas import preguntar
 
-# El juego original, del mismo lugar que el conversor: `ABL_GAME_DIR`.
-JUEGO = resources.GAME_DIR
 GRUPO = [10]
 
 # El Emitter Room, que es donde taro lo vio, y los dos mapas grandes de la
@@ -45,15 +38,15 @@ MAPAS = [3, 2, 1]
 
 @pytest.mark.parametrize("map_id", MAPAS)
 def test_ningun_tile_entra_en_la_paleta_de_un_lider(map_id):
-    ren = render_map.Renderer(JUEGO)
-    lideres = game_scan.possible_leaders(ren, DEMO, GRUPO)
+    actores = datos.base().actors
+    lideres = conversor.lideres(DEMO, GRUPO)
     # El reparto de la etapa del conversor, con las ocho paletas.
-    respuesta = preguntar("split", map_id, ren, leaders=lideres, palettes=8)
+    respuesta = preguntar("split", map_id, leaders=lideres, palettes=8)
     paleta_de = {(c, i): n for c, i, n in respuesta["palette_of"]}
 
     de_lider = set()
     for actor in lideres:
-        a = ren.database.actors[actor]
+        a = actores[actor]
         clave = (a.charset, a.charset_index)
         if clave in paleta_de:
             de_lider.add(paleta_de[clave])
@@ -62,8 +55,8 @@ def test_ningun_tile_entra_en_la_paleta_de_un_lider(map_id):
     for clave, numero in paleta_de.items():
         por_paleta[numero].append(clave)
 
-    claves_lider = {(ren.database.actors[a].charset,
-                     ren.database.actors[a].charset_index) for a in lideres}
+    claves_lider = {(actores[a].charset, actores[a].charset_index)
+                    for a in lideres}
     assert de_lider, "este mapa no reparte ninguna paleta a un líder"
     for numero in sorted(de_lider):
         # **Los líderes entre sí sí comparten**: comparten una ranura, porque

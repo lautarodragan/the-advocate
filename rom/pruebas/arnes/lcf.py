@@ -1,4 +1,10 @@
-"""The game, read from the JSON dump in `rom/data/`.
+"""The game, read from the JSON dump in `rom/data/`, for the tests.
+
+It was `rpgmaker/lcf.py`, the converter's reader, until the converter
+moved to Rust on 2026-10-02 and read the dump with Ditto: what is left here
+is what A Blurred Line's tests read of their own game —a map's events, the
+database, the tree— to know what to expect. It carries no rule the
+converter uses, and the converter does not read it.
 
 Until 2026-09-14 this parsed the RPG Maker 2000 binaries on every build
 —that reader was deleted when it no longer had anyone using it—. Since then
@@ -37,8 +43,7 @@ import json
 import os
 
 from common import project
-from rpgmaker import fork
-from rpgmaker.event_codes import EVENT_CODES
+import fork
 
 MANIFEST = "ditto.json"
 
@@ -185,65 +190,14 @@ class EventCommand:
         self.parameters = parameters
 
 
-# Text boxes rebuilt for another screen: a function that receives a page's
-# commands as they are in the JSON and returns different ones. The port sets
-# `screen_stage.refit_commands`; the reader knows nothing about screens, and
-# with nobody setting it the game is read as is.
-#
-# It is a step separate from `rom/parches/`, and runs after it: it reads
-# whatever is left, and a box that already fits is left as it is. That way a
-# text corrected by hand in a fork under `rom/parches/manual/` always wins.
-#
-# It applies to the maps' pages and to the common events, and not to the
-# troops': the battle window has a different width.
-REFIT_TEXTS = None
-
-
-def commands(data, refit=False):
-    """The command list of a page or a common event. With `refit`, run
-    through REFIT_TEXTS if someone set it."""
+def commands(data):
+    """The command list of a page or a common event, as the dump has it."""
     raw = list_field(data, "event_commands")
-    if refit and REFIT_TEXTS:
-        raw = REFIT_TEXTS(raw)
     return [EventCommand(field(c, "code"),
                          field(c, "indent"),
                          field(c, "string"),
                          field(c, "parameters") or [])
             for c in raw]
-
-
-def handwritten_commands(data):
-    """The same, but from a list **written by hand**: `rom/pruebas/casos/*.json`.
-
-    Those files do not come from `rom/data/`: we write them, and that is why
-    they are in the shorthand that can be written —the command by its name,
-    `ShowMessage`, and only the fields that say something—. A case converted
-    to the resolved view would be unreadable and nobody would edit it, so the
-    shorthand stays and what goes beside it is this reader, which is six
-    lines.
-
-    The three missing fields take the obvious values —indent 0, no text, no
-    parameters— and there is no schema to consult: the only outside data is
-    each name's number, which comes from `event_codes.json`, the liblcf table
-    that stays precisely for this and for error messages.
-    """
-    number = {name: code for code, name in EVENT_CODES.items()}
-    return [EventCommand(number[c["code"]] if isinstance(c["code"], str)
-                         else c["code"],
-                         c.get("indent", 0), text(c.get("string", "")),
-                         c.get("parameters") or [])
-            for c in data["event_commands"]]
-
-
-# If not None, the CharSet name of a translucent page goes through here and,
-# for whoever reads it, it is a different graphic. The port turns it on —see
-# `rm2k.decorate_translucent`— and not the reader: the JSON dump has to keep
-# seeing the real name.
-#
-# It also receives **where the event stands** (map, x, y), because the baking
-# needs the real background of that cell; that is why it is decorated not on
-# the page, which does not know it, but on the event.
-DECORATE_TRANSLUCENT = None
 
 
 class EventPageCondition:
@@ -283,11 +237,6 @@ class EventPage:
     def __init__(self, data):
         self.id = field(data, "id")
         self.character_name = field(data, "character_name")
-        # The name as the dump has it, before whatever the port calls it:
-        # the translucent ones —see DECORATE_TRANSLUCENT— and the ones drawn
-        # apart from the hero. The event compiler reads the dump itself, and
-        # is told only the ones that changed.
-        self.dump_name = self.character_name
         self.translucent = field(data, "translucent")
         self.character_index = field(data, "character_index")
         self.character_direction = field(data, "character_direction")
@@ -299,7 +248,7 @@ class EventPage:
         self.layer = field(data, "layer")
         self.overlap_forbidden = field(data, "overlap_forbidden")
         self.animation_type = field(data, "animation_type")
-        self.commands = commands(data, refit=True)
+        self.commands = commands(data)
         self.move_route = MoveRoute(sub(data, "move_route"))
         self.condition = EventPageCondition(sub(data, "condition"))
         self.unconditional = not self.condition
@@ -313,14 +262,6 @@ class Event:
         self.y = field(data, "y")
         self.pages = [EventPage(p) for _, p
                       in sorted(by_id(list_field(data, "pages")).items())]
-        if DECORATE_TRANSLUCENT:
-            # See DECORATE_TRANSLUCENT: for the port, a translucent CharSet is
-            # a different graphic, and if it is baked it also depends on
-            # where it stands.
-            for page in self.pages:
-                if page.translucent and page.character_name:
-                    page.character_name = DECORATE_TRANSLUCENT(
-                        page.character_name, map_id, self.x, self.y)
 
     def active_page(self):
         """The page the engine would show in a freshly started game.
@@ -545,7 +486,7 @@ class Item:
     states it removes, one per LDB state from 1, which is the dead one: it is
     what decides whether it revives a fallen one. See
     `item_usable_in_battle` in `rm2k-snes-battle` and `medicine_use` in
-    tools/runtime/medicine.s.
+    runtime/medicine.s.
     """
 
     def __init__(self, data):
@@ -689,19 +630,6 @@ TERM_SINGLE = {
 }
 
 
-def system_songs(path):
-    """The names of the songs in the LDB's `System` at `path`: the title's,
-    the battle's, Game Over's, the vehicles'...
-
-    Without loading the whole database, which is what the music needs:
-    numbering the MSU-1 tracks has no reason to read the actors. The
-    converter passes them to `rm2k-snes-audio`.
-    """
-    system = read_json(dump_dir(path), "db", "system.json")
-    return sorted({text(value["name"]) for name, value in system.items()
-                   if name.endswith("_music") and isinstance(value, dict)})
-
-
 def sound(data):
     """A `Music` or a `Sound` as the tuple the port expects."""
     return (field(data, "name"), field(data, "volume"),
@@ -750,7 +678,7 @@ class Database:
         # they are already their commands, which is the only thing asked of
         # them.
         self.common_events = {
-            i: commands(f, refit=True)
+            i: commands(f)
             for i, f in raw["commonevents"].items()}
         # And when each one runs on its own: `(trigger, switch_flag,
         # switch_id)`, with the `trigger` of `rpg::CommonEvent` —3 automatic,

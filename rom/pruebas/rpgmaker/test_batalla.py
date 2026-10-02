@@ -915,7 +915,7 @@ def test_el_elixir_levanta_a_un_caido_en_la_pelea(partida):
     segundo, y al ganar Core cobra la experiencia de la tropa entera, que es lo
     que `ba_exp_allocate` le da a los que quedaron en pie.
     """
-    from port import experience
+    import experience
     from batalla import exp_y_nivel
     una = partida(caso="elixir-en-la-pelea")
     una.poner_grupo(*GRUPO)

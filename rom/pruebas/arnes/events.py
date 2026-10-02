@@ -19,7 +19,7 @@ takes the cartridge's place (`Pictures`), and the models the game's tests
 predict the ROM with (`Encounters`, `key_value`, `PartyState`).
 
 The whys of how each command compiles live next to the code that compiles
-it, in the crate: `tools/rm2k-snes/events/src/compile.rs` and its
+it, in the crate: `rm2k-snes/events/src/compile.rs` and its
 neighbors. What stays here is what protects code that is still here, or
 that both sides share —the escapes and the box's header, the routes'
 frequency, the songs' numbering, the troops' triggers—, and the notes the
@@ -27,8 +27,8 @@ runtime and `mapdata.inc` cite as "see X in events.py": until those
 citations point at the crate, the note stays here too, with its copy
 there.
 
-The command codes come from tools/rpgmaker/event_codes.py, which is
-generated from liblcf. Never from memory: the first version of the door
+The command codes come from liblcf, through Ditto's schema, which the
+compiler's `codes.rs` is held to. Never from memory: the first version of the door
 filter wrote them down by eye and three were wrong.
 """
 
@@ -40,15 +40,15 @@ import os
 # the `.inc`. This module still answers them by the names it always had
 # —`events.PAUSE_FRAMES`—, see `__getattr__` at the end, and keeps the whys
 # of most, each next to the line where its name is.
-from port import engine
+import engine
 
 
 # The opcodes' numbers, lengths and layout. **They are not declared here**:
-# they come from `tools/snes/protocol/events.toml`, which belongs to both sides —this
-# one and the interpreter in tools/runtime/interpreter*.s— and to neither. See
-# tools/snes/protocol/README.md.
-from port.event_opcodes import *   # noqa: F401,F403
-from port.event_opcodes import OPCODE_SIZE, opcode_size  # noqa: F401
+# they come from `snes/protocol/events.toml`, which belongs to both sides —this
+# one and the interpreter in runtime/interpreter*.s— and to neither. See
+# snes/protocol/README.md.
+from event_opcodes import *   # noqa: F401,F403
+from event_opcodes import OPCODE_SIZE, opcode_size  # noqa: F401
 
 CONTROL_SWITCHES = 10210
 TELEPORT = 10810
@@ -160,13 +160,13 @@ OPEN_SHOP = 10720
 # --- the opcodes we emit ----------------------------------------------------
 # What each opcode carries and why is in the crate, next to the arm of
 # `compile_command` that emits it. This one stays here too because
-# tools/runtime/interpreter_save.s cites it:
+# runtime/interpreter_save.s cites it:
 #
 # OP_SAVE: no operands: the save to the cartridge's SRAM.
 #     It is `OpenSaveMenu`, but without a menu: there is
 #     a single slot and the event overwrites it. What is
 #     saved is said by `save_table` in
-#     tools/runtime/bank1.s, which is the only place
+#     runtime/bank1.s, which is the only place
 #     where it is written. It costs no frame: in RM2k the
 #     menu blocks, and here there is nothing to look at.
 
@@ -238,7 +238,7 @@ WALK_SPEED = 2
 # Wick's hideout: zoom (16) to go to the vidcasts, mosaic (17) inside, and fade
 # (0) on the way back. It is state that crosses the teleport, and in RM2k it
 # travels in the save; here it does not —see `TRANSITION_ERASE` in
-# tools/runtime/far_ram.s—.
+# runtime/far_ram.s—.
 #
 # The ROM does two: **the mosaic**, with the PPU's MOSAIC register tied to the
 # brightness ramp —like the battle's, `battle_fade.s`, and for the same
@@ -559,7 +559,7 @@ COND_VARIABLE = 1
 # previous one— and it advances once per frame **before** the flashes, which
 # is where `Game_Screen::Update` puts it. With "wait", the page waits for as
 # long as it lasts: two frames per animation frame. See `battle_anim_tick` in
-# tools/runtime/battle_animation.s.
+# runtime/battle_animation.s.
 #
 # The flash is not exactly RM2k's: there the power is
 # `min((7 - (d + 1) / 2) * potencia / 6, 31)` for ten frames, in steps; here
@@ -772,12 +772,12 @@ def database(game_dir):
 
     None of the ones asking for it here modifies it, and that is why it can
     be the same object. It is memoized while nothing that builds it changes:
-    the dump's files and the fork's ChipSets —name, date and size— and the
-    two `lcf` hooks, which change what is read.
+    the dump's files and the fork's ChipSets —name, date and size—.
     """
-    from rpgmaker import fork, lcf
+    import fork
+    import lcf
     path = os.path.join(game_dir, "RPG_RT.ldb")
-    fingerprint = [path, lcf.REFIT_TEXTS, lcf.DECORATE_TRANSLUCENT]
+    fingerprint = [path]
     for folder in (os.path.join(lcf.dump_dir(path), "db"), fork.chipsets_folder()):
         if os.path.isdir(folder):
             for name in sorted(os.listdir(folder)):
@@ -884,7 +884,7 @@ VAR_CONSTANT = 0
 # numbers of easyrpg's `ControlVariables::Actor`. The ROM does the HP, the SP
 # and their maximums —2 to 5—, which are the ones the game asks for: the
 # characters' systems read Talan's HP in battle, and `ResetAfterBattles`
-# the four. See `actor_stat` in tools/runtime/level.s.
+# the four. See `actor_stat` in runtime/level.s.
 # VAR_ACTOR (engine.rs).
 CMP_EQUAL, CMP_GREATER_EQUAL, CMP_LESS_EQUAL, CMP_GREATER, CMP_LESS, \
     CMP_NOT_EQUAL = range(6)
@@ -918,8 +918,8 @@ def sweep_maps(game_dir, map_ids, sweep):
     batch returns the union of its own. The result is a set, so the order
     does not matter.
     """
-    from rpgmaker import lcf
-    from common.parallel import in_parallel
+    import lcf
+    from parallel import in_parallel
     paths = [os.path.join(game_dir, "Map%04d.lmu" % m) for m in map_ids]
     batches = max(1, min(len(paths), os.cpu_count() or 1))
     found = set()
@@ -951,7 +951,7 @@ def sweep_maps(game_dir, map_ids, sweep):
 # converter pastes the body after the `ControlSwitches` that turns it on, like
 # a `CallEvent`— and when closing the menu, which is where the equipment is
 # changed —the ROM runs it from `menu_screen`, see `equipment_commons` in
-# tools/runtime/equipment_from_events.s—. It is what the droid tutorial says:
+# runtime/equipment_from_events.s—. It is what the droid tutorial says:
 # "these abilities become available once you equip a particular component and
 # exit the menu".
 #
@@ -1029,7 +1029,7 @@ class Troops:
         # `EnemyEncounter` itself —`SJBackdropABL04` on map 2— and not
         # something to look up in the LDB. It goes here and not in a
         # separate registry because it is a fact of the battle, like the
-        # troop. See tools/port/scene.py.
+        # troop. See port/scene.py.
         self.backdrops = {}
 
 
@@ -1212,7 +1212,7 @@ class Encounters:
     """The encounter state of a game, the same on both sides.
 
     The tests use it; the ROM does the same with the tables the converter
-    emits. Whoever changes it has to change `tools/runtime/` in the same
+    emits. Whoever changes it has to change `runtime/` in the same
     commit: otherwise the model and the console stop being the same
     program.
     """
@@ -1349,7 +1349,7 @@ CELL_DEST_A = 10
 CELL_DEST_B = 16
 # The top two bits of each `OP_CELL_TEST` write, over the variable's offset:
 # y instead of x, and the refresh. See `cell_test` in
-# tools/runtime/interpreter_cells.s.
+# runtime/interpreter_cells.s.
 # CELL_Y (engine.rs).
 # CELL_REFRESH (engine.rs).
 
@@ -1387,7 +1387,7 @@ class PartyState:
 
 # How much each opcode takes is derived from its declared arguments, so
 # `OPCODE_SIZE` and `opcode_size` come from `opcodes.py`, generated from
-# `tools/snes/protocol/events.toml`. They used to be written by hand, and there
+# `snes/protocol/events.toml`. They used to be written by hand, and there
 # were two copies —one here and another in the converter—: this one kept the
 # old OP_ROUTE when the new one added the frequency, and that was twelve
 # suite cases in red.

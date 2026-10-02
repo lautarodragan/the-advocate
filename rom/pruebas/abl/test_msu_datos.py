@@ -36,12 +36,12 @@ import shutil
 
 import pytest
 
-from port import scene, events, snes_format, battle_scenes
-# Por los ganchos que pone en `lcf` al importarse: los mapas se leen como
-# los lee el conversor.
-from port import snes_convert                            # noqa: F401
-from rpgmaker.resources import GAME_DIR
-from rpgmaker import lcf, rm2k
+import scene
+import events
+import snes_format
+from resources import GAME_DIR
+import lcf
+import rm2k
 
 import tanda
 import musica
@@ -121,7 +121,7 @@ def _fondo_8bpp(liviano, nombre=FONDO_SECTOR_27):
     `fallback_bytes`: así lo que se compara es lo que hace la ROM contra la
     imagen, y no contra el mismo orden de bytes del que ella lee."""
     if not liviano:
-        return battle_scenes.backdrop_bytes(
+        return scene.backdrop_bytes(
             scene.backdrop(nombre, GAME_DIR))[0]
     grande = scene.light_backdrop(nombre, GAME_DIR)["indices"]
     return b"".join(snes_format.pack_tile(celda, planes=8)

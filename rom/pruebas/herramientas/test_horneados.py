@@ -19,11 +19,6 @@ bakeable`, qué hornea en cada mapa, con lo que imponía cada fila y lo que
 dice la tabla después.
 """
 
-# Por los ganchos que pone en `lcf` al importarse: los mapas se leen como
-# los lee el conversor.
-from port import snes_convert                            # noqa: F401
-from render.render_map import Renderer
-
 import cartuchos
 from etapa_mapas import preguntar
 
@@ -34,8 +29,7 @@ MAPAS = cartuchos.mapas()
 
 
 def horneados():
-    renderer = Renderer()
-    return {m: preguntar("bakeable", m, renderer) for m in MAPAS}
+    return {m: preguntar("bakeable", m) for m in MAPAS}
 
 
 def test_la_regla_sigue_alcanzando_a_algun_mapa_del_cartucho():

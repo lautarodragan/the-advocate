@@ -31,8 +31,7 @@ PROTOCOL = os.path.join(project.tools(), "snes", "protocol")
 # recipe of tools/justfile: with `--check`, a file the recipe writes and this
 # does not name reads as stale.
 GENERATED = {
-    "events": ["--python", os.path.join(project.tools(), "port", "event_opcodes.py"),
-               "--asm", os.path.join(project.runtime(), "event_opcodes.inc"),
+    "events": ["--asm", os.path.join(project.runtime(), "event_opcodes.inc"),
                "--rust", os.path.join(project.tools(), "rm2k-snes", "events", "src",
                                       "opcodes.rs"),
                "--jump-table"],

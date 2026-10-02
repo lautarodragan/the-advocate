@@ -16,8 +16,8 @@ filas que el texto no toca: arriba de la escena van los renglones de los
 enemigos, uno por enemigo.
 """
 
-from port import scene
-from rpgmaker.resources import GAME_DIR
+import scene
+from resources import GAME_DIR
 
 from consola import en_la_rom, en_la_wram
 from batalla import Pelea, en_el_droide, modelo_de
@@ -271,8 +271,8 @@ def test_escena_el_droide_muerto_peleando_desaparece(partida):
 
 
 def _fondos_del_juego():
-    from port import events
-    from rpgmaker import lcf
+    import events
+    import lcf
     import os
     tree = lcf.TreeMap(os.path.join(GAME_DIR, "RPG_RT.lmt"))
     juego = scene.game_backdrops(
@@ -320,8 +320,9 @@ def test_escena_una_pelea_cuyo_fondo_no_esta_usa_el_reemplazo(partida):
     el conversor no puede saber cuál será. `SCN_BACKDROP` es el del terreno —el
     que se leería del `.msu`— y sin MSU-1 se dibuja el de
     `scene.replacement()`, no negro. Ver "Qué fondos hay" en scene.py."""
-    from port import events
-    from rpgmaker import lcf, rm2k
+    import events
+    import lcf
+    import rm2k
     _tree, juego = _fondos_del_juego()
     db = events.database(GAME_DIR)
     game_map = lcf.Map("%s/Map%04d.lmu" % (GAME_DIR, 7))

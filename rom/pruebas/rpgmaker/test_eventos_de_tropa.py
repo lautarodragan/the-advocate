@@ -24,8 +24,8 @@ los mensajes de cada página, con un recorrido que no comparte nada con el
 compilador.
 """
 
-from port import compiler, events
-from rpgmaker.resources import GAME_DIR
+import conversor
+import events
 
 from batalla import (Pelea, mensaje_en_pantalla, modelo_de, paginas,
                      primera_pagina)
@@ -113,7 +113,7 @@ def disparadores(tropa):
     """{página: disparador} de las páginas de la tropa que entran al
     cartucho, como las compila `rm2k-snes-events`: lo que la pelea lee para
     saber cuándo corre cada una."""
-    return compiler.troop_triggers(compiler.dump_of(GAME_DIR), tropa)
+    return conversor.disparadores(tropa)
 
 
 def test_las_tropas_son_las_que_se_espera():

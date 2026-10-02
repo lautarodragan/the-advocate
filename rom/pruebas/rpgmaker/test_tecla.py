@@ -17,7 +17,7 @@ toque cada uno. La que sigue afuera es la forma que **no espera**, y el porqué,
 con el número, está en `KEY_WAIT` en `events.py`.
 """
 
-from port import events
+import events
 
 import datos
 

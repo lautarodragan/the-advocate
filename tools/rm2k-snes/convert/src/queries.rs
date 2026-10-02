@@ -40,7 +40,7 @@ fn maps_arg(required: bool) -> Arg {
     Arg::new("maps")
         .long("maps")
         .value_name("ID")
-        .num_args(1..)
+        .num_args(if required { 1.. } else { 0.. })
         .required(required)
         .value_parser(value_parser!(i32))
 }
@@ -53,7 +53,8 @@ fn command() -> clap::Command {
             common(clap::Command::new("scan"))
                 .about(
                     "The event compiler's first answer, as the converter asks for it: the \
-                     indices, and which pages compile. Without --maps, every map of the dump",
+                     indices, and which pages compile. Without --maps, every map of the dump; \
+                     with --maps and no number, none —the indices are the whole game's anyway—",
                 )
                 .arg(maps_arg(false))
                 .arg(Arg::new("test_commands").long("test-commands").value_name("FILE").action(ArgAction::Append))
@@ -112,7 +113,10 @@ fn command() -> clap::Command {
         )
         .subcommand(
             common(clap::Command::new("boxes"))
-                .about("The text boxes the converter hands the event compiler, rebuilt for the window"),
+                .about(
+                    "The text boxes the converter hands the event compiler, rebuilt for the \
+                     window, and the window they were rebuilt for",
+                ),
         )
 }
 
@@ -136,10 +140,11 @@ pub fn run(argv: Vec<String>) -> Result<()> {
     let answer = match name {
         "scan" => {
             let compiler = Compiler::new(&game, &settings)?;
-            let mut maps = ints(m, "maps");
-            if maps.is_empty() {
-                maps = game.dump_map_ids()?;
-            }
+            let maps = if m.value_source("maps") == Some(clap::parser::ValueSource::CommandLine) {
+                ints(m, "maps")
+            } else {
+                game.dump_map_ids()?
+            };
             let mut commands = Vec::new();
             for file in m.get_many::<String>("test_commands").into_iter().flatten() {
                 commands.extend(commands_of(file)?);
@@ -184,7 +189,10 @@ pub fn run(argv: Vec<String>) -> Result<()> {
                     .collect::<Vec<_>>(),
             })
         }
-        "boxes" => Compiler::new(&game, &settings)?.boxes().clone(),
+        "boxes" => json!({
+            "window": {"columns": rm2k_snes_mapdata::engine::COLUMNS, "lines": crate::compiler::LINES},
+            "boxes": Compiler::new(&game, &settings)?.boxes(),
+        }),
         other => return Err(Stop::usage(format!("{other} is not a question"))),
     };
     println!("{}", serde_json::to_string(&answer).expect("an answer is JSON"));

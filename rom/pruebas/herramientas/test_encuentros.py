@@ -24,9 +24,9 @@ import os
 
 import pytest
 
-from port import events
-from rpgmaker import lcf
-from rpgmaker.resources import GAME_DIR
+import events
+import lcf
+from resources import GAME_DIR
 
 # Los terrenos y el `terrain_set` de cada tropa salen de `db.decode()`, que es
 # la base entera como la volcó Ditto: el port no los modela porque no los

@@ -261,7 +261,8 @@ mod tests {
         /// A map's two files in `folder`: its JSON saying it is `inside`,
         /// with `node` as its tree node if given, and its layers.
         fn map(&self, folder: &str, number: i32, inside: i32, node: Option<i32>, layers: bool) {
-            let json = self.0.join(folder).join(format!("Map{number:04}.json"));
+            // The project's files, in a folder of their own: not a dump.
+            let json = self.0.join(folder).join(format!("Map{number:04}")).with_extension("json");
             let mut data = serde_json::json!({"id": inside});
             if let Some(node) = node {
                 data["arbol"] = serde_json::json!({"id": node, "name": "x"});
@@ -294,7 +295,7 @@ mod tests {
         p.map("nuevos", 900, 900, Some(900), true);
         let forks = p.read().unwrap();
         assert_eq!(forks.maps.keys().collect::<Vec<_>>(), [&11]);
-        assert_eq!(forks.map_file(900).unwrap().file_name().unwrap(), "Map0900.json");
+        assert_eq!(forks.map_file(900).unwrap().file_stem().unwrap(), "Map0900");
         assert_eq!(forks.new_maps[&900].2["name"], "x");
     }
 
@@ -304,7 +305,7 @@ mod tests {
         p.map("mapas", 11, 11, None, false);
         assert!(refusal(p.read()).contains("incomplete"));
         let p = Patches::new("layers");
-        std::fs::write(layers_path(&p.0.join("mapas").join("Map0011.json")), "0\n").unwrap();
+        std::fs::write(layers_path(&p.0.join("mapas").join("Map0011").with_extension("json")), "0\n").unwrap();
         assert!(refusal(p.read()).contains("incomplete"));
     }
 

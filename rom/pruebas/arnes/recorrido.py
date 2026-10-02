@@ -29,9 +29,9 @@ import os
 
 import lugares
 from consola import TITULO_AIRE
-from render.render_map import Renderer
-from rpgmaker.resources import GAME_DIR
-from rpgmaker.rm2k import (PASS_DOWN, PASS_LEFT, PASS_RIGHT,
+from render_map import Renderer
+from resources import GAME_DIR
+from rm2k import (PASS_DOWN, PASS_LEFT, PASS_RIGHT,
                            PASS_UP, TELEPORT, page_graphic,
                            event_tile_passability, passability_map)
 
