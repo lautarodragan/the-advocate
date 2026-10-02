@@ -2,7 +2,7 @@
 name: "Rust: el orquestador y el lector del juego en Python"
 description: "Lo último de la migración: snes_convert.py y lo que queda en tools/port/ (unas 7.000 líneas) como un binario de Rust, y los lectores del juego en Python (tools/rpgmaker/lcf.py, rm2k.py, fork.py) reemplazados por Ditto y el volcado"
 type: refactor
-assignee: Chuña
+assignee: taro
 ---
 
 De taro, el 2026-10-02: el último paso de la migración, después de las
@@ -223,3 +223,62 @@ Python de las reglas contra la de Rust para el conversor; las reglas del
 conversor son las de Rust, y lo que queda en Python es el oráculo de las
 pruebas, que se compara contra la ROM. `rm2k-rules` sigue sosteniendo sus
 respuestas con `tests/python.json`.
+
+Medido después de la etapa 2: `rom/build/` como en la 1; `just pruebas`,
+999 —las diez de `test_fork_mapas.py` se fueron a Rust y entró la de los
+opcodes—; `just -f tools/justfile test`, 36 —se fueron
+`test_rm2k_rules.py` y `test_substitutions.py`, y una que miraba el
+`snes_convert.py` del protocolo—; `cargo test -p rm2k-snes-convert`, 28.
+
+### 3. El borrado y la prosa
+
+`b21352e6` borra `tools/port/`, `tools/rpgmaker/`, `tools/render/` y
+`tools/common/disk_cache.py`, más lo que en los módulos mudados al arnés
+sólo usaba el conversor. `ae217a97` arregla la prosa que los nombraba:
+AGENTS.md, README.md, DITTO.md, `tools/README.md` —la sección de las capas
+de Python pasa a ser "The Python that is left"—, `docs/port/` y los
+docstrings del arnés. `test_lado_de_abl.py` pierde cinco excepciones.
+
+Medido sobre `ae217a97`, con `convert` y `cartridge` en el `bin/` local:
+`rom/build/` igual a `sha-base2.txt` salvo los tres PNG de siempre;
+`abl.sfc` `35c765009320d436…`; `just pruebas`, 999;
+`just -f tools/justfile test`, 36. `main` no se movió desde `8db96253`:
+no hubo nada que mergear.
+
+## Lo que queda en Python
+
+* `tools/common/` (project, settings, environment), `tools/emulator/`
+  (`retro.py`, el arnés del emulador, que se queda en Python a propósito) y
+  `tools/assembly/entregar.py`, que es de ABL.
+* El arnés de las pruebas, `rom/pruebas/arnes/`, con lo que se mudó: el
+  lector del volcado y las reglas como oráculo. Es de las pruebas, y se va
+  con ellas cuando se separen.
+
+## Pendiente, a propósito
+
+* Los comentarios que `rm2k-snes-mapdata` escribe adentro de `mapdata.inc`
+  todavía nombran `tools/port/snes_convert.py`, `events.py`, `scene.py` y
+  `animation.py` (`emit/header.rs`, `record.rs`, `scene.rs`, `emit.rs`).
+  Cambiarlos cambia el `.inc` —y quizás el `.dbg`—, así que va en su
+  propio commit, con la base vuelta a sacar.
+* Los comentarios de `tools/runtime/` que citan el Python del conversor:
+  tocarlos cambia el `.dbg`.
+* Los módulos del conversor que son de un dominio —`pictures.rs`,
+  `animations.rs`, `scene.rs`, `fullscreen.rs`, `chipsets.rs`— pueden ir a
+  sus etapas (`rm2k-snes-images`, `wally`), pero eso cambia pedidos y los
+  hashes de las pruebas de esos crates.
+* Lo fechado de `docs/research/` y de `workflow/` sigue nombrando el
+  Python: es registro.
+
+## Al mergear
+
+* `just -f tools/justfile install convert cartridge`: `convert` es nuevo
+  —sin él no se arma nada— y `cartridge` cambió la huella. `ditto` ganó
+  dos funciones, pero es biblioteca: entra compilado en esos dos. Los de
+  `events`, `mapdata` y `rm2k-snes-audio` cambiaron sólo comentarios: no
+  hace falta.
+* `install-scripts` aparte no hace falta: el symlink de
+  `rm2k-snes-convert` apunta a `port/snes_convert.py`, que ya no existe, y
+  `install` borra los symlinks de la suite antes de instalar, así que
+  `cargo install` escribe el binario en su lugar.
+* Con eso, `NO_CACHE=1 just cartuchos` y `just pruebas` sobre `main`.
