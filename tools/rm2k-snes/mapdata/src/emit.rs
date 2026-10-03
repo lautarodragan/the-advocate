@@ -508,7 +508,7 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         t.n("WINDOW_TEXT_ROWS").into(),
         t.n("WINDOW_TEXT_COL").into(),
         t.n("WINDOW_TEXT_COLS").into(),
-        COLUMNS.into(),
+        t.n("MESSAGE_WIDTH").into(),
         t.n("FONT_HEIGHT").into(),
         t.n("FONT_WIDTH").into(),
         int_at(window, "shadow")?.into(),
@@ -679,6 +679,13 @@ fn window_section(out: &mut String, r: &Emit, window: &Value) -> Result<()> {
         &block("window_backdrop", &bytes_at(window, "background")?),
     );
     line(out, &block("font_table", &bytes_at(window, "font")?));
+    // How far each letter moves the line, and how far it paints: the
+    // composer adds the first and checks the second against the edge.
+    let small = |name: &str| -> Result<Vec<u8>> {
+        Ok(ints_at(window, name)?.into_iter().map(|n| n as u8).collect())
+    };
+    line(out, &block("font_advance", &small("advances")?));
+    line(out, &block("font_reach", &small("reach")?));
     for (phase, data) in list_at(window, "prerender")?.iter().enumerate() {
         line(
             out,

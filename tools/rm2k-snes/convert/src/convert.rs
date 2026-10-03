@@ -7,6 +7,7 @@ use crate::bytecode;
 use crate::compiler::{self, CompileMap, Compiler, Indices, CASE_VARIABLE, COMPARE_AT_LEAST, TEST_SWITCH};
 use crate::emit;
 use crate::fail::{Result, Stop};
+use crate::font::FontChoice;
 use crate::fullscreen;
 use crate::game::{Command, Game, GameMap};
 use crate::maps::{self, Cartridge, MapInfo, PageRecord};
@@ -592,7 +593,8 @@ pub fn run(options: Options) -> Result<()> {
     let mut items_all: BTreeSet<i32> = items_rom.iter().copied().collect();
     items_all.extend(scan::drop_items(&game.db, &troops.ids));
     let items_all: Vec<i32> = items_all.into_iter().collect();
-    let screens_answer = screens::convert(&game, &members, &items_all, &items_rom, !options.no_title)?;
+    let font = FontChoice::of(&settings)?;
+    let screens_answer = screens::convert(&game, &font, &members, &items_all, &items_rom, !options.no_title)?;
     let w = &screens_answer["window"];
     println!(
         "  message window: {} fixed tiles + {} of text, {} colors; font {} B, {} text box(es) in {} B",

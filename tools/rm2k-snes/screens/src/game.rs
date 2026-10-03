@@ -11,6 +11,7 @@ use ditto::dump::Dump;
 use ditto::schema::{Actor, Item, System, Terms};
 use rm2k_render::picture::{self, Picture};
 use rm2k_rules::system::{self as system_rules, Background};
+use rm2k_snes_text::font::Font;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
@@ -33,6 +34,9 @@ pub struct Game {
     pub system: System,
     /// The game's folder, where the System and the FaceSets are.
     pub game_dir: PathBuf,
+    /// The font every text is drawn with: RM2k's, the one `font_id` asks
+    /// for, until a request names another —see [`Game::use_font`]—.
+    pub font: Font,
 }
 
 fn answer(e: ditto::lcf::Error) -> Bad {
@@ -45,13 +49,23 @@ impl Game {
         let dump = Dump::open(data).map_err(answer)?;
         let actors: Vec<Actor> = dump.section("actors").map_err(answer)?;
         let items: Vec<Item> = dump.section("items").map_err(answer)?;
+        let system: System = dump.section("system").map_err(answer)?;
         Ok(Game {
             terms: dump.section("terms").map_err(answer)?,
             actors: actors.into_iter().map(|a| (a.id, a)).collect(),
             items: items.into_iter().map(|i| (i.id, i)).collect(),
-            system: dump.section("system").map_err(answer)?,
+            font: Font::rm2k(system.font_id.to_i32()),
+            system,
             game_dir: game_dir.to_path_buf(),
         })
+    }
+
+    /// Draws with the font `spec` names: `rm2k`, one the engine carries,
+    /// or the path of a sheet —see `rm2k_snes_text::font`—. It is what the
+    /// project file's `[text] font` says, and the converter passes it on.
+    pub fn use_font(&mut self, spec: &str) -> Result<()> {
+        self.font = Font::named(spec, self.font_id()).map_err(Bad::answer)?;
+        Ok(())
     }
 
     /// The font the game asks for: `font_id`, 0 Gothic and 1 Mincho.
@@ -248,8 +262,8 @@ impl Skin {
         y: i64,
         text: &str,
         color: i32,
-        font_id: i32,
+        font: &Font,
     ) -> i64 {
-        rm2k_snes_text::line::draw_line(dest, &self.picture, x, y, text, color, font_id)
+        rm2k_snes_text::line::draw_line(dest, &self.picture, x, y, text, color, font)
     }
 }

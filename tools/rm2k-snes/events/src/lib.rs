@@ -112,6 +112,34 @@ fn text(v: &Value, whose: &str) -> Result<String> {
         .ok_or_else(|| Bad::answer(format!("{whose}: {v} is not a text")))
 }
 
+/// A message window as a request carries it: `width`, a line's pixels,
+/// `lines`, and `advances`, the advance of each glyph of the console's font
+/// from the space on; or, without `width`, `columns` letters of RM2k's
+/// fixed-width font, which is how it was asked until 2026-10-03.
+fn window(w: &Value, whose: &str) -> Result<Window> {
+    let lines = int(field(w, "lines", whose)?, whose)? as usize;
+    if w.get("width").is_none() {
+        return Ok(Window::columns(int(field(w, "columns", whose)?, whose)? as usize, lines));
+    }
+    let given = list(w, "advances", whose)?;
+    let mut advances = [0u8; rm2k_snes_text::font::CONSOLE_GLYPHS];
+    if given.len() != advances.len() {
+        return Err(Bad::answer(format!(
+            "{whose}: the window's `advances` are {} and the console's font has {}",
+            given.len(),
+            advances.len()
+        )));
+    }
+    for (a, g) in advances.iter_mut().zip(given) {
+        *a = int(g, whose)? as u8;
+    }
+    Ok(Window {
+        width: int(field(w, "width", whose)?, whose)? as usize,
+        lines,
+        advances,
+    })
+}
+
 fn strings(v: &Value, whose: &str) -> Result<Vec<String>> {
     v.as_array()
         .ok_or_else(|| Bad::answer(format!("{whose}: {v} is not a list")))?
@@ -240,16 +268,9 @@ impl Request {
                 text(&a[3], whose)?,
             );
         }
-        let w = field(data, "window", whose)?;
-        r.window = Some(Window {
-            columns: int(field(w, "columns", whose)?, whose)? as usize,
-            lines: int(field(w, "lines", whose)?, whose)? as usize,
-        });
+        r.window = Some(window(field(data, "window", whose)?, whose)?);
         if let Some(w) = data.get("troop_window") {
-            r.troop_window = Some(Window {
-                columns: int(field(w, "columns", whose)?, whose)? as usize,
-                lines: int(field(w, "lines", whose)?, whose)? as usize,
-            });
+            r.troop_window = Some(window(w, whose)?);
         }
         r.maps = list(data, "maps", whose)?
             .iter()

@@ -9,7 +9,8 @@
 //! where each layout puts BG1.
 
 use crate::compiler::{self, LINES};
-use crate::fail::Result;
+use crate::fail::{Result, Stop};
+use crate::font::FontChoice;
 use crate::game::Game;
 use crate::stage;
 use rm2k_snes_mapdata::{cgram, vram};
@@ -30,11 +31,13 @@ fn game_flags(game: &Game) -> Vec<OsString> {
 
 /// Every text box of the game the port rebuilds for the console's window,
 /// with the boxes that go in its place: `[{"from": lines, "to": boxes}]`,
-/// only those that change.
-pub fn boxes(game: &Game, lines: u32) -> Result<Value> {
+/// only those that change. The window's lines are `width` pixels of
+/// `font`.
+pub fn boxes(game: &Game, font: &FontChoice, width: usize, lines: u32) -> Result<Value> {
     let request = json!({
         "map_files": compiler::map_files(game),
-        "columns": rm2k_snes_mapdata::engine::COLUMNS,
+        "font": font.spec,
+        "width": width,
         "lines": lines,
     });
     let written = stage::run(
@@ -54,12 +57,28 @@ pub fn layout() -> Result<Value> {
     stage::json(&written, "layout.json")
 }
 
+/// How many pixels a line of the message window takes: the screens'.
+pub fn message_width() -> Result<usize> {
+    let layout = layout()?;
+    layout["MESSAGE_WIDTH"]
+        .as_u64()
+        .map(|w| w as usize)
+        .ok_or_else(|| Stop::new("the screens' layout has no MESSAGE_WIDTH"))
+}
+
 /// What the cartridge carries of its screens, for `members` —the actors
 /// that can join the party— and `items` —the ones the cartridge knows—,
 /// with the title's menu if `title`. The letters of the medicines of
 /// `bank_items` go in the menu's bank. Returns the stage's answer as it
 /// came, which is what `rm2k-snes-mapdata emit` takes.
-pub fn convert(game: &Game, members: &[i32], items: &[i32], bank_items: &[i32], title: bool) -> Result<Value> {
+pub fn convert(
+    game: &Game,
+    font: &FontChoice,
+    members: &[i32],
+    items: &[i32],
+    bank_items: &[i32],
+    title: bool,
+) -> Result<Value> {
     let _ = LINES;
     let bg1_banks: Vec<Value> = vram::LAYOUTS
         .iter()
@@ -72,6 +91,7 @@ pub fn convert(game: &Game, members: &[i32], items: &[i32], bank_items: &[i32], 
         })
         .collect();
     let request = json!({
+        "font": font.spec,
         "slots": vram::SLOTS,
         "actors": members,
         "items": items,

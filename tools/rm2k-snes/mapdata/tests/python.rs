@@ -43,6 +43,14 @@
 //! from three new tables —`item_crit_k`, `actor_crit_row` and
 //! `crit_table`, nine lines— and the two hashes of the whole `.inc` moved:
 //! without those nine lines the text is the old one byte for byte.
+//!
+//! On 2026-10-03 the font got variable width: the window's line is
+//! measured in pixels, `MESSAGE_WIDTH` and not `MESSAGE_COLS`, and two
+//! tables more go with the font, `font_advance` and `font_reach`. The two
+//! requests carry them now —RM2k's fixed font, six pixels a letter— and
+//! the two hashes of the whole `.inc` moved: the difference against the old
+//! text is those two tables, that constant, and the two comments that
+//! name them.
 
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_mapdata::record;
@@ -206,10 +214,10 @@ fn without_commons(text: &str) -> String {
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
     let text = without_commons(&without_pairs(&emitted.text));
-    assert_eq!(text.lines().count(), 3309);
+    assert_eq!(text.lines().count(), 3326);
     assert_eq!(
         sha(&text),
-        "b298558abc4e32c4ac0c2e1c5e0f17aee0e5a4b5702b04a15af02b844ebd22c6"
+        "707b50320c52ab7cfe61c34901cd4b1110526fc3f9ac2cbf8ace55d802f17022"
     );
 }
 
@@ -217,10 +225,10 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
     let text = without_commons(&without_pairs(&emitted.text));
-    assert_eq!(text.lines().count(), 3428);
+    assert_eq!(text.lines().count(), 3445);
     assert_eq!(
         sha(&text),
-        "bd12a19c197492bc3a7221f43309298171b8c8965953f1627169af0320308998"
+        "70baf9fec2d46df42acb34fcd4f6514b7664818e976dfb07af3ae20a9b985005"
     );
 }
 

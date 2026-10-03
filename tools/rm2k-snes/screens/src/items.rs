@@ -21,7 +21,7 @@ pub struct ItemsFont {
 }
 
 pub fn items_screen(game: &Game, skin: &Skin) -> Result<ItemsFont> {
-    let font_id = game.font_id();
+    let font = &game.font;
     let mut layers = Vec::new();
     for variant in [ITEM_WHITE, ITEM_GRAY, ITEM_UP, ITEM_RED] {
         for n in 0..ITEM_CHARS {
@@ -30,7 +30,7 @@ pub fn items_screen(game: &Game, skin: &Skin) -> Result<ItemsFont> {
                 continue;
             }
             let mut image = cells::layer();
-            skin.draw_line(&mut image, 1, 2, &c.to_string(), ITEM_COLORS[variant], font_id);
+            skin.draw_line(&mut image, 1, 2, &c.to_string(), ITEM_COLORS[variant], font);
             layers.push((variant, c, image));
         }
     }

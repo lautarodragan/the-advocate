@@ -271,7 +271,9 @@ const CHOICE_MAX: i64 = 4;
 // The cursor, and what is put in front of the options that do not have it so
 // the text does not shift from line to line.
 const CHOICE_CURSOR: &str = ">";
-const CHOICE_INDENT: &str = " ";
+// Not a space but the cursor's blank —`CURSOR_BLANK` in `rm2k-snes-text`—, as
+// wide as the ">": with a variable-width font a space is narrower.
+const CHOICE_INDENT: &str = "\u{7f}";
 /// The most digits an `InputNumber` asks for that the ROM takes: six, which
 /// is RM2k 2000's editor's cap. The ROM writes the number into a sixteen-bit
 /// variable, saturating —see `number_value` in tools/runtime/number_input.s—,
@@ -5027,7 +5029,7 @@ mod tests {
         let sound = SoundSettings::default();
         let mut songs = Songs::default();
         songs.current = Some(Package::Map(0));
-        let mut messages = Messages::new(1, Window { columns: 39, lines: 4 });
+        let mut messages = Messages::new(1, Window::columns(39, 4));
         let mut ctx = Ctx {
             game,
             indices,
@@ -6068,7 +6070,7 @@ mod tests {
         };
         let code = on_a_map_with(&indices, &[cmd(SHOW_MESSAGE, &[], "has \\V[0173] souls")]).unwrap();
         assert_eq!(code, [OP_MESSAGE, 0, 0, OP_DONE]);
-        let mut messages = crate::messages::Messages::new(1, crate::messages::Window { columns: 39, lines: 4 });
+        let mut messages = crate::messages::Messages::new(1, crate::messages::Window::columns(39, 4));
         let lines = with_variables(&["a\\v[173]b".to_string()], &indices).unwrap();
         let at = messages.add(&lines).ok().unwrap();
         // One line of three units: a, the value, b.
@@ -6108,7 +6110,7 @@ mod tests {
         use crate::messages::{Messages, Window};
         let indices = Indices::default();
         let sound = SoundSettings::default();
-        let mut messages = Messages::new(1, Window { columns: 39, lines: 4 });
+        let mut messages = Messages::new(1, Window::columns(39, 4));
         let mut songs = Songs::default();
         let mut troops = Troops::default();
         let setting = crate::commons::Setting {
@@ -6183,7 +6185,7 @@ mod tests {
         };
         let mut songs = Songs::default();
         songs.current = Some(Package::Map(0));
-        let mut messages = Messages::new(1, Window { columns: 39, lines: 4 });
+        let mut messages = Messages::new(1, Window::columns(39, 4));
         let mut ctx = Ctx {
             game,
             indices: &indices,

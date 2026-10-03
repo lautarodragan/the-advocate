@@ -6,25 +6,29 @@
 //! boxes are repeated often— is stored once: the content is the key.
 
 use crate::fail::{Bad, Result, Step, Stop};
+use rm2k_snes_text::font::{CONSOLE_GLYPHS, WIDTH};
+use rm2k_snes_text::refit::Measure;
 use std::collections::{BTreeMap, HashMap};
 
 /// The first byte value that stands for a pair of letters and not for one.
 ///
 /// A letter goes as its index in the font, ASCII minus 32, and the font has
-/// the 95 printable ASCII characters: 0 to 94. Every value from 95 up is one
-/// the text never uses, so each can mean two letters: that is DTE, dual tile
-/// encoding, of a single level —a pair is two letters, never a letter and
-/// another pair—. The ROM's composer looks a value from here up in the pair
-/// table and draws the two letters one after the other, as if they had come
-/// in two bytes.
-pub const PAIR_FIRST: u8 = 95;
+/// the 95 printable ASCII characters and, after them, the cursor's blank
+/// —`CURSOR_BLANK` in `rm2k-snes-text`, DEL—: 0 to 95. Every value from 96
+/// up is one the text never uses, so each can mean two letters: that is DTE,
+/// dual tile encoding, of a single level —a pair is two letters, never a
+/// letter and another pair—. The ROM's composer looks a value from here up
+/// in the pair table and draws the two letters one after the other, as if
+/// they had come in two bytes. It was 95 until the cursor's blank, on
+/// 2026-10-03.
+pub const PAIR_FIRST: u8 = 96;
 
 /// The byte that stands for **a variable's value**, `\V[n]`: the next byte
 /// is the variable's slot, and the ROM's composer writes its digits there
 /// when it opens the box —see `msg_letter` in tools/runtime/message_letter.s—.
 ///
 /// It is the last of the pair range, taken from the pairs, and not a value
-/// below `PAIR_FIRST`: those are the font's 95 letters, all of them used. The
+/// below `PAIR_FIRST`: those are the font's 96 letters, all of them used. The
 /// pair it displaces is the least frequent of the table.
 pub const VARIABLE: u8 = 0xFF;
 
@@ -177,10 +181,58 @@ pub const HEADER_AUTO_CLOSE: u8 = 0x08;
 
 /// The size of the console's message window, which the request brings: the
 /// runtime draws it, and the converter is where its size is written.
+///
+/// A line is measured **in pixels**, with the advance of each glyph of the
+/// font the console draws it with: `advances`, from the space on, the
+/// cursor's blank last. Until 2026-10-03 it was `columns` letters, every one
+/// six pixels wide; [`Window::columns`] is still that.
 #[derive(Debug, Clone, Copy)]
 pub struct Window {
-    pub columns: usize,
+    pub width: usize,
     pub lines: usize,
+    pub advances: [u8; CONSOLE_GLYPHS],
+}
+
+impl Window {
+    /// A window of `columns` letters of RM2k's fixed six-pixel font.
+    pub const fn columns(columns: usize, lines: usize) -> Window {
+        Window {
+            width: columns * WIDTH,
+            lines,
+            advances: [WIDTH as u8; CONSOLE_GLYPHS],
+        }
+    }
+
+    /// What `c` moves the line. A variable's value counts as **one digit**:
+    /// how many it takes is known only when the box opens, and the ROM cuts
+    /// at the edge what grows past it. A character the font does not have
+    /// is a space, and [`units`] stops the conversion on it anyway.
+    pub fn advance(&self, c: char) -> usize {
+        let code = c as u32;
+        if (VARIABLE_MARK..VARIABLE_MARK + 0x100).contains(&code) {
+            return self.advances[('0' as usize) - 32] as usize;
+        }
+        match code.checked_sub(32) {
+            Some(i) if (i as usize) < CONSOLE_GLYPHS => self.advances[i as usize] as usize,
+            _ => self.advances[0] as usize,
+        }
+    }
+
+    /// How the reflow measures a line of this window.
+    pub fn measure(&self) -> Measure {
+        Measure::from_advances(self.advances.to_vec(), self.width)
+    }
+
+    /// The longest start of `text` that fits in a line.
+    pub fn fit(&self, text: &str) -> String {
+        let mut used = 0;
+        text.chars()
+            .take_while(|&c| {
+                used += self.advance(c);
+                used <= self.width
+            })
+            .collect()
+    }
 }
 
 /// The lines without their escape tail, how many pauses it has and whether
@@ -228,19 +280,21 @@ pub fn escape_tail(lines: &[String]) -> Step<(Vec<String>, usize, bool)> {
     rm2k_snes_text::refit::escape_tail(lines).map_err(|_| Stop::Cannot)
 }
 
-/// The units of a line: each letter as its font index, that is ASCII minus
-/// 32, and each variable mark as its slot; a letter the font does not have
-/// stops the conversion. All of the game's text fits there: it was
-/// measured, and it does not have a single accented letter.
-fn units(text: &str, columns: usize) -> Result<Vec<Unit>> {
-    text.chars()
-        .take(columns)
+/// The units of what fits of a line: each letter as its font index, that is
+/// ASCII minus 32 —the cursor's blank, DEL, is 95—, and each variable mark
+/// as its slot; a letter the font does not have stops the conversion. All of
+/// the game's text fits there: it was measured, and it does not have a
+/// single accented letter.
+fn units(text: &str, window: Window) -> Result<Vec<Unit>> {
+    window
+        .fit(text)
+        .chars()
         .map(|ch| {
             let c = ch as u32;
             if (VARIABLE_MARK..VARIABLE_MARK + 0x100).contains(&c) {
                 return Ok(Unit::Variable((c - VARIABLE_MARK) as u8));
             }
-            if !(32..127).contains(&c) {
+            if !(32..32 + CONSOLE_GLYPHS as u32).contains(&c) {
                 return Err(Bad::answer(format!(
                     "the message has a character that is not in the font: {ch:?}"
                 )));
@@ -273,8 +327,7 @@ fn letter_runs(units: &[Unit]) -> Vec<Vec<u8>> {
 /// A variable's value is [`VARIABLE`] and its slot, and counts as **one**
 /// letter in the length: how many digits it takes is known only when the
 /// box opens, and the ROM adds the rest to the line's length there. A line
-/// that grows past the window is cut by the composer's column cap, at the
-/// edge.
+/// that grows past the window is cut by the composer at the edge.
 pub fn message_bytes(
     lines: &[String],
     pauses: usize,
@@ -289,7 +342,7 @@ pub fn message_bytes(
             | (pauses << 4) as u8,
     ];
     for text in lines.iter().take(window.lines) {
-        let text = units(text, window.columns)?;
+        let text = units(text, window)?;
         out.push(text.len() as u8);
         let mut run = Vec::new();
         for u in text {
@@ -375,7 +428,7 @@ impl Messages {
     pub fn choose_pairs(&self) -> Result<Pairs> {
         let mut runs = Vec::new();
         for t in self.texts.values().flatten() {
-            runs.extend(letter_runs(&units(t, self.window.columns)?));
+            runs.extend(letter_runs(&units(t, self.window)?));
         }
         Ok(Pairs::choose(runs.iter().map(|l| l.as_slice())))
     }
@@ -404,7 +457,7 @@ impl Messages {
         let lines: Vec<String> = lines
             .iter()
             .take(self.window.lines)
-            .map(|t| t.chars().take(self.window.columns).collect())
+            .map(|t| self.window.fit(t))
             .collect();
         let key = (lines, pauses, auto_close);
         if let Some(&w) = self.where_.get(&key) {
@@ -467,10 +520,7 @@ impl Messages {
 mod tests {
     use super::*;
 
-    const WINDOW: Window = Window {
-        columns: 39,
-        lines: 4,
-    };
+    const WINDOW: Window = Window::columns(39, 4);
 
     fn s(v: &[&str]) -> Vec<String> {
         v.iter().map(|t| t.to_string()).collect()
@@ -551,7 +601,9 @@ mod tests {
         let mut m = Messages::with_pairs(1, WINDOW, pairs);
         let at = m.add(&[line]).ok().unwrap();
         assert_eq!(m.data[at..], [1, 5, PAIR_FIRST, VARIABLE, 3, PAIR_FIRST]);
-        assert_eq!(PAIRS_MAX, 160);
+        // One fewer than when the font had 95 letters: the 96th is the
+        // cursor's blank.
+        assert_eq!(PAIRS_MAX, 159);
     }
 
     #[test]
@@ -575,9 +627,9 @@ mod tests {
         // The other way around a full line would eat its own tail, and the
         // box would wait for a key RM2k does not ask for.
         let mut m = Messages::new(1, WINDOW);
-        let full = "x".repeat(WINDOW.columns);
+        let full = "x".repeat(39);
         let at = m.add(&[format!("{full}\\|\\^")]).ok().unwrap();
         assert_eq!(m.data[at], 1 | HEADER_AUTO_CLOSE | 1 << 4);
-        assert_eq!(m.data[at + 1] as usize, WINDOW.columns);
+        assert_eq!(m.data[at + 1] as usize, 39);
     }
 }

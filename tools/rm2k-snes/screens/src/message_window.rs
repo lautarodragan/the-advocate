@@ -15,7 +15,8 @@ use crate::fail::{Bad, Result};
 use crate::game::Skin;
 use crate::layout::*;
 use rm2k_render::picture::Picture;
-use rm2k_snes_text::{font, line};
+use rm2k_snes_text::font::{self, Font};
+use rm2k_snes_text::line;
 use std::collections::{BTreeSet, HashMap};
 use voodoo::pack::{pack_tile, Indices};
 
@@ -86,7 +87,7 @@ pub fn convert(skin: &Skin, reserved: usize) -> Result<Window> {
     let ink = line::Ink::new(&skin.picture, 0);
     let mut color_row = Vec::new();
     for py in 0..font::HEIGHT {
-        let row: BTreeSet<Color> = (0..font::WIDTH).map(|px| rgb15(ink.text_at(px, py))).collect();
+        let row: BTreeSet<Color> = (0..font::INK_MAX).map(|px| rgb15(ink.text_at(px, py))).collect();
         if row.len() != 1 {
             return Err(Bad::answer(format!(
                 "row {py} of the text colour has {} distinct colours; the cartridge composes it \
@@ -189,16 +190,26 @@ pub fn cgram_word(c: Color) -> u16 {
     (c[2] as u16) << 10 | (c[1] as u16) << 5 | c[0] as u16
 }
 
-/// The 95 glyphs, twelve rows of six bits each, **with the bits
+/// The 95 glyphs, twelve rows of eight bits each, **with the bits
 /// reversed**: in the font's table bit 0 is the leftmost pixel, and in the
 /// console's tile format the leftmost is bit 7. Reversing them here and not
 /// in the cartridge comes for free.
-pub fn font_bytes(font_id: i32) -> Vec<u8> {
-    let mut out = Vec::with_capacity(font::GLYPHS * font::HEIGHT);
-    for glyph in font::table(font_id) {
-        for &row in glyph {
+///
+/// A glyph wider than [`font::INK_MAX`] does not fit the composer: with its
+/// shadow it would touch a third cell.
+pub fn font_bytes(font: &Font) -> Result<Vec<u8>> {
+    if font.ink_width() > font::INK_MAX {
+        return Err(Bad::answer(format!(
+            "the font has a glyph {} pixels wide, and the console's composer takes {}",
+            font.ink_width(),
+            font::INK_MAX
+        )));
+    }
+    let mut out = Vec::with_capacity(FONT_GLYPHS * font::HEIGHT);
+    for n in 0..FONT_GLYPHS {
+        for &row in font.rows(Font::console_char(n)) {
             let mut reversed = 0u8;
-            for px in 0..FONT_WIDTH {
+            for px in 0..font::INK_MAX {
                 if row >> px & 1 != 0 {
                     reversed |= 1 << (7 - px);
                 }
@@ -206,28 +217,47 @@ pub fn font_bytes(font_id: i32) -> Vec<u8> {
             out.push(reversed);
         }
     }
-    out
+    Ok(out)
 }
 
-/// The window's glyphs already composed, for each of the four phases a
-/// character can land on: x is the border plus six times the column, so
-/// modulo 8 it gives 0, 6, 4 or 2 and never anything else. Per glyph and
-/// phase go the cell rows it touches —its twelve, and one more of shadow—
-/// and per row the two cells it can step on, each with three words: what
-/// is kept of what is there, and what is set in planes 0-1 and in 2-3. The
-/// cartridge does `buf = buf & keep | set`.
+/// How many columns each of the 95 glyphs paints from where it starts: its
+/// ink and its shadow, one column further. It is what the composer checks
+/// against the edge of the window before drawing a letter, so that a line
+/// that grows on the console —a variable's digits— is cut where it would
+/// leave the buffer.
+pub fn font_reach(font: &Font) -> Vec<u8> {
+    (0..FONT_GLYPHS)
+        .map(|n| {
+            let ink = font.rows(Font::console_char(n)).iter().map(|r| 16 - r.leading_zeros()).max().unwrap_or(0);
+            if ink == 0 {
+                0
+            } else {
+                ink as u8 + 1
+            }
+        })
+        .collect()
+}
+
+/// The window's glyphs already composed, for each of the eight phases a
+/// character can land on: with a variable-width font a letter starts at
+/// any column of a cell. Until 2026-10-03 there were four —x was the
+/// border plus six times the column, so modulo 8 it gave 0, 6, 4 or 2 and
+/// never anything else—. Per glyph and phase go the cell rows it touches
+/// —its twelve, and one more of shadow— and per row the two cells it can
+/// step on, each with three words: what is kept of what is there, and what
+/// is set in planes 0-1 and in 2-3. The cartridge does
+/// `buf = buf & keep | set`.
 ///
 /// The shadow and the glyph come already combined, with `Font::Render`'s
 /// order: on a row land the glyph and the shadow of the row above, shifted
 /// one pixel, and where they overlap the glyph wins.
 ///
 /// `source` is [`font_bytes`], `colors` the palette index of each glyph
-/// row and `shadow` the shadow's. The four tables, one per phase: 0, 2, 4,
-/// 6.
+/// row and `shadow` the shadow's. The eight tables, one per phase.
 pub fn font_prerender(source: &[u8], colors: &[u8], shadow: u8) -> Vec<Vec<u8>> {
     let glyphs = source.len() / FONT_HEIGHT;
     let mut tables = Vec::new();
-    for phase in [0u32, 2, 4, 6] {
+    for phase in 0u32..FONT_PHASES as u32 {
         let mut out = Vec::new();
         for c in 0..glyphs {
             let rows = &source[c * FONT_HEIGHT..(c + 1) * FONT_HEIGHT];

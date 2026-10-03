@@ -189,10 +189,10 @@ pub fn run(argv: Vec<String>) -> Result<()> {
                     .collect::<Vec<_>>(),
             })
         }
-        "boxes" => json!({
-            "window": {"columns": rm2k_snes_mapdata::engine::COLUMNS, "lines": crate::compiler::LINES},
-            "boxes": Compiler::new(&game, &settings)?.boxes(),
-        }),
+        "boxes" => {
+            let compiler = Compiler::new(&game, &settings)?;
+            json!({"window": compiler.window(), "boxes": compiler.boxes()})
+        }
         other => return Err(Stop::usage(format!("{other} is not a question"))),
     };
     println!("{}", serde_json::to_string(&answer).expect("an answer is JSON"));

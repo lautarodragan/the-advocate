@@ -2,7 +2,7 @@
 name = "rm2k-snes-text"
 version = "0.1.0"
 edition = "2021"
-description = "Text on an rm2k-snes console's screens: easyrpg-player's 6x12 fonts, a line of text drawn over an RPG Maker 2000 System, and message boxes reflowed for a narrower window"
+description = "Text on an rm2k-snes console's screens: its fonts —a sheet drawn by hand, or easyrpg-player's 6x12—, a line of text drawn over an RPG Maker 2000 System, and message boxes reflowed for a narrower window"
 
 [lib]
 name = "rm2k_snes_text"
@@ -10,6 +10,7 @@ path = "src/lib.rs"
 
 [dependencies]
 rm2k-render = { path = "../../rm2k/rm2k-render" }
+png = "0.17"
 
 [dev-dependencies]
 rm2k-rules = { path = "../../rm2k/rules" }

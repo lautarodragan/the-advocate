@@ -6,7 +6,7 @@
 //! tuned on that showed the rule: until 2026-10-02 they were that game's
 //! own lines.
 
-use rm2k_snes_text::refit::{escape_tail, fits, is_speaker, refit};
+use rm2k_snes_text::refit::{escape_tail, fits, is_speaker, refit, Measure};
 
 const COLUMNS: usize = 39;
 const LINES: usize = 4;
@@ -164,7 +164,7 @@ fn what_is_reflowed_fits_and_does_not_change_again() {
         "again if you ask me again, because that is the kind of person I am.",
     ];
     for c in reflow(&b) {
-        assert!(fits(&c, COLUMNS, LINES).unwrap(), "{c:?}");
+        assert!(fits(&c, &Measure::columns(COLUMNS), LINES).unwrap(), "{c:?}");
         assert_eq!(refit(&c, COLUMNS, LINES), vec![c.clone()]);
     }
 }

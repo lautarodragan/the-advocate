@@ -575,15 +575,26 @@ pub const WINDOW_ROWS_INC: usize = WINDOW_HEIGHT / CELL;
 /// deduplicated, and **the text area, 30 columns by 8 rows of cells, not
 /// deduplicated**: each cell has its fixed tile, because the cartridge
 /// rewrites them and cannot go around looking for repeats. That is where
-/// the cap on the characters per line comes from: with one more, the
-/// shadow of the last one spills into one more column of cells.
+/// the width of a line comes from: [`MESSAGE_WIDTH`].
 pub const WINDOW_TEXT_ROW: usize = 1;
 pub const WINDOW_TEXT_ROWS: usize = 8;
 pub const WINDOW_TEXT_COL: usize = 1;
 pub const WINDOW_TEXT_COLS: usize = 30;
-/// The glyph, which is what the cartridge composes.
+/// The pixels a line of the window may take: the text area's, from the
+/// border. A letter that would paint past it is not drawn —see
+/// `font_reach`—. With RM2k's six-pixel font it was 39 characters; RM2k's
+/// own window takes about 50 of its letters, and the variable-width font
+/// about 49.
+pub const MESSAGE_WIDTH: usize = WINDOW_TEXT_COLS * CELL;
+/// The glyph, which is what the cartridge composes. `FONT_WIDTH` is RM2k's
+/// fixed advance, which the menu's experience line still steps by.
 pub const FONT_WIDTH: usize = font::WIDTH;
 pub const FONT_HEIGHT: usize = font::HEIGHT;
+/// How many glyphs the cartridge's font tables carry —the sheet's and the
+/// cursor's blank— and in how many phases each is precomposed: one per
+/// column of a cell a letter can start at.
+pub const FONT_GLYPHS: usize = font::CONSOLE_GLYPHS;
+pub const FONT_PHASES: usize = 8;
 /// The precomposed glyphs: per glyph and phase, the cell rows it touches
 /// —its twelve, and one more of shadow— and per row the two cells it can
 /// step on, three words each.
@@ -641,7 +652,7 @@ pub fn publish() -> Value {
         BORDER, END_YES, END_NO, END_DEFAULT_CHOICE, END_FADE_FRAMES, END_SONG_FADE_MS,
         WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_COLS_INC, WINDOW_ROWS_INC, WINDOW_TEXT_ROW,
         WINDOW_TEXT_ROWS, WINDOW_TEXT_COL, WINDOW_TEXT_COLS, FONT_WIDTH, FONT_HEIGHT,
-        FONT_PRE_ROWS, FONT_PRE_CHAR,
+        FONT_PRE_ROWS, FONT_PRE_CHAR, MESSAGE_WIDTH, FONT_GLYPHS, FONT_PHASES,
     );
     m.insert("ITEM_WINDOWS".into(), rects(&ITEM_WINDOWS));
     m.insert("TARGET_WINDOWS".into(), rects(&TARGET_WINDOWS));

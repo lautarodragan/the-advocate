@@ -66,11 +66,10 @@ fn glyphs_json(glyphs: &std::collections::BTreeMap<char, Vec<u16>>) -> Value {
 /// say about them, in order.
 pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     let skin = game.skin()?;
-    let font_id = game.font_id();
     let mut says: Vec<String> = Vec::new();
 
     let window = message_window::convert(&skin, request.cgram_reserved)?;
-    let font = message_window::font_bytes(font_id);
+    let font = message_window::font_bytes(&game.font)?;
     let prerender = message_window::font_prerender(&font, &window.color, window.shadow);
 
     // The letters of the medicines, which the actor choice writes with the
@@ -211,6 +210,8 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
             "color": window.color,
             "shadow": window.shadow,
             "font": hex(&font),
+            "advances": game.font.console_advances(),
+            "reach": message_window::font_reach(&game.font),
             "prerender": prerender.iter().map(|t| hex(t)).collect::<Vec<_>>(),
         },
         "title": title.map(|t| json!({

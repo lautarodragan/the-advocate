@@ -31,6 +31,12 @@
 //! hash of `messages` moved with it: the new answer, with the old name put
 //! back in the console's text encoding, is the Python's byte for byte. The
 //! comparison is still against the Python, renamed.
+//!
+//! On 2026-10-03 it moved again, on purpose: a `ShowChoice`'s options the
+//! cursor is not on start with the cursor's blank —glyph 95, as wide as the
+//! `>`— and not with a space, because the font got variable width and a
+//! space is narrower. The choice's boxes are the only bytes that changed:
+//! with `CHOICE_INDENT` back at a space, the answer was the old one.
 
 use rm2k_snes_events::{compile, compile_without_pairs, scan, Game, Request};
 use serde_json::Value;

@@ -70,7 +70,7 @@ enum Kind {
 /// cartridge composes it with glyphs, because it depends on the actor.
 fn level_term(game: &Game, skin: &Skin, dest: &mut Picture, x: usize, y: usize) -> Result<()> {
     let term: String = game.term("lvl_short")?.chars().take(2).collect();
-    skin.draw_line(dest, x as i64, y as i64, &ljust(&term, 2), 1, game.font_id());
+    skin.draw_line(dest, x as i64, y as i64, &ljust(&term, 2), 1, &game.font);
     Ok(())
 }
 
@@ -165,9 +165,9 @@ fn lend(
 /// with more actors that can join than palettes would have to leave some
 /// out, and they can be the path of the story.
 pub fn slots_screen(game: &Game, skin: &Skin, slots: usize, actors: &[i32], extra: &str) -> Result<Slots> {
-    let font_id = game.font_id();
+    let font = &game.font;
     let write = |dest: &mut Picture, x: usize, y: usize, text: &str, color: i32| {
-        skin.draw_line(dest, x as i64, y as i64, text, color, font_id);
+        skin.draw_line(dest, x as i64, y as i64, text, color, font);
     };
 
     // First all the text layers, so the colours can be gathered at once.

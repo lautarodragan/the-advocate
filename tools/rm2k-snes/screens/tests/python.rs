@@ -81,10 +81,14 @@ fn everything_a_cartridge_carries() {
     // The actor choice is no longer the Python's since 2026-09-30: whom to
     // equip is chosen on the pause menu, over nothing, which adds that bar's
     // tiles and rectangle, and the choice without an item and its erased
-    // cells went away. Everything else is still the Python's.
+    // cells went away. Everything else is still the Python's, but the
+    // message window's font, which since 2026-10-03 carries eight phases
+    // and not four, the cursor's blank, and each glyph's advance and reach:
+    // the font got variable width, and this game draws with RM2k's, the
+    // fixed one, so the rest of what it draws did not move.
     assert_eq!(
         sha(canon(&answer).as_bytes()),
-        "e568fef1b16c41321baf8bdfa7d5763cbce648c89bca6802743783233bb59914"
+        "0236f833f14f862f4d5f8c57d6e0580e2094eb20943a47238ef65c4291128ea6"
     );
     assert_eq!(
         answer["says"],
@@ -225,7 +229,7 @@ fn the_screens_as_the_console_shows_them() {
 
 #[test]
 fn the_boxes_of_the_maps_and_the_common_events() {
-    let table = boxes::table(&here().join("dump"), &[], 39, 4).unwrap();
+    let table = boxes::table(&here().join("dump"), &[], &rm2k_snes_text::refit::Measure::columns(39), 4).unwrap();
     assert_eq!(table.as_array().unwrap().len(), 4);
     assert_eq!(
         sha(canon(&table).as_bytes()),

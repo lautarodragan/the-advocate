@@ -8,7 +8,7 @@
 use crate::fail::{Bad, Result};
 use ditto::dump::{read_map, Dump};
 use ditto::schema::{CommonEvent, EventCommand};
-use rm2k_snes_text::refit::refit;
+use rm2k_snes_text::refit::{refit_measured, Measure};
 use serde_json::{json, Value};
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -38,17 +38,17 @@ fn boxes_of(commands: &[EventCommand], out: &mut Vec<Vec<String>>) {
     }
 }
 
-/// Each of `boxes` reflowed for a window of `columns` by `rows`, as
-/// `{"to": boxes, "speaker": whether its first line names who speaks}`: a
-/// box that fits comes back as itself. It is for whoever checks the reflow
-/// over a whole game.
-pub fn refit_each(boxes: &[Vec<String>], columns: usize, rows: usize) -> Value {
+/// Each of `boxes` reflowed for a window whose lines `measure` measures
+/// and that shows `rows`, as `{"to": boxes, "speaker": whether its first
+/// line names who speaks}`: a box that fits comes back as itself. It is for
+/// whoever checks the reflow over a whole game.
+pub fn refit_each(boxes: &[Vec<String>], measure: &Measure, rows: usize) -> Value {
     Value::from(
         boxes
             .iter()
             .map(|lines| {
                 json!({
-                    "to": refit(lines, columns, rows),
+                    "to": refit_measured(lines, measure, rows),
                     "speaker": lines.len() > 1 && rm2k_snes_text::refit::is_speaker(&lines[0]),
                 })
             })
@@ -60,7 +60,7 @@ pub fn refit_each(boxes: &[Vec<String>], columns: usize, rows: usize) -> Value {
 /// they are first found: the dump's maps by file name, then `map_files`
 /// —the project's, which override the dump's: both are read, which only
 /// adds boxes nobody asks for—, then the common events.
-pub fn table(data: &std::path::Path, map_files: &[PathBuf], columns: usize, rows: usize) -> Result<Value> {
+pub fn table(data: &std::path::Path, map_files: &[PathBuf], measure: &Measure, rows: usize) -> Result<Value> {
     let dump = Dump::open(data).map_err(answer)?;
     let mut paths = dump.map_files().map_err(answer)?;
     paths.sort_by(|a, b| a.file_name().cmp(&b.file_name()));
@@ -84,7 +84,7 @@ pub fn table(data: &std::path::Path, map_files: &[PathBuf], columns: usize, rows
         if !seen.insert(lines.clone()) {
             continue;
         }
-        let frames = refit(&lines, columns, rows);
+        let frames = refit_measured(&lines, measure, rows);
         if frames != [lines.clone()] {
             out.push(json!({"from": lines, "to": frames}));
         }
