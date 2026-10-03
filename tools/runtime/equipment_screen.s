@@ -985,8 +985,11 @@ wait:
     ; frames, and a one-frame press was lost half the time. With the pad
     ; read, the DMA still fits in vblank.
     jsl f:ba_t_pad
-    jsl f:ba_t_upload
+    ; The bar before the text: the text's tilemap is the longest DMA of
+    ; the frame, and what goes after it can fall out of the vblank —see
+    ; the shop's loop—.
     jsr eq_bar
+    jsl f:ba_t_upload
     lda pad
     eor pad_prev
     and pad

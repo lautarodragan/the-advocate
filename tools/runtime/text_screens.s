@@ -29,15 +29,19 @@ SCR_BYTES = 32 * 28 * 2
     rts
 .endproc
 
-; In the vblank: the tiles of the row composed last and the tilemap, 1792
-; bytes in one DMA. The rows are composed while `wait_vblank` waits —see
-; `tl_idle`—, except right after a screen opens, with the screen off: then
-; all of them, here.
+; In the vblank: the tiles of the row composed last, or the tilemap, 1792
+; bytes in one DMA, **never both**: the tilemap goes first, and only when no
+; tiles are left to go up, so the vblank it goes in carries no tiles: the
+; other way around, the last tiles and the tilemap went in the same one,
+; some twenty lines of DMA. And the screen's own uploads go before this,
+; not after: see the shop's loop. The rows are composed while `wait_vblank`
+; waits —see `tl_idle`—, except right after a screen opens, with the screen
+; off: then all of them, here.
 .proc scr_upload
 .a8
 .i16
-    jsl f:tl_vblank + FAST
     jsl f:tl_map + FAST
+    jsl f:tl_vblank + FAST
     jsl f:tl_work + FAST
     rts
 .endproc
