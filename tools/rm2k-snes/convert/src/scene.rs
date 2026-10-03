@@ -878,7 +878,7 @@ mod tests {
 
     #[test]
     fn a_battler_is_named_by_its_image_and_its_hue() {
-        assert_eq!(key("BLmouse", 0), "BLmouse");
-        assert_eq!(key("BLmouse", 120), "BLmouse-120");
+        assert_eq!(key("Rat", 0), "Rat");
+        assert_eq!(key("Rat", 120), "Rat-120");
     }
 }

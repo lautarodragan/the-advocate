@@ -32,6 +32,12 @@
 //! them. The made-up bytes the map carried, `$01, $02`, are not a tile any
 //! block starts at, so it asks for block 5 with palette 1 now: that one
 //! line of the page table is what moved the three hashes.
+//!
+//! Also on 2026-10-02, the two map names that came from the game this was
+//! built for —one with an apostrophe, one with a comma— became invented
+//! ones of the same length, and the four hashes of text that carries them
+//! in a comment moved: the new text, with the old names put back, is the
+//! old one byte for byte. No byte of a cartridge moved.
 
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_mapdata::record;
@@ -59,11 +65,11 @@ fn what_goes_per_map_comes_out_as_the_python_wrote_it() {
     );
     assert_eq!(
         sha(&written.maps),
-        "311c1588dfb474732073d856435cb4e9567cf26a89322e1a9131551dedb71324"
+        "cb782dcc5d6a59cb08786dea041fabaacbdb78812d565a5b5841be440d55ce42"
     );
     assert_eq!(
         sha(&written.tables),
-        "29ef5e737e40893cee451a8f8cc47837ace94e7cac5c1126ebbe7b4fda7cd803"
+        "9d34e34319675f3bde24e2fefab3c75e966362f751d0d683650541debd37d9e7"
     );
 }
 
@@ -198,7 +204,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     assert_eq!(text.lines().count(), 3300);
     assert_eq!(
         sha(&text),
-        "1ba9dada4a27cc962bb66e03d3dc08382eb4e627f0fb18e9c1fca3289cb02c7d"
+        "70960fa4e1f4b8099971974e2c15543ea08196f2386d905666164e4989bafaa4"
     );
 }
 
@@ -209,7 +215,7 @@ fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     assert_eq!(text.lines().count(), 3419);
     assert_eq!(
         sha(&text),
-        "0ee081eac15aaebdbfc701ca57c35c0b371bd61d3242bcda28c9a7f11af5abdb"
+        "e3e4b7a4fc6934f08952d083d9d1ae23c4b5251e93e0f87463bcb88d94b2119b"
     );
 }
 

@@ -1,6 +1,10 @@
-//! The reflow's rules, one by one, on boxes of a real game —A Blurred
-//! Line's, the one it was tuned on— for a window of 39 characters by four
+//! The reflow's rules, one by one, for a window of 39 characters by four
 //! lines. That a whole game's boxes fit is the game's to check.
+//!
+//! The boxes are invented, but each one keeps the shape —the length of every
+//! word, the punctuation, the speaker— of a box of the game the reflow was
+//! tuned on that showed the rule: until 2026-10-02 they were that game's
+//! own lines.
 
 use rm2k_snes_text::refit::{escape_tail, fits, is_speaker, refit};
 
@@ -28,16 +32,16 @@ fn words(boxes: &[Vec<String>], speaker: bool) -> Vec<String> {
 #[test]
 fn a_box_that_fits_is_left_alone() {
     // Not even the spaces inside: they are the author's.
-    let b = s(&["                  < Kiss >"]);
+    let b = s(&["                  < Wave >"]);
     assert_eq!(refit(&b, COLUMNS, LINES), vec![b]);
 }
 
 #[test]
 fn it_is_rebuilt_and_keeps_the_speaker() {
-    let b = ["KERSH", "I have pressing business within the Linkage", "Block. No turning back."];
+    let b = ["ODILE", "I have pressing business across the Harbour", "Front. No turning back."];
     let out = reflow(&b);
     assert_eq!(out.len(), 1);
-    assert_eq!(out[0][0], "KERSH");
+    assert_eq!(out[0][0], "ODILE");
     assert!(out[0].iter().all(|t| t.chars().count() <= COLUMNS));
     assert_eq!(words(&out, true), words(&[s(&b)], true));
 }
@@ -46,14 +50,14 @@ fn it_is_rebuilt_and_keeps_the_speaker() {
 fn what_does_not_fit_is_split_and_repeats_the_speaker() {
     // As a game does with consecutive boxes of the same character.
     let b = [
-        "MANTA",
-        "According to this, the Catch Colony is connected",
-        "to the Block by an electromagnetic Link, which",
-        "keeps the Colony from drifting into space.",
+        "FLINT",
+        "According to this, the North Harbor is connected",
+        "to the Front by an electromagnetic Lock, which",
+        "keeps the Harbor from drifting into waves.",
     ];
     let out = reflow(&b);
     assert_eq!(out.len(), 2);
-    assert!(out.iter().all(|c| c[0] == "MANTA"));
+    assert!(out.iter().all(|c| c[0] == "FLINT"));
     assert!(out.iter().all(|c| c.len() <= LINES));
     assert_eq!(words(&out, true), words(&[s(&b)], true));
 }
@@ -61,10 +65,10 @@ fn what_does_not_fit_is_split_and_repeats_the_speaker() {
 #[test]
 fn the_tail_goes_at_the_end_of_the_last_box() {
     let out = reflow(&[
-        "CORE",
-        "Thank you, Manta. And maybe... after all this,",
-        "you'll be able to tell me the answer to the",
-        "question none of my abilities... can.\\|\\^",
+        "VEGA",
+        "Thank you, Flint. And maybe... after all this,",
+        "you'll be able to show me the result of the",
+        "equation none of my detectors... can.\\|\\^",
     ]);
     assert!(out.len() > 1);
     assert!(out.last().unwrap().last().unwrap().ends_with("can.\\|\\^"));
@@ -82,14 +86,14 @@ fn no_line_breaks_too_early() {
     // first two are the ones that looked worst —"Remember," and "Well,"
     // alone on their line, so that the ones below ended in a period—.
     let cases: [&[&str]; 8] = [
-        &["?????", "Remember, my alias for this operation is", "\"Kersh.\" We should have the element of", "surprise."],
-        &["TALAN", "Well, this decision won't get any easier.", "I've got to make up my mind and go!"],
-        &["?????", "That security droid has been deactivated.", "Its attack mode has been switched off."],
-        &["TALAN", "...but the Hover-Trams don't always run on", "time, and I might get stuck waiting for one."],
-        &["TALAN", "It's Trash Dump 004 - right near my apartment.", "I'm not getting anywhere!"],
-        &["TALAN", "Maybe there'll be another one along", "really soon... at least, I hope there will!"],
-        &["CONDA", "Do you think he's one of the Lazer Teeth?", "Maybe they found out about our spy..."],
-        &["CORE", "Thank you, Manta. And maybe... after all this,", "you'll be able to tell me the answer to the", "question none of my abilities... can."],
+        &["?????", "Remember, my alias for this excursion is", "\"Odile.\" We should have the element of", "surprise."],
+        &["PERCY", "Well, this question won't get any easier.", "I've got to pick up my coat and go!"],
+        &["?????", "That cleaning robot has been deactivated.", "Its polish mode has been switched off."],
+        &["PERCY", "...but the Cable-Boats don't always run on", "time, and I might get stuck waiting for one."],
+        &["PERCY", "It's Cargo Shed 004 - right near my apartment.", "I'm not getting anywhere!"],
+        &["PERCY", "Maybe there'll be another one along", "pretty soon... at least, I hope there will!"],
+        &["MAVIS", "Do you think he's one of the Night Gulls?", "Maybe they found out about our spy..."],
+        &["VEGA", "Thank you, Flint. And maybe... after all this,", "you'll be able to show me the result of the", "equation none of my detectors... can."],
     ];
     for b in cases {
         let out = reflow(b);
@@ -107,21 +111,21 @@ fn a_line_of_whole_sentences_may_be_short() {
     // Breaking between two short sentences reads as the author's line
     // break, and it is not traded for filling the line.
     assert_eq!(
-        reflow(&["KERSH", "Time is running out. There's no turning back."]),
-        vec![s(&["KERSH", "Time is running out.", "There's no turning back."])]
+        reflow(&["ODILE", "Tide is running out. There's no turning back."]),
+        vec![s(&["ODILE", "Tide is running out.", "There's no turning back."])]
     );
     assert_eq!(
-        reflow(&["TALAN", "Ten minutes... I'm not sure I can make it."]),
-        vec![s(&["TALAN", "Ten minutes...", "I'm not sure I can make it."])]
+        reflow(&["PERCY", "Six minutes... I'm not sure I can make it."]),
+        vec![s(&["PERCY", "Six minutes...", "I'm not sure I can make it."])]
     );
 }
 
 #[test]
 fn a_name_is_not_split_from_its_number() {
     let out = reflow(&[
-        "TALAN",
-        "I'd better not go back through Sector 33. The Lazer",
-        "Teeth wouldn't be happy to see me...",
+        "PERCY",
+        "I'd better not go back through Sector 33. The Night",
+        "Gulls wouldn't be happy to see me...",
     ]);
     assert!(!out.iter().flatten().any(|t| t.ends_with("Sector")), "{out:?}");
 }
@@ -131,8 +135,8 @@ fn no_box_is_added_for_nothing() {
     // If the text fits in one box, it is not split in two to look better:
     // one more box is one more key press.
     let out = reflow(&[
-        "TALAN",
-        "Well... time to get away from the Agency. Now I've",
+        "PERCY",
+        "Well... time to get away from the Office. Now I've",
         "got an entire world to hide in...",
     ]);
     assert_eq!(out.len(), 1);
@@ -141,12 +145,12 @@ fn no_box_is_added_for_nothing() {
 #[test]
 fn who_speaks() {
     for (line, speaks) in [
-        ("KERSH", true),
-        ("TRAM OFFICER", true),
+        ("ODILE", true),
+        ("DOCK OFFICER", true),
         ("?????", true),
         ("WHAT?", false),
         ("NO!", false),
-        ("Kersh", false),
+        ("Odile", false),
     ] {
         assert_eq!(is_speaker(line), speaks, "{line}");
     }
@@ -155,7 +159,7 @@ fn who_speaks() {
 #[test]
 fn what_is_reflowed_fits_and_does_not_change_again() {
     let b = [
-        "MANTA",
+        "FLINT",
         "I already told you. He didn't go this way. Twice. And I will tell you",
         "again if you ask me again, because that is the kind of person I am.",
     ];

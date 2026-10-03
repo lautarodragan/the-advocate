@@ -18,7 +18,7 @@
   "parches/auto/animaciones/0082.toml": "9714a155f53a725366e9e033f580d081db7c3e326df6e073db1e43b6778f1010",
   "parches/auto/animaciones/0091.toml": "669ea1954bb279b79d97c569d7db2b1a607b50f44fd7a57a26d2bf089d2c4e46",
   "parches/auto/battlers/ghost.toml": "60bf4561ba2e0160251f5d8ba526d8476e586eed55b2565943d3358c1a57a705",
-  "parches/auto/battlers/sentry_drone.toml": "6361734c3b5cfa732087217c402a7bc9a60aaa8bfe490ce85a1ca86c9842b2dd",
+  "parches/auto/battlers/rusty_knight.toml": "ea079ecfeab3b10a657133bf8786fe2d359931f44f6492239c195dcdf5885718",
   "parches/auto/battlers/slime-60.toml": "d40a1cab63d63ddcbfa1f17b70f5f882bcdba9b6ba35f8400d57459f063c5e58",
   "parches/auto/mapas/0003.toml": "9116a1cacd9ccd61c8d18e189aa6427069526c4570024403648f1a2f522108c0",
   "parches/auto/mapas/0012.toml": "0fc12260799c58af62afe06be728bae2ac2d731e07537014e2835531a7938892",
@@ -42,7 +42,7 @@
    1
   ],
   "battler": [
-   "sentry drone",
+   "rusty knight",
    "slime-60"
   ]
  },
@@ -51,7 +51,7 @@
   "map 777 has a versioned patch and none of the built cartridges converts it: either the game stopped carrying it —and then the file is left over— or the cartridge that has it is not built.",
   "animation 82 went into «release», the playable ROM, and has no versioned patch: run `just parches`.",
   "parches/auto/animaciones/0001.toml is stale (cartridge «special» says so), and what changed in animation 1 is this:\n    it was drawn at 56x64 and now it is drawn at 64x56\n    it came from 96x110 in RM2k and now comes from 96x111\n    it had 7 frame(s) and now has 8\n    it came from sheet 'hit' and now comes from 'hit2'\n  If the change is the one intended, `just parches` and commit; if not, something moved what is seen.",
-  "parches/auto/battlers/sentry_drone.toml is stale (cartridge «special» says so), and what changed in battler sentry drone is this:\n    the same colors in another palette order\n  If the change is the one intended, `just parches` and commit; if not, something moved what is seen.",
+  "parches/auto/battlers/rusty_knight.toml is stale (cartridge «special» says so), and what changed in battler rusty knight is this:\n    the same colors in another palette order\n  If the change is the one intended, `just parches` and commit; if not, something moved what is seen.",
   "parches/auto/battlers/slime-60.toml is stale (cartridge «special» says so), and what changed in battler slime-60 is this:\n    keeps [0, 11, 0], which used to be merged\n    loses [0, 10, 0], which used to stay\n    tamano went from [40, 30] to [40, 31]\n    colores went from 20 to 21\n    tono went from 60 to 90\n    18 merges were needed and now 19\n  If the change is the one intended, `just parches` and commit; if not, something moved what is seen."
  ],
  "own": {

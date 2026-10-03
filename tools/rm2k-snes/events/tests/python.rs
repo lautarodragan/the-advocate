@@ -25,6 +25,12 @@
 //! **If one of these changes, a byte of a cartridge changed.** The hashes
 //! are not to be regenerated to make a test pass: the Python that produced
 //! them is gone, and with it the only independent answer.
+//!
+//! On 2026-10-02 the speaker of the rebuilt box, a character of the game
+//! this was built for, became an invented one of the same length, and the
+//! hash of `messages` moved with it: the new answer, with the old name put
+//! back in the console's text encoding, is the Python's byte for byte. The
+//! comparison is still against the Python, renamed.
 
 use rm2k_snes_events::{compile, compile_without_pairs, scan, Game, Request};
 use serde_json::Value;

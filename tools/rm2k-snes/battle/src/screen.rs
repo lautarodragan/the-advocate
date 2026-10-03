@@ -325,8 +325,8 @@ mod tests {
 
     #[test]
     fn the_victory_term_splits_at_spaces_and_keeps_its_indent() {
-        let lines = victory_lines(" The combat has resulted in victory!", 31).unwrap();
-        assert_eq!(lines, [" The combat has resulted in", "victory!"]);
+        let lines = victory_lines(" The skirmish has ended in victory!", 31).unwrap();
+        assert_eq!(lines, [" The skirmish has ended in", "victory!"]);
     }
 
     #[test]

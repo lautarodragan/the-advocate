@@ -23,7 +23,10 @@ they predict the console with, the clients of the stages they ask— went to
 their harness the same day: it is theirs. And on 2026-10-02 the game itself,
 A Blurred Line, went to its own repo, with its tests and their harness; it
 imports `common` and `emulator` from here, asking `rm2k-snes-python-path`
-where they are.
+where they are. What stayed here names it only in comments —limits measured
+against it, the case that explained a rule—: a test uses invented names and
+a fixture invented content, and `tests/test_no_game_names.py` fails if
+anything else does.
 
 And the Rust projects, which are not layers of the port but separate tools,
 in English and without a single mention of this game (see AGENTS.md). They
@@ -196,8 +199,8 @@ Each puts it first on the PATH of its recipes: see the recipe, and
 cases each cartridge carries, what the ROM is called, the title in its
 header and the signatures of its save files, which sound effects go whole,
 which songs go separately, which CharSet weighs most when splitting
-palettes. The game declares it at its root, in `rm2k-snes.toml` —A Blurred
-Line's is `rom/rm2k-snes.toml`—, and it is read with `common/settings.py`:
+palettes. The game declares it at its root, in `rm2k-snes.toml`, and it is
+read with `common/settings.py`:
 `settings.value("maps", "below", kind=int)`.
 
 * **A missing key is an error**, with its name, and not a default value: a

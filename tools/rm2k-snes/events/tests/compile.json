@@ -3,12 +3,12 @@
  "boxes": [
   {
    "from": [
-    "KERSH",
+    "ODILE",
     "Hello there, this line is far too long to fit in the window of the console and has to be rebuilt\\|\\^"
    ],
    "to": [
     [
-     "KERSH",
+     "ODILE",
      "Hello there, this line is far too long",
      "to fit in the window of the console and",
      "has to be rebuilt\\|\\^"

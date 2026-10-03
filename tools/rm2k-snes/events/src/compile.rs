@@ -4949,21 +4949,21 @@ mod tests {
         compile_page(&mut ctx, commands, None, 0, 0)
     }
 
-    const FORTITUDE: [(i32, i32, i32); 2] = [(2, 55, 30), (3, 70, 30)];
+    const TWO_DIGITS: [(i32, i32, i32); 2] = [(2, 55, 30), (3, 70, 30)];
 
     #[test]
     fn a_declared_counter_is_one_opcode_and_not_its_body() {
         // The middle of the two centers is (62, 30), which on the console is
         // (49, 28): the two glyphs, sixteen by sixteen, start eight to the
         // left and eight up.
-        let game = with_counter(true, &FORTITUDE);
+        let game = with_counter(true, &TWO_DIGITS);
         let code = compile_with(&game, &[cmd(CALL_EVENT, &[0, 9, 0], "")]);
         assert_eq!(code.unwrap().unwrap(), [OP_COUNTER, 5, 41, 20, OP_DONE]);
     }
 
     #[test]
     fn a_digit_on_a_counters_picture_shows_the_counter() {
-        let game = with_counter(true, &FORTITUDE);
+        let game = with_counter(true, &TWO_DIGITS);
         let show = |number: i32, name: &str| {
             cmd(
                 SHOW_PICTURE,
@@ -4975,7 +4975,7 @@ mod tests {
         assert_eq!(code.unwrap().unwrap(), [OP_COUNTER, 5, 41, 20, OP_DONE]);
         // Another image on it, or a digit on a picture that is not the
         // counter's, is still any picture: accepted without being done.
-        for other in [show(2, "Fortitude"), show(1, "9")] {
+        for other in [show(2, "Gauge"), show(1, "9")] {
             let code = compile_with(&game, &[other.clone()]);
             assert_eq!(code.unwrap().unwrap(), [OP_DONE]);
             assert_eq!(page_debts(&game, &Indices::default(), &[other], None).unwrap(), [SHOW_PICTURE]);
@@ -4986,7 +4986,7 @@ mod tests {
     #[test]
     fn an_undeclared_common_event_is_not_a_counter() {
         // Its body in place, and its pictures are any picture's.
-        let game = with_counter(false, &FORTITUDE);
+        let game = with_counter(false, &TWO_DIGITS);
         let code = compile_with(&game, &[cmd(CALL_EVENT, &[0, 9, 0], "")]);
         assert_eq!(code.unwrap().unwrap(), [OP_DONE]);
     }
@@ -5147,7 +5147,7 @@ mod tests {
 
     #[test]
     fn a_jump_out_of_a_branch_lands_past_its_end() {
-        // The maps 332 to 339: from inside two branches to after them.
+        // From inside two branches to after them.
         let code = on_a_map(&[
             branch(COND_BRANCH, 0),
             branch(COND_BRANCH, 1),
@@ -5186,7 +5186,7 @@ mod tests {
 
     #[test]
     fn a_jump_into_the_last_body_of_a_block_compiles() {
-        // Into the `else`, as common event 39 does: after the body comes the
+        // Into the `else`: after the body comes the
         // `EndBranch`, which does nothing in RM2k either.
         let page = [
             jump(1, 0),
@@ -5281,7 +5281,7 @@ mod tests {
         assert_eq!(gotos(&code)[0], 7);
     }
 
-    /// Variable 143 in slot 3, as the door of Drust Camp needs it.
+    /// Variable 143 in slot 3, as a door that asks for a number needs it.
     fn with_the_password() -> Indices {
         Indices {
             variables: BTreeMap::from([(143, 3)]),
@@ -5291,10 +5291,10 @@ mod tests {
 
     #[test]
     fn a_number_goes_in_the_window_of_the_message_before_it() {
-        // Map 68, event 10: two lines, and six digits into variable 143.
+        // Two lines, and six digits into variable 143.
         let page = [
             cmd(SHOW_MESSAGE, &[], "VOICE"),
-            cmd(SHOW_MESSAGE_2, &[], "What's the password?"),
+            cmd(SHOW_MESSAGE_2, &[], "What is the secret number?"),
             cmd(INPUT_NUMBER, &[6, 143], ""),
         ];
         let code = on_a_map_with(&with_the_password(), &page).unwrap();
@@ -5782,7 +5782,7 @@ mod tests {
         let mut game = Game::default();
         game.actors.insert(14, vec![]);
         let one = |c: Command| compile_with(&game, &[c]).unwrap().unwrap();
-        // `LifeForStrength`: 999 off Talan, lethal.
+        // 999 off actor 14, lethal.
         assert_eq!(
             one(cmd(CHANGE_HP, &[1, 14, 1, 0, 999, 1], "")),
             [OP_ACTOR, 14, ACT_SUBTRACT | ACT_LETHAL, 0xE7, 0x03, OP_DONE]
@@ -5803,7 +5803,7 @@ mod tests {
             [OP_ACTOR, 0, ACT_REVIVE, 0, 0, OP_DONE]
         );
         assert_eq!(one(cmd(CHANGE_CONDITION, &[0, 0, 1, 5], "")), [OP_DONE]);
-        // Talan's HP into variable 48, asking for the refresh: without a map
+        // Actor 14's HP into variable 48, asking for the refresh: without a map
         // there is no knowing that no page looks at it.
         assert_eq!(
             one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 5, 14, 2], "")),
@@ -5910,12 +5910,12 @@ mod tests {
 
     #[test]
     fn a_big_picture_goes_up_scrolls_fades_and_comes_down() {
-        // The instructions of map 285: 300x299 centred at (160, 150), that
+        // A sheet of instructions: 300x299 centred at (160, 150), that
         // go up to 50 in four seconds; the console computes the corner.
         let show = cmd(
             SHOW_PICTURE,
             &[6, 0, 160, 150, 0, 100, 0, 0, 100, 100, 100, 100, 0, 0],
-            "AdvoInstr",
+            "Billboard",
         );
         let big = BigPicture {
             key: picture_key(&show).unwrap(),
@@ -5937,13 +5937,12 @@ mod tests {
                 OP_DONE
             ]
         );
-        // A photo of maps 212 to 216: with the map, shrinking to nothing in
-        // two seconds, which is fading to black; and the wave and the
-        // saturation of `GTest4`.
+        // A photo: with the map, shrinking to nothing in two seconds, which
+        // is fading to black; and a wave and a saturation.
         let photo = cmd(
             SHOW_PICTURE,
             &[20, 0, 160, 120, 1, 100, 0, 1, 100, 100, 100, 200, 2, 8],
-            "PhoneCallDiff",
+            "Photo",
         );
         let big = BigPicture {
             key: picture_key(&photo).unwrap(),
@@ -5995,7 +5994,7 @@ mod tests {
 
     #[test]
     fn by_variables_and_with_the_map() {
-        let smoke = picture(8, "smoke1", 1, (153, 154), true, 35, 40);
+        let smoke = picture(8, "Smoke", 1, (153, 154), true, 35, 40);
         let key = picture_key(&smoke).unwrap();
         assert!(key.by_variable && key.map_fixed && key.at.is_none());
         let mut indices = Indices::default();
@@ -6060,7 +6059,7 @@ mod tests {
 
     #[test]
     fn a_variables_value_goes_in_the_text_as_its_slot() {
-        // The portable console's: "SERN has \V[0173] enemy souls to spend".
+        // A line like "The hero has \V[0173] coins to spend".
         // The value counts as one letter of the line, and its slot follows
         // the escape byte.
         let indices = Indices {

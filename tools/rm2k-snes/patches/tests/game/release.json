@@ -18,7 +18,7 @@
      "size": [16, 16], "original": [16, 16], "frames": 1}
   ],
   "battlers": [
-    {"key": "sentry drone", "image": "sentry drone", "hue": 0, "width": 77,
+    {"key": "rusty knight", "image": "rusty knight", "hue": 0, "width": 77,
      "height": 51, "colors": 312,
      "palette": [[1, 1, 1], [2, 2, 2], [3, 3, 3], [31, 31, 31]], "merges": 308},
     {"key": "slime-60", "image": "slime", "hue": 60, "width": 40, "height": 30,

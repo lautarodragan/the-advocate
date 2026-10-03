@@ -358,10 +358,8 @@ _install root *projects:
   # The suite's symlinks go first, and are made again below: a name that was
   # a script and is now a Rust binary —`rm2k-snes-assemble`— would otherwise
   # stay a symlink, and `cargo install` refuses to write over what it did
-  # not install. `abl-*` too, though none is installed any more: until
-  # 2026-10-02 `abl-entregar` was, and it went to the game's repo with the
-  # game; this is what clears the stale symlink.
-  find "{{root}}/bin" -maxdepth 1 -type l \( -name 'rm2k-snes-*' -o -name 'abl-*' \) -delete
+  # not install.
+  find "{{root}}/bin" -maxdepth 1 -type l -name 'rm2k-snes-*' -delete
   for p in {{projects}}; do
     dir=""
     for layer in {{rust_layers}}; do

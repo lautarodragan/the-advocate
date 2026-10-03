@@ -18,6 +18,11 @@
 //! versioned changed.** The answers are not to be regenerated to make a
 //! test pass: the Python that produced them is gone, and with it the only
 //! independent answer.
+//!
+//! On 2026-10-02 the battler with a space, which was one of the game this
+//! was built for, became an invented one of the same length, and the hash
+//! of its patch moved with it: the new file, with the old name put back, is
+//! the Python's byte for byte.
 
 use rm2k_snes_patches::{check, copy, versioned, write, Key, Kind, Request};
 use serde_json::{json, Value};

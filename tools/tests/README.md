@@ -38,6 +38,10 @@ has to exist: `test_index.py` enforces it.
   folders— is known only to `common/project.py`, that no tool reads the
   environment on its own, and that none knows about A Blurred Line: no
   `ABL_*` variable, no `rom/` as a path
+* `test_no_game_names.py`: that no file of `tools/` names A Blurred Line
+  —its characters, places, pictures, its name— outside a comment: a test
+  uses invented names and a fixture invented content. Comments and `.md`
+  files may cite it; the few lines that may too are listed with their reason
 * `test_settings.py`: that the project file reader, `common/settings.py`,
   fails with the key's name instead of falling back to a default value
 * `test_layers.py`: that the Rust projects' layers only depend downwards:

@@ -5,6 +5,12 @@
 //! The input is made here: three hundred boxes of words a linear
 //! congruence picks —with speakers, quotes, numbers after a name, a word
 //! wider than the window, escape tails—, and a System made by formula.
+//!
+//! On 2026-10-02 the two speakers and the quoted name that came from the
+//! game this was built for became invented ones of the same length and
+//! kind, and the hashes of the boxes and of their reflow moved with them:
+//! the new answers, with the old names put back, are the Python's byte for
+//! byte. The comparison is still against the Python, renamed.
 
 use rm2k_render::Picture;
 use rm2k_snes_text::{font, line, refit};
@@ -16,7 +22,7 @@ fn sha(data: &[u8]) -> String {
 
 const WORDS: [&str; 24] = [
     "the", "Link", "Colony", "is", "connected", "to", "Block.", "Sector", "33.", "Well,",
-    "maybe...", "\"Kersh.\"", "surprise!", "why?", "(really)", "no-one", "a", "an",
+    "maybe...", "\"Odile.\"", "surprise!", "why?", "(really)", "no-one", "a", "an",
     "electromagnetic", "supercalifragilisticexpialidocious", "Remember,", "it's", "I", "go",
 ];
 
@@ -26,7 +32,7 @@ fn made_up_boxes() -> Vec<Vec<String>> {
     for n in 0..300usize {
         let mut lines = Vec::new();
         if n % 3 == 0 {
-            lines.push(["KERSH", "?????", "TRAM OFFICER", "WHAT?"][n % 4].to_string());
+            lines.push(["ODILE", "?????", "DOCK OFFICER", "WHAT?"][n % 4].to_string());
         }
         for _ in 0..1 + n % 5 {
             let mut words = Vec::new();
@@ -50,13 +56,13 @@ fn the_reflow_of_three_hundred_boxes() {
     let boxes = made_up_boxes();
     assert_eq!(
         sha(serde_json::to_string(&boxes).unwrap().as_bytes()),
-        "01abd81789299bc66c90f8d04e31f4872d04f4ccfe371f30b1b3b0233cb5b17b",
+        "cbe8a42b90d3b7a63e62a1a411533b7a5a8a38cd428a1b75dd54044ddefab335",
         "the boxes are not the ones the Python was given"
     );
     let reflowed: Vec<Vec<Vec<String>>> = boxes.iter().map(|b| refit::refit(b, 39, 4)).collect();
     assert_eq!(
         sha(serde_json::to_string(&reflowed).unwrap().as_bytes()),
-        "8d5380590f859ae299bf508f08800f2ee01cedba2f819b7cd36682f9ee2c47c9"
+        "ef5e08256e37c017758a60e389f7c53aa557867c547d718299eb75d077979074"
     );
 }
 
