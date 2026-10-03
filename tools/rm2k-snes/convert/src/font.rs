@@ -6,6 +6,11 @@
 //! path of a sheet of the game's own, relative to the project file: a sheet
 //! is a PNG, and that is how the two are told apart. See
 //! `rm2k_snes_text::font` for what a sheet is.
+//!
+//! And `[text] letter_spacing`, pixels added after every letter —see
+//! `Font::with_spacing`—: **optional**, unlike the rest of the file,
+//! because its absence has a meaning that is no other game's value, the
+//! font as its sheet draws it.
 
 use crate::fail::{Result, Stop};
 use crate::settings::Settings;
@@ -17,6 +22,9 @@ use serde_json::{json, Value};
 pub struct FontChoice {
     /// The name, or the sheet's absolute path.
     pub spec: String,
+    /// `[text] letter_spacing`, already in `font`; it goes to the stages
+    /// that read the font themselves, next to `spec`.
+    pub spacing: i64,
     pub font: Font,
 }
 
@@ -37,7 +45,11 @@ impl FontChoice {
         // six either way.
         let font = Font::named(&spec, rm2k_snes_text::font::MINCHO)
             .map_err(|e| Stop::new(format!("[text] font: {e}")))?;
-        Ok(FontChoice { spec, font })
+        let spacing = settings.project.int_or(&["text", "letter_spacing"], 0)?;
+        let font = font
+            .with_spacing(spacing)
+            .map_err(|e| Stop::new(format!("[text] letter_spacing: {e}")))?;
+        Ok(FontChoice { spec, spacing, font })
     }
 
     /// A message window as the event compiler takes it: `width` pixels a
