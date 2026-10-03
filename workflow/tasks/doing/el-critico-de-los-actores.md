@@ -2,6 +2,7 @@
 name: "El crítico de los actores"
 description: "El LDB les da golpe crítico a casi todos los actores, y la ROM lo pone en cero con un comentario que dice que ninguno lo tiene"
 type: bug
+assignee: Cardenal
 ---
 
 Lo encontró Cardón el 2026-09-30, pasando el modelo de la pelea a Rust

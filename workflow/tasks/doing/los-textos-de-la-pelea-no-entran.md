@@ -2,6 +2,7 @@
 name: "Los textos de la pelea"
 description: "Mensajes de pelea cortados a 31 caracteres o pasados del borde"
 type: bug
+assignee: Cardenal
 ---
 
 **Los textos de la pelea que no entran en el ancho de la pantalla.**
