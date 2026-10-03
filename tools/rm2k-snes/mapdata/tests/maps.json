@@ -2,7 +2,7 @@
  "maps": [
   {
    "id": 7,
-   "name": "Talan's Pad",
+   "name": "Robin's Den",
    "tilemap": [
     40,
     30
@@ -335,7 +335,7 @@
   },
   {
    "id": 8,
-   "name": "Lashe City - 34,35",
+   "name": "Grove Town - 34,35",
    "tilemap": [
     64,
     32

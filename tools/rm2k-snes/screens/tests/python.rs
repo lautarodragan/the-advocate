@@ -8,6 +8,12 @@
 //! apart, the terms with a greeting that takes two lines and a command with
 //! a leading space, two maps' worth of message boxes; and its System and
 //! FaceSet, made by formula.
+//!
+//! On 2026-10-02 the message boxes, which were dialogue of the game this
+//! was built for, became invented ones, word for word of the same length,
+//! and the hash of the box table moved with them. The new table breaks
+//! every box at the same places as the Python's, line for line and space
+//! for space: the comparison is still against the Python, reworded.
 
 use rm2k_snes_screens::checks::Vram;
 use rm2k_snes_screens::convert::{self, Request};
@@ -223,6 +229,6 @@ fn the_boxes_of_the_maps_and_the_common_events() {
     assert_eq!(table.as_array().unwrap().len(), 4);
     assert_eq!(
         sha(canon(&table).as_bytes()),
-        "fcb938e28c6746a56fa9a556e9d6cb8125ddfac562d8ed5072fdabd1849ece53"
+        "ef4a9e02b7c689eec2138eca765a9dfa986992d00a0bbad34118c11e68856576"
     );
 }
