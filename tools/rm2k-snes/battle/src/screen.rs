@@ -80,6 +80,22 @@ pub const BA_SKILL_COLUMN_DX: i64 = 16;
 /// Relative to the start of the column.
 pub const BA_SKILL_NAME_COL: i64 = 2;
 pub const BA_SKILL_NAME_WIDTH: usize = 11;
+/// How many letters of a skill's name the cartridge keeps: the console
+/// cuts at its cells, in pixels, but a row's record in the text layer
+/// —`TL_RECORD` in `text_layer.s`, 56 bytes— has to hold both columns. A
+/// row is its length, the cursor's run and per column three runs —the
+/// name, the dash and the two digits of the cost—, each with three bytes
+/// in front: thirteen letters fill it.
+///
+/// Until 2026-10-03 it was [`BA_SKILL_NAME_WIDTH`], from when a letter took
+/// a cell: with the variable-width font, names that fit in the eleven cells
+/// were cut at the eleventh letter —41 of A Blurred Line's battle skills—.
+pub const BA_SKILL_NAME_LETTERS: usize = 13;
+const TL_RECORD: usize = 56;
+const _: () = assert!(
+    1 + (3 + 1) + 2 * ((3 + BA_SKILL_NAME_LETTERS) + (3 + 1) + (3 + 2)) <= TL_RECORD - 1,
+    "a row of the skill list does not fit in its record"
+);
 pub const BA_SKILL_DASH_COL: i64 = 13;
 /// **Two digits and not three**, which is what lets the two columns fit in
 /// the 32 cells. No cost the battle offers reaches 100: see

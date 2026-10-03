@@ -8,7 +8,7 @@
 use crate::db::Db;
 use crate::fail::{Bad, Result};
 use crate::rules::{self, ACTIONS_MAX};
-use crate::screen::{self, BA_NAME_WIDTH, BA_SKILL_DESC_WIDTH, BA_SKILL_NAME_WIDTH};
+use crate::screen::{self, BA_NAME_WIDTH, BA_SKILL_DESC_WIDTH, BA_SKILL_NAME_LETTERS, BA_SKILL_NAME_WIDTH};
 use rm2k_snes_text::cells;
 use rm2k_snes_text::font::Font;
 use crate::simulate::{self, Battle, Combatant, Command, TroopPage, BATTLE_SEED};
@@ -198,7 +198,7 @@ pub fn model(db: &Db, request: &Value) -> Result<Value> {
             let places = [
                 ("actor names in the battle", &actor_names, BA_NAME_WIDTH, BA_NAME_WIDTH),
                 ("enemy names in the battle", &enemy_names, BA_NAME_WIDTH, BA_NAME_WIDTH),
-                ("skill names in the battle", &skill_names, BA_SKILL_NAME_WIDTH, BA_SKILL_NAME_WIDTH),
+                ("skill names in the battle", &skill_names, BA_SKILL_NAME_LETTERS, BA_SKILL_NAME_WIDTH),
                 ("item names in the battle", &usable, name_width, BA_NAME_WIDTH),
                 ("skill commands in the battle", &commands, screen::BA_COMMAND_WIDTH, screen::BA_COMMAND_WIDTH),
             ];
@@ -289,7 +289,7 @@ pub fn model(db: &Db, request: &Value) -> Result<Value> {
         let s = db.skill(h)?;
         skill_texts.insert(
             h.to_string(),
-            json!({"name": screen::cut(&s.name, BA_SKILL_NAME_WIDTH),
+            json!({"name": screen::cut(&s.name, BA_SKILL_NAME_LETTERS),
                    "description": screen::cut(&s.description, BA_SKILL_DESC_WIDTH)}),
         );
     }
@@ -658,7 +658,7 @@ impl BusiestLists<'_> {
     fn skill_list(&self, skills: &[(String, String)]) -> usize {
         let mut names: Vec<String> = skills
             .iter()
-            .map(|(n, _)| shown_in_cells(self.font, n, BA_SKILL_NAME_WIDTH, BA_SKILL_NAME_WIDTH))
+            .map(|(n, _)| shown_in_cells(self.font, n, BA_SKILL_NAME_LETTERS, BA_SKILL_NAME_WIDTH))
             .collect();
         names.sort_by_key(|n| std::cmp::Reverse(self.font.width(n)));
         let description = skills
