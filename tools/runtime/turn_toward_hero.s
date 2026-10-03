@@ -260,7 +260,8 @@ ready:
 
 ; Whether move route slot X has something running: its page's own route,
 ; commands still to give, a step, a wait or a jump. Z=1 if it is free. A
-; slot is not released until another map is loaded, so "has a slot" was not
+; slot is not released until another map is loaded —or until all are taken
+; and another event needs it: `reclaim_slot`—, so "has a slot" was not
 ; enough: the
 ; `GangMember1` of Lashe City, which a scene had already moved, never turned
 ; again. taro found it playing.

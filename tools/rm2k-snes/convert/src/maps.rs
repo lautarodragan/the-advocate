@@ -433,6 +433,10 @@ pub struct MapInfo {
     pub animates_still: Value,
     /// Where each (CharSet, index, pose) ended up in the sprite bank.
     pub where_: HashMap<Graphic, (Value, Value)>,
+    /// In a map with a cache of slots, each still pose's number and its
+    /// palette: what a page carries instead of a block. See
+    /// `sprites::cache` in Wally.
+    pub cached: HashMap<Graphic, (Value, Value)>,
     pub substitution_table: Value,
     pub missing_substitutions: Vec<(bool, i64, i64)>,
     pub turning: BTreeSet<i64>,
@@ -503,6 +507,8 @@ fn slot_key(slot: &Value) -> String {
         format!("ev {e}")
     } else if let Some(s) = slot.get("shared") {
         format!("compartida {s}")
+    } else if let Some(s) = slot.get("cache") {
+        format!("cache {s}")
     } else {
         json!([slot["charset"], slot["index"], slot["pose"]]).to_string()
     }
@@ -588,7 +594,9 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
     let mut where_ = HashMap::new();
     for entry in s["place"].as_array().cloned().unwrap_or_default() {
         let slot = &entry[0];
-        if truthy(slot.get("hero")) || truthy(slot.get("turn")) || slot.get("event").is_some() || slot.get("shared").is_some() {
+        if truthy(slot.get("hero")) || truthy(slot.get("turn")) || slot.get("event").is_some() || slot.get("shared").is_some()
+            || slot.get("cache").is_some()
+        {
             continue;
         }
         let key = (
@@ -597,6 +605,11 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
             int(&slot["pose"]),
         );
         where_.insert(key, (entry[1].clone(), entry[2].clone()));
+    }
+    let mut cached = HashMap::new();
+    for (v, still) in s["cache"]["stills"].as_array().cloned().unwrap_or_default().iter().enumerate() {
+        let key = (still[0].as_str().unwrap_or("").to_string(), int(&still[1]), int(&still[2]));
+        cached.insert(key, (json!(v), still[4].clone()));
     }
     let tiles_name = s["tiles"].as_str().unwrap_or("").to_string();
     let sprite_tiles = file(&written, &tiles_name)?.clone();
@@ -783,6 +796,7 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         movable: answer["movable"].clone(),
         animates_still: answer["animates_still"].clone(),
         where_,
+        cached,
         substitution_table,
         missing_substitutions,
         turning,

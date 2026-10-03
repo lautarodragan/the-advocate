@@ -25,6 +25,10 @@ pub enum Slot {
     /// no camera shows two of them at once: see [`crate::sprites::share`]. It holds
     /// whichever pose the console last uploaded.
     Shared(usize),
+    /// One of the cache's, in a map that fits no layout even with turns:
+    /// nobody owns it, and the console hands it to whoever comes into view.
+    /// See [`crate::sprites::cache`]. It goes to VRAM blank.
+    Cache(usize),
 }
 
 /// A slot of the bank: whose it is, and the pose it holds.

@@ -46,7 +46,8 @@ crate, which joins them:
 * `sprites`: the upper half and the objects —a character's colours and
   poses (`character.rs`), which poses each graphic shows (`npc.rs`), the
   split of the eight palettes (`split.rs`), the VRAM bank and the pose bank
-  (`bank.rs`), the still ones taking turns in a slot (`share.rs`) and the
+  (`bank.rs`), the still ones taking turns in a slot (`share.rs`), the
+  cache of slots nobody owns (`cache.rs`) and the
   extras at the end of the bank (`extras.rs`)—;
 * the rest: reading the map and its events, drawing the sheets, baking
   —which takes a sprite into a layer, so it needs both halves—, the VRAM
@@ -94,7 +95,9 @@ built—, and `common_substitutions`, the common events', which a
 the VRAM layouts a map can get, as `[background, sprite, upper]` tiles.
 A map that fits none of them with every still pose in VRAM is converted
 again with the still events no camera shows together **taking turns in a
-slot** —`sprites::share`—, and its answer says which; a
+slot** —`sprites::share`—, and its answer says which; and one that fits
+none even so, with **a cache of slots** that whoever comes into view asks
+for —`sprites::cache`—, if one fits. A
 map that fits comes out as if `layouts` were empty.
 
 **What other domains answered, as data**: `pages` and `route_graphics` are
@@ -115,7 +118,7 @@ colour-memory words and tilemaps, the runs, the block table, the pictures
 of what Adeleine decided, and `layers.json`—, `sprites.bin` and
 `poses-<k>.bin`, and `map.json`, with the events baked, the events drawn,
 the palettes and slots, the leader candidates' rows, the extras, the table
-of command 34, the slots still events take turns in, where the hero
+of command 34, the slots still events take turns in or the cache, where the hero
 starts, who walks, animates still and turns,
 each substitution with its `(old block, new block)` pairs —null if the page
 that asks for it cannot compile— and the ones whose blocks could not be

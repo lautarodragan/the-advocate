@@ -260,14 +260,30 @@ pub fn npc_table(map: &Map) -> Result<Vec<NpcRow>> {
                 pose: npc.pose,
             }
         };
-        let place = sprite.and_then(|s| s.place.iter().find(|(slot, ..)| *slot == wanted));
-        let Some(&(_, block, palette)) = place else {
-            return Err(Bad::answer(format!(
-                "map {}: event {} is drawn and has no slot in the sprite bank",
-                map.id, npc.event
-            )));
+        // In a map with a cache of slots nobody has one: the row carries the
+        // still pose it starts with in its tile byte —0 if it walks—, and
+        // the console finds it a slot when it comes into view. See
+        // `cache_table`.
+        let cached = sprite.and_then(|s| s.cache.as_ref()).map(|c| c.events.iter().find(|e| e.0 == npc.event));
+        let (tile, palette) = match cached {
+            Some(Some(&(_, key, palette))) => (key.unwrap_or(0), palette),
+            Some(None) => {
+                return Err(Bad::answer(format!(
+                    "map {}: event {} is drawn and the cache does not know it",
+                    map.id, npc.event
+                )))
+            }
+            None => {
+                let place = sprite.and_then(|s| s.place.iter().find(|(slot, ..)| *slot == wanted));
+                let Some(&(_, block, palette)) = place else {
+                    return Err(Bad::answer(format!(
+                        "map {}: event {} is drawn and has no slot in the sprite bank",
+                        map.id, npc.event
+                    )));
+                };
+                (block_tile(block), turns.map_or(palette, |t| t.3))
+            }
         };
-        let palette = turns.map_or(palette, |t| t.3);
         let poses = if walks {
             let animated = sprite.map(|s| s.animated.as_slice()).unwrap_or(&[]);
             Some(
@@ -287,7 +303,7 @@ pub fn npc_table(map: &Map) -> Result<Vec<NpcRow>> {
         rows.push(NpcRow {
             x: npc.x * 16,
             y: npc.y * 16,
-            tile: block_tile(block),
+            tile,
             palette,
             layer: npc.layer,
             event: npc.event,
@@ -750,6 +766,96 @@ pub fn share_table(maps: &[Map]) -> Result<String> {
         ),
         format!(".block {size}"),
         "share_data:".into(),
+    ];
+    out.extend(data);
+    Ok(out.join("\n"))
+}
+
+/// How many slots a cache can have: the runtime's `CACHE_MAX` and Wally's,
+/// which the `.inc` asserts against. And how many still poses it can name:
+/// below 128, which is how a slot that holds one tells it from one that
+/// holds an event's own.
+pub const CACHE_MAX: usize = wally::sprites::cache::CACHE_MAX;
+pub const CACHE_STILLS_MAX: usize = wally::sprites::cache::STILLS_MAX;
+
+/// The caches of slots, for the maps that have one: see `sprites::cache`
+/// in Wally and cache_slots.s in the runtime.
+///
+/// `cache_maps` has a word per map, in the order of `map_table`: where its
+/// record starts inside `cache_data`, or 0 if it has none —offset 0 is a
+/// byte nobody points at—. A record is
+///
+/// ```text
+///   +0  byte  how many slots
+///   +1  word  where its still poses start, inside cache_data
+///   +3  word per slot: its first tile in the sprite bank
+///   then, per still pose: where it is in `npc_poses`, (entry * 12 + pose) * 3
+/// ```
+///
+/// Which still pose each event starts with is not here: its row carries it
+/// in the tile byte, and so do the pages of the ones that change graphic.
+pub fn cache_table(maps: &[Map]) -> Result<String> {
+    let mut data: Vec<String> = vec!["    .byte $00 ; offset 0: no map has a cache".into()];
+    let mut size = 1usize;
+    let mut starts = Vec::with_capacity(maps.len());
+    for map in maps {
+        let Some(cache) = map.sprite.as_ref().and_then(|s| s.cache.as_ref()) else {
+            starts.push(0);
+            continue;
+        };
+        let n = cache.slots.len();
+        if n == 0 || n > CACHE_MAX {
+            return Err(Bad::answer(format!(
+                "map {}: a cache of {n} slots, and the console keeps between 1 and {CACHE_MAX}",
+                map.id
+            )));
+        }
+        if cache.stills.len() > CACHE_STILLS_MAX {
+            return Err(Bad::answer(format!(
+                "map {}: {} still poses in its cache, and the console names {CACHE_STILLS_MAX}",
+                map.id,
+                cache.stills.len()
+            )));
+        }
+        let start = size;
+        let stills_at = start + 3 + 2 * n;
+        starts.push(start);
+        data.push(format!("    ; map {} {}", map.id, quoted(&map.name)));
+        data.push(format!("    .byte {n}"));
+        data.push(format!("    .word {stills_at}"));
+        data.push(format!(
+            "    .word {}",
+            cache.slots.iter().map(|&b| block_tile(b).to_string()).collect::<Vec<_>>().join(", ")
+        ));
+        if !cache.stills.is_empty() {
+            data.push(format!(
+                "    .word {}",
+                cache
+                    .stills
+                    .iter()
+                    .map(|&(_, _, pose, k, _)| ((k * SPRITE_POSES + pose as usize) * 3).to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ));
+        }
+        data.push(format!(".assert {n} <= CACHE_MAX, error, \"map {}: a bigger cache than CACHE_MAX\"", map.id));
+        size = stills_at + 2 * cache.stills.len();
+    }
+    let mut out = vec![
+        ".segment \"RODATA\"".to_string(),
+        "; The caches of slots: see `cache_table` in rm2k-snes-mapdata.".into(),
+        format!(".block {}", 2 * maps.len().max(1)),
+        "cache_maps:".into(),
+        format!(
+            "    .word {}",
+            if starts.is_empty() {
+                "0".to_string()
+            } else {
+                starts.iter().map(|s| s.to_string()).collect::<Vec<_>>().join(", ")
+            }
+        ),
+        format!(".block {size}"),
+        "cache_data:".into(),
     ];
     out.extend(data);
     Ok(out.join("\n"))
@@ -1376,11 +1482,12 @@ pub fn maps(maps: &[Map]) -> Result<Written> {
         labels.push(theirs);
     }
     let tables = format!(
-        "{}\n\n{}\n\n{}\n\n{}\n",
+        "{}\n\n{}\n\n{}\n\n{}\n\n{}\n",
         map_table(maps, &labels, &rows)?,
         anim_table(maps, &rows)?,
         map_code_table(maps, &labels),
-        share_table(maps)?
+        share_table(maps)?,
+        cache_table(maps)?
     );
     Ok(Written {
         offsets: offsets(),
@@ -1471,6 +1578,50 @@ mod tests {
         map.pages = test_pages(MAX_PAGES as i64 + 1);
         let error = check_counts(&map).unwrap_err().to_string();
         assert!(error.contains("2049 event pages and 2048 fit"), "{error}");
+    }
+
+    #[test]
+    fn a_cache_goes_where_the_console_reads_it_and_its_rows_carry_their_still_pose() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/maps.json");
+        let mut maps = crate::request::read::<crate::request::Maps>(&path).unwrap().maps;
+        // Nobody has one: a zero per map.
+        let none = cache_table(&maps).unwrap();
+        assert!(none.contains(&format!("cache_maps:\n    .word {}\n", vec!["0"; maps.len()].join(", "))), "{none}");
+        // A map with objects gets a cache of two slots, blocks 5 and 6, and
+        // two still poses; every event it draws starts with the second, but
+        // the first, which walks.
+        let k = maps.iter().position(|m| m.sprite.is_some() && !m.npcs.is_empty()).unwrap();
+        let events: Vec<(i64, Option<u32>, u32)> =
+            maps[k].npcs.iter().enumerate().map(|(i, n)| (n.event, (i > 0).then_some(1), 3)).collect();
+        let walker = maps[k].npcs[0].event;
+        maps[k].movable = vec![walker];
+        maps[k].sprite.as_mut().unwrap().cache = Some(crate::request::Cache {
+            events,
+            stills: vec![("Folk".into(), 0, 7, 2, 3), ("Folk".into(), 0, 4, 0, 3)],
+            slots: vec![5, 6],
+        });
+        let table = cache_table(&maps).unwrap();
+        let mut starts = vec!["0"; maps.len()];
+        starts[k] = "1";
+        assert!(table.contains(&format!("cache_maps:\n    .word {}\n", starts.join(", "))), "{table}");
+        // Its record: how many slots, where the still poses start, and each
+        // slot's first tile.
+        let stills_at = 1 + 3 + 4;
+        assert!(table.contains(&format!("    .byte 2\n    .word {stills_at}\n")), "{table}");
+        assert!(table.contains(&format!("    .word {}, {}\n", block_tile(5), block_tile(6))), "{table}");
+        // Each still pose's place in `npc_poses`.
+        assert!(table.contains(&format!("    .word {}, {}\n", (2 * 12 + 7) * 3, 4 * 3)), "{table}");
+        assert!(table.contains(&format!(".block {}\ncache_data:", stills_at + 4)), "{table}");
+        for (line, value, max) in literals(&table) {
+            assert!((0..=max).contains(&value), "{value} does not fit in: {line}");
+        }
+        // The rows: the still ones carry their pose in the tile byte, the
+        // walking one a zero; all with the cache's palette.
+        let rows = npc_table(&maps[k]).unwrap();
+        for row in &rows {
+            let expected = if row.event == walker { 0 } else { 1 };
+            assert_eq!((row.tile, row.palette), (expected, 3), "event {}", row.event);
+        }
     }
 
     #[test]

@@ -32,3 +32,16 @@ Sólo los que nadie mueve y muestran un solo gráfico. Era la opción A de Puma
 en `workflow/tasks/*/mundo-7-camino-a-paradise.md`; la B —todos los quietos
 de un personaje mirando para el mismo lado— cambiaba lo que se ve. Cómo, en
 `tools/runtime/shared_poses.s` y en `workflow/tasks/*/el-108-con-poses-compartidas.md`.
+
+# Y si ni así entra, nadie tiene ranura
+
+De taro, el 2026-10-03, para la granja de ABL (127), que no entra ni con los
+turnos —"vamos con la 1", la opción D de Puma—: en un mapa así, y sólo ahí,
+las ranuras son una caché. El que entra en pantalla pide una, camine o no; la
+pose sube por la misma cola; y la ranura que nadie dibujó en dos cuadros la
+toma el siguiente. Los quietos que muestran la misma pose comparten la suya.
+Si la caché se llena, el que pide **espera sin dibujarse** hasta que alguien
+salga de la pantalla: no se cuelga, y el que espera es el último que
+`build_oam` alcanza. Cómo, en `tools/runtime/cache_slots.s`; lo medido y lo
+que se descartó —los espejos, el margen en celdas—, en
+`workflow/tasks/*/la-cache-de-ranuras.md`.

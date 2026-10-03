@@ -89,6 +89,31 @@ quién lo decide `wally` —`plan_sharing` en su `map.rs`, con el coloreo de
 en "+ambos". Los demás mapas convierten como siempre: `wally` prueba primero
 sin turnos y sólo si eso no entra vuelve a convertir con ellos.
 
+## Cuando ni turnándose alcanza: una caché de ranuras
+
+**ParadiseFarmland**, el 127 de ABL, no entra ni así: la celebración pone
+veintinueve personas en una pantalla, dieciséis de las cuales la escena hace
+saltar y girar, y el mapa pide 41 ranuras contra las 32 que da el mejor
+reparto. Turnarse no le sirve, porque los quietos están todos juntos.
+
+Así que en un mapa que no entra ni con turnos, y **sólo ahí**, nadie tiene
+ranura: el que entra en pantalla pide una, la ROM le sube la pose, y la
+ranura que lleva dos cuadros sin dibujarse la puede tomar otro. Los quietos
+que muestran la misma pose comparten la suya, como siempre; el que camina
+tiene una propia mientras se lo ve. Lo decide `wally` —`Mode::Cache` en su
+`map.rs`, con la cuenta en `sprites::cache`—, que le da a la caché todos los
+bloques que entran en el mejor reparto para su fondo; la tabla la emite
+`cache_table` en `rm2k-snes-mapdata`, y lo que hace la ROM está en
+`tools/runtime/cache_slots.s`. El 127 queda con el héroe, la ranura del giro
+y 30 en la caché: 32 bloques, 512 tiles, en "+sprite".
+
+Lo que se ve a la vez en el 127 no lo puede contar el conversor: la
+celebración y el baile que sigue nunca están juntos, pero por dónde arrancan
+los eventos suman 33 en una pantalla, y `wally` lo avisa. La consola sí lo
+sabe, porque una fila que no se dibuja no pide nada: en la celebración son
+26. La medición de todo el juego, y qué ayudas se probaron, en
+`workflow/tasks/*/la-cache-de-ranuras.md`.
+
 ## Una imagen grande no usa el reparto
 
 Una imagen de `ShowPicture` que tapa la pantalla va en BG1, en modo 1, con

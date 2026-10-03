@@ -56,10 +56,13 @@ pub const LAYER_ABOVE: i64 = 2;
 pub fn page_oam(draws: &Draws, layer: i64) -> [u8; 4] {
     let pose = (draws.pose | 0x80) as u8;
     let passage = draws.tile_pass.map_or(0xFF, |p| p as u8);
-    let Some(block) = draws.block else {
-        return [0, 0, pose, passage];
+    // A map's cache of slots: the row carries the still pose, and the
+    // console finds it a slot when it comes into view.
+    let tile = match (draws.key, draws.block) {
+        (Some(key), _) => key,
+        (None, Some(block)) => block_tile(block),
+        (None, None) => return [0, 0, pose, passage],
     };
-    let tile = block_tile(block);
     let priority = if layer == LAYER_ABOVE {
         OBJ_PRIORITY_ABOVE
     } else {
@@ -87,6 +90,7 @@ mod tests {
         use super::*;
         let draws = |block, tile_pass| Draws {
             block,
+            key: None,
             palette: 3,
             pose: 7,
             tile_pass,
@@ -94,5 +98,12 @@ mod tests {
         assert_eq!(page_oam(&draws(Some(17), None), LAYER_SAME), [0x04, 0x17, 0x87, 0xFF]);
         assert_eq!(page_oam(&draws(Some(0), Some(2)), LAYER_ABOVE), [0, 0x26, 0x87, 2]);
         assert_eq!(page_oam(&draws(None, Some(1)), LAYER_ABOVE), [0, 0, 0x87, 1]);
+    }
+
+    #[test]
+    fn in_a_cache_a_page_draws_its_still_pose_and_not_a_tile() {
+        use super::*;
+        let draws = Draws { block: None, key: Some(9), palette: 3, pose: 7, tile_pass: None };
+        assert_eq!(page_oam(&draws, LAYER_SAME), [9, 0x16, 0x87, 0xFF]);
     }
 }

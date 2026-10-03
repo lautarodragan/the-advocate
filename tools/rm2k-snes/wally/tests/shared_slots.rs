@@ -174,10 +174,63 @@ fn one_that_something_places_elsewhere_does_not_take_turns() {
                                              "parameters": [2, 0, 5, 1]}]));
     let plain = convert(&dir, &dump, &pictures, json!([]));
     let tiles = plain["tiles"].as_u64().unwrap();
-    // Nobody is left to take turns with the first: it is not shared, and
-    // what goes is the map as always.
+    // Nobody is left to take turns with the first: it is not shared. What
+    // goes is the cache, which does not care who is placed where.
     let tight = convert(&dir, &dump, &pictures, json!([[1000, tiles - 1, 1000]]));
     assert_eq!(tight["sprite"]["shared"], Value::Null);
-    assert_eq!(tight, plain);
+    assert_ne!(tight["sprite"]["cache"], Value::Null);
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn a_map_that_does_not_fit_even_taking_turns_gets_a_cache() {
+    let dir = scratch("cache");
+    // The third one placed elsewhere: nobody takes turns, so only a cache
+    // can make it fit.
+    let (dump, pictures) = game(&dir, json!([{"code": 10860, "indent": 0, "string": "",
+                                             "parameters": [2, 0, 5, 1]}]));
+    let plain = convert(&dir, &dump, &pictures, json!([]));
+    let tiles = plain["tiles"].as_u64().unwrap();
+    let tight = convert(&dir, &dump, &pictures, json!([[1000, tiles - 1, 1000]]));
+    let sprite = &tight["sprite"];
+    // The hero keeps block 0; the cache gets as many blank blocks as fit
+    // —two, of the three still poses— and nobody else has one.
+    let place = sprite["place"].as_array().unwrap();
+    assert_eq!(place.len(), 3);
+    assert_eq!(place[0][0], json!({"hero": true}));
+    assert_eq!(place[1][0], json!({"cache": 0}));
+    assert_eq!(place[2][0], json!({"cache": 1}));
+    let cache = &sprite["cache"];
+    assert_eq!(cache["slots"], json!([1, 2]));
+    // The still poses, sorted, with their character's twelve in the
+    // cartridge —after the leader's— and its palette.
+    let palette = &cache["stills"][0][4];
+    assert_eq!(
+        cache["stills"],
+        json!([["Folk", 0, 4, 1, palette], ["Folk", 0, 7, 1, palette], ["Folk", 0, 10, 1, palette]])
+    );
+    assert_eq!(sprite["animated"], json!([["Folk", 1], ["Folk", 0]]));
+    // Each event starts asking for its own pose.
+    assert_eq!(cache["events"], json!([[0, 1, palette], [1, 0, palette], [2, 2, palette]]));
+    // The second one is 29 cells from the other two: no camera shows the
+    // three, so two slots are enough and nothing warns.
+    let notes: Vec<&str> = tight["notes"].as_array().unwrap().iter().map(|n| n["text"].as_str().unwrap()).collect();
+    assert_eq!(
+        notes,
+        ["  map 7: 3 events take a slot of a cache of 2 when they come into view, 3 still poses among \
+          them; by where they start, up to 2 are on screen at once"]
+    );
+    // With room for the hero and a single slot, the cache still goes, and
+    // says that two can be on screen at once.
+    let one = convert(&dir, &dump, &pictures, json!([[1000, 56, 1000]]));
+    assert_eq!(one["sprite"]["cache"]["slots"], json!([1]));
+    assert!(one["notes"].as_array().unwrap().iter().any(|n| n["text"]
+        .as_str()
+        .unwrap()
+        .contains("WARNING, by where they start up to 2 events are on screen at once and the cache has 1 slots")));
+    // And without room for even one, the map goes as always: it does not
+    // fit, and the emission says so.
+    let none = convert(&dir, &dump, &pictures, json!([[1000, 55, 1000]]));
+    assert_eq!(none, plain);
     std::fs::remove_dir_all(&dir).unwrap();
 }

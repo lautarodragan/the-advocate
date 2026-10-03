@@ -304,6 +304,9 @@ pub enum Slot {
     Shared {
         shared: i64,
     },
+    Cache {
+        cache: i64,
+    },
     Still {
         charset: String,
         index: i64,
@@ -348,6 +351,23 @@ pub struct Sprite {
     /// `sprites::share` in Wally.
     #[serde(default)]
     pub shared: Option<Shared>,
+    /// The cache of slots, if the map needed one: see `sprites::cache` in
+    /// Wally.
+    #[serde(default)]
+    pub cache: Option<Cache>,
+}
+
+/// The cache of slots, as `wally` answered it.
+#[derive(Deserialize)]
+pub struct Cache {
+    /// `[event, still pose or null, palette]`: each event drawn, with the
+    /// still pose it starts with —an index into `stills`— or nothing if it
+    /// walks.
+    pub events: Vec<(i64, Option<u32>, u32)>,
+    /// `[CharSet, index, pose, entry in the pose table, palette]`.
+    pub stills: Vec<(String, i64, i64, usize, u32)>,
+    /// Each slot's block in the sprite bank.
+    pub slots: Vec<u32>,
 }
 
 /// The slots still events take turns in, as `wally` answered them.
@@ -427,6 +447,10 @@ pub struct Draws {
     /// palette; no block for an event that only appears, whose own row
     /// already points at its poses.
     pub block: Option<u32>,
+    /// In a map with a cache of slots, the still pose instead of the block:
+    /// what the row carries in its tile byte. See `sprites::cache` in Wally.
+    #[serde(default)]
+    pub key: Option<u32>,
     #[serde(default)]
     pub palette: u32,
     /// The pose it shows, and the passage its tile imposes on its cell.

@@ -18,6 +18,11 @@
     ; them to reappear where it does not belong. It is 128 writes and it gets
     ; rid of that whole class of bug.
     jsr clear_oam
+    ; In a map with a cache of slots, a frame older: see cache_slots.s.
+    lda f:SHARE_N
+    bpl no_cache
+    jsl f:cache_age + FAST
+no_cache:
     stz high_acc
     stz hero_drawn
     rep #$20
@@ -114,13 +119,16 @@ close:
 
 ; `build_oam` for a map's first frame, with the screen off: the frame of
 ; entering it, of coming back from a battle, of a teleport within it and of
-; loading a game. In a map with shared slots —see shared_poses.s— the rows
-; whose pose is not up are left out of the OAM, so the queue is uploaded now
-; and the OAM built again until nobody is missing. Every other map builds it
-; once, as always.
+; loading a game. In a map with shared slots —see shared_poses.s— or a cache
+; of them —cache_slots.s, bit 7 of `SHARE_N`— the rows whose pose is not up
+; are left out of the OAM, so the queue is uploaded now and the OAM built
+; again until nobody is missing. Every other map builds it once, as always.
 .proc build_oam_settled
 .a8
 .i16
+    lda f:SHARE_N
+    bpl again
+    jsl f:cache_settle + FAST   ; every slot can be taken: see there
 again:
     jsr build_oam
     lda f:SHARE_N
@@ -798,6 +806,7 @@ no:
     ; drawn from the frame after.
     lda f:SHARE_N
     beq own
+    bmi cached                  ; $80: a cache of slots, see cache_slots.s
     jsl f:share_want + FAST
     bcc own
     jsr vram_queue
@@ -805,11 +814,24 @@ no:
     jsl f:share_took + FAST
 later:
     rts
+cached:
+    ; It asks the cache for a slot: it may get one with its pose already up,
+    ; get one whose pose goes up now and be drawn from the next frame, or
+    ; wait because the cache is full.
+    jsl f:cache_want + FAST
+    bcc draw
+    cmp #0
+    beq later                   ; the cache is full: it asks again next frame
+    jsr vram_queue
+    beq later                   ; the queue was full: likewise
+    jsl f:cache_took + FAST
+    rts
 own:
     lda npc_buf + 6, x
     sta obj_tile
     lda npc_buf + 7, x
     sta obj_attr
+draw:
     jsr emit_object
     rts
 .a16

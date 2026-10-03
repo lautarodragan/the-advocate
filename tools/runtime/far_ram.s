@@ -515,8 +515,9 @@ PAIR_BYTES = 8
 ; And the eighth, which was spare, is the event's move route slot plus one,
 ; or zero if it has none: `slot_record` sets it when one is given, and
 ; `clear_parallel` clears it when loading the map, next to `load_npcs`,
-; which is where they are all freed. Within a map a slot is never released.
-; It is what saves each parallel from looking for its own every frame: see
+; which is where they are all freed. Within a map a slot is only released
+; when none is free and its route ended, and then `reclaim_slot` clears this
+; too. It is what saves each parallel from looking for its own every frame: see
 ; `one_parallel`.
 PAIR_SLOT = 7
 
@@ -854,6 +855,37 @@ SHARE_N      = $7E2590
 SHARE_OWNER  = $7E2591             ; SHARE_MAX bytes
 SHARE_MAX    = 15
 .assert SHARE_OWNER + SHARE_MAX <= $7E25A0, error, "the shared slots overflow their RAM"
+; And bit 7 of `SHARE_N` says the map has a cache of slots instead: see
+; cache_slots.s.
+
+; --- the cache of slots ---------------------------------------------------------
+;
+; See cache_slots.s. How many slots the loaded map's cache has, where its
+; record is in `cache_data`, what each slot holds and how many frames ago it
+; was drawn, and which slot each event last got —by event, not by row: rows
+; change places when someone walks—. And what `cache_want` hands
+; `cache_took`. They are only read in a map with a cache, which
+; `cache_load` sets up when loading it, and **they do not travel in the
+; save**: they describe VRAM.
+;
+; $7E7C00 to $7E7CFF, reserved on 2026-10-03: no symbol of any cartridge fell
+; there —measured on `release`'s symbol table, as the battle's message
+; buffer below it was—. `CACHE_MAX` is also Wally's, in `sprites::cache`,
+; and the `.inc` asserts every map against it.
+CACHE_N      = $7E7C00
+CACHE_REC    = $7E7C01             ; word
+CACHE_T_KEY  = $7E7C03
+CACHE_T_SLOT = $7E7C04
+CACHE_T_AGE  = $7E7C05
+CACHE_T_EV   = $7E7C06
+CACHE_T_POSE = $7E7C07
+CACHE_T_ROW  = $7E7C08             ; word
+CACHE_KEY    = $7E7C10             ; CACHE_MAX bytes
+CACHE_AGE    = $7E7C30             ; CACHE_MAX bytes
+CACHE_EV     = $7E7C50             ; EV_MAX bytes: asserted in cache_slots.s
+CACHE_MAX    = 32
+.assert CACHE_KEY + CACHE_MAX <= CACHE_AGE, error, "the cache's keys overflow"
+.assert CACHE_AGE + CACHE_MAX <= CACHE_EV, error, "the cache's ages overflow"
 
 ; --- `InputNumber`: the digits' line ------------------------------------------
 ;
