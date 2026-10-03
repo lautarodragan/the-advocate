@@ -1,8 +1,16 @@
 # rm2k-project
 
 The library every tool of an `rm2k-snes` suite starts from: **which game is
-being built, what it decided, and where the machine keeps things**. It has no
-executable of its own; the tools that use it compile it in.
+being built, what it decided, and where the machine keeps things**. The
+tools that use it compile it in.
+
+Its one executable, `rm2k-snes-project`, is for whoever is not a tool: it
+prints a project as the tools resolve it, in JSON —the `[paths]` resolved
+against the file, the suite's own directories and the whole file—, so that
+a game's tests, in whatever language, ask instead of reading the TOML
+themselves. One reader of the file means one set of rules:
+
+    rm2k-snes-project [--project <directory>]
 
 ## Which game: the project file
 

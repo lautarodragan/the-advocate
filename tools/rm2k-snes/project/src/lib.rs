@@ -16,12 +16,17 @@
 //!
 //! And [`suite`]: where the suite's own files are —the runtime, the scripts
 //! it still runs—, which travel with the tools and not with any game.
+//!
+//! And [`resolved`]: all of the above about one project, as JSON, for
+//! whoever asks from outside the tools.
 
 pub mod cache;
 pub mod environment;
 mod paths;
 mod project;
+mod resolved;
 pub mod suite;
 
 pub use paths::{absolute, relative};
 pub use project::{Error, Project, FILENAME};
+pub use resolved::resolved;
