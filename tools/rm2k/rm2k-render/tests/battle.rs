@@ -8,10 +8,15 @@
 //! the ChipSets of `common`—, which need no game and no RTP.
 //!
 //! The inputs touch what can differ: an indexed picture, and an RGBA one
-//! with half-transparent pixels, which is where premultiplying for the zoom
-//! shows; cells zoomed up and down, to one pixel, faded, fully faded, with
-//! a transparency out of 0..100, invalid, and missing from the sheet; a
-//! large animation; and hues positive, negative, and past a full turn.
+//! with half-transparent pixels; cells zoomed up and down, to one pixel,
+//! faded, fully faded, with a transparency out of 0..100, invalid, and
+//! missing from the sheet; a large animation; and hues positive, negative,
+//! and past a full turn.
+//!
+//! **A zoomed cell is checked by where it lands and its size, not by its
+//! pixels.** Since 2026-10-02 the zoom is the `image` crate's bilinear and
+//! no longer a copy of Pillow's, so the Python's hashes of those cells no
+//! longer apply; the zoom itself is tested in `picture.rs`.
 //!
 //! **If one of these changes, a pixel changed.** The hashes are not to be
 //! regenerated to make a test pass: the Python that produced them is gone,
@@ -96,20 +101,36 @@ fn large() -> Animation {
     .unwrap()
 }
 
-/// Each frame's cells as `(x, y, hash)`.
-fn drawn(animation: &Animation, sheet: &Picture) -> Vec<Vec<(i64, i64, String)>> {
+/// Each frame's cells as `(x, y, side, hash)`.
+fn drawn(animation: &Animation, sheet: &Picture) -> Vec<Vec<(i64, i64, usize, String)>> {
     frames(animation, sheet)
         .1
         .iter()
-        .map(|f| f.iter().map(|p| (p.x, p.y, sha(&p.picture))).collect())
+        .map(|f| {
+            f.iter()
+                .map(|p| (p.x, p.y, p.picture.width, sha(&p.picture)))
+                .collect()
+        })
         .collect()
 }
 
-fn cells(listed: &[(i64, i64, &str)]) -> Vec<(i64, i64, String)> {
-    listed
-        .iter()
-        .map(|(x, y, h)| (*x, *y, h.to_string()))
-        .collect()
+/// A drawn cell: where it lands, its side, and —for one drawn at its own
+/// size— the hash of what the Python drew. A zoomed one has no hash: the
+/// zoom is the `image` crate's since 2026-10-02, not the Python's, and its
+/// pixels are `Picture::resized`'s, tested there.
+type Cell = (i64, i64, usize, Option<&'static str>);
+
+fn check(drawn: Vec<Vec<(i64, i64, usize, String)>>, expected: &[&[Cell]]) {
+    assert_eq!(drawn.len(), expected.len(), "frames");
+    for (f, (got, want)) in drawn.iter().zip(expected).enumerate() {
+        assert_eq!(got.len(), want.len(), "cells of frame {f}");
+        for (c, ((x, y, side, hash), (wx, wy, wside, whash))) in got.iter().zip(*want).enumerate() {
+            assert_eq!((x, y, side), (wx, wy, wside), "frame {f}, cell {c}");
+            if let Some(whash) = whash {
+                assert_eq!(hash, whash, "frame {f}, cell {c}");
+            }
+        }
+    }
 }
 
 #[test]
@@ -124,124 +145,46 @@ fn the_boxes_are_what_the_python_measured() {
 }
 
 #[test]
-fn the_cells_are_what_the_python_drew() {
+fn the_cells_land_where_the_python_put_them() {
     let dir = scratch("cells");
     let [(_, indexed), (_, rgba)] = pictures(&dir);
     let indexed = picture::read_rm2k(&indexed).unwrap();
     let rgba = picture::read_rm2k(&rgba).unwrap();
-    let small_indexed = vec![
-        cells(&[
-            (
-                65,
-                8,
-                "4db7698078df9b7ca6ec96254da4d070439396bfbc6f0694d7eff280a20b8d81",
-            ),
-            (
-                107,
-                0,
-                "1c11833d678a1ddb30dad5ea0ba30bbac57c3de29704fe77080d48e7880d13b4",
-            ),
-            (
-                0,
-                3,
-                "5f374a24ed4100195c0bbab944033f9bd99f9f8cde27c3630a1d940d1f95f443",
-            ),
-        ]),
-        cells(&[
-            (
-                27,
-                0,
-                "c80fd785181131e181e7e61b2e2df0ad998fbb6a3c818d0191b6b566decde69b",
-            ),
-            (
-                116,
-                59,
-                "31791d517861bf0d8af3ebbd00568701b2871736955a05170d61e37253a5f3e8",
-            ),
-            (
-                82,
-                41,
-                "2c3b75385f9f9be11ab4af3facb36360deefd8dba6b4a8ae7bc4d98c792fc3e1",
-            ),
-            (
-                67,
-                11,
-                "4398d94d426c96e88d74a11c1a0e1b90bf6457e3c40e60f0e9f0ce0aa2c811b5",
-            ),
-        ]),
-        vec![],
-    ];
-    let small_rgba = vec![
-        cells(&[
-            (
-                65,
-                8,
-                "e4eb2a37aa6f7b644f3104f0758a31540dd2272d51ec076208548853bdeb6cb6",
-            ),
-            (
-                107,
-                0,
-                "db036edb10bf2ba1466dda8645faae32a1e93abc9235ccffd56bfbe4fd0aaa15",
-            ),
-            (
-                0,
-                3,
-                "e5c24458173fb59dd32df5b8274c254b2864866b2b0771c5a2a3dd9b8a1784e1",
-            ),
-        ]),
-        cells(&[
-            (
-                27,
-                0,
-                "7fa95efe633729971f5991cbc28a1d129921b855b1e4384c7974d8d8e0bc2309",
-            ),
-            (
-                116,
-                59,
-                "7aab1496358a4780acec547842af6851e7d4231b464a4a798c037e985d8d8eba",
-            ),
-            (
-                82,
-                41,
-                "1db718c40626c405b3a05b0d5a8e053688ce3b6fb86537d9b1bb728902b76e8a",
-            ),
-            (
-                67,
-                11,
-                "a16611e89df37bfdb65fe21dabeb0c1c39c337b5aae92e224739820c27ba709b",
-            ),
-        ]),
-        vec![],
-    ];
-    let large_indexed = vec![cells(&[
-        (
-            26,
-            45,
-            "75b951b0d22fde203ffc70a2b3d7ef3a27030567fd8878aa4b45f378cf8f7d8d",
-        ),
-        (
-            5,
-            0,
-            "cf813b0401a5be108769fad813a4c96dff09ecf4467321338b19587a9d0dce6e",
-        ),
-    ])];
-    let large_rgba = vec![cells(&[
-        (
-            26,
-            45,
-            "bab1389217cc9186f9672283ee33c175a2959ccc414fe7ac6ad0793dd6660179",
-        ),
-        (
-            5,
-            0,
-            "9f74040bef1654ac8c54ccc9cbac5f07f212655607cf56e508dd0ae4486daabd",
-        ),
-    ])];
     std::fs::remove_dir_all(&dir).unwrap();
-    assert_eq!(drawn(&small(), &indexed), small_indexed);
-    assert_eq!(drawn(&small(), &rgba), small_rgba);
-    assert_eq!(drawn(&large(), &indexed), large_indexed);
-    assert_eq!(drawn(&large(), &rgba), large_rgba);
+    let zoomed_small: [&[Cell]; 2] = [
+        &[(107, 0, 72, None), (0, 3, 127, None)],
+        &[
+            (27, 0, 192, None),
+            (116, 59, 1, None),
+            (82, 41, 48, None),
+            (67, 11, 95, None),
+        ],
+    ];
+    let small_indexed: [Cell; 1] = [(
+        65,
+        8,
+        96,
+        Some("4db7698078df9b7ca6ec96254da4d070439396bfbc6f0694d7eff280a20b8d81"),
+    )];
+    let small_rgba: [Cell; 1] = [(
+        65,
+        8,
+        96,
+        Some("e4eb2a37aa6f7b644f3104f0758a31540dd2272d51ec076208548853bdeb6cb6"),
+    )];
+    for (sheet, first) in [(&indexed, &small_indexed), (&rgba, &small_rgba)] {
+        let frame_0: Vec<Cell> = first.iter().chain(zoomed_small[0]).copied().collect();
+        check(
+            drawn(&small(), sheet),
+            &[&frame_0, zoomed_small[1], &[]],
+        );
+    }
+    for sheet in [&indexed, &rgba] {
+        check(
+            drawn(&large(), sheet),
+            &[&[(26, 45, 76, None), (5, 0, 140, None)]],
+        );
+    }
 }
 
 #[test]

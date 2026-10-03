@@ -104,8 +104,6 @@ de punta a punta: código, comentarios, nombres de pruebas y README. Desde el
       adeleine/        Adeleine: qué colores se pierden y cómo se agrupan en paletas
       voodoo/          Voodoo: de una imagen a tiles, paletas y tilemap
       lz2/             el LC_LZ2 de Nintendo, con el que se comprimen los mapas
-      resample/        el LANCZOS de Pillow, bit por bit, con el que se escalan
-                       las imágenes
     tools/rm2k/        los de RPG Maker 2000, sin saber de la consola
       ditto/           lee y escribe sus formatos; como biblioteca, el único
                        lugar en Rust que lee el volcado
@@ -182,7 +180,7 @@ mensaje; `tools/rm2k-snes/rm2k-snes-audio/` recibe el SoundFont por `SOUNDFONT`,
 y `tools/snes/gunter/`, `tools/snes/voodoo/`, `tools/snes/lz2/`,
 `tools/snes/adeleine/`, `tools/rm2k/rules/`, `tools/rm2k/rm2k-render/`, `tools/rm2k-snes/battle/`,
 `tools/rm2k-snes/bytecode/`, `tools/rm2k-snes/events/`, `tools/rm2k-snes/patches/`, `tools/rm2k-snes/wally/` y
-los dos de las pantallas, `tools/snes/resample/`, `tools/rm2k-snes/images/`,
+los dos de las pantallas, `tools/rm2k-snes/images/`,
 `tools/rm2k-snes/mapdata/` y `tools/rm2k-snes/convert/` no necesitan nada.
 
 ### `tools/snes/voodoo/` no decide colores, y eso no se arregla

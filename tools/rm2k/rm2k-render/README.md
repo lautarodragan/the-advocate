@@ -249,10 +249,13 @@ marked not `valid` —the hole the editor leaves when one in the middle is
 deleted— is not drawn and does not count for the box; one the sheet does
 not have is not drawn either, but the box still makes room for it.
 
-The zoom is **bilinear**, with the colour premultiplied by the alpha so a
-transparent pixel does not bleed into its neighbours, and weights as
-integers of 22 fractional bits: it is the arithmetic of Pillow's `resize`,
-copied to the bit, because that is what the drawings this replaces used.
+The zoom is **bilinear**, the `image` crate's, with the colour
+premultiplied by the alpha so a transparent pixel does not bleed into its
+neighbours: `Picture::resized`, which the pictures that are scaled for the
+console use too. Until 2026-10-02 it was Pillow's arithmetic copied to the
+bit, and a zoomed cell is no longer checked against what the Python drew:
+the tests check where it lands and its size, and the zoom itself by its
+properties.
 The zoomed side is the sheet's times `zoom` percent, rounded down and at
 least a pixel; the fade multiplies the alpha by `100 - transparency`
 percent, rounded down, with the transparency clamped to 0..100.
