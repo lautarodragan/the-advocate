@@ -34,6 +34,15 @@ no hacen todo lo que hacen en RM2k:
   costados de la pantalla: RM2k muestra lo que la imagen tiene más allá, y
   la consola no tiene lugar para eso. `GTest4` mide 389 de ancho. Si no los
   pasa, como `ShipFlash`, lo de afuera es negro, igual que en RM2k.
+* **Una imagen recortada es sólo la ventana de la consola.** Las que el
+  juego pide en `[graphics] cropped_pictures` —en ABL, las fotos Diff,
+  que son capturas del mapa— no se escalan: se corta de ellas la pantalla
+  de 256x224 desde el pixel que dice el juego, que es donde está la cámara
+  de la ROM cuando se muestran. Lo que RM2k muestra afuera de esa ventana
+  no está en el cartucho, y el recorte es el mismo dondequiera que la
+  ponga el `ShowPicture`. Un `MovePicture` que la sube o la baja la corre
+  con la cuenta de las escaladas —14 líneas de la consola cada 15 de
+  RM2k—, no línea por línea: ninguna recortada se mueve en el juego.
 * **105 colores**: siete paletas de quince, repartidas por celda de 8x8
   por Adeleine. Las fotos y `GTest4` pierden degradés.
 * **Una sola a la vez**, y las que van con el mapa sólo si tapan la pantalla

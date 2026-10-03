@@ -19,10 +19,19 @@
 //! since the map is not. **RM2k's position is the centre of the image**:
 //! the console computes the corner when it shows it.
 //!
+//! **Unless the game asks for it to be cropped** —`[graphics]
+//! cropped_pictures` of the project—: a picture that is a capture of
+//! RM2k's screen showing the map, which scaled no longer matches the map
+//! the console shows, gets the console's window of it instead, from the
+//! pixel the game says. Which window that is depends on where the camera
+//! is when it is shown, and only the game knows that. Such a picture is
+//! always a big one: it covers the screen.
+//!
 //! The pixels are `rm2k-snes-images`'.
 
 use crate::fail::{Result, Stop};
 use crate::images;
+use rm2k_project::Project;
 use serde_json::{json, Map, Value};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -59,6 +68,38 @@ pub const BIG_ROWS: i64 = 64;
 /// `zoom` percent of `side`, rounded and never under one.
 pub fn zoomed(side: i64, zoom: i64) -> i64 {
     std::cmp::max(1, (side * zoom + 50).div_euclid(100))
+}
+
+/// The pictures the game crops instead of scaling, by name in lowercase
+/// —RM2k finds a file without minding its case—, each with the pixel the
+/// console's screen is cut from.
+#[derive(Debug, Clone, Default)]
+pub struct Cropped(HashMap<String, (i64, i64)>);
+
+impl Cropped {
+    /// `[graphics] cropped_pictures`: a table of `name = [x, y]`.
+    pub fn read(project: &Project) -> Result<Cropped> {
+        let keys = ["graphics", "cropped_pictures"];
+        let mut out = HashMap::new();
+        for (name, at) in project.table(&keys)? {
+            let pair = at
+                .as_array()
+                .filter(|a| a.len() == 2)
+                .and_then(|a| Some((a[0].as_integer()?, a[1].as_integer()?)));
+            let Some(pair) = pair else {
+                return Err(project
+                    .wrong_type(&["graphics", "cropped_pictures", name], "[x, y]", at)
+                    .into());
+            };
+            out.insert(name.to_lowercase(), pair);
+        }
+        Ok(Cropped(out))
+    }
+
+    /// Where the console's screen is cut from `name`, if it is cropped.
+    pub fn of(&self, name: &str) -> Option<(i64, i64)> {
+        self.0.get(&name.to_lowercase()).copied()
+    }
 }
 
 /// The file of the picture `name`, or None if the game does not have it.
@@ -218,10 +259,14 @@ fn on_console(path: &Path, key: &Value) -> Result<(i64, i64)> {
 }
 
 /// Whether the picture goes in the background layer: too big for the
-/// objects, and either with the screen or covering it whole.
-fn is_big(path: &Path, key: &Value) -> Result<bool> {
+/// objects, and either with the screen or covering it whole; or cropped,
+/// which is the screen.
+fn is_big(path: &Path, key: &Value, cropped: &Cropped) -> Result<bool> {
     if truthy(&key["by_variable"]) {
         return Ok(false);
+    }
+    if cropped.of(key["name"].as_str().unwrap_or("")).is_some() {
+        return Ok(true);
     }
     let (w, h) = on_console(path, key)?;
     if w <= WIDTH_MAX && h <= HEIGHT_MAX {
@@ -251,12 +296,12 @@ pub struct Big {
 /// The big pictures of `keys`. The ones that do not fit even cut to the
 /// screen are left out, and their commands are accepted without being
 /// done.
-pub fn big_for_map(game_dir: &Path, keys: &[Value], map_id: i32) -> Result<Vec<Big>> {
+pub fn big_for_map(game_dir: &Path, keys: &[Value], map_id: i32, cropped: &Cropped) -> Result<Vec<Big>> {
     let mut out = Vec::new();
     for key in keys {
         let name = key["name"].as_str().unwrap_or("");
         let Some(path) = path_of(game_dir, name) else { continue };
-        if !is_big(&path, key)? {
+        if !is_big(&path, key, cropped)? {
             continue;
         }
         let (cx, cy) = big_center(key);
@@ -267,6 +312,7 @@ pub fn big_for_map(game_dir: &Path, keys: &[Value], map_id: i32) -> Result<Vec<B
             cx,
             cy,
             zoom,
+            cropped.of(name),
             BIG_PALETTES,
             BIG_FIRST_PALETTE,
             BIG_TILES,
@@ -338,7 +384,7 @@ pub struct ForMap {
 /// A picture whose file is missing, that does not fit the plane, or whose
 /// number is past the console's slots, is left out, and its commands are
 /// accepted without being done.
-pub fn for_map(game_dir: &Path, keys: &[Value], map_id: i32) -> Result<Option<ForMap>> {
+pub fn for_map(game_dir: &Path, keys: &[Value], map_id: i32, cropped: &Cropped) -> Result<Option<ForMap>> {
     let mut slots: Vec<(i64, usize)> = Vec::new();
     let (mut table, mut images, mut cells, mut names) = (Vec::new(), Vec::new(), Vec::new(), Vec::new());
     let mut block = 0i64;
@@ -348,7 +394,7 @@ pub fn for_map(game_dir: &Path, keys: &[Value], map_id: i32) -> Result<Option<Fo
         // The big ones are `big_for_map`'s, and take no slot.
         let path = path_of(game_dir, name);
         if let Some(path) = &path {
-            if is_big(path, key)? {
+            if is_big(path, key, cropped)? {
                 continue;
             }
         }
@@ -427,6 +473,29 @@ pub fn for_map(game_dir: &Path, keys: &[Value], map_id: i32) -> Result<Option<Fo
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn project(graphics: &str) -> Project {
+        Project::from_text(Path::new("/nowhere"), &format!("[graphics]\n{graphics}\n")).unwrap()
+    }
+
+    #[test]
+    fn the_cropped_pictures_are_found_without_minding_case() {
+        let cropped = Cropped::read(&project("cropped_pictures = { PhotoA = [8, 16] }")).unwrap();
+        assert_eq!(cropped.of("photoa"), Some((8, 16)));
+        assert_eq!(cropped.of("PHOTOA"), Some((8, 16)));
+        assert_eq!(cropped.of("PhotoB"), None);
+        assert!(Cropped::read(&project("cropped_pictures = {}")).unwrap().of("PhotoA").is_none());
+    }
+
+    #[test]
+    fn a_crop_is_two_numbers_and_the_table_is_declared() {
+        for bad in ["{ PhotoA = [8] }", "{ PhotoA = [8, \"16\"] }", "{ PhotoA = 8 }"] {
+            let e = Cropped::read(&project(&format!("cropped_pictures = {bad}"))).unwrap_err();
+            assert!(e.to_string().contains("graphics.cropped_pictures.PhotoA"), "{e}");
+        }
+        let e = Cropped::read(&project("opaque = []")).unwrap_err();
+        assert!(e.to_string().contains("graphics.cropped_pictures"), "{e}");
+    }
 
     #[test]
     fn a_zoom_rounds_and_never_gives_zero() {

@@ -61,7 +61,8 @@ project's build, where `wally` finds it first.
 The project file —`rm2k-snes.toml`, found from the current directory or
 with `--project`— says where the dump, the build and the manual patches
 are, and what the game decided: the opaque translucent graphics, the
-palette weights, the maps the timer never runs in, the counters, the sound
+palette weights, the maps the timer never runs in, the pictures cropped to
+the console's screen instead of scaled, the counters, the sound
 effects, the fallback backdrop, the ROM's title and save signature. A key it
 does not declare is an error, never a default. The manual patches —a map
 redone, a map the game lacks, a ChipSet added— are validated whole on every

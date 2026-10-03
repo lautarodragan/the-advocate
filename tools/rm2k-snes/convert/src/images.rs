@@ -76,21 +76,24 @@ pub fn background(
     cx: i64,
     cy: i64,
     zoom: i64,
+    crop: Option<(i64, i64)>,
     palettes: i64,
     first_palette: i64,
     tiles: i64,
     rows: i64,
 ) -> Result<Option<Value>> {
-    let a = answer(
-        "background",
-        &json!({
-            "file": file(path), "use_transparent_color": use_transparent_color,
-            "x": cx, "y": cy, "rm_screen": [RM_WIDTH, RM_HEIGHT], "screen": [WIDTH, HEIGHT],
-            "zoom": zoom, "palettes": palettes, "first_palette": first_palette,
-            "tiles": tiles, "rows": rows,
-        }),
-        &[],
-    )?;
+    let mut request = json!({
+        "file": file(path), "use_transparent_color": use_transparent_color,
+        "x": cx, "y": cy, "rm_screen": [RM_WIDTH, RM_HEIGHT], "screen": [WIDTH, HEIGHT],
+        "zoom": zoom, "palettes": palettes, "first_palette": first_palette,
+        "tiles": tiles, "rows": rows,
+    });
+    // Only when there is one, so a scaled picture's request is the one it
+    // always was.
+    if let Some((x, y)) = crop {
+        request["crop"] = json!([x, y]);
+    }
+    let a = answer("background", &request, &[])?;
     Ok((!a.is_null()).then_some(a))
 }
 

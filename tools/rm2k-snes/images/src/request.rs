@@ -90,6 +90,10 @@ pub struct Background {
     pub screen: (i64, i64),
     #[serde(default = "hundred")]
     pub zoom: i64,
+    /// The pixel of the picture the console's screen is cut from, instead
+    /// of scaling it; absent, it is scaled.
+    #[serde(default)]
+    pub crop: Option<(i64, i64)>,
     pub palettes: usize,
     pub first_palette: usize,
     pub tiles: usize,
