@@ -196,6 +196,11 @@ TL_SLOT_PRE  = 16
 ; Where the menu bank's strips go: from the first even tile after its own,
 ; up to its tilemap.
 TL_STRIP_FIRST = (SLOT_TILES + 1) & $FFFE
+; The menu's and the actor choice's: after the tiles they show, which are
+; all of them unless the converter put the slot screen's text last to make
+; room —`Order::MenuFirst` in `rm2k-snes-screens`—. Those screens do not
+; show it, so their names may go over it.
+TL_MENU_STRIP_FIRST = (SLOT_MENU_TILES + 1) & $FFFE
 TL_STRIP_LAST  = (SLOT_MAP - SLOT_VRAM) / 16
 
 ; Where row k of a glyph lands in a column of the stage: rows 2 to 7 of the
@@ -2261,6 +2266,26 @@ forget:
     rtl
 .endproc
 .assert TL_STRIP_FIRST <= TL_STRIP_LAST, error, "the menu's bank reaches its tilemap"
+
+; The free tiles start over for the menu or the actor choice, after the
+; tiles they show: right after `slot_bank_upload`. Only in a cartridge whose
+; bank put the slot screen's text last; in the others it would set what
+; `tl_strip_reset` already did, and it is not assembled.
+.if SLOT_MENU_TILES <> SLOT_TILES
+.proc tl_strip_menu
+.a8
+.i16
+    tl_enter
+    rep #$20
+.a16
+    lda #TL_MENU_STRIP_FIRST
+    sta TL_STRIP_NEXT
+    sep #$20
+.a8
+    plb
+    rtl
+.endproc
+.endif
 
 ; A strip: the text at `msg_ptr`, A letters at most —its padding left
 ; out— and as many as fit in A cells, composed in white from Y, the tilemap
