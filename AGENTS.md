@@ -343,17 +343,12 @@ suya de nushell: Arch —igual que el host— con este repo montado en
 `/host/abl-snes`. **Los archivos del repo son los de verdad**: lo que se escribe
 acá queda escrito en su disco.
 
-**ABL está en `/shared/abl-snes`**, su propio repo, desde el 2026-10-02.
-`/shared` es una carpeta que el host ve, y es **un CIFS**, con tres
-consecuencias que ya mordieron:
-
-* **no admite symlinks**: `ln -s` da "Operation not supported", así que el
-  `install-local` de las herramientas no puede dejar su `bin/` adentro de
-  ABL;
-* **no guarda bits de ejecución**: todo es 0755 y git lo sabe
-  (`core.filemode=false`), así que un archivo ejecutable nuevo se marca con
-  `git update-index --chmod=+x`;
-* **no distingue mayúsculas** (`core.ignorecase=true`).
+**ABL está en `/abl-snes`**, su propio repo, desde el 2026-10-02, montado
+de un disco local del host. Hasta el 2026-10-03 vivía en `/shared/abl-snes`,
+y la copia vieja sigue ahí pero **no se usa**: `/shared` es un CIFS sobre el
+disco mecánico de un NAS, lento, sin symlinks, sin bits de ejecución y sin
+distinguir mayúsculas. Su `.git/config` todavía trae `core.filemode=false`
+y `core.ignorecase=true` de esa época.
 
 **Para correr ABL con las herramientas de un checkout de éste** —un
 worktree que cambia el runtime o el conversor—: `just -f tools/justfile
@@ -361,10 +356,9 @@ install-local tools/.local-tools <proyectos de Rust>` en el worktree, y
 desde ABL `PATH=<worktree>/tools/.local-tools/bin:$PATH just pruebas`. El
 `justfile` de ABL arma su PATH desde el que recibe, y lo que no esté en ese
 `bin/` sale del global. **Pero arma en el `build/` del checkout de ABL donde
-corre**: el de `/shared/abl-snes` es el que se juega y el de la tanda
-principal, así que un agente que lo necesite se saca su propio worktree de
-ABL fuera de `/shared` (`git -C /shared/abl-snes worktree add <dir>`). Eso
-último no se probó todavía. El resto del sistema es descartable, y por eso
+corre**: el de `/abl-snes` es el que se juega y el de la tanda principal,
+así que un agente que lo necesite se saca su propio clon o worktree de ABL
+(`git -C /abl-snes worktree add <dir>`). El resto del sistema es descartable, y por eso
 él trabaja en auto mode y no aprueba comando por comando; lo que revisa es el
 `git diff`.
 
