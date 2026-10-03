@@ -201,6 +201,7 @@ TEXT_BUF_BYTES = WINDOW_TEXT_COLS * 2 * 32
 .include "counter.s"
 .include "picture_far.s"
 .include "big_picture.s"
+.include "big_picture_zoom.s"
 .include "hero_speed_keys.s"
 .include "message_letter.s"
 .include "number_input.s"

@@ -58,17 +58,27 @@ RDDIVL   = $4214        ; the 16-bit quotient
 ; The other multiplier, the PPU's: the one of the mode 7 matrix, which
 ; multiplies M7A —sixteen bits signed, two writes— by the last byte written
 ; to M7B —eight signed— and leaves the 24-bit product in $2134-$2136
-; **instantly**. It works outside mode 7, and this port is fixed in mode 3.
+; **instantly**. It works outside mode 7, and this port is in mode 3 but
+; while a big picture zooms: see big_picture_zoom.s.
 ;
 ; **It belongs to `irq_music` and nobody else**: the song fade scales each
 ; voice's volume with it —see `volume_refresh`—. The one above cannot be used
 ; there, because the main code uses it in thirty places and an interrupt
 ; between its write and its read would change its result. With this one the
 ; same happens the other way round: if the main code ever uses it, it has to
-; do so with interrupts disabled.
+; do so with interrupts disabled. And **in mode 7 it is the matrix the screen
+; is drawn with**: then `irq_music` multiplies by hand —`mpym`—, and the
+; zoom writes it in the vblank with interrupts disabled.
 M7A      = $211B
 M7B      = $211C
 MPYM     = $2135        ; the middle byte of the product: divided by 256
+; The rest of mode 7's: the matrix's other two, the centre and how the plane
+; ends. The scroll is BG1's, written twice like the matrix.
+M7SEL    = $211A
+M7C      = $211D
+M7D      = $211E
+M7X      = $211F
+M7Y      = $2120
 
 ; --- the PPU ----------------------------------------------------------------
 BGMODE   = $2105        ; which graphics mode and how many bits per pixel
@@ -82,6 +92,7 @@ BG1VOFS  = $210E        ; vertical scroll
 VMAIN    = $2115        ; how the VRAM pointer advances after each write
 VMADDL   = $2116        ; VRAM address, in words
 VMDATAL  = $2118        ; and the data, one word at a time with VMAIN at $80
+VMDATAH  = $2119        ; its high byte alone: mode 7's tiles
 CGADD    = $2121        ; CGRAM index
 CGDATA   = $2122        ; and the color, a byte at a time: low byte first
 TM       = $212C        ; which layers show on the main screen

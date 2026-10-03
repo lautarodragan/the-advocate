@@ -690,6 +690,10 @@ MUS_BIT      = FAR_MUSIC + $88
 MUS_T        = FAR_MUSIC + $89
 MUS_BACK_TO  = FAR_MUSIC + $8B
 MUS_LEFT     = FAR_MUSIC + $8E
+; `mpym`'s byte and its scratch: see music.s. Taken on 2026-10-03 from the
+; gap after MUS_LEFT, which is this range's.
+MUS_MPY_B    = FAR_MUSIC + $90
+MUS_MPY_M    = FAR_MUSIC + $91
 ; The bytes from MUS_WAIT to MUS_LEFT, which `music_clear` zeroes.
 MUS_STATE_BYTES = $0F
 ; The log of what the stream asks of the DSP: `dsp_music` records each
@@ -822,6 +826,9 @@ BIG_WAVE_TO   = $7E25EF
 ; bit 7, so `bpl` asks for it.
 BIG_ON      = $01                ; the layer is up: mode 1, the map hidden
 BIG_DOWN    = $02                ; the ramp's scroll goes down from BIG_Y_FROM
+BIG_TEXTURE = $04                ; it has a mode 7 texture: see big_picture_zoom.s
+BIG_M7      = $08                ; mode 7 is on screen: `irq_music` multiplies by hand
+BIG_ZOOMING = $40                ; the ramp moves its size too
 BIG_WAVE_ON = $10                ; the wave's HDMA, on
 BIG_B       = $20                ; the HDMA reads the second wave table
 BIG_PENDING = $80                ; its palette is waiting for the vblank
@@ -838,6 +845,19 @@ PIC_BIG     = $80
 BIG_PAL     = $7F6000            ; BIG_PALETTES * 32 bytes
 BIG_WAVE_A  = $7F6100            ; BIG_WAVE_BYTES each
 BIG_WAVE_B  = $7F6300
+; And the zoom's, for a picture with a mode 7 texture: see
+; big_picture_zoom.s. `big_load` writes all of them before the first vblank
+; reads them.
+BIG_M7_SHOW  = $7F6500           ; what the vblank shows: BIG_M7_STILL, _ZOOM, _GONE, and BIG_M7_SPENT
+BIG_M7_PIECE = $7F6501           ; the piece of VRAM that goes up next
+BIG_M7_DONE  = $7F6502           ; word: its bytes already up
+BIG_MAG      = $7F6504           ; its size now, in percent of the one shown
+BIG_MAG_FROM = $7F6505           ; and where the ramp's size starts and ends
+BIG_MAG_TO   = $7F6506
+BIG_M7_A     = $7F6507           ; word: the matrix's A and D, 8.8; BIG_M7_HIDDEN if too small
+BIG_M7_DIVISOR = $7F6509         ; word: `big_m7_matrix`'s
+BIG_M7_SIZE  = $7F650B           ; word: the piece's bytes
+BIG_M7_END   = $7F650D
 
 ; --- the slots still events take turns in ---------------------------------------
 ;

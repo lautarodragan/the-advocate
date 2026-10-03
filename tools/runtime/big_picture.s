@@ -144,7 +144,9 @@ no_ramp:
     bcc load
     lda 3, s                    ; the image, under the cursor
     cmp f:BIG_IMG
-    beq loaded
+    bne load
+    jsr big_m7_again            ; one with a texture may have to go up again
+    bcc loaded
 load:
     lda 3, s
     sta f:BIG_IMG
@@ -183,10 +185,20 @@ still:
 .i16
     lda #$80
     sta INIDISP                 ; what follows writes VRAM by DMA
+    jsr big_m7_leave            ; what one with a texture took, back
     lda #$80
     sta VMAIN
     lda f:BIG_IMG
     jsr big_entry
+    ; One with a texture goes in VRAM's upper half: big_picture_zoom.s.
+    rep #$20
+.a16
+    lda f:big_table + BE_M7_BYTES, x
+    sep #$20
+.a8
+    beq plain
+    jmp big_load_hybrid
+plain:
     phx
     ; The tiles, from the cartridge to word 0.
     rep #$20
@@ -612,6 +624,7 @@ wave:
     beq unchanged
     jsr big_palette
 unchanged:
+    jsr big_m7_step             ; and its size: big_picture_zoom.s
     lda f:PIC_STEP
     cmp f:PIC_STEPS
     bcc going
@@ -793,6 +806,12 @@ no_palette:
     ldx #.loword(BIG_WAVE_B)
 table_a:
     stx A1T4L
+    ; A picture with a texture: its mode, its matrix and a piece of VRAM.
+    lda f:BIG_FLAGS
+    and #BIG_TEXTURE
+    beq without
+    jsr big_m7_vblank
+without:
     rep #$20
 .a16
     stz col_addr

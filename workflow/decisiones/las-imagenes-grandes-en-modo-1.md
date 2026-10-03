@@ -18,3 +18,8 @@ acá el mapa no se ve. Es lo mismo que se evaluó para el menú en modo 5.
 El conversor elige el plano de cada imagen: las chicas sobre el mapa van en
 objetos; las grandes, con el mapa tapado, en BG1 en modo 1, y al borrarse se
 vuelve al modo 3 recargando lo que haga falta del mapa.
+
+Desde el 2026-10-03, una que un `MovePicture` agranda o achica **hace el
+zoom en modo 7**, con una textura de 255 tiles parecidos, y quieta sigue
+acá, en modo 1 a resolución completa: es la variante híbrida vq que taro
+eligió en el piloto. Ver `tasks/*/las-fotos-en-modo-7.md`.
