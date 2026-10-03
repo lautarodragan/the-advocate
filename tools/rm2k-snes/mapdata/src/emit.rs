@@ -2123,6 +2123,42 @@ impl Rest<'_> {
             }
         }
         words_asm(out, "actor_params", &decimal(params), true);
+        // An actor's critical hit is its own `1 / critical_hit_chance` plus
+        // its best weapon's bonus, added in floating point: see
+        // `critical_percent` in `rm2k-snes-battle`. So the console does not
+        // add them —it would get 4 where RM2k gets 3— but looks the result
+        // up: each actor has a row of `crit_table`, one per different own
+        // part, and each weapon a column, one per different bonus. The
+        // columns go by bonus, lowest first and 0 for no weapon, so the
+        // best of two weapons is the higher column. See `ba_crit_of`.
+        let own = |a: i64| actor(a).and_then(rules::actor_critical_own);
+        let mut owns: Vec<Option<i32>> = (0..n_actors).map(own).collect();
+        owns.sort();
+        owns.dedup();
+        let crit_bonus = |i: &ditto::schema::Item| {
+            if i.r#type.to_i32() == rm2k_snes_battle::db::ITEM_WEAPON {
+                i.critical_hit
+            } else {
+                0
+            }
+        };
+        let mut bonuses = vec![0];
+        for &n in items {
+            bonuses.push(crit_bonus(item(n)?));
+        }
+        bonuses.sort();
+        bonuses.dedup();
+        let column = |b: i32| bonuses.iter().position(|&x| x == b).unwrap_or(0) as i64;
+        bytes_asm(out, "item_crit_k", &per_item(&|i| column(crit_bonus(i)))?, true);
+        let row = |a: i64| owns.iter().position(|&o| o == own(a)).unwrap_or(0) * bonuses.len();
+        words_asm(out, "actor_crit_row", &decimal((0..n_actors).map(|a| row(a) as i64)), true);
+        let mut table = Vec::new();
+        for &o in &owns {
+            for &b in &bonuses {
+                table.push(rules::critical_percent(o, b).clamp(0, 255));
+            }
+        }
+        bytes_asm(out, "crit_table", &decimal(table), true);
         out.push_str(".segment \"TABLES\"\n");
         out.push_str("\n.segment \"RODATA\"\n");
         out.push_str(&format!(
@@ -2717,21 +2753,14 @@ impl Rest<'_> {
         // `Game_Enemy::GetHitChance`: 70 if it misses, 90 if not.
         let hit = |e: &ditto::schema::Enemy| if e.miss { 70 } else { 90 };
         bytes_asm(out, "enemy_hit", &per_enemy(&|e| hit(e))?, true);
-        // The critical hit as a whole percentage: `1 / chance` times a hundred.
+        // The critical hit as a whole percentage: `1 / chance` times a
+        // hundred, in floating point as RM2k —see `critical_percent`—.
         bytes_asm(
             out,
             "enemy_crit",
             &per_enemy(&|e| {
-                let chance = if e.critical_hit_chance == 0 {
-                    30
-                } else {
-                    e.critical_hit_chance
-                };
-                if e.critical_hit {
-                    i64::from(100 / chance)
-                } else {
-                    0
-                }
+                rules::critical_percent(e.critical_hit.then_some(e.critical_hit_chance), 0)
+                    .clamp(0, 255)
             })?,
             true,
         );

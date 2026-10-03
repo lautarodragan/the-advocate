@@ -154,6 +154,55 @@ pub fn weapon_sp_of(db: &Db, equipment: &[i32]) -> Result<i64> {
     })
 }
 
+/// The critical hit chance the battle rolls against, as a whole
+/// percentage: `GetCriticalHitChance` times a hundred and truncated, which
+/// is what `Algo::CalcCriticalHitChance` does. `own` is the battler's
+/// `critical_hit_chance` —once every so many hits— or None without
+/// `critical_hit`, and zero counts as the database's default, 30; `bonus`
+/// is what its weapons add, in percent, and an enemy has none.
+///
+/// **In single-precision floating point, as easyrpg adds them**, and it is
+/// not a detail: `1 / 25` comes out a hair under 0.04, so a chance of 25 is
+/// 3 % and not 4 %, and a 12 % weapon on an actor without `critical_hit`
+/// is 11 %. That is why the console does not add the two parts: it reads
+/// the result from a table the converter writes with this.
+pub fn critical_percent(own: Option<i32>, bonus: i32) -> i64 {
+    let own: f32 = match own {
+        Some(every) => 1.0 / (if every == 0 { 30 } else { every }) as f32,
+        None => 0.0,
+    };
+    let chance: f32 = own + bonus as f32 / 100.0;
+    (f64::from(chance) * 100.0) as i64
+}
+
+/// An actor's own part of its critical hit: `critical_hit_chance` if it has
+/// `critical_hit`.
+pub fn actor_critical_own(actor: &Actor) -> Option<i32> {
+    actor.critical_hit.then_some(actor.critical_hit_chance)
+}
+
+/// What the weapons add to an actor's critical hit: the highest
+/// `critical_hit` of the weapons it has equipped —`ForEachEquipment` with
+/// weapons and without armor, in `Game_Actor::GetCriticalHitChance`—. Only
+/// the first two slots can hold one, and the second only with
+/// `two_weapon`.
+pub fn weapon_critical_bonus(db: &Db, equipment: &[i32]) -> i32 {
+    equipment
+        .iter()
+        .filter_map(|id| db.items.get(id))
+        .filter(|item| item.r#type.to_i32() == ITEM_WEAPON)
+        .map(|item| item.critical_hit)
+        .fold(0, i32::max)
+}
+
+/// An actor's critical hit with this equipment: see [`critical_percent`].
+pub fn actor_critical(db: &Db, actor: i32, equipment: &[i32]) -> Result<i64> {
+    Ok(critical_percent(
+        actor_critical_own(db.actor(actor)?),
+        weapon_critical_bonus(db, equipment),
+    ))
+}
+
 /// Whether the item removes the dead state: the first of its `state_set`.
 pub fn revives(item: &Item) -> bool {
     item.state_set.first() == Some(&true)
@@ -249,7 +298,22 @@ pub fn troop_exp(db: &Db, troop: i32) -> Result<i64> {
 
 #[cfg(test)]
 mod tests {
-    use super::floor_div;
+    use super::{critical_percent, floor_div};
+
+    /// The numbers are easyrpg's, worked out apart in single precision:
+    /// the ones that are not the integers they look like are the point.
+    #[test]
+    fn the_critical_hit_adds_in_floating_point() {
+        assert_eq!(critical_percent(Some(30), 0), 3);
+        assert_eq!(critical_percent(Some(10), 0), 10);
+        assert_eq!(critical_percent(Some(1), 0), 100);
+        assert_eq!(critical_percent(None, 0), 0);
+        assert_eq!(critical_percent(Some(0), 0), 3, "zero is the default, 30");
+        assert_eq!(critical_percent(Some(25), 0), 3, "1 / 25 is a hair under 0.04");
+        assert_eq!(critical_percent(None, 12), 11, "0.12 is a hair under too");
+        assert_eq!(critical_percent(Some(10), 25), 34);
+        assert_eq!(critical_percent(Some(30), 10), 13);
+    }
 
     #[test]
     fn floor_div_rounds_down() {

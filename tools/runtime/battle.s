@@ -290,6 +290,87 @@ nothing8:
     rts
 .endproc
 
+; The critical hit chance of the actor in `BA_S0`, in A8, as the whole
+; percentage `ba_pct` rolls against: `Game_Actor::GetCriticalHitChance`, its
+; own `1 / critical_hit_chance` plus the best `critical_hit` of the weapons
+; in slots 0 and 1 —the second holds one only with `two_weapon`—. RM2k adds
+; them in floating point and they do not add up to the integers they look
+; like, so this does not add: it looks the result up in `crit_table`, at the
+; actor's row and its best weapon's column. See `critical_percent` in
+; `rm2k-snes-battle`, which writes the table and is the model's too.
+; Clobbers X, `BA_T0` and `BA_T1`.
+.proc ba_crit_of
+.a8
+.i16
+    rep #$20
+.a16
+    lda BA_S0
+    and #$00FF
+    asl a
+    sta BA_T0
+    asl a
+    asl a
+    clc
+    adc BA_T0                   ; the actor times ten: five slots of two
+    sta BA_T1
+    tax
+    lda FAR_EQUIPMENT, x
+    jsr column                  ; the first slot's
+.a8
+    sta BA_T0
+    rep #$20
+.a16
+    ldx BA_T1
+    lda FAR_EQUIPMENT + 2, x
+    jsr column                  ; and the second's
+.a8
+    cmp BA_T0
+    bcs the_best                ; the columns go by bonus: the higher wins
+    lda BA_T0
+the_best:
+    sta BA_T0
+    stz BA_T0 + 1
+    rep #$20
+.a16
+    lda BA_S0
+    and #$00FF
+    asl a
+    tax
+    lda f:actor_crit_row, x
+    clc
+    adc BA_T0
+    tax
+    sep #$20
+.a8
+    lda f:crit_table, x
+    rts
+
+; A16 an item from `FAR_EQUIPMENT`; leaves in A8 its column, `item_crit_k`,
+; which is 0 for no item, one the cartridge does not carry, or one that is
+; not a weapon.
+.a16
+column:
+    beq none
+    cmp #ITEMS_N
+    bcs none
+    tax
+    sep #$20
+.a8
+    lda f:item_k, x
+    cmp #$FF
+    beq none8                   ; an item the cartridge does not carry
+    jsr ba_ax
+    lda f:item_crit_k, x
+    rts
+.a16
+none:
+    sep #$20
+.a8
+none8:
+    lda #0
+    rts
+.endproc
+
 ; Actor `BA_S0` into party slot `BA_S1`, as the battle starts it: the HP and
 ; SP of the saved game, the parameters of its level and equipment, and no
 ; modifiers. It is `ba_build`'s, and since 2026-09-30 also `ba_sync_in`'s, for
@@ -360,8 +441,6 @@ nothing8:
 .a8
     lda #BA_HIT_ACTOR
     sta BA_ONE + BA_HIT, x
-    lda #0
-    sta BA_ONE + BA_CRIT, x   ; no actor in ABL has a critical hit
     lda BA_S0
     sta BA_ONE + BA_NUMBER, x
     lda #(BAF_HAS | BAF_ACTOR)
@@ -422,6 +501,13 @@ nothing8:
     jsr ba_ax
     pla
     sta f:BA_WEAPON_SP, x
+    ; And its critical hit, which depends on the weapon too.
+    jsr ba_crit_of
+    pha
+    lda BA_S1
+    jsr ba_x
+    pla
+    sta BA_ONE + BA_CRIT, x
     rts
 .endproc
 
