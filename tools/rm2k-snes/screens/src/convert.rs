@@ -3,7 +3,8 @@
 
 use crate::borders::{self, compact_shop, compact_target, Borders};
 use crate::cells::Color;
-use crate::checks::{items_border_first, Vram};
+use crate::checks::{items_border_first, Vram, TEXT_POOL_PAIRS};
+use crate::render;
 use crate::end_game;
 use crate::fail::{Bad, Result};
 use crate::game::{Game, ITEM_MEDICINE};
@@ -71,17 +72,21 @@ fn strip_tiles(game: &Game, stored: &str, cells: usize) -> usize {
     }
 }
 
-/// That the names the menu, the actor choice and the slot screen compose fit
-/// in what their bank leaves free: from its first even tile after `tiles`
-/// up to its tilemap. The most a screen can ask for is counted: the menu
-/// with the four longest names and the actor choice's longest medicine over
-/// it, or a save in every slot with the longest leader.
+/// The tiles a bank's names can take, counted from its first even tile
+/// after `tiles` up to its tilemap.
+fn free_after(tiles: usize) -> usize {
+    SLOT_TILES_MAX.saturating_sub(tiles.div_ceil(2) * 2)
+}
+
+/// What the names the menu, the actor choice and the slot screen compose
+/// ask for at most: the menu with the four longest names and the actor
+/// choice's longest medicine over it, and a save in every slot with the
+/// longest leader. `(party, medicine, slots)`.
 ///
 /// Until 2026-10-03 the names went one letter per cell, from glyphs in the
 /// bank: what cost was the letters, once. Composed, each name shown takes
 /// tiles of its own.
-fn strips_fit(game: &Game, request: &Request, medicines: &[(i32, String)], tiles: usize) -> Result<String> {
-    let free = SLOT_TILES_MAX.saturating_sub(tiles.div_ceil(2) * 2);
+fn strips_asked(game: &Game, request: &Request, medicines: &[(i32, String)]) -> Result<(usize, usize, usize)> {
     let mut names: Vec<usize> = Vec::new();
     let mut leaders = 0;
     for &actor in &request.actors {
@@ -101,18 +106,180 @@ fn strips_fit(game: &Game, request: &Request, medicines: &[(i32, String)], tiles
         })
         .max()
         .unwrap_or(0);
-    let need = (party + medicine).max(request.slots * leaders);
-    if need > free {
+    Ok((party, medicine, request.slots * leaders))
+}
+
+/// Whether the names fit in what `bank` leaves free: the menu's after the
+/// tiles it shows, the slot screen's after all of them.
+fn strips_fit(asked: (usize, usize, usize), bank: &slots::Slots) -> bool {
+    let (party, medicine, slots) = asked;
+    party + medicine <= free_after(bank.menu_tiles) && slots <= free_after(bank.tiles.len())
+}
+
+/// The slot screen and the menu's bank, in the order that leaves room for
+/// their composed names: as they are drawn, and if that does not, with the
+/// slot screen's text last —see [`slots::Order`]—. What the error says is
+/// what is missing in the second.
+fn slots_with_room(
+    game: &Game,
+    skin: &crate::game::Skin,
+    request: &Request,
+    medicines: &[(i32, String)],
+) -> Result<(slots::Slots, String)> {
+    let asked = strips_asked(game, request, medicines)?;
+    let (party, medicine, slot_names) = asked;
+    let mut bank = slots::slots_screen(game, skin, request.slots, &request.actors, slots::Order::Drawn)?;
+    let mut order = "";
+    if !strips_fit(asked, &bank) {
+        bank = slots::slots_screen(game, skin, request.slots, &request.actors, slots::Order::MenuFirst)?;
+        order = ", the slot screen's text last";
+    }
+    let tiles = bank.tiles.len();
+    let menu_free = free_after(bank.menu_tiles);
+    let slot_free = free_after(tiles);
+    if !strips_fit(asked, &bank) {
         return Err(Bad::answer(format!(
-            "the menu's bank has {tiles} tiles and leaves {free} free up to its tilemap, and the \
-             composed names can ask for {need}: {party} the party's, {medicine} a medicine's and \
-             {} the slot screen's",
-            request.slots * leaders
+            "the menu's bank has no room for the composed names, even with the slot screen's text \
+             last: the menu shows {} tiles and leaves {menu_free} free up to its tilemap, and its \
+             names can ask for {}: {party} the party's and {medicine} a medicine's; the slot \
+             screen shows {tiles} and leaves {slot_free}, and its leaders can ask for {slot_names}",
+            bank.menu_tiles,
+            party + medicine,
         )));
     }
-    Ok(format!(
-        "  menu bank: {tiles} tiles of {SLOT_TILES_MAX}; the composed names ask for {need} of the {free} left"
+    Ok((
+        bank,
+        format!(
+            "  menu bank: {tiles} tiles of {SLOT_TILES_MAX}{order}; the composed names ask for \
+             {} of the {menu_free} the menu leaves and {slot_names} of the {slot_free} the slot \
+             screen does",
+            party + medicine
+        ),
     ))
+}
+
+/// What a place leaves out of the names it writes in counted cells: for
+/// each name it cuts, the name, the pixels it takes and what shows. The
+/// console cuts what does not fit and says nothing, so it is the converter
+/// that names them. A warning and not an error, as with the other things a
+/// cartridge carries less of than the game: the screen still works.
+///
+/// Since 2026-10-03: with `[text] letter_spacing` above 0 every name grows,
+/// and which ones stop fitting depends on the knob.
+pub fn cut_names(font: &rm2k_snes_text::font::Font, place: &str, room: &str, cut: &[(String, String)]) -> Option<String> {
+    if cut.is_empty() {
+        return None;
+    }
+    let names: Vec<String> = cut
+        .iter()
+        .map(|(full, shown)| format!("{full:?} {} px, shows {shown:?}", font.width(full)))
+        .collect();
+    Some(format!(
+        "  WARNING, {} {place} don't fit in {room} and are cut: {}",
+        cut.len(),
+        names.join("; ")
+    ))
+}
+
+/// The names the menu, the actor choice, the slot screen and the
+/// equipment screen write in counted cells, and which of them are cut.
+fn names_in_cells(game: &Game, request: &Request, medicines: &[(i32, String)]) -> Result<Vec<String>> {
+    let font = &game.font;
+    let mut says = Vec::new();
+    let mut actor_names = Vec::new();
+    for &actor in &request.actors {
+        actor_names.push(item_text(&game.actor_name(actor)?, usize::MAX));
+    }
+    for (place, cells) in [("actor names in the menu", MENU_NAME_COLS), ("leader names in the slot screen", NAME_COLS)] {
+        let cut: Vec<(String, String)> = actor_names
+            .iter()
+            .map(|name| (name.clone(), texts::strip_text(font, &texts::ljust(name, cells), cells)))
+            .filter(|(name, shown)| shown != name.trim_end())
+            .collect();
+        says.extend(cut_names(font, place, &format!("{cells} cells ({} px)", 8 * cells), &cut));
+    }
+    let cut: Vec<(String, String)> = medicines
+        .iter()
+        .filter_map(|(_, name)| {
+            let lines = texts::name_in_lines(font, name, TARGET_NAME_WIDTH, 2);
+            let shown: Vec<&str> = lines.iter().map(|l| l.trim_end()).filter(|l| !l.is_empty()).collect();
+            let shown = shown.join(" / ");
+            // A word may go on in the next line: what counts is that every
+            // letter shows.
+            let letters = |t: &str| t.chars().filter(|c| !c.is_whitespace()).collect::<String>();
+            (letters(&lines.concat()) != letters(&item_text(name, usize::MAX))).then(|| (name.clone(), shown))
+        })
+        .collect();
+    says.extend(cut_names(
+        font,
+        "medicine names in the actor choice",
+        &format!("two lines of {TARGET_NAME_WIDTH} cells"),
+        &cut,
+    ));
+    let mut cut = Vec::new();
+    for &n in &request.items {
+        let kind = game.item(n)?.r#type.to_i32();
+        // RM2k's weapon, shield, armor, helmet and accessory: what an
+        // equipment slot shows.
+        if !(1..=5).contains(&kind) {
+            continue;
+        }
+        let name = item_text(&game.item_name(n)?, usize::MAX);
+        let shown = texts::fit_cells(font, &item_text(&name, ITEM_NAME_WIDTH), EQ_SLOT_NAME_WIDTH);
+        if shown != name {
+            cut.push((name, shown));
+        }
+    }
+    says.extend(cut_names(
+        font,
+        "equipment names in the equipment screen",
+        &format!("{EQ_SLOT_NAME_WIDTH} cells ({} px)", 8 * EQ_SLOT_NAME_WIDTH),
+        &cut,
+    ));
+    Ok(says)
+}
+
+/// What the shop's busiest lists ask of the text layer's pool of pairs of
+/// tiles —see `rm2k_snes_text::cells`—: buying and selling, with the
+/// widest names of the items the cartridge knows in every row, the widest
+/// description over them, and every count and the gold at their widest.
+/// An upper bound: a shop sells a few, and a party owns what it owns.
+fn shop_pairs(game: &Game, skin: &crate::game::Skin, request: &Request) -> Result<usize> {
+    let font = &game.font;
+    let mut by_name: Vec<(usize, i32)> = Vec::new();
+    let mut widest_description = (0, None);
+    for &n in &request.items {
+        let name = item_text(&game.item_name(n)?, ITEM_NAME_WIDTH);
+        by_name.push((font.width(&name), n));
+        let description: usize =
+            split_description(font, &game.item_description(n)?).iter().map(|l| font.width(l)).sum();
+        widest_description = widest_description.max((description, Some(n)));
+    }
+    by_name.sort_by(|a, b| b.cmp(a));
+    let mut most = 0;
+    for (mode, rows) in [(TI_BUY, TI_LIST_ROWS_BUY), (TI_SELL, TI_LIST_ROWS_SALE)] {
+        let mut list: Vec<i32> = widest_description.1.into_iter().collect();
+        list.extend(by_name.iter().map(|(_, n)| *n).filter(|n| Some(*n) != widest_description.1));
+        list.truncate(rows);
+        for term_set in 0..TI_TERM_SETS {
+            let shop = render::Shop {
+                kind: 0,
+                term_set,
+                sells: list.clone(),
+                gold: 999_999,
+                inventory: list.iter().map(|&n| (n, 99)).collect(),
+                party_equipment: Vec::new(),
+                mode,
+                chosen: 0,
+                top: 0,
+                count: 99,
+                regreeting: false,
+                known: None,
+            };
+            most = most.max(render::shop_text(game, skin, &shop)?.0.pairs(font));
+        }
+    }
+    Ok(most)
 }
 
 /// Everything the conversion needs from the screens, and what it has to
@@ -131,8 +298,14 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
             medicines.push((n, game.item_name(n)?));
         }
     }
-    let slots = slots::slots_screen(game, &skin, request.slots, &request.actors)?;
-    says.push(strips_fit(game, request, &medicines, slots.tiles.len())?);
+    let (slots, said) = slots_with_room(game, &skin, request, &medicines)?;
+    says.push(said);
+    says.extend(names_in_cells(game, request, &medicines)?);
+    let shop = shop_pairs(game, &skin, request)?;
+    let warning = if shop > TEXT_POOL_PAIRS { "WARNING, " } else { "" };
+    says.push(format!(
+        "  {warning}shop text: its lists ask for {shop} pairs of tiles at most, of the {TEXT_POOL_PAIRS} of the pool"
+    ));
     if !slots.lent.is_empty() {
         let names: Vec<String> = {
             let mut lent = slots.lent.clone();
@@ -247,6 +420,7 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
         })),
         "slots": {
             "tiles": tiles_json(&slots.tiles),
+            "menu_tiles": slots.menu_tiles,
             "palettes": slots.palettes,
             "headers": slots.headers,
             "rows": slots.rows,

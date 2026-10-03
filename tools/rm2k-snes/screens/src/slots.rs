@@ -60,6 +60,26 @@ pub struct Slots {
     /// The font precomposed for palette 0, one table per phase: what the
     /// cartridge's `tl_strip` composes names with —see `text_layer.s`—.
     pub prerender: Vec<Vec<u8>>,
+    /// How many of `tiles`, from the first, the menu and the actor choice
+    /// show: their names are composed from the first even tile after
+    /// these. All of them unless the bank went [`Order::MenuFirst`].
+    pub menu_tiles: usize,
+}
+
+/// The order the bank gathers its tiles in. The slot screen and the menu
+/// upload it whole, and each composes its names in the tiles after it; but
+/// the menu does not show the slot screen's headers and rows, so with
+/// those last, it may compose over them.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Order {
+    /// The text in the order it is drawn, and the faces after it: what the
+    /// bank has always been, and what it stays while the names fit.
+    Drawn,
+    /// The menu's text and the faces first, and the slot screen's after:
+    /// the menu's names then start where its own tiles end. Since
+    /// 2026-10-03, for a `[text] letter_spacing` that leaves the bank short:
+    /// spaced, the baked text takes more tiles and the names more columns.
+    MenuFirst,
 }
 
 /// What each layer drawn is, so the second pass knows where to cut it.
@@ -172,7 +192,7 @@ fn lend(
 /// A face that finds no free palette **borrows one**: without it, a game
 /// with more actors that can join than palettes would have to leave some
 /// out, and they can be the path of the story.
-pub fn slots_screen(game: &Game, skin: &Skin, slots: usize, actors: &[i32]) -> Result<Slots> {
+pub fn slots_screen(game: &Game, skin: &Skin, slots: usize, actors: &[i32], order: Order) -> Result<Slots> {
     let font = &game.font;
     let write = |dest: &mut Picture, x: usize, y: usize, text: &str, color: i32| {
         skin.draw_line(dest, x as i64, y as i64, text, color, font);
@@ -295,9 +315,9 @@ pub fn slots_screen(game: &Game, skin: &Skin, slots: usize, actors: &[i32]) -> R
         },
         ..Default::default()
     };
-    for (kind, image) in &layers {
+    let place = |kind: &Kind, image: &Picture, bank: &mut Bank, out: &mut Slots| -> Result<()> {
         let mut block = |row0: usize, rows: usize, index, col0: usize, cols: usize, palette: u16| {
-            cells::cell_block(image, row0, rows, &mut bank, index, col0, cols, palette)
+            cells::cell_block(image, row0, rows, bank, index, col0, cols, palette)
         };
         match kind {
             Kind::Option(option, disabled) => {
@@ -334,6 +354,15 @@ pub fn slots_screen(game: &Game, skin: &Skin, slots: usize, actors: &[i32]) -> R
                 out.rows[*number][*full][*cursor] = block(row0, SLOT_ROWS, &index, 0, COLS, 0)?;
             }
         }
+        Ok(())
+    };
+    let slot_only = |kind: &Kind| matches!(kind, Kind::Header(_) | Kind::Row(..));
+    let (before, after): (Vec<_>, Vec<_>) = match order {
+        Order::Drawn => (layers.iter().collect(), Vec::new()),
+        Order::MenuFirst => layers.iter().partition(|(kind, _)| !slot_only(kind)),
+    };
+    for (kind, image) in before {
+        place(kind, image, &mut bank, &mut out)?;
     }
 
     // And the faces, each with its palette, put at the top left of the
@@ -367,6 +396,10 @@ pub fn slots_screen(game: &Game, skin: &Skin, slots: usize, actors: &[i32]) -> R
             which as u16,
         )?;
         out.faces.insert(actor, cells);
+    }
+    out.menu_tiles = bank.len();
+    for (kind, image) in after {
+        place(kind, image, &mut bank, &mut out)?;
     }
     if bank.len() > SLOT_TILES_MAX {
         return Err(Bad::answer(format!(

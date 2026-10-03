@@ -225,10 +225,22 @@ fn without_commons(text: &str) -> String {
     lines.join("\n")
 }
 
+/// The text without `SLOT_MENU_TILES` and its comment, which came after
+/// the Python too, on 2026-10-03: a request without `menu_tiles` says all
+/// of the bank, checked here.
+fn without_menu_tiles(text: &str) -> String {
+    let mut lines: Vec<&str> = text.split('\n').collect();
+    let at = lines.iter().position(|l| l.starts_with("SLOT_MENU_TILES ")).unwrap();
+    let tiles = lines.iter().find(|l| l.starts_with("SLOT_TILES ")).unwrap();
+    assert_eq!(lines[at].split('=').nth(1), tiles.split('=').nth(1));
+    lines.drain(at - 3..=at);
+    lines.join("\n")
+}
+
 #[test]
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
-    let text = without_commons(&without_pairs(&emitted.text));
+    let text = without_menu_tiles(&without_commons(&without_pairs(&emitted.text)));
     assert_eq!(text.lines().count(), 3371);
     assert_eq!(
         sha(&text),
@@ -239,7 +251,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 #[test]
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
-    let text = without_commons(&without_pairs(&emitted.text));
+    let text = without_menu_tiles(&without_commons(&without_pairs(&emitted.text)));
     assert_eq!(text.lines().count(), 3490);
     assert_eq!(
         sha(&text),
