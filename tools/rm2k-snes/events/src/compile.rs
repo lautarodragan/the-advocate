@@ -5147,7 +5147,7 @@ mod tests {
 
     #[test]
     fn a_jump_out_of_a_branch_lands_past_its_end() {
-        // The maps 332 to 339: from inside two branches to after them.
+        // From inside two branches to after them.
         let code = on_a_map(&[
             branch(COND_BRANCH, 0),
             branch(COND_BRANCH, 1),
@@ -5186,7 +5186,7 @@ mod tests {
 
     #[test]
     fn a_jump_into_the_last_body_of_a_block_compiles() {
-        // Into the `else`, as common event 39 does: after the body comes the
+        // Into the `else`: after the body comes the
         // `EndBranch`, which does nothing in RM2k either.
         let page = [
             jump(1, 0),
@@ -5281,7 +5281,7 @@ mod tests {
         assert_eq!(gotos(&code)[0], 7);
     }
 
-    /// Variable 143 in slot 3, as the door of Drust Camp needs it.
+    /// Variable 143 in slot 3, as a door that asks for a number needs it.
     fn with_the_password() -> Indices {
         Indices {
             variables: BTreeMap::from([(143, 3)]),
@@ -5291,7 +5291,7 @@ mod tests {
 
     #[test]
     fn a_number_goes_in_the_window_of_the_message_before_it() {
-        // Map 68, event 10: two lines, and six digits into variable 143.
+        // Two lines, and six digits into variable 143.
         let page = [
             cmd(SHOW_MESSAGE, &[], "VOICE"),
             cmd(SHOW_MESSAGE_2, &[], "What is the secret number?"),
@@ -5782,7 +5782,7 @@ mod tests {
         let mut game = Game::default();
         game.actors.insert(14, vec![]);
         let one = |c: Command| compile_with(&game, &[c]).unwrap().unwrap();
-        // `LifeForStrength`: 999 off Talan, lethal.
+        // 999 off actor 14, lethal.
         assert_eq!(
             one(cmd(CHANGE_HP, &[1, 14, 1, 0, 999, 1], "")),
             [OP_ACTOR, 14, ACT_SUBTRACT | ACT_LETHAL, 0xE7, 0x03, OP_DONE]
@@ -5803,7 +5803,7 @@ mod tests {
             [OP_ACTOR, 0, ACT_REVIVE, 0, 0, OP_DONE]
         );
         assert_eq!(one(cmd(CHANGE_CONDITION, &[0, 0, 1, 5], "")), [OP_DONE]);
-        // Talan's HP into variable 48, asking for the refresh: without a map
+        // Actor 14's HP into variable 48, asking for the refresh: without a map
         // there is no knowing that no page looks at it.
         assert_eq!(
             one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 5, 14, 2], "")),
@@ -5910,7 +5910,7 @@ mod tests {
 
     #[test]
     fn a_big_picture_goes_up_scrolls_fades_and_comes_down() {
-        // The instructions of map 285: 300x299 centred at (160, 150), that
+        // A sheet of instructions: 300x299 centred at (160, 150), that
         // go up to 50 in four seconds; the console computes the corner.
         let show = cmd(
             SHOW_PICTURE,
@@ -5937,9 +5937,8 @@ mod tests {
                 OP_DONE
             ]
         );
-        // A photo of maps 212 to 216: with the map, shrinking to nothing in
-        // two seconds, which is fading to black; and the wave and the
-        // saturation of `GTest4`.
+        // A photo: with the map, shrinking to nothing in two seconds, which
+        // is fading to black; and a wave and a saturation.
         let photo = cmd(
             SHOW_PICTURE,
             &[20, 0, 160, 120, 1, 100, 0, 1, 100, 100, 100, 200, 2, 8],
@@ -6060,7 +6059,7 @@ mod tests {
 
     #[test]
     fn a_variables_value_goes_in_the_text_as_its_slot() {
-        // The portable console's: "SERN has \V[0173] enemy souls to spend".
+        // A line like "The hero has \V[0173] coins to spend".
         // The value counts as one letter of the line, and its slot follows
         // the escape byte.
         let indices = Indices {
