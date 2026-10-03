@@ -13,6 +13,13 @@
 //! keeps—; if they do not fit, it is cut to the screen. Sideways it is
 //! always cut to the screen: nothing here scrolls a picture across.
 //!
+//! **Or it is cropped, if the request says from where**: not scaled at all,
+//! the console's screen cut out of the picture with its corner at that
+//! pixel, wherever the `ShowPicture` puts it. It is for a picture that is a
+//! capture of RM2k's screen —a map, at RM2k's 320x240—: the console does
+//! not scale the map, so a scaled capture no longer matches it, and the
+//! console's window of it does. The canvas is the screen and nothing more.
+//!
 //! **The colours are Adeleine's**: brought down to what the palettes can
 //! hold —first by what shows the least, to the most the palettes could
 //! ever take, and then until each cell's colours fit one of them—, so the
@@ -66,13 +73,15 @@ pub struct Background {
 
 /// `picture` —as RM2k draws it— centred at `(cx, cy)` of RM2k's screen at
 /// `zoom` percent, as a layer that fits `room`; `None` if not even cut to
-/// the screen do its tiles fit.
+/// the screen do its tiles fit. With `crop`, the console's screen cut out
+/// of it from that pixel instead, unscaled.
 pub fn convert(
     picture: &Picture,
     cx: i64,
     cy: i64,
     screens: Screens,
     zoom: i64,
+    crop: Option<(i64, i64)>,
     room: Room,
 ) -> crate::Result<Option<Background>> {
     if !(1..=100).contains(&zoom) {
@@ -80,29 +89,54 @@ pub fn convert(
             "a picture at {zoom}% zoom: only shrinking is done"
         )));
     }
-    let (zw, zh) = (
-        zoomed(picture.width as i64, zoom),
-        zoomed(picture.height as i64, zoom),
-    );
-    let (x, y, w, h) = screens.place(zw, zh, cx, cy);
-    if w <= 0 || h <= 0 {
-        return Err(crate::Bad::answer(format!(
-            "a {}x{} picture centred at ({cx}, {cy}) is {w}x{h} on the console's screen",
-            picture.width, picture.height
-        )));
-    }
-    let scaled = scaled_rgba(picture, w as usize, h as usize);
-    let pixels: Vec<Option<Color>> = scaled
+    let (width, height) = (screens.console.0, screens.console.1);
+    let (x, y, w, h, drawn) = match crop {
+        Some((left, top)) => {
+            // The crop is in the file's pixels: at another zoom they would
+            // be somewhere else, and nothing asks for it.
+            if zoom != 100 {
+                return Err(crate::Bad::answer(format!(
+                    "a picture cropped from ({left}, {top}) at {zoom}% zoom: a crop is of the picture as it is"
+                )));
+            }
+            let (pw, ph) = (picture.width as i64, picture.height as i64);
+            if left < 0 || top < 0 || left + width > pw || top + height > ph {
+                return Err(crate::Bad::answer(format!(
+                    "the console's {width}x{height} screen from ({left}, {top}) goes past the {pw}x{ph} picture"
+                )));
+            }
+            (-left, -top, pw, ph, picture.clone())
+        }
+        None => {
+            let (zw, zh) = (
+                zoomed(picture.width as i64, zoom),
+                zoomed(picture.height as i64, zoom),
+            );
+            let (x, y, w, h) = screens.place(zw, zh, cx, cy);
+            if w <= 0 || h <= 0 {
+                return Err(crate::Bad::answer(format!(
+                    "a {}x{} picture centred at ({cx}, {cy}) is {w}x{h} on the console's screen",
+                    picture.width, picture.height
+                )));
+            }
+            (x, y, w, h, scaled_rgba(picture, w as usize, h as usize))
+        }
+    };
+    let pixels: Vec<Option<Color>> = drawn
         .rgba
         .chunks_exact(4)
         .map(|p| (p[3] >= 128).then(|| to_15_bits(p[0], p[1], p[2])))
         .collect();
-    let (width, height) = (screens.console.0, screens.console.1);
     let screen = (0, height);
-    let whole = (
-        y.min(0).div_euclid(CELL as i64) * CELL as i64,
-        (y + h).max(height),
-    );
+    // A cropped one is the screen: what hangs past it is what the crop
+    // leaves out.
+    let whole = match crop {
+        Some(_) => screen,
+        None => (
+            y.min(0).div_euclid(CELL as i64) * CELL as i64,
+            (y + h).max(height),
+        ),
+    };
     let mut tried = Vec::new();
     for (top, bottom) in [whole, screen] {
         if tried.contains(&(top, bottom)) {
@@ -297,7 +331,7 @@ mod tests {
     fn a_picture_inside_the_screen_leaves_the_rest_blank() {
         // 80x60 of RM2k's, in the middle: 64x56 of the console's, from
         // (96, 84).
-        let layer = convert(&stripes(80, 60, 4), 160, 120, SCREENS, 100, ROOM)
+        let layer = convert(&stripes(80, 60, 4), 160, 120, SCREENS, 100, None, ROOM)
             .unwrap()
             .unwrap();
         assert_eq!((layer.top, layer.rows, layer.columns), (0, 28, 32));
@@ -315,7 +349,7 @@ mod tests {
     fn a_taller_picture_keeps_what_hangs_past_the_screen() {
         // 320x300 centred at (160, 150): its rows go past the bottom, and a
         // `MovePicture` can bring them up.
-        let layer = convert(&stripes(320, 300, 2), 160, 150, SCREENS, 100, ROOM)
+        let layer = convert(&stripes(320, 300, 2), 160, 150, SCREENS, 100, None, ROOM)
             .unwrap()
             .unwrap();
         assert_eq!(layer.top, 0);
@@ -339,15 +373,54 @@ mod tests {
         // 400 of RM2k's lines are 373 of the console's, 47 rows of cells
         // and 47 tiles: they do not fit in 40, and the screen's 28 do.
         let room = Room { tiles: 40, ..ROOM };
-        let layer = convert(&ramp(400, 400), 160, 120, SCREENS, 100, room)
+        let layer = convert(&ramp(400, 400), 160, 120, SCREENS, 100, None, room)
             .unwrap()
             .unwrap();
         assert_eq!((layer.top, layer.rows), (0, 28));
         assert!(layer.wider, "400 of RM2k's pixels go past both sides");
         // And in ten, not even the screen.
         let room = Room { tiles: 10, ..ROOM };
-        assert!(convert(&ramp(400, 400), 160, 120, SCREENS, 100, room)
+        assert!(convert(&ramp(400, 400), 160, 120, SCREENS, 100, None, room)
             .unwrap()
             .is_none());
+    }
+
+    #[test]
+    fn a_cropped_picture_is_the_screen_cut_out_of_it_unscaled() {
+        // RM2k's screen, transparent but for one 8x8 square at (24, 24):
+        // cut from (8, 16), it is the cell at (16, 8) of the screen, and
+        // nothing else is drawn. Scaled, it would not even be whole cells.
+        let mut p = Picture::transparent(320, 240);
+        for y in 24..32 {
+            for x in 24..32 {
+                let at = (y * 320 + x) * 4;
+                p.rgba[at..at + 4].copy_from_slice(&[255, 255, 255, 255]);
+            }
+        }
+        let layer = convert(&p, 160, 120, SCREENS, 100, Some((8, 16)), ROOM)
+            .unwrap()
+            .unwrap();
+        assert_eq!((layer.top, layer.rows, layer.columns), (0, 28, 32));
+        assert!(layer.wider, "what is cut off at the sides is the picture's");
+        let drawn: Vec<usize> = (0..layer.tilemap.len())
+            .filter(|&k| layer.tilemap[k] & 0x3FF != 0)
+            .collect();
+        assert_eq!(drawn, [32 + 2], "only the cell at (16, 8)");
+        assert_eq!(layer.tile_count, 2, "the blank tile and the square");
+        // Wherever the `ShowPicture` puts it, the crop is the same.
+        let elsewhere = convert(&p, 40, 200, SCREENS, 100, Some((8, 16)), ROOM)
+            .unwrap()
+            .unwrap();
+        assert_eq!(elsewhere.tilemap, layer.tilemap);
+    }
+
+    #[test]
+    fn a_crop_has_to_fit_the_picture_and_be_at_its_size() {
+        let p = stripes(320, 240, 2);
+        let past = convert(&p, 160, 120, SCREENS, 100, Some((65, 0)), ROOM);
+        assert!(past.is_err(), "256 from 65 goes past 320");
+        let zoomed = convert(&p, 160, 120, SCREENS, 50, Some((0, 0)), ROOM);
+        assert!(zoomed.is_err(), "a crop is of the file's pixels");
+        assert!(convert(&p, 160, 120, SCREENS, 100, Some((64, 16)), ROOM).is_ok());
     }
 }

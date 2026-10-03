@@ -59,7 +59,8 @@ enum Command {
     #[command(
         after_help = "The request: {\"file\", \"use_transparent_color\", \"x\", \"y\" (its \
         centre on RM2k's screen), \"rm_screen\", \"screen\", \"zoom\" (100 by default), \
-        \"palettes\", \"first_palette\", \"tiles\" (the most distinct tiles, the blank one \
+        \"crop\": [x, y] (absent by default: the pixel of the picture the screen is cut \
+        from, unscaled, instead of scaling it), \"palettes\", \"first_palette\", \"tiles\" (the most distinct tiles, the blank one \
         included), \"rows\" (the most rows of cells)}. The answer, null if not even cut to the screen do its tiles fit: {\"top\" (where the canvas \
         starts, from the top of the screen), \"rows\", \"columns\", \"wider\" (whether it goes \
         past the screen's sides), \"tile_count\", \"tiles\" \
@@ -182,7 +183,7 @@ fn do_background(args: &Plain) -> Result<()> {
         tiles: r.tiles,
         rows: r.rows,
     };
-    let layer = background::convert(&drawn, r.x, r.y, screens, r.zoom, room)?;
+    let layer = background::convert(&drawn, r.x, r.y, screens, r.zoom, r.crop, room)?;
     let answer = layer.as_ref().map_or(Value::Null, request::background_answer);
     write(&args.out, "background", &answer)
 }

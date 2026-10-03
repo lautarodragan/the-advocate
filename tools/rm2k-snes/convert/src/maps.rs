@@ -297,14 +297,14 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
     // The `ShowPicture` pictures this map's pages and test pages can show,
     // which the scan gathered.
     let keys: Vec<Value> = scanned.get("pictures").and_then(Value::as_array).cloned().unwrap_or_default();
-    let pictures = pictures::for_map(&game.game_dir, &keys, map_id)?;
+    let pictures = pictures::for_map(&game.game_dir, &keys, map_id, &game.cropped)?;
     let singles: Vec<Value> = c
         .maps_per_character
         .iter()
         .filter(|(_, n)| **n == 1)
         .map(|((name, index), _)| json!([name, index]))
         .collect();
-    let big_pictures = pictures::big_for_map(&game.game_dir, &keys, map_id)?;
+    let big_pictures = pictures::big_for_map(&game.game_dir, &keys, map_id, &game.cropped)?;
     let shows_animation = animations.map_shows_animation(game, map.all_commands(), &case_commands)?;
     let mut triples = Vec::new();
     let mut lists: Vec<&Command> = map.all_commands().collect();

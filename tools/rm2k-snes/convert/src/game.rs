@@ -232,6 +232,8 @@ pub struct Game {
     pub db: Database,
     pub tree: Tree,
     pub translucent: Translucent,
+    /// The pictures the game crops instead of scaling.
+    pub cropped: crate::pictures::Cropped,
 }
 
 /// The dump a game folder is read from: its own, if it has one, and the
@@ -290,6 +292,7 @@ impl Game {
             db,
             tree,
             translucent,
+            cropped: crate::pictures::Cropped::read(project)?,
         })
     }
 

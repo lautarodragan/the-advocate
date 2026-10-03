@@ -37,7 +37,11 @@ picture that cannot be read, a broken dump—, 2 is the call being wrong.
   the width of the screen —taller, if it hangs past the top or the bottom
   and its tiles fit—, its colours brought down by Adeleine into the
   palettes it is given so that each cell draws with one, and cut by
-  Voodoo into distinct tiles, mirrored ones reused, and a tilemap.
+  Voodoo into distinct tiles, mirrored ones reused, and a tilemap. **Or
+  cropped**, if the request says from which pixel: the console's screen
+  cut out of the picture there, not scaled, for a picture that is a
+  capture of RM2k's screen —the console does not scale the map, so only
+  its window of the capture matches it—.
 * **`backdrops`**: a battle's backdrop, in quality —kept by use, from a
   CGRAM entry on— and in the light fallback, a fraction of the size with
   its colours merged by what shows the least.
