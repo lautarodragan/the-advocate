@@ -28,6 +28,10 @@
   "columns": 39,
   "lines": 4
  },
+ "troop_window": {
+  "columns": 31,
+  "lines": 4
+ },
  "maps": [
   1,
   3,

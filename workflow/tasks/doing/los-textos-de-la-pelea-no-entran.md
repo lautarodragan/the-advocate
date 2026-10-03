@@ -27,3 +27,25 @@ Pungent Elixir-LIFE  used." pasa de 32 columnas y el punto cae en la columna
 despegue de la pelea de los agentes sale "The Captain has taken off in th", y
 el segundo llamado del Rat King pierde la "s" de "sounds". Ver
 `tasks/*/eventos-de-tropa-de-release.md`.
+
+# Lo que se hizo (Cardenal, 2026-10-02)
+
+**Qué dijo el blame del tope de 31.** `BA_PAGE_MSG_WIDTH` es 31 porque es lo
+que entra desde la columna 1 en una pantalla de 32 celdas, y el comentario
+de `screen.rs` ya lo daba por deuda declarada ("the map's window carries
+thirty-nine. It is declared debt"). El bloque `messages_troop` se armaba
+con la ventana del mapa —39 columnas— y la ROM cortaba al dibujar. No era
+una decisión de cortar: era lo que faltaba hacer.
+
+**Las páginas de tropa** (el primer commit): el compilador rehace las cajas
+de las páginas para la ventana de la pelea —31 por 4— con el mismo `refit`
+que las del mapa usan para la suya (`reflow` en `troops.rs`); el conversor
+le pasa la ventana en el pedido, `troop_window`, con el ancho que contesta
+`rm2k-snes-battle layout`. La ROM no cambia. "The Captain has taken off in
+the ship!" sale en una caja de tres renglones con TALAN arriba.
+
+Pruebas, en ABL: `test_el_despegue_se_lee_entero` lee la pantalla —no el
+cartucho— y exige el texto entero del LDB; en rojo antes: "The Captain has
+taken off in th". Las que comparaban el bloque contra el LDB
+(`test_eventos_de_tropa.py`, `test_sistemas_de_tropa.py`) ahora comparan
+contra las cajas rehechas (`screen_stage.refit`).

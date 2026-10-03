@@ -93,9 +93,11 @@ pub const BA_ITEM_COUNT_COL: i64 = 18;
 
 /// A troop page's `ShowMessage`, and what the victory reports: RM2k's
 /// message window covers the party's status, and here that is the party's
-/// four lines. The line is cut at **thirty-one** characters, which is what
-/// fits from column 1; the map's window carries thirty-nine. It is declared
-/// debt.
+/// four lines, as many as the map's window. A line carries **thirty-one**
+/// characters, which is what fits from column 1, and not the map's
+/// window's thirty-nine: the converter reflows the pages' boxes for this
+/// window, as it does the map's for theirs, and the console cuts at the
+/// edge whatever still does not fit.
 pub const BA_PAGE_MSG_ROW0: i64 = BA_PARTY_ROW0;
 pub const BA_PAGE_MSG_COL: i64 = 1;
 pub const BA_PAGE_MSG_WIDTH: usize = 31;

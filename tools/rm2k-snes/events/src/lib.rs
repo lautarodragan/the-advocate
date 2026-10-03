@@ -58,6 +58,10 @@ pub const ANSWER_FILE: &str = "events.json";
 pub struct Request {
     pub patches: Patches,
     pub window: Option<Window>,
+    /// The battle's message window, which the troops' pages show their
+    /// boxes in: narrower than the map's, so they are reflowed for it. Only
+    /// a compilation that has troops needs it.
+    pub troop_window: Option<Window>,
     /// The cartridge's maps, in its order.
     pub maps: Vec<i32>,
     /// The commands of every test page, one after the other: they name
@@ -241,6 +245,12 @@ impl Request {
             columns: int(field(w, "columns", whose)?, whose)? as usize,
             lines: int(field(w, "lines", whose)?, whose)? as usize,
         });
+        if let Some(w) = data.get("troop_window") {
+            r.troop_window = Some(Window {
+                columns: int(field(w, "columns", whose)?, whose)? as usize,
+                lines: int(field(w, "lines", whose)?, whose)? as usize,
+            });
+        }
         r.maps = list(data, "maps", whose)?
             .iter()
             .map(|m| int(m, whose).map(|x| x as i32))
@@ -826,7 +836,16 @@ fn compile_pass(
     } else {
         compile::battle_audio(&mut ctx)
     };
-    let mut troop_pages = TroopPages::new(Messages::new(1, window));
+    let troop_window = match (request.troop_window, troops.ids.is_empty()) {
+        (Some(w), _) => w,
+        (None, true) => window,
+        (None, false) => {
+            return Err(Bad::answer(
+                "the request has troops and no troop_window: their boxes are reflowed for it",
+            ))
+        }
+    };
+    let mut troop_pages = TroopPages::new(Messages::new(1, troop_window));
     for &number in &troops.ids {
         if let Some(pages) = game.troops.get(&number) {
             troop_pages.compile(&mut ctx, number, pages)?;
