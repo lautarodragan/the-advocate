@@ -435,14 +435,14 @@ mod tests {
 
     #[test]
     fn a_box_too_wide_for_the_battle_is_rebuilt_and_one_that_fits_is_not() {
-        let mut page = message(&["TALAN", "The Captain has taken off in the ship!"]);
+        let mut page = message(&["MARLO", "The Admiral has sailed off in the boat!"]);
         page.push(Command::new(CONTROL_SWITCHES, 1, "", vec![0, 5, 5, 0]));
-        page.extend(message(&["Weak, Black aura detected."]));
+        page.extend(message(&["Nothing happens at all."]));
         let out = reflow(page, 31, 4);
         let lines: Vec<&str> = out.iter().map(|c| c.string.as_str()).collect();
         assert_eq!(
             lines,
-            ["TALAN", "The Captain has taken off", "in the ship!", "", "Weak, Black aura detected."]
+            ["MARLO", "The Admiral has sailed off", "in the boat!", "", "Nothing happens at all."]
         );
         assert_eq!(out[3].code, CONTROL_SWITCHES);
         assert!(out.iter().all(|c| c.indent == 1));
