@@ -196,6 +196,22 @@ pub struct BigLayer {
     pub tiles: Vec<u8>,
     pub tilemap: Vec<u16>,
     pub palettes: Vec<Vec<Color>>,
+    /// Its mode 7 texture, for a `MovePicture` that zooms it: see
+    /// [`Mode7Texture`].
+    #[serde(default)]
+    pub mode7: Option<Mode7Texture>,
+}
+
+/// A big picture as a mode 7 texture, as `rm2k-snes-images background`
+/// drew it: its tiles, a byte a pixel and the first one blank, a tile per
+/// cell of the layer, and the point of the screen a zoom shrinks it
+/// towards.
+#[derive(Deserialize)]
+pub struct Mode7Texture {
+    #[serde(deserialize_with = "hex::bytes")]
+    pub tiles: Vec<u8>,
+    pub map: Vec<u8>,
+    pub center: [i64; 2],
 }
 
 /// The shared common event bodies: see `commons.rs` in the event compiler.

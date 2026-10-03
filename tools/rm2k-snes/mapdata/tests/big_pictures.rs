@@ -59,3 +59,26 @@ fn more_than_two_screens_is_an_error() {
     assert!(big_tilemap(65, &cells(65), false).is_err());
     assert!(big_tilemap(28, &cells(27), false).is_err());
 }
+
+/// A mode 7 texture as the cartridge carries it: the rows of its map padded
+/// to the plane's 128, and its tiles as they came.
+#[test]
+fn a_texture_s_rows_are_the_plane_s() {
+    use rm2k_snes_mapdata::emit::big_mode7;
+    use rm2k_snes_mapdata::request::Mode7Texture;
+    let t = Mode7Texture {
+        tiles: vec![0; 3 * 64],
+        map: (0..2 * SCREEN).map(|k| (k % 3) as u8).collect(),
+        center: [128, 112],
+    };
+    let (tiles, rows) = big_mode7(2, &t).unwrap();
+    assert_eq!(tiles.len(), 3 * 64);
+    assert_eq!(rows.len(), 2 * 128);
+    assert_eq!(&rows[..SCREEN], &t.map[..SCREEN]);
+    assert!(rows[SCREEN..128].iter().all(|&b| b == 0), "past the layer, the blank tile");
+    assert_eq!(&rows[128..128 + SCREEN], &t.map[SCREEN..]);
+    // A map that is not the layer's, or more tiles than the plane names.
+    assert!(big_mode7(3, &t).is_err());
+    let many = Mode7Texture { tiles: vec![0; 257 * 64], ..t };
+    assert!(big_mode7(2, &many).is_err());
+}

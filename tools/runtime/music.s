@@ -456,21 +456,21 @@ next:
 .a8
 .i16
     lda f:MUS_SHADOW, x
-    sta M7B
+    sta f:MUS_MPY_B
+    rep #$20
+.a16
     lda f:FADE_BEFORE
-    sta M7A
-    lda f:FADE_BEFORE + 1
-    sta M7A
-    lda MPYM
+    jsr mpym
+.a8
     jsr song_gain_scale
     pha                         ; what the DSP has
-    lda f:MUS_SHADOW, x         ; again: the gain wrote over M7B
-    sta M7B
+    lda f:MUS_SHADOW, x         ; again: the gain wrote over MUS_MPY_B
+    sta f:MUS_MPY_B
+    rep #$20
+.a16
     lda f:FADE_N
-    sta M7A
-    lda f:FADE_N + 1
-    sta M7A
-    lda MPYM
+    jsr mpym
+.a8
     jsr song_gain_scale         ; what it should have
     cmp 1, s
     bne write
@@ -498,12 +498,12 @@ equal:
     lda bgm_fade
     beq whole
     pla
-    sta M7B
+    sta f:MUS_MPY_B
+    rep #$20
+.a16
     lda f:FADE_N
-    sta M7A
-    lda f:FADE_N + 1
-    sta M7A
-    lda MPYM
+    jsr mpym
+.a8
     pha
 whole:
     pla
@@ -521,27 +521,128 @@ whole:
     lda f:SONG_SCALED
     beq as_written
     pla
-    sta M7B
+    sta f:MUS_MPY_B
     txa
     lsr a                       ; the side, in carry
+    rep #$20
+.a16
     bcs right
     lda f:SONG_GAIN
-    sta M7A
-    lda f:SONG_GAIN + 1
-    sta M7A
-    lda MPYM
-    rts
+    jmp mpym
 right:
+.a16
     lda f:SONG_GAIN + 2
-    sta M7A
-    lda f:SONG_GAIN + 3
-    sta M7A
-    lda MPYM
-    rts
+    jmp mpym
 as_written:
+.a8
     pla
     rts
 .endproc
+
+; MUS_MPY_B —eight bits signed— times A16, over 256: what the PPU's
+; multiplier leaves in MPYM. Returns with A at eight bits and its flags.
+; Does not touch X or Y.
+;
+; **In mode 7 that multiplier is the matrix the screen is being drawn
+; with**, and this lands on line `IRQ_LINE`, in the middle of it: writing
+; M7A and M7B there would draw the rest of the frame with another matrix.
+; So while a big picture zooms —BIG_M7, which the vblank sets when it puts
+; mode 7 on screen— it multiplies by hand, with a table of squares, and
+; only then. The factors are
+; FADE_N and SONG_GAIN, at most 256, so the product of a byte fits in
+; sixteen bits, and its two's complement has the same middle byte as the
+; PPU's twenty-four.
+.proc mpym
+.a16
+.i16
+    pha                         ; the factor
+    sep #$20
+.a8
+    lda f:BIG_FLAGS
+    and #BIG_M7
+    bne by_hand
+    lda f:MUS_MPY_B
+    sta M7B
+    pla
+    sta M7A
+    pla
+    sta M7A
+    lda MPYM
+    rts
+by_hand:
+    php                         ; the caller counts on V, and C costs the same
+    phx
+    lda f:MUS_MPY_B
+    bpl positive
+    eor #$FF
+    inc a                       ; -128 is 128, unsigned
+positive:
+    rep #$20
+.a16
+    and #$00FF
+    pha                         ; m; X, P and the factor above it
+    ; m × f = q(m + f) − q(|f − m|), q(n) = n² / 4 rounded down: two
+    ; lookups, because a loop of shifts and adds took longer than the music
+    ; has before the vblank.
+    clc
+    adc 6, s
+    asl a
+    tax
+    lda f:quarter_squares, x
+    pha                         ; q(m + f), above m
+    lda 8, s
+    sec
+    sbc 3, s
+    bpl difference
+    eor #$FFFF
+    inc a
+difference:
+    asl a
+    tax
+    lda 1, s
+    sec
+    sbc f:quarter_squares, x
+    sta 1, s                    ; the product
+    sep #$20
+.a8
+    lda f:MUS_MPY_B
+    rep #$20
+.a16
+    bpl sign                    ; the flags of the byte: `rep` leaves them
+    lda 1, s
+    eor #$FFFF
+    inc a
+    sta 1, s
+sign:
+    sep #$20
+.a8
+    lda 2, s                    ; the product's high byte: MPYM
+    sta f:MUS_MPY_M
+    rep #$20
+.a16
+    pla
+    pla
+    plx
+    plp                         ; eight bits again, as `php` found it
+.a8
+    rep #$20                    ; and the factor: neither touches V nor C
+.a16
+    pla
+    sep #$20
+.a8
+    lda f:MUS_MPY_M
+    rts
+.endproc
+
+; `mpym`'s squares: n² / 4, rounded down, for n up to 128 + 256, the
+; largest byte and the largest factor. In the far bank: bank 0 is full.
+.pushseg
+.segment "FAR"
+quarter_squares:
+.repeat 385, n
+    .word n * n / 4
+.endrepeat
+.popseg
 
 ; The music when the ROM boots. `SONG_BOOT` is the song of the map the ROM
 ; boots into, or $FF if that map has none —which is the usual case in this

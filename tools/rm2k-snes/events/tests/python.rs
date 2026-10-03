@@ -110,7 +110,8 @@ fn without_route_targets(answer: &mut Value) {
 
 /// The pictures each map can show, which the scan gathers since 2026-10-01,
 /// came after the Python too: taken out here, and checked on their own by
-/// `the_scan_gathers_the_pictures`.
+/// `the_scan_gathers_the_pictures`. And so did what its moves zoom to, since
+/// 2026-10-03.
 fn without_pictures(answer: &mut Value) {
     let Some(maps) = answer.get_mut("maps").and_then(Value::as_array_mut) else {
         return;
@@ -118,6 +119,7 @@ fn without_pictures(answer: &mut Value) {
     for map in maps {
         if let Some(m) = map.as_object_mut() {
             m.remove("pictures");
+            m.remove("zooms");
         }
     }
 }

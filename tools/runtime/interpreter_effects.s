@@ -39,6 +39,12 @@
     jmp run_code::other
 .endproc
 
+; And its zoom, for one with a mode 7 texture: see big_picture_zoom.s.
+.proc op_big_zoom
+    jsl f:big_zoom + FAST
+    jmp run_code::other
+.endproc
+
 ; `OP_ANIMATION`: the RM2k animation number, what it is drawn on, how many
 ; entries, and the entries, which stay in the bytecode. See OP_ANIMATION in
 ; events.py and `battle_anim_tick`. The new one replaces whatever was running,

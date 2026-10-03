@@ -335,6 +335,7 @@ impl Request {
                             key,
                             image: int(field(e, "image", whose)?, whose)? as u8,
                             center: pair("center")?,
+                            texture: e.get("texture").and_then(Value::as_bool).unwrap_or(false),
                         });
                     } else {
                         pictures
@@ -586,6 +587,7 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
             "pages": pages,
             "graphics": graphics.pairs,
             "pictures": pictures.keys_json(),
+            "zooms": pictures.zooms_json(),
         }));
     }
     let mut answer = indices_json(&indices, &associations);

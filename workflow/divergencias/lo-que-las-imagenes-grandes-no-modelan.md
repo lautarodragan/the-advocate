@@ -5,11 +5,27 @@ consola en modo 1 mientras se muestran —ver `tools/runtime/big_picture.s`,
 `tools/port/picture.py` y `decisiones/las-imagenes-grandes-en-modo-1.md`—, y
 no hacen todo lo que hacen en RM2k:
 
-* **El zoom que achica es un fundido.** Las fotos del 212 al 216 se achican
-  de 100 a 0 en dos segundos sobre la pantalla en negro; la consola no
-  escala un fondo sin modo 7, así que en esos dos segundos la foto se
-  apaga a negro. Lo que llega a la transparencia es lo que queda de su
-  área: `100 - (100 - t) × zoom / el de mostrarla`.
+* **El zoom se hace en modo 7, con una textura de 255 tiles**, desde el
+  2026-10-03 —ver `tools/runtime/big_picture_zoom.s` y
+  `tasks/*/las-fotos-en-modo-7.md`—. Quieta, la imagen está a resolución
+  completa en modo 1, como cualquier grande; al empezar el zoom pasa a
+  modo 7, y ahí cada lugar de la imagen muestra el tile más parecido de
+  los 255 que entran —en las fotos con ruido, a veces un pedazo de árbol o
+  de lápida que no es el suyo—. El modo 7 no filtra: al achicarse, el
+  grano titila. Lo que no entra en eso —una imagen de más de 960 tiles o de
+  más de 32 filas— se sigue apagando a negro en vez de achicarse, como
+  antes: lo que llega a la transparencia es lo que queda de su área.
+* **El punto que queda quieto en el zoom de una recortada es el centro de
+  la pantalla**, no el de la imagen de RM2k, que cae afuera de lo que se
+  ve (en `PhoneCallDiff`, 24 pixeles a la izquierda y 8 arriba). Se achica
+  lo que se ve, no la foto entera de 320x240. Es lo que taro vio en el
+  piloto.
+* **Con una imagen con textura quieta no hay mensajes**: la ventana vive en
+  la mitad de la VRAM que la imagen ocupa mientras la textura sube. Vuelve
+  durante el zoom, así que los mensajes sobre el negro de después de un
+  zoom a cero se ven; **en modo 7 no hay segunda capa**, y un mensaje
+  durante el zoom, o con la imagen quieta en otro tamaño, no se ve.
+  Ninguna escena de ABL hace ninguna de las dos cosas.
 * **La transparencia oscurece.** Debajo de la capa sólo está el color de
   fondo, que es negro, así que una imagen al 50 % es una imagen a la mitad
   de su color: exacto sobre la pantalla en negro, que es donde el juego
