@@ -9,6 +9,8 @@
 //! one, the blend is a plain copy and the rounding never comes into it.
 
 use crate::fail::{Bad, Result};
+pub use image::imageops::FilterType;
+use image::{imageops, Rgba32FImage};
 use std::path::Path;
 
 /// Four bytes a pixel, rows top to bottom, no padding.
@@ -116,6 +118,53 @@ impl Picture {
                     self.rgba[at + channel] = blend(alpha, under, *value as u32);
                 }
             }
+        }
+    }
+
+    /// This picture resized to `width` x `height` with `filter`, by the
+    /// `image` crate. The same size gives a copy.
+    ///
+    /// `imageops::resize` takes the alpha as already premultiplied and says
+    /// so, so the colour is multiplied by it before and divided back after
+    /// —in `f32`, so the trip does not round— and a transparent pixel does
+    /// not bleed its colour into its neighbours. A pixel that ends fully
+    /// transparent comes out transparent black.
+    pub fn resized(&self, width: usize, height: usize, filter: FilterType) -> Picture {
+        if (width, height) == (self.width, self.height) {
+            return self.clone();
+        }
+        let premultiplied: Vec<f32> = self
+            .rgba
+            .chunks_exact(4)
+            .flat_map(|p| {
+                let a = p[3] as f32 / 255.0;
+                [
+                    p[0] as f32 / 255.0 * a,
+                    p[1] as f32 / 255.0 * a,
+                    p[2] as f32 / 255.0 * a,
+                    a,
+                ]
+            })
+            .collect();
+        let source = Rgba32FImage::from_raw(self.width as u32, self.height as u32, premultiplied)
+            .expect("four floats a pixel");
+        let resized = imageops::resize(&source, width as u32, height as u32, filter);
+        let byte = |v: f32| (v * 255.0).round().clamp(0.0, 255.0) as u8;
+        let rgba = resized
+            .pixels()
+            .flat_map(|p| {
+                let [r, g, b, a] = p.0;
+                if byte(a) == 0 {
+                    [0; 4]
+                } else {
+                    [byte(r / a), byte(g / a), byte(b / a), byte(a)]
+                }
+            })
+            .collect();
+        Picture {
+            width,
+            height,
+            rgba,
         }
     }
 }
@@ -289,4 +338,118 @@ pub fn write_png(path: &Path, picture: &Picture) -> Result<()> {
     let mut writer = encoder.write_header().map_err(failed)?;
     writer.write_image_data(&picture.rgba).map_err(failed)?;
     writer.finish().map_err(failed)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A picture of noise from a congruence, with fully transparent, fully
+    /// opaque and translucent pixels.
+    fn noise(width: usize, height: usize) -> Picture {
+        let mut x: u64 = 12345;
+        let rgba = (0..width * height * 4)
+            .map(|i| {
+                x = (x * 1103515245 + 12345) % (1 << 31);
+                let b = (x >> 16) as u8;
+                match (i % 4, b) {
+                    (3, 0..=63) => 0,
+                    (3, 192..) => 255,
+                    _ => b,
+                }
+            })
+            .collect();
+        Picture {
+            width,
+            height,
+            rgba,
+        }
+    }
+
+    const FILTERS: [FilterType; 2] = [FilterType::Lanczos3, FilterType::Triangle];
+    const SIZES: [(usize, usize); 4] = [(256, 224), (64, 49), (1, 1), (400, 300)];
+
+    #[test]
+    fn the_same_size_is_a_copy() {
+        let picture = noise(37, 23);
+        for filter in FILTERS {
+            assert_eq!(picture.resized(37, 23, filter), picture);
+        }
+    }
+
+    #[test]
+    fn it_comes_out_at_the_size_asked() {
+        let picture = noise(320, 240);
+        for filter in FILTERS {
+            for (w, h) in SIZES {
+                let resized = picture.resized(w, h, filter);
+                assert_eq!((resized.width, resized.height), (w, h));
+                assert_eq!(resized.rgba.len(), w * h * 4);
+            }
+        }
+    }
+
+    #[test]
+    fn a_flat_picture_stays_flat() {
+        let picture = Picture::filled(320, 240, [9, 120, 250, 255]);
+        for filter in FILTERS {
+            for (w, h) in SIZES {
+                assert_eq!(
+                    picture.resized(w, h, filter),
+                    Picture::filled(w, h, [9, 120, 250, 255])
+                );
+            }
+        }
+    }
+
+    /// Opaque blue next to fully transparent red: premultiplied, the red
+    /// weighs nothing, so not a pixel with any alpha gets any red.
+    #[test]
+    fn a_transparent_pixel_does_not_bleed() {
+        let mut picture = Picture::filled(40, 40, [255, 0, 0, 0]);
+        for y in 0..40 {
+            for x in 0..20 {
+                let at = (y * 40 + x) * 4;
+                picture.rgba[at..at + 4].copy_from_slice(&[0, 0, 255, 255]);
+            }
+        }
+        for filter in FILTERS {
+            for (w, h) in [(25, 25), (64, 64), (7, 40)] {
+                for p in picture.resized(w, h, filter).rgba.chunks_exact(4) {
+                    assert!(p[0] == 0 && p[1] == 0, "{filter:?}: {p:?}");
+                }
+            }
+        }
+    }
+
+    /// Bilinear weights are never negative, so no channel lands outside
+    /// what the picture had.
+    #[test]
+    fn bilinear_stays_inside_the_pictures_range() {
+        let picture = Picture {
+            width: 3,
+            height: 2,
+            rgba: [
+                [40, 90, 200, 255],
+                [60, 80, 210, 255],
+                [50, 100, 190, 255],
+                [45, 85, 205, 255],
+                [55, 95, 195, 255],
+                [42, 99, 201, 255],
+            ]
+            .concat(),
+        };
+        for (w, h) in [(7, 5), (2, 1), (30, 20)] {
+            for p in picture
+                .resized(w, h, FilterType::Triangle)
+                .rgba
+                .chunks_exact(4)
+            {
+                assert!((40..=60).contains(&p[0]), "{p:?}");
+                assert!((80..=100).contains(&p[1]), "{p:?}");
+                assert!((190..=210).contains(&p[2]), "{p:?}");
+                assert_eq!(p[3], 255);
+            }
+        }
+    }
 }

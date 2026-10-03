@@ -58,14 +58,16 @@ which its caller also writes down for the console, and this way they are
 written in one place. **The files come in the request too**: finding a
 picture in a game's folder or in the RTP is the caller's.
 
-## To the bit
+## What each step is
 
-What RM2k draws is `rm2k-render`'s, used as a library. Everything after it
-copies what the converter did until 2026-09-30 in Python, rounding
-included, because the point is that a cartridge comes out byte for byte
-the same:
+What RM2k draws is `rm2k-render`'s, used as a library. The rest copied what
+the converter did until 2026-09-30 in Python, rounding included, so that a
+cartridge came out byte for byte the same; since 2026-10-02 the scaling no
+longer does:
 
-* the scaling is Pillow's LANCZOS, from `resample`;
+* the scaling is LANCZOS, the `image` crate's, through `rm2k-render`'s
+  `Picture::resized`: a standard library instead of a copy of Pillow's to
+  the bit, which rounds differently at the hard edges;
 * the cells of an animation are stacked with Pillow's `alpha_composite`
   (`composite.rs`), which computes the alpha of the result too;
 * the tone is RM2k's `ToneBlit` at fifteen bits, the same arithmetic the
@@ -75,8 +77,9 @@ the same:
 
 ## The tests
 
-`tests/python.rs` converts the small game in `tests/game/` —indexed PNGs
+`tests/answers.rs` converts the small game in `tests/game/` —indexed PNGs
 with gradients and noise, a battler and a sheet with their colour key, and
 three animations in the dump's shape— and compares each answer, as
-canonical JSON, against the sha256 of what the Python gave for it. They
-need no game.
+canonical JSON, against a sha256. Until the scaling changed it was what the
+Python gave; now it is what this crate answered on 2026-10-02, a check
+against regressions and not an independent answer. They need no game.
