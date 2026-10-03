@@ -8,6 +8,7 @@
 //!   inheritance         [[package, song that may be playing when it loads]]
 //!   measuring_headroom  every song's headroom, instead of its ceiling
 //!   system_songs        the songs the database's `System` names
+//!   named_songs         every song the game's events and maps name
 //!   emit                {packages, boot, title, game_over, map_song, sounds,
 //!                       start, decompress_frames}: what goes into
 //!                       `musicdata.inc` besides the music
@@ -92,6 +93,7 @@ pub fn parse(v: &Value, aram_end: i64) -> Result<(Job, Option<Emit>)> {
         inheritance,
         measuring_headroom: v.get("measuring_headroom").and_then(Value::as_f64),
         system_songs: strings(v.get("system_songs"), "system songs")?,
+        named_songs: strings(v.get("named_songs"), "named songs")?,
         aram_end,
     };
     let emit = match v.get("emit") {

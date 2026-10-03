@@ -53,6 +53,9 @@ pub struct Job {
     pub measuring_headroom: Option<f64>,
     /// The songs the database's `System` names, for the MSU-1 numbering.
     pub system_songs: Vec<String>,
+    /// And every song the game's events and maps name: see
+    /// [`crate::game::Game::track_numbers`].
+    pub named_songs: Vec<String>,
     /// Up to where the ARAM holds samples. Only the tests change it.
     pub aram_end: i64,
 }
@@ -397,7 +400,7 @@ pub fn build(job: &Job, game: &Game, samples: &Samples) -> Result<Music> {
     let bank = Bank::new(samples, &all_keys, constraints, free, assignment)?;
     whole_effects_fit(&bank, &packages, &job.inheritance, &built_effects, &budgeted, names, &whole, &paid)?;
 
-    let tracks = game.track_numbers(&job.system_songs)?;
+    let tracks = game.track_numbers(&job.system_songs, &job.named_songs)?;
     let envelopes = RefCell::new(HashMap::new());
     let mut songs = Vec::new();
     for (i, (name, parsed)) in names.iter().zip(parsed).enumerate() {

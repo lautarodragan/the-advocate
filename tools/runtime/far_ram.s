@@ -1122,7 +1122,10 @@ GRID_HIGH = $7F8000
 ; frame 30 and the estimate gives 34. It was 112 until that day, meant for
 ; uploading a full ARAM through the IPL; see
 ; workflow/decisiones/el-arranque-esta-dimensionado-para-el-paquete-de-arranque.md.
-BOOT_FRAMES = 40
+; 40 until 2026-10-02: with the first day in Paradise in the cartridge the
+; startup map's package went from 14,976 to 15,651 B —the samples are
+; shared out over every package— and the estimate reached 40.
+BOOT_FRAMES = 44
 VIEW_ROWS = 29
 
 ; The message window: 256x80 flush with the bottom of a 224-line screen, that
