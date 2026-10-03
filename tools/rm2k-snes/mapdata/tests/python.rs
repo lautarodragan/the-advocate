@@ -38,6 +38,11 @@
 //! ones of the same length, and the four hashes of text that carries them
 //! in a comment moved: the new text, with the old names put back, is the
 //! old one byte for byte. No byte of a cartridge moved.
+//!
+//! And also on 2026-10-02 the actors got their critical hit, which comes
+//! from three new tables —`item_crit_k`, `actor_crit_row` and
+//! `crit_table`, nine lines— and the two hashes of the whole `.inc` moved:
+//! without those nine lines the text is the old one byte for byte.
 
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_mapdata::record;
@@ -201,10 +206,10 @@ fn without_commons(text: &str) -> String {
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
     let text = without_commons(&without_pairs(&emitted.text));
-    assert_eq!(text.lines().count(), 3300);
+    assert_eq!(text.lines().count(), 3309);
     assert_eq!(
         sha(&text),
-        "70960fa4e1f4b8099971974e2c15543ea08196f2386d905666164e4989bafaa4"
+        "b298558abc4e32c4ac0c2e1c5e0f17aee0e5a4b5702b04a15af02b844ebd22c6"
     );
 }
 
@@ -212,10 +217,10 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
     let text = without_commons(&without_pairs(&emitted.text));
-    assert_eq!(text.lines().count(), 3419);
+    assert_eq!(text.lines().count(), 3428);
     assert_eq!(
         sha(&text),
-        "e3e4b7a4fc6934f08952d083d9d1ae23c4b5251e93e0f87463bcb88d94b2119b"
+        "bd12a19c197492bc3a7221f43309298171b8c8965953f1627169af0320308998"
     );
 }
 

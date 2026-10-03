@@ -794,8 +794,9 @@ ready:
 ; level and its equipment again, with the modifiers the battle gave it kept:
 ; in RM2k `GetAtk` and its siblings add the equipment every time they are
 ; asked, so a `ChangeEquipment` in a troop page counts from the next action.
-; And what attacking costs it, which the weapon says. The same arithmetic as
-; `ba_build` and `ba_mod`. Clobbers `BA_S2`, `BA_T*`, A, X and Y.
+; And what attacking costs it and its critical hit, which the weapon says.
+; The same arithmetic as `ba_build` and `ba_mod`. Clobbers `BA_S2`, `BA_T*`,
+; A, X and Y.
 .proc ba_reparam
 .a8
 .i16
@@ -855,6 +856,12 @@ fits:
     jsr ba_ax
     pla
     sta f:BA_WEAPON_SP, x
+    jsr ba_crit_of              ; the weapon's bonus changed with it
+    pha
+    lda BA_S1
+    jsr ba_x
+    pla
+    sta BA_ONE + BA_CRIT, x
     rts
 base:
     .word BA_BATK, BA_BDEF, BA_BSPI, BA_BAGI

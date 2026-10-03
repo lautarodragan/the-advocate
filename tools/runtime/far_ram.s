@@ -356,6 +356,31 @@ BA_ONE     = FAR_BATTLE + 96      ; the combatants, BA_BYTES each
 ; data bank at $7E.
 BA_MREVIVED = $7850
 
+; The battle's message, put together before it is drawn: see `ba_message` and
+; `ba_flow`. $7E7B00 to $7E7BFF, taken on 2026-10-02: no symbol of any
+; cartridge fell there —measured on the symbol table of the three—. It lasts
+; as long as one message is composed, so it does not travel in the save.
+BA_MBUF       = $7B00           ; RM2k's two lines, BA_MBUF_MAX letters each
+BA_MBUF_MAX   = 96
+BA_MPTR       = $7BC0           ; word: where the next letter goes
+BA_MLIM       = $7BC2           ; word: where the line being written ends
+BA_MSTART     = $7BC4           ; two words: where each line starts
+BA_MEND       = $7BC8           ; two words: and where it ends
+BA_MP         = $7BCC           ; word: where `ba_flow` is cutting
+BA_ME         = $7BCE           ; word: the end of what it cuts
+BA_MB         = $7BD0           ; word: the space it cuts at
+BA_MN         = $7BD2           ; how many of RM2k's lines: 1 or 2
+BA_MCOUNT     = $7BD3           ; the letters a text has left to copy, or
+                                ; whether a number wrote a digit already
+BA_MDN        = $7BD4           ; how many lines go on the screen
+BA_MI         = $7BD5           ; which one `ba_flow` is on
+BA_MDL        = $7BD6           ; BA_MLINES_MAX of three bytes: where each
+                                ; line on the screen starts, and its length
+BA_MLINES_MAX = 4               ; the two message lines and the last two
+                                ; of the party's
+.assert BA_MBUF + 2 * BA_MBUF_MAX <= BA_MPTR, error, "the battle's message overflows its buffer"
+.assert BA_MDL + 3 * BA_MLINES_MAX <= $7C00, error, "the battle's message overflows its range"
+
 ; The combatants: the first four are the party and the next eight the troop.
 ; That the place is fixed and not a compacted list is what keeps a dead one
 ; visible in its line, as on the screen.

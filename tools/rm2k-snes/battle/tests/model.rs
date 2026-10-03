@@ -24,6 +24,14 @@
 //! **If one of these changes, the battle changed.** The hashes are not to
 //! be regenerated to make a test pass: the Python that produced them is
 //! gone, and with it the only independent answer.
+//!
+//! **Except in one thing the Python got wrong**: it never read an actor's
+//! `critical_hit`, so its actors had none. Since 2026-10-02 they have it,
+//! and so this game's actors go without `critical_hit` —they had it, with
+//! a chance of 7— and its weapons add none: with that, the Python's answer
+//! is still the right one for every request. The actors' critical is
+//! covered by `the_critical_hit_adds_in_floating_point` and by the
+//! console's tests.
 
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_battle::model;

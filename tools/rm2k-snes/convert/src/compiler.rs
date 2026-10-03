@@ -97,11 +97,13 @@ pub fn counters(settings: &Settings) -> Result<Vec<Value>> {
     Ok(out)
 }
 
-/// What the compiler is asked for and keeps: the boxes are asked once.
+/// What the compiler is asked for and keeps: the boxes and the battle's
+/// window are asked once.
 pub struct Compiler<'a> {
     pub game: &'a Game,
     pub settings: &'a Settings<'a>,
     boxes: Value,
+    troop_window: Value,
 }
 
 impl<'a> Compiler<'a> {
@@ -109,7 +111,16 @@ impl<'a> Compiler<'a> {
         // Every text box of the game the port rebuilds for the console's
         // window, with the boxes that go in its place.
         let boxes = screens::boxes(game, LINES)?;
-        Ok(Compiler { game, settings, boxes })
+        // And the battle's, where the troops' pages show theirs: as many
+        // lines as the map's, and narrower. The compiler reflows those
+        // itself, because it is the one that knows which pages a troop
+        // brings.
+        let layout = stage::json(
+            &stage::run("rm2k-snes-battle", "battle", "layout", &json!({}), &[])?,
+            "layout.json",
+        )?;
+        let troop_window = json!({"columns": layout["BA_PAGE_MSG_WIDTH"], "lines": LINES});
+        Ok(Compiler { game, settings, boxes, troop_window })
     }
 
     fn data(&self) -> Vec<OsString> {
@@ -132,6 +143,7 @@ impl<'a> Compiler<'a> {
             "window".into(),
             json!({"columns": rm2k_snes_mapdata::engine::COLUMNS, "lines": LINES}),
         );
+        r.insert("troop_window".into(), self.troop_window.clone());
         r.insert("maps".into(), json!(maps));
         r.insert("test_commands".into(), commands(test_commands));
         r.insert("extra_variables".into(), json!(extra_variables.iter().collect::<Vec<_>>()));

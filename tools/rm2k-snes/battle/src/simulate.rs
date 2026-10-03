@@ -317,10 +317,6 @@ impl Combatant {
     /// its starting one. The parameters are the level's plus the
     /// equipment's, clamped; the HP are the level's and carry no equipment,
     /// as in RM2k.
-    ///
-    /// **An actor has no critical hit here**, whatever its `critical_hit`
-    /// says: the model this replaced never read the field, and the console
-    /// carries none for actors. It is kept so; see the task that moved this.
     pub fn actor(
         db: &Db,
         number: i32,
@@ -346,7 +342,7 @@ impl Combatant {
             base,
             modifier: [0; 4],
             hit_rate: ACTOR_HIT,
-            critical: 0,
+            critical: rules::actor_critical(db, number, &equipment)?,
             skills: rules::skills_of(db, number, level)?,
             actions: vec![Action {
                 rating: ACTION_RATING_ALONE,
@@ -368,15 +364,10 @@ impl Combatant {
 
     /// An enemy of the database at `place` of its troop; `hidden` is the
     /// troop's `invisible`. The hit chance is `Game_Enemy::GetHitChance`,
-    /// 70 with `miss` and 90 otherwise; the critical,
-    /// `GetCriticalHitChance` times a hundred, truncated.
+    /// 70 with `miss` and 90 otherwise; the critical, see
+    /// [`rules::critical_percent`].
     pub fn enemy(db: &Db, id: i32, place: i64, hidden: bool) -> Result<Combatant> {
         let e = db.enemy(id)?;
-        let every = if e.critical_hit_chance != 0 {
-            e.critical_hit_chance as i64
-        } else {
-            30
-        };
         Ok(Combatant {
             name: e.name.clone(),
             number: place,
@@ -393,11 +384,7 @@ impl Combatant {
             ],
             modifier: [0; 4],
             hit_rate: if e.miss { 70 } else { 90 },
-            critical: if e.critical_hit {
-                floor_div(100, every)
-            } else {
-                0
-            },
+            critical: rules::critical_percent(e.critical_hit.then_some(e.critical_hit_chance), 0),
             skills: Vec::new(),
             actions: rules::actions_of_enemy(db, id)?,
             weapon_sp: 0,
@@ -993,6 +980,7 @@ impl Battle {
             a.equipment[slot as usize] = item;
             a.base = rules::equipped_params(db, a.number as i32, &a.equipment, a.level)?;
             a.weapon_sp = rules::weapon_sp_of(db, &a.equipment)?;
+            a.critical = rules::actor_critical(db, a.number as i32, &a.equipment)?;
         }
         Ok(())
     }

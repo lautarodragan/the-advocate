@@ -235,6 +235,38 @@ fn trigger(ctx: &Ctx, page: &TroopPage) -> Option<Trigger> {
     Some(t)
 }
 
+/// A troop page's boxes rebuilt for the battle's window, which is
+/// narrower than the map's: each `ShowMessage` with its `ShowMessage_2`s
+/// goes as the boxes `rm2k-snes-text`'s `refit` makes of it —itself, if it
+/// fits—, one after the other, and the battle shows them one after the
+/// other. It is the same reflow the map's boxes go through, for another
+/// width: before, the battle cut every line at its edge, and "The Captain
+/// has taken off in the ship!" came out "...taken off in th".
+fn reflow(raw: Vec<Command>, columns: usize, rows: usize) -> Vec<Command> {
+    let mut out = Vec::with_capacity(raw.len());
+    let mut i = 0;
+    while i < raw.len() {
+        if raw[i].code != SHOW_MESSAGE {
+            out.push(raw[i].clone());
+            i += 1;
+            continue;
+        }
+        let mut j = i + 1;
+        while j < raw.len() && raw[j].code == SHOW_MESSAGE_2 {
+            j += 1;
+        }
+        let lines: Vec<String> = raw[i..j].iter().map(|c| c.string.clone()).collect();
+        for frame in rm2k_snes_text::refit::refit(&lines, columns, rows) {
+            for (k, text) in frame.iter().enumerate() {
+                let code = if k == 0 { SHOW_MESSAGE } else { SHOW_MESSAGE_2 };
+                out.push(Command::new(code, raw[i].indent, text, vec![]));
+            }
+        }
+        i = j;
+    }
+    out
+}
+
 /// A troop page's commands as a map's, or None if one does not run in a
 /// troop page.
 fn commands(raw: &[Command]) -> Option<Vec<Command>> {
@@ -321,7 +353,11 @@ impl TroopPages {
         for (k, page) in pages.iter().enumerate() {
             self.pages += 1;
             let t = trigger(ctx, page);
-            let cmds = t.as_ref().and_then(|_| commands(&page.commands));
+            let window = self.messages.window;
+            let cmds = t
+                .as_ref()
+                .and_then(|_| commands(&page.commands))
+                .map(|cmds| reflow(cmds, window.columns, window.lines));
             let code = match cmds {
                 None => None,
                 Some(cmds) => {
@@ -379,5 +415,37 @@ impl TroopPages {
             "messages": crate::pages::hex(&self.messages.bytes()),
             "message_count": self.messages.count(),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn message(lines: &[&str]) -> Vec<Command> {
+        lines
+            .iter()
+            .enumerate()
+            .map(|(k, l)| {
+                let code = if k == 0 { SHOW_MESSAGE } else { SHOW_MESSAGE_2 };
+                Command::new(code, 1, l, vec![])
+            })
+            .collect()
+    }
+
+    #[test]
+    fn a_box_too_wide_for_the_battle_is_rebuilt_and_one_that_fits_is_not() {
+        let mut page = message(&["MARLO", "The Admiral has sailed off in the boat!"]);
+        page.push(Command::new(CONTROL_SWITCHES, 1, "", vec![0, 5, 5, 0]));
+        page.extend(message(&["Nothing happens at all."]));
+        let out = reflow(page, 31, 4);
+        let lines: Vec<&str> = out.iter().map(|c| c.string.as_str()).collect();
+        assert_eq!(
+            lines,
+            ["MARLO", "The Admiral has sailed off", "in the boat!", "", "Nothing happens at all."]
+        );
+        assert_eq!(out[3].code, CONTROL_SWITCHES);
+        assert!(out.iter().all(|c| c.indent == 1));
+        assert_eq!(out[1].code, SHOW_MESSAGE_2);
     }
 }

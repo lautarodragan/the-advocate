@@ -290,6 +290,87 @@ nothing8:
     rts
 .endproc
 
+; The critical hit chance of the actor in `BA_S0`, in A8, as the whole
+; percentage `ba_pct` rolls against: `Game_Actor::GetCriticalHitChance`, its
+; own `1 / critical_hit_chance` plus the best `critical_hit` of the weapons
+; in slots 0 and 1 —the second holds one only with `two_weapon`—. RM2k adds
+; them in floating point and they do not add up to the integers they look
+; like, so this does not add: it looks the result up in `crit_table`, at the
+; actor's row and its best weapon's column. See `critical_percent` in
+; `rm2k-snes-battle`, which writes the table and is the model's too.
+; Clobbers X, `BA_T0` and `BA_T1`.
+.proc ba_crit_of
+.a8
+.i16
+    rep #$20
+.a16
+    lda BA_S0
+    and #$00FF
+    asl a
+    sta BA_T0
+    asl a
+    asl a
+    clc
+    adc BA_T0                   ; the actor times ten: five slots of two
+    sta BA_T1
+    tax
+    lda FAR_EQUIPMENT, x
+    jsr column                  ; the first slot's
+.a8
+    sta BA_T0
+    rep #$20
+.a16
+    ldx BA_T1
+    lda FAR_EQUIPMENT + 2, x
+    jsr column                  ; and the second's
+.a8
+    cmp BA_T0
+    bcs the_best                ; the columns go by bonus: the higher wins
+    lda BA_T0
+the_best:
+    sta BA_T0
+    stz BA_T0 + 1
+    rep #$20
+.a16
+    lda BA_S0
+    and #$00FF
+    asl a
+    tax
+    lda f:actor_crit_row, x
+    clc
+    adc BA_T0
+    tax
+    sep #$20
+.a8
+    lda f:crit_table, x
+    rts
+
+; A16 an item from `FAR_EQUIPMENT`; leaves in A8 its column, `item_crit_k`,
+; which is 0 for no item, one the cartridge does not carry, or one that is
+; not a weapon.
+.a16
+column:
+    beq none
+    cmp #ITEMS_N
+    bcs none
+    tax
+    sep #$20
+.a8
+    lda f:item_k, x
+    cmp #$FF
+    beq none8                   ; an item the cartridge does not carry
+    jsr ba_ax
+    lda f:item_crit_k, x
+    rts
+.a16
+none:
+    sep #$20
+.a8
+none8:
+    lda #0
+    rts
+.endproc
+
 ; Actor `BA_S0` into party slot `BA_S1`, as the battle starts it: the HP and
 ; SP of the saved game, the parameters of its level and equipment, and no
 ; modifiers. It is `ba_build`'s, and since 2026-09-30 also `ba_sync_in`'s, for
@@ -360,8 +441,6 @@ nothing8:
 .a8
     lda #BA_HIT_ACTOR
     sta BA_ONE + BA_HIT, x
-    lda #0
-    sta BA_ONE + BA_CRIT, x   ; no actor in ABL has a critical hit
     lda BA_S0
     sta BA_ONE + BA_NUMBER, x
     lda #(BAF_HAS | BAF_ACTOR)
@@ -422,6 +501,13 @@ nothing8:
     jsr ba_ax
     pla
     sta f:BA_WEAPON_SP, x
+    ; And its critical hit, which depends on the weapon too.
+    jsr ba_crit_of
+    pha
+    lda BA_S1
+    jsr ba_x
+    pla
+    sta BA_ONE + BA_CRIT, x
     rts
 .endproc
 
@@ -1443,35 +1529,6 @@ max_fits:
     rts
 .endproc
 
-; A number with no leading spaces, in `BA_T0`, wherever `pick_table` says. It
-; is what easyrpg does when building the damage message, which sticks the
-; number to the name without padding; `scr_number` pads, so it has to be told
-; the exact width.
-.proc ba_number_exact
-.a8
-.i16
-    rep #$20
-.a16
-    lda BA_T0
-    sta comp_dup
-    ldx #1
-    cmp #10
-    bcc width_ready
-    ldx #2
-    cmp #100
-    bcc width_ready
-    ldx #3
-width_ready:
-    sep #$20
-.a8
-    txa                         ; the width: with M at 8 only the low byte
-                                ; travels
-    sta comp_dup + 2
-    stz temp + 1
-    jsl f:ba_t_number
-    rts
-.endproc
-
 ; The name of combatant A8 wherever `pick_table` says, in full.
 .proc ba_name
 .a8
@@ -1501,24 +1558,23 @@ width_ready:
     rts
 .endproc
 
-; The message's two lines, according to `BA_MTYPE`. Victory does not go
-; through here: it goes in the party's lines, see `ba_vic_message`. All the
-; words come from the LDB —`attacking`, `enemy_damaged`, `defeat`...— and are
-; put together as in `game_message_terms.cpp`: the name stuck to the term, and
-; in the damage one the number in the middle. None of them is ours.
+; The message, according to `BA_MTYPE`. Victory does not go through here: it
+; goes in the party's lines, see `ba_vic_message`. All the words come from
+; the LDB —`attacking`, `enemy_damaged`, `defeat`...— and are put together as
+; in `game_message_terms.cpp`: the name stuck to the term, and in the damage
+; one the number in the middle. None of them is ours.
+;
+; **It is put together in `BA_MBUF` first and drawn after**, by `ba_flow`:
+; RM2k's lines are as long as the pieces make them —"Talan has perceived the
+; enemy aura." is thirty-five— and one line here carries thirty-one. Drawn
+; letter by letter, what did not fit went on in the cell below, which is the
+; bottom half of the line. So each of RM2k's lines is cut at the spaces into
+; as many as it takes, and if they are more than two they go up over the
+; party's: RM2k's message window covers them too.
 .proc ba_message
 .a8
 .i16
-    rep #$20
-.a16
-    lda #0
-    sta BA_T1
-    lda #BA_MSG_POS1
-    sta BA_T1
-    lda #BA_MSG_DX
-    jsr ba_go
-    sep #$20
-.a8
+    jsr ba_mopen
     lda BA_MTYPE
     cmp #BA_MSG_ATTACK
     beq attack
@@ -1544,30 +1600,23 @@ fled:
 no_fled:
     ldx #BA_TXT_NO_FLED
 only:
-    jsr ba_finished
-    rts
+    jsr ba_put_text
+    jmp ba_flow
 defends:
     lda BA_MWHO
-    jsr ba_name
+    jsr ba_put_name
     ldx #BA_TXT_DEFENDS
-    jsr ba_finished
-    rts
+    jsr ba_put_text
+    jmp ba_flow
 attack:
     lda BA_MWHO
-    jsr ba_name
+    jsr ba_put_name
     ldx #BA_TXT_ATTACKS
-    jsr ba_finished
+    jsr ba_put_text
     ; The second line: the result on the target.
-    rep #$20
-.a16
-    lda #BA_MSG_POS2
-    sta BA_T1
-    lda #BA_MSG_DX
-    jsr ba_go
-    sep #$20
-.a8
+    jsr ba_mnext
     lda BA_MTGT
-    jsr ba_name
+    jsr ba_put_name
     rep #$20
 .a16
     lda BA_MDMG
@@ -1579,14 +1628,14 @@ attack:
 stuck:
     ; `<name> <damage> health lost.`
     lda #$20                    ; the space between the name and the number
-    jsl f:ba_t_glyph
+    jsr ba_put
     rep #$20
 .a16
     lda BA_MDMG
     sta BA_T0
     sep #$20
 .a8
-    jsr ba_number_exact
+    jsr ba_put_number
     lda BA_MTGT
     cmp #BA_PARTY_MAX
     bcs is_enemy
@@ -1595,19 +1644,16 @@ stuck:
 is_enemy:
     ldx #BA_TXT_DAMAGE_ENEMY
 says:
-    jsr ba_finished
-    rts
+    jsr ba_put_text
+    jmp ba_flow
 item:
     ; `<who> <item> used.`, which is
     ; `source.GetName() + " " + item.name + terms.use_item` from
     ; `GetItemStartMessage2k`.
     lda BA_MWHO
-    jsr ba_name
+    jsr ba_put_name
     lda #$20
-    jsl f:ba_t_glyph
-    lda #255
-    sta comp_dup + 3
-    stz temp + 1
+    jsr ba_put
     rep #$20
 .a16
     lda BA_MITEM
@@ -1619,20 +1665,13 @@ item:
     tax
     sep #$20
 .a8
-    jsl f:ba_t_text
+    jsr ba_put_text
     ldx #BA_TXT_USES
-    jsr ba_finished
+    jsr ba_put_text
     ; `<target> HP <n> Recovered`, which is `GetHpSpRecoveredMessage`.
-    rep #$20
-.a16
-    lda #BA_MSG_POS2
-    sta BA_T1
-    lda #BA_MSG_DX
-    jsr ba_go
-    sep #$20
-.a8
+    jsr ba_mnext
     lda BA_MTGT
-    jsr ba_name
+    jsr ba_put_name
     lda BA_MREVIVED
     beq recovered
     ; Revived: `<target> has revived!`, the dead state's `message_recovery`,
@@ -1641,34 +1680,31 @@ item:
     ; the one for the states it removed —`ProcessBattleActionStateEffects`—,
     ; and of those the port only knows the dead one.
     ldx #BA_TXT_REVIVED
-    jsr ba_finished
-    rts
+    jsr ba_put_text
+    jmp ba_flow
 recovered:
     lda #$20
-    jsl f:ba_t_glyph
+    jsr ba_put
     ldx #BA_TXT_HP
-    jsr ba_finished
+    jsr ba_put_text
     lda #$20
-    jsl f:ba_t_glyph
+    jsr ba_put
     rep #$20
 .a16
     lda BA_MHEAL
     sta BA_T0
     sep #$20
 .a8
-    jsr ba_number_exact
+    jsr ba_put_number
     ldx #BA_TXT_RECOVERED
-    jsr ba_finished
-    rts
+    jsr ba_put_text
+    jmp ba_flow
 skill:
     ; `<who><using_message1>` on top and `<using_message2>` below, which is
     ; `GetSkillFirstStartMessage2k` and its sibling. Both lines come from the
     ; LDB, like everything this screen writes.
     lda BA_MWHO
-    jsr ba_name
-    lda #255
-    sta comp_dup + 3
-    stz temp + 1
+    jsr ba_put_name
     rep #$20
 .a16
     lda BA_MSKILL
@@ -1679,13 +1715,10 @@ skill:
     tax
     sep #$20
 .a8
-    jsl f:ba_t_text
+    jsr ba_put_text
+    jsr ba_mnext
     rep #$20
 .a16
-    lda #BA_MSG_POS2
-    sta BA_T1
-    lda #BA_MSG_DX
-    jsr ba_go
     lda BA_MSKILL
     and #$00FF
     asl a
@@ -1694,8 +1727,8 @@ skill:
     tax
     sep #$20
 .a8
-    jsr ba_finished
-    rts
+    jsr ba_put_text
+    jmp ba_flow
 failed:
     lda BA_MTGT
     cmp #BA_PARTY_MAX
@@ -1705,6 +1738,388 @@ failed:
 fails_enemy:
     ldx #BA_TXT_NO_DAMAGE_ENEMY
 fails_says:
-    jsr ba_finished
+    jsr ba_put_text
+    jmp ba_flow
+.endproc
+
+; --- the message, put together before it is drawn ----------------------------
+;
+; `BA_MBUF` holds RM2k's two lines, one after the other, a letter per byte;
+; `BA_MPTR` is where the next letter goes and `BA_MLIM` where the line being
+; written ends. What does not fit in `BA_MBUF_MAX` is dropped: no message of
+; the game comes near it.
+
+; The first line, empty.
+.proc ba_mopen
+.a8
+.i16
+    rep #$20
+.a16
+    lda #BA_MBUF
+    sta BA_MPTR
+    sta BA_MSTART
+    clc
+    adc #BA_MBUF_MAX
+    sta BA_MLIM
+    sep #$20
+.a8
+    lda #1
+    sta BA_MN
+    rts
+.endproc
+
+; The second line: the first ends where it is.
+.proc ba_mnext
+.a8
+.i16
+    rep #$20
+.a16
+    lda BA_MPTR
+    sta BA_MEND
+    lda #BA_MBUF + BA_MBUF_MAX
+    sta BA_MPTR
+    sta BA_MSTART + 2
+    clc
+    adc #BA_MBUF_MAX
+    sta BA_MLIM
+    sep #$20
+.a8
+    lda #2
+    sta BA_MN
+    rts
+.endproc
+
+; A8, a letter, at the end of the line being written. Clobbers X.
+.proc ba_put
+.a8
+.i16
+    ldx BA_MPTR
+    cpx BA_MLIM
+    bcs full
+    sta a:0, x                  ; bank $7E: the data bank of the battle
+    inx
+    stx BA_MPTR
+full:
+    rts
+.endproc
+
+; Text X —see `item_txt_*`— at the end of the line, whole. Clobbers X, Y
+; and `BA_MCOUNT`.
+.proc ba_put_text
+.a8
+.i16
+    lda f:item_txt_lo, x
+    sta msg_ptr
+    lda f:item_txt_hi, x
+    sta msg_ptr + 1
+    lda f:item_txt_bk, x
+    sta msg_ptr + 2
+    lda f:item_txt_n, x
+    beq done
+    sta BA_MCOUNT
+    ldy #0
+letter:
+    lda [msg_ptr], y
+    jsr ba_put
+    iny
+    dec BA_MCOUNT
+    bne letter
+done:
+    rts
+.endproc
+
+; The name of combatant A8 at the end of the line, whole.
+.proc ba_put_name
+.a8
+.i16
+    jsr ba_x
+    rep #$20
+.a16
+    lda BA_ONE + BA_TXT, x
+    tax
+    sep #$20
+.a8
+    jmp ba_put_text
+.endproc
+
+; The number in `BA_T0`, 0 to 9999, at the end of the line with no leading
+; spaces: easyrpg sticks the damage to the name without padding. Clobbers
+; `BA_T0`, X and Y.
+.proc ba_put_number
+.a8
+.i16
+    stz BA_MCOUNT               ; whether a digit has gone already
+    ldx #0
+power:
+    ldy #0
+    rep #$20
+.a16
+    lda BA_T0
+subtract:
+    cmp f:powers, x
+    bcc digit
+    sbc f:powers, x             ; C=1 from the cmp
+    iny
+    bra subtract
+digit:
+    sta BA_T0
+    sep #$20
+.a8
+    tya
+    bne write
+    lda BA_MCOUNT
+    beq next                    ; a zero before everything else
+    lda #0
+write:
+    clc
+    adc #'0'
+    phx
+    jsr ba_put
+    plx
+    lda #1
+    sta BA_MCOUNT
+next:
+    inx
+    inx
+    cpx #6
+    bcc power
+    lda BA_T0                   ; the units, always
+    clc
+    adc #'0'
+    jmp ba_put
+powers:
+    .word 1000, 100, 10
+.endproc
+
+; The message's lines, cut and drawn: each of RM2k's lines in `BA_MBUF` is
+; cut into lines of `BA_PAGE_MSG_WIDTH` at its spaces —a word longer than
+; that, at the edge—, and the spaces of the cut go nowhere. Up to
+; `BA_MLINES_MAX` lines: the last goes on the bottom line of the screen, and
+; with two or less the first goes where it always went, `BA_MSG_POS1`. With
+; more they go up over the party's, which are drawn before. Clobbers
+; everything.
+.proc ba_flow
+.a8
+.i16
+    lda BA_MN
+    cmp #2                      ; C=1 if it is the second
+    rep #$20
+.a16
+    lda BA_MPTR
+    ldx #0
+    bcc first_end
+    ldx #2
+first_end:
+    sta BA_MEND, x              ; where the line being written ends
+    sep #$20
+.a8
+    stz BA_MDN
+    stz BA_MI
+one_line:
+    lda BA_MI
+    cmp BA_MN
+    bcc cut_it
+    jmp draw
+cut_it:
+    asl a
+    jsr ba_ax
+    rep #$20
+.a16
+    lda BA_MSTART, x
+    sta BA_MP
+    lda BA_MEND, x
+    sta BA_ME
+    sep #$20
+.a8
+again:
+    lda BA_MDN
+    cmp #BA_MLINES_MAX
+    bcs line_done
+    rep #$20
+.a16
+    lda BA_ME
+    sec
+    sbc BA_MP
+    beq line_done16             ; nothing left
+    cmp #BA_PAGE_MSG_WIDTH + 1
+    bcs too_long
+    jsr ba_mline                ; the rest, as it is
+line_done16:
+    sep #$20
+.a8
+line_done:
+    inc BA_MI
+    jmp one_line
+.a16
+too_long:
+    ; The last space at most one line further on: the line is what is
+    ; before it.
+    lda BA_MP
+    clc
+    adc #BA_PAGE_MSG_WIDTH
+    tax
+    sep #$20
+.a8
+seek:
+    cpx BA_MP
+    beq no_space
+    lda a:0, x
+    cmp #$20
+    beq space
+    dex
+    bra seek
+no_space:
+    ; A word longer than the line: cut at the edge.
+    rep #$20
+.a16
+    lda #BA_PAGE_MSG_WIDTH
+    jsr ba_mline
+    lda BA_MP
+    clc
+    adc #BA_PAGE_MSG_WIDTH
+    sta BA_MP
+    bra skip_spaces
+.a8
+space:
+    stx BA_MB
+    ; Without the spaces before the cut.
+trim:
+    dex
+    cpx BA_MP
+    bcc trimmed
+    lda a:0, x
+    cmp #$20
+    beq trim
+trimmed:
+    inx
+    rep #$20
+.a16
+    txa
+    sec
+    sbc BA_MP
+    jsr ba_mline
+    lda BA_MB
+    sta BA_MP
+skip_spaces:
+    ; And the next one starts after the spaces.
+    ldx BA_MP
+    sep #$20
+.a8
+skip:
+    cpx BA_ME
+    bcs skipped
+    lda a:0, x
+    cmp #$20
+    bne skipped
+    inx
+    bra skip
+skipped:
+    stx BA_MP
+    jmp again
+
+draw:
+    ; Where the first one goes: `BA_MSG_POS1`, or as many lines higher as
+    ; there are more than two.
+    rep #$20
+.a16
+    lda #BA_MSG_POS1
+    sta BA_T1
+    lda BA_MDN
+    and #$00FF
+    cmp #3
+    bcc placed
+    sec
+    sbc #2
+    tax
+higher:
+    lda BA_T1
+    sec
+    sbc #BA_ROW_BYTES
+    sta BA_T1
+    dex
+    bne higher
+placed:
+    sep #$20
+.a8
+    stz BA_MI
+    stz temp + 1                ; white
+each:
+    lda BA_MI
+    cmp BA_MDN
+    bcc a_line
+    rts
+a_line:
+    ; The line blank first: when it goes over the party's, a name or an HP
+    ; is under it. Both halves of each cell.
+    rep #$20
+.a16
+    ldx BA_T1
+    ldy #BA_ROW_BYTES / 2
+blank:
+    stz text_buf, x
+    inx
+    inx
+    dey
+    bne blank
+    lda #BA_MSG_DX
+    jsr ba_go
+    lda BA_MI
+    and #$00FF
+    sta BA_T0
+    asl a
+    clc
+    adc BA_T0                   ; three bytes per line
+    tax
+    lda BA_MDL, x
+    sta BA_MP                   ; where it starts
+    lda BA_MDL + 2, x
+    and #$00FF
+    sta BA_T0                   ; and how many letters
+    sep #$20
+.a8
+letter:
+    lda BA_T0
+    beq next_line
+    dec BA_T0
+    ldx BA_MP
+    lda a:0, x
+    inx
+    stx BA_MP
+    jsl f:ba_t_glyph
+    bra letter
+next_line:
+    rep #$20
+.a16
+    lda BA_T1
+    clc
+    adc #BA_ROW_BYTES
+    sta BA_T1
+    sep #$20
+.a8
+    inc BA_MI
+    bra each
+.endproc
+
+; One more line to draw: from `BA_MP`, A16 letters. Comes and goes with A16.
+.proc ba_mline
+.a16
+.i16
+    pha
+    lda BA_MDN
+    and #$00FF
+    sta BA_T0
+    asl a
+    clc
+    adc BA_T0                   ; three bytes per line
+    tax
+    lda BA_MP
+    sta BA_MDL, x
+    pla
+    sep #$20
+.a8
+    sta BA_MDL + 2, x
+    inc BA_MDN
+    rep #$20
+.a16
     rts
 .endproc
