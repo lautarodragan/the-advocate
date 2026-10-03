@@ -108,6 +108,19 @@ FAR_SP = $3780
 FAR_ACTOR_GFX = $3800
 ACTOR_GFX_NONE = $FF
 
+; The text layer of the screens: what each text row of the menu, the slots,
+; the items, equipment, the shop and the battle says, the row being typeset
+; and which tiles each cell took. See `text_layer.s`.
+;
+; **$3D20 to $5FFF belongs to this**, reserved on 2026-10-03: the battle
+; ends at $3CFF, the second sound-effect voice takes $3D00 to $3D17, and
+; nothing else lived between there and `FAR_SKILL`. It is named with a
+; sixteen-bit address, like the battle's, and read with the data bank at
+; $7E. It does not travel in the save: a screen fills it from scratch when it
+; opens.
+FAR_TEXT_LAYER = $3D20
+FAR_TEXT_LAYER_END = $6000
+
 ; And which skills each actor knows, since 2026-09-21: one bit per (actor,
 ; skill) pair, with the slot the converter gave each pair —see
 ; `SKILL_SLOT` in events.py—. It starts with what the LDB says for the

@@ -119,7 +119,7 @@ pub fn target_windows(game: &Game, skin: &Skin, cursor: Option<usize>) -> Result
         (TARGET_COUNT_ROW * CELL + GLYPH_DY) as i64,
         &game.term(TI_TERM_OWNED)?,
         1,
-        game.font_id(),
+        &game.font,
     );
     if let Some(k) = cursor {
         let (x, y, width, height) = TARGET_BAR;

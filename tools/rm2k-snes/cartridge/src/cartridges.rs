@@ -570,6 +570,16 @@ impl Cartridges {
         // And the project file, whole: the converter and the music read it,
         // and not only what reaches the stamp's flags.
         parts.push(self.project.file());
+        // And the game's own font, if it brings one: `[text] font` is a
+        // sheet's path when it is a PNG —see `font.rs` in
+        // `rm2k-snes-convert`—, and retouching the sheet changes the ROM
+        // without touching the project file. A font the engine carries is
+        // inside the converter's binaries, which are above.
+        if let Ok(font) = self.project.string(&["text", "font"]) {
+            if font.to_ascii_lowercase().ends_with(".png") {
+                parts.push(self.project.directory().join(font));
+            }
+        }
         Ok(parts)
     }
 

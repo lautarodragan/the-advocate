@@ -40,7 +40,7 @@
     rts
 in_battle:
     ; A troop page: the message does not go to the map's window —the screen
-    ; is the battle's, and `text_buf` is the battle's— but is left noted for
+    ; is the battle's, with its own text— but is left noted for
     ; the battle, which draws it on its lines and waits for A. The page stays
     ; held behind it just as on the map: `ev_active` stays at one and the
     ; cursor, on the next command. See `ba_page_step`.

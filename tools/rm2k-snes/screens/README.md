@@ -10,16 +10,18 @@ once when the cartridge is built:
 
 * **the message window**: the empty window cut into tiles, the text area
   the cartridge rewrites, the font, and the glyphs precomposed for each of
-  the four places a letter can land in a cell;
+  the eight places a letter can land in a cell;
 * **the title's menu**: the game's two options over the title picture, one
   tilemap per option chosen;
 * **the save slots and the pause menu**, which share a tile bank: the text
-  that does not depend on the save, the glyphs the cartridge composes names
-  and numbers with, and each actor's face with its palette —with fewer
-  colours when it has too many, and with another face's palette when there
-  are none left—;
-* **the text screens' font** —items, equipment, shop, the battle's text—:
-  each letter in two cells, in four colours;
+  that does not depend on the save, the glyphs the cartridge writes numbers
+  with, the font precomposed for the bank's text palette, which it composes
+  names with, and each actor's face with its palette —with fewer colours
+  when it has too many, and with another face's palette when there are none
+  left—;
+* **the text screens' inks** —items, equipment, shop, the battle's text—: a
+  palette per colour, all with the same layout, and the font precomposed for
+  it;
 * **the windows behind the text screens**, with the System's frame and
   cursor, as the cartridge stores them: one tilemap per screen and only the
   cells a cursor changes;
@@ -35,9 +37,10 @@ a request what the cartridge decided, and writes a JSON.
 
 ## Two crates
 
-* `rm2k-snes-text`: the letters —easyrpg-player's two 6x12 fonts—, a line
-  of them drawn over the System as RM2k's `Font::Render` draws it, and a
-  message box reflowed for a narrower window. It knows nothing about menus.
+* `rm2k-snes-text`: the letters —easyrpg-player's two 6x12 fonts, or a sheet—, a
+  line of them drawn over the System as RM2k's `Font::Render` draws it, and
+  a message box reflowed, in pixels, for a narrower window. It knows nothing
+  about menus.
 * `rm2k-snes-screens`: this one, every screen with those letters.
 
 ## The subcommands
@@ -45,16 +48,14 @@ a request what the cartridge decided, and writes a JSON.
 `convert` is the one the converter calls, once per cartridge:
 
     {"slots": 4, "actors": [11, 12, 14], "items": [1, 2, 7],
-     "bank_items": [1, 2], "title": true, "cgram_reserved": 9,
+     "title": true, "cgram_reserved": 9,
      "vram": {"slot_vram": 8192, "slot_map": 15360,
               "bg1_banks": [["WINDOW", 4096, 20480]]}}
 
 What the cartridge decided: `slots`, how many save slots; `actors`, who can
-be in the party —their faces and the letters of their names go in the
-bank—; `items`, the items it knows, in its order, whose names and
-descriptions go as text; `bank_items`, the ones whose medicines' names the
-menu's bank carries the letters of, which is `items` if it is not there;
-`title`, whether it has a title screen.
+be in the party —their faces go in the bank, and their names have to fit in
+what it leaves free—; `items`, the items it knows, in its order, whose names
+and descriptions go as text; `title`, whether it has a title screen.
 
 **What other domains answered, as data**: `cgram_reserved`, where the maps'
 background starts in colour memory —the message window goes below—; and

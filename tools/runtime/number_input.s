@@ -32,7 +32,10 @@
 
 NUMBER_ZERO   = '0' - 32            ; the font's letters are the ASCII minus 32
 NUMBER_CURSOR = '>' - 32
-NUMBER_BLANK  = ' ' - 32
+; Not a space: the glyph after the tilde, a blank as wide as the cursor
+; —`CURSOR_BLANK` in `rm2k-snes-text`—. With a variable-width font a space is
+; narrower than a ">", and the digits would move with the cursor.
+NUMBER_BLANK  = 127 - 32
 
 ; `op_number`, opening: Y on its operands —the variable's slot and how many
 ; digits— and it comes back with Y on the box, which `op_message` takes from

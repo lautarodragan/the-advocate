@@ -559,9 +559,10 @@ to_screen:
 ; usual format —the header with the lines and each line with its length, one
 ; byte per letter with the ASCII minus 32: unlike `messages`, this block is
 ; written without pairs, so this does not look up `message_pairs`— and
-; writes it with the screen's
-; glyphs, cut at `BA_PAGE_MSG_WIDTH`. The block fits in one bank —the converter
-; guarantees it—, so the pointer is advanced with Y and the bank stays fixed.
+; writes it in the screen's text, cut where it passes `BA_PAGE_MSG_WIDTH`
+; cells —in pixels, with the font's advances: until 2026-10-03 it was that
+; many letters—. The block fits in one bank —the converter guarantees it—,
+; so the pointer is advanced with Y and the bank stays fixed.
 .proc ba_page_message
 .a8
 .i16
@@ -594,15 +595,32 @@ line:
     lda [msg_ptr], y            ; the length
     iny
     sta BA_T0                   ; the letters it has left
-    stz BA_T2                   ; and the ones already written
+    rep #$20
+.a16
+    stz BA_T2                   ; and the pixels already written
+    sep #$20
+.a8
 letter:
     lda BA_T0
     beq end_line
     dec BA_T0
-    lda BA_T2
-    cmp #BA_PAGE_MSG_WIDTH
+    lda [msg_ptr], y
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    lda f:font_advance, x
+    and #$00FF
+    clc
+    adc BA_T2
+    cmp #(BA_PAGE_MSG_WIDTH * 8 + 1)
+    bcc enters
+    lda #$7FFF                  ; and nothing after it either
+enters:
+    sta BA_T2
+    sep #$20
+.a8
     bcs no_enters               ; consumed and not drawn
-    inc BA_T2
     lda [msg_ptr], y
     clc
     adc #ITEM_FIRST_CHAR

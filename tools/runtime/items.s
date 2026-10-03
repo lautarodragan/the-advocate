@@ -3,18 +3,18 @@
 ; --- the items screen -----------------------------------------------------------
 ;
 ; `Scene_Item`: at the top the description of the highlighted item, below the
-; inventory list with how many there are. It has **its own tile bank**,
-; `items_tiles`: each font character in two cells, in white and in gray, and
-; the text —name and two lines of description per item— goes in ASCII in
-; `item_texts`. The geometry comes from `rm2k-snes-screens`, whose `render`
-; is the reference.
+; inventory list with how many there are. The text —name and two lines of
+; description per item— goes in ASCII in `item_texts`. The geometry comes
+; from `rm2k-snes-screens`, whose `render` is the reference.
 ;
-; The text is composed **whole** in `text_buf`, like the equipment and shop
-; screens —with `text_screens.s`'s writers— and goes up in one DMA at the
-; start of each vblank. So moving the cursor or scrolling the list only
-; recomposes the buffer, and the screen stays on: until 2026-09-30 a scroll
-; repainted the list straight into VRAM with the screen off, which was a
-; black frame and the windows uploaded again.
+; The screen is written **whole** on each change, like the equipment and
+; shop screens, with `text_screens.s`'s writers; what that means —only the
+; rows that changed get composed, and the screen goes from one to the other
+; at once— is `text_layer.s`. So moving the cursor or scrolling the list
+; leaves the screen on: until 2026-09-30 a scroll repainted the list
+; straight into VRAM with the screen off, which was a black frame and the
+; windows uploaded again. Until 2026-10-03 the font was a tile bank of its
+; own, each letter in two cells.
 ;
 ; The windows and the cursor —the System's bar— go on BG1, and belong to
 ; `screen_bank.s`: the BG2 text knows nothing about them.
@@ -108,8 +108,8 @@ next:
 .endproc
 
 
-; The whole screen's text, in `text_buf`: the description of the item under
-; the cursor and the visible rows. With the list empty it stays blank.
+; The whole screen's text, written to the text layer: the description of
+; the item under the cursor and the visible rows. With the list empty it stays blank.
 .proc items_compose
 .a8
 .i16

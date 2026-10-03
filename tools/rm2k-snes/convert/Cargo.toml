@@ -22,6 +22,7 @@ rm2k-snes-events = { path = "../events" }
 # The engine's numbers, the VRAM layouts and the console's formats —a tile,
 # a colour, an LZ2 stream—: the emission's, which publishes them.
 rm2k-snes-mapdata = { path = "../mapdata" }
+rm2k-snes-text = { path = "../text" }
 # `preserve_order`: a request's keys go in the order they are written, as
 # they always went, and an object read from a stage's answer or from the
 # project keeps its order on the way to the next.

@@ -1,72 +1,75 @@
-//! The font of the text screens —items, equipment, shop, and the battle's
-//! text—: each character in two cells, one above the other, in four
-//! colours, so the cartridge writes any text two tilemap words per letter.
+//! The inks of the text screens —items, equipment, shop, and the battle's
+//! text—: one palette per colour the screens write in —white, gray, "goes
+//! up" and red—, all with the same layout, and the font precomposed for that
+//! layout.
+//!
+//! Until 2026-10-03 this was a font: each character in two cells, in four
+//! colours, which the cartridge wrote two tilemap words per letter. The text
+//! is composed now —see `text_layer.s` in the runtime—, from tables like the
+//! message window's: each glyph already shifted to each of the eight columns
+//! of a cell and already painted, so drawing it is reading, masking and
+//! writing. **The palettes share a layout** so that one table paints every
+//! colour: entry 1 + k is the colour of the glyph's row k, and entry 13 the
+//! shadow's. Which colour a cell shows is its palette in the tilemap.
+//!
+//! It was measured: painting a letter from the font's own bits, with the
+//! colour applied as it goes, took the item screen nine frames to change a
+//! description; with the tables, a letter costs less than half.
 
-use crate::cells::{self, Bank, Color, Counts, BLACK};
+use crate::cells::{rgb15, Color, BLACK};
 use crate::fail::{Bad, Result};
-use crate::game::{Game, Skin};
+use crate::game::Skin;
 use crate::layout::*;
-use std::collections::BTreeMap;
-use voodoo::pack::Indices;
+use crate::message_window;
+use rm2k_snes_text::font::{self, Font};
+use rm2k_snes_text::line::Ink;
 
-/// The bank: the tiles, one palette per variant —white, gray, "goes up"
-/// and red, see `ITEM_WHITE`— and per variant the two tilemap words of
-/// each character it has. The "goes up" one has only `ITEM_UP_CHARS`. The
-/// space is two blank cells: it is what the cursor erases with.
+/// The palette index of the glyph's row k: 1 + k. And the shadow's.
+pub const INK_ROW_FIRST: u8 = 1;
+pub const INK_SHADOW: u8 = INK_ROW_FIRST + font::HEIGHT as u8;
+
+/// The screens' colours: a palette per colour —`ITEM_WHITE` and the
+/// others, which are also the tilemap's palette number—, and the font
+/// precomposed for their layout, one table per phase.
 #[derive(Debug, Clone)]
-pub struct ItemsFont {
-    pub tiles: Vec<Indices>,
+pub struct Inks {
     pub palettes: Vec<Vec<Color>>,
-    pub glyphs: Vec<BTreeMap<char, Vec<u16>>>,
+    pub prerender: Vec<Vec<u8>>,
 }
 
-pub fn items_screen(game: &Game, skin: &Skin) -> Result<ItemsFont> {
-    let font_id = game.font_id();
-    let mut layers = Vec::new();
-    for variant in [ITEM_WHITE, ITEM_GRAY, ITEM_UP, ITEM_RED] {
-        for n in 0..ITEM_CHARS {
-            let c = char::from_u32((ITEM_FIRST_CHAR + n) as u32).expect("ASCII");
-            if variant == ITEM_UP && !ITEM_UP_CHARS.contains(c) {
-                continue;
-            }
-            let mut image = cells::layer();
-            skin.draw_line(&mut image, 1, 2, &c.to_string(), ITEM_COLORS[variant], font_id);
-            layers.push((variant, c, image));
-        }
-    }
-    let mut seen = vec![Counts::default(); 4];
-    for (variant, _, image) in &layers {
-        seen[*variant].add_picture(image);
-    }
-    let mut palettes = Vec::new();
-    let mut indices = Vec::new();
-    for counts in &seen {
-        if counts.len() > 15 {
+/// The colour of each of the glyph's rows in System colour `color`, and the
+/// shadow's. Each row is a single colour —the gradient is vertical—, which
+/// is what lets the cartridge paint a row with one index.
+pub fn ink_colors(skin: &Skin, color: i32) -> Result<(Vec<Color>, Color)> {
+    let ink = Ink::new(&skin.picture, color);
+    let mut rows = Vec::new();
+    for y in 0..font::HEIGHT {
+        let row: std::collections::BTreeSet<Color> =
+            (0..font::INK_MAX).map(|x| rgb15(ink.text_at(x, y))).collect();
+        if row.len() != 1 {
             return Err(Bad::answer(format!(
-                "the text screens' font uses {} colours and 4bpp fits 15",
-                counts.len()
+                "row {y} of System colour {color} has {} distinct colours; the cartridge paints a \
+                 row with a single one",
+                row.len()
             )));
         }
+        rows.push(*row.iter().next().expect("one colour"));
+    }
+    Ok((rows, rgb15(ink.shadow_at(0, 0))))
+}
+
+pub fn text_inks(skin: &Skin, font: &Font) -> Result<Inks> {
+    let mut palettes = Vec::new();
+    for variant in [ITEM_WHITE, ITEM_GRAY, ITEM_UP, ITEM_RED] {
+        let (rows, shadow) = ink_colors(skin, ITEM_COLORS[variant])?;
         let mut palette = vec![BLACK];
-        palette.extend(counts.by_use());
-        indices.push(cells::index_of(&palette));
+        palette.extend(rows);
+        palette.push(shadow);
+        palette.resize(16, BLACK);
         palettes.push(palette);
     }
-    let mut bank = Bank::default();
-    let mut glyphs = vec![BTreeMap::new(); 4];
-    for (variant, c, image) in &layers {
-        let words = cells::cell_block(image, 0, 2, &mut bank, &indices[*variant], 0, 1, *variant as u16)?;
-        glyphs[*variant].insert(*c, words);
-    }
-    if bank.len() > ITEMS_TILES_MAX {
-        return Err(Bad::answer(format!(
-            "the text screens' font gathers {} tiles and its bank fits {ITEMS_TILES_MAX}",
-            bank.len()
-        )));
-    }
-    Ok(ItemsFont {
-        tiles: bank.tiles,
-        palettes,
-        glyphs,
-    })
+    let bytes = message_window::font_bytes(font)?;
+    let rows: Vec<u8> = (0..font::HEIGHT as u8).map(|k| INK_ROW_FIRST + k).collect();
+    let prerender = message_window::font_prerender(&bytes, &rows, INK_SHADOW);
+    Ok(Inks { palettes, prerender })
 }

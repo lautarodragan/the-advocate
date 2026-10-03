@@ -132,7 +132,7 @@ fn a_line_in_each_font_and_four_colours() {
     for (font_id, color, hash) in expected {
         let mut dest = Picture::transparent(64, 24);
         // Past the left edge and the right one: the line is cut.
-        let end = line::draw_line(&mut dest, &system, -2, 3, "Hi, g{}~|!", color, font_id);
+        let end = line::draw_line(&mut dest, &system, -2, 3, "Hi, g{}~|!", color, &font::Font::rm2k(font_id));
         assert_eq!(end, 58);
         assert_eq!(sha(&dest.rgba), hash, "font {font_id}, colour {color}");
     }

@@ -151,6 +151,7 @@ party_ready:
     stz pick_active
     stz msg_state
     stz msg_upload
+    stz tl_on                   ; no screen has written text yet
     ; The two that say who opened the message. With garbage, `pair_ev` would
     ; make the foreground record any owner at all and `one_parallel` would skip
     ; forever the event that had that number: it is one of the errors
@@ -593,6 +594,12 @@ out:
     lda HVBJOY
     bmi out
 in:
+    ; The wait is when a screen's text gets typeset: see `tl_idle`. It
+    ; stops on its own before the vblank.
+    lda tl_on
+    beq spin
+    jsl f:tl_idle + FAST
+spin:
     lda HVBJOY
     bpl in
     rts

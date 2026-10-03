@@ -24,7 +24,6 @@ use crate::fail::{Bad, Result};
 use crate::game::{Game, Skin};
 use crate::layout::*;
 use rm2k_render::picture::Picture;
-use rm2k_snes_text::font;
 use std::collections::{BTreeSet, HashMap};
 use voodoo::pack::Indices;
 
@@ -42,36 +41,37 @@ pub fn texts(game: &Game) -> Result<(String, String, String)> {
     ))
 }
 
-fn width_of(text: &str) -> usize {
-    text.chars().count() * font::WIDTH
+/// How wide RM2k makes a window for `text`: its letters' advances.
+fn width_of(game: &Game, text: &str) -> usize {
+    game.font.width(text)
 }
 
 /// The screen with the cursor on `chosen`, opaque. `width`, `height` and
 /// `y_shift` at 320, 240 and 0 give RM2k's.
 pub fn draw(game: &Game, skin: &Skin, chosen: usize, width: usize, height: usize, y_shift: usize) -> Result<Picture> {
     let (question, yes, no) = texts(game)?;
-    if width_of(&question) + 2 * BORDER > width {
+    if width_of(game, &question) + 2 * BORDER > width {
         // RM2k would let it run off the screen; here it would be cut
         // without warning.
         return Err(Bad::answer(format!(
             "the End Game question, {question:?}, does not fit in {width} pixels"
         )));
     }
-    let font_id = game.font_id();
+    let font = &game.font;
     let mut out = Picture::filled(width, height, [0, 0, 0, 255]);
 
     // The question: `Window_Help`, as wide as the text plus the borders,
     // with the text at (0, 2) of its contents.
-    let w = width_of(&question) + 2 * BORDER;
+    let w = width_of(game, &question) + 2 * BORDER;
     let (x, y) = ((width / 2 - w / 2) as i64, END_Y_QUESTION as i64 - y_shift as i64);
     cells::paste(&mut out, &skin.window(w, 2 * LINE), x, y);
-    skin.draw_line(&mut out, x + BORDER as i64, y + BORDER as i64 + 2, &question, 0, font_id);
+    skin.draw_line(&mut out, x + BORDER as i64, y + BORDER as i64 + 2, &question, 0, font);
 
     // The commands: `Window_Command`, as wide as the longest plus the
     // borders and sixteen per command plus the borders tall. The bar is
     // `UpdateCursorRect`'s: four more on each side of the contents.
     let commands = [yes, no];
-    let w = commands.iter().map(|c| width_of(c)).max().unwrap_or(0) + 2 * BORDER;
+    let w = commands.iter().map(|c| width_of(game, c)).max().unwrap_or(0) + 2 * BORDER;
     let (x, y) = ((width / 2 - w / 2) as i64, END_Y_COMMANDS as i64 - y_shift as i64);
     cells::paste(&mut out, &skin.window(w, commands.len() * LINE + 2 * BORDER), x, y);
     cells::paste(
@@ -87,7 +87,7 @@ pub fn draw(game: &Game, skin: &Skin, chosen: usize, width: usize, height: usize
             y + (BORDER + n * LINE + LINE / 8) as i64,
             command,
             0,
-            font_id,
+            font,
         );
     }
     Ok(out)

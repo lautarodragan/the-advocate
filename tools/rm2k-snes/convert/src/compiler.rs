@@ -15,6 +15,7 @@
 
 use crate::fail::{Result, Stop};
 use crate::game::{Command, Game, GameMap};
+use crate::font::FontChoice;
 use crate::screens;
 use crate::settings::Settings;
 use crate::stage;
@@ -103,24 +104,33 @@ pub struct Compiler<'a> {
     pub game: &'a Game,
     pub settings: &'a Settings<'a>,
     boxes: Value,
+    window: Value,
     troop_window: Value,
 }
 
 impl<'a> Compiler<'a> {
     pub fn new(game: &'a Game, settings: &'a Settings<'a>) -> Result<Compiler<'a>> {
         // Every text box of the game the port rebuilds for the console's
-        // window, with the boxes that go in its place.
-        let boxes = screens::boxes(game, LINES)?;
+        // window, with the boxes that go in its place. A line is measured in
+        // pixels, with the font the project file names.
+        let font = FontChoice::of(settings)?;
+        let width = screens::message_width()?;
+        let boxes = screens::boxes(game, &font, width, LINES)?;
+        let window = font.window(width, LINES);
         // And the battle's, where the troops' pages show theirs: as many
-        // lines as the map's, and narrower. The compiler reflows those
-        // itself, because it is the one that knows which pages a troop
-        // brings.
+        // lines as the map's, and narrower —`BA_PAGE_MSG_WIDTH` cells, in
+        // pixels, which is how the console cuts them too—. The compiler
+        // reflows those itself, because it is the one that knows which pages
+        // a troop brings.
         let layout = stage::json(
             &stage::run("rm2k-snes-battle", "battle", "layout", &json!({}), &[])?,
             "layout.json",
         )?;
-        let troop_window = json!({"columns": layout["BA_PAGE_MSG_WIDTH"], "lines": LINES});
-        Ok(Compiler { game, settings, boxes, troop_window })
+        let cells = layout["BA_PAGE_MSG_WIDTH"]
+            .as_u64()
+            .ok_or_else(|| Stop::new("the battle's layout has no BA_PAGE_MSG_WIDTH"))?;
+        let troop_window = font.window(cells as usize * 8, LINES);
+        Ok(Compiler { game, settings, boxes, window, troop_window })
     }
 
     fn data(&self) -> Vec<OsString> {
@@ -139,10 +149,7 @@ impl<'a> Compiler<'a> {
         r.insert("map_files".into(), map_files(self.game));
         r.insert("boxes".into(), self.boxes.clone());
         r.insert("names".into(), json!([]));
-        r.insert(
-            "window".into(),
-            json!({"columns": rm2k_snes_mapdata::engine::COLUMNS, "lines": LINES}),
-        );
+        r.insert("window".into(), self.window.clone());
         r.insert("troop_window".into(), self.troop_window.clone());
         r.insert("maps".into(), json!(maps));
         r.insert("test_commands".into(), commands(test_commands));
@@ -296,6 +303,12 @@ impl<'a> Compiler<'a> {
     /// port rebuilds for the console's window.
     pub fn boxes(&self) -> &Value {
         &self.boxes
+    }
+
+    /// The map's message window, as the compiler is told it: `width`,
+    /// `lines` and `advances`.
+    pub fn window(&self) -> &Value {
+        &self.window
     }
 
     fn sound_effects(&self) -> Result<Value> {

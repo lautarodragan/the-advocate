@@ -508,7 +508,7 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         t.n("WINDOW_TEXT_ROWS").into(),
         t.n("WINDOW_TEXT_COL").into(),
         t.n("WINDOW_TEXT_COLS").into(),
-        COLUMNS.into(),
+        t.n("MESSAGE_WIDTH").into(),
         t.n("FONT_HEIGHT").into(),
         t.n("FONT_WIDTH").into(),
         int_at(window, "shadow")?.into(),
@@ -679,6 +679,14 @@ fn window_section(out: &mut String, r: &Emit, window: &Value) -> Result<()> {
         &block("window_backdrop", &bytes_at(window, "background")?),
     );
     line(out, &block("font_table", &bytes_at(window, "font")?));
+    // How far each letter moves the line, and how far it paints: the
+    // composer adds the first and checks the second against the edge.
+    let small = |name: &str| -> Result<Vec<u8>> {
+        Ok(ints_at(window, name)?.into_iter().map(|n| n as u8).collect())
+    };
+    line(out, &block("font_advance", &small("advances")?));
+    line(out, &block("font_reach", &small("reach")?));
+
     for (phase, data) in list_at(window, "prerender")?.iter().enumerate() {
         line(
             out,
@@ -1229,6 +1237,11 @@ impl Rest<'_> {
             out,
             &block("slot_tiles", &packed(&tiles(at(slots, "tiles")?)?, 4)),
         );
+        // The font precomposed for the bank's text palette, a table per
+        // phase: the names are composed with it —`tl_strip`—.
+        for (phase, data) in list_at(slots, "prerender")?.iter().enumerate() {
+            line(out, &block(&format!("slot_pre{phase}"), &crate::json::bytes(data)?));
+        }
         // Each cell block with its own label, named by a pointer table. The
         // bank of the slots and the menu goes with the priority bit set: the
         // actor choice turns on BG1, which at priority 0 would cover BG2.
@@ -1280,13 +1293,15 @@ impl Rest<'_> {
         );
         slot_blocks.push("menu_row".into());
 
-        // The item screen's bank: the font, its palettes, the texts.
-        let items_font = at(screens, "items_font")?;
-        line(
-            out,
-            &block("items_tiles", &packed(&tiles(at(items_font, "tiles")?)?, 4)),
-        );
-        let item_palettes: Vec<Vec<Color>> = list_at(items_font, "palettes")?
+        // The text screens' inks: a palette per colour, all with the same
+        // layout, and the font precomposed for it, a table per phase —see
+        // `text_layer.s`—. Until 2026-10-03 this was a font bank, each
+        // letter in two cells.
+        let inks = at(screens, "text_inks")?;
+        for (phase, data) in list_at(inks, "prerender")?.iter().enumerate() {
+            line(out, &block(&format!("scr_pre{phase}"), &crate::json::bytes(data)?));
+        }
+        let item_palettes: Vec<Vec<Color>> = list_at(inks, "palettes")?
             .iter()
             .map(colors)
             .collect::<Result<_>>()?;
@@ -1959,15 +1974,14 @@ impl Rest<'_> {
         }
         let item = |n: i64| db.item(n as i32).map_err(bad);
         let k_of: HashMap<i64, usize> = items.iter().enumerate().map(|(k, &n)| (n, k)).collect();
-        let items_font = at(self.screens, "items_font")?;
         out.push_str(&pyf!(
-            "ITEMS_ROM         = %d\nITEMS_TILES       = %d\nITEMS_CGRAM_N     = %d\nITEM_ROWS         = %d\n\
+            "ITEMS_ROM         = %d\nITEMS_CGRAM_N     = %d\nITEM_ROWS         = %d\n\
              ITEM_CURSOR_COL   = %d\nITEM_NAME_COL     = %d\nITEM_DIGITS_COL   = %d\nITEM_LIST_POS     = %d\n\
-             ITEM_FIRST_CHAR = %d\nITEM_GLYPHS_GRAY  = %d\nITEM_BORDER_VRAM  = $%04X\nITEM_BORDER_TILES = %d\n\
+             ITEM_FIRST_CHAR = %d\nSCR_TEXT_X        = %d\nSCR_TEXT_Y        = %d\n\
+             ITEM_BORDER_VRAM  = $%04X\nITEM_BORDER_TILES = %d\n\
              ITEM_BORDER_MAP   = $%04X\nITEM_BORDER_CGRAM = %d\nITEM_BORDER_COLORS = %d\nITEM_BORDER_ROWS  = %d\n\
              ITEM_BORDER_LIST  = %d\n",
             items.len(),
-            list_at(items_font, "tiles")?.len(),
             t.n("ITEM_UP") * MENU_CGRAM as i64,
             t.n("ITEM_ROWS"),
             t.n("ITEM_CURSOR_COL"),
@@ -1975,7 +1989,8 @@ impl Rest<'_> {
             t.n("ITEM_DIGITS_COL"),
             t.n("ITEM_LIST_Y").div_euclid(cell) * 64,
             t.n("ITEM_FIRST_CHAR"),
-            t.n("ITEM_CHARS") * 4,
+            t.n("SCR_TEXT_X"),
+            t.n("SCR_TEXT_Y"),
             i64::from(SLOT_VRAM) + int_at(self.screens, "items_border_first")? * 32,
             x.border_tiles,
             t.n("ITEM_BORDER_MAP"),
@@ -3075,35 +3090,7 @@ impl Rest<'_> {
     }
 
     fn tail(&self, out: &mut String) -> Result<()> {
-        let (r, t) = (self.r, self.t);
-        let glyphs = list_at(at(self.screens, "items_font")?, "glyphs")?;
-        // Outside bank 0, read with `lda f:`; with the priority bit set,
-        // since the battle draws its scene on BG1. The "goes up" variant
-        // brings only the digits; the other letters fall on the white ones.
-        out.push_str(".segment \"RODATA\"\n");
-        let first = t.n("ITEM_FIRST_CHAR");
-        let white = &glyphs[t.n("ITEM_WHITE") as usize];
-        let mut cells = Vec::new();
-        for gray in ["ITEM_WHITE", "ITEM_GRAY", "ITEM_UP", "ITEM_RED"] {
-            let set = &glyphs[t.n(gray) as usize];
-            for n in 0..t.n("ITEM_CHARS") {
-                let letter = char::from_u32((first + n) as u32)
-                    .unwrap_or('?')
-                    .to_string();
-                let these = set
-                    .get(&letter)
-                    .or_else(|| white.get(&letter))
-                    .ok_or_else(|| Bad::answer(format!("the items' font has no {letter:?}")))?;
-                cells.extend(
-                    ints(these)?
-                        .into_iter()
-                        .map(|c| i64::from(entry(c as u32, false, false, 1))),
-                );
-            }
-        }
-        words_asm(out, "item_glyph_cells", &hex4(cells), true);
-        out.push_str(".segment \"TABLES\"\n");
-        out.push('\n');
+        let r = self.r;
         // `font_color` in bank 0: the console reads it with
         // `lda font_color, y`, which addresses the data bank.
         let colors: Vec<u8> = ints_at(at(self.screens, "window")?, "color")?

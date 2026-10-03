@@ -1891,9 +1891,48 @@ powers:
     .word 1000, 100, 10
 .endproc
 
+; How many letters from `BA_MP` fit in a line —their advances add up to
+; `BA_PAGE_MSG_WIDTH` cells at most—, up to `BA_ME`; one at least, so that
+; the cut always moves. Uses `BA_MB`. A16.
+.proc ba_fit
+.a16
+.i16
+    stz BA_MB                   ; the pixels so far
+    ldx BA_MP
+letter:
+    cpx BA_ME
+    bcs done
+    lda a:0, x
+    and #$00FF
+    sec
+    sbc #' '
+    phx
+    tax
+    lda f:font_advance, x
+    plx
+    and #$00FF
+    clc
+    adc BA_MB
+    cmp #(BA_PAGE_MSG_WIDTH * 8 + 1)
+    bcs done
+    sta BA_MB
+    inx
+    bra letter
+done:
+    txa
+    sec
+    sbc BA_MP
+    bne some
+    inc a
+some:
+    rts
+.endproc
+
 ; The message's lines, cut and drawn: each of RM2k's lines in `BA_MBUF` is
-; cut into lines of `BA_PAGE_MSG_WIDTH` at its spaces —a word longer than
-; that, at the edge—, and the spaces of the cut go nowhere. Up to
+; cut into lines as wide as `BA_PAGE_MSG_WIDTH` cells at its spaces —a word
+; longer than that, at the edge—, and the spaces of the cut go nowhere. A
+; line is measured in pixels, with the font's advances: until 2026-10-03 it
+; was `BA_PAGE_MSG_WIDTH` letters, one per cell. Up to
 ; `BA_MLINES_MAX` lines: the last goes on the bottom line of the screen, and
 ; with two or less the first goes where it always went, `BA_MSG_POS1`. With
 ; more they go up over the party's, which are drawn before. Clobbers
@@ -1941,8 +1980,11 @@ again:
     sec
     sbc BA_MP
     beq line_done16             ; nothing left
-    cmp #BA_PAGE_MSG_WIDTH + 1
-    bcs too_long
+    pha
+    jsr ba_fit
+    cmp 1, s
+    bcc too_long                ; fewer than what is left
+    pla
     jsr ba_mline                ; the rest, as it is
 line_done16:
     sep #$20
@@ -1954,9 +1996,11 @@ line_done:
 too_long:
     ; The last space at most one line further on: the line is what is
     ; before it.
+    sta BA_MB                   ; how many fit, for a word with no space
+    pla
     lda BA_MP
     clc
-    adc #BA_PAGE_MSG_WIDTH
+    adc BA_MB
     tax
     sep #$20
 .a8
@@ -1972,11 +2016,11 @@ no_space:
     ; A word longer than the line: cut at the edge.
     rep #$20
 .a16
-    lda #BA_PAGE_MSG_WIDTH
+    lda BA_MB
     jsr ba_mline
     lda BA_MP
     clc
-    adc #BA_PAGE_MSG_WIDTH
+    adc BA_MB
     sta BA_MP
     bra skip_spaces
 .a8
@@ -2050,17 +2094,21 @@ each:
     rts
 a_line:
     ; The line blank first: when it goes over the party's, a name or an HP
-    ; is under it. Both halves of each cell.
+    ; is under it. It is the row's text that goes, in the text layer.
     rep #$20
 .a16
-    ldx BA_T1
-    ldy #BA_ROW_BYTES / 2
-blank:
-    stz text_buf, x
-    inx
-    inx
-    dey
-    bne blank
+    lda BA_T1
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a                       ; the row: 64 bytes each
+    sep #$20
+.a8
+    jsl f:tl_clear_row + FAST
+    rep #$20
+.a16
     lda #BA_MSG_DX
     jsr ba_go
     lda BA_MI

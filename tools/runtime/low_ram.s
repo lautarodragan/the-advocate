@@ -119,6 +119,15 @@ msg_col:     .res 1     ; which character it is on
 msg_length:  .res 1     ; how many the line has
 msg_primed:  .res 1     ; whether the buffer already has the line's background
 msg_upload:  .res 1     ; whether there is a line ready to upload to VRAM
+tl_on:       .res 1     ; whether a screen's text layer was ever opened:
+                        ; `wait_vblank` lets it typeset only then, since its
+                        ; RAM starts with garbage. See `text_layer.s`
+msg_x:       .res 2     ; where the next letter starts, in pixels inside the
+                        ; window: each letter adds its own advance, since the
+                        ; font is not fixed-width. Not in the zero page with
+                        ; the `comp_*`: those are recomputed per letter and
+                        ; others borrow them —the rain, every frame—, and this
+                        ; lives the whole line, across frames
 
 ; The line being composed: two rows of cells by 30 columns, in the console's
 ; tile format. The 48 extra bytes are so the last character's mask can write

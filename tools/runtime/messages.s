@@ -229,6 +229,13 @@ with_plane:
 ; NPCs, the music— and losing frames does not show by looking: what happens is
 ; that the hero walks slower than in RM2k.
 ;
+; Measured again on 2026-10-03, when the font got variable width and the
+; tables went to eight phases, over the same map with the camera scrolling,
+; with that message and with one of four full lines —194 letters—: no frame
+; is lost up to 18 per pass, and from 20 on they are. The margin is wider
+; than it was; the number is left at 5 so that a message appears as fast as
+; it always did.
+;
 ; What it costs: the three-line, 51-character message of `snes-ventana` takes
 ; about 15 frames to appear, and one with four full lines would take about 36.
 ; That is a quarter of a second, which does not stand out in RM2k either:
@@ -417,6 +424,12 @@ no_upload:
 .a8
 void:
     stz msg_col
+    rep #$20
+.a16
+    lda #WINDOW_BORDER
+    sta msg_x                   ; each line starts at the border
+    sep #$20
+.a8
     lda #1
     sta msg_primed
 
@@ -435,31 +448,55 @@ other:
 .a16
     and #$00FF
     sta comp_char
-    lda msg_col
-    and #$00FF
-    sta comp_col
+    lda msg_x
+    sta comp_col                ; where it starts, in pixels inside the window
     sep #$20
 .a8
     inc msg_col
-    ; The column cap. The byte is consumed anyway —otherwise the pointer
-    ; would be out of step and the next line would read from the middle of
-    ; this one— but it is not drawn: `compose_char` writes into `text_buf`
-    ; with an offset that comes from the column, and from 39 on that lands
-    ; **outside** the buffer, on top of the window's HDMA, the OAM image and
-    ; `vq_n`. See the comment on `compose_char`, further down.
-    ;
-    ; And the cap goes here even though the converter never emits a longer
-    ; line, because **the symptom does not point at the text**: with `vq_n`
-    ; overwritten, `vram_drain` uploads 128-byte blocks to arbitrary VRAM
-    ; addresses, so a bad line length shows up as the whole screen turned to
-    ; garbage a few frames later and on another map.
-    lda comp_col
-    cmp #MESSAGE_COLS
-    bcs no_draw
     phx
+    ; The edge. The byte is consumed anyway —otherwise the pointer would be
+    ; out of step and the next line would read from the middle of this one—
+    ; but a letter that would paint past the text area is not drawn:
+    ; `compose_char` writes into `text_buf` with an offset that comes from
+    ; x, and past the edge that lands **outside** the buffer, on top of the
+    ; window's HDMA, the OAM image and `vq_n`. See the comment on
+    ; `compose_char`, further down. `font_reach` is how far each letter
+    ; paints, its shadow included; a space paints nothing and always goes.
+    ;
+    ; And the check goes here even though the converter never emits a
+    ; longer line —it measures them with the same advances—, because a
+    ; variable's digits grow on the console, and because **the symptom does
+    ; not point at the text**: with `vq_n` overwritten, `vram_drain` uploads
+    ; 128-byte blocks to arbitrary VRAM addresses, so a bad line shows up as
+    ; the whole screen turned to garbage a few frames later and on another
+    ; map. It was a column cap, 39, until the font had variable width.
+    rep #$20
+.a16
+    ldx comp_char
+    lda f:font_reach, x
+    and #$00FF
+    clc
+    adc comp_col
+    cmp #(WINDOW_BORDER + MESSAGE_WIDTH + 1)
+    sep #$20
+.a8
+    bcs no_draw
     jsr compose_char
-    plx
 no_draw:
+    ; And the next one starts where this one's advance says: x is
+    ; sixteen bits, so a line that grows past the edge does not wrap around
+    ; to the left.
+    rep #$20
+.a16
+    ldx comp_char
+    lda f:font_advance, x
+    and #$00FF
+    clc
+    adc msg_x
+    sta msg_x
+    sep #$20
+.a8
+    plx
     dex
     bne other
     rts
@@ -590,16 +627,16 @@ more:
 .endproc
 
 ; One character, from its already composed data: `font_pre0` to
-; `font_pre3`, one table per phase, built by `font_prerender` in the
+; `font_pre7`, one table per phase, built by `font_prerender` in the
 ; converter. For each of the FONT_PRE_ROWS rows and each of the two cells
 ; it can touch come three words —what is kept from the buffer, and what is
 ; set in planes 0-1 and in 2-3—, so painting is read, mask and write. A cell
 ; that touches nothing comes with the mask at $FFFF and is skipped.
 ;
-; **The column is capped by `message_tick`**, not by this: here `comp_col`
-; has already arrived as good and the offset that comes from it is used
-; without checking. The cap is there because the byte has to be consumed
-; anyway even if it is not drawn.
+; **The edge is checked by `message_tick`**, not by this: here `comp_col`
+; —x, in pixels— has already arrived as good and the offset that comes from
+; it is used without checking. The check is there because the byte has to be
+; consumed anyway even if it is not drawn.
 ;
 ; Until 2026-09-11 this painted each row twice —the shadow and then the
 ; glyph, with a `pintar` routine that built the masks on each call— and
@@ -609,6 +646,18 @@ more:
 ; rain. The result is the same byte for byte: the order of `Font::Render`
 ; —the shadow of a row is overwritten by the glyph of the next— already comes
 ; resolved in the tables.
+;
+; **The tables are a decision with a number, and it was taken again on
+; 2026-10-03.** With the variable-width font a letter lands on any of the
+; eight columns of a cell, so the precomposed tables went from four phases to
+; eight: 117 KB of ROM. The other way was the font itself, one bit per pixel
+; —1.1 KB, plus 4.5 KB of a table with each row shifted to each phase—, and
+; the colour and the shift done here, letter by letter. Both were written and
+; draw the same window pixel for pixel; measured as `MSG_CHARS` is, over map
+; 6 with the camera scrolling, the one-bit one loses frames from 11 letters
+; per pass —once already with 6— and this one from 20. It costs about twice
+; as much per letter, and 5 would have been left with no margin to speak of.
+; The 117 KB went in: the cartridge is 8 MB.
 .proc compose_char
 .a8
 .i16
@@ -617,22 +666,16 @@ more:
     lda #FONT_PRE_CHAR
     sta WRMPYB                  ; starts: what follows gives it the eight cycles
 
-    ; Where it lands: x = border + 6 per column, and from that the cell and
-    ; the phase.
+    ; Where it lands: `comp_col` is x inside the window, in pixels, and from
+    ; it come the cell and the phase. Until the font had variable width x
+    ; was the border plus six per column, and the phase only 0, 2, 4 or 6.
     rep #$20
 .a16
     lda comp_col
-    sta temp
-    asl a
-    clc
-    adc temp
-    asl a                       ; times 6
-    clc
-    adc #WINDOW_BORDER
-    sta temp                    ; x inside the window
     and #$0007
-    sta comp_phase              ; 0, 2, 4 or 6
-    lda temp
+    asl a
+    sta comp_phase              ; twice the phase: 0 to 14
+    lda comp_col
     lsr a
     lsr a
     lsr a

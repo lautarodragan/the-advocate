@@ -43,6 +43,29 @@
 //! from three new tables —`item_crit_k`, `actor_crit_row` and
 //! `crit_table`, nine lines— and the two hashes of the whole `.inc` moved:
 //! without those nine lines the text is the old one byte for byte.
+//!
+//! On 2026-10-03 the font got variable width: the window's line is
+//! measured in pixels, `MESSAGE_WIDTH` and not `MESSAGE_COLS`, and two
+//! tables more go with the font, `font_advance` and `font_reach`. The two
+//! requests carry them now —RM2k's fixed font, six pixels a letter— and
+//! the two hashes of the whole `.inc` moved: the difference against the old
+//! text is those two tables, that constant, and the two comments that
+//! name them.
+//!
+//! Also on 2026-10-03 the item, equipment, shop and battle screens stopped
+//! drawing a letter per cell: they compose their text like the window, from
+//! the font precomposed for their palettes. The requests carry
+//! `text_inks` —the same four palettes, and eight made-up tables of six
+//! bytes— where they carried `items_font`, and `SCR_TEXT_X` and
+//! `SCR_TEXT_Y` in the geometry, and the two hashes moved: the difference
+//! against the old text is `items_tiles`, `item_glyph_cells`,
+//! `ITEMS_TILES` and `ITEM_GLYPHS_GRAY` gone, and the eight `scr_pre`
+//! tables and the two constants in their place.
+//!
+//! And the same day the menu's bank started composing the names: the
+//! requests carry `slots.prerender`, eight more made-up tables, and the two
+//! hashes moved by the eight `slot_pre` tables they come out as and nothing
+//! else.
 
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_mapdata::record;
@@ -206,10 +229,10 @@ fn without_commons(text: &str) -> String {
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
     let text = without_commons(&without_pairs(&emitted.text));
-    assert_eq!(text.lines().count(), 3318);
+    assert_eq!(text.lines().count(), 3371);
     assert_eq!(
         sha(&text),
-        "3450ae1eff7b0d8bb597ae3e9ed3847c4091c1dc1f14f077ed3034df3a2843e2"
+        "8abd4c5550c5e87134dcc46a56cbec4c5d020ea76b5619a6fafe101443471f89"
     );
 }
 
@@ -217,10 +240,10 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
     let text = without_commons(&without_pairs(&emitted.text));
-    assert_eq!(text.lines().count(), 3437);
+    assert_eq!(text.lines().count(), 3490);
     assert_eq!(
         sha(&text),
-        "e43402c5657aa2e58eaa3c5e268bba0896a0634fbd5d2173684a232ebb94fda3"
+        "08088dbf4e218863988238e373835c4409cdcad31010d2a9f7d3a10156a3d4f7"
     );
 }
 

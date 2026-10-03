@@ -10,6 +10,16 @@
 //! result, which is what allows applying it on every build instead of
 //! storing its output.
 //!
+//! **A line is measured in pixels, with the font's advances** —see
+//! [`Measure`]—: with a variable-width font "how many letters fit" has no
+//! answer, and a line of narrow letters takes more of them than one of wide
+//! ones. The costs below were tuned counting letters of RM2k's fixed font,
+//! so the lengths among them are in **letters as wide as the `n`**: a
+//! font's `n` is what one of them is worth in pixels. With RM2k's font,
+//! every letter as wide as the `n`, it all comes out exactly as when the
+//! reflow counted characters, to the last bit of each cost: the pixels are
+//! the letters times six, and the divisions that compare them are exact.
+//!
 //! The rules, and where each one comes from:
 //!
 //! * **A box that fits is returned as is**, with its breaks and its
@@ -38,6 +48,7 @@
 //! reflow this replaces added them: two layouts that tie or nearly tie are
 //! decided by those sums, and the boxes have to be those.
 
+use crate::font::Font;
 use std::collections::BTreeMap;
 
 // The costs. They are taste and not a measurement: with other values the
@@ -146,10 +157,81 @@ pub fn escape_tail(lines: &[String]) -> Result<(Vec<String>, usize, bool), Canno
     Ok((lines, pauses, auto_close))
 }
 
-/// How many columns a text takes: one character, one column. The font is
-/// fixed-width, and the only escapes that compile go in the tail, outside
-/// of this.
-pub fn width(text: &str) -> usize {
+/// How a line is measured: the advances of the font it will be drawn
+/// with, how many pixels it may take, and how many pixels a letter is
+/// worth for the costs —the font's `n`—.
+///
+/// The only escapes that compile go in the tail, outside of what is
+/// measured.
+#[derive(Debug, Clone)]
+pub struct Measure {
+    advances: Vec<u8>,
+    /// The pixels a line may take.
+    pub width: usize,
+    /// What one letter of the costs is, in pixels.
+    letter: usize,
+}
+
+impl Measure {
+    /// Lines of `width` pixels in `font`.
+    pub fn new(font: &Font, width: usize) -> Measure {
+        Measure::from_advances(font.console_advances(), width)
+    }
+
+    /// Lines of `width` pixels in a font whose glyphs, from the space on,
+    /// move the line by `advances`: how a request carries a font that is
+    /// only measured.
+    pub fn from_advances(advances: Vec<u8>, width: usize) -> Measure {
+        let letter = advances.get(('n' as usize) - 32).copied().unwrap_or(1).max(1) as usize;
+        Measure { advances, width, letter }
+    }
+
+    /// The advances it measures with, from the space on.
+    pub fn advances(&self) -> &[u8] {
+        &self.advances
+    }
+
+    /// Lines of `columns` characters of a fixed-width font: RM2k's, which
+    /// is how the reflow measured until 2026-10-03.
+    pub fn columns(columns: usize) -> Measure {
+        Measure::new(&Font::rm2k(crate::font::MINCHO), columns * crate::font::WIDTH)
+    }
+
+    /// The pixels `text` takes: from where it starts to where the next
+    /// letter would.
+    pub fn of(&self, text: &str) -> usize {
+        text.chars().map(|c| self.advance(c)).sum()
+    }
+
+    /// What `c` moves the line: its glyph's advance, and a character the
+    /// font does not have is a space, which is how it is drawn.
+    pub fn advance(&self, c: char) -> usize {
+        let code = c as u32;
+        let i = (code.wrapping_sub(32)) as usize;
+        let i = if code >= 32 && i < self.advances.len() { i } else { 0 };
+        self.advances[i] as usize
+    }
+
+    /// The longest start of `word` that fits in a line, in characters: at
+    /// least one, so that a word wider than anything still advances.
+    fn prefix_that_fits(&self, word: &str) -> usize {
+        let mut taken = 0;
+        let mut used = 0;
+        for c in word.chars() {
+            used += self.advance(c);
+            if used > self.width {
+                break;
+            }
+            taken += 1;
+        }
+        taken.max(1)
+    }
+}
+
+/// How many characters a text has. It is what makes a speaker's line
+/// "short", and what cuts a box's tail off; the width on screen is
+/// [`Measure::of`].
+fn chars(text: &str) -> usize {
     text.chars().count()
 }
 
@@ -191,7 +273,7 @@ fn ends_with(word: &str, marks: &[char]) -> bool {
 /// not a name.
 pub fn is_speaker(line: &str) -> bool {
     let text = line.trim_matches(is_space);
-    if text.is_empty() || width(text) > 20 || text != text.to_uppercase() {
+    if text.is_empty() || chars(text) > 20 || text != text.to_uppercase() {
         return false;
     }
     if text.chars().all(|c| c == '?') {
@@ -201,9 +283,9 @@ pub fn is_speaker(line: &str) -> bool {
 }
 
 /// Whether the box is fully visible, not counting its escape tail.
-pub fn fits(lines: &[String], columns: usize, rows: usize) -> Result<bool, CannotCompile> {
+pub fn fits(lines: &[String], measure: &Measure, rows: usize) -> Result<bool, CannotCompile> {
     let (untailed, _, _) = escape_tail(lines)?;
-    Ok(untailed.len() <= rows && untailed.iter().all(|t| width(t) <= columns))
+    Ok(untailed.len() <= rows && untailed.iter().all(|t| measure.of(t) <= measure.width))
 }
 
 /// The box's escape tail, exactly as written, and the lines without it.
@@ -212,7 +294,7 @@ fn tail(lines: &[String]) -> Result<(Vec<String>, String), CannotCompile> {
     match untailed.last() {
         None => Ok((untailed, String::new())),
         Some(last) => {
-            let kept = width(last);
+            let kept = chars(last);
             let tail = lines[lines.len() - 1].chars().skip(kept).collect();
             Ok((untailed, tail))
         }
@@ -227,15 +309,16 @@ fn prefix(text: &str, n: usize) -> String {
 ///
 /// A word wider than a line is split by force: there is no other way to
 /// show it.
-fn words_of(rows: &[String], columns: usize) -> (Vec<String>, Vec<usize>) {
+fn words_of(rows: &[String], m: &Measure) -> (Vec<String>, Vec<usize>) {
     let mut words = Vec::new();
     let mut cuts = Vec::new();
     for row in rows {
         for word in split_words(row) {
             let mut word = word;
-            while width(&word) > columns {
-                words.push(prefix(&word, columns));
-                word = word.chars().skip(columns).collect();
+            while m.of(&word) > m.width {
+                let n = m.prefix_that_fits(&word);
+                words.push(prefix(&word, n));
+                word = word.chars().skip(n).collect();
             }
             words.push(word);
         }
@@ -275,9 +358,13 @@ fn cut_cost(words: &[String], cuts: &[usize], i: usize) -> i64 {
 }
 
 /// A piece of sentence separated from the rest by a line break.
-fn fragment_cost(words: &[String]) -> f64 {
-    let missing = (TAIL_MIN - width(&joined(words)) as i64).max(0);
-    (missing * missing) as f64 / WEIGHT_TAIL
+///
+/// The lengths are pixels and the constants letters, so the square is
+/// divided by the letter's, squared too.
+fn fragment_cost(words: &[String], m: &Measure) -> f64 {
+    let letter = m.letter as i64;
+    let missing = (TAIL_MIN * letter - m.of(&joined(words)) as i64).max(0);
+    (missing * missing) as f64 / (WEIGHT_TAIL * (letter * letter) as f64)
 }
 
 /// A cost that is still an integer or already a float, like the sums of
@@ -332,16 +419,18 @@ impl Cost {
 /// The last line does not pay for its gap —it ends where the text ends—,
 /// but it does pay for being left with a single word or with a short piece
 /// of the sentence above.
-fn line_cost(words: &[String], cuts: &[usize], i: usize, j: usize, columns: usize) -> Cost {
+fn line_cost(words: &[String], cuts: &[usize], i: usize, j: usize, m: &Measure) -> Cost {
     let n = words.len();
-    let length = width(&joined(&words[i..j])) as i64;
+    let length = m.of(&joined(&words[i..j])) as i64;
+    let columns = m.width;
+    let square = (m.letter * m.letter) as f64;
     let ends: Vec<usize> = (i..j).filter(|&k| ends_sentence(&words[k])).collect();
     let starts_sentence = i == 0 || ends_sentence(&words[i - 1]);
     let mut cost = Cost::Int(0);
     // The end of a sentence that started on the line above.
     if !starts_sentence && (j == n || (!ends.is_empty() && ends[0] < j - 1)) {
         let last = if ends.is_empty() { j } else { ends[0] + 1 };
-        cost = cost.add_float(fragment_cost(&words[i..last]));
+        cost = cost.add_float(fragment_cost(&words[i..last], m));
     }
     if j == n {
         if j - i == 1 && i > 0 {
@@ -351,13 +440,13 @@ fn line_cost(words: &[String], cuts: &[usize], i: usize, j: usize, columns: usiz
     }
     // The start of a sentence that continues on the line below.
     if !ends_sentence(&words[j - 1]) && !ends.is_empty() {
-        cost = cost.add_float(fragment_cost(&words[ends[ends.len() - 1] + 1..j]));
+        cost = cost.add_float(fragment_cost(&words[ends[ends.len() - 1] + 1..j], m));
     }
     let gap = columns as i64 - length;
     if ends_sentence(&words[j - 1]) && starts_sentence {
-        cost = cost.add_float((gap * gap) as f64 / WEIGHT_GAP);
+        cost = cost.add_float((gap * gap) as f64 / (WEIGHT_GAP * square));
     } else if ends_pause(&words[j - 1]) {
-        cost = cost.add_float((gap * gap) as f64 / WEIGHT_GAP_PAUSE);
+        cost = cost.add_float((gap * gap) as f64 / (WEIGHT_GAP_PAUSE * square));
     } else {
         cost = cost.add_float(WEIGHT_GAP_SPLIT * (gap as f64 / columns as f64).powf(3.0));
     }
@@ -368,7 +457,7 @@ fn line_cost(words: &[String], cuts: &[usize], i: usize, j: usize, columns: usiz
 ///
 /// It is TeX's paragraph algorithm in miniature: dynamic programming over
 /// where each line ends, keeping count of how many there are so far.
-fn rows_of(words: &[String], cuts: &[usize], columns: usize, limit: Option<usize>) -> Vec<String> {
+fn rows_of(words: &[String], cuts: &[usize], m: &Measure, limit: Option<usize>) -> Vec<String> {
     let n = words.len();
     if n == 0 {
         return Vec::new();
@@ -379,13 +468,13 @@ fn rows_of(words: &[String], cuts: &[usize], columns: usize, limit: Option<usize
     best[0].insert(0, (Cost::Int(0), 0));
     for j in 1..=n {
         for i in (0..j).rev() {
-            if width(&joined(&words[i..j])) > columns {
+            if m.of(&joined(&words[i..j])) > m.width {
                 break;
             }
             if best[i].is_empty() {
                 continue;
             }
-            let own = line_cost(words, cuts, i, j, columns);
+            let own = line_cost(words, cuts, i, j, m);
             let before: Vec<(usize, Cost)> = best[i].iter().map(|(k, (c, _))| (*k, *c)).collect();
             for (k, previous) in before {
                 let cost = previous.add(own);
@@ -437,7 +526,7 @@ fn rows_of(words: &[String], cuts: &[usize], columns: usize, limit: Option<usize
 ///
 /// Each box is filled with whole sentences while they fit. A sentence that
 /// does not fit in a box on its own is split by lines.
-fn stretches_of(words: &[String], cuts: &[usize], columns: usize, body: usize) -> Vec<Vec<String>> {
+fn stretches_of(words: &[String], cuts: &[usize], m: &Measure, body: usize) -> Vec<Vec<String>> {
     let mut sentences = Vec::new();
     let mut first = 0;
     for (i, word) in words.iter().enumerate() {
@@ -452,7 +541,7 @@ fn stretches_of(words: &[String], cuts: &[usize], columns: usize, body: usize) -
             .filter(|&&c| a <= c && c < b)
             .map(|&c| c - a)
             .collect();
-        rows_of(&words[a..b], &local, columns, Some(body))
+        rows_of(&words[a..b], &local, m, Some(body))
     };
     let mut stretches = Vec::new();
     let (mut start, mut end) = (0, 0);
@@ -488,13 +577,19 @@ fn stretches_of(words: &[String], cuts: &[usize], columns: usize, body: usize) -
 }
 
 /// The boxes that replace this one, each a list of lines, for a window of
-/// `columns` characters and `rows` lines.
+/// `columns` characters of RM2k's fixed-width font and `rows` lines.
+pub fn refit(lines: &[String], columns: usize, rows: usize) -> Vec<Vec<String>> {
+    refit_measured(lines, &Measure::columns(columns), rows)
+}
+
+/// The boxes that replace this one, each a list of lines, for a window
+/// whose lines are measured with `measure` and that shows `rows` of them.
 ///
 /// Returns the box untouched if it already fits, or if it carries an
 /// escape that does not compile —[`CannotCompile`]—: that box does not
 /// reach a console, so there is nothing to arrange.
-pub fn refit(lines: &[String], columns: usize, rows: usize) -> Vec<Vec<String>> {
-    match fits(lines, columns, rows) {
+pub fn refit_measured(lines: &[String], measure: &Measure, rows: usize) -> Vec<Vec<String>> {
+    match fits(lines, measure, rows) {
         Err(CannotCompile) | Ok(true) => return vec![lines.to_vec()],
         Ok(false) => {}
     }
@@ -507,8 +602,8 @@ pub fn refit(lines: &[String], columns: usize, rows: usize) -> Vec<Vec<String>> 
         head.push(untailed.remove(0));
     }
     let body = rows - head.len();
-    let (words, cuts) = words_of(&untailed, columns);
-    let mut stretches = stretches_of(&words, &cuts, columns, body);
+    let (words, cuts) = words_of(&untailed, measure);
+    let mut stretches = stretches_of(&words, &cuts, measure, body);
     if stretches.is_empty() {
         stretches.push(Vec::new());
     }

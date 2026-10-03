@@ -20,7 +20,8 @@
 ; `jsl`, with the data bank at 0: the registers are addressed absolute.
 
 ; The windows, and the medicine's name and count. With the screen off,
-; after `slot_bank_upload`.
+; after `slot_bank_upload`. The name goes in two lines, each composed in
+; the menu's bank like the actors' names; the count, one digit per cell.
 .proc target_upload
 .a8
 .i16
@@ -99,66 +100,29 @@
     clc
     adc temp                    ; k * 22
     .assert TARGET_NAME_WIDTH = 11, error, "the name is indexed by k * 22"
-    tax
+    ; Each line composed —see `tl_strip`—, from where it starts in the table.
+    clc
+    adc #.loword(target_names)
+    sta msg_ptr
+    sep #$20
+.a8
+    lda #^target_names
+    sta msg_ptr + 2
+    lda #TARGET_NAME_WIDTH
     ldy #TARGET_NAME_VRAM
-    jsr line
+    jsl f:tl_strip + FAST
     rep #$20
 .a16
-    txa
+    lda msg_ptr
     clc
     adc #TARGET_NAME_WIDTH
-    tax
-    ldy #(TARGET_NAME_VRAM + 64)
-    jsr line
-    jmp target_count
-
-; One line: X its first letter in `target_names`, Y the cell. The top
-; cells of all the letters and then the bottom ones, like
-; `slot_text_write`. Leaves X as it was and returns with an 8-bit A.
-line:
+    sta msg_ptr
     sep #$20
 .a8
-    sty VMADDL
-    stz temp + 2                ; the top cells
-    stz temp + 3
-    jsr pass
-    rep #$20
-.a16
-    tya
-    clc
-    adc #32                     ; and the bottom ones
-    sta VMADDL
-    sep #$20
-.a8
-    lda #2
-    sta temp + 2
-pass:
-    phx
     lda #TARGET_NAME_WIDTH
-    sta temp
-letter:
-    lda f:target_names, x
-    phx
-    rep #$20
-.a16
-    and #$00FF
-    sec
-    sbc #ITEM_FIRST_CHAR
-    asl a
-    asl a                       ; four bytes per glyph
-    clc
-    adc temp + 2
-    tax
-    lda f:slot_glyph_cells, x
-    sta VMDATAL
-    sep #$20
-.a8
-    plx
-    inx
-    dec temp
-    bne letter
-    plx
-    rts
+    ldy #(TARGET_NAME_VRAM + 64)
+    jsl f:tl_strip + FAST
+    jmp target_count
 .endproc
 
 ; How many are left of the medicine in `pick_edges`, in two digits —the tens

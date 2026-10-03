@@ -827,7 +827,7 @@ no:
     rts
 .endproc
 
-; The whole screen, in `text_buf`.
+; The whole screen, written to the text layer: see `text_layer.s`.
 .proc ba_compose
 .a8
 .i16

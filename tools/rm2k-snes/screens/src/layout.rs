@@ -83,16 +83,19 @@ pub const FACE_PALETTES_MAX: usize = 7;
 /// How many tiles fit in the screen's bank: see the VRAM checks.
 pub const SLOT_TILES_MAX: usize = 448;
 
-// --- what depends on the actor, composed with glyphs ---------------------------
+// --- what depends on the actor ----------------------------------------------------
 //
-// The name, the level and the max HP **are composed one letter per cell**,
-// like the gold digits: the text costs once —the letters the names use— and
-// the only thing that grows per actor is the faces. The price is declared:
-// the letters go at an 8-pixel pitch and not at the font's 6.
+// The name, the level and the max HP **are not baked** per actor: the only
+// thing that grows per actor is the faces. The numbers go **one per cell**,
+// like the gold, from glyphs —the digits, the slash, the dash and the
+// space—, and the price is declared: they go at an 8-pixel pitch and not at
+// the font's. The names are **composed**, since 2026-10-03, into tiles of
+// their own each time the screen opens: one per cell they left gaps of three
+// pixels between the letters of a variable-width font. See `tl_strip` in
+// the runtime.
 //
-// The glyphs are drawn **in the same cell and with the same offset as the
-// gold digits** —one in x, two in y—, so the ten digits come from here and
-// the screen does not carry two sets of digits.
+// Both are drawn **from the same place in the cell** —one in x, two in y—,
+// which is also the text screens' (`SCR_TEXT_X`, `SCR_TEXT_Y`).
 /// The cell where a loose glyph is drawn; both are arbitrary.
 pub const GLYPH_COL: usize = 3;
 pub const GLYPH_ROW: usize = 25;
@@ -184,8 +187,11 @@ pub const MENU_EXP_TERM_CELLS: usize = 2;
 // depend on how many items there are.
 pub const ITEM_DESC_Y: usize = 8;
 pub const ITEM_DESC_COL: usize = 1;
-/// Letters per line, one per cell.
+/// The description's cells: a line takes [`DESC_WIDTH_PX`].
 pub const ITEM_DESC_WIDTH: usize = 30;
+/// The pixels a description line may take: its cells, from where a text
+/// starts inside its first one.
+pub const DESC_WIDTH_PX: usize = ITEM_DESC_WIDTH * CELL - SCR_TEXT_X;
 pub const ITEM_DESC_LINES: usize = 2;
 /// With ten rows from 56 both windows leave the same spacing as RM2k.
 pub const ITEM_LIST_Y: usize = 56;
@@ -246,6 +252,17 @@ pub const ITEM_BAR_WIDTH: usize = (ITEM_DIGITS_COL + 2 - ITEM_NAME_COL) * CELL +
 /// How many colour-memory entries a 4bpp palette takes: the menu's, at the
 /// bottom because a 4bpp BG only reaches the low ones.
 pub const MENU_CGRAM: usize = 16;
+
+// --- the text layer ------------------------------------------------------------
+//
+// The text screens' text is composed —see `text_layer.s` in the runtime—: a
+// write starts at a cell, and its letters go one after the other at their own
+// advance, each line in two cell rows of its own tiles.
+/// Where a text starts inside its first cell, in x: the pixel the
+/// one-letter-per-cell font drew its letters from, so the text did not move.
+pub const SCR_TEXT_X: usize = 1;
+/// And where the glyph's first row goes, inside the line's two cell rows.
+pub const SCR_TEXT_Y: usize = 2;
 
 /// A window: x, y, width and height.
 pub type Rect = (usize, usize, usize, usize);
@@ -575,15 +592,26 @@ pub const WINDOW_ROWS_INC: usize = WINDOW_HEIGHT / CELL;
 /// deduplicated, and **the text area, 30 columns by 8 rows of cells, not
 /// deduplicated**: each cell has its fixed tile, because the cartridge
 /// rewrites them and cannot go around looking for repeats. That is where
-/// the cap on the characters per line comes from: with one more, the
-/// shadow of the last one spills into one more column of cells.
+/// the width of a line comes from: [`MESSAGE_WIDTH`].
 pub const WINDOW_TEXT_ROW: usize = 1;
 pub const WINDOW_TEXT_ROWS: usize = 8;
 pub const WINDOW_TEXT_COL: usize = 1;
 pub const WINDOW_TEXT_COLS: usize = 30;
-/// The glyph, which is what the cartridge composes.
+/// The pixels a line of the window may take: the text area's, from the
+/// border. A letter that would paint past it is not drawn —see
+/// `font_reach`—. With RM2k's six-pixel font it was 39 characters; RM2k's
+/// own window takes about 50 of its letters, and the variable-width font
+/// about 49.
+pub const MESSAGE_WIDTH: usize = WINDOW_TEXT_COLS * CELL;
+/// The glyph, which is what the cartridge composes. `FONT_WIDTH` is RM2k's
+/// fixed advance, which the menu's experience line still steps by.
 pub const FONT_WIDTH: usize = font::WIDTH;
 pub const FONT_HEIGHT: usize = font::HEIGHT;
+/// How many glyphs the cartridge's font tables carry —the sheet's and the
+/// cursor's blank— and in how many phases each is precomposed: one per
+/// column of a cell a letter can start at.
+pub const FONT_GLYPHS: usize = font::CONSOLE_GLYPHS;
+pub const FONT_PHASES: usize = 8;
 /// The precomposed glyphs: per glyph and phase, the cell rows it touches
 /// —its twelve, and one more of shadow— and per row the two cells it can
 /// step on, three words each.
@@ -620,7 +648,8 @@ pub fn publish() -> Value {
         MENU_MAX_X, MENU_NAME_COL, MENU_NAME_COLS, MENU_NAME_ROW, MENU_LEVEL_COL,
         MENU_LEVEL_ROW, MENU_MAX_COL, MENU_MAX_DIGITS, MENU_EXP_X, MENU_EXP_Y,
         MENU_EXP_NUM_DX, MENU_EXP_DIGITS, MENU_EXP_LETTERS, MENU_EXP_TERM_CELLS,
-        ITEM_DESC_Y, ITEM_DESC_COL, ITEM_DESC_WIDTH, ITEM_DESC_LINES, ITEM_LIST_Y, ITEM_ROWS,
+        ITEM_DESC_Y, ITEM_DESC_COL, ITEM_DESC_WIDTH, DESC_WIDTH_PX, SCR_TEXT_X, SCR_TEXT_Y,
+        ITEM_DESC_LINES, ITEM_LIST_Y, ITEM_ROWS,
         ITEM_CURSOR_COL, ITEM_NAME_COL, ITEM_NAME_WIDTH, ITEM_COLON_COL, ITEM_DIGITS_COL,
         ITEM_FIRST_CHAR, ITEM_CHARS, ITEM_WHITE, ITEM_GRAY, ITEM_UP, ITEM_RED,
         ITEM_UP_CHARS, ITEMS_TILES_MAX, ITEM_HELP_HEIGHT, ITEM_BORDER_CGRAM,
@@ -641,7 +670,7 @@ pub fn publish() -> Value {
         BORDER, END_YES, END_NO, END_DEFAULT_CHOICE, END_FADE_FRAMES, END_SONG_FADE_MS,
         WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_COLS_INC, WINDOW_ROWS_INC, WINDOW_TEXT_ROW,
         WINDOW_TEXT_ROWS, WINDOW_TEXT_COL, WINDOW_TEXT_COLS, FONT_WIDTH, FONT_HEIGHT,
-        FONT_PRE_ROWS, FONT_PRE_CHAR,
+        FONT_PRE_ROWS, FONT_PRE_CHAR, MESSAGE_WIDTH, FONT_GLYPHS, FONT_PHASES,
     );
     m.insert("ITEM_WINDOWS".into(), rects(&ITEM_WINDOWS));
     m.insert("TARGET_WINDOWS".into(), rects(&TARGET_WINDOWS));

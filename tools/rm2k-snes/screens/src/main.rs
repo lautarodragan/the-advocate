@@ -8,6 +8,8 @@ use clap::{Args as ClapArgs, Parser, Subcommand};
 use rm2k_render::picture::{self, Picture};
 use rm2k_snes_screens::request::Json;
 use rm2k_snes_screens::{boxes, convert, layout, render, Bad, Game, Result};
+use rm2k_snes_text::font::Font;
+use rm2k_snes_text::refit::Measure;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -57,7 +59,7 @@ enum Command {
     precomposed tables), the title's menu, the slot and menu bank, the text screens' font, \
     the windows of the item, equipment, shop and actor-choice screens as the cartridge \
     stores them, End Game, the texts the cartridge composes, the geometry, and what the \
-    conversion says. Its request carries `slots`, `actors`, `items`, `bank_items`, `title`, \
+    conversion says. Its request carries `slots`, `actors`, `items`, `title`, \
     `cgram_reserved` and `vram` (`slot_vram`, `slot_map` and each layout's BG1 bank as \
     [name, from, to]).\n\n\
     `render` writes screen.png, RGB. Its request carries `screen` —menu, items, target, \
@@ -83,9 +85,10 @@ struct GameArgs {
 
 #[derive(ClapArgs)]
 #[command(after_help = "Writes boxes.json into --out: the boxes that change, as \
-    {\"from\": lines, \"to\": boxes}. The request carries `columns` and `lines`, the \
-    window's size in characters, and `map_files`, the project's maps over the dump's, by \
-    number.")]
+    {\"from\": lines, \"to\": boxes}. The request carries the window: `font` —`rm2k`, \
+    one the engine carries, or a sheet's path—, `width`, a line's pixels, and `lines`; or, \
+    without `font`, `columns` characters of RM2k's font. And `map_files`, the project's \
+    maps over the dump's, by number.")]
 struct BoxesArgs {
     #[arg(long, value_name = "DIRECTORY")]
     data: PathBuf,
@@ -100,7 +103,7 @@ struct BoxesArgs {
     ignored: it is taken so every subcommand is called the same way.\n\n\
     `refit` writes refit.json: for each of the request's `boxes`, each a list of lines, \
     {\"to\": the boxes it becomes, \"speaker\": whether its first line names who speaks}. \
-    The request carries `columns` and `lines` too, the window's size in characters.")]
+    The request carries the window too, as `boxes` takes it.")]
 struct LayoutArgs {
     #[arg(long, value_name = "PATH")]
     request: Option<PathBuf>,
@@ -113,17 +116,27 @@ fn write(out: &Path, name: &str, text: &str) -> Result<()> {
     std::fs::write(out.join(name), text).map_err(|e| Bad::usage(format!("{}: {e}", out.join(name).display())))
 }
 
+/// The game, drawing with the font the request names: `font`, which is the
+/// project file's `[text] font` —`rm2k`, one the engine carries, or the
+/// path of a sheet—.
+fn game_with_font(args: &GameArgs, json: &Json) -> Result<Game> {
+    let mut game = Game::from_dump(&args.data, &args.game_dir)?;
+    game.use_font(&json.text("font")?)?;
+    Ok(game)
+}
+
 fn do_convert(args: &GameArgs) -> Result<()> {
-    let game = Game::from_dump(&args.data, &args.game_dir)?;
-    let request = Json::read(&args.request)?.convert()?;
+    let json = Json::read(&args.request)?;
+    let game = game_with_font(args, &json)?;
+    let request = json.convert()?;
     let answer = convert::convert(&game, &request)?;
     write(&args.out, "screens.json", &answer.to_string())
 }
 
 fn do_render(args: &GameArgs) -> Result<()> {
-    let game = Game::from_dump(&args.data, &args.game_dir)?;
-    let skin = game.skin()?;
     let json = Json::read(&args.request)?;
+    let game = game_with_font(args, &json)?;
+    let skin = game.skin()?;
     let slots = json.index_or("slots", 0)?;
     let chosen = json.index_or("chosen", 0)?;
     let screen: Picture = match json.text("screen")?.as_str() {
@@ -207,12 +220,30 @@ fn do_render(args: &GameArgs) -> Result<()> {
     Ok(())
 }
 
+/// How a request's window measures a line: `font` —the project file's
+/// `[text] font`— and `width` in pixels; or `advances`, each glyph's from
+/// the space on, and `width`, which is the window the converter hands the
+/// event compiler; or, without either, `columns` characters of RM2k's
+/// fixed-width font, which is how it was asked until 2026-10-03.
+fn measure_of(json: &Json) -> Result<Measure> {
+    if json.data.get("advances").is_some_and(|f| !f.is_null()) {
+        let advances = json.numbers("advances")?.into_iter().map(|a| a as u8).collect();
+        return Ok(Measure::from_advances(advances, json.index_or("width", 0)?));
+    }
+    if json.data.get("font").is_some_and(|f| !f.is_null()) {
+        let font = Font::named(&json.text("font")?, rm2k_snes_text::font::MINCHO).map_err(Bad::answer)?;
+        Ok(Measure::new(&font, json.index_or("width", 0)?))
+    } else {
+        Ok(Measure::columns(json.index_or("columns", 0)?))
+    }
+}
+
 fn do_boxes(args: &BoxesArgs) -> Result<()> {
     let json = Json::read(&args.request)?;
     let table = boxes::table(
         &args.data,
         &json.files("map_files")?,
-        json.index_or("columns", 0)?,
+        &measure_of(&json)?,
         json.index_or("lines", 0)?,
     )?;
     write(&args.out, "boxes.json", &table.to_string())
@@ -260,7 +291,7 @@ fn do_refit(args: &LayoutArgs) -> Result<()> {
                 .collect()
         })
         .collect::<Result<_>>()?;
-    let answer = boxes::refit_each(&boxes, json.index_or("columns", 0)?, json.index_or("lines", 0)?);
+    let answer = boxes::refit_each(&boxes, &measure_of(&json)?, json.index_or("lines", 0)?);
     write(&args.out, "refit.json", &answer.to_string())
 }
 

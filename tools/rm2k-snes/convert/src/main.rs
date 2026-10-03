@@ -19,6 +19,7 @@ mod compiler;
 mod convert;
 mod emit;
 mod fail;
+mod font;
 mod fork;
 mod fullscreen;
 mod game;

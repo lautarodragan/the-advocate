@@ -1,6 +1,8 @@
 //! The bank the slot screen and the pause menu share: the text that does
 //! not depend on the save, drawn once; the loose glyphs the cartridge
-//! composes names and numbers with; and the faces, each with its palette.
+//! writes numbers with; the font precomposed for the bank's text palette,
+//! which the cartridge composes names with; and the faces, each with its
+//! palette.
 //!
 //! It is a single bank and a single set of palettes, because the menu opens
 //! the save screen and both show the faces: every variant is drawn before
@@ -10,7 +12,10 @@ use crate::cells::{self, Bank, Color, Counts, BLACK, CELL, COLS};
 use crate::fail::{Bad, Result};
 use crate::game::{Game, Skin};
 use crate::layout::*;
-use crate::texts::{glyphs_of, ljust};
+use crate::items::ink_colors;
+use crate::message_window;
+use crate::texts::{ljust, NUMBER_GLYPHS};
+use rm2k_snes_text::font;
 use adeleine::luma_distance;
 use rm2k_render::picture::Picture;
 use std::collections::{BTreeMap, HashMap};
@@ -24,7 +29,8 @@ pub struct MenuBlocks {
     pub options: Vec<[Vec<u16>; 2]>,
     /// The ">", two cells.
     pub cursor: Vec<u16>,
-    /// The two cells of each letter the cartridge composes.
+    /// The two cells of each letter of the numbers, which the cartridge
+    /// writes one per cell.
     pub glyphs: BTreeMap<char, Vec<u16>>,
     /// The currency term, after the gold.
     pub currency: Vec<u16>,
@@ -51,6 +57,9 @@ pub struct Slots {
     pub menu: MenuBlocks,
     /// The actors whose face had to borrow another's palette.
     pub lent: Vec<i32>,
+    /// The font precomposed for palette 0, one table per phase: what the
+    /// cartridge's `tl_strip` composes names with —see `text_layer.s`—.
+    pub prerender: Vec<Vec<u8>>,
 }
 
 /// What each layer drawn is, so the second pass knows where to cut it.
@@ -70,7 +79,7 @@ enum Kind {
 /// cartridge composes it with glyphs, because it depends on the actor.
 fn level_term(game: &Game, skin: &Skin, dest: &mut Picture, x: usize, y: usize) -> Result<()> {
     let term: String = game.term("lvl_short")?.chars().take(2).collect();
-    skin.draw_line(dest, x as i64, y as i64, &ljust(&term, 2), 1, game.font_id());
+    skin.draw_line(dest, x as i64, y as i64, &ljust(&term, 2), 1, &game.font);
     Ok(())
 }
 
@@ -157,17 +166,16 @@ fn lend(
     (which, index)
 }
 
-/// The slot screen's and the menu's bank, for `slots` save slots, the
-/// `actors` that can be in the party —their faces and the letters of their
-/// names— and the letters of `extra`, which the actor choice writes.
+/// The slot screen's and the menu's bank, for `slots` save slots and the
+/// `actors` that can be in the party, whose faces it carries.
 ///
 /// A face that finds no free palette **borrows one**: without it, a game
 /// with more actors that can join than palettes would have to leave some
 /// out, and they can be the path of the story.
-pub fn slots_screen(game: &Game, skin: &Skin, slots: usize, actors: &[i32], extra: &str) -> Result<Slots> {
-    let font_id = game.font_id();
+pub fn slots_screen(game: &Game, skin: &Skin, slots: usize, actors: &[i32]) -> Result<Slots> {
+    let font = &game.font;
     let write = |dest: &mut Picture, x: usize, y: usize, text: &str, color: i32| {
-        skin.draw_line(dest, x as i64, y as i64, text, color, font_id);
+        skin.draw_line(dest, x as i64, y as i64, text, color, font);
     };
 
     // First all the text layers, so the colours can be gathered at once.
@@ -217,7 +225,7 @@ pub fn slots_screen(game: &Game, skin: &Skin, slots: usize, actors: &[i32], extr
     let mut image = cells::layer();
     write(&mut image, MENU_CURSOR_COL * CELL, MENU_OPT_Y + 2, ">", 0);
     layers.push((Kind::Cursor, image));
-    for letter in glyphs_of(game, actors, extra)? {
+    for letter in NUMBER_GLYPHS.chars() {
         let mut image = cells::layer();
         write(&mut image, GLYPH_COL * CELL + GLYPH_DX, GLYPH_ROW * CELL + GLYPH_DY, &letter.to_string(), 0);
         layers.push((Kind::Glyph(letter), image));
@@ -251,6 +259,12 @@ pub fn slots_screen(game: &Game, skin: &Skin, slots: usize, actors: &[i32], extr
             _ => seen.add_picture(image),
         }
     }
+    // And every row of the white ink and its shadow, which the composed
+    // names paint even if no baked text uses them all.
+    let (ink_rows, ink_shadow) = ink_colors(skin, 0)?;
+    for &color in ink_rows.iter().chain([&ink_shadow]) {
+        seen.add(color, 1);
+    }
     for (count, what) in [
         (seen.len(), "the text of the slots and the menu"),
         (seen_gray.len(), "the disabled commands"),
@@ -262,6 +276,11 @@ pub fn slots_screen(game: &Game, skin: &Skin, slots: usize, actors: &[i32], extr
     let mut palette = vec![BLACK];
     palette.extend(seen.by_use());
     let index = cells::index_of(&palette);
+    let at = |color: &Color| palette.iter().position(|c| c == color).expect("seen") as u8;
+    let rows: Vec<u8> = ink_rows.iter().map(at).collect();
+    let prerender =
+        message_window::font_prerender(&message_window::font_bytes(&game.font)?, &rows, at(&ink_shadow));
+    debug_assert_eq!(rows.len(), font::HEIGHT);
     let mut gray_palette = vec![BLACK];
     gray_palette.extend(seen_gray.by_use());
     let gray_index = cells::index_of(&gray_palette);
@@ -357,5 +376,6 @@ pub fn slots_screen(game: &Game, skin: &Skin, slots: usize, actors: &[i32], extr
     }
     out.tiles = bank.tiles;
     out.palettes = palettes;
+    out.prerender = prerender;
     Ok(out)
 }

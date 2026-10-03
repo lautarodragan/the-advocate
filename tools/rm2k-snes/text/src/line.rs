@@ -17,7 +17,7 @@
 //!
 //! Whatever goes past the picture it is drawn on is cut.
 
-use crate::font;
+use crate::font::Font;
 use rm2k_render::picture::Picture;
 use rm2k_render::system;
 
@@ -54,8 +54,8 @@ impl Ink {
 }
 
 /// Draws `text` on `dest` from `(x, y)` in text colour `color` with its
-/// shadow, and returns the `x` it ended at: one glyph is [`font::WIDTH`]
-/// wide.
+/// shadow, and returns the `x` it ended at: each glyph moves it by its
+/// advance in `font`.
 ///
 /// Pixel by pixel, the shadow first and the letter after, so the letter
 /// covers the shadow where they overlap —it is easyrpg's order and it
@@ -69,12 +69,12 @@ pub fn draw_line(
     y: i64,
     text: &str,
     color: i32,
-    font_id: i32,
+    font: &Font,
 ) -> i64 {
     let ink = Ink::new(system, color);
     let mut x = x;
     for ch in text.chars() {
-        for (px, py) in font::pixels(ch, font_id) {
+        for (px, py) in font.pixels(ch) {
             for (d, pixel) in [(1, ink.shadow_at(px, py)), (0, ink.text_at(px, py))] {
                 let dx = x + px as i64 + d;
                 let dy = y + py as i64 + d;
@@ -89,7 +89,7 @@ pub fn draw_line(
                 }
             }
         }
-        x += font::WIDTH as i64;
+        x += font.advance(ch) as i64;
     }
     x
 }
@@ -118,7 +118,8 @@ mod tests {
     #[test]
     fn the_letter_covers_its_shadow_and_is_cut_at_the_edge() {
         let mut dest = Picture::transparent(8, 8);
-        let end = draw_line(&mut dest, &system(), 0, -1, "ll", 0, font::MINCHO);
+        let font = Font::rm2k(crate::font::MINCHO);
+        let end = draw_line(&mut dest, &system(), 0, -1, "ll", 0, &font);
         assert_eq!(end, 12);
         let mut red = 0;
         let mut blue = 0;

@@ -36,7 +36,7 @@ pub fn options(game: &Game) -> Result<Vec<String>> {
 /// screen.
 pub fn menu(game: &Game, skin: &Skin) -> Result<TitleMenu> {
     let texts = options(game)?;
-    let font_id = game.font_id();
+    let font = &game.font;
     let layers: Vec<_> = (0..texts.len())
         .map(|chosen| {
             let mut layer = cells::layer();
@@ -48,7 +48,7 @@ pub fn menu(game: &Game, skin: &Skin) -> Result<TitleMenu> {
                     (TITLE_MENU_Y + n * TITLE_MENU_STEP) as i64,
                     &format!("{mark}{text}"),
                     0,
-                    font_id,
+                    font,
                 );
             }
             layer
