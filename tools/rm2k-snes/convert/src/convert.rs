@@ -820,6 +820,7 @@ pub fn run(options: Options) -> Result<()> {
         "big_pictures": big_layers.iter().map(|l| json!({
             "top": l["top"], "rows": l["rows"], "center": l["center"], "half": l["half"],
             "wider": l["wider"], "tiles": l["tiles"], "tilemap": l["tilemap"], "palettes": l["palettes"],
+            "mode7": l.get("mode7").cloned().unwrap_or(Value::Null),
         })).collect::<Vec<_>>(),
     });
     let emitted = emit::emit(&output, &request, &game.dump)?;

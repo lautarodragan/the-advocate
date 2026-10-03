@@ -5,7 +5,7 @@
 //! cartridge decided. A relative path is relative to the request.
 
 use crate::fail::{Bad, Result};
-use crate::{animation, background, fullscreen, scene, show_picture};
+use crate::{animation, background, fullscreen, mode7, scene, show_picture};
 use adeleine::Color;
 use serde::de::DeserializeOwned;
 use serde::Deserialize;
@@ -98,6 +98,20 @@ pub struct Background {
     pub first_palette: usize,
     pub tiles: usize,
     pub rows: usize,
+    /// The layer as a mode 7 texture too, if it fits this; absent, not.
+    #[serde(default)]
+    pub mode7: Option<Mode7Room>,
+}
+
+/// What the console grants a layer that is also a mode 7 texture: the tiles
+/// the texture's map names, the blank one included, and how many tiles and
+/// rows of cells the layer itself can take while the texture shares VRAM
+/// with it.
+#[derive(Deserialize, Clone, Copy)]
+pub struct Mode7Room {
+    pub tiles: usize,
+    pub layer_tiles: usize,
+    pub layer_rows: usize,
 }
 
 impl Paths for Background {
@@ -240,13 +254,22 @@ pub fn picture_answer(p: &show_picture::Converted) -> Value {
            "palette": colors(&p.palette), "indices": p.indices})
 }
 
-pub fn background_answer(b: &background::Background) -> Value {
-    let hex: String = b.tiles.iter().map(|v| format!("{v:02x}")).collect();
-    json!({
+pub fn background_answer(b: &background::Background, texture: Option<&mode7::Texture>) -> Value {
+    let hex = |bytes: &[u8]| -> String { bytes.iter().map(|v| format!("{v:02x}")).collect() };
+    let mut answer = json!({
         "top": b.top, "rows": b.rows, "columns": b.columns, "wider": b.wider,
-        "tile_count": b.tile_count, "tiles": hex, "tilemap": b.tilemap,
+        "tile_count": b.tile_count, "tiles": hex(&b.tiles), "tilemap": b.tilemap,
         "palettes": b.palettes.iter().map(|p| colors(p)).collect::<Vec<_>>(),
-    })
+    });
+    // Only for a layer that was asked for one, so the answer of every
+    // other is the one it always was.
+    if let Some(t) = texture {
+        answer["mode7"] = json!({
+            "tile_count": t.tile_count, "tiles": hex(&t.tiles), "map": t.map,
+            "distinct": t.distinct, "center": [b.center.0, b.center.1],
+        });
+    }
+    answer
 }
 
 pub fn backdrop_answer(b: &scene::Backdrop) -> Value {

@@ -68,7 +68,8 @@ pub fn picture(
 }
 
 /// The picture of a `ShowPicture` too big for the sprites, as a 4bpp
-/// layer, or None if not even cut to the screen do its tiles fit.
+/// layer, or None if not even cut to the screen do its tiles fit; with
+/// `mode7`, as a mode 7 texture too, if the layer leaves room for one.
 #[allow(clippy::too_many_arguments)]
 pub fn background(
     path: &Path,
@@ -81,6 +82,7 @@ pub fn background(
     first_palette: i64,
     tiles: i64,
     rows: i64,
+    mode7: bool,
 ) -> Result<Option<Value>> {
     let mut request = json!({
         "file": file(path), "use_transparent_color": use_transparent_color,
@@ -92,6 +94,14 @@ pub fn background(
     // always was.
     if let Some((x, y)) = crop {
         request["crop"] = json!([x, y]);
+    }
+    // The same for the texture, which only a picture that zooms asks for.
+    if mode7 {
+        request["mode7"] = json!({
+            "tiles": crate::pictures::M7_TILES,
+            "layer_tiles": crate::pictures::M7_LAYER_TILES,
+            "layer_rows": crate::pictures::M7_LAYER_ROWS,
+        });
     }
     let a = answer("background", &request, &[])?;
     Ok((!a.is_null()).then_some(a))

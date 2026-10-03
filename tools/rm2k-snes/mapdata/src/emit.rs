@@ -865,8 +865,18 @@ pub fn big_tilemap(rows: usize, cells: &[u16], wider: bool) -> Result<(Vec<u16>,
 ///         it, minus the line the PPU skips
 ///   word  half its height, in RM2k's pixels
 ///   word  its top on the console's screen, where it was drawn
-///   14    0, to thirty-two
+///   long  its mode 7 texture's tiles, raw: 64 bytes each, the first blank
+///   long  the rows of its map, raw: 128 bytes each, as many as the layer's
+///   word  the texture's bytes, 0 if it has none
+///   word  its map rows' bytes
+///   word  the texture's point the zoom shrinks it towards: x
+///   word  and y, the layer's row: the screen's, plus the rows above it
 /// ```
+///
+/// The last six are a picture's that a `MovePicture` zooms —see
+/// `big_picture.s`—, and zero for any other, as all were until then. The
+/// texture goes raw for the same reason as the tiles: its map is mostly
+/// zeros, but it goes up a piece per vblank, straight from the cartridge.
 ///
 /// The last two are what `OP_BIG_MOVE` needs to scroll it: the corner it
 /// goes to is computed by the console from the centre and the half height,
@@ -910,12 +920,26 @@ fn big_pictures_section(out: &mut String, r: &Emit) -> Result<()> {
              \x20   .word .loword(big_map_{k})\n    .byte ^big_map_{k}\n\
              \x20   .word .loword(big_colors_{k})\n    .byte ^big_colors_{k}\n\
              \x20   .word {}\n    .byte {}\n    .word {vofs}\n\
-             \x20   .word {}\n    .word {}\n    .res 14\n",
+             \x20   .word {}\n    .word {}\n",
             big.tiles.len(),
             sizes[k],
             big.half[1] as i16 as u16,
             corner as i16 as u16
         ));
+        match &big.mode7 {
+            None => out.push_str("    .res 14\n"),
+            Some(t) => {
+                let rows = big.rows * BIG_M7_ROW;
+                out.push_str(&format!(
+                    "    .word .loword(big_m7_tiles_{k})\n    .byte ^big_m7_tiles_{k}\n\
+                     \x20   .word .loword(big_m7_rows_{k})\n    .byte ^big_m7_rows_{k}\n\
+                     \x20   .word {}\n    .word {rows}\n    .word {}\n    .word {}\n",
+                    t.tiles.len(),
+                    t.center[0] as i16 as u16,
+                    (t.center[1] - big.top) as i16 as u16,
+                ));
+            }
+        }
     }
     out.push('\n');
     for (k, big) in r.big_pictures.iter().enumerate() {
@@ -935,8 +959,42 @@ fn big_pictures_section(out: &mut String, r: &Emit) -> Result<()> {
         line(out, &block(&format!("big_tiles_{k}"), &big.tiles));
         line(out, &block(&format!("big_map_{k}"), &streams[k]));
         line(out, &block(&format!("big_colors_{k}"), &colors));
+        if let Some(t) = &big.mode7 {
+            let (tiles, rows) = big_mode7(big.rows, t)?;
+            line(out, &block(&format!("big_m7_tiles_{k}"), &tiles));
+            line(out, &block(&format!("big_m7_rows_{k}"), &rows));
+        }
     }
     Ok(())
+}
+
+/// A row of mode 7's map: 128 tiles, of which a layer takes the first 32.
+const BIG_M7_ROW: usize = 128;
+/// The most tiles mode 7's map names, each a byte a pixel.
+const BIG_M7_TILES: usize = 256;
+const BIG_M7_TILE: usize = 64;
+
+/// A big picture's mode 7 texture as the cartridge carries it: its tiles,
+/// and its map's rows as VRAM's low bytes take them, padded to 128.
+pub fn big_mode7(rows: usize, t: &crate::request::Mode7Texture) -> Result<(Vec<u8>, Vec<u8>)> {
+    if t.tiles.len() % BIG_M7_TILE != 0 || t.tiles.len() > BIG_M7_TILES * BIG_M7_TILE {
+        return Err(Bad::answer(format!(
+            "a mode 7 texture of {} bytes: it holds {BIG_M7_TILES} tiles of {BIG_M7_TILE}",
+            t.tiles.len()
+        )));
+    }
+    if t.map.len() != rows * BIG_SCREEN {
+        return Err(Bad::answer(format!(
+            "a mode 7 texture's map has {} cells for {rows} rows of {BIG_SCREEN}",
+            t.map.len()
+        )));
+    }
+    let mut map = vec![0u8; rows * BIG_M7_ROW];
+    for r in 0..rows {
+        map[r * BIG_M7_ROW..r * BIG_M7_ROW + BIG_SCREEN]
+            .copy_from_slice(&t.map[r * BIG_SCREEN..(r + 1) * BIG_SCREEN]);
+    }
+    Ok((t.tiles.clone(), map))
 }
 
 /// A battle animation's frame as the cartridge stores it: only the tiles

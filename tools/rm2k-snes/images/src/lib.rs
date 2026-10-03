@@ -12,7 +12,8 @@
 //! * [`show_picture`]: the picture of a `ShowPicture`, where it lands and
 //!   its fifteen colours;
 //! * [`background`]: the picture of a `ShowPicture` too big for the
-//!   sprites, as a 4bpp layer with a few palettes;
+//!   sprites, as a 4bpp layer with a few palettes, and —[`mode7`]— the
+//!   same layer as a mode 7 texture, for a `MovePicture` that zooms it;
 //! * [`scene`]: a battle's backdrop, in quality and in the light fallback,
 //!   and its battlers;
 //! * [`animation`]: a battle animation's frames in the box the console
@@ -33,6 +34,7 @@ pub mod background;
 pub mod composite;
 pub mod fail;
 pub mod fullscreen;
+pub mod mode7;
 pub mod pixels;
 pub mod request;
 pub mod scene;

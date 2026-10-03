@@ -11,7 +11,7 @@ use rm2k_render::{battle, picture, show_picture as rm2k_picture};
 use rm2k_snes_images::request::{
     self, Animations, Backdrops, Background, Battlers, Fullscreen, ShowPicture,
 };
-use rm2k_snes_images::{animation, background, fullscreen, scene, show_picture, Bad, Result};
+use rm2k_snes_images::{animation, background, fullscreen, mode7, scene, show_picture, Bad, Result};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -61,11 +61,16 @@ enum Command {
         centre on RM2k's screen), \"rm_screen\", \"screen\", \"zoom\" (100 by default), \
         \"crop\": [x, y] (absent by default: the pixel of the picture the screen is cut \
         from, unscaled, instead of scaling it), \"palettes\", \"first_palette\", \"tiles\" (the most distinct tiles, the blank one \
-        included), \"rows\" (the most rows of cells)}. The answer, null if not even cut to the screen do its tiles fit: {\"top\" (where the canvas \
+        included), \"rows\" (the most rows of cells), \"mode7\": {\"tiles\", \"layer_tiles\", \
+        \"layer_rows\"} (absent by default: the layer as a mode 7 texture too, if it takes no more \
+        than those)}. The answer, null if not even cut to the screen do its tiles fit: {\"top\" (where the canvas \
         starts, from the top of the screen), \"rows\", \"columns\", \"wider\" (whether it goes \
         past the screen's sides), \"tile_count\", \"tiles\" \
         (4bpp, hex), \"tilemap\" (an entry per cell, row by row), \"palettes\" (sixteen \
-        colours each, from first_palette on)}."
+        colours each, from first_palette on), and if asked, \"mode7\": null if the layer \
+        takes more, or {\"tile_count\", \"tiles\" (a byte a pixel, hex, tile 0 blank), \"map\" \
+        (a tile per cell, row by row), \"distinct\" (the tiles before grouping them), \"center\" \
+        (where on the screen a zoom shrinks it towards)}}."
     )]
     Background(Plain),
     /// Battle backdrops, in quality and in the light fallback
@@ -184,7 +189,20 @@ fn do_background(args: &Plain) -> Result<()> {
         rows: r.rows,
     };
     let layer = background::convert(&drawn, r.x, r.y, screens, r.zoom, r.crop, room)?;
-    let answer = layer.as_ref().map_or(Value::Null, request::background_answer);
+    // The texture, if asked for and the layer leaves room for it; if it
+    // does not, the answer says so with a null.
+    let texture = match (&layer, r.mode7) {
+        (Some(l), Some(m)) if l.tile_count <= m.layer_tiles && l.rows <= m.layer_rows => {
+            Some(mode7::texture(&l.pixels, l.columns, &l.colors, m.tiles))
+        }
+        _ => None,
+    };
+    let mut answer = layer
+        .as_ref()
+        .map_or(Value::Null, |l| request::background_answer(l, texture.as_ref()));
+    if r.mode7.is_some() && texture.is_none() && !answer.is_null() {
+        answer["mode7"] = Value::Null;
+    }
     write(&args.out, "background", &answer)
 }
 

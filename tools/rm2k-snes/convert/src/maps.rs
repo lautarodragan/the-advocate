@@ -304,7 +304,8 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         .filter(|(_, n)| **n == 1)
         .map(|((name, index), _)| json!([name, index]))
         .collect();
-    let big_pictures = pictures::big_for_map(&game.game_dir, &keys, map_id, &game.cropped)?;
+    let zooms: Vec<Value> = scanned.get("zooms").and_then(Value::as_array).cloned().unwrap_or_default();
+    let big_pictures = pictures::big_for_map(&game.game_dir, &keys, &zooms, map_id, &game.cropped)?;
     let shows_animation = animations.map_shows_animation(game, map.all_commands(), &case_commands)?;
     let mut triples = Vec::new();
     let mut lists: Vec<&Command> = map.all_commands().collect();

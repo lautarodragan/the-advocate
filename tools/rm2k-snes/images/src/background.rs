@@ -69,6 +69,16 @@ pub struct Background {
     /// The palettes it draws with, from `first_palette` on, sixteen colours
     /// each; entry 0 of each is never drawn and goes black.
     pub palettes: Vec<Vec<Color>>,
+    /// The canvas as colour-memory entries, a byte a pixel row by row —0
+    /// where nothing is drawn—, and each entry's colour: what a mode 7
+    /// texture is cut from. See [`crate::mode7`].
+    pub pixels: Vec<u8>,
+    pub colors: Vec<Color>,
+    /// The point of the console's screen a zoom shrinks the picture
+    /// towards: the picture's centre where it was drawn, as RM2k zooms it;
+    /// for a cropped one, the screen's —the picture is wider than what is
+    /// seen of it, and its own centre falls off the screen's—.
+    pub center: (i64, i64),
 }
 
 /// `picture` —as RM2k draws it— centred at `(cx, cy)` of RM2k's screen at
@@ -155,6 +165,10 @@ pub fn convert(
         let drawn = canvas.draw(&pixels, x, y, w as usize, h as usize);
         if let Some(mut layer) = layer(&canvas, &drawn, room)? {
             layer.wider = x < 0 || x + w > width;
+            layer.center = match crop {
+                Some(_) => (width / 2, height / 2),
+                None => (x + w / 2, y + h / 2),
+            };
             return Ok(Some(layer));
         }
     }
@@ -288,6 +302,7 @@ fn layer(canvas: &Canvas, drawn: &[Option<Color>], room: Room) -> crate::Result<
         sixteen.resize(16, [0, 0, 0]);
         out_palettes.push(sixteen);
     }
+    let colors = indexed.colors.iter().map(|c| c.map_or([0, 0, 0], |(r, g, b)| [r, g, b])).collect();
     Ok(Some(Background {
         top: canvas.top,
         rows: canvas.height / CELL,
@@ -297,6 +312,9 @@ fn layer(canvas: &Canvas, drawn: &[Option<Color>], room: Room) -> crate::Result<
         tiles: cut.tiles,
         tilemap: cut.tilemap.into_iter().flatten().collect(),
         palettes: out_palettes,
+        pixels: indexed.pixels,
+        colors,
+        center: (0, 0),
     }))
 }
 

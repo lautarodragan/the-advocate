@@ -342,6 +342,9 @@ pub struct BigPicture {
     pub key: PictureKey,
     pub image: u8,
     pub center: (i32, i32),
+    /// Whether the cartridge carries it with a mode 7 texture too, which is
+    /// what lets a `MovePicture` zoom it: see [`Pictures::zooms`].
+    pub texture: bool,
 }
 
 /// The pictures of one map: which ones the caller put into its sprite bank,
@@ -369,6 +372,13 @@ pub struct Pictures {
     /// Whether this compilation is gathering instead: then `table` fills up
     /// with every picture met, with slot 0, and nothing is emitted.
     pub gathering: bool,
+    /// What the gathering also writes down: each `MovePicture` that the
+    /// console could show, as its number and the size it goes to. The caller
+    /// gives a big picture shown under that number a mode 7 texture if the
+    /// size is not the one it was shown at —see [`BigPicture::texture`]—:
+    /// which picture the number names is not known here, and an extra
+    /// texture costs only cartridge.
+    pub zooms: Vec<(i32, i32)>,
 }
 
 impl Pictures {
@@ -378,6 +388,7 @@ impl Pictures {
             table: Vec::new(),
             big: Vec::new(),
             gathering: true,
+            zooms: Vec::new(),
         }
     }
 
@@ -411,6 +422,17 @@ impl Pictures {
         if !self.table.iter().any(|(k, _)| *k == key) {
             self.table.push((key, 0));
         }
+    }
+
+    /// Gathers a move of `number` to `zoom` percent, once.
+    pub fn gather_zoom(&mut self, number: i32, zoom: i32) {
+        if !self.zooms.contains(&(number, zoom)) {
+            self.zooms.push((number, zoom));
+        }
+    }
+
+    pub fn zooms_json(&self) -> Value {
+        json!(self.zooms.iter().map(|(n, z)| json!([n, z])).collect::<Vec<_>>())
     }
 
     pub fn keys_json(&self) -> Value {

@@ -16,7 +16,7 @@ use crate::game::{Command, Game, Sound};
 use crate::messages::Messages;
 use rm2k_snes_bytecode::events::*;
 use crate::pages::MapEvents;
-use crate::registry::{Backdrop, Graphics, Package, PictureKey, Pictures, Songs, Troops};
+use crate::registry::{Backdrop, BigPicture, Graphics, Package, PictureKey, Pictures, Songs, Troops};
 use crate::route;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
@@ -2595,6 +2595,10 @@ pub fn compile_picture(
     Ok(Some(out))
 }
 
+/// The largest size `OP_BIG_ZOOM` takes, in percent of the size shown: what
+/// its byte holds.
+const ZOOM_SIZE_MAX: i32 = 255;
+
 /// The slot `OP_PICTURE_ERASE` names the big picture with: it has one
 /// place, the background layer, and no sprite slot. Bit 7, which no slot
 /// reaches.
@@ -2621,11 +2625,22 @@ pub const PICTURE_BIG: u8 = 0x80;
 /// computes the corner from it as RM2k does, with half the size of the
 /// picture that is up —which one is, it only knows when it runs—.
 ///
-/// **A zoom that shrinks is a fade**, which is what the photos of maps 212
-/// to 216 do: they shrink from 100 to 0 in two seconds on a black screen.
-/// The console does not scale a background without mode 7, so the picture
-/// fades to black in that time instead: the transparency it goes to is what
-/// is left of its area, `100 - (100 - t) × zoom / shown`. See
+/// **A zoom is done in mode 7, if the cartridge carries the picture with a
+/// texture for it** —one that a `MovePicture` of its map zooms: see
+/// [`Pictures::zooms`]—, which is what the photos of maps 212 to 216 do:
+/// they shrink from 100 to 0 in two seconds on a black screen. Every move
+/// of such a picture is an `OP_BIG_ZOOM`, with the size it goes to in
+/// percent of the one it was shown at: the size it has when the move runs
+/// is not known here.
+///
+/// ```text
+/// OP_BIG_ZOOM  OP_BIG_MOVE's operands, and the size: see OP_BIG_MOVE.
+/// ```
+///
+/// **Without a texture a zoom that shrinks is a fade**: the console does not
+/// scale a background without mode 7, so the picture fades to black in that
+/// time instead: the transparency it goes to is what is left of its area,
+/// `100 - (100 - t) × zoom / shown`. See
 /// `divergencias/lo-que-las-imagenes-grandes-no-modelan.md`.
 ///
 /// **The transparency darkens**: under a big picture there is only the
@@ -2655,9 +2670,12 @@ fn compile_big_picture(cmd: &Command, pictures: &Pictures) -> Step<Option<Vec<u8
     if p[1] != 0 {
         return Ok(None);
     }
+    // One with a texture can also grow past the size it was shown at: the
+    // matrix of mode 7 does both. Up to what the size's byte holds.
+    let size = |b: &BigPicture| p[5] * 100 / b.key.zoom.max(1);
     let Some(big) = pictures
         .numbered_big(p[0])
-        .find(|b| b.center.0 == p[2] && p[5] <= b.key.zoom)
+        .find(|b| b.center.0 == p[2] && (p[5] <= b.key.zoom || (b.texture && size(b) <= ZOOM_SIZE_MAX)))
         .cloned()
     else {
         return Ok(None);
@@ -2672,12 +2690,22 @@ fn compile_big_picture(cmd: &Command, pictures: &Pictures) -> Step<Option<Vec<u8
     let Ok(y) = i16::try_from(p[3]) else {
         return Ok(None);
     };
-    let transparency = 100 - (100 - p[6]) * p[5] / big.key.zoom;
-    let mut out = vec![OP_BIG_MOVE];
-    out.extend(tone);
-    out.extend([transparency as u8, frames as u8]);
-    out.extend(y.to_le_bytes());
-    out.extend([wave(p), p[11] as u8]);
+    let mut out = if big.texture {
+        let mut out = vec![OP_BIG_ZOOM];
+        out.extend(tone);
+        out.extend([p[6] as u8, frames as u8]);
+        out.extend(y.to_le_bytes());
+        out.extend([wave(p), p[11] as u8, size(&big) as u8]);
+        out
+    } else {
+        let transparency = 100 - (100 - p[6]) * p[5] / big.key.zoom;
+        let mut out = vec![OP_BIG_MOVE];
+        out.extend(tone);
+        out.extend([transparency as u8, frames as u8]);
+        out.extend(y.to_le_bytes());
+        out.extend([wave(p), p[11] as u8]);
+        out
+    };
     if p.len() > 15 && p[15] != 0 && frames != 0 {
         out.push(OP_DELAY);
         out.extend(word(frames)?);
@@ -3727,6 +3755,9 @@ pub fn compile_command(
             if let Some(p) = ctx.pictures.as_deref_mut().filter(|p| p.gathering) {
                 if let Some(key) = picture_key(cmd) {
                     p.gather(key);
+                }
+                if cmd.code == MOVE_PICTURE && picture_shows(&cmd.parameters, 0) {
+                    p.gather_zoom(cmd.parameters[0], cmd.parameters[5]);
                 }
                 return Ok(Vec::new());
             }
@@ -5864,6 +5895,7 @@ mod tests {
             table: table.to_vec(),
             big: Vec::new(),
             gathering: false,
+            zooms: Vec::new(),
         };
         let mut ctx = Ctx {
             game: &game,
@@ -5891,6 +5923,7 @@ mod tests {
             table: Vec::new(),
             big: big.to_vec(),
             gathering: false,
+            zooms: Vec::new(),
         };
         let mut ctx = Ctx {
             game: &game,
@@ -5921,6 +5954,7 @@ mod tests {
             key: picture_key(&show).unwrap(),
             image: 2,
             center: (160, 150),
+            texture: false,
         };
         let up = cmd(
             MOVE_PICTURE,
@@ -5948,6 +5982,7 @@ mod tests {
             key: picture_key(&photo).unwrap(),
             image: 0,
             center: (160, 120),
+            texture: false,
         };
         let shrink = cmd(
             MOVE_PICTURE,
@@ -5962,6 +5997,83 @@ mod tests {
                 OP_DONE
             ]
         );
+    }
+
+    #[test]
+    fn a_big_picture_with_a_texture_zooms_instead_of_fading() {
+        // The photo of map 212: shown at 100, shrinking to nothing in two
+        // seconds with the page waiting; then back to half, and past the
+        // size it was shown at, which only the texture can do.
+        let photo = cmd(
+            SHOW_PICTURE,
+            &[20, 0, 160, 120, 1, 100, 0, 1, 100, 100, 100, 100, 0, 60],
+            "Photo",
+        );
+        let big = BigPicture {
+            key: picture_key(&photo).unwrap(),
+            image: 3,
+            center: (160, 120),
+            texture: true,
+        };
+        let shrink = cmd(
+            MOVE_PICTURE,
+            &[20, 0, 160, 120, 0, 0, 0, 0, 100, 100, 100, 100, 0, 5497976, 20, 1],
+            "",
+        );
+        let half = moving(20, (160, 120), 50, 0, 0, false);
+        assert_eq!(
+            with_big(std::slice::from_ref(&big), &[photo.clone(), shrink.clone(), half]),
+            [
+                OP_BIG_SHOW, 3, 100, 100, 100, 0, 100, 0,
+                OP_BIG_ZOOM, 100, 100, 100, 0, 120, 120, 0, 0, 100, 0,
+                OP_DELAY, 120, 0,
+                OP_BIG_ZOOM, 0, 0, 0, 0, 0, 120, 0, 0, 100, 50,
+                OP_DONE
+            ]
+        );
+        // Shown at half, a move to 100 is twice its size; without a
+        // texture it is not done.
+        let small = cmd(
+            SHOW_PICTURE,
+            &[20, 0, 160, 120, 1, 50, 0, 1, 100, 100, 100, 100, 0, 0],
+            "Photo",
+        );
+        let grown = moving(20, (160, 120), 100, 0, 10, false);
+        let mut big = BigPicture { key: picture_key(&small).unwrap(), ..big };
+        assert_eq!(
+            with_big(std::slice::from_ref(&big), &[grown.clone()]),
+            [OP_BIG_ZOOM, 0, 0, 0, 0, 60, 120, 0, 0, 100, 200, OP_DONE]
+        );
+        big.texture = false;
+        assert_eq!(with_big(&[big], &[grown]), [OP_DONE]);
+    }
+
+    #[test]
+    fn the_scan_writes_down_what_each_move_zooms_to() {
+        let game = Game::default();
+        let sound = SoundSettings::default();
+        let indices = Indices::default();
+        let mut pictures = Pictures::gathering();
+        let mut ctx = Ctx {
+            game: &game,
+            indices: &indices,
+            sound: &sound,
+            map_index: &|_| None,
+            messages: None,
+            songs: None,
+            graphics: None,
+            pictures: Some(&mut pictures),
+            troops: None,
+            commons: None,
+            shared: None,
+        };
+        let commands = [
+            moving(20, (160, 120), 0, 0, 20, true),
+            moving(20, (160, 120), 0, 50, 20, true),
+            moving(3, (10, 10), 100, 0, 5, false),
+        ];
+        compile_page(&mut ctx, &commands, None, 0, 0).unwrap();
+        assert_eq!(pictures.zooms, [(20, 0), (3, 100)]);
     }
 
     #[test]

@@ -254,6 +254,23 @@ bytecode! {
     /// The end of a shared body: back to whoever called it or, if nobody did
     /// —an automatic common event—, the same as `OP_DONE`.
     OP_RETURN = 0x40 ();
+
+    /// 0x41 and 0x42 are Yaguareté's, from the sprite slots' cache, which goes
+    /// in at the same time as this: held here so the numbers stay contiguous,
+    /// and replaced by his at the merge.
+    OP_RESERVED_41 = 0x41 ();
+
+    OP_RESERVED_42 = 0x42 ();
+
+    /// A big picture's `MovePicture` that zooms: `OP_BIG_MOVE`'s operands and
+    /// the size it goes to in the same `frames`, in percent of the size it was
+    /// shown at —0 is gone—. It is only emitted for a picture the cartridge
+    /// carries with a mode 7 texture: the console shows it still in mode 1 and
+    /// zooms it in mode 7. See `big_picture.s` in the runtime.
+    OP_BIG_ZOOM = 0x43 (
+        red: byte, green: byte, blue: byte, transparency: byte, frames: byte,
+        y: signed word, wave: byte, saturation: byte, size: byte,
+    );
 }
 
 // `run_code` jumps through a table indexed by the opcode.

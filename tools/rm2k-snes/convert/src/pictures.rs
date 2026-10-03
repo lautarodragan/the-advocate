@@ -64,6 +64,16 @@ pub const BIG_PALETTES: i64 = 7;
 pub const BIG_FIRST_PALETTE: i64 = 1;
 pub const BIG_TILES: i64 = 1024;
 pub const BIG_ROWS: i64 = 64;
+/// A big one that a `MovePicture` zooms is also carried as a mode 7
+/// texture, whose map names 256 tiles. While it is still it is shown in
+/// mode 1 as the others, but from VRAM's upper half —mode 7 owns the lower
+/// one, and its texture goes up there meanwhile—: its tiles from word
+/// $4000 to its tilemap, one screen of 32x32 at $7C00. So it takes the 960
+/// tiles in between and 32 rows; one that takes more is not zoomed, and
+/// fades as before. `BIG_HYBRID_*` in the runtime's `big_picture.s`.
+pub const M7_TILES: i64 = 256;
+pub const M7_LAYER_TILES: i64 = 960;
+pub const M7_LAYER_ROWS: i64 = 32;
 
 /// `zoom` percent of `side`, rounded and never under one.
 pub fn zoomed(side: i64, zoom: i64) -> i64 {
@@ -293,10 +303,24 @@ pub struct Big {
     pub layer: Value,
 }
 
+/// Whether a `MovePicture` of the map zooms the picture `key`: one under
+/// its number that goes to another size than the one it was shown at.
+/// `zooms` is what the scan wrote down, `[number, zoom]` per move.
+fn moved_to_another_size(key: &Value, zooms: &[Value]) -> bool {
+    zooms.iter().any(|z| int(&z[0]) == int(&key["number"]) && int(&z[1]) != int(&key["zoom"]))
+}
+
 /// The big pictures of `keys`. The ones that do not fit even cut to the
 /// screen are left out, and their commands are accepted without being
-/// done.
-pub fn big_for_map(game_dir: &Path, keys: &[Value], map_id: i32, cropped: &Cropped) -> Result<Vec<Big>> {
+/// done. The ones a move of the map zooms —`zooms`, as the scan wrote it
+/// down— carry a mode 7 texture too, if they leave room for it.
+pub fn big_for_map(
+    game_dir: &Path,
+    keys: &[Value],
+    zooms: &[Value],
+    map_id: i32,
+    cropped: &Cropped,
+) -> Result<Vec<Big>> {
     let mut out = Vec::new();
     for key in keys {
         let name = key["name"].as_str().unwrap_or("");
@@ -317,6 +341,7 @@ pub fn big_for_map(game_dir: &Path, keys: &[Value], map_id: i32, cropped: &Cropp
             BIG_FIRST_PALETTE,
             BIG_TILES,
             BIG_ROWS,
+            moved_to_another_size(key, zooms),
         )?;
         let Some(mut layer) = layer else {
             println!(
@@ -337,17 +362,24 @@ pub fn big_for_map(game_dir: &Path, keys: &[Value], map_id: i32, cropped: &Cropp
     Ok(out)
 }
 
+/// Whether a layer carries a mode 7 texture.
+fn textured(layer: &Value) -> bool {
+    layer.get("mode7").is_some_and(|t| !t.is_null())
+}
+
 /// The cartridge's big pictures, numbered: the layers, in the order the
-/// maps meet them, and each map's table —each key with its layer's number
-/// and its centre—, which the event compiler numbers against. The same
-/// picture drawn the same way on two maps, or under two numbers, is one
-/// layer.
+/// maps meet them, and each map's table —each key with its layer's number,
+/// its centre and whether it has a texture—, which the event compiler
+/// numbers against. The same picture drawn the same way on two maps, or
+/// under two numbers, is one layer; and **it has a texture if any of them
+/// zooms it**: the other maps show it still, in mode 1, as before, from
+/// the other half of VRAM.
 pub fn number_big(maps: &[&[Big]]) -> (Vec<Value>, Vec<Vec<Value>>) {
     let mut layers: Vec<Value> = Vec::new();
     let mut index: HashMap<String, usize> = HashMap::new();
-    let mut tables = Vec::new();
+    let mut numbers: Vec<Vec<usize>> = Vec::new();
     for bigs in maps {
-        let mut table = Vec::new();
+        let mut map = Vec::new();
         for big in bigs.iter() {
             let ident = json!([big.key["name"], big.key["zoom"], big.key["transparent_color"], big.layer["center"]])
                 .to_string();
@@ -355,10 +387,24 @@ pub fn number_big(maps: &[&[Big]]) -> (Vec<Value>, Vec<Vec<Value>>) {
                 layers.push(big.layer.clone());
                 layers.len() - 1
             });
+            if textured(&big.layer) && !textured(&layers[number]) {
+                layers[number] = big.layer.clone();
+            }
+            map.push(number);
+        }
+        numbers.push(map);
+    }
+    let mut tables = Vec::new();
+    for (bigs, map) in maps.iter().zip(&numbers) {
+        let mut table = Vec::new();
+        for (big, &number) in bigs.iter().zip(map) {
             let mut entry: Map<String, Value> = big.key.as_object().cloned().unwrap_or_default();
             entry.insert("plane".into(), json!("background"));
             entry.insert("image".into(), json!(number));
             entry.insert("center".into(), big.layer["center"].clone());
+            if textured(&layers[number]) {
+                entry.insert("texture".into(), json!(true));
+            }
             table.push(Value::Object(entry));
         }
         tables.push(table);
@@ -495,6 +541,30 @@ mod tests {
         }
         let e = Cropped::read(&project("opaque = []")).unwrap_err();
         assert!(e.to_string().contains("graphics.cropped_pictures"), "{e}");
+    }
+
+    #[test]
+    fn a_layer_has_a_texture_if_any_map_zooms_it() {
+        // The same photo on three maps: still on the first, zoomed on the
+        // second; and another one, still, on the third.
+        let key = |name: &str| json!({"name": name, "zoom": 100, "transparent_color": true, "number": 20});
+        let layer = |texture: bool| {
+            json!({"center": [160, 120], "tiles": "00", "mode7": if texture { json!({"map": []}) } else { Value::Null }})
+        };
+        let still = [Big { key: key("Photo"), layer: layer(false) }];
+        let zoomed = [Big { key: key("Photo"), layer: layer(true) }];
+        let other = [Big { key: key("Other"), layer: layer(false) }];
+        let (layers, tables) = number_big(&[&still, &zoomed, &other]);
+        assert_eq!(layers.len(), 2);
+        assert!(textured(&layers[0]) && !textured(&layers[1]));
+        assert_eq!(tables[0][0]["image"], 0);
+        assert_eq!(tables[0][0]["texture"], true, "the map that shows it still too");
+        assert_eq!(tables[1][0]["texture"], true);
+        assert!(tables[2][0].get("texture").is_none(), "and nothing for one that does not zoom");
+        // Which moves zoom: another size than the one shown, under its number.
+        let zooms = [json!([20, 100]), json!([3, 0])];
+        assert!(!moved_to_another_size(&key("Photo"), &zooms));
+        assert!(moved_to_another_size(&key("Photo"), &[json!([20, 0])]));
     }
 
     #[test]
