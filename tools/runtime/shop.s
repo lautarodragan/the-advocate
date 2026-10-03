@@ -1151,6 +1151,31 @@ ready:
 .proc ti_windows
 .a8
 .i16
+    ; Only when what they depend on changed: the mode, the greeting, the
+    ; cursor, the list's first row and its length, which are the eight bytes
+    ; from `comp_col` on. Uploading
+    ; them every frame took some twenty lines of the vblank, and in the frame
+    ; the text's tilemap goes up, after them, the vblank ran out —measured on
+    ; 2026-10-03, with the list of eleven, it ended at line 269 of the next
+    ; frame: the tilemap's last rows were lost—. The layer forgets them at
+    ; each `tl_reset`, so a screen that opens uploads them.
+    ldx #0
+same:
+    lda comp_col, x
+    cmp f:$7E0000 + TL_WIN_KEY, x
+    bne changed
+    inx
+    cpx #8
+    bcc same
+    rts
+changed:
+    ldx #0
+keep:
+    lda comp_col, x
+    sta f:$7E0000 + TL_WIN_KEY, x
+    inx
+    cpx #8
+    bcc keep
     lda #$80
     sta VMAIN
     lda #^ti_border_rows
@@ -1333,8 +1358,13 @@ begins:
 wait:
     jsl f:ba_t_vblank
     jsl f:ba_t_pad                ; the controller before the DMA: see the equipment screen
-    jsl f:ba_t_upload
+    ; The windows before the text. The other way around, in the frame the
+    ; text's tilemap went up —1792 bytes, the longest DMA— the windows' bar
+    ; fell out of the vblank and was lost that frame: measured on
+    ; 2026-10-03, the windows end around line 244 and the tilemap at 254, of
+    ; the 261 of the vblank.
     jsr ti_windows
+    jsl f:ba_t_upload
     lda pad
     eor pad_prev
     and pad

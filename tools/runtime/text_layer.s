@@ -152,7 +152,9 @@ TL_STRIP_T   = TL_SWITCHED + 20 ; its first tile
 TL_STRIP_K   = TL_SWITCHED + 22 ; and how many columns, a pair of tiles each
 TL_SLOT_T    = TL_SWITCHED + 24 ; the slot screen's names: each one's tile
 TL_SLOT_K    = TL_SLOT_T + 2 * TL_SLOTS ; and columns, 0 not composed yet
-TL_END       = TL_SLOT_K + 2 * TL_SLOTS
+TL_WIN_KEY   = TL_SLOT_K + 2 * TL_SLOTS ; the shop's windows as last uploaded:
+                                ; see `ti_windows`. Eight bytes
+TL_END       = TL_WIN_KEY + 8
 .assert TL_END <= FAR_TEXT_LAYER_END, error, "the text layer does not fit in its RAM"
 
 ; A letter that is not in the font: a blank as wide as a digit, which pads a
@@ -170,10 +172,12 @@ TL_LAST_LINE = 212
 TL_LAST_STEP = 180
 SLHV         = $2137            ; reading it latches the counters
 OPVCT        = $213D            ; the line, low byte and then bit 8
-; How many pairs go up in one vblank, at most: with the tilemap and the
-; screen's own uploads —the cursor bar— the vblank fills up, and an upload
-; that falls out of it is lost. A row with more goes up over two.
-TL_PAIRS_PER_VBLANK = 32
+; How many pairs go up in one vblank, at most: they go after the screen's
+; own uploads —the shop's windows reach line 244 of the 261—, and an upload
+; that falls out of the vblank is lost. Sixteen are some six lines; with 32,
+; while the shop uploaded its windows every frame, it showed garbage tiles. A
+; row with more goes up over several.
+TL_PAIRS_PER_VBLANK = 16
 ; Where a run starts inside its cell, and where the glyph's first row goes
 ; inside a line's two cell rows: the screens stage's geometry, `SCR_TEXT_X`
 ; and `SCR_TEXT_Y`. `tl_row_ofs` is built for the second.
@@ -296,6 +300,7 @@ records:
     stz TL_SWITCHED
     stz TL_PRE
     lda #$FFFF
+    sta TL_WIN_KEY              ; the shop's windows, not uploaded yet
     sta TL_T_ROW
     sta TL_PEN_PICK
     lda #1
@@ -1714,7 +1719,13 @@ empty:
 
 ; Row A16's pairs go: each one counts one less, and the one nobody points to
 ; any more is free again —if the screen never showed it— or waits for the
-; switch; its cells of the tilemap go blank. Leaves its first cell in
+; switch; its cells of the tilemap go blank, **if they are still its own**: a
+; line takes two cell rows, so a row's lower cells are the next row's upper
+; ones, and the line that wrote them last keeps them. Until 2026-10-03 they
+; went blank anyway, and a line released under one that stayed —the shop's
+; list, scrolled, under the gold of the quantity screen— cut the half of it
+; that shared, for good: the row that stayed did not change, so it was not
+; composed again. Leaves its first cell in
 ; `TL_T2` and its first tilemap byte in `TL_T3`. A16.
 .proc tl_release_row
 .a16
@@ -1741,6 +1752,7 @@ column:
     tax
     sep #$20
 .a8
+    stx TL_C                    ; the pair, for its cells below
     lda #0
     sta TL_PAIR, y
     dec TL_REFS, x
@@ -1764,8 +1776,20 @@ still:
     tya
     asl a
     tax
+    lda TL_MAP, x
+    and #$03FF
+    lsr a
+    cmp TL_C
+    bne not_upper
     stz TL_MAP, x
+not_upper:
+    lda TL_MAP + 64, x
+    and #$03FF
+    lsr a
+    cmp TL_C
+    bne not_lower
     stz TL_MAP + 64, x
+not_lower:
     lda #1
     sta TL_MAP_DIRTY
     sep #$20
