@@ -14,6 +14,7 @@
 //! It knows nothing about menus, nor about which screen a line lands on:
 //! whoever draws a screen decides that.
 
+pub mod cells;
 pub mod font;
 mod glyphs;
 pub mod line;

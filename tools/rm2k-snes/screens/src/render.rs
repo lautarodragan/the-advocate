@@ -201,7 +201,7 @@ pub fn menu(
     choosing: Option<usize>,
 ) -> Result<Picture> {
     let known = party.known();
-    let bank = slots::slots_screen(game, skin, slots, &known)?;
+    let bank = slots::slots_screen(game, skin, slots, &known, slots::Order::Drawn)?;
     let menu = &bank.menu;
     let mut p = Painter::new(&bank.tiles, &bank.palettes);
     p.under(&borders::menu_bar(skin, choosing));
@@ -275,7 +275,7 @@ pub fn target(
 ) -> Result<Picture> {
     let known = party.known();
     let name = game.item_name(item)?;
-    let bank = slots::slots_screen(game, skin, slots, &known)?;
+    let bank = slots::slots_screen(game, skin, slots, &known, slots::Order::Drawn)?;
     let mut p = Painter::new(&bank.tiles, &bank.palettes);
     p.under(&borders::target_windows(game, skin, Some(chosen))?);
     for (row, actor) in party.members.iter().take(MENU_PARTY_ROWS).copied().enumerate() {
@@ -306,7 +306,7 @@ pub fn slot_screen(
     levels: &BTreeMap<usize, i64>,
 ) -> Result<Picture> {
     let actors: Vec<i32> = parties.values().flatten().copied().collect::<BTreeSet<_>>().into_iter().collect();
-    let bank = slots::slots_screen(game, skin, slots, &actors)?;
+    let bank = slots::slots_screen(game, skin, slots, &actors, slots::Order::Drawn)?;
     let mut p = Painter::new(&bank.tiles, &bank.palettes);
     p.paste(&bank.headers[mode], HEADER_Y / CELL, 0, COLS);
     for number in 0..slots {
@@ -383,6 +383,16 @@ impl Grid {
     pub fn write_right(&mut self, font: &Font, row: usize, last: usize, text: &str, variant: usize) {
         let x = (last + 1) * CELL + SCR_TEXT_X - 1 - font.width(text);
         self.run(row, x, text, variant);
+    }
+
+    /// The pairs of tiles the cartridge's text layer takes for these runs:
+    /// see `rm2k_snes_text::cells`.
+    pub fn pairs(&self, font: &Font) -> usize {
+        let mut rows: BTreeMap<usize, Vec<(usize, String, usize)>> = BTreeMap::new();
+        for (row, x, text, variant) in &self.runs {
+            rows.entry(*row).or_default().push((*x, text.clone(), *variant));
+        }
+        rm2k_snes_text::cells::pairs(font, rows.values().map(Vec::as_slice))
     }
 
     fn description(&mut self, font: &Font, text: &str) {
@@ -602,6 +612,12 @@ pub struct Shop {
 
 /// The shop in its mode.
 pub fn shop_screen(game: &Game, skin: &Skin, shop: &Shop) -> Result<Picture> {
+    let (text, windows) = shop_text(game, skin, shop)?;
+    text.render(game, skin, &windows)
+}
+
+/// The shop's text in its mode, and its windows.
+pub fn shop_text(game: &Game, skin: &Skin, shop: &Shop) -> Result<(Grid, Picture)> {
     let mut t = Grid::default();
     let term = |name: &str| game.term(&format!("{name}{}", shop.term_set + 1));
     let known: BTreeSet<i32> = shop
@@ -637,7 +653,7 @@ pub fn shop_screen(game: &Game, skin: &Skin, shop: &Shop) -> Result<Picture> {
             t.write(row0 + 2 * n, TI_COMMAND_COL, &split_description(&game.font, &term(command)?)[0], ITEM_WHITE);
         }
         let bar = shop.chosen + two as usize;
-        return t.render(game, skin, &borders::shop_windows(skin, layer, Some(bar)));
+        return Ok((t, borders::shop_windows(skin, layer, Some(bar))));
     }
     t.write(TI_MSG_ROW, ITEM_DESC_COL, &lines[0], ITEM_WHITE);
     let buying = matches!(shop.mode, TI_BUY | TI_COUNT_BUY | TI_BOUGHT);
@@ -691,11 +707,11 @@ pub fn shop_screen(game: &Game, skin: &Skin, shop: &Shop) -> Result<Picture> {
         let total = (price * shop.count).to_string();
         t.write_right(&game.font, TI_TOTAL_ROW, TI_GOLD_COL, &total, ITEM_WHITE);
         t.write(TI_TOTAL_ROW, TI_GOLD_COL + 1, &gold_term, ITEM_RED);
-        return t.render(game, skin, &windows);
+        return Ok((t, windows));
     }
     if matches!(shop.mode, TI_BOUGHT | TI_SOLD) {
         // The middle window, empty: RM2k.
-        return t.render(game, skin, &windows);
+        return Ok((t, windows));
     }
     let rows = if buying { TI_LIST_ROWS_BUY } else { TI_LIST_ROWS_SALE };
     for f in 0..rows {
@@ -727,7 +743,7 @@ pub fn shop_screen(game: &Game, skin: &Skin, shop: &Shop) -> Result<Picture> {
             t.write(row, ITEM_COLON_COL, &format!(":{digits}"), variant);
         }
     }
-    t.render(game, skin, &windows)
+    Ok((t, windows))
 }
 
 /// End Game with the cursor on `chosen`, rebuilt from what the cartridge

@@ -540,6 +540,11 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         SLOT_MAP.into(),
         list_at(slots, "rows")?.len().into(),
         list_at(slots, "tiles")?.len().into(),
+        slots
+            .get("menu_tiles")
+            .and_then(Value::as_u64)
+            .map_or(list_at(slots, "tiles")?.len(), |n| n as usize)
+            .into(),
         (t.n("HEADER_Y").div_euclid(cell)).into(),
         t.n("HEADER_ROWS").into(),
         (t.n("HEADER_ROWS") * cols).into(),

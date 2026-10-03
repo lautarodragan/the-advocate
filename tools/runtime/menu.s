@@ -393,6 +393,9 @@ other:
     stz HDMAEN
     stz TM
     jsr slot_bank_upload
+.if ::SLOT_MENU_TILES <> ::SLOT_TILES   ; `::`: inside a `.proc`, without it it is not constant
+    jsl f:tl_strip_menu + FAST  ; the names over the slot screen's text
+.endif
 
     ; --- the options, each in its variant ---
     lda #0
@@ -797,6 +800,9 @@ move:
     stz HDMAEN
     stz TM
     jsr slot_bank_upload
+.if ::SLOT_MENU_TILES <> ::SLOT_TILES   ; `::`: inside a `.proc`, without it it is not constant
+    jsl f:tl_strip_menu + FAST  ; the names over the slot screen's text
+.endif
     jsr menu_party_paint
     jsl f:target_upload
     stz title_sel

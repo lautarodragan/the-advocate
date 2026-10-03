@@ -255,6 +255,21 @@ impl Font {
             .unwrap_or(0)
     }
 
+    /// How many columns `ch` paints from where it starts: its ink and its
+    /// shadow, one column further; 0 for a blank. It is the console's
+    /// `font_reach`.
+    pub fn reach(&self, ch: char) -> usize {
+        if ch == CURSOR_BLANK || ch == FIGURE_BLANK {
+            return 0;
+        }
+        let ink = self.rows(ch).iter().map(|r| 16 - r.leading_zeros() as usize).max().unwrap_or(0);
+        if ink == 0 {
+            0
+        } else {
+            ink + 1
+        }
+    }
+
     /// Whether every letter moves the line the same: RM2k's.
     pub fn is_fixed(&self) -> bool {
         self.advance.iter().all(|a| *a == self.advance[0])

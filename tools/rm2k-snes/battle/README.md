@@ -126,6 +126,8 @@ the compiler gave a slot.
   are more than its learning table's.
 * `item_name_width`: how much of an item's name the item screens write,
   which is theirs: the victory names what it found with it.
+* `font` and `letter_spacing`, optional: the game's font, as the screens
+  stage takes them. With them the answer says what that font leaves out.
 
 It writes `model.json`: `layout`, the geometry and the model's constants
 —see `layout`—; `enemies`, those of the troops, and `actions`, what each
@@ -133,7 +135,11 @@ can do, as `[rating, skill or null, effective]`; `skills`, the ones the
 cartridge carries, and `taught`, the ones leveling up teaches; per pair,
 the level its learning table teaches it at (`pair_levels`); per item,
 whether the battle offers it (`item_battle`); per troop, its experience and
-gold; and `texts`, what the battle writes, cut to its place. The answer is
+gold; and `texts`, what the battle writes, cut to its place. With the
+font, also `cut`, the names a place cuts —actors, enemies, skills, items
+and skill commands, each against its cells—, and `pairs`, how many pairs
+of tiles of the text layer the busiest skill list and item list can ask
+for, with the widest texts the cartridge can put in them. The answer is
 no if the victory does not fit in its window or an enemy carries more
 actions than the console weighs.
 

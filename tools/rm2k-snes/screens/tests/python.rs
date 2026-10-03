@@ -103,12 +103,20 @@ fn everything_a_cartridge_carries() {
     // precomposed for its text palette.
     assert_eq!(
         sha(canon(&answer).as_bytes()),
-        "780edcb30a3dad1717984f3ea0e7b225bec40a8e0d82b2d43bbc9a4e039313cb"
+        "839bb4f54ea5eabb94ae4671186647b824d33714e8c21253edbe2b7a492e0784"
     );
     assert_eq!(
         answer["says"],
         serde_json::json!([
-            "  menu bank: 255 tiles of 448; the composed names ask for 62 of the 192 left",
+            "  menu bank: 255 tiles of 448; the composed names ask for 62 of the 192 the menu leaves \
+             and 48 of the 192 the slot screen does",
+            "  WARNING, 1 actor names in the menu don't fit in 13 cells (104 px) and are cut: \
+             \"Bobby-Longname\" 84 px, shows \"Bobby-Longnam\"",
+            "  WARNING, 1 leader names in the slot screen don't fit in 7 cells (56 px) and are cut: \
+             \"Bobby-Longname\" 84 px, shows \"Bobby-L\"",
+            "  WARNING, 1 medicine names in the actor choice don't fit in two lines of 11 cells and \
+             are cut: \"Hi-Potion Deluxe Extra\" 132 px, shows \"Hi-Potion / Deluxe\"",
+            "  shop text: its lists ask for 127 pairs of tiles at most, of the 191 of the pool",
             "  faces without a palette of their own, drawn with another's: Gus"
         ])
     );
@@ -128,7 +136,7 @@ fn names_that_do_not_fit_in_the_bank_are_refused() {
         vram: vram(),
     };
     let bad = convert::convert(&game(), &request).unwrap_err();
-    assert!(bad.message().contains("the composed names can ask for"), "{}", bad.message());
+    assert!(bad.message().contains("has no room for the composed names"), "{}", bad.message());
 }
 
 fn inventory() -> BTreeMap<i32, i64> {

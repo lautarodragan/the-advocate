@@ -8,7 +8,9 @@
 use crate::db::Db;
 use crate::fail::{Bad, Result};
 use crate::rules::{self, ACTIONS_MAX};
-use crate::screen::{self, BA_NAME_WIDTH, BA_SKILL_DESC_WIDTH, BA_SKILL_NAME_WIDTH};
+use crate::screen::{self, BA_NAME_WIDTH, BA_SKILL_DESC_WIDTH, BA_SKILL_NAME_LETTERS, BA_SKILL_NAME_WIDTH};
+use rm2k_snes_text::cells;
+use rm2k_snes_text::font::Font;
 use crate::simulate::{self, Battle, Combatant, Command, TroopPage, BATTLE_SEED};
 use serde_json::{json, Map, Value};
 use std::collections::{BTreeMap, BTreeSet};
@@ -155,6 +157,76 @@ pub fn model(db: &Db, request: &Value) -> Result<Value> {
     for &i in &items {
         item_battle.push(rules::item_usable_in_battle(db.item(i)?));
     }
+    // What the battle writes with the game's font, if the request says it
+    // —`font` and `letter_spacing`, as the screens stage takes them—: the
+    // names it cuts, and how many pairs of tiles of the text layer its
+    // busiest lists ask for.
+    let (cut, pairs_asked) = match request.get("font") {
+        None => (Vec::new(), Value::Null),
+        Some(spec) => {
+            let spec = spec.as_str().ok_or_else(|| Bad::answer("`font` is a name or a path"))?;
+            let spacing = request.get("letter_spacing").and_then(Value::as_i64).unwrap_or(0);
+            let font = Font::named(spec, rm2k_snes_text::font::MINCHO)
+                .and_then(|f| f.with_spacing(spacing))
+                .map_err(Bad::answer)?;
+            let mut usable = Vec::new();
+            for (&i, &battle) in items.iter().zip(&item_battle) {
+                if battle {
+                    usable.push(db.item(i)?.name.clone());
+                }
+            }
+            let mut commands = Vec::new();
+            let mut known: BTreeMap<i32, BTreeSet<i32>> = BTreeMap::new();
+            for &a in &actors {
+                commands.push(strip_name(&rules::skill_command_name(db, a)?));
+                known.insert(a, BTreeSet::new());
+            }
+            for &(a, h) in &pairs {
+                if let Some(theirs) = known.get_mut(&a) {
+                    if rules::skill_usable(db.skill(h)?) {
+                        theirs.insert(h);
+                    }
+                }
+            }
+            let party_skills: BTreeSet<i32> = known.values().flatten().copied().collect();
+            let enemy_names: Vec<String> =
+                enemies.iter().map(|&e| Ok(db.enemy(e)?.name.clone())).collect::<Result<_>>()?;
+            let skill_names: Vec<String> =
+                party_skills.iter().map(|&h| Ok(db.skill(h)?.name.clone())).collect::<Result<_>>()?;
+            let actor_names: Vec<String> =
+                actors.iter().filter_map(|a| db.actors.get(a)).map(|a| a.name.clone()).collect();
+            let places = [
+                ("actor names in the battle", &actor_names, BA_NAME_WIDTH, BA_NAME_WIDTH),
+                ("enemy names in the battle", &enemy_names, BA_NAME_WIDTH, BA_NAME_WIDTH),
+                ("skill names in the battle", &skill_names, BA_SKILL_NAME_LETTERS, BA_SKILL_NAME_WIDTH),
+                ("item names in the battle", &usable, name_width, BA_NAME_WIDTH),
+                ("skill commands in the battle", &commands, screen::BA_COMMAND_WIDTH, screen::BA_COMMAND_WIDTH),
+            ];
+            let cut: Vec<Value> = places
+                .iter()
+                .filter_map(|(place, names, letters, cells)| cut_in_cells(&font, place, names, *letters, *cells))
+                .collect();
+            let lists = BusiestLists {
+                font: &font,
+                db,
+                actor_names: &actor_names,
+                commands: &commands,
+            };
+            let mut skills_asked = (0, 0, 0);
+            for (&a, theirs) in &known {
+                let names: Vec<(String, String)> = theirs
+                    .iter()
+                    .map(|&h| Ok((db.skill(h)?.name.clone(), db.skill(h)?.description.clone())))
+                    .collect::<Result<_>>()?;
+                skills_asked = skills_asked.max((lists.skill_list(&names), a, names.len()));
+            }
+            let items_asked = lists.item_list(&usable, name_width);
+            (
+                cut,
+                json!({"skills": skills_asked.0, "skills_actor": skills_asked.1, "skills_known": skills_asked.2, "items": items_asked}),
+            )
+        }
+    };
     let mut troop_list = Vec::new();
     let (mut exp_max, mut gold_max) = (0, 0);
     for &t in &used {
@@ -217,7 +289,7 @@ pub fn model(db: &Db, request: &Value) -> Result<Value> {
         let s = db.skill(h)?;
         skill_texts.insert(
             h.to_string(),
-            json!({"name": screen::cut(&s.name, BA_SKILL_NAME_WIDTH),
+            json!({"name": screen::cut(&s.name, BA_SKILL_NAME_LETTERS),
                    "description": screen::cut(&s.description, BA_SKILL_DESC_WIDTH)}),
         );
     }
@@ -228,7 +300,7 @@ pub fn model(db: &Db, request: &Value) -> Result<Value> {
             json!(screen::command_text(&rules::skill_command_name(db, a)?)),
         );
     }
-    Ok(json!({
+    let mut out = json!({
         "layout": screen::layout(),
         "enemies": enemies,
         "actions": actions,
@@ -247,7 +319,13 @@ pub fn model(db: &Db, request: &Value) -> Result<Value> {
             "enemies": enemy_names,
             "skills": skill_texts,
         },
-    }))
+    });
+    // Only with the font: without it there is nothing to measure.
+    if !pairs_asked.is_null() {
+        out["cut"] = json!(cut);
+        out["pairs"] = pairs_asked;
+    }
+    Ok(out)
 }
 
 /// Whether a request needs the troops, which are most of the database:
@@ -464,3 +542,168 @@ pub fn lines(db: &Db, request: &Value) -> Result<Value> {
     }
     Ok(json!({"lines": out}))
 }
+
+/// Python's `str.strip()`, which the commands go through: see
+/// `screen::command_text`.
+fn strip_name(text: &str) -> String {
+    text.trim_matches(|c: char| c.is_whitespace()).to_string()
+}
+
+/// The names of `names` the battle cuts: the cartridge keeps `letters` of
+/// each, and of those, the ones whose advances add up to `cells` cells
+/// —the console's `scr_cap`—. `{"place", "cells", "names": [[name, its
+/// pixels, what shows]]}`, or nothing if none is cut.
+fn cut_in_cells(font: &Font, place: &str, names: &[String], letters: usize, cells: usize) -> Option<Value> {
+    let mut seen = BTreeSet::new();
+    let mut cut = Vec::new();
+    for name in names {
+        if !seen.insert(name.clone()) {
+            continue;
+        }
+        let shown = shown_in_cells(font, name, letters, cells);
+        if shown != *name {
+            cut.push(json!([name, font.width(name), shown]));
+        }
+    }
+    (!cut.is_empty()).then(|| json!({"place": place, "cells": cells, "names": cut}))
+}
+
+/// What the battle shows of `text`: its first `letters`, and of those the
+/// ones whose advances add up to `cells` cells.
+fn shown_in_cells(font: &Font, text: &str, letters: usize, cells: usize) -> String {
+    let mut width = 0;
+    text.chars()
+        .take(letters)
+        .take_while(|&c| {
+            width += font.advance(c);
+            width <= 8 * cells
+        })
+        .collect()
+}
+
+/// The battle's busiest lists as the text layer composes them, with the
+/// widest texts the cartridge can put in each place at once: what they ask
+/// of its pool of pairs of tiles —see `rm2k_snes_text::cells`—. The rows
+/// are the console's: the list on the enemies' lines, the party's four,
+/// the commands' two. An upper bound, since what shows at once is never all
+/// the widest.
+struct BusiestLists<'a> {
+    font: &'a Font,
+    db: &'a Db,
+    actor_names: &'a [String],
+    commands: &'a [String],
+}
+
+/// Where a run starts inside its cell: the text layer's, `SCR_TEXT_X` of
+/// `rm2k-snes-screens`, which the battle shares.
+const TEXT_X: usize = 1;
+
+/// A row: its runs, `(x, text, colour)`.
+type Row = Vec<(usize, String, usize)>;
+
+impl BusiestLists<'_> {
+    /// A run from cell `col`, where the console starts one.
+    fn at(col: i64, text: &str) -> (usize, String, usize) {
+        (col as usize * 8 + TEXT_X, text.to_string(), 0)
+    }
+
+    /// The party's four lines and the commands' two, under any list.
+    fn below(&self) -> Vec<Row> {
+        let mut names: Vec<String> = self
+            .actor_names
+            .iter()
+            .map(|n| shown_in_cells(self.font, n, BA_NAME_WIDTH, BA_NAME_WIDTH))
+            .collect();
+        names.sort_by_key(|n| std::cmp::Reverse(self.font.width(n)));
+        let hp = self.db.terms.hp_short.clone();
+        let mut rows: Vec<Row> = names
+            .iter()
+            .take(((screen::BA_MSG_ROW1 - screen::BA_PARTY_ROW0) / 2) as usize)
+            .map(|name| {
+                vec![
+                    Self::at(screen::BA_CURSOR_COL, ">"),
+                    Self::at(screen::BA_NAME_COL, name),
+                    Self::at(screen::BA_HP_COL, &hp),
+                    Self::at(screen::BA_HP_NUM, "999"),
+                    Self::at(screen::BA_BAR_COL, "/"),
+                    Self::at(screen::BA_HP_MAX_NUM, "999"),
+                ]
+            })
+            .collect();
+        let t = &self.db.terms;
+        let widest_skill = self
+            .commands
+            .iter()
+            .max_by_key(|c| self.font.width(c))
+            .cloned()
+            .unwrap_or_default();
+        let texts = [
+            screen::command_text(&t.command_attack),
+            widest_skill,
+            screen::command_text(&t.command_defend),
+            screen::command_text(&t.command_item),
+            screen::command_text(&t.battle_escape),
+        ];
+        let mut lines: Vec<Row> = vec![Vec::new(), Vec::new()];
+        for ((_, line, col), text) in screen::BA_COMMANDS.iter().zip(&texts) {
+            lines[*line as usize].push(Self::at(col - 1, ">"));
+            lines[*line as usize].push(Self::at(*col, text));
+        }
+        rows.extend(lines);
+        rows
+    }
+
+    /// An actor's skill list: the widest description, and its widest
+    /// skills in the two columns with their costs.
+    fn skill_list(&self, skills: &[(String, String)]) -> usize {
+        let mut names: Vec<String> = skills
+            .iter()
+            .map(|(n, _)| shown_in_cells(self.font, n, BA_SKILL_NAME_LETTERS, BA_SKILL_NAME_WIDTH))
+            .collect();
+        names.sort_by_key(|n| std::cmp::Reverse(self.font.width(n)));
+        let description = skills
+            .iter()
+            .map(|(_, d)| screen::cut(d, BA_SKILL_DESC_WIDTH))
+            .max_by_key(|d| self.font.width(d))
+            .unwrap_or_default();
+        let mut rows: Vec<Row> = vec![vec![Self::at(screen::BA_SKILL_DESC_COL, &description)]];
+        let per_row = screen::BA_SKILL_COLUMNS as usize;
+        for chunk in names.chunks(per_row).take(screen::BA_SKILL_ROWS as usize) {
+            let mut row = Row::new();
+            for (c, name) in chunk.iter().enumerate() {
+                let x0 = c as i64 * screen::BA_SKILL_COLUMN_DX;
+                row.push(Self::at(x0 + screen::BA_CURSOR_COL, ">"));
+                row.push(Self::at(x0 + screen::BA_SKILL_NAME_COL, name));
+                row.push(Self::at(x0 + screen::BA_SKILL_DASH_COL, "-"));
+                row.push(Self::at(x0 + screen::BA_SKILL_COST_COL, "99"));
+            }
+            rows.push(row);
+        }
+        rows.extend(self.below());
+        cells::pairs(self.font, rows.iter().map(Vec::as_slice))
+    }
+
+    /// The item list on the enemies' lines, with the widest items the
+    /// battle can use and their counts.
+    fn item_list(&self, usable: &[String], name_width: usize) -> usize {
+        let mut names: Vec<String> = usable
+            .iter()
+            .map(|n| shown_in_cells(self.font, n, name_width, BA_NAME_WIDTH))
+            .collect();
+        names.sort_by_key(|n| std::cmp::Reverse(self.font.width(n)));
+        let mut rows: Vec<Row> = names
+            .iter()
+            .take(crate::db::ENEMIES_MAX)
+            .map(|name| {
+                vec![
+                    Self::at(screen::BA_CURSOR_COL, ">"),
+                    Self::at(screen::BA_NAME_COL, name),
+                    Self::at(screen::BA_ITEM_COUNT_COL, ":99"),
+                ]
+            })
+            .collect();
+        rows.extend(self.below());
+        cells::pairs(self.font, rows.iter().map(Vec::as_slice))
+    }
+}
+

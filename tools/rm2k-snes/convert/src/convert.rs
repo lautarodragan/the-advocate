@@ -782,10 +782,31 @@ pub fn run(options: Options) -> Result<()> {
             "actors": members, "troops": troops.ids, "items": items_all,
             "skill_pairs": pairs.iter().map(|((a, h), _)| json!([a, h])).collect::<Vec<_>>(),
             "item_name_width": layout["ITEM_NAME_WIDTH"],
+            "font": font.spec, "letter_spacing": font.spacing,
         }),
         &["--data".into(), game.dump.clone().into_os_string()],
     )?;
     let battle_model = stage::json(&written, "model.json")?;
+    for place in battle_model["cut"].as_array().cloned().unwrap_or_default() {
+        println!("{}", cut_report(&place));
+    }
+    // What the battle's busiest lists ask of the text layer's pool. The
+    // console does not stop when it runs out —it shows what it has typeset
+    // and goes on (`TL_FLUSH`)—, but what does not get a pair does not show,
+    // so it is a warning.
+    let pool = int(&layout["TEXT_POOL_PAIRS"]);
+    let asked = &battle_model["pairs"];
+    if !asked.is_null() {
+        let (skills, items) = (int(&asked["skills"]), int(&asked["items"]));
+        let warning = if skills.max(items) > pool { "WARNING, " } else { "" };
+        println!(
+            "  {warning}battle text: the skill list asks for {skills} pairs of tiles at most \
+             (actor {}, who can know {} skills) and the item list {items}, of the {pool} of \
+             the pool",
+            int(&asked["skills_actor"]),
+            int(&asked["skills_known"])
+        );
+    }
     // The common events the menu runs on closing, by the switch that turns
     // them on.
     let party_codes = compiler::party_common_events(&compiled);
@@ -1001,4 +1022,26 @@ mod tests {
         assert_eq!(page_party(&[add], &[10]), Some(vec![10, 11]));
         assert_eq!(page_party(&[], &[10]), None);
     }
+}
+
+/// One place of the battle that cuts names, as `rm2k-snes-battle`'s model
+/// says it —`{"place", "cells", "names": [[name, pixels, shown]]}`—, in
+/// the words of the screens' own: see `cut_names` in `rm2k-snes-screens`.
+/// A warning: the console cuts and the battle goes on.
+fn cut_report(place: &Value) -> String {
+    let cells = int(&place["cells"]);
+    let names: Vec<String> = place["names"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default()
+        .iter()
+        .map(|n| format!("{:?} {} px, shows {:?}", n[0].as_str().unwrap_or(""), int(&n[1]), n[2].as_str().unwrap_or("")))
+        .collect();
+    format!(
+        "  WARNING, {} {} don't fit in {cells} cells ({} px) and are cut: {}",
+        names.len(),
+        place["place"].as_str().unwrap_or(""),
+        8 * cells,
+        names.join("; ")
+    )
 }

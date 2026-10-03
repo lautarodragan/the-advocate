@@ -113,9 +113,24 @@ fn every_battle_plays_as_the_pythons() {
     assert!(n >= 400, "the battles are {n}");
 }
 
+/// A model as the Python wrote it: it cut a skill's name at eleven
+/// letters, one per cell, and since 2026-10-03 the cartridge keeps
+/// `BA_SKILL_NAME_LETTERS` —see its why—, so they are cut here again.
+fn pythons_model(db: &Db, request: &Value) -> rm2k_snes_battle::Result<Value> {
+    let mut v = model::model(db, request)?;
+    if let Some(skills) = v["texts"]["skills"].as_object_mut() {
+        for skill in skills.values_mut() {
+            let name = skill["name"].as_str().unwrap().to_string();
+            assert!(name.chars().count() <= rm2k_snes_battle::screen::BA_SKILL_NAME_LETTERS);
+            skill["name"] = Value::from(name.chars().take(11).collect::<String>());
+        }
+    }
+    Ok(v)
+}
+
 #[test]
 fn every_model_is_the_pythons() {
-    let n = check("models.json", model::model);
+    let n = check("models.json", pythons_model);
     assert!(n >= 26, "the models are {n}");
 }
 

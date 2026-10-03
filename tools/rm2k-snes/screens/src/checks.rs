@@ -38,6 +38,12 @@ pub fn items_border_first(border: usize) -> usize {
 /// request says it, and the cartridge checks it is this.
 pub const SLOT_VRAM_WORDS: usize = 0x2000;
 
+/// The pairs of tiles the shop's and the battle's text has: every one from
+/// the base up to the text tilemap, but pair 0, the blank one. It is the
+/// runtime's `TL_POOL_WHOLE`; the item and equipment screens have fewer,
+/// with their windows at the end of the bank.
+pub const TEXT_POOL_PAIRS: usize = (ITEM_BORDER_MAP - SLOT_VRAM_WORDS) / 32 - 1;
+
 impl Vram {
     fn within(&self, what: &str, first: usize, last: usize) -> Result<()> {
         for (name, base, cap) in &self.bg1_banks {

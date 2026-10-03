@@ -672,6 +672,7 @@ pub fn publish() -> Value {
         WINDOW_TEXT_ROWS, WINDOW_TEXT_COL, WINDOW_TEXT_COLS, FONT_WIDTH, FONT_HEIGHT,
         FONT_PRE_ROWS, FONT_PRE_CHAR, MESSAGE_WIDTH, FONT_GLYPHS, FONT_PHASES,
     );
+    m.insert("TEXT_POOL_PAIRS".into(), json!(crate::checks::TEXT_POOL_PAIRS));
     m.insert("ITEM_WINDOWS".into(), rects(&ITEM_WINDOWS));
     m.insert("TARGET_WINDOWS".into(), rects(&TARGET_WINDOWS));
     m.insert("EQ_WINDOWS".into(), rects(&EQ_WINDOWS));
