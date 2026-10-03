@@ -542,15 +542,15 @@ mod tests {
 
     #[test]
     fn a_speaker_is_a_short_line_in_capitals() {
-        assert!(is_speaker("KERSH"));
+        assert!(is_speaker("ODILE"));
         assert!(is_speaker("?????"));
         assert!(!is_speaker("WHAT?"));
-        assert!(!is_speaker("Kersh"));
+        assert!(!is_speaker("Odile"));
     }
 
     #[test]
     fn a_box_that_fits_is_left_alone() {
-        let lines = s(&["                  < Kiss >"]);
+        let lines = s(&["                  < Wave >"]);
         assert_eq!(refit(&lines, 39, 4), vec![lines]);
     }
 }

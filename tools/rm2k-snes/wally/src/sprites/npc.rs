@@ -217,16 +217,16 @@ mod tests {
 
     #[test]
     fn a_walker_whose_first_page_is_blank_walks_with_the_next_one() {
-        let g = |i| Some(("Future2".to_string(), i, 1));
+        let g = |i| Some(("Townsfolk".to_string(), i, 1));
         let mut npcs = vec![walker(vec![g(7), g(6), g(6)], false)];
         let hidden = pin_walkers(&mut npcs, &BTreeSet::from([3]), blank_seven);
-        assert_eq!((npcs[0].charset.as_str(), npcs[0].index), ("Future2", 6));
-        assert_eq!(hidden[&3], BTreeSet::from([("Future2".to_string(), 7)]));
+        assert_eq!((npcs[0].charset.as_str(), npcs[0].index), ("Townsfolk", 6));
+        assert_eq!(hidden[&3], BTreeSet::from([("Townsfolk".to_string(), 7)]));
     }
 
     #[test]
     fn a_blank_page_active_at_load_shows_nothing() {
-        let g = |i| Some(("Future2".to_string(), i, 1));
+        let g = |i| Some(("Townsfolk".to_string(), i, 1));
         let mut npcs = vec![walker(vec![g(7), g(6)], true)];
         pin_walkers(&mut npcs, &BTreeSet::from([3]), blank_seven);
         assert!(!npcs[0].visible);
@@ -234,7 +234,7 @@ mod tests {
 
     #[test]
     fn only_walkers_are_pinned_and_all_blank_is_left_alone() {
-        let g = |i| Some(("Future2".to_string(), i, 1));
+        let g = |i| Some(("Townsfolk".to_string(), i, 1));
         let mut still = vec![walker(vec![g(7), g(6)], false)];
         assert!(pin_walkers(&mut still, &BTreeSet::new(), blank_seven).is_empty());
         assert_eq!(still[0].index, 7);

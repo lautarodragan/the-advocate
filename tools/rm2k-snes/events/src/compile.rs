@@ -4949,21 +4949,21 @@ mod tests {
         compile_page(&mut ctx, commands, None, 0, 0)
     }
 
-    const FORTITUDE: [(i32, i32, i32); 2] = [(2, 55, 30), (3, 70, 30)];
+    const TWO_DIGITS: [(i32, i32, i32); 2] = [(2, 55, 30), (3, 70, 30)];
 
     #[test]
     fn a_declared_counter_is_one_opcode_and_not_its_body() {
         // The middle of the two centers is (62, 30), which on the console is
         // (49, 28): the two glyphs, sixteen by sixteen, start eight to the
         // left and eight up.
-        let game = with_counter(true, &FORTITUDE);
+        let game = with_counter(true, &TWO_DIGITS);
         let code = compile_with(&game, &[cmd(CALL_EVENT, &[0, 9, 0], "")]);
         assert_eq!(code.unwrap().unwrap(), [OP_COUNTER, 5, 41, 20, OP_DONE]);
     }
 
     #[test]
     fn a_digit_on_a_counters_picture_shows_the_counter() {
-        let game = with_counter(true, &FORTITUDE);
+        let game = with_counter(true, &TWO_DIGITS);
         let show = |number: i32, name: &str| {
             cmd(
                 SHOW_PICTURE,
@@ -4975,7 +4975,7 @@ mod tests {
         assert_eq!(code.unwrap().unwrap(), [OP_COUNTER, 5, 41, 20, OP_DONE]);
         // Another image on it, or a digit on a picture that is not the
         // counter's, is still any picture: accepted without being done.
-        for other in [show(2, "Fortitude"), show(1, "9")] {
+        for other in [show(2, "Gauge"), show(1, "9")] {
             let code = compile_with(&game, &[other.clone()]);
             assert_eq!(code.unwrap().unwrap(), [OP_DONE]);
             assert_eq!(page_debts(&game, &Indices::default(), &[other], None).unwrap(), [SHOW_PICTURE]);
@@ -4986,7 +4986,7 @@ mod tests {
     #[test]
     fn an_undeclared_common_event_is_not_a_counter() {
         // Its body in place, and its pictures are any picture's.
-        let game = with_counter(false, &FORTITUDE);
+        let game = with_counter(false, &TWO_DIGITS);
         let code = compile_with(&game, &[cmd(CALL_EVENT, &[0, 9, 0], "")]);
         assert_eq!(code.unwrap().unwrap(), [OP_DONE]);
     }
@@ -5294,7 +5294,7 @@ mod tests {
         // Map 68, event 10: two lines, and six digits into variable 143.
         let page = [
             cmd(SHOW_MESSAGE, &[], "VOICE"),
-            cmd(SHOW_MESSAGE_2, &[], "What's the password?"),
+            cmd(SHOW_MESSAGE_2, &[], "What is the secret number?"),
             cmd(INPUT_NUMBER, &[6, 143], ""),
         ];
         let code = on_a_map_with(&with_the_password(), &page).unwrap();
@@ -5915,7 +5915,7 @@ mod tests {
         let show = cmd(
             SHOW_PICTURE,
             &[6, 0, 160, 150, 0, 100, 0, 0, 100, 100, 100, 100, 0, 0],
-            "AdvoInstr",
+            "Billboard",
         );
         let big = BigPicture {
             key: picture_key(&show).unwrap(),
@@ -5943,7 +5943,7 @@ mod tests {
         let photo = cmd(
             SHOW_PICTURE,
             &[20, 0, 160, 120, 1, 100, 0, 1, 100, 100, 100, 200, 2, 8],
-            "PhoneCallDiff",
+            "Photo",
         );
         let big = BigPicture {
             key: picture_key(&photo).unwrap(),
@@ -5995,7 +5995,7 @@ mod tests {
 
     #[test]
     fn by_variables_and_with_the_map() {
-        let smoke = picture(8, "smoke1", 1, (153, 154), true, 35, 40);
+        let smoke = picture(8, "Smoke", 1, (153, 154), true, 35, 40);
         let key = picture_key(&smoke).unwrap();
         assert!(key.by_variable && key.map_fixed && key.at.is_none());
         let mut indices = Indices::default();

@@ -39,9 +39,9 @@ def test_a_wrong_type_fails_too(project_file):
 
 def test_a_text_that_goes_to_the_rom_is_measured(tmp_path):
     ruta = tmp_path / "rm2k-snes.toml"
-    ruta.write_text('[rom]\nfirma = "ABLS"\ncorta = "ABL"\nacento = "ÁBLS"\n')
+    ruta.write_text('[rom]\nfirma = "GAME"\ncorta = "GAM"\nacento = "GÁME"\n')
     ruta = str(ruta)
-    assert settings.ascii("rom", "firma", length=4, path=ruta) == "ABLS"
+    assert settings.ascii("rom", "firma", length=4, path=ruta) == "GAME"
     with pytest.raises(settings.MissingKey, match="have 4 characters"):
         settings.ascii("rom", "corta", length=4, path=ruta)
     with pytest.raises(settings.MissingKey, match="ASCII"):

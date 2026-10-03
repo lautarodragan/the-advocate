@@ -51,8 +51,8 @@ mod tests {
 
     #[test]
     fn a_name_is_quoted_as_the_converter_always_did() {
-        assert_eq!(quoted("Lashe City - 34,35"), "'Lashe City - 34,35'");
-        assert_eq!(quoted("Beggar's Hideout"), "\"Beggar's Hideout\"");
+        assert_eq!(quoted("Grove Town - 34,35"), "'Grove Town - 34,35'");
+        assert_eq!(quoted("Miller's Cottage"), "\"Miller's Cottage\"");
         assert_eq!(quoted("a'b\"c"), "'a\\'b\"c'");
         assert_eq!(quoted("back\\slash"), "'back\\\\slash'");
         assert_eq!(quoted("tab\there"), "'tab\\there'");
