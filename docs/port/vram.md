@@ -101,3 +101,18 @@ a $4800, que en ninguno es de algo que se use mientras tanto —en algunos son
 tiles del mapa, que se recargan—; los tiles de BG2 y los de la ventana están
 de $5000 para arriba en todos. Lo que pisa lo repone, al borrarla, la
 misma carga que la vuelta de la pelea: ver `tools/runtime/big_picture.s`.
+
+## Una imagen grande con zoom usa la otra mitad
+
+El modo 7 es dueño de las palabras `$0000` a `$3FFF` —su mapa de 128x128 en
+los bytes bajos y sus 256 tiles en los altos— y no se puede correr. Así que
+una imagen grande que un `MovePicture` agranda o achica, y que por eso lleva
+una textura de modo 7, se muestra quieta **en la mitad de arriba**: sus
+tiles desde `$4000` —hasta 960— y su tilemap, una pantalla de 32x32, en
+`$7C00`. Mientras está quieta la textura sube a la mitad de abajo de a un
+pedazo por vblank, encima de los sprites y de los tiles del mapa, que no se
+ven. Eso pisa la ventana y los tiles de BG2, que estaban arriba en los seis
+repartos: con el modo 7 en pantalla la mitad de arriba queda libre y la
+ventana vuelve ahí, también de a pedazos. Borrarla repone todo con la misma
+carga que la vuelta de la pelea, que pisa las mismas palabras. Ver
+`tools/runtime/big_picture_zoom.s`.
