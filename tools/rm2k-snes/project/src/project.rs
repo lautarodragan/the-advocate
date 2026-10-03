@@ -119,6 +119,13 @@ impl Project {
 
     // --- The settings ------------------------------------------------------
 
+    /// The whole file, as it was read: for whoever hands it on as is, like
+    /// `rm2k-snes-project`. A tool that wants one setting asks for it with
+    /// the functions below, which name the key when it is missing.
+    pub fn settings(&self) -> &Table {
+        &self.settings
+    }
+
     /// The setting at `keys` —`["rom", "name"]` is `[rom] name`—. Fails
     /// naming the first key that is missing.
     pub fn value(&self, keys: &[&str]) -> Result<&Value, Error> {

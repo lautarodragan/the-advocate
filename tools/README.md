@@ -4,29 +4,24 @@ Everything that runs outside the console: what reads the RPG Maker game, what
 converts it, what builds the ROM, and what runs it in the tests. Nothing
 loose: each thing lives in the folder of its responsibility.
 
-## The Python that is left
+## No Python but the tests
 
 The converter is Rust since 2026-10-02 —`rm2k-snes/convert/`, below—, and
-so is everything it runs. What is left in Python is small, and none of it
-converts anything:
-
-    common/      where everything is (project), the project file's settings
-                 (settings) and the machine's values (environment). It
-                 imports nothing from `tools/`. And `python_path.py`, which
-                 tells a game where these packages are imported from
-    emulator/    the libretro core from Python (retro), and the bsnes-libretro
-                 patch that exposes the WRAM: what the game's tests run the
-                 ROM with
+so is everything it runs. The only Python left is `tests/`, which looks at
+this tree: see `tests/README.md`.
 
 What the game's tests read of their game —a reader of the dump, the models
 they predict the console with, the clients of the stages they ask— went to
 their harness the same day: it is theirs. And on 2026-10-02 the game itself,
-A Blurred Line, went to its own repo, with its tests and their harness; it
-imports `common` and `emulator` from here, asking `rm2k-snes-python-path`
-where they are. What stayed here names it only in comments —limits measured
-against it, the case that explained a rule—: a test uses invented names and
-a fixture invented content, and `tests/test_no_game_names.py` fails if
-anything else does.
+A Blurred Line, went to its own repo, with its tests and their harness, and
+the libretro driver they run the ROM with, `emulator/`, went with them. What
+they ask the tools about their project —its paths, the suite's, its
+settings— they ask `rm2k-snes-project`, below, which answers with the same
+library every tool reads the project file with: until that day they read
+it through a second reader in Python, `common/`. What stayed here names the
+game only in comments —limits measured against it, the case that explained
+a rule—: a test uses invented names and a fixture invented content, and
+`tests/test_no_game_names.py` fails if anything else does.
 
 And the Rust projects, which are not layers of the port but separate tools,
 in English and without a single mention of this game (see AGENTS.md). They
@@ -55,7 +50,9 @@ have layers of their own, one folder each:
 
     rm2k-snes/   what joins the two: an RPG Maker game made into a cartridge
       project/   `rm2k-project`, the library: which game, its settings, the
-                 machine's flags and the disk cache's key
+                 machine's flags and the disk cache's key; and
+                 `rm2k-snes-project`, which prints all that in JSON for
+                 whoever is not a tool
       bytecode/  `rm2k-snes-bytecode`, the library that declares the two
                  bytecodes a cartridge reads —the events one and the music
                  stream—, once: the Rust side takes its constants with a
@@ -139,32 +136,19 @@ separate projects, installed and tested one by one:
     just -f tools/justfile lz2-test       one project's tests
     just -f tools/justfile rust-test      all of them, `cargo test --workspace`
 
-They are used from the PATH: no `.py` here builds them or looks for them in
-`target/`. The same goes for the Python scripts that get executed: see "The
-ones that run".
-
-## How imports work
-
-Each folder is a Python package, and is imported by its name, with `tools/`
-—and only `tools/`— on `sys.path`: `from common import project`.
+They are used from the PATH: nothing here builds them or looks for them in
+`target/`.
 
 ## The ones that run
 
-The scripts that get run are executables —shebang and `chmod +x`— and `just
-install` installs them as symlinks in the same `bin/` as the Rust
-binaries; `just install-scripts`, the symlinks alone, without compiling
-anything, which is what a renamed or new script needs: a symlink points to
-a file path. The `justfile` calls them by name and does not know where they
-are. There is one left:
+`just install` installs the Rust binaries, and a game's `justfile` calls
+them by name and does not know where they are. Until 2026-10-02 there were
+Python scripts too, installed as symlinks next to them: the last ones were
+`abl-entregar`, which went to A Blurred Line's repo with the game, and
+`rm2k-snes-python-path`, which told a game's tests where to import
+`common/` and `emulator/` from, and went with them.
 
-    rm2k-snes-python-path       common/python_path.py
-
-which prints the directory `common` and `emulator` are imported from: a
-game's tests ask it, because they do not know where the tools live. Until
-2026-10-02 there was also `abl-entregar`, which went to A Blurred Line's
-repo with the game.
-
-and next to it the ones that are Rust binaries —`rm2k-snes-convert`, from
+The binaries are `rm2k-snes-convert`, from
 `rm2k-snes/convert/`; `rm2k-snes-cartridges`,
 `rm2k-snes-assemble` and `rm2k-snes-space`, from `rm2k-snes/cartridge/`, which find
 the runtime through the checkout they were installed from; and
@@ -172,19 +156,15 @@ the runtime through the checkout they were installed from; and
 `rm2k-snes/rm2k-snes-audio/`; `rm2k-snes-battle`, from
 `rm2k-snes/battle/`; `rm2k-snes-events`, from `rm2k-snes/events/`;
 `wally`, from `rm2k-snes/wally/`; `rm2k-snes-mapdata`, from
-`rm2k-snes/mapdata/`; and `rm2k-snes-patches`, from
-`rm2k-snes/patches/`—.
+`rm2k-snes/mapdata/`; `rm2k-snes-patches`, from
+`rm2k-snes/patches/`; and `rm2k-snes-project`, from `rm2k-snes/project/`,
+which prints for a game's tests what the tools know about their project.
 
-The reason for the names is in `tools/justfile`. A new one is added in
-`_install`, and the `.py` finds its packages by resolving the symlink with
-`realpath`, because `__file__` is the PATH location: it climbs up to
-`tools/` and no further. **Where everything else is** is answered by
-`common/project.py`, and by nobody else: `tests/test_project.py` enforces
-it. What belongs to the repo —the root, the runtime— comes from where that
-file is; what belongs to the game, from its project file: see "How they find
-the game". The tools' tests —`tests/`— put `tools/` on the path from the
-`pytest.ini` here; a game's tests, from what `rm2k-snes-python-path`
-answers. See `tests/README.md`.
+The reason for the names is in `tools/justfile`. **Where everything is** is
+answered by `rm2k-project`, the library in `rm2k-snes/project/`: what
+belongs to the suite —the root, the runtime— from the checkout it was built
+from; what belongs to the game, from its project file: see "How they find
+the game".
 
 A worktree that modifies the tools uses its own with `just -f
 tools/justfile install-local <destination>`, which builds a `bin/` of its
@@ -200,18 +180,14 @@ cases each cartridge carries, what the ROM is called, the title in its
 header and the signatures of its save files, which sound effects go whole,
 which songs go separately, which CharSet weighs most when splitting
 palettes. The game declares it at its root, in `rm2k-snes.toml`, and it is
-read with `common/settings.py`:
-`settings.value("maps", "below", kind=int)`.
+read by one reader, `rm2k-project`: `project.int(&["maps", "below"])`.
+Whoever is not a tool asks `rm2k-snes-project` instead of reading it.
 
 * **A missing key is an error**, with its name, and not a default value: a
   default in a tool would be ABL's value, and another game would be built
-  with it without a warning. `tests/test_settings.py` enforces it, and on
-  ABL's side `test_perillas_repetidas.py`, which fails if a `.py` here writes
-  a value from the file again.
-* **It is read when used, not at import**: the converter and what it uses
-  must be importable without a game, which is what the tests here do.
-  `rm2k-snes-cartridges`, the game's orchestrator, reads the whole file when
-  it starts; it is the Rust library `rm2k-snes/project/` that reads it there.
+  with it without a warning. The library's tests enforce it, and on
+  ABL's side `test_perillas_repetidas.py`, which fails if a `.py` here
+  —since 2026-10-02 only `tests/`— writes a value from the file again.
 * **What the runtime needs** —the title, the SRAM signature— reaches it as a
   `.define` in the `mapdata.inc` the converter emits: the runtime does not
   read TOML.
@@ -227,9 +203,7 @@ read with `common/settings.py`:
 **The tools do not know where any game lives: they find it**, the way cargo
 finds its `Cargo.toml`. They look for `rm2k-snes.toml` from the current
 directory upwards, or receive it through `--project <directory>`; if they do
-not find it, they stop and say where they searched from. The search happens
-the first time someone asks, not at import: importing the converter does not
-require a game.
+not find it, they stop and say where they searched from.
 
 **How the game is laid out inside is declared by its file**, in `[paths]`,
 relative to it: the dump (`data`), what was decided (`patches`), what was
@@ -242,16 +216,13 @@ their location.
 **What belongs to the machine arrives by flags**: `--game-dir`, `--rtp-dir`,
 `--soundfont`, `--replacements` (the MSU-1 tracks that come from an audio file
 and not from the MIDI), `--cache`, `--test-cartridges` and `--shared`, where
-a game delivers its builds. Each executable adds the ones it uses and
-sets them in `common/environment.py`, where the rest read them from;
-`resources.GAME_DIR` and `resources.RTP_DIR` are resolved there when
-read. **None has a default value**, except the cache and the test
+a game delivers its builds. Each executable adds the ones it uses with
+`environment::arguments` and reads them back with `Environment`, both in
+`rm2k-project`. **None has a default value**, except the cache and the test
 cartridges, which have their place in the project's `build`: a machine's
 value belongs to the caller. A Blurred Line's `justfile`, in its repo,
-translates its variables into flags.
-
-`tests/test_project.py` enforces it: it fails if a `.py` here reads an
-`ABL_*` variable or writes `rom/` as a path.
+translates its variables into flags. That nothing here reads one of its
+`ABL_*` variables is part of what `tests/test_no_game_names.py` checks.
 
 ## `tools/justfile`
 
@@ -266,22 +237,6 @@ the root.
 
 ## The bsnes patch
 
-`emulator/bsnes-wram.patch` is for **bsnes-libretro**, not for this repo.
-bsnes does not expose the WRAM —`retro_get_memory_data` returns null for
-every id— and the tests' clock asks the ROM which tick of the loop it is on,
-which lives in `ticks`, in the WRAM. Without the patch, whatever runs under
-bsnes falls back to counting hardware frames, which works as long as the ROM
-does not fall behind. And without bsnes there is nothing to answer what
-A Blurred Line's `pruebas/rpgmaker/test_cores.py` exists to answer.
-
-The patch exposes only `RETRO_MEMORY_SYSTEM_RAM` and leaves the rest as it
-is: bsnes's comment on that function is about the SRAM, which is not touched,
-and that is why it is defensible upstream. Its commit message says the rest.
-
-Building it takes `gcc` and `make`, and nothing else:
-
-    git clone https://github.com/libretro/bsnes-libretro
-    cd bsnes-libretro
-    git am < .../tools/emulator/bsnes-wram.patch
-    make -j$(nproc)
-    cp bsnes_libretro.so /usr/lib/libretro/
+The patch for bsnes-libretro that exposes the WRAM, and how to build it,
+went with the libretro driver to A Blurred Line's repo on 2026-10-02: see
+`pruebas/arnes/emulator/README.md` there.

@@ -3,8 +3,10 @@
     just -f tools/justfile test               all of them; standing in tools/, `just test`
     just -f tools/justfile test -k escapes    the usual pytest arguments pass through as is
 
-The Python ones: the converter, the assembly and the runtime, tested without
-the game. The Rust projects' tests each have their own recipe
+The Python ones, and the only Python left in `tools/`: they look at this
+tree —its layers, who reads a dump, that nothing names a game— the way a
+crate's tests look at the crate. They import nothing: `tools/` is the
+folder above this one. The Rust projects' tests each have their own recipe
 (`bytecode-test`, `ditto-test`…).
 
 **A test goes here if it does not read a game** —neither its original
@@ -34,16 +36,10 @@ and the rest of what builds a cartridge are tested in Rust, in
 Every `test_*.py` in this folder has to be named here, and everything named
 has to exist: `test_index.py` enforces it.
 
-* `test_project.py`: that where each thing is —the root, the repo's
-  folders— is known only to `common/project.py`, that no tool reads the
-  environment on its own, and that none knows about A Blurred Line: no
-  `ABL_*` variable, no `rom/` as a path
 * `test_no_game_names.py`: that no file of `tools/` names A Blurred Line
   —its characters, places, pictures, its name— outside a comment: a test
   uses invented names and a fixture invented content. Comments and `.md`
   files may cite it; the few lines that may too are listed with their reason
-* `test_settings.py`: that the project file reader, `common/settings.py`,
-  fails with the key's name instead of falling back to a default value
 * `test_layers.py`: that the Rust projects' layers only depend downwards:
   `snes/` and `rm2k/` on nothing of the other two, `rm2k-snes/` on both;
   and that neither of the first two names `rm2k-snes.toml`

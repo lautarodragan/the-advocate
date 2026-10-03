@@ -1,7 +1,7 @@
 //! Where the suite's own files are: the directory the tools were built from.
 //!
-//! The runtime in assembly travels with the tools, and so do the scripts the
-//! suite still runs; neither belongs to a game. A binary finds them through
+//! The runtime in assembly travels with the tools, and does not belong to a
+//! game. A binary finds it through
 //! the source tree it was compiled from, which cargo records at build time.
 //! So an installed binary answers for **the checkout it was installed from**,
 //! the same way a symlink to a script does: installing from a checkout that

@@ -2,14 +2,24 @@
 name = "rm2k-project"
 version = "0.1.0"
 edition = "2021"
-description = "Finds an rm2k-snes project, reads its settings, and knows where the machine's things are"
+description = "Finds an rm2k-snes project, reads its settings, and knows where the machine's things are; rm2k-snes-project prints them in JSON"
 
 [lib]
 name = "rm2k_project"
 path = "src/lib.rs"
 
+# For whoever is not a tool and needs what the tools know about a game —a
+# game's tests—: the project as this library resolves it, in JSON. See
+# `src/main.rs`.
+[[bin]]
+name = "rm2k-snes-project"
+path = "src/main.rs"
+
 [dependencies]
 clap = "4"
+# `preserve_order`, like `toml`'s: the settings come out in the order the
+# file writes them.
+serde_json = { version = "1", features = ["preserve_order"] }
 sha2 = "0.10"
 # `preserve_order`: a table's keys come back in the order the file writes
 # them. The cartridges are built and printed in that order.

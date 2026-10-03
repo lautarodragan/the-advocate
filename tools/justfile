@@ -1,12 +1,12 @@
-# The tools' recipes: generating the bytecode, running their tests —the
-# Python ones and each Rust project's— and installing the suite. A Blurred
+# The tools' recipes: running their tests —the Python ones, which look at
+# this tree, and each Rust project's— and installing the suite. A Blurred
 # Line's are in its own `justfile`, which does not know this directory exists.
 #
 # From the root it is called with `just -f tools/justfile <recipe>`; from
 # inside `tools/`, with `just <recipe>`, because `just` uses the nearest
 # `justfile`. Either way the recipes run standing in `tools/`.
 
-# Where `just install` and `just install-scripts` install. In the container
+# Where `just install` installs. In the container
 # `/usr/local` is on the PATH; from the host `CARGO_ROOT=~/.cargo`, cargo's
 # default, is better.
 cargo_root := env_var_or_default("CARGO_ROOT", "/usr/local")
@@ -21,10 +21,12 @@ local_tools := justfile_directory() / ".local-tools"
 export PATH := if path_exists(local_tools / "bin") == "true" { local_tools / "bin" + ":" + env_var("PATH") } else { env_var("PATH") }
 
 # The Rust projects, in the order they are installed. `project` and `rules`
-# are libraries: they have nothing to install, and they go into the
-# binaries that use them —`project` into `cartridge`'s and the others', `rules` into
-# `rm2k-render` and `battle`—, which are compiled with them. So a branch
-# that changes `rules` reinstalls those two, not `rules`.
+# are libraries, and they go into the binaries that use them —`project`
+# into `cartridge`'s and the others', `rules` into `rm2k-render` and
+# `battle`—, which are compiled with them. So a branch that changes `rules`
+# reinstalls those two, not `rules`; one that changes `project` reinstalls
+# everything, and `project` too, for its one binary, `rm2k-snes-project`,
+# which answers what a game's tests ask about the project.
 #
 # They are one Cargo workspace —`Cargo.toml`, here—, with one `Cargo.lock`
 # and one `target/`, but each is still tested and installed on its own: the
@@ -37,9 +39,10 @@ rust_projects := "gunter goombario ditto rules adeleine voodoo lz2 rm2k-render p
 # `<layer>/<name>`, and the recipes find it by its name.
 rust_layers := "snes rm2k rm2k-snes"
 
-# The tools' Python tests, the ones in `tests/`: those that need neither the
-# game, nor its data, nor a built cartridge. Those that do are among A Blurred
-# Line's. They are fast, so they run serially and without xdist.
+# The tools' Python tests, the ones in `tests/`: they look at this tree —the
+# layers, who reads a dump, that nothing names a game— and need neither a
+# game, nor its data, nor a built cartridge. Those that do are among A
+# Blurred Line's. They are fast, so they run serially and without xdist.
 #
 # None reads a SoundFont any more: the music's that do are in Rust, in
 # `audio-test`, and get it the same way, in `SOUNDFONT`. `pytest` takes `tests/` from `pytest.ini`, so whatever is passed to it —a
@@ -274,19 +277,12 @@ convert-test:
 # The Rust projects, in `snes/`, `rm2k/` and `rm2k-snes/`, are separate
 # projects, and the port consumes them **from the PATH**, the way it
 # consumes a libretro core: no script or test of the game calls `cargo`.
-# They are installed once and stay.
+# They are installed once and stay. Nothing else is installed: since
+# 2026-10-02 the suite has no Python scripts.
 #
-# And the Python scripts that get executed, into the same `bin/`, so the
-# game's `justfile` calls them by name like the Rust ones. They go **as
-# symlinks and not as copies**: a copy would go stale when the `.py` is
-# edited, and the suite would run a different version from the tree's. They
-# point to the checkout this was run from: if that one is deleted, it has to
-# be run again from another.
-#
-# With Rust project names —`just install lz2`— it installs only those, plus
-# the Python symlinks, which cost nothing: that is what whoever merges a
-# branch runs, with the Rust the branch touched. Without names, all of them;
-# and the symlinks alone, without compiling anything, are `install-scripts`.
+# With Rust project names —`just install lz2`— it installs only those: that
+# is what whoever merges a branch runs, with the Rust the branch touched.
+# Without names, all of them.
 #
 # The names follow the repo each program will live in once the tools split
 # from ABL: `rm2k-snes-` and in English for the suite's, which will be an
@@ -298,24 +294,13 @@ convert-test:
 # follows, `just` would read it as a call to a function `cargo_root`.
 install *projects: (_install (cargo_root) (if projects == "" { rust_projects } else { projects }))
 
-# **Only the Python scripts**, into the same `bin/` as `install`: their
-# symlinks, without compiling or reinstalling any Rust. It is what is run
-# after a branch that renames or adds a script, because a symlink points to
-# a file path, and a renamed `.py` leaves it pointing nowhere. The Rust
-# binaries are left as they are.
-#
-# Only from the main checkout: the global symlinks point to the checkout
-# they were made from, and a worktree is deleted when its branch is merged.
-# A worktree has its own, with `install-local`.
-install-scripts: _main_checkout_only (_install (cargo_root))
-
-# **A worktree's tools**, for the sub-agent that modifies them. A symlink in
-# the global install points to a single checkout —the main one—, so a
-# worktree that changes a tools script or a Rust project would not run its
-# change. This builds `<dest>/bin/` with the worktree's Python scripts,
-# always, and with the Rust projects it is given, **only those**: compiling
-# Rust costs, and only makes sense if the agent is going to modify that
-# project. Without names it compiles nothing. From taro, 2026-09-29.
+# **A worktree's tools**, for the sub-agent that modifies them. The global
+# install was built from a single checkout —the main one—, so a worktree
+# that changes a Rust project would not run its change. This builds
+# `<dest>/bin/` with the Rust projects it is given, **only those**:
+# compiling Rust costs, and only makes sense if the agent is going to
+# modify that project. Without names it compiles nothing. From taro,
+# 2026-09-29.
 #
 # **The destination is set by the consumer**, and it is mandatory: this file
 # does not know where the game lives, and the game does not know where this
@@ -336,15 +321,8 @@ _not_in_main_checkout:
   echo "this is the main checkout: here the tools are the global ones, from 'just -f tools/justfile install'." >&2
   exit 1
 
-_main_checkout_only:
-  #!/usr/bin/env sh
-  [ "$(git rev-parse --path-format=absolute --git-dir)" = "$(git rev-parse --path-format=absolute --git-common-dir)" ] && exit 0
-  echo "this is a worktree: its scripts go in its own bin/, with 'just -f tools/justfile install-local <dest>'." >&2
-  exit 1
-
-# Installs into `root`: `cargo install` of the named Rust projects, and the
-# symlinks of the Python ones. A name that is not a project stops
-# before compiling anything.
+# Installs into `root`: `cargo install` of the named Rust projects. A name
+# that is not a project stops before compiling anything.
 _install root *projects:
   #!/usr/bin/env sh
   set -eu
@@ -355,10 +333,11 @@ _install root *projects:
     esac
   done
   mkdir -p "{{root}}/bin"
-  # The suite's symlinks go first, and are made again below: a name that was
-  # a script and is now a Rust binary —`rm2k-snes-assemble`— would otherwise
-  # stay a symlink, and `cargo install` refuses to write over what it did
-  # not install.
+  # The suite's symlinks go: they were its Python scripts, and the last one,
+  # `rm2k-snes-python-path`, went on 2026-10-02. One that an older install
+  # left would point nowhere; and a name that was a script and is now a Rust
+  # binary —`rm2k-snes-assemble`— would stay a symlink, and `cargo install`
+  # refuses to write over what it did not install.
   find "{{root}}/bin" -maxdepth 1 -type l -name 'rm2k-snes-*' -delete
   for p in {{projects}}; do
     dir=""
@@ -372,13 +351,12 @@ _install root *projects:
     fi
     cargo install --locked --path "$dir" --root "{{root}}"
   done
-  ln -sfn "{{justfile_directory()}}/common/python_path.py" "{{root}}/bin/rm2k-snes-python-path"
-  echo "in {{root}}/bin: the Python scripts, and from Rust: {{ if projects == "" { "none" } else { projects } }}"
+  echo "in {{root}}/bin, from Rust: {{ if projects == "" { "none" } else { projects } }}"
 
 # Which executable this checkout resolves for each tool: the one in
 # `.local-tools/bin/` if it is there, otherwise the global one.
 which:
   #!/usr/bin/env sh
-  for x in gunter goombario ditto adeleine voodoo lz2 rm2k-render rm2k-snes-cartridges rm2k-snes-assemble rm2k-snes-space rm2k-snes-convert rm2k-snes-patches rm2k-snes-msu rm2k-snes-volume-ceilings rm2k-snes-battle rm2k-snes-events wally rm2k-snes-screens rm2k-snes-images rm2k-snes-python-path; do
+  for x in gunter goombario ditto adeleine voodoo lz2 rm2k-render rm2k-snes-cartridges rm2k-snes-assemble rm2k-snes-space rm2k-snes-convert rm2k-snes-patches rm2k-snes-msu rm2k-snes-volume-ceilings rm2k-snes-battle rm2k-snes-events wally rm2k-snes-screens rm2k-snes-images rm2k-snes-project; do
     printf '%-26s %s\n' "$x" "$(command -v "$x" || echo missing)"
   done

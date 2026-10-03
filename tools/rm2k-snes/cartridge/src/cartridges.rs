@@ -546,24 +546,9 @@ impl Cartridges {
                 format!("`{name}` is not on the PATH, and the cartridges need it")
             })?);
         }
-        // The converter is a Python program: its sources, whatever it runs
-        // them from. Except the tools' tests, which build nothing: with them
-        // inside, editing a test made every cartridge stale.
-        let tools = suite::tools();
-        let mut sources = Vec::new();
-        for directory in entries(&tools)? {
-            if directory == "tests" || !tools.join(&directory).is_dir() {
-                continue;
-            }
-            for file in entries(&tools.join(&directory))? {
-                let path = tools.join(&directory).join(&file);
-                if file.ends_with(".py") && path.is_file() {
-                    sources.push(path);
-                }
-            }
-        }
-        sort_as_text(&mut sources);
-        parts.extend(sources);
+        // Until 2026-10-02 the `.py` files of the tools went in here too,
+        // when the converter was a Python program; the last of them left
+        // that day, and the converter is among the binaries above.
         // The hand-made patches.
         let manual = self.project.manual_patches()?;
         let mut patches = Vec::new();

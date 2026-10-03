@@ -37,7 +37,8 @@ way, which is the one that happened.
 import os
 import re
 
-from common import project
+# `tools/`, the folder above this one: what these tests look at.
+TOOLS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 # Ditto itself: the one that may know its layout.
@@ -55,7 +56,7 @@ LAYOUT = re.compile(
 def _sources():
     """Every `.rs` under a Rust project's `src/`, but Ditto's."""
     for layer in ("snes", "rm2k", "rm2k-snes"):
-        top = os.path.join(project.tools(), layer)
+        top = os.path.join(TOOLS, layer)
         for crate in sorted(os.listdir(top)):
             if os.path.join(layer, crate) == DITTO:
                 continue
@@ -76,7 +77,7 @@ def test_only_ditto_names_the_dump_layout():
                     continue
                 if LAYOUT.search(line):
                     found.append("%s:%d: %s" % (
-                        os.path.relpath(path, project.tools()), number,
+                        os.path.relpath(path, TOOLS), number,
                         line.strip()))
     assert not found, (
         "these name a file of a Ditto dump, which only Ditto may open: "
@@ -85,6 +86,6 @@ def test_only_ditto_names_the_dump_layout():
 
 def test_the_sources_are_found():
     """A walk that finds nothing passes the test above without looking."""
-    names = {os.path.relpath(p, project.tools()) for p in _sources()}
+    names = {os.path.relpath(p, TOOLS) for p in _sources()}
     assert os.path.join("rm2k-snes", "cartridge", "src", "cartridges.rs") in names
     assert not any(n.startswith(DITTO + os.sep) for n in names)

@@ -26,9 +26,9 @@ import tokenize
 
 import pytest
 
-from common import project
 
-TOOLS = project.tools()
+# `tools/`, the folder above this one: what these tests look at.
+TOOLS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 THIS = os.path.relpath(os.path.realpath(__file__), TOOLS)
 
 # Its characters, its places, pictures and sounds of its own —not the
@@ -60,9 +60,6 @@ PATTERN = re.compile(r"(?<![A-Za-z0-9])(?:%s)(?![A-Za-z0-9])" % "|".join(WORDS),
 EXCEPTIONS = {
     # This file, which lists the words.
     THIS,
-    # It checks that no `.py` reads an `ABL_*` variable, so it writes some
-    # on purpose, to see that the net catches them.
-    "tests/test_project.py",
 }
 
 # A line that may, with its reason: (file relative to `tools/`, a piece of
