@@ -183,14 +183,18 @@ diag_vert:
 diag_horiz:
     .byte DIR_RIGHT, DIR_RIGHT, DIR_LEFT, DIR_LEFT
 
-; Where the composed glyphs of each phase start, indexed by the phase itself
-; —0, 2, 4 or 6—: that is why the banks go with a padding byte between them.
-; See `compose_char`. They are read **once per glyph**, not per row.
+; Where the composed glyphs of each phase start, indexed by twice the phase
+; —0 to 14—: that is why the banks go with a padding byte between them. See
+; `compose_char`. They are read **once per glyph**, not per row. Eight phases
+; since the font has variable width: a letter starts at any column of a cell.
 font_pre_lo:
     .word .loword(font_pre0), .loword(font_pre1)
     .word .loword(font_pre2), .loword(font_pre3)
+    .word .loword(font_pre4), .loword(font_pre5)
+    .word .loword(font_pre6), .loword(font_pre7)
 font_pre_bk:
-    .byte ^font_pre0, 0, ^font_pre1, 0, ^font_pre2, 0, ^font_pre3
+    .byte ^font_pre0, 0, ^font_pre1, 0, ^font_pre2, 0, ^font_pre3, 0
+    .byte ^font_pre4, 0, ^font_pre5, 0, ^font_pre6, 0, ^font_pre7
 
 ; Which JOY1H bit each `KeyInputProc` direction looks at and which number it
 ; stores in the variable, in the order of `CheckInput` —from highest value to
