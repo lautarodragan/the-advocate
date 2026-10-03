@@ -17,11 +17,11 @@ use crate::cells::{self, Color, CELL, COLS, HEIGHT, WIDTH};
 use crate::end_game;
 use crate::fail::{Bad, Result};
 use crate::game::{Game, Skin};
-use crate::items;
 use crate::layout::*;
 use crate::slots::{self, MenuBlocks};
-use crate::texts::{self, item_text, split_description};
+use crate::texts::{self, fit_cells, item_text, split_description};
 use rm2k_render::picture::Picture;
+use rm2k_snes_text::font::{Font, FIGURE_BLANK};
 use std::collections::{BTreeMap, BTreeSet};
 use voodoo::pack::Indices;
 
@@ -321,45 +321,74 @@ pub fn slot_screen(
     Ok(p.picture())
 }
 
-/// The screen as a grid of cells, as the cartridge builds the text screens
-/// —equipment, shop—: a letter and its variant per cell.
+/// A text screen —items, equipment, shop— as the cartridge's text layer
+/// composes it: each write a run of letters of the game's font from where
+/// it starts, in a colour, on a line of two cell rows. See `text_layer.s` in
+/// the runtime, which does the same: a write that starts at a cell goes from
+/// x = 8 * column + `SCR_TEXT_X`, each letter moving it by its advance, and a
+/// write at the same x of the same row replaces the one that was there.
 #[derive(Debug, Clone, Default)]
 pub struct Grid {
-    pub cells: BTreeMap<(usize, usize), (char, usize)>,
+    /// `(row, x, text, colour)`, in the order they were written.
+    pub runs: Vec<(usize, usize, String, usize)>,
 }
 
 impl Grid {
+    fn run(&mut self, row: usize, x: usize, text: &str, variant: usize) {
+        self.runs.retain(|r| !(r.0 == row && r.1 == x));
+        self.runs.push((row, x, text.to_string(), variant));
+    }
+
     pub fn write(&mut self, row: usize, col: usize, text: &str, variant: usize) {
-        for (n, c) in text.chars().enumerate() {
-            if col + n < COLS {
-                self.cells.insert((row, col + n), (c, variant));
-            }
-        }
+        self.run(row, col * CELL + SCR_TEXT_X, text, variant);
     }
 
-    /// Right-aligned, with leading spaces.
+    /// In `width` places, right-aligned: the places a number does not reach
+    /// are blanks as wide as a digit.
     pub fn write_number(&mut self, row: usize, col: usize, value: i64, width: usize, variant: usize) {
-        self.write(row, col, &texts::right(value, width), variant);
+        let text: String = texts::right(value, width)
+            .chars()
+            .map(|c| if c == ' ' { FIGURE_BLANK } else { c })
+            .collect();
+        self.write(row, col, &text, variant);
     }
 
-    fn description(&mut self, text: &str) {
-        for (n, line) in split_description(text).iter().enumerate() {
+    /// Right-aligned so that its last letter ends with cell `last`: the
+    /// shop's gold, prices and totals, which have no fixed number of places.
+    pub fn write_right(&mut self, font: &Font, row: usize, last: usize, text: &str, variant: usize) {
+        let x = (last + 1) * CELL + SCR_TEXT_X - 1 - font.width(text);
+        self.run(row, x, text, variant);
+    }
+
+    fn description(&mut self, font: &Font, text: &str) {
+        for (n, line) in split_description(font, text).iter().enumerate() {
             self.write(ITEM_DESC_Y / CELL + 2 * n, ITEM_DESC_COL, line, ITEM_WHITE);
         }
     }
 
-    /// The grid over `windows`, with the text screens' font.
+    /// The runs over `windows`, each in its colour of the System, with its
+    /// shadow, as `Font::Render` draws them; at fifteen bits, as the console
+    /// shows them.
     pub fn render(&self, game: &Game, skin: &Skin, windows: &Picture) -> Result<Picture> {
-        let font = items::items_screen(game, skin)?;
-        let mut p = Painter::new(&font.tiles, &font.palettes);
-        p.under(windows);
-        for (&(row, col), &(c, variant)) in &self.cells {
-            let glyph = font.glyphs[variant]
-                .get(&c)
-                .ok_or_else(|| Bad::answer(format!("variant {variant} of the font has no {c:?}")))?;
-            p.paste(glyph, row, col, 1);
+        let mut out = Picture::filled(WIDTH, HEIGHT, [0, 0, 0, 255]);
+        cells::paste(&mut out, windows, 0, 0);
+        for (row, x, text, variant) in &self.runs {
+            skin.draw_line(
+                &mut out,
+                *x as i64,
+                (row * CELL + SCR_TEXT_Y) as i64,
+                text,
+                ITEM_COLORS[*variant],
+                &game.font,
+            );
         }
-        Ok(p.picture())
+        for p in out.rgba.chunks_exact_mut(4) {
+            for c in p[..3].iter_mut() {
+                *c &= 0xF8;
+            }
+            p[3] = 255;
+        }
+        Ok(out)
     }
 }
 
@@ -381,22 +410,9 @@ pub fn item_screen(
     // The ones there are and that the cartridge knows, in number order like
     // `Game_Party`.
     let listed: Vec<i32> = known.into_iter().filter(|i| inventory.get(i).copied().unwrap_or(0) > 0).collect();
-    let font = items::items_screen(game, skin)?;
-    let mut p = Painter::new(&font.tiles, &font.palettes);
-    p.under(&borders::item_windows(skin, if listed.is_empty() { None } else { Some(chosen - top) }));
-    let write = |p: &mut Painter, text: &str, row0: usize, col0: usize, variant: usize| -> Result<()> {
-        for (n, c) in text.chars().enumerate() {
-            let glyph = font.glyphs[variant]
-                .get(&c)
-                .ok_or_else(|| Bad::answer(format!("variant {variant} of the font has no {c:?}")))?;
-            p.paste(glyph, row0, col0 + n, 1);
-        }
-        Ok(())
-    };
+    let mut t = Grid::default();
     if !listed.is_empty() {
-        for (n, line) in split_description(&game.item_description(listed[chosen])?).iter().enumerate() {
-            write(&mut p, line, ITEM_DESC_Y / CELL + 2 * n, ITEM_DESC_COL, ITEM_WHITE)?;
-        }
+        t.description(&game.font, &game.item_description(listed[chosen])?);
     }
     for row in 0..ITEM_ROWS {
         let k = top + row;
@@ -406,11 +422,14 @@ pub fn item_screen(
         let item = game.item(listed[k])?;
         let row0 = ITEM_LIST_Y / CELL + 2 * row;
         let variant = if texts::item_usable(item) { ITEM_WHITE } else { ITEM_GRAY };
-        write(&mut p, &item_text(&game.item_name(listed[k])?, ITEM_NAME_WIDTH), row0, ITEM_NAME_COL, variant)?;
+        t.write(row0, ITEM_NAME_COL, &item_text(&game.item_name(listed[k])?, ITEM_NAME_WIDTH), variant);
+        // The colon and the count are one write on the cartridge: the
+        // number goes where the colon left it.
         let count = inventory[&listed[k]].min(99);
-        write(&mut p, &format!(":{count:2}"), row0, ITEM_COLON_COL, variant)?;
+        let digits: String = format!("{count:2}").chars().map(|c| if c == ' ' { FIGURE_BLANK } else { c }).collect();
+        t.write(row0, ITEM_COLON_COL, &format!(":{digits}"), variant);
     }
-    Ok(p.picture())
+    t.render(game, skin, &borders::item_windows(skin, if listed.is_empty() { None } else { Some(chosen - top) }))
 }
 
 /// What the actor can put in `slot`, in number order, and the 0 at the end
@@ -486,10 +505,10 @@ pub fn equipment_screen(
         equip(game, &mut trial, &mut inv, slot, choices[chosen])?;
         then = Some(texts::equipped_params(game, actor, &trial));
         if choices[chosen] != 0 {
-            t.description(&game.item_description(choices[chosen])?);
+            t.description(&game.font, &game.item_description(choices[chosen])?);
         }
     } else if equipment[slot] != 0 {
-        t.description(&game.item_description(equipment[slot])?);
+        t.description(&game.font, &game.item_description(equipment[slot])?);
     }
     let params = ["attack", "defense", "spirit", "agility"];
     for (n, &(row, col)) in EQ_PARAMS.iter().enumerate() {
@@ -508,7 +527,7 @@ pub fn equipment_screen(
             let term: String = game.term(name)?.chars().take(EQ_SLOT_TERM_WIDTH).collect();
             t.write(row, EQ_SLOT_TERM_COL, &term, ITEM_RED);
             if equipment[r] != 0 {
-                t.write(row, EQ_SLOT_NAME_COL, &item_text(&game.item_name(equipment[r])?, EQ_SLOT_NAME_WIDTH), ITEM_WHITE);
+                t.write(row, EQ_SLOT_NAME_COL, &fit_cells(&game.font, &item_text(&game.item_name(equipment[r])?, ITEM_NAME_WIDTH), EQ_SLOT_NAME_WIDTH), ITEM_WHITE);
             }
         }
     } else {
@@ -521,7 +540,9 @@ pub fn equipment_screen(
             if choices[k] != 0 {
                 t.write(row, EQ_LIST_NAME_COL, &item_text(&game.item_name(choices[k])?, ITEM_NAME_WIDTH), ITEM_WHITE);
                 let count = inventory[&choices[k]].min(99);
-                t.write(row, ITEM_COLON_COL, &format!(":{count:2}"), ITEM_WHITE);
+                let digits: String =
+                    format!("{count:2}").chars().map(|c| if c == ' ' { FIGURE_BLANK } else { c }).collect();
+                t.write(row, ITEM_COLON_COL, &format!(":{digits}"), ITEM_WHITE);
             }
         }
     }
@@ -573,7 +594,7 @@ pub fn shop_screen(game: &Game, skin: &Skin, shop: &Shop) -> Result<Picture> {
         _ => "shop_sold",
     };
     let layer = TI_LAYER_OF_MODE[shop.mode];
-    let lines = split_description(&term(message)?);
+    let lines = split_description(&game.font, &term(message)?);
     if shop.mode == TI_MAIN {
         for (n, line) in lines.iter().enumerate() {
             t.write(TI_MAIN_MSG_ROW + 2 * n, ITEM_DESC_COL, line, ITEM_WHITE);
@@ -588,7 +609,7 @@ pub fn shop_screen(game: &Game, skin: &Skin, shop: &Shop) -> Result<Picture> {
         for (n, command) in commands.iter().enumerate() {
             // From the first line, like the cartridge, which stores them
             // split: a term with a leading space loses it.
-            t.write(row0 + 2 * n, TI_COMMAND_COL, &split_description(&term(command)?)[0], ITEM_WHITE);
+            t.write(row0 + 2 * n, TI_COMMAND_COL, &split_description(&game.font, &term(command)?)[0], ITEM_WHITE);
         }
         let bar = shop.chosen + two as usize;
         return t.render(game, skin, &borders::shop_windows(skin, layer, Some(bar)));
@@ -615,14 +636,14 @@ pub fn shop_screen(game: &Game, skin: &Skin, shop: &Shop) -> Result<Picture> {
     };
     let windows = borders::shop_windows(skin, layer, bar);
     if !choices.is_empty() {
-        t.description(&game.item_description(choices[shop.chosen])?);
+        t.description(&game.font, &game.item_description(choices[shop.chosen])?);
     }
     let gold_term = game.term("gold")?;
     if layer == TI_LAYER_BUY {
         // The gold, and how many of the one the cursor marks the party owns
         // and has equipped.
         let digits = shop.gold.min(999_999).to_string();
-        t.write(TI_GOLD_ROW, TI_GOLD_COL + 1 - digits.len(), &digits, ITEM_WHITE);
+        t.write_right(&game.font, TI_GOLD_ROW, TI_GOLD_COL, &digits, ITEM_WHITE);
         t.write(TI_GOLD_ROW, TI_GOLD_COL + 1, &gold_term, ITEM_RED);
         if !choices.is_empty() {
             let number = choices[shop.chosen];
@@ -643,7 +664,7 @@ pub fn shop_screen(game: &Game, skin: &Skin, shop: &Shop) -> Result<Picture> {
         t.write(TI_COUNT_ROW, TI_COUNT_X_COL, "x", ITEM_WHITE);
         t.write_number(TI_COUNT_ROW, TI_COUNT_COL, shop.count, 2, ITEM_WHITE);
         let total = (price * shop.count).to_string();
-        t.write(TI_TOTAL_ROW, TI_GOLD_COL + 1 - total.len(), &total, ITEM_WHITE);
+        t.write_right(&game.font, TI_TOTAL_ROW, TI_GOLD_COL, &total, ITEM_WHITE);
         t.write(TI_TOTAL_ROW, TI_GOLD_COL + 1, &gold_term, ITEM_RED);
         return t.render(game, skin, &windows);
     }
@@ -673,10 +694,12 @@ pub fn shop_screen(game: &Game, skin: &Skin, shop: &Shop) -> Result<Picture> {
         t.write(row, TI_LIST_COL, &item_text(&game.item_name(number)?, ITEM_NAME_WIDTH), variant);
         if buying {
             let price = item.price.to_string();
-            t.write(row, TI_PRICE_COL + 1 - price.len(), &price, variant);
+            t.write_right(&game.font, row, TI_PRICE_COL, &price, variant);
         } else {
             let count = shop.inventory[&number].min(99);
-            t.write(row, ITEM_COLON_COL, &format!(":{count:2}"), variant);
+            let digits: String =
+                format!("{count:2}").chars().map(|c| if c == ' ' { FIGURE_BLANK } else { c }).collect();
+            t.write(row, ITEM_COLON_COL, &format!(":{digits}"), variant);
         }
     }
     t.render(game, skin, &windows)

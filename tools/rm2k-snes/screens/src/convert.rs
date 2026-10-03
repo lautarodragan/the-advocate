@@ -121,16 +121,15 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     let target_screens = [borders::target_layer(game, &skin)?, borders::menu_bar_layer(&skin)];
     let target = borders::borders(&target_screens, 0, TARGET_CGRAM, TARGET_CGRAM + TARGET_COLORS_MAX)?;
     request.vram.target(target.tiles.len())?;
-    let items_font = items::items_screen(game, &skin)?;
-    // The item and equipment windows share tiles and colours.
-    let first = items_border_first(items_font.tiles.len());
-    let items_border = borders::borders(
-        &[borders::item_layers(&skin), borders::equipment_layers(&skin)],
-        first,
-        ITEM_BORDER_CGRAM,
-        256,
-    )?;
-    request.vram.items_border(items_font.tiles.len(), items_border.tiles.len())?;
+    let inks = items::text_inks(&skin, &game.font)?;
+    // The item and equipment windows share tiles and colours, and go at the
+    // end of the bank: the text has what is below them. Counted first, then
+    // numbered from where they land.
+    let border_screens = || [borders::item_layers(&skin), borders::equipment_layers(&skin)];
+    let counted = borders::borders(&border_screens(), 0, ITEM_BORDER_CGRAM, 256)?;
+    let first = items_border_first(counted.tiles.len());
+    let items_border = borders::borders(&border_screens(), first, ITEM_BORDER_CGRAM, 256)?;
+    request.vram.items_border(items_border.tiles.len(), 0)?;
     // The shop's, with their own tiles and colours.
     let shop_border = borders::borders(&borders::shop_layers(&skin), 0, ITEM_BORDER_CGRAM, TARGET_CGRAM)?;
     request.vram.shop(shop_border.tiles.len())?;
@@ -161,7 +160,7 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     for &n in &request.items {
         let item = game.item(n)?;
         let mut lines = vec![item_text(&game.item_name(n)?, ITEM_NAME_WIDTH)];
-        lines.extend(split_description(&game.item_description(n)?));
+        lines.extend(split_description(&game.font, &game.item_description(n)?));
         item_texts.push(json!({
             "number": n,
             "texts": lines,
@@ -186,7 +185,7 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
         let mut messages = Vec::new();
         for (k, term) in TI_TERMS.iter().enumerate() {
             let text = game.term(&format!("{term}{}", set + 1))?;
-            let lines = split_description(&text);
+            let lines = split_description(&game.font, &text);
             // Outside the main screen, the message goes in a one-line
             // window.
             if !lines[1].is_empty() && k >= 2 {
@@ -235,10 +234,9 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
                 "exp_term": menu.exp_term,
             },
         },
-        "items_font": {
-            "tiles": tiles_json(&items_font.tiles),
-            "palettes": items_font.palettes,
-            "glyphs": items_font.glyphs.iter().map(glyphs_json).collect::<Vec<_>>(),
+        "text_inks": {
+            "palettes": inks.palettes,
+            "prerender": inks.prerender.iter().map(|t| hex(t)).collect::<Vec<_>>(),
         },
         "items_border": borders_json(&items_border),
         "items_border_first": first,

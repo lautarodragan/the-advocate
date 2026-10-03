@@ -184,8 +184,11 @@ pub const MENU_EXP_TERM_CELLS: usize = 2;
 // depend on how many items there are.
 pub const ITEM_DESC_Y: usize = 8;
 pub const ITEM_DESC_COL: usize = 1;
-/// Letters per line, one per cell.
+/// The description's cells: a line takes [`DESC_WIDTH_PX`].
 pub const ITEM_DESC_WIDTH: usize = 30;
+/// The pixels a description line may take: its cells, from where a text
+/// starts inside its first one.
+pub const DESC_WIDTH_PX: usize = ITEM_DESC_WIDTH * CELL - SCR_TEXT_X;
 pub const ITEM_DESC_LINES: usize = 2;
 /// With ten rows from 56 both windows leave the same spacing as RM2k.
 pub const ITEM_LIST_Y: usize = 56;
@@ -246,6 +249,17 @@ pub const ITEM_BAR_WIDTH: usize = (ITEM_DIGITS_COL + 2 - ITEM_NAME_COL) * CELL +
 /// How many colour-memory entries a 4bpp palette takes: the menu's, at the
 /// bottom because a 4bpp BG only reaches the low ones.
 pub const MENU_CGRAM: usize = 16;
+
+// --- the text layer ------------------------------------------------------------
+//
+// The text screens' text is composed —see `text_layer.s` in the runtime—: a
+// write starts at a cell, and its letters go one after the other at their own
+// advance, each line in two cell rows of its own tiles.
+/// Where a text starts inside its first cell, in x: the pixel the
+/// one-letter-per-cell font drew its letters from, so the text did not move.
+pub const SCR_TEXT_X: usize = 1;
+/// And where the glyph's first row goes, inside the line's two cell rows.
+pub const SCR_TEXT_Y: usize = 2;
 
 /// A window: x, y, width and height.
 pub type Rect = (usize, usize, usize, usize);
@@ -631,7 +645,8 @@ pub fn publish() -> Value {
         MENU_MAX_X, MENU_NAME_COL, MENU_NAME_COLS, MENU_NAME_ROW, MENU_LEVEL_COL,
         MENU_LEVEL_ROW, MENU_MAX_COL, MENU_MAX_DIGITS, MENU_EXP_X, MENU_EXP_Y,
         MENU_EXP_NUM_DX, MENU_EXP_DIGITS, MENU_EXP_LETTERS, MENU_EXP_TERM_CELLS,
-        ITEM_DESC_Y, ITEM_DESC_COL, ITEM_DESC_WIDTH, ITEM_DESC_LINES, ITEM_LIST_Y, ITEM_ROWS,
+        ITEM_DESC_Y, ITEM_DESC_COL, ITEM_DESC_WIDTH, DESC_WIDTH_PX, SCR_TEXT_X, SCR_TEXT_Y,
+        ITEM_DESC_LINES, ITEM_LIST_Y, ITEM_ROWS,
         ITEM_CURSOR_COL, ITEM_NAME_COL, ITEM_NAME_WIDTH, ITEM_COLON_COL, ITEM_DIGITS_COL,
         ITEM_FIRST_CHAR, ITEM_CHARS, ITEM_WHITE, ITEM_GRAY, ITEM_UP, ITEM_RED,
         ITEM_UP_CHARS, ITEMS_TILES_MAX, ITEM_HELP_HEIGHT, ITEM_BORDER_CGRAM,

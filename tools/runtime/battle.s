@@ -2050,17 +2050,21 @@ each:
     rts
 a_line:
     ; The line blank first: when it goes over the party's, a name or an HP
-    ; is under it. Both halves of each cell.
+    ; is under it. It is the row's text that goes, in the text layer.
     rep #$20
 .a16
-    ldx BA_T1
-    ldy #BA_ROW_BYTES / 2
-blank:
-    stz text_buf, x
-    inx
-    inx
-    dey
-    bne blank
+    lda BA_T1
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a                       ; the row: 64 bytes each
+    sep #$20
+.a8
+    jsl f:tl_clear_row + FAST
+    rep #$20
+.a16
     lda #BA_MSG_DX
     jsr ba_go
     lda BA_MI

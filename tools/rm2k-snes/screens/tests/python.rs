@@ -14,6 +14,13 @@
 //! and the hash of the box table moved with them. The new table breaks
 //! every box at the same places as the Python's, line for line and space
 //! for space: the comparison is still against the Python, reworded.
+//!
+//! On 2026-10-03 the item, equipment and shop screens stopped drawing a
+//! letter per cell and compose their text, like the message window: each
+//! write goes from its cell one pixel in, and each letter moves the line by
+//! its own advance —six pixels with this game's font, eight before—. Their
+//! eleven hashes moved, and only the text did: drawn side by side with the
+//! old ones, every pixel that differs is a letter's.
 
 use rm2k_snes_screens::checks::Vram;
 use rm2k_snes_screens::convert::{self, Request};
@@ -85,10 +92,14 @@ fn everything_a_cartridge_carries() {
     // message window's font, which since 2026-10-03 carries eight phases
     // and not four, the cursor's blank, and each glyph's advance and reach:
     // the font got variable width, and this game draws with RM2k's, the
-    // fixed one, so the rest of what it draws did not move.
+    // fixed one, so the rest of what it draws did not move. Nor the item,
+    // equipment and shop screens' font, also since 2026-10-03: they compose
+    // their text, so what goes is `text_inks` —their palettes and the font
+    // precomposed for them— instead of a font bank, and the windows' tiles
+    // go at the end of the bank instead of after the font.
     assert_eq!(
         sha(canon(&answer).as_bytes()),
-        "0236f833f14f862f4d5f8c57d6e0580e2094eb20943a47238ef65c4291128ea6"
+        "2903308b93d30feae6cea2b1d2bd30a958986bf102033712810500b6960bf20a"
     );
     assert_eq!(
         answer["says"],
@@ -163,7 +174,7 @@ fn the_screens_as_the_console_shows_them() {
     check(
         "items",
         render::item_screen(&game, &skin, &inventory(), 11, 2, None).unwrap(),
-        "7f7bcde9837c874a79cbe539c0528a60b76912e01ca52434b6ce3230d680eff3",
+        "76f0b4e08732bb3c137e0a1d55b9d5ce5177cadd48c90b26ede01e102a8a26de",
     );
     let parties: BTreeMap<usize, Vec<i32>> = [(0, vec![2, 1]), (2, vec![7, 8, 3, 4])].into_iter().collect();
     let levels: BTreeMap<usize, i64> = [(0, 9)].into_iter().collect();
@@ -176,27 +187,27 @@ fn the_screens_as_the_console_shows_them() {
     check(
         "equipment",
         render::equipment_screen(&game, &skin, 1, &worn, &inventory(), 0, false, 0, 0, None).unwrap(),
-        "4c13c8b3fed040302a29ae13acc52a73b6e94501f61986f013dd296a791e2256",
+        "81af83c5e9cce8ddf6bcf5d0778a3d1ccecf903e6ca6dcceda52ad57cebcae3d",
     );
     check(
         "equipment-list",
         render::equipment_screen(&game, &skin, 1, &worn, &inventory(), 0, true, 1, 0, None).unwrap(),
-        "0b14e82e1bd2d68ae25ff92b7f4d6e66c9cf6a8c6b0b71265b34e181f39b0b05",
+        "5ccf555d7e01bed1c0443bba68ec9df6b8a30b72077dd775c2db979ee115b3e4",
     );
     check(
         "equipment-shield",
         render::equipment_screen(&game, &skin, 3, &[7, 0, 0, 0, 0], &inventory(), 1, true, 0, 0, None)
             .unwrap(),
-        "7d4423e5b18aa1946d3c738184e25b35a9177b51d147c772ad9f68027cdf82d6",
+        "3baca089f32ec028d2163de659bbc40853673e9d1ccaba462de57c6180e2688c",
     );
     let shops = [
-        "43f23ea46270479c79f952261e34930755635c0b00b39d3737a618ce0416aed9",
-        "f9785d837afcd59cec979954107f07ab7ae5578e23dbe60bacbeb81cf1cc72e0",
-        "7c6bdda3fba78f4c5ad2c76751fa392433cfba4eb0fc1deffa931f4d72efa285",
-        "3fd2366e9f00996df2d0985d2c77f1cf95d20d1fbf9692178eb6ca6af4ea94b9",
-        "c14e7a6fe51ffa0735896dddf1a9a4c68c9385651d08278dcff327c10761d616",
-        "aa0fe57718f293b2a8d44982fbfb3fff9250c40ff25fa13262c2384a87789819",
-        "f85085eba46c408ef786f4bfb43279752c99be4db53d0be61ac8566bcc2c7f2d",
+        "13b51254f6df0f15ec4f5b21d0d642515d2d3afc3c3fa05455ab9e13abc50e8e",
+        "dd4c797796e9c51583db3963d717d6838320dd5f236656030326d9099e1dbc33",
+        "37819e041016ffd87a5eabba5eb6a929ce05da6020a30af470112bded8fac46d",
+        "0872e29ee5bac1f1a97684ae4336e5e06be318dc5d54237ba0a3d228dcb0d7ad",
+        "903e435c5112f166089770de8f8573f3b2dcfbd66127af9cb2f1c4765e1dc890",
+        "7dfa656f02e6de79ff6920a195ba5e92d9ef78587dcadc5a49743a285f0857e1",
+        "8805f617eba61c1629705f7518f077344772b4ecafa499eaa179a0bf83c132f3",
     ];
     for (mode, expected) in shops.iter().enumerate() {
         let shop = Shop {

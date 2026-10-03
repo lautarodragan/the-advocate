@@ -25,11 +25,18 @@ pub struct Vram {
 }
 
 /// The first 8bpp tile of the item and equipment windows, counted from the
-/// slot screen's base: the first free one after the `source` 4bpp tiles of
-/// the text screens' font, which are half the size.
-pub fn items_border_first(source: usize) -> usize {
-    source.div_ceil(2)
+/// slot screen's base: `border` tiles **right before the windows' tilemap**,
+/// so the text, which goes from the base up, has everything below them. The
+/// text is composed and takes a pair of 4bpp tiles per cell with ink —see
+/// `text_layer.s`—; until 2026-10-03 it was a font, and the windows went
+/// right after it.
+pub fn items_border_first(border: usize) -> usize {
+    (ITEM_BORDER_MAP - SLOT_VRAM_WORDS) / 32 - border
 }
+
+/// The slot screen's base, which is also the text screens', in words. The
+/// request says it, and the cartridge checks it is this.
+pub const SLOT_VRAM_WORDS: usize = 0x2000;
 
 impl Vram {
     fn within(&self, what: &str, first: usize, last: usize) -> Result<()> {
@@ -60,16 +67,21 @@ impl Vram {
         self.within("the slot screen's tilemap", self.slot_map, end_map)
     }
 
-    /// That the text screens' font and the item and equipment windows, one
-    /// after the other, do not reach the windows' tilemap, and that it all
-    /// stays in the BG1 bank of the layouts.
-    pub fn items_border(&self, source: usize, border: usize) -> Result<()> {
-        let end = self.slot_vram + (items_border_first(source) + border) * 32;
-        if end > ITEM_BORDER_MAP {
+    /// That the item and equipment windows leave room for the text below
+    /// them —`pool` pairs of tiles—, and that it all stays in the BG1 bank of
+    /// the layouts.
+    pub fn items_border(&self, border: usize, pool: usize) -> Result<()> {
+        if self.slot_vram != SLOT_VRAM_WORDS {
             return Err(Bad::answer(format!(
-                "the text screens' font ({source} 4bpp tiles) and the item and equipment windows \
-                 ({border} 8bpp ones) reach ${end:04X} and the windows' tilemap is at \
-                 ${ITEM_BORDER_MAP:04X}"
+                "the slot screen's base is ${:04X} and the text screens count on ${SLOT_VRAM_WORDS:04X}",
+                self.slot_vram
+            )));
+        }
+        if items_border_first(border) < pool + 1 {
+            return Err(Bad::answer(format!(
+                "the item and equipment windows take {border} 8bpp tiles, and below them there is \
+                 room for {} pairs of tiles of text and the screens need {pool}",
+                items_border_first(border).saturating_sub(1)
             )));
         }
         self.within(

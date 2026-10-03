@@ -2,6 +2,7 @@
 //! font has, with numbers as RM2k formats them.
 
 use crate::fail::Result;
+use rm2k_snes_text::font::Font;
 use crate::game::{Game, ITEM_MEDICINE, ITEM_SWITCH};
 use crate::layout::*;
 use ditto::schema::{Actor, Item};
@@ -24,6 +25,19 @@ pub fn item_text(text: &str, width: usize) -> String {
         .collect()
 }
 
+/// As much of `text` as fits in `cells` cells: the letters whose advances
+/// add up to `8 * cells` pixels at most. It is the console's `scr_cap`,
+/// which until 2026-10-03 counted letters, one per cell.
+pub fn fit_cells(font: &Font, text: &str, cells: usize) -> String {
+    let mut width = 0;
+    text.chars()
+        .take_while(|&c| {
+            width += font.advance(c);
+            width <= 8 * cells
+        })
+        .collect()
+}
+
 /// `text` padded with spaces to `width` characters, like Python's `ljust`.
 pub fn ljust(text: &str, width: usize) -> String {
     let n = text.chars().count();
@@ -40,10 +54,21 @@ pub fn right(value: i64, width: usize) -> String {
     text.chars().skip(n.saturating_sub(width)).collect()
 }
 
-/// A description in two lines, cut at a space. What does not fit in two is
-/// lost.
-pub fn split_description(text: &str) -> Vec<String> {
-    let width = ITEM_DESC_WIDTH;
+/// A description in two lines, cut at a space, each as wide as
+/// [`DESC_WIDTH_PX`] in `font`. What does not fit in two is lost. With the
+/// variable-width font a whole description fits in one line most of the
+/// time: RM2k's help window has one.
+pub fn split_description(font: &Font, text: &str) -> Vec<String> {
+    let width = DESC_WIDTH_PX;
+    let fit = |t: &str| -> String {
+        let mut used = 0;
+        t.chars()
+            .take_while(|&c| {
+                used += font.advance(c);
+                used <= width
+            })
+            .collect()
+    };
     let mut rows = Vec::new();
     let mut current = String::new();
     for word in text.split(' ') {
@@ -52,15 +77,15 @@ pub fn split_description(text: &str) -> Vec<String> {
         } else {
             format!("{current} {word}")
         };
-        if candidate.chars().count() <= width {
+        if font.width(&candidate) <= width {
             current = candidate;
             continue;
         }
         rows.push(current);
-        current = word.chars().take(width).collect();
+        current = fit(word);
     }
     rows.push(current);
-    let mut rows: Vec<String> = rows.iter().map(|r| item_text(r, width)).collect();
+    let mut rows: Vec<String> = rows.iter().map(|r| item_text(r, r.chars().count())).collect();
     rows.resize(rows.len().max(ITEM_DESC_LINES), String::new());
     rows.truncate(ITEM_DESC_LINES);
     rows
@@ -202,10 +227,11 @@ mod tests {
 
     #[test]
     fn a_description_goes_in_two_lines_cut_at_a_space() {
-        let lines = split_description("A small bottle of something that heals a little bit of health.");
+        let font = Font::rm2k(rm2k_snes_text::font::MINCHO);
+        let lines = split_description(&font, "A small bottle of something that heals a little bit of health.");
         assert_eq!(lines.len(), 2);
-        assert!(lines.iter().all(|l| l.chars().count() <= ITEM_DESC_WIDTH));
-        assert_eq!(split_description("")[0], "");
+        assert!(lines.iter().all(|l| font.width(l) <= DESC_WIDTH_PX));
+        assert_eq!(split_description(&font, "")[0], "");
     }
 
     #[test]

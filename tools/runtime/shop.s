@@ -154,10 +154,13 @@ no:
 
 ; A 24-bit number from `ti_num` —it is lost—, right-aligned with its last digit
 ; at `ti_pos`, in the variant from `temp + 1`. It is divided by ten one byte at
-; a time, like the menu's gold.
+; a time, like the menu's gold. The digits come out from the last one up and
+; go on the stack, and from there to the text layer as one run, which it
+; right-aligns: with the variable-width font a digit is not a cell any more.
 .proc scr_number24
 .a8
 .i16
+    ldy #0                      ; how many digits
 digit:
     stz temp + 3                ; the remainder carried along
     ldx #2
@@ -182,19 +185,11 @@ divide_it:
     sta temp + 3
     dex
     bpl divide_it
-    rep #$20
-.a16
-    lda comp_glyph + 1
-    sta pick_table
-    dec a
-    dec a
-    sta comp_glyph + 1
-    sep #$20
-.a8
     lda temp + 3
     clc
-    adc #$30
-    jsl f:ba_t_glyph
+    adc #('0' - ' ')            ; a letter of the font
+    pha
+    iny
     rep #$20
 .a16
     lda comp_or01
@@ -203,6 +198,22 @@ divide_it:
     bne digit
     lda comp_or01 + 2
     bne digit
+    tya
+    sta f:$7E0000 + TL_DIG_N
+    ldx #0
+unstack:
+    pla                         ; the first digit is on top
+    sta f:$7E0000 + TL_DIG, x
+    inx
+    dey
+    bne unstack
+    rep #$20
+.a16
+    lda comp_glyph + 1
+    sta pick_table
+    sep #$20
+.a8
+    jsl f:tl_right + FAST
     rts
 .endproc
 

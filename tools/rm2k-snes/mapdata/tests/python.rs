@@ -51,6 +51,16 @@
 //! the two hashes of the whole `.inc` moved: the difference against the old
 //! text is those two tables, that constant, and the two comments that
 //! name them.
+//!
+//! Also on 2026-10-03 the item, equipment, shop and battle screens stopped
+//! drawing a letter per cell: they compose their text like the window, from
+//! the font precomposed for their palettes. The requests carry
+//! `text_inks` —the same four palettes, and eight made-up tables of six
+//! bytes— where they carried `items_font`, and `SCR_TEXT_X` and
+//! `SCR_TEXT_Y` in the geometry, and the two hashes moved: the difference
+//! against the old text is `items_tiles`, `item_glyph_cells`,
+//! `ITEMS_TILES` and `ITEM_GLYPHS_GRAY` gone, and the eight `scr_pre`
+//! tables and the two constants in their place.
 
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_mapdata::record;
@@ -214,10 +224,10 @@ fn without_commons(text: &str) -> String {
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
     let text = without_commons(&without_pairs(&emitted.text));
-    assert_eq!(text.lines().count(), 3326);
+    assert_eq!(text.lines().count(), 3338);
     assert_eq!(
         sha(&text),
-        "707b50320c52ab7cfe61c34901cd4b1110526fc3f9ac2cbf8ace55d802f17022"
+        "762695ca8145784482dba310044e9c0cd0130cf785350af35d4faf74c5274359"
     );
 }
 
@@ -225,10 +235,10 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
     let text = without_commons(&without_pairs(&emitted.text));
-    assert_eq!(text.lines().count(), 3445);
+    assert_eq!(text.lines().count(), 3457);
     assert_eq!(
         sha(&text),
-        "70baf9fec2d46df42acb34fcd4f6514b7664818e976dfb07af3ae20a9b985005"
+        "1856284e9d24faac0aacd09e8fc10563df059b75f664490b4ba40d2958c51b5e"
     );
 }
 

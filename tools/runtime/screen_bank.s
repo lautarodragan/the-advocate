@@ -16,8 +16,13 @@
 ; 0; the battle's comes in through the `ba_t_bank` bridge, which is exactly
 ; the one that sets the data bank to zero before calling.
 
-; The screen's bank, with the screen off: the font, the blank tilemap and the
-; two palettes.
+; The screen's bank, with the screen off: the blank tiles, the blank tilemap,
+; the palettes, and the text layer from scratch with every pair of tiles up to
+; the BG1 tilemap. Until 2026-10-03 the bank was a font, each letter in two
+; cells; the text is composed now —see `text_layer.s`—, and what is left of
+; the bank is tile 0, the blank one every cell without text points to, and
+; tile 1, which no pair takes.
+TL_POOL_WHOLE = (ITEM_BORDER_MAP - SLOT_VRAM) / TL_PAIR_WORDS - 1
 .proc items_bank_upload
 .a8
 .i16
@@ -27,38 +32,29 @@
 .a16
     lda #SLOT_VRAM
     sta VMADDL
-    lda #(ITEMS_TILES * 32)
+    lda #(2 * 32)
     sta DAS0L
-    lda #<(items_tiles)
-    ora #(>(items_tiles) * 256)
+    lda #.loword(tl_zero)
     sta A1T0L
     sep #$20
 .a8
-    lda #^(items_tiles)
+    lda #^tl_zero
     sta A1B0
-    lda #$01
+    lda #$09                    ; two registers, without advancing the source
     sta DMAP0
     lda #$18
     sta BBAD0
     lda #$01
     sta MDMAEN
-    ; The blank tilemap: a fixed-source DMA from the first tile, which is
-    ; transparent.
+    ; The blank tilemap: the same fixed zero, which is tile 0.
     rep #$20
 .a16
     lda #SLOT_MAP
     sta VMADDL
     lda #(32 * 32 * 2)
     sta DAS0L
-    lda #<(items_tiles)
-    ora #(>(items_tiles) * 256)
-    sta A1T0L
     sep #$20
 .a8
-    lda #^(items_tiles)
-    sta A1B0
-    lda #$09                    ; two registers, without advancing the source
-    sta DMAP0
     lda #$01
     sta MDMAEN
     ; The colors.
@@ -79,7 +75,29 @@
     sta BBAD0
     lda #$01
     sta MDMAEN
+    rep #$20
+.a16
+    lda #TL_POOL_WHOLE
+    jsl f:tl_reset + FAST
+    sep #$20
+.a8
     rtl
+.endproc
+
+; The items and equipment screens have their windows' tiles in the same bank,
+; at the end: their text has the pairs that come before. See `items_border` in
+; `rm2k-snes-screens`.
+ITEM_POOL_PAIRS = (ITEM_BORDER_VRAM - SLOT_VRAM) / TL_PAIR_WORDS - 1
+.proc items_pool
+.a8
+.i16
+    rep #$20
+.a16
+    lda #ITEM_POOL_PAIRS
+    jsl f:tl_reset + FAST
+    sep #$20
+.a8
+    rts
 .endproc
 
 
@@ -98,6 +116,7 @@
 .a8
 .i16
     jsl f:items_bank_upload
+    jsr items_pool
     jsr border_upload
     ; The tilemap: the visible rows, without cursor.
     rep #$20
@@ -125,6 +144,7 @@
 .a8
 .i16
     jsl f:items_bank_upload
+    jsr items_pool
     jsr border_upload
     rep #$20
 .a16

@@ -43,6 +43,12 @@ pub const CURSOR_BLANK: char = '\u{7f}';
 /// [`CURSOR_BLANK`].
 pub const CONSOLE_GLYPHS: usize = GLYPHS + 1;
 
+/// A blank as wide as a digit, which pads a number on the left so that
+/// numbers line up in a column: the screens' "%3d". It is not a glyph of the
+/// tables but a letter the console's text layer knows —`TL_FIGURE`, 96—,
+/// and in a text it is Unicode's figure space.
+pub const FIGURE_BLANK: char = '\u{2007}';
+
 /// The widest a glyph's ink can be in a font for the console's low
 /// resolution: with its shadow one pixel further, that is nine columns,
 /// and from any of a cell's eight starting columns it still touches two
@@ -163,6 +169,9 @@ impl Font {
     pub fn advance(&self, ch: char) -> usize {
         if ch == CURSOR_BLANK {
             return self.advance('>');
+        }
+        if ch == FIGURE_BLANK {
+            return self.advance('0');
         }
         self.advance[index(ch)] as usize
     }
