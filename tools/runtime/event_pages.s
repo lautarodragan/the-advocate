@@ -1413,8 +1413,8 @@ seek:
     sep #$20
 .a8
     bcc seek
-    ldx #$FFFF
-    rts                         ; no room: the limit is not touched
+    ; None free: one whose move route ended gives it up, if there is one.
+    jmp reclaim_slot
 ready:
     ; The slot now has an owner, so the limit goes up if it ended up above the
     ; one there was. It is the only place a slot is taken through: both —the
@@ -1436,6 +1436,80 @@ ready:
 already_was:
     rts
 .endproc
+
+; `free_slot` with no free slot: the first one whose move route ended —no
+; commands left, no step, wait or jump, no route of its own; `route_busy`—
+; stops being its event's, and is handed out. X, or $FFFF if every one is
+; moving. Keeps Y and `temp`, which both callers carry across.
+;
+; Within a map a slot used to be its event's until the next map, and that
+; capped a map at twelve events moved by routes: ABL's farm (127) has its
+; whole celebration jumping on the spot, sixteen of them, a few at a time.
+; Now the cap is twelve moving **at once**. Every map within the old cap
+; never gets here.
+;
+; What the event loses with the slot is what RM2k keeps after a move route:
+; its speed, frequency and flags go back to its page's. Which way it faces it
+; keeps, written to its row's +10, which is where a new slot reads it from.
+; See divergencias/las-rutas-terminadas-sueltan-su-lugar.md.
+.proc reclaim_slot
+.a8
+.i16
+    ldx #$0000
+seek:
+    jsr route_busy
+    beq found                   ; `route_busy` loads A last: its Z is A's
+    rep #$20
+.a16
+    txa
+    clc
+    adc #ROUTE_EV_STRIDE
+    tax
+    cmp #ROUTE_EV_MAX * ROUTE_EV_STRIDE
+    sep #$20
+.a8
+    bcc seek
+    ldx #$FFFF
+    rts                         ; no room: the limit is not touched
+found:
+    phy
+    lda temp
+    pha
+    ; Where it faces, to its row.
+    lda route_ev + 8, x
+    cmp #ROUTE_EV_NO_FACE
+    beq forgotten
+    sta temp + 1
+    lda route_ev + 0, x
+    phx
+    jsr event_npc               ; Y: its row, or $FFFF; `temp` is lost
+    plx
+    cpy #$FFFF
+    beq forgotten
+    lda temp + 1
+    sta npc_buf + 10, y
+forgotten:
+    ; And its parallel state no longer points at the slot: see `slot_record`.
+    lda route_ev + 0, x
+    phx
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    asl a                       ; times PAIR_BYTES
+    tax
+    sep #$20
+.a8
+    lda #0
+    sta f:FAR_LENGTH + FAR_PAIR_STATE + PAIR_SLOT, x
+    plx
+    pla
+    sta temp
+    ply
+    rts
+.endproc
+.assert PAIR_BYTES = 8, error, "reclaim_slot multiplies by PAIR_BYTES with three asl"
 
 ; The move route of the page just read, into slot X, from the start. It is
 ; also saved separately —+24 to +29— to go back to it when a forced move

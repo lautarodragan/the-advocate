@@ -13,6 +13,8 @@
 //!   of the twelve poses of whoever changes pose;
 //! * [`share`]: the still ones that take turns in a slot because they are
 //!   never on screen together;
+//! * [`cache`]: the slots nobody owns, for a map that does not fit even
+//!   with those turns;
 //! * [`extras`]: the timer's digits, the raindrops, a picture and the
 //!   battle animation's box, at the end of the bank.
 //!
@@ -20,6 +22,7 @@
 //! colour memory, and nothing of which game the map is from.
 
 pub mod bank;
+pub mod cache;
 pub mod character;
 pub mod extras;
 pub mod fail;

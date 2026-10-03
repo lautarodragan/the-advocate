@@ -51,8 +51,16 @@ changes:
     sta vq_src + 2
 
     ; The destination: its slot, which is the row's tile times sixteen words
-    ; from where the sprite bank starts.
+    ; from where the sprite bank starts. In a map with a cache of slots, the
+    ; one it got, if it has one: if not, the pose waits in +12 for when it
+    ; comes into view. See cache_slots.s.
     ldy npc_row
+    lda f:SHARE_N
+    bpl fixed_slot
+    jsl f:cache_dest + FAST
+    bcc queue
+    rts
+fixed_slot:
     lda npc_buf + 7, y
     and #$01                    ; bit 8 of the tile lives in the attributes
     xba
@@ -69,6 +77,7 @@ changes:
     sta vq_dest
     sep #$20
 .a8
+queue:
     jsr vram_queue
     bne ready
     ; The queue was full: it is asked for again next frame.

@@ -493,6 +493,18 @@ pub fn run(options: Options) -> Result<()> {
                 continue;
             }
             let (mut block, mut palette) = (Value::Null, json!(0));
+            // A map with a cache of slots: the page carries its still pose,
+            // and the console finds it a slot. See `sprites::cache` in Wally.
+            if continues && !m.cached.is_empty() {
+                let (key, p) = m
+                    .cached
+                    .get(graphic)
+                    .cloned()
+                    .ok_or_else(|| Stop::new(format!("map {}: {graphic:?} is not in the cache", m.id)))?;
+                page.draws = Some(json!({"block": null, "key": key, "palette": p, "pose": graphic.2,
+                                         "tile_pass": page.tile_pass}));
+                continue;
+            }
             if continues {
                 // The one that only appears goes without a block: its own
                 // row points at its slot of twelve poses.
@@ -570,9 +582,14 @@ pub fn run(options: Options) -> Result<()> {
                 }
             }
         }
+        // More than that is not lost while they do not all move at once:
+        // a slot whose route ended goes to the next one —`reclaim_slot` in
+        // the runtime—. How many move at once the pages do not say.
         if targets.len() > record::ROUTE_EV_MAX {
-            crate::stop!(
-                "map {}: its pages send {} distinct events walking and the ROM has {} route slots",
+            println!(
+                "  map {}: WARNING, its pages send {} distinct events walking and the ROM has {} route \
+                 slots: one whose route ended gives its slot to the next, and a route that finds them \
+                 all moving is lost",
                 m.id,
                 targets.len(),
                 record::ROUTE_EV_MAX
