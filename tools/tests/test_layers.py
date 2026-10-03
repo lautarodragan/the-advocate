@@ -20,7 +20,8 @@ import subprocess
 
 import pytest
 
-from common import project
+# `tools/`, the folder above this one: what these tests look at.
+TOOLS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 # What each layer may depend on, besides itself.
@@ -33,14 +34,14 @@ BELOW = {
 
 def _layer(path):
     """The layer a path inside the tools belongs to: its first directory."""
-    return os.path.relpath(path, project.tools()).split(os.sep)[0]
+    return os.path.relpath(path, TOOLS).split(os.sep)[0]
 
 
 @pytest.fixture(scope="module")
 def packages():
     output = subprocess.run(
         ["cargo", "metadata", "--format-version", "1", "--no-deps"],
-        cwd=project.tools(), check=True, capture_output=True, text=True).stdout
+        cwd=TOOLS, check=True, capture_output=True, text=True).stdout
     return json.loads(output)["packages"]
 
 
@@ -77,7 +78,7 @@ def test_the_lower_layers_do_not_read_the_project_file():
     `cargo metadata` does not see that, a grep does."""
     found = []
     for layer in ("snes", "rm2k"):
-        for root, dirs, files in os.walk(os.path.join(project.tools(), layer)):
+        for root, dirs, files in os.walk(os.path.join(TOOLS, layer)):
             dirs[:] = [d for d in dirs if d != "target"]
             for name in files:
                 if not name.endswith((".rs", ".toml")):
@@ -85,7 +86,7 @@ def test_the_lower_layers_do_not_read_the_project_file():
                 path = os.path.join(root, name)
                 with open(path, encoding="utf-8") as handle:
                     if "rm2k-snes.toml" in handle.read():
-                        found.append(os.path.relpath(path, project.tools()))
+                        found.append(os.path.relpath(path, TOOLS))
     assert not found, (
         "these name rm2k-snes.toml, which only rm2k-snes/ may know: %s"
         % ", ".join(sorted(found)))

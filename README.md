@@ -30,8 +30,8 @@ el mapa de arriba de `AGENTS.md`, y `tools/README.md` el de `tools/`.
 ## Cómo se instala
 
 **Hace falta `python`, un core de libretro y `ca65` + `ld65`**, y se instalan
-las herramientas —los proyectos de Rust y los scripts de Python que se
-ejecutan, que lista `tools/README.md`— en el PATH. Un juego las consume de
+las herramientas —los proyectos de Rust, que lista `tools/README.md`— en el
+PATH. Un juego las consume de
 ahí, y ningún script ni prueba de un juego llama a `cargo`: el porqué está
 en `AGENTS.md`. `ca65` y `ld65` salen de cc65, que no viene empaquetado en
 todas las distribuciones y se compila de sus fuentes: ver "Referencias".

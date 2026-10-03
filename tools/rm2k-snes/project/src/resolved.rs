@@ -17,9 +17,9 @@ use crate::{suite, Error, Project};
 /// * `project`: where the game is and how it is laid out —its root, its
 ///   file, each `[paths]` entry resolved against the file, and the two
 ///   folders the tools look for inside the patches—;
-/// * `suite`: where this suite's own files are —the tools, the directory
-///   above them and the runtime—, for the checkout the binary was built
-///   from: see [`suite`];
+/// * `suite`: where this suite's own files are —its `directory`, the one
+///   that holds the tools; the `root` above it; and the `runtime`—, for the
+///   checkout the binary was built from: see [`suite`];
 /// * `settings`: the whole project file, keys in the order the file writes
 ///   them.
 ///
@@ -40,7 +40,7 @@ pub fn resolved(project: &Project) -> Result<Value, Error> {
     Ok(json!({
         "project": paths.iter().map(|(k, p)| (k.to_string(), path(p))).collect::<Map<_, _>>(),
         "suite": {
-            "tools": path(suite::tools()),
+            "directory": path(suite::tools()),
             "root": path(suite::root()),
             "runtime": path(suite::runtime()),
         },

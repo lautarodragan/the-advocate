@@ -113,7 +113,9 @@ de punta a punta: código, comentarios, nombres de pruebas y README. Desde el
                        caras, ventanas y carteles de las pantallas, dibujados
                        como RM2k
     tools/rm2k-snes/   los que unen las dos cosas
-      project/         la biblioteca: qué juego, sus perillas, los flags de la máquina
+      project/         la biblioteca: qué juego, sus perillas, los flags de la
+                       máquina; y `rm2k-snes-project`, que se lo dice en JSON
+                       a las pruebas de un juego
       bytecode/        los dos bytecodes del cartucho, declarados una vez: las
                        constantes de Rust y los `.inc` del ensamblador
       cartridge/       los cartuchos: el reparto en bancos, ca65 + ld65, el espacio
@@ -514,8 +516,8 @@ dos ROMs tienen que ser byte por byte iguales. Ver `cache.rs` en
 
 **Mientras corren las pruebas no se toca ningún fuente**, tampoco desde el
 otro repo. La huella de `rm2k-snes-cartridges` cubre todo `tools/runtime/`
-del checkout desde el que se instalaron las herramientas, los `.py` de
-`tools/` y los binarios que arman —`ca65`, `ld65`, `rm2k-snes-assemble` y
+del checkout desde el que se instalaron las herramientas y los binarios
+que arman —`ca65`, `ld65`, `rm2k-snes-assemble` y
 los que corre el conversor—: tocar cualquiera de ésos mientras corre la
 tanda de ABL, o reinstalar uno, mezcla dos versiones y el resultado no dice
 nada.
@@ -630,11 +632,11 @@ Lo que hay que hacer siempre:
   hace>/…` alcanza.
 * **Que corra `just -f tools/justfile install-local tools/.local-tools`
   al empezar, si va a modificar las herramientas**, desde la raíz del
-  worktree. El global —`just -f tools/justfile install`— apunta al
-  checkout principal, y arma un `bin/` en el destino con los scripts de
-  Python —hoy sólo `rm2k-snes-python-path`— y los proyectos de Rust que se
-  le nombren; `tools/justfile` lo pone adelante en el PATH de sus recetas, y
-  ABL lo usa si se le pone adelante en el suyo (ver "Dónde corre esto").
+  worktree. El global —`just -f tools/justfile install`— sale del
+  checkout principal, y esto arma un `bin/` en el destino con los
+  proyectos de Rust que se le nombren —scripts de Python no queda
+  ninguno, desde el 2026-10-02—; `tools/justfile` lo pone adelante en el
+  PATH de sus recetas, y ABL lo usa si se le pone adelante en el suyo (ver "Dónde corre esto").
   **Un proyecto de Rust se le pasa sólo si el agente lo va a modificar**
   —`… install-local tools/.local-tools lz2`—: compilar cuesta, y sin
   nombres no compila nada. Y **todo se corre por `just`**: un comando
@@ -696,14 +698,11 @@ Así que al mergear una rama de sub-agente:
   mergeado**, con las herramientas del merge instaladas, no sobre las ramas.
   Que cada una viniera en verde no dice nada del merge.
 * **Reinstalar en el global sólo lo de Rust que la rama tocó**: `just -f
-  tools/justfile install lz2`, desde el checkout principal, que rearma de
-  paso los symlinks de Python. Lo de Python no hace falta reinstalarlo si la
-  rama sólo cambió el contenido de un script, porque el global apunta a ese
-  checkout y el merge ya lo trajo; **si renombró o agregó uno, sí**: un
-  symlink apunta a la ruta de un archivo, y un `.py` renombrado lo deja
-  apuntando a nada. Para eso está `just -f tools/justfile install-scripts`,
-  que rearma los symlinks sin compilar ni reinstalar nada de Rust, y se
-  niega a correr en un worktree.
+  tools/justfile install lz2`, desde el checkout principal. Una rama que
+  toca `rm2k-project` —`project`— cambia todos los binarios que lo
+  compilan adentro, y se reinstala todo. Hasta el 2026-10-02 había
+  también scripts de Python, instalados como symlinks, y una receta
+  `install-scripts` para rearmarlos: se fueron con el último script.
 * **Un rojo heredado se bisecta, no se hereda.** Si una prueba está en rojo y
   nadie la rompió, apareció en algún lado: `git log -S` para saber cuándo nació
   y correrla en los padres del merge sospechoso. Cuesta veinte minutos.

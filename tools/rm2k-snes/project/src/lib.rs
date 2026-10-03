@@ -14,8 +14,8 @@
 //! * **What a cached value depends on**: [`cache`], the key of the disk
 //!   cache.
 //!
-//! And [`suite`]: where the suite's own files are —the runtime, the scripts
-//! it still runs—, which travel with the tools and not with any game.
+//! And [`suite`]: where the suite's own files are —the runtime—, which
+//! travel with the tools and not with any game.
 //!
 //! And [`resolved`]: all of the above about one project, as JSON, for
 //! whoever asks from outside the tools.
