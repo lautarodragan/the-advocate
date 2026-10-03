@@ -118,14 +118,18 @@ impl<'a> Compiler<'a> {
         let boxes = screens::boxes(game, &font, width, LINES)?;
         let window = font.window(width, LINES);
         // And the battle's, where the troops' pages show theirs: as many
-        // lines as the map's, and narrower. The compiler reflows those
-        // itself, because it is the one that knows which pages a troop
-        // brings.
+        // lines as the map's, and narrower —`BA_PAGE_MSG_WIDTH` cells, in
+        // pixels, which is how the console cuts them too—. The compiler
+        // reflows those itself, because it is the one that knows which pages
+        // a troop brings.
         let layout = stage::json(
             &stage::run("rm2k-snes-battle", "battle", "layout", &json!({}), &[])?,
             "layout.json",
         )?;
-        let troop_window = json!({"columns": layout["BA_PAGE_MSG_WIDTH"], "lines": LINES});
+        let cells = layout["BA_PAGE_MSG_WIDTH"]
+            .as_u64()
+            .ok_or_else(|| Stop::new("the battle's layout has no BA_PAGE_MSG_WIDTH"))?;
+        let troop_window = font.window(cells as usize * 8, LINES);
         Ok(Compiler { game, settings, boxes, window, troop_window })
     }
 

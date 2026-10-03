@@ -587,14 +587,13 @@ pub fn run(options: Options) -> Result<()> {
 
     // The screens, all at once. And the items that can be in the
     // inventory, to carry their name and their description; the ones the
-    // enemies of the cartridge's troops drop too. The menu bank's letters
-    // are those of the medicines of the pages' items alone.
+    // enemies of the cartridge's troops drop too.
     let items_rom = scan::possible_items(every_refs.iter().copied(), &members, &game.db, &file_commands);
     let mut items_all: BTreeSet<i32> = items_rom.iter().copied().collect();
     items_all.extend(scan::drop_items(&game.db, &troops.ids));
     let items_all: Vec<i32> = items_all.into_iter().collect();
     let font = FontChoice::of(&settings)?;
-    let screens_answer = screens::convert(&game, &font, &members, &items_all, &items_rom, !options.no_title)?;
+    let screens_answer = screens::convert(&game, &font, &members, &items_all, !options.no_title)?;
     let w = &screens_answer["window"];
     println!(
         "  message window: {} fixed tiles + {} of text, {} colors; font {} B, {} text box(es) in {} B",

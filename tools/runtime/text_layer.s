@@ -142,7 +142,17 @@ TL_SWITCHED  = TL_NEW + TL_PAIRS ; nonzero: `TL_NEW` has to be cleared
 TL_KEEP_X    = TL_SWITCHED + 2 ; `tl_idle` keeps the caller's X,
 TL_KEEP_Y    = TL_SWITCHED + 4 ; Y
 TL_KEEP_G    = TL_SWITCHED + 6 ; and `comp_glyph`, three bytes
-TL_END       = TL_SWITCHED + 10
+TL_PRE       = TL_SWITCHED + 10 ; which tables `tl_glyph` reads: 0 the
+                                ; screens', `TL_SLOT_PRE` the menu bank's
+TL_STRIP_NEXT = TL_SWITCHED + 12 ; `tl_strip`: the next free tile of the bank
+TL_STRIP_CELL = TL_SWITCHED + 14 ; the strip's upper left tilemap word
+TL_STRIP_CAP = TL_SWITCHED + 16 ; how many letters and cells, at most
+TL_STRIP_N   = TL_SWITCHED + 18 ; how many letters, without the padding
+TL_STRIP_T   = TL_SWITCHED + 20 ; its first tile
+TL_STRIP_K   = TL_SWITCHED + 22 ; and how many columns, a pair of tiles each
+TL_SLOT_T    = TL_SWITCHED + 24 ; the slot screen's names: each one's tile
+TL_SLOT_K    = TL_SLOT_T + 2 * TL_SLOTS ; and columns, 0 not composed yet
+TL_END       = TL_SLOT_K + 2 * TL_SLOTS
 .assert TL_END <= FAR_TEXT_LAYER_END, error, "the text layer does not fit in its RAM"
 
 ; A letter that is not in the font: a blank as wide as a digit, which pads a
@@ -174,6 +184,15 @@ TL_OFS_Y     = SCR_TEXT_Y
 ; handed out: tile 0 is the blank one, which the cells without text point
 ; to.
 TL_PAIR_WORDS = 32
+; The slot screen's slots `tl_slot_name` keeps a name for.
+TL_SLOTS     = 8
+.assert SRAM_SLOTS_N <= TL_SLOTS, error, "tl_slot_name keeps a name per slot"
+; The menu bank's tables in `scr_pre_lo` and `scr_pre_bk`.
+TL_SLOT_PRE  = 16
+; Where the menu bank's strips go: from the first even tile after its own,
+; up to its tilemap.
+TL_STRIP_FIRST = (SLOT_TILES + 1) & $FFFE
+TL_STRIP_LAST  = (SLOT_MAP - SLOT_VRAM) / 16
 
 ; Where row k of a glyph lands in a column of the stage: rows 2 to 7 of the
 ; top tile, then rows 0 to 6 of the bottom one, two bytes per row.
@@ -275,6 +294,7 @@ records:
     stz TL_FLUSH
     stz TL_LEFT
     stz TL_SWITCHED
+    stz TL_PRE
     lda #$FFFF
     sta TL_T_ROW
     sta TL_PEN_PICK
@@ -2033,6 +2053,8 @@ advance:
     lda TL_X
     and #$0007
     asl a
+    clc
+    adc TL_PRE                  ; the screens' tables or the menu bank's
     tax
     lda f:scr_pre_lo, x
     clc
@@ -2065,12 +2087,18 @@ advance:
 
 ; Where the composed glyphs of each phase start, indexed by twice the phase:
 ; that is why the banks go with a padding byte between them.
+; After them, at `TL_SLOT_PRE`, the menu bank's: the same font, for the
+; layout of that bank's text palette.
 scr_pre_lo:
     .word .loword(scr_pre0), .loword(scr_pre1), .loword(scr_pre2), .loword(scr_pre3)
     .word .loword(scr_pre4), .loword(scr_pre5), .loword(scr_pre6), .loword(scr_pre7)
+    .word .loword(slot_pre0), .loword(slot_pre1), .loword(slot_pre2), .loword(slot_pre3)
+    .word .loword(slot_pre4), .loword(slot_pre5), .loword(slot_pre6), .loword(slot_pre7)
 scr_pre_bk:
     .byte ^scr_pre0, 0, ^scr_pre1, 0, ^scr_pre2, 0, ^scr_pre3, 0
     .byte ^scr_pre4, 0, ^scr_pre5, 0, ^scr_pre6, 0, ^scr_pre7, 0
+    .byte ^slot_pre0, 0, ^slot_pre1, 0, ^slot_pre2, 0, ^slot_pre3, 0
+    .byte ^slot_pre4, 0, ^slot_pre5, 0, ^slot_pre6, 0, ^slot_pre7, 0
 
 ; The row is composed: its old pairs go —`tl_release_row`—, each inked column
 ; takes a free pair, which only it points to, and the tilemap points its two
@@ -2159,5 +2187,355 @@ empty:
     sta TL_MAP_DIRTY
     lda #$FFFF
     sta TL_T_ROW
+    rts
+.endproc
+
+; --- the menu bank's strips ------------------------------------------------------
+;
+; The pause menu, the actor choice and the slot screen write the names
+; —each actor's, a medicine's— composed, with the same letters as the text
+; screens, and the numbers one per cell, with the bank's glyphs. Until
+; 2026-10-03 the names went one per cell too, and with a font whose letters
+; are four or five pixels wide that was a gap of three between them.
+;
+; A name is **a strip**: composed in the stage, from the menu bank's own
+; precomposed tables —the font for the layout of its text palette, palette
+; 0—, and uploaded to tiles of its own, which are taken in order from the
+; bank's free ones, after its tiles and up to its tilemap. Those screens
+; upload their bank whole each time they open —`slot_bank_upload`, which
+; starts the free ones over— and write their names then, with the screen off;
+; the converter measures that the most a screen asks for fits.
+;
+; The numbers stay one per cell: the menu rewrites the HP after healing, and
+; the actor choice the medicine's count, in the vblank and with the screen
+; on, and composing there does not fit. Their glyphs are the bank's, all of
+; the same width, and they look like before.
+;
+; The stage is the text layer's, which those screens do not have on: the
+; layer stops —`tl_on`— and starts again with the next `tl_reset`.
+
+; The bank's free tiles start over, and the slot screen's names are
+; forgotten. With the bank, from `slot_bank_upload`.
+.proc tl_strip_reset
+.a8
+.i16
+    tl_enter
+    rep #$20
+.a16
+    lda #TL_STRIP_FIRST
+    sta TL_STRIP_NEXT
+    ldx #0
+forget:
+    stz TL_SLOT_K, x
+    inx
+    inx
+    cpx #(2 * TL_SLOTS)
+    bcc forget
+    sep #$20
+.a8
+    plb
+    rtl
+.endproc
+.assert TL_STRIP_FIRST <= TL_STRIP_LAST, error, "the menu's bank reaches its tilemap"
+
+; A strip: the text at `msg_ptr`, A letters at most —its padding left
+; out— and as many as fit in A cells, composed in white from Y, the tilemap
+; word of its upper left cell. With the screen off. Keeps Y; clobbers A
+; and X.
+.proc tl_strip
+.a8
+.i16
+    pha
+    phy
+    tl_enter
+    rep #$20
+.a16
+    lda 2, s
+    sta TL_STRIP_CELL
+    lda 4, s
+    and #$00FF
+    sta TL_STRIP_CAP
+    jsr tl_strip_new
+    sep #$20
+.a8
+    plb
+    ply
+    pla
+    rtl
+.endproc
+
+; The leader's name of the slot screen's slot `slot`, like `tl_strip`: the
+; first time it is composed, and from then on the same tiles are pointed to
+; again —moving the cursor repaints the row in the vblank, and composing
+; there does not fit—. Keeps Y; clobbers A and X.
+.proc tl_slot_name
+.a8
+.i16
+    pha
+    phy
+    tl_enter
+    rep #$20
+.a16
+    lda 2, s
+    sta TL_STRIP_CELL
+    lda 4, s
+    and #$00FF
+    sta TL_STRIP_CAP
+    lda slot
+    and #$00FF
+    asl a
+    tax
+    lda TL_SLOT_K, x
+    beq compose
+    sta TL_STRIP_K
+    lda TL_SLOT_T, x
+    sta TL_STRIP_T
+    jsr tl_strip_place
+    bra done
+compose:
+    phx
+    jsr tl_strip_new
+    plx
+    lda TL_STRIP_T
+    sta TL_SLOT_T, x
+    lda TL_STRIP_K
+    sta TL_SLOT_K, x
+done:
+    sep #$20
+.a8
+    plb
+    ply
+    pla
+    rtl
+.endproc
+
+; Composes `TL_STRIP_CAP` letters of `msg_ptr` to `TL_STRIP_CELL`, and
+; takes and uploads its tiles: in `TL_STRIP_T` the first and in
+; `TL_STRIP_K` how many columns, 0 if it had nothing or there was no room. A16.
+.proc tl_strip_new
+.a16
+.i16
+    lda comp_glyph              ; the composer borrows it
+    sta TL_KEEP_G
+    lda comp_glyph + 2
+    sta TL_KEEP_G + 2
+    jsr tl_strip_compose
+    lda TL_STRIP_K
+    beq none
+    asl a
+    clc
+    adc TL_STRIP_NEXT
+    cmp #(TL_STRIP_LAST + 1)
+    bcs full                    ; the converter measured it does not happen
+    lda TL_STRIP_NEXT
+    sta TL_STRIP_T
+    jsr tl_strip_upload
+    jsr tl_strip_place
+    lda TL_STRIP_K
+    asl a
+    clc
+    adc TL_STRIP_NEXT
+    sta TL_STRIP_NEXT
+    bra none
+full:
+    stz TL_STRIP_K
+none:
+    lda TL_KEEP_G
+    sta comp_glyph
+    sep #$20
+.a8
+    lda TL_KEEP_G + 2
+    sta comp_glyph + 2
+    rep #$20
+.a16
+    rts
+.endproc
+
+; The letters into the stage, from x = `TL_XOFS`: those of the text without
+; its trailing spaces, while their advances add up to the cap's cells'
+; pixels. Leaves in `TL_STRIP_K` how many columns they reach. A16.
+.proc tl_strip_compose
+.a16
+.i16
+    sep #$20
+.a8
+    stz tl_on                   ; the stage is the strip's now
+    rep #$20
+.a16
+    ; The padding off.
+    ldy TL_STRIP_CAP
+trim:
+    cpy #0
+    beq trimmed
+    dey
+    lda [msg_ptr], y
+    and #$00FF
+    cmp #' '
+    beq trim
+    iny
+trimmed:
+    sty TL_STRIP_N
+    jsr tl_stage_clear
+    lda #TL_SLOT_PRE
+    sta TL_PRE
+    stz TL_VAR
+    lda #TL_XOFS
+    sta TL_X
+    lda TL_STRIP_CAP
+    asl a
+    asl a
+    asl a
+    clc
+    adc #TL_XOFS
+    sta TL_T0                   ; where the line may end, at most
+    ldy #0
+letter:
+    cpy TL_STRIP_N
+    bcs done
+    lda [msg_ptr], y
+    and #$00FF
+    sec
+    sbc #' '
+    sta TL_C
+    tax
+    lda f:font_advance, x
+    and #$00FF
+    clc
+    adc TL_X
+    cmp TL_T0
+    beq fits
+    bcs done
+fits:
+    pha                         ; where the next one starts
+    lda f:font_reach, x
+    and #$00FF
+    beq blank                   ; a blank paints nothing
+    phy
+    jsr tl_glyph
+    ply
+blank:
+    pla
+    sta TL_X
+    iny
+    bra letter
+done:
+    stz TL_PRE
+    ; The columns the letters reach: the last one's ink and shadow end a
+    ; pixel before where the next would start, at most.
+    lda TL_X
+    clc
+    adc #6
+    lsr a
+    lsr a
+    lsr a
+    sta TL_STRIP_K
+    rts
+.endproc
+
+; The stage, cleared through the WRAM port: a DMA from a fixed zero. A16.
+.proc tl_stage_clear
+.a16
+.i16
+    lda #TL_STAGE
+    sta f:WMADDL
+    sep #$20
+.a8
+    lda #0                      ; bit 16 of the 17: 0 is bank $7E
+    sta f:WMADDH
+    lda #$08                    ; one register, the source does not move
+    sta f:DMAP0
+    lda #<WMDATA
+    sta f:BBAD0
+    lda #^tl_zero
+    sta f:A1B0
+    rep #$20
+.a16
+    lda #.loword(tl_zero)
+    sta f:A1T0L
+    lda #TL_STAGE_BYTES
+    sta f:DAS0L
+    sep #$20
+.a8
+    lda #$01
+    sta f:MDMAEN
+    rep #$20
+.a16
+    rts
+.endproc
+
+; The strip's columns, from the stage to its tiles: a column is its upper
+; tile and its lower one, one after the other, and so are they in the bank.
+; A16.
+.proc tl_strip_upload
+.a16
+.i16
+    sep #$20
+.a8
+    lda #$80
+    sta f:VMAIN
+    lda #$01
+    sta f:DMAP0
+    lda #$18
+    sta f:BBAD0
+    lda #$7E
+    sta f:A1B0
+    rep #$20
+.a16
+    lda TL_STRIP_T
+    asl a
+    asl a
+    asl a
+    asl a                       ; 16 words a tile
+    clc
+    adc #SLOT_VRAM
+    sta f:VMADDL
+    lda #TL_STAGE
+    sta f:A1T0L
+    lda TL_STRIP_K
+    xba
+    lsr a
+    lsr a                       ; 64 bytes a column
+    sta f:DAS0L
+    sep #$20
+.a8
+    lda #$01
+    sta f:MDMAEN
+    rep #$20
+.a16
+    rts
+.endproc
+
+; The strip's cells in the tilemap: column c is tiles `TL_STRIP_T` + 2c on
+; top and the next one below, with the bank's priority and palette 0. A16.
+.proc tl_strip_place
+.a16
+.i16
+    sep #$20
+.a8
+    lda #$80
+    sta f:VMAIN
+    rep #$20
+.a16
+    lda TL_STRIP_CELL
+    sta f:VMADDL
+    lda TL_STRIP_T
+    jsr cells
+    lda TL_STRIP_CELL
+    clc
+    adc #32
+    sta f:VMADDL
+    lda TL_STRIP_T
+    inc a
+cells:
+    ora #$2000                  ; the priority: see `slot_tiles`
+    ldx TL_STRIP_K
+    beq placed
+word:
+    sta f:VMDATAL
+    inc a
+    inc a
+    dex
+    bne word
+placed:
     rts
 .endproc

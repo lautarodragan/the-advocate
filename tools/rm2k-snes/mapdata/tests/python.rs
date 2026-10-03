@@ -61,6 +61,11 @@
 //! against the old text is `items_tiles`, `item_glyph_cells`,
 //! `ITEMS_TILES` and `ITEM_GLYPHS_GRAY` gone, and the eight `scr_pre`
 //! tables and the two constants in their place.
+//!
+//! And the same day the menu's bank started composing the names: the
+//! requests carry `slots.prerender`, eight more made-up tables, and the two
+//! hashes moved by the eight `slot_pre` tables they come out as and nothing
+//! else.
 
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_mapdata::record;
@@ -224,10 +229,10 @@ fn without_commons(text: &str) -> String {
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
     let text = without_commons(&without_pairs(&emitted.text));
-    assert_eq!(text.lines().count(), 3338);
+    assert_eq!(text.lines().count(), 3362);
     assert_eq!(
         sha(&text),
-        "762695ca8145784482dba310044e9c0cd0130cf785350af35d4faf74c5274359"
+        "d62741964911602a3ff8929d3984c3e8d269151f2efc9ceb466b07b300072e4a"
     );
 }
 
@@ -235,10 +240,10 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
     let text = without_commons(&without_pairs(&emitted.text));
-    assert_eq!(text.lines().count(), 3457);
+    assert_eq!(text.lines().count(), 3481);
     assert_eq!(
         sha(&text),
-        "1856284e9d24faac0aacd09e8fc10563df059b75f664490b4ba40d2958c51b5e"
+        "7859ce55a67811c2b08e3905849d0aa61f18a26fdf4075be6ceb426c3a89b80e"
     );
 }
 

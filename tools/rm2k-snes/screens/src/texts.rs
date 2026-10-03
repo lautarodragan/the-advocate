@@ -7,7 +7,6 @@ use crate::game::{Game, ITEM_MEDICINE, ITEM_SWITCH};
 use crate::layout::*;
 use ditto::schema::{Actor, Item};
 use rm2k_rules::actor as rules;
-use std::collections::BTreeSet;
 
 /// What the screen can write: the characters the font has, with a '?'
 /// instead of the others, and cut to `width`.
@@ -91,24 +90,35 @@ pub fn split_description(font: &Font, text: &str) -> Vec<String> {
     rows
 }
 
-/// A name split into `rows` lines of `width`, by words; a word that does
-/// not fit is cut where it reaches. Padded with spaces, which are what
-/// erase whatever was there.
-pub fn name_in_lines(name: &str, width: usize, rows: usize) -> Vec<String> {
+/// A name split into `rows` lines of `width` cells, by words; a word that
+/// does not fit is cut where it reaches. A line fits if it is no wider than
+/// its cells' pixels and has no more letters than cells —the cartridge keeps
+/// `width` letters per line—. Padded with spaces to `width` letters: the
+/// cartridge drops the padding when it composes the line.
+pub fn name_in_lines(font: &Font, name: &str, width: usize, rows: usize) -> Vec<String> {
+    let fits = |text: &str| text.chars().count() <= width && font.width(text) <= 8 * width;
     let mut out = Vec::new();
     let mut line = String::new();
     for word in name.split_whitespace() {
         let mut word: String = word.to_string();
-        while word.chars().count() > width {
+        while !fits(&word) {
             if !line.is_empty() {
                 out.push(std::mem::take(&mut line));
             }
-            out.push(word.chars().take(width).collect());
-            word = word.chars().skip(width).collect();
+            let mut cut = String::new();
+            for c in word.chars() {
+                cut.push(c);
+                if !fits(&cut) {
+                    cut.pop();
+                    break;
+                }
+            }
+            word = word.chars().skip(cut.chars().count()).collect();
+            out.push(cut);
         }
         if line.is_empty() {
             line = word;
-        } else if line.chars().count() + 1 + word.chars().count() <= width {
+        } else if fits(&format!("{line} {word}")) {
             line = format!("{line} {word}");
         } else {
             out.push(std::mem::replace(&mut line, word));
@@ -120,6 +130,14 @@ pub fn name_in_lines(name: &str, width: usize, rows: usize) -> Vec<String> {
     out.resize(out.len().max(rows), String::new());
     out.truncate(rows);
     out.iter().map(|r| ljust(r, width)).collect()
+}
+
+/// What the cartridge composes of a text that may take `cells` cells: the
+/// stored text —`stored`, padded with spaces— without its padding, and of
+/// that as much as fits in the cells' pixels. It is `tl_strip`'s.
+pub fn strip_text(font: &Font, stored: &str, cells: usize) -> String {
+    let letters: String = stored.chars().take(cells).collect();
+    fit_cells(font, letters.trim_end_matches(' '), cells)
 }
 
 /// An actor's max HP at `level` —its starting one without it—: RM2k's
@@ -190,23 +208,11 @@ pub fn digits_of(value: i64, how_many: u32) -> String {
     value.clamp(0, 10_i64.pow(how_many) - 1).to_string()
 }
 
-/// Which letters the menu's bank needs: those of what is composed —each
-/// actor's name, level and maximum—, plus the ten digits and the space,
-/// which the gold and the current HP use, the experience's slash and dash,
-/// and `extra` —the names of the medicines, which the actor choice
-/// writes—. A cartridge with three actors does not pay for the others'
-/// letters.
-pub fn glyphs_of(game: &Game, actors: &[i32], extra: &str) -> Result<Vec<char>> {
-    let mut letters: BTreeSet<char> = "0123456789 ".chars().collect();
-    letters.extend(extra.chars());
-    letters.extend("/-".chars());
-    for &actor in actors {
-        letters.extend(name_text(game, actor, MENU_NAME_COLS)?.chars());
-        letters.extend(level_text(game, actor, None).chars());
-        letters.extend(max_text(game, actor, None).chars());
-    }
-    Ok(letters.into_iter().collect())
-}
+/// The letters the menu's bank carries as glyphs, one per cell: those of
+/// the numbers —the gold, the level, the HP, the experience— and nothing
+/// else. Until 2026-10-03 it also carried the letters of every name it
+/// wrote; the names are composed now, see `tl_strip` in the runtime.
+pub const NUMBER_GLYPHS: &str = " -/0123456789";
 
 /// Whether the item goes in white and A does something with it on the
 /// map: `Game_Party::IsItemUsable` outside battle. The switch ones that can
@@ -236,12 +242,15 @@ mod tests {
 
     #[test]
     fn a_long_word_is_cut_where_it_reaches() {
+        // RM2k's font, six pixels a letter: 11 cells are 88 pixels, and 14
+        // letters would fit in them, but a line keeps 11.
+        let font = Font::rm2k(rm2k_snes_text::font::MINCHO);
         assert_eq!(
-            name_in_lines("Sandwich-HP", 11, 2),
+            name_in_lines(&font, "Sandwich-HP", 11, 2),
             vec!["Sandwich-HP".to_string(), " ".repeat(11)]
         );
         assert_eq!(
-            name_in_lines("Supercalifragilistic", 11, 2),
+            name_in_lines(&font, "Supercalifragilistic", 11, 2),
             vec!["Supercalifr".to_string(), "agilistic  ".to_string()]
         );
     }

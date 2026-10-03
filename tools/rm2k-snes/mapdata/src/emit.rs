@@ -1179,6 +1179,11 @@ impl Rest<'_> {
             out,
             &block("slot_tiles", &packed(&tiles(at(slots, "tiles")?)?, 4)),
         );
+        // The font precomposed for the bank's text palette, a table per
+        // phase: the names are composed with it —`tl_strip`—.
+        for (phase, data) in list_at(slots, "prerender")?.iter().enumerate() {
+            line(out, &block(&format!("slot_pre{phase}"), &crate::json::bytes(data)?));
+        }
         // Each cell block with its own label, named by a pointer table. The
         // bank of the slots and the menu goes with the priority bit set: the
         // actor choice turns on BG1, which at priority 0 would cover BG2.

@@ -124,8 +124,7 @@ impl Json {
     /// The conversion's request.
     ///
     /// ```json
-    /// {"slots": 4, "actors": [1, 11, 14], "items": [1, 2, 7],
-    ///  "bank_items": [1, 2], "title": true,
+    /// {"slots": 4, "actors": [1, 11, 14], "items": [1, 2, 7], "title": true,
     ///  "cgram_reserved": 9,
     ///  "vram": {"slot_vram": 8192, "slot_map": 15360,
     ///           "bg1_banks": [["WINDOW", 4096, 20480]]}}
@@ -157,10 +156,6 @@ impl Json {
             slots: self.index_or("slots", 0)?,
             actors: self.actors("actors")?,
             items: self.actors("items")?,
-            bank_items: match self.get("bank_items") {
-                None => self.actors("items")?,
-                Some(_) => self.actors("bank_items")?,
-            },
             title: self.flag("title", false)?,
             cgram_reserved: self.index_or("cgram_reserved", 0)?,
             vram: Vram {

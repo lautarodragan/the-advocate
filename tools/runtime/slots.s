@@ -198,11 +198,11 @@ row:
 ; --- the text that depends on the actor ------------------------------------
 ;
 ; The name, the level and the max HP **are not baked** into one block of
-; cells per actor: they are composed one letter per cell, with the glyphs in
-; `slot_glyph_cells`. The reason is in "what depends on the actor" in
-; the screens stage's `layout.rs` and is the same one that holds for the
-; gold and the item screen: the tile bank is a single one and deduplicated,
-; so a block per actor made it grow with every one who could be in the party.
+; cells per actor: the name is composed —`tl_strip`— and the numbers go one
+; letter per cell, with the glyphs in `slot_glyph_cells`. The reason is in
+; "what depends on the actor" in the screens stage's `layout.rs`: the tile
+; bank is a single one and deduplicated, so a block per actor made it grow
+; with every one who could be in the party.
 
 ; `msg_ptr` pointing at one of the strips of the actor in A, offset by the X
 ; bytes of `SLOT_TEXT_NAME`, `_LEVEL` or `_MAX`. Clobbers A and X, and
@@ -313,8 +313,9 @@ letter:
 ; `slot_name_vram`, like `slot_vram` for the rows: the computation lives
 ; on a single side.
 ;
-; The face is a baked block and the name and the level **are not**: those are
-; composed with glyphs, see `slot_text_write`.
+; The face is a baked block and the name and the level **are not**: the name
+; is composed —`tl_slot_name`— and the level goes with glyphs, see
+; `slot_text_write`.
 ;
 ; The scratch space, which is tight: `temp` and `temp + 2` belong to the
 ; rectangle, `temp + 3` keeps how many there are, and **`title_edges`
@@ -383,9 +384,9 @@ next:
     inc title_edges
     bra other_member
 faces_lists:
-    ; The name of the leader, who is the first, and its level: both composed
-    ; with glyphs on top of the row. `temp + 3` is no longer needed, so
-    ; `slot_text_write` can use `temp`.
+    ; The name of the leader, who is the first, and its level, on top of the
+    ; row: the name composed and the level with glyphs. `temp + 3` is no
+    ; longer needed, so `slot_text_write` can use `temp`.
     lda temp + 3
     beq ready                   ; an empty party has no leader
     stz title_edges
@@ -408,9 +409,9 @@ faces_lists:
     ldx #SLOT_TEXT_NAME
     jsr slot_text_of
     lda #SLOT_NAME_COLS
-    jsr slot_text_write
+    jsl f:tl_slot_name + FAST   ; composed once, and pointed to again
     ; And the level, which falls a few cells further along the same row. Y
-    ; stayed where it was: `slot_text_write` preserves it.
+    ; stayed where it was: `tl_slot_name` preserves it.
     rep #$20
 .a16
     tya
@@ -709,6 +710,8 @@ move_cursor:
     lda #$01
     sta MDMAEN
 
+    ; And the names composed over it start from its first free tile.
+    jsl f:tl_strip_reset + FAST
     rts
 .endproc
 

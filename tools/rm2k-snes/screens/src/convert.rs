@@ -22,14 +22,11 @@ pub struct Request {
     /// How many save slots there are.
     pub slots: usize,
     /// The actors that can be in the party: their faces go in the bank,
-    /// and the letters of their names.
+    /// and their names have to fit in what it leaves free.
     pub actors: Vec<i32>,
     /// The items the cartridge knows, in its order: their names and
     /// descriptions go as text.
     pub items: Vec<i32>,
-    /// The items whose medicines' names the menu's bank carries the
-    /// letters of: the actor choice writes them with its glyphs.
-    pub bank_items: Vec<i32>,
     /// Whether the cartridge has a title screen.
     pub title: bool,
     /// Where what follows the message window starts in colour memory.
@@ -62,6 +59,62 @@ fn glyphs_json(glyphs: &std::collections::BTreeMap<char, Vec<u16>>) -> Value {
     )
 }
 
+/// The pairs of tiles a strip takes: as many columns as its letters reach,
+/// from one pixel into its first cell. It is `tl_strip`'s count.
+fn strip_tiles(game: &Game, stored: &str, cells: usize) -> usize {
+    let text = texts::strip_text(&game.font, stored, cells);
+    let width = SCR_TEXT_X + game.font.width(&text);
+    if text.is_empty() {
+        0
+    } else {
+        2 * width.div_ceil(crate::cells::CELL)
+    }
+}
+
+/// That the names the menu, the actor choice and the slot screen compose fit
+/// in what their bank leaves free: from its first even tile after `tiles`
+/// up to its tilemap. The most a screen can ask for is counted: the menu
+/// with the four longest names and the actor choice's longest medicine over
+/// it, or a save in every slot with the longest leader.
+///
+/// Until 2026-10-03 the names went one letter per cell, from glyphs in the
+/// bank: what cost was the letters, once. Composed, each name shown takes
+/// tiles of its own.
+fn strips_fit(game: &Game, request: &Request, medicines: &[(i32, String)], tiles: usize) -> Result<String> {
+    let free = SLOT_TILES_MAX.saturating_sub(tiles.div_ceil(2) * 2);
+    let mut names: Vec<usize> = Vec::new();
+    let mut leaders = 0;
+    for &actor in &request.actors {
+        let stored = texts::name_text(game, actor, MENU_NAME_COLS)?;
+        names.push(strip_tiles(game, &stored, MENU_NAME_COLS));
+        leaders = leaders.max(strip_tiles(game, &stored, NAME_COLS));
+    }
+    names.sort_unstable_by(|a, b| b.cmp(a));
+    let party: usize = names.iter().take(MENU_PARTY_ROWS).sum();
+    let medicine = medicines
+        .iter()
+        .map(|(_, name)| {
+            texts::name_in_lines(&game.font, name, TARGET_NAME_WIDTH, 2)
+                .iter()
+                .map(|line| strip_tiles(game, line, TARGET_NAME_WIDTH))
+                .sum::<usize>()
+        })
+        .max()
+        .unwrap_or(0);
+    let need = (party + medicine).max(request.slots * leaders);
+    if need > free {
+        return Err(Bad::answer(format!(
+            "the menu's bank has {tiles} tiles and leaves {free} free up to its tilemap, and the \
+             composed names can ask for {need}: {party} the party's, {medicine} a medicine's and \
+             {} the slot screen's",
+            request.slots * leaders
+        )));
+    }
+    Ok(format!(
+        "  menu bank: {tiles} tiles of {SLOT_TILES_MAX}; the composed names ask for {need} of the {free} left"
+    ))
+}
+
 /// Everything the conversion needs from the screens, and what it has to
 /// say about them, in order.
 pub fn convert(game: &Game, request: &Request) -> Result<Value> {
@@ -72,41 +125,14 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     let font = message_window::font_bytes(&game.font)?;
     let prerender = message_window::font_prerender(&font, &window.color, window.shadow);
 
-    // The letters of the medicines, which the actor choice writes with the
-    // menu bank's glyphs.
-    let mut medicine_letters = String::new();
-    for &n in &request.bank_items {
-        if game.item(n)?.r#type.to_i32() == ITEM_MEDICINE {
-            medicine_letters.push_str(&game.item_name(n)?);
-        }
-    }
     let mut medicines = Vec::new();
     for &n in &request.items {
         if game.item(n)?.r#type.to_i32() == ITEM_MEDICINE {
             medicines.push((n, game.item_name(n)?));
         }
     }
-    // A medicine only an enemy drops is in `items` but not in `bank_items`,
-    // so its letters do not go in the bank, and the actor choice would draw
-    // a gap for one nobody else has. Adding them moves the ROM, and no
-    // cartridge has one today (measured 2026-09-30): until one does, say so
-    // instead of drawing the gap.
-    let bank = crate::texts::glyphs_of(game, &request.actors, &medicine_letters)?;
-    for (n, name) in &medicines {
-        let mut missing = String::new();
-        for c in name.chars().filter(|c| !bank.contains(c)) {
-            if !missing.contains(c) {
-                missing.push(c);
-            }
-        }
-        if !missing.is_empty() {
-            return Err(Bad::answer(format!(
-                "the medicine {n} ({name:?}) has letters the menu's bank does not carry: \
-                 {missing:?}; the actor choice would draw them as a gap"
-            )));
-        }
-    }
-    let slots = slots::slots_screen(game, &skin, request.slots, &request.actors, &medicine_letters)?;
+    let slots = slots::slots_screen(game, &skin, request.slots, &request.actors)?;
+    says.push(strips_fit(game, request, &medicines, slots.tiles.len())?);
     if !slots.lent.is_empty() {
         let names: Vec<String> = {
             let mut lent = slots.lent.clone();
@@ -170,7 +196,7 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     }
     let medicine_names: Vec<Value> = medicines
         .iter()
-        .map(|(n, name)| json!({"number": n, "lines": texts::name_in_lines(name, TARGET_NAME_WIDTH, 2)}))
+        .map(|(n, name)| json!({"number": n, "lines": texts::name_in_lines(&game.font, name, TARGET_NAME_WIDTH, 2)}))
         .collect();
     let params: Vec<String> = ["attack", "defense", "spirit", "agility"]
         .iter()
@@ -233,6 +259,7 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
                 "row": menu.row,
                 "exp_term": menu.exp_term,
             },
+            "prerender": slots.prerender.iter().map(|t| hex(t)).collect::<Vec<_>>(),
         },
         "text_inks": {
             "palettes": inks.palettes,

@@ -83,16 +83,19 @@ pub const FACE_PALETTES_MAX: usize = 7;
 /// How many tiles fit in the screen's bank: see the VRAM checks.
 pub const SLOT_TILES_MAX: usize = 448;
 
-// --- what depends on the actor, composed with glyphs ---------------------------
+// --- what depends on the actor ----------------------------------------------------
 //
-// The name, the level and the max HP **are composed one letter per cell**,
-// like the gold digits: the text costs once —the letters the names use— and
-// the only thing that grows per actor is the faces. The price is declared:
-// the letters go at an 8-pixel pitch and not at the font's 6.
+// The name, the level and the max HP **are not baked** per actor: the only
+// thing that grows per actor is the faces. The numbers go **one per cell**,
+// like the gold, from glyphs —the digits, the slash, the dash and the
+// space—, and the price is declared: they go at an 8-pixel pitch and not at
+// the font's. The names are **composed**, since 2026-10-03, into tiles of
+// their own each time the screen opens: one per cell they left gaps of three
+// pixels between the letters of a variable-width font. See `tl_strip` in
+// the runtime.
 //
-// The glyphs are drawn **in the same cell and with the same offset as the
-// gold digits** —one in x, two in y—, so the ten digits come from here and
-// the screen does not carry two sets of digits.
+// Both are drawn **from the same place in the cell** —one in x, two in y—,
+// which is also the text screens' (`SCR_TEXT_X`, `SCR_TEXT_Y`).
 /// The cell where a loose glyph is drawn; both are arbitrary.
 pub const GLYPH_COL: usize = 3;
 pub const GLYPH_ROW: usize = 25;

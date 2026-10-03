@@ -81,6 +81,15 @@ impl<'a> Painter<'a> {
         }
     }
 
+    /// The lit pixels of `layer`, at 15 bits.
+    fn layer(&mut self, layer: &Picture) {
+        for (i, px) in layer.rgba.chunks_exact(4).enumerate() {
+            if px[3] != 0 {
+                self.set(i % layer.width, i / layer.width, cells::rgb15([px[0], px[1], px[2], px[3]]));
+            }
+        }
+    }
+
     /// Pastes `picture` through its alpha: the windows behind the text.
     fn under(&mut self, picture: &Picture) {
         cells::paste(&mut self.out, picture, 0, 0);
@@ -94,8 +103,20 @@ impl<'a> Painter<'a> {
     }
 }
 
-/// A text composed one letter per cell with the menu bank's glyphs, as
-/// the cartridge writes it.
+/// A text that may take `cells` cells from cell `(col, row)`, composed in
+/// white like the cartridge's `tl_strip`: the font drawn from the cell one
+/// pixel in and two down, letter after letter, in the colours palette 0
+/// has —the ink's, which the bank makes sure it carries—. `stored` is the
+/// text as the cartridge keeps it, padded.
+fn compose_text(p: &mut Painter, game: &Game, skin: &Skin, stored: &str, cells: usize, row: usize, col: usize) {
+    let text = texts::strip_text(&game.font, stored, cells);
+    let mut layer = cells::layer();
+    skin.draw_line(&mut layer, (col * CELL + GLYPH_DX) as i64, (row * CELL + GLYPH_DY) as i64, &text, 0, &game.font);
+    p.layer(&layer);
+}
+
+/// A text written one letter per cell with the menu bank's glyphs, as the
+/// cartridge writes numbers.
 fn paste_text(p: &mut Painter, menu: &MenuBlocks, text: &str, row: usize, col: usize) -> Result<()> {
     for (n, letter) in text.chars().enumerate() {
         let glyph = menu
@@ -133,9 +154,11 @@ impl Party {
 /// strips that depend on the actor, and the current HP. It is what the
 /// cartridge's `menu_party_paint` does, in the same order, and that is why
 /// the menu and the actor choice share it.
+#[allow(clippy::too_many_arguments)]
 fn actor_row(
     p: &mut Painter,
     game: &Game,
+    skin: &Skin,
     slots: &slots::Slots,
     row: usize,
     actor: i32,
@@ -148,7 +171,8 @@ fn actor_row(
     if let Some(face) = slots.faces.get(&actor) {
         p.paste(face, row0, MENU_ACTOR_COL, FACE_CELLS);
     }
-    paste_text(p, menu, &texts::name_text(game, actor, MENU_NAME_COLS)?, row0 + MENU_NAME_ROW, MENU_NAME_COL)?;
+    let name = texts::name_text(game, actor, MENU_NAME_COLS)?;
+    compose_text(p, game, skin, &name, MENU_NAME_COLS, row0 + MENU_NAME_ROW, MENU_NAME_COL);
     let level = if levels { party.levels.get(&actor).copied() } else { None };
     paste_text(p, menu, &texts::level_text(game, actor, level), row0 + MENU_LEVEL_ROW, MENU_LEVEL_COL)?;
     paste_text(p, menu, &texts::max_text(game, actor, level), row0 + MENU_HP_ROW, MENU_MAX_COL)?;
@@ -177,7 +201,7 @@ pub fn menu(
     choosing: Option<usize>,
 ) -> Result<Picture> {
     let known = party.known();
-    let bank = slots::slots_screen(game, skin, slots, &known, "")?;
+    let bank = slots::slots_screen(game, skin, slots, &known)?;
     let menu = &bank.menu;
     let mut p = Painter::new(&bank.tiles, &bank.palettes);
     p.under(&borders::menu_bar(skin, choosing));
@@ -203,7 +227,7 @@ pub fn menu(
         .filter(|(_, a)| known.contains(a))
         .collect();
     for &(row, actor) in &rows {
-        actor_row(&mut p, game, &bank, row, actor, party, true)?;
+        actor_row(&mut p, game, skin, &bank, row, actor, party, true)?;
     }
     // The experience goes on top of everything, like sprites over the
     // background: see `MENU_EXP_X`.
@@ -251,16 +275,16 @@ pub fn target(
 ) -> Result<Picture> {
     let known = party.known();
     let name = game.item_name(item)?;
-    let bank = slots::slots_screen(game, skin, slots, &known, &name)?;
+    let bank = slots::slots_screen(game, skin, slots, &known)?;
     let mut p = Painter::new(&bank.tiles, &bank.palettes);
     p.under(&borders::target_windows(game, skin, Some(chosen))?);
     for (row, actor) in party.members.iter().take(MENU_PARTY_ROWS).copied().enumerate() {
         if known.contains(&actor) {
-            actor_row(&mut p, game, &bank, row, actor, party, false)?;
+            actor_row(&mut p, game, skin, &bank, row, actor, party, false)?;
         }
     }
-    for (n, line) in texts::name_in_lines(&name, TARGET_NAME_WIDTH, 2).iter().enumerate() {
-        paste_text(&mut p, &bank.menu, line, TARGET_NAME_ROW + 2 * n, TARGET_NAME_COL)?;
+    for (n, line) in texts::name_in_lines(&game.font, &name, TARGET_NAME_WIDTH, 2).iter().enumerate() {
+        compose_text(&mut p, game, skin, line, TARGET_NAME_WIDTH, TARGET_NAME_ROW + 2 * n, TARGET_NAME_COL);
     }
     paste_text(&mut p, &bank.menu, &format!("{:2}", amount.min(99)), TARGET_COUNT_ROW, TARGET_COUNT_COL)?;
     Ok(p.picture())
@@ -282,7 +306,7 @@ pub fn slot_screen(
     levels: &BTreeMap<usize, i64>,
 ) -> Result<Picture> {
     let actors: Vec<i32> = parties.values().flatten().copied().collect::<BTreeSet<_>>().into_iter().collect();
-    let bank = slots::slots_screen(game, skin, slots, &actors, "")?;
+    let bank = slots::slots_screen(game, skin, slots, &actors)?;
     let mut p = Painter::new(&bank.tiles, &bank.palettes);
     p.paste(&bank.headers[mode], HEADER_Y / CELL, 0, COLS);
     for number in 0..slots {
@@ -298,11 +322,12 @@ pub fn slot_screen(
             continue;
         }
         let party = parties.get(&number).cloned().unwrap_or_default();
-        // The leader's name and level, composed with glyphs over the row, and
-        // the faces, which are blocks.
+        // The leader's name, composed, and its level, with glyphs, over the
+        // row, and the faces, which are blocks.
         if let Some(&leader) = party.first() {
             if actors.contains(&leader) {
-                paste_text(&mut p, &bank.menu, &texts::name_text(game, leader, NAME_COLS)?, row0 + NAME_ROW, NAME_COL)?;
+                let name = texts::name_text(game, leader, MENU_NAME_COLS)?;
+                compose_text(&mut p, game, skin, &name, NAME_COLS, row0 + NAME_ROW, NAME_COL);
                 paste_text(
                     &mut p,
                     &bank.menu,

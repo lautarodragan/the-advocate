@@ -68,15 +68,13 @@ pub fn message_width() -> Result<usize> {
 
 /// What the cartridge carries of its screens, for `members` —the actors
 /// that can join the party— and `items` —the ones the cartridge knows—,
-/// with the title's menu if `title`. The letters of the medicines of
-/// `bank_items` go in the menu's bank. Returns the stage's answer as it
-/// came, which is what `rm2k-snes-mapdata emit` takes.
+/// with the title's menu if `title`. Returns the stage's answer as it came,
+/// which is what `rm2k-snes-mapdata emit` takes.
 pub fn convert(
     game: &Game,
     font: &FontChoice,
     members: &[i32],
     items: &[i32],
-    bank_items: &[i32],
     title: bool,
 ) -> Result<Value> {
     let _ = LINES;
@@ -95,7 +93,6 @@ pub fn convert(
         "slots": vram::SLOTS,
         "actors": members,
         "items": items,
-        "bank_items": bank_items,
         "title": title,
         // The message window goes in the lowest palette, and the background
         // starts after it: see `cgram.rs` in `rm2k-snes-mapdata`.

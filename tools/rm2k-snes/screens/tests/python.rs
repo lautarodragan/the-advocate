@@ -20,7 +20,9 @@
 //! write goes from its cell one pixel in, and each letter moves the line by
 //! its own advance —six pixels with this game's font, eight before—. Their
 //! eleven hashes moved, and only the text did: drawn side by side with the
-//! old ones, every pixel that differs is a letter's.
+//! old ones, every pixel that differs is a letter's. The same day the
+//! names of the menu, the actor choice and the slot screen got composed,
+//! and their five hashes moved: side by side, only the names did.
 
 use rm2k_snes_screens::checks::Vram;
 use rm2k_snes_screens::convert::{self, Request};
@@ -77,7 +79,6 @@ fn everything_a_cartridge_carries() {
         slots: 4,
         actors: (1..=8).collect(),
         items: (1..=12).collect(),
-        bank_items: vec![1, 3, 4],
         title: true,
         cgram_reserved: 9,
         vram: vram(),
@@ -96,32 +97,38 @@ fn everything_a_cartridge_carries() {
     // equipment and shop screens' font, also since 2026-10-03: they compose
     // their text, so what goes is `text_inks` —their palettes and the font
     // precomposed for them— instead of a font bank, and the windows' tiles
-    // go at the end of the bank instead of after the font.
+    // go at the end of the bank instead of after the font. And the names of
+    // the menu, the actor choice and the slot screen are composed too: the
+    // menu's bank carries only the numbers' glyphs, and the font
+    // precomposed for its text palette.
     assert_eq!(
         sha(canon(&answer).as_bytes()),
-        "2903308b93d30feae6cea2b1d2bd30a958986bf102033712810500b6960bf20a"
+        "780edcb30a3dad1717984f3ea0e7b225bec40a8e0d82b2d43bbc9a4e039313cb"
     );
     assert_eq!(
         answer["says"],
-        serde_json::json!(["  faces without a palette of their own, drawn with another's: Gus"])
+        serde_json::json!([
+            "  menu bank: 255 tiles of 448; the composed names ask for 62 of the 192 left",
+            "  faces without a palette of their own, drawn with another's: Gus"
+        ])
     );
 }
 
 #[test]
-fn a_medicine_whose_letters_the_bank_lacks_is_refused() {
-    // Without Elixir in the bank nobody has an "x" or an "r", and the
-    // medicine 2 has both: the actor choice would draw a gap.
+fn names_that_do_not_fit_in_the_bank_are_refused() {
+    // The names are composed, each in tiles of its own: a save in each of
+    // many slots asks for one name per slot, and the bank's free tiles run
+    // out before its rows do.
     let request = Request {
-        slots: 4,
+        slots: 24,
         actors: (1..=8).collect(),
         items: (1..=12).collect(),
-        bank_items: vec![1, 4],
         title: true,
         cgram_reserved: 9,
         vram: vram(),
     };
     let bad = convert::convert(&game(), &request).unwrap_err();
-    assert!(bad.message().contains("the menu's bank does not carry: \"xr\""), "{}", bad.message());
+    assert!(bad.message().contains("the composed names can ask for"), "{}", bad.message());
 }
 
 fn inventory() -> BTreeMap<i32, i64> {
@@ -145,14 +152,14 @@ fn the_screens_as_the_console_shows_them() {
     check(
         "menu",
         render::menu(&game, &skin, 4, &party(&[1, 2, 5]), 1234, 2, false, None).unwrap(),
-        "385725e4540ce73c8cc0f936c8ecc3540574c8a1e0325e1a506ae806498b6531",
+        "9be153547f5801a44405f80a8c40af7a4265c3de66267840428cbcf8326b9c31",
     );
     // Choosing whom to equip, with the bar on the second row: not drawn by
     // the Python, which never had it.
     check(
         "menu-choosing",
         render::menu(&game, &skin, 4, &party(&[1, 2, 5]), 1234, 2, false, Some(1)).unwrap(),
-        "7aeb78f03237b9a6aea75bf9d02712061d9e093fcd200fa975190f680903d858",
+        "cc15356f28270b4bf12387faefabf594c2537de5cb1f38fc2095934e561e077d",
     );
     let state = Party {
         members: vec![2, 7, 8, 4],
@@ -164,12 +171,12 @@ fn the_screens_as_the_console_shows_them() {
     check(
         "menu-state",
         render::menu(&game, &skin, 4, &state, 999_999, 0, true, None).unwrap(),
-        "dc9748330fd80647a550df9481f80ce7dd52a4aeaa7bea99cfa5776e2739c21b",
+        "37d1429fee0998e968c439826ba89ddd9f1b9a113a9b9d2a01c4c0f0dc7ee692",
     );
     check(
         "target-item",
         render::target(&game, &skin, 4, &party(&[1, 2, 3]), 2, 2, 7).unwrap(),
-        "1fe4cd2469ae066fa13905f97412cb005694dacda7e48a2dae7e36881caf0867",
+        "bf25611db7907c38abe48a1e1616d13cf43a9c9d30fdce78cbe92774332a5fe2",
     );
     check(
         "items",
@@ -181,7 +188,7 @@ fn the_screens_as_the_console_shows_them() {
     check(
         "slots",
         render::slot_screen(&game, &skin, 4, &[true, false, true, false], 2, 1, &parties, &levels).unwrap(),
-        "8ddb935e9fbe72002c9bcf071392cac78cbd9bbb2f61ed3b24297402b5bdc345",
+        "e95f191de94803a8ca0001347e6c3329c3fa839329783b6920aecb30e21a4b85",
     );
     let worn = [6, 8, 0, 10, 0];
     check(

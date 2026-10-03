@@ -466,9 +466,10 @@ other_option:
 ;
 ; **The block is a single one for the four rows and for every actor**: it
 ; carries the level term, the status and the HP term, which depend on no one.
-; What does depend on the actor —its name, its level and its maximum— is
-; composed with glyphs, and that is what keeps the tile bank from growing
-; with the number of actors; see `slot_text_write`.
+; What does depend on the actor is written over it, and that is what keeps
+; the tile bank from growing with the number of actors: its name composed
+; —`tl_strip`— and its level and its maximum with glyphs, one per cell
+; —`slot_text_write`—.
 ;
 ; The row stays on the stack for the whole pass and each step pulls the cell
 ; and the actor out of it again instead of saving them: the direct page is
@@ -551,7 +552,7 @@ no_face:
     ldx #SLOT_TEXT_NAME
     jsr slot_text_of
     lda #MENU_NAME_COLS
-    jsr slot_text_write
+    jsl f:tl_strip + FAST       ; composed: see `tl_strip`
 
     ; --- the level ---
     pla
