@@ -347,8 +347,7 @@ acá queda escrito en su disco.
 de un disco local del host. Hasta el 2026-10-03 vivía en `/shared/abl-snes`,
 y la copia vieja sigue ahí pero **no se usa**: `/shared` es un CIFS sobre el
 disco mecánico de un NAS, lento, sin symlinks, sin bits de ejecución y sin
-distinguir mayúsculas. Su `.git/config` todavía trae `core.filemode=false`
-y `core.ignorecase=true` de esa época.
+distinguir mayúsculas.
 
 **Para correr ABL con las herramientas de un checkout de éste** —un
 worktree que cambia el runtime o el conversor—: `just -f tools/justfile
