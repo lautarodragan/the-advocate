@@ -106,6 +106,7 @@ impl Where {
     inheritance         [[package, song that may be playing when it loads]]\n  \
     measuring_headroom  every song's headroom, instead of its measured ceiling\n  \
     system_songs        the songs the database's System names\n  \
+    named_songs         every song the game's events and maps name\n  \
     emit                {packages, boot, title, game_over, map_song, sounds, start, \
                         decompress_frames}: without it, no musicdata.inc\n\n\
     It writes audio.json always: the bank, each song and each sound effect.")]
@@ -403,6 +404,45 @@ fn compile_into(
     Ok(Compiled { music, audio: out, quality })
 }
 
+/// Every song the game names: each `PlayBGM` of its maps, its common events
+/// and its troops, and each map's song in the tree. Read as plain JSON and
+/// not through the schema's types: only two fields matter, and the walk is
+/// the same in the three kinds of file.
+fn named_songs(dump: &Dump) -> Result<BTreeSet<String>> {
+    const PLAY_BGM: i64 = 11510;
+    fn walk(v: &Value, out: &mut BTreeSet<String>) {
+        match v {
+            Value::Object(o) => {
+                if o.get("code").and_then(Value::as_i64) == Some(PLAY_BGM) {
+                    if let Some(name) = o.get("string").and_then(Value::as_str) {
+                        out.insert(name.to_string());
+                    }
+                }
+                // The tree's nodes: `music` is the song a map plays.
+                if let Some(name) = o.get("music").and_then(|m| m.get("name")).and_then(Value::as_str) {
+                    out.insert(name.to_string());
+                }
+                o.values().for_each(|x| walk(x, out));
+            }
+            Value::Array(a) => a.iter().for_each(|x| walk(x, out)),
+            _ => {}
+        }
+    }
+    let answer = |e: ditto::lcf::Error| Bad::answer(e.0);
+    let mut out = BTreeSet::new();
+    for path in dump.map_files().map_err(answer)? {
+        let text = std::fs::read_to_string(&path).map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
+        let map: Value = serde_json::from_str(&text).map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
+        walk(&map, &mut out);
+    }
+    for section in ["commonevents", "troops"] {
+        walk(&dump.section::<Value>(section).map_err(answer)?, &mut out);
+    }
+    let tree = serde_json::to_value(dump.tree().map_err(answer)?).map_err(|e| Bad::usage(e.to_string()))?;
+    walk(&tree, &mut out);
+    Ok(out)
+}
+
 /// The game's four bytes for the `.msu`: `[rom] msu_data_signature`.
 fn msu_magic(project: &Project) -> Result<[u8; 4]> {
     let text = project.ascii(&["rom", "msu_data_signature"], Some(4), None)?;
@@ -440,6 +480,10 @@ fn do_cartridge(args: &CartridgeArgs) -> Result<()> {
     .map(|m| m.name.clone())
     .collect();
 
+    // And every song the game names anywhere, for the same numbering: see
+    // `Game::track_numbers`.
+    let named_songs = named_songs(&dump)?;
+
     let maps: Vec<i64> = request
         .get("maps")
         .and_then(Value::as_array)
@@ -476,6 +520,7 @@ fn do_cartridge(args: &CartridgeArgs) -> Result<()> {
         apart: cartridge::apart_themes(project.list(&["music", "apart_themes"])?)?,
         not_given: cartridge::never_happen(project.list(&["music", "jumps_that_never_happen"])?)?,
         system_songs: system_songs.into_iter().collect(),
+        named_songs: named_songs.into_iter().collect(),
         measuring_headroom: request.get("measuring_headroom").and_then(Value::as_f64),
         decompress_frames: request
             .get("decompress_frames")

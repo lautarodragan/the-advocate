@@ -108,7 +108,14 @@ impl Game {
     /// —`system_songs`— that the game does not ship, sorted, so they do not
     /// shift any of the game's; only those, because the whole RTP does not
     /// fit in the byte.
-    pub fn track_numbers(&self, system_songs: &[String]) -> Result<BTreeMap<String, u8>> {
+    ///
+    /// **And last, the RTP ones the game's events and maps name** —a
+    /// `PlayBGM` anywhere in the game, not only in the cartridge:
+    /// `named_songs`— that are neither the game's nor the `System`'s, sorted.
+    /// After the `System`'s and not mixed with them, so that a game that
+    /// had none of these keeps every number it had. Until 2026-10-02 these
+    /// had no track and played through the SPC700 even with the MSU-1.
+    pub fn track_numbers(&self, system_songs: &[String], named_songs: &[String]) -> Result<BTreeMap<String, u8>> {
         fn names(dir: &Path) -> BTreeSet<String> {
             let mut out = BTreeSet::new();
             if !dir.is_dir() {
@@ -132,7 +139,12 @@ impl Game {
             .map(|s| s.to_lowercase())
             .filter(|s| !game.contains(s) && rtp.contains(s))
             .collect();
-        let order: Vec<&String> = game.iter().chain(system.iter()).collect();
+        let named: BTreeSet<String> = named_songs
+            .iter()
+            .map(|s| s.to_lowercase())
+            .filter(|s| !game.contains(s) && !system.contains(s) && rtp.contains(s))
+            .collect();
+        let order: Vec<&String> = game.iter().chain(system.iter()).chain(named.iter()).collect();
         // The number goes in a byte of `song_msu`, and $FF is "no track".
         if order.len() > 0xFE {
             return Err(Bad::answer(format!(
@@ -231,5 +243,36 @@ mod tests {
         assert_eq!(splitext("a.b.mid"), ("a.b", ".mid"));
         assert_eq!(splitext("..x"), ("..x", ""));
         assert_eq!(splitext("noext"), ("noext", ""));
+    }
+
+    /// The RTP songs the game names go after the `System`'s, so naming one
+    /// does not move any number a game already had.
+    #[test]
+    fn the_named_rtp_songs_go_last() {
+        let root = std::env::temp_dir().join(format!("tracks-{}", std::process::id()));
+        let touch = |dir: &str, names: &[&str]| {
+            let music = root.join(dir).join("Music");
+            std::fs::create_dir_all(&music).unwrap();
+            for n in names {
+                std::fs::write(music.join(n), b"").unwrap();
+            }
+        };
+        touch("game", &["Town.mid", "battle.MID"]);
+        touch("rtp", &["Farewell2.mid", "GameOver3.mid", "Ride1.mid", "Unused.mid"]);
+        let game = Game {
+            game_dir: root.join("game"),
+            rtp_dir: Some(root.join("rtp")),
+            project: Project::from_text(&root, "").unwrap(),
+        };
+        let system = ["GameOver3".to_string(), "Ride1".to_string(), "Town".to_string()];
+        let before = game.track_numbers(&system, &[]).unwrap();
+        let named = ["Farewell2".to_string(), "Town".to_string(), "Missing".to_string()];
+        let after = game.track_numbers(&system, &named).unwrap();
+        let _ = std::fs::remove_dir_all(&root);
+        for (name, number) in &before {
+            assert_eq!(after.get(name), Some(number), "{name} moved");
+        }
+        assert_eq!(after.get("farewell2"), Some(&5));
+        assert_eq!(after.len(), 5, "{after:?}");
     }
 }

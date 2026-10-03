@@ -182,6 +182,8 @@ pub struct Cartridge {
     pub not_given: Vec<(i64, i64)>,
     /// The songs the database's `System` names, for the MSU-1 numbering.
     pub system_songs: Vec<String>,
+    /// And every song the game's events and maps name, for the same.
+    pub named_songs: Vec<String>,
     pub measuring_headroom: Option<f64>,
     /// How many frames decompressing the boot map takes.
     pub decompress_frames: f64,
@@ -385,6 +387,10 @@ pub fn plan(c: &Cartridge) -> Result<Plan> {
     job.insert("inheritance".into(), json!(inheritance.iter().map(|(p, t)| json!([p, t])).collect::<Vec<_>>()));
     job.insert("measuring_headroom".into(), json!(c.measuring_headroom));
     job.insert("system_songs".into(), json!(c.system_songs));
+    // Only when there are some: a job without them is the one it always was.
+    if !c.named_songs.is_empty() {
+        job.insert("named_songs".into(), json!(c.named_songs));
+    }
     job.insert("emit".into(), Value::Object(emit));
     Ok(Plan {
         job: Value::Object(job),
