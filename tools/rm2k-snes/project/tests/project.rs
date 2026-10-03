@@ -69,6 +69,16 @@ fn a_missing_key_is_named_up_to_where_it_is_missing() {
 }
 
 #[test]
+fn a_knob_at_rest_may_be_missing_but_not_of_another_type() {
+    let p = project();
+    assert_eq!(p.int_or(&["maps", "below"], 0).unwrap(), 10);
+    assert_eq!(p.int_or(&["maps", "above"], 7).unwrap(), 7);
+    assert_eq!(p.int_or(&["text", "letter_spacing"], 0).unwrap(), 0);
+    let error = p.int_or(&["rom", "name"], 0).unwrap_err().to_string();
+    assert!(error.ends_with("rom.name must be int and is \"game\""), "{error}");
+}
+
+#[test]
 fn a_key_of_another_type_says_both() {
     let p = project();
     let error = p.int(&["rom", "name"]).unwrap_err().to_string();

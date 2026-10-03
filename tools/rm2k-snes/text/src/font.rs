@@ -55,6 +55,18 @@ pub const FIGURE_BLANK: char = '\u{2007}';
 /// cells and no more. It is what the cartridge's composer is built on.
 pub const INK_MAX: usize = 8;
 
+/// The most pixels [`Font::with_spacing`] adds between letters: the project
+/// file's `[text] letter_spacing` goes from 0 to this. It is a knob to try
+/// how a font reads with more air, not a way to design one —that is the
+/// sheet's advance row—, and the 3 is taro's, 2026-10-03.
+pub const SPACING_MAX: i64 = 3;
+
+/// The widest a letter's advance can be once spaced: a cell. The battle
+/// checks its victory lines counting letters, one per cell —see
+/// `check_victory` in `rm2k-snes-battle`, which does not know the font—,
+/// and that holds only while no letter moves the line further than a cell.
+pub const SPACED_ADVANCE_MAX: usize = 8;
+
 /// The fonts the engine carries, by the name a project file gives them.
 const BUNDLED: [(&str, &[u8]); 1] = [("low-variable", include_bytes!("../fonts/low-variable.png"))];
 
@@ -99,6 +111,43 @@ impl Font {
             )
         })?;
         Font::from_sheet(&bytes).map_err(|e| format!("{spec}: {e}"))
+    }
+
+    /// This font with `pixels` more of air after every letter: the project
+    /// file's `[text] letter_spacing`. Each glyph's advance already carries
+    /// its own air —see the sheet's advance row—, and this adds to it, the
+    /// space and the digits too, so numbers still line up and a space is
+    /// still the gap between two words of spaced letters. The glyphs do not
+    /// change. It goes here, where the advance is born, so that whoever
+    /// measures a line —the reflow, the screens, the table the cartridge
+    /// carries— measures the same.
+    ///
+    /// It applies to RM2k's font as well: it is a font like any other, of
+    /// fixed advance, and it stays fixed, six pixels and these.
+    ///
+    /// From 0 to [`SPACING_MAX`], and no letter may end up wider than
+    /// [`SPACED_ADVANCE_MAX`]; otherwise the error says why.
+    pub fn with_spacing(mut self, pixels: i64) -> Result<Font, String> {
+        if !(0..=SPACING_MAX).contains(&pixels) {
+            return Err(format!(
+                "{pixels} is not a spacing: it goes from 0 —the font as its sheet draws it— to \
+                 {SPACING_MAX}, pixels added after every letter; a negative one would put a letter's \
+                 shadow on the next one, since each letter's air is where its shadow falls"
+            ));
+        }
+        let widest = (0..GLYPHS).max_by_key(|&i| self.advance[i]).unwrap_or(0);
+        let spaced = self.advance[widest] as usize + pixels as usize;
+        if spaced > SPACED_ADVANCE_MAX {
+            return Err(format!(
+                "with {pixels} more pixels {:?} would move the line {spaced}, more than a cell \
+                 ({SPACED_ADVANCE_MAX}): the battle checks its victory lines one letter per cell",
+                Font::console_char(widest)
+            ));
+        }
+        for a in &mut self.advance {
+            *a += pixels as u8;
+        }
+        Ok(self)
     }
 
     /// A font from its sheet: an indexed PNG with the 95 characters in
@@ -316,6 +365,34 @@ mod tests {
         // The digits are all the same width, so numbers line up.
         let digit = font.advance('0');
         assert!("0123456789".chars().all(|c| font.advance(c) == digit));
+    }
+
+    #[test]
+    fn spacing_adds_to_every_advance_and_nothing_else() {
+        let font = Font::named("low-variable", MINCHO).unwrap();
+        assert_eq!(font.clone().with_spacing(0).unwrap(), font);
+        let spaced = font.clone().with_spacing(2).unwrap();
+        for i in 0..GLYPHS {
+            let ch = Font::console_char(i);
+            assert_eq!(spaced.advance(ch), font.advance(ch) + 2, "{ch:?}");
+            assert_eq!(spaced.rows(ch), font.rows(ch), "{ch:?}");
+        }
+        assert_eq!(spaced.advance(CURSOR_BLANK), spaced.advance('>'));
+        assert_eq!(spaced.advance(FIGURE_BLANK), spaced.advance('0'));
+        assert_eq!(spaced.width("ab"), font.width("ab") + 4);
+        assert!(Font::rm2k(MINCHO).with_spacing(1).unwrap().is_fixed());
+    }
+
+    #[test]
+    fn spacing_says_why_it_is_refused() {
+        let font = Font::named("low-variable", MINCHO).unwrap();
+        let e = font.clone().with_spacing(-1).unwrap_err();
+        assert!(e.contains("shadow"), "{e}");
+        let e = font.clone().with_spacing(SPACING_MAX + 1).unwrap_err();
+        assert!(e.contains("from 0"), "{e}");
+        // Its widest letters are six: three more pass a cell.
+        let e = font.with_spacing(3).unwrap_err();
+        assert!(e.contains("victory"), "{e}");
     }
 
     #[test]

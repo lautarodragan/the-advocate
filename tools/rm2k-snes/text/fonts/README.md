@@ -53,6 +53,13 @@ In Aseprite: open the PNG, which comes in indexed mode, and draw with index
 (*View > Grid Settings*: 9x14, origin 0,0). Save as PNG, without converting
 to RGB.
 
+To try more air between the letters without touching the sheet, a game
+sets `[text] letter_spacing` in its project file: pixels added to every
+advance, the space and the digits included, from 0 to 3, and no letter
+may end up moving the line further than a cell (8). It is a knob to try
+how a font reads; a font that wants more air for good carries it in its
+advance row.
+
 To try a retouch in a game without reinstalling the tools, copy the sheet
 into the game, point `[text] font` at the copy and rebuild: the cartridges
 are rebuilt when the sheet changes. When it is done, bring it back here.

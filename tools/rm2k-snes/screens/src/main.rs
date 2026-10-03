@@ -59,7 +59,8 @@ enum Command {
     precomposed tables), the title's menu, the slot and menu bank, the text screens' font, \
     the windows of the item, equipment, shop and actor-choice screens as the cartridge \
     stores them, End Game, the texts the cartridge composes, the geometry, and what the \
-    conversion says. Its request carries `slots`, `actors`, `items`, `title`, \
+    conversion says. Its request carries `font` and `letter_spacing`, as `boxes` takes \
+    them, `slots`, `actors`, `items`, `title`, \
     `cgram_reserved` and `vram` (`slot_vram`, `slot_map` and each layout's BG1 bank as \
     [name, from, to]).\n\n\
     `render` writes screen.png, RGB. Its request carries `screen` —menu, items, target, \
@@ -86,8 +87,9 @@ struct GameArgs {
 #[derive(ClapArgs)]
 #[command(after_help = "Writes boxes.json into --out: the boxes that change, as \
     {\"from\": lines, \"to\": boxes}. The request carries the window: `font` —`rm2k`, \
-    one the engine carries, or a sheet's path—, `width`, a line's pixels, and `lines`; or, \
-    without `font`, `columns` characters of RM2k's font. And `map_files`, the project's \
+    one the engine carries, or a sheet's path— and `letter_spacing`, pixels more after \
+    every letter, 0 if missing; `width`, a line's pixels, and `lines`; or, without `font`, \
+    `columns` characters of RM2k's font. And `map_files`, the project's \
     maps over the dump's, by number.")]
 struct BoxesArgs {
     #[arg(long, value_name = "DIRECTORY")]
@@ -118,10 +120,10 @@ fn write(out: &Path, name: &str, text: &str) -> Result<()> {
 
 /// The game, drawing with the font the request names: `font`, which is the
 /// project file's `[text] font` —`rm2k`, one the engine carries, or the
-/// path of a sheet—.
+/// path of a sheet—, spaced by its `letter_spacing`.
 fn game_with_font(args: &GameArgs, json: &Json) -> Result<Game> {
     let mut game = Game::from_dump(&args.data, &args.game_dir)?;
-    game.use_font(&json.text("font")?)?;
+    game.use_font(&json.text("font")?, json.number_or("letter_spacing", 0)?)?;
     Ok(game)
 }
 
@@ -221,7 +223,7 @@ fn do_render(args: &GameArgs) -> Result<()> {
 }
 
 /// How a request's window measures a line: `font` —the project file's
-/// `[text] font`— and `width` in pixels; or `advances`, each glyph's from
+/// `[text] font`, spaced by `letter_spacing`— and `width` in pixels; or `advances`, each glyph's from
 /// the space on, and `width`, which is the window the converter hands the
 /// event compiler; or, without either, `columns` characters of RM2k's
 /// fixed-width font, which is how it was asked until 2026-10-03.
@@ -231,7 +233,10 @@ fn measure_of(json: &Json) -> Result<Measure> {
         return Ok(Measure::from_advances(advances, json.index_or("width", 0)?));
     }
     if json.data.get("font").is_some_and(|f| !f.is_null()) {
-        let font = Font::named(&json.text("font")?, rm2k_snes_text::font::MINCHO).map_err(Bad::answer)?;
+        let spacing = json.number_or("letter_spacing", 0)?;
+        let font = Font::named(&json.text("font")?, rm2k_snes_text::font::MINCHO)
+            .and_then(|f| f.with_spacing(spacing))
+            .map_err(Bad::answer)?;
         Ok(Measure::new(&font, json.index_or("width", 0)?))
     } else {
         Ok(Measure::columns(json.index_or("columns", 0)?))

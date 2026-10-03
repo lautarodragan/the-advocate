@@ -37,6 +37,7 @@ pub fn boxes(game: &Game, font: &FontChoice, width: usize, lines: u32) -> Result
     let request = json!({
         "map_files": compiler::map_files(game),
         "font": font.spec,
+        "letter_spacing": font.spacing,
         "width": width,
         "lines": lines,
     });
@@ -90,6 +91,7 @@ pub fn convert(
         .collect();
     let request = json!({
         "font": font.spec,
+        "letter_spacing": font.spacing,
         "slots": vram::SLOTS,
         "actors": members,
         "items": items,

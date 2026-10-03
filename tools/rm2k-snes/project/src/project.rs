@@ -162,6 +162,18 @@ impl Project {
         v.as_integer().ok_or_else(|| self.wrong_type(keys, "int", v))
     }
 
+    /// An int setting that may be missing, and then is `default`. Only for
+    /// a setting whose absence means "as if it were not there" —a knob at
+    /// rest, like `[text] letter_spacing`—: one whose default would be
+    /// some other game's value is asked for with [`Project::int`], which
+    /// names it when it is missing. There with another type, it is an error.
+    pub fn int_or(&self, keys: &[&str], default: i64) -> Result<i64, Error> {
+        match self.value(keys) {
+            Err(_) => Ok(default),
+            Ok(_) => self.int(keys),
+        }
+    }
+
     pub fn boolean(&self, keys: &[&str]) -> Result<bool, Error> {
         let v = self.value(keys)?;
         v.as_bool().ok_or_else(|| self.wrong_type(keys, "bool", v))

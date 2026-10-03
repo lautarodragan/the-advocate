@@ -62,9 +62,13 @@ impl Game {
 
     /// Draws with the font `spec` names: `rm2k`, one the engine carries,
     /// or the path of a sheet —see `rm2k_snes_text::font`—. It is what the
-    /// project file's `[text] font` says, and the converter passes it on.
-    pub fn use_font(&mut self, spec: &str) -> Result<()> {
-        self.font = Font::named(spec, self.font_id()).map_err(Bad::answer)?;
+    /// project file's `[text] font` says, and the converter passes it on;
+    /// with `spacing` pixels more after every letter, its `[text]
+    /// letter_spacing` —see `Font::with_spacing`—.
+    pub fn use_font(&mut self, spec: &str, spacing: i64) -> Result<()> {
+        self.font = Font::named(spec, self.font_id())
+            .and_then(|f| f.with_spacing(spacing))
+            .map_err(Bad::answer)?;
         Ok(())
     }
 
