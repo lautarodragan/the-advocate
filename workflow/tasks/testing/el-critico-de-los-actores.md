@@ -2,7 +2,7 @@
 name: "El crítico de los actores"
 description: "El LDB les da golpe crítico a casi todos los actores, y la ROM lo pone en cero con un comentario que dice que ninguno lo tiene"
 type: bug
-assignee: Cardenal
+assignee: taro
 ---
 
 Lo encontró Cardón el 2026-09-30, pasando el modelo de la pelea a Rust
@@ -102,3 +102,19 @@ AG7 solo gana tres veces más de cada cien.
 **Lo que queda afuera**: `PreventsCritical` —el Talisman (ítem 76) tiene
 `prevent_critical`, y en RM2k anula los críticos de los enemigos contra el
 que lo lleva—. Ni la ROM ni el modelo lo miran, desde antes de esto.
+
+# Qué tiene que mirar taro
+
+- **Una pelea cualquiera, varias veces**: de vez en cuando —uno de cada
+  treinta golpes que pegan— un golpe del grupo hace el triple. La pantalla
+  no lo anuncia distinto: RM2k 2000 tampoco dice "crítico" con el ataque
+  normal, sólo se ve el número.
+- **El Rat King con AG7 solo**, que es donde más se nota (78 % → 81 % de
+  victorias en el modelo).
+
+# Al mergear
+
+- Instalar en el global: `just -f tools/justfile install battle mapdata`
+  (y `cartridge`, que arma con el runtime del checkout).
+- Ramas: `worktree-agent-a33a321932dffd972` acá, `cardenal-textos-y-critico`
+  en el clon de ABL (`/extras/scratch/cardenal/abl`).

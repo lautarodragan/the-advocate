@@ -2,7 +2,7 @@
 name: "Los textos de la pelea"
 description: "Mensajes de pelea cortados a 31 caracteres o pasados del borde"
 type: bug
-assignee: Cardenal
+assignee: taro
 ---
 
 **Los textos de la pelea que no entran en el ancho de la pantalla.**
@@ -84,3 +84,25 @@ capturas de los casos nuevos, antes y después, en
 `refit` no pueda partir (una palabra de más de 31). Una página con `\V[n]`
 que crezca al poner los dígitos también se corta en el borde, como en el
 mapa.
+
+# Qué tiene que mirar taro
+
+- **La pelea de los agentes** en la terraza (mapa 32): después de la
+  sacudida, "TALAN / The Captain has taken off / in the ship!", entero.
+- **El Rat King**: los dos llamados, el segundo con su "sounds".
+- **Absorb Aura de Talan**: las técnicas que aprende, ahora sin cortar.
+- **Usar el Pungent Elixir-LIFE** en una pelea: "Kersh Pungent Elixir-LIFE"
+  / "used." / "Core has revived!", tres renglones, el primero sobre el lugar
+  del cuarto del grupo.
+- **Cualquier habilidad de nombre largo**: Detect Aura, Mindshield, las de
+  Manta. Si el mensaje tiene más de dos renglones, tapa a los últimos del
+  grupo mientras dura: a propósito, como la ventana de RM2k. Decidir
+  jugando si se lee bien.
+
+# Al mergear
+
+- Instalar en el global: `just -f tools/justfile install events convert`
+  (y `cartridge`, que arma con el runtime del checkout). `battle` sólo
+  cambió un comentario en este arreglo; con el del crítico se instala igual.
+- Ramas: `worktree-agent-a33a321932dffd972` acá, `cardenal-textos-y-critico`
+  en el clon de ABL (`/extras/scratch/cardenal/abl`).
