@@ -66,6 +66,14 @@
 //! requests carry `slots.prerender`, eight more made-up tables, and the two
 //! hashes moved by the eight `slot_pre` tables they come out as and nothing
 //! else.
+//!
+//! On 2026-10-04 the message window took the System's arrow and its cursor:
+//! the requests carry `arrow`, `bar` and `bar_bare` in the window —made up
+//! out of its background— and four numbers in the geometry, and the window
+//! reserves thirteen colour-memory entries and not eight. The two hashes
+//! moved: without the four constants and their comments, the three new
+//! blocks, and with `CGRAM_BASE` at 9 and `window_cgram` cut to nine words,
+//! the text is the old one byte for byte.
 
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_mapdata::record;
@@ -279,10 +287,10 @@ fn without_bare_window(text: &str) -> String {
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
     let text = without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&emitted.text))));
-    assert_eq!(text.lines().count(), 3371);
+    assert_eq!(text.lines().count(), 3393);
     assert_eq!(
         sha(&text),
-        "8abd4c5550c5e87134dcc46a56cbec4c5d020ea76b5619a6fafe101443471f89"
+        "c82cbd9809e9ed5f5006dd9c72d29c52eaa1103040475ffd9b130b28f366954c"
     );
 }
 
@@ -290,10 +298,10 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
     let text = without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&emitted.text))));
-    assert_eq!(text.lines().count(), 3490);
+    assert_eq!(text.lines().count(), 3512);
     assert_eq!(
         sha(&text),
-        "08088dbf4e218863988238e373835c4409cdcad31010d2a9f7d3a10156a3d4f7"
+        "2c17c19996b2c26f5f657d149c843bc5c5c8653e26dc45499fffa8647a1a1671"
     );
 }
 

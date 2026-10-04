@@ -50,6 +50,10 @@ DODGE_BOTTOM     = 144           ; from here, the bottom one moves up
     phy
     sep #$20
 .a8
+    ; A new window: its arrow starts over, as `SetPause` starts its count.
+    ; The previous one's stopped wherever the key closed it.
+    lda #$FF
+    sta f:MSG_ARROW_T
     lda f:FAR_LENGTH + FAR_MSG_OPTIONS
     pha                         ; at 1,s until the end
     and #MSG_DODGE
@@ -132,6 +136,11 @@ store:
     phy
     sep #$20
 .a8
+    ; Whatever the arrow's cells say now is not known: this runs when a
+    ; window appears and when a big picture moves its tilemap, which is
+    ; stamped again without the arrow. `msg_arrow` writes them next vblank.
+    lda #$FF
+    sta f:MSG_ARROW_UP
     lda f:MSG_PLACE
     and #MSG_WHERE
     rep #$20

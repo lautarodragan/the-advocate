@@ -43,11 +43,14 @@ pub const BG_PALETTES: usize = 8;
 pub const MAX_ABOVE_PALETTES: usize = BG_PALETTES - 1;
 
 /// The entries at the very bottom the background cannot use: entry 0, the
-/// screen's backdrop, and the eight of the message window, which lives in
-/// palette 0 for every map. **Eight and not seven**: one of the window's
-/// colours is pure black, whose word is zero, and counting the non-zero
-/// words gives seven; what rules is the highest entry the window draws with.
-pub const WINDOW_COLORS: usize = 8;
+/// screen's backdrop, and the thirteen of the message window, which lives in
+/// palette 0 for every map. **Counted by the highest entry**: one of the
+/// window's colours is pure black, whose word is zero, and counting the
+/// non-zero words gives one less; what rules is the highest entry the
+/// window draws with. Thirteen since 2026-10-04, when the window took the
+/// System's arrow and cursor —four reds and one more in the game it was
+/// measured on—: it was eight. It is `rm2k-snes-mapdata`'s `WINDOW_COLORS`.
+pub const WINDOW_COLORS: usize = 13;
 pub const CGRAM_RESERVED: usize = 1 + WINDOW_COLORS;
 
 /// The BG2 priority bit of the layer above. In mode 3 the order from front

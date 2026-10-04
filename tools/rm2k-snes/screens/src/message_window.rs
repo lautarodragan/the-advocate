@@ -10,7 +10,7 @@
 //! numbers the cartridge needs to draw a letter the way RM2k's
 //! `Font::Render` draws it.
 
-use crate::cells::{rgb15, Color, BLACK, CELL};
+use crate::cells::{self, rgb15, Color, BLACK, CELL};
 use crate::fail::{Bad, Result};
 use crate::game::Skin;
 use crate::layout::*;
@@ -40,6 +40,33 @@ pub struct Window {
     pub color: Vec<u8>,
     /// The shadow's palette index.
     pub shadow: u8,
+    /// The tiles of the arrow of a message waiting for a key, from left to
+    /// right: [`WINDOW_ARROW_CELLS`] over the frame, and as many over
+    /// nothing, for the window without a background. They are among
+    /// `tiles`, before `base`; the cartridge puts them on the tilemap and
+    /// takes them off, and the window's own cells there are in `cells`.
+    pub arrow: Vec<usize>,
+    /// The text area's background with the System's cursor on each line, in
+    /// the order and the size of `background`: line `k`'s tiles are those
+    /// of `background` with the cursor on line `k`. A choice's highlighted
+    /// option is composed on these instead.
+    pub bar: Vec<u8>,
+    /// And one line's, with the cursor over nothing: the window without a
+    /// background. It is the same on every line.
+    pub bar_bare: Vec<u8>,
+}
+
+/// A picture cut to the console's colours, pixel by pixel: over black if
+/// `bare` is false —the window's background is opaque—, and with its
+/// transparent pixels left as `None` if it is true, which is BG2's
+/// transparent index. A half-transparent pixel goes over black either way:
+/// the System's are only ever opaque or transparent.
+fn cut(picture: &Picture, bare: bool) -> Vec<Option<Color>> {
+    over_black(picture)
+        .into_iter()
+        .zip(picture.rgba.chunks_exact(4))
+        .map(|(c, p)| if bare && p[3] == 0 { None } else { Some(c) })
+        .collect()
 }
 
 /// `picture` over opaque black, at fifteen bits: Pillow's
@@ -77,8 +104,35 @@ fn over_black(picture: &Picture) -> Vec<Color> {
 /// starts: the window may not reach it.
 pub fn convert(skin: &Skin, reserved: usize) -> Result<Window> {
     let empty = skin.window(WINDOW_WIDTH, WINDOW_HEIGHT);
-    let pixels = over_black(&empty);
     let (width, height) = (empty.width, empty.height);
+    let pixels = cut(&empty, false);
+
+    // What the cartridge puts over the empty window, each drawn whole and
+    // cut like it: the arrow on the bottom edge, and the cursor on each
+    // line. Over the window, and over nothing for the one without a
+    // background.
+    let arrow = rm2k_render::system::arrow_down(&skin.picture);
+    let (arrow_x, arrow_y) = ((WINDOW_ARROW_COL * CELL) as i64, (WINDOW_ARROW_ROW * CELL) as i64);
+    let mut with_arrow = empty.clone();
+    cells::paste(&mut with_arrow, &arrow, arrow_x, arrow_y);
+    let mut bare_arrow = Picture::transparent(width, height);
+    cells::paste(&mut bare_arrow, &arrow, arrow_x, arrow_y);
+    let cursor = skin.cursor(MESSAGE_WIDTH - CHOICE_BAR_TRIM, WINDOW_LINE);
+    let bar_x = (WINDOW_TEXT_COL * CELL + CHOICE_BAR_X) as i64;
+    let bar_y = |line: usize| (WINDOW_TEXT_ROW * CELL + line * WINDOW_LINE) as i64;
+    let lines = WINDOW_TEXT_ROWS * CELL / WINDOW_LINE;
+    let with_bar: Vec<Vec<Option<Color>>> = (0..lines)
+        .map(|line| {
+            let mut p = empty.clone();
+            cells::paste(&mut p, &cursor, bar_x, bar_y(line));
+            cut(&p, false)
+        })
+        .collect();
+    let mut bare_bar = Picture::transparent(width, height);
+    cells::paste(&mut bare_bar, &cursor, bar_x, bar_y(0));
+    let with_arrow = cut(&with_arrow, false);
+    let bare_arrow = cut(&bare_arrow, true);
+    let bare_bar = cut(&bare_bar, true);
 
     // The text colours come from the System's 16x16 block, the ones
     // `Font::Render` uses as a mask. Each row of the glyph takes a single
@@ -99,24 +153,41 @@ pub fn convert(skin: &Skin, reserved: usize) -> Result<Window> {
     }
     let shadow = rgb15(ink.shadow_at(0, 0));
 
-    let mut colors: BTreeSet<Color> = pixels.iter().copied().collect();
+    // The arrow and the cursor count even though the empty window does not
+    // draw them, as the text does: they are the cartridge's to put.
+    let mut colors: BTreeSet<Color> = BTreeSet::new();
+    for drawn in [&pixels, &with_arrow, &bare_arrow, &bare_bar].into_iter().chain(&with_bar) {
+        colors.extend(drawn.iter().flatten().copied());
+    }
     colors.extend(color_row.iter().copied());
     colors.insert(shadow);
     if colors.len() > COLORS_PER_PALETTE - 1 {
         return Err(Bad::answer(format!(
-            "the window uses {} colours and {} fit",
+            "the window, its arrow and its cursor use {} colours and {} fit",
             colors.len(),
             COLORS_PER_PALETTE - 1
+        )));
+    }
+    // What follows starts where this ends, so if the window grew it would
+    // step on it and the cartridge would draw the text with a colour of the
+    // map. The highest entry is the number of colours —0 is transparent and
+    // the rest go in order—, and not how many words are nonzero: a black
+    // colour has word zero and would not be counted.
+    if colors.len() >= reserved {
+        return Err(Bad::answer(format!(
+            "the message window, its arrow and its cursor use colour-memory entries up to {} and \
+             what follows starts at {reserved}",
+            colors.len()
         )));
     }
     let colors: Vec<Color> = colors.into_iter().collect();
     let index: HashMap<Color, u8> = colors.iter().enumerate().map(|(i, c)| (*c, i as u8 + 1)).collect();
 
-    let cell_at = |tx: usize, ty: usize| -> Indices {
+    let cell_of = |drawn: &[Option<Color>], tx: usize, ty: usize| -> Indices {
         let mut cell = [[0u8; CELL]; CELL];
         for (y, row) in cell.iter_mut().enumerate() {
             for (x, v) in row.iter_mut().enumerate() {
-                *v = index[&pixels[(ty * CELL + y) * width + tx * CELL + x]];
+                *v = drawn[(ty * CELL + y) * width + tx * CELL + x].map_or(0, |c| index[&c]);
             }
         }
         cell
@@ -126,34 +197,63 @@ pub fn convert(skin: &Skin, reserved: usize) -> Result<Window> {
             && (WINDOW_TEXT_COL..WINDOW_TEXT_COL + WINDOW_TEXT_COLS).contains(&tx)
     };
 
-    // The cells without text are deduplicated as always; the ones in the
-    // text area are numbered consecutively from there.
+    // The cells without text are deduplicated as always, and the arrow's
+    // after them; the ones in the text area are numbered consecutively from
+    // there.
     let mut tiles: Vec<Indices> = Vec::new();
     let mut seen: HashMap<Indices, usize> = HashMap::new();
+    let mut tile_of = |c: Indices| -> usize {
+        *seen.entry(c).or_insert_with(|| {
+            tiles.push(c);
+            tiles.len() - 1
+        })
+    };
     let mut cells = vec![vec![0usize; width / CELL]; height / CELL];
     for (ty, row) in cells.iter_mut().enumerate() {
         for (tx, cell) in row.iter_mut().enumerate() {
             if in_text(tx, ty) {
                 continue;
             }
-            let c = cell_at(tx, ty);
-            *cell = *seen.entry(c).or_insert_with(|| {
-                tiles.push(c);
-                tiles.len() - 1
-            });
+            *cell = tile_of(cell_of(&pixels, tx, ty));
+        }
+    }
+    let mut arrow_tiles = Vec::new();
+    for drawn in [&with_arrow, &bare_arrow] {
+        for k in 0..WINDOW_ARROW_CELLS {
+            arrow_tiles.push(tile_of(cell_of(drawn, WINDOW_ARROW_COL + k, WINDOW_ARROW_ROW)));
         }
     }
     let base = tiles.len();
-    let mut background = Vec::new();
-    for (n, ty) in (WINDOW_TEXT_ROW..WINDOW_TEXT_ROW + WINDOW_TEXT_ROWS).enumerate() {
+    let text_tiles = |drawn: &[Option<Color>], rows: std::ops::Range<usize>| -> Vec<u8> {
+        let mut out = Vec::new();
+        for ty in rows {
+            for tx in WINDOW_TEXT_COL..WINDOW_TEXT_COL + WINDOW_TEXT_COLS {
+                out.extend(pack_tile(&cell_of(drawn, tx, ty), 4));
+            }
+        }
+        out
+    };
+    let text_rows = WINDOW_TEXT_ROW..WINDOW_TEXT_ROW + WINDOW_TEXT_ROWS;
+    for (n, ty) in text_rows.clone().enumerate() {
         for (m, tx) in (WINDOW_TEXT_COL..WINDOW_TEXT_COL + WINDOW_TEXT_COLS).enumerate() {
             cells[ty][tx] = base + n * WINDOW_TEXT_COLS + m;
-            background.extend(pack_tile(&cell_at(tx, ty), 4));
         }
     }
+    let background = text_tiles(&pixels, text_rows);
+    let rows_per_line = WINDOW_LINE / CELL;
+    let line_rows = |line: usize| {
+        let first = WINDOW_TEXT_ROW + line * rows_per_line;
+        first..first + rows_per_line
+    };
+    let bar: Vec<u8> = with_bar
+        .iter()
+        .enumerate()
+        .flat_map(|(line, drawn)| text_tiles(drawn, line_rows(line)))
+        .collect();
+    let bar_bare = text_tiles(&bare_bar, line_rows(0));
     if base + WINDOW_TEXT_ROWS * WINDOW_TEXT_COLS > 256 {
         return Err(Bad::answer(format!(
-            "the window needs {} tiles and the bank has 256",
+            "the window needs {} tiles —{base} of its frame and its arrow— and the bank has 256",
             base + WINDOW_TEXT_ROWS * WINDOW_TEXT_COLS
         )));
     }
@@ -161,19 +261,7 @@ pub fn convert(skin: &Skin, reserved: usize) -> Result<Window> {
     let mut cgram = vec![0u16];
     cgram.extend(colors.iter().map(|c| cgram_word(*c)));
     cgram.resize(COLORS_PER_PALETTE, 0);
-    // What follows starts where this ends, so if the window grew it would
-    // step on it and the cartridge would draw the text with a colour of the
-    // map. The highest index really used is checked —the shadow's or that of
-    // some row of the glyph— and not how many words are nonzero: a black
-    // colour has word zero and would not be counted.
     let color: Vec<u8> = color_row.iter().map(|c| index[c]).collect();
-    let highest = color.iter().copied().chain([index[&shadow]]).max().unwrap_or(0) as usize;
-    if highest >= reserved {
-        return Err(Bad::answer(format!(
-            "the message window uses colour-memory entry {highest} and what follows starts at \
-             {reserved}"
-        )));
-    }
     Ok(Window {
         tiles: tiles.iter().flat_map(|t| pack_tile(t, 4)).collect(),
         cgram,
@@ -182,6 +270,9 @@ pub fn convert(skin: &Skin, reserved: usize) -> Result<Window> {
         background,
         color,
         shadow: index[&shadow],
+        arrow: arrow_tiles,
+        bar,
+        bar_bare,
     })
 }
 

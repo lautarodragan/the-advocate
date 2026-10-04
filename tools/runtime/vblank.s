@@ -215,6 +215,7 @@ no_finished:
 
     lda msg_open
     beq no_window
+    jsl msg_arrow               ; the arrow of a message waiting for a key
     ; The camera to the three stretches, and then the window's own scroll on
     ; top of whichever of them is the window's.
     lda screen_x

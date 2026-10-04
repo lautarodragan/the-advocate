@@ -1221,6 +1221,7 @@
   "items_border_first": 40,
   "layout": {
    "BORDER": 8,
+   "CHOICE_INDENT": 12,
    "EMPTY": "- Empty -",
    "END_DEFAULT_CHOICE": 0,
    "END_FADE_FRAMES": 20,
@@ -1569,6 +1570,9 @@
      ]
     ]
    ],
+   "WINDOW_ARROW_CELLS": 2,
+   "WINDOW_ARROW_COL": 0,
+   "WINDOW_ARROW_ROW": 1,
    "WINDOW_COLS_INC": 32,
    "WINDOW_HEIGHT": 80,
    "WINDOW_ROWS_INC": 10,
@@ -3178,7 +3182,15 @@
     6,
     6
    ],
+   "arrow": [
+    1,
+    2,
+    3,
+    4
+   ],
    "background": "0e19242f3a45505b66717c87929da8b3bfcad5e0ebf6010c17222d38434e5964707b86919ca7b2bdc8d3dee9f4ff0a15212c37424d58636e79848f9aa5b0bbc6",
+   "bar": "0e19242f3a45505b66717c87929da8b3bfcad5e0ebf6010c17222d38434e5964707b86919ca7b2bdc8d3dee9f4ff0a15212c37424d58636e79848f9aa5b0bbc6",
+   "bar_bare": "0e19242f3a45505b66717c87929da8b3",
    "base": 12,
    "cells": [
     [

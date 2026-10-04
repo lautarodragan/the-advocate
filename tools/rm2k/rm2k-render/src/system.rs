@@ -135,6 +135,12 @@ pub fn cursor(system: &Picture, width: usize, height: usize, drawing: usize) -> 
     out
 }
 
+/// The arrow pointing down, over transparency: what a message waiting for a
+/// key shows at the bottom of its window.
+pub fn arrow_down(system: &Picture) -> Picture {
+    piece(system, rules::ARROW_DOWN, 0, 0, rules::ARROW_WIDTH, rules::ARROW_HEIGHT)
+}
+
 /// The 16x16 block text colour `number`, 0 to 19, takes its pixels from.
 pub fn text_color(system: &Picture, number: i32) -> Picture {
     let block = COLOR_BLOCK;
