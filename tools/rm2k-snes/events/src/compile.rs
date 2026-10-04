@@ -395,9 +395,11 @@ const AUDIO_OFF: [&str; 2] = ["", "(OFF)"];
 /// with the same distrust: if the command changes something we do draw, it
 /// does not go here.
 ///
-/// `MessageOptions` is where and how the message window is drawn, which
-/// without messages is drawn nowhere.
-const IGNORABLE: [i32; 1] = [MESSAGE_OPTIONS];
+/// Empty since 2026-10-04: `MessageOptions` was here, as "where and how the
+/// message window is drawn, which without messages is drawn nowhere", and
+/// that held for the page that had it but not for the ones after it —it is
+/// state, and it lasts—. It is `OP_MESSAGE_OPTIONS` now.
+const IGNORABLE: [i32; 0] = [];
 /// And this is something else, and the difference matters. The ones above
 /// do nothing because there is nothing to do. The ones here **do** do
 /// something and the ROM does not do it; they are accepted anyway because
@@ -579,6 +581,12 @@ fn word(v: i64) -> Step<[u8; 2]> {
 fn usize_word(v: usize) -> Step<[u8; 2]> {
     word(v as i64)
 }
+
+/// `OP_MESSAGE_OPTIONS`'s bits above the position, which takes 0 and 1:
+/// `MSG_BARE`, `MSG_DODGE` and `MSG_CONTINUE` in the runtime's `far_ram.s`.
+const MESSAGE_BARE: u8 = 0x04;
+const MESSAGE_DODGE: u8 = 0x08;
+const MESSAGE_CONTINUE: u8 = 0x10;
 
 fn cannot<T>() -> Step<T> {
     Err(Stop::Cannot)
@@ -2984,6 +2992,28 @@ pub fn compile_command(
         return Ok(vec![]);
     }
     match cmd.code {
+        MESSAGE_OPTIONS => {
+            // `CommandMessageOptions`: without the frame, the position,
+            // whether it moves out of the hero's way —easyrpg stores the
+            // opposite, `SetMessagePositionFixed(p[2] == 0)`— and whether the
+            // events go on moving. It is state of the game and not of the
+            // page: it lasts until the next one, and travels in the save, as
+            // `SaveSystem` does.
+            if n < 4 || !(0..=2).contains(&q(1)) {
+                return cannot();
+            }
+            let mut options = q(1) as u8;
+            if q(0) != 0 {
+                options |= MESSAGE_BARE;
+            }
+            if q(2) != 0 {
+                options |= MESSAGE_DODGE;
+            }
+            if q(3) != 0 {
+                options |= MESSAGE_CONTINUE;
+            }
+            Ok(vec![OP_MESSAGE_OPTIONS, options])
+        }
         PLAY_SOUND => {
             // PlaySound plays an effect: a door, a hit, Talan's Insta-Shave.
             // It sounds since 2026-09-11 (see OP_SOUND, below); until then it
