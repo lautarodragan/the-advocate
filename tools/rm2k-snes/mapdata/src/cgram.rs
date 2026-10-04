@@ -3,12 +3,17 @@
 
 use crate::snes::Color;
 
-/// The entries the message window's palette reaches. **Eight and not
-/// seven**: one of its colours is pure black and its CGRAM word is zero, so
-/// counting the non-zero words gives seven, and with seven the console drew
-/// the text with a colour nobody had uploaded. What rules is the highest
-/// index the window uses.
-pub const WINDOW_COLORS: u32 = 8;
+/// The entries the message window's palette reaches. **Counted by the
+/// highest index the window uses**: one of its colours is pure black and
+/// its CGRAM word is zero, so counting the non-zero words gives one less,
+/// and when it was eight and seven were counted the console drew the text
+/// with a colour nobody had uploaded.
+///
+/// Thirteen since 2026-10-04: the window carries the System's arrow and its
+/// cursor, a choice's bar, which in the System of the game it was measured
+/// on are four reds and one more. It was eight, and those five come out of
+/// every map's background. It is `wally`'s `WINDOW_COLORS` too.
+pub const WINDOW_COLORS: u32 = 13;
 
 /// The CGRAM entries the background **cannot** use, at the very bottom:
 /// entry 0, the screen's backdrop colour, and the message window's. The

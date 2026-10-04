@@ -366,9 +366,11 @@ less:
 ;
 ; Calling `msg_start` again with the window already open is what moves the
 ; cursor: `msg_open` is not cleared, so the window does not flicker, and the
-; composer overwrites what was there line by line. One option's line is five
-; or six characters, that is, a couple of frames: it looks like a cursor
-; moving, not like a window being rebuilt.
+; composer overwrites what was there line by line, priming the line at
+; `pick_sel` with the System's bar —see `prime_line`—. All the options' boxes
+; are the same one since 2026-10-04; before, each carried a ">" on its line.
+; One option's line is five or six characters, that is, a couple of frames:
+; it looks like a cursor moving, not like a window being rebuilt.
 .proc pick_open
 .a8
 .i16

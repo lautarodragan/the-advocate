@@ -617,6 +617,32 @@ pub const FONT_PHASES: usize = 8;
 /// step on, three words each.
 pub const FONT_PRE_ROWS: usize = FONT_HEIGHT + 1;
 pub const FONT_PRE_CHAR: usize = FONT_PRE_ROWS * 2 * 6;
+/// A line of the window, in pixels: RM2k's, which a glyph of twelve and
+/// its shadow fit in.
+pub const WINDOW_LINE: usize = 16;
+/// A `ShowChoice`'s options go `CHOICE_INDENT` pixels further in than the
+/// text —`Window_Message::InsertNewLine` adds 12 on a choice's lines—, and
+/// the System's cursor goes under the highlighted one, a line tall,
+/// `CHOICE_BAR_X` pixels in from the text area and `CHOICE_BAR_TRIM`
+/// narrower than it: `Window_Message::UpdateCursorRect`.
+pub const CHOICE_INDENT: usize = 12;
+pub const CHOICE_BAR_X: usize = 2;
+pub const CHOICE_BAR_TRIM: usize = 4;
+/// The arrow of a message waiting for a key, in cells: on the bottom edge
+/// and centred, as easyrpg's `Window::Draw` puts it —`x + width / 2 - 8`,
+/// `y + height - 8`—. On a window 256 wide that falls on a cell's edge,
+/// which is what lets the cartridge show it by changing two cells of the
+/// window's tilemap.
+pub const WINDOW_ARROW_COL: usize = (WINDOW_WIDTH / 2 - ARROW_WIDTH / 2) / CELL;
+pub const WINDOW_ARROW_ROW: usize = WINDOW_ROWS_INC - 1;
+/// The arrow's size, in pixels and in cells.
+pub const ARROW_WIDTH: usize = rm2k_rules::system::ARROW_WIDTH as usize;
+pub const ARROW_HEIGHT: usize = rm2k_rules::system::ARROW_HEIGHT as usize;
+pub const WINDOW_ARROW_CELLS: usize = ARROW_WIDTH / CELL;
+const _: () = assert!(
+    (WINDOW_WIDTH / 2 - ARROW_WIDTH / 2).is_multiple_of(CELL) && ARROW_WIDTH.is_multiple_of(CELL) && ARROW_HEIGHT == CELL,
+    "the window's arrow has to cover whole cells of its bottom row"
+);
 
 fn rects(rects: &[Rect]) -> Value {
     Value::from(
@@ -670,7 +696,8 @@ pub fn publish() -> Value {
         BORDER, END_YES, END_NO, END_DEFAULT_CHOICE, END_FADE_FRAMES, END_SONG_FADE_MS,
         WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_COLS_INC, WINDOW_ROWS_INC, WINDOW_TEXT_ROW,
         WINDOW_TEXT_ROWS, WINDOW_TEXT_COL, WINDOW_TEXT_COLS, FONT_WIDTH, FONT_HEIGHT,
-        FONT_PRE_ROWS, FONT_PRE_CHAR, MESSAGE_WIDTH, FONT_GLYPHS, FONT_PHASES,
+        FONT_PRE_ROWS, FONT_PRE_CHAR, MESSAGE_WIDTH, FONT_GLYPHS, FONT_PHASES, WINDOW_LINE,
+        CHOICE_INDENT, WINDOW_ARROW_COL, WINDOW_ARROW_ROW, WINDOW_ARROW_CELLS,
     );
     m.insert("TEXT_POOL_PAIRS".into(), json!(crate::checks::TEXT_POOL_PAIRS));
     m.insert("ITEM_WINDOWS".into(), rects(&ITEM_WINDOWS));

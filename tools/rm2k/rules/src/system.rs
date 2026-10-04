@@ -10,6 +10,10 @@
 //! (64, 0)   32x32  the cursor, first drawing: laid out like the frame, and
 //!                  its 16x16 middle fills the inside
 //! (96, 0)   32x32  the cursor, second drawing; it blinks between the two
+//! (40, 8)   16x8   inside the frame's square, the arrow that says there
+//!                  is more above
+//! (40, 16)  16x8   and the one that says there is more below, which is
+//!                  also the message's "press a key"
 //! (16, 32)  16x16  the text's shadow colour
 //! (32, 32)  88x16  the timer: the ten digits and the colon, 8x16 each
 //! (0, 48)   16x16  text colour 0, and the other nineteen to its right and
@@ -36,6 +40,14 @@ pub const FRAME: (i32, i32) = (32, 0);
 pub const CURSOR: [(i32, i32); 2] = [(64, 0), (96, 0)];
 /// A corner of the frame or of the cursor, and how thick their edges are.
 pub const EDGE: i32 = 8;
+
+/// The arrow pointing down, `ARROW_WIDTH` x `ARROW_HEIGHT`: a list that
+/// goes on below, and a message waiting for a key —easyrpg's `Window::Draw`
+/// draws it for `pause` too, at the bottom edge and centred—. The one
+/// pointing up is the same size, right above it.
+pub const ARROW_DOWN: (i32, i32) = (40, 16);
+pub const ARROW_WIDTH: i32 = 16;
+pub const ARROW_HEIGHT: i32 = 8;
 
 /// A text colour, and the shadow's, is a 16x16 block and not a colour: a
 /// letter takes, pixel by pixel, the block's pixel at the same place.

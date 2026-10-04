@@ -41,6 +41,13 @@
 //! On 2026-10-04 the hash of `maps` moved, on purpose too: `MessageOptions`
 //! compiles to `OP_MESSAGE_OPTIONS` and the Python dropped it. With its arm
 //! answering no bytes, the answer was the old one.
+//!
+//! And the same day the hashes of `maps`, of the scan and of the
+//! compilation, and the compilation's `messages`, moved on purpose: a
+//! `ShowChoice`'s options are a single box without the `>`, because the
+//! console draws the System's bar under the highlighted one. With
+//! `choice_boxes` writing one box per option with the `>` again, the answer
+//! was the old one.
 
 use rm2k_snes_events::{compile, compile_without_pairs, scan, Game, Request};
 use serde_json::Value;

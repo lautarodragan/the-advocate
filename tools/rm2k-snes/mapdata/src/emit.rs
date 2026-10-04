@@ -514,6 +514,10 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         int_at(window, "shadow")?.into(),
         t.n("FONT_PRE_ROWS").into(),
         t.n("FONT_PRE_CHAR").into(),
+        t.n("CHOICE_INDENT").into(),
+        t.n("WINDOW_ARROW_ROW").into(),
+        t.n("WINDOW_ARROW_COL").into(),
+        t.n("WINDOW_ARROW_CELLS").into(),
         FAMILIES.len().into(),
         ANIM_STRIDE.into(),
         ANIM_FAM_STRIDE.into(),
@@ -608,7 +612,7 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
     out.push_str(&per_map.maps);
 
     let mut notes = per_map.notes.clone();
-    window_section(&mut out, r, window)?;
+    window_section(&mut out, r, window, &t)?;
     picture_section(&mut out, r)?;
     big_pictures_section(&mut out, r)?;
     animations_section(&mut out, r)?;
@@ -636,7 +640,7 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
     })
 }
 
-fn window_section(out: &mut String, r: &Emit, window: &Value) -> Result<()> {
+fn window_section(out: &mut String, r: &Emit, window: &Value, t: &Geometry) -> Result<()> {
     // The window is a single one for the whole cartridge, in palette 0. That
     // the background does not step on it comes from the split —it starts at
     // `CGRAM_RESERVED`— but it is checked anyway: no single map's comparison
@@ -690,10 +694,58 @@ fn window_section(out: &mut String, r: &Emit, window: &Value) -> Result<()> {
         framed.extend(bare);
         line(out, &block(label, &words_le(framed)));
     }
+    // The cells of the arrow of a message waiting for a key, per window base
+    // in the order of `window_cells`: with the frame, off and on, and
+    // without it, off and on. Off is what the window has there —its frame,
+    // or cell 0 without it—. The console writes one of the four on the
+    // plane the window shows: see `msg_arrow` in the runtime.
+    let arrow = ints_at(window, "arrow")?;
+    let arrow_row = t.n("WINDOW_ARROW_ROW") as usize;
+    let arrow_col = t.n("WINDOW_ARROW_COL") as usize;
+    let arrow_cells = t.n("WINDOW_ARROW_CELLS") as usize;
+    if arrow.len() != 2 * arrow_cells {
+        return Err(Bad::answer(format!(
+            "the window's arrow has {} tiles and it takes {arrow_cells} cells, with the frame and \
+             without it",
+            arrow.len()
+        )));
+    }
+    let window_rows = list_at(window, "cells")?;
+    let under = match window_rows.get(arrow_row) {
+        Some(row) => ints(row)?,
+        None => vec![],
+    };
+    if under.len() < arrow_col + arrow_cells {
+        return Err(Bad::answer(format!(
+            "the window's arrow goes at row {arrow_row}, columns {arrow_col} to {}, and the \
+             window has no cell there",
+            arrow_col + arrow_cells - 1
+        )));
+    }
+    let mut arrow_table = Vec::new();
+    for base in WINDOW_BASES {
+        let cell = |tile: i64| entry(base + tile as u32, false, false, PRIORITY_ABOVE) | (WINDOW_PALETTE << 10);
+        for k in 0..arrow_cells {
+            arrow_table.push(cell(under[arrow_col + k]));
+        }
+        for &tile in &arrow[..arrow_cells] {
+            arrow_table.push(cell(tile));
+        }
+        arrow_table.extend(std::iter::repeat_n(0, arrow_cells));
+        for &tile in &arrow[arrow_cells..] {
+            arrow_table.push(cell(tile));
+        }
+    }
+    line(out, &block("window_arrow_cells", &words_le(arrow_table)));
     line(
         out,
         &block("window_backdrop", &bytes_at(window, "background")?),
     );
+    // And the same background with the System's cursor on each line, and
+    // one line's with the cursor over nothing: a choice's highlighted
+    // option is composed over these. See `prime_line` in the runtime.
+    line(out, &block("window_bar", &bytes_at(window, "bar")?));
+    line(out, &block("window_bar_bare", &bytes_at(window, "bar_bare")?));
     line(out, &block("font_table", &bytes_at(window, "font")?));
     // How far each letter moves the line, and how far it paints: the
     // composer adds the first and checks the second against the edge.

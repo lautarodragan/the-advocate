@@ -83,6 +83,13 @@ MSG_SC    = $7E25F7             ; BG2SC of the window's tilemap: a big picture m
 MSG_ENTRY = $7E25F8             ; the window's stretch in `hdma_ofs`: 0, 5 or 10
 MSG_VOFS  = $7E25F9             ; BG2VOFS while the window is drawn
 .assert FAR_SPEED_KEYS < $25F6 && MSG_VOFS & $FFFF < FAR_MSG_OPTIONS, error, "the window's place steps on its neighbours"
+; And the arrow of a message waiting for a key: how long it has been up, and
+; what its cells say. See message_arrow.s. Not in that gap, which is
+; full, but after the battle animation's, which ends at $3618; from there to
+; `FAR_HP`, at $3700, nobody was. Allotted on 2026-10-04.
+MSG_ARROW_T = $7E3620
+MSG_ARROW_WAY = $7E3621         ; two bytes, `msg_arrow`'s scratch
+MSG_ARROW_UP = $7E3623          ; whether its cells say it is up; $FF is not known
 ACCESS_NO_SAVE = $01
 ACCESS_NO_MENU     = $02
 ACCESS_NO_ESCAPE = $04

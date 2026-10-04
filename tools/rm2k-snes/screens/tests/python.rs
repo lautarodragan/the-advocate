@@ -23,6 +23,11 @@
 //! old ones, every pixel that differs is a letter's. The same day the
 //! names of the menu, the actor choice and the slot screen got composed,
 //! and their five hashes moved: side by side, only the names did.
+//!
+//! On 2026-10-04 the message window took the System's arrow and its cursor
+//! —`arrow`, `bar` and `bar_bare`, the arrow's tiles among its own and its
+//! colours in its palette—, and the hash of the whole answer moved: without
+//! `window`, the answer is the old one byte for byte.
 
 use rm2k_snes_screens::checks::Vram;
 use rm2k_snes_screens::convert::{self, Request};
@@ -103,7 +108,7 @@ fn everything_a_cartridge_carries() {
     // precomposed for its text palette.
     assert_eq!(
         sha(canon(&answer).as_bytes()),
-        "839bb4f54ea5eabb94ae4671186647b824d33714e8c21253edbe2b7a492e0784"
+        "cf1cf4d5254114b1b4ca7ba199aef123e0dbb2206d58ed0430bf314754da1b8d"
     );
     assert_eq!(
         answer["says"],
