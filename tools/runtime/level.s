@@ -138,12 +138,13 @@ has:
     jmp point_text
 .endproc
 
-EXP_LEVEL_IN_SRAM = SRAM_BANK * $10000 + SRAM_DATA + SAVE_BYTES - EXP_K * 4 + EXP_LEVEL
+EXP_LEVEL_IN_SLOT = SRAM_DATA + SAVE_BYTES - EXP_K * 4 + EXP_LEVEL
 
 ; The level actor A had **in the saved game in slot `slot`**, read from its
 ; SRAM: the slots screen shows each save as it was left, not as the current
 ; one is. `FAR_EXP` is the last line of `save_table`, so in the slot it
-; falls `EXP_K * 4` bytes before the end.
+; falls `EXP_K * 4` bytes before the end; and the slot is a bank of its own,
+; see `SRAM_STRIDE`.
 .proc text_level_saved
 .a8
 .i16
@@ -166,20 +167,17 @@ has:
     and #$00FF
     asl a
     asl a
-    pha                         ; the experience slot times four
-    lda slot
-    and #$00FF
-    xba
-    asl a
-    asl a
-    asl a                       ; the SRAM slot times SRAM_STRIDE
-    clc
-    adc 1, s
-    tax
-    pla
+    tax                         ; the experience slot times four
     sep #$20
 .a8
-    lda f:EXP_LEVEL_IN_SRAM, x
+    phb
+    lda slot
+    clc
+    adc #SRAM_BANK
+    pha
+    plb
+    lda EXP_LEVEL_IN_SLOT, x    ; the data bank is the slot's: absolute
+    plb
     jsr level_to_text
     pla
     jmp point_text

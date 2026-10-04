@@ -15,31 +15,41 @@
 ; to A —bit 7 of DMAP— and loading the same one reversed.
 ;
 ; In ExHiROM the SRAM shows at $6000-$7FFF of banks $20-$3F and $A0-$BF, 8 KB
-; in each; with 8 KB, all of them are the same. Every constant below is the
-; address the CPU uses, from `SRAM_WINDOW`; the test harness subtracts it to
-; get the offset in the save file. Until 2026-10-01 it was LoROM, with the
-; SRAM at $70:0000 and the saved game from $0100: at $0000 an
-; `lda SRAM_MAGIC, x` would have been assembled as direct page.
+; in each, and **each bank shows the next 8 KB**: `$21:6000` is byte $2000 of
+; the SRAM. Every constant below is the address the CPU uses, from
+; `SRAM_WINDOW`; the test harness subtracts it to get the offset in the save
+; file. Until 2026-10-01 it was LoROM, with the SRAM at $70:0000 and the saved
+; game from $0100: at $0000 an `lda SRAM_MAGIC, x` would have been assembled
+; as direct page.
 SRAM_BANK = $20
 SRAM_WINDOW = $6000
-SRAM_SIZE = $2000
+SRAM_SIZE = $8000
 
 ; **Four slots**, which is what taro asked for: RM2k opens a menu of fifteen
-; and for this game that makes no sense. Many more would fit in the SRAM —it
-; is 8 KB and a slot takes 165 bytes— so the number does not come from there
-; but from how many can be shown and picked without the screen turning into a
-; list.
+; and for this game that makes no sense. So the number does not come from the
+; SRAM but from how many can be shown and picked without the screen turning
+; into a list.
 SRAM_SLOTS = 4
 
-; Each slot starts at a multiple of 2048, which is what makes its offset a
-; shift and not a multiplication: see `set_slot`. Four of them are the 8 KB.
+; **Each slot is a whole bank of the window**, 8 KB: slot N is bank
+; `SRAM_BANK + N`, from `$6000`. See `slot_bank`.
 ;
-; **If a saved game went past the stride, this breaks silently**: the next
-; slot starts overwriting the end of the previous one. It grows every time a
-; field is added to the saved game —it already happened with the music—. The
-; assembler cannot stop it, so it is guarded by
-; `rom/pruebas/rpgmaker/test_guardar.py::test_las_cuatro_ranuras_entran_en_la_sram`.
-SRAM_STRIDE = 2048
+; It is the fifth stride. It was 256 until the game's 81 variables went into
+; the saved game, 512 until the inventory, 1024 until the equipment and 2048
+; —four slots in one bank, 8 KB of SRAM— until 2026-10-04, when what the
+; items that raise a parameter add to each actor did not fit: the saved game
+; of the game this was written for was at 1983 of the 2038 bytes a slot of
+; 2048 leaves.
+; With a bank per slot, a slot's offset inside it is zero and nothing has to
+; multiply; the price is 32 KB of SRAM instead of 8, which any cartridge and
+; flash cart has.
+;
+; A saved game that went past the window would run into the ROM of the same
+; bank, and saving would write nowhere: the `.assert` under `SRAM_DATA` stops
+; the build, and the tests' `test_las_cuatro_ranuras_entran_en_la_sram`
+; checks the same from outside.
+SRAM_WINDOW_SIZE = $2000
+SRAM_STRIDE = SRAM_WINDOW_SIZE
 
 ; And inside each slot, counting from its base, which is slot 0's. None of
 ; them fits in a byte, so the assembler cannot take one for direct page: in
@@ -64,6 +74,7 @@ SRAM_BYTES = SRAM_WINDOW + 6     ; SAVE_BYTES
 SRAM_SIGNATURE = SRAM_WINDOW + 8 ; GAME_SIGNATURE
 SRAM_DATA = SRAM_WINDOW + $0A
 .assert SRAM_SLOTS * SRAM_STRIDE = SRAM_SIZE, error, "the slots are not the SRAM"
+.assert SRAM_DATA + SAVE_BYTES <= SRAM_WINDOW + SRAM_WINDOW_SIZE, error, "a saved game does not fit in its slot"
 
 ; `save_table` lives in RODATA —see "what does not need to live in bank 0"
 ; in `bank1.s`— and is read with `lda f:save_table, x`.
@@ -81,16 +92,8 @@ SAVE_PARTY      = 2 + 2 + 1 + 2 + 2 + 2   ; the map takes two since its
                                           ; index is sixteen bits
 SAVE_PARTY_N = SAVE_PARTY + 4
 
-; Sets the slot `save_game` and `load_game` will work with, and
-; computes its offset. A brings the slot number.
-;
-; The offset is the slot times 2048, that is one `xba` and three `asl`: that
-; is why `SRAM_STRIDE` is 2048 and not the exact length of a saved game.
-; Multiplying by that length would need the hardware multiplier and eight
-; cycles of waiting, to save a few bytes of an SRAM that has room to spare. It
-; was 256 until the game's 81 variables went into the saved game, 512 until the
-; inventory and 1024 until the equipment, which is 610 bytes more. With 2048,
-; four slots are exactly the 8 KB of ExHiROM's window.
+; Sets the slot `save_game` and `load_game` will work with. A brings the
+; slot number.
 .proc set_slot
 .a8
 .i16
@@ -98,25 +101,18 @@ SAVE_PARTY_N = SAVE_PARTY + 4
     rts
 .endproc
 
-; The slot's offset in the SRAM, in X. **It needs the normal data bank**: it
-; reads `slot`, which lives in WRAM.
-;
-; It is the slot times 2048, that is one `xba` and three `asl`: see
-; `set_slot`.
-.proc slot_in_x
+; The slot's bank of the SRAM window in A8, and in X its offset inside that
+; bank, which is zero: see `SRAM_STRIDE`. The callers index with X as they
+; did when four slots shared a bank, so a slot's fields are still
+; `SRAM_MAGIC, x` and the like. `slot` is on the direct page, so any data
+; bank will do.
+.proc slot_bank
 .a8
 .i16
-    rep #$20
-.a16
+    ldx #$0000
     lda slot
-    and #$00FF
-    xba                         ; times 256...
-    asl a
-    asl a
-    asl a                       ; ...and times eight: SRAM_STRIDE, which is 2048
-    tax
-    sep #$20
-.a8
+    clc
+    adc #SRAM_BANK
     rts
 .endproc
 
@@ -129,24 +125,15 @@ SAVE_PARTY_N = SAVE_PARTY + 4
     sta DMAP0
     lda #$80
     sta BBAD0                   ; the other side is always WMDATA
-    lda #SRAM_BANK
+    jsr slot_bank
     sta A1B0
+    rep #$20
+.a16
+    lda #SRAM_DATA
+    sta temp                    ; where the SRAM is at, inside its slot
+    sep #$20
+.a8
     ldx #$0000                  ; where the table is at
-    phx
-    jsr slot_in_x               ; normal data bank: here it still is
-    rep #$20
-.a16
-    txa
-    clc
-    adc #SRAM_DATA
-    sta temp                    ; and where the SRAM is at, inside its slot
-    sep #$20
-.a8
-    plx
-    rep #$20
-.a16
-    sep #$20
-.a8
 other:
     rep #$20
 .a16
@@ -262,14 +249,7 @@ copy:
     ; without saying why.
     rep #$20
 .a16
-    sep #$20
-.a8
-    jsr slot_in_x
-    rep #$20
-.a16
-    txa
-    clc
-    adc #(SRAM_DATA + SAVE_BYTES)
+    lda #(SRAM_DATA + SAVE_BYTES)
     cmp temp                    ; where the copy should have ended
     sep #$20
 .a8
@@ -280,12 +260,11 @@ square:
     ; to the SRAM: it is the only way to address it without a pointer on the
     ; direct page, which is full.
     ;
-    ; The slot's offset is read **before** moving it, and from then on it
-    ; travels in X: in LoROM, with the bank at $70, `lda ranura_ofs` read the
-    ; SRAM. In ExHiROM the SRAM's bank also has the low WRAM.
-    jsr slot_in_x
+    ; The slot's offset travels in X: in LoROM, with the bank at $70, `lda
+    ; ranura_ofs` read the SRAM. In ExHiROM the SRAM's banks also have the
+    ; low WRAM, and the offset is zero since each slot has its bank.
+    jsr slot_bank
     phb
-    lda #SRAM_BANK
     pha
     plb
     phx
@@ -319,10 +298,8 @@ square:
 .proc load_game
 .a8
 .i16
-    jsr slot_in_x               ; before moving the bank: see
-                                ; `save_game`
+    jsr slot_bank
     phb
-    lda #SRAM_BANK
     pha
     plb
     jsr slot_of_this_format
