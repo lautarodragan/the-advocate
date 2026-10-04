@@ -240,9 +240,12 @@ save_table:
     ; And which skills each actor knows: one bit per (actor, skill) pair, which
     ; `ChangeSkills` sets and clears. See `FAR_SKILL`.
     .word FAR_SKILL, SKILL_BYTES
+    ; And what the materials added to each actor that can fight: see
+    ; `FAR_GROWTH`.
+    .word FAR_GROWTH, EXP_K * GROWTH_BYTES
     ; And the experience and level of each actor that can fight. **It goes
     ; last on purpose**: the slot screen reads the leader's level from SRAM
-    ; counting from the end of the save —`EXP_LEVEL_IN_SRAM`—, and a line
+    ; counting from the end of the save —`EXP_LEVEL_IN_SLOT`—, and a line
     ; added after it would shift it.
     .word FAR_EXP, EXP_K * 4
     .word 0, 0

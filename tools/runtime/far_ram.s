@@ -292,6 +292,30 @@ MED_ID        = FAR_MED + 19    ; word: the item's RM2k number
 ; them by number; the battle, which reads them since 2026-09-26, by name.
 MED_KO_ONLY   = $01             ; only on a fallen one
 MED_RAISES    = $02             ; removes the dead state: revives the fallen one
+MED_USES      = $04             ; it has uses: using it spends one
+MED_MATERIAL  = $08             ; a material: it raises parameters, see `FAR_GROWTH`
+
+; --- what the materials added: its state in far RAM ---------------------------
+;
+; What the items of type material —`Type_material`: the seeds, the pills—
+; added to each actor for good: RM2k's `hp_mod`, `sp_mod`, `attack_mod`,
+; `defense_mod`, `spirit_mod` and `agility_mod` of `SaveActor`. Six signed
+; words per experience slot —the actors that can be in the party, in the
+; order of `actor_exp_k`—, in the order of `level_param`'s Y: maximum HP,
+; maximum SP, attack, defense, spirit and agility. `level_param` adds them,
+; so everything that asks for an actor's parameter —the menu, the equipment,
+; the battle, `FullHeal`— sees them. They start at zero on reset, travel in
+; the save, and `medicine_use` adds to them. `ChangeParameters`, which is the
+; other way RM2k has of moving them, the port does not compile.
+;
+; $7E7D00 to $7E7EEF, allotted on 2026-10-04: from the end of the slot cache's
+; to `CARRY_MAP` nobody was —measured on the symbol table of the cartridges—.
+; Sixteen-bit address, like the battle's: `medicine_use` runs with the data
+; bank at $7E, and `save_table` takes it as it is.
+FAR_GROWTH    = $7D00
+GROWTH_BYTES  = 12
+GROWTH_MAX    = 999             ; `MaxHpValue`, `MaxSpValue` and `MaxStatBaseValue` of RM2k
+.assert FAR_GROWTH + EXP_K * GROWTH_BYTES <= (CARRY_MAP & $FFFF), error, "what the materials added overflows its range"
 
 ; What `pair_ev` holds while a troop page runs: neither the foreground ($FF)
 ; nor a map event, which are fewer than EV_MAX. It is what tells

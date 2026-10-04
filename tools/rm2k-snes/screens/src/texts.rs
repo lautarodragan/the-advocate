@@ -3,7 +3,7 @@
 
 use crate::fail::Result;
 use rm2k_snes_text::font::Font;
-use crate::game::{Game, ITEM_MEDICINE, ITEM_SWITCH};
+use crate::game::{Game, ITEM_MATERIAL, ITEM_MEDICINE, ITEM_SWITCH};
 use crate::layout::*;
 use ditto::schema::{Actor, Item};
 use rm2k_rules::actor as rules;
@@ -216,20 +216,42 @@ pub const NUMBER_GLYPHS: &str = " -/0123456789";
 
 /// Whether the item goes in white and A does something with it on the
 /// map: `Game_Party::IsItemUsable` outside battle. The switch ones that can
-/// be used on the field, and the medicines, which open the actor choice.
+/// be used on the field, and the medicines and the materials, which open
+/// the actor choice. The materials since 2026-10-04: until then they went
+/// in gray because the runtime did not know how to use them.
 pub fn item_usable(item: &Item) -> bool {
     let kind = item.r#type.to_i32();
-    (kind == ITEM_SWITCH && item.occasion_field2) || kind == ITEM_MEDICINE
+    (kind == ITEM_SWITCH && item.occasion_field2) || item_needs_actor(item)
 }
 
-/// Whether using it opens the actor choice: the medicines.
+/// Whether using it opens the actor choice: the medicines and the
+/// materials, which `Scene_Item` sends to `Scene_ActorTarget`.
 pub fn item_needs_actor(item: &Item) -> bool {
-    item.r#type.to_i32() == ITEM_MEDICINE
+    let kind = item.r#type.to_i32();
+    kind == ITEM_MEDICINE || kind == ITEM_MATERIAL
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The materials —the seeds and pills that raise a parameter for good—
+    /// go in white and open the actor choice, like the medicines: since
+    /// 2026-10-04, when the runtime learned to use them.
+    #[test]
+    fn a_material_is_usable_on_an_actor() {
+        use ditto::schema::ItemType;
+        let of = |kind| Item {
+            r#type: kind,
+            ..Default::default()
+        };
+        for kind in [ItemType::Medicine, ItemType::Material] {
+            assert!(item_usable(&of(kind.clone())) && item_needs_actor(&of(kind)));
+        }
+        for kind in [ItemType::Book, ItemType::Weapon, ItemType::Special] {
+            assert!(!item_usable(&of(kind.clone())) && !item_needs_actor(&of(kind)));
+        }
+    }
 
     #[test]
     fn a_description_goes_in_two_lines_cut_at_a_space() {

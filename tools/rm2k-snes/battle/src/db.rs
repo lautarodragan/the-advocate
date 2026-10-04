@@ -18,9 +18,11 @@ use ditto::schema::{Actor, Enemy, Item, Skill, State, Terms, Troop};
 use std::collections::BTreeMap;
 use std::path::Path;
 
-/// `lcf::rpg::Item::Type`: the ones the battle reads.
+/// `lcf::rpg::Item::Type`: the ones the battle reads, and the material, whose
+/// table the converter emits next to the medicines'.
 pub const ITEM_WEAPON: i32 = 1;
 pub const ITEM_MEDICINE: i32 = 6;
+pub const ITEM_MATERIAL: i32 = 8;
 
 /// `lcf::rpg::Skill::Type`.
 pub const SKILL_NORMAL: i32 = 0;

@@ -824,6 +824,8 @@ move:
 .proc target_screen
 .a8
 .i16
+    stz title_sel
+redraw:
     lda #$80
     sta INIDISP
     stz HDMAEN
@@ -834,10 +836,9 @@ move:
 .endif
     jsr menu_party_paint
     jsl f:target_upload
-    stz title_sel
     lda #1
     sta temp + 3
-    lda #0
+    lda title_sel
     jsl f:target_bar
     jsl f:target_ppu_on
 wait:
@@ -880,6 +881,14 @@ faces_a:
     jsr actor_row
     jsl f:medicine_use
     beq wait                    ; it did not work: RM2k plays a sound and does nothing
+    ; A material can change a maximum, which the panel composes when it is
+    ; drawn: the whole screen again, on the same row, as `Scene_ActorTarget`
+    ; refreshes its whole window.
+    lda f:FAR_LENGTH + MED_FLAGS
+    and #MED_MATERIAL
+    beq medicine
+    jmp redraw
+medicine:
     ; The row's HP, in the next vblank: the use took away the current value.
     jsr wait_vblank
     jsr actor_row

@@ -244,6 +244,19 @@ fn without_commons(text: &str) -> String {
     lines.join("\n")
 }
 
+/// The text without `item_up`, which came on 2026-10-04 with the materials:
+/// what each item adds to an actor for good. The test game has no
+/// material, so every word is zero, which is checked here.
+fn without_item_up(text: &str) -> String {
+    let mut lines: Vec<&str> = text.split('\n').collect();
+    let at = lines.iter().position(|l| *l == "item_up:").unwrap();
+    assert!(lines[at - 1].starts_with(".block "));
+    let words = lines[at + 1].trim_start_matches("    .word ");
+    assert!(words.split(", ").all(|w| w == "0"), "a material in the test game");
+    lines.drain(at - 1..at + 2);
+    lines.join("\n")
+}
+
 /// The text without the custom menus, which came on 2026-10-04: a request
 /// without them gets the section's empty labels and the pause menu's two
 /// counts, checked here to be those of no menu.
@@ -312,7 +325,7 @@ fn without_bare_window(text: &str) -> String {
 #[test]
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
-    let text = without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&emitted.text)))));
+    let text = without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&emitted.text))))));
     assert_eq!(text.lines().count(), 3774);
     assert_eq!(
         sha(&text),
@@ -323,7 +336,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 #[test]
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
-    let text = without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&emitted.text)))));
+    let text = without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&emitted.text))))));
     assert_eq!(text.lines().count(), 3893);
     assert_eq!(
         sha(&text),
