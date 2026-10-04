@@ -2,6 +2,7 @@
 name: "La lista de habilidades de la pelea agota el pozo de pares"
 description: "Con una página entera de habilidades, la capa de texto de la pelea se queda sin pares de tiles: una fila sale a medias y el primer renglón de los comandos no sale, ya con letter_spacing en 0"
 type: bug
+assignee: Carpintero
 ---
 
 Lo midió Benteveo el 2026-10-03, al hacer que el conversor cuente el pozo
