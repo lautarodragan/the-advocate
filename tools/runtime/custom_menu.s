@@ -2020,6 +2020,30 @@ restore:
     rts
 .endproc
 
+; What of the objects `big_back_far` does not put back, with the screen off:
+; OBSEL, which is the map's, and the object palettes, which the windows'
+; colours and the portrait's took —from `cgram_shadow`, as the pause menu's
+; `menu_exp_close` does with the four it takes—.
+.proc cm_objects_back
+.a8
+.i16
+    lda #$80
+    sta INIDISP
+    ldx map_ofs
+    lda f:map_table + M_OBSEL_VALUE, x
+    sta OBSEL
+    rep #$20
+.a16
+    lda #(128 * 2)
+    sta f:CM_T0
+    ldx #.loword(cgram_shadow + 2 * 128)
+    sep #$20
+.a8
+    ldy #128
+    lda #^cgram_shadow
+    jmp cm_dma_cgram
+.endproc
+
 ; Menu A, until the player leaves it with B from the subjects.
 .proc cm_screen
 .a8
@@ -2131,7 +2155,7 @@ no_tab:
     sta pad_prev
     lda pad_a
     sta pad_a_prev
-    rts
+    jmp cm_objects_back
 no_b:
     lda pad_a
     beq to_wait

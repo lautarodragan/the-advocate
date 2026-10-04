@@ -653,6 +653,8 @@ row_vram:
     sep #$20
     rep #$10
     stz title_sel               ; RM2k opens with the cursor on the first
+    lda #0
+    sta f:CM_DIRTY              ; no custom menu has overwritten the map yet
 build:
     jsr menu_upload
 wait:
