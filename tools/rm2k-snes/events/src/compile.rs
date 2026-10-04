@@ -5657,6 +5657,7 @@ mod tests {
             animation_type: 0,
             character_name: String::new(),
             character_index: 0,
+            character_pattern: 1,
             commands: Vec::new(),
             route: Vec::new(),
             route_repeat: false,

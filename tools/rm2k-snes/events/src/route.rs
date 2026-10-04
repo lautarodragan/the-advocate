@@ -248,6 +248,17 @@ pub fn diagonal(command: i32) -> bool {
 /// in the first maps. The other movement types —random, vertical,
 /// horizontal, toward the hero— neither: they are another machine.
 ///
+/// **Turning in place goes in since 2026-10-04**, with `"spin"` on: the
+/// console turns it a quarter every few frames, by its speed, its steps do
+/// not turn it —`UpdateAnimation` and `UpdateFacing`— and it always shows
+/// the column of its page, `"pattern"`. It was left out while the game's
+/// pages that use it were not in the cartridge; now two of them dance in
+/// ABL's farm (127), walking a square, and they stood still. The page that
+/// spins **without** a route —`MoveType_stationary`— gets one with no
+/// commands that repeats: the console only animates an event with a route
+/// slot, and an empty one that repeats does nothing else. Those are the
+/// other two of the game's four, a robot on maps 64 and 227.
+///
 /// **Moving toward the hero is left out here too**, even though since
 /// 2026-09-12 the ROM walks it in a forced route: they are two pages of map
 /// 105 —measured, the only ones of the game's 37 own routes that use it—
@@ -255,17 +266,20 @@ pub fn diagonal(command: i32) -> bool {
 /// nothing exercising it. 21 is out for the same reason since before: zero
 /// own routes use it.
 pub fn own(page: &Page) -> Option<Value> {
-    if page.move_type != MOVE_CUSTOM || page.route.is_empty() {
+    let spin = page.animation_type == ANIM_SPIN;
+    let still_spinning = spin && page.move_type == MOVE_STATIONARY;
+    if !still_spinning && (page.move_type != MOVE_CUSTOM || page.route.is_empty()) {
         return None;
     }
     if !(FREQUENCY_MIN..=FREQUENCY).contains(&page.move_frequency) {
         return None;
     }
-    if !(1..=6).contains(&page.move_speed) || page.animation_type == ANIM_SPIN {
+    if !(1..=6).contains(&page.move_speed) || !(0..=2).contains(&page.character_pattern) {
         return None;
     }
+    let route: &[i32] = if still_spinning { &[] } else { &page.route };
     let mut commands = Vec::new();
-    for &command in &page.route {
+    for &command in route {
         if command == ROUTE_SOUND || ROUTE_TRANSPARENCY.contains(&command) {
             continue;
         }
@@ -286,21 +300,29 @@ pub fn own(page: &Page) -> Option<Value> {
         // Commands 30 and 31 would take it down to 1.
         return None;
     }
-    if commands.is_empty() || commands.len() > 255 {
+    // Empty is fine for one that spins: the route is only its slot.
+    if (commands.is_empty() && !spin) || commands.len() > 255 {
         return None;
     }
-    Some(json!({
+    let mut out = json!({
         "commands": commands,
         "frequency": page.move_frequency,
         "speed": page.move_speed,
-        "repeats": page.route_repeat,
+        "repeats": page.route_repeat || still_spinning,
         "skippable": page.route_skippable,
         "fixed_direction": matches!(
             page.animation_type,
             ANIM_FIXED_NOT_CONTINUOUS | ANIM_FIXED_CONTINUOUS | ANIM_FIXED_GRAPHIC
         ),
         "animation_continues": matches!(page.animation_type, ANIM_CONTINUOUS | ANIM_FIXED_CONTINUOUS),
-    }))
+    });
+    // Only on the one that spins: the others' answer stays the one
+    // `tests/python.rs` holds the hashes of, byte for byte.
+    if spin {
+        out["spin"] = json!(true);
+        out["pattern"] = json!(page.character_pattern);
+    }
+    Some(out)
 }
 
 #[cfg(test)]
@@ -328,6 +350,46 @@ mod tests {
             )
         );
         assert!(decode(&[34, 5, 65]).is_err());
+    }
+
+    fn spinning(move_type: i32, route: Vec<i32>) -> Page {
+        Page {
+            trigger: 0,
+            layer: 1,
+            move_type,
+            move_frequency: 3,
+            move_speed: 3,
+            animation_type: ANIM_SPIN,
+            character_name: "Dancer".into(),
+            character_index: 1,
+            character_pattern: 2,
+            commands: Vec::new(),
+            route,
+            route_repeat: true,
+            route_skippable: false,
+            condition: Default::default(),
+        }
+    }
+
+    #[test]
+    fn a_page_that_spins_walks_its_route_spinning() {
+        // ABL's dancers, on map 127: a square, turning in place.
+        let r = own(&spinning(MOVE_CUSTOM, vec![3, 2, 1, 0])).unwrap();
+        assert_eq!(r["commands"], json!([3, 2, 1, 0]));
+        assert_eq!(r["spin"], json!(true));
+        assert_eq!(r["pattern"], json!(2));
+        assert_eq!(r["fixed_direction"], json!(false));
+    }
+
+    #[test]
+    fn a_still_page_that_spins_gets_an_empty_route_that_repeats() {
+        // The console only animates an event with a route slot.
+        let r = own(&spinning(MOVE_STATIONARY, Vec::new())).unwrap();
+        assert_eq!(r["commands"], json!([]));
+        assert_eq!(r["repeats"], json!(true));
+        assert_eq!(r["spin"], json!(true));
+        // The other movement types are another machine, spinning or not.
+        assert!(own(&spinning(1, Vec::new())).is_none());
     }
 
     #[test]

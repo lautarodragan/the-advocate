@@ -298,7 +298,8 @@ ev_pos_buf: .res EV_MAX * EV_STRIDE
 ; how many, +5 which one it is on, +6 whether it moved this frame, +7 what the
 ; step has left, +8 which way it faces, +9 the wait, +10 and +11 the animation,
 ; +12 the flags, +13 what the jump has left and +14/+15 where it started, +16
-; the frequency, +19 its row in `npc_buf` plus one, remembered by `slot_npc`. The stride is a power of two out of habit; there is room to spare.
+; the frequency, +18 the route's flags —bit 7 its page turns in place, see
+; `spin_step`—, +19 its row in `npc_buf` plus one, remembered by `slot_npc`. The stride is a power of two out of habit; there is room to spare.
 ROUTE_EV_STRIDE = 32
 ROUTE_EV_FREE = $FF
 ROUTE_EV_NO_FACE = $FF      ; in +8: the move route has not turned it yet

@@ -1534,12 +1534,31 @@ forgotten:
     sta route_ev + 16, x
     sta route_ev + 28, x
     lda pg_speed
+    and #$07                    ; bits 4 to 7 are the spin's, below
     sta route_ev + 17, x
     sta route_ev + 29, x
     lda pg_flags
     and #$1E
     ora #$01                    ; a page one
     sta route_ev + 18, x
+    ; A page that turns in place —`AnimType_spin`— brings it in bit 7 of its
+    ; speed, because +13 is full, and the column it shows in bits 4 and 5:
+    ; it is `SetAnimFrame(character_pattern)` of `SetupFromPage`, which
+    ; nothing changes while it spins. See `animate_ev_route`.
+    lda pg_speed
+    bpl no_spin
+    and #$80
+    ora route_ev + 18, x
+    sta route_ev + 18, x
+    lda pg_speed
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    and #$03
+    sta route_ev + 10, x
+    stz route_ev + 11, x
+no_spin:
     lda pg_layer
     sta route_ev + 31, x        ; its layer, for colliding with the others
     rep #$20
@@ -1569,6 +1588,9 @@ forgotten:
     and #$FE
     sta route_ev + 18, x
 ready:
+    lda route_ev + 18, x
+    and #$7F                    ; it stops spinning with its page, forced or not
+    sta route_ev + 18, x
     stz route_ev + 27, x
     rep #$20
 .a16

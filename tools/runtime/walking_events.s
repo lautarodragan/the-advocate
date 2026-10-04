@@ -12,9 +12,15 @@
 .proc animate_ev_route
 .a8
 .i16
-    ; `Game_Character::UpdateAnimation`, without the turn in place. +10 is the
+    ; `Game_Character::UpdateAnimation`, with the turn in place apart. +10 is the
     ; frame of the cycle, 0 to 3 —3 draws column 1—, and +11 how many frames
     ; it has been in it. With the animation stopped or jumping, the middle frame.
+    ; One whose page turns in place does only that: see `spin_step`.
+    lda route_ev + 18, x
+    bpl no_spin
+    jsl f:spin_step + FAST
+    rts
+no_spin:
     lda route_ev + 12, x
     and #$02
     bne still

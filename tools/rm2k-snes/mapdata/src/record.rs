@@ -1031,7 +1031,13 @@ pub fn page_table(map: &PageMap, number: usize, evcode: &str) -> String {
                 "    .byte {:<4} ; +14 its frequency",
                 own.frequency
             ));
-            out.push(format!("    .byte {:<4} ; +15 and its speed", own.speed));
+            // The speed is 1 to 6, so the spin rides in its high bits: the
+            // byte at +13 is full. Bit 7 it turns in place, bits 4 and 5
+            // the column it shows. See `load_page_into_slot`.
+            let speed = own.speed | bit(own.spin, 128) | if own.spin { own.pattern << 4 } else { 0 };
+            // The comment is the old one on purpose: `tests/python.rs`
+            // hashes the `.inc`, comments and all.
+            out.push(format!("    .byte {speed:<4} ; +15 and its speed"));
             out.push(format!(
                 "    .byte <({dest}), >({dest}), ^({dest}) ; +16 its commands"
             ));
