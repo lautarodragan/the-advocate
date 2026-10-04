@@ -2255,20 +2255,46 @@ impl Rest<'_> {
             &per_item(&|i| i64::from(i.recover_sp).min(0xFFFF))?,
             true,
         );
+        // The `MED_*` bits of the runtime. A material is only what it is
+        // —the editor keeps the fields of the type it had before, and RM2k
+        // reads none of them for one—, and whether it has uses.
         bytes_asm(
             out,
             "item_medicine",
             &per_item(&|i| {
+                let uses = if i.uses != 0 { 4 } else { 0 };
+                if i.r#type.to_i32() == rm2k_snes_battle::db::ITEM_MATERIAL {
+                    return 8 | uses;
+                }
                 i64::from(i.ko_only)
                     | if i.state_set.first() == Some(&true) {
                         2
                     } else {
                         0
                     }
-                    | if i.uses != 0 { 4 } else { 0 }
+                    | uses
             })?,
             true,
         );
+        // What a material adds to an actor for good, six words per item in
+        // the order of the runtime's `level_param`: maximum HP, maximum SP,
+        // attack, defense, spirit and agility. Zero for every other type.
+        let mut up = Vec::new();
+        for &n in items {
+            let it = item(n)?;
+            let material = it.r#type.to_i32() == rm2k_snes_battle::db::ITEM_MATERIAL;
+            for points in [
+                it.max_hp_points,
+                it.max_sp_points,
+                it.atk_points2,
+                it.def_points2,
+                it.spi_points2,
+                it.agi_points2,
+            ] {
+                up.push(if material { i64::from(points) & 0xFFFF } else { 0 });
+            }
+        }
+        words_asm(out, "item_up", &decimal(up), true);
         out.push_str(".segment \"TABLES\"\n");
         // The four text tables outside bank 0.
         out.push_str(".segment \"RODATA\"\n");

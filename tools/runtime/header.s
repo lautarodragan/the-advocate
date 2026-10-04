@@ -17,7 +17,7 @@
     .byte $35                      ; ExHiROM, FastROM: see MEMSEL
     .byte $02                      ; ROM and battery-backed RAM: the saved game
     .byte $0D                      ; size: 8 MB (the byte is log2 of the KB)
-    .byte $03                      ; SRAM: 8 KB, four slots of 2048
+    .byte $05                      ; SRAM: 32 KB, four slots of a bank each
     .byte $01                      ; region
     .byte $00                      ; developer
     .byte $00                      ; version

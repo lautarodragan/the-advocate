@@ -27,6 +27,7 @@
     sta BA_I
     sta BA_TARGET_TOP
     sta BA_FLEE_FAILED
+    sta BA_MSP_NEXT             ; no item's SP line pending: see `ba_execute`
     jsr ba_build
     lda BA_KID
     bne has_troop

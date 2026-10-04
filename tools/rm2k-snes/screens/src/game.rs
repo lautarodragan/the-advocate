@@ -17,6 +17,7 @@ use std::path::{Path, PathBuf};
 
 /// The item types this reads: `lcf::rpg::Item::Type`.
 pub const ITEM_MEDICINE: i32 = 6;
+pub const ITEM_MATERIAL: i32 = 8;
 pub const ITEM_SWITCH: i32 = 10;
 
 /// The five bytes cp1252 does not define. Ditto keeps them as their C1

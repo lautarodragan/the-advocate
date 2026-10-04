@@ -185,22 +185,38 @@ pub fn healing(item: &Item, target: &Combatant) -> i64 {
     hp.min(target.hp_max - target.hp).max(0)
 }
 
-/// The HP the target of a medicine is left with, and whether it got up:
-/// standing and `ko_only`, nothing; standing, the healing; down and it does
-/// not revive, nothing —`ApplyHpEffect` does not touch a dead one—; down
-/// and it revives, `RemoveStates`' `SetHp(1)` and then the healing minus
-/// one, which is `max(1, healing)`.
-pub fn item_effect(item: &Item, target: &Combatant) -> (i64, bool) {
+/// The same with the SP: `recover_sp_rate * max / 100 + recover_sp`,
+/// capped by `ChangeSp` at what is missing.
+pub fn sp_healing(item: &Item, target: &Combatant) -> i64 {
+    let sp = floor_div(item.recover_sp_rate as i64 * target.sp_max, 100) + item.recover_sp as i64;
+    sp.min(target.sp_max - target.sp).max(0)
+}
+
+/// What a medicine leaves the target with: its HP, its SP, and whether it
+/// got up. An actor whose `actor_set` leaves it out, nothing —the
+/// `IsItemUsable` of `Item::vExecute`—; standing and `ko_only`, nothing;
+/// standing, the healing; down and it does not revive, nothing
+/// —`ApplyHpEffect` does not touch a dead one—; down and it revives,
+/// `RemoveStates`' `SetHp(1)` and then the healing minus one, which is
+/// `max(1, healing)`. The SP go up whenever it does something: `ChangeSp`
+/// does not look at the dead state, but an item that does not revive does
+/// nothing on a fallen one here, because the battle's cursor does not let
+/// it be chosen and one that fell before its turn is the only way.
+pub fn item_effect(item: &Item, target: &Combatant) -> (i64, i64, bool) {
+    let nothing = (target.hp, target.sp, false);
+    if target.is_actor && !rules::item_usable_by(item, target.number) {
+        return nothing;
+    }
     if target.alive() {
         if item.ko_only {
-            return (target.hp, false);
+            return nothing;
         }
-        return (target.hp + healing(item, target), false);
+        return (target.hp + healing(item, target), target.sp + sp_healing(item, target), false);
     }
     if !rules::revives(item) {
-        return (target.hp, false);
+        return nothing;
     }
-    (healing(item, target).max(1), true)
+    (healing(item, target).max(1), target.sp + sp_healing(item, target), true)
 }
 
 /// `Algo::CalcSkillEffect` **without the variance**, which goes apart:
@@ -1438,8 +1454,9 @@ impl Battle {
                     // An item cannot miss and rolls nothing, and it goes to
                     // the one chosen even if it changed along the way.
                     let before = self.get(target).hp;
-                    let (hp, _up) = item_effect(db.item(item)?, self.get(target));
+                    let (hp, sp, _up) = item_effect(db.item(item)?, self.get(target));
                     self.get_mut(target).hp = hp;
+                    self.get_mut(target).sp = sp;
                     self.logged(who, target, true, false, before - hp);
                 }
                 (_, Target::One(mut target)) => {
@@ -1495,6 +1512,86 @@ impl Battle {
 mod tests {
     use super::*;
 
+
+    fn medicine(f: impl FnOnce(&mut Item)) -> Item {
+        let mut item = Item {
+            r#type: ditto::schema::ItemType::Medicine,
+            ..Default::default()
+        };
+        f(&mut item);
+        item
+    }
+
+    fn actor(number: i64, hp: i64, sp: i64) -> Combatant {
+        Combatant {
+            name: String::new(),
+            number,
+            is_actor: true,
+            hp_max: 168,
+            hp,
+            sp_max: 168,
+            sp,
+            base: [1; 4],
+            modifier: [0; 4],
+            hit_rate: 90,
+            critical: 0,
+            skills: vec![],
+            actions: vec![],
+            weapon_sp: 0,
+            equipment: vec![],
+            level: None,
+            defending: false,
+            command: 0,
+            hidden: false,
+            exp: 0,
+            gold: 0,
+            drop_item: 0,
+            drop_chance: 0,
+        }
+    }
+
+    /// The Magic Ether and the Miracle Drop of the game this was written
+    /// for: 80 SP flat, and 100% of both. Until 2026-10-04 the battle left
+    /// the SP ones out and healed no SP.
+    #[test]
+    fn a_medicine_recovers_sp_capped_at_the_maximum() {
+        let ether = medicine(|i| i.recover_sp = 80);
+        assert!(rules::item_usable_in_battle(&ether));
+        assert_eq!(item_effect(&ether, &actor(11, 50, 10)), (50, 90, false));
+        assert_eq!(item_effect(&ether, &actor(11, 50, 150)), (50, 168, false));
+        let drop = medicine(|i| {
+            i.recover_hp_rate = 100;
+            i.recover_sp_rate = 100;
+        });
+        assert_eq!(item_effect(&drop, &actor(11, 50, 20)), (168, 168, false));
+        let rate = medicine(|i| i.recover_sp_rate = 50);
+        assert_eq!(item_effect(&rate, &actor(11, 50, 0)), (50, 84, false));
+    }
+
+    /// `IsItemUsable` in `Item::vExecute`: an actor its `actor_set` leaves
+    /// out gets nothing; one past the end of the set, everything.
+    #[test]
+    fn a_medicine_does_nothing_on_an_actor_its_set_leaves_out() {
+        let oil = medicine(|i| {
+            i.recover_hp = 60;
+            i.recover_sp = 60;
+            i.actor_set = vec![true, false];
+        });
+        assert_eq!(item_effect(&oil, &actor(2, 50, 10)), (50, 10, false));
+        assert_eq!(item_effect(&oil, &actor(1, 50, 10)), (110, 70, false));
+        assert_eq!(item_effect(&oil, &actor(3, 50, 10)), (110, 70, false));
+    }
+
+    /// One that only removes states is still left out: the battle keeps
+    /// none.
+    #[test]
+    fn a_medicine_that_recovers_nothing_is_left_out() {
+        assert!(!rules::item_usable_in_battle(&medicine(|_| {})));
+        assert!(!rules::item_usable_in_battle(&medicine(|i| {
+            i.recover_sp = 10;
+            i.occasion_field1 = true;
+        })));
+    }
     #[test]
     fn check_turns_is_easyrpgs() {
         let at = |base, multiple| -> Vec<i64> {

@@ -138,12 +138,13 @@ has:
     jmp point_text
 .endproc
 
-EXP_LEVEL_IN_SRAM = SRAM_BANK * $10000 + SRAM_DATA + SAVE_BYTES - EXP_K * 4 + EXP_LEVEL
+EXP_LEVEL_IN_SLOT = SRAM_DATA + SAVE_BYTES - EXP_K * 4 + EXP_LEVEL
 
 ; The level actor A had **in the saved game in slot `slot`**, read from its
 ; SRAM: the slots screen shows each save as it was left, not as the current
 ; one is. `FAR_EXP` is the last line of `save_table`, so in the slot it
-; falls `EXP_K * 4` bytes before the end.
+; falls `EXP_K * 4` bytes before the end; and the slot is a bank of its own,
+; see `SRAM_STRIDE`.
 .proc text_level_saved
 .a8
 .i16
@@ -166,20 +167,17 @@ has:
     and #$00FF
     asl a
     asl a
-    pha                         ; the experience slot times four
-    lda slot
-    and #$00FF
-    xba
-    asl a
-    asl a
-    asl a                       ; the SRAM slot times SRAM_STRIDE
-    clc
-    adc 1, s
-    tax
-    pla
+    tax                         ; the experience slot times four
     sep #$20
 .a8
-    lda f:EXP_LEVEL_IN_SRAM, x
+    phb
+    lda slot
+    clc
+    adc #SRAM_BANK
+    pha
+    plb
+    lda EXP_LEVEL_IN_SLOT, x    ; the data bank is the slot's: absolute
+    plb
     jsr level_to_text
     pla
     jmp point_text
@@ -393,9 +391,10 @@ ready:
 .endproc
 
 ; Parameter Y of an actor **at its current level**: `GetBaseMaxHp` and its
-; siblings, without the equipment —`eq_parameter` adds that— and without the
-; `*_mod` from `ChangeParameters`, which the game does not use. Y is the order
-; of `lcf.CURVES`: 0 HP, 1 SP, 2 attack, 3 defense, 4 spirit and 5 agility.
+; siblings, without the equipment —`eq_parameter` adds that—, with what the
+; materials added —`FAR_GROWTH`, the `*_mod`— and clamped as RM2k clamps it:
+; from 1 to 999, and the SP from 0. Y is the order of `lcf.CURVES`: 0 HP, 1
+; SP, 2 attack, 3 defense, 4 spirit and 5 agility.
 ;
 ; Enters with the actor in A and returns the value in X. **Clobbers A and Y**,
 ; and does not touch the direct page: its callers —the equipment screen, the
@@ -446,6 +445,31 @@ ready:
     adc 1, s
     tax
     lda f:level_params, x
+    ; And what the materials added, from the slot's row of `FAR_GROWTH`,
+    ; which is the slot times twelve: twice its first row of the table.
+    pha                         ; stack = value, (level - 1) * 2, slot * 6
+    tya
+    clc
+    adc 5, s
+    asl a
+    tax
+    pla
+    clc
+    adc f:FAR_LENGTH + FAR_GROWTH, x
+    bmi low
+    cmp #(GROWTH_MAX + 1)
+    bcc high_ok
+    lda #GROWTH_MAX
+    bra high_ok
+low:
+    lda #0
+high_ok:
+    cmp #1
+    bcs clamped
+    cpy #1
+    beq clamped                 ; the SP can be zero
+    lda #1
+clamped:
     tax
     pla
     pla
@@ -572,6 +596,19 @@ ready:
     sta f:BBAD0
     lda #$01
     sta f:MDMAEN
+    ; And nothing added by a material yet: see `FAR_GROWTH`.
+    rep #$20
+.a16
+    lda #0
+    ldx #0
+no_growth:
+    sta f:FAR_LENGTH + FAR_GROWTH, x
+    inx
+    inx
+    cpx #(EXP_K * GROWTH_BYTES)
+    bcc no_growth
+    sep #$20
+.a8
     rtl
 .endproc
 

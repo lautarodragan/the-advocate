@@ -7,7 +7,7 @@ use crate::checks::{items_border_first, Vram, TEXT_POOL_PAIRS};
 use crate::render;
 use crate::end_game;
 use crate::fail::{Bad, Result};
-use crate::game::{Game, ITEM_MEDICINE};
+use crate::game::Game;
 use crate::items;
 use crate::layout::{self, *};
 use crate::message_window;
@@ -300,9 +300,11 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     let font = message_window::font_bytes(&game.font)?;
     let prerender = message_window::font_prerender(&font, &window.color, window.shadow);
 
+    // The items the actor choice opens for, whose names it writes: the
+    // medicines, and since 2026-10-04 the materials.
     let mut medicines = Vec::new();
     for &n in &request.items {
-        if game.item(n)?.r#type.to_i32() == ITEM_MEDICINE {
+        if texts::item_needs_actor(game.item(n)?) {
             medicines.push((n, game.item_name(n)?));
         }
     }

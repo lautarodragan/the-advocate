@@ -1626,8 +1626,12 @@ fits:
     beq uses_item
     cmp #BA_MSG_SKILL
     beq uses_skill
+    cmp #BA_MSG_ITEM_SP
+    beq item_sp
     ldx #BA_TXT_DEFEAT
     jmp only
+item_sp:
+    jmp item
 uses_skill:
     jmp skill
 uses_item:
@@ -1706,30 +1710,67 @@ item:
     jsr ba_put_text
     ldx #BA_TXT_USES
     jsr ba_put_text
-    ; `<target> HP <n> Recovered`, which is `GetHpSpRecoveredMessage`.
-    jsr ba_mnext
-    lda BA_MTGT
-    jsr ba_put_name
+    ; The second line, the result: RM2k writes one after the other in the
+    ; same place —see `ba_item_use`—, and here each is a message. The SP one
+    ; goes alone when there is no HP line, and after it when there is.
+    lda BA_MTYPE
+    cmp #BA_MSG_ITEM_SP
+    beq sp_line
     lda BA_MREVIVED
-    beq recovered
+    bne revived
+    lda BA_MHPLINE
+    bne hp_line
+    rep #$20
+.a16
+    lda BA_MSP
+    sep #$20
+.a8
+    bne sp_line
+    jmp ba_flow                 ; nothing changed: the first line alone
+revived:
     ; Revived: `<target> has revived!`, the dead state's `message_recovery`,
     ; stuck to the name. RM2k does not show the HP one when it revives
     ; —`IsRevived` in the `ePreHp` of `ProcessBattleActionParamEffects`— but
     ; the one for the states it removed —`ProcessBattleActionStateEffects`—,
     ; and of those the port only knows the dead one.
+    jsr ba_mnext
+    lda BA_MTGT
+    jsr ba_put_name
     ldx #BA_TXT_REVIVED
     jsr ba_put_text
     jmp ba_flow
+hp_line:
+    ; `<target> HP <n> Recovered`, which is `GetHpSpRecoveredMessage`.
+    ldx #BA_TXT_HP
+    rep #$20
+.a16
+    lda BA_MHEAL
+    bra recovered
+sp_line:
+.a8
+    ; And with the SP: `GetSpRecoveredMessage` is the same with
+    ; `spirit_points`.
+    ldx #BA_TXT_SP
+    rep #$20
+.a16
+    lda BA_MSP
 recovered:
+    pha                         ; the number, and below it the term
+    sep #$20
+.a8
+    phx
+    jsr ba_mnext
+    lda BA_MTGT
+    jsr ba_put_name
     lda #$20
     jsr ba_put
-    ldx #BA_TXT_HP
+    plx
     jsr ba_put_text
     lda #$20
     jsr ba_put
     rep #$20
 .a16
-    lda BA_MHEAL
+    pla
     sta BA_T0
     sep #$20
 .a8

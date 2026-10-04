@@ -28,9 +28,8 @@
 .a8
 .i16
     jsr set_slot
-    jsr slot_in_x               ; with the data bank still normal
+    jsr slot_bank
     phb
-    lda #SRAM_BANK
     pha
     plb
     jsr slot_of_this_format
@@ -324,9 +323,8 @@ letter:
 .proc slot_party_paint
 .a8
 .i16
-    jsr slot_in_x
+    jsr slot_bank
     phb
-    lda #SRAM_BANK
     pha
     plb
     lda SRAM_DATA + SAVE_PARTY_N, x
@@ -428,26 +426,19 @@ ready:
     rts
 
 ; The actor in place `title_edges` of the slot's party, read from SRAM.
-; Returns A and clobbers X. The offset is the slot times 1024 —`SRAM_STRIDE`—
-; plus the place, built with two `xba` and without touching the neighbors in
-; the direct page: reading `title_edges` as sixteen bits would take
-; `menu_open` along. The high byte is the slot times four, which fits:
-; there are four slots.
+; Returns A and clobbers X. The offset is the place, built with an `xba` and
+; without touching the neighbors in the direct page: reading `title_edges`
+; as sixteen bits would take `menu_open` along. The slot is the bank: see
+; `slot_bank`, which is not called because it clobbers X.
 member_actor:
-    lda title_edges
+    lda #0
     xba
-    lda slot
-    asl a
-    asl a
-    asl a
-    xba                         ; C = slot * 2048 + place
-    rep #$20
-.a16
-    tax
-    sep #$20
-.a8
+    lda title_edges
+    tax                         ; with sixteen-bit X, `tax` takes B too
     phb
-    lda #SRAM_BANK
+    lda slot
+    clc
+    adc #SRAM_BANK
     pha
     plb
     lda SRAM_DATA + SAVE_PARTY, x

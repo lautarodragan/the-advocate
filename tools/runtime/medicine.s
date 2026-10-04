@@ -8,6 +8,9 @@
 ; if it was of use and, before everything, the "is there any left?" of
 ; `Scene_ActorTarget`. The actor choice calls it on each A over a medicine.
 ;
+; Since 2026-10-04 it also uses the materials, the items that raise a
+; parameter for good: see `material` below and `FAR_GROWTH`.
+;
 ; It enters with the actor in A8 and the item's `k` in `pick_edges`, where
 ; `items_screen` leaves it. It returns with A8 at 1 if it was of use and at
 ; 0 if not, and Z to match. It is entered with `jsl`, with any data bank: it
@@ -88,6 +91,11 @@ bit_ready:
     bne can
     jmp no_serves
 can:
+    lda MED_FLAGS
+    and #MED_MATERIAL
+    beq medicine
+    jmp material
+medicine:
     ; The maximums for their current level, like `FullHeal`.
     lda MED_ACTOR
     ldy #0
@@ -226,7 +234,7 @@ consume:
     lda MED_USED
     beq ready
     lda MED_FLAGS
-    and #4
+    and #MED_USES
     beq ready
     ldx MED_ID
     lda FAR_ITEMS, x
@@ -239,6 +247,129 @@ ready:
     plb
     lda f:FAR_LENGTH + MED_USED ; after the `plb`: the flags come from this
     rtl
+
+material:
+    ; A material —`Type_material`, the ones that raise a parameter for good—:
+    ; `Game_Actor::UseItem`, which on one standing adds its six `*_points`
+    ; to the actor's and says it was of use, whatever they are. On a fallen
+    ; one it falls through to `Game_Battler::UseItem`, which does nothing with
+    ; a material. **Nothing else of the item counts**: a material that also
+    ; carries `recover_hp` —left over from when it was another type, since
+    ; the editor keeps the fields it hides— heals nothing in RM2k either.
+    lda MED_ACTOR
+    rep #$20
+.a16
+    and #$00FF
+    pha
+    asl a
+    tax
+    lda FAR_HP, x
+    plx                         ; the actor
+    cmp #0                      ; the `plx` left the flags of the actor
+    sep #$20
+.a8
+    bne grows
+    jmp no_serves
+grows:
+    lda f:actor_exp_k, x
+    cmp #$FF
+    bne has_slot
+    jmp no_serves               ; one that cannot be in the party
+has_slot:
+    ; Its row of `FAR_GROWTH` in `MED_P`, and the item's of `item_up` in
+    ; `MED_R`: six words each, in `level_param`'s order.
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    sta MED_P
+    asl a
+    clc
+    adc MED_P                   ; times twelve
+    sta MED_P
+    sep #$20
+.a8
+    jsr k_in_x
+    rep #$20
+.a16
+    txa
+    asl a
+    asl a
+    sta MED_R
+    asl a
+    clc
+    adc MED_R
+    sta MED_R
+    ; `SetBaseAtk(GetBaseAtk() + atk_points2)` and its siblings, which is
+    ; adding to the modifier: the clamps of `GetBaseAtk` cancel out, and
+    ; what is left is the modifier's own, between minus and plus the
+    ; maximum, 999 in RM2k. The value with it is clamped by `level_param`.
+    ldy #0
+each:
+    tya
+    clc
+    adc MED_R
+    tax
+    lda f:item_up, x
+    sta MED_HP
+    tya
+    clc
+    adc MED_P
+    tax
+    lda FAR_GROWTH, x
+    clc
+    adc MED_HP
+    bmi below
+    cmp #(GROWTH_MAX + 1)
+    bcc stores
+    lda #GROWTH_MAX
+    bra stores
+below:
+    cmp #.loword(-GROWTH_MAX)
+    bcs stores                  ; from -999 to -1
+    lda #.loword(-GROWTH_MAX)
+stores:
+    sta FAR_GROWTH, x
+    iny
+    iny
+    cpy #GROWTH_BYTES
+    bcc each
+    sep #$20
+.a8
+    ; `SetBaseMaxHp` ends with `SetHp(current)`, which caps the HP at the new
+    ; maximum, and the SP the same: a material that lowers one.
+    lda MED_ACTOR
+    ldy #0
+    jsl f:level_param
+    stx MED_HP_MAX
+    lda MED_ACTOR
+    ldy #1
+    jsl f:level_param
+    stx MED_SP_MAX
+    lda MED_ACTOR
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda FAR_HP, x
+    cmp MED_HP_MAX
+    bcc hp_fits
+    lda MED_HP_MAX
+    sta FAR_HP, x
+hp_fits:
+    lda FAR_SP, x
+    cmp MED_SP_MAX
+    bcc sp_fits
+    lda MED_SP_MAX
+    sta FAR_SP, x
+sp_fits:
+    sep #$20
+.a8
+    lda #1
+    sta MED_USED
+    jmp consume
 
 ; The item's `k`, from `pick_edges` to X. Only A and X.
 k_in_x:
