@@ -182,9 +182,12 @@ o_no_uses:
     ; The skill list of whoever is giving the command. Empty —Talan, who is
     ; level 1— nothing happens, which is what the menu does with a command that
     ; leads nowhere.
+    stz BA_SKILL_TOP            ; before the list: it keeps only the window
     jsr ba_skill_list
     lda BA_SKILL_N
-    beq wait5
+    bne o_knows_some
+    jmp wait
+o_knows_some:
     lda #0
     sta BA_SKILL_SEL
     lda #BA_M_SKILL
@@ -372,7 +375,9 @@ a_is_item:
     ; --- choosing which skill ---
     ;
     ; The list has two columns and reads by rows, so left and right move by
-    ; one and up and down by two.
+    ; one and up and down by two. Whatever moves the cursor scrolls the window
+    ; just enough to show it —`ba_skill_see`—, and the screen is composed
+    ; again, which is what brings the new page into `BA_SKILL_LIST`.
 mode_skill:
     lda title_edges
     and #PAD_LEFT
@@ -382,7 +387,7 @@ h_left:
     lda BA_SKILL_SEL
     beq wait6
     dec BA_SKILL_SEL
-    jmp recompose
+    jmp h_moved
 h_no_left:
     lda title_edges
     and #PAD_RIGHT
@@ -392,7 +397,7 @@ h_no_left:
     cmp BA_SKILL_N
     bcs wait6
     sta BA_SKILL_SEL
-    jmp recompose
+    jmp h_moved
 h_no_right:
     lda title_edges
     and #PAD_UP
@@ -403,7 +408,7 @@ h_no_right:
     sec
     sbc #BA_SKILL_COLUMNS
     sta BA_SKILL_SEL
-    jmp recompose
+    jmp h_moved
 h_no_up:
     lda title_edges
     and #PAD_DOWN
@@ -414,6 +419,8 @@ h_no_up:
     cmp BA_SKILL_N
     bcs wait6
     sta BA_SKILL_SEL
+h_moved:
+    jsr ba_skill_see
     jmp recompose
 wait6:
     jmp wait
@@ -430,6 +437,7 @@ h_faces_a:
     ; One that cannot be paid for is not chosen, which is what RM2k does with
     ; a greyed-out skill. The cost is deducted **when it executes** and not
     ; here: `Skill::vStart` runs when its turn comes.
+    jsr ba_skill_list           ; the window's page, whoever wrote there last
     lda BA_SKILL_SEL
     jsr ba_skill_from_list
     sta BA_S0

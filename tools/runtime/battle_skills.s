@@ -710,12 +710,23 @@ no_agi:
     rts
 .endproc
 
-; The skill list of the actor giving commands, into `BA_SKILL_LIST`, with how
-; many in `BA_SKILL_N`. They are its `FAR_SKILL` pairs with the bit set —what it
-; knows **now**, which `ChangeSkills` changes— that the battle knows how to
-; offer, that is, with a `k` in `skill_pair_k`. An actor's pairs are contiguous
-; and in skill-number order, so the list comes out in `LearnSkill` order.
+; The skill list of the actor giving commands: how many in `BA_SKILL_N`, and
+; the page the window shows —from row `BA_SKILL_TOP`— into `BA_SKILL_LIST`.
+; They are its `FAR_SKILL` pairs with the bit set —what it knows **now**, which
+; `ChangeSkills` changes— that the battle knows how to offer, that is, with a
+; `k` in `skill_pair_k`. An actor's pairs are contiguous and in skill-number
+; order, so the list comes out in `LearnSkill` order.
+;
+; It walks all the pairs every time, to count them, and keeps only the page:
+; the whole list would not fit in `FAR_BATTLE`, and everything that reads it
+; —the screen, the description, A— looks at the visible page. Up to 2026-10-04
+; it kept the first 16 and the window did not scroll.
+;
+; `BA_SKILL_N` stops at 254 so that `BA_SKILL_SEL` plus a row still fits in a
+; byte; no actor of a game comes near that.
 ; Clobbers `BA_S1`, `BA_S2`, `BA_T0` and X.
+.assert BA_SKILL_ROWS * BA_SKILL_COLUMNS <= BA_SKILL_MAX, error, "a page of the skill list does not fit in BA_SKILL_LIST"
+.assert BA_SKILL_COLUMNS = 2, error, "the skill list takes a row as two places: see `ba_skill_place`"
 .proc ba_skill_list
 .a8
 .i16
@@ -737,7 +748,7 @@ no_agi:
 .a8
 other:
     lda BA_SKILL_N
-    cmp #BA_SKILL_MAX
+    cmp #254
     bcs ready
     rep #$20
 .a16
@@ -766,9 +777,15 @@ other:
     beq next                    ; it knows it and the battle does not offer it
     pha
     lda BA_SKILL_N
+    jsr ba_skill_place
+    bcs off_page                ; it is in the list, but not in the window
     jsr ba_ax
     pla
     sta BA_SKILL_LIST, x
+    bra counted
+off_page:
+    pla
+counted:
     inc BA_SKILL_N
 next:
     rep #$20
@@ -782,12 +799,60 @@ ready:
     rts
 .endproc
 
-; The `k` at place A8 in the list. Only A and X.
+; The `k` at place A8 of the whole list, which has to be in the window: the
+; cursor always is —see `ba_skill_see`— and the screen only draws those. Only
+; A and X.
 .proc ba_skill_from_list
 .a8
 .i16
+    jsr ba_skill_place
     jsr ba_ax
     lda BA_SKILL_LIST, x
+    rts
+.endproc
+
+; Place A8 of the whole list, as a place on the visible page: A8 minus two per
+; row above the window. C=1 if it is not on the page —above or below—, and
+; then A8 is garbage. Only A.
+.proc ba_skill_place
+.a8
+.i16
+    sec
+    sbc BA_SKILL_TOP
+    bcc outside
+    sec
+    sbc BA_SKILL_TOP            ; two per row: BA_SKILL_COLUMNS, asserted above
+    bcc outside
+    cmp #(BA_SKILL_ROWS * BA_SKILL_COLUMNS)
+    rts                         ; C=1 past the last visible row
+outside:
+    sec
+    rts
+.endproc
+
+; Makes the place the cursor marks visible, the way RM2k does it
+; —`Window_Selectable::UpdateCursorRect`—: if its row is above the window, the
+; window starts at it; if it is below, it ends at it. So it scrolls just
+; enough, one row at a time going up or down one by one, and the cursor stays
+; at the edge. Only A.
+.proc ba_skill_see
+.a8
+.i16
+    lda BA_SKILL_SEL
+    lsr a                       ; its row: two columns
+    cmp BA_SKILL_TOP
+    bcs not_above
+    sta BA_SKILL_TOP
+    rts
+not_above:
+    sec
+    sbc #(BA_SKILL_ROWS - 1)
+    bcc fits                    ; within the first page
+    cmp BA_SKILL_TOP
+    bcc fits
+    beq fits
+    sta BA_SKILL_TOP
+fits:
     rts
 .endproc
 
@@ -1228,23 +1293,25 @@ has_any:
 .a8
     jsl f:ba_t_text
 skill_in_gray:
-    lda #0
-    sta BA_S3                   ; the place in the list
+    ; From the first place of the window's first row to the last of its last:
+    ; the window scrolls, see `ba_skill_see`.
+    lda BA_SKILL_TOP
+    asl a
+    sta BA_S3                   ; the place in the whole list
 row_skill:
     lda BA_S3
     cmp BA_SKILL_N
     bcc has_skill
     jmp skill_lists
 has_skill:
-    cmp #(BA_SKILL_ROWS * BA_SKILL_COLUMNS)
+    jsr ba_skill_place
     bcc has_place_skill
-    jmp skill_lists
+    jmp skill_lists             ; past the window's last row
 has_place_skill:
-    ; Row and column: with two columns they are an `lsr` and bit 0. If they
-    ; were ever something else, this is what has to change; the converter
-    ; emits `BA_SKILL_COLUMNS` so that it is visible from here that they are
-    ; two.
-    lda BA_S3
+    ; Row and column on the screen: with two columns they are an `lsr` of the
+    ; place on the page and bit 0. If they were ever something else, this is
+    ; what has to change; the converter emits `BA_SKILL_COLUMNS` so that it
+    ; is visible from here that they are two.
     lsr a
     sta BA_S0
     lda BA_S3
