@@ -131,5 +131,50 @@ habilidades con el cursor recorriéndolas; Attack con varios enemigos;
 Escape, y que si falla actúen sólo los enemigos. Las capturas, con el
 original con Wine al lado, en `/shared/capturas/2026-10-04-menu-de-la-pelea/`.
 
-Al mergear, reinstalar `battle`, `events`, `mapdata` y `convert`. El runtime
-viaja con el checkout.
+La segunda vuelta, abajo, reemplaza lo que hay que reinstalar.
+
+## Cardón, segunda vuelta, 2026-10-04
+
+Lo que pidió el coordinador después de comparar con el original: el grupo a
+la izquierda y las órdenes a la derecha; las ventanas del System con su
+borde y la barra del cursor; la victoria partida por pixeles.
+
+### Lo que se hizo
+
+* **Las ventanas van en BG1, la capa de la escena, en modo 3**, en las filas
+  del tilemap que la escena no usa. Se pidió modo 1 por HDMA en la franja;
+  no se hizo porque en modo 1 BG1 necesita una paleta entre la 0 y la 7, y
+  en la pelea están todas tomadas (texto y los 96 colores del fondo). En
+  8bpp las ventanas usan la última paleta de los battlers: una tropa queda
+  en siete battlers distintos (ABL usa tres a lo sumo; el conversor se
+  niega con ocho). Sí va por HDMA (canal 5) el desplazamiento horizontal de
+  BG1 por franja, para que el temblor no mueva las ventanas: mirado a mano
+  en la pelea de los agentes.
+* **VRAM**: el texto, de 447 pares a 255 (palabras 0 a $1FFF; la lista más
+  ancha de ABL pide 170); las ventanas, en $2000-$37FF: ABL usa 34 tiles de
+  192 y 4 colores. Ver `docs/port/vram.md`.
+* La barra: `Skin::cursor` de `rm2k-snes-screens`, que es el `cursor_over`
+  de Tijereta en rm2k-render; las ventanas se dibujan en el conversor
+  (`battle.rs`) y la ROM las pone en el vblank cuando el texto ya está.
+* La victoria se parte con la fuente del juego: "The combat has resulted in
+  victory!" en un renglón.
+* La descripción va en un renglón; la de los ítems, entera (`ba_item_desc`).
+* Mientras corre una página sin mensaje, la ventana de mensajes vacía: antes
+  se veían las órdenes con basura en la de habilidad.
+
+RAM: `$7E3CB6`-`$7E3CC8` (`FAR_BATTLE + 694` a `+ 712`), además de los tres
+de la primera vuelta (`+ 691` a `+ 693`). Opcodes: ninguno. No se tocaron
+`text_layer.s` ni el menú de pausa.
+
+### Verificado
+
+La tanda de ABL con `battle`, `screens`, `mapdata`, `convert`, `events` y
+`cartridge` de este árbol: las mismas dieciocho goldens, miradas lado a lado
+con el original; **1072 en verde**, tres vueltas sin rojas nuevas. cargo
+test de los crates tocados y `just -f tools/justfile test`: 27. Sin cubrir:
+el temblor con las ventanas (mirado a mano), una pelea sin escena y el
+desplazamiento de la lista de enemigos.
+
+Capturas: `/shared/capturas/2026-10-04-menu-de-la-pelea-2/`.
+
+Al mergear, reinstalar `battle`, `events`, `screens`, `mapdata` y `convert`.
