@@ -2,6 +2,7 @@
 name: "La lista de habilidades de la pelea no se desplaza"
 description: "La pelea junta 16 habilidades a lo sumo y muestra 14: con más, las otras no se pueden usar, y las dos últimas se eligen sin verlas"
 type: bug
+assignee: Chingolo
 ---
 
 Lo encontró Carpintero el 2026-10-04, midiendo el pozo de pares con Talan
