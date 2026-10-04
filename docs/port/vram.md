@@ -141,3 +141,16 @@ repartos: con el modo 7 en pantalla la mitad de arriba queda libre y la
 ventana vuelve ahí, también de a pedazos. Borrarla repone todo con la misma
 carga que la vuelta de la pelea, que pisa las mismas palabras. Ver
 `tools/runtime/big_picture_zoom.s`.
+
+## La pelea no usa el reparto
+
+La pelea pisa la VRAM entera y `back_from_battle` la repone: la escena
+—`SCENE_VRAM` hasta el final, en 8bpp— va en BG1 con su tilemap en
+`SCENE_MAP`, y el texto en BG2, con su tilemap en `SLOT_MAP`. **Los tiles del
+texto van desde la palabra 0 hasta el tilemap de la escena**, encima de los
+sprites y de lo que el reparto del mapa tenga ahí: desde el 2026-10-04,
+cuando la lista de habilidades agotó los 191 pares que dejaba `SLOT_VRAM`.
+Son 447 pares, una pantalla con todas sus celdas entintadas, así que
+ninguna fuente ni espaciado los agota. La palabra 0 es el tile transparente
+de la escena y el par en blanco del texto a la vez: ver
+`battle_bank_upload` en `tools/runtime/screen_bank.s`.

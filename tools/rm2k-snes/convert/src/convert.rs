@@ -793,8 +793,10 @@ pub fn run(options: Options) -> Result<()> {
     // What the battle's busiest lists ask of the text layer's pool. The
     // console does not stop when it runs out —it shows what it has typeset
     // and goes on (`TL_FLUSH`)—, but what does not get a pair does not show,
-    // so it is a warning.
-    let pool = int(&layout["TEXT_POOL_PAIRS"]);
+    // so it is a warning. The battle's pool is not the shop's: its pairs go
+    // from word 0 up to the scene's tilemap —`TL_POOL_BATTLE` in the
+    // runtime's `screen_bank.s`—, which is a screen with every cell inked.
+    let pool = scene::VRAM_MAP / 32 - 1;
     let asked = &battle_model["pairs"];
     if !asked.is_null() {
         let (skills, items) = (int(&asked["skills"]), int(&asked["items"]));

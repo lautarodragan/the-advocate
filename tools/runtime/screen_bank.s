@@ -84,6 +84,63 @@ TL_POOL_WHOLE = (ITEM_BORDER_MAP - SLOT_VRAM) / TL_PAIR_WORDS - 1
     rtl
 .endproc
 
+; The battle's: the same bank, but its text takes its pairs from word 0 —BG2
+; with its base there— up to the scene's tilemap, and not only from
+; `SLOT_VRAM`. With 191 the skill list ran out: fourteen names with their
+; costs, the description, the party's four lines and the commands' two, and
+; the last rows came out cut or not at all —measured on 2026-10-03 with
+; Talan knowing his 54—. In the battle, words 0 to $1FFF belong to nobody:
+; they are the map's —its sprites, and in some layouts its tiles or a
+; tilemap—, which `back_from_battle` uploads again whole, and the scene's
+; tilemap cells below it point to word 0, which has to be blank. That one
+; is pair 0, the blank one.
+;
+; **They are 447, and that is a screen of text with every cell inked**:
+; the battle writes its lines on even rows, fourteen in the 28, and 14 * 32
+; is 448. So no font and no spacing make it run out. With 255 —words 0 to
+; $1FFF only, a byte's worth— the list ran out again with `letter_spacing`
+; 2, measured with the same Talan.
+;
+; The 64 bytes of word 0 are cleared here because `scene_upload` only
+; writes them if the battle has a scene.
+TL_BATTLE_VRAM = 0
+TL_POOL_BATTLE = (SCENE_MAP - TL_BATTLE_VRAM) / TL_PAIR_WORDS - 1
+.assert TL_POOL_BATTLE < TL_PAIRS, error, "the battle's pairs do not fit in the text layer's tables"
+.assert SCENE_MAP <= SLOT_MAP && SCENE_MAP <= SCENE_VRAM, error, "the battle's pairs reach something of the battle's"
+.proc battle_bank_upload
+.a8
+.i16
+    jsl f:items_bank_upload
+    lda #$80
+    sta VMAIN
+    rep #$20
+.a16
+    lda #TL_BATTLE_VRAM
+    sta VMADDL
+    lda #(TL_PAIR_WORDS * 2)
+    sta DAS0L
+    lda #.loword(tl_zero)
+    sta A1T0L
+    sep #$20
+.a8
+    lda #^tl_zero
+    sta A1B0
+    lda #$09                    ; two registers, without advancing the source
+    sta DMAP0
+    lda #$18
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+    rep #$20
+.a16
+    lda #TL_POOL_BATTLE
+    jsl f:tl_reset + FAST
+    sep #$20
+.a8
+    jsl f:tl_low + FAST
+    rtl
+.endproc
+
 ; The items and equipment screens have their windows' tiles in the same bank,
 ; at the end: their text has the pairs that come before. See `items_border` in
 ; `rm2k-snes-screens`.

@@ -946,6 +946,12 @@ NUMBER_DIGITS_MAX = 6
 ;
 ; $7000 to $77FF belongs to this, reserved on 2026-09-26. **It does not
 ; travel in the save**: loading a map zeroes it.
+;
+; **And while a screen is up it is the text layer's stage**, `TL_STAGE`,
+; since 2026-10-04: the frame is only built on the map, and every way back
+; to it clears the buffer —`anim_buf_clear`, in `back_to_map` and in
+; `enter_map`—, because it is rebuilt from nothing. A screen that went back
+; to the map some other way would show the stage's garbage in the box.
 ANIMB_BUF = $7E7000
 
 ; --- LZ2: what the cartridge carries compressed, in WRAM --------------------
