@@ -139,3 +139,14 @@ open:
     jsl number_open             ; leaves Y on the box
     jmp op_message::window
 .endproc
+
+; `MessageOptions`: the byte goes as is to `FAR_MSG_OPTIONS`, already in the
+; shape the console reads —see there—. Nothing changes on screen until the next
+; window opens: `msg_place` reads it then. In a troop page it is written too,
+; as `SaveSystem` is in RM2k, and the battle does not look at it.
+.proc op_message_options
+    lda [code_ptr], y
+    iny
+    sta f:FAR_LENGTH + FAR_MSG_OPTIONS
+    jmp run_code::other
+.endproc

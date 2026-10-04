@@ -37,6 +37,10 @@
 //! `>`— and not with a space, because the font got variable width and a
 //! space is narrower. The choice's boxes are the only bytes that changed:
 //! with `CHOICE_INDENT` back at a space, the answer was the old one.
+//!
+//! On 2026-10-04 the hash of `maps` moved, on purpose too: `MessageOptions`
+//! compiles to `OP_MESSAGE_OPTIONS` and the Python dropped it. With its arm
+//! answering no bytes, the answer was the old one.
 
 use rm2k_snes_events::{compile, compile_without_pairs, scan, Game, Request};
 use serde_json::Value;

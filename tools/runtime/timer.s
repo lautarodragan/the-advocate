@@ -176,7 +176,19 @@ with_glyph:
     clc
     adc #TIMER_X
     sta obj_x
+    ; At the top, unless the last message window was at the top: then at the
+    ; bottom, and it stays there while that is the last one, open or not. It
+    ; is `Sprite_Timer::Draw`, which looks at the window's `GetY()` and not
+    ; at whether it is on screen. RM2k draws the timer over the window, and
+    ; here the window's mask would hide it.
+    lda f:MSG_PLACE
+    and #MSG_WHERE
+    beq at_bottom
     lda #TIMER_Y
+    bra with_y
+at_bottom:
+    lda #(LINES - 20)
+with_y:
     sta obj_y
     sep #$20
 .a8

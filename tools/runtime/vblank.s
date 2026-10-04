@@ -192,9 +192,9 @@ big_up:
     ; not. That is **all** it costs to open and close it; its own tilemap is
     ; already written since the map was loaded.
     ;
-    ; The two top stretches of the scroll table carry this frame's camera, the
-    ; same one just written to the registers: the HDMA writes them again on
-    ; line 0 and nothing changes. What changes is from line 144 down.
+    ; The map's stretches of the scroll table carry this frame's camera, the
+    ; same one just written to the registers: the HDMA writes them again and
+    ; nothing changes. What changes is on the window's lines.
     ; First the compositor: the line it left ready, and the whole window when
     ; none are left.
     lda msg_upload
@@ -207,22 +207,44 @@ no_upload:
     stz msg_state
     lda #1
     sta msg_open
+    ; The tables for where this window goes, which `msg_start` decided: here
+    ; and not there because the previous window may still be on screen this
+    ; frame, and the HDMA reads its tables while it draws.
+    jsl msg_hdma_build
 no_finished:
 
     lda msg_open
     beq no_window
+    ; The camera to the three stretches, and then the window's own scroll on
+    ; top of whichever of them is the window's.
     lda screen_x
     sta hdma_ofs + 1
     sta hdma_ofs + 6
+    sta hdma_ofs + 11
     lda screen_x + 1
     sta hdma_ofs + 2
     sta hdma_ofs + 7
+    sta hdma_ofs + 12
     lda scroll_y
     sta hdma_ofs + 3
     sta hdma_ofs + 8
+    sta hdma_ofs + 13
     lda scroll_y + 1
     sta hdma_ofs + 4
     sta hdma_ofs + 9
+    sta hdma_ofs + 14
+    rep #$20
+.a16
+    lda f:MSG_ENTRY
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    stz hdma_ofs + 1, x
+    stz hdma_ofs + 2, x
+    lda f:MSG_VOFS
+    sta hdma_ofs + 3, x
+    stz hdma_ofs + 4, x
     ; And the big picture's wave, if there is one: its flag is its channel.
     lda f:BIG_FLAGS
     and #BIG_WAVE_ON

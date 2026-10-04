@@ -665,19 +665,30 @@ fn window_section(out: &mut String, r: &Emit, window: &Value) -> Result<()> {
     line(out, &block("window_cgram", &words_le(reserved)));
     // One layout of the cells per window base the VRAM layouts use, with
     // the upper layer's priority so it covers the hero and the events.
+    //
+    // Each one is two planes, one after the other, and the console stamps
+    // both in the window's tilemap: the window as it is, and below it the
+    // same window without its frame —`MessageOptions` without the
+    // background—, where only the text cells remain and every other one is
+    // cell 0, the BG2 tile that is blank in every map. Which one shows is
+    // the scroll: see `msg_hdma_build` in the runtime.
+    let text_base = int_at(window, "base")?;
     for (base, label) in WINDOW_BASES
         .iter()
         .zip(["window_cells", "window_cells_256"])
     {
-        let mut plane = Vec::new();
+        let mut framed = Vec::new();
+        let mut bare = Vec::new();
         for row in list_at(window, "cells")? {
             for c in ints(row)? {
-                plane.push(
-                    entry(base + c as u32, false, false, PRIORITY_ABOVE) | (WINDOW_PALETTE << 10),
-                );
+                let cell =
+                    entry(base + c as u32, false, false, PRIORITY_ABOVE) | (WINDOW_PALETTE << 10);
+                framed.push(cell);
+                bare.push(if c >= text_base { cell } else { 0 });
             }
         }
-        line(out, &block(label, &words_le(plane)));
+        framed.extend(bare);
+        line(out, &block(label, &words_le(framed)));
     }
     line(
         out,

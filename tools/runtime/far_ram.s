@@ -61,6 +61,28 @@ FAR_SPEED_KEYS  = $25F1
 ; the game's 39 pages with `EnemyEncounter` that fail today do not compile;
 ; see ACCESO_BIT in events.py.
 FAR_ACCESS     = $25FC
+; And `MessageOptions`, one byte before: where and how the message window is
+; drawn, which lasts until the next one and travels in the save, like
+; `SaveSystem`'s four fields. `OP_MESSAGE_OPTIONS` writes it whole and
+; `clear_variables` puts RM2k's default at reset: at the bottom, with its
+; frame, moving out of the hero's way —`message_prevent_overlap` is 1 in
+; liblcf— and with the events stopped.
+FAR_MSG_OPTIONS = $25FB
+MSG_WHERE    = $03              ; 0 top, 1 middle, 2 bottom
+MSG_BARE     = $04              ; without the frame and the background
+MSG_DODGE    = $08              ; moves if it would cover the hero
+MSG_CONTINUE = $10              ; the events go on moving during a page
+MSG_DEFAULT  = 2 | MSG_DODGE
+; And what the window that is on screen took from it when it opened, and the
+; HDMA that puts it there: see `msg_place` and `msg_hdma_build`, in
+; message_place.s. They do not travel in the save: they are the open window's,
+; and `FAR_MSG_OPTIONS` is what lasts. $25F6 to $25F9, allotted on 2026-10-04
+; in the gap below it; $2580 to $25EF is all taken.
+MSG_PLACE = $7E25F6             ; the position the window really took, plus MSG_BARE
+MSG_SC    = $7E25F7             ; BG2SC of the window's tilemap: a big picture moves it
+MSG_ENTRY = $7E25F8             ; the window's stretch in `hdma_ofs`: 0, 5 or 10
+MSG_VOFS  = $7E25F9             ; BG2VOFS while the window is drawn
+.assert FAR_SPEED_KEYS < $25F6 && MSG_VOFS & $FFFF < FAR_MSG_OPTIONS, error, "the window's place steps on its neighbours"
 ACCESS_NO_SAVE = $01
 ACCESS_NO_MENU     = $02
 ACCESS_NO_ESCAPE = $04
@@ -1207,20 +1229,15 @@ GRID_HIGH = $7F8000
 BOOT_FRAMES = 44
 VIEW_ROWS = 29
 
-; The message window: 256x80 flush with the bottom of a 224-line screen, that
-; is, the ten cell rows going from 18 to 27. The same numbers are in
-; `tools/port/window.py`, which is where they come from: 80 high and flush
-; with the bottom, the way RM2k places it.
+; The message window: 256x80, and at the bottom of a 224-line screen —RM2k's
+; default— the ten cell rows going from 18 to 27. The same numbers are in
+; `tools/port/window.py`, which is where they come from. `MessageOptions`
+; can put it at the top or in the middle: see message_place.s, which works
+; out its scroll for each.
 WINDOW_ROW    = 18
 TEXT_WINDOW_ROWS = 10
 WINDOW_LINE = WINDOW_ROW * 8            ; and in scanlines: 144
 LINES = 224
-
-; BG2's vertical scroll while the window is drawn. On the first scanline the
-; PPU shows line `vofs + 1`, so for row 0 of its own tilemap to land on line
-; 144 it takes `vofs + 1 + 144 = 0` modulo 256, which is the height of a
-; 32x32 tilemap. Hence the 111. The horizontal one is zero.
-WINDOW_VOFS = 111
 
 ; The 64x32 tilemap is two 32-wide screens side by side, and the second one
 ; does not live 32 words further on but 1024.

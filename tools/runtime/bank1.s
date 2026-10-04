@@ -151,18 +151,6 @@ jump_per_speed:
 mask:
     .byte $01,$02,$04,$08,$10,$20,$40,$80
 
-; The HDMA table that masks the objects under the message window: nothing in
-; the top 144 lines —in two stretches, because of the counter's 7 bits— and
-; window 1 enabled for the objects in the bottom 80. See `build_hdma`.
-;
-; **Outside bank 0**: HDMA reads from wherever `A1B3` says, so an eight-byte
-; table that never changes has no reason to spend it.
-hdma_mask:
-    .byte 127, $00
-    .byte (WINDOW_LINE - 127), $00
-    .byte (LINES - WINDOW_LINE), $02
-    .byte 0
-
 ; Which passability is needed to leave a cell and to enter the neighboring
 ; one, by direction —up, right, down, left—.
 ;
@@ -240,6 +228,7 @@ save_table:
     .word FAR_HERO_SPEED, 1     ; the hero's speed, which routes change
     .word FAR_ITEMS, ITEMS_N    ; the inventory
     .word FAR_ACCESS, 1         ; the save and menu permissions
+    .word FAR_MSG_OPTIONS, 1    ; where and how the message window is drawn
     .word FAR_EQUIPMENT, ACTORS_N * 10  ; each actor's equipment
     ; And each actor's HP, which since there are battles is real state.
     .word FAR_HP, ACTORS_N * 2
@@ -262,8 +251,9 @@ save_table:
 ; `op_battle`'s Game Over. The three that are indexed are read with
 ; `lda f:tabla, x` —absolute long, which does not depend on the data bank— and
 ; that is why they go with X and not Y: the 65816 has no `long,Y`.
-; `hdma_mask` is not indexed: `build_hdma` hands its address and bank to
-; the HDMA channel.
+; The fourth was `hdma_mask`, the HDMA table that hides the objects under the
+; message window; since the window moves, on 2026-10-04, it is one per
+; position, the `mask_*` of message_place.s.
 
 ; Which way each pose faces, 0 to 11: the direction is the pose divided by
 ; three.

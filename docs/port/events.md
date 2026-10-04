@@ -105,7 +105,7 @@ entere. El porqué de cada mecánica va en el comentario de su rutina.
 | El fundido de los teletransportes, con el mapa cargando adentro del negro | `start_fade`, `fade_tick` | `fade_ramp`, y las constantes `FADE_*` |
 | El tope de teletransportes encadenados | `JUMPS_MAX` y sus usos | lo cobra `pruebas/rpgmaker/test_saltos.py` de ABL |
 | La pantalla se prende en el vblank y en ningún otro lado | `flush_video` | — |
-| La ventana de mensaje, clavada abajo por HDMA | `build_hdma`, `msg_start`, `msg_ptr_next`, `msg_letter` (los pares del DTE) | `rm2k-snes-screens`, que la arma con `rm2k-render` como biblioteca, y `Messages` en el compilador |
+| La ventana de mensaje, puesta por HDMA donde la pide `MessageOptions` —arriba, al medio o abajo, con fondo o sin él— | `build_hdma`, `msg_place`, `msg_hdma_build`, `msg_start`, `msg_ptr_next`, `msg_letter` (los pares del DTE) | `rm2k-snes-screens`, que la arma con `rm2k-render` como biblioteca, y `Messages` y `OP_MESSAGE_OPTIONS` en el compilador |
 | El texto compuesto en caliente, con los glifos ya pre-renderizados | `message_tick`, `compose_char`, `prime_line` | `font_prerender` en `rm2k-snes-screens` |
 | El arranque dura siempre lo mismo | `BOOT_FRAMES` | lo corre `Partida` en `pruebas/arnes/consola.py` de ABL |
 | Los cuadros perdidos se cuentan | `count_lost` | los lee `Partida.cuadros_perdidos` de la WRAM |

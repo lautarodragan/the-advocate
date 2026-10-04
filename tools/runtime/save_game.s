@@ -72,7 +72,7 @@ SRAM_DATA = SRAM_WINDOW + $0A
 ; ROM checks it**: `save_game` compares against what `save_copy`
 ; ended with and panics if they differ. Duplicating a number nobody verifies
 ; is the kind of bug this repo has already paid for three times.
-SAVE_BYTES = 2 + 2 + 1 + 2 + 2 + 2 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2 + VARIABLES_N * 2 + 1 + ITEMS_N + 1 + ACTORS_N * 10 + ACTORS_N * 2 + ACTORS_N * 2 + ACTORS_N + SKILL_BYTES + EXP_K * 4
+SAVE_BYTES = 2 + 2 + 1 + 2 + 2 + 2 + 6 + 3 + 1 + 5 + 3 + SWITCH_BYTES + 1 + 2 + VARIABLES_N * 2 + 1 + ITEMS_N + 1 + 1 + ACTORS_N * 10 + ACTORS_N * 2 + ACTORS_N * 2 + ACTORS_N + SKILL_BYTES + EXP_K * 4
 ; Where the party lands inside the saved game: after the position, the
 ; direction, the cell and the map. The slot screen reads it from the SRAM to
 ; show the leader's name and the faces. It is the same sum as above, cut at the

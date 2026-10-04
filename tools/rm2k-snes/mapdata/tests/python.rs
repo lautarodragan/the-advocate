@@ -237,10 +237,48 @@ fn without_menu_tiles(text: &str) -> String {
     lines.join("\n")
 }
 
+/// The text with the window's cells as the Python wrote them: one plane per
+/// base and not two. The second, the window without its frame for
+/// `MessageOptions`, came after, on 2026-10-04: it is checked here to be the
+/// first with some cells at zero —the ones that are not text, which in this
+/// request's window are all of them— and dropped.
+fn without_bare_window(text: &str) -> String {
+    let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
+    for label in ["window_cells:", "window_cells_256:"] {
+        let at = lines.iter().position(|l| l == label).unwrap();
+        let size: usize = lines[at - 1].trim_start_matches(".block ").parse().unwrap();
+        let rows = size.div_ceil(16);
+        let bytes: Vec<u8> = lines[at + 1..at + 1 + rows]
+            .iter()
+            .flat_map(|l| {
+                l.trim_start_matches("    .byte ")
+                    .split(',')
+                    .map(|b| u8::from_str_radix(b.trim_start_matches('$'), 16).unwrap())
+                    .collect::<Vec<_>>()
+            })
+            .collect();
+        assert_eq!(bytes.len(), size, "{label}");
+        let (framed, bare) = bytes.split_at(size / 2);
+        for (f, b) in framed.chunks(2).zip(bare.chunks(2)) {
+            assert!(b == [0, 0] || b == f, "{label} a bare cell that is neither blank nor the window's");
+        }
+        let old: Vec<String> = framed
+            .chunks(16)
+            .map(|c| {
+                let hex: Vec<String> = c.iter().map(|b| format!("${b:02X}")).collect();
+                format!("    .byte {}", hex.join(","))
+            })
+            .collect();
+        lines[at - 1] = format!(".block {}", size / 2);
+        lines.splice(at + 1..at + 1 + rows, old);
+    }
+    lines.join("\n")
+}
+
 #[test]
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
-    let text = without_menu_tiles(&without_commons(&without_pairs(&emitted.text)));
+    let text = without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&emitted.text))));
     assert_eq!(text.lines().count(), 3371);
     assert_eq!(
         sha(&text),
@@ -251,7 +289,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 #[test]
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
-    let text = without_menu_tiles(&without_commons(&without_pairs(&emitted.text)));
+    let text = without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&emitted.text))));
     assert_eq!(text.lines().count(), 3490);
     assert_eq!(
         sha(&text),
