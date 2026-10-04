@@ -87,3 +87,37 @@ access_ready:
     jmp run_code::other
 
 .endproc
+
+; `OP_MENU_OPEN`: a custom menu —the common event it replaces compiles to
+; this—. Like `OpenSaveMenu`, it blocks inside the page and costs no tick,
+; and on leaving the map comes back and the page goes on: see
+; `custom_menu.s`. With a big picture up it does nothing: the map that comes
+; back would go under it.
+.proc op_menu_open
+.a8
+.i16
+    lda [code_ptr], y           ; the menu
+    iny
+    phy
+    pha
+    lda f:BIG_FLAGS
+    lsr a
+    pla
+    bcs leave
+    phb
+    phk
+    plb
+    jsl f:cm_from_page
+    ; The edges that closed it belong to it, as with the shop.
+    lda pad
+    sta pad_prev
+    lda pad_a
+    sta pad_a_prev
+    stz menu_open
+    lda boot_frames
+    sta nmi_seen
+    plb
+leave:
+    ply
+    jmp run_code::other
+.endproc

@@ -14,6 +14,12 @@
 ; in `actor_choice.s`— and opens their screen, saving, which opens the slot
 ; screen and returns to the menu, and End Game, which opens its own
 ; —`end_game.s`—. Skills is drawn in gray and A does nothing with it.
+;
+; And the game's custom menus, which RM2k does not have: each one is an
+; option between Equipment and Save while its condition holds —see
+; `custom_menu.s`—. So `title_sel` is a **row** of the column, and which of
+; the commands it shows is `menu_row_cmd`'s: RM2k's five are 0 to 4, and
+; the custom ones go after.
 
 ; The permissions byte, in A. Only A, and the `lda`'s flags: bit 7 ends up in
 ; N.
@@ -243,10 +249,12 @@ ready:
     rts
 .endproc
 
-; Does option A do anything? Returns with A = 1 and Z=0 if so. Clobbers X.
+; Does row A's option do anything? Returns with A = 1 and Z=0 if so.
+; Clobbers X.
 .proc menu_enabled
 .a8
 .i16
+    jsl f:menu_row_cmd
     rep #$20
 .a16
     and #$00FF
@@ -397,7 +405,8 @@ other:
     jsl f:tl_strip_menu + FAST  ; the names over the slot screen's text
 .endif
 
-    ; --- the options, each in its variant ---
+    ; --- the options, each in its variant, on the rows they get ---
+    jsl f:menu_rows_build
     lda #0
 other_option:
     pha
@@ -406,6 +415,7 @@ other_option:
     sta temp + 3                ; 1 if it goes in gray
     pla
     pha
+    jsl f:menu_row_cmd
     asl a
     ora temp + 3
     clc
@@ -432,7 +442,7 @@ other_option:
     jsr slot_rect_upload
     pla
     inc a
-    cmp #MENU_OPTIONS
+    cmp f:CM_ROWS
     bcc other_option
 
     ; --- the cursor ---
@@ -656,7 +666,7 @@ wait:
     beq no_up
     lda title_sel
     bne uploads
-    lda #MENU_OPTIONS           ; from the first, up wraps around
+    lda f:CM_ROWS               ; from the first, up wraps around
 uploads:
     dec a
     jsr move
@@ -667,7 +677,7 @@ no_up:
     beq no_down
     lda title_sel
     inc a
-    cmp #MENU_OPTIONS
+    cmp f:CM_ROWS
     bcc low
     lda #0
 low:
@@ -676,7 +686,9 @@ low:
 no_down:
     lda title_edges
     and #PAD_B
-    bne close
+    beq no_close
+    jmp close
+no_close:
     lda pad_a
     beq wait
     lda pad_a_prev
@@ -684,7 +696,18 @@ no_down:
     lda title_sel
     jsr menu_enabled
     beq wait                    ; in gray: RM2k plays a sound and does nothing
+    ; The row the cursor comes back to, and its command.
     lda title_sel
+    sta f:CM_MENU_ROW
+    jsl f:menu_row_cmd
+    sta f:CM_MENU_CMD
+    cmp #MENU_OPTIONS
+    bcc not_custom
+    ; A custom menu: its screen, and back with the cursor on its row.
+    sbc #MENU_OPTIONS           ; the carry is set: the `cmp` said so
+    jsl f:cm_from_menu
+    jmp back_to_row
+not_custom:
     cmp #MENU_EQUIPMENT
     bne no_equipment
     ; Equipment: whom, on this same menu, and their screen. B while
@@ -701,15 +724,13 @@ no_down:
 .a8
     lda party, x
     jsl f:equipment_screen
-    lda #MENU_EQUIPMENT
-    sta title_sel
-    jmp build
+    jmp back_to_row
 equipment_cancel:
-    lda #MENU_EQUIPMENT
+    lda f:CM_MENU_ROW
     sta title_sel
     jmp wait
 no_equipment:
-    lda title_sel
+    lda f:CM_MENU_CMD
     bne no_items
     ; Items: B returns to the menu, and using one goes straight back to the
     ; map.
@@ -726,9 +747,7 @@ no_items:
     ; ends in the reset—; "No" and B return to the menu with the cursor on the
     ; option, like `Scene::Pop`.
     jsl f:ending_screen
-    lda #MENU_END
-    sta title_sel
-    jmp build
+    jmp back_to_row
 save:
     ; Save: the slot screen and, whether a slot is chosen or it is canceled,
     ; back to the menu with the cursor on "Save", like `Scene_Save` when it
@@ -740,7 +759,8 @@ save:
     jsr set_slot
     jsr save_game
 save_ready:
-    lda #MENU_SAVE
+back_to_row:
+    lda f:CM_MENU_ROW
     sta title_sel
     jmp build
 close:
@@ -760,6 +780,13 @@ close:
     jsl f:equipment_commons
     plb
     jsl f:menu_exp_close        ; what the menu sprites changed
+    ; A custom menu overwrote much more than the menu: the map comes back
+    ; as from a big picture. See `custom_menu.s`.
+    jsl f:cm_dirty_take
+    beq clean
+    jsl f:big_back_far + FAST
+    rts
+clean:
     jsr back_to_map
     rts
 
