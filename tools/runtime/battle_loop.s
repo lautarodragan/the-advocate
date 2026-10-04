@@ -492,6 +492,16 @@ no_page:
 .proc ba_execute
 .a8
 .i16
+    ; An item that recovered HP and SP still has its SP line to show, in the
+    ; place of the HP one: `ProcessBattleActionParamEffects` writes one
+    ; result after the other, and the action is not over until the last.
+    lda BA_MSP_NEXT
+    beq no_sp_line
+    stz BA_MSP_NEXT
+    lda #BA_MSG_ITEM_SP
+    sta BA_MTYPE
+    jmp ba_show
+no_sp_line:
     ; Before each action, and also after the last one, the troop pages whose
     ; conditions hold: it is the `ePreAction` of `ProcessSceneActionBattle`,
     ; with its `CheckBattleEndAndScheduleEvents`. That is how the Detect Aura

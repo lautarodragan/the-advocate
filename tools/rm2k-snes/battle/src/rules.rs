@@ -210,12 +210,32 @@ pub fn revives(item: &Item) -> bool {
 
 /// Whether the item goes in the battle's list: `Game_Party::IsItemUsable`
 /// in battle —a medicine not marked "only outside battle"— cut down to the
-/// ones that heal HP, and of the `ko_only` ones, the ones that revive.
+/// ones that heal HP or SP, and of the `ko_only` ones, the ones that
+/// revive. The ones left out only remove states, which the battle does
+/// not keep.
+///
+/// Until 2026-10-04 it was the ones that heal HP: it was written on
+/// 2026-09-12, when the SP were not state yet, and stayed when the skills
+/// made them so.
 pub fn item_usable_in_battle(item: &Item) -> bool {
     item.r#type.to_i32() == ITEM_MEDICINE
         && !item.occasion_field1
-        && (item.recover_hp != 0 || item.recover_hp_rate != 0)
+        && (item.recover_hp != 0
+            || item.recover_hp_rate != 0
+            || item.recover_sp != 0
+            || item.recover_sp_rate != 0)
         && (revives(item) || !item.ko_only)
+}
+
+/// `Game_Actor::IsItemUsable`: whether actor `actor` of the database can
+/// use the item, by its `actor_set`. A set shorter than the actor's number
+/// says yes: the editor does not write the actors past the last one it
+/// unchecked.
+pub fn item_usable_by(item: &Item, actor: i64) -> bool {
+    usize::try_from(actor - 1)
+        .ok()
+        .and_then(|k| item.actor_set.get(k).copied())
+        .unwrap_or(true)
 }
 
 /// One action of an enemy's list: its rating, the skill or `None` for

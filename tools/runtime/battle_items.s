@@ -3,12 +3,13 @@
 ; --- using an item in battle -----------------------------------------------
 ;
 ; `Game_BattleAlgorithm::Item` with what this port knows how to do: the
-; medicines that recover HP, and since 2026-09-26 the ones that revive a fallen
-; actor. What goes in the list and how much it heals is not decided here but in
-; `rm2k-snes-battle`, by `item_usable_in_battle` and `item_effect`, which is
-; the model `rom/pruebas/rpgmaker/test_batalla.py` uses to predict the exact
-; HP; the converter emits the result in `item_battle`, `item_heal_rate`,
-; `item_heal_hp` and `item_medicine`, which is the same one `medicine_use`
+; medicines that recover HP, since 2026-09-26 the ones that revive a fallen
+; actor, and since 2026-10-04 the ones that recover SP. What goes in the list
+; and how much it heals is not decided here but in `rm2k-snes-battle`, by
+; `item_usable_in_battle` and `item_effect`, which is the model the battle
+; tests use to predict the exact HP and SP; the converter emits the result in
+; `item_battle`, `item_heal_rate`, `item_heal_hp`, `item_heal_sp_rate`,
+; `item_heal_sp` and `item_medicine`, which is the same one `medicine_use`
 ; uses.
 ;
 ; All of this runs with the data bank at $7E, so **the inventory is read with
@@ -97,8 +98,9 @@ ready:
 ;     hp = recover_hp_rate * GetMaxHp() / 100 + recover_hp
 ;
 ; capped against what the target is missing, which is easyrpg's `ChangeHp`.
-; The product fits in a word because the converter stops if any actor has
-; more than 655 HP.
+; The uncapped one stays in `BA_S5`, which is what decides whether RM2k
+; writes the HP line —`GetAffectedHp() > 0`, before `ChangeHp`—, and the
+; target's offset in `BA_S4`.
 .proc ba_item_heal
 .a8
 .i16
@@ -114,16 +116,12 @@ ready:
     lda BA_S3
     jsr ba_ax
     lda f:item_heal_rate, x
-    sta BA_T2                   ; the product's byte
+    sta BA_T2
     ldx BA_S4
     rep #$20
 .a16
     lda BA_ONE + BA_HPMAX, x
-    jsr ba_mul                  ; rate * hp_max, in a word
-    sta temp
-    lda #100
-    sta temp + 2
-    jsr ba_div
+    jsr ba_rate_of
     sta BA_S5
     lda BA_S3
     and #$00FF
@@ -146,6 +144,74 @@ capped:
     rts
 .endproc
 
+; The same with the SP, for the `k` in `BA_S3` on the combatant at offset
+; `BA_S4` —what `ba_item_heal` leaves—: `recover_sp_rate * GetMaxSp() / 100
+; + recover_sp`, capped by `ChangeSp` against what is missing. It enters with
+; an 8-bit A and leaves with a 16-bit A. Clobbers `BA_S6`.
+.proc ba_item_sp
+.a8
+.i16
+    lda BA_S3
+    jsr ba_ax
+    lda f:item_heal_sp_rate, x
+    sta BA_T2
+    ldx BA_S4
+    rep #$20
+.a16
+    lda BA_ONE + BA_SPMAX, x
+    jsr ba_rate_of
+    sta BA_S6
+    lda BA_S3
+    and #$00FF
+    asl a
+    tax
+    lda f:item_heal_sp, x
+    clc
+    adc BA_S6
+    sta BA_S6
+    ldx BA_S4
+    lda BA_ONE + BA_SPMAX, x
+    sec
+    sbc BA_ONE + BA_SP, x
+    cmp BA_S6
+    bcc capped
+    lda BA_S6
+capped:
+.a16
+    rts
+.endproc
+
+; A16 the maximum and `BA_T2` the percentage: returns with A16 = percent *
+; max / 100, easyrpg's integer division. In two halves, `(max / 100) *
+; percent + (max % 100) * percent / 100`, which is the same number and never
+; leaves sixteen bits: until 2026-10-04 it was the product in a word, and a
+; maximum past 655 would overflow it, which with the SP —and with the items
+; that raise a maximum— stopped being far away. Clobbers `temp`, `comp_and`,
+; `comp_or23` and Y.
+.proc ba_rate_of
+.a16
+.i16
+    sta temp
+    lda #100
+    sta temp + 2
+    jsr ba_div
+    pha                         ; max / 100
+    lda comp_and
+    jsr ba_mul                  ; (max % 100) * percent: at most 9900
+    sta temp
+    lda #100
+    sta temp + 2
+    jsr ba_div
+    pha                         ; and that over 100
+    lda 3, s
+    jsr ba_mul                  ; (max / 100) * percent
+    clc
+    adc 1, s
+    plx
+    plx
+    rts
+.endproc
+
 ; Whether the cursor for who gets it can stop on actor A8, with the item that
 ; `BA_ITEM_SEL` marks: Z=0 if yes. The actor has to be in the party and the
 ; item has to be of use to them —on a fallen one, only one that removes the
@@ -157,7 +223,8 @@ capped:
 ; them, which is what it already did with the fallen before reviving them
 ; existed: spending a potion on a dead actor is not something anybody wants
 ; to do. If it is of use to nobody —an elixir with everyone standing—, A does
-; not get past the list, like an empty command. It clobbers `BA_S0` and X.
+; not get past the list, like an empty command. It clobbers `BA_S0`, `BA_T0`,
+; X and Y.
 .proc ba_item_usable_on
 .a8
 .i16
@@ -168,6 +235,51 @@ capped:
     lda BA_ONE + BA_FLAGS, x
     and #BAF_HAS
     beq no
+    ; `Game_Actor::IsItemUsable`: the actor's bit in `item_actors`, eight
+    ; bytes per item, actor 1 in bit 0 of the first. `Item::vExecute` spends
+    ; it with no effect on one that cannot; here the cursor skips it, like
+    ; the rest of this routine.
+    lda BA_ONE + BA_NUMBER, x
+    dec a
+    pha
+    lda BA_ITEM_SEL
+    jsr ba_item_from_list
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    asl a
+    sta BA_T0
+    lda 1, s
+    and #$00F8
+    lsr a
+    lsr a
+    lsr a
+    clc
+    adc BA_T0
+    tax
+    sep #$20
+.a8
+    pla
+    rep #$20
+.a16
+    and #$0007                  ; in sixteen bits: `tay` takes B too
+    tay
+    sep #$20
+.a8
+    lda f:item_actors, x
+    cpy #0
+    beq bit_ready
+shift:
+    lsr a
+    dey
+    bne shift
+bit_ready:
+    and #1
+    beq no
+    lda BA_S0
+    jsr ba_x
     rep #$20
 .a16
     lda BA_ONE + BA_HP, x
@@ -205,19 +317,34 @@ if:
 ; It is `item_effect` of `rm2k-snes-battle`, branch by branch:
 ;
 ; * standing and `ko_only`: nothing, `SetIsSuccess` with no effect;
-; * standing: the heal from `ba_item_heal`;
+; * standing: the heal from `ba_item_heal` and the SP from `ba_item_sp`;
 ; * fallen and the item does not remove death: nothing, because
 ;   `ApplyHpEffect` does not touch a dead actor;
 ; * fallen and it removes it: the `SetHp(1)` of `RemoveStates` and then the
 ;   `ChangeHp(hp - 1)` of `ApplyStateEffect`, that is `max(1, heal)` with the
-;   heal capped against the whole maximum. It is the same thing
+;   heal capped against the whole maximum, and the SP. It is the same thing
 ;   `medicine_use` does from the menu.
 ;
-; `BA_MREVIVED` tells the message which of the two lines below goes.
+; The message's second line is RM2k's first result line, and the SP one, if
+; there is an HP one before it, goes in a message of its own after this one,
+; which is how `ProcessBattleActionParamEffects` shows them: one after the
+; other, each in the place of the one before. `BA_MREVIVED` says the revived
+; line goes; `BA_MHPLINE`, the HP one —`GetAffectedHp() > 0`, before the
+; cap: a full actor reads "0 Recovered"—; `BA_MSP`, the SP it got back, whose
+; line only goes if it is more than zero; and `BA_MSP_NEXT`, that it still
+; has to be shown, which `ba_execute` looks at before the next action.
 .proc ba_item_use
 .a8
 .i16
     stz BA_MREVIVED
+    stz BA_MHPLINE
+    stz BA_MSP_NEXT
+    rep #$20
+.a16
+    stz BA_MHEAL
+    stz BA_MSP
+    sep #$20
+.a8
     lda BA_MWHO
     jsr ba_ax
     lda BA_ACC_ITEM, x
@@ -245,9 +372,13 @@ if:
     clc
     adc BA_MHEAL
     sta BA_ONE + BA_HP, x
+    lda BA_S5
     sep #$20
 .a8
-    rts
+    beq sp
+    lda #1
+    sta BA_MHPLINE
+    bra sp
 fallen:
 .a8
     lda BA_S2
@@ -267,13 +398,24 @@ raises:
 .a8
     lda #1
     sta BA_MREVIVED
-    rts
-nothing:
-.a8
-    rep #$20
+sp:
+    jsr ba_item_sp
 .a16
-    stz BA_MHEAL
+    sta BA_MSP
+    ldx BA_S4
+    clc
+    adc BA_ONE + BA_SP, x
+    sta BA_ONE + BA_SP, x
+    lda BA_MSP
     sep #$20
+.a8
+    beq nothing
+    ; With an HP line or the revived one before it, the SP one waits for its
+    ; own message.
+    lda BA_MHPLINE
+    ora BA_MREVIVED
+    sta BA_MSP_NEXT
+nothing:
 .a8
     rts
 .endproc

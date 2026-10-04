@@ -421,6 +421,13 @@ BA_ONE     = FAR_BATTLE + 96      ; the combatants, BA_BYTES each
 ; time—. Like everything in the battle, with a sixteen-bit address and the
 ; data bank at $7E.
 BA_MREVIVED = $7850
+; And, in the same place, since 2026-10-04: whether the HP line goes, the SP
+; the item got back —a word—, and whether its line is still to be shown, in a
+; message of its own: see `ba_item_use`.
+BA_MHPLINE  = $7851
+BA_MSP      = $7852
+BA_MSP_NEXT = $7854
+.assert BA_MSP_NEXT < $7860, error, "the item's message steps on FADE_N"
 
 ; The battle's message, put together before it is drawn: see `ba_message` and
 ; `ba_flow`. $7E7B00 to $7E7BFF, taken on 2026-10-02: no symbol of any
@@ -527,6 +534,7 @@ BA_MSG_VICTORY = 4
 BA_MSG_DEFEAT = 5
 BA_MSG_ITEM = 6
 BA_MSG_SKILL = 7
+BA_MSG_ITEM_SP = 8          ; an item's SP line, after its HP one
 ; How many frames a message stays if nobody presses A. Two seconds, which is
 ; how long a line takes to read, and A skips it.
 BA_MSG_FRAMES = 120
