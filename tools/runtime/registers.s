@@ -159,6 +159,15 @@ BBAD4    = $4341
 A1T4L    = $4342
 A1B4     = $4344
 
+; --- HDMA, channel 5 ---------------------------------------------------------
+; The battle's: BG1's horizontal scroll per band, so the screen's shake moves
+; the scene and not the windows under and over it. See `ba_shake`.
+DMAP5    = $4350
+BBAD5    = $4351
+A1T5L    = $4352
+A1B5     = $4354
+HDMA_BATTLE = $20
+
 ; --- HDMA, channels 1 and 2 -------------------------------------------------
 ; Ordinary DMA transfers everything in one go, with the screen off or in
 ; vblank. HDMA is something else: the same hardware, but fired **once per

@@ -60,9 +60,14 @@ pub const ESCAPE: i64 = 1;
 pub const DEFEAT: i64 = 2;
 
 /// The commands an actor can be given: attack asks for a target, defend
-/// and escape do not. Escaping is a **per-actor** command, resolved the
-/// moment it is chosen —see [`Battle::flee`]—; in the turn it does
-/// nothing. Item and skill come after, so as not to renumber.
+/// and escape do not. Escaping is **the party's**, as in RM2k, whoever
+/// chooses it: it is resolved the moment it is chosen —see
+/// [`Battle::flee`]—, and when it fails every actor loses the turn, which
+/// is a turn with no commands: only the enemies act, and only they go into
+/// the execution order. Until 2026-10-04 it was each actor's, and the one
+/// who chose it took a place in the order with `COMMAND_ESCAPE`, which
+/// does nothing and no console sends any more. Item and skill come after,
+/// so as not to renumber.
 pub const COMMAND_ATTACK: i64 = 0;
 pub const COMMAND_DEFEND: i64 = 1;
 pub const COMMAND_ESCAPE: i64 = 2;

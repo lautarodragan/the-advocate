@@ -196,6 +196,7 @@ pub fn scenes_asm(scene: &Value, used: &[i64]) -> Result<String> {
     }
     out.push(pointers.join("\n"));
     let mut cgram = Vec::new();
+    const BATTLER_PALETTES_MAX: usize = 7;
     for b in battlers {
         let mut palette = vec![[0u8, 0, 0]];
         palette.extend(colors(at(b, "palette")?)?);
@@ -219,11 +220,24 @@ pub fn scenes_asm(scene: &Value, used: &[i64]) -> Result<String> {
         let (members, order) = placed
             .get(number)
             .ok_or_else(|| Bad::answer(format!("the scene has nothing of troop {number}")))?;
+        let mut distinct = std::collections::BTreeSet::new();
         for m in members.iter() {
             let m = ints(m)?;
+            if m[0] != 0xFF {
+                distinct.insert(m[0]);
+            }
             member_b.push(m[0]);
             member_x.push(m[1]);
             member_y.push(m[2]);
+        }
+        // A palette per distinct battler, from palette 8 on, and the
+        // sixteenth is the battle's windows': see `battle.rs` in
+        // `rm2k-snes-screens`.
+        if distinct.len() > BATTLER_PALETTES_MAX {
+            return Err(Bad::answer(format!(
+                "troop {number} shows {} distinct battlers and the battle has palettes for {BATTLER_PALETTES_MAX}",
+                distinct.len()
+            )));
         }
         member_command.extend(order.iter().copied());
     }

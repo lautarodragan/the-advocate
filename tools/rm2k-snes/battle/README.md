@@ -136,10 +136,12 @@ cartridge carries, and `taught`, the ones leveling up teaches; per pair,
 the level its learning table teaches it at (`pair_levels`); per item,
 whether the battle offers it (`item_battle`); per troop, its experience and
 gold; and `texts`, what the battle writes, cut to its place. With the
-font, also `cut`, the names a place cuts —actors, enemies, skills, items
-and skill commands, each against its cells—, and `pairs`, how many pairs
-of tiles of the text layer the busiest skill list and item list can ask
-for, with the widest texts the cartridge can put in them. The answer is
+font, also `cut`, the names a place cuts —actors, states, enemies,
+skills, items and commands, each against its cells—; `pairs`, how many
+pairs of tiles of the text layer the busiest skill list and item list can
+ask for, with the widest texts the cartridge can put in them; and
+`party_line`, `null`, or why the party's line —its HP and SP, which are
+runs the console does not cut— does not fit with that font. The answer is
 no if the victory does not fit in its window or an enemy carries more
 actions than the console weighs.
 
@@ -152,14 +154,19 @@ A battle and its steps:
      "troop": 82, "enemies": null, "pages": null, "switches": {},
      "steps": [{"start": null}, {"set": {"side": "enemies", "place": 0, "hp": 1}},
                {"turn": [[0, 0], [1, 0], [4, 150, 0], [3, 12, 1]]},
-               {"flee": null}, {"enemy_action": 0}]}
+               {"escape_chance": 0}, {"flee": null}, {"enemy_action": 0}]}
 
 The actors with their equipment, level and skills —each `null` for the
 database's—; the enemies of a `troop`, or loose ones in `enemies`, each
 with its `id`, `place` and whether it is `hidden`; the troop whose event
 `pages` run, and the `switches` they look at. A turn carries a command per
 living actor, in party order: `[0, enemy]` attack, `[1]` defend, `[2]`
-escape, `[3, item, actor]` an item, `[4, skill, target]` a skill.
+escape, `[3, item, actor]` an item, `[4, skill, target]` a skill. Escaping
+is the party's, as in RM2k: `flee` tries it, and when it fails the turn
+that follows carries no commands, `{"turn": []}` —RM2k's
+`ProcessSceneActionEscape`, which goes on with the enemies' actions only—.
+`escape_chance` puts the chance the next `flee` rolls against, as a test
+puts it in the console's `BA_ESCAPE`.
 
 It writes `simulate.json`: what each step returned —the outcome of a turn,
 whether fleeing worked, the action an enemy chose— and the battle as it

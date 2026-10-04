@@ -22,8 +22,8 @@
 ;
 ; **Always full screen**, and that is taro's decision, from 2026-10-04: the
 ; map does not show, and the screen has the whole VRAM. The text goes on BG2
-; with the text layer —`text_layer.s`—, from word 0 up to `SCENE_MAP`, the
-; battle's 447 pairs; the System's windows on BG1, 8bpp, with their tiles
+; with the text layer —`text_layer.s`—, from word 0 up to `SCENE_MAP`, 447
+; pairs; the System's windows on BG1, 8bpp, with their tiles
 ; from `CM_BG1_VRAM` and their tilemap at `SCENE_MAP`; the portrait in
 ; objects from `CM_OBJ_VRAM`. What that overwrites —the sprites, the map's
 ; tiles and tilemaps, the window— is what a big picture overwrites, and the
@@ -96,6 +96,11 @@ CM_ROW_BYTES     = 7
 CM_BG1_VRAM = $4000
 CM_OBJ_VRAM = $6000
 CM_BG1_MAP  = SCENE_MAP
+; The text's pairs: from word 0 up to BG1's tilemap, a screen with every
+; cell inked, like the battle's were until its windows took part of them.
+; A guide of eleven full lines asks for some 330.
+CM_TEXT_POOL = CM_BG1_MAP / TL_PAIR_WORDS - 1
+.assert CM_TEXT_POOL < TL_PAIRS, error, "the custom menus' pairs do not fit in the text layer's tables"
 .assert CM_BG1_MAP + $400 <= SLOT_MAP || SLOT_MAP + $400 <= CM_BG1_MAP, error, "the menu's BG1 tilemap steps on the text's"
 .assert SLOT_MAP + $400 <= CM_BG1_VRAM, error, "the windows' tiles step on the text's tilemap"
 .assert CM_BG1_VRAM + CM_BORDER_TILES * 32 <= CM_OBJ_VRAM, error, "the custom menus' windows do not fit below the portrait"
@@ -1862,7 +1867,7 @@ high:
     stz TM
     rep #$20
 .a16
-    lda #TL_POOL_BATTLE
+    lda #CM_TEXT_POOL
     jsl f:tl_reset + FAST
     sep #$20
 .a8

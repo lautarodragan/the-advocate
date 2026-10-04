@@ -146,13 +146,39 @@ carga que la vuelta de la pelea, que pisa las mismas palabras. Ver
 
 ## La pelea no usa el reparto
 
-La pelea pisa la VRAM entera y `back_from_battle` la repone: la escena
-—`SCENE_VRAM` hasta el final, en 8bpp— va en BG1 con su tilemap en
-`SCENE_MAP`, y el texto en BG2, con su tilemap en `SLOT_MAP`. **Los tiles del
-texto van desde la palabra 0 hasta el tilemap de la escena**, encima de los
-sprites y de lo que el reparto del mapa tenga ahí: desde el 2026-10-04,
-cuando la lista de habilidades agotó los 191 pares que dejaba `SLOT_VRAM`.
-Son 447 pares, una pantalla con todas sus celdas entintadas, así que
-ninguna fuente ni espaciado los agota. La palabra 0 es el tile transparente
-de la escena y el par en blanco del texto a la vez: ver
-`battle_bank_upload` en `tools/runtime/screen_bank.s`.
+La pelea pisa la VRAM entera y `back_from_battle` la repone:
+
+    palabra 0 .. $1FFF    el texto, en BG2: 255 pares de tiles de 4bpp
+    $2000 .. $37FF        las ventanas, tiles de 8bpp de BG1 (192 caben)
+    $3800 .. $3BFF        el tilemap de BG1: la escena y las ventanas
+    $3C00 ..              el tilemap del texto, `SLOT_MAP`
+    $4000 .. $7FFF        la escena, 512 tiles de 8bpp
+
+**La escena y las ventanas son la misma capa**, BG1 en modo 3: la escena
+ocupa las primeras dieciséis filas del tilemap, y las ventanas de abajo
+—y la de la descripción, que le tapa las cuatro de arriba mientras hay una
+lista abierta— van en las filas que quedan, con tiles numerados desde la
+base de la escena, que dan la vuelta hasta `$2000` (el 768 en adelante).
+Sus colores son la última paleta de los battlers, la entrada 240 en
+adelante, y por eso una tropa muestra siete battlers distintos a lo sumo.
+Ver `battle.rs` en `rm2k-snes-screens` y `ba_win_tick` en
+`tools/runtime/battle_scene.s`.
+
+**Se descartó el modo 1 en la franja de abajo, sin escribirlo.** Pide una paleta
+de BG1 entre la 0 y la 7, y en la pelea están todas tomadas: la 0 y la 1
+son las del texto y la 2 a la 7 son los 96 colores del fondo, que siguen
+en la pantalla mientras se dibuja la franja. En 8bpp un pixel es su
+entrada de CGRAM, y la última paleta de los battlers sobra. Con el modo 3
+no hace falta cambiar ni el modo ni las bases por HDMA: lo único que va
+por HDMA, el canal 5, es el desplazamiento horizontal de BG1 por franja,
+para que el temblor de la pantalla mueva la escena y no las ventanas.
+
+**El texto tiene 255 pares**, de la palabra 0 a `$1FFF`. Desde la mañana
+del 2026-10-04 hasta la tarde fueron 447, hasta el tilemap de la escena,
+porque la lista de habilidades sobre la escena, con el grupo y las órdenes
+abajo, agotaba los 191 que dejaba `SLOT_VRAM` y después los 255 con
+`letter_spacing` 2. Con las ventanas en la franja la pelea escribe mucho
+menos —la descripción y cinco renglones— y el conversor avisa contra los
+255. La palabra 0 es el tile transparente de la escena y el par en blanco
+del texto a la vez: ver `battle_bank_upload` en
+`tools/runtime/screen_bank.s`.

@@ -358,6 +358,15 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     request.vram.slots(slots.tiles.len())?;
     let title = if request.title { Some(title::menu(game, &skin)?) } else { None };
 
+    let battle_windows = crate::battle::battle_windows(&skin)?;
+    says.push(format!(
+        "  battle windows: {} tiles of {}, {} colours of {}, {} words of bars",
+        battle_windows["tiles"].as_array().map_or(0, Vec::len),
+        crate::battle::BATTLE_WINDOW_TILES_MAX,
+        battle_windows["colors"].as_array().map_or(0, Vec::len),
+        crate::battle::BATTLE_WINDOW_COLORS,
+        battle_windows["patches"].as_array().map_or(0, Vec::len),
+    ));
     let target_compact = compact_target(&target.maps)?;
     let shop_compact = compact_shop(&shop_border.maps)?;
 
@@ -471,6 +480,7 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
             "palettes": inks.palettes,
             "prerender": inks.prerender.iter().map(|t| hex(t)).collect::<Vec<_>>(),
         },
+        "battle_windows": battle_windows,
         "items_border": borders_json(&items_border),
         "items_border_first": first,
         "shop_border": {

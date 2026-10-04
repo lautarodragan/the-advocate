@@ -48,6 +48,12 @@
 //! console draws the System's bar under the highlighted one. With
 //! `choice_boxes` writing one box per option with the `>` again, the answer
 //! was the old one.
+//!
+//! And the same day the hashes of `maps` and `cases` moved again, on
+//! purpose: a battle with `escape_mode` 0 carries `BATTLE_NO_ESCAPE` where
+//! its escape goes, so the ROM leaves Escape out. With
+//! `BATTLE_NO_ESCAPE_MODE` set to one no battle has, the answer was the
+//! old one.
 
 use rm2k_snes_events::{compile, compile_without_pairs, scan, Game, Request};
 use serde_json::Value;

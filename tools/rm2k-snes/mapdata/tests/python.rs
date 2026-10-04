@@ -74,6 +74,17 @@
 //! moved: without the four constants and their comments, the three new
 //! blocks, and with `CGRAM_BASE` at 9 and `window_cgram` cut to nine words,
 //! the text is the old one byte for byte.
+//!
+//! And the same day the battle's windows went to the band below the scene,
+//! as RM2k's, with the System's frame and bar: the requests carry
+//! `rm2k-snes-battle`'s new `layout`, the dead state's name in
+//! `texts.dead` and the screens stage's `battle_windows` —of the screens'
+//! test game—, and the two hashes moved. The difference against the old
+//! text, compared line by line, is the battle's geometry constants —new
+//! names, new values, in another order—, the two tables of where each
+//! command went gone, `BA_TXT_SP`, `BA_TXT_NORMAL` and `BA_TXT_DEAD` and
+//! those three texts, `ba_item_desc` and the items' whole descriptions, and
+//! the windows' blocks and constants (`ba_win_*`, `BA_WIN_*`).
 
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_mapdata::record;
@@ -287,10 +298,10 @@ fn without_bare_window(text: &str) -> String {
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
     let text = without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&emitted.text))));
-    assert_eq!(text.lines().count(), 3393);
+    assert_eq!(text.lines().count(), 3774);
     assert_eq!(
         sha(&text),
-        "c82cbd9809e9ed5f5006dd9c72d29c52eaa1103040475ffd9b130b28f366954c"
+        "a7c4eea1c7cdc22c28b91cd907b2833ba97370b513d3f388fb3878e81c03aa85"
     );
 }
 
@@ -298,10 +309,10 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
     let text = without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&emitted.text))));
-    assert_eq!(text.lines().count(), 3512);
+    assert_eq!(text.lines().count(), 3893);
     assert_eq!(
         sha(&text),
-        "2c17c19996b2c26f5f657d149c843bc5c5c8653e26dc45499fffa8647a1a1671"
+        "e7b59c1a9ee9ea3479b70270e4b47e0860a164de98bb07fb5a0dfaeea4e1fc3d"
     );
 }
 

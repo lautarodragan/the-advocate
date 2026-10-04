@@ -83,6 +83,11 @@ op_shop_done:
 ; `EnemyEncounter`: the troop and the three destinations, all sixteen bits.
 ; The battle is played in here and, on leaving, the map comes back —as with
 ; the shop— and the page continues at the destination the result picked.
+; The escape's destination of a battle with `escape_mode` 0, which cannot be
+; escaped from: `BATTLE_NO_ESCAPE` in the event compiler of
+; `rm2k-snes-events`, which is where it is chosen.
+BATTLE_NO_ESCAPE = $FFFE
+
 .proc op_battle
 .a8
 .i16
@@ -90,8 +95,28 @@ op_shop_done:
 .a16
     lda [code_ptr], y           ; the troop, as an RM2k number
     sta f:BAT_LENGTH + BA_TROOP
+    ; Whether it can be escaped from, which the escape's destination says:
+    ; `BATTLE_NO_ESCAPE` with `escape_mode` 0. It is the battle's Escape
+    ; command, which goes only where RM2k lets the party escape.
+    iny
+    iny
+    iny
+    iny
+    lda [code_ptr], y
+    dey
+    dey
+    dey
+    dey
+    cmp #BATTLE_NO_ESCAPE
     sep #$20
 .a8
+    beq no_escape               ; `sep` does not touch Z
+    lda #1
+    bra escape_set
+no_escape:
+    lda #0
+escape_set:
+    sta f:BAT_LENGTH + BA_CAN_FLEE
     lda #0
     sta f:BAT_LENGTH + SCN_ORIGIN ; the background, the troop's and not the map's
     jsl f:game_over_record      ; whether losing is Game Over: see game_over.s

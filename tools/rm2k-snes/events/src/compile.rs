@@ -262,6 +262,15 @@ const BATTLE_DEFEAT_GAME_OVER: i64 = 0;
 /// reaches 64 KB— so no new opcode or extra byte per battle is needed. The
 /// ROM looks at it in `op_battle`.
 const BATTLE_LOSE: usize = 0xFFFF;
+/// `escape_mode` 0: the battle cannot be escaped from, which is easyrpg's
+/// `args.allow_escape = (escape_mode != 0)`.
+const BATTLE_NO_ESCAPE_MODE: i64 = 0;
+/// The destination that means "this battle cannot be escaped from": it goes
+/// in the escape's place with `escape_mode` 0, where that destination is
+/// never taken, and the ROM's `op_battle` reads it before fighting to leave
+/// the Escape command out. Like `BATTLE_LOSE`, an impossible destination,
+/// so no new opcode or extra byte per battle is needed. Since 2026-10-04.
+const BATTLE_NO_ESCAPE: usize = 0xFFFE;
 /// The three handlers, in the order their destinations go in the opcode.
 const BATTLE_HANDLERS: [i32; 3] = [VICTORY_HANDLER, ESCAPE_HANDLER, DEFEAT_HANDLER];
 /// RM2k shows four options at most, and `GetChoices(4)` discards the ones
@@ -662,6 +671,8 @@ struct Battle {
     game_over: bool,
     /// `escape_mode` 1: escaping ends the page. See `BATTLE_ESCAPE_ENDS`.
     escape_ends: bool,
+    /// `escape_mode` 0: it cannot be escaped from. See `BATTLE_NO_ESCAPE`.
+    no_escape: bool,
     seen: usize,
     exits: Vec<usize>,
 }
@@ -970,25 +981,29 @@ fn page(
             battle_audio(ctx);
             let losing_is_game_over = cmd.p(4) == Some(BATTLE_DEFEAT_GAME_OVER);
             let escape_ends = cmd.p(3) == Some(BATTLE_ESCAPE_ENDS);
+            let no_escape = cmd.p(3) == Some(BATTLE_NO_ESCAPE_MODE);
             if no_block.contains(&i) {
                 // No handlers: the battle closes right here. Winning and
                 // escaping continue with the command below —which is what
                 // RM2k does when there are no branches— and losing goes to
                 // `BATTLE_LOSE`, that is to the Game Over.
                 //
-                // **Escaping points to victory and not elsewhere**, and it is
-                // a declared approximation: the 24 battles of this form carry
-                // `escape_mode` 0 —escape forbidden—, so there the exit does
-                // not exist; here the battle lets you escape anyway, because
-                // the permission does not travel in the opcode:
-                // `ChangeEscapeAccess` is stored —see `CHANGE_ESCAPE_ACCESS`—
-                // but the battle does not read it.
+                // With `escape_mode` 0 —escape forbidden— the escape's
+                // destination says so, `BATTLE_NO_ESCAPE`, and the battle
+                // leaves Escape out. Until 2026-10-04 it pointed to the
+                // victory's and the battle let you escape anyway.
                 //
                 // With `escape_mode` 1 the `OP_DONE` that escaping goes to
                 // follows the opcode, and the other two skip it.
                 let done_at = length + 9;
                 let next_at = done_at + usize::from(escape_ends);
-                let escape = if escape_ends { done_at } else { next_at };
+                let escape = if no_escape {
+                    BATTLE_NO_ESCAPE
+                } else if escape_ends {
+                    done_at
+                } else {
+                    next_at
+                };
                 let lose = if losing_is_game_over {
                     BATTLE_LOSE
                 } else {
@@ -1010,6 +1025,7 @@ fn page(
                     destinations: [None; 3],
                     game_over: losing_is_game_over,
                     escape_ends,
+                    no_escape,
                     seen: 0,
                     exits: vec![],
                 });
@@ -1058,6 +1074,7 @@ fn page(
                 // with `escape_mode` 1, which ends the page.
                 let d = match dest {
                     None if n == 2 && current.game_over => BATTLE_LOSE,
+                    None if n == 1 && current.no_escape => BATTLE_NO_ESCAPE,
                     None if n == 1 && ends => length + 3,
                     None => end,
                     Some(d) => *d,
@@ -5414,12 +5431,12 @@ mod tests {
         assert_eq!(code[9], OP_DONE);
         let [victory, escape, defeat] = battle_destinations(&code);
         assert_eq!((victory, escape, defeat), (10, 9, BATTLE_LOSE));
-        // `escape_mode` 0 keeps its shape: nine bytes and every way out
-        // goes on.
+        // `escape_mode` 0 keeps its shape —nine bytes, and winning goes
+        // on— and its escape says it cannot be taken.
         let code = compile_with(&game, &[cmd(ENEMY_ENCOUNTER, &[0, 82, 1, 0, 0, 0], "bg"), switch_on])
             .unwrap()
             .unwrap();
-        assert_eq!(battle_destinations(&code), [9, 9, BATTLE_LOSE]);
+        assert_eq!(battle_destinations(&code), [9, BATTLE_NO_ESCAPE, BATTLE_LOSE]);
     }
 
     #[test]

@@ -905,6 +905,7 @@ ready:
     rts
 no_scene:
 .a8
+    jsr scn_blank_map
     lda #$FF
     sta BA_SCENE
     rts
@@ -1373,6 +1374,12 @@ word:
     bne has
     rts
 has:
+    ; Not in a vblank that took the windows: the two and the text do not
+    ; fit in one. The enemy goes one frame later.
+    lda BA_WIN_DID
+    beq free
+    rts
+free:
     rep #$20
 .a16
     lda SCN_SUB_N
@@ -1630,15 +1637,16 @@ ready:
     rts
 .endproc
 
-; BG1 with the scene, after `slot_ppu_on` has set up BG2 and turned
-; the screen on. If this battle has no scene it touches nothing and the
-; screen stays on black, as before 2026-09-13.
+; BG1 with the scene and the windows, after `slot_ppu_on` has set up BG2
+; and turned the screen on. Also without a scene: then the tilemap is the
+; transparent tile wherever there is no window —see `scn_blank_map`— and
+; the screen is black behind the windows, as before 2026-09-13.
+;
+; And BG1's horizontal offset per band, by HDMA, from `BA_HOFS_HDMA`: see
+; `ba_shake`.
 .proc scene_on
 .a8
 .i16
-    lda BA_SCENE
-    cmp #$FF
-    beq ready
     lda #((SCENE_MAP / 1024) * 4)
     sta f:BG1SC                 ; 32x32, which is what covers the whole screen
     lda #((TL_BATTLE_VRAM / 4096) * 16 + (SCENE_VRAM / 4096))
@@ -1651,7 +1659,337 @@ ready:
     sta f:BG1VOFS
     lda #$03
     sta f:TM                    ; BG1 and BG2
-ready:
+    ; The offsets' table: three bands —the description's, the scene's and
+    ; the windows'— and its end. Only the scene's moves.
+    ldx #0
+table:
+    lda f:hofs_table, x
+    sta BA_HOFS_HDMA, x
+    inx
+    cpx #10
+    bcc table
+    lda #$02                    ; one register, written twice
+    sta f:DMAP5
+    lda #<BG1HOFS
+    sta f:BBAD5
+    rep #$20
+.a16
+    lda #BA_HOFS_HDMA
+    sta f:A1T5L
+    sep #$20
+.a8
+    lda #$7E
+    sta f:A1B5
+    lda #HDMA_BATTLE
+    sta f:HDMAEN
+    rts
+hofs_table:
+    .byte BA_HELP_SCENE_ROWS * 8, 0, 0
+    .byte SCENE_HEIGHT - BA_HELP_SCENE_ROWS * 8, 0, 0
+    .byte 1, 0, 0
+    .byte 0
+.endproc
+.assert BA_HELP_SCENE_ROWS * 8 < 128 && SCENE_HEIGHT - BA_HELP_SCENE_ROWS * 8 < 128, error, "a band of BG1's offsets does not fit an HDMA line count"
+
+; With the screen off, when the battle starts: the windows' tiles and
+; colours —see `battle.rs` in `rm2k-snes-screens`—, and nothing shown, so
+; that the first `ba_win_tick` puts them up.
+BA_WIN_VRAM = (SCENE_VRAM + BA_WIN_FIRST * 32) & $7FFF
+.assert BA_WIN_VRAM + BA_WIN_TILES * 32 <= SCENE_MAP, error, "the battle's windows reach the scene's tilemap"
+.assert BA_WIN_CGRAM + BA_WIN_COLORS <= 256, error, "the battle's windows' colours do not fit"
+.assert BA_WIN_HELP_ROWS = BA_HELP_SCENE_ROWS, error, "the description's window is not as tall as its band"
+.proc ba_win_load
+.a8
+.i16
+    lda #$80
+    sta f:VMAIN
+    rep #$20
+.a16
+    lda #BA_WIN_VRAM
+    sta f:VMADDL
+    lda #.loword(ba_win_tiles)
+    sta f:A1T0L
+    lda #(BA_WIN_TILES * 64)
+    sta f:DAS0L
+    sep #$20
+.a8
+    lda #^ba_win_tiles
+    sta f:A1B0
+    lda #$01
+    sta f:DMAP0
+    lda #$18
+    sta f:BBAD0
+    lda #$01
+    sta f:MDMAEN
+    lda #BA_WIN_CGRAM
+    sta f:CGADD
+    rep #$20
+.a16
+    lda #.loword(ba_win_cgram)
+    sta f:A1T0L
+    lda #(BA_WIN_COLORS * 2)
+    sta f:DAS0L
+    sep #$20
+.a8
+    lda #^ba_win_cgram
+    sta f:A1B0
+    lda #$00
+    sta f:DMAP0
+    lda #$22
+    sta f:BBAD0
+    lda #$01
+    sta f:MDMAEN
+    rep #$20
+.a16
+    lda #$FFFF
+    sta BA_WIN_SHOWN
+    sta BA_WIN_SHOWN + 2
+    sep #$20
+.a8
+    rts
+.endproc
+
+; In the vblank, after the text's upload: the windows `ba_compose` asked
+; for, if they are not the ones on screen. They go **in step with the
+; text**: only when the text layer has nothing left to typeset and its
+; tilemap is up —the text arrives some frames after the cursor, see
+; `text_layer.s`—, so a window never shows with the text of another. Sets
+; `BA_WIN_DID` if it uploaded, which `scene_tick` looks at: an enemy's
+; erasing and the windows do not fit in one vblank with the text.
+.proc ba_win_tick
+.a8
+.i16
+    stz BA_WIN_DID
+    rep #$20
+.a16
+    lda BA_WIN_KEY
+    cmp BA_WIN_SHOWN
+    bne changed
+    lda BA_WIN_KEY + 2
+    cmp BA_WIN_SHOWN + 2
+    bne changed
+    sep #$20
+.a8
+    rts
+changed:
+    sep #$20
+.a8
+    lda TL_IDLE_DONE
+    beq not_yet                 ; the layer still has text to typeset
+    lda TL_MAP_DIRTY
+    bne not_yet                 ; or a tilemap to put up
+    jmp ba_win_upload
+not_yet:
+    rts
+.endproc
+
+; The windows of `BA_WIN_KEY` to the scene's tilemap, in the vblank or with
+; the screen off: the layout's band rows, its bars only where they change,
+; and on top the description's window or the scene's first rows. About
+; 1.1 KB. Clobbers `BA_T0` to `BA_T2`, X and Y.
+.proc ba_win_upload
+.a8
+.i16
+    rep #$20
+.a16
+    lda BA_WIN_KEY
+    sta BA_WIN_SHOWN
+    lda BA_WIN_KEY + 2
+    sta BA_WIN_SHOWN + 2
+    sep #$20
+.a8
+    lda #1
+    sta BA_WIN_DID
+    lda #$80
+    sta f:VMAIN
+    lda #$01
+    sta f:DMAP0                 ; two registers: VMDATAL and VMDATAH
+    lda #$18
+    sta f:BBAD0
+    ; --- the layout's band ---
+    rep #$20
+.a16
+    lda #(SCENE_MAP + BA_WIN_BAND_ROW * 32)
+    sta f:VMADDL
+    lda BA_WIN_KEY
+    and #$00FF
+    sta BA_T0
+    asl a
+    clc
+    adc BA_T0                   ; times three
+    xba                         ; times 256: 768 bytes a layout
+    clc
+    adc #.loword(ba_win_band)
+    sta f:A1T0L
+    lda #(BA_WIN_BAND_ROWS * 64)
+    sta f:DAS0L
+    sep #$20
+.a8
+    lda #^ba_win_band
+    sta f:A1B0
+    lda #$01
+    sta f:MDMAEN
+    ; --- on top: the description's window, or the scene ---
+    rep #$20
+.a16
+    lda #SCENE_MAP
+    sta f:VMADDL
+    lda #(BA_WIN_HELP_ROWS * 64)
+    sta f:DAS0L
+    sep #$20
+.a8
+    lda BA_WIN_KEY + 3
+    beq scene_top
+    rep #$20
+.a16
+    lda #.loword(ba_win_help)
+    sta f:A1T0L
+    sep #$20
+.a8
+    lda #^ba_win_help
+    bra top_set
+scene_top:
+    lda BA_SCENE
+    cmp #$FF
+    rep #$20
+.a16
+    beq no_scene                ; `rep` does not touch Z
+    lda #.loword(scene_top_cells)
+    bra top_source
+no_scene:
+    lda #.loword(scene_top_blank)
+top_source:
+    sta f:A1T0L
+    sep #$20
+.a8
+    lda #^scene_top_cells
+top_set:
+    sta f:A1B0
+    lda #$01
+    sta f:MDMAEN
+    ; --- the bars: A from slot 0, B from slot 10 ---
+    lda BA_WIN_KEY + 1
+    cmp #$FF
+    beq no_a
+    jsr patch
+no_a:
+    lda BA_WIN_KEY + 2
+    cmp #$FF
+    beq no_b
+    clc
+    adc #BA_BARS_MAX
+    jsr patch
+no_b:
+    rts
+
+; The bar of slot A8 of the layout: its record —row, column, rows, columns
+; and where its words start in `ba_win_patches`, in bytes— and a DMA per
+; row it takes.
+patch:
+    sta BA_T0
+    lda BA_WIN_KEY
+    asl a
+    asl a
+    asl a
+    asl a                       ; sixteen slots per layout
+    clc
+    adc BA_T0
+    rep #$20
+.a16
+    and #$00FF
+    sta BA_T0
+    asl a
+    clc
+    adc BA_T0
+    asl a                       ; six bytes per record
+    tax
+    lda f:ba_win_bars + 4, x
+    clc
+    adc #.loword(ba_win_patches)
+    sta BA_T1                   ; the source
+    lda f:ba_win_bars, x
+    and #$00FF
+    xba
+    lsr a
+    lsr a
+    lsr a                       ; the row times 32
+    sta BA_T0
+    lda f:ba_win_bars + 1, x
+    and #$00FF
+    clc
+    adc BA_T0
+    clc
+    adc #SCENE_MAP
+    sta BA_T0                   ; the destination
+    lda f:ba_win_bars + 3, x
+    and #$00FF
+    asl a
+    sta BA_T2                   ; bytes per row
+    lda f:ba_win_bars + 2, x
+    and #$00FF
+    tay                         ; rows
+    sep #$20
+.a8
+    beq patched
+    lda #^ba_win_patches
+    sta f:A1B0
+patch_row:
+    rep #$20
+.a16
+    lda BA_T0
+    sta f:VMADDL
+    clc
+    adc #32
+    sta BA_T0
+    lda BA_T1
+    sta f:A1T0L
+    clc
+    adc BA_T2
+    sta BA_T1
+    lda BA_T2
+    sta f:DAS0L
+    sep #$20
+.a8
+    lda #$01
+    sta f:MDMAEN
+    dey
+    bne patch_row
+patched:
+    rts
+.endproc
+.assert BA_BARS_MAX = 10, error, "ba_win_bars has ten slots for set A and six for set B"
+
+; The scene's top rows as `scene_upload` writes them —tile n on cell n— and
+; covered, which is what goes there without a scene.
+scene_top_cells:
+    .repeat BA_HELP_SCENE_ROWS * 32, I
+    .word I
+    .endrepeat
+scene_top_blank:
+    .repeat BA_HELP_SCENE_ROWS * 32
+    .word SCENE_TARGET
+    .endrepeat
+.assert ^scene_top_cells = ^scene_top_blank, error, "the two sources of the description's band go in one bank"
+
+; Without a scene, the whole tilemap on the transparent tile, with the
+; screen off: the windows go over it.
+.proc scn_blank_map
+.a8
+.i16
+    lda #$80
+    sta f:VMAIN
+    rep #$20
+.a16
+    lda #SCENE_MAP
+    sta f:VMADDL
+    ldx #(32 * 32)
+cell:
+    lda #SCENE_TARGET
+    sta f:VMDATAL
+    dex
+    bne cell
+    sep #$20
+.a8
     rts
 .endproc
 

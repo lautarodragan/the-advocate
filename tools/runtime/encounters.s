@@ -429,6 +429,7 @@ is_is:
 .a8
     lda #1
     sta SCN_ORIGIN              ; the battle background, the map's
+    sta BA_CAN_FLEE             ; and it can be escaped from: `Game_Map::SetupBattle`
     bra end
 no_has16:
 .a16

@@ -892,161 +892,135 @@ no:
     rts
 .endproc
 
-; The whole screen, written to the text layer: see `text_layer.s`.
+; The whole screen, written to the text layer —see `text_layer.s`— and the
+; windows it goes in, which `ba_win_tick` puts up in step with it.
+;
+; It is RM2k's: the scene on top with nothing over it and every window in
+; the band below —see `screen.rs` in `rm2k-snes-battle`—, so what shows
+; there depends only on the mode. The party with the commands on its right,
+; the System's bar on who is giving commands or whom an item goes to and on
+; the command; the enemies to attack over the party's window; an item or a
+; skill list, with its description in a window on top; and the battle's
+; message, a page's or the victory's, alone. Until 2026-10-04 the enemies'
+; names went over the scene and the party's lines and the commands under
+; it, always, with ">" for a cursor and no windows.
+;
+; `BA_WIN_KEY` says the windows: the layout, set A's bar and set B's —$FF
+; none— and whether the description's window is on top.
 .proc ba_compose
 .a8
 .i16
     lda #255
     sta comp_dup + 3
     jsl f:ba_t_clear
-    ; --- the enemies, or the item list while one is being chosen ---
-    ;
-    ; They go on the same lines on purpose: while choosing what to use, what
-    ; needs to be seen is the party, which is who gets healed, and not the
-    ; enemies. **While choosing whom to give it to, the list of the current
-    ; command goes on top**: the items one or the skills one, both in gray.
-    ; Which of the two is said by `BA_COMMAND`, which stays set while the target
-    ; is being chosen.
+    lda #BA_LAYOUT_COMMAND
+    sta BA_WIN_KEY
+    lda #$FF
+    sta BA_WIN_KEY + 1
+    sta BA_WIN_KEY + 2
+    stz BA_WIN_KEY + 3
     lda BA_MODE
     cmp #BA_M_SKILL
-    beq to_list_skill
-    cmp #BA_M_ACTOR
-    bne not_skill
-    lda BA_COMMAND
-    cmp #BA_COMMAND_SKILL
-    bne not_skill
-to_list_skill:
-    jmp list_skill
-not_skill:
-    lda BA_MODE
-    cmp #BA_M_ITEM
-    beq to_list
-    cmp #BA_M_ACTOR
-    bne no_list
-to_list:
-    jmp list
-no_list:
-    lda #0
-    sta BA_S0
-enemy:
-    lda BA_S0
-    cmp BA_KID
-    bcs enemies_all_ready
-    rep #$20
-.a16
-    lda #BA_ENEMY_POS0
-    jsr ba_row
-    sep #$20
-.a8
-    lda BA_MODE
-    cmp #BA_M_TARGET
-    bne no_cursor_enemy
-    lda BA_S0
-    cmp BA_TARGET
-    bne no_cursor_enemy
-    jsr ba_cursor
-no_cursor_enemy:
-    stz BA_WITHMAX              ; an enemy does not show its maximum
-    lda BA_S0
-    clc
-    adc #BA_PARTY_MAX
-    jsr ba_line
-    inc BA_S0
-    bra enemy
-enemies_all_ready:
-    ; --- the party ---
-    ;
-    ; Unless there is a message from a troop page, which goes on its lines: in
-    ; RM2k the battle's message window covers the party's. See
-    ; `ba_page_message`. And the same with what the victory reports.
-    jsr ba_vic_on_screen
-    beq no_victory
-    jmp ba_vic_message
-no_victory:
-    lda BA_MODE
+    bne :+
+    jmp ba_skill_window
+:   cmp #BA_M_ITEM
+    bne :+
+    jmp ba_item_window
+:   cmp #BA_M_TARGET
+    bne :+
+    jsr ba_commands
+    jmp ba_target_window
+:   cmp #BA_M_MESSAGE
+    beq message
+    cmp #BA_M_END
+    beq message
     cmp #BA_M_PAGE
-    bne with_party
+    bne commands
+    ; A troop page's message, in the message window; with none, the page is
+    ; running —a `ShakeScreen`, a `Wait`— and the message window is empty,
+    ; which is what RM2k shows between the commands and the actions. Until
+    ; 2026-10-04 it showed the commands, with the skill command of an actor
+    ; past the party's last.
+    lda #BA_LAYOUT_WIDE
+    sta BA_WIN_KEY
     rep #$20
 .a16
     lda BA_PAGE_MSG
     cmp #$FFFF
     sep #$20
 .a8
-    beq with_party
+    bne page_message
+    rts
+page_message:
     jmp ba_page_message
-with_party:
-    lda #0
-    sta BA_S0
-actor:
-    lda BA_S0
-    cmp BA_NACTORS
-    bcs actors_all_ready
+message:
+    lda #BA_LAYOUT_WIDE
+    sta BA_WIN_KEY
+    jsr ba_vic_on_screen
+    beq not_victory
+    jmp ba_vic_message
+not_victory:
+    jmp ba_message
+commands:
+    ; The bars: on the command while choosing one or whom it goes to, and on
+    ; the actor giving it or the one it goes to.
+    lda BA_MODE
+    cmp #BA_M_COMMAND
+    bne not_command
+    lda BA_ACTOR
+    sta BA_WIN_KEY + 1
+    lda BA_COMMAND
+    sta BA_WIN_KEY + 2
+    bra bars_set
+not_command:
+    cmp #BA_M_ACTOR
+    bne bars_set
+    lda BA_ITEM_TGT
+    sta BA_WIN_KEY + 1
+    lda BA_COMMAND
+    sta BA_WIN_KEY + 2
+bars_set:
+    jsr ba_commands
+    jmp ba_party
+.endproc
+
+; How many commands this battle has: the five, or four without Escape in
+; one that cannot be escaped from —see `BA_CAN_FLEE`—. In A8.
+.assert BA_COMMAND_ESCAPE = BA_COMMANDS_N - 1, error, "Escape is the last command: ba_commands_n leaves it out by counting one less"
+.proc ba_commands_n
+.a8
+.i16
+    lda BA_CAN_FLEE
+    beq without
+    lda #BA_COMMANDS_N
+    rts
+without:
+    lda #(BA_COMMANDS_N - 1)
+    rts
+.endproc
+
+; The commands, one per line in their window on the right. In gray while
+; something else is being chosen —the menu is no longer in charge— and
+; always the one that is not implemented, which is what the pause menu does
+; with its own. The bar is the window's: see `ba_compose`.
+.proc ba_commands
+.a8
+.i16
+    stz BA_S0
+command:
+    jsr ba_commands_n
+    cmp BA_S0
+    beq ready
+    bcs has_command
+ready:
+    rts
+has_command:
     rep #$20
 .a16
-    lda #BA_PARTY_POS0
+    lda #BA_COMMAND_POS0
     jsr ba_row
     sep #$20
 .a8
-    lda BA_MODE
-    cmp #BA_M_MESSAGE
-    bcs no_cursor_act
-    cmp #BA_M_ACTOR
-    bne cursor_in_sorts
-    lda BA_S0
-    cmp BA_ITEM_TGT             ; choosing whom to heal
-    bne no_cursor_act
-    bra sets_cursor_act
-cursor_in_sorts:
-    lda BA_S0
-    cmp BA_ACTOR
-    bne no_cursor_act
-sets_cursor_act:
-    jsr ba_cursor
-no_cursor_act:
-    lda #1
-    sta BA_WITHMAX
-    lda BA_S0
-    jsr ba_line
-    inc BA_S0
-    bra actor
-actors_all_ready:
-    ; --- the last line ---
-    ;
-    ; Which stays empty while a page is running: the previous action's message
-    ; has already been read, and the page's goes on top.
-    lda BA_MODE
-    cmp #BA_M_PAGE
-    bne not_page
-    rts
-not_page:
-    cmp #BA_M_MESSAGE
-    bcc commands
-    jmp ba_message
-commands:
-    lda #0
-    sta BA_S0
-command:
-    lda BA_S0
-    cmp #BA_COMMANDS_N
-    bcc has_command
-    jmp commands_lists
-has_command:
-    ; Which line this one falls on: since 2026-09-13 there are five and they
-    ; go on two.
-    lda BA_S0
-    jsr ba_ax
-    rep #$20
-.a16
-    txa
-    asl a
-    tax
-    lda f:ba_command_row, x
-    sta BA_T1
-    sep #$20
-.a8
-    ; In gray while something else is being chosen —the menu is no longer in
-    ; charge— and always the one that is not implemented, which is what the
-    ; pause menu does with its own.
     lda BA_MODE
     cmp #BA_M_COMMAND
     bne in_gray
@@ -1071,41 +1045,13 @@ sets_variant:
     sta BA_S1
     rep #$20
 .a16
-    lda BA_S0
-    and #$00FF
-    asl a
-    tax
-    lda f:ba_command_dx, x
-    sta BA_T2
-    sep #$20
-.a8
-    lda BA_MODE
-    cmp #BA_M_COMMAND
-    bne no_cursor_command
-    lda BA_S0
-    cmp BA_COMMAND
-    bne no_cursor_command
-    stz temp + 1
-    rep #$20
-.a16
-    lda BA_T2
-    sec
-    sbc #2
-    jsr ba_go
-    sep #$20
-.a8
-    lda #$3E                    ; the cursor
-    jsl f:ba_t_glyph
-no_cursor_command:
-    rep #$20
-.a16
-    lda BA_T2
+    lda #BA_COMMAND_DX
     jsr ba_go
     sep #$20
 .a8
     lda BA_S1
     sta temp + 1
-    lda #255
+    lda #BA_COMMAND_CELLS
     sta comp_dup + 3
     ; **The second command does not say "Tech Skill"**: it says the
     ; `skill_name` of the actor giving commands —"AgentTrain", "Telepathy",
@@ -1145,62 +1091,229 @@ text_set:
 .a16
     sep #$20
 .a8
+    ; By reference, as everything on a line of the band that comes from the
+    ; cartridge: the command, the party's name and state and the HP and SP
+    ; share a row's record. See `TL_BY_REF`.
+    lda #1
+    sta TL_BY_REF
     jsl f:ba_t_text
     inc BA_S0
     jmp command
-commands_lists:
-    rts
+.endproc
 
-    ; --- the item list, where the enemies go ---
-list:
-    lda #0
-    sta BA_S0
-row_item:
+; The party, one line per actor in its window on the left. The bar is the
+; window's: see `ba_compose`.
+.proc ba_party
+.a8
+.i16
+    stz BA_S0
+actor:
     lda BA_S0
-    cmp #BA_ENEMIES_MAX
-    bcs none_more
+    cmp BA_NACTORS
+    bcc has
+    rts
+has:
+    rep #$20
+.a16
+    lda #BA_PARTY_POS0
+    jsr ba_row
+    sep #$20
+.a8
+    lda BA_S0
+    jsr ba_party_line
+    inc BA_S0
+    bra actor
+.endproc
+
+; The enemies that can be attacked, in their window over the party's, in
+; troop order: the living ones, which are the ones that show —a hidden one
+; has no `BAF_HAS`, see `ba_alive`—. Five at a time: the window scrolls
+; just enough to show the bar, as RM2k's, which is `BA_TARGET_TOP`, in
+; places of this list. With `[debug] enemy_hp` each one's HP goes after its
+; name. The bar on the command stays where it was, as in RM2k.
+.proc ba_target_window
+.a8
+.i16
+    lda #BA_LAYOUT_TARGET
+    sta BA_WIN_KEY
+    lda BA_COMMAND
+    sta BA_WIN_KEY + 2
+    ; Where the cursor is in the list: how many living ones go before it.
+    stz BA_S1
+    stz BA_S0
+rank:
+    lda BA_S0
+    cmp BA_TARGET
+    bcs ranked
     clc
-    adc BA_ITEM_ARR
-    cmp BA_ITEM_N
-    bcc has_item
-none_more:
-    jmp items_all_ready
-has_item:
-    sta BA_S6                   ; the place in the list
+    adc #BA_PARTY_MAX
+    jsr ba_alive
+    beq :+
+    inc BA_S1
+:   inc BA_S0
+    bra rank
+ranked:
+    lda BA_S1
+    cmp BA_TARGET_TOP
+    bcs not_above
+    sta BA_TARGET_TOP           ; it went off the top: the window follows it
+    bra seen
+not_above:
+    sec
+    sbc #(BA_TARGET_ROWS - 1)
+    bcc seen                    ; within the first page
+    cmp BA_TARGET_TOP
+    bcc seen
+    beq seen
+    sta BA_TARGET_TOP
+seen:
+    ; And the lines: `BA_S1` counts the living ones, `BA_S2` the line.
+    stz BA_S1
+    stz BA_S2
+    stz BA_S3
+enemy:
+    lda BA_S3
+    cmp BA_KID
+    bcc has_enemy
+    rts
+has_enemy:
+    clc
+    adc #BA_PARTY_MAX
+    jsr ba_alive
+    beq next
+    lda BA_S1
+    inc BA_S1
+    cmp BA_TARGET_TOP
+    bcc next                    ; above the window
+    lda BA_S2
+    cmp #BA_TARGET_ROWS
+    bcs next                    ; below it
+    sta BA_S0
     rep #$20
 .a16
     lda #BA_ENEMY_POS0
     jsr ba_row
     sep #$20
 .a8
-    ; The cursor, only while the item is being chosen: while choosing the
-    ; target the list stays gray and the cursor moves to the party.
-    lda BA_MODE
-    cmp #BA_M_ITEM
-    bne gray_item
-    lda BA_S6
-    cmp BA_ITEM_SEL
-    bne no_cursor_item
-    jsr ba_cursor
-no_cursor_item:
-    lda #0
-    bra variant_item
-gray_item:
+    lda BA_S3
+    cmp BA_TARGET
+    bne no_bar
+    lda BA_S2
+    sta BA_WIN_KEY + 1
+no_bar:
+    lda BA_S3
+    clc
+    adc #BA_PARTY_MAX
+    jsr ba_line
+    inc BA_S2
+next:
+    inc BA_S3
+    bra enemy
+.endproc
+
+; The description in its window on top: text X, on one line, cut at the
+; window's frame. RM2k writes it whole with a smaller font. Clobbers `BA_T*`.
+.proc ba_help
+.a8
+.i16
     lda #1
-variant_item:
-    sta temp + 1
-    ; the name
+    sta BA_WIN_KEY + 3
+    stz temp + 1
     rep #$20
 .a16
-    lda #BA_NAME_DX
+    lda #BA_HELP_POS
+    sta pick_table
+    sep #$20
+.a8
+    lda #BA_HELP_WIDTH
+    sta comp_dup + 3
+    lda #1
+    sta TL_BY_REF
+    jsl f:ba_t_text
+    rts
+.endproc
+
+; --- the item list ---------------------------------------------------------
+;
+; RM2k's `Window_Item` in the battle: two columns that read by rows, the
+; name and the count with a colon in front —`Potion  : 99`—, five rows that
+; scroll from `BA_ITEM_ARR`, the first visible row. While choosing whom to
+; give it to the band shows the party, as RM2k's does.
+.proc ba_item_window
+.a8
+.i16
+    ; The wide window, with the bar on the place under the cursor in the
+    ; window's places.
+    lda #BA_LAYOUT_WIDE
+    sta BA_WIN_KEY
+    lda BA_ITEM_ARR
+    asl a
+    sta BA_T0
+    lda BA_ITEM_SEL
+    sec
+    sbc BA_T0
+    sta BA_WIN_KEY + 1
+    ; The description of the one under the cursor, whole: `ba_item_desc`.
+    lda BA_ITEM_SEL
+    jsr ba_item_from_list
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda f:ba_item_desc, x
+    tax
+    sep #$20
+.a8
+    jsr ba_help
+    ; From the first place of the window's first row to the last of its last.
+    lda BA_ITEM_ARR
+    asl a
+    sta BA_S3                   ; the place in the whole list
+row:
+    lda BA_S3
+    cmp BA_ITEM_N
+    bcc has
+    rts
+has:
+    lsr a
+    sec
+    sbc BA_ITEM_ARR
+    cmp #BA_ITEM_ROWS
+    bcc on_page
+    rts                         ; past the window's last row
+on_page:
+    sta BA_S0
+    lda BA_S3
+    and #$01
+    sta BA_S4
+    rep #$20
+.a16
+    lda #BA_ITEM_POS0
+    jsr ba_row
+    lda BA_S4
+    and #$00FF
+    beq column_zero
+    lda #BA_SKILL_COLUMN_DX
+column_zero:
+    sta BA_S5                   ; the column's offset
+    sep #$20
+.a8
+    ; the name, by reference like the skills'
+    stz temp + 1
+    rep #$20
+.a16
+    lda BA_S5
+    clc
+    adc #BA_SKILL_NAME_DX
     jsr ba_go
     sep #$20
 .a8
-    lda #BA_NAME_WIDTH
+    lda #BA_ITEM_NAME_WIDTH
     sta comp_dup + 3
-    lda BA_S6
+    lda BA_S3
     jsr ba_item_from_list
-    sta BA_S1                   ; the `k`
+    sta BA_S6                   ; the `k`
     rep #$20
 .a16
     and #$00FF
@@ -1211,28 +1324,28 @@ variant_item:
     tax
     sep #$20
 .a8
+    lda #1
+    sta TL_BY_REF
     jsl f:ba_t_text
-    ; and how many there are, with the colon in front
+    ; the colon and how many there are
     rep #$20
 .a16
-    lda #BA_ITEM_COUNT_DX
+    lda BA_S5
+    clc
+    adc #BA_SKILL_DASH_DX
     jsr ba_go
     sep #$20
 .a8
-    lda BA_MODE
-    cmp #BA_M_ITEM
-    beq count_white
-    lda #1
-    bra count_variant
-count_white:
-    lda #0
-count_variant:
-    sta temp + 1
+    stz temp + 1
     lda #$3A                    ; the colon
     jsl f:ba_t_glyph
-    lda BA_S1
     rep #$20
 .a16
+    lda BA_S5
+    clc
+    adc #BA_ITEM_COUNT_DX
+    jsr ba_go
+    lda BA_S6
     and #$00FF
     asl a
     tax
@@ -1249,37 +1362,62 @@ count_variant:
 .a8
     lda #2
     sta comp_dup + 2
+    stz temp + 1
     jsl f:ba_t_number
-    inc BA_S0
-    jmp row_item
-items_all_ready:
-    jmp enemies_all_ready
+    inc BA_S3
+    jmp row
+.endproc
 
-    ; --- the skill list, where the enemies go ---
-    ;
-    ; The layout is the original's —from a capture of the real game, of
-    ; 2026-09-12—: the description of the one under the cursor at the very
-    ; top, and below two columns with the name on the left and the SP cost on
-    ; the right, with a dash in front. It reads **by rows**, which is what the capture shows.
-list_skill:
+; Makes the highlighted item visible: scrolls the window just enough, a row
+; at a time, as `ba_skill_see` does with the skills.
+.proc ba_item_see
+.a8
+.i16
+    lda BA_ITEM_SEL
+    lsr a                       ; its row: two columns
+    cmp BA_ITEM_ARR
+    bcs not_above
+    sta BA_ITEM_ARR
+    rts
+not_above:
+    sec
+    sbc #(BA_ITEM_ROWS - 1)
+    bcc fits
+    cmp BA_ITEM_ARR
+    bcc fits
+    beq fits
+    sta BA_ITEM_ARR
+fits:
+    rts
+.endproc
+
+; --- the skill list --------------------------------------------------------
+;
+; The layout is the original's —from a capture of the real game, of
+; 2026-09-12, and again with Wine on 2026-10-04—: the description of the one
+; under the cursor on top, and in the band two columns with the name on the
+; left and the SP cost on the right, with a dash in front. It reads **by
+; rows**, which is what the capture shows.
+.proc ba_skill_window
+.a8
+.i16
     jsr ba_skill_list
     lda BA_SKILL_N
     bne has_any
-    jmp skill_lists
+    rts
 has_any:
-    lda BA_MODE
-    cmp #BA_M_SKILL
-    bne skill_in_gray           ; choosing the target: no description
+    ; The wide window, with the bar on the place under the cursor in the
+    ; window's places.
+    lda #BA_LAYOUT_WIDE
+    sta BA_WIN_KEY
+    lda BA_SKILL_TOP
+    asl a
+    sta BA_T0
+    lda BA_SKILL_SEL
+    sec
+    sbc BA_T0
+    sta BA_WIN_KEY + 1
     ; the description of the one under the cursor
-    rep #$20
-.a16
-    lda #BA_SKILL_DESC_POS
-    sta pick_table
-    sep #$20
-.a8
-    stz temp + 1
-    lda #255
-    sta comp_dup + 3
     lda BA_SKILL_SEL
     jsr ba_skill_from_list
     rep #$20
@@ -1291,8 +1429,7 @@ has_any:
     tax
     sep #$20
 .a8
-    jsl f:ba_t_text
-skill_in_gray:
+    jsr ba_help
     ; From the first place of the window's first row to the last of its last:
     ; the window scrolls, see `ba_skill_see`.
     lda BA_SKILL_TOP
@@ -1302,11 +1439,11 @@ row_skill:
     lda BA_S3
     cmp BA_SKILL_N
     bcc has_skill
-    jmp skill_lists
+    rts
 has_skill:
     jsr ba_skill_place
     bcc has_place_skill
-    jmp skill_lists             ; past the window's last row
+    rts                         ; past the window's last row
 has_place_skill:
     ; Row and column on the screen: with two columns they are an `lsr` of the
     ; place on the page and bit 0. If they were ever something else, this is
@@ -1325,10 +1462,7 @@ has_place_skill:
     and #$00FF
     beq column_zero
     lda #BA_SKILL_COLUMN_DX
-    bra column_set
 column_zero:
-    lda #0
-column_set:
     sta BA_S5                   ; the column's offset
     sep #$20
 .a8
@@ -1337,36 +1471,14 @@ column_set:
     lda BA_S3
     jsr ba_skill_from_list
     sta BA_S6
-    lda BA_MODE
-    cmp #BA_M_SKILL
-    bne gray_skill              ; choosing the target, the whole list in gray
-    lda BA_S6
     jsr ba_skill_reaches
     bne se_can
-gray_skill:
     lda #1
     bra variant_skill
 se_can:
     lda #0
 variant_skill:
     sta BA_S2
-    ; the cursor, only while the skill is being chosen
-    lda BA_MODE
-    cmp #BA_M_SKILL
-    bne no_cursor_skill
-    lda BA_S3
-    cmp BA_SKILL_SEL
-    bne no_cursor_skill
-    stz temp + 1
-    rep #$20
-.a16
-    lda BA_S5
-    jsr ba_go
-    sep #$20
-.a8
-    lda #$3E
-    jsl f:ba_t_glyph
-no_cursor_skill:
     ; the name
     lda BA_S2
     sta temp + 1
@@ -1431,6 +1543,4 @@ no_cursor_skill:
     jsl f:ba_t_number
     inc BA_S3
     jmp row_skill
-skill_lists:
-    jmp enemies_all_ready
 .endproc

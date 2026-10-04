@@ -816,13 +816,18 @@ pub fn run(options: Options) -> Result<()> {
     for place in battle_model["cut"].as_array().cloned().unwrap_or_default() {
         println!("{}", cut_report(&place));
     }
+    // The party's line, whose HP and SP the console writes as runs that do
+    // not get cut: with a font too wide they would step on each other.
+    if let Some(why) = battle_model["party_line"].as_str() {
+        println!("  WARNING, battle text: the party's line does not fit: {why}");
+    }
     // What the battle's busiest lists ask of the text layer's pool. The
     // console does not stop when it runs out —it shows what it has typeset
     // and goes on (`TL_FLUSH`)—, but what does not get a pair does not show,
     // so it is a warning. The battle's pool is not the shop's: its pairs go
-    // from word 0 up to the scene's tilemap —`TL_POOL_BATTLE` in the
-    // runtime's `screen_bank.s`—, which is a screen with every cell inked.
-    let pool = scene::VRAM_MAP / 32 - 1;
+    // from word 0 up to the battle's windows —`TL_POOL_BATTLE` in the
+    // runtime's `screen_bank.s`, and `TEXT_PAIRS_END`—.
+    let pool = scene::TEXT_PAIRS_END / 32 - 1;
     let asked = &battle_model["pairs"];
     if !asked.is_null() {
         let (skills, items) = (int(&asked["skills"]), int(&asked["items"]));
