@@ -21,13 +21,26 @@ def parse_file [file: string] {
   let name = $yml | get -o name | default "(Not Named)"
   let task_type = $yml | get -o type | default "(no task type assigned)"
   let task_description = $yml | get -o description | default "(no task description)"
+  let assignee = $yml | get -o assignee | default ""
+  # `assignee` es quién la tiene ahora —taro, cuando pasa a testing—, y
+  # `agents` todos los que trabajaron en ella, que no se borra.
+  let agents = $yml | get -o agents | default [] | append $assignee | where { $in != "" }
   
   return {
     file: $file,
     name: $name,
     task_type: $task_type,
     description: $task_description,
+    assignee: $assignee,
+    agents: $agents,
   }
+}
+
+# Para comparar nombres: minúsculas y sin tildes.
+def normalize [] {
+  $in | str lowercase | str replace --all --regex '[áà]' 'a' | str replace --all --regex '[éè]' 'e'
+    | str replace --all --regex '[íì]' 'i' | str replace --all --regex '[óò]' 'o'
+    | str replace --all --regex '[úùü]' 'u' | str replace --all 'ñ' 'n'
 }
 
 def task_title [] {
@@ -41,8 +54,13 @@ def print_task [] {
   print '' 
 }
 
+# Con `--assignee`, sólo las que tiene o en las que trabajó ése —su
+# `assignee` o su lista `agents`—: un sub-agente busca así lo suyo, de
+# cualquier carpeta con `-s "*"`. Sin distinguir mayúsculas ni tildes, para
+# que "huron" encuentre a Hurón.
 def "main ls" [
   --status (-s): string = "doing"
+  --assignee (-a): string
 ] {
   ls | where { $in.type == dir and ($status == "*" or $in.name == $status) } | each { 
     if $status == "*" {
@@ -53,7 +71,9 @@ def "main ls" [
       ] | str join); 
     }
 
-    let parsed = ls $in.name | where type == file | get name | each { parse_file $in } | sort-by task_type
+    let parsed = ls $in.name | where type == file | get name | each { parse_file $in }
+      | where { |t| $assignee == null or ($t.agents | any { ($in | normalize) == ($assignee | normalize) }) }
+      | sort-by task_type
     
     $parsed | each { print_task }
     
