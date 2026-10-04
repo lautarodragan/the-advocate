@@ -34,13 +34,13 @@ la ventana volvería a ocho.
 
 El 2026-10-04, comparando lo que decidió Adeleine en `release` con ocho y
 con trece —las imágenes de `build/<cartucho>/adeleine/` del juego, en RGB—:
-de 111 mapas, **diez** pierden colores, entre uno y cinco cada uno: 66, 67,
+de 111 mapas, **once** pierden colores, entre uno y cinco cada uno: 66, 67,
 69, 70, 86, 112, 113 y 116 a 119. En las goldens se ve como unos pocos
 pixeles de un tono vecino: 120 de 57.344 en el peor, el mapa 119.
 
 # Cómo se ve hoy
 
-En esos diez mapas, alguna sombra de barril, de estante o de pared toma el
+En esos once mapas, alguna sombra de barril, de estante o de pared toma el
 tono de al lado. No se ve una mancha ni un color equivocado.
 
 # Cuándo deja de alcanzar
