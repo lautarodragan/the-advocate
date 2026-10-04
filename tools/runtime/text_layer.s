@@ -28,7 +28,13 @@
 ;   writes them again; only what changed gets drawn. The letters are copied
 ;   into the record, so a run does not care where they came from —the item
 ;   texts in ROM, a number, the battle's message in RAM—, and it is not
-;   capped by the cells: a description of fifty letters goes in one line.; * **A row that changed is typeset**: its runs are composed into
+;   capped by the cells: a description of fifty letters goes in one line.
+;   **Except a text written by reference** —`TL_BY_REF`, which the
+;   battle's skill list asks for—: its run keeps where the text is in ROM
+;   and how many letters, six bytes however long it is. Two columns of
+;   names with their dashes and costs did not fit in a record with the
+;   letters copied, and until 2026-10-04 the cartridge kept thirteen letters
+;   of each skill. Nothing continues such a run.; * **A row that changed is typeset**: its runs are composed into
 ;   `TL_STAGE`, 32 columns of two tiles, and each column that got ink takes a
 ;   pair of tiles from a pool, `TL_FREE`; the layer's tilemap, `TL_MAP`,
 ;   points the row's two cell rows there. A row takes no tiles where it has
@@ -166,7 +172,13 @@ TL_SLOT_T    = TL_SWITCHED + 24 ; the slot screen's names: each one's tile
 TL_SLOT_K    = TL_SLOT_T + 2 * TL_SLOTS ; and columns, 0 not composed yet
 TL_WIN_KEY   = TL_SLOT_K + 2 * TL_SLOTS ; the shop's windows as last uploaded:
                                 ; see `ti_windows`. Eight bytes
-TL_END       = TL_WIN_KEY + 8
+TL_BY_REF    = TL_WIN_KEY + 8   ; nonzero: the next `scr_text` goes by reference
+TL_T_REF     = TL_WIN_KEY + 10  ; nonzero: the run being typeset is one
+TL_REF_AT    = TL_WIN_KEY + 12  ; and where its next letter is, three bytes
+TL_END       = TL_WIN_KEY + 16
+; A run's colour byte with this bit says it goes by reference: three bytes
+; of address after its count, and no letters.
+TL_REF_BIT   = $80
 .assert TL_END <= FAR_TEXT_LAYER_END, error, "the text layer does not fit in its RAM"
 
 ; A letter that is not in the font: a blank as wide as a digit, which pads a
@@ -313,6 +325,8 @@ records:
     stz TL_LEFT
     stz TL_SWITCHED
     stz TL_PRE
+    stz TL_BY_REF
+    stz TL_T_REF
     lda #$FFFF
     sta TL_WIN_KEY              ; the shop's windows, not uploaded yet
     sta TL_T_ROW
@@ -529,10 +543,17 @@ a_row:
 run:
     cpy TL_T3
     bcs none
+    lda TL_CUR + 1, y
+    and #TL_REF_BIT
+    beq copied
+    lda #6                      ; by reference: its address and no letters
+    bra sized
+copied:
     lda TL_CUR + 2, y
     and #$00FF
     clc
     adc #3
+sized:
     sta TL_N                    ; the run's bytes
     lda TL_CUR, y
     and #$00FF
@@ -745,6 +766,8 @@ fitted:
     tya
     sta temp
 whole:
+    lda TL_BY_REF
+    bne by_ref
     rep #$20
 .a16
     jsr tl_open
@@ -770,6 +793,63 @@ ready:
     jsr tl_moved
     lda #255
     sta comp_dup + 3            ; the cap is for one text only
+    plb
+    rtl
+
+    ; By reference: a run of its own, always —nothing it could continue
+    ; would know where its letters end—, and after its count the text's
+    ; address instead of the letters. With no room in the record for those
+    ; three bytes, the empty run goes and the text does not show, as when
+    ; letters do not fit.
+by_ref:
+    stz TL_BY_REF               ; it is for one text only, like the cap
+    rep #$20
+.a16
+    stz TL_RUN
+    jsr tl_open
+    lda TL_RUN
+    beq no_room                 ; not even for the run
+    ldy TL_RUN_ROW
+    lda TL_CUR, y
+    and #$00FF
+    cmp #(TL_RECORD - 1 - 3 + 1)
+    bcc room
+    sec
+    sbc #3
+    sep #$20
+.a8
+    sta TL_CUR, y
+    rep #$20
+.a16
+    bra no_room
+room:
+    clc
+    adc #3
+    sep #$20
+.a8
+    sta TL_CUR, y               ; the longer length
+    lda msg_ptr
+    sta TL_CUR, x
+    lda msg_ptr + 1
+    sta TL_CUR + 1, x
+    lda msg_ptr + 2
+    sta TL_CUR + 2, x
+    ldx TL_RUN
+    lda temp
+    sta TL_CUR, x               ; how many letters
+    lda TL_CUR - 1, x
+    ora #TL_REF_BIT
+    sta TL_CUR - 1, x           ; and in its colour, that it is by reference
+    rep #$20
+.a16
+no_room:
+    stz TL_RUN                  ; nothing continues it
+    sep #$20
+.a8
+    lda temp
+    jsr tl_moved
+    lda #255
+    sta comp_dup + 3
     plb
     rtl
 .endproc
@@ -1967,15 +2047,33 @@ a_run:
     lda a:0, x
     and #$00FF
     sta TL_X
-    lda a:1, x
-    and #$00FF
-    sta TL_VAR                  ; the colour: the palette of what it inks
     lda a:2, x
     and #$00FF
     sta TL_T_LEFT
+    lda a:1, x
+    and #$00FF
+    bit #TL_REF_BIT
+    bne by_ref
+    sta TL_VAR                  ; the colour: the palette of what it inks
+    stz TL_T_REF
     txa
     clc
     adc #3
+    sta TL_T_POS
+    bra loop
+by_ref:
+    and #($FF - TL_REF_BIT)
+    sta TL_VAR
+    lda #1
+    sta TL_T_REF
+    lda a:3, x
+    sta TL_REF_AT               ; where its letters are
+    lda a:5, x
+    and #$00FF
+    sta TL_REF_AT + 2
+    txa
+    clc
+    adc #6
     sta TL_T_POS
     bra loop
 letter:
@@ -1987,10 +2085,16 @@ letter:
     rts
 go:
     dec TL_T_LEFT
+    lda TL_T_REF
+    beq copied
+    jsr tl_ref_letter
+    bra fetched
+copied:
     ldx TL_T_POS
     inc TL_T_POS
     lda a:0, x
     and #$00FF
+fetched:
     cmp #TL_FIGURE
     bne normal
     lda f:font_advance + ('0' - ' ')
@@ -2018,6 +2122,44 @@ advance:
     adc TL_X
     sta TL_X
     jmp loop
+.endproc
+
+; The next letter of a run by reference, as a letter of the font, in A, and
+; `TL_REF_AT` on the one after. It is read with the data bank at the text's
+; and an absolute address, which reaches any bank with no direct page: the
+; layer's typesetting runs anywhere a screen waits for the vblank, and has
+; none of its own. Both interrupts set their own data bank. A16.
+.proc tl_ref_letter
+.a16
+.i16
+    ldx TL_REF_AT
+    sep #$20
+.a8
+    lda TL_REF_AT + 2
+    pha
+    plb
+    lda a:0, x
+    xba
+    lda #$7E
+    pha
+    plb
+    xba
+    rep #$20
+.a16
+    and #$00FF
+    sec
+    sbc #' '
+    pha
+    inc TL_REF_AT
+    bne same_bank
+    sep #$20
+.a8
+    inc TL_REF_AT + 2
+    rep #$20
+.a16
+same_bank:
+    pla
+    rts
 .endproc
 
 ; Row K of a glyph, at byte OFS of its column of the stage —rows 2 to 7 of
