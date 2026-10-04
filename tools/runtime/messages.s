@@ -52,6 +52,13 @@
 
 ; Writes the window's own tilemap: 320 contiguous cells, a single DMA.
 ;
+; **And 320 more below them**, the same DMA: the window without its frame, for
+; `MessageOptions` without the background. The text cells are the same and
+; every other one is cell 0, which is BG2's tile 0 —the layer above's, blank
+; in every map—. Which of the two shows is only BG2's scroll on the window's
+; lines, `MSG_VOFS`: the tilemap is 32x32 and the frame's ten rows left
+; twenty-two unused, so taking the background off costs no VRAM write.
+;
 ; Here is the whole difference with what there was before. The window is no
 ; longer stamped onto the map's tilemap —which scrolls— but onto one of its
 ; own, 32x32, that it shares with no one. Since it is its own, its ten rows
@@ -94,8 +101,8 @@
     cmp #$10                    ; the carry survives the `rep` and the `lda`
     rep #$20
 .a16
-    lda #(TEXT_WINDOW_ROWS * TEXT_WINDOW_COLS * 2)
-    sta DAS0L
+    lda #(TEXT_WINDOW_ROWS * TEXT_WINDOW_COLS * 2 * 2)
+    sta DAS0L                   ; both planes: with the frame and without it
     bcs plane_256
     lda #.loword(window_cells)
     sta A1T0L
@@ -121,51 +128,27 @@ with_plane:
     rts
 .endproc
 
-; Sets up the two HDMA tables and programs their channels. Runs once per map,
-; together with the rest of the load.
+; Sets up the window's three HDMA tables and programs their channels. Runs
+; once per map, together with the rest of the load.
 ;
 ; What HDMA achieves, and no amount of stamping achieved: BG2 changes tilemap
-; and scroll **mid-frame**. From line 0 to 143 it is still the map's layer
-; above, with the camera; from 144 to 223 it is the window's own tilemap, with
-; the scroll pinned. That is why the window does not move even though the
-; camera does, and why there is not a single VRAM write while a message is on
-; screen.
+; and scroll **mid-frame**. On the window's 80 lines it is the window's own
+; tilemap, with the scroll pinned; on the others it is still the map's layer
+; above, with the camera. That is why the window does not move even though
+; the camera does, and why there is not a single VRAM write while a message is
+; on screen.
 ;
-; The first two entries carry exactly what `flush_video` was already writing
-; to the registers, so above line 144 nothing changes. They go in two
-; stretches because an entry's line counter is 7 bits and 144 does not fit.
+; **Which lines are the window's is not decided here**: it is the position
+; `MessageOptions` asked for, and it is decided each time a window opens.
+; The tables are written by `msg_hdma_build`, in message_place.s; this only
+; says where the window's tilemap is and points the channels at them.
 .proc build_hdma
 .a8
 .i16
-    lda #127
-    sta hdma_sc
-    sta hdma_ofs
-    lda #(WINDOW_LINE - 127)
-    sta hdma_sc + 2
-    sta hdma_ofs + 5
-    lda #(LINES - WINDOW_LINE)
-    sta hdma_sc + 4
-    sta hdma_ofs + 10
-
-    ; The map's tilemap on top and the window's below. BG2SC carries the
-    ; address in the high byte; the window's size is 0, which is 32x32.
-    lda #>VRAM_ABOVE_MAP | MAP_LAYOUT
-    sta hdma_sc + 1
-    sta hdma_sc + 3
     ldx map_ofs
     lda f:map_table + M_VRAM_WINDOW_MAP + 1, x
-    sta hdma_sc + 5
-    stz hdma_sc + 6             ; end of table
-
-    ; And the pinned scroll of the window's lines. The two stretches above are
-    ; filled by `flush_video` with each frame's camera.
-    stz hdma_ofs + 11
-    stz hdma_ofs + 12
-    lda #<WINDOW_VOFS
-    sta hdma_ofs + 13
-    lda #>WINDOW_VOFS
-    sta hdma_ofs + 14
-    stz hdma_ofs + 15           ; end of table
+    sta f:MSG_SC                ; BG2SC carries the address in its high byte
+    jsl msg_hdma_build
 
     lda #$00                    ; one register, one write per stretch
     sta DMAP1
@@ -190,16 +173,13 @@ with_plane:
     ; sits *in front* of BG2: it showed through the window. The suite caught
     ; it with the door on map 7 as soon as events drawn with a tile moved to
     ; sprites. The mask is the PPU's window 1, edge to edge, enabled for
-    ; objects only on the lines of the message window: `hdma_mask`, which
-    ; never changes and lives in the ROM.
+    ; objects only on the lines of the message window: one of the `mask_*`
+    ; in message_place.s, which `msg_hdma_build` points the channel at,
+    ; because it moves with the window.
     lda #$00
     sta DMAP3
     lda #<WOBJSEL
     sta BBAD3
-    ldx #.loword(hdma_mask)
-    stx A1T3L
-    lda #^hdma_mask             ; no longer bank 0: it lives in RODATA
-    sta A1B3
     rts
 .endproc
 
@@ -374,6 +354,13 @@ no_pause:
     stz msg_line
     stz msg_primed
     stz msg_upload
+    ; Where the window goes and whether it has a background, **only if none
+    ; is open**: a choice whose cursor moves calls here again with the window
+    ; on screen, and RM2k does not move a window that is already up.
+    lda msg_open
+    bne placed
+    jsl msg_place
+placed:
     lda #1
     sta msg_state
     rts
@@ -521,6 +508,9 @@ more:
 ; Copies into the buffer the background of the two cell rows of the current
 ; line. It is the only way for the glyphs to sit on the skin's gradient and
 ; not on black, and it goes by DMA from ROM to RAM.
+;
+; Without a background it is zeros, which is BG2's transparent colour: the
+; glyphs and their shadow land on the map.
 .proc prime_line
 .a8
 .i16
@@ -532,7 +522,18 @@ more:
     sep #$20
 .a8
     stz WMADDH                  ; the buffer lives in WRAM bank 0
-
+    lda f:MSG_PLACE
+    and #MSG_BARE
+    beq with_background
+    ldx #.loword(zero)
+    stx A1T0L
+    lda #^zero
+    sta A1B0
+    ldx #TEXT_BUF_BYTES
+    stx DAS0L
+    lda #$08                    ; one register, the source fixed
+    bra go
+with_background:
     rep #$20
 .a16
     ; The source: two cell rows per line, 60 tiles of 32 bytes.
@@ -565,6 +566,7 @@ more:
     lda #^window_backdrop
     sta A1B0
     lda #$00                    ; one register, one byte at a time
+go:
     sta DMAP0
     lda #<WMDATA
     sta BBAD0

@@ -334,9 +334,14 @@ no_wait:
     ; The page's own move route does not read new commands while the interpreter
     ; has a page running: it is `UpdateNextMovementAction`'s `IsRunning()`. The
     ; step in progress already finished above and the waits keep counting.
+    ; Unless a `MessageOptions` asked for the events to go on moving: it is the
+    ; `!GetMessageContinueEvents() &&` in front of that `IsRunning()`.
     lda route_ev + 18, x
     and #$01
     beq no_frozen
+    lda f:FAR_LENGTH + FAR_MSG_OPTIONS
+    and #MSG_CONTINUE
+    bne no_frozen
     lda ev_active
     bne frozen
     lda waiting_n

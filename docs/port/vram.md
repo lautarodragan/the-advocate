@@ -3,7 +3,9 @@
 Las 64 KB no se reparten como uno quiera: la base de los tiles de los sprites va
 de a 16 KB, la de cada fondo de a 8 KB y la de cada tilemap de a 2 KB. Todo
 mapa lleva la ventana de mensaje, que pide 8 KB de tiles y 2 KB de tilemap
-propios, y el tilemap de la capa de encima está fijo al final. Con eso no hay
+propios —en el tilemap van dos planos de diez filas, la ventana y la ventana
+sin marco, y cuál se ve y en qué líneas lo dice el HDMA: ver
+`message_place.s`—, y el tilemap de la capa de encima está fijo al final. Con eso no hay
 un reparto que sirva para todos los mapas: cuál toca lo decide el conversor
 —junto con los valores ya armados de `OBSEL` y `BG12NBA`, y desde el 2026-09-25
 la dirección del tilemap del fondo— y viaja en el `.inc`. La ROM no elige nada.

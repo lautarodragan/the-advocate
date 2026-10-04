@@ -110,23 +110,25 @@ off:
     rts
 .endproc
 
-; All at zero, the random seed set, the hero's speed at 4, the inventory empty
-; and the menu and saving allowed. Runs at reset, before loading the saved
-; game. They live back to back in far RAM, so it is a single pass through the
-; port.
+; All at zero, the random seed set, the hero's speed at 4, the inventory empty,
+; the menu and saving allowed and the message window as RM2k starts it. Runs at
+; reset, before loading the saved game. They live back to back in far RAM, so
+; it is a single pass through the port.
 .proc clear_variables
 .a8
 .i16
     rep #$20
 .a16
-    lda #FAR_ACCESS
+    lda #FAR_MSG_OPTIONS
     sta WMADDL
     ; Up to the end of the inventory, with whatever gap there is between the
     ; variables and it: it is one pass at reset and it does not matter.
-    ldx #(FAR_ITEMS + ITEMS_N - FAR_ACCESS - 4)
+    ldx #(FAR_ITEMS + ITEMS_N - FAR_MSG_OPTIONS - 5)
     sep #$20
 .a8
     stz WMADDH
+    lda #MSG_DEFAULT
+    sta WMDATA
     stz WMDATA                  ; saving and the menu, allowed
     lda #4                      ; the hero's normal speed
     sta WMDATA

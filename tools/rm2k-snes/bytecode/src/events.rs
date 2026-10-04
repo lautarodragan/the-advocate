@@ -255,11 +255,16 @@ bytecode! {
     /// —an automatic common event—, the same as `OP_DONE`.
     OP_RETURN = 0x40 ();
 
-    /// 0x41 and 0x42 are Yaguareté's, from the sprite slots' cache, which goes
-    /// in at the same time as this: held here so the numbers stay contiguous,
-    /// and replaced by his at the merge.
-    OP_RESERVED_41 = 0x41 ();
+    /// `MessageOptions`: how and where the message window is drawn from now
+    /// on, in one byte the console keeps in the save —`FAR_MSG_OPTIONS`—. The
+    /// position in bits 0 and 1 (0 top, 1 middle, 2 bottom); bit 2 without
+    /// the frame and the background; bit 3 that the window moves out of the
+    /// hero's way; bit 4 that the events go on moving while a page runs.
+    OP_MESSAGE_OPTIONS = 0x41 (options: byte);
 
+    /// 0x42 is Yaguareté's, from the sprite slots' cache, which goes in at the
+    /// same time as this: held here so the numbers stay contiguous, and
+    /// replaced by his at the merge.
     OP_RESERVED_42 = 0x42 ();
 
     /// A big picture's `MovePicture` that zooms: `OP_BIG_MOVE`'s operands and

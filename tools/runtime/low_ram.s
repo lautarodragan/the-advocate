@@ -135,12 +135,13 @@ msg_x:       .res 2     ; where the next letter starts, in pixels inside the
 ; reading and writing outside the buffer would be stepping on someone else.
 text_buf:    .res (WINDOW_TEXT_COLS * 2 * 32 + 48)
 
-; The window's two HDMA tables. They live in RAM because the first two entries
-; carry this frame's camera; the last one, which is the window's, never
-; changes.
+; The window's two HDMA tables. They live in RAM because the map's stretches
+; carry this frame's camera, and because which stretch is the window's depends
+; on where `MessageOptions` put it: see message_place.s. Three stretches each,
+; for any of the three positions; at the bottom, which is RM2k's default:
 ;
-;   hdma_sc    [127][BG2SC mapa] [17][BG2SC mapa] [80][BG2SC ventana] [0]
-;   hdma_ofs   [127][hofs][vofs] [17][hofs][vofs] [80][0][WINDOW_VOFS] [0]
+;   hdma_sc    [127][BG2SC map] [17][BG2SC map] [80][BG2SC window] [0]
+;   hdma_ofs   [127][hofs][vofs] [17][hofs][vofs] [80][0][MSG_VOFS] [0]
 ;
 ; The top 144 scanlines go in two stretches because an entry's line counter is
 ; 7 bits and does not reach 144.

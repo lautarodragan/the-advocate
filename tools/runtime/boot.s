@@ -171,6 +171,12 @@ party_ready:
     sep #$20
 .a8
     sta f:FAR_MSG_AUTO
+    ; And where the window is: `load_window` builds its HDMA tables from it
+    ; before any window has decided, and a garbage position would index past
+    ; `place_rows`. Nothing is seen —the HDMA is off until a window opens, and
+    ; that one decides first—, but the tables would be.
+    lda #2
+    sta f:MSG_PLACE
     ; The two pad ones are just in case and not for a bug that was seen:
     ; `read_pad` rewrites them before anyone looks at them. They cost two
     ; instructions.

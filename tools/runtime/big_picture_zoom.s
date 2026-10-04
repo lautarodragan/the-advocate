@@ -134,7 +134,8 @@ BE_M7_Y         = 30
     ; The window's tilemap goes where `big_load` puts it, but later: see
     ; BIG_PIECE_STAMP. The HDMA's table already points there.
     lda #>BIG_VRAM_WINDOW
-    sta hdma_sc + 5
+    sta f:MSG_SC
+    jsl msg_hdma_build          ; the window's stretch, pointing there
     lda #$01
     sta BGMODE
     ldx map_ofs

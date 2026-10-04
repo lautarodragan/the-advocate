@@ -240,7 +240,8 @@ plain:
     ; back when the map returns.
     jsl f:big_stamp_far + FAST
     lda #>BIG_VRAM_WINDOW
-    sta hdma_sc + 5
+    sta f:MSG_SC
+    jsl msg_hdma_build          ; the window's stretch, pointing there
     ; The layer above, empty: its tile 0 is blank in every map.
     rep #$20
 .a16
