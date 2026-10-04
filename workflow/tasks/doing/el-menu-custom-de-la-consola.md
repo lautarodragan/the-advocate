@@ -2,7 +2,7 @@
 name: "El menú custom de la consola: el estudio y las maquetas"
 description: "La Portable Console de ABL como un menú custom del motor, descripto como datos, desde el menú de pausa y a pantalla completa, en vez de sus 61 imágenes; estudio y maquetas, sin tocar la ROM"
 type: research
-assignee: taro
+assignee: Aguará
 ---
 
 Nació el 2026-10-04 como "las imágenes de la consola, por el MSU-1": taro
@@ -69,3 +69,11 @@ transcripción de las trece páginas y seis tablas, con sus goldens.
   no capturadas de un cartucho: muestran cómo se vería con las ventanas y
   la fuente que hay, no lo que la ROM ya hace.
 * La tanda no se corrió: no cambió nada que entre en una ROM.
+
+# Lo que decidió taro
+
+El 2026-10-04: "va el diseño, con retrato, \"Console\", y sólo con el ítem".
+O sea: el diseño del estudio (`docs/research/2026-10-04-el-menu-custom.md`)
+tal cual, con los retratos de los personajes y no sus caras, el rótulo
+"Console" en el menú de pausa, y la opción visible sólo mientras el ítem 81
+está en el inventario.
