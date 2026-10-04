@@ -117,6 +117,14 @@ fn every_battle_plays_as_the_pythons() {
 /// letters and an enemy's at fourteen, one per cell, and since 2026-10-04
 /// the cartridge keeps them whole —see `TL_RECORD` in `screen.rs`—, so
 /// they are cut here again.
+///
+/// And its screen was the one before 2026-10-04, when the battle's windows
+/// went to the band below the scene, as RM2k's, and a skill's description
+/// cut at thirty-one letters, which the cartridge keeps whole since then and
+/// the console cuts in pixels: its geometry is
+/// `layout-python.json`, what the layout answered the day before, and the
+/// dead state's name, which the party's line writes since then, is taken
+/// out.
 fn pythons_model(db: &Db, request: &Value) -> rm2k_snes_battle::Result<Value> {
     let mut v = model::model(db, request)?;
     let cut = |names: &mut Value, letters: usize, pick: fn(&mut Value) -> &mut Value| {
@@ -128,7 +136,12 @@ fn pythons_model(db: &Db, request: &Value) -> rm2k_snes_battle::Result<Value> {
         }
     };
     cut(&mut v["texts"]["skills"], 11, |s| &mut s["name"]);
-    cut(&mut v["texts"]["enemies"], rm2k_snes_battle::screen::BA_NAME_WIDTH, |e| e);
+    cut(&mut v["texts"]["skills"], 31, |s| &mut s["description"]);
+    cut(&mut v["texts"]["enemies"], 14, |e| e);
+    v["layout"] = read("layout-python.json");
+    if let Some(texts) = v["texts"].as_object_mut() {
+        texts.remove("dead");
+    }
     Ok(v)
 }
 

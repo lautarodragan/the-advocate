@@ -85,28 +85,27 @@ TL_POOL_WHOLE = (ITEM_BORDER_MAP - SLOT_VRAM) / TL_PAIR_WORDS - 1
 .endproc
 
 ; The battle's: the same bank, but its text takes its pairs from word 0 —BG2
-; with its base there— up to the scene's tilemap, and not only from
-; `SLOT_VRAM`. With 191 the skill list ran out: fourteen names with their
-; costs, the description, the party's four lines and the commands' two, and
-; the last rows came out cut or not at all —measured on 2026-10-03 with
-; Talan knowing his 54—. In the battle, words 0 to $1FFF belong to nobody:
+; with its base there— up to the battle's windows, `BA_WIN_VRAM`, and not
+; only from `SLOT_VRAM`. In the battle, words 0 to $1FFF belong to nobody:
 ; they are the map's —its sprites, and in some layouts its tiles or a
 ; tilemap—, which `back_from_battle` uploads again whole, and the scene's
 ; tilemap cells below it point to word 0, which has to be blank. That one
 ; is pair 0, the blank one.
 ;
-; **They are 447, and that is a screen of text with every cell inked**:
-; the battle writes its lines on even rows, fourteen in the 28, and 14 * 32
-; is 448. So no font and no spacing make it run out. With 255 —words 0 to
-; $1FFF only, a byte's worth— the list ran out again with `letter_spacing`
-; 2, measured with the same Talan.
+; **They are 255.** From 2026-10-04 to later that day they were 447, up to
+; the scene's tilemap —a screen with every cell inked—, because the skill
+; list over the scene with the party and the commands under it ran out of
+; 191 and then of 255 with `letter_spacing` 2. Since the windows went to
+; the band below the scene the battle writes far fewer —the description
+; and the band's five lines, at most— and the windows' tiles take the rest:
+; see `ba_win_load`. The converter says what the busiest lists ask for.
 ;
 ; The 64 bytes of word 0 are cleared here because `scene_upload` only
 ; writes them if the battle has a scene.
 TL_BATTLE_VRAM = 0
-TL_POOL_BATTLE = (SCENE_MAP - TL_BATTLE_VRAM) / TL_PAIR_WORDS - 1
+TL_POOL_BATTLE = (BA_WIN_VRAM - TL_BATTLE_VRAM) / TL_PAIR_WORDS - 1
 .assert TL_POOL_BATTLE < TL_PAIRS, error, "the battle's pairs do not fit in the text layer's tables"
-.assert SCENE_MAP <= SLOT_MAP && SCENE_MAP <= SCENE_VRAM, error, "the battle's pairs reach something of the battle's"
+.assert BA_WIN_VRAM <= SCENE_MAP && SCENE_MAP <= SLOT_MAP && SCENE_MAP <= SCENE_VRAM, error, "the battle's pairs reach something of the battle's"
 .proc battle_bank_upload
 .a8
 .i16
