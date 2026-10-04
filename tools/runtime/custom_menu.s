@@ -6,7 +6,7 @@
 ;
 ; A screen of the engine that a game declares as data: RM2k does not have
 ; one, and games built it out of a common event that shows pictures and
-; waits for keys —A Blurred Line's portable console was 61 pictures—. The
+; waits for keys —the game this was written for had one of 61 pictures—. The
 ; game writes what each page says in a file its project names, and
 ; `rm2k-snes-screens` writes it down for this: see `custom_menu.rs` there,
 ; which is also where the geometry comes from.

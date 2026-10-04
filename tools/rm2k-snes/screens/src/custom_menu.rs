@@ -19,14 +19,14 @@
 //! The file, in TOML; the converter hands it over as JSON:
 //!
 //! ```toml
-//! label = "Console"              # its option in the pause menu
-//! title = "Portable Console"     # the header over the subjects
+//! label = "Notes"                # its option in the pause menu
+//! title = "Field Notes"          # the header over the subjects
 //! visible = { item = 81 }        # when the option is there
 //! replaces_common = 39           # the common event that opens it
 //!
 //! [[subject]]
 //! actor = 14                     # shown while the actor is in the party
-//! portrait = "NewMenuTalan"      # a picture of the game's Picture/
+//! portrait = "PortraitHero"      # a picture of the game's Picture/
 //! crop = [6, 6, 150, 188]        # the part of it that is the portrait
 //!
 //! [[subject.tab]]

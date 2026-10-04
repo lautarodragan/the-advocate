@@ -6290,6 +6290,39 @@ mod tests {
     }
 
     #[test]
+    fn a_common_event_a_custom_menu_replaces_opens_it_and_turns_off() {
+        // 4, automatic on switch 30, is replaced by menu 1: its body is the
+        // menu and its switch off, and 2, which it called, is not reached.
+        // 6 runs before a page: its message goes, its variable stays, after
+        // the other bodies.
+        let mut game = Game::default();
+        let on = |s: i32| cmd(CONTROL_SWITCHES, &[0, s, s, 0], "");
+        game.common_events.insert(2, common(5, None, vec![on(11)]));
+        game.common_events.insert(4, common(3, Some(30), vec![call(2)]));
+        game.common_events.insert(
+            6,
+            common(5, None, vec![on(12), cmd(SHOW_MESSAGE, &[], "Counted.")]),
+        );
+        game.patches.menus.replaced.insert(4, 1);
+        game.patches.menus.before.insert(6);
+        let s = shared(&game);
+        let numbers: Vec<i32> = s.bodies.iter().map(|(n, _)| *n).collect();
+        assert_eq!(numbers, [4, 6]);
+        assert_eq!(s.bodies[0].1, [OP_MENU_OPEN, 1, OP_SWITCH, 30, 0, 0, OP_RETURN]);
+        assert_eq!(s.bodies[1].1, [OP_SWITCH, 12, 0, 1, OP_RETURN]);
+        assert_eq!(s.menu_before, [(6, 1)]);
+        assert_eq!(s.autostart, [(30, 0)]);
+    }
+
+    #[test]
+    fn a_body_a_menu_runs_before_a_page_cannot_wait() {
+        let mut game = Game::default();
+        game.common_events.insert(6, common(5, None, vec![cmd(WAIT, &[10], "")]));
+        game.patches.menus.before.insert(6);
+        assert!(crate::commons::before_commands(&game, 6).is_err());
+    }
+
+    #[test]
     fn an_automatic_common_event_that_does_not_compile_has_no_body() {
         let mut game = Game::default();
         game.common_events.insert(2, common(5, None, vec![]));
