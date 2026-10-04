@@ -547,6 +547,17 @@ por uno salteando el `$$`.
 Siempre con `isolation: "worktree"`: cada uno en su copia, así el `mapdata.inc`
 —que es estado global— y las tandas no se mezclan.
 
+**Son un plantel fijo, desde el 2026-10-04**: un archivo por agente en
+`.claude/agents/`, con un nombre de la flora o la fauna argentina, y lo que
+vale para todos en `.claude/agentes.md` —lo que antes se repetía en cada
+encargo—. Se lanzan por su nombre, no como `general-purpose`, así el mismo
+agente vuelve y se encuentra a sí mismo: cada tarea lleva en `agents` a
+todos los que trabajaron en ella —el `assignee` pasa a taro en
+`testing/`—, que `workflow/tasks/tasks.nu ls -a <nombre>` filtra, y cada
+commit suyo termina con `Agente: <nombre>`, que `git log --grep` encuentra.
+Lo pidió taro, el 2026-10-04. Siguen arrancando de cero cada vez: la
+continuidad es lo que dejan escrito.
+
 Lo que hay que hacer siempre:
 
 * **Traer los builds a `/shared`, con `just entregar "<qué mirar>"`, desde
