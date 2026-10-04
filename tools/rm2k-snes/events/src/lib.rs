@@ -333,6 +333,24 @@ impl Request {
                 );
             }
         }
+        if let Some(menus) = data.get("menus").filter(|m| !m.is_null()) {
+            // Each custom menu, in the order the cartridge numbers them:
+            // the common event it replaces, if any, and the ones it runs
+            // before a page.
+            for (k, m) in menus
+                .as_array()
+                .ok_or_else(|| Bad::answer(format!("{whose}: `menus` is not a list")))?
+                .iter()
+                .enumerate()
+            {
+                if let Some(n) = m.get("replaces_common").and_then(Value::as_i64) {
+                    r.patches.menus.replaced.insert(n as i32, k as u8);
+                }
+                for b in m.get("before").and_then(Value::as_array).cloned().unwrap_or_default() {
+                    r.patches.menus.before.insert(int(&b, whose)? as i32);
+                }
+            }
+        }
         if let Some(p) = data.get("pictures") {
             // Each entry is a picture in the map's sprite bank, with its
             // slot, or —with `"plane": "background"`— a big one, with its

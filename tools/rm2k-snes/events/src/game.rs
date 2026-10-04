@@ -154,6 +154,18 @@ pub struct Patches {
     /// Common events the project declares as counters: the common event's
     /// number and the variable it shows. See `compile_counter`.
     pub counters: BTreeMap<i32, i32>,
+    /// What the project's custom menus ask of the events: the common event
+    /// each one replaces, with the menu's number —its body becomes
+    /// `OP_MENU_OPEN`—, and the ones a menu runs before a page, which get a
+    /// body of their own without messages or pictures. See [`crate::commons`].
+    pub menus: MenuHooks,
+}
+
+/// See [`Patches::menus`].
+#[derive(Debug, Clone, Default)]
+pub struct MenuHooks {
+    pub replaced: BTreeMap<i32, u8>,
+    pub before: std::collections::BTreeSet<i32>,
 }
 
 /// The game.

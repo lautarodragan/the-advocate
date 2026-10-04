@@ -1491,6 +1491,9 @@ fn compile_call(
     if p[0] == 0 && ctx.game.patches.counters.contains_key(&p[1]) {
         return compile_counter(ctx, p[1]);
     }
+    if p[0] == 0 && ctx.game.patches.menus.replaced.contains_key(&p[1]) {
+        return Ok(crate::commons::menu_open(ctx.game, p[1]));
+    }
     if let (0, Some(commons)) = (p[0], ctx.commons) {
         // Inside a shared body, a call to another: `OP_CALL` to its body, or
         // nothing if it has none, which is the same skip as a pasted call

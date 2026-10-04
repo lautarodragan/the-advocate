@@ -29,6 +29,7 @@
 //! registries: what they number goes at the end and moves nobody's index.
 
 use crate::codes::*;
+use rm2k_snes_bytecode::events::{OP_MENU_OPEN, OP_RETURN, OP_SWITCH};
 use crate::compile::{compile_page, Ctx, Indices, SoundSettings};
 use crate::fail::{Bad, Result};
 use crate::game::{Command, Game};
@@ -59,6 +60,10 @@ pub struct Shared {
     /// The common events an automatic one may reach that do not compile,
     /// automatic ones included: for the converter's report.
     pub left_out: Vec<i32>,
+    /// The bodies a custom menu runs before a page: each common event's
+    /// number and the index of its body without messages —see
+    /// [`before_commands`]—, after every other body.
+    pub menu_before: Vec<(i32, u8)>,
 }
 
 impl Shared {
@@ -68,6 +73,7 @@ impl Shared {
             "autostart": self.autostart,
             "depth": self.depth,
             "left_out": self.left_out,
+            "menu_before": self.menu_before,
         })
     }
 }
@@ -95,6 +101,63 @@ pub fn callees(game: &Game, commands: &[Command]) -> BTreeSet<i32> {
         .collect()
 }
 
+/// The common events common event `n`'s body calls: none if a custom menu
+/// replaces it, since its body is the menu's opcode and not its commands.
+fn calls_of(game: &Game, n: i32) -> BTreeSet<i32> {
+    if game.patches.menus.replaced.contains_key(&n) {
+        return BTreeSet::new();
+    }
+    callees(game, &game.common_events[&n].commands)
+}
+
+/// What a common event a custom menu replaces compiles to, wherever it
+/// runs or is called: the menu's opcode, and its switch turned off, which
+/// is what the game's own body did when the menu closed —and an automatic
+/// common event that does not turn it off runs forever—. Without the
+/// `OP_RETURN` or `OP_DONE`, which belong to who carries it.
+pub fn menu_open(game: &Game, n: i32) -> Vec<u8> {
+    let mut out = vec![OP_MENU_OPEN, game.patches.menus.replaced[&n]];
+    let c = &game.common_events[&n];
+    if c.switch_flag {
+        out.push(OP_SWITCH);
+        out.extend((c.switch_id as u16).to_le_bytes());
+        out.push(0);
+    }
+    out
+}
+
+/// What a common event a custom menu runs before a page can do: what
+/// changes the game's state without waiting. The menu runs it to its end
+/// before drawing, inside one frame, so a message would never be read and a
+/// wait would never end; the messages and the pictures, which only showed
+/// what it counted, are left out —the menu's page shows it instead—, and
+/// anything else is refused.
+const BEFORE_KEEPS: [i32; 13] = [
+    END, CONTROL_SWITCHES, CONTROL_VARS, COND_BRANCH, COND_ELSE, COND_END, LABEL, JUMP_TO_LABEL,
+    CALL_EVENT, COMMENT, COMMENT_2, LOOP, END_LOOP,
+];
+const BEFORE_DROPS: [i32; 6] = [SHOW_MESSAGE, SHOW_MESSAGE_2, SHOW_PICTURE, MOVE_PICTURE, ERASE_PICTURE, PLAY_SOUND];
+
+/// Common event `n`'s commands as a custom menu runs it before a page.
+pub fn before_commands(game: &Game, n: i32) -> Result<Vec<Command>> {
+    let mut out = Vec::new();
+    for c in &game.common_events[&n].commands {
+        if BEFORE_DROPS.contains(&c.code) {
+            continue;
+        }
+        if !BEFORE_KEEPS.contains(&c.code) && c.code != BREAK_LOOP {
+            return Err(Bad::answer(format!(
+                "common event {n} runs before a custom menu's page, and command {} is not one the \
+                 menu can run inside a frame: only switches, variables, branches, labels, loops and \
+                 calls",
+                c.code
+            )));
+        }
+        out.push(c.clone());
+    }
+    Ok(out)
+}
+
 /// What a shared body is compiled with besides its registries.
 pub struct Setting<'a> {
     pub game: &'a Game,
@@ -112,7 +175,31 @@ fn body(
     songs: &mut Songs,
     troops: &mut Troops,
 ) -> Result<Option<Vec<u8>>> {
-    let commands = &s.game.common_events[&number].commands;
+    body_of(s, number, commons, messages, songs, troops, false)
+}
+
+/// [`body`], or with `before` the one a custom menu runs before a page.
+fn body_of(
+    s: &Setting,
+    number: i32,
+    commons: &BTreeMap<i32, u8>,
+    messages: &mut Messages,
+    songs: &mut Songs,
+    troops: &mut Troops,
+    before: bool,
+) -> Result<Option<Vec<u8>>> {
+    if !before && s.game.patches.menus.replaced.contains_key(&number) {
+        let mut code = menu_open(s.game, number);
+        code.push(OP_RETURN);
+        return Ok(Some(code));
+    }
+    let stripped;
+    let commands: &[Command] = if before {
+        stripped = before_commands(s.game, number)?;
+        &stripped
+    } else {
+        &s.game.common_events[&number].commands
+    };
     let mut ctx = Ctx {
         game: s.game,
         indices: s.indices,
@@ -135,6 +222,8 @@ fn body(
 pub struct Plan {
     /// Each kept body's common event number and its index.
     pub index: BTreeMap<i32, u8>,
+    /// The bodies the custom menus run before a page, after the kept ones.
+    pub before: BTreeMap<i32, u8>,
     roots: Vec<(i32, i32)>,
     from_pages: BTreeSet<i32>,
     left_out: Vec<i32>,
@@ -161,19 +250,25 @@ pub fn plan(
         let mut pending: Vec<i32> = starts.into_iter().filter(keep).collect();
         while let Some(n) = pending.pop() {
             if seen.insert(n) {
-                pending.extend(
-                    callees(s.game, &s.game.common_events[&n].commands)
-                        .into_iter()
-                        .filter(keep),
-                );
+                pending.extend(calls_of(s.game, n).into_iter().filter(keep));
             }
         }
         seen
     };
+    // And what the menus' bodies call: those bodies are compiled apart,
+    // without their messages, but what they call is a body like any other.
+    let mut before_calls = BTreeSet::new();
+    for &n in &s.game.patches.menus.before {
+        if !s.game.common_events.contains_key(&n) {
+            return Err(Bad::answer(format!("a custom menu runs common event {n}, and there is none")));
+        }
+        before_calls.extend(callees(s.game, &before_commands(s.game, n)?));
+    }
     let starts: Vec<i32> = roots
         .iter()
         .map(|&(n, _)| n)
         .chain(from_pages.iter().copied())
+        .chain(before_calls)
         .collect();
     let reached = reach(starts.clone(), None);
     let every: BTreeMap<i32, u8> = reached.iter().map(|&n| (n, 0)).collect();
@@ -187,7 +282,7 @@ pub fn plan(
         }
     }
     let kept = reach(starts, Some(&compiles));
-    if kept.len() > BODIES_MAX {
+    if kept.len() + s.game.patches.menus.before.len() > BODIES_MAX {
         return Err(Bad::answer(format!(
             "{} shared common event bodies, and OP_CALL names {BODIES_MAX}",
             kept.len()
@@ -199,6 +294,15 @@ pub fn plan(
             .iter()
             .enumerate()
             .map(|(i, &n)| (n, i as u8))
+            .collect(),
+        before: s
+            .game
+            .patches
+            .menus
+            .before
+            .iter()
+            .enumerate()
+            .map(|(k, &n)| (n, (kept.len() + k) as u8))
             .collect(),
         roots,
         from_pages,
@@ -232,6 +336,16 @@ pub fn compile(
         .iter()
         .filter_map(|&(n, switch)| plan.index.get(&n).map(|&i| (switch, i)))
         .collect();
+    for (&n, &index) in &plan.before {
+        let Some(code) = body_of(s, n, &plan.index, messages, songs, troops, true)? else {
+            return Err(Bad::answer(format!(
+                "common event {n}, which a custom menu runs before a page, does not compile"
+            )));
+        };
+        debug_assert_eq!(index as usize, shared.bodies.len());
+        shared.bodies.push((n, code));
+        shared.menu_before.push((n, index));
+    }
     shared.depth = depth(s.game, plan);
     shared.left_out = plan.left_out.clone();
     Ok(shared)
@@ -256,7 +370,7 @@ fn depth(game: &Game, plan: &Plan) -> Option<usize> {
             return None;
         }
         let mut deepest = 0;
-        for c in callees(game, &game.common_events[&n].commands) {
+        for c in calls_of(game, n) {
             if kept.contains_key(&c) {
                 deepest = deepest.max(walk(game, kept, c, open, memo)?);
             }
