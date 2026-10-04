@@ -350,4 +350,49 @@ none:
     rtl
 .endproc
 .assert NPC_STRIDE = 16, error, "slot_npc multiplies by NPC_STRIDE with four asl"
+
+; One frame of the turn in place of slot X, whose page spins —`AnimType_spin`,
+; bit 7 of +18—: it is the start of `Game_Character::UpdateAnimation`. The
+; count at +11 goes up every frame, walking or not, and on reaching the
+; speed's limit it faces a quarter further clockwise —up, right, down, left—.
+; The column, +10, is left as the page put it: nothing animates it, not even
+; a step, and command 38 does not stop it. That its steps do not turn it is
+; `move` in `ev_route_frame`. Keeps X; A, Y and `temp` are lost.
+.proc spin_step
+.a8
+.i16
+    inc route_ev + 11, x
+    lda route_ev + 17, x        ; the speed, 1 to 6
+    phx
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda f:spin_frames - 1, x
+    plx
+    sta temp
+    lda route_ev + 11, x
+    cmp temp
+    bcc ready
+    stz route_ev + 11, x
+    lda route_ev + 8, x
+    cmp #ROUTE_EV_NO_FACE
+    bne turn
+    jsl f:slot_npc + FAST       ; it has not turned yet: from where its page faces
+    cpy #$FFFF
+    beq ready                   ; without a row there is nothing to turn
+    lda npc_buf + 10, y
+turn:
+    inc a
+    and #$03
+    sta route_ev + 8, x
+ready:
+    rtl
+.endproc
+
+; Every how many frames it turns, by speed: `GetSpinAnimFrames`.
+spin_frames:
+    .byte 24, 16, 12, 8, 6, 4
 .assert NPC_MAX < 255, error, "slot_npc stores the row plus one in a byte"

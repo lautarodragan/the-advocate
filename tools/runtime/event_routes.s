@@ -637,7 +637,12 @@ face:
     sec
     sbc #12
 look:
-    sta route_ev + 8, x         ; face_*: with frequency 8 it is instant and the
+    ; One that spins does not turn with a face_* either, though it costs the
+    ; same: `Turn` goes through `UpdateFacing`. `bit` leaves A alone.
+    bit route_ev + 18, x
+    bmi looked
+    sta route_ev + 8, x
+looked:                         ; face_*: with frequency 8 it is instant and the
     lda route_ev + 16, x        ; next one follows; with another, it stands
     jsr after_turn              ; still for the turn's frames
     bne turn_wait
@@ -652,9 +657,10 @@ move:
     sta route_dir
     stz route_dir + 1
     lda route_ev + 18, x
-    and #$08
+    and #$88
     bne no_turn                 ; always faces the same way: `lock_facing` or the
-                                ; page's animation type
+                                ; page's animation type; or it spins, which
+                                ; turns it on its own (`UpdateFacing`)
     lda route_dir
     cmp #4
     bcc right                   ; the usual four face where they go

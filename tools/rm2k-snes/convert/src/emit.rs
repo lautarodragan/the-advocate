@@ -17,6 +17,8 @@ pub fn page_record(page: &PageRecord) -> Value {
             "skippable": own["skippable"].as_bool().unwrap_or(false),
             "fixed_direction": own["fixed_direction"].as_bool().unwrap_or(false),
             "animation_continues": own["animation_continues"].as_bool().unwrap_or(false),
+            "spin": own["spin"].as_bool().unwrap_or(false),
+            "pattern": own["pattern"].as_i64().unwrap_or(1),
             "frequency": own["frequency"],
             "speed": own["speed"],
             "orders": own["commands"].as_array().map_or(0, Vec::len),

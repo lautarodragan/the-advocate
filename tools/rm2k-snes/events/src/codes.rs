@@ -129,6 +129,8 @@ pub const TRIGGER_AUTOSTART: i32 = 3;
 pub const TRIGGER_PARALLEL: i32 = 4;
 /// The hero's layer: `Layers_same`.
 pub const LAYER_SAME: i32 = 1;
+/// `MoveType_stationary`: the page does not move.
+pub const MOVE_STATIONARY: i32 = 0;
 /// `MoveType_custom`: the page walks a route of its own.
 pub const MOVE_CUSTOM: i32 = 6;
 /// The `AnimType`s.

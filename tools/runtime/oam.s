@@ -555,7 +555,7 @@ with_end:
     ora jump_dy
     beq no_turn
     lda route_ev + 18, x
-    and #$08
+    and #$88                    ; nor one that spins, which turns on its own
     bne no_turn
     jsr jump_direction
     sta route_ev + 8, x

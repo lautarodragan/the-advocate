@@ -74,6 +74,8 @@ pub struct Page {
     /// The CharSet, as the project named it: see [`Patches::names`].
     pub character_name: String,
     pub character_index: i32,
+    /// The column it shows, 0 to 2: the one a spinning page keeps.
+    pub character_pattern: i32,
     pub commands: Vec<Command>,
     /// The page's own route: its commands' codes, whether it repeats and
     /// whether a blocked command is skipped.
@@ -467,6 +469,7 @@ impl Game {
                                 animation_type: p.animation_type.to_i32(),
                                 character_name: name,
                                 character_index: p.character_index,
+                                character_pattern: p.character_pattern.to_i32(),
                                 commands: commands(&p.event_commands, Some(&self.patches.boxes)),
                                 route: p
                                     .move_route

@@ -481,6 +481,12 @@ pub struct OwnRoute {
     pub skippable: bool,
     pub fixed_direction: bool,
     pub animation_continues: bool,
+    /// Whether it turns in place —`AnimType_spin`—, and the column it
+    /// shows meanwhile.
+    #[serde(default)]
+    pub spin: bool,
+    #[serde(default)]
+    pub pattern: i64,
     pub frequency: i64,
     pub speed: i64,
     /// How many commands it has.
