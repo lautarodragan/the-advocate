@@ -352,12 +352,20 @@ BA_ITEM_MAX = 64
 ;
 ; After `BA_ITEM_LIST`, which ends at +656.
 BA_SKILL_N   = FAR_BATTLE + 656    ; how many the one giving commands knows
-BA_SKILL_SEL = FAR_BATTLE + 657    ; which one the cursor marks
+BA_SKILL_SEL = FAR_BATTLE + 657    ; which one the cursor marks, in the whole list
 BA_MSKILL    = FAR_BATTLE + 658    ; the `k` of the current message's one
 BA_ACC_SKILL = FAR_BATTLE + 660    ; the `k` each actor chose, one per byte
-BA_SKILL_LIST = FAR_BATTLE + 672   ; their list, one `k` per byte
+; **Only the visible page** of the list, one `k` per byte: place
+; `2 * BA_SKILL_TOP` of the whole list goes at byte 0. The whole one does not
+; fit here —Talan can know 54— and nothing needs it at once: see
+; `ba_skill_list`. The enemies' choice of action uses these same bytes for
+; its weights, which is why it is still 16 and not 14.
+BA_SKILL_LIST = FAR_BATTLE + 672
 BA_SKILL_MAX = 16                  ; BA_SKILL_ROWS times BA_SKILL_COLUMNS, with room to spare
 BA_MEFFECT   = FAR_BATTLE + 688    ; signed word: how much the last one did
+; The first visible row of the skill list, since 2026-10-04: the window
+; scrolls, as RM2k's does.
+BA_SKILL_TOP = FAR_BATTLE + 690
 BA_ACC     = FAR_BATTLE + 48      ; two bytes per combatant: command and target
 BA_EXEC    = FAR_BATTLE + 72      ; the execution order, one combatant per byte
 BA_CAND    = FAR_BATTLE + 88      ; the living on one side, to pick a target
