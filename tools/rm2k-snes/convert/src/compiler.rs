@@ -103,6 +103,9 @@ pub fn counters(settings: &Settings) -> Result<Vec<Value>> {
 pub struct Compiler<'a> {
     pub game: &'a Game,
     pub settings: &'a Settings<'a>,
+    /// What the custom menus ask of the events, one entry per menu: see
+    /// `CustomMenu::hooks`.
+    menus: Value,
     boxes: Value,
     window: Value,
     troop_window: Value,
@@ -130,7 +133,8 @@ impl<'a> Compiler<'a> {
             .as_u64()
             .ok_or_else(|| Stop::new("the battle's layout has no BA_PAGE_MSG_WIDTH"))?;
         let troop_window = font.window(cells as usize * 8, LINES);
-        Ok(Compiler { game, settings, boxes, window, troop_window })
+        let menus = Value::Array(settings.menus()?.iter().map(|m| m.hooks()).collect());
+        Ok(Compiler { game, settings, menus, boxes, window, troop_window })
     }
 
     fn data(&self) -> Vec<OsString> {
@@ -155,6 +159,7 @@ impl<'a> Compiler<'a> {
         r.insert("test_commands".into(), commands(test_commands));
         r.insert("extra_variables".into(), json!(extra_variables.iter().collect::<Vec<_>>()));
         r.insert("test_event_map".into(), json!(test_event_map));
+        r.insert("menus".into(), self.menus.clone());
         r
     }
 

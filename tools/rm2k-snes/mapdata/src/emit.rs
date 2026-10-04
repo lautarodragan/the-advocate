@@ -38,6 +38,7 @@ use rm2k_snes_battle::rules;
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
+mod custom_menu;
 mod header;
 use header::HEADER;
 
@@ -629,6 +630,7 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         faces: &faces,
     };
     rest.write(&mut out, &mut notes)?;
+    custom_menu::section(&mut out, screens.get("custom_menus").unwrap_or(&Value::Null))?;
     out.push_str(&per_map.tables);
     timer_and_case(&mut out, r);
     Ok(Emitted {
@@ -1726,7 +1728,14 @@ impl Rest<'_> {
         out.push_str(".segment \"TABLES\"\n");
         // The pause menu: its blocks, and where each thing goes, in words.
         let vram_cell = |row: i64, col: i64| i64::from(SLOT_MAP) + row * 32 + col;
-        let option_rows: Vec<i64> = (0..t.n("MENU_OPTIONS"))
+        // The custom menus' options go after RM2k's five, as commands 5 and
+        // on, and the column has a row for each: see `menu_rows_build`.
+        let custom = screens.get("custom_menus").filter(|c| !c.is_null());
+        let custom_n = match custom {
+            Some(c) => list_at(c, "labels")?.len() as i64,
+            None => 0,
+        };
+        let option_rows: Vec<i64> = (0..t.n("MENU_OPTIONS") + custom_n)
             .map(|n| (t.n("MENU_OPT_Y") + n * t.n("MENU_OPT_STEP")).div_euclid(cell))
             .collect();
         out.push_str(&pyf!(
@@ -1759,11 +1768,15 @@ impl Rest<'_> {
             t.n("MENU_MAX_DIGITS"),
             t.n("MENU_HP_ROW") * 32 + t.n("MENU_MAX_COL") - t.n("MENU_ACTOR_COL")
         ));
+        out.push_str(&format!(
+            "MENU_CUSTOM = {custom_n}\nMENU_ROWS_MAX = {}\n",
+            t.n("MENU_OPTIONS") + custom_n
+        ));
         let done: BTreeSet<i64> = ints(t.v("MENU_DONE"))?.into_iter().collect();
         out.push_str(&format!(
             "menu_done:\n     .byte {}\n",
-            (0..t.n("MENU_OPTIONS"))
-                .map(|n| if done.contains(&n) { "1" } else { "0" })
+            (0..t.n("MENU_OPTIONS") + custom_n)
+                .map(|n| if done.contains(&n) || n >= t.n("MENU_OPTIONS") { "1" } else { "0" })
                 .collect::<Vec<_>>()
                 .join(", ")
         ));

@@ -77,6 +77,7 @@ pub fn convert(
     members: &[i32],
     items: &[i32],
     title: bool,
+    menus: &Value,
 ) -> Result<Value> {
     let _ = LINES;
     let bg1_banks: Vec<Value> = vram::LAYOUTS
@@ -89,7 +90,7 @@ pub fn convert(
             ])
         })
         .collect();
-    let request = json!({
+    let mut request = json!({
         "font": font.spec,
         "letter_spacing": font.spacing,
         "slots": vram::SLOTS,
@@ -107,6 +108,10 @@ pub fn convert(
             "bg1_banks": bg1_banks,
         },
     });
+    // The custom menus, their variables' slots and the bodies they run.
+    for key in ["menus", "variables", "before_bodies"] {
+        request[key] = menus[key].clone();
+    }
     let written = stage::run(BINARY, PROJECT, "convert", &request, &game_flags(game))?;
     stage::json(&written, "screens.json")
 }

@@ -21,6 +21,7 @@ pub mod boxes;
 pub mod cells;
 pub mod checks;
 pub mod convert;
+pub mod custom_menu;
 pub mod end_game;
 pub mod fail;
 pub mod game;
