@@ -554,7 +554,7 @@ to_screen:
     jmp ba_compose
 .endproc
 
-; The page's message, in the party's lines: see `BA_PAGE_MSG_ROW0` in
+; The page's message, in the message window: see `BA_PAGE_MSG_ROW0` in
 ; `rm2k-snes-battle`'s `screen.rs`. It reads it from `messages_troop` in the
 ; usual format —the header with the lines and each line with its length, one
 ; byte per letter with the ASCII minus 32: unlike `messages`, this block is

@@ -1,0 +1,74 @@
+{
+ "ACTIONS_MAX": 16,
+ "BATTLE_SEED": 11037,
+ "BA_BAR_COL": 24,
+ "BA_COMMANDS": [
+  [
+   "attack",
+   0,
+   1
+  ],
+  [
+   "skill",
+   0,
+   11
+  ],
+  [
+   "defend",
+   0,
+   22
+  ],
+  [
+   "use",
+   1,
+   1
+  ],
+  [
+   "escape",
+   1,
+   13
+  ]
+ ],
+ "BA_COMMAND_ATTACK": 0,
+ "BA_COMMAND_DEFEND": 2,
+ "BA_COMMAND_ESCAPE": 4,
+ "BA_COMMAND_SKILL": 1,
+ "BA_COMMAND_UNDONE": [],
+ "BA_COMMAND_USE": 3,
+ "BA_COMMAND_WIDTH": 10,
+ "BA_CURSOR_COL": 0,
+ "BA_ENEMY_ROW0": 0,
+ "BA_HP_COL": 18,
+ "BA_HP_MAX_NUM": 25,
+ "BA_HP_NUM": 21,
+ "BA_ITEM_COUNT_COL": 18,
+ "BA_MSG_ROW1": 24,
+ "BA_MSG_ROW2": 26,
+ "BA_NAME_COL": 2,
+ "BA_NAME_WIDTH": 14,
+ "BA_PAGE_MSG_COL": 1,
+ "BA_PAGE_MSG_ROW0": 16,
+ "BA_PAGE_MSG_WIDTH": 31,
+ "BA_PARTY_ROW0": 16,
+ "BA_SKILL_COLUMNS": 2,
+ "BA_SKILL_COLUMN_DX": 16,
+ "BA_SKILL_COST_COL": 14,
+ "BA_SKILL_COST_DIGITS": 2,
+ "BA_SKILL_DASH_COL": 13,
+ "BA_SKILL_DESC_COL": 1,
+ "BA_SKILL_DESC_ROW": 0,
+ "BA_SKILL_DESC_WIDTH": 31,
+ "BA_SKILL_NAME_COL": 2,
+ "BA_SKILL_NAME_WIDTH": 11,
+ "BA_SKILL_ROW0": 2,
+ "BA_SKILL_ROWS": 7,
+ "BA_VICTORY_TERM_MAX": 2,
+ "COMMAND_ATTACK": 0,
+ "COMMAND_DEFEND": 1,
+ "COMMAND_ESCAPE": 2,
+ "COMMAND_ITEM": 3,
+ "COMMAND_SKILL": 4,
+ "DEFEAT": 2,
+ "ESCAPE": 1,
+ "VICTORY": 0
+}

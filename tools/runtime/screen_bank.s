@@ -96,8 +96,9 @@ TL_POOL_WHOLE = (ITEM_BORDER_MAP - SLOT_VRAM) / TL_PAIR_WORDS - 1
 ; is pair 0, the blank one.
 ;
 ; **They are 447, and that is a screen of text with every cell inked**:
-; the battle writes its lines on even rows, fourteen in the 28, and 14 * 32
-; is 448. So no font and no spacing make it run out. With 255 —words 0 to
+; the battle writes its lines two cell rows apart, fourteen at most in the
+; 28, and 14 * 32 is 448. So no font and no spacing make it run out. Since
+; 2026-10-04 it writes far fewer —the description and the band's five—. With 255 —words 0 to
 ; $1FFF only, a byte's worth— the list ran out again with `letter_spacing`
 ; 2, measured with the same Talan.
 ;

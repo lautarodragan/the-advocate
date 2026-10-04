@@ -1655,6 +1655,82 @@ ready:
     rts
 .endproc
 
+; In the vblank: the band on top where the description of an item or a
+; skill goes, RM2k's `Window_Help`. It is the scene's first
+; `BA_HELP_SCENE_ROWS` tile rows pointed at `SCENE_TARGET`, the transparent
+; tile, which leaves them on black; and pointed back at their tiles when the
+; list closes. `ba_compose` says which it wants in `BA_HELP_WANT`, and
+; `BA_HELP_ON` is what the tilemap shows.
+;
+; **It goes away only once the text layer shows what was composed after
+; it**: the text arrives some frames after the cursor —see `text_layer.s`—,
+; and putting the scene back at once left the description over it for those
+; frames. Taking it is at once: the scene goes black a few frames before the
+; description is written, which is what an opening window looks like.
+.proc ba_help_tick
+.a8
+.i16
+    lda BA_SCENE
+    cmp #$FF
+    beq ready                   ; no scene: the screen is black already
+    lda BA_HELP_WANT
+    cmp BA_HELP_ON
+    beq ready
+    cmp #0
+    bne apply
+    lda TL_IDLE_DONE
+    beq ready                   ; the layer still has text to typeset
+    lda TL_MAP_DIRTY
+    bne ready                   ; or a tilemap to put up
+    lda BA_HELP_WANT
+apply:
+    sta BA_HELP_ON
+    lda #$80
+    sta f:VMAIN
+    rep #$20
+.a16
+    lda #SCENE_MAP
+    sta f:VMADDL
+    lda #(BA_HELP_SCENE_ROWS * 32 * 2)
+    sta f:DAS0L
+    sep #$20
+.a8
+    lda BA_HELP_ON              ; a byte: `ldx` would take the next one too
+    rep #$20
+.a16
+    bne blank
+    lda #.loword(scene_top_cells)
+    bra source_set
+blank:
+    lda #.loword(scene_top_blank)
+source_set:
+    sta f:A1T0L
+    sep #$20
+.a8
+    lda #^scene_top_cells
+    sta f:A1B0
+    lda #$01
+    sta f:DMAP0
+    lda #$18
+    sta f:BBAD0
+    lda #$01
+    sta f:MDMAEN
+ready:
+    rts
+.endproc
+
+; The scene's top rows as `scene_upload` writes them —tile n on cell n— and
+; covered.
+scene_top_cells:
+    .repeat BA_HELP_SCENE_ROWS * 32, I
+    .word I
+    .endrepeat
+scene_top_blank:
+    .repeat BA_HELP_SCENE_ROWS * 32
+    .word SCENE_TARGET
+    .endrepeat
+.assert ^scene_top_cells = ^scene_top_blank, error, "the two sources of the description's band go in one bank"
+
 ; When returning to the map, the upper eight palettes from `cgram_shadow`,
 ; before anything else: the battlers took them, and what the map restores by
 ; itself is only its objects' ones —`SPRITE_CGRAM` colors— and the timer's.

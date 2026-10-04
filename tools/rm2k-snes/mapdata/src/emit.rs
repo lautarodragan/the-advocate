@@ -57,7 +57,7 @@ pub struct Emitted {
 
 /// The LDB terms the battle screen uses, in the order the console indexes
 /// them, by the name the `.inc` gives them and liblcf's.
-pub const BATTLE_TERMS: [(&str, &str); 27] = [
+pub const BATTLE_TERMS: [(&str, &str); 29] = [
     ("attack", "command_attack"),
     ("defend", "command_defend"),
     ("escape", "battle_escape"),
@@ -85,7 +85,36 @@ pub const BATTLE_TERMS: [(&str, &str); 27] = [
     ("currency", "gold"),
     ("gold_b", "gold_recieved_b"),
     ("obtained", "item_recieved"),
+    ("sp", "sp_short"),
+    ("normal", "normal_status"),
 ];
+
+/// A description cut in the two lines of the battle's band on top: the
+/// first, as many words as fit in `width` pixels with the font's
+/// `advances` —one at least, which the console cuts at the edge—, and the
+/// second, the rest, which the console cuts at the edge too. RM2k writes
+/// it in one line with a smaller font.
+fn help_lines(text: &str, advances: &[i64], width: i64) -> (String, String) {
+    let px = |s: &str| -> i64 {
+        s.chars()
+            .map(|c| advances.get((c as usize).wrapping_sub(32)).copied().unwrap_or(0))
+            .sum()
+    };
+    let text = text.trim();
+    if px(text) <= width {
+        return (text.to_string(), String::new());
+    }
+    let mut first = String::new();
+    for word in text.split(' ') {
+        let longer = if first.is_empty() { word.to_string() } else { format!("{first} {word}") };
+        if !first.is_empty() && px(&longer) > width {
+            break;
+        }
+        first = longer;
+    }
+    let rest = text[first.len()..].trim().to_string();
+    (first, rest)
+}
 
 /// A term of the database, by liblcf's name.
 fn term(db: &Db, name: &str) -> Result<String> {
@@ -118,6 +147,8 @@ fn term(db: &Db, name: &str) -> Result<String> {
         "gold" => &t.gold,
         "gold_recieved_b" => &t.gold_recieved_b,
         "item_recieved" => &t.item_recieved,
+        "sp_short" => &t.sp_short,
+        "normal_status" => &t.normal_status,
         _ => return Err(Bad::usage(format!("there is no term {name:?}"))),
     }
     .clone())
@@ -1592,6 +1623,7 @@ impl Rest<'_> {
         }
         let battle_text = battle_text.unwrap_or(0);
         let revived_text = texts.add(text_at(mtexts, "revived")?);
+        let dead_text = texts.add(text_at(mtexts, "dead")?);
         let victory2_text = texts.add(victory.get(1).map_or("", String::as_str));
         let rom_enemies = ints_at(model, "enemies")?;
         let enemy_names = at(mtexts, "enemies")?;
@@ -1609,12 +1641,20 @@ impl Rest<'_> {
                 texts.add(text_at(at(skill_texts, &h.to_string())?, "name")?),
             );
         }
+        // A skill's description in two texts, one after the other: the
+        // battle writes it in the band on top, two lines if it takes them.
+        // See `help_lines`.
+        let advances = ints_at(at(screens, "window")?, "advances")?;
+        let help_width = int_at(at(model, "layout")?, "BA_HELP_WIDTH")? * 8;
         let mut skill_desc_text = HashMap::new();
         for &h in &rom_skills {
-            skill_desc_text.insert(
-                h,
-                texts.add(text_at(at(skill_texts, &h.to_string())?, "description")?),
+            let (first, second) = help_lines(
+                text_at(at(skill_texts, &h.to_string())?, "description")?,
+                &advances,
+                help_width,
             );
+            skill_desc_text.insert(h, texts.add(&first));
+            texts.add(&second);
         }
         let skill = |h: i64| {
             db.skill(h as i32)
@@ -1979,6 +2019,7 @@ impl Rest<'_> {
                 currency_text,
                 battle_text,
                 revived_text,
+                dead_text,
                 victory2_text,
                 victory_lines: victory.len(),
                 enemy_text,
@@ -2009,6 +2050,7 @@ struct ItemTexts<'a> {
     currency_text: i64,
     battle_text: i64,
     revived_text: i64,
+    dead_text: i64,
     victory2_text: i64,
     victory_lines: usize,
     enemy_text: HashMap<i64, i64>,
@@ -2996,35 +3038,51 @@ impl Rest<'_> {
             }
         }
         let pos = |row: i64, col: i64| row * 64 + col * 2;
+        // The battle's geometry, in the text layer's terms: a place is
+        // row * 64 + column * 2, and a column offset is the column times two.
+        // See `screen.rs` in `rm2k-snes-battle`.
+        for (name, value) in [
+            ("BA_ENEMY_POS0", pos(bs.n("BA_ENEMY_ROW0"), 0)),
+            ("BA_TARGET_ROWS", bs.n("BA_TARGET_ROWS")),
+            ("BA_CURSOR_DX", bs.n("BA_CURSOR_COL") * 2),
+            ("BA_ENEMY_NAME_DX", bs.n("BA_ENEMY_NAME_COL") * 2),
+            ("BA_ENEMY_NAME_WIDTH", bs.n("BA_ENEMY_NAME_WIDTH")),
+            ("BA_COMMAND_POS0", pos(bs.n("BA_COMMAND_ROW0"), 0)),
+            ("BA_COMMAND_DX", bs.n("BA_COMMAND_COL") * 2),
+            ("BA_COMMAND_CELLS", bs.n("BA_COMMAND_CELLS")),
+            ("BA_PARTY_POS0", pos(bs.n("BA_PARTY_ROW0"), 0)),
+            ("BA_PARTY_CURSOR_DX", bs.n("BA_PARTY_CURSOR_COL") * 2),
+            ("BA_NAME_DX", bs.n("BA_NAME_COL") * 2),
+            ("BA_NAME_WIDTH", bs.n("BA_NAME_WIDTH")),
+            ("BA_STATE_DX", bs.n("BA_STATE_COL") * 2),
+            ("BA_STATE_WIDTH", bs.n("BA_STATE_WIDTH")),
+            ("BA_HP_DX", bs.n("BA_HP_COL") * 2),
+            ("BA_SP_DX", bs.n("BA_SP_COL") * 2),
+            ("BA_MSG_POS1", pos(bs.n("BA_MSG_ROW1"), 0)),
+            ("BA_MSG_POS2", pos(bs.n("BA_MSG_ROW2"), 0)),
+            ("BA_MSG_LINES", bs.n("BA_MSG_LINES")),
+            ("BA_MSG_DX", 2),
+            ("BA_HELP_POS", pos(bs.n("BA_HELP_ROW"), bs.n("BA_HELP_COL"))),
+            ("BA_HELP_POS1", pos(bs.n("BA_HELP_ROW1"), bs.n("BA_HELP_COL"))),
+            ("BA_HELP_POS2", pos(bs.n("BA_HELP_ROW2"), bs.n("BA_HELP_COL"))),
+            ("BA_HELP_SCENE_ROWS", bs.n("BA_HELP_SCENE_ROWS")),
+            ("BA_HELP_WIDTH", bs.n("BA_HELP_WIDTH")),
+            ("BA_PAGE_MSG_POS0", pos(bs.n("BA_PAGE_MSG_ROW0"), 0)),
+            ("BA_PAGE_MSG_DX", bs.n("BA_PAGE_MSG_COL") * 2),
+            ("BA_PAGE_MSG_WIDTH", bs.n("BA_PAGE_MSG_WIDTH")),
+            ("BA_ROW_BYTES", 2 * 64),
+            ("BA_HP_ENEMIES", i64::from(r.enemy_hp)),
+        ] {
+            out.push_str(&format!("{name:<17} = {value}\n"));
+        }
         out.push_str(&pyf!(
-            "TROOPS_N          = %d\nBATTLE_SEED       = $%04X\nBA_TXT_BASE       = %d\nBA_ENEMY_POS0     = %d\n\
-             BA_PARTY_POS0     = %d\nBA_MSG_POS1       = %d\nBA_MSG_POS2       = %d\nBA_ROW_BYTES      = %d\n\
-             BA_CURSOR_DX      = %d\nBA_NAME_DX        = %d\nBA_NAME_WIDTH     = %d\nBA_HP_DX          = %d\n\
-             BA_HP_NUM_DX      = %d\nBA_HP_ENEMIES     = %d\nBA_BAR_DX         = %d\nBA_HPMAX_DX       = %d\n\
-             BA_MSG_DX         = %d\nBA_PAGE_MSG_POS0  = %d\nBA_PAGE_MSG_DX    = %d\nBA_PAGE_MSG_WIDTH = %d\n\
+            "TROOPS_N          = %d\nBATTLE_SEED       = $%04X\nBA_TXT_BASE       = %d\n\
              TROOP_PAGE_MAX    = %d\nTPAGE_SWITCH_A    = $%02X\nTPAGE_SWITCH_B    = $%02X\nTPAGE_VARIABLE    = $%02X\n\
              TPAGE_TURN        = $%02X\nTPAGE_ENEMY       = $%02X\nTPAGE_ACTOR       = $%02X\n\
              TPAGE_WITH_HEADER = $%02X\nTPAGE_HEADER      = %d\n",
             used.len(),
             bs.n("BATTLE_SEED"),
             x.battle_text,
-            pos(bs.n("BA_ENEMY_ROW0"), 0),
-            pos(bs.n("BA_PARTY_ROW0"), 0),
-            pos(bs.n("BA_MSG_ROW1"), 0),
-            pos(bs.n("BA_MSG_ROW2"), 0),
-            2 * 64,
-            bs.n("BA_CURSOR_COL") * 2,
-            bs.n("BA_NAME_COL") * 2,
-            bs.n("BA_NAME_WIDTH"),
-            bs.n("BA_HP_COL") * 2,
-            bs.n("BA_HP_NUM") * 2,
-            r.enemy_hp,
-            bs.n("BA_BAR_COL") * 2,
-            bs.n("BA_HP_MAX_NUM") * 2,
-            2,
-            pos(bs.n("BA_PAGE_MSG_ROW0"), 0),
-            bs.n("BA_PAGE_MSG_COL") * 2,
-            bs.n("BA_PAGE_MSG_WIDTH"),
             TROOP_PAGES_MAX,
             TROOP_TRIGGER_SWITCH_A,
             TROOP_TRIGGER_SWITCH_B,
@@ -3083,10 +3141,14 @@ impl Rest<'_> {
             ));
         }
         out.push_str(&format!("BA_TXT_REVIVED    = {}\n", x.revived_text));
+        out.push_str(&format!("BA_TXT_DEAD       = {}\n", x.dead_text));
         let commands = list(bs.v("BA_COMMANDS"))?;
         out.push_str(&format!("BA_COMMANDS_N     = {}\n", commands.len()));
-        out.push_str(&format!(
-            "BA_ITEM_COUNT_DX = {}\n",
+        out.push_str(&pyf!(
+            "BA_ITEM_POS0      = %d\nBA_ITEM_ROWS      = %d\nBA_ITEM_NAME_WIDTH = %d\nBA_ITEM_COUNT_DX  = %d\n",
+            pos(bs.n("BA_ITEM_ROW0"), 0),
+            bs.n("BA_ITEM_ROWS"),
+            bs.n("BA_ITEM_NAME_WIDTH"),
             bs.n("BA_ITEM_COUNT_COL") * 2
         ));
         out.push_str(&format!("BA_COMMAND_USE    = {}\n", bs.n("BA_COMMAND_USE")));
@@ -3120,30 +3182,15 @@ impl Rest<'_> {
             bs.n("BA_SKILL_COST_DIGITS")
         ));
         out.push_str(".segment \"RODATA\"\n");
-        let mut rows = Vec::new();
-        let mut dx = Vec::new();
         let mut txt = Vec::new();
         for c in commands {
-            let c = list(c)?;
-            let name = text(&c[0])?;
-            let line_no = int(&c[1])?;
-            rows.push(pos(
-                if line_no == 0 {
-                    bs.n("BA_MSG_ROW1")
-                } else {
-                    bs.n("BA_MSG_ROW2")
-                },
-                0,
-            ));
-            dx.push(int(&c[2])? * 2);
+            let name = text(c)?;
             let k = BATTLE_TERMS
                 .iter()
                 .position(|(n, _)| *n == name)
                 .ok_or_else(|| Bad::answer(format!("the battle command {name:?} is not a term")))?;
             txt.push(x.battle_text + k as i64);
         }
-        words_asm(out, "ba_command_row", &decimal(rows), true);
-        words_asm(out, "ba_command_dx", &decimal(dx), true);
         // Two bytes: a text index does not fit in one.
         words_asm(out, "ba_command_txt", &decimal(txt), true);
         let undone: BTreeSet<i64> = ints(bs.v("BA_COMMAND_UNDONE"))?.into_iter().collect();

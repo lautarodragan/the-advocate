@@ -1360,11 +1360,10 @@ sorted:
 
 ; --- the screen -----------------------------------------------------------
 ;
-; Text on black, on the same grid of 32 by 28 cells as the equipment screen
-; and the shop. The geometry comes from `rm2k-snes-battle` and the
-; converter emits the positions, so it is written **by only one of the two
-; sides**. The enemies at the top, the party at the bottom, and the last line
-; is either the command menu or the message's two lines.
+; Text on the same grid of 32 by 28 cells as the equipment screen and the
+; shop. The geometry comes from `rm2k-snes-battle` and the converter emits
+; the positions, so it is written **by only one of the two sides**. Every
+; window goes in the band below the scene, as RM2k's: see `ba_compose`.
 
 ; `BA_T1` = A16 + `BA_S0` times what a line measures: where line number
 ; `BA_S0` of the list starting at A16 begins.
@@ -1397,24 +1396,73 @@ sorted:
     rts
 .endproc
 
-; A combatant's line: its name and its HP —an enemy's, only with
-; `BA_HP_ENEMIES`—, in grey if it is dead.
-; A8 = the combatant, `BA_T1` = where its line starts, and bit 0 of
-; `BA_WITHMAX` says whether the max HP go too —that is, whether it belongs to
-; the party—.
+; An enemy's line in the list to attack: its name, and its HP only with
+; `BA_HP_ENEMIES`. A8 = the combatant, `BA_T1` = where its line starts.
 .proc ba_line
 .a8
 .i16
     sta BA_S4
-    ; A hidden enemy has no line until it appears: in RM2k it is not on the
-    ; screen, and here its line is what says it is there.
     jsr ba_x
-    lda BA_ONE + BA_FLAGS, x
-    and #BAF_HIDDEN
-    beq to_view
+    stx BA_S5                   ; its offset, which `scr_text` overwrites
+    stz temp + 1
+    rep #$20
+.a16
+    lda #BA_ENEMY_NAME_DX
+    jsr ba_go
+    ldx BA_S5
+    lda BA_ONE + BA_TXT, x
+    tax
+    sep #$20
+.a8
+    lda #BA_ENEMY_NAME_WIDTH
+    sta comp_dup + 3
+    lda #1
+    sta TL_BY_REF
+    jsl f:ba_t_text
+.if ::BA_HP_ENEMIES = 0
+    ; An enemy does not show its HP, as in RM2k: the line is only its name.
+    ; With `[debug] enemy_hp` in the project file they show, for debugging,
+    ; where the party's go —the list leaves them out then—. The `::` is not
+    ; redundant: inside a `.proc`, `ca65` does not give a constant value to a
+    ; bare name, which could be defined further down in the same `.proc`.
     rts
-to_view:
-    lda BA_S4
+.else
+    rep #$20
+.a16
+    lda #BA_HP_DX
+    jsr ba_go
+    sep #$20
+.a8
+    ldx #BA_TXT_HP
+    jsl f:ba_t_text
+    ldx BA_S5
+    rep #$20
+.a16
+    lda BA_ONE + BA_HP, x
+    jsr ba_capped
+    sep #$20
+.a8
+    jsl f:ba_t_number
+    rts
+.endif
+.endproc
+
+; An actor's line in the band: its name, its state, and its HP and SP, in
+; gray if it is down —RM2k's `Window_BattleStatus`, `Talan  Normal  HP 49/ 49
+; SP 49`—. A8 = the actor's slot, `BA_T1` = where its line starts, and bit 0
+; of `BA_WITHMAX` says whether the name and the state go too: the enemies'
+; list covers them.
+;
+; The state is the database's `normal_status`, or the dead state's name for
+; one at zero HP: the battle has no other states. The HP and the SP are
+; **one run each** —the term, the number in three places and, in the HP,
+; the slash and the maximum—, and the texts go by reference: a line of the
+; band also carries a command, and with the letters copied they did not fit
+; in a row's record. See `TL_BY_REF`.
+.proc ba_party_line
+.a8
+.i16
+    sta BA_S4
     jsr ba_alive
     beq dead
     lda #0
@@ -1425,37 +1473,42 @@ variant:
     sta temp + 1
     lda BA_S4
     jsr ba_x
+    stx BA_S5                   ; its offset, which `scr_text` overwrites
+    lda BA_WITHMAX
+    and #$01
+    beq stats
     rep #$20
 .a16
-    txa
-    sta BA_S5                   ; its offset, which `scr_text` overwrites
     lda #BA_NAME_DX
     jsr ba_go
-    sep #$20
-.a8
-    lda #BA_NAME_WIDTH
-    sta comp_dup + 3
     ldx BA_S5
-    rep #$20
-.a16
     lda BA_ONE + BA_TXT, x
     tax
     sep #$20
 .a8
+    lda #BA_NAME_WIDTH
+    sta comp_dup + 3
+    lda #1
+    sta TL_BY_REF
     jsl f:ba_t_text
-.if ::BA_HP_ENEMIES = 0
-    ; An enemy does not show its HP, as in RM2k: the line is only its name.
-    ; With `[debug] enemy_hp` in the project file they show, for debugging.
-    ; The `::` is not redundant: inside a `.proc`, `ca65` does not give a
-    ; constant value to a bare name, which could be defined further down in
-    ; the same `.proc`.
-    lda BA_WITHMAX
-    and #$01
-    bne with_hp
-    rts
-with_hp:
-.endif
-    ; "HP"
+    rep #$20
+.a16
+    lda #BA_STATE_DX
+    jsr ba_go
+    sep #$20
+.a8
+    lda #BA_STATE_WIDTH
+    sta comp_dup + 3
+    lda #1
+    sta TL_BY_REF
+    ldx #BA_TXT_NORMAL
+    lda temp + 1
+    beq state_set
+    ldx #BA_TXT_DEAD
+state_set:
+    jsl f:ba_t_text
+stats:
+    ; "HP", the HP in three places, the slash and the maximum, as one run
     rep #$20
 .a16
     lda #BA_HP_DX
@@ -1464,52 +1517,60 @@ with_hp:
 .a8
     ldx #BA_TXT_HP
     jsl f:ba_t_text
-    ; and the number, three digits, capped at 999 as in the reference
-    rep #$20
-.a16
-    lda #BA_HP_NUM_DX
-    jsr ba_go
     ldx BA_S5
-    lda BA_ONE + BA_HP, x
-    cmp #1000
-    bcc hp_fits
-    lda #999
-hp_fits:
-    sta comp_dup
-    sep #$20
-.a8
-    lda #3
-    sta comp_dup + 2
-    jsl f:ba_t_number
-    lda BA_WITHMAX
-    and #$01
-    bne with_max
-    rts
-with_max:
     rep #$20
 .a16
-    lda #BA_BAR_DX
-    jsr ba_go
+    lda BA_ONE + BA_HP, x
+    jsr ba_capped
     sep #$20
 .a8
+    jsl f:ba_t_number
     lda #$2F                    ; the slash between the HP and their maximum
     jsl f:ba_t_glyph
+    ldx BA_S5
     rep #$20
 .a16
-    lda #BA_HPMAX_DX
-    jsr ba_go
-    ldx BA_S5
     lda BA_ONE + BA_HPMAX, x
+    jsr ba_capped
+    sep #$20
+.a8
+    jsl f:ba_t_number
+    ; and "SP" with the SP, another
+    rep #$20
+.a16
+    lda #BA_SP_DX
+    jsr ba_go
+    sep #$20
+.a8
+    ldx #BA_TXT_SP
+    jsl f:ba_t_text
+    ldx BA_S5
+    rep #$20
+.a16
+    lda BA_ONE + BA_SP, x
+    jsr ba_capped
+    sep #$20
+.a8
+    jsl f:ba_t_number
+    rts
+.endproc
+
+; A16 into `comp_dup`, capped at 999 as RM2k's window shows it, in three
+; places. Comes and goes with A16.
+.proc ba_capped
+.a16
+.i16
     cmp #1000
-    bcc max_fits
+    bcc fits
     lda #999
-max_fits:
+fits:
     sta comp_dup
     sep #$20
 .a8
     lda #3
     sta comp_dup + 2
-    jsl f:ba_t_number
+    rep #$20
+.a16
     rts
 .endproc
 
@@ -1559,7 +1620,7 @@ max_fits:
 .endproc
 
 ; The message, according to `BA_MTYPE`. Victory does not go through here: it
-; goes in the party's lines, see `ba_vic_message`. All the words come from
+; goes in the same window, see `ba_vic_message`. All the words come from
 ; the LDB —`attacking`, `enemy_damaged`, `defeat`...— and are put together as
 ; in `game_message_terms.cpp`: the name stuck to the term, and in the damage
 ; one the number in the middle. None of them is ours.
@@ -1569,8 +1630,7 @@ max_fits:
 ; enemy aura." is thirty-five— and one line here carries thirty-one. Drawn
 ; letter by letter, what did not fit went on in the cell below, which is the
 ; bottom half of the line. So each of RM2k's lines is cut at the spaces into
-; as many as it takes, and if they are more than two they go up over the
-; party's: RM2k's message window covers them too.
+; as many as it takes, up to the window's four.
 .proc ba_message
 .a8
 .i16
@@ -1932,10 +1992,10 @@ some:
 ; cut into lines as wide as `BA_PAGE_MSG_WIDTH` cells at its spaces —a word
 ; longer than that, at the edge—, and the spaces of the cut go nowhere. A
 ; line is measured in pixels, with the font's advances: until 2026-10-03 it
-; was `BA_PAGE_MSG_WIDTH` letters, one per cell. Up to
-; `BA_MLINES_MAX` lines: the last goes on the bottom line of the screen, and
-; with two or less the first goes where it always went, `BA_MSG_POS1`. With
-; more they go up over the party's, which are drawn before. Clobbers
+; was `BA_PAGE_MSG_WIDTH` letters, one per cell. Up to `BA_MLINES_MAX`
+; lines, from the window's first, `BA_MSG_POS1`, down: RM2k's message
+; window, which takes the whole band. Until 2026-10-04 the last went on the
+; bottom line of the screen and the others over the party's. Clobbers
 ; everything.
 .proc ba_flow
 .a8
@@ -2062,27 +2122,10 @@ skipped:
     jmp again
 
 draw:
-    ; Where the first one goes: `BA_MSG_POS1`, or as many lines higher as
-    ; there are more than two.
     rep #$20
 .a16
     lda #BA_MSG_POS1
     sta BA_T1
-    lda BA_MDN
-    and #$00FF
-    cmp #3
-    bcc placed
-    sec
-    sbc #2
-    tax
-higher:
-    lda BA_T1
-    sec
-    sbc #BA_ROW_BYTES
-    sta BA_T1
-    dex
-    bne higher
-placed:
     sep #$20
 .a8
     stz BA_MI
@@ -2093,8 +2136,9 @@ each:
     bcc a_line
     rts
 a_line:
-    ; The line blank first: when it goes over the party's, a name or an HP
-    ; is under it. It is the row's text that goes, in the text layer.
+    ; The line blank first: it is the row's text that goes, in the text
+    ; layer —nothing else is drawn under the message since 2026-10-04, but
+    ; it costs nothing—.
     rep #$20
 .a16
     lda BA_T1

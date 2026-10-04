@@ -790,6 +790,11 @@ pub fn run(options: Options) -> Result<()> {
     for place in battle_model["cut"].as_array().cloned().unwrap_or_default() {
         println!("{}", cut_report(&place));
     }
+    // The party's line, whose HP and SP the console writes as runs that do
+    // not get cut: with a font too wide they would step on each other.
+    if let Some(why) = battle_model["party_line"].as_str() {
+        println!("  WARNING, battle text: the party's line does not fit: {why}");
+    }
     // What the battle's busiest lists ask of the text layer's pool. The
     // console does not stop when it runs out —it shows what it has typeset
     // and goes on (`TL_FLUSH`)—, but what does not get a pair does not show,

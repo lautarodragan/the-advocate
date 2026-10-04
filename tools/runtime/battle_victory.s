@@ -15,8 +15,9 @@ BA_VIC_LINES = BA_PARTY_MAX
 ; sisters, which are what the converter uses to enforce that they fit.
 ;
 ; In RM2k it is the usual message window, at the bottom, **covering the
-; party**; here it is the party's four lines, like the message of a troop page
-; (`ba_page_message`), and the bottom line is left empty.
+; party**; here too, since 2026-10-04: the band below the scene, from its
+; first line, like the message of a troop page (`ba_page_message`). Until
+; then it went on the party's four lines.
 ;
 ; Since 2026-09-27 the first page also tells the gold —"<gold_recieved_a>
 ; <n><gold><gold_recieved_b>"— and one line per item the enemies dropped
@@ -325,9 +326,9 @@ if:
     rts
 .endproc
 
-; The current page on the party's lines. `ba_compose` calls it with `jmp`, so
-; its `rts` is the composer's: the bottom line, the battle message's, is left
-; empty. Clobbers `BA_S0` to `BA_S4`, `BA_T*`, A, X and Y.
+; The current page in the message window. `ba_compose` calls it with `jmp`,
+; so its `rts` is the composer's: nothing else goes on the screen. Clobbers
+; `BA_S0` to `BA_S4`, `BA_T*`, A, X and Y.
 .proc ba_vic_message
 .a8
 .i16

@@ -395,6 +395,18 @@ BA_MEFFECT   = FAR_BATTLE + 688    ; signed word: how much the last one did
 ; The first visible row of the skill list, since 2026-10-04: the window
 ; scrolls, as RM2k's does.
 BA_SKILL_TOP = FAR_BATTLE + 690
+; Since 2026-10-04, with the windows in the band below the scene, as RM2k's:
+; whether this battle can be escaped from —`op_battle` reads it from the
+; escape's destination, an encounter always can—; the first visible place of
+; the enemies' list; whether the description's band is wanted on top and
+; whether the scene's tilemap shows it —see `ba_help_tick`—; and whether the
+; turn that starts comes from a failed escape, which shows its message first.
+BA_CAN_FLEE   = FAR_BATTLE + 691
+BA_TARGET_TOP = FAR_BATTLE + 692
+BA_HELP_WANT  = FAR_BATTLE + 693
+BA_HELP_ON    = FAR_BATTLE + 694
+BA_FLEE_FAILED = FAR_BATTLE + 695
+.assert BA_FLEE_FAILED < $3D00, error, "the battle's state reaches the second sound-effect voice"
 BA_ACC     = FAR_BATTLE + 48      ; two bytes per combatant: command and target
 BA_EXEC    = FAR_BATTLE + 72      ; the execution order, one combatant per byte
 BA_CAND    = FAR_BATTLE + 88      ; the living on one side, to pick a target
@@ -486,7 +498,7 @@ BA_ESCAPE_R = 1
 BA_DEFEAT   = 2
 BA_ATTACK   = 0
 BA_DEFEND = 1
-BA_FLEE     = 2
+BA_FLEE     = 2           ; nobody records it since 2026-10-04: see `ba_flee_failed`
 BA_ITEM     = 3
 BA_SKILL = 4
 ; The screen modes. **The order

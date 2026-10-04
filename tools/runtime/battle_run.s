@@ -25,6 +25,10 @@
     sta BA_COMMAND
     sta BA_ACTOR
     sta BA_I
+    sta BA_TARGET_TOP
+    sta BA_HELP_WANT
+    sta BA_HELP_ON              ; the scene's tilemap goes up whole
+    sta BA_FLEE_FAILED
     jsr ba_build
     lda BA_KID
     bne has_troop
@@ -91,6 +95,7 @@ wait:
     jsl f:ba_t_pad                ; the controller before the DMA, as in the
                                   ; shop
     jsl f:ba_t_upload
+    jsr ba_help_tick            ; the description's band, in the vblank too
     jsr ba_shake                ; the shake, before the vblank ends
     jsr scene_tick              ; still in the vblank: an enemy that died
     lda pad
@@ -122,26 +127,31 @@ wait:
 :   jmp mode_end
 
     ; --- choosing the command ---
+    ;
+    ; A column, as RM2k's: up and down. Until 2026-10-04 they were two lines
+    ; and the cursor went left and right.
 wait5:
     jmp wait
 mode_command:
     lda title_edges
-    and #PAD_LEFT
-    beq o_no_left
+    and #PAD_UP
+    beq o_no_up
     lda BA_COMMAND
     beq wait5
     dec BA_COMMAND
     jmp recompose
-o_no_left:
+o_no_up:
     lda title_edges
-    and #PAD_RIGHT
-    beq o_no_right
-    lda BA_COMMAND
-    cmp #(BA_COMMANDS_N - 1)
-    bcs wait5
+    and #PAD_DOWN
+    beq o_no_down
+    jsr ba_commands_n           ; four in a battle that cannot be escaped from
+    dec a
+    cmp BA_COMMAND
+    beq wait5
+    bcc wait5
     inc BA_COMMAND
     jmp recompose
-o_no_right:
+o_no_down:
     jsr ba_edge_a
     beq wait5
     lda BA_COMMAND
@@ -151,6 +161,7 @@ o_no_right:
     cmp #$FF
     beq wait5
     sta BA_TARGET
+    stz BA_TARGET_TOP
     lda #BA_M_TARGET
     sta BA_MODE
     jmp recompose
@@ -198,6 +209,8 @@ o_no_skill:
     beq o_flees
     jmp wait
 o_flees:
+    ; Escaping is the party's, as in RM2k, whoever chooses it: see
+    ; `ba_flee_failed`.
     jsr ba_flee
     beq o_no_fled
     lda #BA_ESCAPE_R
@@ -214,11 +227,8 @@ o_flees:
     sta BA_MODE
     jmp wait
 o_no_fled:
-    lda #0
-    sta BA_T0
-    lda #BA_FLEE
-    jsr ba_record
-    jmp next_actor
+    jsr ba_flee_failed
+    jmp wait
 wait2:
     jmp wait
 
@@ -263,24 +273,48 @@ b_records:
     jmp next_actor              ; the two modes below ended up in between
 
     ; --- choosing which item ---
+    ;
+    ; Two columns that read by rows, like the skills: left and right move by
+    ; one and up and down by two. Until 2026-10-04 it was one column of eight.
 mode_item:
     lda title_edges
-    and #PAD_UP
-    beq i_no_up
+    and #PAD_LEFT
+    beq i_no_left
     lda BA_ITEM_SEL
     beq wait4
     dec BA_ITEM_SEL
-    jsr ba_item_see
-    jmp recompose
-i_no_up:
+    bra i_moved
+i_no_left:
     lda title_edges
-    and #PAD_DOWN
-    beq i_no_down
+    and #PAD_RIGHT
+    beq i_no_right
     lda BA_ITEM_SEL
     inc a
     cmp BA_ITEM_N
     bcs wait4
     sta BA_ITEM_SEL
+    bra i_moved
+i_no_right:
+    lda title_edges
+    and #PAD_UP
+    beq i_no_up
+    lda BA_ITEM_SEL
+    cmp #2
+    bcc wait4
+    sbc #2                      ; C=1 from the cmp
+    sta BA_ITEM_SEL
+    bra i_moved
+i_no_up:
+    lda title_edges
+    and #PAD_DOWN
+    beq i_no_down
+    lda BA_ITEM_SEL
+    clc
+    adc #2
+    cmp BA_ITEM_N
+    bcs wait4
+    sta BA_ITEM_SEL
+i_moved:
     jsr ba_item_see
     jmp recompose
 i_no_down:
@@ -609,25 +643,6 @@ if_a:
     lda #1
     rts
 
-; Makes the highlighted item visible: scrolls the eight-line window just
-; enough.
-ba_item_see:
-    lda BA_ITEM_SEL
-    cmp BA_ITEM_ARR
-    bcs see_down
-    sta BA_ITEM_ARR             ; it went off the top: the window follows it
-    rts
-see_down:
-    sec
-    sbc #BA_ENEMIES_MAX
-    bcc ready_see               ; it fits without moving anything
-    inc a                       ; the first one that should be visible
-    cmp BA_ITEM_ARR
-    bcc ready_see
-    sta BA_ITEM_ARR
-ready_see:
-    rts
-
 ; The cursor for whom the item goes to, to the actor above or below where it
 ; can stop —see `ba_target_act_serves`—. If none is left in that direction, it
 ; stays where it is. It is the sibling of `ba_target_up`, over the party
@@ -707,6 +722,57 @@ sets:
     sta BA_TARGET
 nothing:
     rts
+.endproc
+
+; A failed escape: RM2k's `ProcessSceneActionEscape` with `eFailure`, which
+; goes on to the turn with only the enemies' actions —`NextTurn`,
+; `CreateEnemyActions`—. Escaping there is the party's, from the menu before
+; the commands; here it is a fifth command, of RPG Maker 2000 PLUS, and
+; whoever chooses it chooses it for everybody: the commands the ones before
+; it gave are forgotten, and an item one of them chose —which is spent on
+; choosing it— goes back to the inventory. The message goes first, as in
+; RM2k: see `ba_start_turn`. `rm2k-snes-battle` plays it as a turn with no
+; commands, so that only the enemies go into the execution order, as here.
+.proc ba_flee_failed
+.a8
+.i16
+    stz BA_S0
+other:
+    lda BA_S0
+    cmp BA_NACTIONS
+    bcs given_back
+    jsr ba_ax
+    lda BA_EXEC, x
+    sta BA_S1                   ; who gave it
+    asl a
+    jsr ba_ax
+    lda BA_ACC, x
+    cmp #BA_ITEM
+    bne next
+    lda BA_S1
+    jsr ba_ax
+    lda BA_ACC_ITEM, x
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda f:item_id, x
+    tax
+    sep #$20
+.a8
+    lda FAR_ITEMS, x
+    inc a                       ; it was spent from here: it fits again
+    sta FAR_ITEMS, x
+next:
+    inc BA_S0
+    bra other
+given_back:
+    lda #0
+    sta BA_NACTIONS
+    lda #1
+    sta BA_FLEE_FAILED
+    jmp ba_start_turn
 .endproc
 
 ; The screen shake in battle: one frame of `shake_tick` and its position in

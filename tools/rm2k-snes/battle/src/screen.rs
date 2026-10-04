@@ -1,85 +1,144 @@
 //! The battle's text screen: where each thing goes on it, and the texts
 //! the console composes on it.
 //!
-//! It draws nothing: the console writes it one letter per cell with the
-//! text screens' font, over a flat colour or the scene, on the same grid
-//! of 32 by 28 cells the equipment and shop screens use. What goes from
-//! here is the geometry —in cells; the caller turns it into what its
-//! tables need— and the texts, already cut to what fits.
+//! It draws nothing: the console composes it with the text screens'
+//! variable-width font, on the same grid of 32 by 28 cells the equipment
+//! and shop screens use —a write is a run of letters that starts at a
+//! cell—. What goes from here is the geometry —in cells; the caller turns
+//! it into what its tables need— and the texts, already cut to what fits.
 //!
 //! **The words are RM2k's**, all from the database, none made up. What is
-//! not RM2k's is declared where it is: escaping is an actor's command and
-//! not the party's, and some lines are cut shorter than the original's.
+//! not RM2k's is declared where it is: escaping is a fifth command and not
+//! the party's menu, the commands stay on the left without sliding, and
+//! some lines are cut shorter than the original's.
 
 use crate::db::Db;
 use crate::fail::{Bad, Result};
 use rm2k_snes_text::font;
 use serde_json::{json, Map, Value};
 
-// The rows of the grid: the enemies at the top, the party below, and the
-// two message lines at the bottom.
-pub const BA_ENEMY_ROW0: i64 = 0;
-pub const BA_PARTY_ROW0: i64 = 16;
-pub const BA_MSG_ROW1: i64 = 24;
-pub const BA_MSG_ROW2: i64 = 26;
-pub const BA_CURSOR_COL: i64 = 0;
-pub const BA_NAME_COL: i64 = 2;
-pub const BA_NAME_WIDTH: usize = 14;
-/// **An enemy's HP is not shown**, as in RM2k: its line is just the name.
-/// A cartridge built for debugging shows it in these same columns.
-pub const BA_HP_COL: i64 = 18;
-/// Three digits.
-pub const BA_HP_NUM: i64 = 21;
-pub const BA_BAR_COL: i64 = 24;
-/// And the three of the maximum, in the party.
-pub const BA_HP_MAX_NUM: i64 = 25;
+// The battle is RM2k's: the scene on top with nothing written over it, and
+// every window **in the band below it**, on black —the 96 lines the 128 of
+// the scene leave—. A line of text is two cell rows, and the band's go on
+// the **odd** rows 17 to 25: five lines of 16, with ten lines of air above
+// the first glyph and eight below the last. The description of an item or
+// a skill is the one thing that goes up: on a band of
+// [`BA_HELP_SCENE_ROWS`] tile rows the console takes from the scene while
+// a list is open, which is RM2k's `Window_Help`.
+//
+// Until 2026-10-04 the enemies' names went over the scene, with the party's
+// lines and two of commands and messages under it.
 
-/// The width of a command: the longest of the game's, `Tech Skill` and
-/// `AgentTrain`, which is Kersh's.
+/// The first line of the band, and how many it has.
+pub const BA_BAND_ROW0: i64 = 17;
+pub const BA_BAND_LINES: i64 = 5;
+
+/// The list of enemies to attack, on the left, which is RM2k's target
+/// window: only the living ones that show, in troop order, five at a time
+/// —the window scrolls to keep the cursor in view—. It covers the party's
+/// names and states, as in RM2k, and their HP and SP stay.
+pub const BA_ENEMY_ROW0: i64 = BA_BAND_ROW0;
+pub const BA_TARGET_ROWS: i64 = BA_BAND_LINES;
+/// Where every list's cursor goes, and an enemy's name.
+pub const BA_CURSOR_COL: i64 = 0;
+pub const BA_ENEMY_NAME_COL: i64 = 1;
+pub const BA_ENEMY_NAME_WIDTH: usize = 19;
+
+/// The commands, a column on the left —RM2k has them on the right, after
+/// the party's window slides over; here they stay put, and on the left,
+/// which is what taro chose—. The cursor in column 0 and the text from 1,
+/// [`BA_COMMAND_CELLS`] cells wide: the widest of A Blurred Line's,
+/// "AgentTrain", is 59 pixels with its font and spacing.
+pub const BA_COMMAND_ROW0: i64 = BA_BAND_ROW0;
+pub const BA_COMMAND_COL: i64 = 1;
+pub const BA_COMMAND_CELLS: usize = 8;
+/// How many letters of a command the cartridge keeps.
 pub const BA_COMMAND_WIDTH: usize = 10;
 
-/// The five commands, in the original's order —Attack, the skill, Defend,
-/// Use Item, as a capture of the real game shows them— and Escape fifth:
-/// escaping is a party command in RM2k, from another menu, and here it is
-/// each actor's. It is a declared simplification.
+/// The commands, in the original's order —Attack, the skill, Defend, Use
+/// Item, as a capture of the real game shows them— and Escape fifth,
+/// **only in a battle that can be escaped from**. In RM2k escaping is the
+/// party's, from the menu before the commands, which this port does not
+/// have: it is a command of RPG Maker 2000 PLUS, and choosing it does what
+/// RM2k's menu does —see `ba_flee_all` in the runtime—.
 pub const BA_COMMAND_ATTACK: i64 = 0;
 pub const BA_COMMAND_SKILL: i64 = 1;
 pub const BA_COMMAND_DEFEND: i64 = 2;
 pub const BA_COMMAND_USE: i64 = 3;
 pub const BA_COMMAND_ESCAPE: i64 = 4;
 
-/// Per command: which term names it, which of the two message lines it
-/// goes on and in which column. **The skill's column leaves ten free
-/// cells**: its text is the actor's `skill_name`, and ten letters leave no
-/// room for the next one's cursor, which goes one cell before its text.
-/// That is why the top line is 1 / 11 / 22 and not 1 / 11 / 21.
-pub const BA_COMMANDS: [(&str, i64, i64); 5] = [
-    ("attack", 0, 1),
-    ("skill", 0, 11),
-    ("defend", 0, 22),
-    ("use", 1, 1),
-    ("escape", 1, 13),
-];
+/// Per command, which term names it, one per line.
+pub const BA_COMMANDS: [&str; 5] = ["attack", "skill", "defend", "use", "escape"];
 
 /// The commands the console grays out always: none since the skill was
 /// done. It stays because it is where the next half-done one would go.
 pub const BA_COMMAND_UNDONE: [i64; 0] = [];
 
-/// The skill list, on the same lines as the item list: the description of
-/// the one under the cursor at the very top —**cut at thirty-one**: the
-/// original writes it whole with a smaller font, and it is declared debt—
-/// and below, two columns with the name and the cost. It reads by rows.
-pub const BA_SKILL_DESC_ROW: i64 = 0;
-pub const BA_SKILL_DESC_COL: i64 = 1;
-pub const BA_SKILL_DESC_WIDTH: usize = 31;
-pub const BA_SKILL_ROW0: i64 = 2;
-pub const BA_SKILL_ROWS: i64 = 7;
+/// The party, on the right of the commands: one line per actor, RM2k's
+/// `Window_BattleStatus` —`Talan  Normal  HP 49/ 49  SP 49`—. The cursor
+/// marks who is giving commands, or whom an item goes to. The state is the
+/// database's `normal_status`, or the dead state's name for a fallen one:
+/// the battle has no other states.
+///
+/// The HP and SP are **one run each**, from their cell: the term, the
+/// number in three places and, in the HP, the slash and the maximum. That
+/// is 54 pixels with A Blurred Line's font, which ends before the SP's
+/// cell, and the SP's 30 end at the screen's edge with one to spare;
+/// [`check_party_line`] says it when a font does not fit.
+pub const BA_PARTY_ROW0: i64 = BA_BAND_ROW0;
+pub const BA_PARTY_CURSOR_COL: i64 = 9;
+pub const BA_NAME_COL: i64 = 10;
+pub const BA_NAME_WIDTH: usize = 6;
+pub const BA_STATE_COL: i64 = 16;
+pub const BA_STATE_WIDTH: usize = 5;
+pub const BA_HP_COL: i64 = 21;
+pub const BA_SP_COL: i64 = 28;
+
+/// The battle's message —"X attacks", the damage, the escape—, a troop
+/// page's `ShowMessage` and the victory, in RM2k's message window: the
+/// whole band, from its first line down, up to four. A line is
+/// **thirty-one** cells wide, which is what fits from column 1: the
+/// converter reflows the pages' boxes for this window, as it does the
+/// map's for theirs, and the console cuts at the edge whatever still does
+/// not fit —both measure the line in pixels, with the font's advances—.
+/// The victory's lines are checked here in characters, one per cell, which
+/// holds for any font no wider than a cell.
+pub const BA_MSG_ROW1: i64 = BA_BAND_ROW0;
+pub const BA_MSG_ROW2: i64 = BA_BAND_ROW0 + 2;
+pub const BA_MSG_LINES: i64 = 4;
+pub const BA_PAGE_MSG_ROW0: i64 = BA_BAND_ROW0;
+pub const BA_PAGE_MSG_COL: i64 = 1;
+pub const BA_PAGE_MSG_WIDTH: usize = 31;
+
+/// The description of the item or the skill under the cursor, on top: one
+/// line on row 1, or an item's two —the item screens split it— on rows 0
+/// and 2. The band is four tile rows, 32 lines, which is RM2k's 32 of 240.
+pub const BA_HELP_ROW: i64 = 1;
+pub const BA_HELP_ROW1: i64 = 0;
+pub const BA_HELP_ROW2: i64 = 2;
+pub const BA_HELP_COL: i64 = 1;
+/// Thirty cells: from column 1 to the 31st, which leaves the same eight
+/// pixels on the right as on the left.
+pub const BA_HELP_WIDTH: usize = 30;
+pub const BA_HELP_SCENE_ROWS: i64 = 4;
+
+/// The skill list: two columns, by rows, with the name and the cost
+/// —`Memorize  -  5`—, five rows that scroll. **The description goes whole
+/// in the cartridge and the console cuts it at [`BA_HELP_WIDTH`] cells**,
+/// in pixels: the original writes it whole with a smaller font, and what
+/// does not fit is declared debt. Until 2026-10-04 it was cut at
+/// thirty-one letters, `BA_SKILL_DESC_WIDTH`, from when a letter took a
+/// cell.
+pub const BA_SKILL_DESC_ROW: i64 = BA_HELP_ROW;
+pub const BA_SKILL_DESC_COL: i64 = BA_HELP_COL;
+pub const BA_SKILL_ROW0: i64 = BA_BAND_ROW0;
+pub const BA_SKILL_ROWS: i64 = BA_BAND_LINES;
 pub const BA_SKILL_COLUMNS: i64 = 2;
 /// From one column to the next.
 pub const BA_SKILL_COLUMN_DX: i64 = 16;
 /// Relative to the start of the column.
-pub const BA_SKILL_NAME_COL: i64 = 2;
-pub const BA_SKILL_NAME_WIDTH: usize = 11;
+pub const BA_SKILL_NAME_COL: i64 = 1;
+pub const BA_SKILL_NAME_WIDTH: usize = 12;
 /// **The cartridge keeps a skill's name whole**, and an enemy's: the
 /// console cuts them at their cells, in pixels, with the font's advances.
 /// What made it keep fewer was a row's record in the text layer
@@ -87,7 +146,8 @@ pub const BA_SKILL_NAME_WIDTH: usize = 11;
 /// columns of the skill list: since 2026-10-04 the list writes each name
 /// **by reference** (`TL_BY_REF`), a run of six bytes however long the name
 /// is, and the row is its length, the cursor's run and per column the
-/// name's, the dash's and the cost's.
+/// name's, the dash's and the cost's. The item list writes its names the
+/// same way.
 ///
 /// Until then it kept thirteen letters, which is what the record left with
 /// the letters copied, and before 2026-10-03 eleven, from when a letter
@@ -105,26 +165,36 @@ pub const BA_SKILL_DASH_COL: i64 = 13;
 pub const BA_SKILL_COST_COL: i64 = 14;
 pub const BA_SKILL_COST_DIGITS: i64 = 2;
 
-/// The item list takes the enemies' lines: while choosing what to use, the
-/// party is what is needed.
-pub const BA_ITEM_COUNT_COL: i64 = 18;
-
-/// A troop page's `ShowMessage`, and what the victory reports: RM2k's
-/// message window covers the party's status, and here that is the party's
-/// four lines, as many as the map's window. A line is **thirty-one** cells
-/// wide, which is what fits from column 1: the converter reflows the pages'
-/// boxes for this window, as it does the map's for theirs, and the console
-/// cuts at the edge whatever still does not fit —both measure the line in
-/// pixels, with the font's advances—. The victory's lines are checked
-/// here in characters, one per cell, which holds for any font no wider
-/// than a cell.
-pub const BA_PAGE_MSG_ROW0: i64 = BA_PARTY_ROW0;
-pub const BA_PAGE_MSG_COL: i64 = 1;
-pub const BA_PAGE_MSG_WIDTH: usize = 31;
+/// The item list, the skill list's twin —`Potion  : 99`—: the same two
+/// columns and five rows, the colon where the dash goes and the count where
+/// the cost.
+pub const BA_ITEM_ROW0: i64 = BA_BAND_ROW0;
+pub const BA_ITEM_ROWS: i64 = BA_BAND_LINES;
+pub const BA_ITEM_NAME_WIDTH: usize = BA_SKILL_NAME_WIDTH;
+pub const BA_ITEM_COUNT_COL: i64 = BA_SKILL_COST_COL;
 
 /// How many lines the victory term may take: the first page is the term
 /// and the experience, in the window's four.
 pub const BA_VICTORY_TERM_MAX: usize = 2;
+
+/// The party's line, measured with the game's font: the HP's run has to
+/// end before the SP's cell, and the SP's before the screen's edge. The
+/// numbers are three places of the font's digit. `None` if it fits; if not,
+/// what does not.
+pub fn check_party_line(font: &rm2k_snes_text::font::Font, hp: &str, sp: &str) -> Option<String> {
+    let digits = 3 * font.advance('0');
+    let hp_run = font.width(hp) + digits + font.advance('/') + digits;
+    let sp_run = font.width(sp) + digits;
+    let x = |col: i64| col as usize * 8 + 1;
+    let mut bad = Vec::new();
+    if x(BA_HP_COL) + hp_run > x(BA_SP_COL) {
+        bad.push(format!("the HP ({hp_run} pixels) runs into the SP's cell"));
+    }
+    if x(BA_SP_COL) + sp_run > 256 {
+        bad.push(format!("the SP ({sp_run} pixels) runs off the screen"));
+    }
+    (!bad.is_empty()).then(|| bad.join("; "))
+}
 
 /// What the text screens' font can write: the characters it has, with a
 /// '?' instead of the others, and cut to `width`. It is the screens' rule,
@@ -238,6 +308,16 @@ pub fn revived_text(db: &Db) -> Result<String> {
         .ok_or_else(|| Bad::answer("there is no state 1, the dead one, in the database"))
 }
 
+/// What a fallen actor's line says where the state goes: the dead state's
+/// name, which is what `Window_BattleStatus` draws for the state an actor
+/// at zero HP has.
+pub fn dead_text(db: &Db) -> Result<String> {
+    db.states
+        .get(&1)
+        .map(|s| s.name.clone())
+        .ok_or_else(|| Bad::answer("there is no state 1, the dead one, in the database"))
+}
+
 /// The answer is no if a victory line does not fit in
 /// [`BA_PAGE_MSG_WIDTH`]: the console builds them by joining pieces and
 /// does not split them, so a long one would spill onto the line below.
@@ -271,50 +351,66 @@ pub fn check_victory(
 /// The geometry, by the names the caller emits it with.
 pub fn layout() -> Value {
     let mut out = Map::new();
-    out.insert("BA_ENEMY_ROW0".into(), json!(BA_ENEMY_ROW0));
-    out.insert("BA_PARTY_ROW0".into(), json!(BA_PARTY_ROW0));
-    out.insert("BA_MSG_ROW1".into(), json!(BA_MSG_ROW1));
-    out.insert("BA_MSG_ROW2".into(), json!(BA_MSG_ROW2));
-    out.insert("BA_CURSOR_COL".into(), json!(BA_CURSOR_COL));
-    out.insert("BA_NAME_COL".into(), json!(BA_NAME_COL));
-    out.insert("BA_NAME_WIDTH".into(), json!(BA_NAME_WIDTH));
-    out.insert("BA_HP_COL".into(), json!(BA_HP_COL));
-    out.insert("BA_HP_NUM".into(), json!(BA_HP_NUM));
-    out.insert("BA_BAR_COL".into(), json!(BA_BAR_COL));
-    out.insert("BA_HP_MAX_NUM".into(), json!(BA_HP_MAX_NUM));
-    out.insert("BA_COMMAND_WIDTH".into(), json!(BA_COMMAND_WIDTH));
-    out.insert("BA_COMMAND_ATTACK".into(), json!(BA_COMMAND_ATTACK));
-    out.insert("BA_COMMAND_SKILL".into(), json!(BA_COMMAND_SKILL));
-    out.insert("BA_COMMAND_DEFEND".into(), json!(BA_COMMAND_DEFEND));
-    out.insert("BA_COMMAND_USE".into(), json!(BA_COMMAND_USE));
-    out.insert("BA_COMMAND_ESCAPE".into(), json!(BA_COMMAND_ESCAPE));
-    out.insert(
-        "BA_COMMANDS".into(),
-        json!(BA_COMMANDS
-            .iter()
-            .map(|(t, l, c)| json!([t, l, c]))
-            .collect::<Vec<_>>()),
-    );
+    for (name, value) in [
+        ("BA_BAND_ROW0", BA_BAND_ROW0),
+        ("BA_BAND_LINES", BA_BAND_LINES),
+        ("BA_ENEMY_ROW0", BA_ENEMY_ROW0),
+        ("BA_TARGET_ROWS", BA_TARGET_ROWS),
+        ("BA_CURSOR_COL", BA_CURSOR_COL),
+        ("BA_ENEMY_NAME_COL", BA_ENEMY_NAME_COL),
+        ("BA_ENEMY_NAME_WIDTH", BA_ENEMY_NAME_WIDTH as i64),
+        ("BA_COMMAND_ROW0", BA_COMMAND_ROW0),
+        ("BA_COMMAND_COL", BA_COMMAND_COL),
+        ("BA_COMMAND_CELLS", BA_COMMAND_CELLS as i64),
+        ("BA_COMMAND_WIDTH", BA_COMMAND_WIDTH as i64),
+        ("BA_COMMAND_ATTACK", BA_COMMAND_ATTACK),
+        ("BA_COMMAND_SKILL", BA_COMMAND_SKILL),
+        ("BA_COMMAND_DEFEND", BA_COMMAND_DEFEND),
+        ("BA_COMMAND_USE", BA_COMMAND_USE),
+        ("BA_COMMAND_ESCAPE", BA_COMMAND_ESCAPE),
+        ("BA_PARTY_ROW0", BA_PARTY_ROW0),
+        ("BA_PARTY_CURSOR_COL", BA_PARTY_CURSOR_COL),
+        ("BA_NAME_COL", BA_NAME_COL),
+        ("BA_NAME_WIDTH", BA_NAME_WIDTH as i64),
+        ("BA_STATE_COL", BA_STATE_COL),
+        ("BA_STATE_WIDTH", BA_STATE_WIDTH as i64),
+        ("BA_HP_COL", BA_HP_COL),
+        ("BA_SP_COL", BA_SP_COL),
+        ("BA_MSG_ROW1", BA_MSG_ROW1),
+        ("BA_MSG_ROW2", BA_MSG_ROW2),
+        ("BA_MSG_LINES", BA_MSG_LINES),
+        ("BA_HELP_ROW", BA_HELP_ROW),
+        ("BA_HELP_ROW1", BA_HELP_ROW1),
+        ("BA_HELP_ROW2", BA_HELP_ROW2),
+        ("BA_HELP_COL", BA_HELP_COL),
+        ("BA_HELP_WIDTH", BA_HELP_WIDTH as i64),
+        ("BA_HELP_SCENE_ROWS", BA_HELP_SCENE_ROWS),
+        ("BA_SKILL_DESC_ROW", BA_SKILL_DESC_ROW),
+        ("BA_SKILL_DESC_COL", BA_SKILL_DESC_COL),
+        ("BA_SKILL_ROW0", BA_SKILL_ROW0),
+        ("BA_SKILL_ROWS", BA_SKILL_ROWS),
+        ("BA_SKILL_COLUMNS", BA_SKILL_COLUMNS),
+        ("BA_SKILL_COLUMN_DX", BA_SKILL_COLUMN_DX),
+        ("BA_SKILL_NAME_COL", BA_SKILL_NAME_COL),
+        ("BA_SKILL_NAME_WIDTH", BA_SKILL_NAME_WIDTH as i64),
+        ("BA_SKILL_DASH_COL", BA_SKILL_DASH_COL),
+        ("BA_SKILL_COST_COL", BA_SKILL_COST_COL),
+        ("BA_SKILL_COST_DIGITS", BA_SKILL_COST_DIGITS),
+        ("BA_ITEM_ROW0", BA_ITEM_ROW0),
+        ("BA_ITEM_ROWS", BA_ITEM_ROWS),
+        ("BA_ITEM_NAME_WIDTH", BA_ITEM_NAME_WIDTH as i64),
+        ("BA_ITEM_COUNT_COL", BA_ITEM_COUNT_COL),
+        ("BA_PAGE_MSG_ROW0", BA_PAGE_MSG_ROW0),
+        ("BA_PAGE_MSG_COL", BA_PAGE_MSG_COL),
+        ("BA_PAGE_MSG_WIDTH", BA_PAGE_MSG_WIDTH as i64),
+    ] {
+        out.insert(name.into(), json!(value));
+    }
+    out.insert("BA_COMMANDS".into(), json!(BA_COMMANDS.to_vec()));
     out.insert(
         "BA_COMMAND_UNDONE".into(),
         json!(BA_COMMAND_UNDONE.to_vec()),
     );
-    out.insert("BA_SKILL_DESC_ROW".into(), json!(BA_SKILL_DESC_ROW));
-    out.insert("BA_SKILL_DESC_COL".into(), json!(BA_SKILL_DESC_COL));
-    out.insert("BA_SKILL_DESC_WIDTH".into(), json!(BA_SKILL_DESC_WIDTH));
-    out.insert("BA_SKILL_ROW0".into(), json!(BA_SKILL_ROW0));
-    out.insert("BA_SKILL_ROWS".into(), json!(BA_SKILL_ROWS));
-    out.insert("BA_SKILL_COLUMNS".into(), json!(BA_SKILL_COLUMNS));
-    out.insert("BA_SKILL_COLUMN_DX".into(), json!(BA_SKILL_COLUMN_DX));
-    out.insert("BA_SKILL_NAME_COL".into(), json!(BA_SKILL_NAME_COL));
-    out.insert("BA_SKILL_NAME_WIDTH".into(), json!(BA_SKILL_NAME_WIDTH));
-    out.insert("BA_SKILL_DASH_COL".into(), json!(BA_SKILL_DASH_COL));
-    out.insert("BA_SKILL_COST_COL".into(), json!(BA_SKILL_COST_COL));
-    out.insert("BA_SKILL_COST_DIGITS".into(), json!(BA_SKILL_COST_DIGITS));
-    out.insert("BA_ITEM_COUNT_COL".into(), json!(BA_ITEM_COUNT_COL));
-    out.insert("BA_PAGE_MSG_ROW0".into(), json!(BA_PAGE_MSG_ROW0));
-    out.insert("BA_PAGE_MSG_COL".into(), json!(BA_PAGE_MSG_COL));
-    out.insert("BA_PAGE_MSG_WIDTH".into(), json!(BA_PAGE_MSG_WIDTH));
     out.insert("BA_VICTORY_TERM_MAX".into(), json!(BA_VICTORY_TERM_MAX));
     out.insert("BATTLE_SEED".into(), json!(crate::simulate::BATTLE_SEED));
     out.insert("ACTIONS_MAX".into(), json!(crate::rules::ACTIONS_MAX));

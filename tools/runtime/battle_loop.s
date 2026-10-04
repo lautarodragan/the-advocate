@@ -368,6 +368,14 @@ clears:
     jsr ba_exec_order
     lda #0
     sta BA_I
+    ; A failed escape says so before anybody acts: see `ba_flee_failed`.
+    lda BA_FLEE_FAILED
+    beq execute
+    stz BA_FLEE_FAILED
+    lda #BA_MSG_NO_FLED
+    sta BA_MTYPE
+    jmp ba_show
+execute:
     jmp ba_execute
 .endproc
 
@@ -522,8 +530,6 @@ has:
     lda BA_S1
     cmp #BA_DEFEND
     beq a_defends
-    cmp #BA_FLEE
-    beq a_no_fled
     cmp #BA_ITEM
     beq uses_item
     cmp #BA_SKILL
@@ -531,8 +537,6 @@ has:
     bra attacks
 a_defends:
     jmp defends
-a_no_fled:
-    jmp no_fled
 attacks:
     ; Attack. If the target died before its turn came, it is retargeted to the
     ; first living one on that side, as `Game_BattleAlgorithm` does.
@@ -602,10 +606,6 @@ defends:
     ora #BAF_DEF
     sta BA_ONE + BA_FLAGS, x
     lda #BA_MSG_DEFENDS
-    sta BA_MTYPE
-    jmp ba_show
-no_fled:
-    lda #BA_MSG_NO_FLED
     sta BA_MTYPE
     jmp ba_show
 .endproc
