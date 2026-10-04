@@ -721,6 +721,15 @@ full:
     sta msg_ptr + 2
     lda f:item_txt_n, x
     sta temp                    ; how many letters
+.endproc
+
+; `scr_text` of a text that is not in the cartridge's text table: the one at
+; `msg_ptr`, of `temp` letters. `tl_text` falls into it, so splitting it
+; changed no byte. The custom menus write their texts with it —see
+; custom_menu.s—, which are in their own block.
+.proc tl_text_at
+.a8
+.i16
     tl_enter
     ; The cap is in cells, and it was in letters while a letter took one: now
     ; it is as many letters as fit in those cells' pixels.

@@ -276,6 +276,19 @@ bytecode! {
         red: byte, green: byte, blue: byte, transparency: byte, frames: byte,
         y: signed word, wave: byte, saturation: byte, size: byte,
     );
+
+    /// 0x44 is held for another branch that goes in at the same time as the
+    /// custom menus: held here so the numbers stay contiguous, and replaced
+    /// by its opcode at the merge, or given to the next one.
+    OP_RESERVED_44 = 0x44 ();
+
+    /// A custom menu, `menu` by its order in the project's `[menus]`: the
+    /// engine's screen, which blocks inside the page like the save screen
+    /// and costs no tick, and the map back when it closes. It is what the
+    /// common event the menu replaces compiles to —`replaces_common`—, so an
+    /// item or a page that turned that common event on opens the menu. See
+    /// `custom_menu.s` in the runtime.
+    OP_MENU_OPEN = 0x45 (menu: byte);
 }
 
 // `run_code` jumps through a table indexed by the opcode.

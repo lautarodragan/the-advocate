@@ -152,7 +152,33 @@ impl Json {
                 ))
             })
             .collect::<Result<_>>()?;
+        let mut menus = Vec::new();
+        if let Some(list) = self.get("menus") {
+            for m in list.as_array().ok_or_else(|| self.bad("menus", list))? {
+                let name = m.get("name").and_then(Value::as_str).ok_or_else(|| self.bad("menus", m))?;
+                let spec = m.get("spec").cloned().ok_or_else(|| self.bad("menus", m))?;
+                menus.push((name.to_string(), spec));
+            }
+        }
+        let mut menu_context = crate::custom_menu::Context::default();
+        if let Some(v) = self.get("variables") {
+            for pair in v.as_array().ok_or_else(|| self.bad("variables", v))? {
+                let p = pair.as_array().filter(|p| p.len() == 2).ok_or_else(|| self.bad("variables", v))?;
+                let (var, slot) = (p[0].as_i64(), p[1].as_u64());
+                match (var, slot) {
+                    (Some(var), Some(slot)) => {
+                        menu_context.variables.insert(var as i32, slot as usize);
+                    }
+                    _ => return Err(self.bad("variables", v)),
+                }
+            }
+        }
+        for (common, body) in self.by_number("before_bodies")? {
+            menu_context.before_bodies.insert(common, body as u8);
+        }
         Ok(Request {
+            menus,
+            menu_context,
             slots: self.index_or("slots", 0)?,
             actors: self.actors("actors")?,
             items: self.actors("items")?,

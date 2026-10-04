@@ -138,6 +138,13 @@ pub fn run(options: Options) -> Result<()> {
         // and that way that cartridge comes out the same as before `--case`.
         extra.insert(CASE_VARIABLE);
     }
+    // And the ones the custom menus read: a variable no page names would
+    // have no slot. In a game whose menus read what its pages write, which
+    // is what a menu is for, this adds none.
+    let custom_menus = settings.menus()?;
+    for menu in &custom_menus {
+        extra.extend(menu.variables().into_iter().map(|v| v as i32));
+    }
     let compiler = Compiler::new(&game, &settings)?;
     let test_event_map = (!cases.is_empty()).then(|| order[start_index]);
     let scan_answer = compiler.scan(&order, &file_commands, &extra, test_event_map, &case_pairs)?;
@@ -610,7 +617,26 @@ pub fn run(options: Options) -> Result<()> {
     items_all.extend(scan::drop_items(&game.db, &troops.ids));
     let items_all: Vec<i32> = items_all.into_iter().collect();
     let font = FontChoice::of(&settings)?;
-    let screens_answer = screens::convert(&game, &font, &members, &items_all, !options.no_title)?;
+    let menu_before: Value = compiled
+        .get("commons")
+        .and_then(|c| c.get("menu_before"))
+        .and_then(Value::as_array)
+        .map(|pairs| {
+            Value::Object(
+                pairs
+                    .iter()
+                    .map(|p| (int(&p[0]).to_string(), p[1].clone()))
+                    .collect(),
+            )
+        })
+        .unwrap_or_else(|| json!({}));
+    let menus_request = json!({
+        "menus": custom_menus.iter().map(|m| json!({"name": m.name, "spec": m.spec})).collect::<Vec<_>>(),
+        "variables": indices.variables.iter().map(|(v, s)| json!([v, s])).collect::<Vec<_>>(),
+        "before_bodies": menu_before,
+    });
+    let screens_answer =
+        screens::convert(&game, &font, &members, &items_all, !options.no_title, &menus_request)?;
     let w = &screens_answer["window"];
     println!(
         "  message window: {} fixed tiles + {} of text, {} colors; font {} B, {} text box(es) in {} B",

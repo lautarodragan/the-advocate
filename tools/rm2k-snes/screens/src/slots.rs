@@ -193,6 +193,20 @@ fn lend(
 /// with more actors that can join than palettes would have to leave some
 /// out, and they can be the path of the story.
 pub fn slots_screen(game: &Game, skin: &Skin, slots: usize, actors: &[i32], order: Order) -> Result<Slots> {
+    slots_screen_with(game, skin, slots, actors, order, &[])
+}
+
+/// The same, with the pause menu's options the custom menus add: their
+/// labels, which go after the five of RM2k as commands 5 and on —see
+/// `custom_menu`—.
+pub fn slots_screen_with(
+    game: &Game,
+    skin: &Skin,
+    slots: usize,
+    actors: &[i32],
+    order: Order,
+    custom: &[String],
+) -> Result<Slots> {
     let font = &game.font;
     let write = |dest: &mut Picture, x: usize, y: usize, text: &str, color: i32| {
         skin.draw_line(dest, x as i64, y as i64, text, color, font);
@@ -233,12 +247,15 @@ pub fn slots_screen(game: &Game, skin: &Skin, slots: usize, actors: &[i32], orde
     // The pause menu's, in the same bank. Each on the topmost row it gets:
     // the blocks work on any other because they are aligned.
     let menu_terms = ["command_item", "command_skill", "menu_equipment", "menu_save", "menu_quit"];
-    for (option, term) in menu_terms.iter().enumerate() {
-        let text = game.term(term)?;
+    let mut labels: Vec<String> = menu_terms.iter().map(|t| game.term(t)).collect::<Result<_>>()?;
+    labels.extend(custom.iter().cloned());
+    for (option, text) in labels.iter().enumerate() {
         for disabled in 0..2 {
             let mut image = cells::layer();
             let color = if disabled == 1 { 3 } else { 0 };
-            write(&mut image, MENU_OPT_COL * CELL, MENU_OPT_Y + option * MENU_OPT_STEP + 2, &text, color);
+            // On the first row: a block works on any row, because they are
+            // aligned, and the custom ones are drawn at any.
+            write(&mut image, MENU_OPT_COL * CELL, MENU_OPT_Y + 2, text, color);
             layers.push((Kind::Option(option, disabled), image));
         }
     }
@@ -310,7 +327,7 @@ pub fn slots_screen(game: &Game, skin: &Skin, slots: usize, actors: &[i32], orde
         headers: vec![Vec::new(); 2],
         rows: vec![Default::default(); slots],
         menu: MenuBlocks {
-            options: vec![Default::default(); MENU_OPTIONS],
+            options: vec![Default::default(); MENU_OPTIONS + custom.len()],
             ..Default::default()
         },
         ..Default::default()
@@ -323,7 +340,7 @@ pub fn slots_screen(game: &Game, skin: &Skin, slots: usize, actors: &[i32], orde
             Kind::Option(option, disabled) => {
                 let (idx, pal) = if *disabled == 1 { (&gray_index, 1) } else { (&index, 0) };
                 out.menu.options[*option][*disabled] = block(
-                    (MENU_OPT_Y + option * MENU_OPT_STEP) / CELL,
+                    MENU_OPT_Y / CELL,
                     2,
                     idx,
                     MENU_OPT_COL,

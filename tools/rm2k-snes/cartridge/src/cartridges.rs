@@ -570,6 +570,14 @@ impl Cartridges {
         // And the project file, whole: the converter and the music read it,
         // and not only what reaches the stamp's flags.
         parts.push(self.project.file());
+        // And each custom menu's file, which `[menus]` names and the
+        // converter reads whole: changing a page's text changes the ROM
+        // without touching the project file.
+        if let Some(menus) = self.project.settings().get("menus").and_then(|m| m.as_table()) {
+            for file in menus.values().filter_map(|f| f.as_str()) {
+                parts.push(self.project.directory().join(file));
+            }
+        }
         // And the game's own font, if it brings one: `[text] font` is a
         // sheet's path when it is a PNG —see `font.rs` in
         // `rm2k-snes-convert`—, and retouching the sheet changes the ROM

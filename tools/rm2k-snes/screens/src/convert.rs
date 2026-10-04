@@ -33,6 +33,11 @@ pub struct Request {
     /// Where what follows the message window starts in colour memory.
     pub cgram_reserved: usize,
     pub vram: Vram,
+    /// The custom menus the project declares, by name, each its file as
+    /// JSON, in the order the cartridge numbers them; and what the
+    /// cartridge decided they need —see `custom_menu`—.
+    pub menus: Vec<(String, Value)>,
+    pub menu_context: crate::custom_menu::Context,
 }
 
 fn hex(bytes: &[u8]) -> String {
@@ -125,13 +130,16 @@ fn slots_with_room(
     skin: &crate::game::Skin,
     request: &Request,
     medicines: &[(i32, String)],
+    custom: &[String],
 ) -> Result<(slots::Slots, String)> {
     let asked = strips_asked(game, request, medicines)?;
     let (party, medicine, slot_names) = asked;
-    let mut bank = slots::slots_screen(game, skin, request.slots, &request.actors, slots::Order::Drawn)?;
+    let mut bank =
+        slots::slots_screen_with(game, skin, request.slots, &request.actors, slots::Order::Drawn, custom)?;
     let mut order = "";
     if !strips_fit(asked, &bank) {
-        bank = slots::slots_screen(game, skin, request.slots, &request.actors, slots::Order::MenuFirst)?;
+        bank =
+            slots::slots_screen_with(game, skin, request.slots, &request.actors, slots::Order::MenuFirst, custom)?;
         order = ", the slot screen's text last";
     }
     let tiles = bank.tiles.len();
@@ -298,7 +306,18 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
             medicines.push((n, game.item_name(n)?));
         }
     }
-    let (slots, said) = slots_with_room(game, &skin, request, &medicines)?;
+    let menus = crate::custom_menu::read_all(game, &request.menus)?;
+    let labels: Vec<String> = menus.iter().map(|m| m.label.clone()).collect();
+    for label in &labels {
+        let taken = game.font.width(label);
+        if taken > MENU_OPT_COLS * crate::cells::CELL {
+            says.push(format!(
+                "  WARNING, the custom menu option {label:?} takes {taken} px and the menu's column {}",
+                MENU_OPT_COLS * crate::cells::CELL
+            ));
+        }
+    }
+    let (slots, said) = slots_with_room(game, &skin, request, &medicines, &labels)?;
     says.push(said);
     says.extend(names_in_cells(game, request, &medicines)?);
     let shop = shop_pairs(game, &skin, request)?;
@@ -406,8 +425,18 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
         shop.push(messages);
     }
 
+    let custom_menus = if menus.is_empty() {
+        // The geometry goes anyway: the runtime assembles the same with or
+        // without menus.
+        json!({"labels": [], "layout": crate::custom_menu::publish()})
+    } else {
+        let built = crate::custom_menu::build(game, &skin, menus, &request.menu_context)?;
+        says.extend(built.says.iter().cloned());
+        crate::custom_menu::to_json(&built)
+    };
     let menu = &slots.menu;
     Ok(json!({
+        "custom_menus": custom_menus,
         "window": {
             "tiles": hex(&window.tiles),
             "cgram": window.cgram,

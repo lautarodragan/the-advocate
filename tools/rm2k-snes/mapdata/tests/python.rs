@@ -244,6 +244,21 @@ fn without_commons(text: &str) -> String {
     lines.join("\n")
 }
 
+/// The text without the custom menus, which came on 2026-10-04: a request
+/// without them gets the section's empty labels and the pause menu's two
+/// counts, checked here to be those of no menu.
+fn without_custom_menus(text: &str) -> String {
+    let start = text.find("\n; --- the custom menus: see custom_menu.s ---\n").unwrap();
+    let last = "cm_portrait_cgram:\n    .byte 0\n";
+    let end = text[start..].find(last).unwrap() + start + last.len();
+    let mut out = format!("{}{}", &text[..start], &text[end..]);
+    for line in ["MENU_CUSTOM = 0\n", "MENU_ROWS_MAX = 5\n"] {
+        assert!(out.contains(line), "{line}");
+        out = out.replacen(line, "", 1);
+    }
+    out
+}
+
 /// The text without `SLOT_MENU_TILES` and its comment, which came after
 /// the Python too, on 2026-10-03: a request without `menu_tiles` says all
 /// of the bank, checked here.
@@ -297,7 +312,7 @@ fn without_bare_window(text: &str) -> String {
 #[test]
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
-    let text = without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&emitted.text))));
+    let text = without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&emitted.text)))));
     assert_eq!(text.lines().count(), 3774);
     assert_eq!(
         sha(&text),
@@ -308,7 +323,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 #[test]
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
-    let text = without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&emitted.text))));
+    let text = without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&emitted.text)))));
     assert_eq!(text.lines().count(), 3893);
     assert_eq!(
         sha(&text),

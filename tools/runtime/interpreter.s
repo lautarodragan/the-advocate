@@ -82,6 +82,7 @@ op_reserved_3a = op_done
 op_reserved_3b = op_done
 op_reserved_3c = op_done
 op_reserved_42 = op_done
+op_reserved_44 = op_done
 
 ; OP_CALL and OP_RETURN: a shared common event body is entered and left. The
 ; work is in bank 1, `call_enter` and `call_leave` in common_events.s.

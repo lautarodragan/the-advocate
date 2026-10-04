@@ -91,10 +91,15 @@ fn everything_a_cartridge_carries() {
         title: true,
         cgram_reserved: 9,
         vram: vram(),
+        menus: Vec::new(),
+        menu_context: Default::default(),
     };
     let mut answer = convert::convert(&game(), &request).unwrap();
     // The geometry is constants, and the Python had them as its own.
     answer.as_object_mut().unwrap().remove("layout");
+    // And without custom menus, what goes of them is their geometry too:
+    // they came on 2026-10-04, and the Python never had them.
+    answer.as_object_mut().unwrap().remove("custom_menus");
     answer.as_object_mut().unwrap().remove("battle_windows");
     let says: Vec<Value> = answer["says"]
         .as_array()
@@ -173,6 +178,8 @@ fn names_that_do_not_fit_in_the_bank_are_refused() {
         title: true,
         cgram_reserved: 9,
         vram: vram(),
+        menus: Vec::new(),
+        menu_context: Default::default(),
     };
     let bad = convert::convert(&game(), &request).unwrap_err();
     assert!(bad.message().contains("has no room for the composed names"), "{}", bad.message());
