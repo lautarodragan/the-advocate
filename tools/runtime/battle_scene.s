@@ -1641,7 +1641,7 @@ ready:
     beq ready
     lda #((SCENE_MAP / 1024) * 4)
     sta f:BG1SC                 ; 32x32, which is what covers the whole screen
-    lda #((SLOT_VRAM / 4096) * 16 + (SCENE_VRAM / 4096))
+    lda #((TL_BATTLE_VRAM / 4096) * 16 + (SCENE_VRAM / 4096))
     sta f:BG12NBA               ; the text on BG2 and the scene on BG1
     lda #0
     sta f:BG1HOFS               ; `stz` has no long mode

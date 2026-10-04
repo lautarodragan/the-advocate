@@ -29,7 +29,12 @@
 ;   into the record, so a run does not care where they came from —the item
 ;   texts in ROM, a number, the battle's message in RAM—, and it is not
 ;   capped by the cells: a description of fifty letters goes in one line.
-; * **A row that changed is typeset**: its runs are composed into
+;   **Except a text written by reference** —`TL_BY_REF`, which the
+;   battle's skill list asks for—: its run keeps where the text is in ROM
+;   and how many letters, six bytes however long it is. Two columns of
+;   names with their dashes and costs did not fit in a record with the
+;   letters copied, and until 2026-10-04 the cartridge kept thirteen letters
+;   of each skill. Nothing continues such a run.; * **A row that changed is typeset**: its runs are composed into
 ;   `TL_STAGE`, 32 columns of two tiles, and each column that got ink takes a
 ;   pair of tiles from a pool, `TL_FREE`; the layer's tilemap, `TL_MAP`,
 ;   points the row's two cell rows there. A row takes no tiles where it has
@@ -41,9 +46,10 @@
 ; * **The tilemap switches when everything is typeset**: the tiles go up as
 ;   each row is done, to pairs the tilemap on screen does not use, and the
 ;   tilemap goes up once there is nothing left, so a screen goes from what it
-;   said to what it says in one frame. A pair a row stopped using waits in
-;   `TL_PEND` until that switch, because the screen still shows it. A screen
-;   that changes so much at once that the pool runs out switches earlier.
+;   said to what it says in one frame. A pair a row stopped using waits
+;   until that switch, because the screen still shows it: at the top of
+;   `TL_FREE`, which the free ones fill from the bottom. A screen that
+;   changes so much at once that the pool runs out switches earlier.
 ;
 ; **It typesets while the frame waits for the vblank**: `wait_vblank` calls
 ; `tl_idle` until the line it is on reaches `TL_LAST_LINE`. That is the
@@ -76,15 +82,27 @@ TL_RECORD    = 56               ; a row's record: its length, then its runs
 TL_MAP       = FAR_TEXT_LAYER   ; the BG2 tilemap, 32 by 28 words
 TL_CUR       = TL_MAP + 32 * 28 * 2
 TL_SHOWN     = TL_CUR + TL_ROWS * TL_RECORD  ; what `TL_MAP` says
-TL_STAGE     = TL_SHOWN + TL_ROWS * TL_RECORD
+; The stage, where a row is composed, is **not** in the layer's RAM but in
+; `ANIMB_BUF`, the map's battle animation frame: it is only built on the
+; map, and `back_to_map` and `enter_map` clear it —`anim_buf_clear`— after
+; every screen, because it is rebuilt from nothing. So a screen can use it
+; as it wants. It moved there on 2026-10-04, to make room for the battle's
+; 447 pairs: see `battle_bank_upload`.
+TL_STAGE     = .loword(ANIMB_BUF)
 TL_STAGE_BYTES = TL_COLS * 64   ; a column is two tiles, top and bottom
-TL_PAIR      = TL_STAGE + TL_STAGE_BYTES     ; each cell's pair in `TL_MAP`
-TL_PAIRS     = 192                           ; a screen has 191 at most
-TL_REFS      = TL_PAIR + TL_ROWS * TL_COLS   ; per pair, how many cells
-TL_FREE      = TL_REFS + TL_PAIRS            ; the free ones, a stack
-TL_PEND      = TL_FREE + TL_PAIRS            ; released, still on screen
-TL_UPLOAD    = TL_PEND + TL_PAIRS            ; (column, pair) to upload
-TL_USED      = TL_UPLOAD + 2 * TL_COLS       ; per column: colour + 1 if inked
+.assert TL_STAGE_BYTES <= ANIM_B_BYTES, error, "the stage does not fit in ANIMB_BUF"
+.assert ^ANIMB_BUF = $7E, error, "the stage is read with the data bank at $7E"
+; A pair's number is a word: until 2026-10-04 it was a byte, and a screen
+; had 191 at most.
+TL_PAIR      = TL_SHOWN + TL_ROWS * TL_RECORD ; each cell's pair, a word
+TL_PAIRS     = 448                           ; a screen has 447 at most
+TL_REFS      = TL_PAIR + TL_ROWS * TL_COLS * 2 ; per pair, how many cells
+; Two stacks in one, of words: the free ones from the bottom, and from the
+; top down the ones released that the screen still shows, until the switch.
+; A pair is in one of them at most, so they never meet.
+TL_FREE      = TL_REFS + TL_PAIRS
+TL_UPLOAD    = TL_FREE + 2 * TL_PAIRS        ; (column, pair) to upload, words
+TL_USED      = TL_UPLOAD + 4 * TL_COLS       ; per column: colour + 1 if inked
 TL_FLAG      = TL_USED + TL_COLS             ; per row: `TL_WRITTEN`, `TL_DIRTY`
 TL_CSIG      = TL_FLAG + 28                  ; per row: its record's signature
 TL_SSIG      = TL_CSIG + 28                  ; and what `TL_MAP` says's
@@ -106,7 +124,7 @@ TL_T_POS     = TL_VARS + 18     ; its next byte, in `TL_SHOWN`
 TL_T_END     = TL_VARS + 20     ; and where its record ends
 TL_T_LEFT    = TL_VARS + 22     ; letters left in the current run
 TL_X         = TL_VARS + 24     ; where the next letter starts, in pixels
-TL_FREE_26   = TL_VARS + 26     ; (free)
+TL_VRAM      = TL_VARS + 26     ; where pair 0 is: `SLOT_VRAM`, or 0 in the battle
 TL_VAR       = TL_VARS + 28     ; the run's colour
 TL_SCAN      = TL_VARS + 30     ; the next row to look at
 TL_LEFT      = TL_VARS + 32     ; nonzero: no budget, the screen is off
@@ -154,7 +172,13 @@ TL_SLOT_T    = TL_SWITCHED + 24 ; the slot screen's names: each one's tile
 TL_SLOT_K    = TL_SLOT_T + 2 * TL_SLOTS ; and columns, 0 not composed yet
 TL_WIN_KEY   = TL_SLOT_K + 2 * TL_SLOTS ; the shop's windows as last uploaded:
                                 ; see `ti_windows`. Eight bytes
-TL_END       = TL_WIN_KEY + 8
+TL_BY_REF    = TL_WIN_KEY + 8   ; nonzero: the next `scr_text` goes by reference
+TL_T_REF     = TL_WIN_KEY + 10  ; nonzero: the run being typeset is one
+TL_REF_AT    = TL_WIN_KEY + 12  ; and where its next letter is, three bytes
+TL_END       = TL_WIN_KEY + 16
+; A run's colour byte with this bit says it goes by reference: three bytes
+; of address after its count, and no letters.
+TL_REF_BIT   = $80
 .assert TL_END <= FAR_TEXT_LAYER_END, error, "the text layer does not fit in its RAM"
 
 ; A letter that is not in the font: a blank as wide as a digit, which pads a
@@ -184,9 +208,9 @@ TL_PAIRS_PER_VBLANK = 16
 TL_XOFS      = SCR_TEXT_X
 TL_OFS_Y     = SCR_TEXT_Y
 .assert TL_OFS_Y = 2, error, "tl_row_ofs puts a glyph's first row at row 2 of its line"
-; A pair: two tiles of 4bpp, 32 words, from `SLOT_VRAM`. Pair 0 is never
-; handed out: tile 0 is the blank one, which the cells without text point
-; to.
+; A pair: two tiles of 4bpp, 32 words, from `TL_VRAM` —`SLOT_VRAM`, or word
+; 0 in the battle: see `battle_bank_upload`—. Pair 0 is never handed out:
+; tile 0 is the blank one, which the cells without text point to.
 TL_PAIR_WORDS = 32
 ; The slot screen's slots `tl_slot_name` keeps a name for.
 TL_SLOTS     = 8
@@ -239,11 +263,8 @@ tl_zero:
     txa
     ldx #0
 free:
-    sep #$20
-.a8
     sta TL_FREE, x
-    rep #$20
-.a16
+    inx
     inx
     dec a
     bne free
@@ -259,7 +280,7 @@ pairs:
     stz TL_PAIR, x
     inx
     inx
-    cpx #(TL_ROWS * TL_COLS)
+    cpx #(TL_ROWS * TL_COLS * 2)
     bcc pairs
     ldx #0
 refs:
@@ -304,15 +325,34 @@ records:
     stz TL_LEFT
     stz TL_SWITCHED
     stz TL_PRE
+    stz TL_BY_REF
+    stz TL_T_REF
     lda #$FFFF
     sta TL_WIN_KEY              ; the shop's windows, not uploaded yet
     sta TL_T_ROW
     sta TL_PEN_PICK
+    lda #SLOT_VRAM
+    sta TL_VRAM                 ; the battle moves it after: `tl_low`
     lda #1
     sta TL_SETTLE
     sep #$20
 .a8
     sta tl_on                   ; `wait_vblank` typesets from now on
+    plb
+    rtl
+.endproc
+
+; The pairs from word 0 and not from `SLOT_VRAM`: the battle's, right after
+; `tl_reset`. See `battle_bank_upload`. A8.
+.proc tl_low
+.a8
+.i16
+    tl_enter
+    rep #$20
+.a16
+    stz TL_VRAM
+    sep #$20
+.a8
     plb
     rtl
 .endproc
@@ -503,10 +543,17 @@ a_row:
 run:
     cpy TL_T3
     bcs none
+    lda TL_CUR + 1, y
+    and #TL_REF_BIT
+    beq copied
+    lda #6                      ; by reference: its address and no letters
+    bra sized
+copied:
     lda TL_CUR + 2, y
     and #$00FF
     clc
     adc #3
+sized:
     sta TL_N                    ; the run's bytes
     lda TL_CUR, y
     and #$00FF
@@ -719,6 +766,8 @@ fitted:
     tya
     sta temp
 whole:
+    lda TL_BY_REF
+    bne by_ref
     rep #$20
 .a16
     jsr tl_open
@@ -744,6 +793,63 @@ ready:
     jsr tl_moved
     lda #255
     sta comp_dup + 3            ; the cap is for one text only
+    plb
+    rtl
+
+    ; By reference: a run of its own, always —nothing it could continue
+    ; would know where its letters end—, and after its count the text's
+    ; address instead of the letters. With no room in the record for those
+    ; three bytes, the empty run goes and the text does not show, as when
+    ; letters do not fit.
+by_ref:
+    stz TL_BY_REF               ; it is for one text only, like the cap
+    rep #$20
+.a16
+    stz TL_RUN
+    jsr tl_open
+    lda TL_RUN
+    beq no_room                 ; not even for the run
+    ldy TL_RUN_ROW
+    lda TL_CUR, y
+    and #$00FF
+    cmp #(TL_RECORD - 1 - 3 + 1)
+    bcc room
+    sec
+    sbc #3
+    sep #$20
+.a8
+    sta TL_CUR, y
+    rep #$20
+.a16
+    bra no_room
+room:
+    clc
+    adc #3
+    sep #$20
+.a8
+    sta TL_CUR, y               ; the longer length
+    lda msg_ptr
+    sta TL_CUR, x
+    lda msg_ptr + 1
+    sta TL_CUR + 1, x
+    lda msg_ptr + 2
+    sta TL_CUR + 2, x
+    ldx TL_RUN
+    lda temp
+    sta TL_CUR, x               ; how many letters
+    lda TL_CUR - 1, x
+    ora #TL_REF_BIT
+    sta TL_CUR - 1, x           ; and in its colour, that it is by reference
+    rep #$20
+.a16
+no_room:
+    stz TL_RUN                  ; nothing continues it
+    sep #$20
+.a8
+    lda temp
+    jsr tl_moved
+    lda #255
+    sta comp_dup + 3
     plb
     rtl
 .endproc
@@ -965,20 +1071,19 @@ stop:
 .a16
     lda TL_UP_I
     asl a
+    asl a
     tax
 pair:
-    lda TL_UPLOAD + 1, x        ; the pair
-    and #$00FF
+    lda TL_UPLOAD + 2, x        ; the pair
     asl a
     asl a
     asl a
     asl a
     asl a                       ; 32 words each
     clc
-    adc #SLOT_VRAM
+    adc TL_VRAM
     sta f:VMADDL
     lda TL_UPLOAD, x            ; the column
-    and #$00FF
     xba
     lsr a
     lsr a                       ; 64 bytes each
@@ -995,7 +1100,10 @@ pair:
 .a16
     inx
     inx
+    inx
+    inx
     txa
+    lsr a
     lsr a
     cmp TL_T2
     bcc pair
@@ -1066,25 +1174,46 @@ not_now:
     stz TL_MAP_DIRTY
     stz TL_FLUSH
     lda #1
-    sta TL_SWITCHED             ; `tl_step` clears `TL_NEW`, out of the vblank
-    ldy #0
-recycle:
-    cpy TL_PEND_N
-    bcs recycled
-    ldx TL_FREE_N
+    sta TL_SWITCHED             ; `tl_step` clears `TL_NEW` and frees the
+                                ; waiting ones, out of the vblank
     sep #$20
 .a8
-    lda TL_PEND, y
-    sta TL_FREE, x
-    rep #$20
+    rts
+.endproc
+
+; After a switch, what was waiting for it is free: the waiting ones, from the
+; top of `TL_FREE`, onto the free ones, with one `mvn`. Upwards, which is the
+; order in which a byte never lands on one not read yet: the two together are
+; fewer than `TL_PAIRS`, so the copy goes down. It was a loop in the vblank
+; until 2026-10-04, and with the battle's 447 it would not have fitted. A16.
+.proc tl_recycle
 .a16
-    inc TL_FREE_N
-    iny
-    bra recycle
-recycled:
+.i16
+    lda TL_PEND_N
+    beq done
+    sta TL_T0
+    lda #TL_PAIRS
+    sec
+    sbc TL_T0
+    asl a
+    clc
+    adc #TL_FREE
+    tax                         ; the lowest waiting one
+    lda TL_FREE_N
+    asl a
+    clc
+    adc #TL_FREE
+    tay                         ; where the free ones end
+    lda TL_T0
+    asl a
+    dec a                       ; `mvn` copies A + 1
+    mvn #$7E, #$7E
+    lda TL_FREE_N
+    clc
+    adc TL_T0
+    sta TL_FREE_N
     stz TL_PEND_N
-    sep #$20
-.a8
+done:
     rts
 .endproc
 
@@ -1237,7 +1366,10 @@ late:
 .i16
     lda TL_SWITCHED
     beq not_switched
+    jsr tl_late_step            ; the copy takes up to some thirty lines
+    bcs busy
     jsr tl_not_new
+    jsr tl_recycle
 not_switched:
     lda TL_UP_N
     bne busy
@@ -1658,63 +1790,49 @@ differ:
 .i16
     sta TL_T0
     jsr tl_release_row
+    ; A cell's pair is a word, at twice its index: where its tilemap word is
+    ; in `TL_MAP`.
     lda TL_T0
-    asl a
-    asl a
-    asl a
-    asl a
-    asl a
-    tay                         ; this one's first cell
+    xba
+    lsr a
+    lsr a
+    tay                         ; this one's first cell, times two
     lda TL_SRC
-    asl a
-    asl a
-    asl a
-    asl a
-    asl a
+    xba
+    lsr a
+    lsr a
     tax                         ; and the source's
     lda #TL_COLS
     sta TL_N
-    sep #$20
-.a8
 column:
     lda TL_PAIR, x
     beq empty
     sta TL_PAIR, y
     phx
-    rep #$20
-.a16
-    and #$00FF
     tax
     sep #$20
 .a8
     inc TL_REFS, x
     rep #$20
 .a16
-    ; Its two tilemap words: a cell's is at twice its index.
-    lda 1, s
-    asl a
-    tax
+    plx
+    ; Its two tilemap words, both read before writing: the source can be
+    ; the row above, whose lower cells are this one's upper ones.
     lda TL_MAP, x
     sta TL_GG
     lda TL_MAP + 64, x
     sta TL_SS
-    tya
-    asl a
-    tax
     lda TL_GG
-    sta TL_MAP, x
+    sta TL_MAP, y
     lda TL_SS
-    sta TL_MAP + 64, x
-    plx
-    sep #$20
-.a8
+    sta TL_MAP + 64, y
 empty:
     inx
+    inx
+    iny
     iny
     dec TL_N
     bne column
-    rep #$20
-.a16
     lda TL_T0
     jsr tl_shown_now
     lda #1
@@ -1741,73 +1859,78 @@ empty:
     asl a
     asl a
     sta TL_T2                   ; its first cell
-    tay
     asl a
-    sta TL_T3                   ; its first tilemap byte
+    sta TL_T3                   ; its first tilemap byte, and its first pair's
+    tay
     lda #TL_COLS
     sta TL_T1
-    sep #$20
-.a8
 column:
     lda TL_PAIR, y
     beq empty
-    rep #$20
-.a16
-    and #$00FF
+    sta TL_C                    ; the pair, for its cells below
     tax
-    sep #$20
-.a8
-    stx TL_C                    ; the pair, for its cells below
     lda #0
     sta TL_PAIR, y
+    sep #$20
+.a8
     dec TL_REFS, x
+    rep #$20
+.a16
     bne still
+    sep #$20
+.a8
     lda TL_NEW, x
+    rep #$20
+.a16
     beq shown
+    sep #$20
+.a8
     stz TL_NEW, x               ; never on screen: free now
-    txa
-    ldx TL_FREE_N
+    rep #$20
+.a16
+    lda TL_FREE_N
+    asl a
+    tax
+    lda TL_C
     sta TL_FREE, x
     inc TL_FREE_N
     bra still
 shown:
-    txa
-    ldx TL_PEND_N
-    sta TL_PEND, x
-    inc TL_PEND_N
-still:
-    rep #$20
-.a16
-    tya
+    ; At the top of `TL_FREE`, down from its last word.
+    lda #(TL_PAIRS - 1)
+    sec
+    sbc TL_PEND_N
     asl a
     tax
-    lda TL_MAP, x
+    lda TL_C
+    sta TL_FREE, x
+    inc TL_PEND_N
+still:
+    lda TL_MAP, y
     and #$03FF
     lsr a
     cmp TL_C
     bne not_upper
-    stz TL_MAP, x
+    lda #0
+    sta TL_MAP, y
 not_upper:
-    lda TL_MAP + 64, x
+    lda TL_MAP + 64, y
     and #$03FF
     lsr a
     cmp TL_C
     bne not_lower
-    stz TL_MAP + 64, x
+    lda #0
+    sta TL_MAP + 64, y
 not_lower:
     lda #1
     sta TL_MAP_DIRTY
-    sep #$20
-.a8
 empty:
+    iny
     iny
     dec TL_T1
     bne column
-    rep #$20
-.a16
     rts
 .endproc
-.assert TL_PAIRS <= 256, error, "tl_release_row counts the free and pending pairs a byte at a time"
 
 ; Row A16's record is now what `TL_MAP` says: copied to `TL_SHOWN`. A16.
 .proc tl_shown_now
@@ -1924,15 +2047,33 @@ a_run:
     lda a:0, x
     and #$00FF
     sta TL_X
-    lda a:1, x
-    and #$00FF
-    sta TL_VAR                  ; the colour: the palette of what it inks
     lda a:2, x
     and #$00FF
     sta TL_T_LEFT
+    lda a:1, x
+    and #$00FF
+    bit #TL_REF_BIT
+    bne by_ref
+    sta TL_VAR                  ; the colour: the palette of what it inks
+    stz TL_T_REF
     txa
     clc
     adc #3
+    sta TL_T_POS
+    bra loop
+by_ref:
+    and #($FF - TL_REF_BIT)
+    sta TL_VAR
+    lda #1
+    sta TL_T_REF
+    lda a:3, x
+    sta TL_REF_AT               ; where its letters are
+    lda a:5, x
+    and #$00FF
+    sta TL_REF_AT + 2
+    txa
+    clc
+    adc #6
     sta TL_T_POS
     bra loop
 letter:
@@ -1944,10 +2085,16 @@ letter:
     rts
 go:
     dec TL_T_LEFT
+    lda TL_T_REF
+    beq copied
+    jsr tl_ref_letter
+    bra fetched
+copied:
     ldx TL_T_POS
     inc TL_T_POS
     lda a:0, x
     and #$00FF
+fetched:
     cmp #TL_FIGURE
     bne normal
     lda f:font_advance + ('0' - ' ')
@@ -1975,6 +2122,44 @@ advance:
     adc TL_X
     sta TL_X
     jmp loop
+.endproc
+
+; The next letter of a run by reference, as a letter of the font, in A, and
+; `TL_REF_AT` on the one after. It is read with the data bank at the text's
+; and an absolute address, which reaches any bank with no direct page: the
+; layer's typesetting runs anywhere a screen waits for the vblank, and has
+; none of its own. Both interrupts set their own data bank. A16.
+.proc tl_ref_letter
+.a16
+.i16
+    ldx TL_REF_AT
+    sep #$20
+.a8
+    lda TL_REF_AT + 2
+    pha
+    plb
+    lda a:0, x
+    xba
+    lda #$7E
+    pha
+    plb
+    xba
+    rep #$20
+.a16
+    and #$00FF
+    sec
+    sbc #' '
+    pha
+    inc TL_REF_AT
+    bne same_bank
+    sep #$20
+.a8
+    inc TL_REF_AT + 2
+    rep #$20
+.a16
+same_bank:
+    pla
+    rts
 .endproc
 
 ; Row K of a glyph, at byte OFS of its column of the stage —rows 2 to 7 of
@@ -2151,9 +2336,10 @@ column:
     lda TL_FREE_N
     beq empty                   ; none left
     dec TL_FREE_N
-    ldx TL_FREE_N
+    lda TL_FREE_N
+    asl a
+    tax
     lda TL_FREE, x
-    and #$00FF
     sta TL_C                    ; the pair
     tax
     sep #$20
@@ -2163,16 +2349,15 @@ column:
     sta TL_NEW, x
     rep #$20
 .a16
+    ; Its pair, a word at twice the cell's index, which is where its tilemap
+    ; word is too.
     tya
+    asl a
     clc
-    adc TL_T2
+    adc TL_T3
     tax
-    sep #$20
-.a8
     lda TL_C
     sta TL_PAIR, x
-    rep #$20
-.a16
     ; Its two tilemap words: tile 2 * pair and the one after, the palette
     ; and the priority.
     lda TL_G
@@ -2185,28 +2370,18 @@ column:
     lda TL_C
     asl a
     ora TL_GG
-    sta TL_GG
-    tya
-    asl a
-    clc
-    adc TL_T3
-    tax
-    lda TL_GG
     sta TL_MAP, x
     inc a
     sta TL_MAP + 64, x
     ; And the upload: column and pair.
     lda TL_UP_N
     asl a
+    asl a
     tax
-    sep #$20
-.a8
     tya
     sta TL_UPLOAD, x
     lda TL_C
-    sta TL_UPLOAD + 1, x
-    rep #$20
-.a16
+    sta TL_UPLOAD + 2, x
     inc TL_UP_N
 empty:
     iny

@@ -77,6 +77,10 @@ no_page_start:
     jsl f:ba_t_ppu
     lda #0
     sta f:INIDISP
+    ; BG2's tiles from word 0 and not where `slot_ppu_on` put them: see
+    ; `battle_bank_upload`. `scene_on` writes it again with the scene's.
+    lda #(TL_BATTLE_VRAM / 4096 * 16)
+    sta f:BG12NBA
     jsr scene_on
     jsl f:battle_fade_showing
     lda #1

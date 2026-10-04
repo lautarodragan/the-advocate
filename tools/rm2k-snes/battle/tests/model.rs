@@ -114,17 +114,21 @@ fn every_battle_plays_as_the_pythons() {
 }
 
 /// A model as the Python wrote it: it cut a skill's name at eleven
-/// letters, one per cell, and since 2026-10-03 the cartridge keeps
-/// `BA_SKILL_NAME_LETTERS` —see its why—, so they are cut here again.
+/// letters and an enemy's at fourteen, one per cell, and since 2026-10-04
+/// the cartridge keeps them whole —see `TL_RECORD` in `screen.rs`—, so
+/// they are cut here again.
 fn pythons_model(db: &Db, request: &Value) -> rm2k_snes_battle::Result<Value> {
     let mut v = model::model(db, request)?;
-    if let Some(skills) = v["texts"]["skills"].as_object_mut() {
-        for skill in skills.values_mut() {
-            let name = skill["name"].as_str().unwrap().to_string();
-            assert!(name.chars().count() <= rm2k_snes_battle::screen::BA_SKILL_NAME_LETTERS);
-            skill["name"] = Value::from(name.chars().take(11).collect::<String>());
+    let cut = |names: &mut Value, letters: usize, pick: fn(&mut Value) -> &mut Value| {
+        if let Some(all) = names.as_object_mut() {
+            for one in all.values_mut() {
+                let name = pick(one);
+                *name = Value::from(name.as_str().unwrap().chars().take(letters).collect::<String>());
+            }
         }
-    }
+    };
+    cut(&mut v["texts"]["skills"], 11, |s| &mut s["name"]);
+    cut(&mut v["texts"]["enemies"], rm2k_snes_battle::screen::BA_NAME_WIDTH, |e| e);
     Ok(v)
 }
 

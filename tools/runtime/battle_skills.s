@@ -1313,6 +1313,10 @@ no_cursor_skill:
 .a8
     lda #BA_SKILL_NAME_WIDTH
     sta comp_dup + 3
+    ; By reference: the two columns of a row, with the letters copied, do not
+    ; fit in a row's record. See `TL_BY_REF`.
+    lda #1
+    sta TL_BY_REF
     rep #$20
 .a16
     lda BA_S6

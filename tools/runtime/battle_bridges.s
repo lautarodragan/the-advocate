@@ -84,7 +84,7 @@ ba_t_bank:
     phb
     phk
     plb
-    jsl f:items_bank_upload
+    jsl f:battle_bank_upload
     plb
     rtl
 ba_t_ppu:
