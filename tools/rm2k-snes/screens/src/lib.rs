@@ -16,6 +16,7 @@
 //! * [`boxes`]: every message box of the game reflowed for the console's
 //!   window.
 
+pub mod battle;
 pub mod borders;
 pub mod boxes;
 pub mod cells;

@@ -76,15 +76,15 @@
 //! the text is the old one byte for byte.
 //!
 //! And the same day the battle's windows went to the band below the scene,
-//! as RM2k's: the requests carry `rm2k-snes-battle`'s new `layout` and the
-//! dead state's name in `texts.dead`, and the two hashes moved. The
-//! difference against the old text, compared line by line, is the battle's
-//! geometry constants —new names, new values, in another order—, the two
-//! tables of where each command went gone, `BA_TXT_SP`, `BA_TXT_NORMAL` and
-//! `BA_TXT_DEAD`, those three texts in the text block, and after each
-//! skill's description a second text, its second line —empty in these
-//! requests, whose descriptions fit in one—, which move the ones after
-//! them.
+//! as RM2k's, with the System's frame and bar: the requests carry
+//! `rm2k-snes-battle`'s new `layout`, the dead state's name in
+//! `texts.dead` and the screens stage's `battle_windows` —of the screens'
+//! test game—, and the two hashes moved. The difference against the old
+//! text, compared line by line, is the battle's geometry constants —new
+//! names, new values, in another order—, the two tables of where each
+//! command went gone, `BA_TXT_SP`, `BA_TXT_NORMAL` and `BA_TXT_DEAD` and
+//! those three texts, `ba_item_desc` and the items' whole descriptions, and
+//! the windows' blocks and constants (`ba_win_*`, `BA_WIN_*`).
 
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_mapdata::record;
@@ -298,10 +298,10 @@ fn without_bare_window(text: &str) -> String {
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
     let text = without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&emitted.text))));
-    assert_eq!(text.lines().count(), 3406);
+    assert_eq!(text.lines().count(), 3774);
     assert_eq!(
         sha(&text),
-        "0801c25f93b08d25125b4dc30f22b860887d3bfef932228bbbec8d0437e38b3f"
+        "a7c4eea1c7cdc22c28b91cd907b2833ba97370b513d3f388fb3878e81c03aa85"
     );
 }
 
@@ -309,10 +309,10 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
     let text = without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&emitted.text))));
-    assert_eq!(text.lines().count(), 3525);
+    assert_eq!(text.lines().count(), 3893);
     assert_eq!(
         sha(&text),
-        "7e0c260f33115288bdf7802a4ea01f56287b4e46f713031849f7704a25a609eb"
+        "e7b59c1a9ee9ea3479b70270e4b47e0860a164de98bb07fb5a0dfaeea4e1fc3d"
     );
 }
 

@@ -85,6 +85,9 @@ pub const TILES: i64 = TILES_X * TILES_Y;
 /// Where it lives in VRAM, in words.
 pub const VRAM_MAP: i64 = 0x3800;
 pub const VRAM_TILES: i64 = 0x4000;
+/// Where the battle's text pairs end: from there to the scene's tilemap go
+/// the windows' tiles —see `battle.rs` in `rm2k-snes-screens`—.
+pub const TEXT_PAIRS_END: i64 = 0x2000;
 /// How many planes the cartridge stores per row of a battler: the mask
 /// and the four of its drawing. The ROM sets the other four by palette.
 pub const BATTLER_PLANES: usize = 5;

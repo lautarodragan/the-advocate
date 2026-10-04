@@ -89,33 +89,6 @@ pub const BATTLE_TERMS: [(&str, &str); 29] = [
     ("normal", "normal_status"),
 ];
 
-/// A description cut in the two lines of the battle's band on top: the
-/// first, as many words as fit in `width` pixels with the font's
-/// `advances` —one at least, which the console cuts at the edge—, and the
-/// second, the rest, which the console cuts at the edge too. RM2k writes
-/// it in one line with a smaller font.
-fn help_lines(text: &str, advances: &[i64], width: i64) -> (String, String) {
-    let px = |s: &str| -> i64 {
-        s.chars()
-            .map(|c| advances.get((c as usize).wrapping_sub(32)).copied().unwrap_or(0))
-            .sum()
-    };
-    let text = text.trim();
-    if px(text) <= width {
-        return (text.to_string(), String::new());
-    }
-    let mut first = String::new();
-    for word in text.split(' ') {
-        let longer = if first.is_empty() { word.to_string() } else { format!("{first} {word}") };
-        if !first.is_empty() && px(&longer) > width {
-            break;
-        }
-        first = longer;
-    }
-    let rest = text[first.len()..].trim().to_string();
-    (first, rest)
-}
-
 /// A term of the database, by liblcf's name.
 fn term(db: &Db, name: &str) -> Result<String> {
     let t = &db.terms;
@@ -1444,6 +1417,56 @@ impl Rest<'_> {
             out,
             &block("items_border_cgram", &cgram_bytes(&border_colors)),
         );
+        // The battle's windows, on BG1 at 8bpp in the cells the scene does
+        // not take: see `battle.rs` in `rm2k-snes-screens`. Per layout its
+        // band's rows, and per layout and set the bars, sixteen records of
+        // six bytes —row, column, rows, columns, the first word in
+        // `ba_win_patches`— with ten for set A, five for set B and one of
+        // padding; a record of no rows is no bar.
+        let bw = at(screens, "battle_windows")?;
+        let bw_tiles = tiles(at(bw, "tiles")?)?;
+        let bw_colors = colors(at(bw, "colors")?)?;
+        line(out, &block("ba_win_tiles", &packed(&bw_tiles, 8)));
+        line(out, &block("ba_win_cgram", &cgram_bytes(&bw_colors)));
+        let mut band = Vec::new();
+        for layout in list_at(bw, "band")? {
+            band.extend(words(layout)?);
+        }
+        line(out, &block("ba_win_band", &band));
+        line(out, &block("ba_win_help", &words(at(bw, "help")?)?));
+        line(out, &block("ba_win_patches", &words(at(bw, "patches")?)?));
+        let mut records = Vec::new();
+        for sets in list_at(bw, "bars")? {
+            let sets = list(sets)?;
+            for (set, room) in [(0, 10), (1, 6)] {
+                let bars = list(&sets[set])?;
+                if bars.len() > room {
+                    return Err(Bad::answer(format!("a battle layout has {} bars in a set of {room}", bars.len())));
+                }
+                for k in 0..room {
+                    match bars.get(k) {
+                        Some(b) => {
+                            let b = ints(b)?;
+                            records.extend([b[0] as u8, b[1] as u8, b[2] as u8, b[3] as u8]);
+                            records.extend((b[4] as u16 * 2).to_le_bytes());
+                        }
+                        None => records.extend([0u8; 6]),
+                    }
+                }
+            }
+        }
+        line(out, &block("ba_win_bars", &records));
+        out.push_str(&pyf!(
+            "BA_WIN_TILES      = %d\nBA_WIN_FIRST      = %d\nBA_WIN_CGRAM      = %d\nBA_WIN_COLORS     = %d\n\
+             BA_WIN_BAND_ROW   = %d\nBA_WIN_BAND_ROWS  = %d\nBA_WIN_HELP_ROWS  = %d\n",
+            bw_tiles.len(),
+            int_at(bw, "first")?,
+            int_at(bw, "cgram")?,
+            bw_colors.len(),
+            int_at(bw, "band_row")?,
+            list(&list_at(bw, "band")?[0])?.len() / 32,
+            list(at(bw, "help")?)?.len() / 32
+        ));
         // The shop windows, on BG1 with their own base.
         let shop = at(screens, "shop_border")?;
         let ti_tiles = tiles(at(shop, "tiles")?)?;
@@ -1641,20 +1664,36 @@ impl Rest<'_> {
                 texts.add(text_at(at(skill_texts, &h.to_string())?, "name")?),
             );
         }
-        // A skill's description in two texts, one after the other: the
-        // battle writes it in the band on top, two lines if it takes them.
-        // See `help_lines`.
-        let advances = ints_at(at(screens, "window")?, "advances")?;
-        let help_width = int_at(at(model, "layout")?, "BA_HELP_WIDTH")? * 8;
         let mut skill_desc_text = HashMap::new();
         for &h in &rom_skills {
-            let (first, second) = help_lines(
-                text_at(at(skill_texts, &h.to_string())?, "description")?,
-                &advances,
-                help_width,
+            skill_desc_text.insert(
+                h,
+                texts.add(text_at(at(skill_texts, &h.to_string())?, "description")?),
             );
-            skill_desc_text.insert(h, texts.add(&first));
-            texts.add(&second);
+        }
+        // An item's description whole, for the battle's help window, which
+        // has one line: the item screens split it in two, `3k + 1` and `3k +
+        // 2`. Only the items the battle offers; the others point to text 0.
+        let item_battle = list_at(model, "item_battle")?;
+        let item_list = list_at(textos, "items")?;
+        if item_battle.len() != item_list.len() {
+            return Err(Bad::answer("the battle's items and the screens' are not the same list"));
+        }
+        let mut item_desc_battle = Vec::new();
+        for (item, battle) in item_list.iter().zip(item_battle) {
+            if battle.as_bool().unwrap_or(false) {
+                let lines = list_at(item, "texts")?;
+                let whole: Vec<&str> = lines[1..]
+                    .iter()
+                    .map(text)
+                    .collect::<Result<Vec<_>>>()?
+                    .into_iter()
+                    .filter(|l| !l.is_empty())
+                    .collect();
+                item_desc_battle.push(texts.add(&whole.join(" ")));
+            } else {
+                item_desc_battle.push(0);
+            }
         }
         let skill = |h: i64| {
             db.skill(h as i32)
@@ -2025,6 +2064,7 @@ impl Rest<'_> {
                 enemy_text,
                 skill_text,
                 skill_desc_text,
+                item_desc_battle,
                 whole_skill_text,
                 skill_msg1_text,
                 skill_msg2_text,
@@ -2056,6 +2096,7 @@ struct ItemTexts<'a> {
     enemy_text: HashMap<i64, i64>,
     skill_text: HashMap<i64, i64>,
     skill_desc_text: HashMap<i64, i64>,
+    item_desc_battle: Vec<i64>,
     whole_skill_text: HashMap<i64, i64>,
     skill_msg1_text: HashMap<i64, i64>,
     skill_msg2_text: HashMap<i64, i64>,
@@ -2168,6 +2209,7 @@ impl Rest<'_> {
             .map(|v| i64::from(v.as_bool().unwrap_or(false)))
             .collect();
         bytes_asm(out, "item_battle", &decimal(item_battle), true);
+        words_asm(out, "ba_item_desc", &decimal(x.item_desc_battle.iter().copied()), true);
         let per_item = |f: &dyn Fn(&ditto::schema::Item) -> i64| -> Result<Vec<String>> {
             Ok(decimal(
                 items
@@ -3044,14 +3086,12 @@ impl Rest<'_> {
         for (name, value) in [
             ("BA_ENEMY_POS0", pos(bs.n("BA_ENEMY_ROW0"), 0)),
             ("BA_TARGET_ROWS", bs.n("BA_TARGET_ROWS")),
-            ("BA_CURSOR_DX", bs.n("BA_CURSOR_COL") * 2),
             ("BA_ENEMY_NAME_DX", bs.n("BA_ENEMY_NAME_COL") * 2),
             ("BA_ENEMY_NAME_WIDTH", bs.n("BA_ENEMY_NAME_WIDTH")),
             ("BA_COMMAND_POS0", pos(bs.n("BA_COMMAND_ROW0"), 0)),
             ("BA_COMMAND_DX", bs.n("BA_COMMAND_COL") * 2),
             ("BA_COMMAND_CELLS", bs.n("BA_COMMAND_CELLS")),
             ("BA_PARTY_POS0", pos(bs.n("BA_PARTY_ROW0"), 0)),
-            ("BA_PARTY_CURSOR_DX", bs.n("BA_PARTY_CURSOR_COL") * 2),
             ("BA_NAME_DX", bs.n("BA_NAME_COL") * 2),
             ("BA_NAME_WIDTH", bs.n("BA_NAME_WIDTH")),
             ("BA_STATE_DX", bs.n("BA_STATE_COL") * 2),
@@ -3063,8 +3103,10 @@ impl Rest<'_> {
             ("BA_MSG_LINES", bs.n("BA_MSG_LINES")),
             ("BA_MSG_DX", 2),
             ("BA_HELP_POS", pos(bs.n("BA_HELP_ROW"), bs.n("BA_HELP_COL"))),
-            ("BA_HELP_POS1", pos(bs.n("BA_HELP_ROW1"), bs.n("BA_HELP_COL"))),
-            ("BA_HELP_POS2", pos(bs.n("BA_HELP_ROW2"), bs.n("BA_HELP_COL"))),
+            ("BA_LAYOUT_COMMAND", bs.n("BA_LAYOUT_COMMAND")),
+            ("BA_LAYOUT_TARGET", bs.n("BA_LAYOUT_TARGET")),
+            ("BA_LAYOUT_WIDE", bs.n("BA_LAYOUT_WIDE")),
+            ("BA_BARS_MAX", bs.n("BA_BARS_MAX")),
             ("BA_HELP_SCENE_ROWS", bs.n("BA_HELP_SCENE_ROWS")),
             ("BA_HELP_WIDTH", bs.n("BA_HELP_WIDTH")),
             ("BA_PAGE_MSG_POS0", pos(bs.n("BA_PAGE_MSG_ROW0"), 0)),

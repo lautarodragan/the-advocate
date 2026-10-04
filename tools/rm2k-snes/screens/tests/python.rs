@@ -28,6 +28,10 @@
 //! —`arrow`, `bar` and `bar_bare`, the arrow's tiles among its own and its
 //! colours in its palette—, and the hash of the whole answer moved: without
 //! `window`, the answer is the old one byte for byte.
+//!
+//! And the same day the battle got its windows, `battle_windows`, which the
+//! Python never drew: they are taken out before hashing, and checked on
+//! their own by `the_battle_windows_fit`.
 
 use rm2k_snes_screens::checks::Vram;
 use rm2k_snes_screens::convert::{self, Request};
@@ -91,6 +95,15 @@ fn everything_a_cartridge_carries() {
     let mut answer = convert::convert(&game(), &request).unwrap();
     // The geometry is constants, and the Python had them as its own.
     answer.as_object_mut().unwrap().remove("layout");
+    answer.as_object_mut().unwrap().remove("battle_windows");
+    let says: Vec<Value> = answer["says"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|s| !s.as_str().unwrap().starts_with("  battle windows:"))
+        .cloned()
+        .collect();
+    answer["says"] = Value::from(says);
     // The actor choice is no longer the Python's since 2026-09-30: whom to
     // equip is chosen on the pause menu, over nothing, which adds that bar's
     // tiles and rectangle, and the choice without an item and its erased
@@ -125,6 +138,27 @@ fn everything_a_cartridge_carries() {
             "  faces without a palette of their own, drawn with another's: Gus"
         ])
     );
+}
+
+/// The battle's windows of the small game: every layout's band, its bars
+/// and the description's window, in the tiles and colours they have.
+#[test]
+fn the_battle_windows_fit() {
+    let skin = game().skin().unwrap();
+    let windows = rm2k_snes_screens::battle::battle_windows(&skin).unwrap();
+    let tiles = windows["tiles"].as_array().unwrap().len();
+    assert!(tiles > 0 && tiles <= rm2k_snes_screens::battle::BATTLE_WINDOW_TILES_MAX);
+    let band = windows["band"].as_array().unwrap();
+    assert_eq!(band.len(), 3);
+    assert!(band.iter().all(|b| b.as_array().unwrap().len() == 12 * 32));
+    assert_eq!(windows["help"].as_array().unwrap().len(), 4 * 32);
+    // Every bar draws something, inside the band.
+    for sets in windows["bars"].as_array().unwrap() {
+        for bar in sets.as_array().unwrap().iter().flat_map(|s| s.as_array().unwrap()) {
+            let b: Vec<i64> = bar.as_array().unwrap().iter().map(|v| v.as_i64().unwrap()).collect();
+            assert!(b[0] >= 16 && b[0] + b[2] <= 28 && b[3] > 0, "{b:?}");
+        }
+    }
 }
 
 #[test]

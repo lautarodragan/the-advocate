@@ -26,8 +26,6 @@
     sta BA_ACTOR
     sta BA_I
     sta BA_TARGET_TOP
-    sta BA_HELP_WANT
-    sta BA_HELP_ON              ; the scene's tilemap goes up whole
     sta BA_FLEE_FAILED
     jsr ba_build
     lda BA_KID
@@ -57,6 +55,7 @@ has_party:
     ; uploaded to BG1. It goes with the screen off because it is 32 KB of VRAM
     ; plus the tilemap and the palettes.
     jsr scene_upload
+    jsr ba_win_load             ; and the windows' tiles and colours
     lda #BA_M_COMMAND
     sta BA_MODE
     ; Before the first command, the pages already met: it is the `eCheckEvents`
@@ -73,6 +72,7 @@ has_party:
 no_page_start:
     jsr ba_compose
     jsl f:ba_t_upload
+    jsr ba_win_upload           ; with the screen off, whatever the text says
     ; Turn the screen on **in black**, which the entry transition shows:
     ; `slot_ppu_on` writes full brightness, so it is called inside a
     ; vblank and in the same vblank it is brought down to zero —not a single
@@ -95,7 +95,7 @@ wait:
     jsl f:ba_t_pad                ; the controller before the DMA, as in the
                                   ; shop
     jsl f:ba_t_upload
-    jsr ba_help_tick            ; the description's band, in the vblank too
+    jsr ba_win_tick             ; the windows, in the vblank too
     jsr ba_shake                ; the shake, before the vblank ends
     jsr scene_tick              ; still in the vblank: an enemy that died
     lda pad
@@ -623,6 +623,10 @@ close:
     ; troop page's stretch does before running, and it skips, like that one,
     ; the places a page left empty.
     jsr ba_sync_out
+    ; Without the battle's HDMA, and BG1 where the band left it: the exit
+    ; shows the scene as it is, and the map turns on its own.
+    lda #0
+    sta f:HDMAEN
     rtl
 
 recompose:
@@ -786,13 +790,26 @@ given_back:
 .a8
 .i16
     jsl f:ba_t_shake
-    lda BA_SCENE
-    cmp #$FF
-    beq ready
+    ; To the HDMA's table, which writes BG1HOFS per band —see `scene_on`—:
+    ; the scene's band, and the description's when the scene shows there.
+    ; The windows' band stays at zero.
+    rep #$20
+.a16
     lda shake_pos
-    sta f:BG1HOFS               ; absolute `stz` and `sta` would land in WRAM
-    lda shake_pos + 1
-    sta f:BG1HOFS
-ready:
+    sta BA_HOFS_HDMA + 4
+    sep #$20
+.a8
+    lda BA_WIN_SHOWN + 3
+    rep #$20
+.a16
+    beq on_top                  ; `rep` does not touch Z
+    lda #0
+    bra top_set
+on_top:
+    lda shake_pos
+top_set:
+    sta BA_HOFS_HDMA + 1
+    sep #$20
+.a8
     rts
 .endproc

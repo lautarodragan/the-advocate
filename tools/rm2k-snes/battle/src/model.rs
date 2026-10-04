@@ -165,6 +165,7 @@ pub fn model(db: &Db, request: &Value) -> Result<Value> {
     // names it cuts, and how many pairs of tiles of the text layer its
     // busiest lists ask for.
     let mut party_line = None;
+    let game_font = font_of(request)?;
     let (cut, pairs_asked) = match request.get("font") {
         None => (Vec::new(), Value::Null),
         Some(spec) => {
@@ -246,7 +247,7 @@ pub fn model(db: &Db, request: &Value) -> Result<Value> {
     // The texts. The victory term has to fit in the lines the window leaves
     // it, and every line the victory builds in its width.
     let t = &db.terms;
-    let victory = screen::victory_lines(&t.victory, screen::BA_PAGE_MSG_WIDTH)?;
+    let victory = screen::victory_lines_in(&t.victory, game_font.as_ref())?;
     if victory.len() > screen::BA_VICTORY_TERM_MAX {
         return Err(Bad::answer(format!(
             "the victory term takes {} lines and the window leaves it {}: {victory:?}",
@@ -282,6 +283,7 @@ pub fn model(db: &Db, request: &Value) -> Result<Value> {
         gold_max,
         &drop_texts,
         name_width,
+        game_font.as_ref(),
     )?;
 
     let mut enemy_names = Map::new();
@@ -538,7 +540,7 @@ pub fn lines(db: &Db, request: &Value) -> Result<Value> {
             )
         };
         out.push(match kind {
-            "victory" => screen::victory_lines(&db.terms.victory, screen::BA_PAGE_MSG_WIDTH)?,
+            "victory" => screen::victory_lines_in(&db.terms.victory, font_of(request)?.as_ref())?,
             "exp" => vec![screen::exp_line(db, arg(1)?)],
             "gold" => vec![screen::gold_line(db, arg(1)?)],
             "item" => vec![screen::item_line(
@@ -556,6 +558,20 @@ pub fn lines(db: &Db, request: &Value) -> Result<Value> {
         });
     }
     Ok(json!({"lines": out}))
+}
+
+/// The game's font, if the request names it —`font` and `letter_spacing`,
+/// as the screens stage takes them—.
+fn font_of(request: &Value) -> Result<Option<Font>> {
+    let Some(spec) = request.get("font") else {
+        return Ok(None);
+    };
+    let spec = spec.as_str().ok_or_else(|| Bad::answer("`font` is a name or a path"))?;
+    let spacing = request.get("letter_spacing").and_then(Value::as_i64).unwrap_or(0);
+    Font::named(spec, rm2k_snes_text::font::MINCHO)
+        .and_then(|f| f.with_spacing(spacing))
+        .map(Some)
+        .map_err(Bad::answer)
 }
 
 /// Python's `str.strip()`, which the commands go through: see
@@ -634,7 +650,6 @@ impl BusiestLists<'_> {
                 let mut row = Row::new();
                 for (c, name) in chunk.iter().enumerate() {
                     let x0 = c as i64 * screen::BA_SKILL_COLUMN_DX;
-                    row.push(Self::at(x0 + screen::BA_CURSOR_COL, ">"));
                     row.push(Self::at(x0 + screen::BA_SKILL_NAME_COL, name));
                     row.push(Self::at(x0 + screen::BA_SKILL_DASH_COL, mark));
                     row.push(Self::at(x0 + screen::BA_SKILL_COST_COL, "99"));

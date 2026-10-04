@@ -892,24 +892,33 @@ no:
     rts
 .endproc
 
-; The whole screen, written to the text layer: see `text_layer.s`.
+; The whole screen, written to the text layer —see `text_layer.s`— and the
+; windows it goes in, which `ba_win_tick` puts up in step with it.
 ;
 ; It is RM2k's: the scene on top with nothing over it and every window in
 ; the band below —see `screen.rs` in `rm2k-snes-battle`—, so what shows
-; there depends only on the mode. The commands with the party on their
-; right while choosing a command or whom to give something to; the enemies
-; to attack, over the party's names; an item or a skill list, with its
-; description on top, which takes the scene's first rows —`BA_HELP_WANT`,
-; which `ba_help_tick` carries out in the vblank—; and the battle's message,
-; a page's or the victory's, alone. Until 2026-10-04 the enemies' names went
-; over the scene and the party's lines and the commands under it, always.
+; there depends only on the mode. The party with the commands on its right,
+; the System's bar on who is giving commands or whom an item goes to and on
+; the command; the enemies to attack over the party's window; an item or a
+; skill list, with its description in a window on top; and the battle's
+; message, a page's or the victory's, alone. Until 2026-10-04 the enemies'
+; names went over the scene and the party's lines and the commands under
+; it, always, with ">" for a cursor and no windows.
+;
+; `BA_WIN_KEY` says the windows: the layout, set A's bar and set B's —$FF
+; none— and whether the description's window is on top.
 .proc ba_compose
 .a8
 .i16
     lda #255
     sta comp_dup + 3
     jsl f:ba_t_clear
-    stz BA_HELP_WANT
+    lda #BA_LAYOUT_COMMAND
+    sta BA_WIN_KEY
+    lda #$FF
+    sta BA_WIN_KEY + 1
+    sta BA_WIN_KEY + 2
+    stz BA_WIN_KEY + 3
     lda BA_MODE
     cmp #BA_M_SKILL
     bne :+
@@ -919,8 +928,8 @@ no:
     jmp ba_item_window
 :   cmp #BA_M_TARGET
     bne :+
-    jsr ba_target_window
-    jmp ba_party_stats
+    jsr ba_commands
+    jmp ba_target_window
 :   cmp #BA_M_MESSAGE
     beq message
     cmp #BA_M_END
@@ -928,22 +937,49 @@ no:
     cmp #BA_M_PAGE
     bne commands
     ; A troop page's message, in the message window; with none, the page is
-    ; running and what shows is the menu at rest.
+    ; running —a `ShakeScreen`, a `Wait`— and the message window is empty,
+    ; which is what RM2k shows between the commands and the actions. Until
+    ; 2026-10-04 it showed the commands, with the skill command of an actor
+    ; past the party's last.
+    lda #BA_LAYOUT_WIDE
+    sta BA_WIN_KEY
     rep #$20
 .a16
     lda BA_PAGE_MSG
     cmp #$FFFF
     sep #$20
 .a8
-    beq commands
+    bne page_message
+    rts
+page_message:
     jmp ba_page_message
 message:
+    lda #BA_LAYOUT_WIDE
+    sta BA_WIN_KEY
     jsr ba_vic_on_screen
     beq not_victory
     jmp ba_vic_message
 not_victory:
     jmp ba_message
 commands:
+    ; The bars: on the command while choosing one or whom it goes to, and on
+    ; the actor giving it or the one it goes to.
+    lda BA_MODE
+    cmp #BA_M_COMMAND
+    bne not_command
+    lda BA_ACTOR
+    sta BA_WIN_KEY + 1
+    lda BA_COMMAND
+    sta BA_WIN_KEY + 2
+    bra bars_set
+not_command:
+    cmp #BA_M_ACTOR
+    bne bars_set
+    lda BA_ITEM_TGT
+    sta BA_WIN_KEY + 1
+    lda BA_COMMAND
+    sta BA_WIN_KEY + 2
+bars_set:
     jsr ba_commands
     jmp ba_party
 .endproc
@@ -963,10 +999,10 @@ without:
     rts
 .endproc
 
-; The commands, one per line on the left of the band. In gray while
+; The commands, one per line in their window on the right. In gray while
 ; something else is being chosen —the menu is no longer in charge— and
 ; always the one that is not implemented, which is what the pause menu does
-; with its own; the cursor only while choosing one.
+; with its own. The bar is the window's: see `ba_compose`.
 .proc ba_commands
 .a8
 .i16
@@ -1007,14 +1043,6 @@ in_gray:
     lda #1
 sets_variant:
     sta BA_S1
-    lda BA_MODE
-    cmp #BA_M_COMMAND
-    bne no_cursor
-    lda BA_S0
-    cmp BA_COMMAND
-    bne no_cursor
-    jsr ba_cursor
-no_cursor:
     rep #$20
 .a16
     lda #BA_COMMAND_DX
@@ -1073,10 +1101,8 @@ text_set:
     jmp command
 .endproc
 
-; The party, one line per actor on the right of the commands, with the
-; cursor on who is giving commands or, while choosing whom an item or a
-; skill goes to, on that one. A page that runs without a message shows it
-; with no cursor.
+; The party, one line per actor in its window on the left. The bar is the
+; window's: see `ba_compose`.
 .proc ba_party
 .a8
 .i16
@@ -1093,69 +1119,25 @@ has:
     jsr ba_row
     sep #$20
 .a8
-    lda BA_MODE
-    cmp #BA_M_COMMAND
-    bne not_command
-    lda BA_ACTOR
-    bra cursor_on
-not_command:
-    cmp #BA_M_ACTOR
-    bne no_cursor
-    lda BA_ITEM_TGT
-cursor_on:
-    cmp BA_S0
-    bne no_cursor
-    stz temp + 1
-    rep #$20
-.a16
-    lda #BA_PARTY_CURSOR_DX
-    jsr ba_go
-    sep #$20
-.a8
-    lda #$3E                    ; the cursor
-    jsl f:ba_t_glyph
-no_cursor:
-    lda #1
-    sta BA_WITHMAX              ; the whole line: name and state too
     lda BA_S0
     jsr ba_party_line
     inc BA_S0
     bra actor
 .endproc
 
-; The party's HP and SP, the part of its lines the enemies' list leaves.
-.proc ba_party_stats
-.a8
-.i16
-    stz BA_S0
-actor:
-    lda BA_S0
-    cmp BA_NACTORS
-    bcc has
-    rts
-has:
-    rep #$20
-.a16
-    lda #BA_PARTY_POS0
-    jsr ba_row
-    sep #$20
-.a8
-    stz BA_WITHMAX
-    lda BA_S0
-    jsr ba_party_line
-    inc BA_S0
-    bra actor
-.endproc
-
-; The enemies that can be attacked, on the left of the band, in troop
-; order: the living ones, which are the ones that show —a hidden one has no
-; `BAF_HAS`, see `ba_alive`—. Five at a time: the window scrolls just enough
-; to show the cursor, as RM2k's, which is `BA_TARGET_TOP`, in places of
-; this list. With `[debug] enemy_hp` each one's HP goes after its name, and
-; the party's are left out.
+; The enemies that can be attacked, in their window over the party's, in
+; troop order: the living ones, which are the ones that show —a hidden one
+; has no `BAF_HAS`, see `ba_alive`—. Five at a time: the window scrolls
+; just enough to show the bar, as RM2k's, which is `BA_TARGET_TOP`, in
+; places of this list. With `[debug] enemy_hp` each one's HP goes after its
+; name. The bar on the command stays where it was, as in RM2k.
 .proc ba_target_window
 .a8
 .i16
+    lda #BA_LAYOUT_TARGET
+    sta BA_WIN_KEY
+    lda BA_COMMAND
+    sta BA_WIN_KEY + 2
     ; Where the cursor is in the list: how many living ones go before it.
     stz BA_S1
     stz BA_S0
@@ -1215,10 +1197,10 @@ has_enemy:
 .a8
     lda BA_S3
     cmp BA_TARGET
-    bne no_cursor
-    jsr ba_cursor
-no_cursor:
-    stz BA_WITHMAX
+    bne no_bar
+    lda BA_S2
+    sta BA_WIN_KEY + 1
+no_bar:
     lda BA_S3
     clc
     adc #BA_PARTY_MAX
@@ -1229,48 +1211,20 @@ next:
     bra enemy
 .endproc
 
-; The description on top: text X, or texts X and X + 1 —an item's, which the
-; item screens split in two, and a skill's, which the converter splits in
-; `help_lines`—, on two lines if the second is not empty. It
-; asks for the band the scene leaves it, `BA_HELP_WANT`. Clobbers `BA_T*`.
+; The description in its window on top: text X, on one line, cut at the
+; window's frame. RM2k writes it whole with a smaller font. Clobbers `BA_T*`.
 .proc ba_help
 .a8
 .i16
     lda #1
-    sta BA_HELP_WANT
+    sta BA_WIN_KEY + 3
     stz temp + 1
-    stx BA_T2
-    lda BA_T0                   ; nonzero: two texts
-    beq one
-    inx
-    lda f:item_txt_n, x
-    beq one                     ; the second one is empty
-    rep #$20
-.a16
-    lda #BA_HELP_POS1
-    sta pick_table
-    sep #$20
-.a8
-    ldx BA_T2
-    jsr write
-    rep #$20
-.a16
-    lda #BA_HELP_POS2
-    sta pick_table
-    sep #$20
-.a8
-    ldx BA_T2
-    inx
-    bra write
-one:
     rep #$20
 .a16
     lda #BA_HELP_POS
     sta pick_table
     sep #$20
 .a8
-    ldx BA_T2
-write:
     lda #BA_HELP_WIDTH
     sta comp_dup + 3
     lda #1
@@ -1288,22 +1242,29 @@ write:
 .proc ba_item_window
 .a8
 .i16
-    ; The description of the one under the cursor: text 3k + 1, and 3k + 2.
+    ; The wide window, with the bar on the place under the cursor in the
+    ; window's places.
+    lda #BA_LAYOUT_WIDE
+    sta BA_WIN_KEY
+    lda BA_ITEM_ARR
+    asl a
+    sta BA_T0
+    lda BA_ITEM_SEL
+    sec
+    sbc BA_T0
+    sta BA_WIN_KEY + 1
+    ; The description of the one under the cursor, whole: `ba_item_desc`.
     lda BA_ITEM_SEL
     jsr ba_item_from_list
     rep #$20
 .a16
     and #$00FF
-    sta BA_T0
     asl a
-    clc
-    adc BA_T0
-    inc a
+    tax
+    lda f:ba_item_desc, x
     tax
     sep #$20
 .a8
-    lda #1
-    sta BA_T0
     jsr ba_help
     ; From the first place of the window's first row to the last of its last.
     lda BA_ITEM_ARR
@@ -1338,22 +1299,6 @@ column_zero:
     sta BA_S5                   ; the column's offset
     sep #$20
 .a8
-    ; the cursor
-    lda BA_S3
-    cmp BA_ITEM_SEL
-    bne no_cursor
-    stz temp + 1
-    rep #$20
-.a16
-    lda BA_S5
-    clc
-    adc #BA_CURSOR_DX
-    jsr ba_go
-    sep #$20
-.a8
-    lda #$3E
-    jsl f:ba_t_glyph
-no_cursor:
     ; the name, by reference like the skills'
     stz temp + 1
     rep #$20
@@ -1461,6 +1406,17 @@ fits:
     bne has_any
     rts
 has_any:
+    ; The wide window, with the bar on the place under the cursor in the
+    ; window's places.
+    lda #BA_LAYOUT_WIDE
+    sta BA_WIN_KEY
+    lda BA_SKILL_TOP
+    asl a
+    sta BA_T0
+    lda BA_SKILL_SEL
+    sec
+    sbc BA_T0
+    sta BA_WIN_KEY + 1
     ; the description of the one under the cursor
     lda BA_SKILL_SEL
     jsr ba_skill_from_list
@@ -1473,8 +1429,6 @@ has_any:
     tax
     sep #$20
 .a8
-    lda #1                      ; two texts, like an item's: see `help_lines`
-    sta BA_T0
     jsr ba_help
     ; From the first place of the window's first row to the last of its last:
     ; the window scrolls, see `ba_skill_see`.
@@ -1525,22 +1479,6 @@ se_can:
     lda #0
 variant_skill:
     sta BA_S2
-    ; the cursor
-    lda BA_S3
-    cmp BA_SKILL_SEL
-    bne no_cursor_skill
-    stz temp + 1
-    rep #$20
-.a16
-    lda BA_S5
-    clc
-    adc #BA_CURSOR_DX
-    jsr ba_go
-    sep #$20
-.a8
-    lda #$3E
-    jsl f:ba_t_glyph
-no_cursor_skill:
     ; the name
     lda BA_S2
     sta temp + 1

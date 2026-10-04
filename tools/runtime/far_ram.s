@@ -339,11 +339,8 @@ BA_S3      = FAR_BATTLE + 32
 BA_S4      = FAR_BATTLE + 34
 BA_S5      = FAR_BATTLE + 36
 BA_S6      = FAR_BATTLE + 38
-; Whether the line being composed also shows the max HP, that is, whether it
-; belongs to the party. It has its own byte and not a borrowed `BA_T2 + 2`,
-; which is what it was and it landed right on top of `BA_S0`: the enemy loop
-; restarted by itself and the screen never got to appear.
-BA_WITHMAX = FAR_BATTLE + 40
+; `FAR_BATTLE + 40` was `BA_WITHMAX` —whether a line showed the max HP— until
+; 2026-10-04, when the party and the enemies stopped sharing a line.
 ; The battle's audio, in the bytes that were left loose before `BA_ACC`.
 ; `BA_SONG_PREV` is the song that was playing on the map —$FF if nothing was—,
 ; which is RM2k's `before_battle_music`: when the battle ends it comes back.
@@ -398,15 +395,22 @@ BA_SKILL_TOP = FAR_BATTLE + 690
 ; Since 2026-10-04, with the windows in the band below the scene, as RM2k's:
 ; whether this battle can be escaped from —`op_battle` reads it from the
 ; escape's destination, an encounter always can—; the first visible place of
-; the enemies' list; whether the description's band is wanted on top and
-; whether the scene's tilemap shows it —see `ba_help_tick`—; and whether the
-; turn that starts comes from a failed escape, which shows its message first.
+; the enemies' list; and whether the turn that starts comes from a failed
+; escape, which shows its message first.
 BA_CAN_FLEE   = FAR_BATTLE + 691
 BA_TARGET_TOP = FAR_BATTLE + 692
-BA_HELP_WANT  = FAR_BATTLE + 693
-BA_HELP_ON    = FAR_BATTLE + 694
-BA_FLEE_FAILED = FAR_BATTLE + 695
-.assert BA_FLEE_FAILED < $3D00, error, "the battle's state reaches the second sound-effect voice"
+BA_FLEE_FAILED = FAR_BATTLE + 693
+; The windows the screen asks for —`ba_compose`— and the ones the tilemap
+; shows —`ba_win_tick`—, four bytes each: the layout, set A's bar and set
+; B's, $FF none, and whether the description's window is on top. And
+; whether the windows went up this vblank, and the table of BG1's
+; horizontal offset, which the HDMA writes per band: see `ba_shake`.
+BA_WIN_KEY    = FAR_BATTLE + 694
+BA_WIN_SHOWN  = FAR_BATTLE + 698
+BA_WIN_DID    = FAR_BATTLE + 702
+BA_HOFS_HDMA  = FAR_BATTLE + 703    ; 10 bytes
+BA_BATTLE_END = FAR_BATTLE + 713
+.assert BA_BATTLE_END <= $3D00, error, "the battle's state reaches the second sound-effect voice"
 BA_ACC     = FAR_BATTLE + 48      ; two bytes per combatant: command and target
 BA_EXEC    = FAR_BATTLE + 72      ; the execution order, one combatant per byte
 BA_CAND    = FAR_BATTLE + 88      ; the living on one side, to pick a target

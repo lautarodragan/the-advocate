@@ -1449,16 +1449,14 @@ sorted:
 
 ; An actor's line in the band: its name, its state, and its HP and SP, in
 ; gray if it is down —RM2k's `Window_BattleStatus`, `Talan  Normal  HP 49/ 49
-; SP 49`—. A8 = the actor's slot, `BA_T1` = where its line starts, and bit 0
-; of `BA_WITHMAX` says whether the name and the state go too: the enemies'
-; list covers them.
+; SP 49`—. A8 = the actor's slot, `BA_T1` = where its line starts.
 ;
 ; The state is the database's `normal_status`, or the dead state's name for
 ; one at zero HP: the battle has no other states. The HP and the SP are
-; **one run each** —the term, the number in three places and, in the HP,
-; the slash and the maximum—, and the texts go by reference: a line of the
-; band also carries a command, and with the letters copied they did not fit
-; in a row's record. See `TL_BY_REF`.
+; **one run each** —the term, copied, the number in three places and, in
+; the HP, the slash and the maximum—, and the name and the state go by
+; reference: a line of the band also carries a command, and with the
+; letters copied they did not fit in a row's record. See `TL_BY_REF`.
 .proc ba_party_line
 .a8
 .i16
@@ -1474,9 +1472,6 @@ variant:
     lda BA_S4
     jsr ba_x
     stx BA_S5                   ; its offset, which `scr_text` overwrites
-    lda BA_WITHMAX
-    and #$01
-    beq stats
     rep #$20
 .a16
     lda #BA_NAME_DX
@@ -1507,7 +1502,6 @@ variant:
     ldx #BA_TXT_DEAD
 state_set:
     jsl f:ba_t_text
-stats:
     ; "HP", the HP in three places, the slash and the maximum, as one run
     rep #$20
 .a16
@@ -1571,22 +1565,6 @@ fits:
     sta comp_dup + 2
     rep #$20
 .a16
-    rts
-.endproc
-
-; The ">" cursor at the start of line `BA_T1`.
-.proc ba_cursor
-.a8
-.i16
-    stz temp + 1
-    rep #$20
-.a16
-    lda #BA_CURSOR_DX
-    jsr ba_go
-    sep #$20
-.a8
-    lda #$3E                    ; the cursor
-    jsl f:ba_t_glyph
     rts
 .endproc
 
