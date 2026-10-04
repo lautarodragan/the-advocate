@@ -268,12 +268,6 @@ const BATTLE_HANDLERS: [i32; 3] = [VICTORY_HANDLER, ESCAPE_HANDLER, DEFEAT_HANDL
 /// with a higher index. The ROM's window has four lines, so the cap is the
 /// same on both sides.
 const CHOICE_MAX: i64 = 4;
-// The cursor, and what is put in front of the options that do not have it so
-// the text does not shift from line to line.
-const CHOICE_CURSOR: &str = ">";
-// Not a space but the cursor's blank —`CURSOR_BLANK` in `rm2k-snes-text`—, as
-// wide as the ">": with a variable-width font a space is narrower.
-const CHOICE_INDENT: &str = "\u{7f}";
 /// The most digits an `InputNumber` asks for that the ROM takes: six, which
 /// is RM2k 2000's editor's cap. The ROM writes the number into a sixteen-bit
 /// variable, saturating —see `number_value` in tools/runtime/number_input.s—,
@@ -1117,14 +1111,9 @@ fn page(
             // and then one entry per option: the text box (word) and the
             // destination (word). It is `ShowChoice`.
             //
-            // **One text box per option, not a single one.** The boxes carry
-            // the same lines and differ in where the cursor is, so moving the
-            // cursor is recomposing the window with another offset and not
-            // drawing anything new. It costs a few dozen bytes per choice and
-            // saves a sprite tile, a palette and all the code to draw it: on
-            // the console there is nowhere to put a cursor that is not a
-            // sprite, and this map's sprites are already spread among the
-            // characters.
+            // **One text box per option**, and since 2026-10-04 all of them
+            // the same one: see `choice_boxes`. Moving the cursor is
+            // recomposing the window with the bar under another line.
             //
             // The destination is absolute within the page, like OP_IF's, and
             // each option's body ends in an OP_GOTO to the end of the choice.
@@ -1792,30 +1781,20 @@ fn choice_options(commands: &[Command], i: usize) -> Vec<(i64, String)> {
     out
 }
 
-/// One box per option, with the cursor on its line: moving the cursor is
-/// showing another box.
+/// The box of a choice's options, once per option: the table of
+/// `OP_CHOICE` carries one per option.
 ///
-/// The boxes are the same except for the cursor. `Messages` deduplicates by
-/// content, so the common lines are not stored twice: what is paid is one
-/// small box per option.
+/// They are the same box. Until 2026-10-04 each one carried a ">" on its
+/// option's line and moving the cursor was showing another; since then the
+/// cursor is the System's bar, which the console composes under the
+/// option `pick_sel` points at —see `prime_line` in the runtime—, and it
+/// also puts the options' text further in. `Messages` deduplicates by
+/// content, so the box is stored once. The table keeps its shape so the
+/// opcode does not change.
 fn choice_boxes(options: &[(i64, String)], messages: &mut Messages) -> Step<Vec<usize>> {
-    let texts: Vec<&String> = options.iter().map(|(_, t)| t).collect();
-    let mut out = Vec::new();
-    for n in 0..texts.len() {
-        let lines: Vec<String> = texts
-            .iter()
-            .enumerate()
-            .map(|(k, t)| {
-                format!(
-                    "{} {}",
-                    if k == n { CHOICE_CURSOR } else { CHOICE_INDENT },
-                    t
-                )
-            })
-            .collect();
-        out.push(messages.add(&lines)?);
-    }
-    Ok(out)
+    let lines: Vec<String> = options.iter().map(|(_, t)| t.clone()).collect();
+    let at = messages.add(&lines)?;
+    Ok(vec![at; options.len()])
 }
 
 /// Where a `ShowMessage` is followed by an `InputNumber` that goes in its
@@ -5660,7 +5639,9 @@ mod tests {
         )
         .unwrap();
         let (greeting, yes, no) = (word_at(&code, 4), word_at(&code, 9), word_at(&code, 13));
-        assert!(0 < greeting && greeting < yes && yes < no, "{greeting} {yes} {no}");
+        // The two options are one box: the bar under the highlighted one is
+        // the console's, see `choice_boxes`.
+        assert!(0 < greeting && greeting < yes && yes == no, "{greeting} {yes} {no}");
         let w = |v: usize| [(v & 0xFF) as u8, (v >> 8) as u8];
         let mut expected = vec![OP_MESSAGE, 0, 0, OP_MESSAGE];
         expected.extend(w(greeting));

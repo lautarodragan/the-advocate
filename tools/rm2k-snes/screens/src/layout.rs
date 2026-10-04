@@ -640,7 +640,7 @@ pub const ARROW_WIDTH: usize = rm2k_rules::system::ARROW_WIDTH as usize;
 pub const ARROW_HEIGHT: usize = rm2k_rules::system::ARROW_HEIGHT as usize;
 pub const WINDOW_ARROW_CELLS: usize = ARROW_WIDTH / CELL;
 const _: () = assert!(
-    (WINDOW_WIDTH / 2 - ARROW_WIDTH / 2) % CELL == 0 && ARROW_WIDTH % CELL == 0 && ARROW_HEIGHT == CELL,
+    (WINDOW_WIDTH / 2 - ARROW_WIDTH / 2).is_multiple_of(CELL) && ARROW_WIDTH.is_multiple_of(CELL) && ARROW_HEIGHT == CELL,
     "the window's arrow has to cover whole cells of its bottom row"
 );
 

@@ -11,10 +11,12 @@ pad_a_prev: .res 1      ; how it was last frame, to see the edge
 ; set there is a message window on screen with the options and the page is
 ; blocked, same as with an ordinary message.
 ;
-; The cursor is not a sprite or a drawing: the converter emitted **one text
-; frame per option**, identical except for where the ">" is, so moving it is
-; recomposing the window with another offset. That is why there is no more
-; state here than which one is highlighted.
+; The cursor is not a sprite: it is the System's bar, composed **into the
+; window** under the line `pick_sel` says —`prime_line` primes that line with
+; `window_bar` instead of the bare background—, so moving it is recomposing
+; the window. That is why there is no more state here than which one is
+; highlighted. Until 2026-10-04 it was a ">" in the text, with one box per
+; option.
 ;
 ; **An `InputNumber` uses the same bytes**, with `pick_active` at
 ; `PICK_NUMBER`: the window and the blocked page are the same, and what is
@@ -23,6 +25,7 @@ pad_a_prev: .res 1      ; how it was last frame, to see the edge
 ; line plus one —zero while the message's lines are still being composed— and
 ; `pick_table` where the opcode's operands are. See number_input.s.
 pick_active: .res 1
+PICK_CHOICE = 1
 PICK_NUMBER = 2
 pick_n:      .res 1     ; how many options
 pick_sel:    .res 1     ; which one is highlighted, from zero

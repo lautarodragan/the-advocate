@@ -12,6 +12,9 @@
 ;   window's tilemap, on its bottom edge and centred, that change between
 ;   the window's own and the arrow's. `window_arrow_cells` has the four
 ;   ways, per window base: with the frame and without it, off and on.
+; * **The bar** of a choice's highlighted option is composed into the
+;   window like the text: its line is primed over `window_bar` instead of
+;   the bare background. See `msg_bar_source`.
 ;
 ; Everything here goes with `f:` or through the direct page: it is reached
 ; with `jsl`, from bank 0, and the data bank is whatever the caller had.
@@ -146,4 +149,48 @@ cell:
     sep #$20
 .a8
     rtl
+.endproc
+
+; The source and the size of the highlighted option's line, for
+; `prime_line`'s DMA: the window's background with the System's cursor on
+; that line, or the cursor alone without the background. Comes back with A
+; at $00, which is what DMAP0 takes —one register, one byte at a time—.
+;
+; The bar is `Window_Message::UpdateCursorRect`'s rectangle, a line tall and
+; as wide as the text minus four, drawn as `Window::RefreshCursor` draws it;
+; it is the first of the System's two cursor drawings, which RM2k
+; alternates every ten frames. See `workflow/divergencias/
+; la-barra-de-la-eleccion-no-alterna-sus-dos-dibujos.md`.
+.proc msg_bar_source
+.a8
+.i16
+    lda f:MSG_PLACE
+    and #MSG_BARE
+    beq framed
+    ldx #.loword(window_bar_bare)
+    stx A1T0L
+    lda #^window_bar_bare
+    bra size
+framed:
+    rep #$20
+.a16
+    lda f:msg_line
+    and #$0003                  ; four lines
+    asl a
+    tax
+    lda f:bar_lines, x
+    clc
+    adc #.loword(window_bar)
+    sta A1T0L
+    sep #$20
+.a8
+    lda #^window_bar
+size:
+    sta A1B0
+    ldx #TEXT_BUF_BYTES
+    stx DAS0L
+    lda #$00
+    rtl
+bar_lines:
+    .word 0, TEXT_BUF_BYTES, TEXT_BUF_BYTES * 2, TEXT_BUF_BYTES * 3
 .endproc

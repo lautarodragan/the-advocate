@@ -117,19 +117,24 @@ pub fn convert(skin: &Skin, reserved: usize) -> Result<Window> {
     cells::paste(&mut with_arrow, &arrow, arrow_x, arrow_y);
     let mut bare_arrow = Picture::transparent(width, height);
     cells::paste(&mut bare_arrow, &arrow, arrow_x, arrow_y);
-    let cursor = skin.cursor(MESSAGE_WIDTH - CHOICE_BAR_TRIM, WINDOW_LINE);
+    // The bar: the System's cursor on the rectangle
+    // `Window_Message::UpdateCursorRect` gives for each line.
     let bar_x = (WINDOW_TEXT_COL * CELL + CHOICE_BAR_X) as i64;
     let bar_y = |line: usize| (WINDOW_TEXT_ROW * CELL + line * WINDOW_LINE) as i64;
+    let bar = |dest: &mut Picture, line: usize| {
+        let (w, h) = (MESSAGE_WIDTH - CHOICE_BAR_TRIM, WINDOW_LINE);
+        rm2k_render::system::cursor_over(dest, &skin.picture, bar_x, bar_y(line), w, h, 0);
+    };
     let lines = WINDOW_TEXT_ROWS * CELL / WINDOW_LINE;
     let with_bar: Vec<Vec<Option<Color>>> = (0..lines)
         .map(|line| {
             let mut p = empty.clone();
-            cells::paste(&mut p, &cursor, bar_x, bar_y(line));
+            bar(&mut p, line);
             cut(&p, false)
         })
         .collect();
     let mut bare_bar = Picture::transparent(width, height);
-    cells::paste(&mut bare_bar, &cursor, bar_x, bar_y(0));
+    bar(&mut bare_bar, 0);
     let with_arrow = cut(&with_arrow, false);
     let bare_arrow = cut(&bare_arrow, true);
     let bare_bar = cut(&bare_bar, true);

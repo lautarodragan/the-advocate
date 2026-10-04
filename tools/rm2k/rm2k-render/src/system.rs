@@ -135,6 +135,23 @@ pub fn cursor(system: &Picture, width: usize, height: usize, drawing: usize) -> 
     out
 }
 
+/// Drawing `drawing` of the cursor on the rectangle `width` x `height` at
+/// `(x, y)` of `dest`, through its alpha: what is under its transparent
+/// edge stays. It is the bar a list or a choice marks its option with.
+#[allow(clippy::too_many_arguments)]
+pub fn cursor_over(
+    dest: &mut Picture,
+    system: &Picture,
+    x: i64,
+    y: i64,
+    width: usize,
+    height: usize,
+    drawing: usize,
+) {
+    let bar = cursor(system, width, height, drawing);
+    dest.blit(x, y, &bar, 0, 0, width as i64, height as i64);
+}
+
 /// The arrow pointing down, over transparency: what a message waiting for a
 /// key shows at the bottom of its window.
 pub fn arrow_down(system: &Picture) -> Picture {

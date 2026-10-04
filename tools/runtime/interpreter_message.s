@@ -104,7 +104,7 @@ cancel_ready:
     sty pick_table
     stz pick_sel                ; `Window_Selectable` starts with the index at
                                 ; zero, and the first option is highlighted
-    lda #1
+    lda #PICK_CHOICE
     sta pick_active
     jsr pick_open
     rts

@@ -417,6 +417,14 @@ void:
     sta msg_x                   ; each line starts at the border
     sep #$20
 .a8
+    ; Or further in, on a choice: `Window_Message::InsertNewLine` adds 12
+    ; on each option's line, which leaves room for the bar's edge.
+    lda pick_active
+    cmp #PICK_CHOICE
+    bne not_indented
+    lda #(WINDOW_BORDER + CHOICE_INDENT)
+    sta msg_x
+not_indented:
     lda #1
     sta msg_primed
 
@@ -511,6 +519,10 @@ more:
 ;
 ; Without a background it is zeros, which is BG2's transparent colour: the
 ; glyphs and their shadow land on the map.
+;
+; And a choice's highlighted option is primed with the System's cursor
+; under it, which is how RM2k draws it: the cursor first and the text over
+; it. See `msg_bar_source`.
 .proc prime_line
 .a8
 .i16
@@ -522,6 +534,15 @@ more:
     sep #$20
 .a8
     stz WMADDH                  ; the buffer lives in WRAM bank 0
+    lda pick_active
+    cmp #PICK_CHOICE
+    bne no_bar
+    lda msg_line
+    cmp pick_sel
+    bne no_bar
+    jsl msg_bar_source          ; the source and the size, and A for DMAP0
+    bra go
+no_bar:
     lda f:MSG_PLACE
     and #MSG_BARE
     beq with_background
