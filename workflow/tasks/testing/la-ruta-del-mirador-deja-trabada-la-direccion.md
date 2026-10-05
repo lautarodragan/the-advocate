@@ -121,3 +121,21 @@ ramas y las herramientas de la rama instaladas en local, en verde. Lo que
 no cubre: que el héroe trabado se vea bien caminando por Paradise —eso es
 lo de RM2k, y la tanda lo mira sólo hasta hablarle a Emily—, y nada de lo
 de "Otras rutas", que es un modelo.
+
+## La velocidad 3 no era del juego (2026-10-05)
+
+Lo encontré con el tanque de Dalia (ABL, `el-tanque-de-dalia-se-vuelve-dalia.md`):
+en RM2k Talan **no** llega a Paradise a 3. El Dr. Vago le cura el tobillo
+(mapa 81, evento 6, página 1) con un `[28]` que corre durante un
+`TintScreen` con espera, y la ROM tiraba esa espera: la ruta siguiente
+reemplazaba al `[28]` sin leerlo. Arreglado en `rm2k-snes-events`; desde
+ahí Talan llega a Paradise a 4, el mirador termina su ruta y sale
+destrabado, como mide la fila "4" de la tabla de arriba. Lo de esta tarea
+—hablar trabado y guardar la traba— sigue siendo de RM2k y sigue en pie,
+pero el juego ya no lo ejercita en el mirador: lo cobran los casos de
+`test_direccion_trabada.py` y `test_guardar.py`. La puerta 8 del mapa de
+debug deja ahora la 4, y su prueba exige al héroe destrabado.
+
+Y de "Otras rutas que se cortan igual": el modelo contaba sin los
+`TintScreen`, que ahora esperan; los cortes de ahí hay que volver a mirarlos
+con eso.

@@ -451,17 +451,18 @@ route_anim_for: .res 1  ; stop_animation: the pose stays on the middle one
 route_jump:  .res 1     ; what is left of the current jump, 0 if there is none
 ; `lock_facing`: nonzero after a 26 of a hero route, until a 27. It outlives
 ; the route and the map, as `party_location.lock_facing` does: see
-; `try_toward`. It goes in the save too, as there: the mirador of map 109
-; leaves the hero locked through Distant Paradise, which has save points.
+; `try_toward`. It goes in the save too, as there: a hero route cut before
+; its 27 leaves him locked for good —map 109's mirador does, at speed 3—, and
+; the save point can come after.
 hero_lock:   .res 1
 ; RM2k's `direction` of the hero, where `hero_dir` is its `facing`: the way it
 ; last tried to go, which the action key looks at —`CheckActionEvent` reads
 ; `GetDirection`—. The two only part while `hero_lock` is on, and that is the
 ; only time it is read: `lock_hero` copies `hero_dir` into it, and every
 ; turn after that —`try_toward`, the `face_*`, a jump— writes it too.
-; Without it a locked hero could only talk to what he was drawn facing: the
-; mirador of map 109 leaves Talan locked —in RM2k too, measured in the
-; original— and then he could not talk to Emily in her house.
+; Without it a locked hero could only talk to what he was drawn facing: at
+; speed 3 the mirador of map 109 leaves Talan locked —in RM2k too, measured
+; in the original— and then he could not talk to Emily in her house.
 hero_heading: .res 1
 ; `ruta_salto_dx` and `ruta_salto_dy` lived here and nobody read them; their
 ; extra byte is what pays for the sixteen-bit `fade_map`.
