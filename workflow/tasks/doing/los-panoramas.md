@@ -3,7 +3,7 @@ name: "Los panoramas"
 description: "Los fondos de parallax de RM2k en la SNES: un estudio de todos los mapas con panorama y un prototipo en el puente de arriba (modo 3 con la paleta repartida) y el de abajo (modo 1, tres capas)"
 type: research
 agents: [Cardón]
-assignee: taro
+assignee: Cardón
 ---
 
 De taro, el 2026-10-05: los panoramas se ven negros. Algunos se pueden
@@ -75,3 +75,9 @@ Reinstalar lo de Rust que cambió y lo que lo compila adentro: `voodoo`,
 `convert` —`just -f tools/justfile install voodoo adeleine rm2k-render
 wally images screens mapdata convert`—. El runtime lo arma
 `rm2k-snes-cartridges` del checkout.
+
+# Todos
+
+taro, el 2026-10-05, después del prototipo: "vamos por todos". Los 45 mapas
+con panorama, cada uno con el camino que el estudio le asignó, y lo que el
+estudio dejó pendiente.
