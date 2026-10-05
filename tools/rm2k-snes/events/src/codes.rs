@@ -89,6 +89,9 @@ pub const VICTORY_HANDLER: i32 = 20710;
 pub const ESCAPE_HANDLER: i32 = 20711;
 pub const DEFEAT_HANDLER: i32 = 20712;
 pub const END_BATTLE: i32 = 20713;
+pub const SHOP_TRANSACTION: i32 = 20720;
+pub const SHOP_NO_TRANSACTION: i32 = 20721;
+pub const SHOP_END: i32 = 20722;
 pub const INN_STAY: i32 = 20730;
 pub const INN_NO_STAY: i32 = 20731;
 pub const INN_END: i32 = 20732;
@@ -234,6 +237,9 @@ mod tests {
             (ESCAPE_HANDLER, C::EscapeHandler),
             (DEFEAT_HANDLER, C::DefeatHandler),
             (END_BATTLE, C::EndBattle),
+            (SHOP_TRANSACTION, C::Transaction),
+            (SHOP_NO_TRANSACTION, C::NoTransaction),
+            (SHOP_END, C::EndShop),
             (INN_STAY, C::Stay),
             (INN_NO_STAY, C::NoStay),
             (INN_END, C::EndInn),

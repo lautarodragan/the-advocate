@@ -5,7 +5,7 @@
 //! path.
 
 use clap::{Args as ClapArgs, Parser, Subcommand};
-use rm2k_snes_events::{compile, scan, write, Bad, Game, Request, Result};
+use rm2k_snes_events::{compile, culprits, scan, write, Bad, Game, Request, Result};
 use std::path::PathBuf;
 use std::process::ExitCode;
 
@@ -36,6 +36,27 @@ enum Command {
     /// Every page of the cartridge, with the text block, the songs, the
     /// troops and the troops' pages
     Compile(Args),
+    /// Which commands keep each page out: every map's page, every common
+    /// event and every troop page, each chased to all its culprits. A
+    /// report for people, not a stage of the conversion
+    Culprits(CulpritArgs),
+}
+
+#[derive(ClapArgs)]
+#[command(
+    after_help = "Writes culprits.json into --out and prints, per kind of page, the commands that \
+                  keep some page out: how many pages each one is all that keeps out (alone), and \
+                  how many it keeps out along with something else. It takes the request `scan` \
+                  takes."
+)]
+struct CulpritArgs {
+    #[command(flatten)]
+    args: Args,
+
+    /// Every map of the game, and not only the request's; a teleport to any
+    /// of them compiles
+    #[arg(long)]
+    every_map: bool,
 }
 
 #[derive(ClapArgs)]
@@ -70,11 +91,25 @@ fn run(args: &Args, compiling: bool) -> Result<()> {
     write(&answer, &args.out)
 }
 
+fn run_culprits(c: &CulpritArgs) -> Result<()> {
+    let args = &c.args;
+    let request = Request::read(&args.request)?;
+    let game = Game::from_dump(&args.data, request.patches.clone())?;
+    let judged = culprits::judge_game(&game, &request, c.every_map)?;
+    let report = culprits::report(&judged);
+    print!("{}", culprits::table(&report));
+    let io = |path: &std::path::Path, e: std::io::Error| Bad::usage(format!("{}: {e}", path.display()));
+    std::fs::create_dir_all(&args.out).map_err(|e| io(&args.out, e))?;
+    let path = args.out.join(culprits::ANSWER_FILE);
+    std::fs::write(&path, serde_json::to_string_pretty(&report).unwrap() + "\n").map_err(|e| io(&path, e))
+}
+
 fn main() -> ExitCode {
     let cli = Cli::parse();
     let done = match &cli.command {
         Command::Scan(args) => run(args, false),
         Command::Compile(args) => run(args, true),
+        Command::Culprits(args) => run_culprits(args),
     };
     match done {
         Ok(()) => ExitCode::SUCCESS,
