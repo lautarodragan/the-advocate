@@ -212,6 +212,7 @@ party_ready:
     ; this were after, it would overwrite what the route just decided.
     lda #DIR_DOWN
     sta hero_dir
+    sta hero_heading
     stz hero_lock               ; and free to turn: RAM starts with garbage
 
     ; The timer starts off and at zero. It goes here and not in `enter_map`
