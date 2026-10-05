@@ -284,3 +284,29 @@ fn the_test_event_goes_first() {
     assert_eq!(answer["baked"], json!([[1, 7, 10005]]));
     std::fs::remove_dir_all(&dir).unwrap();
 }
+
+/// A leader whose CharSet is empty —the invisible hero some games start
+/// with, an actor with no graphic at all— is a leader without a graphic,
+/// like one pinned to a blank slot, and not a CharSet that is missing.
+#[test]
+fn a_leader_with_no_charset_has_no_graphic() {
+    let dir = scratch("no-charset");
+    let (dump, pictures) = game(&dir);
+    std::fs::write(
+        dump.join("db/actors.json"),
+        json!([{"id": 1, "character_name": "Hero", "character_index": 0},
+               {"id": 2, "character_name": "", "character_index": 0}])
+        .to_string(),
+    )
+    .unwrap();
+    let request = request(&dir, &pictures, false);
+    let text = std::fs::read_to_string(&request).unwrap();
+    std::fs::write(&request, text.replace("\"leaders\":[1,2]", "\"leaders\":[2,1]")).unwrap();
+    let out = dir.join("out");
+    let done = run(&dump, &pictures, &request, &out);
+    assert!(done.status.success(), "{}", String::from_utf8_lossy(&done.stderr));
+    let answer: Value = serde_json::from_str(&std::fs::read_to_string(out.join("map.json")).unwrap()).unwrap();
+    let notes: Vec<&str> = answer["notes"].as_array().unwrap().iter().map(|n| n["text"].as_str().unwrap()).collect();
+    assert!(!notes.iter().any(|n| n.contains("can't find CharSet")), "{notes:?}");
+    std::fs::remove_dir_all(&dir).unwrap();
+}

@@ -117,6 +117,11 @@ impl<'a> Drawer<'a> {
                 None => None,
             });
         }
+        // No CharSet at all: an actor with no graphic, which some games
+        // lead with to hide the hero. It draws what a blank slot draws.
+        if name.is_empty() {
+            return Ok(Some(Picture::transparent(288, 256)));
+        }
         Ok(match self.game.resource("CharSet", name) {
             Some(path) => Some(picture::read_rm2k(&path)?),
             None => None,
