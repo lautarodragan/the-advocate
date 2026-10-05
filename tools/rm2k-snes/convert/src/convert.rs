@@ -211,13 +211,19 @@ pub fn run(options: Options) -> Result<()> {
         leaders: leaders.clone(),
         timer_maps: timer_maps.clone(),
         with_rain,
-        // Which maps show their panorama: none if the project does not say.
-        panoramas: settings
-            .list(&["maps", "panoramas"])
-            .unwrap_or_default()
-            .iter()
-            .filter_map(|v| v.as_i64().map(|n| n as i32))
-            .collect(),
+        // How a map shows its panorama is Wally's to decide; the project
+        // can only force it, by map, and does not have to say anything.
+        panorama_ways: match settings.table(&["maps", "panorama_ways"]) {
+            Ok(Value::Object(t)) => t
+                .iter()
+                .map(|(k, v)| {
+                    let map = k.parse::<i32>().map_err(|_| Stop::new(format!("[maps] panorama_ways: {k:?} is not a map")))?;
+                    let way = v.as_str().ok_or_else(|| Stop::new(format!("[maps] panorama_ways: map {k} is {v}, not a way")))?;
+                    Ok((map, way.to_string()))
+                })
+                .collect::<Result<_>>()?,
+            _ => BTreeMap::new(),
+        },
         maps_per_character: per_character,
         search_dirs: search_dirs.clone(),
         common_substitutions: maps::common_substitutions(&game),
@@ -928,6 +934,16 @@ pub fn run(options: Options) -> Result<()> {
         "maps": infos.iter().map(|m| json!({
             "id": m.id, "name": m.name, "colors": m.colors, "budget": m.budget,
             "background": m.merges_background, "above": m.merges_above,
+            // And how it shows its panorama, and what that lost: the tiles
+            // grouped and the colours merged. See `Way` in Wally.
+            "panorama": m.panorama_way.as_str().map(|way| match &m.panorama {
+                Some(p) => json!({
+                    "way": way, "name": p["name"], "mode": p["mode"],
+                    "tiles": p["tile_count"], "distinct": p["distinct"],
+                    "colors": p["colors"], "kept": p["kept"], "merges": p["merges"],
+                }),
+                None => json!({"way": way}),
+            }),
         })).collect::<Vec<_>>(),
         "animations": animations.iter().map(|(number, info)| {
             let r = animations::report(info);

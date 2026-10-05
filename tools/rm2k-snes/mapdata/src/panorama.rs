@@ -11,7 +11,8 @@
 //! ```text
 //!   +0  word   the map's index in `map_table`; $FFFF ends the table
 //!   +2  byte   the mode: 3, the panorama in BG2; 1, in BG3
-//!   +3  byte   bit 0: it loops across; bit 1: down
+//!   +3  byte   bit 0: it loops across; bit 1: down; bit 2: the map raised
+//!              what it draws above the hero to BG1 priority 1
 //!   +4  word   how far it moves on its own each frame, signed, in 1/32 px:
 //!              RM2k's speed `s` is -(1 << s), or 1 << -s if negative
 //!   +6  word   and down
@@ -95,6 +96,7 @@ pub fn panorama_table(maps: &[Map]) -> Result<String> {
         format!("PANO_STRIDE = {PANO_STRIDE}"),
     ];
     let mut records = Vec::new();
+    let mut emitted: std::collections::HashMap<(String, Vec<u8>), String> = std::collections::HashMap::new();
     for (number, map) in maps.iter().enumerate() {
         let Some(p) = &map.panorama else { continue };
         let layout = crate::record::layout_of(map)?;
@@ -130,9 +132,11 @@ pub fn panorama_table(maps: &[Map]) -> Result<String> {
         let rows = p.tilemap.len() as i64;
         let first = (pieces.tiles[0].count.min(count) as usize) * bytes_per_tile;
         let second = p.tiles.len() - first;
-        let (num_x, den_x) = if p.looped[0] { (0, 0) } else { proportion(map.size[0], RM2K_W, p.size[0]) };
-        let (num_y, den_y) = if p.looped[1] { (0, 0) } else { proportion(map.size[1], RM2K_H, p.size[1]) };
-        let flags = u8::from(p.looped[0]) | (u8::from(p.looped[1]) << 1);
+        // Also on an axis that loops: a `ChangePBG` can stop it, and then it
+        // moves with the camera.
+        let (num_x, den_x) = proportion(map.size[0], RM2K_W, p.size[0]);
+        let (num_y, den_y) = proportion(map.size[1], RM2K_H, p.size[1]);
+        let flags = u8::from(p.looped[0]) | (u8::from(p.looped[1]) << 1) | (u8::from(p.above_bg1) << 2);
         let words = |v: &[i64]| v.iter().map(|w| format!("${:04X}", w & 0xFFFF)).collect::<Vec<_>>().join(", ");
         let mut r = String::new();
         let _ = writeln!(r, "    ; --- map {} {:?}: {} in mode {} ---", map.id, map.name, p.name, p.mode);
@@ -143,8 +147,21 @@ pub fn panorama_table(maps: &[Map]) -> Result<String> {
         let _ = writeln!(r, "    .word {}", words(&[num_x, num_y, den_x, den_y]));
         let _ = writeln!(r, "    .word {}", words(&[lcm(512, p.stretch[0]), lcm(256, p.stretch[1])]));
         let _ = writeln!(r, "    .word {}", words(&[cols, rows]));
-        let _ = writeln!(r, "    .byte {}, 0", pointer(&format!("pano_map_{number}")));
-        let _ = writeln!(r, "    .byte {}, 0", pointer(&format!("pano_tiles_{number}")));
+        // Two maps that converted the same panorama the same way —the two
+        // missile maps of A Blurred Line— share its tiles and tilemap.
+        let mut shared = |kind: &str, bytes: Vec<u8>| -> String {
+            if let Some(label) = emitted.get(&(kind.to_string(), bytes.clone())) {
+                return label.clone();
+            }
+            let label = format!("pano_{kind}_{number}");
+            out.push(block(&label, &bytes));
+            emitted.insert((kind.to_string(), bytes), label.clone());
+            label
+        };
+        let map_label = shared("map", cells);
+        let tiles_label = shared("tiles", p.tiles.clone());
+        let _ = writeln!(r, "    .byte {}, 0", pointer(&map_label));
+        let _ = writeln!(r, "    .byte {}, 0", pointer(&tiles_label));
         let _ = writeln!(
             r,
             "    .word {}",
@@ -167,8 +184,6 @@ pub fn panorama_table(maps: &[Map]) -> Result<String> {
         );
         let _ = writeln!(r, "    .res {}", PANO_STRIDE - 54);
         records.push(r);
-        out.push(block(&format!("pano_map_{number}"), &cells));
-        out.push(block(&format!("pano_tiles_{number}"), &p.tiles));
     }
     out.push(format!(".block {}", PANO_STRIDE * records.len() + 2));
     out.push("pano_table:".into());

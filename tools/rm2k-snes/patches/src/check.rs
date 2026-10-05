@@ -193,6 +193,22 @@ fn map_diff(old: &Table, new: &Table) -> Vec<String> {
             ));
         }
     }
+    for name in ["camino", "imagen", "modo", "tiles", "distintos", "colores", "quedan"] {
+        let a = field(old, &["panorama", name]);
+        let b = field(new, &["panorama", name]);
+        if a != b {
+            out.push(format!("panorama: {name} went from {} to {}", shown(a), shown(b)));
+        }
+    }
+    let rows = |doc: &Table| field(doc, &["panorama", "fusiones"]).and_then(Value::as_array).cloned().unwrap_or_default();
+    let (before, after) = (rows(old), rows(new));
+    if before != after {
+        out.push(format!(
+            "panorama: it merged {} color(s) and now merges {}, or other ones",
+            before.len(),
+            after.len()
+        ));
+    }
     out
 }
 
