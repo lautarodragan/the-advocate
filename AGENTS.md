@@ -397,7 +397,7 @@ Las dos pruebas de las herramientas que leen un SoundFont de verdad —las
 de `rm2k-snes-audio`— lo reciben en `SOUNDFONT`, como Ditto su corpus en
 `DITTO_CORPUS`: sin la variable se saltean. Para correrlas acá,
 `SOUNDFONT="/extras/soundfonts/Microsoft GS Wavetable Synth.sf2" just -f
-tools/justfile audio-test`.
+tools/justfile crate-test rm2k-snes-audio`.
 
 **`ca65` y `ld65` se compilan acá adentro, y eso fue una decisión.** No están
 empaquetados en Arch, y hasta el 2026-09-15 la regla era no compilar fuentes de

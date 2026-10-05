@@ -21,6 +21,10 @@
 //! on one number, a repeated group nobody counts, a gap in the event
 //! dispatch, a name both bytecodes use— **stops the compilation** of this
 //! crate, with the opcode in the message: see [`Bytecode::check`].
+//!
+//! So the tests are those messages, the shape of the equates
+//! `rm2k-snes-assemble` writes, and that the runtime uses only declared
+//! opcodes and writes none by hand. They need no game.
 
 pub mod asm;
 mod message;

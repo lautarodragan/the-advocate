@@ -133,7 +133,7 @@ separate projects, installed and tested one by one:
 
     just -f tools/justfile install lz2    one, with `cargo install --locked
                                           --path`, from the workspace's lock
-    just -f tools/justfile lz2-test       one project's tests
+    just -f tools/justfile crate-test lz2 one project's tests
     just -f tools/justfile rust-test      all of them, `cargo test --workspace`
 
 They are used from the PATH: nothing here builds them or looks for them in

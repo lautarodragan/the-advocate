@@ -84,5 +84,5 @@ reproduce. Las rutas de abajo que terminan en `.rs` son de su `src/`.
 
 Qué prueba cubre qué: `pruebas/rpgmaker/test_musica_*.py` de ABL corren la ROM
 —las escrituras, el reparto, el paquete, los techos— y las pruebas de
-`rm2k-snes-audio` (`just -f tools/justfile audio-test`) miran el stream sin
+`rm2k-snes-audio` (`just -f tools/justfile crate-test rm2k-snes-audio`) miran el stream sin
 ROM.

@@ -9,7 +9,8 @@ writes it and reads it back.
     lz2 stats      tiles.lz2 grid.lz2
 
 `cargo build --release`, or `cargo test --release`. `lz2 --help` prints the
-usage. There are no dependencies.
+usage. There are no dependencies. The tests build their streams inside the
+test, so they need nothing else.
 
 Where the files go is the caller's business: every input is followed by its
 output, so a build script can pass a few hundred files to one process.
