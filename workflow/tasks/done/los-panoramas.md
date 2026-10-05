@@ -170,3 +170,9 @@ Reinstalar `adeleine` —y lo que lo compila: `wally`, `screens`, `images`—,
 `convert` y `cartridge`—, `cartridge` y `patches`: `just -f tools/justfile
 install adeleine wally screens images mapdata convert events cartridge
 patches`.
+
+# Probado en la SNES
+
+taro, el 2026-10-05, en la consola: la intro, el techo donde aterriza el
+Hover-Tram y aparece Kersh, y los dos del puente. "están todos increíbles.
+Pensé que sería imposible lograr tanto!"
