@@ -133,6 +133,15 @@ fn a_game_without_a_debug_map_loads() {
     assert!(e.contains("debug map"), "{e}");
 }
 
+/// A cartridge with only its start map —a game's first map, alone— passes
+/// no `--maps`: an empty one is an error to the converter.
+#[test]
+fn a_cartridge_of_one_map_passes_no_maps() {
+    let one = SMALL.replace("maps = [6, 1]", "maps = [6]");
+    let c = load(&game("one-map", &(RELEASE.to_string() + &one))).unwrap();
+    assert_eq!(c.get("test-small").unwrap().flags, ["--map-id", "6", "--no-title", "--enemy-hp"]);
+}
+
 #[test]
 fn the_flags_come_out_in_the_usual_order() {
     let c = load(&game("flags", &(RELEASE.to_string() + SMALL))).unwrap();

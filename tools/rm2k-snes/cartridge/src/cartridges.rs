@@ -326,8 +326,14 @@ impl Cartridges {
             flags.push("--party".to_string());
             flags.extend(party.iter().map(i64::to_string));
         }
-        flags.extend(["--map-id".to_string(), start_map.to_string(), "--maps".to_string()]);
-        flags.extend(maps.iter().filter(|&&m| m != start_map).map(i64::to_string));
+        flags.extend(["--map-id".to_string(), start_map.to_string()]);
+        // Without other maps, no `--maps`: empty, the converter refuses it.
+        let others: Vec<String> =
+            maps.iter().filter(|&&m| m != start_map).map(i64::to_string).collect();
+        if !others.is_empty() {
+            flags.push("--maps".to_string());
+            flags.extend(others);
+        }
         for graphic in p.list(&key("test_graphics"))? {
             let pair = graphic
                 .as_array()
