@@ -4600,18 +4600,36 @@ pub fn compile_command(
         TINT_SCREEN => {
             // OP_TINT: r, g, b, sat (a byte each)
             //
-            // The duration is discarded: the tint is applied at once. The
+            // The gradient is discarded: the tint is applied at once. The
             // screen being compared is always settled, so the final value is
             // the one that matters; what is lost is the one-second gradient.
+            //
+            // **The wait is not.** The parameters are (r, g, b, sat, tenths,
+            // wait), and with the wait `CommandTintScreen` does
+            // `SetupWait(tenths)`, the same wait as the Wait command: so it
+            // is an OP_DELAY after it, as with `FlashSprite`. Until
+            // 2026-10-05 it went with the gradient, and the page ran on in
+            // the same frame. That is time a forced route of the hero walks:
+            // Dr. Vago's `[28]` (map 81, event 6) runs during his fade to
+            // black, and without it the next route replaced it unread. The
+            // hero stayed at speed 3 for the rest of the game, and Dalia's
+            // tank (map 66, event 14), whose route at 3 does not finish
+            // before the page swaps the party, turned into Dalia on the
+            // bridge. Measured in the RPG_RT, 2000 and 2015: at 4 it ends.
             if n < 4 {
                 return cannot();
             }
             if p[..4].iter().any(|&v| !(0..=200).contains(&v)) {
                 return cannot();
             }
-            Ok(vec![
+            let mut out = vec![
                 OP_TINT, p[0] as u8, p[1] as u8, p[2] as u8, p[3] as u8,
-            ])
+            ];
+            if n >= 6 && q(5) != 0 {
+                out.push(OP_DELAY);
+                out.extend(word(q(4) * FRAMES_PER_TENTH)?);
+            }
+            Ok(out)
         }
         SHOW_MESSAGE => {
             // OP_MESSAGE: offset (word) within the `messages` block: opens
