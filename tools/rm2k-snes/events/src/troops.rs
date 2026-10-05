@@ -167,7 +167,7 @@ impl Trigger {
 ///
 /// HP is in percent, from 0 to 100: an enemy's by its place in the troop,
 /// an actor's by its LDB number.
-fn trigger(ctx: &Ctx, page: &TroopPage) -> Option<Trigger> {
+pub(crate) fn trigger(ctx: &Ctx, page: &TroopPage) -> Option<Trigger> {
     let c = &page.condition;
     let f = &c.flags;
     if !(f.switch_a || f.switch_b || f.variable || f.turn || f.fatigue || f.enemy_hp || f.actor_hp)
@@ -243,11 +243,21 @@ fn trigger(ctx: &Ctx, page: &TroopPage) -> Option<Trigger> {
 /// width: before, the battle cut every line at its edge, and "The Captain
 /// has taken off in the ship!" came out "...taken off in th".
 fn reflow(raw: Vec<Command>, measure: &rm2k_snes_text::refit::Measure, rows: usize) -> Vec<Command> {
+    reflow_from(raw, measure, rows).into_iter().map(|(_, c)| c).collect()
+}
+
+/// [`reflow`], with the index in `raw` each command comes from: a box cut
+/// in two comes from the same `ShowMessage`.
+pub(crate) fn reflow_from(
+    raw: Vec<Command>,
+    measure: &rm2k_snes_text::refit::Measure,
+    rows: usize,
+) -> Vec<(usize, Command)> {
     let mut out = Vec::with_capacity(raw.len());
     let mut i = 0;
     while i < raw.len() {
         if raw[i].code != SHOW_MESSAGE {
-            out.push(raw[i].clone());
+            out.push((i, raw[i].clone()));
             i += 1;
             continue;
         }
@@ -259,7 +269,7 @@ fn reflow(raw: Vec<Command>, measure: &rm2k_snes_text::refit::Measure, rows: usi
         for frame in rm2k_snes_text::refit::refit_measured(&lines, measure, rows) {
             for (k, text) in frame.iter().enumerate() {
                 let code = if k == 0 { SHOW_MESSAGE } else { SHOW_MESSAGE_2 };
-                out.push(Command::new(code, raw[i].indent, text, vec![]));
+                out.push((i, Command::new(code, raw[i].indent, text, vec![])));
             }
         }
         i = j;
@@ -270,21 +280,28 @@ fn reflow(raw: Vec<Command>, measure: &rm2k_snes_text::refit::Measure, rows: usi
 /// A troop page's commands as a map's, or None if one does not run in a
 /// troop page.
 fn commands(raw: &[Command]) -> Option<Vec<Command>> {
-    let mut out = Vec::new();
-    for cmd in raw {
-        let code = battle_branch(cmd.code);
-        if cmd.code == BATTLE_COND_BRANCH && !matches!(cmd.parameters.first(), Some(0) | Some(1)) {
-            return None;
-        }
-        if !TROOP_COMMANDS.contains(&code) {
-            return None;
-        }
-        out.push(Command {
-            code,
-            ..cmd.clone()
-        });
+    if !raw.iter().all(runs_in_battle) {
+        return None;
     }
-    Some(out)
+    Some(raw.iter().map(as_map_command).collect())
+}
+
+/// Whether a command can be in a troop page: see `TROOP_COMMANDS`. The
+/// battle's branch only with the two questions the map's has, a switch and
+/// a variable.
+pub(crate) fn runs_in_battle(cmd: &Command) -> bool {
+    if cmd.code == BATTLE_COND_BRANCH && !matches!(cmd.parameters.first(), Some(0) | Some(1)) {
+        return false;
+    }
+    TROOP_COMMANDS.contains(&battle_branch(cmd.code))
+}
+
+/// A troop page's command as the map's: the battle's branch is the map's.
+pub(crate) fn as_map_command(cmd: &Command) -> Command {
+    Command {
+        code: battle_branch(cmd.code),
+        ..cmd.clone()
+    }
 }
 
 /// A page that got in: its trigger, where its code is, and which of the
