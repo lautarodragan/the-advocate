@@ -6,9 +6,8 @@
 # inside `tools/`, with `just <recipe>`, because `just` uses the nearest
 # `justfile`. Either way the recipes run standing in `tools/`.
 
-# Where `just install` installs. In the container
-# `/usr/local` is on the PATH; from the host `CARGO_ROOT=~/.cargo`, cargo's
-# default, is better.
+# Where `just install` installs: `/usr/local` unless `CARGO_ROOT` says
+# otherwise.
 cargo_root := env_var_or_default("CARGO_ROOT", "/usr/local")
 
 # A worktree's tools, used by the recipes in this file: they run the

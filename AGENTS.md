@@ -155,7 +155,7 @@ libretro: **ningún script ni prueba de este juego llama a `cargo`**. Es de taro
 evita es que cada corrida de la tanda quede atada al toolchain de Rust.
 
 `CARGO_ROOT` dice dónde instalan; por omisión `/usr/local`, que acá está en el
-PATH. Desde el host, `CARGO_ROOT=~/.cargo`.
+PATH.
 
 La regla para saber si algo va adentro de uno de ésos es una sola: **si no
 necesita saber nada de este juego, es un proyecto aparte y va en inglés.**
@@ -433,14 +433,11 @@ y tres estaban mal. Si hace
 falta algo que no se consigue desde acá, se le pide a taro que lo copie a
 `/extras`.
 
-El host y el contenedor son casi simétricos a propósito, así que un comando
-que se le pida a taro —`mednafen build/release/abl.sfc` en ABL, una
-receta de `just`— suele valer tal cual de los dos lados. Las versiones pueden driftear, porque
-los paquetes no se comparten.
-
-Lo que sí o sí es del host: el `git push`, cualquier cosa con podman, el
-EverDrive por USB, y **ver y escuchar la ROM de verdad** — acá adentro se
-captura con Xvfb y el audio se graba a un wav en vez de sonar.
+**taro no corre nada en el host**: si corre algo a mano, lo hace acá
+adentro, y lo pregunta antes. Es suyo, el 2026-10-05. Lo único que es del
+host es el `git push`, el EverDrive por USB, y **ver y escuchar la ROM de
+verdad** — acá adentro se captura con Xvfb y el audio se graba a un wav en
+vez de sonar.
 
 ## Recetas o scripts descartables
 
@@ -448,8 +445,8 @@ La decisión no es de seguridad: es el costo de mantener el script contra lo que
 rinda tenerlo. Una receta por cada script convertiría al justfile en ruido.
 
 **Receta de `just`** cuando se va a volver a correr: si entra en una cadena de
-verificación, si conviene que quede escrito cómo se armó algo, o si taro lo va
-a correr desde el host. `evento` nació así, y de paso dejó de existir la
+verificación, o si conviene que quede escrito cómo se armó algo. `evento`
+nació así, y de paso dejó de existir la
 ROM armada a mano que mandó a mirar el mapa equivocado.
 
 **Script descartable** cuando contesta una pregunta de una sola vez: cuántos
