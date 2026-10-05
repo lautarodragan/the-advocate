@@ -53,6 +53,7 @@ fast:
     lda #$81
     sta NMITIMEN                ; and the NMI, which counts the boot frames
 
+    jsl f:pano_clear            ; before `ppu_init`, which asks it
     jsr ppu_init
 
     ; No entry set: the first map starts wherever its record says.
@@ -479,6 +480,7 @@ no_jump_pending:
     jsr animate_hero
     jsr follow_camera
     jsr stream_map              ; the column or row the camera uncovered
+    jsl f:pano_tick             ; and the panorama's, if the map shows one
     jsr message_tick            ; and a few characters of the message being
                                 ; composed, if there is one
     jsr build_oam               ; and the next one is built, now outside vblank
@@ -754,5 +756,7 @@ anim_continues:
     sta BG1VOFS
     lda #$13
     sta TM                      ; the map's two layers and the sprites
+    ; And mode 1 with BG3, if the map's panorama goes there: see pano.s.
+    jsl f:pano_ppu
     rts
 .endproc

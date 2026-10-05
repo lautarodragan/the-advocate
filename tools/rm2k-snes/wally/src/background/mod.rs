@@ -17,7 +17,9 @@ pub mod blocks;
 pub mod fail;
 pub mod grid;
 pub mod layers;
+pub mod mode1;
+pub mod panorama;
 
 pub use adeleine::Merge;
 pub use fail::{Bad, Result};
-pub use layers::{convert, Above, Background, Converted, Decided, Run};
+pub use layers::{convert, convert_with, Above, Background, Converted, Decided, PanoramaAsk, Run};

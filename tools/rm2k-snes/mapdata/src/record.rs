@@ -916,18 +916,21 @@ pub fn anim_table(maps: &[Map], rows: &[Vec<NpcRow>]) -> Result<String> {
             quoted(&map.name)
         ));
         let mut offset = 0;
+        // A background at 4bpp —a map whose panorama goes in mode 1— has
+        // tiles of half the bytes.
+        let bytes_per_tile = (BYTES_PER_TILE * map.bpp / 8) as i64;
         for (k, (name, family, count)) in FAMILIES.iter().enumerate() {
             let run = map.runs.iter().find(|r| r.family == *family);
             let tiles = run.map_or(0, |r| r.tiles);
             let vram = i64::from(layout.tiles.base)
-                + run.map_or(0, |r| r.base) * BYTES_PER_TILE as i64 / 2;
+                + run.map_or(0, |r| r.base) * bytes_per_tile / 2;
             out.push(format!("    .word {vram:<6} ; VRAM of {name}"));
             out.push(format!(
                 "    .word {offset:<6} ; drawing 0, inside the block"
             ));
             out.push(format!(
                 "    .word {:<6} ; bytes per drawing",
-                tiles * BYTES_PER_TILE as i64
+                tiles * bytes_per_tile
             ));
             let padding =
                 u8::from(k == FAMILIES.len() - 1 && rows[number].iter().any(|n| n.animates));
@@ -939,7 +942,7 @@ pub fn anim_table(maps: &[Map], rows: &[Vec<NpcRow>]) -> Result<String> {
                     ""
                 }
             ));
-            offset += tiles * BYTES_PER_TILE as i64 * *count as i64;
+            offset += tiles * bytes_per_tile * *count as i64;
         }
     }
     Ok(out.join("\n"))
@@ -1487,7 +1490,7 @@ pub fn maps(maps: &[Map]) -> Result<Written> {
         text.push('\n');
         labels.push(theirs);
     }
-    let tables = format!(
+    let mut tables = format!(
         "{}\n\n{}\n\n{}\n\n{}\n\n{}\n",
         map_table(maps, &labels, &rows)?,
         anim_table(maps, &rows)?,
@@ -1495,6 +1498,11 @@ pub fn maps(maps: &[Map]) -> Result<Written> {
         share_table(maps)?,
         cache_table(maps)?
     );
+    // Only in a cartridge that shows some panorama: one that does not gets
+    // the same `.inc` as before there were any. See `pano.s`.
+    if maps.iter().any(|m| m.panorama.is_some()) {
+        let _ = write!(tables, "\n{}\n", crate::panorama::panorama_table(maps)?);
+    }
     Ok(Written {
         offsets: offsets(),
         maps: text,

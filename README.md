@@ -87,6 +87,13 @@ sprites siguen en 4 bits: 15 colores y el transparente, que elige Adeleine
 (`tools/snes/adeleine/`). Cómo se reparten la VRAM y la CGRAM mapa por mapa,
 en `docs/port/vram.md` y `docs/port/cgram.md`.
 
+**La excepción, desde el prototipo del 2026-10-05, es el panorama** de los
+mapas que el proyecto nombra en `[maps] panoramas`: si el mapa no dibuja
+nada encima del héroe, el panorama ocupa BG2 en modo 3; si dibuja, el mapa
+va en modo 1, a 4 bits, y el panorama en BG3. Ver
+`docs/research/2026-10-05-los-panoramas.md` y `tools/runtime/pano.s`. Los
+demás mapas no cambian.
+
 ### El cartucho es ExHiROM, de 8 MB
 
 Desde el 2026-10-01, porque el juego entero no entra en 4 MB con ningún

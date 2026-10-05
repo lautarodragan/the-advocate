@@ -16,6 +16,12 @@ per call:
   half of colour memory split between the two, what is lost when it does
   not fit, and each converted to tiles, with the runs of the ChipSet's
   animation;
+* **the panorama**, if the request asks for it: RM2k's parallax
+  background, as a third layer. A map that draws nothing above the hero
+  stays in mode 3 and the panorama takes the upper layer's place, in BG2 at
+  4 bits; one that does goes in mode 1, with itself at 4 bits and the
+  panorama in BG3 at 2. See `background/panorama.rs` and
+  `background/mode1.rs`;
 * **the events baked into them**: an opaque event drawn with a ChipSet tile
   that never moves goes into the upper layer instead of being a sprite,
   unless that moves anybody else's colours;
@@ -42,8 +48,9 @@ crate, which joins them:
 
 * `background`: the lower half of colour memory and the two background
   layers —split between them, cut to 15 bits, what is lost, each
-  converted to tiles— (`layers.rs`, `grid.rs`), and the map as 16x16
-  blocks (`blocks.rs`);
+  converted to tiles— (`layers.rs`, `grid.rs`), the panorama and the map
+  in mode 1 (`panorama.rs`, `mode1.rs`), and the map as 16x16 blocks
+  (`blocks.rs`);
 * `sprites`: the upper half and the objects —a character's colours and
   poses (`character.rs`), which poses each graphic shows (`npc.rs`), the
   split of the eight palettes (`split.rs`), the VRAM bank and the pose bank

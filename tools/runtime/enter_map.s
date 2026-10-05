@@ -192,6 +192,9 @@ set:
     sep #$20
 .a8
 
+    ; Whether the map shows its panorama, before loading anything: the
+    ; loads ask. See pano.s.
+    jsl f:pano_find
     ; The grid, to WRAM, before anyone asks about a cell: it comes compressed.
     ; See `GRID`.
     jsl f:lz2_grid + FAST
@@ -230,6 +233,9 @@ set:
     jsr upload_tint             ; the screen is off: it goes now
     ; And the carried bytecode, now that nothing else uses `LZ2_BUFFER`.
     jsl f:code_carry_after + FAST
+    ; And the mode, if this map's panorama or the previous one's asks to
+    ; change it.
+    jsl f:pano_ppu
     rts
 .endproc
 

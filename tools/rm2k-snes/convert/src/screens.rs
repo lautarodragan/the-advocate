@@ -98,11 +98,18 @@ pub fn convert(
     let bg1_banks: Vec<Value> = vram::LAYOUTS
         .iter()
         .map(|l| {
-            json!([
-                l.name,
-                l.tiles.base,
-                l.tiles.base + l.tiles.count * (rm2k_snes_mapdata::snes::BYTES_PER_TILE as u32 / 2)
-            ])
+            let mut end = l.tiles.base + l.tiles.count * (rm2k_snes_mapdata::snes::BYTES_PER_TILE as u32 / 2);
+            // A panorama's tiles right after BG1's come back with them: the
+            // same `load_above` that the return to the map goes through
+            // uploads them —see `pano_load` in the runtime—.
+            if let Some(p) = &l.panorama {
+                for t in p.tiles.iter().filter(|t| t.count > 0) {
+                    if t.base == end {
+                        end = t.base + t.count * p.tile_words();
+                    }
+                }
+            }
+            json!([l.name, l.tiles.base, end])
         })
         .collect();
     let mut request = json!({

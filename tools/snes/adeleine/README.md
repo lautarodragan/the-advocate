@@ -60,6 +60,14 @@ merging, because a highlight of a few pixels goes wherever is nearest; it
 is here because pictures converted with it look like that, and changing a
 picture's reducer changes its pixels.
 
+## Fewer tiles
+
+`group_tiles`, in the library and with no subcommand: for a picture with
+more distinct 8x8 tiles than video memory holds, which tile draws each one
+so that at most N are left. A k-means over the tiles averaged two by two,
+each group drawn by its medoid, seeded without chance: see `tiles.rs`. It
+is here and not in Voodoo because it changes what is seen.
+
 ## How it packs
 
 Best fit, with the tiles that have the most colours first. Each tile goes

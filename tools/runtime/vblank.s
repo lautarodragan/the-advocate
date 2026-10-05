@@ -186,6 +186,7 @@ no_anim_pal:
     sta BG2VOFS
 
     jsr push_strips
+    jsl f:pano_vblank           ; the panorama's scroll and strips, if any
 big_up:
 
     ; And the message window's HDMA: on while there is one on screen, off when
@@ -234,6 +235,7 @@ no_finished:
     sta hdma_ofs + 4
     sta hdma_ofs + 9
     sta hdma_ofs + 14
+    jsl f:pano_hdma             ; BG2 is the panorama's in mode 3
     rep #$20
 .a16
     lda f:MSG_ENTRY
@@ -380,6 +382,12 @@ no_row:
     ldx strip_of
     ldy #(WINDOW_ROWS * 2)
     jsr dma_a_vram
+    ; Not in a map whose panorama is BG2: its tilemap is the panorama's.
+    lda f:PANO_ON
+    cmp #3
+    bne upper_column
+    rts
+upper_column:
 
     ; The upper layer: the same slot in its tilemap, and its strip right after
     ; the other in RAM. The slot comes from masking and not from adding a fixed
@@ -429,6 +437,16 @@ no_row:
 .a16
     lda #1024                   ; the right screen lives here
     jsr row_next
+    ; Not in a map whose panorama is BG2: its tilemap is the panorama's.
+    sep #$20
+.a8
+    lda f:PANO_ON
+    cmp #3
+    bne upper_row
+    rts
+upper_row:
+    rep #$20
+.a16
     ; And the upper layer: the same row on its tilemap's left screen. It is
     ; masked with ten bits and not eleven to take off the 1024 the previous
     ; step already added.

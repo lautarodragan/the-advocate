@@ -248,6 +248,15 @@ has:
     asl a
     ora #$20
     sta comp_color
+    ; A step up in mode 1, like every object: see `emit_object`.
+    lda f:PANO_ON
+    cmp #1
+    bne rain_priority
+    lda #$10
+    clc
+    adc comp_color
+    sta comp_color
+rain_priority:
     stz comp_dup + 3
     ldx #0
 drop:

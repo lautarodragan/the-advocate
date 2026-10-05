@@ -711,6 +711,7 @@ move_cursor:
 .a8
 .i16
     ; --- the PPU ---
+    jsl f:pano_mode3            ; the screens draw in mode 3
     lda #(SLOT_MAP / 1024 * 4)
     sta BG2SC
     lda #(SLOT_VRAM / 4096 * 16)

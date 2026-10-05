@@ -22,6 +22,7 @@
 
 use crate::background::fail::{Bad, Result};
 use crate::background::grid::{colors, counts, Cell, Grid, CELL};
+use crate::background::panorama::Panorama;
 use adeleine::{Color, Merge};
 use rm2k_render::{Family, Layers};
 use std::collections::{BTreeSet, HashMap};
@@ -96,8 +97,10 @@ pub struct Run {
 /// The layer behind the hero.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Background {
-    /// 8bpp tiles, back to back.
+    /// Its tiles, back to back: 8bpp, or 4bpp in a map whose panorama goes
+    /// in mode 1 —see [`crate::background::panorama`]—.
     pub tiles: Vec<u8>,
+    pub bpp: usize,
     /// The words of its colours, from entry [`cgram_reserved`] up: what is
     /// below belongs to the whole cartridge.
     pub cgram: Vec<u16>,
@@ -137,11 +140,21 @@ pub struct Decided {
     pub picture: Picture,
 }
 
-/// Both layers converted, and the pictures of what was decided.
+/// Both layers converted, the panorama if the map shows one, and the
+/// pictures of what was decided.
 pub struct Converted {
     pub background: Background,
     pub above: Above,
+    pub panorama: Option<Panorama>,
     pub pictures: Vec<Decided>,
+}
+
+/// A map's panorama as the conversion is asked for it: the stretch of it the
+/// console can show, already cut, and how many tiles each mode leaves it.
+pub struct PanoramaAsk<'a> {
+    pub picture: &'a rm2k_render::Picture,
+    pub tiles_mode3: usize,
+    pub tiles_mode1: usize,
 }
 
 /// Both layers together, which is the only way to split colour memory well.
@@ -163,6 +176,21 @@ pub struct Converted {
 /// `window_colors` is how many entries the message window takes after the
 /// backdrop: see [`cgram_reserved`].
 pub fn convert(layers: &Layers, window_colors: usize) -> Result<Converted> {
+    convert_with(layers, window_colors, None)
+}
+
+/// [`convert`], for a map that may show a panorama. Without one it is
+/// `convert`, byte for byte. With one, the map says how: if it draws
+/// nothing above the hero, the panorama takes the layer above's place —BG2,
+/// its palettes the ones the background leaves—; if it does, the map goes
+/// in mode 1 and the panorama in BG3: see [`crate::background::panorama`].
+pub fn convert_with(layers: &Layers, window_colors: usize, panorama: Option<&PanoramaAsk>) -> Result<Converted> {
+    if let Some(ask) = panorama {
+        let above = Grid::quantize(&layers.upper);
+        if above.cells.iter().any(|c| !colors(c).is_empty()) {
+            return crate::background::mode1::convert(layers, window_colors, ask);
+        }
+    }
     // The window lives in palette 0, so it can take fifteen at most: past
     // that the background's budget would not even be a number.
     if window_colors >= COLORS_PER_PALETTE {
@@ -188,10 +216,27 @@ pub fn convert(layers: &Layers, window_colors: usize) -> Result<Converted> {
     let free = (BG_PALETTES as i64 - needed as i64).clamp(1, MAX_ABOVE_PALETTES as i64) as usize;
 
     let (above, above_palettes, above_merges) = split_above(&above, free)?;
+    // A panorama in mode 3 takes the layer above's palettes: the map draws
+    // nothing above the hero, so they would be empty.
+    let (pano, pano_picture) = match panorama {
+        Some(ask) => {
+            let (p, picture) = crate::background::panorama::mode3(ask.picture, free, ask.tiles_mode3)?;
+            (Some(p), Some(picture))
+        }
+        None => (None, None),
+    };
     // Without a layer above nothing is reserved, but the DMA still sends an
     // empty palette, so the split counts one.
-    let first = above_split(above_palettes.len().max(1));
-    let (above, above_picture) = convert_above(&above, &above_palettes, first, above_merges)?;
+    let first = match &pano {
+        Some(p) => p.first / COLORS_PER_PALETTE,
+        None => above_split(above_palettes.len().max(1)),
+    };
+    let (mut above, above_picture) = convert_above(&above, &above_palettes, first, above_merges)?;
+    if let Some(p) = &pano {
+        // Its colours travel as the layer above's, which is what the record
+        // uploads, tints and puts back after a battle.
+        above.cgram = p.cgram.iter().flat_map(|w| w.to_le_bytes()).collect();
+    }
     if first < 1 {
         return Err(Bad::new(
             "the upper layer took all eight palettes and none is left for the background",
@@ -215,9 +260,16 @@ pub fn convert(layers: &Layers, window_colors: usize) -> Result<Converted> {
         name: "above".to_string(),
         picture: above_picture,
     });
+    if let Some(picture) = pano_picture {
+        pictures.push(Decided {
+            name: "panorama".to_string(),
+            picture,
+        });
+    }
     Ok(Converted {
         background,
         above,
+        panorama: pano,
         pictures,
     })
 }
@@ -230,7 +282,7 @@ pub fn convert(layers: &Layers, window_colors: usize) -> Result<Converted> {
 /// too many for the palettes granted, or that a single tile has more than
 /// fifteen, which fits no palette however many there are. Both are fixed by
 /// merging the colour that shows least into its nearest and trying again.
-fn split_above(grid: &Grid, limit: usize) -> Result<(Grid, Vec<Vec<Color>>, Vec<Merge>)> {
+pub(crate) fn split_above(grid: &Grid, limit: usize) -> Result<(Grid, Vec<Vec<Color>>, Vec<Merge>)> {
     let sets: BTreeSet<BTreeSet<Color>> = grid
         .cells
         .iter()
@@ -263,7 +315,7 @@ fn split_above(grid: &Grid, limit: usize) -> Result<(Grid, Vec<Vec<Color>>, Vec<
 
 /// Every colour-memory entry with a colour, black where the picture gives
 /// none: what the picture's file says, so what Voodoo reads.
-fn memory(colors: &[Option<Color>]) -> Vec<Option<Rgb15>> {
+pub(crate) fn memory(colors: &[Option<Color>]) -> Vec<Option<Rgb15>> {
     colors
         .iter()
         .map(|c| {
@@ -275,7 +327,7 @@ fn memory(colors: &[Option<Color>]) -> Vec<Option<Rgb15>> {
 
 /// Paints `grid` into an indexed picture: each cell with the table of
 /// `tables` that `choose` picks for it, or left transparent.
-fn paint(
+pub(crate) fn paint(
     grid: &Grid,
     tables: &[HashMap<Color, u8>],
     mut choose: impl FnMut(usize, usize, &Cell) -> Option<usize>,
@@ -308,7 +360,7 @@ fn paint(
 /// where they start by [`convert`]. Colour `k` of palette `i` is entry
 /// `(first + i) * 16 + k + 1`, and transparent is 0; each cell takes the
 /// first palette that has all its colours.
-fn convert_above(
+pub(crate) fn convert_above(
     grid: &Grid,
     palettes: &[Vec<Color>],
     first: usize,
@@ -512,6 +564,7 @@ fn convert_background(
         Background {
             cells: done.tilemap.iter().map(Vec::len).sum(),
             tiles: done.tiles,
+            bpp: 8,
             cgram,
             tilemap: done.tilemap,
             colors: colors_before,

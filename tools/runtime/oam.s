@@ -1022,6 +1022,20 @@ has_room:
     sta oam + 2, x
     lda obj_attr
     sta oam + 3, x
+    ; In mode 1 —a map whose panorama is BG3— the map's layers are a step
+    ; above where mode 3 puts them, and so are the objects: see pano.s.
+    lda f:PANO_ON
+    cmp #1
+    bne same_priority
+    lda oam + 3, x
+    and #$30
+    cmp #$30
+    beq same_priority
+    lda oam + 3, x
+    clc
+    adc #$10
+    sta oam + 3, x
+same_priority:
 
     ; Its two bits in the small table: X's ninth and the size.
     lda obj_x + 1

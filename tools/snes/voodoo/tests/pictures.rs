@@ -57,6 +57,25 @@ fn one_solid_cell_is_one_tile_besides_the_empty_one() {
     assert_eq!(done.tilemap[0][0], 1 | (1 << 10));
 }
 
+/// At 2bpp a palette is four entries: entry 18 is colour 2 of palette 4,
+/// and entry 16, the first of that palette, draws nothing.
+#[test]
+fn at_two_bits_a_palette_is_four_entries() {
+    let done = convert(&picture(8, 8, |x, _| if x < 4 { 18 } else { 16 }), 2).unwrap();
+    assert_eq!(done.report.tiles, 2);
+    assert_eq!(done.report.palettes, 1);
+    assert_eq!(done.tiles.len(), 32); // two 2bpp tiles
+    assert_eq!(done.tilemap[0][0], 1 | (4 << 10));
+    // Colour 2 is plane 1 alone: the four left pixels of every row.
+    assert_eq!(&done.tiles[16..18], &[0b0000_0000, 0b1111_0000]);
+}
+
+#[test]
+fn at_two_bits_a_cell_with_two_palettes_is_refused() {
+    let message = answer(convert(&picture(8, 8, |x, _| if x < 4 { 17 } else { 21 }), 2));
+    assert!(message.contains("palettes 4 and 5"), "{message}");
+}
+
 /// The whole point of the flip bits: a cell that is another cell mirrored
 /// costs nothing but a bit in the tilemap.
 #[test]
