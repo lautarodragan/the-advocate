@@ -296,6 +296,7 @@ bar_ofs:
 .proc target_ppu_on
 .a8
 .i16
+    jsl f:pano_mode3            ; the screens draw in mode 3
     lda #(SLOT_MAP / 1024 * 4)
     sta BG2SC
     lda #(TARGET_MAP / 1024 * 4)
