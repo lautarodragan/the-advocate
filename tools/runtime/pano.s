@@ -4,12 +4,13 @@
 
 ; --- the panorama -----------------------------------------------------------
 ;
-; RM2k's parallax background, for the maps whose panorama the cartridge shows
-; —`[maps] panoramas` of the project file—. The converter decided where it
-; goes: in mode 3 it is BG2, where the layer above the hero would be, at 4
-; bits; in mode 1 it is BG3, behind everything, at 2 bits, and the map goes
-; at 4. See `background::panorama` in Wally and `panorama.rs` in
-; rm2k-snes-mapdata, which writes `pano_table`.
+; RM2k's parallax background, for the maps whose panorama the converter gave
+; a layer of its own —see `Way` in Wally's `background::panorama`, which
+; decides it map by map—: in mode 3 it is BG2, where the layer above the hero
+; would be, at 4 bits; in mode 1 it is BG3, behind everything, at 2 bits, and
+; the map goes at 4. A map whose panorama is baked into its background, or
+; never seen, is a map without one here. `panorama.rs` in rm2k-snes-mapdata
+; writes `pano_table`.
 ;
 ; **How it moves is `Game_Map::Parallax`**, in RM2k's units:
 ;
@@ -54,7 +55,19 @@ PANO_ROWV  = $7E7E16            ; and of the row
 PANO_T     = $7E7E18            ; four words of scratch
 PANO_STRIP_COL = $7E7E20        ; a column of the ring: 32 entries
 PANO_STRIP_ROW = $7E7E60        ; a row: 64 entries
-PANO_END   = $7E7EE0
+; $7E7EE0 to $7E7EE6, allotted on 2026-10-05 for `ChangePBG`, the saved
+; game and BG1 under the window: how it loops and scrolls now, which starts
+; as the record says and an
+; `OP_PANORAMA` changes. `PANO_AX`, `PANO_FLAGS` and `PANO_AUTO` go in the
+; saved game —see `save_table`—, as RM2k saves its panorama's position and
+; its `ChangeBG`.
+PANO_FLAGS = $7E7EE0            ; bit 0: it loops across; bit 1: down
+PANO_AUTO  = $7E7EE1            ; what it scrolls on its own each frame, a word per axis
+PANO_KEEP  = $7E7EE5            ; set by `load_game`: the next `pano_find` keeps the above
+PANO_HDMA  = $7E7EE6            ; `HDMA_ABOVE_BG1` in a map whose cells above the hero are BG1 1, else 0
+PANO_END   = $7E7EE7
+P_AUTO = PANO_AUTO & $FFFF
+P_FLAGS = PANO_FLAGS & $FFFF
 .assert PANO_END <= CARRY_MAP, error, "the panorama's state goes into the carried map"
 .assert FAR_GROWTH + EXP_K * GROWTH_BYTES <= (PANO_ON & $FFFF), error, "the growth tables go into the panorama's state"
 ; With the data bank at $7E, as `pano_tick` runs.
@@ -105,12 +118,50 @@ pano_table:
     lda #0
     sta f:PANO_ON
     sta f:PANO_WAS1
+    sta f:PANO_KEEP
+    sta f:PANO_HDMA
+    rtl
+.endproc
+
+; `ChangePBG`, from `op_panorama`: the loops in A, and the two steps it
+; scrolls on its own after them in the bytecode, at `[code_ptr], y`. A map
+; that does not show its panorama keeps nothing. Leaves Y past them.
+.proc pano_change
+.a8
+.i16
+    pha
+    lda f:PANO_ON
+    beq off
+    pla
+    sta f:PANO_FLAGS
+    rep #$20
+.a16
+    lda [code_ptr], y
+    sta f:PANO_AUTO
+    iny
+    iny
+    lda [code_ptr], y
+    sta f:PANO_AUTO + 2
+    iny
+    iny
+    sep #$20
+.a8
+    rtl
+off:
+    pla
+    iny
+    iny
+    iny
+    iny
     rtl
 .endproc
 
 ; Looks the map being entered up in `pano_table`, with `map_current` set: its
 ; record, and what scrolls on its own back to zero, which is what entering a
-; map does in RM2k. Before the load: `load_above` and `fill_window` ask.
+; map does in RM2k; and how it loops and scrolls as the map says, which
+; undoes a `ChangePBG` of the map before (`ClearChangedBG`). Unless a saved
+; game was just loaded —`PANO_KEEP`—: then all of that is the saved game's.
+; Before the load: `load_above` and `fill_window` ask.
 .proc pano_find
 .a8
 .i16
@@ -134,6 +185,7 @@ none:
 .a8
     lda #0
     sta f:PANO_ON
+    sta f:PANO_KEEP
     plp
     rtl
 .a16
@@ -141,12 +193,28 @@ found:
     txa
     sta f:PANO_ENT
     lda #0
-    sta f:PANO_AX
-    sta f:PANO_AX + 2
     sta f:PANO_COLV
     sta f:PANO_ROWV
     sep #$20
 .a8
+    lda f:PANO_KEEP
+    bne kept
+    rep #$20
+.a16
+    lda #0
+    sta f:PANO_AX
+    sta f:PANO_AX + 2
+    lda f:pano_table + PT_AUTO, x
+    sta f:PANO_AUTO
+    lda f:pano_table + PT_AUTO + 2, x
+    sta f:PANO_AUTO + 2
+    sep #$20
+.a8
+    lda f:pano_table + PT_FLAGS, x
+    sta f:PANO_FLAGS
+kept:
+    lda #0
+    sta f:PANO_KEEP
     lda f:pano_table + PT_MODE, x
     sta f:PANO_ON
     plp
@@ -195,16 +263,50 @@ not_one:
     lda #$13
     sta TM
 done:
+    ; And BG1 under the message window, in a flattened map: its cells above
+    ; the hero are BG1 priority 1, in front of the window, which is BG2. The
+    ; mask is the objects' —window 1, edge to edge, on the window's lines—,
+    ; which channel 6 writes to W12SEL as channel 3 writes it to WOBJSEL:
+    ; see `build_hdma`. Any other map, as always: only the objects.
+    lda #0
+    sta f:PANO_HDMA
+    lda #$10
+    sta TMW
+    lda f:PANO_ON
+    cmp #3
+    bne no_bg1
+    rep #$20
+.a16
+    lda f:PANO_ENT
+    tax
+    sep #$20
+.a8
+    lda f:pano_table + PT_FLAGS, x
+    and #$04
+    beq no_bg1
+    lda #HDMA_ABOVE_BG1
+    sta f:PANO_HDMA
+    lda #$11
+    sta TMW
+no_bg1:
     plb
     plp
     rtl
 .endproc
 
 ; Mode 3 for a screen that opens over the map: they all draw in mode 3, and
-; `back_to_map` puts mode 1 back through `ppu_init`.
+; `back_to_map` puts mode 1 back through `ppu_init`. And no mask on BG1: the
+; HDMA is off and W12SEL stays as its last line left it.
 .proc pano_mode3
 .a8
 .i16
+    lda f:PANO_HDMA
+    beq no_bg1
+    lda #$10
+    sta f:TMW
+    lda #0
+    sta f:W12SEL
+no_bg1:
     lda f:PANO_ON
     cmp #1
     bne done
@@ -292,6 +394,44 @@ no_backdrop:
     rtl
 .endproc
 
+; In mode 1 the screen's backdrop is part of the panorama —the colour it draws
+; most, see `background::panorama` in Wally—, and RM2k tints the panorama: the
+; tint takes it as one more palette, of one colour at entry 0. With
+; `tint_ptr` and `tint_count` at it, A is 1; in any other map, 0, and nothing
+; is touched. From `apply_tint`, `upload_palettes` and `flash_backdrop`.
+.proc pano_backdrop
+.a8
+.i16
+    lda f:PANO_ON
+    cmp #1
+    bne none
+    php
+    rep #$30
+.a16
+    lda f:PANO_ENT
+    tax
+    lda f:pano_table + PT_BACKDROP, x
+    cmp #$FFFF
+    beq keeps
+    txa
+    clc
+    adc #.loword(pano_table + PT_BACKDROP)
+    sta tint_ptr
+    lda #1
+    sta tint_count
+    plp
+.a8
+    lda #^pano_table
+    sta tint_ptr + 2
+    lda #1
+    rtl
+keeps:
+    plp
+none:
+    lda #0
+    rtl
+.endproc
+
 ; --- where it is -------------------------------------------------------------
 
 ; Where in the panorama the console's screen starts on axis Y —0 across, 2
@@ -325,20 +465,15 @@ not_before:
     lda f:pano_table + PT_RM_MAX, x
 inside:
     sta P_T + 2                 ; RM2k's camera
-    ; The flags are the high byte of the word at PT_MODE, which is the
-    ; record's and not the axis': read with X at the record. The loop bit of
-    ; this axis is bit 8 across and bit 9 down.
-    phx
-    lda f:PANO_ENT
-    tax
-    lda f:pano_table + PT_MODE, x
-    plx
+    ; Whether it loops is `PANO_FLAGS`, which a `ChangePBG` changes: bit 0
+    ; across, bit 1 down.
+    lda P_FLAGS
     cpy #0
     beq across
-    and #$0200
+    and #$0002
     bra looped
 across:
-    and #$0100
+    and #$0001
 looped:
     beq not_looped
     ; Looping: half the camera plus what it scrolled, in 1/32 px.
@@ -376,7 +511,16 @@ not_looped:
     jsr pano_mul_div
     bra wrap
 still:
-    lda #0
+    ; It does not move with the camera, and stays where it is: at 0 as the
+    ; map starts, and where it was scrolled to if a `ChangePBG` stopped its
+    ; loop —RM2k keeps `pan_x` until the camera moves, and on these maps
+    ; it does not—.
+    lda P_AX, y
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a
 wrap:
     ; Plus how far the console's camera is from RM2k's, and inside the
     ; panorama: what it adds is less than a width.
@@ -474,7 +618,7 @@ axis:
     adc f:PANO_ENT
     tax
     ; What it scrolls on its own, wrapped at the panorama's width in 1/32 px.
-    lda f:pano_table + PT_AUTO, x
+    lda P_AUTO, y               ; `PANO_AUTO`, which a `ChangePBG` changes
     beq no_auto
     clc
     adc P_AX, y
@@ -1041,6 +1185,12 @@ no_column:
     lda #0
     sta f:PANO_ROWV
 no_row:
+    ; VMAIN back to one word at a time: the column left it advancing 32,
+    ; and what the vblank uploads after this —the poses— does not set it.
+    sep #$20
+.a8
+    lda #$80
+    sta VMAIN
     plp
     rtl
 .endproc

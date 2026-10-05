@@ -4121,21 +4121,38 @@ pub fn compile_command(
         //
         // OP_STOP_ROUTES: no operands
         HALT_ALL_MOVEMENT => Ok(vec![OP_STOP_ROUTES]),
-        // `ChangePBG`, the parallax background. **It is accepted and
-        // dropped**, which is the same the port already does with the whole
-        // panorama: mode 3 has two background layers and both are taken —the
-        // map and the upper layer with the window—, so there is nowhere to
-        // draw it. See workflow/tasks/wishlist/panorama-del-mapa-2.md.
+        // `ChangePBG`, `Game_Map::Parallax::ChangeBG`: how the panorama
+        // loops and scrolls on its own from now on. The picture stays the
+        // map's: one that names another would need its tiles converted and
+        // uploaded mid-map, and that is not done —the name is not even
+        // read—. Wally converts the map's panorama big enough for every way
+        // the map's own pages make it loop. In a map that does not show its
+        // panorama the ROM does nothing. See `op_panorama` in `pano.s`.
         //
-        // It is dropped **when compiling**: it emits nothing and the ROM does
-        // not find out, like move commands 26 and 27.
-        //
-        // It appears **only once in the whole game**: seven commands in a
-        // single page, the Hover-Tram ride on map 13, where the afternoon
-        // landscape runs behind and changes speed when starting and braking.
-        // It is the only page that blocks that map, so the debt declared here
-        // is exactly "the tram is ridden with no background landscape".
-        CHANGE_PBG => Ok(vec![]),
+        // OP_PANORAMA: loops (byte: bit 0 across, bit 1 down), and what it
+        // moves on its own each frame across and down (signed words, 1/32
+        // px), which is RM2k's `scroll_amt` and 0 on an axis that does not
+        // loop or scroll on its own.
+        CHANGE_PBG => {
+            if n < 6 {
+                return cannot();
+            }
+            let step = |looped: bool, auto: bool, speed: i64| -> i16 {
+                match (looped && auto, speed) {
+                    (false, _) | (_, 0) => 0,
+                    (_, s) if s < 0 => 1 << -s,
+                    (_, s) => -(1i16 << s),
+                }
+            };
+            let (lx, ly) = (q(0) != 0, q(1) != 0);
+            if !(-8..=8).contains(&q(3)) || !(-8..=8).contains(&q(5)) {
+                return cannot();
+            }
+            let mut out = vec![OP_PANORAMA, u8::from(lx) | (u8::from(ly) << 1)];
+            out.extend(step(lx, q(2) != 0, q(3)).to_le_bytes());
+            out.extend(step(ly, q(4) != 0, q(5)).to_le_bytes());
+            Ok(out)
+        }
         FLASH_SPRITE => {
             // A flash on a character: `Game_Character::Flash`. The parameters
             // are whom, r, g and b from 0 to 31, the power, how many **tenths

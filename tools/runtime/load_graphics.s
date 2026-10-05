@@ -353,6 +353,13 @@ ready:
 .proc load_above
 .a8
 .i16
+    ; A map whose panorama goes in mode 3 has no upper layer: BG2 is the
+    ; panorama, which `pano_load` uploads below. Nothing goes to BG2's base,
+    ; which in `VENTANA_PANORAMA_FONDO_TECHO` is inside the background's
+    ; tiles. See `vram.rs` in rm2k-snes-mapdata.
+    lda f:PANO_ON
+    cmp #3
+    beq palette
     ldx map_ofs
     lda #$80
     sta VMAIN
@@ -391,6 +398,8 @@ ready:
     ; Its palette goes in the last palettes of the lower half of CGRAM, which
     ; the 8-bit background leaves free. How many and from where was decided by
     ; the converter map by map, so it comes in the record.
+palette:
+    ldx map_ofs
     lda f:map_table + M_ABOVE_FIRST, x
     sta CGADD
     ldy #M_PTR_ABOVE_CGRAM

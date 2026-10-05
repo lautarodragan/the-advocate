@@ -172,6 +172,17 @@ A1T5L    = $4352
 A1B5     = $4354
 HDMA_BATTLE = $20
 
+; --- HDMA, channel 6 ---------------------------------------------------------
+; The same mask as channel 3, for BG1: in a map whose panorama took BG2 and
+; whose cells above the hero went to BG1 priority 1, those cells are in front
+; of the message window, and BG1 is hidden on its lines. See `pano_ppu`.
+DMAP6    = $4360
+BBAD6    = $4361
+A1T6L    = $4362
+A1B6     = $4364
+HDMA_ABOVE_BG1 = $40
+W12SEL   = $2123        ; which PPU windows mask BG1 and BG2
+
 ; --- HDMA, channels 1 and 2 -------------------------------------------------
 ; Ordinary DMA transfers everything in one go, with the screen off or in
 ; vblank. HDMA is something else: the same hardware, but fired **once per

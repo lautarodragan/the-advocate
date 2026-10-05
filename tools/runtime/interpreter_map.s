@@ -202,3 +202,12 @@ terrain_set:
     jmp run_code::other
 
 .endproc
+
+; `ChangePBG`: only the entry point, like the one above. The body is
+; `pano_change`, in pano.s, which reads the rest of its operands.
+.proc op_panorama
+    lda [code_ptr], y
+    iny
+    jsl f:pano_change
+    jmp run_code::other
+.endproc

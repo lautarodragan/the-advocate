@@ -602,6 +602,14 @@ fits:
     lda #CGRAM_BASE
     jsr one_palette
 
+    ; The backdrop, in a map whose panorama goes in mode 1: there it is the
+    ; panorama's colour. See `pano_backdrop`.
+    jsl f:pano_backdrop
+    beq no_backdrop
+    stz tint_cgadd
+    jsr tint_palette
+no_backdrop:
+
     ; The upper layer, at whatever entry this map got. It has to be read from
     ; the record before loading X with the field, because the record is
     ; addressed precisely with X.
@@ -744,6 +752,11 @@ nothing:
 .a8
     lda #CGRAM_BASE             ; the background starts shifted: below is the
     jsr dma_shadow              ; window, which is neither tinted nor re-uploaded
+    jsl f:pano_backdrop         ; but the backdrop is, in mode 1: `apply_tint`
+    beq no_backdrop
+    lda #0
+    jsr dma_shadow
+no_backdrop:
     ldx map_ofs
     rep #$20
 .a16

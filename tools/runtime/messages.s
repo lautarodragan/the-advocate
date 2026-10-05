@@ -180,6 +180,11 @@ with_plane:
     sta DMAP3
     lda #<WOBJSEL
     sta BBAD3
+    ; And the same mask for BG1, on channel 6, which only a flattened map
+    ; turns on: see `pano_ppu`.
+    stz DMAP6
+    lda #<W12SEL
+    sta BBAD6
     rts
 .endproc
 

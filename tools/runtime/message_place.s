@@ -181,8 +181,10 @@ masked:
 .a8
 with_mask:
     sty A1T3L
+    sty A1T6L                   ; BG1's, the same: see `pano_ppu`
     lda #^mask_none
     sta A1B3
+    sta A1B6
     lda #>VRAM_ABOVE_MAP | MAP_LAYOUT
     sta hdma_sc + 1
     sta hdma_sc + 3

@@ -252,6 +252,7 @@ no_finished:
     lda f:BIG_FLAGS
     and #BIG_WAVE_ON
     ora #HDMA_WINDOW
+    ora f:PANO_HDMA             ; and BG1's mask, in a flattened map
     sta HDMAEN
     bra on
 no_window:
@@ -261,6 +262,7 @@ no_window:
     ; Without HDMA the object mask stays as the last line left it, which is
     ; on: it is turned off by hand, like BG2SC down here.
     stz WOBJSEL
+    stz W12SEL                  ; and BG1's, in a flattened map
     ; BG2SC has to be restored by hand: the HDMA left it with the window's
     ; tilemap on the last line it wrote, and without HDMA nobody touches it
     ; again. It costs two instructions and saves having to remember this when
