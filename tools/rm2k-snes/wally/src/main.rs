@@ -78,8 +78,9 @@ struct Where {
                         and the pictures\n\n\
     The request is a JSON with `map` (its number), `map_files` and \
     `chipset_files` (the project's maps and ChipSets, by number, over the \
-    dump's) and `baked` (cells of the upper layer painted over, as [cell, \
-    tile id]).")]
+    dump's), `baked` (cells of the upper layer painted over, as [cell, \
+    tile id]) and `window_colors` (the colour-memory entries the message window \
+    takes after the backdrop: the background starts after them).")]
 struct LayersArgs {
     #[command(flatten)]
     place: Where,
@@ -101,7 +102,7 @@ struct LayersArgs {
     `layers`, and what the cartridge and the other domains decided: `names`, \
     `test_event`, `leaders`, `pages` —the event compiler's scan of the map—, \
     `route_graphics`, `also_walk`, `timer`, `rain`, `picture`, `battle_animation`, `singles`, \
-    `palette_weight`, `dither`, and the `TileSubstitution`s it can run —`substitutions`, \
+    `palette_weight`, `dither`, `window_colors` as for `layers`, and the `TileSubstitution`s it can run —`substitutions`, \
     whose blocks are built, and `common_substitutions`, only translated—. See \
     `MapRequest::from_json`.")]
 struct MapArgs {

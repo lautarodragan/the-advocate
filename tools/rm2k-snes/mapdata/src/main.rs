@@ -7,7 +7,7 @@
 use clap::{Args as ClapArgs, Parser, Subcommand};
 use rm2k_snes_mapdata::fail::{Bad, Result};
 use rm2k_snes_mapdata::materials::{self, RawBlocks, COMPRESSED_KINDS};
-use rm2k_snes_mapdata::{cgram, hex, record, request, vram};
+use rm2k_snes_mapdata::{hex, record, request, vram};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -39,7 +39,7 @@ enum Command {
         The answer: {\"layouts\": [{\"name\", \"sprites\", \"tiles\", \"map\", \"above\", \
         \"window\", \"window_map\": [base in words, tiles]}], \"window\": [w, h], \
         \"map_layout\", \"above_map\", \"window_bases\", \"slots\", \"slot_vram\", \
-        \"slot_map\", \"slot_text_width\", \"slot_text_level\", \"cgram_reserved\", \
+        \"slot_map\", \"slot_text_width\", \"slot_text_level\", \
         \"maps\": [{\"layout\": its name} or {\"refused\": why}]}. The layouts are checked \
         against the hardware on every call."
     )]
@@ -180,7 +180,6 @@ fn do_vram(args: &Plain) -> Result<()> {
             "slot_map": vram::SLOT_MAP,
             "slot_text_width": vram::SLOT_TEXT_WIDTH,
             "slot_text_level": vram::SLOT_TEXT_LEVEL,
-            "cgram_reserved": cgram::CGRAM_RESERVED,
             "maps": maps,
         }),
     )

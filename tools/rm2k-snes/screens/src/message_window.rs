@@ -91,6 +91,34 @@ fn over_black(picture: &Picture) -> Vec<Color> {
         .collect()
 }
 
+/// The colour-memory entries the message window takes: as many as its
+/// colours, from entry 1 —0 is transparent—, so the highest one is this
+/// number. They are the System's —the window, its arrow, its cursor, the
+/// text and its shadow—, so the game's and not the engine's. **Counted by
+/// colour, not by non-zero word**: a black has word zero, and counting
+/// words gives one less.
+///
+/// The converter asks for it once and hands it to everyone who shares
+/// colour memory with the window: each map's background starts after it.
+pub fn colors(skin: &Skin) -> Result<usize> {
+    Ok(draw(skin)?.colors.len())
+}
+
+/// The empty window and what the cartridge puts over it, each cut to the
+/// console's colours, and the colours of all of them together.
+struct Drawn {
+    width: usize,
+    height: usize,
+    pixels: Vec<Option<Color>>,
+    with_arrow: Vec<Option<Color>>,
+    bare_arrow: Vec<Option<Color>>,
+    with_bar: Vec<Vec<Option<Color>>>,
+    bare_bar: Vec<Option<Color>>,
+    color_row: Vec<Color>,
+    shadow: Color,
+    colors: BTreeSet<Color>,
+}
+
 /// The message window: tiles, palette, cells and what the font needs.
 ///
 /// The picture is the empty window of the System, cut into 8x8 cells, with
@@ -101,78 +129,10 @@ fn over_black(picture: &Picture) -> Vec<Color> {
 /// BG2's transparent and no window tile uses.
 ///
 /// `reserved` is where whatever follows the window in colour memory
-/// starts: the window may not reach it.
+/// starts: the window may not reach it. [`colors`] says where it ends.
 pub fn convert(skin: &Skin, reserved: usize) -> Result<Window> {
-    let empty = skin.window(WINDOW_WIDTH, WINDOW_HEIGHT);
-    let (width, height) = (empty.width, empty.height);
-    let pixels = cut(&empty, false);
-
-    // What the cartridge puts over the empty window, each drawn whole and
-    // cut like it: the arrow on the bottom edge, and the cursor on each
-    // line. Over the window, and over nothing for the one without a
-    // background.
-    let arrow = rm2k_render::system::arrow_down(&skin.picture);
-    let (arrow_x, arrow_y) = ((WINDOW_ARROW_COL * CELL) as i64, (WINDOW_ARROW_ROW * CELL) as i64);
-    let mut with_arrow = empty.clone();
-    cells::paste(&mut with_arrow, &arrow, arrow_x, arrow_y);
-    let mut bare_arrow = Picture::transparent(width, height);
-    cells::paste(&mut bare_arrow, &arrow, arrow_x, arrow_y);
-    // The bar: the System's cursor on the rectangle
-    // `Window_Message::UpdateCursorRect` gives for each line.
-    let bar_x = (WINDOW_TEXT_COL * CELL + CHOICE_BAR_X) as i64;
-    let bar_y = |line: usize| (WINDOW_TEXT_ROW * CELL + line * WINDOW_LINE) as i64;
-    let bar = |dest: &mut Picture, line: usize| {
-        let (w, h) = (MESSAGE_WIDTH - CHOICE_BAR_TRIM, WINDOW_LINE);
-        rm2k_render::system::cursor_over(dest, &skin.picture, bar_x, bar_y(line), w, h, 0);
-    };
-    let lines = WINDOW_TEXT_ROWS * CELL / WINDOW_LINE;
-    let with_bar: Vec<Vec<Option<Color>>> = (0..lines)
-        .map(|line| {
-            let mut p = empty.clone();
-            bar(&mut p, line);
-            cut(&p, false)
-        })
-        .collect();
-    let mut bare_bar = Picture::transparent(width, height);
-    bar(&mut bare_bar, 0);
-    let with_arrow = cut(&with_arrow, false);
-    let bare_arrow = cut(&bare_arrow, true);
-    let bare_bar = cut(&bare_bar, true);
-
-    // The text colours come from the System's 16x16 block, the ones
-    // `Font::Render` uses as a mask. Each row of the glyph takes a single
-    // one —the gradient is horizontally uniform—, so they are twelve
-    // colours, not a block, and the shadow is a single one.
-    let ink = line::Ink::new(&skin.picture, 0);
-    let mut color_row = Vec::new();
-    for py in 0..font::HEIGHT {
-        let row: BTreeSet<Color> = (0..font::INK_MAX).map(|px| rgb15(ink.text_at(px, py))).collect();
-        if row.len() != 1 {
-            return Err(Bad::answer(format!(
-                "row {py} of the text colour has {} distinct colours; the cartridge composes it \
-                 with a single one",
-                row.len()
-            )));
-        }
-        color_row.push(*row.iter().next().expect("one colour"));
-    }
-    let shadow = rgb15(ink.shadow_at(0, 0));
-
-    // The arrow and the cursor count even though the empty window does not
-    // draw them, as the text does: they are the cartridge's to put.
-    let mut colors: BTreeSet<Color> = BTreeSet::new();
-    for drawn in [&pixels, &with_arrow, &bare_arrow, &bare_bar].into_iter().chain(&with_bar) {
-        colors.extend(drawn.iter().flatten().copied());
-    }
-    colors.extend(color_row.iter().copied());
-    colors.insert(shadow);
-    if colors.len() > COLORS_PER_PALETTE - 1 {
-        return Err(Bad::answer(format!(
-            "the window, its arrow and its cursor use {} colours and {} fit",
-            colors.len(),
-            COLORS_PER_PALETTE - 1
-        )));
-    }
+    let Drawn { width, height, pixels, with_arrow, bare_arrow, with_bar, bare_bar, color_row, shadow, colors } =
+        draw(skin)?;
     // What follows starts where this ends, so if the window grew it would
     // step on it and the cartridge would draw the text with a colour of the
     // map. The highest entry is the number of colours —0 is transparent and
@@ -201,7 +161,6 @@ pub fn convert(skin: &Skin, reserved: usize) -> Result<Window> {
         (WINDOW_TEXT_ROW..WINDOW_TEXT_ROW + WINDOW_TEXT_ROWS).contains(&ty)
             && (WINDOW_TEXT_COL..WINDOW_TEXT_COL + WINDOW_TEXT_COLS).contains(&tx)
     };
-
     // The cells without text are deduplicated as always, and the arrow's
     // after them; the ones in the text area are numbered consecutively from
     // there.
@@ -279,6 +238,80 @@ pub fn convert(skin: &Skin, reserved: usize) -> Result<Window> {
         bar,
         bar_bare,
     })
+}
+
+fn draw(skin: &Skin) -> Result<Drawn> {
+    let empty = skin.window(WINDOW_WIDTH, WINDOW_HEIGHT);
+    let (width, height) = (empty.width, empty.height);
+    let pixels = cut(&empty, false);
+
+    // What the cartridge puts over the empty window, each drawn whole and
+    // cut like it: the arrow on the bottom edge, and the cursor on each
+    // line. Over the window, and over nothing for the one without a
+    // background.
+    let arrow = rm2k_render::system::arrow_down(&skin.picture);
+    let (arrow_x, arrow_y) = ((WINDOW_ARROW_COL * CELL) as i64, (WINDOW_ARROW_ROW * CELL) as i64);
+    let mut with_arrow = empty.clone();
+    cells::paste(&mut with_arrow, &arrow, arrow_x, arrow_y);
+    let mut bare_arrow = Picture::transparent(width, height);
+    cells::paste(&mut bare_arrow, &arrow, arrow_x, arrow_y);
+    // The bar: the System's cursor on the rectangle
+    // `Window_Message::UpdateCursorRect` gives for each line.
+    let bar_x = (WINDOW_TEXT_COL * CELL + CHOICE_BAR_X) as i64;
+    let bar_y = |line: usize| (WINDOW_TEXT_ROW * CELL + line * WINDOW_LINE) as i64;
+    let bar = |dest: &mut Picture, line: usize| {
+        let (w, h) = (MESSAGE_WIDTH - CHOICE_BAR_TRIM, WINDOW_LINE);
+        rm2k_render::system::cursor_over(dest, &skin.picture, bar_x, bar_y(line), w, h, 0);
+    };
+    let lines = WINDOW_TEXT_ROWS * CELL / WINDOW_LINE;
+    let with_bar: Vec<Vec<Option<Color>>> = (0..lines)
+        .map(|line| {
+            let mut p = empty.clone();
+            bar(&mut p, line);
+            cut(&p, false)
+        })
+        .collect();
+    let mut bare_bar = Picture::transparent(width, height);
+    bar(&mut bare_bar, 0);
+    let with_arrow = cut(&with_arrow, false);
+    let bare_arrow = cut(&bare_arrow, true);
+    let bare_bar = cut(&bare_bar, true);
+
+    // The text colours come from the System's 16x16 block, the ones
+    // `Font::Render` uses as a mask. Each row of the glyph takes a single
+    // one —the gradient is horizontally uniform—, so they are twelve
+    // colours, not a block, and the shadow is a single one.
+    let ink = line::Ink::new(&skin.picture, 0);
+    let mut color_row = Vec::new();
+    for py in 0..font::HEIGHT {
+        let row: BTreeSet<Color> = (0..font::INK_MAX).map(|px| rgb15(ink.text_at(px, py))).collect();
+        if row.len() != 1 {
+            return Err(Bad::answer(format!(
+                "row {py} of the text colour has {} distinct colours; the cartridge composes it \
+                 with a single one",
+                row.len()
+            )));
+        }
+        color_row.push(*row.iter().next().expect("one colour"));
+    }
+    let shadow = rgb15(ink.shadow_at(0, 0));
+
+    // The arrow and the cursor count even though the empty window does not
+    // draw them, as the text does: they are the cartridge's to put.
+    let mut colors: BTreeSet<Color> = BTreeSet::new();
+    for drawn in [&pixels, &with_arrow, &bare_arrow, &bare_bar].into_iter().chain(&with_bar) {
+        colors.extend(drawn.iter().flatten().copied());
+    }
+    colors.extend(color_row.iter().copied());
+    colors.insert(shadow);
+    if colors.len() > COLORS_PER_PALETTE - 1 {
+        return Err(Bad::answer(format!(
+            "the window, its arrow and its cursor use {} colours and {} fit",
+            colors.len(),
+            COLORS_PER_PALETTE - 1
+        )));
+    }
+    Ok(Drawn { width, height, pixels, with_arrow, bare_arrow, with_bar, bare_bar, color_row, shadow, colors })
 }
 
 /// A colour-memory word: 0BBB BBGG GGGR RRRR.

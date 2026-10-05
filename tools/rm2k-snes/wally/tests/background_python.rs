@@ -19,6 +19,12 @@
 //! **If one of these changes, a byte of the cartridge changed.** The
 //! hashes are not to be regenerated to make a test pass: the Python that
 //! produced them is gone, and with it the only independent answer.
+//!
+//! The Python's message window took eight colour-memory entries, and so do
+//! these layers: [`PYTHON_WINDOW_COLORS`]. When the window grew to thirteen
+//! on 2026-10-04 it was a constant of this crate, and this test went red
+//! with it; since then the number comes in the request, and this asks for
+//! the Python's.
 
 use ditto::schema::Chipset;
 use rm2k_render::{Family, Layers, Picture};
@@ -26,6 +32,9 @@ use rm2k_rules::chipset::terrain_of;
 use wally::background::blocks::{blocks, Map};
 use wally::background::{convert, Merge};
 use sha2::{Digest, Sha256};
+
+/// The entries the Python's message window took after the backdrop.
+const PYTHON_WINDOW_COLORS: usize = 8;
 
 fn h(n: u64) -> u64 {
     let mut n = (n * 2654435761) & 0xFFFF_FFFF;
@@ -284,7 +293,7 @@ const EXPECTED: [(&str, Expected); 5] = [
 #[test]
 fn the_layers_are_the_ones_the_python_made() {
     for (name, want) in &EXPECTED {
-        let done = convert(&case(name)).unwrap();
+        let done = convert(&case(name), PYTHON_WINDOW_COLORS).unwrap();
         let (bg, above) = (&done.background, &done.above);
         assert_eq!(sha(&bg.tiles), want.tiles, "{name}: the tiles");
         assert_eq!(sha(&words(bg.cgram.iter().copied())), want.cgram, "{name}: the colours");
@@ -320,7 +329,7 @@ fn the_layers_are_the_ones_the_python_made() {
 
 #[test]
 fn the_pictures_are_what_was_decided() {
-    let done = convert(&case("animated")).unwrap();
+    let done = convert(&case("animated"), PYTHON_WINDOW_COLORS).unwrap();
     let names: Vec<&str> = done.pictures.iter().map(|p| p.name.as_str()).collect();
     assert_eq!(
         names,
@@ -407,7 +416,7 @@ fn the_blocks_are_the_ones_the_python_made() {
         ..Chipset::default()
     };
     for (name, want) in &BLOCKS {
-        let done = convert(&case(name)).unwrap();
+        let done = convert(&case(name), PYTHON_WINDOW_COLORS).unwrap();
         let tilemap = &done.background.tilemap;
         let (width, height) = (tilemap[0].len() / 2, tilemap.len() / 2);
         let seed = name.len() as u64;

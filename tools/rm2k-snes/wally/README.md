@@ -75,7 +75,7 @@ numbers from them and can take them from Wally's library.
      "timer": null, "rain": false, "picture": null,
      "battle_animation": false, "singles": [["People1", 3]],
      "palette_weight": {"savept": 1}, "dither": "five_of_eight",
-     "layouts": [[448, 448, 128], [480, 384, 128]]}
+     "layouts": [[448, 448, 128], [480, 384, 128]], "window_colors": 13}
 
 What the project put over the dump: `map_files` and `chipset_files`, its
 own maps and the ChipSets it adds; `names`, the names the caller gives some
@@ -98,7 +98,11 @@ again with the still events no camera shows together **taking turns in a
 slot** —`sprites::share`—, and its answer says which; and one that fits
 none even so, with **a cache of slots** that whoever comes into view asks
 for —`sprites::cache`—, if one fits. A
-map that fits comes out as if `layouts` were empty.
+map that fits comes out as if `layouts` were empty. And `window_colors`,
+the colour-memory entries the message window takes after the backdrop, in
+palette 0 of every map: the background starts after them. They are the
+game's System's —its window, arrow, cursor and text—, so the caller counts
+them once and every map gets the same number.
 
 **What other domains answered, as data**: `pages` and `route_graphics` are
 the event compiler's scan of the map, as it answered them —who walks is

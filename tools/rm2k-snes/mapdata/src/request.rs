@@ -127,6 +127,10 @@ pub struct Emit {
     /// menu, the text screens with their windows, End Game, the texts they
     /// compose, and the geometry they were drawn with.
     pub screens: serde_json::Value,
+    /// The colour-memory entries the message window takes, as
+    /// `rm2k-snes-screens window` counted them from the System: each map's
+    /// background starts after them. See [`crate::cgram::cgram_reserved`].
+    pub window_colors: u32,
     /// The text block of every `ShowMessage`, as the event compiler left it.
     #[serde(deserialize_with = "hex::bytes")]
     pub messages: Vec<u8>,

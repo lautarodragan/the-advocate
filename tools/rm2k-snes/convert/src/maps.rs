@@ -194,6 +194,9 @@ pub struct Cartridge<'a> {
     pub maps_per_character: BTreeMap<(String, i32), usize>,
     pub search_dirs: Vec<PathBuf>,
     pub common_substitutions: Vec<(bool, i32, i32)>,
+    /// The colour-memory entries the message window takes: see
+    /// [`crate::screens::window_colors`].
+    pub window_colors: u32,
 }
 
 impl Cartridge<'_> {
@@ -340,6 +343,8 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         // The VRAM layouts a map can get.
         "layouts": vram::LAYOUTS.iter().map(|l| json!([l.tiles.count, l.sprites.count, l.above.count]))
             .collect::<Vec<_>>(),
+        // Where the background starts: after the backdrop and the window.
+        "window_colors": c.window_colors,
     });
     Ok(Prepared { map, chipset_filename, passability, route_graphics, pictures, big_pictures, request })
 }

@@ -13,15 +13,21 @@ use std::path::{Path, PathBuf};
 /// {"map": 7,
 ///  "map_files": {"11": "/…/Map0011.json"},
 ///  "chipset_files": {"53": "/…/0053.json"},
-///  "baked": [[412, 10005]]}
+///  "baked": [[412, 10005]],
+///  "window_colors": 13}
 /// ```
 ///
 /// `baked` are the cells of the upper layer the caller painted a tile
 /// into, as `[cell, tile id]`: the events it bakes into the map.
+/// `window_colors` are the colour-memory entries the message window takes
+/// after the backdrop, which the background starts after: the game's
+/// System decides them, so the caller counts them —see
+/// [`crate::background::layers::cgram_reserved`]—.
 #[derive(Debug, Clone, Default)]
 pub struct LayersRequest {
     pub map: i32,
     pub baked: Vec<(usize, i16)>,
+    pub window_colors: usize,
 }
 
 fn field<'a>(data: &'a Value, name: &str, whose: &str) -> Result<&'a Value> {
@@ -85,6 +91,7 @@ impl LayersRequest {
         Ok(LayersRequest {
             map: i32::try_from(map).map_err(|_| Bad::answer(format!("{whose}: map {map}")))?,
             baked,
+            window_colors: index(field(data, "window_colors", whose)?, "`window_colors`", whose)?,
         })
     }
 }
@@ -182,6 +189,9 @@ impl crate::map::MapRequest {
             "battle_animation": false, "singles": [], "palette_weight": {},
             "dither": "five_of_eight", "substitutions": [], "common_substitutions": [],
             "layouts": [],
+            // None of the questions converts the layers, the only thing the
+            // window's colours are for.
+            "window_colors": 0,
         });
         let given = data
             .as_object()
@@ -205,8 +215,11 @@ impl crate::map::MapRequest {
     ///  "battle_animation": false, "singles": [["People1", 3]],
     ///  "palette_weight": {"savept": 1}, "dither": "five_of_eight",
     ///  "substitutions": [[false, 80, 81]], "common_substitutions": [],
-    ///  "layouts": [[448, 448, 128], [480, 256, 128]]}
+    ///  "layouts": [[448, 448, 128], [480, 256, 128]], "window_colors": 13}
     /// ```
+    ///
+    /// `window_colors` are the colour-memory entries the message window
+    /// takes after the backdrop, as the `layers` request carries them.
     ///
     /// `layouts` are the VRAM layouts the cartridge can give a map, as
     /// `[background tiles, sprite tiles, upper tiles]`: a map that fits none
@@ -322,6 +335,7 @@ impl crate::map::MapRequest {
                     ))
                 })
                 .collect::<Result<_>>()?,
+            window_colors: index(field(data, "window_colors", whose)?, "`window_colors`", whose)?,
         })
     }
 }

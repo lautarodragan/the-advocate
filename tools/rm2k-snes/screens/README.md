@@ -84,6 +84,13 @@ whole game.
 
 `layout` writes the geometry alone.
 
+`window` counts the colour-memory entries the message window takes after
+the backdrop: every colour of the empty window, its arrow, its cursor, the
+text and the shadow, from the game's System. It is what the caller passes
+back as `cgram_reserved`, plus one, and what the maps' backgrounds start
+after; asked once, so every domain that shares colour memory with the
+window gets the same number.
+
 `equip` answers what equipping an item leaves —the five slots and the
 inventory—, with the rule the equipment screen draws its list with,
 `Game_Actor::ChangeEquipment` of `rm2k-rules`: for whoever predicts what a

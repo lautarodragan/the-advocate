@@ -91,6 +91,10 @@ pub struct MapRequest {
     /// tiles, sprite tiles, upper tiles)`. A map that fits none of them is
     /// converted again with still events sharing slots; empty, never.
     pub layouts: Vec<(usize, usize, usize)>,
+    /// The colour-memory entries the message window takes after the
+    /// backdrop: the background starts after them. See
+    /// [`crate::background::layers::cgram_reserved`].
+    pub window_colors: usize,
 }
 
 /// Something the conversion says, in order. A `stop` ends it there.
@@ -116,11 +120,11 @@ struct Layered {
     converted: Converted,
 }
 
-fn layered(game: &Game, id: i32, baked: &BTreeMap<usize, (usize, i32)>) -> Result<Layered> {
+fn layered(game: &Game, id: i32, window_colors: usize, baked: &BTreeMap<usize, (usize, i32)>) -> Result<Layered> {
     let mut cells: Vec<(usize, i16)> = baked.values().map(|&(c, t)| (c, t as i16)).collect();
     cells.sort();
-    let drawn = draw(game, &LayersRequest { map: id, baked: cells })?;
-    let converted = crate::background::convert(&drawn.layers)?;
+    let drawn = draw(game, &LayersRequest { map: id, baked: cells, window_colors })?;
+    let converted = crate::background::convert(&drawn.layers, window_colors)?;
     Ok(Layered { drawn, converted })
 }
 
@@ -147,11 +151,12 @@ type Baked = BTreeMap<usize, (usize, i32)>;
 fn bake_unless_split_moves(
     game: &Game,
     id: i32,
+    window_colors: usize,
     without: Layered,
     baked: Baked,
     notes: &mut Vec<Note>,
 ) -> Result<(Layered, Baked)> {
-    let with = layered(game, id, &baked)?;
+    let with = layered(game, id, window_colors, &baked)?;
     if same_split(&without.converted, &with.converted) {
         return Ok((with, baked));
     }
@@ -474,11 +479,11 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
         chipset: &chipset_name,
     };
     let mut baked = bakeable(&mut drawer, &map, &events, &npcs0)?;
-    let without = layered(game, id, &BTreeMap::new())?;
+    let without = layered(game, id, request.window_colors, &BTreeMap::new())?;
     let mut layers = if baked.is_empty() {
         without
     } else {
-        let (layers, kept) = bake_unless_split_moves(game, id, without, baked, &mut notes)?;
+        let (layers, kept) = bake_unless_split_moves(game, id, request.window_colors, without, baked, &mut notes)?;
         baked = kept;
         layers
     };
@@ -587,9 +592,9 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
         for e in &lent_baked {
             baked.remove(e);
         }
-        layers = layered(game, id, &BTreeMap::new())?;
+        layers = layered(game, id, request.window_colors, &BTreeMap::new())?;
         if !baked.is_empty() {
-            let (again, kept) = bake_unless_split_moves(game, id, layers, baked, &mut notes)?;
+            let (again, kept) = bake_unless_split_moves(game, id, request.window_colors, layers, baked, &mut notes)?;
             layers = again;
             baked = kept;
         }
