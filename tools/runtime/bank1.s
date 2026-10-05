@@ -222,6 +222,11 @@ save_table:
     ; promise.
     .word music_off, 1
     .word song_current, 2
+    ; And the hero's locked facing, as `party_location.lock_facing`, with the
+    ; way he last tried to go, which the action key reads while locked. They
+    ; go here and not next to `hero_dir` so `SAVE_PARTY` stays put.
+    .word hero_lock, 1
+    .word hero_heading, 1
     ; And the variables, from far RAM. VARIABLES_N is at least 1 —the
     ; converter guarantees it— because a zero length would end the table here.
     .word FAR_VARIABLES, VARIABLES_N * 2

@@ -174,7 +174,8 @@ turn_wait:
 ; 26 locks the facing and 27 releases it, so the low bit inverted is the
 ; value. It stays after the route: see `try_toward`. Unlocked, RM2k's
 ; `direction` is always the `facing`, so locking starts `hero_heading` from
-; `hero_dir`: a boot or a load leave the first stale.
+; `hero_dir`, which costs less than keeping the two equal everywhere the
+; facing is written.
 lock_hero:
     and #$01
     eor #$01

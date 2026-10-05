@@ -451,11 +451,8 @@ route_anim_for: .res 1  ; stop_animation: the pose stays on the middle one
 route_jump:  .res 1     ; what is left of the current jump, 0 if there is none
 ; `lock_facing`: nonzero after a 26 of a hero route, until a 27. It outlives
 ; the route and the map, as `party_location.lock_facing` does: see
-; `try_toward`. RM2k also saves it, and here it does not go in `save_table`
-; on purpose: the only lock the game leaves on past its route is the race
-; car's, from map 49 to map 64, none of the maps in between has a save point,
-; and the game allows saving only next to one —`ChangeSaveAccess`—. Loading
-; clears it, which is what a save made free gives back.
+; `try_toward`. It goes in the save too, as there: the mirador of map 109
+; leaves the hero locked through Distant Paradise, which has save points.
 hero_lock:   .res 1
 ; RM2k's `direction` of the hero, where `hero_dir` is its `facing`: the way it
 ; last tried to go, which the action key looks at —`CheckActionEvent` reads
