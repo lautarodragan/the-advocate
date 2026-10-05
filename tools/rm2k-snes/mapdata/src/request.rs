@@ -36,9 +36,12 @@ pub struct Map {
     pub start: [i64; 2],
     /// The VRAM layout it got, by name: see [`crate::vram::LAYOUTS`].
     pub layout: String,
-    /// The background: its 8bpp tiles and its CGRAM words.
+    /// The background: its tiles and its CGRAM words. 8bpp, or 4bpp in a
+    /// map whose panorama goes in mode 1: `bpp` says.
     #[serde(deserialize_with = "hex::bytes")]
     pub tiles: Vec<u8>,
+    #[serde(default = "eight")]
+    pub bpp: usize,
     #[serde(deserialize_with = "hex::bytes")]
     pub cgram: Vec<u8>,
     /// The upper layer: its 4bpp tiles, its CGRAM words, and the palette it
@@ -83,6 +86,35 @@ pub struct Map {
     /// any: see [`MapPictures`].
     #[serde(default)]
     pub pictures: Option<MapPictures>,
+    /// The panorama, if the cartridge shows it: see [`Panorama`].
+    #[serde(default)]
+    pub panorama: Option<Panorama>,
+}
+
+fn eight() -> usize {
+    8
+}
+
+/// A map's panorama as `wally` converted it: the mode it goes in, the
+/// whole picture's size and the stretch the cartridge carries, how it
+/// moves —RM2k's loop flags and auto-scroll speeds—, its tiles, a tilemap
+/// entry per cell of the stretch with the tile numbers from 0, and in mode
+/// 1 the colour of the screen's backdrop. Its palettes are not here: in
+/// mode 3 they travel as the upper layer's, in mode 1 inside the
+/// background's.
+#[derive(Deserialize)]
+pub struct Panorama {
+    pub name: String,
+    pub mode: u8,
+    pub size: [i64; 2],
+    pub stretch: [i64; 2],
+    #[serde(rename = "loop")]
+    pub looped: [bool; 2],
+    pub auto: [i64; 2],
+    #[serde(deserialize_with = "hex::bytes")]
+    pub tiles: Vec<u8>,
+    pub tilemap: Vec<Vec<u16>>,
+    pub backdrop: Option<u16>,
 }
 
 /// A map's `ShowPicture` pictures: the first tile of its sprite bank they

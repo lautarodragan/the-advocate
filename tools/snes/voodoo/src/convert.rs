@@ -30,7 +30,7 @@ pub const TILEMAP_PALETTES: usize = 8;
 /// What to ask for. The defaults are in `Options::at`.
 #[derive(Clone)]
 pub struct Options {
-    /// Bits per pixel: 4 or 8.
+    /// Bits per pixel: 2, 4 or 8.
     pub bpp: usize,
     /// The priority bit written into every tilemap entry that draws something.
     pub priority: u8,
@@ -60,7 +60,8 @@ pub struct Report {
     pub rows: usize,
     pub cells: usize,
     pub tiles: usize,
-    /// At 4bpp, the palettes the cells use; at 8bpp, 1 if anything is drawn.
+    /// At 2 and 4bpp, the palettes the cells use; at 8bpp, 1 if anything is
+    /// drawn.
     pub palettes: usize,
     /// Colour-memory entries some pixel draws with.
     pub colors: usize,
@@ -93,15 +94,22 @@ pub struct Converted {
     pub report: Report,
 }
 
-/// Whether an index draws nothing. At 4bpp that is the first entry of every
-/// palette, because the hardware counts a 4-bit index inside its own sixteen;
-/// at 8bpp it is entry 0 alone.
+/// Whether an index draws nothing. At 2 and 4bpp that is the first entry of
+/// every palette, because the hardware counts the index inside its own four
+/// or sixteen; at 8bpp it is entry 0 alone.
 pub fn transparent(index: u8, bpp: usize) -> bool {
-    if bpp == 4 {
-        (index as usize).is_multiple_of(COLORS_PER_PALETTE)
+    if bpp < 8 {
+        (index as usize).is_multiple_of(palette_size(bpp))
     } else {
         index == 0
     }
+}
+
+/// The entries a palette holds at a depth with palettes: four at 2bpp,
+/// sixteen at 4bpp. At 2bpp a tilemap entry's three palette bits name the
+/// first 32 entries of colour memory, four by four.
+pub fn palette_size(bpp: usize) -> usize {
+    1 << bpp
 }
 
 /// A picture, and its animations: each one is the frames **other than** the
@@ -117,9 +125,9 @@ pub fn convert(
     animations: &[Vec<Picture>],
     options: &Options,
 ) -> Result<Converted> {
-    if options.bpp != 4 && options.bpp != 8 {
+    if ![2, 4, 8].contains(&options.bpp) {
         return Err(Bad::usage(format!(
-            "{} bits per pixel: only 4 and 8 are planar formats this writes",
+            "{} bits per pixel: only 2, 4 and 8 are planar formats this writes",
             options.bpp
         )));
     }
@@ -326,8 +334,8 @@ fn lay_out(base: &Grid, groups: &[Vec<Grid>], options: &Options) -> Result<LaidO
                     // tilemap holds.
                     continue;
                 }
-                let palette = if planes == 4 {
-                    palette_of_cells(&cells, x, y)?.unwrap_or(0)
+                let palette = if planes < 8 {
+                    palette_of_cells(&cells, x, y, planes)?.unwrap_or(0)
                 } else {
                     0
                 };
@@ -338,9 +346,9 @@ fn lay_out(base: &Grid, groups: &[Vec<Grid>], options: &Options) -> Result<LaidO
                     .iter()
                     .map(|c| {
                         let mut indices: Indices = **c;
-                        if planes == 4 {
+                        if planes < 8 {
                             for value in indices.iter_mut().flatten() {
-                                *value %= COLORS_PER_PALETTE as u8;
+                                *value %= palette_size(planes) as u8;
                             }
                         }
                         indices
@@ -381,18 +389,18 @@ fn lay_out(base: &Grid, groups: &[Vec<Grid>], options: &Options) -> Result<LaidO
     })
 }
 
-/// Which palette a 4bpp cell draws with in all its frames, or `None` if it
-/// draws nothing.
+/// Which palette a 2 or 4bpp cell draws with in all its frames, or `None` if
+/// it draws nothing.
 ///
 /// A cell drawing with two is not something a tilemap can say: it names one
 /// palette per cell, for every frame. Whoever wrote the picture promised that,
 /// so breaking it is their mistake, and the message says where.
-fn palette_of_cells(cells: &[&Cell], x: usize, y: usize) -> Result<Option<usize>> {
+fn palette_of_cells(cells: &[&Cell], x: usize, y: usize, bpp: usize) -> Result<Option<usize>> {
     let used: BTreeSet<usize> = cells
         .iter()
         .flat_map(|c| c.iter().flatten())
-        .filter(|&&i| !transparent(i, 4))
-        .map(|&i| i as usize / COLORS_PER_PALETTE)
+        .filter(|&&i| !transparent(i, bpp))
+        .map(|&i| i as usize / palette_size(bpp))
         .collect();
     let mut found = used.iter();
     let Some(&palette) = found.next() else { return Ok(None) };

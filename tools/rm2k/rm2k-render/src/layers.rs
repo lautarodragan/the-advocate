@@ -4,13 +4,22 @@
 //! layer a tile sits on but of the ChipSet's passability: a lower-layer tile
 //! with the "above" bits, or an upper-layer one with the star bit, is drawn
 //! over the hero. So a map comes out as two pictures, `lower` —opaque, black
-//! where nothing is drawn— and `upper`, transparent except for those tiles.
+//! where nothing is drawn, or transparent there over a panorama— and
+//! `upper`, transparent except for those tiles.
 
 use crate::chipset::{Atlas, ANIMATED, TERRAIN, TILE};
 use crate::fail::{Bad, Result};
 use crate::picture::Picture;
 use rm2k_rules::chipset::passability_table;
 use rm2k_rules::passability::{lower_above, upper_above};
+
+/// What `lower` is drawn on: RM2k's black, or nothing, where a map with a
+/// panorama shows it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Under {
+    Black,
+    Panorama,
+}
 
 /// What of a map reaches the drawing, and nothing else.
 #[derive(Clone, Debug)]
@@ -146,8 +155,15 @@ impl Map {
 
     /// The picture behind the hero, at those animation steps.
     pub fn lower(&self, atlas: &Atlas, flags: &[u8], steps: (i64, i64)) -> Picture {
+        self.lower_on(atlas, flags, steps, Under::Black)
+    }
+
+    fn lower_on(&self, atlas: &Atlas, flags: &[u8], steps: (i64, i64), under: Under) -> Picture {
         let (w, h) = self.size();
-        let mut picture = Picture::filled(w, h, [0, 0, 0, 255]);
+        let mut picture = match under {
+            Under::Black => Picture::filled(w, h, [0, 0, 0, 255]),
+            Under::Panorama => Picture::transparent(w, h),
+        };
         self.draw(&mut picture, atlas, flags, false, steps);
         picture
     }
@@ -162,6 +178,16 @@ impl Map {
 
     /// Both layers, and the other drawings of every family the map uses.
     pub fn render(&self, atlas: &Atlas) -> Result<Layers> {
+        self.render_on(atlas, Under::Black)
+    }
+
+    /// The same, with `lower` transparent where nothing is drawn —where
+    /// the map's panorama shows through—, and not black.
+    pub fn render_over_panorama(&self, atlas: &Atlas) -> Result<Layers> {
+        self.render_on(atlas, Under::Panorama)
+    }
+
+    fn render_on(&self, atlas: &Atlas, under: Under) -> Result<Layers> {
         self.check()?;
         let flags = self.passability();
         let variants = self
@@ -169,13 +195,13 @@ impl Map {
             .into_iter()
             .map(|family| {
                 let drawings = (1..family.drawings())
-                    .map(|d| self.lower(atlas, &flags, family.steps(d)))
+                    .map(|d| self.lower_on(atlas, &flags, family.steps(d), under))
                     .collect();
                 (family, drawings)
             })
             .collect();
         Ok(Layers {
-            lower: self.lower(atlas, &flags, (0, 0)),
+            lower: self.lower_on(atlas, &flags, (0, 0), under),
             upper: self.upper(atlas, &flags),
             variants,
         })

@@ -409,6 +409,9 @@ ready:
     sta BBAD0
     lda #$01
     sta MDMAEN
+    ; And the panorama's tiles, if the map shows it: every load and every
+    ; return from a screen comes through here. See pano.s.
+    jsl f:pano_load
     rts
 .endproc
 

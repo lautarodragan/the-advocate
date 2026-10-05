@@ -6,10 +6,9 @@
 ; of the 1599 pages of this game that fire this way, 1006 already compile,
 ; against 110 autostart ones.
 ;
-; The rule comes from `Game_Player::CheckActionEvent`: look at the hero's cell
-; and then at the one in front. What comes before that there —the events that
-; fire on touch— is not here yet, and neither is the loop of up to three
-; counters.
+; The rule comes from `Game_Player::CheckActionEvent`: the touch events in
+; front, the hero's cell and then the one in front. What is not here yet is
+; the loop of up to three counters.
 
 ; Is there an event at (cell_x, cell_y)? Returns its index in A, or $FF.
 .proc event_in_cell
@@ -155,11 +154,10 @@ no_pages:
     ; decorative symmetry: an event on the hero's layer blocks the way, so the
     ; hero could never stand on top of it.
     ;
-    ; Only for the action button; touch has its own rule and is resolved at
-    ; compile time.
-    lda trigger_sought
-    cmp #TRIGGER_ACTION
-    bne no_layer
+    ; The same rule for touch: stopping on the cell is `CheckEventTriggerHere`
+    ; and the button or a bump on the one in front, `CheckEventTriggerThere`.
+    ; Until 2026-10-05 touch was left to the compiler, which dropped the
+    ; touch pages on the hero's layer: see `try_bump`.
     lda chosen_layer
     cmp #HERO_LAYER
     beq hero_was
@@ -235,11 +233,47 @@ no:
     sta cell_y
     sep #$20
 .a8
+    lda #1
+    sta own_action              ; the own cell: the other layers
+    bra touch_in_cell
+.endproc
+
+; The touch event of the cell in front, when the pad pushes the hero against
+; it and he does not move.
+;
+; It is the `CheckEventTriggerThere` after `Move` in
+; `Game_Player::UpdateNextMovementAction`: with the step refused —by the
+; event itself, which is on the hero's layer and blocks, or by anything
+; else— the cell in front fires its touch pages. The action button looks
+; there too: see `try_action`. Measured in the original runtime with a
+; shopkeeper standing in his doorway, touch and on the hero's layer: a bump
+; and the button both make him talk. Until 2026-10-05 neither did here,
+; because the compiler left those pages without code —"the hero would never
+; step on them"— and his shop never opened.
+;
+; Called only from the pad, with no route and no page: a forced route that
+; bumps fires nothing in RM2k either. Once it fires, `waiting_n` keeps the
+; pad off until the page ends, so holding the direction does not queue it
+; again.
+.proc try_bump
+.a8
+.i16
+    jsr front_cell
+    stz own_action              ; the cell in front: the hero's layer
+    ; falls through
+.endproc
+
+; The touch pages of (cell_x, cell_y), with `own_action` saying which of the
+; two cells it is. Returns A nonzero if it queued, like `action_in_cell`.
+.proc touch_in_cell
+.a8
+.i16
     lda #TRIGGER_TOUCHES_HERO
     sta trigger_sought
     jsr action_in_cell
     ldx #TRIGGER_ACTION
     stx trigger_sought          ; left as the action button expects it
+    cmp #0                      ; the `ldx` left its own flags
     rts
 .endproc
 
@@ -278,8 +312,17 @@ no:
     ; 2026-09-07 and taro found it playing: the door out of Talan's pad is
     ; `TalDoorTop`, action-triggered and on layer 2, and it opens by standing
     ; on it.
-    lda #TRIGGER_ACTION
-    sta trigger_sought
+    ;
+    ; And before both, the touch pages of the one in front: RM2k's first
+    ; `CheckEventTriggerThere` asks for touch and collision, and only then
+    ; come the action pages. Each cell here stops at the first one it
+    ; queues, and RM2k queues all three if there are three: an action event
+    ; under the hero and a touch one in front of him, both at once, is not
+    ; modeled.
+    jsr try_bump
+    beq own_cell
+    rts                         ; queued the touch one in front
+own_cell:
     lda #1
     sta own_action
     rep #$20
@@ -295,6 +338,17 @@ no:
     rts                         ; queued the one under the hero
 look_ahead:
     stz own_action
+    jsr front_cell
+    jmp action_in_cell
+with_route:
+    lda #0
+    rts
+.endproc
+
+; The cell in front of the hero, into (cell_x, cell_y).
+.proc front_cell
+.a8
+.i16
     rep #$20
 .a16
     lda tile_x
@@ -345,9 +399,6 @@ no_left:
     sep #$20
 .a8
 look:
-    jmp action_in_cell
-with_route:
-    lda #0
     rts
 .endproc
 

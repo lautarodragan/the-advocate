@@ -191,6 +191,9 @@ pub struct Cartridge<'a> {
     pub leaders: Vec<i32>,
     pub timer_maps: BTreeSet<i32>,
     pub with_rain: bool,
+    /// The maps whose panorama the cartridge shows: `[maps] panoramas` of
+    /// the project file. See `background::panorama` in Wally.
+    pub panoramas: BTreeSet<i32>,
     pub maps_per_character: BTreeMap<(String, i32), usize>,
     pub search_dirs: Vec<PathBuf>,
     pub common_substitutions: Vec<(bool, i32, i32)>,
@@ -340,9 +343,20 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         // only translates.
         "substitutions": triples.iter().map(|(u, o, n)| json!([u, o, n])).collect::<Vec<_>>(),
         "common_substitutions": c.common_substitutions.iter().map(|(u, o, n)| json!([u, o, n])).collect::<Vec<_>>(),
-        // The VRAM layouts a map can get.
-        "layouts": vram::LAYOUTS.iter().map(|l| json!([l.tiles.count, l.sprites.count, l.above.count]))
+        // The VRAM layouts a map can get: the panorama's only to a map that
+        // shows it.
+        "layouts": vram::LAYOUTS
+            .iter()
+            .filter(|l| l.panorama.is_some() == c.panoramas.contains(&map_id))
+            .map(|l| json!([l.tiles.count, l.sprites.count, l.above.count]))
             .collect::<Vec<_>>(),
+        // And how many tiles each mode leaves the panorama, if it is shown.
+        "panorama": if c.panoramas.contains(&map_id) {
+            let count = |mode: u8| vram::panorama_layout(mode).ok().and_then(|l| l.panorama).map_or(0, |p| p.count());
+            json!({"tiles_mode3": count(3), "tiles_mode1": count(1)})
+        } else {
+            Value::Null
+        },
         // Where the background starts: after the backdrop and the window.
         "window_colors": c.window_colors,
     });
@@ -422,6 +436,11 @@ pub struct MapInfo {
     pub above_cgram: Vec<u8>,
     pub above_first: i64,
     pub above_png: Vec<u8>,
+    /// The background's depth: 8, or 4 in a map whose panorama goes in
+    /// mode 1.
+    pub bpp: i64,
+    /// The panorama, as the emission takes it, if the map shows it.
+    pub panorama: Option<Value>,
     /// Each background picture Adeleine decided, by name.
     pub pictures_bg: Vec<(String, Vec<u8>)>,
     pub runs: Vec<Value>,
@@ -565,6 +584,8 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         }
         let name = if name == "background" {
             "fondo".to_string()
+        } else if name == "panorama" {
+            "panorama".to_string()
         } else {
             let (fam, drawing) = name.rsplit_once('-').unwrap_or((name, ""));
             format!("{}-{drawing}", family(fam))
@@ -578,7 +599,11 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         // The VRAM **stops**: whether the box fits depends on the tile
         // layout and not on the palettes.
         let count = int(&s["animation"]["count"]);
-        let layout = vram::vram_layout(tiles_count as u32, count as u32, above_count as u32).ok();
+        let layout = if layers["panorama"].is_null() {
+            vram::vram_layout(tiles_count as u32, count as u32, above_count as u32).ok()
+        } else {
+            vram::panorama_layout(int(&layers["panorama"]["mode"]) as u8).ok()
+        };
         if layout.is_none() || count > layout.unwrap().sprites.count as i64 {
             crate::stop!(
                 "map {map_id}: shows battle animations and the {} tiles of its box don't fit in \
@@ -717,8 +742,47 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         cgram.extend_from_slice(&(int(&word) as u16).to_le_bytes());
     }
     let chipset = game.chipset(p.map.chipset_id)?;
-    let layout = vram::vram_layout(tiles_count as u32, (sprite_tiles.len() / 32) as u32, above_count as u32)
-        .map_err(|refused| Stop::new(refused.message().to_string()))?;
+    let pano = &layers["panorama"];
+    let layout = if pano.is_null() {
+        vram::vram_layout(tiles_count as u32, (sprite_tiles.len() / 32) as u32, above_count as u32)
+            .map_err(|refused| Stop::new(refused.message().to_string()))?
+    } else {
+        let layout = vram::panorama_layout(int(&pano["mode"]) as u8).map_err(|refused| Stop::new(refused.message().to_string()))?;
+        for (count, room, what) in [
+            (tiles_count, layout.tiles.count, "background"),
+            (sprite_tiles.len() / 32, layout.sprites.count, "sprite"),
+            (above_count, layout.above.count.max(1), "upper"),
+        ] {
+            if count > room as usize {
+                crate::stop!(
+                    "map {map_id}: it shows its panorama in mode {} and spends {count} {what} tiles, \
+                     and the layout {} leaves {room}",
+                    int(&pano["mode"]),
+                    layout.name
+                );
+            }
+        }
+        println!(
+            "  panorama {}: mode {}, a stretch of {}x{}, {} tiles of {} distinct, {} colors of {}, {} merged",
+            pano["name"].as_str().unwrap_or(""),
+            int(&pano["mode"]),
+            int(&pano["stretch"][0]),
+            int(&pano["stretch"][1]),
+            int(&pano["tiles"]),
+            int(&pano["distinct"]),
+            int(&pano["kept"]),
+            int(&pano["colors"]),
+            pano["merges"].as_array().map_or(0, Vec::len)
+        );
+        layout
+    };
+    let panorama = if pano.is_null() {
+        None
+    } else {
+        let mut record = pano.clone();
+        record["tiles"] = json!(crate::text::hex(file(&written, "panorama.bin")?));
+        Some(record)
+    };
     let mut objects = s.clone();
     objects["tiles"] = json!(crate::text::hex(&sprite_tiles));
     let mut banks = Vec::new();
@@ -785,6 +849,8 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         above_cgram,
         above_first,
         above_png,
+        bpp: bg["bpp"].as_i64().unwrap_or(8),
+        panorama,
         pictures_bg,
         runs,
         colors: bg["colors"].clone(),

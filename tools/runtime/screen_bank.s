@@ -297,6 +297,7 @@ ITEM_POOL_PAIRS = (ITEM_BORDER_VRAM - SLOT_VRAM) / TL_PAIR_WORDS - 1
 .a8
 .i16
     sta BG12NBA
+    jsl f:pano_mode3            ; the screens draw in mode 3
     lda #(SLOT_MAP / 1024 * 4)
     sta BG2SC
     lda #(ITEM_BORDER_MAP / 1024 * 4)

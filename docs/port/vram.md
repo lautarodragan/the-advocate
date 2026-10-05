@@ -11,7 +11,8 @@ un reparto que sirva para todos los mapas: cuál toca lo decide el conversor
 la dirección del tilemap del fondo— y viaja en el `.inc`. La ROM no elige nada.
 
 Son seis, y `vram_layout` devuelve **el primero que entre**, así que agregar
-uno al final no le cambia el reparto a ningún mapa que ya lo tenía:
+uno al final no le cambia el reparto a ningún mapa que ya lo tenía. Hay dos
+más, los del panorama —ver abajo—, que `vram_layout` no da nunca:
 
     ventana        sprites 448 | ventana_map | fondo 448 | mapa $5800 | encima 128 | ventana 256
     ventana+fondo  sprites 256 | fondo 480  | ventana_map | mapa $5800 | encima 128 | ventana 256
@@ -143,6 +144,27 @@ repartos: con el modo 7 en pantalla la mitad de arriba queda libre y la
 ventana vuelve ahí, también de a pedazos. Borrarla repone todo con la misma
 carga que la vuelta de la pelea, que pisa las mismas palabras. Ver
 `tools/runtime/big_picture_zoom.s`.
+
+## Un mapa que muestra su panorama usa uno suyo
+
+Desde el prototipo del 2026-10-05, y sólo los mapas que el proyecto nombra
+en `[maps] panoramas`: ver `docs/research/2026-10-05-los-panoramas.md`.
+
+    panorama       sprites 384 | mapa $1800 | fondo 256 | panorama 256 | ventana 256 | ventana_map | panorama 320 | su tilemap $7800
+    panorama_m1    sprites 256 | mapa $1000 | ventana_map | fondo 512 a 4 bits | panorama 768 a 2 bits | su tilemap $5800 | encima 128 | ventana 256
+
+**En modo 3 el panorama es BG2**, así que tiene que caber, con la ventana,
+en lo que los diez bits de BG2 alcanzan desde su base: va antes y después
+de ella, y la ventana se queda en el índice 256, de `$5000` para arriba,
+donde una imagen grande no la pisa. Su tilemap es el de la capa de encima,
+que el mapa no usa. **En modo 1 es BG3**, con base y tilemap propios, y
+el fondo va a 4 bits: su `tiles` se cuenta en unidades de 64 bytes, como
+el de 8, así que sus 256 son 512 tiles.
+
+En los dos, los tiles del panorama que caen después de los de BG1 vuelven
+con `load_above` —`pano_load`— igual que BG1 con `load_map`, así que las
+pantallas pueden pisarlos. Los detalles, en `LAYOUT_PANORAMA_MODE*` del
+`vram.rs`.
 
 ## La pelea no usa el reparto
 

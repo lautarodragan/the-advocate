@@ -14,7 +14,8 @@ use std::path::{Path, PathBuf};
 ///  "map_files": {"11": "/…/Map0011.json"},
 ///  "chipset_files": {"53": "/…/0053.json"},
 ///  "baked": [[412, 10005]],
-///  "window_colors": 13}
+///  "window_colors": 13,
+///  "panorama": {"tiles_mode3": 576, "tiles_mode1": 768}}
 /// ```
 ///
 /// `baked` are the cells of the upper layer the caller painted a tile
@@ -23,11 +24,45 @@ use std::path::{Path, PathBuf};
 /// after the backdrop, which the background starts after: the game's
 /// System decides them, so the caller counts them —see
 /// [`crate::background::layers::cgram_reserved`]—.
+///
+/// `panorama`, if it is there and not null, says the cartridge shows the
+/// map's panorama, and how many tiles the VRAM layout leaves it in each
+/// mode: see [`crate::background::panorama`]. Without it, a panorama is not
+/// drawn and the map is black where it would show, as it always was. With
+/// `"mode": 3` it goes in mode 3 even if the map draws something above the
+/// hero, which is then drawn behind it, into the background.
 #[derive(Debug, Clone, Default)]
 pub struct LayersRequest {
     pub map: i32,
     pub baked: Vec<(usize, i16)>,
     pub window_colors: usize,
+    pub panorama: Option<PanoramaBudget>,
+}
+
+/// How many tiles a panorama gets in each mode, and the mode if the caller
+/// chose it.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct PanoramaBudget {
+    pub tiles_mode3: usize,
+    pub tiles_mode1: usize,
+    pub mode: Option<u8>,
+}
+
+/// `panorama`, which may be missing: see [`LayersRequest`].
+pub fn panorama_budget(data: &Value, whose: &str) -> Result<Option<PanoramaBudget>> {
+    match data.get("panorama") {
+        None | Some(Value::Null) => Ok(None),
+        Some(p) => Ok(Some(PanoramaBudget {
+            tiles_mode3: index(field(p, "tiles_mode3", whose)?, "`tiles_mode3`", whose)?,
+            tiles_mode1: index(field(p, "tiles_mode1", whose)?, "`tiles_mode1`", whose)?,
+            mode: match p.get("mode") {
+                None | Some(Value::Null) => None,
+                Some(m) => Some(u8::try_from(number(m, "`mode`", whose)?).map_err(|_| {
+                    Bad::answer(format!("{whose}: `mode` is {m}"))
+                })?),
+            },
+        })),
+    }
 }
 
 fn field<'a>(data: &'a Value, name: &str, whose: &str) -> Result<&'a Value> {
@@ -92,6 +127,7 @@ impl LayersRequest {
             map: i32::try_from(map).map_err(|_| Bad::answer(format!("{whose}: map {map}")))?,
             baked,
             window_colors: index(field(data, "window_colors", whose)?, "`window_colors`", whose)?,
+            panorama: panorama_budget(data, whose)?,
         })
     }
 }
@@ -336,6 +372,7 @@ impl crate::map::MapRequest {
                 })
                 .collect::<Result<_>>()?,
             window_colors: index(field(data, "window_colors", whose)?, "`window_colors`", whose)?,
+            panorama: panorama_budget(data, whose)?,
         })
     }
 }

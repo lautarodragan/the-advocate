@@ -95,6 +95,9 @@ pub struct MapRequest {
     /// backdrop: the background starts after them. See
     /// [`crate::background::layers::cgram_reserved`].
     pub window_colors: usize,
+    /// Whether the map's panorama is shown, and in how many tiles: see
+    /// [`crate::request::LayersRequest`].
+    pub panorama: Option<crate::request::PanoramaBudget>,
 }
 
 /// Something the conversion says, in order. A `stop` ends it there.
@@ -120,11 +123,18 @@ struct Layered {
     converted: Converted,
 }
 
-fn layered(game: &Game, id: i32, window_colors: usize, baked: &BTreeMap<usize, (usize, i32)>) -> Result<Layered> {
+fn layered(
+    game: &Game,
+    id: i32,
+    window_colors: usize,
+    panorama: Option<crate::request::PanoramaBudget>,
+    baked: &BTreeMap<usize, (usize, i32)>,
+) -> Result<Layered> {
     let mut cells: Vec<(usize, i16)> = baked.values().map(|&(c, t)| (c, t as i16)).collect();
     cells.sort();
-    let drawn = draw(game, &LayersRequest { map: id, baked: cells, window_colors })?;
-    let converted = crate::background::convert(&drawn.layers, window_colors)?;
+    let request = LayersRequest { map: id, baked: cells, window_colors, panorama };
+    let drawn = draw(game, &request)?;
+    let converted = stage_layers::convert(&drawn, &request)?;
     Ok(Layered { drawn, converted })
 }
 
@@ -152,11 +162,12 @@ fn bake_unless_split_moves(
     game: &Game,
     id: i32,
     window_colors: usize,
+    panorama: Option<crate::request::PanoramaBudget>,
     without: Layered,
     baked: Baked,
     notes: &mut Vec<Note>,
 ) -> Result<(Layered, Baked)> {
-    let with = layered(game, id, window_colors, &baked)?;
+    let with = layered(game, id, window_colors, panorama, &baked)?;
     if same_split(&without.converted, &with.converted) {
         return Ok((with, baked));
     }
@@ -269,6 +280,8 @@ pub struct Whole {
 /// The final layers and their blocks.
 pub struct Final {
     pub converted: Converted,
+    /// The stretch of the panorama the map shows, if it shows one.
+    pub panorama: Option<stage_layers::Panorama>,
     pub passability: Vec<u8>,
     pub blocks: Blocks,
 }
@@ -482,11 +495,11 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
         chipset: &chipset_name,
     };
     let mut baked = bakeable(&mut drawer, &map, &events, &npcs0)?;
-    let without = layered(game, id, request.window_colors, &BTreeMap::new())?;
+    let without = layered(game, id, request.window_colors, request.panorama, &BTreeMap::new())?;
     let mut layers = if baked.is_empty() {
         without
     } else {
-        let (layers, kept) = bake_unless_split_moves(game, id, request.window_colors, without, baked, &mut notes)?;
+        let (layers, kept) = bake_unless_split_moves(game, id, request.window_colors, request.panorama, without, baked, &mut notes)?;
         baked = kept;
         layers
     };
@@ -595,9 +608,9 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
         for e in &lent_baked {
             baked.remove(e);
         }
-        layers = layered(game, id, request.window_colors, &BTreeMap::new())?;
+        layers = layered(game, id, request.window_colors, request.panorama, &BTreeMap::new())?;
         if !baked.is_empty() {
-            let (again, kept) = bake_unless_split_moves(game, id, request.window_colors, layers, baked, &mut notes)?;
+            let (again, kept) = bake_unless_split_moves(game, id, request.window_colors, request.panorama, layers, baked, &mut notes)?;
             layers = again;
             baked = kept;
         }
@@ -628,6 +641,7 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
     };
     let mut done = Whole {
         layers: Final {
+            panorama: layers.drawn.panorama.clone(),
             converted: layers.converted,
             passability,
             blocks,
@@ -1234,7 +1248,7 @@ pub const SPRITE_TILES: &str = "sprites.bin";
 /// sprite bank and each pose bank as binaries, and the rest in `map.json`.
 pub fn write(out: &Path, done: &Whole) -> Result<()> {
     let layers = &done.layers;
-    stage_layers::write(out, &layers.converted, &layers.passability, &layers.blocks)?;
+    stage_layers::write(out, &layers.converted, layers.panorama.as_ref(), &layers.passability, &layers.blocks)?;
     let file = |name: &str, bytes: &[u8]| {
         std::fs::write(out.join(name), bytes).map_err(|e| Bad::usage(format!("{}: {e}", out.join(name).display())))
     };

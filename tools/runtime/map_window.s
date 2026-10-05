@@ -712,6 +712,8 @@ column:
     bne column
     sep #$20
 .a8
+    ; And the panorama's ring, if the map shows it: see pano.s.
+    jsl f:pano_fill
     rts
 .endproc
 
