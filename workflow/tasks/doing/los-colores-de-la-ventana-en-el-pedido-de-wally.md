@@ -2,7 +2,8 @@
 name: "Los colores de la ventana, en el pedido de Wally"
 description: "WINDOW_COLORS es una constante de wally (13 desde la flecha y la barra) y rompió la prueba que compara las capas contra el Python; que venga en el pedido, del System del juego"
 type: refactor
-agents: [Hornero]
+agents: [Hornero, Tijereta]
+assignee: Tijereta
 ---
 
 `wally::the_layers_are_the_ones_the_python_made` está en rojo en `main`

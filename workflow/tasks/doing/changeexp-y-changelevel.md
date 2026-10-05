@@ -2,7 +2,8 @@
 name: "ChangeExp y ChangeLevel"
 description: "El compilador no tiene ChangeExp ni ChangeLevel, y una página con un comando que no compila se cae entera: las puertas del mapa de debug no pueden dar experiencia"
 type: feature
-agents: [Hurón]
+agents: [Hurón, Carpintero]
+assignee: Carpintero
 ---
 
 Lo encontró Hurón el 2026-10-04, al agregar las puertas de Paradise y de

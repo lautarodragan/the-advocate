@@ -3,6 +3,7 @@ name: "La ruta del mirador deja trabada la dirección del héroe"
 description: "A velocidad 3, la escena del sueño en el mirador (mapa 109) corta la ruta del héroe antes de que destrabe la dirección, y Talan queda sin poder girar"
 type: bug
 agents: [Hurón]
+assignee: Hurón
 ---
 
 Lo encontró Hurón el 2026-10-04 (`workflow/tasks/*/dos-puertas-mas-en-el-mapa-de-debug.md`,
