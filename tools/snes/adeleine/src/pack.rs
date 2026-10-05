@@ -23,7 +23,15 @@ pub type Colors = BTreeSet<Color>;
 /// in the order of a Python `set`, which is the order of CPython's hashes and
 /// nothing another language can reproduce; it moved to this order first, on
 /// its own.
+///
+/// A tile with more colours than a palette holds fits in none, so it is
+/// `None` too, and `reduce_colors` merges until it fits. Until 2026-10-05 it
+/// went in as a group of its own, of that many colours, and the palette
+/// spilled into the next one: the tile was drawn with two.
 pub fn try_pack(tiles: &[Colors], limit: usize, per_palette: usize) -> Option<Vec<Colors>> {
+    if tiles.iter().any(|t| t.len() > per_palette) {
+        return None;
+    }
     let mut order: Vec<&Colors> = tiles.iter().collect();
     order.sort_by(|a, b| b.len().cmp(&a.len()).then_with(|| a.cmp(b)));
     let mut groups: Vec<Colors> = Vec::new();
@@ -90,4 +98,25 @@ pub fn reduce_colors(
         palettes,
         merges: merged.merges,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn grey(v: u8) -> Color {
+        [v, v, v]
+    }
+
+    /// A tile of seventeen colours fits in no palette of fifteen, however
+    /// many palettes there are: it went in as a group of seventeen.
+    #[test]
+    fn a_tile_with_more_colours_than_a_palette_fits_nowhere() {
+        let tile: Colors = (0..17).map(grey).collect();
+        assert_eq!(try_pack(&[tile.clone()], 8, 15), None);
+        let counts: Vec<(Color, u64)> = (0..17).map(|v| (grey(v), 1 + u64::from(v))).collect();
+        let reduced = reduce_colors(&counts, &[tile], 8, 15).unwrap();
+        assert!(reduced.palettes.iter().all(|p| p.len() <= 15));
+        assert_eq!(reduced.merges.len(), 2);
+    }
 }
