@@ -248,6 +248,12 @@ save_table:
     ; And what the materials added to each actor that can fight: see
     ; `FAR_GROWTH`.
     .word FAR_GROWTH, EXP_K * GROWTH_BYTES
+    ; And the panorama: what it scrolled on its own, and how a `ChangePBG`
+    ; left it looping and scrolling, which RM2k saves too. Saved in any map
+    ; and worth something only in one that shows its panorama, where the
+    ; load keeps it: see `PANO_KEEP` in pano.s.
+    .word PANO_AX & $FFFF, 4
+    .word PANO_FLAGS & $FFFF, 5
     ; And the experience and level of each actor that can fight. **It goes
     ; last on purpose**: the slot screen reads the leader's level from SRAM
     ; counting from the end of the save —`EXP_LEVEL_IN_SLOT`—, and a line

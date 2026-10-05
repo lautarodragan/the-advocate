@@ -147,14 +147,23 @@ pub struct Converted {
     pub above: Above,
     pub panorama: Option<Panorama>,
     pub pictures: Vec<Decided>,
+    /// How the map shows its panorama, if it has one: what the caller
+    /// decided, which this module does not.
+    pub way: Option<crate::background::panorama::Way>,
+    /// The ways tried before it that did not fit, and why.
+    pub tried: Vec<String>,
+    /// In a flattened map, the pixels that went to the wrong side of the
+    /// hero: see `raise_above` in `layers.rs`, at the crate's top.
+    pub above_lost: usize,
 }
 
 /// A map's panorama as the conversion is asked for it: the stretch of it the
-/// console can show, already cut, and how many tiles each mode leaves it.
+/// console can show, already cut, the mode it goes in and how many tiles
+/// the layout leaves it.
 pub struct PanoramaAsk<'a> {
     pub picture: &'a rm2k_render::Picture,
-    pub tiles_mode3: usize,
-    pub tiles_mode1: usize,
+    pub mode: crate::background::panorama::Mode,
+    pub tiles: usize,
 }
 
 /// Both layers together, which is the only way to split colour memory well.
@@ -179,16 +188,22 @@ pub fn convert(layers: &Layers, window_colors: usize) -> Result<Converted> {
     convert_with(layers, window_colors, None)
 }
 
-/// [`convert`], for a map that may show a panorama. Without one it is
-/// `convert`, byte for byte. With one, the map says how: if it draws
-/// nothing above the hero, the panorama takes the layer above's place —BG2,
-/// its palettes the ones the background leaves—; if it does, the map goes
-/// in mode 1 and the panorama in BG3: see [`crate::background::panorama`].
+/// [`convert`], for a map that shows a panorama. Without one it is
+/// `convert`, byte for byte. With one, in the mode it is asked in: in mode
+/// 3 the panorama takes the layer above's place —BG2, its palettes the ones
+/// the background leaves—, so the map must draw nothing above the hero; in
+/// mode 1 the map goes at 4 bits and the panorama in BG3: see
+/// [`crate::background::panorama`].
 pub fn convert_with(layers: &Layers, window_colors: usize, panorama: Option<&PanoramaAsk>) -> Result<Converted> {
     if let Some(ask) = panorama {
+        if ask.mode == crate::background::panorama::Mode::One {
+            return crate::background::mode1::convert(layers, window_colors, ask);
+        }
         let above = Grid::quantize(&layers.upper);
         if above.cells.iter().any(|c| !colors(c).is_empty()) {
-            return crate::background::mode1::convert(layers, window_colors, ask);
+            return Err(Bad::new(
+                "the panorama goes in mode 3, where the layer above the hero would, and the map draws above the hero",
+            ));
         }
     }
     // The window lives in palette 0, so it can take fifteen at most: past
@@ -220,7 +235,7 @@ pub fn convert_with(layers: &Layers, window_colors: usize, panorama: Option<&Pan
     // nothing above the hero, so they would be empty.
     let (pano, pano_picture) = match panorama {
         Some(ask) => {
-            let (p, picture) = crate::background::panorama::mode3(ask.picture, free, ask.tiles_mode3)?;
+            let (p, picture) = crate::background::panorama::mode3(ask.picture, free, ask.tiles)?;
             (Some(p), Some(picture))
         }
         None => (None, None),
@@ -270,6 +285,9 @@ pub fn convert_with(layers: &Layers, window_colors: usize, panorama: Option<&Pan
         background,
         above,
         panorama: pano,
+        way: None,
+        tried: Vec::new(),
+        above_lost: 0,
         pictures,
     })
 }

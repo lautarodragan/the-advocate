@@ -115,6 +115,10 @@ pub struct Panorama {
     pub tiles: Vec<u8>,
     pub tilemap: Vec<Vec<u16>>,
     pub backdrop: Option<u16>,
+    /// Whether its map raised what it draws above the hero to BG1's
+    /// priority 1: a flattened map, see `Way` in Wally.
+    #[serde(default)]
+    pub above_bg1: bool,
 }
 
 /// A map's `ShowPicture` pictures: the first tile of its sprite bank they

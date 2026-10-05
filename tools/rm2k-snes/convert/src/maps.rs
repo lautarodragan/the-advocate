@@ -191,9 +191,10 @@ pub struct Cartridge<'a> {
     pub leaders: Vec<i32>,
     pub timer_maps: BTreeSet<i32>,
     pub with_rain: bool,
-    /// The maps whose panorama the cartridge shows: `[maps] panoramas` of
-    /// the project file. See `background::panorama` in Wally.
-    pub panoramas: BTreeSet<i32>,
+    /// The maps whose way of showing their panorama the project forces:
+    /// `[maps] panorama_ways`, which can be missing. Every other map's is
+    /// Wally's to decide: see `Way` in its `background::panorama`.
+    pub panorama_ways: BTreeMap<i32, String>,
     pub maps_per_character: BTreeMap<(String, i32), usize>,
     pub search_dirs: Vec<PathBuf>,
     pub common_substitutions: Vec<(bool, i32, i32)>,
@@ -343,19 +344,20 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         // only translates.
         "substitutions": triples.iter().map(|(u, o, n)| json!([u, o, n])).collect::<Vec<_>>(),
         "common_substitutions": c.common_substitutions.iter().map(|(u, o, n)| json!([u, o, n])).collect::<Vec<_>>(),
-        // The VRAM layouts a map can get: the panorama's only to a map that
-        // shows it.
+        // The VRAM layouts a map can get, and the ones for a map that shows
+        // its panorama, which Wally decides.
         "layouts": vram::LAYOUTS
             .iter()
-            .filter(|l| l.panorama.is_some() == c.panoramas.contains(&map_id))
+            .filter(|l| l.panorama.is_none())
             .map(|l| json!([l.tiles.count, l.sprites.count, l.above.count]))
             .collect::<Vec<_>>(),
-        // And how many tiles each mode leaves the panorama, if it is shown.
-        "panorama": if c.panoramas.contains(&map_id) {
-            let count = |mode: u8| vram::panorama_layout(mode).ok().and_then(|l| l.panorama).map_or(0, |p| p.count());
-            json!({"tiles_mode3": count(3), "tiles_mode1": count(1)})
-        } else {
-            Value::Null
+        "panorama": {
+            "layouts": vram::LAYOUTS
+                .iter()
+                .filter_map(|l| l.panorama.map(|p| json!([p.mode, l.tiles.count, l.sprites.count, l.above.count, p.count()])))
+                .collect::<Vec<_>>(),
+            "baked_tiles": vram::LAYOUTS.iter().filter(|l| l.panorama.is_none()).map(|l| l.tiles.count).max(),
+            "way": c.panorama_ways.get(&map_id),
         },
         // Where the background starts: after the backdrop and the window.
         "window_colors": c.window_colors,
@@ -447,6 +449,8 @@ pub struct MapInfo {
     pub colors: Value,
     pub budget: Value,
     pub merges_background: Value,
+    /// How it shows its panorama, Wally's name for it, if it has one.
+    pub panorama_way: Value,
     pub merges_above: Value,
     pub start: (i64, i64),
     pub cells: Vec<u8>,
@@ -602,7 +606,7 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         let layout = if layers["panorama"].is_null() {
             vram::vram_layout(tiles_count as u32, count as u32, above_count as u32).ok()
         } else {
-            vram::panorama_layout(int(&layers["panorama"]["mode"]) as u8).ok()
+            vram::panorama_layout(int(&layers["panorama"]["mode"]) as u8, tiles_count as u32, count as u32, above_count as u32, int(&layers["panorama"]["tiles"]) as u32).ok()
         };
         if layout.is_none() || count > layout.unwrap().sprites.count as i64 {
             crate::stop!(
@@ -743,29 +747,36 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
     }
     let chipset = game.chipset(p.map.chipset_id)?;
     let pano = &layers["panorama"];
+    if let Some(way) = layers["panorama_way"].as_str() {
+        if way == "flattened" {
+            println!(
+                "  map {map_id}: its panorama goes {way}, {} pixels on the wrong side of the hero",
+                int(&layers["panorama_above_lost"])
+            );
+        } else {
+            println!("  map {map_id}: its panorama goes {way}");
+        }
+        for why in layers["panorama_tried"].as_array().into_iter().flatten() {
+            println!("    not {}", why.as_str().unwrap_or(""));
+        }
+    }
     let layout = if pano.is_null() {
         vram::vram_layout(tiles_count as u32, (sprite_tiles.len() / 32) as u32, above_count as u32)
             .map_err(|refused| Stop::new(refused.message().to_string()))?
     } else {
-        let layout = vram::panorama_layout(int(&pano["mode"]) as u8).map_err(|refused| Stop::new(refused.message().to_string()))?;
-        for (count, room, what) in [
-            (tiles_count, layout.tiles.count, "background"),
-            (sprite_tiles.len() / 32, layout.sprites.count, "sprite"),
-            (above_count, layout.above.count.max(1), "upper"),
-        ] {
-            if count > room as usize {
-                crate::stop!(
-                    "map {map_id}: it shows its panorama in mode {} and spends {count} {what} tiles, \
-                     and the layout {} leaves {room}",
-                    int(&pano["mode"]),
-                    layout.name
-                );
-            }
-        }
+        let layout = vram::panorama_layout(
+            int(&pano["mode"]) as u8,
+            tiles_count as u32,
+            (sprite_tiles.len() / 32) as u32,
+            above_count as u32,
+            int(&pano["tiles"]) as u32,
+        )
+        .map_err(|refused| Stop::new(format!("map {map_id}: {}", refused.message())))?;
         println!(
-            "  panorama {}: mode {}, a stretch of {}x{}, {} tiles of {} distinct, {} colors of {}, {} merged",
+            "  panorama {}: mode {} in {}, a stretch of {}x{}, {} tiles of {} distinct, {} colors of {}, {} merged",
             pano["name"].as_str().unwrap_or(""),
             int(&pano["mode"]),
+            layout.name,
             int(&pano["stretch"][0]),
             int(&pano["stretch"][1]),
             int(&pano["tiles"]),
@@ -780,6 +791,7 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         None
     } else {
         let mut record = pano.clone();
+        record["tile_count"] = pano["tiles"].clone();
         record["tiles"] = json!(crate::text::hex(file(&written, "panorama.bin")?));
         Some(record)
     };
@@ -856,6 +868,7 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         colors: bg["colors"].clone(),
         budget: bg["budget"].clone(),
         merges_background: bg["merges"].clone(),
+        panorama_way: layers["panorama_way"].clone(),
         merges_above: above["merges"].clone(),
         start,
         cells,

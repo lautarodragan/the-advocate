@@ -253,6 +253,34 @@ pub struct MapDecision {
     /// The upper layer's.
     #[serde(default)]
     pub above: Vec<Merge>,
+    /// How it shows its panorama, if it has one, and what that lost.
+    #[serde(default)]
+    pub panorama: Option<PanoramaDecision>,
+}
+
+/// A map's panorama: the way Wally chose and, if it got a layer of its
+/// own, the tiles it was grouped into and the colours it merged.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct PanoramaDecision {
+    pub way: String,
+    #[serde(default)]
+    pub name: Option<String>,
+    #[serde(default)]
+    pub mode: Option<i64>,
+    /// How many tiles it was drawn with, and how many distinct ones the
+    /// picture had, the mirrored ones as one.
+    #[serde(default)]
+    pub tiles: Option<i64>,
+    #[serde(default)]
+    pub distinct: Option<i64>,
+    /// How many colours it brought and how many it kept.
+    #[serde(default)]
+    pub colors: Option<i64>,
+    #[serde(default)]
+    pub kept: Option<i64>,
+    #[serde(default)]
+    pub merges: Vec<Merge>,
 }
 
 /// The size a battle animation is drawn at.

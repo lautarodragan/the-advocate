@@ -15,7 +15,8 @@ use std::path::{Path, PathBuf};
 ///  "chipset_files": {"53": "/…/0053.json"},
 ///  "baked": [[412, 10005]],
 ///  "window_colors": 13,
-///  "panorama": {"tiles_mode3": 576, "tiles_mode1": 768}}
+///  "panorama": {"layouts": [[3, 256, 384, 1, 576], [1, 256, 256, 128, 768]],
+///               "baked_tiles": 544}}
 /// ```
 ///
 /// `baked` are the cells of the upper layer the caller painted a tile
@@ -25,12 +26,15 @@ use std::path::{Path, PathBuf};
 /// System decides them, so the caller counts them —see
 /// [`crate::background::layers::cgram_reserved`]—.
 ///
-/// `panorama`, if it is there and not null, says the cartridge shows the
-/// map's panorama, and how many tiles the VRAM layout leaves it in each
-/// mode: see [`crate::background::panorama`]. Without it, a panorama is not
-/// drawn and the map is black where it would show, as it always was. With
-/// `"mode": 3` it goes in mode 3 even if the map draws something above the
-/// hero, which is then drawn behind it, into the background.
+/// `panorama`, if it is there and not null, says the cartridge can show the
+/// map's panorama, and gives the VRAM layouts it has for a map that does,
+/// as `[mode, background, sprites, upper, panorama]` tiles —the
+/// background's in 64-byte units—, and in `baked_tiles` the most
+/// background tiles the others leave. Without it a panorama is not drawn and
+/// the map is black where it would show, as it always was. With it, how
+/// the map shows its panorama is decided here, from the map and the
+/// panorama alone: see [`crate::background::panorama::Way`]. `"way"`, if
+/// it is there, forces one by its name.
 #[derive(Debug, Clone, Default)]
 pub struct LayersRequest {
     pub map: i32,
@@ -39,30 +43,74 @@ pub struct LayersRequest {
     pub panorama: Option<PanoramaBudget>,
 }
 
-/// How many tiles a panorama gets in each mode, and the mode if the caller
-/// chose it.
+/// A VRAM layout for a map that shows its panorama: the mode the map goes
+/// in, and how many tiles it leaves each thing.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct PanoramaLayout {
+    pub mode: u8,
+    /// The background's, in 64-byte units: an 8-bit tile, or two 4-bit.
+    pub background: usize,
+    pub sprites: usize,
+    pub above: usize,
+    pub panorama: usize,
+}
+
+/// The layouts a panorama can get, in the order they are tried, and the
+/// way the caller forces, if it does.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct PanoramaBudget {
-    pub tiles_mode3: usize,
-    pub tiles_mode1: usize,
-    pub mode: Option<u8>,
+    pub layouts: Vec<PanoramaLayout>,
+    /// The most background tiles a map without a panorama layer can get,
+    /// in 64-byte units: what a panorama baked into the background has.
+    pub baked: usize,
+    /// The `(lower, upper)` tile pairs the map's `TileSubstitution`s will
+    /// need and the map does not draw: see `Drawn::extended`. Not from
+    /// the request: the map's conversion works them out.
+    pub extra: Vec<(i32, i32)>,
+    pub way: Option<crate::background::panorama::Way>,
+}
+
+impl PanoramaBudget {
+    /// The layouts for `mode`, in the order they are tried.
+    pub fn of_mode(&self, mode: u8) -> impl Iterator<Item = &PanoramaLayout> {
+        self.layouts.iter().filter(move |l| l.mode == mode)
+    }
 }
 
 /// `panorama`, which may be missing: see [`LayersRequest`].
 pub fn panorama_budget(data: &Value, whose: &str) -> Result<Option<PanoramaBudget>> {
-    match data.get("panorama") {
-        None | Some(Value::Null) => Ok(None),
-        Some(p) => Ok(Some(PanoramaBudget {
-            tiles_mode3: index(field(p, "tiles_mode3", whose)?, "`tiles_mode3`", whose)?,
-            tiles_mode1: index(field(p, "tiles_mode1", whose)?, "`tiles_mode1`", whose)?,
-            mode: match p.get("mode") {
-                None | Some(Value::Null) => None,
-                Some(m) => Some(u8::try_from(number(m, "`mode`", whose)?).map_err(|_| {
-                    Bad::answer(format!("{whose}: `mode` is {m}"))
-                })?),
-            },
-        })),
-    }
+    let p = match data.get("panorama") {
+        None | Some(Value::Null) => return Ok(None),
+        Some(p) => p,
+    };
+    let layouts = list(p, "layouts", whose)?
+        .iter()
+        .map(|l| {
+            let bad = || Bad::answer(format!("{whose}: a panorama layout is {l}"));
+            let a = l.as_array().filter(|a| a.len() == 5).ok_or_else(bad)?;
+            let mode = u8::try_from(number(&a[0], "a layout's mode", whose)?).map_err(|_| bad())?;
+            if mode != 1 && mode != 3 {
+                return Err(bad());
+            }
+            Ok(PanoramaLayout {
+                mode,
+                background: index(&a[1], "a layout's tiles", whose)?,
+                sprites: index(&a[2], "a layout's sprites", whose)?,
+                above: index(&a[3], "a layout's upper tiles", whose)?,
+                panorama: index(&a[4], "a layout's panorama tiles", whose)?,
+            })
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let way = match p.get("way") {
+        None | Some(Value::Null) => None,
+        Some(w) => Some(
+            w.as_str()
+                .and_then(crate::background::panorama::Way::from_name)
+                .ok_or_else(|| Bad::answer(format!("{whose}: `way` is {w}")))?,
+        ),
+    };
+    let baked = index(field(p, "baked_tiles", whose)?, "`baked_tiles`", whose)?;
+    Ok(Some(PanoramaBudget { layouts, baked, way, extra: Vec::new() }))
 }
 
 fn field<'a>(data: &'a Value, name: &str, whose: &str) -> Result<&'a Value> {

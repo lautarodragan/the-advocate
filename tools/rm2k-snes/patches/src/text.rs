@@ -62,6 +62,44 @@ pub fn map_text(map: &MapDecision) -> String {
         }
         lines.push("]".into());
     }
+    if let Some(p) = &map.panorama {
+        lines.extend([
+            String::new(),
+            "[panorama]".into(),
+            "# How the map shows its panorama, as Wally decided from the map and".into(),
+            "# the picture: hidden, baked, mode3, flattened, mode1 or black.".into(),
+            format!("camino = {}", string(&p.way)),
+        ]);
+        if let (Some(name), Some(mode), Some(tiles), Some(distinct), Some(colors), Some(kept)) =
+            (&p.name, p.mode, p.tiles, p.distinct, p.colors, p.kept)
+        {
+            lines.extend([
+                format!("imagen = {}", string(name)),
+                format!("modo = {mode}"),
+                "# The distinct 8x8 tiles it had, the mirrored ones as one, and how".into(),
+                "# many it is drawn with: the alike ones grouped into one.".into(),
+                format!("tiles = {tiles}"),
+                format!("distintos = {distinct}"),
+                "# The colors it brought and the ones it kept.".into(),
+                format!("colores = {colors}"),
+                format!("quedan = {kept}"),
+                "# Each merge sends color `de` to color `a`, as above.".into(),
+            ]);
+            if p.merges.is_empty() {
+                lines.push("fusiones = []".into());
+            } else {
+                lines.push("fusiones = [".into());
+                for (victim, dest, pixels) in &p.merges {
+                    lines.push(format!(
+                        "  {{ de = {}, a = {}, pixeles = {pixels} }},",
+                        color(victim),
+                        color(dest)
+                    ));
+                }
+                lines.push("]".into());
+            }
+        }
+    }
     lines.join("\n") + "\n"
 }
 

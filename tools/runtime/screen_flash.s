@@ -258,6 +258,13 @@ ready:
     ; screen, so nobody ran this path.
     lda #CGRAM_BASE
     jsr flash_range
+    ; And the backdrop, in a map whose panorama goes in mode 1, which
+    ; `apply_tint` tints with it: see `pano_backdrop`.
+    jsl f:pano_backdrop
+    beq no_backdrop
+    lda #0
+    jsr flash_range
+no_backdrop:
     ldx map_ofs
     rep #$20
 .a16

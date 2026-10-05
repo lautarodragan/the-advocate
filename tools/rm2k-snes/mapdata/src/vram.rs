@@ -294,9 +294,97 @@ pub const LAYOUT_PANORAMA_MODE1: Layout = Layout {
     }),
 };
 
+/// [`LAYOUT_PANORAMA_MODE3`] with panorama tiles traded for background
+/// tiles, for the bigger maps: 384 of each 8-bit, and 320 of panorama. The
+/// window keeps BG2's 256 to 511, so the window's tilemap goes after it.
+///
+/// ```text
+///   sprites     $0000  12 KB  384 4bpp tiles      OBJ base at 0
+///   map         $1800   4 KB  the background's tilemap
+///   tiles       $2000  24 KB  384 8bpp tiles
+///   panorama    $5000   8 KB  256 4bpp tiles      <- the BG2 base
+///   window      $6000   8 KB  256 tiles           <- indices 256..511
+///   window_map  $7000   2 KB
+///   panorama    $7400   2 KB   64 4bpp tiles      <- indices 576..639
+///   (its tilemap at $7800)
+/// ```
+pub const LAYOUT_PANORAMA_MODE3_BG: Layout = Layout {
+    name: "VENTANA_PANORAMA_FONDO",
+    sprites: piece(0x0000, 384),
+    map: piece(0x1800, 1),
+    tiles: piece(0x2000, 384),
+    above: piece(0x5000, 1),
+    window: piece(0x6000, 256),
+    window_map: piece(0x7000, 1),
+    panorama: Some(PanoramaPieces {
+        mode: 3,
+        tiles: [piece(0x5000, 256), piece(0x7400, 64)],
+        map: VRAM_ABOVE_MAP,
+    }),
+};
+
+/// The same with sprite tiles traded for panorama tiles: 256 sprites and
+/// 384 of panorama, for a big map whose panorama does not hold in 320.
+///
+/// ```text
+///   sprites     $0000   8 KB  256 4bpp tiles      OBJ base at 0
+///   map         $1000   4 KB  the background's tilemap
+///   window_map  $1800   2 KB
+///   tiles       $2000  24 KB  384 8bpp tiles
+///   panorama    $5000   8 KB  256 4bpp tiles      <- the BG2 base
+///   window      $6000   8 KB  256 tiles           <- indices 256..511
+///   panorama    $7000   4 KB  128 4bpp tiles      <- indices 512..639
+///   (its tilemap at $7800)
+/// ```
+pub const LAYOUT_PANORAMA_MODE3_BG_SPRITE: Layout = Layout {
+    name: "VENTANA_PANORAMA_FONDO_SPRITE",
+    sprites: piece(0x0000, 256),
+    map: piece(0x1000, 1),
+    window_map: piece(0x1800, 1),
+    tiles: piece(0x2000, 384),
+    above: piece(0x5000, 1),
+    window: piece(0x6000, 256),
+    panorama: Some(PanoramaPieces {
+        mode: 3,
+        tiles: [piece(0x5000, 256), piece(0x7000, 128)],
+        map: VRAM_ABOVE_MAP,
+    }),
+};
+
+/// The ceiling of the background with a panorama in mode 3: 448 8-bit
+/// tiles, which go past BG2's base. BG2's first 128 tiles are the
+/// background's, and nothing in BG2 names them: the window is at 128, as in
+/// [`LAYOUT_WINDOW`], and the panorama after it. That is why `load_above`
+/// uploads nothing to BG2's base in a map whose panorama goes in mode 3.
+///
+/// ```text
+///   sprites     $0000   8 KB  256 4bpp tiles      OBJ base at 0
+///   map         $1000   4 KB  the background's tilemap
+///   window_map  $1800   2 KB
+///   tiles       $2000  28 KB  448 8bpp tiles      (BG2's base at $5000)
+///   window      $5800   8 KB  256 tiles           <- indices 128..383
+///   panorama    $6800   8 KB  256 4bpp tiles      <- indices 384..639
+///   (its tilemap at $7800)
+/// ```
+pub const LAYOUT_PANORAMA_MODE3_BG_CEILING: Layout = Layout {
+    name: "VENTANA_PANORAMA_FONDO_TECHO",
+    sprites: piece(0x0000, 256),
+    map: piece(0x1000, 1),
+    window_map: piece(0x1800, 1),
+    tiles: piece(0x2000, 448),
+    above: piece(0x5000, 1),
+    window: piece(0x5800, 256),
+    panorama: Some(PanoramaPieces {
+        mode: 3,
+        tiles: [piece(0x6800, 256), piece(0x7800, 0)],
+        map: VRAM_ABOVE_MAP,
+    }),
+};
+
 /// In the order `vram_layout` tries them, and then the panorama's, which
-/// it never gives: a map gets one of those only by showing its panorama.
-pub const LAYOUTS: [Layout; 8] = [
+/// it never gives: a map gets one of those only by showing its panorama,
+/// and the first of its mode it fits in —[`panorama_layout`]—.
+pub const LAYOUTS: [Layout; 11] = [
     LAYOUT_WINDOW,
     LAYOUT_WINDOW_BG,
     LAYOUT_WINDOW_SPRITE,
@@ -305,14 +393,33 @@ pub const LAYOUTS: [Layout; 8] = [
     LAYOUT_WINDOW_ABOVE,
     LAYOUT_PANORAMA_MODE3,
     LAYOUT_PANORAMA_MODE1,
+    LAYOUT_PANORAMA_MODE3_BG,
+    LAYOUT_PANORAMA_MODE3_BG_SPRITE,
+    LAYOUT_PANORAMA_MODE3_BG_CEILING,
 ];
 
-/// The layout of a map that shows its panorama in `mode`.
-pub fn panorama_layout(mode: u8) -> Result<&'static Layout> {
-    LAYOUTS
-        .iter()
-        .find(|l| l.panorama.is_some_and(|p| p.mode == mode))
-        .ok_or_else(|| Bad::answer(format!("there is no panorama layout for mode {mode}")))
+/// The layouts for a map that shows its panorama in `mode`, in the order
+/// they are tried.
+pub fn panorama_layouts(mode: u8) -> impl Iterator<Item = &'static Layout> {
+    LAYOUTS.iter().filter(move |l| l.panorama.is_some_and(|p| p.mode == mode))
+}
+
+/// The layout of a map that shows its panorama in `mode`: the first that
+/// holds its background, sprite, upper and panorama tiles.
+pub fn panorama_layout(mode: u8, background: u32, sprites: u32, above: u32, panorama: u32) -> Result<&'static Layout> {
+    panorama_layouts(mode)
+        .find(|l| {
+            background <= l.tiles.count
+                && sprites <= l.sprites.count
+                && above <= l.above.count.max(1)
+                && l.panorama.is_some_and(|p| panorama <= p.count())
+        })
+        .ok_or_else(|| {
+            Bad::answer(format!(
+                "there is no layout for a panorama in mode {mode} that holds {background} background tiles, \
+                 {sprites} sprite tiles, {above} upper tiles and {panorama} panorama tiles"
+            ))
+        })
 }
 
 /// How many save slots the cartridge has. The same number is in the
@@ -422,9 +529,9 @@ pub fn check_splits() -> Result<()> {
             }
             // A panorama in mode 3 is BG2, and its tiles have to land where
             // BG2's ten bits reach; in mode 1 it is BG3's, from its base.
-            let base = p.tiles[0].base;
-            let last = p.number(p.count() - 1, if p.mode == 3 { layout.above.base } else { base });
-            if base % 0x1000 != 0 || last >= 1024 {
+            let base = if p.mode == 3 { layout.above.base } else { p.tiles[0].base };
+            let last = p.number(p.count() - 1, base);
+            if base % 0x1000 != 0 || p.tiles[0].base < base || last >= 1024 {
                 return Err(Bad::answer(format!(
                     "LAYOUT_{name}: the panorama's tiles go past what its layer reaches"
                 )));
@@ -523,7 +630,10 @@ mod tests {
                 "VENTANA_FONDO_TECHO",
                 "VENTANA_ENCIMA",
                 "VENTANA_PANORAMA",
-                "VENTANA_PANORAMA_M1"
+                "VENTANA_PANORAMA_M1",
+                "VENTANA_PANORAMA_FONDO",
+                "VENTANA_PANORAMA_FONDO_SPRITE",
+                "VENTANA_PANORAMA_FONDO_TECHO"
             ]
         );
     }
@@ -556,7 +666,11 @@ mod tests {
         assert_eq!(p.number(255, 0x4000), 255);
         assert_eq!(p.number(256, 0x4000), 576);
         assert_eq!(p.number(575, 0x4000), 895);
-        assert_eq!(panorama_layout(1).unwrap().name, "VENTANA_PANORAMA_M1");
+        assert_eq!(panorama_layout(1, 256, 256, 1, 768).unwrap().name, "VENTANA_PANORAMA_M1");
+        assert_eq!(panorama_layout(3, 300, 300, 0, 500).unwrap_err().message().is_empty(), false);
+        assert_eq!(panorama_layout(3, 300, 300, 0, 320).unwrap().name, "VENTANA_PANORAMA_FONDO");
+        assert_eq!(panorama_layout(3, 300, 300, 0, 384).unwrap_err().message().is_empty(), false);
+        assert_eq!(panorama_layout(3, 300, 200, 0, 384).unwrap().name, "VENTANA_PANORAMA_FONDO_SPRITE");
     }
 
     #[test]

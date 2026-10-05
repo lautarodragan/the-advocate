@@ -44,6 +44,9 @@ pub struct Substitutions<'a> {
     id: i32,
     blocks: &'a mut Blocks,
     flags: &'a [u8],
+    /// Whether every upper tile is drawn into the background: a map whose
+    /// panorama took the layer above's place, see `Way::Flattened`.
+    flattened: bool,
     chipset: &'a Chipset,
     /// Which block each `(lower, upper)` pair draws, sorted: that is the
     /// order the pairs are walked in.
@@ -62,14 +65,14 @@ pub struct Substitutions<'a> {
 impl<'a> Substitutions<'a> {
     /// The substitutions of map `id`, over its blocks. `flags` are its
     /// ChipSet's passability by tile id.
-    pub fn new(id: i32, blocks: &'a mut Blocks, flags: &'a [u8], chipset: &'a Chipset) -> Self {
+    pub fn new(id: i32, blocks: &'a mut Blocks, flags: &'a [u8], chipset: &'a Chipset, flattened: bool) -> Self {
         let mut cells: [HashMap<i32, Vec<u8>>; 2] = [HashMap::new(), HashMap::new()];
         for &((low, high), block) in &blocks.combos {
             // **The lower half is only usable if the upper tile of that
             // block is not baked into it.** An upper tile without "Above"
             // is drawn stuck to the background, so the lower half of that
             // block is the two together and not the lower tile alone.
-            if !bakes(flags, high) {
+            if !bakes(flags, high, flattened) {
                 cells[0]
                     .entry(low)
                     .or_insert_with(|| half(blocks, block, 0));
@@ -89,6 +92,7 @@ impl<'a> Substitutions<'a> {
             combos: blocks.combos.iter().copied().collect(),
             blocks,
             flags,
+            flattened,
             chipset,
             cells,
             by_bytes,
@@ -174,7 +178,7 @@ impl<'a> Substitutions<'a> {
             return Ok(Some(block));
         }
         let (low, high) = combination;
-        if bakes(self.flags, high) {
+        if bakes(self.flags, high, self.flattened) {
             return Ok(None);
         }
         let (Some(lower_half), Some(upper_half)) =
@@ -217,8 +221,8 @@ impl<'a> Substitutions<'a> {
 /// Whether an upper tile is baked into the background instead of going to
 /// BG2: it goes above the hero only with `ABOVE`. The empty tile bakes
 /// nothing.
-fn bakes(flags: &[u8], high: i32) -> bool {
-    high != UPPER && flags[high as usize] & ABOVE == 0
+fn bakes(flags: &[u8], high: i32, flattened: bool) -> bool {
+    high != UPPER && (flattened || flags[high as usize] & ABOVE == 0)
 }
 
 fn half(blocks: &Blocks, block: u16, layer: usize) -> Vec<u8> {
@@ -261,6 +265,36 @@ fn with_side(combination: (i32, i32), layer: usize, tile: i32) -> (i32, i32) {
     }
 }
 
+/// The `(lower, upper)` pairs `triples` take the map's cells to, one after
+/// another as they chain, that the map does not draw itself, in order: what
+/// a map that draws both layers as one has to draw anyway —see
+/// `Drawn::extended`—, since it cannot build them out of halves.
+pub fn unseen(lower: &[i32], upper: &[i32], triples: &[Triple]) -> Vec<(i32, i32)> {
+    let drawn: std::collections::BTreeSet<(i32, i32)> = lower.iter().copied().zip(upper.iter().copied()).collect();
+    let mut all = drawn.clone();
+    let mut out = Vec::new();
+    loop {
+        let before = all.len();
+        for &(up, old, new) in triples {
+            if !(in_layer(old) && in_layer(new)) {
+                continue;
+            }
+            let layer = usize::from(up);
+            let (old_id, new_id) = ids(up, old, new);
+            let sources: Vec<(i32, i32)> = all.iter().copied().filter(|&c| side(c, layer) == old_id).collect();
+            for c in sources {
+                let dest = with_side(c, layer, new_id);
+                if all.insert(dest) {
+                    out.push(dest);
+                }
+            }
+        }
+        if all.len() == before {
+            return out;
+        }
+    }
+}
+
 /// What a map answers of its substitutions: each one it can run —its own
 /// and its test pages', which are closed, then the common events' that are
 /// not among them, which are only translated— with its pairs, and the ones
@@ -279,8 +313,9 @@ pub fn substitute(
     chipset: &Chipset,
     own: &[Triple],
     common: &[Triple],
+    flattened: bool,
 ) -> Result<Answer> {
-    let mut subs = Substitutions::new(id, blocks, flags, chipset);
+    let mut subs = Substitutions::new(id, blocks, flags, chipset, flattened);
     let missing = subs.close(own)?;
     let mut asked: Vec<Triple> = own.to_vec();
     for t in common {
@@ -334,7 +369,7 @@ mod tests {
         let flags = flags_with(&[UPPER + 2]);
         let chipset = Chipset::default();
         let mut b = blocks();
-        let answer = substitute(7, &mut b, &flags, &chipset, &[(false, 0, 1)], &[]).unwrap();
+        let answer = substitute(7, &mut b, &flags, &chipset, &[(false, 0, 1)], &[], false).unwrap();
         assert!(answer.missing.is_empty());
         // (0, empty) -> (1, empty) exists; (0, 2) -> (1, 2) is built.
         assert_eq!(
@@ -360,6 +395,7 @@ mod tests {
             &chipset,
             &[(false, 0, 9)],
             &[(true, 2, 3)],
+            false,
         )
         .unwrap();
         assert_eq!(answer.missing, vec![(false, 0, 9)]);
@@ -376,7 +412,7 @@ mod tests {
         let flags = flags_with(&[]);
         let chipset = Chipset::default();
         let mut b = blocks();
-        let answer = substitute(7, &mut b, &flags, &chipset, &[(false, 0, 1)], &[]).unwrap();
+        let answer = substitute(7, &mut b, &flags, &chipset, &[(false, 0, 1)], &[], false).unwrap();
         assert_eq!(answer.missing, vec![(false, 0, 1)]);
         assert_eq!(answer.table, vec![((false, 0, 1), None)]);
     }
@@ -387,7 +423,7 @@ mod tests {
         let chipset = Chipset::default();
         let mut b = blocks();
         let triples = [(false, 1, 0), (false, 0, 1)];
-        let answer = substitute(7, &mut b, &flags, &chipset, &triples, &[]).unwrap();
+        let answer = substitute(7, &mut b, &flags, &chipset, &triples, &[], false).unwrap();
         assert!(answer.missing.is_empty());
         assert_eq!(answer.table[0], ((false, 1, 0), Some(vec![(1, 0), (3, 2)])));
         assert_eq!(answer.table[1], ((false, 0, 1), Some(vec![(0, 1), (2, 3)])));

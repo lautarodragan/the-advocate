@@ -9,6 +9,7 @@ use ditto::schema::Chipset;
 use rm2k_render::{picture, Atlas, Layers, Map};
 use rm2k_rules::chipset::{passability_table, terrain_of};
 use crate::background::blocks::{self, Blocks};
+use crate::background::panorama::{Mode, Way};
 use crate::background::{Converted, Merge, Run};
 use serde_json::{json, Value};
 use std::path::Path;
@@ -40,6 +41,13 @@ pub struct Drawn {
     pub chipset: Chipset,
     pub layers: Layers,
     pub panorama: Option<Panorama>,
+    /// The map with rows added below it that draw the `(lower, upper)`
+    /// pairs a `TileSubstitution` will need and the map does not draw, if
+    /// there are any and the map has a panorama. A flattened map draws the
+    /// two layers into one, so a substitution can build no block out of
+    /// halves: the blocks it needs have to be drawn, and they are drawn
+    /// here, converted with the map and cut off after the blocks are made.
+    pub extended: Option<(Map, Layers)>,
 }
 
 /// The stretch of a panorama the console can show, and how it moves: what
@@ -50,10 +58,14 @@ pub struct Panorama {
     /// The whole picture's size; the stretch is `picture`.
     pub size: (usize, usize),
     pub picture: picture::Picture,
+    /// The whole picture: what is baked into a map that does not move.
+    pub whole: picture::Picture,
     /// Whether it loops on each axis, and by how much a frame it moves on
     /// its own: RM2k's speed, 0 if it does not.
     pub looped: (bool, bool),
     pub auto: (i32, i32),
+    /// Whether a `ChangePBG` of the map's own pages changes how it moves.
+    pub changes: bool,
 }
 
 /// The RM2k screen, and the console's, in pixels; and where each puts the
@@ -62,6 +74,8 @@ pub struct Panorama {
 /// one. The console's is `follow_camera`'s: the cell's centre on the
 /// screen's.
 const RM2K_SCREEN: (usize, usize) = (320, 240);
+/// `ChangePBG`'s event command code.
+const CHANGE_PBG: i32 = 11720;
 const RM2K_HERO: (usize, usize) = (9 * 16, 7 * 16);
 const CONSOLE_SCREEN: (usize, usize) = (256, 224);
 const CONSOLE_HERO: (usize, usize) = (128 - 8, 112 - 8);
@@ -131,7 +145,7 @@ pub fn draw(game: &Game, request: &LayersRequest) -> Result<Drawn> {
         passable_lower: chipset.passable_data_lower.clone(),
         passable_upper: chipset.passable_data_upper.clone(),
     };
-    let panorama = match request.panorama {
+    let panorama = match &request.panorama {
         Some(_) if map.parallax_flag => {
             let name = map.parallax_name.clone();
             let path = game.resource("Panorama", &name).ok_or_else(|| {
@@ -142,12 +156,23 @@ pub fn draw(game: &Game, request: &LayersRequest) -> Result<Drawn> {
             // Opaque: RM2k gives a panorama no colour key.
             let whole = picture::read_unkeyed(&path)?;
             let (mw, mh) = (drawn.width * 16, drawn.height * 16);
-            let w = reach(mw, (RM2K_SCREEN.0, RM2K_HERO.0), (CONSOLE_SCREEN.0, CONSOLE_HERO.0), whole.width, map.parallax_loop_x);
-            let h = reach(mh, (RM2K_SCREEN.1, RM2K_HERO.1), (CONSOLE_SCREEN.1, CONSOLE_HERO.1), whole.height, map.parallax_loop_y);
+            // An axis a `ChangePBG` of the map's own pages makes loop needs
+            // the whole picture too. One in a common event is not seen.
+            let changed = map
+                .events
+                .iter()
+                .flat_map(|e| &e.pages)
+                .flat_map(|p| &p.event_commands)
+                .filter(|c| c.code.to_i32() == CHANGE_PBG && c.parameters.len() >= 2)
+                .fold((false, false), |(x, y), c| (x || c.parameters[0] != 0, y || c.parameters[1] != 0));
+            let w = reach(mw, (RM2K_SCREEN.0, RM2K_HERO.0), (CONSOLE_SCREEN.0, CONSOLE_HERO.0), whole.width, map.parallax_loop_x || changed.0);
+            let h = reach(mh, (RM2K_SCREEN.1, RM2K_HERO.1), (CONSOLE_SCREEN.1, CONSOLE_HERO.1), whole.height, map.parallax_loop_y || changed.1);
             Some(Panorama {
                 name,
                 size: (whole.width, whole.height),
                 picture: whole.crop(0, 0, w, h),
+                whole: whole.clone(),
+                changes: map.events.iter().flat_map(|e| &e.pages).flat_map(|p| &p.event_commands).any(|c| c.code.to_i32() == CHANGE_PBG),
                 looped: (map.parallax_loop_x, map.parallax_loop_y),
                 auto: (
                     if map.parallax_loop_x && map.parallax_auto_loop_x { map.parallax_sx } else { 0 },
@@ -162,30 +187,270 @@ pub fn draw(game: &Game, request: &LayersRequest) -> Result<Drawn> {
     } else {
         drawn.render(&atlas)?
     };
+    // The cells a `TileSubstitution` will need and the map does not draw,
+    // in rows of their own below it: see `Drawn::extended`.
+    let extra: &[(i32, i32)] = request.panorama.as_ref().map_or(&[], |b| &b.extra);
+    let extended = if panorama.is_some() && !extra.is_empty() {
+        let mut map = drawn.clone();
+        let rows = extra.len().div_ceil(map.width);
+        for k in 0..rows * map.width {
+            let (l, u) = extra[k.min(extra.len() - 1)];
+            map.lower_layer.push(i64::from(l));
+            map.upper_layer.push(i64::from(u));
+        }
+        map.height += rows;
+        let layers = map.render_over_panorama(&atlas)?;
+        Some((map, layers))
+    } else {
+        None
+    };
     Ok(Drawn {
         map: drawn,
         chipset,
         layers,
         panorama,
+        extended,
     })
 }
 
-/// The two layers converted, with the panorama if the map shows it.
+/// The two layers converted, with the panorama if the map shows it, and
+/// how it shows it.
+///
+/// **The way is the map's and the panorama's to say**, and nobody else's:
+/// the same game gives the same ways. In order —see [`Way`]—:
+///
+/// 1. if the layer behind the hero covers it everywhere, it is hidden;
+/// 2. if it does not move against the map —a map no bigger than RM2k's
+///    screen, which RM2k's camera never scrolls, and no scrolling of its
+///    own—, it is baked into the background;
+/// 3. if the map draws nothing above the hero, mode 3;
+/// 4. if it does, flattened if that puts little on the wrong side of the
+///    hero ([`ABOVE_LOST_MAX`]), and mode 1 if it puts more.
+///
+/// A way that does not fit —more tiles than any layout leaves— gives way
+/// to the next that can: baked to the moving ones, mode 1 and flattened to
+/// each other, and any of them to black, the map as it was before there
+/// were panoramas. A way the request forces is that one, or the error.
 pub fn convert(drawn: &Drawn, request: &LayersRequest) -> Result<Converted> {
-    let ask = match (&drawn.panorama, request.panorama) {
-        (Some(p), Some(budget)) => Some(crate::background::PanoramaAsk {
-            picture: &p.picture,
-            tiles_mode3: budget.tiles_mode3,
-            tiles_mode1: budget.tiles_mode1,
-        }),
-        _ => None,
+    let (Some(p), Some(budget)) = (&drawn.panorama, &request.panorama) else {
+        return Ok(crate::background::convert_with(&drawn.layers, request.window_colors, None)?);
     };
-    if ask.is_some() && request.panorama.and_then(|b| b.mode) == Some(3) {
-        // Mode 3 asked for: what goes above the hero is drawn behind him.
-        let flat = flattened(&drawn.layers);
-        return Ok(crate::background::convert_with(&flat, request.window_colors, ask.as_ref())?);
+    let wc = request.window_colors;
+    let attempt = |way: Way| -> std::result::Result<Converted, String> {
+        let done = match way {
+            Way::Hidden | Way::Black => crate::background::convert_with(&on_black(&drawn.layers), wc, None),
+            Way::Baked => {
+                let done = crate::background::convert_with(&baked(&drawn.layers, &p.whole), wc, None)
+                    .map_err(|e| e.to_string())?;
+                if done.background.tiles.len() / 64 > budget.baked {
+                    return Err(format!(
+                        "baked, the background spends {} tiles and the most it can get is {}",
+                        done.background.tiles.len() / 64,
+                        budget.baked
+                    ));
+                }
+                Ok(done)
+            }
+            Way::Mode3 | Way::Flattened | Way::Mode1 => {
+                let (mode, number) = if way == Way::Mode1 { (Mode::One, 1) } else { (Mode::Three, 3) };
+                let flat;
+                let layers = if way == Way::Flattened {
+                    flat = flattened(drawn.extended.as_ref().map_or(&drawn.layers, |(_, l)| l));
+                    &flat
+                } else {
+                    &drawn.layers
+                };
+                let mut why = format!("there is no layout for mode {number}");
+                for layout in budget.of_mode(number) {
+                    let ask = crate::background::PanoramaAsk { picture: &p.picture, mode, tiles: layout.panorama };
+                    let done = crate::background::convert_with(layers, wc, Some(&ask)).map_err(|e| e.to_string())?;
+                    let spent = done.background.tiles.len() / 64;
+                    if spent <= layout.background {
+                        let mut done = Converted { way: Some(way), ..done };
+                        if way == Way::Flattened {
+                            let unflat = drawn.extended.as_ref().map_or(&drawn.layers, |(_, l)| l);
+                            done.above_lost = raise_above(&mut done, &unflat.upper).0;
+                        }
+                        return Ok(done);
+                    }
+                    why = format!(
+                        "in mode {number} the background spends {spent} tiles and the layouts leave it {} at most",
+                        layout.background.max(budget.of_mode(number).map(|l| l.background).max().unwrap_or(0))
+                    );
+                }
+                return Err(why);
+            }
+        };
+        done.map(|d| Converted { way: Some(way), ..d }).map_err(|e| e.to_string())
+    };
+    if let Some(way) = budget.way {
+        return attempt(way).map_err(|why| Bad::answer(format!("map {}: its panorama can't go {}: {why}", request.map, way.name())));
     }
-    Ok(crate::background::convert_with(&drawn.layers, request.window_colors, ask.as_ref())?)
+    if !shows(&drawn.layers) {
+        return attempt(Way::Hidden).map_err(Bad::answer);
+    }
+    let mut tried = Vec::new();
+    let mut order = Vec::new();
+    if still(drawn, p) {
+        order.push(Way::Baked);
+    }
+    if !draws_above(&drawn.layers) {
+        order.push(Way::Mode3);
+    } else if order.is_empty() {
+        // Flattened first, kept only if it puts little on the wrong side of
+        // the hero; then mode 1; then flattened anyway, if mode 1 does not
+        // fit.
+        match attempt(Way::Flattened) {
+            Ok(mut done) if done.above_lost <= ABOVE_LOST_MAX => {
+                done.tried = tried;
+                return Ok(done);
+            }
+            Ok(done) => {
+                tried.push(format!(
+                    "flattened: {} pixels go to the wrong side of the hero, more than {ABOVE_LOST_MAX}",
+                    done.above_lost
+                ));
+                order.extend([Way::Mode1, Way::Flattened]);
+            }
+            Err(why) => {
+                tried.push(format!("flattened: {why}"));
+                order.push(Way::Mode1);
+            }
+        }
+    } else {
+        order.extend([Way::Flattened, Way::Mode1]);
+    }
+    for way in order {
+        match attempt(way) {
+            Ok(mut done) => {
+                done.tried = tried;
+                return Ok(done);
+            }
+            Err(why) => tried.push(format!("{}: {why}", way.name())),
+        }
+    }
+    let mut done = attempt(Way::Black).map_err(Bad::answer)?;
+    done.tried = tried;
+    Ok(done)
+}
+
+/// The tilemap priority bit: a BG1 cell with it goes in front of the
+/// objects of priority 1 and 2, the hero and the events.
+const PRIORITY: u16 = 0x2000;
+
+/// A flattened map's cells that draw something above the hero, raised in
+/// front of him: BG1's priority bit. Mode 3 puts BG1 1 in front of objects
+/// 2 and 1, so the hero walks behind what RM2k draws above him, as he does
+/// behind the layer above in a map without a panorama. What is lost is the
+/// grain: a whole 8x8 cell goes in front or behind. So a cell goes in front
+/// only if the upper layer draws at least half of it: in front, the
+/// background's pixels in it cover the hero too, and on the edge of
+/// something —the tip of the Hover-Tram over the captain— a square of floor
+/// over his head looked like a mistake, where his head over the edge looks
+/// like any RM2k game. The message window is BG2 and would be behind them:
+/// the runtime hides BG1 under it, see `pano_ppu`.
+///
+/// Answers how many pixels end up on the wrong side of the hero —the upper
+/// layer's in a cell left behind, the background's in a cell raised— and
+/// how many the upper layer draws.
+fn raise_above(done: &mut Converted, upper: &picture::Picture) -> (usize, usize) {
+    let (mut wrong, mut total) = (0, 0);
+    for (cy, row) in done.background.tilemap.iter_mut().enumerate() {
+        for (cx, entry) in row.iter_mut().enumerate() {
+            let drawn = (0..8)
+                .flat_map(|y| (0..8).map(move |x| (x, y)))
+                .filter(|&(x, y)| upper.get((cx * 8 + x) as i64, (cy * 8 + y) as i64)[3] != 0)
+                .count();
+            total += drawn;
+            if drawn * 2 >= 64 {
+                *entry |= PRIORITY;
+                wrong += 64 - drawn;
+            } else {
+                wrong += drawn;
+            }
+        }
+    }
+    (wrong, total)
+}
+
+/// The most pixels a flattened map may put on the wrong side of the hero
+/// —see [`raise_above`]— and still go flattened rather than in mode 1: four
+/// RM2k cells. It is the "little" of "what goes above the hero is little":
+/// flattening keeps the panorama's colours and the map's, mode 1 keeps
+/// what goes above the hero exactly and loses colours of both, so the line
+/// is drawn where the first loss stops being small. Measured on A Blurred
+/// Line on 2026-10-05: the intro (1) loses 201 pixels of 167511, the
+/// Linkage Block (2) 217, the overlooks (109, 126) 889 and the roof of the
+/// escape (33) 192; and the warehouse with the Hover-Tram (32) loses its
+/// fences, the bridge's underside (255) its chains, the mountain path
+/// (105) 3888 pixels and CoreRetro (6) 9520.
+pub const ABOVE_LOST_MAX: usize = 4 * 16 * 16;
+
+/// Whether the panorama shows anywhere: a pixel that neither layer draws,
+/// in any drawing of the animation.
+fn shows(layers: &Layers) -> bool {
+    let upper = &layers.upper.rgba;
+    std::iter::once(&layers.lower)
+        .chain(layers.variants.iter().flat_map(|(_, gs)| gs))
+        .any(|lower| {
+            lower
+                .rgba
+                .chunks_exact(4)
+                .zip(upper.chunks_exact(4))
+                .any(|(l, u)| l[3] == 0 && u[3] == 0)
+        })
+}
+
+/// Whether the map draws anything above the hero.
+fn draws_above(layers: &Layers) -> bool {
+    layers.upper.rgba.chunks_exact(4).any(|p| p[3] != 0)
+}
+
+/// Whether the panorama stays where it is against the map: RM2k's camera
+/// never moves in a map no bigger than its screen, and then
+/// `Game_Map::Parallax` puts the panorama's corner on the map's, unless it
+/// scrolls on its own.
+fn still(drawn: &Drawn, p: &Panorama) -> bool {
+    drawn.map.width * 16 <= RM2K_SCREEN.0 && drawn.map.height * 16 <= RM2K_SCREEN.1 && p.auto == (0, 0) && !p.changes
+}
+
+/// The layer behind the hero, and each drawing of its animation, with
+/// `under` drawn where it draws nothing: `under` repeats, as RM2k draws a
+/// panorama smaller than the screen.
+fn under(layers: &Layers, under: impl Fn(usize, usize) -> [u8; 4]) -> Layers {
+    let fill = |below: &picture::Picture| {
+        let mut out = below.clone();
+        let w = out.width;
+        for (i, px) in out.rgba.chunks_exact_mut(4).enumerate() {
+            if px[3] == 0 {
+                px.copy_from_slice(&under(i % w, i / w));
+            }
+        }
+        out
+    };
+    Layers {
+        lower: fill(&layers.lower),
+        upper: layers.upper.clone(),
+        variants: layers
+            .variants
+            .iter()
+            .map(|(f, gs)| (*f, gs.iter().map(fill).collect()))
+            .collect(),
+    }
+}
+
+/// The layers as they were before panoramas: black where one would show.
+fn on_black(layers: &Layers) -> Layers {
+    under(layers, |_, _| [0, 0, 0, 255])
+}
+
+/// The layers with the panorama baked in, its corner on the map's.
+fn baked(layers: &Layers, whole: &picture::Picture) -> Layers {
+    under(layers, |x, y| {
+        let mut p = whole.get((x % whole.width) as i64, (y % whole.height) as i64);
+        p[3] = 255;
+        p
+    })
 }
 
 /// The layers with the upper one drawn over the lower one, in every drawing
@@ -213,8 +478,27 @@ fn flattened(layers: &Layers) -> Layers {
 
 /// Each cell's passability —both layers resolved, as the hero meets them—
 /// and the map in blocks.
-pub fn blocks(drawn: &Drawn, converted: &Converted) -> Result<(Vec<u8>, Blocks)> {
-    let map = &drawn.map;
+///
+/// A map converted with the rows of [`Drawn::extended`] makes its blocks
+/// with them, so that they are in the table, and then loses them: its
+/// cells, its passability and its tilemaps are the map's.
+pub fn blocks(drawn: &Drawn, converted: &mut Converted) -> Result<(Vec<u8>, Blocks)> {
+    let rows = drawn.map.height * 2;
+    if converted.background.tilemap.len() > rows {
+        let map = &drawn.extended.as_ref().expect("a tilemap past the map comes from its extension").0;
+        let (mut passability, mut made) = blocks_of(drawn, map, converted)?;
+        let cells = drawn.map.width * drawn.map.height;
+        passability.truncate(cells);
+        made.cells.truncate(cells);
+        converted.background.tilemap.truncate(rows);
+        converted.background.cells = converted.background.tilemap.iter().map(Vec::len).sum();
+        converted.above.tilemap.truncate(rows);
+        return Ok((passability, made));
+    }
+    blocks_of(drawn, &drawn.map, converted)
+}
+
+fn blocks_of(drawn: &Drawn, map: &Map, converted: &Converted) -> Result<(Vec<u8>, Blocks)> {
     let flags = passability_table(&map.passable_lower, &map.passable_upper);
     let lower: Vec<i32> = map.lower_layer.iter().map(|&t| t as i32).collect();
     let upper: Vec<i32> = map.upper_layer.iter().map(|&t| t as i32).collect();
@@ -300,12 +584,16 @@ pub fn write(
                 "colors": p.colors,
                 "kept": p.kept,
                 "merges": merges_json(&p.merges),
+                "above_bg1": converted.way == Some(Way::Flattened),
             })
         }
         _ => Value::Null,
     };
     let answer = json!({
         "panorama": pano,
+        "panorama_way": converted.way.map(Way::name),
+        "panorama_tried": converted.tried,
+        "panorama_above_lost": converted.above_lost,
         "background": {
             "bpp": bg.bpp,
             "tiles": bg.tiles.len() / 64,
@@ -345,7 +633,7 @@ fn merges_json(merges: &[Merge]) -> Vec<Value> {
 /// into `out`.
 pub fn run(game: &Game, request: &LayersRequest, out: &Path) -> Result<()> {
     let drawn = draw(game, request)?;
-    let converted = convert(&drawn, request)?;
-    let (passability, made) = blocks(&drawn, &converted)?;
+    let mut converted = convert(&drawn, request)?;
+    let (passability, made) = blocks(&drawn, &mut converted)?;
     write(out, &converted, drawn.panorama.as_ref(), &passability, &made)
 }

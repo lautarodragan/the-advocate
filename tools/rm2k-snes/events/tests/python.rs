@@ -60,6 +60,10 @@
 //! its second page— compiles, because RM2k fires it from the cell in front.
 //! The Python left it without code, and that change, which only removed the
 //! layer test, is the whole difference.
+//!
+//! And the same day the hash of the compilation's `maps` moved again, on
+//! purpose: `ChangePBG` compiles to `OP_PANORAMA`, and the Python dropped
+//! it. With its arm answering no bytes, the answer was the old one.
 
 use rm2k_snes_events::{compile, compile_without_pairs, scan, Game, Request};
 use serde_json::Value;

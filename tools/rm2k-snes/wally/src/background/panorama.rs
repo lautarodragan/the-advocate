@@ -35,21 +35,7 @@ pub const MODE1_COLORS: usize = 3;
 /// Entries in a 2-bit palette.
 const MODE1_ENTRIES: usize = 4;
 
-/// Adeleine's packing, refusing a cell with more colours than a palette
-/// holds. `adeleine::try_pack` takes such a cell as a group of its own, of
-/// that many colours, and a palette with more than it holds spills into
-/// the next one: the cell ends up drawn with two. The panorama's cells are
-/// the first that have that many —forty in the RTP's skies—, so this is
-/// checked here; the layer above's split is left as it was, so that no map
-/// without a panorama changes.
-pub(crate) fn pack(sets: &[BTreeSet<Color>], limit: usize, per: usize) -> Option<Vec<BTreeSet<Color>>> {
-    if sets.iter().any(|s| s.len() > per) {
-        return None;
-    }
-    adeleine::try_pack(sets, limit, per)
-}
-
-/// `adeleine::reduce_colors` with [`pack`]: merges the colour that shows
+/// `adeleine::reduce_colors`, for grids: merges the colour that shows
 /// least until the cells fit. Answers the grid merged, the palettes and the
 /// merges.
 pub(crate) fn reduce(grids: &[&Grid], limit: usize, per: usize) -> Result<(HashMap<Color, Color>, Vec<Vec<Color>>, Vec<Merge>)> {
@@ -61,7 +47,7 @@ pub(crate) fn reduce(grids: &[&Grid], limit: usize, per: usize) -> Result<(HashM
         .collect::<BTreeSet<_>>()
         .into_iter()
         .collect();
-    if let Some(groups) = pack(&tiles, limit, per) {
+    if let Some(groups) = adeleine::try_pack(&tiles, limit, per) {
         return Ok((HashMap::new(), groups.into_iter().map(|g| g.into_iter().collect()).collect(), Vec::new()));
     }
     let (merged, palettes) = adeleine::merge_until(&totals, |progress| {
@@ -71,13 +57,62 @@ pub(crate) fn reduce(grids: &[&Grid], limit: usize, per: usize) -> Result<(HashM
             .map(|t| t.iter().map(|c| *now.get(c).unwrap_or(c)).collect())
             .collect();
         let mapped: Vec<BTreeSet<Color>> = mapped.into_iter().collect();
-        pack(&mapped, limit, per)
+        adeleine::try_pack(&mapped, limit, per)
     })?;
     let to = totals.iter().map(|&(c, _)| c).zip(merged.mapping.iter().copied()).collect();
     Ok((to, palettes.into_iter().map(|g| g.into_iter().collect()).collect(), merged.merges))
 }
 
-/// How a map shows its panorama.
+/// How a map shows its panorama, which the map and the panorama decide
+/// alone —see `convert` in `layers.rs`, at the crate's top—:
+///
+/// * **hidden**: the layer behind the hero covers it everywhere, so it is
+///   never seen and nothing is spent on it;
+/// * **baked**: it does not move against the map —a map of one RM2k
+///   screen, which RM2k's camera never scrolls, and a panorama that does
+///   not scroll on its own—, so it is drawn into the background as the
+///   converter reads it, with no layer of its own;
+/// * **mode 3**: the panorama in BG2 at 4 bits, where the layer above the
+///   hero would be: a map that draws nothing above him;
+/// * **flattened**: the same, for a map that does draw above the hero: what
+///   it draws there goes into the background, and the 8x8 cells it covers
+///   at least half of go to BG1's priority 1, in front of the hero;
+/// * **mode 1**: the map at 4 bits in BG1 and BG2 and the panorama at 2 in
+///   BG3: for a map that would put much on the wrong side of the hero
+///   flattened —see `ABOVE_LOST_MAX` in `layers.rs`—;
+/// * **black**: it fits none of those, and the map is black where it would
+///   show, as before there were panoramas.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Way {
+    Hidden,
+    Baked,
+    Mode3,
+    Flattened,
+    Mode1,
+    Black,
+}
+
+impl Way {
+    /// The name the request and the answer give it.
+    pub fn name(self) -> &'static str {
+        match self {
+            Way::Hidden => "hidden",
+            Way::Baked => "baked",
+            Way::Mode3 => "mode3",
+            Way::Flattened => "flattened",
+            Way::Mode1 => "mode1",
+            Way::Black => "black",
+        }
+    }
+
+    pub fn from_name(name: &str) -> Option<Way> {
+        [Way::Hidden, Way::Baked, Way::Mode3, Way::Flattened, Way::Mode1, Way::Black]
+            .into_iter()
+            .find(|w| w.name() == name)
+    }
+}
+
+/// How a map shows its panorama, once the way says it gets a layer.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Mode {
     /// Mode 3, the panorama in BG2 at 4 bits.

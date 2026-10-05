@@ -296,6 +296,11 @@ bytecode! {
     /// item or a page that turned that common event on opens the menu. See
     /// `custom_menu.s` in the runtime.
     OP_MENU_OPEN = 0x45 (menu: byte);
+
+    /// `ChangePBG`: how the map's panorama loops —bit 0 across, bit 1
+    /// down— and how far it moves on its own each frame on each axis, in
+    /// 1/32 px. The picture stays. See `op_panorama` in `pano.s`.
+    OP_PANORAMA = 0x46 (loops: byte, across: word, down: word);
 }
 
 // `run_code` jumps through a table indexed by the opcode.

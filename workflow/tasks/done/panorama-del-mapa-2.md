@@ -27,3 +27,9 @@ en el Hover-Tram, donde el paisaje de la tarde corre por detrás y cambia de
 velocidad al arrancar y al frenar— y sin él esa página no compila. O sea que lo
 que esto compra es **el viaje entero**, y lo que cuesta hoy es que las
 ventanillas se vean quietas.
+
+# Hecho
+
+El 2026-10-05, con todos los panoramas —`testing/los-panoramas.md`—: el 2 va
+aplanado, con la pantalla grande en BG2, y `ChangePBG` compila a
+`OP_PANORAMA`.
