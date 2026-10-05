@@ -270,9 +270,11 @@ pub fn possible_items<'a>(
         map.all_commands().for_each(&mut sweep);
     }
     extra.iter().for_each(&mut sweep);
+    // One the database does not have —deleted after it was used— is
+    // nothing in RM2k: it has no name to carry.
     items
         .into_iter()
-        .filter(|&i| 0 < i && (i as usize) < rm2k_snes_mapdata::engine::ITEMS_N)
+        .filter(|&i| 0 < i && (i as usize) < rm2k_snes_mapdata::engine::ITEMS_N && db.items.contains_key(&i))
         .collect()
 }
 
@@ -285,7 +287,7 @@ pub fn drop_items(db: &Database, troops: &[i32]) -> BTreeSet<i32> {
         if let Some(troop) = db.troops.get(n) {
             for e in &troop.members {
                 let drop = db.enemies.get(e).map_or(0, |e| e.drop_id);
-                if 0 < drop && (drop as usize) < rm2k_snes_mapdata::engine::ITEMS_N {
+                if 0 < drop && (drop as usize) < rm2k_snes_mapdata::engine::ITEMS_N && db.items.contains_key(&drop) {
                     out.insert(drop);
                 }
             }
@@ -426,10 +428,17 @@ mod tests {
         );
         assert!(!has_rain([&one], &[]));
         assert!(has_rain([&one], &[cmd(WEATHER_EFFECTS, &[WEATHER_RAIN, 2])]));
-        // 451 is past the inventory, which goes up to `ITEMS_N`.
-        let db = Database::default();
+        // 451 is past the inventory, which goes up to `ITEMS_N`; and 5 is
+        // not in the database —RM2k shows nothing for it—, like the weapon
+        // an actor starts with in a game that deleted it.
+        let mut db = Database::default();
+        for i in [3, 7, 9, 450, 451] {
+            db.items.insert(i, Default::default());
+        }
+        db.actors.insert(1, Default::default());
+        db.actors.get_mut(&1).unwrap().initial_equipment.weapon_id = 5;
         assert_eq!(
-            possible_items([&one], &[], &db, &[cmd(CHANGE_ITEMS, &[0, 0, 9, 0, 1])]),
+            possible_items([&one], &[1], &db, &[cmd(CHANGE_ITEMS, &[0, 0, 9, 0, 1])]),
             [3, 7, 9, 450]
         );
     }
