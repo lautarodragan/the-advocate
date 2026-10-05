@@ -36,6 +36,10 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
+/// The kinds the Python wrote. The message window's, since 2026-10-05, it
+/// never had: this game has none, and it is `command_line.rs`'s to check.
+const PYTHON_KINDS: [Kind; 3] = [Kind::Map, Kind::Animation, Kind::Battler];
+
 fn game(name: &str) -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("tests").join(name)
 }
@@ -91,6 +95,7 @@ fn the_files_and_the_check_say_what_the_python_said() {
     let written: Vec<Value> = write(&release, &request("game/release.json"))
         .unwrap()
         .iter()
+        .filter(|w| w.kind != Kind::Window)
         .map(|w| json!([w.files, w.bytes]))
         .collect();
     assert_eq!(json!(written), expected["written"]);
@@ -107,7 +112,7 @@ fn the_files_and_the_check_say_what_the_python_said() {
     std::fs::create_dir_all(auto.join("mapas")).unwrap();
     std::fs::write(auto.join("mapas/0500.toml"), "mapa = 500\n").unwrap();
     let mut copied = Vec::new();
-    for kind in Kind::ALL {
+    for kind in PYTHON_KINDS {
         let (count, bytes, removed) = copy(&auto, &release, kind, &tests).unwrap();
         for path in removed {
             copied.push(format!(
@@ -128,7 +133,7 @@ fn the_files_and_the_check_say_what_the_python_said() {
     let town = std::fs::read_to_string(auto.join("mapas/0012.toml")).unwrap();
     std::fs::write(auto.join("mapas/0777.toml"), town.replace("mapa = 12", "mapa = 777")).unwrap();
     let mut listed = serde_json::Map::new();
-    for kind in Kind::ALL {
+    for kind in PYTHON_KINDS {
         let keys: Vec<Value> = versioned(&auto, kind).unwrap().iter().map(key_json).collect();
         listed.insert(kind.key().into(), json!(keys));
     }

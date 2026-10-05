@@ -198,7 +198,7 @@ pub fn run(options: Options) -> Result<()> {
     };
     // The message window's colours, from the System: once, for every map and
     // for the screens and the emission. See `screens::window_colors`.
-    let window_colors = screens::window_colors(&game)?;
+    let (window_colors, window_answer) = screens::window_colors(&game)?;
     let cartridge = Cartridge {
         game: &game,
         settings: &settings,
@@ -959,6 +959,15 @@ pub fn run(options: Options) -> Result<()> {
             "key": b.key, "image": b.image, "hue": b.hue, "width": b.width, "height": b.height,
             "colors": b.colors, "palette": b.palette, "merges": b.merges,
         })).collect::<Vec<_>>(),
+        // And the colours the message window lost, if its System did not
+        // fit in one palette: one that fits writes nothing.
+        "windows": match window_answer["merges"].as_array() {
+            Some(merges) if !merges.is_empty() => vec![json!({
+                "system": window_answer["system"], "colors": window_answer["brought"],
+                "kept": window_colors, "merges": merges,
+            })],
+            _ => vec![],
+        },
     });
     stage::hand_over("rm2k-snes-patches", "patches", &patches_request, &[directory.clone().into_os_string()], None)?;
     // And who asked for each one, which isn't versioned: what separates, in

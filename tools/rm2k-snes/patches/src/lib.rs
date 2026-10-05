@@ -106,7 +106,7 @@ mod check;
 mod text;
 
 pub use check::{check, versioned, Checked, Own};
-pub use text::{animation_text, battler_text, map_text};
+pub use text::{animation_text, battler_text, map_text, window_text};
 
 use serde::Deserialize;
 use std::collections::BTreeSet;
@@ -139,10 +139,11 @@ pub enum Kind {
     Map,
     Animation,
     Battler,
+    Window,
 }
 
 impl Kind {
-    pub const ALL: [Kind; 3] = [Kind::Map, Kind::Animation, Kind::Battler];
+    pub const ALL: [Kind; 4] = [Kind::Map, Kind::Animation, Kind::Battler, Kind::Window];
 
     /// How a count of them is printed.
     pub fn plural(self) -> &'static str {
@@ -150,6 +151,7 @@ impl Kind {
             Kind::Map => "map(s)",
             Kind::Animation => "animation(s)",
             Kind::Battler => "battler(s)",
+            Kind::Window => "window(s)",
         }
     }
 
@@ -159,6 +161,7 @@ impl Kind {
             Kind::Map => "map",
             Kind::Animation => "animation",
             Kind::Battler => "battler",
+            Kind::Window => "window",
         }
     }
 
@@ -168,6 +171,7 @@ impl Kind {
             Kind::Map => "mapas",
             Kind::Animation => "animaciones",
             Kind::Battler => "battlers",
+            Kind::Window => "ventanas",
         }
     }
 
@@ -183,6 +187,7 @@ impl Kind {
             Kind::Map => "mapa",
             Kind::Animation => "animacion",
             Kind::Battler => "battler",
+            Kind::Window => "sistema",
         }
     }
 
@@ -234,6 +239,23 @@ pub struct Request {
     pub animations: Vec<AnimationDecision>,
     #[serde(default)]
     pub battlers: Vec<BattlerDecision>,
+    #[serde(default)]
+    pub windows: Vec<WindowDecision>,
+}
+
+/// The colours the message window lost: what a System that does not fit in
+/// one palette was reduced to. Only a System that did not fit has one.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct WindowDecision {
+    /// The System's name in the database.
+    pub system: String,
+    /// How many distinct colours the window, its arrow, its cursor and its
+    /// text brought, and how many were kept.
+    pub colors: i64,
+    pub kept: i64,
+    /// Adeleine's merges, in the order they were applied.
+    pub merges: Vec<Merge>,
 }
 
 /// The colors a map's two layers lost.
@@ -368,7 +390,7 @@ pub(crate) fn toml_files(folder: &Path) -> Result<Vec<String>, String> {
 /// `<build>/parches/auto/`: every kind's folder is emptied first, so what is
 /// left is exactly this request.
 pub fn write(build: &Path, request: &Request) -> Result<Vec<Written>, String> {
-    let texts: [Vec<(String, String)>; 3] = [
+    let texts: [Vec<(String, String)>; 4] = [
         request
             .maps
             .iter()
@@ -387,6 +409,11 @@ pub fn write(build: &Path, request: &Request) -> Result<Vec<Written>, String> {
             .map(|b| {
                 (Kind::Battler.file_name(&Key::Text(b.key.clone())), battler_text(b))
             })
+            .collect(),
+        request
+            .windows
+            .iter()
+            .map(|w| (Kind::Window.file_name(&Key::Text(w.system.clone())), window_text(w)))
             .collect(),
     ];
     let mut out = Vec::new();

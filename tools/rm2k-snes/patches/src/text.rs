@@ -5,7 +5,7 @@
 //! layout —one merge per line, one color per line— is what makes the diff
 //! say which one changed.
 
-use crate::{AnimationDecision, BattlerDecision, MapDecision, Rgb};
+use crate::{AnimationDecision, BattlerDecision, MapDecision, Rgb, WindowDecision};
 
 pub(crate) fn color(c: &Rgb) -> String {
     format!("[{}, {}, {}]", c[0], c[1], c[2])
@@ -182,5 +182,43 @@ pub fn battler_text(battler: &BattlerDecision) -> String {
         "# color to its nearest neighbor.".into(),
         format!("fusiones = {}", battler.merges),
     ]);
+    lines.join("\n") + "\n"
+}
+
+/// A message window's file: the colours its System lost.
+pub fn window_text(window: &WindowDecision) -> String {
+    let mut lines = vec![
+        format!(
+            "# The artistic decision of System {}: **which colors the message",
+            window.system
+        ),
+        "# window loses** —its background, its frame, its arrow, its cursor, the".into(),
+        "# text and its shadow— to fit in one palette of fifteen. Only a System".into(),
+        "# that does not fit has one. The converter writes it and".into(),
+        "# `rm2k-snes-patches` copies it here from the playable ROM's build,".into(),
+        "# which is what has to be run when a change moves it;".into(),
+        "# `rm2k-snes-patches --check` —and the suite— fail if it is stale.".into(),
+        String::new(),
+        format!("sistema = {}", string(&window.system)),
+        String::new(),
+        "# How many distinct 15-bit colors it brought and how many were kept.".into(),
+        format!("colores = {}", window.colors),
+        format!("quedan = {}", window.kept),
+        String::new(),
+        "# Each merge sends color `de` to color `a`, with".into(),
+        "# `adeleine.merge_least_visible`, and `pixeles` is how much it weighed:".into(),
+        "# the pixels it covers, and for the text and its shadow a whole row of".into(),
+        "# every line. They go **in order**: applying them top to bottom".into(),
+        "# rebuilds the whole mapping.".into(),
+        "fusiones = [".into(),
+    ];
+    for (victim, dest, pixels) in &window.merges {
+        lines.push(format!(
+            "  {{ de = {}, a = {}, pixeles = {pixels} }},",
+            color(victim),
+            color(dest)
+        ));
+    }
+    lines.push("]".into());
     lines.join("\n") + "\n"
 }

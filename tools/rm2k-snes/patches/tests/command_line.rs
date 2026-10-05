@@ -66,7 +66,8 @@ fn writing_a_build_again_leaves_nothing_from_the_previous_run() {
         text(&out.stdout),
         "patches of 0 map(s) -> parches/auto/mapas (0 B)\n\
          patches of 0 animation(s) -> parches/auto/animaciones (0 B)\n\
-         patches of 0 battler(s) -> parches/auto/battlers (0 B)\n"
+         patches of 0 battler(s) -> parches/auto/battlers (0 B)\n\
+         patches of 0 window(s) -> parches/auto/ventanas (0 B)\n"
     );
     let left: Vec<_> = old.iter().filter(|p| p.exists()).collect();
     assert!(left.is_empty(), "patches of a previous run were left: {left:?}");
@@ -99,7 +100,8 @@ fn what_is_copied_is_checked_and_what_is_touched_fails() {
         text(&out.stdout),
         "3 patch(es) in patches/auto/mapas, 2949 B\n\
          2 patch(es) in patches/auto/animaciones, 1607 B\n\
-         2 patch(es) in patches/auto/battlers, 1787 B\n"
+         2 patch(es) in patches/auto/battlers, 1787 B\n\
+         0 patch(es) in patches/auto/ventanas, 0 B\n"
     );
     // A directory with cartridges inside is the same as naming them.
     let out = run(&dir, &["--check", "build"]);
@@ -111,7 +113,8 @@ fn what_is_copied_is_checked_and_what_is_touched_fails() {
          the game's 2 patch(es) of animation(s) match what 1 cartridge(s) decided\n  \
          and 1 that only exist for the suite, which decide on their own: 91\n\
          the game's 2 patch(es) of battler(s) match what 1 cartridge(s) decided\n  \
-         and 1 that only exist for the suite, which decide on their own: ghost\n"
+         and 1 that only exist for the suite, which decide on their own: ghost\n\
+         the game's 0 patch(es) of window(s) match what 1 cartridge(s) decided\n"
     );
     let versioned = dir.join("patches/auto/animaciones/0001.toml");
     let touched = std::fs::read_to_string(&versioned)
@@ -131,6 +134,36 @@ fn what_is_copied_is_checked_and_what_is_touched_fails() {
     let out = run(&dir, &["build/release", "build/release"]);
     assert_eq!(out.status.code(), Some(1));
     assert!(text(&out.stderr).contains("not 2 cartridges"), "{}", text(&out.stderr));
+}
+
+#[test]
+fn a_window_that_lost_colours_is_written_and_checked() {
+    let dir = scratch("window");
+    project(&dir);
+    std::fs::write(
+        dir.join("window.json"),
+        r#"{"windows": [{"system": "Gold Skin", "colors": 17, "kept": 15,
+             "merges": [[[1, 2, 3], [1, 2, 4], 40], [[9, 9, 9], [8, 8, 8], 7]]}]}"#,
+    )
+    .unwrap();
+    let out = run(&dir, &["--request", "window.json", "build/release"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let out = run(&dir, &["build/release"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+    let versioned = dir.join("patches/auto/ventanas/Gold_Skin.toml");
+    let written = std::fs::read_to_string(&versioned).unwrap();
+    assert!(written.contains("sistema = \"Gold Skin\"\n"), "{written}");
+    assert!(written.contains("  { de = [9, 9, 9], a = [8, 8, 8], pixeles = 7 },\n"), "{written}");
+    let out = run(&dir, &["--check", "build/release"]);
+    assert!(out.status.success(), "{}", text(&out.stderr));
+
+    std::fs::write(&versioned, written.replace("a = [8, 8, 8]", "a = [7, 7, 7]")).unwrap();
+    let out = run(&dir, &["--check", "build/release"]);
+    assert_eq!(out.status.code(), Some(1));
+    let said = text(&out.stderr);
+    assert!(said.contains("in window Gold Skin is this:"), "{said}");
+    assert!(said.contains("merges [9, 9, 9] -> [8, 8, 8], which it did not"), "{said}");
+    assert!(said.contains("no longer merges [9, 9, 9] -> [7, 7, 7]"), "{said}");
 }
 
 #[test]

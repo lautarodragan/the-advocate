@@ -60,13 +60,18 @@ pub fn boxes(game: &Game, font: &FontChoice, width: usize, lines: u32) -> Result
 /// screens get them as `cgram_reserved`, each map's `wally` and the
 /// emission as `window_colors`, and the background of every map starts
 /// after them.
-pub fn window_colors(game: &Game) -> Result<u32> {
+///
+/// And the whole answer with it: a System with more colours than a palette
+/// holds comes back reduced, and what it lost —`system`, `brought` and
+/// `merges`— goes to the game's patches.
+pub fn window_colors(game: &Game) -> Result<(u32, Value)> {
     let written = stage::run(BINARY, PROJECT, "window", &json!({}), &game_flags(game))?;
     let answer = stage::json(&written, "window.json")?;
-    answer["colors"]
+    let colors = answer["colors"]
         .as_u64()
         .and_then(|n| u32::try_from(n).ok())
-        .ok_or_else(|| Stop::new(format!("the screens' window answer has no colour count: {answer}")))
+        .ok_or_else(|| Stop::new(format!("the screens' window answer has no colour count: {answer}")))?;
+    Ok((colors, answer))
 }
 
 /// The geometry the screens are drawn with, by the names the emission

@@ -197,16 +197,33 @@ pub fn borders(screens: &[Screen], first_tile: usize, cgram: usize, cap: usize) 
             }
         }
     }
-    let colors = counts.by_use();
-    if cgram + colors.len() > cap {
-        return Err(Bad::answer(format!(
-            "the windows use {} colours and from {cgram} there is room for {}",
-            colors.len(),
-            cap - cgram
-        )));
+    let room = cap.saturating_sub(cgram);
+    if room == 0 {
+        return Err(Bad::answer(format!("the windows' colours start at {cgram} and there is no room")));
     }
+    // A System with more colours than there is room for —a gradient
+    // background stretched over a whole screen— is reduced by Adeleine's
+    // `merge_least_visible`, as the message window is: every colour goes to
+    // the entry of the one it became. One that fits never comes here, so its
+    // windows are the ones they always were.
+    let (colors, to): (Vec<Color>, HashMap<Color, Color>) = if counts.len() > room {
+        let used = counts.in_order();
+        let merged = adeleine::merge_least_visible(&used, room)?;
+        let to: HashMap<Color, Color> =
+            used.iter().map(|(c, _)| *c).zip(merged.mapping.iter().copied()).collect();
+        let mut kept = Counts::default();
+        for (c, n) in &used {
+            kept.add(to[c], *n);
+        }
+        (kept.by_use(), to)
+    } else {
+        (counts.by_use(), HashMap::new())
+    };
     let mut index: HashMap<Color, u8> =
         colors.iter().enumerate().map(|(i, c)| (*c, (cgram + i) as u8)).collect();
+    for (from, into) in &to {
+        index.insert(*from, index[into]);
+    }
     index.insert(BLACK, 0);
     let mut bank = Bank::default();
     let mut words = |image: &Picture, rows: std::ops::Range<usize>| -> Result<Vec<u16>> {
