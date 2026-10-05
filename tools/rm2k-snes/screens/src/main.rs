@@ -53,9 +53,11 @@ enum Command {
     Equip(GameArgs),
     /// How many colour-memory entries the message window takes, from the
     /// game's System
-    #[command(after_help = "Writes window.json into --out: {\"colors\": n}. The window \
-        takes entries 1 to n of colour memory —0 is transparent—, so whatever shares the \
-        lower palettes with it starts at n + 1. Its request is ignored: it is taken so every \
+    #[command(after_help = "Writes window.json into --out: {\"colors\": n, \"brought\": m, \
+        \"merges\": [[from, to, pixels], ...], \"system\": its name}. The window takes entries 1 to n of colour \
+        memory —0 is transparent—, so whatever shares the lower palettes with it starts at \
+        n + 1. A System with more than fifteen is reduced by Adeleine: m is how many it \
+        brought, and the merges are what it lost, in order. Its request is ignored: it is taken so every \
         subcommand is called the same way.")]
     Window(GameArgs),
 }
@@ -292,8 +294,14 @@ fn do_equip(args: &GameArgs) -> Result<()> {
 }
 
 fn do_window(args: &GameArgs) -> Result<()> {
-    let skin = args.game()?.skin()?;
-    let answer = serde_json::json!({"colors": message_window::colors(&skin)?});
+    let game = args.game()?;
+    let skin = game.skin()?;
+    let (brought, merges) = message_window::reduction(&skin)?;
+    let merges: Vec<_> = merges.iter().map(|m| serde_json::json!([m.victim, m.target, m.pixels])).collect();
+    let answer = serde_json::json!({
+        "colors": message_window::colors(&skin)?, "brought": brought, "merges": merges,
+        "system": game.system.system_name,
+    });
     write(&args.out, "window.json", &answer.to_string())
 }
 

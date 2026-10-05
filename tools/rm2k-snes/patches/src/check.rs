@@ -291,11 +291,47 @@ fn battler_diff(old: &Table, new: &Table) -> Vec<String> {
     out
 }
 
+/// First how many colours, then which merges.
+fn window_diff(old: &Table, new: &Table) -> Vec<String> {
+    let mut out = Vec::new();
+    for name in ["colores", "quedan"] {
+        if old.get(name) != new.get(name) {
+            out.push(format!(
+                "{name} went from {} to {}",
+                shown(old.get(name)),
+                shown(new.get(name))
+            ));
+        }
+    }
+    let rows = |doc: &Table| -> Vec<(String, String)> {
+        doc.get("fusiones")
+            .and_then(Value::as_array)
+            .map(|rows| {
+                rows.iter()
+                    .filter_map(|f| Some((color(f.get("de")?), color(f.get("a")?))))
+                    .collect()
+            })
+            .unwrap_or_default()
+    };
+    let (before, after) = (rows(old), rows(new));
+    for (v, d) in after.iter().filter(|m| !before.contains(m)) {
+        out.push(format!("merges {v} -> {d}, which it did not"));
+    }
+    for (v, d) in before.iter().filter(|m| !after.contains(m)) {
+        out.push(format!("no longer merges {v} -> {d}"));
+    }
+    if out.is_empty() && old.get("fusiones") != new.get("fusiones") {
+        out.push("the same merges in another order, or moving other pixels".into());
+    }
+    out
+}
+
 fn diff(kind: Kind, old: &Table, new: &Table) -> Vec<String> {
     match kind {
         Kind::Map => map_diff(old, new),
         Kind::Animation => animation_diff(old, new),
         Kind::Battler => battler_diff(old, new),
+        Kind::Window => window_diff(old, new),
     }
 }
 

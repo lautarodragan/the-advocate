@@ -17,7 +17,7 @@ use crate::layout::*;
 use rm2k_render::picture::Picture;
 use rm2k_snes_text::font::{self, Font};
 use rm2k_snes_text::line;
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use voodoo::pack::{pack_tile, Indices};
 
 /// How many colours a 4bpp palette has, 0 being transparent.
@@ -117,6 +117,10 @@ struct Drawn {
     color_row: Vec<Color>,
     shadow: Color,
     colors: BTreeSet<Color>,
+    /// How many colours the System brought, before [`Drawn::reduce`].
+    brought: usize,
+    /// What [`Drawn::reduce`] merged: empty if they fitted.
+    merges: Vec<adeleine::Merge>,
 }
 
 /// The message window: tiles, palette, cells and what the font needs.
@@ -131,7 +135,7 @@ struct Drawn {
 /// `reserved` is where whatever follows the window in colour memory
 /// starts: the window may not reach it. [`colors`] says where it ends.
 pub fn convert(skin: &Skin, reserved: usize) -> Result<Window> {
-    let Drawn { width, height, pixels, with_arrow, bare_arrow, with_bar, bare_bar, color_row, shadow, colors } =
+    let Drawn { width, height, pixels, with_arrow, bare_arrow, with_bar, bare_bar, color_row, shadow, colors, .. } =
         draw(skin)?;
     // What follows starts where this ends, so if the window grew it would
     // step on it and the cartridge would draw the text with a colour of the
@@ -296,22 +300,104 @@ fn draw(skin: &Skin) -> Result<Drawn> {
     }
     let shadow = rgb15(ink.shadow_at(0, 0));
 
-    // The arrow and the cursor count even though the empty window does not
-    // draw them, as the text does: they are the cartridge's to put.
-    let mut colors: BTreeSet<Color> = BTreeSet::new();
-    for drawn in [&pixels, &with_arrow, &bare_arrow, &bare_bar].into_iter().chain(&with_bar) {
-        colors.extend(drawn.iter().flatten().copied());
+    let mut drawn = Drawn {
+        width,
+        height,
+        pixels,
+        with_arrow,
+        bare_arrow,
+        with_bar,
+        bare_bar,
+        color_row,
+        shadow,
+        colors: BTreeSet::new(),
+        brought: 0,
+        merges: Vec::new(),
+    };
+    drawn.colors = drawn.all_colors();
+    drawn.brought = drawn.colors.len();
+    if drawn.colors.len() > COLORS_PER_PALETTE - 1 {
+        drawn.reduce()?;
     }
-    colors.extend(color_row.iter().copied());
-    colors.insert(shadow);
-    if colors.len() > COLORS_PER_PALETTE - 1 {
-        return Err(Bad::answer(format!(
-            "the window, its arrow and its cursor use {} colours and {} fit",
-            colors.len(),
-            COLORS_PER_PALETTE - 1
-        )));
+    Ok(drawn)
+}
+
+impl Drawn {
+    /// Every colour the cartridge may put in the window. The arrow and the
+    /// cursor count even though the empty window does not draw them, as
+    /// the text does: they are the cartridge's to put.
+    fn all_colors(&self) -> BTreeSet<Color> {
+        let mut colors: BTreeSet<Color> = BTreeSet::new();
+        for drawn in [&self.pixels, &self.with_arrow, &self.bare_arrow, &self.bare_bar]
+            .into_iter()
+            .chain(&self.with_bar)
+        {
+            colors.extend(drawn.iter().flatten().copied());
+        }
+        colors.extend(self.color_row.iter().copied());
+        colors.insert(self.shadow);
+        colors
     }
-    Ok(Drawn { width, height, pixels, with_arrow, bare_arrow, with_bar, bare_bar, color_row, shadow, colors })
+
+    /// A System whose window, arrow, cursor and text do not fit in one
+    /// palette: Adeleine's `merge_least_visible` takes them to fifteen, and
+    /// every drawing is repainted with what is left. Each colour weighs the
+    /// pixels it covers in the empty window, the arrow over nothing and one
+    /// line's cursor over nothing —what is seen of each, once—; and the
+    /// text's, which the empty window does not draw, weigh **a whole row of
+    /// the text area on every line**: each of the glyph's rows, and the
+    /// shadow, as if every line were full of letters. Counted only by what
+    /// the empty window shows, the text would be the first to go, and it is
+    /// what the window is for.
+    ///
+    /// A System that already fits never comes here, so its window is the
+    /// one it always was.
+    fn reduce(&mut self) -> Result<()> {
+        let mut counts: BTreeMap<Color, u64> = BTreeMap::new();
+        for drawn in [&self.pixels, &self.bare_arrow, &self.bare_bar] {
+            for c in drawn.iter().flatten() {
+                *counts.entry(*c).or_default() += 1;
+            }
+        }
+        let lines = WINDOW_TEXT_ROWS * CELL / WINDOW_LINE;
+        let text_row = (WINDOW_TEXT_COLS * CELL * lines) as u64;
+        for c in self.color_row.iter().chain([&self.shadow]) {
+            *counts.entry(*c).or_default() += text_row;
+        }
+        // The arrow and the cursor over the window only bring colours of
+        // the drawings above, but if one did not, it still needs a place:
+        // it weighs a pixel.
+        for c in self.all_colors() {
+            counts.entry(c).or_insert(1);
+        }
+        let counts: Vec<(Color, u64)> = counts.into_iter().collect();
+        let merged = adeleine::merge_least_visible(&counts, COLORS_PER_PALETTE - 1)?;
+        let to: HashMap<Color, Color> =
+            counts.iter().map(|(c, _)| *c).zip(merged.mapping.iter().copied()).collect();
+        for drawn in [&mut self.pixels, &mut self.with_arrow, &mut self.bare_arrow, &mut self.bare_bar]
+            .into_iter()
+            .chain(self.with_bar.iter_mut())
+        {
+            for c in drawn.iter_mut().flatten() {
+                *c = to[c];
+            }
+        }
+        for c in self.color_row.iter_mut().chain([&mut self.shadow]) {
+            *c = to[c];
+        }
+        self.colors = self.all_colors();
+        self.merges = merged.merges;
+        Ok(())
+    }
+}
+
+/// What a System lost to fit its window in one palette: how many colours
+/// the window brought, and Adeleine's merges in the order they were made
+/// —none if it already fitted—. It is a decision of the game's, and the
+/// converter writes it in the game's patches.
+pub fn reduction(skin: &Skin) -> Result<(usize, Vec<adeleine::Merge>)> {
+    let drawn = draw(skin)?;
+    Ok((drawn.brought, drawn.merges))
 }
 
 /// A colour-memory word: 0BBB BBGG GGGR RRRR.
