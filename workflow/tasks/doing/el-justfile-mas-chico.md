@@ -3,7 +3,7 @@ name: "Los justfile, más chicos"
 description: "Sacar de los dos justfile —el de las herramientas y el de ABL— las recetas que ya no se usan, y simplificar las que quedaron complicadas después de la migración a Rust y la separación en dos repos"
 type: refactor
 agents: [Calandria]
-assignee: taro
+assignee: Calandria
 ---
 
 De taro, el 2026-10-05: "creo que podemos eliminar cosas del `justfile`,
@@ -161,3 +161,14 @@ al mergear no hay nada que instalar.
 
 Lo que no corrí: las recetas de los experimentos, y `datos` y
 `datos-vuelta`, que sólo cambiaron su comentario.
+
+# Lo que decidió taro
+
+El 2026-10-05: "Me gustan todas tus propuestas para el justfile! Y la verdad
+que no instalo nada de esto ni lo corro en el host, así que no lo tengas en
+cuenta por ese lado. Si corro algo a mano, lo haré dentro del contenedor, y
+te preguntaré primero". O sea, las seis preguntas, sí: las `<crate>-test`
+en una, sin la limpieza de symlinks de `_install`, un solo `pruebas` con la
+carpeta, sin `build`, las herramientas que nombran recetas de ABL (que acá
+iban como tarea aparte y van en ésta), y sin las recetas de los
+experimentos cerrados, salvo `msu-puerto`.
