@@ -114,14 +114,15 @@ pub fn scale(value: i64) -> i64 {
     std::cmp::max(1, (value * SCALE_NUM + SCALE_DEN / 2).div_euclid(SCALE_DEN))
 }
 
-/// The file of a backdrop or a battler, or None if the game does not have
-/// it; with `rtp`, looked up in the RTP too, as RM2k does. Only the
-/// backdrops ask for it.
-fn find_file(game: &Game, rtp: &Path, folder: &str, name: &str, with_rtp: bool) -> Option<PathBuf> {
-    let mut places = vec![game.game_dir.clone()];
-    if with_rtp {
-        places.push(rtp.to_path_buf());
-    }
+/// The file of a backdrop or a battler: the game's, or else the RTP's, as
+/// RM2k looks it up; None if neither has it.
+///
+/// Until 2026-10-05 the battlers did not look in the RTP —it was left for
+/// later "so as not to change which ones get in without looking at it"—, and
+/// an enemy whose picture is the RTP's (its `Troll`, its `Hog`) went into
+/// the battle with no picture at all, without a word in the log.
+fn find_file(game: &Game, rtp: &Path, folder: &str, name: &str) -> Option<PathBuf> {
+    let places = [game.game_dir.clone(), rtp.to_path_buf()];
     resources::find(&places, folder, name, &[".png", ".bmp", ".xyz"]).map(rm2k_project::absolute)
 }
 
@@ -509,7 +510,7 @@ pub fn rom_scene(
     }
     let scene = scene_settings();
     let found = |list: &[String], quality: bool, light: bool| -> Result<Vec<(Option<Value>, Option<Value>)>> {
-        let paths: Vec<Option<PathBuf>> = list.iter().map(|n| find_file(game, rtp, "Backdrop", n, true)).collect();
+        let paths: Vec<Option<PathBuf>> = list.iter().map(|n| find_file(game, rtp, "Backdrop", n)).collect();
         let wanted: Vec<(PathBuf, bool, bool)> =
             paths.iter().flatten().map(|p| (p.clone(), quality, light)).collect();
         let mut answers = images::backdrops(&scene, &wanted)?.into_iter();
@@ -565,7 +566,12 @@ pub fn rom_scene(
             }
         }
     }
-    let paths: Vec<Option<PathBuf>> = asked.iter().map(|(n, _)| find_file(game, rtp, "Monster", n, false)).collect();
+    let paths: Vec<Option<PathBuf>> = asked.iter().map(|(n, _)| find_file(game, rtp, "Monster", n)).collect();
+    for ((name, _), path) in asked.iter().zip(&paths) {
+        if path.is_none() {
+            println!("  battler {} is neither in the game nor in the RTP: its enemies fight with no picture", repr(name));
+        }
+    }
     let mut answers = images::battlers(
         &scene,
         &asked.iter().zip(&paths).filter_map(|((_, hue), p)| p.clone().map(|p| (p, *hue))).collect::<Vec<_>>(),
