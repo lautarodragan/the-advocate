@@ -159,7 +159,8 @@ face:
     sec
     sbc #12
     ; Also over `hero_lock`: `UpdateMoveRoute` does `SetFacing` straight
-    ; for the `face_*`, without `UpdateFacing`.
+    ; for the `face_*`, without `UpdateFacing`, after their `SetDirection`.
+    sta hero_heading
     sta hero_dir                ; face_*: with frequency 8 it is instant and the
     lda route_freq              ; next one follows; with another, it stands
     jsr after_turn              ; still for the turn's frames
@@ -171,11 +172,15 @@ turn_wait:
     jmp ready
 
 ; 26 locks the facing and 27 releases it, so the low bit inverted is the
-; value. It stays after the route: see `try_toward`.
+; value. It stays after the route: see `try_toward`. Unlocked, RM2k's
+; `direction` is always the `facing`, so locking starts `hero_heading` from
+; `hero_dir`: a boot or a load leave the first stale.
 lock_hero:
     and #$01
     eor #$01
     sta hero_lock
+    lda hero_dir
+    sta hero_heading
     jmp other_command
 
 ; `change_graphic` **on the hero**: 34 with its operand, the graphic's index in

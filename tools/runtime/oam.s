@@ -176,14 +176,17 @@ with_end:
     ; wanted to go. RM2k then retries the jump, which here is skipped —see
     ; `step_route`—; the turn is the part of it that shows. In place nothing
     ; changes: RM2k only sets the facing when the jump moves, and not over a
-    ; `lock_facing`, which on the hero is `hero_lock`.
+    ; `lock_facing`, which on the hero is `hero_lock`; its `SetDirection`,
+    ; which is `hero_heading`, it does over the lock too.
     ; See `test_salto_bloqueado.py`.
     lda jump_dx
     ora jump_dy
     beq no_turn
+    jsr jump_direction
+    sta hero_heading
     lda hero_lock
     bne no_turn
-    jsr jump_direction
+    lda hero_heading
     sta hero_dir
 no_turn:
     rep #$20

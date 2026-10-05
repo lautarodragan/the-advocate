@@ -168,11 +168,10 @@ no_right:
 ; A step of the hero toward direction A, from the pad or from a route. It is
 ; `Game_Character::Move`: `SetDirection` and then `UpdateFacing`, which with
 ; `lock_facing` leaves alone the `facing` —what is drawn—. Here there is only
-; `hero_dir` for both, and `can_enter` reads the step's direction from it, so
-; it takes A for the attempt and gets back the one it had if `hero_lock` is
-; on. That is why the action key of a locked hero looks where it faces and
-; not where it last tried to go, which RM2k's `GetDirection` would: declared,
-; no case in the game presses it locked.
+; `hero_dir` for both while it walks, and `can_enter` reads the step's
+; direction from it, so it takes A for the attempt and gets back the one it
+; had if `hero_lock` is on. What RM2k's `direction` keeps after that, for the
+; action key, goes to `hero_heading`.
 ;
 ; Anything that is not up, right or down goes left, by elimination: it is
 ; why diagonals do not reach the hero —see `step_route`—.
@@ -184,6 +183,7 @@ no_right:
     pha                         ; the facing it had
     xba
     sta hero_dir
+    sta hero_heading
     cmp #DIR_UP
     bne not_up
     jsr try_up

@@ -303,7 +303,15 @@ look_ahead:
     sta cell_y
     sep #$20
 .a8
+    ; The cell of `GetDirection`, not of the `facing`: locked, the two part,
+    ; and it is the way he last tried to go. See `hero_heading`.
+    lda hero_lock
+    beq look_facing
+    lda hero_heading
+    bra look_heading
+look_facing:
     lda hero_dir
+look_heading:
     cmp #DIR_UP
     bne no_up
     rep #$20
