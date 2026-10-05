@@ -282,9 +282,9 @@ pub fn escape_tail(lines: &[String]) -> Step<(Vec<String>, usize, bool)> {
 
 /// The units of what fits of a line: each letter as its font index, that is
 /// ASCII minus 32 —the cursor's blank, DEL, is 95—, and each variable mark
-/// as its slot; a letter the font does not have stops the conversion. All of
-/// the game's text fits there: it was measured, and it does not have a
-/// single accented letter.
+/// as its slot; a letter the font does not have is an error. `Messages::add`
+/// asks first, and stops the page that shows one: A Blurred Line does not
+/// have a single accented letter, but a game in French or German does.
 fn units(text: &str, window: Window) -> Result<Vec<Unit>> {
     window
         .fit(text)
@@ -459,6 +459,11 @@ impl Messages {
             .take(self.window.lines)
             .map(|t| self.window.fit(t))
             .collect();
+        // A letter the console's font does not have stops this page and not
+        // the game: RM2k's font has Latin-1 and the console's only ASCII.
+        if lines.iter().any(|t| units(t, self.window).is_err()) {
+            return Err(Stop::Cannot);
+        }
         let key = (lines, pauses, auto_close);
         if let Some(&w) = self.where_.get(&key) {
             return Ok(w / self.step);
@@ -546,6 +551,17 @@ mod tests {
         assert_eq!(m.add(&s(&["C"])).ok(), Some(1));
         assert_eq!(m.bytes(), [1, 1, 33, 0, 1, 1, 35]);
     }
+    /// A letter the console's font does not have —RM2k's has Latin-1, and
+    /// the games in French or German use it— stops the page that shows it,
+    /// and not the whole game: it is one more thing a page cannot compile.
+    #[test]
+    fn a_letter_the_font_does_not_have_stops_the_page() {
+        let mut m = Messages::new(1, WINDOW);
+        assert!(matches!(m.add(&s(&["Côte"])), Err(Stop::Cannot)));
+        assert_eq!(m.count(), 0);
+        assert_eq!(m.add(&s(&["Cote"])).ok(), Some(0));
+    }
+
     #[test]
     fn two_boxes_with_the_same_text_and_another_tail_are_two() {
         // One waits for the player and the other does not.
