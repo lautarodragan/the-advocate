@@ -1218,3 +1218,785 @@ end:
     pla
     rts
 .endproc
+
+; --- `ChangeExp` and `ChangeLevel` from an event ----------------------------
+;
+; OP_EXP, since 2026-10-04: easyrpg's `CommandChangeExp` and
+; `CommandChangeLevel`, which are `Game_Actor::ChangeExp(GetExp() + value)`
+; and `ChangeLevel(GetLevel() + value)` on each actor of the target. Going up
+; it learns what the levels it went through teach, as `exp_add` does after a
+; battle; going down it forgets nothing, and the experience drops to the new
+; level's base only if it had reached the next one. Either way, `SetLevel`
+; leaves no HP nor SP above the new level's maximum.
+;
+; With `EXP_WITH_MESSAGE` it also notes the lines of the level-up message
+; —see `LVL` in far_ram.s— for the `OP_LEVEL_PAGE` the compiler puts right
+; behind: `level_page`, further down.
+;
+; `what` carries bits, which the compiler writes with the same numbers:
+; `EXP_*` in its `compile.rs`.
+EXP_BY_LEVELS    = $01
+EXP_WITH_MESSAGE = $02
+EXP_BY_VARIABLE  = $20
+EXP_SUBTRACTS    = $80
+
+; Entered from `op_exp` with Y on the operands —the actor, 0 the whole
+; party; `what`; the amount, 24 bits, or the variable's slot in its low
+; byte— and returns with Y after them. Runs with the data bank at $7E, like
+; `exp_add`, so the far RAM goes with sixteen-bit addresses and the
+; cartridge's tables with `f:`. Clobbers A, X and the `LVL_*`.
+.proc exp_change
+.a8
+.i16
+    phb
+    lda #$7E
+    pha
+    plb
+    lda [code_ptr], y           ; the actor, 0 the whole party
+    iny
+    pha
+    lda [code_ptr], y           ; what
+    iny
+    sta LVL_WHAT
+    rep #$20
+.a16
+    lda [code_ptr], y           ; the amount, or the variable's slot
+    sta LVL_AMOUNT
+    iny
+    iny
+    sep #$20
+.a8
+    lda [code_ptr], y
+    iny
+    sta LVL_AMOUNT + 2
+    stz LVL_AMOUNT + 3
+    phy                         ; stack = cursor, target
+    lda LVL_WHAT
+    and #EXP_BY_VARIABLE
+    beq constant
+    ; A variable is sixteen bits and signed, and `OperateValue` takes it as
+    ; it is: a negative one that adds takes away.
+    rep #$20
+.a16
+    lda LVL_AMOUNT
+    and #$00FF
+    asl a
+    tax
+    lda FAR_VARIABLES, x
+    sta LVL_AMOUNT
+    bpl positive                ; the `lda`'s N: `sta` does not touch it
+    lda #$FFFF
+    bra extended
+positive:
+    lda #0
+extended:
+    sta LVL_AMOUNT + 2
+    sep #$20
+.a8
+constant:
+    lda LVL_WHAT
+    bpl adds                    ; EXP_SUBTRACTS is bit 7
+    rep #$20
+.a16
+    lda #0
+    sec
+    sbc LVL_AMOUNT
+    sta LVL_AMOUNT
+    lda #0
+    sbc LVL_AMOUNT + 2
+    sta LVL_AMOUNT + 2
+    sep #$20
+.a8
+adds:
+    ; No lines yet, with a message or without: that way `level_page` never
+    ; reads what an earlier one left, nor the WRAM's garbage.
+    stz LVL_N
+    stz LVL_AT
+    lda 3, s                    ; the target
+    bne one
+    ; Up to `party_n`, like `heal`: the slots past it are not cleared.
+    ldx #0
+slot:
+    cpx party_n
+    bcs ready
+    lda party, x
+    phx
+    jsr exp_one
+    plx
+    inx
+    bra slot
+one:
+    jsr exp_one
+ready:
+    ply
+    pla
+    plb
+    rtl
+.endproc
+
+; OP_EXP's change on actor A8. One with no experience slot —one that can
+; never be in the party— changes nothing. Clobbers A, X and Y.
+.proc exp_one
+.a8
+.i16
+    sta LVL_ACTOR
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda f:actor_exp_k, x
+    cmp #$FF
+    bne has
+    rts
+has:
+    rep #$20
+.a16
+    and #$00FF
+    sta LVL_K
+    asl a
+    asl a
+    sta LVL_OFS
+    tax
+    sep #$20
+.a8
+    lda FAR_EXP + EXP_LEVEL, x
+    sta LVL_OLD
+    sta LVL_NEW
+    lda LVL_WHAT
+    and #EXP_BY_LEVELS
+    bne by_levels
+    jmp by_exp
+
+by_levels:
+    ; `ChangeLevel(GetLevel() + value)`, which `SetLevel` clamps between 1
+    ; and `GetMaxLevel()`. The sum goes in 32 bits, because the value can be
+    ; a variable's.
+    rep #$20
+.a16
+    lda LVL_OLD
+    and #$00FF
+    clc
+    adc LVL_AMOUNT
+    sta LVL_VALUE
+    lda #0
+    adc LVL_AMOUNT + 2          ; the high word: negative, zero or more
+    sep #$20                    ; `sep` does not touch the flags
+.a8
+    bmi to_one
+    bne to_max
+    lda LVL_VALUE + 1
+    bne to_max                  ; 256 or more
+    lda LVL_VALUE
+    beq to_one
+    ldx LVL_K
+    cmp f:exp_level_max, x
+    bcc chosen
+to_max:
+    ldx LVL_K
+    lda f:exp_level_max, x
+    bra chosen
+to_one:
+    lda #1
+chosen:
+    sta LVL_NEW
+    cmp LVL_OLD
+    beq same
+    jmp set_level
+same:
+    rts
+
+by_exp:
+    ; `ChangeExp(GetExp() + value)`: the sum, in 32 bits, clamped between 0
+    ; and `MaxExpValue()`.
+    ldx LVL_OFS
+    rep #$20
+.a16
+    lda FAR_EXP, x
+    clc
+    adc LVL_AMOUNT
+    sta LVL_VALUE
+    sep #$20
+.a8
+    lda FAR_EXP + 2, x
+    adc LVL_AMOUNT + 2
+    sta LVL_VALUE + 2
+    lda #0
+    adc LVL_AMOUNT + 3
+    sta LVL_VALUE + 3
+    bmi zero                    ; the `adc`'s N
+    bne cap                     ; past 24 bits
+    lda LVL_VALUE + 2
+    cmp #EXP_CAP_HI
+    bcc in_range
+    bne cap
+    rep #$20
+.a16
+    lda LVL_VALUE
+    cmp #(EXP_CAP_LO + 1)
+    sep #$20
+.a8
+    bcc in_range
+cap:
+    rep #$20
+.a16
+    lda #EXP_CAP_LO
+    sta LVL_VALUE
+    sep #$20
+.a8
+    lda #EXP_CAP_HI
+    sta LVL_VALUE + 2
+    bra in_range
+zero:
+    rep #$20
+.a16
+    stz LVL_VALUE
+    sep #$20
+.a8
+    stz LVL_VALUE + 2
+in_range:
+    ; Up or down against what it had, which is easyrpg's `new_exp >
+    ; GetExp()` and `new_exp < GetExp()`: equal, the level stays.
+    ldx LVL_OFS
+    lda LVL_VALUE + 2
+    cmp FAR_EXP + 2, x
+    bne compared
+    rep #$20
+.a16
+    lda LVL_VALUE
+    cmp FAR_EXP, x
+    sep #$20
+.a8
+compared:
+    beq store
+    bcc down
+up:
+    ; Up while it reaches the next level's, and not past the cap.
+    ldx LVL_K
+    lda LVL_NEW
+    cmp f:exp_level_max, x
+    bcs store
+    jsr exp_row                 ; `GetNextExp(level)`
+    jsr exp_reaches
+    bcc store
+    inc LVL_NEW
+    bra up
+down:
+    ; Down while it does not reach the current level's, and not below 1.
+    lda LVL_NEW
+    cmp #2
+    bcc store
+    dec a
+    jsr exp_row                 ; `GetNextExp(level - 1)`
+    jsr exp_reaches
+    bcs store
+    dec LVL_NEW
+    bra down
+store:
+    ldx LVL_OFS
+    rep #$20
+.a16
+    lda LVL_VALUE
+    sta FAR_EXP, x
+    sep #$20
+.a8
+    lda LVL_VALUE + 2
+    sta FAR_EXP + 2, x
+    lda LVL_NEW
+    cmp LVL_OLD
+    bne set_level
+    rts
+
+set_level:
+    ; `ChangeLevel(LVL_NEW)`: the level, and what going up or down does.
+    ldx LVL_OFS
+    lda LVL_NEW
+    sta FAR_EXP + EXP_LEVEL, x
+    rep #$20
+.a16
+    lda FAR_EXP, x
+    sta LVL_VALUE
+    sep #$20
+.a8
+    lda FAR_EXP + 2, x
+    sta LVL_VALUE + 2
+    lda LVL_NEW
+    cmp LVL_OLD
+    bcc lower
+    ; Going up: its line, if there is a message, then what the levels it
+    ; went through teach, and the experience up to the new level's base if
+    ; it was below.
+    xba
+    lda LVL_ACTOR
+    rep #$20
+.a16
+    ora #$8000                  ; `$8000 | level << 8 | actor`
+    jsr exp_note
+    sep #$20
+.a8
+    jsr exp_learn
+    lda LVL_NEW
+    dec a
+    jsr exp_row                 ; `GetBaseExp()`
+    jsr exp_reaches
+    bcs clamp
+    jsr exp_put_row
+    bra clamp
+lower:
+    ; Going down: the new level's base, if it had the next one's.
+    jsr exp_row                 ; `GetNextExp()`, the new level's row
+    jsr exp_reaches
+    bcc clamp
+    lda LVL_NEW
+    dec a
+    jsr exp_row
+    jsr exp_put_row
+clamp:
+    ; And `SetLevel`'s `SetHp(GetHp())` and `SetSp(GetSp())`: neither stays
+    ; above the maximum of the level it is at now.
+    lda LVL_ACTOR
+    ldy #0
+    jsl f:level_param
+    stx LVL_T
+    rep #$20
+.a16
+    lda LVL_ACTOR
+    and #$00FF
+    asl a
+    tax
+    lda LVL_T
+    cmp FAR_HP, x
+    bcs hp_fits
+    sta FAR_HP, x
+hp_fits:
+    sep #$20
+.a8
+    lda LVL_ACTOR
+    ldy #1
+    jsl f:level_param
+    stx LVL_T
+    rep #$20
+.a16
+    lda LVL_ACTOR
+    and #$00FF
+    asl a
+    tax
+    lda LVL_T
+    cmp FAR_SP, x
+    bcs sp_fits
+    sta FAR_SP, x
+sp_fits:
+    sep #$20
+.a8
+    rts
+.endproc
+
+; Row A8 of the actor's curve in `exp_table` —`GetNextExp(A)`, what it
+; takes to go from level A to the next— into `LVL_T`. Clobbers A and X.
+.proc exp_row
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    sta LVL_T
+    lda LVL_K
+    asl a
+    tax
+    lda f:exp_curve, x
+    clc
+    adc LVL_T
+    tax
+    lda f:exp_table, x
+    sta LVL_T
+    lda f:exp_table + 2, x
+    sta LVL_T + 2
+    sep #$20
+.a8
+    rts
+.endproc
+
+; C if `LVL_VALUE` reaches `LVL_T`, both 24 bits.
+.proc exp_reaches
+.a8
+.i16
+    lda LVL_VALUE + 2
+    cmp LVL_T + 2
+    bne ready
+    rep #$20
+.a16
+    lda LVL_VALUE
+    cmp LVL_T
+    sep #$20
+.a8
+ready:
+    rts
+.endproc
+
+; `LVL_T`, 24 bits, as the actor's experience. Clobbers A and X.
+.proc exp_put_row
+.a8
+.i16
+    ldx LVL_OFS
+    rep #$20
+.a16
+    lda LVL_T
+    sta FAR_EXP, x
+    sep #$20
+.a8
+    lda LVL_T + 2
+    sta FAR_EXP + 2, x
+    rts
+.endproc
+
+; A16 as one more line of the message, if OP_EXP asked for it and it fits:
+; past `LVL_LINES_MAX` the rest are not shown, and are still learned.
+; Returns with A16 as it came. Clobbers X.
+.proc exp_note
+.a16
+.i16
+    pha
+    sep #$20
+.a8
+    lda LVL_WHAT
+    and #EXP_WITH_MESSAGE
+    beq skip
+    lda LVL_N
+    cmp #LVL_LINES_MAX
+    bcs skip
+    inc LVL_N
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    pla
+    sta LVL_LINES, x
+    rts
+skip:
+    rep #$20
+.a16
+    pla
+    rts
+.endproc
+
+; `LearnLevelSkills(LVL_OLD + 1, LVL_NEW)` for the actor: each of its pairs
+; the LDB's table teaches at those levels. One it already knew changes
+; nothing and is not announced —`LearnSkill`—; one it did not sets its bit
+; and notes its line.
+;
+; **Level by level**, like the victory's page, and not in one pass over the
+; pairs: the pairs go by skill number and RM2k goes in its table's order,
+; which the editor keeps by level. Two skills at the same level come out in
+; the pairs' order, which can differ from the table's; in ABL no actor
+; learns two at once. Uses `LVL_T` —the pair, how many are left, the bit—
+; and `LVL_LEFT` —the level—, and clobbers A, X and Y.
+.proc exp_learn
+.a8
+.i16
+    lda LVL_OLD
+    sta LVL_LEFT                ; the level being looked at, from the next one
+level:
+    lda LVL_LEFT
+    cmp LVL_NEW
+    bcs ready
+    inc LVL_LEFT
+    rep #$20
+.a16
+    lda LVL_ACTOR
+    and #$00FF
+    pha
+    asl a
+    tax
+    lda f:skill_pair_init, x
+    sta LVL_T                   ; the pair being looked at
+    plx                         ; the actor
+    sep #$20
+.a8
+    lda f:skill_pair_n, x
+    beq ready                   ; no pairs at all
+    sta LVL_T + 2               ; how many it has left
+pair:
+    ldx LVL_T
+    lda f:skill_pair_level, x
+    cmp LVL_LEFT
+    bne next
+taught:
+    rep #$20
+.a16
+    txa
+    lsr a
+    lsr a
+    lsr a
+    tay                         ; its byte in `FAR_SKILL`
+    txa
+    and #$0007
+    tax
+    sep #$20
+.a8
+    lda f:mask, x
+    sta LVL_T + 3
+    tyx
+    and FAR_SKILL, x
+    bne next                    ; known already
+    lda LVL_T + 3
+    ora FAR_SKILL, x
+    sta FAR_SKILL, x
+    rep #$20
+.a16
+    lda LVL_T
+    jsr exp_note
+    sep #$20
+.a8
+next:
+    rep #$20
+.a16
+    inc LVL_T
+    sep #$20
+.a8
+    dec LVL_T + 2
+    bne pair
+    bra level
+ready:
+    rts
+.endproc
+
+; --- the level-up message, a page at a time ----------------------------------
+;
+; `OP_LEVEL_PAGE`: the lines `exp_change` noted, as RM2k's `PendingMessage`
+; shows them —`ChangeLevel` pushes the level line, `LearnSkill` one per
+; skill and then a page end—: four lines a page, and each actor from the top
+; of its own. The words come from the LDB through the cartridge's text
+; table —the actor's name, `level`, `level_up` and `skill_learned`, and the
+; skill's— and are put together as the victory does, `ba_vic_message`, which
+; is `game_message_terms.cpp` for English RM2k: "<name> <level>
+; <n><level_up>" and "<skill><skill_learned>".
+;
+; In a troop page it shows nothing: the battle's window is not the map's.
+; The levels change all the same.
+
+; Returns C clear if no line is left, and the page goes on. With C set, A8
+; nonzero if the next page is composed and `msg_ptr` is on it, or zero if a
+; parallel has to wait for another's window, as `op_message` waits. Y as it
+; came. Runs with the data bank at $7E.
+.proc level_page
+.a8
+.i16
+    phy
+    phb
+    lda #$7E
+    pha
+    plb
+    lda pair_ev
+    cmp #PAIR_BATTLE
+    beq none
+    lda LVL_AT
+    cmp LVL_N
+    bcs none
+    lda pair_ev
+    cmp #$FF
+    beq open                    ; the foreground: nothing is open
+    lda msg_open
+    ora msg_state
+    ora pick_active
+    beq open
+    lda #0
+    bra stays
+none:
+    plb
+    ply
+    clc
+    rtl
+open:
+    lda pair_ev
+    sta msg_owner               ; $FF if the foreground opens it
+    stz msg_open
+    stz pick_active
+    jsr level_compose
+    rep #$20
+.a16
+    lda #.loword(LVL_BOX)
+    sta msg_ptr
+    sep #$20
+.a8
+    lda #^LVL_BOX
+    sta msg_ptr + 2
+    lda #1
+stays:
+    plb
+    ply
+    sec
+    rtl
+.endproc
+
+; One page into `LVL_BOX`, from line `LVL_AT`: up to four lines, and a
+; level line only at the top. Advances `LVL_AT`. Clobbers A, X, Y and
+; `msg_ptr`, which it reads the texts through.
+.proc level_compose
+.a8
+.i16
+    rep #$20
+.a16
+    lda #1                      ; past the header
+    sta LVL_CUR
+    sep #$20
+.a8
+    stz LVL_ROWS
+line:
+    lda LVL_AT
+    cmp LVL_N
+    bcs done
+    lda LVL_ROWS
+    cmp #4
+    bcc more
+done:
+    lda LVL_ROWS
+    sta f:LVL_BOX               ; the header: how many lines, and nothing else
+    rts
+more:
+    lda LVL_AT
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda LVL_LINES, x
+    sta LVL_T
+    sep #$20
+.a8
+    bit LVL_T + 1               ; N: bit 15, a level line
+    bpl a_skill
+    lda LVL_ROWS
+    bne done                    ; another actor: on a page of its own
+    jsr line_start
+    lda LVL_T                   ; the actor
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda f:actor_txt, x
+    tax
+    sep #$20
+.a8
+    jsr put_text
+    lda #' '
+    jsr put_letter
+    ldx #BA_TXT_LEVEL
+    jsr put_text
+    lda #' '
+    jsr put_letter
+    lda LVL_T + 1
+    and #$7F                    ; the level
+    jsr put_number
+    ldx #BA_TXT_LEVEL_UP
+    jsr put_text
+    bra line_end
+a_skill:
+    jsr line_start
+    rep #$20
+.a16
+    lda LVL_T                   ; the pair
+    asl a
+    tax
+    lda f:skill_pair_learns_txt, x
+    tax
+    sep #$20
+.a8
+    cpx #$FFFF
+    beq unnamed                 ; a pair the cartridge has no name for
+    jsr put_text
+unnamed:
+    ldx #BA_TXT_LEARNED
+    jsr put_text
+line_end:
+    ldx LVL_START
+    lda LVL_LEN
+    sta f:LVL_BOX, x            ; its length, before its letters
+    inc LVL_ROWS
+    inc LVL_AT
+    jmp line
+
+line_start:
+    ldx LVL_CUR
+    stx LVL_START
+    inx
+    stx LVL_CUR
+    stz LVL_LEN
+    rts
+.endproc
+
+; Text X of the cartridge's text table —`item_txt_*`, ASCII— onto the line.
+; Clobbers A, X, Y and `msg_ptr`.
+.proc put_text
+.a8
+.i16
+    lda f:item_txt_lo, x
+    sta msg_ptr
+    lda f:item_txt_hi, x
+    sta msg_ptr + 1
+    lda f:item_txt_bk, x
+    sta msg_ptr + 2
+    lda f:item_txt_n, x
+    beq empty
+    sta LVL_LEFT
+    ldy #0
+letter:
+    lda [msg_ptr], y
+    jsr put_letter
+    iny
+    dec LVL_LEFT
+    bne letter
+empty:
+    rts
+.endproc
+
+; Letter A8, in ASCII, onto the line in the font's numbering, unless the
+; line already has `LVL_LINE_MAX`: the window would cut it before anyway.
+; Clobbers X.
+.proc put_letter
+.a8
+.i16
+    pha
+    lda LVL_LEN
+    cmp #LVL_LINE_MAX
+    pla                         ; `pla` does not touch C
+    bcs full
+    sec
+    sbc #' '
+    ldx LVL_CUR
+    sta f:LVL_BOX, x
+    inx
+    stx LVL_CUR
+    inc LVL_LEN
+full:
+    rts
+.endproc
+
+; A8, below a hundred, without leading zeros. Clobbers A, X and Y.
+.proc put_number
+.a8
+.i16
+    cmp #10
+    bcc units
+    ldy #0
+tens:
+    cmp #10
+    bcc has_tens
+    sbc #10                     ; C comes from the comparison
+    iny
+    bra tens
+has_tens:
+    pha
+    tya
+    ora #'0'
+    jsr put_letter
+    pla
+units:
+    ora #'0'
+    jsr put_letter
+    rts
+.endproc

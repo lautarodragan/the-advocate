@@ -102,6 +102,88 @@ pub fn add_exp(actor: &Actor, mut level: i64, exp: i64, amount: i64) -> (i64, i6
     (level.min(max_level(actor)), new_exp)
 }
 
+/// `Game_Actor::GetBaseExp()` at `level`: what it takes to have reached it,
+/// `GetNextExp(level - 1)`.
+pub fn base_exp(actor: &Actor, level: i64) -> i64 {
+    next_exp(actor, level - 1).max(0)
+}
+
+/// Where an actor stands: its level, its experience and the skills it
+/// knows, sorted. It is what `ChangeExp` and `ChangeLevel` move.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Standing {
+    pub level: i64,
+    pub exp: i64,
+    pub skills: Vec<i32>,
+}
+
+impl Standing {
+    /// `Game_Actor::ChangeLevel(level)`: `SetLevel` clamps it between 1 and
+    /// [`max_level`]; going up it learns what its table teaches at the
+    /// levels it went through, and the experience goes up to the new
+    /// level's base if it was below; going down, the experience drops to
+    /// the new level's base if it had reached the next one. Going down it
+    /// forgets nothing, as in RM2k.
+    ///
+    /// Returns the skills it learned and did not know, in the order of its
+    /// table: that is `LearnLevelSkills`' order, and the level-up message
+    /// names them in it, because `LearnSkill` only announces a new one.
+    pub fn change_level(&mut self, actor: &Actor, level: i64) -> Vec<i32> {
+        let old = self.level;
+        self.level = level.clamp(1, max_level(actor));
+        let mut learned = Vec::new();
+        if self.level > old {
+            for l in &actor.skills {
+                let at = l.level as i64;
+                if l.skill_id != 0
+                    && old < at
+                    && at <= self.level
+                    && !self.skills.contains(&l.skill_id)
+                {
+                    self.skills.push(l.skill_id);
+                    learned.push(l.skill_id);
+                }
+            }
+            self.skills.sort_unstable();
+            self.exp = self.exp.max(base_exp(actor, self.level));
+        } else if self.level < old && self.exp >= next_exp(actor, self.level) {
+            self.exp = base_exp(actor, self.level);
+        }
+        learned
+    }
+
+    /// `Game_Actor::ChangeExp(exp)`: the experience clamped to
+    /// [`EXP_MAX`], and the level that goes with it —up while the next
+    /// level's is reached, down while the current one's is not—, through
+    /// [`Standing::change_level`]. Returns what that one learned.
+    pub fn change_exp(&mut self, actor: &Actor, exp: i64) -> Vec<i32> {
+        let new_exp = exp.clamp(0, EXP_MAX);
+        let mut level = self.level;
+        if new_exp > self.exp {
+            for _ in self.level + 1..=max_level(actor) {
+                let next = next_exp(actor, level);
+                if next != -1 && next > new_exp {
+                    break;
+                }
+                level += 1;
+            }
+        } else if new_exp < self.exp {
+            for i in (2..=self.level).rev() {
+                if new_exp >= next_exp(actor, i - 1) {
+                    break;
+                }
+                level -= 1;
+            }
+        }
+        self.exp = new_exp;
+        if level != self.level {
+            self.change_level(actor, level)
+        } else {
+            Vec::new()
+        }
+    }
+}
+
 /// The cap of attack, defense, spirit and agility: `Game_Actor::GetAtk`
 /// and its siblings clamp them to 1..`PARAM_MAX`.
 pub const PARAM_MAX: i64 = 999;
@@ -290,6 +372,65 @@ mod tests {
         change_equipment(&mut equipment, &mut inventory, SLOT_SHIELD, 0, two_handed).unwrap();
         assert_eq!(equipment, [0; 5]);
         assert_eq!(inventory[&3], 1);
+    }
+
+    fn learner() -> Actor {
+        let row = |level: i32, skill_id: i32| ditto::schema::Learning {
+            level,
+            skill_id,
+            ..Default::default()
+        };
+        Actor {
+            initial_level: 1,
+            final_level: 10,
+            exp_base: 30,
+            exp_inflation: 30,
+            skills: vec![row(1, 1), row(3, 7), row(3, 5), row(5, 9)],
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn changing_the_level_learns_on_the_way_up_and_forgets_nothing_down() {
+        let a = learner();
+        let mut s = Standing { level: 1, exp: 0, skills: vec![1, 5] };
+        assert_eq!(s.change_level(&a, 4), vec![7]);
+        assert_eq!((s.level, s.exp), (4, base_exp(&a, 4)));
+        assert_eq!(s.skills, vec![1, 5, 7]);
+        assert_eq!(s.change_level(&a, 99), vec![9]);
+        assert_eq!(s.level, 10);
+        assert_eq!(s.change_level(&a, 2), Vec::<i32>::new());
+        assert_eq!((s.level, s.exp), (2, base_exp(&a, 2)));
+        assert_eq!(s.skills, vec![1, 5, 7, 9]);
+        s.change_level(&a, -3);
+        assert_eq!((s.level, s.exp), (1, 0));
+    }
+
+    #[test]
+    fn changing_the_experience_moves_the_level_both_ways() {
+        let a = learner();
+        let mut s = Standing { level: 1, exp: 0, skills: vec![1] };
+        let enough = next_exp(&a, 3);
+        assert_eq!(s.change_exp(&a, enough), vec![7, 5]);
+        assert_eq!((s.level, s.exp), (4, enough));
+        let below = next_exp(&a, 2) - 1;
+        assert_eq!(s.change_exp(&a, below), Vec::<i32>::new());
+        assert_eq!((s.level, s.exp), (2, below));
+        s.change_exp(&a, 5_000_000);
+        assert_eq!((s.level, s.exp), (10, EXP_MAX));
+        s.change_exp(&a, -1);
+        assert_eq!((s.level, s.exp), (1, 0));
+    }
+
+    #[test]
+    fn adding_experience_agrees_with_add_exp() {
+        let a = learner();
+        for amount in [0, 1, 50, 300, 4000] {
+            let start = base_exp(&a, 2);
+            let mut s = Standing { level: 2, exp: start, skills: vec![] };
+            s.change_exp(&a, start + amount);
+            assert_eq!((s.level, s.exp), add_exp(&a, 2, start, amount));
+        }
     }
 
     #[test]

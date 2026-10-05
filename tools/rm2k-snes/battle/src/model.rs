@@ -12,6 +12,7 @@ use crate::screen::{
     self, BA_ENEMY_NAME_WIDTH, BA_ITEM_NAME_WIDTH, BA_NAME_WIDTH, BA_SKILL_NAME_WIDTH,
     BA_STATE_WIDTH,
 };
+use rm2k_rules::actor::Standing;
 use rm2k_snes_text::cells;
 use rm2k_snes_text::font::Font;
 use crate::simulate::{self, Battle, Combatant, Command, TroopPage, BATTLE_SEED};
@@ -27,6 +28,8 @@ pub const SIMULATE_FILE: &str = "simulate.json";
 pub const LINES_FILE: &str = "lines.json";
 /// The file `layout` writes.
 pub const LAYOUT_FILE: &str = "layout.json";
+/// The file `experience` writes.
+pub const EXPERIENCE_FILE: &str = "experience.json";
 
 /// A request file, parsed.
 pub fn read_request(path: &Path) -> Result<Value> {
@@ -558,6 +561,60 @@ pub fn lines(db: &Db, request: &Value) -> Result<Value> {
         });
     }
     Ok(json!({"lines": out}))
+}
+
+/// What a `ChangeExp` or a `ChangeLevel` leaves, one change per entry:
+///
+/// ```json
+/// {"changes": [{"actor": 15, "level": 3, "exp": 90, "skills": [147],
+///               "exp_by": 500},
+///              {"actor": 15, "level": 3, "exp": 90, "skills": [147],
+///               "levels_by": -2}]}
+/// ```
+///
+/// Each from where the actor stands —`level`, `exp`, the `skills` it
+/// knows—, by `exp_by` experience or by `levels_by` levels: easyrpg's
+/// `ChangeExp(GetExp() + exp_by)` and `ChangeLevel(GetLevel() +
+/// levels_by)`. The answer, per change, is where it was left and the lines
+/// of its level-up message —its level line and one per skill it did not
+/// know— or none if it did not go up, which is what RM2k's
+/// `PendingMessage` gets:
+///
+/// ```json
+/// {"changes": [{"level": 5, "exp": 512, "skills": [140, 147, 148],
+///               "lines": ["Arden LEVEL 5 achieved!", "Wild Slash learned!", "..."]}]}
+/// ```
+pub fn experience(db: &Db, request: &Value) -> Result<Value> {
+    let mut out = Vec::new();
+    for c in list(request, "changes")? {
+        let id = number(field(c, "actor")?, "`actor`")? as i32;
+        let actor = db.actor(id)?;
+        let mut at = Standing {
+            level: number(field(c, "level")?, "`level`")?,
+            exp: number(field(c, "exp")?, "`exp`")?,
+            skills: numbers(field(c, "skills")?, "`skills`")?
+                .into_iter()
+                .map(|h| h as i32)
+                .collect(),
+        };
+        at.skills.sort_unstable();
+        at.skills.dedup();
+        let before = at.level;
+        let learned = match (optional(c, "exp_by"), optional(c, "levels_by")) {
+            (Some(by), None) => at.change_exp(actor, at.exp + number(by, "`exp_by`")?),
+            (None, Some(by)) => at.change_level(actor, at.level + number(by, "`levels_by`")?),
+            _ => return Err(Bad::answer("a change is `exp_by` or `levels_by`, one of the two")),
+        };
+        let mut lines = Vec::new();
+        if at.level > before {
+            lines.push(screen::level_line(db, &actor.name, at.level));
+            for h in learned {
+                lines.push(screen::skill_line(db, &db.skill(h)?.name));
+            }
+        }
+        out.push(json!({"level": at.level, "exp": at.exp, "skills": at.skills, "lines": lines}));
+    }
+    Ok(json!({"changes": out}))
 }
 
 /// The game's font, if the request names it —`font` and `letter_spacing`,

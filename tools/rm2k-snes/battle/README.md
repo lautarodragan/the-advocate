@@ -186,6 +186,21 @@ battle's own.
 `layout` writes the battle screen's geometry, in cells, and the model's
 constants —the seed, the commands, the outcomes—, by name.
 
+## `experience`
+
+What an event's `ChangeExp` or `ChangeLevel` leaves an actor with, from
+where it stands, and the lines of its level-up message —none if it did not
+go up—:
+
+    {"changes": [{"actor": 15, "level": 3, "exp": 90, "skills": [147],
+                  "exp_by": 500},
+                 {"actor": 15, "level": 3, "exp": 90, "skills": [147],
+                  "levels_by": -2}]}
+
+Each change answers its `level`, `exp`, `skills` and `lines`. It is not the
+battle's, but it is the same experience, and the same lines as the
+victory's.
+
 ## Where the numbers come from
 
 The experience curve, the level cap, the starting experience and level are

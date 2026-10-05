@@ -262,10 +262,14 @@ bytecode! {
     /// hero's way; bit 4 that the events go on moving while a page runs.
     OP_MESSAGE_OPTIONS = 0x41 (options: byte);
 
-    /// 0x42 is Yaguareté's, from the sprite slots' cache, which goes in at the
-    /// same time as this: held here so the numbers stay contiguous, and
-    /// replaced by his at the merge.
-    OP_RESERVED_42 = 0x42 ();
+    /// `ChangeExp` and `ChangeLevel`: actor `actor` —0 the whole party—
+    /// gains or loses `amount` of experience or of levels, as
+    /// `Game_Actor::ChangeExp` and `ChangeLevel` do it, with the skills the
+    /// levels it goes through teach. `what` carries bits: levels and not
+    /// experience ($01), note the level-up message for `OP_LEVEL_PAGE`
+    /// ($02), `amount`'s low byte as a variable's slot ($20), and
+    /// subtracting ($80). See `exp_change` in the runtime's `level.s`.
+    OP_EXP = 0x42 (actor: byte, what: byte, amount: long);
 
     /// A big picture's `MovePicture` that zooms: `OP_BIG_MOVE`'s operands and
     /// the size it goes to in the same `frames`, in percent of the size it was
@@ -277,10 +281,13 @@ bytecode! {
         y: signed word, wave: byte, saturation: byte, size: byte,
     );
 
-    /// 0x44 is held for another branch that goes in at the same time as the
-    /// custom menus: held here so the numbers stay contiguous, and replaced
-    /// by its opcode at the merge, or given to the next one.
-    OP_RESERVED_44 = 0x44 ();
+    /// The level-up message of the `OP_EXP` right before it, one page at a
+    /// time: "<name> <level> <n><level_up>" for each actor that went up and
+    /// a line for each skill it did not know, four lines a page and a new
+    /// page for each actor, which is RM2k's `PendingMessage`. It opens each
+    /// page in the map's window and stays on itself until none is left;
+    /// with none, the page goes on. See `level_page` in `level.s`.
+    OP_LEVEL_PAGE = 0x44 ();
 
     /// A custom menu, `menu` by its order in the project's `[menus]`: the
     /// engine's screen, which blocks inside the page like the save screen
