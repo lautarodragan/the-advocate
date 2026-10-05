@@ -760,8 +760,10 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
     for npc in npcs.iter_mut() {
         if who.movable.contains(&npc.event) {
             if npc.changes {
-                // Walking wins over the page's graphic; whether the row is
-                // visible still follows the page.
+                // Its row walks in one slot, with its own pose bank; each
+                // page's graphic reaches that slot from its own bank at run
+                // time —`walker_graphic` in the runtime—, and whether the
+                // row is visible follows the page too.
                 npc.appears = true;
                 npc.changes = false;
             }
