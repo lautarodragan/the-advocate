@@ -2,6 +2,7 @@
 
     rm2k-snes-events scan    --data dump/ --request scan.json    --out build/events/
     rm2k-snes-events compile --data dump/ --request compile.json --out build/events/
+    rm2k-snes-events culprits --data dump/ --request compile.json --out report/ [--every-map]
 
 `cargo build --release`, or `cargo test`. `--help` on any subcommand prints
 what it takes and what it writes.
@@ -162,6 +163,31 @@ slot—, its layer, frequency and speed, its code or null, the events its
 code sends a route to —by index in the map's table, walking the bytecode—,
 its own route if it can be walked, and whether it turns toward the hero. What it **draws**
 is not here: that is the caller's, who knows the ChipSet and what it drew.
+
+## What is left to implement: `culprits`
+
+Not a stage of the conversion but a report for people: which commands keep
+pages out, over every page of the maps —the request's, or every map of the
+game with `--every-map`—, every common event and every troop page. It takes
+the request `scan` or `compile` takes; with `compile`'s, a
+`TileSubstitution` is resolved as the cartridge resolves it, and without it
+one never compiles.
+
+The compiler knows which command a page stopped at —`judged_page`—, but
+that is the first one, and a page can have more behind it. So each page is
+**chased**: the culprit is noted and taken out, and the page compiled again,
+until it compiles. That gives every command that keeps it out, and with it
+the number that matters when choosing what to do next: how many pages each
+command keeps out **alone**, the ones it would let in. See `culprits.rs` for
+how a culprit is taken out, how a command's parts —an `else`, a choice's
+options— count as the command, and how each kind of page is compiled.
+
+It also says what no count of pages shows: the calls from a map's page to a
+common event whose body does not compile with that page's map, which are
+skipped without the page being left out.
+
+It prints a table per kind of page and writes everything, page by page, to
+`culprits.json`.
 
 ## Where the numbers come from
 

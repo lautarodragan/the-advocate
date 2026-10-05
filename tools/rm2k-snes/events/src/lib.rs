@@ -22,6 +22,7 @@
 pub mod codes;
 pub mod commons;
 pub mod compile;
+pub mod culprits;
 pub mod fail;
 pub mod game;
 pub mod indices;
@@ -499,7 +500,7 @@ fn indices_json(indices: &Indices, associations: &[(String, i32)]) -> JsonMap<St
 /// The indices, the graphics actors can be given, and the cartridge's maps.
 type Prepared = (Indices, Vec<(String, i32)>, Vec<Map>);
 
-fn prepare(game: &Game, request: &Request) -> Result<Prepared> {
+pub(crate) fn prepare(game: &Game, request: &Request) -> Result<Prepared> {
     let every = indices::every_map(game)?;
     let mut extra_variables = request.extra_variables.clone();
     extra_variables.extend(indices::command_variables(&request.test_commands));

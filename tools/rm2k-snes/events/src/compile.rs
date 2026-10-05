@@ -817,28 +817,57 @@ pub fn compile_page(
     base: usize,
     depth: usize,
 ) -> Result<Option<Vec<u8>>> {
+    match judged_page(ctx, commands, map_events, base, depth) {
+        Ok(code) => Ok(Some(code)),
+        Err((Stop::Cannot, _)) => Ok(None),
+        Err((Stop::Fatal(bad), _)) => Err(bad),
+    }
+}
+
+/// Which command a page stopped at: its index in the page, or None if it
+/// stopped at the page as a whole —a block left open, a `JumpToLabel` out of
+/// its body—. It is the command being compiled when the "no" came, so a
+/// command that is fine and closes a block whose opener was not is the one
+/// named. What a `CallEvent` pastes is not looked into: a called body that
+/// does not compile is skipped, it does not stop the page.
+pub type Culprit = Option<usize>;
+
+/// [`compile_page`], saying where it stopped when it stops: see [`Culprit`].
+/// Only the culprit report asks; the code is the same.
+pub fn judged_page(
+    ctx: &mut Ctx,
+    commands: &[Command],
+    map_events: Option<MapEvents>,
+    base: usize,
+    depth: usize,
+) -> std::result::Result<Vec<u8>, (Stop, Culprit)> {
     let mark = ctx.messages.as_ref().map(|m| m.mark());
-    match page(ctx, commands, map_events, base, depth) {
+    let mut at = None;
+    match page(ctx, commands, map_events, base, depth, &mut at) {
         Ok(code) => {
-            whole_instructions(&code)?;
-            Ok(Some(code))
+            whole_instructions(&code).map_err(|bad| (Stop::Fatal(bad), None))?;
+            Ok(code)
         }
         Err(Stop::Cannot) => {
             if let (Some(m), Some(mark)) = (ctx.messages.as_deref_mut(), mark) {
                 m.rewind(mark);
             }
-            Ok(None)
+            Err((Stop::Cannot, at))
         }
-        Err(Stop::Fatal(bad)) => Err(bad),
+        Err(fatal) => Err((fatal, at)),
     }
 }
 
+/// `at` is the command being compiled, for [`judged_page`]: set at the top
+/// of each turn of the loop and cleared after it, so a "no" from anywhere
+/// in between —however deep, through whichever `?`— names it.
 fn page(
     ctx: &mut Ctx,
     commands: &[Command],
     mut map_events: Option<MapEvents>,
     base: usize,
     depth: usize,
+    at: &mut Culprit,
 ) -> Step<Vec<u8>> {
     // The branches are emitted with the destination blank and patched when
     // closing them, which is the only way: until what is inside is compiled
@@ -908,6 +937,7 @@ fn page(
     let mut forward: Vec<(usize, usize)> = Vec::new();
 
     for (i, extra) in group_boxes(commands) {
+        *at = Some(i);
         let cmd = &commands[i];
         if joined.contains(&i) {
             // Its window is the message's, already emitted.
@@ -1306,6 +1336,7 @@ fn page(
         length += piece.len();
         pieces.push(piece);
     }
+    *at = None;
     if !stack.is_empty() || !choices.is_empty() || !battles.is_empty() {
         return cannot();
     }
@@ -6030,6 +6061,46 @@ mod tests {
             shared: None,
         };
         compile_page(&mut ctx, commands, None, 0, 0).unwrap().unwrap()
+    }
+
+    /// Where `judged_page` says a page stopped, compiled with nothing.
+    fn stopped_at(commands: &[Command]) -> Option<Culprit> {
+        let game = Game::default();
+        let sound = SoundSettings::default();
+        let indices = Indices::default();
+        let mut ctx = Ctx {
+            game: &game,
+            indices: &indices,
+            sound: &sound,
+            map_index: &|_| None,
+            messages: None,
+            songs: None,
+            graphics: None,
+            pictures: None,
+            troops: None,
+            commons: None,
+            shared: None,
+        };
+        match judged_page(&mut ctx, commands, None, 0, 0) {
+            Ok(_) => None,
+            Err((Stop::Cannot, at)) => Some(at),
+            Err((Stop::Fatal(bad), _)) => panic!("{bad}"),
+        }
+    }
+
+    #[test]
+    fn a_page_that_does_not_compile_names_the_command_it_stopped_at() {
+        let wait = cmd(WAIT, &[1], "");
+        // `Loop` does not compile, two commands in.
+        assert_eq!(stopped_at(&[wait.clone(), wait.clone(), cmd(LOOP, &[], ""), wait.clone()]), Some(Some(2)));
+        // Inside a branch, it is the command and not the branch.
+        let branch = Command::new(COND_BRANCH, 0, "", vec![0, 1, 0, 0, 0, 0]);
+        let inside = Command::new(LOOP, 1, "", vec![]);
+        let end = Command::new(COND_END, 0, "", vec![]);
+        assert_eq!(stopped_at(&[branch.clone(), inside, end]), Some(Some(1)));
+        // A branch left open stops at the page as a whole.
+        assert_eq!(stopped_at(&[branch, wait.clone()]), Some(None));
+        assert_eq!(stopped_at(&[wait]), None);
     }
 
     /// `commands` compiled for a map that carries `big` as a background
