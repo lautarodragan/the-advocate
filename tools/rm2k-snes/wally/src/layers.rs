@@ -184,7 +184,7 @@ fn merges_json(merges: &[Merge]) -> Vec<Value> {
 /// into `out`.
 pub fn run(game: &Game, request: &LayersRequest, out: &Path) -> Result<()> {
     let drawn = draw(game, request)?;
-    let converted = crate::background::convert(&drawn.layers)?;
+    let converted = crate::background::convert(&drawn.layers, request.window_colors)?;
     let (passability, made) = blocks(&drawn, &converted)?;
     write(out, &converted, &passability, &made)
 }

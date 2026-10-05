@@ -43,15 +43,19 @@ pub const BG_PALETTES: usize = 8;
 pub const MAX_ABOVE_PALETTES: usize = BG_PALETTES - 1;
 
 /// The entries at the very bottom the background cannot use: entry 0, the
-/// screen's backdrop, and the thirteen of the message window, which lives in
-/// palette 0 for every map. **Counted by the highest entry**: one of the
-/// window's colours is pure black, whose word is zero, and counting the
+/// screen's backdrop, and the message window's `window_colors`, which lives
+/// in palette 0 for every map. **Counted by the highest entry**: one of the
+/// window's colours can be pure black, whose word is zero, and counting the
 /// non-zero words gives one less; what rules is the highest entry the
-/// window draws with. Thirteen since 2026-10-04, when the window took the
-/// System's arrow and cursor —four reds and one more in the game it was
-/// measured on—: it was eight. It is `rm2k-snes-mapdata`'s `WINDOW_COLORS`.
-pub const WINDOW_COLORS: usize = 13;
-pub const CGRAM_RESERVED: usize = 1 + WINDOW_COLORS;
+/// window draws with.
+///
+/// `window_colors` comes in the request: it is the game's System's, not
+/// the engine's, and whoever asks counts it once for the whole cartridge.
+/// Until 2026-10-04 it was a constant here —eight, and thirteen once the
+/// window took the System's arrow and cursor—.
+pub fn cgram_reserved(window_colors: usize) -> usize {
+    1 + window_colors
+}
 
 /// The BG2 priority bit of the layer above. In mode 3 the order from front
 /// to back is objects 3, BG1 1, objects 2, BG2 1, objects 1, BG1 0, objects
@@ -70,9 +74,10 @@ pub fn above_split(palettes: usize) -> usize {
 }
 
 /// The colours left for the background below the layer above, which starts
-/// at palette `first`: without the backdrop and the window.
-pub fn bg_budget(first: usize) -> usize {
-    first * COLORS_PER_PALETTE - CGRAM_RESERVED
+/// at palette `first`: without the `reserved` of the backdrop and the
+/// window.
+pub fn bg_budget(first: usize, reserved: usize) -> usize {
+    first * COLORS_PER_PALETTE - reserved
 }
 
 /// One family of the ChipSet's animation as it lands in VRAM: its tiles are
@@ -93,7 +98,7 @@ pub struct Run {
 pub struct Background {
     /// 8bpp tiles, back to back.
     pub tiles: Vec<u8>,
-    /// The words of its colours, from entry [`CGRAM_RESERVED`] up: what is
+    /// The words of its colours, from entry [`cgram_reserved`] up: what is
     /// below belongs to the whole cartridge.
     pub cgram: Vec<u16>,
     pub tilemap: Vec<Vec<u16>>,
@@ -154,7 +159,19 @@ pub struct Converted {
 /// of a map can bring colours its drawing 0 does not have, and if the split
 /// were decided without them there would be nowhere to put them when the
 /// water moves.
-pub fn convert(layers: &Layers) -> Result<Converted> {
+///
+/// `window_colors` is how many entries the message window takes after the
+/// backdrop: see [`cgram_reserved`].
+pub fn convert(layers: &Layers, window_colors: usize) -> Result<Converted> {
+    // The window lives in palette 0, so it can take fifteen at most: past
+    // that the background's budget would not even be a number.
+    if window_colors >= COLORS_PER_PALETTE {
+        return Err(Bad::new(format!(
+            "the message window takes {window_colors} colours and palette 0 holds {}",
+            COLORS_PER_PALETTE - 1
+        )));
+    }
+    let reserved = cgram_reserved(window_colors);
     let base = Grid::quantize(&layers.lower);
     let above = Grid::quantize(&layers.upper);
     let variants: Vec<(Family, Vec<Grid>)> = layers
@@ -166,9 +183,8 @@ pub fn convert(layers: &Layers) -> Result<Converted> {
     let mut all: Vec<&Grid> = vec![&base];
     all.extend(variants.iter().flat_map(|(_, gs)| gs));
     let used = counts(&all).len();
-    // The +1 of the backdrop and the window, and the palettes of sixteen
-    // that makes.
-    let needed = (used + CGRAM_RESERVED).div_ceil(COLORS_PER_PALETTE);
+    // The backdrop and the window, and the palettes of sixteen that makes.
+    let needed = (used + reserved).div_ceil(COLORS_PER_PALETTE);
     let free = (BG_PALETTES as i64 - needed as i64).clamp(1, MAX_ABOVE_PALETTES as i64) as usize;
 
     let (above, above_palettes, above_merges) = split_above(&above, free)?;
@@ -184,7 +200,7 @@ pub fn convert(layers: &Layers) -> Result<Converted> {
 
     // The background reaches up to where the layer above starts, with no
     // palettes in between: at 8 bits it needs no alignment.
-    let budget = bg_budget(first);
+    let budget = bg_budget(first, reserved);
     let others: Vec<&Grid> = variants.iter().flat_map(|(_, gs)| gs).collect();
     let colors_before = counts(&[&base]).len();
     let (palette, base, others, merges) = build_palette(&base, budget, &others)?;
@@ -194,7 +210,7 @@ pub fn convert(layers: &Layers) -> Result<Converted> {
         drawings.push((*family, rest.by_ref().take(gs.len()).collect()));
     }
     let (background, mut pictures) =
-        convert_background(&base, &palette, &drawings, colors_before, budget, merges)?;
+        convert_background(&base, &palette, &drawings, reserved, colors_before, budget, merges)?;
     pictures.push(Decided {
         name: "above".to_string(),
         picture: above_picture,
@@ -409,7 +425,7 @@ fn build_palette(
 
 /// The background to tiles, its colours and its tilemap. **It decides
 /// nothing**: the palette comes from [`build_palette`], and the grids come
-/// merged with it. Colour `k` of the palette is entry `CGRAM_RESERVED + k`.
+/// merged with it. Colour `k` of the palette is entry `reserved + k`.
 ///
 /// The cells that change from one drawing to another get their own tiles,
 /// in a contiguous run per family at the end of the bank: Voodoo does that,
@@ -418,6 +434,7 @@ fn convert_background(
     grid: &Grid,
     palette: &[Color],
     drawings: &[(Family, Vec<Grid>)],
+    reserved: usize,
     colors_before: usize,
     budget: usize,
     merges: Vec<Merge>,
@@ -425,7 +442,7 @@ fn convert_background(
     let entry: HashMap<Color, u8> = palette
         .iter()
         .enumerate()
-        .map(|(k, &c)| (c, (CGRAM_RESERVED + k) as u8))
+        .map(|(k, &c)| (c, (reserved + k) as u8))
         .collect();
     let mut entries: Vec<Option<Color>> = vec![None; voodoo::ENTRIES];
     for (&c, &e) in &entry {
@@ -487,8 +504,8 @@ fn convert_background(
         });
     }
     // Colour memory: the map carries only its colours, uploaded from
-    // `CGRAM_RESERVED` up.
-    let cgram = (CGRAM_RESERVED..CGRAM_RESERVED + palette.len())
+    // `reserved` up.
+    let cgram = (reserved..reserved + palette.len())
         .map(|e| u16::from_le_bytes([done.cgram[2 * e], done.cgram[2 * e + 1]]))
         .collect();
     Ok((

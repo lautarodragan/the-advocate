@@ -195,6 +195,9 @@ pub fn run(options: Options) -> Result<()> {
     } else {
         cases.iter().map(|(_, _, m)| *m).collect()
     };
+    // The message window's colours, from the System: once, for every map and
+    // for the screens and the emission. See `screens::window_colors`.
+    let window_colors = screens::window_colors(&game)?;
     let cartridge = Cartridge {
         game: &game,
         settings: &settings,
@@ -211,6 +214,7 @@ pub fn run(options: Options) -> Result<()> {
         maps_per_character: per_character,
         search_dirs: search_dirs.clone(),
         common_substitutions: maps::common_substitutions(&game),
+        window_colors,
     };
     let mut animation_cache = Animations::new(&search_dirs, &game.dump);
     let mut prepared = Vec::new();
@@ -636,13 +640,13 @@ pub fn run(options: Options) -> Result<()> {
         "before_bodies": menu_before,
     });
     let screens_answer =
-        screens::convert(&game, &font, &members, &items_all, !options.no_title, &menus_request)?;
+        screens::convert(&game, &font, &members, &items_all, !options.no_title, &menus_request, window_colors)?;
     let w = &screens_answer["window"];
     println!(
         "  message window: {} fixed tiles + {} of text, {} colors; font {} B, {} text box(es) in {} B",
         w["tiles"].as_str().map_or(0, |s| s.len() / 2) / 32,
         w["background"].as_str().map_or(0, |s| s.len() / 2) / 32,
-        w["cgram"].as_array().map_or(0, |c| c.iter().filter(|v| int(v) != 0).count()),
+        window_colors,
         w["font"].as_str().map_or(0, |s| s.len() / 2),
         message_count,
         messages.len()
@@ -867,6 +871,7 @@ pub fn run(options: Options) -> Result<()> {
             "sram_signature": settings.ascii(&["rom", "sram_signature"], Some(4), None)?,
         },
         "screens": screens_answer,
+        "window_colors": window_colors,
         "messages": hex(&messages),
         "message_pairs": message_pairs,
         "title": title_screen.as_ref().map(fullscreen::Screen::request),

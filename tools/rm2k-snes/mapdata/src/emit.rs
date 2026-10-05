@@ -11,7 +11,7 @@
 //! read them twice to know they say the same.
 
 use crate::asm::{block, unplaced};
-use crate::cgram::{CGRAM_RESERVED, PRIORITY_ABOVE, WINDOW_PALETTE};
+use crate::cgram::{cgram_reserved, PRIORITY_ABOVE, WINDOW_PALETTE};
 use crate::engine::*;
 use crate::fail::{Bad, Result};
 use crate::json::{
@@ -503,7 +503,7 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
             OBJ_PRIORITY
         })
         .into(),
-        CGRAM_RESERVED.into(),
+        cgram_reserved(r.window_colors).into(),
         (WINDOW_PALETTE as usize * COLORS_PER_PALETTE).into(),
         (bytes_at(window, "tiles")?.len() / 32).into(),
         t.n("WINDOW_ROWS_INC").into(),
@@ -649,14 +649,15 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
 fn window_section(out: &mut String, r: &Emit, window: &Value, t: &Geometry) -> Result<()> {
     // The window is a single one for the whole cartridge, in palette 0. That
     // the background does not step on it comes from the split —it starts at
-    // `CGRAM_RESERVED`— but it is checked anyway: no single map's comparison
+    // `reserved`— but it is checked anyway: no single map's comparison
     // would see it.
+    let reserved = cgram_reserved(r.window_colors);
     for m in &r.maps {
         let used = (m.cgram.len() / 2) as i64;
         let above = m.above_first * COLORS_PER_PALETTE as i64;
-        if used + i64::from(CGRAM_RESERVED) > above {
+        if used + i64::from(reserved) > above {
             return Err(Bad::answer(format!(
-                "the background of map {} uses {used} CGRAM entries from {CGRAM_RESERVED} and steps \
+                "the background of map {} uses {used} CGRAM entries from {reserved} and steps \
                  on the upper layer, which starts at {above}",
                 m.id
             )));
@@ -664,15 +665,15 @@ fn window_section(out: &mut String, r: &Emit, window: &Value, t: &Geometry) -> R
     }
     out.push_str("\n; --- the message window ---\n");
     line(out, &block("window_tiles", &bytes_at(window, "tiles")?));
-    // Only the `CGRAM_RESERVED` at the bottom: from there up it is the
+    // Only the `reserved` at the bottom: from there up it is the
     // background's.
     let cgram = ints_at(window, "cgram")?;
-    let reserved: Vec<u32> = cgram
+    let words: Vec<u32> = cgram
         .iter()
-        .take(CGRAM_RESERVED as usize)
+        .take(reserved as usize)
         .map(|&w| w as u32)
         .collect();
-    line(out, &block("window_cgram", &words_le(reserved)));
+    line(out, &block("window_cgram", &words_le(words)));
     // One layout of the cells per window base the VRAM layouts use, with
     // the upper layer's priority so it covers the hero and the events.
     //

@@ -51,6 +51,20 @@ pub fn boxes(game: &Game, font: &FontChoice, width: usize, lines: u32) -> Result
     stage::json(&written, "boxes.json")
 }
 
+/// The colour-memory entries the message window takes after the backdrop,
+/// counted from the game's System. **The only place they come from**: the
+/// screens get them as `cgram_reserved`, each map's `wally` and the
+/// emission as `window_colors`, and the background of every map starts
+/// after them.
+pub fn window_colors(game: &Game) -> Result<u32> {
+    let written = stage::run(BINARY, PROJECT, "window", &json!({}), &game_flags(game))?;
+    let answer = stage::json(&written, "window.json")?;
+    answer["colors"]
+        .as_u64()
+        .and_then(|n| u32::try_from(n).ok())
+        .ok_or_else(|| Stop::new(format!("the screens' window answer has no colour count: {answer}")))
+}
+
 /// The geometry the screens are drawn with, by the names the emission
 /// writes it with.
 pub fn layout() -> Result<Value> {
@@ -78,6 +92,7 @@ pub fn convert(
     items: &[i32],
     title: bool,
     menus: &Value,
+    window_colors: u32,
 ) -> Result<Value> {
     let _ = LINES;
     let bg1_banks: Vec<Value> = vram::LAYOUTS
@@ -99,7 +114,7 @@ pub fn convert(
         "title": title,
         // The message window goes in the lowest palette, and the background
         // starts after it: see `cgram.rs` in `rm2k-snes-mapdata`.
-        "cgram_reserved": cgram::CGRAM_RESERVED,
+        "cgram_reserved": cgram::cgram_reserved(window_colors),
         "vram": {
             "slot_vram": vram::SLOT_VRAM,
             "slot_map": vram::SLOT_MAP,

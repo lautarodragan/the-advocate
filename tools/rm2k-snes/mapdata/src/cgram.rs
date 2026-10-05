@@ -3,26 +3,22 @@
 
 use crate::snes::Color;
 
-/// The entries the message window's palette reaches. **Counted by the
-/// highest index the window uses**: one of its colours is pure black and
-/// its CGRAM word is zero, so counting the non-zero words gives one less,
-/// and when it was eight and seven were counted the console drew the text
-/// with a colour nobody had uploaded.
-///
-/// Thirteen since 2026-10-04: the window carries the System's arrow and its
-/// cursor, a choice's bar, which in the System of the game it was measured
-/// on are four reds and one more. It was eight, and those five come out of
-/// every map's background. It is `wally`'s `WINDOW_COLORS` too.
-pub const WINDOW_COLORS: u32 = 13;
-
 /// The CGRAM entries the background **cannot** use, at the very bottom:
-/// entry 0, the screen's backdrop colour, and the message window's. The
-/// background goes at 8 bits a pixel and addresses CGRAM directly, so it is
-/// enough for it to start after them: it is contiguous from here up to where
-/// each map's upper layer starts. And the tint, which starts at the
-/// background, leaves the window out without anybody remembering it: RM2k
-/// tones the map and not the window.
-pub const CGRAM_RESERVED: u32 = 1 + WINDOW_COLORS;
+/// entry 0, the screen's backdrop colour, and the message window's
+/// `window_colors`. The background goes at 8 bits a pixel and addresses
+/// CGRAM directly, so it is enough for it to start after them: it is
+/// contiguous from here up to where each map's upper layer starts. And the
+/// tint, which starts at the background, leaves the window out without
+/// anybody remembering it: RM2k tones the map and not the window.
+///
+/// `window_colors` is the game's, not the engine's: it comes out of the
+/// System —its window, its arrow, its cursor and its text—, and
+/// `rm2k-snes-screens window` counts it. Until 2026-10-04 it was a constant
+/// here and one more in `wally`, eight and then thirteen, which is what
+/// ABL's System takes.
+pub fn cgram_reserved(window_colors: u32) -> u32 {
+    1 + window_colors
+}
 
 /// The message window's palette: **0**, always. Its cells are emitted once
 /// with the palette bits inside, so it is a single one for the whole

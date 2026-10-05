@@ -109,7 +109,7 @@ fn convert(dir: &Path, dump: &Path, pictures: &Path, layouts: Value) -> Value {
         "timer": null, "rain": false, "picture": null,
         "battle_animation": false, "singles": [], "palette_weight": {},
         "dither": "five_of_eight", "substitutions": [], "common_substitutions": [],
-        "layouts": layouts,
+        "layouts": layouts, "window_colors": 13,
     });
     std::fs::write(&request, body.to_string()).unwrap();
     let out = dir.join("out");

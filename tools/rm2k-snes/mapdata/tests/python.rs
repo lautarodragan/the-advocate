@@ -73,7 +73,9 @@
 //! reserves thirteen colour-memory entries and not eight. The two hashes
 //! moved: without the four constants and their comments, the three new
 //! blocks, and with `CGRAM_BASE` at 9 and `window_cgram` cut to nine words,
-//! the text is the old one byte for byte.
+//! the text is the old one byte for byte. Later that day the thirteen
+//! stopped being a constant and came in the request, `window_colors`, which
+//! the two requests carry as thirteen so the hashes did not move.
 //!
 //! And the same day the battle's windows went to the band below the scene,
 //! as RM2k's, with the System's frame and bar: the requests carry

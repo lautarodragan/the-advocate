@@ -129,7 +129,8 @@ impl<'a> Drawer<'a> {
         if let Some(done) = self.lower.get(&map) {
             return Ok(done.clone());
         }
-        let request = LayersRequest { map, baked: Vec::new() };
+        // Only drawn, never converted: the window's colours do not matter.
+        let request = LayersRequest { map, ..LayersRequest::default() };
         let done = match draw(self.game, &request) {
             Ok(Drawn { layers, .. }) => Some(layers.lower),
             Err(_) => None,

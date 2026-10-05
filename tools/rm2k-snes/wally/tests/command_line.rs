@@ -152,7 +152,7 @@ fn expected(chipset: &Path, lower: Vec<i64>, upper: Vec<i64>) -> wally::backgrou
         passable_upper,
     };
     let atlas = Atlas::new(&picture::read_rm2k(chipset).unwrap());
-    convert(&map.render(&atlas).unwrap()).unwrap()
+    convert(&map.render(&atlas).unwrap(), 13).unwrap()
 }
 
 fn check(out: &Path, want: &wally::background::Converted) {
@@ -201,7 +201,7 @@ fn check(out: &Path, want: &wally::background::Converted) {
 fn the_dumps_map_is_drawn_and_converted() {
     let dir = scratch("dump");
     let (dump, pictures) = game(&dir);
-    let req = request(&dir, json!({"map": 7, "map_files": {}, "chipset_files": {}, "baked": []}));
+    let req = request(&dir, json!({"map": 7, "map_files": {}, "chipset_files": {}, "baked": [], "window_colors": 13}));
     let out = dir.join("out");
     let done = layers(&dump, &[&dir.join("nowhere"), &pictures], &req, &out);
     assert!(done.status.success(), "{}", String::from_utf8_lossy(&done.stderr));
@@ -229,7 +229,7 @@ fn the_projects_map_and_chipset_win_over_the_dumps() {
     let req = request(
         &dir,
         json!({"map": 7, "map_files": {"7": forked}, "chipset_files": {"53": added},
-               "baked": []}),
+               "baked": [], "window_colors": 13}),
     );
     let out = dir.join("out");
     let done = layers(&dump, &[&built, &pictures], &req, &out);
@@ -245,7 +245,7 @@ fn a_baked_cell_is_painted_into_the_upper_layer() {
     let req = request(
         &dir,
         json!({"map": 7, "map_files": {}, "chipset_files": {},
-               "baked": [[3, 10004], [8, 10006]]}),
+               "baked": [[3, 10004], [8, 10006]], "window_colors": 13}),
     );
     let out = dir.join("out");
     let done = layers(&dump, &[&pictures], &req, &out);
@@ -262,7 +262,7 @@ fn what_cannot_be_done_is_an_answer_and_a_wrong_call_is_misuse() {
     let dir = scratch("errors");
     let (dump, pictures) = game(&dir);
     let out = dir.join("out");
-    let plain = json!({"map": 7, "map_files": {}, "chipset_files": {}, "baked": []});
+    let plain = json!({"map": 7, "map_files": {}, "chipset_files": {}, "baked": [], "window_colors": 13});
 
     // No picture for the ChipSet anywhere.
     let req = request(&dir, plain.clone());

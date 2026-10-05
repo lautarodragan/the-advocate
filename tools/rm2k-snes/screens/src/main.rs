@@ -7,7 +7,7 @@
 use clap::{Args as ClapArgs, Parser, Subcommand};
 use rm2k_render::picture::{self, Picture};
 use rm2k_snes_screens::request::Json;
-use rm2k_snes_screens::{boxes, convert, layout, render, Bad, Game, Result};
+use rm2k_snes_screens::{boxes, convert, layout, message_window, render, Bad, Game, Result};
 use rm2k_snes_text::font::Font;
 use rm2k_snes_text::refit::Measure;
 use std::path::{Path, PathBuf};
@@ -51,6 +51,13 @@ enum Command {
         \"inventory\": item number to how many}, after `Game_Actor::ChangeEquipment`. The \
         request carries `equipment`, `inventory`, `slot` and `item`, 0 to unequip.")]
     Equip(GameArgs),
+    /// How many colour-memory entries the message window takes, from the
+    /// game's System
+    #[command(after_help = "Writes window.json into --out: {\"colors\": n}. The window \
+        takes entries 1 to n of colour memory —0 is transparent—, so whatever shares the \
+        lower palettes with it starts at n + 1. Its request is ignored: it is taken so every \
+        subcommand is called the same way.")]
+    Window(GameArgs),
 }
 
 #[derive(ClapArgs)]
@@ -270,6 +277,12 @@ fn do_equip(args: &GameArgs) -> Result<()> {
     write(&args.out, "equip.json", &answer.to_string())
 }
 
+fn do_window(args: &GameArgs) -> Result<()> {
+    let skin = Game::from_dump(&args.data, &args.game_dir)?.skin()?;
+    let answer = serde_json::json!({"colors": message_window::colors(&skin)?});
+    write(&args.out, "window.json", &answer.to_string())
+}
+
 fn do_layout(args: &LayoutArgs) -> Result<()> {
     write(&args.out, "layout.json", &layout::publish().to_string())
 }
@@ -309,6 +322,7 @@ fn main() -> ExitCode {
         Command::Layout(args) => do_layout(args),
         Command::Refit(args) => do_refit(args),
         Command::Equip(args) => do_equip(args),
+        Command::Window(args) => do_window(args),
     };
     match done {
         Ok(()) => ExitCode::SUCCESS,
