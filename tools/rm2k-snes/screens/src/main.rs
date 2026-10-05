@@ -82,6 +82,11 @@ struct GameArgs {
     #[arg(long = "game-dir", value_name = "DIRECTORY")]
     game_dir: PathBuf,
 
+    /// The RTP the game was made with: the System and the faces the game
+    /// does not ship are looked for there
+    #[arg(long = "rtp-dir", value_name = "DIRECTORY")]
+    rtp_dir: Option<PathBuf>,
+
     /// What the cartridge decided
     #[arg(long, value_name = "PATH")]
     request: PathBuf,
@@ -89,6 +94,15 @@ struct GameArgs {
     /// The directory to write to
     #[arg(long, value_name = "DIRECTORY")]
     out: PathBuf,
+}
+
+impl GameArgs {
+    /// The game, with its RTP.
+    fn game(&self) -> Result<Game> {
+        let mut game = Game::from_dump(&self.data, &self.game_dir)?;
+        game.rtp_dir = self.rtp_dir.clone();
+        Ok(game)
+    }
 }
 
 #[derive(ClapArgs)]
@@ -129,7 +143,7 @@ fn write(out: &Path, name: &str, text: &str) -> Result<()> {
 /// project file's `[text] font` —`rm2k`, one the engine carries, or the
 /// path of a sheet—, spaced by its `letter_spacing`.
 fn game_with_font(args: &GameArgs, json: &Json) -> Result<Game> {
-    let mut game = Game::from_dump(&args.data, &args.game_dir)?;
+    let mut game = args.game()?;
     game.use_font(&json.text("font")?, json.number_or("letter_spacing", 0)?)?;
     Ok(game)
 }
@@ -262,7 +276,7 @@ fn do_boxes(args: &BoxesArgs) -> Result<()> {
 }
 
 fn do_equip(args: &GameArgs) -> Result<()> {
-    let game = Game::from_dump(&args.data, &args.game_dir)?;
+    let game = args.game()?;
     let json = Json::read(&args.request)?;
     let mut equipment: Vec<i32> = json.numbers("equipment")?.into_iter().map(|n| n as i32).collect();
     let mut inventory = json.by_number("inventory")?;
@@ -278,7 +292,7 @@ fn do_equip(args: &GameArgs) -> Result<()> {
 }
 
 fn do_window(args: &GameArgs) -> Result<()> {
-    let skin = Game::from_dump(&args.data, &args.game_dir)?.skin()?;
+    let skin = args.game()?.skin()?;
     let answer = serde_json::json!({"colors": message_window::colors(&skin)?});
     write(&args.out, "window.json", &answer.to_string())
 }

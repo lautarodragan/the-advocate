@@ -75,7 +75,9 @@ fn a_text_the_font_does_not_have_is_a_no() {
     std::fs::write(&path, request.to_string()).unwrap();
     let done = run("compile", &here().join("game"), &path, &dir.join("out"));
     assert_eq!(done.status.code(), Some(1));
-    assert!(String::from_utf8_lossy(&done.stderr).contains("not in the font"));
+    // In a game page it stops only that page; a test page has to compile whole.
+    let e = String::from_utf8_lossy(&done.stderr);
+    assert!(e.contains("text box does not compile"), "{e}");
     std::fs::remove_dir_all(&dir).unwrap();
 }
 

@@ -112,6 +112,36 @@ fn the_maps_are_the_rule_the_added_ones_the_debug_map_and_the_test_ones() {
     assert_eq!(c.rule_maps(&[], &[]), [1, 2, 3, 4, 6, 7]);
 }
 
+/// A game that is not ABL has no debug map: without new maps and with
+/// `debug_map = false` it loads, and the debug map is not anywhere.
+#[test]
+fn a_game_without_a_debug_map_loads() {
+    let dir = game("no-debug-map", RELEASE);
+    fs::remove_dir_all(dir.join("patches/manual/nuevos")).unwrap();
+    let text = fs::read_to_string(dir.join("rm2k-snes.toml")).unwrap();
+    fs::write(
+        dir.join("rm2k-snes.toml"),
+        text.replace("debug_map = true", "debug_map = false"),
+    )
+    .unwrap();
+    let c = load(&dir).unwrap();
+    assert_eq!(c.debug_map, None);
+    assert_eq!(c.game_maps, [1, 2, 4, 6, 7, 20]);
+    // With the debug map asked for and none to give, it says so.
+    fs::write(dir.join("rm2k-snes.toml"), text).unwrap();
+    let e = load(&dir).err().expect("debug_map = true without a debug map");
+    assert!(e.contains("debug map"), "{e}");
+}
+
+/// A cartridge with only its start map —a game's first map, alone— passes
+/// no `--maps`: an empty one is an error to the converter.
+#[test]
+fn a_cartridge_of_one_map_passes_no_maps() {
+    let one = SMALL.replace("maps = [6, 1]", "maps = [6]");
+    let c = load(&game("one-map", &(RELEASE.to_string() + &one))).unwrap();
+    assert_eq!(c.get("test-small").unwrap().flags, ["--map-id", "6", "--no-title", "--enemy-hp"]);
+}
+
 #[test]
 fn the_flags_come_out_in_the_usual_order() {
     let c = load(&game("flags", &(RELEASE.to_string() + SMALL))).unwrap();

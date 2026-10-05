@@ -50,6 +50,13 @@ WORDS = [
     r"GTest4", r"ShipFlash", r"AgentTrain", r"AdvoInstr", r"BLPeople",
     r"BLmouse", r"Future2", r"People3", r"ablskin", r"ABLFaces",
     r"Fortitude",
+    # The other games, the ones of the first survey (2026-10-05): their
+    # names, and the System, the hero and the invisible leader each one is
+    # recognised by.
+    r"El Dorado", r"Eldorado", r"Hernando", r"Sunset Over Imdahl", r"Imdahl",
+    r"(The )?Book of Three", r"bookofthree", r"DUMMYHERO", r"Dooms ?2", r"Dooms",
+    r"(The )?Frozen World", r"thunter", r"Desert Nightmare", r"Systemset_Intro",
+    r"Vampires ?Dawn", r"VDBlutsys",
 ]
 
 PATTERN = re.compile(r"(?<![A-Za-z0-9])(?:%s)(?![A-Za-z0-9])" % "|".join(WORDS),

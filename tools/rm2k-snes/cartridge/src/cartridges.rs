@@ -122,7 +122,8 @@ pub struct Cartridges {
     /// The file's `added`, and the debug map after them when it goes in.
     pub added_maps: Vec<i64>,
     pub with_debug_map: bool,
-    pub debug_map: i64,
+    /// None in a game that has no debug map, which is any but ABL.
+    pub debug_map: Option<i64>,
     pub game_maps: Vec<i64>,
     /// The ones that only exist for the test cases.
     pub test_maps: Vec<i64>,
@@ -205,9 +206,11 @@ impl Cartridges {
         let test_maps = p.ints(&["maps", "test"])?;
 
         // The debug map is the only new map: it comes from there and not from
-        // the project file so as not to write the number twice.
+        // the project file so as not to write the number twice. A game that
+        // has none has no new maps at all, and then it cannot ask for it.
         let new = new_maps(p)?;
-        if new.len() != 1 {
+        let with_debug_map = p.boolean(&["debug", "debug_map"])?;
+        if new.len() > 1 || (with_debug_map && new.is_empty()) {
             return Err(format!(
                 "the debug map is the only new map in {}, and there are {}: {:?}",
                 p.manual_patches()?.join("nuevos").display(),
@@ -215,10 +218,9 @@ impl Cartridges {
                 new.keys().collect::<Vec<_>>()
             ));
         }
-        let debug_map = *new.keys().next().unwrap();
-        let with_debug_map = p.boolean(&["debug", "debug_map"])?;
-        if with_debug_map {
-            added_maps.push(debug_map);
+        let debug_map = new.keys().next().copied();
+        if let (true, Some(m)) = (with_debug_map, debug_map) {
+            added_maps.push(m);
         }
         // The enemies' HP in battle, in every cartridge.
         let with_enemy_hp = p.boolean(&["debug", "enemy_hp"])?;
@@ -324,8 +326,14 @@ impl Cartridges {
             flags.push("--party".to_string());
             flags.extend(party.iter().map(i64::to_string));
         }
-        flags.extend(["--map-id".to_string(), start_map.to_string(), "--maps".to_string()]);
-        flags.extend(maps.iter().filter(|&&m| m != start_map).map(i64::to_string));
+        flags.extend(["--map-id".to_string(), start_map.to_string()]);
+        // Without other maps, no `--maps`: empty, the converter refuses it.
+        let others: Vec<String> =
+            maps.iter().filter(|&&m| m != start_map).map(i64::to_string).collect();
+        if !others.is_empty() {
+            flags.push("--maps".to_string());
+            flags.extend(others);
+        }
         for graphic in p.list(&key("test_graphics"))? {
             let pair = graphic
                 .as_array()

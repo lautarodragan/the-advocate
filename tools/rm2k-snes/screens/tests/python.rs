@@ -145,6 +145,28 @@ fn everything_a_cartridge_carries() {
     );
 }
 
+/// A game that uses the RTP's System and faces does not ship them: they
+/// are looked for in the RTP after the game's folder, and in any case, as
+/// RPG_RT finds them on Windows.
+#[test]
+fn the_system_and_the_faces_come_from_the_rtp_too() {
+    let tmp = std::env::temp_dir().join(format!("screens-rtp-{}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&tmp);
+    let (empty, rtp) = (tmp.join("game"), tmp.join("rtp"));
+    std::fs::create_dir_all(&empty).unwrap();
+    std::fs::create_dir_all(rtp.join("system")).unwrap();
+    std::fs::create_dir_all(rtp.join("FACESET")).unwrap();
+    std::fs::copy(here().join("pictures/System/Skin.png"), rtp.join("system/SKIN.PNG")).unwrap();
+    std::fs::copy(here().join("pictures/FaceSet/Faces.png"), rtp.join("FACESET/faces.png")).unwrap();
+    let from_game = game();
+    let mut game = Game::from_dump(&here().join("dump"), &empty).unwrap();
+    assert!(game.skin().is_err(), "without the RTP there is no System");
+    game.rtp_dir = Some(rtp);
+    assert_eq!(game.skin().unwrap().picture.rgba, from_game.skin().unwrap().picture.rgba);
+    assert_eq!(game.face(1).unwrap().unwrap().rgba, from_game.face(1).unwrap().unwrap().rgba);
+    let _ = std::fs::remove_dir_all(&tmp);
+}
+
 /// The battle's windows of the small game: every layout's band, its bars
 /// and the description's window, in the tiles and colours they have.
 #[test]

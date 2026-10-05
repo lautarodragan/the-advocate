@@ -226,6 +226,9 @@ pub fn decorate_translucent(t: &Translucent, name: &str, map_id: i32, x: i32, y:
 pub struct Game {
     /// The original game's folder, where the pictures and the music are.
     pub game_dir: PathBuf,
+    /// The RTP, where what the game does not ship is looked for: the
+    /// converter sets it, and the stages it calls get it as `--rtp-dir`.
+    pub rtp_dir: Option<PathBuf>,
     /// The dump the data is read from.
     pub dump: PathBuf,
     pub forks: Forks,
@@ -287,6 +290,7 @@ impl Game {
         };
         Ok(Game {
             game_dir: rm2k_project::absolute(game_dir),
+            rtp_dir: None,
             dump: dump_path,
             forks,
             db,

@@ -10,6 +10,7 @@ use crate::fail::{Bad, Result};
 use ditto::dump::Dump;
 use ditto::schema::{Actor, Item, System, Terms};
 use rm2k_render::picture::{self, Picture};
+use rm2k_render::source::find_resource;
 use rm2k_rules::system::{self as system_rules, Background};
 use rm2k_snes_text::font::Font;
 use std::collections::BTreeMap;
@@ -35,6 +36,9 @@ pub struct Game {
     pub system: System,
     /// The game's folder, where the System and the FaceSets are.
     pub game_dir: PathBuf,
+    /// The RTP the game was made with, where the System and the FaceSets
+    /// it does not ship are: `--rtp-dir`. None, only the game's folder.
+    pub rtp_dir: Option<PathBuf>,
     /// The font every text is drawn with: RM2k's, the one `font_id` asks
     /// for, until a request names another —see [`Game::use_font`]—.
     pub font: Font,
@@ -58,6 +62,7 @@ impl Game {
             font: Font::rm2k(system.font_id.to_i32()),
             system,
             game_dir: game_dir.to_path_buf(),
+            rtp_dir: None,
         })
     }
 
@@ -81,8 +86,9 @@ impl Game {
     /// The game's System, the one the database names, read with its
     /// colour key; and how its windows fill their background.
     ///
-    /// The System is looked for in the game's `System/`, and then in the
-    /// game's folder itself.
+    /// The System is looked for in the game's `System/`, then in the
+    /// game's folder itself, and then in the RTP's `System/`; without regard
+    /// to case, as RPG_RT finds it on Windows.
     pub fn skin(&self) -> Result<Skin> {
         let name = &self.system.system_name;
         let background = system_rules::background(self.system.message_stretch).ok_or_else(|| {
@@ -91,33 +97,40 @@ impl Game {
                 self.system.message_stretch
             ))
         })?;
-        for base in [self.game_dir.join("System"), self.game_dir.clone()] {
-            let path = base.join(format!("{name}.png"));
-            if path.exists() {
-                return Ok(Skin {
-                    picture: picture::read_rm2k(&path)?,
-                    background,
-                    path,
-                });
-            }
+        let found = find_resource(&[self.game_dir.clone()], "System", name)
+            .or_else(|| Some(self.game_dir.join(format!("{name}.png"))).filter(|p| p.exists()))
+            .or_else(|| find_resource(&self.rtp(), "System", name));
+        match found {
+            Some(path) => Ok(Skin {
+                picture: picture::read_rm2k(&path)?,
+                background,
+                path,
+            }),
+            None => Err(Bad::answer(format!(
+                "System {name:?} is not in {}{}",
+                self.game_dir.display(),
+                self.rtp_dir.as_ref().map_or(String::new(), |r| format!(" nor in {}", r.display()))
+            ))),
         }
-        Err(Bad::answer(format!(
-            "System {name:?} is not in {}",
-            self.game_dir.display()
-        )))
+    }
+
+    /// The RTP, as a list of directories to look in: empty without one.
+    fn rtp(&self) -> Vec<PathBuf> {
+        self.rtp_dir.iter().cloned().collect()
     }
 
     /// Actor `number`'s face, 48x48, or None if it has none. It is looked
-    /// for in the game's `FaceSet/`.
+    /// for in the game's `FaceSet/` and then in the RTP's, in any case.
     pub fn face(&self, number: i32) -> Result<Option<Picture>> {
         let actor = &self.actors[&number];
         if actor.face_name.is_empty() {
             return Ok(None);
         }
-        let path = self
-            .game_dir
-            .join("FaceSet")
-            .join(format!("{}.png", actor.face_name));
+        let mut dirs = vec![self.game_dir.clone()];
+        dirs.extend(self.rtp());
+        let path = find_resource(&dirs, "FaceSet", &actor.face_name).ok_or_else(|| {
+            Bad::answer(format!("FaceSet {:?} is not in {}", actor.face_name, self.game_dir.display()))
+        })?;
         let faceset = picture::read_rm2k(&path)?;
         Ok(Some(rm2k_render::face::face(&faceset, actor.face_index)))
     }

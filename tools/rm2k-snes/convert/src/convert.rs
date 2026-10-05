@@ -110,7 +110,8 @@ pub fn run(options: Options) -> Result<()> {
     let file_commands: Vec<Command> = cases.iter().flat_map(|(_, c, _)| c.iter().cloned()).collect();
     let case_pairs: Vec<(i32, Vec<Command>)> = cases.iter().map(|(_, c, m)| (*m, c.clone())).collect();
 
-    let game = Game::read(&game_dir, &project)?;
+    let mut game = Game::read(&game_dir, &project)?;
+    game.rtp_dir = Some(rtp_dir.clone());
     // The hero's graphic comes from the party: in RM2k the first of the
     // list gives it.
     let party: Vec<i32> = match &options.party {
@@ -696,7 +697,10 @@ pub fn run(options: Options) -> Result<()> {
     if !screens_answer["title"].is_null() {
         let t = &screens_answer["title"];
         let name = &game.db.title_name;
-        let picture = game.game_dir.join("Title").join(format!("{name}.png"));
+        // The game's, or the RTP's, in any case; where it was looked for
+        // when there is none.
+        let picture = crate::resources::find(&[&game.game_dir, &rtp_dir], "Title", name, &[".png"])
+            .unwrap_or_else(|| game.game_dir.join("Title").join(format!("{name}.png")));
         let texts: Vec<String> =
             t["texts"].as_array().cloned().unwrap_or_default().iter().map(|v| v.as_str().unwrap_or("").to_string()).collect();
         let menu_tiles = t["tiles"].as_array().map_or(0, Vec::len);

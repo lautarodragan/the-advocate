@@ -407,6 +407,18 @@ pub struct Scene {
     pub quality: Vec<(Vec<u8>, Vec<u8>)>,
 }
 
+/// The number of the project's `fallback_backdrop`: the backdrop of the
+/// battles whose own the ROM does not carry. It has to be one of the
+/// game's only when some battle can need it (`needed`); a game without
+/// battles has none to name.
+pub fn fallback_number(number_of: &BTreeMap<String, usize>, name: &str, needed: bool) -> Result<Option<i64>> {
+    match number_of.get(&name.to_lowercase()) {
+        Some(&k) => Ok(Some(k as i64)),
+        None if !needed => Ok(None),
+        None => Err(Stop::new(format!("the fallback backdrop {} is not one of the game's", repr(name)))),
+    }
+}
+
 /// It is the other half of the scene: here **which ones**. A battle asks for
 /// its backdrop in three ways: an `EnemyEncounter` that names it, a random
 /// encounter in a map that inherits it from the tree, and the terrain the
@@ -501,12 +513,12 @@ pub fn rom_scene(
         }
     }
     let replacement_name = settings.string(&["battle", "fallback_backdrop"])?;
-    let replacement_number = *number_of
-        .get(&replacement_name.to_lowercase())
-        .ok_or_else(|| Stop::new(format!("the fallback backdrop {} is not one of the game's", repr(&replacement_name))))?
-        as i64;
-    if possible.iter().any(|k| *k < PLACE_BACKDROP && !theirs.contains(k)) && !theirs.contains(&replacement_number) {
-        theirs.push(replacement_number);
+    let needed = possible.iter().any(|k| *k < PLACE_BACKDROP && !theirs.contains(k));
+    let replacement_number = fallback_number(&number_of, &replacement_name, needed)?;
+    if let (true, Some(r)) = (needed, replacement_number) {
+        if !theirs.contains(&r) {
+            theirs.push(r);
+        }
     }
     let scene = scene_settings();
     let found = |list: &[String], quality: bool, light: bool| -> Result<Vec<(Option<Value>, Option<Value>)>> {
@@ -538,7 +550,7 @@ pub fn rom_scene(
         });
     }
     let place: BTreeMap<i64, usize> = theirs.iter().enumerate().map(|(i, k)| (*k, i)).collect();
-    let replacement = place.get(&replacement_number).copied().unwrap_or(0);
+    let replacement = replacement_number.and_then(|r| place.get(&r).copied()).unwrap_or(0);
     let fallback_of = (0..names.len() as i64).map(|k| place.get(&k).copied().unwrap_or(replacement)).collect();
     // The quality ones, for the `.msu`: all of them, in the ROM or not.
     let quality = found(&names, true, false)?
@@ -824,6 +836,18 @@ mod tests {
             colors: 0,
             merges: 0,
         }
+    }
+
+    /// The fallback backdrop is asked for only when some battle can need
+    /// it: a game without battles —Desert Nightmare has no backdrop at
+    /// all— has none to name, and that is not an error.
+    #[test]
+    fn the_fallback_backdrop_is_looked_up_only_when_it_is_needed() {
+        let number_of: BTreeMap<String, usize> = [("grass".to_string(), 3)].into_iter().collect();
+        assert_eq!(fallback_number(&number_of, "Grass", true).unwrap(), Some(3));
+        assert_eq!(fallback_number(&number_of, "", false).unwrap(), None);
+        assert_eq!(fallback_number(&number_of, "Grass", false).unwrap(), Some(3));
+        assert!(fallback_number(&number_of, "", true).is_err());
     }
 
     #[test]

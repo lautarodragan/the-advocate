@@ -111,8 +111,8 @@ const UPPER: &str = "upper_layer";
 /// generated apart, it is a matter of time before one is from one run and the
 /// other from another.
 pub fn unpack(game: &Path, exact: &Path, resolved: &Path) -> Result<Vec<PathBuf>> {
-    let ldb = read_doc(&game.join("RPG_RT.ldb"))?;
-    let lmt = read_doc(&game.join("RPG_RT.lmt"))?;
+    let ldb = read_doc(&in_any_case(game, "RPG_RT.ldb")?)?;
+    let lmt = read_doc(&in_any_case(game, "RPG_RT.lmt")?)?;
 
     let Document::Ldb { header: db_header, data: db } = ldb else {
         return error("RPG_RT.ldb is not a database");
@@ -698,6 +698,22 @@ fn by_extension(dir: &Path, ext: &str) -> Result<Vec<PathBuf>> {
         .collect();
     v.sort();
     Ok(v)
+}
+
+/// The file of `dir` called `name` in any case. The games were made on
+/// Windows, where `RPG_RT.LDB` and `RPG_RT.ldb` are the same file, and some
+/// ship it in capitals. The exact name wins if there is one; without any, the
+/// path that does not exist, so that the error names what was looked for.
+fn in_any_case(dir: &Path, name: &str) -> Result<PathBuf> {
+    let exact = dir.join(name);
+    if exact.is_file() {
+        return Ok(exact);
+    }
+    let found = std::fs::read_dir(dir)
+        .map_err(|e| Error(format!("{}: {e}", dir.display())))?
+        .filter_map(|e| e.ok().map(|e| e.path()))
+        .find(|p| p.file_name().and_then(|n| n.to_str()).is_some_and(|n| n.eq_ignore_ascii_case(name)));
+    Ok(found.unwrap_or(exact))
 }
 
 fn json_files(dir: &Path) -> Result<Vec<PathBuf>> {

@@ -129,6 +129,28 @@ fn both_views_read_into_the_same_values() {
     }
 }
 
+/// A game written on a case-insensitive file system can have its files in
+/// any case —`RPG_RT.LDB`, `RPG_RT.LMT`—, and RPG_RT finds them all the same.
+/// The maps were already looked for by extension in any case.
+#[test]
+fn the_file_names_are_read_in_any_case() {
+    let tmp = Temp::new("library-case");
+    let game = tmp.0.join("game");
+    std::fs::create_dir_all(&game).unwrap();
+    let write = |name: &str, doc: Document| {
+        std::fs::write(game.join(name), ditto::file::write(&doc).unwrap()).unwrap();
+    };
+    write("RPG_RT.LDB", Document::Ldb { header: "LcfDataBase".into(), data: database() });
+    write("rpg_rt.Lmt", Document::Lmt { header: "LcfMapTree".into(), data: tree() });
+    write("Map0001.lmu", Document::Lmu { header: "LcfMapUnit".into(), data: map() });
+    let (exact, resolved) = (tmp.0.join("exact"), tmp.0.join("resolved"));
+    unpack(&game, &exact, &resolved).unwrap();
+    let dump = Dump::open(&resolved).unwrap();
+    assert_eq!(dump.database().unwrap(), database());
+    assert_eq!(dump.tree().unwrap(), tree());
+    assert_eq!(dump.map(1).unwrap(), map());
+}
+
 /// A section on its own is the same as the database's, and reads nothing
 /// else: the file of another section can be broken and it does not notice.
 #[test]
