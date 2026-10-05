@@ -286,7 +286,8 @@ ev_pos_buf: .res EV_MAX * EV_STRIDE
 ;   +8  facing     which way it faces, or $FF if the move route has not
 ;                  turned it yet: then the direction its page carries holds
 ;   +9  wait       the frames left in a `wait`
-;   +12 flags      bit 0 goes through walls, bit 1 animation stopped
+;   +12 flags      bit 0 goes through walls, bit 1 animation stopped, bit 2
+;                  its page's graphic is fixed: see `fixed_graphic_into_slot`
 ;   +13 jump       what is left of the current jump, 0 if there is none
 ;   +14 jump_dx   and where it started from, in cells and signed
 ;   +15 jump_dy
@@ -302,6 +303,7 @@ ev_pos_buf: .res EV_MAX * EV_STRIDE
 ; the frequency, +18 the route's flags —bit 7 its page turns in place, see
 ; `spin_step`—, +19 its row in `npc_buf` plus one, remembered by `slot_npc`. The stride is a power of two out of habit; there is room to spare.
 ROUTE_EV_STRIDE = 32
+ROUTE_FIXED_GRAPHIC = $04       ; in +12
 ROUTE_EV_FREE = $FF
 ROUTE_EV_NO_FACE = $FF      ; in +8: the move route has not turned it yet
 route_ev: .res ROUTE_EV_MAX * ROUTE_EV_STRIDE

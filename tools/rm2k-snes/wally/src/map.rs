@@ -203,6 +203,9 @@ pub struct Objects {
     /// `timer_mask`. 0 without a timer.
     pub timer_mask: u16,
     pub animated: Vec<Key>,
+    /// Each one's palette, for a page that gives an event that walks
+    /// another graphic: see `page_graphic` in the runtime.
+    pub animated_palettes: Vec<usize>,
     pub banks: Vec<(Key, Vec<u8>)>,
     pub route_gfx: Vec<(usize, usize)>,
     pub rain: (usize, usize),
@@ -929,6 +932,7 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
     }
     let banks = pose_bank(&sheets, &animated, &bank.colors).map_err(|b| Bad::answer(b.0))?;
     let animated_index: HashMap<Key, usize> = animated.iter().enumerate().map(|(k, p)| (p.clone(), k)).collect();
+    let animated_palettes: Vec<usize> = animated.iter().map(|k| split.palette_of.get(k).unwrap_or(0)).collect();
     let route_gfx: Vec<(usize, usize)> = request
         .route_graphics
         .iter()
@@ -1066,6 +1070,7 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
         timer: timer_at,
         timer_mask,
         animated,
+        animated_palettes,
         banks,
         route_gfx,
         rain,
@@ -1249,6 +1254,7 @@ pub fn write(out: &Path, done: &Whole) -> Result<()> {
                 "timer": o.timer.map(|(b, p)| json!([b, p])),
                 "timer_mask": o.timer_mask,
                 "animated": o.animated.iter().map(key_json).collect::<Vec<_>>(),
+                "animated_palettes": o.animated_palettes,
                 "banks": banks,
                 "route_gfx": o.route_gfx.iter().map(|(k, p)| json!([k, p])).collect::<Vec<_>>(),
                 "rain": [o.rain.0, o.rain.1],

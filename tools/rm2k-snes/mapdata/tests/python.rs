@@ -113,7 +113,7 @@ fn what_goes_per_map_comes_out_as_the_python_wrote_it() {
         "1739ecfe74a25a7d9c0fa8001ea8c338117c81189df83a9196643a6173976fc1"
     );
     assert_eq!(
-        sha(&written.maps),
+        sha(&with_the_turn_as_before(&written.maps)),
         "cb782dcc5d6a59cb08786dea041fabaacbdb78812d565a5b5841be440d55ce42"
     );
     assert_eq!(
@@ -246,6 +246,32 @@ fn without_commons(text: &str) -> String {
     lines.join("\n")
 }
 
+/// The page table's +30 and +31 as they were before 2026-10-05: the turn's
+/// pose bank and pose, or `$FF, 0` for a page that does not turn. Since then
+/// a page of an event that walks carries its pose bank too, and +31 its
+/// palette and, in bit 7, that it does not turn —see `page_table`—; this
+/// gives back what the Python wrote, which is what the hashes hold.
+fn with_the_turn_as_before(text: &str) -> String {
+    text.split('\n')
+        .map(|line| {
+            let Some(rest) = line.strip_prefix("    .byte $") else {
+                return line.to_string();
+            };
+            if !line.contains("; +30 its poses and +31") {
+                return line.to_string();
+            }
+            let k = u8::from_str_radix(&rest[..2], 16).unwrap();
+            let pose = u8::from_str_radix(&rest[5..7], 16).unwrap();
+            if pose & 0x80 != 0 {
+                "    .byte $FF, 0 ; +30 the turn: its poses and its pose".to_string()
+            } else {
+                format!("    .byte ${k:02X}, {} ; +30 the turn: its poses and its pose", pose & 0x0F)
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 /// The text without `item_up`, which came on 2026-10-04 with the materials:
 /// what each item adds to an actor for good. The test game has no
 /// material, so every word is zero, which is checked here.
@@ -327,7 +353,7 @@ fn without_bare_window(text: &str) -> String {
 #[test]
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
-    let text = without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&emitted.text))))));
+    let text = with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&emitted.text)))))));
     assert_eq!(text.lines().count(), 3774);
     assert_eq!(
         sha(&text),
@@ -338,7 +364,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 #[test]
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
-    let text = without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&emitted.text))))));
+    let text = with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&emitted.text)))))));
     assert_eq!(text.lines().count(), 3893);
     assert_eq!(
         sha(&text),

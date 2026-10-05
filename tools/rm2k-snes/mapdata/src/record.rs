@@ -1034,7 +1034,10 @@ pub fn page_table(map: &PageMap, number: usize, evcode: &str) -> String {
             // The speed is 1 to 6, so the spin rides in its high bits: the
             // byte at +13 is full. Bit 7 it turns in place, bits 4 and 5
             // the column it shows. See `load_page_into_slot`.
-            let speed = own.speed | bit(own.spin, 128) | if own.spin { own.pattern << 4 } else { 0 };
+            let speed = own.speed
+                | bit(own.spin, 128)
+                | if own.spin { own.pattern << 4 } else { 0 }
+                | fixed_graphic(page);
             // The comment is the old one on purpose: `tests/python.rs`
             // hashes the `.inc`, comments and all.
             out.push(format!("    .byte {speed:<4} ; +15 and its speed"));
@@ -1058,7 +1061,7 @@ pub fn page_table(map: &PageMap, number: usize, evcode: &str) -> String {
             ));
             out.push(format!(
                 "    .byte {:<4} ; +15 and its speed, that of a route forced on the event",
-                page.speed
+                page.speed | fixed_graphic(page)
             ));
             out.push("    .byte 0,0,0,0".into());
         }
@@ -1088,21 +1091,33 @@ pub fn page_table(map: &PageMap, number: usize, evcode: &str) -> String {
             "    .word {:<4} ; +28 the item it asks for, or 0",
             page.item
         ));
-        // +30: the turn toward the hero: which entry of `npc_poses` the poses
-        // of its graphic are in, or $FF, and its pose.
+        // +30: which entry of `npc_poses` the poses of its graphic are in,
+        // or $FF; +31 its pose, bit 7 if it does **not** turn toward the
+        // hero, and in bits 4 to 6 its graphic's palette. Two readers: the
+        // turn toward the hero, and an event that walks, whose row carries
+        // one graphic's twelve poses and takes the page's from here —see
+        // `page_graphic`—. Until 2026-10-05 only the turn had it, and an
+        // event that walked kept its first page's graphic for good: Boss
+        // Wick, on ABL's map 40, came back from the vidcasts as one of his
+        // girls.
+        let turns = page.turns && map.turning.contains(&page.event);
         let k = match &page.graphic {
-            Some((charset, index, _)) if page.turns && map.turning.contains(&page.event) => map
+            Some((charset, index, _)) if turns || map.movable.contains(&page.event) => map
                 .animated
                 .iter()
                 .position(|(c, i)| c == charset && i == index),
             _ => None,
         };
         let pose = match (&k, &page.graphic) {
-            (Some(_), Some((_, _, pose))) => *pose,
+            (Some(k), Some((_, _, pose))) => {
+                let palette = map.animated_palettes.get(*k).copied().unwrap_or(0) & 0x07;
+                *pose | palette << 4
+            }
             _ => 0,
         };
+        let pose = pose | bit(!(turns && k.is_some()), 0x80);
         out.push(format!(
-            "    .byte ${:02X}, {pose} ; +30 the turn: its poses and its pose",
+            "    .byte ${:02X}, ${pose:02X} ; +30 its poses and +31 its pose, palette and whether it turns",
             k.map_or(0xFF, |k| k as i64)
         ));
     }
@@ -1111,6 +1126,19 @@ pub fn page_table(map: &PageMap, number: usize, evcode: &str) -> String {
         out.push("    .byte $00".into());
     }
     out.join("\n")
+}
+
+/// What `AnimType_fixed_graphic` adds to a page's speed byte, +15: bit 6,
+/// and its column in bits 4 and 5 —the ones the spin uses, which never
+/// comes with it—. A move route that takes the event does not change its
+/// column, which is how ABL's missile silos (map 92) open: they turn and
+/// show the first column of each row of their sheet, and the middle one is
+/// a soldier. See `route_for_event` and `animate_ev_route`.
+fn fixed_graphic(page: &Page) -> i64 {
+    match &page.graphic {
+        Some((_, _, pose)) if page.fixed_graphic => 0x40 | (pose % 3) << 4,
+        _ => 0,
+    }
 }
 
 /// RM2k's triggers the page table looks at.
@@ -1123,8 +1151,12 @@ pub struct PageMap<'a> {
     pub changing: &'a [i64],
     pub appearing: &'a [i64],
     pub turning: &'a [i64],
-    /// The characters that change pose, in the order of the pose table.
+    /// The events that walk: their rows carry a pose bank.
+    pub movable: &'a [i64],
+    /// The characters that change pose, in the order of the pose table,
+    /// and each one's palette.
     pub animated: &'a [(String, i64)],
+    pub animated_palettes: &'a [i64],
 }
 
 impl<'a> PageMap<'a> {
@@ -1134,7 +1166,9 @@ impl<'a> PageMap<'a> {
             changing: &map.changing,
             appearing: &map.appearing,
             turning: &map.turning,
+            movable: &map.movable,
             animated: map.sprite.as_ref().map_or(&[], |s| s.animated.as_slice()),
+            animated_palettes: map.sprite.as_ref().map_or(&[], |s| s.animated_palettes.as_slice()),
         }
     }
 }
@@ -1563,7 +1597,9 @@ mod tests {
             changing: &[],
             appearing: &[],
             turning: &[],
+            movable: &[],
             animated: &[],
+            animated_palettes: &[],
         };
         let table = page_table(&map, 0, "evcode_0");
         let operands = literals(&table);

@@ -98,6 +98,12 @@ with_speed:
     lda found_flags
     and #$08
     sta route_ev + 18, x
+    ; And whether its page's graphic is fixed —`AnimType_fixed_graphic`—,
+    ; which keeps the page's column instead of the middle one: ABL's
+    ; missile silos, on map 92, open by turning, and their middle column is
+    ; a soldier.
+    lda f:FOUND_SPEED
+    jsr fixed_graphic_into_slot
 reused:
     lda route_ev + 18, x
     and #$FE                    ; the forced one overrides the page's, if there was one

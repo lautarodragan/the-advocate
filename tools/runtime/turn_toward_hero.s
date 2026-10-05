@@ -25,7 +25,10 @@
 ;   GIRO_*_ANT  the row's tile, attributes and pose before turning, to give
 ;               them back
 ;   PICK_K, PICK_POSE   the +30 and the +31 of the page that won the last time
-;               `seek_event_page` ran
+;               `seek_event_page` ran: its graphic's entry in `npc_poses`, and
+;               its pose with bit 7 set if it does not turn —a page of an
+;               event that walks carries the entry also when it does not:
+;               see `walker_graphic`—
 ;
 ; A still one shares its VRAM slot with the other still ones of the same pose,
 ; so to turn it moves to the map's turn slot, `M_TURN_TILE4`, and the new pose
@@ -57,10 +60,9 @@ PICK_POSE  = TURN_EV + 10
 .proc turn_fire
 .a8
 .i16
-    lda f:PICK_K
-    cmp #$FF
-    bne turns
-    rts                         ; the page does not turn
+    lda f:PICK_POSE
+    bpl turns
+    rts                         ; the page does not turn: bit 7 of its +31
 turns:
     lda ev_sought
     jsr event_slot
@@ -349,13 +351,12 @@ nothing:
     jsr seek_event_page
     lda chosen_any
     beq undo                    ; it was left without a page
-    lda f:PICK_K
-    cmp #$FF
-    beq undo
-    cmp f:TURN_K
-    bne undo
     lda f:PICK_POSE
+    bmi undo                    ; the new page does not turn
     cmp f:TURN_PPOSE
+    bne undo
+    lda f:PICK_K
+    cmp f:TURN_K
     bne undo
 nothing:
     rts
