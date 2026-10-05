@@ -23,6 +23,12 @@
 //! was built for, became an invented one of the same length, and the hash
 //! of its patch moved with it: the new file, with the old name put back, is
 //! the Python's byte for byte.
+//!
+//! On 2026-10-04 the header of every file and two of the check's messages
+//! stopped naming a recipe of that game's and name `rm2k-snes-patches`
+//! instead; the hashes and the sizes moved with them. Every new file, with
+//! the old header put back, is the Python's byte for byte, and the messages
+//! differ from its only in that sentence.
 
 use rm2k_snes_patches::{check, copy, versioned, write, Key, Kind, Request};
 use serde_json::{json, Value};

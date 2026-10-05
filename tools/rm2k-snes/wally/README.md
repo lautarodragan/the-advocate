@@ -3,7 +3,8 @@
     wally map --data dump/ --search-dir pictures/ --request request.json --out build/map/
 
 `cargo build --release`, or `cargo test`. `--help` on any subcommand prints
-what it takes and what it writes.
+what it takes and what it writes. The tests build a small game, its
+ChipSets and CharSets inside the test: they need no game.
 
 A map on the console is two background layers in mode 3 —the one behind the
 hero at 8 bits a pixel, the one in front at 4—, the events drawn as 32x32

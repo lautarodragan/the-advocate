@@ -65,8 +65,8 @@ Mednafen state (F5) in the droid fight and reading the WRAM out of the
 ## The 8 MB map, ExHiROM
 
 Since 2026-10-01 the cartridge is ExHiROM, and not every emulator maps it
-like the cartridge does. Measured with `just exhirom` on a test ROM that
-sums stretches of the whole map:
+like the cartridge does. Measured with the test ROM in A Blurred Line's
+`experimentos/exhirom/`, which sums stretches of the whole map:
 
 - **snes9x** and **bsnes**: like the cartridge.
 - **mesen-s**, **Mesen2** —unless "strict board mappings" is on— and

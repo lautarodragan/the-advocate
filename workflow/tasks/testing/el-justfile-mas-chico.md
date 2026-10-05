@@ -3,7 +3,7 @@ name: "Los justfile, más chicos"
 description: "Sacar de los dos justfile —el de las herramientas y el de ABL— las recetas que ya no se usan, y simplificar las que quedaron complicadas después de la migración a Rust y la separación en dos repos"
 type: refactor
 agents: [Calandria]
-assignee: Calandria
+assignee: taro
 ---
 
 De taro, el 2026-10-05: "creo que podemos eliminar cosas del `justfile`,
@@ -172,3 +172,65 @@ en una, sin la limpieza de symlinks de `_install`, un solo `pruebas` con la
 carpeta, sin `build`, las herramientas que nombran recetas de ABL (que acá
 iban como tarea aparte y van en ésta), y sin las recetas de los
 experimentos cerrados, salvo `msu-puerto`.
+
+## Lo aplicado después (Calandria, 2026-10-04)
+
+Sobre `main` en `8b7766ad` y ABL en `83e4886`.
+
+En las herramientas:
+
+* `crate-test <proyecto> [args]` en lugar de las veinte `<crate>-test`:
+  `cargo test` parado en el proyecto, como antes, con el nombre de
+  `rust_projects`. Las tres que iban en `--release` van en debug, como
+  `rust-test`: medidas, tardan uno o dos segundos. Lo que decían sus
+  comentarios se mudó al README o al `lib.rs` de los siete crates que no
+  lo decían ya. `AGENTS.md`, `DITTO.md`, `docs/port/audio.md`,
+  `tools/README.md` y `tools/tests/README.md` nombran `crate-test`.
+* `_install` sin la limpieza de symlinks.
+* `rm2k-snes-patches` y `rm2k-snes-volume-ceilings` nombran el binario y
+  su flag en vez de `just parches`, `just parches --check` y `just
+  techos`; el encabezado de `techos.toml` tampoco nombra ya
+  `test_musica_techos.py` ni las funciones del Python que no existen. Las
+  pruebas de patches cambian hashes y tamaños: cada parche nuevo, con el
+  encabezado viejo puesto de vuelta, da el hash del Python (los diez).
+* `docs/snes/emulators.md` y una tarea de la wishlist, que nombraban
+  `just exhirom` y `just build`.
+* La prosa del host, en su commit: `CARGO_ROOT=~/.cargo`, el párrafo de la
+  simetría host-contenedor y "si taro lo va a correr desde el host".
+
+En ABL (rama `calandria-justfile` de `/extras/scratch/calandria/abl`):
+
+* Un solo `pruebas`, que le pasa todo a pytest; sin ruta corre `pruebas`
+  porque lo dice `testpaths` en `pytest.ini`.
+* Sin `build`: `parches`, `entregar` y `video` dependen de `cartuchos`, que
+  se quedó con su comentario.
+* Sin `menu-modo-5`, `fuentes`, `exhirom`, `zoom-modo-7` ni
+  `zoom-modo-7-videos`; cada `experimentos/<x>/` dice sus líneas.
+* Los 181 parches de `parches/auto/` con el encabezado nuevo, de `just
+  parches`, y el de `techos.toml` a mano, igual al que escribe la
+  herramienta.
+* La misma prosa del host en su `AGENTS.md`.
+
+**Al mergear: reinstalar `patches` y `rm2k-snes-audio`.** Lo demás que
+cambió en Rust son comentarios.
+
+### Verificado
+
+Con `patches` y `rm2k-snes-audio` de esta rama instalados en local, y lo
+demás del global:
+
+* `just -f tools/justfile test`: 27 pasan. `cargo test --workspace
+  --no-fail-fast`: 672 pasan y ninguna falla (el rojo de wally de la vez
+  pasada ya no está en `main`).
+* `just crate-test lz2` y `crate-test ditto` corren; `crate-test nope` se
+  niega con la lista.
+* La tanda de ABL, `just pruebas` en mi clon: **1101 pasan**. `just
+  pruebas pruebas/herramientas`: 81. `abl.sfc` es `5c50524fea3111ba…`,
+  igual que antes.
+* `just --list`: siete recetas en las herramientas y once en ABL.
+* `just entregar` con `SHARED` en una carpeta mía: deja `abl.sfc`,
+  `.dbg`, `abl.msu`, `tools/` y `LEEME.txt`.
+
+Lo que no corrí: los experimentos cuyas recetas se fueron (sólo cambió
+el encabezado de sus scripts), `techos` (cuatro minutos midiendo; su
+encabezado se cambió a mano) y `datos`.

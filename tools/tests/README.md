@@ -6,8 +6,8 @@
 The Python ones, and the only Python left in `tools/`: they look at this
 tree —its layers, who reads a dump, that nothing names a game— the way a
 crate's tests look at the crate. They import nothing: `tools/` is the
-folder above this one. The Rust projects' tests each have their own recipe
-(`bytecode-test`, `ditto-test`…).
+folder above this one. The Rust projects' tests run one by one with
+`crate-test <project>`, or all together with `rust-test`.
 
 **A test goes here if it does not read a game** —neither its original
 files, nor the RTP—, **nor its dump, nor its patches, nor a built
@@ -26,7 +26,7 @@ ABL: that is why they do not ask `rm2k-snes-cartridges` anything either.
 What they do use from outside: `test_layers.py` runs `cargo metadata`,
 which reads only the workspace's manifests. The music stream's tests, which
 read a SoundFont, are in Rust, in `rm2k-snes/rm2k-snes-audio/`: `just
-audio-test`. The bytecodes are checked where they are declared, in
+crate-test rm2k-snes-audio`. The bytecodes are checked where they are declared, in
 `rm2k-snes/bytecode/`, and so is the runtime's use of them. The bank packing
 and the rest of what builds a cartridge are tested in Rust, in
 `rm2k-snes/cartridge/`.

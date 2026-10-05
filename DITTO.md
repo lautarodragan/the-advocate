@@ -229,7 +229,7 @@ Ditto se mide contra un juego de verdad, en la carpeta que diga
 `DITTO_CORPUS`. Ni Ditto ni `tools/justfile` saben de ninguno: el juego se lo
 pasa el que corre.
 
-    DITTO_CORPUS=<juego> just -f tools/justfile ditto-test        # una muestra de mapas
+    DITTO_CORPUS=<juego> just -f tools/justfile crate-test ditto  # una muestra de mapas
     DITTO_CORPUS=<juego> just -f tools/justfile ditto-round-trip  # todos, con el número impreso
 
 Sin la variable, las pruebas que necesitan un juego **se saltean con un

@@ -25,10 +25,10 @@ rehacen con la sonda y los dos prototipos, que quedaron en
     sonda.py                envuelve cada conversión, deja que haga lo suyo, y
                             pasa sus mismas celdas por `voodoo` para comparar
                             tiles y tilemap. Se corre con los argumentos de
-                            `just build release` y no escribe nada del árbol.
+                            `just cartuchos release` y no escribe nada del árbol.
     prototipo-menu.diff     el menú del título por Voodoo
     prototipo-titulo.diff   la imagen del título por Voodoo
-    comparar.sh             `just build release` + `just cartuchos` y `md5sum -c`
+    comparar.sh             `just cartuchos release` + `just cartuchos` y `md5sum -c`
                             contra las cuatro ROMs de `deaf3be`
 
 Las dos capas de los mapas —la de abajo con sus animaciones, la de encima— ya
@@ -100,13 +100,13 @@ con el modo sin deduplicar y las filas 4 y 7 a 11 adentro.
 
 Qué se corrió para cada columna:
 
-* **Filas 1 y 2**: el prototipo aplicado en el árbol, `just build release` y `just
+* **Filas 1 y 2**: el prototipo aplicado en el árbol, `just cartuchos release` y `just
   cartuchos` —los cuatro rearmados, `armado` en los tres de prueba—, y
   `md5sum` contra las cuatro ROMs de `deaf3be`: `abl`, `pruebas`, `chico` y
   `juego`. De ésas, las que tienen título son `abl` y `juego`. Para la 2,
   además, `pytest pruebas/rpgmaker/test_tanda_pantallas.py -k titulo`: 4
   verdes contra las goldens, que se comparan exactas.
-* **Las demás**: sólo la sonda, sobre los argumentos de `just build release`. Donde la
+* **Las demás**: sólo la sonda, sobre los argumentos de `just cartuchos release`. Donde la
   sonda ya da tiles o tilemap distintos, la ROM sale distinta sin armarla;
   donde falta un modo, no hay qué armar.
 

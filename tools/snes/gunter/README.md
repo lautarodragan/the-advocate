@@ -28,7 +28,9 @@ decisions; this only does the two conversions, and says exactly what it did.
     gunter sf2 bank.sf2 --extract drum:36 -o kick.wav
 
 `cargo build --release`, or `cargo test`. `--help` on any subcommand prints the
-selectors and the rules below.
+selectors and the rules below. The tests are samples generated inside the
+test —silence, a ramp, a square, an impulse, clipping— plus the error
+messages, so they need neither a game nor a SoundFont.
 
 ## A sample is not just its bytes
 

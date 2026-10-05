@@ -6,9 +6,8 @@
 # inside `tools/`, with `just <recipe>`, because `just` uses the nearest
 # `justfile`. Either way the recipes run standing in `tools/`.
 
-# Where `just install` installs. In the container
-# `/usr/local` is on the PATH; from the host `CARGO_ROOT=~/.cargo`, cargo's
-# default, is better.
+# Where `just install` installs: `/usr/local` unless `CARGO_ROOT` says
+# otherwise.
 cargo_root := env_var_or_default("CARGO_ROOT", "/usr/local")
 
 # A worktree's tools, used by the recipes in this file: they run the
@@ -29,10 +28,9 @@ export PATH := if path_exists(local_tools / "bin") == "true" { local_tools / "bi
 # which answers what a game's tests ask about the project.
 #
 # They are one Cargo workspace —`Cargo.toml`, here—, with one `Cargo.lock`
-# and one `target/`, but each is still tested and installed on its own: the
-# `*-test` recipes run `cargo test` standing in the project, which tests
-# only that one, and `cargo install --locked --path` takes the workspace's
-# lock.
+# and one `target/`, but each is still tested and installed on its own:
+# `crate-test` runs `cargo test` standing in the project, which tests only
+# that one, and `cargo install --locked --path` takes the workspace's lock.
 rust_projects := "gunter goombario ditto rules adeleine voodoo lz2 rm2k-render project bytecode cartridge patches rm2k-snes-audio battle events wally text screens images mapdata convert"
 
 # The directories the projects live in, one per layer: each project is
@@ -45,7 +43,8 @@ rust_layers := "snes rm2k rm2k-snes"
 # Blurred Line's. They are fast, so they run serially and without xdist.
 #
 # None reads a SoundFont any more: the music's that do are in Rust, in
-# `audio-test`, and get it the same way, in `SOUNDFONT`. `pytest` takes `tests/` from `pytest.ini`, so whatever is passed to it —a
+# `crate-test rm2k-snes-audio`, and get it the same way, in `SOUNDFONT`.
+# `pytest` takes `tests/` from `pytest.ini`, so whatever is passed to it —a
 # file, `-k`— works the same as in a plain `pytest`.
 #
 # The tools' Python tests, the ones that look at this tree.
@@ -55,44 +54,43 @@ test *args:
 # Every Rust project's tests at once, the whole workspace, in the debug
 # profile: the release one is `lto` and a single codegen unit, and compiling
 # every test binary that way costs more than the tests save. The ones that
-# need a game or a SoundFont are skipped the same way as in each project's
-# recipe, unless `DITTO_CORPUS` or `SOUNDFONT` are set.
+# need a game or a SoundFont are skipped the same way as in `crate-test`,
+# unless `DITTO_CORPUS` or `SOUNDFONT` are set.
 #
 # Every Rust project's tests, the whole workspace.
 rust-test *args:
   cargo test --workspace {{args}}
 
-# Gunter: the BRR codec and the SoundFont reader, and **what builds the ROM's
-# samples**. Its tests are samples generated inside the test —silence, ramp,
-# square, impulse, clipping— plus the error messages, so they need neither
-# the game nor a soundfont. That the real samples come out right is enforced
-# by any ROM, because they travel inside the `.sfc`.
+# One Rust project's tests, by its name in `rust_projects` —`just
+# crate-test lz2`—, standing in its directory, which tests only that one;
+# whatever follows the name goes to `cargo test`. What each one's tests need
+# is in its README or its `lib.rs`: none needs a game, and the ones that
+# can use one —Ditto's corpus, a real SoundFont for `rm2k-snes-audio`— get
+# it in `DITTO_CORPUS` and `SOUNDFONT`, and skip without it.
 #
-# Gunter's tests: the BRR codec and the SoundFont reader.
-gunter-test:
-  cd snes/gunter && cargo test
+# In the debug profile, like `rust-test`: the three whose recipes used to
+# run in release —`lz2`, `rm2k-render`, `rm2k-snes-audio`— take a second or
+# two in debug too.
+#
+# One Rust project's tests, by its name.
+crate-test project *args:
+  #!/usr/bin/env sh
+  set -eu
+  for layer in {{rust_layers}}; do
+    if [ -f "$layer/{{project}}/Cargo.toml" ]; then
+      cd "$layer/{{project}}"
+      exec cargo test {{args}}
+    fi
+  done
+  echo "'{{project}}' is not a Rust project: they are {{rust_projects}}." >&2
+  exit 1
 
-# .ldb/.lmu/.lmt ⇄ JSON in Rust, and as a library the one place in Rust that
-# reads a dump: the converter and every stage read the game through it. See
-# DITTO.md, at the root, which is what ties Ditto to the port; inside `rm2k/ditto/` there is not a single reference
-# to us, on purpose.
+# Ditto's short suite runs over a sample of maps; this is every map, the LDB
+# and the tree, and measures the only thing that makes the tool useful: that
+# the binary comes back **byte for byte**. It is separate because it is the
+# one you want to see with the number, not the one that runs quietly; and
+# without a corpus it measures nothing, so instead of skipping it refuses.
 #
-# The game it is measured against **is passed by whoever runs it**, in
-# DITTO_CORPUS: the tools know no game, so they do not fall into anyone's.
-# Without the variable, the tests that need it are skipped with a message and
-# the rest —the schema defaults, the synthetic corpus— run anyway.
-#
-# The short suite runs over a sample of maps; `ditto-round-trip` is every
-# map, the LDB and the tree, and measures the only thing that makes the tool
-# useful: that the binary comes back **byte for byte**. It is separate
-# because it is the one you want to see with the number, not the one that
-# runs quietly; and without a corpus it measures nothing, so instead of
-# skipping it refuses.
-#
-# Ditto's tests; the ones that need a game, with DITTO_CORPUS.
-ditto-test:
-  cd rm2k/ditto && cargo test
-
 # Every file of DITTO_CORPUS back to binary, byte for byte.
 ditto-round-trip:
   #!/usr/bin/env sh
@@ -103,219 +101,6 @@ ditto-round-trip:
   fi
   cd rm2k/ditto
   cargo test --release -- --include-ignored --nocapture
-
-# rm2k-rules: what the data of an RPG Maker 2000 game means —passability,
-# which layer covers which, the page a new game starts on and what it
-# draws, the experience curve, what a map inherits from the tree—, over
-# Ditto's types. Its tests check it against `rm2k/rules/tests/python.json`:
-# what the Python these rules were copied from answered for some inputs.
-# They need no game.
-#
-# rm2k-rules' tests: what RM2k's data means.
-rules-test:
-  cd rm2k/rules && cargo test
-
-# Adeleine: which colors a picture loses and how the ones left are grouped
-# into palettes, in Rust. It is what decides the colors Voodoo later
-# converts; see AGENTS.md. The converter's stages use it as a library.
-#
-# Its tests generate their colors and tiles inside the test, and compare
-# against the hashes of what the Python it replaced gave for the same input
-# on 2026-09-29: they do not need the game.
-#
-# Adeleine's tests: which colors are lost, and the palettes.
-adeleine-test:
-  cd snes/adeleine && cargo test
-
-# Voodoo: from an indexed PNG to tiles, tilemap and CGRAM, in Rust. It is what
-# converts the map layers, from the images Adeleine leaves. It does not
-# decide colors; see AGENTS.md.
-#
-# Its tests are images generated inside the test, plus the error messages,
-# so they do not need the game.
-#
-# Voodoo's tests: from an indexed PNG to tiles, tilemap and CGRAM.
-voodoo-test:
-  cd snes/voodoo && cargo test
-
-# Goombario: static checks for 65816 code built with ca65 and ld65 —a
-# branch on what a pull left, `jsl` against `rts`, the stack, the widths—.
-# Its tests assemble toy programs, so they need `ca65` and `ld65` on the
-# PATH, and skip without them; they do not need the game.
-#
-# Goombario's tests: the 65816 linter, on toy programs.
-goombario-test:
-  cd snes/goombario && cargo test
-
-# LZ2: Nintendo's LC_LZ2, which the converter uses to compress the tiles and
-# grids the ROM decompresses when loading a map, as a library of the emission
-# and the converter.
-# Its tests do not need the game; the ones that run every block of the
-# cartridge through the reference are the port's.
-#
-# LZ2's tests: Nintendo's LC_LZ2.
-lz2-test:
-  cd snes/lz2 && cargo test --release
-
-# rm2k-render: what RPG Maker 2000 draws, as PNGs —a map's tile layers and
-# the other drawings of its ChipSet animation, the CharSet sheets its events
-# are drawn with, a battle's animations, backdrops and enemies, and the faces,
-# windows and pictures of the screens—, as a library of the stages that draw.
-# The directory is named after the binary because `render/` was, until
-# 2026-10-02, the converter's Python that asked it for pictures.
-#
-# Its tests draw ChipSets, CharSets and a map generated inside the test, and
-# compare against the hashes of what the Python that drew them gave for the
-# same input —until 2026-09-29 the layers, until 2026-09-30 the CharSets—:
-# they need neither the game nor the RTP.
-#
-# rm2k-render's tests: what RPG Maker 2000 draws.
-render-test:
-  cd rm2k/rm2k-render && cargo test --release
-
-# The project library: finding `rm2k-snes.toml`, reading its settings with
-# errors that name the key, the machine's flags and the disk cache's key.
-# Its tests build their projects inside the test, so they need no game.
-#
-# The project library's tests: rm2k-snes.toml and the machine's flags.
-project-test:
-  cd rm2k-snes/project && cargo test
-
-# `rm2k-snes-assemble`, `rm2k-snes-space` and `rm2k-snes-cartridges`: the
-# bank packing, the memory map, the checksum and the symbols are tested on
-# files made inside the test. That the ROMs come out right is enforced by
-# the game's suite, which runs them; building a real cartridge needs a game.
-#
-# The cartridge tools' tests: packing, memory map, checksum, symbols.
-cartridge-test:
-  cd rm2k-snes/cartridge && cargo test
-
-# `rm2k-snes-patches`: what the converter decided to lose —the colors of a
-# map's layers and of each battler, the size of each battle animation—,
-# written as TOML next to each ROM, copied to the project and checked
-# against every cartridge. Its tests write and check a small game made of
-# requests, in `tests/game/`, and compare against what the Python that did
-# this until 2026-09-30 answered for it: they need no game.
-#
-# rm2k-snes-patches' tests: what the converter decided to lose.
-patches-test:
-  cd rm2k-snes/patches && cargo test
-
-# rm2k-snes-audio: the music, from each song's MIDI and the SoundFont to
-# `musicdata.inc` —`rm2k-snes-convert` calls it last—. It
-# uses Gunter as a library, for the SoundFont and the BRR.
-#
-# Its tests are notes, streams and banks built inside the test, plus the
-# hashes of what the Python that compiled the music until 2026-09-29 gave for
-# the same input. Two read a real SoundFont, and **whoever runs them passes
-# it**, in `SOUNDFONT`, the way Ditto gets its corpus: this file does not
-# know where one is. Without the variable, those two are skipped with a
-# message.
-#
-# rm2k-snes-audio's tests; the two with a real SoundFont, with SOUNDFONT.
-audio-test:
-  cd rm2k-snes/rm2k-snes-audio && cargo test --release
-
-# rm2k-snes-battle: the battle's tables —experience and level per actor,
-# each map's random encounters— from the dump and a request, as pieces of
-# `mapdata.inc`; `rm2k-snes-convert` calls it.
-#
-# Its tests build a small game inside the test, and compare against the
-# hashes of what the Python that wrote these tables until 2026-09-29 gave for
-# the same input: they need no game.
-#
-# rm2k-snes-battle's tests: experience and encounters.
-battle-test:
-  cd rm2k-snes/battle && cargo test
-
-# rm2k-snes-bytecode: the two bytecodes, declared once. A broken declaration
-# —two opcodes on one number, a gap in the event dispatch, a name in both—
-# does not compile, so its tests are those messages, the shape of the
-# equates `rm2k-snes-assemble` writes, and that the runtime uses only
-# declared opcodes and writes none by hand. They need no game.
-#
-# rm2k-snes-bytecode's tests: the two bytecodes' declarations.
-bytecode-test:
-  cd rm2k-snes/bytecode && cargo test
-
-# rm2k-snes-events: the event compiler —RM2k's pages to the bytecode the ROM
-# runs—, which the converter calls twice; see `compiler.rs` in
-# `rm2k-snes-convert`.
-#
-# Its tests compile a small game kept in `tests/game/`, and compare against
-# the hashes of what the Python compiler it replaced answered for the same
-# requests on 2026-09-29: they need no game.
-#
-# rm2k-snes-events' tests: the event compiler.
-events-test:
-  cd rm2k-snes/events && cargo test
-
-# wally: a game's maps as the cartridge carries them —each map's
-# layers, its baked events, its characters as objects and its blocks—, which
-# the converter calls once per map; see `maps.rs` in `rm2k-snes-convert`. The work is
-# two modules' that do not know each other: `background`, the layers and
-# the blocks, and `sprites`, the objects.
-#
-# Their tests build a small game, its ChipSets and CharSets inside the test:
-# they need no game.
-#
-# Wally's tests: a map's layers, blocks and objects.
-wally-test:
-  cd rm2k-snes/wally && cargo test
-
-# rm2k-snes-screens: a game's screens as the cartridge carries them —the
-# message window and its font, the title's menu, the save slots and the
-# pause menu, the text screens with their windows, End Game— and the
-# message boxes reflowed for the console's window; see `screens.rs` in
-# `rm2k-snes-convert`. The letters, a line of them and the reflow are
-# `text`, a library.
-#
-# Their tests build a small game and its System inside the test, and compare
-# against the hashes of what the Python that drew these screens until
-# 2026-09-30 gave for the same input: they need no game.
-#
-# rm2k-snes-text's and rm2k-snes-screens' tests: the screens.
-screens-test:
-  cd rm2k-snes/text && cargo test
-  cd rm2k-snes/screens && cargo test
-
-# rm2k-snes-images: a game's pictures brought to the console —the title and
-# the Game Over, the picture of a `ShowPicture`, the battle backdrops and
-# battlers, the battle animations—: scaled, toned, down to their palettes;
-# see `images.rs` in `rm2k-snes-convert`.
-#
-# Its tests build their pictures inside the test, and compare against the
-# hashes of what the Python that did this until 2026-09-30 gave for the
-# same input: they need no game.
-#
-# rm2k-snes-images' tests: the pictures, scaled and paletted.
-images-test:
-  cd rm2k-snes/images && cargo test
-
-# rm2k-snes-mapdata: the cartridge's data `.inc` —what every domain of the
-# conversion answered, written for ca65—, the LZ2 streams of what the
-# console decompresses, and the VRAM layouts, which it publishes for the
-# maps and the screens; see `emit.rs` in `rm2k-snes-convert`.
-#
-# Its tests build what they emit inside the test, and compare against the
-# hashes of what the Python that wrote it until 2026-10-01 gave for the same
-# input: they need no game.
-#
-# rm2k-snes-mapdata's tests: the cartridge's data .inc.
-mapdata-test:
-  cd rm2k-snes/mapdata && cargo test
-
-# The converter, `rm2k-snes-convert`: the orchestrator that asks each stage
-# above, in order, what the cartridge needs, and hands each what the others
-# answered. What it decides itself —who can lead the party, which items,
-# where the timer runs, which pictures and backdrops go in— is tested with
-# small games made inside the test; that every stage gets the request it
-# always got is what the cartridges of the game, built byte by byte the same,
-# say.
-#
-# The converter's tests: what it decides itself.
-convert-test:
-  cd rm2k-snes/convert && cargo test
 
 # --- Installation ----------------------------------------------------------
 # The Rust projects, in `snes/`, `rm2k/` and `rm2k-snes/`, are separate
@@ -378,12 +163,6 @@ _install root *projects:
     esac
   done
   mkdir -p "{{root}}/bin"
-  # The suite's symlinks go: they were its Python scripts, and the last one,
-  # `rm2k-snes-python-path`, went on 2026-10-02. One that an older install
-  # left would point nowhere; and a name that was a script and is now a Rust
-  # binary —`rm2k-snes-assemble`— would stay a symlink, and `cargo install`
-  # refuses to write over what it did not install.
-  find "{{root}}/bin" -maxdepth 1 -type l -name 'rm2k-snes-*' -delete
   for p in {{projects}}; do
     dir=""
     for layer in {{rust_layers}}; do

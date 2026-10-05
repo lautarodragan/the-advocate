@@ -13,6 +13,10 @@
 //!
 //! It knows nothing about menus, nor about which screen a line lands on:
 //! whoever draws a screen decides that.
+//!
+//! The tests make their boxes and their System inside the test, and compare
+//! against the hashes of what the Python that did this until 2026-09-30
+//! gave for the same input: they need no game.
 
 pub mod cells;
 pub mod font;
