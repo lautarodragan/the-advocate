@@ -197,48 +197,33 @@ impl MapEvents {
     }
 }
 
-/// Whether the ROM knows how to trigger this page. Touching it asks for a
-/// layer other than the hero's: one on the same layer blocks the way.
+/// What triggers a page that the ROM knows how to trigger. The rest of an
+/// event's pages are emitted anyway —they are needed to know which one is
+/// active— but without code.
 ///
-/// The two layer rules come from `Game_Player`, and they are opposite on
-/// purpose:
+/// The layer does not count here: every layer triggers from one of the two
+/// cells the hero looks at, and the ROM applies their rules —see
+/// `queue_by_action` in tools/runtime/action_key.s—. They come from
+/// `Game_Player`, and they are opposite on purpose:
 ///
-/// * **Action key**: the cell in front is looked at, and there only the
-///   events on the hero's layer count —`CheckEventTriggerThere` asks for
-///   `GetLayer() == Layers_same`—. An action event on the **own** cell does
-///   exist in RM2k, but it asks for the opposite layer
-///   —`CheckEventTriggerHere` asks for `!= Layers_same`—, and since
-///   2026-09-07 those trigger too: see `can_trigger`.
-/// * **Touch**: it triggers on stepping on the cell, and there it is the
-///   other way around: the layer has to be different from the hero's,
-///   because an event on the same layer blocks its way and it would never
-///   get to step on it. Of the game's 983 touch pages, 978 are on the lower
-///   layer.
+/// * **The cell in front** —`CheckEventTriggerThere`— only counts the events
+///   on the hero's layer. The action key looks there for action pages **and
+///   for touch ones**; bumping into it, for touch ones.
+/// * **The own cell** —`CheckEventTriggerHere`— only counts the other
+///   layers: an event on the hero's layer blocks the way, so he never stands
+///   on it. The action key looks there for action pages; stopping on it, for
+///   touch ones.
+///
+/// Until 2026-10-05 a touch page on the hero's layer was left without code,
+/// because "he would never get to step on it": true, but RM2k fires it from
+/// the cell in front, with the action key and with a bump —measured in the
+/// original runtime with a shopkeeper standing in his doorway, whose touch
+/// page is the one that opens his shop—.
 ///
 /// **Turning toward the hero does not stop the page.** Until 2026-09-08 it
 /// did, and that cost **1572 action pages across 1224 events on 220 maps**:
 /// half the game's NPCs could not be used. Since 2026-09-11 the event also
 /// turns for real: see `turns`.
-pub fn can_trigger(page: &Page) -> bool {
-    // An action page: both cells count, and each one asks for the opposite
-    // layer. The one in front is `CheckEventTriggerThere`, which asks for
-    // `Layers_same`; the own one is `CheckEventTriggerHere`, which asks for
-    // `!= Layers_same` —it has to be so: an event on the hero's layer closes
-    // its way and it would never get to stand on it—.
-    //
-    // The own one was not done until 2026-09-07 and taro found it while
-    // playing: the door out of Talan's pad is `TalDoorTop`, action and
-    // **layer 2**, and it opens by standing on it. Without this it never
-    // triggered and there was no way out of the pad.
-    if page.trigger == TRIGGER_TOUCH_HERO {
-        return page.layer != LAYER_SAME;
-    }
-    true
-}
-
-/// What triggers a page that the ROM knows how to trigger. The rest of an
-/// event's pages are emitted anyway —they are needed to know which one is
-/// active— but without code.
 fn triggerable(trigger: i32) -> bool {
     matches!(
         trigger,
@@ -344,7 +329,7 @@ pub fn map_pages(ctx: &mut Ctx, map: &Map, map_events: &MapEvents) -> Result<Vec
             // counts: the page's bit 7.
             let empty = page.commands.is_empty()
                 && matches!(page.trigger, TRIGGER_AUTOSTART | TRIGGER_PARALLEL);
-            if triggerable(page.trigger) && can_trigger(page) && !empty {
+            if triggerable(page.trigger) && !empty {
                 // A parallel page pastes what it calls: the ROM has one call
                 // stack, the foreground's. See `shared` in `Ctx`.
                 let shared = ctx.shared;

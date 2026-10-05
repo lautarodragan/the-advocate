@@ -148,8 +148,8 @@ chosen:      .res 3     ; the code of the page that won, while it is decided
 chosen_any: .res 1      ; whether some page of the current event won
 chosen_trigger: .res 1 ; and what triggers it, to run only the automatic ones
 ; And which layer it is on, which is what decides which of the two cells
-; triggers it with the action button: the one in front asks for the hero's
-; layer and its own asks for any other. See `try_action`.
+; triggers it, with the action button or by touch: the one in front asks for
+; the hero's layer and its own asks for any other. See `queue_by_action`.
 chosen_layer: .res 1
 ; Which of the two is being looked at: 1 the hero's, 0 the one in front.
 own_action: .res 1

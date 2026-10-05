@@ -54,6 +54,12 @@
 //! its escape goes, so the ROM leaves Escape out. With
 //! `BATTLE_NO_ESCAPE_MODE` set to one no battle has, the answer was the
 //! old one.
+//!
+//! On 2026-10-05 the hashes of `maps`, of the scan and of the compilation,
+//! moved on purpose: a touch page on the hero's layer —event 4 of map 1,
+//! its second page— compiles, because RM2k fires it from the cell in front.
+//! The Python left it without code, and that change, which only removed the
+//! layer test, is the whole difference.
 
 use rm2k_snes_events::{compile, compile_without_pairs, scan, Game, Request};
 use serde_json::Value;
