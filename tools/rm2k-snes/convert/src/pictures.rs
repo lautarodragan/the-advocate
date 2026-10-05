@@ -113,9 +113,9 @@ impl Cropped {
 }
 
 /// The file of the picture `name`, or None if the game does not have it.
+/// Without regard to case, as RPG_RT finds it.
 pub fn path_of(game_dir: &Path, name: &str) -> Option<PathBuf> {
-    let path = rm2k_project::absolute(game_dir.join("Picture").join(format!("{name}.png")));
-    path.exists().then_some(path)
+    crate::resources::find(&[game_dir], "Picture", name, &[".png"]).map(|p| rm2k_project::absolute(&p))
 }
 
 /// A PNG's width and height, from its header.

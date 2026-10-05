@@ -21,12 +21,16 @@ const BINARY: &str = "rm2k-snes-screens";
 const PROJECT: &str = "screens";
 
 fn game_flags(game: &Game) -> Vec<OsString> {
-    vec![
+    let mut flags: Vec<OsString> = vec![
         "--data".into(),
         game.dump.clone().into_os_string(),
         "--game-dir".into(),
         game.game_dir.clone().into_os_string(),
-    ]
+    ];
+    if let Some(rtp) = &game.rtp_dir {
+        flags.extend(["--rtp-dir".into(), rtp.clone().into_os_string()]);
+    }
+    flags
 }
 
 /// Every text box of the game the port rebuilds for the console's window,

@@ -225,17 +225,17 @@ pub struct Prepared {
     pub request: Value,
 }
 
-/// The game's System, for the timer's digits: in the game's `System/`, and
-/// then in the game's folder itself.
+/// The game's System, for the timer's digits: in the game's `System/`,
+/// then in the game's folder itself, and then in the RTP's `System/`;
+/// without regard to case, as RPG_RT finds it.
 fn system_path(game: &Game) -> Result<PathBuf> {
     let name = &game.db.system_name;
-    for base in [game.game_dir.join("System"), game.game_dir.clone()] {
-        let path = rm2k_project::absolute(base.join(format!("{name}.png")));
-        if path.exists() {
-            return Ok(path);
-        }
-    }
-    Err(Stop::new(format!("System {} is not in {}", crate::text::repr(name), game.game_dir.display())))
+    let rtp: Vec<PathBuf> = game.rtp_dir.iter().cloned().collect();
+    crate::resources::find(&[&game.game_dir], "System", name, &[".png", ".bmp"])
+        .or_else(|| Some(game.game_dir.join(format!("{name}.png"))).filter(|p| p.exists()))
+        .or_else(|| crate::resources::find(&rtp, "System", name, &[".png", ".bmp"]))
+        .map(|p| rm2k_project::absolute(&p))
+        .ok_or_else(|| Stop::new(format!("System {} is not in {}", crate::text::repr(name), game.game_dir.display())))
 }
 
 pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Result<Prepared> {
