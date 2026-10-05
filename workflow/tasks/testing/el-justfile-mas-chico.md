@@ -3,7 +3,7 @@ name: "Los justfile, más chicos"
 description: "Sacar de los dos justfile —el de las herramientas y el de ABL— las recetas que ya no se usan, y simplificar las que quedaron complicadas después de la migración a Rust y la separación en dos repos"
 type: refactor
 agents: [Calandria]
-assignee: Calandria
+assignee: taro
 ---
 
 De taro, el 2026-10-05: "creo que podemos eliminar cosas del `justfile`,
@@ -77,6 +77,10 @@ grueso.
 * `which` lista también `rm2k-snes-mapdata` y `rm2k-snes-audio`, que se
   instalan y no listaba.
 * Se va `ditto-volcado`, de ABL.
+* Una línea de resumen al final del comentario de cada receta, en los dos
+  `justfile`: es la que muestra `just --list`, que hasta ahora mostraba la
+  cola de una frase. En ABL ya era la convención de la mitad de las
+  recetas.
 * La prosa del `tools/justfile` que había envejecido, en su commit: que
   `rm2k-rules` todavía tiene una copia en Python (el conversor ya es Rust,
   y `tests/test_rm2k_rules.py` no existe), que los nombres siguen "el repo
@@ -134,3 +138,26 @@ Fuera del `justfile`, visto de paso: el encabezado de
 `tools/rm2k/rules/tests/python.rs` dice todavía que "las reglas existen
 también en Python, en el conversor que las sigue usando", y nombra
 `tests/test_rm2k_rules.py`, que no existe. No lo toqué: es del crate.
+
+## Verificado
+
+Con las herramientas globales: ninguna de las dos ramas toca Rust, así que
+al mergear no hay nada que instalar.
+
+* `just -f tools/justfile test`: 27 pasan.
+* La tanda de ABL en mi clon, con su rama (`calandria-justfile`): 1094
+  pasan. `abl.sfc` es `924c33ea3b51c958…`, la de antes.
+* `just --list` de los dos lados: veintiséis recetas en las herramientas y
+  veinte en ABL, cada una con su resumen.
+* `just entregar` con `SHARED=/extras/scratch/calandria/shared`: deja el
+  build con `abl.sfc`, `.dbg`, `abl.msu`, `tools/` y `LEEME.txt`. La
+  carpeta tiene que existir: `entregar.py` se niega si no, a propósito.
+* `cargo test --workspace --no-fail-fast`: **un rojo, que no es de esta
+  rama**: `the_layers_are_the_ones_the_python_made`, en
+  `wally/tests/background_python.rs` ("plain: the tiles"). Nació en
+  `bfa2e1c4` (la flecha del System): en su padre pasa, en él y en
+  `c8d5064f` falla —`cargo test -p wally --test background_python` en
+  cada uno—. Lo demás pasa.
+
+Lo que no corrí: las recetas de los experimentos, y `datos` y
+`datos-vuelta`, que sólo cambiaron su comentario.
