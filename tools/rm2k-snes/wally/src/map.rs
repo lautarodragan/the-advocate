@@ -144,7 +144,10 @@ fn layered(
 fn same_split(without: &Converted, with: &Converted) -> bool {
     let (a, b) = (&without.above, &with.above);
     let picture = |c: &Converted| c.pictures.iter().find(|p| p.name == "above").map(|p| p.picture.pixels.clone());
-    a.tiles == b.tiles
+    // And the panorama's way: an event baked above the hero takes a map out
+    // of mode 3, and flattened it would be drawn under him.
+    without.way == with.way
+        && a.tiles == b.tiles
         && a.cgram == b.cgram
         && a.tilemap == b.tilemap
         && a.first == b.first
@@ -167,7 +170,7 @@ fn bake_unless_split_moves(
     baked: Baked,
     notes: &mut Vec<Note>,
 ) -> Result<(Layered, Baked)> {
-    let with = layered(game, id, window_colors, panorama, &baked)?;
+    let with = layered(game, id, window_colors, panorama.clone(), &baked)?;
     if same_split(&without.converted, &with.converted) {
         return Ok((with, baked));
     }
@@ -295,7 +298,7 @@ pub struct Final {
 /// comes out byte for byte the same as without sharing.
 pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
     let plain = convert_with(game, request, Mode::Plain)?;
-    if request.layouts.is_empty() || fits(&plain, &request.layouts) {
+    if request.layouts.is_empty() || fits(&plain, &layouts_for(&plain.layers.converted, request)) {
         return Ok(plain);
     }
     // A map that fits no layout **with its pictures** is converted again
@@ -319,13 +322,13 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
     }
     let shared = convert_with(game, request, Mode::Share)?;
     let shares = shared.objects.as_ref().is_some_and(|o| o.shared.is_some());
-    if shares && fits(&shared, &request.layouts) {
+    if shares && fits(&shared, &layouts_for(&shared.layers.converted, request)) {
         return Ok(shared);
     }
     // And a map that does not fit even so gets a cache of slots —see
     // `sprites::cache`—, if one fits.
     let cached = convert_with(game, request, Mode::Cache)?;
-    if cached.objects.as_ref().is_some_and(|o| o.cache.is_some()) && fits(&cached, &request.layouts) {
+    if cached.objects.as_ref().is_some_and(|o| o.cache.is_some()) && fits(&cached, &layouts_for(&cached.layers.converted, request)) {
         return Ok(cached);
     }
     Ok(if shares { shared } else { plain })
@@ -366,6 +369,23 @@ fn fits(done: &Whole, layouts: &[(usize, usize, usize)]) -> bool {
     let background = converted.background.tiles.len() / 64;
     let above = converted.above.tiles.len() / 32;
     fits_in(background, above, objects.tiles.len() / 32, layouts)
+}
+
+/// The layouts a converted map can get: a map that shows its panorama
+/// gets one of the panorama's for its mode that hold its panorama's tiles;
+/// any other, the request's.
+fn layouts_for(converted: &Converted, request: &MapRequest) -> Vec<(usize, usize, usize)> {
+    match (&converted.panorama, &request.panorama) {
+        (Some(p), Some(budget)) => {
+            let bytes = if p.mode.number() == 3 { 32 } else { 16 };
+            budget
+                .of_mode(p.mode.number())
+                .filter(|l| p.tiles.len() / bytes <= l.panorama)
+                .map(|l| (l.background, l.sprites, l.above))
+                .collect()
+        }
+        _ => request.layouts.clone(),
+    }
 }
 
 fn fits_in(background: usize, above: usize, sprites: usize, layouts: &[(usize, usize, usize)]) -> bool {
@@ -495,11 +515,15 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
         chipset: &chipset_name,
     };
     let mut baked = bakeable(&mut drawer, &map, &events, &npcs0)?;
-    let without = layered(game, id, request.window_colors, request.panorama, &BTreeMap::new())?;
+    let panorama = request.panorama.clone().map(|mut b| {
+        b.extra = crate::substitutions::unseen(&lower, &upper, &request.substitutions);
+        b
+    });
+    let without = layered(game, id, request.window_colors, panorama.clone(), &BTreeMap::new())?;
     let mut layers = if baked.is_empty() {
         without
     } else {
-        let (layers, kept) = bake_unless_split_moves(game, id, request.window_colors, request.panorama, without, baked, &mut notes)?;
+        let (layers, kept) = bake_unless_split_moves(game, id, request.window_colors, panorama.clone(), without, baked, &mut notes)?;
         baked = kept;
         layers
     };
@@ -608,9 +632,9 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
         for e in &lent_baked {
             baked.remove(e);
         }
-        layers = layered(game, id, request.window_colors, request.panorama, &BTreeMap::new())?;
+        layers = layered(game, id, request.window_colors, panorama.clone(), &BTreeMap::new())?;
         if !baked.is_empty() {
-            let (again, kept) = bake_unless_split_moves(game, id, request.window_colors, request.panorama, layers, baked, &mut notes)?;
+            let (again, kept) = bake_unless_split_moves(game, id, request.window_colors, panorama.clone(), layers, baked, &mut notes)?;
             layers = again;
             baked = kept;
         }
@@ -623,7 +647,7 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
         )));
     }
 
-    let (passability, mut blocks) = stage_layers::blocks(&layers.drawn, &layers.converted)?;
+    let (passability, mut blocks) = stage_layers::blocks(&layers.drawn, &mut layers.converted)?;
     let substituted = substitute(
         id,
         &mut blocks,
@@ -631,6 +655,7 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
         &chipset,
         &request.substitutions,
         &request.common_substitutions,
+        layers.converted.way == Some(crate::background::panorama::Way::Flattened),
     )?;
     let used: HashSet<(i32, i32)> = npcs0.iter().map(|n| (n.x, n.y)).collect();
     let (start_map, start_x, start_y) = game.start()?;
@@ -975,7 +1000,7 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
             let mut tiles = bank_tiles.clone();
             grow_blocks(&mut tiles, fixed + slots);
             extras(id, request, glyphs.as_ref(), tiles, bank.palettes.clone(), &split.leader_owned, palette_cap)
-                .is_ok_and(|e| fits_in(background, above, e.tiles.len() / 32, &request.layouts))
+                .is_ok_and(|e| fits_in(background, above, e.tiles.len() / 32, &layouts_for(converted, request)))
         };
         let most = asked.wanted.min(BLOCKS.saturating_sub(fixed)).min(CACHE_MAX);
         if let Some(slots) = (1..=most).rev().find(|&n| fit(n)) {
