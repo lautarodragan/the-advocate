@@ -90,3 +90,34 @@ gfx_no_leads:
 
 .endproc
 
+; `ChangeExp` and `ChangeLevel`: the body is `exp_change`, in level.s.
+.proc op_exp
+    jsl f:exp_change
+    jmp run_code::other
+
+.endproc
+
+; The level-up message, a page each time through: `level_page`, in level.s,
+; says whether there is one left —C— and whether it is ready at `msg_ptr`
+; or has to wait for another page's window —A—. While there is, the cursor
+; stays on this opcode, so it comes back here when the window closes, the
+; way `op_message` comes back when it waits.
+.proc op_level_page
+    jsl f:level_page
+    bcs stays
+    jmp run_code::other
+stays:
+    dey                         ; back on this same opcode
+    sty ev_cur
+    cmp #0                      ; `dey` left its own flags
+    beq waits
+    rep #$20
+.a16
+    jsr msg_start_at
+waits:
+    sep #$20
+.a8
+    rts
+
+.endproc
+

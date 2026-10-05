@@ -308,6 +308,9 @@ in_bank:
     rep #$20
 .a16
     plx
+; And from here when `msg_ptr` already points at the box: the level-up
+; message's, which `OP_LEVEL_PAGE` composes in RAM. Entered with A16.
+at_pointer:
     ; The escape queue starts clean before reading the header: a garbage pause
     ; there would leave the page stuck forever.
     lda #0
@@ -365,6 +368,9 @@ placed:
     sta msg_state
     rts
 .endproc
+; Its name from outside: `op_level_page` is assembled before this, and ca65
+; does not resolve a scope's label ahead of the scope.
+msg_start_at = msg_start::at_pointer
 
 ; One frame of the composer, from the main loop.
 .proc message_tick

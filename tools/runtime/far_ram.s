@@ -1100,6 +1100,47 @@ BA_DROP_END   = BA_DROP_K + BA_ENEMIES_MAX
 MENU_EXP_TEXT = $7E7A40
 MENU_EXP_TEXT_END = $7E7A50
 
+; --- `ChangeExp` and `ChangeLevel` from an event ------------------------------
+;
+; $7E7A50 to $7E7AFF, allotted on 2026-10-04: from the end of the menu's
+; experience line to `BA_MBUF` nobody was. What `exp_change` works with, and
+; the lines of the level-up message it notes for `OP_LEVEL_PAGE`: a word
+; each, `$8000 | level << 8 | actor` for an actor's level line —which is
+; also where its page starts— and the pair's slot for a skill's. Sixteen-bit
+; addresses, like the battle's: `level.s` runs this with the data bank at
+; $7E. **It does not travel in the save**: the lines live from the `OP_EXP`
+; to the `OP_LEVEL_PAGE` right behind it, inside the same page.
+LVL         = $7A50
+LVL_WHAT    = LVL + 0           ; OP_EXP's `what`
+LVL_ACTOR   = LVL + 1           ; the actor being changed
+LVL_K       = LVL + 2           ; word: its experience slot
+LVL_OFS     = LVL + 4           ; word: the slot times four, in `FAR_EXP`
+LVL_AMOUNT  = LVL + 6           ; four bytes: the change, signed
+LVL_VALUE   = LVL + 10          ; four bytes: the new experience, signed
+LVL_T       = LVL + 14          ; four bytes: a row of `exp_table`, or scratch
+LVL_OLD     = LVL + 18          ; the level before
+LVL_NEW     = LVL + 19          ; and after
+LVL_N       = LVL + 20          ; how many lines are noted
+LVL_AT      = LVL + 21          ; the first not shown yet
+LVL_CUR     = LVL + 22          ; word: where the box is being written
+LVL_START   = LVL + 24          ; word: where the line being written starts
+LVL_LEN     = LVL + 26          ; its letters
+LVL_ROWS    = LVL + 27          ; the page's lines
+LVL_LEFT    = LVL + 28          ; letters of a text still to copy
+LVL_LINES   = LVL + 30          ; LVL_LINES_MAX words
+LVL_LINES_MAX = ($7B00 - LVL_LINES) / 2
+.assert LVL_LINES + 2 * LVL_LINES_MAX <= BA_MBUF, error, "the level-up lines overflow their range"
+
+; And the page of that message the window is showing, composed as the text
+; block's boxes are —a header with how many lines, and each line's length
+; before its letters, which are the font's: ASCII minus 32— so that
+; `msg_start` reads it like any other. $7E6128 to $7E61FF, allotted on
+; 2026-10-04: from `MSG_DIGITS`' end to `FAR_EXP` nobody was. It only has
+; to last while the composer reads it, which is before the window opens.
+LVL_BOX       = $7E6128
+LVL_LINE_MAX  = 48              ; letters a line keeps: the window cuts sooner
+.assert LVL_BOX + 1 + 4 * (1 + LVL_LINE_MAX) <= $7E6200, error, "the level-up page overflows its range"
+
 ; --- the MSU-1 tracks that were missing --------------------------------------
 ;
 ; $7E7820 to $7E782F, reserved on 2026-09-26: one bit per song, set when the

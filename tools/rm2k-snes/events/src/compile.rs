@@ -2279,6 +2279,14 @@ const ACT_VARIABLE: u8 = 0x20;
 const ACT_LETHAL: u8 = 0x40;
 const ACT_SUBTRACT: u8 = 0x80;
 
+/// OP_EXP's `what`: levels and not experience, note the level-up message
+/// for the OP_LEVEL_PAGE that follows, the amount as a variable's slot, and
+/// subtracting. `EXP_*` in tools/runtime/level.s.
+const EXP_BY_LEVELS: u8 = 0x01;
+const EXP_WITH_MESSAGE: u8 = 0x02;
+const EXP_BY_VARIABLE: u8 = 0x20;
+const EXP_SUBTRACTS: u8 = 0x80;
+
 /// OP_ENEMY's `what`: the SP and not the HP, and that a loss of HP can kill.
 /// `ENEMY_*` in tools/runtime/battle_troop.s.
 const ENEMY_SP: u8 = 0x01;
@@ -3211,6 +3219,56 @@ pub fn compile_command(
                 return cannot();
             }
             actor_change(ctx, p, ACT_SP)
+        }
+        CHANGE_EXP | CHANGE_LEVEL => {
+            // [type, id, subtracts, amount by variable, amount, message]:
+            // `CommandChangeExp` and `CommandChangeLevel`, which are
+            // `ChangeExp(GetExp() + value)` and `ChangeLevel(GetLevel() +
+            // value)` on each actor of the target. Both are OP_EXP, the
+            // second with `EXP_BY_LEVELS`; the ROM's `exp_change` does both.
+            //
+            // The game uses neither —measured on 2026-10-04 over the maps,
+            // the common events and the troops—: they came for the debug
+            // map's doors, which leave each actor at the level of someone
+            // who played up to there.
+            //
+            // With the message, OP_LEVEL_PAGE right behind: OP_EXP notes the
+            // lines and that one shows them, a page at a time. Without
+            // anyone going up there is no page, as in RM2k, where an empty
+            // `PendingMessage` opens nothing.
+            //
+            // Like `ChangeHP`, the actor by a variable does not compile.
+            if n < 6 {
+                return cannot();
+            }
+            let mut what = 0;
+            if cmd.code == CHANGE_LEVEL {
+                what |= EXP_BY_LEVELS;
+            }
+            if q(2) != 0 {
+                what |= EXP_SUBTRACTS;
+            }
+            let amount = if q(3) != 0 {
+                what |= EXP_BY_VARIABLE;
+                ctx.indices.variable_slot(q(4))? as i64
+            } else if (0..=rm2k_rules::actor::EXP_MAX).contains(&q(4)) {
+                q(4)
+            } else {
+                return cannot();
+            };
+            if q(5) != 0 {
+                what |= EXP_WITH_MESSAGE;
+            }
+            let mut out = vec![OP_EXP, target_actor(p)?, what];
+            out.extend([
+                (amount & 0xFF) as u8,
+                ((amount >> 8) & 0xFF) as u8,
+                (amount >> 16) as u8,
+            ]);
+            if what & EXP_WITH_MESSAGE != 0 {
+                out.push(OP_LEVEL_PAGE);
+            }
+            Ok(out)
         }
         CHANGE_SKILLS => {
             // [type, id, forgets, skill by variable, skill]. It is easyrpg's
@@ -5838,6 +5896,33 @@ mod tests {
         let mut beside = on_the_cell(&body);
         beside[3].indent = 0; // the second one, next to the other
         assert!(!opcodes_of(&on_the_cell_compiled(&beside)).contains(&OP_CELL_TEST));
+    }
+
+    #[test]
+    fn change_exp_and_change_level_are_op_exp() {
+        // See `exp_change` in tools/runtime/level.s for what the ROM does
+        // with each bit.
+        let mut game = Game::default();
+        game.actors.insert(14, vec![]);
+        let one = |c: Command| compile_with(&game, &[c]).unwrap().unwrap();
+        // 999999 experience to actor 14, in three bytes, without a message.
+        assert_eq!(
+            one(cmd(CHANGE_EXP, &[1, 14, 0, 0, 999_999, 0], "")),
+            [OP_EXP, 14, 0, 0x3F, 0x42, 0x0F, OP_DONE]
+        );
+        // Two levels off the party, with the message: its pages right after.
+        assert_eq!(
+            one(cmd(CHANGE_LEVEL, &[0, 0, 1, 0, 2, 1], "")),
+            [OP_EXP, 0, EXP_BY_LEVELS | EXP_SUBTRACTS | EXP_WITH_MESSAGE, 2, 0, 0, OP_LEVEL_PAGE, OP_DONE]
+        );
+        // By a variable: its slot, and 48 is the fifth.
+        assert_eq!(
+            one(cmd(CHANGE_LEVEL, &[1, 14, 0, 1, 48, 0], "")),
+            [OP_EXP, 14, EXP_BY_LEVELS | EXP_BY_VARIABLE, 5, 0, 0, OP_DONE]
+        );
+        // The actor by a variable, and more than RM2k's cap, do not compile.
+        assert_eq!(compile_with(&game, &[cmd(CHANGE_EXP, &[2, 3, 0, 0, 5, 0], "")]).unwrap(), None);
+        assert_eq!(compile_with(&game, &[cmd(CHANGE_EXP, &[1, 14, 0, 0, 1_000_000, 0], "")]).unwrap(), None);
     }
 
     #[test]

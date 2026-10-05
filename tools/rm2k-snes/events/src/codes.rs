@@ -18,6 +18,8 @@ pub const TIMER_OPERATION: i32 = 10230;
 pub const CHANGE_GOLD: i32 = 10310;
 pub const CHANGE_ITEMS: i32 = 10320;
 pub const CHANGE_PARTY_MEMBERS: i32 = 10330;
+pub const CHANGE_EXP: i32 = 10410;
+pub const CHANGE_LEVEL: i32 = 10420;
 pub const CHANGE_SKILLS: i32 = 10440;
 pub const CHANGE_EQUIPMENT: i32 = 10450;
 pub const CHANGE_HP: i32 = 10460;
@@ -161,6 +163,8 @@ mod tests {
             (CHANGE_GOLD, C::ChangeGold),
             (CHANGE_ITEMS, C::ChangeItems),
             (CHANGE_PARTY_MEMBERS, C::ChangePartyMembers),
+            (CHANGE_EXP, C::ChangeExp),
+            (CHANGE_LEVEL, C::ChangeLevel),
             (CHANGE_SKILLS, C::ChangeSkills),
             (CHANGE_EQUIPMENT, C::ChangeEquipment),
             (CHANGE_HP, C::ChangeHP),
