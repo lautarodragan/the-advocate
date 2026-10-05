@@ -211,6 +211,13 @@ pub fn run(options: Options) -> Result<()> {
         leaders: leaders.clone(),
         timer_maps: timer_maps.clone(),
         with_rain,
+        // Which maps show their panorama: none if the project does not say.
+        panoramas: settings
+            .list(&["maps", "panoramas"])
+            .unwrap_or_default()
+            .iter()
+            .filter_map(|v| v.as_i64().map(|n| n as i32))
+            .collect(),
         maps_per_character: per_character,
         search_dirs: search_dirs.clone(),
         common_substitutions: maps::common_substitutions(&game),

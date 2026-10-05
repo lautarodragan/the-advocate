@@ -49,6 +49,8 @@ pub fn map_record(m: &MapInfo) -> Value {
         "size": [m.map.width, m.map.height], "start": [m.start.0, m.start.1],
         "layout": m.layout_name,
         "tiles": hex(&m.tile_data),
+        "bpp": m.bpp,
+        "panorama": m.panorama,
         "cgram": hex(&m.cgram),
         "above_tiles": hex(&m.above_tiles),
         "above_cgram": hex(&m.above_cgram), "above_first": m.above_first,
