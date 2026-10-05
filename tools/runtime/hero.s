@@ -159,7 +159,10 @@ after_step:
     ; `advance_step` because **the steps of a forced move route do not
     ; count**: there it returns earlier, through `IsMoveRouteOverwritten`.
     lda step_left
-    beq no_right
+    bne stepped
+    ; And one that did not start is a bump: the touch pages in front.
+    jmp try_bump
+stepped:
     jsl f:encounter_step
 no_right:
     rts
