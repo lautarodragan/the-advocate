@@ -87,12 +87,15 @@ sprites siguen en 4 bits: 15 colores y el transparente, que elige Adeleine
 (`tools/snes/adeleine/`). Cómo se reparten la VRAM y la CGRAM mapa por mapa,
 en `docs/port/vram.md` y `docs/port/cgram.md`.
 
-**La excepción, desde el prototipo del 2026-10-05, es el panorama** de los
-mapas que el proyecto nombra en `[maps] panoramas`: si el mapa no dibuja
-nada encima del héroe, el panorama ocupa BG2 en modo 3; si dibuja, el mapa
-va en modo 1, a 4 bits, y el panorama en BG3. Ver
-`docs/research/2026-10-05-los-panoramas.md` y `tools/runtime/pano.s`. Los
-demás mapas no cambian.
+**La excepción, desde el 2026-10-05, es el panorama.** Wally elige por
+cada mapa, con lo que dicen el mapa y su panorama y nada más, cómo se
+muestra: si nunca se ve, nada; si no se mueve contra el mapa, horneado en
+el fondo; si el mapa no dibuja nada encima del héroe, en BG2 en modo 3; si
+dibuja poco, en BG2 también, con lo de encima en el fondo y la prioridad de
+BG1; y si dibuja más, el mapa va en modo 1, a 4 bits, y el panorama en BG3.
+Ver `Way` en `tools/rm2k-snes/wally/src/background/panorama.rs`,
+`tools/runtime/pano.s` y, para lo medido,
+`docs/research/2026-10-05-los-panoramas.md`.
 
 ### El cartucho es ExHiROM, de 8 MB
 

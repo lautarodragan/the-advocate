@@ -147,11 +147,23 @@ carga que la vuelta de la pelea, que pisa las mismas palabras. Ver
 
 ## Un mapa que muestra su panorama usa uno suyo
 
-Desde el prototipo del 2026-10-05, y sólo los mapas que el proyecto nombra
-en `[maps] panoramas`: ver `docs/research/2026-10-05-los-panoramas.md`.
+Desde el 2026-10-05, los mapas a los que Wally les da al panorama una capa
+propia —ver `Way` en `background/panorama.rs`—. Hay cuatro, y un mapa
+toma el primero de su modo donde entran su fondo, sus sprites y su
+panorama: Wally convierte el panorama con los tiles que deja el primero
+que le alcanza al fondo.
 
-    panorama       sprites 384 | mapa $1800 | fondo 256 | panorama 256 | ventana 256 | ventana_map | panorama 320 | su tilemap $7800
-    panorama_m1    sprites 256 | mapa $1000 | ventana_map | fondo 512 a 4 bits | panorama 768 a 2 bits | su tilemap $5800 | encima 128 | ventana 256
+    panorama               sprites 384 | mapa $1800 | fondo 256 | panorama 256 | ventana 256 | ventana_map | panorama 320 | su tilemap $7800
+    panorama_m1            sprites 256 | mapa $1000 | ventana_map | fondo 512 a 4 bits | panorama 768 a 2 bits | su tilemap $5800 | encima 128 | ventana 256
+    panorama_fondo         sprites 384 | mapa $1800 | fondo 384 | panorama 256 | ventana 256 | ventana_map | panorama 64 | su tilemap $7800
+    panorama_fondo_sprite  sprites 256 | mapa $1000 | ventana_map | fondo 384 | panorama 256 | ventana 256 | panorama 128 | su tilemap $7800
+    panorama_fondo_techo   sprites 256 | mapa $1000 | ventana_map | fondo 448 | ventana 256 | panorama 256 | su tilemap $7800
+
+**El último pasa la base de BG2**, que está en `$5000`, adentro de los
+tiles del fondo: los primeros 128 de BG2 son del fondo, y nadie en BG2 los
+nombra —la ventana está en el 128, como en "ventana", y el panorama
+después—. Por eso `load_above` no sube nada a la base de BG2 en un mapa
+con el panorama en modo 3.
 
 **En modo 3 el panorama es BG2**, así que tiene que caber, con la ventana,
 en lo que los diez bits de BG2 alcanzan desde su base: va antes y después
