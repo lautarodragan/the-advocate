@@ -2,8 +2,9 @@
 
 La ventana de mensajes vive en la paleta 0 de CGRAM, y en modo 3 esas
 entradas son también las del fondo, que va a 8 bits y direcciona CGRAM
-entero. Lo que la ventana toma —`WINDOW_COLORS`, en `cgram.rs` de
-`rm2k-snes-mapdata` y en `layers.rs` de `wally`— sale del presupuesto de
+entero. Lo que la ventana toma —`window_colors`, que cuenta
+`rm2k-snes-screens window` del System del juego y el conversor les pasa a
+`wally` y a la emisión— sale del presupuesto de
 **todos** los mapas, y un mapa que necesitaba esas entradas fusiona colores
 de su fondo: Adeleine decide cuáles, y lo que decidió queda en
 `parches/auto/mapas/` del juego como `presupuesto`.
@@ -50,5 +51,6 @@ texto, sombra, flecha y cursor— tiene quince, y el conversor se niega con
 "the window, its arrow and its cursor use N colours and 15 fit". El System
 del RTP ya no entra, con o sin flecha: su fondo y su marco solos tienen
 treinta. Y con un juego cuyos fondos vengan justos, cada color de la
-ventana es uno menos de todos sus mapas: el número tendría que salir de la
-ventana del juego y no ser una constante.
+ventana es uno menos de todos sus mapas. Desde el 2026-10-04 el número
+sale de la ventana del juego y no es una constante: un System con menos
+colores le deja más a cada fondo.
