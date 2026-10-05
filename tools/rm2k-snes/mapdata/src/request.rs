@@ -388,6 +388,11 @@ pub struct Sprite {
     /// The characters that change pose, `[CharSet, index]`, in the order of
     /// the pose table.
     pub animated: Vec<(String, i64)>,
+    /// Each one's palette, in the same order. An event that walks carries
+    /// one graphic's poses in its row, and a page that brings another one
+    /// gives the row this entry and this palette: see `page_table`.
+    #[serde(default)]
+    pub animated_palettes: Vec<i64>,
     /// Each one's twelve poses, as this map quantized them.
     pub banks: Vec<(String, i64, String)>,
     /// The graphics command 34 changes to: `[pose table entry or $FF,
@@ -478,6 +483,9 @@ pub struct Page {
     pub frequency: i64,
     pub speed: i64,
     pub fixed_direction: bool,
+    /// `AnimType_fixed_graphic`: its column never changes, not even when a
+    /// move route turns it or walks it.
+    pub fixed_graphic: bool,
     pub own_route: Option<OwnRoute>,
     /// What it draws, for an event that changes graphic: see [`Draws`].
     /// The emission writes it as the console's OAM wants it

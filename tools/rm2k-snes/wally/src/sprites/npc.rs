@@ -127,10 +127,10 @@ pub fn map_poses(
 /// pinned to, when some of its pages draw a **blank** character —a slot of
 /// the CharSet without a single pixel—.
 ///
-/// The row of an event that walks carries the twelve poses of one graphic,
-/// and walking wins over the page's —see "walking wins" in `wally`—.
-/// The one it gets is its row's: the page active at load, or the first that
-/// draws something. When that is a blank slot the event walks and is never
+/// The row of an event that walks starts with the twelve poses of one
+/// graphic, and each page brings its own at run time —`walker_graphic` in
+/// the runtime—. The one it starts with is its row's: the page active at
+/// load, or the first that draws something. When that is a blank slot the event walks and is never
 /// seen. In RM2k a blank slot draws exactly what no graphic draws, so this
 /// treats it as that: the row is pinned to the first page graphic with
 /// pixels, and the pages with the blank one hide it. The pattern it is for:

@@ -253,7 +253,11 @@ struct PagesRequest {
     #[serde(default)]
     turning: Vec<i64>,
     #[serde(default)]
+    movable: Vec<i64>,
+    #[serde(default)]
     animated: Vec<(String, i64)>,
+    #[serde(default)]
+    animated_palettes: Vec<i64>,
 }
 
 fn do_pages(args: &Plain) -> Result<()> {
@@ -263,7 +267,9 @@ fn do_pages(args: &Plain) -> Result<()> {
         changing: &r.changing,
         appearing: &r.appearing,
         turning: &r.turning,
+        movable: &r.movable,
         animated: &r.animated,
+        animated_palettes: &r.animated_palettes,
     };
     write_text(
         &args.out,

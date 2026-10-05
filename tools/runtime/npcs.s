@@ -117,6 +117,12 @@ other:
 .a8
     bra other
 ready:
+    ; And a refresh of the pages: a row that walks without a move route slot
+    ; has nobody to upload its pose but its page —see `walker_graphic`—, and
+    ; the bank just restored put back the converter's, which can be another
+    ; page's graphic.
+    lda #1
+    sta refresh
     rts
 .endproc
 

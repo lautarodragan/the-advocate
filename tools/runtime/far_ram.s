@@ -94,6 +94,11 @@ ACCESS_NO_SAVE = $01
 ACCESS_NO_MENU     = $02
 ACCESS_NO_ESCAPE = $04
 ACCESS_REQUESTED   = $80
+; And the +15 of the page `active_layer` found —its speed, and whether its
+; graphic is fixed—, beside `found_flags`, for which bank 0 has no room left.
+; $30CB, in the gap between the turn's —`PICK_POSE` is $30CA— and the audio
+; package's, which starts at $30D0. Allotted on 2026-10-05.
+FOUND_SPEED = $7E30CB
 ; --- the battle: its state in far RAM -------------------------------------------
 ;
 ; **Far RAM has a map and it has to be respected.** On 2026-09-12 the picture

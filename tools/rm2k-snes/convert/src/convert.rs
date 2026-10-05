@@ -1028,6 +1028,7 @@ fn test_page(k: i64, switch_a: i64, variable: Value, code: Vec<u8>) -> PageRecor
         tile_pass: None,
         turns: false,
         fixed_direction: false,
+        fixed_graphic: false,
         test: true,
         offset: 0,
         route_offset: 0,

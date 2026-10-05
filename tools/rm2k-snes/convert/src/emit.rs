@@ -33,6 +33,7 @@ pub fn page_record(page: &PageRecord) -> Value {
         "route_offset": page.route_offset,
         "frequency": page.frequency, "speed": page.speed,
         "fixed_direction": page.fixed_direction,
+        "fixed_graphic": page.fixed_graphic,
         "own_route": own,
         "draws": page.draws,
         "variable": page.variable,

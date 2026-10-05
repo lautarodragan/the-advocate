@@ -412,6 +412,9 @@ pub struct PageRecord {
     pub tile_pass: Option<i64>,
     pub turns: bool,
     pub fixed_direction: bool,
+    /// `AnimType_fixed_graphic`: it shows its page's column always, even
+    /// when a move route turns it or walks it. See `animate_ev_route`.
+    pub fixed_graphic: bool,
     /// A test page: it does not come from the game.
     pub test: bool,
     pub offset: usize,
@@ -928,6 +931,7 @@ pub fn pages(records: &Value, info: &MapInfo) -> Result<Vec<PageRecord>> {
             tile_pass,
             turns: r["turns"].as_bool().unwrap_or(false),
             fixed_direction: matches!(page.animation_type, 2..=4),
+            fixed_graphic: page.animation_type == 4,
             test: false,
             offset: 0,
             route_offset: 0,

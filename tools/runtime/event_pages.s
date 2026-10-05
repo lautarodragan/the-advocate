@@ -1295,14 +1295,20 @@ with_graphic:
     ; The tile and the palette only if the row does not walk. If it walks,
     ; they point at its slot of twelve poses and overwriting them would leave
     ; it still; the pose above does go, as it is the one the page declares and
-    ; the one the refresh uploads from the bank.
+    ; the one the refresh uploads from the bank. And so does the page's
+    ; graphic, with its palette: see `walker_graphic`.
     lda npc_buf + 9, y
     cmp #NPC_STILL
-    bne no_touch_tile
+    bne walks
     lda pg_tile
     sta npc_buf + 6, y
     lda pg_attr
     sta npc_buf + 7, y
+    bra no_touch_tile
+walks:
+    phy
+    jsr walker_graphic
+    ply
 no_touch_tile:
     lda #1
     sta npc_buf + 14, y
@@ -1333,6 +1339,65 @@ no_touch_tile:
     jsr turn_restore            ; if it is the turning one, it turns again
     ply
     jmp fit_npc
+ready:
+    rts
+.endproc
+
+; The page's graphic, for row Y, which walks: its pose bank —the page's +30—
+; and its palette —bits 4 to 6 of +31—, and the page's pose uploaded from
+; there. The row carries one graphic's twelve poses, and until 2026-10-05 it
+; kept the first page's for good: Boss Wick, on ABL's map 40, is the page
+; that a switch gives to the event that until then was one of his girls, and
+; came back from the vidcasts with her drawing. Nothing uploaded the page's
+; pose either, so an event that walked kept the first page's facing until a
+; route turned it.
+;
+; A page whose graphic has no pose bank here —$FF— keeps the row's: it is
+; what the converter left, the one that cannot change.
+.proc walker_graphic
+.a8
+.i16
+    rep #$20
+.a16
+    lda page_ofs
+    clc
+    adc #30
+    tay
+    sep #$20
+.a8
+    lda [page_ptr], y           ; +30 its graphic's entry in `npc_poses`
+    cmp #$FF
+    beq same
+    sta temp
+    iny
+    lda [page_ptr], y           ; +31 its palette, in bits 4 to 6
+    lsr a
+    lsr a
+    lsr a
+    and #$0E                    ; to bits 1 to 3, where vhoopppN has it
+    sta temp + 1
+    ldy npc_row
+    lda temp
+    sta npc_buf + 9, y
+    lda npc_buf + 7, y
+    and #$F1
+    ora temp + 1
+    sta npc_buf + 7, y
+same:
+    ldy npc_row
+    lda npc_buf + 12, y         ; the page's pose, which `page_graphic` left
+    pha
+    lda #$FF
+    sta npc_buf + 12, y         ; and what is in VRAM is not known
+    ; With a move route slot, `move_events` uploads the pose that is due,
+    ; facing wherever the route left it, this same frame or the next one.
+    lda rp_ev
+    jsr event_slot
+    pla
+    cpx #$FFFF
+    bne ready
+    ldy npc_row
+    jmp upload_npc_pose
 ready:
     rts
 .endproc
@@ -1559,6 +1624,8 @@ forgotten:
     sta route_ev + 10, x
     stz route_ev + 11, x
 no_spin:
+    lda pg_speed
+    jsr fixed_graphic_into_slot
     lda pg_layer
     sta route_ev + 31, x        ; its layer, for colliding with the others
     rep #$20
@@ -1598,6 +1665,35 @@ ready:
     sta route_ev + 20, x
     sep #$20
 .a8
+    rts
+.endproc
+
+; `AnimType_fixed_graphic`, from a page's speed byte in A: bit 6, and its
+; column in bits 4 and 5 —see `fixed_graphic` in `rm2k-snes-mapdata`—. Slot
+; X shows that column and never changes it, neither turning nor walking: it is
+; `IsAnimated` being false in `Game_Character::UpdateAnimation`, see
+; `animate_ev_route`. Any other page takes the mark away. Two callers: the
+; page's own route, here, and a forced one, in `route_for_event`.
+.proc fixed_graphic_into_slot
+.a8
+.i16
+    bit #$40
+    beq animates
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    and #$03
+    sta route_ev + 10, x
+    stz route_ev + 11, x
+    lda route_ev + 12, x
+    ora #ROUTE_FIXED_GRAPHIC
+    sta route_ev + 12, x
+    rts
+animates:
+    lda route_ev + 12, x
+    and #<~ROUTE_FIXED_GRAPHIC
+    sta route_ev + 12, x
     rts
 .endproc
 
@@ -1663,8 +1759,8 @@ ready:
 
 ; The layer of the active page of the event whose index comes in A, or $FF if
 ; it has none. It is the same pass as `queue_by_action`: the last page
-; whose conditions are met wins. Its +13 is left in `found_flags`, or 0
-; without one. Keeps X and Y; clobbers `page_*` and `pg_*`,
+; whose conditions are met wins. Its +13 is left in `found_flags`, and its
+; +15 in `FOUND_SPEED`, or 0 without one. Keeps X and Y; clobbers `page_*` and `pg_*`,
 ; which nobody has half used when this runs —it is called from a step, not
 ; from inside a page search—.
 .proc active_layer
@@ -1681,6 +1777,8 @@ ready:
     lda #$FF
     sta found_layer
     stz found_flags
+    lda #0
+    sta f:FOUND_SPEED
     ldx map_ofs
     rep #$20
 .a16
@@ -1713,6 +1811,8 @@ walk:
     sta found_layer
     lda pg_flags
     sta found_flags
+    lda pg_speed
+    sta f:FOUND_SPEED
 next:
     rep #$20
 .a16

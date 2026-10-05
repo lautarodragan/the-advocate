@@ -22,6 +22,10 @@
     rts
 no_spin:
     lda route_ev + 12, x
+    bit #ROUTE_FIXED_GRAPHIC
+    beq animates
+    rts                         ; `IsAnimated` false: its page's column, always
+animates:
     and #$02
     bne still
     lda route_ev + 13, x
