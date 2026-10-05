@@ -2,34 +2,34 @@
  "written": [
   [
    4,
-   3848
+   3916
   ],
   [
    3,
-   2369
+   2414
   ],
   [
    3,
-   2588
+   2633
   ]
  ],
  "files": {
-  "parches/auto/animaciones/0001.toml": "7d4c2591205cbdaa1abe869918356120f0ee192fce3b37bcb43e120f93263cb1",
-  "parches/auto/animaciones/0082.toml": "9714a155f53a725366e9e033f580d081db7c3e326df6e073db1e43b6778f1010",
-  "parches/auto/animaciones/0091.toml": "669ea1954bb279b79d97c569d7db2b1a607b50f44fd7a57a26d2bf089d2c4e46",
-  "parches/auto/battlers/ghost.toml": "60bf4561ba2e0160251f5d8ba526d8476e586eed55b2565943d3358c1a57a705",
-  "parches/auto/battlers/rusty_knight.toml": "ea079ecfeab3b10a657133bf8786fe2d359931f44f6492239c195dcdf5885718",
-  "parches/auto/battlers/slime-60.toml": "d40a1cab63d63ddcbfa1f17b70f5f882bcdba9b6ba35f8400d57459f063c5e58",
-  "parches/auto/mapas/0003.toml": "9116a1cacd9ccd61c8d18e189aa6427069526c4570024403648f1a2f522108c0",
-  "parches/auto/mapas/0012.toml": "0fc12260799c58af62afe06be728bae2ac2d731e07537014e2835531a7938892",
-  "parches/auto/mapas/0052.toml": "24553b56f0d500da29235d3dd28682243244711d896e55bf46344a89b8cbfa86",
-  "parches/auto/mapas/1234.toml": "5471ad35cca5e21192a64acf27bf66ffffb73a79bf511369527fd50732256194"
+  "parches/auto/animaciones/0001.toml": "bba0ba3a24fafd1f7717822eece1ff067b0cf414ef502fdc1fccbee3c0a864f4",
+  "parches/auto/animaciones/0082.toml": "f36be31d7805910ca1f94d1229517ae9b64aa07340a1a9b65218eff207655082",
+  "parches/auto/animaciones/0091.toml": "e379cc121566ea679e1f2014740f36b1c43922c0805f64dd8899cb170b6f8e57",
+  "parches/auto/battlers/ghost.toml": "7ee8fafff0930b571c63ddf333dcca3fe581877615ceb592c9cf7c38b4479711",
+  "parches/auto/battlers/rusty_knight.toml": "2ab5cfdf42f22deb0900dba9c2543dff5cbfdbf93318c56de47adf331766a1fb",
+  "parches/auto/battlers/slime-60.toml": "0175e91c6b3459aa3182fb233e084662f10078577ad0b10b5127bef9decfcdcb",
+  "parches/auto/mapas/0003.toml": "85de1095b83f8fe3fef2ba92df212d7c0d1669d4b78a83e5877fc5a9dab41fd3",
+  "parches/auto/mapas/0012.toml": "85947bf9928e1b3814d91b7cf149b7566023acf1ebb19b86eb7194e26a46dd1a",
+  "parches/auto/mapas/0052.toml": "09ea84843ea92a867cd31853859f1bb1d2457e274fda35557785e2926ff2b25f",
+  "parches/auto/mapas/1234.toml": "879dcf170981c8948e5738682ede71a7d0d11a3b55822145a50415b1f25a21d5"
  },
  "copied": [
   "  parches/auto/mapas/0500.toml: the game no longer carries it, removing it",
-  "3 patch(es) in parches/auto/mapas, 2898 B",
-  "2 patch(es) in parches/auto/animaciones, 1577 B",
-  "2 patch(es) in parches/auto/battlers, 1757 B"
+  "3 patch(es) in parches/auto/mapas, 2949 B",
+  "2 patch(es) in parches/auto/animaciones, 1607 B",
+  "2 patch(es) in parches/auto/battlers, 1787 B"
  ],
  "versioned": {
   "mapa": [
@@ -47,12 +47,12 @@
   ]
  },
  "complaints": [
-  "parches/auto/mapas/0003.toml is stale (cartridge «special» says so), and what changed in map 3 is this:\n    layer fondo: colores went from 176 to 175\n    layer fondo: it merged 3 color(s) and now merges 2\n    layer fondo: merge 0 sent [1, 2, 3] to [4, 5, 6] and now sends [1, 2, 3] to [4, 5, 7]\n    layer fondo: merge 1 of [7, 8, 9] moved 3 pixel(s) and now moves 4\n    layer fondo: no longer merges [31, 0, 0] -> [30, 1, 0]\n    layer encima: it merged 1 color(s) and now merges 2\n    layer encima: extra merge [9, 9, 9] -> [8, 8, 8]\n  If the change is the one intended, `just parches` and commit; if not, something moved what is seen.",
+  "parches/auto/mapas/0003.toml is stale (cartridge «special» says so), and what changed in map 3 is this:\n    layer fondo: colores went from 176 to 175\n    layer fondo: it merged 3 color(s) and now merges 2\n    layer fondo: merge 0 sent [1, 2, 3] to [4, 5, 6] and now sends [1, 2, 3] to [4, 5, 7]\n    layer fondo: merge 1 of [7, 8, 9] moved 3 pixel(s) and now moves 4\n    layer fondo: no longer merges [31, 0, 0] -> [30, 1, 0]\n    layer encima: it merged 1 color(s) and now merges 2\n    layer encima: extra merge [9, 9, 9] -> [8, 8, 8]\n  If the change is the one intended, run `rm2k-snes-patches` on the playable ROM's build and commit; if not, something moved what is seen.",
   "map 777 has a versioned patch and none of the built cartridges converts it: either the game stopped carrying it —and then the file is left over— or the cartridge that has it is not built.",
-  "animation 82 went into «release», the playable ROM, and has no versioned patch: run `just parches`.",
-  "parches/auto/animaciones/0001.toml is stale (cartridge «special» says so), and what changed in animation 1 is this:\n    it was drawn at 56x64 and now it is drawn at 64x56\n    it came from 96x110 in RM2k and now comes from 96x111\n    it had 7 frame(s) and now has 8\n    it came from sheet 'hit' and now comes from 'hit2'\n  If the change is the one intended, `just parches` and commit; if not, something moved what is seen.",
-  "parches/auto/battlers/rusty_knight.toml is stale (cartridge «special» says so), and what changed in battler rusty knight is this:\n    the same colors in another palette order\n  If the change is the one intended, `just parches` and commit; if not, something moved what is seen.",
-  "parches/auto/battlers/slime-60.toml is stale (cartridge «special» says so), and what changed in battler slime-60 is this:\n    keeps [0, 11, 0], which used to be merged\n    loses [0, 10, 0], which used to stay\n    tamano went from [40, 30] to [40, 31]\n    colores went from 20 to 21\n    tono went from 60 to 90\n    18 merges were needed and now 19\n  If the change is the one intended, `just parches` and commit; if not, something moved what is seen."
+  "animation 82 went into «release», the playable ROM, and has no versioned patch: run `rm2k-snes-patches` on its build.",
+  "parches/auto/animaciones/0001.toml is stale (cartridge «special» says so), and what changed in animation 1 is this:\n    it was drawn at 56x64 and now it is drawn at 64x56\n    it came from 96x110 in RM2k and now comes from 96x111\n    it had 7 frame(s) and now has 8\n    it came from sheet 'hit' and now comes from 'hit2'\n  If the change is the one intended, run `rm2k-snes-patches` on the playable ROM's build and commit; if not, something moved what is seen.",
+  "parches/auto/battlers/rusty_knight.toml is stale (cartridge «special» says so), and what changed in battler rusty knight is this:\n    the same colors in another palette order\n  If the change is the one intended, run `rm2k-snes-patches` on the playable ROM's build and commit; if not, something moved what is seen.",
+  "parches/auto/battlers/slime-60.toml is stale (cartridge «special» says so), and what changed in battler slime-60 is this:\n    keeps [0, 11, 0], which used to be merged\n    loses [0, 10, 0], which used to stay\n    tamano went from [40, 30] to [40, 31]\n    colores went from 20 to 21\n    tono went from 60 to 90\n    18 merges were needed and now 19\n  If the change is the one intended, run `rm2k-snes-patches` on the playable ROM's build and commit; if not, something moved what is seen."
  ],
  "own": {
   "mapa": {

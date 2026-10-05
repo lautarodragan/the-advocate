@@ -97,9 +97,9 @@ fn what_is_copied_is_checked_and_what_is_touched_fails() {
     assert!(out.status.success(), "{}", text(&out.stderr));
     assert_eq!(
         text(&out.stdout),
-        "3 patch(es) in patches/auto/mapas, 2898 B\n\
-         2 patch(es) in patches/auto/animaciones, 1577 B\n\
-         2 patch(es) in patches/auto/battlers, 1757 B\n"
+        "3 patch(es) in patches/auto/mapas, 2949 B\n\
+         2 patch(es) in patches/auto/animaciones, 1607 B\n\
+         2 patch(es) in patches/auto/battlers, 1787 B\n"
     );
     // A directory with cartridges inside is the same as naming them.
     let out = run(&dir, &["--check", "build"]);
@@ -124,8 +124,8 @@ fn what_is_copied_is_checked_and_what_is_touched_fails() {
         text(&out.stderr),
         "  patches/auto/animaciones/0001.toml is stale (cartridge «release» says so), and \
          what changed in animation 1 is this:\n    it was drawn at 56x63 and now it is drawn \
-         at 56x64\n  If the change is the one intended, `just parches` and commit; if not, \
-         something moved what is seen.\n1 patch(es) do not match what the converter decides\n"
+         at 56x64\n  If the change is the one intended, run `rm2k-snes-patches` on the \
+         playable ROM's build and commit; if not, something moved what is seen.\n1 patch(es) do not match what the converter decides\n"
     );
     // And copying twice is what the playable ROM gives, and nothing else.
     let out = run(&dir, &["build/release", "build/release"]);

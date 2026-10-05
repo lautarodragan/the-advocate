@@ -769,7 +769,7 @@ fn window_section(out: &mut String, r: &Emit, window: &Value, t: &Geometry) -> R
         );
     }
     line(out, &block("messages", &r.messages));
-    // How big it is and how big it can be, for `just espacio`: the operand
+    // How big it is and how big it can be, for `rm2k-snes-space`: the operand
     // of `OP_MESSAGE` is sixteen bits, in steps of `MESSAGES_STEP`.
     out.push_str(&pyf!(
         "MESSAGES_BYTES = %d\nMESSAGES_CAP = %d\n",
