@@ -218,7 +218,7 @@ row_addr_b: .res 2
 ; `SUB_MAX` is also written in `tools/port/snes_convert.py`, which is the one
 ; that can refuse to emit a map that does not fit. `test_sustitucion.py`
 ; compares the two: here there is no way to report that it went over.
-SUB_MAX = 8
+SUB_MAX = 16
 sub_n:      .res 2      ; how many pairs are set, **in bytes**
 sub_key:    .res SUB_MAX * 2
 sub_value:  .res SUB_MAX * 2
