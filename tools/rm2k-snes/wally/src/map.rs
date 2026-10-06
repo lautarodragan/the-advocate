@@ -331,6 +331,27 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
     if cached.objects.as_ref().is_some_and(|o| o.cache.is_some()) && fits(&cached, &layouts_for(&cached.layers.converted, request)) {
         return Ok(cached);
     }
+    // Last, the battle animation's box, which is 64 tiles of sprites and,
+    // unlike the poses, has no way of taking less: a map that fits nothing
+    // with it loses the animations —the ROM draws none where the box is
+    // not— and not the conversion. After sharing slots and the cache, which
+    // keep it: the animations are lost only if nothing else fits.
+    if request.battle_animation {
+        let without = MapRequest {
+            battle_animation: false,
+            ..request.clone()
+        };
+        let mut done = convert(game, &without)?;
+        if fits(&done, &layouts_for(&done.layers.converted, &without)) {
+            done.notes.push(note(format!(
+                "  map {}: WARNING, battle animations aren't drawn here: their box's {} tiles \
+                 don't fit in the sprite bank",
+                request.map,
+                crate::sprites::extras::ANIMATION_TILES
+            )));
+            return Ok(done);
+        }
+    }
     Ok(if shares { shared } else { plain })
 }
 
