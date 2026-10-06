@@ -18,6 +18,7 @@
 
 pub mod background;
 pub mod baking;
+pub mod decor;
 pub mod events;
 pub mod fail;
 pub mod game;

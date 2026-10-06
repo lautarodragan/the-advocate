@@ -44,6 +44,10 @@ pub struct LayersRequest {
     /// If set, the background is drawn with at most this many tiles, the
     /// cells that look most alike fused: see [`crate::background::fuse`].
     pub fuse_tiles: Option<usize>,
+    /// The decorative events painted into the lower layer: see
+    /// [`crate::decor`]. Not from the request: the map's conversion picks
+    /// them.
+    pub decor: Vec<crate::decor::Decoration>,
 }
 
 /// A VRAM layout for a map that shows its panorama: the mode the map goes
@@ -183,6 +187,7 @@ impl LayersRequest {
                 None | Some(Value::Null) => None,
                 Some(v) => Some(index(v, "`fuse_tiles`", whose)?),
             },
+            decor: Vec::new(),
         })
     }
 }
@@ -429,6 +434,21 @@ impl crate::map::MapRequest {
             window_colors: index(field(data, "window_colors", whose)?, "`window_colors`", whose)?,
             panorama: panorama_budget(data, whose)?,
             fuse_tiles: None,
+            decorative: data.get("decorative").and_then(Value::as_bool).unwrap_or(false),
+            test_commands: match data.get("test_commands") {
+                None | Some(Value::Null) => Vec::new(),
+                Some(v) => v
+                    .as_array()
+                    .ok_or_else(|| Bad::answer(format!("{whose}: `test_commands` is not a list")))?
+                    .iter()
+                    .map(|c| {
+                        let bad = || Bad::answer(format!("{whose}: a test command is {c}, not [code, [parameters]]"));
+                        let c = c.as_array().filter(|c| c.len() == 2).ok_or_else(bad)?;
+                        let parameters = c[1].as_array().ok_or_else(bad)?.iter().map(|p| small(p, "a parameter", whose)).collect::<Result<_>>()?;
+                        Ok((small(&c[0], "a command's code", whose)?, parameters))
+                    })
+                    .collect::<Result<_>>()?,
+            },
         })
     }
 }

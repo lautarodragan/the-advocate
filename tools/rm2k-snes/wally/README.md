@@ -25,6 +25,13 @@ per call:
 * **the events baked into them**: an opaque event drawn with a ChipSet tile
   that never moves goes into the upper layer instead of being a sprite,
   unless that moves anybody else's colours;
+* **the decorative events**, if the request says `"decorative": true`: one
+  that is only a drawing —one page, no commands or conditions, a CharSet,
+  no movement of its own, and named by no command of the map, the common
+  events or the test pages— is painted into the lower layer, in every
+  drawing of its animation, and stops being an event: it has no object, and
+  its page is not in the table. One on the hero's layer closes its cell in
+  the passability instead. See `decor.rs`;
 * **the objects**: which events are drawn, which poses each graphic can
   show, how the eight palettes are split —the leader candidates first and
   alone, the rest while they fit and with someone else's colours when they
