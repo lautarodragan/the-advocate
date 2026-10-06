@@ -3454,6 +3454,14 @@ pub fn compile_command(
         // Until 2026-09-28 it shared the opcode with `GameOver`, when neither
         // of the two drew anything.
         RETURN_TO_TITLE => Ok(vec![OP_RETURN_TO_TITLE]),
+        PLAYER_VISIBILITY => {
+            // `CommandPlayerVisibility`: `hidden = p[0] == 0`. The ROM keeps
+            // one byte of it, which the save carries.
+            if n < 1 {
+                return cannot();
+            }
+            Ok(vec![OP_HERO_VISIBLE, if q(0) != 0 { 1 } else { 0 }])
+        }
         CHANGE_CONDITION => {
             // `ChangeCondition` that removes a state compiles to nothing, and
             // that is **not** debt: outside battle states do not exist —the
@@ -5373,6 +5381,16 @@ mod tests {
         // ask the hero or the dice halfway through the sum.
         for command in [8, 10] {
             assert_eq!(route(1, &[24, command, 25]), None, "{command} in a jump");
+        }
+    }
+
+    #[test]
+    fn hiding_and_showing_the_hero_is_one_opcode() {
+        // `PlayerVisibility`: parameter 0 is 0 to hide him —RM2k's
+        // "transparent"— and 1 to show him.
+        for (parameter, visible) in [(0, 0), (1, 1)] {
+            let code = on_a_map(&[cmd(PLAYER_VISIBILITY, &[parameter], "")]);
+            assert_eq!(code.unwrap(), [OP_HERO_VISIBLE, visible, OP_DONE]);
         }
     }
 

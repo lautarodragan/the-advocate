@@ -307,6 +307,11 @@ bytecode! {
     /// `direction` is RM2k's facing, 0 up, 1 right, 2 down, 3 left. Like
     /// `OP_IF_ACTOR` it has no polarity: the branch below is the `else`.
     OP_IF_FACING = 0x47 (target: byte, direction: byte, destination: word);
+
+    /// `PlayerVisibility`: whether the hero's sprite is drawn. He stays where he
+    /// is, and keeps blocking and triggering: only the drawing goes. The state
+    /// outlives the map and travels in the save, as RM2k's does.
+    OP_HERO_VISIBLE = 0x48 (visible: byte);
 }
 
 // `run_code` jumps through a table indexed by the opcode.

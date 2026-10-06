@@ -466,6 +466,10 @@ hero_lock:   .res 1
 ; speed 3 the mirador of map 109 leaves Talan locked —in RM2k too, measured
 ; in the original— and then he could not talk to Emily in her house.
 hero_heading: .res 1
+; `PlayerVisibility`: nonzero while the hero's sprite is not drawn. Only the
+; drawing goes —he keeps his cell, blocks and triggers, as RM2k's `Game_Player`
+; does with `SetSpriteHidden`—. It outlives maps and goes in the save.
+hero_hidden: .res 1
 ; `ruta_salto_dx` and `ruta_salto_dy` lived here and nobody read them; their
 ; extra byte is what pays for the sixteen-bit `fade_map`.
 ; On while a step of a move route that goes through walls is being tried.

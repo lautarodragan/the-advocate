@@ -53,6 +53,7 @@ pub const SHOW_PICTURE: i32 = 11110;
 pub const MOVE_PICTURE: i32 = 11120;
 pub const ERASE_PICTURE: i32 = 11130;
 pub const SHOW_BATTLE_ANIMATION: i32 = 11210;
+pub const PLAYER_VISIBILITY: i32 = 11310;
 pub const FLASH_SPRITE: i32 = 11320;
 pub const MOVE_EVENT: i32 = 11330;
 pub const PROCEED_WITH_MOVEMENT: i32 = 11340;
@@ -208,6 +209,7 @@ mod tests {
             (MOVE_PICTURE, C::MovePicture),
             (ERASE_PICTURE, C::ErasePicture),
             (SHOW_BATTLE_ANIMATION, C::ShowBattleAnimation),
+            (PLAYER_VISIBILITY, C::PlayerVisibility),
             (FLASH_SPRITE, C::FlashSprite),
             (MOVE_EVENT, C::MoveEvent),
             (PROCEED_WITH_MOVEMENT, C::ProceedWithMovement),
