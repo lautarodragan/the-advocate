@@ -111,7 +111,7 @@ pub struct CannotCompile;
 /// The lines without their escape tail, how many pauses it has and whether
 /// it closes on its own.
 ///
-/// `\\.`, `\\!` and `\\|` anywhere else are dropped without waiting (debt, see `without_waits`). Both tail escapes are accepted only **as a tail at the end of the box's last
+/// `\\.`, `\\!` and `\\|` anywhere else are dropped without waiting, and `\\c[n]` and `\\s[n]` without color or speed (debt, see `without_waits`). Both tail escapes are accepted only **as a tail at the end of the box's last
 /// line**, which is where a game puts them; the tail may carry spaces in
 /// between, and it eats them. An escape anywhere else, or more pauses than
 /// [`PAUSES_MAX`], is [`CannotCompile`].
@@ -164,6 +164,8 @@ pub fn escape_tail(lines: &[String]) -> Result<(Vec<String>, usize, bool), Canno
 /// second), `\|` (a second) and `\!` (a key). Debt, on purpose: the window is
 /// drawn all at once, so there is no halfway to wait at, and they are
 /// dropped without waiting; see `workflow/tasks/todo/las-caras-y-las-esperas.md`.
+/// `\c[n]` and `\s[n]`, either case, are dropped too: a color and a speed the
+/// console does not have (`workflow/tasks/todo/las-caras-y-las-esperas.md`).
 /// A `\\` is skipped as a pair, so the letter after it is not taken as an
 /// escape.
 fn without_waits(line: &str) -> String {
@@ -175,6 +177,25 @@ fn without_waits(line: &str) -> String {
                 Some('.' | '!' | '|') => {
                     chars.next();
                     continue;
+                }
+                // `\c[n]` (color) and `\s[n]` (speed): ignored, which loses the
+                // color and the speed but compiles the box. They take no room on
+                // screen, and being dropped here they are not measured either.
+                Some('c' | 'C' | 's' | 'S') => {
+                    let mut look = chars.clone();
+                    look.next();
+                    if look.next() == Some('[') {
+                        let mut digits = 0;
+                        let mut rest = look.clone();
+                        while rest.peek().is_some_and(char::is_ascii_digit) {
+                            rest.next();
+                            digits += 1;
+                        }
+                        if digits > 0 && rest.next() == Some(']') {
+                            chars = rest;
+                            continue;
+                        }
+                    }
                 }
                 Some(&ESCAPE) => {
                     out.push(c);

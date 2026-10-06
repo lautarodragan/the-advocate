@@ -1,6 +1,9 @@
 {
  "about": "A text box's escape tail: `escape_tail` in src/refit.rs, the rule the boxes are reflowed around for the window and the one the event compiler, rm2k-snes-events, cuts them with. Each case is the box's lines and what it answers: the lines without the tail, how many pauses and whether it closes on its own; or null, which is that the box does not compile. tests/refit.rs reads this file.",
  "cases": [
+  {"lines": ["\\c[1]Sandra: \\c[0]Hi\\|"], "answer": [["Sandra: Hi"], 1, false]},
+  {"lines": ["\\S[3]Slow\\s[12] one"], "answer": [["Slow one"], 0, false]},
+  {"lines": ["\\c[x]no"], "answer": null},
   {"lines": ["HELP!!", "That pirate... has a map...\\|\\^"],
    "answer": [["HELP!!", "That pirate... has a map..."], 1, true]},
   {"lines": ["                  < Wave >\\|\\|\\|\\^"],
