@@ -191,9 +191,8 @@ fn open(path: &Path) -> Result<png::Reader<std::io::BufReader<std::fs::File>>> {
 /// **In an indexed picture, index 0 is the colour key**, whatever the file's
 /// own transparency says: it is how RM2k draws them, and every ChipSet of
 /// the game and of the RTP is indexed. The other kinds keep the transparency
-/// the file declares, if any. A BMP is refused: RM2k takes them, but no
-/// ChipSet anyone has handed this is one, and a decoder with nothing to be
-/// checked against is not worth carrying.
+/// the file declares, if any. A BMP, which RM2k takes in every folder, is
+/// read here too, and is always indexed: see [`read_bmp`].
 pub fn read_rm2k(path: &Path) -> Result<Picture> {
     read(path, true)
 }
@@ -210,10 +209,7 @@ fn read(path: &Path, key: bool) -> Result<Picture> {
         .map(|e| e.eq_ignore_ascii_case("bmp"))
         .unwrap_or(false)
     {
-        return Err(Bad::answer(format!(
-            "{}: a BMP, and this reads PNG only",
-            path.display()
-        )));
+        return read_bmp(path, key);
     }
     let mut reader = open(path)?;
     let mut buffer = vec![0; reader.output_buffer_size()];
@@ -269,6 +265,88 @@ fn read(path: &Path, key: bool) -> Result<Picture> {
                 _ => return Err(unsupported()),
             };
             rgba.extend_from_slice(&pixel);
+        }
+    }
+    Ok(Picture {
+        width,
+        height,
+        rgba,
+    })
+}
+
+/// A BMP as RM2k takes them: indexed, at 1, 4 or 8 bits, uncompressed, with
+/// index 0 as the colour key as in an indexed PNG. Read by hand and not with
+/// `image`, whose BMP decoder hands back colours and loses the index, and
+/// with it the key: two entries of a palette can be the same colour. The
+/// header is the old core one or any of the Windows ones, rows bottom to top
+/// or, with a negative height, top to bottom, each padded to four bytes.
+/// EasyRPG reads them the same way (`ImageBMP`), and refuses compressed ones
+/// too.
+fn read_bmp(path: &Path, key: bool) -> Result<Picture> {
+    let data = std::fs::read(path).map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
+    let bad = |what: String| Bad::answer(format!("{}: {what}", path.display()));
+    let short = || bad("cut short, not a BMP this can read".to_string());
+    let u16_at = |at: usize| {
+        data.get(at..at + 2)
+            .map(|b| u16::from_le_bytes([b[0], b[1]]))
+    };
+    let u32_at = |at: usize| {
+        data.get(at..at + 4)
+            .map(|b| u32::from_le_bytes([b[0], b[1], b[2], b[3]]))
+    };
+    if !data.starts_with(b"BM") {
+        return Err(bad("not a BMP".to_string()));
+    }
+    let bits = u32_at(10).ok_or_else(short)? as usize;
+    let header = u32_at(14).ok_or_else(short)? as usize;
+    // (width, height, depth, compression, colours, bytes a palette entry);
+    // 12 bytes is the OS/2 core header, any other size a Windows one.
+    let (width, height, depth, compression, colors, entry) = if header == 12 {
+        let (w, h) = (u16_at(18).ok_or_else(short)?, u16_at(20).ok_or_else(short)?);
+        let depth = u16_at(24).ok_or_else(short)? as usize;
+        (w as i64, h as i16 as i64, depth, 0, 0, 3)
+    } else {
+        let w = u32_at(18).ok_or_else(short)? as i32 as i64;
+        let h = u32_at(22).ok_or_else(short)? as i32 as i64;
+        let depth = u16_at(28).ok_or_else(short)? as usize;
+        let compression = u32_at(30).ok_or_else(short)?;
+        let colors = u32_at(46).ok_or_else(short)? as usize;
+        (w, h, depth, compression, colors, 4)
+    };
+    if !matches!(depth, 1 | 4 | 8) {
+        return Err(bad(format!(
+            "a BMP at {depth} bits, and RM2k's are indexed, at 8 bits or fewer"
+        )));
+    }
+    if compression != 0 {
+        return Err(bad(format!(
+            "a compressed BMP (method {compression}), and this reads uncompressed ones only"
+        )));
+    }
+    // 0 colours in the header means as many as the depth gives.
+    let colors = if colors == 0 {
+        1 << depth
+    } else {
+        colors.min(256)
+    };
+    let table = data
+        .get(14 + header..14 + header + colors * entry)
+        .ok_or_else(short)?;
+    // Stored blue, green, red.
+    let palette: Vec<[u8; 3]> = table.chunks(entry).map(|c| [c[2], c[1], c[0]]).collect();
+    let top_down = height < 0;
+    let (width, height) = (width.max(0) as usize, height.unsigned_abs() as usize);
+    let row = (width * depth).div_ceil(32) * 4;
+    let rows = data.get(bits..bits + row * height).ok_or_else(short)?;
+    let mut rgba = Vec::with_capacity(width * height * 4);
+    for y in 0..height {
+        let stored = if top_down { y } else { height - 1 - y };
+        let line = &rows[stored * row..(stored + 1) * row];
+        for x in 0..width {
+            let bit = x * depth;
+            let index = ((line[bit / 8] >> (8 - depth - bit % 8)) as usize) & ((1 << depth) - 1);
+            let [r, g, b] = palette.get(index).copied().unwrap_or([0, 0, 0]);
+            rgba.extend_from_slice(&[r, g, b, if key && index == 0 { 0 } else { 255 }]);
         }
     }
     Ok(Picture {
