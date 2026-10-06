@@ -419,12 +419,15 @@ const IGNORABLE: [i32; 0] = [];
 /// in there and not in this list: the command itself is no longer a whole
 /// debt. Neither is `PlayBGM`, which is done since the songs have a
 /// registry: see its arm.
-pub const ACCEPTED_UNDONE: [i32; 5] = [
+pub const ACCEPTED_UNDONE: [i32; 6] = [
     SHOW_PICTURE,
     MOVE_PICTURE,
     ERASE_PICTURE,
     CHANGE_SYSTEM_BGM,
     CHANGE_HERO_TITLE,
+    // Debt: the System is not changed on the fly. The task to implement it is
+    // `workflow/tasks/todo/changesystemgraphics.md`.
+    CHANGE_SYSTEM_GRAPHICS,
 ];
 
 /// What cuts an exit `PlayBGM` before the jump: branches, choices, battles,
@@ -3928,6 +3931,10 @@ pub fn compile_command(
         // 2026-09-13, the speech ran whole, the teleport back worked, and then
         // nothing else happened.
         CHANGE_SYSTEM_BGM | CHANGE_HERO_TITLE => Ok(vec![]),
+        // `ChangeSystemGraphics` (10680): debt, accepted without doing anything
+        // so the page that uses it is not left out whole; the task to
+        // implement it is `workflow/tasks/todo/changesystemgraphics.md`.
+        CHANGE_SYSTEM_GRAPHICS => Ok(vec![]),
         CHANGE_ENCOUNTER_STEPS => {
             // `ChangeEncounterSteps` (11740): every how many steps there is a
             // random encounter. Nineteen occurrences on nine maps, and
@@ -5111,6 +5118,13 @@ mod tests {
             game.patches.counters.insert(9, 48);
         }
         game
+    }
+
+    #[test]
+    fn change_system_graphics_is_accepted_without_emitting() {
+        let game = Game::default();
+        let out = compile_with(&game, &[cmd(CHANGE_SYSTEM_GRAPHICS, &[], "Blue")]);
+        assert!(out.unwrap().is_some(), "the page was left out");
     }
 
     fn compile_with(game: &Game, commands: &[Command]) -> Result<Option<Vec<u8>>> {

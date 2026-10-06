@@ -29,6 +29,7 @@ pub const FULL_HEAL: i32 = 10490;
 pub const CHANGE_HERO_TITLE: i32 = 10620;
 pub const CHANGE_SPRITE_ASSOCIATION: i32 = 10630;
 pub const CHANGE_SYSTEM_BGM: i32 = 10660;
+pub const CHANGE_SYSTEM_GRAPHICS: i32 = 10680;
 pub const CHANGE_SCREEN_TRANSITIONS: i32 = 10690;
 pub const ENEMY_ENCOUNTER: i32 = 10710;
 pub const OPEN_SHOP: i32 = 10720;
@@ -177,6 +178,7 @@ mod tests {
             (CHANGE_HERO_TITLE, C::ChangeHeroTitle),
             (CHANGE_SPRITE_ASSOCIATION, C::ChangeSpriteAssociation),
             (CHANGE_SYSTEM_BGM, C::ChangeSystemBGM),
+            (CHANGE_SYSTEM_GRAPHICS, C::ChangeSystemGraphics),
             (CHANGE_SCREEN_TRANSITIONS, C::ChangeScreenTransitions),
             (ENEMY_ENCOUNTER, C::EnemyEncounter),
             (OPEN_SHOP, C::OpenShop),
