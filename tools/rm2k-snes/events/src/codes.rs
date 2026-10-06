@@ -26,6 +26,7 @@ pub const CHANGE_HP: i32 = 10460;
 pub const CHANGE_SP: i32 = 10470;
 pub const CHANGE_CONDITION: i32 = 10480;
 pub const FULL_HEAL: i32 = 10490;
+pub const CHANGE_HERO_NAME: i32 = 10610;
 pub const CHANGE_HERO_TITLE: i32 = 10620;
 pub const CHANGE_SPRITE_ASSOCIATION: i32 = 10630;
 pub const CHANGE_SYSTEM_BGM: i32 = 10660;

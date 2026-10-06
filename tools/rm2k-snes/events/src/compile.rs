@@ -473,6 +473,9 @@ pub struct Indices {
     pub skills: BTreeMap<(i32, i32), usize>,
     /// The switch that turns on each equipment common event, and its number.
     pub party_common_events: BTreeMap<i32, i32>,
+    /// Actor to the name `\N[n]` bakes into the text: see
+    /// [`crate::indices::hero_names`].
+    pub hero_names: BTreeMap<i32, String>,
 }
 
 impl Indices {
@@ -2975,6 +2978,37 @@ fn target_of(who: i64, map_events: Option<&MapEvents>) -> Step<u8> {
     }
 }
 
+/// A text box's lines with each `\N[n]` —the name of actor `n`— written as
+/// the actor's name in the database, when no `ChangeHeroName` in the game
+/// changes it: see [`crate::indices::hero_names`]. Both cases of the `N`.
+/// `\N[0]` (the leader), a renamed actor and a malformed one are left as they
+/// are, so the escape still stops the page in `escape_tail`.
+pub fn with_names(lines: &[String], indices: &Indices) -> Vec<String> {
+    lines
+        .iter()
+        .map(|line| {
+            let chars: Vec<char> = line.chars().collect();
+            let mut text = String::new();
+            let mut i = 0;
+            while i < chars.len() {
+                if chars[i] == '\\' && matches!(chars.get(i + 1), Some('N' | 'n')) && chars.get(i + 2) == Some(&'[') {
+                    let digits: String = chars[i + 3..].iter().take_while(|c| c.is_ascii_digit()).collect();
+                    let close = i + 3 + digits.len();
+                    let name = digits.parse::<i32>().ok().and_then(|n| indices.hero_names.get(&n));
+                    if let (Some(name), Some(']')) = (name, chars.get(close).copied()) {
+                        text.push_str(name);
+                        i = close + 1;
+                        continue;
+                    }
+                }
+                text.push(chars[i]);
+                i += 1;
+            }
+            text
+        })
+        .collect()
+}
+
 /// A text box's lines with each `\V[n]` —the value of variable `n`— as the
 /// mark `Messages` writes as the variable's slot: see
 /// [`crate::messages::VARIABLE`]. The ROM writes the digits when the box
@@ -4684,7 +4718,7 @@ pub fn compile_command(
             // through it; anything that is not `\|` or `\^` still cuts the
             // page from there —see `escape_tail`—, except `\V[n]`, which
             // comes off here.
-            let lines = with_variables(&lines, ctx.indices)?;
+            let lines = with_variables(&with_names(&lines, ctx.indices), ctx.indices)?;
             let at = messages.add(&lines)?;
             let mut out = vec![OP_MESSAGE];
             out.extend(usize_word(at)?);
@@ -6424,6 +6458,20 @@ mod tests {
         let at = messages.add(&lines).ok().unwrap();
         // One line of three units: a, the value, b.
         assert_eq!(messages.data[at..], [1, 3, 65, crate::messages::VARIABLE, 7, 66]);
+    }
+
+    #[test]
+    fn an_actors_name_is_baked_into_the_text_unless_it_can_change() {
+        let indices = Indices {
+            hero_names: BTreeMap::from([(2, "Kai".to_string())]),
+            ..Default::default()
+        };
+        let out = with_names(&["Hi \\N[2]! \\n[2] \\N[0] \\N[3]".to_string()], &indices);
+        assert_eq!(out, ["Hi Kai! Kai \\N[0] \\N[3]"]);
+        // The page compiles with it, and not without.
+        let mut messages = crate::messages::Messages::new(1, crate::messages::Window::columns(39, 4));
+        assert!(messages.add(&with_names(&["\\N[2]".to_string()], &indices)).is_ok());
+        assert!(messages.add(&["\\N[2]".to_string()]).is_err());
     }
 
     #[test]

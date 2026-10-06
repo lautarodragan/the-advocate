@@ -200,6 +200,9 @@ pub struct Game {
     /// to know an actor exists: it is read once before compiling anything,
     /// so all pages read the same reading of the LDB.
     pub actors: BTreeMap<i32, Vec<(i32, i32)>>,
+    /// Each actor's name in the database: what `\N[n]` shows until some
+    /// `ChangeHeroName` changes it; see [`crate::indices::hero_names`].
+    pub actor_names: BTreeMap<i32, String>,
     pub skills: BTreeSet<i32>,
     /// The items `ChangeEquipment` can equip: by number, its type —1 the
     /// weapon to 5 the accessory, the slot plus one— and who can use it,
@@ -408,6 +411,7 @@ impl Game {
                 )
             })
             .collect();
+        let actor_names = raw.iter().map(|a| (a.id, a.name.clone())).collect();
         let raw: Vec<schema::Skill> = dump.section("skills").map_err(answer)?;
         let skills = raw.iter().map(|s| s.id).collect();
         // A dump without items equips nothing: `ChangeEquipment` to equip
@@ -432,6 +436,7 @@ impl Game {
             battle_end_music: system.battle_end_music.name.clone(),
             system_se,
             actors,
+            actor_names,
             skills,
             items,
         })

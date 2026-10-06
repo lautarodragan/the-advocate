@@ -421,6 +421,37 @@ pub fn party_common_events(game: &Game) -> BTreeMap<i32, i32> {
     out
 }
 
+/// The name each actor keeps for the whole game, for `\N[n]` to be baked
+/// into the text: the ones in the database whose name **no**
+/// `ChangeHeroName` in any page of the game changes. A renamed actor is not
+/// here, and neither is `\N[0]`, the leader, whose name depends on who is in
+/// the party: those boxes are left out as before, since the ROM has no way
+/// to write a name that is only known at run time.
+pub fn hero_names(game: &Game, maps: &[Map]) -> BTreeMap<i32, String> {
+    let mut renamed = BTreeSet::new();
+    let mut sweep = |commands: &[Command]| {
+        renamed.extend(commands.iter().filter(|c| c.code == CHANGE_HERO_NAME).filter_map(|c| c.parameters.first().copied()));
+    };
+    for map in maps {
+        for event in &map.events {
+            for page in &event.pages {
+                sweep(&page.commands);
+            }
+        }
+    }
+    for commands in troop_page_commands(game) {
+        sweep(&commands);
+    }
+    for c in game.common_events.values() {
+        sweep(&c.commands);
+    }
+    game.actor_names
+        .iter()
+        .filter(|(id, _)| !renamed.contains(id))
+        .map(|(&id, name)| (id, name.clone()))
+        .collect()
+}
+
 /// All of them.
 pub fn build(
     game: &Game,
@@ -432,6 +463,7 @@ pub fn build(
         variables: variables(game, maps, extra_variables),
         skills: skills(game, maps, extra_pairs)?,
         party_common_events: party_common_events(game),
+        hero_names: hero_names(game, maps),
     })
 }
 
