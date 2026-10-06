@@ -418,7 +418,7 @@ const IGNORABLE: [i32; 0] = [];
 /// in there and not in this list: the command itself is no longer a whole
 /// debt. Neither is `PlayBGM`, which is done since the songs have a
 /// registry: see its arm.
-pub const ACCEPTED_UNDONE: [i32; 8] = [
+pub const ACCEPTED_UNDONE: [i32; 9] = [
     // Debt: the screen is not blanked and not brought back, so the page
     // that erases it shows the map during its transition; see its arm.
     ERASE_SCREEN,
@@ -431,6 +431,7 @@ pub const ACCEPTED_UNDONE: [i32; 8] = [
     // Debt: the System is not changed on the fly. The task to implement it is
     // `workflow/tasks/todo/changesystemgraphics.md`.
     CHANGE_SYSTEM_GRAPHICS,
+    CHANGE_FACE_GRAPHIC,
 ];
 
 /// What cuts an exit `PlayBGM` before the jump: branches, choices, battles,
@@ -4003,7 +4004,7 @@ pub fn compile_command(
         // original goes black (the transition type is ignored too).
         ERASE_SCREEN | SHOW_SCREEN => Ok(vec![]),
         // `ChangeFaceGraphic` (10130): debt, the face is not drawn; see
-        // `workflow/tasks/todo/las-caras-y-las-esperas.md`.
+        // `workflow/tasks/*/las-caras-y-las-esperas.md`.
         CHANGE_FACE_GRAPHIC => Ok(vec![]),
         CHANGE_ENCOUNTER_STEPS => {
             // `ChangeEncounterSteps` (11740): every how many steps there is a
@@ -5228,6 +5229,16 @@ mod tests {
         let game = Game::default();
         let out = compile_with(&game, &[cmd(CHANGE_FACE_GRAPHIC, &[], "Jack")]);
         assert!(out.unwrap().is_some(), "the page was left out");
+    }
+
+    #[test]
+    fn change_face_graphic_is_reported_as_debt() {
+        let game = Game::default();
+        let command = cmd(CHANGE_FACE_GRAPHIC, &[], "Jack");
+        assert_eq!(
+            page_debts(&game, &Indices::default(), &[command], None).unwrap(),
+            [CHANGE_FACE_GRAPHIC]
+        );
     }
 
     fn compile_with(game: &Game, commands: &[Command]) -> Result<Option<Vec<u8>>> {
