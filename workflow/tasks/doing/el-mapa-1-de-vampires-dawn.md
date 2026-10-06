@@ -14,3 +14,18 @@ el mapa se queda sin esas animaciones, con un WARNING. Lo que aparezca
 detrás, del mismo tipo, también.
 
 taro, el 2026-10-06: "vamos con esos dos en paralelo", con Sonnet.
+
+## Lo hecho (Carpintero, 2026-10-06)
+
+* Wally: si un mapa no entra en ningún reparto de VRAM con la caja de
+  animaciones (64 tiles de sprites, que no se pueden achicar), se convierte
+  de nuevo sin ella y dice WARNING; el ROM no dibuja animaciones ahí.
+  Prueba en `wally/tests/whole_map.rs`, vista en rojo antes.
+* **Pero no era eso lo que cortaba el mapa 1.** El mapa 1 de VD es de
+  300x300 y su fondo tiene 597 tiles únicos de 8x8; el reparto más grande
+  da 544. No entra con ni sin caja, con ni sin cuadros: es el fondo. Que lo
+  diga bien: el mensaje del conversor ahora dice "fits no VRAM layout" con
+  los tres números, en vez de "spends 320 of 0" del banco de sprites.
+* Lo que falta para que VD arme es decidir qué se hace con un fondo que no
+  entra (fusionar tiles parecidos, bajar el mapa de resolución, partirlo):
+  eso cambia lo que se ve, y no se degrada solo.
