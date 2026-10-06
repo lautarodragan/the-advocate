@@ -182,9 +182,13 @@ ENC_IDX   = FAR_ENCOUNTER + 1   ; the table row, which never goes down
 ENC_ASKS  = FAR_ENCOUNTER + 2   ; one came up and is collected next frame
 ENC_RNG   = FAR_ENCOUNTER + 3   ; word: the xorshift, with its own seed
 ENC_BASE  = FAR_ENCOUNTER + 5   ; word: 1/steps in 1/65536; 0 is off
-ENC_REG   = FAR_ENCOUNTER + 7   ; this map's record, or ENC_NONE
-; A map with no troops of its own and no areas covering it.
-ENC_NONE  = $FF
+ENC_REG   = FAR_ENCOUNTER + 7   ; word: this map's record, or ENC_NONE
+; A map with no troops of its own and no areas covering it. **A word since
+; the encounter tables went to two bytes**: a game like Vampires Dawn has 779
+; troops. No record is as high as $FF00 —the converter caps them at 8191, so
+; that `record * 8` fits the table's 16-bit offset— so the high byte alone
+; tells it, which is what the 8-bit code reads: `lda ENC_REG + 1`.
+ENC_NONE  = $FFFF
 ; The eight rows of `UpdateEncounterSteps`'s table, and how many threshold
 ; bytes each record carries: seven —row 0's is 0 and is not stored— plus one
 ; of padding, so that the index is a shift and not a multiplication.

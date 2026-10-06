@@ -78,7 +78,7 @@ fn tables_writes_the_two_pieces_and_the_answer() {
     // Actors 0 to 3; only 2 has a slot.
     assert!(experience.contains("actor_exp_k:\n    .byte 255, 255, 0, 255\n"));
     let encounters = std::fs::read_to_string(dir.join("out/encounters.inc")).unwrap();
-    assert!(encounters.starts_with(".block 1\nenc_map:\n    .byte 0\n"));
+    assert!(encounters.starts_with(".block 2\nenc_map:\n    .word 0\n"));
     let answer: Value =
         serde_json::from_str(&std::fs::read_to_string(dir.join("out/battle.json")).unwrap())
             .unwrap();
