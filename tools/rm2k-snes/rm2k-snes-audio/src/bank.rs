@@ -31,6 +31,32 @@ pub const SILENCE: [u8; 9] = [0x03, 0, 0, 0, 0, 0, 0, 0, 0];
 /// directory goes up to 255 entries: the music's samples and the sound
 /// effect places together.
 pub const DIRECTORY_MAX: i64 = 255;
+/// Leaves out of every song's keys the ones that do not fit in `room`
+/// directory entries: it keeps the ones the most songs use, and among those
+/// the first in key order, so the answer is the same every run. Returns
+/// what it dropped. A dropped key is not in any song's set, which is how a
+/// key the SoundFont lacks looks: its notes stay silent and nothing points
+/// at a sample that is not there.
+pub fn drop_surplus(keys_of: &mut [BTreeSet<Key>], room: i64) -> Vec<Key> {
+    let mut uses: BTreeMap<Key, usize> = BTreeMap::new();
+    for ks in keys_of.iter() {
+        for k in ks {
+            *uses.entry(k.clone()).or_default() += 1;
+        }
+    }
+    let room = room.max(0) as usize;
+    if uses.len() <= room {
+        return Vec::new();
+    }
+    let mut ranked: Vec<(Key, usize)> = uses.into_iter().collect();
+    ranked.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
+    let dropped: Vec<Key> = ranked.split_off(room).into_iter().map(|(k, _)| k).collect();
+    for ks in keys_of.iter_mut() {
+        ks.retain(|k| !dropped.contains(k));
+    }
+    dropped
+}
+
 /// A budget nobody reaches: with it, each sample comes out at the
 /// SoundFont's rate —capped at the maximum—, which is what it would weigh
 /// untrimmed.
@@ -751,6 +777,24 @@ impl Bank {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn over_255_keys_the_least_used_are_left_out() {
+        // 300 programs: the first 100 are in two songs, the rest in one.
+        let all: BTreeSet<Key> = (0..300u32).map(|i| Key::program((i / 128) as u8, (i % 128) as u8)).collect();
+        let shared: BTreeSet<Key> = all.iter().take(100).cloned().collect();
+        let mut songs = vec![all.clone(), shared.clone()];
+        let dropped = drop_surplus(&mut songs, 250);
+        assert_eq!(dropped.len(), 50);
+        assert_eq!(songs[0].len(), 250);
+        assert!(shared.is_subset(&songs[0]) && shared.is_subset(&songs[1]));
+        // the ones in a single song go from the end of the key order
+        let expected: Vec<Key> = all.iter().skip(250).cloned().collect();
+        let mut got = dropped.clone();
+        got.sort();
+        assert_eq!(got, expected);
+        assert!(drop_surplus(&mut songs, 250).is_empty());
+    }
+
     use super::*;
 
     #[test]

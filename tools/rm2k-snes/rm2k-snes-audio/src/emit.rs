@@ -300,7 +300,7 @@ pub fn musicdata(music: &Music, emit: &Emit) -> Result<String> {
     // after it. It is the only thing uploaded at boot besides the driver.
     let n = (music_n + places).max(1);
     if n as i64 > bank::DIRECTORY_MAX {
-        return Err(Bad::answer(format!("the directory has {n} entries and SRCN is one byte")));
+        return Err(Bad::answer(format!("the directory has {n} entries ({music_n} samples, {places} places) and SRCN is one byte")));
     }
     if voices.len() - music_n > 0xFF {
         return Err(Bad::answer(format!(
