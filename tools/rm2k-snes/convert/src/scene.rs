@@ -98,6 +98,13 @@ pub const BATTLER_PLANES: usize = 5;
 pub const FLAT_BACKDROP: i64 = 0xFF;
 pub const PLACE_BACKDROP: i64 = 0xFE;
 
+/// What `per_map` of the encounters' answer says for a map where nothing is
+/// met: the battle crate's `encounters::NONE`, which is a word since the
+/// encounter tables went to two bytes. This crate reads it from the JSON
+/// and does not link the battle crate, so it is written twice, and the
+/// test cartridges of the ABL repo are what notices if they part.
+const NO_RECORD: i64 = 0xFFFF;
+
 /// `EnemyEncounter`'s third parameter: where the backdrop comes from.
 const BACKDROP_OF_PLACE: i32 = 0;
 const BACKDROP_OF_COMMAND: i32 = 1;
@@ -467,13 +474,13 @@ pub fn rom_scene(
     // The map's, for random encounters and for the troops that fight with
     // the one of the place; only where some battle can look at it.
     let per_map: Vec<i64> = match encounters.get("per_map").and_then(Value::as_array) {
-        Some(list) if !list.is_empty() => list.iter().map(|v| v.as_i64().unwrap_or(0xFF)).collect(),
-        _ => vec![0xFF; maps.len()],
+        Some(list) if !list.is_empty() => list.iter().map(|v| v.as_i64().unwrap_or(NO_RECORD)).collect(),
+        _ => vec![NO_RECORD; maps.len()],
     };
     let place_ones = troop_backdrop.iter().any(|(_, k)| *k == PLACE_BACKDROP);
     let mut map_backdrop = Vec::new();
     for (map, record) in maps.iter().zip(&per_map) {
-        if *record != 0xFF || place_ones {
+        if *record != NO_RECORD || place_ones {
             map_backdrop.push(number(game.tree.map_background(map.id).as_deref()));
         } else {
             map_backdrop.push(FLAT_BACKDROP);
@@ -500,7 +507,7 @@ pub fn rom_scene(
         if *k != PLACE_BACKDROP {
             continue;
         }
-        if *record != 0xFF {
+        if *record != NO_RECORD {
             requested.extend(of_terrains(map));
         } else {
             possible.extend(of_terrains(map));
