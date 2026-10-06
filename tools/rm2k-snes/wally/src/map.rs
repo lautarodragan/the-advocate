@@ -98,6 +98,9 @@ pub struct MapRequest {
     /// Whether the map's panorama is shown, and in how many tiles: see
     /// [`crate::request::LayersRequest`].
     pub panorama: Option<crate::request::PanoramaBudget>,
+    /// Set by the conversion itself, never by the caller: the background
+    /// is drawn with at most this many tiles. See [`convert`].
+    pub fuse_tiles: Option<usize>,
 }
 
 /// Something the conversion says, in order. A `stop` ends it there.
@@ -129,10 +132,11 @@ fn layered(
     window_colors: usize,
     panorama: Option<crate::request::PanoramaBudget>,
     baked: &BTreeMap<usize, (usize, i32)>,
+    fuse_tiles: Option<usize>,
 ) -> Result<Layered> {
     let mut cells: Vec<(usize, i16)> = baked.values().map(|&(c, t)| (c, t as i16)).collect();
     cells.sort();
-    let request = LayersRequest { map: id, baked: cells, window_colors, panorama };
+    let request = LayersRequest { map: id, baked: cells, window_colors, panorama, fuse_tiles };
     let drawn = draw(game, &request)?;
     let converted = stage_layers::convert(&drawn, &request)?;
     Ok(Layered { drawn, converted })
@@ -168,9 +172,10 @@ fn bake_unless_split_moves(
     panorama: Option<crate::request::PanoramaBudget>,
     without: Layered,
     baked: Baked,
+    fuse_tiles: Option<usize>,
     notes: &mut Vec<Note>,
 ) -> Result<(Layered, Baked)> {
-    let with = layered(game, id, window_colors, panorama.clone(), &baked)?;
+    let with = layered(game, id, window_colors, panorama.clone(), &baked, fuse_tiles)?;
     if same_split(&without.converted, &with.converted) {
         return Ok((with, baked));
     }
@@ -352,7 +357,52 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
             return Ok(done);
         }
     }
-    Ok(if shares { shared } else { plain })
+    let worst = if shares { shared } else { plain };
+    // The very last: the background has more distinct tiles than any layout
+    // holds, and the cells most alike are fused until it does. After all the
+    // rest, because every one of them changes less of what is seen. Only
+    // where a layout would hold the map's sprites and upper tiles: fusing
+    // does nothing for a map that is over on those.
+    if request.fuse_tiles.is_none() {
+        if let Some(mut cap) = fusable(&worst, request) {
+            for _ in 0..FUSE_TRIES {
+                let asked = MapRequest {
+                    fuse_tiles: Some(cap),
+                    ..request.clone()
+                };
+                let done = convert(game, &asked)?;
+                let layouts = layouts_for(&done.layers.converted, request);
+                if fits(&done, &layouts) {
+                    return Ok(done);
+                }
+                // The count the fusion aims at leaves out the tiles of the
+                // animated families, which come after it: ask for fewer.
+                let spent = done.layers.converted.background.tiles.len() / 64;
+                let room = layouts.iter().map(|l| l.0).max().unwrap_or(0);
+                if spent <= room || cap <= spent - room {
+                    break;
+                }
+                cap -= spent - room;
+            }
+        }
+    }
+    Ok(worst)
+}
+
+/// How many times the fusion asks for fewer tiles before giving up.
+const FUSE_TRIES: usize = 4;
+
+/// The most background tiles a layout that holds the map's sprites and
+/// upper tiles gives it, if the background is what it is over on.
+fn fusable(done: &Whole, request: &MapRequest) -> Option<usize> {
+    let objects = done.objects.as_ref()?;
+    let converted = &done.layers.converted;
+    let (sprites, above) = (objects.tiles.len() / 32, converted.above.tiles.len() / 32);
+    layouts_for(converted, request)
+        .into_iter()
+        .filter(|&(_, s, a)| sprites <= s && above <= a)
+        .map(|(b, _, _)| b)
+        .max()
 }
 
 /// How a conversion lays out the slots: one per pose or walker, as always;
@@ -540,11 +590,11 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
         b.extra = crate::substitutions::unseen(&lower, &upper, &request.substitutions);
         b
     });
-    let without = layered(game, id, request.window_colors, panorama.clone(), &BTreeMap::new())?;
+    let without = layered(game, id, request.window_colors, panorama.clone(), &BTreeMap::new(), request.fuse_tiles)?;
     let mut layers = if baked.is_empty() {
         without
     } else {
-        let (layers, kept) = bake_unless_split_moves(game, id, request.window_colors, panorama.clone(), without, baked, &mut notes)?;
+        let (layers, kept) = bake_unless_split_moves(game, id, request.window_colors, panorama.clone(), without, baked, request.fuse_tiles, &mut notes)?;
         baked = kept;
         layers
     };
@@ -653,9 +703,9 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
         for e in &lent_baked {
             baked.remove(e);
         }
-        layers = layered(game, id, request.window_colors, panorama.clone(), &BTreeMap::new())?;
+        layers = layered(game, id, request.window_colors, panorama.clone(), &BTreeMap::new(), request.fuse_tiles)?;
         if !baked.is_empty() {
-            let (again, kept) = bake_unless_split_moves(game, id, request.window_colors, panorama.clone(), layers, baked, &mut notes)?;
+            let (again, kept) = bake_unless_split_moves(game, id, request.window_colors, panorama.clone(), layers, baked, request.fuse_tiles, &mut notes)?;
             layers = again;
             baked = kept;
         }
@@ -668,6 +718,12 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
         )));
     }
 
+    if let (fused @ 1.., Some(cap)) = (layers.drawn.fused, request.fuse_tiles) {
+        notes.push(note(format!(
+            "  map {id}: WARNING, {fused} distinct background tiles were fused into the ones most like \
+             them to fit the {cap} the layouts leave: the ground is drawn worse, not walked differently"
+        )));
+    }
     let (passability, mut blocks) = stage_layers::blocks(&layers.drawn, &mut layers.converted)?;
     let substituted = substitute(
         id,

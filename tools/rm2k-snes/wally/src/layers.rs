@@ -40,6 +40,9 @@ pub struct Drawn {
     pub map: Map,
     pub chipset: Chipset,
     pub layers: Layers,
+    /// How many distinct cells of the background were fused into others to
+    /// fit `request.fuse_tiles`; zero if it was not asked or already fit.
+    pub fused: usize,
     pub panorama: Option<Panorama>,
     /// The map with rows added below it that draw the `(lower, upper)`
     /// pairs a `TileSubstitution` will need and the map does not draw, if
@@ -182,11 +185,14 @@ pub fn draw(game: &Game, request: &LayersRequest) -> Result<Drawn> {
         }
         _ => None,
     };
-    let layers = if panorama.is_some() {
+    let mut layers = if panorama.is_some() {
         drawn.render_over_panorama(&atlas)?
     } else {
         drawn.render(&atlas)?
     };
+    let fused = request
+        .fuse_tiles
+        .map_or(0, |max| crate::background::fuse::fuse_lower(&mut layers, max));
     // The cells a `TileSubstitution` will need and the map does not draw,
     // in rows of their own below it: see `Drawn::extended`.
     let extra: &[(i32, i32)] = request.panorama.as_ref().map_or(&[], |b| &b.extra);
@@ -208,6 +214,7 @@ pub fn draw(game: &Game, request: &LayersRequest) -> Result<Drawn> {
         map: drawn,
         chipset,
         layers,
+        fused,
         panorama,
         extended,
     })
