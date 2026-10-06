@@ -59,8 +59,8 @@ vblank). Funciona en snes9x, bsnes y mesen-s con el mismo cuadro.
   la vez, hasta que `try_pack` (un best-fit codicioso) acomoda todos los tiles;
   no puede elegir que dos tiles vecinos se pinten con paletas distintas la misma
   tonalidad. La paleta es por tile, y la fusión es por color de todo el mapa: ahí
-  se pierde. Una fusión por paleta, como la del agrupamiento, queda a la vista de
-  tres cuartas partes más de los colores. Sería una mejora de `adeleine` si se
+  se pierde. Una elección por paleta, como la del agrupamiento, conserva cuatro veces más
+  colores. Sería una mejora de `adeleine` si se
   siguiera con esto; no se tocó.
 - **Chequeo**: la ROM contra el render que sus propias paletas prometen, a 15
   bits, en 9 posiciones de cámara (impares, diagonales, bordes): 0 píxeles de
