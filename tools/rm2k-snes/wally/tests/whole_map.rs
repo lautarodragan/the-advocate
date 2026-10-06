@@ -220,6 +220,47 @@ fn a_whole_map_bakes_draws_and_says_what_it_did() {
     std::fs::remove_dir_all(&dir).unwrap();
 }
 
+/// A map whose battle animation box is what makes it not fit any VRAM layout
+/// comes out without the box and says so, instead of being cut.
+#[test]
+fn a_map_whose_animation_box_does_not_fit_loses_the_box() {
+    let dir = scratch("box-does-not-fit");
+    let (dump, pictures) = game(&dir);
+    // Converting again looks at the common events.
+    std::fs::write(dump.join("db/commonevents.json"), "[]").unwrap();
+    let body = |animation: bool, layouts: Value| {
+        json!({
+            "map": 7, "map_files": {}, "chipset_files": {}, "names": [],
+            "test_event": false, "leaders": [1, 2],
+            "pages": [{"event": 1, "page": 0, "trigger": 3, "code": "00",
+                       "route_targets": [2], "own_route": null, "turns": false}],
+            "route_graphics": [], "also_walk": [],
+            "timer": pictures.join("System/system.png"), "rain": true, "picture": null,
+            "battle_animation": animation, "singles": [["Hero", 0]], "palette_weight": {},
+            "dither": "five_of_eight", "substitutions": [], "common_substitutions": [],
+            "layouts": layouts, "window_colors": 13,
+        })
+    };
+    let ask_map = |name: &str, body: Value| {
+        let path = dir.join(format!("{name}.json"));
+        std::fs::write(&path, body.to_string()).unwrap();
+        let out = dir.join(name);
+        let done = run(&dump, &pictures, &path, &out);
+        assert!(done.status.success(), "{}", String::from_utf8_lossy(&done.stderr));
+        let answer: Value = serde_json::from_str(&std::fs::read_to_string(out.join("map.json")).unwrap()).unwrap();
+        (answer, std::fs::read(out.join("sprites.bin")).unwrap().len() / 32)
+    };
+    let (_, without) = ask_map("plain", body(false, json!([])));
+    // Room for everything but the box, which is 64 tiles.
+    let layouts = json!([[1000, without, 1000]]);
+    let (answer, tiles) = ask_map("asked", body(true, layouts));
+    assert!(answer["sprite"]["animation"].is_null(), "{}", answer["sprite"]["animation"]);
+    assert_eq!(tiles, without);
+    let notes: Vec<&str> = answer["notes"].as_array().unwrap().iter().map(|n| n["text"].as_str().unwrap()).collect();
+    assert!(notes.iter().any(|n| n.contains("WARNING, battle animations aren't drawn here")), "{notes:?}");
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
 fn ask(command: &str, dump: &Path, pictures: &Path, dir: &Path, body: Value) -> Value {
     let request = dir.join(format!("{command}.request.json"));
     std::fs::write(&request, body.to_string()).unwrap();
