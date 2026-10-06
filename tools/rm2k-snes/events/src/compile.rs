@@ -1335,7 +1335,8 @@ fn page(
                     .map(|c| c.commands.clone())
                     .unwrap_or_default();
                 let at = length + p.len();
-                let code = compile_page(ctx, &body, map_events.clone(), at, depth + 1)?;
+                let common = map_events.as_ref().map(MapEvents::in_a_common);
+                let code = compile_page(ctx, &body, common, at, depth + 1)?;
                 p.extend(code.unwrap_or_default());
             }
             piece = p;
@@ -1577,7 +1578,7 @@ fn compile_call(
                 .common_events
                 .get(&p[1])
                 .map(|c| c.commands.clone()),
-            map_events.cloned(),
+            map_events.map(MapEvents::in_a_common),
         )
     } else if p[0] == 1 && p.len() >= 3 && map_events.is_some() {
         // A map event, by id and **page number**, which in RM2k starts at
@@ -1651,6 +1652,7 @@ fn shares<'a>(
     let mut here = map_events.cloned();
     if let Some(m) = here.as_mut() {
         m.watched = None;
+        m.in_common = true;
     }
     let (commons, shared_before) = (ctx.commons, ctx.shared);
     ctx.commons = Some(shared);
@@ -4049,10 +4051,21 @@ pub fn compile_command(
         // interpreter's stack —`Game_Interpreter_Map::OnMapChange`— and
         // `CommandEraseEvent` with 0 returns without erasing anyone. It is the
         // one of map 311, the clearing in Tangle Forest, which teleports to
-        // 312 and erases itself there. Before the jump it would erase the
-        // event until the map is loaded again, which the ROM does not model;
-        // the only one of the game is map 150's.
-        ERASE_EVENT if map_events.is_some_and(|m| m.jumped) => Ok(vec![]),
+        // 312 and erases itself there. **And in a common event**, whose
+        // frame has no event either —`GetThisEventId` is 0—: without a map
+        // (a shared body) and pasted into a map's page alike.
+        ERASE_EVENT if map_events.is_none_or(|m| m.jumped || m.in_common) => Ok(vec![]),
+        // Before the jump, in the page of an event, it erases it until the
+        // map is loaded again: see `op_erase_event` in the runtime. A jump to
+        // **the same map** is not a jump here —map 150's, where Sern starts
+        // the quarry's work— and the erase after it is the real one.
+        ERASE_EVENT => {
+            let target = map_events.and_then(|m| m.route_target(ROUTE_THIS_EVENT));
+            match target {
+                Some(t) => Ok(vec![OP_ERASE_EVENT, byte(t as i64)?]),
+                None => cannot(),
+            }
+        }
         CONTROL_SWITCHES => {
             // OP_SWITCH: id (word), value (byte)
             if n < 4 || !(q(0) == SWITCH_SINGLE || q(0) == SWITCH_RANGE) {
@@ -5335,6 +5348,34 @@ mod tests {
         compile_page(&mut ctx, commands, Some(me), 0, 0).unwrap()
     }
 
+    /// The same page, on a map 5 whose only event is 1, **as that event's**:
+    /// "this event" is somebody.
+    fn as_the_only_event(commands: &[Command]) -> Option<Vec<u8>> {
+        use crate::messages::{Messages, Window};
+        let game = Game::default();
+        let indices = Indices::default();
+        let sound = SoundSettings::default();
+        let mut songs = Songs::default();
+        songs.current = Some(Package::Map(0));
+        let mut messages = Messages::new(1, Window::columns(39, 4));
+        let mut ctx = Ctx {
+            game: &game,
+            indices: &indices,
+            sound: &sound,
+            map_index: &|_| Some(1),
+            messages: Some(&mut messages),
+            songs: Some(&mut songs),
+            graphics: None,
+            pictures: None,
+            troops: None,
+            commons: None,
+            shared: None,
+        };
+        let map = watching(5, 123);
+        let me = MapEvents::new(&map, None).for_event(1);
+        compile_page(&mut ctx, commands, Some(me), 0, 0).unwrap()
+    }
+
     #[test]
     fn erasing_the_event_after_a_jump_is_nothing() {
         // After the jump "this event" is 0 —`OnMapChange`— and
@@ -5346,7 +5387,33 @@ mod tests {
             on_a_map(&[jump.clone(), erase.clone()]).unwrap(),
             [OP_TELEPORT, 1, 0, 1, 0, 2, 0, OP_DONE]
         );
-        assert_eq!(on_a_map(&[erase, jump]), None);
+        // Before it, and as an event's own, it is no longer nothing: see the
+        // next test.
+        assert_ne!(as_the_only_event(&[erase, jump]), None);
+    }
+
+    #[test]
+    fn erasing_the_event_is_erasing_this_events_row() {
+        // `CommandEraseEvent` with 0 erases "this event" until the map is
+        // loaded again. The target is the index plus one, as in `OP_ROUTE`:
+        // event 1 is the first of the map's table.
+        let erase = cmd(ERASE_EVENT, &[], "");
+        assert_eq!(as_the_only_event(&[erase.clone()]).unwrap(), [OP_ERASE_EVENT, 1, OP_DONE]);
+        // A page that is nobody's has no event to erase, and is cut.
+        assert_eq!(on_a_map(&[erase]), None);
+    }
+
+    #[test]
+    fn erasing_the_event_in_a_common_event_is_nothing() {
+        // `GetThisEventId` is 0 in a common event and the command returns
+        // without erasing anyone: the quarry's timer, which is a common
+        // event with the command in it.
+        let mut game = Game::default();
+        let on = cmd(CONTROL_SWITCHES, &[0, 11, 11, 0], "");
+        game.common_events.insert(2, common(5, None, vec![cmd(ERASE_EVENT, &[], ""), on]));
+        game.common_events.insert(4, common(3, Some(30), vec![call(2)]));
+        let s = shared(&game);
+        assert_eq!(s.bodies[0].1, [OP_SWITCH, 11, 0, 1, OP_RETURN]);
     }
 
     #[test]

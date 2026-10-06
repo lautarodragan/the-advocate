@@ -98,6 +98,13 @@ pub struct MapEvents {
     /// nobody: `Game_Interpreter_Map::OnMapChange` puts 0 in every frame's
     /// event id, which is what `EraseEvent` looks at.
     pub jumped: bool,
+    /// Whether the commands are a common event's, pasted into the page that
+    /// calls it. In RM2k a common event's frame has no event —
+    /// `GetThisEventId` is 0 there— and `EraseEvent` does nothing; the rest
+    /// of the "this event"s resolve to the caller, as they always have.
+    /// [`MapEvents::for_event`] clears it: a called map event's page is its
+    /// own again.
+    pub in_common: bool,
 }
 
 impl MapEvents {
@@ -139,6 +146,7 @@ impl MapEvents {
             map_id: map.id,
             substitutions,
             jumped: false,
+            in_common: false,
         }
     }
 
@@ -153,6 +161,15 @@ impl MapEvents {
     pub fn for_event(&self, event: i32) -> MapEvents {
         MapEvents {
             owner: Some(event),
+            in_common: false,
+            ..self.clone()
+        }
+    }
+
+    /// The same, for a common event's commands pasted in: see `in_common`.
+    pub fn in_a_common(&self) -> MapEvents {
+        MapEvents {
+            in_common: true,
             ..self.clone()
         }
     }

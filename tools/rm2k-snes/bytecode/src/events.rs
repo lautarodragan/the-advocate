@@ -312,6 +312,13 @@ bytecode! {
     /// is, and keeps blocking and triggering: only the drawing goes. The state
     /// outlives the map and travels in the save, as RM2k's does.
     OP_HERO_VISIBLE = 0x48 (visible: byte);
+
+    /// `EraseEvent`: event `target` —its index plus one, as in `OP_ROUTE`—
+    /// is out until the map is loaded again: it is not drawn, it does not
+    /// block and nothing fires it. A parallel page that runs it ends there;
+    /// a foreground one goes on, as in RM2k. See `op_erase_event` in the
+    /// runtime's `interpreter_movement.s`.
+    OP_ERASE_EVENT = 0x49 (target: byte);
 }
 
 // `run_code` jumps through a table indexed by the opcode.

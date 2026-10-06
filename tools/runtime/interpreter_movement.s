@@ -188,6 +188,41 @@ place_plant:                    ; with Y already on the stack: see `op_place_var
     jmp run_code::other
 .endproc
 
+; `EraseEvent`: one byte, the event's index plus one, as in `OP_ROUTE`. The
+; event is out until the map is loaded again —`FLAG_ERASED`, which only
+; `clear_waits` clears—, and the refresh it asks for is what takes it off the
+; screen, off the cell and out of the list of parallels.
+;
+; **A parallel page stops where it is**, which is EasyRPG's
+; `CommandEraseEvent` with `main_flag` false: the page that erases itself
+; does not run its next command. A foreground page goes on to its end, as it
+; does there. `pair_ev` is the parallel loop's mark: $FF outside it.
+.proc op_erase_event
+    lda [code_ptr], y
+    iny
+    dec a
+    phy
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda ev_flags, x
+    ora #FLAG_ERASED
+    sta ev_flags, x
+    ply
+    lda #1
+    sta refresh
+    lda pair_ev
+    cmp #$FF
+    beq foreground
+    stz ev_active               ; what `op_done` does
+    rts
+foreground:
+    jmp run_code::other
+.endproc
+
 ; `TradeEventLocations`: the two events swap cells, and each one is a
 ; `MoveTo` like the one in `op_place` —the cell, cutting the step, and the
 ; drawing that follows it—. Both cells are read before writing either.
