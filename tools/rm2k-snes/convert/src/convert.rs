@@ -23,6 +23,13 @@ use rm2k_project::Project;
 use rm2k_snes_events::codes::{TELEPORT, TIMER_OPERATION};
 use rm2k_snes_bytecode::events::{OP_FLASH, OP_ROUTE};
 use rm2k_snes_mapdata::{engine, record, vram};
+
+/// What fits in the title's VRAM: the image's 8bpp tiles (32 words each)
+/// below `TITLE_MENU_MAP` ($4400) and the menu's 4bpp ones (16 words) from
+/// $5000 to `SCREEN_MAP` ($7C00). They are the numbers `emit/header.rs`
+/// writes and `title.s` asserts; this crate cannot read them from there.
+const TITLE_TILES_MAX: usize = 0x4400 / 32;
+const TITLE_MENU_TILES_MAX: usize = (0x7C00 - 0x5000) / 16;
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use std::ffi::OsString;
@@ -149,7 +156,23 @@ pub fn run(options: Options) -> Result<()> {
     let compiler = Compiler::new(&game, &settings)?;
     let test_event_map = (!cases.is_empty()).then(|| order[start_index]);
     let scan_answer = compiler.scan(&order, &file_commands, &extra, test_event_map, &case_pairs)?;
-    let indices = Indices::from_answer(&scan_answer);
+    let mut indices = Indices::from_answer(&scan_answer);
+    // The slot is a byte: the variables past it have no place in far RAM.
+    // They are dropped from the list, and the compiler already leaves out
+    // the pages that name one (`variable_slot`), so the game loses those
+    // pages and not the cartridge.
+    let slot_max = rm2k_snes_mapdata::engine::VAR_SLOT_MAX as i64;
+    let lost: Vec<i64> = indices.variables.iter().filter(|(_, s)| *s > slot_max).map(|(v, _)| *v).collect();
+    if !lost.is_empty() {
+        indices.variables.retain(|(_, s)| *s <= slot_max);
+        println!(
+            "WARNING: the game names {} variables and {} fit in far RAM: the pages that use one of the {} past it are left out (variables {:?})",
+            indices.variables.len() + lost.len(),
+            slot_max + 1,
+            lost.len(),
+            lost
+        );
+    }
     let changes = scan::party_changes(&every_refs, &scan_answer)?;
     let mut leaders = scan::possible_leaders(&changes, &party);
     // And those of the party each test page continues with: the test can
@@ -427,6 +450,15 @@ pub fn run(options: Options) -> Result<()> {
                 m.id,
                 graphics,
                 m.route_graphics
+            );
+        }
+        for g in entry["graphics_dropped"].as_array().cloned().unwrap_or_default() {
+            println!(
+                "  map {}: WARNING, a route changes to the graphic {} {} and the ROM's table of {} is full: the change is ignored",
+                m.id,
+                g[0].as_str().unwrap_or(""),
+                int(&g[1]),
+                record::ROUTE_GFX_MAX
             );
         }
         m.pages = pages;
@@ -737,7 +769,18 @@ pub fn run(options: Options) -> Result<()> {
             menu_palette.len(),
             menu_maps
         );
-        title_screen = Some(screen);
+        // The image's tiles go below the menu's tilemap, and the menu's end
+        // before the image's tilemap: the limits `title.s` asserts. A title
+        // that does not fit starts the game without one, as `--no-title`
+        // does, and says so: the assembler would stop on it instead.
+        if screen.tiles > TITLE_TILES_MAX || menu_tiles > TITLE_MENU_TILES_MAX {
+            println!(
+                "  WARNING, the title screen doesn't fit in VRAM ({} image tiles of {TITLE_TILES_MAX}, {menu_tiles} menu tiles of {TITLE_MENU_TILES_MAX}): the game starts without it",
+                screen.tiles
+            );
+        } else {
+            title_screen = Some(screen);
+        }
     }
     // The Game Over screen: the image the LDB's `System` names, in the
     // game's or the RTP's `GameOver/` —as RM2k looks for it—, compressed.
@@ -1005,7 +1048,7 @@ pub fn run(options: Options) -> Result<()> {
             "songs": compiled["songs"],
             "maps": infos.iter().map(|m| m.id).collect::<Vec<_>>(),
             "start": start_index,
-            "title": !options.no_title,
+            "title": title_screen.is_some(),
             "game_over": game_over.is_some(),
             "decompress_frames": emitted.frames.get(start_index).cloned().unwrap_or(Value::Null),
             "measuring_headroom": options.measure_headroom,

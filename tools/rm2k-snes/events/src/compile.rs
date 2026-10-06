@@ -47,8 +47,6 @@ pub const ITEMS_N: i64 = 451;
 /// The equipment slots of an actor: weapon, shield, armor, helmet and
 /// accessory.
 const EQUIPMENT_SLOTS: i64 = rm2k_rules::actor::EQUIPMENT_SLOTS as i64;
-/// How many graphics fit in a map's table: the operand is a byte.
-const GRAPHICS_MAX: usize = 0xFF;
 /// The variable slot is a byte, and far RAM has room for 256: see
 /// `VAR_REFRESH` for why it stopped being seven bits.
 pub const VAR_SLOT_MAX: usize = 0xFF;
@@ -419,7 +417,11 @@ const IGNORABLE: [i32; 0] = [];
 /// in there and not in this list: the command itself is no longer a whole
 /// debt. Neither is `PlayBGM`, which is done since the songs have a
 /// registry: see its arm.
-pub const ACCEPTED_UNDONE: [i32; 6] = [
+pub const ACCEPTED_UNDONE: [i32; 8] = [
+    // Debt: the screen is not blanked and not brought back, so the page
+    // that erases it shows the map during its transition; see its arm.
+    ERASE_SCREEN,
+    SHOW_SCREEN,
     SHOW_PICTURE,
     MOVE_PICTURE,
     ERASE_PICTURE,
@@ -576,10 +578,12 @@ impl Ctx<'_> {
 
 // --- bytes ---------------------------------------------------------------------
 
-/// A value that has to be a byte. One that is not stops the conversion,
-/// which is what the converter always did with it.
+/// A value that has to be a byte. One that is not leaves the page out, like
+/// any command the ROM cannot carry: until 2026-10-06 it stopped the whole
+/// conversion, and a game with a switch past 255 in a route (Vampires Dawn's
+/// 263) could not be built for one command.
 fn byte(v: i64) -> Step<u8> {
-    u8::try_from(v).map_err(|_| Stop::Fatal(Bad::answer(format!("{v} does not fit in a byte"))))
+    u8::try_from(v).map_err(|_| Stop::Cannot)
 }
 
 /// A word, little-endian: `v & 0xFF` and `v >> 8`, and the second has to fit.
@@ -3611,10 +3615,9 @@ pub fn compile_command(
             let Some(graphics) = ctx.graphics.as_deref_mut() else {
                 return cannot();
             };
-            let chosen = graphics.index(&cmd.string, p[1]);
-            if chosen > GRAPHICS_MAX {
+            let Some(chosen) = graphics.index_capped(&cmd.string, p[1]) else {
                 return cannot();
-            }
+            };
             Ok(vec![OP_ACTOR_SPRITE, q(0) as u8, chosen as u8])
         }
         CHANGE_SAVE_ACCESS | CHANGE_MENU_ACCESS | CHANGE_ESCAPE_ACCESS => {
@@ -3969,6 +3972,11 @@ pub fn compile_command(
         // so the page that uses it is not left out whole; the task to
         // implement it is `workflow/tasks/todo/changesystemgraphics.md`.
         CHANGE_SYSTEM_GRAPHICS => Ok(vec![]),
+        // `EraseScreen` (11010) and `ShowScreen` (11020): debt, the screen
+        // is neither blanked nor shown again, so pages that use them are
+        // not left out whole. What breaks: the map stays visible where the
+        // original goes black (the transition type is ignored too).
+        ERASE_SCREEN | SHOW_SCREEN => Ok(vec![]),
         // `ChangeFaceGraphic` (10130): debt, the face is not drawn; see
         // `workflow/tasks/todo/las-caras-y-las-esperas.md`.
         CHANGE_FACE_GRAPHIC => Ok(vec![]),
@@ -4872,10 +4880,12 @@ fn compile_route(ctx: &mut Ctx, cmd: &Command, map_events: Option<&MapEvents>) -
             if extras.len() < 2 {
                 return cannot();
             }
-            let chosen = graphics.index(extras[0].text(), extras[1].int() as i32);
-            if chosen > GRAPHICS_MAX {
-                return cannot();
-            }
+            // One that does not fit in the map's table is ignored: the route
+            // goes on with the graphic it had, and the converter warns.
+            let Some(chosen) = graphics.index_capped(extras[0].text(), extras[1].int() as i32)
+            else {
+                continue;
+            };
             path.push(command as i64);
             path.push(chosen as i64);
             continue;
@@ -5162,6 +5172,15 @@ mod tests {
         let game = Game::default();
         let out = compile_with(&game, &[cmd(CHANGE_SYSTEM_GRAPHICS, &[], "Blue")]);
         assert!(out.unwrap().is_some(), "the page was left out");
+    }
+
+    #[test]
+    fn erase_and_show_screen_are_accepted_without_emitting() {
+        let game = Game::default();
+        for code in [ERASE_SCREEN, SHOW_SCREEN] {
+            let out = compile_with(&game, &[cmd(code, &[], "")]);
+            assert!(out.unwrap().is_some(), "the page was left out");
+        }
     }
 
     #[test]
