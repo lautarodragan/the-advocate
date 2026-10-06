@@ -320,6 +320,28 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
         )));
         return Ok(done);
     }
+    // Then without the battle animation's box, which is 64 tiles of sprites
+    // and, unlike the poses, has no way of taking less: a map that does not
+    // fit with it loses the animations —the ROM draws none where the box is
+    // not— and not the conversion. Before sharing slots, which changes the
+    // map's own sprites: the box is what is given up first.
+    if request.battle_animation {
+        let without = MapRequest {
+            battle_animation: false,
+            ..request.clone()
+        };
+        let mut done = convert(game, &without)?;
+        let fits_now = fits(&done, &layouts_for(&done.layers.converted, &without));
+        if fits_now {
+            done.notes.push(note(format!(
+                "  map {}: WARNING, battle animations aren't drawn here: their box's {} tiles \
+                 don't fit in the sprite bank",
+                request.map,
+                crate::sprites::extras::ANIMATION_TILES
+            )));
+            return Ok(done);
+        }
+    }
     let shared = convert_with(game, request, Mode::Share)?;
     let shares = shared.objects.as_ref().is_some_and(|o| o.shared.is_some());
     if shares && fits(&shared, &layouts_for(&shared.layers.converted, request)) {
