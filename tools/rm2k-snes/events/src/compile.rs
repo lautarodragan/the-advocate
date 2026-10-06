@@ -431,6 +431,7 @@ pub const ACCEPTED_UNDONE: [i32; 9] = [
     // Debt: the System is not changed on the fly. The task to implement it is
     // `workflow/tasks/todo/changesystemgraphics.md`.
     CHANGE_SYSTEM_GRAPHICS,
+    // Debt: the face is not drawn; see its arm.
     CHANGE_FACE_GRAPHIC,
 ];
 
