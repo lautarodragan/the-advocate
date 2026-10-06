@@ -161,6 +161,7 @@ pub const COND_TIMER: i64 = 2;
 const COND_GOLD: i64 = 3;
 const COND_ITEM: i64 = 4;
 pub const COND_ACTOR: i64 = 5;
+const COND_FACING: i64 = 6;
 const COND_ACTOR_IN_PARTY: i64 = 0;
 pub const COND_ACTOR_SKILL: i64 = 4;
 pub const COND_ACTOR_EQUIPMENT: i64 = 5;
@@ -963,7 +964,7 @@ fn page(
                 compile_command(ctx, &loose[0], &[], map_events.as_ref())?,
                 compile_command(ctx, &loose[1], &[], map_events.as_ref())?,
             ];
-            let branches = [branch_bytes(ctx, &loose[2])?, branch_bytes(ctx, &loose[3])?];
+            let branches = [branch_bytes(ctx, &loose[2], map_events.as_ref())?, branch_bytes(ctx, &loose[3], map_events.as_ref())?];
             match cell_test_piece(&writes, &branches)? {
                 None => {
                     for n in 0..4 {
@@ -1246,7 +1247,7 @@ fn page(
             // the ROM's cursor is a 16-bit index into the same array, so
             // assigning it is the whole jump.
             stack.push(Open::End(pieces.len()));
-            piece = branch_bytes(ctx, cmd)?;
+            piece = branch_bytes(ctx, cmd, map_events.as_ref())?;
         } else if cmd.code == COND_ELSE {
             let Some(open) = stack.pop() else {
                 return cannot();
@@ -1923,13 +1924,27 @@ fn compile_number(
 /// blank: switch, variable, gold, item, and three of the actor's seven
 /// questions. The polarity is RM2k's as is.
 /// The long whys of these conditions are in `git show 1487129f^:tools/port/events.py`.
-fn branch_bytes(ctx: &Ctx, cmd: &Command) -> Step<Vec<u8>> {
+fn branch_bytes(ctx: &Ctx, cmd: &Command, map_events: Option<&MapEvents>) -> Step<Vec<u8>> {
     let p = |i: usize| cmd.p(i);
     if cmd.parameters.len() < 3 {
         return cannot();
     }
     let kind = p(0).unwrap();
     let number = p(1).unwrap();
+    if kind == COND_FACING {
+        // Which way a character faces, `CommandConditionalBranch` case 6:
+        // the character is the hero, "this event" or an event of the map,
+        // addressed as in a route. The direction is RM2k's facing —0 up, 1
+        // right, 2 down, 3 left— and so is the ROM's. No polarity: the
+        // branch below is the `else`.
+        let direction = p(2).unwrap();
+        if !(0..=3).contains(&direction) {
+            return cannot();
+        }
+        let mut out = vec![OP_IF_FACING, target_of(number, map_events)?, direction as u8];
+        out.extend([0, 0]);
+        return Ok(out);
+    }
     if kind == COND_SWITCH {
         if !(0..SWITCH_MAX).contains(&number) {
             return cannot();
@@ -5329,6 +5344,25 @@ mod tests {
             cmd(COND_END, &[], ""),
         ]);
         assert_eq!(code.unwrap(), [OP_IF, COND_TIMER as u8, 30, 0, 1, 7, 0, OP_DONE]);
+    }
+
+    #[test]
+    fn the_direction_branch_asks_the_hero_or_an_event() {
+        // `ConditionalBranch` case 6: (6, character, direction, ...). The
+        // hero is target 0 and an event its index plus one, as in a route.
+        let map = watching(5, 1);
+        let ask = |who: i32| {
+            on_this_map(
+                &Game::default(),
+                &Indices::default(),
+                &map,
+                &[cmd(COND_BRANCH, &[6, who, 2, 0, 0, 0], ""), cmd(COND_END, &[], "")],
+            )
+        };
+        assert_eq!(ask(10001).unwrap(), [OP_IF_FACING, 0, 2, 5, 0, OP_DONE]);
+        assert_eq!(ask(1).unwrap(), [OP_IF_FACING, 1, 2, 5, 0, OP_DONE]);
+        // An event the map does not have does not compile.
+        assert_eq!(ask(77), None);
     }
 
     #[test]
