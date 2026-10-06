@@ -23,6 +23,13 @@ use rm2k_project::Project;
 use rm2k_snes_events::codes::{TELEPORT, TIMER_OPERATION};
 use rm2k_snes_bytecode::events::{OP_FLASH, OP_ROUTE};
 use rm2k_snes_mapdata::{engine, record, vram};
+
+/// What fits in the title's VRAM: the image's 8bpp tiles (32 words each)
+/// below `TITLE_MENU_MAP` ($4400) and the menu's 4bpp ones (16 words) from
+/// $5000 to `SCREEN_MAP` ($7C00). They are the numbers `emit/header.rs`
+/// writes and `title.s` asserts; this crate cannot read them from there.
+const TITLE_TILES_MAX: usize = 0x4400 / 32;
+const TITLE_MENU_TILES_MAX: usize = (0x7C00 - 0x5000) / 16;
 use serde_json::{json, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use std::ffi::OsString;
@@ -762,7 +769,18 @@ pub fn run(options: Options) -> Result<()> {
             menu_palette.len(),
             menu_maps
         );
-        title_screen = Some(screen);
+        // The image's tiles go below the menu's tilemap, and the menu's end
+        // before the image's tilemap: the limits `title.s` asserts. A title
+        // that does not fit starts the game without one, as `--no-title`
+        // does, and says so: the assembler would stop on it instead.
+        if screen.tiles > TITLE_TILES_MAX || menu_tiles > TITLE_MENU_TILES_MAX {
+            println!(
+                "  WARNING, the title screen doesn't fit in VRAM ({} image tiles of {TITLE_TILES_MAX}, {menu_tiles} menu tiles of {TITLE_MENU_TILES_MAX}): the game starts without it",
+                screen.tiles
+            );
+        } else {
+            title_screen = Some(screen);
+        }
     }
     // The Game Over screen: the image the LDB's `System` names, in the
     // game's or the RTP's `GameOver/` —as RM2k looks for it—, compressed.
@@ -1030,7 +1048,7 @@ pub fn run(options: Options) -> Result<()> {
             "songs": compiled["songs"],
             "maps": infos.iter().map(|m| m.id).collect::<Vec<_>>(),
             "start": start_index,
-            "title": !options.no_title,
+            "title": title_screen.is_some(),
             "game_over": game_over.is_some(),
             "decompress_frames": emitted.frames.get(start_index).cloned().unwrap_or(Value::Null),
             "measuring_headroom": options.measure_headroom,
