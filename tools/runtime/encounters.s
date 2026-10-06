@@ -455,12 +455,13 @@ end:
     rep #$20
 .a16
     lda ENC_REG
-    tax
     asl a
-    tay
-    lda f:enc_zone_init, y      ; a word: past 255 zones it is no byte
+    tax
+    lda f:enc_zone_init, x      ; a word: past 255 zones it is no byte
     sta temp
     sta temp + 2
+    lda ENC_REG
+    tax                         ; long indexing is X only: the byte table by the record
     sep #$20
 .a8
     lda f:enc_zone_n, x         ; a byte: the zones one map has
