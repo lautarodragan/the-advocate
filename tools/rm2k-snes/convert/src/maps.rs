@@ -614,7 +614,15 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         } else {
             vram::panorama_layout(int(&layers["panorama"]["mode"]) as u8, tiles_count as u32, count as u32, above_count as u32, int(&layers["panorama"]["tiles"]) as u32).ok()
         };
-        if layout.is_none() || count > layout.unwrap().sprites.count as i64 {
+        if layout.is_none() {
+            // Not the box: the map's own tiles fit no layout, with or without it.
+            crate::stop!(
+                "map {map_id}: fits no VRAM layout: {tiles_count} background tiles, {count} sprite \
+                 tiles (its animation box's {} included) and {above_count} upper tiles",
+                animations::TILES
+            );
+        }
+        if count > layout.unwrap().sprites.count as i64 {
             crate::stop!(
                 "map {map_id}: shows battle animations and the {} tiles of its box don't fit in \
                  the sprite bank: it spends {count} of {}. See `animacion_de_mapa`.",
