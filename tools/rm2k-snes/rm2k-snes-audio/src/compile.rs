@@ -391,7 +391,23 @@ pub fn build(job: &Job, game: &Game, samples: &Samples) -> Result<Music> {
         &effect_names,
     );
     let places = place.values().max().map_or(0, |m| m + 1);
-    let usual = (effect_list.len() as i64).min(game.effect_slots_of_first_copies()?);
+    // SRCN is one byte: what does not fit in the directory next to the
+    // sound effects' places is left out, and it is silent like a key the
+    // SoundFont lacks.
+    let dropped = bank::drop_surplus(&mut keys_of_present, bank::DIRECTORY_MAX - places as i64);
+    if !dropped.is_empty() {
+        println!(
+            "  WARNING, the directory holds {} samples and the music asks for {}: {} left out, so the \
+             notes that use them are silent (the least used, ties by key order): {}",
+            bank::DIRECTORY_MAX - places as i64,
+            bank::DIRECTORY_MAX - places as i64 + dropped.len() as i64,
+            dropped.len(),
+            dropped.iter().map(|k| format!("{k:?}")).collect::<Vec<_>>().join(", ")
+        );
+    }
+    // Never fewer than the places the effects really take: the copies
+    // would fill the directory the sound effects need.
+    let usual = (effect_list.len() as i64).min(game.effect_slots_of_first_copies()?).max(places as i64);
     let assignment: Assignment =
         bank::copies(samples, &keys_of_present, &groups, places as i64, usual, &real, job.aram_end)?;
     let all_keys: BTreeSet<Key> = assignment.iter().flat_map(|a| a.values().cloned()).collect();
