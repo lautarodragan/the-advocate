@@ -109,8 +109,11 @@ pub const BATTLE_COND_END: i32 = 23311;
 
 // --- the move route commands, `rpg::MoveCommand::Code` ----------------------
 
+pub const ROUTE_RANDOM: i32 = 8;
 pub const ROUTE_TOWARD_HERO: i32 = 9;
+pub const ROUTE_AWAY_HERO: i32 = 10;
 pub const ROUTE_FACE_HERO: i32 = 21;
+pub const ROUTE_FACE_AWAY: i32 = 22;
 pub const ROUTE_WAIT: i32 = 23;
 pub const ROUTE_JUMP_START: i32 = 24;
 pub const ROUTE_JUMP_END: i32 = 25;
@@ -266,8 +269,11 @@ mod tests {
     #[test]
     fn every_route_code_is_the_one_liblcf_gives_its_name() {
         for (ours, theirs) in [
+            (ROUTE_RANDOM, M::MoveRandom),
             (ROUTE_TOWARD_HERO, M::MoveTowardsHero),
+            (ROUTE_AWAY_HERO, M::MoveAwayFromHero),
             (ROUTE_FACE_HERO, M::FaceHero),
+            (ROUTE_FACE_AWAY, M::FaceAwayFromHero),
             (ROUTE_WAIT, M::Wait),
             (ROUTE_JUMP_START, M::BeginJump),
             (ROUTE_JUMP_END, M::EndJump),

@@ -177,6 +177,12 @@ pub fn min_frequency(frequency: i32, commands: &[i32], repeats: bool) -> i32 {
 ///
 ///   Only on events, like 21: no route in the game asks for the hero moving
 ///   toward itself —measured, zero— and it would mean nothing.
+/// * The random step, 8, and moving away from the hero, 10, and facing away
+///   from him, 22: **events only**, like 9 and 21. The random one turns to a
+///   direction drawn from the map's generator and moves; away is toward
+///   turned half a circle. They were not worth it in ABL —+1 page— and are
+///   in since 2026-10-06, when other games' pages turned out to wait on
+///   them. A page's own route still refuses them, as it does 9 and 21.
 /// * Turning without moving —`turn_90_degree_right` and its siblings— is
 ///   still out, and not because of cost: RM2k turns relative to the
 ///   direction the character already had, and for an event that has not
@@ -202,7 +208,10 @@ pub fn known(command: i32) -> bool {
         || (12..=15).contains(&command)
         || matches!(
             command,
-            ROUTE_WAIT
+            ROUTE_RANDOM
+                | ROUTE_AWAY_HERO
+                | ROUTE_FACE_AWAY
+                | ROUTE_WAIT
                 | ROUTE_JUMP_START
                 | ROUTE_JUMP_END
                 | ROUTE_THROUGH_ON
@@ -283,7 +292,10 @@ pub fn own(page: &Page) -> Option<Value> {
         if command == ROUTE_SOUND || ROUTE_TRANSPARENCY.contains(&command) {
             continue;
         }
-        if !known(command) || command == ROUTE_FACE_HERO || command == ROUTE_TOWARD_HERO {
+        if !known(command)
+            || [ROUTE_FACE_HERO, ROUTE_TOWARD_HERO, ROUTE_RANDOM, ROUTE_AWAY_HERO, ROUTE_FACE_AWAY]
+                .contains(&command)
+        {
             return None;
         }
         if command == ROUTE_CHANGE_GRAPHIC {

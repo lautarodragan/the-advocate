@@ -4806,7 +4806,7 @@ fn compile_route(ctx: &mut Ctx, cmd: &Command, map_events: Option<&MapEvents>) -
             in_jump = true;
         } else if command == ROUTE_JUMP_END {
             in_jump = false;
-        } else if command == ROUTE_TOWARD_HERO && in_jump {
+        } else if [ROUTE_TOWARD_HERO, ROUTE_RANDOM, ROUTE_AWAY_HERO].contains(&command) && in_jump {
             return cannot();
         }
         if command == ROUTE_SOUND {
@@ -4853,14 +4853,18 @@ fn compile_route(ctx: &mut Ctx, cmd: &Command, map_events: Option<&MapEvents>) -
         // and they are looked at *during* the walk and not only at the end:
         // `path` tests it, comparing four frames of a twelve-cell route with
         // waits in the middle. What goes in from `rpg::MoveCommand::Code` is
-        // `route::known`, and moving toward the hero is in since 2026-09-12;
-        // moving away from him, turning in place and the switches are still
-        // out.
+        // `route::known`, and moving toward the hero is in since 2026-09-12 and
+        // moving away from him and the random step since 2026-10-06; turning
+        // in place and the switches are still out.
         if !route::known(command) {
             return cannot();
         }
-        if (command == ROUTE_FACE_HERO || command == ROUTE_TOWARD_HERO) && target == 0 {
-            // The hero facing or moving toward itself.
+        if [ROUTE_FACE_HERO, ROUTE_TOWARD_HERO, ROUTE_RANDOM, ROUTE_AWAY_HERO, ROUTE_FACE_AWAY]
+            .contains(&command)
+            && target == 0
+        {
+            // The hero facing or moving toward itself, or at random: the
+            // hero's walk is `hero_route.s`, which has none of these.
             return cannot();
         }
         // Locking and unlocking the facing —26 and 27— go to the hero too since
@@ -5344,6 +5348,32 @@ mod tests {
             cmd(COND_END, &[], ""),
         ]);
         assert_eq!(code.unwrap(), [OP_IF, COND_TIMER as u8, 30, 0, 1, 7, 0, OP_DONE]);
+    }
+
+    #[test]
+    fn a_route_walks_at_random_and_away_from_the_hero_on_events_only() {
+        // MoveEvent: (target, frequency, repeat, skippable, commands...). The
+        // map's only event is 1, and its route target is 1: index plus one.
+        let map = watching(5, 1);
+        let route = |who: i32, commands: &[i32]| {
+            let mut p = vec![who, 8, 0, 1];
+            p.extend(commands);
+            on_this_map(&Game::default(), &Indices::default(), &map, &[cmd(MOVE_EVENT, &p, "")])
+        };
+        // 8 walks at random, 10 away from the hero and 22 turns away.
+        assert_eq!(
+            route(1, &[8, 10, 22]).unwrap(),
+            [OP_ROUTE, 1, 8, 3, 8, 10, 22, OP_DONE]
+        );
+        // The hero has no random walk, and no "away from himself".
+        for command in [8, 10, 22] {
+            assert_eq!(route(10001, &[command]), None, "{command} on the hero");
+        }
+        // Inside a jump the commands only add up, and these would have to
+        // ask the hero or the dice halfway through the sum.
+        for command in [8, 10] {
+            assert_eq!(route(1, &[24, command, 25]), None, "{command} in a jump");
+        }
     }
 
     #[test]
