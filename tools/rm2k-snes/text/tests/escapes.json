@@ -18,8 +18,9 @@
   {"lines": ["\\|\\|\\|\\|\\|\\|\\|\\|\\|\\|\\|\\|\\|\\|\\|\\|"],
    "answer": null},
   {"lines": ["tenés \\V[12] créditos"], "answer": null},
-  {"lines": ["uno\\|dos"], "answer": null},
-  {"lines": ["the tail\\|", "is on the last line"], "answer": null},
+  {"lines": ["uno\\|dos"], "answer": [["unodos"], 0, false]},
+  {"lines": ["wait\\. a bit\\! then\\| go"], "answer": [["wait a bit then go"], 0, false]},
+  {"lines": ["the tail\\|", "is on the last line"], "answer": [["the tail", "is on the last line"], 0, false]},
   {"lines": ["x\\|\\y"], "answer": null}
  ]
 }

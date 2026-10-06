@@ -240,8 +240,9 @@ impl Window {
 ///
 /// The two escapes are accepted only as a tail at the end of the box's last
 /// line, spaces in between included —a space at the end of a line draws
-/// nothing—. Any other escape, or one in the middle, does not compile: a
-/// pause halfway through a window drawn all at once cannot be modeled.
+/// nothing—. `\.`, `\!` and `\|` in the middle are dropped without waiting
+/// (debt: a window drawn all at once has no halfway to wait at); any other
+/// escape does not compile.
 ///
 /// Across the 328 maps both escapes appear **always as a tail at the end of
 /// the box's last line** —measured: 40 boxes, and not one with an escape in
@@ -535,7 +536,7 @@ mod tests {
     fn the_tail_comes_off_and_says_how_long_the_box_lasts() {
         let (lines, pauses, close) = escape_tail(&s(&["Hi", "there\\| \\|\\^"])).unwrap();
         assert_eq!((lines, pauses, close), (s(&["Hi", "there"]), 2, true));
-        assert!(escape_tail(&s(&["a \\| b"])).is_err());
+        assert_eq!(escape_tail(&s(&["a \\| b"])).unwrap().0, s(&["a  b"]));
         assert!(escape_tail(&s(&["\\V[1]"])).is_err());
     }
 

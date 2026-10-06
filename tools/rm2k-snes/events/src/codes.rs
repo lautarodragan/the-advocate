@@ -22,6 +22,7 @@ pub const CHANGE_EXP: i32 = 10410;
 pub const CHANGE_LEVEL: i32 = 10420;
 pub const CHANGE_SKILLS: i32 = 10440;
 pub const CHANGE_EQUIPMENT: i32 = 10450;
+pub const CHANGE_FACE_GRAPHIC: i32 = 10130;
 pub const CHANGE_HP: i32 = 10460;
 pub const CHANGE_SP: i32 = 10470;
 pub const CHANGE_CONDITION: i32 = 10480;
@@ -172,6 +173,7 @@ mod tests {
             (CHANGE_LEVEL, C::ChangeLevel),
             (CHANGE_SKILLS, C::ChangeSkills),
             (CHANGE_EQUIPMENT, C::ChangeEquipment),
+            (CHANGE_FACE_GRAPHIC, C::ChangeFaceGraphic),
             (CHANGE_HP, C::ChangeHP),
             (CHANGE_SP, C::ChangeSP),
             (CHANGE_CONDITION, C::ChangeCondition),

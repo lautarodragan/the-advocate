@@ -111,7 +111,7 @@ pub struct CannotCompile;
 /// The lines without their escape tail, how many pauses it has and whether
 /// it closes on its own.
 ///
-/// Both escapes are accepted only **as a tail at the end of the box's last
+/// `\\.`, `\\!` and `\\|` anywhere else are dropped without waiting (debt, see `without_waits`). Both tail escapes are accepted only **as a tail at the end of the box's last
 /// line**, which is where a game puts them; the tail may carry spaces in
 /// between, and it eats them. An escape anywhere else, or more pauses than
 /// [`PAUSES_MAX`], is [`CannotCompile`].
@@ -151,10 +151,42 @@ pub fn escape_tail(lines: &[String]) -> Result<(Vec<String>, usize, bool), Canno
             lines[n - 1] = text[..cut].iter().collect();
         }
     }
+    for line in lines.iter_mut() {
+        *line = without_waits(line);
+    }
     if lines.iter().any(|t| t.contains(ESCAPE)) || pauses > PAUSES_MAX {
         return Err(CannotCompile);
     }
     Ok((lines, pauses, auto_close))
+}
+
+/// The line without the waits that are not in the tail: `\.` (a quarter of a
+/// second), `\|` (a second) and `\!` (a key). Debt, on purpose: the window is
+/// drawn all at once, so there is no halfway to wait at, and they are
+/// dropped without waiting; see `workflow/tasks/todo/las-caras-y-las-esperas.md`.
+/// A `\\` is skipped as a pair, so the letter after it is not taken as an
+/// escape.
+fn without_waits(line: &str) -> String {
+    let mut out = String::with_capacity(line.len());
+    let mut chars = line.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c == ESCAPE {
+            match chars.peek() {
+                Some('.' | '!' | '|') => {
+                    chars.next();
+                    continue;
+                }
+                Some(&ESCAPE) => {
+                    out.push(c);
+                    out.push(chars.next().unwrap());
+                    continue;
+                }
+                _ => {}
+            }
+        }
+        out.push(c);
+    }
+    out
 }
 
 /// How a line is measured: the advances of the font it will be drawn
@@ -632,7 +664,7 @@ mod tests {
         let (lines, pauses, close) = escape_tail(&s(&["Hi", "there\\| \\|\\^"])).unwrap();
         assert_eq!(lines, s(&["Hi", "there"]));
         assert_eq!((pauses, close), (2, true));
-        assert!(escape_tail(&s(&["a \\| b"])).is_err());
+        assert_eq!(escape_tail(&s(&["a \\| b\\. c\\!"])).unwrap().0, s(&["a  b c"]));
     }
 
     #[test]
