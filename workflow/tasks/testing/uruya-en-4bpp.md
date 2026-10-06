@@ -41,9 +41,9 @@ vblank). Funciona en snes9x, bsnes y mesen-s con el mismo cuadro.
 
 - **Tiles de 8x8 a 4bpp**: 878 con Adeleine, 896 con el agrupamiento (contando
   el vacío; las dos capas comparten el juego de tiles). Buscar espejos no
-  encontró ni uno. Con el 8bpp de wally eran 817, que son tiles de otro tamaño
-  y color: ver abajo. A 4bpp ocupan 28 KB de los 64 KB de VRAM; con los dos
-  tilemaps de 64x64 (8 KB cada uno) quedan unos 20 KB libres, o sea, otros 600
+  encontró ni uno. Con el 8bpp de wally eran 817 (la capa de abajo sola,
+  sin animaciones). A 4bpp ocupan 28 KB de los 64 KB de VRAM; con los dos
+  tilemaps de 64x64 (8 KB cada uno) quedan unos 20 KB libres, otros 600
   tiles. Entra de sobra y sobra para animaciones.
 - **Colores**: el mapa tiene 157 colores a 15 bits (los 157 están en la capa de
   abajo; la de arriba usa 74, todos entre los mismos). El 8bpp de wally ya
