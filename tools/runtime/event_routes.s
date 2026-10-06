@@ -218,6 +218,21 @@ down:
     rts
 .endproc
 
+; A random direction, 0 to 3, for `move_random`. Two bits of the high byte of
+; the map's xorshift, which mix better than the low ones. `random_next` keeps X,
+; which is the slot, and uses `temp + 2`.
+.proc random_direction
+.a8
+.i16
+    jsr random_next             ; A is sixteen bits
+.a16
+    xba
+    sep #$20
+.a8
+    and #$03
+    rts
+.endproc
+
 ; One frame of all the event move routes that are running.
 .proc move_events
 .a8
@@ -411,8 +426,16 @@ has_command:
 not_wait:
     cmp #12
     bcs no_moves
+    cmp #8
+    bne not_random
+    ; `move_random`: `TurnRandom` and then `Move(GetDirection())`. The direction
+    ; is two bits of the map's xorshift —the one `ControlVars` draws from—, not
+    ; RM2k's own generator, so a random walk is random but not the same walk.
+    jsr random_direction
+    jmp move
+not_random:
     cmp #9
-    bne :+
+    bne not_toward
     ; `move_towards_hero`. It is not a separate command but the two already there
     ; put together: `UpdateMoveRoute` does `TurnTowardCharacter(hero)` and then
     ; `Move(GetDirection())`, that is, 21 and a `move_*` on the same frame. That
@@ -421,7 +444,21 @@ not_wait:
     ; `toward_hero` does not overwrite X, which is the slot.
     jsr event_cell
     jsr toward_hero
-:   jmp move                    ; 0..3 are the move_*, and 9 already brings its own
+    jmp move
+not_toward:
+    cmp #10
+    bne to_move                 ; 0..3 the move_*, 4..7 the diagonals
+    ; `move_away_from_hero`: `GetDirectionAwayCharacter`, which is
+    ; `GetDirectionToCharacter` turned half a circle in every case, ties and the
+    ; same cell included: the vertical wins a tie, and with the hero on the
+    ; same row it goes up where toward would go down.
+    jsr event_cell
+    jsr toward_hero
+    clc
+    adc #2
+    and #$03
+to_move:
+    jmp move
 no_moves:
     cmp #16
     bcs :+
@@ -435,7 +472,18 @@ no_moves:
     jsr toward_hero
     jmp look
 no_faces:
-    ; Turning without moving is not compiled: it does not get here.
+    cmp #22
+    bne no_face_away
+    ; face_away_from_hero: `toward_hero` half a circle around, as `move_away`.
+    jsr event_cell
+    jsr toward_hero
+    clc
+    adc #2
+    and #$03
+    jmp look
+no_face_away:
+    ; The other turns —90 and 180 degrees, the random ones— are not compiled:
+    ; they do not get here.
     cmp #24
     bne not_jump
     jsr prepare_walker          ; who jumps, to collide with the others

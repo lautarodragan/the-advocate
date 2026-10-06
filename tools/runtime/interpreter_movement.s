@@ -175,6 +175,19 @@ place_plant:                    ; with Y already on the stack: see `op_place_var
 
 .endproc
 
+; `PlayerVisibility`: one byte, 1 to draw the hero and 0 to hide him. `place_hero`
+; looks at `hero_hidden`, which is the opposite.
+.proc op_hero_visible
+.a8
+.i16
+    lda [code_ptr], y
+    iny
+    eor #$01
+    and #$01
+    sta hero_hidden
+    jmp run_code::other
+.endproc
+
 ; `TradeEventLocations`: the two events swap cells, and each one is a
 ; `MoveTo` like the one in `op_place` —the cell, cutting the step, and the
 ; drawing that follows it—. Both cells are read before writing either.

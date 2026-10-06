@@ -39,7 +39,7 @@ use std::path::PathBuf;
 /// `SUB_MAX` in the runtime's `low_ram.s`, and it is written on both sides
 /// on purpose: the converter has to be able to refuse **before** emitting a
 /// map that does not fit. `test_substitutions.py` compares the two.
-pub const SUB_MAX: usize = 8;
+pub const SUB_MAX: usize = 16;
 
 /// The commands of a test page, as written by hand: the command by its
 /// name or its number, and only the fields that say something.

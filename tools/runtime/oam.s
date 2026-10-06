@@ -849,6 +849,10 @@ outside:
 .a8
 .i16
     inc hero_drawn
+    lda hero_hidden             ; `PlayerVisibility`: counted as placed, not drawn
+    beq shown
+    rts
+shown:
 
     ; The CharSet frame: steps 0 and 2 are the side ones, and steps 1 and 3
     ; are both the middle pose.

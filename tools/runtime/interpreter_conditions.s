@@ -181,6 +181,69 @@ if_no_met:
 
 .endproc
 
+; `ConditionalBranch` case 6: does a character face this way? The target is the
+; hero —0— or an event's index plus one, as in `OP_ROUTE`, and the direction is
+; RM2k's facing, which is the console's. No polarity: the lower branch is the
+; `else`.
+;
+; The hero's is `hero_dir`. An event's is where the drawing reads it from: its
+; route slot's, once a route has turned it, and before that its row's, which
+; carries its page's —`face_diagonal` does the same look—. **An event with no
+; row has no pose anyone can see, and answers down**, which is RM2k's default
+; direction of a page; it diverges only for an invisible event whose page
+; faces another way and which a condition asks about.
+;
+; `event_slot` and `event_npc` use `other_ev` and `temp`, so the two operands
+; wait in `temp + 1` and `temp + 2`.
+.proc op_if_facing
+.a8
+.i16
+    lda [code_ptr], y
+    sta temp + 2                ; the target
+    iny
+    lda [code_ptr], y
+    sta temp + 1                ; the direction it has to face
+    iny                         ; Y -> where it goes if it does not hold
+    phy
+    lda temp + 2
+    bne of_event
+    lda hero_dir
+    bra have_facing
+of_event:
+    dec a                       ; the event's index
+    jsr event_slot              ; X, or $FFFF
+    cpx #$FFFF
+    beq from_row
+    lda route_ev + 8, x
+    cmp #ROUTE_EV_NO_FACE
+    bne have_facing             ; a route already turned it
+from_row:
+    lda temp + 2
+    dec a
+    jsr event_npc               ; Y: its row, or $FFFF
+    cpy #$FFFF
+    bne with_row
+    lda #DIR_DOWN
+    bra have_facing
+with_row:
+    lda npc_buf + 10, y
+have_facing:
+    ply                         ; `ply` does not touch A, but it does Z
+    cmp temp + 1                ; the compare is the last thing before the branch
+    bne facing_no
+    iny
+    iny                         ; Y -> the next opcode
+    jmp run_code::other
+facing_no:
+    rep #$20
+.a16
+    lda [code_ptr], y
+    tay
+    sep #$20
+.a8
+    jmp run_code::other
+.endproc
+
 ; `ConditionalBranch` on a variable: slot, value class, comparison, the
 ; sixteen-bit value and the target if it does not hold. The comparison is
 ; signed: after subtracting, "less than" is N different from V.

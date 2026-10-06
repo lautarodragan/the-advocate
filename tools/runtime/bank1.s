@@ -227,6 +227,8 @@ save_table:
     ; go here and not next to `hero_dir` so `SAVE_PARTY` stays put.
     .word hero_lock, 1
     .word hero_heading, 1
+    ; And whether he is drawn: `PlayerVisibility` lasts until the next one.
+    .word hero_hidden, 1
     ; And the variables, from far RAM. VARIABLES_N is at least 1 —the
     ; converter guarantees it— because a zero length would end the table here.
     .word FAR_VARIABLES, VARIABLES_N * 2

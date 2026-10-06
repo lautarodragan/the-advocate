@@ -301,6 +301,17 @@ bytecode! {
     /// down— and how far it moves on its own each frame on each axis, in
     /// 1/32 px. The picture stays. See `op_panorama` in `pano.s`.
     OP_PANORAMA = 0x46 (loops: byte, across: word, down: word);
+
+    /// `ConditionalBranch` by a character's direction (case 6): `target` is
+    /// 0 for the hero and an event's index plus one —as in `OP_ROUTE`—, and
+    /// `direction` is RM2k's facing, 0 up, 1 right, 2 down, 3 left. Like
+    /// `OP_IF_ACTOR` it has no polarity: the branch below is the `else`.
+    OP_IF_FACING = 0x47 (target: byte, direction: byte, destination: word);
+
+    /// `PlayerVisibility`: whether the hero's sprite is drawn. He stays where he
+    /// is, and keeps blocking and triggering: only the drawing goes. The state
+    /// outlives the map and travels in the save, as RM2k's does.
+    OP_HERO_VISIBLE = 0x48 (visible: byte);
 }
 
 // `run_code` jumps through a table indexed by the opcode.

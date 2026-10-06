@@ -43,10 +43,13 @@ use std::collections::HashMap;
 /// —`ba_reparam`—. `PlayBGM` goes into the battle's audio package: see
 /// `PLAY_BGM` in the compiler.
 ///
+/// `Comment` is in since 2026-10-06, as in a map: the author's notes run as
+/// nothing. A troop page with one in the middle was left out whole for it.
+///
 /// The ones left out that the game uses, in case someone wants to add them:
 /// `FlashScreen`, `Wait`, `TintScreen`, `ChangeMonsterCondition` —the battle
 /// has no states— and `TerminateBattle`.
-const TROOP_COMMANDS: [i32; 23] = [
+const TROOP_COMMANDS: [i32; 25] = [
     END,
     SHOW_MESSAGE,
     SHOW_MESSAGE_2,
@@ -70,6 +73,8 @@ const TROOP_COMMANDS: [i32; 23] = [
     COND_ELSE,
     COND_END,
     MESSAGE_OPTIONS,
+    COMMENT,
+    COMMENT_2,
 ];
 
 // Which triggers the ROM knows how to look at, with their bit in
@@ -448,6 +453,14 @@ mod tests {
                 Command::new(code, 1, l, vec![])
             })
             .collect()
+    }
+
+    #[test]
+    fn a_comment_runs_in_battle_as_nothing() {
+        for code in [COMMENT, COMMENT_2] {
+            assert!(runs_in_battle(&Command::new(code, 0, "a note", vec![])), "{code}");
+        }
+        assert!(!runs_in_battle(&Command::new(TELEPORT, 0, "", vec![1, 1, 1])));
     }
 
     #[test]
