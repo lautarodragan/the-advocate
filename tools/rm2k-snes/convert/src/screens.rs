@@ -30,6 +30,9 @@ fn game_flags(game: &Game) -> Vec<OsString> {
     if let Some(rtp) = &game.rtp_dir {
         flags.extend(["--rtp-dir".into(), rtp.clone().into_os_string()]);
     }
+    if let Some(system) = &game.system {
+        flags.extend(["--system".into(), system.into()]);
+    }
     flags
 }
 

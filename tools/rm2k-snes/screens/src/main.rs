@@ -89,6 +89,11 @@ struct GameArgs {
     #[arg(long = "rtp-dir", value_name = "DIRECTORY")]
     rtp_dir: Option<PathBuf>,
 
+    /// The System to draw with instead of the one the database names: a
+    /// name, looked for like the database's, or the path of a picture
+    #[arg(long, value_name = "NAME|PATH")]
+    system: Option<String>,
+
     /// What the cartridge decided
     #[arg(long, value_name = "PATH")]
     request: PathBuf,
@@ -103,6 +108,9 @@ impl GameArgs {
     fn game(&self) -> Result<Game> {
         let mut game = Game::from_dump(&self.data, &self.game_dir)?;
         game.rtp_dir = self.rtp_dir.clone();
+        if let Some(system) = &self.system {
+            game.use_system(system);
+        }
         Ok(game)
     }
 }

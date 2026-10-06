@@ -42,6 +42,9 @@ pub struct Game {
     /// The font every text is drawn with: RM2k's, the one `font_id` asks
     /// for, until a request names another —see [`Game::use_font`]—.
     pub font: Font,
+    /// The System's picture when the project names a file of its own
+    /// —see [`Game::use_system`]—: then it is not looked for.
+    pub system_file: Option<PathBuf>,
 }
 
 fn answer(e: ditto::lcf::Error) -> Bad {
@@ -63,7 +66,21 @@ impl Game {
             system,
             game_dir: game_dir.to_path_buf(),
             rtp_dir: None,
+            system_file: None,
         })
+    }
+
+    /// Draws with the System `spec` names instead of the database's: the
+    /// project file's `[graphics] system`, which the converter passes on.
+    /// A picture's path —it ends in `.png` or `.bmp`— is read as is; any
+    /// other text is a name, looked for as the database's would be.
+    pub fn use_system(&mut self, spec: &str) {
+        let lower = spec.to_ascii_lowercase();
+        if lower.ends_with(".png") || lower.ends_with(".bmp") {
+            self.system_file = Some(PathBuf::from(spec));
+        } else {
+            self.system.system_name = spec.to_string();
+        }
     }
 
     /// Draws with the font `spec` names: `rm2k`, one the engine carries,
@@ -83,7 +100,8 @@ impl Game {
         self.system.font_id.to_i32()
     }
 
-    /// The game's System, the one the database names, read with its
+    /// The game's System, the one the database names —or the project,
+    /// see [`Game::use_system`]—, read with its
     /// colour key; and how its windows fill their background.
     ///
     /// The System is looked for in the game's `System/`, then in the
@@ -97,7 +115,10 @@ impl Game {
                 self.system.message_stretch
             ))
         })?;
-        let found = find_resource(&[self.game_dir.clone()], "System", name)
+        let found = self
+            .system_file
+            .clone()
+            .or_else(|| find_resource(&[self.game_dir.clone()], "System", name))
             .or_else(|| Some(self.game_dir.join(format!("{name}.png"))).filter(|p| p.exists()))
             .or_else(|| find_resource(&self.rtp(), "System", name));
         match found {
