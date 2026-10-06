@@ -773,6 +773,7 @@ fn compile_pass(
         // against the one it built the sprite bank with. A test page that
         // runs here numbers after it.
         let numbered = graphics.pairs.clone();
+        let dropped = graphics.dropped.clone();
         // The test pages that run here, with this map's context.
         for (c, (run_map, case)) in request.cases.iter().enumerate() {
             if *run_map != map.id {
@@ -835,13 +836,19 @@ fn compile_pass(
             .iter()
             .map(|(u, o, n)| json!([u, o, n]))
             .collect();
-        maps_out.push(json!({
+        let mut entry = json!({
             "id": map.id,
             "pages": pages,
             "graphics": numbered,
             "debts": debts,
             "substitutions": asked,
-        }));
+        });
+        // Only when there are some, so the answer stays the one the test
+        // that holds its hashes expects.
+        if !dropped.is_empty() {
+            entry["graphics_dropped"] = json!(dropped);
+        }
+        maps_out.push(entry);
     }
 
     // The troops: the maps' battles, the random encounters' and the test

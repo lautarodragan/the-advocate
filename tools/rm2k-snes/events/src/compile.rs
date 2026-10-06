@@ -47,8 +47,6 @@ pub const ITEMS_N: i64 = 451;
 /// The equipment slots of an actor: weapon, shield, armor, helmet and
 /// accessory.
 const EQUIPMENT_SLOTS: i64 = rm2k_rules::actor::EQUIPMENT_SLOTS as i64;
-/// How many graphics fit in a map's table: the operand is a byte.
-const GRAPHICS_MAX: usize = 0xFF;
 /// The variable slot is a byte, and far RAM has room for 256: see
 /// `VAR_REFRESH` for why it stopped being seven bits.
 pub const VAR_SLOT_MAX: usize = 0xFF;
@@ -3615,10 +3613,9 @@ pub fn compile_command(
             let Some(graphics) = ctx.graphics.as_deref_mut() else {
                 return cannot();
             };
-            let chosen = graphics.index(&cmd.string, p[1]);
-            if chosen > GRAPHICS_MAX {
+            let Some(chosen) = graphics.index_capped(&cmd.string, p[1]) else {
                 return cannot();
-            }
+            };
             Ok(vec![OP_ACTOR_SPRITE, q(0) as u8, chosen as u8])
         }
         CHANGE_SAVE_ACCESS | CHANGE_MENU_ACCESS | CHANGE_ESCAPE_ACCESS => {
@@ -4881,10 +4878,12 @@ fn compile_route(ctx: &mut Ctx, cmd: &Command, map_events: Option<&MapEvents>) -
             if extras.len() < 2 {
                 return cannot();
             }
-            let chosen = graphics.index(extras[0].text(), extras[1].int() as i32);
-            if chosen > GRAPHICS_MAX {
-                return cannot();
-            }
+            // One that does not fit in the map's table is ignored: the route
+            // goes on with the graphic it had, and the converter warns.
+            let Some(chosen) = graphics.index_capped(extras[0].text(), extras[1].int() as i32)
+            else {
+                continue;
+            };
             path.push(command as i64);
             path.push(chosen as i64);
             continue;

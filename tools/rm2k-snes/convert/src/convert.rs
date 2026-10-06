@@ -429,6 +429,15 @@ pub fn run(options: Options) -> Result<()> {
                 m.route_graphics
             );
         }
+        for g in entry["graphics_dropped"].as_array().cloned().unwrap_or_default() {
+            println!(
+                "  map {}: WARNING, a route changes to the graphic {} {} and the ROM's table of {} is full: the change is ignored",
+                m.id,
+                g[0].as_str().unwrap_or(""),
+                int(&g[1]),
+                record::ROUTE_GFX_MAX
+            );
+        }
         m.pages = pages;
         // And which maps outside the ROM the ones that don't compile point
         // to: a `Teleport` to a map that didn't make it cuts the whole page,

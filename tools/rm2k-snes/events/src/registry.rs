@@ -229,12 +229,39 @@ impl Songs {
 #[derive(Debug, Clone, Default)]
 pub struct Graphics {
     pub pairs: Vec<(String, i32)>,
+    /// The graphics that did not fit in [`ROUTE_GFX_MAX`] and were left
+    /// out, so the converter can say what was lost.
+    pub dropped: Vec<(String, i32)>,
 }
+
+/// How many graphics a map's table holds in the ROM. It is the same number
+/// as `ROUTE_GFX_MAX` in `rm2k-snes-mapdata`, which this crate cannot see;
+/// if they disagree, the emission refuses the map instead of losing it
+/// silently. A graphic that does not fit is ignored, not the map left out.
+pub const ROUTE_GFX_MAX: usize = 8;
 
 impl Graphics {
     pub fn new(associations: &[(String, i32)]) -> Graphics {
         Graphics {
             pairs: associations.to_vec(),
+            dropped: Vec::new(),
+        }
+    }
+
+    /// Like [`Graphics::index`], but `None` if the graphic would be past
+    /// the table's end: it is not added and it is noted in `dropped`.
+    pub fn index_capped(&mut self, charset: &str, index: i32) -> Option<usize> {
+        let known = self.pairs.iter().position(|(c, i)| c == charset && *i == index);
+        match known {
+            Some(k) if k < ROUTE_GFX_MAX => Some(k),
+            None if self.pairs.len() < ROUTE_GFX_MAX => Some(self.index(charset, index)),
+            _ => {
+                let g = (charset.to_string(), index);
+                if !self.dropped.contains(&g) {
+                    self.dropped.push(g);
+                }
+                None
+            }
         }
     }
 
@@ -437,5 +464,23 @@ impl Pictures {
 
     pub fn keys_json(&self) -> Value {
         json!(self.table.iter().map(|(k, _)| k.to_json()).collect::<Vec<_>>())
+    }
+}
+
+#[cfg(test)]
+mod graphics_cap_tests {
+    use super::*;
+
+    #[test]
+    fn the_graphics_past_the_table_are_dropped_and_noted() {
+        let mut g = Graphics::default();
+        for k in 0..ROUTE_GFX_MAX {
+            assert_eq!(g.index_capped("A", k as i32), Some(k));
+        }
+        assert_eq!(g.index_capped("A", 3), Some(3), "a known one still resolves");
+        assert_eq!(g.index_capped("B", 0), None);
+        assert_eq!(g.index_capped("B", 0), None);
+        assert_eq!(g.pairs.len(), ROUTE_GFX_MAX, "the table did not grow");
+        assert_eq!(g.dropped, vec![("B".to_string(), 0)], "noted once");
     }
 }
