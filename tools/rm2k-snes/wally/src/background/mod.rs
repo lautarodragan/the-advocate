@@ -15,6 +15,7 @@
 
 pub mod blocks;
 pub mod fail;
+pub mod fuse;
 pub mod grid;
 pub mod layers;
 pub mod mode1;

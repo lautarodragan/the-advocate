@@ -41,6 +41,9 @@ pub struct LayersRequest {
     pub baked: Vec<(usize, i16)>,
     pub window_colors: usize,
     pub panorama: Option<PanoramaBudget>,
+    /// If set, the background is drawn with at most this many tiles, the
+    /// cells that look most alike fused: see [`crate::background::fuse`].
+    pub fuse_tiles: Option<usize>,
 }
 
 /// A VRAM layout for a map that shows its panorama: the mode the map goes
@@ -176,6 +179,10 @@ impl LayersRequest {
             baked,
             window_colors: index(field(data, "window_colors", whose)?, "`window_colors`", whose)?,
             panorama: panorama_budget(data, whose)?,
+            fuse_tiles: match data.get("fuse_tiles") {
+                None | Some(Value::Null) => None,
+                Some(v) => Some(index(v, "`fuse_tiles`", whose)?),
+            },
         })
     }
 }
@@ -421,6 +428,7 @@ impl crate::map::MapRequest {
                 .collect::<Result<_>>()?,
             window_colors: index(field(data, "window_colors", whose)?, "`window_colors`", whose)?,
             panorama: panorama_budget(data, whose)?,
+            fuse_tiles: None,
         })
     }
 }
