@@ -338,6 +338,14 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         "pages": scanned["pages"],
         "route_graphics": route_graphics.iter().map(|(g, i)| json!([g, i])).collect::<Vec<_>>(),
         "also_walk": also_walk.into_iter().collect::<Vec<_>>(),
+        // What the test pages name, so a decorative event is never one a
+        // test moves: only when the project asks for them.
+        "decorative": game.decorative,
+        "test_commands": if game.decorative {
+            case_commands.iter().map(|c| json!([c.code, c.parameters])).collect::<Vec<_>>()
+        } else {
+            Vec::new()
+        },
         "timer": timer,
         "rain": c.with_rain,
         "picture": pictures.as_ref().map(|p| p.asked.clone()),
@@ -433,6 +441,9 @@ pub struct PageRecord {
 /// A converted map, as the rest of the conversion reads it.
 pub struct MapInfo {
     pub id: i32,
+    /// The events Wally painted into the background: they are no events,
+    /// so they have no page in the table. Their indices, not their ids.
+    pub decorative: BTreeSet<i64>,
     pub name: String,
     pub map: GameMap,
     pub route_graphics: Vec<(String, i64)>,
@@ -909,6 +920,7 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         pictures,
         big_pictures: p.big_pictures,
         big_table: Vec::new(),
+        decorative: answer["decorative"].as_array().map(|a| a.iter().map(int).collect()).unwrap_or_default(),
         pages: Vec::new(),
         sub_keys: BTreeSet::new(),
         evcode: Vec::new(),
@@ -924,6 +936,9 @@ pub fn pages(records: &Value, info: &MapInfo) -> Result<Vec<PageRecord>> {
     let mut out = Vec::new();
     for r in records.as_array().cloned().unwrap_or_default() {
         let event = int(&r["event"]);
+        if info.decorative.contains(&event) {
+            continue;
+        }
         let page_index = int(&r["page"]);
         let page = info
             .map

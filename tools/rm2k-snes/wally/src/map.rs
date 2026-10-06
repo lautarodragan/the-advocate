@@ -8,6 +8,7 @@
 //! the object palettes had to lend that event someone else's colours—.
 
 use crate::baking::{self, bakeable};
+use crate::decor::{self, Decoration};
 use crate::events::{changes_graphic, collect_npcs, events, Event};
 use crate::fail::{Bad, Result};
 use crate::game::Game;
@@ -101,6 +102,14 @@ pub struct MapRequest {
     /// Set by the conversion itself, never by the caller: the background
     /// is drawn with at most this many tiles. See [`convert`].
     pub fuse_tiles: Option<usize>,
+    /// Whether the events that are only a drawing are painted into the
+    /// background: see [`crate::decor`]. A project's choice, off unless it
+    /// says so.
+    pub decorative: bool,
+    /// The commands of the test pages that run in this map, as `(code,
+    /// parameters)`: only for what they name, so nobody that a test moves
+    /// is taken for decoration. Only read if `decorative`.
+    pub test_commands: Vec<(i32, Vec<i32>)>,
 }
 
 /// Something the conversion says, in order. A `stop` ends it there.
@@ -132,11 +141,12 @@ fn layered(
     window_colors: usize,
     panorama: Option<crate::request::PanoramaBudget>,
     baked: &BTreeMap<usize, (usize, i32)>,
+    decor: &[Decoration],
     fuse_tiles: Option<usize>,
 ) -> Result<Layered> {
     let mut cells: Vec<(usize, i16)> = baked.values().map(|&(c, t)| (c, t as i16)).collect();
     cells.sort();
-    let request = LayersRequest { map: id, baked: cells, window_colors, panorama, fuse_tiles };
+    let request = LayersRequest { map: id, baked: cells, window_colors, panorama, fuse_tiles, decor: decor.to_vec() };
     let drawn = draw(game, &request)?;
     let converted = stage_layers::convert(&drawn, &request)?;
     Ok(Layered { drawn, converted })
@@ -145,7 +155,13 @@ fn layered(
 /// Whether baking left everybody else's colours where they were: the layer
 /// above identical, the background with the same budget and merging no
 /// more. The background's palette having new colours is not a change.
-fn same_split(without: &Converted, with: &Converted) -> bool {
+///
+/// With `decor` the background may merge colours too, but only as many of
+/// the ground's as [`GROUND_LOST_MAX`] pixels: the decoration brings
+/// colours —a translucent water blended over every ground it stands on is
+/// a hundred of them—, the palette has what it has, and Adeleine merges the
+/// least visible. A ground that had merged colours already is not touched.
+fn same_split(without: &Converted, with: &Converted, decor: bool) -> bool {
     let (a, b) = (&without.above, &with.above);
     let picture = |c: &Converted| c.pictures.iter().find(|p| p.name == "above").map(|p| p.picture.pixels.clone());
     // And the panorama's way: an event baked above the hero takes a map out
@@ -158,8 +174,28 @@ fn same_split(without: &Converted, with: &Converted) -> bool {
         && a.merges.len() == b.merges.len()
         && picture(without) == picture(with)
         && without.background.budget == with.background.budget
-        && without.background.merges.len() == with.background.merges.len()
+        && if decor {
+            // The ground's colours, as 5-bit channels, are all still there.
+            let ground: std::collections::HashSet<[u8; 3]> = without
+                .background
+                .cgram
+                .iter()
+                .map(|w| [(w & 31) as u8, (w >> 5 & 31) as u8, (w >> 10 & 31) as u8])
+                .collect();
+            without.background.merges.is_empty()
+                && with.background.merges.iter().filter(|m| ground.contains(&m.victim)).map(|m| m.pixels).sum::<u64>()
+                    <= GROUND_LOST_MAX
+        } else {
+            without.background.merges.len() == with.background.merges.len()
+        }
 }
+
+/// The most pixels of the ground's own colours that painting decoration into
+/// the background may merge into others, and still go: four RM2k cells, the
+/// same "little" as [`crate::layers::ABOVE_LOST_MAX`]. Measured on Vampires
+/// Dawn's map 95 on 2026-10-06: the river, opaque, costs 204 pixels of its
+/// ground; blended against its cells, 1557, so it does not go blended.
+pub const GROUND_LOST_MAX: u64 = 4 * 16 * 16;
 
 /// The events baked into the map: by event, its cell and its tile id.
 type Baked = BTreeMap<usize, (usize, i32)>;
@@ -172,11 +208,12 @@ fn bake_unless_split_moves(
     panorama: Option<crate::request::PanoramaBudget>,
     without: Layered,
     baked: Baked,
+    decor: &[Decoration],
     fuse_tiles: Option<usize>,
     notes: &mut Vec<Note>,
 ) -> Result<(Layered, Baked)> {
-    let with = layered(game, id, window_colors, panorama.clone(), &baked, fuse_tiles)?;
-    if same_split(&without.converted, &with.converted) {
+    let with = layered(game, id, window_colors, panorama.clone(), &baked, decor, fuse_tiles)?;
+    if same_split(&without.converted, &with.converted, false) {
         return Ok((with, baked));
     }
     notes.push(note(format!(
@@ -272,6 +309,10 @@ pub struct SharedObjects {
 pub struct Whole {
     pub layers: Final,
     pub baked: BTreeMap<usize, (usize, i32)>,
+    /// The decorative events painted into the background, by index: they
+    /// are no longer events, so the caller leaves them out of its page
+    /// table. See [`crate::decor`].
+    pub decorative: Vec<usize>,
     pub notes: Vec<Note>,
     pub npcs: Vec<Npc>,
     pub palette_cap: usize,
@@ -587,18 +628,97 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
         chipset: &chipset_name,
     };
     let mut baked = bakeable(&mut drawer, &map, &events, &npcs0)?;
+    let wanted_decor = if request.decorative {
+        let common = game.common_commands()?;
+        let named = decor::named(&events, &common, &request.test_commands);
+        decor::select(
+            &mut drawer,
+            &events,
+            &decor::Wants { named: &named, also_walk: &request.also_walk, baked: &baked },
+        )?
+    } else {
+        Vec::new()
+    };
     let panorama = request.panorama.clone().map(|mut b| {
         b.extra = crate::substitutions::unseen(&lower, &upper, &request.substitutions);
         b
     });
-    let without = layered(game, id, request.window_colors, panorama.clone(), &BTreeMap::new(), request.fuse_tiles)?;
+    let without = layered(game, id, request.window_colors, panorama.clone(), &BTreeMap::new(), &[], request.fuse_tiles)?;
+    // The tiles first, as they always were. Then the decoration, all of it
+    // if the split holds, and if not group by group —every CharSet is
+    // one—, the most numerous first, keeping what fits: each CharSet brings
+    // its own colours into the background's palette, and what costs the
+    // ground a colour is not worth an object.
     let mut layers = if baked.is_empty() {
         without
     } else {
-        let (layers, kept) = bake_unless_split_moves(game, id, request.window_colors, panorama.clone(), without, baked, request.fuse_tiles, &mut notes)?;
+        let (layers, kept) = bake_unless_split_moves(game, id, request.window_colors, panorama.clone(), without, baked, &[], request.fuse_tiles, &mut notes)?;
         baked = kept;
         layers
     };
+    let mut kept_decor: Vec<Decoration> = Vec::new();
+    if !wanted_decor.is_empty() {
+        let reference = layered(game, id, request.window_colors, panorama.clone(), &BTreeMap::new(), &[], request.fuse_tiles)?;
+        let attempt = |decor: &[Decoration], baked: &Baked| -> Result<Option<Layered>> {
+            let with = layered(game, id, request.window_colors, panorama.clone(), baked, decor, request.fuse_tiles)?;
+            Ok(same_split(&reference.converted, &with.converted, true).then_some(with))
+        };
+        // Translucent ones blended first, and if that does not fit, dithered
+        // as the sprites would be: the colours of the ground and the water
+        // and none between.
+        let dithered: Vec<Decoration> = wanted_decor.iter().map(Decoration::dithered).collect();
+        let stages: Vec<&Vec<Decoration>> = if dithered.iter().zip(&wanted_decor).any(|(a, b)| a.translucent != b.translucent) {
+            vec![&wanted_decor, &dithered]
+        } else {
+            vec![&wanted_decor]
+        };
+        let mut done = false;
+        for (k, stage) in stages.iter().enumerate() {
+            if let Some(with) = attempt(stage, &baked)? {
+                if k > 0 {
+                    notes.push(note(format!(
+                        "  map {id}: the translucent decorative events are dithered: blended against their cells they cost the ground too many colours"
+                    )));
+                }
+                kept_decor = (*stage).clone();
+                layers = with;
+                done = true;
+                break;
+            }
+        }
+        let wanted_decor = stages[stages.len() - 1].clone();
+        if !done {
+            let mut groups: BTreeMap<&str, Vec<&Decoration>> = BTreeMap::new();
+            for d in &wanted_decor {
+                groups.entry(d.sheet.as_str()).or_default().push(d);
+            }
+            let mut order: Vec<(&str, Vec<&Decoration>)> = groups.into_iter().collect();
+            order.sort_by_key(|(name, ds)| (std::cmp::Reverse(ds.len()), *name));
+            for (_, group) in order {
+                let mut trial = kept_decor.clone();
+                trial.extend(group.into_iter().cloned());
+                trial.sort_by_key(|d| (d.layer, d.y, d.x, d.id));
+                if let Some(with) = attempt(&trial, &baked)? {
+                    kept_decor = trial;
+                    layers = with;
+                }
+            }
+        }
+        if kept_decor.len() < wanted_decor.len() {
+            notes.push(note(format!(
+                "  map {id}: {} of {} decorative event(s) moved the background's CGRAM split, so they are drawn",
+                wanted_decor.len() - kept_decor.len(),
+                wanted_decor.len()
+            )));
+        }
+    }
+    // They are not events any more: no row, no slot, no sprite tiles, and
+    // no walking or turning of their own for the page scan to count. The
+    // cells still count as taken for where the hero starts.
+    let used: HashSet<(i32, i32)> = npcs0.iter().map(|n| (n.x, n.y)).collect();
+    let gone: BTreeSet<usize> = kept_decor.iter().map(|d| d.event).collect();
+    npcs0.retain(|n| !gone.contains(&n.event));
+    let pages: Vec<ScannedPage> = request.pages.iter().filter(|p| !gone.contains(&p.event)).cloned().collect();
 
     // The characters.
     let actors = game.actors()?;
@@ -609,7 +729,7 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
             .ok_or_else(|| Bad::answer(format!("actor {actor} is not in the database")))
     };
     let leaders: Vec<Key> = request.leaders.iter().map(leader).collect::<Result<_>>()?;
-    let who = moves(&request.pages, &events, &npcs0, &chipset_name, &request.also_walk);
+    let who = moves(&pages, &events, &npcs0, &chipset_name, &request.also_walk);
     let turning = &who.turning;
     let mut wanted: Vec<String> = leaders.iter().map(|k| k.0.clone()).collect();
     for npc in &npcs0 {
@@ -704,9 +824,9 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
         for e in &lent_baked {
             baked.remove(e);
         }
-        layers = layered(game, id, request.window_colors, panorama.clone(), &BTreeMap::new(), request.fuse_tiles)?;
+        layers = layered(game, id, request.window_colors, panorama.clone(), &BTreeMap::new(), &kept_decor, request.fuse_tiles)?;
         if !baked.is_empty() {
-            let (again, kept) = bake_unless_split_moves(game, id, request.window_colors, panorama.clone(), layers, baked, request.fuse_tiles, &mut notes)?;
+            let (again, kept) = bake_unless_split_moves(game, id, request.window_colors, panorama.clone(), layers, baked, &kept_decor, request.fuse_tiles, &mut notes)?;
             layers = again;
             baked = kept;
         }
@@ -735,7 +855,6 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
         &request.common_substitutions,
         layers.converted.way == Some(crate::background::panorama::Way::Flattened),
     )?;
-    let used: HashSet<(i32, i32)> = npcs0.iter().map(|n| (n.x, n.y)).collect();
     let (start_map, start_x, start_y) = game.start()?;
     let start = if id == start_map {
         (start_x, start_y)
@@ -750,6 +869,7 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
             blocks,
         },
         baked: baked.clone(),
+        decorative: gone.iter().copied().collect(),
         notes,
         npcs: Vec::new(),
         palette_cap,
@@ -1395,6 +1515,7 @@ pub fn write(out: &Path, done: &Whole) -> Result<()> {
         }
     };
     let answer = json!({
+        "decorative": done.decorative,
         "baked": done.baked.iter().map(|(e, (c, t))| json!([e, c, t])).collect::<Vec<_>>(),
         "notes": done.notes.iter().map(|n| json!({"kind": n.kind, "text": n.text, "stop": n.stop})).collect::<Vec<_>>(),
         "npcs": done.npcs.iter().map(npc_json).collect::<Vec<_>>(),

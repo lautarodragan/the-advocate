@@ -51,6 +51,9 @@ pub struct Drawn {
     /// halves: the blocks it needs have to be drawn, and they are drawn
     /// here, converted with the map and cut off after the blocks are made.
     pub extended: Option<(Map, Layers)>,
+    /// The cells a decorative event on the hero's layer closes: the map's
+    /// passability says it, since the event is not in the table any more.
+    pub blocked: Vec<usize>,
 }
 
 /// The stretch of a panorama the console can show, and how it moves: what
@@ -190,6 +193,13 @@ pub fn draw(game: &Game, request: &LayersRequest) -> Result<Drawn> {
     } else {
         drawn.render(&atlas)?
     };
+    crate::decor::compose(&mut layers, &request.decor);
+    let blocked: Vec<usize> = request
+        .decor
+        .iter()
+        .filter(|d| d.blocks())
+        .map(|d| d.y as usize * drawn.width + d.x as usize)
+        .collect();
     let fused = request
         .fuse_tiles
         .map_or(0, |max| crate::background::fuse::fuse_lower(&mut layers, max));
@@ -205,7 +215,8 @@ pub fn draw(game: &Game, request: &LayersRequest) -> Result<Drawn> {
             map.upper_layer.push(i64::from(u));
         }
         map.height += rows;
-        let layers = map.render_over_panorama(&atlas)?;
+        let mut layers = map.render_over_panorama(&atlas)?;
+        crate::decor::compose(&mut layers, &request.decor);
         Some((map, layers))
     } else {
         None
@@ -217,6 +228,7 @@ pub fn draw(game: &Game, request: &LayersRequest) -> Result<Drawn> {
         fused,
         panorama,
         extended,
+        blocked,
     })
 }
 
@@ -509,11 +521,14 @@ fn blocks_of(drawn: &Drawn, map: &Map, converted: &Converted) -> Result<(Vec<u8>
     let flags = passability_table(&map.passable_lower, &map.passable_upper);
     let lower: Vec<i32> = map.lower_layer.iter().map(|&t| t as i32).collect();
     let upper: Vec<i32> = map.upper_layer.iter().map(|&t| t as i32).collect();
-    let passability: Vec<u8> = lower
+    let mut passability: Vec<u8> = lower
         .iter()
         .zip(&upper)
         .map(|(&l, &u)| rm2k_rules::passability::cell(&flags, l, u))
         .collect();
+    for &cell in &drawn.blocked {
+        passability[cell] = 0;
+    }
     let terrain: Vec<i32> = lower.iter().map(|&l| terrain_of(&drawn.chipset, l)).collect();
     let made = blocks::blocks(
         &blocks::Map {

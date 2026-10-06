@@ -240,6 +240,11 @@ pub struct Game {
     /// `[graphics] system`, the System the cartridge draws with instead of
     /// the database's —see [`system_choice`]—. None, the database's.
     pub system: Option<String>,
+    /// `[graphics] decorative_events`: whether the events that are only a
+    /// drawing are painted into the background and stop being events. Off
+    /// when the key is missing: it changes the map of any game that has
+    /// them, and a game opts in.
+    pub decorative: bool,
 }
 
 /// `[graphics] system`, **optional**: the System to draw with instead of
@@ -323,6 +328,10 @@ impl Game {
             translucent,
             cropped: crate::pictures::Cropped::read(project)?,
             system: system_choice(project)?,
+            decorative: match project.value(&["graphics", "decorative_events"]) {
+                Err(_) => false,
+                Ok(_) => project.boolean(&["graphics", "decorative_events"])?,
+            },
         })
     }
 
