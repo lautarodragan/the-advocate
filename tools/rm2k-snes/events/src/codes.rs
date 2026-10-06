@@ -42,6 +42,8 @@ pub const RECALL_TO_LOCATION: i32 = 10830;
 pub const CHANGE_EVENT_LOCATION: i32 = 10860;
 pub const TRADE_EVENT_LOCATIONS: i32 = 10870;
 pub const STORE_TERRAIN_ID: i32 = 10910;
+pub const ERASE_SCREEN: i32 = 11010;
+pub const SHOW_SCREEN: i32 = 11020;
 pub const TINT_SCREEN: i32 = 11030;
 pub const FLASH_SCREEN: i32 = 11040;
 pub const SHAKE_SCREEN: i32 = 11050;
@@ -192,6 +194,8 @@ mod tests {
             (CHANGE_EVENT_LOCATION, C::ChangeEventLocation),
             (TRADE_EVENT_LOCATIONS, C::TradeEventLocations),
             (STORE_TERRAIN_ID, C::StoreTerrainID),
+            (ERASE_SCREEN, C::EraseScreen),
+            (SHOW_SCREEN, C::ShowScreen),
             (TINT_SCREEN, C::TintScreen),
             (FLASH_SCREEN, C::FlashScreen),
             (SHAKE_SCREEN, C::ShakeScreen),

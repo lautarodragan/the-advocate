@@ -419,7 +419,11 @@ const IGNORABLE: [i32; 0] = [];
 /// in there and not in this list: the command itself is no longer a whole
 /// debt. Neither is `PlayBGM`, which is done since the songs have a
 /// registry: see its arm.
-pub const ACCEPTED_UNDONE: [i32; 6] = [
+pub const ACCEPTED_UNDONE: [i32; 8] = [
+    // Debt: the screen is not blanked and not brought back, so the page
+    // that erases it shows the map during its transition; see its arm.
+    ERASE_SCREEN,
+    SHOW_SCREEN,
     SHOW_PICTURE,
     MOVE_PICTURE,
     ERASE_PICTURE,
@@ -3969,6 +3973,11 @@ pub fn compile_command(
         // so the page that uses it is not left out whole; the task to
         // implement it is `workflow/tasks/todo/changesystemgraphics.md`.
         CHANGE_SYSTEM_GRAPHICS => Ok(vec![]),
+        // `EraseScreen` (11010) and `ShowScreen` (11020): debt, the screen
+        // is neither blanked nor shown again, so pages that use them are
+        // not left out whole. What breaks: the map stays visible where the
+        // original goes black (the transition type is ignored too).
+        ERASE_SCREEN | SHOW_SCREEN => Ok(vec![]),
         // `ChangeFaceGraphic` (10130): debt, the face is not drawn; see
         // `workflow/tasks/todo/las-caras-y-las-esperas.md`.
         CHANGE_FACE_GRAPHIC => Ok(vec![]),
@@ -5162,6 +5171,15 @@ mod tests {
         let game = Game::default();
         let out = compile_with(&game, &[cmd(CHANGE_SYSTEM_GRAPHICS, &[], "Blue")]);
         assert!(out.unwrap().is_some(), "the page was left out");
+    }
+
+    #[test]
+    fn erase_and_show_screen_are_accepted_without_emitting() {
+        let game = Game::default();
+        for code in [ERASE_SCREEN, SHOW_SCREEN] {
+            let out = compile_with(&game, &[cmd(code, &[], "")]);
+            assert!(out.unwrap().is_some(), "the page was left out");
+        }
     }
 
     #[test]
