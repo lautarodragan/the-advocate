@@ -3935,6 +3935,9 @@ pub fn compile_command(
         // so the page that uses it is not left out whole; the task to
         // implement it is `workflow/tasks/todo/changesystemgraphics.md`.
         CHANGE_SYSTEM_GRAPHICS => Ok(vec![]),
+        // `ChangeFaceGraphic` (10130): debt, the face is not drawn; see
+        // `workflow/tasks/todo/las-caras-y-las-esperas.md`.
+        CHANGE_FACE_GRAPHIC => Ok(vec![]),
         CHANGE_ENCOUNTER_STEPS => {
             // `ChangeEncounterSteps` (11740): every how many steps there is a
             // random encounter. Nineteen occurrences on nine maps, and
@@ -5124,6 +5127,13 @@ mod tests {
     fn change_system_graphics_is_accepted_without_emitting() {
         let game = Game::default();
         let out = compile_with(&game, &[cmd(CHANGE_SYSTEM_GRAPHICS, &[], "Blue")]);
+        assert!(out.unwrap().is_some(), "the page was left out");
+    }
+
+    #[test]
+    fn change_face_graphic_is_accepted_without_emitting() {
+        let game = Game::default();
+        let out = compile_with(&game, &[cmd(CHANGE_FACE_GRAPHIC, &[], "Jack")]);
         assert!(out.unwrap().is_some(), "the page was left out");
     }
 
