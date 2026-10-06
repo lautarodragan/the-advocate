@@ -58,14 +58,15 @@
     lda #$7E
     pha
     plb
-    ldx map_current
+    rep #$20
+.a16
+    lda map_current
+    asl a
+    tax
     lda f:enc_map, x
     sta ENC_REG
     cmp #ENC_NONE
-    beq no_encounters
-    rep #$20
-.a16
-    and #$00FF
+    beq no_encounters_16
     pha
     ; The record's thresholds, into RAM: the seven bytes and the padding one.
     asl a
@@ -88,9 +89,7 @@ copy:
     tax
     lda f:enc_base, x
     bra with_base
-no_encounters:
-.a8
-    rep #$20
+no_encounters_16:
 .a16
     lda #0
 with_base:
@@ -130,8 +129,8 @@ with_base:
     lda #$7E
     pha
     plb
-    lda ENC_REG
-    cmp #ENC_NONE
+    lda ENC_REG + 1             ; see ENC_NONE: the high byte says it
+    cmp #>ENC_NONE
     beq skip
     rep #$20
 .a16
@@ -313,8 +312,8 @@ end:
 pending:
 .a8
     stz ENC_ASKS
-    lda ENC_REG
-    cmp #ENC_NONE
+    lda ENC_REG + 1             ; see ENC_NONE: the high byte says it
+    cmp #>ENC_NONE
     bne with_register
     jmp none
 with_register:
@@ -415,10 +414,12 @@ is_is:
 .a16
     sep #$20
 .a8
-    lda f:enc_troop_init, x
     rep #$20
 .a16
-    and #$00FF
+    txa
+    asl a
+    tax
+    lda f:enc_troop_init, x     ; a word: past 255 troops it is no byte
     clc
     adc comp_and
     asl a
@@ -451,22 +452,19 @@ end:
 .proc enc_zones
 .a8
 .i16
+    rep #$20
+.a16
     lda ENC_REG
-    rep #$20
-.a16
-    and #$00FF
+    asl a
     tax
-    sep #$20
-.a8
-    lda f:enc_zone_init, x
-    rep #$20
-.a16
-    and #$00FF
+    lda f:enc_zone_init, x      ; a word: past 255 zones it is no byte
     sta temp
     sta temp + 2
+    lda ENC_REG
+    tax                         ; long indexing is X only: the byte table by the record
     sep #$20
 .a8
-    lda f:enc_zone_n, x
+    lda f:enc_zone_n, x         ; a byte: the zones one map has
     rep #$20
 .a16
     and #$00FF
@@ -479,7 +477,7 @@ end:
 .endproc
 
 ; Does zone `temp` cover the cell the hero is standing on? Returns with carry
-; set if so, and with X at the zone number, which is what the one-byte tables
+; set if so, and with X at the zone number, which is what the byte tables
 ; index by. The rectangle is **half-open** —`l <= x < r`—, which is what
 ; easyrpg's `Rect::IsOutOfBounds` says with the hero as a one-cell rectangle.
 .proc enc_covers

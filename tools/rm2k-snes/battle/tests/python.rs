@@ -20,6 +20,7 @@
 //! hashes are not to be regenerated to make a test pass: the Python that
 //! produced them is gone, and with it the only independent answer.
 
+use rm2k_snes_battle::encounters::NONE as NO_RECORD;
 use rm2k_snes_battle::{Game, Request, Tables};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
@@ -185,7 +186,7 @@ fn a_party_of_nobody_still_has_one_slot() {
 fn the_encounters_of_the_game_are_the_pythons() {
     let t = tables("game", &PARTY, None);
     let e = &t.encounters;
-    assert_eq!(e.per_map, [0, 1, 255, 2, 255, 3, 255, 4]);
+    assert_eq!(e.per_map, [0, 1, NO_RECORD, 2, NO_RECORD, 3, NO_RECORD, 4]);
     assert_eq!(e.troops, [9, 9, 8, 2, 3, 3, 1, 4, 5, 6, 1, 11]);
     assert_eq!((e.bases.len(), e.zones.len()), (5, 7));
     // **Not the Python's any more, on purpose, and by one number.** The
@@ -193,9 +194,12 @@ fn the_encounters_of_the_game_are_the_pythons() {
     // not fit in the ROM's word and did not assemble; since 2026-09-29 one
     // step saturates at 65535 —see `base`—. This is the Python's text with
     // that one `.word` changed from 65536 to 65535, and nothing else.
+    // **And not that one either, since 2026-10-06**: `enc_map`,
+    // `enc_zone_init` and `enc_troop_init` are word tables now, and "no
+    // record" is 65535 and not 255. That is all that changed in the text.
     assert_eq!(
         sha256(&e.tables()),
-        "c5075af500432035c0754ca58593fd593f535dfc9bfa2718724a0491df87d1da"
+        "c413ba8cfdd442da7d2fc6fd27d75a319157cf4d20455128de85a7b2d8954bd5"
     );
 }
 
@@ -205,11 +209,53 @@ fn the_steps_of_a_test_cartridge_are_the_pythons() {
     // record.
     let t = tables("test", &PARTY, Some(3));
     let e = &t.encounters;
-    assert_eq!(e.per_map, [0, 1, 255, 2, 3, 4, 255, 5]);
+    assert_eq!(e.per_map, [0, 1, NO_RECORD, 2, 3, 4, NO_RECORD, 5]);
     assert_eq!(e.troops, [9, 9, 8, 2, 3, 3, 1, 4, 5, 6, 2, 1, 11]);
     assert_eq!((e.bases.len(), e.zones.len()), (6, 8));
     assert_eq!(
         sha256(&e.tables()),
-        "696835ab49952e068c0cc17f5f76bb5c1ef57b6171c1289036f2b66ff0645067"
+        "039546a8705414f477fc8f19e9be5369f0b334baaa4ddac419bf387c9d4d40ae"
     );
+}
+
+/// A game of `n` maps with two troops each: more records, zones and troops
+/// than a byte can number. Not the Python's: it is what one-byte tables
+/// could not hold, and Vampires Dawn is 121 records, 136 zones and 779
+/// troops.
+fn big(n: i64) -> Tables {
+    let dir = scratch("big");
+    let dump = dir.join("dump");
+    write(&dump.join("ditto.json"), &json!({"ditto": 2, "view": "resolved"}));
+    write(&dump.join("db").join("actors.json"), &Value::Array(ACTORS.iter().map(actor).collect()));
+    write(&dump.join("maps.json"), &json!({"maps": [node(0, 0, 0, 25, &[], NONE)]}));
+    let nodes: Vec<Value> = (1..=n)
+        .map(|i| node(i, 1, 0, 25, &[i, 1000 + i], NONE))
+        .collect();
+    let maps: Vec<Value> = (1..=n)
+        .map(|i| json!({"id": i, "width": 20, "height": 15}))
+        .collect();
+    write(
+        &dir.join("request.json"),
+        &json!({"party": [1], "maps": maps, "encounter_steps": null, "tree_nodes": nodes}),
+    );
+    let mut game = Game::from_dump(&dump).unwrap();
+    let request = Request::read(&dir.join("request.json"), &mut game).unwrap();
+    let tables = Tables::new(&game, &request).unwrap();
+    std::fs::remove_dir_all(&dir).unwrap();
+    tables
+}
+
+#[test]
+fn more_than_256_records_zones_and_troops_fit() {
+    let t = big(300);
+    let e = &t.encounters;
+    assert_eq!((e.bases.len(), e.zones.len(), e.troops.len()), (300, 300, 600));
+    let text = e.tables();
+    // The last zone's first troop is at 598: it does not fit in a byte, so
+    // `enc_troop_init` and `enc_zone_init` are words, and so is `enc_map`.
+    for label in ["enc_map", "enc_zone_init", "enc_troop_init"] {
+        let block = text.split(&format!("{label}:\n")).nth(1).unwrap();
+        assert!(block.trim_start().starts_with(".word"), "{label} is not a word table");
+    }
+    assert!(text.contains("598"));
 }

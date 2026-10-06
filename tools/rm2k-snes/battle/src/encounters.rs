@@ -57,6 +57,18 @@ pub fn step_thresholds(steps: i64) -> [i64; 7] {
     ROWS.map(|row| -((-row * steps).div_euclid(RATE)))
 }
 
+/// A map with no encounters, in `per_map`; the ROM's `ENC_NONE`. **A word**:
+/// the indexes of the three tables are two bytes, since a game can have more
+/// than 255 troops —Vampires Dawn has 779—.
+pub const NONE: i64 = 0xFFFF;
+
+/// The most records: the ROM reads a record's thresholds at `record * 8`,
+/// in a 16-bit offset, and `ENC_NONE` has to stay out of reach.
+const MAX_RECORDS: usize = 0x1FFF;
+
+/// The most troops: the ROM reads troop `n` at `2 * n`, in a 16-bit offset.
+const MAX_TROOPS: usize = 0x7FFF;
+
 /// A map of the cartridge: its number and its size, in cells.
 #[derive(Debug, Clone, Copy)]
 pub struct Map {
@@ -68,7 +80,7 @@ pub struct Map {
 /// The encounters of a cartridge.
 #[derive(Debug, Clone, Default)]
 pub struct Encounters {
-    /// Per map of the cartridge, in its order, its record, or `$FF` if
+    /// Per map of the cartridge, in its order, its record, or [`NONE`] if
     /// nothing is met there.
     pub per_map: Vec<i64>,
     /// Per record: `base`, the step thresholds, and its zones.
@@ -99,7 +111,7 @@ impl Encounters {
             let steps =
                 steps.unwrap_or_else(|| game.tree.encounter_steps(map.id as i32) as i64);
             if theirs.is_empty() || base(steps) == 0 {
-                e.per_map.push(0xFF);
+                e.per_map.push(NONE);
                 continue;
             }
             e.per_map.push(e.bases.len() as i64);
@@ -112,13 +124,19 @@ impl Encounters {
                 e.zones.push(zone);
             }
         }
-        // The three are indexed with one byte. With every map of the game
-        // this was measured against it is 53 records, 56 zones and 322
-        // troops, so the one that can go over is the last.
-        if e.bases.len() > 0xFF || e.zones.len() > 0xFF || e.troops.len() > 0xFF {
+        // The indexes are words, so the cap is the tables' own offsets. What
+        // stays a byte is a count *within* a map or a zone: how many zones
+        // a record has and how many troops a zone has.
+        if e.bases.len() > MAX_RECORDS
+            || e.zones.len() > 0xFFFF
+            || e.troops.len() > MAX_TROOPS
+            || e.zone_n.iter().any(|&n| n > 0xFF)
+            || e.zones.iter().any(|z| z.troops.len() > 0xFF)
+        {
             return Err(Bad::answer(format!(
-                "the encounters don't fit in one-byte tables: {} record(s), {} zone(s), {} \
-                 troop(s)",
+                "the encounters don't fit in the tables: {} record(s) of at most {MAX_RECORDS}, \
+                 {} zone(s), {} troop(s) of at most {MAX_TROOPS}, and at most 255 zones in a \
+                 record and 255 troops in a zone",
                 e.bases.len(),
                 e.zones.len(),
                 e.troops.len()
@@ -131,21 +149,21 @@ impl Encounters {
     /// them with `lda f:table, x`, so anywhere outside bank 0 does.
     ///
     /// ```text
-    /// enc_map           per map, its record or $FF
+    /// enc_map           per map, its record or $FFFF (words)
     /// enc_base          per record, base()
     /// enc_threshold_n   per record, the seven thresholds and a $FF, so
     ///                   the record's index is a shift
-    /// enc_zone_init     per record, its first zone
-    /// enc_zone_n        per record, how many zones
+    /// enc_zone_init     per record, its first zone (words)
+    /// enc_zone_n        per record, how many zones (bytes)
     /// enc_left, enc_arr, enc_right, enc_down
     ///                   per zone, its rectangle
-    /// enc_troop_init    per zone, its first troop in enc_troop
-    /// enc_troop_n       per zone, how many troops
+    /// enc_troop_init    per zone, its first troop in enc_troop (words)
+    /// enc_troop_n       per zone, how many troops (bytes)
     /// enc_troop         the troops, by RM2k number
     /// ```
     pub fn tables(&self) -> String {
         let mut out = String::new();
-        asm::bytes(&mut out, "enc_map", &self.per_map);
+        asm::words(&mut out, "enc_map", &self.per_map);
         asm::words(&mut out, "enc_base", &self.bases);
         let thresholds: Vec<i64> = self
             .thresholds
@@ -153,7 +171,7 @@ impl Encounters {
             .flat_map(|t| t.iter().copied().chain([0xFF]))
             .collect();
         asm::bytes(&mut out, "enc_threshold_n", &thresholds);
-        asm::bytes(&mut out, "enc_zone_init", &self.zone_init);
+        asm::words(&mut out, "enc_zone_init", &self.zone_init);
         asm::bytes(&mut out, "enc_zone_n", &self.zone_n);
         for (k, label) in ["enc_left", "enc_arr", "enc_right", "enc_down"]
             .iter()
@@ -168,7 +186,7 @@ impl Encounters {
             troop_init.push(first);
             first += z.troops.len() as i64;
         }
-        asm::bytes(&mut out, "enc_troop_init", &troop_init);
+        asm::words(&mut out, "enc_troop_init", &troop_init);
         let troop_n: Vec<i64> = self.zones.iter().map(|z| z.troops.len() as i64).collect();
         asm::bytes(&mut out, "enc_troop_n", &troop_n);
         asm::words(&mut out, "enc_troop", &self.troops);
