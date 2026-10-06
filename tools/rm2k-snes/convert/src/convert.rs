@@ -149,7 +149,23 @@ pub fn run(options: Options) -> Result<()> {
     let compiler = Compiler::new(&game, &settings)?;
     let test_event_map = (!cases.is_empty()).then(|| order[start_index]);
     let scan_answer = compiler.scan(&order, &file_commands, &extra, test_event_map, &case_pairs)?;
-    let indices = Indices::from_answer(&scan_answer);
+    let mut indices = Indices::from_answer(&scan_answer);
+    // The slot is a byte: the variables past it have no place in far RAM.
+    // They are dropped from the list, and the compiler already leaves out
+    // the pages that name one (`variable_slot`), so the game loses those
+    // pages and not the cartridge.
+    let slot_max = rm2k_snes_mapdata::engine::VAR_SLOT_MAX as i64;
+    let lost: Vec<i64> = indices.variables.iter().filter(|(_, s)| *s > slot_max).map(|(v, _)| *v).collect();
+    if !lost.is_empty() {
+        indices.variables.retain(|(_, s)| *s <= slot_max);
+        println!(
+            "WARNING: the game names {} variables and {} fit in far RAM: the pages that use one of the {} past it are left out (variables {:?})",
+            indices.variables.len() + lost.len(),
+            slot_max + 1,
+            lost.len(),
+            lost
+        );
+    }
     let changes = scan::party_changes(&every_refs, &scan_answer)?;
     let mut leaders = scan::possible_leaders(&changes, &party);
     // And those of the party each test page continues with: the test can
