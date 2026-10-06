@@ -242,7 +242,9 @@ already_off:
     ; none. Leaving it set, the page that had just finished started again: in
     ; the opening cutscene that restarted the whole scene at frame 692.
     jsr unmark_waiting          ; the waiting one, with its count
-    stz ev_flags, x             ; and the autostart one, whose count already went down
+    lda ev_flags, x             ; and the autostart one, whose count already went down;
+    and #FLAG_ERASED            ; the erased one is not the queue's, and stays
+    sta ev_flags, x
     bra not_auto
 .a16
 same_ev16:
@@ -267,7 +269,7 @@ not_auto:
     dec auto_n
 continues_off:
     lda ev_flags, x
-    and #FLAG_WAIT              ; cleared, and set again below if due
+    and #(FLAG_WAIT | FLAG_ERASED) ; cleared, and set again below if due
     sta ev_flags, x
     lda pg_trigger
     cmp #TRIGGER_AUTO
@@ -396,6 +398,29 @@ each_event:
     bcc :+
     jmp end16                   ; far for a short branch
 :
+    tax
+    sep #$20
+.a8
+    lda ev_flags, x
+    and #FLAG_ERASED
+    beq alive
+    ; `EraseEvent` took it out: no page, not drawn, not blocking, and its
+    ; move route stops. It is looked at **before** the page the pick noted,
+    ; which is none for the events with nothing but a static graphic —the
+    ; pick skips them—: they are the ones that only this hides. It is not
+    ; one of the parallels either, so the list is rebuilt without it.
+    lda rp_ev
+    jsr hide_npc
+    lda rp_ev
+    jsr event_slot
+    cpx #$FFFF
+    beq :+
+    jsr remove_page_from_slot
+:   jmp next
+alive:
+    rep #$20
+.a16
+    lda rp_ev
     asl a
     tax
     lda pick_by_ev, x
@@ -2024,6 +2049,17 @@ free:
 .proc conditions_ok
 .a8
 .i16
+    ; An event `EraseEvent` took out has no page that is met: it is not
+    ; drawn, it does not block and nothing fires it, which is what every
+    ; caller of this looks at. It is the one place that says it, and it
+    ; goes before the switches because it is the cheapest to ask.
+    ldx pg_event
+    cpx #EV_MAX
+    bcs not_erased
+    lda ev_flags, x
+    and #FLAG_ERASED
+    bne fails8
+not_erased:
     rep #$20
 .a16
     lda pg_sa
@@ -2290,7 +2326,7 @@ found:
     ; always runs. If the page did not compile, the event loses its turn; and
     ; if it is autostart, the next frame's sweep marks it again.
     lda ev_flags, x
-    and #(FLAG_AUTO)            ; keeps only the autostart one
+    and #(FLAG_AUTO | FLAG_ERASED) ; keeps the autostart one, and the erased one
     sta ev_flags, x
     dec waiting_n
     phx
@@ -2352,7 +2388,7 @@ seek_more:
     and #FLAG_WAIT
     beq no                      ; it was not: not discounted again
     lda ev_flags, x
-    and #(FLAG_AUTO)            ; keeps only the autostart one
+    and #(FLAG_AUTO | FLAG_ERASED) ; keeps the autostart one, and the erased one
     sta ev_flags, x
     dec waiting_n
 no:

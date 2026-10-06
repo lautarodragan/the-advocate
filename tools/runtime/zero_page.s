@@ -201,9 +201,14 @@ PANIC_JUMPS = 1         ; the teleport budget ran out
 ; RM2k. There this one does not hang: it spends the frame and moves on.
 STARTS_MAX = 8
 
-; The two bits of `ev_flags`, one per event.
+; The bits of `ev_flags`, one per event. The first two are the autostart
+; queue's and the refresh rebuilds them; `FLAG_ERASED` is not: it says that
+; `EraseEvent` took the event out until the map is loaded again. Only
+; `clear_waits` clears it, and everything that rewrites the other two has to
+; keep it.
 FLAG_WAIT = $01
 FLAG_AUTO   = $02
+FLAG_ERASED = $04
 ev_cur:      .res 2     ; the cursor inside the running page
 ; The parallel interpreters. The event list and each one's state live in bank
 ; 1 RAM; only what the loop needs at hand stays here.
