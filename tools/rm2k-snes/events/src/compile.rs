@@ -578,10 +578,12 @@ impl Ctx<'_> {
 
 // --- bytes ---------------------------------------------------------------------
 
-/// A value that has to be a byte. One that is not stops the conversion,
-/// which is what the converter always did with it.
+/// A value that has to be a byte. One that is not leaves the page out, like
+/// any command the ROM cannot carry: until 2026-10-06 it stopped the whole
+/// conversion, and a game with a switch past 255 in a route (Vampires Dawn's
+/// 263) could not be built for one command.
 fn byte(v: i64) -> Step<u8> {
-    u8::try_from(v).map_err(|_| Stop::Fatal(Bad::answer(format!("{v} does not fit in a byte"))))
+    u8::try_from(v).map_err(|_| Stop::Cannot)
 }
 
 /// A word, little-endian: `v & 0xFF` and `v >> 8`, and the second has to fit.

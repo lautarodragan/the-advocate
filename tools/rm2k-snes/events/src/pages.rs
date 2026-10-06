@@ -308,6 +308,24 @@ pub fn map_pages(ctx: &mut Ctx, map: &Map, map_events: &MapEvents) -> Result<Vec
         {
             continue;
         }
+        // An event with a page whose condition names a variable that has no
+        // slot (the game has more than fit in far RAM) is left out whole:
+        // the table is indexed by the event's pages, so dropping only that
+        // page would shift the others. It is the same as the timer case
+        // above, and it is said.
+        if let Some(v) = event
+            .pages
+            .iter()
+            .filter_map(|p| p.condition.variable)
+            .map(|(v, _)| v)
+            .find(|&v| variable_slot(ctx.indices, v).is_err())
+        {
+            eprintln!(
+                "  map {}: WARNING, event {} is left out: a page condition names variable {v}, which has no slot in far RAM",
+                map.id, event.id
+            );
+            continue;
+        }
         for (page_number, page) in event.pages.iter().enumerate() {
             let c = &page.condition;
             let mut code = None;

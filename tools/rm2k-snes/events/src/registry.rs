@@ -242,9 +242,12 @@ pub const ROUTE_GFX_MAX: usize = 8;
 
 impl Graphics {
     pub fn new(associations: &[(String, i32)]) -> Graphics {
+        // The associations take the table's first slots in every map; past
+        // its end they are dropped too, and noted.
+        let kept = associations.len().min(ROUTE_GFX_MAX);
         Graphics {
-            pairs: associations.to_vec(),
-            dropped: Vec::new(),
+            pairs: associations[..kept].to_vec(),
+            dropped: associations[kept..].to_vec(),
         }
     }
 
