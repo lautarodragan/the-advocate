@@ -237,6 +237,31 @@ pub struct Game {
     pub translucent: Translucent,
     /// The pictures the game crops instead of scaling.
     pub cropped: crate::pictures::Cropped,
+    /// `[graphics] system`, the System the cartridge draws with instead of
+    /// the database's —see [`system_choice`]—. None, the database's.
+    pub system: Option<String>,
+}
+
+/// `[graphics] system`, **optional**: the System to draw with instead of
+/// the one the database names. A name, looked for as the database's is
+/// —in the game and then in the RTP—; or a picture of the project's own,
+/// a path relative to the project file that ends in `.png` or `.bmp`,
+/// which comes back absolute. The screens stage takes it as `--system`.
+fn system_choice(project: &Project) -> Result<Option<String>> {
+    let keys = ["graphics", "system"];
+    if project.value(&keys).is_err() {
+        return Ok(None);
+    }
+    let given = project.string(&keys)?;
+    let lower = given.to_ascii_lowercase();
+    if !(lower.ends_with(".png") || lower.ends_with(".bmp")) {
+        return Ok(Some(given.to_string()));
+    }
+    let path = rm2k_project::absolute(project.directory().join(given));
+    if !path.is_file() {
+        crate::stop!("[graphics] system: {} is not a file", path.display());
+    }
+    Ok(Some(path.to_string_lossy().into_owned()))
 }
 
 /// The dump a game folder is read from: its own, if it has one, and the
@@ -297,6 +322,7 @@ impl Game {
             tree,
             translucent,
             cropped: crate::pictures::Cropped::read(project)?,
+            system: system_choice(project)?,
         })
     }
 

@@ -227,9 +227,15 @@ pub struct Prepared {
 
 /// The game's System, for the timer's digits: in the game's `System/`,
 /// then in the game's folder itself, and then in the RTP's `System/`;
-/// without regard to case, as RPG_RT finds it.
+/// without regard to case, as RPG_RT finds it. The project's
+/// `[graphics] system` comes before the database's, and if it is a picture
+/// of its own —see `system_choice`— it is not looked for.
 fn system_path(game: &Game) -> Result<PathBuf> {
-    let name = &game.db.system_name;
+    let name = game.system.as_ref().unwrap_or(&game.db.system_name);
+    let own = PathBuf::from(name);
+    if own.is_absolute() {
+        return Ok(own);
+    }
     let rtp: Vec<PathBuf> = game.rtp_dir.iter().cloned().collect();
     crate::resources::find(&[&game.game_dir], "System", name, &[".png", ".bmp"])
         .or_else(|| Some(game.game_dir.join(format!("{name}.png"))).filter(|p| p.exists()))
