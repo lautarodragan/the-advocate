@@ -364,21 +364,22 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
     // where a layout would hold the map's sprites and upper tiles: fusing
     // does nothing for a map that is over on those.
     if request.fuse_tiles.is_none() {
-        if let Some(mut cap) = fusable(&worst, request) {
+        if let Some(room) = fusable(&worst, request) {
+            let mut cap = room;
             for _ in 0..FUSE_TRIES {
                 let asked = MapRequest {
                     fuse_tiles: Some(cap),
                     ..request.clone()
                 };
                 let done = convert(game, &asked)?;
-                let layouts = layouts_for(&done.layers.converted, request);
-                if fits(&done, &layouts) {
+                if fits(&done, &layouts_for(&done.layers.converted, request)) {
                     return Ok(done);
                 }
-                // The count the fusion aims at leaves out the tiles of the
-                // animated families, which come after it: ask for fewer.
+                // The count the fusion aims at is not the console's to the
+                // tile —the animated families' come after it, and Voodoo
+                // keeps a blank one—: it asks for as many fewer as it was
+                // over by.
                 let spent = done.layers.converted.background.tiles.len() / 64;
-                let room = layouts.iter().map(|l| l.0).max().unwrap_or(0);
                 if spent <= room || cap <= spent - room {
                     break;
                 }
