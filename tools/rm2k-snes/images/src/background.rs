@@ -20,15 +20,14 @@
 //! not scale the map, so a scaled capture no longer matches it, and the
 //! console's window of it does. The canvas is the screen and nothing more.
 //!
-//! **The colours are Adeleine's**: brought down to what the palettes can
-//! hold —first by what shows the least, to the most the palettes could
-//! ever take, and then until each cell's colours fit one of them—, so the
-//! choice of what is lost happens before the tiles are cut. Voodoo cuts
-//! them, numbers the distinct ones and reuses the mirrored ones.
+//! **The colours are Adeleine's**: cells are grouped by colour and each
+//! group chooses its palette, so the choice of what is lost happens before
+//! the tiles are cut. Voodoo cuts them, numbers the distinct ones and
+//! reuses the mirrored ones.
 
 use crate::pixels::{counts, scaled_rgba, to_15_bits};
 use crate::show_picture::{zoomed, Screens};
-use adeleine::{merge_least_visible, reduce_colors, Color, Colors, USABLE_COLORS};
+use adeleine::{reduce_colors, Color, Colors, USABLE_COLORS};
 use rm2k_render::Picture;
 use std::collections::{BTreeSet, HashMap};
 
@@ -223,54 +222,30 @@ impl Canvas {
 
 /// The canvas as tiles, or `None` if they are more than `room` holds.
 fn layer(canvas: &Canvas, drawn: &[Option<Color>], room: Room) -> crate::Result<Option<Background>> {
-    // Down to what the palettes could ever hold, by what shows the least:
-    // the cells' fit comes after, on far fewer colours.
-    let opaque: Vec<Color> = drawn.iter().flatten().copied().collect();
-    let first = counts(&opaque);
-    let most = room.palettes * USABLE_COLORS;
-    let to: HashMap<Color, Color> = if first.len() > most {
-        let merged = merge_least_visible(&first, most)?;
-        first.iter().map(|&(c, _)| c).zip(merged.mapping).collect()
-    } else {
-        first.iter().map(|&(c, _)| (c, c)).collect()
-    };
-    let drawn: Vec<Option<Color>> = drawn.iter().map(|p| p.map(|c| to[&c])).collect();
     let opaque: Vec<Color> = drawn.iter().flatten().copied().collect();
     let totals = counts(&opaque);
-    let cells = canvas.cells(&drawn);
-    let wanted: Vec<Colors> = cells.iter().filter(|s| !s.is_empty()).cloned().collect();
-    let (to, palettes): (HashMap<Color, Color>, Vec<Colors>) = if wanted.is_empty() {
-        (HashMap::new(), Vec::new())
-    } else {
-        let reduced = reduce_colors(&totals, &wanted, room.palettes, USABLE_COLORS)?;
-        (
-            totals.iter().map(|&(c, _)| c).zip(reduced.mapping).collect(),
-            reduced.palettes,
-        )
-    };
-    let drawn: Vec<Option<Color>> = drawn.iter().map(|p| p.map(|c| to[&c])).collect();
-    let cells = canvas.cells(&drawn);
-    let palettes: Vec<Vec<Color>> = palettes.into_iter().map(|p| p.into_iter().collect()).collect();
+    let cells = canvas.cells(drawn);
+    let reduced = reduce_colors(&totals, &cells, room.palettes, USABLE_COLORS)?;
+    let palettes: Vec<Vec<Color>> = reduced.palettes.into_iter().map(|p| p.into_iter().collect()).collect();
 
-    // Each cell in the first palette that holds its colours, and each pixel
-    // as a colour-memory entry: the palette's sixteen, from the first one.
+    // Each cell uses the palette Adeleine chose for its group, and each
+    // colour uses that cell's local mapping.
     let columns = canvas.width / CELL;
     let mut indices = vec![0u8; drawn.len()];
-    for (k, set) in cells.iter().enumerate() {
-        if set.is_empty() {
+    for (k, (set, decided)) in cells.iter().zip(&reduced.tiles).enumerate() {
+        let Some(p) = decided.palette else {
             continue;
-        }
-        let p = palettes
-            .iter()
-            .position(|pal| set.iter().all(|c| pal.contains(c)))
-            .expect("Adeleine packed every cell");
+        };
+        let mapping: HashMap<Color, Color> = set.iter().copied()
+            .zip(decided.mapping.iter().copied()).collect();
         let entry = (room.first_palette + p) * 16;
         let (cx, cy) = (k % columns, k / columns);
         for y in 0..CELL {
             for x in 0..CELL {
                 let at = (cy * CELL + y) * canvas.width + cx * CELL + x;
                 if let Some(c) = drawn[at] {
-                    let i = palettes[p].iter().position(|q| *q == c).expect("in its palette");
+                    let target = mapping[&c];
+                    let i = palettes[p].iter().position(|q| *q == target).expect("in its palette");
                     indices[at] = (entry + 1 + i) as u8;
                 }
             }

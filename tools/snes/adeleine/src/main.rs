@@ -52,13 +52,13 @@ enum Command {
         order, or {\"palettes\": null} if the tiles do not fit in that many."
     )]
     Pack(Files),
-    /// Merge the colours that show the least until the tiles fit in the palettes
+    /// Group nearby tiles and choose the colours of each palette
     #[command(
         after_help = "The request: {\"counts\": [[r, g, b, pixels], ...], \"tiles\": \
         [[[r, g, b], ...], ...], \"palettes\": N}. counts are the pixels over the whole \
-        picture, and tiles the colours of each distinct tile.\n\
-        Writes reduce.json: {\"mapping\": [...], \"palettes\": [...], \"merges\": [...]}, as \
-        merge and pack write them."
+        picture, and tiles the colours of each tile.\n\
+        Writes reduce.json: {\"palettes\": [...], \"tiles\": [{\"palette\": N, \
+        \"mapping\": [...]}], \"merges\": [[palette, victim, target, pixels], ...]}."
     )]
     Reduce(Files),
 }

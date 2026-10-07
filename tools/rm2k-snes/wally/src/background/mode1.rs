@@ -27,7 +27,8 @@ use crate::background::layers::{
     PanoramaAsk, Run, BG_PALETTES, COLORS_PER_PALETTE, MAX_TILES,
 };
 use crate::background::panorama;
-use adeleine::{Color, Merge};
+use crate::background::Merge;
+use adeleine::Color;
 use rm2k_render::{Family, Layers};
 use std::collections::{BTreeSet, HashMap};
 use voodoo::{Options, Picture};
@@ -42,19 +43,14 @@ pub const MAX_MAP_PALETTES: usize = BG_PALETTES - FIRST_MAP_PALETTE - 1;
 fn reduce_places(
     grids: &[&Grid],
     places: &[BTreeSet<Color>],
-) -> Result<(HashMap<Color, Color>, Vec<Vec<Color>>, Vec<Merge>)> {
+) -> Result<(Vec<HashMap<Color, Color>>, Vec<Vec<Color>>, Vec<Merge>)> {
     let totals = counts(grids);
-    let (merged, palettes) = adeleine::merge_until(&totals, |progress| {
-        let now: HashMap<Color, Color> = totals.iter().zip(&progress.mapping).map(|(&(c, _), &to)| (c, to)).collect();
-        let mapped: BTreeSet<BTreeSet<Color>> = places
-            .iter()
-            .map(|t| t.iter().map(|c| *now.get(c).unwrap_or(c)).collect())
-            .collect();
-        let mapped: Vec<BTreeSet<Color>> = mapped.into_iter().collect();
-        adeleine::try_pack(&mapped, MAX_MAP_PALETTES, adeleine::USABLE_COLORS)
-    })?;
-    let to = totals.iter().map(|&(c, _)| c).zip(merged.mapping.iter().copied()).collect();
-    Ok((to, palettes.into_iter().map(|g| g.into_iter().collect()).collect(), merged.merges))
+    let reduced = adeleine::reduce_colors(&totals, places, MAX_MAP_PALETTES, adeleine::USABLE_COLORS)?;
+    let mappings = places.iter().zip(&reduced.tiles)
+        .map(|(tile, decided)| tile.iter().copied().zip(decided.mapping.iter().copied()).collect())
+        .collect();
+    Ok((mappings, reduced.palettes.into_iter().map(|g| g.into_iter().collect()).collect(),
+        reduced.merges.into_iter().map(Merge::from).collect()))
 }
 
 /// The whole map in mode 1: see the module.
@@ -93,28 +89,13 @@ pub fn convert(layers: &Layers, window_colors: usize, ask: &PanoramaAsk) -> Resu
         sets
     };
     let sets = place_sets(&all);
-    let distinct: Vec<BTreeSet<Color>> = sets
-        .iter()
-        .filter(|s| !s.is_empty())
-        .cloned()
-        .collect::<BTreeSet<_>>()
-        .into_iter()
-        .collect();
-    let fitting = (1..=MAX_MAP_PALETTES).find_map(|k| adeleine::try_pack(&distinct, k, adeleine::USABLE_COLORS));
-    let (palettes, mapping, merges): (Vec<Vec<Color>>, HashMap<Color, Color>, Vec<Merge>) = match fitting {
-        Some(groups) => (groups.into_iter().map(|g| g.into_iter().collect()).collect(), HashMap::new(), Vec::new()),
-        None => {
-            // What a place draws in all the drawings goes together, as one
-            // cell: `reduce` packs each grid's cells, so the places are
-            // handed in as a grid of their own.
-            let (to, palettes, merges) = reduce_places(&all, &distinct)?;
-            (palettes, to, merges)
-        }
-    };
-    let base = base.remap(&mapping);
+    // What a place draws in all the animation drawings goes together: its
+    // tilemap entry names one palette for every drawing.
+    let (mappings, palettes, merges) = reduce_places(&all, &sets)?;
+    let base = base.remap_places(&mappings);
     let variants: Vec<(Family, Vec<Grid>)> = variants
         .iter()
-        .map(|(f, gs)| (*f, gs.iter().map(|g| g.remap(&mapping)).collect()))
+        .map(|(f, gs)| (*f, gs.iter().map(|g| g.remap_places(&mappings)).collect()))
         .collect();
     let mut all: Vec<&Grid> = vec![&base];
     all.extend(variants.iter().flat_map(|(_, gs)| gs));

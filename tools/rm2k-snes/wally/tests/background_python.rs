@@ -1,4 +1,4 @@
-//! The layers against the Python they replaced.
+//! Stable layers, from the cases used against the Python they replaced.
 //!
 //! Until 2026-09-30 a map's layers were converted by the converter in
 //! Python (`map_layers.py`, with Adeleine and Voodoo as binaries). What is
@@ -16,9 +16,10 @@
 //! every family, passability and terrain: the terrain from a ChipSet whose
 //! table is not all 1, through `rm2k-rules`.
 //!
-//! **If one of these changes, a byte of the cartridge changed.** The
-//! hashes are not to be regenerated to make a test pass: the Python that
-//! produced them is gone, and with it the only independent answer.
+//! **If one of these changes, a byte of the cartridge changed.** Most hashes
+//! came from that independent Python answer. The palette-grouping hashes
+//! deliberately changed when reductions became local to a tile palette;
+//! they now freeze that result.
 //!
 //! The Python's message window took eight colour-memory entries, and so do
 //! these layers: [`PYTHON_WINDOW_COLORS`]. When the window grew to thirteen
@@ -224,8 +225,8 @@ const EXPECTED: [(&str, Expected); 5] = [
         tiles: "cd75e5ee4fe16f60915ea566edd29749d60ad7974b5fe635d4eeb64c9f7b2cc1",
         cgram: "474cea8ae7718655dd93cd155ca3d62cb5adf2c31ca43ce7e4d82d267fa7488b",
         tilemap: "3ad6419cf3051401633184e3b71c7b3a3e59ebf77b04d03367dcea762138457a",
-        above_tiles: "99fb45870e36d95add8345e617dac14b2f2b4d09da83f4fdc21315b256d8b59b",
-        above_cgram: "700c696f756005781eb30cc47d440de1f61b521418c9595e3ebf342e507b8093",
+        above_tiles: "52b3cd9fd4a2203755ebdb9ec0d624593762f2670ba55e170407f0521c35b08b",
+        above_cgram: "c49831bdde31babed382c6b69898d25ca7057c2b3e3191f17ae05ef8984fb0fa",
         above_tilemap: "841cbdb79f817489aa031690cd301e09cd00321dc769e664bbfe30a55524c707",
         above_first: 7,
         above_merged: 75,
@@ -235,24 +236,24 @@ const EXPECTED: [(&str, Expected); 5] = [
         merged: 96,
         runs: &[],
         merges: "c92c674606510ad0dbdbd790a48381e31cb07911482f8915c1aa9067c23d2067",
-        above_merges: "6054a69f452f6f392cc2ccf151d768afaff3e46204e8aa5b52fdd3888fac36da",
+        above_merges: "d8be3a843c8b043f5608816749c127eef52023cef5823c90b7a7e782230e2694",
     }),
     ("animated", Expected {
         tiles: "ffe0b04d5ed5bf05bfc9118763c3a2f1174605a1a2517869c1dc9f6f81ef4aef",
         cgram: "198992644ffb83775eebf0cb09f1ea09b805d9fdd02b66e2d71bd80afcd5ab49",
         tilemap: "b70b9a807ac1e6c70bac88fc7ac6786719f2709791bcc2da5dee6dd4289bdd78",
-        above_tiles: "72280aaed0b16b3cc0dec9f3e14b639b134e237d3103b8e49f962bb1f9553607",
-        above_cgram: "446c5d0d70562691908ec06c2fd5fd2a59096e5dcc7381652fdddc76590e1d64",
-        above_tilemap: "8d4b8dbcb8064905fafbb953d381b5a2b9dc3d3051b87e76c3b3a52bbd82c43c",
-        above_first: 7,
-        above_merged: 5,
+        above_tiles: "4e1e525c3a1721b26db5dcfa467b070a0cc464b1714cc5c3fcee59e875c53139",
+        above_cgram: "112b1fab5e816cf8900f403c55d4e3e32f8bdb18e7755c271e066b619b515fc8",
+        above_tilemap: "4ae16701dfe747968690c882204f5a1f3bb31443fd22026ee3c21a208cfed068",
+        above_first: 5,
+        above_merged: 9,
         colors: 60,
         used: 60,
-        budget: 103,
+        budget: 71,
         merged: 0,
         runs: &[("water", 11, 5, "04ef08ed6984f56ff596c7145c2919d57b15b53335e0d406c276af463363427a"), ("animated", 16, 5, "4e6a35aee83cb10e2c964c15cb6e2343d40900d55145116b81b9ec55496d44b2")],
         merges: "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-        above_merges: "acb38a875c38d8a77f9543fee16c7235d960cfb2693bc1b92b43d3c629ad538d",
+        above_merges: "6bf4d985c4e0c7678b550461de083ab62349fb53ec9529ffccc5484c8d8b6d1d",
     }),
     ("split", Expected {
         tiles: "7c38c702ca45b24665f3edba27a391e5865775c3bb2b3409c65399043b0a2b0e",
@@ -275,23 +276,23 @@ const EXPECTED: [(&str, Expected); 5] = [
         tiles: "ed01e273dd25eef30e976a1c2fe93187ca985bffce863e8e82b257b985728350",
         cgram: "4c47b41f9d4fce87d4ef984b9327a839cfce6500797a4a62f9d317ca10aeaef0",
         tilemap: "ebab16a80c31d5446c615983b8e392883b0725de500c9c6c628a87fe0411fabc",
-        above_tiles: "1ef1b3621e83db942785d5e599ef4070b4a17541ee2cc3ac8b8161199c140e1b",
-        above_cgram: "43e167b12b4f735d7f7985d069bb4baa8f9330ae0e1aa69b426a4922815942d5",
-        above_tilemap: "b116e616a5270cba32df8507ae5127362a93de5886c29734e0187491e1f0cb4a",
-        above_first: 7,
-        above_merged: 105,
+        above_tiles: "259f7aa251204707a5a1420277dab61d6f64222f45207fd0640902d19034079c",
+        above_cgram: "9409a875bf696109284f6f6c80f75a3547824b6c36788d38a99e46435cd85598",
+        above_tilemap: "9b8aacada88b12ebefac1fa160a8fc96eb033b960abe41f118a361a829fdf411",
+        above_first: 3,
+        above_merged: 318,
         colors: 30,
         used: 30,
-        budget: 103,
+        budget: 39,
         merged: 0,
         runs: &[],
         merges: "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-        above_merges: "2260679b11e8152e42694b1c43834829634242a0ecd49a10b969dc7b89f940dc",
+        above_merges: "37c2fe76fa654296468629d6f84238d02cb3d694391f53aa4cd7420982f22a2b",
     }),
 ];
 
 #[test]
-fn the_layers_are_the_ones_the_python_made() {
+fn the_layers_are_stable() {
     for (name, want) in &EXPECTED {
         let done = convert(&case(name), PYTHON_WINDOW_COLORS).unwrap();
         let (bg, above) = (&done.background, &done.above);
@@ -372,7 +373,7 @@ const BLOCKS: [(&str, ExpectedBlocks); 5] = [
     }),
     ("animated", ExpectedBlocks {
         cells: "cf6cf8ff894814c395340e3b27ff21b83897b43f30ccad058d8340de5dd46ed8",
-        table: "c39c7d9e6240b2ce8edc31c80ad7f337676fd9fa1d141ad70a0013d5d8754f31",
+        table: "d5838a93739723b08c265a2217bdaad22d731aa97e52e6188d43d62630588562",
         passability: "ccb9d89a0f646e1157f45fb6cab35a984ae2af6c4912046ab4289a159e05bea4",
         terrain: "65c7dccad540e49232e4cc6f4797b7c3031a8b87fc11927adf7ec36f01ff68cb",
         combos: "76a222edc33d23aca20e582091aca43cede959a5095b782f0206723df6bb0365",
@@ -388,7 +389,7 @@ const BLOCKS: [(&str, ExpectedBlocks); 5] = [
     }),
     ("above", ExpectedBlocks {
         cells: "64a240d34d0c29ec867f653721a1532de6e665e602e7c03e0b853c9ef3094126",
-        table: "66d4ecc11d1169dfd48b38f2e07beb634f8f42b7ac1dc23fb4103fae75626f42",
+        table: "29209405835c2cec0933bf736d4ab5cc73c651d223cb16f13e645e4652219272",
         passability: "0d1339c5569dfa55c85cd91580f301ecf44f51759cfbc61f6a98815c97b12da2",
         terrain: "d4368535d31cd5698b1766f38381b24b33c2611f57c7fcdb50f01affba6f8b97",
         combos: "64fd309ebf75eb8984569262e42839e9d2ed452614583982c169a5835492d664",
@@ -410,7 +411,7 @@ fn tile_ids(n: usize, seed: u64) -> (Vec<i32>, Vec<i32>) {
 }
 
 #[test]
-fn the_blocks_are_the_ones_the_python_made() {
+fn the_blocks_are_stable() {
     let chipset = Chipset {
         terrain_data: (0..162).map(|k| (1 + h(k * 11) % 3) as i16).collect(),
         ..Chipset::default()
