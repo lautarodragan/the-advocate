@@ -643,11 +643,15 @@ pub fn write(
     write_file(out, ANSWER_FILE, answer.to_string().as_bytes())
 }
 
-/// Each merge as `[victim, target, pixels]`, a colour as `[r, g, b]`.
+/// A global merge as `[victim, target, pixels]`, or a palette-local one as
+/// `[palette, victim, target, pixels]`; a colour is `[r, g, b]`.
 fn merges_json(merges: &[Merge]) -> Vec<Value> {
     merges
         .iter()
-        .map(|m| json!([m.victim, m.target, m.pixels]))
+        .map(|m| match m.palette {
+            Some(palette) => json!([palette, m.victim, m.target, m.pixels]),
+            None => json!([m.victim, m.target, m.pixels]),
+        })
         .collect()
 }
 

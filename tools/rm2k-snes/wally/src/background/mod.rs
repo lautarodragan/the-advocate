@@ -21,6 +21,37 @@ pub mod layers;
 pub mod mode1;
 pub mod panorama;
 
-pub use adeleine::Merge;
 pub use fail::{Bad, Result};
 pub use layers::{convert, convert_with, Above, Background, Converted, Decided, PanoramaAsk, Run};
+
+/// A colour change. A global merge has no palette; a palette-local one does,
+/// because the same source colour can go somewhere else in another tile.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Merge {
+    pub palette: Option<usize>,
+    pub victim: adeleine::Color,
+    pub target: adeleine::Color,
+    pub pixels: u64,
+}
+
+impl From<adeleine::Merge> for Merge {
+    fn from(merge: adeleine::Merge) -> Self {
+        Merge {
+            palette: None,
+            victim: merge.victim,
+            target: merge.target,
+            pixels: merge.pixels,
+        }
+    }
+}
+
+impl From<adeleine::PaletteMerge> for Merge {
+    fn from(merge: adeleine::PaletteMerge) -> Self {
+        Merge {
+            palette: Some(merge.palette),
+            victim: merge.victim,
+            target: merge.target,
+            pixels: merge.pixels,
+        }
+    }
+}

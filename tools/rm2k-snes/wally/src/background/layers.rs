@@ -23,7 +23,8 @@
 use crate::background::fail::{Bad, Result};
 use crate::background::grid::{colors, counts, Cell, Grid, CELL};
 use crate::background::panorama::Panorama;
-use adeleine::{Color, Merge};
+use crate::background::Merge;
+use adeleine::Color;
 use rm2k_render::{Family, Layers};
 use std::collections::{BTreeSet, HashMap};
 use voodoo::{Options, Picture, Rgb15};
@@ -292,43 +293,28 @@ pub fn convert_with(layers: &Layers, window_colors: usize, panorama: Option<&Pan
     })
 }
 
-/// Which palettes the layer above takes, with `limit` as the cap; if they
-/// do not fit, merging until they do. Returns the grid —another one if
-/// something merged—, the palettes, each sorted, and the merges.
+/// Which palettes the layer above takes, with `limit` as the cap. Returns
+/// the grid —another one if colours changed—, the palettes, each sorted,
+/// and the palette-local changes.
 ///
 /// There are two reasons for not fitting, and one fix: that the colours are
 /// too many for the palettes granted, or that a single tile has more than
 /// fifteen, which fits no palette however many there are. Both are fixed by
-/// merging the colour that shows least into its nearest and trying again.
+/// choosing the colours of each group and mapping every cell locally.
 pub(crate) fn split_above(grid: &Grid, limit: usize) -> Result<(Grid, Vec<Vec<Color>>, Vec<Merge>)> {
-    let sets: BTreeSet<BTreeSet<Color>> = grid
-        .cells
-        .iter()
-        .map(colors)
-        .filter(|s| !s.is_empty())
-        .collect();
-    let sets: Vec<BTreeSet<Color>> = sets.into_iter().collect();
-    if sets.is_empty() {
-        return Ok((grid.clone(), Vec::new(), Vec::new()));
-    }
-    if let Some(groups) = adeleine::try_pack(&sets, limit, adeleine::USABLE_COLORS) {
-        let palettes = groups.into_iter().map(|g| g.into_iter().collect()).collect();
-        return Ok((grid.clone(), palettes, Vec::new()));
-    }
     let totals = counts(&[grid]);
-    let tiles: Vec<BTreeSet<Color>> = grid.cells.iter().map(colors).collect();
+    let tiles: Vec<BTreeSet<Color>> = grid.at.iter().map(|&i| colors(&grid.cells[i])).collect();
     let reduced = adeleine::reduce_colors(&totals, &tiles, limit, adeleine::USABLE_COLORS)?;
-    let to: HashMap<Color, Color> = totals
-        .iter()
-        .map(|&(c, _)| c)
-        .zip(reduced.mapping.iter().copied())
+    let mappings: Vec<HashMap<Color, Color>> = tiles.iter().zip(&reduced.tiles)
+        .map(|(tile, decided)| tile.iter().copied().zip(decided.mapping.iter().copied()).collect())
         .collect();
     let palettes = reduced
         .palettes
         .into_iter()
         .map(|g| g.into_iter().collect())
         .collect();
-    Ok((grid.remap(&to), palettes, reduced.merges))
+    Ok((grid.remap_places(&mappings), palettes,
+        reduced.merges.into_iter().map(Merge::from).collect()))
 }
 
 /// Every colour-memory entry with a colour, black where the picture gives
@@ -489,7 +475,7 @@ fn build_palette(
         palette.into_iter().collect(),
         grid.remap(&to),
         others.iter().map(|g| g.remap(&to)).collect(),
-        merged.merges,
+        merged.merges.into_iter().map(Merge::from).collect(),
     ))
 }
 

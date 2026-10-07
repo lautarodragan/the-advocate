@@ -224,9 +224,24 @@ impl fmt::Display for Key {
 /// A color, in 15-bit RGB: each component 0 to 31.
 pub type Rgb = [i64; 3];
 
-/// One merge: color `.0` goes to color `.1`, and it moved `.2` pixels when it
-/// was decided.
-pub type Merge = (Rgb, Rgb, i64);
+/// One colour change. A global merge is `[from, to, pixels]`; a tile-palette
+/// reduction is `[palette, from, to, pixels]`, because one source colour may
+/// go to different targets in different palettes.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(untagged)]
+pub enum Merge {
+    Global((Rgb, Rgb, i64)),
+    Palette((i64, Rgb, Rgb, i64)),
+}
+
+impl Merge {
+    pub fn parts(&self) -> (Option<i64>, &Rgb, &Rgb, i64) {
+        match self {
+            Merge::Global((from, to, pixels)) => (None, from, to, *pixels),
+            Merge::Palette((palette, from, to, pixels)) => (Some(*palette), from, to, *pixels),
+        }
+    }
+}
 
 /// What the converter decided for one build: the request of
 /// `--request`, as JSON.
@@ -269,10 +284,10 @@ pub struct MapDecision {
     pub colors: i64,
     /// How many CGRAM entries the upper layer left the background.
     pub budget: i64,
-    /// The background's merges, in the order they were applied.
+    /// The background's global or palette-local colour changes.
     #[serde(default)]
     pub background: Vec<Merge>,
-    /// The upper layer's.
+    /// The upper layer's colour changes.
     #[serde(default)]
     pub above: Vec<Merge>,
     /// How it shows its panorama, if it has one, and what that lost.

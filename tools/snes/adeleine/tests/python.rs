@@ -1,11 +1,11 @@
-//! What the Python this replaced decided, for colours generated here.
+//! Stable decisions for colours generated here.
 //!
 //! Each case builds its colours and tiles with a small generator, runs them
 //! through the library and hashes the answer as the executable writes it.
-//! The hashes are those of the same answer from the Python version, fed the
-//! same generator, on 2026-09-29, written with its keys in order the way
-//! the executable writes them. A case that changes hash changed what some
-//! picture looks like.
+//! The merge and pack hashes are those of the same answer from the Python
+//! version, fed the same generator on 2026-09-29. Reduction deliberately
+//! differs: its hashes freeze the grouped result. A case that changes hash
+//! changed what some picture looks like.
 
 use adeleine::request::{merged_answer, packed_answer, reduced_answer};
 use adeleine::{
@@ -169,7 +169,7 @@ fn tiles_that_do_not_fit_answer_null() {
 fn sixty_colours_into_two_palettes() {
     assert_eq!(
         reduce(21, 60, 30, 12, 2),
-        "6490f6fd5b7d0af6ad4faa62f1bea12da5cd01affe7143e2da0eebb3cf124765"
+        "b485b1a77a5d33f631dda848db89f7bb6ab90cc4baafc3b203f397a5120a7aa4"
     );
 }
 
@@ -178,7 +178,7 @@ fn sixty_colours_into_two_palettes() {
 fn full_tiles_into_three_palettes() {
     assert_eq!(
         reduce(22, 40, 200, 15, 3),
-        "88d7c8a9a25217ab59e6a5d0c752477968b1237c45e67bb2f1ad51c44ded40e4"
+        "37985aeb222d7982a08d0419bad763340d2ed86bf07488ca8abe94363bd57914"
     );
 }
 

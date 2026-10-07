@@ -25,12 +25,12 @@ otherwise.
 * **`pack`**: split these tiles' colours into at most N palettes, so that
   each tile draws with one. Nothing is merged. The answer is `null` if they
   do not fit.
-* **`reduce`**: merge until the tiles fit in N palettes. This is `pack` for a
-  picture that does not fit as it is. The real limit is how the colours are
-  spread, not how many there are: a tile with 14 colours forces those 14
-  into one palette.
+* **`reduce`**: group nearby tiles into N palettes and choose the colours of
+  each palette. This is `pack` for a picture that does not fit as it is. The
+  real limit is how the colours are spread, not how many there are: a tile
+  with 14 colours asks one palette to represent all 14.
 
-## How it merges
+## How `merge` merges
 
 It merges the pair that **shows the least**, one pair at a time. Sending
 colour `a` to colour `b` costs `pixels(a) × distance(a, b)`, which is the
@@ -47,6 +47,19 @@ stays.
 It never invents a colour: the one that stays was already in the picture. It
 is also deterministic. The costs are integers, and every tie is broken by the
 colour, red first.
+
+## How `reduce` groups
+
+Tiles start in groups by their pixel-weighted mean colour, with far-apart
+means chosen first. Each group then fills its palette greedily with the colour
+that minimises its total luma-weighted error, followed by two best swaps to
+undo an early greedy choice, and tiles move to the palette that represents
+them best. A source colour may therefore go to different targets in different
+palettes. The answer gives every tile's palette and local mapping.
+
+It uses only colours from the picture, integer costs and sorted tie breaks, so
+it invents no colour and is deterministic. If `pack` already succeeds,
+`reduce` returns exactly those palettes and changes no pixel.
 
 ## Keeping the most used
 
@@ -84,5 +97,6 @@ the call is wrong. The message goes to standard error.
 ## Tests
 
 `tests/python.rs` builds its colours and tiles with a small generator and
-compares the answers against the hashes of what the Python version gave for
-the same input. They need no picture.
+hashes the answers. The unchanged operations retain the hashes of the Python
+version they replaced; reduction has its own hashes because it deliberately
+chooses different pixels. They need no picture.

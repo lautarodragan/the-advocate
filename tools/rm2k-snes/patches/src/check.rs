@@ -129,14 +129,14 @@ fn field<'a>(doc: &'a Table, path: &[&str]) -> Option<&'a Value> {
 
 // --- What changed, per kind -------------------------------------------------
 
-type MergeRow<'a> = (&'a Value, &'a Value, Option<&'a Value>);
+type MergeRow<'a> = (Option<&'a Value>, &'a Value, &'a Value, Option<&'a Value>);
 
 fn merges<'a>(doc: &'a Table, layer: &str) -> Vec<MergeRow<'a>> {
     field(doc, &["capas", layer, "fusiones"])
         .and_then(Value::as_array)
         .map(|rows| {
             rows.iter()
-                .filter_map(|f| Some((f.get("de")?, f.get("a")?, f.get("pixeles"))))
+                .filter_map(|f| Some((f.get("paleta"), f.get("de")?, f.get("a")?, f.get("pixeles"))))
                 .collect()
         })
         .unwrap_or_default()
@@ -165,32 +165,37 @@ fn map_diff(old: &Table, new: &Table) -> Vec<String> {
             ));
         }
         for (i, (a, b)) in before.iter().zip(&after).enumerate() {
-            if (a.0, a.1) != (b.0, b.1) {
+            if (a.0, a.1, a.2) != (b.0, b.1, b.2) {
+                if a.0.is_none() && b.0.is_none() {
+                    out.push(format!(
+                        "layer {layer}: merge {i} sent {} to {} and now sends {} to {}",
+                        color(a.1), color(a.2), color(b.1), color(b.2)
+                    ));
+                } else {
+                    out.push(format!(
+                        "layer {layer}: change {i} in palette {} sent {} to {} and now palette {} sends {} to {}",
+                        shown(a.0), color(a.1), color(a.2), shown(b.0), color(b.1), color(b.2)
+                    ));
+                }
+            } else if a.3 != b.3 {
+                let word = if a.0.is_none() { "merge" } else { "change" };
                 out.push(format!(
-                    "layer {layer}: merge {i} sent {} to {} and now sends {} to {}",
-                    color(a.0),
-                    color(a.1),
-                    color(b.0),
-                    color(b.1)
-                ));
-            } else if a.2 != b.2 {
-                out.push(format!(
-                    "layer {layer}: merge {i} of {} moved {} pixel(s) and now moves {}",
-                    color(a.0),
-                    shown(a.2),
-                    shown(b.2)
+                    "layer {layer}: {word} {i} of {} moved {} pixel(s) and now moves {}",
+                    color(a.1), shown(a.3), shown(b.3)
                 ));
             }
         }
-        for (v, d, _) in after.iter().skip(before.len()) {
-            out.push(format!("layer {layer}: extra merge {} -> {}", color(v), color(d)));
+        for (p, v, d, _) in after.iter().skip(before.len()) {
+            match p {
+                None => out.push(format!("layer {layer}: extra merge {} -> {}", color(v), color(d))),
+                Some(palette) => out.push(format!("layer {layer}: extra change in palette {}: {} -> {}", shown(Some(palette)), color(v), color(d))),
+            }
         }
-        for (v, d, _) in before.iter().skip(after.len()) {
-            out.push(format!(
-                "layer {layer}: no longer merges {} -> {}",
-                color(v),
-                color(d)
-            ));
+        for (p, v, d, _) in before.iter().skip(after.len()) {
+            match p {
+                None => out.push(format!("layer {layer}: no longer merges {} -> {}", color(v), color(d))),
+                Some(palette) => out.push(format!("layer {layer}: no longer changes {} -> {} in palette {}", color(v), color(d), shown(Some(palette)))),
+            }
         }
     }
     for name in ["camino", "imagen", "modo", "tiles", "distintos", "colores", "quedan"] {

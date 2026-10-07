@@ -56,7 +56,7 @@ fn pack_answers_null_when_it_does_not_fit() {
 }
 
 #[test]
-fn reduce_writes_mapping_merges_and_palettes() {
+fn reduce_writes_local_mappings_merges_and_palettes() {
     let (output, out) = run(
         "reduce",
         "reduce",
@@ -66,7 +66,7 @@ fn reduce_writes_mapping_merges_and_palettes() {
     assert!(output.status.success(), "{output:?}");
     assert_eq!(
         fs::read_to_string(out.join("reduce.json")).unwrap(),
-        r#"{"mapping":[[1,1,1],[1,1,1],[3,3,3]],"merges":[[[2,2,2],[1,1,1],1]],"palettes":[[[1,1,1],[3,3,3]]]}"#
+        r#"{"merges":[[0,[2,2,2],[1,1,1],1]],"palettes":[[[1,1,1],[3,3,3]]],"tiles":[{"mapping":[[1,1,1],[1,1,1]],"palette":0},{"mapping":[[3,3,3]],"palette":0}]}"#
     );
 }
 

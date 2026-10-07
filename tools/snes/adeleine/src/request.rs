@@ -1,9 +1,8 @@
 //! The requests the executable takes and the answers it writes, as JSON.
 //!
 //! A colour is `[r, g, b]`. A colour with its pixels is `[r, g, b, pixels]`.
-//! A tile is the list of the colours it draws with, in any order: the pixels
-//! it has are already in the counts, and where each one is does not change
-//! what is decided.
+//! A tile is the list of the colours it draws with, in any order. The global
+//! pixel counts are shared among all tiles containing each colour.
 
 use crate::fail::{Bad, Result};
 use crate::merge::{Merge, Merged};
@@ -77,16 +76,22 @@ pub fn packed_answer(palettes: Option<&[Colors]>) -> Value {
     json!({ "palettes": palettes.map(palettes_value) })
 }
 
-/// `{"mapping": ..., "merges": ..., "palettes": ...}`.
+/// The palettes, each tile's palette and local mapping, and every local
+/// colour change as `[palette, victim, target, pixels]`.
 pub fn reduced_answer(reduced: &Reduced) -> Value {
     // The keys go in alphabetical order on purpose. Built alone, serde_json
     // sorts them; built in the workspace, another crate switches on
     // `preserve_order` and they come out as written here. In this order the
     // answer is the same bytes either way.
     json!({
-        "mapping": reduced.mapping.iter().map(|c| color_value(*c)).collect::<Vec<_>>(),
-        "merges": merges_value(&reduced.merges),
+        "merges": reduced.merges.iter().map(|m| json!([
+            m.palette, color_value(m.victim), color_value(m.target), m.pixels
+        ])).collect::<Vec<_>>(),
         "palettes": palettes_value(&reduced.palettes),
+        "tiles": reduced.tiles.iter().map(|tile| json!({
+            "mapping": tile.mapping.iter().map(|c| color_value(*c)).collect::<Vec<_>>(),
+            "palette": tile.palette,
+        })).collect::<Vec<_>>(),
     })
 }
 

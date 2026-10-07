@@ -84,6 +84,31 @@ impl Grid {
         }
     }
 
+    /// The same grid with one mapping per place, row-major. Unlike
+    /// [`Grid::remap`], two uses of the same source cell may become different
+    /// cells because each can use a different palette.
+    pub fn remap_places(&self, mappings: &[HashMap<Color, Color>]) -> Grid {
+        assert_eq!(mappings.len(), self.at.len());
+        let mut index: HashMap<Cell, usize> = HashMap::new();
+        let mut cells = Vec::new();
+        let mut at = Vec::with_capacity(self.at.len());
+        for (&source, mapping) in self.at.iter().zip(mappings) {
+            let cell = self.cells[source]
+                .map(|line| line.map(|pixel| pixel.map(|c| *mapping.get(&c).unwrap_or(&c))));
+            let number = *index.entry(cell).or_insert_with(|| {
+                cells.push(cell);
+                cells.len() - 1
+            });
+            at.push(number);
+        }
+        Grid {
+            columns: self.columns,
+            rows: self.rows,
+            at,
+            cells,
+        }
+    }
+
     /// How many times each distinct cell is used.
     fn uses(&self) -> Vec<u64> {
         let mut uses = vec![0u64; self.cells.len()];

@@ -43,22 +43,29 @@ pub fn map_text(map: &MapDecision) -> String {
                 format!("presupuesto = {}", map.budget),
             ]);
         }
-        lines.extend([
-            "# Each merge sends color `de` to color `a`, in 15-bit RGB, and".to_string(),
-            "# `pixeles` is how many it moved when it was decided. They go **in".into(),
-            "# order**: applying them top to bottom rebuilds the whole mapping.".into(),
-        ]);
+        if merges.iter().any(|merge| merge.parts().0.is_some()) {
+            lines.extend([
+                "# Each change sends color `de` to color `a`, in 15-bit RGB, and".to_string(),
+                "# `pixeles` is how many it moved. `paleta` makes it local to that".into(),
+                "# tile palette, so one source may have another target elsewhere.".into(),
+            ]);
+        } else {
+            lines.extend([
+                "# Each merge sends color `de` to color `a`, in 15-bit RGB, and".to_string(),
+                "# `pixeles` is how many it moved when it was decided. They go **in".into(),
+                "# order**: applying them top to bottom rebuilds the whole mapping.".into(),
+            ]);
+        }
         if merges.is_empty() {
             lines.push("fusiones = []".into());
             continue;
         }
         lines.push("fusiones = [".into());
-        for (victim, dest, pixels) in merges {
-            lines.push(format!(
-                "  {{ de = {}, a = {}, pixeles = {pixels} }},",
-                color(victim),
-                color(dest)
-            ));
+        for merge in merges {
+            let (palette, victim, dest, pixels) = merge.parts();
+            let local = palette.map_or(String::new(), |p| format!("paleta = {p}, "));
+            lines.push(format!("  {{ {local}de = {}, a = {}, pixeles = {pixels} }},",
+                color(victim), color(dest)));
         }
         lines.push("]".into());
     }
@@ -83,18 +90,21 @@ pub fn map_text(map: &MapDecision) -> String {
                 "# The colors it brought and the ones it kept.".into(),
                 format!("colores = {colors}"),
                 format!("quedan = {kept}"),
-                "# Each merge sends color `de` to color `a`, as above.".into(),
+                if p.merges.iter().any(|merge| merge.parts().0.is_some()) {
+                    "# Each palette-local colour change is written as above.".into()
+                } else {
+                    "# Each merge sends color `de` to color `a`, as above.".into()
+                },
             ]);
             if p.merges.is_empty() {
                 lines.push("fusiones = []".into());
             } else {
                 lines.push("fusiones = [".into());
-                for (victim, dest, pixels) in &p.merges {
-                    lines.push(format!(
-                        "  {{ de = {}, a = {}, pixeles = {pixels} }},",
-                        color(victim),
-                        color(dest)
-                    ));
+                for merge in &p.merges {
+                    let (palette, victim, dest, pixels) = merge.parts();
+                    let local = palette.map_or(String::new(), |n| format!("paleta = {n}, "));
+                    lines.push(format!("  {{ {local}de = {}, a = {}, pixeles = {pixels} }},",
+                        color(victim), color(dest)));
                 }
                 lines.push("]".into());
             }
@@ -212,7 +222,8 @@ pub fn window_text(window: &WindowDecision) -> String {
         "# rebuilds the whole mapping.".into(),
         "fusiones = [".into(),
     ];
-    for (victim, dest, pixels) in &window.merges {
+    for merge in &window.merges {
+        let (_, victim, dest, pixels) = merge.parts();
         lines.push(format!(
             "  {{ de = {}, a = {}, pixeles = {pixels} }},",
             color(victim),

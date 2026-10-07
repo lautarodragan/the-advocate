@@ -21,7 +21,8 @@
 use crate::background::fail::{Bad, Result};
 use crate::background::grid::{colors, counts, Cell, Grid, CELL};
 use crate::background::layers::{memory, paint, COLORS_PER_PALETTE, MAX_TILES};
-use adeleine::{Color, Merge};
+use crate::background::Merge;
+use adeleine::Color;
 use std::collections::{BTreeSet, HashMap};
 use voodoo::{Options, Picture};
 
@@ -35,32 +36,28 @@ pub const MODE1_COLORS: usize = 3;
 /// Entries in a 2-bit palette.
 const MODE1_ENTRIES: usize = 4;
 
-/// `adeleine::reduce_colors`, for grids: merges the colour that shows
-/// least until the cells fit. Answers the grid merged, the palettes and the
-/// merges.
-pub(crate) fn reduce(grids: &[&Grid], limit: usize, per: usize) -> Result<(HashMap<Color, Color>, Vec<Vec<Color>>, Vec<Merge>)> {
+/// `adeleine::reduce_colors`, for grids: groups their places by colour and
+/// chooses a palette for each group. Answers the remapped grids, the palettes
+/// and the palette-local changes.
+pub(crate) fn reduce(grids: &[&Grid], limit: usize, per: usize) -> Result<(Vec<Grid>, Vec<Vec<Color>>, Vec<Merge>)> {
     let totals = counts(grids);
     let tiles: Vec<BTreeSet<Color>> = grids
         .iter()
-        .flat_map(|g| g.cells.iter().map(colors))
-        .filter(|s| !s.is_empty())
-        .collect::<BTreeSet<_>>()
-        .into_iter()
+        .flat_map(|g| g.at.iter().map(|&i| colors(&g.cells[i])))
         .collect();
-    if let Some(groups) = adeleine::try_pack(&tiles, limit, per) {
-        return Ok((HashMap::new(), groups.into_iter().map(|g| g.into_iter().collect()).collect(), Vec::new()));
-    }
-    let (merged, palettes) = adeleine::merge_until(&totals, |progress| {
-        let now: HashMap<Color, Color> = totals.iter().zip(&progress.mapping).map(|(&(c, _), &to)| (c, to)).collect();
-        let mapped: BTreeSet<BTreeSet<Color>> = tiles
-            .iter()
-            .map(|t| t.iter().map(|c| *now.get(c).unwrap_or(c)).collect())
-            .collect();
-        let mapped: Vec<BTreeSet<Color>> = mapped.into_iter().collect();
-        adeleine::try_pack(&mapped, limit, per)
-    })?;
-    let to = totals.iter().map(|&(c, _)| c).zip(merged.mapping.iter().copied()).collect();
-    Ok((to, palettes.into_iter().map(|g| g.into_iter().collect()).collect(), merged.merges))
+    let reduced = adeleine::reduce_colors(&totals, &tiles, limit, per)?;
+    let mappings: Vec<HashMap<Color, Color>> = tiles.iter().zip(&reduced.tiles)
+        .map(|(tile, decided)| tile.iter().copied().zip(decided.mapping.iter().copied()).collect())
+        .collect();
+    let mut at = 0;
+    let mapped = grids.iter().map(|grid| {
+        let end = at + grid.at.len();
+        let out = grid.remap_places(&mappings[at..end]);
+        at = end;
+        out
+    }).collect();
+    Ok((mapped, reduced.palettes.into_iter().map(|g| g.into_iter().collect()).collect(),
+        reduced.merges.into_iter().map(Merge::from).collect()))
 }
 
 /// How a map shows its panorama, which the map and the panorama decide
@@ -251,8 +248,8 @@ pub fn mode3(picture: &rm2k_render::Picture, free: usize, budget: usize) -> Resu
     let grid = Grid::quantize(picture);
     let colors_before = counts(&[&grid]).len();
     let (done, decided, palettes, merges, distinct) = fitted(&grid, budget, |g| {
-        let (to, palettes, merges) = reduce(&[g], free, adeleine::USABLE_COLORS)?;
-        let g = g.remap(&to);
+        let (mut grids, palettes, merges) = reduce(&[g], free, adeleine::USABLE_COLORS)?;
+        let g = grids.remove(0);
         let first = crate::background::layers::BG_PALETTES - palettes.len();
         let (done, picture) = four_bits(&g, &palettes, first)?;
         Ok((done, picture, palettes, merges, g))
@@ -381,8 +378,8 @@ fn two_bit_palettes(grid: &Grid) -> Result<(Grid, Vec<Vec<Color>>, Vec<Merge>)> 
     if grid.cells.iter().all(|c| colors(c).is_empty()) {
         return Ok((grid.clone(), Vec::new(), Vec::new()));
     }
-    let (to, palettes, merges) = reduce(&[grid], MODE1_PALETTES, MODE1_COLORS)?;
-    Ok((grid.remap(&to), palettes, merges))
+    let (mut grids, palettes, merges) = reduce(&[grid], MODE1_PALETTES, MODE1_COLORS)?;
+    Ok((grids.remove(0), palettes, merges))
 }
 
 /// A grid at 2 bits in BG3's palettes 4 to 7.
