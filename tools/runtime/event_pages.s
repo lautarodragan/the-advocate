@@ -1341,6 +1341,7 @@ no_touch_tile:
     sta npc_buf + 15, y
     cmp #$FF
     beq :+
+    lda #1                      ; not the bits: closed on all four sides is $00
     sta pass_has                ; it imposes: `pass_with_event` has to look
 :
     ; The key: the page's layer, with the row's Y.
