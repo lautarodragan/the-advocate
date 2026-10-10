@@ -38,6 +38,8 @@ pub const COMPRESSED_KINDS: [&str; 7] = [
 // before decompressing the second on top of it: see `lz2_backdrop`.
 pub const LZ2_CAP_BACKDROP: usize = 0x8000;
 pub const LZ2_CAP_ABOVE_AND_SPRITES: usize = 0x6000;
+/// A map over this one is not refused: [`crate::animation`] cuts its runs
+/// first, so [`check_streams`] only sees it if that was skipped.
 pub const LZ2_CAP_ANIM: usize = 0x2000;
 /// Two halves of [`HALF_GRID`].
 pub const LZ2_CAP_GRID: usize = 0x10000;

@@ -7,7 +7,7 @@
 use clap::{Args as ClapArgs, Parser, Subcommand};
 use rm2k_snes_mapdata::fail::{Bad, Result};
 use rm2k_snes_mapdata::materials::{self, RawBlocks, COMPRESSED_KINDS};
-use rm2k_snes_mapdata::{hex, record, request, vram};
+use rm2k_snes_mapdata::{animation, hex, record, request, vram};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -225,8 +225,10 @@ fn write_text(out: &Path, name: &str, text: &str) -> Result<()> {
 }
 
 fn do_maps(args: &MapsArgs) -> Result<()> {
-    let request: request::Maps = request::read(&args.plain.request)?;
+    let mut request: request::Maps = request::read(&args.plain.request)?;
+    let mut notes = animation::fit_all(&mut request.maps);
     let written = record::maps(&request.maps)?;
+    notes.extend(written.notes);
     if let Some(raw) = &args.raw {
         materials::write_raw(raw, &written.raw)?;
     }
@@ -237,7 +239,7 @@ fn do_maps(args: &MapsArgs) -> Result<()> {
     write(
         out,
         "maps",
-        &json!({"notes": written.notes, "report": written.report, "frames": written.frames}),
+        &json!({"notes": notes, "report": written.report, "frames": written.frames}),
     )
 }
 
@@ -279,10 +281,12 @@ fn do_pages(args: &Plain) -> Result<()> {
 }
 
 fn do_emit(args: &EmitArgs) -> Result<()> {
-    let request: request::Emit = request::read(&args.maps.plain.request)?;
+    let mut request: request::Emit = request::read(&args.maps.plain.request)?;
+    let mut notes = animation::fit_all(&mut request.maps);
     let db = rm2k_snes_battle::db::Db::from_dump(&args.data, true)
         .map_err(|b| Bad::answer(b.message().to_string()))?;
     let emitted = rm2k_snes_mapdata::emit::emit(&request, &db)?;
+    notes.extend(emitted.notes);
     if let Some(raw) = &args.maps.raw {
         materials::write_raw(raw, &emitted.raw)?;
     }
@@ -291,7 +295,7 @@ fn do_emit(args: &EmitArgs) -> Result<()> {
     write(
         out,
         "mapdata",
-        &json!({"notes": emitted.notes, "report": emitted.report, "frames": emitted.frames}),
+        &json!({"notes": notes, "report": emitted.report, "frames": emitted.frames}),
     )
 }
 
