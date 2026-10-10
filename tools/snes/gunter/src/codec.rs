@@ -181,6 +181,16 @@ pub fn encode(samples: &[i16], loop_block: Option<usize>) -> Vec<u8> {
 /// This has to reproduce exactly what the chip does, filters included: it is
 /// the pattern everything else is compared against. Trailing bytes that do not
 /// make up a whole block are ignored.
+///
+/// **It does not, in two places**, read against `SPC_DSP.cpp`'s
+/// `decode_brr`. The chip computes `(nibble << shift) >> 1` and works at half
+/// this scale, so with range 0 it drops the nibble's low bit and this does
+/// not. And after clamping it doubles the sample into a 16-bit register, so
+/// an overshoot wraps there where this saturates. Measured in September 2026
+/// on a real sample bank, with the codec this one replaced and the same
+/// arithmetic: the first touched 128 of 85,629 blocks, by ±7 at most; the
+/// second, none of 1,370,064 samples, latent if a louder peak is encoded.
+/// The encoder optimises against this decoder, so both are invisible to it.
 pub fn decode(data: &[u8]) -> Vec<i16> {
     let mut samples = Vec::with_capacity(data.len() / BLOCK_BYTES * BLOCK_SAMPLES);
     let (mut old, mut older) = (0, 0);
