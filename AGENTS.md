@@ -3,14 +3,9 @@
 Esto es lo que **no** se deduce leyendo el código. Todo lo demás está en
 fuentes mejores, y hay que ir a ellas antes que a este archivo:
 
-    workflow/        dónde quedamos, y su README explica cada carpeta
-    tasks/todo/      lo decidido y sin empezar; `doing/` lo que se está
-                     haciendo, `testing/` lo hecho que taro tiene que jugar,
-                     `done/` lo terminado
-    decisiones/      las decisiones tomadas que siguen valiendo, una por
-                     archivo: para no rehacerlas ni contradecirlas
-    divergencias/    dónde la ROM no hace lo que RM2k hace, con lo medido
-    tasks/wishlist/  lo que nos gustaría hacer y nadie está haciendo
+    snes-rm2k-work   otro repo: dónde quedamos —las tareas, las decisiones
+                     y las divergencias de todos los repos—; su README
+                     explica cada carpeta
     tools/justfile   qué se puede correr —probar e instalar las
                      herramientas—; los comentarios explican el porqué. Se
                      corre con `just -f tools/justfile`, o con `just`
@@ -27,13 +22,18 @@ fuentes mejores, y hay que ir a ellas antes que a este archivo:
 **A Blurred Line no está en este repo.** Desde el 2026-10-02 vive en el
 suyo, con sus datos, sus parches, sus pruebas y sus goldens, y consume
 estas herramientas desde el PATH; la historia de lo que era suyo se quedó
-acá. **Sus tareas y sus decisiones, no**: desde el 2026-10-10 todo se
-trackea en el `workflow/` de este repo, las de los dos, y ABL no tiene uno. Dónde está ese repo, y cómo se corre ABL con las herramientas de un
-checkout de éste, en "Dónde corre esto". **Y sus pruebas son, hasta que
+acá. Dónde está ese repo, y cómo se corre ABL con las herramientas de un
+checkout de éste, en "Dónde corre esto".
+
+**Las tareas, las decisiones y las divergencias tampoco están acá**: desde
+el 2026-10-10 viven en su propio repo, `snes-rm2k-work`, las de todos los
+repos —ésta, los ports y el libro—. Hasta ese día eran la carpeta
+`workflow/` de éste, y salieron con su historia; **un `workflow/…` citado
+en un comentario de este repo es la misma ruta allá**, sin el prefijo. **Y sus pruebas son, hasta que
 exista el juego de pruebas, las únicas pruebas de ROM del motor**: ver "La
 regla que sostiene todo".
 
-Al empezar, mirar `workflow/tasks/doing/` y `testing/`, que es dónde quedamos. La
+Al empezar, mirar `tasks/doing/` y `testing/` de `snes-rm2k-work`, que es dónde quedamos. La
 tarea se escribe **mientras se trabaja, no al final**, y al terminar se mueve de
 carpeta.
 
@@ -551,7 +551,7 @@ vale para todos en `.claude/agentes.md` —lo que antes se repetía en cada
 encargo—. Se lanzan por su nombre, no como `general-purpose`, así el mismo
 agente vuelve y se encuentra a sí mismo: cada tarea lleva en `agents` a
 todos los que trabajaron en ella —el `assignee` pasa a taro en
-`testing/`—, que `workflow/tasks/tasks.nu ls -a <nombre>` filtra, y cada
+`testing/`—, que `snes-rm2k-work/tasks/tasks.nu ls -a <nombre>` filtra, y cada
 commit suyo termina con `Agente: <nombre>`, que `git log --grep` encuentra.
 Lo pidió taro, el 2026-10-04. Siguen arrancando de cero cada vez: la
 continuidad es lo que dejan escrito.

@@ -5,13 +5,13 @@ Nintendo, y el runtime —el motor en ensamblador— que lo corre en la consola:
 cómo se lee un juego de RM2k, cómo se lo convierte, y los porqués de
 arquitectura que no tienen una línea de código donde vivir. La idea es un
 "RPG Maker 2000 PLUS": compatible con RM2k, y con lo que se agregue
-disponible para cualquier juego (`workflow/decisiones/rm2k-plus.md`).
+disponible para cualquier juego (`snes-rm2k-work/decisiones/rm2k-plus.md`).
 
 Nació portando *A Blurred Line*, y **ABL vive en su propio repo** desde el
 2026-10-02: sus datos, sus parches, sus pruebas y sus goldens. La historia
 de lo que era suyo se quedó acá, en `git log`.
 
-Lo que **no** está acá: dónde quedamos, que es `workflow/`; cómo funciona hoy
+Lo que **no** está acá: dónde quedamos, que es el repo `snes-rm2k-work`; cómo funciona hoy
 cada parte del port, que es `docs/port/` y los comentarios del código; y el
 relato de cómo se llegó, que está en `git log`. Qué hay en cada carpeta lo dice
 el mapa de arriba de `AGENTS.md`, y `tools/README.md` el de `tools/`.
@@ -100,7 +100,7 @@ Ver `Way` en `tools/rm2k-snes/wally/src/background/panorama.rs`,
 ### El cartucho es ExHiROM, de 8 MB
 
 Desde el 2026-10-01, porque el juego entero no entra en 4 MB con ningún
-recorte: ver `workflow/decisiones/el-cartucho-pasa-a-8-mb.md`. Hasta ese día
+recorte: ver `snes-rm2k-work/decisiones/el-cartucho-pasa-a-8-mb.md`. Hasta ese día
 era **LoROM**, y el código se escribió para LoROM; lo que cambió y lo que no
 tiene una razón que no está en ninguna línea:
 
@@ -155,7 +155,7 @@ absoluto largo indexado con Y no existe.
 Lo que no entra en un banco no puede recorrerse con un índice: la grilla de
 celdas de un mapa grande no entra, y se lee con un puntero de 24 bits. Vive
 descomprimida en la mitad alta de los dos bancos de la WRAM —ver
-`workflow/decisiones/la-grilla-vive-en-la-wram.md` y `docs/port/maps.md`—,
+`snes-rm2k-work/decisiones/la-grilla-vive-en-la-wram.md` y `docs/port/maps.md`—,
 que tiene la misma forma que un banco de LoROM: pasarse del `$FFFF` no lleva
 al `$0000` del banco siguiente sino a su `$8000`. `ptr_more` y `ptr_minus` son las únicas
 rutinas que saben eso; todo lo demás las usa y se olvida del tema.
@@ -173,9 +173,9 @@ bancos que se siguen: el reparto lo hace
 
 No se escribe acá, porque acá envejecía sin que nadie lo notara:
 
-* lo decidido y sin empezar está en `workflow/tasks/todo/`, y lo que nos
-  gustaría y nadie está haciendo en `workflow/tasks/wishlist/`;
-* dónde la ROM no hace lo que RM2k hace, en `workflow/divergencias/`;
+* lo decidido y sin empezar está en `snes-rm2k-work/tasks/todo/`, y lo que nos
+  gustaría y nadie está haciendo en `snes-rm2k-work/tasks/wishlist/`;
+* dónde la ROM no hace lo que RM2k hace, en `snes-rm2k-work/divergencias/`;
 * qué comandos de evento se aceptan sin hacerse lo dice
   `ACCEPTED_UNDONE`, en el compilador de eventos
   (`tools/rm2k-snes/events/`), que es una lista ejecutable y no puede

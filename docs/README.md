@@ -25,4 +25,4 @@ La diferencia que importa es entre `port/` y `research/`:
   nuevo y va un research nuevo; el viejo queda como estaba.
 
 Si una tarea termina en un documento en vez de código, el documento va a
-`research/` y la tarea pasa a `workflow/tasks/done/` apuntando a él.
+`research/` y la tarea pasa a `snes-rm2k-work/tasks/done/` apuntando a él.
