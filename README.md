@@ -16,6 +16,10 @@ cada parte del port, que es `docs/port/` y los comentarios del código; y el
 relato de cómo se llegó, que está en `git log`. Qué hay en cada carpeta lo dice
 el mapa de arriba de `AGENTS.md`, y `tools/README.md` el de `tools/`.
 
+**`AGENTS.md` —cómo se trabaja— tampoco está acá**: hay uno solo para
+todos los repos, con el plantel de sub-agentes, en `snes-rm2k-work`, desde
+el 2026-10-10. Un "ver AGENTS.md" en un comentario de este repo es aquél.
+
 ## Índice
 
 * [Cómo se instala](#cómo-se-instala)
