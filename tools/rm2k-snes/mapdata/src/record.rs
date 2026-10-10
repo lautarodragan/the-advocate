@@ -175,10 +175,9 @@ pub const PARALLEL_MAX: usize = 48;
 pub const NPC_STRIDE: usize = 16;
 /// In +9: this NPC does not walk.
 pub const NPC_STILL: u8 = 0xFF;
-/// How many drawn events the table holds: OAM has 128 objects, one is the
-/// hero, and the RAM of bank 0 is what sets the cap. Measured against A
-/// Blurred Line, whose map with the most has 99.
-pub const NPC_MAX: usize = 104;
+/// How many drawn events the table holds: Wally's, which leaves out the
+/// rows that do not fit.
+pub const NPC_MAX: usize = wally::sprites::npc::NPC_MAX;
 
 /// The ChipSet's animation table: one entry per map, eight bytes a family.
 pub const ANIM_STRIDE: usize = 16;
