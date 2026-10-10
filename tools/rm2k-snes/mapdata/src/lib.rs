@@ -8,7 +8,13 @@
 //! table goes in. And it owns the cartridge's VRAM layouts —[`vram`]—,
 //! which are the contract with the runtime: the maps and the screens read
 //! them from here.
+//!
+//! One thing it does decide about what is seen, because the cap is its own
+//! and nobody else's answer has to change: a ChipSet animation whose
+//! drawings do not fit in WRAM loses the tiles that move least —see
+//! [`animation`]—.
 
+pub mod animation;
 pub mod asm;
 pub mod cgram;
 pub mod compress;
