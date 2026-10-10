@@ -94,7 +94,7 @@ ready:
 ;
 ; **No core in the test suite exercises this loop.** bsnes never sets
 ; `io.audioBusy` —it starts false in `power()` and is not written anywhere;
-; it is in `/extras/ref/bsnes-libretro/bsnes/sfc/coprocessor/msu1/msu1.cpp`—,
+; it is in bsnes's `sfc/coprocessor/msu1/msu1.cpp`—,
 ; and neither does snes9x, so in the suite it exits on the first pass.
 ; **Mednafen does** (`-force_module snes_faust`): it sets bit 6 for 400,000
 ; master cycles when the track is chosen —`MSU1_WriteTrack` in
@@ -259,7 +259,7 @@ MSU_DATA    = $2001             ; read: the next byte
 ; snes9x. See "Cuánto tarda" in docs/port/msu-datos.md.
 ;
 ; On the FX Pak, seeking outside its 16 KB buffer means reading the SD card
-; —`prepare_data` in `/extras/ref/sd2snes/src/msu1.c`—, a few milliseconds.
+; —`prepare_data` in sd2snes's `src/msu1.c`—, a few milliseconds.
 ; The cap is the same as the audio's and for the same reason: $FFFF passes of
 ; 114 master cycles —this runs in bank 1, slow—, about twenty-one frames, ten
 ; times what Mednafen takes. Falling short does not cost a frame but makes the
