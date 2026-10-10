@@ -27,7 +27,8 @@ fuentes mejores, y hay que ir a ellas antes que a este archivo:
 **A Blurred Line no está en este repo.** Desde el 2026-10-02 vive en el
 suyo, con sus datos, sus parches, sus pruebas y sus goldens, y consume
 estas herramientas desde el PATH; la historia de lo que era suyo se quedó
-acá. Dónde está ese repo, y cómo se corre ABL con las herramientas de un
+acá. **Sus tareas y sus decisiones, no**: desde el 2026-10-10 todo se
+trackea en el `workflow/` de este repo, las de los dos, y ABL no tiene uno. Dónde está ese repo, y cómo se corre ABL con las herramientas de un
 checkout de éste, en "Dónde corre esto". **Y sus pruebas son, hasta que
 exista el juego de pruebas, las únicas pruebas de ROM del motor**: ver "La
 regla que sostiene todo".

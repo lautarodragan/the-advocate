@@ -14,6 +14,5 @@ porque otra posterior la reemplazó, **no se edita en silencio**: se cambia
 diciendo cuál la reemplazó, o se borra y lo cuenta el mensaje del commit.
 
 Las de **A Blurred Line** —qué lleva su cartucho, qué se hace con su
-contenido— están en su repo desde el 2026-10-02. Las que valen para los dos
-lados están copiadas en los dos, tal como estaban ese día: cuáles, en
-`tasks/testing/abl-a-su-propio-repo.md`.
+contenido— también van acá: del 2026-10-02 al 2026-10-10 vivieron en su
+repo, con copia de las mixtas en los dos, y ese día volvieron.

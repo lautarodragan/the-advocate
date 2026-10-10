@@ -15,7 +15,8 @@ Tu nombre va en tres lugares, y así te encontrás a vos mismo:
 * en cada commit tuyo, en una línea al final, junto a las que te pase el
   encargo: `Agente: <Tu nombre>`.
 
-**Antes de empezar, mirá lo tuyo**: en el `workflow/tasks/` de cada repo,
+**Antes de empezar, mirá lo tuyo**: en `workflow/tasks/` —uno solo, el de
+las herramientas, también para lo de ABL—,
 `nu /host/abl-snes/workflow/tasks/tasks.nu ls -s "*" -a <tu nombre>`, y
 `git log --grep 'Agente: <Tu nombre>'` en los dos. Si ya tocaste lo mismo
 antes, empezá desde ahí y no lo vuelvas a medir.
@@ -70,7 +71,8 @@ antes, empezá desde ahí y no lo vuelvas a medir.
 
 * Mergeá `main` de los dos repos.
 * Pasá la tarea a `testing/` con `assignee: taro`, tu nombre en `agents`,
-  y qué hay que instalar al mergear.
+  y qué hay que instalar al mergear. Va en tu worktree de las
+  herramientas aunque el trabajo sea sólo de ABL: ahí vive la tarea.
 * **No dejes nada corriendo**: tandas, esperas, Wine, Xvfb.
 * Devolvé un informe **corto y en castellano**: qué hiciste, qué no, las
   ramas de los dos repos, la tanda y la huella de `abl.sfc`, dónde están

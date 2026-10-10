@@ -32,7 +32,9 @@ las que esperan algo de él —jugar, mirar unas goldens—, y el nombre del age
 para las de `doing/`. Ver "Tomar una tarea" en `AGENTS.md`. En `todo/`, sin
 `assignee`, la toma quien llegue. Las de `done/` son de antes de estos campos y no los llevan.
 
-Las tareas de A Blurred Line —su contenido, sus pruebas, sus recetas, lo
-que lleva su cartucho— están en su repo desde el 2026-10-02; `tasks/done/`
-quedó entero acá, como registro. Cuáles se fueron, en
-`tasks/testing/abl-a-su-propio-repo.md`.
+**Acá se trackea todo, también lo de A Blurred Line**: su contenido, sus
+pruebas, sus recetas, lo que lleva su cartucho. Del 2026-10-02 al
+2026-10-10 sus tareas y sus decisiones vivieron en su repo; ese día
+volvieron, por pedido de taro, "para trackear todo en un solo lugar", y su
+repo se quedó sin `workflow/`. Un `workflow/…` escrito en un comentario de
+ABL es éste.
