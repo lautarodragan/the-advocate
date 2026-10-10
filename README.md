@@ -11,13 +11,13 @@ Nació portando *A Blurred Line*, y **ABL vive en su propio repo** desde el
 2026-10-02: sus datos, sus parches, sus pruebas y sus goldens. La historia
 de lo que era suyo se quedó acá, en `git log`.
 
-Lo que **no** está acá: dónde quedamos, que es el repo `snes-rm2k-work`; cómo funciona hoy
+Lo que **no** está acá: dónde quedamos, que es el repo `the-advocate-work`; cómo funciona hoy
 cada parte del port, que es `internals/` del libro y los comentarios del código; y el
 relato de cómo se llegó, que está en `git log`. Qué hay en cada carpeta lo dice
 el mapa de arriba de `AGENTS.md`, y `tools/README.md` el de `tools/`.
 
 **`AGENTS.md` —cómo se trabaja— tampoco está acá**: hay uno solo para
-todos los repos, con el plantel de sub-agentes, en `snes-rm2k-work`, desde
+todos los repos, con el plantel de sub-agentes, en `the-advocate-work`, desde
 el 2026-10-10. Un "ver AGENTS.md" en un comentario de este repo es aquél.
 
 ## Índice
@@ -177,9 +177,9 @@ bancos que se siguen: el reparto lo hace
 
 No se escribe acá, porque acá envejecía sin que nadie lo notara:
 
-* lo decidido y sin empezar está en `snes-rm2k-work/tasks/todo/`, y lo que nos
-  gustaría y nadie está haciendo en `snes-rm2k-work/tasks/wishlist/`;
-* dónde la ROM no hace lo que RM2k hace, en `snes-rm2k-work/divergencias/`;
+* lo decidido y sin empezar está en `the-advocate-work/tasks/todo/`, y lo que nos
+  gustaría y nadie está haciendo en `the-advocate-work/tasks/wishlist/`;
+* dónde la ROM no hace lo que RM2k hace, en `the-advocate-work/divergencias/`;
 * qué comandos de evento se aceptan sin hacerse lo dice
   `ACCEPTED_UNDONE`, en el compilador de eventos
   (`tools/rm2k-snes/events/`), que es una lista ejecutable y no puede

@@ -3,7 +3,7 @@
 The tools are for any RPG Maker 2000 game, and since 2026-10-02 A Blurred
 Line lives in its own repo. What stayed here are comments that cite it
 —limits measured against it, the case that explained a rule—, and those
-stay on purpose (`snes-rm2k-work/decisiones/las-herramientas-se-separan-de-abl.md`).
+stay on purpose (`the-advocate-work/decisiones/las-herramientas-se-separan-de-abl.md`).
 What may not stay is anything else: a test that feeds the compiler one of
 its picture names, a fixture with its dialogue, a default that is its
 value. Its texts and assets are not ours to carry, and a test that only
