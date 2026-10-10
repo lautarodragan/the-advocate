@@ -25,8 +25,8 @@ wt/
 
 # El target del workspace de Rust: los binarios y las dependencias compiladas
 # de todos los crates de `tools/`, que comparten uno solo.
-tools/target/
-tools/rm2k/ditto/.idea/
+target/
+rm2k/ditto/.idea/
 # Las herramientas de un worktree: `install-local`, ver `tools/justfile`. El
 # destino lo elige quien las usa; las recetas de `tools/justfile` buscan las
 # suyas en `tools/.local-tools/`.
