@@ -32,7 +32,7 @@ use crate::sprites::extras::{
     first_place, map_animation, picture_of_image, rain_drops, timer_colors, timer_digits, timer_mask,
     Image,
 };
-use crate::sprites::npc::{map_poses, pin_walkers, Graphic, Npc};
+use crate::sprites::npc::{map_poses, pin_walkers, Graphic, Npc, NPC_MAX};
 use crate::sprites::share::{share_slots, Sharer, SHARED_MAX};
 use crate::sprites::split::{drawable_npcs, Ask, TILE_PREFIX};
 use serde_json::{json, Value};
@@ -603,6 +603,33 @@ fn plan_sharing(npcs: &[Npc], movable: &BTreeSet<usize>, baked: &Baked, placed: 
     (!plan.slots.is_empty()).then_some(plan)
 }
 
+/// Leaves [`NPC_MAX`] drawn events and returns the indices of the ones that
+/// lost their row, in order. Their event stays —its pages run, it blocks on
+/// the hero's layer and it triggers, which the console reads from the page
+/// tables and not from the row—, like one whose page draws nothing; what is
+/// lost is seeing it, and the passage bits a tile it is drawn with imposes.
+///
+/// The first to go are the ones whose loss is only that: no page has a
+/// command or a way of moving, nobody names them —`decor::named`—, nobody
+/// walks them and they impose no passage. Then the rest. Within each, the
+/// highest index first: a rule anyone can redo by reading the map, and RM2k
+/// numbers events in the order they were placed, so the last ones placed go.
+fn over_the_table(npcs: &mut Vec<Npc>, events: &[Event], named: &BTreeSet<i32>, also_walk: &BTreeSet<usize>) -> Vec<usize> {
+    let does_something = |n: &Npc| {
+        let event = &events[n.event];
+        n.tile_pass.is_some()
+            || named.contains(&event.id)
+            || also_walk.contains(&n.event)
+            || event.pages.iter().any(|p| !p.commands.is_empty() || p.move_type != 0 || p.own_route)
+    };
+    let mut order: Vec<(bool, usize)> = npcs.iter().map(|n| (does_something(n), n.event)).collect();
+    order.sort_by_key(|&(does, event)| (does, std::cmp::Reverse(event)));
+    let mut out: Vec<usize> = order.iter().take(npcs.len() - NPC_MAX).map(|&(_, e)| e).collect();
+    out.sort();
+    npcs.retain(|n| out.binary_search(&n.event).is_err());
+    out
+}
+
 fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> {
     let id = request.map;
     let raw = game.map(id)?;
@@ -718,6 +745,19 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
     let used: HashSet<(i32, i32)> = npcs0.iter().map(|n| (n.x, n.y)).collect();
     let gone: BTreeSet<usize> = kept_decor.iter().map(|d| d.event).collect();
     npcs0.retain(|n| !gone.contains(&n.event));
+    // More than the console's table holds: some lose their row. Before
+    // anything counts poses, slots or palettes, so what is not drawn costs
+    // nothing in the sprite bank either.
+    if npcs0.len() > NPC_MAX {
+        let named = decor::named(&events, &game.common_commands()?, &request.test_commands);
+        let out = over_the_table(&mut npcs0, &events, &named, &request.also_walk);
+        notes.push(note(format!(
+            "  map {id}: WARNING, {} drawn events and the console's table holds {NPC_MAX}: events {} \
+             aren't drawn, and still run, block and trigger",
+            npcs0.len() + out.len(),
+            out.iter().map(|e| events[*e].id.to_string()).collect::<Vec<_>>().join(", ")
+        )));
+    }
     let pages: Vec<ScannedPage> = request.pages.iter().filter(|p| !gone.contains(&p.event)).cloned().collect();
 
     // The characters.

@@ -7,6 +7,13 @@ use std::collections::{BTreeMap, BTreeSet};
 /// character and the pose.
 pub type Graphic = (String, i32, i32);
 
+/// How many drawn events the console's table holds: OAM has 128 objects,
+/// one is the hero, and the RAM of bank 0 is what sets the cap. Measured
+/// against A Blurred Line, whose map with the most has 99. The emission
+/// writes it as the runtime's `NPC_MAX`; a map with more draws the ones
+/// that fit —see `map::over_the_table`—.
+pub const NPC_MAX: usize = 104;
+
 /// An event drawn with some graphic, as its row of the map's table starts.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Npc {
