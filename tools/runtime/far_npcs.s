@@ -185,7 +185,8 @@ other:
     lda npc_buf + 15, y
     cmp #$FF
     beq :+
-    sta pass_has
+    lda #1                      ; a one and not the bits: a tile closed on
+    sta pass_has                ; all four sides imposes $00
 :
     rep #$21
 .a16
