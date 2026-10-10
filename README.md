@@ -5,14 +5,14 @@ Nintendo, y el runtime —el motor en ensamblador— que lo corre en la consola:
 cómo se lee un juego de RM2k, cómo se lo convierte, y los porqués de
 arquitectura que no tienen una línea de código donde vivir. La idea es un
 "RPG Maker 2000 PLUS": compatible con RM2k, y con lo que se agregue
-disponible para cualquier juego (`snes-rm2k-work/decisiones/rm2k-plus.md`).
+disponible para cualquier juego (`decisions/rm2k-plus.md` del libro).
 
 Nació portando *A Blurred Line*, y **ABL vive en su propio repo** desde el
 2026-10-02: sus datos, sus parches, sus pruebas y sus goldens. La historia
 de lo que era suyo se quedó acá, en `git log`.
 
 Lo que **no** está acá: dónde quedamos, que es el repo `snes-rm2k-work`; cómo funciona hoy
-cada parte del port, que es `docs/port/` y los comentarios del código; y el
+cada parte del port, que es `internals/` del libro y los comentarios del código; y el
 relato de cómo se llegó, que está en `git log`. Qué hay en cada carpeta lo dice
 el mapa de arriba de `AGENTS.md`, y `tools/README.md` el de `tools/`.
 
@@ -47,7 +47,7 @@ todas las distribuciones y se compila de sus fuentes: ver "Referencias".
 El runtime viaja con las herramientas: `rm2k-snes-cartridges` lo arma desde
 `tools/runtime/` del checkout del que se instaló, junto con los `.inc` que el
 conversor escribe para cada juego. Qué pasa entre el juego y la ROM está en
-`docs/port/pipeline.md`, y el audio en `docs/port/audio.md`.
+`internals/pipeline.md` del libro, y el audio en `internals/audio.md` del libro.
 
 Un juego es un directorio con un `rm2k-snes.toml`, que las herramientas
 buscan desde donde corren hacia arriba, como cargo su `Cargo.toml`; lo de la
@@ -69,7 +69,7 @@ de escenario.
 Así que **un cambio en `tools/` se verifica corriendo la tanda de ABL con
 las herramientas del cambio**: cómo, en "Dónde corre esto" de `AGENTS.md`.
 Es el riesgo que señaló el estudio que planeó la separación
-(`docs/research/2026-10-02-el-juego-de-pruebas.md`), y lo corta su fase 2:
+(`research/2026-10-02-el-juego-de-pruebas.md` del libro), y lo corta su fase 2:
 un juego de pruebas propio, hecho de cero y sin assets con derechos, adonde
 se mudan las pruebas del motor.
 
@@ -89,7 +89,7 @@ mapa y BG2 la capa de encima junto con la ventana de mensaje. Lo que en RM2k
 pediría una tercera —el panorama, la lluvia como capa— no tiene dónde ir, y los
 sprites siguen en 4 bits: 15 colores y el transparente, que elige Adeleine
 (`tools/snes/adeleine/`). Cómo se reparten la VRAM y la CGRAM mapa por mapa,
-en `docs/port/vram.md` y `docs/port/cgram.md`.
+en `internals/vram.md` del libro y `internals/cgram.md` del libro.
 
 **La excepción, desde el 2026-10-05, es el panorama.** Wally elige por
 cada mapa, con lo que dicen el mapa y su panorama y nada más, cómo se
@@ -99,12 +99,12 @@ dibuja poco, en BG2 también, con lo de encima en el fondo y la prioridad de
 BG1; y si dibuja más, el mapa va en modo 1, a 4 bits, y el panorama en BG3.
 Ver `Way` en `tools/rm2k-snes/wally/src/background/panorama.rs`,
 `tools/runtime/pano.s` y, para lo medido,
-`docs/research/2026-10-05-los-panoramas.md`.
+`research/2026-10-05-los-panoramas.md` del libro.
 
 ### El cartucho es ExHiROM, de 8 MB
 
 Desde el 2026-10-01, porque el juego entero no entra en 4 MB con ningún
-recorte: ver `snes-rm2k-work/decisiones/el-cartucho-pasa-a-8-mb.md`. Hasta ese día
+recorte: ver `decisions/el-cartucho-pasa-a-8-mb.md` del libro. Hasta ese día
 era **LoROM**, y el código se escribió para LoROM; lo que cambió y lo que no
 tiene una razón que no está en ninguna línea:
 
@@ -159,7 +159,7 @@ absoluto largo indexado con Y no existe.
 Lo que no entra en un banco no puede recorrerse con un índice: la grilla de
 celdas de un mapa grande no entra, y se lee con un puntero de 24 bits. Vive
 descomprimida en la mitad alta de los dos bancos de la WRAM —ver
-`snes-rm2k-work/decisiones/la-grilla-vive-en-la-wram.md` y `docs/port/maps.md`—,
+`decisions/la-grilla-vive-en-la-wram.md` del libro y `internals/maps.md` del libro—,
 que tiene la misma forma que un banco de LoROM: pasarse del `$FFFF` no lleva
 al `$0000` del banco siguiente sino a su `$8000`. `ptr_more` y `ptr_minus` son las únicas
 rutinas que saben eso; todo lo demás las usa y se olvida del tema.
@@ -207,8 +207,9 @@ La consola:
 * los documentos de anomie —registros, tiempos, el SPC700—, que la mayoría de
   las demás referencias citan
 * el [wiki de superfamicom.org](https://wiki.superfamicom.org/)
-* "SNES translucency", de Bregalad — el color math explicado; está en
-  `docs/snes/snes-translucency-by-bregalad.txt`
+* "SNES translucency FAQ", de Bregalad (2009, revisado en 2015) — el color
+  math explicado; es de un tercero y no viene con el repo: se busca por el
+  título
 * [sd2snes](https://github.com/mrehkopf/sd2snes) — el firmware del FX Pak
   Pro: cómo implementa de verdad el MSU-1
 * [el desensamblado de Final Fantasy VI](https://github.com/everything8215/ff6)
@@ -217,7 +218,7 @@ La consola:
 
 Los emuladores, que además de correr la ROM son el código que se lee cuando la
 documentación no alcanza —con cuáles se prueba a mano y qué implementa cada
-uno, en `docs/snes/emulators.md`—:
+uno, en `reference/snes/emulators.md` del libro—:
 
 * [bsnes](https://github.com/bsnes-emu/bsnes),
   [snes9x](https://github.com/snes9xgit/snes9x),
