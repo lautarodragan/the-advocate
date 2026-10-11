@@ -1,4 +1,4 @@
-# tools/
+# The layout
 
 Everything that runs outside the console: what reads the RPG Maker game, what
 converts it, what builds the ROM, and what runs it in the tests. Nothing
@@ -131,10 +131,10 @@ build profiles are the workspace's too, because Cargo ignores a member's;
 `ditto` keeps optimizing for size there. They are still
 separate projects, installed and tested one by one:
 
-    just -f tools/justfile install lz2    one, with `cargo install --locked
+    just install lz2    one, with `cargo install --locked
                                           --path`, from the workspace's lock
-    just -f tools/justfile crate-test lz2 one project's tests
-    just -f tools/justfile rust-test      all of them, `cargo test --workspace`
+    just crate-test lz2 one project's tests
+    just rust-test      all of them, `cargo test --workspace`
 
 They are used from the PATH: nothing here builds them or looks for them in
 `target/`.
@@ -160,16 +160,16 @@ the runtime through the checkout they were installed from; and
 `rm2k-snes/patches/`; and `rm2k-snes-project`, from `rm2k-snes/project/`,
 which prints for a game's tests what the tools know about their project.
 
-The reason for the names is in `tools/justfile`. **Where everything is** is
+The reason for the names is in `justfile`. **Where everything is** is
 answered by `rm2k-project`, the library in `rm2k-snes/project/`: what
 belongs to the suite —the root, the runtime— from the checkout it was built
 from; what belongs to the game, from its project file: see "How they find
 the game".
 
 A worktree that modifies the tools uses its own with `just -f
-tools/justfile install-local <destination>`, which builds a `bin/` of its
+justfile install-local <destination>`, which builds a `bin/` of its
 own wherever whoever will use it says: the game's `justfile` looks for its
-own in a directory of its own, and this one, in `tools/.local-tools/`.
+own in a directory of its own, and this one, in `.local-tools/`.
 Each puts it first on the PATH of its recipes: see the recipe, and
 "Sub-agentes" in AGENTS.md.
 
@@ -224,16 +224,13 @@ value belongs to the caller. A Blurred Line's `justfile`, in its repo,
 translates its variables into flags. That nothing here reads one of its
 `ABL_*` variables is part of what `tests/test_no_game_names.py` checks.
 
-## `tools/justfile`
+## `justfile`
 
-The tools' recipes —running their tests, installing— live in
-`tools/justfile`, and A Blurred Line's in its own repo. There is no root
-`justfile`: until 2026-10-02 it imported ABL's. From the root they are run
-with `just -f tools/justfile <recipe>`; standing here, with `just
-<recipe>`. Both forms run the recipe standing in `tools/`. It is not
-imported from a root `justfile` on purpose: its recipes find what they
-install through `justfile_directory()`, which in an imported file would be
-the root.
+The tools' recipes —running their tests, installing— live in `justfile`,
+at the root, and A Blurred Line's in its own repo. They are run with
+`just <recipe>` and run standing in the root. Until 2026-10-02 a root
+`justfile` imported ABL's and this one lived in `tools/`; until 2026-10-10
+the tools themselves did, and it was `just -f tools/justfile <recipe>`.
 
 ## The bsnes patch
 

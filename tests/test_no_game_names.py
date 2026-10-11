@@ -1,4 +1,4 @@
-"""That nothing in `tools/` but a comment names something of A Blurred Line.
+"""That nothing in the tools but a comment names something of A Blurred Line.
 
 The tools are for any RPG Maker 2000 game, and since 2026-10-02 A Blurred
 Line lives in its own repo. What stayed here are comments that cite it
@@ -9,7 +9,7 @@ its picture names, a fixture with its dialogue, a default that is its
 value. Its texts and assets are not ours to carry, and a test that only
 passes with its names is a test of that game.
 
-It reads every file under `tools/` that git tracks, takes the comments out
+It reads every file of the repository that git tracks, takes the comments out
 —`;` in assembly, `//` and `/* */` in Rust, `#` and docstrings in Python,
 `#` in TOML, the justfile and the rest—, skips the `.md` files, which are
 prose, and looks for the words in `WORDS`: its characters, places and
@@ -27,7 +27,7 @@ import tokenize
 import pytest
 
 
-# `tools/`, the folder above this one: what these tests look at.
+# The repository, the folder above this one: what these tests look at.
 TOOLS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 THIS = os.path.relpath(os.path.realpath(__file__), TOOLS)
 
@@ -63,13 +63,13 @@ PATTERN = re.compile(r"(?<![A-Za-z0-9])(?:%s)(?![A-Za-z0-9])" % "|".join(WORDS),
                      re.IGNORECASE)
 
 # What may name the game outside a comment, with its reason: file relative
-# to `tools/`.
+# to the repository.
 EXCEPTIONS = {
     # This file, which lists the words.
     THIS,
 }
 
-# A line that may, with its reason: (file relative to `tools/`, a piece of
+# A line that may, with its reason: (file relative to the repository, a piece of
 # the line). A piece and not a line number, so that editing above it does
 # not move the exception, and editing the line itself does.
 LINE_EXCEPTIONS = {
@@ -250,6 +250,11 @@ def _tracked():
                              text=True).stdout
     for relative in sorted(filter(None, listing.split("\0"))):
         if relative.endswith(NOT_TEXT) or relative in EXCEPTIONS:
+            continue
+        # The repository's own dotfiles —`.gitignore`, `.git-blame-ignore-revs`,
+        # the IDE's `.idea/`— are about its history, not the tools: they were
+        # outside `tools/` until 2026-10-10, when the tools became the root.
+        if relative.startswith("."):
             continue
         yield relative
 

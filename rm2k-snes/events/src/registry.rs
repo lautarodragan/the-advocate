@@ -93,7 +93,7 @@ pub struct Songs {
     /// And who asks for what: each song and each effect is noted in the
     /// package being compiled, in the order they appear. It is what builds
     /// each map's audio package: see `package_load` in
-    /// tools/runtime/audio_package.s. And which ROM maps each one jumps to
+    /// runtime/audio_package.s. And which ROM maps each one jumps to
     /// —`destinations`, indices into the map table—, which is where it comes
     /// from which song may be playing when a package is loaded: see
     /// `inherited_songs` in music.py.

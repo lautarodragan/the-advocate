@@ -14,7 +14,7 @@ de lo que era suyo se quedó acá, en `git log`.
 Lo que **no** está acá: dónde quedamos, que es el repo `the-advocate-work`; cómo funciona hoy
 cada parte del port, que es `internals/` del libro y los comentarios del código; y el
 relato de cómo se llegó, que está en `git log`. Qué hay en cada carpeta lo dice
-el mapa de arriba de `AGENTS.md`, y `tools/README.md` el de `tools/`.
+el mapa de arriba de `AGENTS.md`, y `LAYOUT.md` el de las carpetas del repo.
 
 **`AGENTS.md` —cómo se trabaja— tampoco está acá**: hay uno solo para
 todos los repos, con el plantel de sub-agentes, en `the-advocate-work`, desde
@@ -34,18 +34,18 @@ el 2026-10-10. Un "ver AGENTS.md" en un comentario de este repo es aquél.
 ## Cómo se instala
 
 **Hace falta `python`, un core de libretro y `ca65` + `ld65`**, y se instalan
-las herramientas —los proyectos de Rust, que lista `tools/README.md`— en el
+las herramientas —los proyectos de Rust, que lista `LAYOUT.md`— en el
 PATH. Un juego las consume de
 ahí, y ningún script ni prueba de un juego llama a `cargo`: el porqué está
 en `AGENTS.md`. `ca65` y `ld65` salen de cc65, que no viene empaquetado en
 todas las distribuciones y se compila de sus fuentes: ver "Referencias".
 
-    just -f tools/justfile install   # instala las herramientas en el PATH
-    just -f tools/justfile test      # las pruebas de Python de tools/
-    just -f tools/justfile rust-test # las de todos los proyectos de Rust
+    just install   # instala las herramientas en el PATH
+    just test      # las pruebas de Python del repo
+    just rust-test # las de todos los proyectos de Rust
 
 El runtime viaja con las herramientas: `rm2k-snes-cartridges` lo arma desde
-`tools/runtime/` del checkout del que se instaló, junto con los `.inc` que el
+`runtime/` del checkout del que se instaló, junto con los `.inc` que el
 conversor escribe para cada juego. Qué pasa entre el juego y la ROM está en
 `internals/pipeline.md` del libro, y el audio en `internals/audio.md` del libro.
 
@@ -60,13 +60,13 @@ lugar equivocado.
 ## Las pruebas de ROM están en ABL, por ahora
 
 **Hoy este repo no tiene pruebas que corran una ROM.** Las que hay —las de
-`tools/tests/` y las de cada proyecto de Rust— prueban cada etapa sola, con
+`tests/` y las de cada proyecto de Rust— prueban cada etapa sola, con
 juegos chicos hechos adentro de la prueba. Las que arman un cartucho y lo
 corren en un emulador, contra goldens, son de A Blurred Line y se fueron
 con él, porque necesitan un juego: la mayoría prueba el motor usando a ABL
 de escenario.
 
-Así que **un cambio en `tools/` se verifica corriendo la tanda de ABL con
+Así que **un cambio en las herramientas se verifica corriendo la tanda de ABL con
 las herramientas del cambio**: cómo, en "Dónde corre esto" de `AGENTS.md`.
 Es el riesgo que señaló el estudio que planeó la separación
 (`research/2026-10-02-el-juego-de-pruebas.md` del libro), y lo corta su fase 2:
@@ -88,7 +88,7 @@ El precio es que el modo 3 tiene **dos capas de fondo y nada más**: BG1 es el
 mapa y BG2 la capa de encima junto con la ventana de mensaje. Lo que en RM2k
 pediría una tercera —el panorama, la lluvia como capa— no tiene dónde ir, y los
 sprites siguen en 4 bits: 15 colores y el transparente, que elige Adeleine
-(`tools/snes/adeleine/`). Cómo se reparten la VRAM y la CGRAM mapa por mapa,
+(`snes/adeleine/`). Cómo se reparten la VRAM y la CGRAM mapa por mapa,
 en `internals/vram.md` del libro y `internals/cgram.md` del libro.
 
 **La excepción, desde el 2026-10-05, es el panorama.** Wally elige por
@@ -97,8 +97,8 @@ muestra: si nunca se ve, nada; si no se mueve contra el mapa, horneado en
 el fondo; si el mapa no dibuja nada encima del héroe, en BG2 en modo 3; si
 dibuja poco, en BG2 también, con lo de encima en el fondo y la prioridad de
 BG1; y si dibuja más, el mapa va en modo 1, a 4 bits, y el panorama en BG3.
-Ver `Way` en `tools/rm2k-snes/wally/src/background/panorama.rs`,
-`tools/runtime/pano.s` y, para lo medido,
+Ver `Way` en `rm2k-snes/wally/src/background/panorama.rs`,
+`runtime/pano.s` y, para lo medido,
 `research/2026-10-05-los-panoramas.md` del libro.
 
 ### El cartucho es ExHiROM, de 8 MB
@@ -124,7 +124,7 @@ tiene una razón que no está en ninguna línea:
 * **El tercer banco de código no es de LoROM**: `FAR2`, desde el
   2026-10-02, es la mitad baja de `$C0`, rápida y sin copia, porque a lo que
   vive ahí se entra sólo con `jsl` a su dirección. Qué código va en cuál de
-  los tres lo dice el encabezado de `tools/runtime/main.s`.
+  los tres lo dice el encabezado de `runtime/main.s`.
 * **Sólo los primeros 4 MB son rápidos**: el FastROM no llega a los bancos
   `$40-$7D`. El reparto llena primero los rápidos.
 * **Hay ROM que no se usa**: las mitades bajas de `$70-$7D`, donde Mesen2 y
@@ -134,7 +134,7 @@ tiene una razón que no está en ninguna línea:
 
 Todo eso salió de una ROM de prueba corrida en cinco emuladores antes de mudar
 el juego, que es la receta `exhirom` de ABL; el detalle, en la documentación
-de `banks.rs`, en `tools/rm2k-snes/cartridge/src/`.
+de `banks.rs`, en `rm2k-snes/cartridge/src/`.
 
 ### Las tablas van en el banco 0
 
@@ -166,12 +166,12 @@ rutinas que saben eso; todo lo demás las usa y se olvida del tema.
 
 Y una tabla mudada, o una que se recorra con `[ptr], y`, **tiene que
 declararse con `.block`** para no quedar partida entre dos bancos: ver
-`block` en el `asm.rs` de `tools/rm2k-snes/mapdata/`. El acomodo se niega a armar con una
+`block` en el `asm.rs` de `rm2k-snes/mapdata/`. El acomodo se niega a armar con una
 etiqueta de RODATA sin declarar, y lo que cruza a propósito —el stream de la
 música, lo que se sube al SPC700— lleva `.crossbank`, y cruza sólo entre dos
 bancos que se siguen: el reparto lo hace
 `rm2k-snes-assemble` antes de `ca65`, ver `resolve` en
-`tools/rm2k-snes/cartridge/src/banks.rs`.
+`rm2k-snes/cartridge/src/banks.rs`.
 
 ## Lo que falta
 
@@ -182,7 +182,7 @@ No se escribe acá, porque acá envejecía sin que nadie lo notara:
 * dónde la ROM no hace lo que RM2k hace, en `the-advocate-work/divergencias/`;
 * qué comandos de evento se aceptan sin hacerse lo dice
   `ACCEPTED_UNDONE`, en el compilador de eventos
-  (`tools/rm2k-snes/events/`), que es una lista ejecutable y no puede
+  (`rm2k-snes/events/`), que es una lista ejecutable y no puede
   desincronizarse;
 * y lo que ninguna prueba mira, en `pruebas/UNTESTED.md` de ABL.
 

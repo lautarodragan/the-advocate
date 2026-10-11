@@ -11,7 +11,7 @@
 ; and `test_la_entrada_k_de_la_tabla_salta_al_manejador_del_opcode_k` guards it.
 ;
 ; A new opcode touches two places: its number in
-; tools/rm2k-snes/bytecode/src/events.rs —which yields its entry in the dispatch
+; rm2k-snes/bytecode/src/events.rs —which yields its entry in the dispatch
 ; table at the next build— and its `.proc op_x` in whichever file it belongs to, named
 ; after the opcode in lowercase. The dispatch is not touched: if the handler is
 ; missing, the table does not assemble.

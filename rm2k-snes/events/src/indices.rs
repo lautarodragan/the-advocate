@@ -386,7 +386,7 @@ pub fn associations(maps: &[Map], extra: &[Command]) -> Vec<(String, i32)> {
 /// —the compiler pastes the body after the `ControlSwitches` that turns it
 /// on, like a `CallEvent`— and when closing the menu, which is where the
 /// equipment is changed —the ROM runs it from `menu_screen`, see
-/// `equipment_commons` in tools/runtime/equipment_from_events.s—. It is
+/// `equipment_commons` in runtime/equipment_from_events.s—. It is
 /// what the droid tutorial says: "these abilities become available once you
 /// equip a particular component and exit the menu".
 ///

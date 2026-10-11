@@ -34,12 +34,12 @@ def _in_the_index():
 def test_every_test_is_in_the_index():
     faltan = sorted(_on_disk() - _in_the_index())
     assert not faltan, (
-        "the index in tools/tests/README.md does not name: %s"
+        "the index in tests/README.md does not name: %s"
         % ", ".join(faltan))
 
 
 def test_the_index_names_no_missing_tests():
     sobran = sorted(_in_the_index() - _on_disk())
     assert not sobran, (
-        "the index in tools/tests/README.md names tests that do not exist: "
+        "the index in tests/README.md names tests that do not exist: "
         "%s. Were they renamed or deleted?" % ", ".join(sobran))

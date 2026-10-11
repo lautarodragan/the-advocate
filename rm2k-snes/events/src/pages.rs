@@ -220,7 +220,7 @@ impl MapEvents {
 ///
 /// The layer does not count here: every layer triggers from one of the two
 /// cells the hero looks at, and the ROM applies their rules —see
-/// `queue_by_action` in tools/runtime/action_key.s—. They come from
+/// `queue_by_action` in runtime/action_key.s—. They come from
 /// `Game_Player`, and they are opposite on purpose:
 ///
 /// * **The cell in front** —`CheckEventTriggerThere`— only counts the events

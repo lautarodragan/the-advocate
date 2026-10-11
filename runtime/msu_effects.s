@@ -31,7 +31,7 @@
 ; whole package: see `rates_per_package` in rm2k-snes-audio's effects.rs—. Each
 ; package has its version of each sound effect —the rate depends on how heavy
 ; the package is, see
-; tools/rm2k-snes/rm2k-snes-audio/src/msu.rs— and the ROM does not keep which version was
+; rm2k-snes/rm2k-snes-audio/src/msu.rs— and the ROM does not keep which version was
 ; left in ARAM, so **on every package they are all uploaded again**, even if they
 ; were already there. Each sound's pitch comes from `se_msu_pitch`, which the
 ; converter builds per package, and not from `sound_table`. With another

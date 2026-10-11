@@ -46,7 +46,7 @@ ChipSet's passability: a lower-layer tile with either of the `0x30` bits, or
 an upper-layer one with the star, `0x10`, goes in front. Both layers are
 drawn cell by cell, lower tile first. That rule, the passability table it
 reads and where each piece of the ChipSet is are RM2k's, and they are
-`rm2k-rules`' (`tools/rm2k/rules/`): what stays here is the drawing.
+`rm2k-rules`' (`rm2k/rules/`): what stays here is the drawing.
 
 `atlas` writes the ChipSet expanded: 32 tiles by 45, every combination of
 every autotile, in the order the tile ids index them. It is what every

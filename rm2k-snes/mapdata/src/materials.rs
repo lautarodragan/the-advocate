@@ -127,7 +127,7 @@ pub fn check_map(map_id: i64, blocks: &RawBlocks) -> Result<()> {
     if used + ram > HALF_GRID {
         return Err(Bad::answer(format!(
             "map {map_id}: what lives behind its grid is {ram} bytes and the grid leaves {} of \
-             the upper half of bank $7F: see `lz2_grid` in tools/runtime/decompress.s",
+             the upper half of bank $7F: see `lz2_grid` in runtime/decompress.s",
             HALF_GRID - used
         )));
     }
@@ -145,7 +145,7 @@ pub fn check_streams(map_id: i64, kind: &str, data: &[u8]) -> Result<()> {
         if part.len() > cap {
             return Err(Bad::answer(format!(
                 "map {map_id}: a stream of {kind} is {} bytes and {cap} fit in WRAM: see the LZ2 \
-                 reservation in tools/runtime/far_ram.s",
+                 reservation in runtime/far_ram.s",
                 part.len()
             )));
         }
@@ -468,7 +468,7 @@ mod tests {
                 .unwrap_err()
                 .message(),
             "map 52: what lives behind its grid is 25537 bytes and the grid leaves 25536 of \
-             the upper half of bank $7F: see `lz2_grid` in tools/runtime/decompress.s"
+             the upper half of bank $7F: see `lz2_grid` in runtime/decompress.s"
         );
     }
 
@@ -479,7 +479,7 @@ mod tests {
                 .unwrap_err()
                 .message(),
             "map 1: a stream of sprite_tiles is 24608 bytes and 24576 fit in WRAM: see the LZ2 \
-             reservation in tools/runtime/far_ram.s"
+             reservation in runtime/far_ram.s"
         );
     }
 }

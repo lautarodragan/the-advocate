@@ -68,7 +68,7 @@ impl Songs {
     /// right away. So it has no reason to fit in ARAM with those effects: it
     /// goes in the **separate** package, it is uploaded if there is room,
     /// and if not its `PlayBGM` uploads it —see `exit_extra` in
-    /// tools/runtime/audio_package.s—. It is from 2026-09-26.
+    /// runtime/audio_package.s—. It is from 2026-09-26.
     pub fn exit_songs(&self, map: usize) -> Vec<usize> {
         self.exits
             .get(&Key::Map(map))
@@ -271,7 +271,7 @@ pub fn plan(c: &Cartridge) -> Result<Plan> {
     // pages can start —plus, in the boot one, the one that plays from the
     // start, and in all the map's own— and its sound effects, in the order
     // they appear, which is the priority the ROM uploads them with if they
-    // don't all fit. See `package_load` in tools/runtime/audio_package.s.
+    // don't all fit. See `package_load` in runtime/audio_package.s.
     let empty = Wants::default();
     let mut packages: Vec<(Vec<usize>, Vec<String>, Vec<usize>)> = Vec::new();
     let mut separate_ones: Vec<Vec<usize>> = Vec::new();
@@ -304,7 +304,7 @@ pub fn plan(c: &Cartridge) -> Result<Plan> {
         owned.retain(|t| !out.contains(t));
         // And the separate ones, which don't go with the other songs either:
         // their `PlayBGM` uploads them with the package's sound effects —see
-        // `extra_separate` in tools/runtime/audio_package.s—.
+        // `extra_separate` in runtime/audio_package.s—.
         let apart = c.apart.get(&c.maps[i]);
         let separate: Vec<usize> = owned
             .iter()
@@ -339,7 +339,7 @@ pub fn plan(c: &Cartridge) -> Result<Plan> {
     }
     // And the Game Over screen's, last: its song alone and no sound
     // effects. The ROM uploads it with the screen black, before the fade in
-    // —see `game_over_black` in tools/runtime/game_over.s—, and with a
+    // —see `game_over_black` in runtime/game_over.s—, and with a
     // package of its own it uploads only that: arriving with `song_ensure`
     // would rebuild the whole map package behind it, which is one more
     // second of black. For the allocation it is a one-song package, which

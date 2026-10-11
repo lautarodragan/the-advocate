@@ -7,7 +7,7 @@
 ; --- header and vectors ----------------------------------------------------
 ; The console reads this at `$00:FFC0`, which in ExHiROM is `$40FFC0` of the
 ; file: bank 0's copy, which the assembler writes next to the original —see
-; `MIRRORS` in tools/rm2k-snes/cartridge/src/banks.rs—. The vectors below,
+; `MIRRORS` in rm2k-snes/cartridge/src/banks.rs—. The vectors below,
 ; the same.
 .segment "HEADER"
     ; This is what the FX Pak menu shows and what any ROM database reads. The

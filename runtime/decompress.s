@@ -6,7 +6,7 @@
 ; animation, and the grid travel in the cartridge in LC_LZ2, Nintendo's format,
 ; and are decompressed into WRAM when the map loads, with the screen off inside
 ; the fade. The format and the reason for this one and not another are in
-; tools/port/compress.py; the compressor is `tools/snes/lz2/`.
+; tools/port/compress.py; the compressor is `snes/lz2/`.
 ;
 ; Each command in the stream is a header —what it is and how many bytes it
 ; makes— and its operand. Almost everything is done with `mvn`:

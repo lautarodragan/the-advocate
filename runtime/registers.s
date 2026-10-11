@@ -23,7 +23,7 @@ MEMSEL   = $420D        ; bit 0: the ROM from bank $80 onwards, fast
 ;
 ; **In ExHiROM, $80 and $00 are not the same ROM**: they are the first and the
 ; second 4 MB. The two code banks go in both —the assembler copies them, see
-; `MIRRORS` in tools/rm2k-snes/cartridge/src/banks.rs—, so for the code this
+; `MIRRORS` in rm2k-snes/cartridge/src/banks.rs—, so for the code this
 ; is still a mirror. For the generated data it is not, and nothing adds
 ; `FAST` to a data address: its bank is already the one it is read from.
 FAST     = $800000
@@ -35,7 +35,7 @@ APUIO2   = $2142
 APUIO3   = $2143
 
 ; The SPC700 driver command that sends it back to the IPL ROM. See `DRIVER`
-; in tools/rm2k-snes/rm2k-snes-audio/src/spc700.rs and the `reset` loop that uses it.
+; in rm2k-snes/rm2k-snes-audio/src/spc700.rs and the `reset` loop that uses it.
 APU_CMD_IPL = 4
 
 ; The console multiplies and divides in hardware, which is all the screen

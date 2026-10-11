@@ -9,7 +9,7 @@
 //! what is accepted: see `TROOP_COMMANDS`.
 //!
 //! When each one runs is decided by the ROM and it is copied from
-//! `Scene_Battle_Rpg2k`; see `ba_page_test` in tools/runtime/battle_troop.s.
+//! `Scene_Battle_Rpg2k`; see `ba_page_test` in runtime/battle_troop.s.
 
 use crate::codes::*;
 use crate::compile::{compile_page, Ctx};
@@ -137,7 +137,7 @@ impl Trigger {
     /// The ten bytes in front of a page that looks at the turn or the HP:
     /// the turn's base and multiple, a word each, and the enemy's place, the
     /// actor and their ranges, a byte each. Empty if it looks at none of
-    /// that. The order is `BA_COND`'s in tools/runtime/far_ram.s.
+    /// that. The order is `BA_COND`'s in runtime/far_ram.s.
     fn header(&self) -> Vec<u8> {
         if self.flags & WITH_HEADER == 0 {
             return vec![];

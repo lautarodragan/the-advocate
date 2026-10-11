@@ -121,7 +121,7 @@ ba_t_bgm:
     plb
     rtl
 ; And the audio package in X, which is `battle_audio_load`: the Game Over
-; screen uses it, which uploads its own. See tools/runtime/game_over.s.
+; screen uses it, which uploads its own. See runtime/game_over.s.
 ba_t_audio:
     phb
     phk

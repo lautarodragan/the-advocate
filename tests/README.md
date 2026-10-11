@@ -1,18 +1,18 @@
 # The tools' tests
 
-    just -f tools/justfile test               all of them; standing in tools/, `just test`
-    just -f tools/justfile test -k escapes    the usual pytest arguments pass through as is
+    just test               all of them
+    just test -k escapes    the usual pytest arguments pass through as is
 
-The Python ones, and the only Python left in `tools/`: they look at this
+The Python ones, and the only Python left in the repository: they look at this
 tree —its layers, who reads a dump, that nothing names a game— the way a
-crate's tests look at the crate. They import nothing: `tools/` is the
-folder above this one. The Rust projects' tests run one by one with
+crate's tests look at the crate. They import nothing: the repository is
+the folder above this one. The Rust projects' tests run one by one with
 `crate-test <project>`, or all together with `rust-test`.
 
 **A test goes here if it does not read a game** —neither its original
 files, nor the RTP—, **nor its dump, nor its patches, nor a built
 cartridge, nor the suite**. Everything it looks at it builds inside, or
-reads from `tools/` and from the runtime. The ones that need any of that
+reads from the repository and from the runtime. The ones that need any of that
 belong, until the test game exists, to A Blurred Line's tests, in its own
 repo, even if they test a tool. A file
 that mixes both gets split: the two sides of the same topic can have the
@@ -36,7 +36,7 @@ and the rest of what builds a cartridge are tested in Rust, in
 Every `test_*.py` in this folder has to be named here, and everything named
 has to exist: `test_index.py` enforces it.
 
-* `test_no_game_names.py`: that no file of `tools/` names A Blurred Line
+* `test_no_game_names.py`: that no file of the tools names A Blurred Line
   —its characters, places, pictures, its name— outside a comment: a test
   uses invented names and a fixture invented content. Comments and `.md`
   files may cite it; the few lines that may too are listed with their reason

@@ -64,7 +64,7 @@ fn without_the_cut_the_map_is_refused() {
     assert_eq!(
         bad.message(),
         "map 7: a stream of anim_tiles is 10624 bytes and 8192 fit in WRAM: see the LZ2 \
-         reservation in tools/runtime/far_ram.s"
+         reservation in runtime/far_ram.s"
     );
 }
 

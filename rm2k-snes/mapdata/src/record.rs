@@ -896,7 +896,7 @@ pub fn anim_table(maps: &[Map], rows: &[Vec<NpcRow>]) -> Result<String> {
     let mut out: Vec<String> = vec![
         ".segment \"RODATA\"".into(),
         format!("; The ChipSet animation, one entry of {ANIM_STRIDE} bytes per map."),
-        // `rom/src/` and not `tools/runtime/`, on purpose: it goes into the
+        // `rom/src/` and not `runtime/`, on purpose: it goes into the
         // `.inc`, and what is emitted is not touched yet.
         "; See `anim_table` in tools/port/snes_convert.py and `anim_flush` in rom/src/chipset_animation.s.".into(),
         ";".into(),

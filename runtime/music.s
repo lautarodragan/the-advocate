@@ -3,9 +3,9 @@
 ; --- music -------------------------------------------------------------------
 ; The stream is per note: notes, releases, volume or pitch changes of a voice
 ; that is playing, and waits; `music_frame` expands it into DSP writes. The
-; opcodes are declared in `tools/rm2k-snes/bytecode/src/music.rs` and the equates
+; opcodes are declared in `rm2k-snes/bytecode/src/music.rs` and the equates
 ; come out generated: until 2026-09-15 they were written by hand here **and** in the
-; compiler that writes the stream —today tools/rm2k-snes/rm2k-snes-audio/—, with nothing
+; compiler that writes the stream —today rm2k-snes/rm2k-snes-audio/—, with nothing
 ; tying the two copies together.
 
 ; One music frame per video frame, plus an extra one every five if the console
@@ -188,7 +188,7 @@ other:
 ; The cartridge has carried several songs since 2026-09-06 and **they all share
 ; the sample bank**, which is uploaded only once at boot: changing song is
 ; changing stream and nothing else, so it does not cost even a frame. Hence
-; there is nothing to upload here. See `Bank` in tools/rm2k-snes/rm2k-snes-audio/src/bank.rs.
+; there is nothing to upload here. See `Bank` in rm2k-snes/rm2k-snes-audio/src/bank.rs.
 ;
 ; Which index is playing stays in `song_current`, which is what `music_frame`
 ; needs to start over when the stream ends: without it the loop always went
@@ -725,8 +725,8 @@ ready:
 .endmacro
 
 ; One frame of music. The stream is per note —see "the per-note format" in
-; tools/rm2k-snes/rm2k-snes-audio/src/stream.rs and the header of
-; tools/rm2k-snes/bytecode/src/music.rs— and here it is expanded into the DSP writes that
+; rm2k-snes/rm2k-snes-audio/src/stream.rs and the header of
+; rm2k-snes/bytecode/src/music.rs— and here it is expanded into the DSP writes that
 ; `dsp_music` sends: exactly those of `writes` in stream.rs, frame by frame,
 ; and
 ; rom/pruebas/rpgmaker/test_musica_escrituras.py checks it. It reads until it

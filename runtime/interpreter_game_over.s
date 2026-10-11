@@ -11,7 +11,7 @@
 ; `ReturntoTitleScreen` and `GameOver`: the first goes back to boot —the
 ; title screen, if the ROM has one— and the second goes through the Game Over
 ; screen first, which is the same as losing a battle with no defeat handler:
-; see tools/runtime/game_over.s. Both with `jml`: there is nowhere to return
+; see runtime/game_over.s. Both with `jml`: there is nowhere to return
 ; to.
 ;
 ; They share everything but the ending, and the high byte of A says which one

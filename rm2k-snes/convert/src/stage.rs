@@ -52,7 +52,7 @@ pub fn which(binary: &str, project: &str) -> Result<PathBuf> {
     }
     Err(Stop::new(format!(
         "`{binary}` is missing, one of the converter's stages.\n\nIt is a Rust binary of the \
-         suite, and is installed as a system tool:\n\n    just -f tools/justfile install {project}"
+         suite, and is installed as a system tool:\n\n    just install {project}"
     )))
 }
 

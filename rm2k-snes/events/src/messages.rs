@@ -25,7 +25,7 @@ pub const PAIR_FIRST: u8 = 96;
 
 /// The byte that stands for **a variable's value**, `\V[n]`: the next byte
 /// is the variable's slot, and the ROM's composer writes its digits there
-/// when it opens the box —see `msg_letter` in tools/runtime/message_letter.s—.
+/// when it opens the box —see `msg_letter` in runtime/message_letter.s—.
 ///
 /// It is the last of the pair range, taken from the pairs, and not a value
 /// below `PAIR_FIRST`: those are the font's 96 letters, all of them used. The

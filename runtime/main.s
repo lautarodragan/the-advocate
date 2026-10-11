@@ -51,7 +51,7 @@
 ; * `FAR`, bank 1: entered with `jsl`, and only fast if the `jsl` carries
 ;   `+ FAST`.
 ; * `FAR2`, the low half of `$C0` —see `FAR2` in
-;   tools/rm2k-snes/cartridge/src/banks.rs—: entered with `jsl` and
+;   rm2k-snes/cartridge/src/banks.rs—: entered with `jsl` and
 ;   **without** `+ FAST`, because `$C0` is already fast and adding it gives
 ;   a wrong address. It is where new code goes by default: what is cold —a
 ;   screen, a map load, the battle— goes here or in `FAR`, whichever has
@@ -78,7 +78,7 @@
 ; `.inc` files come in —the two bytecodes and the cartridge's data—. A new
 ; file is added to the list at the place it belongs in the ROM; the
 ; fingerprint in `tools/ensamblado/cartridges.py` already covers all of
-; `tools/runtime/`.
+; `runtime/`.
 ; ---------------------------------------------------------------------------
 
 .p816
@@ -88,7 +88,7 @@
 .include "far_ram.s"
 ; The two bytecodes this ROM reads: the events one, which `run_code`
 ; interprets, and the music stream, which `irq_music` reads. Each one is
-; declared in tools/rm2k-snes/bytecode/, which belongs neither to the side that
+; declared in rm2k-snes/bytecode/, which belongs neither to the side that
 ; emits the bytes nor to the side that reads them, and `rm2k-snes-assemble`
 ; writes these two next to the cartridge's other generated files: they are
 ; not here, and one here would shadow them.

@@ -2,9 +2,9 @@
 # this tree, and each Rust project's— and installing the suite. A Blurred
 # Line's are in its own `justfile`, which does not know this directory exists.
 #
-# From the root it is called with `just -f tools/justfile <recipe>`; from
-# inside `tools/`, with `just <recipe>`, because `just` uses the nearest
-# `justfile`. Either way the recipes run standing in `tools/`.
+# It is called with `just <recipe>` from anywhere in the repository, and the
+# recipes run standing in its root. Until 2026-10-10 the tools lived in a
+# `tools/` folder and this was called with `just -f tools/justfile`.
 
 # Where `just install` installs: `/usr/local` unless `CARGO_ROOT` says
 # otherwise.
@@ -135,7 +135,7 @@ install *projects: (_install (cargo_root) (if projects == "" { rust_projects } e
 # does not know where the game lives, and the game does not know where this
 # one lives. A game either puts the `bin/` first on its PATH or has its
 # `justfile` look for it in a directory of its own. A relative destination
-# is relative to where `just` was run, not to `tools/`.
+# is relative to where `just` was run, not to the repository.
 #
 # It only applies to what runs through `just`, which is what puts the `bin/`
 # first on the PATH: a plain command uses the global one. It refuses in the
@@ -148,7 +148,7 @@ install-local dest *projects: _not_in_main_checkout (_install (join(invocation_d
 _not_in_main_checkout:
   #!/usr/bin/env sh
   [ "$(git rev-parse --path-format=absolute --git-dir)" != "$(git rev-parse --path-format=absolute --git-common-dir)" ] && exit 0
-  echo "this is the main checkout: here the tools are the global ones, from 'just -f tools/justfile install'." >&2
+  echo "this is the main checkout: here the tools are the global ones, from 'just install'." >&2
   exit 1
 
 # Installs into `root`: `cargo install` of the named Rust projects. A name

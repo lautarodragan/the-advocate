@@ -101,7 +101,7 @@ const VAR_RANDOM: i64 = 3;
 //   worth making up a coordinate that is not the one there for one page.
 pub const VAR_CHARACTER: i64 = 6;
 // And kind 5, an actor's data, of which the ROM does 2 to 5: the HP, the SP
-// and their maximums. See `actor_stat` in tools/runtime/level.s.
+// and their maximums. See `actor_stat` in runtime/level.s.
 const VAR_ACTOR: i64 = 5;
 const ACTOR_STAT_HP: i64 = 2;
 const ACTOR_STAT_SP_MAX: i64 = 5;
@@ -278,13 +278,13 @@ const BATTLE_HANDLERS: [i32; 3] = [VICTORY_HANDLER, ESCAPE_HANDLER, DEFEAT_HANDL
 const CHOICE_MAX: i64 = 4;
 /// The most digits an `InputNumber` asks for that the ROM takes: six, which
 /// is RM2k 2000's editor's cap. The ROM writes the number into a sixteen-bit
-/// variable, saturating —see `number_value` in tools/runtime/number_input.s—,
+/// variable, saturating —see `number_value` in runtime/number_input.s—,
 /// and its line is a cursor column and a digit per digit: twelve letters.
 const NUMBER_DIGITS_MAX: i64 = 6;
 // Where the two destinations go inside `OP_CELL_TEST` —see its declaration
 // in rm2k-snes-bytecode—, and
 // the top two bits of each write, over the variable's offset: y instead of
-// x, and the refresh. See `cell_test` in tools/runtime/interpreter_cells.s.
+// x, and the refresh. See `cell_test` in runtime/interpreter_cells.s.
 const CELL_DEST_A: usize = 10;
 const CELL_DEST_B: usize = 16;
 const CELL_Y: i64 = 0x4000;
@@ -1893,7 +1893,7 @@ fn number_inputs(commands: &[Command]) -> Vec<(usize, usize)> {
 /// message's box (word). The box is the message's as it is, and the ROM
 /// writes the digits' line below its lines, from RAM: what changes when the
 /// player presses up or down is that line, and nothing of it is in the text
-/// block. See `op_number` in tools/runtime/number_input.s.
+/// block. See `op_number` in runtime/number_input.s.
 ///
 /// It is **one** opcode and not `OP_MESSAGE` and then another one because
 /// in RM2k the message does not wait for A when a number follows it: the
@@ -2100,7 +2100,7 @@ fn branch_bytes(ctx: &Ctx, cmd: &Command, map_events: Option<&MapEvents>) -> Ste
 /// characters touch: the forty of each lap of the race, the lights of map 11
 /// and some two hundred more in the game. Fused, it runs in a single turn of
 /// the interpreter instead of four, and it is what keeps the race at 60
-/// frames: see `cell_test` in tools/runtime/interpreter_cells.s.
+/// frames: see `cell_test` in runtime/interpreter_cells.s.
 ///
 /// Only the shape is looked at here; whether the operands compile is said
 /// by `cell_test_piece`, which is the one that emits.
@@ -2232,7 +2232,7 @@ fn cell_test_piece(writes: &[Vec<u8>; 2], branches: &[Vec<u8>; 2]) -> Step<Optio
 ///   the defeat's destination. The ROM notes it before fighting and, if it
 ///   loses, shows the Game Over screen and from there goes back to boot
 ///   —that is to the title screen, with the saved game waiting in SRAM—:
-///   see tools/runtime/game_over.s and what it still does not do in
+///   see runtime/game_over.s and what it still does not do in
 ///   `workflow/divergencias/lo-que-la-pantalla-de-game-over-no-modela.md`.
 ///   What is not done is what was done before 2026-09-13, which was not
 ///   compiling the page: it cost 15, among them the Rat Tracks boss.
@@ -2325,7 +2325,7 @@ pub fn battle_audio(ctx: &mut Ctx) -> Option<Vec<(String, usize)>> {
 /// OP_ACTOR's `what`: the SP and not the HP, getting a fallen one up with 1,
 /// the amount as a variable's slot, a loss that can kill, and subtracting.
 /// The ROM reads them with the same numbers: `ACT_*` in
-/// tools/runtime/level.s.
+/// runtime/level.s.
 const ACT_SP: u8 = 0x01;
 const ACT_REVIVE: u8 = 0x02;
 const ACT_EQUIP: u8 = 0x04;
@@ -2341,14 +2341,14 @@ const ACT_SUBTRACT: u8 = 0x80;
 
 /// OP_EXP's `what`: levels and not experience, note the level-up message
 /// for the OP_LEVEL_PAGE that follows, the amount as a variable's slot, and
-/// subtracting. `EXP_*` in tools/runtime/level.s.
+/// subtracting. `EXP_*` in runtime/level.s.
 const EXP_BY_LEVELS: u8 = 0x01;
 const EXP_WITH_MESSAGE: u8 = 0x02;
 const EXP_BY_VARIABLE: u8 = 0x20;
 const EXP_SUBTRACTS: u8 = 0x80;
 
 /// OP_ENEMY's `what`: the SP and not the HP, and that a loss of HP can kill.
-/// `ENEMY_*` in tools/runtime/battle_troop.s.
+/// `ENEMY_*` in runtime/battle_troop.s.
 const ENEMY_SP: u8 = 0x01;
 const ENEMY_LETHAL: u8 = 0x80;
 
@@ -3121,7 +3121,7 @@ pub fn compile_command(
             //
             // What made it costly was ARAM. The effects go in each map's
             // audio package, together with its songs —`package_load`, in
-            // tools/runtime/audio_package.s—, with the same per-pack budget
+            // runtime/audio_package.s—, with the same per-pack budget
             // as the music's samples:
             // `workflow/decisiones/un-solo-banco-de-muestras.md`. One that
             // does not fit in its pack does not sound.
@@ -3279,7 +3279,7 @@ pub fn compile_command(
             // —`ResetAfterBattles` gives Talan back the HP he had—. Without
             // `lethal` a loss leaves the actor at 1. In battle it lands on
             // the battle's HP: see `ba_sync_out` in
-            // tools/runtime/battle_troop.s. What it does not do is
+            // runtime/battle_troop.s. What it does not do is
             // `CheckGameOver` on the map, which no page of the game needs.
             if n < 6 {
                 return cannot();
@@ -3450,7 +3450,7 @@ pub fn compile_command(
         }
         // `CommandGameOver`: the Game Over screen and, on pressing, the
         // title. It is the same as losing a battle without a handler —see
-        // `BATTLE_LOSE`—: tools/runtime/game_over.s.
+        // `BATTLE_LOSE`—: runtime/game_over.s.
         GAME_OVER => Ok(vec![OP_GAME_OVER]),
         // `ReturntoTitleScreen`: the same without the screen, that is going
         // back to boot, which in `release` is the title screen. The end of
@@ -3687,7 +3687,7 @@ pub fn compile_command(
             // (16) to go to the vidcasts, mosaic (17) inside, and fade (0) on
             // the way back. It is state that crosses the teleport, and in
             // RM2k it travels in the save; here it does not —see
-            // `TRANSITION_ERASE` in tools/runtime/far_ram.s—.
+            // `TRANSITION_ERASE` in runtime/far_ram.s—.
             //
             // The ROM does two: **the mosaic**, with the PPU's MOSAIC register
             // tied to the brightness ramp —like the battle's,
@@ -3805,7 +3805,7 @@ pub fn compile_command(
             // PlayBGM changes the song that plays, and it is no longer one of
             // the accepted undone: it is done. Each map uploads its audio
             // package to ARAM, with the songs its pages can turn on
-            // —`package_load`, in tools/runtime/audio_package.s—, and each
+            // —`package_load`, in runtime/audio_package.s—, and each
             // sample's budget is that of its worst pack: see
             // `workflow/decisiones/un-solo-banco-de-muestras.md`.
             //
@@ -3929,7 +3929,7 @@ pub fn compile_command(
         // OP_SAVE: no operands: the save to the cartridge's SRAM. It is
         // `OpenSaveMenu`, but without a menu: there is a single slot and the
         // event overwrites it. What is saved is said by `save_table` in
-        // tools/runtime/bank1.s, which is the only place where it is written.
+        // runtime/bank1.s, which is the only place where it is written.
         // It costs no frame: in RM2k the menu blocks, and here there is
         // nothing to look at.
         OPEN_SAVE_MENU => Ok(vec![OP_SAVE]),
@@ -4013,7 +4013,7 @@ pub fn compile_command(
             // thirteen of them set it to **zero**, which in RM2k is turning
             // them off. Until 2026-09-27 it was left out because "there are no
             // random encounters"; there are since 2026-09-13 —see
-            // `tools/runtime/encounters.s`— and Dalia's trip to Tasgarde asked
+            // `runtime/encounters.s`— and Dalia's trip to Tasgarde asked
             // for it, the automatic `DaliaGoingToTasgarde` on map 66, which
             // turns them off before forcing the hero's route.
             //
@@ -4348,7 +4348,7 @@ pub fn compile_command(
                 // asks for: the characters' systems read Talan's HP in
                 // battle —where they are the battle's, see `ba_sync_out`—
                 // and `ResetAfterBattles` the four. See `actor_stat` in
-                // tools/runtime/level.s.
+                // runtime/level.s.
                 if !(ACTOR_STAT_HP..=ACTOR_STAT_SP_MAX).contains(&b)
                     || !(1..=0xFF).contains(&a)
                     || !ctx.game.actors.contains_key(&(a as i32))
@@ -4591,7 +4591,7 @@ pub fn compile_command(
             //
             // OP_ENEMY: place (byte), what (byte: `ENEMY_SP` for the SP, and
             // `ENEMY_LETHAL` on top), amount (signed word). See
-            // `ba_enemy_change` in tools/runtime/battle_troop.s.
+            // `ba_enemy_change` in runtime/battle_troop.s.
             let hp = cmd.code == CHANGE_MONSTER_HP;
             if n < if hp { 5 } else { 4 } {
                 return cannot();
@@ -4616,7 +4616,7 @@ pub fn compile_command(
             // OP_SHAKE: power (byte), speed (byte), frames (word):
             // `ShakeOnce`. With zero frames it is `ShakeEnd`: the screen goes
             // back to its place. The math is `shake_tick` in
-            // tools/runtime/camera.s.
+            // runtime/camera.s.
             if n < 4 || !(0..=9).contains(&q(0)) || !(0..=9).contains(&q(1)) {
                 return cannot();
             }
@@ -4642,7 +4642,7 @@ pub fn compile_command(
             //
             // OP_FLASH_SCREEN: r, g, b, power (a byte each, 0..31) and frames
             // (byte): `FlashOnce`, the whole-screen flash. The math is
-            // `flash_tick` in tools/runtime/screen_flash.s.
+            // `flash_tick` in runtime/screen_flash.s.
             if n < 6 || p[..4].iter().any(|&v| !(0..=31).contains(&v)) {
                 return cannot();
             }
@@ -4913,7 +4913,7 @@ fn compile_route(ctx: &mut Ctx, cmd: &Command, map_events: Option<&MapEvents>) -
             // the actor table, but the actor's twelve poses are written with
             // the same shape as an `npc_poses` entry, so the ROM changes the
             // pointer and that is it: see `graphic_hero` in
-            // tools/runtime/hero_route.s. They are +29 pages of the game, and
+            // runtime/hero_route.s. They are +29 pages of the game, and
             // among them the three of map 8's `EV0047`, which could not be
             // interacted with.
             let Some(graphics) = ctx.graphics.as_deref_mut() else {
@@ -4974,7 +4974,7 @@ fn compile_route(ctx: &mut Ctx, cmd: &Command, map_events: Option<&MapEvents>) -
 /// the previous one— and it advances once per frame **before** the flashes,
 /// which is where `Game_Screen::Update` puts it. With "wait", the page waits
 /// for as long as it lasts: two frames per animation frame. See
-/// `battle_anim_tick` in tools/runtime/battle_animation.s.
+/// `battle_anim_tick` in runtime/battle_animation.s.
 ///
 /// The flash is not exactly RM2k's: there the power is `min((7 - (d + 1) /
 /// 2) * power / 6, 31)` for ten frames, in steps; here it is a `FlashScreen`
@@ -6204,7 +6204,7 @@ mod tests {
 
     #[test]
     fn change_exp_and_change_level_are_op_exp() {
-        // See `exp_change` in tools/runtime/level.s for what the ROM does
+        // See `exp_change` in runtime/level.s for what the ROM does
         // with each bit.
         let mut game = Game::default();
         game.actors.insert(14, vec![]);

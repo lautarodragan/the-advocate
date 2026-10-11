@@ -37,7 +37,7 @@ way, which is the one that happened.
 import os
 import re
 
-# `tools/`, the folder above this one: what these tests look at.
+# The repository, the folder above this one: what these tests look at.
 TOOLS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 

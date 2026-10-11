@@ -499,7 +499,7 @@ pub fn run(options: Options) -> Result<()> {
                 .json_name()
                 .map_or_else(|| code.to_string(), str::to_string);
             println!(
-                "  map {}: WARNING, a page uses {name} and the ROM doesn't do it; see ACCEPTED_UNDONE in tools/rm2k-snes/events",
+                "  map {}: WARNING, a page uses {name} and the ROM doesn't do it; see ACCEPTED_UNDONE in rm2k-snes/events",
                 m.id
             );
         }

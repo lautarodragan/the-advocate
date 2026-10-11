@@ -1,4 +1,4 @@
-//! The runtime, `tools/runtime/`, uses only declared opcodes and declares
+//! The runtime, `runtime/`, uses only declared opcodes and declares
 //! none by hand.
 //!
 //! A `cmp #OP_X` against something nobody declares does not assemble...

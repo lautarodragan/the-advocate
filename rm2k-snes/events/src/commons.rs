@@ -6,7 +6,7 @@
 //! body is compiled a single time, without a map —no events to name, no
 //! audio package to note effects in, no pictures—, and the ROM looks at its
 //! switch each time the foreground interpreter is free: see `common_start`
-//! in tools/runtime/common_events.s, and easyrpg's
+//! in runtime/common_events.s, and easyrpg's
 //! `Game_Map::UpdateForegroundEvents`, which is what it copies.
 //!
 //! A `CallEvent` inside one of these bodies is **not** pasted in place: it is

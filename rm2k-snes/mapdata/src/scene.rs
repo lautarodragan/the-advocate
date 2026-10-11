@@ -265,7 +265,7 @@ pub fn scenes_asm(scene: &Value, used: &[i64]) -> Result<String> {
         if total > BATTLERS_CAP {
             return Err(Bad::answer(format!(
                 "troop {number}: its battlers are {total} bytes and {BATTLERS_CAP} fit in WRAM: \
-                 see `scn_battlers_load` in tools/runtime/battle_scene.s"
+                 see `scn_battlers_load` in runtime/battle_scene.s"
             )));
         }
     }

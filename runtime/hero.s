@@ -92,7 +92,7 @@ menu_no_page:
     ; with the whole party at zero HP, and from then on every battle was lost
     ; by itself before opening —`battle_run` answers defeat with nobody
     ; standing—. `battle_start` collects it: see
-    ; tools/runtime/game_over.s.
+    ; runtime/game_over.s.
     jsl f:game_over_always
     jmp battle_start
 no_encounter:

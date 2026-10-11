@@ -562,7 +562,7 @@ fn do_cartridge(args: &CartridgeArgs) -> Result<()> {
         return Err(Bad::answer(format!(
             "the boot doesn't fit in BOOT_FRAMES: the boot map's package is {bytes} B and with the map, the \
              driver and the directory the computation gives {frames:.0} frames, against {cap}. Raise \
-             BOOT_FRAMES in tools/runtime/far_ram.s, or shrink that package"
+             BOOT_FRAMES in runtime/far_ram.s, or shrink that package"
         )));
     }
     say(format!("  boot: the boot map's package is {bytes} B, {frames:.0} of the {cap} frames of BOOT_FRAMES"));

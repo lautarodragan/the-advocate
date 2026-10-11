@@ -150,7 +150,7 @@ escape_set:
     ; because in RM2k losing it is `Scene_Gameover`— never gets here:
     ; `game_over_record` records it before fighting, and `battle_start` goes
     ; to the Game Over screen without coming back. See
-    ; tools/runtime/game_over.s.
+    ; runtime/game_over.s.
     sep #$20
 .a8
     jmp run_code::other
