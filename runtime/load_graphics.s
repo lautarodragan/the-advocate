@@ -224,7 +224,23 @@ no_palette:
 ;
 ; Queues the pose at `vq_src` (24 bits, in the cartridge) for the slot that
 ; starts at word `vq_dest`. Returns A nonzero if it got in; if the queue is
-; full, the caller has to ask for it again.
+; full, the caller has to ask for it again. Keeps Y: `share_took` and
+; `cache_took` get theirs through here.
+;
+; **The pose is decompressed here, not in the vblank.** Since 2026-10-11 each
+; one is an LZ2 stream —Vampires Dawn didn't fit with them raw; see `poses`
+; in rm2k-snes-mapdata's record.rs—, so it goes to its place in `POSE_RING`
+; now and the entry points there: the vblank is the tight resource, and a
+; DMA from WRAM costs it the same as one from the cartridge. **It costs the
+; loop about a seventh of a frame per pose, and ABL's race can't pay it**:
+; measured on 2026-10-11, a frame with two poses to decompress is a lost
+; frame. See the task `vampires-dawn-entra-comprimido.md`. The ring has one place per entry
+; and the queue is drained in order, so the place taken is always the one
+; of the oldest entry, already uploaded: with all VQ_MAX waiting, the queue
+; is full and nothing gets here.
+.assert VQ_MAX = POSE_RING_SLOTS, error, "the poses' ring needs one place per queue entry"
+.assert (VQ_MAX & (VQ_MAX - 1)) = 0, error, "the ring wraps with an and: VQ_MAX has to be a power of two"
+.assert (POSE_RING & $FFFF) + VQ_MAX * POSE_BYTES <= $10000, error, "the poses' ring crosses a bank"
 .proc vram_queue
 .a8
 .i16
@@ -234,6 +250,18 @@ no_palette:
     lda #0
     rts
 has_place:
+    phy
+    lda #^POSE_RING
+    sta f:LZ2_BANK
+    jsr ring_place
+.a16
+    tay                         ; where it goes
+    sep #$20
+.a8
+    ldx vq_src                  ; the stream
+    lda vq_src + 2
+    jsl f:lz2_decompress + FAST
+    lda vq_n
     sta temp + 2
     asl a
     asl a
@@ -245,20 +273,48 @@ has_place:
     tax
     sep #$20
 .a8
-    lda vq_src
-    sta vq + 0, x
-    lda vq_src + 1
-    sta vq + 1, x
-    lda vq_src + 2
+    jsr ring_place
+.a16
+    sta vq + 0, x               ; the vblank reads it from the ring
+    sep #$20
+.a8
+    lda #^POSE_RING
     sta vq + 2, x
     lda vq_dest
     sta vq + 3, x
     lda vq_dest + 1
     sta vq + 4, x
     inc vq_n
+    lda vq_ring
+    inc a
+    and #(VQ_MAX - 1)
+    sta vq_ring
+    ply
     lda #1
     rts
 .endproc
+
+; The address of the ring's place `vq_ring`, inside its bank, in a 16-bit
+; A: it leaves the accumulator wide.
+.assert POSE_BYTES = 512, error, "ring_place multiplies by 512"
+.proc ring_place
+.a8
+.i16
+    lda vq_ring
+    rep #$20
+.a16
+    ; Masked here and not only when it moves: nobody sets it on reset, and
+    ; the RAM starts with garbage —bsnes's, and snes9x's after whatever the
+    ; boot left—. Unmasked, a place past the eighth wraps Y inside the bank
+    ; and the pose lands on the grid.
+    and #(VQ_MAX - 1)
+    xba
+    asl a                       ; times POSE_BYTES, which is 512
+    clc
+    adc #.loword(POSE_RING)
+    rts
+.endproc
+.a8
 
 ; Uploads up to VQ_PER_FRAME poses from the queue and leaves the rest at the
 ; start. Each pose is four DMAs of 128 bytes: the four rows of the 4x4 block,

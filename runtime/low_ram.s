@@ -155,10 +155,10 @@ oam:      .res 512
 oam_high: .res 32
 
 ; The VRAM upload queue: what has to be uploaded in the coming vblank and
-; cannot be uploaded now. Each entry is three bytes of source in the cartridge
-; and two of destination in VRAM words, and what gets uploaded is always a
-; pose: 512 bytes in four rows of 128, because a 32x32 object is four rows of
-; the name grid. Up to VQ_PER_FRAME per vblank; the rest waits for the next,
+; cannot be uploaded now. Each entry is three bytes of source —its place in
+; `POSE_RING`, where `vram_queue` decompressed it— and two of destination in
+; VRAM words, and what gets uploaded is always a pose: 512 bytes in four rows
+; of 128, because a 32x32 object is four rows of the name grid. Up to VQ_PER_FRAME per vblank; the rest waits for the next,
 ; and whoever queued it learns it did not fit and asks again. See
 ; `vram_queue` and `vram_drain`.
 VQ_MAX = 8
@@ -170,6 +170,7 @@ vq_src:    .res 3
 vq_dest:   .res 2
 vq_done: .res 1
 vq_rows:   .res 1
+vq_ring:   .res 1     ; the place of `POSE_RING` the next pose goes to
 ; The hero pose that is in VRAM, or $FF if whichever is due has to be uploaded.
 hero_pose_vram: .res 1
 hero_pose:      .res 1

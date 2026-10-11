@@ -100,6 +100,13 @@
 //! the three hashes moved: the difference against the old text is
 //! `TWIN_STRIDE` and its comment, and a zero word behind each map's
 //! positions.
+//!
+//! On 2026-10-11 each pose became its own LZ2 stream, because Vampires
+//! Dawn didn't fit with them raw, and three constants came with them,
+//! `POSE_RING`, `POSE_RING_SLOTS` and `POSE_BYTES`. The hashes did not
+//! move: the texts go through `with_the_poses_raw`, which decompresses each
+//! `pose_N` back and takes those three lines out, and with that they are the
+//! old ones byte for byte. The poses' note says how much they take now.
 
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_mapdata::record;
@@ -126,7 +133,7 @@ fn what_goes_per_map_comes_out_as_the_python_wrote_it() {
         "1739ecfe74a25a7d9c0fa8001ea8c338117c81189df83a9196643a6173976fc1"
     );
     assert_eq!(
-        sha(&with_the_turn_as_before(&written.maps)),
+        sha(&with_the_poses_raw(&with_the_turn_as_before(&written.maps))),
         "1622acb05a2213323bcb3b722f858187002804ddbf98b031f9f06cae75fd5382"
     );
     assert_eq!(
@@ -143,7 +150,7 @@ fn what_it_says_is_what_the_python_said() {
         [
             "  map 8: Chubby2:2 goes with a pose bank of its own, quantized differently than in \
              another map",
-            "  poses: 33 distinct out of 36, 1.5 KB less"
+            "  poses: 33 distinct out of 36, 1.5 KB less; 10.0 KB in LZ2, was 16.5"
         ]
     );
     assert_eq!(
@@ -285,6 +292,49 @@ fn with_the_turn_as_before(text: &str) -> String {
         .join("\n")
 }
 
+/// The text with the poses as they were before 2026-10-11, raw: since that
+/// day each is an LZ2 stream, so each `pose_N` block is decompressed back
+/// and written the old way, and the three constants that came with them
+/// —`POSE_RING`, `POSE_RING_SLOTS` and `POSE_BYTES`— are checked and taken
+/// out.
+fn with_the_poses_raw(text: &str) -> String {
+    let lines: Vec<&str> = text.split('\n').collect();
+    let mut out: Vec<String> = Vec::new();
+    let mut i = 0;
+    let mut seen = 0;
+    while i < lines.len() {
+        let line = lines[i];
+        let label = lines.get(i + 1).copied().unwrap_or("");
+        if line.starts_with(".block ") && label.starts_with("pose_") && label.ends_with(':') {
+            let mut stream = Vec::new();
+            let mut j = i + 2;
+            while let Some(bytes) = lines.get(j).and_then(|l| l.strip_prefix("    .byte ")) {
+                stream.extend(bytes.split(',').map(|b| {
+                    u8::from_str_radix(b.trim().trim_start_matches('$'), 16).unwrap()
+                }));
+                j += 1;
+            }
+            let raw = lz2::decompress(&stream).unwrap();
+            assert_eq!(raw.len(), 512, "{label}");
+            out.push(rm2k_snes_mapdata::asm::block(&label[..label.len() - 1], &raw));
+            seen += 1;
+            i = j;
+            continue;
+        }
+        if line.starts_with("POSE_RING = ") {
+            assert_eq!(line, "POSE_RING = $7FF000");
+            assert_eq!(lines[i + 1], "POSE_RING_SLOTS = 8");
+            assert_eq!(lines[i + 2], "POSE_BYTES = 512");
+            i += 3;
+            continue;
+        }
+        out.push(line.to_string());
+        i += 1;
+    }
+    assert!(seen > 0, "no pose in the text");
+    out.join("\n")
+}
+
 /// The text without `item_up`, which came on 2026-10-04 with the materials:
 /// what each item adds to an actor for good. The test game has no
 /// material, so every word is zero, which is checked here.
@@ -366,7 +416,7 @@ fn without_bare_window(text: &str) -> String {
 #[test]
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
-    let text = with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&emitted.text)))))));
+    let text = with_the_poses_raw(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&emitted.text))))))));
     assert_eq!(text.lines().count(), 3777);
     assert_eq!(
         sha(&text),
@@ -377,7 +427,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 #[test]
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
-    let text = with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&emitted.text)))))));
+    let text = with_the_poses_raw(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&emitted.text))))))));
     assert_eq!(text.lines().count(), 3896);
     assert_eq!(
         sha(&text),

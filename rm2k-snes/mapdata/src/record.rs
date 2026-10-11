@@ -1433,22 +1433,30 @@ pub fn poses(maps: &[Map]) -> Result<Poses> {
         }
         index_per_map.push(own);
     }
+    // **Each pose is its own LZ2 stream**, since 2026-10-11: Vampires Dawn
+    // didn't fit, and the poses were the most it carried uncompressed. The
+    // console decompresses one when it queues it, into the ring that
+    // `vram_drain` uploads from —`POSE_RING`, below—, so each has to come
+    // out of its own stream with nothing before it, and always whole: the
+    // DMA uploads POSE_BYTES from the ring no matter what the stream wrote.
     let mut text =
         String::from("; --- the poses of the characters that change pose, for the whole ROM ---\n");
     let mut label_of: HashMap<Vec<u8>, String> = HashMap::new();
+    let mut distinct: Vec<Vec<u8>> = Vec::new();
     let mut bank_poses: Vec<Vec<String>> = Vec::new();
     for data in &banks {
         let mut theirs = Vec::new();
         for pose in 0..SPRITE_POSES {
-            let bytes = data
+            let mut bytes = data
                 [(pose * POSE_BYTES).min(data.len())..((pose + 1) * POSE_BYTES).min(data.len())]
                 .to_vec();
+            bytes.resize(POSE_BYTES, 0);
             let label = match label_of.get(&bytes) {
                 Some(l) => l.clone(),
                 None => {
                     let l = format!("pose_{}", label_of.len());
-                    let _ = writeln!(text, "{}", block(&l, &bytes));
-                    label_of.insert(bytes, l.clone());
+                    label_of.insert(bytes.clone(), l.clone());
+                    distinct.push(bytes);
                     l
                 }
             };
@@ -1456,12 +1464,26 @@ pub fn poses(maps: &[Map]) -> Result<Poses> {
         }
         bank_poses.push(theirs);
     }
+    let inputs: Vec<&[u8]> = distinct.iter().map(Vec::as_slice).collect();
+    let streams = crate::compress::compress_many(&inputs)?;
+    for (k, stream) in streams.iter().enumerate() {
+        let _ = writeln!(text, "{}", block(&format!("pose_{k}"), stream));
+    }
+    let _ = writeln!(
+        text,
+        "POSE_RING = ${:06X}\nPOSE_RING_SLOTS = {}\nPOSE_BYTES = {POSE_BYTES}",
+        crate::materials::POSE_RING,
+        crate::materials::POSE_RING_SLOTS
+    );
     text.push('\n');
     let total = SPRITE_POSES * banks.len();
+    let lz2: usize = streams.iter().map(Vec::len).sum();
     notes.push(format!(
-        "  poses: {} distinct out of {total}, {:.1} KB less",
+        "  poses: {} distinct out of {total}, {:.1} KB less; {:.1} KB in LZ2, was {:.1}",
         label_of.len(),
-        (total - label_of.len()) as f64 * POSE_BYTES as f64 / 1024.0
+        (total - label_of.len()) as f64 * POSE_BYTES as f64 / 1024.0,
+        lz2 as f64 / 1024.0,
+        (distinct.len() * POSE_BYTES) as f64 / 1024.0
     ));
     let per_map = index_per_map
         .into_iter()

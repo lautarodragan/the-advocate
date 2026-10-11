@@ -55,6 +55,17 @@ pub const LZ2_CAP_CODE: usize = 0x4E00;
 /// in one bank, and the decompressor does not have to know how to cross.
 pub const HALF_GRID: usize = 0x8000;
 
+/// The poses travel in LZ2 —see `poses` in record.rs— and `vram_queue`
+/// decompresses each one into a ring of `POSE_RING_SLOTS` places that
+/// `vram_drain` uploads from in the vblank: one per entry of the runtime's
+/// queue, `VQ_MAX`, which `vram_queue` asserts. It is the top of the upper
+/// half of bank $7F, **above what lives behind the grid**, which
+/// [`check_map`] keeps from reaching it: in Vampires Dawn, the largest
+/// leaves 15 KB free there, and ABL's 20.
+pub const POSE_RING_SLOTS: usize = 8;
+pub const POSE_RING_BYTES: usize = POSE_RING_SLOTS * crate::objects::POSE_BYTES;
+pub const POSE_RING: usize = 0x80_0000 - POSE_RING_BYTES;
+
 /// How many streams of background tiles `lz2_backdrop` reads. A background
 /// that fits in one buffer goes in one.
 pub const BACKDROP_STREAMS_MAX: usize = 2;
@@ -124,11 +135,14 @@ pub fn check_map(map_id: i64, blocks: &RawBlocks) -> Result<()> {
     }
     let used = grid_high_used(of("map_cells").len());
     let ram = of("map_ram").len() + of("map_code").len();
-    if used + ram > HALF_GRID {
+    // The top of the half is the poses' ring: see `POSE_RING`.
+    let room = HALF_GRID - POSE_RING_BYTES;
+    if used + ram > room {
         return Err(Bad::answer(format!(
             "map {map_id}: what lives behind its grid is {ram} bytes and the grid leaves {} of \
-             the upper half of bank $7F: see `lz2_grid` in runtime/decompress.s",
-            HALF_GRID - used
+             the upper half of bank $7F, below the poses' ring: see `lz2_grid` in \
+             runtime/decompress.s",
+            room.saturating_sub(used)
         )));
     }
     Ok(())
@@ -461,14 +475,16 @@ mod tests {
             .map(|(k, n)| (k.to_string(), vec![0; n]))
             .collect()
         };
-        // A grid of 40,000 bytes takes 7,232 of $7F's half.
-        check_map(52, &blocks(40_000, 0x8000 - 7_232 - 100, 100)).unwrap();
+        // A grid of 40,000 bytes takes 7,232 of $7F's half, and the poses'
+        // ring its top 4,096.
+        check_map(52, &blocks(40_000, 0x8000 - 4_096 - 7_232 - 100, 100)).unwrap();
         assert_eq!(
-            check_map(52, &blocks(40_000, 0x8000 - 7_232 - 100, 101))
+            check_map(52, &blocks(40_000, 0x8000 - 4_096 - 7_232 - 100, 101))
                 .unwrap_err()
                 .message(),
-            "map 52: what lives behind its grid is 25537 bytes and the grid leaves 25536 of \
-             the upper half of bank $7F: see `lz2_grid` in runtime/decompress.s"
+            "map 52: what lives behind its grid is 21441 bytes and the grid leaves 21440 of \
+             the upper half of bank $7F, below the poses' ring: see `lz2_grid` in \
+             runtime/decompress.s"
         );
     }
 
