@@ -286,7 +286,21 @@ fn everything_that_builds_the_rom_is_in_the_fingerprint() {
     }
     // Only this test reads the PATH, through the fingerprint.
     std::env::set_var("PATH", &bin);
-    let c = load(&dir).unwrap();
+    // The original game, with a resource the stages read and what they do
+    // not: a map, which reaches the ROM through the dump, and a save.
+    let original = dir.join("original");
+    fs::create_dir_all(original.join("ChipSet")).unwrap();
+    fs::write(original.join("ChipSet/Town.png"), "tiles").unwrap();
+    fs::write(original.join("Map0001.lmu"), "map").unwrap();
+    fs::write(original.join("Save01.lsd"), "save").unwrap();
+    let machine = |rtp: &str| {
+        let mut e = Environment::default();
+        e.set("game_dir", &original);
+        e.set("rtp_dir", dir.join(rtp));
+        e.set("soundfont", dir.join("bank.sf2"));
+        e
+    };
+    let c = Cartridges::load(Project::open(&dir).unwrap(), machine("rtp")).unwrap();
     let files = c.fingerprint_files(&runtime).unwrap();
     for source in sources(&runtime.join("main.s")).unwrap() {
         assert!(files.contains(&source), "{} is not in the fingerprint", source.display());
@@ -310,4 +324,28 @@ fn everything_that_builds_the_rom_is_in_the_fingerprint() {
     let fingerprint = c.fingerprint().unwrap();
     assert_eq!(fingerprint.len(), 16);
     assert_eq!(fingerprint, c.fingerprint().unwrap());
+    // The original game's resources, by content and by name: retouching a
+    // ChipSet left the cartridge "up to date" with the old ROM.
+    fs::write(original.join("ChipSet/Town.png"), "retouched").unwrap();
+    let retouched = c.fingerprint().unwrap();
+    assert_ne!(retouched, fingerprint);
+    fs::rename(original.join("ChipSet/Town.png"), original.join("ChipSet/Village.png")).unwrap();
+    let renamed = c.fingerprint().unwrap();
+    assert_ne!(renamed, retouched);
+    // Not what they do not read: playing the original rewrites its saves.
+    fs::write(original.join("Save01.lsd"), "played").unwrap();
+    fs::write(original.join("Map0001.lmu"), "edited").unwrap();
+    assert_eq!(c.fingerprint().unwrap(), renamed);
+    // The RTP, by its path.
+    let elsewhere = Cartridges::load(Project::open(&dir).unwrap(), machine("other-rtp")).unwrap();
+    assert_ne!(elsewhere.fingerprint().unwrap(), renamed);
+}
+
+#[test]
+fn the_fingerprint_needs_the_game() {
+    // Without `--game-dir` it cannot look at the original game, and saying
+    // "up to date" without looking is the stale ROM again.
+    let c = load(&game("no_game_dir", RELEASE)).unwrap();
+    let error = c.fingerprint().err().unwrap();
+    assert!(error.contains("--game-dir"), "{error}");
 }

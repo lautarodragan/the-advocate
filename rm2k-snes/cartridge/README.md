@@ -16,6 +16,7 @@ from the cc65 project.
 
     rm2k-snes-cartridges                 builds whatever is not up to date
     rm2k-snes-cartridges release         only that one, with its MSU-1 tracks
+    rm2k-snes-cartridges --force         all of them, even the ones up to date
     rm2k-snes-cartridges --list          which case goes in which cartridge
     rm2k-snes-cartridges --list --json   everything a test suite needs to know
     rm2k-snes-cartridges release --convert-into DIR -- --converter-flag
@@ -36,9 +37,16 @@ is played, and its MSU-1 tracks are made with it.
 
 The fingerprint hashes everything that changes a ROM without changing its
 flags: the whole runtime, `ca65`, `ld65`, the binaries the converter runs,
-`rm2k-snes-assemble` —the bank packing lives there—, the converter's Python
-sources, the hand-made patches, the project file and each song's volume
-headroom. Contents, never dates.
+`rm2k-snes-assemble` —the bank packing lives there—, the game's dump, the
+hand-made patches, the project file and each song's volume headroom, and the
+original game's resources —every `.png`, `.bmp`, `.xyz`, `.mid` and `.wav`
+below `--game-dir`, with its name—. Contents, never dates. The RTP and the
+SoundFont go in **by their path**: after changing one in place, `--force`
+builds even what is up to date.
+
+So **whoever asks whether a cartridge is up to date needs the machine flags
+too**: `--list` and `rm2k-snes-space` take the same ones, and without
+`--game-dir` the fingerprint is an error.
 
 `--list --json` is what a game's test suite reads instead of importing any of
 this: where each cartridge and its ROM are, its flags, its cases and whether
