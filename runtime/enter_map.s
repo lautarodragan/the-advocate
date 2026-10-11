@@ -445,10 +445,23 @@ set:
     bcc ramp                    ; still going dark
     pha
     jsr load_requested          ; only once: it turns itself off
+    ; The cut for showing has no way back up: the fade ends on the load's
+    ; tick, which stays frozen, and the next vblank already writes full
+    ; brightness. See `teleport_transition.s`.
+    lda f:TRANSITION_SHOW
+    cmp #TRANSITION_CUTOFF
+    beq cut_in
     pla
 ramp:
     jsr fade_brightness
     lda #1                      ; the game stays frozen
+    rts
+cut_in:
+    pla
+    stz fade
+    lda #BRIGHTNESS_MAX
+    sta brightness
+    lda #1                      ; this tick, the load's, stays frozen
     rts
 finish:
     stz fade

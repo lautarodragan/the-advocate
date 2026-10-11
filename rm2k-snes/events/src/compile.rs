@@ -217,7 +217,7 @@ const ACCESS_BIT: [u8; 3] = [0x01, 0x02, 0x04];
 const TRANSITION_ERASE: i64 = 0;
 const TRANSITION_SHOW: i64 = 1;
 const RM2K_TRANSITION_MOSAIC: i64 = 17;
-/// The cut and "none", which erasing compiles to the cut.
+/// The cut and "none", which both compile to the cut, erasing and showing.
 const RM2K_CUT_TRANSITIONS: [i64; 2] = [19, 20];
 // What the bytecode carries: what the ROM does, and not the RM2k number.
 const TRANSITION_FADE: u8 = 0;
@@ -3709,10 +3709,15 @@ pub fn compile_command(
             // frame of black. See
             // workflow/divergencias/las-transiciones-del-teletransporte.md.
             //
-            // The cut and "none" for **showing** do not compile: no ROM map
-            // uses them, and with nobody running them they would be a path no
-            // test walks. The battle's do not either: the ROM always uses the
-            // database's.
+            // And the cut for **showing**: the new map at full brightness on
+            // the tick after the load —`TransitionCutIn`, one frame in RM2k—,
+            // with no ramp back up. Sunset Over Imdahl asks for it in the same
+            // page that opens the game (map 22, ev1), and while it did not
+            // compile the whole page was left out: the screen stayed in the
+            // black tint map 11 leaves it in. "None" (20) for showing goes to
+            // the cut too: in RM2k it is zero frames instead of one, and the
+            // console cannot tell the two apart. The battle's do not compile:
+            // the ROM always uses the database's.
             if n < 2 {
                 return cannot();
             }
@@ -3721,11 +3726,8 @@ pub fn compile_command(
                 // The battle's: the ROM always uses the database's.
                 return cannot();
             }
-            if which == TRANSITION_ERASE && RM2K_CUT_TRANSITIONS.contains(&rm2k) {
-                return Ok(vec![OP_TRANSITION, which as u8, TRANSITION_CUT]);
-            }
             if RM2K_CUT_TRANSITIONS.contains(&rm2k) {
-                return cannot();
+                return Ok(vec![OP_TRANSITION, which as u8, TRANSITION_CUT]);
             }
             let kind = if rm2k == RM2K_TRANSITION_MOSAIC {
                 TRANSITION_MOSAIC

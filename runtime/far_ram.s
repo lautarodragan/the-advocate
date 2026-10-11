@@ -1229,9 +1229,9 @@ BATTLE_ON = $7E7840             ; 1 if the battle got to turn its screen on
 ;
 ; $7E7920 to $7E793F, reserved on 2026-09-27: the transition with which the
 ; teleport erases the screen and the one with which it shows it again, which
-; `ChangeScreenTransitions` changes —`op_transition`— and `fade_mosaic`
-; and `fade_from` read: TRANSITION_MOSAIC, TRANSITION_CUTOFF (only for
-; erasing), or anything else for the fade.
+; `ChangeScreenTransitions` changes —`op_transition`— and `fade_mosaic`,
+; `fade_from` and `fade_tick` read: TRANSITION_MOSAIC, TRANSITION_CUTOFF,
+; or anything else for the fade.
 ;
 ; `boot_transition` sets them to the fade, on reset: bsnes starts WRAM
 ; with garbage, and without that the first teleport could come out as mosaic.

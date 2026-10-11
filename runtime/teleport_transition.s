@@ -17,10 +17,11 @@
 ;                15, which is what the battle does —see `battle_fade.s`,
 ;                which explains why the mosaic also darkens, and in RM2k it
 ;                does not: the load has to fall inside the black—
-;   the cut      only for erasing: the fade started at its last outgoing
-;                tick, so the jump's own tick is already black, the next
-;                one loads the map, and the way back is the usual one.
-;                `fade_from` sets it
+;   the cut      for erasing, the fade started at its last outgoing
+;                tick, so the jump's own tick is already black and the next
+;                one loads the map: `fade_from` sets it. For showing, the
+;                fade ends on the load's tick, at full brightness and with
+;                no ramp back up: `fade_tick` does it
 ;
 ; The PPU's mosaic is for the backgrounds and nothing else: **sprites do not
 ; get pixelated**, and in RM2k they do, because there the whole screen gets
@@ -28,7 +29,7 @@
 ; noticeable; it is in
 ; workflow/divergencias/las-transiciones-del-teletransporte.md.
 ;
-; `fade_tick` does not need to be touched for this: the mosaic is deduced
+; `fade_tick` does not need to be touched for the mosaic: it is deduced
 ; from what the fade already carries —whether there is one, whether the load is
 ; still pending, and this frame's brightness— and written in the vblank, next
 ; to the brightness, in `fade_mosaic`.
@@ -69,8 +70,8 @@ show:
 ; tick of the outgoing half: the jump's own tick —the one `start_fade`
 ; already paints— is in the black in the middle, and the first `fade_tick`
 ; is past `FADE_LOAD`, so it loads the map right there. It is
-; `TransitionCutOut`, which lasts one frame in RM2k, followed by the usual
-; show. `fade_tick` knows nothing about it.
+; `TransitionCutOut`, which lasts one frame in RM2k, followed by whatever
+; the show says. `fade_tick` knows nothing about it.
 FADE_CUT = FADE_TOTAL / 2 - 1
 .assert FADE_CUT >= FADE_RAMP - 1, error, "the cut has to start in the black"
 .assert FADE_CUT + 1 >= FADE_LOAD, error, "the cut has to land past the load"
