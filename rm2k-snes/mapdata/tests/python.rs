@@ -126,7 +126,7 @@ fn what_goes_per_map_comes_out_as_the_python_wrote_it() {
         "1739ecfe74a25a7d9c0fa8001ea8c338117c81189df83a9196643a6173976fc1"
     );
     assert_eq!(
-        sha(&with_the_turn_as_before(&written.maps)),
+        sha(&without_hero_colors(&with_the_turn_as_before(&written.maps))),
         "1622acb05a2213323bcb3b722f858187002804ddbf98b031f9f06cae75fd5382"
     );
     assert_eq!(
@@ -298,6 +298,39 @@ fn without_item_up(text: &str) -> String {
     lines.join("\n")
 }
 
+/// The text without the colours of the graphics only the hero shows, which
+/// came on 2026-10-11: the `hero_colors` table —one byte, none of these
+/// maps' graphics brings colours— and the byte per graphic behind each
+/// `route_graphic`, checked here to be 0.
+fn without_hero_colors(text: &str) -> String {
+    let empty = ".block 1\nhero_colors:\n    .byte $00\n\n";
+    assert!(text.contains(empty), "a hero_colors table with something in it");
+    let text = text.replacen(empty, "", 1);
+    let mut lines: Vec<String> = text.split('\n').map(str::to_string).collect();
+    let mut at = 0;
+    while at < lines.len() {
+        if !(lines[at].starts_with("route_graphic_") && lines[at].ends_with(':')) {
+            at += 1;
+            continue;
+        }
+        let mut end = at + 1;
+        let mut bytes: Vec<String> = Vec::new();
+        while end < lines.len() && lines[end].starts_with("    .byte ") {
+            bytes.extend(lines[end]["    .byte ".len()..].split(',').map(str::to_string));
+            end += 1;
+        }
+        let n = bytes.len() / 3;
+        assert!(bytes[2 * n..].iter().all(|b| b == "$00"), "a graphic with colours");
+        bytes.truncate(2 * n);
+        let rows: Vec<String> = bytes.chunks(16).map(|c| format!("    .byte {}", c.join(","))).collect();
+        lines[at - 1] = format!(".block {}", 2 * n);
+        let count = rows.len();
+        lines.splice(at + 1..end, rows);
+        at += 1 + count;
+    }
+    lines.join("\n")
+}
+
 /// The text without the custom menus, which came on 2026-10-04: a request
 /// without them gets the section's empty labels and the pause menu's two
 /// counts, checked here to be those of no menu.
@@ -366,7 +399,7 @@ fn without_bare_window(text: &str) -> String {
 #[test]
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
-    let text = with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&emitted.text)))))));
+    let text = without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&emitted.text))))))));
     assert_eq!(text.lines().count(), 3777);
     assert_eq!(
         sha(&text),
@@ -377,7 +410,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 #[test]
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
-    let text = with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&emitted.text)))))));
+    let text = without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&emitted.text))))))));
     assert_eq!(text.lines().count(), 3896);
     assert_eq!(
         sha(&text),

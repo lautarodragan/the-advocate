@@ -374,6 +374,38 @@ fn drawings<'de, D: serde::Deserializer<'de>>(d: D) -> std::result::Result<Vec<V
         .collect()
 }
 
+/// A graphic of command 34: see [`Sprite::route_gfx`].
+#[derive(Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(untagged)]
+pub enum RouteGfx {
+    Colored(i64, i64, Vec<u32>),
+    Plain(i64, i64),
+}
+
+impl RouteGfx {
+    /// Its entry in the pose table, or $FF.
+    pub fn entry(&self) -> i64 {
+        match self {
+            RouteGfx::Colored(k, ..) | RouteGfx::Plain(k, _) => *k,
+        }
+    }
+
+    pub fn palette(&self) -> i64 {
+        match self {
+            RouteGfx::Colored(_, p, _) | RouteGfx::Plain(_, p) => *p,
+        }
+    }
+
+    /// The colours the console uploads into the leaders' palette when the
+    /// hero takes it; none for one with a palette of its own in the map.
+    pub fn colors(&self) -> &[u32] {
+        match self {
+            RouteGfx::Colored(_, _, c) => c,
+            RouteGfx::Plain(..) => &[],
+        }
+    }
+}
+
 /// A slot of the sprite bank, by what it holds.
 #[derive(Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(untagged)]
@@ -430,8 +462,9 @@ pub struct Sprite {
     /// Each one's twelve poses, as this map quantized them.
     pub banks: Vec<(String, i64, String)>,
     /// The graphics command 34 changes to: `[pose table entry or $FF,
-    /// palette]`.
-    pub route_gfx: Vec<(i64, i64)>,
+    /// palette]`, and a third element for one drawn in the leaders'
+    /// palette with colours of its own: those, as CGRAM words.
+    pub route_gfx: Vec<RouteGfx>,
     /// The raindrops, the turn slot's block, the `ShowPicture` picture and
     /// the battle animation's box: `[first tile, palette]`, 0 if none.
     pub rain: (i64, i64),

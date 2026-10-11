@@ -290,6 +290,23 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
             }
         }
     }
+    // The ones no route gives an event —the scan says which ones some
+    // does, the test pages' too—: only the hero shows them, and Wally can
+    // draw them in the leaders' palette, like a leader.
+    let on_events: Vec<(String, i64)> = scanned
+        .get("graphics_on_events")
+        .and_then(Value::as_array)
+        .map(|list| {
+            list.iter()
+                .map(|g| (g[0].as_str().unwrap_or("").to_string(), g[1].as_i64().unwrap_or(0)))
+                .collect()
+        })
+        .unwrap_or_default();
+    let hero_graphics: Vec<Value> = route_graphics
+        .iter()
+        .filter(|g| !on_events.contains(g))
+        .map(|(g, i)| json!([g, i]))
+        .collect();
     // And the ones the test pages send walking, which don't come from the
     // map's pages: they have to be added by hand or the NPC would walk
     // with a single pose.
@@ -343,6 +360,7 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         "leaders": c.leaders,
         "pages": scanned["pages"],
         "route_graphics": route_graphics.iter().map(|(g, i)| json!([g, i])).collect::<Vec<_>>(),
+        "hero_graphics": hero_graphics,
         "also_walk": also_walk.into_iter().collect::<Vec<_>>(),
         // What the test pages name, so a decorative event is never one a
         // test moves: only when the project asks for them.

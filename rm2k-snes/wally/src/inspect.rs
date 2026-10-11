@@ -111,6 +111,7 @@ pub fn split_report(game: &Game, request: &MapRequest, palettes: usize) -> Resul
             leaders: &leaders,
             cap: palettes,
             route_graphics: &request.route_graphics,
+            hero_graphics: &request.hero_graphics,
             timer_colors: &timer,
             only_here: &request.singles,
             poses: &poses,

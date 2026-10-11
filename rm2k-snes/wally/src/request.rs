@@ -4,7 +4,7 @@
 use crate::fail::{Bad, Result};
 use crate::game::Game;
 use serde_json::Value;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 /// A request for one map's layers:
@@ -326,7 +326,8 @@ impl crate::map::MapRequest {
     ///  "leaders": [10, 1],
     ///  "pages": [{"event": 2, "page": 0, "trigger": 0, "code": "0600…",
     ///             "route_targets": [2], "own_route": null, "turns": true}],
-    ///  "route_graphics": [["People1", 3]], "also_walk": [],
+    ///  "route_graphics": [["People1", 3]], "hero_graphics": [],
+    ///  "also_walk": [],
     ///  "timer": null, "rain": false, "picture": null,
     ///  "battle_animation": false, "singles": [["People1", 3]],
     ///  "palette_weight": {"savept": 1}, "dither": "five_of_eight",
@@ -426,6 +427,10 @@ impl crate::map::MapRequest {
                 .collect::<Result<_>>()?,
             pages,
             route_graphics: keys(field(data, "route_graphics", whose)?, whose)?,
+            hero_graphics: match data.get("hero_graphics") {
+                None | Some(Value::Null) => BTreeSet::new(),
+                Some(v) => keys(v, whose)?.into_iter().collect(),
+            },
             also_walk: indices(data, "also_walk", whose)?,
             timer: match field(data, "timer", whose)? {
                 Value::Null => None,

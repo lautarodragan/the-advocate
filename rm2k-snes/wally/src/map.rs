@@ -68,6 +68,10 @@ pub struct MapRequest {
     /// numbers them.
     pub pages: Vec<ScannedPage>,
     pub route_graphics: Vec<Key>,
+    /// Those of `route_graphics` that only the hero ever shows —no route
+    /// gives them to an event—: they can share the leaders' palette with
+    /// colours of their own, like a leader. See `drawable_npcs`.
+    pub hero_graphics: BTreeSet<Key>,
     /// The events someone other than the map's pages sends walking: a test
     /// page's route.
     pub also_walk: BTreeSet<usize>,
@@ -263,7 +267,10 @@ pub struct Objects {
     /// another graphic: see `page_graphic` in the runtime.
     pub animated_palettes: Vec<usize>,
     pub banks: Vec<(Key, Vec<u8>)>,
-    pub route_gfx: Vec<(usize, usize)>,
+    /// Each graphic of command 34: its entry in the pose table or $FF, its
+    /// palette, and the colours the console uploads into it when the hero
+    /// takes it —for one in a leaders' palette, empty otherwise—.
+    pub route_gfx: Vec<(usize, usize, Vec<u16>)>,
     pub rain: (usize, usize),
     pub turn_block: Option<usize>,
     pub image: (usize, usize),
@@ -811,6 +818,7 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
         leaders: &leaders,
         cap,
         route_graphics: &request.route_graphics,
+        hero_graphics: &request.hero_graphics,
         timer_colors: &timer,
         only_here: &request.singles,
         poses: &poses,
@@ -1340,6 +1348,25 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
     // On the palettes as they end: the rain may still have grown the
     // timer's, and a colour's first entry is where the glyphs have it.
     let timer_mask = timer_at.map_or(0, |(_, palette)| timer_mask(&timer, &palettes[palette]));
+    // A graphic in a leaders' palette brings the colours its pose bank was
+    // drawn with: the console uploads them there when the hero takes it, as
+    // it does with a leader's. Its own, for one that shares the slot like a
+    // leader; the palette's, for one that went into it whole.
+    let mut route_gfx_colored = Vec::with_capacity(route_gfx.len());
+    for (pair, (k, palette)) in request.route_graphics.iter().zip(route_gfx) {
+        let mut words = Vec::new();
+        if k != 0xFF && split.leader_owned.contains(&palette) && !split.lent.contains(pair) {
+            let colors = if split.own.contains(pair) {
+                let image = crate::sprites::character::sheet(&sheets, &pair.0).map_err(|b| Bad::answer(b.0))?;
+                character_palette(image, pair.1, None, None).map_err(|b| Bad::answer(b.0))?.0
+            } else {
+                palettes[palette].clone()
+            };
+            words = colors.iter().map(|&[r, g, b]| voodoo::cgram_word((r, g, b))).collect();
+        }
+        route_gfx_colored.push((k, palette, words));
+    }
+    let route_gfx = route_gfx_colored;
     done.objects = Some(Objects {
         tiles,
         palettes,
@@ -1534,7 +1561,11 @@ pub fn write(out: &Path, done: &Whole) -> Result<()> {
                 "animated": o.animated.iter().map(key_json).collect::<Vec<_>>(),
                 "animated_palettes": o.animated_palettes,
                 "banks": banks,
-                "route_gfx": o.route_gfx.iter().map(|(k, p)| json!([k, p])).collect::<Vec<_>>(),
+                "route_gfx": o
+                    .route_gfx
+                    .iter()
+                    .map(|(k, p, c)| if c.is_empty() { json!([k, p]) } else { json!([k, p, c]) })
+                    .collect::<Vec<_>>(),
                 "rain": [o.rain.0, o.rain.1],
                 "turn_block": o.turn_block,
                 "image": [o.image.0, o.image.1],

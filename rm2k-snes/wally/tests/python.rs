@@ -370,6 +370,7 @@ fn the_characters_are_the_ones_the_python_made() {
             leaders: &leaders,
             cap: want.cap,
             route_graphics: &route_graphics,
+            hero_graphics: &Default::default(),
             timer_colors: &timer,
             only_here: &singles,
             poses: &poses,

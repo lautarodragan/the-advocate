@@ -259,6 +259,10 @@ npc_buf:  .res NPC_MAX * NPC_STRIDE
 ; and the direct page is full. It fits easily: the map that asks for the most
 ; in the whole game asks for six. See ROUTE_GFX_MAX in snes_convert.py.
 route_gfx_buf: .res ROUTE_GFX_MAX * 2
+; And one byte per graphic after them, which entry of `hero_colors` holds its
+; colours —from 1, 0 for none—: the ones only the hero shows go in the
+; leaders' palette with colours of their own. See `hero_poses_of_graphic`.
+route_gfx_colors: .res ROUTE_GFX_MAX
 
 ; Where each of the map's events is, in cells, by table index. It is copied
 ; from the ROM when the map loads, like the NPC one, and for a reason that is
