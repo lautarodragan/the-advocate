@@ -404,16 +404,22 @@ fn compile_into(
     Ok(Compiled { music, audio: out, quality })
 }
 
-/// Every song the game names: each `PlayBGM` of its maps, its common events
-/// and its troops, and each map's song in the tree. Read as plain JSON and
-/// not through the schema's types: only two fields matter, and the walk is
-/// the same in the three kinds of file.
+/// Every song the game names: each `PlayBGM` and `ChangeSystemBGM` of its
+/// maps, its common events and its troops, and each map's song in the tree.
+/// Read as plain JSON and not through the schema's types: only two fields
+/// matter, and the walk is the same in the three kinds of file.
+///
+/// `ChangeSystemBGM` is accepted undone, so its songs do not play yet; they
+/// are counted anyway so that doing it does not renumber the tracks of a game
+/// whose `Music/` does not fit in the byte: see `Game::track_numbers`.
 fn named_songs(dump: &Dump) -> Result<BTreeSet<String>> {
     const PLAY_BGM: i64 = 11510;
+    const CHANGE_SYSTEM_BGM: i64 = 10660;
     fn walk(v: &Value, out: &mut BTreeSet<String>) {
         match v {
             Value::Object(o) => {
-                if o.get("code").and_then(Value::as_i64) == Some(PLAY_BGM) {
+                let code = o.get("code").and_then(Value::as_i64);
+                if code == Some(PLAY_BGM) || code == Some(CHANGE_SYSTEM_BGM) {
                     if let Some(name) = o.get("string").and_then(Value::as_str) {
                         out.insert(name.to_string());
                     }

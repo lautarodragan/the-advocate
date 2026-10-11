@@ -170,6 +170,30 @@ no:
     rts
 .endproc
 
+; A8 = a place in the troop of `BA_TROOP_K`; X = its member's index in
+; `troop_member` and in the scene's `member_*` tables. The index is sixteen
+; bits and `troop_init` words since 2026-10-10: Vampires Dawn's troops take
+; 470 members. Clobbers A.
+.proc ba_member_x
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    pha
+    lda BA_TROOP_K
+    and #$00FF
+    asl a
+    tax
+    pla
+    clc
+    adc f:troop_init, x
+    tax
+    sep #$20
+.a8
+    rts
+.endproc
+
 ; A8 = the combatant; X = its offset inside `BA_ONE`. It is 40 bytes, that is
 ; thirty-two plus eight: two shifts and an add, no table.
 .proc ba_x
@@ -606,8 +630,6 @@ have:
 .a8
     lda f:troop_n, x
     sta BA_S2                 ; how many members
-    lda f:troop_init, x
-    sta BA_S3                 ; where its list starts
     lda #0
     sta BA_S1                 ; the place in the troop
 other_enemy:
@@ -620,15 +642,8 @@ has_member:
     bcc has_slot_enemy
     jmp troop_list
 has_slot_enemy:
-    rep #$20
-.a16
     lda BA_S1
-    clc
-    adc BA_S3
-    and #$00FF
-    tax
-    sep #$20
-.a8
+    jsr ba_member_x
     lda f:troop_member, x       ; the enemy, as a place in the tables
     sta BA_S0
     ; As with the actor: first everything is gathered and then written,
@@ -1134,18 +1149,13 @@ ready:
     sta BA_S4                   ; the SP it has left
     sep #$20
 .a8
-    lda BA_TROOP_K
-    jsr ba_ax
-    lda f:troop_init, x
-    clc
-    adc BA_T0
-    jsr ba_ax
+    lda BA_T0
+    jsr ba_member_x
     lda f:troop_member, x
+    sta BA_S5 + 1               ; which enemy of the tables, for `ba_eacc_x`
     jsr ba_ax
     lda f:enemy_acc_n, x
     sta BA_S5                   ; how many actions
-    lda f:enemy_acc_init, x
-    sta BA_S5 + 1               ; where they start
     ; --- 1: the possible ones, with their raw weight, and the maximum ---
     stz BA_S6                   ; the maximum
     stz BA_T2                   ; which one it is at
@@ -1153,9 +1163,7 @@ possibles:
     lda BA_T2
     cmp BA_S5
     bcs views
-    clc
-    adc BA_S5 + 1
-    jsr ba_ax
+    jsr ba_eacc_x
     lda f:eacc_weight, x
     sta BA_T0
     lda f:eacc_skill, x
@@ -1256,10 +1264,32 @@ falls_here:
     sta BA_S3 + 1
 chosen:
     lda BA_S3 + 1
-    clc
-    adc BA_S5 + 1
-    jsr ba_ax
+    jsr ba_eacc_x
     lda f:eacc_skill, x
+    rts
+.endproc
+
+; A8 = an action in the list of the enemy in `BA_S5 + 1` —a place in the
+; enemy tables—; X = its index in `eacc_*`. Sixteen bits and
+; `enemy_acc_init` words since 2026-10-10: Vampires Dawn's enemies take 344
+; actions. Clobbers A.
+.proc ba_eacc_x
+.a8
+.i16
+    rep #$20
+.a16
+    and #$00FF
+    pha
+    lda BA_S5 + 1
+    and #$00FF
+    asl a
+    tax
+    pla
+    clc
+    adc f:enemy_acc_init, x
+    tax
+    sep #$20
+.a8
     rts
 .endproc
 
