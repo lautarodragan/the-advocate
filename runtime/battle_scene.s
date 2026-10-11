@@ -606,12 +606,12 @@ from_place:
     lda f:backdrop_terrain, x
     bra backdrop_chosen
 from_troop:
-    lda BA_TROOP_K
+    lda BA_TROOP_K + 1          ; a word: its high byte alone says $FFFF
     cmp #$FF
     beq no_backdrop
     rep #$20
 .a16
-    and #$00FF
+    lda BA_TROOP_K
     tax
     sep #$20
 .a8
@@ -637,7 +637,7 @@ no_backdrop:
     ; --- the troop's battlers, and one palette for each distinct one ---
     lda #0
     sta SCN_E
-    lda BA_TROOP_K
+    lda BA_TROOP_K + 1          ; a word: its high byte alone says $FFFF
     cmp #$FF
     bne other_enemy
     jmp allocated

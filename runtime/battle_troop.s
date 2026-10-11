@@ -29,10 +29,15 @@
                                 ; battle sets to zero when it starts
     sep #$20
 .a8
-    lda BA_TROOP_K
+    lda BA_TROOP_K + 1          ; a word: its high byte alone says $FFFF
     cmp #$FF
     beq ready
-    jsr ba_ax
+    rep #$20
+.a16
+    lda BA_TROOP_K
+    tax
+    sep #$20
+.a8
     lda f:troop_page_n, x
     sta BA_PAGE_N
     rep #$20

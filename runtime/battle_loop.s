@@ -392,12 +392,12 @@ execute:
     lda BA_RESULT
     cmp #BA_VICTORY
     bne ready
-    lda BA_TROOP_K
+    lda BA_TROOP_K + 1          ; a word: its high byte alone says $FFFF
     cmp #$FF
     beq ready                   ; a troop the cartridge does not carry
     rep #$20
 .a16
-    and #$00FF
+    lda BA_TROOP_K
     asl a
     tax
     lda f:troop_exp, x
