@@ -27,6 +27,12 @@
 //! single return address. They are the same bytes the stream had there, so they
 //! write the same.
 //!
+//! A note's sound is one byte, and a song may have more than 256 sounds:
+//! `OP_SOUND_PAGE` says which 256 the notes that follow name, until the next
+//! one. Every song starts in page 0, so one with 256 sounds or fewer never
+//! says it. The page is the reader's state, like its cache: an `OP_REPEAT`
+//! reads its events in the page it finds, as the bytes it stands for would.
+//!
 //! The grammar, and what is deliberately not declared here, is
 //! `bytecode!`'s. Each family's doc comment is repeated on its eight
 //! members, so that each constant says what it is.
@@ -248,4 +254,7 @@ bytecode! {
 
     /// `events` events from `back` bytes before the end of this one, and back here
     OP_REPEAT = 0x64 (back: word, events: byte);
+
+    /// the notes from here on name the song's sounds from `page` × 256 on
+    OP_SOUND_PAGE = 0x65 (page: byte);
 }

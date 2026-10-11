@@ -257,6 +257,8 @@ struct Encoder {
     state: HashMap<u8, u8>,
     /// The sound of each voice's last note.
     sound_of: HashMap<u8, usize>,
+    /// The page of sounds the notes name: see `OP_SOUND_PAGE`.
+    page: usize,
 }
 
 impl Encoder {
@@ -300,7 +302,12 @@ impl Encoder {
 
     fn note(&mut self, p: &NoteSetup) {
         let (v, base) = (p.voice, p.voice * 0x10);
-        let s = self.sound(p) as u8;
+        let sound = self.sound(p);
+        if sound >> 8 != self.page {
+            self.page = sound >> 8;
+            self.op(&[OP_SOUND_PAGE, self.page as u8]);
+        }
+        let s = sound as u8;
         if !self.changes(base + sdsp::V_VOL_L, p.left) && !self.changes(base + sdsp::V_VOL_R, p.right) {
             self.op(&[OP_NOTE_V0 + v, s]);
         } else if p.left == p.right {
@@ -308,7 +315,7 @@ impl Encoder {
         } else {
             self.op(&[OP_NOTE_PAN_V0 + v, p.left, p.right, s]);
         }
-        self.sound_of.insert(v, s as usize);
+        self.sound_of.insert(v, sound);
         for (r, value) in p.writes() {
             self.write(r, value);
         }
@@ -385,6 +392,7 @@ pub fn pack(frames: &Frames, length: i64, init: &[(u8, u8)]) -> Result<(Vec<u8>,
         sound_index: HashMap::new(),
         state: HashMap::new(),
         sound_of: HashMap::new(),
+        page: 0,
     };
     if init == boot_writes().as_slice() {
         c.op(&[OP_INIT]);
@@ -441,9 +449,9 @@ pub fn pack(frames: &Frames, length: i64, init: &[(u8, u8)]) -> Result<(Vec<u8>,
     }
     c.op(&[OP_DSP, sdsp::KOF, 0xFF]);
     c.op(&[OP_END]);
-    if c.sounds.len() > 256 {
+    if c.sounds.len() > 256 * 256 {
         return Err(Bad::answer(format!(
-            "the song uses {} sounds and the index is one byte",
+            "the song uses {} sounds and OP_SOUND_PAGE names 256 pages of 256",
             c.sounds.len()
         )));
     }
@@ -474,6 +482,8 @@ pub fn decode_counting(stream: &[u8], sounds: &[Sound]) -> Result<(Vec<Write>, u
     // Inside an `OP_REPEAT`: where it comes back to, and how many of its
     // events are left to read. The 65816 keeps the same two things.
     let (mut back_to, mut left): (Option<usize>, u8) = (None, 0);
+    // The page of sounds the notes name: every song starts in 0.
+    let mut page = 0usize;
     let bad = |m: String| Bad::answer(m);
 
     let read = |i: &mut usize| -> Result<u8> {
@@ -540,6 +550,10 @@ pub fn decode_counting(stream: &[u8], sounds: &[Sound]) -> Result<(Vec<Write>, u
             i -= back;
             continue;
         }
+        if op == OP_SOUND_PAGE {
+            page = read(&mut i)? as usize;
+            continue;
+        }
         if op == OP_INIT {
             for (r, v) in boot_writes() {
                 out.push((frame_no, r, v));
@@ -593,7 +607,7 @@ pub fn decode_counting(stream: &[u8], sounds: &[Sound]) -> Result<(Vec<Write>, u
                     write(&mut out, &mut cache, frame_no, base + sdsp::V_VOL_L, l, force)?;
                     write(&mut out, &mut cache, frame_no, base + sdsp::V_VOL_R, r, force)?;
                 }
-                let index = read(&mut i)? as usize;
+                let index = page << 8 | read(&mut i)? as usize;
                 let sound = *sounds
                     .get(index)
                     .ok_or_else(|| bad(format!("sound {index} of {}", sounds.len())))?;
@@ -862,6 +876,33 @@ mod tests {
         assert_eq!(*stream.last().unwrap(), OP_END);
     }
 
+    /// A note per frame on voice 0, each at a pitch of its own: as many
+    /// sounds as notes.
+    fn many_sounds(n: u16) -> Frames {
+        let mut frames = Frames::new();
+        for k in 0..n {
+            let mut frame = Frame::default();
+            let pitch = 0x0400 + k;
+            frame.setup.push(NoteSetup {
+                voice: 0, left: 0x40, right: 0x40, pitch, sample: 0, adsr1: 0x8F, adsr2: 0xE0, gain: Some(0x9C),
+            });
+            frame.kon = 1;
+            frames.insert(1 + 2 * k as i64, frame);
+        }
+        frames
+    }
+
+    #[test]
+    fn a_song_with_more_than_256_sounds_writes_what_it_has_to() {
+        let frames = many_sounds(600);
+        let reference = writes(&frames, 1300, &init_writes());
+        let (flat, sounds) = pack(&frames, 1300, &init_writes()).unwrap();
+        assert_eq!(sounds.len(), 600);
+        assert_eq!(decode(&flat, &sounds).unwrap(), reference);
+        let folded = fold(&flat).unwrap();
+        assert_eq!(decode(&folded, &sounds).unwrap(), reference);
+    }
+
     /// A song that plays the same bar four times, the bar being a note on two
     /// voices, a release and a wait, with another note in between the
     /// second and the third.
@@ -896,6 +937,35 @@ mod tests {
         // `length` is the folded stream's: whoever reads it from a cartridge
         // finds its OP_END there.
         assert_eq!(decode_counting(&folded, &sounds).unwrap().1, folded.len());
+    }
+
+    #[test]
+    fn a_repeat_reads_its_bar_in_the_page_it_is_in() {
+        // The same bytes in page 0 and in page 1: they name sounds 0 and 1
+        // the first time, and 256 and 257 the second. The three bars after
+        // the first fold into repeats of it, and each one names the sounds
+        // of its own page, as the stream it replaces did: the page is the
+        // reader's state, like its cache, and a repeat reads the same bytes.
+        let sounds: Vec<Sound> = (0..258u16).map(|k| [k as u8, (k >> 8) as u8 + 0x10, 0, 0x8F, 0xE0, 0x9C]).collect();
+        let bar = [
+            OP_NOTE_VOL_V0, 0x40, 0,
+            OP_NOTE_VOL_V1, 0x30, 1,
+            OP_WAIT_1 + 7,
+            OP_RELEASE_V0,
+            OP_RELEASE_V1,
+            OP_WAIT_1 + 3,
+        ];
+        let mut flat = vec![OP_INIT];
+        flat.extend_from_slice(&bar);
+        flat.extend_from_slice(&[OP_SOUND_PAGE, 1]);
+        flat.extend_from_slice(&bar);
+        flat.extend_from_slice(&bar);
+        flat.extend_from_slice(&[OP_SOUND_PAGE, 0]);
+        flat.extend_from_slice(&bar);
+        flat.extend_from_slice(&[OP_DSP, sdsp::KOF, 0xFF, OP_END]);
+        let folded = fold(&flat).unwrap();
+        assert_eq!(repeats(&folded).unwrap().len(), 3, "{folded:02X?}");
+        assert_eq!(decode(&folded, &sounds).unwrap(), decode(&flat, &sounds).unwrap());
     }
 
     #[test]
