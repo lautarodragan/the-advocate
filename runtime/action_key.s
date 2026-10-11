@@ -10,7 +10,9 @@
 ; front, the hero's cell and then the one in front. What is not here yet is
 ; the loop of up to three counters.
 
-; Is there an event at (cell_x, cell_y)? Returns its index in A, or $FF.
+; Is there an event at (cell_x, cell_y)? Returns its index in A, or $FF. A
+; twin's cell answers with the event whose row it shares: see
+; `twin_in_cell`.
 .proc event_in_cell
 .a8
 .i16
@@ -42,6 +44,72 @@ next:
     inx
     bra seek
 none:
+    ; falls through: no row is on that cell, but a twin may be
+.endproc
+
+; The twin on (cell_x, cell_y), if there is one: the index of the event
+; whose row it shares in A, or $FF.
+;
+; A twin is an event the converter left without a row because its map has
+; more than `EV_MAX` and its pages are the same as another's: invisible,
+; still and off the hero's layer, so the only thing it does is fire those
+; pages from its own cell. Its cell lives in ROM, behind the map's
+; positions —a word with how many, then TWIN_STRIDE bytes each: x, y and
+; the event—; see `ev_pos_bytes` in `rm2k-snes-mapdata`. It is looked at
+; only after the rows, and a map whose events fit has none: its word is 0.
+;
+; `npc_ptr` is borrowed: it only lives while the load copies a table.
+.proc twin_in_cell
+.a8
+.i16
+    ldx map_ofs
+    rep #$20
+.a16
+    lda f:map_table + M_PTR_EV_POS, x
+    sta npc_ptr
+    sep #$20
+.a8
+    lda f:map_table + M_PTR_EV_POS + 2, x
+    sta npc_ptr + 2
+    rep #$20
+.a16
+    lda ev_total
+    asl a
+    asl a                       ; past the positions: EV_STRIDE each
+.assert EV_STRIDE = 4, error, "the arithmetic above multiplies by four by hand"
+    tay
+    lda [npc_ptr], y            ; how many twins
+    beq none
+    tax
+    iny
+    iny
+look:
+    lda [npc_ptr], y            ; +0 x
+    iny
+    iny
+    cmp cell_x
+    bne other
+    lda [npc_ptr], y            ; +2 y
+    cmp cell_y
+    bne other
+    iny
+    iny
+    lda [npc_ptr], y            ; +4 the event whose row it shares
+    sep #$20
+.a8
+    rts
+.a16
+other:
+    iny
+    iny
+    iny
+    iny                         ; from +2 to the next twin
+.assert TWIN_STRIDE = 6, error, "the walk above steps six bytes by hand"
+    dex
+    bne look
+none:
+    sep #$20
+.a8
     lda #$FF
     rts
 .endproc

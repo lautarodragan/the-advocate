@@ -22,7 +22,7 @@ use crate::pyf;
 use crate::pyfmt::{format, Arg};
 use crate::record::{
     self, ACTOR_BYTES, ACTOR_COLORS, ANIM_FAM_STRIDE, ANIM_STRIDE, EV_MAX, EV_STRIDE, FAMILIES,
-    FLASH_MAX, MAP_STRIDE, NPC_MAX, NPC_STILL, NPC_STRIDE, PAGE_BYTES, PARALLEL_MAX, ROUTE_EV_MAX,
+    FLASH_MAX, MAP_STRIDE, NPC_MAX, NPC_STILL, NPC_STRIDE, PAGE_BYTES, PARALLEL_MAX, ROUTE_EV_MAX, TWIN_STRIDE,
     ROUTE_GFX_MAX, TURN_NONE,
 };
 use crate::request::Emit;
@@ -402,6 +402,7 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         NPC_STILL.into(),
         EV_STRIDE.into(),
         EV_MAX.into(),
+        TWIN_STRIDE.into(),
         ROUTE_EV_MAX.into(),
         PAGE_BYTES.into(),
         TURN_NONE.into(),

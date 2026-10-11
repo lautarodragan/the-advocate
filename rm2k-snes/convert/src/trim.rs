@@ -9,13 +9,18 @@
 //! so the indices are the same everywhere. A page that names one does not
 //! compile, as with any event that does not exist.
 //!
-//! The order is by what is lost, the least first; within each class, the
-//! highest id first, which is the last one placed: a rule anyone can redo by
-//! reading the map.
+//! Before losing anything, the **twins** go in a row they share: see
+//! [`twins`]. That is what most of those maps have too many of —a strip
+//! of seventy invisible touch events along an edge, each a `Teleport` to
+//! the same place—, and it costs nothing that can be seen.
+//!
+//! Then the order is by what is lost, the least first; within each class,
+//! the highest id first, which is the last one placed: a rule anyone can
+//! redo by reading the map.
 
 use crate::game::Command;
 use ditto::schema;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 /// ShowBattleAnimation, ChangeEventLocation, TradeEventLocations,
 /// FlashSprite, MoveEvent, ConditionalBranch, ControlVariables and
@@ -115,6 +120,64 @@ pub fn loss(e: &schema::Event, named: &BTreeSet<i32>) -> Loss {
         (false, true) => Loss::Wall,
         (true, true) => Loss::LooksAndWall,
     }
+}
+
+/// "This event", in the commands that name one.
+const THIS_EVENT: i32 = 10005;
+/// `EraseEvent`: it erases the event that runs it, and a twin would erase
+/// the whole family.
+const ERASE_EVENT: i32 = 12320;
+/// Autostart and parallel: they run once per event, and a family would run
+/// once.
+const TRIGGER_AUTOSTART: i32 = 3;
+const TRIGGER_PARALLEL: i32 = 4;
+
+/// Whether `e` can be a twin: an event the console can keep as nothing but
+/// a cell that leads to another's pages. It has pages that run —one that
+/// does not is better left out—, nobody names it, it draws nothing, it
+/// never moves, it is not on the hero's layer —so it blocks nobody and
+/// nothing walks into it—, and no page of its own is autostart or
+/// parallel, erases itself or names "this event": all of that would be
+/// done on the one whose row it shares, and in RM2k it is its own.
+fn can_be_twin(e: &schema::Event, named: &BTreeSet<i32>) -> bool {
+    loss(e, named) == Loss::Pages
+        && e.pages.iter().all(|p| {
+            p.character_name.is_empty()
+                && p.character_index == 0
+                && p.move_type.to_i32() == 0
+                && p.move_route.move_commands.is_empty()
+                && p.layer.to_i32() != LAYER_SAME
+                && !matches!(p.trigger.to_i32(), TRIGGER_AUTOSTART | TRIGGER_PARALLEL)
+                && p.event_commands.iter().all(|c| {
+                    c.code.to_i32() != ERASE_EVENT && !names(c.code.to_i32(), &c.parameters).contains(&THIS_EVENT)
+                })
+        })
+}
+
+/// The twins: events whose pages are the same as another's —every field
+/// but the cell—, as `(twin, the one with the lowest id)`, by id. The
+/// console keeps only the first, and each twin is a cell in a table behind
+/// the map's positions that `event_in_cell` looks at after the rows: the
+/// action button or a step on that cell runs the first one's page, which
+/// is the same page. Its id is not in the cartridge any more, but nobody
+/// names it, and nothing in its pages tells one twin from another.
+pub fn twins(events: &[schema::Event], named: &BTreeSet<i32>) -> Vec<(i32, i32)> {
+    let mut first: BTreeMap<String, i32> = BTreeMap::new();
+    let mut out = Vec::new();
+    let mut sorted: Vec<&schema::Event> = events.iter().filter(|e| can_be_twin(e, named)).collect();
+    sorted.sort_by_key(|e| e.id);
+    for e in sorted {
+        // The pages as text: `EventPage` has no `Ord` nor `Hash`, and the
+        // dump's own form is the one that says two are the same.
+        let key = format!("{:?}", e.pages);
+        match first.get(&key) {
+            Some(&owner) => out.push((e.id, owner)),
+            None => {
+                first.insert(key, e.id);
+            }
+        }
+    }
+    out
 }
 
 /// The events left out so that `cap` remain, as `(id, what is lost)`, by
@@ -223,5 +286,52 @@ mod tests {
         let call = Command { code: FLASH_SPRITE, indent: 0, string: String::new(), parameters: vec![2, 31, 31, 31, 31, 5, 0] };
         let named = named(&events, [&call]);
         assert_eq!(left_out(&events, &named, 1), [(1, Loss::Nothing)]);
+    }
+
+    /// The same, with its page's trigger.
+    fn with_trigger(mut e: schema::Event, trigger: i32) -> schema::Event {
+        e.pages[0].trigger = serde_json::from_value(json!(trigger)).unwrap();
+        e
+    }
+
+    #[test]
+    fn the_same_pages_invisible_and_still_share_the_first_ones_row() {
+        let door = [(TELEPORT, vec![1, 2, 3])];
+        let events = vec![
+            event(1, &door, "", 0),
+            event(2, &door, "", 0),
+            event(3, &[(TELEPORT, vec![1, 9, 9])], "", 0),
+            event(4, &door, "", 0),
+            // On the hero's layer it blocks: a cell of its own.
+            event(5, &door, "", LAYER_SAME),
+            // Drawn: a cell of its own.
+            event(6, &door, "Chara1", 0),
+            // Named: whoever names it would find the first one.
+            event(7, &door, "", 0),
+            event(8, &[(MOVE_EVENT, vec![7])], "", 0),
+        ];
+        let named = named(&events, &[]);
+        assert_eq!(twins(&events, &named), [(2, 1), (4, 1)]);
+    }
+
+    #[test]
+    fn what_a_page_does_to_its_own_event_keeps_it_apart() {
+        let erase = [(ERASE_EVENT, vec![])];
+        let flash = [(FLASH_SPRITE, vec![THIS_EVENT, 31, 31, 31, 31, 5, 0])];
+        let wait = [(11410, vec![1])];
+        let events = vec![
+            event(1, &erase, "", 0),
+            event(2, &erase, "", 0),
+            event(3, &flash, "", 0),
+            event(4, &flash, "", 0),
+            with_trigger(event(5, &wait, "", 0), TRIGGER_PARALLEL),
+            with_trigger(event(6, &wait, "", 0), TRIGGER_PARALLEL),
+            with_trigger(event(7, &wait, "", 0), TRIGGER_AUTOSTART),
+            with_trigger(event(8, &wait, "", 0), TRIGGER_AUTOSTART),
+            // Touch, by the hero: twins.
+            with_trigger(event(9, &wait, "", 0), 1),
+            with_trigger(event(10, &wait, "", 0), 1),
+        ];
+        assert_eq!(twins(&events, &BTreeSet::new()), [(10, 9)]);
     }
 }

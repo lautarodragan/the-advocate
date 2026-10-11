@@ -87,6 +87,9 @@ pub struct GameMap {
     /// The two tile layers, which only the fork's ChipSet images look at.
     pub lower_layer: Vec<i16>,
     pub upper_layer: Vec<i16>,
+    /// The cells of the events that share another's row, `(x, y, its id)`:
+    /// see [`crate::trim::twins`]. Empty in a map whose events fit.
+    pub twins: Vec<(i32, i32, i32)>,
 }
 
 impl GameMap {
@@ -249,6 +252,9 @@ pub struct Game {
     /// console's RAM, by map and id: see [`crate::trim`] and
     /// [`Game::trim`]. They are taken out as the map is read.
     pub dropped: BTreeMap<i32, BTreeSet<i32>>,
+    /// The twins each map keeps as a cell, by map: `(x, y, id of the event
+    /// whose row it shares)`. See [`crate::trim::twins`].
+    pub twins: BTreeMap<i32, Vec<(i32, i32, i32)>>,
 }
 
 /// `[graphics] system`, **optional**: the System to draw with instead of
@@ -337,6 +343,7 @@ impl Game {
                 Ok(_) => project.boolean(&["graphics", "decorative_events"])?,
             },
             dropped: BTreeMap::new(),
+            twins: BTreeMap::new(),
         })
     }
 
@@ -345,18 +352,60 @@ impl Game {
     /// the requests carry them —[`Game::dropped_json`]—. The map where the
     /// test page runs, `test_event_map`, keeps one place for its event.
     /// `test_commands` are the test pages', which can name events too.
-    pub fn trim(&mut self, maps: &[i32], test_commands: &[Command], test_event_map: Option<i32>) -> Result<()> {
+    /// `events_max` is how many the RAM holds: `EV_MAX`, unless a test
+    /// asks for fewer.
+    pub fn trim(
+        &mut self,
+        maps: &[i32],
+        test_commands: &[Command],
+        test_event_map: Option<i32>,
+        events_max: usize,
+    ) -> Result<()> {
         let common: Vec<&Command> = self.db.common_events.values().flatten().chain(test_commands).collect();
         for &id in maps {
             let raw = self.raw_map(id)?;
-            let cap = rm2k_snes_mapdata::record::EV_MAX - usize::from(test_event_map == Some(id));
+            let cap = events_max - usize::from(test_event_map == Some(id));
             if raw.events.len() <= cap {
                 continue;
             }
             let named = crate::trim::named(&raw.events, common.iter().copied());
-            let out = crate::trim::left_out(&raw.events, &named, cap);
-            println!("{}", crate::trim::warning(id, raw.events.len(), cap, &out));
-            self.dropped.insert(id, out.into_iter().map(|(e, _)| e).collect());
+            // First the twins, which lose nothing; then, if they are not
+            // enough, what loses the least. A first one left out takes its
+            // twins with it.
+            let twins = crate::trim::twins(&raw.events, &named);
+            let twin_ids: BTreeSet<i32> = twins.iter().map(|&(t, _)| t).collect();
+            let rest: Vec<schema::Event> = raw.events.iter().filter(|e| !twin_ids.contains(&e.id)).cloned().collect();
+            let out = crate::trim::left_out(&rest, &named, cap);
+            let gone: BTreeSet<i32> = out.iter().map(|&(e, _)| e).collect();
+            let kept: Vec<(i32, i32, i32)> = twins
+                .iter()
+                .filter(|(_, owner)| !gone.contains(owner))
+                .filter_map(|&(t, owner)| raw.events.iter().find(|e| e.id == t).map(|e| (e.x, e.y, owner)))
+                .collect();
+            if !twins.is_empty() {
+                println!(
+                    "  map {id}: {} events and the console's RAM holds {cap}: {} are twins —the same pages as an \
+                     earlier one, nothing drawn, still— and share the row of one of {} events",
+                    raw.events.len(),
+                    twins.len(),
+                    twins.iter().map(|&(_, o)| o).collect::<BTreeSet<_>>().len()
+                );
+            }
+            if !out.is_empty() {
+                // The twins of one left out are left out too, with it.
+                let mut lost = out.clone();
+                for &(t, owner) in &twins {
+                    if let Some(&(_, loss)) = out.iter().find(|&&(e, _)| e == owner) {
+                        lost.push((t, loss));
+                    }
+                }
+                lost.sort();
+                println!("{}", crate::trim::warning(id, raw.events.len() - twins.len(), cap, &lost));
+            }
+            self.dropped.insert(id, twin_ids.into_iter().chain(gone).collect());
+            if !kept.is_empty() {
+                self.twins.insert(id, kept);
+            }
         }
         Ok(())
     }
@@ -430,6 +479,7 @@ impl Game {
             events,
             lower_layer: raw.lower_layer,
             upper_layer: raw.upper_layer,
+            twins: self.twins.get(&id).cloned().unwrap_or_default(),
         })
     }
 

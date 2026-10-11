@@ -129,7 +129,8 @@ pub fn run(options: Options) -> Result<()> {
     // The events that do not fit in the console's RAM, before anything
     // reads a map: from here on every stage numbers them without those.
     let test_event_map = (!cases.is_empty()).then(|| order[start_index]);
-    game.trim(&order, &file_commands, test_event_map)?;
+    let events_max = options.test_events_max.unwrap_or(rm2k_snes_mapdata::record::EV_MAX);
+    game.trim(&order, &file_commands, test_event_map, events_max)?;
 
     let search_dirs = search_dirs(&game, &project, &rtp_dir)?;
 

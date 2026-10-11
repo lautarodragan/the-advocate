@@ -364,6 +364,7 @@ mod tests {
                 .collect(),
             lower_layer: Vec::new(),
             upper_layer: Vec::new(),
+            twins: Vec::new(),
         }
     }
 
