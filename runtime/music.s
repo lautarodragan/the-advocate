@@ -806,6 +806,8 @@ not_voice:
     bne no_repeat
     jmp ev_repeat
 no_repeat:
+    cmp #OP_SOUND_PAGE
+    beq sound_page
     cmp #OP_INIT
     bne no_init
     jmp boot
@@ -892,6 +894,32 @@ no_kon:
     rts
 continues:
 .a16
+    sep #$20
+.a8
+    jmp read
+
+sound_page:
+    ; The notes from here on name the song's sounds from page × 256 on: the
+    ; song's base, as `music_start_done` leaves it, plus page × 1536 bytes.
+    ; Only a song with more than 256 sounds says it. The table fits in one
+    ; bank —see `emit.rs`—, so neither addition carries.
+    READ
+    rep #$21                    ; 16-bit A and carry at zero
+.a16
+    and #$00FF
+    xba                         ; × 256
+    sta f:MUS_T
+    asl a
+    adc f:MUS_T                 ; × 768
+    asl a                       ; × 1536
+    sta f:MUS_T
+    lda song_current
+    asl a
+    tax
+    lda f:song_sounds, x
+    clc
+    adc f:MUS_T
+    sta f:MUS_BASE
     sep #$20
 .a8
     jmp read

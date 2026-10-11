@@ -778,7 +778,8 @@ FAR_FLASH_PAL = $7E6900         ; FLASH_MAX * 32
 ;   MUS_WAIT   word: how many frames until the stream is read
 ;   MUS_KON      the voices that got a note in the frame being read
 ;   MUS_PLAYING  the ones keyed on when the previous one closed: released on opening
-;   MUS_BASE     word: where the song's sounds start in `music_sounds`
+;   MUS_BASE     word: where the sounds the notes name start in `music_sounds`:
+;                the song's, plus its `OP_SOUND_PAGE`'s
 ;   MUS_VIEWS   the voices that have had a note since the song started
 ;   MUS_GAINS    the ones that have already received a GAIN
 ;   MUS_BIT      the voice bit of the event being read
