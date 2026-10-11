@@ -232,6 +232,7 @@ pub fn convert(layers: &Layers, window_colors: usize, ask: &PanoramaAsk) -> Resu
         way: None,
         tried: Vec::new(),
         above_lost: 0,
+        in_front: None,
         pictures,
     })
 }

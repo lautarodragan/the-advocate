@@ -226,6 +226,18 @@ pub fn run(options: Options) -> Result<()> {
     // The message window's colours, from the System: once, for every map and
     // for the screens and the emission. See `screens::window_colors`.
     let (window_colors, window_answer) = screens::window_colors(&game)?;
+    let map_pictures = if game.map_pictures {
+        let decided = crate::map_pictures::decide(&every_refs, &game.game_dir)?;
+        println!(
+            "  pictures drawn into their map: {} in {} of the {} maps",
+            decided.per_map.values().map(Vec::len).sum::<usize>(),
+            decided.per_map.len(),
+            order.len()
+        );
+        decided
+    } else {
+        crate::map_pictures::MapPictures::default()
+    };
     let cartridge = Cartridge {
         game: &game,
         settings: &settings,
@@ -255,6 +267,7 @@ pub fn run(options: Options) -> Result<()> {
         maps_per_character: per_character,
         search_dirs: search_dirs.clone(),
         common_substitutions: maps::common_substitutions(&game),
+        map_pictures,
         window_colors,
     };
     let mut animation_cache = Animations::new(&search_dirs, &game.dump);

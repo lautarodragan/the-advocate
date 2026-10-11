@@ -156,6 +156,10 @@ pub struct Converted {
     /// In a flattened map, the pixels that went to the wrong side of the
     /// hero: see `raise_above` in `layers.rs`, at the crate's top.
     pub above_lost: usize,
+    /// With the map's pictures drawn into it, the pixels of the opaque ones
+    /// on the wrong side of the hero and how many there are: see
+    /// `map_pictures::raise` at the crate's top. None without any.
+    pub in_front: Option<(usize, usize)>,
 }
 
 /// A map's panorama as the conversion is asked for it: the stretch of it the
@@ -289,6 +293,7 @@ pub fn convert_with(layers: &Layers, window_colors: usize, panorama: Option<&Pan
         way: None,
         tried: Vec::new(),
         above_lost: 0,
+        in_front: None,
         pictures,
     })
 }

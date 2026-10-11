@@ -198,6 +198,8 @@ pub struct Cartridge<'a> {
     pub maps_per_character: BTreeMap<(String, i32), usize>,
     pub search_dirs: Vec<PathBuf>,
     pub common_substitutions: Vec<(bool, i32, i32)>,
+    /// The pictures that are part of each map: see [`crate::map_pictures`].
+    pub map_pictures: crate::map_pictures::MapPictures,
     /// The colour-memory entries the message window takes: see
     /// [`crate::screens::window_colors`].
     pub window_colors: u32,
@@ -309,7 +311,10 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
     };
     // The `ShowPicture` pictures this map's pages and test pages can show,
     // which the scan gathered.
-    let keys: Vec<Value> = scanned.get("pictures").and_then(Value::as_array).cloned().unwrap_or_default();
+    let mut keys: Vec<Value> = scanned.get("pictures").and_then(Value::as_array).cloned().unwrap_or_default();
+    // The ones that are part of a map are drawn into it, and their commands
+    // are accepted without being done.
+    keys.retain(|k| !c.map_pictures.done(map_id, k["name"].as_str().unwrap_or("")));
     let pictures = pictures::for_map(&game.game_dir, &keys, map_id, &game.cropped)?;
     let singles: Vec<Value> = c
         .maps_per_character
@@ -348,6 +353,7 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
             Vec::new()
         },
         "timer": timer,
+        "map_pictures": c.map_pictures.of(map_id).iter().map(|p| p.to_json()).collect::<Vec<_>>(),
         "rain": c.with_rain,
         "picture": pictures.as_ref().map(|p| p.asked.clone()),
         "battle_animation": shows_animation,
@@ -786,6 +792,15 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         for why in layers["panorama_tried"].as_array().into_iter().flatten() {
             println!("    not {}", why.as_str().unwrap_or(""));
         }
+    }
+    // What the map's pictures put in front of the hero: see
+    // `map_pictures` in Wally.
+    if let Some(front) = layers.get("pictures_in_front").filter(|v| !v.is_null()) {
+        println!(
+            "  map {map_id}: its pictures put {} pixels in front of the hero, and {} go to the wrong side of him",
+            int(&front["pixels"]),
+            int(&front["wrong"])
+        );
     }
     let layout = if pano.is_null() {
         vram::vram_layout(tiles_count as u32, (sprite_tiles.len() / 32) as u32, above_count as u32)

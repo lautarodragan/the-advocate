@@ -237,6 +237,10 @@ pub struct Game {
     /// when the key is missing: it changes the map of any game that has
     /// them, and a game opts in.
     pub decorative: bool,
+    /// `[graphics] map_pictures`: whether the `ShowPicture` pictures that
+    /// are part of a map are drawn into it —see [`crate::map_pictures`]—.
+    /// Off when the key is missing, for the same reason.
+    pub map_pictures: bool,
     /// The events each map leaves out because they do not fit in the
     /// console's RAM, by map and id: see [`crate::trim`] and
     /// [`Game::trim`]. They are taken out as the map is read.
@@ -330,6 +334,10 @@ impl Game {
             decorative: match project.value(&["graphics", "decorative_events"]) {
                 Err(_) => false,
                 Ok(_) => project.boolean(&["graphics", "decorative_events"])?,
+            },
+            map_pictures: match project.value(&["graphics", "map_pictures"]) {
+                Err(_) => false,
+                Ok(_) => project.boolean(&["graphics", "map_pictures"])?,
             },
             dropped: BTreeMap::new(),
             twins: BTreeMap::new(),

@@ -54,6 +54,10 @@ pub struct Drawn {
     /// The cells a decorative event on the hero's layer closes: the map's
     /// passability says it, since the event is not in the table any more.
     pub blocked: Vec<usize>,
+    /// The map's pixels that its pictures put in front of the hero, if they
+    /// are drawn into a panorama fixed to the map: see
+    /// [`crate::map_pictures`].
+    pub front: Option<Vec<bool>>,
 }
 
 /// The stretch of a panorama the console can show, and how it moves: what
@@ -72,6 +76,8 @@ pub struct Panorama {
     pub auto: (i32, i32),
     /// Whether a `ChangePBG` of the map's own pages changes how it moves.
     pub changes: bool,
+    /// Whether one of those makes it loop, on each axis.
+    pub changed_loops: (bool, bool),
 }
 
 /// The RM2k screen, and the console's, in pixels; and where each puts the
@@ -151,7 +157,7 @@ pub fn draw(game: &Game, request: &LayersRequest) -> Result<Drawn> {
         passable_lower: chipset.passable_data_lower.clone(),
         passable_upper: chipset.passable_data_upper.clone(),
     };
-    let panorama = match &request.panorama {
+    let mut panorama = match &request.panorama {
         Some(_) if map.parallax_flag => {
             let name = map.parallax_name.clone();
             let path = game.resource("Panorama", &name).ok_or_else(|| {
@@ -179,6 +185,7 @@ pub fn draw(game: &Game, request: &LayersRequest) -> Result<Drawn> {
                 picture: whole.crop(0, 0, w, h),
                 whole: whole.clone(),
                 changes: map.events.iter().flat_map(|e| &e.pages).flat_map(|p| &p.event_commands).any(|c| c.code.to_i32() == CHANGE_PBG),
+                changed_loops: changed,
                 looped: (map.parallax_loop_x, map.parallax_loop_y),
                 auto: (
                     if map.parallax_loop_x && map.parallax_auto_loop_x { map.parallax_sx } else { 0 },
@@ -194,6 +201,15 @@ pub fn draw(game: &Game, request: &LayersRequest) -> Result<Drawn> {
         drawn.render(&atlas)?
     };
     crate::decor::compose(&mut layers, &request.decor);
+    // Above everything, as RM2k draws pictures.
+    let front = crate::map_pictures::compose(
+        game,
+        id,
+        &game.map_pictures,
+        (drawn.width * 16, drawn.height * 16),
+        &mut layers,
+        panorama.as_mut(),
+    )?;
     let blocked: Vec<usize> = request
         .decor
         .iter()
@@ -229,6 +245,7 @@ pub fn draw(game: &Game, request: &LayersRequest) -> Result<Drawn> {
         panorama,
         extended,
         blocked,
+        front,
     })
 }
 
@@ -251,6 +268,24 @@ pub fn draw(game: &Game, request: &LayersRequest) -> Result<Drawn> {
 /// each other, and any of them to black, the map as it was before there
 /// were panoramas. A way the request forces is that one, or the error.
 pub fn convert(drawn: &Drawn, request: &LayersRequest) -> Result<Converted> {
+    let mut done = convert_ways(drawn, request)?;
+    // What the map's pictures put in front of the hero, by the priority of
+    // the panorama's cells: only in mode 3, where it is BG2. In any other
+    // way they are only drawn into the map.
+    if let Some(front) = &drawn.front {
+        let width = drawn.map.width * 16;
+        done.in_front = Some(match (done.way, done.panorama.as_mut()) {
+            (Some(Way::Mode3), Some(p)) => crate::map_pictures::raise(&mut p.tilemap, front, width),
+            _ => {
+                let total = front.iter().filter(|&&f| f).count();
+                (total, total)
+            }
+        });
+    }
+    Ok(done)
+}
+
+fn convert_ways(drawn: &Drawn, request: &LayersRequest) -> Result<Converted> {
     let (Some(p), Some(budget)) = (&drawn.panorama, &request.panorama) else {
         return Ok(crate::background::convert_with(&drawn.layers, request.window_colors, None)?);
     };
@@ -310,7 +345,9 @@ pub fn convert(drawn: &Drawn, request: &LayersRequest) -> Result<Converted> {
     }
     let mut tried = Vec::new();
     let mut order = Vec::new();
-    if still(drawn, p) {
+    // Baked, what goes in front of the hero would be BG1's at priority 1,
+    // which is in front of the message window too.
+    if still(drawn, p) && drawn.front.is_none() {
         order.push(Way::Baked);
     }
     if !draws_above(&drawn.layers) {
@@ -616,6 +653,7 @@ pub fn write(
         "panorama_way": converted.way.map(Way::name),
         "panorama_tried": converted.tried,
         "panorama_above_lost": converted.above_lost,
+        "pictures_in_front": converted.in_front.map(|(wrong, total)| json!({"wrong": wrong, "pixels": total})),
         "background": {
             "bpp": bg.bpp,
             "tiles": bg.tiles.len() / 64,

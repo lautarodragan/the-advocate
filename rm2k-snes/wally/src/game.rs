@@ -32,6 +32,9 @@ pub struct Game {
     /// Where the pictures are looked up, in order: the first directory that
     /// has one wins.
     pub search_dirs: Vec<PathBuf>,
+    /// The request's map's `ShowPicture` pictures that are part of it: see
+    /// [`crate::map_pictures`]. The caller decides them.
+    pub map_pictures: Vec<crate::map_pictures::MapPicture>,
 }
 
 fn answer(e: ditto::lcf::Error) -> Bad {

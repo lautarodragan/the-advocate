@@ -25,6 +25,7 @@ pub mod game;
 pub mod inspect;
 pub mod layers;
 pub mod map;
+pub mod map_pictures;
 pub mod moves;
 pub mod request;
 pub mod sheets;

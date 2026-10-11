@@ -24,6 +24,7 @@ mod fork;
 mod fullscreen;
 mod game;
 mod images;
+mod map_pictures;
 mod maps;
 mod options;
 mod pictures;

@@ -160,6 +160,7 @@ pub fn read(path: &Path) -> Result<(Value, String)> {
 pub fn patches(data: &Value, whose: &str, game: &mut Game) -> Result<()> {
     game.map_files = files(field(data, "map_files", whose)?, whose)?;
     game.chipset_files = files(field(data, "chipset_files", whose)?, whose)?;
+    game.map_pictures = crate::map_pictures::from_json(data, whose)?;
     // Not required: a request that leaves nothing out does not have to say
     // it, and the ones written before it existed stay as they were.
     if let Some(d) = data.get("dropped_events") {
