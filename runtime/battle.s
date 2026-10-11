@@ -182,7 +182,6 @@ no:
     and #$00FF
     pha
     lda BA_TROOP_K
-    and #$00FF
     asl a
     tax
     pla
@@ -595,36 +594,32 @@ party_ready:
     ; this cartridge does not carry is a battle with no enemies, and
     ; `battle_run` wins it by itself: it is the same thing the converter
     ; does with a song that did not fit.
-    lda #$FF
+    ; The count goes in sixteen bits, all of `BA_S1`: past 255 troops it is
+    ; no byte.
+    rep #$20
+.a16
+    lda #$FFFF
     sta BA_TROOP_K
-    lda #0
-    sta BA_S1
+    stz BA_S1
 seek:
     lda BA_S1
     cmp #TROOPS_N
     bcs no_troop
-    rep #$20
-.a16
-    lda BA_S1
-    and #$00FF
     asl a
     tax
     lda f:troop_id, x
     cmp BA_TROOP
-    sep #$20
-.a8
     beq have
     inc BA_S1
     bra seek
 no_troop:
+    sep #$20
+.a8
     rts
 have:
-    lda BA_S1
-    sta BA_TROOP_K              ; for `scene_troop_backdrop`
-    rep #$20
 .a16
     lda BA_S1
-    and #$00FF
+    sta BA_TROOP_K              ; for `scene_troop_backdrop`
     tax
     sep #$20
 .a8
@@ -705,8 +700,12 @@ has_slot_enemy:
     ; Hidden or not, by the bit of its place in `troop_hidden`: the troop's
     ; `invisible`, which `Game_Enemy` copies in `SetHidden` when set up.
     phx
+    rep #$20
+.a16
     lda BA_TROOP_K
-    jsr ba_ax
+    tax
+    sep #$20
+.a8
     lda f:troop_hidden, x
     sta BA_T0
     lda BA_S1

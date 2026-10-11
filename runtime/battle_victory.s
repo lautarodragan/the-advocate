@@ -64,12 +64,12 @@ recorded:
 .proc ba_vic_gold
 .a8
 .i16
-    lda BA_TROOP_K
+    lda BA_TROOP_K + 1          ; a word: its high byte alone says $FFFF
     cmp #$FF
     beq ready                   ; a troop the cartridge does not carry
     rep #$20
 .a16
-    and #$00FF
+    lda BA_TROOP_K
     asl a
     tax
     lda f:troop_gold, x
@@ -362,14 +362,14 @@ no_v1:
 line:
     ; And the experience, if any: easyrpg's `if (exp > 0)`. The gold goes the
     ; same way, `if (money > 0)`.
-    lda BA_TROOP_K
+    lda BA_TROOP_K + 1          ; a word: its high byte alone says $FFFF
     cmp #$FF
     bne with_troop
     rts
 with_troop:
     rep #$20
 .a16
-    and #$00FF
+    lda BA_TROOP_K
     asl a
     sta BA_S1                   ; the troop's place in the word-sized tables
     tax

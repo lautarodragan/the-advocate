@@ -387,8 +387,12 @@ BA_SE2      = FAR_BATTLE + 42      ; word
 ; background and no battler. See `scene_upload`.
 BA_SCENE    = FAR_BATTLE + 44
 ; And at which place in `troop_id` this battle's troop landed, which is what
-; `scene_troop_backdrop` indexes. $FF: the cartridge does not carry it.
-BA_TROOP_K  = FAR_BATTLE + 45
+; `scene_troop_backdrop` indexes. **A word since 2026-10-11**, at +45 and
+; +46: Vampires Dawn carries 277 troops. $FFFF: the cartridge does not carry
+; it. No place is as high as $FF00 —the converter caps them at 32768, so
+; that twice one indexes the word tables— so the high byte alone tells it,
+; which is what the 8-bit code reads: `lda BA_TROOP_K + 1`, as `ENC_REG`.
+BA_TROOP_K  = FAR_BATTLE + 45      ; word
 ; And the item being used, since 2026-09-13. It goes **after `BA_ONE`**,
 ; which ends at +575, because between +40 and +48 nothing is left and moving
 ; `BA_ACC` would mean moving everything else.
