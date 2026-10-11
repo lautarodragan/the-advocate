@@ -210,7 +210,10 @@ enum WordOrList<'a> {
 
 impl Cartridges {
     /// Reads the project file, the map tree and the new maps.
-    pub fn load(project: Project, environment: Environment) -> Result<Cartridges, String> {
+    pub fn load(project: Project, mut environment: Environment) -> Result<Cartridges, String> {
+        // A `.zip` game or RTP, as a directory from here on —and for the
+        // tools this runs—: see `unpack`.
+        environment.unpack(&project)?;
         let p = &project;
         let maps_below = p.int(&["maps", "below"])?;
         let excluded_maps = p.ints(&["maps", "excluded"])?;
@@ -563,6 +566,12 @@ impl Cartridges {
     /// **The RTP and the SoundFont go in by their path, not their
     /// content**, in [`Self::fingerprint`]: they are not edited, and if
     /// they are, `--force` rebuilds by hand. It is taro's, 2026-10-11.
+    ///
+    /// **A game or an RTP that comes as a `.zip` goes in by the `.zip`'s
+    /// content**, whole, and not by what was unpacked from it —see
+    /// `Environment::unpack` in `rm2k-project`—: hashing it is cheap, and
+    /// a `.zip` is what taro wants the games to be, so that they are not
+    /// retouched and every change goes through the patches.
     pub fn fingerprint_files(&self, runtime: &Path) -> Result<Vec<PathBuf>, String> {
         // All of the runtime, and not only what `main.s` includes today: a
         // file that is added and included in the same change has to make the
@@ -583,6 +592,11 @@ impl Cartridges {
         parts.extend(files_below(&self.project.data()?)?);
         // What the stages can read from the original game.
         parts.extend(self.game_files()?);
+        // And the RTP, if it is a `.zip`: as a directory it goes by its
+        // path, in `fingerprint`.
+        if let Some((zip, _)) = self.environment.archive("rtp_dir") {
+            parts.push(zip.to_path_buf());
+        }
         // Until 2026-10-02 the `.py` files of the tools went in here too,
         // when the converter was a Python program; the last of them left
         // that day, and the converter is among the binaries above.
@@ -639,7 +653,12 @@ impl Cartridges {
     /// needs a channel between processes, and a reader that forgets to
     /// report is the same silently stale ROM. A resource the game ships and
     /// does not use goes in too, and retouching it rebuilds for nothing.
+    ///
+    /// A game that came as a `.zip` is the `.zip`, alone.
     pub fn game_files(&self) -> Result<Vec<PathBuf>, String> {
+        if let Some((zip, _)) = self.environment.archive("game_dir") {
+            return Ok(vec![zip.to_path_buf()]);
+        }
         let game = self.environment.game()?;
         Ok(files_below(game)?
             .into_iter()
@@ -662,14 +681,24 @@ impl Cartridges {
             if let Ok(name) = path.strip_prefix(game) {
                 h.update(format!("game {}\n", name.display()));
             }
+            // A `.zip` by the hash `unpack` already took, and not read twice:
+            // it is the biggest file here.
+            if let Some((_, hash)) = ["game_dir", "rtp_dir"]
+                .iter()
+                .filter_map(|n| self.environment.archive(n))
+                .find(|(zip, _)| *zip == path)
+            {
+                h.update(format!("zip {hash}\n"));
+                continue;
+            }
             h.update(std::fs::read(&path).map_err(|e| format!("{}: {e}", path.display()))?);
         }
         // The RTP and the SoundFont, by their path: see `fingerprint_files`.
-        h.update(format!(
-            "rtp {}\nsoundfont {}\n",
-            self.environment.rtp()?.display(),
-            self.environment.soundfont()?.display()
-        ));
+        // An RTP that is a `.zip` went in by content, among the files.
+        if self.environment.archive("rtp_dir").is_none() {
+            h.update(format!("rtp {}\n", self.environment.rtp()?.display()));
+        }
+        h.update(format!("soundfont {}\n", self.environment.soundfont()?.display()));
         // And each song's volume ceiling, which changes the streams: by its
         // values and not by the file, because the tool that measures them
         // rewrites it after building with what it measured —the peak, the

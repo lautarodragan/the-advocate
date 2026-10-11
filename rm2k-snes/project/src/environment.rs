@@ -18,6 +18,7 @@ use std::path::{Path, PathBuf};
 
 use clap::{Arg, ArgMatches};
 
+use crate::archive;
 use crate::paths::absolute;
 use crate::{Error, Project};
 
@@ -33,12 +34,12 @@ pub const FLAGS: &[Flag] = &[
     Flag {
         name: "game_dir",
         flag: "--game-dir",
-        help: "the original RM2k project, where the PNGs, the MIDIs and the .lmu files come from",
+        help: "the original RM2k project, where the PNGs, the MIDIs and the .lmu files come from: a directory, or a .zip of one",
     },
     Flag {
         name: "rtp_dir",
         flag: "--rtp-dir",
-        help: "the RTP the game was built with: what the game does not ship is looked up there",
+        help: "the RTP the game was built with: what the game does not ship is looked up there. A directory, or a .zip of one",
     },
     Flag {
         name: "soundfont",
@@ -95,7 +96,13 @@ pub fn arguments(names: &[&str]) -> Vec<Arg> {
 #[derive(Debug, Default, Clone)]
 pub struct Environment {
     values: BTreeMap<&'static str, PathBuf>,
+    /// The values that came as a `.zip`, with its content hash, once
+    /// [`Environment::unpack`] put their unpacked copy in `values`.
+    archives: BTreeMap<&'static str, (PathBuf, String)>,
 }
+
+/// The values that can be a `.zip`: the ones the resources are read from.
+pub const PACKABLE: &[&str] = &["game_dir", "rtp_dir"];
 
 impl Environment {
     /// What came on the command line for `names`.
@@ -132,13 +139,54 @@ impl Environment {
 
     fn require(&self, name: &str) -> Result<&Path, Error> {
         let f = flag(name);
-        self.values.get(f.name).map(PathBuf::as_path).ok_or_else(|| {
+        let value = self.values.get(f.name).map(PathBuf::as_path).ok_or_else(|| {
             Error(format!(
                 "missing {}: {}. It belongs to the machine, so it has no default value; \
                  whoever runs this passes it",
                 f.flag, f.help
             ))
-        })
+        })?;
+        // A `.zip` nobody unpacked would be read as a directory with nothing
+        // in it, and a lookup that finds nothing in the game falls back to
+        // the RTP without a word: that is why it is an error here.
+        if PACKABLE.contains(&f.name) && archive::is_zip(value) {
+            return Err(Error(format!(
+                "{} {} is a .zip, and this tool did not unpack it: \
+                 `Environment::unpack` goes right after reading the flags",
+                f.flag,
+                value.display()
+            )));
+        }
+        Ok(value)
+    }
+
+    /// **Turns a `.zip` game or RTP into a directory**: each of
+    /// [`PACKABLE`] that is a `.zip` is unpacked into `zip/` in the
+    /// project's cache —once per `.zip`, see [`crate::archive`]— and from
+    /// here on its value is that directory, in [`Self::as_flags`] too, so
+    /// the tools this one runs receive the directory. Every tool that reads
+    /// the game or the RTP calls this right after reading its flags, and it
+    /// is the only place that knows about the `.zip`: the lookups do not.
+    pub fn unpack(&mut self, project: &Project) -> Result<(), Error> {
+        for name in PACKABLE {
+            let Some(value) = self.values.get(name).cloned() else { continue };
+            if !archive::is_zip(&value) {
+                continue;
+            }
+            let hash = archive::content_hash(&value)?;
+            let directory = archive::unpacked(&value, &hash, &self.cache(project)?.join("zip"))?;
+            self.values.insert(name, directory);
+            self.archives.insert(name, (value, hash));
+        }
+        Ok(())
+    }
+
+    /// The `.zip` a value came as, and its content hash, if it came as one
+    /// and was unpacked.
+    pub fn archive(&self, name: &str) -> Option<(&Path, &str)> {
+        self.archives
+            .get(flag(name).name)
+            .map(|(zip, hash)| (zip.as_path(), hash.as_str()))
     }
 
     pub fn game(&self) -> Result<&Path, Error> {

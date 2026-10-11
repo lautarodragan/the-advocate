@@ -94,7 +94,9 @@ fn join<T: ToString>(items: impl IntoIterator<Item = T>, sep: &str) -> String {
 pub fn run(options: Options) -> Result<()> {
     let project = Project::locate(options.project.as_deref())?;
     let settings = Settings { project: &project };
-    let environment = options.environment.clone();
+    let mut environment = options.environment.clone();
+    // A `.zip` game or RTP, as a directory from here on: see `unpack`.
+    environment.unpack(&project)?;
     let order = options.map_order();
     if !(0 <= options.start_index && (options.start_index as usize) < order.len()) {
         crate::stop!("--start-index {} but there are {} maps", options.start_index, order.len());
