@@ -275,7 +275,9 @@ pub fn convert(drawn: &Drawn, request: &LayersRequest) -> Result<Converted> {
     if let Some(front) = &drawn.front {
         let width = drawn.map.width * 16;
         done.in_front = Some(match (done.way, done.panorama.as_mut()) {
-            (Some(Way::Mode3 | Way::Painted), Some(p)) => crate::map_pictures::raise(&mut p.tilemap, front, width),
+            (Some(Way::Mode3), Some(p)) => crate::map_pictures::raise(&mut p.tilemap, front, width),
+            // Already done, with the edges exact: see `painted`.
+            (Some(Way::Painted), _) => done.in_front.unwrap_or((0, 0)),
             _ => {
                 let total = front.iter().filter(|&&f| f).count();
                 (total, total)
@@ -293,7 +295,11 @@ fn convert_ways(drawn: &Drawn, request: &LayersRequest) -> Result<Converted> {
     let attempt = |way: Way| -> std::result::Result<Converted, String> {
         let done = match way {
             Way::Hidden | Way::Black => crate::background::convert_with(&on_black(&drawn.layers), wc, None),
-            Way::Painted => return painted(drawn, p, wc),
+            Way::Painted => {
+                // The layer above's tiles the layout leaves: the roofs' edges.
+                let above = budget.of_mode(4).map(|l| l.above).max().unwrap_or(1);
+                return painted(drawn, p, wc, above);
+            }
             Way::Baked => {
                 let done = crate::background::convert_with(&baked(&drawn.layers, &p.whole), wc, None)
                     .map_err(|e| e.to_string())?;
@@ -483,7 +489,7 @@ fn paintable(drawn: &Drawn, p: &Panorama) -> bool {
 /// own layers draw nothing: its background is one black tile and its layer
 /// above none, and the painting's palettes travel as the layer above's, as a
 /// mode-3 panorama's do.
-fn painted(drawn: &Drawn, p: &Panorama, window_colors: usize) -> std::result::Result<Converted, String> {
+fn painted(drawn: &Drawn, p: &Panorama, window_colors: usize, above: usize) -> std::result::Result<Converted, String> {
     let (w, h) = (drawn.map.width * 16, drawn.map.height * 16);
     let mut whole = picture::Picture::transparent(w, h);
     for y in 0..h {
@@ -499,7 +505,16 @@ fn painted(drawn: &Drawn, p: &Panorama, window_colors: usize) -> std::result::Re
         variants: Vec::new(),
     };
     let mut done = crate::background::convert_with(&on_black(&blank), window_colors, None).map_err(|e| e.to_string())?;
-    let (pano, decided) = crate::background::painted::painted(&whole).map_err(|e| e.to_string())?;
+    let (mut pano, decided) = crate::background::painted::painted(&whole).map_err(|e| e.to_string())?;
+    // What goes in front of the hero: BG1's priority, and the edges in BG2,
+    // the layer above's place, in its tiles but the blank one.
+    if let Some(front) = &drawn.front {
+        let (tiles, tilemap, wrong, total) =
+            crate::background::painted::roofs(&mut pano, front, w, above.saturating_sub(1));
+        done.above.tiles = tiles;
+        done.above.tilemap = tilemap;
+        done.in_front = Some((wrong, total));
+    }
     done.above.first = pano.first / crate::background::layers::COLORS_PER_PALETTE;
     done.above.cgram = pano.cgram.iter().flat_map(|w| w.to_le_bytes()).collect();
     done.pictures.push(crate::background::Decided { name: "panorama".to_string(), picture: decided });
