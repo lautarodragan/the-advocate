@@ -200,7 +200,8 @@ lock_hero:
 ;   the new palette would write Talan's colors over the palette of the graphic
 ;   it changed to. While the change is in place, the hero is drawn with the new
 ;   graphic's palette, which already lives in CGRAM with the rest of the map's
-;   sprites.
+;   sprites. Unless the graphic goes in the leaders' palette with colours of
+;   its own —see `hero_poses_of_graphic`—: then they are uploaded here.
 ; * It does not survive a map change: `pick_hero_graphic` runs on load and
 ;   restores it. It is not laziness —the poses live in **the map's** sprite
 ;   bank, so the graphic from there does not exist here—.
@@ -213,6 +214,10 @@ graphic_hero:
     jsr hero_command            ; the operand, which is left consumed
     jsr hero_poses_of_graphic
     bcc hero_no_graphic
+    lda hero_cgram + 2
+    beq graphic_ready           ; drawn with a palette the map already has
+    jsr apply_tint              ; its colours, into the leaders' palette
+graphic_ready:
     jmp other_command
 hero_no_graphic:
     ; A CharSet without a single opaque pixel —`nobodyhere`— or one that did

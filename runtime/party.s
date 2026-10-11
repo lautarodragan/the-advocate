@@ -108,12 +108,19 @@ ready:
 ; pointing `hero_poses` thirty-six bytes into `npc_poses` is enough and
 ; `place_hero` still does not notice.
 ;
-; `hero_cgram` is turned off: the leader's fifteen colors are uploaded by
-; `apply_tint` **into the row `hero_pal` names**, so leaving it on with the
-; new palette would write Talan's colors over the palette of the graphic it
-; changed to. While the change is in effect, the hero is drawn with the new
-; graphic's palette, which already lives in CGRAM with the rest of the map's
-; sprites.
+; `hero_cgram` is turned off for a graphic with a palette of its own in the
+; map: the leader's fifteen colors are uploaded by `apply_tint` **into the
+; row `hero_pal` names**, so leaving it on with the new palette would write
+; Talan's colors over the palette of the graphic it changed to. While the
+; change is in effect, the hero is drawn with the new graphic's palette,
+; which already lives in CGRAM with the rest of the map's sprites.
+;
+; Unless the graphic is drawn in the leaders' palette, like a leader: the
+; ones only the hero shows go there, with colours of their own, so their
+; pose bank is the same in every map. Then `route_gfx_colors` says which
+; entry of `hero_colors` —thirty bytes each, from 1— holds them, and
+; `hero_cgram` points there: the caller has to run `apply_tint` for them to
+; reach CGRAM. See `route_graphic` in mapdata.
 ;
 ; It is used by the two things that change the hero's graphic: move command
 ; 34 of a move route —`graphic_hero`— and the `ChangeSpriteAssociation` on
@@ -123,6 +130,15 @@ ready:
 .proc hero_poses_of_graphic
 .a8
 .i16
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda route_gfx_colors, x     ; its entry in `hero_colors`, or 0
+    sta temp + 1
+    txa
     asl a                       ; two bytes per entry in `route_gfx_buf`
     rep #$20
 .a16
@@ -159,6 +175,28 @@ ready:
     adc #0
     sta hero_poses + 2
     stz hero_cgram + 2          ; see above: nobody uploads colors on top
+    lda temp + 1
+    beq no_colors               ; a palette of its own in the map
+    dec a
+    rep #$20
+.a16
+    and #$00FF
+    asl a                       ; c times two
+    sta temp + 2
+    asl a
+    asl a
+    asl a
+    asl a                       ; c times thirty-two
+    sec
+    sbc temp + 2                ; thirty bytes per entry: fifteen colors
+    clc
+    adc #.loword(hero_colors)
+    sta hero_cgram
+    sep #$20
+.a8
+    lda #^hero_colors
+    sta hero_cgram + 2
+no_colors:
     sec
     rts
 no_is:

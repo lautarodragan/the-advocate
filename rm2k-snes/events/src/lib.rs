@@ -601,6 +601,7 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
         // compilation has —without songs, the pages above stop at the first
         // `PlayBGM`, and the "Meanwhile" sign of map 81 comes after one—.
         let mut pictures = Pictures::gathering();
+        let mut on_events = graphics.on_events.clone();
         let bodies = map
             .events
             .iter()
@@ -631,15 +632,23 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
                 shared: None,
             };
             compile_page(&mut ctx, commands, Some(me.for_event(event)), 0, 0)?;
+            on_events.extend(graphics.on_events);
         }
-        out.push(json!({
+        let mut entry = json!({
             "id": map.id,
             "compiled": compiled,
             "pages": pages,
             "graphics": graphics.pairs,
             "pictures": pictures.keys_json(),
             "zooms": pictures.zooms_json(),
-        }));
+        });
+        // Which of them a route gives an event, the test pages' too: the
+        // rest only the hero shows. Only when there are some, like
+        // `graphics_dropped`.
+        if !on_events.is_empty() {
+            entry["graphics_on_events"] = json!(on_events);
+        }
+        out.push(entry);
     }
     let mut answer = indices_json(&indices, &associations);
     answer.insert("maps".into(), json!(out));

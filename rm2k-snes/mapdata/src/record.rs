@@ -1267,15 +1267,21 @@ pub fn map_data(
     number: usize,
     rows: &[NpcRow],
     poses: &PoseLabels,
+    hero_colors: &HeroColors,
     materials: &mut Materials,
 ) -> Result<(String, Labels)> {
     let sprite = map.sprite.as_ref();
+    // Two bytes per graphic, and behind them one per graphic: its entry in
+    // `hero_colors`, from 1, or 0. See `hero_poses_of_graphic`.
     let route_graphic: Vec<u8> = sprite
         .map(|s| {
-            s.route_gfx
+            let mut out: Vec<u8> = s
+                .route_gfx
                 .iter()
-                .flat_map(|&(k, p)| [k as u8, p as u8])
-                .collect()
+                .flat_map(|g| [g.entry() as u8, g.palette() as u8])
+                .collect();
+            out.extend(s.route_gfx.iter().map(|g| hero_colors.entry(g.colors())));
+            out
         })
         .unwrap_or_default();
     let pairs: [(&'static str, Vec<u8>); 11] = [
@@ -1478,6 +1484,70 @@ pub fn poses(maps: &[Map]) -> Result<Poses> {
     })
 }
 
+/// The colours of the graphics only the hero shows, which go in the
+/// leaders' palette with colours of their own —see `drawable_npcs` in
+/// Wally—: each set once for the whole cartridge, thirty bytes each, and
+/// the console uploads the one the graphic names when the hero takes it.
+pub struct HeroColors {
+    sets: Vec<Vec<u32>>,
+}
+
+impl HeroColors {
+    /// The entries a graphic can name: one byte, and 0 is none.
+    pub const MAX: usize = 255;
+
+    pub fn of(maps: &[Map]) -> Result<HeroColors> {
+        let mut sets: Vec<Vec<u32>> = Vec::new();
+        for map in maps {
+            for g in map.sprite.as_ref().map_or(&[][..], |s| s.route_gfx.as_slice()) {
+                let colors = g.colors();
+                if colors.is_empty() || sets.iter().any(|s| s == colors) {
+                    continue;
+                }
+                if colors.len() > OBJ_COLORS {
+                    return Err(Bad::answer(format!(
+                        "map {}: a graphic of command 34 brings {} colours and a palette holds {OBJ_COLORS}",
+                        map.id,
+                        colors.len()
+                    )));
+                }
+                sets.push(colors.to_vec());
+            }
+        }
+        if sets.len() > Self::MAX {
+            return Err(Bad::answer(format!(
+                "the graphics only the hero shows bring {} sets of colours and `hero_colors` names {}",
+                sets.len(),
+                Self::MAX
+            )));
+        }
+        Ok(HeroColors { sets })
+    }
+
+    /// Which entry holds `colors`, from 1; 0 for none.
+    pub fn entry(&self, colors: &[u32]) -> u8 {
+        if colors.is_empty() {
+            return 0;
+        }
+        self.sets.iter().position(|s| s == colors).map_or(0, |k| k as u8 + 1)
+    }
+
+    /// The table, with one byte when it is empty: the runtime names it
+    /// always.
+    pub fn asm(&self) -> String {
+        let mut bytes = Vec::new();
+        for set in &self.sets {
+            let mut words = set.clone();
+            words.resize(OBJ_COLORS, 0);
+            bytes.extend(words.iter().flat_map(|w| [(w & 0xFF) as u8, (w >> 8) as u8]));
+        }
+        if bytes.is_empty() {
+            bytes.push(0);
+        }
+        format!("{}\n\n", block("hero_colors", &bytes))
+    }
+}
+
 /// What [`maps`] writes: three pieces of the `.inc` and what it says.
 pub struct Written {
     /// The record's offsets.
@@ -1517,7 +1587,9 @@ pub fn maps_with(maps: &[Map], msu: bool) -> Result<Written> {
         .map(|r| crate::materials::decompress_frames(r, &compressed))
         .collect();
     let poses = poses(maps)?;
+    let hero_colors = HeroColors::of(maps)?;
     let mut text = poses.text;
+    text.push_str(&hero_colors.asm());
     let _ = write!(
         text,
         "; The LZ2 caps, which decompress.s enforces\n\
@@ -1546,6 +1618,7 @@ pub fn maps_with(maps: &[Map], msu: bool) -> Result<Written> {
             number,
             &rows[number],
             &poses.per_map[number],
+            &hero_colors,
             &mut materials,
         )?;
         text.push_str(&data);

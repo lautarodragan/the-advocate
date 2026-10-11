@@ -232,6 +232,11 @@ pub struct Graphics {
     /// The graphics that did not fit in [`ROUTE_GFX_MAX`] and were left
     /// out, so the converter can say what was lost.
     pub dropped: Vec<(String, i32)>,
+    /// The ones a route gives an **event** —command 34 on anything but the
+    /// hero—. The others only the hero ever shows, and the converter can
+    /// draw them with the leaders' palette and colours of their own: see
+    /// `hero_only` in Wally.
+    pub on_events: std::collections::BTreeSet<(String, i32)>,
 }
 
 /// How many graphics a map's table holds in the ROM. It is the same number
@@ -248,6 +253,7 @@ impl Graphics {
         Graphics {
             pairs: associations[..kept].to_vec(),
             dropped: associations[kept..].to_vec(),
+            on_events: Default::default(),
         }
     }
 

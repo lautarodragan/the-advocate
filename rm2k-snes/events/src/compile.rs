@@ -4930,6 +4930,9 @@ fn compile_route(ctx: &mut Ctx, cmd: &Command, map_events: Option<&MapEvents>) -
             else {
                 continue;
             };
+            if target != 0 {
+                graphics.on_events.insert((extras[0].text().to_string(), extras[1].int() as i32));
+            }
             path.push(command as i64);
             path.push(chosen as i64);
             continue;

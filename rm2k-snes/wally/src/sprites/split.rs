@@ -93,6 +93,8 @@ pub struct Ask<'a> {
     /// How many palettes the characters get.
     pub cap: usize,
     pub route_graphics: &'a [Key],
+    /// Those of them only the hero shows.
+    pub hero_graphics: &'a BTreeSet<Key>,
     /// The timer's colours, sorted; empty without a timer.
     pub timer_colors: &'a [Color],
     /// The characters that appear in this map of the cartridge only.
@@ -196,6 +198,30 @@ pub fn drawable_npcs(ask: &Ask, npcs: Vec<Npc>) -> Result<Drawable> {
             }
         } else {
             sp.split.palette_of.set(key.clone(), slot_leader.unwrap_or(0));
+            sp.split.own.insert(key.clone());
+        }
+    }
+
+    // The graphics only the hero shows —a `ChangeSpriteAssociation`'s, a
+    // route's on the hero— are a leader's other looks, and they go like the
+    // leaders that share the slot: in its palette, with colours of their
+    // own that the console uploads when the hero takes them. That way they
+    // take no palette from the map, and their pose bank is the same in every
+    // map: drawn with someone else's palette, each map quantized it its own
+    // way, and the cartridge carried one bank per map. Not one an event of
+    // the map also draws, which needs its colours in the map's palette.
+    if let Some(slot) = slot_leader {
+        for key in ask.route_graphics {
+            if !ask.hero_graphics.contains(key)
+                || seen.contains(key)
+                || npc_keys.contains(key)
+                || key.0.starts_with(TILE_PREFIX)
+                || sprite_colors(sheet(ask.sheets, &key.0)?, key.1, None).is_empty()
+            {
+                continue;
+            }
+            seen.insert(key.clone());
+            sp.split.palette_of.set(key.clone(), slot);
             sp.split.own.insert(key.clone());
         }
     }
