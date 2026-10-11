@@ -701,18 +701,30 @@ pub fn never_happen(list: &[toml::Value]) -> Result<Vec<(i64, i64)>> {
         .collect()
 }
 
-/// The ROM's `BOOT_FRAMES`, read from its source: it belongs to the ROM
-/// and not here. The ROM waits until that frame so that the loop always
-/// starts on the same one, and if uploading the boot map's package took
-/// longer, it would come out later and the tests —which count from there—
-/// would count wrong. See the comment on it in `far_ram.s`.
-pub fn boot_frames_cap(far_ram: &str) -> Option<i64> {
+/// The ROM's `BOOT_FRAMES_FLOOR`, read from its source: it belongs to the
+/// ROM and not here. The ROM waits until `BOOT_FRAMES` so that the loop
+/// always starts on the same frame, and each cartridge carries its own:
+/// this floor or the boot estimate, whichever is larger —see
+/// `boot_frames`—. See the comment on it in `far_ram.s`.
+pub fn boot_frames_floor(far_ram: &str) -> Option<i64> {
     far_ram.lines().find_map(|l| {
-        let rest = l.strip_prefix("BOOT_FRAMES")?;
+        let rest = l.strip_prefix("BOOT_FRAMES_FLOOR")?;
         let value = rest.trim_start().strip_prefix('=')?.trim_start();
         let digits: String = value.chars().take_while(char::is_ascii_digit).collect();
         digits.parse().ok()
     })
+}
+
+/// The cartridge's `BOOT_FRAMES`: the floor, or the estimate rounded up if
+/// it goes over. `None` if it doesn't fit in the byte the ROM compares it
+/// with —`boot_frames`, in `low_ram.s`—.
+///
+/// Until 2026-10-11 it was a constant of the ROM and the converter stopped
+/// if the estimate went over it: raising it for one game's boot map moved
+/// the loop's frame in every cartridge.
+pub fn boot_frames(floor: i64, estimate: f64) -> Option<i64> {
+    let frames = floor.max(estimate.ceil() as i64);
+    (frames <= 255).then_some(frames)
 }
 
 /// The sound effects of one package's quality versions, by rate, from the
@@ -808,8 +820,20 @@ mod tests {
     }
 
     #[test]
-    fn boot_frames_is_read_from_the_source() {
-        assert_eq!(boot_frames_cap("X = 1\nBOOT_FRAMES = 40   ; why\n"), Some(40));
-        assert_eq!(boot_frames_cap("; BOOT_FRAMES = 40\n"), None);
+    fn the_floor_is_read_from_the_source() {
+        assert_eq!(boot_frames_floor("X = 1\nBOOT_FRAMES_FLOOR = 40   ; why\n"), Some(40));
+        assert_eq!(boot_frames_floor("; BOOT_FRAMES_FLOOR = 40\n"), None);
+        assert_eq!(boot_frames_floor("BOOT_FRAMES = 40\n"), None);
+    }
+
+    /// A small package keeps the floor, so a cartridge like that starts on
+    /// the frame it always did; a large one gets its estimate, rounded up.
+    #[test]
+    fn boot_frames_is_the_floor_or_the_estimate() {
+        assert_eq!(boot_frames(44, 34.2), Some(44));
+        assert_eq!(boot_frames(44, 44.0), Some(44));
+        assert_eq!(boot_frames(44, 45.1), Some(46));
+        assert_eq!(boot_frames(44, 255.0), Some(255));
+        assert_eq!(boot_frames(44, 255.5), None);
     }
 }

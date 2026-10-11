@@ -556,22 +556,25 @@ fn do_cartridge(args: &CartridgeArgs) -> Result<()> {
         // Game Over's when there is one, and said 0.
         say(format!("  battle audio package: {songs} song(s), {} sound effect(s)", rom[c.maps.len()].1.len()));
     }
-    // **And that the boot fits in `BOOT_FRAMES`**: see
-    // `cartridge::boot_frames_cap`.
+    // **And how long the boot waits**: this cartridge's `BOOT_FRAMES`, the
+    // ROM's floor or the estimate if it goes over. See
+    // `cartridge::boot_frames`.
     let boot = &done.audio["boot"];
     let (frames, bytes) = (boot["frames"].as_f64().unwrap_or(0.0), boot["bytes"].as_i64().unwrap_or(0));
     let far_ram = suite::runtime().join("far_ram.s");
     let source = std::fs::read_to_string(&far_ram).map_err(|e| Bad::usage(format!("{}: {e}", far_ram.display())))?;
-    let cap = cartridge::boot_frames_cap(&source)
-        .ok_or_else(|| Bad::usage(format!("{}: no BOOT_FRAMES", far_ram.display())))?;
-    if frames > cap as f64 {
-        return Err(Bad::answer(format!(
-            "the boot doesn't fit in BOOT_FRAMES: the boot map's package is {bytes} B and with the map, the \
-             driver and the directory the computation gives {frames:.0} frames, against {cap}. Raise \
-             BOOT_FRAMES in runtime/far_ram.s, or shrink that package"
-        )));
-    }
-    say(format!("  boot: the boot map's package is {bytes} B, {frames:.0} of the {cap} frames of BOOT_FRAMES"));
+    let floor = cartridge::boot_frames_floor(&source)
+        .ok_or_else(|| Bad::usage(format!("{}: no BOOT_FRAMES_FLOOR", far_ram.display())))?;
+    let boot_frames = cartridge::boot_frames(floor, frames).ok_or_else(|| {
+        Bad::answer(format!(
+            "the boot doesn't fit in a byte of frames: the boot map's package is {bytes} B and with the map, \
+             the driver and the directory the computation gives {frames:.0} frames, against 255. Shrink \
+             that package"
+        ))
+    })?;
+    say(format!(
+        "  boot: the boot map's package is {bytes} B, {frames:.0} frames; BOOT_FRAMES = {boot_frames} (the floor is {floor})"
+    ));
 
     // The `.msu`: the quality backdrops and the quality sound effects, to
     // read them through the MSU-1 when it is there. It is always written,
@@ -593,6 +596,19 @@ fn do_cartridge(args: &CartridgeArgs) -> Result<()> {
     let musicdata = args.out.join("musicdata.inc");
     let mut text = std::fs::read_to_string(&musicdata).map_err(|e| Bad::usage(format!("{}: {e}", musicdata.display())))?;
     text.push_str(&written.inc);
+    // With the header and not at the end: from the first `.segment` on,
+    // `rm2k-snes-assemble` packs the file into banks and the comments do
+    // not survive it.
+    let header = text.find("\n\n").map_or(text.len(), |i| i + 1);
+    text.insert_str(
+        header,
+        &format!(
+            "\n; On which frame boot ends: the runtime's BOOT_FRAMES_FLOOR, or the\n\
+             ; estimate for the boot map's package ({frames:.1} frames) rounded up\n\
+             ; if it goes over. See `boot_frames` in rm2k-snes-audio's cartridge.rs.\n\
+             BOOT_FRAMES = {boot_frames}\n"
+        ),
+    );
     write_file(&musicdata, &text)?;
     let rates = &done.audio["msu"]["rates"];
     write_file(&args.out.join("efectos.json"), &pyjson::to_string(&cartridge::effects_json(music, &c.songs.sounds, rates)))?;

@@ -1322,16 +1322,23 @@ GRID_HIGH = $7F8000
 ; whose startup takes longer than this goes without waiting, later, but just
 ; as fixed for it.
 ;
-; It is sized for the startup map's package, and **the converter stops if it
-; does not fit**: the estimate, on the high side, is `boot_frames` in
-; rm2k-snes/rm2k-snes-audio/src/emit.rs. Measured on 2026-09-26: `release`'s work ends on
-; frame 30 and the estimate gives 34. It was 112 until that day, meant for
-; uploading a full ARAM through the IPL; see
-; workflow/decisiones/el-arranque-esta-dimensionado-para-el-paquete-de-arranque.md.
-; 40 until 2026-10-02: with the first day in Paradise in the cartridge the
-; startup map's package went from 14,976 to 15,651 B —the samples are
-; shared out over every package— and the estimate reached 40.
-BOOT_FRAMES = 44
+; **`BOOT_FRAMES` itself is not here: each cartridge carries its own**, at
+; the end of its `musicdata.inc`, and it is this floor or the estimate for
+; its startup map's package, whichever is larger —on the high side, it is
+; `boot_frames` in rm2k-snes/rm2k-snes-audio/src/emit.rs—. Since 2026-10-11:
+; Vampires Dawn's startup map asked for 46 and this was a constant, so
+; raising it for one game moved the loop's frame in all of them. The floor
+; is what keeps a cartridge whose package is small —ABL's— starting on the
+; frame its tests already count, byte for byte the same ROM.
+;
+; Measured on 2026-09-26: `release`'s work ends on frame 30 and the estimate
+; gives 34. It was 112 until that day, meant for uploading a full ARAM
+; through the IPL; see decisions/el-arranque-esta-dimensionado-para-el-
+; paquete-de-arranque.md in the book. 40 until 2026-10-02: with the first
+; day in Paradise in the cartridge the startup map's package went from
+; 14,976 to 15,651 B —the samples are shared out over every package— and
+; the estimate reached 40.
+BOOT_FRAMES_FLOOR = 44
 VIEW_ROWS = 29
 
 ; The message window: 256x80, and at the bottom of a 224-line screen —RM2k's
