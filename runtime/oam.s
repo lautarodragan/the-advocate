@@ -1028,9 +1028,16 @@ has_room:
     sta oam + 3, x
     ; In mode 1 —a map whose panorama is BG3— the map's layers are a step
     ; above where mode 3 puts them, and so are the objects: see pano.s.
+.ifdef paint_table
+    lda f:PAINT_ON              ; and a painted map, which is mode 1 too
+    bne one_step
+.endif
     lda f:PANO_ON
     cmp #1
     bne same_priority
+.ifdef paint_table
+one_step:
+.endif
     lda oam + 3, x
     and #$30
     cmp #$30

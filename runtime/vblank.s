@@ -85,6 +85,9 @@ no_strip:
     sta f:ANIMB_UPLOAD
     jsr anim_drawing_dma
 no_anim_frame:
+.ifdef paint_table
+    jsl f:paint_flush           ; a painted map's slots, before the poses
+.endif
     jsr vram_drain              ; the poses this OAM already takes as uploaded
     lda #VQ_PER_FRAME
     sta vq_cap                  ; the coming vblank starts with everything

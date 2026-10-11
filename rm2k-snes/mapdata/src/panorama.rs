@@ -99,6 +99,10 @@ pub fn panorama_table(maps: &[Map]) -> Result<String> {
     let mut emitted: std::collections::HashMap<(String, Vec<u8>), String> = std::collections::HashMap::new();
     for (number, map) in maps.iter().enumerate() {
         let Some(p) = &map.panorama else { continue };
+        // A painted map has its own table: see `paint_table`.
+        if p.mode == 4 {
+            continue;
+        }
         let layout = crate::record::layout_of(map)?;
         let pieces = layout.panorama.ok_or_else(|| {
             Bad::answer(format!("map {}: it shows a panorama and its layout {} has none", map.id, layout.name))
@@ -187,6 +191,102 @@ pub fn panorama_table(maps: &[Map]) -> Result<String> {
     }
     out.push(format!(".block {}", PANO_STRIDE * records.len() + 2));
     out.push("pano_table:".into());
+    for r in records {
+        out.push(r.trim_end().to_string());
+    }
+    out.push("    .word $FFFF".into());
+    Ok(out.join("\n"))
+}
+
+/// A painted map's record.
+pub const PAINT_STRIDE: usize = 16;
+
+/// The painted maps —see `Way::Painted` in Wally and `painted.s`—: one
+/// record per map, and each one's cells. Not emitted in a cartridge without
+/// any: the runtime assembles none of its code then.
+///
+/// ```text
+///   +0  word   the map's index in `map_table`; $FFFF ends the table
+///   +2  word   its width and height, in 8x8 cells
+///   +4  word
+///   +6  long   each cell's tilemap entry without its tile number —the
+///              palette and the priority, `(entry >> 8) & $FC`—, a byte
+///              per cell, column by column
+///   +9  long   where each column's tiles start, three bytes per column:
+///              the column's cells top to bottom, 32 bytes each, never
+///              across a bank
+///   +12 word   the VRAM word of slot 0
+///   +14 word   the tilemap entry of the blank tile
+/// ```
+pub fn paint_table(maps: &[Map]) -> Result<String> {
+    let mut out = vec![
+        "; The painted maps: see `panorama.rs` in rm2k-snes-mapdata and `painted.s`.".to_string(),
+        format!("PAINT_STRIDE = {PAINT_STRIDE}"),
+        format!("PAINT_COLUMNS = {}", vram::PAINTED_COLUMNS),
+        format!("PAINT_ROWS = {}", vram::PAINTED_ROWS),
+    ];
+    let mut records = Vec::new();
+    for (number, map) in maps.iter().enumerate() {
+        let Some(p) = map.panorama.as_ref().filter(|p| p.mode == 4) else { continue };
+        let layout = crate::record::layout_of(map)?;
+        let pieces = layout.panorama.filter(|q| q.mode == 4).ok_or_else(|| {
+            Bad::answer(format!("map {}: it is painted and its layout {} is not for a painted map", map.id, layout.name))
+        })?;
+        let rows = p.tilemap.len();
+        let cols = p.tilemap.first().map_or(0, Vec::len);
+        let column_bytes = rows * 32;
+        if rows == 0 || p.tiles.len() != cols * column_bytes || rows * cols > 0x10000 || column_bytes > 0x8000 {
+            return Err(Bad::answer(format!(
+                "map {}: a painting of {cols}x{rows} cells with {} bytes of tiles",
+                map.id,
+                p.tiles.len()
+            )));
+        }
+        // The runtime keeps its queue at the end of the grid's bank, $7EFE00:
+        // the grid and what lives behind it have to end before. See
+        // `PAINT_Q` in `painted.s`.
+        let in_wram = map.cells.len() + map.blocks.len() + map.block_pass.len() + map.block_terrain.len();
+        if in_wram > 0x7E00 {
+            return Err(Bad::answer(format!(
+                "map {}: it is painted and its grid takes {in_wram} bytes of WRAM, past the painted maps' queue",
+                map.id
+            )));
+        }
+        let mut attrs = Vec::with_capacity(rows * cols);
+        for x in 0..cols {
+            for row in &p.tilemap {
+                attrs.push(((row[x] >> 8) & 0xFC) as u8);
+            }
+        }
+        let attrs_label = format!("paint_attrs_{number}");
+        out.push(block(&attrs_label, &attrs));
+        // The tiles in pieces of whole columns that fit in half a bank: the
+        // packing places a `.block` whole, and a column never crosses.
+        let per_piece = (0x8000 / column_bytes).max(1);
+        let mut columns = Vec::with_capacity(cols);
+        for (k, piece) in p.tiles.chunks(per_piece * column_bytes).enumerate() {
+            let label = format!("paint_tiles_{number}_{k}");
+            out.push(block(&label, piece));
+            for c in 0..piece.len() / column_bytes {
+                columns.push(pointer(&format!("{label} + {}", c * column_bytes)));
+            }
+        }
+        let columns_label = format!("paint_columns_{number}");
+        out.push(format!(".block {}", cols * 3));
+        out.push(format!("{columns_label}:"));
+        for c in &columns {
+            out.push(format!("    .byte {c}"));
+        }
+        let mut r = String::new();
+        let _ = writeln!(r, "    ; --- map {} {:?}: {} painted ---", map.id, map.name, p.name);
+        let _ = writeln!(r, "    .word {number}, {cols}, {rows}");
+        let _ = writeln!(r, "    .byte {}", pointer(&attrs_label));
+        let _ = writeln!(r, "    .byte {}", pointer(&columns_label));
+        let _ = writeln!(r, "    .word ${:04X}, ${:04X}", pieces.tiles[0].base, vram::PAINTED_BLANK);
+        records.push(r);
+    }
+    out.push(format!(".block {}", PAINT_STRIDE * records.len() + 2));
+    out.push("paint_table:".into());
     for r in records {
         out.push(r.trim_end().to_string());
     }

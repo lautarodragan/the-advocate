@@ -482,6 +482,9 @@ no_jump_pending:
     jsr follow_camera
     jsr stream_map              ; the column or row the camera uncovered
     jsl f:pano_tick             ; and the panorama's, if the map shows one
+.ifdef paint_table
+    jsl f:paint_tick            ; and a painted map's slots: see painted.s
+.endif
     jsr message_tick            ; and a few characters of the message being
                                 ; composed, if there is one
     jsr build_oam               ; and the next one is built, now outside vblank

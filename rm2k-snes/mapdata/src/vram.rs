@@ -57,6 +57,9 @@ pub struct Layout {
     pub panorama: Option<PanoramaPieces>,
 }
 
+/// What [`PanoramaPieces::count`] says of a painted map: no limit.
+pub const PAINTED_ANY: u32 = 0xFFFF;
+
 /// Where a layout puts a panorama.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct PanoramaPieces {
@@ -72,8 +75,12 @@ pub struct PanoramaPieces {
 }
 
 impl PanoramaPieces {
-    /// How many tiles it holds.
+    /// How many tiles it holds. A painted map's are any number: the
+    /// cartridge carries them all and VRAM only the ones on screen.
     pub fn count(&self) -> u32 {
+        if self.mode == 4 {
+            return PAINTED_ANY;
+        }
         self.tiles[0].count + self.tiles[1].count
     }
 
@@ -381,10 +388,58 @@ pub const LAYOUT_PANORAMA_MODE3_BG_CEILING: Layout = Layout {
     }),
 };
 
+/// The slots a painted map keeps in VRAM: one per cell the screen can show
+/// at once, and a row more. The screen is 256x224, so with the scroll
+/// halfway through a cell it shows 33 columns and 29 rows; cell (x, y) goes
+/// in slot `(y mod 30) + 30 * (x mod 33)`, so that no two cells on screen
+/// share one and a column is one run. The row more is the one the console
+/// uploads ahead, a few tiles a frame, because a row is 33 DMAs. See
+/// `runtime/painted.s`.
+pub const PAINTED_COLUMNS: u32 = 33;
+pub const PAINTED_ROWS: u32 = 30;
+pub const PAINTED_SLOTS: u32 = PAINTED_COLUMNS * PAINTED_ROWS;
+/// The blank tile right after them, which the tilemap names where there is
+/// no map: past its edges, or a map smaller than the screen.
+pub const PAINTED_BLANK: u32 = PAINTED_SLOTS;
+
+/// A painted map —see `Way::Painted` in Wally—: mode 1, and BG1 is the
+/// whole map as a painting, its slots uploaded as they come into view. Its
+/// "tiles" are the slots, counted in 64-byte units like the 8-bit ones', and
+/// its tilemap is the map's moving window; BG2 is the layer above and the
+/// window as in [`LAYOUT_WINDOW`].
+///
+/// ```text
+///   sprites     $0000   8 KB  256 4bpp tiles      OBJ base at 0
+///   tiles       $1000  32 KB  990 4bpp slots and the blank one   <- BG1
+///   map         $5000   4 KB  the painting's 64x32 tilemap
+///   window_map  $5800   2 KB
+///   (free)      $5C00   2 KB
+///   above       $6000   4 KB  128 tiles           <- the BG2 base
+///   window      $6800   8 KB  256 tiles
+///   (the upper tilemap at $7800)
+/// ```
+pub const LAYOUT_PAINTED: Layout = Layout {
+    name: "VENTANA_PINTADA",
+    sprites: piece(0x0000, 256),
+    // Up to the tilemap, past the blank one: the screens that open over the
+    // map write BG1 up to $4C00 —the actor choice— and count on the load to
+    // put it back, which `paint_load` does.
+    tiles: piece(0x1000, 512),
+    map: piece(0x5000, 1),
+    window_map: piece(0x5800, 1),
+    above: piece(0x6000, 128),
+    window: piece(0x6800, 256),
+    panorama: Some(PanoramaPieces {
+        mode: 4,
+        tiles: [piece(0x1000, PAINTED_SLOTS), piece(0x1000, 0)],
+        map: 0x5000,
+    }),
+};
+
 /// In the order `vram_layout` tries them, and then the panorama's, which
 /// it never gives: a map gets one of those only by showing its panorama,
 /// and the first of its mode it fits in —[`panorama_layout`]—.
-pub const LAYOUTS: [Layout; 11] = [
+pub const LAYOUTS: [Layout; 12] = [
     LAYOUT_WINDOW,
     LAYOUT_WINDOW_BG,
     LAYOUT_WINDOW_SPRITE,
@@ -396,6 +451,7 @@ pub const LAYOUTS: [Layout; 11] = [
     LAYOUT_PANORAMA_MODE3_BG,
     LAYOUT_PANORAMA_MODE3_BG_SPRITE,
     LAYOUT_PANORAMA_MODE3_BG_CEILING,
+    LAYOUT_PAINTED,
 ];
 
 /// The layouts for a map that shows its panorama in `mode`, in the order
@@ -520,7 +576,20 @@ pub fn check_splits() -> Result<()> {
             VRAM_ABOVE_MAP,
             VRAM_ABOVE_MAP + WINDOW_W * WINDOW_H,
         )];
-        if let Some(p) = &layout.panorama {
+        if let Some(p) = layout.panorama.filter(|p| p.mode == 4) {
+            // A painted map: its slots are the tiles piece, and its tilemap
+            // the map's; both are checked as any layout's. The slots and the
+            // blank one have to fit in it, under BG1's ten bits.
+            if p.tiles[0].base != layout.tiles.base
+                || p.map != layout.map.base
+                || (PAINTED_SLOTS + 1) * 16 > layout.tiles.count * (BYTES_PER_TILE as u32 / 2)
+                || PAINTED_BLANK >= 1024
+            {
+                return Err(Bad::answer(format!(
+                    "LAYOUT_{name}: the painting's slots are not its tiles and its tilemap the map's"
+                )));
+            }
+        } else if let Some(p) = &layout.panorama {
             for piece in p.tiles.iter().filter(|t| t.count > 0) {
                 stretches.push(("panorama", piece.base, piece.base + piece.count * p.tile_words()));
             }
@@ -633,7 +702,8 @@ mod tests {
                 "VENTANA_PANORAMA_M1",
                 "VENTANA_PANORAMA_FONDO",
                 "VENTANA_PANORAMA_FONDO_SPRITE",
-                "VENTANA_PANORAMA_FONDO_TECHO"
+                "VENTANA_PANORAMA_FONDO_TECHO",
+                "VENTANA_PINTADA"
             ]
         );
     }

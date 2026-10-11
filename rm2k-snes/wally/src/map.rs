@@ -490,7 +490,7 @@ fn fits(done: &Whole, layouts: &[(usize, usize, usize)]) -> bool {
 fn layouts_for(converted: &Converted, request: &MapRequest) -> Vec<(usize, usize, usize)> {
     match (&converted.panorama, &request.panorama) {
         (Some(p), Some(budget)) => {
-            let bytes = if p.mode.number() == 3 { 32 } else { 16 };
+            let bytes = if p.mode.number() == 1 { 16 } else { 32 };
             budget
                 .of_mode(p.mode.number())
                 .filter(|l| p.tiles.len() / bytes <= l.panorama)

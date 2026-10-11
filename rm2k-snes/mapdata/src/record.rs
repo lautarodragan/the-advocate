@@ -1558,6 +1558,11 @@ pub fn maps(maps: &[Map]) -> Result<Written> {
     if maps.iter().any(|m| m.panorama.is_some()) {
         let _ = write!(tables, "\n{}\n", crate::panorama::panorama_table(maps)?);
     }
+    // And the painted ones, only in a cartridge that has some: see
+    // `painted.s`, which assembles nothing without `paint_table`.
+    if maps.iter().any(|m| m.panorama.as_ref().is_some_and(|p| p.mode == 4)) {
+        let _ = write!(tables, "\n{}\n", crate::panorama::paint_table(maps)?);
+    }
     Ok(Written {
         offsets: offsets(),
         maps: text,

@@ -19,6 +19,7 @@ pub mod fuse;
 pub mod grid;
 pub mod layers;
 pub mod mode1;
+pub mod painted;
 pub mod panorama;
 
 pub use fail::{Bad, Result};

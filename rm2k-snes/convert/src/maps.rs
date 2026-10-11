@@ -333,7 +333,7 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         }
     }
     substitution_triples(lists, &mut triples);
-    let request = json!({
+    let mut request = json!({
         "map": map_id,
         "map_files": compiler::map_files(game),
         "dropped_events": game.dropped_json_of(map_id),
@@ -383,6 +383,11 @@ pub fn prepare(c: &Cartridge, animations: &mut Animations, map_id: i32) -> Resul
         // Where the background starts: after the backdrop and the window.
         "window_colors": c.window_colors,
     });
+    // Only when the project asks: a request without the key is the one a
+    // game always got.
+    if game.painted_maps {
+        request["panorama"]["painted"] = json!(true);
+    }
     Ok(Prepared { map, chipset_filename, passability, route_graphics, pictures, big_pictures, request })
 }
 

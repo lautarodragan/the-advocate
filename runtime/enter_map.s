@@ -195,6 +195,9 @@ set:
     ; Whether the map shows its panorama, before loading anything: the
     ; loads ask. See pano.s.
     jsl f:pano_find
+.ifdef paint_table
+    jsl f:paint_find            ; and whether it is painted: see painted.s
+.endif
     ; The grid, to WRAM, before anyone asks about a cell: it comes compressed.
     ; See `GRID`.
     jsl f:lz2_grid + FAST

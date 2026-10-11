@@ -143,6 +143,10 @@ ready:
     bcc inside
     rts                         ; past the edge: nothing to draw
 inside:
+.ifdef paint_table
+    txa
+    sta f:PAINT_ARG             ; for `paint_column`, below
+.endif
 
     ; Where it lands in VRAM. The window is two 32x32 screens side by side, and
     ; the right one lives 1024 words further on, not next to it.
@@ -237,6 +241,10 @@ row:
 same:
     dec strip_left
     bne row
+.ifdef paint_table
+    ; A painted map's BG1 is the painting, not the blocks: see painted.s.
+    jsl f:paint_column
+.endif
     rts
 .endproc
 
@@ -251,6 +259,10 @@ same:
     bcc inside
     rts                         ; past the bottom edge
 inside:
+.ifdef paint_table
+    txa
+    sta f:PAINT_ARG             ; for `paint_row`, below
+.endif
     txa
     and #(WINDOW_ROWS - 1)
     asl a
@@ -382,6 +394,10 @@ empty_right:
     dec strip_total
     bra empty_right
 ready:
+.ifdef paint_table
+    ; A painted map's BG1 is the painting, not the blocks: see painted.s.
+    jsl f:paint_row
+.endif
     rts
 .endproc
 
@@ -615,6 +631,9 @@ ready:
     jsr zero_to_tilemap
     ldx #VRAM_ABOVE_MAP
     jsr zero_to_tilemap
+.ifdef paint_table
+    jsl f:paint_clear           ; a painted map's, at its blank tile
+.endif
     ldx #$0000
 strips:
     stz strip_col, x            ; all four are contiguous: see their .res
@@ -714,6 +733,9 @@ column:
 .a8
     ; And the panorama's ring, if the map shows it: see pano.s.
     jsl f:pano_fill
+.ifdef paint_table
+    jsl f:paint_load            ; and a painted map's slots: see painted.s
+.endif
     rts
 .endproc
 

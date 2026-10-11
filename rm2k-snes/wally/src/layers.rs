@@ -275,7 +275,7 @@ pub fn convert(drawn: &Drawn, request: &LayersRequest) -> Result<Converted> {
     if let Some(front) = &drawn.front {
         let width = drawn.map.width * 16;
         done.in_front = Some(match (done.way, done.panorama.as_mut()) {
-            (Some(Way::Mode3), Some(p)) => crate::map_pictures::raise(&mut p.tilemap, front, width),
+            (Some(Way::Mode3 | Way::Painted), Some(p)) => crate::map_pictures::raise(&mut p.tilemap, front, width),
             _ => {
                 let total = front.iter().filter(|&&f| f).count();
                 (total, total)
@@ -293,6 +293,7 @@ fn convert_ways(drawn: &Drawn, request: &LayersRequest) -> Result<Converted> {
     let attempt = |way: Way| -> std::result::Result<Converted, String> {
         let done = match way {
             Way::Hidden | Way::Black => crate::background::convert_with(&on_black(&drawn.layers), wc, None),
+            Way::Painted => return painted(drawn, p, wc),
             Way::Baked => {
                 let done = crate::background::convert_with(&baked(&drawn.layers, &p.whole), wc, None)
                     .map_err(|e| e.to_string())?;
@@ -349,6 +350,12 @@ fn convert_ways(drawn: &Drawn, request: &LayersRequest) -> Result<Converted> {
     // which is in front of the message window too.
     if still(drawn, p) && drawn.front.is_none() {
         order.push(Way::Baked);
+    }
+    // Painted, if the project asks for it and the panorama is the map: before
+    // the ways that group its cells, and after baked, whose 8 bits keep more
+    // colours.
+    if budget.painted && paintable(drawn, p) {
+        order.push(Way::Painted);
     }
     if !draws_above(&drawn.layers) {
         order.push(Way::Mode3);
@@ -455,6 +462,50 @@ fn shows(layers: &Layers) -> bool {
                 .zip(upper.chunks_exact(4))
                 .any(|(l, u)| l[3] == 0 && u[3] == 0)
         })
+}
+
+/// Whether the map can go painted: its panorama is the map —see
+/// `map_pictures::fixed_to_map`— and the ChipSet draws nothing on it, in
+/// neither layer, so that the painting is all there is. A map whose ChipSet
+/// draws, animates or changes its cells with a `TileSubstitution` needs its
+/// blocks in BG1, which the painting takes.
+fn paintable(drawn: &Drawn, p: &Panorama) -> bool {
+    let empty = |pic: &picture::Picture| pic.rgba.chunks_exact(4).all(|px| px[3] == 0);
+    crate::map_pictures::fixed_to_map(p, (drawn.map.width * 16, drawn.map.height * 16))
+        && drawn.layers.variants.is_empty()
+        && drawn.extended.is_none()
+        && empty(&drawn.layers.lower)
+        && empty(&drawn.layers.upper)
+}
+
+/// A painted map: the panorama, with what the map's pictures drew into it,
+/// in BG1 at 4 bits, a tile per cell —see `background::painted`—. The map's
+/// own layers draw nothing: its background is one black tile and its layer
+/// above none, and the painting's palettes travel as the layer above's, as a
+/// mode-3 panorama's do.
+fn painted(drawn: &Drawn, p: &Panorama, window_colors: usize) -> std::result::Result<Converted, String> {
+    let (w, h) = (drawn.map.width * 16, drawn.map.height * 16);
+    let mut whole = picture::Picture::transparent(w, h);
+    for y in 0..h {
+        for x in 0..w {
+            let mut px = p.whole.get((x % p.whole.width) as i64, (y % p.whole.height) as i64);
+            px[3] = 255;
+            whole.rgba[(y * w + x) * 4..(y * w + x) * 4 + 4].copy_from_slice(&px);
+        }
+    }
+    let blank = Layers {
+        lower: picture::Picture::transparent(w, h),
+        upper: picture::Picture::transparent(w, h),
+        variants: Vec::new(),
+    };
+    let mut done = crate::background::convert_with(&on_black(&blank), window_colors, None).map_err(|e| e.to_string())?;
+    let (pano, decided) = crate::background::painted::painted(&whole).map_err(|e| e.to_string())?;
+    done.above.first = pano.first / crate::background::layers::COLORS_PER_PALETTE;
+    done.above.cgram = pano.cgram.iter().flat_map(|w| w.to_le_bytes()).collect();
+    done.pictures.push(crate::background::Decided { name: "panorama".to_string(), picture: decided });
+    done.panorama = Some(pano);
+    done.way = Some(Way::Painted);
+    Ok(done)
 }
 
 /// Whether the map draws anything above the hero.
@@ -634,7 +685,7 @@ pub fn write(
                 "stretch": [source.picture.width, source.picture.height],
                 "loop": [source.looped.0, source.looped.1],
                 "auto": [source.auto.0, source.auto.1],
-                "tiles": p.tiles.len() / if p.mode.number() == 3 { 32 } else { 16 },
+                "tiles": p.tiles.len() / if p.mode.number() == 1 { 16 } else { 32 },
                 "tilemap": p.tilemap,
                 "first": p.first,
                 "cgram": p.cgram,

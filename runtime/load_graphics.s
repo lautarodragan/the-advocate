@@ -437,6 +437,10 @@ no_colors:
     ; And the panorama's tiles, if the map shows it: every load and every
     ; return from a screen comes through here. See pano.s.
     jsl f:pano_load
+.ifdef paint_table
+    ; And a painted map's slots, which the screens overwrite: see painted.s.
+    jsl f:paint_load
+.endif
     rts
 .endproc
 

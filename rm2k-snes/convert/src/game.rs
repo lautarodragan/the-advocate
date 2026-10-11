@@ -241,6 +241,12 @@ pub struct Game {
     /// are part of a map are drawn into it —see [`crate::map_pictures`]—.
     /// Off when the key is missing, for the same reason.
     pub map_pictures: bool,
+    /// `[graphics] painted_maps`: whether a map whose panorama is the map
+    /// itself —fixed to it, with nothing of the ChipSet over it— goes
+    /// painted, a tile per cell uploaded as it comes into view: see
+    /// `Way::Painted` in Wally. Off when the key is missing, for the same
+    /// reason.
+    pub painted_maps: bool,
     /// The events each map leaves out because they do not fit in the
     /// console's RAM, by map and id: see [`crate::trim`] and
     /// [`Game::trim`]. They are taken out as the map is read.
@@ -338,6 +344,10 @@ impl Game {
             map_pictures: match project.value(&["graphics", "map_pictures"]) {
                 Err(_) => false,
                 Ok(_) => project.boolean(&["graphics", "map_pictures"])?,
+            },
+            painted_maps: match project.value(&["graphics", "painted_maps"]) {
+                Err(_) => false,
+                Ok(_) => project.boolean(&["graphics", "painted_maps"])?,
             },
             dropped: BTreeMap::new(),
             twins: BTreeMap::new(),

@@ -77,6 +77,10 @@ pub(crate) fn reduce(grids: &[&Grid], limit: usize, per: usize) -> Result<(Vec<G
 /// * **mode 1**: the map at 4 bits in BG1 and BG2 and the panorama at 2 in
 ///   BG3: for a map that would put much on the wrong side of the hero
 ///   flattened —see `ABOVE_LOST_MAX` in `layers.rs`—;
+/// * **painted**: the panorama is the map —fixed to it, and the ChipSet
+///   draws nothing—, and the whole map goes in BG1 at 4 bits, a tile per
+///   cell, which the console uploads as they come into view: see
+///   [`crate::background::painted`]. Only if the project asks for it;
 /// * **black**: it fits none of those, and the map is black where it would
 ///   show, as before there were panoramas.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -86,6 +90,7 @@ pub enum Way {
     Mode3,
     Flattened,
     Mode1,
+    Painted,
     Black,
 }
 
@@ -98,12 +103,13 @@ impl Way {
             Way::Mode3 => "mode3",
             Way::Flattened => "flattened",
             Way::Mode1 => "mode1",
+            Way::Painted => "painted",
             Way::Black => "black",
         }
     }
 
     pub fn from_name(name: &str) -> Option<Way> {
-        [Way::Hidden, Way::Baked, Way::Mode3, Way::Flattened, Way::Mode1, Way::Black]
+        [Way::Hidden, Way::Baked, Way::Mode3, Way::Flattened, Way::Mode1, Way::Painted, Way::Black]
             .into_iter()
             .find(|w| w.name() == name)
     }
@@ -116,6 +122,8 @@ pub enum Mode {
     Three,
     /// Mode 1, the panorama in BG3 at 2 bits.
     One,
+    /// Mode 1, the panorama is the map, in BG1 at 4 bits: a painted map.
+    Painted,
 }
 
 impl Mode {
@@ -124,6 +132,8 @@ impl Mode {
         match self {
             Mode::Three => 3,
             Mode::One => 1,
+            // Not BGMODE: the number the layouts and the `.inc` know it by.
+            Mode::Painted => 4,
         }
     }
 }

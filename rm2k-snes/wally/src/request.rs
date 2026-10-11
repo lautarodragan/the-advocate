@@ -75,6 +75,9 @@ pub struct PanoramaBudget {
     /// the request: the map's conversion works them out.
     pub extra: Vec<(i32, i32)>,
     pub way: Option<crate::background::panorama::Way>,
+    /// Whether a map whose panorama is the map itself may go painted: see
+    /// `Way::Painted`. `painted` in the request, false if it is missing.
+    pub painted: bool,
 }
 
 impl PanoramaBudget {
@@ -96,7 +99,7 @@ pub fn panorama_budget(data: &Value, whose: &str) -> Result<Option<PanoramaBudge
             let bad = || Bad::answer(format!("{whose}: a panorama layout is {l}"));
             let a = l.as_array().filter(|a| a.len() == 5).ok_or_else(bad)?;
             let mode = u8::try_from(number(&a[0], "a layout's mode", whose)?).map_err(|_| bad())?;
-            if mode != 1 && mode != 3 {
+            if mode != 1 && mode != 3 && mode != 4 {
                 return Err(bad());
             }
             Ok(PanoramaLayout {
@@ -117,7 +120,8 @@ pub fn panorama_budget(data: &Value, whose: &str) -> Result<Option<PanoramaBudge
         ),
     };
     let baked = index(field(p, "baked_tiles", whose)?, "`baked_tiles`", whose)?;
-    Ok(Some(PanoramaBudget { layouts, baked, way, extra: Vec::new() }))
+    let painted = p.get("painted").and_then(Value::as_bool).unwrap_or(false);
+    Ok(Some(PanoramaBudget { layouts, baked, way, extra: Vec::new(), painted }))
 }
 
 fn field<'a>(data: &'a Value, name: &str, whose: &str) -> Result<&'a Value> {

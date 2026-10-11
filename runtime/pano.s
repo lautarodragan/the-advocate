@@ -120,6 +120,9 @@ pano_table:
     sta f:PANO_WAS1
     sta f:PANO_KEEP
     sta f:PANO_HDMA
+.ifdef paint_table
+    sta f:PAINT_ON              ; and a painted map's: see painted.s
+.endif
     rtl
 .endproc
 
@@ -254,6 +257,20 @@ kept:
     sta f:PANO_WAS1
     bra done
 not_one:
+.ifdef paint_table
+    ; A painted map is mode 1 too, with BG1 the painting and no BG3: see
+    ; painted.s.
+    lda f:PAINT_ON
+    beq not_painted
+    lda #$01
+    sta BGMODE
+    lda #$13                    ; BG1, BG2 and the sprites
+    sta TM
+    lda #1
+    sta f:PANO_WAS1
+    bra done
+not_painted:
+.endif
     lda f:PANO_WAS1
     beq done
     lda #0
@@ -289,6 +306,17 @@ done:
     lda #$11
     sta TMW
 no_bg1:
+.ifdef paint_table
+    ; And a painted map, whose cells in front of the hero are BG1 priority 1
+    ; as a flattened map's, in front of the window.
+    lda f:PAINT_ON
+    beq no_paint
+    lda #HDMA_ABOVE_BG1
+    sta f:PANO_HDMA
+    lda #$11
+    sta TMW
+no_paint:
+.endif
     plb
     plp
     rtl
@@ -307,9 +335,16 @@ no_bg1:
     lda #0
     sta f:W12SEL
 no_bg1:
+.ifdef paint_table
+    lda f:PAINT_ON              ; a painted map is mode 1 too
+    bne mode3
+.endif
     lda f:PANO_ON
     cmp #1
     bne done
+.ifdef paint_table
+mode3:
+.endif
     lda #$03
     sta f:BGMODE
 done:
