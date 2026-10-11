@@ -2868,13 +2868,15 @@ impl Rest<'_> {
                 })? as i64);
             }
         }
-        // A troop's place goes in a byte —`BA_TROOP_K`, with $FF "the
-        // cartridge does not carry it"—, and where its members start in a
-        // word of `troop_init`: they were a byte until 2026-10-10, when
-        // Vampires Dawn's 234 troops took 470 members.
-        if used.len() > 255 || members.len() > 0x10000 {
+        // A troop's place goes in a word —`BA_TROOP_K`, with $FFFF "the
+        // cartridge does not carry it"—, and the ROM indexes the word
+        // tables with twice it in sixteen bits: up to 32768. It was a byte
+        // until 2026-10-11, when Vampires Dawn asked for 277. Where its
+        // members start goes in a word of `troop_init`: they were a byte
+        // until 2026-10-10, when its 234 troops took 470 members.
+        if used.len() > 0x8000 || members.len() > 0x10000 {
             return Err(Bad::answer(format!(
-                "the cartridge's troops don't fit: {} troops of 255, {} members",
+                "the cartridge's troops don't fit: {} troops of 32768, {} members",
                 used.len(),
                 members.len()
             )));

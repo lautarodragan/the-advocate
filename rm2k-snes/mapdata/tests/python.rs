@@ -399,11 +399,10 @@ fn a_troop_page_that_asks_for_a_variable_carries_its_tables() {
     assert!(text.contains(".block 2\ntpage_sw_b:\n    .word 0\n"));
 }
 
-/// Vampires Dawn's troops take 470 members: where each troop's list starts
-/// in `troop_member` does not fit in a byte, and goes in a word. Made up out
-/// of troop 4 —eight members— copied under 34 more numbers.
-#[test]
-fn troops_with_more_members_than_a_byte_numbers_start_in_words() {
+/// The request of `emit-whole.json`, with the maps of `maps.json`, and troop
+/// `copied` repeated —in the database, the model and the scene— under each
+/// number of `numbers`.
+fn whole_with_troop_copies(copied: i32, numbers: std::ops::Range<i32>) -> (Emit, Db) {
     let mut db = db();
     let read = |file: &str| -> serde_json::Value {
         serde_json::from_str(&std::fs::read_to_string(here().join(file)).unwrap()).unwrap()
@@ -415,28 +414,49 @@ fn troops_with_more_members_than_a_byte_numbers_start_in_words() {
         m["sprite"]["timer_mask"] = (id * 3).into();
     }
     value["maps"] = maps["maps"].take();
-    let four = db.troops[&4].clone();
-    let model_four = value["battle_model"]["troops"][3].clone();
-    let scene_four = value["scene"]["troops"][3].clone();
-    for n in 7..41 {
-        let mut troop = four.clone();
+    let original = db.troops[&copied].clone();
+    let k = copied as usize - 1;
+    let model_original = value["battle_model"]["troops"][k].clone();
+    let scene_original = value["scene"]["troops"][k].clone();
+    for n in numbers {
+        let mut troop = original.clone();
         troop.id = n;
         db.troops.insert(n, troop);
         value["troops"].as_array_mut().unwrap().push(n.into());
-        let mut model = model_four.clone();
+        let mut model = model_original.clone();
         model["id"] = n.into();
         value["battle_model"]["troops"].as_array_mut().unwrap().push(model);
-        let mut scene = scene_four.clone();
+        let mut scene = scene_original.clone();
         scene[0] = n.into();
         value["scene"]["troops"].as_array_mut().unwrap().push(scene);
     }
-    let request: Emit = serde_json::from_value(value).unwrap();
+    (serde_json::from_value(value).unwrap(), db)
+}
+
+/// Vampires Dawn's troops take 470 members: where each troop's list starts
+/// in `troop_member` does not fit in a byte, and goes in a word. Made up out
+/// of troop 4 —eight members— copied under 34 more numbers.
+#[test]
+fn troops_with_more_members_than_a_byte_numbers_start_in_words() {
+    let (request, db) = whole_with_troop_copies(4, 7..41);
     let text = rm2k_snes_mapdata::emit::emit(&request, &db).unwrap().text;
     // Six troops of 2, 3, 3, 8, 3 and 4 members, and then 34 of eight: the
     // last one starts at 23 + 33 * 8.
     let starts = text.split("troop_init:\n").nth(1).unwrap().lines().next().unwrap();
     assert!(starts.starts_with("    .word 0, 2, 5, 8, 16, 19, 23, 31,"), "{starts}");
     assert!(starts.ends_with(", 287"), "{starts}");
+}
+
+/// Vampires Dawn carries 277 troops: a troop's place, `BA_TROOP_K`, does
+/// not fit in a byte, and since 2026-10-11 it is a word. Made up out of
+/// troop 1 —two members— copied under 294 more numbers, 300 in all.
+#[test]
+fn more_troops_than_a_byte_numbers_fit() {
+    let (request, db) = whole_with_troop_copies(1, 7..301);
+    let text = rm2k_snes_mapdata::emit::emit(&request, &db).unwrap().text;
+    assert!(text.contains("TROOPS_N          = 300\n"), "TROOPS_N");
+    let ids = text.split("troop_id:\n").nth(1).unwrap().lines().next().unwrap();
+    assert!(ids.ends_with(", 299, 300"), "{ids}");
 }
 
 /// Vampires Dawn's enemies take 344 actions: where each enemy's list starts
