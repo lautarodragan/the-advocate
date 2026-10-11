@@ -99,7 +99,7 @@
       {
        "code": 10110,
        "indent": 0,
-       "string": "a \\| in the middle, which does not compile and stays as it is, however long",
+       "string": "a \\$ in the middle, which does not compile and stays as it is, however long",
        "parameters": []
       }
      ]
