@@ -89,12 +89,19 @@
     sta DAS0L
     sep #$20
 .a8
+    ; **A count of zero is not a DMA of zero bytes: it is one of 65536.** A
+    ; background that is all panorama —ABL's 94 and 99, Vampires Dawn's
+    ; intro— has no colors, and the DMA ran 128 times over the whole CGRAM,
+    ; the window's palette included. Z is the `asl`'s: `sta` and `sep` do
+    ; not touch it. The same in `load_sprite` and `load_above`.
+    beq no_colors
     lda #$00
     sta DMAP0                   ; one register, byte by byte
     lda #$22
     sta BBAD0                   ; destination: CGDATA
     lda #$01
     sta MDMAEN
+no_colors:
 
     ; The tilemap is not uploaded here: there is no whole one to upload.
     ; fill_window builds it from the blocks, and from then on the streaming
@@ -136,12 +143,16 @@
     sta DAS0L
     sep #$20
 .a8
+    ; None, in a map where nobody is drawn —an empty party and no NPC with a
+    ; CharSet—: 65536 bytes of the buffer would cover the whole VRAM.
+    beq no_tiles
     lda #$01
     sta DMAP0
     lda #$18
     sta BBAD0
     lda #$01
     sta MDMAEN
+no_tiles:
     jsl f:share_load + FAST     ; and nobody knows what the shared slots hold
     jsl f:cache_load + FAST     ; nor what the cache's do
 
@@ -159,12 +170,14 @@
     sta DAS0L
     sep #$20
 .a8
+    beq no_palette              ; nobody drawn, no palette: see `load_map`
     lda #$00
     sta DMAP0
     lda #$22
     sta BBAD0
     lda #$01
     sta MDMAEN
+no_palette:
 
     lda f:map_table + M_OBSEL_VALUE, x
     sta OBSEL
@@ -388,6 +401,7 @@ ready:
     sta DAS0L
     sep #$20
 .a8
+    beq palette                 ; none: see `load_map`
     lda #$01
     sta DMAP0
     lda #$18
@@ -412,12 +426,14 @@ palette:
     sta DAS0L
     sep #$20
 .a8
+    beq no_colors               ; none: see `load_map`
     lda #$00
     sta DMAP0
     lda #$22
     sta BBAD0
     lda #$01
     sta MDMAEN
+no_colors:
     ; And the panorama's tiles, if the map shows it: every load and every
     ; return from a screen comes through here. See pano.s.
     jsl f:pano_load
