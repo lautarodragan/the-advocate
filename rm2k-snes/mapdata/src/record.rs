@@ -1498,6 +1498,12 @@ pub struct Written {
 
 /// Everything the cartridge carries per map.
 pub fn maps(maps: &[Map]) -> Result<Written> {
+    maps_with(maps, false)
+}
+
+/// [`maps`], and with `msu` each LZ2 stream marked as one that may go to
+/// the `.msu`: see [`Materials::msu`].
+pub fn maps_with(maps: &[Map], msu: bool) -> Result<Written> {
     for map in maps {
         check_counts(map)?;
     }
@@ -1525,6 +1531,7 @@ pub fn maps(maps: &[Map]) -> Result<Written> {
         crate::materials::LZ2_CAP_GRID
     );
     let mut materials = Materials::new(true, compressed);
+    materials.msu = msu;
     let mut labels = Vec::new();
     for (number, map) in maps.iter().enumerate() {
         // The console's tests read the table order from this line.
@@ -1556,7 +1563,7 @@ pub fn maps(maps: &[Map]) -> Result<Written> {
     // Only in a cartridge that shows some panorama: one that does not gets
     // the same `.inc` as before there were any. See `pano.s`.
     if maps.iter().any(|m| m.panorama.is_some()) {
-        let _ = write!(tables, "\n{}\n", crate::panorama::panorama_table(maps)?);
+        let _ = write!(tables, "\n{}\n", crate::panorama::panorama_table(maps, msu)?);
     }
     Ok(Written {
         offsets: offsets(),

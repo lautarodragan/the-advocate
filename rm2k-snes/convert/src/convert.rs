@@ -821,6 +821,22 @@ pub fn run(options: Options) -> Result<()> {
         );
         game_over = Some(screen);
     }
+    // Whether the cartridge needs the MSU-1, and if it does, the screen
+    // that says so when it is not there.
+    let msu_data = if options.msu_everything { "everything" } else { settings.msu()? };
+    let mut msu_missing = None;
+    if msu_data != "optional" {
+        let png = output.parent().map(rm2k_project::absolute).unwrap_or_default().join("sin-msu.png");
+        let screen = crate::msu_missing::screen(&font.font, &png)?;
+        println!(
+            "  the cartridge needs the MSU-1 ({msu_data}); the screen that says so when it is missing: \
+             {} 8bpp tiles + {} colors, an LZ2 stream of {} B",
+            screen.tiles,
+            screen.colors,
+            screen.stream.len()
+        );
+        msu_missing = Some(screen);
+    }
     // The battle animations the already emitted bytecode shows: their
     // prerendered frames go to the cartridge.
     let shown = animations::shown(infos.iter().flat_map(|m| m.pages.iter().map(|p| p.code.as_slice())))?;
@@ -951,6 +967,7 @@ pub fn run(options: Options) -> Result<()> {
         "rom": {
             "title": settings.ascii(&["rom", "title"], None, Some(TITLE_HEADER))?,
             "sram_signature": settings.ascii(&["rom", "sram_signature"], Some(4), None)?,
+            "msu": msu_data,
         },
         "screens": screens_answer,
         "window_colors": window_colors,
@@ -958,6 +975,7 @@ pub fn run(options: Options) -> Result<()> {
         "message_pairs": message_pairs,
         "title": title_screen.as_ref().map(fullscreen::Screen::request),
         "game_over": game_over.as_ref().map(fullscreen::Screen::request),
+        "msu_missing": msu_missing.as_ref().map(fullscreen::Screen::request),
         "animations": animations::request(&animations),
         "troops": troops.ids,
         "battle_audio": compiled["battle_audio"],
@@ -1078,6 +1096,9 @@ pub fn run(options: Options) -> Result<()> {
             // puts them in their place in the `.msu`.
             "backdrops": scenes.quality.iter().map(|(t, c)| json!([hex(t), hex(c)])).collect::<Vec<_>>(),
             "tree_nodes": game.tree.added_nodes,
+            // Whether the samples may travel in the `.msu`, in a cartridge
+            // that needs the MSU-1: see `Emit::msu_samples` in the stage.
+            "msu_samples": msu_data != "optional",
         }),
         &flags,
         Some("cartridge"),

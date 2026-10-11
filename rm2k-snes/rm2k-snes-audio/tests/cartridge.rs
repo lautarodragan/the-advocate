@@ -62,6 +62,7 @@ fn cartridge(name: &str) -> Cartridge {
         named_songs: Vec::new(),
         measuring_headroom: c["measuring_headroom"].as_f64(),
         decompress_frames: c["decompress_frames"].as_f64().unwrap(),
+        msu_samples: false,
     }
 }
 

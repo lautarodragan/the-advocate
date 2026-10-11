@@ -19,6 +19,23 @@ pub fn block(label: &str, data: &[u8]) -> String {
     placed(label, data, Some(format!(".block {}", data.len())))
 }
 
+/// [`block`], and with `msu` marked as a piece that may travel in the
+/// `.msu` of a cartridge that needs the MSU-1: see `pack_with_msu` in
+/// `rm2k-snes-cartridge`. **Only for what the ROM reads through something
+/// that knows how to read the `.msu`** —an LZ2 stream, which only
+/// `lz2_decompress` reads; or a block that is only uploaded by a DMA that
+/// goes through `msu_dma0`—, and at a moment when a seek, which costs
+/// Mednafen one or two frames, can wait: when a map or a battle loads, not
+/// on every frame.
+pub fn msu_block(label: &str, data: &[u8], msu: bool) -> String {
+    let text = block(label, data);
+    if msu {
+        format!(".msu\n{text}")
+    } else {
+        text
+    }
+}
+
 /// [`block`] aligned to `align` bytes instead of declared whole.
 pub fn aligned(label: &str, data: &[u8], align: usize) -> String {
     placed(label, data, Some(format!(".align {align}")))

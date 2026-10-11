@@ -335,3 +335,49 @@ no:
     jsr msu_data_valid
     rtl
 .endproc
+
+; --- a cartridge that needs the MSU-1 -------------------------------------------
+;
+; A game whose ROM does not reach carries in the `.msu` what does not fit
+; —`[rom] msu = "required"` in its project file; see `lz2_msu` in
+; decompress.s—, and without it there is nothing to fall back on. So the
+; boot asks, once, before loading anything: whether there is an MSU-1, whether
+; the `.msu` is this cartridge's —its signature, `msu_data_valid`— and whether
+; the region of what did not fit is this build's —its own signature, at unit
+; 0 of the region, against `msu_spill_signature`, which the packing emits—.
+; If any of the three fails, the screen that says so (`SCREEN_MSU_MISSING`,
+; drawn by the converter: see `msu_missing.rs` in rm2k-snes-convert), and
+; nothing else: it does not return.
+;
+; Only in a cartridge that needs it: the rest neither ask nor carry the
+; screen, and without MSU-1 they are the same game.
+.ifdef MSU_REQUIRED
+.proc msu_required
+.a8
+.i16
+    lda f:MSU_HAS
+    beq missing
+    jsr msu_data_valid
+    cmp #1
+    bne missing
+    ldx #0
+    jsr msu_spill_seek
+    ldx #0
+compares:
+    lda f:MSU_DATA
+    cmp f:msu_spill_signature, x
+    bne missing
+    inx
+    cpx #8
+    bcc compares
+    rtl
+missing:
+    ldx #(SCREEN_MSU_MISSING * SCREEN_ROW)
+    jsl f:screen_decompress
+    jsl f:screen_upload
+    lda #$0F
+    sta f:INIDISP
+stays:
+    bra stays
+.endproc
+.endif

@@ -81,6 +81,11 @@ fn command() -> clap::Command {
                  peak with",
             ),
     )
+    .arg(Arg::new("msu_everything").long("msu-everything").action(ArgAction::SetTrue).help(
+        "every piece that may travel in the .msu travels there, even if the ROM has room, \
+         and the ROM needs the MSU-1: for the tests, so that the path the ROM reads them by \
+         runs in a game that fits. Without this, the project's `[rom] msu` decides",
+    ))
     .arg(Arg::new("enemy_hp").long("enemy-hp").action(ArgAction::SetTrue).help(
         "the battle shows the enemies' HP, which RM2k never shows: for debugging",
     ))
@@ -171,6 +176,7 @@ pub struct Options {
     pub text_padding: i64,
     pub no_title: bool,
     pub measure_headroom: Option<f64>,
+    pub msu_everything: bool,
     pub enemy_hp: bool,
     pub no_speed_keys: bool,
     pub no_timer: bool,
@@ -251,6 +257,7 @@ pub fn parse(argv: Vec<String>) -> Result<Options> {
         text_padding: *matches.get_one::<i64>("text_padding").unwrap(),
         no_title: matches.get_flag("no_title"),
         measure_headroom: matches.get_one::<f64>("measure_headroom").copied(),
+        msu_everything: matches.get_flag("msu_everything"),
         enemy_hp: matches.get_flag("enemy_hp"),
         no_speed_keys: matches.get_flag("no_speed_keys"),
         no_timer: matches.get_flag("no_timer"),

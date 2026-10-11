@@ -6,7 +6,7 @@
 //! and come in the request already as bytes and numbers: see `scene` in the
 //! request. Here they are only written.
 
-use crate::asm::block;
+use crate::asm::{block, msu_block};
 use crate::compress;
 use crate::fail::{Bad, Result};
 use crate::json::{at, bytes_at, colors, int, int_at, ints, ints_at, list, list_at};
@@ -54,7 +54,10 @@ fn byte_list(values: Vec<i64>, empty: u8) -> Vec<u8> {
 
 /// The cartridge's battle scene. `used` are the troops in the order of
 /// `troop_id`.
-pub fn scenes_asm(scene: &Value, used: &[i64]) -> Result<String> {
+/// With `msu`, the streams of the fallbacks and of the battlers go marked as
+/// pieces that may travel in the `.msu`: the battle reads them only through
+/// `lz2_decompress`, once each as it opens. See `crate::asm::msu_block`.
+pub fn scenes_asm(scene: &Value, used: &[i64], msu: bool) -> Result<String> {
     let g = at(scene, "geometry")?;
     let n = |name: &str| int_at(g, name);
     let backdrops = list_at(scene, "backdrops")?;
@@ -164,7 +167,7 @@ pub fn scenes_asm(scene: &Value, used: &[i64]) -> Result<String> {
         .collect::<Result<_>>()?;
     let refs: Vec<&[u8]> = tiles.iter().map(Vec::as_slice).collect();
     for (k, stream) in compress::compress_many(&refs)?.iter().enumerate() {
-        out.push(block(&format!("backdrop_{k}"), stream));
+        out.push(msu_block(&format!("backdrop_{k}"), stream, msu));
     }
     // The battlers: their tables and then their bytes.
     let columns: Vec<i64> = battlers
@@ -271,7 +274,7 @@ pub fn scenes_asm(scene: &Value, used: &[i64]) -> Result<String> {
     }
     let refs: Vec<&[u8]> = raw.iter().map(Vec::as_slice).collect();
     for (k, stream) in compress::compress_many(&refs)?.iter().enumerate() {
-        out.push(block(&format!("battler_{k}"), stream));
+        out.push(msu_block(&format!("battler_{k}"), stream, msu));
     }
     Ok(out.join("\n") + "\n")
 }

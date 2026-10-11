@@ -58,6 +58,13 @@ pub struct Emit {
     /// that map takes.
     pub start: usize,
     pub decompress_frames: f64,
+    /// Whether the samples go marked as pieces that may travel in the
+    /// `.msu`, in a cartridge that needs the MSU-1: `upload_sample` reads
+    /// them from there when the packing sent them —see `msu_sample_l` in
+    /// the runtime's `msu_effects.s`, and `pack_with_msu` in
+    /// `rm2k-snes-cartridge`—. They are uploaded when an audio package
+    /// loads, which is when a map does.
+    pub msu_samples: bool,
 }
 
 /// A package as the ROM gets it: its songs, its sound effects by number, its
@@ -335,7 +342,18 @@ pub fn musicdata(music: &Music, emit: &Emit) -> Result<String> {
     let sample_blocks: Vec<String> = if voices.is_empty() {
         vec![block("sample_0", &SILENCE, false)]
     } else {
-        voices.iter().enumerate().map(|(i, (d, _))| block(&format!("sample_{i}"), d, true)).collect()
+        voices
+            .iter()
+            .enumerate()
+            .map(|(i, (d, _))| {
+                let text = block(&format!("sample_{i}"), d, true);
+                if emit.msu_samples {
+                    format!(".msu\n{text}")
+                } else {
+                    text
+                }
+            })
+            .collect()
     };
     let rows_of: Vec<(usize, usize)> = if voices.is_empty() {
         vec![(SILENCE.len(), 0)]

@@ -250,6 +250,12 @@ pub struct Materials {
     saved: Vec<(String, usize, usize)>,
     raw: Vec<(String, usize)>,
     lz2: Vec<(String, usize)>,
+    /// Whether the LZ2 streams go marked as pieces that may travel in the
+    /// `.msu`: in a cartridge that needs the MSU-1, the packing sends
+    /// there what does not fit in the ROM. They may because the ROM reads
+    /// them only through `lz2_decompress`, which knows how to read the
+    /// `.msu`: see `lz2_msu` in the runtime's `decompress.s`.
+    pub msu: bool,
 }
 
 fn add(counter: &mut Vec<(String, usize)>, kind: &str, n: usize) {
@@ -278,6 +284,7 @@ impl Materials {
             saved: Vec::new(),
             raw: Vec::new(),
             lz2: Vec::new(),
+            msu: false,
         }
     }
 
@@ -316,7 +323,7 @@ impl Materials {
             add(&mut self.raw, kind, data.len());
             add(&mut self.lz2, kind, stream.len());
         }
-        (label, text)
+        (label, self.mark(text))
     }
 
     /// Like [`Materials::store_compressed`], with the streams of several
@@ -335,7 +342,16 @@ impl Materials {
                 add(&mut self.lz2, kind, stream.len());
             }
         }
-        (label, text)
+        (label, self.mark(text))
+    }
+
+    /// A stream's asm, with the `.msu` mark if [`Materials::msu`].
+    fn mark(&self, text: String) -> String {
+        if self.msu && !text.is_empty() {
+            format!(".msu\n{text}")
+        } else {
+            text
+        }
     }
 
     /// What was shared and how much was compressed, so that the saving is

@@ -10,7 +10,7 @@
 //!   system_songs        the songs the database's `System` names
 //!   named_songs         every song the game's events and maps name
 //!   emit                {packages, boot, title, game_over, map_song, sounds,
-//!                       start, decompress_frames}: what goes into
+//!                       start, decompress_frames, msu_samples}: what goes into
 //!                       `musicdata.inc` besides the music
 //! ```
 
@@ -132,6 +132,7 @@ pub fn parse(v: &Value, aram_end: i64) -> Result<(Job, Option<Emit>)> {
                 sounds,
                 start: int(e.get("start"), "start")? as usize,
                 decompress_frames: e.get("decompress_frames").and_then(Value::as_f64).unwrap_or(0.0),
+                msu_samples: e.get("msu_samples").and_then(Value::as_bool).unwrap_or(false),
             })
         }
     };

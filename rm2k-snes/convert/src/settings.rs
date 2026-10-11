@@ -169,6 +169,29 @@ impl<'a> Settings<'a> {
         Ok(self.project.string(keys)?.to_string())
     }
 
+    /// `[rom] msu`: `"optional"`, or `"required"` for a game whose ROM
+    /// does not reach without the `.msu`. **Missing is `"optional"`**,
+    /// against this module's rule, because it is a knob at rest: what
+    /// every game is, and what each one should go back to.
+    ///
+    /// The converter does not decide it by itself when the ROM runs out,
+    /// and that is on purpose: needing the MSU-1 changes what the player
+    /// needs —a console or emulator that has it, and the `.msu` next to
+    /// the ROM—, and a map more must not change that without anyone
+    /// deciding it. A game that does not fit says so, as always.
+    pub fn msu(&self) -> Result<&'static str> {
+        if self.project.value(&["rom", "msu"]).is_err() {
+            return Ok("optional");
+        }
+        match self.project.string(&["rom", "msu"])? {
+            "optional" => Ok("optional"),
+            "required" => Ok("required"),
+            other => Err(Stop::new(format!(
+                "`[rom] msu` is {other:?}, and it can be \"optional\" or \"required\""
+            ))),
+        }
+    }
+
     /// A text that ends up in the ROM as is: printable ASCII without
     /// quotes, exactly `length` long or at most `max_length`.
     pub fn ascii(&self, keys: &[&str], length: Option<usize>, max_length: Option<usize>) -> Result<String> {

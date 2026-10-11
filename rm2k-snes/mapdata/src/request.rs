@@ -181,6 +181,10 @@ pub struct Emit {
     /// The title's picture and the Game Over's, each one stream.
     pub title: Option<FullScreen>,
     pub game_over: Option<FullScreen>,
+    /// And the one that says the MSU-1 is missing, in a cartridge that
+    /// needs it: see `msu_required` in the runtime's `msu1.s`.
+    #[serde(default)]
+    pub msu_missing: Option<FullScreen>,
     /// The battle animations the compiled pages show.
     pub animations: Animations,
     /// The troops some battle of the cartridge asks for, in its order.
@@ -274,6 +278,27 @@ pub struct Commons {
 pub struct Rom {
     pub title: String,
     pub sram_signature: String,
+    /// Whether the cartridge needs the MSU-1: see [`MsuData`].
+    #[serde(default)]
+    pub msu: MsuData,
+}
+
+/// What the `.msu` may carry that the ROM cannot do without. Which pieces
+/// go is decided by `pack_with_msu`, in `rm2k-snes-cartridge`: this only
+/// marks the ones that may, and says whether they may.
+#[derive(Deserialize, Default, Clone, Copy, PartialEq, Eq, Debug)]
+#[serde(rename_all = "lowercase")]
+pub enum MsuData {
+    /// Nothing: without MSU-1 the game is the same. What every game is
+    /// while its ROM reaches.
+    #[default]
+    Optional,
+    /// What does not fit in the ROM, and the ROM refuses to start without
+    /// the MSU-1 and its `.msu`.
+    Required,
+    /// Everything that may go, even if it fitted: for the tests, so that a
+    /// game that fits runs the path.
+    Everything,
 }
 
 /// The text block's pair table: the first byte value that stands for a

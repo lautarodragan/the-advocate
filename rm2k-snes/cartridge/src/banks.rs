@@ -251,6 +251,8 @@ struct Piece {
     lines: Vec<String>,
     size: usize,
     align: usize,
+    /// Whether its emitter marked it with `.msu`: see [`pack_with_msu`].
+    msu: bool,
 }
 
 impl Piece {
@@ -262,6 +264,7 @@ impl Piece {
             lines: Vec::new(),
             size: 0,
             align: 1,
+            msu: false,
         }
     }
 
@@ -288,6 +291,10 @@ pub struct Packing {
     pub pieces: usize,
     pub banks: usize,
     pub slow: usize,
+    /// How many pieces went to the `.msu` instead, and how many bytes they
+    /// take there: see [`pack_with_msu`].
+    pub spilled: usize,
+    pub spilled_bytes: usize,
 }
 
 /// Splits into banks what `paths` send to `RODATA`, and rewrites them.
@@ -337,7 +344,10 @@ pub struct Packing {
 ///
 /// Running it twice changes nothing: the second time there is no `RODATA`
 /// left, and the banks the first one wrote stay as they are.
-pub fn resolve<P: AsRef<Path>>(paths: &[P]) -> Result<Packing, String> {
+///
+/// `msu` is the cartridge's `.msu`, where what does not fit goes when the
+/// files allow it: see [`pack_with_msu`].
+pub fn resolve<P: AsRef<Path>>(paths: &[P], msu: Option<&Path>) -> Result<Packing, String> {
     let mut texts = Vec::new();
     for path in paths {
         let path = path.as_ref();
@@ -350,35 +360,132 @@ pub fn resolve<P: AsRef<Path>>(paths: &[P]) -> Result<Packing, String> {
         .map(|p| p.as_ref().display().to_string())
         .collect();
     let refs: Vec<&str> = texts.iter().map(String::as_str).collect();
-    let (kept, packing) = pack_texts(&names, &refs, &slots())?;
+    let start = match msu {
+        Some(path) if path.is_file() => {
+            let blob = std::fs::read(path).map_err(|e| format!("{}: {e}", path.display()))?;
+            Some(crate::msu::region_start(&blob).map_err(|e| format!("{}: {e}", path.display()))?)
+        }
+        _ => None,
+    };
+    let (kept, packing, spill) = pack_with_msu(&names, &refs, &slots(), start)?;
     for (path, own) in paths.iter().zip(kept) {
         let path = path.as_ref();
         std::fs::write(path, own).map_err(|e| format!("{}: {e}", path.display()))?;
+    }
+    if let (Some(spill), Some(path), Some(start)) = (spill, msu, start) {
+        crate::msu::write(path, start, &spill.region)?;
     }
     Ok(packing)
 }
 
 /// The packing over texts already read, into `slots` —[`slots`], except in
 /// the tests—: what each file becomes, and the count. `names` are only for
-/// the messages.
+/// the messages. Nothing goes to the `.msu`.
 pub fn pack_texts(
     names: &[String],
     texts: &[&str],
     slots: &[Slot],
 ) -> Result<(Vec<String>, Packing), String> {
+    let (kept, packing, _) = pack_with_msu(names, texts, slots, None)?;
+    Ok((kept, packing))
+}
+
+/// What the packing sent to the `.msu`: the region, from its first byte.
+/// See [`crate::msu`].
+pub struct Spill {
+    pub region: Vec<u8>,
+}
+
+/// The constants of the files that say what may go to the `.msu`. The
+/// converter emits the first two, and the runtime reads them too.
+///
+/// * `MSU_REQUIRED = 1`: the cartridge needs the MSU-1, so what does not
+///   fit in the ROM may go to the `.msu`. Without it nothing goes, and a
+///   cartridge that does not fit is an error, as always.
+/// * `MSU_SPILL_EVERYTHING = 1`: every piece that may go, goes, even if it
+///   fitted. It is for the tests: so that the path the ROM reads them by
+///   runs in a game that fits.
+///
+/// And `MSU_SPILL_AT`, which this writes: if it is already there, the files
+/// were packed before and nothing is decided again.
+const REQUIRED: &str = "MSU_REQUIRED";
+const EVERYTHING: &str = "MSU_SPILL_EVERYTHING";
+const SPILL_AT: &str = "MSU_SPILL_AT";
+
+/// `(name, value)` if `directive` is a constant.
+fn constant(directive: &str) -> Option<(&str, &str)> {
+    if !is_constant(directive) {
+        return None;
+    }
+    let (name, value) = directive.split_once('=')?;
+    Some((name.trim(), value.trim()))
+}
+
+/// [`pack_texts`], and **what does not fit, to the `.msu`**, if the files
+/// allow it; `msu_start` is where the region starts in the `.msu`
+/// ([`crate::msu::region_start`]).
+///
+/// A piece may go if its emitter put `.msu` in front of its `.block`: it is
+/// saying that the ROM only ever reads it through something that knows how
+/// to read from the `.msu` —today `lz2_decompress`, in the runtime's
+/// `decompress.s`—. It has to be one label at its start followed by
+/// literal `.byte`s, which is what the packing can turn into bytes without
+/// the assembler. Where the files do not say `MSU_REQUIRED`, the mark is
+/// ignored and the piece is packed like any other.
+///
+/// **Which ones go**: the fewest that make the rest fit, taking the largest
+/// first. The candidates are sorted from the largest to the smallest, and
+/// the count is the smallest for which the packing succeeds, found by
+/// halving: so the ROM keeps as much as fits, and what is read from the
+/// `.msu` —a seek each, which costs Mednafen one or two frames: see
+/// `msu_data_seek`— is as few pieces as it can be. With
+/// `MSU_SPILL_EVERYTHING`, all of them.
+///
+/// Each one that goes leaves its label as a constant: bank
+/// [`crate::msu::SPILL_BANK`] and its unit in the region, which is what the
+/// ROM seeks. And the last file gets `MSU_SPILL_BANK`, `MSU_SPILL_AT` —the
+/// region's start, in units— and `MSU_SPILLED`, and one more piece for the
+/// ROM, `msu_spill_signature`: the region's, which the runtime compares
+/// before reading from it. All of them even if nothing went: the cartridge
+/// needs the MSU-1 all the same, and the region is there, empty.
+pub fn pack_with_msu(
+    names: &[String],
+    texts: &[&str],
+    slots: &[Slot],
+    msu_start: Option<usize>,
+) -> Result<(Vec<String>, Packing, Option<Spill>), String> {
     let mut pieces: Vec<Piece> = Vec::new();
     let mut kept: Vec<Vec<String>> = Vec::new();
     let mut labels: Vec<Label> = Vec::new();
     let mut covers = 0usize;
     let mut crosses = false;
+    let (mut required, mut everything, mut packed_before) = (false, false, false);
     for (name, text) in names.iter().zip(texts) {
         let mut own: Vec<String> = Vec::new();
         let mut current: Option<String> = None;
         // Indices into `pieces` and `labels`.
         let mut piece: Option<usize> = None;
         let mut current_label: Option<usize> = None;
+        // A `.msu` waiting for its `.block`.
+        let mut msu_next = false;
         for line in split_lines(text) {
             let directive = code(line);
+            match constant(directive) {
+                Some((REQUIRED, value)) => required = value == "1",
+                Some((EVERYTHING, value)) => everything = value == "1",
+                Some((SPILL_AT, _)) => packed_before = true,
+                _ => {}
+            }
+            if msu_next && !directive.is_empty() && !directive.starts_with(".block ") {
+                return Err(format!(
+                    "{name}: a `.msu` that is not right before a `.block`: {:?}",
+                    line.trim()
+                ));
+            }
+            if directive == ".msu" && current.as_deref() == Some(SEGMENT) {
+                msu_next = true;
+                continue;
+            }
             if directive.starts_with(".segment") {
                 let (_, rest) = first_word(directive);
                 let segment = rest.unwrap_or("").trim().trim_matches('"').to_string();
@@ -405,6 +512,7 @@ pub fn pack_texts(
                     piece = Some(pieces.len() - 1);
                 }
                 pieces[piece.unwrap()].asks = covers;
+                pieces[piece.unwrap()].msu = std::mem::take(&mut msu_next);
                 continue;
             }
             if directive == ".crossbank" {
@@ -461,7 +569,7 @@ pub fn pack_texts(
             .iter()
             .filter(|l| {
                 let d = code(l);
-                d.starts_with(".block") || d.starts_with(".crossbank")
+                d.starts_with(".block") || d.starts_with(".crossbank") || d == ".msu"
             })
             .collect();
         if let Some(first) = leaked.first() {
@@ -487,11 +595,97 @@ pub fn pack_texts(
         ));
     }
 
-    let banks = pack(&pieces, slots)?;
+    let mut spill = None;
+    let mut spilled_bytes = 0;
+    let mut gone: Vec<usize> = Vec::new();
+    if required && !packed_before {
+        let start = msu_start.ok_or_else(|| {
+            "the cartridge needs the MSU-1 (MSU_REQUIRED) and there is no .msu with data \
+             next to the ROM to put what does not fit in"
+                .to_string()
+        })?;
+        if start % crate::msu::UNIT != 0 {
+            return Err(format!("the .msu region would start at {start}, not on a unit"));
+        }
+        // The region's signature, as one more piece: zeros while deciding,
+        // which take the same.
+        let signature = pieces.len();
+        let mut piece = Piece::new(signature);
+        piece.asks = crate::msu::SIGNATURE;
+        piece.size = crate::msu::SIGNATURE;
+        piece.lines = signature_lines(&[0; crate::msu::SIGNATURE]);
+        pieces.push(piece);
+
+        let mut candidates: Vec<usize> = (0..pieces.len()).filter(|&k| pieces[k].msu).collect();
+        candidates.sort_by_key(|&k| (std::cmp::Reverse(pieces[k].fit_size()), pieces[k].order));
+        let without = |count: usize| -> Vec<&Piece> {
+            let out: std::collections::HashSet<usize> = candidates[..count].iter().copied().collect();
+            pieces.iter().filter(|p| !out.contains(&p.order)).collect()
+        };
+        let count = if everything {
+            candidates.len()
+        } else if pack(&without(0), slots).is_ok() {
+            0
+        } else {
+            if let Err(e) = pack(&without(candidates.len()), slots) {
+                return Err(format!(
+                    "{e}, even with the {} piece(s) that may go to the .msu there",
+                    candidates.len()
+                ));
+            }
+            let (mut fails, mut fits) = (0, candidates.len());
+            while fits - fails > 1 {
+                let middle = (fails + fits) / 2;
+                if pack(&without(middle), slots).is_ok() {
+                    fits = middle;
+                } else {
+                    fails = middle;
+                }
+            }
+            fits
+        };
+        gone = candidates[..count].to_vec();
+        gone.sort();
+
+        let mut datas = Vec::new();
+        let mut constants = vec![
+            "; --- what the packing sent to the `.msu`: see `pack_with_msu` in".to_string(),
+            "; rm2k-snes-cartridge. Each label is bank MSU_SPILL_BANK and its unit ---".to_string(),
+            format!("MSU_SPILL_BANK = ${:02X}", crate::msu::SPILL_BANK),
+            format!("{SPILL_AT} = ${:06X}", start / crate::msu::UNIT),
+            format!("MSU_SPILLED = {}", gone.len()),
+        ];
+        let mut unit = 1;
+        for &k in &gone {
+            let (label, data) = piece_bytes(&pieces[k])
+                .map_err(|e| format!("a piece marked `.msu` that cannot go: {e}"))?;
+            if unit > crate::msu::LAST_UNIT {
+                return Err(format!(
+                    "the .msu region goes past {} units of {} bytes",
+                    crate::msu::LAST_UNIT,
+                    crate::msu::UNIT
+                ));
+            }
+            constants.push(format!("{label} = ${:06X}", crate::msu::SPILL_BANK << 16 | unit));
+            unit += crate::msu::units(data.len());
+            spilled_bytes += data.len();
+            datas.push(data);
+        }
+        let region = crate::msu::region(&datas);
+        pieces[signature].lines = signature_lines(&region[..crate::msu::SIGNATURE]);
+        spill = Some(Spill { region });
+        if let Some(last) = kept.last_mut() {
+            last.extend(constants);
+        }
+    }
+    let staying: Vec<&Piece> = pieces.iter().filter(|p| gone.binary_search(&p.order).is_err()).collect();
+    let banks = pack(&staying, slots)?;
     let packing = Packing {
-        pieces: pieces.len(),
+        pieces: staying.len(),
         banks: banks.len(),
         slow: banks.iter().filter(|b| !slots[b.slot].fast()).count(),
+        spilled: gone.len(),
+        spilled_bytes,
     };
     if let Some(last) = kept.last_mut() {
         for bank in banks {
@@ -503,7 +697,49 @@ pub fn pack_texts(
         .into_iter()
         .map(|own| own.join("\n") + "\n")
         .collect();
-    Ok((texts, packing))
+    Ok((texts, packing, spill))
+}
+
+/// The lines of `msu_spill_signature`, with these bytes.
+fn signature_lines(bytes: &[u8]) -> Vec<String> {
+    let hex: Vec<String> = bytes.iter().map(|b| format!("${b:02X}")).collect();
+    vec!["msu_spill_signature:".to_string(), format!("    .byte {}", hex.join(","))]
+}
+
+/// The label and the bytes of a piece that goes to the `.msu`: one label
+/// at its start and nothing but literal `.byte`s after it.
+fn piece_bytes(piece: &Piece) -> Result<(String, Vec<u8>), String> {
+    let mut label: Option<String> = None;
+    let mut data = Vec::new();
+    for line in &piece.lines {
+        let directive = code(line);
+        if directive.is_empty() {
+            continue;
+        }
+        if is_label(directive) {
+            if label.is_some() || !data.is_empty() {
+                return Err(format!("{:?} is not the piece's only label at its start", directive));
+            }
+            label = Some(directive.split(':').next().unwrap_or("").to_string());
+            continue;
+        }
+        let (first, rest) = first_word(directive);
+        if first != ".byte" || label.is_none() {
+            return Err(format!("{:?} is not a literal byte", line.trim()));
+        }
+        for operand in rest.unwrap_or("").split(',').map(str::trim) {
+            let value = match operand.strip_prefix('$') {
+                Some(hex) => u8::from_str_radix(hex, 16).ok(),
+                None => operand.parse().ok(),
+            };
+            data.push(value.ok_or_else(|| format!("{operand:?} is not a literal byte"))?);
+        }
+    }
+    let label = label.ok_or("a piece without a label")?;
+    if data.len() < piece.asks {
+        return Err(format!("{label} declares {} bytes and carries {}", piece.asks, data.len()));
+    }
+    Ok((label, data))
 }
 
 /// The number after `.block` or `.align`.
@@ -663,17 +899,50 @@ impl Packer<'_> {
 
 /// The banks, with the pieces inside, in the order they were opened. See
 /// [`resolve`], which says what each kind is.
-fn pack(pieces: &[Piece], slots: &[Slot]) -> Result<Vec<Bank>, String> {
+///
+/// **If it does not fit, it tries once more with the chain first.** The
+/// chain of `.crossbank` pieces needs whole banks that continue each other,
+/// and it goes last: in a cartridge that is almost full the whole pieces
+/// have taken every whole bank by then —opening a new one takes the first
+/// free slot, and the whole banks come before the halves—, and the chain
+/// finds only halves, where it cannot go. Measured on 2026-10-11 with a
+/// game of 7.10 MB for the 7.94: it did not fit. With the chain
+/// first, from a new whole bank, the whole pieces fill the halves when the
+/// whole banks run out. A cartridge that fits the first way is packed the
+/// first way, as it always was.
+fn pack(pieces: &[&Piece], slots: &[Slot]) -> Result<Vec<Bank>, String> {
+    match pack_in_order(pieces, slots, false) {
+        Ok(banks) => Ok(banks),
+        Err(first) => pack_in_order(pieces, slots, true).map_err(|_| first),
+    }
+}
+
+fn pack_in_order(pieces: &[&Piece], slots: &[Slot], chain_first: bool) -> Result<Vec<Bank>, String> {
     let mut packer = Packer { slots, taken: vec![false; slots.len()], banks: Vec::new() };
+    if chain_first {
+        let mut chain: Vec<&Piece> = pieces.iter().copied().filter(|u| u.crosses).collect();
+        chain.sort_by_key(|u| u.order);
+        if !chain.is_empty() {
+            let mut bank = packer.open(BANK_SIZE)?;
+            for u in chain {
+                let left = packer.capacity(bank) - packer.banks[bank].used;
+                if u.fit_size() > left && packer.after(bank).is_none() {
+                    bank = packer.open(BANK_SIZE)?;
+                }
+                bank = packer.spill(bank, &u.lines)?;
+            }
+        }
+    }
     let large: Vec<&Piece> = pieces
-        .iter()
+        .iter().copied()
         .filter(|u| !u.crosses && u.fit_size() > BANK_SIZE)
         .collect();
     let mut whole: Vec<&Piece> = pieces
-        .iter()
+        .iter().copied()
         .filter(|u| !u.crosses && u.fit_size() <= BANK_SIZE)
         .collect();
-    let mut crossing: Vec<&Piece> = pieces.iter().filter(|u| u.crosses).collect();
+    let mut crossing: Vec<&Piece> =
+        pieces.iter().copied().filter(|u| u.crosses && !chain_first).collect();
 
     // The large ones first, each from a new whole bank: what is left over in
     // their last bank is used by the others.
