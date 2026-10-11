@@ -87,6 +87,13 @@
 //! command went gone, `BA_TXT_SP`, `BA_TXT_NORMAL` and `BA_TXT_DEAD` and
 //! those three texts, `ba_item_desc` and the items' whole descriptions, and
 //! the windows' blocks and constants (`ba_win_*`, `BA_WIN_*`).
+//!
+//! On 2026-10-10 a map with more events than the RAM holds got its twins
+//! —events left without a row, which share another's— as a table behind
+//! its positions, a word with how many first. These maps have none, and
+//! the three hashes moved: the difference against the old text is
+//! `TWIN_STRIDE` and its comment, and a zero word behind each map's
+//! positions.
 
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_mapdata::record;
@@ -114,7 +121,7 @@ fn what_goes_per_map_comes_out_as_the_python_wrote_it() {
     );
     assert_eq!(
         sha(&with_the_turn_as_before(&written.maps)),
-        "cb782dcc5d6a59cb08786dea041fabaacbdb78812d565a5b5841be440d55ce42"
+        "1622acb05a2213323bcb3b722f858187002804ddbf98b031f9f06cae75fd5382"
     );
     assert_eq!(
         sha(&written.tables),
@@ -354,10 +361,10 @@ fn without_bare_window(text: &str) -> String {
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
     let text = with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&emitted.text)))))));
-    assert_eq!(text.lines().count(), 3774);
+    assert_eq!(text.lines().count(), 3777);
     assert_eq!(
         sha(&text),
-        "a7c4eea1c7cdc22c28b91cd907b2833ba97370b513d3f388fb3878e81c03aa85"
+        "ae063b94ffe086ddb9ae5713c85f32b97cca5acf19860e80fbdb339590808c5b"
     );
 }
 
@@ -365,10 +372,10 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
     let text = with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&emitted.text)))))));
-    assert_eq!(text.lines().count(), 3893);
+    assert_eq!(text.lines().count(), 3896);
     assert_eq!(
         sha(&text),
-        "e7b59c1a9ee9ea3479b70270e4b47e0860a164de98bb07fb5a0dfaeea4e1fc3d"
+        "1b66418f73a5a15811900150decd1877dc9ed1cd94afb0f13be9bce7a29b6e4a"
     );
 }
 
