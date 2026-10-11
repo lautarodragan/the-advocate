@@ -163,9 +163,9 @@ pub fn escape_tail(lines: &[String]) -> Result<(Vec<String>, usize, bool), Canno
 /// The line without the waits that are not in the tail: `\.` (a quarter of a
 /// second), `\|` (a second) and `\!` (a key). Debt, on purpose: the window is
 /// drawn all at once, so there is no halfway to wait at, and they are
-/// dropped without waiting; see `tasks/las-caras-y-las-esperas.md`.
+/// dropped without waiting; see `tasks/draw-the-faces-and-really-wait-on-the-escapes.md`.
 /// `\c[n]` and `\s[n]`, either case, are dropped too: a color and a speed the
-/// console does not have (`tasks/las-caras-y-las-esperas.md`).
+/// console does not have (`tasks/draw-the-faces-and-really-wait-on-the-escapes.md`).
 /// A `\\` is skipped as a pair, so the letter after it is not taken as an
 /// escape.
 fn without_waits(line: &str) -> String {
