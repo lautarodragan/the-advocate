@@ -536,9 +536,20 @@ impl Cartridges {
     /// The files [`Self::fingerprint`] reads, in order: whatever changes the
     /// ROM and is not here leaves it silently stale. That is why the
     /// binaries and the hand-made patches go in, since they change it without
-    /// touching any source. The game's dump does not: it is regenerated from
-    /// the game. `runtime` is a parameter so a test can pass a tree built by
-    /// hand.
+    /// touching any source. `runtime` is a parameter so a test can pass a
+    /// tree built by hand.
+    ///
+    /// **The game's dump goes in, and the original game does not.** A
+    /// change to a `.lmu` reaches the ROM only through the dump —whoever
+    /// regenerates it is the game's recipe, not this—, and the dump is
+    /// also edited by hand to isolate a cause: until 2026-10-11 it stayed
+    /// out, and either of those left the cartridge "up to date" with the
+    /// old ROM. What the converter reads from the original game itself
+    /// —its PNGs, its MIDIs— is still out, and so are the RTP and the
+    /// SoundFont: changing them leaves the cartridge stale without a
+    /// warning. They are not edited, and `--game-dir` does not reach the
+    /// ones that only read the fingerprint —`rm2k-snes-space`, a game's
+    /// tests through `--list`—, which would see every cartridge stale.
     pub fn fingerprint_files(&self, runtime: &Path) -> Result<Vec<PathBuf>, String> {
         // All of the runtime, and not only what `main.s` includes today: a
         // file that is added and included in the same change has to make the
@@ -554,6 +565,9 @@ impl Cartridges {
                 format!("`{name}` is not on the PATH, and the cartridges need it")
             })?);
         }
+        // The dump, whole: the converter and its stages read it, and it
+        // changes without touching any of the above.
+        parts.extend(files_below(&self.project.data()?)?);
         // Until 2026-10-02 the `.py` files of the tools went in here too,
         // when the converter was a Python program; the last of them left
         // that day, and the converter is among the binaries above.
