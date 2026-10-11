@@ -136,17 +136,6 @@ pub struct Database {
 }
 
 impl Database {
-    /// The CharSet of the first one in the party: `(name, index)`. An
-    /// empty party has nothing to draw the hero with: in RM2k the engine
-    /// draws nothing, and here it stops.
-    pub fn leader(&self, party: &[i32]) -> Result<(String, i32)> {
-        let first = party
-            .first()
-            .ok_or_else(|| Stop::new("the party is empty: there is nothing to draw the hero with"))?;
-        let actor = self.actor(*first)?;
-        Ok((actor.character_name.clone(), actor.character_index))
-    }
-
     pub fn actor(&self, id: i32) -> Result<&schema::Actor> {
         self.actors
             .get(&id)
