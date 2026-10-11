@@ -287,6 +287,24 @@ fn whole_effects_fit(
     Ok(())
 }
 
+/// The same stop, saying in its own line which song it is about and which
+/// packages carry it —a map's is named by its number—: whoever reads it is
+/// about to leave a map out of the cartridge, and which one is what they
+/// need. A `compile` job without packages gives each song its own, named
+/// as the song, and that says nothing more.
+fn in_song(bad: Bad, packages: &[Package], i: usize, name: &str) -> Bad {
+    let carry: Vec<String> = packages
+        .iter()
+        .filter(|p| p.name != name && (p.songs.contains(&i) || p.exits.contains(&i) || p.separate.contains(&i)))
+        .map(|p| if p.name.parse::<i64>().is_ok() { format!("map {}", p.name) } else { format!("package {}", p.name) })
+        .collect();
+    let whose = if carry.is_empty() { format!("song {name:?}") } else { format!("song {name:?}, in {}", carry.join(", ")) };
+    match bad {
+        Bad::Answer(m) => Bad::Answer(format!("{whose}: {m}")),
+        Bad::Usage(m) => Bad::Usage(format!("{whose}: {m}")),
+    }
+}
+
 /// Every song of the cartridge, sharing a single sample bank.
 pub fn build(job: &Job, game: &Game, samples: &Samples) -> Result<Music> {
     let names = &job.songs;
@@ -453,15 +471,16 @@ pub fn build(job: &Job, game: &Game, samples: &Samples) -> Result<Music> {
             &parsed.controls,
             Some(&mut allocation),
             headroom,
-        )?;
+        )
+        .map_err(|e| in_song(e, &packages, i, name))?;
         let init = stream::init_writes();
         let reference = stream::writes(&frames, parsed.length, &init);
-        let (flat, sounds) = stream::pack(&frames, parsed.length, &init)?;
+        let (flat, sounds) = stream::pack(&frames, parsed.length, &init).map_err(|e| in_song(e, &packages, i, name))?;
         stream::check(name, &flat, &sounds, &reference)?;
         // The same, with what it repeats read from where it first said it:
         // the writes are checked again, following the repeats as the 65816
         // does, write by write and frame by frame.
-        let bytes = stream::fold(&flat)?;
+        let bytes = stream::fold(&flat).map_err(|e| in_song(e, &packages, i, name))?;
         stream::check(name, &bytes, &sounds, &reference)?;
         let fingerprint = mix_fingerprint(&reference, &bank);
         // How many of its notes reach the stream. A note whose program is not
@@ -574,4 +593,34 @@ pub fn report(music: &Music, boot: Option<usize>) -> Vec<String> {
         ));
     }
     out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_song_that_stops_says_which_maps_carry_it() {
+        let package = |name: &str, songs: Vec<usize>, separate: Vec<usize>| Package {
+            name: name.into(),
+            songs,
+            separate,
+            ..Default::default()
+        };
+        let packages = [
+            package("10", vec![0, 1], vec![]),
+            package("12", vec![0], vec![]),
+            package("63", vec![], vec![1]),
+            package("pelea", vec![1], vec![]),
+        ];
+        assert_eq!(
+            in_song(Bad::answer("too many"), &packages, 1, "Boss").to_string(),
+            "song \"Boss\", in map 10, map 63, package pelea: too many"
+        );
+        // A `compile` job: each song its own package, named as the song.
+        assert_eq!(
+            in_song(Bad::usage("x"), &[package("Boss", vec![0], vec![])], 0, "Boss"),
+            Bad::usage("song \"Boss\": x")
+        );
+    }
 }

@@ -399,7 +399,8 @@ pub fn run_all(c: &Cartridge, prepared: &[Prepared]) -> Result<Vec<BTreeMap<Stri
                 if k >= prepared.len() {
                     break;
                 }
-                let done = stage::run(STAGE, "wally", "map", &prepared[k].request, &flags);
+                let done = stage::run(STAGE, "wally", "map", &prepared[k].request, &flags)
+                    .map_err(|e| e.in_map(prepared[k].map.id));
                 *results[k].lock().unwrap() = Some(done);
             });
         }
@@ -788,7 +789,7 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
     }
     let layout = if pano.is_null() {
         vram::vram_layout(tiles_count as u32, (sprite_tiles.len() / 32) as u32, above_count as u32)
-            .map_err(|refused| Stop::new(refused.message().to_string()))?
+            .map_err(|refused| Stop::new(format!("map {map_id}: {}", refused.message())))?
     } else {
         let layout = vram::panorama_layout(
             int(&pano["mode"]) as u8,

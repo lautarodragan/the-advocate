@@ -420,7 +420,8 @@ pub fn sprite_colors_bytes(map: &Map) -> Vec<u8> {
 pub fn ev_pos_bytes(map: &Map) -> Result<Vec<u8>> {
     if map.events.len() > EV_MAX {
         return Err(Bad::answer(format!(
-            "the map has {} events and the ROM's RAM holds {EV_MAX}",
+            "map {} has {} events and the ROM's RAM holds {EV_MAX}",
+            map.id,
             map.events.len()
         )));
     }
@@ -433,7 +434,8 @@ pub fn ev_pos_bytes(map: &Map) -> Result<Vec<u8>> {
     for &[x, y, owner] in &map.twins {
         if !(0..map.events.len() as i64).contains(&owner) {
             return Err(Bad::answer(format!(
-                "a twin at ({x}, {y}) shares the row of event {owner}, and the map has {}",
+                "map {}: a twin at ({x}, {y}) shares the row of event {owner}, and the map has {}",
+                map.id,
                 map.events.len()
             )));
         }

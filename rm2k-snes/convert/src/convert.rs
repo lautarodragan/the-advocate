@@ -259,13 +259,16 @@ pub fn run(options: Options) -> Result<()> {
     };
     let mut animation_cache = Animations::new(&search_dirs, &game.dump);
     let mut prepared = Vec::new();
+    // What stops one map says which in its own line, also from Wally's
+    // calls in `run_all`: see `Stop::in_map`.
     for id in &order {
-        prepared.push(maps::prepare(&cartridge, &mut animation_cache, *id)?);
+        prepared.push(maps::prepare(&cartridge, &mut animation_cache, *id).map_err(|e| e.in_map(*id))?);
     }
     let answers = maps::run_all(&cartridge, &prepared)?;
     let mut infos: Vec<MapInfo> = Vec::new();
     for (p, written) in prepared.into_iter().zip(answers) {
-        infos.push(maps::map_info(&game, p, written)?);
+        let id = p.map.id;
+        infos.push(maps::map_info(&game, p, written).map_err(|e| e.in_map(id))?);
     }
     // The big pictures, which the cartridge carries once whatever map shows
     // them.
