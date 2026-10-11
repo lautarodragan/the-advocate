@@ -126,6 +126,10 @@ pub fn run(options: Options) -> Result<()> {
         _ => game.db.party.clone(),
     };
     game.db.leader(&party)?;
+    // The events that do not fit in the console's RAM, before anything
+    // reads a map: from here on every stage numbers them without those.
+    let test_event_map = (!cases.is_empty()).then(|| order[start_index]);
+    game.trim(&order, &file_commands, test_event_map)?;
 
     let search_dirs = search_dirs(&game, &project, &rtp_dir)?;
 
@@ -154,7 +158,6 @@ pub fn run(options: Options) -> Result<()> {
         extra.extend(menu.variables().into_iter().map(|v| v as i32));
     }
     let compiler = Compiler::new(&game, &settings)?;
-    let test_event_map = (!cases.is_empty()).then(|| order[start_index]);
     let scan_answer = compiler.scan(&order, &file_commands, &extra, test_event_map, &case_pairs)?;
     let mut indices = Indices::from_answer(&scan_answer);
     // The slot is a byte: the variables past it have no place in far RAM.

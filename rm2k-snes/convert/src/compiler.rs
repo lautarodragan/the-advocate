@@ -151,6 +151,7 @@ impl<'a> Compiler<'a> {
     ) -> Map<String, Value> {
         let mut r = Map::new();
         r.insert("map_files".into(), map_files(self.game));
+        r.insert("dropped_events".into(), self.game.dropped_json());
         r.insert("boxes".into(), self.boxes.clone());
         r.insert("names".into(), json!([]));
         r.insert("window".into(), self.window.clone());

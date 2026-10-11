@@ -21,7 +21,7 @@ use ditto::dump::{read_map, Dump};
 use ditto::schema;
 use rm2k_project::Project;
 use serde_json::Value;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 /// One line of a page's script: code, indent, a string and integers,
@@ -245,6 +245,10 @@ pub struct Game {
     /// when the key is missing: it changes the map of any game that has
     /// them, and a game opts in.
     pub decorative: bool,
+    /// The events each map leaves out because they do not fit in the
+    /// console's RAM, by map and id: see [`crate::trim`] and
+    /// [`Game::trim`]. They are taken out as the map is read.
+    pub dropped: BTreeMap<i32, BTreeSet<i32>>,
 }
 
 /// `[graphics] system`, **optional**: the System to draw with instead of
@@ -332,17 +336,59 @@ impl Game {
                 Err(_) => false,
                 Ok(_) => project.boolean(&["graphics", "decorative_events"])?,
             },
+            dropped: BTreeMap::new(),
+        })
+    }
+
+    /// Decides which events of `maps` do not fit in the console's RAM, and
+    /// says it: from here on [`Game::map`] reads them without those, and
+    /// the requests carry them —[`Game::dropped_json`]—. The map where the
+    /// test page runs, `test_event_map`, keeps one place for its event.
+    /// `test_commands` are the test pages', which can name events too.
+    pub fn trim(&mut self, maps: &[i32], test_commands: &[Command], test_event_map: Option<i32>) -> Result<()> {
+        let common: Vec<&Command> = self.db.common_events.values().flatten().chain(test_commands).collect();
+        for &id in maps {
+            let raw = self.raw_map(id)?;
+            let cap = rm2k_snes_mapdata::record::EV_MAX - usize::from(test_event_map == Some(id));
+            if raw.events.len() <= cap {
+                continue;
+            }
+            let named = crate::trim::named(&raw.events, common.iter().copied());
+            let out = crate::trim::left_out(&raw.events, &named, cap);
+            println!("{}", crate::trim::warning(id, raw.events.len(), cap, &out));
+            self.dropped.insert(id, out.into_iter().map(|(e, _)| e).collect());
+        }
+        Ok(())
+    }
+
+    /// [`Game::dropped`] as the stages' requests carry it: the ids by map
+    /// number as text.
+    pub fn dropped_json(&self) -> Value {
+        Value::Object(self.dropped.iter().map(|(m, ids)| (m.to_string(), serde_json::json!(ids))).collect())
+    }
+
+    /// The same, only map `id`'s: what a map's own request carries.
+    pub fn dropped_json_of(&self, id: i32) -> Value {
+        Value::Object(
+            self.dropped.get(&id).map(|ids| (id.to_string(), serde_json::json!(ids))).into_iter().collect(),
+        )
+    }
+
+    /// Map `id` as the project has it, with every event.
+    fn raw_map(&self, id: i32) -> Result<schema::Map> {
+        Ok(match self.forks.map_file(id) {
+            Some(path) => read_map(path)?,
+            None => Dump::open(&self.dump)?.map(id as u32)?,
         })
     }
 
     /// Map `id`: the project's file if it has one, the dump's otherwise,
     /// with the translucent pages' graphics decorated.
     pub fn map(&self, id: i32) -> Result<GameMap> {
-        let raw = match self.forks.map_file(id) {
-            Some(path) => read_map(path)?,
-            None => Dump::open(&self.dump)?.map(id as u32)?,
-        };
-        let mut events: Vec<&schema::Event> = raw.events.iter().collect();
+        let raw = self.raw_map(id)?;
+        let dropped = self.dropped.get(&id);
+        let mut events: Vec<&schema::Event> =
+            raw.events.iter().filter(|e| dropped.is_none_or(|d| !d.contains(&e.id))).collect();
         events.sort_by_key(|e| e.id);
         let events = events
             .into_iter()
