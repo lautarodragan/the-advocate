@@ -165,8 +165,17 @@ impl Bank {
 /// its windows are redrawn with, if they do not fit their bank as RM2k draws
 /// them; and then how many tiles they took, and how many they were left
 /// with.
-pub fn skin_for(game: &Game, skin: &Skin, screen: Screen) -> Result<(Skin, Option<(usize, usize)>)> {
-    let max = tiles_max(screen);
+///
+/// `text` is what else the bank has to hold: for the item and equipment
+/// screens, the pairs their text asks for —`convert::item_pairs`—, which
+/// go below the windows. Their windows are redrawn too when they fit the
+/// bank but leave the text without room: a System with a gradient left
+/// The Frozen World's item text 82 pairs of the 132 it asks for. If the
+/// text alone takes the whole bank there is nothing to give it: the windows
+/// fit the bank, and the converter says the text does not.
+pub fn skin_for(game: &Game, skin: &Skin, screen: Screen, text: usize) -> Result<(Skin, Option<(usize, usize)>)> {
+    let whole = tiles_max(screen);
+    let max = if text < whole { whole - text } else { whole };
     let bank = Bank::new(&cut_cells(&layers(game, skin, screen)?));
     if bank.tiles.len() <= max {
         return Ok((skin.clone(), None));

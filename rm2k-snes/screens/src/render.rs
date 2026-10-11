@@ -438,6 +438,19 @@ pub fn item_screen(
     top: usize,
     known: Option<&[i32]>,
 ) -> Result<Picture> {
+    let (t, windows) = item_screen_text(game, skin, inventory, chosen, top, known)?;
+    t.render(game, skin, &windows)
+}
+
+/// The item screen's text, and its windows.
+pub fn item_screen_text(
+    game: &Game,
+    skin: &Skin,
+    inventory: &BTreeMap<i32, i64>,
+    chosen: usize,
+    top: usize,
+    known: Option<&[i32]>,
+) -> Result<(Grid, Picture)> {
     let known: BTreeSet<i32> = match known {
         Some(k) => k.iter().copied().collect(),
         None => inventory.iter().filter(|(_, &n)| n > 0).map(|(i, _)| *i).collect(),
@@ -464,7 +477,7 @@ pub fn item_screen(
         let digits: String = format!("{count:2}").chars().map(|c| if c == ' ' { FIGURE_BLANK } else { c }).collect();
         t.write(row0, ITEM_COLON_COL, &format!(":{digits}"), variant);
     }
-    t.render(game, skin, &borders::item_windows(skin, if listed.is_empty() { None } else { Some(chosen - top) }))
+    Ok((t, borders::item_windows(skin, if listed.is_empty() { None } else { Some(chosen - top) })))
 }
 
 /// What the actor can put in `slot`, in number order, and the 0 at the end

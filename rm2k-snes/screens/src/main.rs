@@ -174,8 +174,22 @@ fn do_render(args: &GameArgs) -> Result<()> {
     let slots = json.index_or("slots", 0)?;
     let chosen = json.index_or("chosen", 0)?;
     // The System each screen's windows are drawn with: the one `convert`
-    // gives the cartridge, redrawn if they do not fit —see `fit`—.
-    let fitted = |screen| -> Result<Skin> { Ok(fit::skin_for(&game, &skin, screen)?.0) };
+    // gives the cartridge, redrawn if they do not fit —see `fit`—. The item
+    // and equipment windows leave room for the text of the items the
+    // cartridge knows: the request's `items`, and without it, the
+    // inventory's, as the screens themselves take them.
+    let fitted = |screen| -> Result<Skin> {
+        let text = if screen == fit::Screen::Items {
+            let items: Vec<i32> = match json.known_items("items")? {
+                Some(known) => known.into_iter().collect(),
+                None => json.by_number("inventory").map(|i| i.into_keys().collect()).unwrap_or_default(),
+            };
+            convert::item_pairs(&game, &skin, &items)?
+        } else {
+            0
+        };
+        Ok(fit::skin_for(&game, &skin, screen, text)?.0)
+    };
     let screen: Picture = match json.text("screen")?.as_str() {
         // The pause menu's bar is the actor choice's: see `menu_bar_layer`.
         "menu" => render::menu(

@@ -106,6 +106,9 @@ fn everything_a_cartridge_carries() {
         .unwrap()
         .iter()
         .filter(|s| !s.as_str().unwrap().starts_with("  battle windows:"))
+        // Nor what the item screen's text asks of its pool, said since
+        // 2026-10-11.
+        .filter(|s| !s.as_str().unwrap().contains("item text: its list asks"))
         .cloned()
         .collect();
     answer["says"] = Value::from(says);

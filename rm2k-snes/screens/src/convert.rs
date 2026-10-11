@@ -291,6 +291,32 @@ fn shop_pairs(game: &Game, skin: &crate::game::Skin, request: &Request) -> Resul
     Ok(most)
 }
 
+/// What the item screen's busiest list asks of the pool, as [`shop_pairs`]
+/// does for the shop: the widest names in every row, every count at 99, and
+/// the widest description over them. Its pool is what the item and
+/// equipment windows leave below them —see `items_border_first`—, so a
+/// System whose windows take many tiles leaves less.
+pub fn item_pairs(game: &Game, skin: &crate::game::Skin, items: &[i32]) -> Result<usize> {
+    let font = &game.font;
+    let mut by_name: Vec<(usize, i32)> = Vec::new();
+    let mut widest_description = (0, None);
+    for &n in items {
+        let name = item_text(&game.item_name(n)?, ITEM_NAME_WIDTH);
+        by_name.push((font.width(&name), n));
+        let description: usize =
+            split_description(font, &game.item_description(n)?).iter().map(|l| font.width(l)).sum();
+        widest_description = widest_description.max((description, Some(n)));
+    }
+    by_name.sort_by(|a, b| b.cmp(a));
+    let mut list: Vec<i32> = widest_description.1.into_iter().collect();
+    list.extend(by_name.iter().map(|(_, n)| *n).filter(|n| Some(*n) != widest_description.1));
+    list.truncate(ITEM_ROWS);
+    list.sort_unstable();
+    let chosen = widest_description.1.and_then(|w| list.iter().position(|&n| n == w)).unwrap_or(0);
+    let inventory = list.iter().map(|&n| (n, 99)).collect();
+    Ok(render::item_screen_text(game, skin, &inventory, chosen, 0, Some(&list))?.0.pairs(font))
+}
+
 /// What a screen whose windows had to be redrawn says: see `fit`.
 fn fused_windows(whose: &str, tiles: Option<(usize, usize)>) -> Option<String> {
     tiles.map(|(from, to)| {
@@ -358,7 +384,7 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     }
     // Each screen with windows is drawn with the System `fit` gives it: the
     // game's, or with its windows redrawn if they do not fit their bank.
-    let (fitted, fused) = fit::skin_for(game, &skin, fit::Screen::Target)?;
+    let (fitted, fused) = fit::skin_for(game, &skin, fit::Screen::Target, 0)?;
     says.extend(fused_windows("the actor choice's", fused));
     let target_screens = [borders::target_layer(game, &fitted)?, borders::menu_bar_layer(&fitted)];
     let target = borders::borders(&target_screens, 0, TARGET_CGRAM, TARGET_CGRAM + TARGET_COLORS_MAX)?;
@@ -367,15 +393,22 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     // The item and equipment windows share tiles and colours, and go at the
     // end of the bank: the text has what is below them. Counted first, then
     // numbered from where they land.
-    let (fitted, fused) = fit::skin_for(game, &skin, fit::Screen::Items)?;
+    let (fitted, fused) = fit::skin_for(game, &skin, fit::Screen::Items, item_pairs(game, &skin, &request.items)?)?;
     says.extend(fused_windows("the item and equipment", fused));
     let border_screens = || [borders::item_layers(&fitted), borders::equipment_layers(&fitted)];
     let counted = borders::borders(&border_screens(), 0, ITEM_BORDER_CGRAM, 256)?;
     let first = items_border_first(counted.tiles.len());
     let items_border = borders::borders(&border_screens(), first, ITEM_BORDER_CGRAM, 256)?;
     request.vram.items_border(items_border.tiles.len(), 0)?;
+    let asked = item_pairs(game, &fitted, &request.items)?;
+    let pool = first.saturating_sub(1);
+    let warning = if asked > pool { "WARNING, " } else { "" };
+    says.push(format!(
+        "  {warning}item text: its list asks for {asked} pairs of tiles at most, of the {pool} the item and \
+         equipment windows leave"
+    ));
     // The shop's, with their own tiles and colours.
-    let (fitted, fused) = fit::skin_for(game, &skin, fit::Screen::Shop)?;
+    let (fitted, fused) = fit::skin_for(game, &skin, fit::Screen::Shop, 0)?;
     says.extend(fused_windows("the shop's", fused));
     let shop_border = borders::borders(&borders::shop_layers(&fitted), 0, ITEM_BORDER_CGRAM, TARGET_CGRAM)?;
     request.vram.shop(shop_border.tiles.len())?;
@@ -393,7 +426,7 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     request.vram.slots(slots.tiles.len())?;
     let title = if request.title { Some(title::menu(game, &skin)?) } else { None };
 
-    let (fitted, fused) = fit::skin_for(game, &skin, fit::Screen::Battle)?;
+    let (fitted, fused) = fit::skin_for(game, &skin, fit::Screen::Battle, 0)?;
     says.extend(fused_windows("the battle's", fused));
     let battle_windows = crate::battle::battle_windows(&fitted)?;
     says.push(format!(
