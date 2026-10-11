@@ -242,6 +242,13 @@ pub fn musicdata(music: &Music, emit: &Emit) -> Result<String> {
     // the release GAIN—, those of every song in one table and where each
     // one's start. In a single bank, because the 65816 reaches them with a
     // sixteen-bit index that does not cross banks.
+    //
+    // The bank is the cartridge's, sixty-four kilobytes: since 2026-10-01 it
+    // is ExHiROM, and the packing puts a `.block` of up to that whole inside
+    // one bank —`pack` in `rm2k-snes-cartridge`—, so `music_sounds + 5` plus
+    // any index the ROM computes stays inside it. Until 2026-10-11 the limit
+    // was half of that, from when the bank was LoROM's, and Vampires Dawn
+    // stopped at it with 41118 B.
     let (mut body, mut bases) = (Vec::new(), Vec::new());
     for t in songs {
         bases.push(body.len());
@@ -249,7 +256,7 @@ pub fn musicdata(music: &Music, emit: &Emit) -> Result<String> {
             body.extend_from_slice(sound);
         }
     }
-    if body.len() > 0x8000 {
+    if body.len() > 0x10000 {
         return Err(Bad::answer(format!("the music's sounds go over one bank: {} B", body.len())));
     }
     let bases = if bases.is_empty() { vec![0] } else { bases };

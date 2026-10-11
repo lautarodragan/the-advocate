@@ -117,6 +117,46 @@ fn the_music_is_the_one_the_python_wrote() {
     assert_eq!(sha(quality.as_bytes()), "409543a88da28c6fb38a3ca7d3e30995cf141f5b2bece7e3c4937bc8ae6d034a", "the MSU-1 sound effects");
 }
 
+/// The music's sounds of every song, in one table that goes over half a
+/// bank: Vampires Dawn stopped at it with 41118 B, when the limit was the
+/// LoROM bank's. The fixture's songs, copied with all 256 sounds a song can
+/// ask for, until they need more than half a bank and then more than a
+/// whole one.
+#[test]
+fn the_music_s_sounds_take_a_whole_bank_and_no_more() {
+    let dir = scratch("banks");
+    let game_dir = fixture::write(&dir);
+    let game = Game {
+        game_dir,
+        rtp_dir: Some(dir.join("rtp")),
+        project: Project::open(&dir.join("project")).unwrap(),
+    };
+    let samples = Samples { font: SoundFontSamples::open(&dir.join("soundfont.sf2")).unwrap() };
+    let (job, emit) =
+        job::parse(&serde_json::from_str(fixture::JOB).unwrap(), fixture::ARAM_END).unwrap();
+    let emit = emit.unwrap();
+    let mut music = compile::build(&job, &game, &samples).unwrap();
+    let _ = std::fs::remove_dir_all(&dir);
+    let mut song = music.songs[1].clone();
+    song.sounds = (0..256).map(|i| [i as u8, 0, 0, 0, 0, 0]).collect();
+    let before: usize = music.songs.iter().map(|t| t.sounds.len()).sum();
+    let added = 30 - music.songs.len();
+    music.songs.extend(std::iter::repeat(song.clone()).take(added));
+    let size = 6 * (before + 256 * added);
+    assert!(size > 0x8000);
+    let inc = emit::musicdata(&music, &emit).unwrap();
+    // One table, with its `.block`, which is what the packing keeps in one
+    // bank.
+    let lines: Vec<&str> = inc.lines().collect();
+    let at = lines.iter().position(|l| *l == "music_sounds:").unwrap();
+    assert_eq!(lines[at - 1], format!(".block {size}"));
+    while 6 * music.songs.iter().map(|t| t.sounds.len()).sum::<usize>() <= 0x10000 {
+        music.songs.push(song.clone());
+    }
+    let error = emit::musicdata(&music, &emit).unwrap_err();
+    assert!(format!("{error:?}").contains("the music's sounds go over one bank"), "{error:?}");
+}
+
 /// Writes the game, and what this compiles from it, to `FIXTURE_OUT`: what
 /// the hashes above were compared against.
 #[test]
