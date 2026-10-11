@@ -2839,9 +2839,13 @@ impl Rest<'_> {
                 })? as i64);
             }
         }
-        if members.len() > 255 || used.len() > 255 {
+        // A troop's place goes in a byte —`BA_TROOP_K`, with $FF "the
+        // cartridge does not carry it"—, and where its members start in a
+        // word of `troop_init`: they were a byte until 2026-10-10, when
+        // Vampires Dawn's 234 troops took 470 members.
+        if used.len() > 255 || members.len() > 0x10000 {
             return Err(Bad::answer(format!(
-                "the cartridge's troops don't fit in one-byte tables: {} troops, {} members",
+                "the cartridge's troops don't fit: {} troops of 255, {} members",
                 used.len(),
                 members.len()
             )));
@@ -2881,7 +2885,7 @@ impl Rest<'_> {
             }
         }
         words_asm(out, "troop_gold", &decimal(troop_gold.iter()), true);
-        bytes_asm(out, "troop_init", &decimal(starts), true);
+        words_asm(out, "troop_init", &decimal(starts), true);
         // Which members start hidden, one bit per place.
         let mut hidden = Vec::new();
         let mut counts = Vec::new();

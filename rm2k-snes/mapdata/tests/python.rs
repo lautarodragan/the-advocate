@@ -87,6 +87,11 @@
 //! command went gone, `BA_TXT_SP`, `BA_TXT_NORMAL` and `BA_TXT_DEAD` and
 //! those three texts, `ba_item_desc` and the items' whole descriptions, and
 //! the windows' blocks and constants (`ba_win_*`, `BA_WIN_*`).
+//!
+//! On 2026-10-10 `troop_init` went from bytes to words, because Vampires
+//! Dawn's troops take 470 members, and the two hashes moved: the difference
+//! is that table's `.byte` turned `.word` and its `.block` doubled, nothing
+//! else.
 
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_mapdata::record;
@@ -357,7 +362,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     assert_eq!(text.lines().count(), 3774);
     assert_eq!(
         sha(&text),
-        "a7c4eea1c7cdc22c28b91cd907b2833ba97370b513d3f388fb3878e81c03aa85"
+        "6359a90b6fc6ca6761289d4882121618986f974c393471a65b6abca5290e3ddc"
     );
 }
 
@@ -368,7 +373,7 @@ fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     assert_eq!(text.lines().count(), 3893);
     assert_eq!(
         sha(&text),
-        "e7b59c1a9ee9ea3479b70270e4b47e0860a164de98bb07fb5a0dfaeea4e1fc3d"
+        "40d3d982ef85ed9e024bebdc93f238d65f6969cddfc1218a0b26175ba1d388da"
     );
 }
 
@@ -384,4 +389,44 @@ fn a_troop_page_that_asks_for_a_variable_carries_its_tables() {
     assert!(text.contains(".block 6\ntpage_var:\n    .word 17, 0, 0\n"));
     assert!(text.contains(".block 6\ntpage_value:\n    .word 65534, 0, 0\n"));
     assert!(text.contains(".block 2\ntpage_sw_b:\n    .word 0\n"));
+}
+
+/// Vampires Dawn's troops take 470 members: where each troop's list starts
+/// in `troop_member` does not fit in a byte, and goes in a word. Made up out
+/// of troop 4 —eight members— copied under 34 more numbers.
+#[test]
+fn troops_with_more_members_than_a_byte_numbers_start_in_words() {
+    let mut db = db();
+    let read = |file: &str| -> serde_json::Value {
+        serde_json::from_str(&std::fs::read_to_string(here().join(file)).unwrap()).unwrap()
+    };
+    let mut value = read("tests/emit-whole.json");
+    let mut maps = read("tests/maps.json");
+    for m in maps["maps"].as_array_mut().unwrap() {
+        let id = m["id"].as_i64().unwrap();
+        m["sprite"]["timer_mask"] = (id * 3).into();
+    }
+    value["maps"] = maps["maps"].take();
+    let four = db.troops[&4].clone();
+    let model_four = value["battle_model"]["troops"][3].clone();
+    let scene_four = value["scene"]["troops"][3].clone();
+    for n in 7..41 {
+        let mut troop = four.clone();
+        troop.id = n;
+        db.troops.insert(n, troop);
+        value["troops"].as_array_mut().unwrap().push(n.into());
+        let mut model = model_four.clone();
+        model["id"] = n.into();
+        value["battle_model"]["troops"].as_array_mut().unwrap().push(model);
+        let mut scene = scene_four.clone();
+        scene[0] = n.into();
+        value["scene"]["troops"].as_array_mut().unwrap().push(scene);
+    }
+    let request: Emit = serde_json::from_value(value).unwrap();
+    let text = rm2k_snes_mapdata::emit::emit(&request, &db).unwrap().text;
+    // Six troops of 2, 3, 3, 8, 3 and 4 members, and then 34 of eight: the
+    // last one starts at 23 + 33 * 8.
+    let starts = text.split("troop_init:\n").nth(1).unwrap().lines().next().unwrap();
+    assert!(starts.starts_with("    .word 0, 2, 5, 8, 16, 19, 23, 31,"), "{starts}");
+    assert!(starts.ends_with(", 287"), "{starts}");
 }

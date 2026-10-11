@@ -106,12 +106,8 @@ other:
     lda BA_ONE + BA_FLAGS, x
     and #BAF_HIDDEN
     beq next
-    lda BA_TROOP_K
-    jsr ba_ax
-    lda f:troop_init, x
-    clc
-    adc BA_T0
-    jsr ba_ax
+    lda BA_T0
+    jsr ba_member_x
     lda f:troop_member, x       ; the enemy, as a place in the tables
     rep #$20
 .a16
@@ -173,12 +169,8 @@ has:
     jmp next
 to_view:
     ; The enemy, as a place in the tables: the same path as `ba_build`.
-    lda BA_TROOP_K
-    jsr ba_ax
-    lda f:troop_init, x
-    clc
-    adc BA_S0
-    jsr ba_ax
+    lda BA_S0
+    jsr ba_member_x
     lda f:troop_member, x
     sta BA_S2
     rep #$20
