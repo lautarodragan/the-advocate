@@ -54,6 +54,14 @@ to the machine and not to the project. **They arrive by flags**
 **A value nobody passed is an error, not a default**, except the cache and
 the test cartridges, which have their place inside the project's `build`.
 
+**The game and the RTP can be a `.zip`** of the directory. Nobody reads
+inside it: `Environment::unpack(&project)`, right after `from_matches`,
+unpacks it once into `zip/` in the cache —named by its content, see
+`archive`— and from then on the value is that directory, in `as_flags` too.
+A tool that skips `unpack` and gets a `.zip` gets an error from `game()` and
+`rtp()`. `rm2k-snes-project --game-dir X --unpacked game_dir` prints the
+directory, for whoever reads the game without being a tool.
+
 ## What a cached value depends on: `cache`
 
 The converter keeps what it computes the same way on every build in a disk

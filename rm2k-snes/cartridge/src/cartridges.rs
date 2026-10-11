@@ -36,6 +36,9 @@ pub const RELEASE: &str = "release";
 /// What the converter needs from the machine, since it runs in another
 /// process and receives it by flags; and what this one adds: where the test
 /// cartridges go, and the replacements for the MSU-1 tracks.
+/// `rm2k-snes-space` takes the same ones: it asks whether a cartridge is up
+/// to date, and the fingerprint reads the game, the RTP's path and the
+/// SoundFont's.
 pub const TO_CONVERTER: &[&str] = &["game_dir", "rtp_dir", "soundfont", "cache"];
 pub const FROM_ENVIRONMENT: &[&str] = &[
     "game_dir",
@@ -93,6 +96,15 @@ const CONVERTER_TOOLS: &[&str] = &[
     "rm2k-snes-patches",
     "rm2k-snes-screens",
 ];
+
+/// The extensions of what the stages read from the original game, in lower
+/// case: the graphics —`.xyz` too, which the battle's lookups accept— and
+/// the songs and sounds. What else a game ships is not read, or reaches
+/// the ROM some other way: the `.lmu`, `.ldb` and `.lmt` through the dump;
+/// the saves, which change every time someone plays the original, the
+/// executable, the `.mp3` and the videos, never. A lookup that starts
+/// accepting another extension adds it here.
+pub const GAME_EXTENSIONS: &[&str] = &["png", "bmp", "xyz", "mid", "wav"];
 
 /// The line the tracks end with, which this prints in its place.
 const TRACKS_SUMMARY: &str = "MSU-1 tracks, ";
@@ -198,7 +210,10 @@ enum WordOrList<'a> {
 
 impl Cartridges {
     /// Reads the project file, the map tree and the new maps.
-    pub fn load(project: Project, environment: Environment) -> Result<Cartridges, String> {
+    pub fn load(project: Project, mut environment: Environment) -> Result<Cartridges, String> {
+        // A `.zip` game or RTP, as a directory from here on —and for the
+        // tools this runs—: see `unpack`.
+        environment.unpack(&project)?;
         let p = &project;
         let maps_below = p.int(&["maps", "below"])?;
         let excluded_maps = p.ints(&["maps", "excluded"])?;
@@ -539,17 +554,24 @@ impl Cartridges {
     /// touching any source. `runtime` is a parameter so a test can pass a
     /// tree built by hand.
     ///
-    /// **The game's dump goes in, and the original game does not.** A
-    /// change to a `.lmu` reaches the ROM only through the dump —whoever
-    /// regenerates it is the game's recipe, not this—, and the dump is
-    /// also edited by hand to isolate a cause: until 2026-10-11 it stayed
-    /// out, and either of those left the cartridge "up to date" with the
-    /// old ROM. What the converter reads from the original game itself
-    /// —its PNGs, its MIDIs— is still out, and so are the RTP and the
-    /// SoundFont: changing them leaves the cartridge stale without a
-    /// warning. They are not edited, and `--game-dir` does not reach the
-    /// ones that only read the fingerprint —`rm2k-snes-space`, a game's
-    /// tests through `--list`—, which would see every cartridge stale.
+    /// **The game's dump goes in, and so do the original game's resources,
+    /// by content.** A change to a `.lmu` reaches the ROM only through the
+    /// dump —whoever regenerates it is the game's recipe, not this—, and
+    /// the dump is also edited by hand to isolate a cause; what the stages
+    /// read from the original game itself —its PNGs, its MIDIs— changes
+    /// when the game is retouched. Until 2026-10-11 both stayed out, and
+    /// either left the cartridge "up to date" with the old ROM. Which
+    /// resources, in [`Self::game_files`].
+    ///
+    /// **The RTP and the SoundFont go in by their path, not their
+    /// content**, in [`Self::fingerprint`]: they are not edited, and if
+    /// they are, `--force` rebuilds by hand. It is taro's, 2026-10-11.
+    ///
+    /// **A game or an RTP that comes as a `.zip` goes in by the `.zip`'s
+    /// content**, whole, and not by what was unpacked from it —see
+    /// `Environment::unpack` in `rm2k-project`—: hashing it is cheap, and
+    /// a `.zip` is what taro wants the games to be, so that they are not
+    /// retouched and every change goes through the patches.
     pub fn fingerprint_files(&self, runtime: &Path) -> Result<Vec<PathBuf>, String> {
         // All of the runtime, and not only what `main.s` includes today: a
         // file that is added and included in the same change has to make the
@@ -568,6 +590,13 @@ impl Cartridges {
         // The dump, whole: the converter and its stages read it, and it
         // changes without touching any of the above.
         parts.extend(files_below(&self.project.data()?)?);
+        // What the stages can read from the original game.
+        parts.extend(self.game_files()?);
+        // And the RTP, if it is a `.zip`: as a directory it goes by its
+        // path, in `fingerprint`.
+        if let Some((zip, _)) = self.environment.archive("rtp_dir") {
+            parts.push(zip.to_path_buf());
+        }
         // Until 2026-10-02 the `.py` files of the tools went in here too,
         // when the converter was a Python program; the last of them left
         // that day, and the converter is among the binaries above.
@@ -613,13 +642,63 @@ impl Cartridges {
         Ok(parts)
     }
 
+    /// The original game's files the stages can read: every one below
+    /// `--game-dir`, in any folder, with an extension in
+    /// [`GAME_EXTENSIONS`].
+    ///
+    /// **What they can read, not what they read.** The lookups are three
+    /// functions in three crates —the converter's, `rm2k-render`'s for the
+    /// maps and the screens, `rm2k-snes-audio`'s— and a few paths joined by
+    /// hand, in separate processes: having each one report what it opens
+    /// needs a channel between processes, and a reader that forgets to
+    /// report is the same silently stale ROM. A resource the game ships and
+    /// does not use goes in too, and retouching it rebuilds for nothing.
+    ///
+    /// A game that came as a `.zip` is the `.zip`, alone.
+    pub fn game_files(&self) -> Result<Vec<PathBuf>, String> {
+        if let Some((zip, _)) = self.environment.archive("game_dir") {
+            return Ok(vec![zip.to_path_buf()]);
+        }
+        let game = self.environment.game()?;
+        Ok(files_below(game)?
+            .into_iter()
+            .filter(|path| {
+                path.extension()
+                    .map(|e| e.to_string_lossy().to_ascii_lowercase())
+                    .is_some_and(|e| GAME_EXTENSIONS.contains(&e.as_str()))
+            })
+            .collect())
+    }
+
     /// What a cartridge depends on, besides its flags and its cases. The
     /// content is looked at and not the date, which a checkout changes.
     pub fn fingerprint(&self) -> Result<String, String> {
         let mut h = Sha256::new();
+        let game = self.environment.game()?;
         for path in self.fingerprint_files(&self.runtime)? {
+            // A game's file goes in with its name too: renaming a resource
+            // changes which one a lookup finds.
+            if let Ok(name) = path.strip_prefix(game) {
+                h.update(format!("game {}\n", name.display()));
+            }
+            // A `.zip` by the hash `unpack` already took, and not read twice:
+            // it is the biggest file here.
+            if let Some((_, hash)) = ["game_dir", "rtp_dir"]
+                .iter()
+                .filter_map(|n| self.environment.archive(n))
+                .find(|(zip, _)| *zip == path)
+            {
+                h.update(format!("zip {hash}\n"));
+                continue;
+            }
             h.update(std::fs::read(&path).map_err(|e| format!("{}: {e}", path.display()))?);
         }
+        // The RTP and the SoundFont, by their path: see `fingerprint_files`.
+        // An RTP that is a `.zip` went in by content, among the files.
+        if self.environment.archive("rtp_dir").is_none() {
+            h.update(format!("rtp {}\n", self.environment.rtp()?.display()));
+        }
+        h.update(format!("soundfont {}\n", self.environment.soundfont()?.display()));
         // And each song's volume ceiling, which changes the streams: by its
         // values and not by the file, because the tool that measures them
         // rewrites it after building with what it measured —the peak, the
@@ -694,10 +773,12 @@ impl Cartridges {
 
     // --- Building -------------------------------------------------------------
 
-    /// Converts and assembles the cartridge, if it is not up to date. Says
-    /// whether it built it.
-    pub fn build(&self, name: &str, inputs: &str) -> Result<bool, String> {
-        if self.stale(name, inputs)?.is_none() {
+    /// Converts and assembles the cartridge, if it is not up to date or if
+    /// `force` says so: that is how one rebuilds after changing what the
+    /// fingerprint does not look at by content, the RTP or the SoundFont.
+    /// Says whether it built it.
+    pub fn build(&self, name: &str, inputs: &str, force: bool) -> Result<bool, String> {
+        if !force && self.stale(name, inputs)?.is_none() {
             return Ok(false);
         }
         let directory = self.directory(name)?;

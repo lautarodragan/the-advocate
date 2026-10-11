@@ -49,7 +49,8 @@ fn command() -> Command {
 fn run() -> Result<(), Bad> {
     let matches = command().get_matches();
     let project = Project::locate(matches.get_one::<String>("project").map(Path::new))?;
-    let environment = Environment::from_matches(&matches, FROM_ENVIRONMENT);
+    let mut environment = Environment::from_matches(&matches, FROM_ENVIRONMENT);
+    environment.unpack(&project)?;
     let game = Game {
         game_dir: environment.game()?.to_path_buf(),
         rtp_dir: environment.rtp().ok().map(Path::to_path_buf),

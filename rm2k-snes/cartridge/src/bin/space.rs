@@ -9,18 +9,21 @@
 //! Everything comes from what the build left next to the ROM, so it neither
 //! relinks nor assembles anything; a cartridge that is not up to date is
 //! refused. See `space` in the library for what each number is.
+//!
+//! It takes the same machine flags as `rm2k-snes-cartridges`, because it
+//! asks the same question: the fingerprint reads the original game
+//! —`--game-dir`— and the RTP's and the SoundFont's paths. Only a built ROM
+//! passed by its path needs none of them.
 
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use cartridge::cartridges::Cartridges;
+use cartridge::cartridges::{Cartridges, FROM_ENVIRONMENT};
 use cartridge::space;
 use clap::{Arg, ArgAction, Command};
 use rm2k_project::environment::{arguments, Environment};
 use rm2k_project::{absolute, relative, suite, Project};
 use serde_json::json;
-
-const FROM_ENVIRONMENT: &[&str] = &["test_cartridges"];
 
 fn command() -> Command {
     Command::new("rm2k-snes-space")

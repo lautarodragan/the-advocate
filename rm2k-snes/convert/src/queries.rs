@@ -135,7 +135,8 @@ pub fn run(argv: Vec<String>) -> Result<()> {
     let (name, m) = matches.subcommand().expect("a subcommand is required");
     let project = Project::locate(m.get_one::<String>("project").map(PathBuf::from).as_deref())?;
     let settings = Settings { project: &project };
-    let environment = environment::Environment::from_matches(m, crate::options::MACHINE);
+    let mut environment = environment::Environment::from_matches(m, crate::options::MACHINE);
+    environment.unpack(&project)?;
     let game = Game::read(environment.game()?, &project)?;
     let answer = match name {
         "scan" => {
