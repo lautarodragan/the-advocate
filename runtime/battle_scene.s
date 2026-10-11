@@ -45,10 +45,11 @@ SCN_CLIP_Y0  = $6640
 SCN_CLIP_Y1  = $6642
 SCN_CLIP_C0  = $6644
 SCN_CLIP_C1  = $6646
-; Where the walk is in the drawing order, and where the troop starts in the
-; `miembro_*` tables. See `scn_by_command`.
+; Where the walk is in the drawing order. See `scn_by_command`. The byte
+; after it kept where the troop starts in the `member_*` tables until
+; 2026-10-10, when that became a word: `ba_member_x` reads it from
+; `troop_init` each time, and $6649 is free.
 SCN_K        = $6648
-SCN_INIT     = $6649
 ; 1 if this battle's background comes from the MSU-1 and not from the
 ; cartridge: see `scn_fill`. The tests read it too, to know which path
 ; ran.
@@ -314,15 +315,8 @@ scn_bits:
 .proc scn_by_command
 .a8
 .i16
-    rep #$20
-.a16
     lda SCN_K
-    clc
-    adc SCN_INIT
-    and #$00FF
-    tax
-    sep #$20
-.a8
+    jsr ba_member_x
     lda f:member_command, x
     sta SCN_E
     rts
@@ -645,18 +639,8 @@ no_backdrop:
     sta SCN_E
     lda BA_TROOP_K
     cmp #$FF
-    bne with_troop
+    bne other_enemy
     jmp allocated
-with_troop:
-    rep #$20
-.a16
-    and #$00FF
-    tax
-    sep #$20
-.a8
-    lda f:troop_init, x
-    sta SCN_I                   ; the first member
-    sta SCN_INIT                ; and again, for `scn_by_command`
 other_enemy:
     lda SCN_E
     cmp BA_KID
@@ -667,12 +651,9 @@ other_enemy:
     lda SCN_E
     and #$00FF
     tay                         ; Y: the enemy
-    clc
-    adc SCN_I
-    and #$00FF
-    tax                         ; X: the member
     sep #$20
 .a8
+    jsr ba_member_x             ; X: the member
     lda f:member_x, x
     sta SCN_E_X, y
     lda f:member_y, x

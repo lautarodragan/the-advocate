@@ -96,7 +96,10 @@ What the project put over the dump: `map_files` and `chipset_files`, its
 own maps and the ChipSets it adds; `names`, the names the caller gives some
 graphics —a translucent one baked against its cell, one drawn apart from
 the hero—, by event and page id; and `test_event`, an empty event first in
-the map where a test starts.
+the map where a test starts. And, **optional**, `dropped_events`: the
+events the caller leaves out of each map because they do not fit in the
+console's RAM, as `{"161": [125, 126]}`; the map is read without them, so
+its events are numbered as the caller's. Missing, none.
 
 What the cartridge decided: `leaders`, the actors that can lead, the first
 leading; `timer`, the System picture if the cartridge carries the timer in

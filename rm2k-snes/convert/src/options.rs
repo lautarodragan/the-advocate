@@ -112,6 +112,17 @@ fn command() -> clap::Command {
                  cartridge; 0 turns them off. Without this the game tree's value applies",
             ),
     )
+    .arg(
+        Arg::new("test_events_max")
+            .long("test-events-max")
+            .value_name("EVENTS")
+            .value_parser(value_parser!(usize))
+            .help(
+                "how many events a map keeps, as if the console's RAM held that many: what a \
+                 test lowers to reach the twins and the events left out with the maps of a \
+                 game that fits. Only the converter's choice moves; the RAM is the same",
+            ),
+    )
     .arg(Arg::new("hero_above").long("hero-above").action(ArgAction::SetTrue).help(
         "the hero at object priority 2, above the layer that should cover it",
     ))
@@ -165,6 +176,7 @@ pub struct Options {
     pub no_timer: bool,
     pub test_graphic: Option<Vec<(String, i32)>>,
     pub test_encounters: Option<i64>,
+    pub test_events_max: Option<usize>,
     pub hero_above: bool,
     pub party: Option<Vec<i32>>,
     pub maps: Vec<i32>,
@@ -244,6 +256,7 @@ pub fn parse(argv: Vec<String>) -> Result<Options> {
         no_timer: matches.get_flag("no_timer"),
         test_graphic,
         test_encounters: matches.get_one::<i64>("test_encounters").copied(),
+        test_events_max: matches.get_one::<usize>("test_events_max").copied(),
         hero_above: matches.get_flag("hero_above"),
         party: matches.get_many::<i32>("party").map(|v| v.copied().collect()),
         maps: matches.get_many::<i32>("maps").map(|v| v.copied().collect()).unwrap_or_default(),

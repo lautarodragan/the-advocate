@@ -432,6 +432,7 @@ mod tests {
             events: vec![Event { id: 1, x: 0, y: 0, pages }],
             lower_layer: lower,
             upper_layer: upper,
+            twins: Vec::new(),
         }
     }
 

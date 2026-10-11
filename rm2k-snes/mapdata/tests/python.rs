@@ -87,6 +87,19 @@
 //! command went gone, `BA_TXT_SP`, `BA_TXT_NORMAL` and `BA_TXT_DEAD` and
 //! those three texts, `ba_item_desc` and the items' whole descriptions, and
 //! the windows' blocks and constants (`ba_win_*`, `BA_WIN_*`).
+//!
+//! On 2026-10-10 `troop_init` went from bytes to words, because Vampires
+//! Dawn's troops take 470 members, and the two hashes moved: the difference
+//! is that table's `.byte` turned `.word` and its `.block` doubled, nothing
+//! else. The same day `enemy_acc_init` did the same, for Vampires Dawn's 344
+//! enemy actions, and the hashes moved again by that table alone.
+//!
+//! On 2026-10-10 a map with more events than the RAM holds got its twins
+//! —events left without a row, which share another's— as a table behind
+//! its positions, a word with how many first. These maps have none, and
+//! the three hashes moved: the difference against the old text is
+//! `TWIN_STRIDE` and its comment, and a zero word behind each map's
+//! positions.
 
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_mapdata::record;
@@ -114,7 +127,7 @@ fn what_goes_per_map_comes_out_as_the_python_wrote_it() {
     );
     assert_eq!(
         sha(&with_the_turn_as_before(&written.maps)),
-        "cb782dcc5d6a59cb08786dea041fabaacbdb78812d565a5b5841be440d55ce42"
+        "1622acb05a2213323bcb3b722f858187002804ddbf98b031f9f06cae75fd5382"
     );
     assert_eq!(
         sha(&written.tables),
@@ -354,10 +367,10 @@ fn without_bare_window(text: &str) -> String {
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
     let text = with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&emitted.text)))))));
-    assert_eq!(text.lines().count(), 3774);
+    assert_eq!(text.lines().count(), 3777);
     assert_eq!(
         sha(&text),
-        "a7c4eea1c7cdc22c28b91cd907b2833ba97370b513d3f388fb3878e81c03aa85"
+        "e69d461152e7c6c87775d241d12d29bf7fb0047813f6641e55a5db86ca901ea7"
     );
 }
 
@@ -365,10 +378,10 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
     let text = with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&emitted.text)))))));
-    assert_eq!(text.lines().count(), 3893);
+    assert_eq!(text.lines().count(), 3896);
     assert_eq!(
         sha(&text),
-        "e7b59c1a9ee9ea3479b70270e4b47e0860a164de98bb07fb5a0dfaeea4e1fc3d"
+        "544a579b5ec04204f33cb0404d1b9d7202f4274252eb35764744e28b61d5f2e7"
     );
 }
 
@@ -384,4 +397,59 @@ fn a_troop_page_that_asks_for_a_variable_carries_its_tables() {
     assert!(text.contains(".block 6\ntpage_var:\n    .word 17, 0, 0\n"));
     assert!(text.contains(".block 6\ntpage_value:\n    .word 65534, 0, 0\n"));
     assert!(text.contains(".block 2\ntpage_sw_b:\n    .word 0\n"));
+}
+
+/// Vampires Dawn's troops take 470 members: where each troop's list starts
+/// in `troop_member` does not fit in a byte, and goes in a word. Made up out
+/// of troop 4 —eight members— copied under 34 more numbers.
+#[test]
+fn troops_with_more_members_than_a_byte_numbers_start_in_words() {
+    let mut db = db();
+    let read = |file: &str| -> serde_json::Value {
+        serde_json::from_str(&std::fs::read_to_string(here().join(file)).unwrap()).unwrap()
+    };
+    let mut value = read("tests/emit-whole.json");
+    let mut maps = read("tests/maps.json");
+    for m in maps["maps"].as_array_mut().unwrap() {
+        let id = m["id"].as_i64().unwrap();
+        m["sprite"]["timer_mask"] = (id * 3).into();
+    }
+    value["maps"] = maps["maps"].take();
+    let four = db.troops[&4].clone();
+    let model_four = value["battle_model"]["troops"][3].clone();
+    let scene_four = value["scene"]["troops"][3].clone();
+    for n in 7..41 {
+        let mut troop = four.clone();
+        troop.id = n;
+        db.troops.insert(n, troop);
+        value["troops"].as_array_mut().unwrap().push(n.into());
+        let mut model = model_four.clone();
+        model["id"] = n.into();
+        value["battle_model"]["troops"].as_array_mut().unwrap().push(model);
+        let mut scene = scene_four.clone();
+        scene[0] = n.into();
+        value["scene"]["troops"].as_array_mut().unwrap().push(scene);
+    }
+    let request: Emit = serde_json::from_value(value).unwrap();
+    let text = rm2k_snes_mapdata::emit::emit(&request, &db).unwrap().text;
+    // Six troops of 2, 3, 3, 8, 3 and 4 members, and then 34 of eight: the
+    // last one starts at 23 + 33 * 8.
+    let starts = text.split("troop_init:\n").nth(1).unwrap().lines().next().unwrap();
+    assert!(starts.starts_with("    .word 0, 2, 5, 8, 16, 19, 23, 31,"), "{starts}");
+    assert!(starts.ends_with(", 287"), "{starts}");
+}
+
+/// Vampires Dawn's enemies take 344 actions: where each enemy's list starts
+/// in `eacc_*` does not fit in a byte, and goes in a word. Made up giving each
+/// of the eight enemies forty attacks.
+#[test]
+fn enemies_with_more_actions_than_a_byte_numbers_start_in_words() {
+    let mut request = emit_request("whole");
+    let attacks = serde_json::json!(vec![serde_json::json!([50, null, true]); 40]);
+    for e in 1..=8 {
+        request.battle_model["actions"][e.to_string()] = attacks.clone();
+    }
+    let text = rm2k_snes_mapdata::emit::emit(&request, &db()).unwrap().text;
+    let starts = text.split("enemy_acc_init:\n").nth(1).unwrap().lines().next().unwrap();
+    assert_eq!(starts, "    .word 0, 40, 80, 120, 160, 200, 240, 280");
 }
