@@ -249,11 +249,20 @@ pub fn assemble(
     // Before touching anything else: the shadowing check is part of this.
     let generated = generated(source, include)?;
     let [ca65, ld65] = binaries()?;
-    let packing = banks::resolve(&generated)?;
+    // The `.msu` is the one next to the ROM, with its name: the converter
+    // writes it there, and the emulator looks for it there.
+    let msu = rom.with_extension("msu");
+    let packing = banks::resolve(&generated, Some(&msu))?;
     println!(
         "bank packing: {} piece(s) in {} bank(s), {} of them slow",
         packing.pieces, packing.banks, packing.slow
     );
+    if packing.spilled > 0 {
+        println!(
+            "  and {} piece(s) in the .msu instead: {} bytes",
+            packing.spilled, packing.spilled_bytes
+        );
+    }
     let cfg = include.join(MEMORY_MAP);
     std::fs::write(&cfg, banks::cfg()).map_err(|e| format!("{}: {e}", cfg.display()))?;
 

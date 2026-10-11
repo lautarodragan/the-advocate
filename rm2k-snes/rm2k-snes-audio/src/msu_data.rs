@@ -21,7 +21,8 @@
 //!
 //! ```text
 //!     $00     8  the signature: the first 8 bytes of the sha256 of
-//!                everything that follows
+//!                everything that follows, up to the end of the last
+//!                entry
 //!     $08     4  the game's signature: `[rom] msu_data_signature`
 //!     $0C     2  the format version, 2 today
 //!     $0E     2  how many entries there are, N
@@ -32,7 +33,15 @@
 //!                of number: backdrop k at `backdrop_offset(k)`
 //!     ...        after the last one, the other entries, one after the
 //!                other and in the order of the index
+//!     ...        and, only in a cartridge that needs the MSU-1, from the
+//!                next sector, what did not fit in the ROM
 //! ```
+//!
+//! **That last region is not this module's**: the bank packing appends it,
+//! after the converter wrote the rest —it is the packing that knows what
+//! does not fit—, and it is not in the index nor under the signature,
+//! which is why the signature ends where the entries end. It carries its
+//! own. See `msu.rs` in `rm2k-snes-cartridge`.
 //!
 //! **The backdrop region is fixed.** Up to version 1 the entries all went
 //! one after the other behind the index, so the place of a backdrop depended
@@ -156,34 +165,56 @@ pub fn index(blob: &[u8], magic: &[u8; 4]) -> Result<Vec<(u32, u32)>> {
     if blob.len() < HEADER_SIZE || &blob[SIGNATURE_SIZE..SIGNATURE_SIZE + 4] != magic {
         return Err(Bad::answer("not a .msu with data from this game"));
     }
-    if signature_of(&blob[SIGNATURE_SIZE..]) != blob[..SIGNATURE_SIZE] {
+    let entries = raw_index(blob)?;
+    if signature_of(&blob[SIGNATURE_SIZE..signed_end(&entries)]) != blob[..SIGNATURE_SIZE] {
         return Err(Bad::answer("the signature does not match the content"));
     }
-    let word = |at: usize| u16::from_le_bytes([blob[at], blob[at + 1]]);
-    let long = |at: usize| u32::from_le_bytes(blob[at..at + 4].try_into().unwrap());
-    let (version, n) = (word(SIGNATURE_SIZE + 4), word(SIGNATURE_SIZE + 6) as usize);
+    let version = u16::from_le_bytes([blob[SIGNATURE_SIZE + 4], blob[SIGNATURE_SIZE + 5]]);
     if version != VERSION {
         return Err(Bad::answer(format!("version {version}, and this reads {VERSION}")));
     }
+    Ok(entries)
+}
+
+/// The index as it is written, checking only that the file reaches it and
+/// its entries.
+fn raw_index(blob: &[u8]) -> Result<Vec<(u32, u32)>> {
+    if blob.len() < HEADER_SIZE {
+        return Err(Bad::answer("not a .msu with data"));
+    }
+    let n = u16::from_le_bytes([blob[SIGNATURE_SIZE + 6], blob[SIGNATURE_SIZE + 7]]) as usize;
     if blob.len() < HEADER_SIZE + ENTRY_SIZE * n {
         return Err(Bad::answer("the .msu is shorter than its index"));
     }
-    Ok((0..n)
+    let long = |at: usize| u32::from_le_bytes(blob[at..at + 4].try_into().unwrap());
+    let entries: Vec<(u32, u32)> = (0..n)
         .map(|k| {
             let at = HEADER_SIZE + ENTRY_SIZE * k;
             (long(at), long(at + 4))
         })
-        .collect())
+        .collect();
+    if signed_end(&entries) > blob.len() {
+        return Err(Bad::answer("the .msu is shorter than its entries"));
+    }
+    Ok(entries)
+}
+
+/// Where what the signature covers ends: after the last entry, or after
+/// the index if there are none. What may come behind is the region of what
+/// did not fit in the ROM, which carries its own: see "The format".
+fn signed_end(entries: &[(u32, u32)]) -> usize {
+    entries
+        .iter()
+        .map(|&(at, length)| at as usize + length as usize)
+        .fold(HEADER_SIZE + ENTRY_SIZE * entries.len(), usize::max)
 }
 
 /// The same `.msu`, signed again: what whoever changes its bytes has to do
 /// for it to pass as the `.msu` of another build.
 pub fn sign(blob: &[u8]) -> Result<Vec<u8>> {
-    if blob.len() < HEADER_SIZE {
-        return Err(Bad::answer("not a .msu with data"));
-    }
+    let end = signed_end(&raw_index(blob)?);
     let mut out = blob.to_vec();
-    let signature = signature_of(&out[SIGNATURE_SIZE..]);
+    let signature = signature_of(&out[SIGNATURE_SIZE..end]);
     out[..SIGNATURE_SIZE].copy_from_slice(&signature);
     Ok(out)
 }
@@ -207,6 +238,16 @@ mod tests {
         other[0x18200] ^= 0xFF;
         assert!(index(&other, b"TEST").is_err());
         assert!(index(&sign(&other).unwrap(), b"TEST").is_ok());
+    }
+
+    #[test]
+    fn what_goes_behind_the_entries_is_not_under_the_signature() {
+        let (blob, _) = build(&[&[1u8, 2, 3][..]], 0, b"TEST").unwrap();
+        let mut longer = blob.clone();
+        longer.resize(blob.len() + 700, 5);
+        assert_eq!(index(&longer, b"TEST").unwrap(), index(&blob, b"TEST").unwrap());
+        assert_eq!(sign(&longer).unwrap()[..SIGNATURE_SIZE], blob[..SIGNATURE_SIZE]);
+        assert!(index(&blob[..blob.len() - 1], b"TEST").is_err(), "an entry cut short");
     }
 
     #[test]

@@ -187,6 +187,9 @@ pub struct Cartridge {
     pub measuring_headroom: Option<f64>,
     /// How many frames decompressing the boot map takes.
     pub decompress_frames: f64,
+    /// Whether the samples may travel in the `.msu`: in a cartridge that
+    /// needs the MSU-1. See `Emit::msu_samples`.
+    pub msu_samples: bool,
 }
 
 /// What was decided, which the rest of the stage prints.
@@ -380,6 +383,10 @@ pub fn plan(c: &Cartridge) -> Result<Plan> {
     emit.insert("sounds".into(), json!(s.sounds.iter().map(|(n, v, t, b)| json!([n, v, t, b])).collect::<Vec<_>>()));
     emit.insert("start".into(), json!(c.start));
     emit.insert("decompress_frames".into(), json!(c.decompress_frames));
+    // Only when it is so: a job without it is the one it always was.
+    if c.msu_samples {
+        emit.insert("msu_samples".into(), json!(true));
+    }
     let mut job = Map::new();
     job.insert("songs".into(), json!(names));
     job.insert("effects".into(), json!(effects));

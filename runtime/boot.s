@@ -36,6 +36,9 @@ fast:
     lda #$01
     sta MEMSEL                  ; the mirror's ROM, fast
     jsr msu_detect              ; does the music come from a track?
+.ifdef MSU_REQUIRED
+    jsl f:msu_required          ; and if the game needs it: see msu1.s
+.endif
 
     ; After the reset, not before: ppu_reset turns NMITIMEN off along with
     ; everything else, so enabling it first would be no use.

@@ -532,6 +532,7 @@ fn do_cartridge(args: &CartridgeArgs) -> Result<()> {
             .get("decompress_frames")
             .and_then(Value::as_f64)
             .ok_or_else(|| bad("decompress_frames"))?,
+        msu_samples: request.get("msu_samples").and_then(Value::as_bool).unwrap_or(false),
     };
     let magic = msu_magic(project)?;
 

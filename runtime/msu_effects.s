@@ -864,6 +864,25 @@ ready:
     rts
 .endproc
 
+; For `upload_sample`, in a cartridge that needs the MSU-1: its sample is in
+; the `.msu` —the bank in `comp_glyph + 2` is `MSU_SPILL_BANK`, and the
+; address is its unit: see `lz2_msu` in decompress.s—, and goes to ARAM the
+; way the `.msu`'s sound effects go, from PKG_A and PKG_LENGTH bytes long.
+.ifdef MSU_REQUIRED
+.proc msu_sample_l
+.a8
+.i16
+    lda #$FF                    ; see `lz2_msu`
+    sta f:MSU_SE_NEXT
+    sta f:MSU_SE_NEXT + 1
+    sta f:MSU_SE_NEXT + 2
+    ldx comp_glyph
+    jsr msu_spill_seek
+    jsr msu_a_aram
+    rtl
+.endproc
+.endif
+
 ; The number of the sound effect noted in directory entry A, which is a sound
 ; effect place —SE_FIRST or above—, in A: see `FAR_EFFECT_IN`. Clobbers X.
 .proc place_effect

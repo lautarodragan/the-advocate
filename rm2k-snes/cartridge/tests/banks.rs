@@ -340,6 +340,27 @@ fn what_crosses_on_purpose_is_declared() {
 }
 
 #[test]
+fn a_chain_that_finds_only_halves_goes_first() {
+    // Three whole pieces of 30000 take the two whole banks —the third does
+    // not fit beside the other two, and a new bank is the first free slot,
+    // which is the whole one— and the chain of 64 KB, which goes last,
+    // finds only the half. With the chain first it fits: the third piece
+    // goes in the half.
+    let half = Slot { bank: 0x70, start: 0x8000, size: HALF };
+    let slots = [whole(0xC2), whole(0xC3), half];
+    let mut text = rodata();
+    for k in 0..3 {
+        text += &format!(".block 30000\nw{k}:\n    .res 30000\n");
+    }
+    text += ".crossbank\nchain:\n";
+    text += &bytes(16).repeat(BANK_SIZE / 16);
+    let (out, (_, banks)) = resolve_into(&[&text], &slots).unwrap();
+    assert_eq!(banks, 3);
+    let (before, _) = split_at(&out[0], B3);
+    assert!(before.contains("chain:") && !before.contains("w0:"), "the chain went first: {before:.200}");
+}
+
+#[test]
 fn what_crosses_and_fits_whole_fills_a_gap() {
     let (out, count) = one(
         &(rodata()
@@ -409,4 +430,113 @@ fn the_memory_map_puts_each_bank_in_place() {
     }
     assert_eq!(offset, banks::ROM_SIZE);
     assert_eq!(bank0, Some(0x008000), "where the console sees $80:8000");
+}
+
+// --- what does not fit, to the `.msu` ---------------------------------------
+
+/// A piece that may go to the `.msu`: `n` bytes of `value`.
+fn may_go(label: &str, n: usize, value: u8) -> String {
+    format!(".msu\n.block {n}\n{label}:\n")
+        + &format!("    .byte {}\n", vec![format!("${value:02X}"); n].join(","))
+}
+
+/// The packing with a `.msu` region from `start`, into `slots`.
+fn with_msu(
+    text: &str,
+    slots: &[Slot],
+    start: usize,
+) -> Result<(String, banks::Packing, Option<Vec<u8>>), String> {
+    let names = vec!["part.inc".to_string()];
+    let (mut out, packing, spill) = banks::pack_with_msu(&names, &[text], slots, Some(start))?;
+    Ok((out.remove(0), packing, spill.map(|s| s.region)))
+}
+
+#[test]
+fn without_msu_required_the_mark_changes_nothing() {
+    let marked = rodata() + &may_go("a", 40, 1) + &may_go("b", 30, 2);
+    let plain = marked.replace(".msu\n", "");
+    let slots = [whole(0xC2)];
+    assert_eq!(resolve_into(&[&marked], &slots).unwrap(), resolve_into(&[&plain], &slots).unwrap());
+    let (_, packing, spill) = with_msu(&marked, &slots, 512).unwrap();
+    assert_eq!((packing.spilled, spill.is_none()), (0, true));
+}
+
+#[test]
+fn what_fits_stays_and_the_region_is_there_empty() {
+    let text = "MSU_REQUIRED = 1\n".to_string() + &rodata() + &may_go("a", 40, 1);
+    let (out, packing, region) = with_msu(&text, &[whole(0xC2)], 0x1_0200).unwrap();
+    assert_eq!(packing.spilled, 0);
+    assert!(out.contains("a:") && out.contains("msu_spill_signature:"), "{out}");
+    assert!(out.contains("MSU_SPILL_AT = $000102") && out.contains("MSU_SPILLED = 0"), "{out}");
+    assert_eq!(region.unwrap().len(), 256);
+}
+
+#[test]
+fn the_largest_go_until_the_rest_fits() {
+    // A half bank, and three pieces that together do not fit in it: the
+    // largest goes, and only it.
+    let text = "MSU_REQUIRED = 1\n".to_string()
+        + &rodata()
+        + &may_go("small", 1000, 1)
+        + &may_go("big", 20000, 2)
+        + &may_go("middle", 15000, 3)
+        + ".block 100\nstays:\n"
+        + &bytes(100);
+    let half = [Slot { bank: 0xC1, start: 0, size: HALF }];
+    let (out, packing, region) = with_msu(&text, &half, 512).unwrap();
+    assert_eq!((packing.spilled, packing.spilled_bytes), (1, 20000));
+    assert!(out.contains("big = $3D0001"), "{out}");
+    assert!(out.contains("small:") && out.contains("middle:") && out.contains("stays:"));
+    assert!(!out.contains("big:") && !out.lines().any(|l| l.trim() == ".msu"));
+    let region = region.unwrap();
+    assert_eq!(region.len(), 256 + 20000_usize.div_ceil(256) * 256);
+    assert!(region[256..256 + 20000].iter().all(|&b| b == 2));
+    let hex: Vec<String> = region[..8].iter().map(|b| format!("${b:02X}")).collect();
+    assert!(out.contains(&hex.join(",")), "the ROM gets the region's signature");
+}
+
+#[test]
+fn everything_goes_when_asked_and_each_from_its_unit() {
+    let text = "MSU_REQUIRED = 1\nMSU_SPILL_EVERYTHING = 1\n".to_string()
+        + &rodata()
+        + &may_go("a", 300, 1)
+        + &may_go("b", 10, 2)
+        + ".block 4\nstays:\n"
+        + &bytes(4);
+    let (out, packing, region) = with_msu(&text, &[whole(0xC2)], 512).unwrap();
+    assert_eq!(packing.spilled, 2);
+    // In the order of the text: `a` takes two units.
+    assert!(out.contains("a = $3D0001") && out.contains("b = $3D0003"), "{out}");
+    let region = region.unwrap();
+    assert_eq!((region[256], region[3 * 256]), (1, 2));
+    assert_eq!(region.len(), 4 * 256);
+}
+
+#[test]
+fn what_does_not_fit_even_without_them_says_so() {
+    let text = "MSU_REQUIRED = 1\n".to_string()
+        + &rodata()
+        + &may_go("a", 100, 1)
+        + &format!(".block {0}\nbig:\n    .res {0}\n", BANK_SIZE);
+    let error = with_msu(&text, &[whole(0xC2)], 512).err().unwrap();
+    assert!(error.contains("does not fit") && error.contains("1 piece(s) that may go"), "{error}");
+}
+
+#[test]
+fn a_piece_that_cannot_be_turned_into_bytes_is_not_sent() {
+    let text = "MSU_REQUIRED = 1\nMSU_SPILL_EVERYTHING = 1\n".to_string()
+        + &rodata()
+        + ".msu\n.block 2\nw:\n    .word w\n";
+    let error = with_msu(&text, &[whole(0xC2)], 512).err().unwrap();
+    assert!(error.contains("literal byte"), "{error}");
+    let loose = rodata() + ".msu\nx:\n    .byte 1\n";
+    assert!(resolve(&[&loose]).unwrap_err().contains("`.msu`"));
+}
+
+#[test]
+fn a_cartridge_that_needs_the_msu_and_has_none_says_so() {
+    let text = "MSU_REQUIRED = 1\n".to_string() + &rodata() + &may_go("a", 4, 1);
+    let names = vec!["part.inc".to_string()];
+    let error = banks::pack_with_msu(&names, &[&text], &[whole(0xC2)], None).err().unwrap();
+    assert!(error.contains(".msu"), "{error}");
 }

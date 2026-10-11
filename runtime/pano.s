@@ -391,6 +391,9 @@ on:
     sta DMAP0                   ; two registers, word by word
     lda #$18
     sta BBAD0
+.ifdef MSU_REQUIRED
+    jsl f:msu_dma0_l            ; the tiles may be in the `.msu`
+.endif
     lda #$01
     sta MDMAEN
     ; The second stretch, if there is one: a DMA of zero bytes moves 65536.
@@ -406,6 +409,19 @@ on:
     adc f:pano_table + PT_BYTES1, x
     sta A1T0L
     sep #$20
+.ifdef MSU_REQUIRED
+    ; From the `.msu`, the second stretch is right behind the first, where
+    ; the port was left; `msu_dma0` put the bank at zero.
+.a8
+    lda f:pano_table + PT_TILES + 2, x
+    cmp #MSU_SPILL_BANK
+    bne second_in_rom
+    sta A1B0
+    ldy #$FFFF
+    sty A1T0L
+    jsl f:msu_dma0_l
+second_in_rom:
+.endif
 .a8
     lda #$01
     sta MDMAEN

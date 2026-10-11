@@ -14,5 +14,6 @@ pub mod assemble;
 pub mod banks;
 pub mod cartridges;
 pub mod dbg;
+pub mod msu;
 pub mod space;
 mod text;

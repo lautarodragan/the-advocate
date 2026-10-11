@@ -41,7 +41,7 @@
 //!   +52 word
 //! ```
 
-use crate::asm::{block, pointer};
+use crate::asm::{block, msu_block, pointer};
 use crate::fail::{Bad, Result};
 use crate::request::Map;
 use crate::vram;
@@ -90,7 +90,12 @@ fn lcm(a: i64, b: i64) -> i64 {
 }
 
 /// The table, and each panorama's tiles and tilemap.
-pub fn panorama_table(maps: &[Map]) -> Result<String> {
+///
+/// With `msu`, the tiles go marked as pieces that may travel in the `.msu`:
+/// `pano_load` uploads them whole, with the screen off, through `msu_dma0`.
+/// Not the tilemap, which the streaming reads row by row while the map is
+/// played.
+pub fn panorama_table(maps: &[Map], msu: bool) -> Result<String> {
     let mut out = vec![
         "; The panoramas: see `panorama.rs` in rm2k-snes-mapdata and `pano.s`.".to_string(),
         format!("PANO_STRIDE = {PANO_STRIDE}"),
@@ -158,7 +163,7 @@ pub fn panorama_table(maps: &[Map]) -> Result<String> {
                 return label.clone();
             }
             let label = format!("pano_{kind}_{number}");
-            out.push(block(&label, &bytes));
+            out.push(msu_block(&label, &bytes, msu && kind == "tiles"));
             emitted.insert((kind.to_string(), bytes), label.clone());
             label
         };

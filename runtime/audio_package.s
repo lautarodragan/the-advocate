@@ -141,6 +141,13 @@ wait:
 .a8
     lda f:sample_table + 2, x
     sta comp_glyph + 2
+.ifdef MSU_REQUIRED
+    cmp #MSU_SPILL_BANK
+    bne in_rom
+    jsl f:msu_sample_l          ; it travels in the `.msu`: see there
+    rts
+in_rom:
+.endif
     ldy #0
 suite:
     ; The pointer, to where the next triplet goes: the block does not advance

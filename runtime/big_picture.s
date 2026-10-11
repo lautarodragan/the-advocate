@@ -308,7 +308,9 @@ plain:
     sta A1B0
     ; and on into `big_dma_vram`
 .endproc
-; DAS0L bytes from A1B0:A1T0L to where VMADDL points, word by word.
+; DAS0L bytes from A1B0:A1T0L to where VMADDL points, word by word. The
+; picture's tiles may be in the `.msu`, in a cartridge that needs it: see
+; `msu_dma0`.
 .proc big_dma_vram
 .a8
 .i16
@@ -316,6 +318,9 @@ plain:
     sta DMAP0
     lda #$18
     sta BBAD0
+.ifdef MSU_REQUIRED
+    jsr msu_dma0
+.endif
     lda #$01
     sta MDMAEN
     rts

@@ -51,10 +51,19 @@
 ;
 ; The output cannot cross a bank: Y wraps at $FFFF and the converter watches
 ; for it, with streams of up to 32 KB.
+;
+; In a cartridge that needs the MSU-1 the stream may be in the `.msu`
+; instead: then A is `MSU_SPILL_BANK` and `lz2_msu` reads it. See there.
 .proc lz2_decompress
 .a8
 .i16
     php
+.ifdef MSU_REQUIRED
+    cmp #MSU_SPILL_BANK
+    bne in_rom
+    jmp lz2_msu
+in_rom:
+.endif
     phb
     pha
     ; The literal's trampoline. In `mvn`'s machine code the destination bank
@@ -217,6 +226,307 @@ ready:
 .proc lz2_body_7f
     LZ2_BODY ^GRID_HIGH
 .endproc
+
+; --- a stream that travels in the `.msu` ---------------------------------------
+;
+; A cartridge whose ROM does not reach carries in the `.msu` the streams the
+; bank packing could not fit —`pack_with_msu` in rm2k-snes-cartridge—, and
+; their label is not an address but bank `MSU_SPILL_BANK`, which no data of
+; the cartridge is in, and the unit the stream starts at in the `.msu`'s
+; region: `MSU_SPILL_AT` plus the unit, times 256. Who asks for one does not
+; know: it passes the bank and the address it read from its table, as with
+; any other, and `lz2_decompress` sends it here.
+;
+; It is the same LZ2 read from `MSU_DATA` instead of from the ROM, a byte at
+; a time: the port advances by itself, so there is no stream pointer and X is
+; free. The literals go by the CPU and not by `mvn` —the source is a port,
+; not memory—: about twice the cycles per byte of the ROM's, with the screen
+; off inside the fade. The repeats and the fills are the ROM's, output onto
+; output.
+;
+; **Two streams in a row**: `lz2_grid` and `lz2_backdrop` decompress the
+; second where the first ended, passing back the X it left. Here it leaves
+; X at $FFFF, and a stream asked for with X at $FFFF does not seek: it goes
+; on from where the port was left, which is right behind the first, because
+; the packing sends a piece whole. That is why no stream starts at unit
+; $FFFF.
+;
+; Only assembled in a cartridge that needs the MSU-1, which is the only one
+; the packing sends anything to the `.msu` in: in the rest this does not
+; exist and the ROM is the same as before there was a way to need it. That
+; the boot already checked that the MSU-1 is there and the `.msu` is this
+; build's is what lets this not look at either: see `msu_required`.
+.ifdef MSU_REQUIRED
+.proc lz2_msu
+.a8
+.i16
+    ; Entered from `lz2_decompress` after its `php`, with the frame its bodies
+    ; expect built here the same way: the data bank, and on top the base and
+    ; the length.
+    phb
+    ; The sound effects of the `.msu` remember where they left the port so
+    ; as not to seek twice —see `se_msu_upload`—, and this moves it.
+    lda #$FF
+    sta f:MSU_SE_NEXT
+    sta f:MSU_SE_NEXT + 1
+    sta f:MSU_SE_NEXT + 2
+    cpx #$FFFF
+    beq sought                  ; right behind the one before
+    phy
+    jsr msu_spill_seek
+    ply
+sought:
+    rep #$20
+.a16
+    tya
+    pha                         ; 3,s: the output's base
+    pha                         ; 1,s: the command's length, minus one
+    sep #$20
+.a8
+    lda f:LZ2_BANK
+    cmp #^GRID_HIGH
+    bne in_7e
+    jmp lz2_msu_7f
+in_7e:
+    jmp lz2_msu_7e
+.endproc
+
+; Seeks the `.msu` to unit X of the region and waits for the port to have
+; it. Clobbers A and X.
+;
+; **The wait has no cap**, unlike `msu_data_seek`'s: what is read here has no
+; other source, and running out of time would decompress garbage instead
+; of waiting. The boot already checked that the MSU-1 answers.
+.proc msu_spill_seek
+.a8
+.i16
+    rep #$20
+.a16
+    txa
+    clc
+    adc #.loword(MSU_SPILL_AT)
+    tax                         ; bytes 1 and 2 of the position
+    sep #$20                    ; `sep` keeps the carry
+.a8
+    lda #^MSU_SPILL_AT
+    adc #0
+    pha                         ; byte 3: a `txa` of sixteen bits would take B
+    lda #0
+    sta f:MSU_SEEK              ; byte 0: the units are of 256
+    rep #$20
+.a16
+    txa
+    sta f:MSU_SEEK + 1
+    sep #$20
+.a8
+    pla
+    sta f:MSU_SEEK + 3          ; the one that seeks, last
+wait:
+    lda f:MSU_STATE
+    bmi wait                    ; bit 7: still seeking
+    rts
+.endproc
+
+; DMA channel 0 set up from a block that may travel in the `.msu`: if A1B0
+; is `MSU_SPILL_BANK`, A1T0L is not an address but the block's unit —or
+; $FFFF, right behind what was read last—, and this seeks there and points
+; the channel at the port, with the source fixed: the port advances by
+; itself. From a block in the ROM it touches nothing. The caller sets the
+; rest —DMAP0 before this, which ORs into it— and starts the DMA.
+;
+; Only for what is uploaded whole and in order, and with the screen off: the
+; panorama's tiles (`pano_load`) and a big picture's (`big_dma_vram`). Each
+; block that may go is marked so by its emitter: see `msu_block` in
+; rm2k-snes-mapdata.
+.proc msu_dma0
+.a8
+.i16
+    lda f:A1B0
+    cmp #MSU_SPILL_BANK
+    bne in_rom
+    phx
+    lda #$FF                    ; see `lz2_msu`
+    sta f:MSU_SE_NEXT
+    sta f:MSU_SE_NEXT + 1
+    sta f:MSU_SE_NEXT + 2
+    rep #$20
+.a16
+    lda f:A1T0L
+    tax
+    sep #$20
+.a8
+    cpx #$FFFF
+    beq sought
+    jsr msu_spill_seek
+sought:
+    rep #$20
+.a16
+    lda #MSU_DATA
+    sta f:A1T0L
+    sep #$20
+.a8
+    lda #0
+    sta f:A1B0
+    lda f:DMAP0
+    ora #$08                    ; the source, fixed
+    sta f:DMAP0
+    plx
+in_rom:
+    rts
+.endproc
+
+; `msu_dma0` for `pano_load`, which lives in `FAR2`.
+.proc msu_dma0_l
+.a8
+    jsr msu_dma0
+    rtl
+.endproc
+
+; `LZ2_BODY` reading the stream from `MSU_DATA`. Same frame, same exit; X is
+; free inside, and it leaves with X at $FFFF.
+.macro LZ2_BODY_MSU exit
+cmd:
+    sep #$20
+.a8
+    lda f:MSU_DATA
+    cmp #$E0
+    bcs length
+    ; `CCCLLLLL`: up to 32 bytes. The header waits in X to dispatch.
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    and #$001F
+    sta 1, s
+    txa
+    sep #$20
+.a8
+    bra dispatch
+length:
+    cmp #$FF
+    beq end
+    ; `111CCCLL LLLLLLLL`: up to 1024.
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    xba
+    sep #$20
+.a8
+    lda f:MSU_DATA              ; the second byte, under the first
+    rep #$20
+.a16
+    and #$03FF
+    sta 1, s
+    txa
+    sep #$20
+.a8
+    asl a
+    asl a
+    asl a
+dispatch:
+    asl a
+    bcs repeat
+    asl a
+    bcs word
+    asl a
+    bcs padding
+    ; 0: the bytes, from the port to the output: X the output and Y how many
+    ; are left, minus one.
+    rep #$20
+.a16
+    lda 1, s
+    tyx
+    tay
+    sep #$20
+.a8
+literal:
+    lda f:MSU_DATA
+    sta f:exit << 16, x
+    inx
+    dey
+    bpl literal
+    txy
+    jmp cmd
+
+end:
+.a8
+    ldx #$FFFF                  ; the next stream, right behind this one
+    rep #$20
+.a16
+    pla
+    pla
+    plb
+    plp
+    rtl
+
+padding:
+.a8
+    ; 1: the byte, and it is repeated shifted by one. The `phx` keeps the
+    ; frame of `LZ2_BODY`, where X is the stream: here it is nothing.
+    lda f:MSU_DATA
+    phx
+    tyx
+    sta f:exit << 16, x
+    iny
+    rep #$20
+.a16
+    lda 3, s
+    beq ready
+    dec a
+    bra in_output
+
+word:
+.a8
+    ; 2: the two bytes, and they are repeated shifted by two.
+    lda f:MSU_DATA
+    xba
+    lda f:MSU_DATA
+    xba                         ; the first in A, the second in B
+    rep #$20
+.a16
+    phx
+    tyx
+    sta f:exit << 16, x
+    iny
+    iny
+    lda 3, s
+    dec a
+    beq ready
+    dec a
+    bra in_output
+
+repeat:
+.a8
+    ; 4: from the output to the output. The address comes high byte first.
+    lda f:MSU_DATA
+    xba
+    lda f:MSU_DATA
+    rep #$20
+.a16
+    phx
+    clc
+    adc 5, s                    ; plus the base
+    tax
+    lda 3, s
+in_output:
+    phb
+    mvn #exit, #exit
+    plb
+ready:
+    plx
+    jmp cmd
+
+.endmacro
+
+.proc lz2_msu_7e
+    LZ2_BODY_MSU ^GRID
+.endproc
+
+.proc lz2_msu_7f
+    LZ2_BODY_MSU ^GRID_HIGH
+.endproc
+.endif
 
 ; X and A of the stream that field Y of the map record points to: its address
 ; and its bank, ready for `lz2_decompress`.

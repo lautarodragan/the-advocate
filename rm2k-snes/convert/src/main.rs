@@ -26,6 +26,7 @@ mod game;
 mod images;
 mod map_pictures;
 mod maps;
+mod msu_missing;
 mod options;
 mod pictures;
 mod pyjson;

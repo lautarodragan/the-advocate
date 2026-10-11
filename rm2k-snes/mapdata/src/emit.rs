@@ -10,7 +10,7 @@
 //! templates as they were —see [`crate::pyfmt`]— so that nobody has to
 //! read them twice to know they say the same.
 
-use crate::asm::{block, unplaced};
+use crate::asm::{block, msu_block, unplaced};
 use crate::cgram::{cgram_reserved, PRIORITY_ABOVE, WINDOW_PALETTE};
 use crate::engine::*;
 use crate::fail::{Bad, Result};
@@ -25,7 +25,7 @@ use crate::record::{
     FLASH_MAX, MAP_STRIDE, NPC_MAX, NPC_STILL, NPC_STRIDE, PAGE_BYTES, PARALLEL_MAX, ROUTE_EV_MAX, TWIN_STRIDE,
     ROUTE_GFX_MAX, TURN_NONE,
 };
-use crate::request::Emit;
+use crate::request::{Emit, MsuData};
 use crate::snes::{
     cgram_bytes, cgram_word, entry, pack_tile, words_le, Color, BYTES_PER_TILE, COLORS_PER_PALETTE,
 };
@@ -351,7 +351,7 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
 
     // Everything that goes per map, first: it is also where what each map
     // spends is checked against its VRAM layout.
-    let per_map = record::maps(&r.maps)?;
+    let per_map = record::maps_with(&r.maps, r.rom.msu != MsuData::Optional)?;
 
 
     let window = at(screens, "window")?;
@@ -597,6 +597,25 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         format!("{:<21}", r.rom.title),
         r.rom.sram_signature.clone()
     ));
+    // Only in a cartridge that needs the MSU-1: one that does not gets the
+    // same `.inc` as before there was a way to need it.
+    if r.rom.msu != MsuData::Optional {
+        out.push_str(
+            "; This cartridge needs the MSU-1: what does not fit in the ROM\n\
+             ; goes to the `.msu` —the bank packing decides it, see\n\
+             ; `pack_with_msu` in rm2k-snes-cartridge—, and the ROM does not\n\
+             ; start without it. See `msu_required` in msu1.s.\n\
+             MSU_REQUIRED = 1\n",
+        );
+        if r.rom.msu == MsuData::Everything {
+            out.push_str(
+                "; And everything that may go goes, even if it fitted: a test\n\
+                 ; cartridge, for the path to run.\n\
+                 MSU_SPILL_EVERYTHING = 1\n",
+            );
+        }
+        out.push('\n');
+    }
     out.push_str(&per_map.offsets);
     out.push_str("\n\n");
     out.push_str(&pyf!(
@@ -1040,8 +1059,12 @@ fn big_pictures_section(out: &mut String, r: &Emit) -> Result<()> {
                 colors.extend(cgram_word(c).to_le_bytes());
             }
         }
-        line(out, &block(&format!("big_tiles_{k}"), &big.tiles));
-        line(out, &block(&format!("big_map_{k}"), &streams[k]));
+        // The tiles go whole through `big_dma_vram`, and the tilemap is an
+        // LZ2 stream: both may travel in the `.msu`, and a picture is shown
+        // with the screen off. See `msu_block`.
+        let msu = r.rom.msu != MsuData::Optional;
+        line(out, &msu_block(&format!("big_tiles_{k}"), &big.tiles, msu));
+        line(out, &msu_block(&format!("big_map_{k}"), &streams[k], msu));
         line(out, &block(&format!("big_colors_{k}"), &colors));
         if let Some(t) = &big.mode7 {
             let (tiles, rows) = big_mode7(big.rows, t)?;
@@ -1254,6 +1277,11 @@ fn full_screens_section(out: &mut String, r: &Emit) -> Result<()> {
     }
     if let Some(t) = &r.title {
         rows.push(("TITLE", "title_lz2", t));
+    }
+    // Its stream is not marked as one that may go to the `.msu`, like none
+    // of these: it is what the ROM shows when there is no `.msu`.
+    if let Some(m) = &r.msu_missing {
+        rows.push(("MSU_MISSING", "msu_missing_lz2", m));
     }
     if rows.is_empty() {
         line(out, &block("screens_table", &[0]));
@@ -3103,7 +3131,7 @@ impl Rest<'_> {
         bytes_asm(out, "eacc_weight", &decimal(eacc_weight), true);
         // The battle scene: the backdrops and the battlers, in the order of
         // `troop_id`.
-        out.push_str(&crate::scene::scenes_asm(&r.scene, used)?);
+        out.push_str(&crate::scene::scenes_asm(&r.scene, used, r.rom.msu != MsuData::Optional)?);
         out.push_str(".segment \"TABLES\"\n");
         // Two products that have to fit in sixteen bits: the healing's
         // `recover_hp_rate * hp_max`, and the hit's `(100 - hit) * agility`.
