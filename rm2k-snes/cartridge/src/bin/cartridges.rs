@@ -3,6 +3,7 @@
 //!
 //!     rm2k-snes-cartridges                 builds whatever is not up to date
 //!     rm2k-snes-cartridges release         only that one, with its MSU-1 tracks
+//!     rm2k-snes-cartridges --force         all of them, even the ones up to date
 //!     rm2k-snes-cartridges --list          which case goes in which cartridge
 //!     rm2k-snes-cartridges --list --json   everything a test suite needs to know
 //!     rm2k-snes-cartridges release --convert-into DIR -- --some-converter-flag
@@ -49,6 +50,13 @@ fn command() -> Command {
                 .value_name("DIR")
                 .conflicts_with("list")
                 .help("convert and assemble the one cartridge named into DIR, without a stamp and even if it is up to date; what follows `--` goes to the converter"),
+        )
+        .arg(
+            Arg::new("force")
+                .long("force")
+                .action(ArgAction::SetTrue)
+                .conflicts_with_all(["list", "convert_into"])
+                .help("build them even if they are up to date: the RTP and the SoundFont go into the fingerprint by their path and not their content, so after changing one in place this is how the cartridges see it"),
         )
         .arg(
             Arg::new("without_tracks")
@@ -125,6 +133,7 @@ fn run() -> Result<(), String> {
     } else {
         names
     };
+    let force = matches.get_flag("force");
     let tracks = names.iter().any(|n| n == RELEASE) && !matches.get_flag("without_tracks");
     // The cartridges and the tracks are built at the same time, in threads:
     // each one writes in its own directory, and the heavy work runs in the
@@ -143,7 +152,7 @@ fn run() -> Result<(), String> {
                 let inputs = &inputs;
                 let sender = (name == RELEASE).then(|| release_built.clone());
                 scope.spawn(move || {
-                    let built = cartridges.build(name, inputs);
+                    let built = cartridges.build(name, inputs, force);
                     let Some(sender) = sender else {
                         return Outcome { built: Some(built), tracks: None };
                     };

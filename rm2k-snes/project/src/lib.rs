@@ -20,6 +20,7 @@
 //! And [`resolved`]: all of the above about one project, as JSON, for
 //! whoever asks from outside the tools.
 
+pub mod archive;
 pub mod cache;
 pub mod environment;
 mod paths;
