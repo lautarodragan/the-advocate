@@ -74,6 +74,11 @@ Both calls read these:
 
 * `map_files`: maps read from another file than the dump's —a project's
   fork of one of the game's, or one the game does not have—.
+* `dropped_events`, **optional**: the events each map leaves out, as
+  `{"161": [125, 126]}` —map number, event ids—, because they do not fit
+  in the console's RAM. The map is read without them, so its events are
+  numbered as the caller numbers them; a page that names one does not
+  compile, as with any event that does not exist. Missing, none.
 * `boxes`: text boxes the project rebuilt for the console's window: the
   lines as the dump has them, and the boxes that go in their place, with
   the same indent. A box that is not here stays as it is. It applies to the

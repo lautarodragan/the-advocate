@@ -22,6 +22,8 @@ pub const HEADER: &str = concat!(
     "; running on them at once.\n",
     "EV_STRIDE   = %d\n",
     "EV_MAX      = %d\n",
+    "; The twins behind the positions: see `ev_pos_bytes`.\n",
+    "TWIN_STRIDE = %d\n",
     "ROUTE_EV_MAX = %d\n",
     "PAGE_BYTES = %d\n",
     "TURN_NONE = $%04X\n",

@@ -73,6 +73,11 @@ pub struct Map {
     pub animates_still: Vec<i64>,
     /// Every event's starting cell, in the map's order, drawn or not.
     pub events: Vec<[i64; 2]>,
+    /// The cells of the events that share another's row, as `[x, y, the
+    /// index of that event]`: the converter's twins, in a map with more
+    /// events than the RAM holds. Missing, none.
+    #[serde(default)]
+    pub twins: Vec<[i64; 3]>,
     /// The event pages, and their code and own routes in one block.
     pub pages: Vec<Page>,
     #[serde(deserialize_with = "hex::bytes")]

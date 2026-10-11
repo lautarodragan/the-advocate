@@ -10,7 +10,7 @@ use crate::fail::{Bad, Result};
 use ditto::dump::{read_map, Dump};
 use ditto::schema::{Chipset, Map};
 use rm2k_render::source::find_resource;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 /// Where the game is, and what the project puts over it.
@@ -25,6 +25,10 @@ pub struct Game {
     /// entry under `chipset`. They are added, never replace one: an id the
     /// dump already has is refused.
     pub chipset_files: BTreeMap<i32, PathBuf>,
+    /// The events each map leaves out because they do not fit in the
+    /// console's RAM, by map and id: the caller decides them, and the map
+    /// is read without them so the indices are the caller's.
+    pub dropped: BTreeMap<i32, BTreeSet<i32>>,
     /// Where the pictures are looked up, in order: the first directory that
     /// has one wins.
     pub search_dirs: Vec<PathBuf>,
@@ -37,11 +41,15 @@ fn answer(e: ditto::lcf::Error) -> Bad {
 impl Game {
     /// Map `id`: the project's file if it has one, the dump's otherwise.
     pub fn map(&self, id: i32) -> Result<Map> {
-        match self.map_files.get(&id) {
+        let mut map = match self.map_files.get(&id) {
             Some(path) => read_map(path),
             None => Dump::open(&self.data).and_then(|d| d.map(id as u32)),
         }
-        .map_err(answer)
+        .map_err(answer)?;
+        if let Some(dropped) = self.dropped.get(&id) {
+            map.events.retain(|e| !dropped.contains(&e.id));
+        }
+        Ok(map)
     }
 
     /// ChipSet `id` of the database, or one the project adds.

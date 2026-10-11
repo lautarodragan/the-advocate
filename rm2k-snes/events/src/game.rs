@@ -159,6 +159,10 @@ pub struct Patches {
     /// `OP_MENU_OPEN`—, and the ones a menu runs before a page, which get a
     /// body of their own without messages or pictures. See [`crate::commons`].
     pub menus: MenuHooks,
+    /// The events each map leaves out because they do not fit in the
+    /// console's RAM, by map and id: the map is read without them, so the
+    /// indices are the converter's. A page that names one does not compile.
+    pub dropped: BTreeMap<i32, std::collections::BTreeSet<i32>>,
 }
 
 /// See [`Patches::menus`].
@@ -454,7 +458,9 @@ impl Game {
     }
 
     fn convert(&self, id: i32, raw: &schema::Map) -> Map {
-        let mut events: Vec<&schema::Event> = raw.events.iter().collect();
+        let dropped = self.patches.dropped.get(&id);
+        let mut events: Vec<&schema::Event> =
+            raw.events.iter().filter(|e| dropped.is_none_or(|d| !d.contains(&e.id))).collect();
         events.sort_by_key(|e| e.id);
         let events = events
             .into_iter()

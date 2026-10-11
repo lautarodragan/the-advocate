@@ -160,6 +160,21 @@ pub fn read(path: &Path) -> Result<(Value, String)> {
 pub fn patches(data: &Value, whose: &str, game: &mut Game) -> Result<()> {
     game.map_files = files(field(data, "map_files", whose)?, whose)?;
     game.chipset_files = files(field(data, "chipset_files", whose)?, whose)?;
+    // Not required: a request that leaves nothing out does not have to say
+    // it, and the ones written before it existed stay as they were.
+    if let Some(d) = data.get("dropped_events") {
+        let obj = d.as_object().ok_or_else(|| Bad::answer(format!("{whose}: `dropped_events` is not an object")))?;
+        for (k, v) in obj {
+            let map = k.parse::<i32>().map_err(|_| Bad::answer(format!("{whose}: {k} is not a number")))?;
+            let ids = v
+                .as_array()
+                .ok_or_else(|| Bad::answer(format!("{whose}: map {k}'s `dropped_events` is not a list")))?
+                .iter()
+                .map(|e| e.as_i64().map(|e| e as i32).ok_or_else(|| Bad::answer(format!("{whose}: {e} is not an event"))))
+                .collect::<Result<_>>()?;
+            game.dropped.insert(map, ids);
+        }
+    }
     Ok(())
 }
 

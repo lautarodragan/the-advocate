@@ -65,6 +65,11 @@ pub fn map_record(m: &MapInfo) -> Value {
         "npcs": m.npcs, "movable": m.movable,
         "animates_still": m.animates_still,
         "events": m.map.events.iter().map(|e| json!([e.x, e.y])).collect::<Vec<_>>(),
+        // The cells that share another event's row, with that event's
+        // index: see `trim::twins`.
+        "twins": m.map.twins.iter().map(|&(x, y, owner)| {
+            json!([x, y, m.map.events.iter().position(|e| e.id == owner)])
+        }).collect::<Vec<_>>(),
         "pages": m.pages.iter().map(page_record).collect::<Vec<_>>(),
         "evcode": hex(&m.evcode),
         "changing": m.changing.iter().collect::<Vec<_>>(),
