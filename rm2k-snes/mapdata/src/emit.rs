@@ -3302,10 +3302,17 @@ impl Rest<'_> {
             .map(|c| c as u8)
             .collect();
         line(out, &unplaced("font_color", &colors));
-        out.push_str(&format!(
-            "party_initial:\n    .byte {}\n\n",
-            decimal(r.party.iter()).join(",")
-        ));
+        // A game can start with the party empty, as RM2k allows: the label
+        // stays, with no bytes —`.byte` with nothing after it does not
+        // assemble—, and `boot` copies none.
+        if r.party.is_empty() {
+            out.push_str("party_initial:                ; the party starts empty\n\n");
+        } else {
+            out.push_str(&format!(
+                "party_initial:\n    .byte {}\n\n",
+                decimal(r.party.iter()).join(",")
+            ));
+        }
         line(out, &sine_table());
         // How many frames a character stays still after a step and after a
         // turn, per route frequency: RM2k's stop counters. 0 and 1 do not

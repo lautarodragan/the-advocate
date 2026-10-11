@@ -263,12 +263,25 @@ ready:
 .a8
     lda menu_done, x
     beq ready
+    ; Items —command 0— and Equipment need someone in the party: with it
+    ; empty RM2k grays them like the ones it does not do (`Scene_Menu`,
+    ; `GetActors().empty()`). Save and End Game do not ask, and neither do
+    ; the custom menus, which are the game's.
+    cpx #0
+    beq needs_party
+    cpx #MENU_EQUIPMENT
+    beq needs_party
     cpx #MENU_SAVE
     bne ready
     jsr access_read
     and #ACCESS_NO_SAVE
     eor #ACCESS_NO_SAVE         ; 1 if allowed
 ready:
+    rts
+needs_party:
+    lda party_n                 ; at most PARTY_MAX: the low byte says it
+    beq ready                   ; empty: A = 0 and Z=1, in gray
+    lda #1
     rts
 .endproc
 

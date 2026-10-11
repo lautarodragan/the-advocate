@@ -947,10 +947,9 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
             with_graphic.push(*actor);
         }
     }
-    let first = leaders
-        .first()
-        .cloned()
-        .ok_or_else(|| Bad::answer("the party is empty: there is nothing to draw the hero with"))?;
+    // None when the game starts with the party empty and nobody in these
+    // maps joins it: RM2k draws no hero then, and there are no leader poses.
+    let first = leaders.first().cloned();
     let mut animated: Vec<Key> = Vec::new();
     for actor in &with_graphic {
         let key = leader(actor)?;
@@ -958,7 +957,7 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
             animated.push(key);
         }
     }
-    animated.sort_by_key(|k| *k != first);
+    animated.sort_by_key(|k| Some(k) != first.as_ref());
     for npc in &npcs {
         let key = (npc.charset.clone(), npc.index);
         if who.movable.contains(&npc.event) && !animated.contains(&key) {

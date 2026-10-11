@@ -120,12 +120,12 @@ pub fn run(options: Options) -> Result<()> {
     let mut game = Game::read(&game_dir, &project)?;
     game.rtp_dir = Some(rtp_dir.clone());
     // The hero's graphic comes from the party: in RM2k the first of the
-    // list gives it.
+    // list gives it. An empty one is valid, as in RM2k: the hero is not
+    // drawn until someone joins (`pick_hero_graphic` in the runtime).
     let party: Vec<i32> = match &options.party {
         Some(p) if !p.is_empty() => p.clone(),
         _ => game.db.party.clone(),
     };
-    game.db.leader(&party)?;
     // The events that do not fit in the console's RAM, before anything
     // reads a map: from here on every stage numbers them without those.
     let test_event_map = (!cases.is_empty()).then(|| order[start_index]);
