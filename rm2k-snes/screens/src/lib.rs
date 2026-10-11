@@ -25,6 +25,7 @@ pub mod convert;
 pub mod custom_menu;
 pub mod end_game;
 pub mod fail;
+pub mod fit;
 pub mod game;
 pub mod items;
 pub mod layout;

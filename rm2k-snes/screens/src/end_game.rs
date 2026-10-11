@@ -102,6 +102,8 @@ pub struct EndGame {
     pub rows: Vec<u16>,
     pub row0: usize,
     pub palettes: [Vec<Color>; 2],
+    /// How many colours were merged to fit the palette: 0 if they fitted.
+    pub merged: usize,
 }
 
 pub fn convert(game: &Game, skin: &Skin) -> Result<EndGame> {
@@ -115,9 +117,37 @@ pub fn convert(game: &Game, skin: &Skin) -> Result<EndGame> {
                 .collect())
         })
         .collect::<Result<_>>()?;
-    let pairs_seen: BTreeSet<(Color, Color)> =
-        colors15[0].iter().copied().zip(colors15[1].iter().copied()).collect();
-    let mut pairs: Vec<(Color, Color)> = pairs_seen.into_iter().filter(|p| *p != (BLACK, BLACK)).collect();
+    let pairs_of = |colors15: &[Vec<Color>]| -> BTreeSet<(Color, Color)> {
+        colors15[0].iter().copied().zip(colors15[1].iter().copied()).collect()
+    };
+    // A System with more colours than the palette has room for pairs of
+    // —a gradient behind the windows— is reduced by Adeleine's
+    // `merge_until`, as the other windows are, until the pairs fit; black
+    // stays black, because it is the backdrop. One that fits never comes
+    // here.
+    let mut colors15 = colors15;
+    let mut merged = 0;
+    if pairs_of(&colors15).len() > END_COLORS_MAX {
+        let mut counts = cells::Counts::default();
+        for c in colors15.iter().flatten() {
+            counts.add(*c, 1);
+        }
+        let used = counts.in_order();
+        let fits = |mapping: &[Color]| {
+            let to: HashMap<Color, Color> = used.iter().map(|(c, _)| *c).zip(mapping.iter().copied()).collect();
+            let pairs: BTreeSet<(Color, Color)> =
+                colors15[0].iter().zip(&colors15[1]).map(|(a, b)| (to[a], to[b])).collect();
+            to.get(&BLACK).is_none_or(|b| *b == BLACK) && pairs.len() <= END_COLORS_MAX
+        };
+        let (reduced, ()) = adeleine::merge_until(&used, |p| fits(&p.mapping).then_some(()))?;
+        let to: HashMap<Color, Color> =
+            used.iter().map(|(c, _)| *c).zip(reduced.mapping.iter().copied()).collect();
+        for c in colors15.iter_mut().flatten() {
+            *c = to[c];
+        }
+        merged = reduced.merges.len();
+    }
+    let mut pairs: Vec<(Color, Color)> = pairs_of(&colors15).into_iter().filter(|p| *p != (BLACK, BLACK)).collect();
     // 0: transparent, the black background.
     pairs.insert(0, (BLACK, BLACK));
     if pairs.len() > END_COLORS_MAX {
@@ -161,5 +191,6 @@ pub fn convert(game: &Game, skin: &Skin) -> Result<EndGame> {
         rows: mapping[row0 * COLS..row1 * COLS].to_vec(),
         row0,
         palettes: [palette(0), palette(1)],
+        merged,
     })
 }

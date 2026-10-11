@@ -23,6 +23,11 @@ use voodoo::pack::{pack_tile, Indices};
 /// How many colours a 4bpp palette has, 0 being transparent.
 const COLORS_PER_PALETTE: usize = 16;
 
+/// The window's bank of tiles, and what of it its frame and its arrow
+/// have: what the text area leaves —see [`WINDOW_TEXT_ROW`]—.
+const WINDOW_TILES: usize = 256;
+pub const FRAME_TILES_MAX: usize = WINDOW_TILES - WINDOW_TEXT_ROWS * WINDOW_TEXT_COLS;
+
 /// The message window, cut.
 #[derive(Debug, Clone)]
 pub struct Window {
@@ -54,6 +59,9 @@ pub struct Window {
     /// And one line's, with the cursor over nothing: the window without a
     /// background. It is the same on every line.
     pub bar_bare: Vec<u8>,
+    /// How many tiles the frame and the arrow took before they were fused
+    /// to fit: `None` if they fitted, and the window is as RM2k draws it.
+    pub frame_fused: Option<usize>,
 }
 
 /// A picture cut to the console's colours, pixel by pixel: over black if
@@ -121,6 +129,9 @@ struct Drawn {
     brought: usize,
     /// What [`Drawn::reduce`] merged: empty if they fitted.
     merges: Vec<adeleine::Merge>,
+    /// How many tiles the frame and the arrow took before [`fit_frame`]
+    /// fused them: `None` if they fitted.
+    frame_fused: Option<usize>,
 }
 
 /// The message window: tiles, palette, cells and what the font needs.
@@ -135,7 +146,7 @@ struct Drawn {
 /// `reserved` is where whatever follows the window in colour memory
 /// starts: the window may not reach it. [`colors`] says where it ends.
 pub fn convert(skin: &Skin, reserved: usize) -> Result<Window> {
-    let Drawn { width, height, pixels, with_arrow, bare_arrow, with_bar, bare_bar, color_row, shadow, colors, .. } =
+    let Drawn { width, height, pixels, with_arrow, bare_arrow, with_bar, bare_bar, color_row, shadow, colors, frame_fused, .. } =
         draw(skin)?;
     // What follows starts where this ends, so if the window grew it would
     // step on it and the cartridge would draw the text with a colour of the
@@ -160,10 +171,6 @@ pub fn convert(skin: &Skin, reserved: usize) -> Result<Window> {
             }
         }
         cell
-    };
-    let in_text = |tx: usize, ty: usize| {
-        (WINDOW_TEXT_ROW..WINDOW_TEXT_ROW + WINDOW_TEXT_ROWS).contains(&ty)
-            && (WINDOW_TEXT_COL..WINDOW_TEXT_COL + WINDOW_TEXT_COLS).contains(&tx)
     };
     // The cells without text are deduplicated as always, and the arrow's
     // after them; the ones in the text area are numbered consecutively from
@@ -219,9 +226,10 @@ pub fn convert(skin: &Skin, reserved: usize) -> Result<Window> {
         .flat_map(|(line, drawn)| text_tiles(drawn, line_rows(line)))
         .collect();
     let bar_bare = text_tiles(&bare_bar, line_rows(0));
-    if base + WINDOW_TEXT_ROWS * WINDOW_TEXT_COLS > 256 {
+    // `draw` already fused the frame until it fitted: this is the net.
+    if base > FRAME_TILES_MAX {
         return Err(Bad::answer(format!(
-            "the window needs {} tiles —{base} of its frame and its arrow— and the bank has 256",
+            "the window needs {} tiles —{base} of its frame and its arrow— and the bank has {WINDOW_TILES}",
             base + WINDOW_TEXT_ROWS * WINDOW_TEXT_COLS
         )));
     }
@@ -241,11 +249,86 @@ pub fn convert(skin: &Skin, reserved: usize) -> Result<Window> {
         arrow: arrow_tiles,
         bar,
         bar_bare,
+        frame_fused,
     })
 }
 
+/// Whether the cell `(tx, ty)` of the window is in the text area, whose
+/// tiles are the cartridge's to write and are not deduplicated.
+fn in_text(tx: usize, ty: usize) -> bool {
+    (WINDOW_TEXT_ROW..WINDOW_TEXT_ROW + WINDOW_TEXT_ROWS).contains(&ty)
+        && (WINDOW_TEXT_COL..WINDOW_TEXT_COL + WINDOW_TEXT_COLS).contains(&tx)
+}
+
+/// The window's cells outside the text area: its frame, and what of its
+/// background the text area leaves.
+fn frame_cells() -> Vec<(usize, usize)> {
+    (0..WINDOW_ROWS_INC)
+        .flat_map(|ty| (0..WINDOW_COLS_INC).map(move |tx| (tx, ty)))
+        .filter(|&(tx, ty)| !in_text(tx, ty))
+        .collect()
+}
+
+/// `arrow` pasted at its place over `under`.
+fn arrow_over(under: &Picture, arrow: &Picture) -> Picture {
+    let mut out = under.clone();
+    let (x, y) = ((WINDOW_ARROW_COL * CELL) as i64, (WINDOW_ARROW_ROW * CELL) as i64);
+    cells::paste(&mut out, arrow, x, y);
+    out
+}
+
+/// How many tiles the frame and the arrow take, counted as [`convert`]
+/// counts them: the empty window and the arrow over it cut over black, and
+/// the arrow over nothing with its transparency.
+fn frame_tiles(empty: &Picture, arrow: &Picture) -> usize {
+    let opaque = |t: adeleine::Tile| t.map(|row| row.map(|p| Some(p.unwrap_or(BLACK))));
+    let mut seen: BTreeSet<adeleine::Tile> =
+        frame_cells().into_iter().map(|(tx, ty)| opaque(cells::tile_at(empty, tx, ty))).collect();
+    let over = arrow_over(empty, arrow);
+    let bare = arrow_over(&Picture::transparent(empty.width, empty.height), arrow);
+    for k in 0..WINDOW_ARROW_CELLS {
+        seen.insert(opaque(cells::tile_at(&over, WINDOW_ARROW_COL + k, WINDOW_ARROW_ROW)));
+        seen.insert(cells::tile_at(&bare, WINDOW_ARROW_COL + k, WINDOW_ARROW_ROW));
+    }
+    seen.len()
+}
+
+/// A frame with more tiles than the bank leaves it is drawn with fewer. It
+/// is a System whose stretched background is a gradient that shows through
+/// the frame: every row of the gradient makes the edge a cell of its own.
+/// So **the background under the frame** has its cells most alike fused
+/// —[`cells::group_cells`]—, as few as it takes for the frame and the arrow
+/// to fit, and the frame goes over them as it is: what changes is the
+/// gradient seen through it, in bands. The text area has a tile per cell
+/// anyway, and its background stays as RM2k draws it. Answers how many
+/// tiles the frame and the arrow took before, or `None` if they fitted and
+/// nothing was touched.
+fn fit_frame(skin: &Skin, empty: &mut Picture, arrow: &Picture) -> Option<usize> {
+    let spent = frame_tiles(empty, arrow);
+    if spent <= FRAME_TILES_MAX {
+        return None;
+    }
+    let background = skin.window_background(WINDOW_WIDTH, WINDOW_HEIGHT);
+    let at = frame_cells();
+    // How many tiles a group costs depends on the frame over it, so they
+    // are asked for one fewer at a time: the ring is some eighty cells.
+    let mut ask = cells::group_cells(&mut background.clone(), &at, usize::MAX);
+    loop {
+        ask -= 1;
+        let mut fused = background.clone();
+        cells::group_cells(&mut fused, &at, ask);
+        rm2k_render::system::frame_over(&mut fused, &skin.picture);
+        *empty = fused;
+        if ask <= 1 || frame_tiles(empty, arrow) <= FRAME_TILES_MAX {
+            return Some(spent);
+        }
+    }
+}
+
 fn draw(skin: &Skin) -> Result<Drawn> {
-    let empty = skin.window(WINDOW_WIDTH, WINDOW_HEIGHT);
+    let mut empty = skin.window(WINDOW_WIDTH, WINDOW_HEIGHT);
+    let arrow = rm2k_render::system::arrow_down(&skin.picture);
+    let frame_fused = fit_frame(skin, &mut empty, &arrow);
     let (width, height) = (empty.width, empty.height);
     let pixels = cut(&empty, false);
 
@@ -253,7 +336,6 @@ fn draw(skin: &Skin) -> Result<Drawn> {
     // cut like it: the arrow on the bottom edge, and the cursor on each
     // line. Over the window, and over nothing for the one without a
     // background.
-    let arrow = rm2k_render::system::arrow_down(&skin.picture);
     let (arrow_x, arrow_y) = ((WINDOW_ARROW_COL * CELL) as i64, (WINDOW_ARROW_ROW * CELL) as i64);
     let mut with_arrow = empty.clone();
     cells::paste(&mut with_arrow, &arrow, arrow_x, arrow_y);
@@ -313,6 +395,7 @@ fn draw(skin: &Skin) -> Result<Drawn> {
         colors: BTreeSet::new(),
         brought: 0,
         merges: Vec::new(),
+        frame_fused,
     };
     drawn.colors = drawn.all_colors();
     drawn.brought = drawn.colors.len();

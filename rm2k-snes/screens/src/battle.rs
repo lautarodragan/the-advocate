@@ -38,6 +38,7 @@ fn picture(skin: &Skin, windows: &[Rect], bar: Option<Rect>) -> Picture {
     if let Some((x, y, w, h)) = bar {
         cells::paste(&mut out, &skin.cursor(w, h), x as i64, y as i64);
     }
+    skin.redraw(&mut out);
     out
 }
 
@@ -55,6 +56,17 @@ fn layout_screen(skin: &Skin, layout: i64) -> Screen {
     }
 }
 
+/// The layouts, in the order of their screens in [`layers`].
+const LAYOUTS: [i64; 3] = [bs::BA_LAYOUT_COMMAND, bs::BA_LAYOUT_TARGET, bs::BA_LAYOUT_WIDE];
+
+/// The battle's screens as `borders` cuts them: each layout's, with its
+/// bars, and the description's window last.
+pub fn layers(skin: &Skin) -> Vec<Screen> {
+    let mut screens: Vec<Screen> = LAYOUTS.iter().map(|&l| layout_screen(skin, l)).collect();
+    screens.push(Screen { background: picture(skin, &[bs::BA_HELP_WINDOW], None), bars: vec![] });
+    screens
+}
+
 /// What the cartridge stores, as JSON for the emission:
 ///
 /// * `tiles` and `colors`, uploaded when the battle starts;
@@ -65,9 +77,8 @@ fn layout_screen(skin: &Skin, layout: i64) -> Screen {
 ///   rows, cols, source]`, `source` the first of its words in `patches`,
 ///   and a piece equal to another is not repeated.
 pub fn battle_windows(skin: &Skin) -> Result<Value> {
-    let layouts = [bs::BA_LAYOUT_COMMAND, bs::BA_LAYOUT_TARGET, bs::BA_LAYOUT_WIDE];
-    let mut screens: Vec<Screen> = layouts.iter().map(|&l| layout_screen(skin, l)).collect();
-    screens.push(Screen { background: picture(skin, &[bs::BA_HELP_WINDOW], None), bars: vec![] });
+    let layouts = LAYOUTS;
+    let screens = layers(skin);
     let made = borders::borders(
         &screens,
         BATTLE_WINDOW_FIRST,

@@ -208,3 +208,72 @@ pub fn cell_block(
     }
     Ok(out)
 }
+
+/// The 8x8 cell at cell `(col, row)` of `picture` as Adeleine reads a
+/// tile: each pixel at fifteen bits, `None` where it is transparent.
+pub fn tile_at(picture: &Picture, col: usize, row: usize) -> adeleine::Tile {
+    let mut tile = [[None; CELL]; CELL];
+    for (y, line) in tile.iter_mut().enumerate() {
+        for (x, pixel) in line.iter_mut().enumerate() {
+            let p = picture.get((col * CELL + x) as i64, (row * CELL + y) as i64);
+            if p[3] != 0 {
+                *pixel = Some(rgb15(p));
+            }
+        }
+    }
+    tile
+}
+
+/// Paints `tile` over the cell `(col, row)` of `picture`, opaque where it
+/// has a colour and transparent where it does not. Each channel goes back
+/// to eight bits so that [`rgb15`] reads the same five.
+pub fn paint_tile(picture: &mut Picture, col: usize, row: usize, tile: &adeleine::Tile) {
+    let wide = |c: u8| (c << 3) | (c >> 2);
+    for (y, line) in tile.iter().enumerate() {
+        for (x, pixel) in line.iter().enumerate() {
+            let (px, py) = (col * CELL + x, row * CELL + y);
+            if px >= picture.width || py >= picture.height {
+                continue;
+            }
+            let at = (py * picture.width + px) * 4;
+            let rgba = match pixel {
+                Some([r, g, b]) => [wide(*r), wide(*g), wide(*b), 255],
+                None => [0, 0, 0, 0],
+            };
+            picture.rgba[at..at + 4].copy_from_slice(&rgba);
+        }
+    }
+}
+
+/// Draws the cells `at` of `picture` with at most `max` distinct ones:
+/// those that look most alike are drawn with one of them, the grouping
+/// Adeleine's `group_tiles` makes. **It changes what is seen**: it is what
+/// a System whose window has a stretched gradient behind it pays to fit a
+/// bank of tiles, because every row of the gradient is a cell of its own.
+/// Cells that already fit are not touched. Answers how many distinct cells
+/// there were.
+pub fn group_cells(picture: &mut Picture, at: &[(usize, usize)], max: usize) -> usize {
+    let mut distinct: Vec<adeleine::Tile> = Vec::new();
+    let mut weights: Vec<f32> = Vec::new();
+    let mut seen: HashMap<adeleine::Tile, usize> = HashMap::new();
+    let mut of: Vec<usize> = Vec::with_capacity(at.len());
+    for &(col, row) in at {
+        let tile = tile_at(picture, col, row);
+        let n = *seen.entry(tile).or_insert_with(|| {
+            distinct.push(tile);
+            weights.push(0.0);
+            distinct.len() - 1
+        });
+        weights[n] += 1.0;
+        of.push(n);
+    }
+    if distinct.len() > max {
+        let drawn = adeleine::group_tiles(&distinct, &weights, max);
+        for (&(col, row), &n) in at.iter().zip(&of) {
+            if drawn[n] != n {
+                paint_tile(picture, col, row, &distinct[drawn[n]]);
+            }
+        }
+    }
+    distinct.len()
+}

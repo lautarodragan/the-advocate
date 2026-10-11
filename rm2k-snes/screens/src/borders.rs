@@ -40,6 +40,7 @@ pub fn item_windows(skin: &Skin, cursor: Option<usize>) -> Picture {
     if let Some(k) = cursor {
         bar(skin, &mut out, ITEM_BAR_X, ITEM_LIST_Y + 2 * CELL * k, ITEM_BAR_WIDTH, 2 * CELL);
     }
+    skin.redraw(&mut out);
     out
 }
 
@@ -68,6 +69,7 @@ pub fn equipment_windows(skin: &Skin, cursor: Option<usize>) -> Picture {
         let (x, width) = if k < EQUIPMENT_SLOTS { EQ_BAR_SLOT } else { EQ_BAR_LIST };
         bar(skin, &mut out, x, eq_bar_row(k) * CELL, width, 2 * CELL);
     }
+    skin.redraw(&mut out);
     out
 }
 
@@ -92,6 +94,7 @@ pub fn shop_windows(skin: &Skin, layer: usize, cursor: Option<usize>) -> Picture
         let (x, width, row) = shop_bars(layer)[k];
         bar(skin, &mut out, x, row * CELL, width, 2 * CELL);
     }
+    skin.redraw(&mut out);
     out
 }
 
@@ -125,6 +128,7 @@ pub fn target_windows(game: &Game, skin: &Skin, cursor: Option<usize>) -> Result
         let (x, y, width, height) = TARGET_BAR;
         bar(skin, &mut out, x, k * MENU_ACTOR_ROWS * CELL + y, width, height);
     }
+    skin.redraw(&mut out);
     Ok(out)
 }
 
@@ -136,6 +140,7 @@ pub fn menu_bar(skin: &Skin, cursor: Option<usize>) -> Picture {
         let (x, y, width, height) = MENU_BAR;
         bar(skin, &mut out, x, k * MENU_ACTOR_ROWS * CELL + y, width, height);
     }
+    skin.redraw(&mut out);
     out
 }
 

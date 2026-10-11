@@ -6,6 +6,7 @@ use crate::cells::Color;
 use crate::checks::{items_border_first, Vram, TEXT_POOL_PAIRS};
 use crate::render;
 use crate::end_game;
+use crate::fit;
 use crate::fail::{Bad, Result};
 use crate::game::Game;
 use crate::items;
@@ -290,6 +291,16 @@ fn shop_pairs(game: &Game, skin: &crate::game::Skin, request: &Request) -> Resul
     Ok(most)
 }
 
+/// What a screen whose windows had to be redrawn says: see `fit`.
+fn fused_windows(whose: &str, tiles: Option<(usize, usize)>) -> Option<String> {
+    tiles.map(|(from, to)| {
+        format!(
+            "  WARNING, {whose} windows take {from} tiles as RM2k draws them and their bank holds {to}: \
+             the cells that show the least were merged into their nearest, and they are drawn worse"
+        )
+    })
+}
+
 /// Everything the conversion needs from the screens, and what it has to
 /// say about them, in order.
 pub fn convert(game: &Game, request: &Request) -> Result<Value> {
@@ -297,6 +308,13 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     let mut says: Vec<String> = Vec::new();
 
     let window = message_window::convert(&skin, request.cgram_reserved)?;
+    if let Some(had) = window.frame_fused {
+        says.push(format!(
+            "  WARNING, the message window's frame and arrow took {had} tiles and the text area leaves \
+             {}: the background seen through the frame was fused into bands, and it is drawn worse",
+            message_window::FRAME_TILES_MAX
+        ));
+    }
     let font = message_window::font_bytes(&game.font)?;
     let prerender = message_window::font_prerender(&font, &window.color, window.shadow);
 
@@ -338,29 +356,46 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
             names.join(", ")
         ));
     }
-    let target_screens = [borders::target_layer(game, &skin)?, borders::menu_bar_layer(&skin)];
+    // Each screen with windows is drawn with the System `fit` gives it: the
+    // game's, or with its windows redrawn if they do not fit their bank.
+    let (fitted, fused) = fit::skin_for(game, &skin, fit::Screen::Target)?;
+    says.extend(fused_windows("the actor choice's", fused));
+    let target_screens = [borders::target_layer(game, &fitted)?, borders::menu_bar_layer(&fitted)];
     let target = borders::borders(&target_screens, 0, TARGET_CGRAM, TARGET_CGRAM + TARGET_COLORS_MAX)?;
     request.vram.target(target.tiles.len())?;
     let inks = items::text_inks(&skin, &game.font)?;
     // The item and equipment windows share tiles and colours, and go at the
     // end of the bank: the text has what is below them. Counted first, then
     // numbered from where they land.
-    let border_screens = || [borders::item_layers(&skin), borders::equipment_layers(&skin)];
+    let (fitted, fused) = fit::skin_for(game, &skin, fit::Screen::Items)?;
+    says.extend(fused_windows("the item and equipment", fused));
+    let border_screens = || [borders::item_layers(&fitted), borders::equipment_layers(&fitted)];
     let counted = borders::borders(&border_screens(), 0, ITEM_BORDER_CGRAM, 256)?;
     let first = items_border_first(counted.tiles.len());
     let items_border = borders::borders(&border_screens(), first, ITEM_BORDER_CGRAM, 256)?;
     request.vram.items_border(items_border.tiles.len(), 0)?;
     // The shop's, with their own tiles and colours.
-    let shop_border = borders::borders(&borders::shop_layers(&skin), 0, ITEM_BORDER_CGRAM, TARGET_CGRAM)?;
+    let (fitted, fused) = fit::skin_for(game, &skin, fit::Screen::Shop)?;
+    says.extend(fused_windows("the shop's", fused));
+    let shop_border = borders::borders(&borders::shop_layers(&fitted), 0, ITEM_BORDER_CGRAM, TARGET_CGRAM)?;
     request.vram.shop(shop_border.tiles.len())?;
     // End Game's tiles go where the slot screen's do, so what is checked is
     // the same.
     let end = end_game::convert(game, &skin)?;
     request.vram.slots(end.tiles.len())?;
+    if end.merged > 0 {
+        says.push(format!(
+            "  WARNING, End Game's windows have more colours than its palette: {} were merged into the ones \
+             most like them",
+            end.merged
+        ));
+    }
     request.vram.slots(slots.tiles.len())?;
     let title = if request.title { Some(title::menu(game, &skin)?) } else { None };
 
-    let battle_windows = crate::battle::battle_windows(&skin)?;
+    let (fitted, fused) = fit::skin_for(game, &skin, fit::Screen::Battle)?;
+    says.extend(fused_windows("the battle's", fused));
+    let battle_windows = crate::battle::battle_windows(&fitted)?;
     says.push(format!(
         "  battle windows: {} tiles of {}, {} colours of {}, {} words of bars",
         battle_windows["tiles"].as_array().map_or(0, Vec::len),

@@ -126,6 +126,7 @@ impl Game {
                 picture: picture::read_rm2k(&path)?,
                 background,
                 path,
+                redrawn: None,
             }),
             None => Err(Bad::answer(format!(
                 "System {name:?} is not in {}{}",
@@ -279,12 +280,29 @@ pub struct Skin {
     pub picture: Picture,
     pub background: Background,
     pub path: PathBuf,
+    /// The cells a screen's windows are redrawn with so that they fit their
+    /// bank: `None`, as RM2k draws them. See `fit`.
+    pub redrawn: Option<std::rc::Rc<crate::fit::Redrawn>>,
 }
 
 impl Skin {
     /// An empty window: the background and the frame on top.
     pub fn window(&self, width: usize, height: usize) -> Picture {
         rm2k_render::system::window(&self.picture, width, height, self.background)
+    }
+
+    /// A window's background alone, without its frame.
+    pub fn window_background(&self, width: usize, height: usize) -> Picture {
+        rm2k_render::system::window_background(&self.picture, width, height, self.background)
+    }
+
+    /// A screen's windows, drawn whole on a screen-sized `layer`, redrawn
+    /// with the cells `fit` chose for them if they had to be: what the
+    /// screens that cut their windows into a bank of tiles call last.
+    pub fn redraw(&self, layer: &mut Picture) {
+        if let Some(redrawn) = &self.redrawn {
+            redrawn.apply(layer);
+        }
     }
 
     /// The cursor of a list, the first of the System's two drawings.

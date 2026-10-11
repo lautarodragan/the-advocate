@@ -7,7 +7,8 @@
 use clap::{Args as ClapArgs, Parser, Subcommand};
 use rm2k_render::picture::{self, Picture};
 use rm2k_snes_screens::request::Json;
-use rm2k_snes_screens::{boxes, convert, layout, message_window, render, Bad, Game, Result};
+use rm2k_snes_screens::game::Skin;
+use rm2k_snes_screens::{boxes, convert, fit, layout, message_window, render, Bad, Game, Result};
 use rm2k_snes_text::font::Font;
 use rm2k_snes_text::refit::Measure;
 use std::path::{Path, PathBuf};
@@ -172,10 +173,14 @@ fn do_render(args: &GameArgs) -> Result<()> {
     let skin = game.skin()?;
     let slots = json.index_or("slots", 0)?;
     let chosen = json.index_or("chosen", 0)?;
+    // The System each screen's windows are drawn with: the one `convert`
+    // gives the cartridge, redrawn if they do not fit —see `fit`—.
+    let fitted = |screen| -> Result<Skin> { Ok(fit::skin_for(&game, &skin, screen)?.0) };
     let screen: Picture = match json.text("screen")?.as_str() {
+        // The pause menu's bar is the actor choice's: see `menu_bar_layer`.
         "menu" => render::menu(
             &game,
-            &skin,
+            &fitted(fit::Screen::Target)?,
             slots,
             &json.party()?,
             json.number_or("gold", 0)?,
@@ -188,7 +193,7 @@ fn do_render(args: &GameArgs) -> Result<()> {
         )?,
         "target" => render::target(
             &game,
-            &skin,
+            &fitted(fit::Screen::Target)?,
             slots,
             &json.party()?,
             chosen,
@@ -199,7 +204,7 @@ fn do_render(args: &GameArgs) -> Result<()> {
             let known = json.known_items("items")?.map(|k| k.into_iter().collect::<Vec<_>>());
             render::item_screen(
                 &game,
-                &skin,
+                &fitted(fit::Screen::Items)?,
                 &json.by_number("inventory")?,
                 chosen,
                 json.index_or("top", 0)?,
@@ -227,7 +232,7 @@ fn do_render(args: &GameArgs) -> Result<()> {
             let equipment: Vec<i32> = json.numbers("equipment")?.into_iter().map(|n| n as i32).collect();
             render::equipment_screen(
                 &game,
-                &skin,
+                &fitted(fit::Screen::Items)?,
                 json.number("actor")? as i32,
                 &equipment,
                 &json.by_number("inventory")?,
@@ -238,7 +243,7 @@ fn do_render(args: &GameArgs) -> Result<()> {
                 json.known_items("items")?.as_ref(),
             )?
         }
-        "shop" => render::shop_screen(&game, &skin, &json.shop()?)?,
+        "shop" => render::shop_screen(&game, &fitted(fit::Screen::Shop)?, &json.shop()?)?,
         "end_game" => render::end_game_screen(&game, &skin, chosen)?,
         other => {
             return Err(Bad::answer(format!(
