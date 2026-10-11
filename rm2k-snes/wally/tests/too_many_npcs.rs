@@ -111,8 +111,13 @@ fn game(dir: &Path, count: usize, doing: usize) -> (PathBuf, PathBuf) {
 }
 
 fn convert(dir: &Path, dump: &Path, pictures: &Path) -> Value {
+    convert_with(dir, dump, pictures, json!({}))
+}
+
+/// The same, with the fields of `extra` over the request's.
+fn convert_with(dir: &Path, dump: &Path, pictures: &Path, extra: Value) -> Value {
     let request = dir.join("request.json");
-    let body = json!({
+    let mut body = json!({
         "map": 7, "map_files": {}, "chipset_files": {}, "names": [],
         "test_event": false, "leaders": [1], "pages": [],
         "route_graphics": [], "also_walk": [],
@@ -121,6 +126,9 @@ fn convert(dir: &Path, dump: &Path, pictures: &Path) -> Value {
         "dither": "five_of_eight", "substitutions": [], "common_substitutions": [],
         "layouts": [], "window_colors": 13,
     });
+    for (k, v) in extra.as_object().unwrap() {
+        body[k] = v.clone();
+    }
     std::fs::write(&request, body.to_string()).unwrap();
     let out = dir.join("out");
     let _ = std::fs::remove_dir_all(&out);
@@ -189,5 +197,19 @@ fn when_those_are_not_enough_the_highest_ids_go() {
     let (dump, pictures) = game(&dir, count, count);
     let map = convert(&dir, &dump, &pictures);
     assert_eq!(events(&map), (0..NPC_MAX as i64).collect::<Vec<_>>());
+    std::fs::remove_dir_all(&dir).unwrap();
+}
+
+#[test]
+fn a_dropped_event_is_not_in_the_map() {
+    // The converter leaves event 2 out —it does not fit in the console's
+    // RAM—: the map is read without it, so there are four rows and the
+    // events after it are numbered one less. Its cell is the second.
+    let dir = scratch("dropped");
+    let (dump, pictures) = game(&dir, 5, 5);
+    let map = convert_with(&dir, &dump, &pictures, json!({"dropped_events": {"7": [2]}}));
+    assert_eq!(events(&map), [0, 1, 2, 3]);
+    let second = map["npcs"].as_array().unwrap().iter().find(|n| n["event"] == 1).unwrap();
+    assert_eq!(second["x"], json!(2), "{second}");
     std::fs::remove_dir_all(&dir).unwrap();
 }

@@ -162,6 +162,9 @@ pub const EV_STRIDE: usize = 4;
 /// How many events the console's RAM holds per map. Measured against A
 /// Blurred Line, whose most populated map has 114.
 pub const EV_MAX: usize = 120;
+/// A twin behind the positions: x and y in cells and its event's index,
+/// 16 bits each. See [`ev_pos_bytes`].
+pub const TWIN_STRIDE: usize = 6;
 /// How many forced routes can be running at once on events.
 pub const ROUTE_EV_MAX: usize = 12;
 /// How many flashes can be running at once.
@@ -409,6 +412,11 @@ pub fn sprite_colors_bytes(map: &Map) -> Vec<u8> {
 
 /// Where each event starts, in cells and in the map's order: the whole map,
 /// drawn or not, because a forced route can land on an invisible one.
+///
+/// Behind them, the twins: a word with how many, and then
+/// [`TWIN_STRIDE`] bytes each —x and y in cells, and the index of the event
+/// whose row it shares—. The load copies only the positions, `EV_COUNT`
+/// of them, to `ev_pos_buf`; `twin_in_cell` reads the rest in place.
 pub fn ev_pos_bytes(map: &Map) -> Result<Vec<u8>> {
     if map.events.len() > EV_MAX {
         return Err(Bad::answer(format!(
@@ -420,6 +428,18 @@ pub fn ev_pos_bytes(map: &Map) -> Result<Vec<u8>> {
     for [x, y] in &map.events {
         out.extend_from_slice(&(*x as u16).to_le_bytes());
         out.extend_from_slice(&(*y as u16).to_le_bytes());
+    }
+    out.extend_from_slice(&(map.twins.len() as u16).to_le_bytes());
+    for &[x, y, owner] in &map.twins {
+        if !(0..map.events.len() as i64).contains(&owner) {
+            return Err(Bad::answer(format!(
+                "a twin at ({x}, {y}) shares the row of event {owner}, and the map has {}",
+                map.events.len()
+            )));
+        }
+        for v in [x, y, owner] {
+            out.extend_from_slice(&(v as u16).to_le_bytes());
+        }
     }
     Ok(out)
 }
@@ -1616,6 +1636,24 @@ mod tests {
         }
         // And the page that asks for the case variable at 299 says so whole.
         assert!(table.contains(".word 299 ; +26 against what"), "{table}");
+    }
+
+    #[test]
+    fn the_twins_go_behind_the_positions_with_how_many() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/maps.json");
+        let mut map = crate::request::read::<crate::request::Maps>(&path).unwrap().maps.remove(0);
+        map.events = vec![[1, 2], [3, 4]];
+        // Without twins, the word says none: the console reads it always.
+        assert_eq!(ev_pos_bytes(&map).unwrap(), [1, 0, 2, 0, 3, 0, 4, 0, 0, 0]);
+        map.twins = vec![[5, 6, 1], [7, 8, 0]];
+        assert_eq!(
+            ev_pos_bytes(&map).unwrap(),
+            [1, 0, 2, 0, 3, 0, 4, 0, 2, 0, 5, 0, 6, 0, 1, 0, 7, 0, 8, 0, 0, 0]
+        );
+        assert_eq!(ev_pos_bytes(&map).unwrap().len(), 2 * EV_STRIDE + 2 + 2 * TWIN_STRIDE);
+        // One that points past the map's events is the converter's mistake.
+        map.twins = vec![[5, 6, 2]];
+        assert!(ev_pos_bytes(&map).is_err());
     }
 
     #[test]

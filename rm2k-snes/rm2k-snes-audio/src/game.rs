@@ -144,13 +144,34 @@ impl Game {
             .map(|s| s.to_lowercase())
             .filter(|s| !game.contains(s) && !system.contains(s) && rtp.contains(s))
             .collect();
-        let order: Vec<&String> = game.iter().chain(system.iter()).chain(named.iter()).collect();
+        let mut order: Vec<&String> = game.iter().chain(system.iter()).chain(named.iter()).collect();
         // The number goes in a byte of `song_msu`, and $FF is "no track".
         if order.len() > 0xFE {
-            return Err(Bad::answer(format!(
-                "Music/ has {} songs and the track goes in a byte",
-                order.len()
-            )));
+            // **Past the byte, only the game's songs that something names**:
+            // a song no `PlayBGM`, map or `System` names can never play, and
+            // `named_songs` is the whole game's, not the cartridge's, so the
+            // numbers are still the same in any cartridge. It is the
+            // fallback and not the rule because the rule kept every number
+            // of the games that fit —A Blurred Line ships 230 songs and names
+            // about a hundred—, and renumbering their tracks means copying
+            // them all to the card again. The track could also go in two
+            // bytes —MSU-1 numbers sixteen bits—, but that is a wider
+            // `song_msu` and a runtime change for songs that never play.
+            let called: BTreeSet<String> =
+                system_songs.iter().chain(named_songs).map(|s| s.to_lowercase()).collect();
+            let all = order.len();
+            order = game
+                .iter()
+                .filter(|s| called.contains(*s))
+                .chain(system.iter())
+                .chain(named.iter())
+                .collect();
+            if order.len() > 0xFE {
+                return Err(Bad::answer(format!(
+                    "Music/ has {all} songs, the game names {} of them and the track goes in a byte",
+                    order.len()
+                )));
+            }
         }
         Ok(order.into_iter().enumerate().map(|(i, n)| (n.clone(), i as u8 + 1)).collect())
     }
@@ -274,5 +295,38 @@ mod tests {
         }
         assert_eq!(after.get("farewell2"), Some(&5));
         assert_eq!(after.len(), 5, "{after:?}");
+    }
+
+    /// A `Music/` with more files than a byte numbers —Vampires Dawn has
+    /// 281, and names about 110— numbers only the ones the game names: the
+    /// others can never play.
+    #[test]
+    fn a_music_folder_past_the_byte_numbers_only_the_named_songs() {
+        let root = std::env::temp_dir().join(format!("tracks-past-{}", std::process::id()));
+        let music = root.join("game").join("Music");
+        std::fs::create_dir_all(&music).unwrap();
+        for k in 0..300 {
+            std::fs::write(music.join(format!("song{k:03}.mid")), b"").unwrap();
+        }
+        let rtp = root.join("rtp").join("Music");
+        std::fs::create_dir_all(&rtp).unwrap();
+        for n in ["Ride1.mid", "Farewell2.mid"] {
+            std::fs::write(rtp.join(n), b"").unwrap();
+        }
+        let game = Game {
+            game_dir: root.join("game"),
+            rtp_dir: Some(root.join("rtp")),
+            project: Project::from_text(&root, "").unwrap(),
+        };
+        let system = ["Song299".to_string(), "Ride1".to_string()];
+        let named = ["song007".to_string(), "Farewell2".to_string(), "song120".to_string()];
+        let tracks = game.track_numbers(&system, &named);
+        let _ = std::fs::remove_dir_all(&root);
+        let expected: BTreeMap<String, u8> =
+            [("song007", 1), ("song120", 2), ("song299", 3), ("ride1", 4), ("farewell2", 5)]
+                .into_iter()
+                .map(|(n, k)| (n.to_string(), k))
+                .collect();
+        assert_eq!(tracks.unwrap(), expected);
     }
 }

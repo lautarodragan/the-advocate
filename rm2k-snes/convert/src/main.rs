@@ -36,6 +36,7 @@ mod screens;
 mod settings;
 mod stage;
 mod text;
+mod trim;
 
 use std::io::Write;
 use std::process::ExitCode;

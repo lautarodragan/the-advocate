@@ -245,6 +245,17 @@ impl Request {
         r.patches.map_files = by_map(field(data, "map_files", whose)?, whose, |v| {
             Ok(PathBuf::from(text(v, whose)?))
         })?;
+        // Not required: a request that leaves nothing out does not have to
+        // say it, and the ones written before it existed stay as they were.
+        if let Some(d) = data.get("dropped_events") {
+            r.patches.dropped = by_map(d, whose, |v| {
+                v.as_array()
+                    .ok_or_else(|| Bad::answer(format!("{whose}: a map's `dropped_events` is not a list")))?
+                    .iter()
+                    .map(|e| int(e, whose).map(|x| x as i32))
+                    .collect()
+            })?;
+        }
         for b in list(data, "boxes", whose)? {
             let from = strings(field(b, "from", whose)?, whose)?;
             let to = field(b, "to", whose)?
