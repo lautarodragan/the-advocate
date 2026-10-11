@@ -91,7 +91,8 @@
 //! On 2026-10-10 `troop_init` went from bytes to words, because Vampires
 //! Dawn's troops take 470 members, and the two hashes moved: the difference
 //! is that table's `.byte` turned `.word` and its `.block` doubled, nothing
-//! else.
+//! else. The same day `enemy_acc_init` did the same, for Vampires Dawn's 344
+//! enemy actions, and the hashes moved again by that table alone.
 
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_mapdata::record;
@@ -362,7 +363,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     assert_eq!(text.lines().count(), 3774);
     assert_eq!(
         sha(&text),
-        "6359a90b6fc6ca6761289d4882121618986f974c393471a65b6abca5290e3ddc"
+        "00dcc2552eae4871f0e785669976b799df463e0652204237257cd48a46cac190"
     );
 }
 
@@ -373,7 +374,7 @@ fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     assert_eq!(text.lines().count(), 3893);
     assert_eq!(
         sha(&text),
-        "40d3d982ef85ed9e024bebdc93f238d65f6969cddfc1218a0b26175ba1d388da"
+        "4de4a91e909f1459794cc556bfa78ae22fab6f23f71f1297546752b70faeeea5"
     );
 }
 
@@ -429,4 +430,19 @@ fn troops_with_more_members_than_a_byte_numbers_start_in_words() {
     let starts = text.split("troop_init:\n").nth(1).unwrap().lines().next().unwrap();
     assert!(starts.starts_with("    .word 0, 2, 5, 8, 16, 19, 23, 31,"), "{starts}");
     assert!(starts.ends_with(", 287"), "{starts}");
+}
+
+/// Vampires Dawn's enemies take 344 actions: where each enemy's list starts
+/// in `eacc_*` does not fit in a byte, and goes in a word. Made up giving each
+/// of the eight enemies forty attacks.
+#[test]
+fn enemies_with_more_actions_than_a_byte_numbers_start_in_words() {
+    let mut request = emit_request("whole");
+    let attacks = serde_json::json!(vec![serde_json::json!([50, null, true]); 40]);
+    for e in 1..=8 {
+        request.battle_model["actions"][e.to_string()] = attacks.clone();
+    }
+    let text = rm2k_snes_mapdata::emit::emit(&request, &db()).unwrap().text;
+    let starts = text.split("enemy_acc_init:\n").nth(1).unwrap().lines().next().unwrap();
+    assert_eq!(starts, "    .word 0, 40, 80, 120, 160, 200, 240, 280");
 }

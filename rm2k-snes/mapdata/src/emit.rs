@@ -3087,14 +3087,16 @@ impl Rest<'_> {
                 eacc_weight.push(rating | if effective { 0 } else { 0x80 });
             }
         }
-        if eacc_skill.len() > 255 {
+        // Where each enemy's list starts goes in a word: it was a byte until
+        // 2026-10-10, when Vampires Dawn's enemies took 344 actions.
+        if eacc_skill.len() > 0x10000 {
             return Err(Bad::answer(format!(
-                "the actions of the cartridge's enemies are {} and `enemy_acc_init` is one byte",
+                "the actions of the cartridge's enemies are {} and `enemy_acc_init` is a word",
                 eacc_skill.len()
             )));
         }
         out.push_str(&format!("ACTIONS_MAX = {}\n", bs.n("ACTIONS_MAX")));
-        bytes_asm(out, "enemy_acc_init", &decimal(eacc_start), true);
+        words_asm(out, "enemy_acc_init", &decimal(eacc_start), true);
         bytes_asm(out, "enemy_acc_n", &decimal(eacc_n), true);
         bytes_asm(out, "eacc_skill", &decimal(eacc_skill), true);
         bytes_asm(out, "eacc_weight", &decimal(eacc_weight), true);
