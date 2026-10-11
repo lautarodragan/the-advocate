@@ -429,7 +429,7 @@ pub const ACCEPTED_UNDONE: [i32; 9] = [
     CHANGE_SYSTEM_BGM,
     CHANGE_HERO_TITLE,
     // Debt: the System is not changed on the fly. The task to implement it is
-    // `workflow/tasks/todo/changesystemgraphics.md`.
+    // `tasks/changesystemgraphics.md`.
     CHANGE_SYSTEM_GRAPHICS,
     // Debt: the face is not drawn; see its arm.
     CHANGE_FACE_GRAPHIC,
@@ -3999,7 +3999,7 @@ pub fn compile_command(
         CHANGE_SYSTEM_BGM | CHANGE_HERO_TITLE => Ok(vec![]),
         // `ChangeSystemGraphics` (10680): debt, accepted without doing anything
         // so the page that uses it is not left out whole; the task to
-        // implement it is `workflow/tasks/todo/changesystemgraphics.md`.
+        // implement it is `tasks/changesystemgraphics.md`.
         CHANGE_SYSTEM_GRAPHICS => Ok(vec![]),
         // `EraseScreen` (11010) and `ShowScreen` (11020): debt, the screen
         // is neither blanked nor shown again, so pages that use them are
