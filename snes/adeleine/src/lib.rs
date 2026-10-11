@@ -15,6 +15,7 @@
 //! entries of which the first is transparent.
 
 pub mod fail;
+pub mod fuse;
 pub mod merge;
 pub mod most_used;
 pub mod pack;
@@ -25,6 +26,7 @@ pub use fail::{Bad, Result};
 pub use merge::{luma_distance, merge_least_visible, merge_until, Merge, Merged, Progress};
 pub use most_used::{keep_most_used, Kept};
 pub use pack::{reduce_colors, try_pack, Colors, PaletteMerge, Reduced, ReducedTile};
+pub use fuse::{merge_least_visible_tiles, Drawn};
 pub use tiles::{group_tiles, Tile};
 
 /// A colour: red, green and blue, in whatever depth the caller works in —the

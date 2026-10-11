@@ -118,13 +118,26 @@ fn frame(out: &mut Picture, system: &Picture, origin: (i32, i32), middle: bool) 
 /// An empty window of `width` x `height`: the background filling it the
 /// way `background` says, and the frame on top.
 pub fn window(system: &Picture, width: usize, height: usize, background: Background) -> Picture {
+    let mut out = window_background(system, width, height, background);
+    frame_over(&mut out, system);
+    out
+}
+
+/// What [`window`] draws first: the background alone, filling `width` x
+/// `height` the way `background` says.
+pub fn window_background(system: &Picture, width: usize, height: usize, background: Background) -> Picture {
     let square = piece(system, rules::BACKGROUND, 0, 0, PIECE, PIECE);
-    let mut out = match background {
+    match background {
         Background::Stretched => stretched(&square, width, height),
         Background::Tiled => tiled(&square, width, height),
-    };
-    frame(&mut out, system, rules::FRAME, false);
-    out
+    }
+}
+
+/// What [`window`] draws second: the window's frame over `out`, whatever
+/// is under it. A caller that changes the background —to fit it in fewer
+/// tiles— lays the frame over what it made, and the frame stays as it is.
+pub fn frame_over(out: &mut Picture, system: &Picture) {
+    frame(out, system, rules::FRAME, false);
 }
 
 /// Drawing `drawing`, 0 or 1, of the cursor, `width` x `height`, over
