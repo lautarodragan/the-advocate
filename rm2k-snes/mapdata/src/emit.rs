@@ -2862,15 +2862,20 @@ impl Rest<'_> {
         // runs always—, whether it is pure, and where its body starts.
         let parallel = &r.parallel_common;
         out.push_str(&format!("COMPAR_N = {}\n", parallel.len()));
-        out.push_str(&format!(".block {}\ncompar_table:\n", 8 * parallel.len().max(1)));
+        out.push_str(&format!(".block {}\ncompar_table:\n", 6 * parallel.len().max(1)));
         if parallel.is_empty() {
-            out.push_str("    .byte 0, 0, 0, 0, 0, 0, 0, 0\n");
+            out.push_str("    .byte 0, 0, 0, 0, 0, 0\n");
         }
         for (switch, n, pure, _) in parallel {
+            let byte = switch >> 3;
+            if byte > 255 {
+                return Err(Bad::answer(format!(
+                    "parallel common event {n}: switch {switch} does not fit the table's byte"
+                )));
+            }
             let mask = if *switch == 0 { 0 } else { 1 << (switch & 7) };
             out.push_str(&format!(
-                "    .word {}\n    .byte ${mask:02X}, {}\n    .word .loword(common_parallel_{n})\n    .byte ^common_parallel_{n}, 0\n",
-                switch >> 3,
+                "    .byte {byte}, ${mask:02X}, {}\n    .word .loword(common_parallel_{n})\n    .byte ^common_parallel_{n}\n",
                 u8::from(*pure)
             ));
         }

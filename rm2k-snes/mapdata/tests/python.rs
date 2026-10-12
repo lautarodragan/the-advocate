@@ -240,9 +240,6 @@ fn without_pairs(text: &str) -> String {
     kept.join("\n")
 }
 
-/// The text without the shared common event bodies' tables, which came
-/// after the Python too: a cartridge without bodies carries their two
-/// constants at zero and each table with a dummy entry, checked here.
 /// The parallel common events as the equipment ones were written before
 /// 2026-10-12, when only those ran, from the menu: `COMEQ_N` and four
 /// `comeq_*` tables, with the bank as a word and no flag, instead of
@@ -254,18 +251,16 @@ fn with_the_equipment_commons_as_before(text: &str) -> String {
     let at = lines.iter().position(|l| l.starts_with("COMPAR_N = ")).unwrap();
     let n: usize = lines[at]["COMPAR_N = ".len()..].parse().unwrap();
     assert_eq!(lines[at + 2], "compar_table:");
-    let entries: Vec<&[String]> = lines[at + 3..at + 3 + 4 * n].chunks(4).collect();
+    let entries: Vec<&[String]> = lines[at + 3..at + 3 + 3 * n].chunks(3).collect();
     let field = |line: &str, prefix: &str| line.trim_start().strip_prefix(prefix).unwrap().to_string();
-    let bytes: Vec<String> = entries.iter().map(|e| field(&e[0], ".word ")).collect();
-    let masks: Vec<String> = entries
+    let first: Vec<Vec<String>> = entries
         .iter()
-        .map(|e| field(&e[1], ".byte ").split(", ").next().unwrap().to_string())
+        .map(|e| field(&e[0], ".byte ").split(", ").map(str::to_string).collect())
         .collect();
-    let codes: Vec<String> = entries.iter().map(|e| field(&e[2], ".word ")).collect();
-    let banks: Vec<String> = entries
-        .iter()
-        .map(|e| field(&e[3], ".byte ").split(", ").next().unwrap().to_string())
-        .collect();
+    let bytes: Vec<String> = first.iter().map(|f| f[0].clone()).collect();
+    let masks: Vec<String> = first.iter().map(|f| f[1].clone()).collect();
+    let codes: Vec<String> = entries.iter().map(|e| field(&e[1], ".word ")).collect();
+    let banks: Vec<String> = entries.iter().map(|e| field(&e[2], ".byte ")).collect();
     let old = vec![
         format!("COMEQ_N = {n}"),
         format!(".block {}", 2 * n),
@@ -281,10 +276,13 @@ fn with_the_equipment_commons_as_before(text: &str) -> String {
         "comeq_bank:".to_string(),
         format!("    .word {}", banks.join(", ")),
     ];
-    lines.splice(at..at + 3 + 4 * n, old);
+    lines.splice(at..at + 3 + 3 * n, old);
     lines.join("\n").replace("common_parallel_", "common_equipment_")
 }
 
+/// The text without the shared common event bodies' tables, which came
+/// after the Python too: a cartridge without bodies carries their two
+/// constants at zero and each table with a dummy entry, checked here.
 fn without_commons(text: &str) -> String {
     let mut lines: Vec<&str> = text.split('\n').collect();
     for constant in ["COMMON_DEPTH = 0", "COMAUTO_N = 0"] {

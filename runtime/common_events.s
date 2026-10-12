@@ -240,10 +240,10 @@ has:
 ; event compiler—, and the converter emits them as `COMPAR_N` entries of
 ; `compar_table`, in the order of their numbers:
 ;
-;     +0  word  the byte of `switches` its switch is in
-;     +2  byte  the switch's mask; $00 is none, and it runs always
-;     +3  byte  1 if it is pure
-;     +4  word  where its body starts, and +6 its bank
+;     +0  byte  the byte of `switches` its switch is in
+;     +1  byte  the switch's mask; $00 is none, and it runs always
+;     +2  byte  1 if it is pure
+;     +3  word  where its body starts, and +5 its bank
 ;
 ; **The pure ones run only when what they read changes.** A body that only
 ; reads switches and the equipment and only writes skills and permissions
@@ -265,7 +265,7 @@ has:
 ; While one runs, `pair_ev` is `PAIR_COMMON` plus its index: it is what
 ; `op_message` notes as the message's owner, and what tells the opcodes that
 ; ask that this is not the foreground.
-COMPAR_ENTRY = 8
+COMPAR_ENTRY = 6
 PAIR_COMMON = $80
 .assert EV_MAX <= PAIR_COMMON, error, "a map event's index reaches the parallel common events' pair_ev"
 .assert PAIR_COMMON + COMPAR_N <= PAIR_BATTLE, error, "too many parallel common events for pair_ev"
@@ -277,6 +277,7 @@ compar_state: .res COMPAR_N * COMPAR_ENTRY + 1
 compar_owed: .res 1         ; something a pure one reads changed
 compar_now: .res 1          ; and this frame's copy of it
 compar_saved: .res 1        ; whether the foreground's context is saved
+compar_id: .res 1           ; `PAIR_COMMON` plus the index of the one at X
 compar_context: .res 11     ; and where: see `compar_tick`
 .popseg
 
@@ -340,9 +341,14 @@ mine:
     lda #0
     sta f:compar_owed           ; what changes while they run is the next frame's
     sta f:compar_saved
+    lda #PAIR_COMMON
+    sta f:compar_id
     ldx #0
 each:
     jsr compar_one
+    lda f:compar_id
+    inc a
+    sta f:compar_id
     rep #$21                    ; and the carry, for the add
 .a16
     txa
@@ -382,12 +388,13 @@ untouched:
 .a8
 .i16
     ; Its switch: A nonzero if on.
-    lda f:compar_table + 2, x
+    lda f:compar_table + 1, x
     beq always
     sta temp
     rep #$20
 .a16
     lda f:compar_table + 0, x
+    and #$00FF
     tay
     sep #$20
 .a8
@@ -404,7 +411,7 @@ on:
     sta temp + 2
     lda #1
     sta f:compar_state + 5, x
-    lda f:compar_table + 3, x
+    lda f:compar_table + 2, x
     beq runs
     lda temp + 2
     beq runs                    ; a pure one whose switch just turned on
@@ -413,15 +420,7 @@ on:
     rts
 runs:
     ; Who it is, for the message: `PAIR_COMMON` plus its index.
-    rep #$20
-.a16
-    txa
-    lsr a
-    lsr a
-    lsr a
-    sep #$20
-.a8
-    ora #PAIR_COMMON
+    lda f:compar_id
     sta temp + 3
     ; With a message on screen it keeps running, unless the message is its
     ; own: see `one_parallel`.
@@ -492,11 +491,11 @@ begin:
 .a16
     lda #$FFFF                  ; no event: a common event's frame has none
     sta f:ev_running
-    lda f:compar_table + 4, x
+    lda f:compar_table + 3, x
     sta code_ptr
     sep #$20
 .a8
-    lda f:compar_table + 6, x
+    lda f:compar_table + 5, x
     sta code_ptr + 2
     phx
     jsl f:run_code_long + FAST

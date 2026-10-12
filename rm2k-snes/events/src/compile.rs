@@ -38,7 +38,7 @@ const MAX_RANGE: i64 = 64;
 /// not compile.
 /// Measured against the game this was built with: an assumption of the
 /// engine, not a fact of the format.
-const SWITCH_MAX: i64 = 1024;
+pub(crate) const SWITCH_MAX: i64 = 1024;
 /// The inventory: one byte per item of the database in far RAM, `FAR_ITEMS`,
 /// indexed by the RM2k number. It was measured against the game this was
 /// built with —its 450 items plus 0, which is not used—: an assumption of
@@ -7061,6 +7061,17 @@ mod tests {
             switch_id: switch.unwrap_or(1),
             commands,
         }
+    }
+
+    #[test]
+    fn a_common_event_on_a_switch_past_the_bitmap_never_starts() {
+        // No page can turn switch 2000 on —the ROM's bitmap ends at 1023—,
+        // and reading it would go past `switches`.
+        let mut game = Game::default();
+        let on = cmd(CONTROL_SWITCHES, &[0, 1, 1, 0], "");
+        game.common_events.insert(4, common(3, Some(2000), vec![on.clone()]));
+        game.common_events.insert(5, common(3, Some(20), vec![on]));
+        assert_eq!(crate::commons::automatic(&game), [(5, 20)]);
     }
 
     fn call(number: i32) -> Command {

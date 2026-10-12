@@ -32,6 +32,7 @@ use crate::codes::*;
 use rm2k_snes_bytecode::events::{OP_DONE, OP_MENU_OPEN, OP_RETURN, OP_SWITCH};
 use crate::compile::{
     compile_page, Ctx, Indices, SoundSettings, COND_ACTOR, COND_ACTOR_EQUIPMENT, COND_SWITCH,
+    SWITCH_MAX,
 };
 use crate::fail::{Bad, Result};
 use crate::game::{Command, Game};
@@ -88,6 +89,10 @@ pub fn automatic(game: &Game) -> Vec<(i32, i32)> {
     game.common_events
         .iter()
         .filter(|(_, c)| c.trigger == COMMON_AUTOSTART && c.switch_flag && !c.commands.is_empty())
+        // A switch past the ROM's bitmap: no page can turn it on —a
+        // `ControlSwitches` on it does not compile— and `common_start` would
+        // read past `switches`.
+        .filter(|(_, c)| (0..SWITCH_MAX).contains(&(c.switch_id as i64)))
         .map(|(&n, c)| (n, c.switch_id))
         .collect()
 }
@@ -454,7 +459,12 @@ pub fn parallel_commons(
         if c.trigger != COMMON_PARALLEL || c.commands.is_empty() {
             continue;
         }
-        let code = if s.game.patches.menus.replaced.contains_key(&number) {
+        let code = if c.switch_flag && !(0..SWITCH_MAX).contains(&(c.switch_id as i64)) {
+            // A switch past the ROM's bitmap: no page can turn it on —a
+            // `ControlSwitches` on it does not compile— and the ROM would
+            // read it out of bounds.
+            None
+        } else if s.game.patches.menus.replaced.contains_key(&number) {
             let mut code = menu_open(s.game, number);
             code.push(OP_DONE);
             Some(code)
