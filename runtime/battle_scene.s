@@ -73,6 +73,8 @@ SCN_BATTLERS = GRID
 ; What was on the direct page that gets borrowed: see `scn_dp_take`.
 SCN_DP_SAVE = $6680
 SCN_DP_BYTES = 48
+; The rest of the reservation is `FARBSS`'s: see far_ram.s.
+.assert SCN_DP_SAVE + SCN_DP_BYTES <= .loword(__FARRAM_START__), error, "the scene's state reaches FARBSS"
 
 ; The clean background and the composed scene, 32 KB each, in WRAM bank
 ; $7F, which nobody used: everything else in the ROM lives in $7E —far RAM

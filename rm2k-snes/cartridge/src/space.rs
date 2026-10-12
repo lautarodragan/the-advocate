@@ -17,7 +17,9 @@
 //! * **Bank `$C0`**: the third code bank, [`banks::FAR2`]: its `.cfg` area
 //!   minus what `FAR2` takes. It has no `.align` to close it, nor needs one:
 //!   nothing comes after it in its area.
-//! * **BSS and ZEROPAGE**: their `.cfg` areas minus what they take.
+//! * **BSS and ZEROPAGE**: their `.cfg` areas minus what they take; and
+//!   the same for **far RAM**, the `FARRAM` area minus `FARBSS`: see
+//!   [`banks::FAR_POOL_START`].
 //! * **Texts**: `MESSAGES_BYTES` against `MESSAGES_CAP`, which the converter
 //!   emits next to the text block.
 
@@ -47,6 +49,7 @@ pub struct Measure {
     pub bank_far2: i64,
     pub bss: i64,
     pub zeropage: i64,
+    pub far: i64,
     pub texts: Option<i64>,
     pub texts_cap: Option<i64>,
 }
@@ -164,6 +167,7 @@ pub fn measure(sfc: &Path, runtime: &Path) -> Result<Measure, String> {
         bank_far2: area(&segment_of(banks::FAR2.bank))? - used_of("FAR2"),
         bss: area("RAM")? - used_of("BSS"),
         zeropage: area("ZP")? - used_of("ZEROPAGE"),
+        far: area("FARRAM")? - used_of("FARBSS"),
         texts: symbols.get("MESSAGES_BYTES").copied(),
         texts_cap: symbols.get("MESSAGES_CAP").copied(),
     })
@@ -203,6 +207,7 @@ pub fn show(title: &str, m: &Measure) -> String {
     out += &format!("  bank $C0         {}\n", b(m.bank_far2));
     out += &format!("  BSS              {}\n", b(m.bss));
     out += &format!("  ZEROPAGE         {}\n", b(m.zeropage));
+    out += &format!("  far RAM          {}\n", b(m.far));
     match (m.texts, m.texts_cap) {
         (Some(texts), Some(cap)) => {
             out += &format!(
@@ -235,6 +240,7 @@ mod tests {
         let areas = areas(&banks::cfg());
         assert_eq!(areas["ROM"], 0x7FC0);
         assert_eq!(areas["RAM"], 0x1F00 - banks::STACK as i64);
+        assert_eq!(areas["FARRAM"], banks::FAR_POOL_SIZE as i64);
         assert_eq!(areas["BANKC2"], 0x10000);
         assert_eq!(areas["BANKC0"], 0x8000, "the third code bank");
         assert_eq!(areas["BANK70"], 0x8000);
