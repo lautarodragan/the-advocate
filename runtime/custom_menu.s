@@ -1912,8 +1912,7 @@ on:
     rts
 .endproc
 
-; The shared body the page runs before, if it has one: to its end, now, as
-; `equipment_commons` runs the ones that look at the equipment. The
+; The shared body the page runs before, if it has one: to its end, now. The
 ; interpreter that was running —the page that opened the menu, if one did—
 ; is kept on the stack and in `CM_CALLS`, and comes back as it was. The
 ; compiler made sure the body only does what does not wait: see

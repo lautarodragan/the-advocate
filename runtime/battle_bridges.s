@@ -188,7 +188,7 @@ ba_t_build:
     rtl
 
 ; `run_code` for whoever lives outside bank 0 and has already set up the
-; context: `equipment_commons`, in equipment_from_events.s.
+; context: `compar_tick`, in common_events.s, and the custom menus.
 run_code_long:
     jsr run_code
     rtl

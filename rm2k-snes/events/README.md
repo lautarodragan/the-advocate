@@ -145,8 +145,8 @@ Both calls read these:
 
 ## What comes out
 
-`events.json`, with the indices —`variables`, `skills`, `associations`,
-`party_common_events`— and `maps`, one entry per cartridge map, and:
+`events.json`, with the indices —`variables`, `skills`, `associations`— and
+`maps`, one entry per cartridge map, and:
 
 * from `scan`, per map, `compiled` —`[event, page, code]` of every page
   that compiles on its own—, `pages` and `graphics`;
@@ -155,9 +155,8 @@ Both calls read these:
   automatic pages that compile accept without doing— and `substitutions`
   —which ones some page asked for—; and `cases`, `messages` —the text
   block, in hex—, `songs`, `troops`, `troop_pages` —their code and their
-  messages, each distinct body once—, `battle_audio`,
-  `party_common_events` with their code, and `commons` when there are
-  shared common event bodies —see below—.
+  messages, each distinct body once—, `battle_audio`, `parallel_commons`
+  —see below— and `commons` when there are shared common event bodies.
 
 **The shared common event bodies** —`commons.rs`— are the automatic common
 events, the ones the pages that run in the foreground call, and every one
@@ -168,6 +167,14 @@ stack has to hold; and `left_out`, what an automatic one reaches that does
 not compile. A page calls a body instead of pasting it when the body
 compiled with the page's map is the same as without it; a parallel page
 always pastes.
+
+**The parallel common events** —`parallel_commons`, in `commons.rs`— are
+each one `[number, switch, pure, code]`: the switch that turns it on, 0 if
+it runs always; whether it is pure —it only reads switches and the equipment
+and only writes skills and permissions, so the ROM runs it only when those
+change—; and its code, compiled once without a map with its `CallEvent`s
+pasted, or null if it does not compile. The ROM runs each one with its own
+interpreter: see `compar_tick` in the runtime.
 
 A page's record is its trigger, its conditions —a variable one with its
 slot—, its layer, frequency and speed, its code or null, the events its

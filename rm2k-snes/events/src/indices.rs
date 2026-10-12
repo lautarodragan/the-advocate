@@ -9,7 +9,7 @@
 
 use crate::codes::*;
 use crate::compile::{
-    Indices, COND_ACTOR, COND_ACTOR_EQUIPMENT, COND_ACTOR_SKILL, COND_VARIABLE, VAR_VARIABLE,
+    Indices, COND_ACTOR, COND_ACTOR_SKILL, COND_VARIABLE, VAR_VARIABLE,
 };
 use crate::fail::{Bad, Result};
 use crate::game::{Command, Game, Map};
@@ -19,8 +19,6 @@ use std::collections::{BTreeMap, BTreeSet};
 /// Today the game uses far fewer; if some day they are not enough, the
 /// converter stops instead of overwriting the neighbor.
 const SKILL_SLOTS_MAX: usize = 256 * 8;
-/// The end of a block of commands: the empty line that closes each branch.
-const BLOCK_END: i32 = END;
 
 /// The battle's branch commands, as the map's: the two kinds the game uses
 /// have their operands in the same place.
@@ -359,68 +357,6 @@ pub fn associations(maps: &[Map], extra: &[Command]) -> Vec<(String, i32)> {
     pairs
 }
 
-/// The parallel common events that only look at the equipment: with a
-/// switch, and nothing but `ChangeSkills` and branches on an actor's
-/// equipment —with their `else`, their closer and the block ends—. The ROM
-/// runs them when the menu closes and right after the switch turns on; see
-/// the converter. By switch, and a later one takes the switch of an earlier
-/// one.
-///
-/// It is the tailored path of Lashe City's milestone 4, and in the game
-/// there is a single one: 37, `UpdateAG7 Skills`, parallel on switch 150,
-/// which takes AG7-17's seventeen skills away and gives it the one of each
-/// piece it has equipped.
-///
-/// The ROM does not run parallel common events. Doing them for real —one
-/// more interpreter, running the body **on every frame** while the switch is
-/// on— is the general way, and it was measured on 2026-09-27 against this
-/// (see `workflow/tasks/*/lashe-4-ag7-en-la-pelea.md`): what ruled it out
-/// was not the cost but that it would also turn on 2 (`DisableSaving`, parallel
-/// **without a switch**, which turns saving off every time 236 is off), 3
-/// and 8, and that changes `release` far beyond this milestone.
-///
-/// A parallel one that only reads its switch and the equipment, and only
-/// writes skills, gives the same result on every frame until one of those
-/// two things changes, and what it writes depends on nobody but itself. So
-/// it is enough to run it **when they change**: when the switch turns on
-/// —the compiler pastes the body after the `ControlSwitches` that turns it
-/// on, like a `CallEvent`— and when closing the menu, which is where the
-/// equipment is changed —the ROM runs it from `menu_screen`, see
-/// `equipment_commons` in runtime/equipment_from_events.s—. It is
-/// what the droid tutorial says: "these abilities become available once you
-/// equip a particular component and exit the menu".
-///
-/// What is left out: a page's `ChangeEquipment` on the actor the event looks
-/// at does not run it again. In the game there is none on 18.
-pub fn party_common_events(game: &Game) -> BTreeMap<i32, i32> {
-    let mut out = BTreeMap::new();
-    for (&number, c) in &game.common_events {
-        let allowed = |code: i32| {
-            matches!(
-                code,
-                CHANGE_SKILLS | COND_BRANCH | COND_ELSE | COND_END | BLOCK_END
-            )
-        };
-        let equipment_only = c
-            .commands
-            .iter()
-            .filter(|x| x.code == COND_BRANCH)
-            .all(|x| {
-                x.parameters.first().map(|&v| v as i64) == Some(COND_ACTOR)
-                    && x.parameters.get(2).map(|&v| v as i64) == Some(COND_ACTOR_EQUIPMENT)
-            });
-        if c.trigger == COMMON_PARALLEL
-            && c.switch_flag
-            && !c.commands.is_empty()
-            && c.commands.iter().all(|x| allowed(x.code))
-            && equipment_only
-        {
-            out.insert(c.switch_id, number);
-        }
-    }
-    out
-}
-
 /// The name each actor keeps for the whole game, for `\N[n]` to be baked
 /// into the text: the ones in the database whose name **no**
 /// `ChangeHeroName` in any page of the game changes. A renamed actor is not
@@ -462,7 +398,6 @@ pub fn build(
     Ok(Indices {
         variables: variables(game, maps, extra_variables),
         skills: skills(game, maps, extra_pairs)?,
-        party_common_events: party_common_events(game),
         hero_names: hero_names(game, maps),
     })
 }

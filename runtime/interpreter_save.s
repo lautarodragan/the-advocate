@@ -84,6 +84,7 @@ access_forbid:
     ora temp
 access_ready:
     jsr access_write
+    jsl f:compar_owe_access     ; a pure parallel common event may set it back
     ply
     jmp run_code::other
 

@@ -789,10 +789,9 @@ close:
     stz menu_open
     lda boot_frames
     sta nmi_seen
-    ; The equipment may have changed: the common events that only look at it
-    ; run now, with the data bank still at 0. See `PARTY_COMMON_EVENTS` in
-    ; events.py.
-    jsl f:equipment_commons
+    ; The equipment may have changed: the pure parallel common events run on
+    ; the next frame. See `compar_tick`.
+    jsl f:compar_owe
     plb
     jsl f:menu_exp_close        ; what the menu sprites changed
     jsl f:screen_unerase        ; the map comes back even if an event erased it

@@ -1010,17 +1010,23 @@ pub fn run(options: Options) -> Result<()> {
             int(&asked["skills_known"])
         );
     }
-    // The common events the menu runs on closing, by the switch that turns
-    // them on.
-    let party_codes = compiler::party_common_events(&compiled);
-    let mut party_common: Vec<(i64, i64)> = indices.party_common_events.clone();
-    party_common.sort();
-    let mut party_common_json = Vec::new();
-    for (switch, number) in party_common {
-        let code = party_codes
-            .get(&number)
-            .ok_or_else(|| Stop::new(format!("common event {number} was not compiled")))?;
-        party_common_json.push(json!([switch, number, code]));
+    // The parallel common events, which the ROM runs every frame while their
+    // switch is on: the ones that compile, and a line for those that do not.
+    let mut parallel_common = Vec::new();
+    let mut parallel_left_out = Vec::new();
+    for e in compiled["parallel_commons"].as_array().into_iter().flatten() {
+        let number = e[0].as_i64().unwrap_or(-1);
+        match e[3].as_str() {
+            Some(code) => parallel_common.push(json!([e[1], number, e[2], code])),
+            None => parallel_left_out.push(number),
+        }
+    }
+    if !parallel_common.is_empty() || !parallel_left_out.is_empty() {
+        println!(
+            "  parallel common events: {} run, {} do not compile {parallel_left_out:?}",
+            parallel_common.len(),
+            parallel_left_out.len()
+        );
     }
     let case_slot = if cases.len() > 1 { Some(indices.variable_slot(CASE_VARIABLE as i64)?) } else { None };
     let request = json!({
@@ -1053,7 +1059,7 @@ pub fn run(options: Options) -> Result<()> {
         "scene": scene::request(&scenes, &troops.ids, &game.db),
         "battle_tables": battle_tables,
         "troop_pages": compiled["troop_pages"],
-        "party_common": party_common_json,
+        "parallel_common": parallel_common,
         "commons": compiled.get("commons").cloned().unwrap_or(Value::Null),
         "battle_model": battle_model,
         // The compiler's indices: each variable's slot and each (actor,

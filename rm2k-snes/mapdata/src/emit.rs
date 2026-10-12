@@ -2855,50 +2855,32 @@ impl Rest<'_> {
             true,
         );
         self.states(out, &x)?;
-        // The common events the menu runs on closing, if their switch is on.
-        let mut party_ones: Vec<(i64, i64, &String)> =
-            r.party_common.iter().map(|(s, n, c)| (*s, *n, c)).collect();
-        party_ones.sort();
-        out.push_str(&format!("COMEQ_N = {}\n", party_ones.len()));
-        words_asm(
-            out,
-            "comeq_byte",
-            &decimal(party_ones.iter().map(|p| p.0 >> 3)),
-            true,
-        );
-        bytes_asm(
-            out,
-            "comeq_mask",
-            &party_ones
-                .iter()
-                .map(|p| format!("${:02X}", 1 << (p.0 & 7)))
-                .collect::<Vec<_>>(),
-            true,
-        );
-        words_asm(
-            out,
-            "comeq_code",
-            &party_ones
-                .iter()
-                .map(|p| format!(".loword(common_equipment_{})", p.1))
-                .collect::<Vec<_>>(),
-            true,
-        );
-        // The bank as a word, indexed with the same X as `comeq_code`.
-        words_asm(
-            out,
-            "comeq_bank",
-            &party_ones
-                .iter()
-                .map(|p| format!("^common_equipment_{}", p.1))
-                .collect::<Vec<_>>(),
-            true,
-        );
-        for (_s, n, code) in &party_ones {
-            line(
-                out,
-                &block(&format!("common_equipment_{n}"), &crate::hex::decode(code)?),
-            );
+        // The parallel common events, in the order of their numbers, which
+        // is the order RM2k runs them in: see `compar_tick` in
+        // `common_events.s`. One entry of `COMPAR_ENTRY` bytes each: the
+        // switch's byte and its mask —$00 for one without a switch, which
+        // runs always—, whether it is pure, and where its body starts.
+        let parallel = &r.parallel_common;
+        out.push_str(&format!("COMPAR_N = {}\n", parallel.len()));
+        out.push_str(&format!(".block {}\ncompar_table:\n", 6 * parallel.len().max(1)));
+        if parallel.is_empty() {
+            out.push_str("    .byte 0, 0, 0, 0, 0, 0\n");
+        }
+        for (switch, n, pure, _) in parallel {
+            let byte = switch >> 3;
+            if byte > 255 {
+                return Err(Bad::answer(format!(
+                    "parallel common event {n}: switch {switch} does not fit the table's byte"
+                )));
+            }
+            let mask = if *switch == 0 { 0 } else { 1 << (switch & 7) };
+            out.push_str(&format!(
+                "    .byte {byte}, ${mask:02X}, {}\n    .word .loword(common_parallel_{n})\n    .byte ^common_parallel_{n}\n",
+                u8::from(*pure)
+            ));
+        }
+        for (_, n, _, code) in parallel {
+            line(out, &block(&format!("common_parallel_{n}"), &crate::hex::decode(code)?));
         }
         // The shared common event bodies, by index, and the automatic ones:
         // see `common_events.s`. A cartridge without them carries the
