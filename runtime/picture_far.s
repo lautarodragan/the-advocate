@@ -304,6 +304,130 @@ place:
     rts
 .endproc
 
+; `ControlVars` class 6 with RM2k's 4 and 5: a character's x or y on **RM2k's**
+; screen, `GetScreenX()` and `GetScreenY()` —the centre of its cell and its
+; feet, minus where RM2k's display is—. The display is the one the pictures
+; are placed on, `pic_on_map`, so a `ShowPicture` by these variables lands on
+; the character as in RM2k: it is what map 207 does with its smoke. The
+; jump's height is not taken off, as RM2k does: no page of the game asks in
+; the middle of a jump.
+;
+; Enters with A8 at CHARACTER_SCREEN_X or the next one and X at the target
+; times EV_STRIDE —0 the hero—, as `op_var` leaves them; `temp` is op_var's
+; and goes back as it came. Returns the value in A16 **with the accumulator
+; at sixteen bits**, and Y as it came. Clobbers X.
+.proc character_screen
+.a8
+.i16
+    phy
+    pha                         ; which one
+    rep #$20
+.a16
+    lda temp                    ; op_var's slot and operation
+    pha
+    cpx #$0000
+    bne event
+    lda hero_x
+    sta temp
+    lda hero_y
+    sta temp + 2
+    bra cell
+event:
+    ; With a row in the NPC table, its pixels, which follow a step under way;
+    ; without one —an event that draws nothing, like 207's—, its cell. The
+    ; search is `event_npc`'s, which lives in bank 0.
+    txa
+    lsr a
+    lsr a
+    dec a                       ; the event index: the target minus one
+    sep #$20
+.a8
+    ldy #$0000
+seek:
+    cpy npc_total
+    beq no_row
+    cmp npc_buf + 8, y
+    beq row
+    pha
+    rep #$20
+.a16
+    tya
+    clc
+    adc #NPC_STRIDE
+    tay
+    sep #$20
+.a8
+    pla
+    bra seek
+row:
+    rep #$20
+.a16
+    lda npc_buf + 0, y
+    sta temp
+    lda npc_buf + 2, y
+    sta temp + 2
+    bra cell
+.a8
+no_row:
+    rep #$20
+.a16
+    lda ev_pos_buf - EV_STRIDE + 0, x
+    asl a
+    asl a
+    asl a
+    asl a
+    sta temp
+    lda ev_pos_buf - EV_STRIDE + 2, x
+    asl a
+    asl a
+    asl a
+    asl a
+    sta temp + 2
+cell:
+    lda temp
+    clc
+    adc #8                      ; the centre of the cell
+    pha
+    lda temp + 2
+    clc
+    adc #16                     ; its feet
+    pha
+    stz temp
+    stz temp + 2
+    sep #$20
+.a8
+    jsr pic_on_map              ; RM2k's display, in temp and temp + 2
+    rep #$20
+.a16
+    ; The stack: 1 the feet, 3 the centre, 5 op_var's temp, 7 which one.
+    lda 7, s
+    and #$00FF
+    cmp #CHARACTER_SCREEN_X
+    bne screen_y
+    lda 3, s
+    sec
+    sbc temp
+    bra ready
+screen_y:
+    lda 1, s
+    sec
+    sbc temp + 2
+ready:
+    sta temp + 2
+    pla
+    pla
+    pla
+    sta temp
+    sep #$20
+.a8
+    pla
+    ply
+    rep #$20
+.a16
+    lda temp + 2
+    rtl
+.endproc
+
 ; A = floor(A * 4 / 5) and A = floor(A * 14 / 15), A signed: an RM2k screen
 ; coordinate on the console's. The sign goes out before dividing —the
 ; hardware divider has none— and a negative one rounds away from zero,

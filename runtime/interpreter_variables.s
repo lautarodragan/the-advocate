@@ -14,6 +14,11 @@
 ; `ControlVars`, one variable at a time: slot, operation, operand class, and
 ; sixteen-bit a and b. See OP_VAR in events.py. Sixteen bits signed,
 ; wrapping around.
+;
+; Class 6's `b` for the place on RM2k's screen, `character_screen`'s x, and
+; its y is the next one. They are RM2k's numbers and not the console's, like
+; CHARACTER_X and CHARACTER_Y: see CHARACTER_SCREEN_X in the event compiler.
+CHARACTER_SCREEN_X = 4
 .proc op_var
 .a8
 .i16
@@ -177,7 +182,8 @@ var_sets:
 character_var:
     ; Class 6: a character's coordinates, in cells. `a` is the target —0 the
     ; hero, the event index plus one, the same byte as OP_ROUTE— and `b` says
-    ; which one: CHARACTER_X or CHARACTER_Y.
+    ; which one: CHARACTER_X or CHARACTER_Y, or CHARACTER_SCREEN_X or
+    ; CHARACTER_SCREEN_Y.
     ;
     ; The cell read is the **live** one: `tile_x`/`tile_y` for the hero and
     ; `ev_pos_buf` for an event, which is where a forced move route, a
@@ -200,6 +206,15 @@ character_var:
     iny
     iny
     lda [code_ptr], y           ; b: which coordinate
+    ; RM2k's 4 and 5, the place on its screen, are worked out in the far bank:
+    ; see `character_screen`.
+    cmp #CHARACTER_SCREEN_X
+    bcc var_character_cell
+    jsl f:character_screen
+.a16
+    bra var_character_ready
+.a8
+var_character_cell:
     cpx #$0000
     beq var_character_hero
     ; An event: its cell is in `ev_pos_buf`, indexed by the index in the

@@ -89,16 +89,18 @@ const VAR_RANDOM: i64 = 3;
 //
 // Of the 829 times the game uses it, **827 ask for x or y** and the other two
 // for the screen x and y; nobody asks for the map id, the facing or the event
-// id. So the ROM does 1 and 2, and the rest does not compile:
+// id. So the ROM does 1, 2, 4 and 5, and the rest does not compile:
 //
 // * **0** in RM2k returns 0 for an event —an RPG_RT defect easyrpg copies—, so
 //   doing it would be copying a defect nobody uses;
-// * **3** returns 8, 6, 2 or 4 —the numeric keypad— and not 0..3;
-// * **4** and **5** are screen pixels, and ours is 256x224 against RM2k's
-//   320x240: the number the variable would end up with is not the original
-//   game's. They are two occurrences in the whole game, and accepting them
-//   would unlock **one** more page —measured, 5135 against 5136—: it is not
-//   worth making up a coordinate that is not the one there for one page.
+// * **3** returns 8, 6, 2 or 4 —the numeric keypad— and not 0..3.
+//
+// **4** and **5** are pixels of **RM2k's** 320x240 screen and not of the
+// console's: the ROM works out where RM2k's display would be, the same one
+// the pictures are placed on —`pic_on_map`—, so the number is the original
+// game's and a `ShowPicture` by those variables lands on the character. They
+// were left out until 2026-10-11, when the pictures still did not speak
+// RM2k's screen; the two uses are map 207's smoke over its chimney.
 pub const VAR_CHARACTER: i64 = 6;
 // And kind 5, an actor's data, of which the ROM does 2 to 5: the HP, the SP
 // and their maximums. See `actor_stat` in runtime/level.s.
@@ -110,6 +112,8 @@ const OTHER_GOLD: i64 = 0;
 const OTHER_TIMER: i64 = 1;
 const CHARACTER_X: i64 = 1;
 const CHARACTER_Y: i64 = 2;
+const CHARACTER_SCREEN_X: i64 = 4;
+const CHARACTER_SCREEN_Y: i64 = 5;
 const CMP_EQUAL: i64 = 0;
 const CMP_NOT_EQUAL: i64 = 5;
 /// The top bit of the **flags byte** of every opcode that writes a variable
@@ -2339,6 +2343,11 @@ const ACT_VARIABLE: u8 = 0x20;
 const ACT_LETHAL: u8 = 0x40;
 const ACT_SUBTRACT: u8 = 0x80;
 
+/// OP_GOLD's sign byte: subtracting, and the amount as a variable's slot.
+/// `GOLD_*` in runtime/interpreter_gold_and_items.s.
+const GOLD_SUBTRACTS: u8 = 0x01;
+const GOLD_BY_VARIABLE: u8 = 0x02;
+
 /// OP_EXP's `what`: levels and not experience, note the level-up message
 /// for the OP_LEVEL_PAGE that follows, the amount as a variable's slot, and
 /// subtracting. `EXP_*` in runtime/level.s.
@@ -3773,12 +3782,17 @@ pub fn compile_command(
         CHANGE_GOLD => {
             // `OperateValue(operation, type, value)`: the operation is 0 add
             // and 1 subtract, and the type 0 constant and 1 "the value is in
-            // a variable". Without variables, the latter cannot be done.
+            // a variable".
             //
-            // OP_GOLD: sign (byte: 0 adds, 1 subtracts) and a 24-bit amount.
-            // It goes in three bytes because RM2k's cap is 999999 and the
-            // game uses the whole value: there is a command that gives
-            // exactly that.
+            // OP_GOLD: sign (byte: GOLD_SUBTRACTS, GOLD_BY_VARIABLE) and a
+            // 24-bit amount, or the variable's slot in its low byte. It goes
+            // in three bytes because RM2k's cap is 999999 and the game uses
+            // the whole value: there is a command that gives exactly that.
+            if n >= 3 && q(1) == 1 {
+                let slot = ctx.indices.variable_slot(q(2))?;
+                let sign = if q(0) != 0 { GOLD_SUBTRACTS } else { 0 };
+                return Ok(vec![OP_GOLD, sign | GOLD_BY_VARIABLE, slot, 0, 0]);
+            }
             //
             // RM2k's gold cap does not travel: the ROM clamps to [0,
             // GOLD_MAX] like `Game_Party::GainGold`, which clamps to
@@ -4327,6 +4341,16 @@ pub fn compile_command(
             let operand_kind = q(4);
             let (mut a, mut b) = (q(5), q(6));
             if operand_kind == VAR_CONSTANT {
+                // Setting one past the word saturates at its edge: what does
+                // that, common event 45 of the game this was built for, sets
+                // six variables to 999999 as "no cell", and they are only
+                // compared for equality against cells, which never reach the
+                // ceiling. Adding or subtracting past it still does not
+                // compile, because the ROM's sum wraps around. The divergence
+                // is the book's `divergences/variables-saturate-at-16-bits.md`.
+                if q(3) == VAR_SET {
+                    a = a.clamp(-0x8000, 0x7FFF);
+                }
                 if !(-0x8000..=0x7FFF).contains(&a) {
                     return cannot();
                 }
@@ -4363,7 +4387,7 @@ pub fn compile_command(
                 // and not the RM2k id: the bytecode never sees an id again,
                 // which is what `MapEvents` exists to guarantee. `b` is which
                 // coordinate.
-                if !(b == CHARACTER_X || b == CHARACTER_Y) {
+                if !matches!(b, CHARACTER_X | CHARACTER_Y | CHARACTER_SCREEN_X | CHARACTER_SCREEN_Y) {
                     return cannot();
                 }
                 // Not checked as a byte: it goes as a word.
@@ -6620,6 +6644,60 @@ mod tests {
         big.parameters[12] = 0;
         assert!(picture_key(&spin).is_none());
         assert!(picture_key(&big).is_none());
+    }
+
+    #[test]
+    fn change_gold_by_a_variable_is_its_slot() {
+        // Sern's forge and the bets: the amount is in a variable, and 48 is
+        // the fifth slot. The same five bytes as a constant.
+        let game = Game::default();
+        let one = |c: Command| compile_with(&game, &[c]).unwrap();
+        assert_eq!(
+            one(cmd(CHANGE_GOLD, &[0, 1, 48], "")),
+            Some(vec![OP_GOLD, GOLD_BY_VARIABLE, 5, 0, 0, OP_DONE])
+        );
+        assert_eq!(
+            one(cmd(CHANGE_GOLD, &[1, 1, 48], "")),
+            Some(vec![OP_GOLD, GOLD_SUBTRACTS | GOLD_BY_VARIABLE, 5, 0, 0, OP_DONE])
+        );
+    }
+
+    #[test]
+    fn a_characters_screen_position_is_class_six() {
+        // Map 207's smoke: the screen x and y, 4 and 5, of RM2k's screen.
+        // The ROM works them out: see `character_screen`.
+        let game = Game::default();
+        let one = |c: Command| compile_with(&game, &[c]).unwrap();
+        assert_eq!(
+            one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 6, 10001, 4], "")),
+            Some(vec![OP_VAR, 5, 0x80, 6, 0, 0, 4, 0, OP_DONE])
+        );
+        assert_eq!(
+            one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 6, 10001, 5], "")),
+            Some(vec![OP_VAR, 5, 0x80, 6, 0, 0, 5, 0, OP_DONE])
+        );
+        // The facing and the map id still do not compile.
+        assert_eq!(one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 6, 10001, 3], "")), None);
+        assert_eq!(one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 6, 10001, 0], "")), None);
+    }
+
+    #[test]
+    fn setting_a_variable_past_the_word_saturates() {
+        // Common event 45 of the game this was built for sets six variables
+        // to 999999 as "no cell": they land at the word's ceiling, and the
+        // floor's mirror image too. Adding past the word still does not
+        // compile: the ROM's sum wraps around.
+        let game = Game::default();
+        let one = |c: Command| compile_with(&game, &[c]).unwrap();
+        assert_eq!(
+            one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 0, 999_999, 0], "")),
+            Some(vec![OP_VAR, 5, 0x80, 0, 0xFF, 0x7F, 0, 0, OP_DONE])
+        );
+        assert_eq!(
+            one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 0, -999_999, 0], "")),
+            Some(vec![OP_VAR, 5, 0x80, 0, 0x00, 0x80, 0, 0, OP_DONE])
+        );
+        assert_eq!(one(cmd(CONTROL_VARS, &[0, 48, 48, 1, 0, 999_999, 0], "")), None);
     }
 
     #[test]

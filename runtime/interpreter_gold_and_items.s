@@ -14,8 +14,14 @@
 ;
 ; There is nowhere to show it —the menu does not exist— but there is someone
 ; who asks for it: the gold branch of `ConditionalBranch`.
+;
+; With `GOLD_BY_VARIABLE` the amount is the variable in the slot of its low
+; byte, signed: one below zero turns the operation around, because RM2k's
+; `OperateValue` gives it the sign and `GainGold` adds with sign.
+GOLD_SUBTRACTS   = $01
+GOLD_BY_VARIABLE = $02
 .proc op_gold
-    lda [code_ptr], y           ; the sign: 0 adds, 1 subtracts
+    lda [code_ptr], y           ; the sign: GOLD_SUBTRACTS, GOLD_BY_VARIABLE
     sta temp
     iny
     rep #$20
@@ -32,6 +38,31 @@
     phy
 
     lda temp
+    and #GOLD_BY_VARIABLE
+    beq gold_amount
+    lda temp + 2                ; the slot
+    jsr var_read
+.a16
+    stz temp + 1                ; the high byte, and the slot's byte with it
+    cmp #0
+    bpl gold_positive
+    eor #$FFFF                  ; below zero: its absolute value, and the
+    inc a                       ; operation the other way around
+    sta temp + 2
+    sep #$20
+.a8
+    lda temp
+    eor #GOLD_SUBTRACTS
+    sta temp
+    bra gold_amount
+.a16
+gold_positive:
+    sta temp + 2
+    sep #$20
+.a8
+gold_amount:
+    lda temp
+    and #GOLD_SUBTRACTS
     bne gold_remain
     ; Add: 24 bits, and if it goes past GOLD_MAX it stays at GOLD_MAX.
     rep #$20
