@@ -581,6 +581,10 @@ BAF_HIDDEN = $08
 BA_VICTORY = 0
 BA_ESCAPE_R = 1
 BA_DEFEAT   = 2
+; And the fourth, which the model does not have: a troop page's
+; `TerminateBattle`, EasyRPG's `BattleResult::Abort`. It is the index of
+; `OP_BATTLE`'s fourth destination, past the handlers.
+BA_ABORT_R  = 3
 BA_ATTACK   = 0
 BA_DEFEND = 1
 BA_FLEE     = 2           ; nobody records it since 2026-10-04: see `ba_flee_failed`
@@ -599,6 +603,9 @@ BA_M_END    = 6
 ; Running a troop page, with or without its message on screen: see
 ; `mode_page`. It goes after the message ones because it chooses nothing.
 BA_M_PAGE = 7
+; A troop page ended the battle with `TerminateBattle`: the loop closes it on
+; its next frame, with no end screen. See `ba_page_step`.
+BA_M_ABORT = 8
 ; What the message says.
 BA_MSG_ATTACK = 0
 BA_MSG_DEFENDS = 1

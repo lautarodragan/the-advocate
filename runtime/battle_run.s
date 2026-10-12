@@ -28,6 +28,8 @@
     sta BA_TARGET_TOP
     sta BA_FLEE_FAILED
     sta BA_MSP_NEXT             ; no item's SP line pending: see `ba_execute`
+    sta f:ba_abort              ; no `TerminateBattle` yet
+    jsr ba_tone_clear           ; nor a flash of the map's: see battle_tone.s
     jsr ba_build
     lda BA_KID
     bne has_troop
@@ -74,6 +76,9 @@ no_page_start:
     jsr ba_compose
     jsl f:ba_t_upload
     jsr ba_win_upload           ; with the screen off, whatever the text says
+    ; And the scene with the tint the map left and the one a turn 0 page may
+    ; have asked for, before the entry shows it.
+    jsr ba_tone_start
     ; Turn the screen on **in black**, which the entry transition shows:
     ; `slot_ppu_on` writes full brightness, so it is called inside a
     ; vblank and in the same vblank it is brought down to zero —not a single
@@ -92,7 +97,14 @@ no_page_start:
     sta menu_open
 
 wait:
+    ; The flash and the tint, built for the vblank about to come: **after**
+    ; the frame's work, as the map's `flash_tick` goes after `events_tick`,
+    ; so a page's `FlashScreen` shows in the next frame, already one step
+    ; down. Every mode below ends coming back here.
+    jsr ba_tone_tick
     jsl f:ba_t_vblank
+    jsr ba_tone_upload          ; the scene's palette, first: it is small, and
+                                ; the text's upload can run long
     jsl f:ba_t_pad                ; the controller before the DMA, as in the
                                   ; shop
     jsl f:ba_t_upload
@@ -125,6 +137,9 @@ wait:
 :   cmp #BA_M_PAGE
     bne :+
     jmp mode_page
+:   cmp #BA_M_ABORT
+    bne :+
+    jmp close                   ; a `TerminateBattle`: no end screen
 :   jmp mode_end
 
     ; --- choosing the command ---
@@ -628,6 +643,10 @@ close:
     ; shows the scene as it is, and the map turns on its own.
     lda #0
     sta f:HDMAEN
+    ; A flash a page left going stays in the battle: the map's `flash_tick`
+    ; would finish it over the map's palettes. The tint does go back with
+    ; the map, which `back_to_map` applies.
+    jsr ba_tone_clear
     rtl
 
 recompose:

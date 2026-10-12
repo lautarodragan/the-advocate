@@ -85,9 +85,11 @@ pub const GAME_OVER: i32 = 12420;
 pub const RETURN_TO_TITLE: i32 = 12510;
 pub const CHANGE_MONSTER_HP: i32 = 13110;
 pub const CHANGE_MONSTER_MP: i32 = 13120;
+pub const CHANGE_MONSTER_CONDITION: i32 = 13130;
 pub const SHOW_HIDDEN_MONSTER: i32 = 13150;
 pub const CHANGE_BATTLE_BG: i32 = 13210;
 pub const BATTLE_COND_BRANCH: i32 = 13310;
+pub const TERMINATE_BATTLE: i32 = 13410;
 pub const SHOW_MESSAGE_2: i32 = 20110;
 pub const SHOW_CHOICE_OPTION: i32 = 20140;
 pub const SHOW_CHOICE_END: i32 = 20141;
@@ -241,9 +243,11 @@ mod tests {
             (RETURN_TO_TITLE, C::ReturntoTitleScreen),
             (CHANGE_MONSTER_HP, C::ChangeMonsterHP),
             (CHANGE_MONSTER_MP, C::ChangeMonsterMP),
+            (CHANGE_MONSTER_CONDITION, C::ChangeMonsterCondition),
             (SHOW_HIDDEN_MONSTER, C::ShowHiddenMonster),
             (CHANGE_BATTLE_BG, C::ChangeBattleBG),
             (BATTLE_COND_BRANCH, C::ConditionalBranchB),
+            (TERMINATE_BATTLE, C::TerminateBattle),
             (SHOW_MESSAGE_2, C::ShowMessage2),
             (SHOW_CHOICE_OPTION, C::ShowChoiceOption),
             (SHOW_CHOICE_END, C::ShowChoiceEnd),

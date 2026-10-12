@@ -118,8 +118,11 @@ pub const PARTY_MAX: u32 = 4;
 /// `OP_MESSAGE`'s operand counts the text block in steps of this. Measured
 /// against A Blurred Line.
 pub const MESSAGES_STEP: usize = 4;
-/// How many pages of a troop the battle notes, a far RAM cap.
-pub const TROOP_PAGES_MAX: usize = 32;
+/// How many pages of a troop the battle notes, a far RAM cap: one byte each
+/// in `BA_PAGE_DONE`, inside the troop pages' range of far RAM. It was 32
+/// until 2026-10-12, when the agency captain's 33 pages (troop 240) all
+/// compiled, with its `TintScreen` and `TerminateBattle`.
+pub const TROOP_PAGES_MAX: usize = 64;
 /// The troop page triggers the console looks at, by their bit in
 /// `tpage_flags`; the ones with a header in front of the code; and how long
 /// the header is.

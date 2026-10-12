@@ -138,6 +138,36 @@ ba_t_shake:
     jsr shake_tick
     plb
     rtl
+; And the flash and the tint, which belong to `Game_Screen` too: the tables
+; the map builds them with, and a colour's saturation. See `battle_tone.s`.
+ba_t_tint_tables:
+    phb
+    phk
+    plb
+    jsr tint_tables
+    plb
+    rtl
+ba_t_tint_restore:
+    phb
+    phk
+    plb
+    jsr restore_tables
+    plb
+    rtl
+ba_t_flash_tables:
+    phb
+    phk
+    plb
+    jsr flash_tables
+    plb
+    rtl
+ba_t_saturate:
+    phb
+    phk
+    plb
+    jsr saturate_color
+    plb
+    rtl
 
 ; And the two for the shop and the equipment, which also live outside: the
 ; inventory item list and building it. `ti_sell_list` and `eq_from_list` call

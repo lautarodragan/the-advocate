@@ -16,6 +16,16 @@
 ; before each action and after the last one —see the callers of
 ; `ba_page_test`—.
 
+; Nonzero once a troop page ran `TerminateBattle`: `op_battle_abort` sets it
+; and `ba_page_step` ends the battle. `battle_run` clears it when the battle
+; starts.
+.pushseg
+.segment "FARBSS"
+ba_abort: .res 1
+.popseg
+
+.assert BA_PAGE_DONE + TROOP_PAGE_MAX <= FAR_PAGE + $200, error, "BA_PAGE_DONE goes past the troop pages' range of far RAM"
+
 ; The pages of this battle's troop, from `BA_TROOP_K`. A troop the cartridge
 ; does not carry has none.
 .proc ba_page_build
@@ -496,9 +506,10 @@ ready:
 .proc ba_page_step
 .a8
 .i16
-    ; A wait in the page —that of a `ShakeScreen` that waits, which the
-    ; converter emits as OP_DELAY— is counted here, one frame per tick, which
-    ; is what `events_tick` does with the map's.
+    ; A wait in the page —a `Wait`, or that of a `ShakeScreen`, a
+    ; `FlashScreen` or a `TintScreen` that waits, which the converter emits as
+    ; OP_DELAY— is counted here, one frame per tick, which is what
+    ; `events_tick` does with the map's.
     rep #$20
 .a16
     lda BA_PAGE_WAIT
@@ -535,6 +546,18 @@ other_stretch:
     sep #$20
 .a8
     jsr ba_sync_in
+    ; A `TerminateBattle` ended the page, and with it the battle: no other
+    ; page runs, nothing is composed —the battle leaves from the screen it
+    ; was showing— and the loop closes it on its next frame. See
+    ; `op_battle_abort`.
+    lda f:ba_abort
+    beq not_aborted
+    lda #BA_ABORT_R
+    sta BA_RESULT
+    lda #BA_M_ABORT
+    sta BA_MODE
+    rts
+not_aborted:
     rep #$20
 .a16
     lda BA_PAGE_MSG

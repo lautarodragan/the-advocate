@@ -898,6 +898,24 @@ pub fn run(options: Options) -> Result<()> {
         tp["messages"].as_str().map_or(0, |s| s.len() / 2),
         int(&tp["message_count"])
     );
+    // And their debts, as the maps' automatic pages': one line per command,
+    // with the troops, because the game copies its systems' pages into every
+    // troop and one line per troop would be the warning nobody reads.
+    for debt in tp["debts"].as_array().cloned().unwrap_or_default() {
+        let code = int(&debt[0]) as i32;
+        let name = ditto::schema::EventCommandCode::from_i32(code)
+            .json_name()
+            .map_or_else(|| code.to_string(), str::to_string);
+        let pages = debt[1].as_array().cloned().unwrap_or_default();
+        let troops: BTreeSet<i64> = pages.iter().map(|p| int(&p[0])).collect();
+        println!(
+            "  troop pages: WARNING, {} page(s) of {} troop(s) use {name} and the ROM doesn't do it; \
+             see ACCEPTED_UNDONE in rm2k-snes/events. Troops: {}",
+            pages.len(),
+            troops.len(),
+            join(troops, ", ")
+        );
+    }
     // The battle's model, `rm2k-snes-battle`'s second call.
     let layout = screens::layout()?;
     let mut pairs: Vec<((i64, i64), i64)> = indices.skills.clone();
