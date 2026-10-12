@@ -41,9 +41,20 @@ PIC_HIDDEN = 76
 
 ; RM2k's screen against the console's: how much wider and taller it is. A
 ; picture that goes with the map is placed where RM2k's display would be,
-; which is the console's camera centred on the same point.
+; which is the console's camera moved by what each one leaves to the left of
+; the hero and above it.
 PIC_RM_EXTRA_X = 320 - 256
 PIC_RM_EXTRA_Y = 240 - 224
+; The console's camera centres the hero's cell, 120 pixels from the left and
+; 104 from the top; RM2k's leaves **nine** cells to the left, 144, and seven
+; above, 112 —`kPanXDefault` and `kPanYDefault` in liblcf—, so its display
+; is not centred sideways: the hero's cell ends at 160 of 320. Until 2026-10-11
+; this was half of PIC_RM_EXTRA_X, the centred one, and the pictures that go
+; with the map landed eight pixels to the left of RM2k's: the screen x of
+; `character_screen`, held up against RM2k's numbers, is what showed it.
+PIC_RM_LEFT = 144 - 120
+PIC_RM_TOP  = 112 - 104
+.assert PIC_RM_TOP = PIC_RM_EXTRA_Y / 2, error, "vertically RM2k's display is centred, like the console's"
 
 ; No picture, and no ramp: on reset and on every map change. RM2k 2000
 ; erases them there —`erase_on_map_change`— and besides, their tiles belong
@@ -271,7 +282,7 @@ place:
 :   pha                         ; the farthest RM2k's display goes
     lda camera_x
     sec
-    sbc #PIC_RM_EXTRA_X / 2
+    sbc #PIC_RM_LEFT
     bpl :+
     lda #0
 :   cmp 1, s
@@ -289,7 +300,7 @@ place:
 :   pha
     lda camera_y
     sec
-    sbc #PIC_RM_EXTRA_Y / 2
+    sbc #PIC_RM_TOP
     bpl :+
     lda #0
 :   cmp 1, s
