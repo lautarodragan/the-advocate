@@ -502,6 +502,34 @@ no_page:
     sta BA_MTYPE
     jmp ba_show
 no_sp_line:
+    ; A condition the hit released says so after it, in a message of its own:
+    ; `ProcessBattleActionDamage` writes it below the damage. See
+    ; `ba_st_by_damage`.
+    lda .loword(ba_st_next_who)
+    cmp #$FF
+    beq nothing_released
+    sta .loword(ba_st_who)
+    lda #$FF
+    sta .loword(ba_st_next_who)
+    rep #$20
+.a16
+    lda .loword(ba_st_next_txt)
+    sta .loword(ba_st_text)
+    sep #$20
+.a8
+    lda #BA_MSG_STATE
+    sta BA_MTYPE
+    jmp ba_show
+nothing_released:
+    ; The action whose condition message was just shown: on to it, with no
+    ; pages in between —in RM2k the message is the action's beginning—.
+    lda .loword(ba_st_resume)
+    beq no_resume
+    stz .loword(ba_st_resume)
+    lda .loword(ba_st_who)
+    sta BA_MWHO
+    jmp action
+no_resume:
     ; Before each action, and also after the last one, the troop pages whose
     ; conditions hold: it is the `ePreAction` of `ProcessSceneActionBattle`,
     ; with its `CheckBattleEndAndScheduleEvents`. That is how the Detect Aura
@@ -530,14 +558,26 @@ has:
     lda BA_MWHO
     jsr ba_alive
     beq other
-    lda BA_MWHO
-    asl a
-    jsr ba_ax
-    lda BA_ACC, x
+    ; What it does now, with its conditions as they are —`PrepareBattleAction`
+    ; and `BattleStateHeal`—, and their message before, if there is one. See
+    ; battle_states.s.
+    jsr ba_st_begin
+    beq action
+    lda #1
+    sta .loword(ba_st_resume)
+    lda #BA_MSG_STATE
+    sta BA_MTYPE
+    jmp ba_show
+action:
+    lda .loword(ba_st_cmd)
     sta BA_S1                   ; the command
-    lda BA_ACC + 1, x
+    lda .loword(ba_st_tgt)
     sta BA_MTGT                 ; and the target
     lda BA_S1
+    cmp #BA_NONE
+    bne acts
+    jmp ba_execute              ; nothing: on to the next, pages first
+acts:
     cmp #BA_DEFEND
     beq a_defends
     cmp #BA_ITEM
@@ -566,7 +606,9 @@ attacks:
 seek_enemy:
     jsr ba_enemy_alive
     cmp #$FF
-    beq other
+    bne enemy_found
+    jmp other
+enemy_found:
     clc
     adc #BA_PARTY_MAX
     sta BA_MTGT

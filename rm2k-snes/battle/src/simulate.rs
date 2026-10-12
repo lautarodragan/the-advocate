@@ -20,7 +20,12 @@
 //! src/game_battlealgorithm.cpp  Skill::vStart, Skill::vExecute
 //! src/game_battler.cpp        CanChangeAtkModifier and its siblings, AdjustParam
 //! src/enemyai.cpp             SelectEnemyAiActionRpgRtCompat, MakeSkillAction,
-//!                             IsSkillEffectiveOn
+//!                             IsSkillEffectiveOn, SetStateRestrictedAction
+//! src/state.cpp               Add, GetSignificantRestriction
+//! src/game_battler.cpp        AddState, RemoveStates, BattleStateHeal,
+//!                             GetHitChanceModifierFromStates, CanAct
+//! src/game_battlealgorithm.cpp  BattlePhysicalStateHeal
+//! src/scene_battle.cpp        PrepareBattleAction
 //! ```
 //!
 //! Three things are **not** RM2k's, and all three are on purpose:
@@ -34,7 +39,8 @@
 //!   truncates on return, here it is integer. In the agility adjustment
 //!   that matters, and it divides **rounding up**: see
 //!   [`hit_rate_by_agility`].
-//! * **What is missing.** States, attributes, rows and the double attack.
+//! * **What is missing.** Attributes, rows and the double attack; and of
+//!   the states, everything that is not an enemy's: see [`Held`].
 //!   Of a troop's event pages this knows **when they run and what they do
 //!   to who fights** —[`TroopPage`]—: whom they bring in or take out and
 //!   what they do to their HP. None of the rest draws battle randomness.
@@ -73,6 +79,11 @@ pub const COMMAND_DEFEND: i64 = 1;
 pub const COMMAND_ESCAPE: i64 = 2;
 pub const COMMAND_ITEM: i64 = 3;
 pub const COMMAND_SKILL: i64 = 4;
+/// No action: one a condition does not let act —`Restriction_do_nothing`—,
+/// or whose action a condition took away, which is what
+/// `Game_Battler::AddState` and `RemoveStates` do by setting
+/// `Game_BattleAlgorithm::None`. Nobody gives it as a command.
+pub const COMMAND_NONE: i64 = 5;
 
 /// The damage's cap: `Game_BattleAlgorithm::MaxDamageValue()` for RM2k.
 pub const DAMAGE_MAX: i64 = 999;
@@ -95,6 +106,7 @@ const CHANGE_CONDITION: i32 = 10480;
 const FULL_HEAL: i32 = 10490;
 const CHANGE_MONSTER_HP: i32 = 13110;
 const CHANGE_MONSTER_MP: i32 = 13120;
+const CHANGE_MONSTER_CONDITION: i32 = 13130;
 const SHOW_HIDDEN_MONSTER: i32 = 13150;
 
 /// How many the party holds: `Game_Party::AddActor` does not add a fifth.
@@ -252,6 +264,79 @@ pub fn normal_damage(source: &Combatant, target: &Combatant, critical: bool, rng
     apply_variance(damage, 4, rng)
 }
 
+/// What a condition is, of the LDB's, for the battle: `lcf::rpg::State`
+/// with the fields this battle does. **What it does not do** —the HP and
+/// SP it takes each turn, the skills it seals, the 2003 ones— is said by the
+/// divergence `what-battle-conditions-do-not-model` in the book.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StateInfo {
+    pub id: i64,
+    pub priority: i64,
+    /// `Restriction`: 0 normal, 1 does nothing, 2 attacks the other side,
+    /// 3 attacks its own.
+    pub restriction: i64,
+    pub hold_turn: i64,
+    pub auto_release_prob: i64,
+    pub release_by_damage: i64,
+    /// Attack, defense, spirit and agility: whether it halves them. In
+    /// RM2k it always halves —`affect_type` is 2003's—.
+    pub affects: [bool; 4],
+    pub reduce_hit_ratio: i64,
+}
+
+impl StateInfo {
+    pub fn of(db: &Db, id: i64) -> Result<StateInfo> {
+        let s = db
+            .states
+            .get(&(id as i32))
+            .ok_or_else(|| Bad::answer(format!("there is no condition {id}")))?;
+        Ok(StateInfo {
+            id,
+            priority: s.priority as i64,
+            restriction: s.restriction.to_i32() as i64,
+            hold_turn: s.hold_turn as i64,
+            auto_release_prob: s.auto_release_prob as i64,
+            release_by_damage: s.release_by_damage as i64,
+            affects: [
+                s.affect_attack,
+                s.affect_defense,
+                s.affect_spirit,
+                s.affect_agility,
+            ],
+            reduce_hit_ratio: s.reduce_hit_ratio as i64,
+        })
+    }
+}
+
+/// A condition someone has: which, and its `states[i]` of easyrpg, the
+/// count `BattleStateHeal` compares against `hold_turn` —1 when it is
+/// given, one more each time its holder acts—.
+///
+/// **Only enemies get them**, from a troop page's `ChangeMonsterCondition`:
+/// no skill, attack or item gives or takes one, and the actors have none.
+/// The list is kept **by LDB number**, which is the order easyrpg walks
+/// them in, and that order is the order of the rolls.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Held {
+    pub info: StateInfo,
+    pub turns: i64,
+}
+
+/// `State::GetSignificantRestriction`: doing nothing wins, then attacking
+/// the other side, then attacking one's own.
+fn significant_restriction(states: &[Held]) -> i64 {
+    let mut best = 0;
+    for h in states {
+        match h.info.restriction {
+            1 => return 1,
+            2 => best = 2,
+            3 if best == 0 => best = 3,
+            _ => {}
+        }
+    }
+    best
+}
+
 /// One of those who fight, on either side. Whether it is an actor decides
 /// which side it counts on when choosing a target.
 #[derive(Debug, Clone)]
@@ -292,6 +377,8 @@ pub struct Combatant {
     pub gold: i64,
     pub drop_item: i64,
     pub drop_chance: i64,
+    /// Its conditions: see [`Held`].
+    pub states: Vec<Held>,
 }
 
 impl Combatant {
@@ -314,8 +401,61 @@ impl Combatant {
         self.hp = hp.clamp(0, self.hp_max);
     }
 
+    /// `AdjustParam`: base plus modifier, clamped, and halved —never below
+    /// one— if a condition it has halves it.
     fn param(&self, k: usize) -> i64 {
-        (self.base[k] + self.modifier[k]).clamp(1, PARAM_MAX)
+        let value = (self.base[k] + self.modifier[k]).clamp(1, PARAM_MAX);
+        if self.states.iter().any(|h| h.info.affects[k]) {
+            (value / 2).max(1)
+        } else {
+            value
+        }
+    }
+
+    /// `GetSignificantRestriction`.
+    pub fn restriction(&self) -> i64 {
+        significant_restriction(&self.states)
+    }
+
+    /// `CanAct`: no condition that does nothing.
+    pub fn can_act(&self) -> bool {
+        !self.states.iter().any(|h| h.info.restriction == 1)
+    }
+
+    /// `GetHitChanceModifierFromStates`: the lowest `reduce_hit_ratio`.
+    pub fn hit_modifier(&self) -> i64 {
+        self.states
+            .iter()
+            .map(|h| h.info.reduce_hit_ratio)
+            .fold(100, i64::min)
+    }
+
+    pub fn has_state(&self, id: i64) -> bool {
+        self.states.iter().any(|h| h.info.id == id)
+    }
+
+    /// `State::Add`: held again from 1, and then the ones ten or more
+    /// points of priority below the highest go away —the one just given
+    /// too, if it is one of them—. Whether it is held afterwards.
+    fn add_state(&mut self, info: StateInfo) -> bool {
+        let id = info.id;
+        match self.states.iter_mut().find(|h| h.info.id == id) {
+            Some(h) => h.turns = 1,
+            None => {
+                self.states.push(Held { info, turns: 1 });
+                self.states.sort_by_key(|h| h.info.id);
+            }
+        }
+        let top = self.states.iter().map(|h| h.info.priority).max().unwrap_or(0);
+        self.states.retain(|h| h.info.priority > top - 10);
+        self.has_state(id)
+    }
+
+    /// `State::Remove`: whether it had it.
+    fn remove_state(&mut self, id: i64) -> bool {
+        let before = self.states.len();
+        self.states.retain(|h| h.info.id != id);
+        self.states.len() != before
     }
 
     pub fn attack(&self) -> i64 {
@@ -380,6 +520,7 @@ impl Combatant {
             gold: 0,
             drop_item: 0,
             drop_chance: 0,
+            states: Vec::new(),
         })
     }
 
@@ -418,11 +559,12 @@ impl Combatant {
             gold: e.gold as i64,
             drop_item: e.drop_id as i64,
             drop_chance: e.drop_prob as i64,
+            states: Vec::new(),
         })
     }
 
     pub fn to_json(&self) -> Value {
-        json!({
+        let mut out = json!({
             "name": self.name,
             "number": self.number,
             "is_actor": self.is_actor,
@@ -455,7 +597,20 @@ impl Combatant {
             "gold": self.gold,
             "drop_item": self.drop_item,
             "drop_chance": self.drop_chance,
-        })
+        });
+        // Only whoever has conditions says so: the answers of the battles
+        // without them stay byte for byte what they were —the hashes in
+        // `tests/model.rs`—, which is what shows conditions change nothing
+        // where there are none.
+        if !self.states.is_empty() {
+            out["states"] = json!(self
+                .states
+                .iter()
+                .map(|h| json!([h.info.id, h.turns]))
+                .collect::<Vec<_>>());
+            out["restriction"] = json!(self.restriction());
+        }
+        out
     }
 }
 
@@ -489,6 +644,7 @@ fn compare(a: i64, op: i64, b: i64) -> Result<bool> {
 
 /// Which side, and which place on it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(PartialOrd, Ord)]
 pub enum Who {
     Actor(usize),
     Enemy(usize),
@@ -707,8 +863,8 @@ impl TroopPage {
                     }
                 }
                 CHANGE_CONDITION => {
-                    // Only removing death does anything here: the battle has
-                    // no other states, and adding one does not compile.
+                    // Only removing death does anything here: the actors
+                    // have no other states, and adding one does not compile.
                     if parameter(p, 2)? == 1 && parameter(p, 3)? == DEATH_STATE {
                         for k in battle.targets(p)? {
                             let a = &mut battle.actors[k];
@@ -716,6 +872,22 @@ impl TroopPage {
                                 a.hp = 1;
                             }
                         }
+                    }
+                }
+                CHANGE_MONSTER_CONDITION => {
+                    // `AddState` and `RemoveState` on the enemy at that
+                    // place, whether it is hidden or dead: `GetEnemy` does
+                    // not ask. Adding the dead one kills it.
+                    let k = parameter(p, 0)?;
+                    let Some(k) = usize::try_from(k).ok().filter(|&k| k < battle.enemies.len())
+                    else {
+                        continue;
+                    };
+                    let id = parameter(p, 2)?;
+                    if parameter(p, 1)? != 0 {
+                        battle.remove_state(Who::Enemy(k), id);
+                    } else {
+                        battle.add_state(db, Who::Enemy(k), id)?;
                     }
                 }
                 CHANGE_MONSTER_HP | CHANGE_MONSTER_MP => {
@@ -815,6 +987,15 @@ pub struct Battle {
     pub switches: Vec<i64>,
     /// The items the enemies dropped on losing.
     pub drops: Vec<i64>,
+    /// Those whose action this turn a condition took away: see
+    /// [`COMMAND_NONE`].
+    pub cancelled: BTreeSet<Who>,
+    /// What the conditions said, in order: `(turn, who, condition,
+    /// released)` —released, its `message_recovery`; held, its
+    /// `message_affected`—, as `ProcessBattleActionBegin` and the
+    /// `HealedByAttack` of `ProcessBattleActionDamage` choose them. Whether
+    /// the text is empty is the LDB's to say.
+    pub state_log: Vec<(i64, String, i64, bool)>,
 }
 
 fn average_agility(whom: &[Combatant]) -> i64 {
@@ -853,6 +1034,8 @@ impl Battle {
             log: Vec::new(),
             switches: Vec::new(),
             drops: Vec::new(),
+            cancelled: BTreeSet::new(),
+            state_log: Vec::new(),
         };
         battle.escape_chance = battle.initial_escape_chance();
         battle
@@ -1064,6 +1247,136 @@ impl Battle {
         }
     }
 
+    /// `Game_Battler::AddState` in battle. The dead one (1) is
+    /// `SetHp(0)` and the modifiers at zero, and nothing is kept: a dead
+    /// one neither acts nor gets up here. Any other, `State::Add`; and if
+    /// with it the restriction is not normal, the action it had this turn
+    /// goes —`SetBattleAlgorithm(None)`—, which `PrepareBattleAction`
+    /// remakes if the restriction asks for one.
+    pub fn add_state(&mut self, db: &Db, who: Who, id: i64) -> Result<()> {
+        if id == DEATH_STATE {
+            let c = self.get_mut(who);
+            c.hp = 0;
+            c.modifier = [0; 4];
+            return Ok(());
+        }
+        let info = StateInfo::of(db, id)?;
+        let c = self.get_mut(who);
+        if c.add_state(info) && c.restriction() != 0 {
+            self.cancelled.insert(who);
+        }
+        Ok(())
+    }
+
+    /// `RemoveStates`: if it had it and the restriction changed, the action
+    /// it had this turn goes, as in `add_state`.
+    pub fn remove_state(&mut self, who: Who, id: i64) -> bool {
+        let c = self.get_mut(who);
+        let before = c.restriction();
+        let removed = c.remove_state(id);
+        if removed && c.restriction() != before {
+            self.cancelled.insert(who);
+        }
+        removed
+    }
+
+    /// `BattlePhysicalStateHeal(rate)` on a target a hit did not kill: for
+    /// each condition it has, in order, with `release_by_damage`, **a roll**
+    /// against `release_by_damage * rate / 100`, and away if it comes up.
+    /// Each one released says its `message_recovery`.
+    fn released_by_damage(&mut self, target: Who, rate: i64) {
+        if rate <= 0 {
+            return;
+        }
+        let held: Vec<(i64, i64)> = self
+            .get(target)
+            .states
+            .iter()
+            .filter(|h| h.info.release_by_damage > 0)
+            .map(|h| (h.info.id, h.info.release_by_damage))
+            .collect();
+        for (id, by_damage) in held {
+            if self.rng.percent(by_damage * rate / 100) && self.remove_state(target, id) {
+                let name = self.get(target).name.clone();
+                self.state_log.push((self.turn, name, id, true));
+            }
+        }
+    }
+
+    /// `PrepareBattleAction`: what someone does when its turn comes, with
+    /// its conditions as they are then. One that cannot act does nothing;
+    /// one that attacks its own side or the other attacks someone living
+    /// there, chosen with **one roll** —even if it already chose one when
+    /// the turn began—; the rest do what they chose, unless a condition took
+    /// it away.
+    fn prepare(&mut self, who: Who, command: i64, target: Target) -> (i64, Target) {
+        let c = self.get(who);
+        if !c.can_act() {
+            return (COMMAND_NONE, Target::None);
+        }
+        let side = match c.restriction() {
+            3 => Some(c.is_actor),
+            2 => Some(!c.is_actor),
+            _ => None,
+        };
+        if let Some(actors) = side {
+            let candidates = self.living(actors);
+            if candidates.is_empty() {
+                return (COMMAND_NONE, Target::None);
+            }
+            let k = self.rng.up_to(candidates.len() as i64 - 1) as usize;
+            return (COMMAND_ATTACK, Target::One(candidates[k]));
+        }
+        if self.cancelled.contains(&who) {
+            return (COMMAND_NONE, Target::None);
+        }
+        (command, target)
+    }
+
+    /// `BattleStateHeal`, when its holder's action begins: for each
+    /// condition, in order, if it has been held for more than `hold_turn`
+    /// —only then— **a roll** against `auto_release_prob`, and away if it
+    /// comes up; if not, one more. Then what `ProcessBattleActionBegin`
+    /// says: of the ones held and the ones just released, the one with the
+    /// highest priority —the later one on a tie—: released, always;
+    /// held, if its `message_affected` is not empty, which the log leaves to
+    /// whoever reads it.
+    fn heal_on_acting(&mut self, who: Who) {
+        let ids: Vec<i64> = self.get(who).states.iter().map(|h| h.info.id).collect();
+        let mut released = Vec::new();
+        for id in ids {
+            let (turns, hold, prob) = {
+                let h = self.get(who).states.iter().find(|h| h.info.id == id).unwrap();
+                (h.turns, h.info.hold_turn, h.info.auto_release_prob)
+            };
+            if turns > hold && self.rng.percent(prob) {
+                let info = self.get(who).states.iter().find(|h| h.info.id == id).unwrap().info.clone();
+                self.remove_state(who, id);
+                released.push(info);
+            } else if let Some(h) = self.get_mut(who).states.iter_mut().find(|h| h.info.id == id) {
+                h.turns += 1;
+            }
+        }
+        let mut all: Vec<(StateInfo, bool)> = self
+            .get(who)
+            .states
+            .iter()
+            .map(|h| (h.info.clone(), false))
+            .chain(released.into_iter().map(|i| (i, true)))
+            .collect();
+        all.sort_by_key(|(i, _)| i.id);
+        let mut top: Option<&(StateInfo, bool)> = None;
+        for one in &all {
+            if top.is_none_or(|t| one.0.priority >= t.0.priority) {
+                top = Some(one);
+            }
+        }
+        if let Some((info, released)) = top {
+            let name = self.get(who).name.clone();
+            self.state_log.push((self.turn, name, info.id, *released));
+        }
+    }
+
     /// The living ones of a side, in order.
     pub fn living(&self, actors: bool) -> Vec<Who> {
         if actors {
@@ -1186,6 +1499,22 @@ impl Battle {
                 break;
             }
             let Who::Enemy(k) = enemy else { unreachable!() };
+            // `SetStateRestrictedAction`: one that cannot act does nothing,
+            // and records it all the same —it takes its place in the order,
+            // and its conditions go on counting when its turn comes—; one
+            // that attacks its own side or the other picks there with **one
+            // roll**, as `MakeAttackAllies` and `MakeAttack`.
+            let e = &self.enemies[k];
+            if !e.can_act() {
+                out.push((enemy, COMMAND_NONE, Target::None));
+                continue;
+            }
+            if let r @ (2 | 3) = e.restriction() {
+                let side = self.living(r == 2);
+                let target = side[self.rng.up_to(side.len() as i64 - 1) as usize];
+                out.push((enemy, COMMAND_ATTACK, Target::One(target)));
+                continue;
+            }
             let Some(action) = self.enemy_action(db, k)? else {
                 continue;
             };
@@ -1244,7 +1573,14 @@ impl Battle {
         let s = self.get_mut(source);
         s.sp = (s.sp - s.weapon_sp).max(0);
         let (s, t) = (self.get(source).clone(), self.get(target).clone());
-        let hit_rate = hit_rate_by_agility(s.hit_rate, s.agility(), t.agility());
+        // `CalcNormalAttackToHit`: one that cannot act is always hit, and
+        // otherwise the source's conditions lower its chance before the
+        // agility, in integers as easyrpg.
+        let hit_rate = if !t.can_act() {
+            100
+        } else {
+            hit_rate_by_agility(s.hit_rate * s.hit_modifier() / 100, s.agility(), t.agility())
+        };
         let hit = self.rng.percent(hit_rate);
         let critical = self.rng.percent(if hit { s.critical } else { 0 });
         if !hit {
@@ -1257,6 +1593,9 @@ impl Battle {
         damage = damage.clamp(-DAMAGE_MAX, DAMAGE_MAX);
         let t = self.get_mut(target);
         t.hp = (t.hp - damage).max(0);
+        if t.hp > 0 {
+            self.released_by_damage(target, 100);
+        }
         (true, critical, damage)
     }
 
@@ -1267,7 +1606,9 @@ impl Battle {
     /// always at zero for a skill of the database—, the variance if the
     /// effect is above zero, and one roll against the hit chance for each
     /// thing it affects, in the order HP, SP, attack, defense, spirit,
-    /// agility. States, attributes, absorbing and reviving are not here.
+    /// agility. Giving or taking states, attributes, absorbing and reviving
+    /// are not here; what a damaging one releases is, see
+    /// [`Battle::released_by_damage`].
     pub fn use_skill(&mut self, db: &Db, source: Who, skill: i32, target: Who) -> Result<()> {
         let s = db.skill(skill)?;
         let src = self.get_mut(source);
@@ -1323,6 +1664,11 @@ impl Battle {
                 effect
             };
             t.hp = (t.hp + hp).min(t.hp_max).max(0);
+            // Damage that did not kill releases what a hit releases, at
+            // `physical_rate * 10` percent.
+            if !positive && t.hp > 0 {
+                self.released_by_damage(target, skill.physical_rate as i64 * 10);
+            }
         }
         if skill.affect_sp && self.rng.percent(hit_rate) {
             let t = self.get_mut(target);
@@ -1394,6 +1740,7 @@ impl Battle {
         self.turn += 1;
         self.done_pages.clear();
         self.joined.clear();
+        self.cancelled.clear();
         for c in self.actors.iter_mut().chain(self.enemies.iter_mut()) {
             c.defending = false;
         }
@@ -1438,7 +1785,10 @@ impl Battle {
             if matches!(who, Who::Actor(k) if self.joined.contains(&k)) {
                 continue;
             }
+            let (command, target) = self.prepare(who, command, target);
+            self.heal_on_acting(who);
             match (command, target) {
+                (COMMAND_NONE, _) => {}
                 // Defending marks the defender **when its turn comes**, not
                 // when choosing: an enemy that acts before hits it in full.
                 (COMMAND_DEFEND, _) => self.get_mut(who).defending = true,
@@ -1490,7 +1840,7 @@ impl Battle {
     }
 
     pub fn to_json(&self) -> Value {
-        json!({
+        let mut out = json!({
             "actors": self.actors.iter().map(Combatant::to_json).collect::<Vec<_>>(),
             "enemies": self.enemies.iter().map(Combatant::to_json).collect::<Vec<_>>(),
             "turn": self.turn,
@@ -1501,10 +1851,21 @@ impl Battle {
             "done_pages": self.done_pages.iter().collect::<Vec<_>>(),
             "switches": self.switches,
             "drops": self.drops,
+
             "experience": self.experience(),
             "gold": self.gold(),
             "log": self.log.iter().map(|l| json!([l.turn, l.source, l.target, l.hit, l.critical, l.damage, l.hp])).collect::<Vec<_>>(),
-        })
+        });
+        // Only if a condition said something, for the same hashes as
+        // `Combatant::to_json`.
+        if !self.state_log.is_empty() {
+            out["state_log"] = json!(self
+                .state_log
+                .iter()
+                .map(|l| json!([l.0, l.1, l.2, l.3]))
+                .collect::<Vec<_>>());
+        }
+        out
     }
 }
 
@@ -1547,6 +1908,7 @@ mod tests {
             gold: 0,
             drop_item: 0,
             drop_chance: 0,
+            states: vec![],
         }
     }
 
@@ -1632,6 +1994,7 @@ mod tests {
                 gold: 0,
                 drop_item: 0,
                 drop_chance: 0,
+                states: vec![],
             };
             c.change_hp(amount, lethal);
             c.hp
@@ -1661,5 +2024,157 @@ mod tests {
         // 100 - ceil(10 * 30 / 20) = 100 - 15; and 100 - ceil(10 * 31 / 20).
         assert_eq!(hit_rate_by_agility(90, 10, 20), 85);
         assert_eq!(hit_rate_by_agility(90, 10, 21), 84);
+    }
+
+    /// Two conditions as a game this was written for has them: one that
+    /// makes its holder attack its own side, and one that halves three
+    /// parameters.
+    fn control() -> StateInfo {
+        StateInfo {
+            id: 22,
+            priority: 100,
+            restriction: 3,
+            hold_turn: 4,
+            auto_release_prob: 100,
+            release_by_damage: 100,
+            affects: [false; 4],
+            reduce_hit_ratio: 100,
+        }
+    }
+
+    fn bark_wall() -> StateInfo {
+        StateInfo {
+            id: 23,
+            priority: 100,
+            restriction: 0,
+            hold_turn: 2,
+            auto_release_prob: 50,
+            release_by_damage: 0,
+            affects: [true, true, false, true],
+            reduce_hit_ratio: 75,
+        }
+    }
+
+    fn enemy(number: i64, hp: i64, params: [i64; 4]) -> Combatant {
+        let mut e = actor(number, hp, 0);
+        e.is_actor = false;
+        e.hp_max = hp;
+        e.base = params;
+        e.actions = vec![Action {
+            rating: ACTION_RATING_ALONE,
+            skill: None,
+            effective: true,
+        }];
+        e
+    }
+
+    #[test]
+    fn bark_wall_halves_attack_defense_and_agility_and_not_below_one() {
+        let mut e = enemy(0, 100, [41, 30, 20, 1]);
+        assert!(e.add_state(bark_wall()));
+        assert_eq!(
+            [e.attack(), e.defense(), e.spirit(), e.agility()],
+            [20, 15, 20, 1]
+        );
+        assert_eq!(e.hit_modifier(), 75);
+        assert_eq!(e.restriction(), 0);
+        assert!(e.remove_state(23));
+        assert_eq!(e.attack(), 41);
+    }
+
+    #[test]
+    fn a_condition_ten_points_below_the_highest_goes_away() {
+        let mut e = enemy(0, 100, [10; 4]);
+        let mut low = bark_wall();
+        low.id = 5;
+        low.priority = 90;
+        assert!(e.add_state(low.clone()));
+        assert!(e.add_state(control()));
+        assert!(!e.has_state(5), "90 is ten below 100");
+        assert!(!e.add_state(low), "given below the highest, it does not stay");
+        assert_eq!(e.states.len(), 1);
+    }
+
+    #[test]
+    fn the_restriction_that_counts_is_easyrpgs() {
+        let held = |r: &[i64]| -> Vec<Held> {
+            r.iter()
+                .enumerate()
+                .map(|(k, &restriction)| Held {
+                    info: StateInfo { id: k as i64 + 2, restriction, ..control() },
+                    turns: 1,
+                })
+                .collect()
+        };
+        assert_eq!(significant_restriction(&held(&[])), 0);
+        assert_eq!(significant_restriction(&held(&[3, 0])), 3);
+        assert_eq!(significant_restriction(&held(&[3, 2])), 2);
+        assert_eq!(significant_restriction(&held(&[2, 3])), 2);
+        assert_eq!(significant_restriction(&held(&[2, 1, 3])), 1);
+    }
+
+    /// An enemy alone, controlled: its own side is itself, so it
+    /// hits itself, and the hit releases it —`release_by_damage` at 100—;
+    /// the next turn it hits the party again.
+    #[test]
+    fn a_controlled_enemy_alone_hits_itself_and_the_hit_releases_it() {
+        let a = actor(11, 500, 0);
+        let mut droid = enemy(0, 200, [60, 10, 10, 10]);
+        droid.name = "Droid".into();
+        droid.add_state(control());
+        let db = Db::default();
+        let mut battle = Battle::new(vec![a], vec![droid], BATTLE_SEED, vec![], BTreeMap::new());
+        battle
+            .play_turn(&db, &[Command { command: COMMAND_DEFEND, what: 0, target: 0 }])
+            .unwrap();
+        let log: Vec<(String, String, bool)> = battle
+            .log
+            .iter()
+            .map(|l| (l.source.clone(), l.target.clone(), l.hit))
+            .collect();
+        assert_eq!(log, [("Droid".to_string(), "Droid".to_string(), true)]);
+        assert!(battle.enemies[0].hp < 200);
+        assert!(battle.enemies[0].states.is_empty(), "the hit did not release it");
+        // Held when it began acting —its message is empty—, and released by
+        // the hit.
+        assert_eq!(
+            battle.state_log,
+            [(1, "Droid".to_string(), 22, false), (1, "Droid".to_string(), 22, true)]
+        );
+        battle
+            .play_turn(&db, &[Command { command: COMMAND_DEFEND, what: 0, target: 0 }])
+            .unwrap();
+        assert_ne!(battle.log[1].target, "Droid");
+    }
+
+    /// One that holds it the four turns of `hold_turn` and is not hit: it
+    /// comes out of it on the fifth, when it acts, at 100%.
+    #[test]
+    fn control_lasts_its_hold_turns_and_then_goes() {
+        let mut lone = enemy(0, 200, [1, 999, 10, 10]);
+        lone.name = "Bot".into();
+        let mut other = enemy(1, 200, [1, 999, 10, 10]);
+        other.name = "Rat".into();
+        lone.add_state(control());
+        let db = Db::default();
+        let mut battle = Battle::new(
+            vec![actor(11, 500, 0)],
+            vec![lone, other],
+            BATTLE_SEED,
+            vec![],
+            BTreeMap::new(),
+        );
+        let mut turns_held = 0;
+        for _ in 0..8 {
+            if !battle.enemies[0].has_state(22) {
+                break;
+            }
+            turns_held += 1;
+            battle
+                .play_turn(&db, &[Command { command: COMMAND_DEFEND, what: 0, target: 0 }])
+                .unwrap();
+        }
+        assert_eq!(turns_held, 5, "1 to 4 held, and on the fifth the roll at 100");
+        assert_eq!(battle.state_log.last(), Some(&(5, "Bot".to_string(), 22, true)));
     }
 }

@@ -348,6 +348,13 @@ bytecode! {
     /// one it starts with—. It lasts, and travels in the save. See
     /// `op_change_system` in the runtime's `window_system.s`.
     OP_CHANGE_SYSTEM = 0x4D (system: byte);
+
+    /// `ChangeMonsterCondition`, from a troop page: the enemy at `place` of
+    /// the troop gets —`remove` at 0— or loses condition `state`, by its
+    /// LDB number, as `Game_Battler::AddState` and `RemoveState` do in
+    /// battle. Adding the dead one (1) kills it. See `ba_st_change` in the
+    /// runtime's `battle_states.s`.
+    OP_MONSTER_STATE = 0x4E (place: byte, remove: byte, state: byte);
 }
 
 // `run_code` jumps through a table indexed by the opcode.

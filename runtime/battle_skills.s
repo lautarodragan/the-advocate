@@ -396,8 +396,29 @@ in_zero:
     lda #0
 fits:
     sta BA_ONE + BA_HP, x
+    cmp #0
     sep #$20
 .a8
+    beq killed
+    ; Damage that did not kill releases what a hit releases, at
+    ; `physical_rate * 10` percent —`BattlePhysicalStateHeal` in `vExecute`—:
+    ; only a skill that targets enemies, bit 6 of `BA_S3`. See
+    ; battle_states.s.
+    lda BA_S3
+    and #$40
+    beq killed
+    lda BA_MSKILL
+    jsr ba_ax
+    lda f:skill_phys, x
+    sta BA_T0
+    asl a
+    asl a
+    adc BA_T0                   ; times five: the carry is clear, it is at
+    asl a                       ; most ten. And times two
+    sta .loword(ba_st_rate)
+    lda BA_MTGT
+    jsr ba_st_by_damage
+killed:
     rts
 .endproc
 
@@ -685,7 +706,9 @@ no_spi:
 .a8
     jsr ba_mod
 no_agi:
-    rts
+    ; And what a condition halves, halved again: `ba_mod` does not know.
+    lda BA_MTGT
+    jmp ba_st_params_held
 .endproc
 
 ; --- skills in battle ------------------------------------------------------

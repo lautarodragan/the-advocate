@@ -401,10 +401,75 @@ fn without_bare_window(text: &str) -> String {
     lines.join("\n")
 }
 
+/// The text without the battle's conditions, which came on 2026-10-12: the
+/// `state_*` tables and `STATES_N`, and their messages, which are the last
+/// texts —from the empty one the conditions share on—. Checked here: each
+/// condition's two texts are among those last ones.
+fn without_states(text: &str) -> String {
+    let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
+    let at = lines.iter().position(|l| l.starts_with("STATES_N = ")).unwrap();
+    lines.remove(at);
+    let mut theirs = Vec::new();
+    for label in [
+        "state_priority:",
+        "state_restrict:",
+        "state_hold:",
+        "state_auto:",
+        "state_damage:",
+        "state_hit:",
+        "state_halves:",
+        "state_affected:",
+        "state_recovery:",
+    ] {
+        let at = lines.iter().position(|l| l == label).unwrap();
+        if label == "state_affected:" || label == "state_recovery:" {
+            let values = lines[at + 1].trim_start_matches("    .word ");
+            theirs.extend(values.split(", ").map(|v| v.parse::<usize>().unwrap()));
+        }
+        lines.drain(at - 1..=at + 1);
+    }
+    let first = *theirs.iter().min().unwrap();
+    // The four tables that name the texts, cut at the first of theirs; and
+    // the block, at where it starts.
+    let mut cut_at = None;
+    for label in ["item_txt_lo:", "item_txt_hi:", "item_txt_bk:", "item_txt_n:"] {
+        let at = lines.iter().position(|l| l == label).unwrap();
+        let entries: Vec<String> = lines[at + 1]
+            .trim_start_matches("    .byte ")
+            .split(", ")
+            .map(String::from)
+            .collect();
+        assert!(theirs.iter().all(|&k| k < entries.len()), "{label}");
+        if label == "item_txt_lo:" {
+            let e = &entries[first];
+            let ofs = e.trim_start_matches("<(item_texts + ").trim_end_matches(')');
+            cut_at = Some(ofs.parse::<usize>().unwrap());
+        }
+        lines[at - 1] = format!(".block {first}");
+        lines[at + 1] = format!("    .byte {}", entries[..first].join(", "));
+    }
+    let cut_at = cut_at.unwrap();
+    let at = lines.iter().position(|l| l == "item_texts:").unwrap();
+    let end = (at + 1..lines.len())
+        .find(|&k| !lines[k].starts_with("    .byte "))
+        .unwrap();
+    let bytes: Vec<String> = lines[at + 1..end]
+        .iter()
+        .flat_map(|l| l.trim_start_matches("    .byte ").split(',').map(String::from).collect::<Vec<_>>())
+        .collect();
+    let rows: Vec<String> = bytes[..cut_at]
+        .chunks(16)
+        .map(|c| format!("    .byte {}", c.join(",")))
+        .collect();
+    lines[at - 1] = format!(".block {cut_at}");
+    lines.splice(at + 1..end, rows);
+    lines.join("\n")
+}
+
 #[test]
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
-    let text = without_title_bpp(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&emitted.text))))))))));
+    let text = without_title_bpp(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&without_states(&emitted.text)))))))))));
     assert_eq!(text.lines().count(), 3777);
     assert_eq!(
         sha(&text),
@@ -415,7 +480,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 #[test]
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
-    let text = without_title_bpp(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&emitted.text))))))))));
+    let text = without_title_bpp(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&without_states(&emitted.text)))))))))));
     assert_eq!(text.lines().count(), 3896);
     assert_eq!(
         sha(&text),

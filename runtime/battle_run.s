@@ -30,6 +30,7 @@
     sta BA_MSP_NEXT             ; no item's SP line pending: see `ba_execute`
     sta f:ba_abort              ; no `TerminateBattle` yet
     jsr ba_tone_clear           ; nor a flash of the map's: see battle_tone.s
+    jsr ba_st_clear             ; nor conditions: see battle_states.s
     jsr ba_build
     lda BA_KID
     bne has_troop

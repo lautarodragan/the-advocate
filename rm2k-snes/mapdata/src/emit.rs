@@ -1874,6 +1874,27 @@ impl Rest<'_> {
         for &a in &r.actors {
             skill_command_text.insert(a, texts.add(text_at(commands, &a.to_string())?));
         }
+        // The conditions' two battle messages, by LDB number —see
+        // `battle_states.s`—: the one said while it lasts and the one said
+        // when it goes. The empty ones, which are most, share one text.
+        // **They are the last texts**, with the empty one first: the ones
+        // before keep the numbers they had before 2026-10-12, which is what
+        // `tests/python.rs` holds.
+        let empty_text = texts.add("");
+        let states_n = db.states.keys().max().map_or(1, |&m| m.max(0) as usize + 1);
+        let mut state_affected_text = vec![empty_text; states_n];
+        let mut state_recovery_text = vec![empty_text; states_n];
+        for (&id, st) in &db.states {
+            let Ok(k) = usize::try_from(id) else { continue };
+            for (message, out) in [
+                (&st.message_affected, &mut state_affected_text),
+                (&st.message_recovery, &mut state_recovery_text),
+            ] {
+                if !message.is_empty() {
+                    out[k] = texts.add(message);
+                }
+            }
+        }
         let item_texts = if texts.data.is_empty() {
             vec![0]
         } else {
@@ -2237,6 +2258,8 @@ impl Rest<'_> {
                 skill_msg1_text,
                 skill_msg2_text,
                 skill_command_text,
+                state_affected_text,
+                state_recovery_text,
                 rom_enemies,
                 rom_skills,
                 actions,
@@ -2269,11 +2292,66 @@ struct ItemTexts<'a> {
     skill_msg1_text: HashMap<i64, i64>,
     skill_msg2_text: HashMap<i64, i64>,
     skill_command_text: HashMap<i64, i64>,
+    state_affected_text: Vec<i64>,
+    state_recovery_text: Vec<i64>,
     rom_enemies: Vec<i64>,
     rom_skills: Vec<i64>,
     actions: &'a Value,
     border_tiles: usize,
     border_colors: usize,
+}
+
+impl Rest<'_> {
+    /// The conditions, one row per LDB number from 0 —which is nobody's—,
+    /// outside bank 0: what `battle_states.s` does with them. Every one of
+    /// the database's goes, and not only the ones the troop pages give: the
+    /// tables are a byte a field, and the bytecode names them by number.
+    fn states(&self, out: &mut String, x: &ItemTexts) -> Result<()> {
+        let db = self.db;
+        let n = x.state_affected_text.len();
+        if n > 256 {
+            return Err(Bad::answer(format!(
+                "{} conditions do not fit in OP_MONSTER_STATE's byte",
+                n - 1
+            )));
+        }
+        let per = |f: &dyn Fn(&ditto::schema::State) -> i64| -> Vec<String> {
+            decimal((0..n).map(|k| {
+                db.states
+                    .get(&(k as i32))
+                    .map_or(0, |st| f(st).clamp(0, 255))
+            }))
+        };
+        out.push_str(&format!("STATES_N = {n}
+"));
+        bytes_asm(out, "state_priority", &per(&|st| st.priority.into()), true);
+        bytes_asm(
+            out,
+            "state_restrict",
+            &per(&|st| st.restriction.to_i32().into()),
+            true,
+        );
+        bytes_asm(out, "state_hold", &per(&|st| st.hold_turn.into()), true);
+        bytes_asm(out, "state_auto", &per(&|st| st.auto_release_prob.into()), true);
+        bytes_asm(out, "state_damage", &per(&|st| st.release_by_damage.into()), true);
+        bytes_asm(out, "state_hit", &per(&|st| st.reduce_hit_ratio.into()), true);
+        // Which parameters it halves, one bit each in the order of
+        // `BA_ATK`, `BA_DEF`, `BA_SPI`, `BA_AGI`.
+        bytes_asm(
+            out,
+            "state_halves",
+            &per(&|st| {
+                i64::from(st.affect_attack)
+                    | i64::from(st.affect_defense) << 1
+                    | i64::from(st.affect_spirit) << 2
+                    | i64::from(st.affect_agility) << 3
+            }),
+            true,
+        );
+        words_asm(out, "state_affected", &decimal(x.state_affected_text.iter()), true);
+        words_asm(out, "state_recovery", &decimal(x.state_recovery_text.iter()), true);
+        Ok(())
+    }
 }
 
 fn bad(b: rm2k_snes_battle::Bad) -> Bad {
@@ -2776,6 +2854,7 @@ impl Rest<'_> {
             &per_skill(&|s| s.scope.to_i32().into())?,
             true,
         );
+        self.states(out, &x)?;
         // The common events the menu runs on closing, if their switch is on.
         let mut party_ones: Vec<(i64, i64, &String)> =
             r.party_common.iter().map(|(s, n, c)| (*s, *n, c)).collect();
