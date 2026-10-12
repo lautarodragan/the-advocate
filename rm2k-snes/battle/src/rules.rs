@@ -211,8 +211,8 @@ pub fn revives(item: &Item) -> bool {
 /// Whether the item goes in the battle's list: `Game_Party::IsItemUsable`
 /// in battle —a medicine not marked "only outside battle"— cut down to the
 /// ones that heal HP or SP, and of the `ko_only` ones, the ones that
-/// revive. The ones left out only remove states, which the battle does
-/// not keep.
+/// revive. The ones left out only remove states, which the battle keeps
+/// only on enemies —see `Held` in `simulate`—.
 ///
 /// Until 2026-10-04 it was the ones that heal HP: it was written on
 /// 2026-09-12, when the SP were not state yet, and stayed when the skills

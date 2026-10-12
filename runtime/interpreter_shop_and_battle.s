@@ -191,6 +191,13 @@ in_battle:
     jmp run_code::other
 .endproc
 
+; `ChangeMonsterCondition`: only the entry, like `op_enemy`. `ba_st_change`
+; reads the operands and leaves Y after them.
+.proc op_monster_state
+    jsl f:ba_st_change
+    jmp run_code::other
+.endproc
+
 ; `ChangeMonsterHP` and `ChangeMonsterMP`: only the entry, like `op_heal`.
 ; `ba_enemy_change` reads the operands and leaves Y after them.
 .proc op_enemy

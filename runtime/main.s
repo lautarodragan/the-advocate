@@ -189,6 +189,7 @@ TEXT_BUF_BYTES = WINDOW_TEXT_COLS * 2 * 32
 .include "battle_scene.s"
 .include "battle_run.s"
 .include "battle_tone.s"
+.include "battle_states.s"
 .include "screen_bank.s"
 .include "encounters.s"
 .include "battle_animation_frames.s"

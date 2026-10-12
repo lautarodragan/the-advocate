@@ -593,6 +593,10 @@ BA_DEFEND = 1
 BA_FLEE     = 2           ; nobody records it since 2026-10-04: see `ba_flee_failed`
 BA_ITEM     = 3
 BA_SKILL = 4
+; No action, since 2026-10-12: one a condition does not let act, or whose
+; action a condition took away —`Game_BattleAlgorithm::None`—. Nobody gives
+; it as a command; see `battle_states.s`. It is the model's `COMMAND_NONE`.
+BA_NONE     = 5
 ; The screen modes. **The order
 ; matters**: more than one place asks `cmp #BA_M_MESSAGE / bcs` to say
 ; "message or end", so the ones that choose something all go first.
@@ -619,6 +623,7 @@ BA_MSG_DEFEAT = 5
 BA_MSG_ITEM = 6
 BA_MSG_SKILL = 7
 BA_MSG_ITEM_SP = 8          ; an item's SP line, after its HP one
+BA_MSG_STATE = 9            ; a condition's: `ba_st_who` and `ba_st_text`
 ; How many frames a message stays if nobody presses A. Two seconds, which is
 ; how long a line takes to read, and A skips it.
 BA_MSG_FRAMES = 120

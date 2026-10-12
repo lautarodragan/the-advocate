@@ -170,7 +170,12 @@ puts it in the console's `BA_ESCAPE`.
 
 It writes `simulate.json`: what each step returned —the outcome of a turn,
 whether fleeing worked, the action an enemy chose— and the battle as it
-was left, every combatant with every number. It keeps nothing between
+was left, every combatant with every number. A combatant with conditions
+—an enemy a page's `ChangeMonsterCondition` gave one— also says them, in
+`states`, as `[condition, turns held]`, and its `restriction`; and if a
+condition said something, the battle's `state_log` has it, as `[turn,
+who, condition, released]`. Without conditions neither appears, so the
+answers of the battles that have none are what they were. It keeps nothing between
 calls: whoever wants to look at a battle turn by turn sends it again with
 one more step, and it comes out the same, because the randomness is the
 battle's own.

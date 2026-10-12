@@ -819,10 +819,42 @@ no_weapon:
 .a8
 
     ; --- the hit chance, with the agility adjustment ---
+    ;
+    ; `CalcNormalAttackToHit`: one a condition does not let act is always
+    ; hit, and otherwise the source's conditions lower its chance before the
+    ; agility —`reduce_hit_ratio`, in integers—. Without conditions the
+    ; chance is the same `hit` as always. See battle_states.s.
+    lda BA_MTGT
+    jsr ba_st_restr
+    cmp #1
+    bne target_acts
+    rep #$20
+.a16
+    lda #100
+    jmp hit_ready
+target_acts:
+.a8
+    lda BA_MWHO
+    jsr ba_st_hitmod
+    sta BA_T2
+    stz BA_T2 + 1
+    ldx BA_S0
+    lda BA_ONE + BA_HIT, x
+    rep #$20
+.a16
+    and #$00FF
+    jsr ba_mul                  ; hit * modifier
+    sta temp
+    lda #100
+    sta temp + 2
+    jsr ba_div
+    sep #$20
+.a8
+    sta BA_T0
     ldx BA_S0
     lda #100
     sec
-    sbc BA_ONE + BA_HIT, x      ; X is the offset, already sixteen bits
+    sbc BA_T0
     sta BA_T2                   ; 100 - hit, which is the product's byte
     rep #$20
 .a16
@@ -980,8 +1012,17 @@ damage_ready:
     lda #0
 hp_ready:
     sta BA_ONE + BA_HP, x
+    cmp #0
     sep #$20
 .a8
+    beq killed
+    ; A hit that did not kill releases what `release_by_damage` says:
+    ; `BattlePhysicalStateHeal(100)`.
+    lda #100
+    sta .loword(ba_st_rate)
+    lda BA_MTGT
+    jsr ba_st_by_damage
+killed:
     rts
 .endproc
 
@@ -1025,6 +1066,35 @@ lives:
     bne has_actors
     rts                         ; nobody left to hit
 has_actors:
+    ; `SetStateRestrictedAction`: one a condition does not let act records
+    ; nothing —it still takes its place in the order, and its conditions go
+    ; on counting when its turn comes—, and one that attacks its own side or
+    ; the other picks there with **one roll**, as `MakeAttackAllies` and
+    ; `MakeAttack`. See battle_states.s.
+    lda BA_S0
+    jsr ba_st_restr
+    beq chooses
+    cmp #1
+    beq does_nothing
+    pha
+    lda BA_S0
+    sta BA_MWHO                 ; whose side, for `ba_st_side`
+    pla
+    jsr ba_st_side
+    pha
+    lda #BA_EACC_ATTACK
+    sta BA_T1
+    pla
+    jsr ba_alive_on_side
+    jmp to_actor
+does_nothing:
+    lda BA_S0
+    asl a
+    jsr ba_ax
+    lda #BA_NONE
+    sta BA_ACC, x
+    jmp to_list
+chooses:
     lda BA_S0
     jsr ba_enemy_action
     sta BA_T1                   ; the action: a `k`, or attack, or nothing
@@ -1076,6 +1146,7 @@ command_list:
     sta BA_ACC, x
     lda BA_T0
     sta BA_ACC + 1, x
+to_list:
     lda BA_NACTIONS
     jsr ba_ax
     lda BA_S0
@@ -1481,7 +1552,8 @@ sorted:
 ; SP 49`—. A8 = the actor's slot, `BA_T1` = where its line starts.
 ;
 ; The state is the database's `normal_status`, or the dead state's name for
-; one at zero HP: the battle has no other states. The HP and the SP are
+; one at zero HP: the actors have no other states —only enemies get them,
+; see battle_states.s—. The HP and the SP are
 ; **one run each** —the term, copied, the number in three places and, in
 ; the HP, the slash and the maximum—, and the name and the state go by
 ; reference: a line of the band also carries a command, and with the
@@ -1657,8 +1729,19 @@ fits:
     beq uses_skill
     cmp #BA_MSG_ITEM_SP
     beq item_sp
+    cmp #BA_MSG_STATE
+    beq state
     ldx #BA_TXT_DEFEAT
     jmp only
+state:
+    ; A condition's: `<who><text>`, its `message_affected` or its
+    ; `message_recovery`, stuck to the name as `PushWithSubject` and
+    ; `GetStateRecoveryMessage` do. See battle_states.s.
+    lda .loword(ba_st_who)
+    jsr ba_put_name
+    ldx .loword(ba_st_text)
+    jsr ba_put_text
+    jmp ba_flow
 item_sp:
     jmp item
 uses_skill:
