@@ -70,6 +70,10 @@ fn command() -> clap::Command {
          straight into the map. The title screen would add frames to the boot, and the \
          suite's cases compare frames counted from reset",
     ))
+    .arg(Arg::new("title_4bpp").long("title-4bpp").action(ArgAction::SetTrue).help(
+        "the title screen at four bits per pixel, in mode 1, even if it fits at eight: \
+         the path a title too big for the VRAM takes, for a game whose title fits",
+    ))
     .arg(
         Arg::new("measure_headroom")
             .long("measure-headroom")
@@ -175,6 +179,7 @@ pub struct Options {
     pub msu: Option<PathBuf>,
     pub text_padding: i64,
     pub no_title: bool,
+    pub title_4bpp: bool,
     pub measure_headroom: Option<f64>,
     pub msu_everything: bool,
     pub enemy_hp: bool,
@@ -256,6 +261,7 @@ pub fn parse(argv: Vec<String>) -> Result<Options> {
         msu: matches.get_one::<String>("msu").map(PathBuf::from),
         text_padding: *matches.get_one::<i64>("text_padding").unwrap(),
         no_title: matches.get_flag("no_title"),
+        title_4bpp: matches.get_flag("title_4bpp"),
         measure_headroom: matches.get_one::<f64>("measure_headroom").copied(),
         msu_everything: matches.get_flag("msu_everything"),
         enemy_hp: matches.get_flag("enemy_hp"),

@@ -404,7 +404,7 @@ fn without_bare_window(text: &str) -> String {
 #[test]
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
-    let text = without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&emitted.text)))))))));
+    let text = without_title_bpp(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&emitted.text))))))))));
     assert_eq!(text.lines().count(), 3777);
     assert_eq!(
         sha(&text),
@@ -415,7 +415,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 #[test]
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
-    let text = without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&emitted.text)))))))));
+    let text = without_title_bpp(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&emitted.text))))))))));
     assert_eq!(text.lines().count(), 3896);
     assert_eq!(
         sha(&text),
@@ -510,6 +510,59 @@ fn enemies_with_more_actions_than_a_byte_numbers_start_in_words() {
     let text = rm2k_snes_mapdata::emit::emit(&request, &db()).unwrap().text;
     let starts = text.split("enemy_acc_init:\n").nth(1).unwrap().lines().next().unwrap();
     assert_eq!(starts, "    .word 0, 40, 80, 120, 160, 200, 240, 280");
+}
+
+/// The text without `TITLE_BPP` and its comment, and with the two lines of
+/// the title's VRAM layout that it changed as they were: they came after
+/// the Python (2026-10-12), with the title at 4bpp.
+fn without_title_bpp(text: &str) -> String {
+    let added = concat!(
+        "; Its bits per pixel: 8, on BG1 in mode 3 with all of CGRAM; or 4,\n",
+        "; on BG1 in mode 1 with palettes 1 to 7, when its tiles at 8 don't\n",
+        "; fit below the menu's tilemap. Then they take half: 897 at most,\n",
+        "; every cell of the screen distinct and the blank one, $3810 words.\n",
+        "TITLE_BPP      = 8\n",
+    );
+    assert!(text.contains(added), "the title's bits per pixel should go whole");
+    text.replacen(added, "", 1)
+        .replacen(
+            "the image tiles start at 0 and end below $4400, so",
+            "the image tiles start at 0 and take 15872, so",
+            1,
+        )
+        .replacen(
+            ";   $0000 .. $4400   the image's tiles: 544 at 8bpp, or 897 at 4bpp",
+            ";   $0000 .. $3E00   the image's 496 tiles, at 8bpp",
+            1,
+        )
+}
+
+/// A title at 4bpp says so to `title.s`, and its row in `screens_table`
+/// counts its tiles at 32 bytes and not 64.
+#[test]
+fn a_title_at_4bpp_counts_its_tiles_at_32_bytes() {
+    let row = |request: &Emit| -> (String, String) {
+        let text = rm2k_snes_mapdata::emit::emit(request, &db()).unwrap().text;
+        let bpp = text.lines().find(|l| l.starts_with("TITLE_BPP")).unwrap().to_string();
+        let table = text.split("screens_table:\n").nth(1).unwrap();
+        let at = text.lines().find_map(|l| l.strip_prefix("SCREEN_TITLE = ")).unwrap();
+        let row: usize = at.parse().unwrap();
+        // Four lines a row: the stream's address and bank, the two sizes,
+        // the first colour.
+        (bpp, table.lines().nth(row * 4 + 2).unwrap().to_string())
+    };
+    let mut request = emit_request("whole");
+    let tiles = request.title.as_ref().unwrap().tiles;
+    let colors = request.title.as_ref().unwrap().colors;
+    assert_eq!(
+        row(&request),
+        ("TITLE_BPP      = 8".to_string(), format!("    .word {}, {}", tiles * 64, colors * 2))
+    );
+    request.title.as_mut().unwrap().bpp = 4;
+    assert_eq!(
+        row(&request),
+        ("TITLE_BPP      = 4".to_string(), format!("    .word {}, {}", tiles * 32, colors * 2))
+    );
 }
 
 /// The text without `WINDOW_BACKDROP_LINES`, which came after the Python

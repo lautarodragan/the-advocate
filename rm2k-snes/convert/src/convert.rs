@@ -28,6 +28,7 @@ use rm2k_snes_mapdata::{engine, record, vram};
 /// below `TITLE_MENU_MAP` ($4400) and the menu's 4bpp ones (16 words) from
 /// $5000 to `SCREEN_MAP` ($7C00). They are the numbers `emit/header.rs`
 /// writes and `title.s` asserts; this crate cannot read them from there.
+/// Past the first, the title goes at 4bpp, where it always fits.
 const TITLE_TILES_MAX: usize = 0x4400 / 32;
 const TITLE_MENU_TILES_MAX: usize = (0x7C00 - 0x5000) / 16;
 use serde_json::{json, Value};
@@ -793,16 +794,37 @@ pub fn run(options: Options) -> Result<()> {
             menu_maps
         );
         // The image's tiles go below the menu's tilemap, and the menu's end
-        // before the image's tilemap: the limits `title.s` asserts. A title
-        // that does not fit starts the game without one, as `--no-title`
+        // before the image's tilemap: the limits `title.s` asserts. An image
+        // that does not fit at eight bits goes at four, in mode 1, where it
+        // always fits —see `compressed_4bpp`—, and what it loses is what
+        // Adeleine decides, in the build's `adeleine/title.png`. A menu that
+        // does not fit starts the game without a title, as `--no-title`
         // does, and says so: the assembler would stop on it instead.
-        if screen.tiles > TITLE_TILES_MAX || menu_tiles > TITLE_MENU_TILES_MAX {
+        if menu_tiles > TITLE_MENU_TILES_MAX {
             println!(
-                "  WARNING, the title screen doesn't fit in VRAM ({} image tiles of {TITLE_TILES_MAX}, {menu_tiles} menu tiles of {TITLE_MENU_TILES_MAX}): the game starts without it",
-                screen.tiles
+                "  WARNING, the title menu doesn't fit in VRAM ({menu_tiles} tiles of {TITLE_MENU_TILES_MAX}): the game starts without a title screen"
             );
-        } else {
+        } else if screen.tiles <= TITLE_TILES_MAX && !options.title_4bpp {
             title_screen = Some(screen);
+        } else {
+            let (four, png) = fullscreen::compressed_4bpp(&picture, &menu_palette)?;
+            println!(
+                "    {}: at 4bpp in mode 1, {} tiles + {} palette(s), {} B in an LZ2 stream of {} B",
+                if options.title_4bpp {
+                    "--title-4bpp".to_string()
+                } else {
+                    format!("{} 8bpp tiles don't fit in {TITLE_TILES_MAX}", screen.tiles)
+                },
+                four.tiles,
+                (four.colors as i64 - fullscreen::MENU_CGRAM) / 16,
+                four.raw,
+                four.stream.len()
+            );
+            let dir = output.parent().map(rm2k_project::absolute).unwrap_or_default().join("adeleine");
+            std::fs::create_dir_all(&dir).map_err(|e| crate::fail::io(&dir, e))?;
+            let path = dir.join("title.png");
+            std::fs::write(&path, png).map_err(|e| crate::fail::io(&path, e))?;
+            title_screen = Some(four);
         }
     }
     // The Game Over screen: the image the LDB's `System` names, in the

@@ -5,7 +5,11 @@
 //! BG1, which in mode 3 addresses all of CGRAM—, and what goes into the
 //! cartridge is **a single stream** with the three things the ROM uploads,
 //! one after the other: the tiles, 64 bytes each; the 32x32 tilemap, 2048
-//! bytes; and the colours, two bytes each. The ROM decompresses it whole
+//! bytes; and the colours, two bytes each.
+//!
+//! **Or at 4 bits per pixel, the title that does not fit at 8**: see
+//! [`compressed_4bpp`]. The stream is the same three things, with tiles of
+//! 32 bytes. The ROM decompresses it whole
 //! into WRAM and uploads it with three DMAs: see `screen_upload` in the
 //! runtime's `game_over.s`.
 //!
@@ -19,6 +23,7 @@
 
 use crate::fail::{Result, Stop};
 use crate::images;
+use crate::pictures::png_size;
 use rm2k_snes_mapdata::snes::{cgram_word, entry, pack_tile};
 use serde_json::{json, Value};
 use std::path::Path;
@@ -42,13 +47,16 @@ pub struct Screen {
     pub tiles: usize,
     pub colors: usize,
     pub first_color: i64,
+    /// Bits per pixel of its tiles: 8, or 4 for a title that does not fit
+    /// at 8.
+    pub bpp: usize,
 }
 
 impl Screen {
     /// As `rm2k-snes-mapdata emit` takes it.
     pub fn request(&self) -> Value {
         json!({"tiles": self.tiles, "colors": self.colors, "first_color": self.first_color,
-               "stream": crate::text::hex(&self.stream)})
+               "bpp": self.bpp, "stream": crate::text::hex(&self.stream)})
     }
 }
 
@@ -109,5 +117,108 @@ pub fn compressed(path: &Path, first_color: i64, cap: i64, below: &[[u8; 3]]) ->
         tiles: tiles.len(),
         colors: colors.len(),
         first_color: first_color - below.len() as i64,
+        bpp: 8,
     })
+}
+
+/// How many palettes of sixteen a title at four bits gets: the BG's eight,
+/// but the first, which is the menu's —it sits on BG2, also at four bits in
+/// mode 1, and its palette is palette 0, as in mode 3—.
+pub const PALETTES_4BPP: i64 = 7;
+/// Tiles a title at four bits may take: the ten bits of a tilemap entry.
+/// The worst case, every cell of the screen distinct plus the blank tile,
+/// is 897, and at sixteen words each they end at $3810, below the menu's
+/// tilemap: that is why this path always fits.
+pub const TILES_4BPP: i64 = 1024;
+
+/// The title at `path` at four bits per pixel, for BG1 in mode 1: the
+/// layer of a big `ShowPicture` —`rm2k-snes-images background`, with its
+/// colours chosen by Adeleine in seven palettes— with its corner at the
+/// screen's, where RM2k draws the title, and `below`, the menu's colours,
+/// as palette 0. The colours go from CGRAM 0. Also gives back the screen
+/// as Adeleine left it, indexed by CGRAM entry: what goes to the build's
+/// `adeleine/`.
+pub fn compressed_4bpp(path: &Path, below: &[[u8; 3]]) -> Result<(Screen, Vec<u8>)> {
+    let palette_size = 16;
+    if below.len() > palette_size {
+        crate::stop!("{} colors below the title, and palette 0 holds {palette_size}", below.len());
+    }
+    let (width, height) = png_size(path)?;
+    let rows = HEIGHT / CELL;
+    let layer = images::background(
+        path,
+        false,
+        width.div_euclid(2),
+        height.div_euclid(2),
+        100,
+        None,
+        PALETTES_4BPP,
+        1,
+        TILES_4BPP,
+        rows,
+        false,
+    )?
+    .ok_or_else(|| Stop::new(format!("{}: the title doesn't fit at 4bpp either", path.display())))?;
+    let tiles = crate::text::unhex(layer["tiles"].as_str().unwrap_or(""));
+    let count = layer["tile_count"].as_u64().unwrap_or(0) as usize;
+    let cells: Vec<u16> =
+        layer["tilemap"].as_array().map(|t| t.iter().map(|v| v.as_u64().unwrap_or(0) as u16).collect()).unwrap_or_default();
+    let mut raw = tiles.clone();
+    // 32x32 entries, as the 8bpp one; the rows past the layer's are tile
+    // 0, blank, in palette 0: the backdrop.
+    for index in 0..32 * 32 {
+        raw.extend_from_slice(&cells.get(index).copied().unwrap_or(0).to_le_bytes());
+    }
+    let mut colors: Vec<[u8; 3]> = below.to_vec();
+    colors.resize(palette_size, [0, 0, 0]);
+    for p in layer["palettes"].as_array().cloned().unwrap_or_default() {
+        colors.extend(p.as_array().cloned().unwrap_or_default().iter().map(color));
+    }
+    for c in &colors {
+        raw.extend_from_slice(&(cgram_word(*c) as u16).to_le_bytes());
+    }
+    let png = indexed_png(&tiles, &cells, &colors)?;
+    let stream = rm2k_snes_mapdata::compress::compress(&raw).map_err(|e| Stop::new(e.to_string()))?;
+    Ok((
+        Screen { stream, raw: raw.len(), tiles: count, colors: colors.len(), first_color: 0, bpp: 4 },
+        png,
+    ))
+}
+
+/// The 4bpp screen as the PPU draws it: each cell's tile, flipped and in
+/// its palette, as an indexed PNG of CGRAM entries with `colors` as its
+/// palette.
+fn indexed_png(tiles: &[u8], cells: &[u16], colors: &[[u8; 3]]) -> Result<Vec<u8>> {
+    let (width, height) = (WIDTH as usize, HEIGHT as usize);
+    let mut pixels = vec![0u8; width * height];
+    for (k, &entry) in cells.iter().enumerate().take(width / 8 * (height / 8)) {
+        let tile = &tiles[(entry as usize & 0x3FF) * 32..][..32];
+        let palette = (entry as usize >> 10 & 7) * 16;
+        let (hflip, vflip) = (entry & 0x4000 != 0, entry & 0x8000 != 0);
+        for y in 0..8 {
+            let row = if vflip { 7 - y } else { y };
+            for x in 0..8 {
+                let bit = if hflip { x } else { 7 - x };
+                let value = (0..4).fold(0, |v, plane| {
+                    let byte = tile[(plane / 2) * 16 + row * 2 + plane % 2];
+                    v | ((byte >> bit & 1) as usize) << plane
+                });
+                if value != 0 {
+                    pixels[(k / 32 * 8 + y) * width + k % 32 * 8 + x] = (palette + value) as u8;
+                }
+            }
+        }
+    }
+    let mut out = Vec::new();
+    {
+        let mut encoder = png::Encoder::new(&mut out, width as u32, height as u32);
+        encoder.set_color(png::ColorType::Indexed);
+        encoder.set_depth(png::BitDepth::Eight);
+        // The console's fifteen bits, at eight per channel as Adeleine's
+        // images of the maps show them.
+        encoder.set_palette(colors.iter().flat_map(|c| c.map(|v| v << 3)).collect::<Vec<u8>>());
+        let mut writer = encoder.write_header().map_err(|e| Stop::new(e.to_string()))?;
+        writer.write_image_data(&pixels).map_err(|e| Stop::new(e.to_string()))?;
+    }
+    Ok(out)
 }
