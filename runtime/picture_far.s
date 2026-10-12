@@ -41,9 +41,20 @@ PIC_HIDDEN = 76
 
 ; RM2k's screen against the console's: how much wider and taller it is. A
 ; picture that goes with the map is placed where RM2k's display would be,
-; which is the console's camera centred on the same point.
+; which is the console's camera moved by what each one leaves to the left of
+; the hero and above it.
 PIC_RM_EXTRA_X = 320 - 256
 PIC_RM_EXTRA_Y = 240 - 224
+; The console's camera centres the hero's cell, 120 pixels from the left and
+; 104 from the top; RM2k's leaves **nine** cells to the left, 144, and seven
+; above, 112 —`kPanXDefault` and `kPanYDefault` in liblcf—, so its display
+; is not centred sideways: the hero's cell ends at 160 of 320. Until 2026-10-11
+; this was half of PIC_RM_EXTRA_X, the centred one, and the pictures that go
+; with the map landed eight pixels to the left of RM2k's: the screen x of
+; `character_screen`, held up against RM2k's numbers, is what showed it.
+PIC_RM_LEFT = 144 - 120
+PIC_RM_TOP  = 112 - 104
+.assert PIC_RM_TOP = PIC_RM_EXTRA_Y / 2, error, "vertically RM2k's display is centred, like the console's"
 
 ; No picture, and no ramp: on reset and on every map change. RM2k 2000
 ; erases them there —`erase_on_map_change`— and besides, their tiles belong
@@ -271,7 +282,7 @@ place:
 :   pha                         ; the farthest RM2k's display goes
     lda camera_x
     sec
-    sbc #PIC_RM_EXTRA_X / 2
+    sbc #PIC_RM_LEFT
     bpl :+
     lda #0
 :   cmp 1, s
@@ -289,7 +300,7 @@ place:
 :   pha
     lda camera_y
     sec
-    sbc #PIC_RM_EXTRA_Y / 2
+    sbc #PIC_RM_TOP
     bpl :+
     lda #0
 :   cmp 1, s
@@ -302,6 +313,130 @@ place:
     sep #$20
 .a8
     rts
+.endproc
+
+; `ControlVars` class 6 with RM2k's 4 and 5: a character's x or y on **RM2k's**
+; screen, `GetScreenX()` and `GetScreenY()` —the centre of its cell and its
+; feet, minus where RM2k's display is—. The display is the one the pictures
+; are placed on, `pic_on_map`, so a `ShowPicture` by these variables lands on
+; the character as in RM2k: it is what map 207 does with its smoke. The
+; jump's height is not taken off, as RM2k does: no page of the game asks in
+; the middle of a jump.
+;
+; Enters with A8 at CHARACTER_SCREEN_X or the next one and X at the target
+; times EV_STRIDE —0 the hero—, as `op_var` leaves them; `temp` is op_var's
+; and goes back as it came. Returns the value in A16 **with the accumulator
+; at sixteen bits**, and Y as it came. Clobbers X.
+.proc character_screen
+.a8
+.i16
+    phy
+    pha                         ; which one
+    rep #$20
+.a16
+    lda temp                    ; op_var's slot and operation
+    pha
+    cpx #$0000
+    bne event
+    lda hero_x
+    sta temp
+    lda hero_y
+    sta temp + 2
+    bra cell
+event:
+    ; With a row in the NPC table, its pixels, which follow a step under way;
+    ; without one —an event that draws nothing, like 207's—, its cell. The
+    ; search is `event_npc`'s, which lives in bank 0.
+    txa
+    lsr a
+    lsr a
+    dec a                       ; the event index: the target minus one
+    sep #$20
+.a8
+    ldy #$0000
+seek:
+    cpy npc_total
+    beq no_row
+    cmp npc_buf + 8, y
+    beq row
+    pha
+    rep #$20
+.a16
+    tya
+    clc
+    adc #NPC_STRIDE
+    tay
+    sep #$20
+.a8
+    pla
+    bra seek
+row:
+    rep #$20
+.a16
+    lda npc_buf + 0, y
+    sta temp
+    lda npc_buf + 2, y
+    sta temp + 2
+    bra cell
+.a8
+no_row:
+    rep #$20
+.a16
+    lda ev_pos_buf - EV_STRIDE + 0, x
+    asl a
+    asl a
+    asl a
+    asl a
+    sta temp
+    lda ev_pos_buf - EV_STRIDE + 2, x
+    asl a
+    asl a
+    asl a
+    asl a
+    sta temp + 2
+cell:
+    lda temp
+    clc
+    adc #8                      ; the centre of the cell
+    pha
+    lda temp + 2
+    clc
+    adc #16                     ; its feet
+    pha
+    stz temp
+    stz temp + 2
+    sep #$20
+.a8
+    jsr pic_on_map              ; RM2k's display, in temp and temp + 2
+    rep #$20
+.a16
+    ; The stack: 1 the feet, 3 the centre, 5 op_var's temp, 7 which one.
+    lda 7, s
+    and #$00FF
+    cmp #CHARACTER_SCREEN_X
+    bne screen_y
+    lda 3, s
+    sec
+    sbc temp
+    bra ready
+screen_y:
+    lda 1, s
+    sec
+    sbc temp + 2
+ready:
+    sta temp + 2
+    pla
+    pla
+    pla
+    sta temp
+    sep #$20
+.a8
+    pla
+    ply
+    rep #$20
+.a16
+    lda temp + 2
+    rtl
 .endproc
 
 ; A = floor(A * 4 / 5) and A = floor(A * 14 / 15), A signed: an RM2k screen
