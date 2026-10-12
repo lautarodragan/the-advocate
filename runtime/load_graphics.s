@@ -488,7 +488,7 @@ copy:
     iny
     bra copy
 ready:
-    jsl f:pass_look + FAST      ; ver `pass_has`
+    jsl f:pass_look + FAST      ; see `pass_has`
     rts
 .endproc
 

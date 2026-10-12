@@ -1189,7 +1189,8 @@ from_rom:
     ; pixel of the fallback: the 32 bytes of `fallback_height` in the top half
     ; of every tile, rewinding the source and moving WMADD on each one.
     ; `scn_double` fills the bottom half afterwards. See "El respaldo
-    ; liviano" in tools/port/scene.py.
+    ; liviano" ("the light fallback") in tools/port/scene.py, which is only in
+    ; the history: it was deleted on 2026-10-02 (f64f7aba).
     lda #0
     sta f:DMAP7                 ; one byte at a time, the source advancing
     lda #$80                    ; WMDATA

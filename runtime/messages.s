@@ -272,7 +272,7 @@ ready:
 ; be added to a long pointer crossing banks: see the loop below and
 ; `msg_ptr_next`, which is the same arithmetic for advancing one byte at a
 ; time.
-.assert MESSAGES_CAP = 4 * $10000, error, "msg_start multiplies the offset by four: it is MENSAJES_PASO in events.py"
+.assert MESSAGES_CAP = 4 * $10000, error, "msg_start multiplies the offset by four: it is MESSAGES_STEP in engine.rs of rm2k-snes/mapdata"
 .proc msg_start
 .a16
 .i16

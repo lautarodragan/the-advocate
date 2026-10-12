@@ -1,55 +1,52 @@
-# Commits que `git blame` tiene que saltear.
+# Commits `git blame` has to skip.
 #
-# Van acá los cambios **mecánicos y sin efecto**: renombres masivos, reformateos,
-# mudanzas de archivo. Sin esto, `git blame` sobre cualquier línea que tocaron
-# contesta "fue el renombre", que es cierto y es inútil: lo que uno quiere saber
-# es quién escribió la lógica.
+# What goes here are the **mechanical changes with no effect**: mass renames,
+# reformats, file moves. Without this, `git blame` on any line they touched
+# answers "it was the rename", which is true and useless: what one wants to
+# know is who wrote the logic.
 #
-# El criterio para agregar uno: que su cambio **no pueda alterar el
-# comportamiento**. Los dos de abajo lo tienen demostrado, no supuesto — las dos
-# ROMs salieron byte por byte iguales.
+# The criterion for adding one: that its change **cannot alter behaviour**.
+# The ones below have it demonstrated, not assumed — the ROMs came out byte
+# for byte equal.
 #
-# No entra un commit que renombra *y* arregla algo de paso. Si hace falta,
-# se parte en dos commits y se ignora sólo el mecánico.
+# A commit that renames *and* fixes something along the way does not go in.
+# If needed, it is split into two commits and only the mechanical one is
+# ignored.
 #
-# Cómo usarlo:
+# How to use it:
 #
-#     git blame --ignore-revs-file .git-blame-ignore-revs <archivo>
+#     git blame --ignore-revs-file .git-blame-ignore-revs <file>
 #
-# o, para no tener que acordarse, una sola vez por clone:
+# or, so as not to have to remember, once per clone:
 #
 #     git config blame.ignoreRevsFile .git-blame-ignore-revs
-#
-# **Ese `git config` falla adentro del contenedor**, donde `.git/config` está
-# montado de sólo lectura: ahí va el flag a mano. Desde el host anda.
 
-# Los 40 opcodes del bytecode pasaron a llamarse en inglés. 506 usos en 18
-# archivos, 496 líneas cambiadas y 496 borradas: el mismo texto con otro nombre.
+# The 40 opcodes of the bytecode were renamed into English. 506 uses in 18
+# files, 496 lines changed and 496 deleted: the same text with another name.
 5ba5d05bed0265bca1ee53f3c6818bf86ea2e399
 
-# Las etiquetas del intérprete tomaron el nombre del opcode que atienden
-# (`op_lugar` -> `op_place`). 121 usos, 120 y 120.
+# The interpreter's labels took the name of the opcode they handle
+# (`op_lugar` -> `op_place`). 121 uses, 120 and 120.
 ec9436950f7b868eb87587acb5ac3a495b4a87ac
 
-# Los proyectos de Rust se mudaron de la raíz a `tools/`: `git mv` y las rutas
-# que los nombraban como código. Los cinco cartuchos y las dos demos salieron
-# iguales, y los binarios reinstalados desde ahí también.
+# The Rust projects moved from the root to `tools/`: `git mv` and the paths
+# that named them as code. The five cartridges and the two demos came out
+# equal, and so did the binaries reinstalled from there.
 3f91b141fd5ee10d4cdba79ea5b6565f322f896c
 
-# Los `.py` de `tools/` se repartieron en paquetes, y cada import pasó a
-# nombrar el suyo (`import lcf` -> `from rpgmaker import lcf`). 175 líneas en
-# 45 archivos. Los cartuchos, las siete demos y sus 48 `.inc`, mapas de memoria
-# y tablas de símbolos salieron byte por byte iguales.
+# The `.py` files of `tools/` were split into packages, and each import came
+# to name its own (`import lcf` -> `from rpgmaker import lcf`). 175 lines in
+# 45 files. The cartridges, the seven demos and their 48 `.inc` files, memory
+# maps and symbol tables came out byte for byte equal.
 e8b9287b9d740a0339bad09f53f910730111b566
 
-# rm2k-snes-maps pasó a llamarse Wally: el directorio, el crate, la biblioteca
-# y el binario, y cada lugar que los nombraba. 80 líneas en 43 archivos. Las
-# tres ROMs salieron byte por byte iguales con NO_CACHE=1.
+# rm2k-snes-maps was renamed Wally: the directory, the crate, the library
+# and the binary, and every place that named them. 80 lines in 43 files. The
+# three ROMs came out byte for byte equal with NO_CACHE=1.
 0480deecf6ba8b7ef477552482033f2d60f1d045
 
-# rm2k-snes-map-background y rm2k-snes-map-sprites pasaron a ser módulos de
-# Wally (`background`, `sprites`): `git mv` de sus fuentes y los `use` que
-# los nombraban, 61 líneas en 29 archivos de Rust más los manifiestos. Los
-# 1424 archivos del `build/` de ABL salieron byte por byte iguales con
-# NO_CACHE=1.
+# rm2k-snes-map-background and rm2k-snes-map-sprites became modules of
+# Wally (`background`, `sprites`): `git mv` of their sources and the `use`s
+# that named them, 61 lines in 29 Rust files plus the manifests. The 1424
+# files of ABL's `build/` came out byte for byte equal with NO_CACHE=1.
 94ef6b1945d2425a853e95ccb3458955e1f473fc

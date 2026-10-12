@@ -10,8 +10,8 @@
 ; by vector quantisation (`mode7` in rm2k-snes-images). Still, it is shown
 ; in mode 1 at full resolution like any big one; when the zoom starts the
 ; console switches to mode 7 and zooms the texture with the matrix. See
-; `las-fotos-en-modo-7.md` in the tasks, and the pilot's,
-; `el-piloto-del-modo-7.md`, in A Blurred Line's.
+; `tasks/picture-zoom-in-mode-7.md`, and the pilot's,
+; `tasks/mode-7-pilot-for-the-zoom-of-the-diff-photos.md`.
 ;
 ; **Mode 7 owns VRAM's lower half and cannot be moved**: its 128x128 map in
 ; the low bytes of words $0000 to $3FFF and its 256 tiles in the high ones.

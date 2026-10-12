@@ -1,17 +1,19 @@
 __pycache__/
 
 wt/
-# Los worktrees de los sub-agentes. Son repositorios de git adentro del repo, y
-# un `git add -A` los mete al índice como submódulos rotos: pasó el 2026-09-13.
+# The sub-agents' worktrees. They are git repositories inside the repo, and
+# a `git add -A` puts them in the index as broken submodules: it happened on
+# 2026-09-13.
 .claude/worktrees/
 
-# El sandbox de Claude Code tapa los archivos de configuración que podrían
-# ejecutar algo, montándoles /dev/null encima. Como acá no existían, quedan como
-# nodos de dispositivo en la raíz del repo y `git add -A` se corta con
-# "can only add regular files, symbolic links or git-directories".
+# Claude Code's sandbox covers the configuration files that could run
+# something by mounting /dev/null over them. Since they did not exist here,
+# they are left as device nodes at the root of the repo and `git add -A` stops
+# with "can only add regular files, symbolic links or git-directories".
 #
-# Están montados mientras dure la sesión: no se borran, se ignoran.
-# Cuidado si algún día el repo usa submódulos: .gitmodules es de git, no basura.
+# They stay mounted for as long as the session lasts: they are not deleted,
+# they are ignored. Careful if the repo ever uses submodules: .gitmodules
+# belongs to git, it is not garbage.
 .bash_profile
 .bashrc
 .profile
@@ -23,11 +25,11 @@ wt/
 .ripgreprc
 .vscode
 
-# El target del workspace de Rust: los binarios y las dependencias compiladas
-# de todos los crates de `tools/`, que comparten uno solo.
+# The Rust workspace's target: the binaries and the compiled dependencies of
+# every crate, which share a single one.
 target/
 rm2k/ditto/.idea/
-# Las herramientas de un worktree: `install-local`, ver `tools/justfile`. El
-# destino lo elige quien las usa; las recetas de `tools/justfile` buscan las
-# suyas en `tools/.local-tools/`.
+# A worktree's tools: `install-local`, see `justfile`. The destination is
+# chosen by whoever uses them; the recipes of `justfile` look for theirs in
+# `.local-tools/`.
 .local-tools/

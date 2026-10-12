@@ -491,7 +491,7 @@ row_vram:
 ; next to the menu because bank 0 has no room for it.
 ;
 ; Confirmed against the RPG_RT of 2015 under Wine and easyrpg's
-; `scene_menu.cpp`: see the task `a-quien-equipar-desde-el-menu`.
+; `scene_menu.cpp`: see the task `who-to-equip-from-the-menu`.
 .proc menu_choose
 .a8
 .i16

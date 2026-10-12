@@ -23,7 +23,7 @@
 ; **The samples of the song that is playing do not move**: the music goes on
 ; during the teleport's fade, and overwriting a sample that is playing would
 ; be noise. Everything else is rearranged again from the start of ARAM,
-; skipping those. See "El paquete de audio de cada mapa" in
+; skipping those. See "Each map's audio package" in
 ; tasks/music-through-the-spc700.md.
 FAR_ARAM_OF = $7E3100           ; one word per sample
 FAR_WANTS   = $7E3300           ; one byte per sample: 2 for the ones that do not move
