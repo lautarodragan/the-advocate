@@ -205,6 +205,18 @@ write:
 ; `SCREEN_FADE`; the cut does not need a fade: the brightness is set and the
 ; page goes on.
 
+; Whether an event left the screen erased —1, and the brightness stays at
+; zero until the show—, and the transition of the fade one of them is
+; running, or $FF while the fade running is a teleport's. Neither travels in
+; the save: RM2k's save screen shows the map again on the way back, and so
+; does ours —`screen_unerase`—. Every use goes with `f:`: `battle_fade.s`
+; comes before this file.
+.pushseg
+.segment "FARBSS"
+SCREEN_ERASED: .res 1
+SCREEN_FADE:   .res 1
+.popseg
+
 ; With Y at the operand; returns with Y past it, and carry set if a fade
 ; started. Over a screen already erased it does nothing, as
 ; `Transition::Init` skips an erase over an erased screen.

@@ -1292,14 +1292,6 @@ BATTLE_ON = $7E7840             ; 1 if the battle got to turn its screen on
 ; asks for the cut itself before jumping.
 TRANSITION_ERASE   = $7E7920
 TRANSITION_SHOW = $7E7921
-; `EraseScreen` and `ShowScreen`: whether an event left the screen erased
-; —1, and the brightness stays at zero until the show—, and the transition
-; of the fade one of them is running, or $FF while the fade running is a
-; teleport's. See `screen_erase` in `teleport_transition.s`. Neither
-; travels in the save: RM2k's save screen shows the map again on the way
-; back, and so does ours —`screen_unerase`—.
-SCREEN_ERASED = $7E7922
-SCREEN_FADE   = $7E7923
 
 ; --- the memorized song -------------------------------------------------------
 ;
