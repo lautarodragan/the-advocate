@@ -485,7 +485,7 @@ no8:
     ; imposes wins, so the first one found that way is the answer. It runs
     ; twice for every step that starts, and front to back with a `rep`/`sep`
     ; per row it was nine lines each time in the race, with forty cars: see
-    ; workflow/tasks/*/carrera-2-a-sesenta-cuadros.md.
+    ; tasks/race-2-at-60-frames.md.
     sta temp + 2
     lda pass_has
     and #$00FF

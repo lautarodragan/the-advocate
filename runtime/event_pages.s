@@ -1162,7 +1162,7 @@ begin:
     ; running—, so it is not saved. It is exactly the interpreter's first
     ; round and its second; if what follows is something else, the
     ; interpreter goes on from there. It is almost two lines of the frame's
-    ; 262 per page: see workflow/tasks/*/carrera-2-a-sesenta-cuadros.md.
+    ; 262 per page: see tasks/race-2-at-60-frames.md.
     lda [code_ptr]              ; the first opcode
     cmp #OP_CELL_TEST
     bne from_zero
@@ -1941,7 +1941,7 @@ walk:
     ; the loop is half as long. It runs on every step that starts —three of
     ; these and of `pass_with_event` per step—, and in the race, with forty
     ; cars, it was nine lines each: see
-    ; workflow/tasks/*/carrera-2-a-sesenta-cuadros.md.
+    ; tasks/race-2-at-60-frames.md.
     rep #$20
 .a16
     lda ev_total

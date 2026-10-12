@@ -15,7 +15,7 @@
 ; and 54) has forty pages like this running every frame, and with the four
 ; opcodes the interpreter took almost five lines per page: the whole lap did
 ; not fit in a frame. Measured in
-; workflow/tasks/*/carrera-2-a-sesenta-cuadros.md.
+; tasks/race-2-at-60-frames.md.
 ;
 ; It lives in bank 1 because there is no room in bank 0: `op_cell_test`, the
 ; dispatch handler, is a `jsl` to here. That is why everything uses long
