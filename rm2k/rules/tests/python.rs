@@ -1,15 +1,17 @@
-//! The rules against the Python ones they copy.
+//! The rules against the Python copy they were written from.
 //!
-//! These rules also exist in Python, in the converter that still uses them,
-//! and the two copies live side by side until it moves to Rust. What keeps
-//! them the same is `python.json`: some inputs, in the dump's shape, and what
-//! the Python answered for them. This test requires the Rust answers to be
-//! those; on the Python side, `tests/test_rm2k_rules.py` of the tools requires
-//! the Python to still give them. So neither side runs the other's language,
-//! and a rule changed on one side only goes red on that side.
+//! Until the converter moved to Rust, on 2026-10-02, these rules also lived in
+//! Python, and `python.json` held the two copies together: some inputs, in the
+//! dump's shape, and what the Python answered for them. This test required the
+//! Rust answers to be those, and a Python test on the other side required the
+//! Python to still give them. That copy left with the converter, and its test
+//! with it: what is left is this half, and nothing regenerates the answers.
 //!
-//! **The answers are not to be edited to make this pass**: they are the
-//! other copy's, and the only independent answer there is.
+//! **The answers are not to be edited to make this pass**: they come from an
+//! implementation written separately, and are still the only independent
+//! answer there is. If one goes red, the rule moved; the fix is in the rule,
+//! unless what RM2k does shows the Python was the wrong one, and then the
+//! commit that edits the answer says so.
 
 use ditto::schema::{Actor, Chipset, Event, EventPage, MapInfo};
 use rm2k_rules::event::Graphic;
