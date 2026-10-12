@@ -124,9 +124,10 @@ escape_set:
     phy                         ; the cursor: the destinations are read on return
     jsr battle_start
     ply
-    ; Y points at the troop; the three destinations come after it, one word
+    ; Y points at the troop; the four destinations come after it, one word
     ; each, in the order victory, escape, defeat, which is that of
-    ; `BATTLE_HANDLERS`.
+    ; `BATTLE_HANDLERS`, and the abort of a `TerminateBattle`: `BA_RESULT`
+    ; indexes them.
     lda f:BAT_LENGTH + BA_RESULT
     jmp op_battle_destination
 
@@ -157,6 +158,23 @@ escape_set:
     jmp run_code::other
 
 
+.endproc
+
+; `TerminateBattle`, from a troop page: the page ends here and the battle
+; with it —`ba_page_step` sees `ba_abort` when the stretch comes back—. On a
+; map it does nothing and the page carries on, which is what EasyRPG's map
+; interpreter does with a command it does not know.
+.proc op_battle_abort
+.a8
+.i16
+    lda pair_ev
+    cmp #PAIR_BATTLE
+    beq in_battle
+    jmp run_code::other
+in_battle:
+    lda #1
+    sta f:ba_abort
+    jmp op_done
 .endproc
 
 ; `ShowHiddenMonster`, which only exists in a troop page: the member in that

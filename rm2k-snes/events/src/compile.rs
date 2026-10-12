@@ -425,7 +425,7 @@ const IGNORABLE: [i32; 0] = [];
 /// in there and not in this list: the command itself is no longer a whole
 /// debt. Neither is `PlayBGM`, which is done since the songs have a
 /// registry: see its arm.
-pub const ACCEPTED_UNDONE: [i32; 7] = [
+pub const ACCEPTED_UNDONE: [i32; 8] = [
     SHOW_PICTURE,
     MOVE_PICTURE,
     ERASE_PICTURE,
@@ -436,6 +436,9 @@ pub const ACCEPTED_UNDONE: [i32; 7] = [
     CHANGE_SYSTEM_GRAPHICS,
     // Debt: the face is not drawn; see its arm.
     CHANGE_FACE_GRAPHIC,
+    // Debt: the enemy does not get the condition; see its arm. Only troop
+    // pages have it, and `TroopPages` warns about it.
+    CHANGE_MONSTER_CONDITION,
 ];
 
 /// What cuts an exit `PlayBGM` before the jump: branches, choices, battles,
@@ -1017,7 +1020,7 @@ fn page(
             // does when the sub-index has no branch.
             //
             // OP_BATTLE: troop (word), victory (word), escape (word), defeat
-            // (word)
+            // (word), abort (word)
             let troop = encounter_troop(cmd)?;
             if let Some(troops) = ctx.troops.as_deref_mut() {
                 troops.request(troop as i32, encounter_backdrop(cmd));
@@ -1041,7 +1044,10 @@ fn page(
                 //
                 // With `escape_mode` 1 the `OP_DONE` that escaping goes to
                 // follows the opcode, and the other two skip it.
-                let done_at = length + 9;
+                //
+                // A battle a troop page ended with `TerminateBattle` goes on
+                // below too: RM2k's `Abort` picks no handler.
+                let done_at = length + 11;
                 let next_at = done_at + usize::from(escape_ends);
                 let escape = if no_escape {
                     BATTLE_NO_ESCAPE
@@ -1060,6 +1066,7 @@ fn page(
                 p.extend(usize_word(next_at)?);
                 p.extend(usize_word(escape)?);
                 p.extend(usize_word(lose)?);
+                p.extend(usize_word(next_at)?);
                 if escape_ends {
                     p.push(ctx.end());
                 }
@@ -1076,7 +1083,7 @@ fn page(
                     exits: vec![],
                 });
                 // The room, filled in at the `EndBattle`.
-                piece = vec![0; 9];
+                piece = vec![0; 11];
             }
         } else if BATTLE_HANDLERS.contains(&cmd.code) {
             let Some(current) = battles.last_mut() else {
@@ -1127,6 +1134,9 @@ fn page(
                 };
                 table.extend(usize_word(d)?);
             }
+            // And the battle a troop page ended with `TerminateBattle`: past
+            // the handlers, whichever there are —RM2k's `Abort` picks none—.
+            table.extend(usize_word(end)?);
             pieces[current.at] = table;
             for out in current.exits {
                 pieces[out] = with_dest(&pieces[out], end)?;
@@ -4055,6 +4065,20 @@ pub fn compile_command(
         // `ChangeFaceGraphic` (10130): debt, the face is not drawn; see
         // `workflow/tasks/*/las-caras-y-las-esperas.md`.
         CHANGE_FACE_GRAPHIC => Ok(vec![]),
+        // `ChangeMonsterCondition` (13130): debt, the enemy does not get the
+        // condition. The battle has no conditions —no duration, no
+        // restriction, no effect on damage—, and the game only asks for 22
+        // (Control) and 23 (BarkWall), from `Inscribe` (switch 799) and
+        // `ControlMachines` (803): with them accepted, those pages run their
+        // messages, effects and flashes, and the enemy fights on as if
+        // nothing had happened. taro's, on 2026-10-12: first as debt, then
+        // for real, in `tasks/battle-conditions-for-real.md`.
+        CHANGE_MONSTER_CONDITION => Ok(vec![]),
+        // `TerminateBattle` (13410): the page and the battle end, with no
+        // victory —EasyRPG's `AsyncOp::MakeTerminateBattle(Abort)`—. It only
+        // arrives from a troop page —see `TROOP_COMMANDS`— and the ROM does
+        // nothing with it outside a battle, as EasyRPG's map interpreter.
+        TERMINATE_BATTLE => Ok(vec![OP_BATTLE_ABORT]),
         CHANGE_ENCOUNTER_STEPS => {
             // `ChangeEncounterSteps` (11740): every how many steps there is a
             // random encounter. Nineteen occurrences on nine maps, and
@@ -5285,6 +5309,45 @@ mod tests {
     }
 
     #[test]
+    fn a_monster_condition_is_a_debt_that_emits_nothing() {
+        // Control (22) and BarkWall (23), the only ones the game asks for.
+        let game = Game::default();
+        let command = cmd(CHANGE_MONSTER_CONDITION, &[0, 0, 23], "");
+        assert_eq!(compile_with(&game, &[command.clone()]).unwrap().unwrap(), [OP_DONE]);
+        assert_eq!(
+            page_debts(&game, &Indices::default(), &[command], None).unwrap(),
+            [CHANGE_MONSTER_CONDITION]
+        );
+    }
+
+    #[test]
+    fn terminate_battle_ends_the_page_and_the_battle() {
+        let game = Game::default();
+        let code = compile_with(&game, &[cmd(TERMINATE_BATTLE, &[], "")]).unwrap().unwrap();
+        assert_eq!(code, [OP_BATTLE_ABORT, OP_DONE]);
+    }
+
+    #[test]
+    fn an_aborted_battle_goes_past_its_handlers() {
+        // With a victory handler, winning goes into it and the abort past
+        // the block, as RM2k's `Abort`, which picks no handler.
+        let game = Game::default();
+        let page = [
+            cmd(ENEMY_ENCOUNTER, &[0, 82, 1, 2, 1, 0], "bg"),
+            Command::new(VICTORY_HANDLER, 0, "", vec![]),
+            Command::new(CONTROL_SWITCHES, 1, "", vec![0, 7, 7, 0]),
+            Command::new(END, 1, "", vec![]),
+            Command::new(END_BATTLE, 0, "", vec![]),
+            Command::new(CONTROL_SWITCHES, 0, "", vec![0, 8, 8, 0]),
+        ];
+        let code = compile_with(&game, &page).unwrap().unwrap();
+        let [victory, _, _, abort] = battle_destinations(&code);
+        assert_eq!(victory, 11, "the victory's body, right after the opcode");
+        assert!(abort > victory);
+        assert_eq!(code[abort..abort + 3], [OP_SWITCH, 8, 0], "the command after `EndBattle`");
+    }
+
+    #[test]
     fn change_face_graphic_is_reported_as_debt() {
         let game = Game::default();
         let command = cmd(CHANGE_FACE_GRAPHIC, &[], "Jack");
@@ -5848,11 +5911,11 @@ mod tests {
         assert_eq!(branch(CMP_EQUAL as i32, 65536), None);
     }
 
-    /// The three destinations of an `OP_BATTLE` at the start of `code`.
-    fn battle_destinations(code: &[u8]) -> [usize; 3] {
+    /// The four destinations of an `OP_BATTLE` at the start of `code`.
+    fn battle_destinations(code: &[u8]) -> [usize; 4] {
         assert_eq!(code[0], OP_BATTLE);
         let at = |k: usize| u16::from_le_bytes([code[3 + 2 * k], code[4 + 2 * k]]) as usize;
-        [at(0), at(1), at(2)]
+        [at(0), at(1), at(2), at(3)]
     }
 
     #[test]
@@ -5864,15 +5927,15 @@ mod tests {
         let code = compile_with(&game, &[cmd(ENEMY_ENCOUNTER, &[0, 82, 1, 1, 0, 0], "bg"), switch_on.clone()])
             .unwrap()
             .unwrap();
-        assert_eq!(code[9], OP_DONE);
-        let [victory, escape, defeat] = battle_destinations(&code);
-        assert_eq!((victory, escape, defeat), (10, 9, BATTLE_LOSE));
-        // `escape_mode` 0 keeps its shape —nine bytes, and winning goes
+        assert_eq!(code[11], OP_DONE);
+        let [victory, escape, defeat, abort] = battle_destinations(&code);
+        assert_eq!((victory, escape, defeat, abort), (12, 11, BATTLE_LOSE, 12));
+        // `escape_mode` 0 keeps its shape —eleven bytes, and winning goes
         // on— and its escape says it cannot be taken.
         let code = compile_with(&game, &[cmd(ENEMY_ENCOUNTER, &[0, 82, 1, 0, 0, 0], "bg"), switch_on])
             .unwrap()
             .unwrap();
-        assert_eq!(battle_destinations(&code), [9, BATTLE_NO_ESCAPE, BATTLE_LOSE]);
+        assert_eq!(battle_destinations(&code), [11, BATTLE_NO_ESCAPE, BATTLE_LOSE, 11]);
     }
 
     #[test]
@@ -5892,13 +5955,15 @@ mod tests {
             Command::new(END_BATTLE, 0, "", vec![]),
         ];
         let code = compile_with(&game, &page).unwrap().unwrap();
-        let [victory, escape, defeat] = battle_destinations(&code);
+        let [victory, escape, defeat, abort] = battle_destinations(&code);
         assert_eq!(code[escape], OP_DONE);
         assert_eq!(code[escape - 3], OP_GOTO);
         let past = escape + 1;
         assert_eq!(u16::from_le_bytes([code[escape - 2], code[escape - 1]]) as usize, past);
         assert_eq!(code[past], OP_DONE, "the page's own end");
         assert!(victory < defeat && defeat < escape);
+        // A `TerminateBattle` picks no handler and does not end the page.
+        assert_eq!(abort, past);
     }
 
     #[test]
@@ -6918,7 +6983,7 @@ mod tests {
         let s = shared(&game);
         let body = &s.bodies[0].1;
         assert_eq!(body[0], OP_BATTLE);
-        assert_eq!(body[9], OP_RETURN);
+        assert_eq!(body[11], OP_RETURN);
         assert_eq!(*body.last().unwrap(), OP_RETURN);
     }
 

@@ -100,6 +100,11 @@
 //! the three hashes moved: the difference against the old text is
 //! `TWIN_STRIDE` and its comment, and a zero word behind each map's
 //! positions.
+//!
+//! On 2026-10-12 `TROOP_PAGE_MAX` went from 32 to 64, because the agency
+//! captain's troop brings 33 pages once they all compile, and the two
+//! hashes of the whole `.inc` moved: with it back at 32, the text is the old
+//! one byte for byte.
 
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_mapdata::record;
@@ -403,7 +408,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     assert_eq!(text.lines().count(), 3777);
     assert_eq!(
         sha(&text),
-        "e69d461152e7c6c87775d241d12d29bf7fb0047813f6641e55a5db86ca901ea7"
+        "f53ff0c9a0097f2c8bf06bfb75e544525f17f4a3b896139cbcc126c20f116182"
     );
 }
 
@@ -414,7 +419,7 @@ fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     assert_eq!(text.lines().count(), 3896);
     assert_eq!(
         sha(&text),
-        "544a579b5ec04204f33cb0404d1b9d7202f4274252eb35764744e28b61d5f2e7"
+        "fe086444bbe56834156c385958955fbbd7678657b689beb484742dd7d766e653"
     );
 }
 

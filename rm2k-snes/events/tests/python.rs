@@ -64,6 +64,14 @@
 //! And the same day the hash of the compilation's `maps` moved again, on
 //! purpose: `ChangePBG` compiles to `OP_PANORAMA`, and the Python dropped
 //! it. With its arm answering no bytes, the answer was the old one.
+//!
+//! On 2026-10-12 the hashes of the compilation's `maps`, `cases` and
+//! `troop_pages` moved, on purpose: `OP_BATTLE` carries a fourth
+//! destination, where a battle a troop page ended with `TerminateBattle`
+//! goes on, and a troop page can `Wait`, so the test game's one that waits
+//! compiles. With the fourth word taken out —of the declaration and of both
+//! places that write it— and `Wait` out of `TROOP_COMMANDS`, the answer was
+//! the old one.
 
 use rm2k_snes_events::{compile, compile_without_pairs, scan, Game, Request};
 use serde_json::Value;

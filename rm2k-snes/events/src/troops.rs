@@ -12,14 +12,14 @@
 //! `Scene_Battle_Rpg2k`; see `ba_page_test` in runtime/battle_troop.s.
 
 use crate::codes::*;
-use crate::compile::{compile_page, Ctx};
+use crate::compile::{compile_page, Ctx, ACCEPTED_UNDONE};
 use crate::fail::Result;
 use crate::game::{Command, TroopPage};
 use crate::indices::battle_branch;
 use crate::messages::Messages;
 use crate::registry::Package;
 use serde_json::{json, Value};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 /// What a troop page can do in this port. **It is a list of the ones that
 /// do, not of the ones that do not**, on purpose: almost everything that
@@ -46,10 +46,14 @@ use std::collections::HashMap;
 /// `Comment` is in since 2026-10-06, as in a map: the author's notes run as
 /// nothing. A troop page with one in the middle was left out whole for it.
 ///
-/// The ones left out that the game uses, in case someone wants to add them:
-/// `FlashScreen`, `Wait`, `TintScreen`, `ChangeMonsterCondition` —the battle
-/// has no states— and `TerminateBattle`.
-const TROOP_COMMANDS: [i32; 25] = [
+/// `FlashScreen` and `TintScreen` are in since 2026-10-12: they leave the
+/// same state as on a map, and the battle draws it on the scene's palette
+/// —see `ba_tone_tick` in runtime/battle_tone.s—. Their waits are OP_DELAY,
+/// like `ShakeScreen`'s, and so is `Wait`, which came in with them: Book of
+/// Three asks for it. `TerminateBattle` ends the battle with no victory, and
+/// `ChangeMonsterCondition` is accepted without doing it: a debt, in
+/// `ACCEPTED_UNDONE`, which [`TroopPages`] lists for the converter to warn.
+const TROOP_COMMANDS: [i32; 30] = [
     END,
     SHOW_MESSAGE,
     SHOW_MESSAGE_2,
@@ -66,6 +70,11 @@ const TROOP_COMMANDS: [i32; 25] = [
     PLAY_SOUND,
     PLAY_BGM,
     SHAKE_SCREEN,
+    FLASH_SCREEN,
+    TINT_SCREEN,
+    CHANGE_MONSTER_CONDITION,
+    TERMINATE_BATTLE,
+    WAIT,
     CHANGE_MONSTER_HP,
     CHANGE_MONSTER_MP,
     SHOW_HIDDEN_MONSTER,
@@ -337,6 +346,10 @@ pub struct TroopPages {
     pub per_troop: Vec<(i32, Vec<Entry>)>,
     pub pages: usize,
     pub left_out: usize,
+    /// What the pages that got in accept without doing —`ACCEPTED_UNDONE`—:
+    /// per command, each (troop, page) that uses it, for the converter to
+    /// warn, as it does with the maps' automatic pages.
+    pub debts: BTreeMap<i32, Vec<(i32, usize)>>,
 }
 
 impl TroopPages {
@@ -348,6 +361,7 @@ impl TroopPages {
             per_troop: vec![],
             pages: 0,
             left_out: 0,
+            debts: BTreeMap::new(),
         }
     }
 
@@ -362,7 +376,7 @@ impl TroopPages {
         if let Some(songs) = ctx.songs.as_deref_mut() {
             songs.current = Some(Package::Battle);
         }
-        let result = self.pages_of(ctx, pages);
+        let result = self.pages_of(ctx, number, pages);
         if let Some(songs) = ctx.songs.as_deref_mut() {
             songs.current = previous;
         }
@@ -370,7 +384,7 @@ impl TroopPages {
         Ok(())
     }
 
-    fn pages_of(&mut self, ctx: &mut Ctx, pages: &[TroopPage]) -> Result<Vec<Entry>> {
+    fn pages_of(&mut self, ctx: &mut Ctx, number: i32, pages: &[TroopPage]) -> Result<Vec<Entry>> {
         let mut theirs = Vec::new();
         for (k, page) in pages.iter().enumerate() {
             self.pages += 1;
@@ -403,6 +417,15 @@ impl TroopPages {
                 self.left_out += 1;
                 continue;
             };
+            let undone: BTreeSet<i32> = page
+                .commands
+                .iter()
+                .map(|c| c.code)
+                .filter(|code| ACCEPTED_UNDONE.contains(code))
+                .collect();
+            for code in undone {
+                self.debts.entry(code).or_default().push((number, k));
+            }
             // The header goes right in front and is part of the key: two pages
             // with the same code and another turn are two bodies. The offset
             // noted is the code's, so the ROM finds the header ten bytes
@@ -425,7 +448,7 @@ impl TroopPages {
     }
 
     pub fn to_json(&self) -> Value {
-        json!({
+        let mut out = json!({
             "pages": self.pages,
             "left_out": self.left_out,
             "distinct": self.where_.len(),
@@ -436,7 +459,17 @@ impl TroopPages {
             "code": crate::pages::hex(&self.bodies),
             "messages": crate::pages::hex(&self.messages.bytes()),
             "message_count": self.messages.count(),
-        })
+        });
+        // Only when there are some, so the answer of a game without them
+        // stays the one the tests that hold its hashes expect.
+        if !self.debts.is_empty() {
+            out["debts"] = json!(self
+                .debts
+                .iter()
+                .map(|(code, pages)| json!([code, pages]))
+                .collect::<Vec<_>>());
+        }
+        out
     }
 }
 
@@ -453,6 +486,21 @@ mod tests {
                 Command::new(code, 1, l, vec![])
             })
             .collect()
+    }
+
+    #[test]
+    fn the_inscribe_page_runs_in_battle() {
+        // What `Inscribe` (switch 799) and `ControlMachines` (803) ask for,
+        // and the agency captain's `TintScreen` and `TerminateBattle`.
+        for (code, p) in [
+            (FLASH_SCREEN, vec![0, 0, 31, 31, 5, 1]),
+            (TINT_SCREEN, vec![0, 0, 0, 100, 1, 1]),
+            (CHANGE_MONSTER_CONDITION, vec![0, 0, 23]),
+            (TERMINATE_BATTLE, vec![]),
+            (WAIT, vec![10]),
+        ] {
+            assert!(runs_in_battle(&Command::new(code, 1, "", p)), "{code}");
+        }
     }
 
     #[test]

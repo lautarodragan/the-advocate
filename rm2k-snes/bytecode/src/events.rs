@@ -118,8 +118,12 @@ bytecode! {
 
     OP_PICTURE_ERASE = 0x21 (slot: byte);
 
+    /// `on_abort` is where a battle a troop page ended with `TerminateBattle`
+    /// goes on: past the handlers, as EasyRPG's `BattleResult::Abort`. The
+    /// four go in the order of `BA_RESULT`'s values, which index them.
     OP_BATTLE = 0x22 (
         troop: word, on_win: word, on_escape: word, on_lose: word,
+        on_abort: word,
     );
 
     OP_STOP_ROUTES = 0x23 ();
@@ -331,6 +335,13 @@ bytecode! {
     /// $FF for the teleport's show. Over a screen that is not erased it does
     /// nothing. See `screen_show` in `teleport_transition.s`.
     OP_SHOW_SCREEN = 0x4B (transition: byte);
+
+    /// `TerminateBattle`, from a troop page: the page ends and so does the
+    /// battle, with no victory —no experience, no gold, no screen— and
+    /// `BA_ABORT` as its result, which `OP_BATTLE` sends to `on_abort`. On a
+    /// map it does nothing, as in RM2k. See `op_battle_abort` in the
+    /// runtime's `battle_troop.s`.
+    OP_BATTLE_ABORT = 0x4C ();
 }
 
 // `run_code` jumps through a table indexed by the opcode.
