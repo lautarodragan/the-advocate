@@ -13,7 +13,7 @@
 //! priority of the cells they cover. Their `ShowPicture`s, `MovePicture`s
 //! and `ErasePicture`s are then accepted without being done: the
 //! conversion did them. The study, with what each group loses:
-//! `ports/sunset-over-imdahl/research/2026-10-11-las-imagenes.md` in the
+//! `ports/sunset-over-imdahl/research/2026-10-11-the-pictures-over-the-map.md` in the
 //! book.
 //!
 //! **A project opts in**, `[graphics] map_pictures = true`: the same rule

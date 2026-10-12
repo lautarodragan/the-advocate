@@ -250,7 +250,7 @@ frame:
 ; The row is: the LZ2 stream (three bytes), how many bytes of tiles and how
 ; many of colors (one word each) and starting at which CGRAM color (one byte).
 ; The stream carries the three parts back to back: the tiles, the 32x32
-; tilemap and the colors. See tools/port/fullscreen.py.
+; tilemap and the colors. See rm2k-snes/convert/src/fullscreen.rs.
 ;
 ; Both the Game Over screen and the title use it: that is why it does not know
 ; which one it is uploading. It is two steps because of the title, which is

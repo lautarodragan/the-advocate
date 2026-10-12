@@ -729,7 +729,7 @@ ready:
 ; rm2k-snes/bytecode/src/music.rs— and here it is expanded into the DSP writes that
 ; `dsp_music` sends: exactly those of `writes` in stream.rs, frame by frame,
 ; and
-; rom/pruebas/rpgmaker/test_musica_escrituras.py checks it. It reads until it
+; abl/pruebas/rpgmaker/test_musica_escrituras.py in the-advocate-ports checks it. It reads until it
 ; hits a wait, which closes the frame: it keys on the voices that got a note,
 ; and the next frame opens by clearing that key-on. On reaching the end it
 ; starts over.

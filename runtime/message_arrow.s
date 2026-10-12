@@ -195,8 +195,8 @@ cell:
 ; The bar is `Window_Message::UpdateCursorRect`'s rectangle, a line tall and
 ; as wide as the text minus four, drawn as `Window::RefreshCursor` draws it;
 ; it is the first of the System's two cursor drawings, which RM2k
-; alternates every ten frames. See `workflow/divergencias/
-; la-barra-de-la-eleccion-no-alterna-sus-dos-dibujos.md`.
+; alternates every ten frames. See `divergences/
+; the-choice-bar-does-not-alternate-its-two-drawings.md` in the book.
 .proc msg_bar_source
 .a8
 .i16

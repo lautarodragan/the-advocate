@@ -740,7 +740,7 @@ ready:
 ; everything pending —the commands, the order, the targets— points at them.
 ; With the game's summons, which take Emily out and put the summon in, it
 ; shows as the summon in Emily's line and not at the bottom. See
-; `workflow/divergencias/`.
+; `divergences/` in the book.
 ;
 ; And whoever stays takes up what a page changed of its equipment:
 ; `ba_reparam`.

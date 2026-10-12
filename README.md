@@ -72,7 +72,7 @@ stage.
 So **a change in the tools is verified by running ABL's suite with the
 tools of the change**: how, in "Where this runs" in `AGENTS.md`. It is the
 risk pointed out by the study that planned the split
-(`research/2026-10-02-el-juego-de-pruebas.md` in the book), and its phase
+(`research/2026-10-02-the-test-game.md` in the book), and its phase
 2 cuts it: a test game of our own, made from scratch and with no
 copyrighted assets, where the engine's tests move to.
 
@@ -104,12 +104,12 @@ in BG2 in mode 3; if it draws little, in BG2 too, with what is above in the
 background and BG1's priority; and if it draws more, the map goes in mode
 1, at 4 bits, and the panorama in BG3. See `Way` in
 `rm2k-snes/wally/src/background/panorama.rs`, `runtime/pano.s` and, for
-what was measured, `research/2026-10-05-los-panoramas.md` in the book.
+what was measured, `research/2026-10-05-panoramas.md` in the book.
 
 ### The cartridge is ExHiROM, of 8 MB
 
 Since 2026-10-01, because the whole game does not fit in 4 MB with any
-cut: see `decisions/el-cartucho-pasa-a-8-mb.md` in the book. Until that day
+cut: see `decisions/the-cartridge-goes-to-8-mb.md` in the book. Until that day
 it was **LoROM**, and the code was written for LoROM; what changed and what
 did not has a reason that is in no line:
 
@@ -164,7 +164,7 @@ long addressing indexed with Y does not exist.
 What does not fit in a bank cannot be walked with an index: the cell grid
 of a large map does not fit, and it is read with a 24-bit pointer. It lives
 decompressed in the upper half of the two WRAM banks —see
-`decisions/la-grilla-vive-en-la-wram.md` in the book and
+`decisions/the-grid-lives-in-wram.md` in the book and
 `internals/maps.md` in the book—, which has the same shape as a LoROM
 bank: going past `$FFFF` does not lead to the next bank's `$0000` but to
 its `$8000`. `ptr_more` and `ptr_minus` are the only routines that know

@@ -222,7 +222,7 @@ row_addr_b: .res 2
 ; correct on returning from a battle, which refills the window without loading
 ; anything.
 ;
-; `SUB_MAX` is also written in `tools/port/snes_convert.py`, which is the one
+; `SUB_MAX` is also written in `rm2k-snes/convert/src/convert.rs`, which is the one
 ; that can refuse to emit a map that does not fit. `test_sustitucion.py`
 ; compares the two: here there is no way to report that it went over.
 SUB_MAX = 16

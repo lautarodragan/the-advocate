@@ -6,7 +6,7 @@
 ; 256x128 on BG1, which is the seven text lines at the top. **It is composed
 ; here, when the battle starts**, from a background and the troop's
 ; battlers, which the cartridge carries once each. The why, the format and
-; the budget are in tools/port/scene.py.
+; the budget are in rm2k-snes/convert/src/scene.rs.
 ;
 ; It runs from `battle_run` with the data bank at $7E, so the PPU
 ; registers and the cartridge's tables all go with `f:`, and the state here
@@ -17,7 +17,7 @@
 SCN_ORIGIN   = $6600    ; 1: a random encounter started the battle
 ; The number of this battle's background among the game's, or BACKDROP_PLAIN.
 ; It is the one read from the `.msu`; the ROM's is SCN_FALLBACK. See "Which
-; backdrops there are" in tools/port/scene.py.
+; backdrops there are" in rm2k-snes/convert/src/scene.rs.
 SCN_BACKDROP = $6601
 SCN_VIS      = $6602    ; one bit per enemy: still drawn
 SCN_PAL_N    = $6603    ; how many battler palettes were handed out
@@ -581,7 +581,7 @@ outside:
     ;
     ; And the map's can be that of the terrain the hero stands on, just as a
     ; troop can fight with the place's: it is `Game_Map::SetupBattle`. See
-    ; `rom_scene` in tools/port/snes_convert.py.
+    ; `rom_scene` in rm2k-snes/convert/src/scene.rs.
     lda #BACKDROP_PLAIN
     sta SCN_BACKDROP
     lda SCN_ORIGIN
@@ -1189,7 +1189,7 @@ from_rom:
     ; pixel of the fallback: the 32 bytes of `fallback_height` in the top half
     ; of every tile, rewinding the source and moving WMADD on each one.
     ; `scn_double` fills the bottom half afterwards. See "El respaldo
-    ; liviano" ("the light fallback") in tools/port/scene.py, which is only in
+    ; liviano" ("the light fallback") in rm2k-snes/convert/src/scene.rs, which is only in
     ; the history: it was deleted on 2026-10-02 (f64f7aba).
     lda #0
     sta f:DMAP7                 ; one byte at a time, the source advancing
@@ -1234,7 +1234,7 @@ tile:
 ;
 ; It is CPU and not DMA because each small pixel is two across, and in
 ; planar that means splitting every byte in two: `fallback_double` does it, a
-; table of 256 words. `fallback_bytes`, in tools/port/snes_convert.py,
+; table of 256 words. `fallback_bytes`, in rm2k-snes/convert/src/scene.rs,
 ; leaves the bytes in the order they are read here, so the ROM only moves
 ; forward: for each pair of neighboring scene tiles —the left and right ones
 ; that come from the same row of a small tile—, eight two-plane words, each

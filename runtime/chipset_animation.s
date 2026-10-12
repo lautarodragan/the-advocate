@@ -10,8 +10,8 @@
 ; Animating is **overwriting the data of a few tiles in VRAM**; the tilemap is
 ; not touched. The converter puts the ones that change in a contiguous run at
 ; the end of the map's bank, sharing none with the still cells, so one step is
-; a single DMA: between 128 and 1664 bytes depending on the map. See `convert`
-; in tools/port/snes_convert.py.
+; a single DMA: between 128 and 1664 bytes depending on the map. See `layers.rs`
+; in rm2k-snes/wally/src/background/.
 ;
 ; **It does not store where it is and reads nothing from the cartridge to
 ; decide**, and both things were mandatory, not elegance: the BSS was at 7680
@@ -32,7 +32,7 @@
 ; animations there are use it: the ChipSet's water —easyrpg's
 ; `animation_step_ab`— and a character's walk cycle, which has three columns
 ; and draws column 1 when the step is 3. It is `CYCLE_OF_THREE` in
-; tools/rpgmaker/rm2k.py.
+; rm2k/rules/src/animation.rs.
 cycle_three:
     .byte 0, 1, 2, 1
 
@@ -84,7 +84,7 @@ anim_per_speed:
 ; The tick is `ticks`. Since it is sixteen bits, every 65536 ticks
 ; —eighteen minutes— it wraps around and the cycle skips a drawing; RM2k
 ; counts in thirty-two. What is lost is declared in
-; workflow/divergencias/el-chipset-se-saltea-un-dibujo-cada-18-minutos.md.
+; divergences/the-chipset-skips-a-frame-every-18-minutes.md in the book.
 .proc anim_advance
 .a8
 .i16

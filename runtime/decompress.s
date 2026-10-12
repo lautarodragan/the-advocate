@@ -6,7 +6,7 @@
 ; animation, and the grid travel in the cartridge in LC_LZ2, Nintendo's format,
 ; and are decompressed into WRAM when the map loads, with the screen off inside
 ; the fade. The format and the reason for this one and not another are in
-; tools/port/compress.py; the compressor is `snes/lz2/`.
+; rm2k-snes/mapdata/src/compress.rs; the compressor is `snes/lz2/`.
 ;
 ; Each command in the stream is a header —what it is and how many bytes it
 ; makes— and its operand. Almost everything is done with `mvn`:
@@ -23,7 +23,7 @@
 ;
 ; The increasing fill (3), which is the only one an `mvn` does not do, and the
 ; one-byte word **are not read**: the converter does not emit them and checks
-; it —see `what_the_rom_does_not_read` in tools/port/compress.py—. Reading them
+; it —see `what_the_rom_does_not_read` in rm2k-snes/mapdata/src/compress.rs—. Reading them
 ; would be a path no test runs.
 ;
 ; `mvn` carries both banks **inside the instruction**. The output's is one of
@@ -696,7 +696,7 @@ stream:
 ;
 ; Battle overwrites $7F's half —it is `SCN_SCENE`—, so `back_from_battle`
 ; decompresses it all again. See the decision in
-; workflow/decisiones/la-grilla-vive-en-la-wram.md.
+; decisions/the-grid-lives-in-wram.md in the book.
 .proc lz2_grid
 .a8
 .i16

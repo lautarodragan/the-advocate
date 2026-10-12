@@ -11,7 +11,7 @@
 ;
 ; The rules —damage, hit, critical, variance, turn order, escape— come from
 ; easyrpg-player and are written twice: here and in `rm2k-snes-battle`,
-; which is what lets `rom/pruebas/rpgmaker/test_batalla.py` predict the exact
+; which is what lets `abl/pruebas/rpgmaker/test_batalla.py`, in the-advocate-ports, predict the exact
 ; number each HP will have. The screen is text, on black.
 ;
 ; **The battle code does not live in bank 0**: it is about two kilobytes and

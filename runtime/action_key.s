@@ -114,15 +114,10 @@ none:
     rts
 .endproc
 
-; Queues the active page of event `ev_sought` if the action button fires it.
-; Returns A nonzero if it queued something.
-;
-; It is the same selection rule as `encolar_eventos` —the highest-numbered one
-; whose conditions hold wins— but for a single event, and without touching the
-; cursor of the autostart queue.
 ; The active page of event `ev_sought`, into `chosen`. Without looking at
-; the trigger: the caller decides what to do with it. It is the usual rule
-; —the highest-numbered one whose conditions hold wins— and it is resolved
+; the trigger: the caller decides what to do with it. It is the rule of
+; `pick_pages` —the highest-numbered one whose conditions hold wins—, for a
+; single event, and it is resolved
 ; **at the moment of using it**, not when the event was flagged, which is what
 ; `Game_Map::Update` does when it pushes the event that was waiting.
 .proc seek_event_page

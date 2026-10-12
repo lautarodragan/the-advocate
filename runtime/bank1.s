@@ -32,7 +32,7 @@
 ; not cross banks, and before it had its own segment this went after the generated
 ; data: it fell in a different bank with each cartridge, and a padding
 ; computed by eye had to keep the battle from being split. What guarantees it
-; fits is checked by `rom/pruebas/herramientas/test_bancos.py`, over the
+; fits is checked by `abl/pruebas/herramientas/test_bancos.py` in the-advocate-ports, over the
 ; symbol table.
 .segment "FAR"
 
@@ -129,7 +129,7 @@ jump_per_speed:
     clc
     adc temp
     ; The sum can overflow the 16 bits of the offset, so the bank is taken
-    ; from the carry: the placement in `tools/ensamblado/banks.py` guarantees
+    ; from the carry: the placement in `rm2k-snes/cartridge/src/banks.rs` guarantees
     ; that the block does not cross a bank, not which bank it starts in.
     sta A1T0L
     sep #$20

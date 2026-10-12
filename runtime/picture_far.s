@@ -14,7 +14,7 @@
 ; `cgram_shadow`, which `scene_cgram_restore` uploads again after a battle,
 ; and the menu, the shop and the slots do not touch sprite palettes 6 and 7.
 ; Which pictures each map carries is the converter's: see
-; tools/port/picture.py.
+; rm2k-snes/convert/src/pictures.rs.
 ;
 ; **RM2k's position is the picture's centre**, and the console computes the
 ; corner when it shows it, from the centre and half the picture's size in
@@ -34,7 +34,7 @@
 ; more is not drawn at all, from a quarter it is mixed half and half with
 ; what is under it —the experiment of `pic_blend`, in picture.s—, and under
 ; that it is opaque. The shadow on map 311 appears from 100 and stays at 50.
-; What is lost is written in `divergencias/`.
+; What is lost is written in `divergences/`, in the book.
 
 ; From this transparency up a picture is not drawn.
 PIC_HIDDEN = 76

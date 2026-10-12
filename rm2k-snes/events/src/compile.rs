@@ -326,7 +326,7 @@ const CELL_REFRESH: i64 = 0x8000;
 // returns `false`.
 //
 // **Two simplifications, both measured over the whole game** and enforced by
-// `rom/pruebas/herramientas/test_encuentros.py`, which is what keeps them
+// `abl/pruebas/herramientas/test_encuentros.py` in the-advocate-ports, which is what keeps them
 // from becoming a lie the day someone touches the data:
 //
 // * **the terrain changes nothing**: the eleven terrain tags the 53 maps with
@@ -2292,7 +2292,7 @@ fn cell_test_piece(writes: &[Vec<u8>; 2], branches: &[Vec<u8>; 2]) -> Step<Optio
 ///   loses, shows the Game Over screen and from there goes back to boot
 ///   —that is to the title screen, with the saved game waiting in SRAM—:
 ///   see runtime/game_over.s and what it still does not do in
-///   `workflow/divergencias/lo-que-la-pantalla-de-game-over-no-modela.md`.
+///   `divergences/what-the-game-over-screen-does-not-model.md` in the book.
 ///   What is not done is what was done before 2026-09-13, which was not
 ///   compiling the page: it cost 15, among them the Rat Tracks boss.
 ///
@@ -2785,7 +2785,7 @@ pub const PICTURE_BIG: u8 = 0x80;
 /// scale a background without mode 7, so the picture fades to black in that
 /// time instead: the transparency it goes to is what is left of its area,
 /// `100 - (100 - t) × zoom / shown`. See
-/// `divergencias/lo-que-las-imagenes-grandes-no-modelan.md`.
+/// `divergences/what-large-pictures-do-not-model.md` in the book.
 ///
 /// **The transparency darkens**: under a big picture there is only the
 /// screen's backdrop, which is black, so a picture half transparent is a
@@ -3211,7 +3211,7 @@ pub fn compile_command(
             // audio package, together with its songs —`package_load`, in
             // runtime/audio_package.s—, with the same per-pack budget
             // as the music's samples:
-            // `workflow/decisiones/un-solo-banco-de-muestras.md`. One that
+            // `decisions/a-single-sample-bank.md` in the book. One that
             // does not fit in its pack does not sound.
             //
             // How much it unlocks, measured and not assumed: **+10
@@ -3561,7 +3561,7 @@ pub fn compile_command(
         GAME_OVER => Ok(vec![OP_GAME_OVER]),
         // `ReturntoTitleScreen`: the same without the screen, that is going
         // back to boot, which in `release` is the title screen. The end of
-        // the demo asks for it, in map 66's fork (`rom/parches/manual/`).
+        // the demo asks for it, in map 66's fork (`abl/parches/manual/` in the-advocate-ports).
         // Until 2026-09-28 it shared the opcode with `GameOver`, when neither
         // of the two drew anything.
         RETURN_TO_TITLE => Ok(vec![OP_RETURN_TO_TITLE]),
@@ -3677,7 +3677,7 @@ pub fn compile_command(
             // could not be produced by any case, and modeling it anyway would
             // have been writing a path nothing runs.
             //
-            // That reason stopped holding with `rom/pruebas/arnes/recorrido.py`,
+            // That reason stopped holding with `abl/pruebas/arnes/recorrido.py` in the-advocate-ports,
             // which plays the real game and can press any button on any
             // frame, and with `--tocar` of both halves of the suite, which
             // presses a direction on a noted frame the way A was already
@@ -3802,7 +3802,7 @@ pub fn compile_command(
             // fall inside the black—, and **the fade**, which is what goes
             // for the ones the console does not do (the zoom is mode 7, and
             // the map is in mode 3): taro decided it on 2026-09-26. See
-            // workflow/divergencias/las-transiciones-del-teletransporte.md.
+            // divergences/the-teleport-transitions.md in the book.
             //
             // And **the cut** (19) for erasing: the screen to black in one
             // frame —`TransitionCutOut`, which `Transition::GetDefaultFrames`
@@ -3814,7 +3814,7 @@ pub fn compile_command(
             // the console has nothing to blend two frames with, and loading
             // the map requires forced blanking: the closest thing is one
             // frame of black. See
-            // workflow/divergencias/las-transiciones-del-teletransporte.md.
+            // divergences/the-teleport-transitions.md in the book.
             //
             // And the cut for **showing**: the new map at full brightness on
             // the tick after the load —`TransitionCutIn`, one frame in RM2k—,
@@ -3921,7 +3921,7 @@ pub fn compile_command(
             // package to ARAM, with the songs its pages can turn on
             // —`package_load`, in runtime/audio_package.s—, and each
             // sample's budget is that of its worst pack: see
-            // `workflow/decisiones/un-solo-banco-de-muestras.md`.
+            // `decisions/a-single-sample-bank.md` in the book.
             //
             // OP_BGM: the song's index in `Songs` (byte). The ROM plays the
             // ones it carried —the first `SONG_TOTAL`— and with any other it
@@ -4088,7 +4088,7 @@ pub fn compile_command(
         // their maps' audio packages. Today the worst package is 54945 of
         // 63831 B of ARAM; adding a battle song to twenty-five maps requires
         // room in those packages: see
-        // workflow/decisiones/un-solo-banco-de-muestras.md.
+        // decisions/a-single-sample-bank.md in the book.
         //
         // `ChangeHeroTitle` (10620): an actor's "title", which in RM2k is the
         // text the status screen shows under the name. Eight occurrences in
@@ -4149,7 +4149,7 @@ pub fn compile_command(
             Ok(vec![op, kind])
         }
         // `ChangeFaceGraphic` (10130): debt, the face is not drawn; see
-        // `workflow/tasks/*/las-caras-y-las-esperas.md`.
+        // `tasks/draw-the-faces-and-really-wait-on-the-escapes.md` in the-advocate-work.
         CHANGE_FACE_GRAPHIC => Ok(vec![]),
         CHANGE_MONSTER_CONDITION => {
             // `ChangeMonsterCondition` (13130) —[place, remove, condition]—,
@@ -4442,7 +4442,7 @@ pub fn compile_command(
             //
             // What is left is a declared divergence from RM2k, which flashes
             // the image of a single sprite, and it is in
-            // `workflow/divergencias/destello-sobre-la-paleta-de-otro.md`.
+            // `divergences/a-flash-on-someone-elses-palette.md` in the book.
             let target = target_of(q(0), map_events)?;
             if p[1..5].iter().any(|&v| !(0..=31).contains(&v)) {
                 return cannot();

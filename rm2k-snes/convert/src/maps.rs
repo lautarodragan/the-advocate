@@ -667,7 +667,7 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         if count > layout.unwrap().sprites.count as i64 {
             crate::stop!(
                 "map {map_id}: shows battle animations and the {} tiles of its box don't fit in \
-                 the sprite bank: it spends {count} of {}. See `animacion_de_mapa`.",
+                 the sprite bank: it spends {count} of {}. See `map_shows_animation`.",
                 animations::TILES,
                 layout.map_or(0, |l| l.sprites.count)
             );
