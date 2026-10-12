@@ -176,10 +176,10 @@ no_down:
     ; belongs to the mouse and the keyboard— but on a console the title screen
     ; is passed with START and not having it feels broken.
     lda pad_a
-    beq faces_start
+    beq check_start
     lda pad_a_prev
     beq picks                   ; edge, not state
-faces_start:
+check_start:
     lda title_edges
     and #PAD_START
     beq wait

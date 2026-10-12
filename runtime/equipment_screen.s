@@ -349,7 +349,7 @@ other:
     lda comp_col
     inc a
     cmp f:item_type, x
-    bne no_goes
+    bne does_not_go
     ; Can the actor use it? One bit per actor, eight bytes per item.
     rep #$20
 .a16
@@ -400,7 +400,7 @@ run:
     bne run
 bit_ready:
     and #1
-    beq no_goes
+    beq does_not_go
     txa                         ; the k, which fits in a byte
     pha
     rep #$20
@@ -416,7 +416,7 @@ bit_ready:
     pla
     sta WMDATA
     inc comp_base
-no_goes:
+does_not_go:
     plx
 next:
     inx
@@ -1017,9 +1017,9 @@ r_no_up:
 r_no_down:
     lda title_edges
     and #PAD_B
-    beq r_faces_a
+    beq r_check_a
     rtl
-r_faces_a:
+r_check_a:
     lda pad_a
     beq wait
     lda pad_a_prev
@@ -1060,10 +1060,10 @@ l_no_up:
 l_no_down:
     lda title_edges
     and #PAD_B
-    beq l_faces_a
+    beq l_check_a
     stz comp_col + 1
     bra recompose
-l_faces_a:
+l_check_a:
     lda pad_a
     beq wait2
     lda pad_a_prev

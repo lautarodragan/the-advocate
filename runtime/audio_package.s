@@ -381,7 +381,7 @@ no_is:
 gap:
     txa
     cmp f:INT_N
-    bcs to_final
+    bcs at_end
     lda f:INT_INIT, x
     sec
     sbc f:PKG_A                 ; how much there is before this occupied one
@@ -397,7 +397,7 @@ no_advances:
     inx
     inx
     bra gap
-to_final:
+at_end:
     lda #ARAM_END
     sec
     sbc f:PKG_A

@@ -1043,7 +1043,7 @@ has:
     lda f:msu_backdrop_pos + 4, x
     jsl f:msu_data_seek_l
 .a8
-    bcs no_found
+    bcs not_found
     rep #$20
 .a16
     lda #(SCENE_COLORS * 2)
@@ -1052,7 +1052,7 @@ has:
 .a8
     lda #$22                    ; CGDATA
     jmp scn_dma_msu
-no_found:
+not_found:
     lda #0
     sta SCN_MSU
 from_rom:
@@ -1170,7 +1170,7 @@ with_backdrop:
     lda f:msu_backdrop_pos, x
     jsl f:msu_data_seek_l
 .a8
-    bcs no_found
+    bcs not_found
     rep #$20
 .a16
     lda #(SCENE_TILES * 64)
@@ -1179,7 +1179,7 @@ with_backdrop:
 .a8
     lda #$80                    ; WMDATA
     jmp scn_dma_msu
-no_found:
+not_found:
     ; The MSU-1 did not finish seeking in time: this buffer comes from the
     ; ROM, and `scene_upload` redoes the rest from there.
     lda #0

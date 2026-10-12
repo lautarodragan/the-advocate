@@ -456,9 +456,9 @@ alive:
 not_parallel:
     lda pg_flags
     and #$60
-    bne with_route_o_graphic
+    bne with_route_or_graphic
     jmp next                    ; autostart only: the note is for something else
-with_route_o_graphic:
+with_route_or_graphic:
     jsr page_graphic            ; what the page draws, to the NPC's row
     lda rp_ev
     jsr event_slot              ; X = its slot, or $FFFF

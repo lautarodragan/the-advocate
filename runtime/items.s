@@ -312,10 +312,10 @@ no_up:
 no_down:
     lda title_edges
     and #PAD_B
-    beq faces_a
+    beq check_a
     lda #0
     rts
-faces_a:
+check_a:
     lda pad_a
     beq wait
     lda pad_a_prev

@@ -531,14 +531,14 @@ counted:
     sec
     sbc nmi_seen
     dec a                       ; the vblank that was this iteration's due
-    beq to_day
+    beq up_to_date
     clc
     adc lost_frames
     bcc fits
     lda #255
 fits:
     sta lost_frames
-to_day:
+up_to_date:
     lda boot_frames
     sta nmi_seen
     rts

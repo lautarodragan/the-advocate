@@ -228,11 +228,11 @@ no_pages:
     ; touch pages on the hero's layer: see `try_bump`.
     lda chosen_layer
     cmp #HERO_LAYER
-    beq hero_was
+    beq was_hero
     lda own_action
     beq no                      ; another layer, but we are looking ahead
     bra no_layer
-hero_was:
+was_hero:
     lda own_action
     bne no                      ; the hero's layer, but we are looking at our own cell
 no_layer:

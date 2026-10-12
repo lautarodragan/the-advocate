@@ -338,7 +338,7 @@ fit:
 other_member:
     lda title_edges
     cmp temp + 3
-    bcs faces_lists
+    bcs faces_ready
     jsr member_actor
     cmp #SLOT_ACTORS_N
     bcs next                    ; an actor this ROM does not know
@@ -381,7 +381,7 @@ other_member:
 next:
     inc title_edges
     bra other_member
-faces_lists:
+faces_ready:
     ; The name of the leader, who is the first, and its level, on top of the
     ; row: the name composed and the level with glyphs. `temp + 3` is no
     ; longer needed, so `slot_text_write` can use `temp`.
@@ -574,11 +574,11 @@ low:
 no_down:
     lda title_edges
     and #PAD_B
-    beq faces_a
+    beq check_a
     jsr close
     lda #$FF                    ; cancel
     rts
-faces_a:
+check_a:
     lda pad_a
     beq wait
     lda pad_a_prev

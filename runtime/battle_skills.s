@@ -492,11 +492,11 @@ not_switch:
     jmp ba_skill_one
 not_one:
     cmp #BA_SCOPE_ENEMIES
-    beq from_a_many
+    beq many_targets
     cmp #BA_SCOPE_PARTY
-    beq from_a_many
+    beq many_targets
     jmp ba_skill_one
-from_a_many:
+many_targets:
     ; The side: the opposing one with `enemies`, its own with `party`. That
     ; the source is in the party is `BA_MWHO < BA_PARTY_MAX`.
     ldy #0                      ; 0 the party, 1 the troop

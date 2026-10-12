@@ -448,9 +448,9 @@ low_one:
 no_down:
     lda pick_edges
     and #PAD_B
-    beq faces_a
+    beq check_a
     lda pick_cancel
-    beq faces_a                 ; this choice cannot be cancelled
+    beq check_a                 ; this choice cannot be cancelled
     dec a                       ; `choice_result = cancel_type - 1`
     sta pick_sel
     ; And the B is consumed here: in RM2k the window processes the button
@@ -461,7 +461,7 @@ no_down:
     ora #PAD_B
     sta pad_prev
     bra picks
-faces_a:
+check_a:
     lda pad_a
     beq nothing
     lda pad_a_prev

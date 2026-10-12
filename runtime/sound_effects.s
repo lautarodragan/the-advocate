@@ -3,7 +3,7 @@
 ; --- sound effects ----------------------------------------------------------------
 ;
 ; `PlaySound`, on two voices stolen from the music while they last: SE_VOICE
-; and SE2_VOZ, the ones the music's voice allocation fills first with
+; and SE_VOICE2, the ones the music's voice allocation fills first with
 ; percussion (`EFFECT_VOICES` in rm2k-snes/rm2k-snes-audio/src/voices.rs). See
 ; effects.rs there. In RM2k sound effects add up —EasyRPG has 31 channels—, and with a
 ; single voice the opening's rain cut the thunder in half: measured, 73 of
@@ -155,7 +155,7 @@ wait:
 .a8
 .i16
     xba                         ; B = the value
-    lda f:MUS_LOG_YES
+    lda f:MUS_LOG_ON
     beq no_log
     jsr log
 no_log:
@@ -594,7 +594,7 @@ no_same_6:
     lda f:SE2_PENDING
     bne chosen
     lda f:SE_PENDING
-    bne pick_6
+    bne second_voice
     rep #$20
 .a16
     lda f:SE_FRAMES
@@ -603,7 +603,7 @@ no_same_6:
 .a8
     bcc chosen
     beq chosen
-pick_6:
+second_voice:
     ldy #SE2_OFS
 chosen:
     rep #$20

@@ -544,10 +544,10 @@ none:
     jsr msu_pitch
     plx
     cmp #0                      ; `plx` leaves Z from X, not from the pitch
-    bne have
+    bne got_it
 from_table:
     lda f:sound_table + 1, x
-have:
+got_it:
     sta 1, s                    ; [pitch][voice]
     lda f:sound_table + 5, x
     pha                         ; [frames][pitch][voice]
@@ -771,7 +771,7 @@ has:
     bne seek
     lda f:se_msu_rows + 2, x
     cmp f:MSU_SE_NEXT + 2
-    beq in_su_place
+    beq in_place
 seek:
     phx
     rep #$20
@@ -782,7 +782,7 @@ seek:
     jsr msu_data_seek           ; returns with 8-bit A
 .a8
     plx
-    bcc in_su_place
+    bcc in_place
     lda #$FF
     sta f:MSU_SE_NEXT
     sta f:MSU_SE_NEXT + 1
@@ -799,7 +799,7 @@ seek:
 .a8
     sec
     rtl
-in_su_place:
+in_place:
     rep #$20
 .a16
     lda f:se_msu_rows + 4, x

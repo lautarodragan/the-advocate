@@ -46,9 +46,9 @@ off:
     stz timer_active
     lda timer_visible
     stz timer_visible           ; `stz` does not touch Z: the branch looks at the `lda`
-    beq already_no_se_saw
+    beq already_hidden
     jsr timer_repaint           ; its entries get tinted again
-already_no_se_saw:
+already_hidden:
     rts
 .endproc
 

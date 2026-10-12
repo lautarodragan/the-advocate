@@ -402,7 +402,7 @@ pick:
     sta comp_or23
     lda comp_and
     cmp comp_or23
-    bcc is_is
+    bcc in_this_zone
     sec
     sbc comp_or23
     sta comp_and
@@ -410,7 +410,7 @@ continues_picking:
 .a16
     inc temp
     bra pick
-is_is:
+in_this_zone:
 .a16
     sep #$20
 .a8

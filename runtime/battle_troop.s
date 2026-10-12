@@ -230,13 +230,13 @@ with_header:
     bne with_multiple
     lda temp
     bne not_turn
-    bra turn_yes
+    bra its_turn
 with_multiple:
     sta temp + 2
     jsr ba_div                  ; the remainder, in `comp_and`
     lda comp_and
     bne not_turn
-turn_yes:
+its_turn:
     sep #$20
 .a8
     bra no_turn

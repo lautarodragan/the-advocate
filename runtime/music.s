@@ -748,7 +748,7 @@ ready:
 .a8
 .i16
     stz restart
-    lda f:MUS_LOG_YES
+    lda f:MUS_LOG_ON
     beq no_mark
     jsr log_frame
 no_mark:
@@ -1252,7 +1252,7 @@ other:
     inx
     cpx #MUS_STATE_BYTES
     bcc other
-    sta f:MUS_LOG_YES
+    sta f:MUS_LOG_ON
     sta f:MUS_LOG_I
     sta f:MUS_LOG_I + 1
     jsl f:bgm_level_reset

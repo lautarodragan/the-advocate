@@ -50,3 +50,11 @@ e8b9287b9d740a0339bad09f53f910730111b566
 # that named them, 61 lines in 29 Rust files plus the manifests. The 1424
 # files of ABL's `build/` came out byte for byte equal with NO_CACHE=1.
 94ef6b1945d2425a853e95ccb3458955e1f473fc
+
+# The runtime's local labels that phase 2 of the translation carried over
+# word by word (`faces_a` -> `check_a`, `in_su_place` -> `in_place`…), 38
+# labels in 27 files, and `MUS_LOG_YES` -> `MUS_LOG_ON`. ABL's release and
+# its five test cartridges came out byte for byte equal (.sfc, .msu and
+# .pcm), and their .dbg with the same symbols save the renamed names.
+81df01f4e2ba24610972fa52a60672b5c826b86d
+29567e7878bc6667ba4c391576f02ebf74bc1397
