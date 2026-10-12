@@ -73,6 +73,7 @@ op_shop_done:
     stz menu_open
     lda boot_frames
     sta nmi_seen
+    jsl f:screen_unerase        ; the map comes back even if an event erased it
     jsr back_to_map
     ply
     plb

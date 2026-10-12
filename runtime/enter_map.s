@@ -450,20 +450,20 @@ set:
     jsr load_requested          ; only once: it turns itself off
     ; The cut for showing has no way back up: the fade ends on the load's
     ; tick, which stays frozen, and the next vblank already writes full
-    ; brightness. See `teleport_transition.s`.
-    lda f:TRANSITION_SHOW
-    cmp #TRANSITION_CUTOFF
-    beq cut_in
+    ; brightness. And with the screen erased by an event it ends there too,
+    ; but black: an `EraseScreen` is only the way down, and a teleport with
+    ; the screen erased does not show it. See `teleport_transition.s`.
+    jsl f:fade_after_load       ; carry: it ends here, with A the brightness
+    bcs cut_in
     pla
 ramp:
     jsr fade_brightness
     lda #1                      ; the game stays frozen
     rts
 cut_in:
+    sta brightness
     pla
     stz fade
-    lda #BRIGHTNESS_MAX
-    sta brightness
     lda #1                      ; this tick, the load's, stays frozen
     rts
 finish:

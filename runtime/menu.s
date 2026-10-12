@@ -795,6 +795,7 @@ close:
     jsl f:equipment_commons
     plb
     jsl f:menu_exp_close        ; what the menu sprites changed
+    jsl f:screen_unerase        ; the map comes back even if an event erased it
     ; A custom menu overwrote much more than the menu: the map comes back
     ; as from a big picture. See `custom_menu.s`.
     jsl f:cm_dirty_take

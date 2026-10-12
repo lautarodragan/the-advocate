@@ -61,6 +61,10 @@
 .a8
 .i16
     jsr build_oam_settled
+    ; An event erased the screen before the battle: it stays black, as
+    ; `Scene_Map::TransitionIn` leaves it with `screen_erased_by_event`.
+    lda f:SCREEN_ERASED
+    bne black
     ldx #0
 upload:
     lda fade_ramp, x
@@ -72,7 +76,9 @@ upload:
     inx
     cpx #FADE_RAMP
     bcc upload
-    rts                         ; and `brightness` is left at full, as it was
+black:
+    rts                         ; and `brightness` is left at full, as it was,
+                                ; or at zero if the screen is erased
 .endproc
 
 .segment "FAR"
@@ -92,6 +98,13 @@ upload:
     ; as power-on left it, which on a console —and in bsnes— is garbage.
     lda #0
     sta f:BATTLE_ON
+    ; Over a screen an event erased there is nothing to flash or to fade:
+    ; RPG_RT only waits, `Scene_Map::TransitionOut`. The screen is already
+    ; black, which is what the load that follows asks for.
+    lda f:SCREEN_ERASED
+    beq lit
+    rtl
+lit:
     ; The fixed color is added on every layer and on the backdrop. Sprites
     ; with palettes 0 to 3 get no color math —that is the hardware—, so the
     ; hero flashes less than the map.

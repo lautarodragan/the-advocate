@@ -227,6 +227,9 @@ const RM2K_CUT_TRANSITIONS: [i64; 2] = [19, 20];
 const TRANSITION_FADE: u8 = 0;
 const TRANSITION_MOSAIC: u8 = 1;
 const TRANSITION_CUT: u8 = 2;
+/// `EraseScreen` and `ShowScreen` with -1: whatever the teleport's is when
+/// the command runs. See their arm.
+const TRANSITION_TELEPORTS: u8 = 0xFF;
 // ShowBattleAnimation: the kinds of entry of its timeline. See
 // `compile_animation`.
 const ANIM_SOUND: u8 = 0;
@@ -422,11 +425,7 @@ const IGNORABLE: [i32; 0] = [];
 /// in there and not in this list: the command itself is no longer a whole
 /// debt. Neither is `PlayBGM`, which is done since the songs have a
 /// registry: see its arm.
-pub const ACCEPTED_UNDONE: [i32; 9] = [
-    // Debt: the screen is not blanked and not brought back, so the page
-    // that erases it shows the map during its transition; see its arm.
-    ERASE_SCREEN,
-    SHOW_SCREEN,
+pub const ACCEPTED_UNDONE: [i32; 7] = [
     SHOW_PICTURE,
     MOVE_PICTURE,
     ERASE_PICTURE,
@@ -4015,11 +4014,44 @@ pub fn compile_command(
         // so the page that uses it is not left out whole; the task to
         // implement it is `tasks/changesystemgraphics.md`.
         CHANGE_SYSTEM_GRAPHICS => Ok(vec![]),
-        // `EraseScreen` (11010) and `ShowScreen` (11020): debt, the screen
-        // is neither blanked nor shown again, so pages that use them are
-        // not left out whole. What breaks: the map stays visible where the
-        // original goes black (the transition type is ignored too).
-        ERASE_SCREEN | SHOW_SCREEN => Ok(vec![]),
+        ERASE_SCREEN | SHOW_SCREEN => {
+            // `EraseScreen` (11010) and `ShowScreen` (11020): the screen to
+            // black and left there until the show, with the game frozen while
+            // each transition lasts —EasyRPG's `AsyncOp::MakeEraseScreen`—.
+            // `[transition]`: -1 the teleport's —which the ROM resolves when
+            // it runs, because `ChangeScreenTransitions` changes it on the
+            // fly—, and otherwise an index into the same table as
+            // `ChangeScreenTransitions`, and it goes the same way: the
+            // mosaic (17) is the mosaic, the cut (19) and anything past it
+            // —"none" in EasyRPG, which RPG_RT does as a pause and black when
+            // erasing and as nothing when showing— are the cut, and the rest
+            // is the fade, which is what taro decided for the ones the
+            // console does not do. Desert Nightmare asks for the fade, El
+            // Dorado for the teleport's, and Vampires Dawn for the mosaic
+            // too.
+            //
+            // What the ROM does with them is in `teleport_transition.s`:
+            // the teleport's fade cut in half, and a teleport with the screen
+            // erased loads in the black without showing it, as
+            // `Scene_Map::FinishPendingTeleport2` does. A troop page never
+            // gets here: `TROOP_COMMANDS` does not have them, and in battle
+            // EasyRPG ignores them too.
+            if n < 1 {
+                return cannot();
+            }
+            let rm2k = q(0);
+            let kind = if rm2k < 0 {
+                TRANSITION_TELEPORTS
+            } else if rm2k >= RM2K_CUT_TRANSITIONS[0] {
+                TRANSITION_CUT
+            } else if rm2k == RM2K_TRANSITION_MOSAIC {
+                TRANSITION_MOSAIC
+            } else {
+                TRANSITION_FADE
+            };
+            let op = if cmd.code == ERASE_SCREEN { OP_ERASE_SCREEN } else { OP_SHOW_SCREEN };
+            Ok(vec![op, kind])
+        }
         // `ChangeFaceGraphic` (10130): debt, the face is not drawn; see
         // `workflow/tasks/*/las-caras-y-las-esperas.md`.
         CHANGE_FACE_GRAPHIC => Ok(vec![]),
@@ -5246,15 +5278,6 @@ mod tests {
     }
 
     #[test]
-    fn erase_and_show_screen_are_accepted_without_emitting() {
-        let game = Game::default();
-        for code in [ERASE_SCREEN, SHOW_SCREEN] {
-            let out = compile_with(&game, &[cmd(code, &[], "")]);
-            assert!(out.unwrap().is_some(), "the page was left out");
-        }
-    }
-
-    #[test]
     fn change_face_graphic_is_accepted_without_emitting() {
         let game = Game::default();
         let out = compile_with(&game, &[cmd(CHANGE_FACE_GRAPHIC, &[], "Jack")]);
@@ -5431,6 +5454,28 @@ mod tests {
         // Before it, and as an event's own, it is no longer nothing: see the
         // next test.
         assert_ne!(as_the_only_event(&[erase, jump]), None);
+    }
+
+    #[test]
+    fn erasing_and_showing_the_screen_carry_what_the_rom_does() {
+        // -1 is the teleport's, resolved by the ROM when it runs; 17 the
+        // mosaic; 19 and past it the cut; the rest, the fade. The same
+        // table as `ChangeScreenTransitions`.
+        for (rm2k, kind) in [(-1, 0xFF), (0, 0), (5, 0), (16, 0), (17, 1), (19, 2), (20, 2)] {
+            assert_eq!(
+                on_a_map(&[cmd(ERASE_SCREEN, &[rm2k], "")]).unwrap(),
+                [OP_ERASE_SCREEN, kind, OP_DONE],
+                "EraseScreen {rm2k}"
+            );
+            assert_eq!(
+                on_a_map(&[cmd(SHOW_SCREEN, &[rm2k], "")]).unwrap(),
+                [OP_SHOW_SCREEN, kind, OP_DONE],
+                "ShowScreen {rm2k}"
+            );
+        }
+        // They are no longer a debt: nothing to warn about.
+        assert!(!ACCEPTED_UNDONE.contains(&ERASE_SCREEN));
+        assert!(!ACCEPTED_UNDONE.contains(&SHOW_SCREEN));
     }
 
     #[test]
