@@ -1,5 +1,5 @@
 {
- "about": "A text box's escape tail: `escape_tail` in src/refit.rs, the rule the boxes are reflowed around for the window and the one the event compiler, rm2k-snes-events, cuts them with. Each case is the box's lines and what it answers: the lines without the tail, how many pauses and whether it closes on its own; or null, which is that the box does not compile. tests/refit.rs reads this file.",
+ "about": "A text box's escape tail: `escape_tail` in src/refit.rs, the rule the boxes are reflowed around for the window and the one the event compiler, rm2k-snes-events, cuts them with. Each case is the box's lines and what it answers: the lines without the tail, how many pauses and whether it closes on its own; or null, which is that the box does not compile. A wait in the middle —`\\.`, `\\|`, `\\!`— is a mark in the lines, and the answers write it as its escape. tests/refit.rs reads this file.",
  "cases": [
   {"lines": ["\\c[1]Sandra: \\c[0]Hi\\|"], "answer": [["Sandra: Hi"], 1, false]},
   {"lines": ["\\S[3]Slow\\s[12] one"], "answer": [["Slow one"], 0, false]},
@@ -21,9 +21,10 @@
   {"lines": ["\\|\\|\\|\\|\\|\\|\\|\\|\\|\\|\\|\\|\\|\\|\\|\\|"],
    "answer": null},
   {"lines": ["tenés \\V[12] créditos"], "answer": null},
-  {"lines": ["uno\\|dos"], "answer": [["unodos"], 0, false]},
-  {"lines": ["wait\\. a bit\\! then\\| go"], "answer": [["wait a bit then go"], 0, false]},
-  {"lines": ["the tail\\|", "is on the last line"], "answer": [["the tail", "is on the last line"], 0, false]},
+  {"lines": ["uno\\|dos"], "answer": [["uno\\|dos"], 0, false]},
+  {"lines": ["wait\\. a bit\\! then\\| go"], "answer": [["wait\\. a bit\\! then\\| go"], 0, false]},
+  {"lines": ["a\\.b\\| \\^"], "answer": [["a\\.b"], 1, true]},
+  {"lines": ["the tail\\|", "is on the last line"], "answer": [["the tail\\|", "is on the last line"], 0, false]},
   {"lines": ["x\\|\\y"], "answer": null}
  ]
 }

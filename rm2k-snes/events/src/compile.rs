@@ -4870,12 +4870,12 @@ pub fn compile_command(
             };
             let mut lines = vec![cmd.string.clone()];
             lines.extend_from_slice(extra);
-            // `Messages::add` removes the escape tail, since every box goes
-            // through it; anything that is not `\|` or `\^` still cuts the
-            // page from there —see `escape_tail`—, except `\V[n]`, which
-            // comes off here.
+            // `Messages::add_waiting` removes the escape tail, since every
+            // box goes through it, and keeps the waits in the middle; any
+            // other escape still cuts the page from there —see
+            // `escape_tail`—, except `\V[n]`, which comes off here.
             let lines = with_variables(&with_names(&lines, ctx.indices), ctx.indices)?;
-            let at = messages.add(&lines)?;
+            let at = messages.add_waiting(&lines)?;
             let mut out = vec![OP_MESSAGE];
             out.extend(usize_word(at)?);
             Ok(out)

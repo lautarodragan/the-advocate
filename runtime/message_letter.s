@@ -68,6 +68,8 @@ same_bank:
 .a8
     cmp #MESSAGE_VARIABLE
     beq variable
+    cmp #MESSAGE_WAIT
+    beq wait
     cmp #MESSAGE_PAIR_FIRST
     bcc letter
     ; A pair: two bytes, the first letter and then the second, which a
@@ -88,6 +90,10 @@ same_bank:
     xba                         ; and the first one, to draw now
 letter:
     rtl
+
+    ; A wait in the middle of the box: see message_waits.s.
+wait:
+    jml f:msg_wait_mark
 
     ; `\V[n]`: the value of the variable whose slot is the next byte, in
     ; decimal, with a minus sign if it is negative and no padding, which is
@@ -172,6 +178,10 @@ no_sign:
 ; The byte that stands for a variable's value in a line: `VARIABLE` in the
 ; event compiler's `messages.rs`, the last of the pair range.
 MESSAGE_VARIABLE = $FF
+
+; The byte that stands for a wait in the middle of a box, `\.`, `\|` or `\!`:
+; `WAIT` in the event compiler's `messages.rs`, the one before `VARIABLE`.
+MESSAGE_WAIT = $FE
 
 ; The characters of the variable's value being written, and how many are
 ; still to hand out: at most a sign and five digits, sixteen bits. $6120 to
