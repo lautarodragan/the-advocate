@@ -762,6 +762,37 @@ pub fn shop_text(game: &Game, skin: &Skin, shop: &Shop) -> Result<(Grid, Picture
 /// End Game with the cursor on `chosen`, rebuilt from what the cartridge
 /// uploads and not from the drawing: the colour pairs go through the same
 /// math as in the cartridge.
+/// The skills screen of `actor`: `skills` are the ones it knows that the
+/// cartridge carries, in its list's order; `hp` and `sp` the current and
+/// the maximum; `chosen` the cursor's place in the whole list and `top` the
+/// first visible row. A skill goes in grey if the map cannot use it or its
+/// cost is more than the SP —`Window_Skill::CheckEnable`, without states—.
+#[allow(clippy::too_many_arguments)]
+pub fn skill_screen(
+    game: &Game,
+    skin: &Skin,
+    actor: i32,
+    skills: &[i32],
+    level: i64,
+    hp: (i64, i64),
+    sp: (i64, i64),
+    chosen: usize,
+    top: usize,
+) -> Result<Picture> {
+    let grey: Vec<bool> = skills
+        .iter()
+        .map(|&k| {
+            let s = game.skill(k)?;
+            Ok(!rm2k_rules::skill::usable_on_the_map(s, &game.states) || i64::from(s.sp_cost) > sp.0)
+        })
+        .collect::<Result<_>>()?;
+    let t = crate::skills::page_text(game, actor, level, hp, sp, skills, &grey, skills.get(chosen).copied(), top)?;
+    let place = chosen.checked_sub(SK_COLUMNS * top).ok_or_else(|| {
+        Bad::answer(format!("the skills screen's cursor, {chosen}, is above its first row, {top}"))
+    })?;
+    t.render(game, skin, &crate::skills::windows(skin, Some(place)))
+}
+
 pub fn end_game_screen(game: &Game, skin: &Skin, chosen: usize) -> Result<Picture> {
     let end = end_game::convert(game, skin)?;
     let palette = &end.palettes[chosen];

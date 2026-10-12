@@ -40,6 +40,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 mod custom_menu;
 mod header;
+mod skills_screen;
 use header::HEADER;
 
 /// What [`emit`] makes.
@@ -123,6 +124,7 @@ fn term(db: &Db, name: &str) -> Result<String> {
         "item_recieved" => &t.item_recieved,
         "sp_short" => &t.sp_short,
         "normal_status" => &t.normal_status,
+        "lvl_short" => &t.lvl_short,
         _ => return Err(Bad::usage(format!("there is no term {name:?}"))),
     }
     .clone())
@@ -657,6 +659,7 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
     };
     rest.write(&mut out, &mut notes)?;
     custom_menu::section(&mut out, screens.get("custom_menus").unwrap_or(&Value::Null))?;
+    skills_screen::section(&mut out, screens)?;
     out.push_str(&per_map.tables);
     timer_and_case(&mut out, r);
     Ok(Emitted {
@@ -1895,6 +1898,10 @@ impl Rest<'_> {
                 }
             }
         }
+        // The skills screen's level term, since 2026-10-12: after the
+        // conditions', for the same reason they go last.
+        let level_text = texts.add(&term(db, "lvl_short")?);
+        out.push_str(&format!("SK_TXT_LEVEL = {level_text}\n"));
         let item_texts = if texts.data.is_empty() {
             vec![0]
         } else {
@@ -2854,6 +2861,25 @@ impl Rest<'_> {
             &per_skill(&|s| s.scope.to_i32().into())?,
             true,
         );
+        // What the skills screen needs of each one, from the screens stage:
+        // the description's two lines as slices of `skill_desc` —the first's
+        // length, and where the second starts and its length— and whether
+        // the map can use it. See `skills.rs` in `rm2k-snes-screens`.
+        let on_map = at(self.screens, "skills")?;
+        let of = |h: i64| at(on_map, &h.to_string());
+        let mut lines: [Vec<i64>; 3] = Default::default();
+        let mut field = Vec::new();
+        for &h in rom_skills {
+            let l = ints(at(of(h)?, "lines")?)?;
+            for (k, v) in lines.iter_mut().enumerate() {
+                v.push(l[k]);
+            }
+            field.push(i64::from(at(of(h)?, "field")?.as_bool().unwrap_or(false)));
+        }
+        bytes_asm(out, "skill_line1_n", &decimal(lines[0].iter()), true);
+        bytes_asm(out, "skill_line2_at", &decimal(lines[1].iter()), true);
+        bytes_asm(out, "skill_line2_n", &decimal(lines[2].iter()), true);
+        bytes_asm(out, "skill_on_map", &decimal(field), true);
         self.states(out, &x)?;
         // The parallel common events, in the order of their numbers, which
         // is the order RM2k runs them in: see `compar_tick` in

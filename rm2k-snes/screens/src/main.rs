@@ -273,11 +273,36 @@ fn do_render(args: &GameArgs) -> Result<()> {
             )?
         }
         "shop" => render::shop_screen(&game, &fitted(fit::Screen::Shop)?, &json.shop()?)?,
+        "skills" => {
+            // The actor's level, HP and SP, each the starting one —and full—
+            // when the request does not say.
+            let actor = json.number("actor")? as i32;
+            let a = game
+                .actors
+                .get(&actor)
+                .ok_or_else(|| Bad::answer(format!("{}: there is no actor {actor}", json.whose)))?;
+            let level = json.number_or("level", rm2k_rules::actor::level_of(a))?;
+            let curve = |values: &[i16]| rm2k_rules::actor::curve_at(values, level).unwrap_or(0);
+            let hp_max = json.number_or("hp_max", curve(&a.parameters.maxhp))?;
+            let sp_max = json.number_or("sp_max", curve(&a.parameters.maxsp))?;
+            let skills: Vec<i32> = json.numbers("skills")?.into_iter().map(|n| n as i32).collect();
+            render::skill_screen(
+                &game,
+                &fitted(fit::Screen::Skills)?,
+                actor,
+                &skills,
+                level,
+                (json.number_or("hp", hp_max)?, hp_max),
+                (json.number_or("sp", sp_max)?, sp_max),
+                chosen,
+                json.index_or("top", 0)?,
+            )?
+        }
         "end_game" => render::end_game_screen(&game, &skin, chosen)?,
         other => {
             return Err(Bad::answer(format!(
                 "{}: `screen` is {other:?}, and it is menu, items, target, slots, equipment, \
-                 shop or end_game",
+                 shop, skills or end_game",
                 json.whose
             )))
         }

@@ -90,6 +90,56 @@ pub fn split_description(font: &Font, text: &str) -> Vec<String> {
     rows
 }
 
+/// A description in two lines as **slices of the text**: per line, where
+/// it starts and how many letters it has, which is what lets the cartridge
+/// write each line by reference out of the one text the battle already
+/// carries. The cut is [`split_description`]'s —at the last space that
+/// fits in [`DESC_WIDTH_PX`], and a word wider than a line cut where it
+/// reaches— but a line is always a run of the text: the second starts
+/// after the space the first ended at, and a word cut short loses its
+/// tail with the rest of its line. What does not fit in two is lost.
+pub fn description_spans(font: &Font, text: &str) -> [(usize, usize); ITEM_DESC_LINES] {
+    let letters: Vec<char> = text.chars().collect();
+    let width = |from: usize, to: usize| -> usize { letters[from..to].iter().map(|&c| font.advance(c)).sum() };
+    let mut out = [(0, 0); ITEM_DESC_LINES];
+    let mut start = 0;
+    for line in out.iter_mut() {
+        if start >= letters.len() {
+            *line = (letters.len(), 0);
+            continue;
+        }
+        // The longest run from `start` that ends before a space or at the
+        // end and fits; without one, as many letters as fit.
+        let mut end = None;
+        for k in start + 1..=letters.len() {
+            if width(start, k) > DESC_WIDTH_PX {
+                break;
+            }
+            if k == letters.len() || letters[k] == ' ' {
+                end = Some(k);
+            }
+        }
+        let (len, next) = match end {
+            Some(k) => (k - start, k + 1),
+            None => {
+                let mut k = start;
+                while k < letters.len() && width(start, k + 1) <= DESC_WIDTH_PX {
+                    k += 1;
+                }
+                // The word's tail is dropped: the next line starts after it.
+                let mut skip = k;
+                while skip < letters.len() && letters[skip] != ' ' {
+                    skip += 1;
+                }
+                (k - start, skip + 1)
+            }
+        };
+        *line = (start, len);
+        start = next;
+    }
+    out
+}
+
 /// A name split into `rows` lines of `width` cells, by words; a word that
 /// does not fit is cut where it reaches. A line fits if it is no wider than
 /// its cells' pixels and has no more letters than cells —the cartridge keeps
@@ -257,6 +307,10 @@ mod tests {
     fn a_description_goes_in_two_lines_cut_at_a_space() {
         let font = Font::rm2k(rm2k_snes_text::font::MINCHO);
         let lines = split_description(&font, "A small bottle of something that heals a little bit of health.");
+        let text = "A small bottle of something that heals a little bit of health.";
+        let sliced: Vec<String> =
+            description_spans(&font, text).iter().map(|&(s, n)| text.chars().skip(s).take(n).collect()).collect();
+        assert_eq!(sliced, lines, "the spans say what the split says");
         assert_eq!(lines.len(), 2);
         assert!(lines.iter().all(|l| font.width(l) <= DESC_WIDTH_PX));
         assert_eq!(split_description(&font, "")[0], "");

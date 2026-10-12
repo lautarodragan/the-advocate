@@ -459,6 +459,24 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
         crate::battle::BATTLE_WINDOW_COLORS,
         battle_windows["patches"].as_array().map_or(0, Vec::len),
     ));
+    // The skills screen: its windows, and what the cartridge needs of each
+    // skill. The busiest page is a bound over the whole database.
+    let (fitted, fused) = fit::skin_for(game, &skin, fit::Screen::Skills, 0)?;
+    says.extend(fused_windows("the skills screen's", fused));
+    let skills_windows = crate::skills::windows_json(&fitted)?;
+    let actor = request.actors.iter().copied().max_by_key(|&a| {
+        game.actor_name(a).map(|n| game.font.width(&n)).unwrap_or(0)
+    });
+    if let Some(actor) = actor {
+        let asked = crate::skills::worst_page_pairs(game, actor)?;
+        let pool = crate::skills::SK_TEXT_PAIRS;
+        let warning = if asked > pool { "WARNING, " } else { "" };
+        says.push(format!(
+            "  {warning}skills screen: {} tiles of windows, and a page asks for {asked} pairs of tiles at most, \
+             of the {pool} of its pool",
+            skills_windows["tiles"].as_array().map_or(0, Vec::len)
+        ));
+    }
     let target_compact = compact_target(&target.maps)?;
     let shop_compact = compact_shop(&shop_border.maps)?;
 
@@ -563,6 +581,8 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
             "prerender": inks.prerender.iter().map(|t| hex(t)).collect::<Vec<_>>(),
         },
         "battle_windows": battle_windows,
+        "skills_screen": skills_windows,
+        "skills": crate::skills::per_skill(game)?,
         "items_border": borders_json(&items_border),
         "items_border_first": first,
         "shop_border": {

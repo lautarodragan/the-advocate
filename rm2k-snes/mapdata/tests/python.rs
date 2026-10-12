@@ -209,7 +209,68 @@ fn emit_request(name: &str) -> Emit {
         m["sprite"]["timer_mask"] = (id * 3).into();
     }
     value["maps"] = maps["maps"].take();
+    with_the_skills_screen(&mut value["screens"]);
     serde_json::from_value(value).unwrap()
+}
+
+/// The skills screen's part of the screens stage's answer, which came on
+/// 2026-10-12, after the requests were written: made up here —no tiles, a
+/// tilemap and bars of zeros, each skill of the battle's test game with
+/// its description in one line of five letters, the odd ones usable on the
+/// map—, and taken out of the text by [`without_skills_screen`].
+fn with_the_skills_screen(screens: &mut serde_json::Value) {
+    let mut skills = serde_json::Map::new();
+    for id in 1..=200 {
+        skills.insert(id.to_string(), serde_json::json!({"lines": [5, 6, 0], "field": id % 2 == 1}));
+    }
+    screens["skills"] = skills.into();
+    screens["skills_screen"] =
+        serde_json::json!({"tiles": [], "colors": [], "map": vec![0; 32 * 28], "bars": vec![0; 16 * 64]});
+    let geometry = [
+        "SK_HELP_ROW0", "SK_HELP_COL", "SK_STATUS_ROW", "SK_NAME_COL", "SK_NAME_WIDTH", "SK_LEVEL_COL",
+        "SK_LEVEL_NUM_COL", "SK_STATE_COL", "SK_STATE_WIDTH", "SK_HP_COL", "SK_HP_NUM_COL", "SK_SP_COL",
+        "SK_SP_NUM_COL", "SK_LIST_ROW0", "SK_ROWS", "SK_COLUMNS", "SK_COLUMN_DX", "SK_NAME_DX",
+        "SK_NAME_CELLS", "SK_DASH_DX", "SK_COST_DIGITS", "SK_HALF_COLS", "MENU_SKILL",
+        "ITEM_WHITE", "ITEM_GRAY", "ITEM_RED",
+    ];
+    for (k, name) in geometry.iter().enumerate() {
+        if screens["layout"].get(*name).is_none() {
+            screens["layout"][*name] = k.into();
+        }
+    }
+}
+
+/// The text without what the skills screen added on 2026-10-12: its
+/// section, the four per-skill tables and the level term's number —its
+/// text is the last of the block, and [`without_states`] cuts it with the
+/// conditions'—. Checked here: the tables have one entry per carried skill.
+fn without_skills_screen(text: &str) -> String {
+    let start = text.find("\n; --- the skills screen: see skills_screen.s ---\n").unwrap();
+    let last = "sk_border_cgram:\n";
+    let from_last = text[start..].find(last).unwrap() + start + last.len();
+    // The block's data: up to the next line that is not a `.byte`.
+    let mut end = from_last;
+    for line in text[from_last..].split_inclusive('\n') {
+        if !line.starts_with("    .byte ") {
+            break;
+        }
+        end += line.len();
+    }
+    let out = format!("{}{}", &text[..start], &text[end..]);
+    let mut lines: Vec<&str> = out.split('\n').collect();
+    let carried = lines
+        .iter()
+        .position(|l| *l == "skill_id:")
+        .map(|at| lines[at + 1].split(',').count())
+        .unwrap();
+    for label in ["skill_line1_n:", "skill_line2_at:", "skill_line2_n:", "skill_on_map:"] {
+        let at = lines.iter().position(|l| *l == label).unwrap();
+        assert_eq!(lines[at + 1].split(',').count(), carried, "{label}");
+        lines.drain(at - 1..=at + 1);
+    }
+    let at = lines.iter().position(|l| l.starts_with("SK_TXT_LEVEL = ")).unwrap();
+    lines.remove(at);
+    lines.join("\n")
 }
 
 /// `rm2k-snes-battle`'s test game: its actors, items, skills, enemies and
@@ -509,7 +570,7 @@ fn without_states(text: &str) -> String {
 #[test]
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
-    let text = without_title_bpp(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&emitted.text))))))))))));
+    let text = without_title_bpp(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&emitted.text)))))))))))));
     assert_eq!(text.lines().count(), 3777);
     assert_eq!(
         sha(&text),
@@ -520,7 +581,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 #[test]
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
-    let text = without_title_bpp(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&emitted.text))))))))))));
+    let text = without_title_bpp(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&emitted.text)))))))))))));
     assert_eq!(text.lines().count(), 3896);
     assert_eq!(
         sha(&text),
@@ -573,6 +634,7 @@ fn whole_with_troop_copies(copied: i32, numbers: std::ops::Range<i32>) -> (Emit,
         scene[0] = n.into();
         value["scene"]["troops"].as_array_mut().unwrap().push(scene);
     }
+    with_the_skills_screen(&mut value["screens"]);
     (serde_json::from_value(value).unwrap(), db)
 }
 
@@ -709,6 +771,7 @@ fn with_backdrop(line: impl Fn(usize) -> u8) -> (Emit, usize) {
         m["sprite"]["timer_mask"] = (id * 3).into();
     }
     value["maps"] = maps["maps"].take();
+    with_the_skills_screen(&mut value["screens"]);
     (serde_json::from_value(value).unwrap(), bytes)
 }
 

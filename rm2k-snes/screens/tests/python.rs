@@ -32,6 +32,12 @@
 //! And the same day the battle got its windows, `battle_windows`, which the
 //! Python never drew: they are taken out before hashing, and checked on
 //! their own by `the_battle_windows_fit`.
+//!
+//! On 2026-10-12 the skills got their screen, so the pause menu stopped
+//! drawing its second command in grey: the three menu hashes moved, and
+//! drawn side by side with the old ones only that command's cells differ.
+//! The screen's own answer —`skills_screen` and `skills`— is taken out
+//! before hashing, like the battle's windows.
 
 use rm2k_snes_screens::checks::Vram;
 use rm2k_snes_screens::convert::{self, Request};
@@ -102,11 +108,15 @@ fn everything_a_cartridge_carries() {
     // they came on 2026-10-04, and the Python never had them.
     answer.as_object_mut().unwrap().remove("custom_menus");
     answer.as_object_mut().unwrap().remove("battle_windows");
+    // Nor the skills screen, since 2026-10-12.
+    answer.as_object_mut().unwrap().remove("skills_screen");
+    answer.as_object_mut().unwrap().remove("skills");
     let says: Vec<Value> = answer["says"]
         .as_array()
         .unwrap()
         .iter()
         .filter(|s| !s.as_str().unwrap().starts_with("  battle windows:"))
+        .filter(|s| !s.as_str().unwrap().contains("skills screen:"))
         // Nor what the item screen's text asks of its pool, said since
         // 2026-10-11.
         .filter(|s| !s.as_str().unwrap().contains("item text: its list asks"))
@@ -173,6 +183,27 @@ fn the_system_and_the_faces_come_from_the_rtp_too() {
 
 /// The battle's windows of the small game: every layout's band, its bars
 /// and the description's window, in the tiles and colours they have.
+/// The skills screen's windows, which the Python never drew: they fit, the
+/// tilemap is a whole screen, and each of the sixteen places has its bar as
+/// two half rows that differ from the arrangement's.
+#[test]
+fn the_skills_screen_windows_fit() {
+    let skin = game().skin().unwrap();
+    let windows = rm2k_snes_screens::skills::windows_json(&skin).unwrap();
+    let tiles = windows["tiles"].as_array().unwrap().len();
+    assert!(tiles > 0 && tiles <= rm2k_snes_screens::skills::SK_TILES_MAX);
+    let map: Vec<i64> = windows["map"].as_array().unwrap().iter().map(|v| v.as_i64().unwrap()).collect();
+    assert_eq!(map.len(), 32 * 28);
+    let bars: Vec<i64> = windows["bars"].as_array().unwrap().iter().map(|v| v.as_i64().unwrap()).collect();
+    assert_eq!(bars.len(), 16 * 2 * 16);
+    for (p, bar) in bars.chunks(32).enumerate() {
+        let row0 = 11 + 2 * (p / 2);
+        let col0 = 16 * (p % 2);
+        let under: Vec<i64> = (0..2).flat_map(|r| map[(row0 + r) * 32 + col0..(row0 + r) * 32 + col0 + 16].to_vec()).collect();
+        assert_ne!(bar, under.as_slice(), "the bar on place {p} draws nothing");
+    }
+}
+
 #[test]
 fn the_battle_windows_fit() {
     let skin = game().skin().unwrap();
@@ -233,14 +264,14 @@ fn the_screens_as_the_console_shows_them() {
     check(
         "menu",
         render::menu(&game, &skin, 4, &party(&[1, 2, 5]), 1234, 2, false, None).unwrap(),
-        "9be153547f5801a44405f80a8c40af7a4265c3de66267840428cbcf8326b9c31",
+        "15b3ceaa451f178eebeb0753e8045352c169b1897ee2be3ece1781832a4f7b64",
     );
     // Choosing whom to equip, with the bar on the second row: not drawn by
     // the Python, which never had it.
     check(
         "menu-choosing",
         render::menu(&game, &skin, 4, &party(&[1, 2, 5]), 1234, 2, false, Some(1)).unwrap(),
-        "cc15356f28270b4bf12387faefabf594c2537de5cb1f38fc2095934e561e077d",
+        "8c2196b7442febd47ab61941d6880f63e7e96f63965a0809aecace27ac26c6da",
     );
     let state = Party {
         members: vec![2, 7, 8, 4],
@@ -252,7 +283,7 @@ fn the_screens_as_the_console_shows_them() {
     check(
         "menu-state",
         render::menu(&game, &skin, 4, &state, 999_999, 0, true, None).unwrap(),
-        "37d1429fee0998e968c439826ba89ddd9f1b9a113a9b9d2a01c4c0f0dc7ee692",
+        "dd2a9d0d6ef9d202c205e57a84b4153f126edf0012bfae582c7bf489b4a2b2d5",
     );
     check(
         "target-item",

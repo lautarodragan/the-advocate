@@ -117,15 +117,17 @@ pub const MENU_OPT_STEP: usize = 16;
 pub const MENU_OPT_COL: usize = 3;
 pub const MENU_OPT_COLS: usize = 9;
 pub const MENU_CURSOR_COL: usize = 1;
-/// Which commands do something. The others are drawn in the "cannot"
+/// Which commands do something. The others would be drawn in the "cannot"
 /// colour, system colour 3, the way RM2k draws "Save" when it is
-/// forbidden: today that is only the skills. Saving also depends on
-/// `ChangeSaveAccess`.
+/// forbidden; since 2026-10-12, when the skills got their screen, there
+/// are none. Saving also depends on `ChangeSaveAccess`, and the first
+/// three on the party not being empty.
 pub const MENU_ITEMS: usize = 0;
+pub const MENU_SKILL: usize = 1;
 pub const MENU_EQUIPMENT: usize = 2;
 pub const MENU_SAVE: usize = 3;
 pub const MENU_END: usize = 4;
-pub const MENU_DONE: [usize; 4] = [MENU_ITEMS, MENU_EQUIPMENT, MENU_SAVE, MENU_END];
+pub const MENU_DONE: [usize; 5] = [MENU_ITEMS, MENU_SKILL, MENU_EQUIPMENT, MENU_SAVE, MENU_END];
 /// The gold, at the bottom left: up to six digits **one cell each**, so the
 /// cartridge writes them one at a time without rebuilding tiles, and the
 /// currency term after them, in colour 1.
@@ -322,6 +324,67 @@ pub const TARGET_COLORS_MAX: usize = 16;
 /// at $4000, so they do not touch BG2's bank.
 pub const TARGET_VRAM: usize = 0x4000;
 pub const TARGET_MAP: usize = 0x4800;
+
+// --- the skills screen --------------------------------------------------------
+//
+// `Scene_Skill`: the description of the skill under the cursor on top, the
+// actor's status line below it, and the list in two columns, which reads by
+// rows. A full screen like the custom menus —see `custom_menu.s` in the
+// runtime—: its text takes the whole VRAM below the windows' tilemap, which
+// a page of eight rows needs, and the map comes back as from a big picture.
+//
+// **Eight rows and a description in two lines**, where RM2k has ten rows and
+// one: RM2k's font is smaller and its screen taller, and here a whole
+// description does not fit in one line —a third of A Blurred Line's are
+// wider than a line—. 48 + 32 + 144 lines are the 224 of the screen. See the
+// divergence `the-skills-screen` in the book.
+pub const SK_HELP_HEIGHT: usize = ITEM_HELP_HEIGHT;
+pub const SK_STATUS_Y: usize = SK_HELP_HEIGHT;
+pub const SK_LIST_Y: usize = SK_STATUS_Y + 32;
+pub const SK_WINDOWS: [Rect; 3] = [
+    (0, 0, WIDTH, SK_HELP_HEIGHT),
+    (0, SK_STATUS_Y, WIDTH, SK_LIST_Y - SK_STATUS_Y),
+    (0, SK_LIST_Y, WIDTH, HEIGHT - SK_LIST_Y),
+];
+/// The description's two lines, as the item screen's, cut where the item
+/// screen cuts —[`crate::texts::description_spans`]—.
+pub const SK_HELP_ROW0: usize = 1;
+pub const SK_HELP_COL: usize = 1;
+/// The status line, `Window_SkillStatus`'s: the name, the level term and
+/// the level, the state, and the HP and the SP with their maximums, the
+/// terms in system colour 1. At 256 pixels and with A Blurred Line's font
+/// —six pixels a digit— the SP's run ends at 243, before the frame, with
+/// the name cut at six cells.
+pub const SK_STATUS_ROW: usize = SK_STATUS_Y / CELL + 1;
+pub const SK_NAME_COL: usize = 1;
+pub const SK_NAME_WIDTH: usize = 6;
+pub const SK_LEVEL_COL: usize = 7;
+pub const SK_LEVEL_NUM_COL: usize = 8;
+pub const SK_STATE_COL: usize = 10;
+pub const SK_STATE_WIDTH: usize = 5;
+pub const SK_HP_COL: usize = 15;
+pub const SK_HP_NUM_COL: usize = 17;
+pub const SK_SP_COL: usize = 23;
+pub const SK_SP_NUM_COL: usize = 25;
+/// The list: the battle's two columns —the name cut at eleven cells, a dash
+/// and the cost in two places, see `BA_SKILL_*` in `rm2k-snes-battle`—, in
+/// eight rows that scroll. **The dash and the cost are one run**, from the
+/// dash's cell: the cartridge writes the number where the dash left the
+/// pen, and the text layer continues a write that starts there in the same
+/// colour, as the battle's list does.
+pub const SK_LIST_ROW0: usize = SK_LIST_Y / CELL + 1;
+pub const SK_ROWS: usize = 8;
+pub const SK_COLUMNS: usize = 2;
+pub const SK_COLUMN_DX: usize = 16;
+pub const SK_NAME_DX: usize = 1;
+pub const SK_NAME_CELLS: usize = 11;
+pub const SK_DASH_DX: usize = 12;
+pub const SK_COST_DIGITS: usize = 2;
+/// The bar, per column: x and width, the battle's lists'. Each column's
+/// stays in its half of the screen —cells 0 to 15 and 16 to 31—, which is
+/// what lets the cartridge keep a bar as half a row of BG1's tilemap.
+pub const SK_BARS: [(usize, usize); 2] = [(4, 124), (132, 120)];
+pub const SK_HALF_COLS: usize = COLS / 2;
 
 // --- equipment ---------------------------------------------------------------
 //
@@ -667,7 +730,7 @@ pub fn publish() -> Value {
         FACE_CELLS, FACE_COL, FACE_STEP, FACES_MAX, NAME_COL, NAME_COLS, NAME_ROW, LEVEL_ROW,
         LEVEL_DIGITS, LEVEL_COL, FACE_PALETTES_MAX, SLOT_TILES_MAX, GLYPH_COL, GLYPH_ROW,
         GLYPH_DX, GLYPH_DY, MENU_OPTIONS, MENU_OPT_Y, MENU_OPT_STEP, MENU_OPT_COL,
-        MENU_OPT_COLS, MENU_CURSOR_COL, MENU_ITEMS, MENU_EQUIPMENT, MENU_SAVE, MENU_END,
+        MENU_OPT_COLS, MENU_CURSOR_COL, MENU_ITEMS, MENU_SKILL, MENU_EQUIPMENT, MENU_SAVE, MENU_END,
         MENU_DONE, MENU_GOLD_Y, MENU_GOLD_COL, MENU_GOLD_DIGITS, MENU_CURRENCY_COL,
         MENU_CURRENCY_COLS, MENU_ACTOR_COL, MENU_ACTOR_COLS, MENU_ACTOR_ROWS, MENU_TEXT_X,
         MENU_STATUS_DX, MENU_PARTY_ROWS, MENU_HP_DIGITS, MENU_HP_COL, MENU_HP_ROW,
@@ -693,6 +756,10 @@ pub fn publish() -> Value {
         TI_STATUS_COL, TI_STATUS_NUM, TI_GOLD_ROW, TI_GOLD_COL, TI_LIST_ROW0, TI_LIST_COL,
         TI_LIST_ROWS_BUY, TI_LIST_ROWS_SALE, TI_PRICE_COL, TI_COUNT_ROW, TI_COUNT_X_COL,
         TI_COUNT_COL, TI_TOTAL_ROW, TI_VRAM, TI_MAP, TI_TERM_OWNED, TI_TERM_CARRIED, TI_TERM_SETS,
+        SK_HELP_HEIGHT, SK_STATUS_Y, SK_LIST_Y, SK_HELP_ROW0, SK_HELP_COL, SK_STATUS_ROW,
+        SK_NAME_COL, SK_NAME_WIDTH, SK_LEVEL_COL, SK_LEVEL_NUM_COL, SK_STATE_COL, SK_STATE_WIDTH,
+        SK_HP_COL, SK_HP_NUM_COL, SK_SP_COL, SK_SP_NUM_COL, SK_LIST_ROW0, SK_ROWS, SK_COLUMNS,
+        SK_COLUMN_DX, SK_NAME_DX, SK_NAME_CELLS, SK_DASH_DX, SK_COST_DIGITS, SK_HALF_COLS,
         BORDER, END_YES, END_NO, END_DEFAULT_CHOICE, END_FADE_FRAMES, END_SONG_FADE_MS,
         WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_COLS_INC, WINDOW_ROWS_INC, WINDOW_TEXT_ROW,
         WINDOW_TEXT_ROWS, WINDOW_TEXT_COL, WINDOW_TEXT_COLS, FONT_WIDTH, FONT_HEIGHT,
@@ -703,6 +770,7 @@ pub fn publish() -> Value {
     m.insert("ITEM_WINDOWS".into(), rects(&ITEM_WINDOWS));
     m.insert("TARGET_WINDOWS".into(), rects(&TARGET_WINDOWS));
     m.insert("EQ_WINDOWS".into(), rects(&EQ_WINDOWS));
+    m.insert("SK_WINDOWS".into(), rects(&SK_WINDOWS));
     m.insert(
         "TI_WINDOWS".into(),
         Value::from(
