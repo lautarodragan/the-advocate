@@ -546,6 +546,26 @@ no_b:
     beq wait
     lda pad_a_prev
     bne wait                    ; it was already held: not an edge
+    ; Skills asks for someone who can act —`Scene_Menu`, `CanAct()`—: one
+    ; at 0 HP is refused and the bar stays, where RM2k plays its buzzer.
+    ; Outside battle this port keeps no states, so fallen is all it can be.
+    lda f:CM_MENU_CMD
+    cmp #MENU_SKILL
+    bne chosen
+    rep #$20
+.a16
+    lda title_sel
+    and #$00FF
+    tax
+    lda party, x
+    and #$00FF
+    asl a
+    tax
+    lda f:FAR_LENGTH + FAR_HP, x
+    sep #$20
+.a8
+    beq wait                    ; `sep` leaves Z as the `lda` of the HP left it
+chosen:
     lda title_sel
     rtl
 
@@ -571,4 +591,21 @@ move:
     lda title_sel
     jsl f:menu_bar
     rts
+.endproc
+
+; The screen of actor A, whom `menu_choose` chose, for the pause menu's
+; command: Skills or Equipment. Called with `jsl`; each screen returns to the
+; menu with its `rtl`.
+.proc menu_whose_screen
+.a8
+.i16
+    pha
+    lda f:CM_MENU_CMD
+    cmp #MENU_SKILL
+    beq skills
+    pla
+    jml f:equipment_screen
+skills:
+    pla
+    jml f:skills_screen
 .endproc

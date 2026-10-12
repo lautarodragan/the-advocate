@@ -32,6 +32,7 @@ pub mod layout;
 pub mod message_window;
 pub mod render;
 pub mod request;
+pub mod skills;
 pub mod slots;
 pub mod texts;
 pub mod title;

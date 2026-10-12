@@ -27,5 +27,6 @@ pub mod event;
 pub mod faceset;
 pub mod passability;
 pub mod picture;
+pub mod skill;
 pub mod system;
 pub mod tree;

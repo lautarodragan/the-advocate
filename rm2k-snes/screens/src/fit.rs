@@ -43,6 +43,8 @@ pub enum Screen {
     Shop,
     /// The battle's windows.
     Battle,
+    /// The skills screen, whose tiles go from `CM_BG1_VRAM`: see `skills`.
+    Skills,
 }
 
 /// The most 8bpp tiles the actor choice's windows take: up to their
@@ -90,6 +92,7 @@ fn layers(game: &Game, skin: &Skin, screen: Screen) -> Result<Vec<Layer>> {
         Screen::Items => vec![borders::item_layers(skin), borders::equipment_layers(skin)],
         Screen::Shop => borders::shop_layers(skin),
         Screen::Battle => crate::battle::layers(skin),
+        Screen::Skills => vec![crate::skills::layers(skin)],
     })
 }
 
@@ -99,6 +102,7 @@ fn tiles_max(screen: Screen) -> usize {
         Screen::Items => ITEMS_TILES_MAX,
         Screen::Shop => SHOP_TILES_MAX,
         Screen::Battle => crate::battle::BATTLE_WINDOW_TILES_MAX,
+        Screen::Skills => crate::skills::SK_TILES_MAX,
     }
 }
 

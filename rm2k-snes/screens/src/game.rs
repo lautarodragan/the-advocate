@@ -8,7 +8,7 @@
 
 use crate::fail::{Bad, Result};
 use ditto::dump::Dump;
-use ditto::schema::{Actor, Item, System, Terms};
+use ditto::schema::{Actor, Item, Skill, State, System, Terms};
 use rm2k_render::picture::{self, Picture};
 use rm2k_render::source::find_resource;
 use rm2k_rules::system::{self as system_rules, Background, BACKGROUND, PIECE};
@@ -33,6 +33,9 @@ pub struct Game {
     pub terms: Terms,
     pub actors: BTreeMap<i32, Actor>,
     pub items: BTreeMap<i32, Item>,
+    /// The skills and the states, which the skills screen reads.
+    pub skills: BTreeMap<i32, Skill>,
+    pub states: Vec<State>,
     pub system: System,
     /// The game's folder, where the System and the FaceSets are.
     pub game_dir: PathBuf,
@@ -61,10 +64,14 @@ impl Game {
         let actors: Vec<Actor> = dump.section("actors").map_err(answer)?;
         let items: Vec<Item> = dump.section("items").map_err(answer)?;
         let system: System = dump.section("system").map_err(answer)?;
+        let skills: Vec<Skill> = dump.section("skills").map_err(answer)?;
+        let states: Vec<State> = dump.section("states").map_err(answer)?;
         Ok(Game {
             terms: dump.section("terms").map_err(answer)?,
             actors: actors.into_iter().map(|a| (a.id, a)).collect(),
             items: items.into_iter().map(|i| (i.id, i)).collect(),
+            skills: skills.into_iter().map(|s| (s.id, s)).collect(),
+            states,
             font: Font::rm2k(system.font_id.to_i32()),
             system,
             game_dir: game_dir.to_path_buf(),
@@ -206,6 +213,24 @@ impl Game {
         plain(&self.item(number)?.description)
     }
 
+    pub fn skill(&self, number: i32) -> Result<&Skill> {
+        self.skills
+            .get(&number)
+            .ok_or_else(|| Bad::answer(format!("there is no skill {number} in the database")))
+    }
+
+    /// A skill's name and description as the cartridge carries them: in
+    /// the text block, with a '?' for each letter the font lacks —`Texts`
+    /// in the emission—, and not refused like the screens' own texts: they
+    /// are the battle's, which carries them that way.
+    pub fn skill_name(&self, number: i32) -> Result<String> {
+        Ok(crate::texts::item_text(&self.skill(number)?.name, usize::MAX))
+    }
+
+    pub fn skill_description(&self, number: i32) -> Result<String> {
+        Ok(crate::texts::item_text(&self.skill(number)?.description, usize::MAX))
+    }
+
     pub fn item(&self, number: i32) -> Result<&Item> {
         self.items
             .get(&number)
@@ -225,6 +250,7 @@ impl Game {
             "gold" => &t.gold,
             "normal_status" => &t.normal_status,
             "hp_short" => &t.hp_short,
+            "sp_short" => &t.sp_short,
             "exp_short" => &t.exp_short,
             "command_item" => &t.command_item,
             "command_skill" => &t.command_skill,

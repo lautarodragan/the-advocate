@@ -26,6 +26,9 @@ once when the cartridge is built:
   cursor, as the cartridge stores them: one tilemap per screen and only the
   cells a cursor changes;
 * **End Game**, whose cursor is two palettes over one tilemap;
+* **the skills screen**: its windows and their bars, and per skill of the
+  database the description's two lines as slices of its text and whether
+  the map can use it (`skills.rs`);
 * **the texts the cartridge composes**, cut to what fits;
 * **every message box of the game reflowed** for the console's window.
 
@@ -70,8 +73,8 @@ drawn with —`layout`, by name, so the emission writes the same numbers and
 keeps no copy of them—, and what the conversion has to say, in order.
 
 `render` draws one screen as the console has to show it —the menu, the
-item screen, the actor choice, the slot screen, equipment, the shop or End
-Game—, built from the same blocks `convert` makes, with the game's state it
+item screen, the actor choice, the slot screen, equipment, the shop, the
+skills or End Game—, built from the same blocks `convert` makes, with the game's state it
 shows in the request. It is for whoever compares a capture against it.
 
 `boxes` reflows every box of the dump's maps and common events, and of the
