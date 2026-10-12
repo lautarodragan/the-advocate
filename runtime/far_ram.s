@@ -847,7 +847,7 @@ MUS_MPY_M    = FAR_MUSIC + $91
 ; The bytes from MUS_WAIT to MUS_LEFT, which `music_clear` zeroes.
 MUS_STATE_BYTES = $0F
 ; The log of what the stream asks of the DSP: `dsp_music` records each
-; (register, value) pair here if MUS_LOG_YES is not zero, and
+; (register, value) pair here if MUS_LOG_ON is not zero, and
 ; MUS_LOG_I is where the next one goes, in bytes. It is the net of
 ; `test_musica_escrituras.py`: the test turns it on and reads it frame by
 ; frame. It wraps around at 512 bytes, 256 writes, and a music frame does not
@@ -856,7 +856,7 @@ MUS_STATE_BYTES = $0F
 ; ends after the emulator has delivered the frame, and without the mark its
 ; last writes would look like they belong to the next one.
 MUS_LOG_MARK = $FF
-MUS_LOG_YES = FAR_MUSIC + $F0
+MUS_LOG_ON = FAR_MUSIC + $F0
 MUS_LOG_I       = FAR_MUSIC + $F2      ; word
 MUS_LOG         = FAR_MUSIC + $200
 MUS_LOG_LENGTH = $200

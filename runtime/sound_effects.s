@@ -155,7 +155,7 @@ wait:
 .a8
 .i16
     xba                         ; B = the value
-    lda f:MUS_LOG_YES
+    lda f:MUS_LOG_ON
     beq no_log
     jsr log
 no_log:
