@@ -425,7 +425,7 @@ const IGNORABLE: [i32; 0] = [];
 /// in there and not in this list: the command itself is no longer a whole
 /// debt. Neither is `PlayBGM`, which is done since the songs have a
 /// registry: see its arm.
-pub const ACCEPTED_UNDONE: [i32; 7] = [
+pub const ACCEPTED_UNDONE: [i32; 6] = [
     SHOW_PICTURE,
     MOVE_PICTURE,
     ERASE_PICTURE,
@@ -433,9 +433,6 @@ pub const ACCEPTED_UNDONE: [i32; 7] = [
     CHANGE_HERO_TITLE,
     // Debt: the face is not drawn; see its arm.
     CHANGE_FACE_GRAPHIC,
-    // Debt: the enemy does not get the condition; see its arm. Only troop
-    // pages have it, and `TroopPages` warns about it.
-    CHANGE_MONSTER_CONDITION,
 ];
 
 /// What cuts an exit `PlayBGM` before the jump: branches, choices, battles,
@@ -4132,15 +4129,28 @@ pub fn compile_command(
         // `ChangeFaceGraphic` (10130): debt, the face is not drawn; see
         // `workflow/tasks/*/las-caras-y-las-esperas.md`.
         CHANGE_FACE_GRAPHIC => Ok(vec![]),
-        // `ChangeMonsterCondition` (13130): debt, the enemy does not get the
-        // condition. The battle has no conditions —no duration, no
-        // restriction, no effect on damage—, and the game only asks for 22
-        // (Control) and 23 (BarkWall), from `Inscribe` (switch 799) and
-        // `ControlMachines` (803): with them accepted, those pages run their
-        // messages, effects and flashes, and the enemy fights on as if
-        // nothing had happened. taro's, on 2026-10-12: first as debt, then
-        // for real, in `tasks/battle-conditions-for-real.md`.
-        CHANGE_MONSTER_CONDITION => Ok(vec![]),
+        CHANGE_MONSTER_CONDITION => {
+            // `ChangeMonsterCondition` (13130) —[place, remove, condition]—,
+            // which only exists in battle: `Game_Interpreter_Battle` gives the
+            // enemy at that place of the troop the condition, or takes it
+            // away, with `AddState` and `RemoveState`. The battle keeps them
+            // since 2026-10-12 —`tasks/battle-conditions-for-real.md`—: see
+            // `battle_states.s` in the runtime, which says what of a
+            // condition it does.
+            //
+            // OP_MONSTER_STATE: place (byte), remove (byte), condition
+            // (byte, its LDB number). **Taking the dead one away does not
+            // compile**: it revives the enemy with 1 HP, and the scene does
+            // not draw again one it already erased. No game asks for it.
+            if n < 3 || !(0..256).contains(&q(0)) || !(1..256).contains(&q(2)) {
+                return cannot();
+            }
+            let remove = q(1) != 0;
+            if remove && q(2) == DEATH_STATE {
+                return cannot();
+            }
+            Ok(vec![OP_MONSTER_STATE, q(0) as u8, u8::from(remove), q(2) as u8])
+        }
         // `TerminateBattle` (13410): the page and the battle end, with no
         // victory —EasyRPG's `AsyncOp::MakeTerminateBattle(Abort)`—. It only
         // arrives from a troop page —see `TROOP_COMMANDS`— and the ROM does
@@ -4912,12 +4922,12 @@ pub fn compile_command(
             };
             let mut lines = vec![cmd.string.clone()];
             lines.extend_from_slice(extra);
-            // `Messages::add` removes the escape tail, since every box goes
-            // through it; anything that is not `\|` or `\^` still cuts the
-            // page from there —see `escape_tail`—, except `\V[n]`, which
-            // comes off here.
+            // `Messages::add_waiting` removes the escape tail, since every
+            // box goes through it, and keeps the waits in the middle; any
+            // other escape still cuts the page from there —see
+            // `escape_tail`—, except `\V[n]`, which comes off here.
             let lines = with_variables(&with_names(&lines, ctx.indices), ctx.indices)?;
-            let at = messages.add(&lines)?;
+            let at = messages.add_waiting(&lines)?;
             let mut out = vec![OP_MESSAGE];
             out.extend(usize_word(at)?);
             Ok(out)
@@ -5388,15 +5398,31 @@ mod tests {
     }
 
     #[test]
-    fn a_monster_condition_is_a_debt_that_emits_nothing() {
-        // Control (22) and BarkWall (23), the only ones the game asks for.
+    fn a_monster_condition_is_its_opcode_and_no_longer_a_debt() {
+        // Two ordinary ones, given and taken, and the dead one (1), which
+        // kills.
         let game = Game::default();
-        let command = cmd(CHANGE_MONSTER_CONDITION, &[0, 0, 23], "");
-        assert_eq!(compile_with(&game, &[command.clone()]).unwrap().unwrap(), [OP_DONE]);
-        assert_eq!(
-            page_debts(&game, &Indices::default(), &[command], None).unwrap(),
-            [CHANGE_MONSTER_CONDITION]
-        );
+        for (p, out) in [
+            ([0, 0, 23], [OP_MONSTER_STATE, 0, 0, 23]),
+            ([2, 1, 22], [OP_MONSTER_STATE, 2, 1, 22]),
+            ([7, 0, 1], [OP_MONSTER_STATE, 7, 0, 1]),
+        ] {
+            let command = cmd(CHANGE_MONSTER_CONDITION, &p, "");
+            let code = compile_with(&game, &[command.clone()]).unwrap().unwrap();
+            assert_eq!(code, [&out[..], &[OP_DONE]].concat(), "{p:?}");
+            assert!(page_debts(&game, &Indices::default(), &[command], None)
+                .unwrap()
+                .is_empty());
+        }
+        assert!(!ACCEPTED_UNDONE.contains(&CHANGE_MONSTER_CONDITION));
+    }
+
+    #[test]
+    fn taking_the_dead_condition_from_a_monster_does_not_compile() {
+        // It would revive it, and the scene does not draw it again.
+        let game = Game::default();
+        let command = cmd(CHANGE_MONSTER_CONDITION, &[0, 1, 1], "");
+        assert!(compile_with(&game, &[command]).unwrap().is_none());
     }
 
     #[test]

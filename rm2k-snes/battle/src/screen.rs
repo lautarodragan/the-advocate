@@ -138,7 +138,8 @@ pub const BA_COMMAND_UNDONE: [i64; 0] = [];
 /// The party, one line per actor: RM2k's `Window_BattleStatus` —`Talan
 /// Normal  HP 49/ 49  SP 49`—. The bar marks who is giving commands, or
 /// whom an item goes to. The state is the database's `normal_status`, or
-/// the dead state's name for a fallen one: the battle has no other states.
+/// the dead state's name for a fallen one: the actors have no other states
+/// in battle —only enemies get them, see `Held` in `simulate`—.
 ///
 /// The HP and SP are **one run each**, from their cell: the term, the
 /// number in three places and, in the HP, the slash and the maximum. That

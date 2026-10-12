@@ -7,7 +7,7 @@
 
 use crate::fail::{Bad, Result, Step, Stop};
 use rm2k_snes_text::font::{CONSOLE_GLYPHS, WIDTH};
-use rm2k_snes_text::refit::Measure;
+use rm2k_snes_text::refit::{wait_of, Measure};
 use std::collections::{BTreeMap, HashMap};
 
 /// The first byte value that stands for a pair of letters and not for one.
@@ -32,9 +32,35 @@ pub const PAIR_FIRST: u8 = 96;
 /// pair it displaces is the least frequent of the table.
 pub const VARIABLE: u8 = 0xFF;
 
+/// The byte that stands for **a wait in the middle of the box**, `\.`,
+/// `\|` or `\!`: the next byte says which —see [`WAIT_KEY`]—, and the
+/// ROM's composer stops there, shows what it has drawn, waits and goes on
+/// —see runtime/message_waits.s—. It is the one before [`VARIABLE`], taken
+/// from the pairs like it.
+///
+/// It counts in the line's length like a letter, and the composer takes it
+/// off when it reads it: that way a wait at the end of a line —after its
+/// last letter, where nothing would read it— is still inside the line.
+pub const WAIT: u8 = 0xFE;
+
+/// What follows [`WAIT`]: the frames, or a key. `\.` is 16 frames and not
+/// the quarter of a second the help says, and `\|` 61 and not 60: easyrpg's
+/// `Window_Message`, measured on RPG_RT, at the speed the console has
+/// —`\s[n]` is dropped—. The frame RPG_RT adds when the line has an odd
+/// number of characters is not modeled.
+pub const WAIT_KEY: u8 = 0;
+pub const WAIT_QUARTER: u8 = 16;
+pub const WAIT_SECOND: u8 = 61;
+
+/// And one that is not a wait: it opens the first line of every box that
+/// carries one, so the composer knows from its first letter that the box
+/// is drawn in stretches —and that the page holds its tail, `\|` and `\^`,
+/// until the last one is on screen—.
+pub const WAIT_ANNOUNCE: u8 = 0xFF;
+
 /// How many pairs fit: the values from `PAIR_FIRST` up to the one before
-/// [`VARIABLE`].
-pub const PAIRS_MAX: usize = VARIABLE as usize - PAIR_FIRST as usize;
+/// [`WAIT`].
+pub const PAIRS_MAX: usize = WAIT as usize - PAIR_FIRST as usize;
 
 /// How a `\V[n]` travels inside a line between the compiler and this
 /// module: one character of Unicode's last private use plane, this plus the
@@ -55,6 +81,17 @@ pub fn variable_mark(slot: u8) -> char {
 enum Unit {
     Letter(u8),
     Variable(u8),
+    /// A wait, as what follows [`WAIT`].
+    Wait(u8),
+}
+
+/// What follows [`WAIT`] for the wait whose escape letter is `escape`.
+fn wait_byte(escape: char) -> u8 {
+    match escape {
+        '.' => WAIT_QUARTER,
+        '|' => WAIT_SECOND,
+        _ => WAIT_KEY,
+    }
 }
 
 /// The pair table of a text block: which two letters each value from
@@ -208,6 +245,9 @@ impl Window {
     /// at the edge what grows past it. A character the font does not have
     /// is a space, and [`units`] stops the conversion on it anyway.
     pub fn advance(&self, c: char) -> usize {
+        if wait_of(c).is_some() {
+            return 0; // a wait draws nothing
+        }
         let code = c as u32;
         if (VARIABLE_MARK..VARIABLE_MARK + 0x100).contains(&code) {
             return self.advances[('0' as usize) - 32] as usize;
@@ -240,16 +280,14 @@ impl Window {
 ///
 /// The two escapes are accepted only as a tail at the end of the box's last
 /// line, spaces in between included —a space at the end of a line draws
-/// nothing—. `\.`, `\!` and `\|` in the middle are dropped without waiting
-/// (debt: a window drawn all at once has no halfway to wait at); any other
-/// escape does not compile.
+/// nothing—. `\.`, `\!` and `\|` in the middle are waits, and come out as
+/// marks in the lines —see [`WAIT`]—; any other escape does not compile.
 ///
-/// Across the 328 maps both escapes appear **always as a tail at the end of
-/// the box's last line** —measured: 40 boxes, and not one with an escape in
-/// the middle nor on a line other than the last—, so that is the only thing
-/// accepted. One in the middle still does not compile, which is the honest
-/// thing: with the window drawn all at once, a pause halfway through the
-/// text cannot be modeled without making up how much text had been drawn.
+/// Across ABL's 328 maps both escapes appear **always as a tail at the end
+/// of the box's last line** —measured: 40 boxes, and not one with an escape
+/// in the middle nor on a line other than the last—. Other games do put
+/// them in the middle, and since 2026-10-12 the ROM stops there: until then
+/// the window was drawn all at once and they were dropped.
 ///
 /// The tail may carry spaces in between —it happens only once, in map 98's
 /// `RunDirectorScene`, which writes `\| \| \| \^`— and it eats them: a space
@@ -292,6 +330,9 @@ fn units(text: &str, window: Window) -> Result<Vec<Unit>> {
         .chars()
         .map(|ch| {
             let c = ch as u32;
+            if let Some(w) = wait_of(ch) {
+                return Ok(Unit::Wait(wait_byte(w)));
+            }
             if (VARIABLE_MARK..VARIABLE_MARK + 0x100).contains(&c) {
                 return Ok(Unit::Variable((c - VARIABLE_MARK) as u8));
             }
@@ -305,15 +346,15 @@ fn units(text: &str, window: Window) -> Result<Vec<Unit>> {
         .collect()
 }
 
-/// The runs of letters of a line, cut at each variable: a pair never takes
-/// a letter from each side of one, because between them the ROM writes
-/// digits.
+/// The runs of letters of a line, cut at each variable and each wait: a
+/// pair never takes a letter from each side of one, because between them
+/// the ROM writes digits, or stops.
 fn letter_runs(units: &[Unit]) -> Vec<Vec<u8>> {
     let mut runs = vec![vec![]];
     for u in units {
         match *u {
             Unit::Letter(l) => runs.last_mut().unwrap().push(l),
-            Unit::Variable(_) => runs.push(vec![]),
+            Unit::Variable(_) | Unit::Wait(_) => runs.push(vec![]),
         }
     }
     runs.retain(|r| !r.is_empty());
@@ -329,6 +370,10 @@ fn letter_runs(units: &[Unit]) -> Vec<Vec<u8>> {
 /// letter in the length: how many digits it takes is known only when the
 /// box opens, and the ROM adds the rest to the line's length there. A line
 /// that grows past the window is cut by the composer at the edge.
+///
+/// A wait is [`WAIT`] and which one, and counts as one letter too, which the
+/// ROM takes off when it reads it. A box that carries one opens with
+/// [`WAIT_ANNOUNCE`], on its first line.
 pub fn message_bytes(
     lines: &[String],
     pauses: usize,
@@ -342,8 +387,15 @@ pub fn message_bytes(
             | if auto_close { HEADER_AUTO_CLOSE } else { 0 }
             | (pauses << 4) as u8,
     ];
-    for text in lines.iter().take(window.lines) {
-        let text = units(text, window)?;
+    let mut boxed = lines
+        .iter()
+        .take(window.lines)
+        .map(|t| units(t, window))
+        .collect::<Result<Vec<_>>>()?;
+    if boxed.iter().flatten().any(|u| matches!(u, Unit::Wait(_))) {
+        boxed[0].insert(0, Unit::Wait(WAIT_ANNOUNCE));
+    }
+    for text in boxed {
         out.push(text.len() as u8);
         let mut run = Vec::new();
         for u in text {
@@ -353,6 +405,11 @@ pub fn message_bytes(
                     out.extend(pairs.encode(&run));
                     run.clear();
                     out.extend([VARIABLE, slot]);
+                }
+                Unit::Wait(which) => {
+                    out.extend(pairs.encode(&run));
+                    run.clear();
+                    out.extend([WAIT, which]);
                 }
             }
         }
@@ -453,8 +510,32 @@ impl Messages {
     /// two boxes with the same text and different tails are two different
     /// boxes —one waits for the player and the other does not— and sharing
     /// an offset would make them last the same.
+    ///
+    /// **The waits in the middle are dropped here**, without waiting: this
+    /// is the box of a choice, an inn, a number or a troop page, which the
+    /// ROM draws without stopping. A `ShowMessage` goes through
+    /// [`Messages::add_waiting`].
     pub fn add(&mut self, lines: &[String]) -> Step<usize> {
         let (lines, pauses, auto_close) = escape_tail(lines)?;
+        let lines: Vec<String> = lines
+            .iter()
+            .map(|t| t.chars().filter(|&c| wait_of(c).is_none()).collect())
+            .collect();
+        self.store(lines, pauses, auto_close)
+    }
+
+    /// The same as [`Messages::add`], but the box **keeps its waits** in the
+    /// middle —`\.`, `\|`, `\!`—, and the ROM stops at each one: the
+    /// `ShowMessage`'s, which is the only window that does it in RM2k too.
+    /// What is not a `ShowMessage` does not go through here: a choice's or
+    /// a number's box is composed with another opcode watching it, and the
+    /// troops' is drawn by the battle, which does not know how to stop.
+    pub fn add_waiting(&mut self, lines: &[String]) -> Step<usize> {
+        let (lines, pauses, auto_close) = escape_tail(lines)?;
+        self.store(lines, pauses, auto_close)
+    }
+
+    fn store(&mut self, lines: Vec<String>, pauses: usize, auto_close: bool) -> Step<usize> {
         let lines: Vec<String> = lines
             .iter()
             .take(self.window.lines)
@@ -536,7 +617,8 @@ mod tests {
     fn the_tail_comes_off_and_says_how_long_the_box_lasts() {
         let (lines, pauses, close) = escape_tail(&s(&["Hi", "there\\| \\|\\^"])).unwrap();
         assert_eq!((lines, pauses, close), (s(&["Hi", "there"]), 2, true));
-        assert_eq!(escape_tail(&s(&["a \\| b"])).unwrap().0, s(&["a  b"]));
+        let middle = format!("a {} b", rm2k_snes_text::refit::wait_mark('|'));
+        assert_eq!(escape_tail(&s(&["a \\| b"])).unwrap().0, vec![middle]);
         assert!(escape_tail(&s(&["\\V[1]"])).is_err());
     }
 
@@ -618,9 +700,42 @@ mod tests {
         let mut m = Messages::with_pairs(1, WINDOW, pairs);
         let at = m.add(&[line]).ok().unwrap();
         assert_eq!(m.data[at..], [1, 5, PAIR_FIRST, VARIABLE, 3, PAIR_FIRST]);
-        // One fewer than when the font had 95 letters: the 96th is the
-        // cursor's blank.
-        assert_eq!(PAIRS_MAX, 159);
+        // Two fewer than when the font had 95 letters and there were no
+        // waits: the 96th letter is the cursor's blank, and `WAIT` took the
+        // value before `VARIABLE`.
+        assert_eq!(PAIRS_MAX, 158);
+    }
+
+    #[test]
+    fn a_wait_in_the_middle_is_a_byte_and_its_kind_and_counts_in_the_length() {
+        let pairs = Pairs::from_table(vec![(65, 66)]);
+        let mut m = Messages::with_pairs(1, WINDOW, pairs);
+        // "ab\.ab" and a second line that ends in a key: the box opens
+        // announcing it, the pair does not cross the wait, and each wait is
+        // one more in its line's length.
+        let at = m.add_waiting(&s(&["ab\\.ab", "c\\!"])).ok().unwrap();
+        assert_eq!(
+            m.data[at..],
+            [2, 6, WAIT, WAIT_ANNOUNCE, PAIR_FIRST, WAIT, WAIT_QUARTER, PAIR_FIRST, 2, 67, WAIT, WAIT_KEY]
+        );
+        let second = m.add_waiting(&s(&["x\\|y\\|\\^"])).ok().unwrap();
+        assert_eq!(
+            m.data[second..],
+            [1 | HEADER_AUTO_CLOSE | 1 << 4, 4, WAIT, WAIT_ANNOUNCE, 88, WAIT, WAIT_SECOND, 89]
+        );
+        // Without waiting, the same box is the one without them.
+        let plain = m.add(&s(&["ab\\.ab", "c\\!"])).ok().unwrap();
+        assert_eq!(m.data[plain..], [2, 4, PAIR_FIRST, PAIR_FIRST, 1, 67]);
+        assert_eq!(m.add(&s(&["abab", "c"])).ok(), Some(plain));
+    }
+
+    #[test]
+    fn a_wait_takes_no_room_in_the_line() {
+        let full = "x".repeat(39);
+        let mut m = Messages::new(1, WINDOW);
+        let at = m.add_waiting(&[format!("{full}\\!")]).ok().unwrap();
+        assert_eq!(m.data[at + 1] as usize, 39 + 2);
+        assert_eq!(m.data[at + 1 + 2 + 1 + 39..], [WAIT, WAIT_KEY]);
     }
 
     #[test]

@@ -50,9 +50,9 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 /// same state as on a map, and the battle draws it on the scene's palette
 /// —see `ba_tone_tick` in runtime/battle_tone.s—. Their waits are OP_DELAY,
 /// like `ShakeScreen`'s, and so is `Wait`, which came in with them: Book of
-/// Three asks for it. `TerminateBattle` ends the battle with no victory, and
-/// `ChangeMonsterCondition` is accepted without doing it: a debt, in
-/// `ACCEPTED_UNDONE`, which [`TroopPages`] lists for the converter to warn.
+/// Three asks for it. `TerminateBattle` ends the battle with no victory.
+/// `ChangeMonsterCondition` came in the same day as a debt, and is done since
+/// the battle keeps conditions: OP_MONSTER_STATE, see `battle_states.s`.
 const TROOP_COMMANDS: [i32; 30] = [
     END,
     SHOW_MESSAGE,

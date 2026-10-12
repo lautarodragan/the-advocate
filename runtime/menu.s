@@ -897,7 +897,7 @@ check_a:
     ; A material can change a maximum, which the panel composes when it is
     ; drawn: the whole screen again, on the same row, as `Scene_ActorTarget`
     ; refreshes its whole window.
-    lda f:FAR_LENGTH + MED_FLAGS
+    lda f:MED_FLAGS
     and #MED_MATERIAL
     beq medicine
     jmp redraw

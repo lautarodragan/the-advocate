@@ -320,6 +320,8 @@ at_pointer:
     ; there would leave the page stuck forever.
     lda #0
     sta f:FAR_MSG_PAUSE         ; `stz` has no long mode
+    sta f:MSG_WAIT_HOLD         ; and no wait in the middle: two bytes, with
+                                ; MSG_WAIT_SKIP. See message_waits.s
     sep #$20
 .a8
     sta f:FAR_MSG_AUTO
@@ -381,6 +383,7 @@ msg_start_at = msg_start::at_pointer
 .proc message_tick
 .a8
 .i16
+    jsl f:msg_hold_tick         ; the wait in the middle of a box, if there is one
     lda msg_state
     cmp #1
     beq working
@@ -402,10 +405,10 @@ no_upload:
     ; every line —the first of a box too— comes through here before its
     ; first letter. A pair never crosses the end of a line in a box the
     ; converter wrote, but a broken length —the column cap, below— could
-    ; leave one, and the WRAM does not boot at zero.
-    lda #0
-    sta f:FAR_MSG_SECOND
-    sta f:MSG_DIGITS_N          ; and no digit of a variable's value either
+    ; leave one, and the WRAM does not boot at zero. And no digit of a
+    ; variable's value either; and where the line starts is kept, for the
+    ; waits: see `msg_line_start`.
+    jsl f:msg_line_start
     lda msg_lines
     and #HEADER_LINES           ; the header also carries the escape queue
     sta temp
