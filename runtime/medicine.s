@@ -31,22 +31,22 @@
     pha
     plb
     pla
-    sta MED_ACTOR
-    stz MED_USED
-    stz MED_REVIVED
-    stz MED_REVIVED + 1
+    sta .loword(MED_ACTOR)
+    stz .loword(MED_USED)
+    stz .loword(MED_REVIVED)
+    stz .loword(MED_REVIVED) + 1
     ; Is there any left? With the choice open the last one can be spent and
     ; A still pressed.
     jsr k_in_x
     lda f:item_medicine, x
-    sta MED_FLAGS
+    sta .loword(MED_FLAGS)
     rep #$20
 .a16
     txa
     asl a
     tax
     lda f:item_id, x
-    sta MED_ID
+    sta .loword(MED_ID)
     tax
     sep #$20
 .a8
@@ -63,8 +63,8 @@ remains:
     asl a
     asl a
     asl a
-    sta MED_P
-    lda MED_ACTOR
+    sta .loword(MED_P)
+    lda .loword(MED_ACTOR)
     and #$00FF
     dec a
     pha
@@ -72,7 +72,7 @@ remains:
     lsr a
     lsr a
     clc
-    adc MED_P
+    adc .loword(MED_P)
     tax
     pla
     and #$0007
@@ -91,28 +91,28 @@ bit_ready:
     bne can
     jmp no_serves
 can:
-    lda MED_FLAGS
+    lda .loword(MED_FLAGS)
     and #MED_MATERIAL
     beq medicine
     jmp material
 medicine:
     ; The maximums for their current level, like `FullHeal`.
-    lda MED_ACTOR
+    lda .loword(MED_ACTOR)
     ldy #0
     jsl f:level_param
-    stx MED_HP_MAX
-    lda MED_ACTOR
+    stx .loword(MED_HP_MAX)
+    lda .loword(MED_ACTOR)
     ldy #1
     jsl f:level_param
-    stx MED_SP_MAX
+    stx .loword(MED_SP_MAX)
     ; `hp_change = recover_hp_rate * GetMaxHp() / 100 + recover_hp`, and the
     ; same with SP. Capped at $FFFF, which means "more than what is missing".
     jsr k_in_x
     lda f:item_heal_rate, x
-    ldx MED_HP_MAX
+    ldx .loword(MED_HP_MAX)
     jsr per_hundred
 .a16                            ; `per_hundred` comes back with A16
-    sta MED_HP
+    sta .loword(MED_HP)
     jsr k_in_x
     rep #$20
 .a16
@@ -121,19 +121,19 @@ medicine:
     tax
     lda f:item_heal_hp, x
     clc
-    adc MED_HP
+    adc .loword(MED_HP)
     bcc hp_ready
     lda #$FFFF
 hp_ready:
-    sta MED_HP
+    sta .loword(MED_HP)
     sep #$20
 .a8
     jsr k_in_x
     lda f:item_heal_sp_rate, x
-    ldx MED_SP_MAX
+    ldx .loword(MED_SP_MAX)
     jsr per_hundred
 .a16                            ; `per_hundred` comes back with A16
-    sta MED_SP
+    sta .loword(MED_SP)
     jsr k_in_x
     rep #$20
 .a16
@@ -142,13 +142,13 @@ hp_ready:
     tax
     lda f:item_heal_sp, x
     clc
-    adc MED_SP
+    adc .loword(MED_SP)
     bcc sp_ready
     lda #$FFFF
 sp_ready:
-    sta MED_SP
+    sta .loword(MED_SP)
     ; Dead or not. From here on X is the actor times two, for HP and SP.
-    lda MED_ACTOR
+    lda .loword(MED_ACTOR)
     and #$00FF
     asl a
     tax
@@ -157,7 +157,7 @@ sp_ready:
 .a8
     bne alive
     ; Dead: it is only of use if it removes the death state, and removing it is 1 HP.
-    lda MED_FLAGS
+    lda .loword(MED_FLAGS)
     and #2
     bne raise
     jmp no_serves
@@ -166,13 +166,13 @@ raise:
 .a16
     lda #1
     sta FAR_HP, x
-    sta MED_REVIVED
+    sta .loword(MED_REVIVED)
     sep #$20
 .a8
-    sta MED_USED
+    sta .loword(MED_USED)
     bra heal_hp
 alive:
-    lda MED_FLAGS
+    lda .loword(MED_FLAGS)
     and #1
     beq heal_hp
     jmp no_serves               ; `ko_only` on one standing
@@ -182,70 +182,70 @@ heal_hp:
     ; goes below 1 because nothing subtracts here.
     rep #$20
 .a16
-    lda MED_HP
+    lda .loword(MED_HP)
     beq heal_sp
     lda FAR_HP, x
-    cmp MED_HP_MAX
+    cmp .loword(MED_HP_MAX)
     bcs heal_sp                 ; full
-    lda MED_HP
+    lda .loword(MED_HP)
     sec
-    sbc MED_REVIVED
+    sbc .loword(MED_REVIVED)
     clc
     adc FAR_HP, x
     bcs hp_capped
-    cmp MED_HP_MAX
+    cmp .loword(MED_HP_MAX)
     bcc hp_set
 hp_capped:
-    lda MED_HP_MAX
+    lda .loword(MED_HP_MAX)
 hp_set:
     sta FAR_HP, x
     sep #$20
 .a8
     lda #1
-    sta MED_USED
+    sta .loword(MED_USED)
     rep #$20
 .a16
 heal_sp:
     ; `if (sp_change > 0 && !HasFullSp()) ChangeSp(sp_change)`.
-    lda MED_SP
+    lda .loword(MED_SP)
     beq consume
     lda FAR_SP, x
-    cmp MED_SP_MAX
+    cmp .loword(MED_SP_MAX)
     bcs consume
     clc
-    adc MED_SP
+    adc .loword(MED_SP)
     bcs sp_capped
-    cmp MED_SP_MAX
+    cmp .loword(MED_SP_MAX)
     bcc sp_set
 sp_capped:
-    lda MED_SP_MAX
+    lda .loword(MED_SP_MAX)
 sp_set:
     sta FAR_SP, x
     sep #$20
 .a8
     lda #1
-    sta MED_USED
+    sta .loword(MED_USED)
 consume:
     ; `ConsumeItemUse`, if it was of use and the item has uses. One at a
     ; time: RM2k counts the uses of a multi-use item, and this port does not,
     ; but this game's medicines are all single-use.
     sep #$20
 .a8
-    lda MED_USED
+    lda .loword(MED_USED)
     beq ready
-    lda MED_FLAGS
+    lda .loword(MED_FLAGS)
     and #MED_USES
     beq ready
-    ldx MED_ID
+    ldx .loword(MED_ID)
     lda FAR_ITEMS, x
     dec a
     sta FAR_ITEMS, x
     bra ready
 no_serves:
-    stz MED_USED
+    stz .loword(MED_USED)
 ready:
     plb
-    lda f:FAR_LENGTH + MED_USED ; after the `plb`: the flags come from this
+    lda f:MED_USED ; after the `plb`: the flags come from this
     rtl
 
 material:
@@ -256,7 +256,7 @@ material:
     ; a material. **Nothing else of the item counts**: a material that also
     ; carries `recover_hp` —left over from when it was another type, since
     ; the editor keeps the fields it hides— heals nothing in RM2k either.
-    lda MED_ACTOR
+    lda .loword(MED_ACTOR)
     rep #$20
 .a16
     and #$00FF
@@ -283,11 +283,11 @@ has_slot:
     and #$00FF
     asl a
     asl a
-    sta MED_P
+    sta .loword(MED_P)
     asl a
     clc
-    adc MED_P                   ; times twelve
-    sta MED_P
+    adc .loword(MED_P)                   ; times twelve
+    sta .loword(MED_P)
     sep #$20
 .a8
     jsr k_in_x
@@ -296,11 +296,11 @@ has_slot:
     txa
     asl a
     asl a
-    sta MED_R
+    sta .loword(MED_R)
     asl a
     clc
-    adc MED_R
-    sta MED_R
+    adc .loword(MED_R)
+    sta .loword(MED_R)
     ; `SetBaseAtk(GetBaseAtk() + atk_points2)` and its siblings, which is
     ; adding to the modifier: the clamps of `GetBaseAtk` cancel out, and
     ; what is left is the modifier's own, between minus and plus the
@@ -309,17 +309,17 @@ has_slot:
 each:
     tya
     clc
-    adc MED_R
+    adc .loword(MED_R)
     tax
     lda f:item_up, x
-    sta MED_HP
+    sta .loword(MED_HP)
     tya
     clc
-    adc MED_P
+    adc .loword(MED_P)
     tax
     lda FAR_GROWTH, x
     clc
-    adc MED_HP
+    adc .loword(MED_HP)
     bmi below
     cmp #(GROWTH_MAX + 1)
     bcc stores
@@ -339,36 +339,36 @@ stores:
 .a8
     ; `SetBaseMaxHp` ends with `SetHp(current)`, which caps the HP at the new
     ; maximum, and the SP the same: a material that lowers one.
-    lda MED_ACTOR
+    lda .loword(MED_ACTOR)
     ldy #0
     jsl f:level_param
-    stx MED_HP_MAX
-    lda MED_ACTOR
+    stx .loword(MED_HP_MAX)
+    lda .loword(MED_ACTOR)
     ldy #1
     jsl f:level_param
-    stx MED_SP_MAX
-    lda MED_ACTOR
+    stx .loword(MED_SP_MAX)
+    lda .loword(MED_ACTOR)
     rep #$20
 .a16
     and #$00FF
     asl a
     tax
     lda FAR_HP, x
-    cmp MED_HP_MAX
+    cmp .loword(MED_HP_MAX)
     bcc hp_fits
-    lda MED_HP_MAX
+    lda .loword(MED_HP_MAX)
     sta FAR_HP, x
 hp_fits:
     lda FAR_SP, x
-    cmp MED_SP_MAX
+    cmp .loword(MED_SP_MAX)
     bcc sp_fits
-    lda MED_SP_MAX
+    lda .loword(MED_SP_MAX)
     sta FAR_SP, x
 sp_fits:
     sep #$20
 .a8
     lda #1
-    sta MED_USED
+    sta .loword(MED_USED)
     jmp consume
 
 ; The item's `k`, from `pick_edges` to X. Only A and X.
@@ -389,8 +389,8 @@ k_in_x:
 per_hundred:
 .a8
     sta f:WRMPYA
-    stx MED_P
-    lda MED_P
+    stx .loword(MED_P)
+    lda .loword(MED_P)
     sta f:WRMPYB                ; starts: the product takes eight cycles
     nop
     nop
@@ -399,10 +399,10 @@ per_hundred:
     rep #$20
 .a16
     lda f:RDMPYL
-    sta MED_R                   ; percent times the low byte
+    sta .loword(MED_R)                   ; percent times the low byte
     sep #$20
 .a8
-    lda MED_P + 1
+    lda .loword(MED_P) + 1
     sta f:WRMPYB                ; WRMPYA is still the percent
     nop
     nop
@@ -415,28 +415,28 @@ per_hundred:
     pha
     and #$FF00
     clc
-    adc MED_R
-    sta MED_P
+    adc .loword(MED_R)
+    sta .loword(MED_P)
     pla
     and #$00FF
     adc #0                      ; the carry from the addition above
-    sta MED_P + 2
-    stz MED_R
+    sta .loword(MED_P) + 2
+    stz .loword(MED_R)
     ldy #32
 divide_it:
-    asl MED_P
-    rol MED_P + 2
-    rol MED_R
-    lda MED_R
+    asl .loword(MED_P)
+    rol .loword(MED_P) + 2
+    rol .loword(MED_R)
+    lda .loword(MED_R)
     sec
     sbc #100
     bcc no_enters
-    sta MED_R
-    inc MED_P                   ; the quotient bit that just came in
+    sta .loword(MED_R)
+    inc .loword(MED_P)                   ; the quotient bit that just came in
 no_enters:
     dey
     bne divide_it
-    lda MED_P
+    lda .loword(MED_P)
     rts
 .endproc
 

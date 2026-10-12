@@ -315,22 +315,25 @@ BA_SYNC_I     = $7A2A
 
 ; --- a medicine outside battle: its scratch space in far RAM -----------------
 ;
-; $6800 to $68FF belongs to this, reserved on 2026-09-21 when splitting.
 ; **It does not travel in the save**: it lasts as long as one A press in the
-; actor choice. It is named with a sixteen-bit address because
-; `medicine_use` runs with the data bank at $7E.
-FAR_MED       = $6800
-MED_ACTOR     = FAR_MED + 0     ; the actor, by LDB number
-MED_FLAGS     = FAR_MED + 1     ; the item's `item_medicine` bits
-MED_USED      = FAR_MED + 2     ; whether it worked: easyrpg's `was_used`
-MED_REVIVED   = FAR_MED + 3     ; word: 1 if it revived it, the `revived`
-MED_HP_MAX    = FAR_MED + 5     ; word: the max HP for its level
-MED_SP_MAX    = FAR_MED + 7     ; word: and the SP
-MED_HP        = FAR_MED + 9     ; word: the `hp_change`
-MED_SP        = FAR_MED + 11    ; word: the `sp_change`
-MED_P         = FAR_MED + 13    ; four bytes: the product, and the quotient
-MED_R         = FAR_MED + 17    ; word: the remainder
-MED_ID        = FAR_MED + 19    ; word: the item's RM2k number
+; actor choice. `medicine_use` runs with the data bank at $7E, so it names
+; them by their `.loword`. From 2026-09-21 to 2026-10-12 it was $6800 to
+; $68FF, written by hand; it went into `FARBSS` so the linker's stretch could
+; grow over that place —see `FAR_POOL_START` in rm2k-snes/cartridge—.
+.pushseg
+.segment "FARBSS"
+MED_ACTOR:    .res 1            ; the actor, by LDB number
+MED_FLAGS:    .res 1            ; the item's `item_medicine` bits
+MED_USED:     .res 1            ; whether it worked: easyrpg's `was_used`
+MED_REVIVED:  .res 2            ; word: 1 if it revived it, the `revived`
+MED_HP_MAX:   .res 2            ; word: the max HP for its level
+MED_SP_MAX:   .res 2            ; word: and the SP
+MED_HP:       .res 2            ; word: the `hp_change`
+MED_SP:       .res 2            ; word: the `sp_change`
+MED_P:        .res 4            ; four bytes: the product, and the quotient
+MED_R:        .res 2            ; word: the remainder
+MED_ID:       .res 2            ; word: the item's RM2k number
+.popseg
 ; The `item_medicine` bits, which the converter emits. `medicine_use` writes
 ; them by number; the battle, which reads them since 2026-09-26, by name.
 MED_KO_ONLY   = $01             ; only on a fallen one
