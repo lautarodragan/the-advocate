@@ -510,7 +510,10 @@ in_ramp:
 ; The song the map being entered turns on, between `map_song_mute` and the
 ; end of the load, or $FF if nothing has to be turned on. In far RAM because
 ; bank 0's BSS is full.
-MAP_SONG = $7E6100
+.pushseg
+.segment "FARBSS"
+MAP_SONG: .res 1
+.popseg
 
 ; What the map being entered does to the music, which is easyrpg's
 ; `Game_Map::PlayBgm`: its song, if it has one —`map_song`, which already

@@ -55,7 +55,7 @@ fn command() -> Command {
                 .long("memory-map")
                 .action(ArgAction::SetTrue)
                 .conflicts_with_all(["include", "rom"])
-                .help("print, as JSON, the numbers of the memory map —the bank size, the banks, the stack—, and build nothing"),
+                .help("print, as JSON, the numbers of the memory map —the bank size, the banks, the stack, the far RAM the linker hands out—, and build nothing"),
         )
 }
 
@@ -67,6 +67,7 @@ fn main() -> ExitCode {
             "rom_size": banks::ROM_SIZE,
             "data_banks": banks::slots().len(),
             "stack": banks::STACK,
+            "far_pool": {"start": banks::FAR_POOL_START, "size": banks::FAR_POOL_SIZE},
         });
         println!("{map}");
         return ExitCode::SUCCESS;

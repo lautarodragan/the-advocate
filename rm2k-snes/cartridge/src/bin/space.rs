@@ -98,6 +98,7 @@ fn run() -> Result<(), String> {
                     "bank1": m.bank1,
                     "bank_far2": m.bank_far2,
                     "bss": m.bss,
+                    "far": m.far,
                     "zeropage": m.zeropage,
                     "texts": m.texts,
                     "texts_cap": m.texts_cap,
