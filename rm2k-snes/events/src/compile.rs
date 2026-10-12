@@ -3529,7 +3529,10 @@ pub fn compile_command(
                 {
                     return cannot();
                 }
-                if !users.get(actor as usize - 1).copied().unwrap_or(false) {
+                // An `actor_set` shorter than the actor's number says yes:
+                // RPG_RT does not store the trailing ones, and `IsItemUsable`
+                // reads a missing one as usable.
+                if !users.get(actor as usize - 1).copied().unwrap_or(true) {
                     return Ok(vec![]);
                 }
                 let slot = kind - 1;
@@ -6558,6 +6561,12 @@ mod tests {
         assert!(equip(&game, 201).is_none());
         game.items.insert(386, (5, vec![false; 25]));
         assert_eq!(equip(&game, 386).unwrap(), [OP_DONE]);
+        // Past the end of its `actor_set`, the actor can use it.
+        game.items.insert(386, (5, vec![false; 13]));
+        assert_eq!(
+            equip(&game, 386).unwrap(),
+            [OP_ACTOR, 14, ACT_EQUIP, 0x82, 0x81, OP_DONE]
+        );
         // An enemy: 70 off the first, lethal; 40 SP off the second.
         assert_eq!(
             one(cmd(CHANGE_MONSTER_HP, &[0, 1, 0, 70, 1], "")),
