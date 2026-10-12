@@ -11,7 +11,7 @@
 ; converter puts in the same slot still events showing **different** poses
 ; that no position of the camera shows together: `share` in
 ; Wally's `sprites`, and the decision in
-; decisions/poses-are-uploaded-on-the-fly.md.
+; decisions/poses-are-uploaded-on-the-fly.md in the book.
 ;
 ; So the slot holds whichever pose the console last uploaded. `place_npc`
 ; asks here before drawing a row of such a map: if the slot holds another

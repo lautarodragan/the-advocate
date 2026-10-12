@@ -130,7 +130,7 @@ ready:
 ; animated tiles already do.
 ;
 ; Where each pixel lands and what color it is lives in
-; `tools/port/animation.py`, which is the only thing both ends share; nothing
+; `rm2k-snes/images/src/animation.rs`, which is the only thing both ends share; nothing
 ; of that is decided here. There is one box for the whole ROM and what changes
 ; per map —which tile it lands on and with which palette— comes from
 ; `anim_battle_split`, one byte per map.

@@ -399,7 +399,7 @@ less:
 ; which is the `Input::IsTriggered` over there. Holding down does not move down
 ; one line per frame.
 ;
-; Covered by `rom/pruebas/rpgmaker/test_elegir.py`, which can press any
+; Covered by `abl/pruebas/rpgmaker/test_elegir.py` in the-advocate-ports, which can press any
 ; button.
 .proc choice_tick
 .a8

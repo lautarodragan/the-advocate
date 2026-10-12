@@ -54,7 +54,7 @@ ends:
     ; X is autofire for A: while it is held, `pad_a` spends AUTOFIRE_FRAMES
     ; ticks pressed and as many released, and each return to pressed is a new
     ; edge, that is, a press. RM2k does not have it: see
-    ; `divergences/autofire-of-a-with-x.md`.
+    ; `divergences/autofire-of-a-with-x.md` in the book.
     ;
     ; The real A is added with an OR, so it wins: with A and X held `pad_a`
     ; stays pressed and there are no edges, which is the same as holding A
@@ -105,7 +105,7 @@ off:
 ; easyrpg: pressing a new arrow resets it to zero even if another one is still
 ; held, so scrolling down by holding down and tapping right restarts the wait
 ; for down. In a one-column menu it does not show, and it costs three bytes of
-; RAM less. See `divergences/one-counter-for-all-four-arrows.md`.
+; RAM less. See `divergences/one-counter-for-all-four-arrows.md` in the book.
 ;
 ; It lives in bank 1 because there is no room in bank 0; it enters with A8 and
 ; I16 and a data bank that sees low RAM, which is what `read_pad` already

@@ -228,7 +228,7 @@ with_plane:
 MSG_CHARS = 5
 
 ; Where the text starts inside the window, in pixels. It is `Window`'s
-; `border_x`, the same one `tools/port/window.py` uses.
+; border, the same `BORDER` as in rm2k-snes/screens/src/layout.rs.
 WINDOW_BORDER = 8
 
 ; The glyph's row falls two pixels below the cell's edge, and that does not

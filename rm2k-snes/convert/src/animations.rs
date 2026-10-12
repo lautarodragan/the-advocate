@@ -16,7 +16,7 @@
 //! depending on the map is what lets every map share the frames already
 //! converted in the cartridge. The animation is shrunk whole until it fits
 //! in it, keeping its proportions. What is lost is declared in
-//! `divergences/the-shrunk-battle-animation.md`.
+//! `divergences/the-shrunk-battle-animation.md` in the book.
 
 use crate::bytecode;
 use crate::fail::Result;

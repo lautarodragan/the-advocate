@@ -900,7 +900,7 @@ events_handle_jump = events_tick::was_jump
 ; They run with the **same** globals as the foreground —`code_ptr`, `ev_cur`,
 ; `ev_waiting`, `ev_active`, `ev_running`— so that context is saved on
 ; the stack and given back at the end. Twelve bytes, and how much stack is
-; left below is measured by `rom/pruebas/rpgmaker/test_pila.py`: this path is
+; left below is measured by `abl/pruebas/rpgmaker/test_pila.py` in the-advocate-ports: this path is
 ; one of the ones it runs.
 ;
 ; The state of each one goes in bank 1 RAM and **indexed by event**, not by
@@ -1552,7 +1552,7 @@ already_was:
 ; What the event loses with the slot is what RM2k keeps after a move route:
 ; its speed, frequency and flags go back to its page's. Which way it faces it
 ; keeps, written to its row's +10, which is where a new slot reads it from.
-; See divergences/finished-routes-give-up-their-slot.md.
+; See divergences/finished-routes-give-up-their-slot.md in the book.
 .proc reclaim_slot
 .a8
 .i16
@@ -1931,7 +1931,8 @@ next:
     bra walk
 is_hero:
     ; **`crossing` and not `route_crosses`**, which is the divergence
-    ; declared in divergences/walking-through-walls-lasts-as-long-as-the-route.md:
+    ; declared in divergences/walking-through-walls-lasts-as-long-as-the-route.md
+; in the book:
     ; the flag command 36 leaves holds while the step is given by the forced
     ; move route —there `step_route` copies it to `crossing`— and not for
     ; walking with the pad, which leaves it at zero. Reading the sticky one,

@@ -35,7 +35,7 @@
 ;   which drag in the neighboring byte. Since 2026-10-02 `goombario` follows
 ;   the widths on every path of each built cartridge and flags an immediate
 ;   assembled for the other one, and a declaration that is not what runs:
-;   rom/pruebas/herramientas/test_linter.py. What it cannot decide it skips.
+;   abl/pruebas/herramientas/test_linter.py in the-advocate-ports. What it cannot decide it skips.
 ; * **There is no calling convention**: a `jsr` returns X and Y however suits
 ;   the routine. If an index has to survive the call —the interpreter's
 ;   bytecode cursor—, the caller saves it with `phy`, since it is the only one
@@ -67,7 +67,7 @@
 ; another bank goes with `f:`. **The assembler checks none of this**: a `jsr`
 ; to a routine in another bank assembles and links, and lands at the same
 ; address in the caller's bank. Since 2026-10-02 a test does, over each
-; built cartridge: rom/pruebas/herramientas/test_saltos_entre_bancos.py
+; built cartridge: abl/pruebas/herramientas/test_saltos_entre_bancos.py in the-advocate-ports
 ; reads the `.dbg` and flags every absolute `jsr`/`jmp`, jump table and
 ; absolute data access that lands somewhere other than the symbol it names.
 ; It assumes the data bank per file —its `BANCO_DE_DATOS`—, so code that
@@ -77,7 +77,7 @@
 ; What stays written here is what is not a subsystem: where the generated
 ; `.inc` files come in —the two bytecodes and the cartridge's data—. A new
 ; file is added to the list at the place it belongs in the ROM; the
-; fingerprint in `tools/ensamblado/cartridges.py` already covers all of
+; fingerprint in `rm2k-snes/cartridge/src/cartridges.rs` already covers all of
 ; `runtime/`.
 ; ---------------------------------------------------------------------------
 

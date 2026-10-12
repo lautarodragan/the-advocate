@@ -66,7 +66,7 @@ mute:
     ; --- the image, with all of CGRAM ---
     ; `screen_upload` uploads it, the Game Over one: the tiles from $0000,
     ; the tilemap at SCREEN_MAP and the colors —the menu's below and the
-    ; image's above, in the same stream: see tools/port/fullscreen.py—.
+    ; image's above, in the same stream: see rm2k-snes/convert/src/fullscreen.rs—.
     ; It leaves the screen off, BG1 in mode 3, and TM, the window and color
     ; math at zero.
     ;

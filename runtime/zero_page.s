@@ -227,7 +227,7 @@ pair_ev:     .res 1     ; which event it belongs to, to move it after the interp
 ; frame.
 ;
 ; The tests read it through WRAM to know **which tick** they are looking at
-; —see `Partida` in rom/pruebas/arnes/consola.py—, so with this it no longer
+; —see `Partida` in abl/pruebas/arnes/consola.py in the-advocate-ports—, so with this it no longer
 ; matters whether the ROM was late. How late it is is told by
 ; `lost_frames`, which is another question.
 ticks:       .res 2

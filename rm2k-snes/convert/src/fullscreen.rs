@@ -18,7 +18,7 @@
 //! the RTP's Game Over image, at full quality it is 36,224 B of raw tiles
 //! and 11,530 with LZ2; a light one would save about 9 KB of cartridge and
 //! cost a second path in the ROM that no core in the suite exercises in
-//! full. The numbers are in `workflow/tasks/*/la-pantalla-de-game-over.md`
+//! full. The numbers are in `tasks/game-over-screen.md` in the-advocate-work
 //! and `la-pantalla-de-titulo-comprimida.md`.
 
 use crate::fail::{Result, Stop};

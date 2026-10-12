@@ -6,7 +6,7 @@
 ; It runs **its own frame loop**, like `slots_screen` and like the shop:
 ; `ticks` does not advance while it is shown, so the battle costs no tick,
 ; however long the player takes. See `OP_BATTLE`
-; in tools/port/events.py.
+; in rm2k-snes/events/src/compile.rs.
 .proc battle_run
 .a8
 .i16

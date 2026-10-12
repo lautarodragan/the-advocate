@@ -7,7 +7,7 @@
 ; RM2k erases and shows the screen again on every teleport with whatever
 ; transition the system says, and `ChangeScreenTransitions` changes it from
 ; then on. The ROM does three, and the converter has already decided which one
-; goes —see the transitions, `TRANSITION_FADE`, in tools/port/events.py—:
+; goes —see the transitions, `TRANSITION_FADE`, in rm2k-snes/events/src/compile.rs—:
 ;
 ;   the fade     the usual one, `fade_tick`: the master brightness over
 ;                `fade_ramp`. It is also what goes for the ones the
@@ -27,7 +27,7 @@
 ; get pixelated**, and in RM2k they do, because there the whole screen gets
 ; pixelated. With the brightness going down at the same time it is barely
 ; noticeable; it is in
-; divergences/the-teleport-transitions.md.
+; divergences/the-teleport-transitions.md in the book.
 ;
 ; `fade_tick` does not need to be touched for the mosaic: it is deduced
 ; from what the fade already carries —whether there is one, whether the load is

@@ -717,7 +717,7 @@ no_agi:
 ; actor knows at the start, how much it costs and how much it does **is not
 ; decided here**: it comes from `skills_of`, the skill's `sp_cost` and
 ; `skill_effect` in `rm2k-snes-battle`, which is the model with which
-; `rom/pruebas/rpgmaker/test_batalla.py` predicts the exact number, and the
+; `abl/pruebas/rpgmaker/test_batalla.py`, in the-advocate-ports, predicts the exact number, and the
 ; converter emits it in `skill_pair_*` and `skill_*`. What it knows **now** is
 ; `FAR_SKILL`, which `ChangeSkills` changes.
 

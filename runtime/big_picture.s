@@ -6,11 +6,11 @@
 ;
 ; A `ShowPicture` too big for the sprites —an instructions page, a photo of
 ; the whole screen, the end of the game— is drawn in **BG1, with the console
-; in mode 1 while it is up**: `decisions/large-pictures-in-mode-1.md`.
+; in mode 1 while it is up**: `decisions/large-pictures-in-mode-1.md` in the book.
 ; Mode 1 reads BG1 at 4 bits a pixel and BG2 as mode 3 already did, so the
 ; message window, which is BG2, goes on as it was; the map is gone. Which
 ; pictures go here and how they are drawn is the converter's —see
-; tools/port/picture.py—, and each is an entry of `big_table`: see
+; rm2k-snes/convert/src/pictures.rs—, and each is an entry of `big_table`: see
 ; `big_pictures_section` in rm2k-snes-mapdata.
 ;
 ; **Showing one takes the screen off**: 30 KB of tiles do not go up in a

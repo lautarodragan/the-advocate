@@ -1358,7 +1358,7 @@ GO_FRAMES = $7E7A34             ; how many frames each fade level lasts
 ; when loading the map and everyone who asks about a cell reads it. Reserved
 ; on 2026-09-26, and it is a decision with a cost: it was half of the far RAM
 ; that was still free. What is lost, how it is reverted and what catches it,
-; in decisions/the-grid-lives-in-wram.md;
+; in decisions/the-grid-lives-in-wram.md in the book;
 ; `test_reservas_de_la_wram.py` fails if another symbol lands inside.
 ;
 ; Right behind it, in $7F's half, go the block table and its passability,
@@ -1390,8 +1390,8 @@ GRID_HIGH = $7F8000
 ;
 ; Measured on 2026-09-26: `release`'s work ends on frame 30 and the estimate
 ; gives 34. It was 112 until that day, meant for uploading a full ARAM
-; through the IPL; see decisions/el-arranque-esta-dimensionado-para-el-
-; paquete-de-arranque.md in the book. 40 until 2026-10-02: with the first
+; through the IPL; see decisions/boot-is-sized-for-the-boot-package.md in
+; the book. 40 until 2026-10-02: with the first
 ; day in Paradise in the cartridge the startup map's package went from
 ; 14,976 to 15,651 B —the samples are shared out over every package— and
 ; the estimate reached 40.
@@ -1400,7 +1400,7 @@ VIEW_ROWS = 29
 
 ; The message window: 256x80, and at the bottom of a 224-line screen —RM2k's
 ; default— the ten cell rows going from 18 to 27. The same numbers are in
-; `tools/port/window.py`, which is where they come from. `MessageOptions`
+; `rm2k-snes/screens/src/layout.rs`, which is where they come from. `MessageOptions`
 ; can put it at the top or in the middle: see message_place.s, which works
 ; out its scroll for each.
 WINDOW_ROW    = 18

@@ -176,7 +176,7 @@ voice_7:
     ; A with a `sep #$10` / `tax`, which wiped the high part of Y; and before
     ; that, with a sixteen-bit `and #$000F` that wiped B, and since 854dba9
     ; (voice 7) and 8c9c182 (voice 6) every music write to the drum voices
-    ; reached the DSP as zero. rom/pruebas/rpgmaker/test_bateria_suena.py
+    ; reached the DSP as zero. abl/pruebas/rpgmaker/test_bateria_suena.py in the-advocate-ports
     ; catches it.
     xba
     sta f:SE_SHADOW - SE_REG, x ; to the shadow

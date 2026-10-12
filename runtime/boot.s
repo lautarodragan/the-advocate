@@ -126,7 +126,7 @@ party_ready:
     ; have failed just like in mednafen. It is measured: with these two
     ; uninitialized by hand and ten runs per core, snes9x gives 0 of 10 red
     ; and bsnes 2 of 10. Against that there is
-    ; `rom/pruebas/rpgmaker/test_cores.py`, which runs the same ROM on snes9x
+    ; `abl/pruebas/rpgmaker/test_cores.py` in the-advocate-ports, which runs the same ROM on snes9x
     ; and on bsnes —the latter with `bsnes_entropy=High`— and compares the two
     ; screens with each other; that file has the rest of the numbers. Verified
     ; on 2026-09-16 by removing these two lines: of five runs, four red.

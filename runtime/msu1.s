@@ -229,7 +229,7 @@ no:
 ; by byte through `S9xGetPPU`, which serves the MSU-1.
 ;
 ; What is inside and in what format is decided by the converter: see
-; msu_data.rs in rm2k-snes-audio and internals/the-msu-file.md. Today it is the battle
+; msu_data.rs in rm2k-snes-audio and internals/the-msu-file.md in the book. Today it is the battle
 ; backgrounds, and **the ROM still carries its own**: this replaces them only
 ; if there is an MSU-1 and the `.msu` is this cartridge's.
 ;
