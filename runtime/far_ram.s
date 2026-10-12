@@ -1,11 +1,10 @@
 ; --- the RAM in bank 1 ---------------------------------------------------------
-; Bank 0's BSS is full —7680 of 7680— and so is the ZEROPAGE, 256 of 256; this
-; used to say the ZEROPAGE had twelve to spare and that stopped being true a
-; while ago. The console has 128 KB of WRAM and the ROM uses eight: the rest
-; is reached through this same window, pointing WMADD and reading or writing
-; $2180 with auto-increment. It is not normal addressing —it cannot be
-; indexed— so it is good for what is stored and walked a little at a time,
-; not for what is drawn.
+; What bank 0's BSS and ZEROPAGE have left is said by `just espacio`: this
+; used to say it in numbers, and they went stale. The console has 128 KB of
+; WRAM and bank 0 sees eight: the rest is reached through this same window,
+; pointing WMADD and reading or writing $2180 with auto-increment. It is not
+; normal addressing —it cannot be indexed— so it is good for what is stored
+; and walked a little at a time, not for what is drawn.
 ;
 ; Today it holds the state of the parallel interpreters: 840 bytes that did
 ; not fit in bank 0. The day there are RM2k variables —five thousand, ten
@@ -30,9 +29,11 @@
 ; The segment is declared `far` here, before anyone uses it, so its labels
 ; carry the bank —`$7E`—: read plainly they are a long access, which is
 ; right whatever the data bank. Code that runs with the data bank at `$7E`
-; —the battle, the text layer— writes `.loword(my_state)`. **A label used
-; before its declaration** in the order of `main.s` is taken as sixteen bits,
-; and the link fails with a range error: that use goes with `f:`.
+; —the battle, the text layer— writes `.loword(my_state)`, and so does a
+; line of `save_table`, which is a `.word` and fails the link with a 24-bit
+; value. **A label used before its declaration** in the order of `main.s` is
+; taken as sixteen bits, and the link fails with a range error: that use
+; goes with `f:`.
 ;
 ; What follows is the map of what was placed by hand before, which stays
 ; where it is so as not to move the ROM. `FARBSS` lives in a stretch of it

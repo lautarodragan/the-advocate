@@ -1,4 +1,7 @@
 .segment "ZEROPAGE"
+; The direct page written so far. A new variable goes in its subsystem's
+; file, with `.pushseg`, `.segment "ZEROPAGE"` and `.popseg`, and not at the
+; end of this one: see the top of low_ram.s.
 source:     .res 3      ; pointer to the block we are uploading
 music:      .res 3      ; pointer into the music stream
 camera_x:   .res 2      ; where the camera is looking, in pixels
