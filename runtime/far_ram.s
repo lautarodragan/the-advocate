@@ -351,14 +351,17 @@ MED_MATERIAL  = $08             ; a material: it raises parameters, see `FAR_GRO
 ; the save, and `medicine_use` adds to them. `ChangeParameters`, which is the
 ; other way RM2k has of moving them, the port does not compile.
 ;
-; $7E7D00 to $7E7EEF, allotted on 2026-10-04: from the end of the slot cache's
-; to `CARRY_MAP` nobody was —measured on the symbol table of the cartridges—.
-; Sixteen-bit address, like the battle's: `medicine_use` runs with the data
-; bank at $7E, and `save_table` takes it as it is.
+; $7E7D00 to $7E7EEF was allotted on 2026-10-04: from the end of the slot
+; cache's to `CARRY_MAP` nobody was —measured on the symbol table of the
+; cartridges—. The next day the panorama took $7E7E00 on, "after the end of
+; `FAR_GROWTH`'s" in the cartridges of that day, so what is left to this is
+; up to `PANO_ON`: 21 slots and not 41. Sixteen-bit address, like the
+; battle's: `medicine_use` runs with the data bank at $7E, and `save_table`
+; takes it as it is.
 FAR_GROWTH    = $7D00
 GROWTH_BYTES  = 12
 GROWTH_MAX    = 999             ; `MaxHpValue`, `MaxSpValue` and `MaxStatBaseValue` of RM2k
-.assert FAR_GROWTH + EXP_K * GROWTH_BYTES <= (CARRY_MAP & $FFFF), error, "what the materials added overflows its range"
+.assert FAR_GROWTH + EXP_K * GROWTH_BYTES <= (PANO_ON & $FFFF), error, "what the materials added reaches the panorama's state"
 
 ; What `pair_ev` holds while a troop page runs: neither the foreground ($FF)
 ; nor a map event, which are fewer than EV_MAX. It is what tells
