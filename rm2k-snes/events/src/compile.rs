@@ -2390,10 +2390,13 @@ const ACT_REVIVE: u8 = 0x02;
 const ACT_EQUIP: u8 = 0x04;
 /// With `ACT_EQUIP`, OP_ACTOR's amount is the item with its slot on top.
 const EQUIP_SLOT_SHIFT: i64 = 13;
-/// The item types that equip without the weapon's business: armor, helmet
-/// and accessory, which are their slot plus one.
+/// The item types that equip, which are their slot plus one: the weapon, and
+/// armor to accessory, which have none of the weapon's business.
+const EQUIP_WEAPON: i64 = 1;
 const EQUIP_ARMOR: i64 = 3;
 const EQUIP_ACCESSORY: i64 = 5;
+/// The shield's slot, the second, for OP_EQUIPMENT.
+const EQUIP_SHIELD_SLOT: u8 = 1;
 const ACT_VARIABLE: u8 = 0x20;
 const ACT_LETHAL: u8 = 0x40;
 const ACT_SUBTRACT: u8 = 0x80;
@@ -3491,12 +3494,21 @@ pub fn compile_command(
             // 2026-09-30, for `Play Radio`: it puts one of four accessories on
             // Emily in battle. It is OP_ACTOR with `ACT_EQUIP`, and the item's
             // slot goes on top of its number, because the ROM does not carry
-            // every item's type. Only on one actor, only a constant, and only
-            // armor, helmet or accessory: the weapon and the shield are where
-            // `CommandChangeEquipment` does its two-handed business, and the
-            // game does not equip either from an event. One the actor cannot
-            // use does nothing in RM2k —`IsItemUsable`— and here it is not
-            // emitted.
+            // every item's type. Only on one actor and only a constant. One
+            // the actor cannot use does nothing in RM2k —`IsItemUsable`— and
+            // here it is not emitted.
+            //
+            // The weapon and the shield are where `CommandChangeEquipment`
+            // and `Game_Actor::ChangeEquipment` do their two-handed business,
+            // and it depends on what the actor has on, which only the ROM
+            // knows. **The weapon on an actor without two weapons** compiles
+            // since 2026-10-12, for The Book of Three's forge, which puts the
+            // sword Taran forged in his hand: there the second slot can only
+            // hold a shield, so the business is only "a two-handed weapon
+            // takes the shield off", and whether the weapon is two-handed is
+            // known here. That is a second command, OP_EQUIPMENT on the shield,
+            // which is the `ChangeEquipment(Shield, 0)` RM2k does. The shield,
+            // and any weapon on an actor with two, still do not compile.
             if n < 4 {
                 return cannot();
             }
@@ -3508,7 +3520,11 @@ pub fn compile_command(
                 let Some((kind, users)) = ctx.game.items.get(&(q(4) as i32)) else {
                     return cannot();
                 };
-                if !(EQUIP_ARMOR..=EQUIP_ACCESSORY).contains(&(*kind as i64))
+                let kind = *kind as i64;
+                let weapon = kind == EQUIP_WEAPON
+                    && actor != 0
+                    && !ctx.game.two_weapons.contains(&(actor as i32));
+                if !(weapon || (EQUIP_ARMOR..=EQUIP_ACCESSORY).contains(&kind))
                     || !(1..ITEMS_N).contains(&q(4))
                 {
                     return cannot();
@@ -3516,9 +3532,12 @@ pub fn compile_command(
                 if !users.get(actor as usize - 1).copied().unwrap_or(false) {
                     return Ok(vec![]);
                 }
-                let slot = *kind as i64 - 1;
+                let slot = kind - 1;
                 let mut out = vec![OP_ACTOR, actor, ACT_EQUIP];
                 out.extend(word(q(4) | slot << EQUIP_SLOT_SHIFT)?);
+                if weapon && ctx.game.two_handed.contains(&(q(4) as i32)) {
+                    out.extend([OP_EQUIPMENT, actor, EQUIP_SHIELD_SLOT]);
+                }
                 return Ok(out);
             }
             if q(2) != 1 {
@@ -6520,8 +6539,23 @@ mod tests {
             equip(&game, 386).unwrap(),
             [OP_ACTOR, 14, ACT_EQUIP, 0x82, 0x81, OP_DONE]
         );
-        // A weapon does not compile; one the actor cannot use does nothing.
+        // A weapon goes in slot 0; a two-handed one also takes the shield
+        // off, and on an actor with two weapons it does not compile.
+        assert_eq!(
+            equip(&game, 200).unwrap(),
+            [OP_ACTOR, 14, ACT_EQUIP, 200, 0, OP_DONE]
+        );
+        game.two_handed.insert(200);
+        assert_eq!(
+            equip(&game, 200).unwrap(),
+            [OP_ACTOR, 14, ACT_EQUIP, 200, 0, OP_EQUIPMENT, 14, 1, OP_DONE]
+        );
+        game.two_weapons.insert(14);
         assert!(equip(&game, 200).is_none());
+        game.two_weapons.clear();
+        // A shield does not compile; one the actor cannot use does nothing.
+        game.items.insert(201, (2, vec![true; 25]));
+        assert!(equip(&game, 201).is_none());
         game.items.insert(386, (5, vec![false; 25]));
         assert_eq!(equip(&game, 386).unwrap(), [OP_DONE]);
         // An enemy: 70 off the first, lethal; 40 SP off the second.

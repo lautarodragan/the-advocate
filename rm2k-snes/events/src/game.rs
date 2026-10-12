@@ -217,6 +217,11 @@ pub struct Game {
     /// weapon to 5 the accessory, the slot plus one— and who can use it,
     /// `actor_set` by actor number minus one.
     pub items: BTreeMap<i32, (i32, Vec<bool>)>,
+    /// The two-handed weapons and the actors with two weapons: what
+    /// `ChangeEquipment` needs to know whether equipping a weapon is the
+    /// plain case. See it in `compile.rs`.
+    pub two_handed: BTreeSet<i32>,
+    pub two_weapons: BTreeSet<i32>,
 }
 
 #[derive(Debug, Clone)]
@@ -421,6 +426,7 @@ impl Game {
             })
             .collect();
         let actor_names = raw.iter().map(|a| (a.id, a.name.clone())).collect();
+        let two_weapons = raw.iter().filter(|a| a.two_weapon).map(|a| a.id).collect();
         let raw: Vec<schema::Skill> = dump.section("skills").map_err(answer)?;
         let skills = raw.iter().map(|s| s.id).collect();
         // A dump without items equips nothing: `ChangeEquipment` to equip
@@ -431,6 +437,7 @@ impl Game {
             .iter()
             .map(|i| (i.id, (i.r#type.to_i32(), i.actor_set.clone())))
             .collect();
+        let two_handed = raw.iter().filter(|i| i.two_handed).map(|i| i.id).collect();
 
         Ok(Game {
             dump: data.to_path_buf(),
@@ -448,6 +455,8 @@ impl Game {
             actor_names,
             skills,
             items,
+            two_handed,
+            two_weapons,
         })
     }
 
