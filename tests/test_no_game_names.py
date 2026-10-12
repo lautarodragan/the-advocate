@@ -3,7 +3,7 @@
 The tools are for any RPG Maker 2000 game, and since 2026-10-02 A Blurred
 Line lives in its own repo. What stayed here are comments that cite it
 —limits measured against it, the case that explained a rule—, and those
-stay on purpose (`the-advocate-work/decisiones/las-herramientas-se-separan-de-abl.md`).
+stay on purpose (`decisions/las-herramientas-se-separan-de-abl.md` in the book).
 What may not stay is anything else: a test that feeds the compiler one of
 its picture names, a fixture with its dialogue, a default that is its
 value. Its texts and assets are not ours to carry, and a test that only
@@ -75,7 +75,7 @@ EXCEPTIONS = {
 LINE_EXCEPTIONS = {
     # Comments the emission writes into the cartridge's `.inc`: comments
     # there, string literals here. What is emitted into the `.inc` is not
-    # touched yet (`decisiones/las-herramientas-se-separan-de-abl.md`).
+    # touched yet (`decisions/las-herramientas-se-separan-de-abl.md` in the book).
     ("rm2k-snes/mapdata/src/emit/header.rs", '"; Lashe City ran at 30 frames.'),
     ("rm2k-snes/mapdata/src/record.rs",
      '"; fourteen maps and no more: with the whole of Lashe City it is 33"'),
