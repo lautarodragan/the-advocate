@@ -10,6 +10,39 @@
 ; Today it holds the state of the parallel interpreters: 840 bytes that did
 ; not fit in bank 0. The day there are RM2k variables —five thousand, ten
 ; kilobytes— they go here too.
+;
+; **A new variable in far RAM does not get an address written by hand**: it
+; goes in the file of its subsystem, with a `.res` in `FARBSS`, and the
+; linker places it —
+;
+;     .pushseg
+;     .segment "FARBSS"
+;     my_state: .res 2
+;     .popseg
+;
+; — the same as a new one in the `BSS` or the `ZEROPAGE`, which are declared
+; the same way. Two branches that each add one do not touch the same line,
+; and their variables cannot overlap: the addresses below were chosen by
+; hand as "the next free one", and more than once two branches chose the
+; same one without git seeing it. When `FARBSS` no longer fits, the link
+; fails, and `just espacio` says how much is left.
+;
+; The segment is declared `far` here, before anyone uses it, so its labels
+; carry the bank —`$7E`—: read plainly they are a long access, which is
+; right whatever the data bank. Code that runs with the data bank at `$7E`
+; —the battle, the text layer— writes `.loword(my_state)`. **A label used
+; before its declaration** in the order of `main.s` is taken as sixteen bits,
+; and the link fails with a range error: that use goes with `f:`.
+;
+; What follows is the map of what was placed by hand before, which stays
+; where it is so as not to move the ROM. `FARBSS` lives in a stretch of it
+; nobody used —see `FAR_POOL_START` in rm2k-snes/cartridge/src/banks.rs—,
+; and nothing of the map may reach it: the scene's state asserts it, and
+; ABL's `test_reservas_de_la_wram.py` checks it for every symbol.
+.pushseg
+.segment "FARBSS": far
+.popseg
+.import __FARRAM_START__
 FAR_PAIR_STATE = $2000      ; EV_MAX entries of PAIR_BYTES
 FAR_PAIR_LIST  = $2400      ; PARALLEL_MAX entries of PAIR_LIST_BYTES
 ; The RM2k variables, one signed word per slot. How many there are is said by
