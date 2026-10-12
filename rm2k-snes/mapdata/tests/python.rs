@@ -243,6 +243,48 @@ fn without_pairs(text: &str) -> String {
 /// The text without the shared common event bodies' tables, which came
 /// after the Python too: a cartridge without bodies carries their two
 /// constants at zero and each table with a dummy entry, checked here.
+/// The parallel common events as the equipment ones were written before
+/// 2026-10-12, when only those ran, from the menu: `COMEQ_N` and four
+/// `comeq_*` tables, with the bank as a word and no flag, instead of
+/// `compar_table`, and each body as `common_equipment_<n>`. The requests'
+/// two are equipment ones, in the order of their switches, which was the
+/// old order.
+fn with_the_equipment_commons_as_before(text: &str) -> String {
+    let mut lines: Vec<String> = text.split('\n').map(str::to_string).collect();
+    let at = lines.iter().position(|l| l.starts_with("COMPAR_N = ")).unwrap();
+    let n: usize = lines[at]["COMPAR_N = ".len()..].parse().unwrap();
+    assert_eq!(lines[at + 2], "compar_table:");
+    let entries: Vec<&[String]> = lines[at + 3..at + 3 + 4 * n].chunks(4).collect();
+    let field = |line: &str, prefix: &str| line.trim_start().strip_prefix(prefix).unwrap().to_string();
+    let bytes: Vec<String> = entries.iter().map(|e| field(&e[0], ".word ")).collect();
+    let masks: Vec<String> = entries
+        .iter()
+        .map(|e| field(&e[1], ".byte ").split(", ").next().unwrap().to_string())
+        .collect();
+    let codes: Vec<String> = entries.iter().map(|e| field(&e[2], ".word ")).collect();
+    let banks: Vec<String> = entries
+        .iter()
+        .map(|e| field(&e[3], ".byte ").split(", ").next().unwrap().to_string())
+        .collect();
+    let old = vec![
+        format!("COMEQ_N = {n}"),
+        format!(".block {}", 2 * n),
+        "comeq_byte:".to_string(),
+        format!("    .word {}", bytes.join(", ")),
+        format!(".block {n}"),
+        "comeq_mask:".to_string(),
+        format!("    .byte {}", masks.join(", ")),
+        format!(".block {}", 2 * n),
+        "comeq_code:".to_string(),
+        format!("    .word {}", codes.join(", ")),
+        format!(".block {}", 2 * n),
+        "comeq_bank:".to_string(),
+        format!("    .word {}", banks.join(", ")),
+    ];
+    lines.splice(at..at + 3 + 4 * n, old);
+    lines.join("\n").replace("common_parallel_", "common_equipment_")
+}
+
 fn without_commons(text: &str) -> String {
     let mut lines: Vec<&str> = text.split('\n').collect();
     for constant in ["COMMON_DEPTH = 0", "COMAUTO_N = 0"] {
@@ -404,7 +446,7 @@ fn without_bare_window(text: &str) -> String {
 #[test]
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
-    let text = without_title_bpp(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&emitted.text))))))))));
+    let text = without_title_bpp(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&emitted.text)))))))))));
     assert_eq!(text.lines().count(), 3777);
     assert_eq!(
         sha(&text),
@@ -415,7 +457,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 #[test]
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
-    let text = without_title_bpp(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&emitted.text))))))))));
+    let text = without_title_bpp(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&emitted.text)))))))))));
     assert_eq!(text.lines().count(), 3896);
     assert_eq!(
         sha(&text),

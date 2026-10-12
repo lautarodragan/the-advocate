@@ -506,14 +506,6 @@ fn indices_json(indices: &Indices, associations: &[(String, i32)]) -> JsonMap<St
             .collect::<Vec<_>>()),
     );
     out.insert("associations".into(), json!(associations));
-    out.insert(
-        "party_common_events".into(),
-        json!(indices
-            .party_common_events
-            .iter()
-            .map(|(sw, n)| json!([sw, n]))
-            .collect::<Vec<_>>()),
-    );
     out
 }
 
@@ -896,6 +888,10 @@ fn compile_pass(
     // what they number goes at the end of each registry and moves nobody's
     // index.
     let commons = commons::compile(&setting, &plan, &mut messages, &mut songs, &mut troops)?;
+    // The parallel common events, each compiled once without a map, after
+    // the shared bodies so what they number moves nobody's index. See
+    // [`commons::parallel_commons`].
+    let parallel = commons::parallel_commons(&setting, &mut messages, &mut songs, &mut troops)?;
     let mut ctx = Ctx {
         game,
         indices: &indices,
@@ -929,35 +925,6 @@ fn compile_pass(
             troop_pages.compile(&mut ctx, number, pages)?;
         }
     }
-    // The equipment common events, which the ROM runs when the menu closes:
-    // each body as a loose page, with its `OP_DONE`. It needs no map nor
-    // texts —it does not use them—, and if it does not compile it is a
-    // compiler bug: `party_common_events` only lets through what always
-    // compiles.
-    let mut party = Vec::new();
-    for (&switch, &number) in &indices.party_common_events {
-        let body = game.common_events[&number].commands.clone();
-        let mut ctx = Ctx {
-            game,
-            indices: &indices,
-            sound: &request.sound,
-            map_index: &|_| None,
-            messages: None,
-            songs: None,
-            graphics: None,
-            pictures: None,
-            troops: None,
-            commons: None,
-            shared: None,
-        };
-        let Some(code) = compile_page(&mut ctx, &body, None, 0, 0)? else {
-            return Err(Bad::answer(format!(
-                "common event {number} is an equipment one and does not compile"
-            )));
-        };
-        party.push(json!([switch, number, hex(&code)]));
-    }
-
     let mut answer = indices_json(&indices, &associations);
     answer.insert("maps".into(), json!(maps_out));
     answer.insert("cases".into(), json!(cases_out));
@@ -989,7 +956,7 @@ fn compile_pass(
             Some(a) => Value::Object(a.into_iter().map(|(k, v)| (k, json!(v))).collect()),
         },
     );
-    answer.insert("party_common_events".into(), json!(party));
+    answer.insert("parallel_commons".into(), json!(parallel));
     // Only when there are some, like `troop_songs`: without them the answer
     // stays the one `tests/python.rs` holds the hashes of.
     if !commons.bodies.is_empty() {

@@ -204,9 +204,12 @@ pub struct Emit {
     pub battle_tables: BattleTables,
     /// The troops' event pages, as the compiler answered them, if any.
     pub troop_pages: Option<serde_json::Value>,
-    /// The common events the menu runs on closing: `[switch, number,
-    /// code]`.
-    pub party_common: Vec<(i64, i64, String)>,
+    /// The parallel common events that compile: `[switch, number, pure,
+    /// code]`, with switch 0 for one that runs always and `pure` for one
+    /// that only runs when what it reads changes —see `commons::pure` in the
+    /// event compiler and `compar_tick` in the runtime's `common_events.s`—.
+    #[serde(default)]
+    pub parallel_common: Vec<(i64, i64, bool, String)>,
     /// The shared common event bodies —the automatic ones and what they
     /// call—, as the compiler answered them, if any.
     #[serde(default)]

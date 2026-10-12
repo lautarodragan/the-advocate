@@ -29,8 +29,10 @@
 //! registries: what they number goes at the end and moves nobody's index.
 
 use crate::codes::*;
-use rm2k_snes_bytecode::events::{OP_MENU_OPEN, OP_RETURN, OP_SWITCH};
-use crate::compile::{compile_page, Ctx, Indices, SoundSettings};
+use rm2k_snes_bytecode::events::{OP_DONE, OP_MENU_OPEN, OP_RETURN, OP_SWITCH};
+use crate::compile::{
+    compile_page, Ctx, Indices, SoundSettings, COND_ACTOR, COND_ACTOR_EQUIPMENT, COND_SWITCH,
+};
 use crate::fail::{Bad, Result};
 use crate::game::{Command, Game};
 use crate::messages::Messages;
@@ -393,4 +395,92 @@ fn depth(game: &Game, plan: &Plan) -> Option<usize> {
         }
     }
     Some(deepest)
+}
+
+/// What a **pure** parallel common event may have: branches on a switch or
+/// on what an actor has equipped, and the commands that only set a state
+/// —its skills, the three permissions—, with their block ends and comments.
+const PURE_KEEPS: [i32; 10] = [
+    COND_BRANCH, COND_ELSE, COND_END, END, CHANGE_SKILLS, CHANGE_SAVE_ACCESS, CHANGE_MENU_ACCESS,
+    CHANGE_ESCAPE_ACCESS, COMMENT, COMMENT_2,
+];
+
+/// Whether a parallel common event is pure: it only reads switches and the
+/// equipment, and only writes skills and permissions. One of those gives the
+/// same result on every frame until what it reads changes, or until
+/// something else writes what it writes —a page's `ChangeSaveAccess`
+/// against the game's `EnableSaving`—, and it never waits, so the ROM runs
+/// it only on the frame after one of those: see `compar_tick` in
+/// runtime/common_events.s. In the game this was written for they are
+/// three: 2 `DisableSaving`, 8 `EnableSaving` and 37 `UpdateAG7 Skills`,
+/// whose body every frame was measured on 2026-09-27 at about an eighth of
+/// the frame's CPU.
+///
+/// What is left out: an actor that learns, by levelling up, a skill a pure
+/// one takes away keeps it until the next run.
+pub fn pure(commands: &[Command]) -> bool {
+    commands.iter().all(|c| {
+        PURE_KEEPS.contains(&c.code)
+            && (c.code != COND_BRANCH
+                || c.p(0) == Some(COND_SWITCH)
+                || (c.p(0) == Some(COND_ACTOR) && c.p(2) == Some(COND_ACTOR_EQUIPMENT)))
+    })
+}
+
+/// The parallel common events —trigger 4, with commands—, each compiled
+/// once and without a map, as `[number, switch, pure, code]`: the switch
+/// that turns it on, 0 if it has none and runs always; whether it is
+/// [`pure`]; and its bytecode, or null if it does not compile.
+///
+/// RM2k gives each one **its own interpreter**, which runs every frame while
+/// the switch is on, before the map's parallel pages: easyrpg's
+/// `Game_Map::UpdateCommonEvents` and `Game_CommonEvent::Update`. The ROM
+/// does the same —see `compar_tick` in runtime/common_events.s—, so these
+/// bodies are pages that end in `OP_DONE` and start over on the next frame,
+/// like a map's parallel page.
+///
+/// A `CallEvent` in them is **pasted**, as in a map's parallel page: the
+/// ROM has one call stack, the foreground's, and a parallel that waits in
+/// the middle of a call would hold it across frames. Songs and effects are
+/// numbered but noted in no package, as in the shared bodies.
+pub fn parallel_commons(
+    s: &Setting,
+    messages: &mut Messages,
+    songs: &mut Songs,
+    troops: &mut Troops,
+) -> Result<Vec<Value>> {
+    let mut out = Vec::new();
+    for (&number, c) in &s.game.common_events {
+        if c.trigger != COMMON_PARALLEL || c.commands.is_empty() {
+            continue;
+        }
+        let code = if s.game.patches.menus.replaced.contains_key(&number) {
+            let mut code = menu_open(s.game, number);
+            code.push(OP_DONE);
+            Some(code)
+        } else {
+            let mut ctx = Ctx {
+                game: s.game,
+                indices: s.indices,
+                sound: s.sound,
+                map_index: s.map_index,
+                messages: Some(&mut *messages),
+                songs: Some(&mut *songs),
+                graphics: None,
+                pictures: None,
+                troops: Some(&mut *troops),
+                commons: None,
+                shared: None,
+            };
+            compile_page(&mut ctx, &c.commands, None, 0, 0)?
+        };
+        let switch = if c.switch_flag { c.switch_id } else { 0 };
+        out.push(json!([
+            number,
+            switch,
+            pure(&c.commands),
+            code.map(|c| crate::pages::hex(&c))
+        ]));
+    }
+    Ok(out)
 }

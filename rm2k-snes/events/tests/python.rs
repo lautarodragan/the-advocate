@@ -72,6 +72,14 @@
 //! compiles. With the fourth word taken out —of the declaration and of both
 //! places that write it— and `Wait` out of `TROOP_COMMANDS`, the answer was
 //! the old one.
+//!
+//! And the same day the hash of the compilation's `maps` moved, on
+//! purpose: the equipment common event is no longer pasted after the
+//! `ControlSwitches` that turns it on —the ROM runs every parallel common
+//! event on its own, see `commons::parallel_commons`—. With the pasting put
+//! back, the answer's `maps` was the old one. And `party_common_events` left
+//! both answers: which ones only look at the equipment is
+//! `commons::pure`, in `parallel_commons`.
 
 use rm2k_snes_events::{compile, compile_without_pairs, scan, Game, Request};
 use serde_json::Value;
@@ -172,6 +180,11 @@ fn without_pictures(answer: &mut Value) {
 /// table it was written with —an empty one— are taken out. That the pairs
 /// write the same text is `the_pairs_write_the_same_boxes`.
 fn without_pairs(answer: &mut Value) {
+    // And the parallel common events, which came on 2026-10-12: see
+    // `the_parallel_common_events_come_compiled`.
+    if let Some(m) = answer.as_object_mut() {
+        m.remove("parallel_commons");
+    }
     if let Some(m) = answer.get_mut("messages").and_then(Value::as_object_mut) {
         m.remove("pairs");
         m.remove("pair_first");
@@ -201,6 +214,21 @@ fn check(which: &str, answer: Value) {
             "{which}: {part}"
         );
     }
+}
+
+/// The parallel common events: the test game has one, 2, `Equipment`,
+/// parallel on switch 40, which only looks at the equipment —it is pure—,
+/// and it comes compiled, with its switch and its flag.
+#[test]
+fn the_parallel_common_events_come_compiled() {
+    let request = Request::from_json(&read("compile.json"), "compile.json").unwrap();
+    let answer = compile(&game(&request), &request).unwrap();
+    let parallel = answer["parallel_commons"].as_array().unwrap();
+    assert_eq!(parallel.len(), 1);
+    assert_eq!(parallel[0][0], 2);
+    assert_eq!(parallel[0][1], 40);
+    assert_eq!(parallel[0][2], true);
+    assert!(parallel[0][3].is_string(), "it does not compile: {parallel:?}");
 }
 
 /// Who each page sends walking. The answer was checked against the

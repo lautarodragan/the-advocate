@@ -223,3 +223,295 @@ has:
     clc
     rtl
 .endproc
+
+; --- the parallel common events ----------------------------------------------
+;
+; `Game_Map::UpdateCommonEvents`: each parallel common event has **its own
+; interpreter**, which runs every frame while its switch is on —or always, if
+; it has none—, before the map's events, with a message open and with a page
+; in progress. Like a map's parallel page, when its body ends it starts over
+; on the next frame; and with the switch off it does not run but keeps where
+; it was: `Game_CommonEvent::Update` only skips the `Update`, so turning the
+; switch back on goes on from there. Both RPG_RT, 2000's and 2015's, do the
+; same: with one that turns its own switch off and then shows two messages,
+; the second never shows.
+;
+; Their bodies are compiled once, without a map —`parallel_commons` in the
+; event compiler—, and the converter emits them as `COMPAR_N` entries of
+; `compar_table`, in the order of their numbers:
+;
+;     +0  word  the byte of `switches` its switch is in
+;     +2  byte  the switch's mask; $00 is none, and it runs always
+;     +3  byte  1 if it is pure
+;     +4  word  where its body starts, and +6 its bank
+;
+; **The pure ones run only when what they read changes.** A body that only
+; reads switches and the equipment and only writes skills and permissions
+; —`commons::pure` in the compiler: in the game this was written for,
+; `DisableSaving`, `EnableSaving` and `UpdateAG7 Skills`— gives the same
+; result every frame until one of those changes, so it runs on the frame its
+; switch turns on and on the first after `compar_owed`, which whoever changes
+; them sets: `set_switch`, the menu closing —where the equipment changes—,
+; `ChangeEquipment` and the permission opcode. A switch written from outside
+; the ROM —the tests' `prender`— does not go through there. Running them
+; every frame cost the race its sixty frames.
+;
+; Each one's state lives in far RAM, `COMPAR_ENTRY` bytes, so the same X walks
+; the table and the state: the cursor, the wait, whether it is running and
+; whether its switch was on the last frame. The map changes and it stays, as
+; `Game_Map` keeps its common events across maps. It does not travel in the
+; save —RPG_RT saves an empty stack for them— and starts at zero on reset.
+;
+; While one runs, `pair_ev` is `PAIR_COMMON` plus its index: it is what
+; `op_message` notes as the message's owner, and what tells the opcodes that
+; ask that this is not the foreground.
+COMPAR_ENTRY = 8
+PAIR_COMMON = $80
+.assert EV_MAX <= PAIR_COMMON, error, "a map event's index reaches the parallel common events' pair_ev"
+.assert PAIR_COMMON + COMPAR_N <= PAIR_BATTLE, error, "too many parallel common events for pair_ev"
+.assert COMPAR_N * COMPAR_ENTRY < $8000, error, "compar_tick walks the table with a signed compare"
+
+.pushseg
+.segment "FARBSS"
+compar_state: .res COMPAR_N * COMPAR_ENTRY + 1
+compar_owed: .res 1         ; something a pure one reads changed
+compar_now: .res 1          ; and this frame's copy of it
+compar_saved: .res 1        ; whether the foreground's context is saved
+compar_context: .res 11     ; and where: see `compar_tick`
+.popseg
+
+; At reset: none running, none seen on, and the pure ones owed a run.
+.proc compar_clear
+.a8
+.i16
+    ldx #0
+    lda #0
+erase:
+    sta f:compar_state, x
+    inx
+    cpx #COMPAR_N * COMPAR_ENTRY + 1
+    bcc erase
+    lda #1
+    sta f:compar_owed
+    rtl
+.endproc
+
+; Something a pure one reads changed —a switch, the equipment—: they run on
+; the next frame. Clobbers A.
+.proc compar_owe
+.a8
+    lda #1
+    sta f:compar_owed
+    rtl
+.endproc
+
+; A permission changed, which the pure ones write: they run on the next frame,
+; to set it back if theirs says otherwise —`EnableSaving` against a page's
+; `ChangeSaveAccess`—. Except when a parallel common event is the one that
+; changed it: `DisableSaving` and `EnableSaving` would wake each other every
+; frame. Clobbers A.
+.proc compar_owe_access
+.a8
+    lda pair_ev
+    cmp #PAIR_COMMON
+    bcc owe
+    cmp #PAIR_BATTLE
+    bcc mine
+owe:
+    lda #1
+    sta f:compar_owed
+mine:
+    rtl
+.endproc
+
+; One frame of each parallel common event, from `map_events`, with the data
+; bank at 0. It runs every frame on every map, so the entries that do not run
+; —almost all, almost always— cost a dozen instructions: their switch, and
+; out. The foreground's context is saved only when one runs, in far RAM, and
+; given back at the end, as `parallel_tick` does on the stack.
+.proc compar_tick
+.a8
+.i16
+.if ::COMPAR_N = 0
+    rtl
+.else
+    lda f:compar_owed
+    sta f:compar_now
+    lda #0
+    sta f:compar_owed           ; what changes while they run is the next frame's
+    sta f:compar_saved
+    ldx #0
+each:
+    jsr compar_one
+    rep #$21                    ; and the carry, for the add
+.a16
+    txa
+    adc #COMPAR_ENTRY
+    tax
+    sep #$20
+.a8
+    cpx #COMPAR_N * COMPAR_ENTRY
+    bcc each
+    lda f:compar_saved
+    beq untouched
+    lda #$FF                    ; outside the loops: see `parallel_tick`
+    sta pair_ev
+    lda f:compar_context + 8
+    sta ev_active
+    lda f:compar_context + 6
+    sta code_ptr + 2
+    rep #$20
+.a16
+    lda f:compar_context + 0
+    sta ev_cur
+    lda f:compar_context + 2
+    sta ev_waiting
+    lda f:compar_context + 4
+    sta code_ptr
+    lda f:compar_context + 9
+    sta f:ev_running
+    sep #$20
+.a8
+untouched:
+    rtl
+.endif
+.endproc
+
+; One frame of the one whose entry starts at X, which it keeps.
+.proc compar_one
+.a8
+.i16
+    ; Its switch: A nonzero if on.
+    lda f:compar_table + 2, x
+    beq always
+    sta temp
+    rep #$20
+.a16
+    lda f:compar_table + 0, x
+    tay
+    sep #$20
+.a8
+    lda switches, y
+    and temp
+    bne on
+    sta f:compar_state + 5, x   ; off: it keeps where it was
+    rts
+always:
+    lda #1
+on:
+    ; And the last frame's, for the pure ones' edge.
+    lda f:compar_state + 5, x
+    sta temp + 2
+    lda #1
+    sta f:compar_state + 5, x
+    lda f:compar_table + 3, x
+    beq runs
+    lda temp + 2
+    beq runs                    ; a pure one whose switch just turned on
+    lda f:compar_now
+    bne runs
+    rts
+runs:
+    ; Who it is, for the message: `PAIR_COMMON` plus its index.
+    rep #$20
+.a16
+    txa
+    lsr a
+    lsr a
+    lsr a
+    sep #$20
+.a8
+    ora #PAIR_COMMON
+    sta temp + 3
+    ; With a message on screen it keeps running, unless the message is its
+    ; own: see `one_parallel`.
+    lda f:msg_open
+    ora f:msg_state
+    ora pick_active
+    beq not_mine
+    lda f:msg_owner
+    cmp temp + 3
+    bne not_mine
+    rts
+not_mine:
+    rep #$20
+.a16
+    lda f:compar_state + 2, x
+    beq no_wait
+    dec a
+    sta f:compar_state + 2, x
+    sep #$20
+.a8
+    rts
+no_wait:
+.a16
+    sep #$20
+.a8
+    lda f:compar_saved
+    bne saved
+    inc a
+    sta f:compar_saved
+    lda ev_active
+    sta f:compar_context + 8
+    lda code_ptr + 2
+    sta f:compar_context + 6
+    rep #$20
+.a16
+    lda ev_cur
+    sta f:compar_context + 0
+    lda ev_waiting
+    sta f:compar_context + 2
+    lda code_ptr
+    sta f:compar_context + 4
+    lda f:ev_running
+    sta f:compar_context + 9
+    sep #$20
+.a8
+saved:
+    rep #$20
+.a16
+    stz ev_waiting
+    lda #0
+    sta ev_cur                  ; from the start, unless it was running
+    sep #$20
+.a8
+    lda f:compar_state + 4, x
+    beq begin
+    rep #$20
+.a16
+    lda f:compar_state + 0, x
+    sta ev_cur
+    sep #$20
+.a8
+begin:
+    lda #1
+    sta ev_active
+    lda temp + 3
+    sta pair_ev
+    rep #$20
+.a16
+    lda #$FFFF                  ; no event: a common event's frame has none
+    sta f:ev_running
+    lda f:compar_table + 4, x
+    sta code_ptr
+    sep #$20
+.a8
+    lda f:compar_table + 6, x
+    sta code_ptr + 2
+    phx
+    jsl f:run_code_long + FAST
+    plx
+    rep #$20
+.a16
+    lda ev_cur
+    sta f:compar_state + 0, x
+    lda ev_waiting
+    sta f:compar_state + 2, x
+    sep #$20
+.a8
+    lda ev_active
+    sta f:compar_state + 4, x
+    rts
+.endproc
+
+

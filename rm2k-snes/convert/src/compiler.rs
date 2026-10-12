@@ -365,8 +365,6 @@ pub fn compiling_pages(answer: &Value, map_id: i32) -> Result<BTreeSet<(i64, i64
 pub struct Indices {
     pub variables: Vec<(i64, i64)>,
     pub skills: Vec<((i64, i64), i64)>,
-    /// `{switch: common event}`, in the answer's order.
-    pub party_common_events: Vec<(i64, i64)>,
 }
 
 impl Indices {
@@ -396,7 +394,6 @@ impl Indices {
         Indices {
             variables: dict(pairs("variables").into_iter().map(|e| (e[0], e[1])).collect()),
             skills: dict(pairs("skills").into_iter().map(|e| ((e[0], e[1]), e[2])).collect()),
-            party_common_events: dict(pairs("party_common_events").into_iter().map(|e| (e[0], e[1])).collect()),
         }
     }
 
@@ -415,14 +412,3 @@ impl Indices {
     }
 }
 
-/// `{common event: its code}` of the ones the menu runs on closing.
-pub fn party_common_events(answer: &Value) -> BTreeMap<i64, String> {
-    answer["party_common_events"]
-        .as_array()
-        .map(|list| {
-            list.iter()
-                .map(|e| (e[1].as_i64().unwrap_or(0), e[2].as_str().unwrap_or("").to_string()))
-                .collect()
-        })
-        .unwrap_or_default()
-}

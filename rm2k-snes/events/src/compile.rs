@@ -479,8 +479,6 @@ pub struct Indices {
     pub variables: BTreeMap<i32, usize>,
     /// (actor, skill) to its bit in `FAR_SKILL`.
     pub skills: BTreeMap<(i32, i32), usize>,
-    /// The switch that turns on each equipment common event, and its number.
-    pub party_common_events: BTreeMap<i32, i32>,
     /// Actor to the name `\N[n]` bakes into the text: see
     /// [`crate::indices::hero_names`].
     pub hero_names: BTreeMap<i32, String>,
@@ -1316,7 +1314,7 @@ fn page(
         } else if let Some(&j) = input_after.get(&i) {
             piece = compile_number(ctx, cmd, &extra, &commands[j])?;
         } else {
-            let mut p = compile_command(ctx, cmd, &extra, map_events.as_ref())?;
+            let p = compile_command(ctx, cmd, &extra, map_events.as_ref())?;
             // A jump to another map: the page keeps running there. See
             // `MapEvents::after_jump`.
             if cmd.code == TELEPORT {
@@ -1335,22 +1333,6 @@ fn page(
                 }
             }
             note_constant(cmd, &mut constants);
-            // An equipment common event whose switch this turns on: its body
-            // goes right here, as if a `CallEvent` followed it. In RM2k it
-            // would run on the next frame; see `party_common_events` in
-            // [`crate::indices`].
-            for number in common_events_turned_on(ctx, cmd) {
-                let body = ctx
-                    .game
-                    .common_events
-                    .get(&number)
-                    .map(|c| c.commands.clone())
-                    .unwrap_or_default();
-                let at = length + p.len();
-                let common = map_events.as_ref().map(MapEvents::in_a_common);
-                let code = compile_page(ctx, &body, common, at, depth + 1)?;
-                p.extend(code.unwrap_or_default());
-            }
             piece = p;
         }
         if ctx.songs.is_some() {
@@ -1507,25 +1489,6 @@ fn note_constant(cmd: &Command, constants: &mut HashMap<i64, i64>) {
             constants.remove(&(number as i64));
         }
     }
-}
-
-/// The equipment common events —see `party_common_events` in
-/// [`crate::indices`]— whose switch this command turns on.
-fn common_events_turned_on(ctx: &Ctx, cmd: &Command) -> Vec<i32> {
-    let p = &cmd.parameters;
-    if cmd.code != CONTROL_SWITCHES
-        || p.len() < 4
-        || p[3] as i64 != SWITCH_ON
-        || !(p[0] as i64 == SWITCH_SINGLE || p[0] as i64 == SWITCH_RANGE)
-    {
-        return vec![];
-    }
-    ctx.indices
-        .party_common_events
-        .iter()
-        .filter(|(&switch, _)| p[1] <= switch && switch <= p[2])
-        .map(|(_, &number)| number)
-        .collect()
 }
 
 // --- the commands that are built from several opcodes ----------------------------

@@ -267,6 +267,7 @@ party_ready:
     jsr initial_equipment_set
     jsl f:hp_initial_set
     jsl f:initial_skills_set
+    jsl f:compar_clear          ; and no parallel common event running
     jsr actor_gfx_clear
     jsr weather_clear
     jsr se_clear

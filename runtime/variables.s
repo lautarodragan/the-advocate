@@ -97,16 +97,16 @@ no_refresh:
     lda switches, y
     ora f:mask, x
     sta switches, y
-    lda #1
-    sta refresh                 ; the pages that ask for it may change
-    rts
+    bra wrote
 off:
     lda f:mask, x
     eor #$FF
     and switches, y
     sta switches, y
+wrote:
     lda #1
-    sta refresh
+    sta refresh                 ; the pages that ask for it may change
+    jsl f:compar_owe + FAST     ; and the pure parallel common events
     rts
 .endproc
 

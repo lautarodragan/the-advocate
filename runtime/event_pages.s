@@ -566,6 +566,9 @@ no_pages:
     jsr page_routes             ; which also rebuilds each event's `FLAG_AUTO`:
                                 ; the active page changed
 no_refresh:
+    ; The parallel common events, which in `Game_Map::Update` go before the
+    ; map's events —`UpdateCommonEvents`, then `UpdateMapEvents`—.
+    jsl f:compar_tick + FAST
     ; `Game_Event::CheckEventAutostart`, which hangs off
     ; `Game_Event::UpdateNextMovementAction` —`game_event.cpp:409`— and that is
     ; why it runs in here: every event with an active autostart page is left

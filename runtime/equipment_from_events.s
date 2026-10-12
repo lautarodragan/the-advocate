@@ -14,6 +14,7 @@
 .proc equipment_remove
 .a8
 .i16
+    jsl f:compar_owe            ; the pure parallel common events read it
     lda [code_ptr], y           ; the actor
     iny
     sta temp + 2
@@ -159,97 +160,6 @@ put:
     sep #$20
 .a8
     rts
-.endproc
-
-; The parallel common events that only look at the equipment
-; —`PARTY_COMMON_EVENTS` in events.py; in the game, number 37, `UpdateAG7
-; Skills`—, each run once if its switch is on. `menu_screen` calls it on
-; closing, which is where the equipment changes: in RM2k they run every frame,
-; but they only read their switch and the equipment, so between one menu close
-; and the next they would give the same result. The other moment they change,
-; their switch turning on, does not go through here: the converter pastes the
-; body after the `ControlSwitches`.
-;
-; They run through `run_code`, as one more parallel event, with the
-; interpreter's context saved and restored as in `parallel_tick`; their body
-; neither waits nor opens messages, so it finishes within the same call. It
-; must be entered with the data bank at 0, which is where `switches` and the
-; interpreter keep their things.
-.proc equipment_commons
-.a8
-.i16
-    ldx #0
-other:
-    cpx #COMEQ_N
-    bcc has
-    rtl
-has:
-    phx
-    lda f:comeq_mask, x
-    sta temp
-    rep #$20
-.a16
-    txa
-    asl a
-    tax                         ; times two: the word tables
-    lda f:comeq_byte, x
-    tay
-    sep #$20
-.a8
-    lda switches, y
-    and temp
-    beq off
-    rep #$20
-.a16
-    lda ev_cur
-    pha
-    lda ev_waiting
-    pha
-    lda ev_running
-    pha
-    lda code_ptr
-    pha
-    lda f:comeq_code, x
-    sta code_ptr
-    stz ev_cur
-    sep #$20
-.a8
-    lda code_ptr + 2
-    pha
-    lda ev_active
-    pha
-    lda pair_ev
-    pha
-    lda f:comeq_bank, x
-    sta code_ptr + 2
-    lda #1
-    sta ev_active
-    lda #$FF
-    sta pair_ev                 ; neither a map's parallel event nor a
-                                ; battle page
-    jsl f:run_code_long
-    pla
-    sta pair_ev
-    pla
-    sta ev_active
-    pla
-    sta code_ptr + 2
-    rep #$20
-.a16
-    pla
-    sta code_ptr
-    pla
-    sta ev_running
-    pla
-    sta ev_waiting
-    pla
-    sta ev_cur
-    sep #$20
-.a8
-off:
-    plx
-    inx
-    bra other
 .endproc
 
 ; The skill bits set to what the LDB says each actor knows at their initial
