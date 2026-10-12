@@ -399,7 +399,7 @@ fn without_bare_window(text: &str) -> String {
 #[test]
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
-    let text = without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&emitted.text))))))));
+    let text = without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&emitted.text)))))))));
     assert_eq!(text.lines().count(), 3777);
     assert_eq!(
         sha(&text),
@@ -410,7 +410,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 #[test]
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
-    let text = without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&emitted.text))))))));
+    let text = without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&without_pairs(&without_custom_menus(&emitted.text)))))))));
     assert_eq!(text.lines().count(), 3896);
     assert_eq!(
         sha(&text),
@@ -505,4 +505,52 @@ fn enemies_with_more_actions_than_a_byte_numbers_start_in_words() {
     let text = rm2k_snes_mapdata::emit::emit(&request, &db()).unwrap().text;
     let starts = text.split("enemy_acc_init:\n").nth(1).unwrap().lines().next().unwrap();
     assert_eq!(starts, "    .word 0, 40, 80, 120, 160, 200, 240, 280");
+}
+
+/// The text without `WINDOW_BACKDROP_LINES`, which came after the Python
+/// (2026-10-12): checked here to say the four lines this request's
+/// window has, which are not the same.
+fn without_backdrop_lines(text: &str) -> String {
+    let line = "WINDOW_BACKDROP_LINES = 4\n";
+    assert!(text.contains(line), "the window's backdrop should go whole");
+    text.replacen(line, "", 1)
+}
+
+/// The window's text area, as `background` of the request, with each of its
+/// four lines made of `line(k)`'s bytes: a line is 30 cells by two rows of
+/// 32-byte tiles.
+fn with_backdrop(line: impl Fn(usize) -> u8) -> (Emit, usize) {
+    let mut value: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(here().join("tests/emit-whole.json")).unwrap(),
+    )
+    .unwrap();
+    let bytes = 30 * 2 * 32;
+    let hex: String = (0..4)
+        .flat_map(|k| std::iter::repeat_n(format!("{:02x}", line(k)), bytes))
+        .collect();
+    value["screens"]["window"]["background"] = hex.into();
+    let mut maps: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(here().join("tests/maps.json")).unwrap()).unwrap();
+    for m in maps["maps"].as_array_mut().unwrap() {
+        let id = m["id"].as_i64().unwrap();
+        m["sprite"]["timer_mask"] = (id * 3).into();
+    }
+    value["maps"] = maps["maps"].take();
+    (serde_json::from_value(value).unwrap(), bytes)
+}
+
+/// A window over one colour —`[windows.background]`— has the same
+/// background under every line: it goes once, and `prime_line` copies it
+/// under all four.
+#[test]
+fn a_text_area_whose_lines_are_the_same_goes_as_one_line() {
+    let (request, bytes) = with_backdrop(|_| 0xAA);
+    let text = rm2k_snes_mapdata::emit::emit(&request, &db()).unwrap().text;
+    assert!(text.contains("WINDOW_BACKDROP_LINES = 1\n"));
+    assert!(text.contains(&format!(".block {bytes}\nwindow_backdrop:\n")), "one line");
+
+    let (request, bytes) = with_backdrop(|k| if k == 3 { 0xAB } else { 0xAA });
+    let text = rm2k_snes_mapdata::emit::emit(&request, &db()).unwrap().text;
+    assert!(text.contains("WINDOW_BACKDROP_LINES = 4\n"));
+    assert!(text.contains(&format!(".block {}\nwindow_backdrop:\n", bytes * 4)), "all four");
 }
