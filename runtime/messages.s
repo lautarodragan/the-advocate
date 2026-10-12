@@ -566,6 +566,15 @@ no_bar:
     lda #$08                    ; one register, the source fixed
     bra go
 with_background:
+.if ::WINDOW_BACKDROP_LINES = 1   ; `::`: inside a `.proc`, without it it is not constant
+    ; Every line has the same background —a window over one colour, the
+    ; project's `[windows.background]`—, so the converter wrote only one
+    ; and it goes under all of them.
+    ldx #.loword(window_backdrop)
+    stx A1T0L
+    ldx #TEXT_BUF_BYTES
+    stx DAS0L
+.else
     rep #$20
 .a16
     ; The source: two cell rows per line, 60 tiles of 32 bytes.
@@ -595,6 +604,7 @@ with_background:
     sta DAS0L
     sep #$20
 .a8
+.endif
     lda #^window_backdrop
     sta A1B0
     lda #$00                    ; one register, one byte at a time

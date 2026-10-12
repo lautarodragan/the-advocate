@@ -11,7 +11,7 @@ use ditto::dump::Dump;
 use ditto::schema::{Actor, Item, System, Terms};
 use rm2k_render::picture::{self, Picture};
 use rm2k_render::source::find_resource;
-use rm2k_rules::system::{self as system_rules, Background};
+use rm2k_rules::system::{self as system_rules, Background, BACKGROUND, PIECE};
 use rm2k_snes_text::font::Font;
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -45,6 +45,9 @@ pub struct Game {
     /// The System's picture when the project names a file of its own
     /// —see [`Game::use_system`]—: then it is not looked for.
     pub system_file: Option<PathBuf>,
+    /// The colour the windows are drawn over instead of the System's own
+    /// background —see [`Game::use_window_background`]—: None, the System's.
+    pub window_background: Option<[u8; 3]>,
 }
 
 fn answer(e: ditto::lcf::Error) -> Bad {
@@ -67,6 +70,7 @@ impl Game {
             game_dir: game_dir.to_path_buf(),
             rtp_dir: None,
             system_file: None,
+            window_background: None,
         })
     }
 
@@ -81,6 +85,20 @@ impl Game {
         } else {
             self.system.system_name = spec.to_string();
         }
+    }
+
+    /// Draws every window over one colour, `"#rrggbb"`, instead of the
+    /// System's background: the project file's `[windows.background]` for
+    /// the System this draws with, which the converter passes on —a
+    /// gradient arrives as the one colour it is drawn with for now—. The
+    /// System keeps giving the frame, the cursor, the arrow, the digits and
+    /// the text colours.
+    pub fn use_window_background(&mut self, spec: &str) -> Result<()> {
+        let hex = spec.strip_prefix('#').filter(|h| h.len() == 6 && h.chars().all(|c| c.is_ascii_hexdigit()));
+        let hex = hex.ok_or_else(|| Bad::usage(format!("a window background is \"#rrggbb\", and {spec:?} is not")))?;
+        let channel = |k: usize| u8::from_str_radix(&hex[k..k + 2], 16).unwrap();
+        self.window_background = Some([channel(0), channel(2), channel(4)]);
+        Ok(())
     }
 
     /// Draws with the font `spec` names: `rm2k`, one the engine carries,
@@ -123,7 +141,7 @@ impl Game {
             .or_else(|| find_resource(&self.rtp(), "System", name));
         match found {
             Some(path) => Ok(Skin {
-                picture: picture::read_rm2k(&path)?,
+                picture: self.flattened(picture::read_rm2k(&path)?),
                 background,
                 path,
                 redrawn: None,
@@ -134,6 +152,20 @@ impl Game {
                 self.rtp_dir.as_ref().map_or(String::new(), |r| format!(" nor in {}", r.display()))
             ))),
         }
+    }
+
+    /// The System with its background's square filled with
+    /// [`Game::window_background`], if there is one: stretched or tiled,
+    /// one colour fills a window the same, so every window drawn from the
+    /// skin —the message window, the screens', the battle's— gets it, and
+    /// takes one entry of colour memory for it.
+    fn flattened(&self, mut system: Picture) -> Picture {
+        let Some([r, g, b]) = self.window_background else {
+            return system;
+        };
+        let square = Picture::filled(PIECE as usize, PIECE as usize, [r, g, b, 255]);
+        system.put(BACKGROUND.0 as usize, BACKGROUND.1 as usize, &square);
+        system
     }
 
     /// The RTP, as a list of directories to look in: empty without one.

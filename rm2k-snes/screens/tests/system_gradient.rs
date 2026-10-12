@@ -86,3 +86,28 @@ fn a_gradient_behind_the_frame_fits_every_bank() {
     // And the same System gives the same cartridge.
     assert_eq!(convert::convert(&game, &request()).unwrap(), answer);
 }
+
+/// `[windows.background]`: the same System over one colour fuses nothing,
+/// and every window's background is that colour, one entry of the palette.
+#[test]
+fn over_one_colour_the_same_system_fuses_nothing() {
+    let mut game = game_with(&gradient_system(), "flat");
+    game.use_window_background("#102030").unwrap();
+    let answer = convert::convert(&game, &request()).unwrap();
+    let says: Vec<&str> = answer["says"].as_array().unwrap().iter().map(|s| s.as_str().unwrap()).collect();
+    let fused = |s: &&str| s.contains("as RM2k draws them") || s.contains("frame and arrow took");
+    assert!(!says.iter().any(|s| fused(s)), "nothing should be fused: {says:#?}");
+    let skin = game.skin().unwrap();
+    let inside = skin.window_background(40, 24);
+    assert!(inside.rgba.chunks_exact(4).all(|p| p == [0x10, 0x20, 0x30, 255]));
+    // The frame is the System's still: it is not the colour.
+    let window = skin.window(40, 24);
+    assert_ne!(&window.rgba[..4], &[0x10, 0x20, 0x30, 255]);
+}
+
+#[test]
+fn a_window_background_that_is_not_a_colour_is_refused() {
+    let mut game = game_with(&gradient_system(), "bad");
+    assert!(game.use_window_background("102030").is_err());
+    assert!(game.use_window_background("#10203").is_err());
+}

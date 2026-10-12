@@ -13,6 +13,7 @@ use crate::fail::{Result, Stop};
 use crate::font::FontChoice;
 use crate::game::Game;
 use crate::stage;
+use rm2k_project::windows::color_text;
 use rm2k_snes_mapdata::{cgram, vram};
 use serde_json::{json, Value};
 use std::ffi::OsString;
@@ -32,6 +33,12 @@ fn game_flags(game: &Game) -> Vec<OsString> {
     }
     if let Some(system) = &game.system {
         flags.extend(["--system".into(), system.into()]);
+    }
+    // Only the System the cartridge starts with is drawn: the engine does
+    // not change System yet (`ChangeSystemGraphics` is ignored). A gradient
+    // goes as the one colour it is drawn with until the runtime draws it.
+    if let Some(background) = game.window_background(&game.starting_system()) {
+        flags.extend(["--window-background".into(), color_text(background.flat()).into()]);
     }
     flags
 }

@@ -764,9 +764,21 @@ fn window_section(out: &mut String, r: &Emit, window: &Value, t: &Geometry) -> R
         }
     }
     line(out, &block("window_arrow_cells", &words_le(arrow_table)));
+    // The text area's background, one line —two cell rows— after another,
+    // which `prime_line` copies under each line before its letters. When
+    // every line is the same —a window over one colour, `[windows.
+    // background]`— only the first goes, and `prime_line` copies it under
+    // all of them: a quarter of the bytes.
+    let backdrop = bytes_at(window, "background")?;
+    let line_bytes = (t.n("WINDOW_TEXT_COLS") * 2 * 32) as usize;
+    let text_lines = (t.n("WINDOW_TEXT_ROWS") / 2) as usize;
+    let lines: Vec<&[u8]> = backdrop.chunks(line_bytes).collect();
+    let one_line = backdrop.len() == line_bytes * text_lines && lines.iter().all(|l| *l == lines[0]);
+    let backdrop_lines = if one_line { 1 } else { text_lines };
+    out.push_str(&format!("WINDOW_BACKDROP_LINES = {backdrop_lines}\n"));
     line(
         out,
-        &block("window_backdrop", &bytes_at(window, "background")?),
+        &block("window_backdrop", if one_line { lines[0] } else { &backdrop }),
     );
     // And the same background with the System's cursor on each line, and
     // one line's with the cursor over nothing: a choice's highlighted

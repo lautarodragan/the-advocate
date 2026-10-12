@@ -19,6 +19,7 @@ use crate::fail::{Result, Stop};
 use crate::fork::Forks;
 use ditto::dump::{read_map, Dump};
 use ditto::schema;
+use rm2k_project::windows::WindowBackground;
 use rm2k_project::Project;
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
@@ -232,6 +233,10 @@ pub struct Game {
     /// `[graphics] system`, the System the cartridge draws with instead of
     /// the database's —see [`system_choice`]—. None, the database's.
     pub system: Option<String>,
+    /// `[windows.background]`: what fills the windows of each System
+    /// instead of its own background, by its name —see
+    /// [`Game::window_background`]—.
+    pub window_backgrounds: BTreeMap<String, WindowBackground>,
     /// `[graphics] decorative_events`: whether the events that are only a
     /// drawing are painted into the background and stop being events. Off
     /// when the key is missing: it changes the map of any game that has
@@ -289,6 +294,53 @@ pub fn dump_dir(game_dir: &Path, project: &Project) -> Result<PathBuf> {
 }
 
 impl Game {
+    /// The System the cartridge starts with, by the name
+    /// `[windows.background]` keys it with: `[graphics] system`'s —the
+    /// stem of its file, if it is a picture of the project's own— or the
+    /// database's.
+    pub fn starting_system(&self) -> String {
+        match &self.system {
+            Some(spec) if Path::new(spec).is_absolute() => Path::new(spec)
+                .file_stem()
+                .map(|s| s.to_string_lossy().into_owned())
+                .unwrap_or_default(),
+            Some(name) => name.clone(),
+            None => self.db.system_name.clone(),
+        }
+    }
+
+    /// What fills the windows of System `system` instead of its own
+    /// background, or None: then they keep the System's.
+    pub fn window_background(&self, system: &str) -> Option<&WindowBackground> {
+        let system = system.to_lowercase();
+        self.window_backgrounds
+            .iter()
+            .find(|(name, _)| name.to_lowercase() == system)
+            .map(|(_, v)| v)
+    }
+
+    /// That every System `[windows.background]` names is one the game can
+    /// draw with —in its folder, in the RTP, or `[graphics] system`—: a
+    /// misspelt name would leave its windows as they were without a word.
+    /// Once the RTP is known.
+    pub fn check_window_backgrounds(&self) -> Result<()> {
+        let starting = self.starting_system().to_lowercase();
+        let rtp: Vec<PathBuf> = self.rtp_dir.iter().cloned().collect();
+        for name in self.window_backgrounds.keys() {
+            let found = name.to_lowercase() == starting
+                || crate::resources::find(&[&self.game_dir], "System", name, &[".png", ".bmp"]).is_some()
+                || crate::resources::find(&rtp, "System", name, &[".png", ".bmp"]).is_some();
+            if !found {
+                crate::stop!(
+                    "[windows.background] {}: the game has no System by that name, nor does the RTP; \
+                     the key is the System's name without its extension",
+                    crate::text::repr(name)
+                );
+            }
+        }
+        Ok(())
+    }
+
     pub fn read(game_dir: &Path, project: &Project) -> Result<Game> {
         let dump_path = dump_dir(game_dir, project)?;
         let this_game = dump_path == project.data()?;
@@ -337,6 +389,7 @@ impl Game {
             translucent,
             cropped: crate::pictures::Cropped::read(project)?,
             system: system_choice(project)?,
+            window_backgrounds: project.window_backgrounds()?,
             decorative: match project.value(&["graphics", "decorative_events"]) {
                 Err(_) => false,
                 Ok(_) => project.boolean(&["graphics", "decorative_events"])?,
