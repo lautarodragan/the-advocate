@@ -111,9 +111,12 @@ pub struct CannotCompile;
 /// The lines without their escape tail, how many pauses it has and whether
 /// it closes on its own.
 ///
-/// `\\.`, `\\!` and `\\|` anywhere else are dropped without waiting, and `\\c[n]` and `\\s[n]` without color or speed (debt, see `without_waits`). Both tail escapes are accepted only **as a tail at the end of the box's last
-/// line**, which is where a game puts them; the tail may carry spaces in
-/// between, and it eats them. An escape anywhere else, or more pauses than
+/// Both tail escapes are accepted only **as a tail at the end of the box's
+/// last line**, which is where a game puts them; the tail may carry spaces
+/// in between, and it eats them. `\\.`, `\\!` and `\\|` anywhere else are
+/// waits in the middle of the box, and come out as one [`wait_mark`] each;
+/// `\\c[n]` and `\\s[n]` are dropped, without color or speed (debt, see
+/// `with_wait_marks`). Any other escape, or more pauses than
 /// [`PAUSES_MAX`], is [`CannotCompile`].
 ///
 /// It is the only copy: the reflow works around it before the event
@@ -126,33 +129,18 @@ pub fn escape_tail(lines: &[String]) -> Result<(Vec<String>, usize, bool), Canno
     let mut auto_close = false;
     if let Some(last) = lines.last() {
         let text: Vec<char> = last.chars().collect();
-        let mut i = text.len();
-        let mut cut = text.len();
-        let mut escapes = 0;
-        while i > 0 {
-            if i >= 2 && text[i - 2] == ESCAPE && matches!(text[i - 1], ESCAPE_PAUSE | ESCAPE_CLOSE) {
-                i -= 2;
-                cut = i;
-                escapes += 1;
-            } else if text[i - 1] == ' ' {
-                i -= 1;
-            } else {
-                break;
-            }
-        }
-        if escapes > 0 {
-            let tail = &text[cut..];
-            pauses = tail
-                .windows(2)
-                .filter(|w| w[0] == ESCAPE && w[1] == ESCAPE_PAUSE)
-                .count();
-            auto_close = tail.windows(2).any(|w| w[0] == ESCAPE && w[1] == ESCAPE_CLOSE);
-            let n = lines.len();
-            lines[n - 1] = text[..cut].iter().collect();
-        }
+        let cut = tail_start(last);
+        let tail = &text[cut..];
+        pauses = tail
+            .windows(2)
+            .filter(|w| w[0] == ESCAPE && w[1] == ESCAPE_PAUSE)
+            .count();
+        auto_close = tail.windows(2).any(|w| w[0] == ESCAPE && w[1] == ESCAPE_CLOSE);
+        let n = lines.len();
+        lines[n - 1] = text[..cut].iter().collect();
     }
     for line in lines.iter_mut() {
-        *line = without_waits(line);
+        *line = with_wait_marks(line);
     }
     if lines.iter().any(|t| t.contains(ESCAPE)) || pauses > PAUSES_MAX {
         return Err(CannotCompile);
@@ -160,22 +148,85 @@ pub fn escape_tail(lines: &[String]) -> Result<(Vec<String>, usize, bool), Canno
     Ok((lines, pauses, auto_close))
 }
 
-/// The line without the waits that are not in the tail: `\.` (a quarter of a
-/// second), `\|` (a second) and `\!` (a key). Debt, on purpose: the window is
-/// drawn all at once, so there is no halfway to wait at, and they are
-/// dropped without waiting; see `tasks/draw-the-faces-and-really-wait-on-the-escapes.md`.
-/// `\c[n]` and `\s[n]`, either case, are dropped too: a color and a speed the
-/// console does not have (`tasks/draw-the-faces-and-really-wait-on-the-escapes.md`).
+/// Where the escape tail of a box's last line starts, in characters: the
+/// `\|`s and `\^`s at its end, with the spaces between them; the line's
+/// length if it ends in neither.
+fn tail_start(last: &str) -> usize {
+    let text: Vec<char> = last.chars().collect();
+    let mut i = text.len();
+    let mut cut = text.len();
+    while i > 0 {
+        if i >= 2 && text[i - 2] == ESCAPE && matches!(text[i - 1], ESCAPE_PAUSE | ESCAPE_CLOSE) {
+            i -= 2;
+            cut = i;
+        } else if text[i - 1] == ' ' {
+            i -= 1;
+        } else {
+            break;
+        }
+    }
+    cut
+}
+
+/// The waits RM2k's message window knows in the middle of a box, by the
+/// letter of their escape: `\.` a quarter of a second, `\|` a second and
+/// `\!` a key. As a [`wait_mark`] each is a single character, so the reflow
+/// and the event compiler carry it inside a line like a letter that takes
+/// no room.
+pub const WAITS: [char; 3] = ['.', '|', '!'];
+
+/// Where the wait marks start: Unicode's last private use plane, past the
+/// marks of a variable's value —`VARIABLE_MARK` in `rm2k-snes-events`,
+/// `0xF0000` plus a byte—. No text of a game can carry one: the compiler
+/// stops at anything that is not printable ASCII.
+const WAIT_MARK: u32 = 0xF0100;
+
+/// The mark of the wait whose escape letter is `escape`, one of [`WAITS`].
+pub fn wait_mark(escape: char) -> char {
+    let i = WAITS.iter().position(|&w| w == escape).expect("a wait's escape");
+    char::from_u32(WAIT_MARK + i as u32).unwrap()
+}
+
+/// The escape letter of a wait mark, or `None` if `c` is not one.
+pub fn wait_of(c: char) -> Option<char> {
+    let i = (c as u32).checked_sub(WAIT_MARK)? as usize;
+    WAITS.get(i).copied()
+}
+
+/// The line with its wait marks written back as RM2k's escapes: what the
+/// reflow answers, so that a box it rebuilt is RM2k text again and goes
+/// through [`escape_tail`] like any other.
+pub fn with_wait_escapes(line: &str) -> String {
+    let mut out = String::with_capacity(line.len());
+    for c in line.chars() {
+        match wait_of(c) {
+            Some(w) => {
+                out.push(ESCAPE);
+                out.push(w);
+            }
+            None => out.push(c),
+        }
+    }
+    out
+}
+
+/// The line with the waits that are not in the tail as marks: `\.` (a
+/// quarter of a second), `\|` (a second) and `\!` (a key), each a
+/// [`wait_mark`]. The console waits there in the middle of the box as
+/// easyrpg's `Window_Message` does: see `runtime/message_waits.s`.
+/// `\c[n]` and `\s[n]`, either case, are dropped: a color and a speed the
+/// console does not have (`tasks/message-colours-and-speed.md`).
 /// A `\\` is skipped as a pair, so the letter after it is not taken as an
 /// escape.
-fn without_waits(line: &str) -> String {
+fn with_wait_marks(line: &str) -> String {
     let mut out = String::with_capacity(line.len());
     let mut chars = line.chars().peekable();
     while let Some(c) = chars.next() {
         if c == ESCAPE {
             match chars.peek() {
-                Some('.' | '!' | '|') => {
+                Some(&w @ ('.' | '!' | '|')) => {
                     chars.next();
+                    out.push(wait_mark(w));
                     continue;
                 }
                 // `\c[n]` (color) and `\s[n]` (speed): ignored, which loses the
@@ -214,8 +265,8 @@ fn without_waits(line: &str) -> String {
 /// with, how many pixels it may take, and how many pixels a letter is
 /// worth for the costs —the font's `n`—.
 ///
-/// The only escapes that compile go in the tail, outside of what is
-/// measured.
+/// The tail's escapes are outside of what is measured, and a wait in the
+/// middle —a [`wait_mark`]— takes no room.
 #[derive(Debug, Clone)]
 pub struct Measure {
     advances: Vec<u8>,
@@ -259,6 +310,9 @@ impl Measure {
     /// What `c` moves the line: its glyph's advance, and a character the
     /// font does not have is a space, which is how it is drawn.
     pub fn advance(&self, c: char) -> usize {
+        if wait_of(c).is_some() {
+            return 0; // a wait draws nothing
+        }
         let code = c as u32;
         let i = (code.wrapping_sub(32)) as usize;
         let i = if code >= 32 && i < self.advances.len() { i } else { 0 };
@@ -313,7 +367,8 @@ fn ends_pause(word: &str) -> bool {
 }
 
 fn ends_with(word: &str, marks: &[char]) -> bool {
-    let trimmed = word.trim_end_matches(['"', '\'', ')']);
+    // A wait after the period —`Wait.\|`— still ends the sentence.
+    let trimmed = word.trim_end_matches(|c| matches!(c, '"' | '\'' | ')') || wait_of(c).is_some());
     trimmed.chars().last().is_some_and(|c| marks.contains(&c))
 }
 
@@ -342,13 +397,17 @@ pub fn fits(lines: &[String], measure: &Measure, rows: usize) -> Result<bool, Ca
 }
 
 /// The box's escape tail, exactly as written, and the lines without it.
+///
+/// The tail is cut from the line as it was written, and not by the length
+/// of what `escape_tail` left: an escape in the middle of the last line is
+/// a mark there, one character for two, and counting with it cut the tail
+/// short.
 fn tail(lines: &[String]) -> Result<(Vec<String>, String), CannotCompile> {
     let (untailed, _, _) = escape_tail(lines)?;
-    match untailed.last() {
+    match lines.last() {
         None => Ok((untailed, String::new())),
         Some(last) => {
-            let kept = chars(last);
-            let tail = lines[lines.len() - 1].chars().skip(kept).collect();
+            let tail = last.chars().skip(tail_start(last)).collect();
             Ok((untailed, tail))
         }
     }
@@ -669,6 +728,9 @@ pub fn refit_measured(lines: &[String], measure: &Measure, rows: usize) -> Vec<V
         last.push(String::new());
     }
     last.last_mut().expect("a line").push_str(&tail);
+    for line in frames.iter_mut().flatten() {
+        *line = with_wait_escapes(line);
+    }
     frames
 }
 
@@ -685,7 +747,28 @@ mod tests {
         let (lines, pauses, close) = escape_tail(&s(&["Hi", "there\\| \\|\\^"])).unwrap();
         assert_eq!(lines, s(&["Hi", "there"]));
         assert_eq!((pauses, close), (2, true));
-        assert_eq!(escape_tail(&s(&["a \\| b\\. c\\!"])).unwrap().0, s(&["a  b c"]));
+        let middle = escape_tail(&s(&["a \\| b\\. c\\!"])).unwrap().0;
+        let marks: String = ['a', ' ', wait_mark('|'), ' ', 'b', wait_mark('.'), ' ', 'c', wait_mark('!')]
+            .iter()
+            .collect();
+        assert_eq!(middle, vec![marks]);
+    }
+
+    /// A wait in the middle takes no room, the reflow carries it inside its
+    /// word and answers it as the escape it was; and the tail of a last line
+    /// that also has one in the middle comes off whole.
+    #[test]
+    fn a_wait_in_the_middle_goes_through_the_reflow() {
+        let m = Measure::columns(10);
+        assert_eq!(m.of(&format!("abc{}", wait_mark('!'))), m.of("abc"));
+        let b = s(&["one two\\. three four five six\\! seven\\|\\^"]);
+        let boxes = refit_measured(&b, &m, 4);
+        let all = boxes.concat().join(" ");
+        assert!(all.contains("two\\.") && all.contains("six\\!"), "{boxes:?}");
+        assert!(boxes.last().unwrap().last().unwrap().ends_with("seven\\|\\^"), "{boxes:?}");
+        for b in &boxes {
+            assert!(fits(b, &m, 4).unwrap(), "{b:?}");
+        }
     }
 
     #[test]

@@ -726,9 +726,9 @@ fn compile_pass(
                 j += 1;
             }
             let lines: Vec<String> = tc[i..j].iter().map(|c| c.string.clone()).collect();
-            // Through the same `\V[n]` as the page will, so both find the
-            // same box: see `with_variables`.
-            match compile::with_variables(&compile::with_names(&lines, &indices), &indices).and_then(|l| messages.add(&l)) {
+            // Through the same `\V[n]` and the same waits as the page will,
+            // so both find the same box: see `with_variables`.
+            match compile::with_variables(&compile::with_names(&lines, &indices), &indices).and_then(|l| messages.add_waiting(&l)) {
                 Ok(_) => {}
                 Err(Stop::Fatal(b)) => return Err(b),
                 Err(Stop::Cannot) => {
