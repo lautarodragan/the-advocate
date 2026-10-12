@@ -93,8 +93,16 @@ fn run(args: &Args, compiling: bool) -> Result<()> {
 
 fn run_culprits(c: &CulpritArgs) -> Result<()> {
     let args = &c.args;
-    let request = Request::read(&args.request)?;
-    let game = Game::from_dump(&args.data, request.patches.clone())?;
+    let mut request = Request::read(&args.request)?;
+    let mut game = Game::from_dump(&args.data, request.patches.clone())?;
+    // A request written by hand does not say which Systems the cartridge
+    // carries a window for —the converter does, see `systems.rs` in
+    // `rm2k-snes-convert`—: every one the game names, so a
+    // `ChangeSystemGraphics` is not counted as what keeps its page out.
+    if request.patches.systems.is_empty() {
+        request.patches.systems = game.system_names()?;
+        game.patches.systems = request.patches.systems.clone();
+    }
     let judged = culprits::judge_game(&game, &request, c.every_map)?;
     let report = culprits::report(&judged);
     print!("{}", culprits::table(&report));

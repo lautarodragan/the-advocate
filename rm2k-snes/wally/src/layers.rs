@@ -505,6 +505,11 @@ fn painted(drawn: &Drawn, p: &Panorama, window_colors: usize, above: usize) -> s
         variants: Vec::new(),
     };
     let mut done = crate::background::convert_with(&on_black(&blank), window_colors, None).map_err(|e| e.to_string())?;
+    // That black tile is never seen —BG1 shows the painting's cells, see
+    // `runtime/painted.s`—, so it takes no colour: with a message window of
+    // fifteen, its one entry would fall on the painting's first palette.
+    done.background.cgram.clear();
+    done.background.used = 0;
     let (mut pano, decided) = crate::background::painted::painted(&whole).map_err(|e| e.to_string())?;
     // What goes in front of the hero: BG1's priority, and the edges in BG2,
     // the layer above's place, in its tiles but the blank one.

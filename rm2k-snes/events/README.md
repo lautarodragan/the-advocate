@@ -98,6 +98,12 @@ Both calls read these:
 * `extra_variables`: variables no page names that need a slot anyway.
 * `test_event_map`: the map the test pages boot in, which carries an event
   without pages at index 0 —so that they run before the game's— or null.
+* `systems`, **optional**: the Systems the cartridge carries a message
+  window for, the starting one first —`["System", "SaveMeny"]`—. A
+  `ChangeSystemGraphics` is `OP_CHANGE_SYSTEM` with its System's index in
+  this list, found without regard to case, and one that names a System
+  not in it does not compile. Missing, none: the command never compiles.
+  `culprits`, without it, takes every System the game names.
 
 `compile` also reads:
 

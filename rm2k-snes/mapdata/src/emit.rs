@@ -354,7 +354,8 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
     let per_map = record::maps_with(&r.maps, r.rom.msu != MsuData::Optional)?;
 
 
-    let window = at(screens, "window")?;
+    let windows = normalized_windows(at(screens, "window")?, &r.window_systems)?;
+    let window = &windows[0];
     let slots = at(screens, "slots")?;
     let title = r.title.as_ref().map(|full| (full, at(screens, "title")));
     let title_menu = match &title {
@@ -638,7 +639,7 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
     out.push_str(&per_map.maps);
 
     let mut notes = per_map.notes.clone();
-    window_section(&mut out, r, window, &t)?;
+    window_section(&mut out, r, &windows, &t)?;
     picture_section(&mut out, r)?;
     big_pictures_section(&mut out, r)?;
     animations_section(&mut out, r)?;
@@ -667,7 +668,7 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
     })
 }
 
-fn window_section(out: &mut String, r: &Emit, window: &Value, t: &Geometry) -> Result<()> {
+fn window_section(out: &mut String, r: &Emit, windows: &[Value], t: &Geometry) -> Result<()> {
     // The window is a single one for the whole cartridge, in palette 0. That
     // the background does not step on it comes from the split —it starts at
     // `reserved`— but it is checked anyway: no single map's comparison
@@ -685,7 +686,59 @@ fn window_section(out: &mut String, r: &Emit, window: &Value, t: &Geometry) -> R
         }
     }
     out.push_str("\n; --- the message window ---\n");
-    line(out, &block("window_tiles", &bytes_at(window, "tiles")?));
+    // One window per System the cartridge switches between, the starting
+    // one's with the plain labels: see `normalized_windows`. The background
+    // of the text area goes as one line only if it is one in all of them,
+    // because `prime_line` reads them all the same way.
+    // How many: the runtime reads the pieces through `window_systems` only
+    // when there are more than one —see `window_system.s`—.
+    out.push_str(&format!("WINDOW_SYSTEMS = {}\n", windows.len()));
+    let one_line = windows.iter().map(|w| backdrop_is_one_line(w, t)).collect::<Result<Vec<bool>>>()?.iter().all(|&b| b);
+    for (k, w) in windows.iter().enumerate() {
+        let suffix = if k == 0 { String::new() } else { format!("_{k}") };
+        window_pieces(out, r, w, t, &suffix, one_line)?;
+    }
+    if windows.len() > 1 {
+        window_systems_table(out, windows.len());
+    }
+    let window = &windows[0];
+    line(out, &block("font_table", &bytes_at(window, "font")?));
+    // How far each letter moves the line, and how far it paints: the
+    // composer adds the first and checks the second against the edge.
+    let small = |name: &str| -> Result<Vec<u8>> {
+        Ok(ints_at(window, name)?.into_iter().map(|n| n as u8).collect())
+    };
+    line(out, &block("font_advance", &small("advances")?));
+    line(out, &block("font_reach", &small("reach")?));
+
+    for (phase, data) in list_at(window, "prerender")?.iter().enumerate() {
+        line(
+            out,
+            &block(&format!("font_pre{phase}"), &crate::json::bytes(data)?),
+        );
+    }
+    line(out, &block("messages", &r.messages));
+    // How big it is and how big it can be, for `rm2k-snes-space`: the operand
+    // of `OP_MESSAGE` is sixteen bits, in steps of `MESSAGES_STEP`.
+    out.push_str(&pyf!(
+        "MESSAGES_BYTES = %d\nMESSAGES_CAP = %d\n",
+        r.messages.len(),
+        0x10000 * MESSAGES_STEP
+    ));
+    // The pairs its letters are written with, for `message_tick`.
+    line(out, &block("message_pairs", &r.message_pairs.table));
+    out.push_str(&pyf!("MESSAGE_PAIR_FIRST = %d\n", r.message_pairs.first));
+    Ok(())
+}
+
+/// One System's message window: its tiles, its palette, its two planes of
+/// cells for each window base, its arrow's cells, the text area's
+/// background and the bar over it. `suffix` goes after every label: empty
+/// for the System the cartridge starts with, `_k` for the `k`-th it
+/// switches to.
+fn window_pieces(out: &mut String, r: &Emit, window: &Value, t: &Geometry, suffix: &str, one_line: bool) -> Result<()> {
+    let reserved = cgram_reserved(r.window_colors);
+    line(out, &block(&format!("window_tiles{suffix}"), &bytes_at(window, "tiles")?));
     // Only the `reserved` at the bottom: from there up it is the
     // background's.
     let cgram = ints_at(window, "cgram")?;
@@ -694,7 +747,7 @@ fn window_section(out: &mut String, r: &Emit, window: &Value, t: &Geometry) -> R
         .take(reserved as usize)
         .map(|&w| w as u32)
         .collect();
-    line(out, &block("window_cgram", &words_le(words)));
+    line(out, &block(&format!("window_cgram{suffix}"), &words_le(words)));
     // One layout of the cells per window base the VRAM layouts use, with
     // the upper layer's priority so it covers the hero and the events.
     //
@@ -709,6 +762,7 @@ fn window_section(out: &mut String, r: &Emit, window: &Value, t: &Geometry) -> R
         .iter()
         .zip(["window_cells", "window_cells_256"])
     {
+        let label = format!("{label}{suffix}");
         let mut framed = Vec::new();
         let mut bare = Vec::new();
         for row in list_at(window, "cells")? {
@@ -720,7 +774,7 @@ fn window_section(out: &mut String, r: &Emit, window: &Value, t: &Geometry) -> R
             }
         }
         framed.extend(bare);
-        line(out, &block(label, &words_le(framed)));
+        line(out, &block(&label, &words_le(framed)));
     }
     // The cells of the arrow of a message waiting for a key, per window base
     // in the order of `window_cells`: with the frame, off and on, and
@@ -764,7 +818,7 @@ fn window_section(out: &mut String, r: &Emit, window: &Value, t: &Geometry) -> R
             arrow_table.push(cell(tile));
         }
     }
-    line(out, &block("window_arrow_cells", &words_le(arrow_table)));
+    line(out, &block(&format!("window_arrow_cells{suffix}"), &words_le(arrow_table)));
     // The text area's background, one line —two cell rows— after another,
     // which `prime_line` copies under each line before its letters. When
     // every line is the same —a window over one colour, `[windows.
@@ -774,45 +828,103 @@ fn window_section(out: &mut String, r: &Emit, window: &Value, t: &Geometry) -> R
     let line_bytes = (t.n("WINDOW_TEXT_COLS") * 2 * 32) as usize;
     let text_lines = (t.n("WINDOW_TEXT_ROWS") / 2) as usize;
     let lines: Vec<&[u8]> = backdrop.chunks(line_bytes).collect();
-    let one_line = backdrop.len() == line_bytes * text_lines && lines.iter().all(|l| *l == lines[0]);
     let backdrop_lines = if one_line { 1 } else { text_lines };
-    out.push_str(&format!("WINDOW_BACKDROP_LINES = {backdrop_lines}\n"));
+    if suffix.is_empty() {
+        out.push_str(&format!("WINDOW_BACKDROP_LINES = {backdrop_lines}\n"));
+    }
     line(
         out,
-        &block("window_backdrop", if one_line { lines[0] } else { &backdrop }),
+        &block(&format!("window_backdrop{suffix}"), if one_line { lines[0] } else { &backdrop }),
     );
     // And the same background with the System's cursor on each line, and
     // one line's with the cursor over nothing: a choice's highlighted
     // option is composed over these. See `prime_line` in the runtime.
-    line(out, &block("window_bar", &bytes_at(window, "bar")?));
-    line(out, &block("window_bar_bare", &bytes_at(window, "bar_bare")?));
-    line(out, &block("font_table", &bytes_at(window, "font")?));
-    // How far each letter moves the line, and how far it paints: the
-    // composer adds the first and checks the second against the edge.
-    let small = |name: &str| -> Result<Vec<u8>> {
-        Ok(ints_at(window, name)?.into_iter().map(|n| n as u8).collect())
-    };
-    line(out, &block("font_advance", &small("advances")?));
-    line(out, &block("font_reach", &small("reach")?));
-
-    for (phase, data) in list_at(window, "prerender")?.iter().enumerate() {
-        line(
-            out,
-            &block(&format!("font_pre{phase}"), &crate::json::bytes(data)?),
-        );
-    }
-    line(out, &block("messages", &r.messages));
-    // How big it is and how big it can be, for `rm2k-snes-space`: the operand
-    // of `OP_MESSAGE` is sixteen bits, in steps of `MESSAGES_STEP`.
-    out.push_str(&pyf!(
-        "MESSAGES_BYTES = %d\nMESSAGES_CAP = %d\n",
-        r.messages.len(),
-        0x10000 * MESSAGES_STEP
-    ));
-    // The pairs its letters are written with, for `message_tick`.
-    line(out, &block("message_pairs", &r.message_pairs.table));
-    out.push_str(&pyf!("MESSAGE_PAIR_FIRST = %d\n", r.message_pairs.first));
+    line(out, &block(&format!("window_bar{suffix}"), &bytes_at(window, "bar")?));
+    line(out, &block(&format!("window_bar_bare{suffix}"), &bytes_at(window, "bar_bare")?));
     Ok(())
+}
+
+/// Whether the text area's four lines have the same background: a window
+/// over one colour, `[windows.background]`.
+fn backdrop_is_one_line(window: &Value, t: &Geometry) -> Result<bool> {
+    let backdrop = bytes_at(window, "background")?;
+    let line_bytes = (t.n("WINDOW_TEXT_COLS") * 2 * 32) as usize;
+    let text_lines = (t.n("WINDOW_TEXT_ROWS") / 2) as usize;
+    let lines: Vec<&[u8]> = backdrop.chunks(line_bytes).collect();
+    Ok(backdrop.len() == line_bytes * text_lines && lines.iter().all(|l| *l == lines[0]))
+}
+
+/// How many bytes a System's entry takes in `window_systems`: the eight
+/// 24-bit pointers `window_select` copies to `WINDOW_NOW`, in the order of
+/// `WS_TILES` and the rest in the runtime's `window_system.s`.
+pub const WINDOW_SYSTEM_BYTES: usize = 24;
+
+/// The table the runtime finds each System's window in: per System, in the
+/// cartridge's order, a pointer to each of its pieces.
+fn window_systems_table(out: &mut String, systems: usize) {
+    out.push_str(&format!(
+        "; The message window of each System, for `window_select`.\n\
+         WINDOW_SYSTEM_BYTES = {WINDOW_SYSTEM_BYTES}\n\
+         .block {}\nwindow_systems:\n",
+        systems * WINDOW_SYSTEM_BYTES
+    ));
+    for k in 0..systems {
+        let suffix = if k == 0 { String::new() } else { format!("_{k}") };
+        for piece in [
+            "window_tiles",
+            "window_cgram",
+            "window_cells",
+            "window_cells_256",
+            "window_arrow_cells",
+            "window_backdrop",
+            "window_bar",
+            "window_bar_bare",
+        ] {
+            out.push_str(&format!("    .word .loword({piece}{suffix})\n    .byte ^{piece}{suffix}\n"));
+        }
+    }
+    out.push('\n');
+}
+
+/// The starting System's window and those of the Systems the cartridge
+/// switches to, all with the same tile numbers: the text area starts where
+/// the largest frame ends —`WINDOW_TEXT_BASE` is one for the whole
+/// cartridge— and a smaller frame is padded with blank tiles up to it. The
+/// font's composed tables are the starting System's for all of them, so
+/// each has to give the text the same entries: the screens stage laid them
+/// out that way —see `text_rows` in `rm2k-snes-screens window`—, and this
+/// checks it. With one System, its window as it came.
+fn normalized_windows(window: &Value, others: &[Value]) -> Result<Vec<Value>> {
+    if others.is_empty() {
+        return Ok(vec![window.clone()]);
+    }
+    let mut all: Vec<Value> = vec![window.clone()];
+    let mut base = int_at(window, "base")?;
+    for o in others {
+        let w = at(o, "window")?;
+        base = base.max(int_at(w, "base")?);
+        if (at(w, "color")?, at(w, "shadow")?) != (at(window, "color")?, at(window, "shadow")?) {
+            return Err(Bad::answer(format!(
+                "System {} gives the text other palette entries than the starting one: the \
+                 font's tables are one for all of them",
+                at(o, "system")?
+            )));
+        }
+        all.push(w.clone());
+    }
+    for w in &mut all {
+        let own = int_at(w, "base")?;
+        let mut tiles = bytes_at(w, "tiles")?;
+        tiles.resize(base as usize * 32, 0);
+        let cells: Vec<Value> = list_at(w, "cells")?
+            .iter()
+            .map(|row| Ok(Value::from(ints(row)?.into_iter().map(|c| if c >= own { c - own + base } else { c }).collect::<Vec<i64>>())))
+            .collect::<Result<_>>()?;
+        w["tiles"] = Value::from(tiles.iter().map(|b| format!("{b:02x}")).collect::<String>());
+        w["cells"] = Value::from(cells);
+        w["base"] = Value::from(base);
+    }
+    Ok(all)
 }
 
 /// How many bytes a picture's entry takes in `picture_data`: see

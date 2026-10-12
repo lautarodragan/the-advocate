@@ -93,6 +93,7 @@ fn everything_a_cartridge_carries() {
         vram: vram(),
         menus: Vec::new(),
         menu_context: Default::default(),
+        text_rows: None,
     };
     let mut answer = convert::convert(&game(), &request).unwrap();
     // The geometry is constants, and the Python had them as its own.
@@ -205,6 +206,7 @@ fn names_that_do_not_fit_in_the_bank_are_refused() {
         vram: vram(),
         menus: Vec::new(),
         menu_context: Default::default(),
+        text_rows: None,
     };
     let bad = convert::convert(&game(), &request).unwrap_err();
     assert!(bad.message().contains("has no room for the composed names"), "{}", bad.message());

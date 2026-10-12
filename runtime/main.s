@@ -107,6 +107,10 @@
 ; because `WINDOW_TEXT_COLS` is emitted by the converter.
 WINDOW_TEXT_LINES = WINDOW_TEXT_ROWS / 2
 TEXT_BUF_BYTES = WINDOW_TEXT_COLS * 2 * 32
+; And the message window's System, whose macros everything that reads a
+; piece of the window uses, so it goes before all of them. With a single
+; System it assembles nothing.
+.include "window_system.s"
 
 .include "zero_page.s"
 .include "boot.s"

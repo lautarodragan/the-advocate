@@ -150,3 +150,20 @@ open:
     sta f:FAR_LENGTH + FAR_MSG_OPTIONS
     jmp run_code::other
 .endproc
+
+; `ChangeSystemGraphics`: the message window with System N from here on. Its
+; pieces are read from the new one at once —the next line composed is over
+; its background— and its tiles, palette and tilemap go up in the next
+; vblank. See window_system.s. A cartridge with one System never emits it:
+; its compiler leaves out the page that asks for another.
+.proc op_change_system
+    lda [code_ptr], y
+    iny
+.if ::WINDOW_SYSTEMS > 1
+    sta f:WINDOW_SYSTEM
+    jsl f:window_select
+    lda #1
+    sta f:WINDOW_SWAP
+.endif
+    jmp run_code::other
+.endproc

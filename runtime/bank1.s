@@ -256,6 +256,10 @@ save_table:
     ; load keeps it: see `PANO_KEEP` in pano.s.
     .word PANO_AX & $FFFF, 4
     .word PANO_FLAGS & $FFFF, 5
+.if ::WINDOW_SYSTEMS > 1
+    ; And the System the message window is drawn with, which RM2k saves too.
+    .word .loword(WINDOW_SYSTEM), 1
+.endif
     ; And the experience and level of each actor that can fight. **It goes
     ; last on purpose**: the slot screen reads the leader's level from SRAM
     ; counting from the end of the save —`EXP_LEVEL_IN_SLOT`—, and a line

@@ -109,11 +109,61 @@ fn over_black(picture: &Picture) -> Vec<Color> {
 /// The converter asks for it once and hands it to everyone who shares
 /// colour memory with the window: each map's background starts after it.
 pub fn colors(skin: &Skin) -> Result<usize> {
-    Ok(draw(skin)?.colors.len())
+    colors_with(skin, None)
+}
+
+/// [`colors`], with the text's colours laid out by `rows` —see
+/// [`TextRows`]—: two Systems' entries may hold the same colour twice.
+pub fn colors_with(skin: &Skin, rows: Option<&TextRows>) -> Result<usize> {
+    Ok(draw(skin, rows, PALETTE_ENTRIES)?.entries(rows))
+}
+
+/// The entries a window may take after the transparent one: a palette's.
+const PALETTE_ENTRIES: usize = COLORS_PER_PALETTE - 1;
+
+/// Which of the glyph's twelve rows go with one palette index, the same in
+/// every System the cartridge switches between: the rows each System
+/// colours alike, split as finely as any of them splits them —see
+/// [`common_rows`]—. **It is what lets the font's composed tables be one
+/// for every System**: they carry the index of each row and not its colour,
+/// so with the indices fixed a System is only its palette, and the eight
+/// tables, some 116 KB, are not carried twice. Entry `k + 1` is class `k`'s
+/// colour, and the shadow's is the next one.
+pub type TextRows = Vec<Vec<usize>>;
+
+/// The classes of the glyph's rows this System colours alike, in the order
+/// of their first row.
+pub fn text_rows(skin: &Skin) -> Result<TextRows> {
+    let (color_row, _) = text_colors(skin)?;
+    let mut classes: Vec<(Color, Vec<usize>)> = Vec::new();
+    for (row, c) in color_row.iter().enumerate() {
+        match classes.iter_mut().find(|(k, _)| k == c) {
+            Some((_, rows)) => rows.push(row),
+            None => classes.push((*c, vec![row])),
+        }
+    }
+    Ok(classes.into_iter().map(|(_, rows)| rows).collect())
+}
+
+/// The coarsest split of the glyph's rows that is as fine as every one of
+/// `each`: two rows go together only if every System colours them alike.
+/// In the order of their first row.
+pub fn common_rows(each: &[TextRows]) -> TextRows {
+    let class_of = |classes: &TextRows, row: usize| classes.iter().position(|c| c.contains(&row));
+    let mut out: Vec<(Vec<Option<usize>>, Vec<usize>)> = Vec::new();
+    for row in 0..font::HEIGHT {
+        let key: Vec<Option<usize>> = each.iter().map(|c| class_of(c, row)).collect();
+        match out.iter_mut().find(|(k, _)| *k == key) {
+            Some((_, rows)) => rows.push(row),
+            None => out.push((key, vec![row])),
+        }
+    }
+    out.into_iter().map(|(_, rows)| rows).collect()
 }
 
 /// The empty window and what the cartridge puts over it, each cut to the
 /// console's colours, and the colours of all of them together.
+#[derive(Clone)]
 struct Drawn {
     width: usize,
     height: usize,
@@ -146,22 +196,34 @@ struct Drawn {
 /// `reserved` is where whatever follows the window in colour memory
 /// starts: the window may not reach it. [`colors`] says where it ends.
 pub fn convert(skin: &Skin, reserved: usize) -> Result<Window> {
-    let Drawn { width, height, pixels, with_arrow, bare_arrow, with_bar, bare_bar, color_row, shadow, colors, frame_fused, .. } =
-        draw(skin)?;
+    convert_with(skin, reserved, None)
+}
+
+/// [`convert`], with the text's colours at the entries `rows` fixes —see
+/// [`TextRows`]—, for a cartridge that switches System: every System's
+/// window then composes its letters with the same tables.
+///
+/// **A System the cartridge switches to fits in what the starting one
+/// takes**, `reserved` minus one: if it brings more, it is reduced like one
+/// that does not fit a palette. The maps' backgrounds start after the
+/// window, so a second System never takes colours from them; what it loses
+/// is its own, and the converter writes it in the game's patches.
+pub fn convert_with(skin: &Skin, reserved: usize, rows: Option<&TextRows>) -> Result<Window> {
+    let drawn = draw(skin, rows, reserved.saturating_sub(1).min(PALETTE_ENTRIES))?;
+    let entries = drawn.entries(rows);
+    let (palette, index, color, shadow) = drawn.palette(rows);
+    let Drawn { width, height, pixels, with_arrow, bare_arrow, with_bar, bare_bar, frame_fused, .. } = drawn;
     // What follows starts where this ends, so if the window grew it would
     // step on it and the cartridge would draw the text with a colour of the
     // map. The highest entry is the number of colours —0 is transparent and
     // the rest go in order—, and not how many words are nonzero: a black
     // colour has word zero and would not be counted.
-    if colors.len() >= reserved {
+    if entries >= reserved {
         return Err(Bad::answer(format!(
-            "the message window, its arrow and its cursor use colour-memory entries up to {} and \
-             what follows starts at {reserved}",
-            colors.len()
+            "the message window, its arrow and its cursor use colour-memory entries up to {entries} and \
+             what follows starts at {reserved}"
         )));
     }
-    let colors: Vec<Color> = colors.into_iter().collect();
-    let index: HashMap<Color, u8> = colors.iter().enumerate().map(|(i, c)| (*c, i as u8 + 1)).collect();
 
     let cell_of = |drawn: &[Option<Color>], tx: usize, ty: usize| -> Indices {
         let mut cell = [[0u8; CELL]; CELL];
@@ -235,9 +297,8 @@ pub fn convert(skin: &Skin, reserved: usize) -> Result<Window> {
     }
 
     let mut cgram = vec![0u16];
-    cgram.extend(colors.iter().map(|c| cgram_word(*c)));
+    cgram.extend(palette.iter().map(|c| cgram_word(*c)));
     cgram.resize(COLORS_PER_PALETTE, 0);
-    let color: Vec<u8> = color_row.iter().map(|c| index[c]).collect();
     Ok(Window {
         tiles: tiles.iter().flat_map(|t| pack_tile(t, 4)).collect(),
         cgram,
@@ -245,7 +306,7 @@ pub fn convert(skin: &Skin, reserved: usize) -> Result<Window> {
         base,
         background,
         color,
-        shadow: index[&shadow],
+        shadow,
         arrow: arrow_tiles,
         bar,
         bar_bare,
@@ -325,7 +386,44 @@ fn fit_frame(skin: &Skin, empty: &mut Picture, arrow: &Picture) -> Option<usize>
     }
 }
 
-fn draw(skin: &Skin) -> Result<Drawn> {
+/// The colour of each of the glyph's twelve rows and the shadow's, from
+/// the System's 16x16 block, the one `Font::Render` uses as a mask. Each
+/// row of the glyph takes a single one —the gradient is horizontally
+/// uniform—, so they are twelve colours, not a block, and the shadow is a
+/// single one.
+///
+/// A row that is not uniform is drawn with the colour most of it has, the
+/// leftmost of those that tie: the cartridge composes a row with one. Until
+/// 2026-10-12 that stopped the game, and no System any game started with
+/// had one; Vampires Dawn switches to one —see [`mixed_text_rows`]—.
+fn text_colors(skin: &Skin) -> Result<(Vec<Color>, Color)> {
+    let ink = line::Ink::new(&skin.picture, 0);
+    let mut color_row = Vec::new();
+    for py in 0..font::HEIGHT {
+        let row: Vec<Color> = (0..font::INK_MAX).map(|px| rgb15(ink.text_at(px, py))).collect();
+        let most = row
+            .iter()
+            .max_by_key(|c| (row.iter().filter(|d| d == c).count(), std::cmp::Reverse(row.iter().position(|d| d == *c))))
+            .copied()
+            .expect("a row has pixels");
+        color_row.push(most);
+    }
+    Ok((color_row, rgb15(ink.shadow_at(0, 0))))
+}
+
+/// The rows of the glyph whose text colour is not uniform in this System,
+/// which the window draws with one colour each —see `text_colors`—: what
+/// the conversion warns about.
+pub fn mixed_text_rows(skin: &Skin) -> Vec<usize> {
+    let ink = line::Ink::new(&skin.picture, 0);
+    (0..font::HEIGHT)
+        .filter(|&py| (0..font::INK_MAX).map(|px| rgb15(ink.text_at(px, py))).collect::<BTreeSet<Color>>().len() > 1)
+        .collect()
+}
+
+/// The window drawn, with its colours taken to `cap` entries at most —see
+/// [`Drawn::entries`]—.
+fn draw(skin: &Skin, rows: Option<&TextRows>, cap: usize) -> Result<Drawn> {
     let mut empty = skin.window(WINDOW_WIDTH, WINDOW_HEIGHT);
     let arrow = rm2k_render::system::arrow_down(&skin.picture);
     let frame_fused = fit_frame(skin, &mut empty, &arrow);
@@ -363,24 +461,7 @@ fn draw(skin: &Skin) -> Result<Drawn> {
     let bare_arrow = cut(&bare_arrow, true);
     let bare_bar = cut(&bare_bar, true);
 
-    // The text colours come from the System's 16x16 block, the ones
-    // `Font::Render` uses as a mask. Each row of the glyph takes a single
-    // one —the gradient is horizontally uniform—, so they are twelve
-    // colours, not a block, and the shadow is a single one.
-    let ink = line::Ink::new(&skin.picture, 0);
-    let mut color_row = Vec::new();
-    for py in 0..font::HEIGHT {
-        let row: BTreeSet<Color> = (0..font::INK_MAX).map(|px| rgb15(ink.text_at(px, py))).collect();
-        if row.len() != 1 {
-            return Err(Bad::answer(format!(
-                "row {py} of the text colour has {} distinct colours; the cartridge composes it \
-                 with a single one",
-                row.len()
-            )));
-        }
-        color_row.push(*row.iter().next().expect("one colour"));
-    }
-    let shadow = rgb15(ink.shadow_at(0, 0));
+    let (color_row, shadow) = text_colors(skin)?;
 
     let mut drawn = Drawn {
         width,
@@ -399,13 +480,68 @@ fn draw(skin: &Skin) -> Result<Drawn> {
     };
     drawn.colors = drawn.all_colors();
     drawn.brought = drawn.colors.len();
-    if drawn.colors.len() > COLORS_PER_PALETTE - 1 {
-        drawn.reduce()?;
+    if drawn.entries(rows) > cap {
+        // With the text's rows fixed a colour may take two entries, so the
+        // colours are taken to one fewer at a time until the entries fit.
+        let whole = drawn.clone();
+        let mut colors = cap;
+        loop {
+            drawn = whole.clone();
+            drawn.reduce(colors)?;
+            if drawn.entries(rows) <= cap || colors <= 1 {
+                break;
+            }
+            colors -= 1;
+        }
     }
     Ok(drawn)
 }
 
 impl Drawn {
+    /// How many colour-memory entries the window takes after the
+    /// transparent one: one per colour; or, with the text's rows fixed, one
+    /// per class of rows, the shadow's, and one per other colour.
+    fn entries(&self, rows: Option<&TextRows>) -> usize {
+        match rows {
+            None => self.colors.len(),
+            Some(rows) => {
+                let text: BTreeSet<Color> = self.color_row.iter().copied().chain([self.shadow]).collect();
+                rows.len() + 1 + self.colors.difference(&text).count()
+            }
+        }
+    }
+
+    /// The palette from entry 1, each colour's index, each glyph row's and
+    /// the shadow's. Without `rows`, the colours in order. With them, class
+    /// `k`'s colour at `k + 1`, the shadow's after them and the rest in
+    /// order; a colour of the text that the frame uses too takes the text's
+    /// entry.
+    fn palette(&self, rows: Option<&TextRows>) -> (Vec<Color>, HashMap<Color, u8>, Vec<u8>, u8) {
+        let Some(rows) = rows else {
+            let palette: Vec<Color> = self.colors.iter().copied().collect();
+            let index: HashMap<Color, u8> = palette.iter().enumerate().map(|(i, c)| (*c, i as u8 + 1)).collect();
+            let color = self.color_row.iter().map(|c| index[c]).collect();
+            let shadow = index[&self.shadow];
+            return (palette, index, color, shadow);
+        };
+        let mut palette: Vec<Color> = rows.iter().map(|class| self.color_row[class[0]]).collect();
+        palette.push(self.shadow);
+        let mut index: HashMap<Color, u8> = HashMap::new();
+        for (i, c) in palette.iter().enumerate() {
+            index.entry(*c).or_insert(i as u8 + 1);
+        }
+        for c in &self.colors {
+            if !index.contains_key(c) {
+                palette.push(*c);
+                index.insert(*c, palette.len() as u8);
+            }
+        }
+        let color = (0..font::HEIGHT)
+            .map(|row| rows.iter().position(|class| class.contains(&row)).expect("every row has a class") as u8 + 1)
+            .collect();
+        (palette, index, color, rows.len() as u8 + 1)
+    }
+
     /// Every colour the cartridge may put in the window. The arrow and the
     /// cursor count even though the empty window does not draw them, as
     /// the text does: they are the cartridge's to put.
@@ -423,7 +559,7 @@ impl Drawn {
     }
 
     /// A System whose window, arrow, cursor and text do not fit in one
-    /// palette: Adeleine's `merge_least_visible` takes them to fifteen, and
+    /// palette: Adeleine's `merge_least_visible` takes them to `colors`, and
     /// every drawing is repainted with what is left. Each colour weighs the
     /// pixels it covers in the empty window, the arrow over nothing and one
     /// line's cursor over nothing —what is seen of each, once—; and the
@@ -435,7 +571,7 @@ impl Drawn {
     ///
     /// A System that already fits never comes here, so its window is the
     /// one it always was.
-    fn reduce(&mut self) -> Result<()> {
+    fn reduce(&mut self, colors: usize) -> Result<()> {
         let mut counts: BTreeMap<Color, u64> = BTreeMap::new();
         for drawn in [&self.pixels, &self.bare_arrow, &self.bare_bar] {
             for c in drawn.iter().flatten() {
@@ -454,7 +590,7 @@ impl Drawn {
             counts.entry(c).or_insert(1);
         }
         let counts: Vec<(Color, u64)> = counts.into_iter().collect();
-        let merged = adeleine::merge_least_visible(&counts, COLORS_PER_PALETTE - 1)?;
+        let merged = adeleine::merge_least_visible(&counts, colors)?;
         let to: HashMap<Color, Color> =
             counts.iter().map(|(c, _)| *c).zip(merged.mapping.iter().copied()).collect();
         for drawn in [&mut self.pixels, &mut self.with_arrow, &mut self.bare_arrow, &mut self.bare_bar]
@@ -479,7 +615,18 @@ impl Drawn {
 /// —none if it already fitted—. It is a decision of the game's, and the
 /// converter writes it in the game's patches.
 pub fn reduction(skin: &Skin) -> Result<(usize, Vec<adeleine::Merge>)> {
-    let drawn = draw(skin)?;
+    reduction_with(skin, None)
+}
+
+/// [`reduction`], with the text's rows fixed: see [`TextRows`].
+pub fn reduction_with(skin: &Skin, rows: Option<&TextRows>) -> Result<(usize, Vec<adeleine::Merge>)> {
+    reduction_capped(skin, rows, PALETTE_ENTRIES)
+}
+
+/// [`reduction_with`], fitted in `cap` entries: a System the cartridge
+/// switches to, in what the starting one takes —see [`convert_with`]—.
+pub fn reduction_capped(skin: &Skin, rows: Option<&TextRows>, cap: usize) -> Result<(usize, Vec<adeleine::Merge>)> {
+    let drawn = draw(skin, rows, cap.min(PALETTE_ENTRIES))?;
     Ok((drawn.brought, drawn.merges))
 }
 

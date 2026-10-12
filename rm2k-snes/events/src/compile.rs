@@ -425,15 +425,12 @@ const IGNORABLE: [i32; 0] = [];
 /// in there and not in this list: the command itself is no longer a whole
 /// debt. Neither is `PlayBGM`, which is done since the songs have a
 /// registry: see its arm.
-pub const ACCEPTED_UNDONE: [i32; 8] = [
+pub const ACCEPTED_UNDONE: [i32; 7] = [
     SHOW_PICTURE,
     MOVE_PICTURE,
     ERASE_PICTURE,
     CHANGE_SYSTEM_BGM,
     CHANGE_HERO_TITLE,
-    // Debt: the System is not changed on the fly. The task to implement it is
-    // `tasks/changesystemgraphics.md`.
-    CHANGE_SYSTEM_GRAPHICS,
     // Debt: the face is not drawn; see its arm.
     CHANGE_FACE_GRAPHIC,
     // Debt: the enemy does not get the condition; see its arm. Only troop
@@ -3095,6 +3092,27 @@ pub fn with_variables(lines: &[String], indices: &Indices) -> Step<Vec<String>> 
 /// layouts are in `rm2k-snes-bytecode`**, not here: what each
 /// arm says is what there is to know about each one that a declaration
 /// cannot say.
+/// `ChangeSystemGraphics` (10680): the message window from here on with the
+/// System its text names, by its index among the cartridge's —the
+/// converter carries one window per System a command names, see
+/// [`crate::game::Patches::systems`]—. Its name is a file's, so it is found
+/// without regard to case, like the project's `[windows.background]`.
+///
+/// What follows the change is the message window alone —its frame, its
+/// background, its text, its arrow and a choice's bar—; the menus, the
+/// battle and the title keep the System the cartridge starts with. Its
+/// parameters —the stretch and the font— are the converter's: a window
+/// is drawn once, with the first command's stretch, and the console has
+/// one font.
+fn change_system(ctx: &Ctx, cmd: &Command) -> Step<Vec<u8>> {
+    let wanted = cmd.string.to_lowercase();
+    let index = ctx.game.patches.systems.iter().position(|s| s.to_lowercase() == wanted);
+    match index {
+        Some(k) => Ok(vec![OP_CHANGE_SYSTEM, byte(k as i64)?]),
+        None => cannot(),
+    }
+}
+
 pub fn compile_command(
     ctx: &mut Ctx,
     cmd: &Command,
@@ -4020,10 +4038,7 @@ pub fn compile_command(
         // 2026-09-13, the speech ran whole, the teleport back worked, and then
         // nothing else happened.
         CHANGE_SYSTEM_BGM | CHANGE_HERO_TITLE => Ok(vec![]),
-        // `ChangeSystemGraphics` (10680): debt, accepted without doing anything
-        // so the page that uses it is not left out whole; the task to
-        // implement it is `tasks/changesystemgraphics.md`.
-        CHANGE_SYSTEM_GRAPHICS => Ok(vec![]),
+        CHANGE_SYSTEM_GRAPHICS => change_system(ctx, cmd),
         ERASE_SCREEN | SHOW_SCREEN => {
             // `EraseScreen` (11010) and `ShowScreen` (11020): the screen to
             // black and left there until the show, with the game frozen while
@@ -5295,10 +5310,22 @@ mod tests {
     }
 
     #[test]
-    fn change_system_graphics_is_accepted_without_emitting() {
-        let game = Game::default();
-        let out = compile_with(&game, &[cmd(CHANGE_SYSTEM_GRAPHICS, &[], "Blue")]);
-        assert!(out.unwrap().is_some(), "the page was left out");
+    fn change_system_graphics_is_the_index_of_its_system() {
+        let mut game = Game::default();
+        game.patches.systems = vec!["Start".into(), "Blue".into()];
+        let out = compile_with(&game, &[cmd(CHANGE_SYSTEM_GRAPHICS, &[0, 0], "blue")]);
+        assert_eq!(out.unwrap().unwrap(), [OP_CHANGE_SYSTEM, 1, OP_DONE]);
+        assert!(!ACCEPTED_UNDONE.contains(&CHANGE_SYSTEM_GRAPHICS));
+    }
+
+    #[test]
+    fn a_system_the_cartridge_does_not_carry_leaves_the_page_out() {
+        // Without a window for it there is nothing to draw with: the page
+        // is left out, as with any command the ROM cannot carry.
+        let mut game = Game::default();
+        assert!(compile_with(&game, &[cmd(CHANGE_SYSTEM_GRAPHICS, &[], "Blue")]).unwrap().is_none());
+        game.patches.systems = vec!["Start".into()];
+        assert!(compile_with(&game, &[cmd(CHANGE_SYSTEM_GRAPHICS, &[], "Blue")]).unwrap().is_none());
     }
 
     #[test]

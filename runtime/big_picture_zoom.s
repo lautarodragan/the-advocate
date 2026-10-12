@@ -639,11 +639,11 @@ not_tiles:
     ; The window's tiles, as `load_window` sends them.
     lda #$01                    ; two registers
     sta DMAP0
-    lda #^window_tiles
+    win_bank window_tiles, WS_TILES
     sta A1B0
     rep #$20
 .a16
-    lda #.loword(window_tiles)
+    win_lo window_tiles, WS_TILES
     clc
     adc f:BIG_M7_DONE
     sta A1T0L

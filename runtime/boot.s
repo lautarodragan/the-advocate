@@ -259,6 +259,11 @@ party_ready:
     ; The random seed, and the variables at zero: far RAM also starts with
     ; garbage, and a loaded save overwrites them afterwards.
     jsr clear_variables
+.if ::WINDOW_SYSTEMS > 1
+    lda #0                      ; the starting System, which a save overwrites
+    sta f:WINDOW_SYSTEM
+    sta f:WINDOW_SWAP
+.endif
     jsr initial_equipment_set
     jsl f:hp_initial_set
     jsl f:initial_skills_set
