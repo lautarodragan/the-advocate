@@ -11,35 +11,35 @@ import glob
 import os
 import re
 
-AQUI = os.path.dirname(os.path.abspath(__file__))
-README = os.path.join(AQUI, "README.md")
+HERE = os.path.dirname(os.path.abspath(__file__))
+README = os.path.join(HERE, "README.md")
 
 # A bare file name: tests here do not go in subfolders.
-NOMBRADA = re.compile(r"`(test_\w+\.py)`")
+NAMED = re.compile(r"`(test_\w+\.py)`")
 
 
 def _on_disk():
     return {os.path.basename(r)
-            for r in glob.glob(os.path.join(AQUI, "test_*.py"))}
+            for r in glob.glob(os.path.join(HERE, "test_*.py"))}
 
 
 def _in_the_index():
     with open(README, encoding="utf-8") as f:
-        texto = f.read()
-    indice = texto.split("## Which test covers what", 1)
-    assert len(indice) == 2, "README.md no longer has \"Which test covers what\""
-    return set(NOMBRADA.findall(indice[1]))
+        text = f.read()
+    sections = text.split("## Which test covers what", 1)
+    assert len(sections) == 2, "README.md no longer has \"Which test covers what\""
+    return set(NAMED.findall(sections[1]))
 
 
 def test_every_test_is_in_the_index():
-    faltan = sorted(_on_disk() - _in_the_index())
-    assert not faltan, (
+    missing = sorted(_on_disk() - _in_the_index())
+    assert not missing, (
         "the index in tests/README.md does not name: %s"
-        % ", ".join(faltan))
+        % ", ".join(missing))
 
 
 def test_the_index_names_no_missing_tests():
-    sobran = sorted(_in_the_index() - _on_disk())
-    assert not sobran, (
+    extra = sorted(_in_the_index() - _on_disk())
+    assert not extra, (
         "the index in tests/README.md names tests that do not exist: "
-        "%s. Were they renamed or deleted?" % ", ".join(sobran))
+        "%s. Were they renamed or deleted?" % ", ".join(extra))
