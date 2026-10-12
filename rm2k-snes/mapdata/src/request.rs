@@ -323,6 +323,10 @@ pub struct FullScreen {
     pub tiles: i64,
     pub colors: i64,
     pub first_color: i64,
+    /// Bits per pixel of its tiles: 8, or 4 for a title that does not fit
+    /// at 8, which goes on BG1 in mode 1.
+    #[serde(default = "eight_bits")]
+    pub bpp: i64,
     #[serde(deserialize_with = "hex::bytes")]
     pub stream: Vec<u8>,
 }
@@ -608,4 +612,8 @@ pub struct OwnRoute {
     pub speed: i64,
     /// How many commands it has.
     pub orders: usize,
+}
+
+fn eight_bits() -> i64 {
+    8
 }

@@ -535,6 +535,7 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         ANIMATED_STEPS.into(),
         BYTES_PER_TILE.into(),
         title.as_ref().map_or(0, |(full, _)| full.tiles).into(),
+        title.as_ref().map_or(8, |(full, _)| full.bpp).into(),
         MENU_CGRAM.into(),
     ];
     let menu_counts = match title_menu {
@@ -1426,7 +1427,7 @@ fn full_screens_section(out: &mut String, r: &Emit) -> Result<()> {
             "    .word .loword(%s)\n    .byte ^%s\n    .word %d, %d\n    .byte %d\n",
             *label,
             *label,
-            data.tiles * 64,
+            data.tiles * data.bpp * 8,
             data.colors * 2,
             data.first_color
         ));
