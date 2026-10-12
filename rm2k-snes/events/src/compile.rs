@@ -812,6 +812,67 @@ fn label_targets(commands: &[Command]) -> Step<HashMap<usize, Option<usize>>> {
     Ok(out)
 }
 
+/// The `Loop` an `EndLoop` jumps back to: RM2k has no loop stack —without
+/// the Maniac patch a `Loop` keeps no state—, so `CommandEndLoop` walks the
+/// list backwards from itself, skipping what is deeper, and takes the first
+/// `Loop` at its own indentation. If it reaches a shallower command first
+/// there is none, and RPG_RT stays on the `EndLoop` forever: that does not
+/// compile.
+fn loop_start(commands: &[Command], end: usize) -> Option<usize> {
+    let indent = commands[end].indent;
+    for k in (0..end).rev() {
+        let c = &commands[k];
+        if c.indent > indent {
+            continue;
+        }
+        if c.indent < indent {
+            return None;
+        }
+        if c.code == LOOP {
+            return Some(k);
+        }
+    }
+    None
+}
+
+/// Where a `BreakLoop` lands: past the **first `EndLoop` after it**,
+/// whatever its indentation, which is RPG_RT's bug that easyrpg copies in
+/// `CommandBreakLoop` —it ignores the scopes—; past the last command if
+/// there is none. It is a jump out of blocks only when that `EndLoop` closes
+/// one the `BreakLoop` is inside: everything in between deeper than it. A
+/// jump into another block would land on the leftovers of its `else`, the
+/// same as a label's (see [`label_targets`]), and does not compile.
+fn break_target(commands: &[Command], at: usize) -> Option<usize> {
+    let Some(end) = (at + 1..commands.len()).find(|&k| commands[k].code == END_LOOP) else {
+        return Some(commands.len());
+    };
+    let indent = commands[end].indent;
+    if commands[at..end].iter().all(|c| c.indent > indent) {
+        Some(end + 1)
+    } else {
+        None
+    }
+}
+
+/// Whether the loop that starts at `start` can let a frame go by: a `Wait`,
+/// a message, a choice, a number to input, a `KeyInputProc` that waits for
+/// a key or a `MovePicture` that waits for its move, somewhere in its body. RPG_RT runs a loop that does not wait
+/// ten thousand commands a frame and goes on with the rest of the game; the
+/// ROM's interpreter has no such cap, and that loop would hang the console,
+/// so it does not compile. One that only waits on some of its branches
+/// does, and hangs only if it takes the others forever.
+fn loop_waits(commands: &[Command], start: usize) -> bool {
+    let indent = commands[start].indent;
+    commands[start + 1..]
+        .iter()
+        .take_while(|c| !(c.code == END_LOOP && c.indent == indent))
+        .any(|c| {
+            matches!(c.code, WAIT | SHOW_MESSAGE | SHOW_CHOICE | INPUT_NUMBER)
+                || (c.code == KEY_INPUT_PROC && c.p(1).is_some_and(|w| w != 0))
+                || (c.code == MOVE_PICTURE && c.p(15).is_some_and(|w| w != 0))
+        })
+}
+
 /// A page's commands as bytes, or None if it cannot be done.
 ///
 /// `map_events` is the map's `MapEvents`, already pointed at the page's
@@ -953,6 +1014,11 @@ fn page(
     for (i, extra) in group_boxes(commands) {
         *at = Some(i);
         let cmd = &commands[i];
+        // What follows an `EndLoop` is where a `BreakLoop` lands: see
+        // [`break_target`].
+        if i > 0 && commands[i - 1].code == END_LOOP {
+            label_at.insert(i, length);
+        }
         if joined.contains(&i) {
             // Its window is the message's, already emitted.
             continue;
@@ -1279,6 +1345,26 @@ fn page(
         } else if cmd.code == LABEL {
             label_at.insert(i, length);
             piece = vec![];
+        } else if cmd.code == LOOP {
+            // `Loop` does nothing: it is where its `EndLoop` jumps back to.
+            if !loop_waits(commands, i) {
+                return cannot();
+            }
+            label_at.insert(i, length);
+            piece = vec![];
+        } else if cmd.code == END_LOOP {
+            let Some(start) = loop_start(commands, i) else {
+                return cannot();
+            };
+            let mut p = vec![OP_GOTO];
+            p.extend(usize_word(label_at[&start])?);
+            piece = p;
+        } else if cmd.code == BREAK_LOOP {
+            let Some(t) = break_target(commands, i) else {
+                return cannot();
+            };
+            forward.push((pieces.len(), t));
+            piece = vec![OP_GOTO, 0, 0];
         } else if cmd.code == JUMP_TO_LABEL {
             // OP_GOTO to where the label was emitted, or nothing if the page
             // has no label with that number.
@@ -1346,6 +1432,9 @@ fn page(
     if !stack.is_empty() || !choices.is_empty() || !battles.is_empty() {
         return cannot();
     }
+    // A `BreakLoop` with no `EndLoop` after it ends the frame: it lands past
+    // the last command.
+    label_at.entry(commands.len()).or_insert(length);
     for (at, t) in forward {
         patch(&mut pieces, Open::End(at), label_at[&t])?;
     }
@@ -6493,16 +6582,92 @@ mod tests {
     #[test]
     fn a_page_that_does_not_compile_names_the_command_it_stopped_at() {
         let wait = cmd(WAIT, &[1], "");
-        // `Loop` does not compile, two commands in.
-        assert_eq!(stopped_at(&[wait.clone(), wait.clone(), cmd(LOOP, &[], ""), wait.clone()]), Some(Some(2)));
+        // The inn's "stayed" does not compile, two commands in.
+        assert_eq!(stopped_at(&[wait.clone(), wait.clone(), cmd(INN_STAY, &[], ""), wait.clone()]), Some(Some(2)));
         // Inside a branch, it is the command and not the branch.
         let branch = Command::new(COND_BRANCH, 0, "", vec![0, 1, 0, 0, 0, 0]);
-        let inside = Command::new(LOOP, 1, "", vec![]);
+        let inside = Command::new(INN_STAY, 1, "", vec![]);
         let end = Command::new(COND_END, 0, "", vec![]);
         assert_eq!(stopped_at(&[branch.clone(), inside, end]), Some(Some(1)));
         // A branch left open stops at the page as a whole.
         assert_eq!(stopped_at(&[branch, wait.clone()]), Some(None));
         assert_eq!(stopped_at(&[wait]), None);
+    }
+
+    /// `commands` alone, with nothing around them: the bytes or None.
+    fn bare(commands: &[Command]) -> Option<Vec<u8>> {
+        let game = Game::default();
+        let sound = SoundSettings::default();
+        let indices = Indices::default();
+        let mut ctx = Ctx {
+            game: &game,
+            indices: &indices,
+            sound: &sound,
+            map_index: &|_| None,
+            messages: None,
+            songs: None,
+            graphics: None,
+            pictures: None,
+            troops: None,
+            commons: None,
+            shared: None,
+        };
+        compile_page(&mut ctx, commands, None, 0, 0).unwrap()
+    }
+
+    #[test]
+    fn end_loop_jumps_back_to_after_its_loop() {
+        // Wait, Loop, Wait, EndLoop: the jump goes to the second wait, which
+        // starts where the first one ends.
+        let wait = |indent| Command::new(WAIT, indent, "", vec![1]);
+        let first = bare(&[wait(0)]).unwrap();
+        let w = first.len() - 1; // without the OP_DONE
+        let code = bare(&[
+            wait(0),
+            Command::new(LOOP, 0, "", vec![]),
+            wait(1),
+            Command::new(END_LOOP, 0, "", vec![]),
+        ])
+        .unwrap();
+        let mut expected = first[..w].to_vec();
+        expected.extend(&first[..w]);
+        expected.extend([OP_GOTO, w as u8, 0, OP_DONE]);
+        assert_eq!(code, expected);
+    }
+
+    #[test]
+    fn break_loop_lands_past_the_first_end_loop_after_it() {
+        // Loop { if s1 { BreakLoop } Wait } then a switch: the break lands on
+        // the switch, past the EndLoop, and the EndLoop goes back to 0.
+        let on = |s: i32, indent| Command::new(CONTROL_SWITCHES, indent, "", vec![0, s, s, 0]);
+        let code = bare(&[
+            Command::new(LOOP, 0, "", vec![]),
+            Command::new(COND_BRANCH, 1, "", vec![0, 1, 0, 0, 0, 0]),
+            Command::new(BREAK_LOOP, 2, "", vec![]),
+            Command::new(COND_END, 1, "", vec![]),
+            Command::new(WAIT, 1, "", vec![1]),
+            Command::new(END_LOOP, 0, "", vec![]),
+            on(7, 0),
+        ])
+        .unwrap();
+        let switch = bare(&[on(7, 0)]).unwrap();
+        let switch = &switch[..switch.len() - 1];
+        let at = code.len() - 1 - switch.len();
+        assert_eq!(&code[at..code.len() - 1], switch);
+        assert_eq!(&code[at - 3..at], &[OP_GOTO, 0, 0]);
+        let goto = code.windows(3).position(|x| x[0] == OP_GOTO && x[1] as usize == at && x[2] == 0);
+        assert!(goto.is_some(), "no jump lands past the EndLoop: {code:?}");
+    }
+
+    #[test]
+    fn a_loop_that_never_waits_does_not_compile() {
+        let on = |indent| Command::new(CONTROL_SWITCHES, indent, "", vec![0, 1, 1, 0]);
+        assert_eq!(
+            bare(&[Command::new(LOOP, 0, "", vec![]), on(1), Command::new(END_LOOP, 0, "", vec![])]),
+            None
+        );
+        // An EndLoop without its Loop: RPG_RT stays on it.
+        assert_eq!(bare(&[Command::new(END_LOOP, 0, "", vec![])]), None);
     }
 
     /// `commands` compiled for a map that carries `big` as a background
