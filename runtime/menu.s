@@ -10,10 +10,12 @@
 ; menu costs no tick.
 ;
 ; Today the things that do something are using items —the item screen, in
-; `items.s`—, equipment, which chooses whom on this same menu —`menu_choose`,
-; in `actor_choice.s`— and opens their screen, saving, which opens the slot
+; `items.s`—, the skills and the equipment, which choose whom on this same
+; menu —`menu_choose`, in `actor_choice.s`— and open their screen
+; —`skills_screen.s`, `equipment_screen.s`—, saving, which opens the slot
 ; screen and returns to the menu, and End Game, which opens its own
-; —`end_game.s`—. Skills is drawn in gray and A does nothing with it.
+; —`end_game.s`—. Until 2026-10-12 Skills was drawn in gray and A did
+; nothing with it.
 ;
 ; And the game's custom menus, which RM2k does not have: each one is an
 ; option between Equipment and Save while its condition holds —see
@@ -263,15 +265,13 @@ ready:
 .a8
     lda menu_done, x
     beq ready
-    ; Items —command 0— and Equipment need someone in the party: with it
-    ; empty RM2k grays them like the ones it does not do (`Scene_Menu`,
-    ; `GetActors().empty()`). Save and End Game do not ask, and neither do
-    ; the custom menus, which are the game's.
-    cpx #0
-    beq needs_party
-    cpx #MENU_EQUIPMENT
-    beq needs_party
+    ; Items, Skills and Equipment —commands 0 to 2— need someone in the
+    ; party: with it empty RM2k grays them like the ones it does not do
+    ; (`Scene_Menu`, `GetActors().empty()`). Save and End Game do not ask,
+    ; and neither do the custom menus, which are the game's.
+    .assert MENU_SKILL = 1 && MENU_EQUIPMENT = 2 && MENU_SAVE = 3, error, "the commands that need a party are the ones below Save"
     cpx #MENU_SAVE
+    bcc needs_party
     bne ready
     jsr access_read
     and #ACCESS_NO_SAVE
@@ -724,10 +724,14 @@ no_close:
     jmp back_to_row
 not_custom:
     cmp #MENU_EQUIPMENT
+    beq for_whom
+    cmp #MENU_SKILL
     bne no_equipment
-    ; Equipment: whom, on this same menu, and their screen. B while
-    ; choosing returns to the commands as they are; the screen returns to
-    ; the menu with the cursor on the command, like `Scene_Menu`.
+for_whom:
+    ; Skills and Equipment: whom, on this same menu, and their screen —see
+    ; `menu_whose_screen`—. B while choosing returns to the commands as
+    ; they are; the screen returns to the menu with the cursor on the
+    ; command, like `Scene_Menu`, except a switch skill, which closes it.
     jsl f:menu_choose
     cmp #$FF
     beq equipment_cancel
@@ -738,8 +742,12 @@ not_custom:
     sep #$20
 .a8
     lda party, x
-    jsl f:equipment_screen
+    jsl f:menu_whose_screen
+    cmp #0
+    bne used                    ; a switch skill: straight to the map
     jmp back_to_row
+used:
+    jmp close
 equipment_cancel:
     lda f:CM_MENU_ROW
     sta title_sel

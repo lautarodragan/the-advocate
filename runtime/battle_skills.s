@@ -748,14 +748,32 @@ no_agi:
 ; `BA_SKILL_N` stops at 254 so that `BA_SKILL_SEL` plus a row still fits in a
 ; byte; no actor of a game comes near that.
 ; Clobbers `BA_S1`, `BA_S2`, `BA_T0` and X.
+;
+; **The walk is shared with the pause menu's skills screen** since
+; 2026-10-12: `ba_skill_walk` takes the LDB actor in A, and the page is
+; `ba_skill_rows` rows —`ba_skill_places` places—, which each caller sets:
+; the battle's five here, the screen's eight in `skills_screen.s`.
 .assert BA_SKILL_ROWS * BA_SKILL_COLUMNS <= BA_SKILL_MAX, error, "a page of the skill list does not fit in BA_SKILL_LIST"
 .assert BA_SKILL_COLUMNS = 2, error, "the skill list takes a row as two places: see `ba_skill_place`"
+.pushseg
+.segment "FARBSS"
+ba_skill_rows:   .res 1         ; the visible page's rows
+ba_skill_places: .res 1         ; and its places, twice as many
+.popseg
 .proc ba_skill_list
 .a8
 .i16
-    lda #0
-    sta BA_SKILL_N
+    lda #BA_SKILL_ROWS
+    sta .loword(ba_skill_rows)
+    lda #(BA_SKILL_ROWS * BA_SKILL_COLUMNS)
+    sta .loword(ba_skill_places)
     jsr ba_actor_ldb
+.endproc
+; The list of LDB actor A, with the data bank at $7E: see above.
+.proc ba_skill_walk
+.a8
+.i16
+    stz BA_SKILL_N
     jsr ba_ax
     lda f:skill_pair_n, x
     beq ready
@@ -846,7 +864,7 @@ ready:
     sec
     sbc BA_SKILL_TOP            ; two per row: BA_SKILL_COLUMNS, asserted above
     bcc outside
-    cmp #(BA_SKILL_ROWS * BA_SKILL_COLUMNS)
+    cmp .loword(ba_skill_places)
     rts                         ; C=1 past the last visible row
 outside:
     sec
@@ -868,8 +886,9 @@ outside:
     sta BA_SKILL_TOP
     rts
 not_above:
+    inc a                       ; its row minus the page's rows, plus one
     sec
-    sbc #(BA_SKILL_ROWS - 1)
+    sbc .loword(ba_skill_rows)
     bcc fits                    ; within the first page
     cmp BA_SKILL_TOP
     bcc fits
