@@ -319,6 +319,18 @@ bytecode! {
     /// a foreground one goes on, as in RM2k. See `op_erase_event` in the
     /// runtime's `interpreter_movement.s`.
     OP_ERASE_EVENT = 0x49 (target: byte);
+
+    /// `EraseScreen`: the screen down to black and left there, with the game
+    /// frozen while it goes, as RM2k does. `transition` is what the ROM does
+    /// —the fade, the mosaic or the cut, `ChangeScreenTransitions`' values—
+    /// or $FF for the teleport's erase. Over a screen already erased it does
+    /// nothing. See `screen_erase` in the runtime's `teleport_transition.s`.
+    OP_ERASE_SCREEN = 0x4A (transition: byte);
+
+    /// `ShowScreen`: the screen an `OP_ERASE_SCREEN` left black, back up;
+    /// $FF for the teleport's show. Over a screen that is not erased it does
+    /// nothing. See `screen_show` in `teleport_transition.s`.
+    OP_SHOW_SCREEN = 0x4B (transition: byte);
 }
 
 // `run_code` jumps through a table indexed by the opcode.

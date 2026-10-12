@@ -40,6 +40,7 @@
     jsr set_slot
     jsr save_game
 cancelled:
+    jsl f:screen_unerase        ; the map comes back even if an event erased it
     jsr back_to_map
     ply
     jmp run_code::other
