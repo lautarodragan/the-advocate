@@ -594,8 +594,9 @@ move:
 .endproc
 
 ; The screen of actor A, whom `menu_choose` chose, for the pause menu's
-; command: Skills or Equipment. Called with `jsl`; each screen returns to the
-; menu with its `rtl`.
+; command: Skills or Equipment. Called with `jsl`; returns with A at 1 if
+; the menu has to close —a switch skill was used— and at 0 if it goes back
+; to the commands.
 .proc menu_whose_screen
 .a8
 .i16
@@ -604,8 +605,10 @@ move:
     cmp #MENU_SKILL
     beq skills
     pla
-    jml f:equipment_screen
+    jsl f:equipment_screen
+    lda #0
+    rtl
 skills:
     pla
-    jml f:skills_screen
+    jml f:skills_screen         ; its `rtl` returns here, with A said
 .endproc

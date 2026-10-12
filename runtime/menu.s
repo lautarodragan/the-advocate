@@ -731,7 +731,7 @@ for_whom:
     ; Skills and Equipment: whom, on this same menu, and their screen —see
     ; `menu_whose_screen`—. B while choosing returns to the commands as
     ; they are; the screen returns to the menu with the cursor on the
-    ; command, like `Scene_Menu`.
+    ; command, like `Scene_Menu`, except a switch skill, which closes it.
     jsl f:menu_choose
     cmp #$FF
     beq equipment_cancel
@@ -743,7 +743,11 @@ for_whom:
 .a8
     lda party, x
     jsl f:menu_whose_screen
+    cmp #0
+    bne used                    ; a switch skill: straight to the map
     jmp back_to_row
+used:
+    jmp close
 equipment_cancel:
     lda f:CM_MENU_ROW
     sta title_sel

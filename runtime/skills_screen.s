@@ -9,7 +9,8 @@
 ; cursor in two lines, below it the actor's status line, and the list in two
 ; columns that read by rows, eight at a time, each skill with its cost and in
 ; grey if the map cannot use it or the SP do not reach. B goes back to the
-; menu with the cursor on the command. The geometry is `SK_*` of
+; menu with the cursor on the command; A on a switch skill uses it and goes
+; straight to the map, and on any other does nothing yet. The geometry is `SK_*` of
 ; `rm2k-snes-screens`, whose `render` is the reference; eight rows and two
 ; lines of description where RM2k has ten and one is the divergence
 ; `the-skills-screen` in the book.
@@ -44,8 +45,9 @@ sk_bar_on:   .res 1             ; the place whose bar is on screen, $FF none
 sk_bar_want: .res 1             ; and the one it should be on
 .popseg
 
-; The LDB actor in A, with the data bank at 0. Returns with `rtl` when B is
-; pressed, to the pause menu, which draws itself again.
+; The LDB actor in A, with the data bank at 0. Returns with `rtl`, and A at
+; 0 when B was pressed —the pause menu draws itself again— or at 1 when a
+; switch skill was used —the menu closes, as `Scene::PopUntil(Map)`—.
 .proc skills_screen
 .a8
 .i16
@@ -125,15 +127,136 @@ to_wait:
 no_arrow:
     lda title_edges
     and #PAD_B
+    beq no_b
+    lda #0                      ; back to the menu
+    bra out
+no_b:
+    lda pad_a
     beq to_wait
-    ; Out: the B that closes is consumed, and the A from before, as the
+    lda pad_a_prev
+    bne to_wait                 ; it was already held: not an edge
+    ; A: only a switch skill does something yet —`Scene_Skill::Update`—, and
+    ; only an enabled one; on a grey one RM2k plays its buzzer. The rest,
+    ; the heals, open the target choice in RM2k, which is the next phase.
+    lda f:BAT_LENGTH + BA_SKILL_N
+    beq to_wait
+    lda f:sk_bar_want
+    jsr sk_k
+    sta f:CM_T4
+    jsr sk_usable
+    beq to_wait
+    rep #$20
+.a16
+    lda f:CM_T4
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda f:skill_type, x
+    cmp #BA_SKILL_TYPE_SWITCH
+    bne to_wait
+    jsr sk_switch
+    lda #1                      ; straight to the map
+out:
+    ; Out: the button that closes is consumed, and the other one, as the
     ; pause menu does; and what of the objects the windows' colours took.
+    pha
     lda pad
     sta pad_prev
     lda pad_a
     sta pad_a_prev
     jsr cm_objects_back
+    pla
     rtl
+.endproc
+
+; Switch skill `CM_T4`, used by `sk_actor`: its switch on and its SP spent,
+; in `Game_Battler::UseSkill`'s and `Game_Party::UseSkill`'s order. Its
+; sound effect is not played: none of A Blurred Line's switch skills has
+; one, and another game's would have to be in what the map carries —see the
+; ports' Known issues—. The switch asks for the pages' refresh, which is
+; `Game_Map::SetNeedRefresh`, and the common event that waits for it runs
+; on the map when the pause menu closes.
+.proc sk_switch
+.a8
+.i16
+    rep #$20
+.a16
+    lda f:CM_T4
+    and #$00FF
+    asl a
+    tax
+    lda f:skill_switch, x
+    sta f:BAT_LENGTH + BA_T0
+    sep #$20
+.a8
+    phb
+    lda #$7E
+    pha
+    plb
+    jsr ba_switch
+    plb
+    rep #$20
+.a16
+    lda f:CM_T4
+    and #$00FF
+    tax
+    lda f:skill_sp, x
+    and #$00FF
+    sta f:CM_T0
+    lda f:sk_actor
+    and #$00FF
+    asl a
+    tax
+    lda f:FAR_LENGTH + FAR_SP, x
+    sec
+    sbc f:CM_T0                 ; `sk_usable` said it reaches
+    sta f:FAR_LENGTH + FAR_SP, x
+    sep #$20
+.a8
+    rts
+.endproc
+
+; Whether `sk_actor` can use skill `CM_T4` here: Z=0 if so —the map can use
+; it, and its SP reach—. `Window_Skill::CheckEnable`, without states, which
+; this port does not keep outside battle. **It does not use the flag a
+; `pl*` leaves**: the usual trap.
+.proc sk_usable
+.a8
+.i16
+    rep #$20
+.a16
+    lda f:CM_T4
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda f:skill_on_map, x
+    beq no
+    rep #$20
+.a16
+    lda f:sk_actor
+    and #$00FF
+    asl a
+    tax
+    lda f:FAR_LENGTH + FAR_SP, x
+    sta f:CM_T0                 ; its SP
+    lda f:CM_T4
+    and #$00FF
+    tax
+    lda f:skill_sp, x
+    and #$00FF
+    cmp f:CM_T0
+    sep #$20
+.a8
+    beq yes                     ; exactly as many as it has is enough
+    bcs no
+yes:
+    lda #1
+    rts
+no:
+    lda #0
+    rts
 .endproc
 
 ; The screen from nothing, with it off: the text layer's bank, the inks, the
@@ -504,33 +627,8 @@ no_line:
     lda f:CM_N
     jsr sk_k
     sta f:CM_T4
-    rep #$20
-.a16
-    and #$00FF
-    tax
-    sep #$20
-.a8
-    lda f:skill_on_map, x
+    jsr sk_usable
     beq grey
-    rep #$20
-.a16
-    lda f:sk_actor
-    and #$00FF
-    asl a
-    tax
-    lda f:FAR_LENGTH + FAR_SP, x
-    sta f:CM_T0                 ; its SP
-    lda f:CM_T4
-    and #$00FF
-    tax
-    lda f:skill_sp, x
-    and #$00FF
-    cmp f:CM_T0
-    sep #$20
-.a8
-    beq white                   ; exactly as many as it has is enough
-    bcs grey
-white:
     lda #ITEM_WHITE
     bra colour
 grey:
