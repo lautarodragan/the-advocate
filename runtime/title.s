@@ -11,6 +11,11 @@
 ; palettes of sixteen because the sprites need their own; here there are no
 ; sprites.
 ;
+; **Unless its tiles at eight bits do not fit** below the menu's tilemap: then
+; the converter sends it at four, `TITLE_BPP`, with its colors in palettes 1
+; to 7, and it goes on BG1 in mode 1. The VRAM layout is the same: at sixteen
+; words a tile, every cell of the screen distinct still ends below the menu.
+;
 ; The image comes compressed, and `screen_upload` uploads it, the same routine
 ; as the Game Over one: the tiles from $0000 and its tilemap at SCREEN_MAP.
 ; The VRAM layout is in mapdata.inc, next to TITLE_MENU_VRAM. On the way out,
@@ -78,6 +83,15 @@ mute:
     ldx #(SCREEN_TITLE * SCREEN_ROW)
     jsl f:screen_upload
 .endif
+    ; `screen_upload` leaves mode 3, which is the Game Over's and an 8bpp
+    ; title's. A 4bpp one is read in mode 1, where BG2, the menu's, is also
+    ; four bits. Only assembled for it: a title that fits at eight keeps the
+    ; ROM it had. The slot screen puts mode 3 back on its own, and coming
+    ; back from it goes through here again.
+.if ::TITLE_BPP = 4
+    lda #$01
+    sta BGMODE
+.endif
 
     ; --- the menu tiles ---
     ; They go on BG2, which in mode 3 has four bits per pixel, so they cost
@@ -128,9 +142,9 @@ mute:
     rts
 .endproc
 ; What `screen_upload` puts in VRAM must not overwrite the menu's: the image's
-; tiles, at 32 words each, go below the menu's tilemap, and the menu's tiles,
-; at 16, end before the image's tilemap.
-.assert TITLE_TILES * 32 <= TITLE_MENU_MAP, error, "the title tiles overwrite the menu tilemap"
+; tiles, at 32 words each —16 at 4bpp—, go below the menu's tilemap, and the
+; menu's tiles, at 16, end before the image's tilemap.
+.assert TITLE_TILES * TITLE_BPP * 4 <= TITLE_MENU_MAP, error, "the title tiles overwrite the menu tilemap"
 .assert TITLE_MENU_VRAM + TITLE_MENU_TILES * 16 <= SCREEN_MAP, error, "the title menu tiles overwrite the image tilemap"
 
 ; The menu loop. Up and down move the cursor on the **edge** and wrap around,
