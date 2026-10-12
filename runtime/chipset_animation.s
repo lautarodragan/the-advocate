@@ -84,7 +84,7 @@ anim_per_speed:
 ; The tick is `ticks`. Since it is sixteen bits, every 65536 ticks
 ; —eighteen minutes— it wraps around and the cycle skips a drawing; RM2k
 ; counts in thirty-two. What is lost is declared in
-; workflow/divergencias/el-chipset-se-saltea-un-dibujo-cada-18-minutos.md.
+; divergences/the-chipset-skips-a-frame-every-18-minutes.md.
 .proc anim_advance
 .a8
 .i16

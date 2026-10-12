@@ -696,7 +696,7 @@ stream:
 ;
 ; Battle overwrites $7F's half —it is `SCN_SCENE`—, so `back_from_battle`
 ; decompresses it all again. See the decision in
-; workflow/decisiones/la-grilla-vive-en-la-wram.md.
+; decisions/the-grid-lives-in-wram.md.
 .proc lz2_grid
 .a8
 .i16

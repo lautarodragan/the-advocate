@@ -27,7 +27,7 @@
 ; get pixelated**, and in RM2k they do, because there the whole screen gets
 ; pixelated. With the brightness going down at the same time it is barely
 ; noticeable; it is in
-; workflow/divergencias/las-transiciones-del-teletransporte.md.
+; divergences/the-teleport-transitions.md.
 ;
 ; `fade_tick` does not need to be touched for the mosaic: it is deduced
 ; from what the fade already carries —whether there is one, whether the load is

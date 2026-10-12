@@ -291,7 +291,7 @@ save:
     ; That is why a `PanScreen` that nobody returns leaves the screen off
     ; center forever, and that **is faithful**: it happens on leaving through
     ; the gate of map 12 and happens the same in the original RPG_RT. See
-    ; `workflow/decisiones/la-camara-corrida-de-la-reja-es-del-juego.md`.
+    ; `ports/abl/decisions/the-camera-offset-after-the-gate-is-the-games.md`.
     adc pan_px
     bpl limit_x
     lda #0                      ; the hero is near the left edge

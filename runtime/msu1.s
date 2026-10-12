@@ -229,7 +229,7 @@ no:
 ; by byte through `S9xGetPPU`, which serves the MSU-1.
 ;
 ; What is inside and in what format is decided by the converter: see
-; msu_data.rs in rm2k-snes-audio and docs/port/msu-datos.md. Today it is the battle
+; msu_data.rs in rm2k-snes-audio and internals/the-msu-file.md. Today it is the battle
 ; backgrounds, and **the ROM still carries its own**: this replaces them only
 ; if there is an MSU-1 and the `.msu` is this cartridge's.
 ;
@@ -256,7 +256,7 @@ MSU_DATA    = $2001             ; read: the next byte
 ; of the frame in which they elapse: each seek costs one or two frames.
 ; Measured on 2026-09-26 in the droid battle playing from the title: the
 ; background comes from the `.msu`, with `SCN_FRAMES` at 11 against 4 in
-; snes9x. See "How long it takes" in `internals/msu-datos.md` in the book.
+; snes9x. See "How long it takes" in `internals/the-msu-file.md` in the book.
 ;
 ; On the FX Pak, seeking outside its 16 KB buffer means reading the SD card
 ; —`prepare_data` in sd2snes's `src/msu1.c`—, a few milliseconds.

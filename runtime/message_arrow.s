@@ -196,7 +196,7 @@ cell:
 ; as wide as the text minus four, drawn as `Window::RefreshCursor` draws it;
 ; it is the first of the System's two cursor drawings, which RM2k
 ; alternates every ten frames. See `workflow/divergencias/
-; la-barra-de-la-eleccion-no-alterna-sus-dos-dibujos.md`.
+; the-choice-bar-does-not-alternate-its-two-drawings.md`.
 .proc msg_bar_source
 .a8
 .i16

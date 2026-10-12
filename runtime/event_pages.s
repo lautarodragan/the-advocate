@@ -1552,7 +1552,7 @@ already_was:
 ; What the event loses with the slot is what RM2k keeps after a move route:
 ; its speed, frequency and flags go back to its page's. Which way it faces it
 ; keeps, written to its row's +10, which is where a new slot reads it from.
-; See divergencias/las-rutas-terminadas-sueltan-su-lugar.md.
+; See divergences/finished-routes-give-up-their-slot.md.
 .proc reclaim_slot
 .a8
 .i16
@@ -1931,7 +1931,7 @@ next:
     bra walk
 is_hero:
     ; **`crossing` and not `route_crosses`**, which is the divergence
-    ; declared in workflow/divergencias/atravesar-paredes-vale-mientras-dura-la-ruta.md:
+    ; declared in divergences/walking-through-walls-lasts-as-long-as-the-route.md:
     ; the flag command 36 leaves holds while the step is given by the forced
     ; move route —there `step_route` copies it to `crossing`— and not for
     ; walking with the pad, which leaves it at zero. Reading the sticky one,

@@ -1358,7 +1358,7 @@ GO_FRAMES = $7E7A34             ; how many frames each fade level lasts
 ; when loading the map and everyone who asks about a cell reads it. Reserved
 ; on 2026-09-26, and it is a decision with a cost: it was half of the far RAM
 ; that was still free. What is lost, how it is reverted and what catches it,
-; in workflow/decisiones/la-grilla-vive-en-la-wram.md;
+; in decisions/the-grid-lives-in-wram.md;
 ; `test_reservas_de_la_wram.py` fails if another symbol lands inside.
 ;
 ; Right behind it, in $7F's half, go the block table and its passability,

@@ -22,7 +22,7 @@
 //! What is lost: the characters are neither shaded nor lit by what is
 //! translucent; nothing of it changes over time; and what goes in front of
 //! the hero goes by whole 8x8 cells. The study:
-//! `ports/sunset-over-imdahl/research/2026-10-11-las-imagenes.md` in the
+//! `ports/sunset-over-imdahl/research/2026-10-11-the-pictures-over-the-map.md` in the
 //! book.
 
 use crate::fail::{Bad, Result};

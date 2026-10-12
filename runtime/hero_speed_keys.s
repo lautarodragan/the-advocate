@@ -6,7 +6,7 @@
 ;
 ; R raises the speed the hero walks at by one and L lowers it, within RM2k's
 ; 1 to 6. RM2k has nothing like it: it is taro's, on 2026-09-30, and it is in
-; workflow/divergencias/la-velocidad-del-heroe-con-l-y-r.md.
+; divergences/the-heros-speed-with-l-and-r.md.
 ;
 ; **It is not the hero's speed: it is a bonus on top of it.** The speed is
 ; `FAR_HERO_SPEED`, which forced move routes raise and lower and which travels

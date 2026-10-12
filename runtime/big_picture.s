@@ -6,7 +6,7 @@
 ;
 ; A `ShowPicture` too big for the sprites —an instructions page, a photo of
 ; the whole screen, the end of the game— is drawn in **BG1, with the console
-; in mode 1 while it is up**: `decisiones/las-imagenes-grandes-en-modo-1.md`.
+; in mode 1 while it is up**: `decisions/large-pictures-in-mode-1.md`.
 ; Mode 1 reads BG1 at 4 bits a pixel and BG2 as mode 3 already did, so the
 ; message window, which is BG2, goes on as it was; the map is gone. Which
 ; pictures go here and how they are drawn is the converter's —see

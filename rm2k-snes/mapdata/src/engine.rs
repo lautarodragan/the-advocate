@@ -7,7 +7,7 @@
 //! name —`engine`, [`numbers`]— and the runtime only names them. The ones
 //! marked as measured against A
 //! Blurred Line are assumptions of the engine, not facts of a game: see
-//! `workflow/decisiones/las-herramientas-se-separan-de-abl.md`.
+//! `decisions/the-tools-split-from-abl.md`.
 
 /// A text box's header: the lines in the low three bits, the auto-close of
 /// `\^` in bit 3, the `\|` pauses in the high nibble.

@@ -16,7 +16,7 @@
 ;
 ; **The phase is not RM2k's**, which starts each character's counter when the
 ; map creates it; here it is global. It is declared in
-; workflow/divergencias/la-fase-de-los-quietos-que-animan.md, and all it changes
+; divergences/the-phase-of-still-events-that-animate.md, and all it changes
 ; is which of the four steps of the cycle each event enters on.
 ;
 ; It runs before `move_events` on purpose: if a forced move route grabs one of
