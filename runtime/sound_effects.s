@@ -8,7 +8,8 @@
 ; effects.rs there. In RM2k sound effects add up —EasyRPG has 31 channels—, and with a
 ; single voice the opening's rain cut the thunder in half: measured, 73 of
 ; its 144 frames, and once 7. With MSU-1 and the SPC700 without music, voices
-; 0 to 5 as well: see msu_effects.s.
+; 0 to 5 as well, and a copy of a sound still playing does not cut it: see
+; msu_effects.s.
 ;
 ; Each voice's state lives in far RAM, because the direct page and the BSS
 ; are full. The second one's is SE2_OFS higher up, with the same shape, so
@@ -551,12 +552,24 @@ is_own:
     ; The interrupt is not lost, it is delayed until the `plp`.
     php
     sei
-    ; The voice: Y ends up at 0 for SE_VOICE or at SE2_OFS for the other.
-    ; First the one already playing this same sample —the rain triggers again
-    ; before ending, and this way it does not steal the other voice from the
-    ; thunder—, then a free one, and otherwise the one that ends sooner. A
-    ; pending one is not overwritten if the other one can be: nothing of it
-    ; has played yet.
+    ; With MSU-1 and the SPC700 without music, the eight voices are the
+    ; sound effects', and the copies of the same sound add up: see
+    ; `se_msu_choose` in msu_effects.s.
+    rep #$20
+.a16
+    lda 2, s                    ; the index, behind P
+    jsl se_msu_choose
+.a8
+    bcc two_voices
+    bne chosen                  ; 7 or 6
+    jmp set                     ; it took one of 0 to 5
+two_voices:
+    ; Without them, two voices. Y ends up at 0 for SE_VOICE or at SE2_OFS
+    ; for the other. First the one already playing this same sample —the rain
+    ; triggers again before ending, and this way it does not steal the other
+    ; voice from the thunder—, then a free one, and otherwise the one that
+    ; ends sooner. A pending one is not overwritten if the other one can be:
+    ; nothing of it has played yet.
     ldy #0
     lda f:SE_NEW
     cmp f:sound_table, x
@@ -571,27 +584,12 @@ no_same_7:
     jsr se2_busy
     bne chosen
 no_same_6:
-    ; With MSU-1 and the SPC700 without music, voices 0 to 5: the one already
-    ; playing this sample, and then, if 7 and 6 are not free, one of those.
-    ; See msu_effects.s. Without MSU-1 they take nothing.
-    rep #$20
-.a16
-    lda 2, s                    ; the index, behind P
-    jsl se_extra_same
-.a8
-    bcs set
     ldy #0
     jsr se_busy
     beq chosen
     ldy #SE2_OFS
     jsr se2_busy
     beq chosen
-    rep #$20
-.a16
-    lda 2, s
-    jsl se_extra_free
-.a8
-    bcs set
     ldy #0
     lda f:SE2_PENDING
     bne chosen

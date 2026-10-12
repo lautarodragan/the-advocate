@@ -10,8 +10,10 @@
 ;
 ; **Voices 0 to 5.** While the SPC700 plays no music —there is MSU-1 and
 ; `music_off` is set: a track plays, or nothing—, a sound effect that
-; does not fit in 7 or in 6 takes one of those. In RM2k sound effects add up,
-; and `evilrhys`'s scene on map 3 has a moment with three at once. Their state
+; does not fit in 7 or in 6 takes one of those, and a new copy of a sound
+; still playing takes another voice instead of cutting it: `se_msu_choose`.
+; In RM2k sound effects add up: `evilrhys`'s scene on map 3 has a moment
+; with three at once, and the opening's rain overlaps itself. Their state
 ; lives in `EX_*` (far_ram.s), smaller than that of 7 and 6: instead of the
 ; copy of the `sound_table` row, its index, and the interrupt reads it when
 ; starting it.
@@ -141,11 +143,27 @@ no:
     rts
 .endproc
 
-; For `sound_play`, with interrupts disabled: if one of voices 0 to 5 is
-; playing the same sample as the sound effect of index A —sixteen bits— and
-; row X, it is given to that one, as 7 and 6 do with the rain. C at 1 if it
-; took it. Returns with 8-bit A, and with X as it came.
-.proc se_extra_same
+; For `sound_play`, with interrupts disabled: the voice of the sound effect
+; of index A —sixteen bits— and row X, while voices 0 to 5 belong to the
+; sound effects. A free one —7, 6, and then 0 to 5—, and only if all eight are
+; busy, the one with the fewest frames left; a pending one counts as having
+; them all, since nothing of it has sounded yet. **The same sample takes
+; another voice like any other sound effect**: in RM2k copies of the same
+; sound add up, and the opening's rain —five seconds, triggered again every
+; four— used to start again on the voice of the one still playing and cut
+; off its last second; taro heard it. Until 2026-10-11 it did that, here and
+; with 7 and 6, which is still what happens without MSU-1 (`sound_play`).
+;
+; C at 0 if voices 0 to 5 are not the sound effects', and `sound_play` picks
+; between 7 and 6 as always. C at 1 if it chose: with Z at 1 it already took
+; one of 0 to 5 (`ex_take`), and with Z at 0 it is 7 or 6, with Y at 0 or at
+; SE2_OFS, for `sound_play` to copy the pending one. Returns with 8-bit A and
+; X as it came.
+;
+; Free means nothing pending, playing or being given back: the frames come
+; from the WAV's length, so a whole sound effect frees its voice when it ends.
+; The DSP's ENDX would say it as well, but the driver only writes to the DSP.
+.proc se_msu_choose
 .a16
 .i16
     phx
@@ -153,86 +171,135 @@ no:
     sep #$20
 .a8
     jsr ex_allowed
-    bcc no
-    lda f:sound_table, x
-    pha                         ; [srcn][index][row]
+    bcs allowed
+    rep #$20
+.a16
+    pla
+    plx
+    sep #$20
+.a8
+    clc
+    rtl
+allowed:
+    ; The candidate in temp + 2: 7, 6, or 0 to 5. Its frames in temp.
+    lda #7
+    sta temp + 2
+    lda f:SE_FRAMES
+    ora f:SE_FRAMES + 1
+    ora f:SE_PENDING
+    ora f:SE_RETURN
+    bne no_7
+    jmp chose
+no_7:
+    lda #6
+    sta temp + 2
+    lda f:SE2_FRAMES
+    ora f:SE2_FRAMES + 1
+    ora f:SE2_PENDING
+    ora f:SE2_RETURN
+    bne no_6
+    jmp chose
+no_6:
     ldy #0
-other:
+free:
     tyx
     lda f:ex_bit, x
     and f:EX_BUSY
-    beq continues
+    bne busy
+    sty temp + 2
+    jmp chose
+busy:
+    iny
+    cpy #EX_VOICES
+    bcc free
+    ; All eight busy: the one that ends first.
+    lda #7
+    sta temp + 2
+    rep #$20
+.a16
+    lda #$FFFF
+    sta temp
+    sep #$20
+.a8
+    lda f:SE_PENDING
+    bne look_6
+    rep #$20
+.a16
+    lda f:SE_FRAMES
+    sta temp
+    sep #$20
+.a8
+look_6:
+    lda f:SE2_PENDING
+    bne look_extras
+    rep #$20
+.a16
+    lda f:SE2_FRAMES
+    cmp temp
+    sep #$20                    ; does not touch C
+.a8
+    bcs look_extras
+    sta temp                    ; the low half: the high one goes below
+    xba
+    sta temp + 1
+    lda #6
+    sta temp + 2
+look_extras:
+    ldy #0
+extra:
+    tyx
+    lda f:ex_bit, x
+    and f:EX_PEND
+    bne next
     rep #$20
 .a16
     tya
     asl a
     tax
+    lda f:EX_FRAMES, x
+    cmp temp
+    bcs next_a16
+    sta temp
     sep #$20
 .a8
-    jsr ex_srcn
-    cmp 1, s
-    beq take
-continues:
+    sty temp + 2
+    bra next
+.a16
+next_a16:
+    sep #$20
+.a8
+next:
     iny
     cpy #EX_VOICES
-    bcc other
-    pla
-no:
+    bcc extra
+chose:
+    lda temp + 2
+    cmp #6
+    bcc extra_voice
+    ldy #0
+    cmp #7
+    beq seven_or_six
+    ldy #SE2_OFS
+seven_or_six:
     rep #$20
 .a16
     pla
     plx
     sep #$20
 .a8
-    clc
-    rtl
-take:
-    pla
-    rep #$20
-.a16
-    pla
-    jsr ex_take
-.a8
-    plx
+    lda #1                      ; Z at 0: 7 or 6
     sec
     rtl
-.endproc
-
-; And if 7 and 6 are busy, one of voices 0 to 5 that is free.
-.proc se_extra_free
-.a16
-.i16
-    phx
-    pha
-    sep #$20
-.a8
-    jsr ex_allowed
-    bcc no
-    ldy #0
-other:
-    tyx
-    lda f:ex_bit, x
-    and f:EX_BUSY
-    beq take
-    iny
-    cpy #EX_VOICES
-    bcc other
-no:
+extra_voice:
     rep #$20
 .a16
-    pla
-    plx
-    sep #$20
-.a8
-    clc
-    rtl
-take:
-    rep #$20
-.a16
+    and #$00FF
+    tay
     pla
     jsr ex_take
 .a8
     plx
+    lda #0                      ; Z at 1: it already took it
     sec
     rtl
 .endproc
