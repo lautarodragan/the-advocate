@@ -12,7 +12,7 @@
 ; Until 2026-09-27 they were reached through the WMADD window, pointing and
 ; reading one byte at a time through the port: that cost twice as much, and
 ; each parallel page of the race does four of these per frame. See
-; workflow/tasks/*/carrera-2-a-sesenta-cuadros.md.
+; tasks/race-2-at-60-frames.md.
 
 ; A: the slot. Returns its value in a 16-bit A, and M at sixteen.
 .proc var_read

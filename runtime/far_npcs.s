@@ -11,7 +11,7 @@
 ; this took almost a hundred lines of the frame's 262, and bank 0 had no room
 ; to make it faster: it lives here, in the fast mirror, and the callers over
 ; there come in with `jsl f:... + FAST`. See
-; workflow/tasks/*/carrera-2-a-sesenta-cuadros.md.
+; tasks/race-2-at-60-frames.md.
 
 ; --- an NPC row that changed, into its place --------------------------------
 ;
@@ -209,7 +209,7 @@ ready:
 ; Unrolled and in bank 1 —in the fast mirror—, because the one-object-at-a-time
 ; loop that was in bank 0 took fifteen lines of every frame, on every map: a
 ; quarter of what the race had to spare. This way it is about four. See
-; workflow/tasks/*/carrera-2-a-sesenta-cuadros.md.
+; tasks/race-2-at-60-frames.md.
 .proc oam_hide
 .a8
 .i16

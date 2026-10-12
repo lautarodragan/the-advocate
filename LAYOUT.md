@@ -171,7 +171,7 @@ justfile install-local <destination>`, which builds a `bin/` of its
 own wherever whoever will use it says: the game's `justfile` looks for its
 own in a directory of its own, and this one, in `.local-tools/`.
 Each puts it first on the PATH of its recipes: see the recipe, and
-"Sub-agentes" in AGENTS.md.
+"Sub-agents" in AGENTS.md.
 
 ## What the game decides: the project file
 
