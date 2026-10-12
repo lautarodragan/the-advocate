@@ -95,6 +95,12 @@ struct GameArgs {
     #[arg(long, value_name = "NAME|PATH")]
     system: Option<String>,
 
+    /// The colour every window is drawn over instead of the System's
+    /// background, "#rrggbb": the System keeps giving its frame, cursor,
+    /// arrow and text colours
+    #[arg(long = "window-background", value_name = "#RRGGBB")]
+    window_background: Option<String>,
+
     /// What the cartridge decided
     #[arg(long, value_name = "PATH")]
     request: PathBuf,
@@ -111,6 +117,9 @@ impl GameArgs {
         game.rtp_dir = self.rtp_dir.clone();
         if let Some(system) = &self.system {
             game.use_system(system);
+        }
+        if let Some(background) = &self.window_background {
+            game.use_window_background(background)?;
         }
         Ok(game)
     }

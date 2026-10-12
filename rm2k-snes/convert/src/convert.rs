@@ -121,6 +121,7 @@ pub fn run(options: Options) -> Result<()> {
 
     let mut game = Game::read(&game_dir, &project)?;
     game.rtp_dir = Some(rtp_dir.clone());
+    game.check_window_backgrounds()?;
     // The hero's graphic comes from the party: in RM2k the first of the
     // list gives it. An empty one is valid, as in RM2k: the hero is not
     // drawn until someone joins (`pick_hero_graphic` in the runtime).
