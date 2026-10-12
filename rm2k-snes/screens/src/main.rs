@@ -58,8 +58,14 @@ enum Command {
         \"merges\": [[from, to, pixels], ...], \"system\": its name}. The window takes entries 1 to n of colour \
         memory —0 is transparent—, so whatever shares the lower palettes with it starts at \
         n + 1. A System with more than fifteen is reduced by Adeleine: m is how many it \
-        brought, and the merges are what it lost, in order. Its request is ignored: it is taken so every \
-        subcommand is called the same way.")]
+        brought, and the merges are what it lost, in order.\n\n\
+        Its request may carry `systems`, the other Systems the cartridge switches to, \
+        [{\"system\": name, \"background\": \"#rrggbb\" or null, \"stretch\": n or null}]: \
+        then the text takes the same entries in all of them, `text_rows` answers which glyph rows \
+        take one each —what `convert` takes back—, n is what the starting one takes with them, the \
+        others are reduced to fit in it, and \
+        `systems` answers each one's window as `convert` writes it, without the font, with \
+        its `brought`, `merges`, `colors` and `frame_fused`.")]
     Window(GameArgs),
 }
 
@@ -332,11 +338,62 @@ fn do_equip(args: &GameArgs) -> Result<()> {
 fn do_window(args: &GameArgs) -> Result<()> {
     let game = args.game()?;
     let skin = game.skin()?;
-    let (brought, merges) = message_window::reduction(&skin)?;
-    let merges: Vec<_> = merges.iter().map(|m| serde_json::json!([m.victim, m.target, m.pixels])).collect();
+    let others = Json::read(&args.request)?.systems()?;
+    let merges_json = |merges: &[adeleine::Merge]| -> Vec<serde_json::Value> {
+        merges.iter().map(|m| serde_json::json!([m.victim, m.target, m.pixels])).collect()
+    };
+    if others.is_empty() {
+        let (brought, merges) = message_window::reduction(&skin)?;
+        let answer = serde_json::json!({
+            "colors": message_window::colors(&skin)?, "brought": brought, "merges": merges_json(&merges),
+            "system": game.system.system_name,
+        });
+        return write(&args.out, "window.json", &answer.to_string());
+    }
+    // Each other System is the same game drawn with it, over its own
+    // background or none: the starting one's does not carry over.
+    let mut skins = Vec::new();
+    for other in &others {
+        let mut drawn = args.game()?;
+        drawn.system_file = None;
+        drawn.use_system(&other.system);
+        drawn.window_background = None;
+        if let Some(background) = &other.background {
+            drawn.use_window_background(background)?;
+        }
+        if let Some(stretch) = other.stretch {
+            drawn.system.message_stretch = ditto::schema::SystemStretch::from_i32(stretch);
+        }
+        skins.push((other.system.clone(), drawn.skin()?));
+    }
+    let mut each = vec![message_window::text_rows(&skin)?];
+    for (_, s) in &skins {
+        each.push(message_window::text_rows(s)?);
+    }
+    let rows = message_window::common_rows(&each);
+    // The starting System's entries are the cartridge's, and the others fit
+    // in them: see `message_window::convert_with`.
+    let colors = message_window::colors_with(&skin, Some(&rows))?;
+    let mut systems = Vec::new();
+    for (name, s) in &skins {
+        let (brought, merges) = message_window::reduction_capped(s, Some(&rows), colors)?;
+        let window = message_window::convert_with(s, colors + 1, Some(&rows))?;
+        systems.push(serde_json::json!({
+            "system": name,
+            "window": convert::window_json(&window),
+            "brought": brought,
+            "merges": merges_json(&merges),
+            "colors": colors,
+            "frame_fused": window.frame_fused,
+            "mixed_text_rows": message_window::mixed_text_rows(s),
+        }));
+    }
+    let (brought, merges) = message_window::reduction_with(&skin, Some(&rows))?;
     let answer = serde_json::json!({
-        "colors": message_window::colors(&skin)?, "brought": brought, "merges": merges,
+        "colors": colors, "brought": brought, "merges": merges_json(&merges),
         "system": game.system.system_name,
+        "text_rows": rows,
+        "systems": systems,
     });
     write(&args.out, "window.json", &answer.to_string())
 }

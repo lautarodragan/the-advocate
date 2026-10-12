@@ -334,6 +334,15 @@ impl Request {
                 Ok(table)
             })?;
         }
+        if let Some(systems) = data.get("systems").filter(|s| !s.is_null()) {
+            for s in systems
+                .as_array()
+                .ok_or_else(|| Bad::answer(format!("{whose}: `systems` is not a list")))?
+            {
+                let name = s.as_str().ok_or_else(|| Bad::answer(format!("{whose}: a System is {s}")))?;
+                r.patches.systems.push(name.to_string());
+            }
+        }
         if let Some(counters) = data.get("counters") {
             for c in counters
                 .as_array()

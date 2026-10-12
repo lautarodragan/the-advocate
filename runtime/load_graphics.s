@@ -58,16 +58,21 @@
     ; goes here and not in `load_window` because `load_window` is skipped
     ; entirely when the ROM has no window, and the backdrop color is needed
     ; anyway.
+.if ::WINDOW_SYSTEMS > 1
+    ; The System the window is drawn with, which a loaded save brings: every
+    ; piece of the window is read from this copy.
+    jsl f:window_select
+.endif
     stz CGADD
     rep #$20
 .a16
-    lda #.loword(window_cgram)
+    win_lo window_cgram, WS_CGRAM
     sta A1T0L
     lda #(CGRAM_BASE * 2)
     sta DAS0L
     sep #$20
 .a8
-    lda #^window_cgram
+    win_bank window_cgram, WS_CGRAM
     sta A1B0
     lda #$00
     sta DMAP0                   ; one register, byte by byte

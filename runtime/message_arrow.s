@@ -138,6 +138,9 @@ framed:
     rep #$20
 .a16
     sty VMADDL
+    ; The one-System branch goes first: Goombario reads the widths off the
+    ; source in order, `.if`s and all, and the other ends in 8 bits.
+.if ::WINDOW_SYSTEMS = 1
     ldy #WINDOW_ARROW_CELLS
 cell:
     lda f:window_arrow_cells, x
@@ -146,6 +149,26 @@ cell:
     inx
     dey
     bne cell
+.else
+    ; The current System's table, which `lda f:table, x` cannot reach: by
+    ; DMA, from its pointer plus the way.
+    txa
+    clc
+    win_adc window_arrow_cells, WS_ARROW
+    sta A1T0L
+    lda #(WINDOW_ARROW_CELLS * 2)
+    sta DAS0L
+    sep #$20
+.a8
+    win_bank window_arrow_cells, WS_ARROW
+    sta A1B0
+    lda #$01
+    sta DMAP0
+    lda #$18
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+.endif
     sep #$20
 .a8
     rtl
@@ -167,9 +190,18 @@ cell:
     lda f:MSG_PLACE
     and #MSG_BARE
     beq framed
+.if ::WINDOW_SYSTEMS > 1
+    rep #$20
+.a16
+    win_lo window_bar_bare, WS_BAR_BARE
+    sta A1T0L
+    sep #$20
+.a8
+.else
     ldx #.loword(window_bar_bare)
     stx A1T0L
-    lda #^window_bar_bare
+.endif
+    win_bank window_bar_bare, WS_BAR_BARE
     bra size
 framed:
     rep #$20
@@ -180,11 +212,11 @@ framed:
     tax
     lda f:bar_lines, x
     clc
-    adc #.loword(window_bar)
+    win_adc window_bar, WS_BAR
     sta A1T0L
     sep #$20
 .a8
-    lda #^window_bar
+    win_bank window_bar, WS_BAR
 size:
     sta A1B0
     ldx #TEXT_BUF_BYTES

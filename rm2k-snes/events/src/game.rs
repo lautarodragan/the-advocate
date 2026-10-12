@@ -163,6 +163,11 @@ pub struct Patches {
     /// console's RAM, by map and id: the map is read without them, so the
     /// indices are the converter's. A page that names one does not compile.
     pub dropped: BTreeMap<i32, std::collections::BTreeSet<i32>>,
+    /// The Systems the cartridge carries a message window for, in its
+    /// order: the one it starts with, and every one a `ChangeSystemGraphics`
+    /// switches to. Empty is a cartridge that does not switch, and then the
+    /// command does not compile.
+    pub systems: Vec<String>,
 }
 
 /// See [`Patches::menus`].
@@ -444,6 +449,26 @@ impl Game {
             skills,
             items,
         })
+    }
+
+    /// Every System a `ChangeSystemGraphics` of the game names, once each,
+    /// in the order they are found: the maps', the common events' and the
+    /// troops'.
+    pub fn system_names(&self) -> Result<Vec<String>> {
+        let mut out: Vec<String> = Vec::new();
+        let mut note = |c: &Command| {
+            if c.code == CHANGE_SYSTEM_GRAPHICS && !out.iter().any(|s| s.eq_ignore_ascii_case(&c.string)) {
+                out.push(c.string.clone());
+            }
+        };
+        for &id in &self.map_ids {
+            for event in self.map(id)?.events {
+                event.pages.iter().flat_map(|p| p.commands.iter()).for_each(&mut note);
+            }
+        }
+        self.common_events.values().flat_map(|c| c.commands.iter()).for_each(&mut note);
+        self.troops.values().flatten().flat_map(|p| p.commands.iter()).for_each(&mut note);
+        Ok(out)
     }
 
     /// Map `id`: the project's file if it has one, the dump's otherwise.

@@ -161,7 +161,17 @@ pub fn run(options: Options) -> Result<()> {
     for menu in &custom_menus {
         extra.extend(menu.variables().into_iter().map(|v| v as i32));
     }
-    let compiler = Compiler::new(&game, &settings)?;
+    // The Systems the pages switch to, which the compiler numbers and the
+    // screens draw a message window for.
+    let (switched, any_system, system_says) = crate::systems::switched(&game, &every_refs, &file_commands);
+    for line in &system_says {
+        println!("{line}");
+    }
+    let mut compiler = Compiler::new(&game, &settings)?;
+    compiler.systems = crate::systems::names(&game, &switched, any_system);
+    if !switched.is_empty() {
+        println!("  Systems: {}", compiler.systems.join(", "));
+    }
     let scan_answer = compiler.scan(&order, &file_commands, &extra, test_event_map, &case_pairs)?;
     let mut indices = Indices::from_answer(&scan_answer);
     // The slot is a byte: the variables past it have no place in far RAM.
@@ -228,7 +238,24 @@ pub fn run(options: Options) -> Result<()> {
     };
     // The message window's colours, from the System: once, for every map and
     // for the screens and the emission. See `screens::window_colors`.
-    let (window_colors, window_answer) = screens::window_colors(&game)?;
+    let (window_colors, window_answer) = screens::window_colors(&game, &switched)?;
+    for other in window_answer["systems"].as_array().into_iter().flatten() {
+        let rows = other["mixed_text_rows"].as_array().map_or(0, Vec::len);
+        if rows > 0 {
+            println!(
+                "  WARNING, System {}: {rows} row(s) of its text colour are not one colour, and its message \
+                 window draws each with the one most of it has",
+                other["system"]
+            );
+        }
+        if let Some(had) = other["frame_fused"].as_u64() {
+            println!(
+                "  WARNING, System {}: its message window's frame and arrow took {had} tiles and were fused into \
+                 bands to fit",
+                other["system"]
+            );
+        }
+    }
     let map_pictures = if game.map_pictures {
         let decided = crate::map_pictures::decide(&every_refs, &game.game_dir)?;
         println!(
@@ -709,7 +736,7 @@ pub fn run(options: Options) -> Result<()> {
         "before_bodies": menu_before,
     });
     let screens_answer =
-        screens::convert(&game, &font, &members, &items_all, !options.no_title, &menus_request, window_colors)?;
+        screens::convert(&game, &font, &members, &items_all, !options.no_title, &menus_request, window_colors, &window_answer["text_rows"])?;
     let w = &screens_answer["window"];
     println!(
         "  message window: {} fixed tiles + {} of text, {} colors; font {} B, {} text box(es) in {} B",
@@ -990,6 +1017,9 @@ pub fn run(options: Options) -> Result<()> {
         },
         "screens": screens_answer,
         "window_colors": window_colors,
+        // The message window of every other System the cartridge switches
+        // to, in its order: the starting one's is the screens'.
+        "window_systems": window_answer.get("systems").cloned().unwrap_or_else(|| json!([])),
         "messages": hex(&messages),
         "message_pairs": message_pairs,
         "title": title_screen.as_ref().map(fullscreen::Screen::request),
@@ -1063,13 +1093,17 @@ pub fn run(options: Options) -> Result<()> {
         })).collect::<Vec<_>>(),
         // And the colours the message window lost, if its System did not
         // fit in one palette: one that fits writes nothing.
-        "windows": match window_answer["merges"].as_array() {
-            Some(merges) if !merges.is_empty() => vec![json!({
-                "system": window_answer["system"], "colors": window_answer["brought"],
-                "kept": window_colors, "merges": merges,
-            })],
-            _ => vec![],
-        },
+        "windows": std::iter::once(&window_answer)
+            .chain(window_answer["systems"].as_array().into_iter().flatten())
+            .filter_map(|w| match w["merges"].as_array() {
+                Some(merges) if !merges.is_empty() => Some(json!({
+                    "system": w["system"], "colors": w["brought"],
+                    "kept": if w["colors"].is_null() { json!(window_colors) } else { w["colors"].clone() },
+                    "merges": merges,
+                })),
+                _ => None,
+            })
+            .collect::<Vec<_>>(),
     });
     stage::hand_over("rm2k-snes-patches", "patches", &patches_request, &[directory.clone().into_os_string()], None)?;
     // And who asked for each one, which isn't versioned: what separates, in

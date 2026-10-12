@@ -39,6 +39,11 @@ pub struct Request {
     /// cartridge decided they need —see `custom_menu`—.
     pub menus: Vec<(String, Value)>,
     pub menu_context: crate::custom_menu::Context,
+    /// The glyph rows the message window's text takes an entry each for,
+    /// the same in every System the cartridge switches between, or None if
+    /// it never switches: see `message_window::TextRows`. The `window`
+    /// subcommand answers it.
+    pub text_rows: Option<message_window::TextRows>,
 }
 
 fn hex(bytes: &[u8]) -> String {
@@ -317,6 +322,23 @@ pub fn item_pairs(game: &Game, skin: &crate::game::Skin, items: &[i32]) -> Resul
     Ok(render::item_screen_text(game, skin, &inventory, chosen, 0, Some(&list))?.0.pairs(font))
 }
 
+/// The message window as the emission takes it, without the font: what
+/// changes from one System to another.
+pub fn window_json(window: &message_window::Window) -> Value {
+    json!({
+        "tiles": hex(&window.tiles),
+        "cgram": window.cgram,
+        "cells": window.cells,
+        "base": window.base,
+        "background": hex(&window.background),
+        "color": window.color,
+        "shadow": window.shadow,
+        "arrow": window.arrow,
+        "bar": hex(&window.bar),
+        "bar_bare": hex(&window.bar_bare),
+    })
+}
+
 /// What a screen whose windows had to be redrawn says: see `fit`.
 fn fused_windows(whose: &str, tiles: Option<(usize, usize)>) -> Option<String> {
     tiles.map(|(from, to)| {
@@ -333,7 +355,7 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     let skin = game.skin()?;
     let mut says: Vec<String> = Vec::new();
 
-    let window = message_window::convert(&skin, request.cgram_reserved)?;
+    let window = message_window::convert_with(&skin, request.cgram_reserved, request.text_rows.as_ref())?;
     if let Some(had) = window.frame_fused {
         says.push(format!(
             "  WARNING, the message window's frame and arrow took {had} tiles and the text area leaves \
@@ -505,24 +527,14 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
         crate::custom_menu::to_json(&built)
     };
     let menu = &slots.menu;
+    let mut window_json = window_json(&window);
+    window_json["font"] = json!(hex(&font));
+    window_json["advances"] = json!(game.font.console_advances());
+    window_json["reach"] = json!(message_window::font_reach(&game.font));
+    window_json["prerender"] = json!(prerender.iter().map(|t| hex(t)).collect::<Vec<_>>());
     Ok(json!({
         "custom_menus": custom_menus,
-        "window": {
-            "tiles": hex(&window.tiles),
-            "cgram": window.cgram,
-            "cells": window.cells,
-            "base": window.base,
-            "background": hex(&window.background),
-            "color": window.color,
-            "shadow": window.shadow,
-            "arrow": window.arrow,
-            "bar": hex(&window.bar),
-            "bar_bare": hex(&window.bar_bare),
-            "font": hex(&font),
-            "advances": game.font.console_advances(),
-            "reach": message_window::font_reach(&game.font),
-            "prerender": prerender.iter().map(|t| hex(t)).collect::<Vec<_>>(),
-        },
+        "window": window_json,
         "title": title.map(|t| json!({
             "texts": t.texts,
             "tiles": tiles_json(&t.tiles),

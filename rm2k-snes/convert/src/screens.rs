@@ -13,6 +13,7 @@ use crate::fail::{Result, Stop};
 use crate::font::FontChoice;
 use crate::game::Game;
 use crate::stage;
+use crate::systems::Switched;
 use rm2k_project::windows::color_text;
 use rm2k_snes_mapdata::{cgram, vram};
 use serde_json::{json, Value};
@@ -34,9 +35,10 @@ fn game_flags(game: &Game) -> Vec<OsString> {
     if let Some(system) = &game.system {
         flags.extend(["--system".into(), system.into()]);
     }
-    // Only the System the cartridge starts with is drawn: the engine does
-    // not change System yet (`ChangeSystemGraphics` is ignored). A gradient
-    // goes as the one colour it is drawn with until the runtime draws it.
+    // The System the cartridge starts with: every screen is drawn with it,
+    // and the message window of the others it switches to is asked for
+    // apart —see `window_colors`—. A gradient goes as the one colour it is
+    // drawn with until the runtime draws it.
     if let Some(background) = game.window_background(&game.starting_system()) {
         flags.extend(["--window-background".into(), color_text(background.flat()).into()]);
     }
@@ -74,8 +76,18 @@ pub fn boxes(game: &Game, font: &FontChoice, width: usize, lines: u32) -> Result
 /// And the whole answer with it: a System with more colours than a palette
 /// holds comes back reduced, and what it lost —`system`, `brought` and
 /// `merges`— goes to the game's patches.
-pub fn window_colors(game: &Game) -> Result<(u32, Value)> {
-    let written = stage::run(BINARY, PROJECT, "window", &json!({}), &game_flags(game))?;
+///
+/// With the Systems the cartridge switches to, `switched`, the count is the
+/// most any of them takes, the text takes the same entries in all of them
+/// —`text_rows`, which [`convert`] takes back— and each one's window comes
+/// in `systems`.
+pub fn window_colors(game: &Game, switched: &[Switched]) -> Result<(u32, Value)> {
+    let request = if switched.is_empty() {
+        json!({})
+    } else {
+        json!({"systems": crate::systems::window_request(game, switched)})
+    };
+    let written = stage::run(BINARY, PROJECT, "window", &request, &game_flags(game))?;
     let answer = stage::json(&written, "window.json")?;
     let colors = answer["colors"]
         .as_u64()
@@ -112,6 +124,7 @@ pub fn convert(
     title: bool,
     menus: &Value,
     window_colors: u32,
+    text_rows: &Value,
 ) -> Result<Value> {
     let _ = LINES;
     let bg1_banks: Vec<Value> = vram::LAYOUTS
@@ -149,6 +162,12 @@ pub fn convert(
             "bg1_banks": bg1_banks,
         },
     });
+    // The text's entries, the same in every System: only a cartridge that
+    // switches has them, and the request of one that does not stays as it
+    // was.
+    if !text_rows.is_null() {
+        request["text_rows"] = text_rows.clone();
+    }
     // The custom menus, their variables' slots and the bodies they run.
     for key in ["menus", "variables", "before_bodies"] {
         request[key] = menus[key].clone();

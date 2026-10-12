@@ -518,6 +518,16 @@ fn enemies_with_more_actions_than_a_byte_numbers_start_in_words() {
 fn without_backdrop_lines(text: &str) -> String {
     let line = "WINDOW_BACKDROP_LINES = 4\n";
     assert!(text.contains(line), "the window's backdrop should go whole");
+    without_window_systems(&text.replacen(line, "", 1))
+}
+
+/// And without `WINDOW_SYSTEMS`, which came after it (2026-10-12, for
+/// `ChangeSystemGraphics`): one, a cartridge that does not switch, whose
+/// window goes with its plain labels and no table.
+fn without_window_systems(text: &str) -> String {
+    let line = "WINDOW_SYSTEMS = 1\n";
+    assert!(text.contains(line), "a cartridge with one System says so");
+    assert!(!text.contains("window_systems:"), "one System needs no table");
     text.replacen(line, "", 1)
 }
 
@@ -558,4 +568,75 @@ fn a_text_area_whose_lines_are_the_same_goes_as_one_line() {
     let text = rm2k_snes_mapdata::emit::emit(&request, &db()).unwrap().text;
     assert!(text.contains("WINDOW_BACKDROP_LINES = 4\n"));
     assert!(text.contains(&format!(".block {}\nwindow_backdrop:\n", bytes * 4)), "all four");
+}
+
+/// A cartridge that switches System carries one window per System, all
+/// with the text area at the same tile: a smaller frame is padded up to the
+/// largest, and its text cells renumbered from there. And the table the
+/// runtime finds each one's pieces in.
+#[test]
+fn a_second_system_s_window_takes_the_largest_frame_s_tile_numbers() {
+    let (request, _) = with_backdrop(|_| 0xAA);
+    let mut value = serde_json::to_value(&request.screens).unwrap();
+    let first = value["window"].clone();
+    let base = first["base"].as_i64().unwrap();
+    // The other System's frame, two tiles smaller.
+    let mut other = first.clone();
+    let tiles = first["tiles"].as_str().unwrap();
+    other["tiles"] = tiles[..tiles.len() - 2 * 64].into();
+    other["base"] = (base - 2).into();
+    let cells: Vec<serde_json::Value> = first["cells"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|row| {
+            row.as_array()
+                .unwrap()
+                .iter()
+                .map(|c| {
+                    let c = c.as_i64().unwrap();
+                    serde_json::Value::from(if c >= base { c - 2 } else { c.min(base - 3) })
+                })
+                .collect()
+        })
+        .collect();
+    other["cells"] = cells.into();
+    value["window"] = first.clone();
+    let mut request = request;
+    request.screens = value;
+    request.window_systems = vec![serde_json::json!({"system": "Other", "window": other})];
+    let text = rm2k_snes_mapdata::emit::emit(&request, &db()).unwrap().text;
+    assert!(text.contains("WINDOW_SYSTEMS = 2\n"));
+    assert!(text.contains(&format!(".block {}\nwindow_tiles_1:\n", base * 32)), "padded to the largest frame");
+    assert!(text.contains(".block 48\nwindow_systems:\n"), "two entries of eight pointers");
+    assert!(text.contains("    .word .loword(window_bar_bare_1)\n    .byte ^window_bar_bare_1\n"));
+    // The same cells for both: the second's text renumbered back to the
+    // first's, and its frame cells the same as they were.
+    let words = |label: &str| -> Vec<u16> {
+        let bytes: Vec<u8> = text
+            .split(&format!("\n{label}:\n"))
+            .nth(1)
+            .unwrap()
+            .lines()
+            .take_while(|l| l.starts_with("    .byte "))
+            .flat_map(|l| l[10..].split(',').map(|b| u8::from_str_radix(&b[1..], 16).unwrap()).collect::<Vec<_>>())
+            .collect();
+        bytes.chunks(2).map(|w| u16::from_le_bytes([w[0], w[1]])).collect()
+    };
+    let (one, two) = (words("window_cells"), words("window_cells_1"));
+    assert_eq!(one.len(), two.len());
+    // The tile numbers carry the window base the layout puts in front.
+    let tile = |w: u16| i64::from(w & 0x3FF);
+    let at = tile(one[0]) - first["cells"][0][0].as_i64().unwrap();
+    let mut frame = 0;
+    for (a, b) in one.iter().zip(&two) {
+        if *a == 0 || tile(*a) - at >= base {
+            assert_eq!(a, b, "a text cell, or a blank one, is the same in both");
+        } else {
+            assert_eq!(tile(*b) - at, (tile(*a) - at).min(base - 3), "a frame cell keeps its own tile");
+            frame += 1;
+        }
+    }
+    assert!(frame > 0);
+    assert!(text.contains("WINDOW_BACKDROP_LINES = 1\n"));
 }

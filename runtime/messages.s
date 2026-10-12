@@ -21,13 +21,13 @@
 .a16
     lda f:map_table + M_VRAM_WINDOW, x
     sta VMADDL
-    lda #.loword(window_tiles)
+    win_lo window_tiles, WS_TILES
     sta A1T0L
     lda #(WINDOW_TILES * 32)
     sta DAS0L
     sep #$20
 .a8
-    lda #^window_tiles
+    win_bank window_tiles, WS_TILES
     sta A1B0
     lda #$01
     sta DMAP0
@@ -104,19 +104,19 @@
     lda #(TEXT_WINDOW_ROWS * TEXT_WINDOW_COLS * 2 * 2)
     sta DAS0L                   ; both planes: with the frame and without it
     bcs plane_256
-    lda #.loword(window_cells)
+    win_lo window_cells, WS_CELLS
     sta A1T0L
     sep #$20
 .a8
-    lda #^window_cells
+    win_bank window_cells, WS_CELLS
     bra with_plane
 plane_256:
 .a16
-    lda #.loword(window_cells_256)
+    win_lo window_cells_256, WS_CELLS_256
     sta A1T0L
     sep #$20
 .a8
-    lda #^window_cells_256
+    win_bank window_cells_256, WS_CELLS_256
 with_plane:
     sta A1B0
     lda #$01
@@ -570,8 +570,17 @@ with_background:
     ; Every line has the same background —a window over one colour, the
     ; project's `[windows.background]`—, so the converter wrote only one
     ; and it goes under all of them.
+.if ::WINDOW_SYSTEMS > 1
+    rep #$20
+.a16
+    win_lo window_backdrop, WS_BACKDROP
+    sta A1T0L
+    sep #$20
+.a8
+.else
     ldx #.loword(window_backdrop)
     stx A1T0L
+.endif
     ldx #TEXT_BUF_BYTES
     stx DAS0L
 .else
@@ -598,14 +607,14 @@ with_background:
     asl a
     asl a                       ; times 32 bytes each
     clc
-    adc #.loword(window_backdrop)
+    win_adc window_backdrop, WS_BACKDROP
     sta A1T0L
     lda #TEXT_BUF_BYTES
     sta DAS0L
     sep #$20
 .a8
 .endif
-    lda #^window_backdrop
+    win_bank window_backdrop, WS_BACKDROP
     sta A1B0
     lda #$00                    ; one register, one byte at a time
 go:

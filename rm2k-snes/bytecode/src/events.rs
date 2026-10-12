@@ -342,6 +342,12 @@ bytecode! {
     /// map it does nothing, as in RM2k. See `op_battle_abort` in the
     /// runtime's `battle_troop.s`.
     OP_BATTLE_ABORT = 0x4C ();
+
+    /// `ChangeSystemGraphics`: the message window is drawn with System
+    /// `system` from here on, an index into the cartridge's Systems —0 the
+    /// one it starts with—. It lasts, and travels in the save. See
+    /// `op_change_system` in the runtime's `window_system.s`.
+    OP_CHANGE_SYSTEM = 0x4D (system: byte);
 }
 
 // `run_code` jumps through a table indexed by the opcode.

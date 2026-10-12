@@ -109,6 +109,9 @@ pub struct Compiler<'a> {
     boxes: Value,
     window: Value,
     troop_window: Value,
+    /// The Systems the cartridge carries a message window for, in its
+    /// order: see `systems::names`. Empty if it does not switch.
+    pub systems: Vec<String>,
 }
 
 impl<'a> Compiler<'a> {
@@ -134,7 +137,7 @@ impl<'a> Compiler<'a> {
             .ok_or_else(|| Stop::new("the battle's layout has no BA_PAGE_MSG_WIDTH"))?;
         let troop_window = font.window(cells as usize * 8, LINES);
         let menus = Value::Array(settings.menus()?.iter().map(|m| m.hooks()).collect());
-        Ok(Compiler { game, settings, menus, boxes, window, troop_window })
+        Ok(Compiler { game, settings, menus, boxes, window, troop_window, systems: Vec::new() })
     }
 
     fn data(&self) -> Vec<OsString> {
@@ -161,6 +164,9 @@ impl<'a> Compiler<'a> {
         r.insert("extra_variables".into(), json!(extra_variables.iter().collect::<Vec<_>>()));
         r.insert("test_event_map".into(), json!(test_event_map));
         r.insert("menus".into(), self.menus.clone());
+        if !self.systems.is_empty() {
+            r.insert("systems".into(), json!(self.systems));
+        }
         r
     }
 

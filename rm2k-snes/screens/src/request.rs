@@ -9,6 +9,16 @@ use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
+/// A System the cartridge switches to with `ChangeSystemGraphics`: its
+/// name, the colour its windows are drawn over —the project's
+/// `[windows.background]` for it— and the stretch the command asks for.
+#[derive(Debug, Clone)]
+pub struct OtherSystem {
+    pub system: String,
+    pub background: Option<String>,
+    pub stretch: Option<i32>,
+}
+
 /// A request file: its JSON, and whose it is for the messages.
 pub struct Json {
     pub data: Value,
@@ -184,12 +194,57 @@ impl Json {
             items: self.actors("items")?,
             title: self.flag("title", false)?,
             cgram_reserved: self.index_or("cgram_reserved", 0)?,
+            text_rows: self.text_rows()?,
             vram: Vram {
                 slot_vram: vram_field("slot_vram")?,
                 slot_map: vram_field("slot_map")?,
                 bg1_banks: banks,
             },
         })
+    }
+
+    /// `systems`, the other Systems a cartridge switches to, for the
+    /// `window` subcommand: none if the request does not have it.
+    pub fn systems(&self) -> Result<Vec<OtherSystem>> {
+        let Some(v) = self.get("systems") else {
+            return Ok(Vec::new());
+        };
+        let bad = || self.bad("systems", v);
+        let mut out = Vec::new();
+        for s in v.as_array().ok_or_else(bad)? {
+            let system = s.get("system").and_then(Value::as_str).ok_or_else(bad)?.to_string();
+            let background = match s.get("background") {
+                None | Some(Value::Null) => None,
+                Some(b) => Some(b.as_str().ok_or_else(bad)?.to_string()),
+            };
+            let stretch = match s.get("stretch") {
+                None | Some(Value::Null) => None,
+                Some(n) => Some(n.as_i64().and_then(|n| i32::try_from(n).ok()).ok_or_else(bad)?),
+            };
+            out.push(OtherSystem { system, background, stretch });
+        }
+        Ok(out)
+    }
+
+    /// `text_rows`, the glyph rows that take one entry each: a list of
+    /// lists of rows, or nothing.
+    pub fn text_rows(&self) -> Result<Option<crate::message_window::TextRows>> {
+        let Some(v) = self.get("text_rows").filter(|v| !v.is_null()) else {
+            return Ok(None);
+        };
+        let bad = || self.bad("text_rows", v);
+        let mut out = Vec::new();
+        for class in v.as_array().ok_or_else(bad)? {
+            let rows: Option<Vec<usize>> =
+                class.as_array().ok_or_else(bad)?.iter().map(|r| r.as_u64().map(|r| r as usize)).collect();
+            out.push(rows.ok_or_else(bad)?);
+        }
+        let mut all: Vec<usize> = out.iter().flatten().copied().collect();
+        all.sort_unstable();
+        if all != (0..rm2k_snes_text::font::HEIGHT).collect::<Vec<_>>() {
+            return Err(bad());
+        }
+        Ok(Some(out))
     }
 
     /// The party a screen shows: `party`, and optionally `actors`, `hp`,

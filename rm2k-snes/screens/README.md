@@ -91,6 +91,16 @@ back as `cgram_reserved`, plus one, and what the maps' backgrounds start
 after; asked once, so every domain that shares colour memory with the
 window gets the same number.
 
+With the other Systems a cartridge switches to in its request —`systems`,
+each with its background and its stretch—, `window` also answers the
+message window of each, as `convert` writes the starting one's without the
+font; and `text_rows`, the glyph rows that take one palette entry each,
+the same in every System, so the font's composed tables are one. `convert`
+takes `text_rows` back and draws the starting System's window with them.
+The count is the starting System's with those rows, and the others are
+reduced to fit in it: the maps start after the window, and a second System
+takes no colours from them.
+
 `equip` answers what equipping an item leaves —the five slots and the
 inventory—, with the rule the equipment screen draws its list with,
 `Game_Actor::ChangeEquipment` of `rm2k-rules`: for whoever predicts what a

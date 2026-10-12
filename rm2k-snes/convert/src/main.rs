@@ -37,6 +37,7 @@ mod scene;
 mod screens;
 mod settings;
 mod stage;
+mod systems;
 mod text;
 mod trim;
 

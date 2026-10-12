@@ -64,3 +64,62 @@ fn a_window_that_fits_loses_nothing() {
     assert!(merges.is_empty());
     assert_eq!(message_window::colors(&skin).unwrap(), brought);
 }
+
+/// The small game's System with its first text colour painted one colour
+/// per row of the 16x16 block, `shade(row)`: what tells two Systems' text
+/// apart.
+fn text_skin(shade: impl Fn(usize) -> [u8; 4]) -> Skin {
+    let game = Game::from_dump(&here().join("dump"), &here().join("pictures")).unwrap();
+    let mut skin = game.skin().unwrap();
+    let width = skin.picture.width;
+    for y in 0..16 {
+        for x in 0..16 {
+            let at = ((48 + y) * width + x) * 4;
+            skin.picture.rgba[at..at + 4].copy_from_slice(&shade(y));
+        }
+    }
+    skin
+}
+
+#[test]
+fn two_systems_compose_their_text_with_the_same_entries() {
+    // One System's text flat, the other's a gradient in pairs of rows: the
+    // font's composed tables carry indices, so both have to give each row
+    // the same one, and only their palettes differ.
+    let flat = text_skin(|_| [0, 0, 0, 255]);
+    let pairs = text_skin(|y| [(y / 2 * 40) as u8, 200, 200, 255]);
+    let each = [message_window::text_rows(&flat).unwrap(), message_window::text_rows(&pairs).unwrap()];
+    assert_eq!(each[0].len(), 1);
+    let rows = message_window::common_rows(&each);
+    assert_eq!(rows, each[1], "the finer split is the common one");
+    let colors = message_window::colors_with(&flat, Some(&rows))
+        .unwrap()
+        .max(message_window::colors_with(&pairs, Some(&rows)).unwrap());
+    let a = message_window::convert_with(&flat, colors + 1, Some(&rows)).unwrap();
+    let b = message_window::convert_with(&pairs, colors + 1, Some(&rows)).unwrap();
+    assert_eq!((&a.color, a.shadow), (&b.color, b.shadow));
+    assert_eq!(a.shadow as usize, rows.len() + 1);
+    // The flat one repeats its black in every class's entry.
+    assert!(a.cgram[1..=rows.len()].iter().all(|&w| w == a.cgram[1]));
+    assert_ne!(a.cgram, b.cgram);
+}
+
+#[test]
+fn a_system_switched_to_fits_in_what_the_starting_one_takes() {
+    // The maps start after the window, so a second System with more
+    // colours than the first is reduced to the first's entries, and the
+    // maps lose nothing to it.
+    let game = Game::from_dump(&here().join("dump"), &here().join("pictures")).unwrap();
+    let start = game.skin().unwrap();
+    let gradient = gradient_skin();
+    let rows = message_window::common_rows(&[
+        message_window::text_rows(&start).unwrap(),
+        message_window::text_rows(&gradient).unwrap(),
+    ]);
+    let colors = message_window::colors_with(&start, Some(&rows)).unwrap();
+    assert!(message_window::colors_with(&gradient, Some(&rows)).unwrap() > colors);
+    let (_, merges) = message_window::reduction_capped(&gradient, Some(&rows), colors).unwrap();
+    assert!(!merges.is_empty());
+    let window = message_window::convert_with(&gradient, colors + 1, Some(&rows)).unwrap();
+    assert!(window.cgram[colors + 1..].iter().all(|&w| w == 0), "past the starting System's entries");
+}

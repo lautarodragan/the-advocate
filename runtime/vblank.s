@@ -45,6 +45,9 @@ no_tint:
     ; up with the parallel events, which added nine characters that move and
     ; therefore nine poses to upload.
     lda msg_upload
+.if ::WINDOW_SYSTEMS > 1
+    ora f:WINDOW_SWAP           ; a System's window weighs about a line
+.endif
     beq no_line
     lda #1
     sta vq_cap
@@ -204,7 +207,24 @@ big_up:
     lda msg_upload
     beq no_upload
     jsr upload_line
+.if ::WINDOW_SYSTEMS > 1
+    bra no_swap
 no_upload:
+    ; Or the window of the System a `ChangeSystemGraphics` switched to, in a
+    ; vblank without a line: both would not fit. Not with a big picture up,
+    ; which has the window's tilemap elsewhere and puts it back with the
+    ; current System's tiles when it ends: it waits for then.
+    lda f:WINDOW_SWAP
+    beq no_swap
+    lda f:BIG_FLAGS
+    lsr a                       ; BIG_ON
+    bcs no_swap
+    jsl f:window_swap_upload
+    jsr stamp_window
+no_swap:
+.else
+no_upload:
+.endif
     lda msg_state
     cmp #2
     bne no_finished

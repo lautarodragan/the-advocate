@@ -172,6 +172,12 @@ pub struct Emit {
     /// `rm2k-snes-screens window` counted them from the System: each map's
     /// background starts after them. See [`crate::cgram::cgram_reserved`].
     pub window_colors: u32,
+    /// The message window of every other System the cartridge switches to,
+    /// in its order, as `rm2k-snes-screens window` answered each in its
+    /// `systems`: `{"system": name, "window": ...}`. Empty in a cartridge
+    /// that does not switch.
+    #[serde(default)]
+    pub window_systems: Vec<serde_json::Value>,
     /// The text block of every `ShowMessage`, as the event compiler left it.
     #[serde(deserialize_with = "hex::bytes")]
     pub messages: Vec<u8>,
