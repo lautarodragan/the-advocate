@@ -6,7 +6,7 @@
 //! tuned on that showed the rule: until 2026-10-02 they were that game's
 //! own lines.
 
-use rm2k_snes_text::refit::{escape_tail, fits, is_speaker, refit, Measure};
+use rm2k_snes_text::refit::{escape_tail, fits, is_speaker, refit, with_wait_escapes, Measure};
 
 const COLUMNS: usize = 39;
 const LINES: usize = 4;
@@ -182,6 +182,9 @@ fn the_escape_tail_is_the_compilers() {
             serde_json::Value::Null => assert!(got.is_none(), "{lines:?}"),
             answer => {
                 let (untailed, pauses, close) = got.unwrap_or_else(|| panic!("{lines:?} does not compile"));
+                // The waits in the middle are marks: the cases write them as
+                // the escapes they were.
+                let untailed: Vec<String> = untailed.iter().map(|t| with_wait_escapes(t)).collect();
                 let want: (Vec<String>, usize, bool) = serde_json::from_value(answer.clone()).unwrap();
                 assert_eq!((untailed, pauses, close), want, "{lines:?}");
             }
