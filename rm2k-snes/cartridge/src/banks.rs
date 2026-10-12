@@ -144,6 +144,25 @@ pub fn slots() -> Vec<Slot> {
 /// lowers it has to be measuring how deep the stack really goes.
 pub const STACK: usize = 128;
 
+/// The far RAM the linker hands out: the `FARBSS` segment, where the runtime
+/// declares a variable of bank `$7E` with a `.res` in the file of the
+/// subsystem that owns it, instead of writing its address by hand. Two
+/// variables that land here cannot overlap, and when they no longer fit the
+/// link fails, the same as with the `BSS`.
+///
+/// The rest of `$7E2000`–`$7E7FFF` is still a map of addresses written by
+/// hand —`far_ram.s` and its neighbours, in the runtime—, and this is a
+/// stretch of it nobody used: the end of the battle scene's reservation,
+/// after `SCN_DP_SAVE`, which the runtime asserts ends before it. It grows by
+/// taking over another stretch of that map and moving whatever lived there
+/// into the segment.
+///
+/// The address carries the bank, so a label in the segment is a 24-bit one:
+/// read plainly it is a long access, which works whatever the data bank;
+/// code that runs with the data bank at `$7E` takes its `.loword`.
+pub const FAR_POOL_START: usize = 0x7E66C0;
+pub const FAR_POOL_SIZE: usize = 0x0140;
+
 /// The segment the generated data sends everything to.
 pub const SEGMENT: &str = "RODATA";
 
@@ -1019,10 +1038,16 @@ pub fn cfg() -> String {
             "RAM:  start = $0100, size = ${:04X}, type = rw, file = \"\";",
             0x1F00 - STACK
         ),
+        // `define` gives the runtime `__FARRAM_START__`, to assert that the
+        // map written by hand stays out of it.
+        format!(
+            "FARRAM: start = ${FAR_POOL_START:06X}, size = ${FAR_POOL_SIZE:04X}, type = rw, file = \"\", define = yes;"
+        ),
     ];
     let mut segments = vec![
         "ZEROPAGE: load = ZP,   type = zp;".to_string(),
         "BSS:      load = RAM,  type = bss;".to_string(),
+        "FARBSS:   load = FARRAM, type = bss;".to_string(),
         "CODE:     load = ROM,  type = ro;".to_string(),
         "TABLES:   load = ROM,  type = ro;".to_string(),
         "HEADER:   load = HEAD, type = ro;".to_string(),

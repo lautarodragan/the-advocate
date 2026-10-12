@@ -1,15 +1,49 @@
 ; --- the RAM in bank 1 ---------------------------------------------------------
-; Bank 0's BSS is full —7680 of 7680— and so is the ZEROPAGE, 256 of 256; this
-; used to say the ZEROPAGE had twelve to spare and that stopped being true a
-; while ago. The console has 128 KB of WRAM and the ROM uses eight: the rest
-; is reached through this same window, pointing WMADD and reading or writing
-; $2180 with auto-increment. It is not normal addressing —it cannot be
-; indexed— so it is good for what is stored and walked a little at a time,
-; not for what is drawn.
+; What bank 0's BSS and ZEROPAGE have left is said by `just espacio`: this
+; used to say it in numbers, and they went stale. The console has 128 KB of
+; WRAM and bank 0 sees eight: the rest is reached through this same window,
+; pointing WMADD and reading or writing $2180 with auto-increment. It is not
+; normal addressing —it cannot be indexed— so it is good for what is stored
+; and walked a little at a time, not for what is drawn.
 ;
 ; Today it holds the state of the parallel interpreters: 840 bytes that did
 ; not fit in bank 0. The day there are RM2k variables —five thousand, ten
 ; kilobytes— they go here too.
+;
+; **A new variable in far RAM does not get an address written by hand**: it
+; goes in the file of its subsystem, with a `.res` in `FARBSS`, and the
+; linker places it —
+;
+;     .pushseg
+;     .segment "FARBSS"
+;     my_state: .res 2
+;     .popseg
+;
+; — the same as a new one in the `BSS` or the `ZEROPAGE`, which are declared
+; the same way. Two branches that each add one do not touch the same line,
+; and their variables cannot overlap: the addresses below were chosen by
+; hand as "the next free one", and more than once two branches chose the
+; same one without git seeing it. When `FARBSS` no longer fits, the link
+; fails, and `just espacio` says how much is left.
+;
+; The segment is declared `far` here, before anyone uses it, so its labels
+; carry the bank —`$7E`—: read plainly they are a long access, which is
+; right whatever the data bank. Code that runs with the data bank at `$7E`
+; —the battle, the text layer— writes `.loword(my_state)`, and so does a
+; line of `save_table`, which is a `.word` and fails the link with a 24-bit
+; value. **A label used before its declaration** in the order of `main.s` is
+; taken as sixteen bits, and the link fails with a range error: that use
+; goes with `f:`.
+;
+; What follows is the map of what was placed by hand before, which stays
+; where it is so as not to move the ROM. `FARBSS` lives in a stretch of it
+; nobody used —see `FAR_POOL_START` in rm2k-snes/cartridge/src/banks.rs—,
+; and nothing of the map may reach it: the scene's state asserts it, and
+; ABL's `test_reservas_de_la_wram.py` checks it for every symbol.
+.pushseg
+.segment "FARBSS": far
+.popseg
+.import __FARRAM_START__
 FAR_PAIR_STATE = $2000      ; EV_MAX entries of PAIR_BYTES
 FAR_PAIR_LIST  = $2400      ; PARALLEL_MAX entries of PAIR_LIST_BYTES
 ; The RM2k variables, one signed word per slot. How many there are is said by
@@ -317,14 +351,17 @@ MED_MATERIAL  = $08             ; a material: it raises parameters, see `FAR_GRO
 ; the save, and `medicine_use` adds to them. `ChangeParameters`, which is the
 ; other way RM2k has of moving them, the port does not compile.
 ;
-; $7E7D00 to $7E7EEF, allotted on 2026-10-04: from the end of the slot cache's
-; to `CARRY_MAP` nobody was —measured on the symbol table of the cartridges—.
-; Sixteen-bit address, like the battle's: `medicine_use` runs with the data
-; bank at $7E, and `save_table` takes it as it is.
+; $7E7D00 to $7E7EEF was allotted on 2026-10-04: from the end of the slot
+; cache's to `CARRY_MAP` nobody was —measured on the symbol table of the
+; cartridges—. The next day the panorama took $7E7E00 on, "after the end of
+; `FAR_GROWTH`'s" in the cartridges of that day, so what is left to this is
+; up to `PANO_ON`: 21 slots and not 41. Sixteen-bit address, like the
+; battle's: `medicine_use` runs with the data bank at $7E, and `save_table`
+; takes it as it is.
 FAR_GROWTH    = $7D00
 GROWTH_BYTES  = 12
 GROWTH_MAX    = 999             ; `MaxHpValue`, `MaxSpValue` and `MaxStatBaseValue` of RM2k
-.assert FAR_GROWTH + EXP_K * GROWTH_BYTES <= (CARRY_MAP & $FFFF), error, "what the materials added overflows its range"
+.assert FAR_GROWTH + EXP_K * GROWTH_BYTES <= (PANO_ON & $FFFF), error, "what the materials added reaches the panorama's state"
 
 ; What `pair_ev` holds while a troop page runs: neither the foreground ($FF)
 ; nor a map event, which are fewer than EV_MAX. It is what tells

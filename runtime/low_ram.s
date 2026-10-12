@@ -1,4 +1,11 @@
 .segment "BSS"
+; Bank 0's RAM written so far. **A new variable does not go at the end of
+; this file**: it goes in its subsystem's, with `.pushseg`, `.segment "BSS"`
+; and `.popseg`, and the linker places it the same. Two branches that each
+; add one at the end of the same file collide even if they never touch the
+; same subsystem. What is here stays, because moving it moves the ROM and
+; some of it is cleared or saved as a block. See far_ram.s, which says the
+; same for far RAM.
 ; How many passes of the loop went by with the world frozen by a fade. The map
 ; animations —the ChipSet's and that of the ones that animate standing still—
 ; count `ticks` **minus** these, so they do not advance while the screen

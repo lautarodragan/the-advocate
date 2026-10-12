@@ -23,7 +23,7 @@
 ; the build if it ever needs more. **It does not travel in the save**: the
 ; menu does not open with a page running.
 ;
-; $6110 to $611F, behind `MAP_SONG`, which is one byte. The work of
+; $6110 to $611F, behind $6100, which was `MAP_SONG`'s. The work of
 ; 2026-10-02 had set aside $2560 to $256F for this, but that is inside
 ; `FAR_PAIR_LIST`, which goes up to $257F with `PARALLEL_MAX` at 48, and the
 ; car chase has forty parallels.
