@@ -191,10 +191,10 @@ wait:
     jsl f:ba_t_vblank
     jsl f:ba_t_pad
     lda pad_a
-    beq faces_start
+    beq check_start
     lda pad_a_prev
     beq closes
-faces_start:
+check_start:
     lda pad
     eor pad_prev
     and pad

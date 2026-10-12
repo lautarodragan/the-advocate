@@ -323,7 +323,7 @@ if_var_continues:
 ; Neither has a polarity: RM2k does not give them one, same as "is in the
 ; party", so the lower branch is the `else`.
 ;
-; On entry, Y points at the sub. Both paths end at `sia_yes` or at `sia_no`
+; On entry, Y points at the sub. Both paths end at `actor_yes` or at `actor_no`
 ; with Y already pointing at the target.
 .proc op_if_actor
     lda [code_ptr], y
@@ -342,7 +342,7 @@ if_var_continues:
     iny                         ; Y -> the target
     lda temp
     cmp #COND_ACTOR_SKILL
-    beq sia_skill
+    beq actor_skill
 
     ; --- the equipped equipment ---
     ; easyrpg's five `Get*Id()` compared against the item: it is enough for it
@@ -368,7 +368,7 @@ if_var_continues:
 .a8
     stz WMADDH
     ldx #SLOTS_EQUIPMENT
-sia_eq_other:
+actor_eq_other:
     lda WMDATA
     sta temp                    ; the low byte of this slot's item
     lda WMDATA
@@ -379,20 +379,20 @@ sia_eq_other:
     cmp temp + 2
     sep #$20
 .a8
-    beq sia_yes                 ; `sep` does not touch Z: the comparison is still live
+    beq actor_yes               ; `sep` does not touch Z: the comparison is still live
     dex
-    bne sia_eq_other
-    bra sia_no
+    bne actor_eq_other
+    bra actor_no
 
     ; --- the skill ---
     ; `Game_Actor::IsSkillLearned`: the bit of the (actor, skill) pair in
     ; `FAR_SKILL`. The converter already put the pair's slot where the other
     ; questions carry the item, so `temp + 2` brings it and the actor is not
     ; needed. See `SKILL_SLOT` in events.py.
-sia_skill:
+actor_skill:
     jsl f:skill_known
-    bne sia_yes
-sia_no:
+    bne actor_yes
+actor_no:
     rep #$20
 .a16
     lda [code_ptr], y           ; the target, absolute inside the page
@@ -400,7 +400,7 @@ sia_no:
     sep #$20
 .a8
     jmp run_code::other
-sia_yes:
+actor_yes:
     iny
     iny                         ; Y -> the next opcode
     jmp run_code::other

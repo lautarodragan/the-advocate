@@ -250,7 +250,7 @@ with_party:
 each_actor:
     lda [act_ptr], y
     cmp temp
-    beq lo_found
+    beq found_it
     rep #$20
 .a16
     tya
@@ -263,7 +263,7 @@ each_actor:
     bne each_actor
     bra no_leader
 
-lo_found:
+found_it:
     ; Before the LDB, whatever `ChangeSpriteAssociation` was done to this
     ; actor: it is RM2k's `actor->SetSprite`, and it lives in the actor, so it
     ; **survives the teleport**. If its graphic is not in this map's sprite

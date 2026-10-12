@@ -516,7 +516,7 @@ not_jump:
     cmp #26
     bcc follow                  ; the others do nothing
     cmp #32
-    bcc fix_o_speed             ; 26 and 27 the facing, 28 and 29 the speed,
+    bcc fix_or_speed            ; 26 and 27 the facing, 28 and 29 the speed,
     cmp #34                     ; 30 and 31 the frequency
     bne not_graphic             ; and 34 the graphic, which carries an operand
     jmp change_graphic          ; it is too far for a short branch
@@ -556,7 +556,7 @@ save_flags:
     sta route_ev + 12, x
 follow:
     jmp other_command
-fix_o_speed:
+fix_or_speed:
     cmp #30
     bcs ev_frequency
     cmp #28

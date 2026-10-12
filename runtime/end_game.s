@@ -117,13 +117,13 @@ wait:
     bit #PAD_B
     bne go_back
     and #(PAD_UP | PAD_DOWN)
-    beq faces_a
+    beq check_a
     lda title_sel
     eor #1
     sta title_sel
     jsr ending_palette          ; still in the vblank
     bra wait
-faces_a:
+check_a:
     lda pad_a
     beq wait
     lda pad_a_prev

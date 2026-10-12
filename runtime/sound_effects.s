@@ -594,7 +594,7 @@ no_same_6:
     lda f:SE2_PENDING
     bne chosen
     lda f:SE_PENDING
-    bne pick_6
+    bne second_voice
     rep #$20
 .a16
     lda f:SE_FRAMES
@@ -603,7 +603,7 @@ no_same_6:
 .a8
     bcc chosen
     beq chosen
-pick_6:
+second_voice:
     ldy #SE2_OFS
 chosen:
     rep #$20

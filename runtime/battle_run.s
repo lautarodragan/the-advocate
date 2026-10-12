@@ -249,11 +249,11 @@ b_no_up:
 b_no_down:
     lda title_edges
     and #PAD_B
-    beq b_faces_a
+    beq b_check_a
     lda #BA_M_COMMAND
     sta BA_MODE
     jmp recompose
-b_faces_a:
+b_check_a:
     jsr ba_edge_a
     beq wait2
     lda BA_TARGET
@@ -321,11 +321,11 @@ i_moved:
 i_no_down:
     lda title_edges
     and #PAD_B
-    beq i_faces_a
+    beq i_check_a
     lda #BA_M_COMMAND
     sta BA_MODE
     jmp recompose
-i_faces_a:
+i_check_a:
     jsr ba_edge_a
     beq wait4
     ; Whom to give it to: the first in the party it is good for —standing for
@@ -366,19 +366,19 @@ a_no_up:
 a_no_down:
     lda title_edges
     and #PAD_B
-    beq a_faces_a
+    beq a_check_a
     ; B goes back to the list it came from: the item list or the skill list.
     lda BA_COMMAND
     cmp #BA_COMMAND_SKILL
-    bne a_returns_a_items
+    bne a_back_to_items
     lda #BA_M_SKILL
     sta BA_MODE
     jmp recompose
-a_returns_a_items:
+a_back_to_items:
     lda #BA_M_ITEM
     sta BA_MODE
     jmp recompose
-a_faces_a:
+a_check_a:
     jsr ba_edge_a
     beq wait4
     lda BA_COMMAND
@@ -462,11 +462,11 @@ wait6:
 h_no_down:
     lda title_edges
     and #PAD_B
-    beq h_faces_a
+    beq h_check_a
     lda #BA_M_COMMAND
     sta BA_MODE
     jmp recompose
-h_faces_a:
+h_check_a:
     jsr ba_edge_a
     beq wait7
     ; One that cannot be paid for is not chosen, which is what RM2k does with
@@ -640,11 +640,11 @@ ba_edge_a:
     lda pad_a
     beq no_a
     lda pad_a_prev
-    beq if_a
+    beq a_pressed
 no_a:
     lda #0
     rts
-if_a:
+a_pressed:
     lda #1
     rts
 
@@ -654,17 +654,17 @@ if_a:
 ; instead of over the troop.
 ba_target_act_up:
     lda BA_ITEM_TGT
-faces_up_act:
+look_up_act:
     beq nothing_act
     dec a
     sta BA_ACTOR2               ; `ba_item_usable_on` clobbers `BA_S0`
     jsr ba_target_act_serves
     bne sets_act
     lda BA_ACTOR2
-    bra faces_up_act
+    bra look_up_act
 ba_target_act_down:
     lda BA_ITEM_TGT
-faces_down_act:
+look_down_act:
     inc a
     cmp BA_NACTORS
     bcs nothing_act
@@ -672,7 +672,7 @@ faces_down_act:
     jsr ba_target_act_serves
     bne sets_act
     lda BA_ACTOR2
-    bra faces_down_act
+    bra look_down_act
 sets_act:
     lda BA_ACTOR2
     sta BA_ITEM_TGT
@@ -699,7 +699,7 @@ serves_skill:
 ; left in that direction, it stays where it is.
 ba_target_up:
     lda BA_TARGET
-faces_up:
+look_up:
     beq nothing
     dec a
     sta BA_S0
@@ -708,10 +708,10 @@ faces_up:
     jsr ba_alive
     bne sets
     lda BA_S0
-    bra faces_up
+    bra look_up
 ba_target_down:
     lda BA_TARGET
-faces_down:
+look_down:
     inc a
     cmp BA_KID
     bcs nothing
@@ -721,7 +721,7 @@ faces_down:
     jsr ba_alive
     bne sets
     lda BA_S0
-    bra faces_down
+    bra look_down
 sets:
     lda BA_S0
     sta BA_TARGET

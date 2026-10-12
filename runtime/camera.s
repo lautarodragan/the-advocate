@@ -20,7 +20,7 @@ other_axis:
     lda pan_dest_x, x
     sec
     sbc pan_x, x
-    beq in_su_place             ; already there
+    beq in_place                ; already there
     bpl toward_ahead
     ; Remaining distance is backwards: subtract the step, or what is left if
     ; that is less.
@@ -41,7 +41,7 @@ add:
     clc
     adc pan_x, x
     sta pan_x, x
-in_su_place:
+in_place:
     ; To pixels: four arithmetic shifts, which keep the sign.
     lda pan_x, x
     cmp #$8000

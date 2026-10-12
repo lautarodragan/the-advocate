@@ -609,14 +609,14 @@ seek:
     tax
     lda f:troop_id, x
     cmp BA_TROOP
-    beq have
+    beq got_it
     inc BA_S1
     bra seek
 no_troop:
     sep #$20
 .a8
     rts
-have:
+got_it:
 .a16
     lda BA_S1
     sta BA_TROOP_K              ; for `scene_troop_backdrop`
@@ -1039,10 +1039,10 @@ with_action:
     cmp #BA_SCOPE_ENEMY
     beq to_actor
     cmp #BA_SCOPE_ALLY
-    beq to_own
+    beq to_ally
     lda BA_S0                   ; `self`, `enemies`, `party`: its user
     bra record
-to_own:
+to_ally:
     lda #BA_PARTY_MAX
     jsr ba_alive_on_side
 to_actor:

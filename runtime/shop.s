@@ -1410,9 +1410,9 @@ p_no_up:
 p_no_down:
     lda title_edges
     and #PAD_B
-    beq p_faces_a
+    beq p_check_a
     jmp leave
-p_faces_a:
+p_check_a:
     jsr edge_a
     beq wait
     lda comp_base
@@ -1456,7 +1456,7 @@ l_no_up:
 l_no_down:
     lda title_edges
     and #PAD_B
-    beq l_faces_a
+    beq l_check_a
     ; B: to the main mode, with the re-greeting; without a main mode, out.
     lda comp_col + 1
     beq to_main
@@ -1474,7 +1474,7 @@ cursor_ready:
     lda #TI_MAIN
     jsr ti_mode_set
     jmp recompose
-l_faces_a:
+l_check_a:
     jsr edge_a
     beq wait2
     lda comp_mask
@@ -1551,7 +1551,7 @@ c_set:
 c_no_down:
     lda title_edges
     and #PAD_B
-    beq c_faces_a
+    beq c_check_a
     lda comp_col
     cmp #TI_COUNT_SALE
     beq c_a_sell
@@ -1562,7 +1562,7 @@ c_a_sell:
     lda #TI_SELL
     sta comp_col
     jmp recompose
-c_faces_a:
+c_check_a:
     jsr edge_a
     beq wait2
     jsr ti_close_deal
@@ -1596,11 +1596,11 @@ edge_a:
     lda pad_a
     beq no_a
     lda pad_a_prev
-    beq if_a
+    beq a_pressed
 no_a:
     lda #0
     rts
-if_a:
+a_pressed:
     lda #1
     rts
 .endproc

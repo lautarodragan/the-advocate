@@ -730,10 +730,10 @@ no_moves:
     ; `if (self.GetThrough()) return true;` of `CheckOrMakeWayEx`, which comes
     ; **after** checking the bounds and before everything else.
     lda crossing
-    beq faces_step
+    beq check_step
     lda #1
     rts
-faces_step:
+check_step:
     jsr cell_ptr
     rep #$20
 .a16
