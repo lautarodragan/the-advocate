@@ -26,7 +26,10 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 /// `FlashSprite`, liblcf's codes. An event some page can move or flash is
 /// not fixed, so it is not baked. The raw commands are looked at and not
 /// the compiled pages: it is more conservative, and needs no compiling.
-pub const MOVING_COMMANDS: [i32; 4] = [11330, 10860, 10870, 11320];
+pub const MOVING_COMMANDS: [i32; 4] = [11330, 10860, SWAP_EVENT_LOCATIONS, 11320];
+const SWAP_EVENT_LOCATIONS: i32 = 10870;
+/// "This event" in a command's event parameter: the one whose page it is.
+const THIS_EVENT: i32 = 10005;
 
 /// The alpha of the 16x16 pixels of upper-layer tile `index`, from the
 /// sheet the event is drawn with: the tile stands on its cell in every
@@ -84,14 +87,24 @@ pub fn bakeable(
         return Ok(out);
     }
     let mut touched = HashSet::new();
-    for event in events {
+    for (number, event) in events.iter().enumerate() {
         for page in &event.pages {
             for (code, parameters) in &page.commands {
-                if !MOVING_COMMANDS.contains(code) || parameters.is_empty() {
+                if !MOVING_COMMANDS.contains(code) {
                     continue;
                 }
-                if let Some(target) = route_target(events, parameters[0]).filter(|&t| t != 0) {
-                    touched.insert(target - 1);
+                // `SwapEventLocations` moves the two events it names, not
+                // only the first: reading one left the second baked, so a
+                // pair of tiles that trade places to animate showed a hole
+                // where the second one went, and the second one stayed
+                // painted where it started.
+                let named = if *code == SWAP_EVENT_LOCATIONS { 2 } else { 1 };
+                for &who in parameters.iter().take(named) {
+                    if who == THIS_EVENT {
+                        touched.insert(number);
+                    } else if let Some(target) = route_target(events, who).filter(|&t| t != 0) {
+                        touched.insert(target - 1);
+                    }
                 }
             }
         }
