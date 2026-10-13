@@ -239,7 +239,7 @@ const ANIM_FLASH: u8 = 2;
 /// flash works in two phases according to the parity of what it has left
 /// —see `flash_tick`—, and a `FlashScreen` of the game always lasts tenths
 /// times six. With eleven the first phase was the even one, a path no page
-/// takes and that therefore tests nothing: the `animacion` case showed it.
+/// takes and that therefore tests nothing: the `animation` case showed it.
 const ANIM_FLASH_FRAMES: u8 = 10;
 /// "This animation is not drawn", and it is used by the ones RM2k repeats
 /// three by three to cover the screen —`global`—, which are not done.
@@ -326,7 +326,7 @@ const CELL_REFRESH: i64 = 0x8000;
 // returns `false`.
 //
 // **Two simplifications, both measured over the whole game** and enforced by
-// `abl/pruebas/herramientas/test_encuentros.py` in the-advocate-ports, which is what keeps them
+// `abl/tests/tooling/test_encounters.py` in the-advocate-ports, which is what keeps them
 // from becoming a lie the day someone touches the data:
 //
 // * **the terrain changes nothing**: the eleven terrain tags the 53 maps with
@@ -3561,7 +3561,7 @@ pub fn compile_command(
         GAME_OVER => Ok(vec![OP_GAME_OVER]),
         // `ReturntoTitleScreen`: the same without the screen, that is going
         // back to boot, which in `release` is the title screen. The end of
-        // the demo asks for it, in map 66's fork (`abl/parches/manual/` in the-advocate-ports).
+        // the demo asks for it, in map 66's fork (`abl/patches/manual/` in the-advocate-ports).
         // Until 2026-09-28 it shared the opcode with `GameOver`, when neither
         // of the two drew anything.
         RETURN_TO_TITLE => Ok(vec![OP_RETURN_TO_TITLE]),
@@ -3658,7 +3658,7 @@ pub fn compile_command(
                 // `key_value` in the converter's events.py— and that a
                 // `Teleport` from a parallel page was not handled with the
                 // foreground idle —see the main loop—.
-                // `test_recorrido_carrera_golden.py` enforces it.
+                // `test_playthrough_race_golden.py` enforces it.
                 let slot = ctx.indices.variable_slot(q(0))?;
                 return Ok(vec![
                     OP_KEY,
@@ -3677,7 +3677,7 @@ pub fn compile_command(
             // could not be produced by any case, and modeling it anyway would
             // have been writing a path nothing runs.
             //
-            // That reason stopped holding with `abl/pruebas/arnes/recorrido.py` in the-advocate-ports,
+            // That reason stopped holding with `abl/tests/harness/playthrough.py` in the-advocate-ports,
             // which plays the real game and can press any button on any
             // frame, and with `--tocar` of both halves of the suite, which
             // presses a direction on a noted frame the way A was already

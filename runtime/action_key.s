@@ -360,7 +360,7 @@ no:
     ; down, talked to the `EV0052` opposite —hero's layer, placed to be faced
     ; from the left— and sent him back up. With an emulator's autofire, which
     ; presses every two frames, it always happened. Caught by
-    ; `test_accion_con_ruta.py`.
+    ; `test_action_with_route.py`.
     lda route_jump
     bne with_route              ; in the air
     lda route_wait

@@ -45,7 +45,7 @@ fn scratch(name: &str) -> PathBuf {
     dir
 }
 
-/// (musicdata.inc, musica.json, the MSU-1 sound effects as text, the boot).
+/// (musicdata.inc, music.json, the MSU-1 sound effects as text, the boot).
 fn compile_fixture(dir: &Path) -> (String, String, String, (f64, i64)) {
     let game_dir = fixture::write(dir);
     let game = Game {
@@ -105,7 +105,7 @@ fn the_music_is_the_one_the_python_wrote() {
     // byte the one before (525 bytes to 515, 628 to 295). Before it was
     // 89ec531ef3d4f2ce….
     assert_eq!(sha(data_of(&inc).as_bytes()), "4d2bae8459dcd30e28377cdcdc8083df7703c1a04c3a261dacf6db86938a51f3", "musicdata.inc");
-    assert_eq!(sha(songs.as_bytes()), "c5feb36f38f182aa9dc1fc40dac8bf8e7ed208ca3b12e85fe0df83c23c240d66", "musica.json");
+    assert_eq!(sha(songs.as_bytes()), "c5feb36f38f182aa9dc1fc40dac8bf8e7ed208ca3b12e85fe0df83c23c240d66", "music.json");
     // **Not the Python's since 2026-09-30**, on purpose: that day each sound
     // effect got its own rate in the package (`effects::rates_per_package`),
     // where the Python gave all of them one. The Python's was
@@ -166,6 +166,6 @@ fn write_the_fixture() {
     std::fs::create_dir_all(&dir).unwrap();
     let (inc, songs, quality, _) = compile_fixture(&dir);
     std::fs::write(dir.join("rust-musicdata.inc"), inc).unwrap();
-    std::fs::write(dir.join("rust-musica.json"), songs).unwrap();
+    std::fs::write(dir.join("rust-music.json"), songs).unwrap();
     std::fs::write(dir.join("rust-quality.txt"), quality).unwrap();
 }

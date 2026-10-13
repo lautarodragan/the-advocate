@@ -452,7 +452,7 @@ pub fn musicdata(music: &Music, emit: &Emit) -> Result<String> {
          SE2_REG          = ${:02X}\n\
          SOUNDS_N         = {}\n\n\
          ; The DSP prologue of the MSU-1 path, in bank 0 like everything\n\
-         ; the CPU walks with `lda tabla, x`. Where each song starts and\n\
+         ; the CPU walks with `lda table, x`. Where each song starts and\n\
          ; its MSU-1 track are outside it, and are read with `f:`.\n\
          .segment \"TABLES\"\n{}\n\n\
          .segment \"RODATA\"\n{}\n{}\n{}\n{}\n{}\n\
@@ -500,7 +500,7 @@ pub fn musicdata(music: &Music, emit: &Emit) -> Result<String> {
     Ok(out)
 }
 
-/// `musica.json`: what the MSU-1 tracks and the volume ceilings need from
+/// `music.json`: what the MSU-1 tracks and the volume ceilings need from
 /// each song —how long it lasts, the fingerprint of its mix, its track—.
 pub fn songs_json(songs: &[Built]) -> serde_json::Value {
     serde_json::json!({

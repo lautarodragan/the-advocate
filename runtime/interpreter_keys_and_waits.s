@@ -60,7 +60,7 @@ key_look:
     ; keep running while someone else's message is open: without this, the A
     ; that closes the message of the broken PC on map 11 was also read by the
     ; boulder engine, and a boulder was lost. It is covered by
-    ; `test_la_a_que_cierra_el_mensaje_no_saca_una_piedra`.
+    ; `test_the_a_that_closes_the_message_does_not_take_a_stone`.
     lda temp + 1
     and #KEY_WAIT
     beq key_read
@@ -109,7 +109,7 @@ key_save:
     ; frames later, not 91. Storing the whole count was one frame more per
     ; wait, and against the RPG_RT it showed: the map 16 cutscene went 161
     ; frames per round instead of 158, and the tint after `Wait 2` in
-    ; `timer-cero` came out at +13 and not +12. A zero —`Wait 0`— still ends
+    ; `timer-zero` came out at +13 and not +12. A zero —`Wait 0`— still ends
     ; the frame, which is RM2k's "0.0 waits 1 frame".
     rep #$20
 .a16

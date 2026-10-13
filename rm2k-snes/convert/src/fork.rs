@@ -13,8 +13,8 @@
 //!   fail: it overwrites the wrong map, and the teleports land in a wall;
 //! * **a fork replaces a map that exists**, and a new map **cannot**
 //!   overwrite one: a misspelled name doing nothing silently is worse than
-//!   an error. That is why the two live in different folders, `mapas/` and
-//!   `nuevos/`.
+//!   an error. That is why the two live in different folders, `forks/` and
+//!   `new/`.
 //!
 //! The ChipSets are **added**, never replace one: an id the database
 //! already has is refused when the database is read, because a fork that
@@ -85,8 +85,8 @@ impl Forks {
     /// dump, `game_maps`, by number.
     pub fn read(manual: &Path, game_maps: &BTreeSet<i32>) -> Result<Forks> {
         Ok(Forks {
-            maps: maps(&manual.join("mapas"), game_maps)?,
-            new_maps: new_maps(&manual.join("nuevos"), game_maps)?,
+            maps: maps(&manual.join("forks"), game_maps)?,
+            new_maps: new_maps(&manual.join("new"), game_maps)?,
             chipsets: chipsets(&manual.join("chipsets"))?,
         })
     }
@@ -119,7 +119,7 @@ fn maps(folder: &Path, game_maps: &BTreeSet<i32>) -> Result<BTreeMap<i32, (PathB
     for entry in entries(folder)? {
         let (base, extension) = split(&entry);
         if !map_file(folder, base, extension) {
-            crate::stop!("{entry}: only a map's JSON and its layers go in the manual patches' mapas/");
+            crate::stop!("{entry}: only a map's JSON and its layers go in the manual patches' forks/");
         }
         let Some(map_id) = map_number(base) else {
             crate::stop!("{entry}: the name has to be MapNNNN");
@@ -169,7 +169,7 @@ fn new_maps(folder: &Path, game_maps: &BTreeSet<i32>) -> Result<BTreeMap<i32, (P
     for entry in entries(folder)? {
         let (base, extension) = split(&entry);
         if !map_file(folder, base, extension) {
-            crate::stop!("{entry}: only a map's JSON and its layers go in the manual patches' nuevos/");
+            crate::stop!("{entry}: only a map's JSON and its layers go in the manual patches' new/");
         }
         let Some(map_id) = map_number(base) else {
             crate::stop!("{entry}: the name has to be MapNNNN");
@@ -191,11 +191,11 @@ fn new_maps(folder: &Path, game_maps: &BTreeSet<i32>) -> Result<BTreeMap<i32, (P
             crate::stop!(
                 "the new map {map_id} already exists in the dump: a new map does not overwrite \
                  one of the game's; if it is meant to change it, it is a fork and goes in \
-                 the manual patches' mapas/"
+                 the manual patches' forks/"
             );
         }
         let data = read_json(&pair.0)?;
-        let node = data.get("arbol").cloned().unwrap_or(Value::Null);
+        let node = data.get("tree").cloned().unwrap_or(Value::Null);
         let empty = match &node {
             Value::Null => true,
             Value::Object(o) => o.is_empty(),
@@ -206,7 +206,7 @@ fn new_maps(folder: &Path, game_maps: &BTreeSet<i32>) -> Result<BTreeMap<i32, (P
             || node.get("id").and_then(Value::as_i64) != Some(map_id as i64)
         {
             crate::stop!(
-                "{entry}: the id inside, the one in the `arbol` node and the one in the file \
+                "{entry}: the id inside, the one in the `tree` node and the one in the file \
                  name have to be the same"
             );
         }
@@ -244,7 +244,7 @@ fn chipsets(folder: &Path) -> Result<BTreeMap<i32, (PathBuf, Value)>> {
 mod tests {
     use super::*;
 
-    /// A manual patches folder of its own, with `mapas/`, `nuevos/` and
+    /// A manual patches folder of its own, with `forks/`, `new/` and
     /// `chipsets/`, removed when dropped.
     struct Patches(PathBuf);
 
@@ -252,7 +252,7 @@ mod tests {
         fn new(name: &str) -> Patches {
             let dir = std::env::temp_dir().join(format!("convert-fork-{name}-{}", std::process::id()));
             let _ = std::fs::remove_dir_all(&dir);
-            for sub in ["mapas", "nuevos", "chipsets"] {
+            for sub in ["forks", "new", "chipsets"] {
                 std::fs::create_dir_all(dir.join(sub)).unwrap();
             }
             Patches(dir)
@@ -265,7 +265,7 @@ mod tests {
             let json = self.0.join(folder).join(format!("Map{number:04}")).with_extension("json");
             let mut data = serde_json::json!({"id": inside});
             if let Some(node) = node {
-                data["arbol"] = serde_json::json!({"id": node, "name": "x"});
+                data["tree"] = serde_json::json!({"id": node, "name": "x"});
             }
             std::fs::write(&json, data.to_string()).unwrap();
             if layers {
@@ -291,8 +291,8 @@ mod tests {
     #[test]
     fn a_whole_fork_of_a_map_the_game_has_is_read() {
         let p = Patches::new("whole");
-        p.map("mapas", 11, 11, None, true);
-        p.map("nuevos", 900, 900, Some(900), true);
+        p.map("forks", 11, 11, None, true);
+        p.map("new", 900, 900, Some(900), true);
         let forks = p.read().unwrap();
         assert_eq!(forks.maps.keys().collect::<Vec<_>>(), [&11]);
         assert_eq!(forks.map_file(900).unwrap().file_stem().unwrap(), "Map0900");
@@ -302,41 +302,41 @@ mod tests {
     #[test]
     fn half_a_fork_does_not_build_from_either_side() {
         let p = Patches::new("half");
-        p.map("mapas", 11, 11, None, false);
+        p.map("forks", 11, 11, None, false);
         assert!(refusal(p.read()).contains("incomplete"));
         let p = Patches::new("layers");
-        std::fs::write(layers_path(&p.0.join("mapas").join("Map0011").with_extension("json")), "0\n").unwrap();
+        std::fs::write(layers_path(&p.0.join("forks").join("Map0011").with_extension("json")), "0\n").unwrap();
         assert!(refusal(p.read()).contains("incomplete"));
     }
 
     #[test]
     fn a_fork_that_says_it_is_another_map_does_not_build() {
         let p = Patches::new("other");
-        p.map("mapas", 11, 12, None, true);
+        p.map("forks", 11, 12, None, true);
         assert!(refusal(p.read()).contains("map 12"));
     }
 
     #[test]
     fn a_fork_of_a_map_the_game_lacks_does_not_build() {
         let p = Patches::new("lacks");
-        p.map("mapas", 9999, 9999, None, true);
+        p.map("forks", 9999, 9999, None, true);
         assert!(refusal(p.read()).contains("has none"));
     }
 
     #[test]
     fn a_new_map_does_not_cover_one_of_the_game() {
         let p = Patches::new("covers");
-        p.map("nuevos", 11, 11, Some(11), true);
+        p.map("new", 11, 11, Some(11), true);
         assert!(refusal(p.read()).contains("already exists"));
     }
 
     #[test]
     fn a_new_map_brings_its_node_with_its_id_and_both_files() {
         let p = Patches::new("node");
-        p.map("nuevos", 9998, 9998, Some(9997), true);
-        assert!(refusal(p.read()).contains("`arbol`"));
+        p.map("new", 9998, 9998, Some(9997), true);
+        assert!(refusal(p.read()).contains("`tree`"));
         let p = Patches::new("newhalf");
-        p.map("nuevos", 9998, 9998, Some(9998), false);
+        p.map("new", 9998, 9998, Some(9998), false);
         assert!(refusal(p.read()).contains("incomplete"));
     }
 

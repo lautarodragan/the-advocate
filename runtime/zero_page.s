@@ -61,7 +61,7 @@ title_edges: .res 1     ; and the buttons just pressed
 ; 1 while the slot screen is visible. The ROM does not read it: it is for the
 ; harness, like `lost_frames`. `ticks` does not advance while the
 ; screen is showing, so a test that waits by ticks would hang; with this
-; `consola.py` knows when to press. See `Partida.guardar_en`.
+; `console.py` knows when to press. See `Session.save_in`.
 menu_open:      .res 1
 pad_prev:    .res 1     ; last frame's JOY1H, to look at the edges of the
                         ; directions and of B as was already done with A
@@ -227,7 +227,7 @@ pair_ev:     .res 1     ; which event it belongs to, to move it after the interp
 ; frame.
 ;
 ; The tests read it through WRAM to know **which tick** they are looking at
-; —see `Partida` in abl/pruebas/arnes/consola.py in the-advocate-ports—, so with this it no longer
+; —see `Session` in abl/tests/harness/console.py in the-advocate-ports—, so with this it no longer
 ; matters whether the ROM was late. How late it is is told by
 ; `lost_frames`, which is another question.
 ticks:       .res 2

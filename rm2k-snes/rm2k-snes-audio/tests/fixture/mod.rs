@@ -367,9 +367,9 @@ Chime = 11025
 effect_slots_of_first_copies = 3
 "#;
 
-pub const CEILINGS: &str = r#"[temas.alpha]
-aire = 0.4
-pico = -3.0
+pub const CEILINGS: &str = r#"[songs.alpha]
+headroom = 0.4
+peak = -3.0
 "#;
 
 /// The job the tests compile.
@@ -406,7 +406,7 @@ pub const ARAM_END: i64 = 0x0400 + 4 * 16 + 9 + 22000;
 /// `soundfont.sf2`.
 pub fn write(dir: &Path) -> PathBuf {
     let game = dir.join("game");
-    for d in ["game/Music", "game/Sound", "rtp/Music", "project/patches/auto/musica"] {
+    for d in ["game/Music", "game/Sound", "rtp/Music", "project/patches/auto/music"] {
         std::fs::create_dir_all(dir.join(d)).unwrap();
     }
     std::fs::write(game.join("Music/alpha.mid"), alpha()).unwrap();
@@ -420,7 +420,7 @@ pub fn write(dir: &Path) -> PathBuf {
     std::fs::write(game.join("Sound/chime.WAV"), wav(1, 16, 22050, &tone(30000, 30, 12000, 12))).unwrap();
     std::fs::write(game.join("Sound/Boom.wav"), wav(1, 16, 22050, &tone(26000, 150, 9000, 13))).unwrap();
     std::fs::write(dir.join("project/rm2k-snes.toml"), PROJECT).unwrap();
-    std::fs::write(dir.join("project/patches/auto/musica/techos.toml"), CEILINGS).unwrap();
+    std::fs::write(dir.join("project/patches/auto/music/ceilings.toml"), CEILINGS).unwrap();
     std::fs::write(dir.join("soundfont.sf2"), soundfont()).unwrap();
     std::fs::write(dir.join("job.json"), JOB).unwrap();
     game

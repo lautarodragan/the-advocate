@@ -34,7 +34,7 @@ pub const CHECKSUM: usize = 0x00FFDE;
 pub const COMPLEMENT: usize = 0x00FFDC;
 
 /// What `ld65` links against, written next to the generated data.
-pub const MEMORY_MAP: &str = "memoria.cfg";
+pub const MEMORY_MAP: &str = "memory.cfg";
 
 const MISSING: &str = "`{}` is missing, from the cc65 project (https://cc65.github.io).
 

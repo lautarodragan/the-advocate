@@ -46,7 +46,7 @@ SRAM_SLOTS = 4
 ;
 ; A saved game that went past the window would run into the ROM of the same
 ; bank, and saving would write nowhere: the `.assert` under `SRAM_DATA` stops
-; the build, and the tests' `test_las_cuatro_ranuras_entran_en_la_sram`
+; the build, and the tests' `test_the_four_slots_fit_in_the_sram`
 ; checks the same from outside.
 SRAM_WINDOW_SIZE = $2000
 SRAM_STRIDE = SRAM_WINDOW_SIZE
@@ -230,7 +230,7 @@ sum:
     ; `music_start` picks the track or the SPC700 depending on whether there
     ; is an MSU-1. With interrupts disabled, because `irq_music` would run the
     ; SPC700 stream on seeing it at zero. It is caught by
-    ; `test_la_partida_guardada_vuelve_con_su_tema`.
+    ; `test_the_saved_game_comes_back_with_its_song`.
     php
     sei
     lda music_off

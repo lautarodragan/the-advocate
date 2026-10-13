@@ -662,7 +662,7 @@ pub fn msu(backdrops: &[(Vec<u8>, Vec<u8>)], quality: &Effects, magic: &[u8; 4])
     Ok(Msu { blob, inc, backdrops: backdrops.len(), effects })
 }
 
-/// `efectos.json`: which sound each row of `sound_table` is and at which
+/// `effects.json`: which sound each row of `sound_table` is and at which
 /// rate each sound effect of each package goes in the `.msu`. The ROM
 /// doesn't read it; it is for the tools that touch a sound effect from
 /// outside and to look at what the allocation decided.

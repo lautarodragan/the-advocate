@@ -41,7 +41,7 @@ ARROW_BASE = ARROW_WAY * 4
 ;
 ; Not every frame because the vblank is the tightest budget there is, and
 ; most frames there is nothing to write. Measured over map 6 with the
-; camera scrolling, the `anclada` case: from the arrival on, composing the
+; camera scrolling, the `anchored` case: from the arrival on, composing the
 ; message and with it up, `lost_frames` does not move, the same as without
 ; the arrow.
 ;

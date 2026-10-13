@@ -612,7 +612,7 @@ ready:
 ; all of VRAM. After a teleport or a door, on the other hand, it left whatever
 ; the previous map had put there: `ShakeScreen` against the edge uncovers it,
 ; since it moves the screen past the first column. Step 9e found it, when the
-; `sacudir-borde` and `tram-viaje` cases switched to reaching their map with a
+; `shake-edge` and `tram-viaje` cases switched to reaching their map with a
 ; `Teleport` instead of starting there.
 ;
 ; It runs with the screen in forced blanking, which is how every map load

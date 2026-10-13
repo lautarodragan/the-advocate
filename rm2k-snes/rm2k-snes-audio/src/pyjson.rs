@@ -2,7 +2,7 @@
 //! one space of indent per level, `", "` never, `": "` between a key and
 //! its value, everything outside ASCII escaped, and no newline at the end.
 //!
-//! `musica.json` was written that way until 2026-09-29, and the tools that
+//! `music.json` was written that way until 2026-09-29, and the tools that
 //! read it compare it whole; so it keeps being written the same.
 
 use serde_json::Value;

@@ -676,7 +676,7 @@ ready:
 ; from the other branch— kept passing it in A. The two branches merged clean
 ; because they touched different lines, and from then on the battle loaded
 ; the map's package: the battle song played with six samples not uploaded and
-; the hit missed with sample 0. The two audio tests in `test_batalla.py`
+; the hit missed with sample 0. The two audio tests in `test_battle.py`
 ; caught it.
 .proc package_load_done
 .a8
@@ -767,7 +767,7 @@ exit_q:
     ; do not have to fit: see `from_exit`. The game's case is the `PlayBGM` of
     ; TF3_1_awe on map 3, which uploaded again what was there and more than
     ; doubled the time the picture stayed frozen and the music silent: see
-    ; `test_el_paso_del_2_al_3_no_vuelve_a_subir_lo_que_estaba`.
+    ; `test_going_from_2_to_3_does_not_upload_what_was_there_again`.
     jsr wanted_fits
     bcs fits_q
     lda #2

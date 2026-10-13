@@ -482,7 +482,7 @@ pub fn raw_blocks(map: &Map) -> crate::materials::RawBlocks {
 /// grid's second half, then the block table, then its passability, then
 /// the bytecode—, and the runtime does not compute: `lz2_grid` only
 /// decompresses each stream where the one before ended. If both sides
-/// disagreed, `test_carga_descomprimida.py` sees it. `evcode` is where the
+/// disagreed, `test_decompressed_load.py` sees it. `evcode` is where the
 /// bytecode starts, which the page table adds each page's offset to.
 pub fn map_ram_pointers(map: &Map) -> [(&'static str, String); 3] {
     let start = grid_high_used(map.cells.len());

@@ -45,7 +45,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// A cartridge's music, from a job: musicdata.inc, musica.json and audio.json
+    /// A cartridge's music, from a job: musicdata.inc, music.json and audio.json
     Compile(CompileArgs),
     /// A cartridge's music as a stage of its converter: from what the event compiler asked for
     /// to musicdata.inc, the .msu and what goes with them
@@ -145,8 +145,8 @@ struct CompileArgs {
     measuring_headroom  every song's headroom, instead of its ceiling, or null\n  \
     backdrops           [[tiles, colors]] in hex: every quality battle backdrop, by number\n  \
     tree_nodes          map tree nodes in the dump's shape, over the dump's\n\n\
-    It writes into --out musicdata.inc, musica.json, audio.json, audio-job.json and \
-    efectos.json, and the .msu to --msu.")]
+    It writes into --out musicdata.inc, music.json, audio.json, audio-job.json and \
+    effects.json, and the .msu to --msu.")]
 struct CartridgeArgs {
     /// What the cartridge decided, as JSON
     #[arg(long, value_name = "PATH")]
@@ -278,7 +278,7 @@ struct Compiled {
     quality: Option<msu::Effects>,
 }
 
-/// Compiles a job into `out`: `musicdata.inc` and `musica.json` with
+/// Compiles a job into `out`: `musicdata.inc` and `music.json` with
 /// `emit`, and what each song and the bank came out as, to standard output.
 /// `audio.json` is the caller's to write, with whatever it adds.
 fn compile_into(
@@ -376,7 +376,7 @@ fn compile_into(
     if let Some(emit) = emit {
         let text = emit::musicdata(&music, emit)?;
         write_file(&out_dir.join("musicdata.inc"), &text)?;
-        write_file(&out_dir.join("musica.json"), &pyjson::to_string(&emit::songs_json(&music.songs)))?;
+        write_file(&out_dir.join("music.json"), &pyjson::to_string(&emit::songs_json(&music.songs)))?;
         let rom = emit::rom_packages(&music, emit);
         out.insert("packages".into(), json!(rom));
         let (frames, bytes) = emit::boot_frames(&music, &rom[emit.start], emit.decompress_frames)?;
@@ -612,7 +612,7 @@ fn do_cartridge(args: &CartridgeArgs) -> Result<()> {
     );
     write_file(&musicdata, &text)?;
     let rates = &done.audio["msu"]["rates"];
-    write_file(&args.out.join("efectos.json"), &pyjson::to_string(&cartridge::effects_json(music, &c.songs.sounds, rates)))?;
+    write_file(&args.out.join("effects.json"), &pyjson::to_string(&cartridge::effects_json(music, &c.songs.sounds, rates)))?;
     for package in &quality.packages {
         if let Some(theirs) = rates.get(&package.name).and_then(Value::as_object).filter(|t| !t.is_empty()) {
             say(format!("  quality sound effects of package {}: {}", package.name, cartridge::rates_line(theirs)));

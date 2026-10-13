@@ -46,7 +46,7 @@
 ; longer.
 ;
 ; All of this **blocks**, like the battle itself: `ticks` does not advance,
-; so the transition costs no tick —see `test_la_pelea_no_gasta_ningun_tick`—.
+; so the transition costs no tick —see `test_the_battle_spends_no_tick`—.
 ; RM2k also freezes the scene while a transition lasts.
 
 .segment "CODE"

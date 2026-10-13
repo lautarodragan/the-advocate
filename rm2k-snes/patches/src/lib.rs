@@ -28,10 +28,10 @@
 //!
 //! * **The converter** decides, and hands the decisions of one build to this
 //!   in a request —`rm2k-snes-patches --request decisions.json <build>`, see
-//!   [`Request`]—: this writes them as TOML in `<build>/parches/auto/`, next
+//!   [`Request`]—: this writes them as TOML in `<build>/patches/auto/`, next
 //!   to the ROM. Which situation each one was asked for by —a map of the
 //!   game, a map or a page that only exists for a test suite— the converter
-//!   writes itself, in `<build>/parches/usos.json` ([`USES_FILE`]), and this
+//!   writes itself, in `<build>/patches/uses.json` ([`USES_FILE`]), and this
 //!   only reads it.
 //! * **`rm2k-snes-patches <build>`** copies what the playable ROM decided
 //!   into the project's automatic patches, which is what goes to version
@@ -42,8 +42,8 @@
 //!
 //! # The key
 //!
-//! One file per game situation: `mapas/<id>.toml` for the layers of a map,
-//! with one section per layer, `animaciones/<n>.toml` for the battle
+//! One file per game situation: `maps/<id>.toml` for the layers of a map,
+//! with one section per layer, `animations/<n>.toml` for the battle
 //! animations and `battlers/<key>.toml` for the battlers. **The map id is the
 //! game's and not the cartridge's**: it does not move when the ROM's list of
 //! maps changes, nor when the converter's internal order changes, nor when
@@ -116,16 +116,16 @@ use std::path::{Path, PathBuf};
 /// Where each cartridge leaves its patches, relative to its build directory.
 /// It is the shape of the build, which imitates the project's patches; not
 /// where those are.
-pub const IN_BUILD: &str = "parches/auto";
+pub const IN_BUILD: &str = "patches/auto";
 
 /// Who asked for each of the cartridge's patches, next to its patches and
 /// **not versioned**: the converter writes it, and [`only_for_tests`] reads
 /// it. `{kind key: {key: [origin, ...]}}`, where an origin is a map id or
-/// `"caso"`, a test page.
-pub const USES_FILE: &str = "parches/usos.json";
+/// `"case"`, a test page.
+pub const USES_FILE: &str = "patches/uses.json";
 
 /// The origin a test page is written as in [`USES_FILE`].
-const TEST_PAGE: &str = "caso";
+const TEST_PAGE: &str = "case";
 
 /// The cartridge whose decisions are versioned: the playable ROM.
 pub const PLAYABLE: &str = "release";
@@ -168,10 +168,10 @@ impl Kind {
     /// Its folder, among the versioned ones and in a build's `IN_BUILD`.
     pub fn directory(self) -> &'static str {
         match self {
-            Kind::Map => "mapas",
-            Kind::Animation => "animaciones",
+            Kind::Map => "maps",
+            Kind::Animation => "animations",
             Kind::Battler => "battlers",
-            Kind::Window => "ventanas",
+            Kind::Window => "windows",
         }
     }
 
@@ -184,10 +184,10 @@ impl Kind {
     /// [`USES_FILE`].
     pub fn key(self) -> &'static str {
         match self {
-            Kind::Map => "mapa",
-            Kind::Animation => "animacion",
+            Kind::Map => "map",
+            Kind::Animation => "animation",
             Kind::Battler => "battler",
-            Kind::Window => "sistema",
+            Kind::Window => "system",
         }
     }
 
@@ -402,7 +402,7 @@ pub(crate) fn toml_files(folder: &Path) -> Result<Vec<String>, String> {
 }
 
 /// The patches of one build, from what the converter decided, in
-/// `<build>/parches/auto/`: every kind's folder is emptied first, so what is
+/// `<build>/patches/auto/`: every kind's folder is emptied first, so what is
 /// left is exactly this request.
 pub fn write(build: &Path, request: &Request) -> Result<Vec<Written>, String> {
     let texts: [Vec<(String, String)>; 4] = [

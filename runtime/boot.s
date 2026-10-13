@@ -126,7 +126,7 @@ party_ready:
     ; have failed just like in mednafen. It is measured: with these two
     ; uninitialized by hand and ten runs per core, snes9x gives 0 of 10 red
     ; and bsnes 2 of 10. Against that there is
-    ; `abl/pruebas/rpgmaker/test_cores.py` in the-advocate-ports, which runs the same ROM on snes9x
+    ; `abl/tests/rpgmaker/test_cores.py` in the-advocate-ports, which runs the same ROM on snes9x
     ; and on bsnes —the latter with `bsnes_entropy=High`— and compares the two
     ; screens with each other; that file has the rest of the numbers. Verified
     ; on 2026-09-16 by removing these two lines: of five runs, four red.
@@ -438,7 +438,7 @@ loop:
                                 ; on the next one. With the interpreter still
                                 ; above the hero both started one frame earlier
                                 ; and tied; with it below, leaving them down
-                                ; there broke the tie, and `parar-rutas` showed
+                                ; there broke the tie, and `stop-routes` showed
                                 ; it with the NPC one frame ahead of the hero.
 .if ::HERO_SPEED_KEYS
     jsl f:speed_keys            ; L and R, before the hero walks: not RM2k's
@@ -528,7 +528,7 @@ counted:
 ; frame's NMI may not have run yet. Against a golden a lost frame is a
 ; position that lags behind, and the comparison charges it in pixels without
 ; saying why; this counter says why. The tests read it through the emulator's
-; WRAM —`Partida.cuadros_perdidos`—, and on the console nobody reads it.
+; WRAM —`Session.lost_frames`—, and on the console nobody reads it.
 ; Saturates at 255.
 .proc count_lost
 .a8
@@ -718,7 +718,7 @@ scrolls:
 ; at zero, which is "nothing on".
 .segment "TABLES"
 
-; What **has** to live in bank 0: it is read with `lda tabla, y`, and the
+; What **has** to live in bank 0: it is read with `lda table, y`, and the
 ; 65816 has no absolute long indexed by Y —`long,X` yes, `long,Y` no—, or
 ; with so many different indices that the extra byte per access would cost
 ; more than the table. The ones read with X and rarely read were moved down

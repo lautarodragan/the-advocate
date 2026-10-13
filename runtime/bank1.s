@@ -32,13 +32,13 @@
 ; not cross banks, and before it had its own segment this went after the generated
 ; data: it fell in a different bank with each cartridge, and a padding
 ; computed by eye had to keep the battle from being split. What guarantees it
-; fits is checked by `abl/pruebas/herramientas/test_bancos.py` in the-advocate-ports, over the
+; fits is checked by `abl/tests/tooling/test_banks.py` in the-advocate-ports, over the
 ; symbol table.
 .segment "FAR"
 
 ; --- what does not need to live in bank 0 ----------------------------------
 ;
-; These three are read with `lda f:tabla, x` —absolute long indexed, which
+; These three are read with `lda f:table, x` —absolute long indexed, which
 ; adds X over the 24 bits and does not depend on the data bank register—, so
 ; they can live out here. They cost a byte and a cycle per access, and none of
 ; the three is in a loop that runs every frame: the PPU registers are written
@@ -269,7 +269,7 @@ save_table:
 
 ; The four tables that moved down from bank 0 on 2026-09-13, to make room for
 ; `op_battle`'s Game Over. The three that are indexed are read with
-; `lda f:tabla, x` —absolute long, which does not depend on the data bank— and
+; `lda f:table, x` —absolute long, which does not depend on the data bank— and
 ; that is why they go with X and not Y: the 65816 has no `long,Y`.
 ; The fourth was `hdma_mask`, the HDMA table that hides the objects under the
 ; message window; since the window moves, on 2026-10-04, it is one per

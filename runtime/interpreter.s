@@ -6,9 +6,9 @@
 ; handler is its own `.proc op_*` and lives in one of the `interpreter_*.s`
 ; files that main.s includes after this one, one per family. Since the dispatch
 ; goes through a table, the code does not care where each one is, with one
-; condition: it has to stay in `run_code`'s bank, because `jmp (tabla, x)`
+; condition: it has to stay in `run_code`'s bank, because `jmp (table, x)`
 ; jumps within the program bank. As long as they are all in `CODE` that holds,
-; and `test_la_entrada_k_de_la_tabla_salta_al_manejador_del_opcode_k` guards it.
+; and `test_table_entry_k_jumps_to_the_handler_of_opcode_k` guards it.
 ;
 ; A new opcode touches two places: its number in
 ; rm2k-snes/bytecode/src/events.rs —which yields its entry in the dispatch
@@ -61,7 +61,7 @@ other:
     tax
     ; `jmp (abs, x)` reads the table from the program bank, which is where it
     ; is: the data bank is the bytecode's (see `op_shop`) and an
-    ; `lda tabla, x` would read something else.
+    ; `lda table, x` would read something else.
     jmp (opcode_handlers, x)
 .endproc
 

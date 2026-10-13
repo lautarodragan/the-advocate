@@ -8,7 +8,7 @@ way. When a term is missing, pick one, use it consistently, and add it here.
 |---|---|---|
 | cartucho | cartridge | a ROM build: `release`, `test-special` |
 | tanda | test suite, suite | the whole pytest run |
-| caso | case | a test case under `pruebas/casos/` |
+| caso | case | a test case under `tests/cases/` |
 | golden | golden | a frozen capture a test compares against |
 | conversor | converter | `rm2k-snes-convert`, the orchestrator, and its stages |
 | runtime, motor | runtime | the 65816 code in `runtime/` |
@@ -48,7 +48,7 @@ way. When a term is missing, pick one, use it consistently, and add it here.
 | fuente | font | |
 | glifo | glyph | |
 | entregar | deliver | hand a build to a person |
-| parche | patch | a file under `parches/` |
+| parche | patch | a file under `patches/` |
 | volcado | dump | the JSON dump of the game |
 | verificado | verified | always names what was run |
 | armar, armado | build, built | |
@@ -185,3 +185,11 @@ way. When a term is missing, pick one, use it consistently, and add it here.
 | estampar | stamp | |
 | tramo | stretch | |
 | `.bloque` / `.cruza` | `.block` / `.crossbank` | the bank directives |
+| partida (del arnés) | session | a ROM running in the ports' harness: `Session` |
+| recorrido | playthrough | the scripted walk through the game, with its photos |
+| hito | milestone | a named point of a playthrough |
+| las pruebas de herramientas | tooling tests | `tests/tooling/` in the ports: they run no ROM; not `tools/`, the tools' old folder |
+| mapa forkeado | fork | `patches/manual/forks/` in the ports |
+| arrancan (los otros juegos) | boot | `just boot`: each game builds and plays to its first map |
+| jugada (de otro juego) | play script | `PlayScript`, the playthrough of a game that is not ABL |
+| lugares (del arnés) | places | `places.py`: where things are on this machine |
