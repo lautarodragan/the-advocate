@@ -818,3 +818,34 @@ pub fn end_game_screen(game: &Game, skin: &Skin, chosen: usize) -> Result<Pictur
     }
     Ok(out)
 }
+
+/// The title's menu with the cursor on `chosen`, and `load_game` greyed if
+/// there is no save: the tilemap the cartridge uploads, over a transparent
+/// screen, because the picture behind is not this crate's. Whoever compares
+/// looks only at the pixels it paints.
+pub fn title_menu(game: &Game, skin: &Skin, chosen: usize, saved: bool) -> Result<Picture> {
+    let menu = crate::title::menu(game, skin)?;
+    let n = menu.texts.len();
+    if chosen >= n {
+        return Err(Bad::answer(format!("the title has {n} options and the cursor is on {chosen}")));
+    }
+    let tilemap = &menu.tilemaps[usize::from(saved) * n + chosen];
+    let mut out = Picture::transparent(WIDTH, HEIGHT);
+    for (at, &word) in tilemap.iter().enumerate() {
+        let (row, col) = (at / COLS, at % COLS);
+        if word == 0 || row * CELL >= HEIGHT {
+            continue;
+        }
+        for (y, line) in menu.tiles[word as usize].iter().enumerate() {
+            for (x, &value) in line.iter().enumerate() {
+                if value == 0 {
+                    continue;
+                }
+                let c = menu.palette[value as usize];
+                let at = ((row * CELL + y) * WIDTH + col * CELL + x) * 4;
+                out.rgba[at..at + 4].copy_from_slice(&[c[0] << 3, c[1] << 3, c[2] << 3, 255]);
+            }
+        }
+    }
+    Ok(out)
+}

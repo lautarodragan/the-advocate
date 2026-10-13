@@ -35,6 +35,10 @@
     bne has
     rts
 has:
+    ; It opens on the first option, save or not: the 2000 and the 2015
+    ; RPG_RT do, measured under Wine. easyrpg opens on `load_game` when there
+    ; is a save.
+    stz title_sel
     jsr title_upload
     ; The title song. $FF means this ROM does not carry it —or that it did not
     ; fit in the ARAM—, and then the screen is shown silent.
@@ -55,9 +59,9 @@ mute:
 .endproc
 
 ; Uploads the whole title screen —the image, the menu, the colors— and turns it
-; on. It is separate from the loop because two paths arrive here: entering, and
-; **coming back from the slot screen after cancelling**, which overwrote VRAM
-; and CGRAM with its own things.
+; on, with the cursor on `title_sel`. It is separate from the loop because two
+; paths arrive here: entering, and **coming back from the slot screen after
+; cancelling**, which overwrote VRAM and CGRAM with its own things.
 .proc title_upload
 .a8
 .i16
@@ -134,7 +138,7 @@ mute:
     lda #$03
     sta TM                      ; the image and the menu; there are no sprites
 
-    stz title_sel               ; it opens with the first option selected
+    jsr title_saves
     jsl f:title_upload_menu
 
     lda #$0F
@@ -146,6 +150,42 @@ mute:
 ; menu's tiles, at 16, end before the image's tilemap.
 .assert TITLE_TILES * TITLE_BPP * 4 <= TITLE_MENU_MAP, error, "the title tiles overwrite the menu tilemap"
 .assert TITLE_MENU_VRAM + TITLE_MENU_TILES * 16 <= SCREEN_MAP, error, "the title menu tiles overwrite the image tilemap"
+
+; Whether any slot has a save, in `title_saved`: TITLE_MENU_N if so —the
+; tilemaps with `load_game` in its colour go after the greyed ones— and 0 if
+; not. RPG_RT asks the same of its `Save*.lsd` each time the title is shown.
+; `slot_full` clobbers `slot`, which on the title says which save is loaded:
+; it is given back as it was.
+.proc title_saves
+.a8
+.i16
+    lda slot
+    pha
+    stz title_saved
+    lda #0
+next:
+    pha
+    jsr slot_full               ; A, the slot; Z from its own `lda`
+    beq empty
+    lda #TITLE_MENU_N
+    sta title_saved
+empty:
+    pla
+    inc a
+    cmp #SRAM_SLOTS_N
+    bcc next
+    pla
+    sta slot
+    rts
+.endproc
+
+.pushseg
+.segment "ZEROPAGE"
+; 0, or TITLE_MENU_N if there is a save: what `title_upload_menu` adds to
+; `title_sel` to find the tilemap. In the direct page because that one runs
+; from another bank.
+title_saved: .res 1
+.popseg
 
 ; The menu loop. Up and down move the cursor on the **edge** and wrap around,
 ; the same as `choice_tick` with ShowChoice: it is RM2k's
@@ -198,21 +238,33 @@ check_start:
     and #PAD_START
     beq wait
 picks:
-    ; The second option is 'Resume the Story': the save is loaded and, if
-    ; there is one, the map and the cell come from it. If there is none, it
-    ; starts the same as the first, which is what RM2k does when there is
-    ; nothing to load.
     lda title_sel
     beq leave
-    ; 'Resume the Story': the slot screen, in load mode. If the player cancels
-    ; with B it goes back to the title, and since that screen overwrote VRAM
-    ; and CGRAM the title has to be uploaded again in full.
+    cmp #2
+    beq exit_game
+    ; 'Resume the Story', greyed without a save: RM2k plays its buzzer and
+    ; stays, and here there are no system sounds yet.
+    lda title_saved
+    beq wait
+    ; The slot screen, in load mode. If the player cancels with B it goes
+    ; back to the title with the cursor where it was —`Scene_Title` does not
+    ; move it—, and since that screen overwrote VRAM and CGRAM the title has
+    ; to be uploaded again in full.
     lda #0
     jsr slots_screen
     cmp #$FF
     bne the_chosen
+    lda #1
+    sta title_sel
     jsr title_upload
     jmp title_loop
+exit_game:
+    ; `exit_game`. On a PC the program closes; a console does not, so what
+    ; is left is what the player sees of that: the song and the screen fade
+    ; out like End Game's "Yes", and the CPU stops there. Reset or the
+    ; power switch is what comes next, as after closing RPG_RT.
+    jsl f:ending_fade
+    stp
 the_chosen:
     jsr set_slot
     jsr load_game

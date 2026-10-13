@@ -628,19 +628,25 @@ pub fn end_ramp() -> Vec<u8> {
 
 // --- the title's menu --------------------------------------------------------
 //
-// The two options go on **BG2, at four bits per pixel**, and not on BG1 with
-// the picture: there the text would have to be mixed with the picture, a new
-// tile for every cell it covers, and could no longer move. The cursor **is
-// not drawn separately**: one tilemap per selected option.
+// `Scene_Title`'s command window: the database's `new_game`, `load_game` and
+// `exit_game` in a window of the System, as wide as the longest plus the
+// borders and sixteen per option plus the borders tall, centred in x and
+// with its bottom edge at 53/60 of the screen's height —easyrpg's
+// `RepositionWindow`; at 320x240 it lands on the pixels of a capture of the
+// 2015 RPG_RT, window, bar and text—. Here the screen is 224 tall, and the
+// same fraction is kept rather than the pixels.
 //
-// Measured against A Blurred Line: an assumption of the engine, not a fact of
-// the game.
-/// Where the first option starts, in pixels, and how far apart the next is.
-pub const TITLE_MENU_Y: usize = 152;
-pub const TITLE_MENU_STEP: usize = 24;
-pub const TITLE_MENU_X: usize = 72;
-pub const TITLE_CURSOR: &str = "> ";
-pub const TITLE_NO_CURSOR: &str = "  ";
+// It goes on **BG2, at four bits per pixel**, and not on BG1 with the
+// picture: there the window would have to be mixed with the picture, a new
+// tile for every cell it covers. The cursor **is not drawn separately**:
+// one tilemap per selected option, and per whether there is a save —with
+// none, `load_game` is greyed, as RPG_RT does—.
+/// The bottom edge of the window, as a fraction of the screen's height.
+pub const TITLE_BOTTOM: (usize, usize) = (53, 60);
+/// The colour a command nobody can choose is written in: `Font::ColorDisabled`.
+pub const INK_DISABLED: i32 = 3;
+/// How many colours the menu has: BG2's palette 0, without the transparent.
+pub const TITLE_COLORS: usize = 15;
 
 // --- the message window ------------------------------------------------------
 //

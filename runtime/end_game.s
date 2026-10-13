@@ -138,9 +138,22 @@ go_back:
     rtl
 
 leave:
-    ; "Yes": the song fades like a 400 ms `FadeOutBGM` —`Scene_End`'s
-    ; `BgmFade`—, with the same guard as `op_fade_bgm`: with the song off
-    ; there is nothing to fade, and with an MSU-1 track there is.
+    jsl f:ending_fade           ; "Yes"
+    jml f:reset
+.endproc
+
+; The fade of "Yes": the song and the screen to black, and the music
+; silenced. Returns with `rtl` and the screen off. The title's `exit_game`
+; ends the same way, and stops there instead of going to `reset`.
+.proc ending_fade
+.a8
+.i16
+    phb
+    phk
+    plb
+    ; The song fades like a 400 ms `FadeOutBGM` —`Scene_End`'s `BgmFade`—,
+    ; with the same guard as `op_fade_bgm`: with the song off there is
+    ; nothing to fade, and with an MSU-1 track there is.
     lda f:MSU_PLAYING
     bne fade_step
     lda music_off
@@ -189,13 +202,15 @@ song:
 muted:
     ; The music, silenced before the boot, as when leaving Game Over: the
     ; reset uploads the driver to the SPC700 again, but an MSU-1 track would
-    ; keep playing through the whole boot.
+    ; keep playing through the whole boot —and on the title's `exit_game`,
+    ; forever—.
     lda #0
     sta f:MSU_PLAYING
     sta MSU_CONTROL
     lda #$FF
     jsl f:ba_t_bgm
-    jml f:reset
+    plb
+    rtl
 .endproc
 
 ; The palette for command `title_sel` into entries 0 to 15. With the screen
