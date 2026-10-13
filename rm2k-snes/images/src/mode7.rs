@@ -7,8 +7,8 @@
 //! cells**, almost all different when it has grain. So the cells are
 //! grouped into as many as fit, by **vector quantisation**: a k-means over
 //! the tiles, and each group drawn with one of its own tiles. Two choices,
-//! both measured in the pilot —`el-piloto-del-modo-7.md` in A Blurred
-//! Line's tasks—:
+//! both measured in the pilot —`tasks/mode-7-pilot-for-the-zoom-of-the-diff-photos.md`
+//! in the-advocate-work—:
 //!
 //! * **They are grouped by their shape, not pixel by pixel**: each tile
 //!   averaged two by two, so that the grain of grass or of earth, which is

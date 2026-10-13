@@ -19,7 +19,7 @@
 //! and 11,530 with LZ2; a light one would save about 9 KB of cartridge and
 //! cost a second path in the ROM that no core in the suite exercises in
 //! full. The numbers are in `tasks/game-over-screen.md` in the-advocate-work
-//! and `la-pantalla-de-titulo-comprimida.md`.
+//! and `compressed-title-screen.md`.
 
 use crate::fail::{Result, Stop};
 use crate::images;
