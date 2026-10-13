@@ -447,6 +447,13 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     }
     request.vram.slots(slots.tiles.len())?;
     let title = if request.title { Some(title::menu(game, &skin)?) } else { None };
+    if let Some(t) = title.as_ref().filter(|t| t.merged > 0) {
+        says.push(format!(
+            "  WARNING, the title menu's window has more colours than its palette: {} were merged into the \
+             ones most like them",
+            t.merged
+        ));
+    }
 
     let (fitted, fused) = fit::skin_for(game, &skin, fit::Screen::Battle, 0)?;
     says.extend(fused_windows("the battle's", fused));

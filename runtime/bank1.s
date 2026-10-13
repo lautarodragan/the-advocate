@@ -116,8 +116,12 @@ jump_per_speed:
     sta VMADDL
     lda #(32 * 32 * 2)
     sta DAS0L
-    ; The source: the start of the block plus 2048 per option.
+    ; The source: the start of the block plus 2048 per option, and the
+    ; options with a save after the ones without —`title_saved`—. Sixteen
+    ; bits read the neighbours too: the mask keeps the low byte, the sum.
     lda title_sel
+    clc
+    adc title_saved
     and #$00FF
     xba                         ; times 256
     asl a

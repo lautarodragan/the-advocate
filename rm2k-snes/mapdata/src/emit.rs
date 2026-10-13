@@ -544,7 +544,7 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         None => (0, 0),
         Some(menu) => (
             list_at(menu, "tiles")?.len(),
-            list_at(menu, "tilemaps")?.len(),
+            list_at(menu, "texts")?.len(),
         ),
     };
     args.extend([
@@ -1378,7 +1378,8 @@ fn title_section(out: &mut String, menu: Option<&Value>) -> Result<()> {
         }
         Some(menu) => {
             // A 4-bit tile bank and one tilemap per selected option, one after
-            // the other: the console indexes them by multiplying.
+            // the other, first the ones without a save and then the ones with:
+            // the console indexes them by multiplying.
             line(
                 out,
                 &block("title_menu_tiles", &packed(&tiles(at(menu, "tiles")?)?, 4)),

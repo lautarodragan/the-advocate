@@ -243,6 +243,7 @@ impl Game {
         let value = match name {
             "new_game" => &t.new_game,
             "load_game" => &t.load_game,
+            "exit_game" => &t.exit_game,
             "load_game_message" => &t.load_game_message,
             "save_game_message" => &t.save_game_message,
             "file" => &t.file,

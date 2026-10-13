@@ -80,7 +80,7 @@ enum Command {
     `cgram_reserved` and `vram` (`slot_vram`, `slot_map` and each layout's BG1 bank as \
     [name, from, to]).\n\n\
     `render` writes screen.png, RGB. Its request carries `screen` —menu, items, target, \
-    slots, equipment, shop or end_game— and that screen's state: see `render.rs`.")]
+    slots, equipment, shop, end_game or title— and that screen's state: see `render.rs`.")]
 struct GameArgs {
     /// The Ditto dump the game is read from: the directory with maps/ and
     /// db/
@@ -299,10 +299,11 @@ fn do_render(args: &GameArgs) -> Result<()> {
             )?
         }
         "end_game" => render::end_game_screen(&game, &skin, chosen)?,
+        "title" => render::title_menu(&game, &skin, chosen, json.flag("saved", false)?)?,
         other => {
             return Err(Bad::answer(format!(
                 "{}: `screen` is {other:?}, and it is menu, items, target, slots, equipment, \
-                 shop, skills or end_game",
+                 shop, skills, end_game or title",
                 json.whose
             )))
         }

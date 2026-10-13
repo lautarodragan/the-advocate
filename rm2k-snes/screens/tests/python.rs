@@ -111,6 +111,10 @@ fn everything_a_cartridge_carries() {
     // Nor the skills screen, since 2026-10-12.
     answer.as_object_mut().unwrap().remove("skills_screen");
     answer.as_object_mut().unwrap().remove("skills");
+    // Nor the title's menu, since 2026-10-13: RPG_RT's window with three
+    // options, and not the Python's two lines of text. What it is compared
+    // against now is `render`'s `title`, in ABL's suite.
+    answer.as_object_mut().unwrap().remove("title");
     let says: Vec<Value> = answer["says"]
         .as_array()
         .unwrap()
@@ -138,9 +142,13 @@ fn everything_a_cartridge_carries() {
     // the menu, the actor choice and the slot screen are composed too: the
     // menu's bank carries only the numbers' glyphs, and the font
     // precomposed for its text palette.
+    //
+    // The hash is the one of 28ba001f's answer without its `title`, taken
+    // there on 2026-10-13: with the title it was cf1cf4d5…1b8d, so
+    // everything else is still what it was.
     assert_eq!(
         sha(canon(&answer).as_bytes()),
-        "cf1cf4d5254114b1b4ca7ba199aef123e0dbb2206d58ed0430bf314754da1b8d"
+        "8b1ef9b0a68a287a2fdb399d7b1557222624145cd976a31c410eb3950de5622c"
     );
     assert_eq!(
         answer["says"],
