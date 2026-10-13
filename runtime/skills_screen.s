@@ -251,7 +251,7 @@ out:
 ; use to anyone, which is what spends the SP, once, and at 0 if not
 ; —RPG_RT's buzzer, not played here—; Z to match. A user that cannot pay
 ; does nothing, not even a roll. Entered with `jsl` from `target_use`, with
-; the data bank at 0; the effect runs with it at $7E. Clobbers X, Y, `temp`
+; the data bank at 0; the effect, `sk_heal_one`, runs with it at $7E. Clobbers X, Y, `temp`
 ; and the `MED_*` scratch.
 ;
 ; **The effect is the battle's**: `ba_skill_effect` and `ba_variance` over
@@ -297,24 +297,21 @@ pays:
     sta f:BAT_LENGTH + BA_ONE + BA_SPI
     xba
     sta f:BAT_LENGTH + BA_ONE + BA_SPI + 1
-    phb
-    lda #$7E
-    pha
-    plb
-    stz BA_MWHO
-    stz BA_MTGT
+    lda #0
+    sta f:BAT_LENGTH + BA_MWHO
+    sta f:BAT_LENGTH + BA_MTGT
+    sta f:MED_USED
     lda f:sk_used
-    sta BA_MSKILL
+    sta f:BAT_LENGTH + BA_MSKILL
     rep #$20
 .a16
-    lda BA_SEED
+    lda f:BAT_LENGTH + BA_SEED
     bne seeded
     lda #BATTLE_SEED            ; nothing drew from it since the power-on
-    sta BA_SEED
+    sta f:BAT_LENGTH + BA_SEED
 seeded:
     sep #$20
 .a8
-    stz .loword(MED_USED)
     ; Whom: by the skill's scope.
     lda f:sk_used
     jsr ba_ax
@@ -326,7 +323,7 @@ seeded:
     lda f:sk_actor              ; on oneself
     bra one_only
 chosen:
-    lda .loword(MED_ACTOR)
+    lda f:MED_ACTOR
 one_only:
     jsr sk_heal_one
     bra pay
@@ -343,7 +340,7 @@ each:
     inc a
     bra each
 pay:
-    lda .loword(MED_USED)
+    lda f:MED_USED
     beq done
     rep #$20
 .a16
@@ -352,22 +349,22 @@ pay:
     tax
     lda f:skill_sp, x
     and #$00FF
-    sta .loword(MED_P)
+    sta f:MED_P
     lda f:sk_actor
     and #$00FF
     asl a
     tax
-    lda FAR_SP, x
+    lda f:FAR_LENGTH + FAR_SP, x
     sec
-    sbc .loword(MED_P)          ; it was checked that it pays
-    sta FAR_SP, x
+    sbc f:MED_P                 ; it was checked that it pays
+    sta f:FAR_LENGTH + FAR_SP, x
     sep #$20
 .a8
 done:
     ; Nothing of a material: the actor choice repaints the rows, not all.
-    stz .loword(MED_FLAGS)
-    plb
-    lda f:MED_USED              ; after the `plb`: the flags come from this
+    lda #0
+    sta f:MED_FLAGS
+    lda f:MED_USED
     rtl
 
 ; Parameter A of `sk_actor` with its equipment, in A16's two bytes as A8
@@ -392,10 +389,18 @@ param:
 ; down, which is 1 HP; and then the HP and the SP go up only if not full
 ; and standing, the revived one by the effect minus that one. A skill that
 ; revives without touching HP gives the revived one that many percent of
-; its maximum, minus the one. `MED_USED` at 1 if any of it happened.
+; its maximum, minus the one. `MED_USED` at 1 if any of it happened. It
+; sets the data bank at $7E, as the battle runs, and gives back the one
+; there was.
 .proc sk_heal_one
 .a8
 .i16
+    phb
+    pha
+    lda #$7E
+    pha
+    plb
+    pla
     sta .loword(MED_ACTOR)
     jsr ba_skill_effect         ; into `BA_MEFFECT`, the critical rolled
     lda f:sk_used
@@ -549,6 +554,7 @@ sp_set:
 ready:
     sep #$20
 .a8
+    plb
     rts
 .endproc
 

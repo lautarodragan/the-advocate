@@ -176,5 +176,10 @@ other:
     inx
     cpx #SKILL_BYTES
     bne other
+    ; And the actor choice is for a medicine until the skills screen says
+    ; otherwise —`sk_heal`—: far RAM starts with garbage, and with it the
+    ; items screen's choice took a medicine for a skill.
+    lda #0
+    sta f:sk_target_on
     rtl
 .endproc
