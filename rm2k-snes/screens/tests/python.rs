@@ -115,6 +115,9 @@ fn everything_a_cartridge_carries() {
     // options, and not the Python's two lines of text. What it is compared
     // against now is `render`'s `title`, in ABL's suite.
     answer.as_object_mut().unwrap().remove("title");
+    // Nor the actor choice for a skill, since 2026-10-13: the cost's term
+    // and the bar over the party, which only that choice has.
+    answer["target"].as_object_mut().unwrap().remove("skill");
     let says: Vec<Value> = answer["says"]
         .as_array()
         .unwrap()

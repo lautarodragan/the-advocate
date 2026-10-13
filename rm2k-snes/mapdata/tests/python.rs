@@ -217,13 +217,23 @@ fn emit_request(name: &str) -> Emit {
 /// 2026-10-12, after the requests were written: made up here —no tiles, a
 /// tilemap and bars of zeros, each skill of the battle's test game with
 /// its description in one line of five letters, the odd ones usable on the
-/// map—, and taken out of the text by [`without_skills_screen`].
+/// map—, and taken out of the text by [`without_skills_screen`]. And the
+/// actor choice for a skill, which came on 2026-10-13: the name cut at its
+/// fourth letter, nothing that raises, one cell of term and a bar of one
+/// row for each party size.
 fn with_the_skills_screen(screens: &mut serde_json::Value) {
     let mut skills = serde_json::Map::new();
     for id in 1..=200 {
-        skills.insert(id.to_string(), serde_json::json!({"lines": [5, 6, 0], "field": id % 2 == 1}));
+        skills.insert(
+            id.to_string(),
+            serde_json::json!({"lines": [5, 6, 0], "field": id % 2 == 1, "revives": false, "name_cut": 4}),
+        );
     }
     screens["skills"] = skills.into();
+    screens["target"]["skill"] = serde_json::json!({
+        "term_at": [7, 1, 1, 1], "term": [0], "all_at": [0, 1, 13, 2],
+        "all_rows": [[0, 0]], "all": [[0], [0], [0], [0]],
+    });
     screens["skills_screen"] =
         serde_json::json!({"tiles": [], "colors": [], "map": vec![0; 32 * 28], "bars": vec![0; 16 * 64]});
     let geometry = [
@@ -245,6 +255,7 @@ fn with_the_skills_screen(screens: &mut serde_json::Value) {
 /// text is the last of the block, and [`without_states`] cuts it with the
 /// conditions'—. Checked here: the tables have one entry per carried skill.
 fn without_skills_screen(text: &str) -> String {
+    let text = &without_skill_choice(text);
     let start = text.find("\n; --- the skills screen: see skills_screen.s ---\n").unwrap();
     let last = "sk_border_cgram:\n";
     let from_last = text[start..].find(last).unwrap() + start + last.len();
@@ -263,7 +274,7 @@ fn without_skills_screen(text: &str) -> String {
         .position(|l| *l == "skill_id:")
         .map(|at| lines[at + 1].split(',').count())
         .unwrap();
-    for label in ["skill_line1_n:", "skill_line2_at:", "skill_line2_n:", "skill_on_map:"] {
+    for label in ["skill_line1_n:", "skill_line2_at:", "skill_line2_n:", "skill_on_map:", "skill_name_cut:"] {
         let at = lines.iter().position(|l| *l == label).unwrap();
         assert_eq!(lines[at + 1].split(',').count(), carried, "{label}");
         lines.drain(at - 1..=at + 1);
@@ -271,6 +282,17 @@ fn without_skills_screen(text: &str) -> String {
     let at = lines.iter().position(|l| l.starts_with("SK_TXT_LEVEL = ")).unwrap();
     lines.remove(at);
     lines.join("\n")
+}
+
+/// The text without the actor choice for a skill, which came on 2026-10-13:
+/// from `target_term`'s `.block` to `TARGET_ALL_COLS`, right after the
+/// choice's colours.
+fn without_skill_choice(text: &str) -> String {
+    let label = text.find("\ntarget_term:\n").unwrap();
+    let start = text[..label].rfind("\n.block ").unwrap() + 1;
+    let last = text[start..].find("TARGET_ALL_COLS = ").unwrap() + start;
+    let end = text[last..].find('\n').unwrap() + last + 1;
+    format!("{}{}", &text[..start], &text[end..])
 }
 
 /// `rm2k-snes-battle`'s test game: its actors, items, skills, enemies and
