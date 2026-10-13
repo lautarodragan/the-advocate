@@ -296,6 +296,27 @@ fn bakeable_says_what_is_baked_and_why_it_is_safe() {
     std::fs::remove_dir_all(&dir).unwrap();
 }
 
+/// An event some page moves is not baked, whichever way it is named: the
+/// second of a `SwapEventLocations`, and "this event" from its own page.
+#[test]
+fn an_event_a_page_moves_is_not_baked() {
+    for (name, mover, command) in [
+        ("swapped-second", 1, json!({"code": 10870, "indent": 0, "parameters": [4, 1], "string": ""})),
+        ("swapped-first", 1, json!({"code": 10870, "indent": 0, "parameters": [1, 4], "string": ""})),
+        ("moves-itself", 0, json!({"code": 10860, "indent": 0, "parameters": [10005, 0, 2, 2], "string": ""})),
+    ] {
+        let dir = scratch(&format!("not-baked-{name}"));
+        let (dump, pictures) = game(&dir);
+        let path = dump.join("maps/Map0007.json");
+        let mut map: Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        map["events"][mover]["pages"][0]["event_commands"] = json!([command]);
+        std::fs::write(&path, map.to_string()).unwrap();
+        let answer = ask("bakeable", &dump, &pictures, &dir, json!({"map": 7, "map_files": {}, "chipset_files": {}}));
+        assert_eq!(answer["baked"].as_array().unwrap().len(), 0, "{name}");
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+}
+
 #[test]
 fn split_answers_with_the_palettes_it_is_given() {
     let dir = scratch("split");
