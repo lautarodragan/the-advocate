@@ -101,6 +101,11 @@ ba_t_param:
     jsl f:eq_parameter
     plb
     rtl
+; The actor choice for a heal, from the skills screen —`sk_heal`—, which
+; runs with the data bank at 0 like the menu: nothing to restore.
+ba_t_target:
+    jsr target_screen
+    rtl
 ; The two for audio, which are from this round: a sound effect —A16 the index
 ; into `sound_table`, $FFFF none— and the song, with A8.
 .a16

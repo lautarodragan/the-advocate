@@ -15,9 +15,12 @@
 ; —`_check_target` checks it—, and the colors go in 128..143, which are
 ; the menu sprites' and are restored by `menu_exp_close`.
 ;
-; It only opens for a medicine, the one in `pick_edges`: whom to equip is
-; chosen on the pause menu itself —`menu_choose`, below—. Entered with
-; `jsl`, with the data bank at 0: the registers are addressed absolute.
+; It opens for a medicine, the one in `pick_edges`, and for a heal from the
+; skills screen —`sk_target_on`, see `sk_heal`—, which is the same screen
+; with the skill's name, the cost's term and its cost, and the bar where the
+; skill's scope says. Whom to equip is chosen on the pause menu itself
+; —`menu_choose`, below—. Entered with `jsl`, with the data bank at 0: the
+; registers are addressed absolute.
 
 ; The windows, and the medicine's name and count. With the screen off,
 ; after `slot_bank_upload`. The name goes in two lines, each composed in
@@ -78,6 +81,10 @@
     sta BBAD0
     lda #$01
     sta MDMAEN
+    lda f:sk_target_on
+    beq medicine
+    jmp target_skill_upload
+medicine:
     ; The two lines of the name: `target_names` has
     ; 2 * TARGET_NAME_WIDTH letters per medicine, and `target_name`
     ; says which one belongs to `k`.
@@ -131,6 +138,20 @@
 .proc target_count
 .a8
 .i16
+    lda f:sk_target_on
+    beq item
+    ; A skill: its cost, and on the party every row's HP, which it changed.
+    jsr target_party_hp
+    lda f:sk_used
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda f:skill_sp, x
+    bra count
+item:
     rep #$20
 .a16
     lda pick_edges
@@ -145,6 +166,7 @@
 .a8
     stz WMADDH
     lda WMDATA
+count:
     ldx #0
 ten:
     cmp #10
@@ -215,6 +237,16 @@ BAR_BYTES = TARGET_BAR_ROWS * TARGET_BAR_COLS * 2
 .proc target_bar
 .a8
 .i16
+    pha
+    lda temp + 3
+    beq one                     ; erasing is always one row's
+    jsr target_scope
+    cmp #BA_SCOPE_PARTY
+    bne one
+    pla
+    jmp target_bar_all
+one:
+    pla
     rep #$20
 .a16
     and #$00FF
@@ -289,6 +321,323 @@ row_vram:
 bar_ofs:
     .word 0, BAR_BYTES, 2 * BAR_BYTES, 3 * BAR_BYTES
     .assert MENU_ROWS_PARTY = 4, error, "one word per party row"
+.endproc
+
+; --- the actor choice for a skill ----------------------------------------------
+;
+; What changes when the skills screen opens it —`sk_heal`—: `target_upload`
+; writes the skill's name and the cost's term, `target_count` its cost,
+; `target_bar` covers the whole party for a skill on everyone, and the
+; arrows stop for a skill on oneself or on the party, whose bar does not
+; move —`Window_ActorTarget`'s `SetIndex(-100)` and `SetIndex(-actor - 1)`—.
+; `render` of `rm2k-snes-screens` with a `skill` is the reference.
+
+; The skill's scope, in A: `skill_scope` of `sk_used`, or $FF for a
+; medicine. Clobbers X.
+.proc target_scope
+.a8
+.i16
+    lda f:sk_target_on
+    beq medicine
+    lda f:sk_used
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda f:skill_scope, x
+    rts
+medicine:
+    lda #$FF
+    rts
+.endproc
+
+; `target_upload` for a skill, with the screen off: the cost's term over
+; "Owned Items" —its rows of the tilemap—, the name in two lines and, for a
+; skill on oneself, the bar on the user's row. Then its cost.
+.proc target_skill_upload
+.a8
+.i16
+    lda #$01
+    sta DMAP0
+    lda #$18
+    sta BBAD0
+    lda #^target_term
+    sta A1B0
+    rep #$20
+.a16
+    lda #(TARGET_MAP + TARGET_TERM_ROW0 * 32 + TARGET_TERM_COL0)
+    sta temp
+    lda #.loword(target_term)
+    sta temp + 2
+    ldx #TARGET_TERM_ROWS
+row:
+    lda temp
+    sta VMADDL
+    clc
+    adc #32
+    sta temp
+    lda temp + 2
+    sta A1T0L
+    clc
+    adc #(TARGET_TERM_COLS * 2)
+    sta temp + 2
+    lda #(TARGET_TERM_COLS * 2)
+    sta DAS0L
+    sep #$20
+.a8
+    lda #$01
+    sta MDMAEN
+    rep #$20
+.a16
+    dex
+    bne row
+    ; The name: its text in the text block, and how many of its letters go
+    ; on the first line —`skill_name_cut`, `name_lines` of the screens
+    ; stage—; the second from the next letter that is not a space. Each
+    ; line padded to `TARGET_NAME_WIDTH` in the battle's message buffer,
+    ; which nobody uses on the map, so `tl_strip` composes it as it
+    ; composes a medicine's.
+    lda f:sk_used
+    and #$00FF
+    pha
+    asl a
+    tax
+    lda f:skill_txt, x
+    tax
+    sep #$20
+.a8
+    lda f:item_txt_lo, x
+    sta msg_ptr
+    lda f:item_txt_hi, x
+    sta msg_ptr + 1
+    lda f:item_txt_bk, x
+    sta msg_ptr + 2
+    lda f:item_txt_n, x
+    sta temp + 2                ; its letters
+    plx
+    lda f:skill_name_cut, x
+    sta temp + 3                ; the first line's
+    .assert 2 * TARGET_NAME_WIDTH <= BA_MBUF_MAX, error, "the skill's name does not fit in the message buffer"
+    ldx #(2 * TARGET_NAME_WIDTH - 1)
+    lda #' '
+blank:
+    sta f:BAT_LENGTH + BA_MBUF, x
+    dex
+    bpl blank
+    ldy #0
+first:
+    tya
+    cmp temp + 3
+    bcs first_done
+    lda [msg_ptr], y
+    tyx
+    sta f:BAT_LENGTH + BA_MBUF, x
+    iny
+    bra first
+first_done:
+    tya
+    cmp temp + 2
+    bcs second_done
+    lda [msg_ptr], y
+    cmp #' '
+    bne second
+    iny
+    bra first_done
+second:
+    ldx #TARGET_NAME_WIDTH
+next:
+    tya
+    cmp temp + 2
+    bcs second_done
+    cpx #(2 * TARGET_NAME_WIDTH)
+    bcs second_done
+    lda [msg_ptr], y
+    sta f:BAT_LENGTH + BA_MBUF, x
+    iny
+    inx
+    bra next
+second_done:
+    rep #$20
+.a16
+    lda #.loword(BAT_LENGTH + BA_MBUF)
+    sta msg_ptr
+    sep #$20
+.a8
+    lda #^(BAT_LENGTH + BA_MBUF)
+    sta msg_ptr + 2
+    lda #TARGET_NAME_WIDTH
+    ldy #TARGET_NAME_VRAM
+    jsl f:tl_strip + FAST
+    rep #$20
+.a16
+    lda msg_ptr
+    clc
+    adc #TARGET_NAME_WIDTH
+    sta msg_ptr
+    sep #$20
+.a8
+    lda #TARGET_NAME_WIDTH
+    ldy #(TARGET_NAME_VRAM + 64)
+    jsl f:tl_strip + FAST
+    ; On oneself, the bar on the user's row and nowhere else.
+    jsr target_scope
+    cmp #BA_SCOPE_ONE
+    bne cost
+    ldx #0
+find:
+    lda party, x
+    cmp f:sk_actor
+    beq found
+    inx
+    cpx #MENU_ROWS_PARTY
+    bcc find
+    ldx #0
+found:
+    txa
+    sta title_sel
+cost:
+    jmp target_count
+.endproc
+
+; For a skill on the party, every row's HP: the use changed them all. In the
+; vblank or with the screen off.
+.proc target_party_hp
+.a8
+.i16
+    jsr target_scope
+    cmp #BA_SCOPE_PARTY
+    bne none
+    lda #0
+row:
+    cmp party_n
+    bcs none
+    cmp #MENU_ROWS_PARTY
+    bcs none
+    pha
+    sta temp + 2                ; the row
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda party, x
+    sta temp                    ; the actor
+    jsl f:menu_hp_write
+    pla
+    inc a
+    bra row
+none:
+    rts
+.endproc
+
+; The bar over the first `party_n` rows, at most four, for a skill on the
+; party: per row of its rectangle, the distinct cell row `target_all` says
+; for that many members. One DMA per cell row; it only runs with the screen
+; off, when the choice is drawn, because it never moves.
+.proc target_bar_all
+.a8
+.i16
+    lda #$80
+    sta VMAIN
+    lda #$01
+    sta DMAP0
+    lda #$18
+    sta BBAD0
+    lda #^target_all_rows
+    sta A1B0
+    lda party_n
+    cmp #MENU_ROWS_PARTY
+    bcc members
+    lda #MENU_ROWS_PARTY
+members:
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    lda #0
+    dex                         ; the lists go from one member
+size:
+    beq sized
+    clc
+    adc #TARGET_ALL_ROWS
+    dex
+    bra size
+sized:
+    sta temp + 2                ; where this size's list starts
+    lda #(TARGET_MAP + TARGET_ALL_ROW0 * 32 + TARGET_ALL_COL0)
+    sta temp
+    ldy #TARGET_ALL_ROWS
+row:
+    sep #$20
+.a8
+    ldx temp + 2
+    lda f:target_all, x
+    sta WRMPYA
+    lda #(TARGET_ALL_COLS * 2)
+    sta WRMPYB                  ; starts it: the product takes eight cycles
+    nop
+    nop
+    nop
+    nop
+    rep #$20
+.a16
+    lda RDMPYL
+    clc
+    adc #.loword(target_all_rows)
+    sta A1T0L
+    lda temp
+    sta VMADDL
+    clc
+    adc #32
+    sta temp
+    lda #(TARGET_ALL_COLS * 2)
+    sta DAS0L
+    inc temp + 2
+    sep #$20
+.a8
+    lda #$01
+    sta MDMAEN
+    dey
+    bne row
+    rtl
+.endproc
+
+; In the actor choice's loop, right after it takes the pad's edges: for a
+; skill on oneself or on the party, without the arrows. Returns with
+; `title_edges` in A.
+.proc target_locks
+.a8
+.i16
+    jsr target_scope
+    cmp #BA_SCOPE_ONE
+    beq locked
+    cmp #BA_SCOPE_PARTY
+    bne free
+locked:
+    lda title_edges
+    and #<~(PAD_UP | PAD_DOWN)
+    sta title_edges
+free:
+    lda title_edges
+    rtl
+.endproc
+
+; A in the actor choice: the medicine, or the skill. With actor A, and the
+; answer of the one it goes to: A8 at 1 if it was of use.
+.proc target_use
+.a8
+.i16
+    pha
+    lda f:sk_target_on
+    bne skill
+    pla
+    jml f:medicine_use
+skill:
+    pla
+    jml f:sk_heal_use
 .endproc
 
 ; BG2 with the party and BG1 with the windows, each with its own base, and the

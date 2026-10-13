@@ -10,7 +10,8 @@
 ; columns that read by rows, eight at a time, each skill with its cost and in
 ; grey if the map cannot use it or the SP do not reach. B goes back to the
 ; menu with the cursor on the command; A on a switch skill uses it and goes
-; straight to the map, and on any other does nothing yet. The geometry is `SK_*` of
+; straight to the map, and on a heal opens the actor choice for it —see
+; `sk_heal`—, and comes back here. The geometry is `SK_*` of
 ; `rm2k-snes-screens`, whose `render` is the reference; eight rows and two
 ; lines of description where RM2k has ten and one is the divergence
 ; `the-skills-screen` in the book.
@@ -43,6 +44,10 @@ SK_BARS_OFS = 32 * 28 * 2
 sk_actor:    .res 1             ; the LDB actor whose list it is
 sk_bar_on:   .res 1             ; the place whose bar is on screen, $FF none
 sk_bar_want: .res 1             ; and the one it should be on
+; Whether the actor choice is open for a skill —0, for a medicine, which is
+; what the items screen opens it for—, and the skill's `k`. See `sk_heal`.
+sk_target_on: .res 1
+sk_used:      .res 1
 .popseg
 
 ; The LDB actor in A, with the data bank at 0. Returns with `rtl`, and A at
@@ -135,9 +140,9 @@ no_b:
     beq to_wait
     lda pad_a_prev
     bne to_wait                 ; it was already held: not an edge
-    ; A: only a switch skill does something yet —`Scene_Skill::Update`—, and
-    ; only an enabled one; on a grey one RM2k plays its buzzer. The rest,
-    ; the heals, open the target choice in RM2k, which is the next phase.
+    ; A on an enabled one —`Scene_Skill::Update`—: a switch skill is used
+    ; here and closes the menu; any other the map lets through is a heal,
+    ; which opens the actor choice. On a grey one RM2k plays its buzzer.
     lda f:BAT_LENGTH + BA_SKILL_N
     beq to_wait
     lda f:sk_bar_want
@@ -154,7 +159,10 @@ no_b:
 .a8
     lda f:skill_type, x
     cmp #BA_SKILL_TYPE_SWITCH
-    bne to_wait
+    beq switch
+    jsr sk_heal
+    jmp wait
+switch:
     jsr sk_switch
     lda #1                      ; straight to the map
 out:
@@ -212,6 +220,333 @@ out:
     sec
     sbc f:CM_T0                 ; `sk_usable` said it reaches
     sta f:FAR_LENGTH + FAR_SP, x
+    sep #$20
+.a8
+    rts
+.endproc
+
+; Heal `CM_T4`: the actor choice, `Scene_ActorTarget` with a skill, which
+; is the medicine's —`target_screen`, in bank 0, through `ba_t_target`—
+; told by `sk_target_on` that it is for a skill. It stays there after each
+; use, as RPG_RT does, and B comes back here with the cursor where it was;
+; the choice took the whole VRAM, so the screen is drawn again.
+.proc sk_heal
+.a8
+.i16
+    lda f:CM_T4
+    sta f:sk_used
+    lda #1
+    sta f:sk_target_on
+    jsl f:ba_t_target
+    lda #0
+    sta f:sk_target_on
+    jsr sk_upload
+    jmp sk_view
+.endproc
+
+; The heal `sk_used` by `sk_actor` on actor A, from the actor choice:
+; `Game_Party::UseSkill` outside battle, with `Game_Battler::UseSkill`'s
+; effect for each target —the one chosen, the user for a skill on oneself,
+; every member for one on the party—. Returns with A8 at 1 if it was of
+; use to anyone, which is what spends the SP, once, and at 0 if not
+; —RPG_RT's buzzer, not played here—; Z to match. A user that cannot pay
+; does nothing, not even a roll. Entered with `jsl` from `target_use`, with
+; the data bank at 0; the effect runs with it at $7E. Clobbers X, Y, `temp`
+; and the `MED_*` scratch.
+;
+; **The effect is the battle's**: `ba_skill_effect` and `ba_variance` over
+; combatant 0's record, which only needs the user's attack and spirit
+; —`eq_parameter`, as the battle reads them—, and the battle's randomness,
+; seeded as a battle seeds it if nothing has drawn from it yet. So
+; `field-skill` of `rm2k-snes-battle` gives the exact number, critical's
+; roll —always no— included. **Outside battle there are no states**: a
+; fallen actor is one at 0 HP, and curing any other state is of no use.
+.proc sk_heal_use
+.a8
+.i16
+    sta f:MED_ACTOR             ; the one chosen
+    rep #$20
+.a16
+    lda f:sk_actor
+    and #$00FF
+    asl a
+    tax
+    lda f:FAR_LENGTH + FAR_SP, x
+    sta f:MED_P                 ; the user's SP
+    lda f:sk_used
+    and #$00FF
+    tax
+    lda f:skill_sp, x
+    and #$00FF
+    cmp f:MED_P
+    sep #$20
+.a8
+    beq pays
+    bcc pays
+    lda #0                      ; it cannot pay: `GetSp() < CalculateSkillCost`
+    rtl
+pays:
+    ; The user's attack and spirit with its equipment, into combatant 0.
+    lda #0
+    jsr param
+    sta f:BAT_LENGTH + BA_ONE + BA_ATK
+    xba
+    sta f:BAT_LENGTH + BA_ONE + BA_ATK + 1
+    lda #2
+    jsr param
+    sta f:BAT_LENGTH + BA_ONE + BA_SPI
+    xba
+    sta f:BAT_LENGTH + BA_ONE + BA_SPI + 1
+    phb
+    lda #$7E
+    pha
+    plb
+    stz BA_MWHO
+    stz BA_MTGT
+    lda f:sk_used
+    sta BA_MSKILL
+    rep #$20
+.a16
+    lda BA_SEED
+    bne seeded
+    lda #BATTLE_SEED            ; nothing drew from it since the power-on
+    sta BA_SEED
+seeded:
+    sep #$20
+.a8
+    stz .loword(MED_USED)
+    ; Whom: by the skill's scope.
+    lda f:sk_used
+    jsr ba_ax
+    lda f:skill_scope, x
+    cmp #BA_SCOPE_PARTY
+    beq party_wide
+    cmp #BA_SCOPE_ALLY
+    beq chosen
+    lda f:sk_actor              ; on oneself
+    bra one_only
+chosen:
+    lda .loword(MED_ACTOR)
+one_only:
+    jsr sk_heal_one
+    bra pay
+party_wide:
+    lda #0
+each:
+    cmp party_n
+    bcs pay
+    pha
+    jsr ba_ax
+    lda party, x
+    jsr sk_heal_one
+    pla
+    inc a
+    bra each
+pay:
+    lda .loword(MED_USED)
+    beq done
+    rep #$20
+.a16
+    lda f:sk_used
+    and #$00FF
+    tax
+    lda f:skill_sp, x
+    and #$00FF
+    sta .loword(MED_P)
+    lda f:sk_actor
+    and #$00FF
+    asl a
+    tax
+    lda FAR_SP, x
+    sec
+    sbc .loword(MED_P)          ; it was checked that it pays
+    sta FAR_SP, x
+    sep #$20
+.a8
+done:
+    ; Nothing of a material: the actor choice repaints the rows, not all.
+    stz .loword(MED_FLAGS)
+    plb
+    lda f:MED_USED              ; after the `plb`: the flags come from this
+    rtl
+
+; Parameter A of `sk_actor` with its equipment, in A16's two bytes as A8
+; and B: `eq_parameter` through the battle's bridge.
+param:
+    sta comp_or01 + 2
+    stz comp_or01 + 3
+    stz comp_col + 1
+    lda f:sk_actor
+    sta comp_char
+    stz comp_char + 1
+    jsl f:ba_t_param
+    lda comp_dup + 1
+    xba
+    lda comp_dup
+    rts
+.endproc
+
+; The heal's effect on actor A —`Game_Battler::UseSkill` outside battle—,
+; with the data bank at $7E: `CalcSkillEffect` with the variance first,
+; whatever it finds; then death cured if the skill cures it and the actor is
+; down, which is 1 HP; and then the HP and the SP go up only if not full
+; and standing, the revived one by the effect minus that one. A skill that
+; revives without touching HP gives the revived one that many percent of
+; its maximum, minus the one. `MED_USED` at 1 if any of it happened.
+.proc sk_heal_one
+.a8
+.i16
+    sta .loword(MED_ACTOR)
+    jsr ba_skill_effect         ; into `BA_MEFFECT`, the critical rolled
+    lda f:sk_used
+    jsr ba_ax
+    lda f:skill_var, x
+    sta BA_S5
+    rep #$20
+.a16
+    lda BA_MEFFECT
+    jsr ba_variance
+    sta .loword(MED_HP)         ; the effect, never below zero
+    sep #$20
+.a8
+    lda .loword(MED_ACTOR)
+    ldy #0
+    jsl f:level_param
+    stx .loword(MED_HP_MAX)
+    lda .loword(MED_ACTOR)
+    ldy #1
+    jsl f:level_param
+    stx .loword(MED_SP_MAX)
+    lda f:sk_used
+    jsr ba_ax
+    lda f:skill_affects, x
+    sta .loword(MED_FLAGS)      ; bit 0 the HP, bit 1 the SP
+    lda f:skill_on_map, x
+    sta .loword(MED_REVIVED) + 1    ; bit 1: it cures death
+    stz .loword(MED_REVIVED)
+    lda .loword(MED_ACTOR)
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax                         ; from here on, the actor times two
+    lda FAR_HP, x
+    bne standing
+    sep #$20
+.a8
+    lda .loword(MED_REVIVED) + 1
+    and #2
+    beq standing8               ; down, and it does not raise: nothing on it
+    lda #1
+    sta .loword(MED_USED)
+    sta .loword(MED_REVIVED)
+    rep #$20
+.a16
+    lda #1
+    sta FAR_HP, x               ; `RemoveStates`' `SetHp(1)`
+    bra standing
+standing8:
+    rep #$20
+.a16
+standing:
+    lda .loword(MED_REVIVED)
+    and #$00FF
+    sta .loword(MED_REVIVED)    ; now the word `revived`
+    lda .loword(MED_HP)
+    bne has_effect
+    jmp ready
+has_effect:
+    lda FAR_HP, x
+    bne alive
+    jmp ready                   ; down: `!IsDead()` fails for both
+alive:
+    lda .loword(MED_FLAGS)
+    and #1
+    beq no_hp
+    ; `ChangeHp(effect - revived)`, if not full.
+    lda FAR_HP, x
+    cmp .loword(MED_HP_MAX)
+    bcs sp
+    clc
+    adc .loword(MED_HP)
+    sec
+    sbc .loword(MED_REVIVED)
+    cmp .loword(MED_HP_MAX)
+    bcc hp_set
+    lda .loword(MED_HP_MAX)
+hp_set:
+    sta FAR_HP, x
+    bra hp_used
+no_hp:
+    ; Without HP of its own, only a revived one gets something: the
+    ; percentage, `ChangeHp(max * effect / 100 - revived)`, never below 1.
+    ; From 1 HP that leaves `max * effect / 100`, at least 1. An effect
+    ; past 100 gives the whole maximum, as it would with the product.
+    lda .loword(MED_REVIVED)
+    beq sp
+    phx
+    lda .loword(MED_HP)
+    cmp #100
+    bcc percent_ready
+    lda #100
+percent_ready:
+    sta BA_T2                   ; `ba_mul`'s byte; its high byte is clobbered
+    lda .loword(MED_HP_MAX)
+    sta temp
+    lda #100
+    sta temp + 2
+    jsr ba_div                  ; max = 100 q + r: q in A, r in `comp_and`
+    pha
+    lda comp_and
+    jsr ba_mul                  ; r times the percentage, at most 9900
+    sta temp
+    lda #100
+    sta temp + 2
+    jsr ba_div
+    sta .loword(MED_P)          ; r * e / 100
+    pla
+    jsr ba_mul                  ; q * e
+    clc
+    adc .loword(MED_P)
+    plx
+    cmp #0                      ; the `plx` left the flags of X
+    bne hp_some
+    lda #1
+hp_some:
+    cmp .loword(MED_HP_MAX)
+    bcc pct_set
+    lda .loword(MED_HP_MAX)
+pct_set:
+    sta FAR_HP, x
+hp_used:
+    sep #$20
+.a8
+    lda #1
+    sta .loword(MED_USED)
+    rep #$20
+.a16
+sp:
+    ; `ChangeSp(effect)`, if it touches SP and they are not full.
+    lda .loword(MED_FLAGS)
+    and #2
+    beq ready
+    lda FAR_SP, x
+    cmp .loword(MED_SP_MAX)
+    bcs ready
+    clc
+    adc .loword(MED_HP)
+    cmp .loword(MED_SP_MAX)
+    bcc sp_set
+    lda .loword(MED_SP_MAX)
+sp_set:
+    sta FAR_SP, x
+    sep #$20
+.a8
+    lda #1
+    sta .loword(MED_USED)
+    rep #$20
+.a16
+ready:
     sep #$20
 .a8
     rts
