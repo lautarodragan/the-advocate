@@ -185,3 +185,11 @@ way. When a term is missing, pick one, use it consistently, and add it here.
 | estampar | stamp | |
 | tramo | stretch | |
 | `.bloque` / `.cruza` | `.block` / `.crossbank` | the bank directives |
+| partida (del arnés) | session | a ROM running in the ports' harness: `Session` |
+| recorrido | playthrough | the scripted walk through the game, with its photos |
+| hito | milestone | a named point of a playthrough |
+| las pruebas de herramientas | tooling tests | `tests/tooling/` in the ports: they run no ROM; not `tools/`, the tools' old folder |
+| mapa forkeado | fork | `patches/manual/forks/` in the ports |
+| arrancan (los otros juegos) | boot | `just boot`: each game builds and plays to its first map |
+| jugada (de otro juego) | play script | `PlayScript`, the playthrough of a game that is not ABL |
+| lugares (del arnés) | places | `places.py`: where things are on this machine |
