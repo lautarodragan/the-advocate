@@ -230,11 +230,16 @@ no_palette:
 ; Queues the pose at `vq_src` (24 bits, in the cartridge) for the slot that
 ; starts at word `vq_dest`. Returns A nonzero if it got in; if the queue is
 ; full, the caller has to ask for it again.
+;
+; **The last entry is not for it: it is the hero's**, who queues with
+; `vram_queue_hero`. The hero is drawn last of all, and when the NPCs filled
+; the queue every frame he never got in: in The Book of Three's Caer Dallben
+; East he walked with no walking animation and facing the way he came in.
 .proc vram_queue
 .a8
 .i16
     lda vq_n
-    cmp #VQ_MAX
+    cmp #VQ_MAX - 1
     bcc has_place
     lda #0
     rts
@@ -261,6 +266,68 @@ has_place:
     lda vq_dest + 1
     sta vq + 4, x
     inc vq_n
+    lda #1
+    rts
+.endproc
+
+; The hero's pose, at `vq_src`, for his block at `vq_dest`: like
+; `vram_queue`, but **at the front of the queue**, so it goes up in the next
+; vblank whatever the NPCs asked for —`vram_drain` always uploads at least
+; one, see `vq_cap`—, and with the last entry, which `vram_queue` leaves
+; free for him. If the front entry is already his —he changed pose again
+; before a vblank— the new pose replaces it: queued behind, the old one
+; would go up after and stay. It is told apart by its destination, block 0
+; of the bank, which is nobody else's. Returns A nonzero, like
+; `vram_queue`.
+.proc vram_queue_hero
+.a8
+.i16
+    lda vq_n
+    beq first                   ; empty: it is entry 0
+    rep #$20
+.a16
+    lda vq + 3
+    cmp vq_dest
+    sep #$20                    ; `sep` does not touch Z: the `beq` looks at the `cmp`
+.a8
+    beq write                   ; his pose is already in front: it is replaced
+    lda vq_n
+    cmp #VQ_MAX
+    bcc has_place
+    lda #0                      ; cannot happen while the NPCs leave him the last
+    rts
+has_place:
+    ; Each entry one place back, from the last one, byte by byte.
+    sta temp + 2
+    asl a
+    asl a
+    clc
+    adc temp + 2                ; the bytes in use: entries times five
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+back:
+    dex
+    lda vq, x
+    sta vq + VQ_STRIDE, x
+    cpx #$0000
+    bne back
+first:
+    inc vq_n
+write:
+    lda vq_src
+    sta vq + 0
+    lda vq_src + 1
+    sta vq + 1
+    lda vq_src + 2
+    sta vq + 2
+    lda vq_dest
+    sta vq + 3
+    lda vq_dest + 1
+    sta vq + 4
     lda #1
     rts
 .endproc

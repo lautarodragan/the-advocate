@@ -1318,7 +1318,7 @@ has_row:
     rts
 with_graphic:
     and #$0F
-    sta npc_buf + 12, y         ; the pose in VRAM is this one
+    pha                         ; the page's pose
     rep #$20
 .a16
     and #$00FF
@@ -1335,12 +1335,18 @@ with_graphic:
     lda npc_buf + 9, y
     cmp #NPC_STILL
     bne walks
+    pla
+    sta npc_buf + 12, y         ; the pose in VRAM is this one
     lda pg_tile
     sta npc_buf + 6, y
     lda pg_attr
     sta npc_buf + 7, y
     bra no_touch_tile
 walks:
+    ; Not into +12: for a row that walks it is the shadow of the pose its slot
+    ; holds, and `walker_graphic` keeps it if the page's graphic is the one
+    ; already there.
+    pla
     phy
     jsr walker_graphic
     ply
@@ -1390,9 +1396,19 @@ ready:
 ;
 ; A page whose graphic has no pose bank here —$FF— keeps the row's: it is
 ; what the converter left, the one that cannot change.
+;
+; Comes with the page's pose in A. **What is in VRAM is forgotten only if
+; the bank changes**: a refresh runs this for every row that walks, and
+; Book of Three refreshes every frame —its common event 22 is parallel with
+; no condition and turns switches on every time it runs—. Forgetting it
+; every time queued the pose
+; of each walker every frame, the queue stayed full, and the hero, the last
+; to queue, never uploaded his: in Caer Dallben East, with five chickens, he
+; walked with no walking animation and facing the way he came in.
 .proc walker_graphic
 .a8
 .i16
+    pha                         ; the page's pose
     rep #$20
 .a16
     lda page_ofs
@@ -1413,18 +1429,17 @@ ready:
     and #$0E                    ; to bits 1 to 3, where vhoopppN has it
     sta temp + 1
     ldy npc_row
-    lda temp
-    sta npc_buf + 9, y
     lda npc_buf + 7, y
     and #$F1
     ora temp + 1
-    sta npc_buf + 7, y
-same:
-    ldy npc_row
-    lda npc_buf + 12, y         ; the page's pose, which `page_graphic` left
-    pha
+    sta npc_buf + 7, y          ; the palette is in the attributes, not in VRAM
+    lda temp
+    cmp npc_buf + 9, y
+    beq same                    ; the same bank: its slot's pose still holds
+    sta npc_buf + 9, y
     lda #$FF
-    sta npc_buf + 12, y         ; and what is in VRAM is not known
+    sta npc_buf + 12, y         ; another bank: what is in VRAM is not known
+same:
     ; With a move route slot, `move_events` uploads the pose that is due,
     ; facing wherever the route left it, this same frame or the next one.
     lda rp_ev
