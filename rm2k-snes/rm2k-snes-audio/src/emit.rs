@@ -500,7 +500,7 @@ pub fn musicdata(music: &Music, emit: &Emit) -> Result<String> {
     Ok(out)
 }
 
-/// `musica.json`: what the MSU-1 tracks and the volume ceilings need from
+/// `music.json`: what the MSU-1 tracks and the volume ceilings need from
 /// each song —how long it lasts, the fingerprint of its mix, its track—.
 pub fn songs_json(songs: &[Built]) -> serde_json::Value {
     serde_json::json!({

@@ -2,7 +2,7 @@
 //! one space of indent per level, `": "` between a key and its value,
 //! everything outside ASCII escaped, and no newline at the end.
 //!
-//! The patches' uses file, `parches/usos.json`, was written that way, and
+//! The patches' uses file, `patches/uses.json`, was written that way, and
 //! is written the same: it is part of the build that is compared byte by
 //! byte.
 

@@ -730,7 +730,7 @@ pub fn request(scene: &Scene, troops: &[i32], db: &Database) -> Value {
 
 /// Who asks for each animation and each battler of the cartridge, per
 /// patch class: `{key: [origin, ...]}`, the origin being the map whose page
-/// or random encounter asks for it, or "caso" if a test page does. It is
+/// or random encounter asks for it, or "case" if a test page does. It is
 /// what lets `rm2k-snes-patches --check` know what is not the game's in the
 /// ROM that is played. The bytecode is walked, so it counts what ended up
 /// emitted.
@@ -781,7 +781,7 @@ pub fn patch_uses(maps: &[MapInfo], game: &Game) -> Result<Value> {
             }
         }
     }
-    // The origins go sorted as text, so a map id and "caso" can share a
+    // The origins go sorted as text, so a map id and "case" can share a
     // list; and the keys by the text of their `(key, origins)` pair, which
     // is the order the file always had.
     fn origins(set: &BTreeSet<Origin>) -> Value {
@@ -789,7 +789,7 @@ pub fn patch_uses(maps: &[MapInfo], game: &Game) -> Result<Value> {
             .iter()
             .map(|o| match o {
                 Origin::Map(m) => (m.to_string(), json!(m)),
-                Origin::Case => ("caso".to_string(), json!("caso")),
+                Origin::Case => ("case".to_string(), json!("case")),
             })
             .collect();
         list.sort_by(|a, b| a.0.cmp(&b.0));
@@ -810,7 +810,7 @@ pub fn patch_uses(maps: &[MapInfo], game: &Game) -> Result<Value> {
         }
         Value::Object(m)
     };
-    Ok(json!({"animacion": object(anim), "battler": object(bat)}))
+    Ok(json!({"animation": object(anim), "battler": object(bat)}))
 }
 
 /// The battler's numbers, for the log.

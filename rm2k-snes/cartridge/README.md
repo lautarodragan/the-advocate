@@ -29,7 +29,7 @@ starting map, the party, the maps —a list, or `"game"` for the rule in
 is played, and its MSU-1 tracks are made with it.
 
 **A cartridge is rebuilt when its stamp does not match.** The stamp,
-`sello.txt` next to the ROM, carries three things:
+`stamp.txt` next to the ROM, carries three things:
 
     inputs <16 hex digits>        the fingerprint, below
     flags ["--map-id", …]         the converter flags, the maps expanded
@@ -77,7 +77,7 @@ found in the `-I` directory. One that is also next to the file including it
 is refused, because `ca65` would read that one first and the ROM would come
 out with another build's data.
 
-Then it writes the memory map, `memoria.cfg`, next to the generated files
+Then it writes the memory map, `memory.cfg`, next to the generated files
 —8 MB ExHiROM, one area per data bank, the code's first two banks linked as
 LoROM's banks 0 and 1, and the third at `$C0:0000`—, runs `ca65` and `ld65` standing in the directory
 above the tools so the debug file names sources by relative paths, copies the

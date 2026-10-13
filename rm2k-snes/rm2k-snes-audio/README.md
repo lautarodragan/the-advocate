@@ -49,7 +49,7 @@ Into `--out`:
   `.crossbank` in front of each piece. Its second line, `; Songs: …`, lists
   the songs in order, and is read by whoever needs to know which song an
   index is.
-* `musica.json`, with `emit`: each song's length, MSU-1 track and the
+* `music.json`, with `emit`: each song's length, MSU-1 track and the
   fingerprint of its mix.
 * `audio.json`, always: the bank —which sample each song plays each key
   with, what each one weighs and which package limited it—, each song and

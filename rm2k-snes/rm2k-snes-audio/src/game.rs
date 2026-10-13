@@ -17,7 +17,7 @@ pub struct Game {
 /// automatically, in its patches. Whoever reads the table and whoever
 /// writes it ask here.
 pub fn ceilings_path(project: &Project) -> Result<PathBuf> {
-    Ok(project.auto_patches()?.join("musica").join("techos.toml"))
+    Ok(project.auto_patches()?.join("music").join("ceilings.toml"))
 }
 
 /// Python's `os.path.splitext`: the extension is from the last dot, unless
@@ -238,16 +238,16 @@ impl Game {
         let table: toml::Table =
             text.parse().map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
         let songs = table
-            .get("temas")
+            .get("songs")
             .and_then(|t| t.as_table())
-            .ok_or_else(|| Bad::usage(format!("{}: has no [temas]", path.display())))?;
+            .ok_or_else(|| Bad::usage(format!("{}: has no [songs]", path.display())))?;
         songs
             .iter()
             .map(|(name, row)| {
-                row.get("aire")
+                row.get("headroom")
                     .and_then(|v| v.as_float().or_else(|| v.as_integer().map(|i| i as f64)))
                     .map(|v| (name.clone(), v))
-                    .ok_or_else(|| Bad::usage(format!("{}: {name} has no aire", path.display())))
+                    .ok_or_else(|| Bad::usage(format!("{}: {name} has no headroom", path.display())))
             })
             .collect()
     }

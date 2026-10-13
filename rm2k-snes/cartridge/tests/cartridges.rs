@@ -64,7 +64,7 @@ fn game(name: &str, cartridges: &str) -> PathBuf {
     let dir = Path::new(env!("CARGO_TARGET_TMPDIR")).join("cartridges").join(name);
     let _ = fs::remove_dir_all(&dir);
     fs::create_dir_all(dir.join("data")).unwrap();
-    fs::create_dir_all(dir.join("patches/manual/nuevos")).unwrap();
+    fs::create_dir_all(dir.join("patches/manual/new")).unwrap();
     fs::create_dir_all(dir.join("cases")).unwrap();
     fs::write(
         dir.join("rm2k-snes.toml"),
@@ -84,8 +84,8 @@ fn game(name: &str, cartridges: &str) -> PathBuf {
     )
     .unwrap();
     fs::write(
-        dir.join("patches/manual/nuevos/Map0900.json"),
-        r#"{"id": 900, "arbol": {"id": 900, "type": 1}}"#,
+        dir.join("patches/manual/new/Map0900.json"),
+        r#"{"id": 900, "tree": {"id": 900, "type": 1}}"#,
     )
     .unwrap();
     for (case, text) in [
@@ -117,7 +117,7 @@ fn the_maps_are_the_rule_the_added_ones_the_debug_map_and_the_test_ones() {
 #[test]
 fn a_game_without_a_debug_map_loads() {
     let dir = game("no-debug-map", RELEASE);
-    fs::remove_dir_all(dir.join("patches/manual/nuevos")).unwrap();
+    fs::remove_dir_all(dir.join("patches/manual/new")).unwrap();
     let text = fs::read_to_string(dir.join("rm2k-snes.toml")).unwrap();
     fs::write(
         dir.join("rm2k-snes.toml"),
@@ -193,7 +193,7 @@ fn each_one_has_its_directory_and_its_rom() {
     let c = load(&dir).unwrap();
     assert_eq!(c.rom_of("release").unwrap(), dir.join("build/release/game.sfc"));
     assert_eq!(c.msu_of("release").unwrap(), dir.join("build/release/game.msu"));
-    assert_eq!(c.rom_of("test-small").unwrap(), dir.join("build/tests/small/prueba.sfc"));
+    assert_eq!(c.rom_of("test-small").unwrap(), dir.join("build/tests/small/test.sfc"));
     let mut moved = Environment::default();
     moved.set("test_cartridges", "/elsewhere");
     let c = Cartridges::load(Project::open(&dir).unwrap(), moved).unwrap();
@@ -226,7 +226,7 @@ fn the_stamp_says_when_a_cartridge_is_stale() {
     assert_eq!(c.stale("nope", inputs).unwrap(), Some("does not exist"));
     let build = c.directory("test-small").unwrap();
     fs::create_dir_all(&build).unwrap();
-    fs::write(build.join("sello.txt"), c.stamp("test-small", inputs).unwrap()).unwrap();
+    fs::write(build.join("stamp.txt"), c.stamp("test-small", inputs).unwrap()).unwrap();
     assert_eq!(c.stale("test-small", inputs).unwrap(), Some("does not have its .msu"));
     fs::write(c.msu_of("test-small").unwrap(), "").unwrap();
     assert_eq!(c.stale("test-small", inputs).unwrap(), None);
@@ -315,7 +315,7 @@ fn everything_that_builds_the_rom_is_in_the_fingerprint() {
     assert!(files.contains(&bin.join("rm2k-snes-patches")));
     assert!(files.contains(&bin.join("rm2k-snes-screens")));
     assert!(files.contains(&dir.join("rm2k-snes.toml")));
-    assert!(files.contains(&dir.join("patches/manual/nuevos/Map0900.json")));
+    assert!(files.contains(&dir.join("patches/manual/new/Map0900.json")));
     // And the dump, which `just datos` rewrites when the game changes and
     // which can be edited by hand.
     assert!(files.contains(&dir.join("data/maps.json")));

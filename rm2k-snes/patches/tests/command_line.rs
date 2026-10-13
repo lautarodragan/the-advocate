@@ -64,10 +64,10 @@ fn writing_a_build_again_leaves_nothing_from_the_previous_run() {
     assert!(out.status.success(), "{}", text(&out.stderr));
     assert_eq!(
         text(&out.stdout),
-        "patches of 0 map(s) -> parches/auto/mapas (0 B)\n\
-         patches of 0 animation(s) -> parches/auto/animaciones (0 B)\n\
-         patches of 0 battler(s) -> parches/auto/battlers (0 B)\n\
-         patches of 0 window(s) -> parches/auto/ventanas (0 B)\n"
+        "patches of 0 map(s) -> patches/auto/maps (0 B)\n\
+         patches of 0 animation(s) -> patches/auto/animations (0 B)\n\
+         patches of 0 battler(s) -> patches/auto/battlers (0 B)\n\
+         patches of 0 window(s) -> patches/auto/windows (0 B)\n"
     );
     let left: Vec<_> = old.iter().filter(|p| p.exists()).collect();
     assert!(left.is_empty(), "patches of a previous run were left: {left:?}");
@@ -93,15 +93,15 @@ fn what_is_copied_is_checked_and_what_is_touched_fails() {
     project(&dir);
     let out = run(&dir, &["--request", &game("release.json"), "build/release"]);
     assert!(out.status.success(), "{}", text(&out.stderr));
-    std::fs::copy(game("uses.json"), dir.join("build/release/parches/usos.json")).unwrap();
+    std::fs::copy(game("uses.json"), dir.join("build/release/patches/uses.json")).unwrap();
     let out = run(&dir, &["build/release"]);
     assert!(out.status.success(), "{}", text(&out.stderr));
     assert_eq!(
         text(&out.stdout),
-        "3 patch(es) in patches/auto/mapas, 2949 B\n\
-         2 patch(es) in patches/auto/animaciones, 1607 B\n\
-         2 patch(es) in patches/auto/battlers, 1787 B\n\
-         0 patch(es) in patches/auto/ventanas, 0 B\n"
+        "3 patch(es) in patches/auto/maps, 2933 B\n\
+         2 patch(es) in patches/auto/animations, 1599 B\n\
+         2 patch(es) in patches/auto/battlers, 1775 B\n\
+         0 patch(es) in patches/auto/windows, 0 B\n"
     );
     // A directory with cartridges inside is the same as naming them.
     let out = run(&dir, &["--check", "build"]);
@@ -116,16 +116,16 @@ fn what_is_copied_is_checked_and_what_is_touched_fails() {
          and 1 that only exist for the suite, which decide on their own: ghost\n\
          the game's 0 patch(es) of window(s) match what 1 cartridge(s) decided\n"
     );
-    let versioned = dir.join("patches/auto/animaciones/0001.toml");
+    let versioned = dir.join("patches/auto/animations/0001.toml");
     let touched = std::fs::read_to_string(&versioned)
         .unwrap()
-        .replace("tamano = [56, 64]", "tamano = [56, 63]");
+        .replace("size = [56, 64]", "size = [56, 63]");
     std::fs::write(&versioned, touched).unwrap();
     let out = run(&dir, &["--check", "build/release"]);
     assert_eq!(out.status.code(), Some(1));
     assert_eq!(
         text(&out.stderr),
-        "  patches/auto/animaciones/0001.toml is stale (cartridge «release» says so), and \
+        "  patches/auto/animations/0001.toml is stale (cartridge «release» says so), and \
          what changed in animation 1 is this:\n    it was drawn at 56x63 and now it is drawn \
          at 56x64\n  If the change is the one intended, run `rm2k-snes-patches` on the \
          playable ROM's build and commit; if not, something moved what is seen.\n1 patch(es) do not match what the converter decides\n"
@@ -150,14 +150,14 @@ fn a_window_that_lost_colours_is_written_and_checked() {
     assert!(out.status.success(), "{}", text(&out.stderr));
     let out = run(&dir, &["build/release"]);
     assert!(out.status.success(), "{}", text(&out.stderr));
-    let versioned = dir.join("patches/auto/ventanas/Gold_Skin.toml");
+    let versioned = dir.join("patches/auto/windows/Gold_Skin.toml");
     let written = std::fs::read_to_string(&versioned).unwrap();
-    assert!(written.contains("sistema = \"Gold Skin\"\n"), "{written}");
-    assert!(written.contains("  { de = [9, 9, 9], a = [8, 8, 8], pixeles = 7 },\n"), "{written}");
+    assert!(written.contains("system = \"Gold Skin\"\n"), "{written}");
+    assert!(written.contains("  { from = [9, 9, 9], to = [8, 8, 8], pixels = 7 },\n"), "{written}");
     let out = run(&dir, &["--check", "build/release"]);
     assert!(out.status.success(), "{}", text(&out.stderr));
 
-    std::fs::write(&versioned, written.replace("a = [8, 8, 8]", "a = [7, 7, 7]")).unwrap();
+    std::fs::write(&versioned, written.replace("to = [8, 8, 8]", "to = [7, 7, 7]")).unwrap();
     let out = run(&dir, &["--check", "build/release"]);
     assert_eq!(out.status.code(), Some(1));
     let said = text(&out.stderr);
@@ -173,11 +173,11 @@ fn what_only_the_tests_ask_for_needs_no_patch() {
     // battler that only the test maps or the test pages ask for. What a map
     // of the game also asks for, or what says nothing of who asked, is.
     let dir = scratch("uses");
-    std::fs::create_dir_all(dir.join("parches")).unwrap();
+    std::fs::create_dir_all(dir.join("patches")).unwrap();
     std::fs::write(
-        dir.join("parches/usos.json"),
-        r#"{"animacion": {"91": ["caso"], "92": [52, "caso"], "93": [3, 52]},
-            "battler": {"only-test": [52], "both": ["caso", 3]}}"#,
+        dir.join("patches/uses.json"),
+        r#"{"animation": {"91": ["case"], "92": [52, "case"], "93": [3, 52]},
+            "battler": {"only-test": [52], "both": ["case", 3]}}"#,
     )
     .unwrap();
     let tests: BTreeSet<i64> = [52].into();

@@ -1,5 +1,5 @@
 //! `rm2k-snes-volume-ceilings`: measures each song's volume ceiling and
-//! writes the project's `musica/techos.toml`, in its automatic patches.
+//! writes the project's `music/ceilings.toml`, in its automatic patches.
 //!
 //!     rm2k-snes-volume-ceilings            measures, writes the table and
 //!                                          rebuilds `release` with it
@@ -34,7 +34,7 @@ const CARTRIDGES: &str = "rm2k-snes-cartridges";
 
 fn command() -> Command {
     Command::new("rm2k-snes-volume-ceilings")
-        .about("Measures each song's volume ceiling and writes the project's musica/techos.toml")
+        .about("Measures each song's volume ceiling and writes the project's music/ceilings.toml")
         .arg(
             Arg::new("project")
                 .long("project")
@@ -206,7 +206,7 @@ fn run() -> Result<(), Bad> {
     }
 
     // The half-volume copy, in its own build directory.
-    let measure_dir = run.project.build()?.join("techos");
+    let measure_dir = run.project.build()?.join("ceilings");
     println!("a copy of release with the headroom at {MEASURING_HEADROOM:?}, in {}", measure_dir.display());
     let _ = std::io::stdout().flush();
     let measure_dir_text = measure_dir.to_string_lossy().into_owned();

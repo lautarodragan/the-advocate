@@ -23,7 +23,7 @@ What it leaves out, on purpose:
 * **What is not the dump.** The requests the Python hands a stage
   (`--request`) are JSON of their own, and may carry pieces in the dump's
   shape —a tree node, a map a project patched—; the project's patches
-  (`nuevos/MapNNNN.json`) are the project's files. Neither is named by the
+  (`new/MapNNNN.json`) are the project's files. Neither is named by the
   layout's names, and both are read into Ditto's types
   (`serde_json::from_value` into `MapInfo`, `read_map`), which is the part
   that matters.

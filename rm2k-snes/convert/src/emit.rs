@@ -89,7 +89,7 @@ pub struct Emitted {
 }
 
 /// Runs the emission and writes the `.inc` at `path`, with what the console
-/// decompresses of each map, uncompressed, in `crudos/` next to it.
+/// decompresses of each map, uncompressed, in `raw/` next to it.
 pub fn emit(path: &std::path::Path, request: &Value, dump: &std::path::Path) -> Result<Emitted> {
     let directory = rm2k_project::absolute(path.parent().unwrap_or(std::path::Path::new(".")));
     let written = crate::stage::run(
@@ -101,7 +101,7 @@ pub fn emit(path: &std::path::Path, request: &Value, dump: &std::path::Path) -> 
             "--data".into(),
             dump.as_os_str().to_owned(),
             "--raw".into(),
-            directory.join("crudos").into_os_string(),
+            directory.join("raw").into_os_string(),
         ],
     )?;
     let text = crate::stage::text(&written, "mapdata.inc")?;

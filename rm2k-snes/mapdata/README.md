@@ -1,6 +1,6 @@
 # rm2k-snes-mapdata: the data `.inc` of a converted cartridge
 
-    rm2k-snes-mapdata emit --data dump/ --request request.json --out build/ --raw build/crudos/
+    rm2k-snes-mapdata emit --data dump/ --request request.json --out build/ --raw build/raw/
 
 `cargo build --release`, or `cargo test`. `--help` on any subcommand prints
 what it takes and what it writes.

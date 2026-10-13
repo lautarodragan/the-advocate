@@ -3,7 +3,7 @@
 //! MSU-1 is not Super Nintendo hardware: it is an extension supported by
 //! the FX Pak Pro and by emulators, with the music in PCM files next to the
 //! ROM. Every song has a track —the number comes from the compiler, in
-//! `musica.json`—, and with MSU-1 the ROM silences the SPC700 and plays the
+//! `music.json`—, and with MSU-1 the ROM silences the SPC700 and plays the
 //! track; without MSU-1 the signature is not there and everything sounds as
 //! always.
 //!
@@ -21,7 +21,7 @@
 //! gets a track anyway, decoded with `ffmpeg` like a replacement.
 //!
 //! **Only the tracks of the cartridge's songs are built**: the ones listed
-//! in the `musica.json` next to the ROM, with each song's number. A
+//! in the `music.json` next to the ROM, with each song's number. A
 //! `<rom>-N.pcm` that no longer belongs to any song is deleted: whoever
 //! copies the tracks to a card copies every one it finds.
 //!
@@ -138,10 +138,10 @@ pub fn replacement(directory: Option<&Path>, name: &str) -> Option<PathBuf> {
 }
 
 /// [(name, number)] of the cartridge's songs that have a track, in order of
-/// number: from the `musica.json` next to the ROM.
+/// number: from the `music.json` next to the ROM.
 pub fn cartridge_tracks(rom: &Path) -> Result<Vec<(String, i64)>> {
     let rom = rm2k_project::absolute(rom);
-    let path = rom.parent().unwrap_or(Path::new("/")).join("musica.json");
+    let path = rom.parent().unwrap_or(Path::new("/")).join("music.json");
     let text = std::fs::read_to_string(&path).map_err(|_| {
         Bad::usage(format!(
             "{} is missing: the tracks are those of the cartridge's songs, so it has to be built first",

@@ -132,11 +132,11 @@ fn field<'a>(doc: &'a Table, path: &[&str]) -> Option<&'a Value> {
 type MergeRow<'a> = (Option<&'a Value>, &'a Value, &'a Value, Option<&'a Value>);
 
 fn merges<'a>(doc: &'a Table, layer: &str) -> Vec<MergeRow<'a>> {
-    field(doc, &["capas", layer, "fusiones"])
+    field(doc, &["layers", layer, "merges"])
         .and_then(Value::as_array)
         .map(|rows| {
             rows.iter()
-                .filter_map(|f| Some((f.get("paleta"), f.get("de")?, f.get("a")?, f.get("pixeles"))))
+                .filter_map(|f| Some((f.get("palette"), f.get("from")?, f.get("to")?, f.get("pixels"))))
                 .collect()
         })
         .unwrap_or_default()
@@ -144,11 +144,11 @@ fn merges<'a>(doc: &'a Table, layer: &str) -> Vec<MergeRow<'a>> {
 
 fn map_diff(old: &Table, new: &Table) -> Vec<String> {
     let mut out = Vec::new();
-    for layer in ["fondo", "encima"] {
+    for layer in ["lower", "upper"] {
         let (before, after) = (merges(old, layer), merges(new, layer));
-        for name in ["colores", "presupuesto"] {
-            let a = field(old, &["capas", layer, name]);
-            let b = field(new, &["capas", layer, name]);
+        for name in ["colors", "budget"] {
+            let a = field(old, &["layers", layer, name]);
+            let b = field(new, &["layers", layer, name]);
             if a != b {
                 out.push(format!(
                     "layer {layer}: {name} went from {} to {}",
@@ -198,14 +198,14 @@ fn map_diff(old: &Table, new: &Table) -> Vec<String> {
             }
         }
     }
-    for name in ["camino", "imagen", "modo", "tiles", "distintos", "colores", "quedan"] {
+    for name in ["way", "image", "mode", "tiles", "distinct", "colors", "kept"] {
         let a = field(old, &["panorama", name]);
         let b = field(new, &["panorama", name]);
         if a != b {
             out.push(format!("panorama: {name} went from {} to {}", shown(a), shown(b)));
         }
     }
-    let rows = |doc: &Table| field(doc, &["panorama", "fusiones"]).and_then(Value::as_array).cloned().unwrap_or_default();
+    let rows = |doc: &Table| field(doc, &["panorama", "merges"]).and_then(Value::as_array).cloned().unwrap_or_default();
     let (before, after) = (rows(old), rows(new));
     if before != after {
         out.push(format!(
@@ -223,11 +223,11 @@ fn map_diff(old: &Table, new: &Table) -> Vec<String> {
 /// not mean the animation is the same.
 fn animation_diff(old: &Table, new: &Table) -> Vec<String> {
     let mut out = Vec::new();
-    if old.get("tamano") != new.get("tamano") {
+    if old.get("size") != new.get("size") {
         out.push(format!(
             "it was drawn at {} and now it is drawn at {}",
-            sides(old.get("tamano")),
-            sides(new.get("tamano"))
+            sides(old.get("size")),
+            sides(new.get("size"))
         ));
     }
     if old.get("original") != new.get("original") {
@@ -237,18 +237,18 @@ fn animation_diff(old: &Table, new: &Table) -> Vec<String> {
             sides(new.get("original"))
         ));
     }
-    if old.get("cuadros") != new.get("cuadros") {
+    if old.get("frames") != new.get("frames") {
         out.push(format!(
             "it had {} frame(s) and now has {}",
-            shown(old.get("cuadros")),
-            shown(new.get("cuadros"))
+            shown(old.get("frames")),
+            shown(new.get("frames"))
         ));
     }
-    if old.get("hoja") != new.get("hoja") {
+    if old.get("sheet") != new.get("sheet") {
         out.push(format!(
             "it came from sheet {} and now comes from {}",
-            quoted(old.get("hoja")),
-            quoted(new.get("hoja"))
+            quoted(old.get("sheet")),
+            quoted(new.get("sheet"))
         ));
     }
     out
@@ -257,7 +257,7 @@ fn animation_diff(old: &Table, new: &Table) -> Vec<String> {
 /// First whether another color is lost, then why.
 fn battler_diff(old: &Table, new: &Table) -> Vec<String> {
     let palette = |doc: &Table| -> Vec<Value> {
-        doc.get("paleta")
+        doc.get("palette")
             .and_then(Value::as_array)
             .cloned()
             .unwrap_or_default()
@@ -277,7 +277,7 @@ fn battler_diff(old: &Table, new: &Table) -> Vec<String> {
     if out.is_empty() && before != after {
         out.push("the same colors in another palette order".into());
     }
-    for name in ["tamano", "colores", "imagen", "tono"] {
+    for name in ["size", "colors", "image", "hue"] {
         if old.get(name) != new.get(name) {
             out.push(format!(
                 "{name} went from {} to {}",
@@ -286,11 +286,11 @@ fn battler_diff(old: &Table, new: &Table) -> Vec<String> {
             ));
         }
     }
-    if old.get("fusiones") != new.get("fusiones") {
+    if old.get("merges") != new.get("merges") {
         out.push(format!(
             "{} merges were needed and now {}",
-            shown(old.get("fusiones")),
-            shown(new.get("fusiones"))
+            shown(old.get("merges")),
+            shown(new.get("merges"))
         ));
     }
     out
@@ -299,7 +299,7 @@ fn battler_diff(old: &Table, new: &Table) -> Vec<String> {
 /// First how many colours, then which merges.
 fn window_diff(old: &Table, new: &Table) -> Vec<String> {
     let mut out = Vec::new();
-    for name in ["colores", "quedan"] {
+    for name in ["colors", "kept"] {
         if old.get(name) != new.get(name) {
             out.push(format!(
                 "{name} went from {} to {}",
@@ -309,11 +309,11 @@ fn window_diff(old: &Table, new: &Table) -> Vec<String> {
         }
     }
     let rows = |doc: &Table| -> Vec<(String, String)> {
-        doc.get("fusiones")
+        doc.get("merges")
             .and_then(Value::as_array)
             .map(|rows| {
                 rows.iter()
-                    .filter_map(|f| Some((color(f.get("de")?), color(f.get("a")?))))
+                    .filter_map(|f| Some((color(f.get("from")?), color(f.get("to")?))))
                     .collect()
             })
             .unwrap_or_default()
@@ -325,7 +325,7 @@ fn window_diff(old: &Table, new: &Table) -> Vec<String> {
     for (v, d) in before.iter().filter(|m| !after.contains(m)) {
         out.push(format!("no longer merges {v} -> {d}"));
     }
-    if out.is_empty() && old.get("fusiones") != new.get("fusiones") {
+    if out.is_empty() && old.get("merges") != new.get("merges") {
         out.push("the same merges in another order, or moving other pixels".into());
     }
     out

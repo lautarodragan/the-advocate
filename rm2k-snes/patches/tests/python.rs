@@ -89,7 +89,7 @@ fn the_files_and_the_check_say_what_the_python_said() {
     let release = root.join("build/release");
     let special = root.join("build/tests/special");
     let encounter = root.join("build/tests/encounter");
-    let auto = root.join("parches/auto");
+    let auto = root.join("patches/auto");
     let tests: BTreeSet<i64> = [52].into();
 
     let written: Vec<Value> = write(&release, &request("game/release.json"))
@@ -101,16 +101,16 @@ fn the_files_and_the_check_say_what_the_python_said() {
     assert_eq!(json!(written), expected["written"]);
     write(&special, &request("game/special.json")).unwrap();
     write(&encounter, &request("game/special.json")).unwrap();
-    std::fs::copy(game("game/uses.json"), release.join("parches/usos.json")).unwrap();
+    std::fs::copy(game("game/uses.json"), release.join("patches/uses.json")).unwrap();
 
     let mut files = BTreeMap::new();
-    files_below(&release, &release.join("parches/auto"), &mut files);
+    files_below(&release, &release.join("patches/auto"), &mut files);
     assert_eq!(json!(files), expected["files"]);
 
     // What the playable ROM decided, to the versioned ones, over a file it
     // no longer carries.
-    std::fs::create_dir_all(auto.join("mapas")).unwrap();
-    std::fs::write(auto.join("mapas/0500.toml"), "mapa = 500\n").unwrap();
+    std::fs::create_dir_all(auto.join("maps")).unwrap();
+    std::fs::write(auto.join("maps/0500.toml"), "map = 500\n").unwrap();
     let mut copied = Vec::new();
     for kind in PYTHON_KINDS {
         let (count, bytes, removed) = copy(&auto, &release, kind, &tests).unwrap();
@@ -129,9 +129,9 @@ fn the_files_and_the_check_say_what_the_python_said() {
 
     // And then it goes stale: an animation loses its patch, and a map that
     // no cartridge converts gets one.
-    std::fs::remove_file(auto.join("animaciones/0082.toml")).unwrap();
-    let town = std::fs::read_to_string(auto.join("mapas/0012.toml")).unwrap();
-    std::fs::write(auto.join("mapas/0777.toml"), town.replace("mapa = 12", "mapa = 777")).unwrap();
+    std::fs::remove_file(auto.join("animations/0082.toml")).unwrap();
+    let town = std::fs::read_to_string(auto.join("maps/0012.toml")).unwrap();
+    std::fs::write(auto.join("maps/0777.toml"), town.replace("map = 12", "map = 777")).unwrap();
     let mut listed = serde_json::Map::new();
     for kind in PYTHON_KINDS {
         let keys: Vec<Value> = versioned(&auto, kind).unwrap().iter().map(key_json).collect();

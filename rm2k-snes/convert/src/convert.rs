@@ -1138,7 +1138,7 @@ pub fn run(options: Options) -> Result<()> {
     // the ROM that is played, what belongs to the game from what only
     // exists because of the suite.
     let uses = scene::patch_uses(&infos, &game)?;
-    let uses_path = directory.join("parches").join("usos.json");
+    let uses_path = directory.join("patches").join("uses.json");
     std::fs::write(&uses_path, crate::pyjson::to_string(&uses)).map_err(|e| crate::fail::io(&uses_path, e))?;
     if !emitted.report.is_empty() {
         println!("material compressed and shared between maps:");
@@ -1194,7 +1194,7 @@ pub fn run(options: Options) -> Result<()> {
 /// the game's and the RTP.
 pub fn search_dirs(game: &Game, project: &Project, rtp_dir: &std::path::Path) -> Result<Vec<PathBuf>> {
     let mut dirs: Vec<PathBuf> = vec![rm2k_project::suite::root(), game.game_dir.clone(), rtp_dir.to_path_buf()];
-    let built = project.build()?.join("parches-manual");
+    let built = project.build()?.join("patches-manual");
     crate::chipsets::build_images(game, &built, &dirs)?;
     dirs.insert(0, built);
     Ok(dirs)

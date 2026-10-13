@@ -4,14 +4,14 @@
 //! **The ChipSet's image is not versioned: it is built.** The game's art is
 //! not the project's to redistribute, so the patch keeps the *recipe*
 //! —which block is copied where— and it is applied here on the original
-//! PNG, leaving the result in `parches-manual/ChipSet/` of the project's
+//! PNG, leaving the result in `patches-manual/ChipSet/` of the project's
 //! build, which goes first in the resource search: `wally` finds it there.
 //!
 //! The recipe has five operations. Two copy from inside the ChipSet itself
-//! —`bloques_bajos` and `tiles_altos`—, two **bring pixels from outside**
-//! —`desde_charset` puts a CharSet pose into two upper tiles, so an NPC
-//! that only stands there becomes map; `desde_imagen` puts in a PNG that
-//! is neither, scaled and cut into 16x16 cells—, and `podar` **erases what
+//! —`lower_blocks` and `upper_tiles`—, two **bring pixels from outside**
+//! —`from_charset` puts a CharSet pose into two upper tiles, so an NPC
+//! that only stands there becomes map; `from_image` puts in a PNG that
+//! is neither, scaled and cut into 16x16 cells—, and `prune` **erases what
 //! the map does not use**: a fork's ChipSet is private to its map, and
 //! what is gained is **palette indices**, which the PNG has 256 of.
 //!
@@ -226,7 +226,7 @@ impl Palette {
             crate::stop!(
                 "the ChipSet ran out of palette indices: all 256 are already used and the \
                  incoming drawing brings colors it does not have. If the ChipSet is not being \
-                 pruned, `podar` is what frees the indices the map does not use"
+                 pruned, `prune` is what frees the indices the map does not use"
             );
         }
         let i = self.free.remove(0);
@@ -255,7 +255,7 @@ fn build(
     find: &dyn Fn(&str, &str) -> Option<PathBuf>,
     map_of: &dyn Fn(i32) -> Result<GameMap>,
 ) -> Result<PathBuf> {
-    let recipe = &data["imagen"];
+    let recipe = &data["image"];
     let number = int(&data["chipset"]["id"]);
     let base = recipe["base"].as_str().unwrap_or("");
     let source = find("ChipSet", base).ok_or_else(|| {
@@ -264,30 +264,30 @@ fn build(
     let mut image = Indexed::read(&source)?;
     // The pruning first, because it frees palette indices the operations
     // below need, and because it reads the **forked** map.
-    if let Some(map) = recipe.get("podar") {
+    if let Some(map) = recipe.get("prune") {
         prune(&map_of(int(map) as i32)?, &mut image)?;
     }
-    for pair in recipe["bloques_bajos"].as_array().cloned().unwrap_or_default() {
+    for pair in recipe["lower_blocks"].as_array().cloned().unwrap_or_default() {
         let block = image.crop(terrain_box(int(&pair[0]) as i32));
         image.paste(&block, corner(terrain_box(int(&pair[1]) as i32)));
     }
-    for pair in recipe["tiles_altos"].as_array().cloned().unwrap_or_default() {
+    for pair in recipe["upper_tiles"].as_array().cloned().unwrap_or_default() {
         // Upper tile `u` is common tile 144 + u.
         let tile = image.crop(common_box(144 + int(&pair[0]) as i32));
         image.paste(&tile, corner(common_box(144 + int(&pair[1]) as i32)));
     }
-    // The slots `desde_imagen` overwrites are emptied **before** looking at
+    // The slots `from_image` overwrites are emptied **before** looking at
     // the palette, or their colours would keep the indices the new drawing
     // needs.
-    let from_image = recipe.get("desde_imagen").filter(|v| !v.is_null());
+    let from_image = recipe.get("from_image").filter(|v| !v.is_null());
     if let Some(item) = from_image {
-        for entry in item["celdas"].as_array().cloned().unwrap_or_default() {
+        for entry in item["cells"].as_array().cloned().unwrap_or_default() {
             if entry.as_array().map_or(0, Vec::len) <= 3 {
                 image.paste(&Indexed::blank(16, 16), corner(common_box(144 + int(&entry[2]) as i32)));
             }
         }
     }
-    let from_charset = recipe.get("desde_charset").and_then(Value::as_array).filter(|a| !a.is_empty()).cloned();
+    let from_charset = recipe.get("from_charset").and_then(Value::as_array).filter(|a| !a.is_empty()).cloned();
     // The two operations that bring pixels from outside share **a single**
     // palette.
     let mut palette = (from_charset.is_some() || from_image.is_some()).then(|| Palette::new(&image));
@@ -301,16 +301,16 @@ fn build(
             let source = Indexed::read(&sheet)?;
             // A pose's 24x32 frame: a CharSet is eight characters in 4x2,
             // each with three patterns by four directions.
-            let character = int(&item["personaje"]) as usize;
-            let x = (character % 4) * 72 + int(&item["patron"]) as usize * 24;
-            let y = (character / 4) * 128 + int(&item["direccion"]) as usize * 32;
+            let character = int(&item["character"]) as usize;
+            let x = (character % 4) * 72 + int(&item["pattern"]) as usize * 24;
+            let y = (character / 4) * 128 + int(&item["direction"]) as usize * 32;
             let pose = source.crop((x, y, x + 24, y + 32));
             // The sprite is drawn at `(x*16 - 4, y*16 - 16)`, so its
             // columns 4 to 19 land on the cell and its upper half on the
             // cell above.
             let column = (-rm2k_rules::charset::OFFSET_X) as usize;
-            for (half, slot) in [("cabeza", &item["cabeza"]), ("cuerpo", &item["cuerpo"])] {
-                let top = if half == "cabeza" { 0 } else { 16 };
+            for (half, slot) in [("head", &item["head"]), ("body", &item["body"])] {
+                let top = if half == "head" { 0 } else { 16 };
                 let mut tile = Indexed::blank(16, 16);
                 for row in top..top + 16 {
                     for x in column..column + 16 {
@@ -328,15 +328,15 @@ fn build(
     }
     if let Some(item) = from_image {
         let palette = palette.as_mut().unwrap();
-        let folder = item["carpeta"].as_str().unwrap_or("");
-        let name = item["imagen"].as_str().unwrap_or("");
+        let folder = item["folder"].as_str().unwrap_or("");
+        let name = item["image"].as_str().unwrap_or("");
         let path = find(folder, name).ok_or_else(|| {
             Stop::new(format!("{folder}/{name}, which ChipSet {number} bakes, is missing"))
         })?;
         let source = Indexed::read(&path)?;
         // RM2k scales images with **nearest neighbour**, and so does this,
         // sampling each pixel at its centre.
-        let scale = item.get("escala").map_or(100, int) as usize;
+        let scale = item.get("scale").map_or(100, int) as usize;
         let width = source.width * scale / 100;
         let height = source.height * scale / 100;
         let (ax, ay) = (source.width as f64 / width as f64, source.height as f64 / height as f64);
@@ -345,17 +345,17 @@ fn build(
         let small = |x: usize, y: usize| source.get(xin[x], yin[y]);
         // Where the drawing's pixel (0,0) lands inside its first cell.
         let (dx, dy) = item
-            .get("desfase")
+            .get("offset")
             .and_then(Value::as_array)
             .map_or((0, 0), |d| (int(&d[0]), int(&d[1])));
         // Colours of the drawing treated as transparent besides index 0:
         // defects of the original art, declared in the recipe.
         let transparent: Vec<[u8; 3]> = item
-            .get("transparentes")
+            .get("transparent")
             .and_then(Value::as_array)
             .map(|list| list.iter().map(|c| [int(&c[0]) as u8, int(&c[1]) as u8, int(&c[2]) as u8]).collect())
             .unwrap_or_default();
-        for entry in item["celdas"].as_array().cloned().unwrap_or_default() {
+        for entry in item["cells"].as_array().cloned().unwrap_or_default() {
             let (column, row, slot) = (int(&entry[0]), int(&entry[1]), int(&entry[2]));
             // A fourth element is the slot the background comes from: the
             // drawing is composed **on top** of it.
@@ -467,7 +467,7 @@ mod tests {
 
     #[test]
     fn a_picture_comes_in_at_fifteen_bits_and_composes_over_its_base() {
-        // The three things `desde_imagen` has to do right, none of which
+        // The three things `from_image` has to do right, none of which
         // fails on its own: scale by nearest neighbour, as RM2k does; round
         // to fifteen bits, which is what makes a drawing fit in the 256
         // indices; and compose over the slot it is given instead of
@@ -486,13 +486,13 @@ mod tests {
         drawing.write(&dir.join("drawing.png")).unwrap();
         let data = json!({
             "chipset": {"id": 999, "chipset_name": "out"},
-            "imagen": {
+            "image": {
                 "base": "base",
-                "desde_imagen": {
-                    "carpeta": "Picture", "imagen": "drawing", "escala": 50,
-                    "desfase": [0, 0],
+                "from_image": {
+                    "folder": "Picture", "image": "drawing", "scale": 50,
+                    "offset": [0, 0],
                     // Slot 6 is overwritten; slot 7 composes over 5's drawing.
-                    "celdas": [[0, 0, 6], [0, 0, 7, 5]],
+                    "cells": [[0, 0, 6], [0, 0, 7, 5]],
                 },
             },
         });

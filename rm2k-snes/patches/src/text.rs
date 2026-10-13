@@ -29,42 +29,42 @@ pub fn map_text(map: &MapDecision) -> String {
         "# change moves it; `rm2k-snes-patches --check` —and the suite— fail if".into(),
         "# it is stale.".into(),
         String::new(),
-        format!("mapa = {}", map.id),
-        format!("nombre = {}", string(&map.name)),
+        format!("map = {}", map.id),
+        format!("name = {}", string(&map.name)),
     ];
-    for (layer, merges) in [("fondo", &map.background), ("encima", &map.above)] {
+    for (layer, merges) in [("lower", &map.background), ("upper", &map.above)] {
         lines.push(String::new());
-        lines.push(format!("[capas.{layer}]"));
-        if layer == "fondo" {
+        lines.push(format!("[layers.{layer}]"));
+        if layer == "lower" {
             lines.extend([
                 "# How many distinct colors the drawing brought and how many".into(),
                 "# CGRAM entries the upper layer left it.".into(),
-                format!("colores = {}", map.colors),
-                format!("presupuesto = {}", map.budget),
+                format!("colors = {}", map.colors),
+                format!("budget = {}", map.budget),
             ]);
         }
         if merges.iter().any(|merge| merge.parts().0.is_some()) {
             lines.extend([
-                "# Each change sends color `de` to color `a`, in 15-bit RGB, and".to_string(),
-                "# `pixeles` is how many it moved. `paleta` makes it local to that".into(),
+                "# Each change sends color `from` to color `to`, in 15-bit RGB, and".to_string(),
+                "# `pixels` is how many it moved. `palette` makes it local to that".into(),
                 "# tile palette, so one source may have another target elsewhere.".into(),
             ]);
         } else {
             lines.extend([
-                "# Each merge sends color `de` to color `a`, in 15-bit RGB, and".to_string(),
-                "# `pixeles` is how many it moved when it was decided. They go **in".into(),
+                "# Each merge sends color `from` to color `to`, in 15-bit RGB, and".to_string(),
+                "# `pixels` is how many it moved when it was decided. They go **in".into(),
                 "# order**: applying them top to bottom rebuilds the whole mapping.".into(),
             ]);
         }
         if merges.is_empty() {
-            lines.push("fusiones = []".into());
+            lines.push("merges = []".into());
             continue;
         }
-        lines.push("fusiones = [".into());
+        lines.push("merges = [".into());
         for merge in merges {
             let (palette, victim, dest, pixels) = merge.parts();
-            let local = palette.map_or(String::new(), |p| format!("paleta = {p}, "));
-            lines.push(format!("  {{ {local}de = {}, a = {}, pixeles = {pixels} }},",
+            let local = palette.map_or(String::new(), |p| format!("palette = {p}, "));
+            lines.push(format!("  {{ {local}from = {}, to = {}, pixels = {pixels} }},",
                 color(victim), color(dest)));
         }
         lines.push("]".into());
@@ -75,35 +75,35 @@ pub fn map_text(map: &MapDecision) -> String {
             "[panorama]".into(),
             "# How the map shows its panorama, as Wally decided from the map and".into(),
             "# the picture: hidden, baked, mode3, flattened, mode1 or black.".into(),
-            format!("camino = {}", string(&p.way)),
+            format!("way = {}", string(&p.way)),
         ]);
         if let (Some(name), Some(mode), Some(tiles), Some(distinct), Some(colors), Some(kept)) =
             (&p.name, p.mode, p.tiles, p.distinct, p.colors, p.kept)
         {
             lines.extend([
-                format!("imagen = {}", string(name)),
-                format!("modo = {mode}"),
+                format!("image = {}", string(name)),
+                format!("mode = {mode}"),
                 "# The distinct 8x8 tiles it had, the mirrored ones as one, and how".into(),
                 "# many it is drawn with: the alike ones grouped into one.".into(),
                 format!("tiles = {tiles}"),
-                format!("distintos = {distinct}"),
+                format!("distinct = {distinct}"),
                 "# The colors it brought and the ones it kept.".into(),
-                format!("colores = {colors}"),
-                format!("quedan = {kept}"),
+                format!("colors = {colors}"),
+                format!("kept = {kept}"),
                 if p.merges.iter().any(|merge| merge.parts().0.is_some()) {
                     "# Each palette-local colour change is written as above.".into()
                 } else {
-                    "# Each merge sends color `de` to color `a`, as above.".into()
+                    "# Each merge sends color `from` to color `to`, as above.".into()
                 },
             ]);
             if p.merges.is_empty() {
-                lines.push("fusiones = []".into());
+                lines.push("merges = []".into());
             } else {
-                lines.push("fusiones = [".into());
+                lines.push("merges = [".into());
                 for merge in &p.merges {
                     let (palette, victim, dest, pixels) = merge.parts();
-                    let local = palette.map_or(String::new(), |n| format!("paleta = {n}, "));
-                    lines.push(format!("  {{ {local}de = {}, a = {}, pixeles = {pixels} }},",
+                    let local = palette.map_or(String::new(), |n| format!("palette = {n}, "));
+                    lines.push(format!("  {{ {local}from = {}, to = {}, pixels = {pixels} }},",
                         color(victim), color(dest)));
                 }
                 lines.push("]".into());
@@ -127,9 +127,9 @@ pub fn animation_text(animation: &AnimationDecision) -> String {
         "# a change moves it; `rm2k-snes-patches --check` —and the suite— fail if".into(),
         "# it is stale.".into(),
         String::new(),
-        format!("animacion = {}", animation.number),
-        format!("nombre = {}", string(&animation.name)),
-        format!("hoja = {}", string(&animation.sheet)),
+        format!("animation = {}", animation.number),
+        format!("name = {}", string(&animation.name)),
+        format!("sheet = {}", string(&animation.sheet)),
         String::new(),
         "# What was decided: the rectangle, in console pixels, the whole".into(),
         format!(
@@ -137,13 +137,13 @@ pub fn animation_text(animation: &AnimationDecision) -> String {
             animation.side, animation.side
         ),
         "# phase 2 will read instead of computing it again.".into(),
-        format!("tamano = [{box_w}, {box_h}]"),
+        format!("size = [{box_w}, {box_h}]"),
         String::new(),
         "# What it came from: the union of all the cells of all its frames in".into(),
         "# RM2k pixels, and how many frames there are. It is not decided, it is".into(),
         "# measured, and it is here so the diff says why the size changed.".into(),
         format!("original = [{width}, {height}]"),
-        format!("cuadros = {}", animation.frames),
+        format!("frames = {}", animation.frames),
         String::new(),
     ]
     .join("\n")
@@ -162,17 +162,17 @@ pub fn battler_text(battler: &BattlerDecision) -> String {
         "# it; `rm2k-snes-patches --check` —and the suite— fail if it is stale.".into(),
         String::new(),
         format!("battler = {}", string(&battler.key)),
-        format!("imagen = {}", string(&battler.image)),
-        format!("tono = {}", battler.hue),
+        format!("image = {}", string(&battler.image)),
+        format!("hue = {}", battler.hue),
         String::new(),
         "# What it came from, already shrunk to 80%: the size in scene pixels".into(),
         "# and how many distinct 15-bit colors it brought. It is not decided, it".into(),
         "# is measured.".into(),
-        format!("tamano = [{}, {}]", battler.width, battler.height),
-        format!("colores = {}", battler.colors),
+        format!("size = [{}, {}]", battler.width, battler.height),
+        format!("colors = {}", battler.colors),
         String::new(),
         "# What remained, in palette order: index 1 is the first one.".into(),
-        "paleta = [".into(),
+        "palette = [".into(),
     ];
     for c in &battler.palette {
         lines.push(format!("  {},", color(c)));
@@ -190,7 +190,7 @@ pub fn battler_text(battler: &BattlerDecision) -> String {
         "# How many merges it took to get there, with".into(),
         "# `adeleine.merge_least_visible`: each one sends the least noticeable".into(),
         "# color to its nearest neighbor.".into(),
-        format!("fusiones = {}", battler.merges),
+        format!("merges = {}", battler.merges),
     ]);
     lines.join("\n") + "\n"
 }
@@ -209,23 +209,23 @@ pub fn window_text(window: &WindowDecision) -> String {
         "# which is what has to be run when a change moves it;".into(),
         "# `rm2k-snes-patches --check` —and the suite— fail if it is stale.".into(),
         String::new(),
-        format!("sistema = {}", string(&window.system)),
+        format!("system = {}", string(&window.system)),
         String::new(),
         "# How many distinct 15-bit colors it brought and how many were kept.".into(),
-        format!("colores = {}", window.colors),
-        format!("quedan = {}", window.kept),
+        format!("colors = {}", window.colors),
+        format!("kept = {}", window.kept),
         String::new(),
-        "# Each merge sends color `de` to color `a`, with".into(),
-        "# `adeleine.merge_least_visible`, and `pixeles` is how much it weighed:".into(),
+        "# Each merge sends color `from` to color `to`, with".into(),
+        "# `adeleine.merge_least_visible`, and `pixels` is how much it weighed:".into(),
         "# the pixels it covers, and for the text and its shadow a whole row of".into(),
         "# every line. They go **in order**: applying them top to bottom".into(),
         "# rebuilds the whole mapping.".into(),
-        "fusiones = [".into(),
+        "merges = [".into(),
     ];
     for merge in &window.merges {
         let (_, victim, dest, pixels) = merge.parts();
         lines.push(format!(
-            "  {{ de = {}, a = {}, pixeles = {pixels} }},",
+            "  {{ from = {}, to = {}, pixels = {pixels} }},",
             color(victim),
             color(dest)
         ));

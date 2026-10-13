@@ -80,7 +80,7 @@ fn refuses_a_generated_file_next_to_the_source() {
         }
         other => panic!("it had to refuse, and gave {other:?}"),
     }
-    assert!(!build.join("memoria.cfg").exists());
+    assert!(!build.join("memory.cfg").exists());
     assert_eq!(
         fs::read_to_string(build.join("mapdata.inc")).unwrap(),
         ".segment \"RODATA\"\n"

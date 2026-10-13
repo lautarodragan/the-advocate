@@ -169,10 +169,10 @@ fn entries(directory: &Path) -> Result<Vec<String>, String> {
 }
 
 /// The maps the game does not have: `{id: tree node}` of each `MapNNNN.json`
-/// in the patches' `nuevos/`. A map that does not exist has no node in the
-/// tree either, so each one brings its own, in its `arbol` field.
+/// in the patches' `new/`. A map that does not exist has no node in the
+/// tree either, so each one brings its own, in its `tree` field.
 fn new_maps(project: &Project) -> Result<BTreeMap<i64, MapInfo>, String> {
-    let folder = project.manual_patches()?.join("nuevos");
+    let folder = project.manual_patches()?.join("new");
     let mut found = BTreeMap::new();
     if !folder.is_dir() {
         return Ok(found);
@@ -186,17 +186,17 @@ fn new_maps(project: &Project) -> Result<BTreeMap<i64, MapInfo>, String> {
             .ok_or_else(|| format!("{entry}: the name has to be MapNNNN"))?;
         let data = read_json(&folder.join(&entry))?;
         let node = data
-            .get("arbol")
+            .get("tree")
             .filter(|n| n.get("id").and_then(Value::as_i64) == Some(id))
             .ok_or_else(|| {
                 format!(
-                    "{entry}: the id inside, the one in the `arbol` node and the one in the \
+                    "{entry}: the id inside, the one in the `tree` node and the one in the \
                      file name have to be the same"
                 )
             })?;
         // A node in the dump's shape: Ditto's type reads it.
         let node = serde_json::from_value(node.clone())
-            .map_err(|e| format!("{entry}: arbol: {e}"))?;
+            .map_err(|e| format!("{entry}: tree: {e}"))?;
         found.insert(id, node);
     }
     Ok(found)
@@ -228,7 +228,7 @@ impl Cartridges {
         if new.len() > 1 || (with_debug_map && new.is_empty()) {
             return Err(format!(
                 "the debug map is the only new map in {}, and there are {}: {:?}",
-                p.manual_patches()?.join("nuevos").display(),
+                p.manual_patches()?.join("new").display(),
                 new.len(),
                 new.keys().collect::<Vec<_>>()
             ));
@@ -529,12 +529,12 @@ impl Cartridges {
     }
 
     /// The ROM. `release`'s carries the game's name, because the MSU-1 looks
-    /// for its tracks by the ROM's name; the others are called `prueba`.
+    /// for its tracks by the ROM's name; the others are called `test`.
     pub fn rom_of(&self, name: &str) -> Result<PathBuf, String> {
         let file = if name == RELEASE {
             format!("{}.sfc", self.rom_name)
         } else {
-            "prueba.sfc".to_string()
+            "test.sfc".to_string()
         };
         Ok(self.directory(name)?.join(file))
     }
@@ -712,7 +712,7 @@ impl Cartridges {
     /// {song: headroom} from the versioned table of volume ceilings; empty if
     /// it does not exist.
     fn ceilings(&self) -> Result<BTreeMap<String, String>, String> {
-        let path = self.project.auto_patches()?.join("musica").join("techos.toml");
+        let path = self.project.auto_patches()?.join("music").join("ceilings.toml");
         let text = match std::fs::read_to_string(&path) {
             Ok(text) => text,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(BTreeMap::new()),
@@ -720,15 +720,15 @@ impl Cartridges {
         };
         let table: toml::Table = text.parse().map_err(|e| format!("{}: {e}", path.display()))?;
         let songs = table
-            .get("temas")
+            .get("songs")
             .and_then(toml::Value::as_table)
-            .ok_or_else(|| format!("{}: has no [temas]", path.display()))?;
+            .ok_or_else(|| format!("{}: has no [songs]", path.display()))?;
         songs
             .iter()
             .map(|(name, row)| {
-                row.get("aire")
+                row.get("headroom")
                     .map(|v| (name.clone(), v.to_string()))
-                    .ok_or_else(|| format!("{}: {name} has no aire", path.display()))
+                    .ok_or_else(|| format!("{}: {name} has no headroom", path.display()))
             })
             .collect()
     }
@@ -756,7 +756,7 @@ impl Cartridges {
         if self.get(name).is_none() {
             return Ok(Some("does not exist"));
         }
-        let Ok(stamped) = std::fs::read_to_string(self.directory(name)?.join("sello.txt")) else {
+        let Ok(stamped) = std::fs::read_to_string(self.directory(name)?.join("stamp.txt")) else {
             return Ok(Some("is not built"));
         };
         if stamped != self.stamp(name, inputs)? {
@@ -783,7 +783,7 @@ impl Cartridges {
         }
         let directory = self.directory(name)?;
         self.convert(name, &directory, &self.rom_of(name)?, &[])?;
-        let stamp = directory.join("sello.txt");
+        let stamp = directory.join("stamp.txt");
         std::fs::write(&stamp, self.stamp(name, inputs)?)
             .map_err(|e| format!("{}: {e}", stamp.display()))?;
         Ok(true)
@@ -796,7 +796,7 @@ impl Cartridges {
     pub fn convert(&self, name: &str, dest: &Path, sfc: &Path, extra: &[String]) -> Result<(), String> {
         let cartridge = self.cartridge(name)?;
         std::fs::create_dir_all(dest).map_err(|e| format!("{}: {e}", dest.display()))?;
-        let log = dest.join("conversor.log");
+        let log = dest.join("converter.log");
         let mut command = Command::new(CONVERT);
         // With `--project`, because it runs standing in the root, and from
         // there it would not find the file by searching.

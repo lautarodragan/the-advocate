@@ -87,7 +87,7 @@ pub fn song_names(directory: &Path) -> Result<Vec<String>> {
     Ok(line.split(", ").map(|n| if n == "no music" { String::new() } else { n.to_string() }).collect())
 }
 
-/// One song as the compiler built it: from the `musica.json` next to
+/// One song as the compiler built it: from the `music.json` next to
 /// `musicdata.inc`.
 pub struct Built {
     pub name: String,
@@ -99,7 +99,7 @@ pub struct Built {
 /// The cartridge's songs as the compiler built them, in the order of their
 /// indices.
 pub fn built_songs(directory: &Path) -> Result<Vec<Built>> {
-    let path = directory.join("musica.json");
+    let path = directory.join("music.json");
     let text = std::fs::read_to_string(&path).map_err(|e| io(&path, e))?;
     let json: Value = serde_json::from_str(&text).map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
     let songs = json["temas"].as_array().ok_or_else(|| Bad::usage(format!("{}: no \"temas\"", path.display())))?;
@@ -317,27 +317,27 @@ pub fn table(ceilings: &BTreeMap<String, f64>, measured: &BTreeMap<String, Row>,
         "# mix —the samples, the envelopes, the allocation— calls for running",
         "# it again.",
         "#",
-        "# Per song: `aire`, the ceiling; `pico`, in dB against the cap, and",
-        "# `lufs`, the level, both measured with that headroom; `hasta`, how",
+        "# Per song: `headroom`, the ceiling; `peak`, in dB against the cap, and",
+        "# `lufs`, the level, both measured with that headroom; `until`, how",
         "# many frames from the start it has to be played to go through its",
-        "# peak; and `huella`, that of `mix_fingerprint`.",
+        "# peak; and `fingerprint`, that of `mix_fingerprint`.",
         "",
-        "[medida]",
+        "[measurement]",
     ]
     .iter()
     .map(|s| s.to_string())
     .collect();
     lines.push(format!("measuring_headroom = {}", python_float(MEASURING_HEADROOM)));
-    lines.push("margen_db = -0.5".to_string());
+    lines.push("margin_db = -0.5".to_string());
     lines.push(String::new());
-    for (name, aire) in ceilings {
+    for (name, headroom) in ceilings {
         let row = &measured[name];
-        lines.push(format!("[temas.\"{name}\"]"));
-        lines.push(format!("aire = {aire:.3}"));
-        lines.push(format!("pico = {:.1}", db(row.peak)));
+        lines.push(format!("[songs.\"{name}\"]"));
+        lines.push(format!("headroom = {headroom:.3}"));
+        lines.push(format!("peak = {:.1}", db(row.peak)));
         lines.push(format!("lufs = {:.1}", row.lufs.unwrap_or(0.0)));
-        lines.push(format!("hasta = {}", row.frame + AFTER_PEAK));
-        lines.push(format!("huella = \"{}\"", fingerprints.get(name).map(String::as_str).unwrap_or("")));
+        lines.push(format!("until = {}", row.frame + AFTER_PEAK));
+        lines.push(format!("fingerprint = \"{}\"", fingerprints.get(name).map(String::as_str).unwrap_or("")));
         lines.push(String::new());
     }
     lines.join("\n")
