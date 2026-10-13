@@ -832,7 +832,8 @@ move:
 ;
 ; `Scene_ActorTarget`, over the menu's bank: the party panel, and the System
 ; windows and bar on BG1, which belong to `actor_choice.s`. It is for the
-; medicine `k` in `pick_edges`: A uses it on the row —`medicine_use`— and
+; medicine `k` in `pick_edges` —or, since 2026-10-13, for the skill the
+; skills screen says, `sk_heal`—: A uses it on the row —`target_use`— and
 ; **stays**, with that row's HP repainted, which is what `UpdateItem` does.
 ; B returns. The screens stage's `render` is the reference. Whom to equip
 ; is not chosen here but on the menu itself: see `menu_choose`.
@@ -869,6 +870,7 @@ wait:
     eor pad_prev
     and pad
     sta title_edges
+    jsl f:target_locks          ; a skill on oneself or on the party: no arrows
     and #PAD_UP
     beq no_up
     lda title_sel
@@ -900,7 +902,7 @@ check_a:
     lda pad_a_prev
     bne wait                    ; it was already held: not an edge
     jsr actor_row
-    jsl f:medicine_use
+    jsl f:target_use            ; the medicine, or the skill: see `sk_heal`
     beq wait                    ; it did not work: RM2k plays a sound and does nothing
     ; A material can change a maximum, which the panel composes when it is
     ; drawn: the whole screen again, on the same row, as `Scene_ActorTarget`

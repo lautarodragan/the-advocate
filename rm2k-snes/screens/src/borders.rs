@@ -112,21 +112,41 @@ pub fn shop_layers(skin: &Skin) -> Vec<Screen> {
         .collect()
 }
 
+/// Where the actor choice's bar goes: on one party row, or over the first
+/// `n` rows at once, which is `Window_ActorTarget`'s cursor for a skill on
+/// the whole party —`SetIndex(-100)`, one rectangle from the first row's
+/// top to the last one's bottom—.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TargetCursor {
+    Row(usize),
+    All(usize),
+}
+
 /// The actor choice's windows: the two on the left with "Owned Items";
 /// with `cursor`, the bar on that party row.
 pub fn target_windows(game: &Game, skin: &Skin, cursor: Option<usize>) -> Result<Picture> {
+    target_windows_for(game, skin, TI_TERM_OWNED, cursor.map(TargetCursor::Row))
+}
+
+/// The actor choice's windows with the term `term` in the lower left one
+/// —"Owned Items" for a medicine, the cost's for a skill
+/// (`Window_TargetStatus`)— and the bar where `cursor` says.
+pub fn target_windows_for(game: &Game, skin: &Skin, term: &str, cursor: Option<TargetCursor>) -> Result<Picture> {
     let mut out = windows(skin, &TARGET_WINDOWS);
     skin.draw_line(
         &mut out,
         (TARGET_NAME_COL * CELL + GLYPH_DX) as i64,
         (TARGET_COUNT_ROW * CELL + GLYPH_DY) as i64,
-        &game.term(TI_TERM_OWNED)?,
+        &game.term(term)?,
         1,
         &game.font,
     );
-    if let Some(k) = cursor {
-        let (x, y, width, height) = TARGET_BAR;
-        bar(skin, &mut out, x, k * MENU_ACTOR_ROWS * CELL + y, width, height);
+    let (x, y, width, height) = TARGET_BAR;
+    let row = MENU_ACTOR_ROWS * CELL;
+    match cursor {
+        Some(TargetCursor::Row(k)) => bar(skin, &mut out, x, k * row + y, width, height),
+        Some(TargetCursor::All(n)) if n > 0 => bar(skin, &mut out, x, y, width, (n - 1) * row + height),
+        _ => {}
     }
     skin.redraw(&mut out);
     Ok(out)
@@ -162,6 +182,22 @@ pub fn target_layer(game: &Game, skin: &Skin) -> Result<Screen> {
         background: target_windows(game, skin, None)?,
         bars: (0..MENU_PARTY_ROWS)
             .map(|k| Ok((target_windows(game, skin, Some(k))?, k * MENU_ACTOR_ROWS, MENU_ACTOR_ROWS)))
+            .collect::<Result<_>>()?,
+    })
+}
+
+/// The actor choice for a skill: the cost's term where the medicine's
+/// count goes, and the bar over the first `n` rows for each party size, all
+/// of the party's cell rows. The bar on one row is the medicine's: the term
+/// changes nothing on the right.
+pub fn target_skill_layer(game: &Game, skin: &Skin) -> Result<Screen> {
+    Ok(Screen {
+        background: target_windows_for(game, skin, TARGET_TERM_COST, None)?,
+        bars: (1..=MENU_PARTY_ROWS)
+            .map(|n| {
+                let picture = target_windows_for(game, skin, TARGET_TERM_COST, Some(TargetCursor::All(n)))?;
+                Ok((picture, 0, MENU_PARTY_ROWS * MENU_ACTOR_ROWS))
+            })
             .collect::<Result<_>>()?,
     })
 }
@@ -329,6 +365,89 @@ pub fn compact_target(maps: &[(Vec<u16>, Vec<Vec<u16>>)]) -> Result<CompactTarge
         menu_bar: menu_bar_words,
         menu_bar_at: (m_row0, m_rows, m_col0, m_cols),
     })
+}
+
+/// What the cartridge stores of the actor choice for a skill, over the
+/// medicine's: the cost's term, and the bar over the whole party.
+#[derive(Debug, Clone)]
+pub struct CompactTargetSkill {
+    /// The cells where the term differs from "Owned Items", as `(row0,
+    /// rows, col0, cols)`, and their words row by row: copied over the
+    /// medicine's tilemap.
+    pub term_at: (usize, usize, usize, usize),
+    pub term: Vec<u16>,
+    /// The bar over the party: its rectangle —the union of the four party
+    /// sizes'—, as `(row0, rows, col0, cols)`; its distinct cell rows,
+    /// `cols` words each; and per party size, one to four, which of those
+    /// goes on each of the rectangle's rows. It never moves, so it is
+    /// painted once, row by row, and never erased.
+    pub all_at: (usize, usize, usize, usize),
+    pub all_rows: Vec<Vec<u16>>,
+    pub all: Vec<Vec<u8>>,
+}
+
+/// The rectangle of the cells that differ between two tilemaps of whole
+/// rows: `(row0, rows, col0, cols)`.
+fn differing(a: &[u16], b: &[u16]) -> Option<(usize, usize, usize, usize)> {
+    let cells: Vec<(usize, usize)> =
+        a.iter().zip(b).enumerate().filter(|(_, (x, y))| x != y).map(|(i, _)| (i / COLS, i % COLS)).collect();
+    let r0 = cells.iter().map(|c| c.0).min()?;
+    let r1 = cells.iter().map(|c| c.0).max()?;
+    let c0 = cells.iter().map(|c| c.1).min()?;
+    let c1 = cells.iter().map(|c| c.1).max()?;
+    Some((r0, r1 + 1 - r0, c0, c1 + 1 - c0))
+}
+
+/// The actor choice for a skill as the cartridge stores it: `item` is the
+/// medicine's screen in `borders`' maps, `skill` the one of
+/// [`target_skill_layer`], whose bars take the whole tilemap. If the term
+/// reaches the party's window, it is an error: the bars of one row are
+/// copied from the medicine's tilemap.
+pub fn compact_target_skill(
+    item: &(Vec<u16>, Vec<Vec<u16>>),
+    skill: &(Vec<u16>, Vec<Vec<u16>>),
+) -> Result<CompactTargetSkill> {
+    let (item_map, _) = item;
+    let (skill_map, alls) = skill;
+    let term_at = differing(item_map, skill_map).unwrap_or((TARGET_COUNT_ROW, 1, 0, 1));
+    if term_at.2 + term_at.3 > TARGET_LEFT / CELL {
+        return Err(Bad::answer("the actor choice's cost term reaches the party's window"));
+    }
+    let (r0, rows, c0, cols) = term_at;
+    let term = (r0..r0 + rows).flat_map(|r| (c0..c0 + cols).map(move |c| skill_map[r * COLS + c])).collect();
+    let mut union: Option<(usize, usize, usize, usize)> = None;
+    for bar in alls {
+        if let Some((a0, an, b0, bn)) = differing(skill_map, bar) {
+            union = Some(match union {
+                None => (a0, an, b0, bn),
+                Some((u0, un, v0, vn)) => {
+                    let (top, bottom) = (u0.min(a0), (u0 + un).max(a0 + an));
+                    let (left, right) = (v0.min(b0), (v0 + vn).max(b0 + bn));
+                    (top, bottom - top, left, right - left)
+                }
+            });
+        }
+    }
+    let all_at = union.ok_or_else(|| Bad::answer("the actor choice's bar over the party draws nothing"))?;
+    let (r0, rows, c0, cols) = all_at;
+    let mut all_rows: Vec<Vec<u16>> = Vec::new();
+    let mut all = Vec::new();
+    for bar in alls {
+        let mut which = Vec::new();
+        for r in r0..r0 + rows {
+            let words: Vec<u16> = bar[r * COLS + c0..r * COLS + c0 + cols].to_vec();
+            let k = match all_rows.iter().position(|w| *w == words) {
+                Some(k) => k,
+                None => {
+                    all_rows.push(words);
+                    all_rows.len() - 1
+                }
+            };
+            which.push(u8::try_from(k).map_err(|_| Bad::answer("the bar over the party has too many rows"))?);
+        }
+        all.push(which);
+    }
+    Ok(CompactTargetSkill { term_at, term, all_at, all_rows, all })
 }
 
 /// A bar's rectangle: `(row, col, rows, cols, source)`.

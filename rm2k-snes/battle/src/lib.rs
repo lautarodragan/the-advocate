@@ -16,6 +16,7 @@ pub mod db;
 pub mod encounters;
 pub mod experience;
 pub mod fail;
+pub mod field;
 pub mod game;
 pub mod model;
 pub mod rules;

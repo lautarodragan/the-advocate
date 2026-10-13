@@ -8,7 +8,7 @@
 use clap::{Args as ClapArgs, Parser, Subcommand};
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_battle::model::{
-    self, EXPERIENCE_FILE, LAYOUT_FILE, LINES_FILE, MODEL_FILE, SIMULATE_FILE,
+    self, EXPERIENCE_FILE, FIELD_SKILL_FILE, LAYOUT_FILE, LINES_FILE, MODEL_FILE, SIMULATE_FILE,
 };
 use rm2k_snes_battle::{screen, Bad, Game, Request, Result, Tables};
 use serde_json::Value;
@@ -47,6 +47,9 @@ enum Command {
     /// What a `ChangeExp` or a `ChangeLevel` leaves an actor with, and its
     /// level-up message
     Experience(StageArgs),
+    /// What a skill used from the pause menu, outside battle, leaves the
+    /// party with
+    FieldSkill(StageArgs),
     /// The geometry of the battle's text screen
     Layout(LayoutArgs),
 }
@@ -81,7 +84,7 @@ struct TablesArgs {
 
 #[derive(ClapArgs)]
 #[command(after_help = "Writes into --out one JSON, named after the subcommand: model.json, \
-    simulate.json, lines.json or experience.json. The README says what each request and each answer hold.")]
+    simulate.json, lines.json, experience.json or field-skill.json. The README says what each request and each answer hold.")]
 struct StageArgs {
     /// The Ditto dump the game is read from: the directory with maps.json
     /// and db/
@@ -140,6 +143,7 @@ fn main() -> ExitCode {
         Command::Simulate(args) => stage(args, SIMULATE_FILE, model::simulate),
         Command::Lines(args) => stage(args, LINES_FILE, model::lines),
         Command::Experience(args) => stage(args, EXPERIENCE_FILE, model::experience),
+        Command::FieldSkill(args) => stage(args, FIELD_SKILL_FILE, model::field_skill),
         Command::Layout(args) => write(&args.out, LAYOUT_FILE, &screen::layout()),
     };
     match done {

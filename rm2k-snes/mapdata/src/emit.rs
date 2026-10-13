@@ -2140,6 +2140,32 @@ impl Rest<'_> {
             bar_at[3]
         ));
         line(out, &block("target_cgram", &cgram_bytes(&obj_colors)));
+        // The same choice for a skill: the cost's term over the count's,
+        // and the bar over the whole party as its distinct cell rows and,
+        // per party size, which goes on each row. See
+        // `compact_target_skill` in `rm2k-snes-screens`.
+        let skill = at(target, "skill")?;
+        let term_at = ints_at(skill, "term_at")?;
+        let all_at = ints_at(skill, "all_at")?;
+        line(out, &block("target_term", &words(at(skill, "term")?)?));
+        line(out, &block("target_all_rows", &bars(at(skill, "all_rows")?)?));
+        let mut all_index = Vec::new();
+        for which in list_at(skill, "all")? {
+            all_index.extend(ints(which)?.into_iter().map(|k| k as u8));
+        }
+        line(out, &block("target_all", &all_index));
+        out.push_str(&pyf!(
+            "TARGET_TERM_ROW0 = %d\nTARGET_TERM_ROWS = %d\nTARGET_TERM_COL0 = %d\nTARGET_TERM_COLS = %d\n\
+             TARGET_ALL_ROW0 = %d\nTARGET_ALL_ROWS = %d\nTARGET_ALL_COL0 = %d\nTARGET_ALL_COLS = %d\n",
+            term_at[0],
+            term_at[1],
+            term_at[2],
+            term_at[3],
+            all_at[0],
+            all_at[1],
+            all_at[2],
+            all_at[3]
+        ));
         let mut medicine_lines: HashMap<i64, String> = HashMap::new();
         for m in list_at(textos, "medicines")? {
             let lines: Vec<String> = list_at(m, "lines")?
@@ -2870,17 +2896,24 @@ impl Rest<'_> {
         let of = |h: i64| at(on_map, &h.to_string());
         let mut lines: [Vec<i64>; 3] = Default::default();
         let mut field = Vec::new();
+        let mut name_cut = Vec::new();
         for &h in rom_skills {
             let l = ints(at(of(h)?, "lines")?)?;
             for (k, v) in lines.iter_mut().enumerate() {
                 v.push(l[k]);
             }
-            field.push(i64::from(at(of(h)?, "field")?.as_bool().unwrap_or(false)));
+            // Bit 0, the map can use it; bit 1, it raises the fallen, which
+            // only a skill the map can use is asked.
+            let flag = |name: &str| -> Result<bool> { Ok(at(of(h)?, name)?.as_bool().unwrap_or(false)) };
+            let on_map = flag("field")?;
+            field.push(i64::from(on_map) | i64::from(on_map && flag("revives")?) << 1);
+            name_cut.push(int_at(of(h)?, "name_cut")?);
         }
         bytes_asm(out, "skill_line1_n", &decimal(lines[0].iter()), true);
         bytes_asm(out, "skill_line2_at", &decimal(lines[1].iter()), true);
         bytes_asm(out, "skill_line2_n", &decimal(lines[2].iter()), true);
         bytes_asm(out, "skill_on_map", &decimal(field), true);
+        bytes_asm(out, "skill_name_cut", &decimal(name_cut), true);
         self.states(out, &x)?;
         // The parallel common events, in the order of their numbers, which
         // is the order RM2k runs them in: see `compar_tick` in

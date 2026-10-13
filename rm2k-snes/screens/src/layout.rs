@@ -298,6 +298,9 @@ pub const TARGET_NAME_ROW: usize = 1;
 pub const TARGET_NAME_WIDTH: usize = (TARGET_LEFT - 8) / CELL - TARGET_NAME_COL;
 pub const TARGET_COUNT_ROW: usize = (TARGET_NAME_HEIGHT + 8) / CELL;
 pub const TARGET_COUNT_COL: usize = TARGET_NAME_COL + TARGET_NAME_WIDTH - 2;
+/// For a skill the count is its cost, and the term next to it the
+/// database's `sp_cost`, as `Window_TargetStatus` writes it.
+pub const TARGET_TERM_COST: &str = "sp_cost";
 /// The bar goes over the row's three lines of text, as in RM2k, and not
 /// over the face; from two pixels inside the row, so as not to touch the
 /// top frame, and it ends on a cell boundary: with the bottom tip

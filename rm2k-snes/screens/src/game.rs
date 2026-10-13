@@ -268,6 +268,7 @@ impl Game {
             "helmet" => &t.helmet,
             "accessory" => &t.accessory,
             "possessed_items" => &t.possessed_items,
+            "sp_cost" => &t.sp_cost,
             "equipped_items" => &t.equipped_items,
             "exit_game_message" => &t.exit_game_message,
             "yes" => &t.yes,

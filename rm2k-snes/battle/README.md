@@ -206,6 +206,20 @@ Each change answers its `level`, `exp`, `skills` and `lines`. It is not the
 battle's, but it is the same experience, and the same lines as the
 victory's.
 
+## `field-skill`
+
+A healing skill used from the pause menu, outside battle: who uses it, on
+whom, and with which seed of the battle's randomness —the console computes
+it with the battle's code, so a heal on the map draws from it too—:
+
+    {"seed": 11037, "skill": 136, "user": 0, "target": 1,
+     "party": [{"id": 14, "hp": 40, "sp": 30}, {"id": 11, "hp": 18}]}
+
+It answers whether it was of use —what spends the SP—, each member's
+`hp` and `sp` afterwards, and the `seed` the use left. The rules are
+easyrpg's `Game_Party::UseSkill` and `Game_Battler::UseSkill` outside
+battle: see `field.rs`.
+
 ## Where the numbers come from
 
 The experience curve, the level cap, the starting experience and level are

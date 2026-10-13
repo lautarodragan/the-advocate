@@ -408,7 +408,11 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     // game's, or with its windows redrawn if they do not fit their bank.
     let (fitted, fused) = fit::skin_for(game, &skin, fit::Screen::Target, 0)?;
     says.extend(fused_windows("the actor choice's", fused));
-    let target_screens = [borders::target_layer(game, &fitted)?, borders::menu_bar_layer(&fitted)];
+    let target_screens = [
+        borders::target_layer(game, &fitted)?,
+        borders::menu_bar_layer(&fitted),
+        borders::target_skill_layer(game, &fitted)?,
+    ];
     let target = borders::borders(&target_screens, 0, TARGET_CGRAM, TARGET_CGRAM + TARGET_COLORS_MAX)?;
     request.vram.target(target.tiles.len())?;
     let inks = items::text_inks(&skin, &game.font)?;
@@ -485,6 +489,7 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
         ));
     }
     let target_compact = compact_target(&target.maps)?;
+    let skill_target = borders::compact_target_skill(&target.maps[0], &target.maps[2])?;
     let shop_compact = compact_shop(&shop_border.maps)?;
 
     // What the cartridge composes as text: each actor's three strips, each
@@ -617,6 +622,23 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
                 target_compact.menu_bar_at.2,
                 target_compact.menu_bar_at.3
             ],
+            "skill": {
+                "term_at": [
+                    skill_target.term_at.0,
+                    skill_target.term_at.1,
+                    skill_target.term_at.2,
+                    skill_target.term_at.3
+                ],
+                "term": skill_target.term,
+                "all_at": [
+                    skill_target.all_at.0,
+                    skill_target.all_at.1,
+                    skill_target.all_at.2,
+                    skill_target.all_at.3
+                ],
+                "all_rows": skill_target.all_rows,
+                "all": skill_target.all,
+            },
         },
         "end_game": {
             "tiles": tiles_json(&end.tiles),

@@ -30,6 +30,8 @@ pub const LINES_FILE: &str = "lines.json";
 pub const LAYOUT_FILE: &str = "layout.json";
 /// The file `experience` writes.
 pub const EXPERIENCE_FILE: &str = "experience.json";
+/// The file `field-skill` writes.
+pub const FIELD_SKILL_FILE: &str = "field-skill.json";
 
 /// A request file, parsed.
 pub fn read_request(path: &Path) -> Result<Value> {
@@ -615,6 +617,65 @@ pub fn experience(db: &Db, request: &Value) -> Result<Value> {
         out.push(json!({"level": at.level, "exp": at.exp, "skills": at.skills, "lines": lines}));
     }
     Ok(json!({"changes": out}))
+}
+
+/// A skill used from the pause menu, outside battle —see [`crate::field`]—:
+///
+/// ```json
+/// {"seed": 11037, "skill": 136, "user": 0, "target": 1,
+///  "party": [{"id": 14, "equipment": null, "level": null, "hp": 40, "sp": 30}]}
+/// ```
+///
+/// `user` and `target` are places in `party`; `target` is ignored by the
+/// scopes that do not choose. Each actor's `hp` and `sp`, if given, are
+/// what it has now; its maximums and parameters, its level's with its
+/// equipment. It answers whether it was of use, every member's HP and SP
+/// afterwards, and the seed as the use left it:
+///
+/// ```json
+/// {"used": true, "party": [{"hp": 40, "sp": 25}], "seed": 4711}
+/// ```
+pub fn field_skill(db: &Db, request: &Value) -> Result<Value> {
+    let mut party = Vec::new();
+    for a in list(request, "party")? {
+        let id = number(field(a, "id")?, "an actor's `id`")? as i32;
+        let equipment = optional(a, "equipment")
+            .map(|e| numbers(e, "an actor's `equipment`"))
+            .transpose()?
+            .map(|e| e.into_iter().map(|x| x as i32).collect::<Vec<_>>());
+        let level = optional(a, "level")
+            .map(|l| number(l, "an actor's `level`"))
+            .transpose()?;
+        let mut who = Combatant::actor(db, id, equipment.as_deref(), level)?;
+        if let Some(hp) = optional(a, "hp") {
+            who.hp = number(hp, "an actor's `hp`")?.clamp(0, who.hp_max);
+        }
+        if let Some(sp) = optional(a, "sp") {
+            who.sp = number(sp, "an actor's `sp`")?.clamp(0, who.sp_max);
+        }
+        party.push(who);
+    }
+    let place = |name: &str| -> Result<usize> {
+        let p = optional(request, name).map_or(Ok(0), |v| number(v, name))?;
+        if p < 0 || p as usize >= party.len() {
+            return Err(Bad::answer(format!("`{name}` is {p} and the party has {}", party.len())));
+        }
+        Ok(p as usize)
+    };
+    let (user, target) = (place("user")?, place("target")?);
+    let skill = db.skill(number(field(request, "skill")?, "`skill`")? as i32)?;
+    let mut rng = simulate::Rng {
+        state: optional(request, "seed")
+            .map(|s| number(s, "`seed`"))
+            .transpose()?
+            .unwrap_or(BATTLE_SEED),
+    };
+    let used = crate::field::use_skill(skill, &mut party, user, target, &mut rng);
+    Ok(json!({
+        "used": used,
+        "party": party.iter().map(|c| json!({"hp": c.hp, "sp": c.sp})).collect::<Vec<_>>(),
+        "seed": rng.state,
+    }))
 }
 
 /// The game's font, if the request names it —`font` and `letter_spacing`,
