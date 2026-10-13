@@ -111,7 +111,7 @@ fn measure(directory: &Path, rom_name: &str, lufs: bool) -> Result<BTreeMap<Stri
         .filter(|(i, n)| !n.is_empty() && built.get(*i).is_some_and(|b| b.length != 0))
         .map(|(i, _)| (i, built[i].length + 60))
         .collect();
-    let workers: usize = std::env::var("PROCESOS").ok().and_then(|p| p.parse().ok()).unwrap_or(8).max(1);
+    let workers: usize = std::env::var("PROCESSES").ok().and_then(|p| p.parse().ok()).unwrap_or(8).max(1);
     let next = Mutex::new(0usize);
     let results = Mutex::new(Vec::new());
     std::thread::scope(|scope| {

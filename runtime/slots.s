@@ -153,7 +153,7 @@ no_party:
 ; screen is the variant of its last letter —`temp + 1`, 1 if it is gray—.
 ; With a gray item at the end of the list, the panel's first row uploaded 256
 ; bytes too many over the tilemap: it is taro's "the graphics break when
-; entering again". `test_la_eleccion_se_ve_igual_al_volver_a_entrar` catches
+; entering again". `test_the_choice_looks_the_same_on_reentering` catches
 ; it.
 ;
 ; A single source pointer for all rows: the DMA leaves `A1T0` pointing where

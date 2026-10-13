@@ -1369,7 +1369,7 @@ wait:
     eor pad_prev
     and pad
     sta title_edges
-    ; By mode. Without `jmp (tabla, x)` in the assembler, a chain.
+    ; By mode. Without `jmp (table, x)` in the assembler, a chain.
     lda comp_col
     bne not_main
     jmp main

@@ -236,4 +236,4 @@ the tools themselves did, and it was `just -f tools/justfile <recipe>`.
 
 The patch for bsnes-libretro that exposes the WRAM, and how to build it,
 went with the libretro driver to A Blurred Line's repo on 2026-10-02: see
-`pruebas/arnes/emulator/README.md` there.
+`tests/harness/emulator/README.md` there.

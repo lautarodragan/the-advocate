@@ -168,8 +168,8 @@ other:
 ; beginning at that level. The level is the one in `BGM_ASK`: see
 ; bgm_level.s. The battle's songs come through here too, because RM2k asks
 ; for them with the same `BgmPlay`: in ABL the victory's is the battle's, and
-; it did start over until 2026-09-30. `test_tema_que_ya_suena.py` catches
-; both, and `test_volumen_y_tempo.py` the level.
+; it did start over until 2026-09-30. `test_song_already_playing.py` catches
+; both, and `test_volume_and_tempo.py` the level.
 .proc music_play
 .a8
 .i16
@@ -318,7 +318,7 @@ no_track:
 ; of each music voice —see `volume_refresh`—, and with MSU-1, the track's.
 ; Until 2026-09-26, without MSU-1 it lowered the DSP's master volume, which is
 ; also the sound effects', and left it at zero until the next song: the
-; thunder at the end of map 3 played silent. `test_fundido_del_tema.py`
+; thunder at the end of map 3 played silent. `test_song_fade.py`
 ; catches it.
 .proc bgm_fade_tick
 .a8
@@ -683,7 +683,7 @@ muted:
     ; And the MSU-1 track, which `music_off` does not silence: coming from
     ; the title its track kept playing inside the game until the first
     ; `PlayBGM`, and a battle in between recorded it as the song to restore.
-    ; `test_con_msu_la_pista_del_titulo_no_sigue_en_la_partida` catches it.
+    ; `test_with_msu_the_title_track_does_not_go_on_into_the_game` catches it.
     jmp msu_stop
 plays:
     jmp music_start
@@ -729,7 +729,7 @@ ready:
 ; rm2k-snes/bytecode/src/music.rs— and here it is expanded into the DSP writes that
 ; `dsp_music` sends: exactly those of `writes` in stream.rs, frame by frame,
 ; and
-; abl/pruebas/rpgmaker/test_musica_escrituras.py in the-advocate-ports checks it. It reads until it
+; abl/tests/rpgmaker/test_music_writes.py in the-advocate-ports checks it. It reads until it
 ; hits a wait, which closes the frame: it keys on the voices that got a note,
 ; and the next frame opens by clearing that key-on. On reaching the end it
 ; starts over.

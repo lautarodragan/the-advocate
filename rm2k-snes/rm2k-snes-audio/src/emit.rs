@@ -452,7 +452,7 @@ pub fn musicdata(music: &Music, emit: &Emit) -> Result<String> {
          SE2_REG          = ${:02X}\n\
          SOUNDS_N         = {}\n\n\
          ; The DSP prologue of the MSU-1 path, in bank 0 like everything\n\
-         ; the CPU walks with `lda tabla, x`. Where each song starts and\n\
+         ; the CPU walks with `lda table, x`. Where each song starts and\n\
          ; its MSU-1 track are outside it, and are read with `f:`.\n\
          .segment \"TABLES\"\n{}\n\n\
          .segment \"RODATA\"\n{}\n{}\n{}\n{}\n{}\n\

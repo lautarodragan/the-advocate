@@ -630,7 +630,7 @@ no_growth:
 ;
 ; It does not reuse `hp_initial_set` on purpose: that one fills all 61
 ; actors at once, and `FullHeal [0, 0]` is the party and nobody else.
-; `test_full_heal_del_grupo_no_cura_a_los_de_afuera` catches it.
+; `test_full_heal_of_the_party_does_not_heal_those_outside` catches it.
 .proc heal
 .a8
 .i16

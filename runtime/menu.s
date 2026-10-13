@@ -114,7 +114,7 @@ other:
 ; Until 2026-09-13 this only looked at the action button, and what kept it
 ; cut short was not the ROM but the harness: the suite held a direction from
 ; boot, so no case could produce a D-pad edge. Now `--tocar` produces it, and
-; the suite's `tecla-dir` case checks it.
+; the suite's `key-dir` case checks it.
 ;
 ; The edge is `Input::IsTriggered`: `pad` against `pad_prev` for B and the
 ; directions, `pad_a` against `pad_a_prev` for A —A lives in the other byte of

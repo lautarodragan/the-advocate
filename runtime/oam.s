@@ -178,7 +178,7 @@ with_end:
     ; changes: RM2k only sets the facing when the jump moves, and not over a
     ; `lock_facing`, which on the hero is `hero_lock`; its `SetDirection`,
     ; which is `hero_heading`, it does over the lock too.
-    ; See `test_salto_bloqueado.py`.
+    ; See `test_blocked_jump.py`.
     lda jump_dx
     ora jump_dy
     beq no_turn
@@ -260,12 +260,12 @@ se_can:
 ; nobody: `move_hero` only went in there with `route_i < route_n`, and with the
 ; jump at the end the counter was already at its limit on the next frame. The
 ; hero stayed floating mid-arc forever, and 196 of the game's 410 move routes
-; with a jump end on the jump. See `test_salto_colgado.py`.
+; with a jump end on the jump. See `test_stuck_jump.py`.
 ;
 ; The decrement is read from the speed every frame, like RM2k's `Update`,
 ; which calls `GetMoveSpeed()` every time. Until 2026-09-26 it was the
 ; constant for speed 4 and an `increase_movement_speed` on the hero changed
-; its step and not its jump. See `test_salto_velocidad.py`.
+; its step and not its jump. See `test_jump_speed.py`.
 .proc jump_advance_hero
 .a8
 .i16
@@ -553,7 +553,7 @@ with_end:
     ; `Jump` does not touch a locked facing —`lock_facing` or the page's
     ; animation type—, and until 2026-09-30 the ROM turned it anyway, also on
     ; the jumps that land. In place nothing changes.
-    ; See `test_salto_bloqueado.py`.
+    ; See `test_blocked_jump.py`.
     lda jump_dx
     ora jump_dy
     beq no_turn

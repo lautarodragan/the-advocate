@@ -253,7 +253,7 @@ has:
 ; switch turns on and on the first after `compar_owed`, which whoever changes
 ; them sets: `set_switch`, the menu closing —where the equipment changes—,
 ; `ChangeEquipment` and the permission opcode. A switch written from outside
-; the ROM —the tests' `prender`— does not go through there. Running them
+; the ROM —the tests' `turn_on`— does not go through there. Running them
 ; every frame cost the race its sixty frames.
 ;
 ; Each one's state lives in far RAM, `COMPAR_ENTRY` bytes, so the same X walks

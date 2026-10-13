@@ -900,7 +900,7 @@ events_handle_jump = events_tick::was_jump
 ; They run with the **same** globals as the foreground —`code_ptr`, `ev_cur`,
 ; `ev_waiting`, `ev_active`, `ev_running`— so that context is saved on
 ; the stack and given back at the end. Twelve bytes, and how much stack is
-; left below is measured by `abl/pruebas/rpgmaker/test_pila.py` in the-advocate-ports: this path is
+; left below is measured by `abl/tests/rpgmaker/test_stack.py` in the-advocate-ports: this path is
 ; one of the ones it runs.
 ;
 ; The state of each one goes in bank 1 RAM and **indexed by event**, not by

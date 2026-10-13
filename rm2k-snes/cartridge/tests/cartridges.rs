@@ -316,7 +316,7 @@ fn everything_that_builds_the_rom_is_in_the_fingerprint() {
     assert!(files.contains(&bin.join("rm2k-snes-screens")));
     assert!(files.contains(&dir.join("rm2k-snes.toml")));
     assert!(files.contains(&dir.join("patches/manual/new/Map0900.json")));
-    // And the dump, which `just datos` rewrites when the game changes and
+    // And the dump, which `just dump` rewrites when the game changes and
     // which can be edited by hand.
     assert!(files.contains(&dir.join("data/maps.json")));
     assert!(files.contains(&dir.join("data/ditto.json")));

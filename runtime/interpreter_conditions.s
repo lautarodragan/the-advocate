@@ -80,7 +80,7 @@ if_actor:
     ; never zero: "is in the party" always said yes, and on the Warehouse roof
     ; Arden showed up without having been added. On 2026-09-12 the `cmp #0`
     ; went after the `ply` and before the `iny`s, which was fixing half of it:
-    ; see `test_rama_grupo`.
+    ; see `test_party_branch`.
     cmp #0
     bra if_decides
 

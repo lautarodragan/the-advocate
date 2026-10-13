@@ -190,7 +190,7 @@ It is not written here, because here it aged without anyone noticing:
 * which event commands are accepted without being done is said by
   `ACCEPTED_UNDONE`, in the event compiler (`rm2k-snes/events/`), which is
   an executable list and cannot go out of sync;
-* and what no test looks at, in ABL's `pruebas/UNTESTED.md`.
+* and what no test looks at, in ABL's `tests/UNTESTED.md`.
 
 ## References
 

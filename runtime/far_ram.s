@@ -1,5 +1,5 @@
 ; --- the RAM in bank 1 ---------------------------------------------------------
-; What bank 0's BSS and ZEROPAGE have left is said by `just espacio`: this
+; What bank 0's BSS and ZEROPAGE have left is said by `just space`: this
 ; used to say it in numbers, and they went stale. The console has 128 KB of
 ; WRAM and bank 0 sees eight: the rest is reached through this same window,
 ; pointing WMADD and reading or writing $2180 with auto-increment. It is not
@@ -24,7 +24,7 @@
 ; and their variables cannot overlap: the addresses below were chosen by
 ; hand as "the next free one", and more than once two branches chose the
 ; same one without git seeing it. When `FARBSS` no longer fits, the link
-; fails, and `just espacio` says how much is left.
+; fails, and `just space` says how much is left.
 ;
 ; The segment is declared `far` here, before anyone uses it, so its labels
 ; carry the bank —`$7E`—: read plainly they are a long access, which is
@@ -39,7 +39,7 @@
 ; where it is so as not to move the ROM. `FARBSS` lives in a stretch of it
 ; nobody used —see `FAR_POOL_START` in rm2k-snes/cartridge/src/banks.rs—,
 ; and nothing of the map may reach it: the scene's state asserts it, and
-; ABL's `test_reservas_de_la_wram.py` checks it for every symbol.
+; ABL's `test_wram_reservations.py` checks it for every symbol.
 .pushseg
 .segment "FARBSS": far
 .popseg
@@ -864,7 +864,7 @@ MUS_STATE_BYTES = $0F
 ; The log of what the stream asks of the DSP: `dsp_music` records each
 ; (register, value) pair here if MUS_LOG_ON is not zero, and
 ; MUS_LOG_I is where the next one goes, in bytes. It is the net of
-; `test_musica_escrituras.py`: the test turns it on and reads it frame by
+; `test_music_writes.py`: the test turns it on and reads it frame by
 ; frame. It wraps around at 512 bytes, 256 writes, and a music frame does not
 ; go past a hundred. Each music frame starts with a mark, register
 ; MUS_LOG_MARK —which the DSP does not have—: the IRQ of a heavy frame
@@ -1359,7 +1359,7 @@ GO_FRAMES = $7E7A34             ; how many frames each fade level lasts
 ; on 2026-09-26, and it is a decision with a cost: it was half of the far RAM
 ; that was still free. What is lost, how it is reverted and what catches it,
 ; in decisions/the-grid-lives-in-wram.md in the book;
-; `test_reservas_de_la_wram.py` fails if another symbol lands inside.
+; `test_wram_reservations.py` fails if another symbol lands inside.
 ;
 ; Right behind it, in $7F's half, go the block table and its passability,
 ; which `lz2_grid` decompresses with it: see there.

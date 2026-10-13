@@ -35,14 +35,14 @@
 ;   which drag in the neighboring byte. Since 2026-10-02 `goombario` follows
 ;   the widths on every path of each built cartridge and flags an immediate
 ;   assembled for the other one, and a declaration that is not what runs:
-;   abl/pruebas/herramientas/test_linter.py in the-advocate-ports. What it cannot decide it skips.
+;   abl/tests/tooling/test_linter.py in the-advocate-ports. What it cannot decide it skips.
 ; * **There is no calling convention**: a `jsr` returns X and Y however suits
 ;   the routine. If an index has to survive the call —the interpreter's
 ;   bytecode cursor—, the caller saves it with `phy`, since it is the only one
 ;   that knows it is needed.
 ;
 ; **Where new code goes.** There are three code banks, each 32 KB, and
-; `just espacio` says how much each has left:
+; `just space` says how much each has left:
 ;
 ; * `CODE`, bank 0, run from its fast mirror at `$80`: what runs every frame,
 ;   in the vblank or in `irq_music`, and whatever that calls with `jsr`. It
@@ -67,7 +67,7 @@
 ; another bank goes with `f:`. **The assembler checks none of this**: a `jsr`
 ; to a routine in another bank assembles and links, and lands at the same
 ; address in the caller's bank. Since 2026-10-02 a test does, over each
-; built cartridge: abl/pruebas/herramientas/test_saltos_entre_bancos.py in the-advocate-ports
+; built cartridge: abl/tests/tooling/test_jumps_between_banks.py in the-advocate-ports
 ; reads the `.dbg` and flags every absolute `jsr`/`jmp`, jump table and
 ; absolute data access that lands somewhere other than the symbol it names.
 ; It assumes the data bank per file —its `BANCO_DE_DATOS`—, so code that

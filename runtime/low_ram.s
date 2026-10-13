@@ -71,7 +71,7 @@ fade_kind:    .res 1    ; what has to be done on the black frame, and is no long
 fade_map: .res 2        ; to which map, for the two cases that load
 FADE_NOTHING   = 0      ; already done
 ; `FADE_DOOR` is the only one that **no path in the ROM asks for**: the
-; harness writes it from outside —`Partida.ir_al_mapa`— to plant the game on
+; harness writes it from outside —`Session.go_to_map`— to plant the game on
 ; any map, and that is why it wants the whole `enter_map`, with the jump
 ; budget restored, and not the path of a chained jump. It is called that
 ; because it was what a door asked for when doors had a table of their own;
@@ -223,7 +223,7 @@ row_addr_b: .res 2
 ; anything.
 ;
 ; `SUB_MAX` is also written in `rm2k-snes/convert/src/convert.rs`, which is the one
-; that can refuse to emit a map that does not fit. `test_sustitucion.py`
+; that can refuse to emit a map that does not fit. `test_substitution.py`
 ; compares the two: here there is no way to report that it went over.
 SUB_MAX = 16
 sub_n:      .res 2      ; how many pairs are set, **in bytes**
@@ -245,13 +245,13 @@ sub_has:    .res 2      ; whether some key already was the one going out
 ; uploads a single one and the rest of the vblank is already sold. So the whole
 ; window takes `WINDOW_COLS` frames to catch up, against RM2k's "on the spot"
 ; —it redraws the spriteset—; the stretch that is seen is the screen's
-; columns, and the margin's go after. It is measured in `test_sustitucion.py`.
+; columns, and the margin's go after. It is measured in `test_substitution.py`.
 sub_refresh: .res 2
 
 ; The loaded map's NPC table. It is the only one of the map tables that is
 ; copied to RAM instead of read through a pointer, and for a concrete reason:
 ; build_oam walks it with an index and at five different offsets, so with
-; `lda tabla, x` it takes one instruction per field and with a pointer it takes
+; `lda table, x` it takes one instruction per field and with a pointer it takes
 ; three. Copying it costs one DMA per map load and fits easily: the map with
 ; the most NPCs in the whole game has 89, and 127 fit here, which is the cap
 ; OAM imposes.

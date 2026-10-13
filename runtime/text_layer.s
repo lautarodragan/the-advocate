@@ -1292,7 +1292,7 @@ go:
 ;
 ; What it keeps it keeps in the layer's RAM and not on the stack: it is
 ; called from the bottom of the battle's loop, which is the deepest the
-; stack goes —`test_pila.py`—.
+; stack goes —`test_stack.py`—.
 .proc tl_idle
 .a8
 .i16
