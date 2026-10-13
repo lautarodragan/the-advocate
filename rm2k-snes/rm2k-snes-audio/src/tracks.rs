@@ -149,16 +149,16 @@ pub fn cartridge_tracks(rom: &Path) -> Result<Vec<(String, i64)>> {
         ))
     })?;
     let json: Value = serde_json::from_str(&text).map_err(|e| io(&path, e.into()))?;
-    let songs = json["temas"]
+    let songs = json["songs"]
         .as_array()
-        .ok_or_else(|| Bad::usage(format!("{}: no \"temas\"", path.display())))?;
+        .ok_or_else(|| Bad::usage(format!("{}: no \"songs\"", path.display())))?;
     // By number and not by name: two songs that differ only in case are the
     // same file, and two threads writing the same track clobber each other.
     // The last one with a number wins, as in a dict.
     let mut by_number = BTreeMap::new();
     for t in songs {
-        if let Some(n) = t["pista"].as_i64().filter(|&n| n != 0) {
-            let name = t["nombre"].as_str().unwrap_or_default().to_string();
+        if let Some(n) = t["track"].as_i64().filter(|&n| n != 0) {
+            let name = t["name"].as_str().unwrap_or_default().to_string();
             by_number.insert(n, name);
         }
     }

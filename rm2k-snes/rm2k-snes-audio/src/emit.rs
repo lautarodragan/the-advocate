@@ -504,11 +504,11 @@ pub fn musicdata(music: &Music, emit: &Emit) -> Result<String> {
 /// each song —how long it lasts, the fingerprint of its mix, its track—.
 pub fn songs_json(songs: &[Built]) -> serde_json::Value {
     serde_json::json!({
-        "temas": songs.iter().map(|t| serde_json::json!({
-            "nombre": t.name,
-            "largo": t.length(),
-            "huella": t.fingerprint.clone().unwrap_or_default(),
-            "pista": t.track,
+        "songs": songs.iter().map(|t| serde_json::json!({
+            "name": t.name,
+            "length": t.length(),
+            "fingerprint": t.fingerprint.clone().unwrap_or_default(),
+            "track": t.track,
         })).collect::<Vec<_>>()
     })
 }
