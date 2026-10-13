@@ -105,7 +105,11 @@ fn the_music_is_the_one_the_python_wrote() {
     // byte the one before (525 bytes to 515, 628 to 295). Before it was
     // 89ec531ef3d4f2ce….
     assert_eq!(sha(data_of(&inc).as_bytes()), "4d2bae8459dcd30e28377cdcdc8083df7703c1a04c3a261dacf6db86938a51f3", "musicdata.inc");
-    assert_eq!(sha(songs.as_bytes()), "c5feb36f38f182aa9dc1fc40dac8bf8e7ed208ca3b12e85fe0df83c23c240d66", "music.json");
+    // Changed on 2026-10-13, when its keys went into English —`temas`,
+    // `nombre`, `largo`, `huella`, `pista` are `songs`, `name`, `length`,
+    // `fingerprint`, `track`—: with the five keys turned back, the text
+    // gives the Python's c5feb36f38f182aa9dc1fc40dac8bf8e7ed208ca3b12e85fe0df83c23c240d66.
+    assert_eq!(sha(songs.as_bytes()), "262e4f8f5175f63177b0af1ab84dc31a82ebe3b03455a681146de60103eb37d4", "music.json");
     // **Not the Python's since 2026-09-30**, on purpose: that day each sound
     // effect got its own rate in the package (`effects::rates_per_package`),
     // where the Python gave all of them one. The Python's was

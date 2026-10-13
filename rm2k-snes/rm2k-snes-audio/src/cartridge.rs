@@ -672,9 +672,9 @@ pub fn effects_json(music: &Music, sounds: &[(String, i64, i64, i64)], rates: &V
         srcn.insert(e.name.clone(), json!(music.srcn(&e.name)));
     }
     json!({
-        "sonidos": sounds.iter().map(|(n, v, t, b)| json!([n, v, t, b])).collect::<Vec<_>>(),
+        "sounds": sounds.iter().map(|(n, v, t, b)| json!([n, v, t, b])).collect::<Vec<_>>(),
         "srcn": srcn,
-        "tasas": rates,
+        "rates": rates,
     })
 }
 

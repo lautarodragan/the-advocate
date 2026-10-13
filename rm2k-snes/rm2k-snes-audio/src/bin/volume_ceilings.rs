@@ -71,7 +71,7 @@ fn play_one(sfc: &Path, song: u8, frames: i64, lufs: bool) -> Result<Row, Bad> {
 }
 
 fn row_json(row: &Row) -> Value {
-    let mut v = json!({"recortes": row.clipped, "pico": row.peak, "cuadro": row.frame});
+    let mut v = json!({"clipped": row.clipped, "peak": row.peak, "frame": row.frame});
     if let Some(l) = row.lufs {
         v["lufs"] = json!(l);
     }
@@ -92,9 +92,9 @@ fn play_apart(sfc: &Path, song: usize, frames: i64, lufs: bool) -> Result<Row, B
     }
     let v: Value = serde_json::from_slice(&out.stdout).map_err(|e| Bad::usage(format!("--play: {e}")))?;
     Ok(Row {
-        clipped: v["recortes"].as_u64().unwrap_or(0) as usize,
-        peak: v["pico"].as_i64().unwrap_or(0),
-        frame: v["cuadro"].as_i64().unwrap_or(0),
+        clipped: v["clipped"].as_u64().unwrap_or(0) as usize,
+        peak: v["peak"].as_i64().unwrap_or(0),
+        frame: v["frame"].as_i64().unwrap_or(0),
         lufs: v["lufs"].as_f64(),
     })
 }

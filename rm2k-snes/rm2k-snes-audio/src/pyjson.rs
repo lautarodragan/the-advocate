@@ -146,10 +146,10 @@ mod tests {
 
     #[test]
     fn it_indents_like_python() {
-        let v = json!({"temas": [{"nombre": "a\u{f1}", "pista": null}], "vacio": []});
+        let v = json!({"songs": [{"name": "a\u{f1}", "track": null}], "empty": []});
         assert_eq!(
             to_string(&v),
-            "{\n \"temas\": [\n  {\n   \"nombre\": \"a\\u00f1\",\n   \"pista\": null\n  }\n ],\n \"vacio\": []\n}"
+            "{\n \"songs\": [\n  {\n   \"name\": \"a\\u00f1\",\n   \"track\": null\n  }\n ],\n \"empty\": []\n}"
         );
     }
 }

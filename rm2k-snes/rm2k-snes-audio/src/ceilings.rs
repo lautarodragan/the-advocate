@@ -102,13 +102,13 @@ pub fn built_songs(directory: &Path) -> Result<Vec<Built>> {
     let path = directory.join("music.json");
     let text = std::fs::read_to_string(&path).map_err(|e| io(&path, e))?;
     let json: Value = serde_json::from_str(&text).map_err(|e| Bad::usage(format!("{}: {e}", path.display())))?;
-    let songs = json["temas"].as_array().ok_or_else(|| Bad::usage(format!("{}: no \"temas\"", path.display())))?;
+    let songs = json["songs"].as_array().ok_or_else(|| Bad::usage(format!("{}: no \"songs\"", path.display())))?;
     Ok(songs
         .iter()
         .map(|t| Built {
-            name: t["nombre"].as_str().unwrap_or_default().to_string(),
-            length: t["largo"].as_i64().unwrap_or(0),
-            fingerprint: t["huella"].as_str().unwrap_or_default().to_string(),
+            name: t["name"].as_str().unwrap_or_default().to_string(),
+            length: t["length"].as_i64().unwrap_or(0),
+            fingerprint: t["fingerprint"].as_str().unwrap_or_default().to_string(),
         })
         .collect())
 }
