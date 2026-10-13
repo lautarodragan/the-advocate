@@ -273,20 +273,53 @@ pub fn target(
     item: i32,
     amount: i64,
 ) -> Result<Picture> {
-    let known = party.known();
     let name = game.item_name(item)?;
+    let lines = texts::name_in_lines(&game.font, &name, TARGET_NAME_WIDTH, 2);
+    let windows = borders::target_windows(game, skin, Some(chosen))?;
+    target_with(game, skin, slots, party, windows, [&lines[0], &lines[1]], amount)
+}
+
+/// The actor choice for `skill`, used from the skills screen: its name, its
+/// cost next to the cost's term, and the bar where `cursor` says —on the
+/// chosen row, on the user's for a skill on oneself, over everyone for one
+/// on the party—. It is `Scene_ActorTarget` with a skill.
+pub fn target_skill(
+    game: &Game,
+    skin: &Skin,
+    slots: usize,
+    party: &Party,
+    cursor: borders::TargetCursor,
+    skill: i32,
+) -> Result<Picture> {
+    let (_, lines) = crate::skills::name_lines(game, skill)?;
+    let windows = borders::target_windows_for(game, skin, TARGET_TERM_COST, Some(cursor))?;
+    let cost = game.skill(skill)?.sp_cost as i64;
+    target_with(game, skin, slots, party, windows, [&lines[0], &lines[1]], cost)
+}
+
+fn target_with(
+    game: &Game,
+    skin: &Skin,
+    slots: usize,
+    party: &Party,
+    windows: Picture,
+    name: [&str; 2],
+    count: i64,
+) -> Result<Picture> {
+    let known = party.known();
     let bank = slots::slots_screen(game, skin, slots, &known, slots::Order::Drawn)?;
     let mut p = Painter::new(&bank.tiles, &bank.palettes);
-    p.under(&borders::target_windows(game, skin, Some(chosen))?);
+    p.under(&windows);
     for (row, actor) in party.members.iter().take(MENU_PARTY_ROWS).copied().enumerate() {
         if known.contains(&actor) {
             actor_row(&mut p, game, skin, &bank, row, actor, party, false)?;
         }
     }
-    for (n, line) in texts::name_in_lines(&game.font, &name, TARGET_NAME_WIDTH, 2).iter().enumerate() {
-        compose_text(&mut p, game, skin, line, TARGET_NAME_WIDTH, TARGET_NAME_ROW + 2 * n, TARGET_NAME_COL);
+    for (n, line) in name.iter().enumerate() {
+        let line = texts::ljust(line, TARGET_NAME_WIDTH);
+        compose_text(&mut p, game, skin, &line, TARGET_NAME_WIDTH, TARGET_NAME_ROW + 2 * n, TARGET_NAME_COL);
     }
-    paste_text(&mut p, &bank.menu, &format!("{:2}", amount.min(99)), TARGET_COUNT_ROW, TARGET_COUNT_COL)?;
+    paste_text(&mut p, &bank.menu, &format!("{:2}", count.min(99)), TARGET_COUNT_ROW, TARGET_COUNT_COL)?;
     Ok(p.picture())
 }
 

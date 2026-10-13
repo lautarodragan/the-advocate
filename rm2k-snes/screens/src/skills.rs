@@ -100,11 +100,41 @@ pub fn windows_json(skin: &Skin) -> Result<Value> {
     }))
 }
 
+/// A skill's name in the actor choice's two lines of `TARGET_NAME_WIDTH`
+/// cells, as the cartridge cuts the one text it carries: how many letters
+/// go on the first line, and the two lines. The first is the whole name if
+/// it fits, or else up to the last space where it still fits —or as much as
+/// fits, if no space does—, which is where `texts::name_in_lines` breaks a
+/// medicine's; the second, the rest from its first letter that is not a
+/// space, as much as fits. No skill name reaches three lines: RM2k's are
+/// twenty letters at most.
+pub fn name_lines(game: &Game, id: i32) -> Result<(usize, [String; 2])> {
+    let font = &game.font;
+    let letters: Vec<char> = game.skill_name(id)?.chars().collect();
+    let fits = |n: usize| {
+        let text: String = letters[..n].iter().collect();
+        n <= TARGET_NAME_WIDTH && font.width(&text) <= 8 * TARGET_NAME_WIDTH
+    };
+    let n1 = if fits(letters.len()) {
+        letters.len()
+    } else {
+        match (1..letters.len()).rev().find(|&p| letters[p] == ' ' && fits(p)) {
+            Some(p) => p,
+            None => (0..=letters.len()).take_while(|&n| fits(n)).last().unwrap_or(0),
+        }
+    };
+    let first: String = letters[..n1].iter().collect();
+    let rest: String = letters[n1..].iter().collect::<String>().trim_start().chars().take(TARGET_NAME_WIDTH).collect();
+    Ok((n1, [first, texts::fit_cells(font, &rest, TARGET_NAME_WIDTH)]))
+}
+
 /// Per skill of the database, what the cartridge needs to write it on the
 /// map: the description's two lines as `[start, letters]` slices of the
-/// text the battle carries, and whether the map can use it
-/// ([`rm2k_rules::skill::usable_on_the_map`]). By number, as text, for the
-/// emission to pick the ones the cartridge carries.
+/// text the battle carries; whether the map can use it
+/// ([`rm2k_rules::skill::usable_on_the_map`]) and whether it raises the
+/// fallen ([`rm2k_rules::skill::cures_death`]); and how many letters of its
+/// name go on the actor choice's first line ([`name_lines`]). By number, as
+/// text, for the emission to pick the ones the cartridge carries.
 pub fn per_skill(game: &Game) -> Result<Value> {
     let mut out = Map::new();
     for (&id, skill) in &game.skills {
@@ -117,6 +147,8 @@ pub fn per_skill(game: &Game) -> Result<Value> {
             json!({
                 "lines": [n1, s2, n2],
                 "field": rm2k_rules::skill::usable_on_the_map(skill, &game.states),
+                "revives": rm2k_rules::skill::cures_death(skill),
+                "name_cut": name_lines(game, id)?.0,
             }),
         );
     }

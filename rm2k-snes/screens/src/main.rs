@@ -8,7 +8,7 @@ use clap::{Args as ClapArgs, Parser, Subcommand};
 use rm2k_render::picture::{self, Picture};
 use rm2k_snes_screens::request::Json;
 use rm2k_snes_screens::game::Skin;
-use rm2k_snes_screens::{boxes, convert, fit, layout, message_window, render, Bad, Game, Result};
+use rm2k_snes_screens::{borders, boxes, convert, fit, layout, message_window, render, Bad, Game, Result};
 use rm2k_snes_text::font::Font;
 use rm2k_snes_text::refit::Measure;
 use std::path::{Path, PathBuf};
@@ -220,6 +220,25 @@ fn do_render(args: &GameArgs) -> Result<()> {
                 n => Some(n as usize),
             },
         )?,
+        // With `skill`, the choice for a skill: `all` puts the bar over the
+        // whole party; otherwise it is on `chosen`, the user's row for a
+        // skill on oneself.
+        "target" if json.number_or("skill", 0)? > 0 => {
+            let party = json.party()?;
+            let cursor = if json.flag("all", false)? {
+                borders::TargetCursor::All(party.members.len().min(layout::MENU_PARTY_ROWS))
+            } else {
+                borders::TargetCursor::Row(chosen)
+            };
+            render::target_skill(
+                &game,
+                &fitted(fit::Screen::Target)?,
+                slots,
+                &party,
+                cursor,
+                json.number("skill")? as i32,
+            )?
+        }
         "target" => render::target(
             &game,
             &fitted(fit::Screen::Target)?,

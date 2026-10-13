@@ -41,9 +41,27 @@ pub fn usable_on_the_map(skill: &Skill, states: &[State]) -> bool {
     }
 }
 
+/// Whether `skill` raises the fallen: it cures state 1, death. It is the
+/// first state of `Game_Battler::UseSkill`'s loop, the one that sets
+/// `revived`. RM2003's `reverse_state_effect`, which turns the cure into an
+/// infliction, is not RM2k's, and the schema does not read it.
+pub fn cures_death(skill: &Skill) -> bool {
+    skill.state_effects.first().copied().unwrap_or(false)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn death_is_the_first_state() {
+        let mut s = skill(SkillType::Normal, SkillScope::Ally);
+        assert!(!cures_death(&s));
+        s.state_effects = vec![false, true];
+        assert!(!cures_death(&s));
+        s.state_effects = vec![true];
+        assert!(cures_death(&s));
+    }
 
     fn skill(t: SkillType, scope: SkillScope) -> Skill {
         Skill { r#type: t, scope, ..Default::default() }
