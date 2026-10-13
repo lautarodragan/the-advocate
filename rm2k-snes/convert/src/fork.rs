@@ -13,7 +13,7 @@
 //!   fail: it overwrites the wrong map, and the teleports land in a wall;
 //! * **a fork replaces a map that exists**, and a new map **cannot**
 //!   overwrite one: a misspelled name doing nothing silently is worse than
-//!   an error. That is why the two live in different folders, `maps/` and
+//!   an error. That is why the two live in different folders, `forks/` and
 //!   `new/`.
 //!
 //! The ChipSets are **added**, never replace one: an id the database
@@ -85,7 +85,7 @@ impl Forks {
     /// dump, `game_maps`, by number.
     pub fn read(manual: &Path, game_maps: &BTreeSet<i32>) -> Result<Forks> {
         Ok(Forks {
-            maps: maps(&manual.join("maps"), game_maps)?,
+            maps: maps(&manual.join("forks"), game_maps)?,
             new_maps: new_maps(&manual.join("new"), game_maps)?,
             chipsets: chipsets(&manual.join("chipsets"))?,
         })
@@ -119,7 +119,7 @@ fn maps(folder: &Path, game_maps: &BTreeSet<i32>) -> Result<BTreeMap<i32, (PathB
     for entry in entries(folder)? {
         let (base, extension) = split(&entry);
         if !map_file(folder, base, extension) {
-            crate::stop!("{entry}: only a map's JSON and its layers go in the manual patches' maps/");
+            crate::stop!("{entry}: only a map's JSON and its layers go in the manual patches' forks/");
         }
         let Some(map_id) = map_number(base) else {
             crate::stop!("{entry}: the name has to be MapNNNN");
@@ -191,7 +191,7 @@ fn new_maps(folder: &Path, game_maps: &BTreeSet<i32>) -> Result<BTreeMap<i32, (P
             crate::stop!(
                 "the new map {map_id} already exists in the dump: a new map does not overwrite \
                  one of the game's; if it is meant to change it, it is a fork and goes in \
-                 the manual patches' maps/"
+                 the manual patches' forks/"
             );
         }
         let data = read_json(&pair.0)?;
@@ -244,7 +244,7 @@ fn chipsets(folder: &Path) -> Result<BTreeMap<i32, (PathBuf, Value)>> {
 mod tests {
     use super::*;
 
-    /// A manual patches folder of its own, with `maps/`, `new/` and
+    /// A manual patches folder of its own, with `forks/`, `new/` and
     /// `chipsets/`, removed when dropped.
     struct Patches(PathBuf);
 
@@ -252,7 +252,7 @@ mod tests {
         fn new(name: &str) -> Patches {
             let dir = std::env::temp_dir().join(format!("convert-fork-{name}-{}", std::process::id()));
             let _ = std::fs::remove_dir_all(&dir);
-            for sub in ["maps", "new", "chipsets"] {
+            for sub in ["forks", "new", "chipsets"] {
                 std::fs::create_dir_all(dir.join(sub)).unwrap();
             }
             Patches(dir)
@@ -291,7 +291,7 @@ mod tests {
     #[test]
     fn a_whole_fork_of_a_map_the_game_has_is_read() {
         let p = Patches::new("whole");
-        p.map("maps", 11, 11, None, true);
+        p.map("forks", 11, 11, None, true);
         p.map("new", 900, 900, Some(900), true);
         let forks = p.read().unwrap();
         assert_eq!(forks.maps.keys().collect::<Vec<_>>(), [&11]);
@@ -302,24 +302,24 @@ mod tests {
     #[test]
     fn half_a_fork_does_not_build_from_either_side() {
         let p = Patches::new("half");
-        p.map("maps", 11, 11, None, false);
+        p.map("forks", 11, 11, None, false);
         assert!(refusal(p.read()).contains("incomplete"));
         let p = Patches::new("layers");
-        std::fs::write(layers_path(&p.0.join("maps").join("Map0011").with_extension("json")), "0\n").unwrap();
+        std::fs::write(layers_path(&p.0.join("forks").join("Map0011").with_extension("json")), "0\n").unwrap();
         assert!(refusal(p.read()).contains("incomplete"));
     }
 
     #[test]
     fn a_fork_that_says_it_is_another_map_does_not_build() {
         let p = Patches::new("other");
-        p.map("maps", 11, 12, None, true);
+        p.map("forks", 11, 12, None, true);
         assert!(refusal(p.read()).contains("map 12"));
     }
 
     #[test]
     fn a_fork_of_a_map_the_game_lacks_does_not_build() {
         let p = Patches::new("lacks");
-        p.map("maps", 9999, 9999, None, true);
+        p.map("forks", 9999, 9999, None, true);
         assert!(refusal(p.read()).contains("has none"));
     }
 
