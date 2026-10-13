@@ -908,7 +908,7 @@ no_adjust:
     ; The tile is fixed: the hero lives in block 0 of the bank, and what
     ; changes are the block's tiles. If the pose in VRAM is a different one,
     ; the new one is queued and uploaded in the next vblank, along with this
-    ; OAM.
+    ; OAM: at the front of the queue, see `vram_queue_hero`.
     stz obj_tile
     lda #HERO_PRIORITY          ; below the layer that covers it
     ora hero_pal
@@ -924,7 +924,7 @@ no_adjust:
     sta vq_dest
     sep #$20
 .a8
-    jsr vram_queue
+    jsr vram_queue_hero
     bne same_pose
     lda #$FF
     sta hero_pose_vram          ; the queue was full: next frame

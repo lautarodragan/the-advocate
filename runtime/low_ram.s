@@ -166,8 +166,9 @@ oam_high: .res 32
 ; and two of destination in VRAM words, and what gets uploaded is always a
 ; pose: 512 bytes in four rows of 128, because a 32x32 object is four rows of
 ; the name grid. Up to VQ_PER_FRAME per vblank; the rest waits for the next,
-; and whoever queued it learns it did not fit and asks again. See
-; `vram_queue` and `vram_drain`.
+; and whoever queued it learns it did not fit and asks again. The last entry
+; is kept for the hero, who goes in front. See `vram_queue`,
+; `vram_queue_hero` and `vram_drain`.
 VQ_MAX = 8
 VQ_PER_FRAME = 5
 VQ_STRIDE = 5
