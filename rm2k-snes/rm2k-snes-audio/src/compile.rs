@@ -113,7 +113,7 @@ pub struct Music {
 impl Music {
     /// A sound effect's SRCN: its place after the music's samples.
     pub fn srcn(&self, effect: &str) -> Option<usize> {
-        self.place.get(effect).map(|p| self.bank.voices.len() + p)
+        self.place.get(effect).map(|p| self.bank.entries().len() + p)
     }
 
     /// A sound effect's number.
@@ -121,12 +121,12 @@ impl Music {
         self.effects.iter().position(|e| e.name == effect)
     }
 
-    /// Every sample of the cartridge, numbered: the music's, followed by the
-    /// sound effects.
+    /// Every sample of the cartridge, numbered as the directory: the music's
+    /// —each distinct one once—, followed by the sound effects.
     pub fn all_samples(&self) -> Vec<(&[u8], usize)> {
         self.bank
-            .voices
-            .iter()
+            .entries()
+            .into_iter()
             .map(|v| (v.data.as_slice(), v.loop_block))
             .chain(self.effects.iter().map(|e| (e.data.as_slice(), e.loop_block)))
             .collect()
@@ -305,8 +305,10 @@ fn in_song(bad: Bad, packages: &[Package], i: usize, name: &str) -> Bad {
     }
 }
 
-/// Every song of the cartridge, sharing a single sample bank.
-pub fn build(job: &Job, game: &Game, samples: &Samples) -> Result<Music> {
+/// Every song of the cartridge, sharing a single sample bank: one directory
+/// entry per key, as before identical samples were merged. [`build`] is
+/// this and [`merge_identical`].
+pub fn build_per_key(job: &Job, game: &Game, samples: &Samples) -> Result<Music> {
     let names = &job.songs;
     let driver = spc700::driver();
     let ceilings = game.ceilings()?;
@@ -516,6 +518,95 @@ pub fn build(job: &Job, game: &Game, samples: &Samples) -> Result<Music> {
     Ok(Music { driver, bank, songs, effects: effect_list, place, places, packages, aram_end: job.aram_end })
 }
 
+/// Every song of the cartridge, sharing a single sample bank, with the
+/// identical samples merged: what the cartridge gets.
+pub fn build(job: &Job, game: &Game, samples: &Samples) -> Result<Music> {
+    let mut music = build_per_key(job, game, samples)?;
+    merge_identical(&mut music)?;
+    Ok(music)
+}
+
+/// Two keys whose samples came out the same become one directory entry
+/// —see [`Bank::directory`]—, and the songs are renumbered to it: what each
+/// sound and each write sends to SRCN. The streams do not change, since
+/// they name sounds and not samples.
+///
+/// After the fingerprint, on purpose: `mix_fingerprint` hashes the SRCN
+/// values with the key numbering, which is the one the ceilings table was
+/// measured with, and what is heard is the same —the same BRR and loop
+/// behind each note—, so the table is still the one measured.
+pub fn merge_identical(music: &mut Music) -> Result<()> {
+    let bank = &mut music.bank;
+    bank.directory = bank::directory(&bank.voices);
+    let bank = &music.bank;
+    let entries = bank.entries();
+    let entry = |v: u8| -> u8 { bank.directory.get(v as usize).map_or(v, |&e| e as u8) };
+    for song in music.songs.iter_mut() {
+        if song.sounds.is_empty() {
+            continue;
+        }
+        for sound in song.sounds.iter_mut() {
+            sound[2] = entry(sound[2]);
+        }
+        // What the ROM writes now: the 65816 skips a register that already
+        // has its value, so an SRCN that went from one copy to the other
+        // and now stays is one write less.
+        let writes = stream::decode(&song.stream, &song.sounds)?;
+        let sample_before = |i: u8| bank.voices.get(i as usize).map(|v| (v.data.as_slice(), v.loop_block));
+        let sample_after = |i: u8| entries.get(i as usize).map(|v| (v.data.as_slice(), v.loop_block));
+        sounds_the_same(&song.name, &song.writes, sample_before, &writes, sample_after)?;
+        song.writes = writes;
+    }
+    Ok(())
+}
+
+/// That two lists of writes make the DSP sound the same, being
+/// `sample_before` and `sample_after` what each SRCN value has behind it
+/// —its BRR and its loop—: every write that is not an SRCN is the same, in
+/// the same frame and order, and when each one is written every voice has
+/// the same sample behind its SRCN. An SRCN write may be missing in `after`
+/// where it changed nothing.
+pub fn sounds_the_same<'a>(
+    name: &str,
+    before: &[Write],
+    sample_before: impl Fn(u8) -> Option<(&'a [u8], usize)>,
+    after: &[Write],
+    sample_after: impl Fn(u8) -> Option<(&'a [u8], usize)>,
+) -> Result<()> {
+    let is_srcn = |w: &Write| stream::is_voice_register(w.1) && w.1 & 0x0F == sdsp::V_SRCN;
+    let (mut srcn_before, mut srcn_after) = ([None; 8], [None; 8]);
+    let mut rest = after.iter();
+    let bad = |what: String| {
+        Bad::answer(format!("the music of {name} sounds different merging its samples: {what}"))
+    };
+    for w in before {
+        if is_srcn(w) {
+            srcn_before[(w.1 >> 4) as usize] = sample_before(w.2);
+            continue;
+        }
+        let other = loop {
+            match rest.next() {
+                Some(x) if is_srcn(x) => srcn_after[(x.1 >> 4) as usize] = sample_after(x.2),
+                Some(x) => break x,
+                None => return Err(bad(format!("write {w:?} is missing"))),
+            }
+        };
+        if other != w {
+            return Err(bad(format!("{other:?} where it was {w:?}")));
+        }
+        if srcn_before != srcn_after {
+            return Err(bad(format!("another sample behind SRCN at {w:?}")));
+        }
+    }
+    if let Some(x) = rest.find(|x| !is_srcn(x)) {
+        return Err(bad(format!("{x:?} is more")));
+    }
+    if before.last().map(|w| w.0) != after.last().map(|w| w.0) {
+        return Err(bad("it lasts another length".into()));
+    }
+    Ok(())
+}
+
 /// What the cartridge's compiler prints about the music: each song, the
 /// shared bank, and what each package has left over.
 pub fn report(music: &Music, boot: Option<usize>) -> Vec<String> {
@@ -550,8 +641,8 @@ pub fn report(music: &Music, boot: Option<usize>) -> Vec<String> {
     out.push(format!(
         "  shared bank: {} samples, {} B in the cartridge; each package has {} B of ARAM for its \
          samples",
-        bank.voices.len(),
-        bank.voices.iter().map(|v| v.data.len()).sum::<usize>(),
+        bank.entries().len(),
+        bank.entries().iter().map(|v| v.data.len()).sum::<usize>(),
         bank.free
     ));
     // What rate each sample ended up at and which package limited it: it is
@@ -598,6 +689,26 @@ pub fn report(music: &Music, boot: Option<usize>) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn merging_samples_is_refused_where_it_would_sound_different() {
+        let (a, b): (&[u8], &[u8]) = (&[1; 9], &[2; 9]);
+        // Voice 0: SRCN, then KON. Before, keys 0 and 1 are the same BRR.
+        let srcn = sdsp::V_SRCN;
+        let before = [(0, srcn, 0), (0, sdsp::KON, 1), (5, srcn, 1), (5, sdsp::KON, 1)];
+        let same = |i: u8| Some((if i < 2 { a } else { b }, 0));
+        // Merged, key 1 is entry 0, and its write is skipped: the same.
+        let after = [(0, srcn, 0), (0, sdsp::KON, 1), (5, sdsp::KON, 1)];
+        let merged = |i: u8| Some((if i < 1 { a } else { b }, 0));
+        sounds_the_same("x", &before, same, &after, merged).unwrap();
+        // With another BRR behind entry 0, or another loop, it is refused.
+        let other = |_: u8| Some((b, 0));
+        assert!(sounds_the_same("x", &before, same, &after, other).is_err());
+        let looped = |_: u8| Some((a, 1));
+        assert!(sounds_the_same("x", &before, same, &after, looped).is_err());
+        // And so is a write that is not an SRCN going missing.
+        assert!(sounds_the_same("x", &before, same, &after[..2], merged).is_err());
+    }
 
     #[test]
     fn a_song_that_stops_says_which_maps_carry_it() {

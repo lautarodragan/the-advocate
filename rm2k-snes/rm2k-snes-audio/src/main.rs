@@ -351,7 +351,7 @@ fn compile_into(
     );
     out.insert("free".into(), json!(bank.free));
     out.insert("places".into(), json!(music.places));
-    out.insert("music_samples".into(), json!(bank.voices.len()));
+    out.insert("music_samples".into(), json!(bank.entries().len()));
     let key_map = |m: &BTreeMap<Key, Key>| -> Value {
         Value::Object(m.iter().map(|(b, s)| (b.to_string(), json!(s.to_string()))).collect())
     };
@@ -362,8 +362,9 @@ fn compile_into(
             "voices": bank.voices.iter().map(|v| json!({
                 "name": v.name, "rate": v.rate, "bytes": v.data.len(), "root": v.root,
                 "loop_block": v.loop_block})).collect::<Vec<_>>(),
-            "melodic": Value::Object(bank.melodic().iter().map(|(p, i)| (p.to_string(), json!(i))).collect()),
-            "hits": Value::Object(bank.hits().iter().map(|(p, i)| (p.to_string(), json!(i))).collect()),
+            // By directory entry, which is what the writes say.
+            "melodic": Value::Object(bank.melodic().iter().map(|(p, i)| (p.to_string(), json!(bank.directory[*i]))).collect()),
+            "hits": Value::Object(bank.hits().iter().map(|(p, i)| (p.to_string(), json!(bank.directory[*i]))).collect()),
             "assignment": bank.assignment.iter().map(key_map).collect::<Vec<_>>(),
             "limited_by": Value::Object(bank.limited_by.iter().map(|(k, n)| (k.to_string(), json!(n))).collect()),
             "constraints": bank.constraints.iter().map(|r| json!({

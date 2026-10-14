@@ -1220,15 +1220,14 @@ fn npc_poses_asm(number: usize, animated: &[(String, i64)], poses: &PoseLabels) 
 
 /// The leader candidates: id, palette, their fifteen colours and the
 /// pointer to each of their poses; twelve at `$FFFFFF` for one without a
-/// graphic, which is the sentinel `place_hero` looks at.
-fn actor_table_asm(number: usize, map: &Map, poses: &PoseLabels) -> String {
+/// graphic, which is the sentinel `place_hero` looks at. Its size and its
+/// lines, without the label: two maps that give the same lines share the
+/// table —see `map_data`—.
+fn actor_table_asm(map: &Map, poses: &PoseLabels) -> (usize, String) {
     let sprite = map.sprite.as_ref();
     let actors = sprite.map_or(&[][..], |s| s.actors.as_slice());
     let animated = sprite.map_or(&[][..], |s| s.animated.as_slice());
-    let mut out = vec![
-        format!(".block {}", ACTOR_BYTES * actors.len().max(1)),
-        format!("actor_table_{number}:"),
-    ];
+    let mut out = Vec::new();
     for (actor, palette, k, colors) in actors {
         out.push(format!(
             "    .byte ${:02X}, ${:02X}",
@@ -1260,7 +1259,7 @@ fn actor_table_asm(number: usize, map: &Map, poses: &PoseLabels) -> String {
     if actors.is_empty() {
         out.push("    .byte $00".into());
     }
-    out.join("\n")
+    (ACTOR_BYTES * actors.len().max(1), out.join("\n"))
 }
 
 /// A map's data blocks, and which label each record pointer gets.
@@ -1328,7 +1327,16 @@ pub fn map_data(
     }
     let animated = sprite.map_or(&[][..], |s| s.animated.as_slice());
     out.push(npc_poses_asm(number, animated, poses));
-    out.push(actor_table_asm(number, map, poses));
+    // The leader candidates are the party's, so most maps of a cartridge
+    // carry the same table: shared by its text, pointers included, under the
+    // label of the first map that has it. Until 2026-10-14 each map had its
+    // own, and ABL's whole game carried 307 of them and 22 different.
+    let (size, body) = actor_table_asm(map, poses);
+    let (label, text) = materials.store_text("actor_table", &format!("actor_table_{number}"), size, &body);
+    if !text.is_empty() {
+        out.push(text);
+    }
+    labels.insert("actor_table", label);
     // The grid, in its two streams, and the block table and its passability
     // in a third: see `lz2_grid`.
     let ram = map_ram(&map.blocks, &map.block_pass);
@@ -1352,7 +1360,8 @@ pub fn map_data(
     out.push(page_table(&PageMap::of(map), number, &labels["evcode"]));
     // The three that are not shared carry symbolic pointers inside, whose
     // bytes the linker sets: there is no content to compare them by.
-    for name in ["npc_poses", "actor_table", "pages"] {
+    // The actor table, shared by its text, already has its label.
+    for name in ["npc_poses", "pages"] {
         labels.insert(name, format!("{name}_{number}"));
     }
     Ok((out.join("\n"), labels))

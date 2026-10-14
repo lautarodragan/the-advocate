@@ -115,7 +115,7 @@ pub fn sound_table(music: &Music, sounds: &[SoundRequest]) -> Vec<(i64, i64, i64
 /// is. Returns (frames, package bytes).
 pub fn boot_frames(music: &Music, package: &RomPackage, decompress: f64) -> Result<(f64, i64)> {
     let (own, effects, exits, _) = package;
-    let music_n = music.bank.voices.len();
+    let music_n = music.bank.entries().len();
     let mut indices: std::collections::BTreeSet<usize> = effects.iter().map(|e| music_n + e).collect();
     for &t in own.iter().chain(exits) {
         if !music.songs[t].sounds.is_empty() {
@@ -187,7 +187,7 @@ fn as_bytes(values: &[usize]) -> Result<Vec<u8>> {
 pub fn musicdata(music: &Music, emit: &Emit) -> Result<String> {
     let songs = &music.songs;
     let voices = music.all_samples();
-    let music_n = music.bank.voices.len();
+    let music_n = music.bank.entries().len();
     let places = music.places;
     let driver = &music.driver;
     let sounds = sound_table(music, &emit.sounds);
