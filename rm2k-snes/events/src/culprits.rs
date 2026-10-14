@@ -225,14 +225,14 @@ pub fn judge_game(game: &Game, request: &Request, every_map: bool) -> Result<Vec
         for event in &map.events {
             for (k, page) in event.pages.iter().enumerate() {
                 let found = chase(page.commands.clone(), |commands| {
-                    judge(game, &indices, &sound, &map_index, window, commands, Some(me.for_event(event.id)), None)
+                    judge(game, &indices, &sound, &map_index, window, commands, Some(me.for_event(event.id)), None, false)
                 });
                 let mut skipped = Vec::new();
                 for n in pasted_commons(game, &page.commands) {
                     let body = game.common_events[&n].commands.clone();
                     let callee = chase(body, |commands| {
                         let me = Some(me.for_event(event.id));
-                        judge(game, &indices, &sound, &map_index, window, commands, me, Some(&every_common))
+                        judge(game, &indices, &sound, &map_index, window, commands, me, Some(&every_common), false)
                     });
                     if !callee.compiles() {
                         skipped.push((n, callee));
@@ -258,7 +258,7 @@ pub fn judge_game(game: &Game, request: &Request, every_map: bool) -> Result<Vec
     // even if it compiles where it is called: `skipped` says that.
     for (&number, common) in &game.common_events {
         let found = chase(common.commands.clone(), |commands| {
-            judge(game, &indices, &sound, &map_index, window, commands, None, Some(&every_common))
+            judge(game, &indices, &sound, &map_index, window, commands, None, Some(&every_common), true)
         });
         out.push(Judged {
             place: Place::Common(number),
@@ -310,6 +310,7 @@ fn judge(
     commands: &[Command],
     map_events: Option<MapEvents>,
     commons: Option<&BTreeMap<i32, u8>>,
+    shared_body: bool,
 ) -> Judgement {
     let mut messages = Messages::new(1, window);
     let mut songs = Songs::default();
@@ -321,7 +322,10 @@ fn judge(
         map_index,
         messages: Some(&mut messages),
         songs: Some(&mut songs),
-        graphics: Some(&mut graphics),
+        // A shared body is compiled by `commons::body` with no graphics
+        // registry, so what changes a graphic (a `MoveEvent` on the hero)
+        // keeps it out there even if it compiles pasted into a page.
+        graphics: if shared_body { None } else { Some(&mut graphics) },
         pictures: None,
         troops: None,
         commons,
