@@ -170,6 +170,9 @@ pub fn run(options: Options) -> Result<()> {
     }
     let mut compiler = Compiler::new(&game, &settings)?;
     compiler.systems = crate::systems::names(&game, &switched, any_system);
+    // For `rm2k-snes-events culprits --request`, which asks the same thing
+    // of the same dump.
+    compiler.keep_request = output.parent().map(|d| rm2k_project::absolute(d).join("events-request.json"));
     if !switched.is_empty() {
         println!("  Systems: {}", compiler.systems.join(", "));
     }

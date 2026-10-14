@@ -112,6 +112,10 @@ pub struct Compiler<'a> {
     /// The Systems the cartridge carries a message window for, in its
     /// order: see `systems::names`. Empty if it does not switch.
     pub systems: Vec<String>,
+    /// Where to leave the `compile` request, if anywhere: `rm2k-snes-events
+    /// culprits` takes the same request, and it is otherwise written to a
+    /// temporary directory and deleted.
+    pub keep_request: Option<std::path::PathBuf>,
 }
 
 impl<'a> Compiler<'a> {
@@ -137,7 +141,7 @@ impl<'a> Compiler<'a> {
             .ok_or_else(|| Stop::new("the battle's layout has no BA_PAGE_MSG_WIDTH"))?;
         let troop_window = font.window(cells as usize * 8, LINES);
         let menus = Value::Array(settings.menus()?.iter().map(|m| m.hooks()).collect());
-        Ok(Compiler { game, settings, menus, boxes, window, troop_window, systems: Vec::new() })
+        Ok(Compiler { game, settings, menus, boxes, window, troop_window, systems: Vec::new(), keep_request: None })
     }
 
     fn data(&self) -> Vec<OsString> {
@@ -272,6 +276,10 @@ impl<'a> Compiler<'a> {
         r.insert("test_graphics".into(), Value::Object(graphics));
         r.insert("messages_step".into(), json!(rm2k_snes_mapdata::engine::MESSAGES_STEP));
         r.insert("encounter_troops".into(), encounter_troops.clone());
+        if let Some(path) = &self.keep_request {
+            let text = serde_json::to_string(&r).expect("a request is JSON");
+            std::fs::write(path, text).map_err(|e| crate::fail::io(path, e))?;
+        }
         self.run("compile", Value::Object(r))
     }
 
@@ -308,6 +316,10 @@ impl<'a> Compiler<'a> {
         r.insert("test_graphics".into(), json!({}));
         r.insert("messages_step".into(), json!(rm2k_snes_mapdata::engine::MESSAGES_STEP));
         r.insert("encounter_troops".into(), json!(encounter_troops));
+        if let Some(path) = &self.keep_request {
+            let text = serde_json::to_string(&r).expect("a request is JSON");
+            std::fs::write(path, text).map_err(|e| crate::fail::io(path, e))?;
+        }
         self.run("compile", Value::Object(r))
     }
 
