@@ -3592,11 +3592,12 @@ impl Rest<'_> {
         }
         line(out, &sine_table());
         // How many frames a character stays still after a step and after a
-        // turn, per route frequency: RM2k's stop counters. 0 and 1 do not
-        // compile.
+        // turn, per route frequency: RM2k's stop counters. 0 does not
+        // compile, nor 1 in a route; 1 is there for a page that walks by a
+        // movement type, with its 256 frames after a step held at the
+        // byte's 255 —see `route::own` in the compiler—.
         let per_frequency = |f: fn(u32) -> u32| {
-            decimal((0..=ROUTE_FREQUENCY).map(|q| if q >= ROUTE_FREQUENCY_MIN { f(q) } else { 0 }))
-                .join(",")
+            decimal((0..=ROUTE_FREQUENCY).map(|q| if q >= 1 { f(q).min(255) } else { 0 })).join(",")
         };
         out.push_str(&format!(
             "route_after_step:\n  .byte {}\n",

@@ -245,6 +245,17 @@ pub fn diagonal(command: i32) -> bool {
     (4..=7).contains(&command)
 }
 
+/// The command a page that walks by a movement type gets as its whole own
+/// route: this plus its `move_type`, 49 to 53. It is not RM2k's —its route
+/// commands end at 41, and 40 and 41 never reach the ROM— but the ROM's:
+/// `walk_by_type` in `event_routes.s` does there what
+/// `Game_Event::UpdateSelfMovement` does for that type —`MoveTypeRandom`,
+/// `MoveTypeCycle`, `MoveTypeTowardsOrAwayPlayer`—, one decision each time
+/// the event stands still long enough. Riding a route that repeats is what
+/// gives it, for free, the route slot, the step, the walk cycle, the wait
+/// after each step and the stop while the interpreter runs a page.
+pub const ROUTE_BY_TYPE: i32 = 48;
+
 /// A page's own route —`move_type` 6, the route it walks on its own—, or
 /// None if it has none or it cannot be done.
 ///
@@ -256,7 +267,8 @@ pub fn diagonal(command: i32) -> bool {
 /// the graphic —none uses it— and the switches; and turning in place
 /// (`AnimType_spin`), which neither of the game's two pages that use it is
 /// in the first maps. The other movement types —random, vertical,
-/// horizontal, toward the hero— neither: they are another machine.
+/// horizontal, toward the hero— go in another way, since 2026-10-14: see
+/// [`ROUTE_BY_TYPE`].
 ///
 /// **Turning in place goes in since 2026-10-04**, with `"spin"` on: the
 /// console turns it a quarter every few frames, by its speed, its steps do
@@ -283,16 +295,33 @@ pub fn diagonal(command: i32) -> bool {
 pub fn own(page: &Page) -> Option<Value> {
     let spin = page.animation_type == ANIM_SPIN;
     let still_spinning = spin && page.move_type == MOVE_STATIONARY;
-    if !still_spinning && (page.move_type != MOVE_CUSTOM || page.route.is_empty()) {
+    let by_type = (MOVE_RANDOM..=MOVE_AWAY).contains(&page.move_type);
+    if !still_spinning && !by_type && (page.move_type != MOVE_CUSTOM || page.route.is_empty()) {
         return None;
     }
-    if !(FREQUENCY_MIN..=FREQUENCY).contains(&page.move_frequency) {
+    // Frequency 1 waits 256 frames after each step, which the ROM's wait
+    // byte does not hold: a route that goes down there is rejected, but a
+    // page that walks by a type waits 255 —see `route_after_step` in
+    // rm2k-snes-mapdata—, a frame short, rather than stand still. Sunset
+    // over Imdahl's ravens walk at 1.
+    let lowest = if by_type { 1 } else { FREQUENCY_MIN };
+    if !(lowest..=FREQUENCY).contains(&page.move_frequency) {
         return None;
     }
     if !(1..=6).contains(&page.move_speed) || !(0..=2).contains(&page.character_pattern) {
         return None;
     }
-    let route: &[i32] = if still_spinning { &[] } else { &page.route };
+    // A page that walks by a type gets a single command, which the ROM
+    // repeats; the route it may carry from another time is not its own: RM2k
+    // only walks it with `MoveType_custom`.
+    let typed = [ROUTE_BY_TYPE + page.move_type];
+    let route: &[i32] = if by_type {
+        &typed
+    } else if still_spinning {
+        &[]
+    } else {
+        &page.route
+    };
     let mut commands = Vec::new();
     // Whether the cursor is between a `begin_jump` and its `end_jump`: there 9
     // is refused, as `compile_route` does in a forced route.
@@ -305,6 +334,10 @@ pub fn own(page: &Page) -> Option<Value> {
             in_jump = true;
         } else if command == ROUTE_JUMP_END {
             in_jump = false;
+        }
+        if by_type {
+            commands.push(command);
+            continue;
         }
         if !known(command)
             || [ROUTE_FACE_HERO, ROUTE_RANDOM, ROUTE_AWAY_HERO, ROUTE_FACE_AWAY].contains(&command)
@@ -322,7 +355,7 @@ pub fn own(page: &Page) -> Option<Value> {
         }
         commands.push(command);
     }
-    if min_frequency(page.move_frequency, &commands, page.route_repeat) < FREQUENCY_MIN {
+    if !by_type && min_frequency(page.move_frequency, &commands, page.route_repeat) < FREQUENCY_MIN {
         // Commands 30 and 31 would take it down to 1.
         return None;
     }
@@ -334,7 +367,7 @@ pub fn own(page: &Page) -> Option<Value> {
         "commands": commands,
         "frequency": page.move_frequency,
         "speed": page.move_speed,
-        "repeats": page.route_repeat || still_spinning,
+        "repeats": page.route_repeat || still_spinning || by_type,
         "skippable": page.route_skippable,
         "fixed_direction": matches!(
             page.animation_type,
@@ -347,6 +380,10 @@ pub fn own(page: &Page) -> Option<Value> {
     if spin {
         out["spin"] = json!(true);
         out["pattern"] = json!(page.character_pattern);
+    }
+    // The same for the one that walks by a type.
+    if by_type {
+        out["by_type"] = json!(true);
     }
     Some(out)
 }
@@ -414,8 +451,31 @@ mod tests {
         assert_eq!(r["commands"], json!([]));
         assert_eq!(r["repeats"], json!(true));
         assert_eq!(r["spin"], json!(true));
-        // The other movement types are another machine, spinning or not.
-        assert!(own(&spinning(1, Vec::new())).is_none());
+    }
+
+    #[test]
+    fn a_page_that_walks_by_a_type_gets_its_one_command() {
+        // ABL's Marcy, on map 70: horizontal, at frequency 8. The route it
+        // carries is not walked: RM2k walks it only with the custom type.
+        let mut marcy = spinning(3, vec![0, 1]);
+        marcy.animation_type = 0;
+        marcy.move_frequency = 8;
+        let r = own(&marcy).unwrap();
+        assert_eq!(r["commands"], json!([ROUTE_BY_TYPE + 3]));
+        assert_eq!(r["repeats"], json!(true));
+        assert_eq!(r["frequency"], json!(8));
+        assert_eq!(r["by_type"], json!(true));
+        assert!(r.get("spin").is_none());
+        for move_type in MOVE_RANDOM..=MOVE_AWAY {
+            marcy.move_type = move_type;
+            assert_eq!(own(&marcy).unwrap()["commands"], json!([ROUTE_BY_TYPE + move_type]));
+        }
+        // Frequency 1 goes in, as Sunset over Imdahl's ravens: the ROM waits
+        // 255 frames after each step and not 256. A route that low does not.
+        marcy.move_frequency = 1;
+        assert_eq!(own(&marcy).unwrap()["frequency"], json!(1));
+        marcy.move_frequency = 0;
+        assert!(own(&marcy).is_none());
     }
 
     #[test]

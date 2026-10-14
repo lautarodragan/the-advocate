@@ -151,6 +151,11 @@ pub const LAYER_SAME: i32 = 1;
 pub const MOVE_STATIONARY: i32 = 0;
 /// `MoveType_custom`: the page walks a route of its own.
 pub const MOVE_CUSTOM: i32 = 6;
+/// `MoveType_random` to `MoveType_away`, the five the page walks by itself
+/// without a route: random, vertical, horizontal, toward the hero and away
+/// from him.
+pub const MOVE_RANDOM: i32 = 1;
+pub const MOVE_AWAY: i32 = 5;
 /// The `AnimType`s.
 pub const ANIM_CONTINUOUS: i32 = 1;
 pub const ANIM_FIXED_NOT_CONTINUOUS: i32 = 2;

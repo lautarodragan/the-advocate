@@ -18,6 +18,7 @@ pub fn page_record(page: &PageRecord) -> Value {
             "fixed_direction": own["fixed_direction"].as_bool().unwrap_or(false),
             "animation_continues": own["animation_continues"].as_bool().unwrap_or(false),
             "spin": own["spin"].as_bool().unwrap_or(false),
+            "by_type": own["by_type"].as_bool().unwrap_or(false),
             "pattern": own["pattern"].as_i64().unwrap_or(1),
             "frequency": own["frequency"],
             "speed": own["speed"],
