@@ -137,7 +137,7 @@ again:
     beq ready
     lda #VQ_PER_FRAME
     sta vq_cap
-    jsr vram_drain
+    jsl f:vram_drain + FAST
     bra again
 ready:
     rts

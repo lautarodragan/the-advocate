@@ -125,6 +125,29 @@ no_colors:
     stz vq_n
     lda #$FF
     sta hero_pose_vram
+    ; And which tiles of each slot the bank leaves holding something, which
+    ; the converter worked out from the bank itself: `vram_drain` zeroes
+    ; those a new pose leaves empty. See `pose_masks_table` in
+    ; rm2k-snes-mapdata.
+    rep #$20
+.a16
+    lda map_current
+    asl a
+    tax
+    lda f:pose_masks_maps, x
+    tax
+    ldy #$0000
+mask:
+    lda f:pose_masks_data, x
+    sta pose_slot_masks, y
+    inx
+    inx
+    iny
+    iny
+    cpy #64
+    bne mask
+    sep #$20
+.a8
     ldx map_ofs
     lda #$80
     sta VMAIN
@@ -333,78 +356,215 @@ write:
 .endproc
 
 ; Uploads up to VQ_PER_FRAME poses from the queue and leaves the rest at the
-; start. Each pose is four DMAs of 128 bytes: the four rows of the 4x4 block,
-; which in the name grid are 256 words apart from each other.
+; start.
+;
+; **A pose comes without its empty tiles**: a mask of the sixteen that draw
+; something —bit i is tile i of the 4x4, by rows— and only those, in order
+; (`pose_record` in rm2k-snes-mapdata). Half of the poses' tiles are fully
+; transparent, and they were half of the poses' bytes. But a 32x32 object
+; reads its sixteen tiles whatever they hold, so an empty one has to be
+; zero **in the slot**: the slot remembers in `pose_slot_masks` which of its
+; tiles may hold something, and this zeroes those the slot drew and the new
+; pose does not, from a fixed zero on channel 7.
+;
+; Each row of the 4x4 —256 words apart in the name grid— goes in runs: a
+; row's four bits are an index into `pose_runs`, at most two runs each. The
+; source is set once per pose: a DMA leaves its A-bus address past what it
+; read, and the drawn tiles are stored one behind the other.
+;
+; **It cannot cost more than uploading the poses whole did**, because the
+; vblank was already measured to the edge with five whole poses: on
+; 2026-10-14, with five of Lashe City's walkers stepping on the same frame,
+; the window's line ended 0.1 lines before the screen came back. So the
+; rows are unrolled —`POSE_ROW`, no shifting a mask a row at a time— and
+; the code lives in bank 1, out of bank 0's way, with the data bank at its
+; own so that its tables, low RAM and the registers are all one absolute
+; read away. Measured in the task `poses-without-their-empty-tiles`.
+.pushseg
+.segment "FAR"
+.a8
+.i16
+
+; One row of a pose: the runs of `row`'s four bits of the 16-bit `mask`, in
+; the direct page, to the row of the slot at `vq_dest`, through the channel
+; whose byte count is `das` and whose bit in MDMAEN is `bit`. A at 16 bits,
+; X and Y free; it goes on to `done`, which follows it. The carry is clear
+; on every `adc`: the shifts that make the index leave it so, and a VRAM
+; word address plus an offset does not overflow.
+.macro POSE_ROW row, mask, das, bit, done
+    lda mask
+.if row = 0
+    and #$000F
+    beq done
+    asl a
+    asl a
+    asl a
+.elseif row = 1
+    and #$00F0
+    beq done
+    lsr a
+.elseif row = 2
+    and #$0F00
+    beq done
+    xba
+    asl a
+    asl a
+    asl a
+.else
+    and #$F000
+    beq done
+    xba
+    lsr a
+.endif
+    tay                         ; the four bits times eight: their runs
+    lda pose_runs, y
+    adc vq_dest
+.if row > 0
+    adc #row * 256
+.endif
+    sta VMADDL
+    ldx pose_runs + 2, y
+    stx das
+    sep #$20
+.a8
+    lda #bit
+    sta MDMAEN
+    rep #$20
+.a16
+    ldx pose_runs + 6, y        ; a second run, after a gap
+    beq done
+    stx das
+    lda pose_runs + 4, y
+    clc
+    adc vq_dest
+.if row > 0
+    adc #row * 256
+.endif
+    sta VMADDL
+    sep #$20
+.a8
+    lda #bit
+    sta MDMAEN
+    rep #$20
+.a16
+.endmacro
+
 .proc vram_drain
 .a8
 .i16
     lda vq_n
     bne has
-    rts
+    rtl
 has:
+    phb
+    phk
+    plb                         ; the data bank at this code's
     lda #$80
     sta VMAIN                   ; increment one word after the high byte
     lda #$01
     sta DMAP0                   ; two registers, word by word
     lda #$18
     sta BBAD0                   ; destination: VMDATAL
+    lda #$09
+    sta DMAP7                   ; the same, from a source that does not advance
+    lda #$18
+    sta BBAD7
+    ldx #.loword(pose_zero)
+    stx A1T7L
+    lda #^pose_zero
+    sta A1B7
     stz vq_done
     ldx #$0000                  ; the entry, in bytes
 other:
     lda vq_done
     cmp vq_n
-    beq end
+    beq to_end
     cmp vq_cap
-    beq end
+    bne next_pose
+to_end:
+    jmp end                     ; too far for a branch
+next_pose:
+    phx
     lda vq + 2, x
     sta A1B0                    ; the source's bank
+    pha
     rep #$20
 .a16
-    lda vq + 0, x
-    sta vq_src
     lda vq + 3, x
     sta vq_dest
+    lda vq + 0, x
+    tay
+    inc a
+    inc a
+    sta A1T0L                   ; the tiles, behind the mask
     sep #$20
 .a8
-    lda #4
-    sta vq_rows
-row:
+    ; The mask, read with the data bank at the source's: there is no direct
+    ; page pointer to spare in here, and it is one read.
+    plb
     rep #$20
 .a16
+    lda a:$0000, y
+    phk
+    plb                         ; and back at this code's
+    tay                         ; the mask, while the slot is worked out
+    ; The slot, from the destination: the tile times sixteen words from the
+    ; bank's start, which is a multiple of 8K words —OBSEL's—, so its low
+    ; thirteen bits are the tile's. A slot is a 32x32 block of
+    ; `block_tile`'s layout, four across the sixteen-tile row, and two
+    ; bytes per block: (tile / 64) * 8 + ((tile / 4) % 4) * 2.
     lda vq_dest
-    sta VMADDL
-    lda vq_src
-    sta A1T0L
-    lda #128
-    sta DAS0L
-    sep #$20
-.a8
-    lda #$01
-    sta MDMAEN
-    rep #$20
-.a16
-    lda vq_src
-    clc
-    adc #128
-    sta vq_src
-    lda vq_dest
-    clc
-    adc #256                    ; the next row of the name grid
-    sta vq_dest
-    sep #$20
-.a8
-    dec vq_rows
-    bne row
-    inc vq_done
-    rep #$20
-.a16
-    txa
+    lsr a
+    lsr a
+    lsr a
+    lsr a
+    lsr a                       ; the tile over two
+    sta temp + 2
+    and #$0006
+    sta temp
+    lda temp + 2
+    lsr a
+    lsr a
+    and #$0038
+    ora temp
+    tax
+    ; What to zero: what the slot may hold and this pose does not draw.
+    ; From here on `temp` is the mask and `temp + 2` the tiles to zero.
+    lda pose_slot_masks, x
+    sta temp + 2
+    tya
+    sta pose_slot_masks, x
+    sta temp
+    eor #$FFFF
+    and temp + 2
+    sta temp + 2
+    bne zero
+    jmp upload                  ; the usual: nothing to zero
+zero:
+    POSE_ROW 0, temp + 2, DAS7L, $80, zero1
+zero1:
+    POSE_ROW 1, temp + 2, DAS7L, $80, zero2
+zero2:
+    POSE_ROW 2, temp + 2, DAS7L, $80, zero3
+zero3:
+    POSE_ROW 3, temp + 2, DAS7L, $80, upload
+upload:
+    POSE_ROW 0, temp, DAS0L, $01, up1
+up1:
+    POSE_ROW 1, temp, DAS0L, $01, up2
+up2:
+    POSE_ROW 2, temp, DAS0L, $01, up3
+up3:
+    POSE_ROW 3, temp, DAS0L, $01, pose_done
+pose_done:
+    pla                         ; the entry, which `phx` left
     clc
     adc #VQ_STRIDE
     tax
     sep #$20
 .a8
-    bra other
+    inc vq_done
+    jmp other
 end:
     ; What did not fit, to the start of the queue. X points to the first
     ; entry left.
@@ -428,8 +588,49 @@ move:
     dec temp + 2
     bne move
 ready:
-    rts
+    plb
+    rtl
 .endproc
+
+; The runs of a row of a pose, by its four bits —bit c is column c—: two at
+; most, each its offset in VRAM words from the row's start and its length in
+; bytes, and a second run of zero bytes is none. See `vram_drain`.
+pose_runs:
+    ;     first run     second run    the row, column 0 at the left
+    .word 0, 0,      0, 0     ; ....
+    .word 0, 32,     0, 0     ; #...
+    .word 16, 32,    0, 0     ; .#..
+    .word 0, 64,     0, 0     ; ##..
+    .word 32, 32,    0, 0     ; ..#.
+    .word 0, 32,     32, 32   ; #.#.
+    .word 16, 64,    0, 0     ; .##.
+    .word 0, 96,     0, 0     ; ###.
+    .word 48, 32,    0, 0     ; ...#
+    .word 0, 32,     48, 32   ; #..#
+    .word 16, 32,    48, 32   ; .#.#
+    .word 0, 64,     48, 32   ; ##.#
+    .word 32, 64,    0, 0     ; ..##
+    .word 0, 32,     32, 64   ; #.##
+    .word 16, 96,    0, 0     ; .###
+    .word 0, 128,    0, 0     ; ####
+
+; What channel 7 zeroes the empty tiles from: the source does not advance.
+pose_zero: .word 0
+.popseg
+
+.pushseg
+.segment "BSS"
+; Which of each slot's sixteen tiles may hold something, a 32x32 block of the
+; sprite bank each, two bytes per block: the PPU addresses 512 tiles, 32
+; blocks. `load_sprite` sets them to what the bank it uploads leaves there
+; —the map's `pose_masks_data`, which the converter works out from the
+; bank—, and `vram_drain` keeps them.
+;
+; In bank 0 and not in `FARBSS`, which is full on purpose: what it has left
+; is the materials' table's room for every actor of the whole game —see
+; ABL's `test_wram_reservations.py`—.
+pose_slot_masks: .res 64
+.popseg
 
 ; --- the layer that goes above the hero ------------------------------------
 ; Its tiles and palette are uploaded only once, with the screen off. Its

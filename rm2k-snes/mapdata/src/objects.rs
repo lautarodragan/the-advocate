@@ -39,6 +39,35 @@ pub fn block_tile(block: u32) -> u32 {
     character::block_tile(block as usize) as u32
 }
 
+/// A pose as the cartridge stores it: a 16-bit mask, low byte first, whose
+/// bit *i* says that tile *i* of the 4x4 —by rows, the order of
+/// [`POSE_BYTES`]— draws something, and behind it only those tiles, in that
+/// order. Half of the poses' tiles are fully transparent, and storing them
+/// was half the poses' bytes.
+///
+/// The console uploads the drawn ones and zeroes, in the slot, those the
+/// slot's previous pose drew and this one does not: see `vram_drain` in the
+/// runtime's `load_graphics.s`, which reads this layout. A tile missing at
+/// the end of a short pose counts as empty.
+pub fn pose_record(pose: &[u8]) -> Vec<u8> {
+    let mut mask = 0u16;
+    let mut drawn = Vec::new();
+    for i in 0..POSE_TILES {
+        let tile = pose.get(i * TILE_BYTES..(i + 1) * TILE_BYTES).unwrap_or(&[]);
+        if tile.iter().any(|&b| b != 0) {
+            mask |= 1 << i;
+            drawn.extend_from_slice(tile);
+        }
+    }
+    let mut out = mask.to_le_bytes().to_vec();
+    out.extend(drawn);
+    out
+}
+
+/// A pose's tiles, and what each one weighs at four bits a pixel.
+pub const POSE_TILES: usize = 16;
+pub const TILE_BYTES: usize = POSE_BYTES / POSE_TILES;
+
 /// RM2k's layers of an event: under the hero, the hero's —the only one that
 /// collides with him— and above.
 pub const LAYER_BELOW: i64 = 0;
@@ -83,6 +112,23 @@ mod tests {
         assert_eq!(super::block_tile(0), 0);
         assert_eq!(super::block_tile(3), 12);
         assert_eq!(super::block_tile(5), 68);
+    }
+
+    #[test]
+    fn a_pose_keeps_its_mask_and_only_the_tiles_that_draw() {
+        use super::*;
+        let mut pose = vec![0u8; POSE_BYTES];
+        // Tile 1 draws with its first byte, tile 14 with its last one.
+        pose[TILE_BYTES] = 0x5A;
+        pose[15 * TILE_BYTES - 1] = 0x01;
+        let record = pose_record(&pose);
+        assert_eq!(record[..2], [0x02, 0x40]);
+        assert_eq!(record.len(), 2 + 2 * TILE_BYTES);
+        assert_eq!(record[2], 0x5A);
+        assert_eq!(record[2 + 2 * TILE_BYTES - 1], 0x01);
+        // Empty, and short: only the mask, at zero.
+        assert_eq!(pose_record(&[]), [0, 0]);
+        assert_eq!(pose_record(&[0u8; POSE_BYTES]), [0, 0]);
     }
 
     #[test]

@@ -332,7 +332,8 @@ low:
     jsr anim_where
     pla
     jsr anim_upload
-    ; What it took, in poses: a pose is 512 bytes and a background tile 64.
+    ; What it took, in poses: a pose is 512 bytes at most —one without
+    ; empty tiles, see `vram_drain`— and a background tile 64.
     ; It is subtracted from the budget instead of setting it, so that it adds
     ; to whatever the tint or a line of the window already took.
     lda f:anim_table + 6, x
