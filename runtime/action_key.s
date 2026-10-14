@@ -209,7 +209,17 @@ no_pages:
     beq no
     lda chosen_trigger
     cmp trigger_sought
+    beq trigger_ok
+    ; The event's touch —`Trigger_collision`— fires from the hero's side
+    ; exactly as touch: `CheckEventTriggerThere` and `CheckEventTriggerHere`
+    ; ask for both. Its own way, the event walking into the hero, is
+    ; `collide_with_hero`.
+    cmp #TRIGGER_COLLISION
     bne no
+    lda trigger_sought
+    cmp #TRIGGER_TOUCHES_HERO
+    bne no
+trigger_ok:
     ; The layer rule, opposite depending on which cell is looked at: the one
     ; in front only fires events on the hero's layer —`CheckEventTriggerThere`
     ; asks for `Layers_same`— and the hero's own cell only those on another

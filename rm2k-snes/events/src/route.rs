@@ -182,7 +182,8 @@ pub fn min_frequency(frequency: i32, commands: &[i32], repeats: bool) -> i32 {
 ///   direction drawn from the map's generator and moves; away is toward
 ///   turned half a circle. They were not worth it in ABL —+1 page— and are
 ///   in since 2026-10-06, when other games' pages turned out to wait on
-///   them. A page's own route still refuses them, as it does 9 and 21.
+///   them. A page's own route still refuses them, as it does 21; 9 it
+///   takes since 2026-10-14 —see [`own`]—.
 /// * Turning without moving —`turn_90_degree_right` and its siblings— is
 ///   still out, and not because of cost: RM2k turns relative to the
 ///   direction the character already had, and for an event that has not
@@ -268,12 +269,17 @@ pub fn diagonal(command: i32) -> bool {
 /// slot, and an empty one that repeats does nothing else. Those are the
 /// other two of the game's four, a robot on maps 64 and 227.
 ///
-/// **Moving toward the hero is left out here too**, even though since
-/// 2026-09-12 the ROM walks it in a forced route: they are two pages of map
-/// 105 —measured, the only ones of the game's 37 own routes that use it—
-/// and no test gets there, so accepting it would be opening the path with
-/// nothing exercising it. 21 is out for the same reason since before: zero
-/// own routes use it.
+/// **Moving toward the hero goes in since 2026-10-14**: the ROM walks it
+/// in a forced route since 2026-09-12, and an own route is walked by the
+/// same machine —`event_routes.s`—. They are two pages of map 105, the
+/// Agency guard that runs at Talan and is a battle when he touches him
+/// —measured, the only ones of the game's 37 own routes that use it—; it
+/// was left out while no test got there, and the guard stood still at his
+/// cell. ABL's `test_paradise.py` walks it now. Not inside a jump, as in a
+/// forced route: there the commands only add up. 21 and the other three
+/// that ask about the hero or the generator —8, 10 and 22— are still out
+/// for the same reason 9 was: no test of a game gets to an own route that
+/// uses them.
 pub fn own(page: &Page) -> Option<Value> {
     let spin = page.animation_type == ANIM_SPIN;
     let still_spinning = spin && page.move_type == MOVE_STATIONARY;
@@ -288,13 +294,21 @@ pub fn own(page: &Page) -> Option<Value> {
     }
     let route: &[i32] = if still_spinning { &[] } else { &page.route };
     let mut commands = Vec::new();
+    // Whether the cursor is between a `begin_jump` and its `end_jump`: there 9
+    // is refused, as `compile_route` does in a forced route.
+    let mut in_jump = false;
     for &command in route {
         if command == ROUTE_SOUND || ROUTE_TRANSPARENCY.contains(&command) {
             continue;
         }
+        if command == ROUTE_JUMP_START {
+            in_jump = true;
+        } else if command == ROUTE_JUMP_END {
+            in_jump = false;
+        }
         if !known(command)
-            || [ROUTE_FACE_HERO, ROUTE_TOWARD_HERO, ROUTE_RANDOM, ROUTE_AWAY_HERO, ROUTE_FACE_AWAY]
-                .contains(&command)
+            || [ROUTE_FACE_HERO, ROUTE_RANDOM, ROUTE_AWAY_HERO, ROUTE_FACE_AWAY].contains(&command)
+            || (command == ROUTE_TOWARD_HERO && in_jump)
         {
             return None;
         }
@@ -402,6 +416,27 @@ mod tests {
         assert_eq!(r["spin"], json!(true));
         // The other movement types are another machine, spinning or not.
         assert!(own(&spinning(1, Vec::new())).is_none());
+    }
+
+    #[test]
+    fn an_own_route_runs_at_the_hero_but_not_inside_a_jump() {
+        // ABL's Agency guard, on map 105: toward, down, toward, up, toward,
+        // repeating, at frequency 8 and speed 5.
+        let mut guard = spinning(MOVE_CUSTOM, vec![9, 2, 9, 0, 9]);
+        guard.animation_type = 0;
+        guard.move_frequency = 8;
+        guard.move_speed = 5;
+        let r = own(&guard).unwrap();
+        assert_eq!(r["commands"], json!([9, 2, 9, 0, 9]));
+        assert_eq!(r["speed"], json!(5));
+        // Inside a jump the commands only add up: no asking about the hero.
+        guard.route = vec![ROUTE_JUMP_START, 9, ROUTE_JUMP_END];
+        assert!(own(&guard).is_none());
+        // The other ones that look at the hero are still out.
+        for command in [ROUTE_FACE_HERO, ROUTE_RANDOM, ROUTE_AWAY_HERO, ROUTE_FACE_AWAY] {
+            guard.route = vec![9, command];
+            assert!(own(&guard).is_none(), "{command}");
+        }
     }
 
     #[test]

@@ -592,7 +592,7 @@ fn without_states(text: &str) -> String {
 #[test]
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
-    let text = without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&emitted.text))))))))))))));
+    let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&emitted.text)))))))))))))));
     assert_eq!(text.lines().count(), 3777);
     assert_eq!(
         sha(&text),
@@ -603,7 +603,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 #[test]
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
-    let text = without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&emitted.text))))))))))))));
+    let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&emitted.text)))))))))))))));
     assert_eq!(text.lines().count(), 3896);
     assert_eq!(
         sha(&text),
@@ -724,6 +724,17 @@ fn with_the_title_menu_comment_as_before(text: &str) -> String {
 /// The text without `TITLE_BPP` and its comment, and with the two lines of
 /// the title's VRAM layout that it changed as they were: they came after
 /// the Python (2026-10-12), with the title at 4bpp.
+/// The text without the event's touch trigger, which came on 2026-10-14:
+/// its constant in the header, with its comment.
+fn without_collision(text: &str) -> String {
+    let added = concat!(
+        "; The event's touch: the hero touching it, or it walking into him.\n",
+        "TRIGGER_COLLISION  = 2\n",
+    );
+    assert!(text.contains(added), "the event's touch trigger should go whole");
+    text.replacen(added, "", 1)
+}
+
 fn without_title_bpp(text: &str) -> String {
     let added = concat!(
         "; Its bits per pixel: 8, on BG1 in mode 3 with all of CGRAM; or 4,\n",
