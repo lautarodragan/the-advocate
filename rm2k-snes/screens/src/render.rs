@@ -52,7 +52,7 @@ impl<'a> Painter<'a> {
         for (i, &word) in cells.iter().enumerate() {
             let tx = (col0 + i % cols) * CELL;
             let ty = (row0 + i / cols) * CELL;
-            let cell = self.tiles[(word & 0x3FF) as usize];
+            let cell = flipped(self.tiles[(word & 0x3FF) as usize], word);
             let palette = &self.palettes[((word >> 10) & 7) as usize];
             for (y, line) in cell.iter().enumerate() {
                 if ty + y >= HEIGHT {
@@ -69,7 +69,7 @@ impl<'a> Painter<'a> {
 
     /// An 8x8 tile at any pixel, like a sprite, with the word's palette.
     fn sprite(&mut self, word: u16, x: i64, y: i64) {
-        let cell = self.tiles[(word & 0x3FF) as usize];
+        let cell = flipped(self.tiles[(word & 0x3FF) as usize], word);
         let palette = &self.palettes[((word >> 10) & 7) as usize];
         for (dy, line) in cell.iter().enumerate() {
             for (dx, &value) in line.iter().enumerate() {
@@ -141,6 +141,21 @@ pub struct Party {
     /// Each actor's level and experience; without them, the starting ones.
     pub levels: BTreeMap<i32, i64>,
     pub exps: BTreeMap<i32, i64>,
+}
+
+/// A tile as a tilemap word draws it: bit 14 mirrors it across x and bit
+/// 15 across y. Since 2026-10-14 the slot screen and menu's bank uses them
+/// —see `cells::cell_block`—, and the console draws them.
+fn flipped(mut cell: Indices, word: u16) -> Indices {
+    if word & 0x4000 != 0 {
+        for line in cell.iter_mut() {
+            line.reverse();
+        }
+    }
+    if word & 0x8000 != 0 {
+        cell.reverse();
+    }
+    cell
 }
 
 impl Party {
