@@ -446,6 +446,7 @@ pub fn run(options: Options) -> Result<()> {
     let triggers = [
         engine::TRIGGER_ACTION as i64,
         engine::TRIGGER_TOUCH_HERO as i64,
+        engine::TRIGGER_COLLISION as i64,
         engine::TRIGGER_AUTOSTART as i64,
         engine::TRIGGER_PARALLEL as i64,
     ];

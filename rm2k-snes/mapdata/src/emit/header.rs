@@ -148,6 +148,8 @@ pub const HEADER: &str = concat!(
     "TRIGGER_AUTO = %d\n",
     "TRIGGER_ACTION     = %d\n",
     "TRIGGER_TOUCHES_HERO = %d\n",
+    "; The event's touch: the hero touching it, or it walking into him.\n",
+    "TRIGGER_COLLISION  = %d\n",
     "TRIGGER_PARALLEL   = %d\n",
     "; How many frames a one-cell step lasts. It comes from events.py and\n",
     "; not from a computation in the ROM.\n",

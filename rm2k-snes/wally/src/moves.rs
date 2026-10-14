@@ -38,10 +38,12 @@ pub struct ScannedPage {
     pub turns: bool,
 }
 
-/// RM2k's triggers that turn an event toward the hero: the action key and
-/// the hero's touch.
+/// RM2k's triggers that turn an event toward the hero: the action key, the
+/// hero's touch and the event's —`ScheduleForegroundExecution` with
+/// `face_player` on all three—.
 const TRIGGER_ACTION: i32 = 0;
 const TRIGGER_TOUCH_HERO: i32 = 1;
+const TRIGGER_COLLISION: i32 = 2;
 
 /// How many still events with continuous animation a map animates. See the
 /// reason —and the measured number— inside [`moves`].
@@ -107,7 +109,7 @@ pub fn moves(pages: &[ScannedPage], events: &[Event], npcs: &[Npc], chipset: &st
     // facing the hero from.
     let mut turning: BTreeMap<usize, BTreeSet<Key>> = BTreeMap::new();
     for p in pages {
-        if p.compiles && p.turns && matches!(p.trigger, TRIGGER_ACTION | TRIGGER_TOUCH_HERO) {
+        if p.compiles && p.turns && matches!(p.trigger, TRIGGER_ACTION | TRIGGER_TOUCH_HERO | TRIGGER_COLLISION) {
             turning.entry(p.event).or_default();
         }
     }

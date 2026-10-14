@@ -750,7 +750,10 @@ tested:
     ; always said "blocked" and no move route ever moved.
     cmp #0
     bne no_blocked
-    ; Blocked. With `skippable` —the forced ones, and the page ones that ask for
+    ; Blocked. If it was the hero in the way, an event's touch page fires: see
+    ; `collide_with_hero`, which keeps X.
+    jsr collide_with_hero
+    ; With `skippable` —the forced ones, and the page ones that ask for
     ; it— it is skipped and the next one is tried; without it, the command is
     ; retried on the coming frame, and so on until the step goes through.
     lda route_ev + 18, x
@@ -809,6 +812,82 @@ ready:
     lda route_ev + 28, x
     jsr after_turn
     sta route_ev + 9, x
+    rts
+.endproc
+
+; Slot X's step toward `route_dir` was refused: if the cell it wanted is the
+; hero's and its event's active page is an event's touch on the hero's layer,
+; the page fires. It is `Game_Event::CheckCollisonOnMoveFailure`, which
+; `Game_Event::Move` calls on any refused step —a page's own route or a forced
+; one— and which asks for nothing else but the interpreter being free: with a
+; page running, or one already waiting to, the bump is lost, as there. ABL's
+; Agency guard on map 105 starts his battle this way. Turning the event toward
+; the hero is `turn_fire`'s, as for the hero's touch: with a route running it
+; does not turn, and the guard already faces him.
+;
+; What is not here is the other half, `CheckEventCollision`: an event on
+; another layer that ends a step on the hero's cell. None of ABL's event-touch
+; pages is on another layer.
+;
+; Keeps X, the slot.
+.proc collide_with_hero
+.a8
+.i16
+    lda ev_active
+    ora waiting_n
+    bne done                    ; the interpreter is not free
+    phx
+    jsr event_cell
+    ldx route_dir               ; the step's cell, by the same tables as the step
+    lda f:step_dx_table, x
+    jsr with_sign_16
+.a16
+    clc
+    adc cell_x
+    cmp tile_x
+    bne not_hero
+    sep #$20
+.a8
+    lda f:step_dy_table, x
+    jsr with_sign_16
+.a16
+    clc
+    adc cell_y
+    cmp tile_y
+    bne not_hero
+    sep #$20
+.a8
+    plx
+    phx
+    lda route_ev + 0, x
+    sta ev_sought
+    stz ev_sought + 1
+    jsr seek_event_page
+    lda chosen_any
+    beq no
+    lda chosen_trigger
+    cmp #TRIGGER_COLLISION
+    bne no
+    lda chosen_layer
+    cmp #HERO_LAYER
+    bne no                      ; on another layer it does not block, so it
+                                ; never gets here
+    lda chosen
+    ora chosen + 1
+    ora chosen + 2
+    beq no                      ; the active page could not be compiled
+    ldx ev_sought
+    jsr mark_waiting
+    jsr turn_fire
+no:
+    plx
+done:
+    rts
+not_hero:
+.a16
+    sep #$20
+.a8
+    plx
     rts
 .endproc
 

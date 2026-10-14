@@ -141,6 +141,8 @@ pub const ROUTE_TRANSPARENCY: [i32; 2] = [40, 41];
 
 pub const TRIGGER_ACTION: i32 = 0;
 pub const TRIGGER_TOUCH_HERO: i32 = 1;
+/// The event's touch: the hero touching it, or it walking into the hero.
+pub const TRIGGER_COLLISION: i32 = 2;
 pub const TRIGGER_AUTOSTART: i32 = 3;
 pub const TRIGGER_PARALLEL: i32 = 4;
 /// The hero's layer: `Layers_same`.

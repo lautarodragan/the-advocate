@@ -241,10 +241,23 @@ impl MapEvents {
 /// did, and that cost **1572 action pages across 1224 events on 220 maps**:
 /// half the game's NPCs could not be used. Since 2026-09-11 the event also
 /// turns for real: see `turns`.
+///
+/// **The event's touch —`Trigger_collision`, 2— since 2026-10-14.** From
+/// the hero's side it is touch: the two cells and the action key ask for
+/// both. And it adds one way of its own: the event on the hero's layer that
+/// tries to step onto the hero's cell and cannot —`Game_Event::Move` and
+/// its `CheckCollisonOnMoveFailure`—, which is how ABL's Agency guard on
+/// map 105 starts his battle. Until then its pages had no code, without a
+/// word in the converter or in `culprits`, and the guard came, stood next
+/// to Talan and nothing happened: 64 pages of ABL on 8 maps, 284 more in
+/// three of the other games. What is still missing is the event on
+/// **another** layer that steps onto the hero —`CheckEventCollision`, and
+/// the hero standing still on top of one—: none of ABL's 64 is on another
+/// layer. See `collide_with_hero` in runtime/event_routes.s.
 fn triggerable(trigger: i32) -> bool {
     matches!(
         trigger,
-        TRIGGER_ACTION | TRIGGER_TOUCH_HERO | TRIGGER_AUTOSTART | TRIGGER_PARALLEL
+        TRIGGER_ACTION | TRIGGER_TOUCH_HERO | TRIGGER_COLLISION | TRIGGER_AUTOSTART | TRIGGER_PARALLEL
     )
 }
 

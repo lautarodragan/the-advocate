@@ -478,6 +478,7 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         TRIGGER_AUTOSTART.into(),
         TRIGGER_ACTION.into(),
         TRIGGER_TOUCH_HERO.into(),
+        TRIGGER_COLLISION.into(),
         TRIGGER_PARALLEL.into(),
         FRAMES_PER_CELL.into(),
         ROUTE_FREQUENCY.into(),
