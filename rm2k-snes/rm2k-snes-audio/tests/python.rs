@@ -19,7 +19,7 @@ use rm2k_project::Project;
 use rm2k_snes_audio::bank::Samples;
 use rm2k_snes_audio::game::Game;
 use rm2k_snes_audio::samples::SoundFontSamples;
-use rm2k_snes_audio::{compile, emit, job, msu, pyjson, sdsp, stream};
+use rm2k_snes_audio::{compile, emit, job, msu, pyjson, stream};
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 
@@ -156,15 +156,10 @@ fn identical_samples_are_one_entry_and_sound_the_same() {
         assert_eq!(a.stream, b.stream, "{}: the stream", a.name);
         let decode = |s: &compile::Built| stream::decode(&s.stream, &s.sounds).unwrap();
         let (wa, wb) = (decode(a), decode(b));
-        assert_eq!(wa.len(), wb.len(), "{}", a.name);
-        for (x, y) in wa.iter().zip(&wb) {
-            if stream::is_voice_register(x.1) && x.1 & 0x0F == sdsp::V_SRCN {
-                assert_eq!(x.1, y.1);
-                assert_eq!(before[x.2 as usize], after[y.2 as usize], "{}: SRCN {} and {}", a.name, x.2, y.2);
-            } else {
-                assert_eq!(x, y, "{}", a.name);
-            }
-        }
+        assert_eq!(wb, b.writes, "{}: the writes are what the ROM writes", a.name);
+        let sample = |all: &[(&'static [u8], usize)], i: u8| all.get(i as usize).copied();
+        let (x, y) = (leak(&before), leak(&after));
+        compile::sounds_the_same(&a.name, &wa, |i| sample(&x, i), &wb, |i| sample(&y, i)).unwrap();
         assert_eq!(a.fingerprint, b.fingerprint, "{}: the fingerprint", a.name);
     }
     // What the sound effects get is the same, numbered after fewer entries.
@@ -178,6 +173,11 @@ fn identical_samples_are_one_entry_and_sound_the_same() {
         emit::boot_frames(m, &rom[emit.start], emit.decompress_frames).unwrap().1
     };
     assert!(boot(&merged) < boot(&per_key), "{} against {}", boot(&merged), boot(&per_key));
+}
+
+/// The samples with a life as long as the test's, for the comparison.
+fn leak(all: &[(&[u8], usize)]) -> Vec<(&'static [u8], usize)> {
+    all.iter().map(|(d, l)| (&*Box::leak(d.to_vec().into_boxed_slice()), *l)).collect()
 }
 
 /// The music's sounds of every song, in one table that goes over half a

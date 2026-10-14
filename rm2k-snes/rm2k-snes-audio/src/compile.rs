@@ -538,8 +538,9 @@ pub fn build(job: &Job, game: &Game, samples: &Samples) -> Result<Music> {
 pub fn merge_identical(music: &mut Music) -> Result<()> {
     let bank = &mut music.bank;
     bank.directory = bank::directory(&bank.voices);
-    let directory = &bank.directory;
-    let entry = |v: u8| -> u8 { directory.get(v as usize).map_or(v, |&e| e as u8) };
+    let bank = &music.bank;
+    let entries = bank.entries();
+    let entry = |v: u8| -> u8 { bank.directory.get(v as usize).map_or(v, |&e| e as u8) };
     for song in music.songs.iter_mut() {
         if song.sounds.is_empty() {
             continue;
@@ -547,12 +548,61 @@ pub fn merge_identical(music: &mut Music) -> Result<()> {
         for sound in song.sounds.iter_mut() {
             sound[2] = entry(sound[2]);
         }
-        for w in song.writes.iter_mut() {
-            if stream::is_voice_register(w.1) && w.1 & 0x0F == sdsp::V_SRCN {
-                w.2 = entry(w.2);
-            }
+        // What the ROM writes now: the 65816 skips a register that already
+        // has its value, so an SRCN that went from one copy to the other
+        // and now stays is one write less.
+        let writes = stream::decode(&song.stream, &song.sounds)?;
+        let sample_before = |i: u8| bank.voices.get(i as usize).map(|v| (v.data.as_slice(), v.loop_block));
+        let sample_after = |i: u8| entries.get(i as usize).map(|v| (v.data.as_slice(), v.loop_block));
+        sounds_the_same(&song.name, &song.writes, sample_before, &writes, sample_after)?;
+        song.writes = writes;
+    }
+    Ok(())
+}
+
+/// That two lists of writes make the DSP sound the same, being
+/// `sample_before` and `sample_after` what each SRCN value has behind it
+/// —its BRR and its loop—: every write that is not an SRCN is the same, in
+/// the same frame and order, and when each one is written every voice has
+/// the same sample behind its SRCN. An SRCN write may be missing in `after`
+/// where it changed nothing.
+pub fn sounds_the_same<'a>(
+    name: &str,
+    before: &[Write],
+    sample_before: impl Fn(u8) -> Option<(&'a [u8], usize)>,
+    after: &[Write],
+    sample_after: impl Fn(u8) -> Option<(&'a [u8], usize)>,
+) -> Result<()> {
+    let is_srcn = |w: &Write| stream::is_voice_register(w.1) && w.1 & 0x0F == sdsp::V_SRCN;
+    let (mut srcn_before, mut srcn_after) = ([None; 8], [None; 8]);
+    let mut rest = after.iter();
+    let bad = |what: String| {
+        Bad::answer(format!("the music of {name} sounds different merging its samples: {what}"))
+    };
+    for w in before {
+        if is_srcn(w) {
+            srcn_before[(w.1 >> 4) as usize] = sample_before(w.2);
+            continue;
         }
-        stream::check(&song.name, &song.stream, &song.sounds, &song.writes)?;
+        let other = loop {
+            match rest.next() {
+                Some(x) if is_srcn(x) => srcn_after[(x.1 >> 4) as usize] = sample_after(x.2),
+                Some(x) => break x,
+                None => return Err(bad(format!("write {w:?} is missing"))),
+            }
+        };
+        if other != w {
+            return Err(bad(format!("{other:?} where it was {w:?}")));
+        }
+        if srcn_before != srcn_after {
+            return Err(bad(format!("another sample behind SRCN at {w:?}")));
+        }
+    }
+    if let Some(x) = rest.find(|x| !is_srcn(x)) {
+        return Err(bad(format!("{x:?} is more")));
+    }
+    if before.last().map(|w| w.0) != after.last().map(|w| w.0) {
+        return Err(bad("it lasts another length".into()));
     }
     Ok(())
 }
@@ -639,6 +689,26 @@ pub fn report(music: &Music, boot: Option<usize>) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn merging_samples_is_refused_where_it_would_sound_different() {
+        let (a, b): (&[u8], &[u8]) = (&[1; 9], &[2; 9]);
+        // Voice 0: SRCN, then KON. Before, keys 0 and 1 are the same BRR.
+        let srcn = sdsp::V_SRCN;
+        let before = [(0, srcn, 0), (0, sdsp::KON, 1), (5, srcn, 1), (5, sdsp::KON, 1)];
+        let same = |i: u8| Some((if i < 2 { a } else { b }, 0));
+        // Merged, key 1 is entry 0, and its write is skipped: the same.
+        let after = [(0, srcn, 0), (0, sdsp::KON, 1), (5, sdsp::KON, 1)];
+        let merged = |i: u8| Some((if i < 1 { a } else { b }, 0));
+        sounds_the_same("x", &before, same, &after, merged).unwrap();
+        // With another BRR behind entry 0, or another loop, it is refused.
+        let other = |_: u8| Some((b, 0));
+        assert!(sounds_the_same("x", &before, same, &after, other).is_err());
+        let looped = |_: u8| Some((a, 1));
+        assert!(sounds_the_same("x", &before, same, &after, looped).is_err());
+        // And so is a write that is not an SRCN going missing.
+        assert!(sounds_the_same("x", &before, same, &after[..2], merged).is_err());
+    }
 
     #[test]
     fn a_song_that_stops_says_which_maps_carry_it() {
