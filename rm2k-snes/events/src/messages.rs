@@ -548,7 +548,7 @@ impl Messages {
         }
         let key = (lines, pauses, auto_close);
         if let Some(&w) = self.where_.get(&key) {
-            return Ok(w / self.step);
+            return Ok(self.operand(w));
         }
         while !self.data.len().is_multiple_of(self.step) {
             self.data.push(0);
@@ -566,7 +566,23 @@ impl Messages {
         }
         self.texts.insert(w, key.0.clone());
         self.where_.insert(key, w);
-        Ok(w / self.step)
+        Ok(self.operand(w))
+    }
+
+    /// The offset as the bytecode carries it. Past the cap it only happens
+    /// while `measuring`, and there it wraps to 16 bits on purpose: that
+    /// pass's bytecode is thrown away —only its texts are kept—, but the
+    /// compiler still writes each offset in a word, and a value that does not
+    /// fit would make every box past 256 KB "not compile", stopping a common
+    /// event the plan said compiles. The word's length is all that pass
+    /// needs, and wrapping keeps it.
+    fn operand(&self, w: usize) -> usize {
+        let at = w / self.step;
+        if self.capped {
+            at
+        } else {
+            at & 0xFFFF
+        }
     }
 
     pub fn mark(&self) -> usize {
