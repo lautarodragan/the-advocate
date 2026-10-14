@@ -229,7 +229,7 @@ pub fn check_families() -> std::result::Result<(), String> {
     Ok(())
 }
 
-fn is_voice_register(register: u8) -> bool {
+pub fn is_voice_register(register: u8) -> bool {
     register < 0x80 && register & 0x0F < VOICE_REGISTERS
 }
 

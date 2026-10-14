@@ -630,6 +630,20 @@ pub fn effect_places(packages: &[Vec<String>], names: &[String]) -> BTreeMap<Str
     place.into_iter().map(|(n, p)| (n.to_string(), p)).collect()
 }
 
+/// Each sample's directory entry: the first one with the same BRR and the
+/// same loop gives it, and the others are numbered in order. See
+/// [`Bank::directory`].
+pub fn directory(voices: &[Rc<Voice>]) -> Vec<usize> {
+    let mut first: HashMap<(&[u8], usize), usize> = HashMap::new();
+    voices
+        .iter()
+        .map(|v| {
+            let n = first.len();
+            *first.entry((v.data.as_slice(), v.loop_block)).or_insert(n)
+        })
+        .collect()
+}
+
 /// The samples shared by **every** song in the ROM, one per program and one
 /// per hit, each with the budget of its worst package.
 ///
@@ -639,10 +653,29 @@ pub fn effect_places(packages: &[Vec<String>], names: &[String]) -> BTreeMap<Str
 /// the same one. But **it is not uploaded whole**: the ARAM gets packages,
 /// one per map, so what has to fit in the 64 KB is not the bank but each
 /// package, with its sound effects.
+///
+/// **Two keys can come out as the same sample**, and then they are one
+/// entry of the directory: see [`Bank::directory`].
 pub struct Bank {
     /// Programs first, then hits, each in key order.
     pub keys: Vec<Key>,
     pub voices: Vec<Rc<Voice>>,
+    /// Each key's entry in the SPC700's directory —the SRCN the ROM
+    /// writes—, by key index.
+    ///
+    /// Two keys whose samples came out with the same BRR and the same loop
+    /// share one: a copy built at the same rate as what it copies —its
+    /// budget reached the native one in both—, or two keys of a program
+    /// that pick the same zone. Until 2026-10-14 each key had its own, and
+    /// the cartridge stored the same bytes once per key —sixteen times the
+    /// same hi-hat, 201 KB of ABL's release— and a package that played two
+    /// of them uploaded both. The rate and the root are not compared: the
+    /// DSP only reads the BRR and the loop, and each sound brings its pitch.
+    ///
+    /// The songs are built with the key indices —what the allocation and
+    /// `mix_fingerprint` count with— and renumbered to these afterwards:
+    /// see `merge_identical` in `compile`.
+    pub directory: Vec<usize>,
     /// Which constraint set each sample, for the report.
     pub limited_by: BTreeMap<Key, String>,
     pub constraints: Vec<Constraint>,
@@ -716,8 +749,22 @@ impl Bank {
             .chain(present.iter().filter(|k| k.is_hit()))
             .cloned()
             .collect();
-        let voices = keys.iter().map(|k| voice[k].clone()).collect();
-        Ok(Bank { keys, voices, limited_by, constraints, free, assignment })
+        let voices: Vec<Rc<Voice>> = keys.iter().map(|k| voice[k].clone()).collect();
+        // One entry per key until `merge_identical`, in `compile`, merges them.
+        let directory = (0..voices.len()).collect();
+        Ok(Bank { keys, voices, directory, limited_by, constraints, free, assignment })
+    }
+
+    /// The directory's music entries: the distinct samples, in the order
+    /// their first key has.
+    pub fn entries(&self) -> Vec<&Rc<Voice>> {
+        let mut out: Vec<&Rc<Voice>> = Vec::new();
+        for (v, &e) in self.voices.iter().zip(&self.directory) {
+            if e == out.len() {
+                out.push(v);
+            }
+        }
+        out
     }
 
     /// From MIDI program to index in the bank, which is what goes in
@@ -759,14 +806,18 @@ impl Bank {
         (melodic, hits)
     }
 
-    /// How much the samples of those keys take in the ARAM.
+    /// How much the samples of those keys take in the ARAM: two keys that
+    /// share an entry take it once.
     pub fn takes(&self, keys: &BTreeSet<Key>) -> i64 {
-        self.keys
+        let entries: BTreeMap<usize, &Rc<Voice>> = self
+            .keys
             .iter()
             .zip(&self.voices)
-            .filter(|(k, _)| keys.contains(*k))
-            .map(|(_, v)| v.data.len() as i64)
-            .sum()
+            .zip(&self.directory)
+            .filter(|((k, _), _)| keys.contains(*k))
+            .map(|((_, v), &e)| (e, v))
+            .collect();
+        entries.values().map(|v| v.data.len() as i64).sum()
     }
 
     /// The samples song `t` plays with.

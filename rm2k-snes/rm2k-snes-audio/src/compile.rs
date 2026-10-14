@@ -113,7 +113,7 @@ pub struct Music {
 impl Music {
     /// A sound effect's SRCN: its place after the music's samples.
     pub fn srcn(&self, effect: &str) -> Option<usize> {
-        self.place.get(effect).map(|p| self.bank.voices.len() + p)
+        self.place.get(effect).map(|p| self.bank.entries().len() + p)
     }
 
     /// A sound effect's number.
@@ -121,12 +121,12 @@ impl Music {
         self.effects.iter().position(|e| e.name == effect)
     }
 
-    /// Every sample of the cartridge, numbered: the music's, followed by the
-    /// sound effects.
+    /// Every sample of the cartridge, numbered as the directory: the music's
+    /// —each distinct one once—, followed by the sound effects.
     pub fn all_samples(&self) -> Vec<(&[u8], usize)> {
         self.bank
-            .voices
-            .iter()
+            .entries()
+            .into_iter()
             .map(|v| (v.data.as_slice(), v.loop_block))
             .chain(self.effects.iter().map(|e| (e.data.as_slice(), e.loop_block)))
             .collect()
@@ -305,8 +305,10 @@ fn in_song(bad: Bad, packages: &[Package], i: usize, name: &str) -> Bad {
     }
 }
 
-/// Every song of the cartridge, sharing a single sample bank.
-pub fn build(job: &Job, game: &Game, samples: &Samples) -> Result<Music> {
+/// Every song of the cartridge, sharing a single sample bank: one directory
+/// entry per key, as before identical samples were merged. [`build`] is
+/// this and [`merge_identical`].
+pub fn build_per_key(job: &Job, game: &Game, samples: &Samples) -> Result<Music> {
     let names = &job.songs;
     let driver = spc700::driver();
     let ceilings = game.ceilings()?;
@@ -516,6 +518,45 @@ pub fn build(job: &Job, game: &Game, samples: &Samples) -> Result<Music> {
     Ok(Music { driver, bank, songs, effects: effect_list, place, places, packages, aram_end: job.aram_end })
 }
 
+/// Every song of the cartridge, sharing a single sample bank, with the
+/// identical samples merged: what the cartridge gets.
+pub fn build(job: &Job, game: &Game, samples: &Samples) -> Result<Music> {
+    let mut music = build_per_key(job, game, samples)?;
+    merge_identical(&mut music)?;
+    Ok(music)
+}
+
+/// Two keys whose samples came out the same become one directory entry
+/// —see [`Bank::directory`]—, and the songs are renumbered to it: what each
+/// sound and each write sends to SRCN. The streams do not change, since
+/// they name sounds and not samples.
+///
+/// After the fingerprint, on purpose: `mix_fingerprint` hashes the SRCN
+/// values with the key numbering, which is the one the ceilings table was
+/// measured with, and what is heard is the same —the same BRR and loop
+/// behind each note—, so the table is still the one measured.
+pub fn merge_identical(music: &mut Music) -> Result<()> {
+    let bank = &mut music.bank;
+    bank.directory = bank::directory(&bank.voices);
+    let directory = &bank.directory;
+    let entry = |v: u8| -> u8 { directory.get(v as usize).map_or(v, |&e| e as u8) };
+    for song in music.songs.iter_mut() {
+        if song.sounds.is_empty() {
+            continue;
+        }
+        for sound in song.sounds.iter_mut() {
+            sound[2] = entry(sound[2]);
+        }
+        for w in song.writes.iter_mut() {
+            if stream::is_voice_register(w.1) && w.1 & 0x0F == sdsp::V_SRCN {
+                w.2 = entry(w.2);
+            }
+        }
+        stream::check(&song.name, &song.stream, &song.sounds, &song.writes)?;
+    }
+    Ok(())
+}
+
 /// What the cartridge's compiler prints about the music: each song, the
 /// shared bank, and what each package has left over.
 pub fn report(music: &Music, boot: Option<usize>) -> Vec<String> {
@@ -550,8 +591,8 @@ pub fn report(music: &Music, boot: Option<usize>) -> Vec<String> {
     out.push(format!(
         "  shared bank: {} samples, {} B in the cartridge; each package has {} B of ARAM for its \
          samples",
-        bank.voices.len(),
-        bank.voices.iter().map(|v| v.data.len()).sum::<usize>(),
+        bank.entries().len(),
+        bank.entries().iter().map(|v| v.data.len()).sum::<usize>(),
         bank.free
     ));
     // What rate each sample ended up at and which package limited it: it is

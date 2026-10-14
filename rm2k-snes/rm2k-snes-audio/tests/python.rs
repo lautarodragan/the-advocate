@@ -19,7 +19,7 @@ use rm2k_project::Project;
 use rm2k_snes_audio::bank::Samples;
 use rm2k_snes_audio::game::Game;
 use rm2k_snes_audio::samples::SoundFontSamples;
-use rm2k_snes_audio::{compile, emit, job, msu, pyjson};
+use rm2k_snes_audio::{compile, emit, job, msu, pyjson, sdsp, stream};
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
 
@@ -45,8 +45,9 @@ fn scratch(name: &str) -> PathBuf {
     dir
 }
 
-/// (musicdata.inc, music.json, the MSU-1 sound effects as text, the boot).
-fn compile_fixture(dir: &Path) -> (String, String, String, (f64, i64)) {
+/// The fixture's music: with one directory entry per key, as the Python
+/// numbered it, or merged, as the cartridge gets it.
+fn music_of(dir: &Path, merged: bool) -> (compile::Music, emit::Emit, Game) {
     let game_dir = fixture::write(dir);
     let game = Game {
         game_dir,
@@ -57,7 +58,20 @@ fn compile_fixture(dir: &Path) -> (String, String, String, (f64, i64)) {
     let (job, emit) =
         job::parse(&serde_json::from_str(fixture::JOB).unwrap(), fixture::ARAM_END).unwrap();
     let emit = emit.unwrap();
-    let music = compile::build(&job, &game, &samples).unwrap();
+    let music = if merged {
+        compile::build(&job, &game, &samples).unwrap()
+    } else {
+        compile::build_per_key(&job, &game, &samples).unwrap()
+    };
+    (music, emit, game)
+}
+
+/// (musicdata.inc, music.json, the MSU-1 sound effects as text, the boot),
+/// with one directory entry per key: the identical samples merged since
+/// 2026-10-14 are what [`identical_samples_are_one_entry_and_sound_the_same`]
+/// looks at.
+fn compile_fixture(dir: &Path) -> (String, String, String, (f64, i64)) {
+    let (music, emit, game) = music_of(dir, false);
     let inc = emit::musicdata(&music, &emit).unwrap();
     let songs = pyjson::to_string(&emit::songs_json(&music.songs));
     let effects = msu::effects(&music, &emit, &game).unwrap();
@@ -119,6 +133,51 @@ fn the_music_is_the_one_the_python_wrote() {
     // with that rate instead of 22050: the same bytes. Everything else came
     // out the same, the versions' bytes included.
     assert_eq!(sha(quality.as_bytes()), "409543a88da28c6fb38a3ca7d3e30995cf141f5b2bece7e3c4937bc8ae6d034a", "the MSU-1 sound effects");
+}
+
+/// The fixture's bank has keys whose samples came out the same —its
+/// SoundFont has two zones, and the copies of a key that reaches its native
+/// rate come out as the key—: merged, they are one directory entry, and
+/// every song writes the same to the DSP, but for SRCN, which points to the
+/// same BRR and the same loop. That is what makes the merge safe to hash
+/// against the Python per key, above.
+#[test]
+fn identical_samples_are_one_entry_and_sound_the_same() {
+    let dir = scratch("merged");
+    let (per_key, emit, _) = music_of(&dir, false);
+    let (merged, _, _) = music_of(&dir, true);
+    let _ = std::fs::remove_dir_all(&dir);
+    let (before, after) = (per_key.all_samples(), merged.all_samples());
+    assert!(after.len() < before.len(), "the fixture has no identical samples: {}", before.len());
+    let entries = merged.bank.entries();
+    let distinct: std::collections::BTreeSet<_> = entries.iter().map(|v| (v.data.clone(), v.loop_block)).collect();
+    assert_eq!(distinct.len(), entries.len(), "a music sample stored twice");
+    for (a, b) in per_key.songs.iter().zip(&merged.songs) {
+        assert_eq!(a.stream, b.stream, "{}: the stream", a.name);
+        let decode = |s: &compile::Built| stream::decode(&s.stream, &s.sounds).unwrap();
+        let (wa, wb) = (decode(a), decode(b));
+        assert_eq!(wa.len(), wb.len(), "{}", a.name);
+        for (x, y) in wa.iter().zip(&wb) {
+            if stream::is_voice_register(x.1) && x.1 & 0x0F == sdsp::V_SRCN {
+                assert_eq!(x.1, y.1);
+                assert_eq!(before[x.2 as usize], after[y.2 as usize], "{}: SRCN {} and {}", a.name, x.2, y.2);
+            } else {
+                assert_eq!(x, y, "{}", a.name);
+            }
+        }
+        assert_eq!(a.fingerprint, b.fingerprint, "{}: the fingerprint", a.name);
+    }
+    // What the sound effects get is the same, numbered after fewer entries.
+    for e in &merged.effects {
+        let (x, y) = (per_key.srcn(&e.name).unwrap(), merged.srcn(&e.name).unwrap());
+        assert_eq!(before[x], after[y], "{}", e.name);
+    }
+    // And the boot uploads each sample once: less than per key.
+    let boot = |m: &compile::Music| {
+        let rom = emit::rom_packages(m, &emit);
+        emit::boot_frames(m, &rom[emit.start], emit.decompress_frames).unwrap().1
+    };
+    assert!(boot(&merged) < boot(&per_key), "{} against {}", boot(&merged), boot(&per_key));
 }
 
 /// The music's sounds of every song, in one table that goes over half a
