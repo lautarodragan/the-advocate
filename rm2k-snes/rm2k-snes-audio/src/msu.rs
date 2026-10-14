@@ -112,8 +112,20 @@ pub fn effects(music: &Music, emit: &Emit, game: &Game) -> Result<Effects> {
             .into_iter()
             .collect();
         in_srcn.sort_by_key(|e| music.srcn(e));
-        let versions_here: Vec<usize> =
-            in_srcn.iter().map(|e| index[&(e.to_string(), theirs[e])]).collect();
+        // TEMPORARY, taro's on 2026-10-14: ABL's whole `release` reaches an
+        // effect with no rate of its own in this package; it takes any
+        // version of the effect instead of stopping the build, so what stops
+        // it next shows. See `tasks/abl-release-stops-at-the-first-night.md`.
+        let versions_here: Vec<usize> = in_srcn
+            .iter()
+            .map(|e| {
+                theirs
+                    .get(e)
+                    .and_then(|r| index.get(&(e.to_string(), *r)).copied())
+                    .or_else(|| versions.iter().position(|v| v.effect == *e))
+                    .unwrap_or_else(|| panic!("effect {e} has no version at all"))
+            })
+            .collect();
         let rows = numbers
             .iter()
             .map(|&i| in_srcn.iter().position(|e| *e == music.effects[i].name).unwrap())

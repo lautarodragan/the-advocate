@@ -3319,16 +3319,20 @@ impl Rest<'_> {
         );
         words_asm(out, "enemy_exp", &per_enemy(&|e| e.exp.into())?, true);
         words_asm(out, "enemy_gold", &per_enemy(&|e| e.gold.into())?, true);
+        // TEMPORARY, taro's on 2026-10-14: a drop the cartridge does not
+        // carry —the converter leaves out the items past 255, see
+        // `items_all` in convert.rs— drops nothing, instead of stopping the
+        // build. Until then it was an error.
         let known: BTreeSet<i64> = r.items.iter().copied().collect();
-        for &e in rom_enemies {
-            let drop = i64::from(enemy(e)?.drop_id);
-            if drop != 0 && !known.contains(&drop) {
-                return Err(Bad::answer(format!(
-                    "enemy {e} drops item {drop} and the cartridge doesn't carry it"
-                )));
-            }
-        }
-        words_asm(out, "enemy_drop", &per_enemy(&|e| e.drop_id.into())?, true);
+        words_asm(
+            out,
+            "enemy_drop",
+            &per_enemy(&|e| {
+                let drop = i64::from(e.drop_id);
+                if known.contains(&drop) { drop } else { 0 }
+            })?,
+            true,
+        );
         bytes_asm(
             out,
             "enemy_drop_pct",
