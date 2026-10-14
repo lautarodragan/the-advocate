@@ -85,7 +85,11 @@ pub fn has_rain<'a>(maps: impl IntoIterator<Item = &'a GameMap>, extra: &[Comman
 /// digits**, which then do not show: which page runs depends on switches
 /// nobody knows here. That is what `never` is for: the maps the game says
 /// the timer never runs in although a page takes it there —`[graphics]
-/// timer_never_runs_in`, each with its reason—.
+/// timer_never_runs_in`, each with its reason—. And `stays`, the maps it
+/// does run in but the walk does not carry it out of —`[graphics]
+/// timer_stays_in`—: their pages start with it stopped. A hub of the story
+/// needs it, because the walk follows every cutscene that leaves it, and
+/// from ABL's Paradise (108) that is the rest of the game.
 ///
 /// **And the maps with a counter**, which draws a variable with the same
 /// digits: a page that calls one of `counters` asks for them whether the
@@ -96,6 +100,7 @@ pub fn timer_reach(
     scan: &Value,
     common_events: &BTreeMap<i32, Vec<Command>>,
     never: &BTreeSet<i32>,
+    stays: &BTreeSet<i32>,
     counters: &BTreeSet<i32>,
 ) -> Result<BTreeSet<i32>> {
     let in_rom: BTreeSet<i32> = maps.iter().map(|m| m.id).collect();
@@ -143,7 +148,7 @@ pub fn timer_reach(
         grew = false;
         for (map_id, commands) in &walked {
             let mut here = *map_id;
-            let mut running = reach.contains(map_id);
+            let mut running = reach.contains(map_id) && !stays.contains(map_id);
             for cmd in commands {
                 let p = &cmd.parameters;
                 if cmd.code == CALL_EVENT && p.len() >= 2 && p[0] == CALL_COMMON && counters.contains(&p[1]) {
@@ -459,8 +464,30 @@ mod tests {
         let five = map(5, vec![]);
         let maps = [&one, &two, &three, &four, &five];
         let scan = everything_compiles(&maps);
-        let reach = timer_reach(&maps, &scan, &BTreeMap::new(), &BTreeSet::from([5]), &BTreeSet::new()).unwrap();
+        let reach = timer_reach(&maps, &scan, &BTreeMap::new(), &BTreeSet::from([5]), &BTreeSet::new(), &BTreeSet::new()).unwrap();
         assert_eq!(reach, BTreeSet::from([1, 2, 3]));
+    }
+
+    #[test]
+    fn a_map_the_timer_stays_in_is_reached_and_not_left() {
+        // Map 1 starts it and goes to 2, a hub: 2 is reached, and its page
+        // that goes on to 3 does not carry it, unless it starts it itself,
+        // as the one that goes to 4 does.
+        let one = map(1, vec![vec![cmd(TIMER_OPERATION, &[TIMER_START]), cmd(TELEPORT, &[2, 0, 0])]]);
+        let two = map(
+            2,
+            vec![
+                vec![cmd(TELEPORT, &[3, 0, 0])],
+                vec![cmd(TIMER_OPERATION, &[TIMER_START]), cmd(TELEPORT, &[4, 0, 0])],
+            ],
+        );
+        let (three, four) = (map(3, vec![]), map(4, vec![]));
+        let maps = [&one, &two, &three, &four];
+        let scan = everything_compiles(&maps);
+        let reach =
+            timer_reach(&maps, &scan, &BTreeMap::new(), &BTreeSet::new(), &BTreeSet::from([2]), &BTreeSet::new())
+                .unwrap();
+        assert_eq!(reach, BTreeSet::from([1, 2, 4]));
     }
 
     #[test]
@@ -468,7 +495,7 @@ mod tests {
         let one = map(1, vec![vec![cmd(CALL_EVENT, &[CALL_COMMON, 7])]]);
         let maps = [&one];
         let reach =
-            timer_reach(&maps, &everything_compiles(&maps), &BTreeMap::new(), &BTreeSet::new(), &BTreeSet::from([7]))
+            timer_reach(&maps, &everything_compiles(&maps), &BTreeMap::new(), &BTreeSet::new(), &BTreeSet::new(), &BTreeSet::from([7]))
                 .unwrap();
         assert_eq!(reach, BTreeSet::from([1]));
     }
