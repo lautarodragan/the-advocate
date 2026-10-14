@@ -187,7 +187,9 @@ pub fn cut(layer: &Picture, col: usize, row: usize, index: &HashMap<Color, u8>) 
 
 /// The cells of a rectangle of `layer` —`rows` from `row0`, `cols` from
 /// `col0`— as tilemap words, row by row, adding new tiles to `bank`: the
-/// tile's number with `palette` in the three bits above it.
+/// tile's number with `palette` in the three bits above it. With `mirror`,
+/// a cell that is a tile of the bank flipped takes that tile and the
+/// flip bits —see [`Bank::add_mirrored`]—.
 #[allow(clippy::too_many_arguments)]
 pub fn cell_block(
     layer: &Picture,
@@ -198,12 +200,14 @@ pub fn cell_block(
     col0: usize,
     cols: usize,
     palette: u16,
+    mirror: bool,
 ) -> Result<Vec<u16>> {
     let mut out = Vec::with_capacity(rows * cols);
     for row in 0..rows {
         for col in col0..col0 + cols {
             let cell = cut(layer, col, row0 + row, index)?;
-            out.push(bank.add(cell) as u16 | palette << 10);
+            let (at, flip) = if mirror { bank.add_mirrored(cell) } else { (bank.add(cell), 0) };
+            out.push(at as u16 | flip | palette << 10);
         }
     }
     Ok(out)
@@ -276,4 +280,51 @@ pub fn group_cells(picture: &mut Picture, at: &[(usize, usize)], max: usize) -> 
         }
     }
     distinct.len()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A layer with an "L" in white in cell (0, 0) and the same "L"
+    /// mirrored across x in cell (1, 0).
+    fn mirrored_pair() -> (Picture, HashMap<Color, u8>) {
+        let mut picture = layer();
+        let width = picture.width;
+        let mut white = |x: usize, y: usize| {
+            let at = (y * width + x) * 4;
+            picture.rgba[at..at + 4].copy_from_slice(&[255, 255, 255, 255]);
+        };
+        for y in 0..CELL {
+            for x in 0..CELL {
+                if x == 0 || y == CELL - 1 {
+                    white(x, y);
+                    white(2 * CELL - 1 - x, y);
+                }
+            }
+        }
+        (picture, HashMap::from([([31, 31, 31], 1)]))
+    }
+
+    /// With `mirror`, the second cell is the first tile flipped across x:
+    /// one tile in the bank besides the empty one, and bit 14 on its word.
+    #[test]
+    fn a_mirrored_cell_takes_the_tile_and_the_flip_bit() {
+        let (picture, index) = mirrored_pair();
+        let mut bank = Bank::default();
+        let words = cell_block(&picture, 0, 1, &mut bank, &index, 0, 2, 0, true).unwrap();
+        assert_eq!(bank.len(), 2);
+        assert_eq!(words, vec![1, 1 | 1 << 14]);
+    }
+
+    /// Without it, each shape is a tile of its own and no word flips: what
+    /// the menu also draws as sprites needs that.
+    #[test]
+    fn without_mirror_no_word_flips() {
+        let (picture, index) = mirrored_pair();
+        let mut bank = Bank::default();
+        let words = cell_block(&picture, 0, 1, &mut bank, &index, 0, 2, 0, false).unwrap();
+        assert_eq!(bank.len(), 3);
+        assert_eq!(words, vec![1, 2]);
+    }
 }

@@ -216,11 +216,17 @@ pub fn run(options: Options) -> Result<()> {
     if !options.no_timer {
         let never: BTreeSet<i32> =
             project.ints(&["graphics", "timer_never_runs_in"])?.into_iter().map(|m| m as i32).collect();
+        // A knob at rest when it is missing, as `int_or` says: a game
+        // without a hub the walk floods from does not write it.
+        let stays: BTreeSet<i32> = match project.value(&["graphics", "timer_stays_in"]) {
+            Err(_) => BTreeSet::new(),
+            Ok(_) => project.ints(&["graphics", "timer_stays_in"])?.into_iter().map(|m| m as i32).collect(),
+        };
         let counters: BTreeSet<i32> = compiler::counters(&settings)?
             .iter()
             .map(|c| int(&c["common_event"]) as i32)
             .collect();
-        timer_maps.extend(scan::timer_reach(&every_refs, &scan_answer, &game.db.common_events, &never, &counters)?);
+        timer_maps.extend(scan::timer_reach(&every_refs, &scan_answer, &game.db.common_events, &never, &stays, &counters)?);
     }
     println!(
         "  the timer's digits go in {} of the {} maps: {}",

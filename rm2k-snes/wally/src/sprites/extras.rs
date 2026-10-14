@@ -6,9 +6,9 @@
 //! whole one each, above the characters', because what is in it fades or
 //! changes with them.
 
-use crate::sprites::character::{OBJ_COLORS, OBJ_PALETTES};
+use crate::sprites::character::{nearest, OBJ_COLORS, OBJ_PALETTES};
 use crate::sprites::fail::{Bad, Result};
-use adeleine::Color;
+use adeleine::{luma_distance, Color};
 use rm2k_render::Picture;
 use std::collections::{BTreeMap, BTreeSet};
 use voodoo::pack_tile;
@@ -60,14 +60,54 @@ pub fn timer_colors(glyphs: &Picture) -> Vec<Color> {
 
 /// Which entries of `palette` the timer's `colors` take, one bit per entry,
 /// counting the transparent one as entry 0: each colour at the first entry
-/// that has it, which is the one its glyphs were painted with. The console
-/// uploads **those** again untinted after a tint, and not the whole
+/// that has it, which is the one its glyphs were painted with —or at its
+/// nearest, if the timer was lent the palette: see `timer_digits`—. The
+/// console uploads **those** again untinted after a tint, and not the whole
 /// palette, because the palette belongs to a character that is tinted.
 pub fn timer_mask(colors: &[Color], palette: &[Color]) -> u16 {
     colors
         .iter()
-        .map(|c| palette.iter().position(|p| p == c).expect("`timer_digits` put the timer's colours in its palette"))
+        .map(|c| entry_of(palette, *c))
         .fold(0, |mask, at| mask | 1 << (at + 1))
+}
+
+/// Where a glyph colour is painted in `palette`: its first entry, or its
+/// nearest's when the timer was lent the palette.
+fn entry_of(palette: &[Color], color: Color) -> usize {
+    let at = nearest(palette, color);
+    palette.iter().position(|p| *p == at).unwrap()
+}
+
+/// The timer's colours with how many pixels of the glyphs each paints.
+fn timer_counts(glyphs: &Picture) -> BTreeMap<Color, u64> {
+    let mut counts = BTreeMap::new();
+    for y in 0..TIMER_GLYPH_H as i64 {
+        for x in 0..(TIMER_GLYPHS * TIMER_GLYPH_W) as i64 {
+            let p = glyphs.get(x, y);
+            if p[3] != 0 {
+                *counts.entry([p[0] >> 3, p[1] >> 3, p[2] >> 3]).or_insert(0) += 1;
+            }
+        }
+    }
+    counts
+}
+
+/// The palette —but the leaders'— whose nearest colours draw the timer
+/// with the least change: pixels times distance, the same measure
+/// `nearest` uses. `None` if every palette is a leader's.
+fn closest_for_timer(glyphs: &Picture, palettes: &[Vec<Color>], leader_owned: &BTreeSet<usize>) -> Option<usize> {
+    let counts = timer_counts(glyphs);
+    let mut best: Option<(u64, usize)> = None;
+    for (number, palette) in palettes.iter().enumerate() {
+        if leader_owned.contains(&number) || palette.is_empty() {
+            continue;
+        }
+        let cost: u64 = counts.iter().map(|(c, n)| n * luma_distance(nearest(palette, *c), *c) as u64).sum();
+        if best.is_none_or(|(b, _)| cost < b) {
+            best = Some((cost, number));
+        }
+    }
+    best.map(|(_, n)| n)
 }
 
 /// The first palette —but the leaders'— where `colors` fit without merging
@@ -102,6 +142,15 @@ pub fn first_place(
 /// i`, from a row of blocks on. Their colours go into the first palette
 /// with room —but the leaders', which the console overwrites—, or a new
 /// one. Returns the base and the palette.
+///
+/// **And with no room anywhere, the timer is lent a palette**, as a
+/// character is: the one whose nearest colours change it the least, each
+/// glyph colour drawn with its nearest. It is the last way out, after the
+/// split brought a character down a colour if it could. It was born for
+/// Paradise (ABL's 108) with every leader of the game, where all eight
+/// palettes are full and lend themselves: black is in all of them, and the
+/// red becomes the nearest red. A timer a little off is better than none
+/// in a map where it runs; `extras` says which palette in a WARNING.
 pub fn timer_digits(
     glyphs: &Picture,
     tiles: &mut Vec<u8>,
@@ -133,21 +182,20 @@ pub fn timer_digits(
         Some(n) => n,
         None => {
             if palettes.len() >= cap {
-                return Err(Bad::new(format!(
-                    "the timer doesn't fit: the map already uses the {cap} sprite palettes it \
-                     gets and none has room for its {} colors",
-                    wanted.len()
-                )));
+                closest_for_timer(glyphs, palettes, leader_owned).ok_or_else(|| {
+                    Bad::new(format!(
+                        "the timer doesn't fit: the map uses the {cap} sprite palettes it gets \
+                         and all of them are the leaders'"
+                    ))
+                })?
+            } else {
+                palettes.push(wanted.clone());
+                palettes.len() - 1
             }
-            palettes.push(wanted.clone());
-            palettes.len() - 1
         }
     };
     let palette = &palettes[which];
-    let index: BTreeMap<Color, u8> = wanted
-        .iter()
-        .map(|c| (*c, palette.iter().position(|p| p == c).unwrap() as u8 + 1))
-        .collect();
+    let index: BTreeMap<Color, u8> = wanted.iter().map(|c| (*c, entry_of(palette, *c) as u8 + 1)).collect();
     let base = rounded_to_row(tiles.len() / 32);
     grow(tiles, base + 16 + TIMER_GLYPHS);
     for i in 0..TIMER_GLYPHS {
@@ -297,12 +345,51 @@ mod tests {
         assert!(p[which].len() <= OBJ_COLORS);
     }
 
-    /// With the eight full there is nothing to be done, and it says so.
+    /// With the eight full the timer is lent the palette that draws it with
+    /// the least change, as a character would be, and none grows: here the
+    /// one with black and a red close to the System's. Until 2026-10-14
+    /// this stopped the conversion.
     #[test]
-    fn if_they_really_do_not_fit_it_says_so() {
+    fn with_the_eight_full_the_timer_is_lent_the_closest() {
+        let mut p = palettes(15, 8);
+        p[5][3] = [0, 0, 0];
+        p[5][9] = [29, 2, 1];
+        let before = p.clone();
+        let mut tiles = vec![0; 32 * 64];
+        let (base, which) = timer_digits(&glyphs(), &mut tiles, &mut p, &BTreeSet::from([0, 1]), OBJ_PALETTES).unwrap();
+        assert_eq!(which, 5);
+        assert_eq!(p, before, "no palette grows");
+        // Glyph 0's first row, as the System draws it: entry 4 for black and
+        // entry 10 for red.
+        let mask = timer_mask(&timer_colors(&glyphs()), &p[5]);
+        assert_eq!(mask, 1 << 4 | 1 << 10);
+        let row: Vec<u8> = (0..8)
+            .map(|x| {
+                let bit = 7 - x;
+                (0..4).map(|plane| {
+                    let byte = tiles[base * 32 + [0, 1, 16, 17][plane]];
+                    (byte >> bit & 1) << plane
+                }).sum()
+            })
+            .collect();
+        let want: Vec<u8> = (0..8)
+            .map(|x| match (x % 3, x % 2) {
+                (0, _) => 0,
+                (_, 0) => 10,
+                _ => 4,
+            })
+            .collect();
+        assert_eq!(row, want);
+    }
+
+    /// With the eight full and all of them the leaders', there is nothing
+    /// to lend, and it says so.
+    #[test]
+    fn if_every_palette_is_a_leaders_it_says_so() {
         let mut p = palettes(15, 8);
         let mut tiles = vec![0; 32 * 64];
-        assert!(timer_digits(&glyphs(), &mut tiles, &mut p, &BTreeSet::new(), OBJ_PALETTES).is_err());
+        let leaders: BTreeSet<usize> = (0..8).collect();
+        assert!(timer_digits(&glyphs(), &mut tiles, &mut p, &leaders, OBJ_PALETTES).is_err());
     }
 
     /// The console overwrites the leaders' slot with the colours of whoever

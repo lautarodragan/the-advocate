@@ -332,9 +332,16 @@ pub fn slots_screen_with(
         },
         ..Default::default()
     };
+    // Every block takes a tile of the bank flipped when it is one: since
+    // 2026-10-14, when ABL with every map was three tiles short for the
+    // slot screen's names. **But the loose glyphs and the experience
+    // term**, which `menu_exp_paint` also draws as sprites and passes only
+    // the tile's number on to the OAM: a flip there would draw the tile
+    // unflipped.
     let place = |kind: &Kind, image: &Picture, bank: &mut Bank, out: &mut Slots| -> Result<()> {
+        let mirror = !matches!(kind, Kind::Glyph(_) | Kind::ExpTerm);
         let mut block = |row0: usize, rows: usize, index, col0: usize, cols: usize, palette: u16| {
-            cells::cell_block(image, row0, rows, bank, index, col0, cols, palette)
+            cells::cell_block(image, row0, rows, bank, index, col0, cols, palette, mirror)
         };
         match kind {
             Kind::Option(option, disabled) => {
@@ -411,6 +418,7 @@ pub fn slots_screen_with(
             FACE_COL,
             FACE_CELLS,
             which as u16,
+            true,
         )?;
         out.faces.insert(actor, cells);
     }
