@@ -26,7 +26,7 @@ use crate::background::Converted;
 use crate::sprites::bank::{build_characters, pose_bank, Slot, SlotPose};
 use crate::sprites::cache::{peak, Wants, BLOCKS, CACHE_MAX, STILLS_MAX};
 use crate::sprites::character::{
-    block_tile, character_palette, sprite_colors, Key, INITIAL_POSE, OBJ_PALETTES, OBJ_ROW,
+    block_tile, character_palette, nearest, sprite_colors, Key, INITIAL_POSE, OBJ_PALETTES, OBJ_ROW,
 };
 use crate::sprites::extras::{
     first_place, map_animation, picture_of_image, rain_drops, timer_colors, timer_digits, timer_mask,
@@ -1403,7 +1403,8 @@ struct Extras {
 }
 
 /// The extras after `tiles`. The timer's digits not fitting stops the
-/// conversion: that is the error.
+/// conversion: that is the error. Since 2026-10-14 they only do not fit
+/// when every palette is a leader's: otherwise they are lent one.
 fn extras(
     id: i32,
     request: &MapRequest,
@@ -1417,7 +1418,23 @@ fn extras(
     let mut timer_at = None;
     if let Some(glyphs) = glyphs {
         match timer_digits(glyphs, &mut tiles, &mut palettes, leader_owned, palette_cap) {
-            Ok(at) => timer_at = Some(at),
+            Ok(at) => {
+                let missing: Vec<Color> =
+                    timer_colors(glyphs).into_iter().filter(|c| !palettes[at.1].contains(c)).collect();
+                if !missing.is_empty() {
+                    let drawn: Vec<String> = missing
+                        .iter()
+                        .map(|c| format!("{c:?} as {:?}", nearest(&palettes[at.1], *c)))
+                        .collect();
+                    notes.push(note(format!(
+                        "  map {id}: WARNING, the timer has no palette with room and is lent {}, \
+                         drawn with its nearest colors: {}",
+                        at.1,
+                        drawn.join(", ")
+                    )));
+                }
+                timer_at = Some(at);
+            }
             Err(b) => return Err(Note { kind: "stop", text: b.0, stop: true }),
         }
     }
