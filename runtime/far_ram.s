@@ -354,17 +354,13 @@ MED_MATERIAL  = $08             ; a material: it raises parameters, see `FAR_GRO
 ; the save, and `medicine_use` adds to them. `ChangeParameters`, which is the
 ; other way RM2k has of moving them, the port does not compile.
 ;
-; $7E7D00 to $7E7EEF was allotted on 2026-10-04: from the end of the slot
-; cache's to `CARRY_MAP` nobody was —measured on the symbol table of the
-; cartridges—. The next day the panorama took $7E7E00 on, "after the end of
-; `FAR_GROWTH`'s" in the cartridges of that day, so what is left to this is
-; up to `PANO_ON`: 21 slots and not 41. Sixteen-bit address, like the
-; battle's: `medicine_use` runs with the data bank at $7E, and `save_table`
-; takes it as it is.
-FAR_GROWTH    = $7D00
+; The table itself is a `.res` in `FARBSS`, in medicine.s, sized by the game
+; —`EXP_K` rows—: it cannot be declared here, which comes before the
+; cartridge's `.inc` says how many slots there are. Until 2026-10-14 it was
+; placed by hand at $7E7D00 with room up to the panorama's state, 21 slots,
+; and ABL's whole game has 23; $7E7D00 to $7E7DFF has been free since.
 GROWTH_BYTES  = 12
 GROWTH_MAX    = 999             ; `MaxHpValue`, `MaxSpValue` and `MaxStatBaseValue` of RM2k
-.assert FAR_GROWTH + EXP_K * GROWTH_BYTES <= (PANO_ON & $FFFF), error, "what the materials added reaches the panorama's state"
 
 ; What `pair_ev` holds while a troop page runs: neither the foreground ($FF)
 ; nor a map event, which are fewer than EV_MAX. It is what tells
@@ -804,18 +800,10 @@ FAR_STRIP_COL2 = $7E6B40
 ; travel in the save**: loading it loads the map, and that sets it again.
 FAR_VRAM_MAP = $7E6B80
 
-; --- the flash palettes, in far RAM -----------------------------------------
-;
-; One per flash slot, thirty-two bytes each, and the vblank uploads all the
-; ones left pending. It has to be one per slot: with a single one, two live
-; flashes in the same frame overwrote each other, the last one's was
-; uploaded, and the frame that turns off the first never reached CGRAM. They
-; do not fit in the BSS.
-;
-; $6900 to $69FF belongs to this, reserved on 2026-09-23. **It does not
-; travel in the save**: it lasts one frame.
-FAR_FLASH_PAL = $7E6900         ; FLASH_MAX * 32
-.assert FLASH_MAX * 32 <= $100, error, "the flash palettes overflow their range"
+; $6900 to $69FF was the flash palettes', reserved on 2026-09-23. On
+; 2026-10-14 `FARBSS` took the stretch over and they went into it, in
+; character_flash.s: `FLASH_MAX * 32` is 128 bytes, and the other 128 is
+; what the materials' table needed to grow with the game.
 
 ; --- the music decoder, in far RAM -------------------------------------------
 ;

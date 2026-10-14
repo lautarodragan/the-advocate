@@ -157,13 +157,16 @@ pub const STACK: usize = 128;
 /// taking over another stretch of that map and moving whatever lived there
 /// into the segment: on 2026-10-12 it took a medicine's, `$7E6800` to
 /// `$7E68FF` —its twenty-one bytes went into the segment—, when the battle's
-/// conditions did not fit in what was left. `$7E6900` is the map's flash.
+/// conditions did not fit in what was left; on 2026-10-14 it took the
+/// flash palettes', `$7E6900` to `$7E69FF` —they take half of it—, when
+/// the materials' table went into the segment and had to have room for every
+/// actor of the whole game. `$7E6A00` is the map's strips.
 ///
 /// The address carries the bank, so a label in the segment is a 24-bit one:
 /// read plainly it is a long access, which works whatever the data bank;
 /// code that runs with the data bank at `$7E` takes its `.loword`.
 pub const FAR_POOL_START: usize = 0x7E66C0;
-pub const FAR_POOL_SIZE: usize = 0x0240;
+pub const FAR_POOL_SIZE: usize = 0x0340;
 
 /// The segment the generated data sends everything to.
 pub const SEGMENT: &str = "RODATA";

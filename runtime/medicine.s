@@ -1,5 +1,14 @@
 .segment "FAR"
 
+; What the materials added to each experience slot, `GROWTH_BYTES` per slot:
+; see `GROWTH_BYTES` in far_ram.s. Declared here, after the cartridge's
+; `.inc`, because its size is the game's. bank1.s and level.s come before
+; this file in main.s, so they reach it with `.loword` and `f:`.
+.pushseg
+.segment "FARBSS"
+FAR_GROWTH: .res EXP_K * GROWTH_BYTES
+.popseg
+
 ; --- a medicine from the menu ------------------------------------------------
 ;
 ; easyrpg's `Game_Party::UseItem(id, actor)` (`game_party.cpp:322`), which is
@@ -317,7 +326,7 @@ each:
     clc
     adc .loword(MED_P)
     tax
-    lda FAR_GROWTH, x
+    lda .loword(FAR_GROWTH), x
     clc
     adc .loword(MED_HP)
     bmi below
@@ -330,7 +339,7 @@ below:
     bcs stores                  ; from -999 to -1
     lda #.loword(-GROWTH_MAX)
 stores:
-    sta FAR_GROWTH, x
+    sta .loword(FAR_GROWTH), x
     iny
     iny
     cpy #GROWTH_BYTES

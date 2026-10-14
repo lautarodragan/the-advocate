@@ -41,8 +41,9 @@
 ; Everything here is reached with `jsl` and goes back with `rtl`.
 
 ; The state, in far RAM: $7E7E00 to $7E7EDF, allotted on 2026-10-05 between
-; the end of `FAR_GROWTH`'s and `CARRY_MAP`. A word per axis goes across
-; first and down after, so that one routine does both with Y at 0 or 2.
+; the end of `FAR_GROWTH`'s, which was then at $7E7D00, and `CARRY_MAP`. A
+; word per axis goes across first and down after, so that one routine does
+; both with Y at 0 or 2.
 PANO_ON    = $7E7E00            ; 0, or the mode the map shows its panorama in
 PANO_WAS1  = $7E7E01            ; whether the PPU is in mode 1 because of one
 PANO_ENT   = $7E7E02            ; the map's record, an offset into pano_table
@@ -69,7 +70,6 @@ PANO_END   = $7E7EE7
 P_AUTO = PANO_AUTO & $FFFF
 P_FLAGS = PANO_FLAGS & $FFFF
 .assert PANO_END <= CARRY_MAP, error, "the panorama's state goes into the carried map"
-.assert FAR_GROWTH + EXP_K * GROWTH_BYTES <= (PANO_ON & $FFFF), error, "the growth tables go into the panorama's state"
 ; With the data bank at $7E, as `pano_tick` runs.
 P_AX   = PANO_AX & $FFFF
 P_UX   = PANO_UX & $FFFF

@@ -12,6 +12,17 @@
 ; they were. That way the palette's path is a single one and there are no two
 ; places that can differ.
 
+; The flash palettes, in far RAM: one per flash slot, thirty-two bytes each,
+; and the vblank uploads all the ones left pending. It has to be one per
+; slot: with a single one, two live flashes in the same frame overwrote each
+; other, the last one's was uploaded, and the frame that turns off the first
+; never reached CGRAM. They do not fit in the BSS. **They do not travel in
+; the save**: they last one frame.
+.pushseg
+.segment "FARBSS"
+FAR_FLASH_PAL: .res FLASH_MAX * 32
+.popseg
+
 ; Stores the flash carried by the six operands that follow Y.
 .proc flash_start
 .a8

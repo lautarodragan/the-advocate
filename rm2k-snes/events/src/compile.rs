@@ -5602,6 +5602,44 @@ mod tests {
         compile_page(&mut ctx, commands, Some(me), 0, 0).unwrap()
     }
 
+    #[test]
+    fn a_box_past_the_operand_still_compiles_while_measuring() {
+        // `compile`'s first pass gathers the boxes without pairs and without
+        // the operand's cap, and the bytecode it writes is thrown away; with
+        // ABL's whole game the block passed 256 KB there and common event 12
+        // stopped the cartridge. The box's offset still has to fit the word.
+        use crate::messages::{Messages, Window};
+        let game = Game::default();
+        let indices = Indices::default();
+        let sound = SoundSettings::default();
+        let mut songs = Songs::default();
+        songs.current = Some(Package::Map(0));
+        let mut messages = Messages::measuring(1, Window::columns(39, 4));
+        for k in 0..2000 {
+            let line = format!("{k:>39}");
+            assert!(messages.add(&[line.clone(), line]).is_ok());
+        }
+        assert!(messages.mark() > 0x10000);
+        let mut ctx = Ctx {
+            game: &game,
+            indices: &indices,
+            sound: &sound,
+            map_index: &|_| Some(1),
+            messages: Some(&mut messages),
+            songs: Some(&mut songs),
+            graphics: None,
+            pictures: None,
+            troops: None,
+            commons: None,
+            shared: None,
+        };
+        let map = crate::game::Map { id: 5, events: Vec::new() };
+        let me = MapEvents::new(&map, None);
+        let page = [cmd(SHOW_MESSAGE, &[], "one more box")];
+        let code = compile_page(&mut ctx, &page, Some(me), 0, 0).unwrap();
+        assert!(code.is_some());
+    }
+
     /// The same page, on a map 5 whose only event is 1, **as that event's**:
     /// "this event" is somebody.
     fn as_the_only_event(commands: &[Command]) -> Option<Vec<u8>> {

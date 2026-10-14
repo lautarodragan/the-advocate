@@ -253,7 +253,7 @@ save_table:
     .word FAR_SKILL, SKILL_BYTES
     ; And what the materials added to each actor that can fight: see
     ; `FAR_GROWTH`.
-    .word FAR_GROWTH, EXP_K * GROWTH_BYTES
+    .word .loword(FAR_GROWTH), EXP_K * GROWTH_BYTES
     ; And the panorama: what it scrolled on its own, and how a `ChangePBG`
     ; left it looping and scrolling, which RM2k saves too. Saved in any map
     ; and worth something only in one that shows its panorama, where the

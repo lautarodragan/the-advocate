@@ -455,7 +455,7 @@ ready:
     tax
     pla
     clc
-    adc f:FAR_LENGTH + FAR_GROWTH, x
+    adc f:FAR_GROWTH, x
     bmi low
     cmp #(GROWTH_MAX + 1)
     bcc high_ok
@@ -602,7 +602,7 @@ ready:
     lda #0
     ldx #0
 no_growth:
-    sta f:FAR_LENGTH + FAR_GROWTH, x
+    sta f:FAR_GROWTH, x
     inx
     inx
     cpx #(EXP_K * GROWTH_BYTES)
