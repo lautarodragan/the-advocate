@@ -312,6 +312,34 @@ impl Materials {
         (label, text)
     }
 
+    /// A table whose bytes carry symbolic pointers —the linker sets them,
+    /// so there are no bytes to compare it by—, stored once by its text:
+    /// its `.byte` lines, which name the same labels when they point to the
+    /// same thing. It goes under the label of the first map that brings it,
+    /// `{kind}_{number}`, so a cartridge where no two maps share one comes
+    /// out as it did before tables were shared. `size` is its `.block`.
+    /// `(label, the asm to emit)`, the asm empty if it was already there.
+    pub fn store_symbolic(
+        &mut self,
+        kind: &str,
+        number: usize,
+        size: usize,
+        lines: &[String],
+    ) -> (String, String) {
+        let text = lines.join("\n");
+        // The kind with a `:`, which no block kind has: these keys are text
+        // and the others bytes, and they must not meet.
+        let key = (format!("{kind}:"), text.clone().into_bytes());
+        if self.dedupe {
+            if let Some(label) = self.labels.get(&key) {
+                return (label.clone(), String::new());
+            }
+        }
+        let label = format!("{kind}_{number}");
+        self.labels.insert(key, label.clone());
+        (label.clone(), format!(".block {size}\n{label}:\n{text}"))
+    }
+
     /// Like [`Materials::store`], but what goes to the cartridge is the
     /// block's LZ2 stream, or its streams stuck together if it goes in
     /// pieces. It is shared by the stream, which is the same as by the raw
@@ -406,6 +434,22 @@ impl Materials {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn a_table_of_pointers_is_stored_once_by_its_text_under_the_first_map() {
+        let mut m = super::Materials::new(true, Default::default());
+        let lines = |l: &str| vec![format!("    .byte <({l}), >({l}), ^({l})")];
+        let (first, text) = m.store_symbolic("npc_poses", 3, 36, &lines("pose_1"));
+        assert_eq!(first, "npc_poses_3");
+        assert_eq!(text, ".block 36\nnpc_poses_3:\n    .byte <(pose_1), >(pose_1), ^(pose_1)");
+        assert_eq!(
+            m.store_symbolic("npc_poses", 7, 36, &lines("pose_1")),
+            ("npc_poses_3".to_string(), String::new())
+        );
+        assert_eq!(m.store_symbolic("npc_poses", 8, 36, &lines("pose_2")).0, "npc_poses_8");
+        // A kind's text never answers for another's.
+        assert_eq!(m.store_symbolic("actor_table", 9, 36, &lines("pose_1")).0, "actor_table_9");
+    }
+
     use super::*;
 
     #[test]

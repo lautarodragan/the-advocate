@@ -1201,12 +1201,14 @@ impl<'a> PageMap<'a> {
 
 /// The pointers to the twelve poses of each character that changes pose,
 /// one entry per character —the same index the drawn event's row carries
-/// in +9 and the leader in its table—.
-fn npc_poses_asm(number: usize, animated: &[(String, i64)], poses: &PoseLabels) -> String {
-    let mut out = vec![
-        format!(".block {}", 3 * SPRITE_POSES * animated.len().max(1)),
-        format!("npc_poses_{number}:"),
-    ];
+/// in +9 and the leader in its table—: its size and its lines.
+///
+/// **Stored once for the whole cartridge** when two maps bring the same
+/// one (see [`Materials::store_symbolic`]): 307 maps of ABL carried 191
+/// different ones. The record points to it with 24 bits, so the console
+/// does not notice which map's it is.
+fn npc_poses_asm(animated: &[(String, i64)], poses: &PoseLabels) -> (usize, Vec<String>) {
+    let mut out = Vec::new();
     for pair in animated {
         for label in &poses[pair] {
             out.push(format!("    .byte {}", pointer(label)));
@@ -1215,7 +1217,7 @@ fn npc_poses_asm(number: usize, animated: &[(String, i64)], poses: &PoseLabels) 
     if animated.is_empty() {
         out.push("    .byte $00".into());
     }
-    out.join("\n")
+    (3 * SPRITE_POSES * animated.len().max(1), out)
 }
 
 /// The leader candidates: id, palette, their fifteen colours and the
@@ -1327,7 +1329,12 @@ pub fn map_data(
         }
     }
     let animated = sprite.map_or(&[][..], |s| s.animated.as_slice());
-    out.push(npc_poses_asm(number, animated, poses));
+    let (size, lines) = npc_poses_asm(animated, poses);
+    let (label, text) = materials.store_symbolic("npc_poses", number, size, &lines);
+    if !text.is_empty() {
+        out.push(text);
+    }
+    labels.insert("npc_poses", label);
     out.push(actor_table_asm(number, map, poses));
     // The grid, in its two streams, and the block table and its passability
     // in a third: see `lz2_grid`.
@@ -1350,9 +1357,9 @@ pub fn map_data(
         labels.insert(name, address);
     }
     out.push(page_table(&PageMap::of(map), number, &labels["evcode"]));
-    // The three that are not shared carry symbolic pointers inside, whose
+    // The two that are not shared carry symbolic pointers inside, whose
     // bytes the linker sets: there is no content to compare them by.
-    for name in ["npc_poses", "actor_table", "pages"] {
+    for name in ["actor_table", "pages"] {
         labels.insert(name, format!("{name}_{number}"));
     }
     Ok((out.join("\n"), labels))
