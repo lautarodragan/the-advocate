@@ -611,6 +611,11 @@ pub struct OwnRoute {
     pub spin: bool,
     #[serde(default)]
     pub pattern: i64,
+    /// Whether it walks by a movement type and not a route: its one
+    /// command is `ROUTE_BY_TYPE` plus the type. The console gives it a
+    /// slot only while others stay free for forced routes.
+    #[serde(default)]
+    pub by_type: bool,
     pub frequency: i64,
     pub speed: i64,
     /// How many commands it has.

@@ -411,8 +411,13 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
     // rest, because every one of them changes less of what is seen. Only
     // where a layout would hold the map's sprites and upper tiles: fusing
     // does nothing for a map that is over on those.
+    //
+    // Those of the conversion with a cache too, which are the fewest: with
+    // walkers enough, the slots of the other two hold no layout and only
+    // the cache fits, once the background is fused. Vampires Dawn's 163
+    // is that since its walkers by a movement type walk, 2026-10-14.
     if request.fuse_tiles.is_none() {
-        if let Some(room) = fusable(&worst, request) {
+        if let Some(room) = fusable(&worst, request).or_else(|| fusable(&cached, request)) {
             let mut cap = room;
             for _ in 0..FUSE_TRIES {
                 let asked = MapRequest {

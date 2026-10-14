@@ -1057,8 +1057,10 @@ pub fn page_table(map: &PageMap, number: usize, evcode: &str) -> String {
             ));
             // The speed is 1 to 6, so the spin rides in its high bits: the
             // byte at +13 is full. Bit 7 it turns in place, bits 4 and 5
-            // the column it shows. See `load_page_into_slot`.
+            // the column it shows. See `load_page_into_slot`. And bit 3,
+            // it walks by a movement type: see `walk_may_take`.
             let speed = own.speed
+                | bit(own.by_type, 8)
                 | bit(own.spin, 128)
                 | if own.spin { own.pattern << 4 } else { 0 }
                 | fixed_graphic(page);

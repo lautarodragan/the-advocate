@@ -247,6 +247,7 @@ party_ready:
     stz bgm_fade                ; and the same with the song's
     jsl f:boot_transition           ; and the teleport, with fade
     jsl f:encounter_boot        ; the encounters' random seed
+    jsl f:walk_boot + FAST      ; and the walkers'
     jsl f:speed_keys_boot       ; and L and R's bonus on the hero's speed
     jsl f:share_boot + FAST     ; and no map with shared slots yet
 

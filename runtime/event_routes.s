@@ -324,8 +324,7 @@ no_negative:
     cmp #$03
     bne still_moving
 with_commands:
-    lda route_ev + 16, x
-    jsr after_step
+    jsl f:walk_after_step + FAST ; `after_step`, or a random walker's own
     sta route_ev + 9, x
 still_moving:
     lda #1
@@ -542,7 +541,8 @@ off_crosses:
     bra save_flags
 anim:
     cmp #40
-    bcs follow
+    bcs by_type                 ; 40 and 41 never get here: from 49 on, a
+                                ; page that walks by a movement type
     ; 38 stops the animation and 39 resumes it.
     cmp #38
     bne follow_anim
@@ -606,6 +606,20 @@ minus_freq:
 save_18:
     sta route_ev + 18, x
     bra follow
+
+; A page that walks by a movement type: `walk_choose` decides the step, with
+; the direction toward the hero at hand for the two that look at him, and it
+; is tried like any other. See `walk_by_type.s`.
+by_type:
+    sta f:walk_kind
+    jsr event_cell
+    jsr toward_hero             ; keeps X
+    jsl f:walk_choose + FAST
+    cmp #$FF
+    bne try_type
+    jmp ready                   ; it stands still: the wait is set
+try_type:
+    jmp move
 
 ; `change_graphic`: the only command with an operand. After the 34 comes the
 ; graphic's index in the map's table —two bytes per graphic, see
@@ -753,6 +767,17 @@ tested:
     ; Blocked. If it was the hero in the way, an event's touch page fires: see
     ; `collide_with_hero`, which keeps X.
     jsr collide_with_hero
+    ; A page that walks by a type does not retry the command: it decides
+    ; again on the next frame, and a cycle may turn back on this one.
+    lda f:walk_kind
+    beq not_by_type
+    jsl f:walk_blocked + FAST
+    cmp #$FF
+    beq stays
+    jmp move
+stays:
+    jmp ready
+not_by_type:
     ; With `skippable` —the forced ones, and the page ones that ask for
     ; it— it is skipped and the next one is tried; without it, the command is
     ; retried on the coming frame, and so on until the step goes through.
@@ -783,6 +808,9 @@ no_blocked:
 .a8
     lda #1
     sta route_ev + 6, x
+    lda f:walk_kind
+    beq ready
+    jsl f:walk_stepped + FAST
 ready:
     rts
 .endproc
@@ -812,7 +840,8 @@ ready:
     lda route_ev + 28, x
     jsr after_turn
     sta route_ev + 9, x
-    rts
+    stz route_ev + 14, x        ; a jump's, or a type's that walks: see
+    rts                         ; `walk_by_type.s`
 .endproc
 
 ; Slot X's step toward `route_dir` was refused: if the cell it wanted is the

@@ -480,9 +480,12 @@ with_route_or_graphic:
 fresh:
     lda rp_ev
     jsr turn_per_route
+    jsl f:walk_may_take + FAST  ; no carry: one that walks by a type, and few
+    bcc no_room                 ; left for the forced routes
     jsr free_slot
     cpx #$FFFF
     bne :+
+no_room:
     jmp next                    ; no room: it stays still
 :
     lda rp_ev
@@ -1688,7 +1691,8 @@ no_spin:
     lda pg_freq
     jsr after_turn              ; `SetMaxStopCountForTurn` before the first one
     sta route_ev + 9, x
-    rts
+    stz route_ev + 14, x        ; a page that walks by a type starts afresh:
+    rts                         ; see `walk_by_type.s`
 .endproc
 
 ; The new page of the event in slot X has no route: it is left with no
