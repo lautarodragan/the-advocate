@@ -243,6 +243,8 @@ pub struct Materials {
     dedupe: bool,
     compressed: HashMap<Vec<u8>, Vec<u8>>,
     labels: HashMap<(String, Vec<u8>), String>,
+    /// The blocks shared by their text: see [`Materials::store_text`].
+    texts: HashMap<(String, String), String>,
     counts: HashMap<String, usize>,
     /// What was shared, and how much each compressed class weighed raw and
     /// weighs in LZ2, of the blocks that were emitted: in the order each
@@ -280,6 +282,7 @@ impl Materials {
             dedupe,
             compressed,
             labels: HashMap::new(),
+            texts: HashMap::new(),
             counts: HashMap::new(),
             saved: Vec::new(),
             raw: Vec::new(),
@@ -293,15 +296,9 @@ impl Materials {
     pub fn store(&mut self, kind: &str, data: &[u8]) -> (String, String) {
         let key = (kind.to_string(), data.to_vec());
         if self.dedupe {
-            if let Some(label) = self.labels.get(&key) {
-                match self.saved.iter_mut().find(|(k, ..)| k == kind) {
-                    Some((_, bytes, times)) => {
-                        *bytes += data.len();
-                        *times += 1;
-                    }
-                    None => self.saved.push((kind.to_string(), data.len(), 1)),
-                }
-                return (label.clone(), String::new());
+            if let Some(label) = self.labels.get(&key).cloned() {
+                self.count_shared(kind, data.len());
+                return (label, String::new());
             }
         }
         let n = self.counts.entry(kind.to_string()).or_insert(0);
@@ -310,6 +307,34 @@ impl Materials {
         self.labels.entry(key).or_insert_with(|| label.clone());
         let text = crate::asm::block(&label, data);
         (label, text)
+    }
+
+    /// Like [`Materials::store`], for a block that carries symbolic
+    /// pointers, whose bytes the linker sets: there are no bytes to compare
+    /// it by, so it is shared by its `body` —its lines, without the label—,
+    /// which names the same blocks when it is the same text. It keeps the
+    /// `label` it is asked for the first time, and `size` is its bytes, for
+    /// the `.block` and the report.
+    pub fn store_text(&mut self, kind: &str, label: &str, size: usize, body: &str) -> (String, String) {
+        let key = (kind.to_string(), body.to_string());
+        if self.dedupe {
+            if let Some(label) = self.texts.get(&key).cloned() {
+                self.count_shared(kind, size);
+                return (label, String::new());
+            }
+        }
+        self.texts.entry(key).or_insert_with(|| label.to_string());
+        (label.to_string(), format!(".block {size}\n{label}:\n{body}"))
+    }
+
+    fn count_shared(&mut self, kind: &str, bytes: usize) {
+        match self.saved.iter_mut().find(|(k, ..)| k == kind) {
+            Some((_, total, times)) => {
+                *total += bytes;
+                *times += 1;
+            }
+            None => self.saved.push((kind.to_string(), bytes, 1)),
+        }
     }
 
     /// Like [`Materials::store`], but what goes to the cartridge is the
@@ -407,6 +432,26 @@ impl Materials {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_block_with_the_same_text_is_shared_under_its_first_label() {
+        let body = "    .byte <pose_3, >pose_3, ^pose_3";
+        let mut m = Materials::new(true, HashMap::new());
+        assert_eq!(
+            m.store_text("actor_table", "actor_table_4", 3, body),
+            ("actor_table_4".to_string(), format!(".block 3\nactor_table_4:\n{body}"))
+        );
+        assert_eq!(
+            m.store_text("actor_table", "actor_table_9", 3, body),
+            ("actor_table_4".to_string(), String::new())
+        );
+        assert_eq!(m.store_text("actor_table", "actor_table_10", 1, "    .byte $00").0, "actor_table_10");
+        assert_eq!(m.report()[0], "  actor_table     1 shared block(s),    0.0 KB");
+        // Without sharing, each keeps its own.
+        let mut m = Materials::new(false, HashMap::new());
+        m.store_text("actor_table", "actor_table_4", 3, body);
+        assert_eq!(m.store_text("actor_table", "actor_table_9", 3, body).0, "actor_table_9");
+    }
 
     #[test]
     fn a_block_with_the_same_bytes_is_shared_and_counted() {
