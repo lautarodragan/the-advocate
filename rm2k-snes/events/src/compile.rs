@@ -5097,8 +5097,15 @@ fn compile_route(ctx: &mut Ctx, cmd: &Command, map_events: Option<&MapEvents>) -
             // runtime/hero_route.s. They are +29 pages of the game, and
             // among them the three of map 8's `EV0047`, which could not be
             // interacted with.
+            // In a shared body there is no map's table to resolve it in: the
+            // graphic change is dropped and the rest of the route compiles,
+            // instead of leaving the whole body out. taro's, on 2026-10-14:
+            // ABL's common events 42 and 44 —Radin's and Sern's menus, the
+            // only door to Mix Formula and Weapon Forging— were left out for
+            // their hero's graphic change. See
+            // `tasks/radin-s-and-sern-s-menus-do-not-compile.md`.
             let Some(graphics) = ctx.graphics.as_deref_mut() else {
-                return cannot();
+                continue;
             };
             if extras.len() < 2 {
                 return cannot();
