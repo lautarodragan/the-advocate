@@ -254,6 +254,24 @@ fn with_the_skills_screen(screens: &mut serde_json::Value) {
 /// section, the four per-skill tables and the level term's number —its
 /// text is the last of the block, and [`without_states`] cuts it with the
 /// conditions'—. Checked here: the tables have one entry per carried skill.
+/// The stop counters with frequency 1 at zero, as before 2026-10-14: since
+/// then a page that walks by a movement type can have frequency 1, so the
+/// tables carry its counters too —see `route::own` in the compiler—.
+fn with_frequency_one_as_before(text: &str) -> String {
+    let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
+    for label in ["route_after_step:", "route_after_turn:"] {
+        let at = lines.iter().position(|l| l == label).unwrap();
+        let mut values: Vec<String> = lines[at + 1]
+            .trim_start_matches("  .byte ")
+            .split(',')
+            .map(String::from)
+            .collect();
+        values[1] = "0".into();
+        lines[at + 1] = format!("  .byte {}", values.join(","));
+    }
+    lines.join("\n")
+}
+
 fn without_skills_screen(text: &str) -> String {
     let text = &without_skill_choice(text);
     let start = text.find("\n; --- the skills screen: see skills_screen.s ---\n").unwrap();
@@ -592,7 +610,7 @@ fn without_states(text: &str) -> String {
 #[test]
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
-    let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&emitted.text)))))))))))))));
+    let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_frequency_one_as_before(&emitted.text))))))))))))))));
     assert_eq!(text.lines().count(), 3777);
     assert_eq!(
         sha(&text),
@@ -603,7 +621,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 #[test]
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
-    let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&emitted.text)))))))))))))));
+    let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_frequency_one_as_before(&emitted.text))))))))))))))));
     assert_eq!(text.lines().count(), 3896);
     assert_eq!(
         sha(&text),
