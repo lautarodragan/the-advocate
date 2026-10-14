@@ -105,6 +105,21 @@
 //! captain's troop brings 33 pages once they all compile, and the two
 //! hashes of the whole `.inc` moved: with it back at 32, the text is the old
 //! one byte for byte.
+//!
+//! On 2026-10-14 the poses stopped going whole: a pose is a mask of the
+//! tiles that draw something and only those tiles, and the console zeroes
+//! the rest in the slot. These maps' poses are made up and none has an
+//! empty tile, so each one grew by its two bytes of mask and the three
+//! hashes that carry them moved; `with_whole_poses_as_before` puts each
+//! pose back to its 512 bytes, checking that the mask counts the tiles
+//! that follow, and with it the text is the old one byte for byte. The
+//! same day each map's `npc_poses` table started being stored once when
+//! two maps bring the same one, under the first one's label: none of
+//! these maps shares one, so that moved nothing here, and it is checked in
+//! `materials.rs`. And the console has to know what the sprite bank left in
+//! each slot, to zero only what a pose leaves empty: `pose_masks_maps` and
+//! `pose_masks_data` came with it, in the tables, and `without_pose_masks`
+//! takes them away.
 
 use rm2k_snes_battle::db::Db;
 use rm2k_snes_mapdata::record;
@@ -131,11 +146,11 @@ fn what_goes_per_map_comes_out_as_the_python_wrote_it() {
         "1739ecfe74a25a7d9c0fa8001ea8c338117c81189df83a9196643a6173976fc1"
     );
     assert_eq!(
-        sha(&without_hero_colors(&with_the_turn_as_before(&written.maps))),
+        sha(&with_whole_poses_as_before(&without_hero_colors(&with_the_turn_as_before(&written.maps)))),
         "1622acb05a2213323bcb3b722f858187002804ddbf98b031f9f06cae75fd5382"
     );
     assert_eq!(
-        sha(&written.tables),
+        sha(&without_pose_masks(&written.tables)),
         "82065b2018a245b9969577d4fc353de15879021e61b93a5c0a29af777e314b06"
     );
 }
@@ -148,7 +163,9 @@ fn what_it_says_is_what_the_python_said() {
         [
             "  map 8: Chubby2:2 goes with a pose bank of its own, quantized differently than in \
              another map",
-            "  poses: 33 distinct out of 36, 1.5 KB less"
+            "  poses: 33 distinct out of 36, 1.5 KB less",
+            // Made-up poses, with no empty tile: only the masks are added.
+            "  poses: 0 of their 528 tiles empty, -0.1 KB less"
         ]
     );
     assert_eq!(
@@ -431,6 +448,78 @@ fn with_the_turn_as_before(text: &str) -> String {
         .join("\n")
 }
 
+/// The poses as they were before 2026-10-14, 512 bytes each: since then a
+/// pose is a mask of the tiles that draw and only those tiles —see
+/// `pose_record`—, and this puts the empty ones back where the mask says.
+/// These maps' poses are made up and have no empty tile, so it only takes
+/// the mask away; the round trip is what is checked, here, and that the
+/// tiles are the ones it says.
+fn with_whole_poses_as_before(text: &str) -> String {
+    let lines: Vec<&str> = text.split('\n').collect();
+    let mut out: Vec<String> = Vec::new();
+    let mut i = 0;
+    while i < lines.len() {
+        let is_pose = lines[i].starts_with(".block ")
+            && lines.get(i + 1).is_some_and(|l| {
+                l.strip_prefix("pose_")
+                    .and_then(|r| r.strip_suffix(':'))
+                    .is_some_and(|n| n.chars().all(|c| c.is_ascii_digit()))
+            });
+        if !is_pose {
+            out.push(lines[i].to_string());
+            i += 1;
+            continue;
+        }
+        let label = lines[i + 1];
+        let mut bytes = Vec::new();
+        let mut j = i + 2;
+        while let Some(rest) = lines.get(j).and_then(|l| l.strip_prefix("    .byte ")) {
+            bytes.extend(rest.split(',').map(|b| u8::from_str_radix(&b[1..], 16).unwrap()));
+            j += 1;
+        }
+        assert_eq!(lines[i], format!(".block {}", bytes.len()));
+        let mask = u16::from_le_bytes([bytes[0], bytes[1]]);
+        assert_eq!(bytes.len(), 2 + 32 * mask.count_ones() as usize, "{label}");
+        let mut drawn = bytes[2..].chunks(32);
+        let mut whole = Vec::new();
+        for t in 0..16 {
+            if mask & (1 << t) != 0 {
+                whole.extend_from_slice(drawn.next().unwrap());
+            } else {
+                whole.extend([0u8; 32]);
+            }
+        }
+        out.push(".block 512".into());
+        out.push(label.into());
+        for chunk in whole.chunks(16) {
+            let row: Vec<String> = chunk.iter().map(|b| format!("${b:02X}")).collect();
+            out.push(format!("    .byte {}", row.join(",")));
+        }
+        i = j;
+    }
+    out.join("\n")
+}
+
+/// The text without `pose_masks_maps` and `pose_masks_data`, which came on
+/// 2026-10-14 with the poses without their empty tiles: what each block of
+/// the sprite bank holds when a map loads. Checked here: a word per map
+/// pointing at a whole entry, and 32 words an entry.
+fn without_pose_masks(text: &str) -> String {
+    let head = "\n.segment \"RODATA\"\n; What each block of the sprite bank holds";
+    let at = text.find(head).expect("the cartridge has no pose_masks table");
+    let lines: Vec<&str> = text[at + 1..].split('\n').collect();
+    assert_eq!(lines[3], "pose_masks_maps:");
+    let starts: Vec<usize> =
+        lines[4].trim_start_matches("    .word ").split(", ").map(|n| n.parse().unwrap()).collect();
+    assert_eq!(lines[6], "pose_masks_data:");
+    let words = lines[7..].iter().take_while(|l| l.starts_with("    .word $")).count();
+    assert_eq!(lines[5], format!(".block {}", 2 * 16 * words));
+    assert!(starts.iter().all(|s| s % 64 == 0 && *s < 32 * words));
+    // The section and the blank line `maps_with` puts before it.
+    let end = lines[..7 + words].iter().map(|l| l.len() + 1).sum::<usize>();
+    format!("{}{}", &text[..at], &text[at + 1 + end..])
+}
+
 /// The text without `item_up`, which came on 2026-10-04 with the materials:
 /// what each item adds to an actor for good. The test game has no
 /// material, so every word is zero, which is checked here.
@@ -610,7 +699,7 @@ fn without_states(text: &str) -> String {
 #[test]
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
-    let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_frequency_one_as_before(&emitted.text))))))))))))))));
+    let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_whole_poses_as_before(&without_pose_masks(&with_frequency_one_as_before(&emitted.text))))))))))))))))));
     assert_eq!(text.lines().count(), 3777);
     assert_eq!(
         sha(&text),
@@ -621,7 +710,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 #[test]
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
-    let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_frequency_one_as_before(&emitted.text))))))))))))))));
+    let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_whole_poses_as_before(&without_pose_masks(&with_frequency_one_as_before(&emitted.text))))))))))))))))));
     assert_eq!(text.lines().count(), 3896);
     assert_eq!(
         sha(&text),

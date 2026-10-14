@@ -11,8 +11,8 @@ use crate::cgram::BACKDROP;
 use crate::fail::{Bad, Result};
 use crate::materials::{grid_high_used, map_ram, Materials, COMPRESSED_KINDS};
 use crate::objects::{
-    block_tile, page_oam, LAYER_ABOVE, OBJ_COLORS, OBJ_PRIORITY, OBJ_PRIORITY_ABOVE, POSE_BYTES,
-    SPRITE_POSES,
+    block_tile, page_oam, pose_record, LAYER_ABOVE, OBJ_COLORS, OBJ_PRIORITY, OBJ_PRIORITY_ABOVE,
+    POSE_BYTES, POSE_TILES, SPRITE_POSES, TILE_BYTES,
 };
 use crate::request::{Map, Page, Slot};
 use crate::snes::{cgram_word, BYTES_PER_TILE, COLORS_PER_PALETTE};
@@ -882,6 +882,89 @@ pub fn cache_table(maps: &[Map]) -> Result<String> {
     Ok(out.join("\n"))
 }
 
+/// The 32x32 blocks the sprite bank has, the 512 tiles an object names.
+pub const POSE_BLOCKS: usize = 32;
+
+/// Which tiles of each 32x32 block of the sprite bank hold something once
+/// the bank is uploaded, per map: a word per block, bit *i* tile *i* of the
+/// 4x4 by rows, as a pose's mask (see [`pose_record`]). `vram_drain` zeroes
+/// the tiles a slot held and its new pose does not draw, and it has to know
+/// what the bank left there: `load_sprite` copies the map's 64 bytes to
+/// `pose_slot_masks`. Without them every slot started as "anything" and its
+/// first pose zeroed all its empty tiles, which in the first steps after
+/// entering a map made the vblank longer than uploading the poses whole.
+///
+/// A tile the bank does not reach is "anything": VRAM there holds whatever
+/// was before.
+///
+/// `pose_masks_maps` has a word per map, in the order of `map_table`: where
+/// its 64 bytes start inside `pose_masks_data`. Maps with the same masks
+/// share them. It goes here and not in the record because the record is
+/// full.
+pub fn pose_masks_table(maps: &[Map]) -> String {
+    let mut distinct: Vec<Vec<u16>> = Vec::new();
+    let mut starts = Vec::with_capacity(maps.len());
+    for map in maps {
+        let masks = block_masks(map.sprite.as_ref().map_or(&[][..], |s| s.tiles.as_slice()));
+        let at = match distinct.iter().position(|d| *d == masks) {
+            Some(k) => k,
+            None => {
+                distinct.push(masks);
+                distinct.len() - 1
+            }
+        };
+        starts.push(at * 2 * POSE_BLOCKS);
+    }
+    let mut out = vec![
+        ".segment \"RODATA\"".to_string(),
+        "; What each block of the sprite bank holds when a map loads: see `pose_masks_table` in rm2k-snes-mapdata.".into(),
+        format!(".block {}", 2 * maps.len().max(1)),
+        "pose_masks_maps:".into(),
+        format!(
+            "    .word {}",
+            if starts.is_empty() {
+                "0".to_string()
+            } else {
+                starts.iter().map(|s| s.to_string()).collect::<Vec<_>>().join(", ")
+            }
+        ),
+        format!(".block {}", 2 * POSE_BLOCKS * distinct.len().max(1)),
+        "pose_masks_data:".into(),
+    ];
+    if distinct.is_empty() {
+        out.push(format!("    .word {}", vec!["$FFFF"; POSE_BLOCKS].join(", ")));
+    }
+    for masks in &distinct {
+        for half in masks.chunks(POSE_BLOCKS / 2) {
+            out.push(format!(
+                "    .word {}",
+                half.iter().map(|m| format!("${m:04X}")).collect::<Vec<_>>().join(", ")
+            ));
+        }
+    }
+    out.join("\n")
+}
+
+/// Each block's mask, from the sprite bank's tiles as they are uploaded:
+/// a tile beyond the bank holds whatever VRAM had.
+fn block_masks(tiles: &[u8]) -> Vec<u16> {
+    (0..POSE_BLOCKS as u32)
+        .map(|b| {
+            (0..POSE_TILES).fold(0u16, |mask, i| {
+                let t = block_tile(b) as usize + (i / 4) * 16 + i % 4;
+                let held = tiles
+                    .get(t * TILE_BYTES..(t + 1) * TILE_BYTES)
+                    .is_none_or(|tile| tile.iter().any(|&b| b != 0));
+                if held {
+                    mask | 1 << i
+                } else {
+                    mask
+                }
+            })
+        })
+        .collect()
+}
+
 /// One entry per map, `MAP_CODE_STRIDE` bytes: where its bytecode's LZ2
 /// stream is, where in bank $7F the bytecode lands behind the grid, and
 /// how long it is. It is what the console needs to carry a page that goes
@@ -1201,12 +1284,14 @@ impl<'a> PageMap<'a> {
 
 /// The pointers to the twelve poses of each character that changes pose,
 /// one entry per character —the same index the drawn event's row carries
-/// in +9 and the leader in its table—.
-fn npc_poses_asm(number: usize, animated: &[(String, i64)], poses: &PoseLabels) -> String {
-    let mut out = vec![
-        format!(".block {}", 3 * SPRITE_POSES * animated.len().max(1)),
-        format!("npc_poses_{number}:"),
-    ];
+/// in +9 and the leader in its table—: its size and its lines.
+///
+/// **Stored once for the whole cartridge** when two maps bring the same
+/// one (see [`Materials::store_symbolic`]): 307 maps of ABL carried 191
+/// different ones. The record points to it with 24 bits, so the console
+/// does not notice which map's it is.
+fn npc_poses_asm(animated: &[(String, i64)], poses: &PoseLabels) -> (usize, Vec<String>) {
+    let mut out = Vec::new();
     for pair in animated {
         for label in &poses[pair] {
             out.push(format!("    .byte {}", pointer(label)));
@@ -1215,7 +1300,7 @@ fn npc_poses_asm(number: usize, animated: &[(String, i64)], poses: &PoseLabels) 
     if animated.is_empty() {
         out.push("    .byte $00".into());
     }
-    out.join("\n")
+    (3 * SPRITE_POSES * animated.len().max(1), out)
 }
 
 /// The leader candidates: id, palette, their fifteen colours and the
@@ -1326,7 +1411,12 @@ pub fn map_data(
         }
     }
     let animated = sprite.map_or(&[][..], |s| s.animated.as_slice());
-    out.push(npc_poses_asm(number, animated, poses));
+    let (size, lines) = npc_poses_asm(animated, poses);
+    let (label, text) = materials.store_symbolic("npc_poses", number, size, &lines);
+    if !text.is_empty() {
+        out.push(text);
+    }
+    labels.insert("npc_poses", label);
     // The leader candidates are the party's, so most maps of a cartridge
     // carry the same table: shared by its text, pointers included, under the
     // label of the first map that has it. Until 2026-10-14 each map had its
@@ -1358,10 +1448,11 @@ pub fn map_data(
         labels.insert(name, address);
     }
     out.push(page_table(&PageMap::of(map), number, &labels["evcode"]));
-    // The three that are not shared carry symbolic pointers inside, whose
-    // bytes the linker sets: there is no content to compare them by.
-    // The actor table, shared by its text, already has its label.
-    for name in ["npc_poses", "pages"] {
+    // The page table is not shared: it carries symbolic pointers inside,
+    // whose bytes the linker sets, so there is no content to compare it by.
+    // The npc_poses and the actor table are shared, and already have their
+    // labels.
+    for name in ["pages"] {
         labels.insert(name, format!("{name}_{number}"));
     }
     Ok((out.join("\n"), labels))
@@ -1454,6 +1545,7 @@ pub fn poses(maps: &[Map]) -> Result<Poses> {
         String::from("; --- the poses of the characters that change pose, for the whole ROM ---\n");
     let mut label_of: HashMap<Vec<u8>, String> = HashMap::new();
     let mut bank_poses: Vec<Vec<String>> = Vec::new();
+    let mut drawn = 0;
     for data in &banks {
         let mut theirs = Vec::new();
         for pose in 0..SPRITE_POSES {
@@ -1464,7 +1556,9 @@ pub fn poses(maps: &[Map]) -> Result<Poses> {
                 Some(l) => l.clone(),
                 None => {
                     let l = format!("pose_{}", label_of.len());
-                    let _ = writeln!(text, "{}", block(&l, &bytes));
+                    let record = pose_record(&bytes);
+                    drawn += (record.len() - 2) / TILE_BYTES;
+                    let _ = writeln!(text, "{}", block(&l, &record));
                     label_of.insert(bytes, l.clone());
                     l
                 }
@@ -1479,6 +1573,13 @@ pub fn poses(maps: &[Map]) -> Result<Poses> {
         "  poses: {} distinct out of {total}, {:.1} KB less",
         label_of.len(),
         (total - label_of.len()) as f64 * POSE_BYTES as f64 / 1024.0
+    ));
+    // And what leaving out their empty tiles saves, the masks paid.
+    let tiles = label_of.len() * POSE_TILES;
+    notes.push(format!(
+        "  poses: {} of their {tiles} tiles empty, {:.1} KB less",
+        tiles - drawn,
+        ((tiles - drawn) * TILE_BYTES) as f64 / 1024.0 - (2 * label_of.len()) as f64 / 1024.0
     ));
     let per_map = index_per_map
         .into_iter()
@@ -1644,6 +1745,7 @@ pub fn maps_with(maps: &[Map], msu: bool) -> Result<Written> {
         share_table(maps)?,
         cache_table(maps)?
     );
+    let _ = write!(tables, "\n{}\n", pose_masks_table(maps));
     // Only in a cartridge that shows some panorama: one that does not gets
     // the same `.inc` as before there were any. See `pano.s`.
     if maps.iter().any(|m| m.panorama.is_some()) {
@@ -1668,6 +1770,21 @@ pub fn maps_with(maps: &[Map], msu: bool) -> Result<Written> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_block_s_mask_is_what_the_bank_leaves_in_its_tiles() {
+        // Sixty-four tiles: the first row of blocks, 0 to 3, whole, and
+        // nothing of the rest.
+        let mut tiles = vec![0u8; 64 * TILE_BYTES];
+        tiles[0] = 1; // block 0, tile 0
+        tiles[(16 + 1) * TILE_BYTES + 31] = 1; // block 0, tile 5: second row
+        tiles[(48 + 15) * TILE_BYTES] = 1; // block 3, tile 15: its corner
+        let masks = block_masks(&tiles);
+        assert_eq!(masks.len(), POSE_BLOCKS);
+        assert_eq!(masks[..4], [0x0021, 0, 0, 0x8000]);
+        // Beyond the bank, VRAM holds whatever it had.
+        assert!(masks[4..].iter().all(|&m| m == 0xFFFF));
+    }
 
     /// Each literal operand of the `.byte`s and `.word`s, with the largest
     /// value its directive holds: what `ca65` checks, and answers with a

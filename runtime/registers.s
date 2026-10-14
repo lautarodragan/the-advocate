@@ -148,7 +148,8 @@ MDMAEN   = $420B        ; start
 ; --- DMA, channel 7 ---------------------------------------------------------
 ; The second general-purpose DMA channel, for when a copy interleaves two
 ; sources and it is not worth reprogramming channel 0 between them: see
-; `scn_fill`. Channels 1 to 3 belong to HDMA, below.
+; `scn_fill`, and `vram_drain`, which zeroes a pose's empty tiles with it.
+; Whoever uses it sets it up whole. Channels 1 to 3 belong to HDMA, below.
 DMAP7    = $4370
 BBAD7    = $4371
 A1T7L    = $4372
