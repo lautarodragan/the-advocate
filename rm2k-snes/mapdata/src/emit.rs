@@ -1045,7 +1045,7 @@ const BIG_TALL: u8 = 2;
 /// which is 25.6 of the console's.
 const BIG_MIRRORED: usize = 4;
 /// The palettes a big picture takes, always uploaded whole: the seven above
-/// the window's. `BIG_PALETTES` in picture.py.
+/// the window's: the same number as `BIG_PALETTES` in `runtime/big_picture.s`.
 const BIG_PALETTES: usize = 7;
 /// The bytes of an entry of `big_table`.
 const BIG_ENTRY: usize = 32;
