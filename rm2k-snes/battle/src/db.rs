@@ -1,6 +1,6 @@
 //! The database, as much of it as the battle's model reads: the actors,
-//! the skills, the items, the enemies, the terms, the states and, when
-//! asked for, the troops.
+//! the skills, the items, the enemies, the terms, the states, the
+//! attributes and, when asked for, the troops.
 //!
 //! It comes from a Ditto dump, read with Ditto's own reader into the
 //! schema's types, so there is no model of the format here. The troops are
@@ -14,7 +14,7 @@
 
 use crate::fail::{Bad, Result};
 use ditto::dump::Dump;
-use ditto::schema::{Actor, Enemy, Item, Skill, State, Terms, Troop};
+use ditto::schema::{Actor, Attribute, Enemy, Item, Skill, State, Terms, Troop};
 use std::collections::BTreeMap;
 use std::path::Path;
 
@@ -50,6 +50,8 @@ pub struct Db {
     pub enemies: BTreeMap<i32, Enemy>,
     pub troops: BTreeMap<i32, Troop>,
     pub states: BTreeMap<i32, State>,
+    /// By id, which is also their order: see [`crate::attributes`].
+    pub attributes: BTreeMap<i32, Attribute>,
     pub terms: Terms,
 }
 
@@ -90,6 +92,7 @@ impl Db {
             enemies: by_id(enemies, |e| e.id),
             troops: by_id(troops, |t| t.id),
             states: by_id(dump.section("states").map_err(answer)?, |s: &State| s.id),
+            attributes: by_id(dump.section("attributes").map_err(answer)?, |a: &Attribute| a.id),
             terms: dump.section("terms").map_err(answer)?,
         })
     }

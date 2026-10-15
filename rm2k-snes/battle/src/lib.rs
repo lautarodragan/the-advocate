@@ -12,6 +12,7 @@
 //! as JSON: see [`model`].
 
 pub mod asm;
+pub mod attributes;
 pub mod db;
 pub mod encounters;
 pub mod experience;
