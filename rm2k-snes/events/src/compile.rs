@@ -4822,6 +4822,28 @@ pub fn compile_command(
             Ok(out)
         }
         SHOW_BATTLE_ANIMATION => compile_animation(ctx, cmd, map_events),
+        SHOW_BATTLE_ANIMATION_B => {
+            // A troop page's animation on the monsters, `[animation, target,
+            // wait]`: a debt, see `TROOP_ACCEPTED_UNDONE` in troops.rs. The
+            // battle scene plays no animation, so neither its frames, nor
+            // its sounds, nor its flashes; what is kept is its length, as an
+            // OP_DELAY when the page waits for it, so the lines around it
+            // keep their pace. It only reaches here from a troop page: a map
+            // has no such command.
+            if n < 3 {
+                return cannot();
+            }
+            let Some(anim) = ctx.game.animations.get(&p[0]) else {
+                return Ok(vec![]);
+            };
+            let frames = 2 * anim.frames as i64;
+            if q(2) == 0 || frames == 0 {
+                return Ok(vec![]);
+            }
+            let mut out = vec![OP_DELAY];
+            out.extend(word(frames)?);
+            Ok(out)
+        }
         FLASH_SCREEN => {
             // `CommandFlashScreen`, in its RM2k form: color, power, tenths and
             // whether it waits. The game's 62 are of that form, and none lasts
