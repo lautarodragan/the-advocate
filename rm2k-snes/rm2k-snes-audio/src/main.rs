@@ -292,6 +292,13 @@ fn compile_into(
     let samples = Samples { font: SoundFontSamples::open(soundfont)? };
     let music = compile::build(job, game, &samples)?;
     std::fs::create_dir_all(out_dir).map_err(|e| Bad::usage(format!("{}: {e}", out_dir.display())))?;
+    // What a package lost to fit in the ARAM, said here and in `audio.json`
+    // —`losses`—, which is where the converter takes it from for
+    // `degradations.json`: this runs after the converter, so it cannot hand
+    // them over any other way. See `relief`.
+    for loss in &music.losses {
+        println!("  WARNING, {}", loss.text);
+    }
 
     let bank = &music.bank;
     let mut out = Map::new();
@@ -351,6 +358,15 @@ fn compile_into(
     );
     out.insert("free".into(), json!(bank.free));
     out.insert("places".into(), json!(music.places));
+    out.insert(
+        "losses".into(),
+        music
+            .losses
+            .iter()
+            .map(|l| json!({"map": l.map, "kind": l.kind, "text": l.text}))
+            .collect::<Vec<_>>()
+            .into(),
+    );
     out.insert("music_samples".into(), json!(bank.entries().len()));
     let key_map = |m: &BTreeMap<Key, Key>| -> Value {
         Value::Object(m.iter().map(|(b, s)| (b.to_string(), json!(s.to_string()))).collect())
@@ -620,8 +636,10 @@ fn do_cartridge(args: &CartridgeArgs) -> Result<()> {
         }
     }
     let names = |songs: &[usize]| songs.iter().map(|&t| music.songs[t].name.as_str()).collect::<Vec<_>>().join(", ");
-    for (i, (owned, theirs, out, _)) in rom[..c.maps.len()].iter().enumerate() {
-        let separate = &plan.separate[i];
+    // The separate songs are the music's and not the plan's: a package that
+    // did not fit in the ARAM has more than the project file declared. See
+    // `relief`.
+    for (i, (owned, theirs, out, separate)) in rom[..c.maps.len()].iter().enumerate() {
         if !owned.is_empty() || !theirs.is_empty() || !out.is_empty() || !separate.is_empty() {
             say(format!(
                 "  audio package of map {}: {} song(s), {} sound effect(s){}{}",

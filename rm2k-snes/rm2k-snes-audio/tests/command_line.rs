@@ -60,14 +60,45 @@ fn compile_writes_the_music_and_what_goes_with_it() {
     let _ = std::fs::remove_dir_all(&dir);
 }
 
+/// A lone song whose samples do not fit even at the minimum is still a no:
+/// there is nothing to relieve.
 #[test]
 fn samples_that_do_not_fit_even_at_the_minimum_are_an_answer() {
     let dir = scratch("tight");
     fixture::write(&dir);
-    let out = compile(&dir, 0x0400 + 4 * 16 + 9 + 3000, &[]);
+    let out = compile(&dir, 0x0400 + 4 * 16 + 9 + 500, &[]);
     assert_eq!(out.status.code(), Some(1), "{}", String::from_utf8_lossy(&out.stderr));
     let e = String::from_utf8_lossy(&out.stderr);
     assert!(e.contains("do not fit"), "{e}");
+    let _ = std::fs::remove_dir_all(&dir);
+}
+
+/// A package whose sound effects do not leave room for its songs even at
+/// the minimum —until 2026-10-15 the stop above— builds: its songs go
+/// separate —all of them, since map 2 enters with none of its own— and its
+/// last sound effects are left out, and both are said in `audio.json`, which
+/// is where the converter reads them for `degradations.json`.
+#[test]
+fn a_package_that_does_not_fit_is_relieved_and_says_what_it_lost() {
+    let dir = scratch("relieved");
+    fixture::write(&dir);
+    let out = compile(&dir, 0x0400 + 4 * 16 + 9 + 3000, &[]);
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    let report = String::from_utf8_lossy(&out.stdout);
+    assert!(report.contains("WARNING, map 2: its songs beta and gamma do not fit"), "{report}");
+    let audio: Value = serde_json::from_str(&std::fs::read_to_string(dir.join("out/audio.json")).unwrap()).unwrap();
+    let losses = audio["losses"].as_array().unwrap();
+    let of_map_2: Vec<&Value> = losses.iter().filter(|l| l["map"] == 2).collect();
+    assert_eq!(of_map_2[0]["kind"], "songs-uploaded-on-play", "{losses:?}");
+    assert_eq!(of_map_2[1]["kind"], "sound-effects-left-out", "{losses:?}");
+    assert!(of_map_2[1]["text"].as_str().unwrap().contains("of its 2 sound effects"), "{losses:?}");
+    // The ROM's package of map 2 carries no song, with beta and gamma
+    // separate, and the sound effects that were left out are not in its list.
+    let packages = audio["packages"].as_array().unwrap();
+    let (songs, effects, _, separate) = (&packages[1][0], &packages[1][1], &packages[1][2], &packages[1][3]);
+    assert_eq!(songs, &serde_json::json!([]), "{packages:?}");
+    assert_eq!(separate, &serde_json::json!([1, 2]), "{packages:?}");
+    assert!(effects.as_array().unwrap().len() < 2, "{packages:?}");
     let _ = std::fs::remove_dir_all(&dir);
 }
 

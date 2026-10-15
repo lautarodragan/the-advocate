@@ -128,7 +128,8 @@ pub fn json(written: &BTreeMap<String, Vec<u8>>, name: &str) -> Result<Value> {
 /// what it makes where `args` say, and whose output goes out with what the
 /// converter prints: `rm2k-snes-patches`, which writes what the converter
 /// decided to lose next to the ROM, and the music, `rm2k-snes-audio
-/// cartridge`, whose pieces the rest of the conversion reads none of.
+/// cartridge`, of whose pieces the rest of the conversion reads only the
+/// `losses` of its `audio.json`, for `degradations.json`.
 pub fn hand_over(
     binary: &str,
     project: &str,
