@@ -8,7 +8,7 @@ loose: each thing lives in the folder of its responsibility.
 
 The converter is Rust since 2026-10-02 —`rm2k-snes/convert/`, below—, and
 so is everything it runs. The only Python left is `tests/`, which looks at
-this tree: see `tests/README.md`.
+this tree: see `tests/README.md`; and the test game's tests, below.
 
 What the game's tests read of their game —a reader of the dump, the models
 they predict the console with, the clients of the stages they ask— went to
@@ -142,6 +142,18 @@ separate projects, installed and tested one by one:
 
 They are used from the PATH: nothing here builds them or looks for them in
 `target/`.
+
+## The test game
+
+    test-game/   a game of our own, written as text, with free assets: where
+                 the engine's ROM tests are going to live instead of in A
+                 Blurred Line. Its `README.md` says what is in it, how it is
+                 built and how it is tested
+
+It is a project like a port's —its `rm2k-snes.toml`, its `justfile`—, and
+it builds with the installed tools, like any game. Its tests run the
+cartridge in an emulator, so they are not in `tests/` and `just test` does
+not run them: `just test-game` does.
 
 ## The ones that run
 

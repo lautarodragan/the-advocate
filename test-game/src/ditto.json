@@ -1,0 +1,5 @@
+{
+  "ditto": 2,
+  "headers": {"database": "LcfDataBase", "map": "LcfMapUnit", "tree": "LcfMapTree"},
+  "view": "exact"
+}

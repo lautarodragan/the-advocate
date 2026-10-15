@@ -1,0 +1,79 @@
+# The test game's project, read by the tools like a port's: what each key
+# means is in `LAYOUT.md`, "What the game decides: the project file", and in
+# the tools that read it.
+#
+# Unlike a port, the game is not somebody else's: `src/` is written by hand,
+# `just game` makes the RM2k files out of it into `build/game/` —that is the
+# `--game-dir`— and dumps them back to `build/data/`, which is what the
+# converter reads, the same path as a port's dump. See `README.md`.
+
+[paths]
+data = "build/data"
+patches = "patches"
+build = "build"
+cases = "cases"
+
+[rom]
+name = "test-game"
+title = "TEST GAME"
+sram_signature = "TEST"
+msu_data_signature = "TESD"
+
+[maps]
+below = 90
+excluded = []
+added = []
+test = []
+
+# The tools demand a cartridge called `release` with every case.
+# `--no-title`: the game has no title picture, and starts on its map.
+[cartridges.release]
+start_map = 1
+party = []
+maps = "game"
+test_graphics = []
+flags = ["--no-title"]
+cases = "all"
+excluded_cases = []
+
+[debug]
+debug_map = false
+enemy_hp = false
+
+[cases]
+real_game = "nothing"
+debug_map_entry = "debug-map"
+
+[graphics]
+opaque = []
+timer_never_runs_in = []
+
+[graphics.palette_weight]
+
+[graphics.cropped_pictures]
+
+[text]
+font = "low-variable"
+
+[music]
+jumps_that_never_happen = []
+apart_themes = []
+effect_slots_of_first_copies = 0
+
+[events]
+counters = []
+
+[menus]
+
+[sound_effects]
+paid_by_music = []
+per_map = []
+route_effects_left_out = []
+troop_effects_in_package = []
+
+[sound_effects.whole]
+
+# The game has no battles yet, so no backdrop is ever drawn; the key is
+# required all the same, and names none of the game's.
+[battle]
+fallback_backdrop = "none"
