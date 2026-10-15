@@ -1,0 +1,9 @@
+{
+  "active_node": 1,
+  "maps": [
+    {"encounter_steps": 0, "expanded_node": true, "name": "Test Game", "type": "root"},
+    {"id": 1, "indentation": 1, "name": "Meadow", "type": "map"}
+  ],
+  "start": {"party_map_id": 1, "party_x": 10, "party_y": 10},
+  "tree_order": [0, 1]
+}

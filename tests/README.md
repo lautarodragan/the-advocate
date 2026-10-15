@@ -45,4 +45,8 @@ has to exist: `test_index.py` enforces it.
   and that neither of the first two names `rm2k-snes.toml`
 * `test_dump_readers.py`: that no Rust project but Ditto names a file of
   a Ditto dump: the others read it with `ditto::dump::Dump`
+* `test_test_game_assets.py`: that every picture, song and sound in
+  `test-game/` has its line in `test-game/AUTHORS.md` —author, license,
+  link, changes— and that every line there is a file. The test game's own
+  tests run its cartridge, so they are not here: `just test-game`
 * `test_index.py`: that this list is up to date

@@ -239,11 +239,15 @@ fn split_map(map: &Map) -> Result<(Value, Option<String>)> {
     }
     fields.remove(LOWER);
     fields.remove(UPPER);
-    Ok((Value::Object(fields), Some(grid(map, w, h))))
+    Ok((Value::Object(fields), Some(grid(w, h, &map.lower_layer, &map.upper_layer))))
 }
 
-/// The two layers as one number per tile, `width` per line.
-fn grid(map: &Map, w: usize, h: usize) -> String {
+/// The two layers as one number per tile, `width` per line: a `.tiles`.
+///
+/// Public so that whoever makes a map's layers some other way —from a text
+/// sketch, say— writes them in the very shape `pack` reads back, instead of
+/// with a second writer of the format.
+pub fn grid(w: usize, h: usize, lower: &[i16], upper: &[i16]) -> String {
     let mut s = format!(
         "# {w}x{h}, {} tiles per layer\n\
          # The two tile layers, in reading order: one id per tile, {w} per line.\n\
@@ -251,7 +255,7 @@ fn grid(map: &Map, w: usize, h: usize) -> String {
          # the chipset. Edited by hand, the count has to stay the same.\n",
         w * h
     );
-    for (name, layer) in [("lower", &map.lower_layer), ("upper", &map.upper_layer)] {
+    for (name, layer) in [("lower", lower), ("upper", upper)] {
         s.push_str(&format!("# {name}\n"));
         for row in layer.chunks(w.max(1)) {
             for t in row {

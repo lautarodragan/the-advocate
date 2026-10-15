@@ -1,0 +1,19 @@
+[package]
+name = "rm2k-sketch"
+version = "0.1.0"
+edition = "2021"
+description = "An RPG Maker 2000 map's tile layers drawn as text —a grid of characters and a legend of which tiles each one stands for— made into the .tiles a Ditto dump carries"
+
+[lib]
+name = "rm2k_sketch"
+path = "src/lib.rs"
+
+[[bin]]
+name = "rm2k-sketch"
+path = "src/main.rs"
+
+[dependencies]
+ditto = { path = "../ditto" }
+rm2k-rules = { path = "../rules" }
+serde = { version = "1", features = ["derive"] }
+toml = "1"

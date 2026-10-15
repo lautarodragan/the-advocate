@@ -1,0 +1,26 @@
+{
+  "chipset_id": 1,
+  "width": 20,
+  "height": 15,
+  "events": [
+    {
+      "id": 1,
+      "name": "Elder",
+      "x": 10,
+      "y": 6,
+      "pages": [
+        {
+          "id": 1,
+          "character_name": "People1",
+          "character_index": 6,
+          "move_type": "stationary",
+          "layer": "same",
+          "event_commands": [
+            {"code": "ShowMessage", "string": "Welcome to the meadow."},
+            {"code": "ShowMessage_2", "string": "Everything you see here is free."}
+          ]
+        }
+      ]
+    }
+  ]
+}

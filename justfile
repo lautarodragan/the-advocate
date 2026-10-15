@@ -31,7 +31,7 @@ export PATH := if path_exists(local_tools / "bin") == "true" { local_tools / "bi
 # and one `target/`, but each is still tested and installed on its own:
 # `crate-test` runs `cargo test` standing in the project, which tests only
 # that one, and `cargo install --locked --path` takes the workspace's lock.
-rust_projects := "gunter goombario ditto rules adeleine voodoo lz2 rm2k-render project bytecode cartridge patches rm2k-snes-audio battle events wally text screens images mapdata convert"
+rust_projects := "gunter goombario ditto rules sketch adeleine voodoo lz2 rm2k-render project bytecode cartridge patches rm2k-snes-audio battle events wally text screens images mapdata convert"
 
 # The directories the projects live in, one per layer: each project is
 # `<layer>/<name>`, and the recipes find it by its name.
@@ -50,6 +50,16 @@ rust_layers := "snes rm2k rm2k-snes"
 # The tools' Python tests, the ones that look at this tree.
 test *args:
   pytest {{args}}
+
+# The test game's: it makes the game out of its text, builds its cartridge
+# with the installed tools and runs it in an emulator. Not inside `test`,
+# which runs no ROM and needs nothing from the machine: this one needs a
+# libretro core and a SoundFont, in `SOUNDFONT`, like the audio tests. Its
+# recipes are in `test-game/justfile`.
+#
+# The test game: build it and run its tests in an emulator.
+test-game *args:
+  just -f test-game/justfile test {{args}}
 
 # Every Rust project's tests at once, the whole workspace, in the debug
 # profile: the release one is `lto` and a single codegen unit, and compiling

@@ -1,0 +1,69 @@
+# The test game's recipes: making the game out of its text, building its
+# cartridge and running its tests. The tools come from the PATH, as for any
+# game: `just install` at the root installs them.
+#
+# It runs standing in `test-game/`, wherever it is called from; the root's
+# `just test-game` calls `test` here.
+
+# A worktree's tools first, like the root's `justfile` does: the
+# `.local-tools/` that `just install-local .local-tools <projects>` builds at
+# the repository's root.
+local_tools := justfile_directory() / ".." / ".local-tools"
+export PATH := if path_exists(local_tools / "bin") == "true" { local_tools / "bin" + ":" + env_var("PATH") } else { env_var("PATH") }
+
+# The SoundFont the converter makes the music with. It belongs to the
+# machine, so it comes in a variable, like `SOUNDFONT` for the audio tests,
+# and there is no default. The game has no music yet, but the converter asks
+# for one all the same; and once it has, the samples end up in the
+# cartridge, so for the cartridge to be distributable the SoundFont has to be
+# a free one.
+export SOUNDFONT := env_var_or_default("SOUNDFONT", "")
+
+# The game out of `src/`, into `build/game/` —the RM2k files, with the
+# assets beside them, which is what RPG Maker or EasyRPG open— and dumped
+# back into `build/data/`, the dump the converter reads.
+#
+# `src/` is a Ditto exact dump written by hand, except the maps' tile layers:
+# each `maps/MapNNNN.toml` is a sketch that `rm2k-sketch` makes into its
+# `.tiles`. Dumping back what was just packed instead of handing the
+# converter `src/` is on purpose: the converter reads what the RM2k files
+# say, as it does for a port, and a field `pack` drops is seen.
+#
+# Makes the RM2k game out of src/ and dumps it to build/data/.
+game:
+  #!/usr/bin/env sh
+  set -eu
+  rm -rf build/text build/game build/exact build/data
+  mkdir -p build
+  cp -r src build/text
+  for sketch in src/maps/Map*.toml; do
+    map=$(basename "$sketch" .toml)
+    rm2k-sketch "$sketch" "build/text/maps/$map.tiles"
+    rm "build/text/maps/$map.toml"
+  done
+  ditto pack build/text build/game
+  cp src/RPG_RT.ini build/game/
+  cp -r ChipSet CharSet System build/game/
+  ditto unpack build/game build/exact build/data
+
+# `--rtp-dir` an empty directory: the game uses nothing from any RTP, and
+# what it uses is in this folder. A picture missing here is an error, and not
+# one found in the machine's RTP.
+#
+# Makes the game and builds its cartridges, without MSU-1 tracks.
+cartridges *args: game
+  #!/usr/bin/env sh
+  set -eu
+  if [ -z "$SOUNDFONT" ]; then
+    echo "The test game needs SOUNDFONT=<a .sf2>: a free one, since its samples end up in the cartridge." >&2
+    exit 1
+  fi
+  mkdir -p build/no-rtp
+  rm2k-snes-cartridges --game-dir build/game --rtp-dir build/no-rtp --soundfont "$SOUNDFONT" --without-tracks {{args}}
+
+# The tests run the cartridge in an emulator —a libretro core, see
+# `tests/game.py`—, and build nothing: this recipe builds first.
+#
+# Builds the cartridges and runs the game's tests.
+test *args: cartridges
+  pytest tests {{args}}
