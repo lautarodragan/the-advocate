@@ -1791,6 +1791,25 @@ impl Rest<'_> {
         line(out, &block("ti_arrow_tiles", &packed(&arrows, 4)));
         line(out, &block("ti_arrow_cgram", &palette16(&colors(at(party, "arrow_colors")?)?)));
         let party_tile0 = int_at(party, "tile0")?;
+        // The whole OAM the shop opens with: each member's twelve objects,
+        // three across by four down with palette `i` over every layer, the
+        // four arrows and the rest below the screen, and the high table at
+        // zero —x below 256, all small—. See `ti_party_open`.
+        let mut oam = Vec::new();
+        let hidden = |oam: &mut Vec<u8>| oam.extend([0, 224, 0, 0]);
+        for i in 0..t.n("TI_PARTY_MEMBERS") {
+            for j in 0..12 {
+                oam.push((t.n("TI_PARTY_X0") + t.n("TI_PARTY_STEP") * i + 8 * (j % 3)) as u8);
+                oam.push((t.n("TI_PARTY_Y0") + 8 * (j / 3)) as u8);
+                oam.push((party_tile0 + 12 * i + j) as u8);
+                oam.push((0x30 | (i << 1)) as u8);
+            }
+        }
+        while oam.len() < 512 {
+            hidden(&mut oam);
+        }
+        oam.resize(544, 0);
+        line(out, &block("ti_party_oam", &oam));
         out.push_str(&pyf!(
             "TI_PARTY_ACTORS   = %d\nTI_PARTY_TILE0    = %d\nTI_PARTY_VRAM     = $%04X\n\
              TI_ARROW_TILE0    = %d\nTI_ARROW_VRAM     = $%04X\nTI_PARTY_MEMBERS  = %d\n\

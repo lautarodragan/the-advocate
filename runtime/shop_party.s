@@ -42,21 +42,14 @@ TI_P_N = TI_P + 1               ; how many members it shows, four at most
 TI_P_SUB = TI_P + 2             ; frames into the step, 0 to TI_PARTY_RATE - 1
 TI_P_PHASE = TI_P + 3           ; the step, 0 to 3
 TI_P_SHOWN = TI_P + 4           ; the step the arrows were last written with
-TI_P_I = TI_P + 5               ; the member being looked at
-TI_P_ITEM = TI_P + 6            ; two bytes: the item, $FFFF none computed yet
-TI_P_ITEMK = TI_P + 8           ; two bytes: its `k`
-TI_P_OLD = TI_P + 10            ; two bytes: the four parameters as they are
-TI_P_NEW = TI_P + 12            ; two bytes: and with the item on
-TI_P_K = TI_P + 14              ; four: each member's graphic, $FF none
-TI_P_USABLE = TI_P + 18         ; four: whether it can equip the item
-TI_P_KIND = TI_P + 22           ; four: its arrow, $FF none
-TI_P_UP = TI_P + 26             ; four: the frame its slot has, $FF unknown
-TI_P_PAL = TI_P + 30            ; four: 0 colour, 1 grey, $FF unknown
-TI_P_FORCE = TI_P + 34          ; the screen is off: everything goes up
-TI_P_FRAME = TI_P + 35          ; the frame or palette being uploaded
-TI_P_T = TI_P + 36              ; two bytes of scratch
-TI_P_T2 = TI_P + 38             ; and two more
-TI_P_END = TI_P + 40
+TI_P_ITEM = TI_P + 5            ; two bytes: the item, $FFFF none computed yet
+TI_P_ITEMK = TI_P + 7           ; two bytes: its `k`
+TI_P_K = TI_P + 9               ; four: each member's graphic, $FF none
+TI_P_USABLE = TI_P + 13         ; four: whether it can equip the item
+TI_P_KIND = TI_P + 17           ; four: its arrow, $FF none
+TI_P_UP = TI_P + 21             ; four: the frame its slot has, $FF unknown
+TI_P_PAL = TI_P + 25            ; four: 0 colour, 1 grey, $FF unknown
+TI_P_END = TI_P + 29
 .assert TI_P_END <= FAR_BATTLE + $300, error, "the shop's party does not fit after its list"
 
 TI_PARTY_OAM_ARROWS = TI_PARTY_MEMBERS * TI_FRAME_TILES
@@ -80,13 +73,18 @@ TI_PARTY_LAST_SMALL = 258
 ; reads `comp_char`, `comp_col`, `comp_col + 1` and `comp_mask`, so those go
 ; on the stack and come back. Only when the item or the layer changed: the
 ; quantity's arrows recompose the screen and would pay for it on every key.
+; Its scratch is `temp`, which none of what it calls touches: `temp` and
+; `temp + 1` the parameters' sum, `temp + 2` the member —a word, so that
+; `ldx` takes it—.
 .proc ti_party_compute
 .a8
 .i16
+    ; No room for the party in this cartridge's VRAM —see `shop_party` in the
+    ; screens' checks—: `ti_party_open` left it off. A constant of the
+    ; cartridge's, looked at here and not with `.if` because `mapdata.inc`
+    ; comes after this file.
     lda #TI_PARTY_ON
-    bne with_room
-    rts
-with_room:
+    beq off
     lda comp_col
     rep #$20
 .a16
@@ -105,6 +103,7 @@ with_room:
     sta f:$7E0000 + TI_P_ITEM   ; coming back computes again
     sep #$20
 .a8
+off:
     rts
 on:
     lda #1
@@ -129,40 +128,33 @@ with_item:
 .a16
     lda comp_or23
     cmp f:$7E0000 + TI_P_ITEM
-    sep #$20                    ; `sep` does not touch Z: the `bne` looks at the `cmp`
-.a8
     bne changed
+    sep #$20
+.a8
     rts
-changed:
-    rep #$20
 .a16
+changed:
     sta f:$7E0000 + TI_P_ITEM
     sep #$20
 .a8
     lda comp_char
     pha
-    lda comp_col
-    pha
-    lda comp_col + 1
+    rep #$20
+.a16
+    lda comp_col                ; and `comp_col + 1`
     pha
     lda comp_mask
     pha
-    lda comp_mask + 1
-    pha
-    lda #0
-    sta f:$7E0000 + TI_P_I
+    stz temp + 2                ; the member
+    sep #$20
+.a8
 member:
-    lda f:$7E0000 + TI_P_I
+    lda temp + 2
     cmp f:$7E0000 + TI_P_N
     bcc one
     jmp done
 one:
-    rep #$20
-.a16
-    and #$00FF
-    tax
-    sep #$20
-.a8
+    ldx temp + 2
     lda party, x
     sta comp_char
     lda #1
@@ -209,19 +201,10 @@ shift:
     bne shift
 bit_ready:
     and #1
-    sta f:$7E0000 + TI_P_T
-    lda f:$7E0000 + TI_P_I
-    rep #$20
-.a16
-    and #$00FF
-    tax
-    sep #$20
-.a8
-    lda f:$7E0000 + TI_P_T
+    ldx temp + 2
     sta f:$7E0000 + TI_P_USABLE, x
-    bne usable
-    jmp next
-usable:
+    cmp #0                      ; `sta` keeps the `and`'s Z, but say it
+    beq next
     ; Equipment only: types 1 to 5, the slot one less.
     rep #$20
 .a16
@@ -230,19 +213,16 @@ usable:
     sep #$20
 .a8
     lda f:item_type, x
-    beq not_equipment
+    beq next
     cmp #6
-    bcc equipment
-not_equipment:
-    jmp next
-equipment:
+    bcs next
     dec a
     sta comp_col                ; the slot it goes in
-    ; Already on, in any slot: "E".
-    lda #0
-    sta f:$7E0000 + TI_P_T
+    ; Already on, in any slot: "E". `eq_read` keeps Y.
+    ldy #0
 slot:
-    jsr eq_read                 ; A: the slot
+    tya
+    jsr eq_read
     rep #$20
 .a16
     lda comp_or23
@@ -250,24 +230,17 @@ slot:
     sep #$20                    ; `sep` does not touch Z: the `beq` looks at the `cmp`
 .a8
     beq on_already
-    lda f:$7E0000 + TI_P_T
-    inc a
-    sta f:$7E0000 + TI_P_T
-    cmp #5
+    iny
+    cpy #5
     bcc slot
-    bra compare
-on_already:
-    lda #TI_ARROW_EQUIPPED
-    jmp kind
-compare:
     ; `CmpEquip`: the four parameters added up as they are, and with the item
     ; in its slot —`eq_effective` takes the other hand off as RM2k does—.
     stz comp_col + 1
     jsr four
     rep #$20
 .a16
-    lda f:$7E0000 + TI_P_NEW
-    sta f:$7E0000 + TI_P_OLD
+    lda temp
+    pha                         ; as they are
     lda f:$7E0000 + TI_P_ITEM
     sta comp_mask
     sep #$20
@@ -277,55 +250,47 @@ compare:
     jsr four
     rep #$20
 .a16
-    lda f:$7E0000 + TI_P_NEW
-    cmp f:$7E0000 + TI_P_OLD
+    pla
+    cmp temp                    ; as they are against with the item
     sep #$20
 .a8
     beq same
-    bcc down
+    bcc up
+    lda #TI_ARROW_DOWN
+    bra kind
+up:
     lda #TI_ARROW_UP
     bra kind
 same:
     lda #TI_ARROW_SAME
     bra kind
-down:
-    lda #TI_ARROW_DOWN
+on_already:
+    lda #TI_ARROW_EQUIPPED
 kind:
-    pha
-    lda f:$7E0000 + TI_P_I
-    rep #$20
-.a16
-    and #$00FF
-    tax
-    sep #$20
-.a8
-    pla
+    ldx temp + 2
     sta f:$7E0000 + TI_P_KIND, x
 next:
-    lda f:$7E0000 + TI_P_I
-    inc a
-    sta f:$7E0000 + TI_P_I
+    inc temp + 2
     jmp member
 done:
-    pla
-    sta comp_mask + 1
+    rep #$20
+.a16
     pla
     sta comp_mask
     pla
-    sta comp_col + 1
-    pla
     sta comp_col
+    sep #$20
+.a8
     pla
     sta comp_char
     rts
 
 ; Attack, defense, spirit and agility with the equipment `eq_effective`
-; says, each clamped, added up in `TI_P_NEW`.
+; says, each clamped, added up in `temp`.
 four:
     rep #$20
 .a16
-    lda #0
-    sta f:$7E0000 + TI_P_NEW
+    stz temp
     sep #$20
 .a8
     stz comp_or01 + 2
@@ -335,20 +300,218 @@ param:
 .a16
     lda comp_dup
     clc
-    adc f:$7E0000 + TI_P_NEW
-    sta f:$7E0000 + TI_P_NEW
+    adc temp
+    sta temp
     sep #$20
 .a8
+    inc comp_or01 + 2
     lda comp_or01 + 2
-    inc a
-    sta comp_or01 + 2
     cmp #4
     bcc param
     rts
 .endproc
 
-; The rest is in `FAR2`, entered with `jsl`: bank 1 had no room for it. The
-; data bank is still 0 there, as in the shop.
+; What changed, to the PPU: whether the objects are shown, the arrows, the
+; palettes and the frames. In the vblank, after the text's uploads; with A
+; nonzero the screen is off and everything goes, without looking at the line.
+; Returns with `rtl`. Its scratch is `temp`: `temp + 3` whether it is forced,
+; `temp + 2` the frame being uploaded, `temp` and `temp + 1` the rest.
+.proc ti_party_vblank
+.a8
+.i16
+    sta temp + 3
+    lda f:$7E0000 + TI_P_ON
+    bne shown
+    lda #$03                    ; BG1 and BG2: `screen_ppu_on`
+    sta TM
+    rtl
+shown:
+    lda #$13                    ; and the objects
+    sta TM
+    lda #(TI_PARTY_LAST_SMALL - TI_PARTY_VBLANK)
+    jsr room
+    bcc arrows
+    rtl
+arrows:
+    ; The four arrows' entries: x, y, tile and attributes. A member past the
+    ; party has its kind at $FF since the opening.
+    lda #<(2 * TI_PARTY_OAM_ARROWS)
+    sta OAMADDL
+    stz OAMADDL + 1
+    lda f:$7E0000 + TI_P_PHASE
+    sta f:$7E0000 + TI_P_SHOWN
+    ldx #0
+arrow:
+    txa
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a                       ; 32 i
+    clc
+    adc #(TI_PARTY_X0 + TI_ARROW_DX)
+    sta OAMDATA
+    lda f:$7E0000 + TI_P_KIND, x
+    cmp #$FF
+    beq hidden
+    lda #(TI_PARTY_Y0 + TI_ARROW_DY)
+    sta OAMDATA
+    ; Its tile: TILE0 + 4 kind + the frame; "already on" walks 0, 1, 2, 1.
+    lda f:$7E0000 + TI_P_KIND, x
+    asl a
+    asl a
+    sta temp
+    lda f:$7E0000 + TI_P_KIND, x
+    cmp #TI_ARROW_EQUIPPED
+    lda f:$7E0000 + TI_P_PHASE
+    bcc frame                   ; carry from the `cmp`: `lda` does not touch it
+    cmp #3
+    bne frame
+    lda #1
+frame:
+    clc
+    adc temp
+    adc #TI_ARROW_TILE0
+    sta OAMDATA
+    lda #(TI_PARTY_PRIORITY | (TI_PARTY_ARROW_PAL << 1))
+    sta OAMDATA
+    bra arrow_next
+hidden:
+    lda #TI_PARTY_HIDDEN
+    sta OAMDATA
+    stz OAMDATA
+    stz OAMDATA
+arrow_next:
+    inx
+    cpx #TI_PARTY_MEMBERS
+    bcc arrow
+    ; Each member with a graphic —past the party it is $FF since the
+    ; opening—: its palette, colour or grey, and its frame, 0, 1, 2, 1, or
+    ; the middle one still for whoever cannot equip the item. While the line
+    ; leaves room.
+    ldx #0
+member:
+    lda f:$7E0000 + TI_P_K, x
+    cmp #$FF
+    beq member_next
+    lda f:$7E0000 + TI_P_USABLE, x
+    eor #1                      ; 0 colour, 1 grey
+    cmp f:$7E0000 + TI_P_PAL, x
+    beq frames
+    sta temp + 2
+    lda #(TI_PARTY_LAST_SMALL - TI_PARTY_VBLANK)
+    jsr room
+    bcs done
+    lda temp + 2
+    sta f:$7E0000 + TI_P_PAL, x
+    jsr palette
+frames:
+    lda #1
+    sta temp + 2
+    lda f:$7E0000 + TI_P_USABLE, x
+    beq wanted
+    lda f:$7E0000 + TI_P_PHASE
+    cmp #3
+    beq wanted
+    sta temp + 2
+wanted:
+    lda temp + 2
+    cmp f:$7E0000 + TI_P_UP, x
+    beq member_next
+    lda #(TI_PARTY_LAST_FRAME - TI_PARTY_VBLANK)
+    jsr room
+    bcs done
+    lda temp + 2
+    sta f:$7E0000 + TI_P_UP, x
+    jsl f:ti_party_upload
+member_next:
+    inx
+    cpx #TI_PARTY_MEMBERS
+    bcc member
+done:
+    rtl
+
+; Member X's palette to its row of the objects': from `ti_party_cgram`, 64
+; bytes per graphic, the grey after the colour as `temp + 2` says. Keeps X.
+palette:
+    txa
+    asl a
+    asl a
+    asl a
+    asl a
+    ora #$80                    ; 128 + 16 i
+    sta CGADD
+    lda f:$7E0000 + TI_P_K, x
+    rep #$20
+.a16
+    and #$00FF
+    xba
+    lsr a
+    lsr a                       ; k * 64
+    sta temp
+    lda temp + 2
+    and #$0001
+    beq colour
+    lda #32
+colour:
+    clc
+    adc temp
+    adc #.loword(ti_party_cgram)
+    sta A1T0L
+    lda #32
+    sta DAS0L
+    sep #$20
+.a8
+    lda #^ti_party_cgram
+    sta A1B0
+    stz DMAP0
+    lda #$22
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+    rts
+
+; Carry clear if the vblank has room for something that starts by line
+; `TI_PARTY_VBLANK` + A: with the screen off, always; if not, the line has to
+; be in the vblank and not past that one.
+room:
+    pha
+    lda temp + 3
+    bne yes
+    lda STAT78                  ; resets the counters' flip-flop
+    lda SLHV
+    lda OPVCT
+    xba
+    lda OPVCT
+    and #$01
+    xba
+    rep #$20
+.a16
+    sec
+    sbc #TI_PARTY_VBLANK
+    sep #$20                    ; `sep` does not touch C: the `bcc` looks at the `sbc`
+.a8
+    bcc no                      ; still drawing, or drawing again
+    xba
+    bne no                      ; past the vblank
+    xba
+    cmp 1, s
+    beq yes
+    bcs no
+yes:
+    pla
+    clc
+    rts
+no:
+    pla
+    sec
+    rts
+.endproc
+
+; The rest is in `FAR2`, entered with `jsl`: bank 1 had no room for it all,
+; and `FAR2` has less in a game with painted maps —Sunset over Imdahl had 555
+; bytes left there on 2026-10-15—. The data bank is still 0 there, as in the
+; shop. `ti_party_vblank`, above, also returns with `rtl`.
 .segment "FAR2"
 
 ; At opening, with the screen off and after `ti_screen_upload`: the object
@@ -374,41 +537,44 @@ with_room:
     stz WOBJSEL
     lda #$80
     sta VMAIN
-    rep #$20
-.a16
-    lda #TI_ARROW_VRAM
-    sta VMADDL
-    lda #.loword(ti_arrow_tiles)
-    sta A1T0L
-    lda #(TI_ARROW_FRAMES * 4 * 32)
-    sta DAS0L
-    sep #$20
-.a8
+    ; The members' slots blank, so one without a graphic shows nothing: a
+    ; fixed source of zero.
+    ldx #TI_PARTY_VRAM
+    stx VMADDL
+    ldx #$1809
+    stx temp
+    ldx #.loword(zero)
+    ldy #(TI_PARTY_MEMBERS * TI_FRAME_TILES * 32)
+    lda #^zero
+    jsr dma
+    ; The arrows' tiles and palette.
+    ldx #TI_ARROW_VRAM
+    stx VMADDL
+    ldx #$1801
+    stx temp
+    ldx #.loword(ti_arrow_tiles)
+    ldy #(TI_ARROW_FRAMES * 4 * 32)
     lda #^ti_arrow_tiles
-    sta A1B0
-    lda #$01
-    sta DMAP0
-    lda #$18
-    sta BBAD0
-    lda #$01
-    sta MDMAEN
+    jsr dma
     lda #(128 + 16 * TI_PARTY_ARROW_PAL)
     sta CGADD
-    rep #$20
-.a16
-    lda #.loword(ti_arrow_cgram)
-    sta A1T0L
-    lda #32
-    sta DAS0L
-    sep #$20
-.a8
+    ldx #$2200
+    stx temp
+    ldx #.loword(ti_arrow_cgram)
+    ldy #32
     lda #^ti_arrow_cgram
-    sta A1B0
-    stz DMAP0
-    lda #$22
-    sta BBAD0
-    lda #$01
-    sta MDMAEN
+    jsr dma
+    ; The whole OAM, which the converter lays out —`ti_party_oam`—: member
+    ; `i`'s twelve objects with palette `i`, the arrows and the rest below
+    ; the screen, and the high table at zero.
+    stz OAMADDL
+    stz OAMADDL + 1
+    ldx #$0400
+    stx temp
+    ldx #.loword(ti_party_oam)
+    ldy #544
+    lda #^ti_party_oam
+    jsr dma
     ; Who is shown, and with which graphic.
     lda party_n
     cmp #TI_PARTY_MEMBERS
@@ -454,50 +620,32 @@ next_member:
     inx
     cpx #TI_PARTY_MEMBERS
     bcc member
-    ; The OAM: each member's twelve, the arrows, and the rest below the screen.
-    stz OAMADDL
-    stz OAMADDL + 1
-    ldx #0                      ; the member
-oam_member:
-    ldy #0                      ; its tile
-oam_tile:
-    lda f:$7E0000 + TI_P_K, x
-    cmp #$FF
-    bne drawn
-    stz OAMDATA
-    lda #TI_PARTY_HIDDEN
-    sta OAMDATA
-    stz OAMDATA
-    stz OAMDATA
-    bra oam_next
-drawn:
-    ; x: X0 + 32 i + 8 (tile mod 3); y: Y0 + 8 (tile div 3).
-    txa
-    asl a
-    asl a
-    asl a
-    asl a
-    asl a                       ; 32 i
-    sta temp
-    tya
-    phx
-    rep #$20
-.a16
-    and #$00FF
-    tax
-    sep #$20
+    rtl
+
+; Channel 0, once: from A:X, Y bytes, with `temp` its mode and its register
+; —`DMAP0` and `BBAD0`, which are next to each other—.
+dma:
+    stx A1T0L
+    sta A1B0
+    sty DAS0L
+    ldx temp
+    stx DMAP0
+    lda #$01
+    sta MDMAEN
+    rts
+
+zero:
+    .byte 0
+.endproc
+
+; Frame `temp + 2` of member X's graphic to its slot, from `ti_party_vblank`.
+; Keeps X.
+.proc ti_party_upload
 .a8
-    lda f:frame_x, x
-    clc
-    adc temp
-    adc #TI_PARTY_X0
-    sta OAMDATA
-    lda f:frame_y, x
-    clc
-    adc #TI_PARTY_Y0
-    sta OAMDATA
-    plx
-    ; The tile: TILE0 + 12 i + its own.
+.i16
+    phx
+    lda #$80
+    sta VMAIN
     txa
     asl a
     asl a                       ; 4 i
@@ -505,54 +653,57 @@ drawn:
     asl a                       ; 8 i
     clc
     adc temp                    ; 12 i
-    sta temp
-    tya
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    asl a
+    asl a
+    asl a                       ; sixteen words per tile
+    clc
+    adc #TI_PARTY_VRAM
+    sta VMADDL
+    lda temp + 2
+    and #$00FF
+    asl a
+    tax
+    lda f:frame_offset, x
+    sta temp                    ; where the frame starts in its graphic
+    lda 1, s                    ; the member, from the `phx`
+    tax
+    sep #$20
+.a8
+    lda f:$7E0000 + TI_P_K, x
+    rep #$20
+.a16
+    and #$00FF
+    pha
+    asl a
+    clc
+    adc 1, s                    ; three bytes per pointer
+    tax
+    pla
+    lda f:ti_party_ptr, x
     clc
     adc temp
-    adc #TI_PARTY_TILE0
-    sta OAMDATA
-    txa
-    asl a                       ; palette i, in vhoopppN
-    ora #TI_PARTY_PRIORITY
-    sta OAMDATA
-oam_next:
-    iny
-    cpy #TI_FRAME_TILES
-    bcc oam_tile
-    inx
-    cpx #TI_PARTY_MEMBERS
-    bcc oam_member
-    ; The arrows, hidden until the first vblank says which.
-    ldx #TI_PARTY_MEMBERS
-arrow:
-    stz OAMDATA
-    lda #TI_PARTY_HIDDEN
-    sta OAMDATA
-    stz OAMDATA
-    stz OAMDATA
-    dex
-    bne arrow
-    ldx #(128 - TI_PARTY_OAM_ARROWS - TI_PARTY_MEMBERS)
-rest:
-    stz OAMDATA
-    lda #TI_PARTY_HIDDEN
-    sta OAMDATA
-    stz OAMDATA
-    stz OAMDATA
-    dex
-    bne rest
-    ldx #32                     ; the high table: x below 256, all small
-high:
-    stz OAMDATA
-    dex
-    bne high
+    sta A1T0L
+    lda #TI_PARTY_FRAME_BYTES
+    sta DAS0L
+    sep #$20
+.a8
+    lda f:ti_party_ptr + 2, x
+    sta A1B0
+    lda #$01
+    sta DMAP0
+    lda #$18
+    sta BBAD0
+    lda #$01
+    sta MDMAEN
+    plx
     rtl
 
-; Each tile's place inside its 24x32 frame, by rows.
-frame_x:
-    .byte 0, 8, 16, 0, 8, 16, 0, 8, 16, 0, 8, 16
-frame_y:
-    .byte 0, 0, 0, 8, 8, 8, 16, 16, 16, 24, 24, 24
+frame_offset:
+    .word 0, TI_PARTY_FRAME_BYTES, 2 * TI_PARTY_FRAME_BYTES
 .endproc
 
 ; On closing, with the screen off: the map's object base and its object
@@ -603,281 +754,5 @@ keep:
     rtl
 .endproc
 
-; What changed, to the PPU: whether the objects are shown, the arrows, the
-; palettes and the frames. In the vblank, after the text's uploads; with A
-; nonzero the screen is off and everything goes, without looking at the line.
-.proc ti_party_vblank
-.a8
-.i16
-    sta f:$7E0000 + TI_P_FORCE
-    lda f:$7E0000 + TI_P_ON
-    bne shown
-    lda #$03                    ; BG1 and BG2: `screen_ppu_on`
-    sta TM
-    rtl
-shown:
-    lda #$13                    ; and the objects
-    sta TM
-    lda #(TI_PARTY_LAST_SMALL - TI_PARTY_VBLANK)
-    jsr room
-    bcc arrows
-    rtl
-arrows:
-    ; The four arrows' entries: x, y, tile and attributes.
-    lda #<(2 * TI_PARTY_OAM_ARROWS)
-    sta OAMADDL
-    stz OAMADDL + 1
-    lda f:$7E0000 + TI_P_PHASE
-    sta f:$7E0000 + TI_P_SHOWN
-    ldx #0
-arrow:
-    txa
-    asl a
-    asl a
-    asl a
-    asl a
-    asl a                       ; 32 i
-    clc
-    adc #(TI_PARTY_X0 + TI_ARROW_DX)
-    sta OAMDATA
-    lda f:$7E0000 + TI_P_KIND, x
-    cmp #$FF
-    beq hidden
-    txa
-    cmp f:$7E0000 + TI_P_N
-    bcs hidden
-    lda #(TI_PARTY_Y0 + TI_ARROW_DY)
-    sta OAMDATA
-    ; Its tile: TILE0 + 4 kind + the frame; "already on" walks 0, 1, 2, 1.
-    lda f:$7E0000 + TI_P_KIND, x
-    asl a
-    asl a
-    sta temp
-    lda f:$7E0000 + TI_P_KIND, x
-    cmp #TI_ARROW_EQUIPPED
-    lda f:$7E0000 + TI_P_PHASE
-    bcc frame                   ; carry from the `cmp`: `lda` does not touch it
-    cmp #3
-    bne frame
-    lda #1
-frame:
-    clc
-    adc temp
-    adc #TI_ARROW_TILE0
-    sta OAMDATA
-    lda #(TI_PARTY_PRIORITY | (TI_PARTY_ARROW_PAL << 1))
-    sta OAMDATA
-    bra arrow_next
-hidden:
-    lda #TI_PARTY_HIDDEN
-    sta OAMDATA
-    stz OAMDATA
-    stz OAMDATA
-arrow_next:
-    inx
-    cpx #TI_PARTY_MEMBERS
-    bcc arrow
-    ; The palettes: colour, or grey for whoever cannot equip it.
-    ldx #0
-palette:
-    txa
-    cmp f:$7E0000 + TI_P_N
-    bcs palettes_done
-    lda f:$7E0000 + TI_P_K, x
-    cmp #$FF
-    beq palette_next
-    lda f:$7E0000 + TI_P_USABLE, x
-    eor #1                      ; 0 colour, 1 grey
-    cmp f:$7E0000 + TI_P_PAL, x
-    beq palette_next
-    sta f:$7E0000 + TI_P_PAL, x
-    ; From `ti_party_cgram`: 64 bytes per graphic, the grey after the colour.
-    sta f:$7E0000 + TI_P_FRAME
-    lda f:$7E0000 + TI_P_K, x
-    rep #$20
-.a16
-    and #$00FF
-    xba
-    lsr a
-    lsr a                       ; k * 64
-    sta f:$7E0000 + TI_P_T
-    lda f:$7E0000 + TI_P_FRAME
-    and #$0001
-    beq colour
-    lda #32
-colour:
-    clc
-    adc f:$7E0000 + TI_P_T
-    adc #.loword(ti_party_cgram)
-    sta A1T0L
-    lda #32
-    sta DAS0L
-    sep #$20
-.a8
-    txa
-    asl a
-    asl a
-    asl a
-    asl a
-    clc
-    adc #128                    ; palette i of the objects
-    sta CGADD
-    lda #^ti_party_cgram
-    sta A1B0
-    stz DMAP0
-    lda #$22
-    sta BBAD0
-    lda #$01
-    sta MDMAEN
-palette_next:
-    inx
-    cpx #TI_PARTY_MEMBERS
-    bcc palette
-palettes_done:
-    ; The frames: 0, 1, 2, 1, and the middle one still for whoever cannot
-    ; equip it. One member at a time, while the line leaves room.
-    ldx #0
-member:
-    txa
-    cmp f:$7E0000 + TI_P_N
-    bcs members_done
-    lda f:$7E0000 + TI_P_K, x
-    cmp #$FF
-    beq member_next
-    lda #1
-    sta f:$7E0000 + TI_P_FRAME
-    lda f:$7E0000 + TI_P_USABLE, x
-    beq wanted
-    lda f:$7E0000 + TI_P_PHASE
-    cmp #3
-    beq wanted
-    sta f:$7E0000 + TI_P_FRAME
-wanted:
-    lda f:$7E0000 + TI_P_FRAME
-    cmp f:$7E0000 + TI_P_UP, x
-    beq member_next
-    lda #(TI_PARTY_LAST_FRAME - TI_PARTY_VBLANK)
-    jsr room
-    bcs members_done
-    lda f:$7E0000 + TI_P_FRAME
-    sta f:$7E0000 + TI_P_UP, x
-    jsr upload
-member_next:
-    inx
-    cpx #TI_PARTY_MEMBERS
-    bcc member
-members_done:
-    rtl
-
-; Frame `TI_P_FRAME` of member X's graphic to its slot. Keeps X.
-upload:
-    phx
-    lda #$80
-    sta VMAIN
-    rep #$20
-.a16
-    txa
-    and #$00FF
-    asl a
-    asl a                       ; 4 i
-    sta f:$7E0000 + TI_P_T
-    asl a                       ; 8 i
-    clc
-    adc f:$7E0000 + TI_P_T      ; 12 i
-    asl a
-    asl a
-    asl a
-    asl a                       ; sixteen words per tile
-    clc
-    adc #TI_PARTY_VRAM
-    sta VMADDL
-    lda f:$7E0000 + TI_P_FRAME
-    and #$00FF
-    asl a
-    tax
-    lda f:frame_offset, x
-    sta f:$7E0000 + TI_P_T      ; where the frame starts in its graphic
-    lda 1, s                    ; the member, from the `phx`
-    and #$00FF
-    tax
-    sep #$20
-.a8
-    lda f:$7E0000 + TI_P_K, x
-    rep #$20
-.a16
-    and #$00FF
-    sta f:$7E0000 + TI_P_T2
-    asl a
-    clc
-    adc f:$7E0000 + TI_P_T2     ; three bytes per pointer
-    tax
-    lda f:ti_party_ptr, x
-    clc
-    adc f:$7E0000 + TI_P_T
-    sta A1T0L
-    lda #TI_PARTY_FRAME_BYTES
-    sta DAS0L
-    sep #$20
-.a8
-    lda f:ti_party_ptr + 2, x
-    sta A1B0
-    lda #$01
-    sta DMAP0
-    lda #$18
-    sta BBAD0
-    lda #$01
-    sta MDMAEN
-    plx
-    rts
-
-frame_offset:
-    .word 0, TI_PARTY_FRAME_BYTES, 2 * TI_PARTY_FRAME_BYTES
-
-; Carry clear if the vblank has room for something that starts by line
-; `TI_PARTY_VBLANK` + A: with the screen off, always; if not, the line has to
-; be in the vblank and not past that one.
-room:
-    sta f:$7E0000 + TI_P_T
-    lda f:$7E0000 + TI_P_FORCE
-    beq look
-    clc
-    rts
-look:
-    lda #0
-    sta f:$7E0000 + TI_P_T + 1
-    rep #$20
-.a16
-    lda f:$7E0000 + TI_P_T
-    clc
-    adc #TI_PARTY_VBLANK
-    sta f:$7E0000 + TI_P_T
-    sep #$20
-.a8
-    lda STAT78                  ; resets the counters' flip-flop
-    lda SLHV
-    lda OPVCT
-    xba
-    lda OPVCT
-    and #$01
-    xba
-    rep #$20
-.a16
-    cmp #TI_PARTY_VBLANK
-    bcc no                      ; still drawing, or drawing again
-    cmp f:$7E0000 + TI_P_T
-    beq yes
-    bcs no
-yes:
-    sep #$20
-.a8
-    clc
-    rts
-.a16
-no:
-    sep #$20
-.a8
-    sec
-    rts
-.endproc
 
 .segment "FAR"
