@@ -147,9 +147,6 @@ pub const LUMA_R: u32 = 19595;
 pub const LUMA_G: u32 = 38470;
 pub const LUMA_B: u32 = 7471;
 
-/// One bit per switch: up to 1024, of which A Blurred Line checks up to 1003.
-pub const SWITCH_BYTES: u32 = 128;
-
 /// The timer's eleven glyphs —ten digits and the colon—, eight pixels wide,
 /// where `Sprite_Timer` draws the first.
 pub const TIMER_GLYPHS: u32 = wally::sprites::extras::TIMER_GLYPHS as u32;
@@ -208,7 +205,7 @@ pub fn numbers() -> Vec<(&'static str, serde_json::Value)> {
         TRANSITION_CUT, PARTY_MAX, MESSAGES_STEP, TROOP_PAGES_MAX, TROOP_TRIGGER_SWITCH_A,
         TROOP_TRIGGER_SWITCH_B, TROOP_TRIGGER_VARIABLE, TROOP_TRIGGER_TURN, TROOP_TRIGGER_ENEMY,
         TROOP_TRIGGER_ACTOR, TROOP_WITH_HEADER, TROOP_HEADER_BYTES, ANIM_NO_DRAWING,
-        ANIM_TARGET_SCREEN, NEUTRAL_TINT, LUMA_R, LUMA_G, LUMA_B, SWITCH_BYTES, TIMER_GLYPHS,
+        ANIM_TARGET_SCREEN, NEUTRAL_TINT, LUMA_R, LUMA_G, LUMA_B, TIMER_GLYPHS,
         TIMER_GLYPH_W, TIMER_X, TIMER_Y, WATER_FRAMES_SLOW, WATER_CYCLE, ANIMATED_FRAMES,
         ANIMATED_STEPS, COLUMNS, CELL, COLS, ROWS, MENU_CGRAM, EQUIPMENT_SLOTS, ENEMIES_MAX,
         OBJ_SIDE, GRID, PARALLEL_MAX, ROUTE_EV_MAX,

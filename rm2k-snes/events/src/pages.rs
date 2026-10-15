@@ -356,6 +356,24 @@ pub fn map_pages(ctx: &mut Ctx, map: &Map, map_events: &MapEvents) -> Result<Vec
             );
             continue;
         }
+        // And the same with a switch past the ROM's table, which the console
+        // would test in whatever RAM follows it: until 2026-10-15 the table
+        // was 1024 switches for every game, and Vampires Dawn's map 433 picked
+        // its figures' dead page that way. The table holds every switch the
+        // game names —see `indices::switch_top`—, so this guards a mistake.
+        if let Some(s) = event
+            .pages
+            .iter()
+            .flat_map(|p| [p.condition.switch_a, p.condition.switch_b])
+            .flatten()
+            .find(|&s| !ctx.indices.holds_switch(s as i64))
+        {
+            eprintln!(
+                "  map {}: WARNING, event {} is left out: a page condition names switch {s}, past the ROM's table",
+                map.id, event.id
+            );
+            continue;
+        }
         for (page_number, page) in event.pages.iter().enumerate() {
             let c = &page.condition;
             let mut code = None;

@@ -222,6 +222,10 @@ pub struct Game {
     /// plain case. See it in `compile.rs`.
     pub two_handed: BTreeSet<i32>,
     pub two_weapons: BTreeSet<i32>,
+    /// The switches the database turns on by itself: its switch items' and
+    /// its switch skills'. The ROM's table has to hold them too: see
+    /// [`crate::indices::switch_top`].
+    pub database_switches: BTreeSet<i32>,
 }
 
 #[derive(Debug, Clone)]
@@ -429,6 +433,8 @@ impl Game {
         let two_weapons = raw.iter().filter(|a| a.two_weapon).map(|a| a.id).collect();
         let raw: Vec<schema::Skill> = dump.section("skills").map_err(answer)?;
         let skills = raw.iter().map(|s| s.id).collect();
+        let mut database_switches: BTreeSet<i32> =
+            raw.iter().filter(|s| s.r#type == schema::SkillType::Switch).map(|s| s.switch_id).collect();
         // A dump without items equips nothing: `ChangeEquipment` to equip
         // then does not compile, which is what it did before it read them.
         // The small game of this crate's tests has none.
@@ -438,6 +444,7 @@ impl Game {
             .map(|i| (i.id, (i.r#type.to_i32(), i.actor_set.clone())))
             .collect();
         let two_handed = raw.iter().filter(|i| i.two_handed).map(|i| i.id).collect();
+        database_switches.extend(raw.iter().filter(|i| i.r#type == schema::ItemType::Switch).map(|i| i.switch_id));
 
         Ok(Game {
             dump: data.to_path_buf(),
@@ -457,6 +464,7 @@ impl Game {
             items,
             two_handed,
             two_weapons,
+            database_switches,
         })
     }
 

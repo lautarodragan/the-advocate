@@ -220,6 +220,10 @@ pub struct Emit {
     /// skill) pair's bit.
     pub variables: Vec<(i64, i64)>,
     pub skill_pairs: Vec<(i64, i64, i64)>,
+    /// The highest switch the game names, which the ROM's table holds:
+    /// `SWITCH_BYTES` is this over eight plus one. See `switch_top` in
+    /// the event compiler.
+    pub switch_top: i64,
     /// The items and actors the cartridge knows.
     pub items: Vec<i64>,
     pub actors: Vec<i64>,

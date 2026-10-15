@@ -440,14 +440,11 @@ counter_ones:    .res 1
 ; is the only thing the two OBSEL sizes need to tell apart.
 obj_big:     .res 1
 
-; One bit per RM2k switch. The game queries up to 1003 in page conditions, so
-; 1024 is enough. They are cleared only once at boot: in RM2k a new game
-; starts with all of them off.
 ; The party's gold, 24 bits because RM2k's cap is 999999. It is not shown
 ; anywhere yet —the menu does not exist— but the gold branch of
-; `ConditionalBranch` asks about it, and `ChangeGold` moves it.
+; `ConditionalBranch` asks about it, and `ChangeGold` moves it. The switches,
+; which were next to it until 2026-10-15, are in switches.s.
 gold:     .res 3
-switches: .res SWITCH_BYTES
 
 ; The screen tint scales each channel by the same factor for every color, so
 ; instead of doing the computation 256 times it is done 32: one table per

@@ -115,8 +115,6 @@ const ACTOR: u8 = 0x20;
 /// `troop_code`, which is in RODATA. See [`Trigger::header`] and
 /// `ba_page_header`.
 const WITH_HEADER: u8 = TURN | ENEMY | ACTOR;
-/// How many switches the ROM's bitmap holds.
-const SWITCH_MAX: i32 = 1024;
 
 /// The trigger of a troop page, with what the ROM reads from each one; the
 /// fields of what it does not look at go at zero.
@@ -223,7 +221,7 @@ pub(crate) fn trigger(ctx: &Ctx, page: &TroopPage) -> Option<Trigger> {
     if f.switch_b {
         t.switch_b = c.switch_b_id;
     }
-    if !(0..SWITCH_MAX).contains(&t.switch_a) || !(0..SWITCH_MAX).contains(&t.switch_b) {
+    if !ctx.indices.holds_switch(t.switch_a as i64) || !ctx.indices.holds_switch(t.switch_b as i64) {
         return None;
     }
     if f.variable {

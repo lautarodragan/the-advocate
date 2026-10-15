@@ -33,12 +33,12 @@ const TIMER_EXTRA_FRAMES: i64 = 59;
 /// An absurd range of switches is not unrolled: better not to run the page
 /// than to emit thousands of opcodes for one line.
 const MAX_RANGE: i64 = 64;
-/// How many switches the ROM's bitmap holds: `SWITCH_BYTES` is 128, that is
-/// 0 to 1023. A branch on a higher one would write out of bounds, so it does
-/// not compile.
-/// Measured against the game this was built with: an assumption of the
-/// engine, not a fact of the format.
-pub(crate) const SWITCH_MAX: i64 = 1024;
+/// How many switches the ROM's table can hold at most: it lives in the 256
+/// bytes of far RAM the cartridge's `SWITCHRAM` area gives it —see
+/// `rm2k-snes/cartridge/src/banks.rs`—, a bit each. How many it does hold
+/// is the game's: [`Indices::switch_top`]. RM2k's editor goes up to 5000,
+/// and the most a game seen so far names is 1643, Vampires Dawn's.
+pub const SWITCH_TABLE_MAX: i32 = 256 * 8;
 /// The inventory: one byte per item of the database in far RAM, `FAR_ITEMS`,
 /// indexed by the RM2k number. It was measured against the game this was
 /// built with —its 450 items plus 0, which is not used—: an assumption of
@@ -482,7 +482,7 @@ const CUT_THE_EXIT_TOO: [i32; 3] = [BREAK_LOOP, END_LOOP, END_EVENT_PROCESSING];
 
 /// The indices of the whole game, built once before compiling anything:
 /// see [`crate::indices`].
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct Indices {
     /// RM2k variable to its slot in the ROM.
     pub variables: BTreeMap<i32, usize>,
@@ -491,9 +491,32 @@ pub struct Indices {
     /// Actor to the name `\N[n]` bakes into the text: see
     /// [`crate::indices::hero_names`].
     pub hero_names: BTreeMap<i32, String>,
+    /// The highest switch the game names anywhere: see
+    /// [`crate::indices::switch_top`]. The ROM's table holds 0 to it and no
+    /// more, so a command, a branch or a condition past it does not
+    /// compile: it would read or write whatever RAM follows the table.
+    pub switch_top: i32,
+}
+
+/// Only the tests use it: without a game, the table holds every switch it
+/// can, and the tests that look at the bound set it.
+impl Default for Indices {
+    fn default() -> Indices {
+        Indices {
+            variables: BTreeMap::new(),
+            skills: BTreeMap::new(),
+            hero_names: BTreeMap::new(),
+            switch_top: SWITCH_TABLE_MAX - 1,
+        }
+    }
 }
 
 impl Indices {
+    /// Whether the ROM's switch table holds switch `number`.
+    pub fn holds_switch(&self, number: i64) -> bool {
+        (0..=self.switch_top as i64).contains(&number)
+    }
+
     pub fn variable_slot(&self, number: i64) -> Step<u8> {
         let slot = *i32::try_from(number)
             .ok()
@@ -1423,7 +1446,7 @@ fn page(
             && cmd.parameters.len() >= 4
             && cmd.p(3) == Some(SWITCH_TOGGLE)
         {
-            piece = compile_toggle(cmd, length)?;
+            piece = compile_toggle(ctx.indices, cmd, length)?;
         } else if matches!(cmd.code, INN_STAY | INN_NO_STAY | INN_END) {
             // The inn's three branches. None of the game's 18 pages uses them
             // —measured on 2026-09-20—, and doing them requires exactly what
@@ -1794,13 +1817,16 @@ fn shares<'a>(
 /// It is 18 bytes per switch against the 4 of an opcode that flipped the
 /// bit, and the game toggles a single one, 286, twelve times in Eisen's
 /// story (89 ev4 and 93 ev4 p2): it does not justify code in the ROM.
-fn compile_toggle(cmd: &Command, length: usize) -> Step<Vec<u8>> {
+fn compile_toggle(indices: &Indices, cmd: &Command, length: usize) -> Step<Vec<u8>> {
     let p = |i: usize| cmd.parameters[i] as i64;
     if p(0) != SWITCH_SINGLE && p(0) != SWITCH_RANGE {
         return cannot();
     }
     let (first, last) = (p(1), p(2));
     if last < first || last - first >= MAX_RANGE {
+        return cannot();
+    }
+    if !indices.holds_switch(first) || !indices.holds_switch(last) {
         return cannot();
     }
     let mut out = Vec::new();
@@ -2053,7 +2079,7 @@ fn branch_bytes(ctx: &Ctx, cmd: &Command, map_events: Option<&MapEvents>) -> Ste
         return Ok(out);
     }
     if kind == COND_SWITCH {
-        if !(0..SWITCH_MAX).contains(&number) {
+        if !ctx.indices.holds_switch(number) {
             return cannot();
         }
     } else if kind == COND_GOLD || kind == COND_TIMER {
@@ -4357,6 +4383,11 @@ pub fn compile_command(
             }
             let (first, last) = (q(1), q(2));
             if last < first || last - first >= MAX_RANGE {
+                return cannot();
+            }
+            // Until 2026-10-15 this was not checked, and a switch past the
+            // ROM's 1024 wrote past the table: see `Indices::switch_top`.
+            if !ctx.indices.holds_switch(first) || !ctx.indices.holds_switch(last) {
                 return cannot();
             }
             let value = if q(3) == SWITCH_ON { 1 } else { 0 };
@@ -7572,13 +7603,60 @@ mod tests {
 
     #[test]
     fn a_common_event_on_a_switch_past_the_bitmap_never_starts() {
-        // No page can turn switch 2000 on —the ROM's bitmap ends at 1023—,
-        // and reading it would go past `switches`.
+        // Switch 2000 is past the table, which here ends at 1023: reading it
+        // would go past `switches`.
         let mut game = Game::default();
         let on = cmd(CONTROL_SWITCHES, &[0, 1, 1, 0], "");
         game.common_events.insert(4, common(3, Some(2000), vec![on.clone()]));
         game.common_events.insert(5, common(3, Some(20), vec![on]));
-        assert_eq!(crate::commons::automatic(&game), [(5, 20)]);
+        let indices = Indices { switch_top: 1023, ..Default::default() };
+        assert_eq!(crate::commons::automatic(&game, &indices), [(5, 20)]);
+    }
+
+    // --- switches past 1023 ------------------------------------------------------
+
+    /// The Frozen World's table: it names up to 1077.
+    fn frozen_world() -> Indices {
+        Indices { switch_top: 1077, ..Default::default() }
+    }
+
+    /// Map 19's event 12 starts by turning on switch 1051, past the 1024 the
+    /// ROM held for every game until 2026-10-15: with a table to 1077 it
+    /// compiles, with the switch as a word.
+    #[test]
+    fn a_switch_past_1023_is_turned_on_when_the_table_holds_it() {
+        let code = on_a_map_with(&frozen_world(), &[cmd(CONTROL_SWITCHES, &[0, 1051, 1051, 0], "")])
+            .expect("the page does not compile");
+        assert_eq!(code[..4], [OP_SWITCH, 0x1B, 0x04, 1]);
+        // And a range that ends at the table's last one, and a toggle.
+        assert!(on_a_map_with(&frozen_world(), &[cmd(CONTROL_SWITCHES, &[1, 1070, 1077, 1], "")]).is_some());
+        assert!(on_a_map_with(&frozen_world(), &[cmd(CONTROL_SWITCHES, &[0, 1077, 1077, 2], "")]).is_some());
+    }
+
+    /// Until 2026-10-15 a `ControlSwitches` was not checked at all, and one
+    /// past the table wrote into whatever RAM followed it. Now it does not
+    /// compile, and neither does a range or a toggle that reaches past.
+    #[test]
+    fn a_switch_past_the_table_is_not_written() {
+        let past = |p: &[i32]| on_a_map_with(&frozen_world(), &[cmd(CONTROL_SWITCHES, p, "")]).is_none();
+        assert!(past(&[0, 1078, 1078, 0]));
+        assert!(past(&[1, 1070, 1080, 1]));
+        assert!(past(&[0, 1078, 1078, 2]));
+    }
+
+    /// And the branch, which until 2026-10-15 was refused past 1023 in any
+    /// game: Frozen World's map 14 page 15 asks about one.
+    #[test]
+    fn a_branch_on_a_switch_past_1023_compiles_when_the_table_holds_it() {
+        let branch = |s: i32| {
+            on_a_map_with(
+                &frozen_world(),
+                &[cmd(COND_BRANCH, &[0, s, 0, 0, 0, 0], ""), cmd(COND_END, &[], "")],
+            )
+        };
+        let code = branch(1060).expect("the branch does not compile");
+        assert_eq!(code[..5], [OP_IF, COND_SWITCH as u8, 0x24, 0x04, 0]);
+        assert!(branch(1078).is_none());
     }
 
     fn call(number: i32) -> Command {

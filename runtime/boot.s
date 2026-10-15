@@ -70,8 +70,9 @@ fast:
     ; The switches all start off, like a new RM2k game, and the screen
     ; untinted.
     ldx #$0000
+    lda #0
 erase_switches:
-    stz switches, x
+    sta f:switches, x           ; far: there is no long `stz`
     inx
     cpx #SWITCH_BYTES
     bne erase_switches
