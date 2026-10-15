@@ -1427,6 +1427,27 @@ mod tests {
         assert!(line("sub_value:").contains(".res SUB_MAX * 2"));
     }
 
+    /// The call stack's depth is written on both sides for the same reason:
+    /// the ROM skips a call past it without saying, and the compiler is the
+    /// one that says which chains go past it, in the degradations. The
+    /// runtime declares the stack with it —`.res CALL_LEVELS * CALL_ENTRY`—
+    /// and the compiler reports against `CALL_LEVELS` of the bytecode
+    /// crate.
+    #[test]
+    fn the_call_stack_s_depth_is_the_runtime_s() {
+        let path = rm2k_project::suite::runtime().join("common_events.s");
+        let source = std::fs::read_to_string(&path).unwrap();
+        let line = source
+            .lines()
+            .find(|l| l.starts_with("CALL_LEVELS "))
+            .unwrap_or_else(|| panic!("{} no longer says CALL_LEVELS", path.display()));
+        assert_eq!(
+            line.split('=').nth(1).unwrap().trim(),
+            rm2k_snes_bytecode::events::CALL_LEVELS.to_string()
+        );
+        assert!(source.contains("call_stack: .res CALL_LEVELS * CALL_ENTRY"));
+    }
+
     #[test]
     fn identical_pages_and_routes_are_stored_once() {
         let mut pages = vec![

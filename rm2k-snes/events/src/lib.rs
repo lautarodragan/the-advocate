@@ -568,7 +568,7 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
         // block, songs and graphics of its own. Every page, whatever
         // triggers it: it is what the party's scan asks, and what a test
         // asks about one page of the game.
-        let me = MapEvents::new(map, None);
+        let me = MapEvents::new(map, None).numbered(map, &indices);
         let mut compiled = Vec::new();
         for (e, event) in map.events.iter().enumerate() {
             for (p, page) in event.pages.iter().enumerate() {
@@ -599,7 +599,7 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
         // The pages as the map has them, with a text block of its own and
         // without songs: who walks and which graphics a route changes to.
         let map = with_test_event(map.clone(), request);
-        let me = MapEvents::new(&map, None);
+        let me = MapEvents::new(&map, None).numbered(&map, &indices);
         let mut messages = Messages::new(1, request.window());
         let mut graphics = Graphics::new(&associations);
         let mut ctx = Ctx {
@@ -847,7 +847,7 @@ fn compile_pass(
             let code = compile_page(
                 &mut ctx,
                 case,
-                Some(MapEvents::new(&map, Some(subs.clone())).for_event(0)),
+                Some(MapEvents::new(&map, Some(subs.clone())).numbered(&map, &indices).for_event(0)),
                 0,
                 0,
             )?;

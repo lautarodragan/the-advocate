@@ -16,23 +16,35 @@
 ; the hero with one more. Everything goes long or through the direct page:
 ; `op_call` and `op_return` come with the bytecode's data bank.
 
-; The interpreter's call stack, in far RAM: how deep it is, and per level
-; where the caller was —its `code_ptr`, three bytes, and its cursor, two—.
-; Three levels are what the game this was written for asks: the converter
-; emits the deepest chain as `COMMON_DEPTH`, and the `.assert` below stops
-; the build if it ever needs more. **It does not travel in the save**: the
-; menu does not open with a page running.
+; The interpreter's call stack: how deep it is, and per level where the
+; caller was —its `code_ptr`, three bytes, and its cursor, two—. It is the
+; **foreground's** and nobody else's: a parallel page, a parallel common
+; event and a troop's page paste what they call, and the three places that
+; run them put the depth at zero while they do and give it back after
+; —`parallel_tick`, `compar_tick`, `ba_t_page`—, so that their `OP_DONE`
+; ends their page and not the frame the foreground was in. **It does not
+; travel in the save**: the menu does not open with a page running.
 ;
-; $6110 to $611F, behind $6100, which was `MAP_SONG`'s. The work of
-; 2026-10-02 had set aside $2560 to $256F for this, but that is inside
-; `FAR_PAIR_LIST`, which goes up to $257F with `PARALLEL_MAX` at 48, and the
-; car chase has forty parallels.
-CALL_DEPTH = $7E6110
-CALL_STACK = $7E6111
+; Eight levels. The deepest chain of calls in the eight games measured on
+; 2026-10-15 is six, Frozen World's battle round (map 1, `CombatController`
+; page 6: it calls a monster's turn, which calls its attack, which calls the
+; damage, the plates, the statistics); Vampires Dawn has two common events
+; that call each other, which no depth holds. A call with the stack full is
+; skipped —`call_push`—, and the compiler says so in `degradations.json`
+; for every chain it can see is deeper: the number here and `CALL_LEVELS`
+; in rm2k-snes/bytecode/src/events.rs are the same one, and a test in
+; `rm2k-snes-convert` reads this line to check it. The cost is one byte of
+; depth and five per level, in bank 0's RAM: until 2026-10-15 it was three
+; levels at `$7E6110`, placed by hand, and far RAM has no room left for
+; more.
 CALL_ENTRY = 5
-CALL_LEVELS = 3
-.assert CALL_STACK + CALL_LEVELS * CALL_ENTRY <= $7E6120, error, "the call stack overflows its range"
-.assert COMMON_DEPTH <= CALL_LEVELS + 1, error, "a chain of calls is deeper than the call stack"
+CALL_LEVELS = 8
+.pushseg
+.segment "BSS"
+call_depth: .res 1
+call_stack: .res CALL_LEVELS * CALL_ENTRY
+.popseg
+.assert call_stack = call_depth + 1, error, "the custom menu saves the depth and the stack as one block"
 
 ; Starts the first automatic common event whose switch is on, if the
 ; foreground interpreter is free: `Game_Map::UpdateForegroundEvents`, which
@@ -79,7 +91,7 @@ has:
     lda f:common_body_bank, x
     sta code_ptr + 2
     lda #0
-    sta f:CALL_DEPTH            ; a new frame: nobody to return to
+    sta f:call_depth            ; a new frame: nobody to return to
     lda #1
     sta ev_active
     rtl
@@ -148,33 +160,8 @@ on:
     lda [code_ptr], y           ; the body's index
     iny
     pha
-    lda f:CALL_DEPTH
-    cmp #CALL_LEVELS
-    bcc room
-    pla
-    rtl
-room:
-    ; This level's entry: depth times five.
-    sta temp
-    asl a
-    asl a
-    clc
-    adc temp
-    rep #$20
-.a16
-    and #$00FF
-    tax
-    lda code_ptr
-    sta f:CALL_STACK, x
-    tya
-    sta f:CALL_STACK + 3, x
-    sep #$20
-.a8
-    lda code_ptr + 2
-    sta f:CALL_STACK + 2, x
-    lda f:CALL_DEPTH
-    inc a
-    sta f:CALL_DEPTH
+    jsr call_push
+    bcs full
     pla
     rep #$20
 .a16
@@ -189,20 +176,131 @@ room:
     sta code_ptr + 2
     ldy #0
     rtl
+full:
+    pla
+    rtl
 .endproc
 
-; `OP_RETURN`: back to whoever called, with the carry clear; or, if nobody
-; did, the carry set, and `op_return` ends the page like `OP_DONE`.
+; `OP_CALL_PAGE`, from `op_call_page` with Y on its operand: the page of
+; this map whose index in the page table it carries starts, and where this
+; page was goes on the stack. It is `CallEvent` to a map event's page, which
+; until 2026-10-15 was pasted into the caller: see `compile_call` in the
+; event compiler.
+;
+; The table is the one `page_ptr` points at, the loaded map's, and the
+; pointer read is the page's `+8`: wherever its code lives —behind the grid
+; in WRAM, or in the cartridge for a map too big for it— the table already
+; says so, which is why the operand is an index and not an address. A page
+; without code has a zero pointer there, and the call is skipped like one
+; whose body does not compile; with the stack full, the same.
+.proc call_page_enter
+.a8
+.i16
+    rep #$20
+.a16
+    lda [code_ptr], y           ; the page's index in the table
+    iny
+    iny
+    ; Times PAGE_BYTES, 32, plus the table: the table is a single `.block`
+    ; of at most 64 KB, so the add does not cross the bank.
+    asl a
+    asl a
+    asl a
+    asl a
+    asl a
+    clc
+    adc page_ptr
+    sta temp
+    sep #$20
+.a8
+    lda page_ptr + 2
+    sta temp + 2
+    phy                         ; the cursor, after the operand
+    ldy #8
+    rep #$20
+.a16
+    lda [temp], y               ; its code: the low word
+    pha
+    ldy #10
+    sep #$20
+.a8
+    lda [temp], y               ; and the bank
+    sta temp + 2                ; the pointer into the table is read: the
+    rep #$20                    ; code's takes its place
+.a16
+    pla
+    sta temp
+    ply
+    sep #$20
+.a8
+    ; A zero bank is no pointer: the page has no code. The bank alone tells,
+    ; since no code of this cartridge lives in bank 0.
+    lda temp + 2
+    beq skipped
+    jsr call_push               ; keeps Y; clobbers temp + 3
+    bcs skipped
+    rep #$20
+.a16
+    lda temp
+    sta code_ptr
+    sep #$20
+.a8
+    lda temp + 2
+    sta code_ptr + 2
+    ldy #0
+skipped:
+    rtl
+.endproc
+
+; Pushes where the page is —`code_ptr` and Y, the cursor to come back to—
+; as one more level, with the carry clear; or, with the stack full, does
+; nothing and sets it. Keeps Y; clobbers A and X.
+.proc call_push
+.a8
+.i16
+    lda f:call_depth
+    cmp #CALL_LEVELS
+    bcs full
+    ; This level's entry: depth times five.
+    sta temp + 3
+    asl a
+    asl a
+    clc
+    adc temp + 3
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    lda code_ptr
+    sta f:call_stack, x
+    tya
+    sta f:call_stack + 3, x
+    sep #$20
+.a8
+    lda code_ptr + 2
+    sta f:call_stack + 2, x
+    lda f:call_depth
+    inc a
+    sta f:call_depth
+    clc
+    rts
+full:
+    sec
+    rts
+.endproc
+
+; `OP_RETURN`, and `OP_DONE`: back to whoever called, with the carry clear;
+; or, if nobody did, the carry set, and the page ends.
 .proc call_leave
 .a8
 .i16
-    lda f:CALL_DEPTH
+    lda f:call_depth
     bne has
     sec
     rtl
 has:
     dec a
-    sta f:CALL_DEPTH
+    sta f:call_depth
     sta temp
     asl a
     asl a
@@ -212,13 +310,13 @@ has:
 .a16
     and #$00FF
     tax
-    lda f:CALL_STACK, x
+    lda f:call_stack, x
     sta code_ptr
-    lda f:CALL_STACK + 3, x
+    lda f:call_stack + 3, x
     tay
     sep #$20
 .a8
-    lda f:CALL_STACK + 2, x
+    lda f:call_stack + 2, x
     sta code_ptr + 2
     clc
     rtl
@@ -278,7 +376,7 @@ compar_owed: .res 1         ; something a pure one reads changed
 compar_now: .res 1          ; and this frame's copy of it
 compar_saved: .res 1        ; whether the foreground's context is saved
 compar_id: .res 1           ; `PAIR_COMMON` plus the index of the one at X
-compar_context: .res 11     ; and where: see `compar_tick`
+compar_context: .res 12     ; and where: see `compar_tick`
 .popseg
 
 ; At reset: none running, none seen on, and the pure ones owed a run.
@@ -362,6 +460,8 @@ each:
     beq untouched
     lda #$FF                    ; outside the loops: see `parallel_tick`
     sta pair_ev
+    lda f:compar_context + 11
+    sta f:call_depth
     lda f:compar_context + 8
     sta ev_active
     lda f:compar_context + 6
@@ -452,6 +552,14 @@ no_wait:
     bne saved
     inc a
     sta f:compar_saved
+    ; And the call stack's depth, which is the foreground's: at zero while
+    ; these run, so that their `OP_DONE` ends their page and does not return
+    ; into a frame of the foreground's. They paste what they call, so none
+    ; of them pushes, and zero holds for all of them.
+    lda f:call_depth
+    sta f:compar_context + 11
+    lda #0
+    sta f:call_depth
     lda ev_active
     sta f:compar_context + 8
     lda code_ptr + 2
