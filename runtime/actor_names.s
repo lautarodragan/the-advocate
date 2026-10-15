@@ -34,9 +34,12 @@ SAVE_NAMES = SAVE_BYTES - EXP_K * 4 - NAME_SLOTS
 NAME_LETTERS_MAX = 32
 
 .pushseg
-; In bank 1, which has more room than `FAR2`: Sunset over Imdahl, which
-; renames its hero, overflowed `FAR2` by fourteen bytes with this there.
-.segment "FAR"
+; In `FAR3`, the fourth code bank: every door in is a `jsl` or a `jml`, and
+; it calls nothing in bank 1. It was in bank 1, which had more room than
+; `FAR2` —Sunset over Imdahl, which renames its hero, overflowed `FAR2` by
+; fourteen bytes with it there—, until it and the shop's party together
+; overflowed bank 1 in A Blurred Line's MSU test cartridge (2026-10-15).
+.segment "FAR3"
 
 ; X16: an actor times two, as `actor_txt` is indexed. Returns in A16 the
 ; text number of the name it carries now, or $FFFF if the cartridge has no

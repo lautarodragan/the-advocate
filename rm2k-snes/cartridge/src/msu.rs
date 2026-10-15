@@ -131,7 +131,7 @@ mod tests {
     #[test]
     fn no_data_of_the_cartridge_is_in_the_spill_bank() {
         assert!(crate::banks::slots().iter().all(|s| s.bank != SPILL_BANK));
-        assert!(crate::banks::FAR2.bank != SPILL_BANK && SPILL_BANK > 1);
+        assert!(crate::banks::FAR2.bank != SPILL_BANK && crate::banks::FAR3.bank != SPILL_BANK && SPILL_BANK > 1);
     }
 
     #[test]
