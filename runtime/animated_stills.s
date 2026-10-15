@@ -24,17 +24,14 @@
 ; that carries the real counter.
 ;
 ; **It walks the rows only on the tick where the next column changes**, or
-; when something else touched one of these rows' pose —`still_dirty`—, and
-; it goes straight to the rows it found last time if they are still there.
-; A Blurred Line's race (map 49) is at the edge of the frame —45 extra frames
+; when something else touched one of these rows' pose —`still_dirty`—. A
+; Blurred Line's race (map 49) is at the edge of the frame —45 extra frames
 ; in 976 ticks driving, with the limit at 48— and its 29 cars animate
 ; standing still in four groups: walking the forty rows every frame took
 ; it to 68, measured, and walking them only on the ticks of a change, to 49.
 ; So each walk leaves in `still_next` the tick on which the soonest column
-; changes, and the frames before it cost one subtraction; and in
-; `still_hint` where each of its rows was, which the next walk checks by
-; the event in +8 before trusting: rows move when a walker is re-sorted
-; —`fit_npc`—, and then it walks them all again.
+; changes, and the frames before it cost one subtraction. Remembering where
+; the rows were, to skip the walk, measured the same 49 and was left out.
 ;
 ; Whoever writes the pose of a row that may animate here without going
 ; through this calls `still_touched`, so the next frame walks: a full upload
@@ -65,10 +62,8 @@
     lda still_dirty
     bne walk
     rts
-
 walk:
-    lda #0
-    sta still_dirty
+    stz still_dirty
     lda #$FF
     sta still_gap
     ; Does this map have any? The padding of the last family in `anim_table`
@@ -77,63 +72,21 @@ walk:
     ldy #(ANIM_FAMILIES - 1)
     jsr anim_where
     lda f:anim_table + 7, x
-    bne has
-    jmp walked
-has:
-    sta still_count
-    ; Where they were the last time, if they all were in the hints.
-    lda still_hints
-    beq scan_all
-    lda #$FF
-    sta still_gap
-    ldx #$0000
-hinted:
-    phx
+    beq walked
     rep #$20
 .a16
-    txa
-    asl a
-    tax
-    lda still_hint, x
-    tay
-    sep #$20
-.a8
-    plx
-    lda npc_buf + 13, y
-    bpl moved                   ; another row is there now
-    lda npc_buf + 8, y
-    cmp still_hint_ev, x
-    bne moved
-    phx
-    jsr still_row
-    plx
-    inx
-    txa
-    cmp still_hints
-    bne hinted
-    jmp walked
-
-moved:
-    lda #0
-    sta still_hints
-scan_all:
-    lda #$FF
-    sta still_gap
-    lda still_count
-    sta still_rows_left
-    lda #0
-    sta still_found
+    and #$00FF
+    sta still_left
     ldy #$0000
-    rep #$20
-.a16
     ; The rows that do not animate cost the most, so they go at sixteen bits
     ; and without changing width: +13 is the high byte, and its bit 7 the
     ; sign.
 scan:
     cpy npc_total
-    beq scanned
+    beq walked16
     lda npc_buf + 12, y
     bmi animates                ; bit 7 of +13 is "still and animating"
+next:
     tya
     clc
     adc #NPC_STRIDE
@@ -142,51 +95,14 @@ scan:
 animates:
     sep #$20
 .a8
-    ; Where it is, for the next walk, while there is room.
-    lda still_found
-    cmp #STILL_HINTS
-    bcs no_room
-    rep #$20
-.a16
-    and #$00FF
-    tax
-    asl a
-    phx
-    tax
-    tya
-    sta still_hint, x
-    plx
-    sep #$20
-.a8
-    lda npc_buf + 8, y
-    sta still_hint_ev, x
-no_room:
-    lda still_found
-    inc a
-    sta still_found
     jsr still_row
-    lda still_rows_left
-    dec a
-    sta still_rows_left
-    beq scanned8                ; that was the last one
     rep #$20
 .a16
-    tya
-    clc
-    adc #NPC_STRIDE
-    tay
-    bra scan
-scanned:
+    dec still_left
+    bne next
+walked16:
     sep #$20
 .a8
-scanned8:
-    ; The hints are good only if they hold every row.
-    lda still_found
-    cmp #STILL_HINTS + 1
-    bcc keep
-    lda #0
-keep:
-    sta still_hints
 walked:
     ; The next walk, on the soonest change.
     rep #$20
@@ -203,7 +119,7 @@ walked:
 
 ; Row Y, which animates standing still: its column for `still_t`, uploaded
 ; if it is not the one in its slot, and the ticks until it changes again
-; into `still_gap` if they are fewer. Keeps Y; clobbers A and X.
+; into `still_gap` if they are fewer. Keeps Y.
 .proc still_row
 .a8
 .i16
@@ -212,11 +128,10 @@ walked:
     ; Wally—, so it uploads even hidden, or erasing it would freeze them.
     bit #$40
     bne shown
-    lda npc_buf + 14, y
-    bne visible
+    ldx npc_buf + 13, y         ; +14 in the high byte: whether it is drawn
+    cpx #$0100
+    bcs shown
     rts                         ; hidden: not drawn
-visible:
-    lda npc_buf + 13, y
 shown:
     and #$3F
     dec a                       ; the speed, 0 to 5
@@ -276,19 +191,13 @@ later:
 
 ; A row's pose was written by someone other than `animate_still`, and the row
 ; may animate standing still: the next frame walks the rows, whether or not
-; a column changes, and walks them all —on a map load the hints are another
-; map's—. Clobbers A.
+; a column changes. Clobbers A.
 .proc still_touched
 .a8
     lda #1
     sta still_dirty
-    stz still_hints
     rts
 .endproc
-
-; How many rows `animate_still` remembers where they are: more, and it walks
-; the table every time.
-STILL_HINTS = 8
 
 .pushseg
 .segment "BSS"
@@ -301,14 +210,7 @@ still_gap: .res 1
 ; Something other than `animate_still` wrote the pose of a row: walk them
 ; on the next frame. See the top of this file.
 still_dirty: .res 1
-; How many rows animate standing still, from `anim_table`, how many the walk
-; has left to find and how many it found.
-still_count: .res 1
-still_rows_left: .res 1
-still_found: .res 1
-; Where the rows were the last walk —their offsets in `npc_buf` and their
-; events—, and how many: 0 when they have to be looked for.
-still_hint: .res 2 * STILL_HINTS
-still_hint_ev: .res STILL_HINTS
-still_hints: .res 1
+; How many rows that animate standing still the walk has left to find, from
+; the byte in `anim_table`.
+still_left: .res 2
 .popseg
