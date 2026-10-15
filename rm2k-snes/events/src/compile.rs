@@ -174,6 +174,7 @@ const COND_ITEM: i64 = 4;
 pub const COND_ACTOR: i64 = 5;
 const COND_FACING: i64 = 6;
 const COND_ACTOR_IN_PARTY: i64 = 0;
+pub const COND_ACTOR_HP: i64 = 3;
 pub const COND_ACTOR_SKILL: i64 = 4;
 pub const COND_ACTOR_EQUIPMENT: i64 = 5;
 // The route targets. 10002 to 10004 are the vehicles —boat, ship, airship—,
@@ -2084,15 +2085,16 @@ fn branch_bytes(ctx: &Ctx, cmd: &Command, map_events: Option<&MapEvents>) -> Ste
             out.extend([0, 0, 0]);
             return Ok(out);
         }
-        // The two actor questions that do not fit in `OP_IF`, since
+        // The actor questions that do not fit in `OP_IF`, since
         // 2026-09-13: "does it have this item equipped?" and "does it know
-        // this skill?". They do not fit because they carry **two** operands
-        // —the actor and the item or the skill— and `OP_IF` has a single
+        // this skill?", and since 2026-10-15 "has it at least this many
+        // HP?". They do not fit because they carry **two** operands —the
+        // actor and the item, the skill or the HP— and `OP_IF` has a single
         // one; the actor fits in a byte because the LDB has 60 and
         // `ACTORS_N` counts them, and the data does not, because the items go
         // up to 450.
         //
-        // It carries no polarity: RM2k gives none to these two —the branch
+        // It carries no polarity: RM2k gives none to these three —the branch
         // below is the `else`— same as to "is in the party". The destination
         // goes last, as in all of them, because it is what `with_dest`
         // patches when closing the branch.
@@ -2114,7 +2116,17 @@ fn branch_bytes(ctx: &Ctx, cmd: &Command, map_events: Option<&MapEvents>) -> Ste
         // `initial_equipment`. Asking about item 0 says yes as soon as there
         // is an empty slot, which is what RM2k does; no page of the game
         // does it.
-        if question == COND_ACTOR_SKILL || question == COND_ACTOR_EQUIPMENT {
+        //
+        // The HP, since 2026-10-15: `actor->GetHp() >= p[3]`, which is
+        // `FAR_HP` against the data —in a troop page too, which runs between
+        // `ba_sync_out` and `ba_sync_in`—. It is The Book of Three's
+        // `Reraise KO'd chars`, a parallel common event that gives 1 HP to
+        // whoever ended a battle fallen. RM2k's HP go up to 999, so the word
+        // holds them all.
+        if question == COND_ACTOR_SKILL
+            || question == COND_ACTOR_EQUIPMENT
+            || question == COND_ACTOR_HP
+        {
             if cmd.parameters.len() < 4 {
                 return cannot();
             }
@@ -6732,6 +6744,48 @@ mod tests {
         // The actor by a variable, and more than RM2k's cap, do not compile.
         assert_eq!(compile_with(&game, &[cmd(CHANGE_EXP, &[2, 3, 0, 0, 5, 0], "")]).unwrap(), None);
         assert_eq!(compile_with(&game, &[cmd(CHANGE_EXP, &[1, 14, 0, 0, 1_000_000, 0], "")]).unwrap(), None);
+    }
+
+    #[test]
+    fn the_hp_branch_asks_an_actor_for_at_least_that_many() {
+        // `ConditionalBranch` case 5, sub 3: `GetHp() >= p[3]`. It is The
+        // Book of Three's `Reraise KO'd chars`, one per actor from 10 to 15:
+        // `[5, 10, 3, 1, 0, 1]`, and in its `else` a `ChangeHP` of 1.
+        let mut game = Game::default();
+        game.actors.insert(10, vec![]);
+        let branch = |p: &[i32]| {
+            compile_with(&game, &[cmd(COND_BRANCH, p, ""), cmd(COND_END, &[], "")]).unwrap()
+        };
+        assert_eq!(
+            branch(&[5, 10, 3, 1, 0, 1]).unwrap(),
+            [OP_IF_ACTOR, COND_ACTOR_HP as u8, 10, 1, 0, 7, 0, OP_DONE]
+        );
+        // RM2k's 999, in the word.
+        assert_eq!(
+            branch(&[5, 10, 3, 999, 0, 1]).unwrap(),
+            [OP_IF_ACTOR, COND_ACTOR_HP as u8, 10, 0xE7, 0x03, 7, 0, OP_DONE]
+        );
+        // An actor the database does not have does not compile.
+        assert_eq!(branch(&[5, 11, 3, 1, 0, 1]), None);
+        // The whole common event's stretch: the `else` is the `ChangeHP`,
+        // after the jump that skips it.
+        let body = [
+            cmd(COND_BRANCH, &[5, 10, 3, 1, 0, 1], ""),
+            Command::new(END, 1, "", vec![]),
+            cmd(COND_ELSE, &[], ""),
+            Command::new(CHANGE_HP, 1, "", vec![1, 10, 0, 0, 1, 0]),
+            Command::new(END, 1, "", vec![]),
+            cmd(COND_END, &[], ""),
+        ];
+        assert_eq!(
+            compile_with(&game, &body).unwrap().unwrap(),
+            [
+                OP_IF_ACTOR, COND_ACTOR_HP as u8, 10, 1, 0, 10, 0,
+                OP_GOTO, 14, 0,
+                OP_HEAL, 10, 1, 0,
+                OP_DONE,
+            ]
+        );
     }
 
     #[test]

@@ -315,12 +315,13 @@ if_var_continues:
 
 .endproc
 
-; `ConditionalBranch` case 5 with two operands: "knows this skill" —sub 4—
-; and "has this item equipped" —sub 5—. They go in a separate opcode and not
-; in `OP_IF` because they carry **two** operands, the actor and the item or
-; the skill; see OP_IF_ACTOR in events.py.
+; `ConditionalBranch` case 5 with two operands: "has at least this many HP"
+; —sub 3—, "knows this skill" —sub 4— and "has this item equipped" —sub 5—.
+; They go in a separate opcode and not in `OP_IF` because they carry **two**
+; operands, the actor and the HP, the item or the skill; see OP_IF_ACTOR in
+; the events compiler.
 ;
-; Neither has a polarity: RM2k does not give them one, same as "is in the
+; None has a polarity: RM2k does not give them one, same as "is in the
 ; party", so the lower branch is the `else`.
 ;
 ; On entry, Y points at the sub. Both paths end at `actor_yes` or at `actor_no`
@@ -343,6 +344,8 @@ if_var_continues:
     lda temp
     cmp #COND_ACTOR_SKILL
     beq actor_skill
+    cmp #COND_ACTOR_HP
+    beq actor_hp
 
     ; --- the equipped equipment ---
     ; easyrpg's five `Get*Id()` compared against the item: it is enough for it
@@ -392,6 +395,23 @@ actor_eq_other:
 actor_skill:
     jsl f:skill_known
     bne actor_yes
+    bra actor_no
+
+    ; --- the HP ---
+    ; `actor->GetHp() >= p[3]`: its word in `FAR_HP`, indexed by the actor
+    ; number, against the data. Unsigned, as RM2k's HP never go below zero.
+actor_hp:
+    rep #$20
+.a16
+    lda temp + 1
+    and #$00FF                  ; the actor, without the HP that follows
+    asl a
+    tax
+    lda f:FAR_LENGTH + FAR_HP, x
+    cmp temp + 2
+    sep #$20
+.a8
+    bcs actor_yes               ; `sep` does not touch C
 actor_no:
     rep #$20
 .a16
