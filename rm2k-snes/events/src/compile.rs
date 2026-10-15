@@ -3837,9 +3837,11 @@ pub fn compile_command(
             // allowed. The ROM stores it in `FAR_ACCESS`. Saving from the save
             // point does not look at it, like `OpenSaveMenu` in RM2k.
             //
-            // `ChangeEscapeAccess` is the permission to escape from a battle,
-            // and it is stored without being read: the battle looks at the
-            // escape, and that belongs to someone else. It is here anyway
+            // `ChangeEscapeAccess` is the permission to use the Escape skill
+            // —not the battle's Escape command, which RM2k does not tie to
+            // it: easyrpg's `IsSkillUsable` is the only reader of
+            // `GetAllowEscape`—, and it is stored without being read until
+            // that skill can be used from the menu. It is here anyway
             // because it is what unlocks the most for what a bit costs —**30
             // of the game's 39 pages with `EnemyEncounter` that do not compile
             // have it ahead**—, and because a command accepted without being

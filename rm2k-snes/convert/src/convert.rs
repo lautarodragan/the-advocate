@@ -1053,7 +1053,10 @@ pub fn run(options: Options) -> Result<()> {
     }
     let case_slot = if cases.len() > 1 { Some(indices.variable_slot(CASE_VARIABLE as i64)?) } else { None };
     let request = json!({
-        "maps": infos.iter().map(emit::map_record).collect::<Vec<_>>(),
+        "maps": infos
+            .iter()
+            .map(|m| emit::map_record(m, emit::access_bits(game.tree.rules.access(m.id))))
+            .collect::<Vec<_>>(),
         "start": start_index,
         "hero_above": options.hero_above,
         "speed_keys": !options.no_speed_keys,
