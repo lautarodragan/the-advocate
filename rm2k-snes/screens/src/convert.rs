@@ -2,7 +2,7 @@
 //! cartridge, and what it answers.
 
 use crate::borders::{self, compact_shop, compact_target, Borders};
-use crate::cells::Color;
+use crate::cells::{Color, CELL};
 use crate::checks::{items_border_first, Vram, TEXT_POOL_PAIRS};
 use crate::render;
 use crate::end_game;
@@ -44,6 +44,11 @@ pub struct Request {
     /// it never switches: see `message_window::TextRows`. The `window`
     /// subcommand answers it.
     pub text_rows: Option<message_window::TextRows>,
+    /// Every name a `ChangeHeroName` of the game gives, as (actor, name), in
+    /// the order the event compiler counts them: each is one more row of the
+    /// actors' text, which the menu and the slot screen show when the actor
+    /// carries it. See the runtime's `actor_names.s`.
+    pub names: Vec<(i32, String)>,
 }
 
 fn hex(bytes: &[u8]) -> String {
@@ -283,6 +288,9 @@ fn shop_pairs(game: &Game, skin: &crate::game::Skin, request: &Request) -> Resul
                 gold: 999_999,
                 inventory: list.iter().map(|&n| (n, 99)).collect(),
                 party_equipment: Vec::new(),
+                party: Vec::new(),
+                frames: Vec::new(),
+                phase: 0,
                 mode,
                 chosen: 0,
                 top: 0,
@@ -347,6 +355,53 @@ fn lose(says: &mut Vec<String>, losses: &mut Vec<Value>, kind: &str, line: Optio
         losses.push(json!({"kind": kind, "text": line.trim()}));
         says.push(line);
     }
+}
+
+/// What runs into something else in the shop's buy layer, now that it has
+/// the party: the gold, at the right end of the message's line, against
+/// the message of each mode that shows it; and the two counts' terms
+/// against their digits, in a window 120 wide.
+fn shop_crowding(game: &Game) -> Result<Vec<String>> {
+    let font = &game.font;
+    let mut out = Vec::new();
+    let gold = font.width("999999");
+    let gold_from = (TI_GOLD_COL + 1) * CELL - gold;
+    for set in 0..TI_TERM_SETS {
+        for (k, term) in TI_TERMS.iter().enumerate() {
+            let mode = match k {
+                5 => TI_BUY,
+                6 => TI_COUNT_BUY,
+                7 => TI_BOUGHT,
+                9 => TI_COUNT_SALE,
+                10 => TI_SOLD,
+                _ => continue,
+            };
+            if TI_LAYER_OF_MODE[mode] != TI_LAYER_BUY {
+                continue;
+            }
+            let text = game.term(&format!("{term}{}", set + 1))?;
+            let line = &split_description(font, &text)[0];
+            let end = ITEM_DESC_COL * CELL + font.width(line);
+            if end + CELL > gold_from {
+                out.push(format!(
+                    "  WARNING, the shop message {line:?}, of set {set}, ends at x {end} and a six-digit \
+                     gold starts at {gold_from}: they run into each other"
+                ));
+            }
+        }
+    }
+    let room = (TI_STATUS_NUM - TI_STATUS_COL) * CELL;
+    for term in [TI_TERM_OWNED, TI_TERM_CARRIED] {
+        let text = game.term(term)?;
+        let taken = font.width(&text);
+        if taken + CELL / 2 > room {
+            out.push(format!(
+                "  WARNING, the shop's term {text:?} takes {taken} px and its count starts {room} px in: \
+                 they run into each other"
+            ));
+        }
+    }
+    Ok(out)
 }
 
 /// What a screen whose windows had to be redrawn says: see `fit`.
@@ -463,6 +518,49 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     lose(&mut says, &mut losses, "window-tiles-fused", fused_windows("the shop's", fused));
     let shop_border = borders::borders(&borders::shop_layers(&fitted), 0, ITEM_BORDER_CGRAM, TARGET_CGRAM)?;
     request.vram.shop(shop_border.tiles.len())?;
+    // And its party, as objects after the windows' tiles: the four members'
+    // frames —one up each— and the System's arrows.
+    let (arrow_tiles, arrow_colors) = crate::party::arrows(&skin)?;
+    let party_objects = TI_PARTY_MEMBERS * crate::party::FRAME_TILES + crate::party::ARROW_TILES;
+    // A System whose windows fill their bank leaves the party no room: the
+    // shop goes without it rather than the cartridge not building.
+    let party_on = match request.vram.shop_party(shop_border.tiles.len(), party_objects) {
+        Ok(()) => true,
+        Err(e) => {
+            let line = format!("  WARNING, {}: the shop shows no party", e.message());
+            lose(&mut says, &mut losses, "shop-party-no-room", Some(line));
+            false
+        }
+    };
+    let mut members = Vec::new();
+    let mut missing = Vec::new();
+    for &actor in request.actors.iter().filter(|_| party_on) {
+        match crate::party::member(game, actor)? {
+            Some(m) => members.push(json!({
+                "actor": actor,
+                "frames": m.frames.iter().map(|f| tiles_json(f)).collect::<Vec<_>>(),
+                "colors": colors_json(&m.colors),
+                "greys": colors_json(&m.greys),
+            })),
+            None => {
+                let name = &game.actors[&actor].character_name;
+                if !name.is_empty() {
+                    missing.push(format!("{} ({name})", game.actor_name(actor)?));
+                }
+                members.push(json!({"actor": actor}));
+            }
+        }
+    }
+    if !missing.is_empty() {
+        let line = format!(
+            "  WARNING, the shop's party has no CharSet for {}: the window leaves their place empty",
+            missing.join(", ")
+        );
+        lose(&mut says, &mut losses, "shop-party-missing", Some(line));
+    }
+    for line in shop_crowding(game)? {
+        lose(&mut says, &mut losses, "shop-crowded", Some(line));
+    }
     // End Game's tiles go where the slot screen's do, so what is checked is
     // the same.
     let end = end_game::convert(game, &skin)?;
@@ -527,7 +625,16 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     // What the cartridge composes as text: each actor's three strips, each
     // medicine's name in two lines, each item's name and description, the
     // equipment screen's terms and the shop's messages.
-    let n_actors = request.actors.iter().copied().max().map_or(0, |m| m + 1).max(0);
+    // A renamed actor that never joins still has its row: a message's
+    // `\N[n]` shows its name.
+    let n_actors = request
+        .actors
+        .iter()
+        .chain(request.names.iter().map(|(a, _)| a))
+        .copied()
+        .max()
+        .map_or(0, |m| m + 1)
+        .max(0);
     let actor_texts: Vec<Value> = (0..n_actors)
         .map(|a| {
             Ok(json!([
@@ -537,6 +644,9 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
             ]))
         })
         .collect::<Result<_>>()?;
+    // And each rename's name strip, after them: see `Request::names`.
+    let renamed: Vec<Value> =
+        request.names.iter().map(|(a, name)| json!([a, texts::name_strip(name, MENU_NAME_COLS)])).collect();
     let mut item_texts = Vec::new();
     for &n in &request.items {
         let item = game.item(n)?;
@@ -638,6 +748,13 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
             "patches": shop_compact.patches,
             "bars": shop_compact.bars,
         },
+        "shop_party": {
+            "on": party_on,
+            "members": members,
+            "arrows": tiles_json(&arrow_tiles),
+            "arrow_colors": colors_json(&arrow_colors),
+            "tile0": 2 * shop_border.tiles.len(),
+        },
         "target": {
             "tiles": tiles_json(&target.tiles),
             "colors": colors_json(&target.colors),
@@ -680,6 +797,7 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
         },
         "texts": {
             "actors": actor_texts,
+            "renamed": renamed,
             "items": item_texts,
             "medicines": medicine_names,
             "params": params,

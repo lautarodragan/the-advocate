@@ -824,6 +824,9 @@ pub fn run(options: Options) -> Result<()> {
         "menus": custom_menus.iter().map(|m| json!({"name": m.name, "spec": m.spec})).collect::<Vec<_>>(),
         "variables": indices.variables.iter().map(|(v, s)| json!([v, s])).collect::<Vec<_>>(),
         "before_bodies": menu_before,
+        // And the names `ChangeHeroName` gives: one more row each of the
+        // actors' text.
+        "names": indices.names.iter().map(|(a, n)| json!([a, n])).collect::<Vec<_>>(),
     });
     let screens_answer =
         screens::convert(&game, &font, &members, &items_all, !options.no_title, &menus_request, window_colors, &window_answer["text_rows"])?;
@@ -1187,6 +1190,9 @@ pub fn run(options: Options) -> Result<()> {
     // The highest switch the game names, which the table holds: apart, because
     // the literal above is at `json!`'s recursion limit.
     request["switch_top"] = json!(indices.switch_top);
+    // And the names `ChangeHeroName` gives, in the order `OP_CHANGE_NAME`
+    // counts them, apart for the same reason.
+    request["names"] = json!(indices.names.iter().map(|(a, n)| json!([a, n])).collect::<Vec<_>>());
     let emitted = emit::emit(&output, &request, &game.dump)?;
     println!(
         "{} map(s) -> {}, boots at {start_index} (map {})",

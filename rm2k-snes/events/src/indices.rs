@@ -372,12 +372,30 @@ pub fn associations(maps: &[Map], extra: &[Command]) -> Vec<(String, i32)> {
 /// into the text: the ones in the database whose name **no**
 /// `ChangeHeroName` in any page of the game changes. A renamed actor is not
 /// here, and neither is `\N[0]`, the leader, whose name depends on who is in
-/// the party: those boxes are left out as before, since the ROM has no way
-/// to write a name that is only known at run time.
+/// the party: the ROM writes those when the box opens —see
+/// [`crate::messages::NAME`]—.
 pub fn hero_names(game: &Game, maps: &[Map]) -> BTreeMap<i32, String> {
-    let mut renamed = BTreeSet::new();
+    let renamed: BTreeSet<i32> = renames(game, maps).into_iter().map(|(a, _)| a).collect();
+    game.actor_names
+        .iter()
+        .filter(|(id, _)| !renamed.contains(id))
+        .map(|(&id, name)| (id, name.clone()))
+        .collect()
+}
+
+/// Every (actor, name) a `ChangeHeroName` of the game gives, each once, in
+/// the order they are first found: the maps' pages, the troops' and the
+/// common events'. A name is a literal in the command, so the names an actor
+/// can have are all known when building: the database's and these. The ROM
+/// keeps, per renamed actor, which of these it carries —`OP_CHANGE_NAME`—.
+pub fn renames(game: &Game, maps: &[Map]) -> Vec<(i32, String)> {
+    let mut out: Vec<(i32, String)> = Vec::new();
     let mut sweep = |commands: &[Command]| {
-        renamed.extend(commands.iter().filter(|c| c.code == CHANGE_HERO_NAME).filter_map(|c| c.parameters.first().copied()));
+        for pair in command_renames(commands) {
+            if !out.contains(&pair) {
+                out.push(pair);
+            }
+        }
     };
     for map in maps {
         for event in &map.events {
@@ -392,10 +410,16 @@ pub fn hero_names(game: &Game, maps: &[Map]) -> BTreeMap<i32, String> {
     for c in game.common_events.values() {
         sweep(&c.commands);
     }
-    game.actor_names
+    out
+}
+
+/// The (actor, name) of each `ChangeHeroName` among these commands, in
+/// their order.
+pub fn command_renames(commands: &[Command]) -> Vec<(i32, String)> {
+    commands
         .iter()
-        .filter(|(id, _)| !renamed.contains(id))
-        .map(|(&id, name)| (id, name.clone()))
+        .filter(|c| c.code == CHANGE_HERO_NAME)
+        .filter_map(|c| Some((*c.parameters.first()?, c.string.clone())))
         .collect()
 }
 
@@ -482,6 +506,7 @@ pub fn build(
         variables: variables(game, maps, extra_variables),
         skills: skills(game, maps, extra_pairs)?,
         hero_names: hero_names(game, maps),
+        renames: renames(game, maps),
         switch_top: switch_top(game, maps, extra_switches)?,
     })
 }

@@ -183,6 +183,16 @@ impl Json {
                 }
             }
         }
+        let mut names = Vec::new();
+        if let Some(v) = self.get("names") {
+            for pair in v.as_array().ok_or_else(|| self.bad("names", v))? {
+                let p = pair.as_array().filter(|p| p.len() == 2).ok_or_else(|| self.bad("names", v))?;
+                match (p[0].as_i64().and_then(|a| i32::try_from(a).ok()), p[1].as_str()) {
+                    (Some(actor), Some(name)) => names.push((actor, name.to_string())),
+                    _ => return Err(self.bad("names", v)),
+                }
+            }
+        }
         for (common, body) in self.by_number("before_bodies")? {
             menu_context.before_bodies.insert(common, body as u8);
         }
@@ -195,6 +205,7 @@ impl Json {
             title: self.flag("title", false)?,
             cgram_reserved: self.index_or("cgram_reserved", 0)?,
             text_rows: self.text_rows()?,
+            names,
             vram: Vram {
                 slot_vram: vram_field("slot_vram")?,
                 slot_map: vram_field("slot_map")?,
@@ -287,6 +298,9 @@ impl Json {
             gold: self.number_or("gold", 0)?,
             inventory: self.by_number("inventory")?,
             party_equipment,
+            party: self.optional_actors("party")?.unwrap_or_default(),
+            frames: self.optional_actors("frames")?.unwrap_or_default().into_iter().map(|f| f as usize).collect(),
+            phase: self.index_or("phase", 0)?,
             mode: self.index_or("mode", 0)?,
             chosen: self.index_or("chosen", 0)?,
             top: self.index_or("top", 0)?,

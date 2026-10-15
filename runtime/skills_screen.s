@@ -1058,7 +1058,7 @@ at:
     and #$00FF
     asl a
     tax
-    lda f:actor_txt, x
+    jsl f:actor_name_txt        ; renames included: actor_names.s
     tax
     sep #$20
 .a8

@@ -205,6 +205,9 @@ fn without_pairs(answer: &mut Value) {
         // 2026-10-15 and is no byte of a cartridge: see
         // `the_compilation_says_what_it_degrades`.
         m.remove("degradations");
+        // And the names `ChangeHeroName` gives, which came on 2026-10-15:
+        // see `a_rename_is_the_actors_place_and_the_names` in `compile.rs`.
+        m.remove("names");
     }
     if let Some(m) = answer.get_mut("messages").and_then(Value::as_object_mut) {
         m.remove("pairs");

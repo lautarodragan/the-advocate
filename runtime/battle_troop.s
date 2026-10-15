@@ -591,6 +591,12 @@ to_screen:
 ; cells —in pixels, with the font's advances: until 2026-10-03 it was that
 ; many letters—. The block fits in one bank —the converter guarantees it—,
 ; so the pointer is advanced with Y and the bank stays fixed.
+;
+; A variable's value, `\V[n]`, and a name written when the box opens,
+; `\N[0]` or a renamed actor's, come as the map's do —`MESSAGE_VARIABLE` and
+; its slot, `MESSAGE_NAME` and its actor— and are written here, letter by
+; letter, as `msg_letter` does on the map: see `variable` and `name`. Until
+; 2026-10-15 their bytes were drawn as two letters.
 .proc ba_page_message
 .a8
 .i16
@@ -633,6 +639,156 @@ letter:
     beq end_line
     dec BA_T0
     lda [msg_ptr], y
+    iny
+    cmp #MESSAGE_VARIABLE
+    beq variable
+    cmp #MESSAGE_NAME
+    beq name
+    jsr put
+    bra letter
+end_line:
+    rep #$20
+.a16
+    lda BA_T1
+    clc
+    adc #BA_ROW_BYTES
+    sta BA_T1
+    sep #$20
+.a8
+    dec BA_PAGE_I
+    bra line
+ready:
+    rts
+
+    ; The value of the variable whose slot follows, in decimal, with its
+    ; sign: the digits go into `MSG_DIGITS` from the ones up, and are put
+    ; from the top down. The map's composer is not composing in battle.
+variable:
+    lda [msg_ptr], y            ; the slot
+    iny
+    phy
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
+    lda f:FAR_LENGTH + FAR_VARIABLES, x
+    ldx #0                      ; how many characters so far
+    pha                         ; the value, for its sign
+    cmp #0                      ; the `ldx` left its own flags
+    bpl digit
+    eor #$FFFF
+    inc a
+digit:
+    sta f:WRDIVL
+    sep #$20
+.a8
+    lda #10
+    sta f:WRDIVB                ; sixteen cycles
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    lda f:RDMPYL                ; the remainder
+    clc
+    adc #'0' - ' '
+    sta f:MSG_DIGITS, x
+    inx
+    rep #$20
+.a16
+    lda f:RDDIVL                ; the quotient
+    bne digit
+    pla                         ; the value: N is its sign, on purpose
+    sep #$20
+.a8
+    bpl put_digits
+    lda #'-' - ' '
+    sta f:MSG_DIGITS, x
+    inx
+put_digits:
+    dex
+    phx
+    lda f:MSG_DIGITS, x
+    jsr put
+    plx
+    cpx #0
+    bne put_digits
+    ply
+    jmp letter
+
+    ; The name of the actor that follows, 0 the leader, from its text:
+    ; `msg_ptr` points at it while it is put, and comes back to the box.
+name:
+    lda [msg_ptr], y            ; the actor
+    iny
+    phy
+    rep #$20
+.a16
+    and #$00FF
+    bne by_number
+    lda party_n
+    and #$00FF
+    beq no_name                 ; no one leads: nothing
+    lda party
+    and #$00FF
+by_number:
+    asl a
+    tax
+    jsl f:actor_name_txt
+    cmp #$FFFF
+    beq no_name
+    tax
+    lda msg_ptr
+    pha
+    sep #$20
+.a8
+    lda msg_ptr + 2
+    pha
+    lda f:item_txt_lo, x
+    sta msg_ptr
+    lda f:item_txt_hi, x
+    sta msg_ptr + 1
+    lda f:item_txt_bk, x
+    sta msg_ptr + 2
+    lda f:item_txt_n, x
+    pha                         ; the letters left, on the stack
+    ldy #0
+name_letter:
+    lda 1, s
+    beq name_done
+    dec a
+    sta 1, s
+    lda [msg_ptr], y
+    sec
+    sbc #' '
+    phy
+    jsr put
+    ply
+    iny
+    bra name_letter
+name_done:
+    pla                         ; the count, at zero
+    pla
+    sta msg_ptr + 2
+    rep #$20
+.a16
+    pla
+    sta msg_ptr
+no_name:
+    sep #$20
+.a8
+    ply
+    jmp letter
+
+    ; A8: a letter, as its index in the font. Written if it fits in the
+    ; line; past the edge, consumed and not drawn, and nothing after it.
+    ; Keeps Y. Clobbers A and X.
+put:
+    pha
     rep #$20
 .a16
     and #$00FF
@@ -648,28 +804,14 @@ enters:
     sta BA_T2
     sep #$20
 .a8
-    bcs no_enters               ; consumed and not drawn
-    lda [msg_ptr], y
+    pla
+    bcs no_enters               ; `pla` keeps C
     clc
     adc #ITEM_FIRST_CHAR
     phy
     jsl f:ba_t_glyph
     ply
 no_enters:
-    iny
-    bra letter
-end_line:
-    rep #$20
-.a16
-    lda BA_T1
-    clc
-    adc #BA_ROW_BYTES
-    sta BA_T1
-    sep #$20
-.a8
-    dec BA_PAGE_I
-    bra line
-ready:
     rts
 .endproc
 

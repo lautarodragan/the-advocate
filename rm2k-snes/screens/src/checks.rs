@@ -124,4 +124,24 @@ impl Vram {
         }
         self.within("the shop's windows", TI_VRAM, TI_VRAM + tiles * 32)
     }
+
+    /// That the shop's party, as objects whose base is the windows' —a
+    /// multiple of 8192 words, which `OBSEL` asks for— and whose tiles go
+    /// right after them, stays in the BG1 bank of every layout and within
+    /// the 256 tiles an object names without its high bit. `tiles` are the
+    /// windows' 8bpp ones, `objects` the party's 4bpp ones.
+    pub fn shop_party(&self, tiles: usize, objects: usize) -> Result<()> {
+        if TI_VRAM % 0x2000 != 0 {
+            return Err(Bad::answer(
+                "the shop's party takes the windows' base as the objects', and it is not a multiple of $2000",
+            ));
+        }
+        let first = 2 * tiles;
+        if first + objects > 256 {
+            return Err(Bad::answer(format!(
+                "the shop's party starts at object tile {first} and takes {objects}: past 255"
+            )));
+        }
+        self.within("the shop's party", TI_VRAM + first * 16, TI_VRAM + (first + objects) * 16)
+    }
 }

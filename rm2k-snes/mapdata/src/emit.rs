@@ -1724,6 +1724,123 @@ impl Rest<'_> {
             ti_colors.len(),
             int_at(shop, "top")?
         ));
+        // The shop's party: each possible member's three front frames,
+        // twelve 4bpp tiles each, behind a pointer per member; its palette in
+        // colour and in grey, sixteen colours each with the transparent one
+        // first; which member each actor is; and the System's sixteen arrows
+        // with their palette. See `party.rs` in `rm2k-snes-screens`.
+        out.push_str("\n; --- the shop's party: see shop_party.s ---\n");
+        let party = at(screens, "shop_party")?;
+        let mut party_k = Vec::new();
+        let mut party_pointers = Vec::new();
+        let mut party_cgram = Vec::new();
+        let palette16 = |colors: &[Color]| {
+            let mut sixteen = vec![[0u8; 3]];
+            sixteen.extend_from_slice(colors);
+            sixteen.resize(16, [0, 0, 0]);
+            cgram_bytes(&sixteen)
+        };
+        let mut members: Vec<(i64, i64)> = Vec::new();
+        // Two actors drawn with the same CharSet share it: in A Blurred Line
+        // there are two Kershes and three with the same sheet's index.
+        let mut stored: Vec<(Vec<u8>, Vec<u8>)> = Vec::new();
+        for m in list_at(party, "members")? {
+            let actor = int_at(m, "actor")?;
+            if m.get("frames").is_none() {
+                continue;
+            }
+            let mut frames = Vec::new();
+            for f in list_at(m, "frames")? {
+                frames.extend(tiles(f)?);
+            }
+            let bytes = packed(&frames, 4);
+            let mut cgram = palette16(&colors(at(m, "colors")?)?);
+            cgram.extend(palette16(&colors(at(m, "greys")?)?));
+            if let Some(k) = stored.iter().position(|s| s.0 == bytes && s.1 == cgram) {
+                members.push((actor, k as i64));
+                continue;
+            }
+            let k = stored.len() as i64;
+            let label = format!("ti_party_tiles_{k}");
+            line(out, &block(&label, &bytes));
+            party_pointers.push(format!("    .byte {}", crate::asm::pointer(&label)));
+            party_cgram.extend(&cgram);
+            stored.push((bytes, cgram));
+            members.push((actor, k));
+        }
+        if members.len() > 255 {
+            return Err(Bad::answer(format!("the shop's party has {} members with a CharSet and a byte names 255", members.len())));
+        }
+        let n_party_actors = members.iter().map(|&(a, _)| a + 1).max().unwrap_or(1);
+        for a in 0..n_party_actors {
+            party_k.push(members.iter().find(|&&(b, _)| b == a).map_or(0xFF, |&(_, k)| k as u8));
+        }
+        line(out, &block("ti_party_k", &party_k));
+        line(out, &format!(".block {}\nti_party_ptr:", 3 * party_pointers.len().max(1)));
+        if party_pointers.is_empty() {
+            line(out, "    .byte 0, 0, 0");
+        }
+        for p in &party_pointers {
+            line(out, p);
+        }
+        if party_cgram.is_empty() {
+            party_cgram.push(0);
+        }
+        line(out, &block("ti_party_cgram", &party_cgram));
+        let arrows = tiles(at(party, "arrows")?)?;
+        line(out, &block("ti_arrow_tiles", &packed(&arrows, 4)));
+        line(out, &block("ti_arrow_cgram", &palette16(&colors(at(party, "arrow_colors")?)?)));
+        let party_tile0 = int_at(party, "tile0")?;
+        // The whole OAM the shop opens with: each member's twelve objects,
+        // three across by four down with palette `i` over every layer, the
+        // four arrows and the rest below the screen, and the high table at
+        // zero —x below 256, all small—. See `ti_party_open`.
+        let mut oam = Vec::new();
+        let hidden = |oam: &mut Vec<u8>| oam.extend([0, 224, 0, 0]);
+        for i in 0..t.n("TI_PARTY_MEMBERS") {
+            for j in 0..12 {
+                oam.push((t.n("TI_PARTY_X0") + t.n("TI_PARTY_STEP") * i + 8 * (j % 3)) as u8);
+                oam.push((t.n("TI_PARTY_Y0") + 8 * (j / 3)) as u8);
+                oam.push((party_tile0 + 12 * i + j) as u8);
+                oam.push((0x30 | (i << 1)) as u8);
+            }
+        }
+        while oam.len() < 512 {
+            hidden(&mut oam);
+        }
+        oam.resize(544, 0);
+        line(out, &block("ti_party_oam", &oam));
+        out.push_str(&pyf!(
+            "TI_PARTY_ACTORS   = %d\nTI_PARTY_TILE0    = %d\nTI_PARTY_VRAM     = $%04X\n\
+             TI_ARROW_TILE0    = %d\nTI_ARROW_VRAM     = $%04X\nTI_PARTY_MEMBERS  = %d\n\
+             TI_PARTY_X0       = %d\nTI_PARTY_Y0       = %d\nTI_PARTY_STEP     = %d\n\
+             TI_ARROW_DX       = %d\nTI_ARROW_DY       = %d\nTI_PARTY_RATE     = %d\n\
+             TI_FRAME_TILES    = %d\nTI_FRAME_COLS     = %d\nTI_ARROW_FRAMES   = %d\n\
+             TI_ARROW_UP       = %d\nTI_ARROW_SAME     = %d\nTI_ARROW_DOWN     = %d\n\
+             TI_ARROW_EQUIPPED = %d\nTI_LAYER_BUY      = %d\nTI_PARTY_ON       = %d\n",
+            n_party_actors,
+            party_tile0,
+            t.n("TI_VRAM") + party_tile0 * 16,
+            party_tile0 + t.n("TI_PARTY_MEMBERS") * 12,
+            t.n("TI_VRAM") + (party_tile0 + t.n("TI_PARTY_MEMBERS") * 12) * 16,
+            t.n("TI_PARTY_MEMBERS"),
+            t.n("TI_PARTY_X0"),
+            t.n("TI_PARTY_Y0"),
+            t.n("TI_PARTY_STEP"),
+            t.n("TI_ARROW_DX"),
+            t.n("TI_ARROW_DY"),
+            t.n("TI_PARTY_RATE"),
+            12,
+            3,
+            t.n("TI_ARROW_FRAMES"),
+            t.n("TI_ARROW_UP"),
+            t.n("TI_ARROW_SAME"),
+            t.n("TI_ARROW_DOWN"),
+            t.n("TI_ARROW_EQUIPPED"),
+            t.n("TI_LAYER_BUY"),
+            party.get("on").and_then(|v| v.as_bool()).unwrap_or(true) as i64
+        ));
+        out.push_str("; --- the shop's party ends ---\n");
         // The End Game screen, whole: the "Yes" palette first.
         let end = at(screens, "end_game")?;
         let end_tiles = tiles(at(end, "tiles")?)?;
@@ -1783,13 +1900,20 @@ impl Rest<'_> {
             .map(|t| Ok(texts.add(text(t)?)))
             .collect::<Result<_>>()?;
         let mut actor_text: HashMap<i64, i64> = HashMap::new();
-        for &a in &r.actors {
+        // The renamed actors too, who may never join: a message's `\N[n]`
+        // writes the name from here. See the runtime's `actor_names.s`.
+        for &a in r.actors.iter().chain(r.names.iter().map(|(a, _)| a)) {
+            if actor_text.contains_key(&a) {
+                continue;
+            }
             let name = &db
                 .actor(a as i32)
                 .map_err(|b| Bad::answer(b.message().to_string()))?
                 .name;
             actor_text.insert(a, texts.add(name));
         }
+        // And each rename's, in the order `OP_CHANGE_NAME` counts them.
+        let name_text: Vec<i64> = r.names.iter().map(|(_, name)| texts.add(name)).collect();
         let mut shop_text = None;
         for messages in list_at(textos, "shop")? {
             for lines in list(messages)? {
@@ -1988,10 +2112,13 @@ impl Rest<'_> {
             "slot_name_vram:\n        .word {}\n",
             decimal(name_vram).join(", ")
         ));
+        // A renamed actor that never joins has its row too: a message's
+        // `\N[n]` and the slot screen look its name up there.
         let n_actors_slots = face_block
             .keys()
             .copied()
             .chain(r.actors.iter().copied())
+            .chain(r.names.iter().map(|(a, _)| *a))
             .max()
             .unwrap_or(-1)
             .max(-1)
@@ -2273,6 +2400,47 @@ impl Rest<'_> {
             );
             strip.extend(format!("{row:<w$}", w = SLOT_TEXT_WIDTH as usize).bytes());
         }
+        // And after the actors' rows, one per rename, with its name alone:
+        // the menu and the slot screen take it instead of the actor's own
+        // when the actor carries it. See the runtime's `actor_names.s`.
+        // Absent in a screens' answer from before 2026-10-15: none.
+        let none = Vec::new();
+        let renamed = match textos.get("renamed") {
+            Some(v) => list(v)?,
+            None => &none,
+        };
+        if renamed.len() != r.names.len() {
+            return Err(Bad::answer(format!(
+                "the screens wrote {} renamed names and the request has {}",
+                renamed.len(),
+                r.names.len()
+            )));
+        }
+        for pair in renamed {
+            let row = format!("{:<w$}", text(&list(pair)?[1])?, w = SLOT_TEXT_WIDTH as usize);
+            strip.extend(row.bytes());
+        }
+        if n_actors_slots as usize + r.names.len() > 256 {
+            return Err(Bad::answer(format!(
+                "{} actors' rows and {} renames don't fit in the byte the runtime counts rows with",
+                n_actors_slots,
+                r.names.len()
+            )));
+        }
+        let mut renamed_actors: Vec<i64> = Vec::new();
+        for (a, _) in &r.names {
+            if !renamed_actors.contains(a) {
+                renamed_actors.push(*a);
+            }
+        }
+        out.push_str(&format!(
+            "; The actors some ChangeHeroName renames, in the order of their\n\
+             ; first rename: each one's place is its byte of ACTOR_NAME. And the\n\
+             ; row of slot_actor_text the first rename's name is in.\n\
+             NAME_SLOTS = {}\nSLOT_TEXT_ROWS = {n_actors_slots}\n",
+            renamed_actors.len()
+        ));
+        words_asm(out, "name_actor", &decimal(renamed_actors.iter().copied()), true);
         out.push_str(&format!(
             ".block {}\nslot_actor_text:\n        .byte {}\n",
             strip.len().max(1),
@@ -2290,6 +2458,7 @@ impl Rest<'_> {
                 param_text,
                 slot_text,
                 actor_text,
+                name_text,
                 shop_text: shop_text.unwrap_or(0),
                 owned_text,
                 carried_text,
@@ -2324,6 +2493,8 @@ struct ItemTexts<'a> {
     param_text: Vec<i64>,
     slot_text: Vec<i64>,
     actor_text: HashMap<i64, i64>,
+    /// Each rename's text, in the order `OP_CHANGE_NAME` counts them.
+    name_text: Vec<i64>,
     shop_text: i64,
     owned_text: i64,
     carried_text: i64,
@@ -2734,6 +2905,9 @@ impl Rest<'_> {
             &hex4((0..n_actors).map(|a| x.actor_text.get(&a).copied().unwrap_or(0xFFFF))),
             false,
         );
+        // And each rename's, which `actor_name_txt` takes instead when the
+        // actor carries it: see the runtime's `actor_names.s`.
+        words_asm(out, "name_txt", &hex4(x.name_text.iter().copied()), false);
         let eq_params: Vec<i64> = list(t.v("EQ_PARAMS"))?
             .iter()
             .map(|p| {

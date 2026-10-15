@@ -38,6 +38,15 @@
 //! drawn side by side with the old ones only that command's cells differ.
 //! The screen's own answer —`skills_screen` and `skills`— is taken out
 //! before hashing, like the battle's windows.
+//!
+//! On 2026-10-15 the shop got its party window, where the gold was, and the
+//! gold went to the message's line: the five hashes of the buy layer's
+//! modes moved, and drawn side by side with the old ones every pixel that
+//! differs is below y 152, in the counts' window and the message's. This
+//! test passes no party, so no member is drawn. The whole answer's hash
+//! moved with the windows' tiles, `shop_border`: without it, it is the old
+//! one. The party's own answer —`shop_party`— is taken out before hashing,
+//! like the battle's windows.
 
 use rm2k_snes_screens::checks::Vram;
 use rm2k_snes_screens::convert::{self, Request};
@@ -100,6 +109,7 @@ fn everything_a_cartridge_carries() {
         menus: Vec::new(),
         menu_context: Default::default(),
         text_rows: None,
+        names: Vec::new(),
     };
     let mut answer = convert::convert(&game(), &request).unwrap();
     // The geometry is constants, and the Python had them as its own.
@@ -122,6 +132,13 @@ fn everything_a_cartridge_carries() {
     // 2026-10-15: the same WARNINGs as `says`, with a kind each, for the
     // cartridge's degradations.
     answer.as_object_mut().unwrap().remove("losses");
+    // Nor the rows of the names `ChangeHeroName` gives, since 2026-10-15:
+    // none in this game, and the Python had no list.
+    answer["texts"].as_object_mut().unwrap().remove("renamed");
+    // Nor the shop's party, since 2026-10-15: the members' frames and the
+    // System's arrows, which the Python never drew, and what it says of
+    // what crowds the buy layer.
+    answer.as_object_mut().unwrap().remove("shop_party");
     let says: Vec<Value> = answer["says"]
         .as_array()
         .unwrap()
@@ -131,6 +148,9 @@ fn everything_a_cartridge_carries() {
         // Nor what the item screen's text asks of its pool, said since
         // 2026-10-11.
         .filter(|s| !s.as_str().unwrap().contains("item text: its list asks"))
+        .filter(|s| !s.as_str().unwrap().contains("the shop's party"))
+        .filter(|s| !s.as_str().unwrap().contains("the shop message"))
+        .filter(|s| !s.as_str().unwrap().contains("the shop's term"))
         .cloned()
         .collect();
     answer["says"] = Value::from(says);
@@ -155,7 +175,7 @@ fn everything_a_cartridge_carries() {
     // everything else is still what it was.
     assert_eq!(
         sha(canon(&answer).as_bytes()),
-        "8b1ef9b0a68a287a2fdb399d7b1557222624145cd976a31c410eb3950de5622c"
+        "7d0558e69505507d4d4e183d95d2a1667cdbb593e574d911da112d4eb2e55967"
     );
     assert_eq!(
         answer["says"],
@@ -253,6 +273,7 @@ fn names_that_do_not_fit_in_the_bank_are_refused() {
         menus: Vec::new(),
         menu_context: Default::default(),
         text_rows: None,
+        names: Vec::new(),
     };
     let bad = convert::convert(&game(), &request).unwrap_err();
     assert!(bad.message().contains("has no room for the composed names"), "{}", bad.message());
@@ -336,12 +357,12 @@ fn the_screens_as_the_console_shows_them() {
     );
     let shops = [
         "13b51254f6df0f15ec4f5b21d0d642515d2d3afc3c3fa05455ab9e13abc50e8e",
-        "dd4c797796e9c51583db3963d717d6838320dd5f236656030326d9099e1dbc33",
-        "37819e041016ffd87a5eabba5eb6a929ce05da6020a30af470112bded8fac46d",
-        "0872e29ee5bac1f1a97684ae4336e5e06be318dc5d54237ba0a3d228dcb0d7ad",
+        "b8537f5bb22d69b6235c7be27c98912968bc14d1e22aa1a794f465f96f368936",
+        "7feec4283d97cd46ec91059de96bc0f92c2f1dd25874e706e4e1cb095b9446e3",
+        "ba63c9d1f86b4d02f3122538bebe2207ae1805bcf2ddb82b88b61b71dc39a914",
         "903e435c5112f166089770de8f8573f3b2dcfbd66127af9cb2f1c4765e1dc890",
-        "7dfa656f02e6de79ff6920a195ba5e92d9ef78587dcadc5a49743a285f0857e1",
-        "8805f617eba61c1629705f7518f077344772b4ecafa499eaa179a0bf83c132f3",
+        "118979c795accd2243a738e1dbfbdbe252fc2d0661fad6366d5df8ad9998eb4b",
+        "4405fa417d4c3d8d9ad1799ffa9c34e08f64a049a1728e27a6ce7a12bba0adc4",
     ];
     for (mode, expected) in shops.iter().enumerate() {
         let shop = Shop {
@@ -351,6 +372,9 @@ fn the_screens_as_the_console_shows_them() {
             gold: 350,
             inventory: inventory(),
             party_equipment: vec![worn.to_vec(), vec![0, 8, 9, 0, 11]],
+            party: Vec::new(),
+            frames: Vec::new(),
+            phase: 0,
             mode,
             chosen: 1,
             top: 0,

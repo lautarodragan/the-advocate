@@ -460,10 +460,17 @@ pub const EQ_BAR_LIST: (usize, usize) = EQ_BAR_SLOT;
 //
 // At 256x224 and with 8-pixel letters, the list and RM2k's right column **do
 // not fit side by side**, so the right column goes down, between the list and
-// the message: "Owned Items" and "Equipped Items" in one window, and the gold
-// in another to its right. There are three layouts, which share the help on
-// top: the main one, the buy one —which the sale's quantity and both "done"s
-// use too— and the sell one.
+// the message: "Owned Items" and "Equipped Items" in one window, and the
+// party —`Window_ShopParty`, RM2k's 136x48— in another to its right. The
+// gold, which was RM2k's third window of that column, goes to the right end
+// of the message window, whose line is a short one in every mode that shows
+// the party. There are three layouts, which share the help on top: the main
+// one, the buy one —which the sale's quantity and both "done"s use too— and
+// the sell one.
+//
+// Until 2026-10-15 the gold had the party's place and there was no party:
+// the three ways of making room for it that were drawn are in the
+// `party-in-the-shop` task, and this one kept the list's five rows.
 pub const TI_MAIN: usize = 0;
 pub const TI_BUY: usize = 1;
 pub const TI_COUNT_BUY: usize = 2;
@@ -495,22 +502,46 @@ pub const TI_MAIN_MSG_ROW: usize = TI_MAIN_MSG_Y / CELL + 1;
 pub const TI_COMMAND_COL: usize = 3;
 /// The first, with a one-line greeting.
 pub const TI_COMMAND_POSITIONS: usize = 4;
-/// The buy one: the count and the gold under the list, side by side, and
-/// the one-line message.
+/// The buy one: the count and the party under the list, side by side, and
+/// the one-line message with the gold at its right end.
 pub const TI_STATUS_Y: usize = 144;
 pub const TI_MSG_Y: usize = 192;
-/// "Equipped Items" and two digits, and the frame.
-pub const TI_GOLD_X: usize = 152;
+/// The party's window: RM2k's, 136 wide and as high as the band.
+pub const TI_PARTY_W: usize = 136;
+pub const TI_PARTY_X: usize = WIDTH - TI_PARTY_W;
 pub const TI_MSG_ROW: usize = TI_MSG_Y / CELL + 1;
 pub const TI_OWNED_ROW: usize = TI_STATUS_Y / CELL + 1;
 pub const TI_CARRIED_ROW: usize = TI_OWNED_ROW + 2;
 pub const TI_STATUS_COL: usize = 1;
 /// Two digits, up to the frame.
-pub const TI_STATUS_NUM: usize = TI_GOLD_X / CELL - 3;
-/// In the middle of its window.
-pub const TI_GOLD_ROW: usize = TI_OWNED_ROW + 1;
+pub const TI_STATUS_NUM: usize = TI_PARTY_X / CELL - 3;
+/// On the message's line.
+pub const TI_GOLD_ROW: usize = TI_MSG_ROW;
 /// The gold's last digit; the currency after it.
 pub const TI_GOLD_COL: usize = 28;
+/// The party, as `Window_ShopParty` draws it —measured against the
+/// original on 2026-10-15—: each member's CharSet facing down, 24x32, from
+/// four pixels in and 32 apart, and the arrow from the System 20 to the
+/// right and 24 down of its member, over the member's last four columns.
+/// Four at most.
+pub const TI_PARTY_MEMBERS: usize = 4;
+pub const TI_PARTY_X0: usize = TI_PARTY_X + 4;
+pub const TI_PARTY_Y0: usize = TI_STATUS_Y + 4;
+pub const TI_PARTY_STEP: usize = 32;
+pub const TI_ARROW_DX: usize = 20;
+pub const TI_ARROW_DY: usize = 24;
+/// Each walking frame and each arrow frame lasts twelve frames: easyrpg's
+/// `anim_rate`. The walk goes 0, 1, 2, 1 and the arrows 0, 1, 2, 3.
+pub const TI_PARTY_RATE: usize = 12;
+/// The kinds of arrow, in the order of their rows in the System —at x 128,
+/// four frames of 8x8—: it goes up, it stays the same, it goes down, it is
+/// already on.
+pub const TI_ARROW_UP: usize = 0;
+pub const TI_ARROW_SAME: usize = 1;
+pub const TI_ARROW_DOWN: usize = 2;
+pub const TI_ARROW_EQUIPPED: usize = 3;
+pub const TI_ARROW_KINDS: usize = 4;
+pub const TI_ARROW_FRAMES: usize = 4;
 pub const TI_LIST_ROW0: usize = TI_MIDDLE_Y / CELL + 1;
 pub const TI_LIST_COL: usize = 1;
 /// 7 + 5 * 2 = 17: the bottom frame.
@@ -533,8 +564,8 @@ pub fn ti_windows(layer: usize) -> Vec<Rect> {
         ],
         TI_LAYER_BUY => vec![
             (0, TI_MIDDLE_Y, WIDTH, TI_STATUS_Y - TI_MIDDLE_Y),
-            (0, TI_STATUS_Y, TI_GOLD_X, TI_MSG_Y - TI_STATUS_Y),
-            (TI_GOLD_X, TI_STATUS_Y, WIDTH - TI_GOLD_X, TI_MSG_Y - TI_STATUS_Y),
+            (0, TI_STATUS_Y, TI_PARTY_X, TI_MSG_Y - TI_STATUS_Y),
+            (TI_PARTY_X, TI_STATUS_Y, TI_PARTY_W, TI_MSG_Y - TI_STATUS_Y),
             (0, TI_MSG_Y, WIDTH, HEIGHT - TI_MSG_Y),
         ],
         _ => vec![
@@ -761,7 +792,9 @@ pub fn publish() -> Value {
         TI_MAIN, TI_BUY, TI_COUNT_BUY, TI_BOUGHT, TI_SELL, TI_COUNT_SALE, TI_SOLD,
         TI_SECOND, TI_LAYER_MAIN, TI_LAYER_BUY, TI_LAYER_SALE, TI_LAYER_OF_MODE,
         TI_MIDDLE_Y, TI_MAIN_MSG_Y, TI_MAIN_MSG_ROW, TI_COMMAND_COL, TI_COMMAND_POSITIONS,
-        TI_STATUS_Y, TI_MSG_Y, TI_GOLD_X, TI_MSG_ROW, TI_OWNED_ROW, TI_CARRIED_ROW,
+        TI_STATUS_Y, TI_MSG_Y, TI_PARTY_W, TI_PARTY_X, TI_PARTY_MEMBERS, TI_PARTY_X0,
+        TI_PARTY_Y0, TI_PARTY_STEP, TI_ARROW_DX, TI_ARROW_DY, TI_PARTY_RATE, TI_ARROW_UP,
+        TI_ARROW_SAME, TI_ARROW_DOWN, TI_ARROW_EQUIPPED, TI_ARROW_KINDS, TI_ARROW_FRAMES, TI_MSG_ROW, TI_OWNED_ROW, TI_CARRIED_ROW,
         TI_STATUS_COL, TI_STATUS_NUM, TI_GOLD_ROW, TI_GOLD_COL, TI_LIST_ROW0, TI_LIST_COL,
         TI_LIST_ROWS_BUY, TI_LIST_ROWS_SALE, TI_PRICE_COL, TI_COUNT_ROW, TI_COUNT_X_COL,
         TI_COUNT_COL, TI_TOTAL_ROW, TI_VRAM, TI_MAP, TI_TERM_OWNED, TI_TERM_CARRIED, TI_TERM_SETS,

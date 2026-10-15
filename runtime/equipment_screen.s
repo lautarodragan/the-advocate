@@ -541,7 +541,7 @@ nothing:
     and #$00FF
     asl a
     tax
-    lda actor_txt, x
+    jsl f:actor_name_txt        ; renames included: actor_names.s
     tax
     cmp #$FFFF                  ; an actor with no name in this ROM
     sep #$20                    ; `sep` does not touch Z
