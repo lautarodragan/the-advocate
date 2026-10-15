@@ -100,6 +100,9 @@ pub fn map_record(m: &MapInfo, access: u8) -> Value {
 pub struct Emitted {
     pub report: Vec<String>,
     pub frames: Vec<Value>,
+    /// What the emission cut to fit —a ChipSet animation—, for the
+    /// cartridge's degradations.
+    pub losses: Vec<Value>,
 }
 
 /// Runs the emission and writes the `.inc` at `path`, with what the console
@@ -130,5 +133,6 @@ pub fn emit(path: &std::path::Path, request: &Value, dump: &std::path::Path) -> 
             .map(|r| r.iter().map(|l| l.as_str().unwrap_or("").to_string()).collect())
             .unwrap_or_default(),
         frames: answer["frames"].as_array().cloned().unwrap_or_default(),
+        losses: answer["losses"].as_array().cloned().unwrap_or_default(),
     })
 }

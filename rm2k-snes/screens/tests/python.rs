@@ -118,6 +118,10 @@ fn everything_a_cartridge_carries() {
     // Nor the actor choice for a skill, since 2026-10-13: the cost's term
     // and the bar over the party, which only that choice has.
     answer["target"].as_object_mut().unwrap().remove("skill");
+    // Nor what of the screens is drawn with less than RM2k, since
+    // 2026-10-15: the same WARNINGs as `says`, with a kind each, for the
+    // cartridge's degradations.
+    answer.as_object_mut().unwrap().remove("losses");
     let says: Vec<Value> = answer["says"]
         .as_array()
         .unwrap()

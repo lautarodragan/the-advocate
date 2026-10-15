@@ -17,6 +17,7 @@ mod bytecode;
 mod chipsets;
 mod compiler;
 mod convert;
+mod degradations;
 mod emit;
 mod fail;
 mod font;

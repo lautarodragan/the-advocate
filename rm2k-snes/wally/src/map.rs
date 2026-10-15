@@ -117,15 +117,37 @@ pub struct MapRequest {
 }
 
 /// Something the conversion says, in order. A `stop` ends it there.
-#[derive(Clone, Debug)]
+///
+/// `loss` is set when what it says is the map drawn with less than RM2k
+/// draws it: a stable slug the converter lists in the cartridge's
+/// degradations, with the events it is about, by RM2k id, if it is about
+/// some.
+#[derive(Clone, Debug, Default)]
 pub struct Note {
     pub kind: &'static str,
     pub text: String,
     pub stop: bool,
+    pub loss: Option<&'static str>,
+    pub events: Vec<i32>,
 }
 
 fn note(text: String) -> Note {
-    Note { kind: "note", text, stop: false }
+    Note { kind: "note", text, ..Default::default() }
+}
+
+/// A note that says a loss: see [`Note`].
+fn lost(loss: &'static str, events: Vec<i32>, text: String) -> Note {
+    Note { kind: "note", text, loss: Some(loss), events, ..Default::default() }
+}
+
+/// A note as the answer carries it: the loss only on the ones that say one.
+fn note_json(n: &Note) -> Value {
+    let mut out = json!({"kind": n.kind, "text": n.text, "stop": n.stop});
+    if let Some(loss) = n.loss {
+        out["loss"] = json!(loss);
+        out["events"] = json!(n.events);
+    }
+    out
 }
 
 /// A Python-like quoted name, as the messages have always shown them.
@@ -364,7 +386,7 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
             ..request.clone()
         };
         let mut done = convert(game, &without)?;
-        done.notes.push(note(format!(
+        done.notes.push(lost("pictures-not-drawn", vec![], format!(
             "  map {}: WARNING, the pictures {} aren't drawn here: with their {} tiles the map \
              fits no VRAM layout",
             request.map,
@@ -396,7 +418,7 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
         };
         let mut done = convert(game, &without)?;
         if fits(&done, &layouts_for(&done.layers.converted, &without)) {
-            done.notes.push(note(format!(
+            done.notes.push(lost("battle-animations-not-drawn", vec![], format!(
                 "  map {}: WARNING, battle animations aren't drawn here: their box's {} tiles \
                  don't fit in the sprite bank",
                 request.map,
@@ -715,7 +737,7 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
         for (k, stage) in stages.iter().enumerate() {
             if let Some(with) = attempt(stage, &baked)? {
                 if k > 0 {
-                    notes.push(note(format!(
+                    notes.push(lost("translucent-dithered", vec![], format!(
                         "  map {id}: the translucent decorative events are dithered: blended against their cells they cost the ground too many colours"
                     )));
                 }
@@ -763,7 +785,8 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
     if npcs0.len() > NPC_MAX {
         let named = decor::named(&events, &game.common_commands()?, &request.test_commands);
         let out = over_the_table(&mut npcs0, &events, &named, &request.also_walk);
-        notes.push(note(format!(
+        let ids: Vec<i32> = out.iter().map(|e| events[*e].id).collect();
+        notes.push(lost("events-not-drawn", ids, format!(
             "  map {id}: WARNING, {} drawn events and the console's table holds {NPC_MAX}: events {} \
              aren't drawn, and still run, block and trigger",
             npcs0.len() + out.len(),
@@ -782,6 +805,14 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
     };
     let leaders: Vec<Key> = request.leaders.iter().map(leader).collect::<Result<_>>()?;
     let who = moves(&pages, &events, &npcs0, &chipset_name, &request.also_walk);
+    if !who.still_not_animated.is_empty() {
+        let ids: Vec<i32> = who.still_not_animated.iter().map(|&e| events[e].id).collect();
+        notes.push(lost("still-animation-dropped", ids, format!(
+            "  map {id}: {} still events animate in RM2k and the console animates {} at most: none does",
+            who.still_not_animated.len(),
+            crate::moves::ANIMATES_STILL_MAX
+        )));
+    }
     let turning = &who.turning;
     let mut wanted: Vec<String> = leaders.iter().map(|k| k.0.clone()).collect();
     for npc in &npcs0 {
@@ -852,7 +883,7 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
     if !split.lent.is_empty() {
         let mut names: Vec<String> = split.lent.iter().map(|k| format!("{}:{}", k.0, k.1)).collect();
         names.sort();
-        notes.push(note(format!(
+        notes.push(lost("palette-lent", vec![], format!(
             "  map {id}: {} graphic(s) without a palette of their own, drawn with someone else's: {}",
             split.lent.len(),
             names.join(", ")
@@ -893,7 +924,7 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
     }
 
     if let (fused @ 1.., Some(cap)) = (layers.drawn.fused, request.fuse_tiles) {
-        notes.push(note(format!(
+        notes.push(lost("background-tiles-fused", vec![], format!(
             "  map {id}: WARNING, {fused} distinct background tiles were fused into the ones most like \
              them to fit the {cap} the layouts leave: the ground is drawn worse, not walked differently"
         )));
@@ -940,7 +971,13 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
             tile.get(TILE_PREFIX.len()..).unwrap_or("")
         );
         let stop = changes_graphic(&events[*event]);
-        done.notes.push(Note { kind: "discard", text, stop });
+        done.notes.push(Note {
+            kind: "discard",
+            text,
+            stop,
+            loss: Some("event-not-drawn"),
+            events: vec![events[*event].id],
+        });
         if stop {
             return Ok(done);
         }
@@ -953,7 +990,7 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
     let mut with_graphic = Vec::new();
     for (actor, key) in request.leaders.iter().zip(&leaders) {
         let Some(image) = sheets.get(&key.0).and_then(Option::as_ref) else {
-            done.notes.push(Note { kind: "stop", text: format!("can't find CharSet {}", quoted(&key.0)), stop: true });
+            done.notes.push(Note { kind: "stop", text: format!("can't find CharSet {}", quoted(&key.0)), stop: true, ..Default::default() });
             return Ok(done);
         };
         if !sprite_colors(image, key.1, None).is_empty() {
@@ -1007,6 +1044,7 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
                     key.0, key.1
                 ),
                 stop: true,
+                ..Default::default()
             });
             return Ok(done);
         }
@@ -1197,7 +1235,7 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
             continue;
         }
         if drawer_missing(&sheets, charset) {
-            done.notes.push(Note { kind: "stop", text: format!("can't find CharSet {}", quoted(charset)), stop: true });
+            done.notes.push(Note { kind: "stop", text: format!("can't find CharSet {}", quoted(charset)), stop: true, ..Default::default() });
             return Ok(done);
         }
     }
@@ -1205,7 +1243,7 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
     let bank = match build_characters(&sheets, &characters, &slots, &split) {
         Ok(b) => b,
         Err(b) => {
-            done.notes.push(Note { kind: "stop", text: b.0, stop: true });
+            done.notes.push(Note { kind: "stop", text: b.0, stop: true, ..Default::default() });
             return Ok(done);
         }
     };
@@ -1218,6 +1256,7 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
                 bank.palettes.len()
             ),
             stop: true,
+            ..Default::default()
         });
         return Ok(done);
     }
@@ -1264,7 +1303,7 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
                 asked.peak
             )));
             if asked.peak > slots {
-                done.notes.push(note(format!(
+                done.notes.push(lost("events-wait-for-a-slot", vec![], format!(
                     "  map {id}: WARNING, by where they start up to {} events are on screen at once and \
                      the cache has {slots} slots: the ones drawn last wait for one",
                     asked.peak
@@ -1431,7 +1470,7 @@ fn extras(
                         .iter()
                         .map(|c| format!("{c:?} as {:?}", nearest(&palettes[at.1], *c)))
                         .collect();
-                    notes.push(note(format!(
+                    notes.push(lost("timer-colors-lent", vec![], format!(
                         "  map {id}: WARNING, the timer has no palette with room and is lent {}, \
                          drawn with its nearest colors: {}",
                         at.1,
@@ -1440,14 +1479,14 @@ fn extras(
                 }
                 timer_at = Some(at);
             }
-            Err(b) => return Err(Note { kind: "stop", text: b.0, stop: true }),
+            Err(b) => return Err(Note { kind: "stop", text: b.0, stop: true, ..Default::default() }),
         }
     }
     let mut rain = (0, 0);
     if request.rain {
         match rain_drops(&mut tiles, &mut palettes, leader_owned, timer_at, palette_cap) {
             Some(at) => rain = at,
-            None => notes.push(note(format!(
+            None => notes.push(lost("rain-not-drawn", vec![], format!(
                 "  map {id}: WARNING, the raindrops don't fit in the sprite palettes and it doesn't rain here"
             ))),
         }
@@ -1479,7 +1518,7 @@ fn extras(
                     at.1
                 )));
             }
-            None => notes.push(note(format!(
+            None => notes.push(lost("pictures-not-drawn", vec![], format!(
                 "  map {id}: WARNING, the pictures {} aren't drawn here: the map uses {} sprite \
                  palettes{} and they need {} more",
                 quoted(&asked.name),
@@ -1493,7 +1532,7 @@ fn extras(
     if request.battle_animation {
         let mut trial = tiles.clone();
         match map_animation(&mut trial, &palettes, image.1) {
-            None => notes.push(note(format!(
+            None => notes.push(lost("battle-animations-not-drawn", vec![], format!(
                 "  map {id}: WARNING, battle animations aren't drawn here: the map already uses the \
                  {OBJ_PALETTES} sprite palettes and the box needs a whole one"
             ))),
@@ -1609,7 +1648,7 @@ pub fn write(out: &Path, done: &Whole) -> Result<()> {
     let answer = json!({
         "decorative": done.decorative,
         "baked": done.baked.iter().map(|(e, (c, t))| json!([e, c, t])).collect::<Vec<_>>(),
-        "notes": done.notes.iter().map(|n| json!({"kind": n.kind, "text": n.text, "stop": n.stop})).collect::<Vec<_>>(),
+        "notes": done.notes.iter().map(note_json).collect::<Vec<_>>(),
         "npcs": done.npcs.iter().map(npc_json).collect::<Vec<_>>(),
         "palette_cap": done.palette_cap,
         "start": [done.start.0, done.start.1],

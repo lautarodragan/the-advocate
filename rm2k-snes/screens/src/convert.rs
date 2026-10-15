@@ -339,6 +339,16 @@ pub fn window_json(window: &message_window::Window) -> Value {
     })
 }
 
+/// Says `line`, if there is one, and notes it as a loss of the cartridge's
+/// screens: `kind` is the stable slug the converter lists it by in the
+/// cartridge's degradations.
+fn lose(says: &mut Vec<String>, losses: &mut Vec<Value>, kind: &str, line: Option<String>) {
+    if let Some(line) = line {
+        losses.push(json!({"kind": kind, "text": line.trim()}));
+        says.push(line);
+    }
+}
+
 /// What a screen whose windows had to be redrawn says: see `fit`.
 fn fused_windows(whose: &str, tiles: Option<(usize, usize)>) -> Option<String> {
     tiles.map(|(from, to)| {
@@ -354,14 +364,18 @@ fn fused_windows(whose: &str, tiles: Option<(usize, usize)>) -> Option<String> {
 pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     let skin = game.skin()?;
     let mut says: Vec<String> = Vec::new();
+    // What of the screens the cartridge draws with less than RM2k: the
+    // WARNINGs among `says`, each with its kind. See [`lose`].
+    let mut losses: Vec<Value> = Vec::new();
 
     let window = message_window::convert_with(&skin, request.cgram_reserved, request.text_rows.as_ref())?;
     if let Some(had) = window.frame_fused {
-        says.push(format!(
+        let line = format!(
             "  WARNING, the message window's frame and arrow took {had} tiles and the text area leaves \
              {}: the background seen through the frame was fused into bands, and it is drawn worse",
             message_window::FRAME_TILES_MAX
-        ));
+        );
+        lose(&mut says, &mut losses, "window-frame-fused", Some(line));
     }
     let font = message_window::font_bytes(&game.font)?;
     let prerender = message_window::font_prerender(&font, &window.color, window.shadow);
@@ -379,35 +393,41 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     for label in &labels {
         let taken = game.font.width(label);
         if taken > MENU_OPT_COLS * crate::cells::CELL {
-            says.push(format!(
+            let line = format!(
                 "  WARNING, the custom menu option {label:?} takes {taken} px and the menu's column {}",
                 MENU_OPT_COLS * crate::cells::CELL
-            ));
+            );
+            lose(&mut says, &mut losses, "names-cut", Some(line));
         }
     }
     let (slots, said) = slots_with_room(game, &skin, request, &medicines, &labels)?;
     says.push(said);
-    says.extend(names_in_cells(game, request, &medicines)?);
+    for line in names_in_cells(game, request, &medicines)? {
+        lose(&mut says, &mut losses, "names-cut", Some(line));
+    }
     let shop = shop_pairs(game, &skin, request)?;
     let warning = if shop > TEXT_POOL_PAIRS { "WARNING, " } else { "" };
-    says.push(format!(
+    let line = format!(
         "  {warning}shop text: its lists ask for {shop} pairs of tiles at most, of the {TEXT_POOL_PAIRS} of the pool"
-    ));
+    );
+    if shop > TEXT_POOL_PAIRS {
+        lose(&mut says, &mut losses, "text-pool-short", Some(line));
+    } else {
+        says.push(line);
+    }
     if !slots.lent.is_empty() {
         let names: Vec<String> = {
             let mut lent = slots.lent.clone();
             lent.sort();
             lent.iter().map(|a| game.actor_name(*a)).collect::<Result<_>>()?
         };
-        says.push(format!(
-            "  faces without a palette of their own, drawn with another's: {}",
-            names.join(", ")
-        ));
+        let line = format!("  faces without a palette of their own, drawn with another's: {}", names.join(", "));
+        lose(&mut says, &mut losses, "palette-lent", Some(line));
     }
     // Each screen with windows is drawn with the System `fit` gives it: the
     // game's, or with its windows redrawn if they do not fit their bank.
     let (fitted, fused) = fit::skin_for(game, &skin, fit::Screen::Target, 0)?;
-    says.extend(fused_windows("the actor choice's", fused));
+    lose(&mut says, &mut losses, "window-tiles-fused", fused_windows("the actor choice's", fused));
     let target_screens = [
         borders::target_layer(game, &fitted)?,
         borders::menu_bar_layer(&fitted),
@@ -420,7 +440,7 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     // end of the bank: the text has what is below them. Counted first, then
     // numbered from where they land.
     let (fitted, fused) = fit::skin_for(game, &skin, fit::Screen::Items, item_pairs(game, &skin, &request.items)?)?;
-    says.extend(fused_windows("the item and equipment", fused));
+    lose(&mut says, &mut losses, "window-tiles-fused", fused_windows("the item and equipment", fused));
     let border_screens = || [borders::item_layers(&fitted), borders::equipment_layers(&fitted)];
     let counted = borders::borders(&border_screens(), 0, ITEM_BORDER_CGRAM, 256)?;
     let first = items_border_first(counted.tiles.len());
@@ -429,13 +449,18 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     let asked = item_pairs(game, &fitted, &request.items)?;
     let pool = first.saturating_sub(1);
     let warning = if asked > pool { "WARNING, " } else { "" };
-    says.push(format!(
+    let line = format!(
         "  {warning}item text: its list asks for {asked} pairs of tiles at most, of the {pool} the item and \
          equipment windows leave"
-    ));
+    );
+    if asked > pool {
+        lose(&mut says, &mut losses, "text-pool-short", Some(line));
+    } else {
+        says.push(line);
+    }
     // The shop's, with their own tiles and colours.
     let (fitted, fused) = fit::skin_for(game, &skin, fit::Screen::Shop, 0)?;
-    says.extend(fused_windows("the shop's", fused));
+    lose(&mut says, &mut losses, "window-tiles-fused", fused_windows("the shop's", fused));
     let shop_border = borders::borders(&borders::shop_layers(&fitted), 0, ITEM_BORDER_CGRAM, TARGET_CGRAM)?;
     request.vram.shop(shop_border.tiles.len())?;
     // End Game's tiles go where the slot screen's do, so what is checked is
@@ -443,24 +468,26 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     let end = end_game::convert(game, &skin)?;
     request.vram.slots(end.tiles.len())?;
     if end.merged > 0 {
-        says.push(format!(
+        let line = format!(
             "  WARNING, End Game's windows have more colours than its palette: {} were merged into the ones \
              most like them",
             end.merged
-        ));
+        );
+        lose(&mut says, &mut losses, "window-colors-merged", Some(line));
     }
     request.vram.slots(slots.tiles.len())?;
     let title = if request.title { Some(title::menu(game, &skin)?) } else { None };
     if let Some(t) = title.as_ref().filter(|t| t.merged > 0) {
-        says.push(format!(
+        let line = format!(
             "  WARNING, the title menu's window has more colours than its palette: {} were merged into the \
              ones most like them",
             t.merged
-        ));
+        );
+        lose(&mut says, &mut losses, "window-colors-merged", Some(line));
     }
 
     let (fitted, fused) = fit::skin_for(game, &skin, fit::Screen::Battle, 0)?;
-    says.extend(fused_windows("the battle's", fused));
+    lose(&mut says, &mut losses, "window-tiles-fused", fused_windows("the battle's", fused));
     let battle_windows = crate::battle::battle_windows(&fitted)?;
     says.push(format!(
         "  battle windows: {} tiles of {}, {} colours of {}, {} words of bars",
@@ -473,7 +500,7 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     // The skills screen: its windows, and what the cartridge needs of each
     // skill. The busiest page is a bound over the whole database.
     let (fitted, fused) = fit::skin_for(game, &skin, fit::Screen::Skills, 0)?;
-    says.extend(fused_windows("the skills screen's", fused));
+    lose(&mut says, &mut losses, "window-tiles-fused", fused_windows("the skills screen's", fused));
     let skills_windows = crate::skills::windows_json(&fitted)?;
     let actor = request.actors.iter().copied().max_by_key(|&a| {
         game.actor_name(a).map(|n| game.font.width(&n)).unwrap_or(0)
@@ -482,11 +509,16 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
         let asked = crate::skills::worst_page_pairs(game, actor)?;
         let pool = crate::skills::SK_TEXT_PAIRS;
         let warning = if asked > pool { "WARNING, " } else { "" };
-        says.push(format!(
+        let line = format!(
             "  {warning}skills screen: {} tiles of windows, and a page asks for {asked} pairs of tiles at most, \
              of the {pool} of its pool",
             skills_windows["tiles"].as_array().map_or(0, Vec::len)
-        ));
+        );
+        if asked > pool {
+            lose(&mut says, &mut losses, "text-pool-short", Some(line));
+        } else {
+            says.push(line);
+        }
     }
     let target_compact = compact_target(&target.maps)?;
     let skill_target = borders::compact_target_skill(&target.maps[0], &target.maps[2])?;
@@ -659,5 +691,6 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
         },
         "layout": layout::publish(),
         "says": says,
+        "losses": losses,
     }))
 }

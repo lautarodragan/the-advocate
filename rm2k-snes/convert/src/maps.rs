@@ -532,6 +532,9 @@ pub struct MapInfo {
     pub evcode: Vec<u8>,
     pub chipset_filename: String,
     pub passability: Vec<u8>,
+    /// What Wally's notes said the map lost: `(kind, text, events)`, for
+    /// the cartridge's degradations.
+    pub losses: Vec<(String, String, Vec<i64>)>,
 }
 
 fn file<'a>(written: &'a BTreeMap<String, Vec<u8>>, name: &str) -> Result<&'a Vec<u8>> {
@@ -599,9 +602,14 @@ fn slot_key(slot: &Value) -> String {
 pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) -> Result<MapInfo> {
     let map_id = p.map.id;
     let answer = stage::json(&written, "map.json")?;
+    let mut losses = Vec::new();
     for note in answer["notes"].as_array().cloned().unwrap_or_default() {
         let text = note["text"].as_str().unwrap_or("");
         let stop = note["stop"].as_bool().unwrap_or(false);
+        if let Some(loss) = note["loss"].as_str() {
+            let events = note["events"].as_array().map(|a| a.iter().map(int).collect()).unwrap_or_default();
+            losses.push((loss.to_string(), text.to_string(), events));
+        }
         if note["kind"] == "discard" {
             discard_warning(text, stop)?;
         } else if stop {
@@ -967,6 +975,7 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         chipset_filename: p.chipset_filename,
         passability: p.passability,
         map: p.map,
+        losses,
     })
 }
 

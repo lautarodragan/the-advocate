@@ -259,6 +259,10 @@ pub struct Game {
     /// The twins each map keeps as a cell, by map: `(x, y, id of the event
     /// whose row it shares)`. See [`crate::trim::twins`].
     pub twins: BTreeMap<i32, Vec<(i32, i32, i32)>>,
+    /// Of [`Game::dropped`], the ones that lose something —not the twins—:
+    /// `(map, event, (x, y), what it loses)`, for the cartridge's
+    /// degradations.
+    pub trimmed: Vec<(i32, i32, (i32, i32), &'static str)>,
 }
 
 /// `[graphics] system`, **optional**: the System to draw with instead of
@@ -404,6 +408,7 @@ impl Game {
             },
             dropped: BTreeMap::new(),
             twins: BTreeMap::new(),
+            trimmed: Vec::new(),
         })
     }
 
@@ -461,6 +466,13 @@ impl Game {
                 }
                 lost.sort();
                 println!("{}", crate::trim::warning(id, raw.events.len() - twins.len(), cap, &lost));
+                for &(e, loss) in &lost {
+                    if loss == crate::trim::Loss::Nothing {
+                        continue;
+                    }
+                    let at = raw.events.iter().find(|r| r.id == e).map_or((0, 0), |r| (r.x, r.y));
+                    self.trimmed.push((id, e, at, loss.describe()));
+                }
             }
             self.dropped.insert(id, twin_ids.into_iter().chain(gone).collect());
             if !kept.is_empty() {
