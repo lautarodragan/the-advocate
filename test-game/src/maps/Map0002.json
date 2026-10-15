@@ -1,0 +1,23 @@
+{
+  "chipset_id": 1,
+  "width": 20,
+  "height": 15,
+  "events": [
+    {
+      "id": 1,
+      "name": "Villager",
+      "x": 3,
+      "y": 12,
+      "pages": [
+        {
+          "id": 1,
+          "character_name": "People1",
+          "character_index": 5,
+          "move_type": "stationary",
+          "layer": "same",
+          "event_commands": []
+        }
+      ]
+    }
+  ]
+}

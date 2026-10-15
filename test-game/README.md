@@ -7,11 +7,14 @@ where they come back to, one by one. Why, and the plan, are in the book:
 the research "The test game" and the page on the test game under "Project
 progress".
 
-Today it is a skeleton: one map, the meadow —the Exterior ChipSet, the hero
-and an elder with People1's CharSet—, a test that boots the cartridge,
-walks up to the elder and reads what he says, the first engine test
-brought back from A Blurred Line —switches past 1023— and the first born
-here: a chain of nested calls that returns.
+Today it is a skeleton: the meadow —the Exterior ChipSet, the hero and an
+elder with People1's CharSet—, a test that boots the cartridge, walks up
+to the elder and reads what he says, the first engine test brought back
+from A Blurred Line —switches past 1023— and the first born here: a chain
+of nested calls that returns. And two more maps with the same ChipSet,
+the garden and the showcase, where the console loses colours: a little,
+and too much. They are the book's examples of the lossy optimizations,
+next to RM2k's drawing of the same.
 
     src/                the game, as text: what to edit
       ditto.json, maps.json, db/, maps/MapNNNN.json
@@ -85,6 +88,10 @@ go.
                         a chain of six CallEvents —the invisible events at
                         column 18, and common event 1— that returns to each
                         caller and goes on, with a parallel page running
+    test_lossy_colours.py
+                        the garden and the showcase as they are reached:
+                        what the console draws where it merges colours a
+                        little and where it merges too much
 
 A capture with no golden is left in `tests/snapshots/golden/` and the test
 fails: it is looked at and, if it is right, copied to `tests/golden/` in a
