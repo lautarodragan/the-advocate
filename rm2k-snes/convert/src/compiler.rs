@@ -116,6 +116,9 @@ pub struct Compiler<'a> {
     /// culprits` takes the same request, and it is otherwise written to a
     /// temporary directory and deleted.
     pub keep_request: Option<std::path::PathBuf>,
+    /// Switches no page names that the ROM's table has to hold anyway:
+    /// `TEST_SWITCH`, in a cartridge with test pages.
+    pub extra_switches: BTreeSet<i32>,
 }
 
 impl<'a> Compiler<'a> {
@@ -141,7 +144,7 @@ impl<'a> Compiler<'a> {
             .ok_or_else(|| Stop::new("the battle's layout has no BA_PAGE_MSG_WIDTH"))?;
         let troop_window = font.window(cells as usize * 8, LINES);
         let menus = Value::Array(settings.menus()?.iter().map(|m| m.hooks()).collect());
-        Ok(Compiler { game, settings, menus, boxes, window, troop_window, systems: Vec::new(), keep_request: None })
+        Ok(Compiler { game, settings, menus, boxes, window, troop_window, systems: Vec::new(), keep_request: None, extra_switches: BTreeSet::new() })
     }
 
     fn data(&self) -> Vec<OsString> {
@@ -166,6 +169,7 @@ impl<'a> Compiler<'a> {
         r.insert("maps".into(), json!(maps));
         r.insert("test_commands".into(), commands(test_commands));
         r.insert("extra_variables".into(), json!(extra_variables.iter().collect::<Vec<_>>()));
+        r.insert("extra_switches".into(), json!(self.extra_switches.iter().collect::<Vec<_>>()));
         r.insert("test_event_map".into(), json!(test_event_map));
         r.insert("menus".into(), self.menus.clone());
         if !self.systems.is_empty() {
@@ -377,6 +381,8 @@ pub fn compiling_pages(answer: &Value, map_id: i32) -> Result<BTreeSet<(i64, i64
 pub struct Indices {
     pub variables: Vec<(i64, i64)>,
     pub skills: Vec<((i64, i64), i64)>,
+    /// The highest switch the game names: the ROM's table holds 0 to it.
+    pub switch_top: i64,
 }
 
 impl Indices {
@@ -406,6 +412,7 @@ impl Indices {
         Indices {
             variables: dict(pairs("variables").into_iter().map(|e| (e[0], e[1])).collect()),
             skills: dict(pairs("skills").into_iter().map(|e| ((e[0], e[1]), e[2])).collect()),
+            switch_top: answer["switch_top"].as_i64().unwrap_or(0),
         }
     }
 

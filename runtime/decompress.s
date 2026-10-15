@@ -719,7 +719,10 @@ stream:
     jsl f:lz2_decompress + FAST         ; the blocks and their passability
     ; The bytecode goes in a block of its own and not after these three, so
     ; that two maps with the same grid and different events still share
-    ; theirs: its stream is the one `map_code` names.
+    ; theirs: its stream is the one `map_code` names. A map whose bytecode
+    ; does not fit here keeps it in the cartridge, and its pages point there:
+    ; `map_code` names an empty stream for it, so nothing is written —see
+    ; `code_in_rom` in `rm2k-snes-mapdata`—.
     phy                         ; where it goes: where the passability ended
     rep #$20
 .a16
@@ -895,7 +898,9 @@ none:
 ; will be carried —the page's jumps are relative to where it starts, so
 ; moving the pointer is enough— and bit 0 of `temp + 3` goes up; if it is
 ; already where a carried map lives, bit 1. One in the cartridge does not
-; move.
+; move: a common event's body, a troop's page, or a map whose bytecode did not
+; fit in WRAM and stayed in the cartridge —its `map_code` entry says 0 bytes,
+; so no pointer of bank $7F falls in its range—.
 .proc carry_one
 .a8
 .i16

@@ -168,6 +168,18 @@ pub const STACK: usize = 128;
 pub const FAR_POOL_START: usize = 0x7E66C0;
 pub const FAR_POOL_SIZE: usize = 0x0340;
 
+/// The RM2k switches' table: the `SWITCHES` segment, a bit per switch up to
+/// the highest the game names —`SWITCH_BYTES`, which the converter
+/// writes—, so 256 bytes are 2048 switches. It is its own area and not part
+/// of `FARBSS` because neither that pool nor the bank 0 `BSS`, where the
+/// table lived with 128 bytes for every game until 2026-10-15, had room for
+/// Vampires Dawn's 206; and this stretch of the hand-written map was free:
+/// the materials' table left it on 2026-10-14. Its labels carry the bank,
+/// like `FARBSS`'s. The event compiler's `SWITCH_TABLE_MAX` is this size in
+/// bits.
+pub const SWITCH_POOL_START: usize = 0x7E7D00;
+pub const SWITCH_POOL_SIZE: usize = 0x0100;
+
 /// The segment the generated data sends everything to.
 pub const SEGMENT: &str = "RODATA";
 
@@ -1048,12 +1060,16 @@ pub fn cfg() -> String {
         format!(
             "FARRAM: start = ${FAR_POOL_START:06X}, size = ${FAR_POOL_SIZE:04X}, type = rw, file = \"\", define = yes;"
         ),
+        format!(
+            "SWITCHRAM: start = ${SWITCH_POOL_START:06X}, size = ${SWITCH_POOL_SIZE:04X}, type = rw, file = \"\";"
+        ),
     ];
     let mut segments = vec![
         "ZEROPAGE: load = ZP,   type = zp;".to_string(),
         "BSS:      load = RAM,  type = bss;".to_string(),
         "FARBSS:   load = FARRAM, type = bss;".to_string(),
-        "CODE:     load = ROM,  type = ro;".to_string(),
+        "SWITCHES: load = SWITCHRAM, type = bss;".to_string(),
+        "CODE:    load = ROM,  type = ro;".to_string(),
         "TABLES:   load = ROM,  type = ro;".to_string(),
         "HEADER:   load = HEAD, type = ro;".to_string(),
         "VECTORS:  load = VECT, type = ro;".to_string(),

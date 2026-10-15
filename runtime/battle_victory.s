@@ -195,12 +195,21 @@ to_view:
     inc a
     sta FAR_ITEMS, x
 full:
+    rep #$20
+.a16
+    txa
+    asl a
+    tax
     lda f:item_k, x             ; the converter enforces that it is carried
     pha
     lda BA_DROP_N
-    jsr ba_ax
+    and #$00FF
+    asl a
+    tax
     pla
     sta BA_DROP_K, x
+    sep #$20
+.a8
     inc BA_DROP_N
 next:
     inc BA_S0
@@ -432,12 +441,13 @@ item:
     bcs all_ready
     jsr ba_vic_line
     bcc other_item
-    lda BA_S0
-    jsr ba_ax
-    lda BA_DROP_K, x
     rep #$20
 .a16
+    lda BA_S0
     and #$00FF
+    asl a
+    tax
+    lda BA_DROP_K, x
     sta BA_T0
     asl a
     clc

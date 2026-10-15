@@ -25,7 +25,15 @@
 ;   ti_timer     is comp_glyph     ; the frames of the "done"
 ;   ti_pos       is comp_glyph + 1 ; two bytes: where the digit goes
 ;   ti_num       is comp_or01      ; three bytes: a 24-bit number
-FAR_SHOP = $2B00
+; What the shop sells, one `k` per word since 2026-10-15. It borrows the
+; battle's state, as the skills screen does: a shop opens from a map page and
+; no battle is alive while it is open. Until then it was 256 bytes of its own
+; at $2B00, which the item list took over when its `k` went to a word. It
+; skips the battle's first bytes —`BA_RESULT`, which the Game Over reads
+; after the battle— and goes where the combatants go.
+FAR_SHOP = FAR_BATTLE + 96
+SHOP_MAX = 255                  ; the opcode's count is a byte
+.assert FAR_SHOP + 2 * SHOP_MAX <= FAR_BATTLE + $300, error, "the shop's list overflows the battle's state"
 TI_MAIN = 0
 TI_BUY = 1
 TI_COUNT_BUY = 2
@@ -34,7 +42,7 @@ TI_SELL = 4
 TI_COUNT_SALE = 5
 TI_SOLD = 6
 
-; A: a place in the mode's list. Returns with A = its `k`.
+; A: a place in the mode's list. Returns with X = its `k`. Only A and X.
 .proc ti_k_of
 .a8
 .i16
@@ -46,13 +54,12 @@ TI_SOLD = 6
     rep #$20
 .a16
     and #$00FF
-    clc
-    adc #FAR_SHOP
-    sta WMADDL
+    asl a
+    tax
+    lda f:$7E0000 + FAR_SHOP, x
+    tax
     sep #$20
 .a8
-    stz WMADDH
-    lda WMDATA
     rts
 from_sale:
     pla
@@ -68,7 +75,7 @@ from_sale:
     jsr ti_k_of
     rep #$20
 .a16
-    and #$00FF
+    txa
     asl a
     tax
     lda f:item_id, x            ; outside bank 0: `f:` only indexes with X
@@ -606,7 +613,7 @@ near_12382:
     jsr ti_k_of
     rep #$20
 .a16
-    and #$00FF
+    txa
     asl a
     tax
     lda f:item_id, x            ; outside bank 0: `f:` only indexes with X

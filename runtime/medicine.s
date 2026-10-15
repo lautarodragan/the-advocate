@@ -20,7 +20,7 @@ FAR_GROWTH: .res EXP_K * GROWTH_BYTES
 ; Since 2026-10-04 it also uses the materials, the items that raise a
 ; parameter for good: see `material` below and `FAR_GROWTH`.
 ;
-; It enters with the actor in A8 and the item's `k` in `pick_edges`, where
+; It enters with the actor in A8 and the item's `k` in `item_sel`, where
 ; `items_screen` leaves it. It returns with A8 at 1 if it was of use and at
 ; 0 if not, and Z to match. It is entered with `jsl`, with any data bank: it
 ; sets $7E and restores it. It clobbers X, Y and `temp`.
@@ -380,15 +380,9 @@ sp_fits:
     sta .loword(MED_USED)
     jmp consume
 
-; The item's `k`, from `pick_edges` to X. Only A and X.
+; The item's `k`, from `item_sel` to X. Only X.
 k_in_x:
-    rep #$20
-.a16
-    lda pick_edges
-    and #$00FF
-    tax
-    sep #$20
-.a8
+    ldx .loword(item_sel)
     rts
 
 ; A8 the percentage and X the maximum: returns with A16 = percent * max / 100,

@@ -286,6 +286,18 @@ fn python_json(value: &Value) -> String {
     }
 }
 
+/// How many bytes the ROM's switch table takes, a bit per switch from 0 to
+/// `top`, the highest the game names. It lives in the cartridge's `SWITCHRAM`,
+/// 256 bytes of far RAM, and a game past it is refused before this: see
+/// `switch_top` in the event compiler.
+pub fn switch_bytes(top: i64) -> Result<i64> {
+    let bytes = top.max(0) / 8 + 1;
+    if bytes > 256 {
+        return Err(Bad::answer(format!("switch {top} does not fit the ROM's switch table, 256 bytes")));
+    }
+    Ok(bytes)
+}
+
 /// Sixteen bits that change when what each byte of the saved game means
 /// changes —which variable goes in each slot, which actor each skill pair
 /// and each experience slot belongs to—, so that the console rejects a save
@@ -296,10 +308,11 @@ fn save_signature(
     pairs: &[(i64, i64, i64)],
     experience: &Value,
     n_actors: i64,
+    switch_bytes: i64,
 ) -> u32 {
     let shape =
         format!(
-        "{{\"variables\": {}, \"items\": {ITEMS_N}, \"switches\": {SWITCH_BYTES}, \"actores\": \
+        "{{\"variables\": {}, \"items\": {ITEMS_N}, \"switches\": {switch_bytes}, \"actores\": \
          {n_actors}, \"habilidades\": {}, \"experiencia\": {}}}",
         python_json(&Value::Array(
             variables.iter().map(|(v, s)| serde_json::json!([v, s])).collect()
@@ -496,7 +509,7 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         LUMA_R.into(),
         LUMA_G.into(),
         LUMA_B.into(),
-        SWITCH_BYTES.into(),
+        switch_bytes(r.switch_top)?.into(),
         PARTY_MAX.into(),
         r.party.len().into(),
         ACTOR_BYTES.into(),
@@ -2399,9 +2412,12 @@ impl Rest<'_> {
         let (r, db, t) = (self.r, self.db, self.t);
         let cell = CELL;
         let items = &r.items;
-        if items.len() > 255 {
+        // A `k` is a word, and the runtime indexes the tables with it in a
+        // sixteen-bit X: the widest one, `item_up`, at `12k`. RM2k's editor
+        // stops at 5000 items, below this.
+        if items.len() * 12 > 0x10000 {
             return Err(Bad::answer(format!(
-                "{} items don't fit in one-byte tables",
+                "{} items: `item_up` is indexed by 12k in sixteen bits",
                 items.len()
             )));
         }
@@ -2433,12 +2449,14 @@ impl Rest<'_> {
             t.n("ITEM_LIST_Y").div_euclid(cell)
         ));
         // The item tables go outside bank 0, read with `lda f:item_k, x`:
-        // they grow with every item the maps bring.
+        // they grow with every item the maps bring. `item_k` is a word per
+        // RM2k number, $FFFF for one the cartridge does not carry: ABL's
+        // whole game carries 264 items, and until 2026-10-15 it was a byte.
         out.push_str(".segment \"RODATA\"\n");
-        bytes_asm(
+        words_asm(
             out,
             "item_k",
-            &decimal((0..ITEMS_N as i64).map(|n| k_of.get(&n).map_or(0xFF, |&k| k as i64))),
+            &decimal((0..ITEMS_N as i64).map(|n| k_of.get(&n).map_or(0xFFFF, |&k| k as i64))),
             true,
         );
         words_asm(out, "item_id", &decimal(items.iter()), true);
@@ -3046,7 +3064,7 @@ impl Rest<'_> {
         variables.sort_by_key(|v| v.1);
         out.push_str(&format!(
             "; The signature of the save format: see `SRAM_SIGNATURE`.\nGAME_SIGNATURE = ${:04X}\n",
-            save_signature(&variables, &pairs, &r.battle_tables.slots, n_actors)
+            save_signature(&variables, &pairs, &r.battle_tables.slots, n_actors, switch_bytes(r.switch_top)?)
         ));
         words_asm(out, "skill_pair_init", &decimal(skill_pair_start), true);
         bytes_asm(out, "skill_pair_n", &decimal(skill_pair_n), true);
@@ -3443,20 +3461,16 @@ impl Rest<'_> {
         );
         words_asm(out, "enemy_exp", &per_enemy(&|e| e.exp.into())?, true);
         words_asm(out, "enemy_gold", &per_enemy(&|e| e.gold.into())?, true);
-        // TEMPORARY, taro's on 2026-10-14: a drop the cartridge does not
-        // carry —the converter leaves out the items past 255, see
-        // `items_all` in convert.rs— drops nothing, instead of stopping the
-        // build. Until then it was an error.
         let known: BTreeSet<i64> = r.items.iter().copied().collect();
-        words_asm(
-            out,
-            "enemy_drop",
-            &per_enemy(&|e| {
-                let drop = i64::from(e.drop_id);
-                if known.contains(&drop) { drop } else { 0 }
-            })?,
-            true,
-        );
+        for &e in rom_enemies {
+            let drop = i64::from(enemy(e)?.drop_id);
+            if drop != 0 && !known.contains(&drop) {
+                return Err(Bad::answer(format!(
+                    "enemy {e} drops item {drop} and the cartridge doesn't carry it"
+                )));
+            }
+        }
+        words_asm(out, "enemy_drop", &per_enemy(&|e| e.drop_id.into())?, true);
         bytes_asm(
             out,
             "enemy_drop_pct",
@@ -3781,5 +3795,16 @@ mod tests {
         let v = serde_json::json!([[1, 2], [3, null]]);
         assert_eq!(python_json(&v), "[[1, 2], [3, null]]");
         assert_eq!(python_json(&serde_json::json!([])), "[]");
+    }
+
+    /// The switch table is the game's: ABL names up to 1008, Vampires Dawn
+    /// up to 1643; and 2047 is the last its 256 bytes hold.
+    #[test]
+    fn the_switch_table_is_the_games() {
+        assert_eq!(switch_bytes(0).unwrap(), 1);
+        assert_eq!(switch_bytes(1008).unwrap(), 127);
+        assert_eq!(switch_bytes(1643).unwrap(), 206);
+        assert_eq!(switch_bytes(2047).unwrap(), 256);
+        assert!(switch_bytes(2048).is_err());
     }
 }

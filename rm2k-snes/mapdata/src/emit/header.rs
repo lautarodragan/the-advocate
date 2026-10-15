@@ -190,7 +190,7 @@ pub const HEADER: &str = concat!(
     "LIGHT_R = %d\n",
     "LIGHT_G = %d\n",
     "LIGHT_B = %d\n",
-    "; One bit per switch. The highest the game checks is 1003.\n",
+    "; One bit per switch, up to the highest the game names.\n",
     "SWITCH_BYTES = %d\n",
     "; The party the game starts with, and its cap. In RM2k the hero's\n",
     "; graphic is the first one's, so this decides which sprite is\n",

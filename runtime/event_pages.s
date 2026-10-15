@@ -2216,8 +2216,9 @@ fails:
     tay                         ; and which byte of the bitmap
     sep #$20
 .a8
-    lda switches, y
-    and f:mask, x
+    lda f:mask, x
+    tyx                         ; the table is far, and a long index is X
+    and f:switches, x
     rep #$20
 .a16
     rts                         ; rep does not touch Z, so the and still holds

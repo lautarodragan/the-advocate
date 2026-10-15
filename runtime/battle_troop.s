@@ -480,8 +480,7 @@ ready:
 .endproc
 
 ; A16 the switch number; returns with A8 and Z=0 if it is on. It is the same
-; bitmap the map looks at, `switches`, in low RAM, which with the data bank at
-; $7E is in its usual place. Clobbers X and Y.
+; table the map looks at, `switches`, in far RAM. Clobbers X and Y.
 .proc ba_page_switch
 .a16
 .i16
@@ -496,7 +495,8 @@ ready:
     sep #$20
 .a8
     lda f:mask, x
-    and switches, y
+    tyx                         ; the table is far, and a long index is X
+    and f:switches, x
     rts
 .endproc
 

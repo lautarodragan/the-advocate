@@ -70,6 +70,9 @@ pub struct Request {
     pub test_commands: Vec<Command>,
     /// Variables no page names that need a slot anyway.
     pub extra_variables: BTreeSet<i32>,
+    /// And switches no page names that the table has to hold anyway: the
+    /// harness's `TEST_SWITCH`, which every test page turns on.
+    pub extra_switches: BTreeSet<i32>,
     /// The map the test pages boot in, which carries an event without pages
     /// at index 0 so that they run before the game's.
     pub test_event_map: Option<i32>,
@@ -293,6 +296,14 @@ impl Request {
             .iter()
             .map(|m| int(m, whose).map(|x| x as i32))
             .collect::<Result<_>>()?;
+        if let Some(s) = data.get("extra_switches") {
+            r.extra_switches = s
+                .as_array()
+                .ok_or_else(|| Bad::answer(format!("{whose}: `extra_switches` is not a list")))?
+                .iter()
+                .map(|m| int(m, whose).map(|x| x as i32))
+                .collect::<Result<_>>()?;
+        }
         let t = field(data, "test_event_map", whose)?;
         r.test_event_map = if t.is_null() {
             None
@@ -505,6 +516,8 @@ fn indices_json(indices: &Indices, associations: &[(String, i32)]) -> JsonMap<St
             .map(|((a, h), s)| json!([a, h, s]))
             .collect::<Vec<_>>()),
     );
+    // The highest switch the game names: the cartridge's table holds it.
+    out.insert("switch_top".into(), json!(indices.switch_top));
     out.insert("associations".into(), json!(associations));
     out
 }
@@ -516,8 +529,10 @@ pub(crate) fn prepare(game: &Game, request: &Request) -> Result<Prepared> {
     let every = indices::every_map(game)?;
     let mut extra_variables = request.extra_variables.clone();
     extra_variables.extend(indices::command_variables(&request.test_commands));
+    let mut extra_switches = request.extra_switches.clone();
+    extra_switches.extend(indices::command_switches(&request.test_commands));
     let extra_pairs = indices::command_skill_pairs(&request.test_commands);
-    let indices = indices::build(game, &every, &extra_variables, &extra_pairs)?;
+    let indices = indices::build(game, &every, &extra_variables, &extra_pairs, &extra_switches)?;
     let by_id: HashMap<i32, &Map> = every.iter().map(|m| (m.id, m)).collect();
     let maps = request
         .maps

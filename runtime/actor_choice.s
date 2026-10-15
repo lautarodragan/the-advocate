@@ -15,7 +15,7 @@
 ; —`_check_target` checks it—, and the colors go in 128..143, which are
 ; the menu sprites' and are restored by `menu_exp_close`.
 ;
-; It opens for a medicine, the one in `pick_edges`, and for a heal from the
+; It opens for a medicine, the one in `item_sel`, and for a heal from the
 ; skills screen —`sk_target_on`, see `sk_heal`—, which is the same screen
 ; with the skill's name, the cost's term and its cost, and the bar where the
 ; skill's scope says. Whom to equip is chosen on the pause menu itself
@@ -90,9 +90,7 @@ medicine:
     ; says which one belongs to `k`.
     rep #$20
 .a16
-    lda pick_edges
-    and #$00FF
-    tax
+    ldx item_sel
     lda f:target_name, x
     and #$00FF
     sta temp
@@ -132,7 +130,7 @@ medicine:
     jmp target_count
 .endproc
 
-; How many are left of the medicine in `pick_edges`, in two digits —the tens
+; How many are left of the medicine in `item_sel`, in two digits —the tens
 ; digit blank if it is zero—, next to "Owned Items". In the vblank after using
 ; it, or with the screen off when opening. Without a medicine, nothing.
 .proc target_count
@@ -154,8 +152,7 @@ medicine:
 item:
     rep #$20
 .a16
-    lda pick_edges
-    and #$00FF
+    lda item_sel
     asl a
     tax
     lda f:item_id, x

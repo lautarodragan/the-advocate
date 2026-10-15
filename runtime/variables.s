@@ -92,17 +92,23 @@ no_refresh:
     tay
     sep #$20
 .a8
+    ; The table is in far RAM and a long index can only be X, so the two
+    ; trade places: the bit's mask goes to Y —its low byte, which is what
+    ; `tya` gives back with A at eight bits— and the byte to X.
+    lda f:mask, x
+    tyx
+    tay
     pla
     beq off
-    lda switches, y
-    ora f:mask, x
-    sta switches, y
+    tya
+    ora f:switches, x
+    sta f:switches, x
     bra wrote
 off:
-    lda f:mask, x
+    tya
     eor #$FF
-    and switches, y
-    sta switches, y
+    and f:switches, x
+    sta f:switches, x
 wrote:
     lda #1
     sta refresh                 ; the pages that ask for it may change
