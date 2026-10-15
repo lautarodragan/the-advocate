@@ -49,9 +49,11 @@ RELEASE = "release"
 # while it works. The ports' `FRAMES_PER_TICK`.
 FRAMES_PER_TICK = 3000
 
-# `msg_state` once the message is composed and waits for a button:
-# `runtime/low_ram.s`.
-MESSAGE_READY = 2
+# `msg_state` back at idle: with `msg_open` set, the message is whole on
+# screen and waits for a button. It is 1 while composing and 2 only between
+# the last letter and the vblank that shows it —`vblank.s` clears it—, so
+# waiting for 2 can miss it: see `runtime/low_ram.s`.
+MESSAGE_SHOWN = 0
 
 
 def _builder(*args):
@@ -213,7 +215,10 @@ def golden(name, image, core):
     commit. A golden is never overwritten from here."""
     path = os.path.join(GOLDENS, "%s.png" % name)
     if not os.path.exists(path):
-        where = _save(image, "golden", "%s.png" % name)
+        # snes9x's under the golden's name, since it is the one taken; the
+        # other core's beside it, so it does not overwrite it.
+        suffix = "" if core_name(core) == "snes9x" else "-" + core_name(core)
+        where = _save(image, "golden", "%s%s.png" % (name, suffix))
         raise AssertionError("%r has no golden: the capture was left in %s"
                              % (name, where))
     expected = retro.fifteen_bits(Image.open(path))

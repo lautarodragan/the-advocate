@@ -16,7 +16,7 @@ import os
 
 import pytest
 
-from game import BSNES, MESSAGE_READY, SNES9X, Session, golden
+from game import BSNES, MESSAGE_SHOWN, SNES9X, Session, golden
 
 # Where `src/maps.json` starts the party, and where `src/maps/Map0001.json`
 # puts the elder, straight up from it: walking up, the hero stops in the
@@ -48,7 +48,8 @@ def test_the_elder_talks_to_whoever_talks_to_him(core):
         % (stop,))
     sess.press("a")
     sess.until("the elder's message composed",
-               lambda: sess.byte("msg_state") == MESSAGE_READY
+               lambda: sess.byte("msg_open")
+               and sess.byte("msg_state") == MESSAGE_SHOWN
                and not sess.byte("msg_upload"), 300)
     # The window waits for a button; a second without one leaves it whole.
     for _ in range(60):
