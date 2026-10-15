@@ -34,7 +34,9 @@ SAVE_NAMES = SAVE_BYTES - EXP_K * 4 - NAME_SLOTS
 NAME_LETTERS_MAX = 32
 
 .pushseg
-.segment "FAR2"
+; In bank 1, which has more room than `FAR2`: Sunset over Imdahl, which
+; renames its hero, overflowed `FAR2` by fourteen bytes with this there.
+.segment "FAR"
 
 ; X16: an actor times two, as `actor_txt` is indexed. Returns in A16 the
 ; text number of the name it carries now, or $FFFF if the cartridge has no
