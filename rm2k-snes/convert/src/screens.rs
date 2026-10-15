@@ -168,8 +168,9 @@ pub fn convert(
     if !text_rows.is_null() {
         request["text_rows"] = text_rows.clone();
     }
-    // The custom menus, their variables' slots and the bodies they run.
-    for key in ["menus", "variables", "before_bodies"] {
+    // The custom menus, their variables' slots and the bodies they run; and
+    // the names `ChangeHeroName` gives, which ride along in the same value.
+    for key in ["menus", "variables", "before_bodies", "names"] {
         request[key] = menus[key].clone();
     }
     let written = stage::run(BINARY, PROJECT, "convert", &request, &game_flags(game))?;

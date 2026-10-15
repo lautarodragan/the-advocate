@@ -44,6 +44,11 @@ pub struct Request {
     /// it never switches: see `message_window::TextRows`. The `window`
     /// subcommand answers it.
     pub text_rows: Option<message_window::TextRows>,
+    /// Every name a `ChangeHeroName` of the game gives, as (actor, name), in
+    /// the order the event compiler counts them: each is one more row of the
+    /// actors' text, which the menu and the slot screen show when the actor
+    /// carries it. See the runtime's `actor_names.s`.
+    pub names: Vec<(i32, String)>,
 }
 
 fn hex(bytes: &[u8]) -> String {
@@ -527,7 +532,16 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
     // What the cartridge composes as text: each actor's three strips, each
     // medicine's name in two lines, each item's name and description, the
     // equipment screen's terms and the shop's messages.
-    let n_actors = request.actors.iter().copied().max().map_or(0, |m| m + 1).max(0);
+    // A renamed actor that never joins still has its row: a message's
+    // `\N[n]` shows its name.
+    let n_actors = request
+        .actors
+        .iter()
+        .chain(request.names.iter().map(|(a, _)| a))
+        .copied()
+        .max()
+        .map_or(0, |m| m + 1)
+        .max(0);
     let actor_texts: Vec<Value> = (0..n_actors)
         .map(|a| {
             Ok(json!([
@@ -537,6 +551,9 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
             ]))
         })
         .collect::<Result<_>>()?;
+    // And each rename's name strip, after them: see `Request::names`.
+    let renamed: Vec<Value> =
+        request.names.iter().map(|(a, name)| json!([a, texts::name_strip(name, MENU_NAME_COLS)])).collect();
     let mut item_texts = Vec::new();
     for &n in &request.items {
         let item = game.item(n)?;
@@ -680,6 +697,7 @@ pub fn convert(game: &Game, request: &Request) -> Result<Value> {
         },
         "texts": {
             "actors": actor_texts,
+            "renamed": renamed,
             "items": item_texts,
             "medicines": medicine_names,
             "params": params,

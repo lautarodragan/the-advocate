@@ -404,6 +404,7 @@ faces_ready:
 .a8
     pla
     pha
+    jsl f:actor_name_row_saved  ; as it was saved: actor_names.s
     ldx #SLOT_TEXT_NAME
     jsr slot_text_of
     lda #SLOT_NAME_COLS

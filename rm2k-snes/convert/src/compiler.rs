@@ -383,6 +383,10 @@ pub struct Indices {
     pub skills: Vec<((i64, i64), i64)>,
     /// The highest switch the game names: the ROM's table holds 0 to it.
     pub switch_top: i64,
+    /// Every (actor, name) a `ChangeHeroName` gives, in the order
+    /// `OP_CHANGE_NAME` counts them: the screens and the emission write
+    /// their texts in it.
+    pub names: Vec<(i64, String)>,
 }
 
 impl Indices {
@@ -413,6 +417,14 @@ impl Indices {
             variables: dict(pairs("variables").into_iter().map(|e| (e[0], e[1])).collect()),
             skills: dict(pairs("skills").into_iter().map(|e| ((e[0], e[1]), e[2])).collect()),
             switch_top: answer["switch_top"].as_i64().unwrap_or(0),
+            names: answer["names"]
+                .as_array()
+                .map(|list| {
+                    list.iter()
+                        .filter_map(|e| Some((e[0].as_i64()?, e[1].as_str()?.to_string())))
+                        .collect()
+                })
+                .unwrap_or_default(),
         }
     }
 

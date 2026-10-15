@@ -264,6 +264,12 @@ save_table:
     ; And the System the message window is drawn with, which RM2k saves too.
     .word .loword(WINDOW_SYSTEM), 1
 .endif
+    ; And which name each renamed actor carries, which RM2k saves too: see
+    ; actor_names.s. Right before the experience, where the slot screen
+    ; finds the saved leader's —`SAVE_NAMES`—.
+.if ::NAME_SLOTS > 0
+    .word .loword(ACTOR_NAME), NAME_SLOTS
+.endif
     ; And the experience and level of each actor that can fight. **It goes
     ; last on purpose**: the slot screen reads the leader's level from SRAM
     ; counting from the end of the save —`EXP_LEVEL_IN_SLOT`—, and a line

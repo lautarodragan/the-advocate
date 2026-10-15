@@ -100,6 +100,7 @@ fn everything_a_cartridge_carries() {
         menus: Vec::new(),
         menu_context: Default::default(),
         text_rows: None,
+        names: Vec::new(),
     };
     let mut answer = convert::convert(&game(), &request).unwrap();
     // The geometry is constants, and the Python had them as its own.
@@ -122,6 +123,9 @@ fn everything_a_cartridge_carries() {
     // 2026-10-15: the same WARNINGs as `says`, with a kind each, for the
     // cartridge's degradations.
     answer.as_object_mut().unwrap().remove("losses");
+    // Nor the rows of the names `ChangeHeroName` gives, since 2026-10-15:
+    // none in this game, and the Python had no list.
+    answer["texts"].as_object_mut().unwrap().remove("renamed");
     let says: Vec<Value> = answer["says"]
         .as_array()
         .unwrap()
@@ -253,6 +257,7 @@ fn names_that_do_not_fit_in_the_bank_are_refused() {
         menus: Vec::new(),
         menu_context: Default::default(),
         text_rows: None,
+        names: Vec::new(),
     };
     let bad = convert::convert(&game(), &request).unwrap_err();
     assert!(bad.message().contains("has no room for the composed names"), "{}", bad.message());

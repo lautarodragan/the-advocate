@@ -43,6 +43,19 @@ pub const VARIABLE: u8 = 0xFF;
 /// last letter, where nothing would read it— is still inside the line.
 pub const WAIT: u8 = 0xFE;
 
+/// The byte that stands for **an actor's name**, `\N[n]` written when the
+/// box opens: the next byte is the actor, by its LDB number, and 0 is the
+/// party's leader. The ROM's composer hands out the name's letters there
+/// —see `msg_name_mark` in runtime/actor_names.s—, from the same text the
+/// battle draws it with, so a `ChangeHeroName` shows. It is the one before
+/// [`WAIT`], taken from the pairs like it.
+///
+/// Only the names that are not known when building go this way: `\N[0]`
+/// and an actor some `ChangeHeroName` renames. Every other `\N[n]` is the
+/// database's name, written into the text by the compiler —see `with_names`
+/// in `compile.rs`—.
+pub const NAME: u8 = 0xFD;
+
 /// What follows [`WAIT`]: the frames, or a key. `\.` is 16 frames and not
 /// the quarter of a second the help says, and `\|` 61 and not 60: easyrpg's
 /// `Window_Message`, measured on RPG_RT, at the speed the console has
@@ -59,8 +72,8 @@ pub const WAIT_SECOND: u8 = 61;
 pub const WAIT_ANNOUNCE: u8 = 0xFF;
 
 /// How many pairs fit: the values from `PAIR_FIRST` up to the one before
-/// [`WAIT`].
-pub const PAIRS_MAX: usize = WAIT as usize - PAIR_FIRST as usize;
+/// [`NAME`].
+pub const PAIRS_MAX: usize = NAME as usize - PAIR_FIRST as usize;
 
 /// How a `\V[n]` travels inside a line between the compiler and this
 /// module: one character of Unicode's last private use plane, this plus the
@@ -75,12 +88,24 @@ pub fn variable_mark(slot: u8) -> char {
     char::from_u32(VARIABLE_MARK + slot as u32).unwrap()
 }
 
+/// How a name written at run time travels in a line, like
+/// [`VARIABLE_MARK`]: this plus the actor, 0 the leader. Past the waits'
+/// marks, which `rm2k-snes-text` keeps from `0xF0100`.
+const NAME_MARK: u32 = 0xF0200;
+
+/// The mark of the name of `actor`, 0 the leader: see [`NAME`].
+pub fn name_mark(actor: u8) -> char {
+    char::from_u32(NAME_MARK + actor as u32).unwrap()
+}
+
 /// One unit of a line: a letter, as its index in the font, or a variable's
 /// value, as its slot.
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum Unit {
     Letter(u8),
     Variable(u8),
+    /// A name, as the actor: see [`NAME`].
+    Name(u8),
     /// A wait, as what follows [`WAIT`].
     Wait(u8),
 }
@@ -240,9 +265,11 @@ impl Window {
         }
     }
 
-    /// What `c` moves the line. A variable's value counts as **one digit**:
-    /// how many it takes is known only when the box opens, and the ROM cuts
-    /// at the edge what grows past it. A character the font does not have
+    /// What `c` moves the line. A variable's value counts as **one digit**,
+    /// and a name written at run time as one too: how many letters each takes
+    /// is known only when the box opens, and the ROM cuts at the edge what
+    /// grows past it, which is what RM2k does with a line a name makes too
+    /// long —it does not wrap it again—. A character the font does not have
     /// is a space, and [`units`] stops the conversion on it anyway.
     pub fn advance(&self, c: char) -> usize {
         if wait_of(c).is_some() {
@@ -250,7 +277,7 @@ impl Window {
         }
         let c = if is_backslash_mark(c) { ESCAPE } else { c };
         let code = c as u32;
-        if (VARIABLE_MARK..VARIABLE_MARK + 0x100).contains(&code) {
+        if (VARIABLE_MARK..VARIABLE_MARK + 0x100).contains(&code) || (NAME_MARK..NAME_MARK + 0x100).contains(&code) {
             return self.advances[('0' as usize) - 32] as usize;
         }
         match code.checked_sub(32) {
@@ -338,6 +365,9 @@ fn units(text: &str, window: Window) -> Result<Vec<Unit>> {
             if (VARIABLE_MARK..VARIABLE_MARK + 0x100).contains(&c) {
                 return Ok(Unit::Variable((c - VARIABLE_MARK) as u8));
             }
+            if (NAME_MARK..NAME_MARK + 0x100).contains(&c) {
+                return Ok(Unit::Name((c - NAME_MARK) as u8));
+            }
             if !(32..32 + CONSOLE_GLYPHS as u32).contains(&c) {
                 return Err(Bad::answer(format!(
                     "the message has a character that is not in the font: {ch:?}"
@@ -348,15 +378,15 @@ fn units(text: &str, window: Window) -> Result<Vec<Unit>> {
         .collect()
 }
 
-/// The runs of letters of a line, cut at each variable and each wait: a
+/// The runs of letters of a line, cut at each variable, name and wait: a
 /// pair never takes a letter from each side of one, because between them
-/// the ROM writes digits, or stops.
+/// the ROM writes digits or a name, or stops.
 fn letter_runs(units: &[Unit]) -> Vec<Vec<u8>> {
     let mut runs = vec![vec![]];
     for u in units {
         match *u {
             Unit::Letter(l) => runs.last_mut().unwrap().push(l),
-            Unit::Variable(_) | Unit::Wait(_) => runs.push(vec![]),
+            Unit::Variable(_) | Unit::Name(_) | Unit::Wait(_) => runs.push(vec![]),
         }
     }
     runs.retain(|r| !r.is_empty());
@@ -372,6 +402,10 @@ fn letter_runs(units: &[Unit]) -> Vec<Vec<u8>> {
 /// letter in the length: how many digits it takes is known only when the
 /// box opens, and the ROM adds the rest to the line's length there. A line
 /// that grows past the window is cut by the composer at the edge.
+///
+/// A name written at run time is [`NAME`] and the actor, and counts as one
+/// letter like a variable: the ROM adds the rest of the name's letters to the
+/// line's length, or takes the one off if the name is empty.
 ///
 /// A wait is [`WAIT`] and which one, and counts as one letter too, which the
 /// ROM takes off when it reads it. A box that carries one opens with
@@ -407,6 +441,11 @@ pub fn message_bytes(
                     out.extend(pairs.encode(&run));
                     run.clear();
                     out.extend([VARIABLE, slot]);
+                }
+                Unit::Name(actor) => {
+                    out.extend(pairs.encode(&run));
+                    run.clear();
+                    out.extend([NAME, actor]);
                 }
                 Unit::Wait(which) => {
                     out.extend(pairs.encode(&run));
@@ -446,6 +485,11 @@ pub struct Messages {
     /// Whether a block past what the operand reaches stops the compilation.
     /// Only `measuring` turns it off: see there.
     capped: bool,
+    /// Whether the battle draws these boxes —the troops' block—: it writes
+    /// each byte as a letter, and knows neither a variable's digits nor a
+    /// name, so a box that needs one does not compile. See
+    /// `ba_page_message` in the runtime's `battle_troop.s`.
+    pub drawn_by_battle: bool,
     where_: HashMap<Key, usize>,
     texts: BTreeMap<usize, Vec<String>>,
 }
@@ -458,6 +502,7 @@ impl Messages {
             data: Vec::new(),
             pairs: Pairs::default(),
             capped: true,
+            drawn_by_battle: false,
             where_: HashMap::new(),
             texts: BTreeMap::new(),
         }
@@ -546,6 +591,11 @@ impl Messages {
         // A letter the console's font does not have stops this page and not
         // the game: RM2k's font has Latin-1 and the console's only ASCII.
         if lines.iter().any(|t| units(t, self.window).is_err()) {
+            return Err(Stop::Cannot);
+        }
+        if self.drawn_by_battle
+            && lines.iter().flat_map(|t| units(t, self.window).unwrap_or_default()).any(|u| matches!(u, Unit::Variable(_) | Unit::Name(_)))
+        {
             return Err(Stop::Cannot);
         }
         let key = (lines, pauses, auto_close);
@@ -718,10 +768,10 @@ mod tests {
         let mut m = Messages::with_pairs(1, WINDOW, pairs);
         let at = m.add(&[line]).ok().unwrap();
         assert_eq!(m.data[at..], [1, 5, PAIR_FIRST, VARIABLE, 3, PAIR_FIRST]);
-        // Two fewer than when the font had 95 letters and there were no
-        // waits: the 96th letter is the cursor's blank, and `WAIT` took the
-        // value before `VARIABLE`.
-        assert_eq!(PAIRS_MAX, 158);
+        // Three fewer than when the font had 95 letters and there were no
+        // waits nor names: the 96th letter is the cursor's blank, `WAIT`
+        // took the value before `VARIABLE` and `NAME` the one before that.
+        assert_eq!(PAIRS_MAX, 157);
     }
 
     #[test]
@@ -745,6 +795,28 @@ mod tests {
         let plain = m.add(&s(&["ab\\.ab", "c\\!"])).ok().unwrap();
         assert_eq!(m.data[plain..], [2, 4, PAIR_FIRST, PAIR_FIRST, 1, 67]);
         assert_eq!(m.add(&s(&["abab", "c"])).ok(), Some(plain));
+    }
+
+    #[test]
+    fn a_name_is_a_byte_and_its_actor_and_counts_one_letter() {
+        let pairs = Pairs::from_table(vec![(65, 66)]);
+        let mut m = Messages::with_pairs(1, WINDOW, pairs);
+        // "ab", the leader's name, "ab": the pair does not cross the name.
+        let at = m.add(&[format!("ab{}ab", name_mark(0))]).ok().unwrap();
+        assert_eq!(m.data[at..], [1, 5, PAIR_FIRST, NAME, 0, PAIR_FIRST]);
+        let at = m.add(&[format!("{}!", name_mark(7))]).ok().unwrap();
+        assert_eq!(m.data[at..], [1, 2, NAME, 7, 1]);
+    }
+
+    /// The battle writes a troop page's box byte by byte: it has no way to
+    /// write a name or a variable's digits, so that box stops its page.
+    #[test]
+    fn the_battle_takes_no_name_nor_variable() {
+        let mut m = Messages::new(1, WINDOW);
+        m.drawn_by_battle = true;
+        assert!(matches!(m.add(&[format!("Hi {}", name_mark(0))]), Err(Stop::Cannot)));
+        assert!(matches!(m.add(&[format!("Hi {}", variable_mark(0))]), Err(Stop::Cannot)));
+        assert!(m.add(&s(&["Hi"])).is_ok());
     }
 
     #[test]

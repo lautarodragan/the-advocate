@@ -367,7 +367,9 @@ pub struct TroopPages {
 }
 
 impl TroopPages {
-    pub fn new(messages: Messages) -> TroopPages {
+    pub fn new(mut messages: Messages) -> TroopPages {
+        // The battle writes these boxes, byte by byte: no names, no digits.
+        messages.drawn_by_battle = true;
         TroopPages {
             messages,
             bodies: vec![],

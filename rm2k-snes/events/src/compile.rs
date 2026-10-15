@@ -499,6 +499,11 @@ pub struct Indices {
     /// Actor to the name `\N[n]` bakes into the text: see
     /// [`crate::indices::hero_names`].
     pub hero_names: BTreeMap<i32, String>,
+    /// Every name a `ChangeHeroName` gives an actor, as (actor, name), each
+    /// once: see [`crate::indices::renames`]. `OP_CHANGE_NAME` names one by
+    /// its place here, and the converter writes their texts in the same
+    /// order.
+    pub renames: Vec<(i32, String)>,
     /// The highest switch the game names anywhere: see
     /// [`crate::indices::switch_top`]. The ROM's table holds 0 to it and no
     /// more, so a command, a branch or a condition past it does not
@@ -514,6 +519,7 @@ impl Default for Indices {
             variables: BTreeMap::new(),
             skills: BTreeMap::new(),
             hero_names: BTreeMap::new(),
+            renames: Vec::new(),
             switch_top: SWITCH_TABLE_MAX - 1,
         }
     }
@@ -534,6 +540,26 @@ impl Indices {
             return Err(Stop::Cannot);
         }
         Ok(slot as u8)
+    }
+
+    /// The actors some `ChangeHeroName` renames, in the order of their
+    /// first rename: each one's place is its byte of far RAM, which says
+    /// which of [`Indices::renames`] it carries. See `actor_name_txt` in the
+    /// runtime's `actor_names.s`.
+    pub fn renamed_actors(&self) -> Vec<i32> {
+        let mut out: Vec<i32> = Vec::new();
+        for (a, _) in &self.renames {
+            if !out.contains(a) {
+                out.push(*a);
+            }
+        }
+        out
+    }
+
+    /// Whether `\N[n]` of `actor` is written when the box opens: the
+    /// leader, and an actor some `ChangeHeroName` renames.
+    pub fn name_at_run_time(&self, actor: i32) -> bool {
+        actor == 0 || self.renames.iter().any(|(a, _)| *a == actor)
     }
 
     fn skill_slot(&self, actor: i64, skill: i64) -> Step<i64> {
@@ -3306,8 +3332,16 @@ fn target_of(who: i64, map_events: Option<&MapEvents>) -> Step<u8> {
 /// A text box's lines with each `\N[n]` —the name of actor `n`— written as
 /// the actor's name in the database, when no `ChangeHeroName` in the game
 /// changes it: see [`crate::indices::hero_names`]. Both cases of the `N`.
-/// `\N[0]` (the leader), a renamed actor and a malformed one are left as they
-/// are, so the escape still stops the page in `escape_tail`.
+///
+/// `\N[0]`, the leader, and an actor some `ChangeHeroName` renames go as the
+/// mark [`crate::messages::NAME`] writes, and the ROM writes the name when
+/// the box opens, as easyrpg's `PendingMessage::DefaultCommandInserter` does
+/// when the `ShowMessage` runs: the leader's, or nothing with an empty party.
+/// The line is not wrapped again for the name's length, as RM2k does not:
+/// what grows past the window's edge is cut there.
+///
+/// An actor past 255 and a malformed one are left as they are, so the escape
+/// still stops the page in `escape_tail`.
 pub fn with_names(lines: &[String], indices: &Indices) -> Vec<String> {
     lines
         .iter()
@@ -3325,11 +3359,18 @@ pub fn with_names(lines: &[String], indices: &Indices) -> Vec<String> {
                 if chars[i] == '\\' && matches!(chars.get(i + 1), Some('N' | 'n')) && chars.get(i + 2) == Some(&'[') {
                     let digits: String = chars[i + 3..].iter().take_while(|c| c.is_ascii_digit()).collect();
                     let close = i + 3 + digits.len();
-                    let name = digits.parse::<i32>().ok().and_then(|n| indices.hero_names.get(&n));
-                    if let (Some(name), Some(']')) = (name, chars.get(close).copied()) {
-                        text.push_str(name);
-                        i = close + 1;
-                        continue;
+                    let actor = digits.parse::<i32>().ok();
+                    if chars.get(close) == Some(&']') {
+                        if let Some(name) = actor.and_then(|n| indices.hero_names.get(&n)) {
+                            text.push_str(name);
+                            i = close + 1;
+                            continue;
+                        }
+                        if let Some(n) = actor.filter(|&n| indices.name_at_run_time(n)).and_then(|n| u8::try_from(n).ok()) {
+                            text.push(crate::messages::name_mark(n));
+                            i = close + 1;
+                            continue;
+                        }
                     }
                 }
                 text.push(chars[i]);
@@ -4490,6 +4531,23 @@ pub fn compile_command(
                 format!("the {what} song stays the database's instead of {:?}", cmd.string),
             );
             Ok(vec![])
+        }
+        CHANGE_HERO_NAME => {
+            // OP_CHANGE_NAME: the actor's place among the renamed ones and
+            // which of the game's renames it takes, from one —zero is the
+            // database's name—. The name is a literal of the command, so the
+            // indices already hold it: see [`crate::indices::renames`]. Every
+            // screen that draws the actor's name asks the ROM which one it
+            // carries, and so does `\N[n]`.
+            let actor = *p.first().ok_or(Stop::Cannot)?;
+            let place = ctx.indices.renamed_actors().iter().position(|&a| a == actor).ok_or(Stop::Cannot)?;
+            let which = ctx
+                .indices
+                .renames
+                .iter()
+                .position(|(a, n)| *a == actor && *n == cmd.string)
+                .ok_or(Stop::Cannot)?;
+            Ok(vec![OP_CHANGE_NAME, byte(place as i64)?, byte(which as i64 + 1)?])
         }
         CHANGE_HERO_TITLE => {
             ctx.lose(cmd, "hero-title-not-changed", format!("actor {}'s title is not changed to {:?}", p.first().unwrap_or(&0), cmd.string));
@@ -8065,14 +8123,38 @@ mod tests {
     fn an_actors_name_is_baked_into_the_text_unless_it_can_change() {
         let indices = Indices {
             hero_names: BTreeMap::from([(2, "Kai".to_string())]),
+            renames: vec![(3, "Lu".to_string())],
             ..Default::default()
         };
-        let out = with_names(&["Hi \\N[2]! \\n[2] \\N[0] \\N[3]".to_string()], &indices);
-        assert_eq!(out, ["Hi Kai! Kai \\N[0] \\N[3]"]);
-        // The page compiles with it, and not without.
+        // The leader and the renamed actor 3 go as marks, for the ROM to
+        // write; actor 4, who is in no database, stays as it was.
+        let out = with_names(&["Hi \\N[2]! \\n[2] \\N[0] \\N[03] \\N[4]".to_string()], &indices);
+        let (leader, three) = (crate::messages::name_mark(0), crate::messages::name_mark(3));
+        assert_eq!(out, [format!("Hi Kai! Kai {leader} {three} \\N[4]")]);
+        // The page compiles with them, and not without.
         let mut messages = crate::messages::Messages::new(1, crate::messages::Window::columns(39, 4));
-        assert!(messages.add(&with_names(&["\\N[2]".to_string()], &indices)).is_ok());
+        assert!(messages.add(&with_names(&["\\N[2] \\N[0] \\N[3]".to_string()], &indices)).is_ok());
         assert!(messages.add(&["\\N[2]".to_string()]).is_err());
+        assert!(messages.add(&with_names(&["\\N[4]".to_string()], &indices)).is_err());
+    }
+
+    /// `ChangeHeroName` is the actor's place among the renamed ones and
+    /// which of the game's names it takes, counted from one: zero is the
+    /// database's.
+    #[test]
+    fn a_rename_is_the_actors_place_and_the_names() {
+        let indices = Indices {
+            renames: vec![(5, "Ann".to_string()), (2, "Bo".to_string()), (5, "Cid".to_string())],
+            ..Default::default()
+        };
+        assert_eq!(indices.renamed_actors(), [5, 2]);
+        let code = on_a_map_with(&indices, &[cmd(CHANGE_HERO_NAME, &[5], "Cid")]).unwrap();
+        assert_eq!(code, [OP_CHANGE_NAME, 0, 3, OP_DONE]);
+        let code = on_a_map_with(&indices, &[cmd(CHANGE_HERO_NAME, &[2], "Bo")]).unwrap();
+        assert_eq!(code, [OP_CHANGE_NAME, 1, 2, OP_DONE]);
+        // One the indices do not know —it cannot happen with the game's—
+        // stops the page.
+        assert!(on_a_map_with(&indices, &[cmd(CHANGE_HERO_NAME, &[2], "Zed")]).is_none());
     }
 
     #[test]

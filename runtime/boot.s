@@ -271,6 +271,7 @@ party_ready:
     jsl f:initial_skills_set
     jsl f:compar_clear          ; and no parallel common event running
     jsr actor_gfx_clear
+    jsl f:actor_names_clear     ; and no one renamed
     jsr weather_clear
     jsr se_clear
     jsr music_clear

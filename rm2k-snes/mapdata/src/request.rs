@@ -225,6 +225,11 @@ pub struct Emit {
     /// skill) pair's bit.
     pub variables: Vec<(i64, i64)>,
     pub skill_pairs: Vec<(i64, i64, i64)>,
+    /// Every name a `ChangeHeroName` gives, as (actor, name), in the order
+    /// `OP_CHANGE_NAME` counts them from one: see `renames` in the event
+    /// compiler's indices and the runtime's `actor_names.s`.
+    #[serde(default)]
+    pub names: Vec<(i64, String)>,
     /// The highest switch the game names, which the ROM's table holds:
     /// `SWITCH_BYTES` is this over eight plus one. See `switch_top` in
     /// the event compiler.

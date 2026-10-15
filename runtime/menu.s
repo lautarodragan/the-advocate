@@ -575,6 +575,7 @@ no_face:
     pla
     pha
     jsr actor
+    jsl f:actor_name_row_now    ; its row, or a rename's: actor_names.s
     ldx #SLOT_TEXT_NAME
     jsr slot_text_of
     lda #MENU_NAME_COLS

@@ -414,7 +414,7 @@ none:
     and #$00FF
     asl a
     tax
-    lda f:actor_txt, x
+    jsl f:actor_name_txt        ; renames included: actor_names.s
     sta BA_S3                 ; and the text number of its name
     lda FAR_HP, x
     sta BA_S4                 ; the HP the saved game brings

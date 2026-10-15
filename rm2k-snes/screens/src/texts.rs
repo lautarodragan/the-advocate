@@ -219,7 +219,13 @@ pub fn equipped_params(game: &Game, actor: i32, equipment: &[i32]) -> Vec<i64> {
 /// with the ones the font lacks turned into '?' and padded with spaces to
 /// `cols`. The padding erases whatever was there.
 pub fn name_text(game: &Game, actor: i32, cols: usize) -> Result<String> {
-    Ok(ljust(&item_text(&game.actor_name(actor)?, cols), cols))
+    Ok(name_strip(&game.actor_name(actor)?, cols))
+}
+
+/// A name as the actors' strips carry it: what the font has of it, cut and
+/// padded to `cols` letters.
+pub fn name_strip(name: &str, cols: usize) -> String {
+    ljust(&item_text(name, cols), cols)
 }
 
 /// The two digits of the level, right-aligned as RM2k says them. Without
