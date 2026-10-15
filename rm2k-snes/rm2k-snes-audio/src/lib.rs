@@ -30,6 +30,7 @@ pub mod msu;
 pub mod msu_data;
 pub mod num;
 pub mod pyjson;
+pub mod relief;
 pub mod retro;
 pub mod samples;
 pub mod sdsp;

@@ -62,7 +62,7 @@ pub fn drop_surplus(keys_of: &mut [BTreeSet<Key>], room: i64) -> Vec<Key> {
 /// untrimmed.
 pub const NATIVE: i64 = 1 << 24;
 /// The minimum a sample is given even when its package is full.
-const FLOOR: i64 = 256;
+pub const FLOOR: i64 = 256;
 /// No copy is made for a sample that already plays at nearly its rate: a
 /// directory entry is worth more than that.
 const COPY_UNTIL: f64 = 0.9;

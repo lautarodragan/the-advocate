@@ -11,6 +11,7 @@ use crate::fail::{Bad, Result};
 use crate::game::Game;
 use crate::midi::{self, TICKS_PER_SECOND};
 use rm2k_snes_bytecode::music::OP_END;
+use crate::relief::{self, Loss, Sizes};
 use crate::sdsp;
 use crate::song::{self, Parsed};
 use crate::spc700;
@@ -58,6 +59,12 @@ pub struct Job {
     pub named_songs: Vec<String>,
     /// Up to where the ARAM holds samples. Only the tests change it.
     pub aram_end: i64,
+    /// Per package, whether its first song plays on entering —the map's own,
+    /// the boot's, the battle's—: see `parse` in `job`. A package not listed
+    /// here is taken as if it did. It decides whether a package that does
+    /// not fit keeps that song or sends every one to its `PlayBGM`: see
+    /// `relief`.
+    pub enters: Vec<bool>,
 }
 
 /// A song, built.
@@ -108,6 +115,8 @@ pub struct Music {
     pub packages: Vec<Package>,
     /// Up to where the ARAM holds samples: the job's.
     pub aram_end: i64,
+    /// What the packages that did not fit lost to fit: see [`relief`].
+    pub losses: Vec<Loss>,
 }
 
 impl Music {
@@ -362,13 +371,50 @@ pub fn build_per_key(job: &Job, game: &Game, samples: &Samples) -> Result<Music>
         }
         keys_of_present.push(present);
     }
-    let packages: Vec<Package> = job.packages.clone().unwrap_or_else(|| {
+    let mut packages: Vec<Package> = job.packages.clone().unwrap_or_else(|| {
         names
             .iter()
             .enumerate()
             .map(|(i, n)| Package { name: n.clone(), songs: vec![i], ..Default::default() })
             .collect()
     });
+
+    // A package that does not fit even at the minimum is relieved before
+    // anything is allocated: its songs after the first go separate and the
+    // sound effects at the end of its list are left out. What it takes to
+    // know that is what each sample takes at the minimum and at the floor
+    // rate. `free` is the ARAM with the directory as it is now —the copies
+    // only make it smaller, so a package that fits here may still not; a
+    // package that does not fit here surely does not—, and `room` the ARAM
+    // with the directory full, less the allocation's margin, so that what is
+    // relieved fits whatever the copies add.
+    let mut sizes: HashMap<Key, Sizes> = HashMap::new();
+    for k in keys_of_present.iter().flatten() {
+        if sizes.contains_key(k) {
+            continue;
+        }
+        let (Some(least), Some(native)) = (samples.sample(k, bank::FLOOR)?, samples.sample(k, bank::NATIVE)?) else {
+            continue;
+        };
+        let floor = relief::floor_bytes(native.data.len() as i64, native.rate);
+        sizes.insert(k.clone(), Sizes { minimum: least.data.len() as i64, floor });
+    }
+    let present: BTreeSet<&Key> = keys_of_present.iter().flatten().collect();
+    let places_at_least = packages
+        .iter()
+        .map(|p| p.effects.iter().filter(|e| built_effects.contains_key(*e)).collect::<BTreeSet<_>>().len())
+        .max()
+        .unwrap_or(0) as i64;
+    let free_now = bank::free_for(present.len() as i64, places_at_least, job.aram_end);
+    let room = bank::free_for(bank::DIRECTORY_MAX - places_at_least, places_at_least, job.aram_end) - bank::ARAM_MARGIN;
+    let enters: Vec<bool> = (0..packages.len()).map(|i| job.enters.get(i).copied().unwrap_or(true)).collect();
+    let mut losses =
+        relief::relieve(&mut packages, &enters, &keys_of_present, &sizes, &budgeted, free_now, room, names);
+    // And the same for a package next to a song that may be playing when it
+    // loads: a pair that does not fit at the minimum is not asked for.
+    let (inheritance, more) =
+        relief::relieve_inheritance(&job.inheritance, &packages, &keys_of_present, &sizes, free_now, names);
+    losses.extend(more);
 
     // What has to fit together: each package with its sound effects; each
     // exit song alone; and each package with the song that may be playing
@@ -395,7 +441,7 @@ pub fn build_per_key(job: &Job, game: &Game, samples: &Samples) -> Result<Music>
             real.push(Group { name, songs: vec![t], effect_bytes: real_bytes });
         }
     }
-    for (name, inherited) in &job.inheritance {
+    for (name, inherited) in &inheritance {
         let mut songs = songs_of
             .get(name.as_str())
             .cloned()
@@ -434,7 +480,7 @@ pub fn build_per_key(job: &Job, game: &Game, samples: &Samples) -> Result<Music>
     let free = bank::free_for(all_keys.len() as i64, places as i64, job.aram_end);
     let constraints = bank::constraints_for(&assignment, &real, free);
     let bank = Bank::new(samples, &all_keys, constraints, free, assignment)?;
-    whole_effects_fit(&bank, &packages, &job.inheritance, &built_effects, &budgeted, names, &whole, &paid)?;
+    whole_effects_fit(&bank, &packages, &inheritance, &built_effects, &budgeted, names, &whole, &paid)?;
 
     let tracks = game.track_numbers(&job.system_songs, &job.named_songs)?;
     let envelopes = RefCell::new(HashMap::new());
@@ -515,7 +561,7 @@ pub fn build_per_key(job: &Job, game: &Game, samples: &Samples) -> Result<Music>
             parsed: Some(parsed),
         });
     }
-    Ok(Music { driver, bank, songs, effects: effect_list, place, places, packages, aram_end: job.aram_end })
+    Ok(Music { driver, bank, songs, effects: effect_list, place, places, packages, aram_end: job.aram_end, losses })
 }
 
 /// Every song of the cartridge, sharing a single sample bank, with the
