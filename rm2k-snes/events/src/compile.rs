@@ -3540,7 +3540,7 @@ pub fn compile_command(
             // audio package, together with its songs —`package_load`, in
             // runtime/audio_package.s—, with the same per-pack budget
             // as the music's samples:
-            // `optimizations/the-sample-bank.md` in the book. One that
+            // `optimizations/lossless/audio/the-sample-bank.md` in the book. One that
             // does not fit in its pack does not sound.
             //
             // How much it unlocks, measured and not assumed: **+10
@@ -4296,7 +4296,7 @@ pub fn compile_command(
             // package to ARAM, with the songs its pages can turn on
             // —`package_load`, in runtime/audio_package.s—, and each
             // sample's budget is that of its worst pack: see
-            // `optimizations/the-sample-bank.md` in the book.
+            // `optimizations/lossless/audio/the-sample-bank.md` in the book.
             //
             // OP_BGM: the song's index in `Songs` (byte). The ROM plays the
             // ones it carried —the first `SONG_TOTAL`— and with any other it
@@ -4502,7 +4502,7 @@ pub fn compile_command(
         // their maps' audio packages. Today the worst package is 54945 of
         // 63831 B of ARAM; adding a battle song to twenty-five maps requires
         // room in those packages: see
-        // optimizations/the-sample-bank.md in the book.
+        // optimizations/lossless/audio/the-sample-bank.md in the book.
         //
         // `ChangeHeroTitle` (10620): an actor's "title", which in RM2k is the
         // text the status screen shows under the name. Eight occurrences in
