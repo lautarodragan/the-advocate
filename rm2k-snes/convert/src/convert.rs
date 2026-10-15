@@ -523,32 +523,27 @@ pub fn run(options: Options) -> Result<()> {
             );
         }
         m.pages = pages;
-        // And which maps outside the ROM the ones that don't compile point
-        // to: a `Teleport` to a map that didn't make it cuts the whole page,
-        // and it is the one reason fixed from outside.
+        // And the teleports to a map that didn't make it into the ROM: each is
+        // compiled as a message box saying so (see `TELEPORT` in the events'
+        // compile.rs), so the hole shows when played, and here.
         let mut outside_of = BTreeSet::new();
         let mut how_many = 0;
         for page in &m.pages {
-            if page.has_code || !triggers.contains(&page.trigger) || page.test {
+            if !page.has_code || !triggers.contains(&page.trigger) || page.test {
                 continue;
             }
             let event = &m.map.events[page.event as usize];
-            let missing: BTreeSet<i32> = event.pages[page.page as usize]
-                .commands
-                .iter()
-                .filter(|c| c.code == TELEPORT && !c.parameters.is_empty() && !table_index.contains_key(&c.parameters[0]))
-                .map(|c| c.parameters[0])
-                .collect();
-            if !missing.is_empty() {
-                outside_of.extend(missing);
-                how_many += 1;
+            for c in &event.pages[page.page as usize].commands {
+                if c.code == TELEPORT && !c.parameters.is_empty() && !table_index.contains_key(&c.parameters[0]) {
+                    outside_of.insert(c.parameters[0]);
+                    how_many += 1;
+                }
             }
         }
         if !outside_of.is_empty() {
             println!(
-                "  map {}: {how_many} of those {} because of a teleport to a map that didn't make it into the ROM: {}",
+                "  map {}: WARNING, {how_many} teleport(s) to a map that didn't make it into the ROM, each a message box instead: {}",
                 m.id,
-                if how_many == 1 { "doesn't compile" } else { "don't compile" },
                 join(&outside_of, ", ")
             );
         }

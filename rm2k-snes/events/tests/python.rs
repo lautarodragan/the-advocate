@@ -80,6 +80,13 @@
 //! back, the answer's `maps` was the old one. And `party_common_events` left
 //! both answers: which ones only look at the equipment is
 //! `commons::pure`, in `parallel_commons`.
+//!
+//! On 2026-10-15 the hashes of the compilation's `maps` and `messages` and
+//! of the scan's `maps` moved, on purpose: a `Teleport` to a map the
+//! cartridge does not carry —the one "out of the cartridge"— compiles to a
+//! message box saying so, and the page goes on, where the Python left the
+//! page out. With the arm answering `cannot()` again, the answer was the
+//! old one.
 
 use rm2k_snes_events::{compile, compile_without_pairs, scan, Game, Request};
 use serde_json::Value;
