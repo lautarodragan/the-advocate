@@ -11,6 +11,14 @@ is RPG Maker 2000's own six-pixel font, the one the game's `font_id` picks.
 |--------------------|------|------------|
 | `low-variable.png` | 8    | Variable width, for the console's 256 pixels: each glyph cut to its ink plus one pixel of air, and of two equal inner columns only one is kept —the "o" and the "n" go from 5 to 4—, which is what Final Fantasy VI and Chrono Trigger do. The digits and the slash by hand, 4 of ink, all 5 of advance. Derived once from RM2k's Mincho by rules, on 2026-09-30: a starting point, not a design. |
 
+**Where the font comes from, and its license.** `low-variable.png` descends
+from EasyRPG's `rmg2000` font ("basic halfwidth 6x12 font compatible with Don
+Miguel's RMG2000", designed by Zikmok (rohkea) for the EasyRPG project in
+2017, partially based on Shinonome), which is in the public domain, or CC0
+where that is not possible; the sheet this one was cut from matches it glyph
+for glyph. No attribution is required, and we give it anyway. The research
+is in the task `the-console-fonts-origin-and-license` of the-advocate-work.
+
 ## The shape of a sheet
 
 Sixteen cells per row, six rows, with a one-pixel grid line between cells
