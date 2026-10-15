@@ -6,7 +6,7 @@ use crate::compile::{compile_page, instructions, Ctx, Indices, ROUTE_HERO, ROUTE
 use crate::losses::Origin;
 use crate::fail::{Bad, Result, Step, Stop};
 use crate::game::{Command, Map, Page, CONDITION_OPERATOR};
-use rm2k_snes_bytecode::events::{OP_DONE, OP_ROUTE};
+use rm2k_snes_bytecode::events::{CALL_LEVELS, OP_DONE, OP_ROUTE};
 use crate::route;
 use serde_json::{json, Value};
 use std::cell::RefCell;
@@ -49,10 +49,10 @@ struct Shared {
     /// RM2k's event id to its index in the ROM's table. **They are not the
     /// same**: many maps have gaps in the numbering.
     indices: HashMap<i32, usize>,
-    /// Each event's pages' commands, for `CallEvent`: calling a map event
-    /// compiles its page in place. The pages go and not their commands
-    /// because the number the call brings is the page's, and in RM2k it
-    /// starts at one.
+    /// Each event's pages' commands, for `CallEvent` where it still pastes
+    /// —a parallel page's, after a jump to another map—. The pages go and
+    /// not their commands because the number the call brings is the page's,
+    /// and in RM2k it starts at one.
     pages: HashMap<i32, Vec<Vec<Command>>>,
     /// Which graphic each one is drawn with on its first page: two with the
     /// same share a palette on the console, and flash together. On the
@@ -106,6 +106,54 @@ pub struct MapEvents {
     /// [`MapEvents::for_event`] clears it: a called map event's page is its
     /// own again.
     pub in_common: bool,
+    /// Whether the frame runs on the interpreter that owns the call stack,
+    /// the foreground's. A parallel page's does not —the ROM has one stack,
+    /// and a parallel that waited inside a call would hold it across frames
+    /// while the foreground runs—, so it **pastes** what it calls, as every
+    /// page did until 2026-10-15: see [`MapEvents::pasting`] and
+    /// `compile_call`.
+    pub stack: bool,
+    /// Each page's index in the ROM's page table, by `(event id, page
+    /// number from 1)`: what `OP_CALL_PAGE` carries. It is the position the
+    /// page gets in [`map_pages`]'s list, which skips the events left out
+    /// whole —see [`left_out`]—, so [`map_pages`] rebuilds it before
+    /// compiling with [`MapEvents::without`]; as built here no event is left
+    /// out, which is right for every map a test builds and off by the
+    /// left-out events for the scan's single pages and the culprits, whose
+    /// bytes nobody runs.
+    pub table: Rc<HashMap<(i32, i32), u16>>,
+    /// The calls to a page of this map that were compiled as calls, with
+    /// where each was made: after every page is compiled, the ones whose
+    /// callee has no code are noted as skipped, which is what the console
+    /// does with them. See [`map_pages`].
+    pub page_calls: Rc<RefCell<Vec<PageCall>>>,
+}
+
+/// A `CallEvent` to a page of the map, compiled as `OP_CALL_PAGE`: the
+/// frames the compiler was in, with the call's command, and the callee.
+#[derive(Debug, Clone)]
+pub struct PageCall {
+    pub path: Vec<(Origin, Option<usize>)>,
+    pub event: i32,
+    pub page: i32,
+}
+
+/// Each page's index in the ROM's page table, by `(event id, page number
+/// from 1)`, with the events in `left_out` having none: the position
+/// [`map_pages`] gives it.
+fn page_table(map: &Map, left_out: &HashSet<i32>) -> HashMap<(i32, i32), u16> {
+    let mut table = HashMap::new();
+    let mut index: u16 = 0;
+    for event in &map.events {
+        if left_out.contains(&event.id) {
+            continue;
+        }
+        for k in 1..=event.pages.len() as i32 {
+            table.insert((event.id, k), index);
+            index = index.saturating_add(1);
+        }
+    }
+    table
 }
 
 impl MapEvents {
@@ -121,6 +169,7 @@ impl MapEvents {
             .iter()
             .map(|e| (e.id, e.pages.iter().map(|p| p.commands.clone()).collect()))
             .collect();
+        let table = Rc::new(page_table(map, &HashSet::new()));
         let graphic = map
             .events
             .iter()
@@ -148,7 +197,47 @@ impl MapEvents {
             substitutions,
             jumped: false,
             in_common: false,
+            stack: true,
+            table,
+            page_calls: Rc::new(RefCell::new(Vec::new())),
         }
+    }
+
+    /// The same, with the page table as the ROM gets it: without the events
+    /// `left_out` names. See [`MapEvents::table`].
+    pub fn without(&self, map: &Map, left_out: &HashSet<i32>) -> MapEvents {
+        MapEvents {
+            table: Rc::new(page_table(map, left_out)),
+            ..self.clone()
+        }
+    }
+
+    /// [`MapEvents::without`] the events [`map_pages`] leaves out whole, as
+    /// it decides them: for the pages compiled apart from it that run on
+    /// the map —a test page, the scan's single pages, the culprits'—.
+    pub fn numbered(&self, map: &Map, indices: &Indices) -> MapEvents {
+        let left_out = map
+            .events
+            .iter()
+            .filter(|e| left_out_why(indices, e).is_some())
+            .map(|e| e.id)
+            .collect();
+        self.without(map, &left_out)
+    }
+
+    /// The same, for a page that runs on a parallel interpreter: it pastes
+    /// what it calls. See [`MapEvents::stack`].
+    pub fn pasting(&self) -> MapEvents {
+        MapEvents {
+            stack: false,
+            ..self.clone()
+        }
+    }
+
+    /// Where page `page` —from 1— of event `event` is in the ROM's page
+    /// table, if the event is in it.
+    pub fn page_slot(&self, event: i32, page: i32) -> Option<u16> {
+        self.table.get(&(event, page)).copied()
     }
 
     /// Whether this event draws with the same graphic as another one.
@@ -344,51 +433,24 @@ pub fn map_pages(ctx: &mut Ctx, map: &Map, map_events: &MapEvents) -> Result<Vec
         ctx.losses.lose(None, "event-left-out", why);
         ctx.losses.leave();
     };
+    // Which events are left out whole, first: the page table skips them, so
+    // every page's index in it —what a call to it carries— is known only
+    // once they are.
+    let mut skipped: HashSet<i32> = HashSet::new();
+    for event in &map.events {
+        if let Some((why, warn)) = left_out_why(ctx.indices, event) {
+            if warn {
+                eprintln!("  map {}: WARNING, event {} is left out: {why}", map.id, event.id);
+            }
+            left_out(ctx, event, format!("the event is left out: {why}"));
+            skipped.insert(event.id);
+        }
+    }
+    let map_events = map_events.without(map, &skipped);
+    // Which pages compiled, for the chains of calls below.
+    let mut compiled: HashSet<(i32, i32)> = HashSet::new();
     for (number, event) in map.events.iter().enumerate() {
-        if event
-            .pages
-            .iter()
-            .any(|p| p.condition.timer.is_some() && p.condition.variable.is_some())
-        {
-            left_out(ctx, event, "the event is left out: a page's condition asks for the timer and a variable".into());
-            continue;
-        }
-        // An event with a page whose condition names a variable that has no
-        // slot (the game has more than fit in far RAM) is left out whole:
-        // the table is indexed by the event's pages, so dropping only that
-        // page would shift the others. It is the same as the timer case
-        // above, and it is said.
-        if let Some(v) = event
-            .pages
-            .iter()
-            .filter_map(|p| p.condition.variable)
-            .map(|(v, _)| v)
-            .find(|&v| variable_slot(ctx.indices, v).is_err())
-        {
-            eprintln!(
-                "  map {}: WARNING, event {} is left out: a page condition names variable {v}, which has no slot in far RAM",
-                map.id, event.id
-            );
-            left_out(ctx, event, format!("the event is left out: a page's condition names variable {v}, which has no slot in far RAM"));
-            continue;
-        }
-        // And the same with a switch past the ROM's table, which the console
-        // would test in whatever RAM follows it: until 2026-10-15 the table
-        // was 1024 switches for every game, and Vampires Dawn's map 433 picked
-        // its figures' dead page that way. The table holds every switch the
-        // game names —see `indices::switch_top`—, so this guards a mistake.
-        if let Some(s) = event
-            .pages
-            .iter()
-            .flat_map(|p| [p.condition.switch_a, p.condition.switch_b])
-            .flatten()
-            .find(|&s| !ctx.indices.holds_switch(s as i64))
-        {
-            eprintln!(
-                "  map {}: WARNING, event {} is left out: a page condition names switch {s}, past the ROM's table",
-                map.id, event.id
-            );
-            left_out(ctx, event, format!("the event is left out: a page's condition names switch {s}, past the ROM's table"));
+        if skipped.contains(&event.id) {
             continue;
         }
         for (page_number, page) in event.pages.iter().enumerate() {
@@ -416,20 +478,17 @@ pub fn map_pages(ctx: &mut Ctx, map: &Map, map_events: &MapEvents) -> Result<Vec
                 && matches!(page.trigger, TRIGGER_AUTOSTART | TRIGGER_PARALLEL);
             if triggerable(page.trigger) && !empty {
                 // A parallel page pastes what it calls: the ROM has one call
-                // stack, the foreground's. See `shared` in `Ctx`.
+                // stack, the foreground's. See `shared` in `Ctx` and
+                // `MapEvents::stack`.
                 let shared = ctx.shared;
+                let mut me = map_events.for_event(event.id);
                 if page.trigger == TRIGGER_PARALLEL {
                     ctx.shared = None;
+                    me = me.pasting();
                 }
-                let compiled = compile_page(
-                    ctx,
-                    &page.commands,
-                    Some(map_events.for_event(event.id)),
-                    0,
-                    0,
-                );
+                let out = compile_page(ctx, &page.commands, Some(me), 0, 0);
                 ctx.shared = shared;
-                code = compiled?;
+                code = out?;
                 // **And the same with one that compiles to nothing**: all it
                 // had were calls that got skipped —see `compile_call`—. In
                 // RM2k it is not empty, and what it calls is what turns it
@@ -445,6 +504,9 @@ pub fn map_pages(ctx: &mut Ctx, map: &Map, map_events: &MapEvents) -> Result<Vec
                 {
                     code = None;
                 }
+            }
+            if code.is_some() {
+                compiled.insert((event.id, page_number as i32 + 1));
             }
             // **The timer travels in the variable's place**, with a slot no
             // variable has: the page record has no room for another condition
@@ -481,7 +543,143 @@ pub fn map_pages(ctx: &mut Ctx, map: &Map, map_events: &MapEvents) -> Result<Vec
             ctx.losses.leave();
         }
     }
+    // The calls to a page that has no code: the console skips them —the
+    // table's pointer is zero—, which is what a call to a body that does
+    // not compile has always done; said here, where the call is.
+    for call in map_events.page_calls.borrow().iter() {
+        if compiled.contains(&(call.event, call.page)) {
+            continue;
+        }
+        ctx.losses.lose_on(
+            call.path.clone(),
+            Some(CALL_EVENT),
+            "call-skipped",
+            format!("event {}'s page {} does not compile here, and the call is skipped", call.event, call.page),
+        );
+    }
+    // And the chains of calls deeper than the console's stack: a call past
+    // it is skipped, and nothing in the console says so. Counted from each
+    // page that runs in the foreground, through the pages it calls and the
+    // shared common events, as a bound: a page that may call is counted
+    // whether it ends up calling or pasting.
+    for event in &map.events {
+        for (k, page) in event.pages.iter().enumerate() {
+            let number = k as i32 + 1;
+            if page.trigger == TRIGGER_PARALLEL || !compiled.contains(&(event.id, number)) {
+                continue;
+            }
+            let depth = call_depth(ctx, &map_events, &compiled, Node::Page(event.id, number));
+            let text = match depth {
+                // The root is a frame too, and not on the stack: a chain of
+                // `d` frames pushes `d - 1`.
+                Some(d) if d <= CALL_LEVELS + 1 => continue,
+                Some(d) => format!(
+                    "a chain of {} calls starts here, and the console's stack holds {CALL_LEVELS}: the ones past it are skipped",
+                    d - 1
+                ),
+                None => format!(
+                    "the calls from here loop, and the console's stack holds {CALL_LEVELS}: the ones past it are skipped"
+                ),
+            };
+            ctx.losses.enter(place(event, Some(page.id)));
+            ctx.losses.lose(Some(CALL_EVENT), "call-stack-exceeded", text);
+            ctx.losses.leave();
+        }
+    }
     Ok(out)
+}
+
+/// Why an event is left out whole, if it is, and whether the converter's
+/// log warns about it: a condition the ROM cannot evaluate, or one it would
+/// read outside its tables. The whole event and not the page, because the
+/// table is indexed by the event's pages, and dropping one would shift the
+/// others.
+fn left_out_why(indices: &Indices, event: &crate::game::Event) -> Option<(String, bool)> {
+    if event
+        .pages
+        .iter()
+        .any(|p| p.condition.timer.is_some() && p.condition.variable.is_some())
+    {
+        return Some(("a page's condition asks for the timer and a variable".into(), false));
+    }
+    // A page whose condition names a variable that has no slot (the game
+    // has more than fit in far RAM).
+    if let Some(v) = event
+        .pages
+        .iter()
+        .filter_map(|p| p.condition.variable)
+        .map(|(v, _)| v)
+        .find(|&v| variable_slot(indices, v).is_err())
+    {
+        return Some((format!("a page's condition names variable {v}, which has no slot in far RAM"), true));
+    }
+    // And the same with a switch past the ROM's table, which the console
+    // would test in whatever RAM follows it: until 2026-10-15 the table
+    // was 1024 switches for every game, and Vampires Dawn's map 433 picked
+    // its figures' dead page that way. The table holds every switch the
+    // game names —see `indices::switch_top`—, so this guards a mistake.
+    if let Some(s) = event
+        .pages
+        .iter()
+        .flat_map(|p| [p.condition.switch_a, p.condition.switch_b])
+        .flatten()
+        .find(|&s| !indices.holds_switch(s as i64))
+    {
+        return Some((format!("a page's condition names switch {s}, past the ROM's table"), true));
+    }
+    None
+}
+
+/// A frame in a chain of calls: a page of the map, or a shared common
+/// event's body.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum Node {
+    Page(i32, i32),
+    Common(i32),
+}
+
+/// How many frames a chain of calls from `root` can be waiting at once,
+/// counting `root` as the first: `OP_CALL_PAGE` to the pages of the map
+/// that compiled, and `OP_CALL` to the shared common events the cartridge
+/// has, through both. None if the calls loop. A pasted call counts as a
+/// frame too: it is a bound, and the console's stack is what it is measured
+/// against.
+fn call_depth(ctx: &Ctx, me: &MapEvents, compiled: &HashSet<(i32, i32)>, root: Node) -> Option<usize> {
+    fn walk(
+        ctx: &Ctx,
+        me: &MapEvents,
+        compiled: &HashSet<(i32, i32)>,
+        node: Node,
+        open: &mut Vec<Node>,
+        memo: &mut HashMap<Node, usize>,
+    ) -> Option<usize> {
+        if let Some(&d) = memo.get(&node) {
+            return Some(d);
+        }
+        if open.contains(&node) {
+            return None;
+        }
+        open.push(node);
+        let empty = Vec::new();
+        let commands: &[Command] = match node {
+            Node::Page(e, p) => me.pages(e).and_then(|pages| pages.get((p - 1) as usize)).unwrap_or(&empty),
+            Node::Common(n) => ctx.game.common_events.get(&n).map_or(&empty[..], |c| &c.commands),
+        };
+        let mut deepest = 0;
+        for c in commands.iter().filter(|c| c.code == CALL_EVENT && c.parameters.len() >= 2) {
+            let p = &c.parameters;
+            let callee = match (p[0], node) {
+                (0, _) if ctx.shared.is_some_and(|s| s.contains_key(&p[1])) => Node::Common(p[1]),
+                (1, Node::Page(..)) if p.len() >= 3 && compiled.contains(&(p[1], p[2])) => Node::Page(p[1], p[2]),
+                _ => continue,
+            };
+            deepest = deepest.max(walk(ctx, me, compiled, callee, open, memo)?);
+        }
+        open.pop();
+        memo.insert(node, deepest + 1);
+        Some(deepest + 1)
+    }
+    walk(ctx, me, compiled, root, &mut Vec::new(), &mut HashMap::new())
 }
 
 /// What a map's page loses whatever its commands: the fields nothing

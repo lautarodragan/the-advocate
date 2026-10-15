@@ -1,1 +1,12 @@
-[]
+[
+  {
+    "id": 1,
+    "name": "Deep Wait",
+    "trigger": "call",
+    "event_commands": [
+      {"code": "ControlSwitches", "parameters": [0, 1240, 1240, 0]},
+      {"code": "Wait", "parameters": [10]},
+      {"code": "ControlSwitches", "parameters": [0, 1241, 1241, 0]}
+    ]
+  }
+]

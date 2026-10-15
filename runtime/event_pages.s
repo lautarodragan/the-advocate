@@ -901,8 +901,9 @@ events_handle_jump = events_tick::was_jump
 ; whole page is a `MoveEvent`.
 ;
 ; They run with the **same** globals as the foreground —`code_ptr`, `ev_cur`,
-; `ev_waiting`, `ev_active`, `ev_running`— so that context is saved on
-; the stack and given back at the end. Twelve bytes, and how much stack is
+; `ev_waiting`, `ev_active`, `ev_running`, and the call stack's depth— so
+; that context is saved on the stack and given back at the end. Thirteen
+; bytes, and how much stack is
 ; left below is measured by `abl/tests/rpgmaker/test_stack.py` in the-advocate-ports: this path is
 ; one of the ones it runs.
 ;
@@ -1003,6 +1004,15 @@ has:
     pha
     lda ev_active
     pha
+    ; And the call stack's depth, which is the foreground's: at zero while
+    ; the parallels run, so that their `OP_DONE` ends their page and does
+    ; not return into a frame of the foreground's. A parallel pastes what it
+    ; calls, so none of them pushes, and zero holds for all of them. See
+    ; common_events.s.
+    lda f:call_depth
+    pha
+    lda #0
+    sta f:call_depth
 
     stz pair_i
 loop:
@@ -1060,6 +1070,8 @@ all_ready:
     lda #$FF
     sta pair_ev
 
+    pla
+    sta f:call_depth
     pla
     sta ev_active
     pla
@@ -2398,7 +2410,7 @@ with_page:
     ; there that did not return —a Game Over in a common event— and the
     ; WRAM's garbage at boot are nobody's. See common_events.s.
     lda #0
-    sta f:CALL_DEPTH
+    sta f:call_depth
     lda #1
     sta ev_active
     rts

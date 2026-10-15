@@ -832,7 +832,7 @@ route_done:
     sta code_ptr
     sep #$20
 .a8
-    lda f:CALL_DEPTH
+    lda f:call_depth
     beq frames_done
     rep #$20
 .a16
@@ -844,11 +844,11 @@ route_done:
 frame:
     rep #$20
 .a16
-    lda f:CALL_STACK, x
+    lda f:call_stack, x
     sta temp
     sep #$20
 .a8
-    lda f:CALL_STACK + 2, x
+    lda f:call_stack + 2, x
     sta temp + 2
     phx
     jsr carry_one
@@ -856,7 +856,7 @@ frame:
     rep #$20
 .a16
     lda temp
-    sta f:CALL_STACK, x
+    sta f:call_stack, x
     txa
     clc
     adc #CALL_ENTRY

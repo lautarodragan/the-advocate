@@ -259,7 +259,10 @@ bytecode! {
     OP_CALL = 0x3F (body: byte);
 
     /// The end of a shared body: back to whoever called it or, if nobody did
-    /// —an automatic common event—, the same as `OP_DONE`.
+    /// —an automatic common event—, the end of the page. Since 2026-10-15
+    /// `OP_DONE` does the same, because a called page ends in it: the two are
+    /// one handler in the runtime, and this one stays for the bodies that
+    /// end in it.
     OP_RETURN = 0x40 ();
 
     /// `MessageOptions`: how and where the message window is drawn from now
@@ -367,7 +370,31 @@ bytecode! {
     /// of the inventory neither. See `item_by_variable` in the runtime's
     /// `items_by_variable.s`.
     OP_ITEM_VAR = 0x4F (how: byte, item: word, amount: word);
+
+    /// `CallEvent` to a page of a map event: the page whose index in the
+    /// loaded map's page table is `page` runs —its own bytes, the ones the
+    /// table points at for the page itself—, and when its `OP_DONE` comes the
+    /// caller goes on after this. The interpreter keeps where it was on the
+    /// same stack as `OP_CALL`'s, `CALL_LEVELS` deep; a call with the stack
+    /// full, or to a page with no code, is skipped. Until 2026-10-15 the
+    /// called page was pasted into the caller, and Frozen World's battle
+    /// screen, a chain of such calls, came to four megabytes of bytecode.
+    OP_CALL_PAGE = 0x50 (page: word);
+
+    /// Held for opcodes other branches are adding: they end the page until
+    /// they land.
+    OP_RESERVED_51 = 0x51 ();
+    OP_RESERVED_52 = 0x52 ();
+    OP_RESERVED_53 = 0x53 ();
 }
+
+/// How deep the interpreter's call stack is: how many `OP_CALL` and
+/// `OP_CALL_PAGE` can be waiting for an `OP_DONE` at once. A call past it is
+/// skipped. It is the runtime's `CALL_LEVELS` in `common_events.s`, where
+/// the stack is declared and the number is explained, and a test in
+/// `rm2k-snes-convert` keeps the two the same; the compiler reports, in the
+/// degradations, every chain of calls it can see is deeper.
+pub const CALL_LEVELS: usize = 8;
 
 // `run_code` jumps through a table indexed by the opcode.
 const _: () = BYTECODE.check_dispatch();

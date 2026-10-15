@@ -55,10 +55,13 @@ pub const VAR_SLOT_MAX: usize = 0xFF;
 /// byte. The two of the "1 year earlier" page —see `compile_picture`— last
 /// 210 and 120.
 const PICTURE_FRAMES_MAX: i64 = 255;
-/// How deep a `CallEvent` nests. It is not an abstract precaution: a common
-/// event can call itself —the body in place would be infinite— and two can
-/// call each other. In the game this was measured on the longest chain that
-/// compiles is one.
+/// How deep a `CallEvent` nests **when pasted** —a parallel page's calls,
+/// and the rest `compile_call` cannot make a call—. It is not an abstract
+/// precaution: a common event can call itself —the body in place would be
+/// infinite— and two can call each other, as Vampires Dawn's 25 and 26 do.
+/// A call compiled as a call does not count against it: its depth is the
+/// console's stack, `CALL_LEVELS`, and `map_pages` reports the chains that
+/// go past it.
 const CALL_MAX: usize = 4;
 
 // ControlSwitches: the first parameter says where the ids come from and the
@@ -1669,19 +1672,22 @@ fn note_constant(cmd: &Command, constants: &mut HashMap<i64, i64>) {
 
 // --- the commands that are built from several opcodes ----------------------------
 
-/// `CallEvent`, compiled **in place**: the called event's body goes in the
-/// place of the call.
+/// `CallEvent`: a call into a body the cartridge has once, or the called
+/// body pasted in the place of the call.
 ///
-/// In RM2k this is `Push<ExecutionType::Call>`, that is a stack of
-/// interpreters. Here none is needed, and that is the decision: the called
-/// one runs whole before the caller continues, so pasting its bytecode in
-/// the middle gives exactly the same. What a real stack would cost —a cursor
-/// and a page per level in bank 0's RAM, which is full— buys no observable
-/// difference: **no call in the game is recursive**, and the only price of
-/// pasting is the size, measured below.
-///
-/// And it comes without touching the ROM: it runs the same bytecode as
-/// always.
+/// In RM2k this is `Push<ExecutionType::Call>`, a stack of frames. The
+/// console has one, the foreground's —`call_push` in the runtime's
+/// common_events.s—, and a call is a call when the frame has it and the
+/// callee is somewhere the console can point at: a common event's shared
+/// body (`OP_CALL`, when the body compiled with the map is the cartridge's:
+/// see `shares`) or a page of this map (`OP_CALL_PAGE`, by its index in the
+/// page table). The rest **pastes** the callee's body in the place of the
+/// call: a parallel page's calls, a page called after a jump to another
+/// map, a common event the map changes. Pasting gives the same result
+/// because the callee runs whole before the caller goes on, and it was the
+/// only way until 2026-10-02 for common events and until 2026-10-15 for
+/// pages; what it costs is size, times the number of callers, which on
+/// Frozen World's battle screen was the whole map.
 ///
 /// **If the called one does not compile, the call is skipped**, which is
 /// what the port has always done with this command. It is declared debt and
@@ -1757,6 +1763,30 @@ fn compile_call(
         };
         if !(1 <= p[2] && p[2] as usize <= pages.len()) {
             return Ok(vec![]);
+        }
+        // **As a call**, `OP_CALL_PAGE` with the page's index in the map's
+        // table, since 2026-10-15: the page is in the map already, compiled
+        // as itself, and the console runs it from where the table points
+        // and comes back at its `OP_DONE`. That is RM2k's own frame, and it
+        // is what fits Frozen World's battle screen, whose pages call the
+        // same pages dozens of times: pasted, four megabytes. Pasted still
+        // from a parallel page —the stack is the foreground's; see
+        // `MapEvents::stack`— and after a jump to another map, where the
+        // table the console would index is the other map's. A page the map
+        // leaves out whole has no index, and is pasted as before. Whether
+        // the callee compiles is not known here: the console skips a call
+        // to a page with no code, and `map_pages` notes it once it knows.
+        if me.stack && !me.jumped {
+            if let Some(index) = me.page_slot(p[1], p[2]) {
+                me.page_calls.borrow_mut().push(crate::pages::PageCall {
+                    path: ctx.losses.path(),
+                    event: p[1],
+                    page: p[2],
+                });
+                let mut out = vec![OP_CALL_PAGE];
+                out.extend(index.to_le_bytes());
+                return Ok(out);
+            }
         }
         (
             Some(pages[p[2] as usize - 1].clone()),
@@ -8288,6 +8318,194 @@ mod tests {
         // Without the per-map sample, 3 is the same everywhere too.
         let code = calling(&game, &SoundSettings::default(), &shared);
         assert_eq!(code, [OP_CALL, 0, OP_CALL, 1, OP_DONE]);
+    }
+
+    /// A page of a map's event, with `trigger`, for the maps below.
+    fn page_with(trigger: i32, commands: Vec<Command>) -> crate::game::Page {
+        crate::game::Page {
+            trigger,
+            layer: 1,
+            move_type: 0,
+            move_frequency: 3,
+            move_speed: 3,
+            animation_type: 0,
+            character_name: String::new(),
+            character_index: 0,
+            character_pattern: 1,
+            commands,
+            route: Vec::new(),
+            route_repeat: false,
+            route_skippable: false,
+            condition: crate::game::Condition::default(),
+            id: 1,
+            translucent: false,
+            overlap_forbidden: false,
+        }
+    }
+
+    /// A map whose events are `events`: each one's id and its pages.
+    fn map_of(id: i32, events: Vec<(i32, Vec<crate::game::Page>)>) -> crate::game::Map {
+        crate::game::Map {
+            id,
+            events: events
+                .into_iter()
+                .map(|(id, pages)| crate::game::Event { id, x: 0, y: 0, pages, starting: None })
+                .collect(),
+        }
+    }
+
+    /// `CallEvent` to page `page` of map event `event`.
+    fn call_page(event: i32, page: i32) -> Command {
+        cmd(CALL_EVENT, &[1, event, page], "")
+    }
+
+    #[test]
+    fn a_call_to_a_map_event_s_page_is_a_call_by_its_index_in_the_table() {
+        // Event 1 has two pages and event 2 one: the table's indices are 0,
+        // 1 and 2. Called from a page that runs in the foreground, each is
+        // `OP_CALL_PAGE` with its index; from a parallel page, which has no
+        // stack, the callee is pasted; and after a jump to another map too,
+        // since the table the console would index is the other map's.
+        let map = map_of(
+            5,
+            vec![
+                (1, vec![page_with(0, vec![]), page_with(0, vec![cmd(CONTROL_SWITCHES, &[0, 7, 7, 0], "")])]),
+                (2, vec![page_with(0, vec![cmd(CONTROL_SWITCHES, &[0, 9, 9, 0], "")])]),
+            ],
+        );
+        let game = Game::default();
+        let indices = Indices::default();
+        let me = MapEvents::new(&map, None).for_event(1);
+        let compile = |me: MapEvents, commands: &[Command]| {
+            use crate::messages::{Messages, Window};
+            let (sound, mut songs) = (SoundSettings::default(), Songs::default());
+            songs.current = Some(Package::Map(0));
+            let mut messages = Messages::new(1, Window::columns(39, 4));
+            let mut ctx = Ctx {
+                game: &game,
+                indices: &indices,
+                sound: &sound,
+                map_index: &|m| (m == 7).then_some(1),
+                messages: Some(&mut messages),
+                songs: Some(&mut songs),
+                graphics: None,
+                pictures: None,
+                troops: None,
+                commons: None,
+                shared: None,
+                losses: Losses::default(),
+            };
+            compile_page(&mut ctx, commands, Some(me), 0, 0).unwrap().unwrap()
+        };
+        assert_eq!(
+            compile(me.clone(), &[call_page(2, 1), call_page(1, 2)]),
+            [OP_CALL_PAGE, 2, 0, OP_CALL_PAGE, 1, 0, OP_DONE]
+        );
+        let pasted = [OP_SWITCH, 9, 0, 1, OP_DONE];
+        assert_eq!(compile(me.pasting(), &[call_page(2, 1)]), pasted);
+        assert_eq!(
+            compile(me.clone(), &[cmd(TELEPORT, &[7, 1, 2], ""), call_page(2, 1)]),
+            [OP_TELEPORT, 1, 0, 1, 0, 2, 0, OP_SWITCH, 9, 0, 1, OP_DONE]
+        );
+        // A page the map does not have, or an event left out of the table:
+        // as before, nothing and pasted.
+        assert_eq!(compile(me.clone(), &[call_page(2, 2)]), [OP_DONE]);
+        let left_out = me.without(&map, &std::collections::HashSet::from([2]));
+        assert_eq!(compile(left_out, &[call_page(2, 1)]), pasted);
+        // The calls made are noted, for `map_pages` to say which were to a
+        // page with no code: the two of the first compilation, and none of
+        // the pasted ones.
+        assert_eq!(me.page_calls.borrow().len(), 2);
+    }
+
+    /// The pages of `map` as `map_pages` emits them, and what it noted lost.
+    fn pages_and_losses(game: &Game, map: &crate::game::Map) -> (Vec<serde_json::Value>, Vec<crate::losses::Loss>) {
+        use crate::messages::{Messages, Window};
+        let (indices, sound, mut songs) = (Indices::default(), SoundSettings::default(), Songs::default());
+        songs.current = Some(Package::Map(0));
+        let mut messages = Messages::new(1, Window::columns(39, 4));
+        let shared = BTreeMap::from([(2, 0)]);
+        let mut ctx = Ctx {
+            game,
+            indices: &indices,
+            sound: &sound,
+            map_index: &|_| Some(1),
+            messages: Some(&mut messages),
+            songs: Some(&mut songs),
+            graphics: None,
+            pictures: None,
+            troops: None,
+            commons: None,
+            shared: Some(&shared),
+            losses: Losses::default(),
+        };
+        let me = MapEvents::new(map, None);
+        let pages = crate::pages::map_pages(&mut ctx, map, &me).unwrap();
+        (pages, ctx.losses.take())
+    }
+
+    #[test]
+    fn a_call_to_a_page_with_no_code_is_noted_as_skipped_where_the_call_is() {
+        // Event 2's page leaves a branch open and does not compile: the
+        // console finds a zero pointer in the table and skips the call, and
+        // the loss is on event 1's page, at the call.
+        let map = map_of(
+            5,
+            vec![
+                (1, vec![page_with(0, vec![cmd(CONTROL_SWITCHES, &[0, 7, 7, 0], ""), call_page(2, 1)])]),
+                (2, vec![page_with(0, vec![cmd(COND_BRANCH, &[0, 1, 0, 0, 0, 0], "")])]),
+            ],
+        );
+        let (pages, losses) = pages_and_losses(&Game::default(), &map);
+        assert_eq!(pages[0]["code"], json!(crate::pages::hex(&[OP_SWITCH, 7, 0, 1, OP_CALL_PAGE, 1, 0, OP_DONE])));
+        assert!(pages[1]["code"].is_null());
+        let skipped: Vec<serde_json::Value> = losses.iter().filter(|l| l.kind == "call-skipped").map(|l| l.to_json()).collect();
+        assert_eq!(skipped.len(), 1, "{losses:?}");
+        assert_eq!((&skipped[0]["event"], &skipped[0]["command"]), (&json!(1), &json!(1)));
+        assert_eq!(skipped[0]["text"], "event 2's page 1 does not compile here, and the call is skipped");
+        assert!(skipped[0].get("via").is_none());
+    }
+
+    #[test]
+    fn a_chain_of_calls_deeper_than_the_stack_is_a_degradation_of_its_first_page() {
+        // Ten events each calling the common event in the plan and the next
+        // one: from event 1 the chain pushes ten frames —the last page's
+        // call to the common event is the tenth—, past `CALL_LEVELS`; from
+        // event 3, eight, which fit. And a loop apart —11 calls 12, which
+        // calls 11— has no depth at all, so both are noted. Every page
+        // compiles: the console is the one that skips the calls past the
+        // stack.
+        let mut game = Game::default();
+        game.common_events.insert(2, common(5, None, vec![cmd(CONTROL_SWITCHES, &[0, 7, 7, 0], "")]));
+        let mut events = Vec::new();
+        for e in 1..=10 {
+            let mut commands = vec![call(2)];
+            if e < 10 {
+                commands.push(call_page(e + 1, 1));
+            }
+            events.push((e, vec![page_with(0, commands)]));
+        }
+        events.push((11, vec![page_with(0, vec![call_page(12, 1)])]));
+        events.push((12, vec![page_with(0, vec![call_page(11, 1)])]));
+        let map = map_of(5, events);
+        let (pages, losses) = pages_and_losses(&game, &map);
+        assert!(pages.iter().all(|p| !p["code"].is_null()));
+        let deep: Vec<(i64, String)> = losses
+            .iter()
+            .filter(|l| l.kind == "call-stack-exceeded")
+            .map(|l| (l.to_json()["event"].as_i64().unwrap(), l.text.clone()))
+            .collect();
+        assert_eq!(deep.len(), 4, "{deep:?}");
+        assert_eq!(deep[0].0, 1);
+        assert_eq!(
+            deep[0].1,
+            format!("a chain of 10 calls starts here, and the console's stack holds {CALL_LEVELS}: the ones past it are skipped")
+        );
+        assert_eq!(deep[1].0, 2);
+        assert!(deep[1].1.starts_with("a chain of 9 calls"));
+        assert_eq!(deep[2].0, 11);
+        assert!(deep[2].1.starts_with("the calls from here loop"));
+        assert_eq!(deep[3].0, 12);
     }
 
     #[test]

@@ -41,6 +41,125 @@
           ]
         }
       ]
+    },
+    {
+      "id": 3,
+      "name": "Chain 1",
+      "x": 18,
+      "y": 1,
+      "pages": [
+        {
+          "id": 1,
+          "event_commands": [
+            {"code": "ControlSwitches", "parameters": [0, 1210, 1210, 0]},
+            {"code": "CallEvent", "parameters": [1, 4, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 1211, 1211, 0]}
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Chain 2",
+      "x": 18,
+      "y": 2,
+      "pages": [
+        {
+          "id": 1,
+          "event_commands": [
+            {"code": "ControlSwitches", "parameters": [0, 1220, 1220, 0]},
+            {"code": "CallEvent", "parameters": [1, 5, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 1221, 1221, 0]}
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Chain 3",
+      "x": 18,
+      "y": 3,
+      "pages": [
+        {
+          "id": 1,
+          "event_commands": [
+            {"code": "ControlSwitches", "parameters": [0, 1230, 1230, 0]},
+            {"code": "CallEvent", "parameters": [0, 1, 0]},
+            {"code": "CallEvent", "parameters": [1, 6, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 1231, 1231, 0]}
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Chain 4",
+      "x": 18,
+      "y": 4,
+      "pages": [
+        {
+          "id": 1,
+          "event_commands": [
+            {"code": "ControlSwitches", "parameters": [0, 1250, 1250, 0]},
+            {"code": "CallEvent", "parameters": [1, 7, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 1251, 1251, 0]}
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Chain 5",
+      "x": 18,
+      "y": 5,
+      "pages": [
+        {
+          "id": 1,
+          "event_commands": [
+            {"code": "ControlSwitches", "parameters": [0, 1260, 1260, 0]},
+            {"code": "CallEvent", "parameters": [1, 8, 1]},
+            {"code": "ControlSwitches", "parameters": [0, 1261, 1261, 0]}
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Chain 6",
+      "x": 18,
+      "y": 6,
+      "pages": [
+        {
+          "id": 1,
+          "event_commands": [
+            {"code": "ConditionalBranch", "parameters": [0, 1201, 0, 0, 0, 0]},
+            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 1271, 1271, 0]},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "ConditionalBranch", "parameters": [0, 1261, 0, 0, 0, 0]},
+            {"code": "ControlSwitches", "indent": 1, "parameters": [0, 1271, 1271, 0]},
+            {"code": "END", "indent": 1},
+            {"code": "EndBranch"},
+            {"code": "Wait", "parameters": [10]},
+            {"code": "ControlSwitches", "parameters": [0, 1270, 1270, 0]}
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Every Frame",
+      "x": 18,
+      "y": 7,
+      "pages": [
+        {
+          "id": 1,
+          "trigger": "parallel",
+          "event_commands": [
+            {"code": "ControlSwitches", "parameters": [0, 1280, 1280, 0]}
+          ]
+        }
+      ]
     }
   ]
 }

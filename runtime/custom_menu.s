@@ -150,9 +150,10 @@ CM_ROW_CMD  = CM_RAM + 32       ; the command of each row of the pause menu
 CM_CT       = CM_RAM + 40       ; `cm_cond`'s scratch, a word
 CM_CALLS    = CM_RAM + 48       ; the call stack, while a `before` runs
 .assert MENU_ROWS_MAX <= 8, error, "the pause menu's rows do not fit in CM_ROW_CMD"
-.assert CALL_LEVELS * CALL_ENTRY + 1 <= 16, error, "the call stack does not fit in CM_CALLS"
-.assert (CM_RAM & $FFFF) >= $3624 && CM_CALLS + 16 <= $7E3700, error, "the custom menus' state steps on its neighbours"
+; The depth and the stack, as one block —see common_events.s—: forty-one
+; bytes with eight levels, where there were sixteen with three.
 CM_CALL_BYTES = CALL_LEVELS * CALL_ENTRY + 1
+.assert (CM_RAM & $FFFF) >= $3624 && CM_CALLS + CM_CALL_BYTES <= $7E3700, error, "the custom menus' state steps on its neighbours"
 
 ; --- the pause menu's column ------------------------------------------------
 ;
@@ -1934,7 +1935,7 @@ has:
     sta f:CM_T4                 ; the body
     ldx #0
 save:
-    lda f:CALL_DEPTH, x
+    lda f:call_depth, x
     sta f:CM_CALLS, x
     inx
     cpx #CM_CALL_BYTES
@@ -1973,7 +1974,7 @@ save:
     lda f:common_body_bank, x
     sta code_ptr + 2
     lda #0
-    sta f:CALL_DEPTH
+    sta f:call_depth
     lda #1
     sta ev_active
     lda #$FF
@@ -2012,7 +2013,7 @@ ended:
     ldx #0
 restore:
     lda f:CM_CALLS, x
-    sta f:CALL_DEPTH, x
+    sta f:call_depth, x
     inx
     cpx #CM_CALL_BYTES
     bcc restore
