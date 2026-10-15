@@ -12,13 +12,19 @@
 ; in interpreter_conditions.s.
 
 ; `ControlVars`, one variable at a time: slot, operation, operand class, and
-; sixteen-bit a and b. See OP_VAR in events.py. Sixteen bits signed,
-; wrapping around.
+; sixteen-bit a and b. See OP_VAR in the event compiler. Sixteen bits signed:
+; adding and subtracting wrap around, and multiplying clamps —see
+; variable_arithmetic.s—.
 ;
 ; Class 6's `b` for the place on RM2k's screen, `character_screen`'s x, and
 ; its y is the next one. They are RM2k's numbers and not the console's, like
 ; CHARACTER_X and CHARACTER_Y: see CHARACTER_SCREEN_X in the event compiler.
 CHARACTER_SCREEN_X = 4
+; And the RM2k numbers of the third operation and of the item class: the
+; ones past VAR_SUBTRACT go to `var_arith`, and the item to
+; `var_item_count`.
+VAR_SUBTRACT = 2
+VAR_ITEM = 4
 .proc op_var
 .a8
 .i16
@@ -48,6 +54,13 @@ CHARACTER_SCREEN_X = 4
     cmp #VAR_ACTOR
     bne :+
     jsl f:actor_stat            ; in far RAM and outside bank 0: see level.s
+.a16
+    bra operand16
+.a8
+:
+    cmp #VAR_ITEM
+    bne :+
+    jsl f:var_item_count        ; outside bank 0: see variable_arithmetic.s
 .a16
     bra operand16
 .a8
@@ -102,7 +115,8 @@ timer_var:
     bra var_apply
 var_apply:
     ; `temp + 2` is the operand; depending on the operation, it is set as is
-    ; or added to or subtracted from what the variable had.
+    ; or added to or subtracted from what the variable had, or it multiplies
+    ; or divides it, which is done outside bank 0.
     lda temp + 1
     and #<~VAR_REFRESH
     beq var_sets
@@ -116,6 +130,8 @@ var_apply:
     and #<~VAR_REFRESH
     cmp #VAR_ADD
     beq var_sum
+    cmp #VAR_SUBTRACT + 1
+    bcs var_arithmetic
     rep #$20
 .a16
     pla
@@ -133,6 +149,13 @@ var_sum:
     adc temp + 2
     sta temp + 2
     sep #$20
+.a8
+    bra var_sets
+var_arithmetic:
+    rep #$20
+.a16
+    pla
+    jsl f:var_arith             ; see variable_arithmetic.s; returns with A8
 .a8
 var_sets:
     lda temp + 1                ; the operation, which carries the refresh bit
@@ -188,25 +211,10 @@ var_random:
     lda RDMPYL                  ; the remainder
     bra random_add
 random_wide:
-    ; A wider one, by shifting and subtracting: the remainder in A, the
-    ; dividend shifting out of `temp + 2`, n on the stack. The Book of Three's
-    ; chests draw 1000 to 2500. X is free: it reaches the handler clobbered.
-    pha                         ; 1,s: n; 3,s: a
-    lda #0
-    ldx #16
-random_bit:
-    asl temp + 2
-    rol a
-    bcs random_sub              ; seventeen bits: it is surely n or more
-    cmp 1,s
-    bcc random_next_bit
-random_sub:
-    sec
-    sbc 1,s
-random_next_bit:
-    dex
-    bne random_bit
-    plx                         ; n, dropped
+    ; A wider one, by shifting and subtracting, which `var_arith` shares: the
+    ; remainder comes back in A. The Book of Three's chests draw 1000 to
+    ; 2500. X is free: it reaches the handler clobbered.
+    jsl f:udiv16
     bra random_add
 random_whole:
     lda temp + 2

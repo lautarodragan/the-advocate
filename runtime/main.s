@@ -179,6 +179,7 @@ TEXT_BUF_BYTES = WINDOW_TEXT_COLS * 2 * 32
 .include "level.s"
 .include "medicine.s"
 .include "equipment_from_events.s"
+.include "variable_arithmetic.s"
 .include "battle.s"
 .include "battle_items.s"
 .include "battle_skills.s"
