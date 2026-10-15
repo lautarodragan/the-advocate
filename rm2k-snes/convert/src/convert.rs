@@ -32,7 +32,7 @@ use rm2k_snes_mapdata::{engine, record, vram};
 const TITLE_TILES_MAX: usize = 0x4400 / 32;
 const TITLE_MENU_TILES_MAX: usize = (0x7C00 - 0x5000) / 16;
 use serde_json::{json, Value};
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::ffi::OsString;
 use std::path::PathBuf;
 
@@ -587,19 +587,7 @@ pub fn run(options: Options) -> Result<()> {
             }
             m.pages.push(test_page(cases.len() as i64, TEST_SWITCH as i64, Value::Null, Vec::new()));
         }
-        let mut code = Vec::new();
-        for page in m.pages.iter_mut() {
-            page.offset = code.len();
-            code.extend_from_slice(&page.code);
-            // And the commands of its own route, behind, one byte per
-            // command.
-            if let Some(own) = &page.own_route {
-                page.route_offset = code.len();
-                for order in own["commands"].as_array().cloned().unwrap_or_default() {
-                    code.push(int(&order) as u8);
-                }
-            }
-        }
+        let code = lay_out_code(&mut m.pages);
         // What each page of the events that change graphic draws: where
         // its poses are in the sprite bank —`page_oam` in the emission—.
         for page in m.pages.iter_mut() {
@@ -1053,7 +1041,10 @@ pub fn run(options: Options) -> Result<()> {
     }
     let case_slot = if cases.len() > 1 { Some(indices.variable_slot(CASE_VARIABLE as i64)?) } else { None };
     let request = json!({
-        "maps": infos.iter().map(emit::map_record).collect::<Vec<_>>(),
+        "maps": infos
+            .iter()
+            .map(|m| emit::map_record(m, emit::access_bits(game.tree.rules.access(m.id))))
+            .collect::<Vec<_>>(),
         "start": start_index,
         "hero_above": options.hero_above,
         "speed_keys": !options.no_speed_keys,
@@ -1223,6 +1214,44 @@ pub fn search_dirs(game: &Game, project: &Project, rtp_dir: &std::path::Path) ->
     Ok(dirs)
 }
 
+/// A map's code block: each page's bytecode and, behind it, the commands of
+/// its own route, one byte per command; each page notes down where its two
+/// start.
+///
+/// **Two pages with the same bytes point at the same code**, and so do two
+/// routes. It is safe because nothing the runtime does depends on where a
+/// page is: its jumps are offsets from where it starts (see `op_if`), which
+/// is also what lets `code_carry_before` move a running one to another
+/// address; the block is never written; and what tells two pages apart
+/// —the parallel's state, the refresh— is the page's place in the table,
+/// `page_ofs`, never its pointer. A routine of the runtime that compared
+/// code pointers to know which page is running would break this. Frozen
+/// World's battle screen has 52 monster pages with the same code.
+///
+/// Only within a map: each map's block is its own stream, decompressed alone
+/// behind the grid, so a page cannot point into another map's.
+fn lay_out_code(pages: &mut [PageRecord]) -> Vec<u8> {
+    let mut code = Vec::new();
+    let mut placed: HashMap<Vec<u8>, usize> = HashMap::new();
+    let mut place = |code: &mut Vec<u8>, bytes: Vec<u8>| -> usize {
+        if bytes.is_empty() {
+            return code.len();
+        }
+        *placed.entry(bytes).or_insert_with_key(|bytes| {
+            code.extend_from_slice(bytes);
+            code.len() - bytes.len()
+        })
+    };
+    for page in pages.iter_mut() {
+        page.offset = place(&mut code, page.code.clone());
+        if let Some(own) = &page.own_route {
+            let commands = own["commands"].as_array().cloned().unwrap_or_default();
+            page.route_offset = place(&mut code, commands.iter().map(|c| int(c) as u8).collect());
+        }
+    }
+    code
+}
+
 /// The header title of a SNES ROM: 21 bytes, at `$FFC0`.
 const TITLE_HEADER: usize = 21;
 
@@ -1279,6 +1308,27 @@ mod tests {
         assert_eq!(line("SUB_MAX ").split('=').nth(1).unwrap().trim(), SUB_MAX.to_string());
         assert!(line("sub_key:").contains(".res SUB_MAX * 2"));
         assert!(line("sub_value:").contains(".res SUB_MAX * 2"));
+    }
+
+    #[test]
+    fn identical_pages_and_routes_are_stored_once() {
+        let mut pages = vec![
+            test_page(0, 0, Value::Null, vec![1, 2, 3]),
+            test_page(1, 0, Value::Null, vec![4, 5]),
+            test_page(2, 0, Value::Null, vec![1, 2, 3]),
+            test_page(3, 0, Value::Null, Vec::new()),
+        ];
+        pages[1].own_route = Some(json!({"commands": [7, 8]}));
+        pages[2].own_route = Some(json!({"commands": [7, 8]}));
+        pages[3].own_route = Some(json!({"commands": [4, 5]}));
+        let code = lay_out_code(&mut pages);
+        assert_eq!(code, [1, 2, 3, 4, 5, 7, 8]);
+        let offsets: Vec<usize> = pages.iter().map(|p| p.offset).collect();
+        assert_eq!(offsets, [0, 3, 0, 7]);
+        let routes: Vec<usize> = pages[1..].iter().map(|p| p.route_offset).collect();
+        // The last page's route has the second page's bytes: they are
+        // bytes, and nothing writes them.
+        assert_eq!(routes, [5, 5, 3]);
     }
 
     #[test]
