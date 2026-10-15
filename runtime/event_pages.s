@@ -154,11 +154,17 @@ empty_all:
     lda ev_total
     asl a
     sta rp_ev_prev              ; the limit in bytes, borrowed for a moment
+    ; Tested before the first store, not after: a map with no events has
+    ; `ev_total` at zero, and storing first ran X past the limit and round
+    ; the whole bank, every byte of WRAM bank 0 to $FF, the stack too. See
+    ; tasks/a-map-with-no-events-wipes-wram-when-entered.md.
+    bra drain_test
 drain:
     lda #$FFFF
     sta pick_by_ev, x
     inx
     inx
+drain_test:
     cpx rp_ev_prev
     bne drain
     lda #$FFFF
