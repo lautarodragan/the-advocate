@@ -1424,6 +1424,10 @@ ready:
 .a8
 .i16
     pha                         ; the page's pose
+    lda npc_buf + 13, y
+    bpl not_animated
+    jsr still_touched           ; it uploads the page's pose: back to its column
+not_animated:
     rep #$20
 .a16
     lda page_ofs

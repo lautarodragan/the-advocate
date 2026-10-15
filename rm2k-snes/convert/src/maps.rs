@@ -511,6 +511,8 @@ pub struct MapInfo {
     pub npcs: Value,
     pub movable: Value,
     pub animates_still: Value,
+    /// The still ones that animate in another one's slot: `[event, whose]`.
+    pub animates_with: Value,
     /// Where each (CharSet, index, pose) ended up in the sprite bank.
     pub where_: HashMap<Graphic, (Value, Value)>,
     /// In a map with a cache of slots, each still pose's number and its
@@ -956,6 +958,7 @@ pub fn map_info(game: &Game, p: Prepared, written: BTreeMap<String, Vec<u8>>) ->
         npcs,
         movable: answer["movable"].clone(),
         animates_still: answer["animates_still"].clone(),
+        animates_with: answer["animates_with"].clone(),
         where_,
         cached,
         substitution_table,

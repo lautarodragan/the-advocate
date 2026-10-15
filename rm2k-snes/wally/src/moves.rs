@@ -45,34 +45,60 @@ const TRIGGER_ACTION: i32 = 0;
 const TRIGGER_TOUCH_HERO: i32 = 1;
 const TRIGGER_COLLISION: i32 = 2;
 
-/// How many still events with continuous animation a map animates. See the
-/// reason —and the measured number— inside [`moves`].
-///
-/// Measured against the game the port was built for: an assumption of the
-/// engine, not a piece of the game's data.
-pub const ANIMATES_STILL_MAX: usize = 4;
+/// Which of the still events that animate in RM2k animate here.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Animate {
+    /// How many of the map's *looks* —see [`Moves::looks`]— animate, the
+    /// first ones in their order; `None`, all of them. The conversion
+    /// starts with all and gives up looks from the last only when the map
+    /// does not fit: see `fewer_still_animations` in `map`.
+    pub looks: Option<usize>,
+    /// Whether the ones that always show the same column share a slot.
+    /// Not in a map with a cache of slots, where nobody owns one to share.
+    pub share: bool,
+}
+
+impl Animate {
+    pub const ALL: Animate = Animate { looks: None, share: true };
+}
 
 /// What moves in a map.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Moves {
-    /// The events that get the twelve poses: the ones that walk and the
-    /// still ones that animate.
+    /// The events that get a VRAM slot of their own and change pose on the
+    /// fly: the ones that walk and the still ones that animate, except the
+    /// ones in `follows`.
     pub movable: BTreeSet<usize>,
-    /// Of those, the still ones that animate.
+    /// The still ones that animate **and upload their pose**: bit 7 of
+    /// their row in the console.
     pub animates_still: BTreeSet<usize>,
+    /// The still ones that animate in another one's slot, with whose: they
+    /// upload nothing, and are drawn with the slot it keeps up to date.
+    pub follows: BTreeMap<usize, usize>,
     /// The ones that turn toward the hero, with the graphics of all their
     /// pages that turn.
     pub turning: BTreeMap<usize, BTreeSet<Key>>,
-    /// The still ones that animate in RM2k and here stand on one column:
-    /// all of them, on a map with more than `ANIMATES_STILL_MAX`. Only to
-    /// say it.
+    /// The still ones that animate in RM2k and here stand on one column,
+    /// because their look did not fit. Only to say it.
     pub still_not_animated: BTreeSet<usize>,
+    /// How many looks the still ones that animate in RM2k come in: a look
+    /// is a (CharSet, index, pose), whatever the speed. What
+    /// [`Animate::looks`] counts.
+    pub looks: usize,
 }
 
 /// Who moves, from the compiler's `pages`, the map's `events` and the ones
 /// that are drawn, `npcs`. `also_walk` are the ones someone else sends
-/// walking —a test page, which is not the map's—.
-pub fn moves(pages: &[ScannedPage], events: &[Event], npcs: &[Npc], chipset: &str, also_walk: &BTreeSet<usize>) -> Moves {
+/// walking —a test page, which is not the map's—; `animate`, which of the
+/// still ones that animate do.
+pub fn moves(
+    pages: &[ScannedPage],
+    events: &[Event],
+    npcs: &[Npc],
+    chipset: &str,
+    also_walk: &BTreeSet<usize>,
+    animate: Animate,
+) -> Moves {
     let drawn: BTreeSet<usize> = npcs.iter().map(|n| n.event).collect();
     // The ones some compiled page sends a route to, and the ones that walk
     // on their own with some page's own route, which need the twelve poses
@@ -89,24 +115,10 @@ pub fn moves(pages: &[ScannedPage], events: &[Event], npcs: &[Npc], chipset: &st
     // poses their VRAM slot would carry a single one and there would be
     // nothing to animate them with: the still ones share a slot by
     // (CharSet, index, pose) and do not have one of their own.
-    let mut animated: BTreeSet<usize> = npcs
+    let animating: Vec<&Npc> = npcs
         .iter()
         .filter(|n| n.animates && !with_route.contains(&n.event))
-        .map(|n| n.event)
         .collect();
-    // And the cap: a still event that animates **costs a whole VRAM slot**
-    // —twelve tiles— because it stops sharing that of its (CharSet, index,
-    // pose) and gets the twelve poses of its own, like the walking ones. A
-    // map with thirty asks for 572 sprite tiles and 384 fit.
-    //
-    // So a map with more than `ANIMATES_STILL_MAX` animates **none**, and
-    // not some yes and some no: two equal fountains, one moving and the
-    // other frozen, looks worse than both still. Measured over the 328 maps
-    // of the game this was built for: 312 have four or fewer.
-    let mut still_not_animated = BTreeSet::new();
-    if animated.len() > ANIMATES_STILL_MAX {
-        still_not_animated = std::mem::take(&mut animated);
-    }
     // And the ones that turn toward the hero when it talks to them: the
     // events with some action or touch page that compiled and turns, with
     // the graphics of **all** their pages that turn. The twelve poses of
@@ -127,9 +139,69 @@ pub fn moves(pages: &[ScannedPage], events: &[Event], npcs: &[Npc], chipset: &st
             graphics.insert((charset, index));
         }
     }
+    // A still event that animates costs a VRAM slot —a 32x32 block, sixteen
+    // object tiles— because its pose changes on the fly and it cannot share
+    // the slot of its (CharSet, index, pose) with the still ones that do not
+    // animate. Its twelve poses go to the cartridge, once per character.
+    //
+    // **Unless it shares it with its twins.** The column comes from the
+    // game clock and the speed —`animate_still` in the runtime—, not from
+    // a counter of its own, so all the ones with the same (CharSet, index,
+    // pose) and the same speed show the same pose on every frame: the first
+    // one uploads it and the rest point at its slot. Six torches cost one
+    // slot, or one per speed. Not one that turns toward the hero, whose
+    // facing is its own; nor one whose graphic follows its page, which
+    // takes it into its slot; nor one that someone else sends walking.
+    //
+    // And what does not fit is given up by **look** —(CharSet, index,
+    // pose), all its speeds at once— and not event by event: two equal
+    // fountains, one moving and the other frozen, looks worse than both
+    // still, even if one flickers faster. The looks with the most events go
+    // first, then the ones that take the fewest slots, then the first one
+    // in the map: whoever gives them up goes from the last.
+    type Look = (String, i32, i32);
+    let mut looks: BTreeMap<Look, Vec<&Npc>> = BTreeMap::new();
+    for n in &animating {
+        looks.entry((n.charset.clone(), n.index, n.pose)).or_default().push(n);
+    }
+    let shares = |n: &Npc| animate.share && !n.changes && !turning.contains_key(&n.event) && !also_walk.contains(&n.event);
+    let slots_of = |members: &[&Npc]| -> Vec<Vec<usize>> {
+        let mut by_speed: BTreeMap<i32, Vec<usize>> = BTreeMap::new();
+        let mut alone = Vec::new();
+        for n in members {
+            if shares(n) {
+                by_speed.entry(n.speed).or_default().push(n.event);
+            } else {
+                alone.push(vec![n.event]);
+            }
+        }
+        by_speed.into_values().chain(alone).collect()
+    };
+    let mut ordered: Vec<Vec<Vec<usize>>> = looks.into_values().map(|members| slots_of(&members)).collect();
+    ordered.sort_by_key(|slots| {
+        let events: usize = slots.iter().map(Vec::len).sum();
+        let first = slots.iter().flatten().min().copied();
+        (std::cmp::Reverse(events), slots.len(), first)
+    });
+    let kept = animate.looks.unwrap_or(ordered.len()).min(ordered.len());
+    let mut animated = BTreeSet::new();
+    let mut follows = BTreeMap::new();
+    let mut still_not_animated = BTreeSet::new();
+    for (k, slots) in ordered.iter().enumerate() {
+        for slot in slots {
+            if k >= kept {
+                still_not_animated.extend(slot.iter().copied());
+                continue;
+            }
+            // The first by event index uploads.
+            let leader = *slot.iter().min().unwrap();
+            animated.insert(leader);
+            follows.extend(slot.iter().filter(|&&e| e != leader).map(|&e| (e, leader)));
+        }
+    }
     let mut movable: BTreeSet<usize> = with_route.union(&animated).copied().collect();
     movable.extend(also_walk);
-    Moves { movable, animates_still: animated, turning, still_not_animated }
+    Moves { movable, animates_still: animated, follows, turning, still_not_animated, looks: ordered.len() }
 }
 
 #[cfg(test)]
@@ -161,8 +233,16 @@ mod tests {
     }
 
     fn who(pages: &[ScannedPage], events: &[Event]) -> Moves {
+        animating(pages, events, Animate::ALL)
+    }
+
+    fn animating(pages: &[ScannedPage], events: &[Event], animate: Animate) -> Moves {
         let npcs = collect_npcs(events, "tiles", &[0; 10200]);
-        moves(pages, events, &npcs, "tiles", &BTreeSet::new())
+        moves(pages, events, &npcs, "tiles", &BTreeSet::new(), animate)
+    }
+
+    fn torch(name: &str, speed: i32) -> Page {
+        Page { speed, ..page(name, 1) }
     }
 
     #[test]
@@ -178,19 +258,61 @@ mod tests {
     }
 
     #[test]
-    fn up_to_four_still_ones_animate_and_one_more_stops_them_all() {
-        let mut events: Vec<Event> = (0..4).map(|i| event(i + 1, vec![page("A", 1)])).collect();
-        let four = who(&[], &events);
-        assert_eq!(four.animates_still, (0..4).collect());
-        assert_eq!(four.movable, (0..4).collect());
-        events.push(event(5, vec![page("A", 3)]));
-        let five = who(&[], &events);
-        assert!(five.animates_still.is_empty() && five.movable.is_empty());
-        // One that walks is not a still one, and does not count.
-        let walks = ScannedPage { route_targets: vec![4], ..scanned(0, 3, true) };
-        let four = who(&[walks], &events);
-        assert_eq!(four.animates_still, (0..4).collect());
-        assert_eq!(four.movable, (0..5).collect());
+    fn twins_share_a_slot_one_per_speed() {
+        // The Book of Three's opening hall: six equal torches at four speeds.
+        let events: Vec<Event> =
+            [6, 5, 6, 2, 6, 4].iter().enumerate().map(|(i, &s)| event(i as i32 + 1, vec![torch("A", s)])).collect();
+        let all = who(&[], &events);
+        assert_eq!(all.animates_still, [0, 1, 3, 5].into());
+        assert_eq!(all.movable, [0, 1, 3, 5].into());
+        assert_eq!(all.follows, [(2, 0), (4, 0)].into());
+        assert!(all.still_not_animated.is_empty());
+        assert_eq!(all.looks, 1);
+        // In a map with a cache nobody shares.
+        let cached = animating(&[], &events, Animate { looks: None, share: false });
+        assert_eq!(cached.animates_still, (0..6).collect());
+        assert!(cached.follows.is_empty());
+    }
+
+    #[test]
+    fn looks_are_given_up_whole_from_the_last() {
+        // A three times, C twice at two speeds, B once.
+        let events = [
+            event(1, vec![torch("A", 3)]),
+            event(2, vec![torch("B", 3)]),
+            event(3, vec![torch("C", 3)]),
+            event(4, vec![torch("A", 3)]),
+            event(5, vec![torch("C", 5)]),
+            event(6, vec![torch("A", 3)]),
+        ];
+        let some = |looks| animating(&[], &events, Animate { looks: Some(looks), share: true });
+        assert_eq!(who(&[], &events).looks, 3);
+        let one = some(1);
+        assert_eq!(one.animates_still, [0].into());
+        assert_eq!(one.follows, [(3, 0), (5, 0)].into());
+        assert_eq!(one.still_not_animated, [1, 2, 4].into());
+        let two = some(2);
+        assert_eq!(two.animates_still, [0, 2, 4].into());
+        assert_eq!(two.still_not_animated, [1].into());
+        let none = some(0);
+        assert!(none.animates_still.is_empty() && none.movable.is_empty() && none.follows.is_empty());
+        assert_eq!(none.still_not_animated, (0..6).collect());
+    }
+
+    #[test]
+    fn one_that_walks_or_turns_does_not_share() {
+        let events: Vec<Event> = (0..3).map(|i| event(i + 1, vec![torch("A", 3)])).collect();
+        // One that walks is not a still one.
+        let walks = ScannedPage { route_targets: vec![1], ..scanned(0, 3, true) };
+        let w = who(&[walks], &events);
+        assert_eq!(w.animates_still, [0].into());
+        assert_eq!(w.follows, [(2, 0)].into());
+        assert_eq!(w.movable, [0, 1].into());
+        // One that turns toward the hero faces its own way.
+        let turns = ScannedPage { turns: true, ..scanned(1, 0, true) };
+        let t = who(&[turns], &events);
+        assert_eq!(t.animates_still, [0, 1].into());
+        assert_eq!(t.follows, [(2, 0)].into());
     }
 
     #[test]

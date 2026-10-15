@@ -78,6 +78,7 @@ pub fn map_record(m: &MapInfo, access: u8) -> Value {
         "sprite": m.objects,
         "npcs": m.npcs, "movable": m.movable,
         "animates_still": m.animates_still,
+        "animates_with": m.animates_with,
         "events": m.map.events.iter().map(|e| json!([e.x, e.y])).collect::<Vec<_>>(),
         // The cells that share another event's row, with that event's
         // index: see `trim::twins`.

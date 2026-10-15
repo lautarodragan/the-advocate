@@ -185,7 +185,9 @@ with_column:
     cmp #NPC_STILL
     beq still
     lda npc_buf + 13, y
-    bmi ready                   ; animates in place: `animate_still` uploads it
+    bpl not_animated
+    jmp still_touched           ; animates in place: `animate_still` uploads it
+not_animated:
     sty npc_row
     lda temp
     jmp upload_npc_pose
@@ -312,7 +314,9 @@ if:
     rts
 own:
     lda npc_buf + 13, y
-    bmi nothing                 ; animates in place: goes back by itself, next frame
+    bpl not_animated
+    jmp still_touched           ; animates in place: goes back by itself, next frame
+not_animated:
     sty npc_row
     lda f:TURN_POSE_PREV
     jmp upload_npc_pose

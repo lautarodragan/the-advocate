@@ -13,7 +13,7 @@ use crate::events::{changes_graphic, collect_npcs, events, Event};
 use crate::fail::{Bad, Result};
 use crate::game::Game;
 use crate::layers::{self as stage_layers, draw, Drawn};
-use crate::moves::{moves, Moves, ScannedPage};
+use crate::moves::{moves, Animate, Moves, ScannedPage};
 use crate::request::LayersRequest;
 use crate::sheets::Drawer;
 use crate::substitutions::{substitute, Answer as SubstitutionAnswer, Triple};
@@ -318,6 +318,18 @@ pub struct CacheObjects {
     pub stills: Vec<(Graphic, usize, usize)>,
     /// Each slot's block in the sprite bank.
     pub slots: Vec<usize>,
+    /// How many can be on screen at once by where they start: see
+    /// `sprites::cache::peak`.
+    pub peak: usize,
+}
+
+/// How many events can wait for a slot of the cache, by where they start:
+/// what `events-wait-for-a-slot` warns about. None without a cache.
+fn waiting(done: &Whole) -> usize {
+    done.objects
+        .as_ref()
+        .and_then(|o| o.cache.as_ref())
+        .map_or(0, |c| c.peak.saturating_sub(c.slots.len()))
 }
 
 /// The slots still events take turns in, as the console reads them.
@@ -372,15 +384,20 @@ pub struct Final {
 /// fitting or not. Only a map that does not fit changes: every other map
 /// comes out byte for byte the same as without sharing.
 pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
-    let plain = convert_with(game, request, Mode::Plain)?;
+    let plain = convert_with(game, request, Mode::Plain, None)?;
     if request.layouts.is_empty() || fits(&plain, &layouts_for(&plain.layers.converted, request)) {
         return Ok(plain);
     }
+    let looks = plain.moves.looks;
     // A map that fits no layout **with its pictures** is converted again
     // without them, before anything else: the pictures are what came last,
     // and they are the one thing whose absence the map survives —their
-    // commands are accepted without being done—.
+    // commands are accepted without being done—. Anything but fewer still
+    // events animating, which is only looks.
     if let Some(asked) = &request.picture {
+        if let Some(done) = fewer_still_animations(game, request, looks)? {
+            return Ok(done);
+        }
         let without = MapRequest {
             picture: None,
             ..request.clone()
@@ -395,16 +412,35 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
         )));
         return Ok(done);
     }
-    let shared = convert_with(game, request, Mode::Share)?;
+    let shared = convert_with(game, request, Mode::Share, None)?;
     let shares = shared.objects.as_ref().is_some_and(|o| o.shared.is_some());
     if shares && fits(&shared, &layouts_for(&shared.layers.converted, request)) {
         return Ok(shared);
     }
     // And a map that does not fit even so gets a cache of slots —see
     // `sprites::cache`—, if one fits.
-    let cached = convert_with(game, request, Mode::Cache)?;
+    let cached = convert_with(game, request, Mode::Cache, None)?;
     if cached.objects.as_ref().is_some_and(|o| o.cache.is_some()) && fits(&cached, &layouts_for(&cached.layers.converted, request)) {
-        return Ok(cached);
+        // A cache where events can wait for a slot loses more than a torch
+        // that stands still: in a cache each one that animates wants a slot
+        // of its own while in view. Fewer of them first, and if events wait
+        // even with none, none if that is fewer waiting. Vampires Dawn's
+        // 236 and 240 went from no wait to waiting when they animated.
+        if looks == 0 || waiting(&cached) == 0 {
+            return Ok(cached);
+        }
+        if let Some(done) = fewer_still_animations(game, request, looks)? {
+            return Ok(done);
+        }
+        let none = convert_with(game, request, Mode::Cache, Some(0))?;
+        let fits_none = none.objects.as_ref().is_some_and(|o| o.cache.is_some())
+            && fits(&none, &layouts_for(&none.layers.converted, request));
+        return Ok(if fits_none && waiting(&none) < waiting(&cached) { none } else { cached });
+    }
+    // Then fewer still events animating, before anything that loses more
+    // than looks: see `fewer_still_animations`.
+    if let Some(done) = fewer_still_animations(game, request, looks)? {
+        return Ok(done);
     }
     // Last, the battle animation's box, which is 64 tiles of sprites and,
     // unlike the poses, has no way of taking less: a map that fits nothing
@@ -467,6 +503,68 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
 
 /// How many times the fusion asks for fewer tiles before giving up.
 const FUSE_TRIES: usize = 4;
+
+/// The map with the most looks of its still events animating that fits a
+/// layout the way `convert` would have fitted it with all of them —plain,
+/// or sharing slots or with a cache nobody waits for when it has no
+/// pictures—, or `None` if
+/// it does not fit that way even with none: then what goes is something
+/// else, and the animations are kept as long as they can be.
+///
+/// A still event that animates costs a slot —see `moves`—, and it is the
+/// cheapest thing to lose: it only changes how something looks, where the
+/// pictures, the battle animations or the fused ground lose what is shown.
+/// So it goes before them, and not as a fixed number per map: until
+/// 2026-10-15 it was four events, all or none, and The Book of Three's
+/// opening hall, whose six torches take four slots, animated none.
+///
+/// It searches by halves, as if each look more never made the map fit
+/// better. It is not exactly so —a look's three poses can move the
+/// palette split—, and the cost of being wrong is animating one look
+/// fewer than could: not worth a conversion per look on maps with dozens.
+fn fewer_still_animations(game: &Game, request: &MapRequest, looks: usize) -> Result<Option<Whole>> {
+    if looks == 0 {
+        return Ok(None);
+    }
+    let fitting = |k: usize| -> Result<Option<Whole>> {
+        let plain = convert_with(game, request, Mode::Plain, Some(k))?;
+        if fits(&plain, &layouts_for(&plain.layers.converted, request)) {
+            return Ok(Some(plain));
+        }
+        if request.picture.is_some() {
+            return Ok(None);
+        }
+        let shared = convert_with(game, request, Mode::Share, Some(k))?;
+        if shared.objects.as_ref().is_some_and(|o| o.shared.is_some()) && fits(&shared, &layouts_for(&shared.layers.converted, request)) {
+            return Ok(Some(shared));
+        }
+        let cached = convert_with(game, request, Mode::Cache, Some(k))?;
+        // A cache only if nobody waits for a slot: see `convert`.
+        if cached.objects.as_ref().is_some_and(|o| o.cache.is_some())
+            && waiting(&cached) == 0
+            && fits(&cached, &layouts_for(&cached.layers.converted, request))
+        {
+            return Ok(Some(cached));
+        }
+        Ok(None)
+    };
+    let Some(mut best) = fitting(0)? else {
+        return Ok(None);
+    };
+    // `low` fits and `high` —all of them, which `convert` already tried— does not.
+    let (mut low, mut high) = (0, looks);
+    while high - low > 1 {
+        let middle = (low + high) / 2;
+        match fitting(middle)? {
+            Some(done) => {
+                low = middle;
+                best = done;
+            }
+            None => high = middle,
+        }
+    }
+    Ok(Some(best))
+}
 
 /// The most background tiles a layout that holds the map's sprites and
 /// upper tiles gives it, if the background is what it is over on.
@@ -664,7 +762,9 @@ fn over_the_table(npcs: &mut Vec<Npc>, events: &[Event], named: &BTreeSet<i32>, 
     out
 }
 
-fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> {
+/// The map converted in `mode`, animating the first `looks` looks of its
+/// still events that animate —all of them with `None`—: see [`Animate`].
+fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usize>) -> Result<Whole> {
     let id = request.map;
     let raw = game.map(id)?;
     let chipset = game.chipset(raw.chipset_id)?;
@@ -804,13 +904,16 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
             .ok_or_else(|| Bad::answer(format!("actor {actor} is not in the database")))
     };
     let leaders: Vec<Key> = request.leaders.iter().map(leader).collect::<Result<_>>()?;
-    let who = moves(&pages, &events, &npcs0, &chipset_name, &request.also_walk);
+    let animate = Animate { looks, share: mode != Mode::Cache };
+    let who = moves(&pages, &events, &npcs0, &chipset_name, &request.also_walk, animate);
     if !who.still_not_animated.is_empty() {
         let ids: Vec<i32> = who.still_not_animated.iter().map(|&e| events[e].id).collect();
         notes.push(lost("still-animation-dropped", ids, format!(
-            "  map {id}: {} still events animate in RM2k and the console animates {} at most: none does",
+            "  map {id}: {} still events animate in RM2k and stand still here: their slots don't fit in \
+             the sprite bank ({} of {} looks animate)",
             who.still_not_animated.len(),
-            crate::moves::ANIMATES_STILL_MAX
+            looks.unwrap_or(who.looks).min(who.looks),
+            who.looks
         )));
     }
     let turning = &who.turning;
@@ -1060,7 +1163,13 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
                 )));
                 None
             }
-            Some(placed) => plan_sharing(&npcs, &who.movable, &baked, &placed),
+            // The ones animating in another one's slot are not still: they
+            // take no turns.
+            Some(placed) => {
+                let mut taken = who.movable.clone();
+                taken.extend(who.follows.keys());
+                plan_sharing(&npcs, &taken, &baked, &placed)
+            }
         }
     } else {
         None
@@ -1108,6 +1217,8 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
                 index: npc.index,
                 pose: npc.pose,
             });
+        } else if who.follows.contains_key(&npc.event) {
+            // It is drawn with the slot of the one it animates with.
         } else if plan.as_ref().is_some_and(|p| p.of.contains_key(&npc.event)) {
             // It takes turns in a shared slot, which goes after the turn's.
         } else if mode == Mode::Cache {
@@ -1383,6 +1494,7 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode) -> Result<Whole> 
                     .map(|g| (g.clone(), animated_index[&(g.0.clone(), g.1)], palette(&g.0, g.1)))
                     .collect(),
                 slots: place.iter().filter(|(s, ..)| matches!(s, Slot::Cache(_))).map(|(_, b, _)| *b).collect(),
+                peak: asked.peak,
             })
         }
         _ => None,
@@ -1655,6 +1767,7 @@ pub fn write(out: &Path, done: &Whole) -> Result<()> {
         "sprite": objects,
         "movable": done.moves.movable,
         "animates_still": done.moves.animates_still,
+        "animates_with": done.moves.follows.iter().map(|(e, l)| json!([e, l])).collect::<Vec<_>>(),
         "substitutions": {
             "table": done.substitutions.table.iter().map(|((u, o, n), pairs)| {
                 json!([u, o, n, pairs.as_ref().map(|p| p.iter().map(|(a, b)| json!([a, b])).collect::<Vec<_>>())])

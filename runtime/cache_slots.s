@@ -361,6 +361,8 @@ source:
 .a8
     lda f:CACHE_T_POSE
     sta npc_buf + 12, x
+    lda #1                      ; and if it animates standing still, its
+    sta f:still_dirty           ; column goes up next frame: animated_stills.s
 ready:
     rtl
 .endproc

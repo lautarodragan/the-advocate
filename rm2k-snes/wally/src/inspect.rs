@@ -84,7 +84,7 @@ pub fn split_report(game: &Game, request: &MapRequest, palettes: usize) -> Resul
         .iter()
         .map(|a| actors.get(a).cloned().ok_or_else(|| Bad::answer(format!("actor {a} is not in the database"))))
         .collect::<Result<_>>()?;
-    let who = moves(&request.pages, &events, &npcs, &chipset.chipset_name, &request.also_walk);
+    let who = moves(&request.pages, &events, &npcs, &chipset.chipset_name, &request.also_walk, crate::moves::Animate::ALL);
     let poses = map_poses(
         &leaders,
         &npcs,
