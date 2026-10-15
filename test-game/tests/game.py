@@ -55,6 +55,16 @@ FRAMES_PER_TICK = 3000
 # waiting for 2 can miss it: see `runtime/low_ram.s`.
 MESSAGE_SHOWN = 0
 
+# The switch each test page turns on first: `TEST_SWITCH` in the converter.
+TEST_SWITCH = 1023
+
+# The WRAM's size, which `Session.reset` powers on again.
+WRAM = 0x20000
+
+# The frames a screen with no ticks —the slot screen— is given to upload and
+# draw itself before a press, and after one: the ports' `TITLE_HEADROOM`.
+SCREEN_HEADROOM = 30
+
 
 def _builder(*args):
     """`rm2k-snes-cartridges` with the flags of `just cartridges`, which is
@@ -115,10 +125,7 @@ class Session:
         self.console = retro.Console(self.cartridge.rom, core)
         self.console.run(self.symbol("BOOT_FRAMES"))
         if case is not None:
-            assert case in self.cartridge.cases, (
-                "the cartridge does not carry the case %r: is it in cases/?"
-                % case)
-            self._choose(self.cartridge.cases.index(case))
+            self.choose_case(case)
         # How many ticks the test took.
         self.tick = 0
 
@@ -140,6 +147,20 @@ class Session:
     def word(self, name):
         low, high = self.console.ram(self._ram(name), 2)
         return low | (high << 8)
+
+    def choose_case(self, case):
+        """Chooses test page `case`, by its name in `cases/`: at boot, and
+        after a `reset`, which loads a saved game with the case page that
+        already ran. Each test page turns `TEST_SWITCH` on first, and the
+        page that asks for it, last, has no code: a saved game brings it on,
+        so it is turned off here."""
+        assert case in self.cartridge.cases, (
+            "the cartridge does not carry the case %r: is it in cases/?"
+            % case)
+        address = self._ram("switches") + TEST_SWITCH // 8
+        octet = self.console.ram(address, 1)[0]
+        self.console.write_ram(address, [octet & ~(1 << (TEST_SWITCH % 8)) & 0xFF])
+        self._choose(self.cartridge.cases.index(case))
 
     def _choose(self, page):
         """Writes the case variable, by its slot in far RAM, and the refresh
@@ -214,6 +235,36 @@ class Session:
                 return here
         raise AssertionError("%d ticks walking %s and the hero never stopped"
                              % (limit, direction))
+
+    def reset(self):
+        """The console's reset button: the cartridge's SRAM survives and the
+        WRAM does not. The WRAM is written with the $55 snes9x powers on
+        with first, since the core's reset leaves it as it was —like the
+        console's— and a value the load did not bring back would still be
+        there. A cartridge without a title loads the saved game on boot, so
+        this is how a test loads one. The ports' `_reset`."""
+        self.console.write_ram(0, bytes([0x55]) * WRAM)
+        self.console.reset()
+        self.console.run(self.symbol("BOOT_FRAMES"))
+        self.tick = 0
+
+    def screen_up(self, limit=300):
+        """Hardware frames until a screen with no ticks inside —the slot
+        screen, the menu— is up, and a few more for it to be drawn whole."""
+        for _ in range(limit):
+            if self.byte("menu_open"):
+                self.console.run(SCREEN_HEADROOM)
+                return
+            self.console.run(1)
+        raise AssertionError("no screen opened in %d frames" % limit)
+
+    def choose(self, button="a"):
+        """A press on a screen with no ticks —or one that opens one—: two
+        frames held, and released."""
+        self.console.hold(button)
+        self.console.run(2)
+        self.console.hold()
+        self.console.run(SCREEN_HEADROOM)
 
     def press(self, button):
         """A one-tick press and a release: the edge the ROM looks for."""

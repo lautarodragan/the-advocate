@@ -1,0 +1,15 @@
+{
+  "event_commands": [
+    {"code": "ConditionalBranch", "parameters": [0, 1300, 1, 0, 0, 1]},
+    {"code": "ChangeHeroName", "indent": 1, "parameters": [1], "string": "Hiro"},
+    {"code": "ControlSwitches", "indent": 1, "parameters": [0, 1300, 1300, 0]},
+    {"code": "OpenSaveMenu", "indent": 1},
+    {"code": "END", "indent": 1},
+    {"code": "ElseBranch"},
+    {"code": "ShowMessage", "indent": 1, "string": "\\N[1] is back."},
+    {"code": "ChangeHeroName", "indent": 1, "parameters": [1], "string": "Hugo"},
+    {"code": "OpenSaveMenu", "indent": 1},
+    {"code": "END", "indent": 1},
+    {"code": "EndBranch"}
+  ]
+}

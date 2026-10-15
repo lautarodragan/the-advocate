@@ -1,0 +1,6 @@
+{
+  "event_commands": [
+    {"code": "ChangePartyMembers", "parameters": [1, 0, 1]},
+    {"code": "ShowMessage", "string": "[\\N[0]] leads no one."}
+  ]
+}

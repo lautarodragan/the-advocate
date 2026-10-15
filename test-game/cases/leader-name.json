@@ -1,0 +1,11 @@
+{
+  "event_commands": [
+    {"code": "ShowMessage", "string": "\\N[0] leads."},
+    {"code": "ChangePartyMembers", "parameters": [0, 0, 2]},
+    {"code": "ChangePartyMembers", "parameters": [1, 0, 1]},
+    {"code": "ChangePartyMembers", "parameters": [0, 0, 1]},
+    {"code": "ShowMessage", "string": "\\N[0] leads."},
+    {"code": "ChangeHeroName", "parameters": [1], "string": "Hiro"},
+    {"code": "ShowMessage", "string": "\\N[1] follows \\N[0]."}
+  ]
+}
