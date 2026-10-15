@@ -1354,7 +1354,7 @@ GO_FRAMES = $7E7A34             ; how many frames each fade level lasts
 ; when loading the map and everyone who asks about a cell reads it. Reserved
 ; on 2026-09-26, and it is a decision with a cost: it was half of the far RAM
 ; that was still free. What is lost, how it is reverted and what catches it,
-; in decisions/the-grid-lives-in-wram.md in the book;
+; in optimizations/the-grid-in-wram.md in the book;
 ; `test_wram_reservations.py` fails if another symbol lands inside.
 ;
 ; Right behind it, in $7F's half, go the block table and its passability,
@@ -1386,8 +1386,8 @@ GRID_HIGH = $7F8000
 ;
 ; Measured on 2026-09-26: `release`'s work ends on frame 30 and the estimate
 ; gives 34. It was 112 until that day, meant for uploading a full ARAM
-; through the IPL; see decisions/boot-is-sized-for-the-boot-package.md in
-; the book. 40 until 2026-10-02: with the first
+; through the IPL; see "Boot is sized for the boot package" in
+; optimizations/lossless.md in the book. 40 until 2026-10-02: with the first
 ; day in Paradise in the cartridge the startup map's package went from
 ; 14,976 to 15,651 B —the samples are shared out over every package— and
 ; the estimate reached 40.

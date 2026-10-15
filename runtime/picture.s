@@ -172,8 +172,9 @@ next:
 ;
 ; It is written on every vblank of the map, from the slots: off is
 ; `ppu_reset`'s, and the battle's fade leaves it that way too. See
-; `decisions/translucent-events-dont-use-color-math.md` in the book, which was about translucent
-; **events** and not pictures.
+; "Colour math for translucent events" in
+; `optimizations/tried-and-left-out.md` in the book, which was about
+; translucent **events** and not pictures.
 PIC_HALF = 25
 .proc pic_blend
 .a8
