@@ -1268,7 +1268,7 @@ fn page(
             //
             // The destination is absolute within the page, like OP_IF's, and
             // each option's body ends in an OP_GOTO to the end of the choice.
-            let frames = choice_boxes(options, ctx.messages.as_deref_mut().unwrap())?;
+            let frames = choice_boxes(options, ctx.indices, ctx.messages.as_deref_mut().unwrap())?;
             choices.push(Choice {
                 at: pieces.len(),
                 n: options.len(),
@@ -1885,7 +1885,7 @@ fn compile_inn(ctx: &mut Ctx, cmd: &Command, length: usize) -> Step<Vec<u8>> {
     let t = &ctx.game.inn_terms[kind as usize];
     let greeting = format!("{} {}{} {}", t[0], price, ctx.game.gold_term, t[1]);
     let at = messages.add(&[greeting, t[2].clone()])?;
-    let frames = choice_boxes(&[(0, t[3].clone()), (1, t[4].clone())], messages)?;
+    let frames = choice_boxes(&[(0, t[3].clone()), (1, t[4].clone())], ctx.indices, messages)?;
     let end = length + 30;
     let mut out = vec![OP_MESSAGE];
     out.extend(usize_word(at)?);
@@ -1953,8 +1953,12 @@ fn choice_options(commands: &[Command], i: usize) -> Vec<(i64, String)> {
 /// also puts the options' text further in. `Messages` deduplicates by
 /// content, so the box is stored once. The table keeps its shape so the
 /// opcode does not change.
-fn choice_boxes(options: &[(i64, String)], messages: &mut Messages) -> Step<Vec<usize>> {
+fn choice_boxes(options: &[(i64, String)], indices: &Indices, messages: &mut Messages) -> Step<Vec<usize>> {
+    // The options go through the same escapes as a `ShowMessage`'s lines: a
+    // `\N[n]` and a `\V[n]` come off here. The ROM writes the variable's
+    // digits when the box opens, in a choice's lines like in any other.
     let lines: Vec<String> = options.iter().map(|(_, t)| t.clone()).collect();
+    let lines = with_variables(&with_names(&lines, indices), indices)?;
     let at = messages.add(&lines)?;
     Ok(vec![at; options.len()])
 }
@@ -2012,6 +2016,8 @@ fn compile_number(
     };
     let mut lines = vec![cmd.string.clone()];
     lines.extend_from_slice(extra);
+    // The same escapes as the `ShowMessage` it stands for.
+    let lines = with_variables(&with_names(&lines, ctx.indices), ctx.indices)?;
     let at = messages.add(&lines)?;
     let mut out = vec![OP_NUMBER, slot, digits as u8];
     out.extend(usize_word(at)?);
@@ -3127,6 +3133,12 @@ pub fn with_names(lines: &[String], indices: &Indices) -> Vec<String> {
             let mut text = String::new();
             let mut i = 0;
             while i < chars.len() {
+                if chars[i] == '\\' && chars.get(i + 1) == Some(&'\\') {
+                    // A literal backslash: the letter after it is not an escape.
+                    text.push_str("\\\\");
+                    i += 2;
+                    continue;
+                }
                 if chars[i] == '\\' && matches!(chars.get(i + 1), Some('N' | 'n')) && chars.get(i + 2) == Some(&'[') {
                     let digits: String = chars[i + 3..].iter().take_while(|c| c.is_ascii_digit()).collect();
                     let close = i + 3 + digits.len();
@@ -3164,6 +3176,12 @@ pub fn with_variables(lines: &[String], indices: &Indices) -> Step<Vec<String>> 
         let mut text = String::new();
         let mut i = 0;
         while i < chars.len() {
+            if chars[i] == '\\' && chars.get(i + 1) == Some(&'\\') {
+                // A literal backslash: the letter after it is not an escape.
+                text.push_str("\\\\");
+                i += 2;
+                continue;
+            }
             if chars[i] == '\\' && matches!(chars.get(i + 1), Some('V' | 'v')) && chars.get(i + 2) == Some(&'[') {
                 let digits: String = chars[i + 3..].iter().take_while(|c| c.is_ascii_digit()).collect();
                 let close = i + 3 + digits.len();
@@ -7412,6 +7430,51 @@ mod tests {
         let at = messages.add(&lines).ok().unwrap();
         // One line of three units: a, the value, b.
         assert_eq!(messages.data[at..], [1, 3, 65, crate::messages::VARIABLE, 7, 66]);
+    }
+
+    #[test]
+    fn a_choices_options_and_the_box_before_a_number_take_the_variables_too() {
+        // Frozen World's merchants: "[Keep Lutine's \V[0126] gold]" as an
+        // option, and the use menu's "(have \V[0103])" in the box in front
+        // of an `InputNumber`. Both went raw to `escape_tail`, which refuses
+        // the backslash.
+        let indices = Indices {
+            variables: BTreeMap::from([(126, 4), (103, 5), (143, 3)]),
+            ..Default::default()
+        };
+        let mut choice = vec![cmd(SHOW_CHOICE, &[1], "Buy/[Keep \\V[0126] gold]")];
+        for (n, text) in ["Buy", "[Keep \\V[0126] gold]"].iter().enumerate() {
+            choice.push(Command::new(SHOW_CHOICE_OPTION, 0, text, vec![n as i32]));
+            choice.push(Command::new(END, 1, "", vec![]));
+        }
+        choice.push(cmd(SHOW_CHOICE_END, &[], ""));
+        assert!(on_a_map_with(&indices, &choice).is_some());
+        let page = [
+            cmd(SHOW_MESSAGE, &[], "[1] Health Candy (have \\V[0103])"),
+            cmd(INPUT_NUMBER, &[2, 143], ""),
+        ];
+        assert!(on_a_map_with(&indices, &page).is_some());
+    }
+
+    #[test]
+    fn a_double_backslash_is_a_literal_one_and_hides_the_escape_after_it() {
+        // "HP: \V[0031] \\ \V[0032]": current over maximum.
+        let indices = Indices {
+            variables: BTreeMap::from([(31, 1), (32, 2)]),
+            ..Default::default()
+        };
+        let lines = with_variables(&["HP: \\V[0031] \\\\ \\V[0032]".to_string()], &indices).unwrap();
+        let mut messages = crate::messages::Messages::new(1, crate::messages::Window::columns(39, 4));
+        let at = messages.add(&lines).ok().unwrap();
+        // 'H' 'P' ':' ' ' value ' ' '\' ' ' value, as font indices (ASCII - 32).
+        assert_eq!(
+            messages.data[at..],
+            [1, 9, 40, 48, 26, 0, crate::messages::VARIABLE, 1, 0, 60, 0, crate::messages::VARIABLE, 2]
+        );
+        // A `\\V[1]` is a backslash and the letters "V[1]", not a variable.
+        let lines = with_variables(&["\\\\V[1]".to_string()], &indices).unwrap();
+        let at = messages.add(&lines).ok().unwrap();
+        assert_eq!(messages.data[at..], [1, 5, 60, 54, 59, 17, 61]);
     }
 
     #[test]
