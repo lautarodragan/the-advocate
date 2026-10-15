@@ -9,7 +9,7 @@
 use crate::asm::{block, pointer};
 use crate::cgram::BACKDROP;
 use crate::fail::{Bad, Result};
-use crate::materials::{grid_high_used, map_ram, Materials, COMPRESSED_KINDS};
+use crate::materials::{grid_high_used, map_ram, Materials, COMPRESSED_KINDS, HALF_GRID, LZ2_CAP_CODE};
 use crate::objects::{
     block_tile, page_oam, pose_record, LAYER_ABOVE, OBJ_COLORS, OBJ_PRIORITY, OBJ_PRIORITY_ABOVE,
     POSE_BYTES, POSE_TILES, SPRITE_POSES, TILE_BYTES,
@@ -473,8 +473,81 @@ pub fn raw_blocks(map: &Map) -> crate::materials::RawBlocks {
     raw.insert("anim_tiles".into(), anim_bytes(map));
     raw.insert("map_cells".into(), map.cells.clone());
     raw.insert("map_ram".into(), map_ram(&map.blocks, &map.block_pass));
-    raw.insert("map_code".into(), map.evcode.clone());
+    // A map whose bytecode stays in the cartridge decompresses none: see
+    // [`code_in_rom`].
+    let code = if code_in_rom(map) { Vec::new() } else { map.evcode.clone() };
+    raw.insert("map_code".into(), code);
     raw
+}
+
+/// The largest block of a map's bytecode in the cartridge: one bank,
+/// because the routes and the battle animation add their offsets to the
+/// page's pointer without carrying into the bank byte —see `op_route`—, so
+/// a page cannot cross one. A map with more goes in several blocks, each
+/// with whole pages: see [`rom_code_chunks`].
+pub const ROM_CODE_MAX: usize = 0x10000;
+
+/// A map's code block cut into pieces of up to [`ROM_CODE_MAX`] bytes, each
+/// with whole pages and routes, as `(where it starts in the block, its
+/// bytes)`. It can be cut anywhere a page or a route starts because nothing
+/// in a page points into another: its jumps are offsets from where it
+/// starts —see `lay_out_code` in the converter—.
+pub fn rom_code_chunks(map: &Map) -> Result<Vec<(usize, &[u8])>> {
+    let code = &map.evcode;
+    let mut starts: BTreeSet<usize> = BTreeSet::from([0, code.len()]);
+    for page in &map.pages {
+        if page.has_code {
+            starts.insert(page.offset);
+        }
+        if page.own_route.is_some() {
+            starts.insert(page.route_offset);
+        }
+    }
+    let starts: Vec<usize> = starts.into_iter().filter(|&s| s <= code.len()).collect();
+    let mut chunks: Vec<(usize, &[u8])> = Vec::new();
+    let mut from = 0;
+    for pair in starts.windows(2) {
+        let (start, end) = (pair[0], pair[1]);
+        if end - start > ROM_CODE_MAX {
+            return Err(Bad::answer(format!(
+                "map {}: a page's bytecode is {} bytes, and one page has to fit in a bank, \
+                 {ROM_CODE_MAX}: see `rom_code_chunks` in rm2k-snes-mapdata",
+                map.id,
+                end - start
+            )));
+        }
+        if end - from > ROM_CODE_MAX {
+            chunks.push((from, &code[from..start]));
+            from = start;
+        }
+    }
+    if from < code.len() || chunks.is_empty() {
+        chunks.push((from, &code[from..]));
+    }
+    Ok(chunks)
+}
+
+/// Whether a map's bytecode stays in the cartridge, uncompressed, instead of
+/// going to WRAM behind its grid: only when it does not fit there, either
+/// over its LZ2 reserve —which is also what `CODE_CARRY` holds— or over what
+/// the grid and the block table leave of bank $7F's upper half. The other
+/// maps stay as they were, byte for byte.
+///
+/// The page table then points into the cartridge, and nothing else in the
+/// runtime has to know: the interpreter, the routes and the battle animation
+/// take the bank from the page's pointer; `carry_one` leaves a pointer
+/// outside bank $7F where it is, which is right, because the cartridge does
+/// not change with the map; and the map's `map_code` entry says the bytecode
+/// is 0 bytes long behind the grid and names an empty stream, so `lz2_grid`
+/// decompresses nothing and `carry_one` never takes a pointer into
+/// `CODE_CARRY` for one of this map's because it fell in its range.
+///
+/// Why not every map: see the task `map-streams-that-dont-fit-in-wram.md`,
+/// where it was measured —in short, the ROM it costs uncompressed against a
+/// few frames of decompression when loading—.
+pub fn code_in_rom(map: &Map) -> bool {
+    let behind = grid_high_used(map.cells.len()) + map.blocks.len() + map.block_pass.len();
+    map.evcode.len() > LZ2_CAP_CODE || behind + map.evcode.len() > HALF_GRID
 }
 
 /// Where the pointers into what lives behind the grid land: WRAM addresses,
@@ -974,16 +1047,19 @@ pub fn map_code_table(maps: &[Map], labels: &[Labels]) -> String {
     let mut out = vec![
         ".segment \"RODATA\"".to_string(),
         "MAP_CODE_STRIDE = 8".to_string(),
-        format!("LZ2_CAP_CODE = ${:04X}", crate::materials::LZ2_CAP_CODE),
+        format!("LZ2_CAP_CODE = ${:04X}", LZ2_CAP_CODE),
         format!(".block {}", 8 * maps.len().max(1)),
         "map_code:".to_string(),
     ];
     for (map, labels) in maps.iter().zip(labels) {
+        // One in the cartridge is 0 bytes behind the grid: see
+        // [`code_in_rom`].
+        let length = if code_in_rom(map) { 0 } else { map.evcode.len() };
         out.push(format!(
             "    .byte {}, $00\n    .word .loword({}), {}",
             pointer(&labels["code_stream"]),
             labels["evcode"],
-            map.evcode.len()
+            length
         ));
     }
     if maps.is_empty() {
@@ -1059,6 +1135,13 @@ pub fn anim_table(maps: &[Map], rows: &[Vec<NpcRow>]) -> Result<String> {
 /// it is declared with `.block`: the console walks it with `[page_ptr], y`,
 /// and a table that crosses a bank continues wherever the next bank is.
 pub fn page_table(map: &PageMap, number: usize, evcode: &str) -> String {
+    page_table_with(map, number, &|offset| format!("{evcode} + {offset}"))
+}
+
+/// [`page_table`], with where each offset of the code block lands said by
+/// `dest`: a map whose bytecode stays in the cartridge has it in several
+/// blocks, one per bank —see [`rom_code_chunks`]—.
+pub fn page_table_with(map: &PageMap, number: usize, dest: &dyn Fn(usize) -> String) -> String {
     let mut out = vec![
         format!(".block {}", PAGE_BYTES * map.pages.len()),
         format!("pages_{number}:"),
@@ -1080,7 +1163,7 @@ pub fn page_table(map: &PageMap, number: usize, evcode: &str) -> String {
     let follows = |e: i64| map.changing.contains(&e) || map.appearing.contains(&e);
     for page in map.pages {
         let pointer = if page.has_code {
-            let dest = format!("{evcode} + {}", page.offset);
+            let dest = dest(page.offset);
             format!("<({dest}), >({dest}), ^({dest})")
         } else {
             "$00, $00, $00".to_string()
@@ -1130,7 +1213,7 @@ pub fn page_table(map: &PageMap, number: usize, evcode: &str) -> String {
                 | 64
                 | bit(follows(page.event), 32)
                 | bit(with_autostart.contains(&page.event), 128);
-            let dest = format!("{evcode} + {}", page.route_offset);
+            let dest = dest(page.route_offset);
             out.push(format!(
                 "    .byte {flags:<4} ; +13 the flags of its own route"
             ));
@@ -1439,7 +1522,9 @@ pub fn map_data(
     // And the bytecode, which lands behind them, in a block of its own:
     // `map_code_table` names it. Joined to the others, two maps with the
     // same grid and different events would not share the grid.
-    let (label, text) = materials.store_compressed("map_code", &map.evcode);
+    let in_rom = code_in_rom(map);
+    let stream: &[u8] = if in_rom { &[] } else { &map.evcode };
+    let (label, text) = materials.store_compressed("map_code", stream);
     if !text.is_empty() {
         out.push(text);
     }
@@ -1447,7 +1532,29 @@ pub fn map_data(
     for (name, address) in map_ram_pointers(map) {
         labels.insert(name, address);
     }
-    out.push(page_table(&PageMap::of(map), number, &labels["evcode"]));
+    // Or it stays in the cartridge, in blocks of up to a bank, and the
+    // pages point there: see [`code_in_rom`]. Two maps with the same block
+    // share it.
+    let mut chunks: Vec<(usize, String)> = Vec::new();
+    if in_rom {
+        for (start, bytes) in rom_code_chunks(map)? {
+            let (label, text) = materials.store("rom_code", bytes);
+            if !text.is_empty() {
+                out.push(text);
+            }
+            chunks.push((start, label));
+        }
+        labels.insert("evcode", chunks[0].1.clone());
+    }
+    if in_rom {
+        let dest = |offset: usize| {
+            let (start, label) = chunks.iter().rev().find(|(start, _)| *start <= offset).unwrap();
+            format!("{label} + {}", offset - start)
+        };
+        out.push(page_table_with(&PageMap::of(map), number, &dest));
+    } else {
+        out.push(page_table(&PageMap::of(map), number, &labels["evcode"]));
+    }
     // The page table is not shared: it carries symbolic pointers inside,
     // whose bytes the linker sets, so there is no content to compare it by.
     // The npc_poses and the actor table are shared, and already have their
@@ -1869,6 +1976,43 @@ mod tests {
         // One that points past the map's events is the converter's mistake.
         map.twins = vec![[5, 6, 2]];
         assert!(ev_pos_bytes(&map).is_err());
+    }
+
+    #[test]
+    fn a_map_whose_code_does_not_fit_in_wram_keeps_it_in_the_cartridge() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/maps.json");
+        let mut maps = crate::request::read::<crate::request::Maps>(&path).unwrap().maps;
+        maps.truncate(2);
+        // The first one fits, at the cap; the second goes over by a byte.
+        maps[0].evcode = vec![1; LZ2_CAP_CODE];
+        maps[1].evcode = (0..=LZ2_CAP_CODE).map(|i| i as u8).collect();
+        maps[1].pages = test_pages(1);
+        assert!(!code_in_rom(&maps[0]));
+        assert!(code_in_rom(&maps[1]));
+        // The second decompresses nothing behind its grid.
+        assert!(raw_blocks(&maps[1])["map_code"].is_empty());
+        let written = super::maps(&maps).map(|w| w.maps + &w.tables).unwrap();
+        // Its bytecode goes whole in one bank, and its `map_code` entry says
+        // 0 bytes behind the grid, so that `carry_one` never matches it.
+        assert!(written.contains(&format!(".block {}\nrom_code_0:", LZ2_CAP_CODE + 1)), "no rom_code_0");
+        assert!(written.contains(".word .loword(rom_code_0), 0\n"), "the entry is not empty");
+        assert!(written.contains(&format!("), {LZ2_CAP_CODE}\n")), "the first lost its length");
+        // And its pages point there.
+        assert!(written.contains("<(rom_code_0 + "), "no page points into the cartridge");
+        // Past one bank it goes in two blocks, cut where a page starts:
+        // the second page, in the second block, points at its start.
+        maps[1].evcode = vec![1; ROM_CODE_MAX + 10];
+        maps[1].pages = test_pages(2);
+        maps[1].pages[1].offset = ROM_CODE_MAX;
+        let chunks = rom_code_chunks(&maps[1]).unwrap();
+        let cuts: Vec<(usize, usize)> = chunks.iter().map(|(s, b)| (*s, b.len())).collect();
+        assert_eq!(cuts, [(0, ROM_CODE_MAX), (ROM_CODE_MAX, 10)]);
+        let written = super::maps(&maps).map(|w| w.maps + &w.tables).unwrap();
+        assert!(written.contains("<(rom_code_1 + 0)"), "the second page is not in the second block");
+        // But a page longer than a bank cannot be laid out.
+        maps[1].pages[1].offset = 5;
+        let error = super::maps(&maps).err().unwrap().to_string();
+        assert!(error.contains("in a bank"), "{error}");
     }
 
     #[test]
