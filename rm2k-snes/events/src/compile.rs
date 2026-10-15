@@ -69,11 +69,13 @@ const SWITCH_TOGGLE: i64 = 2;
 // ControlVars: the operations, where the operand comes from, and the "other"
 // ones and a character's coordinates.
 //
-// The operations that compile: set, add, subtract. Multiply, divide and
-// modulo are not used by any page of the game.
+// The operations, all of RM2k's: set, add, subtract, and since 2026-10-14
+// multiply, divide and modulo, which the ROM does as easyrpg's `VarMult`,
+// `VarDiv` and `VarMod` do —see `var_arith` in runtime/variable_arithmetic.s—.
 const VAR_SET: i64 = 0;
 const VAR_ADD: i64 = 1;
 const VAR_SUBTRACT: i64 = 2;
+const VAR_MODULO: i64 = 5;
 // And where the operand comes from, with the RM2k number: a constant, another
 // variable, a random number between a and b, or "other", which here are the
 // gold and the seconds the timer has left. The random one takes any range in
@@ -81,6 +83,11 @@ const VAR_SUBTRACT: i64 = 2;
 pub const VAR_CONSTANT: i64 = 0;
 pub const VAR_VARIABLE: i64 = 1;
 const VAR_RANDOM: i64 = 3;
+// And kind 4, an item: `a` the item and `b` which count, those of
+// `ControlVariables::Item`: 0 how many the party carries, 1 how many its
+// members have equipped. See `var_item_count` in runtime/variable_arithmetic.s.
+const VAR_ITEM: i64 = 4;
+const ITEM_COUNT_EQUIPPED: i64 = 1;
 // And kind 6: **a character's coordinates**. The sub-operands are those of
 // easyrpg-player's `ControlVariables::Event` —the `op` of
 // `game_interpreter_control_variables.cpp`—: 0 the map id, 1 x, 2 y, 3 where
@@ -4520,7 +4527,7 @@ pub fn compile_command(
             }
             let slot = ctx.indices.variable_slot(q(1))?;
             let refresh = refresh(q(1), map_events);
-            if !matches!(q(3), VAR_SET | VAR_ADD | VAR_SUBTRACT) {
+            if !(VAR_SET..=VAR_MODULO).contains(&q(3)) {
                 return cannot();
             }
             let operand_kind = q(4);
@@ -4531,7 +4538,9 @@ pub fn compile_command(
                 // six variables to 999999 as "no cell", and they are only
                 // compared for equality against cells, which never reach the
                 // ceiling. Adding or subtracting past it still does not
-                // compile, because the ROM's sum wraps around. The divergence
+                // compile, because the ROM's sum wraps around; nor does
+                // multiplying, dividing or taking the modulo by one, which
+                // only the edges of the word would tell apart. The divergence
                 // is the book's `divergences/variables-saturate-at-16-bits.md`.
                 if q(3) == VAR_SET {
                     a = a.clamp(-0x8000, 0x7FFF);
@@ -4551,6 +4560,18 @@ pub fn compile_command(
                     (a, b) = (b, a);
                 }
                 if !(-0x8000 <= a && b <= 0x7FFF) {
+                    return cannot();
+                }
+            } else if operand_kind == VAR_ITEM {
+                // The party's count of an item, by its RM2k number, which is
+                // what indexes `FAR_ITEMS`. The inventory only carries 1 to
+                // ITEMS_N - 1, as `ChangeItems` only compiles those; the
+                // equipment is words, so any number fits, and 0 counts the
+                // empty slots, an RPG_RT quirk easyrpg keeps
+                // (`Game_Actor::GetItemCount`).
+                let held = 1..ITEMS_N;
+                let equipped = 0..=0x1FFF;
+                if !(b == 0 && held.contains(&a) || b == ITEM_COUNT_EQUIPPED && equipped.contains(&a)) {
                     return cannot();
                 }
             } else if operand_kind == VAR_OTHER {
@@ -7209,6 +7230,51 @@ mod tests {
         );
         assert_eq!(one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 3, 0, 0x8000], "")), None);
         assert_eq!(one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 3, -0x8001, 0], "")), None);
+    }
+
+    #[test]
+    fn multiply_divide_and_modulo_compile() {
+        // The Book of Three's Cash Reward, `var 8 *= var 9`, and The Frozen
+        // World's HP percentages, `*= 100` and `/= var`. Until 2026-10-14
+        // only set, add and subtract compiled. A constant outside the word
+        // still does not, as with adding.
+        let game = Game::default();
+        let one = |c: Command| compile_with(&game, &[c]).unwrap();
+        assert_eq!(
+            one(cmd(CONTROL_VARS, &[0, 48, 48, 3, 1, 48, 0], "")),
+            Some(vec![OP_VAR, 5, 0x83, 1, 5, 0, 0, 0, OP_DONE])
+        );
+        assert_eq!(
+            one(cmd(CONTROL_VARS, &[0, 48, 48, 4, 0, -100, 0], "")),
+            Some(vec![OP_VAR, 5, 0x84, 0, 0x9C, 0xFF, 0, 0, OP_DONE])
+        );
+        assert_eq!(
+            one(cmd(CONTROL_VARS, &[0, 48, 48, 5, 3, 1, 6], "")),
+            Some(vec![OP_VAR, 5, 0x85, 3, 1, 0, 6, 0, OP_DONE])
+        );
+        assert_eq!(one(cmd(CONTROL_VARS, &[0, 48, 48, 3, 0, 0x8000, 0], "")), None);
+        // Bitwise or and the rest are Maniacs', not RM2k's.
+        assert_eq!(one(cmd(CONTROL_VARS, &[0, 48, 48, 6, 0, 1, 0], "")), None);
+    }
+
+    #[test]
+    fn an_item_count_compiles() {
+        // The Book of Three's Denner's Tails, item 126, and Eilonwy's
+        // Essences; and the equipped count, which counts empty slots for 0.
+        let game = Game::default();
+        let one = |c: Command| compile_with(&game, &[c]).unwrap();
+        assert_eq!(
+            one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 4, 126, 0], "")),
+            Some(vec![OP_VAR, 5, 0x80, 4, 126, 0, 0, 0, OP_DONE])
+        );
+        assert_eq!(
+            one(cmd(CONTROL_VARS, &[0, 48, 48, 1, 4, 0, 1], "")),
+            Some(vec![OP_VAR, 5, 0x81, 4, 0, 0, 1, 0, OP_DONE])
+        );
+        // Held: only what the inventory carries; and no third count.
+        assert_eq!(one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 4, 0, 0], "")), None);
+        assert_eq!(one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 4, ITEMS_N as i32, 0], "")), None);
+        assert_eq!(one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 4, 1, 2], "")), None);
     }
 
     #[test]
