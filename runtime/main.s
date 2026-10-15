@@ -223,4 +223,5 @@ TEXT_BUF_BYTES = WINDOW_TEXT_COLS * 2 * 32
 .include "pano.s"
 .include "painted.s"
 .include "walk_by_type.s"
+.include "items_by_variable.s"
 .include "header.s"

@@ -355,6 +355,15 @@ bytecode! {
     /// battle. Adding the dead one (1) kills it. See `ba_st_change` in the
     /// runtime's `battle_states.s`.
     OP_MONSTER_STATE = 0x4E (place: byte, remove: byte, state: byte);
+
+    /// `ChangeItems` with the item or the amount in a variable: what `OP_ITEM`
+    /// does, read at run time. `how` carries bits: subtracting ($01), `item`
+    /// as a variable's slot ($02) and `amount` as a variable's slot ($04);
+    /// without them each is the constant, the item by its LDB number. As
+    /// `CommandChangeItems`, a value below zero does nothing, and an item out
+    /// of the inventory neither. See `item_by_variable` in the runtime's
+    /// `items_by_variable.s`.
+    OP_ITEM_VAR = 0x4F (how: byte, item: word, amount: word);
 }
 
 // `run_code` jumps through a table indexed by the opcode.

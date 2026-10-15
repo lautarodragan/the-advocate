@@ -83,6 +83,17 @@ pub fn command_variables(commands: &[Command]) -> BTreeSet<i32> {
             ids.extend(&p[..3]);
         } else if matches!(code, CHANGE_HP | CHANGE_SP) && p.len() >= 5 && p[3] == 1 {
             ids.insert(p[4]);
+        } else if code == CHANGE_ITEMS && p.len() >= 5 {
+            // The item and the amount by a variable, since 2026-10-14: The
+            // Book of Three's essences and Vampires Dawn's.
+            if p[1] != 0 {
+                ids.insert(p[2]);
+            }
+            if p[3] != 0 {
+                ids.insert(p[4]);
+            }
+        } else if matches!(code, CHANGE_MONSTER_HP | CHANGE_MONSTER_MP) && p.len() >= 4 && p[2] == 1 {
+            ids.insert(p[3]);
         } else if code == SHOW_PICTURE && p.len() >= 4 && p[1] == 1 {
             // A picture placed by two variables, since 2026-10-01. In the
             // game they are the smoke's and the aura numbers', and they add

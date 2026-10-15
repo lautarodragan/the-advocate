@@ -2444,10 +2444,19 @@ const EXP_WITH_MESSAGE: u8 = 0x02;
 const EXP_BY_VARIABLE: u8 = 0x20;
 const EXP_SUBTRACTS: u8 = 0x80;
 
-/// OP_ENEMY's `what`: the SP and not the HP, and that a loss of HP can kill.
-/// `ENEMY_*` in runtime/battle_troop.s.
+/// OP_ENEMY's `what`: the SP and not the HP, the amount as a variable's slot,
+/// subtracting that variable, and that a loss of HP can kill. `ENEMY_*` in
+/// runtime/battle_troop.s.
 const ENEMY_SP: u8 = 0x01;
+const ENEMY_BY_VARIABLE: u8 = 0x20;
+const ENEMY_SUBTRACTS: u8 = 0x40;
 const ENEMY_LETHAL: u8 = 0x80;
+
+/// OP_ITEM_VAR's `how`: subtracting, the item as a variable's slot, and the
+/// amount as a variable's slot. `ITEM_*` in runtime/items_by_variable.s.
+const ITEM_SUBTRACTS: u8 = 0x01;
+const ITEM_BY_VARIABLE: u8 = 0x02;
+const AMOUNT_BY_VARIABLE: u8 = 0x04;
 
 /// RM2k's death state, `State::kDeathID`.
 const DEATH_STATE: i64 = 1;
@@ -3879,8 +3888,8 @@ pub fn compile_command(
             // indexed by the RM2k number, and `ChangeItems` compiles to
             // OP_ITEM with the item and how much is added, signed. The count
             // stays in [0, ITEM_MAX], which is `Game_Party::AddItem` with
-            // RM2k's cap. The game uses it 509 times, always with constant
-            // item and quantity: the item by variable does not compile. With
+            // RM2k's cap. ABL uses it 509 times, always with constant
+            // item and quantity; the variables go to OP_ITEM_VAR, below. With
             // this the page condition by item is evaluated for real
             // —`GetItemCount(id) > 0`, without equipment yet— and stops being
             // "never active". Changing an item asks for the page refresh.
@@ -3893,7 +3902,34 @@ pub fn compile_command(
                 return cannot();
             }
             if q(1) != 0 || q(3) != 0 {
-                return cannot();
+                // The item or the amount in a variable, since 2026-10-14:
+                // OP_ITEM_VAR, which reads them at run time. Its item is the
+                // RM2k number, or the variable's slot; its amount the
+                // constant, or the slot. See `item_by_variable` in the
+                // runtime's items_by_variable.s.
+                //
+                // OP_ITEM_VAR: how (byte: `ITEM_*`), item (word), amount (word)
+                let mut how = if q(0) != 0 { ITEM_SUBTRACTS } else { 0 };
+                let item = if q(1) != 0 {
+                    how |= ITEM_BY_VARIABLE;
+                    i64::from(ctx.indices.variable_slot(q(2))?)
+                } else if (1..ITEMS_N).contains(&q(2)) {
+                    q(2)
+                } else {
+                    return cannot();
+                };
+                let amount = if q(3) != 0 {
+                    how |= AMOUNT_BY_VARIABLE;
+                    i64::from(ctx.indices.variable_slot(q(4))?)
+                } else if (0..=0x7FFF).contains(&q(4)) {
+                    q(4)
+                } else {
+                    return cannot();
+                };
+                let mut out = vec![OP_ITEM_VAR, how];
+                out.extend(word(item)?);
+                out.extend(word(amount)?);
+                return Ok(out);
             }
             if !(1..ITEMS_N).contains(&q(2)) {
                 return cannot();
@@ -4805,24 +4841,40 @@ pub fn compile_command(
             // `ChangeMonsterHP` —[place, loses, from where, amount, lethal]—
             // and `ChangeMonsterMP` —the same without lethal—, which only
             // exist in battle: `Game_Interpreter_Battle`. The game's are all
-            // a constant that is subtracted, on places 0 to 2; the percentage
-            // and the variable do not compile.
+            // a constant that is subtracted, on places 0 to 2; The Book of
+            // Three's Last Stand subtracts a variable, since 2026-10-14. The
+            // HP's percentage of the current HP, `[2]` at 2, does not
+            // compile.
             //
-            // OP_ENEMY: place (byte), what (byte: `ENEMY_SP` for the SP, and
-            // `ENEMY_LETHAL` on top), amount (signed word). See
+            // OP_ENEMY: place (byte), what (byte: `ENEMY_SP` for the SP,
+            // `ENEMY_LETHAL` on top), amount (signed word). With
+            // `ENEMY_BY_VARIABLE` the amount is the variable's slot, and
+            // `ENEMY_SUBTRACTS` turns its value around. See
             // `ba_enemy_change` in runtime/battle_troop.s.
             let hp = cmd.code == CHANGE_MONSTER_HP;
             if n < if hp { 5 } else { 4 } {
                 return cannot();
             }
-            if !(0..256).contains(&q(0)) || q(2) != 0 || !(0..=0x7FFF).contains(&q(3)) {
+            if !(0..256).contains(&q(0)) {
                 return cannot();
             }
-            let amount = if q(1) != 0 { -q(3) } else { q(3) };
             let mut what = if hp { 0 } else { ENEMY_SP };
             if hp && q(4) != 0 {
                 what |= ENEMY_LETHAL;
             }
+            let amount = match q(2) {
+                0 if (0..=0x7FFF).contains(&q(3)) => {
+                    if q(1) != 0 { -q(3) } else { q(3) }
+                }
+                1 => {
+                    what |= ENEMY_BY_VARIABLE;
+                    if q(1) != 0 {
+                        what |= ENEMY_SUBTRACTS;
+                    }
+                    i64::from(ctx.indices.variable_slot(q(3))?)
+                }
+                _ => return cannot(),
+            };
             let mut out = vec![OP_ENEMY, q(0) as u8, what];
             out.extend((amount as i16).to_le_bytes());
             Ok(out)
@@ -7142,6 +7194,58 @@ mod tests {
             one(cmd(CHANGE_GOLD, &[1, 1, 48], "")),
             Some(vec![OP_GOLD, GOLD_SUBTRACTS | GOLD_BY_VARIABLE, 5, 0, 0, OP_DONE])
         );
+    }
+
+    #[test]
+    fn change_items_by_a_variable_is_op_item_var() {
+        // The Book of Three's essences: item 130, as many as variable 48
+        // says —slot 5—. Vampires Dawn's: the item in the variable too.
+        let game = Game::default();
+        let one = |c: Command| compile_with(&game, &[c]).unwrap();
+        assert_eq!(
+            one(cmd(CHANGE_ITEMS, &[0, 0, 130, 1, 48], "")),
+            Some(vec![OP_ITEM_VAR, AMOUNT_BY_VARIABLE, 130, 0, 5, 0, OP_DONE])
+        );
+        assert_eq!(
+            one(cmd(CHANGE_ITEMS, &[1, 1, 48, 0, 3], "")),
+            Some(vec![OP_ITEM_VAR, ITEM_SUBTRACTS | ITEM_BY_VARIABLE, 5, 0, 3, 0, OP_DONE])
+        );
+        assert_eq!(
+            one(cmd(CHANGE_ITEMS, &[0, 1, 48, 1, 48], "")),
+            Some(vec![OP_ITEM_VAR, ITEM_BY_VARIABLE | AMOUNT_BY_VARIABLE, 5, 0, 5, 0, OP_DONE])
+        );
+        // A variable with no slot, or a constant item out of the inventory,
+        // does not compile.
+        assert_eq!(one(cmd(CHANGE_ITEMS, &[0, 1, 49, 0, 1], "")), None);
+        assert_eq!(one(cmd(CHANGE_ITEMS, &[0, 0, ITEMS_N as i32, 1, 48], "")), None);
+        // The constant one is still OP_ITEM.
+        assert_eq!(
+            one(cmd(CHANGE_ITEMS, &[1, 0, 130, 0, 2], "")),
+            Some(vec![OP_ITEM, 130, 0, 0xFE, OP_DONE])
+        );
+    }
+
+    #[test]
+    fn change_monster_hp_by_a_variable_is_its_slot() {
+        // Taran's Last Stand: variable 6 —slot 5 here— off the first enemy,
+        // not lethal. The MP's too, which no game uses.
+        let game = Game::default();
+        let one = |c: Command| compile_with(&game, &[c]).unwrap();
+        assert_eq!(
+            one(cmd(CHANGE_MONSTER_HP, &[0, 1, 1, 48, 0], "")),
+            Some(vec![OP_ENEMY, 0, ENEMY_BY_VARIABLE | ENEMY_SUBTRACTS, 5, 0, OP_DONE])
+        );
+        assert_eq!(
+            one(cmd(CHANGE_MONSTER_HP, &[2, 0, 1, 48, 1], "")),
+            Some(vec![OP_ENEMY, 2, ENEMY_BY_VARIABLE | ENEMY_LETHAL, 5, 0, OP_DONE])
+        );
+        assert_eq!(
+            one(cmd(CHANGE_MONSTER_MP, &[1, 1, 1, 48], "")),
+            Some(vec![OP_ENEMY, 1, ENEMY_SP | ENEMY_BY_VARIABLE | ENEMY_SUBTRACTS, 5, 0, OP_DONE])
+        );
+        // The percentage, and a variable with no slot, do not.
+        assert_eq!(one(cmd(CHANGE_MONSTER_HP, &[0, 1, 2, 50, 0], "")), None);
+        assert_eq!(one(cmd(CHANGE_MONSTER_HP, &[0, 1, 1, 49, 0], "")), None);
     }
 
     #[test]
