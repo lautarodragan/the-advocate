@@ -566,7 +566,7 @@ pub fn run(options: Options) -> Result<()> {
     let boot = order[start_index];
     // Where the hero is flashed, by the map's index, and the map whose page
     // does it: checked once every map is known.
-    let mut flashes: BTreeMap<usize, i32> = BTreeMap::new();
+    let mut flashes: BTreeMap<(usize, Option<(String, i64)>), i32> = BTreeMap::new();
     for m in infos.iter_mut() {
         if !cases.is_empty() && m.id == boot {
             // The test pages, only in the map the ROM boots in, at **index
@@ -679,14 +679,30 @@ pub fn run(options: Options) -> Result<()> {
         // what the Frozen World's refusal on maps 1 and 3 was). The walk is
         // in bytecode order and does not follow jumps: a teleport on one
         // branch counts for what comes after it in the text.
+        //
+        // **And the graphic the hero has then is the last one a route on the
+        // hero gave it**, not the actor's: `OP_ROUTE`'s path carries command
+        // 34 followed by the index in the map's route graphics. Frozen World's
+        // common event 3 teleports, gives the hero `rangedmelee[7]` and flashes.
         let here = table_index[&m.id];
         for code in &run_here {
             let mut at = here;
+            let mut hero: Option<(String, i64)> = None;
             for i in bytecode::walk(code)? {
                 if code[i] == OP_TELEPORT {
                     at = bytecode::at(code, i + 1) as usize | (bytecode::at(code, i + 2) as usize) << 8;
+                } else if code[i] == OP_ROUTE && bytecode::at(code, i + 1) == 0 {
+                    let path = &code[i + 4..i + 4 + bytecode::at(code, i + 3) as usize];
+                    let mut k = 0;
+                    while k < path.len() {
+                        if path[k] == 34 {
+                            k += 1;
+                            hero = path.get(k).and_then(|&g| m.route_graphics.get(g as usize)).cloned();
+                        }
+                        k += 1;
+                    }
                 } else if code[i] == OP_FLASH && bytecode::at(code, i + 1) == 0 {
-                    flashes.entry(at).or_insert(m.id);
+                    flashes.entry((at, hero.clone())).or_insert(m.id);
                 }
             }
         }
@@ -709,29 +725,38 @@ pub fn run(options: Options) -> Result<()> {
         }
     }
 
-    for (&index, &from) in &flashes {
-        let m = &infos[index];
+    let mut shared_flashes: Vec<String> = Vec::new();
+    for ((index, given), &from) in &flashes {
+        let m = &infos[*index];
         let mut graphics: BTreeMap<(String, i64), usize> = BTreeMap::new();
         for npc in m.npcs.as_array().cloned().unwrap_or_default() {
             *graphics.entry((npc["charset"].as_str().unwrap_or("").to_string(), int(&npc["index"]))).or_insert(0) += 1;
         }
-        for actor in &leaders {
-            let a = game.db.actor(*actor)?;
-            *graphics.entry((a.character_name.clone(), a.character_index as i64)).or_insert(0) += 1;
-        }
-        for actor in &leaders {
-            let a = game.db.actor(*actor)?;
-            if graphics.get(&(a.character_name.clone(), a.character_index as i64)).copied().unwrap_or(0) > 1 {
-                crate::stop!(
-                    "map {}: a page (of map {from}) makes the hero flash there, and actor {actor} is drawn with {}[{}], \
-                     which an NPC of the map also uses. On the console they share a palette and \
-                     both would flash",
-                    m.id,
-                    a.character_name,
-                    a.character_index
-                );
+        // The graphic a route gave the hero, or each leader's own: the flash
+        // is on its palette, which an NPC drawn with the same one shares.
+        let mut heroes: Vec<(String, i64, String)> = Vec::new();
+        match given {
+            Some((name, i)) => heroes.push((name.clone(), *i, "the hero".to_string())),
+            None => {
+                for actor in &leaders {
+                    let a = game.db.actor(*actor)?;
+                    heroes.push((a.character_name.clone(), a.character_index as i64, format!("actor {actor}")));
+                }
             }
         }
+        for (name, i, who) in heroes {
+            if graphics.get(&(name.clone(), i)).copied().unwrap_or(0) > 0 {
+                shared_flashes.push(format!(
+                    "map {}: a page (of map {from}) makes the hero flash there, and {who} is drawn with {name}[{i}], \
+                     which an NPC of the map also uses. On the console they share a palette and \
+                     both would flash",
+                    m.id
+                ));
+            }
+        }
+    }
+    if !shared_flashes.is_empty() {
+        crate::stop!("{}", shared_flashes.join("\n"));
     }
 
     // The screens, all at once. And the items that can be in the
