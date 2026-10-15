@@ -3189,6 +3189,129 @@ impl Rest<'_> {
         self.enemies_and_scene(out, &x, &used, n_actors, bs)
     }
 
+    /// The attributes, for `battle_attributes.s`: see `attributes.rs` in
+    /// `rm2k-snes-battle`, which is the model's and what each number here
+    /// comes from. Outside bank 0 and declared, like the rest of the battle.
+    ///
+    /// Only the attributes something that hits can carry count —a carried
+    /// skill's `attribute_effects`, a carried weapon's `attribute_set`—:
+    /// one that only armor or an enemy's ranks name never multiplies
+    /// anything. They are numbered again from 0 in database order, and
+    /// `ATTR_N` says how many; at zero the routine returns at once.
+    ///
+    /// * `attr_rate`: a word per attribute and rank, `A` to `E`. A negative
+    ///   rate counts for nothing in RM2k 2000, and goes as -1.
+    /// * `attr_magic`: whether each one is magical.
+    /// * `attr_sets`: rows of `ATTR_N` bytes, 1 where the set has the
+    ///   attribute; row 0 is the empty set, and equal sets share a row.
+    ///   `item_attr` and `skill_attr` give each item and skill its row, as
+    ///   the byte where it starts.
+    /// * `attr_ranks`: rows of `ATTR_N` ranks, one per actor —its own,
+    ///   before its armor— and then one per enemy, in `enemy_*` order: the
+    ///   enemy `k`'s row is `ACTORS_N + k`.
+    fn attributes(&self, out: &mut String, x: &ItemTexts, n_actors: i64) -> Result<()> {
+        use rm2k_snes_battle::attributes as at;
+        let (r, db) = (self.r, self.db);
+        let n_db = db.attributes.len();
+        let skill_sets: Vec<Vec<bool>> = x
+            .rom_skills
+            .iter()
+            .map(|&h| Ok(db.skill(h as i32).map_err(bad)?.attribute_effects.clone()))
+            .collect::<Result<_>>()?;
+        let mut item_sets = Vec::new();
+        let mut hitting = skill_sets.clone();
+        for &n in &r.items {
+            let it = db.item(n as i32).map_err(bad)?;
+            item_sets.push(it.attribute_set.clone());
+            if it.r#type.to_i32() == rm2k_snes_battle::db::ITEM_WEAPON {
+                hitting.push(it.attribute_set.clone());
+            }
+        }
+        let mut used = BTreeSet::new();
+        for set in &hitting {
+            for (k, &has) in set.iter().enumerate() {
+                if has {
+                    // easyrpg stops the walk at an attribute the database
+                    // lacks; no game does that, and the console does not.
+                    if k >= n_db {
+                        return Err(Bad::answer(format!(
+                            "a skill or weapon carries attribute {}, and the database has {n_db}",
+                            k + 1
+                        )));
+                    }
+                    used.insert(k);
+                }
+            }
+        }
+        let used: Vec<usize> = used.into_iter().collect();
+        let n = used.len();
+        if n > 255 {
+            return Err(Bad::answer(format!("{n} attributes, and `ATTR_N` multiplies as a byte")));
+        }
+        out.push_str(&format!("ATTR_N = {n}\n"));
+        let attrs: Vec<&ditto::schema::Attribute> = db.attributes.values().collect();
+        let mut rates = Vec::new();
+        for &k in &used {
+            for rank in 0..5 {
+                let rate = at::rate_of(attrs[k], rank);
+                if rate > 0x7FFF {
+                    return Err(Bad::answer(format!("attribute {}: a rate of {rate}", k + 1)));
+                }
+                rates.push(rate.max(-1) & 0xFFFF);
+            }
+        }
+        words_asm(out, "attr_rate", &decimal(rates), true);
+        bytes_asm(
+            out,
+            "attr_magic",
+            &decimal(used.iter().map(|&k| i64::from(!at::physical(attrs[k])))),
+            true,
+        );
+        let mut rows: Vec<i64> = vec![0; n];
+        let mut row_of: HashMap<Vec<i64>, usize> = HashMap::new();
+        row_of.insert(vec![0; n], 0);
+        let mut place = |set: &[bool]| -> usize {
+            let row: Vec<i64> = used
+                .iter()
+                .map(|&k| i64::from(set.get(k).copied().unwrap_or(false)))
+                .collect();
+            if let Some(&at) = row_of.get(&row) {
+                return at;
+            }
+            let at = rows.len();
+            rows.extend(&row);
+            row_of.insert(row, at);
+            at
+        };
+        let item_rows: Vec<usize> = item_sets.iter().map(|s| place(s)).collect();
+        let skill_rows: Vec<usize> = skill_sets.iter().map(|s| place(s)).collect();
+        if rows.len() > 0x10000 {
+            return Err(Bad::answer("the attribute sets don't fit in a bank"));
+        }
+        bytes_asm(out, "attr_sets", &decimal(rows), true);
+        words_asm(out, "item_attr", &decimal(item_rows), true);
+        words_asm(out, "skill_attr", &decimal(skill_rows), true);
+        let mut ranks = Vec::new();
+        for a in 0..n_actors {
+            for &k in &used {
+                ranks.push(match db.actors.get(&(a as i32)) {
+                    Some(_) => at::actor_own_rank(db, a as i32, k).map_err(bad)?,
+                    None => at::RANK_NEUTRAL,
+                });
+            }
+        }
+        for &e in &x.rom_enemies {
+            for &k in &used {
+                ranks.push(at::enemy_rank(db, e as i32, k).map_err(bad)?);
+            }
+        }
+        if ranks.len() > 0x10000 {
+            return Err(Bad::answer("the attribute ranks don't fit in a bank"));
+        }
+        bytes_asm(out, "attr_ranks", &decimal(ranks), true);
+        Ok(())
+    }
+
     fn troop_pages(&self, out: &mut String, used: &[i64]) -> Result<()> {
         // Per troop, where its pages start and how many there are; per page,
         // its trigger and where its code is inside `troop_code`. All in
@@ -3383,6 +3506,7 @@ impl Rest<'_> {
         bytes_asm(out, "enemy_acc_n", &decimal(eacc_n), true);
         bytes_asm(out, "eacc_skill", &decimal(eacc_skill), true);
         bytes_asm(out, "eacc_weight", &decimal(eacc_weight), true);
+        self.attributes(out, x, n_actors)?;
         // The battle scene: the backdrops and the battlers, in the order of
         // `troop_id`.
         out.push_str(&crate::scene::scenes_asm(&r.scene, used, r.rom.msu != MsuData::Optional)?);

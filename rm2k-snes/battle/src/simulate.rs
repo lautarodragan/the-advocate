@@ -26,6 +26,8 @@
 //!                             GetHitChanceModifierFromStates, CanAct
 //! src/game_battlealgorithm.cpp  BattlePhysicalStateHeal
 //! src/scene_battle.cpp        PrepareBattleAction
+//! src/attribute.cpp           ApplyAttributeMultiplier and the rest: see
+//!                             [`crate::attributes`]
 //! ```
 //!
 //! Three things are **not** RM2k's, and all three are on purpose:
@@ -39,12 +41,15 @@
 //!   truncates on return, here it is integer. In the agility adjustment
 //!   that matters, and it divides **rounding up**: see
 //!   [`hit_rate_by_agility`].
-//! * **What is missing.** Attributes, rows and the double attack; and of
+//! * **What is missing.** Rows and the double attack; of the attributes,
+//!   the skills that shift a rank and the weapon a physical one asks for
+//!   —see [`crate::attributes`]—; and of
 //!   the states, everything that is not an enemy's: see [`Held`].
 //!   Of a troop's event pages this knows **when they run and what they do
 //!   to who fights** —[`TroopPage`]—: whom they bring in or take out and
 //!   what they do to their HP. None of the rest draws battle randomness.
 
+use crate::attributes::{self, Received};
 use crate::db::{
     self, Db, SCOPE_ALLY, SCOPE_ENEMIES, SCOPE_ENEMY, SCOPE_PARTY, SCOPE_SELF, SKILL_SWITCH,
 };
@@ -235,7 +240,8 @@ pub fn item_effect(item: &Item, target: &Combatant) -> (i64, i64, bool) {
 /// the power, plus `physical_rate * atk / 20` and `magical_rate * spi /
 /// 40`; against enemies and not ignoring defense, minus `physical_rate *
 /// def / 40` and `magical_rate * spi / 80` of the target; never below
-/// zero, and times three if critical.
+/// zero; through the target's ranks in the skill's attributes —see
+/// [`attributes::apply`]—, and times three if critical.
 pub fn skill_effect(source: &Combatant, target: &Combatant, skill: &Skill, critical: bool) -> i64 {
     let phys = skill.physical_rate as i64;
     let mag = skill.magical_rate as i64;
@@ -247,6 +253,7 @@ pub fn skill_effect(source: &Combatant, target: &Combatant, skill: &Skill, criti
         effect -= floor_div(mag * target.spirit(), 80);
     }
     effect = effect.max(0);
+    effect = attributes::apply(effect, &target.received, &skill.attribute_effects);
     if critical {
         effect *= 3;
     }
@@ -254,10 +261,12 @@ pub fn skill_effect(source: &Combatant, target: &Combatant, skill: &Skill, criti
 }
 
 /// `CalcNormalAttackEffect` and the variance at 4: `max(0, atk / 2 - def /
-/// 4)`, times three if critical. Rows, weapon attributes and the charged
-/// attack are not here.
+/// 4)`, through the target's ranks in the attributes of the source's
+/// weapons —[`attributes::apply`]—, times three if critical. Rows and the
+/// charged attack are not here.
 pub fn normal_damage(source: &Combatant, target: &Combatant, critical: bool, rng: &mut Rng) -> i64 {
     let mut damage = (floor_div(source.attack(), 2) - floor_div(target.defense(), 4)).max(0);
+    damage = attributes::apply(damage, &target.received, &source.weapon_attributes);
     if critical {
         damage *= 3;
     }
@@ -379,6 +388,12 @@ pub struct Combatant {
     pub drop_chance: i64,
     /// Its conditions: see [`Held`].
     pub states: Vec<Held>,
+    /// What each attribute of the database does to it, by `id - 1`: its
+    /// rank's rate. An actor's comes from its equipment too.
+    pub received: Vec<Received>,
+    /// The attributes its normal attack carries: an actor's weapons'. An
+    /// enemy's carries none.
+    pub weapon_attributes: Vec<bool>,
 }
 
 impl Combatant {
@@ -511,6 +526,8 @@ impl Combatant {
                 effective: true,
             }],
             weapon_sp: rules::weapon_sp_of(db, &equipment)?,
+            received: attributes::received_by_actor(db, number, &equipment)?,
+            weapon_attributes: attributes::weapon_attributes(db, &equipment)?,
             equipment,
             level,
             defending: false,
@@ -560,6 +577,8 @@ impl Combatant {
             drop_item: e.drop_id as i64,
             drop_chance: e.drop_prob as i64,
             states: Vec::new(),
+            received: attributes::received_by_enemy(db, id)?,
+            weapon_attributes: Vec::new(),
         })
     }
 
@@ -1185,6 +1204,8 @@ impl Battle {
             a.base = rules::equipped_params(db, a.number as i32, &a.equipment, a.level)?;
             a.weapon_sp = rules::weapon_sp_of(db, &a.equipment)?;
             a.critical = rules::actor_critical(db, a.number as i32, &a.equipment)?;
+            a.received = attributes::received_by_actor(db, a.number as i32, &a.equipment)?;
+            a.weapon_attributes = attributes::weapon_attributes(db, &a.equipment)?;
         }
         Ok(())
     }
@@ -1606,8 +1627,8 @@ impl Battle {
     /// always at zero for a skill of the database—, the variance if the
     /// effect is above zero, and one roll against the hit chance for each
     /// thing it affects, in the order HP, SP, attack, defense, spirit,
-    /// agility. Giving or taking states, attributes, absorbing and reviving
-    /// are not here; what a damaging one releases is, see
+    /// agility. Giving or taking states, shifting attribute ranks, absorbing
+    /// and reviving are not here; what a damaging one releases is, see
     /// [`Battle::released_by_damage`].
     pub fn use_skill(&mut self, db: &Db, source: Who, skill: i32, target: Who) -> Result<()> {
         let s = db.skill(skill)?;
@@ -1909,6 +1930,8 @@ mod tests {
             drop_item: 0,
             drop_chance: 0,
             states: vec![],
+            received: vec![],
+            weapon_attributes: vec![],
         }
     }
 
@@ -1995,6 +2018,8 @@ mod tests {
                 drop_item: 0,
                 drop_chance: 0,
                 states: vec![],
+                received: vec![],
+                weapon_attributes: vec![],
             };
             c.change_hp(amount, lethal);
             c.hp
