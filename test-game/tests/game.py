@@ -74,6 +74,9 @@ class Cartridge:
 
     def __init__(self, data):
         self.rom = data["rom"]
+        # The cases it carries, in the order of their test pages: page k
+        # runs when the case variable is at least k, and 0 asks for nothing.
+        self.cases = data["cases"]
         with open(self.rom + ".sym") as file:
             self.symbols = {name: int(value) for name, value
                             in (line.split() for line in file if line.strip())}
@@ -102,13 +105,20 @@ def cartridge():
 
 
 class Session:
-    """The cartridge running on a core, with the boot already past."""
+    """The cartridge running on a core, with the boot already past and, with
+    `case`, that test page chosen: one of `cases/`, by its name. Without one
+    it is page 0, `[cases] real_game`: the game as it boots."""
 
-    def __init__(self, core):
+    def __init__(self, core, case=None):
         self.cartridge = cartridge()
         self.core = core
         self.console = retro.Console(self.cartridge.rom, core)
         self.console.run(self.symbol("BOOT_FRAMES"))
+        if case is not None:
+            assert case in self.cartridge.cases, (
+                "the cartridge does not carry the case %r: is it in cases/?"
+                % case)
+            self._choose(self.cartridge.cases.index(case))
         # How many ticks the test took.
         self.tick = 0
 
@@ -130,6 +140,24 @@ class Session:
     def word(self, name):
         low, high = self.console.ram(self._ram(name), 2)
         return low | (high << 8)
+
+    def _choose(self, page):
+        """Writes the case variable, by its slot in far RAM, and the refresh
+        that makes the ROM look at the pages again. Before the first game
+        frame: the test pages are automatic and chosen on it. The ports'
+        `_choose_the_case`."""
+        address = self._ram("FAR_VARIABLES") + 2 * self.symbol("CASE_SLOT")
+        self.console.write_ram(address, [page & 0xFF, page >> 8])
+        self.console.write_ram(self._ram("refresh"), [1])
+
+    def switch(self, number):
+        """Whether the switch is on, read from the table the ROM reads:
+        `switches`, in far RAM, `SWITCH_BYTES` long."""
+        assert number // 8 < self.symbol("SWITCH_BYTES"), (
+            "switch %d is past the table, which holds %d bytes"
+            % (number, self.symbol("SWITCH_BYTES")))
+        octet = self.console.ram(self._ram("switches") + number // 8, 1)[0]
+        return bool(octet & (1 << (number % 8)))
 
     def map_(self):
         """Which RM2k map the game is on."""
