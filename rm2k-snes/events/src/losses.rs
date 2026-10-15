@@ -147,6 +147,18 @@ impl Losses {
         self.found.push(Loss { path: self.frames.clone(), code, kind, text: text.into(), subject: None });
     }
 
+    /// The frames the compiler is in, with the command each one is at: to
+    /// note a loss later with [`Losses::lose_on`], once it is known —a call
+    /// to a page whose code is compiled after the call—.
+    pub fn path(&self) -> Vec<(Origin, Option<usize>)> {
+        self.frames.clone()
+    }
+
+    /// [`Losses::lose`] at a place the compiler was: see [`Losses::path`].
+    pub fn lose_on(&mut self, path: Vec<(Origin, Option<usize>)>, code: Option<i32>, kind: &'static str, text: impl Into<String>) {
+        self.found.push(Loss { path, code, kind, text: text.into(), subject: None });
+    }
+
     /// [`Losses::lose`], saying what it is about: see [`Loss::subject`].
     pub fn lose_about(&mut self, code: Option<i32>, kind: &'static str, text: impl Into<String>, subject: &str) {
         self.lose(code, kind, text);

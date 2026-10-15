@@ -235,6 +235,14 @@ ba_t_page:
     pha
     lda pair_ev
     pha
+    ; And the call stack's depth, the foreground's: the battle was opened
+    ; from inside the interpreter, maybe inside a call, and the troop's page
+    ; —which pastes what it calls— has to end at its `OP_DONE` and not
+    ; return into the map's frame. See common_events.s.
+    lda f:call_depth
+    pha
+    lda #0
+    sta f:call_depth
     lda #^troop_code
     sta code_ptr + 2
     lda #PAIR_BATTLE
@@ -250,6 +258,8 @@ ba_t_page:
     sta f:BAT_LENGTH + BA_PAGE_CUR
     sep #$20
 .a8
+    pla
+    sta f:call_depth
     pla
     sta pair_ev
     pla

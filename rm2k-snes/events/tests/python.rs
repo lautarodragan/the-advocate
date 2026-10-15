@@ -87,6 +87,13 @@
 //! message box saying so, and the page goes on, where the Python left the
 //! page out. With the arm answering `cannot()` again, the answer was the
 //! old one.
+//!
+//! And the same day the hash of the compilation's `maps` moved, on
+//! purpose: a `CallEvent` to a map event's page from a page that runs in
+//! the foreground compiles to `OP_CALL_PAGE` with the page's index in the
+//! table, and the Python pasted the page in place. With the call compiled
+//! as a paste again —`compile_call`'s `if me.stack && !me.jumped` never
+//! taken— the answer was the old one.
 
 use rm2k_snes_events::{compile, compile_without_pairs, scan, Game, Request};
 use serde_json::{json, Value};

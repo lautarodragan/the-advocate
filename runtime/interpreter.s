@@ -41,7 +41,7 @@ other:
     ; Y ends up in the middle of an instruction; without the cap, that byte
     ; would index past the table and jump anywhere.
     cmp #EVENT_OPCODE_COUNT
-    bcs op_done
+    bcs page_ends
     ; `tax` with sixteen-bit indexes copies all sixteen bits of C even when A
     ; is eight-bit, so the high byte has to be zero: it holds whatever the
     ; previous handler left. `xba` / `lda #0` / `xba` clears it without
@@ -67,34 +67,58 @@ other:
 
 .assert EVENT_OPCODE_COUNT <= 128, error, "run_code's asl is done in 8 bits"
 
-; OP_DONE, and any number that is not an opcode: the page ends.
+; OP_DONE: the frame ends. Inside a call —a shared common event body, or a
+; map event's page another page called— that is back to the caller, right
+; after its call; with nobody to return to, the page ends. It is RM2k's
+; `END` of a frame and its `EndEventProcessing`, which end only the frame
+; they run in —`Game_Interpreter::EndEventProcessing`, easyrpg—: since
+; 2026-10-15 a called page is the same bytes as the page itself, `OP_DONE`
+; at its end included, so the end has to know whether someone is waiting.
+; Until then it ended the page whatever the depth, and a shared body ended
+; in `OP_RETURN` instead; both are the same thing now.
+;
+; A number that is not an opcode comes to `page_ends` and not here: broken
+; bytecode ends the page, it does not return into a caller.
 .proc op_done
+.a8
+.i16
+    jsl f:call_leave + FAST
+    bcs page_ends
+    jmp run_code::other
+.endproc
+
+; The page ends, whatever the depth: `op_done` with nobody to return to, a
+; number that is not an opcode, a reserved one.
+.proc page_ends
 .a8
 .i16
     stz ev_active
     rts
 .endproc
 
+op_return = op_done
+
 ; The numbers the declaration holds for opcodes other branches are adding: until
 ; they land, each one ends the page, like a number that is not an opcode.
-op_reserved_39 = op_done
-op_reserved_3a = op_done
-op_reserved_3b = op_done
-op_reserved_3c = op_done
+op_reserved_39 = page_ends
+op_reserved_3a = page_ends
+op_reserved_3b = page_ends
+op_reserved_3c = page_ends
+op_reserved_51 = page_ends
+op_reserved_52 = page_ends
+op_reserved_53 = page_ends
 
-; OP_CALL and OP_RETURN: a shared common event body is entered and left. The
-; work is in bank 1, `call_enter` and `call_leave` in common_events.s.
+; OP_CALL and OP_CALL_PAGE: a shared common event body, or a page of this
+; map, is entered. The work is in bank 1, `call_enter` and `call_page_enter`
+; in common_events.s; the return is `OP_DONE`'s.
 .proc op_call
     jsl f:call_enter + FAST
     jmp run_code::other
 .endproc
 
-.proc op_return
-    jsl f:call_leave + FAST
-    bcs nobody
+.proc op_call_page
+    jsl f:call_page_enter + FAST
     jmp run_code::other
-nobody:
-    jmp op_done                 ; an automatic one's end: the page ends
 .endproc
 
 ; Entry k is the handler for opcode k. `rm2k-snes-assemble` writes it from the
