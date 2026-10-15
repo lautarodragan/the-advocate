@@ -88,12 +88,15 @@ FAR_SPEED_KEYS  = $25F1
 ; bit 7 is RM2k's menu request, `menu_calling`: B sets it and the hero
 ; handles it when standing still. The bits are stored as "forbidden" so that
 ; the zero from reset means "everything allowed", which is how RM2k starts.
-; It travels in the save, as it does there.
+; It travels in the save, as it does there. And entering a map writes its
+; save, escape and teleport over them: see `map_access_enter`.
 ;
-; The escape one is stored and **nobody reads it yet**: escaping belongs to
-; the battle. It is here because it is one bit and because without it 30 of
-; the game's 39 pages with `EnemyEncounter` that fail today do not compile;
-; see ACCESO_BIT in events.py.
+; The escape one is stored and **nobody reads it yet**: it is the Escape
+; skill's —not the battle's Escape command, which RM2k does not tie to it—,
+; and that skill cannot be used from the menu yet. It is here because it is
+; one bit and because without it 30 of the game's 39 pages with
+; `EnemyEncounter` that fail today do not compile; see `ACCESS_BIT` in the
+; event compiler.
 FAR_ACCESS     = $25FC
 ; And `MessageOptions`, one byte before: where and how the message window is
 ; drawn, which lasts until the next one and travels in the save, like
@@ -127,6 +130,11 @@ MSG_ARROW_UP = $7E3623          ; whether its cells say it is up; $FF is not kno
 ACCESS_NO_SAVE = $01
 ACCESS_NO_MENU     = $02
 ACCESS_NO_ESCAPE = $04
+; Teleport is only ever forbidden by the map —`map_access_enter`—: no
+; command sets it yet, and nothing reads it until the Teleport skill exists.
+ACCESS_NO_TELEPORT = $08
+; The ones a map writes when it is entered: see `map_access_enter`.
+ACCESS_MAP = ACCESS_NO_SAVE | ACCESS_NO_ESCAPE | ACCESS_NO_TELEPORT
 ACCESS_REQUESTED   = $80
 ; And the +15 of the page `active_layer` found —its speed, and whether its
 ; graphic is fixed—, beside `found_flags`, for which bank 0 has no room left.
@@ -1346,7 +1354,7 @@ GO_FRAMES = $7E7A34             ; how many frames each fade level lasts
 ; when loading the map and everyone who asks about a cell reads it. Reserved
 ; on 2026-09-26, and it is a decision with a cost: it was half of the far RAM
 ; that was still free. What is lost, how it is reverted and what catches it,
-; in decisions/the-grid-lives-in-wram.md in the book;
+; in optimizations/the-grid-in-wram.md in the book;
 ; `test_wram_reservations.py` fails if another symbol lands inside.
 ;
 ; Right behind it, in $7F's half, go the block table and its passability,
@@ -1378,8 +1386,8 @@ GRID_HIGH = $7F8000
 ;
 ; Measured on 2026-09-26: `release`'s work ends on frame 30 and the estimate
 ; gives 34. It was 112 until that day, meant for uploading a full ARAM
-; through the IPL; see decisions/boot-is-sized-for-the-boot-package.md in
-; the book. 40 until 2026-10-02: with the first
+; through the IPL; see "Boot is sized for the boot package" in
+; optimizations/lossless.md in the book. 40 until 2026-10-02: with the first
 ; day in Paradise in the cartridge the startup map's package went from
 ; 14,976 to 15,651 B —the samples are shared out over every package— and
 ; the estimate reached 40.

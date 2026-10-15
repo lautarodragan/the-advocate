@@ -3289,7 +3289,7 @@ pub fn compile_command(
             // audio package, together with its songs —`package_load`, in
             // runtime/audio_package.s—, with the same per-pack budget
             // as the music's samples:
-            // `decisions/a-single-sample-bank.md` in the book. One that
+            // `optimizations/the-sample-bank.md` in the book. One that
             // does not fit in its pack does not sound.
             //
             // How much it unlocks, measured and not assumed: **+10
@@ -3839,9 +3839,11 @@ pub fn compile_command(
             // allowed. The ROM stores it in `FAR_ACCESS`. Saving from the save
             // point does not look at it, like `OpenSaveMenu` in RM2k.
             //
-            // `ChangeEscapeAccess` is the permission to escape from a battle,
-            // and it is stored without being read: the battle looks at the
-            // escape, and that belongs to someone else. It is here anyway
+            // `ChangeEscapeAccess` is the permission to use the Escape skill
+            // —not the battle's Escape command, which RM2k does not tie to
+            // it: easyrpg's `IsSkillUsable` is the only reader of
+            // `GetAllowEscape`—, and it is stored without being read until
+            // that skill can be used from the menu. It is here anyway
             // because it is what unlocks the most for what a bit costs —**30
             // of the game's 39 pages with `EnemyEncounter` that do not compile
             // have it ahead**—, and because a command accepted without being
@@ -4026,7 +4028,7 @@ pub fn compile_command(
             // package to ARAM, with the songs its pages can turn on
             // —`package_load`, in runtime/audio_package.s—, and each
             // sample's budget is that of its worst pack: see
-            // `decisions/a-single-sample-bank.md` in the book.
+            // `optimizations/the-sample-bank.md` in the book.
             //
             // OP_BGM: the song's index in `Songs` (byte). The ROM plays the
             // ones it carried —the first `SONG_TOTAL`— and with any other it
@@ -4193,7 +4195,7 @@ pub fn compile_command(
         // their maps' audio packages. Today the worst package is 54945 of
         // 63831 B of ARAM; adding a battle song to twenty-five maps requires
         // room in those packages: see
-        // decisions/a-single-sample-bank.md in the book.
+        // optimizations/the-sample-bank.md in the book.
         //
         // `ChangeHeroTitle` (10620): an actor's "title", which in RM2k is the
         // text the status screen shows under the name. Eight occurrences in

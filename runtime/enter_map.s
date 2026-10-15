@@ -555,6 +555,37 @@ nothing:
     rts
 .endproc
 
+; What map X —the cartridge's index, sixteen bits— allows, over the
+; permissions: `Game_Map::Setup` writes the save, escape and teleport ones
+; each time a map is entered, so a `ChangeSaveAccess` lasts until the next
+; map, and a map that allows saving gives back what a page had forbidden.
+; The tree's "the parent's" were resolved by the converter: `map_access`
+; carries per map the bits it forbids. Only on a change of map and on a new
+; game —`Setup`—: not on a jump to the same map, which RM2k does not set up
+; again, nor on loading a save, whose permissions are the ones it carries
+; (`SetupFromSave`). Keeps A.
+;
+; And the pure parallel common events are owed a run, as with the
+; permission opcode: the one that forbids saving every frame while a switch
+; is off —ABL's `DisableSaving`— takes it back down on the next frame, which
+; is what RM2k's every frame gives.
+.pushseg
+.segment "FAR2"
+.proc map_access_enter
+.a8
+.i16
+    pha
+    lda f:FAR_LENGTH + FAR_ACCESS
+    and #<~ACCESS_MAP
+    ora f:map_access, x
+    sta f:FAR_LENGTH + FAR_ACCESS
+    lda #1
+    sta f:compar_owed
+    pla
+    rtl
+.endproc
+.popseg
+
 ; What the fade has to do on its first black frame: load the map, or move the
 ; hero if the jump was to the same one. It is done once and turns itself off.
 ;
@@ -576,6 +607,8 @@ nothing:
     jsr move_hero_to
     bra made
 load:
+    ldx fade_map                ; what the new map allows: see map_access_enter
+    jsl f:map_access_enter
     ; The new map's song is decided **before** loading it, because if it
     ; changes the playing one has to be silenced before `package_load`
     ; builds the package: that one leaves in place the samples of the song it
