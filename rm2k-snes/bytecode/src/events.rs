@@ -128,6 +128,9 @@ bytecode! {
 
     OP_STOP_ROUTES = 0x23 ();
 
+    /// `ConditionalBranch` on an actor with two operands: `subkind` is
+    /// RM2k's —3 the HP, 4 a skill, 5 an equipped item—, and `data` the HP,
+    /// the skill's slot or the item.
     OP_IF_ACTOR = 0x24 (
         subkind: byte, actor: byte, data: word, destination: word,
     );

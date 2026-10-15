@@ -462,6 +462,7 @@ pub fn emit(r: &Emit, db: &Db) -> Result<Emitted> {
         COND_ACTOR.into(),
         COND_ACTOR_SKILL.into(),
         COND_ACTOR_EQUIPMENT.into(),
+        COND_ACTOR_HP.into(),
         GOLD_MAX.into(),
         PAN_SHIFT.into(),
         PAN_RETURN.into(),

@@ -699,7 +699,7 @@ fn without_states(text: &str) -> String {
 #[test]
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
-    let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_whole_poses_as_before(&without_pose_masks(&with_frequency_one_as_before(&emitted.text))))))))))))))))));
+    let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_whole_poses_as_before(&without_pose_masks(&with_frequency_one_as_before(&with_the_actor_questions_as_before(&emitted.text)))))))))))))))))));
     assert_eq!(text.lines().count(), 3777);
     assert_eq!(
         sha(&text),
@@ -710,7 +710,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 #[test]
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
-    let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_whole_poses_as_before(&without_pose_masks(&with_frequency_one_as_before(&emitted.text))))))))))))))))));
+    let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_whole_poses_as_before(&without_pose_masks(&with_frequency_one_as_before(&with_the_actor_questions_as_before(&emitted.text)))))))))))))))))));
     assert_eq!(text.lines().count(), 3896);
     assert_eq!(
         sha(&text),
@@ -806,6 +806,27 @@ fn enemies_with_more_actions_than_a_byte_numbers_start_in_words() {
     let text = rm2k_snes_mapdata::emit::emit(&request, &db()).unwrap().text;
     let starts = text.split("enemy_acc_init:\n").nth(1).unwrap().lines().next().unwrap();
     assert_eq!(starts, "    .word 0, 40, 80, 120, 160, 200, 240, 280");
+}
+
+/// The text with the actor questions of `OP_IF_ACTOR` as they were: since
+/// 2026-10-15 there are three, with `COND_ACTOR_HP`, and the comment over
+/// them no longer counts them nor points to a Python file.
+fn with_the_actor_questions_as_before(text: &str) -> String {
+    let now = concat!(
+        "; And the actor questions that carry two operands, with their\n",
+        "; own opcode: see OP_IF_ACTOR in the events compiler.\n",
+        "COND_ACTOR_SKILL = 4\n",
+        "COND_ACTOR_EQUIPMENT = 5\n",
+        "COND_ACTOR_HP = 3\n",
+    );
+    let before = concat!(
+        "; And the two actor questions that carry two operands, with their\n",
+        "; own opcode: see OP_IF_ACTOR in events.py.\n",
+        "COND_ACTOR_SKILL = 4\n",
+        "COND_ACTOR_EQUIPMENT = 5\n",
+    );
+    assert!(text.contains(now), "the actor questions should go whole");
+    text.replacen(now, before, 1)
 }
 
 /// The text with the comment over the title menu's constants as it was:
