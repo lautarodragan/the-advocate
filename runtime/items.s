@@ -24,35 +24,48 @@
 ; converter's tables, in `FAR_ITEM_LIST`. How many there are, the first one
 ; visible and the cursor go in borrowed variables: `pick_n`, `pick_sel` and
 ; `title_sel`. The choice cannot be open with the menu —the menu does not
-; open with a message up— so its bytes are free; `pick_cancel` and
-; `pick_edges` serve as scratch, and `pick_table` is where the text writers
-; write.
-FAR_ITEM_LIST = $2A00
+; open with a message up— so its bytes are free; `pick_cancel` serves as
+; scratch, and `pick_table` is where the text writers write.
+;
+; **A `k` is a word**, since 2026-10-15: ABL's whole game carries 264 items.
+; The list holds one per two bytes, and it took over the 256 bytes the
+; shop's had right after it —`FAR_SHOP`, which went to the battle's—, so it
+; still holds 255: `pick_n` is a byte, and the items past it are not listed.
+ITEM_LIST_MAX = 255
+.assert FAR_ITEM_LIST + 2 * ITEM_LIST_MAX <= FAR_EQUIPMENT, error, "the item list reaches the equipment"
+.assert FAR_ITEMS + ITEMS_N <= FAR_ITEM_LIST, error, "the inventory reaches the item list"
 
-; A: a place in the list. Returns with A = its `k`. Only A.
+; The `k` of the item the screen is on: the one under the cursor when A is
+; pressed, which the actor choice and `medicine_use` read. Until 2026-10-15
+; it was `pick_edges`, a byte.
+.pushseg
+.segment "BSS"
+item_sel: .res 2
+.popseg
+
+; A: a place in the list. Returns with X = its `k`. Only A and X.
 .proc item_from_list
 .a8
 .i16
     rep #$20
 .a16
     and #$00FF
-    clc
-    adc #FAR_ITEM_LIST
-    sta WMADDL
+    asl a
+    tax
+    lda f:$7E0000 + FAR_ITEM_LIST, x
+    tax
     sep #$20
 .a8
-    stz WMADDH
-    lda WMDATA
     rts
 .endproc
 
-; A: a `k`. Returns with A = how many of that item there are. Clobbers X.
+; X: a `k`. Returns with A = how many of that item there are. Clobbers X.
 .proc item_count
 .a8
 .i16
     rep #$20
 .a16
-    and #$00FF
+    txa
     asl a
     tax
     lda f:item_id, x
@@ -84,26 +97,37 @@ other:
     stz WMADDH
     lda WMDATA
     beq next
-    lda f:item_k, x
-    cmp #$FF
-    beq next                    ; one this ROM does not know how to show
-    pha
+    lda pick_n
+    cmp #ITEM_LIST_MAX
+    bcs ready                   ; full: the rest are not listed
+    phx
     rep #$20
 .a16
+    txa
+    asl a
+    tax
+    lda f:item_k, x
+    cmp #$FFFF
+    beq unknown                 ; one this ROM does not know how to show
+    pha
     lda pick_n
     and #$00FF
-    clc
-    adc #FAR_ITEM_LIST
-    sta WMADDL
+    asl a
+    tax
+    pla
+    sta f:$7E0000 + FAR_ITEM_LIST, x
     sep #$20
 .a8
-    pla
-    sta WMDATA
     inc pick_n
+unknown:
+    sep #$20
+.a8
+    plx
 next:
     inx
     cpx #ITEMS_N
     bcc other
+ready:
     rts
 .endproc
 
@@ -123,8 +147,8 @@ next:
     jsr item_from_list
     rep #$20
 .a16
-    and #$00FF
-    sta temp + 2
+    stx temp + 2
+    txa
     asl a
     clc
     adc temp + 2
@@ -179,14 +203,8 @@ ready:
     clc
     adc pick_sel                ; its place in the list
     jsr item_from_list
-    sta pick_edges              ; its `k`
+    phx                         ; its `k`, for the name and the quantity
     ; --- the color: gray if A does not use it ---
-    rep #$20
-.a16
-    and #$00FF
-    tax
-    sep #$20
-.a8
     lda f:item_use, x
     and #1
     eor #1
@@ -200,17 +218,18 @@ ready:
     lsr a                       ; two rows of cells, 128 bytes
     clc
     adc #ITEM_LIST_POS
-    pha                         ; the row, for the quantity
+    tay                         ; the row, for the quantity
     clc
     adc #(ITEM_NAME_COL * 2)
     sta pick_table
-    lda pick_edges
-    and #$00FF
+    pla                         ; the `k`
+    pha
     sta temp + 2
     asl a
     clc
     adc temp + 2
     tax
+    phy
     sep #$20
 .a8
     jsr scr_text
@@ -225,7 +244,7 @@ ready:
 .a8
     lda #$3A                    ; ':'
     jsr scr_glyph
-    lda pick_edges
+    plx                         ; the `k`
     jsr item_count
     cmp #100
     bcc fits
@@ -324,13 +343,7 @@ check_a:
     beq wait                    ; the list is empty
     lda title_sel
     jsr item_from_list
-    sta pick_edges              ; its `k`
-    rep #$20
-.a16
-    and #$00FF
-    tax
-    sep #$20
-.a8
+    stx item_sel                ; its `k`
     lda f:item_use, x
     and #1
     beq wait                    ; grayed out: RM2k plays a sound and does nothing
@@ -378,14 +391,13 @@ from_switch:
     lda f:item_use, x
     and #2
     beq no_consume
-    lda pick_edges
+    ldx item_sel
     jsr item_count
     dec a
     pha
-    lda pick_edges
     rep #$20
 .a16
-    and #$00FF
+    lda item_sel
     asl a
     tax
     lda f:item_id, x
@@ -397,10 +409,9 @@ from_switch:
     pla
     sta WMDATA
 no_consume:
-    lda pick_edges
     rep #$20
 .a16
-    and #$00FF
+    lda item_sel
     asl a
     tax
     lda f:item_switch, x        ; lives in RODATA: see the converter

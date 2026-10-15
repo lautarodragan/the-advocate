@@ -104,16 +104,12 @@
     beq none
     cmp #ITEMS_N
     bcs none
+    asl a
     tax
-    sep #$20
-.a8
     lda f:item_k, x
-    cmp #$FF
-    beq none8
-    rep #$20
-.a16
-    and #$00FF
     tax
+    inc a
+    beq none                    ; $FFFF: one the ROM does not know
     sep #$20
 .a8
     lda #1                      ; Z=0
@@ -122,7 +118,6 @@
 none:
     sep #$20
 .a8
-none8:
     lda #0                      ; Z=1
     rts
 .endproc
@@ -317,7 +312,7 @@ ready:
 .endproc
 
 ; The list of what the actor can put on in `eq_slot`, as `k` in
-; `FAR_ITEM_LIST`, and at the end an $FF which is the empty line. How many in
+; `FAR_ITEM_LIST`, and at the end an $FFFF which is the empty line. How many in
 ; `eq_n`. It is `screens.candidates`.
 .proc eq_list_build
 .a8
@@ -336,16 +331,21 @@ other:
     stz WMADDH
     lda WMDATA
     beq next
-    lda f:item_k, x
-    cmp #$FF
-    beq next
+    lda comp_base
+    cmp #(ITEM_LIST_MAX - 1)
+    bcs list_list               ; full but for the empty line
     phx
     rep #$20
 .a16
-    and #$00FF
+    txa
+    asl a
+    tax
+    lda f:item_k, x
     tax                         ; X = k
     sep #$20
 .a8
+    cpx #$FFFF
+    beq does_not_go             ; one the ROM does not know
     lda comp_col
     inc a
     cmp f:item_type, x
@@ -401,20 +401,17 @@ run:
 bit_ready:
     and #1
     beq does_not_go
-    txa                         ; the k, which fits in a byte
-    pha
     rep #$20
 .a16
     lda comp_base
     and #$00FF
-    clc
-    adc #FAR_ITEM_LIST
-    sta WMADDL
+    asl a
+    phx
+    tax
+    pla                         ; the k
+    sta f:$7E0000 + FAR_ITEM_LIST, x
     sep #$20
 .a8
-    stz WMADDH
-    pla
-    sta WMDATA
     inc comp_base
 does_not_go:
     plx
@@ -429,14 +426,12 @@ list_list:
 .a16
     lda comp_base
     and #$00FF
-    clc
-    adc #FAR_ITEM_LIST
-    sta WMADDL
+    asl a
+    tax
+    lda #$FFFF                  ; the empty line
+    sta f:$7E0000 + FAR_ITEM_LIST, x
     sep #$20
 .a8
-    stz WMADDH
-    lda #$FF                    ; the empty line
-    sta WMDATA
     inc comp_base
     rts
 .endproc
@@ -446,11 +441,11 @@ list_list:
 .a8
 .i16
     jsl f:ba_t_list
-    cmp #$FF
+    cpx #$FFFF
     beq empty
     rep #$20
 .a16
-    and #$00FF
+    txa
     asl a
     tax
     lda f:item_id, x

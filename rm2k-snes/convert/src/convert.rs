@@ -775,20 +775,7 @@ pub fn run(options: Options) -> Result<()> {
     let items_rom = scan::possible_items(every_refs.iter().copied(), &members, &game.db, &file_commands);
     let mut items_all: BTreeSet<i32> = items_rom.iter().copied().collect();
     items_all.extend(scan::drop_items(&game.db, &troops.ids));
-    let mut items_all: Vec<i32> = items_all.into_iter().collect();
-    // TEMPORARY, taro's on 2026-10-14: the item tables index with a byte, and
-    // ABL's whole `release` asks for 264. The ones past the first 255 are
-    // left out —the ROM reads them as no item—, so the build goes on and
-    // shows what stops it next. The real fix, the index in 16 bits, is
-    // `tasks/abl-release-stops-at-the-first-night.md`.
-    if items_all.len() > 255 {
-        println!(
-            "WARNING, TEMPORARY: {} items, the tables hold 255; left out: {:?}",
-            items_all.len(),
-            &items_all[255..]
-        );
-        items_all.truncate(255);
-    }
+    let items_all: Vec<i32> = items_all.into_iter().collect();
     let font = FontChoice::of(&settings)?;
     let menu_before: Value = compiled
         .get("commons")

@@ -1303,7 +1303,7 @@ next:
     jsr ba_item_from_list
     rep #$20
 .a16
-    and #$00FF
+    txa
     asl a
     tax
     lda f:ba_item_desc, x
@@ -1358,10 +1358,10 @@ column_zero:
     sta comp_dup + 3
     lda BA_S3
     jsr ba_item_from_list
-    sta BA_S6                   ; the `k`
+    stx BA_S6                   ; the `k`
     rep #$20
 .a16
-    and #$00FF
+    txa
     sta BA_T0
     asl a
     clc
@@ -1391,7 +1391,6 @@ column_zero:
     adc #BA_ITEM_COUNT_DX
     jsr ba_go
     lda BA_S6
-    and #$00FF
     asl a
     tax
     lda f:item_id, x

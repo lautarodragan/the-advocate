@@ -16,27 +16,24 @@
 ; absolute addressing**: `FAR_ITEMS` lives in that bank and in it the
 ; addresses are the same. The cartridge's tables go with `f:`.
 
-; The list of what can be used: one `k` per byte in `BA_ITEM_LIST` and how
+; The list of what can be used: one `k` per word in `BA_ITEM_LIST` and how
 ; many in `BA_ITEM_N`. It walks the items the ROM knows in the converter's
 ; order, which is RM2k's number order, like `Game_Party`.
 .proc ba_items_list
 .a8
 .i16
-    lda #0
-    sta BA_ITEM_N
-    sta BA_S0                   ; the `k` being looked at
+    stz BA_ITEM_N
+    stz BA_S0                   ; the `k` being looked at, a word
+    stz BA_S0 + 1
 other:
-    lda BA_S0
-    cmp #ITEMS_ROM
+    ldx BA_S0
+    cpx #ITEMS_ROM
     bcs ready
-    lda BA_S0
-    jsr ba_ax
     lda f:item_battle, x
     beq next
-    lda BA_S0
     rep #$20
 .a16
-    and #$00FF
+    txa
     asl a
     tax
     lda f:item_id, x            ; its RM2k number
@@ -46,30 +43,47 @@ other:
     lda FAR_ITEMS, x            ; how many there are in the inventory
     beq next
     lda BA_ITEM_N
-    jsr ba_ax
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
     lda BA_S0
     sta BA_ITEM_LIST, x
+    sep #$20
+.a8
     inc BA_ITEM_N
     lda BA_ITEM_N
     cmp #BA_ITEM_MAX
     bcs ready
 next:
+    rep #$20
+.a16
     inc BA_S0
+    sep #$20
+.a8
     bra other
 ready:
     rts
 .endproc
 
-; The `k` at place A of the list. Only A and X.
+; The `k` at place A of the list, in X. Only A and X.
 .proc ba_item_from_list
 .a8
 .i16
-    jsr ba_ax
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
     lda BA_ITEM_LIST, x
+    tax
+    sep #$20
+.a8
     rts
 .endproc
 
-; One less in the inventory of the `k` in A. It is what RM2k does when it is
+; One less in the inventory of the `k` in X. It is what RM2k does when it is
 ; chosen and not when it is used: otherwise the last one of an item could be
 ; handed out to two actors in the same turn.
 .proc ba_item_consume
@@ -77,7 +91,7 @@ ready:
 .i16
     rep #$20
 .a16
-    and #$00FF
+    txa
     asl a
     tax
     lda f:item_id, x
@@ -92,7 +106,7 @@ ready:
     rts
 .endproc
 
-; How much the `k` in A heals the combatant `BA_MTGT`. It enters with an
+; How much the `k` in X heals the combatant `BA_MTGT`. It enters with an
 ; 8-bit A and leaves with a 16-bit A.
 ;
 ;     hp = recover_hp_rate * GetMaxHp() / 100 + recover_hp
@@ -104,7 +118,7 @@ ready:
 .proc ba_item_heal
 .a8
 .i16
-    sta BA_S3                   ; the `k`
+    stx BA_S3                   ; the `k`
     lda BA_MTGT
     jsr ba_x
     rep #$20
@@ -113,8 +127,7 @@ ready:
     sta BA_S4                   ; the target's offset
     sep #$20
 .a8
-    lda BA_S3
-    jsr ba_ax
+    ldx BA_S3
     lda f:item_heal_rate, x
     sta BA_T2
     ldx BA_S4
@@ -124,7 +137,6 @@ ready:
     jsr ba_rate_of
     sta BA_S5
     lda BA_S3
-    and #$00FF
     asl a
     tax
     lda f:item_heal_hp, x
@@ -151,8 +163,7 @@ capped:
 .proc ba_item_sp
 .a8
 .i16
-    lda BA_S3
-    jsr ba_ax
+    ldx BA_S3
     lda f:item_heal_sp_rate, x
     sta BA_T2
     ldx BA_S4
@@ -162,7 +173,6 @@ capped:
     jsr ba_rate_of
     sta BA_S6
     lda BA_S3
-    and #$00FF
     asl a
     tax
     lda f:item_heal_sp, x
@@ -246,7 +256,7 @@ capped:
     jsr ba_item_from_list
     rep #$20
 .a16
-    and #$00FF
+    txa
     asl a
     asl a
     asl a
@@ -288,7 +298,6 @@ bit_ready:
     beq fallen
     lda BA_ITEM_SEL
     jsr ba_item_from_list
-    jsr ba_ax
     lda f:item_medicine, x
     and #MED_KO_ONLY
     beq if
@@ -298,7 +307,6 @@ no:
 fallen:
     lda BA_ITEM_SEL
     jsr ba_item_from_list
-    jsr ba_ax
     lda f:item_medicine, x
     and #MED_RAISES
     beq no
@@ -346,10 +354,16 @@ if:
     sep #$20
 .a8
     lda BA_MWHO
-    jsr ba_ax
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
     lda BA_ACC_ITEM, x
     sta BA_MITEM
-    jsr ba_ax
+    tax
+    sep #$20
+.a8
     lda f:item_medicine, x
     sta BA_S2                   ; its flags
     lda BA_MTGT
@@ -363,7 +377,7 @@ if:
     lda BA_S2
     and #MED_KO_ONLY
     bne nothing
-    lda BA_MITEM
+    ldx BA_MITEM
     jsr ba_item_heal
 .a16
     sta BA_MHEAL
@@ -384,7 +398,7 @@ fallen:
     lda BA_S2
     and #MED_RAISES
     beq nothing
-    lda BA_MITEM
+    ldx BA_MITEM
     jsr ba_item_heal            ; with zero HP, the cap is the whole maximum
 .a16
     cmp #0

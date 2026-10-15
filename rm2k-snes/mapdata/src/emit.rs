@@ -2412,9 +2412,12 @@ impl Rest<'_> {
         let (r, db, t) = (self.r, self.db, self.t);
         let cell = CELL;
         let items = &r.items;
-        if items.len() > 255 {
+        // A `k` is a word, and the runtime indexes the tables with it in a
+        // sixteen-bit X: the widest one, `item_up`, at `12k`. RM2k's editor
+        // stops at 5000 items, below this.
+        if items.len() * 12 > 0x10000 {
             return Err(Bad::answer(format!(
-                "{} items don't fit in one-byte tables",
+                "{} items: `item_up` is indexed by 12k in sixteen bits",
                 items.len()
             )));
         }
@@ -2446,12 +2449,14 @@ impl Rest<'_> {
             t.n("ITEM_LIST_Y").div_euclid(cell)
         ));
         // The item tables go outside bank 0, read with `lda f:item_k, x`:
-        // they grow with every item the maps bring.
+        // they grow with every item the maps bring. `item_k` is a word per
+        // RM2k number, $FFFF for one the cartridge does not carry: ABL's
+        // whole game carries 264 items, and until 2026-10-15 it was a byte.
         out.push_str(".segment \"RODATA\"\n");
-        bytes_asm(
+        words_asm(
             out,
             "item_k",
-            &decimal((0..ITEMS_N as i64).map(|n| k_of.get(&n).map_or(0xFF, |&k| k as i64))),
+            &decimal((0..ITEMS_N as i64).map(|n| k_of.get(&n).map_or(0xFFFF, |&k| k as i64))),
             true,
         );
         words_asm(out, "item_id", &decimal(items.iter()), true);
@@ -3456,20 +3461,16 @@ impl Rest<'_> {
         );
         words_asm(out, "enemy_exp", &per_enemy(&|e| e.exp.into())?, true);
         words_asm(out, "enemy_gold", &per_enemy(&|e| e.gold.into())?, true);
-        // TEMPORARY, taro's on 2026-10-14: a drop the cartridge does not
-        // carry —the converter leaves out the items past 255, see
-        // `items_all` in convert.rs— drops nothing, instead of stopping the
-        // build. Until then it was an error.
         let known: BTreeSet<i64> = r.items.iter().copied().collect();
-        words_asm(
-            out,
-            "enemy_drop",
-            &per_enemy(&|e| {
-                let drop = i64::from(e.drop_id);
-                if known.contains(&drop) { drop } else { 0 }
-            })?,
-            true,
-        );
+        for &e in rom_enemies {
+            let drop = i64::from(enemy(e)?.drop_id);
+            if drop != 0 && !known.contains(&drop) {
+                return Err(Bad::answer(format!(
+                    "enemy {e} drops item {drop} and the cartridge doesn't carry it"
+                )));
+            }
+        }
+        words_asm(out, "enemy_drop", &per_enemy(&|e| e.drop_id.into())?, true);
         bytes_asm(
             out,
             "enemy_drop_pct",
