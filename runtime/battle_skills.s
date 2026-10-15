@@ -176,8 +176,8 @@ runs:
     dey
     bra runs
 mask_list:
-    ora switches, x
-    sta switches, x
+    ora f:switches, x
+    sta f:switches, x
     lda #1
     sta refresh                 ; the pages that ask for it may change
     rts

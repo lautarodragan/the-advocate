@@ -191,6 +191,9 @@ fn without_pairs(answer: &mut Value) {
     // `the_parallel_common_events_come_compiled`.
     if let Some(m) = answer.as_object_mut() {
         m.remove("parallel_commons");
+        // And the highest switch the game names, which came on 2026-10-15:
+        // see `the_scan_says_the_highest_switch`.
+        m.remove("switch_top");
     }
     if let Some(m) = answer.get_mut("messages").and_then(Value::as_object_mut) {
         m.remove("pairs");
@@ -304,6 +307,19 @@ fn the_scan_gathers_the_pictures() {
 
 fn game(request: &Request) -> Game {
     Game::from_dump(&here().join("game"), request.patches.clone()).unwrap()
+}
+
+/// The highest switch the game names, which the cartridge's table holds:
+/// the test game names none past the harness's `TEST_SWITCH`, 1023, which
+/// the request carries in `extra_switches`; without it, its own highest.
+#[test]
+fn the_scan_says_the_highest_switch() {
+    let mut request = Request::from_json(&read("scan.json"), "scan.json").unwrap();
+    let g = game(&request);
+    assert_eq!(scan(&g, &request).unwrap()["switch_top"], 1023);
+    request.extra_switches.clear();
+    let own = scan(&g, &request).unwrap()["switch_top"].as_i64().unwrap();
+    assert!((1..1023).contains(&own), "{own}");
 }
 
 #[test]

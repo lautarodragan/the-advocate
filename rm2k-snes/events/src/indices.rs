@@ -9,7 +9,7 @@
 
 use crate::codes::*;
 use crate::compile::{
-    Indices, COND_ACTOR, COND_ACTOR_SKILL, COND_VARIABLE, VAR_VARIABLE,
+    Indices, COND_ACTOR, COND_ACTOR_SKILL, COND_SWITCH, COND_VARIABLE, SWITCH_TABLE_MAX, VAR_VARIABLE,
 };
 use crate::fail::{Bad, Result};
 use crate::game::{Command, Game, Map};
@@ -399,17 +399,90 @@ pub fn hero_names(game: &Game, maps: &[Map]) -> BTreeMap<i32, String> {
         .collect()
 }
 
+/// The switches these commands name: a `ControlSwitches` on one or on a
+/// range, and a branch on one. The one by variable names a variable, and
+/// does not compile.
+pub fn command_switches(commands: &[Command]) -> BTreeSet<i32> {
+    let mut ids = BTreeSet::new();
+    for cmd in commands {
+        let p = &cmd.parameters;
+        if cmd.code == CONTROL_SWITCHES && p.len() >= 3 && (p[0] == 0 || p[0] == 1) {
+            ids.extend([p[1], p[2]]);
+        } else if cmd.code == COND_BRANCH && p.len() >= 2 && p[0] as i64 == COND_SWITCH {
+            ids.insert(p[1]);
+        }
+    }
+    ids
+}
+
+/// The highest switch the game names, which is what the ROM's table holds:
+/// the cartridge's `SWITCH_BYTES` is this over eight plus one.
+///
+/// Until 2026-10-15 the table was 128 bytes for every game —1024 switches,
+/// the most ABL names being 1008—, and nothing stopped a `ControlSwitches`
+/// past it: Vampires Dawn has a thousand such commands, up to 1643, and The
+/// Frozen World seventy-eight, up to 1077, and they wrote into whatever RAM
+/// followed the table, while their page conditions read it. Now the table is
+/// the game's, and a game that names none past 127 pays 16 bytes.
+///
+/// Like the variables, **every** page of every map, troop and common event
+/// is swept, whether it compiles or not —its conditions, its triggers and its
+/// commands—, plus the database's switch items and skills and `extra`, the
+/// test pages' and the harness's. That way the table does not depend on
+/// what compiles, and a game saved with one cartridge loads in another.
+pub fn switch_top(game: &Game, maps: &[Map], extra: &BTreeSet<i32>) -> Result<i32> {
+    let mut ids = extra.clone();
+    ids.extend(&game.database_switches);
+    for map in maps {
+        for event in &map.events {
+            for page in &event.pages {
+                ids.extend([page.condition.switch_a, page.condition.switch_b].into_iter().flatten());
+                ids.extend(command_switches(&page.commands));
+            }
+        }
+    }
+    for pages in game.troops.values() {
+        for page in pages {
+            let c = &page.condition;
+            if c.flags.switch_a {
+                ids.insert(c.switch_a_id);
+            }
+            if c.flags.switch_b {
+                ids.insert(c.switch_b_id);
+            }
+        }
+    }
+    for commands in troop_page_commands(game) {
+        ids.extend(command_switches(&commands));
+    }
+    for c in game.common_events.values() {
+        if c.switch_flag {
+            ids.insert(c.switch_id);
+        }
+        ids.extend(command_switches(&c.commands));
+    }
+    let top = ids.last().copied().unwrap_or(0).max(0);
+    if top >= SWITCH_TABLE_MAX {
+        return Err(Bad::answer(format!(
+            "the game names switch {top} and the ROM's table holds {SWITCH_TABLE_MAX}: see SWITCHRAM in rm2k-snes/cartridge"
+        )));
+    }
+    Ok(top)
+}
+
 /// All of them.
 pub fn build(
     game: &Game,
     maps: &[Map],
     extra_variables: &BTreeSet<i32>,
     extra_pairs: &BTreeSet<(i32, i32)>,
+    extra_switches: &BTreeSet<i32>,
 ) -> Result<Indices> {
     Ok(Indices {
         variables: variables(game, maps, extra_variables),
         skills: skills(game, maps, extra_pairs)?,
         hero_names: hero_names(game, maps),
+        switch_top: switch_top(game, maps, extra_switches)?,
     })
 }
 
@@ -439,5 +512,76 @@ mod tests {
         );
         let slots = variables(&game, &[], &BTreeSet::from([100]));
         assert_eq!(slots, BTreeMap::from([(70, 0), (100, 1), (134, 2)]));
+    }
+
+    fn switches_page(switch_a: Option<i32>, commands: Vec<Command>) -> crate::game::Page {
+        crate::game::Page {
+            trigger: 0,
+            layer: 1,
+            move_type: 0,
+            move_frequency: 3,
+            move_speed: 3,
+            animation_type: 0,
+            character_name: String::new(),
+            character_index: 0,
+            character_pattern: 1,
+            commands,
+            route: Vec::new(),
+            route_repeat: false,
+            route_skippable: false,
+            condition: crate::game::Condition { switch_a, ..Default::default() },
+        }
+    }
+
+    fn on_a_map(pages: Vec<crate::game::Page>) -> Map {
+        Map { id: 1, events: vec![crate::game::Event { id: 1, pages, starting: None }] }
+    }
+
+    /// Each place a switch can be named raises the table: a page's
+    /// condition, a `ControlSwitches` on one or on a range —not by
+    /// variable—, a branch, a common event's trigger, a troop page's
+    /// condition and its commands, the database's switch skills and items,
+    /// and `extra`.
+    #[test]
+    fn the_table_holds_the_highest_switch_named_anywhere() {
+        let top = |game: &Game, maps: &[Map], extra: &[i32]| {
+            switch_top(game, maps, &extra.iter().copied().collect()).unwrap()
+        };
+        let control = |p: &[i32]| Command::new(CONTROL_SWITCHES, 0, "", p.to_vec());
+        let game = Game::default();
+        assert_eq!(top(&game, &[], &[]), 0);
+        assert_eq!(top(&game, &[on_a_map(vec![switches_page(Some(1521), vec![])])], &[]), 1521);
+        assert_eq!(top(&game, &[on_a_map(vec![switches_page(None, vec![control(&[1, 1070, 1077, 0])])])], &[]), 1077);
+        // By variable, 1500 is the variable.
+        assert_eq!(top(&game, &[on_a_map(vec![switches_page(None, vec![control(&[2, 1500, 1500, 0])])])], &[]), 0);
+        let branch = Command::new(COND_BRANCH, 0, "", vec![0, 1060, 0, 0, 0, 0]);
+        assert_eq!(top(&game, &[on_a_map(vec![switches_page(None, vec![branch])])], &[]), 1060);
+        assert_eq!(top(&game, &[], &[1023]), 1023);
+
+        let mut game = Game::default();
+        game.common_events.insert(1, CommonEvent { trigger: 3, switch_flag: true, switch_id: 1600, commands: vec![] });
+        assert_eq!(top(&game, &[], &[]), 1600);
+        game.common_events.insert(2, CommonEvent { trigger: 5, switch_flag: false, switch_id: 1700, commands: vec![control(&[0, 1643, 1643, 0])] });
+        assert_eq!(top(&game, &[], &[]), 1643, "a trigger without its flag names nothing");
+
+        let mut game = Game::default();
+        let mut condition = ditto::schema::TroopPageCondition::default();
+        condition.flags.switch_b = true;
+        condition.switch_b_id = 1400;
+        game.troops.insert(1, vec![crate::game::TroopPage { condition, commands: vec![] }]);
+        assert_eq!(top(&game, &[], &[]), 1400);
+        game.database_switches.insert(1450);
+        assert_eq!(top(&game, &[], &[]), 1450);
+    }
+
+    /// Past the 256 bytes the cartridge gives the table the converter stops,
+    /// instead of reading and writing whatever RAM follows it.
+    #[test]
+    fn a_game_past_the_table_is_refused() {
+        let mut game = Game::default();
+        game.database_switches.insert(SWITCH_TABLE_MAX - 1);
+        assert_eq!(switch_top(&game, &[], &BTreeSet::new()).unwrap(), 2047);
+        game.database_switches.insert(SWITCH_TABLE_MAX);
+        assert!(switch_top(&game, &[], &BTreeSet::new()).is_err());
     }
 }

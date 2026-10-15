@@ -696,6 +696,17 @@ fn without_states(text: &str) -> String {
     lines.join("\n")
 }
 
+/// The text with the switch table's comment as it was: since 2026-10-15
+/// the table is the game's —`SWITCH_BYTES` comes from the request's
+/// `switch_top`, 1023 in both, so it is 128 as it was— and the comment no
+/// longer says ABL's highest.
+fn with_the_switch_comment_as_before(text: &str) -> String {
+    let now = "; One bit per switch, up to the highest the game names.";
+    assert!(text.contains(now));
+    assert!(text.contains("\nSWITCH_BYTES = 128\n"));
+    text.replace(now, "; One bit per switch. The highest the game checks is 1003.")
+}
+
 /// The text without the attributes, which came on 2026-10-15: `ATTR_N` and
 /// its six tables, three lines each. The test game carries none, so
 /// `ATTR_N` is zero —checked here—, and every item and skill has the empty
@@ -738,7 +749,7 @@ fn without_map_access(text: &str) -> String {
 #[test]
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
-    let text = without_map_access(&without_attributes(&emitted.text));
+    let text = with_the_switch_comment_as_before(&without_map_access(&without_attributes(&emitted.text)));
     let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_whole_poses_as_before(&without_pose_masks(&with_frequency_one_as_before(&with_the_actor_questions_as_before(&text)))))))))))))))))));
     assert_eq!(text.lines().count(), 3777);
     assert_eq!(
@@ -750,7 +761,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 #[test]
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
-    let text = without_map_access(&without_attributes(&emitted.text));
+    let text = with_the_switch_comment_as_before(&without_map_access(&without_attributes(&emitted.text)));
     let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_whole_poses_as_before(&without_pose_masks(&with_frequency_one_as_before(&with_the_actor_questions_as_before(&text)))))))))))))))))));
     assert_eq!(text.lines().count(), 3896);
     assert_eq!(

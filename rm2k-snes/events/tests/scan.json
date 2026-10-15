@@ -108,6 +108,9 @@
    ]
   }
  ],
+ "extra_switches": [
+  1023
+ ],
  "extra_variables": [
   1000
  ],

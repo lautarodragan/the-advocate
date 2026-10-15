@@ -393,12 +393,14 @@ untouched:
     sta temp
     rep #$20
 .a16
+    phx
     lda f:compar_table + 0, x
     and #$00FF
-    tay
+    tax                         ; the table is far, and a long index is X
     sep #$20
 .a8
-    lda switches, y
+    lda f:switches, x
+    plx
     and temp
     bne on
     sta f:compar_state + 5, x   ; off: it keeps where it was

@@ -216,7 +216,7 @@ save_table:
     .word tint_s, 1
     .word timer_sec, 5          ; seconds, sub, whether it runs and whether it shows
     .word gold, 3
-    .word switches, SWITCH_BYTES
+    .word .loword(switches), SWITCH_BYTES
     ; Which song is playing and whether it is muted. An event's `PlayBGM`
     ; turns it on, so it is world state like a switch: without this a loaded
     ; save starts with the song of the ROM's initial map instead of the one

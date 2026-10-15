@@ -169,6 +169,15 @@ pub fn run(options: Options) -> Result<()> {
         println!("{line}");
     }
     let mut compiler = Compiler::new(&game, &settings)?;
+    if !cases.is_empty() {
+        // The test pages turn it on, and the table has to hold it.
+        compiler.extra_switches.insert(TEST_SWITCH);
+    }
+    // And the ones the custom menus' conditions ask for, which no page may
+    // name.
+    for menu in &custom_menus {
+        compiler.extra_switches.extend(menu.switches().into_iter().map(|s| s as i32));
+    }
     compiler.systems = crate::systems::names(&game, &switched, any_system);
     // For `rm2k-snes-events culprits --request`, which asks the same thing
     // of the same dump.
@@ -1092,7 +1101,7 @@ pub fn run(options: Options) -> Result<()> {
         );
     }
     let case_slot = if cases.len() > 1 { Some(indices.variable_slot(CASE_VARIABLE as i64)?) } else { None };
-    let request = json!({
+    let mut request = json!({
         "maps": infos
             .iter()
             .map(|m| emit::map_record(m, emit::access_bits(game.tree.rules.access(m.id))))
@@ -1143,6 +1152,9 @@ pub fn run(options: Options) -> Result<()> {
             "mode7": l.get("mode7").cloned().unwrap_or(Value::Null),
         })).collect::<Vec<_>>(),
     });
+    // The highest switch the game names, which the table holds: apart, because
+    // the literal above is at `json!`'s recursion limit.
+    request["switch_top"] = json!(indices.switch_top);
     let emitted = emit::emit(&output, &request, &game.dump)?;
     println!(
         "{} map(s) -> {}, boots at {start_index} (map {})",

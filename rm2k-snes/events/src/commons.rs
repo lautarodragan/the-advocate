@@ -32,7 +32,6 @@ use crate::codes::*;
 use rm2k_snes_bytecode::events::{OP_DONE, OP_MENU_OPEN, OP_RETURN, OP_SWITCH};
 use crate::compile::{
     compile_page, Ctx, Indices, SoundSettings, COND_ACTOR, COND_ACTOR_EQUIPMENT, COND_SWITCH,
-    SWITCH_MAX,
 };
 use crate::fail::{Bad, Result};
 use crate::game::{Command, Game};
@@ -85,14 +84,14 @@ impl Shared {
 /// something to run. One without a switch runs always, from the first
 /// frame —RM2k does it—; this compiler does not take those, because a ROM
 /// that runs one forever cannot be played, and no game was seen to have one.
-pub fn automatic(game: &Game) -> Vec<(i32, i32)> {
+pub fn automatic(game: &Game, indices: &Indices) -> Vec<(i32, i32)> {
     game.common_events
         .iter()
         .filter(|(_, c)| c.trigger == COMMON_AUTOSTART && c.switch_flag && !c.commands.is_empty())
-        // A switch past the ROM's bitmap: no page can turn it on —a
-        // `ControlSwitches` on it does not compile— and `common_start` would
-        // read past `switches`.
-        .filter(|(_, c)| (0..SWITCH_MAX).contains(&(c.switch_id as i64)))
+        // A switch past the ROM's table: `common_start` would read past
+        // `switches`. The table holds every switch the game names —see
+        // `indices::switch_top`—, so it guards a mistake, not a game.
+        .filter(|(_, c)| indices.holds_switch(c.switch_id as i64))
         .map(|(&n, c)| (n, c.switch_id))
         .collect()
 }
@@ -250,7 +249,7 @@ pub fn plan(
     messages: &Messages,
     songs: &Songs,
 ) -> Result<Plan> {
-    let roots = automatic(s.game);
+    let roots = automatic(s.game, s.indices);
     let reach = |starts: Vec<i32>, only: Option<&BTreeSet<i32>>| {
         let keep = |n: &i32| only.is_none_or(|o| o.contains(n));
         let mut seen: BTreeSet<i32> = BTreeSet::new();
@@ -459,10 +458,9 @@ pub fn parallel_commons(
         if c.trigger != COMMON_PARALLEL || c.commands.is_empty() {
             continue;
         }
-        let code = if c.switch_flag && !(0..SWITCH_MAX).contains(&(c.switch_id as i64)) {
-            // A switch past the ROM's bitmap: no page can turn it on —a
-            // `ControlSwitches` on it does not compile— and the ROM would
-            // read it out of bounds.
+        let code = if c.switch_flag && !s.indices.holds_switch(c.switch_id as i64) {
+            // A switch past the ROM's table: the ROM would read it out of
+            // bounds.
             None
         } else if s.game.patches.menus.replaced.contains_key(&number) {
             let mut code = menu_open(s.game, number);

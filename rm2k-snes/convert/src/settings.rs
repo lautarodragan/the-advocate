@@ -35,6 +35,29 @@ impl CustomMenu {
         out.dedup();
         out
     }
+
+    /// The switches its conditions ask for, `{ switch = n }`, which the
+    /// ROM's switch table has to hold: see `switch_top` in the event
+    /// compiler.
+    pub fn switches(&self) -> Vec<i64> {
+        fn find(v: &Value, out: &mut Vec<i64>) {
+            match v {
+                Value::Object(o) => {
+                    for (k, x) in o {
+                        if k == "switch" {
+                            out.extend(x.as_i64());
+                        }
+                        find(x, out);
+                    }
+                }
+                Value::Array(a) => a.iter().for_each(|x| find(x, out)),
+                _ => {}
+            }
+        }
+        let mut out = Vec::new();
+        find(&self.spec, &mut out);
+        out
+    }
 }
 
 fn find_before(v: &Value, out: &mut Vec<i64>) {
