@@ -116,6 +116,14 @@ pub const BATTLE_COND_END: i32 = 23311;
 pub const ROUTE_RANDOM: i32 = 8;
 pub const ROUTE_TOWARD_HERO: i32 = 9;
 pub const ROUTE_AWAY_HERO: i32 = 10;
+pub const ROUTE_FORWARD: i32 = 11;
+pub const ROUTE_FACE_UP: i32 = 12;
+pub const ROUTE_FACE_DOWN: i32 = 14;
+pub const ROUTE_TURN_RIGHT: i32 = 16;
+pub const ROUTE_TURN_LEFT: i32 = 17;
+pub const ROUTE_TURN_180: i32 = 18;
+pub const ROUTE_TURN_RANDOM_90: i32 = 19;
+pub const ROUTE_FACE_RANDOM: i32 = 20;
 pub const ROUTE_FACE_HERO: i32 = 21;
 pub const ROUTE_FACE_AWAY: i32 = 22;
 pub const ROUTE_WAIT: i32 = 23;
@@ -287,6 +295,14 @@ mod tests {
             (ROUTE_RANDOM, M::MoveRandom),
             (ROUTE_TOWARD_HERO, M::MoveTowardsHero),
             (ROUTE_AWAY_HERO, M::MoveAwayFromHero),
+            (ROUTE_FORWARD, M::MoveForward),
+            (ROUTE_FACE_UP, M::FaceUp),
+            (ROUTE_FACE_DOWN, M::FaceDown),
+            (ROUTE_TURN_RIGHT, M::Turn90DegreeRight),
+            (ROUTE_TURN_LEFT, M::Turn90DegreeLeft),
+            (ROUTE_TURN_180, M::Turn180Degree),
+            (ROUTE_TURN_RANDOM_90, M::Turn90DegreeRandom),
+            (ROUTE_FACE_RANDOM, M::FaceRandomDirection),
             (ROUTE_FACE_HERO, M::FaceHero),
             (ROUTE_FACE_AWAY, M::FaceAwayFromHero),
             (ROUTE_WAIT, M::Wait),

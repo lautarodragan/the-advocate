@@ -431,7 +431,12 @@ with_route:
     sep #$20
 .a8
     ; The cell of `GetDirection`, not of the `facing`: locked, the two part,
-    ; and it is the way he last tried to go. See `hero_heading`.
+    ; and it is the way he last tried to go. See `hero_heading`. After a
+    ; diagonal step of a move route they part too, and `XwithDirection` moves
+    ; nothing with a diagonal: he looks at his own cell. See `try_diagonal`.
+    lda hero_heading
+    cmp #4
+    bcs look
     lda hero_lock
     beq look_facing
     lda hero_heading

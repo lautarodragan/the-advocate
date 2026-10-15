@@ -446,7 +446,16 @@ not_random:
     jmp move
 not_toward:
     cmp #10
-    bne to_move                 ; 0..3 the move_*, 4..7 the diagonals
+    bcc to_move                 ; 0..3 the move_*, 4..7 the diagonals
+    beq away
+    ; `move_forward`, 11: toward where it faces. RM2k goes toward its
+    ; `direction`, which the slot does not keep apart from the facing: they
+    ; part only after a diagonal step or with the facing locked, and no
+    ; route of the eight games has an event go forward. The facing does not
+    ; change: a straight step toward where it already faces.
+    jsr facing_now
+    jmp move
+away:
     ; `move_away_from_hero`: `GetDirectionAwayCharacter`, which is
     ; `GetDirectionToCharacter` turned half a circle in every case, ties and the
     ; same cell included: the vertical wins a tie, and with the hero on the
@@ -464,6 +473,16 @@ no_moves:
     jmp face                    ; 12..15 are the face_*; it is far
 :
     cmp #21
+    bcs not_relative
+    ; The relative turns, 16 to 20, from where it faces: `UpdateMoveRoute`
+    ; starts them with `SetDirection(GetFacing())`.
+    pha
+    jsr facing_now
+    sta diag_facing
+    pla
+    jsr turn_relative
+    jmp look
+not_relative:
     bne no_faces
     ; face_hero: the event's cell against the hero's, and on to `look` with the
     ; direction in A.
@@ -481,8 +500,6 @@ no_faces:
     and #$03
     jmp look
 no_face_away:
-    ; The other turns —90 and 180 degrees, the random ones— are not compiled:
-    ; they do not get here.
     cmp #24
     bne not_jump
     jsr prepare_walker          ; who jumps, to collide with the others

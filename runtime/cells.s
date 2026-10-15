@@ -334,20 +334,7 @@ no_y:
 .proc face_diagonal
 .a8
 .i16
-    lda route_ev + 8, x
-    cmp #ROUTE_EV_NO_FACE
-    bne with_pose
-    phx
-    lda route_ev + 0, x
-    jsr event_npc
-    plx
-    cpy #$FFFF
-    beq no_row
-    lda npc_buf + 10, y
-    bra with_pose
-no_row:
-    lda #DIR_DOWN               ; no graphic: nobody's pose can be seen
-with_pose:
+    jsr facing_now
     sta diag_facing
     lda route_dir
     sec
@@ -415,3 +402,58 @@ positive:
     rts
 .endproc
 
+
+; Where the event in slot X faces now, in A: +8, or, while the move route
+; has not turned it, its page's pose, which lives in the NPC's row; without a
+; row nobody sees it, and it is down. Keeps X. `face_diagonal`, the relative
+; turns and `move_forward` start from here.
+.proc facing_now
+.a8
+.i16
+    lda route_ev + 8, x
+    cmp #ROUTE_EV_NO_FACE
+    bne ready
+    phx
+    lda route_ev + 0, x
+    jsr event_npc
+    plx
+    cpy #$FFFF
+    beq no_row
+    lda npc_buf + 10, y
+    rts
+no_row:
+    lda #DIR_DOWN
+ready:
+    rts
+.endproc
+
+; The relative turns, A from 16 to 20, from the facing in `diag_facing`; the
+; new one comes out in A. It is `Turn90DegreeRight` (16), `Left` (17),
+; `Turn180Degree` (18), `Turn90DegreeLeftOrRight` (19) and `TurnRandom` (20):
+; the two random ones draw from the map's generator, like `move_random`.
+; Keeps X; for the events and the hero alike.
+.proc turn_relative
+.a8
+.i16
+    cmp #20
+    bne not_random
+    jmp random_direction        ; any of the four
+not_random:
+    cmp #19
+    bne fixed
+    jsr random_direction
+    and #$02                    ; one bit of the draw: left or right
+    inc a                       ; 1 or 3, a quarter one way or the other
+    bra add
+fixed:
+    sec
+    sbc #15                     ; 16 to 18 are 1 to 3, and right is 1,
+    cmp #2                      ; left 3 and half round 2: the last two swap
+    bcc add
+    eor #$01
+add:
+    clc
+    adc diag_facing
+    and #$03
+    rts
+.endproc

@@ -157,8 +157,14 @@ pub fn min_frequency(frequency: i32, commands: &[i32], repeats: bool) -> i32 {
 /// came in last because in RM2k the character walks cell by cell over
 /// several frames, and that has to be compared *while* it walks: comparing
 /// only where it ends lets the whole animation cycle slip through. The
-/// `move_*` codes **are** the direction, and 4 to 7 are the diagonals: see
-/// [`diagonal`].
+/// `move_*` codes **are** the direction, and 4 to 7 are the diagonals, each
+/// with its two components, vertical first —4 up and right, 5 down and
+/// right, 6 down and left, 7 up and left—. Until 2026-10-14 only events
+/// walked them: ABL has none on the hero, and the hero's step was one per
+/// axis. Sunset over Imdahl and Vampires Dawn walk the hero diagonally in
+/// hundreds of pages, and The Book of Three in one; the hero's is
+/// `try_diagonal` in runtime/hero.s, with the same two L-shaped legs as an
+/// event's.
 ///
 /// * Facing the hero, 21: `GetDirectionToCharacter`. The axis with more
 ///   distance wins, and on a tie the vertical one; on the same cell it looks
@@ -184,10 +190,18 @@ pub fn min_frequency(frequency: i32, commands: &[i32], repeats: bool) -> i32 {
 ///   in since 2026-10-06, when other games' pages turned out to wait on
 ///   them. A page's own route still refuses them, as it does 21; 9 it
 ///   takes since 2026-10-14 —see [`own`]—.
-/// * Turning without moving —`turn_90_degree_right` and its siblings— is
-///   still out, and not because of cost: RM2k turns relative to the
-///   direction the character already had, and for an event that has not
-///   turned yet that is its page's, which the route does not read.
+/// * Moving forward, 11, and the relative turns —90 degrees right and left,
+///   16 and 17, 180, 18, 90 at random, 19, and a random facing, 20—, since
+///   2026-10-14, on events and on the hero. They were out because RM2k
+///   turns relative to where the character already faces, and for an event
+///   that has not turned yet that is its page's: the ROM reads it from the
+///   NPC's row, as `face_diagonal` already did. Forward goes where the
+///   character faces and leaves the facing as it was; see `forward` in
+///   runtime/event_routes.s for where an event's parts from RM2k.
+/// * On the hero, 9, 10, 21 and 22 are toward or away from **himself**:
+///   RM2k's `GetDirectionToCharacter` on the same cell answers down and its
+///   opposite up, so they are a move or a face down or up and the compiler
+///   writes them so —see [`on_hero`]—.
 /// * The jump, 24 and 25: what lies between the two is added up as an offset
 ///   and the character does it in one go, in an arc.
 /// * Walking through walls, 36 and 37, and stopping or resuming the walking
@@ -205,45 +219,38 @@ pub fn min_frequency(frequency: i32, commands: &[i32], repeats: bool) -> i32 {
 ///   command with an operand**: the bytecode carries after it the CharSet's
 ///   index in `Graphics`.
 pub fn known(command: i32) -> bool {
-    (0..=7).contains(&command)
-        || (12..=15).contains(&command)
-        || matches!(
-            command,
-            ROUTE_RANDOM
-                | ROUTE_AWAY_HERO
-                | ROUTE_FACE_AWAY
-                | ROUTE_WAIT
-                | ROUTE_JUMP_START
-                | ROUTE_JUMP_END
-                | ROUTE_THROUGH_ON
-                | ROUTE_THROUGH_OFF
-                | ROUTE_ANIM_STOP
-                | ROUTE_ANIM_RESUME
-                | ROUTE_FACE_HERO
-                | ROUTE_TOWARD_HERO
-                | ROUTE_LOCK_DIR
-                | ROUTE_UNLOCK_DIR
-                | ROUTE_SPEED_UP
-                | ROUTE_SPEED_DOWN
-                | ROUTE_FREQ_UP
-                | ROUTE_FREQ_DOWN
-                | ROUTE_CHANGE_GRAPHIC
-        )
+    // Every command but the switches, 32 and 33; the sound and the
+    // transparency are handled before asking.
+    (0..=ROUTE_FREQ_DOWN).contains(&command)
+        || (ROUTE_CHANGE_GRAPHIC..=ROUTE_ANIM_RESUME).contains(&command)
 }
 
-/// The four diagonals, `move_upright` to `move_upleft`: only events walk
-/// them. Each has its two components, vertical first and then horizontal
-/// —4 up and right, 5 down and right, 6 down and left, 7 up and left—.
-///
-/// **Only events** walk them. Of the game's 26 routes that use them none is
-/// the hero's, so the ROM does not have them on it: walking diagonally with
-/// the pad does not exist and giving the hero a diagonal step would require
-/// duplicating `try_up` and its three siblings for nothing. The compiler
-/// rejects the page that tries it —see `compile_route`—, which is what keeps
-/// the ROM from silently walking something else.
-pub fn diagonal(command: i32) -> bool {
-    (4..=7).contains(&command)
+/// What a command that looks at the hero means **on the hero**: himself.
+/// `GetDirectionToCharacter` with both on the same cell gives down, and
+/// `GetDirectionAwayCharacter` up, so moving toward him is moving down and
+/// facing away from him is facing up —Hen Wen's second page, on The Book of
+/// Three's map 4, turns the hero with a 22—. Any other command is itself.
+pub fn on_hero(command: i32) -> i32 {
+    match command {
+        ROUTE_TOWARD_HERO => DIR_DOWN,
+        ROUTE_AWAY_HERO => DIR_UP,
+        ROUTE_FACE_HERO => ROUTE_FACE_DOWN,
+        ROUTE_FACE_AWAY => ROUTE_FACE_UP,
+        other => other,
+    }
 }
+
+/// The moves whose direction is decided while walking —toward or away from
+/// the hero, at random, forward—, which inside a jump would have to be
+/// decided in the middle of the sum: no route of the eight games does it, so
+/// they are refused there instead of walked down a path no test covers.
+pub fn moves_by_looking(command: i32) -> bool {
+    (ROUTE_RANDOM..=ROUTE_FORWARD).contains(&command)
+}
+
+/// The two move commands that are a direction on their own.
+const DIR_UP: i32 = 0;
+const DIR_DOWN: i32 = 2;
 
 /// The command a page that walks by a movement type gets as its whole own
 /// route: this plus its `move_type`, 49 to 53. It is not RM2k's —its route
@@ -288,10 +295,15 @@ pub const ROUTE_BY_TYPE: i32 = 48;
 /// —measured, the only ones of the game's 37 own routes that use it—; it
 /// was left out while no test got there, and the guard stood still at his
 /// cell. ABL's `test_paradise.py` walks it now. Not inside a jump, as in a
-/// forced route: there the commands only add up. 21 and the other three
-/// that ask about the hero or the generator —8, 10 and 22— are still out
-/// for the same reason 9 was: no test of a game gets to an own route that
-/// uses them.
+/// forced route: there the commands only add up.
+///
+/// **And the rest since 2026-10-14**: 21 and the other three that ask about
+/// the hero or the generator —8, 10 and 22—, forward and the relative
+/// turns. They were out for the reason 9 was, that no test got to an own
+/// route that used them; the machine is the forced routes', which walks
+/// them, and other games wait on them: Desert Nightmare's 34 pages that face
+/// the hero, the random steps of 21 pages of Sunset over Imdahl and 29 of
+/// Vampires Dawn. 8, 10 and forward stay out of a jump, as 9.
 pub fn own(page: &Page) -> Option<Value> {
     let spin = page.animation_type == ANIM_SPIN;
     let still_spinning = spin && page.move_type == MOVE_STATIONARY;
@@ -323,8 +335,9 @@ pub fn own(page: &Page) -> Option<Value> {
         &page.route
     };
     let mut commands = Vec::new();
-    // Whether the cursor is between a `begin_jump` and its `end_jump`: there 9
-    // is refused, as `compile_route` does in a forced route.
+    // Whether the cursor is between a `begin_jump` and its `end_jump`: there
+    // the moves by looking are refused, as `compile_route` does in a forced
+    // route.
     let mut in_jump = false;
     for &command in route {
         if command == ROUTE_SOUND || ROUTE_TRANSPARENCY.contains(&command) {
@@ -339,10 +352,7 @@ pub fn own(page: &Page) -> Option<Value> {
             commands.push(command);
             continue;
         }
-        if !known(command)
-            || [ROUTE_FACE_HERO, ROUTE_RANDOM, ROUTE_AWAY_HERO, ROUTE_FACE_AWAY].contains(&command)
-            || (command == ROUTE_TOWARD_HERO && in_jump)
-        {
+        if !known(command) || (in_jump && moves_by_looking(command)) {
             return None;
         }
         if command == ROUTE_CHANGE_GRAPHIC {
@@ -479,7 +489,7 @@ mod tests {
     }
 
     #[test]
-    fn an_own_route_runs_at_the_hero_but_not_inside_a_jump() {
+    fn an_own_route_looks_at_the_hero_but_does_not_move_by_looking_inside_a_jump() {
         // ABL's Agency guard, on map 105: toward, down, toward, up, toward,
         // repeating, at frequency 8 and speed 5.
         let mut guard = spinning(MOVE_CUSTOM, vec![9, 2, 9, 0, 9]);
@@ -492,11 +502,23 @@ mod tests {
         // Inside a jump the commands only add up: no asking about the hero.
         guard.route = vec![ROUTE_JUMP_START, 9, ROUTE_JUMP_END];
         assert!(own(&guard).is_none());
-        // The other ones that look at the hero are still out.
-        for command in [ROUTE_FACE_HERO, ROUTE_RANDOM, ROUTE_AWAY_HERO, ROUTE_FACE_AWAY] {
+        // The others that look at the hero, at the generator or at where it
+        // faces walk too, and the moves among them not inside a jump.
+        for command in [ROUTE_FACE_HERO, ROUTE_FACE_AWAY, ROUTE_TURN_RIGHT, ROUTE_FACE_RANDOM] {
             guard.route = vec![9, command];
-            assert!(own(&guard).is_none(), "{command}");
+            assert_eq!(own(&guard).unwrap()["commands"], json!([9, command]), "{command}");
+            guard.route = vec![ROUTE_JUMP_START, command, ROUTE_JUMP_END];
+            assert!(own(&guard).is_some(), "{command} in a jump");
         }
+        for command in [ROUTE_RANDOM, ROUTE_AWAY_HERO, ROUTE_FORWARD] {
+            guard.route = vec![9, command];
+            assert_eq!(own(&guard).unwrap()["commands"], json!([9, command]), "{command}");
+            guard.route = vec![ROUTE_JUMP_START, command, ROUTE_JUMP_END];
+            assert!(own(&guard).is_none(), "{command} in a jump");
+        }
+        // The switches are still out.
+        guard.route = vec![ROUTE_SWITCH_ON];
+        assert!(own(&guard).is_none());
     }
 
     #[test]
