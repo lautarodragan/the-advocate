@@ -283,6 +283,10 @@ const BATTLE_HANDLERS: [i32; 3] = [VICTORY_HANDLER, ESCAPE_HANDLER, DEFEAT_HANDL
 /// with a higher index. The ROM's window has four lines, so the cap is the
 /// same on both sides.
 const CHOICE_MAX: i64 = 4;
+/// The editor's "cancel branch": `cancel_type` 5, and its body is a
+/// `ShowChoiceOption` with index 4, past the four the window shows.
+/// `choice_result` is `cancel_type - 1`, so cancelling runs it.
+const CANCEL_BRANCH: i64 = 5;
 /// The most digits an `InputNumber` asks for that the ROM takes: six, which
 /// is RM2k 2000's editor's cap. The ROM writes the number into a sixteen-bit
 /// variable, saturating —see `number_value` in runtime/number_input.s—,
@@ -669,8 +673,13 @@ struct Choice {
     cancel: i64,
     /// Whether cancel picks past the options: see `SHOW_CHOICE`.
     past: bool,
+    /// Whether cancel runs the cancel branch, and not the end of the
+    /// choice: see [`CANCEL_BRANCH`].
+    branch: bool,
     frames: Vec<usize>,
     destinations: Vec<Option<usize>>,
+    /// Where the cancel branch's body starts, if the choice has one.
+    cancel_body: Option<usize>,
     seen: usize,
     exits: Vec<usize>,
 }
@@ -1230,10 +1239,14 @@ fn page(
             // table— and the cancel byte is [`CANCEL_PAST`], which tells the
             // ROM that the last entry is cancel's alone.
             //
-            // `cancel_type` 5 with four options is the "cancel branch", a
-            // fifth `ShowChoiceOption` with index 4: that one still does not
-            // compile, because the option's index is checked against the
-            // list. Nobody uses it in the game.
+            // `cancel_type` 5 is the editor's "cancel branch", whatever the
+            // number of options: one more `ShowChoiceOption`, with index 4,
+            // that the window does not show —`GetChoices(4)`— and cancel
+            // runs. It is the same entry, past the options, with the
+            // branch's body as its destination instead of the end. It is
+            // The Book of Three's "All Five Dreams", and 21 choices in
+            // Sunset and 21 in Vampires Dawn, of two to four options.
+            let branch = cancel == CANCEL_BRANCH;
             let past = cancel > options.len() as i64;
             if past {
                 cancel = CANCEL_PAST;
@@ -1254,8 +1267,10 @@ fn page(
                 n: options.len(),
                 cancel,
                 past,
+                branch,
                 frames,
                 destinations: vec![None; options.len()],
+                cancel_body: None,
                 seen: 0,
                 exits: vec![],
             });
@@ -1266,7 +1281,14 @@ fn page(
                 return cannot();
             };
             let n = cmd.p(0).unwrap_or(0);
-            if !(0 <= n && n < current.n as i64) {
+            // The cancel branch: see `SHOW_CHOICE`. With another
+            // `cancel_type` nothing reaches it, as in RM2k, and its body is
+            // compiled all the same.
+            let cancel_branch = n == CHOICE_MAX;
+            if cancel_branch && current.cancel_body.is_some() {
+                return cannot();
+            }
+            if !cancel_branch && !(0 <= n && n < current.n as i64) {
                 return cannot();
             }
             // The previous option's body ends here: it is taken out of the
@@ -1282,7 +1304,11 @@ fn page(
                 current.exits.push(pieces.len());
             }
             current.seen += 1;
-            current.destinations[n as usize] = Some(length + piece.len());
+            if cancel_branch {
+                current.cancel_body = Some(length + piece.len());
+            } else {
+                current.destinations[n as usize] = Some(length + piece.len());
+            }
         } else if cmd.code == SHOW_CHOICE_END {
             let Some(current) = choices.pop() else {
                 return cannot();
@@ -1300,7 +1326,11 @@ fn page(
                 // The box is the last option's, which is never drawn from
                 // here: cancelling closes the window.
                 table.extend(usize_word(*current.frames.last().unwrap())?);
-                table.extend(usize_word(length)?);
+                let to = match current.cancel_body {
+                    Some(body) if current.branch => body,
+                    _ => length,
+                };
+                table.extend(usize_word(to)?);
             }
             pieces[current.at] = table;
             for out in current.exits {
@@ -5818,12 +5848,48 @@ mod tests {
         let end = code.len() - 1;
         assert_eq!(entry(2), end, "cancel lands after the choice");
         assert!(entry(0) < entry(1) && entry(1) <= end);
-        // A fifth option, the cancel branch, still does not compile.
-        let mut branch = choice.clone();
-        branch[0] = cmd(SHOW_CHOICE, &[5], "A/B");
-        let at = branch.len() - 1;
-        branch.insert(at, Command::new(SHOW_CHOICE_OPTION, 0, "", vec![4]));
-        assert_eq!(on_a_map(&branch), None);
+    }
+
+    #[test]
+    fn cancelling_runs_the_cancel_branch() {
+        // `cancel_type` 5 and a `ShowChoiceOption` with index 4: the cursor
+        // walks the options, and the entry past them, cancel's, lands on the
+        // branch's body. It is The Book of Three's "All Five Dreams", with
+        // four options; Sunset and Vampires Dawn have it with two and three.
+        for texts in [&["A", "B"][..], &["A", "B", "C", "D"][..]] {
+            let mut choice = vec![cmd(SHOW_CHOICE, &[5], &texts.join("/"))];
+            for (n, text) in texts.iter().chain(&[""]).enumerate() {
+                let n = if n == texts.len() { 4 } else { n };
+                choice.push(Command::new(SHOW_CHOICE_OPTION, 0, text, vec![n as i32]));
+                choice.push(Command::new(CONTROL_SWITCHES, 1, "", vec![0, n as i32 + 1, n as i32 + 1, 0]));
+                choice.push(Command::new(END, 1, "", vec![]));
+            }
+            choice.push(cmd(SHOW_CHOICE_END, &[], ""));
+            let code = on_a_map(&choice).unwrap();
+            let entries = texts.len() + 1;
+            assert_eq!(&code[..3], [OP_CHOICE, entries as u8, 0xFF]);
+            assert_eq!(instruction_size(&code, 0), 3 + 4 * entries);
+            let entry = |k: usize| u16::from_le_bytes([code[3 + 4 * k + 2], code[3 + 4 * k + 3]]) as usize;
+            for k in 1..entries {
+                assert!(entry(k - 1) < entry(k), "the bodies go in order");
+            }
+            let end = code.len() - 1;
+            assert!(entry(entries - 1) < end, "cancel lands on its branch, not on the end");
+            // The last body is the cancel branch's: it reaches the end of
+            // the choice without a jump, and the one before ends in a jump
+            // to the end.
+            let before = entry(entries - 1) - 3;
+            assert_eq!(code[before], OP_GOTO);
+            assert_eq!(u16::from_le_bytes([code[before + 1], code[before + 2]]) as usize, end);
+        }
+        // Two cancel branches do not compile.
+        let mut twice = vec![cmd(SHOW_CHOICE, &[5], "A")];
+        for n in [0, 4, 4] {
+            twice.push(Command::new(SHOW_CHOICE_OPTION, 0, "", vec![n]));
+            twice.push(Command::new(END, 1, "", vec![]));
+        }
+        twice.push(cmd(SHOW_CHOICE_END, &[], ""));
+        assert_eq!(on_a_map(&twice), None);
     }
 
     fn label(n: i32, indent: i32) -> Command {
