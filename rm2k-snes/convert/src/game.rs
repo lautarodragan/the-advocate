@@ -125,7 +125,10 @@ pub struct Database {
     pub actors: BTreeMap<i32, schema::Actor>,
     pub items: BTreeMap<i32, schema::Item>,
     pub enemies: BTreeMap<i32, schema::Enemy>,
+    /// Fit to what a battle holds: see `rm2k_snes_battle::fit`.
     pub troops: BTreeMap<i32, Troop>,
+    /// What each troop with too many members lost to fit, by troop.
+    pub troop_cuts: BTreeMap<i32, rm2k_snes_battle::fit::Cut>,
     /// Each terrain's battle backdrop, "" for none.
     pub terrain_backdrops: BTreeMap<i32, String>,
     /// The common events' commands, by number.
@@ -607,11 +610,14 @@ fn database(dump: &Dump, forks: &Forks) -> Result<Database> {
     for e in dump.section::<Vec<schema::Enemy>>("enemies")? {
         db.enemies.insert(e.id, e);
     }
-    for t in dump.section::<Vec<schema::Troop>>("troops")? {
-        let mut members: Vec<&schema::TroopMember> = t.members.iter().collect();
-        members.sort_by_key(|m| m.id);
-        let mut pages: Vec<&schema::TroopPage> = t.pages.iter().collect();
-        pages.sort_by_key(|p| p.id);
+    for mut t in dump.section::<Vec<schema::Troop>>("troops")? {
+        // Sorted, and cut to what a battle holds: the battle's tables and
+        // the event compiler cut it the same way.
+        if let Some(cut) = rm2k_snes_battle::fit::fit(&mut t) {
+            db.troop_cuts.insert(t.id, cut);
+        }
+        let members = &t.members;
+        let pages = &t.pages;
         db.troops.insert(
             t.id,
             Troop {
