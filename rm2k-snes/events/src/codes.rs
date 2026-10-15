@@ -88,6 +88,7 @@ pub const CHANGE_MONSTER_MP: i32 = 13120;
 pub const CHANGE_MONSTER_CONDITION: i32 = 13130;
 pub const SHOW_HIDDEN_MONSTER: i32 = 13150;
 pub const CHANGE_BATTLE_BG: i32 = 13210;
+pub const SHOW_BATTLE_ANIMATION_B: i32 = 13260;
 pub const BATTLE_COND_BRANCH: i32 = 13310;
 pub const TERMINATE_BATTLE: i32 = 13410;
 pub const SHOW_MESSAGE_2: i32 = 20110;
@@ -253,6 +254,7 @@ mod tests {
             (CHANGE_MONSTER_CONDITION, C::ChangeMonsterCondition),
             (SHOW_HIDDEN_MONSTER, C::ShowHiddenMonster),
             (CHANGE_BATTLE_BG, C::ChangeBattleBG),
+            (SHOW_BATTLE_ANIMATION_B, C::ShowBattleAnimationB),
             (BATTLE_COND_BRANCH, C::ConditionalBranchB),
             (TERMINATE_BATTLE, C::TerminateBattle),
             (SHOW_MESSAGE_2, C::ShowMessage2),

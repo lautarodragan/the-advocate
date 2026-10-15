@@ -86,6 +86,19 @@ const TROOP_COMMANDS: [i32; 30] = [
     COMMENT_2,
 ];
 
+/// What a troop page accepts **without doing it**: the troops' own
+/// `ACCEPTED_UNDONE`, a debt and not an equivalence, warned about by the
+/// converter like the other.
+///
+/// `ShowBattleAnimationB`, the animation on the monsters, since 2026-10-14:
+/// the battle scene plays no animation, and the command is kept to its
+/// length, a wait —see its arm in the compiler—. taro's: "not having this
+/// command shouldn't stop anyone from playing". It is what lets in the two
+/// scripted endings of The Book of Three, troops 96 and 136, which end the
+/// battle with `TerminateBattle` right after it. The divergence is in the
+/// book's `divergences/what-troop-pages-do-not-model.md`.
+const TROOP_ACCEPTED_UNDONE: [i32; 1] = [SHOW_BATTLE_ANIMATION_B];
+
 // Which triggers the ROM knows how to look at, with their bit in
 // `tpage_flags`: RM2k's six. The three from 2003 —an actor's or an enemy's
 // turn, fatigue and an actor's command— do not exist in a 2000 game, and a
@@ -307,7 +320,8 @@ pub(crate) fn runs_in_battle(cmd: &Command) -> bool {
     if cmd.code == BATTLE_COND_BRANCH && !matches!(cmd.parameters.first(), Some(0) | Some(1)) {
         return false;
     }
-    TROOP_COMMANDS.contains(&battle_branch(cmd.code))
+    let code = battle_branch(cmd.code);
+    TROOP_COMMANDS.contains(&code) || TROOP_ACCEPTED_UNDONE.contains(&code)
 }
 
 /// A troop page's command as the map's: the battle's branch is the map's.
@@ -421,7 +435,7 @@ impl TroopPages {
                 .commands
                 .iter()
                 .map(|c| c.code)
-                .filter(|code| ACCEPTED_UNDONE.contains(code))
+                .filter(|code| ACCEPTED_UNDONE.contains(code) || TROOP_ACCEPTED_UNDONE.contains(code))
                 .collect();
             for code in undone {
                 self.debts.entry(code).or_default().push((number, k));
@@ -476,6 +490,10 @@ impl TroopPages {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::compile::{Indices, SoundSettings};
+    use crate::game::Game;
+    use crate::messages::Window;
+    use rm2k_snes_bytecode::events::*;
 
     fn message(lines: &[&str]) -> Vec<Command> {
         lines
@@ -501,6 +519,54 @@ mod tests {
         ] {
             assert!(runs_in_battle(&Command::new(code, 1, "", p)), "{code}");
         }
+    }
+
+    #[test]
+    fn an_animation_on_the_monsters_is_a_wait_and_a_debt() {
+        // The Book of Three's troop 96, page 11: at turn 6 the Blazing Star,
+        // three animations the page waits for, and the battle ends. Until
+        // 2026-10-14 the command kept the page out, and with it the only way
+        // that fight ends.
+        let mut game = Game::default();
+        let anim = |frames| crate::game::Animation { timings: vec![], frames, scope: 0 };
+        game.animations.insert(128, anim(10));
+        game.animations.insert(129, anim(0));
+        let indices = Indices::default();
+        let sound = SoundSettings::default();
+        let mut ctx = Ctx {
+            game: &game,
+            indices: &indices,
+            sound: &sound,
+            map_index: &|_| None,
+            messages: None,
+            songs: None,
+            graphics: None,
+            pictures: None,
+            troops: None,
+            commons: None,
+            shared: None,
+        };
+        let mut condition = ditto::schema::TroopPageCondition::default();
+        condition.flags.turn = true;
+        condition.turn_b = 6;
+        let page = TroopPage {
+            condition,
+            commands: vec![
+                Command::new(SHOW_BATTLE_ANIMATION_B, 0, "", vec![128, -1, 1]),
+                Command::new(SHOW_BATTLE_ANIMATION_B, 0, "", vec![128, -1, 0]),
+                Command::new(SHOW_BATTLE_ANIMATION_B, 0, "", vec![129, -1, 1]),
+                Command::new(TERMINATE_BATTLE, 0, "", vec![]),
+            ],
+        };
+        let mut pages = TroopPages::new(Messages::new(1, Window::columns(31, 4)));
+        pages.compile(&mut ctx, 96, &[page]).unwrap();
+        assert_eq!(pages.left_out, 0);
+        // Ten frames of two ticks; the one that does not wait and the one
+        // with no frames are nothing.
+        let (_, at, _) = pages.per_troop[0].1[0];
+        assert_eq!(&pages.bodies[at..at + 3], &[OP_DELAY, 20, 0]);
+        assert_eq!(pages.bodies[at + 3], OP_BATTLE_ABORT);
+        assert_eq!(pages.debts[&SHOW_BATTLE_ANIMATION_B], vec![(96, 0)]);
     }
 
     #[test]

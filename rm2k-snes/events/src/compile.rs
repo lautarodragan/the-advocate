@@ -76,8 +76,8 @@ const VAR_ADD: i64 = 1;
 const VAR_SUBTRACT: i64 = 2;
 // And where the operand comes from, with the RM2k number: a constant, another
 // variable, a random number between a and b, or "other", which here are the
-// gold and the seconds the timer has left. The random one requires b - a to be
-// less than 256: the ROM divides with the hardware's eight-bit divider.
+// gold and the seconds the timer has left. The random one takes any range in
+// the signed word; until 2026-10-14 it had to be narrower than 256.
 pub const VAR_CONSTANT: i64 = 0;
 pub const VAR_VARIABLE: i64 = 1;
 const VAR_RANDOM: i64 = 3;
@@ -4544,7 +4544,13 @@ pub fn compile_command(
                 a = ctx.indices.variable_slot(a)? as i64;
                 b = 0;
             } else if operand_kind == VAR_RANDOM {
-                if !(0 <= a && a <= b && b <= 0x7FFF && b - a < 256) {
+                // Any range in the word, with its ends swapped if reversed:
+                // `ControlVariables::Random` is `GetRandomNumber(min, max)`.
+                // The ROM does the modulo in sixteen bits —see `var_random`—.
+                if a > b {
+                    (a, b) = (b, a);
+                }
+                if !(-0x8000 <= a && b <= 0x7FFF) {
                     return cannot();
                 }
             } else if operand_kind == VAR_OTHER {
@@ -4598,7 +4604,9 @@ pub fn compile_command(
                 (a & 0xFF) as u8,
                 ((a >> 8) & 0xFF) as u8,
                 (b & 0xFF) as u8,
-                byte(b >> 8)?,
+                // Masked, not checked: a random's `b` can be negative, and
+                // every class has already bounded its own.
+                ((b >> 8) & 0xFF) as u8,
             ])
         }
         TIMER_OPERATION => {
@@ -4844,6 +4852,28 @@ pub fn compile_command(
             Ok(out)
         }
         SHOW_BATTLE_ANIMATION => compile_animation(ctx, cmd, map_events),
+        SHOW_BATTLE_ANIMATION_B => {
+            // A troop page's animation on the monsters, `[animation, target,
+            // wait]`: a debt, see `TROOP_ACCEPTED_UNDONE` in troops.rs. The
+            // battle scene plays no animation, so neither its frames, nor
+            // its sounds, nor its flashes; what is kept is its length, as an
+            // OP_DELAY when the page waits for it, so the lines around it
+            // keep their pace. It only reaches here from a troop page: a map
+            // has no such command.
+            if n < 3 {
+                return cannot();
+            }
+            let Some(anim) = ctx.game.animations.get(&p[0]) else {
+                return Ok(vec![]);
+            };
+            let frames = 2 * anim.frames as i64;
+            if q(2) == 0 || frames == 0 {
+                return Ok(vec![]);
+            }
+            let mut out = vec![OP_DELAY];
+            out.extend(word(frames)?);
+            Ok(out)
+        }
         FLASH_SCREEN => {
             // `CommandFlashScreen`, in its RM2k form: color, power, tenths and
             // whether it waits. The game's 62 are of that form, and none lasts
@@ -7143,6 +7173,35 @@ mod tests {
             Some(vec![OP_VAR, 5, 0x80, 0, 0x00, 0x80, 0, 0, OP_DONE])
         );
         assert_eq!(one(cmd(CONTROL_VARS, &[0, 48, 48, 1, 0, 999_999, 0], "")), None);
+    }
+
+    #[test]
+    fn a_random_operand_takes_any_range_in_the_word() {
+        // The Book of Three's common event 19, "Random Chest List", draws
+        // 100 to 500 and 1000 to 2500; until 2026-10-14 a range wider than
+        // 255 did not compile. Reversed ends are swapped, as
+        // `ControlVariables::Random` does, and an end outside the word still
+        // does not compile.
+        let game = Game::default();
+        let one = |c: Command| compile_with(&game, &[c]).unwrap();
+        assert_eq!(
+            one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 3, 1000, 2500], "")),
+            Some(vec![OP_VAR, 5, 0x80, 3, 0xE8, 0x03, 0xC4, 0x09, OP_DONE])
+        );
+        assert_eq!(
+            one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 3, 500, 100], "")),
+            Some(vec![OP_VAR, 5, 0x80, 3, 100, 0, 0xF4, 0x01, OP_DONE])
+        );
+        assert_eq!(
+            one(cmd(CONTROL_VARS, &[0, 48, 48, 1, 3, -0x8000, 0x7FFF], "")),
+            Some(vec![OP_VAR, 5, 0x81, 3, 0x00, 0x80, 0xFF, 0x7F, OP_DONE])
+        );
+        assert_eq!(
+            one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 3, -10, -5], "")),
+            Some(vec![OP_VAR, 5, 0x80, 3, 0xF6, 0xFF, 0xFB, 0xFF, OP_DONE])
+        );
+        assert_eq!(one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 3, 0, 0x8000], "")), None);
+        assert_eq!(one(cmd(CONTROL_VARS, &[0, 48, 48, 0, 3, -0x8001, 0], "")), None);
     }
 
     #[test]

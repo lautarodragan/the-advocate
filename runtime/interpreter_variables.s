@@ -40,7 +40,9 @@ CHARACTER_SCREEN_X = 4
     cmp #VAR_VARIABLE
     beq variable_var
     cmp #VAR_RANDOM
-    beq var_random
+    bne :+
+    jmp var_random
+:
     cmp #VAR_OTHER
     beq other_var
     cmp #VAR_ACTOR
@@ -98,40 +100,6 @@ timer_var:
     sep #$20
 .a8
     bra var_apply
-var_random:
-    ; a + x mod (b - a + 1), with x the next step of the xorshift and the
-    ; modulo done with the hardware's eight-bit divider: the converter does
-    ; not let through a range wider than 255.
-    jsr random_next
-.a16                            ; `random_next` comes back with A16
-    sta WRDIVL                  ; the dividend, sixteen bits
-    lda [code_ptr], y           ; a
-    sta temp + 2
-    iny
-    iny
-    lda [code_ptr], y           ; b
-    sec
-    sbc temp + 2
-    inc a                       ; b - a + 1
-    sep #$20
-.a8
-    sta WRDIVB                  ; starts it: sixteen cycles
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    rep #$20
-.a16
-    lda RDMPYL                  ; the remainder
-    clc
-    adc temp + 2
-    sta temp + 2
-    sep #$20
-.a8
 var_apply:
     ; `temp + 2` is the operand; depending on the operation, it is set as is
     ; or added to or subtracted from what the variable had.
@@ -178,6 +146,78 @@ var_sets:
     iny
     iny
     jmp run_code::other
+
+var_random:
+    ; Out of line, after the handler's end: with the long division in it,
+    ; the `bra var_apply` of the other classes no longer reached over it.
+    ; a + x mod (b - a + 1), with x the next step of the xorshift, in sixteen
+    ; bits: the converter swaps reversed ends, and the subtraction wraps, so
+    ; a negative a works the same. `Rand::GetRandomNumber(a, b)`, with the
+    ; modulo's bias, which on a sixteen-bit draw is at most 1 in 256 for the
+    ; ranges a game uses.
+    jsr random_next
+.a16                            ; `random_next` comes back with A16
+    sta WRDIVL                  ; the dividend, for the hardware
+    sta temp + 2                ; and for the long division
+    lda [code_ptr], y           ; a
+    pha                         ; 1,s: a
+    iny
+    iny
+    lda [code_ptr], y           ; b
+    sec
+    sbc 1,s
+    inc a                       ; n = b - a + 1
+    beq random_whole            ; n wrapped: the whole word, x as it is
+    cmp #$0100
+    bcs random_wide
+    ; A range narrower than 256 —all of them until 2026-10-14— goes through
+    ; the hardware's eight-bit divider, sixteen cycles.
+    sep #$20
+.a8
+    sta WRDIVB                  ; starts it
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    nop
+    rep #$20
+.a16
+    lda RDMPYL                  ; the remainder
+    bra random_add
+random_wide:
+    ; A wider one, by shifting and subtracting: the remainder in A, the
+    ; dividend shifting out of `temp + 2`, n on the stack. The Book of Three's
+    ; chests draw 1000 to 2500. X is free: it reaches the handler clobbered.
+    pha                         ; 1,s: n; 3,s: a
+    lda #0
+    ldx #16
+random_bit:
+    asl temp + 2
+    rol a
+    bcs random_sub              ; seventeen bits: it is surely n or more
+    cmp 1,s
+    bcc random_next_bit
+random_sub:
+    sec
+    sbc 1,s
+random_next_bit:
+    dex
+    bne random_bit
+    plx                         ; n, dropped
+    bra random_add
+random_whole:
+    lda temp + 2
+random_add:
+    clc
+    adc 1,s                     ; + a
+    plx                         ; a, dropped
+    sta temp + 2
+    sep #$20
+.a8
+    jmp var_apply
 
 character_var:
     ; Class 6: a character's coordinates, in cells. `a` is the target —0 the
