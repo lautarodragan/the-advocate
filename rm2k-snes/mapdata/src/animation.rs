@@ -82,7 +82,13 @@ pub fn choose(offers: &[Offer], budget: usize) -> Vec<usize> {
 
 /// [`fit`] for each map, and what each one lost, in order.
 pub fn fit_all(maps: &mut [Map]) -> Vec<String> {
-    maps.iter_mut().filter_map(fit).collect()
+    fit_all_by_map(maps).into_iter().map(|(_, note)| note).collect()
+}
+
+/// [`fit_all`], with the map each note is about: what it says is a loss,
+/// which the converter lists in the cartridge's degradations.
+pub fn fit_all_by_map(maps: &mut [Map]) -> Vec<(i64, String)> {
+    maps.iter_mut().filter_map(|m| fit(m).map(|note| (m.id, note))).collect()
 }
 
 /// Cuts the map's runs until their drawings fit in WRAM, and says what it

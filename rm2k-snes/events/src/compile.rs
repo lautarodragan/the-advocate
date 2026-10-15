@@ -13,6 +13,7 @@
 use crate::codes::*;
 use crate::fail::{Bad, Result, Step, Stop};
 use crate::game::{Command, Game, Sound};
+use crate::losses::{Losses, Origin};
 use crate::messages::Messages;
 use rm2k_snes_bytecode::events::*;
 use crate::pages::MapEvents;
@@ -408,6 +409,10 @@ pub const BATTLE_AUDIO_SE: [&str; 7] = [
     // used: easyrpg's `Item::GetStartSe`, which is the LDB's `item_se`.
     "item_se",
 ];
+/// `WeatherEffects`' rain, the one type the ROM draws —`WEATHER_RAIN` in
+/// runtime/rain.s—; past it come snow, fog and sandstorm.
+const WEATHER_RAIN_TYPE: i64 = 1;
+
 /// A name RM2k uses to say "nothing": neither the song nor the effect exist.
 const AUDIO_OFF: [&str; 2] = ["", "(OFF)"];
 
@@ -596,9 +601,19 @@ pub struct Ctx<'a> {
     /// shared bodies it may call instead of pasting —see `shares`—. Not a
     /// parallel page's: the ROM has one call stack, the foreground's.
     pub shared: Option<&'a BTreeMap<i32, u8>>,
+    /// What this compilation does with less than RM2k, and where: see
+    /// [`crate::losses`]. Whoever builds the context enters the page's
+    /// frame; a page that does not compile takes its losses back.
+    pub losses: Losses,
 }
 
 impl Ctx<'_> {
+    /// Notes that `cmd` is compiled with less than RM2k does: `kind` is the
+    /// slug, `text` what is lost.
+    fn lose(&mut self, cmd: &Command, kind: &'static str, text: impl Into<String>) {
+        self.losses.lose(Some(cmd.code), kind, text);
+    }
+
     /// What ends the frame being compiled: the page, or the shared body back
     /// to whoever called it. It is RM2k's `END` of a frame, and also its
     /// `EndEventProcessing`, which ends **only** the frame it runs in
@@ -954,6 +969,9 @@ pub fn judged_page(
     depth: usize,
 ) -> std::result::Result<Vec<u8>, (Stop, Culprit)> {
     let mark = ctx.messages.as_ref().map(|m| m.mark());
+    // The losses of a page that does not compile go with it, like its
+    // texts: it does not run, so it loses nothing.
+    let lost = ctx.losses.mark();
     let mut at = None;
     match page(ctx, commands, map_events, base, depth, &mut at) {
         Ok(code) => {
@@ -964,6 +982,7 @@ pub fn judged_page(
             if let (Some(m), Some(mark)) = (ctx.messages.as_deref_mut(), mark) {
                 m.rewind(mark);
             }
+            ctx.losses.rewind(lost);
             Err((Stop::Cannot, at))
         }
         Err(fatal) => Err((fatal, at)),
@@ -1050,6 +1069,7 @@ fn page(
 
     for (i, extra) in group_boxes(commands) {
         *at = Some(i);
+        ctx.losses.at(i);
         let cmd = &commands[i];
         // What follows an `EndLoop` is where a `BreakLoop` lands: see
         // [`break_target`].
@@ -1066,6 +1086,9 @@ fn page(
             // It is built here and not before because the refresh depends on
             // `map_events`, which changes after a `Teleport`.
             let loose = &commands[i..i + 4];
+            // Without the fused shape the four are compiled again one by
+            // one, and what these noted would be noted twice.
+            let lost = ctx.losses.mark();
             let writes = [
                 compile_command(ctx, &loose[0], &[], map_events.as_ref())?,
                 compile_command(ctx, &loose[1], &[], map_events.as_ref())?,
@@ -1073,6 +1096,7 @@ fn page(
             let branches = [branch_bytes(ctx, &loose[2], map_events.as_ref())?, branch_bytes(ctx, &loose[3], map_events.as_ref())?];
             match cell_test_piece(&writes, &branches)? {
                 None => {
+                    ctx.losses.rewind(lost);
                     for n in 0..4 {
                         cell_role.remove(&(i + n));
                     }
@@ -1120,6 +1144,9 @@ fn page(
             // OP_BATTLE: troop (word), victory (word), escape (word), defeat
             // (word), abort (word)
             let troop = encounter_troop(cmd)?;
+            if cmd.p(5).is_some_and(|f| f != 0) {
+                ctx.lose(cmd, "first-strike-dropped", "the battle does not start with the party's first strike");
+            }
             if let Some(troops) = ctx.troops.as_deref_mut() {
                 troops.request(troop as i32, encounter_backdrop(cmd));
             }
@@ -1669,7 +1696,11 @@ fn compile_call(
     map_events: Option<&MapEvents>,
 ) -> Step<Vec<u8>> {
     let p = &cmd.parameters;
-    if p.len() < 2 || depth >= CALL_MAX {
+    if p.len() < 2 {
+        return Ok(vec![]);
+    }
+    if depth >= CALL_MAX {
+        ctx.lose(cmd, "call-skipped", format!("a call nested past {CALL_MAX} levels is skipped"));
         return Ok(vec![]);
     }
     if p[0] == 0 && ctx.game.patches.counters.contains_key(&p[1]) {
@@ -1684,7 +1715,16 @@ fn compile_call(
         // whose body does not compile. See [`crate::commons`].
         return Ok(match commons.get(&p[1]) {
             Some(&index) => vec![OP_CALL, index],
-            None => vec![],
+            None => {
+                if ctx.game.common_events.get(&p[1]).is_some_and(|c| !c.commands.is_empty()) {
+                    ctx.lose(
+                        cmd,
+                        "call-skipped",
+                        format!("common event {} does not compile, and the call is skipped", p[1]),
+                    );
+                }
+                vec![]
+            }
         });
     }
     if let (0, Some(shared)) = (p[0], ctx.shared) {
@@ -1725,13 +1765,42 @@ fn compile_call(
     } else {
         // By variable —type 2— it is not resolved at compile time and never
         // will be: the number comes from the save. It is skipped, as before.
+        // And so is a map event's page called from where there is no map, a
+        // common event's shared body.
+        if p[0] == 2 {
+            ctx.lose(cmd, "call-skipped", "a call by a variable is skipped");
+        } else {
+            ctx.lose(
+                cmd,
+                "call-skipped",
+                format!("a call to event {}'s page from a common event's shared body is skipped", p[1]),
+            );
+        }
         return Ok(vec![]);
     };
     let Some(body) = body else { return Ok(vec![]) };
     if body.is_empty() {
         return Ok(vec![]);
     }
-    Ok(compile_page(ctx, &body, context, length, depth + 1)?.unwrap_or_default())
+    // What the pasted body loses is noted under it, with the call's command
+    // in the frame above.
+    ctx.losses.enter(if p[0] == 0 {
+        Origin::Common(p[1])
+    } else {
+        Origin::Called { event: p[1], page: p[2] }
+    });
+    let pasted = compile_page(ctx, &body, context, length, depth + 1);
+    ctx.losses.leave();
+    let pasted = pasted?;
+    if pasted.is_none() {
+        let what = if p[0] == 0 {
+            format!("common event {}", p[1])
+        } else {
+            format!("event {}'s page {}", p[1], p[2])
+        };
+        ctx.lose(cmd, "call-skipped", format!("{what} does not compile here, and the call is skipped"));
+    }
+    Ok(pasted.unwrap_or_default())
 }
 
 /// Whether a page of this map can call common event `number`'s shared body
@@ -1773,6 +1842,9 @@ fn shares<'a>(
     };
     let commands = common.commands.clone();
     let mark = ctx.messages.as_ref().map(|m| m.mark());
+    // Both compilations are only the question: what the body loses is noted
+    // where it is compiled for the cartridge, or where it is pasted.
+    let lost = ctx.losses.mark();
     let mut here = map_events.cloned();
     if let Some(m) = here.as_mut() {
         m.watched = None;
@@ -1798,7 +1870,8 @@ fn shares<'a>(
     if let (Some(m), Some(mark)) = (ctx.messages.as_deref_mut(), mark) {
         m.rewind(mark);
     }
-    let (with_map, without) = (with_map.map_err(Stop::Fatal)?, without.map_err(Stop::Fatal)?);
+    ctx.losses.rewind(lost);
+    let (with_map, without) =(with_map.map_err(Stop::Fatal)?, without.map_err(Stop::Fatal)?);
     Ok(with_map.is_some() && with_map == without)
 }
 
@@ -1898,8 +1971,15 @@ fn compile_inn(ctx: &mut Ctx, cmd: &Command, length: usize) -> Step<Vec<u8>> {
     }
     let (kind, price) = (cmd.p(0).unwrap(), cmd.p(1).unwrap());
     if price == 0 {
+        ctx.lose(cmd, "inn-not-staged", "the inn heals on the spot, without the fade to black or its music");
         return Ok(vec![OP_HEAL, 0, 0, 0]);
     }
+    ctx.lose(
+        cmd,
+        "inn-not-staged",
+        "the inn has no gold window, lets \"Yes\" be chosen without the gold, and heals on the spot without \
+         the fade to black or its music",
+    );
     let Some(messages) = ctx.messages.as_deref_mut() else {
         return cannot();
     };
@@ -2597,8 +2677,9 @@ pub fn enc_step_thresholds(steps: i64) -> Vec<i64> {
 /// thunder— carry another name for the same WAV, so the other maps keep
 /// theirs. And the route ones of the `route_left_out` maps do not go into
 /// the package: see there.
-fn sound_index(ctx: &mut Ctx, sound: Sound, from_route: bool) -> usize {
+fn sound_index(ctx: &mut Ctx, cmd: &Command, sound: Sound, from_route: bool) -> usize {
     let (mut name, volume, tempo, balance) = sound;
+    let asked = name.clone();
     let songs = ctx.songs.as_deref_mut().unwrap();
     let current = songs.current;
     let map_index = ctx.map_index;
@@ -2622,7 +2703,18 @@ fn sound_index(ctx: &mut Ctx, sound: Sound, from_route: bool) -> usize {
         // A troop page's: see `troop_in_package`.
         in_package = ctx.sound.troop_in_package.contains(&name);
     }
-    songs.sound((name, volume, tempo, balance), in_package)
+    let k = songs.sound((name.clone(), volume, tempo, balance), in_package);
+    if name != asked {
+        ctx.lose(cmd, "sound-replaced", format!("{asked:?} plays as {name:?} on this map, by the project's choice"));
+    }
+    if !in_package {
+        ctx.lose(
+            cmd,
+            "sound-not-played",
+            format!("{name:?} is left out of the audio package by the project's choice, and does not sound"),
+        );
+    }
+    k
 }
 
 // --- pictures --------------------------------------------------------------------------
@@ -2949,6 +3041,27 @@ fn compile_big_picture(cmd: &Command, pictures: &Pictures) -> Step<Option<Vec<u8
     Ok(Some(out))
 }
 
+/// Whether a `MovePicture` that compiled is a big picture's zoom done as a
+/// fade —one without a texture, see [`compile_big_picture`]—, and what it
+/// says then. The same choice of picture that function makes.
+fn big_zoom_as_fade(cmd: &Command, pictures: Option<&Pictures>) -> Option<String> {
+    let p = &cmd.parameters;
+    let pictures = pictures?;
+    if !picture_shows(p, 0) || p[1] != 0 {
+        return None;
+    }
+    let size = |b: &BigPicture| p[5] * 100 / b.key.zoom.max(1);
+    let big = pictures
+        .numbered_big(p[0])
+        .find(|b| b.center.0 == p[2] && (p[5] <= b.key.zoom || (b.texture && size(b) <= ZOOM_SIZE_MAX)))?;
+    (!big.texture && p[5] != big.key.zoom).then(|| {
+        format!(
+            "picture {} shrinks from {}% to {}% in RM2k and fades to black here instead",
+            p[0], big.key.zoom, p[5]
+        )
+    })
+}
+
 // --- counters ----------------------------------------------------------------------------
 
 /// RM2k's screen and the console's: a picture's position is given on the
@@ -3269,6 +3382,47 @@ fn change_system(ctx: &Ctx, cmd: &Command) -> Step<Vec<u8>> {
     }
 }
 
+/// RM2k's screen transitions by their index, for what is said when the
+/// console does another one: `Transition::TransitionType`.
+const RM2K_TRANSITIONS: [&str; 21] = [
+    "fade",
+    "random blocks",
+    "random blocks down",
+    "random blocks up",
+    "blinds",
+    "vertical stripes",
+    "horizontal stripes",
+    "border to center",
+    "center to border",
+    "scroll up",
+    "scroll down",
+    "scroll left",
+    "scroll right",
+    "vertical divide",
+    "horizontal divide",
+    "cross divide",
+    "zoom",
+    "mosaic",
+    "wave",
+    "instant",
+    "none",
+];
+
+/// Notes a screen transition the console does as another: every one but
+/// the fade, the mosaic and the cut is the fade, and erasing with "none" is
+/// the cut —see `divergences/the-teleport-transitions.md` in the book—.
+/// Showing with "none" is the cut too, but there the two cannot be told
+/// apart. -1, the teleport's, is resolved when it runs.
+fn transition_loss(ctx: &mut Ctx, cmd: &Command, rm2k: i64, erasing: bool) {
+    let name = |k: i64| RM2K_TRANSITIONS.get(k as usize).copied().unwrap_or("unknown");
+    let how = if erasing { "erasing" } else { "showing" };
+    if rm2k == RM2K_CUT_TRANSITIONS[1] && erasing {
+        ctx.lose(cmd, "transition-as-cut", "the screen erased with \"none\" goes to black for a frame instead");
+    } else if rm2k > 0 && rm2k != RM2K_TRANSITION_MOSAIC && !RM2K_CUT_TRANSITIONS.contains(&rm2k) {
+        ctx.lose(cmd, "transition-as-fade", format!("the {} transition {how} the screen is a fade", name(rm2k)));
+    }
+}
+
 pub fn compile_command(
     ctx: &mut Ctx,
     cmd: &Command,
@@ -3341,10 +3495,14 @@ pub fn compile_command(
             //
             // Without a song registry it is accepted and not done, as
             // before. An empty name is "(OFF)": it plays nothing.
-            if ctx.songs.is_none() || cmd.string.is_empty() || n < 3 {
+            if cmd.string.is_empty() || n < 3 {
                 return Ok(vec![]);
             }
-            let k = sound_index(ctx, (cmd.string.clone(), p[0], p[1], p[2]), false);
+            if ctx.songs.is_none() {
+                ctx.lose(cmd, "sound-not-played", format!("{:?} does not sound: no song registry here", cmd.string));
+                return Ok(vec![]);
+            }
+            let k = sound_index(ctx, cmd, (cmd.string.clone(), p[0], p[1], p[2]), false);
             let mut out = vec![OP_SOUND];
             out.extend(usize_word(k)?);
             Ok(out)
@@ -3386,6 +3544,15 @@ pub fn compile_command(
             if n < 2 {
                 return cannot();
             }
+            if q(0) > WEATHER_RAIN_TYPE {
+                let what = match q(0) {
+                    2 => "snow",
+                    3 => "fog",
+                    4 => "sandstorm",
+                    _ => "weather",
+                };
+                ctx.lose(cmd, "weather-not-drawn", format!("the {what} is not drawn, and it turns the rain off"));
+            }
             Ok(vec![
                 OP_WEATHER,
                 (q(0) & 0xFF) as u8,
@@ -3421,6 +3588,9 @@ pub fn compile_command(
                 .collect();
             if sells.len() > 255 || !(0..=2).contains(&q(0)) || !(0..=2).contains(&q(1)) {
                 return cannot();
+            }
+            if sells.len() != p.len() - 4 {
+                ctx.lose(cmd, "shop-item-dropped", "an item the inventory cannot hold is not sold");
             }
             let mut out = vec![OP_SHOP, q(0) as u8, q(1) as u8, sells.len() as u8];
             for i in sells {
@@ -3939,6 +4109,7 @@ pub fn compile_command(
                 // The battle's: the ROM always uses the database's.
                 return cannot();
             }
+            transition_loss(ctx, cmd, rm2k, which == TRANSITION_ERASE);
             if RM2K_CUT_TRANSITIONS.contains(&rm2k) {
                 return Ok(vec![OP_TRANSITION, which as u8, TRANSITION_CUT]);
             }
@@ -4071,12 +4242,25 @@ pub fn compile_command(
             // battle theme, and also as a troop song, which the cartridge's
             // plan puts apart —see `troop_songs`—. It is `Play Radio`'s,
             // which puts on one of three songs.
-            let Some(songs) = ctx.songs.as_deref_mut() else {
+            if ctx.songs.is_none() {
+                if !cmd.string.is_empty() {
+                    ctx.lose(cmd, "bgm-not-played", format!("{:?} does not play: no song registry here", cmd.string));
+                }
                 return Ok(vec![]);
-            };
+            }
             if cmd.string.is_empty() {
                 return Ok(vec![]);
             }
+            // `[fade-in in ms, volume, tempo, balance]`: OP_BGM has no fade,
+            // the song starts at once.
+            if cmd.p(0).is_some_and(|ms| ms > 0) {
+                ctx.lose(
+                    cmd,
+                    "bgm-fade-in-dropped",
+                    format!("{:?} starts at once instead of fading in over {} ms", cmd.string, p[0]),
+                );
+            }
+            let songs = ctx.songs.as_deref_mut().unwrap();
             let index = songs.index(&cmd.string);
             if songs.current == Some(Package::Battle) && !songs.troop_songs.contains(&index) {
                 songs.troop_songs.push(index);
@@ -4199,7 +4383,33 @@ pub fn compile_command(
             // without being done, which is what the three did until
             // 2026-09-12. Cutting the page would take away from the game the
             // pages that compile today because of it.
-            Ok(compile_picture(cmd, ctx.pictures.as_deref(), ctx.indices)?.unwrap_or_default())
+            let done = compile_picture(cmd, ctx.pictures.as_deref(), ctx.indices)?;
+            if done.is_none() {
+                // An erase of one the map does not carry takes down nothing
+                // that is up: what was lost is its `ShowPicture`'s.
+                // The picture's name goes as the subject: a project that
+                // draws some pictures into their map —`map_pictures` in the
+                // converter— did those, and the converter takes them out.
+                match cmd.code {
+                    SHOW_PICTURE => ctx.losses.lose_about(
+                        Some(cmd.code),
+                        "picture-not-shown",
+                        format!("picture {} {:?} is not shown here", p.first().unwrap_or(&0), cmd.string),
+                        &cmd.string,
+                    ),
+                    MOVE_PICTURE => ctx.lose(
+                        cmd,
+                        "picture-move-not-done",
+                        format!("the move of picture {} is not done", p.first().unwrap_or(&0)),
+                    ),
+                    _ => {}
+                }
+            } else if cmd.code == MOVE_PICTURE {
+                if let Some(how) = big_zoom_as_fade(cmd, ctx.pictures.as_deref()) {
+                    ctx.lose(cmd, "picture-zoom-as-fade", how);
+                }
+            }
+            Ok(done.unwrap_or_default())
         }
         // `ChangeSystemBGM` (10660): changes the song the system uses for
         // fighting, for winning, for the inn. The game uses it **130 times on
@@ -4241,8 +4451,30 @@ pub fn compile_command(
         // director's scene did not start: taro reached the office on
         // 2026-09-13, the speech ran whole, the teleport back worked, and then
         // nothing else happened.
-        CHANGE_SYSTEM_BGM | CHANGE_HERO_TITLE => Ok(vec![]),
-        CHANGE_SYSTEM_GRAPHICS => change_system(ctx, cmd),
+        CHANGE_SYSTEM_BGM => {
+            let which = ["battle", "victory", "inn", "vehicle", "vehicle", "vehicle", "game over"];
+            let what = cmd.p(0).and_then(|k| which.get(k as usize)).copied().unwrap_or("system");
+            ctx.lose(
+                cmd,
+                "system-bgm-not-changed",
+                format!("the {what} song stays the database's instead of {:?}", cmd.string),
+            );
+            Ok(vec![])
+        }
+        CHANGE_HERO_TITLE => {
+            ctx.lose(cmd, "hero-title-not-changed", format!("actor {}'s title is not changed to {:?}", p.first().unwrap_or(&0), cmd.string));
+            Ok(vec![])
+        }
+        // Only the message window changes: see
+        // `divergences/what-changesystemgraphics-does-not-model.md` in the book.
+        CHANGE_SYSTEM_GRAPHICS => {
+            ctx.lose(
+                cmd,
+                "system-graphics-window-only",
+                format!("only the message window takes System {:?}; the other screens keep the starting one", cmd.string),
+            );
+            change_system(ctx, cmd)
+        }
         ERASE_SCREEN | SHOW_SCREEN => {
             // `EraseScreen` (11010) and `ShowScreen` (11020): the screen to
             // black and left there until the show, with the game frozen while
@@ -4269,6 +4501,11 @@ pub fn compile_command(
                 return cannot();
             }
             let rm2k = q(0);
+            // Here "none" erasing is RPG_RT's pause and black, which the cut
+            // is: only the ones that become the fade are said.
+            if rm2k > 0 && rm2k != RM2K_TRANSITION_MOSAIC && rm2k < RM2K_CUT_TRANSITIONS[0] {
+                transition_loss(ctx, cmd, rm2k, cmd.code == ERASE_SCREEN);
+            }
             let kind = if rm2k < 0 {
                 TRANSITION_TELEPORTS
             } else if rm2k >= RM2K_CUT_TRANSITIONS[0] {
@@ -4283,7 +4520,10 @@ pub fn compile_command(
         }
         // `ChangeFaceGraphic` (10130): debt, the face is not drawn; see
         // `tasks/draw-the-faces-and-really-wait-on-the-escapes.md` in the-advocate-work.
-        CHANGE_FACE_GRAPHIC => Ok(vec![]),
+        CHANGE_FACE_GRAPHIC => {
+            ctx.lose(cmd, "face-not-drawn", format!("actor {}'s face {:?} is not drawn", p.first().unwrap_or(&0), cmd.string));
+            Ok(vec![])
+        }
         CHANGE_MONSTER_CONDITION => {
             // `ChangeMonsterCondition` (13130) —[place, remove, condition]—,
             // which only exists in battle: `Game_Interpreter_Battle` gives the
@@ -4417,7 +4657,13 @@ pub fn compile_command(
                 // The map did not get into the ROM: a box says so instead of
                 // jumping anywhere, and the page goes on on this map. The
                 // converter warns about it per map.
-                return compile_missing_teleport(ctx, q(0));
+                let box_ = compile_missing_teleport(ctx, q(0))?;
+                ctx.lose(
+                    cmd,
+                    "teleport-to-missing-map",
+                    format!("map {} is not in the cartridge: a message box says so and the page goes on here", q(0)),
+                );
+                return Ok(box_);
             };
             if let Some(songs) = ctx.songs.as_deref_mut() {
                 songs.dest(dest);
@@ -4477,6 +4723,7 @@ pub fn compile_command(
             // Without a song registry it is accepted and not done, like
             // `PlayBGM`.
             if ctx.songs.is_none() {
+                ctx.lose(cmd, "bgm-not-played", "the memorized song is not noted or put back: no song registry here");
                 return Ok(vec![]);
             }
             Ok(vec![
@@ -4549,6 +4796,14 @@ pub fn compile_command(
             if !(-8..=8).contains(&q(3)) || !(-8..=8).contains(&q(5)) {
                 return cannot();
             }
+            let theirs = map_events.and_then(|m| ctx.game.panorama(m.map_id));
+            if !cmd.string.is_empty() && theirs.as_deref() != Some(cmd.string.as_str()) {
+                ctx.lose(
+                    cmd,
+                    "panorama-not-changed",
+                    format!("the panorama stays the map's instead of {:?}; its scroll does change", cmd.string),
+                );
+            }
             let mut out = vec![OP_PANORAMA, u8::from(lx) | (u8::from(ly) << 1)];
             out.extend(step(lx, q(2) != 0, q(3)).to_le_bytes());
             out.extend(step(ly, q(4) != 0, q(5)).to_le_bytes());
@@ -4590,6 +4845,18 @@ pub fn compile_command(
             let frames = q(5) * FRAMES_PER_TENTH;
             if !(0 < frames && frames <= 255) {
                 return cannot();
+            }
+            // The hero's is the converter's to look at: whom he shares a
+            // palette with depends on the party.
+            if let Some(me) = map_events.filter(|_| target != 0) {
+                let who = if q(0) == ROUTE_THIS_EVENT { me.owner } else { Some(p[0]) };
+                if me.shares_graphic(who) {
+                    ctx.lose(
+                        cmd,
+                        "flash-shared-palette",
+                        "the events drawn with the same graphic flash with it: they share its palette",
+                    );
+                }
             }
             let mut out = vec![
                 OP_FLASH,
@@ -4647,6 +4914,13 @@ pub fn compile_command(
                 // is the book's `divergences/variables-saturate-at-16-bits.md`.
                 if q(3) == VAR_SET {
                     a = a.clamp(-0x8000, 0x7FFF);
+                    if a != q(5) {
+                        ctx.lose(
+                            cmd,
+                            "variable-saturated",
+                            format!("variable {} is set to {a} instead of {}: the word saturates", q(1), q(5)),
+                        );
+                    }
                 }
                 if !(-0x8000..=0x7FFF).contains(&a) {
                     return cannot();
@@ -4765,6 +5039,9 @@ pub fn compile_command(
                 // The fifth parameter is "also in battle", and here there are
                 // no battles: it is compiled anyway and ignored, like the rest
                 // of what belongs to combat.
+                if q(0) == TIMER_START && q(4) != 0 {
+                    ctx.lose(cmd, "timer-battle-flag-dropped", "the timer's \"also in battle\" is dropped");
+                }
                 return Ok(vec![
                     OP_TIMER,
                     q(0) as u8,
@@ -5006,6 +5283,11 @@ pub fn compile_command(
             let Some(anim) = ctx.game.animations.get(&p[0]) else {
                 return Ok(vec![]);
             };
+            ctx.lose(
+                cmd,
+                "battle-animation-not-played",
+                format!("battle animation {} on the monsters is not drawn, heard or flashed; only its length is kept", p[0]),
+            );
             let frames = 2 * anim.frames as i64;
             if q(2) == 0 || frames == 0 {
                 return Ok(vec![]);
@@ -5110,6 +5392,13 @@ pub fn compile_command(
             if p[..4].iter().any(|&v| !(0..=200).contains(&v)) {
                 return cannot();
             }
+            if n >= 5 && q(4) > 0 {
+                ctx.lose(
+                    cmd,
+                    "tint-gradient-dropped",
+                    format!("the tint is applied at once instead of over {} tenths of a second", q(4)),
+                );
+            }
             let mut out = vec![
                 OP_TINT, p[0] as u8, p[1] as u8, p[2] as u8, p[3] as u8,
             ];
@@ -5210,6 +5499,9 @@ fn compile_route(ctx: &mut Ctx, cmd: &Command, map_events: Option<&MapEvents>) -
         // Commands 30 and 31 would take it down to 1.
         return cannot();
     }
+    if p[2] != 0 {
+        ctx.lose(cmd, "route-repeat-dropped", "the forced route runs once instead of repeating");
+    }
     let mut path: Vec<i64> = Vec::new();
     // Whether the cursor is between a `begin_jump` and its `end_jump`. Inside
     // a jump the commands are not run: `BeginMoveRouteJump` only **adds up**
@@ -5245,7 +5537,11 @@ fn compile_route(ctx: &mut Ctx, cmd: &Command, map_events: Option<&MapEvents>) -
             // game asks for it, that of event 40 on map 2.
             //
             // Without a song registry, or "(OFF)", it is dropped as before.
-            if in_jump || ctx.songs.is_none() || AUDIO_OFF.contains(&extras[0].text()) {
+            if in_jump || AUDIO_OFF.contains(&extras[0].text()) {
+                continue;
+            }
+            if ctx.songs.is_none() {
+                ctx.lose(cmd, "sound-not-played", format!("the route's {:?} does not sound: no song registry here", extras[0].text()));
                 continue;
             }
             let sound = (
@@ -5254,7 +5550,7 @@ fn compile_route(ctx: &mut Ctx, cmd: &Command, map_events: Option<&MapEvents>) -
                 extras[2].int() as i32,
                 extras[3].int() as i32,
             );
-            let k = sound_index(ctx, sound, true) as i64;
+            let k = sound_index(ctx, cmd, sound, true) as i64;
             path.extend([command as i64, k & 0xFF, k >> 8]);
             continue;
         }
@@ -5267,6 +5563,7 @@ fn compile_route(ctx: &mut Ctx, cmd: &Command, map_events: Option<&MapEvents>) -
             // not compile without this. They cost no frames: in
             // `UpdateMoveRoute` they go through the branch that does not touch
             // the stop counter.
+            ctx.lose(cmd, "route-transparency-dropped", "the route's step of transparency is not done");
             continue;
         }
         // Turning, waiting and moving. The `move_*`s came in on 2026-09-03,
@@ -5305,7 +5602,16 @@ fn compile_route(ctx: &mut Ctx, cmd: &Command, map_events: Option<&MapEvents>) -
             // only door to Mix Formula and Weapon Forging— were left out for
             // their hero's graphic change. See
             // `tasks/radin-s-and-sern-s-menus-do-not-compile.md`.
+            let wanted = match extras.as_slice() {
+                [name, index, ..] => format!("{}[{}]", name.text(), index.int()),
+                _ => "a graphic".to_string(),
+            };
             let Some(graphics) = ctx.graphics.as_deref_mut() else {
+                ctx.lose(
+                    cmd,
+                    "route-graphic-not-changed",
+                    format!("the change to {wanted} is dropped: a common event's shared body has no map's table"),
+                );
                 continue;
             };
             if extras.len() < 2 {
@@ -5315,6 +5621,11 @@ fn compile_route(ctx: &mut Ctx, cmd: &Command, map_events: Option<&MapEvents>) -
             // goes on with the graphic it had, and the converter warns.
             let Some(chosen) = graphics.index_capped(extras[0].text(), extras[1].int() as i32)
             else {
+                ctx.lose(
+                    cmd,
+                    "route-graphic-not-changed",
+                    format!("the change to {wanted} is dropped: the map's table of route graphics is full"),
+                );
                 continue;
             };
             if target != 0 {
@@ -5417,11 +5728,16 @@ fn compile_animation(
     // that.
     let flashes = target != 0 && !map_events.unwrap().shares_graphic(who);
     let mut entries: Vec<[u8; 8]> = Vec::new();
+    // What is lost of the timeline, said once per command.
+    let (mut late, mut unflashed, mut unheard) = (false, false, false);
     for t in &anim.timings {
         let tick = (t.frame as i64 - 1) * 2;
         if !(0..=255).contains(&tick) {
+            late = true;
             continue;
         }
+        unflashed |= t.flash_scope == 1 && !flashes;
+        unheard |= ctx.songs.is_none() && !t.se.0.is_empty() && t.se.0 != "(OFF)";
         let tick = tick as u8;
         let (name, volume, tempo, balance) = &t.se;
         if !name.is_empty() && name != "(OFF)" {
@@ -5480,6 +5796,20 @@ fn compile_animation(
     } else {
         ANIM_NO_DRAWING as i64
     };
+    if number == ANIM_NO_DRAWING as i64 {
+        let why = if p[0] > 255 { "its number does not fit the ROM's table" } else { "it is global" };
+        ctx.lose(cmd, "battle-animation-not-drawn", format!("battle animation {} is heard and flashes but is not drawn: {why}", p[0]));
+    }
+    if late {
+        ctx.lose(cmd, "battle-animation-cut", format!("battle animation {}'s sounds and flashes past frame 128 are dropped", p[0]));
+    }
+    if unflashed {
+        let whom = if target == 0 { "the hero" } else { "an event that shares its palette" };
+        ctx.lose(cmd, "battle-animation-flash-dropped", format!("battle animation {}'s flash on {whom} is not done", p[0]));
+    }
+    if unheard {
+        ctx.lose(cmd, "sound-not-played", format!("battle animation {}'s sounds do not play: no song registry here", p[0]));
+    }
     // What it is drawn over: with "screen" scope —`Animation::Scope_screen`,
     // which is 1— RM2k draws it at the center and asks the target nothing;
     // with the other, over the target, which is the same byte the routes and
@@ -5540,6 +5870,7 @@ mod tests {
     use super::*;
     use crate::game::CommonEvent;
     use crate::registry::BigPicture;
+    use serde_json::json;
 
     fn cmd(code: i32, parameters: &[i32], string: &str) -> Command {
         Command::new(code, 0, string, parameters.to_vec())
@@ -5567,6 +5898,7 @@ mod tests {
             troops: None,
             commons: None,
             shared: None,
+            losses: Losses::default(),
         };
         compile_page(&mut ctx, commands, None, 0, 0).unwrap()
     }
@@ -5710,6 +6042,7 @@ mod tests {
             troops: None,
             commons: None,
             shared: None,
+            losses: Losses::default(),
         };
         compile_page(&mut ctx, commands, None, 0, 0)
     }
@@ -5805,9 +6138,80 @@ mod tests {
             troops: None,
             commons: None,
             shared: None,
+            losses: Losses::default(),
         };
         let me = MapEvents::new(map, None);
         compile_page(&mut ctx, commands, Some(me), 0, 0).unwrap()
+    }
+
+    /// What [`on_this_map`] notes as lost, as event 1's page 1 at (2, 3).
+    fn losses_on_a_map(game: &Game, commands: &[Command]) -> (Option<Vec<u8>>, Vec<crate::losses::Loss>) {
+        use crate::messages::{Messages, Window};
+        let (indices, sound) = (Indices::default(), SoundSettings::default());
+        let mut songs = Songs::default();
+        songs.current = Some(Package::Map(0));
+        let mut messages = Messages::new(1, Window::columns(39, 4));
+        let mut ctx = Ctx {
+            game,
+            indices: &indices,
+            sound: &sound,
+            map_index: &|_| Some(1),
+            messages: Some(&mut messages),
+            songs: Some(&mut songs),
+            graphics: None,
+            pictures: None,
+            troops: None,
+            commons: None,
+            shared: None,
+            losses: Losses::default(),
+        };
+        let map = crate::game::Map { id: 5, events: Vec::new() };
+        ctx.losses.enter(Origin::Page { map: 5, event: 1, page: Some(1), x: 2, y: 3 });
+        let code = compile_page(&mut ctx, commands, Some(MapEvents::new(&map, None)), 0, 0).unwrap();
+        ctx.losses.leave();
+        (code, ctx.losses.take())
+    }
+
+    fn fading_in() -> Command {
+        cmd(PLAY_BGM, &[1000, 100, 100, 50], "Theme")
+    }
+
+    #[test]
+    fn what_is_compiled_with_less_is_noted_where_it_is() {
+        let route = cmd(MOVE_EVENT, &[ROUTE_HERO as i32, route::FREQUENCY, 1, 0, 0], "");
+        let (code, losses) = losses_on_a_map(&Game::default(), &[fading_in(), route]);
+        assert!(code.is_some());
+        let kinds: Vec<(&str, Option<usize>)> = losses.iter().map(|l| (l.kind, l.path[0].1)).collect();
+        assert_eq!(kinds, [("bgm-fade-in-dropped", Some(0)), ("route-repeat-dropped", Some(1))]);
+        let json = losses[0].to_json();
+        assert_eq!(
+            (&json["map"], &json["event"], &json["page"], &json["x"], &json["y"], &json["name"]),
+            (&json!(5), &json!(1), &json!(1), &json!(2), &json!(3), &json!("PlayBGM"))
+        );
+    }
+
+    #[test]
+    fn a_page_that_does_not_compile_loses_nothing() {
+        // It does not run: its losses go with it, as its texts do.
+        let (code, losses) = losses_on_a_map(&Game::default(), &[fading_in(), cmd(99999, &[], "")]);
+        assert!(code.is_none());
+        assert!(losses.is_empty(), "{losses:?}");
+    }
+
+    #[test]
+    fn a_pasted_common_event_says_its_losses_under_the_call() {
+        let mut game = Game::default();
+        game.common_events.insert(
+            4,
+            CommonEvent { trigger: 5, switch_flag: false, switch_id: 1, commands: vec![fading_in()] },
+        );
+        let page = [cmd(WAIT, &[1], ""), cmd(CALL_EVENT, &[0, 4, 0], "")];
+        let (_, losses) = losses_on_a_map(&game, &page);
+        assert_eq!(losses.len(), 1);
+        let json = losses[0].to_json();
+        assert_eq!((&json["map"], &json["command"]), (&json!(5), &json!(1)));
+        assert_eq!(json["via"], json!([{"common": 4, "command": 0}]));
+        assert_eq!(json["kind"], "bgm-fade-in-dropped");
     }
 
     #[test]
@@ -5840,6 +6244,7 @@ mod tests {
             troops: None,
             commons: None,
             shared: None,
+            losses: Losses::default(),
         };
         let map = crate::game::Map { id: 5, events: Vec::new() };
         let me = MapEvents::new(&map, None);
@@ -5870,6 +6275,7 @@ mod tests {
             troops: None,
             commons: None,
             shared: None,
+            losses: Losses::default(),
         };
         let map = watching(5, 123);
         let me = MapEvents::new(&map, None).for_event(1);
@@ -6416,6 +6822,7 @@ mod tests {
             troops: None,
             commons: None,
             shared: None,
+            losses: Losses::default(),
         };
         let me = MapEvents::new(&map, None);
         let code = compile_page(&mut ctx, &page, Some(me), 0, 0).unwrap().unwrap();
@@ -6521,6 +6928,7 @@ mod tests {
             troops: None,
             commons: None,
             shared: None,
+            losses: Losses::default(),
         };
         let troop_page = [cmd(PLAY_BGM, &[0, 100, 100, 50], "radio")];
         let code = compile_page(&mut ctx, &troop_page, None, 0, 0).unwrap();
@@ -6658,11 +7066,16 @@ mod tests {
                 variable: Some((watched, 8)),
                 ..Default::default()
             },
+            id: 1,
+            translucent: false,
+            overlap_forbidden: false,
         };
         crate::game::Map {
             id,
             events: vec![Event {
                 id: 1,
+                x: 0,
+                y: 0,
                 pages: vec![page],
                 starting: None,
             }],
@@ -6994,6 +7407,7 @@ mod tests {
             troops: None,
             commons: None,
             shared: None,
+            losses: Losses::default(),
         };
         compile_page(&mut ctx, commands, None, 0, 0).unwrap().unwrap()
     }
@@ -7015,6 +7429,7 @@ mod tests {
             troops: None,
             commons: None,
             shared: None,
+            losses: Losses::default(),
         };
         match judged_page(&mut ctx, commands, None, 0, 0) {
             Ok(_) => None,
@@ -7055,6 +7470,7 @@ mod tests {
             troops: None,
             commons: None,
             shared: None,
+            losses: Losses::default(),
         };
         compile_page(&mut ctx, commands, None, 0, 0).unwrap()
     }
@@ -7138,6 +7554,7 @@ mod tests {
             troops: None,
             commons: None,
             shared: None,
+            losses: Losses::default(),
         };
         compile_page(&mut ctx, commands, None, 0, 0).unwrap().unwrap()
     }
@@ -7267,6 +7684,7 @@ mod tests {
             troops: None,
             commons: None,
             shared: None,
+            losses: Losses::default(),
         };
         let commands = [
             moving(20, (160, 120), 0, 0, 20, true),
@@ -7728,7 +8146,7 @@ mod tests {
             map_index: &|_| None,
         };
         let plan = crate::commons::plan(&setting, BTreeSet::new(), &messages, &songs).unwrap();
-        crate::commons::compile(&setting, &plan, &mut messages, &mut songs, &mut troops).unwrap()
+        crate::commons::compile(&setting, &plan, &mut messages, &mut songs, &mut troops, &mut Losses::default()).unwrap()
     }
 
     #[test]
@@ -7839,6 +8257,7 @@ mod tests {
             troops: None,
             commons: None,
             shared: Some(shared),
+            losses: Losses::default(),
         };
         let map = Map { id: 5, events: Vec::new() };
         let me = MapEvents::new(&map, None);

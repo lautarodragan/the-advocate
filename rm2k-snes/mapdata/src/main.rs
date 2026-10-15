@@ -282,7 +282,14 @@ fn do_pages(args: &Plain) -> Result<()> {
 
 fn do_emit(args: &EmitArgs) -> Result<()> {
     let mut request: request::Emit = request::read(&args.maps.plain.request)?;
-    let mut notes = animation::fit_all(&mut request.maps);
+    // A ChipSet animation cut to fit is a loss, which the converter lists
+    // with the cartridge's others.
+    let cut = animation::fit_all_by_map(&mut request.maps);
+    let losses: Vec<Value> = cut
+        .iter()
+        .map(|(map, text)| json!({"map": map, "kind": "chipset-animation-cut", "text": text.trim()}))
+        .collect();
+    let mut notes: Vec<String> = cut.into_iter().map(|(_, note)| note).collect();
     let db = rm2k_snes_battle::db::Db::from_dump(&args.data, true)
         .map_err(|b| Bad::answer(b.message().to_string()))?;
     let emitted = rm2k_snes_mapdata::emit::emit(&request, &db)?;
@@ -295,7 +302,7 @@ fn do_emit(args: &EmitArgs) -> Result<()> {
     write(
         out,
         "mapdata",
-        &json!({"notes": notes, "report": emitted.report, "frames": emitted.frames}),
+        &json!({"notes": notes, "report": emitted.report, "frames": emitted.frames, "losses": losses}),
     )
 }
 

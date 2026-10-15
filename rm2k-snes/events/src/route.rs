@@ -441,6 +441,9 @@ mod tests {
             route_repeat: true,
             route_skippable: false,
             condition: Default::default(),
+            id: 1,
+            translucent: false,
+            overlap_forbidden: false,
         }
     }
 

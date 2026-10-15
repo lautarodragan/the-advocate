@@ -33,6 +33,7 @@
 
 use crate::codes::*;
 use crate::compile::{judged_page, Culprit, Ctx, Indices, SoundSettings};
+use crate::losses::Losses;
 use crate::fail::{Result, Stop};
 use crate::game::{Command, Game, TroopPage};
 use crate::messages::{Messages, Window};
@@ -330,6 +331,7 @@ fn judge(
         troops: None,
         commons,
         shared: None,
+        losses: Losses::default(),
     };
     judged_page(&mut ctx, commands, map_events, 0, 0).map(|_| ())
 }
@@ -359,6 +361,7 @@ fn chase_troop_page(
             troops: None,
             commons: None,
             shared: None,
+            losses: Losses::default(),
         };
         found.trigger = troops::trigger(&ctx, page).is_none();
     }
@@ -388,6 +391,7 @@ fn chase_troop_page(
             troops: None,
             commons: None,
             shared: None,
+            losses: Losses::default(),
         };
         judged_page(&mut ctx, commands, None, 0, 0).map(|_| ())
     });

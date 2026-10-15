@@ -63,6 +63,10 @@ pub struct Moves {
     /// The ones that turn toward the hero, with the graphics of all their
     /// pages that turn.
     pub turning: BTreeMap<usize, BTreeSet<Key>>,
+    /// The still ones that animate in RM2k and here stand on one column:
+    /// all of them, on a map with more than `ANIMATES_STILL_MAX`. Only to
+    /// say it.
+    pub still_not_animated: BTreeSet<usize>,
 }
 
 /// Who moves, from the compiler's `pages`, the map's `events` and the ones
@@ -99,8 +103,9 @@ pub fn moves(pages: &[ScannedPage], events: &[Event], npcs: &[Npc], chipset: &st
     // not some yes and some no: two equal fountains, one moving and the
     // other frozen, looks worse than both still. Measured over the 328 maps
     // of the game this was built for: 312 have four or fewer.
+    let mut still_not_animated = BTreeSet::new();
     if animated.len() > ANIMATES_STILL_MAX {
-        animated.clear();
+        still_not_animated = std::mem::take(&mut animated);
     }
     // And the ones that turn toward the hero when it talks to them: the
     // events with some action or touch page that compiled and turns, with
@@ -124,7 +129,7 @@ pub fn moves(pages: &[ScannedPage], events: &[Event], npcs: &[Npc], chipset: &st
     }
     let mut movable: BTreeSet<usize> = with_route.union(&animated).copied().collect();
     movable.extend(also_walk);
-    Moves { movable, animates_still: animated, turning }
+    Moves { movable, animates_still: animated, turning, still_not_animated }
 }
 
 #[cfg(test)]

@@ -5,6 +5,7 @@
 use crate::animations::{self, Animations};
 use crate::bytecode;
 use crate::compiler::{self, CompileMap, Compiler, Indices, CASE_VARIABLE, COMPARE_AT_LEAST, TEST_SWITCH};
+use crate::degradations::Degradations;
 use crate::emit;
 use crate::fail::{Result, Stop};
 use crate::font::FontChoice;
@@ -135,6 +136,13 @@ pub fn run(options: Options) -> Result<()> {
     let test_event_map = (!cases.is_empty()).then(|| order[start_index]);
     let events_max = options.test_events_max.unwrap_or(rm2k_snes_mapdata::record::EV_MAX);
     game.trim(&order, &file_commands, test_event_map, events_max)?;
+    // What the cartridge does with less than RM2k, gathered from whoever
+    // loses it and written next to the ROM: see [`crate::degradations`].
+    let mut degradations = Degradations::default();
+    for &(map, event, at, what) in &game.trimmed {
+        let text = format!("the event is left out: the console's RAM does not hold every event, and it loses {what}");
+        degradations.event(map as i64, event as i64, (at.0 as i64, at.1 as i64), "event-left-out", &text);
+    }
 
     let search_dirs = search_dirs(&game, &project, &rtp_dir)?;
 
@@ -261,18 +269,22 @@ pub fn run(options: Options) -> Result<()> {
     for other in window_answer["systems"].as_array().into_iter().flatten() {
         let rows = other["mixed_text_rows"].as_array().map_or(0, Vec::len);
         if rows > 0 {
-            println!(
+            let line = format!(
                 "  WARNING, System {}: {rows} row(s) of its text colour are not one colour, and its message \
                  window draws each with the one most of it has",
                 other["system"]
             );
+            println!("{line}");
+            degradations.cartridge("window-text-colour-merged", &line);
         }
         if let Some(had) = other["frame_fused"].as_u64() {
-            println!(
+            let line = format!(
                 "  WARNING, System {}: its message window's frame and arrow took {had} tiles and were fused into \
                  bands to fit",
                 other["system"]
             );
+            println!("{line}");
+            degradations.cartridge("window-frame-fused", &line);
         }
     }
     let map_pictures = if game.map_pictures {
@@ -415,6 +427,13 @@ pub fn run(options: Options) -> Result<()> {
         &test_graphics,
         &encounters["troops"],
     )?;
+    degradations.from_events(&compiled);
+    // The pictures drawn into their map were shown by the conversion, not
+    // lost: the compiler is not given them, so it says they are not shown.
+    degradations.forget(|l| {
+        l["kind"] == "picture-not-shown"
+            && l["map"].as_i64().is_some_and(|m| cartridge.map_pictures.done(m as i32, l["subject"].as_str().unwrap_or("")))
+    });
     let messages = unhex(compiled["messages"]["data"].as_str().unwrap_or(""));
     let message_count = int(&compiled["messages"]["count"]);
     let message_pairs = json!({"first": compiled["messages"]["pair_first"], "table": compiled["messages"]["pairs"]});
@@ -709,7 +728,7 @@ pub fn run(options: Options) -> Result<()> {
         // a slot whose route ended goes to the next one —`reclaim_slot` in
         // the runtime—. How many move at once the pages do not say.
         if targets.len() > record::ROUTE_EV_MAX {
-            println!(
+            let line = format!(
                 "  map {}: WARNING, its pages send {} distinct events walking and the ROM has {} route \
                  slots: one whose route ended gives its slot to the next, and a route that finds them \
                  all moving is lost",
@@ -717,6 +736,8 @@ pub fn run(options: Options) -> Result<()> {
                 targets.len(),
                 record::ROUTE_EV_MAX
             );
+            println!("{line}");
+            degradations.map(m.id as i64, "route-slots-short", &line, &[]);
         }
         let runnable = m.pages.iter().filter(|p| p.has_code).count();
         if !m.pages.is_empty() {
@@ -759,6 +780,7 @@ pub fn run(options: Options) -> Result<()> {
                 );
                 if *away {
                     println!("  WARNING, {line}");
+                    degradations.map(m.id as i64, "flash-shared-palette", &line, &[]);
                 } else {
                     shared_flashes.push(line);
                 }
@@ -797,6 +819,9 @@ pub fn run(options: Options) -> Result<()> {
     });
     let screens_answer =
         screens::convert(&game, &font, &members, &items_all, !options.no_title, &menus_request, window_colors, &window_answer["text_rows"])?;
+    for loss in screens_answer["losses"].as_array().into_iter().flatten() {
+        degradations.cartridge(loss["kind"].as_str().unwrap_or(""), loss["text"].as_str().unwrap_or(""));
+    }
     let w = &screens_answer["window"];
     println!(
         "  message window: {} fixed tiles + {} of text, {} colors; font {} B, {} text box(es) in {} B",
@@ -887,9 +912,11 @@ pub fn run(options: Options) -> Result<()> {
         // does not fit starts the game without a title, as `--no-title`
         // does, and says so: the assembler would stop on it instead.
         if menu_tiles > TITLE_MENU_TILES_MAX {
-            println!(
+            let line = format!(
                 "  WARNING, the title menu doesn't fit in VRAM ({menu_tiles} tiles of {TITLE_MENU_TILES_MAX}): the game starts without a title screen"
             );
+            println!("{line}");
+            degradations.cartridge("title-screen-not-drawn", &line);
         } else if screen.tiles <= TITLE_TILES_MAX && !options.title_4bpp {
             title_screen = Some(screen);
         } else {
@@ -987,11 +1014,13 @@ pub fn run(options: Options) -> Result<()> {
     let in_rom: BTreeSet<usize> = scenes.backdrops.iter().map(|b| b.number).collect();
     let outside: Vec<usize> = (0..scenes.game.len()).filter(|k| !in_rom.contains(k)).collect();
     if !outside.is_empty() && !scenes.backdrops.is_empty() {
-        println!(
+        let line = format!(
             "  battle backdrops only in the .msu, which without MSU-1 fall back to {}: {}",
             repr(&scenes.backdrops[scenes.fallback_of[outside[0]]].name),
             outside.iter().map(|k| format!("{k} {}", scenes.game[*k])).collect::<Vec<_>>().join(", ")
         );
+        println!("{line}");
+        degradations.cartridge("backdrop-only-in-msu", &line);
     }
     for b in &scenes.battlers {
         println!("{}", scene::battler_report(b));
@@ -1043,12 +1072,16 @@ pub fn run(options: Options) -> Result<()> {
     )?;
     let battle_model = stage::json(&written, "model.json")?;
     for place in battle_model["cut"].as_array().cloned().unwrap_or_default() {
-        println!("{}", cut_report(&place));
+        let line = cut_report(&place);
+        println!("{line}");
+        degradations.cartridge("names-cut", &line);
     }
     // The party's line, whose HP and SP the console writes as runs that do
     // not get cut: with a font too wide they would step on each other.
     if let Some(why) = battle_model["party_line"].as_str() {
-        println!("  WARNING, battle text: the party's line does not fit: {why}");
+        let line = format!("  WARNING, battle text: the party's line does not fit: {why}");
+        println!("{line}");
+        degradations.cartridge("names-cut", &line);
     }
     // What the battle's busiest lists ask of the text layer's pool. The
     // console does not stop when it runs out —it shows what it has typeset
@@ -1061,13 +1094,17 @@ pub fn run(options: Options) -> Result<()> {
     if !asked.is_null() {
         let (skills, items) = (int(&asked["skills"]), int(&asked["items"]));
         let warning = if skills.max(items) > pool { "WARNING, " } else { "" };
-        println!(
+        let line = format!(
             "  {warning}battle text: the skill list asks for {skills} pairs of tiles at most \
              (actor {}, who can know {} skills) and the item list {items}, of the {pool} of \
              the pool",
             int(&asked["skills_actor"]),
             int(&asked["skills_known"])
         );
+        println!("{line}");
+        if skills.max(items) > pool {
+            degradations.cartridge("text-pool-short", &line);
+        }
     }
     // The parallel common events, which the ROM runs every frame while their
     // switch is on: the ones that compile, and a line for those that do not.
@@ -1150,6 +1187,17 @@ pub fn run(options: Options) -> Result<()> {
         infos[start_index].id
     );
     let directory = output.parent().map(rm2k_project::absolute).unwrap_or_default();
+    // Wally's losses, map by map, and the emission's.
+    for m in &infos {
+        for (kind, text, events) in &m.losses {
+            degradations.map(m.id as i64, kind, text, events);
+        }
+    }
+    for loss in &emitted.losses {
+        let map = loss["map"].as_i64().unwrap_or(-1);
+        degradations.map(map, loss["kind"].as_str().unwrap_or(""), loss["text"].as_str().unwrap_or(""), &[]);
+    }
+    degradations.write(&directory)?;
     // What Adeleine decided, as images: to look at which colours were lost
     // and which palette each cell ended up in without building or running
     // the ROM.
