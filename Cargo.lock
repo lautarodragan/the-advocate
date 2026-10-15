@@ -566,6 +566,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "voodoo",
+ "wally",
 ]
 
 [[package]]

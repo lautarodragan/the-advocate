@@ -227,7 +227,40 @@ fn emit_request(name: &str) -> Emit {
     }
     value["maps"] = maps["maps"].take();
     with_the_skills_screen(&mut value["screens"]);
+    with_the_shop_party(&mut value["screens"]);
     serde_json::from_value(value).unwrap()
+}
+
+/// The shop's party in the screens stage's answer, which came on
+/// 2026-10-15, after the requests were written: no member with a CharSet
+/// and the System's sixteen arrows blank, with its geometry; taken out of
+/// the text by [`without_shop_party`].
+fn with_the_shop_party(screens: &mut serde_json::Value) {
+    screens["shop_party"] = serde_json::json!({
+        "members": [],
+        "arrows": vec![vec![vec![0; 8]; 8]; 16],
+        "arrow_colors": [],
+        "tile0": 0,
+    });
+    let geometry = [
+        "TI_PARTY_MEMBERS", "TI_PARTY_X0", "TI_PARTY_Y0", "TI_PARTY_STEP", "TI_ARROW_DX", "TI_ARROW_DY",
+        "TI_PARTY_RATE", "TI_ARROW_FRAMES", "TI_ARROW_UP", "TI_ARROW_SAME", "TI_ARROW_DOWN",
+        "TI_ARROW_EQUIPPED",
+    ];
+    for (k, name) in geometry.iter().enumerate() {
+        if screens["layout"].get(*name).is_none() {
+            screens["layout"][*name] = k.into();
+        }
+    }
+}
+
+/// The text without the shop's party, which came on 2026-10-15: its
+/// section, from its comment to the one that ends it.
+fn without_shop_party(text: &str) -> String {
+    let start = text.find("\n; --- the shop's party: see shop_party.s ---\n").unwrap();
+    let last = "; --- the shop's party ends ---\n";
+    let end = text[start..].find(last).unwrap() + start + last.len();
+    format!("{}{}", &text[..start], &text[end..])
 }
 
 /// The skills screen's part of the screens stage's answer, which came on
@@ -780,7 +813,7 @@ fn without_names(text: &str) -> String {
 #[test]
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
-    let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(&without_map_access(&without_attributes(&emitted.text))));
+    let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(&without_map_access(&without_attributes(&without_shop_party(&emitted.text)))));
     let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_whole_poses_as_before(&without_pose_masks(&with_frequency_one_as_before(&with_the_actor_questions_as_before(&without_names(&text))))))))))))))))))));
     assert_eq!(text.lines().count(), 3777);
     assert_eq!(
@@ -792,7 +825,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 #[test]
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
-    let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(&without_map_access(&without_attributes(&emitted.text))));
+    let text = with_item_k_in_bytes_as_before(&with_the_switch_comment_as_before(&without_map_access(&without_attributes(&without_shop_party(&emitted.text)))));
     let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_whole_poses_as_before(&without_pose_masks(&with_frequency_one_as_before(&with_the_actor_questions_as_before(&without_names(&text))))))))))))))))))));
     assert_eq!(text.lines().count(), 3896);
     assert_eq!(
@@ -847,6 +880,7 @@ fn whole_with_troop_copies(copied: i32, numbers: std::ops::Range<i32>) -> (Emit,
         value["scene"]["troops"].as_array_mut().unwrap().push(scene);
     }
     with_the_skills_screen(&mut value["screens"]);
+    with_the_shop_party(&mut value["screens"]);
     (serde_json::from_value(value).unwrap(), db)
 }
 
@@ -1036,6 +1070,7 @@ fn with_backdrop(line: impl Fn(usize) -> u8) -> (Emit, usize) {
     }
     value["maps"] = maps["maps"].take();
     with_the_skills_screen(&mut value["screens"]);
+    with_the_shop_party(&mut value["screens"]);
     (serde_json::from_value(value).unwrap(), bytes)
 }
 

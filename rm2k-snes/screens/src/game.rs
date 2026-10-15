@@ -196,6 +196,22 @@ impl Game {
         Ok(Some(rm2k_render::face::face(&faceset, actor.face_index)))
     }
 
+    /// Actor `number`'s CharSet, the database's, or None if it has none or
+    /// the game does not have it. It is looked for in the game's `CharSet/`
+    /// and then in the RTP's, in any case.
+    pub fn charset(&self, number: i32) -> Result<Option<Picture>> {
+        let actor = &self.actors[&number];
+        if actor.character_name.is_empty() {
+            return Ok(None);
+        }
+        let mut dirs = vec![self.game_dir.clone()];
+        dirs.extend(self.rtp());
+        match find_resource(&dirs, "CharSet", &actor.character_name) {
+            Some(path) => Ok(Some(picture::read_rm2k(&path)?)),
+            None => Ok(None),
+        }
+    }
+
     /// Actor `number`'s name, or "" if there is no such actor.
     pub fn actor_name(&self, number: i32) -> Result<String> {
         match self.actors.get(&number) {

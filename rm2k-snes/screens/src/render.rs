@@ -658,6 +658,13 @@ pub struct Shop {
     pub inventory: BTreeMap<i32, i64>,
     /// Each party member's equipment.
     pub party_equipment: Vec<Vec<i32>>,
+    /// The party, by actor, in the order of `party_equipment`: the buy
+    /// layer shows it —see [`crate::party`]—. Empty, it shows nobody.
+    pub party: Vec<i32>,
+    /// The walking frame each member has up, and the arrows' phase, 0 to
+    /// 3: the cartridge's, which a test reads from its RAM.
+    pub frames: Vec<usize>,
+    pub phase: usize,
     /// Which screen: `TI_MAIN` to `TI_SOLD`.
     pub mode: usize,
     /// The cursor —of the main one or of the list—, the first visible one
@@ -674,17 +681,46 @@ pub struct Shop {
 /// The shop in its mode.
 pub fn shop_screen(game: &Game, skin: &Skin, shop: &Shop) -> Result<Picture> {
     let (text, windows) = shop_text(game, skin, shop)?;
-    text.render(game, skin, &windows)
+    let mut screen = text.render(game, skin, &windows)?;
+    if TI_LAYER_OF_MODE[shop.mode] == TI_LAYER_BUY {
+        let party: Vec<(i32, Vec<i32>)> = shop
+            .party
+            .iter()
+            .enumerate()
+            .map(|(i, &a)| (a, shop.party_equipment.get(i).cloned().unwrap_or_default()))
+            .collect();
+        crate::party::draw(game, skin, &mut screen, &party, shop_item(shop), &shop.frames, shop.phase)?;
+    }
+    Ok(screen)
+}
+
+/// The items the shop's list shows in its mode: what it sells, or what is
+/// owned of what the cartridge knows.
+fn shop_choices(shop: &Shop) -> Vec<i32> {
+    let known: BTreeSet<i32> = shop
+        .known
+        .clone()
+        .unwrap_or_else(|| shop.sells.iter().chain(shop.inventory.keys()).copied().collect());
+    if matches!(shop.mode, TI_BUY | TI_COUNT_BUY | TI_BOUGHT) {
+        shop.sells.iter().copied().filter(|i| known.contains(i)).collect()
+    } else {
+        shop.inventory
+            .iter()
+            .filter(|(i, &n)| n > 0 && known.contains(i))
+            .map(|(i, _)| *i)
+            .collect()
+    }
+}
+
+/// The item the cursor marks, 0 with an empty list.
+fn shop_item(shop: &Shop) -> i32 {
+    shop_choices(shop).get(shop.chosen).copied().unwrap_or(0)
 }
 
 /// The shop's text in its mode, and its windows.
 pub fn shop_text(game: &Game, skin: &Skin, shop: &Shop) -> Result<(Grid, Picture)> {
     let mut t = Grid::default();
     let term = |name: &str| game.term(&format!("{name}{}", shop.term_set + 1));
-    let known: BTreeSet<i32> = shop
-        .known
-        .clone()
-        .unwrap_or_else(|| shop.sells.iter().chain(shop.inventory.keys()).copied().collect());
     let message = match shop.mode {
         TI_MAIN if shop.regreeting => "shop_regreeting",
         TI_MAIN => "shop_greeting",
@@ -718,15 +754,7 @@ pub fn shop_text(game: &Game, skin: &Skin, shop: &Shop) -> Result<(Grid, Picture
     }
     t.write(TI_MSG_ROW, ITEM_DESC_COL, &lines[0], ITEM_WHITE);
     let buying = matches!(shop.mode, TI_BUY | TI_COUNT_BUY | TI_BOUGHT);
-    let choices: Vec<i32> = if buying {
-        shop.sells.iter().copied().filter(|i| known.contains(i)).collect()
-    } else {
-        shop.inventory
-            .iter()
-            .filter(|(i, &n)| n > 0 && known.contains(i))
-            .map(|(i, _)| *i)
-            .collect()
-    };
+    let choices = shop_choices(shop);
     let bar = if choices.is_empty() {
         None
     } else {
