@@ -3754,6 +3754,14 @@ fn timer_and_case(out: &mut String, r: &Emit) {
         2 * masks.len(),
         masks.join(", ")
     ));
+    // And what each map forbids, one byte per map: `map_access_enter`
+    // writes it over the permissions when the map is entered.
+    let access: Vec<String> = r.maps.iter().map(|m| format!("${:02X}", m.access)).collect();
+    out.push_str(&format!(
+        ".block {}\nmap_access:\n    .byte {}\n",
+        access.len().max(1),
+        if access.is_empty() { "0".to_string() } else { access.join(", ") }
+    ));
     if let Some(slot) = r.case_slot {
         out.push_str(&format!("\nCASE_SLOT = {slot}\n"));
     }

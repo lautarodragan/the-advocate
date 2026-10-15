@@ -88,12 +88,15 @@ FAR_SPEED_KEYS  = $25F1
 ; bit 7 is RM2k's menu request, `menu_calling`: B sets it and the hero
 ; handles it when standing still. The bits are stored as "forbidden" so that
 ; the zero from reset means "everything allowed", which is how RM2k starts.
-; It travels in the save, as it does there.
+; It travels in the save, as it does there. And entering a map writes its
+; save, escape and teleport over them: see `map_access_enter`.
 ;
-; The escape one is stored and **nobody reads it yet**: escaping belongs to
-; the battle. It is here because it is one bit and because without it 30 of
-; the game's 39 pages with `EnemyEncounter` that fail today do not compile;
-; see ACCESO_BIT in events.py.
+; The escape one is stored and **nobody reads it yet**: it is the Escape
+; skill's —not the battle's Escape command, which RM2k does not tie to it—,
+; and that skill cannot be used from the menu yet. It is here because it is
+; one bit and because without it 30 of the game's 39 pages with
+; `EnemyEncounter` that fail today do not compile; see `ACCESS_BIT` in the
+; event compiler.
 FAR_ACCESS     = $25FC
 ; And `MessageOptions`, one byte before: where and how the message window is
 ; drawn, which lasts until the next one and travels in the save, like
@@ -127,6 +130,11 @@ MSG_ARROW_UP = $7E3623          ; whether its cells say it is up; $FF is not kno
 ACCESS_NO_SAVE = $01
 ACCESS_NO_MENU     = $02
 ACCESS_NO_ESCAPE = $04
+; Teleport is only ever forbidden by the map —`map_access_enter`—: no
+; command sets it yet, and nothing reads it until the Teleport skill exists.
+ACCESS_NO_TELEPORT = $08
+; The ones a map writes when it is entered: see `map_access_enter`.
+ACCESS_MAP = ACCESS_NO_SAVE | ACCESS_NO_ESCAPE | ACCESS_NO_TELEPORT
 ACCESS_REQUESTED   = $80
 ; And the +15 of the page `active_layer` found —its speed, and whether its
 ; graphic is fixed—, beside `found_flags`, for which bank 0 has no room left.
