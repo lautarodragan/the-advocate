@@ -18,9 +18,9 @@
 ; **All the arithmetic is integer**, which is what the console can do: the
 ; converter precomputes `1 / encounter_steps` in 1/65536 —`enc_base`— and at
 ; which step each row of the table is crossed —`enc_threshold_n`—, so there is
-; not a single division here. See `events.enc_base` and
-; `events.enc_step_thresholds`, which are the same arithmetic on the other
-; side.
+; not a single division here. See `base` and `step_thresholds` in
+; `rm2k-snes/battle/src/encounters.rs`, which are the same arithmetic on the
+; other side.
 ;
 ; It lives here and not in bank 0 because there were eighty-five bytes left
 ; there: all that remains on the other side are the four `jsl` and the bridge

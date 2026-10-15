@@ -695,8 +695,8 @@ stream:
 ; `rm2k-snes-mapdata`—. It caps them so that they do not cross the bank.
 ;
 ; Battle overwrites $7F's half —it is `SCN_SCENE`—, so `back_from_battle`
-; decompresses it all again. See the decision in
-; decisions/the-grid-lives-in-wram.md in the book.
+; decompresses it all again. See optimizations/the-grid-in-wram.md in the
+; book.
 .proc lz2_grid
 .a8
 .i16
