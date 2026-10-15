@@ -402,6 +402,12 @@ param:
     plb
     pla
     sta .loword(MED_ACTOR)
+    ; The target, as an actor in combatant 1, for its ranks in the skill's
+    ; attributes: `CalcSkillEffect` looks at them on a heal too. Its
+    ; parameters are not read: a heal does not subtract the target's.
+    sta BA_ONE + BA_BYTES + BA_NUMBER
+    lda #1
+    sta BA_MTGT
     jsr ba_skill_effect         ; into `BA_MEFFECT`, the critical rolled
     lda f:sk_used
     jsr ba_ax

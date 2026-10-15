@@ -934,7 +934,15 @@ has_damage:
     lda BA_S2
     sec
     sbc BA_S3
+    ; Through the attributes of the source's weapons, before the critical,
+    ; as `CalcNormalAttackEffect`: see battle_attributes.s. One immune is
+    ; left at zero, and zero rolls no variance —`VarianceAdjustEffect`
+    ; asks for `base > 0`—.
+    jsr ba_attr_attack
     sta BA_S2
+    bne still_damage
+    jmp no_variance
+still_damage:
     sep #$20
 .a8
     lda BA_S5

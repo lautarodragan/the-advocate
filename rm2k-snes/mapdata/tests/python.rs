@@ -696,10 +696,38 @@ fn without_states(text: &str) -> String {
     lines.join("\n")
 }
 
+/// The text without the attributes, which came on 2026-10-15: `ATTR_N` and
+/// its six tables, three lines each. The test game carries none, so
+/// `ATTR_N` is zero —checked here—, and every item and skill has the empty
+/// set's row.
+fn without_attributes(text: &str) -> String {
+    let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
+    let at = lines.iter().position(|l| l.starts_with("ATTR_N = ")).unwrap();
+    assert_eq!(lines[at], "ATTR_N = 0");
+    lines.remove(at);
+    for label in [
+        "attr_rate:",
+        "attr_magic:",
+        "attr_sets:",
+        "item_attr:",
+        "skill_attr:",
+        "attr_ranks:",
+    ] {
+        let at = lines.iter().position(|l| l == label).unwrap();
+        if label == "item_attr:" || label == "skill_attr:" {
+            let values = lines[at + 1].trim_start_matches("    .word ");
+            assert!(values.split(", ").all(|v| v == "0"), "{label}");
+        }
+        lines.drain(at - 1..=at + 1);
+    }
+    lines.join("\n")
+}
+
 #[test]
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
-    let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_whole_poses_as_before(&without_pose_masks(&with_frequency_one_as_before(&with_the_actor_questions_as_before(&emitted.text)))))))))))))))))));
+    let text = without_attributes(&emitted.text);
+    let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_whole_poses_as_before(&without_pose_masks(&with_frequency_one_as_before(&with_the_actor_questions_as_before(&text)))))))))))))))))));
     assert_eq!(text.lines().count(), 3777);
     assert_eq!(
         sha(&text),
@@ -710,7 +738,8 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 #[test]
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
-    let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_whole_poses_as_before(&without_pose_masks(&with_frequency_one_as_before(&with_the_actor_questions_as_before(&emitted.text)))))))))))))))))));
+    let text = without_attributes(&emitted.text);
+    let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_whole_poses_as_before(&without_pose_masks(&with_frequency_one_as_before(&with_the_actor_questions_as_before(&text)))))))))))))))))));
     assert_eq!(text.lines().count(), 3896);
     assert_eq!(
         sha(&text),
