@@ -97,6 +97,7 @@ fn run() -> Result<(), String> {
                     "bank0": m.bank0,
                     "bank1": m.bank1,
                     "bank_far2": m.bank_far2,
+                    "bank_far3": m.bank_far3,
                     "bss": m.bss,
                     "far": m.far,
                     "switches": m.switches,

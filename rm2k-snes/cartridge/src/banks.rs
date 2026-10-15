@@ -43,8 +43,9 @@
 //!   upper halves, through `$70-$7D:8000` and `$3E-$3F:8000`.
 //!
 //! **What this module assumes about the runtime** is that banks 0 and 1 are
-//! its first two code banks, that the low half of `$C0` is the third
-//! —[`FAR2`]—, and that the generated data goes in the rest: [`slots`].
+//! its first two code banks, that the low halves of `$C0` and `$C1` are the
+//! third and the fourth —[`FAR2`], [`FAR3`]—, and that the generated data
+//! goes in the rest: [`slots`].
 
 use std::path::Path;
 
@@ -73,6 +74,16 @@ pub const MIRRORS: [(usize, usize, usize); 2] =
 /// low half of `$C0`, the last data slot of the fast 4 MB, which no
 /// cartridge was using when it became code (2026-10-02).
 pub const FAR2: Slot = Slot { bank: 0xC0, start: 0, size: HALF };
+
+/// The fourth code bank: `FAR3`, linked at `$C1:0000` and 32 KB long, like
+/// [`FAR2`] and for the same reasons —a plain fast ExHiROM half, entered
+/// only with `jsl` or `jml`, with no copy—. It was the low half of `$C1`,
+/// whose upper half is bank 1's fast mirror, and the last data slot of the
+/// fast 4 MB. It came on 2026-10-15, when the shop's party and the actors'
+/// renames together overflowed bank 1 in A Blurred Line's MSU test
+/// cartridge, and `FAR2` had 133 bytes left in Sunset over Imdahl: the
+/// code that is entered from far and calls nothing near goes here.
+pub const FAR3: Slot = Slot { bank: 0xC1, start: 0, size: HALF };
 
 /// The file offset of a CPU address, as the cartridge decodes it, or `None`
 /// if the cartridge does not answer there.
@@ -122,9 +133,9 @@ pub fn slots() -> Vec<Slot> {
     let low = |bank| Slot { bank, start: 0, size: HALF };
     let high = |bank| Slot { bank, start: 0x8000, size: HALF };
     let mut out: Vec<Slot> = (0xC2..=0xFF).map(whole).collect();
-    // The low half of `$C1`, whose upper half is bank 1. That of `$C0` is
-    // the third code bank: see [`FAR2`].
-    out.push(low(0xC1));
+    // The low halves of `$C0` and `$C1` are the third and fourth code
+    // banks: see [`FAR2`] and [`FAR3`]. Until 2026-10-15 that of `$C1` was
+    // data.
     out.extend((0x42..=0x6F).map(whole));
     // The low halves of the copies of banks 0 and 1, the upper halves of the
     // banks whose low one is not used, and those of `$7E` and `$7F`, which
@@ -1076,6 +1087,7 @@ pub fn cfg() -> String {
         // The hand-written code that lives outside bank 0.
         format!("FAR:      load = {}, type = ro, align = $8000;", segment_of(1)),
         format!("FAR2:     load = {}, type = ro;", segment_of(FAR2.bank)),
+        format!("FAR3:     load = {}, type = ro;", segment_of(FAR3.bank)),
     ];
     let data = slots();
     let area = |name: String, start: usize, size: usize| {
@@ -1095,9 +1107,9 @@ pub fn cfg() -> String {
             offset += HALF;
             continue;
         }
-        if Some(offset) == file_offset(FAR2.address()) {
-            memory.push(area(segment_of(FAR2.bank), FAR2.address(), FAR2.size));
-            offset += FAR2.size;
+        if let Some(code) = [FAR2, FAR3].iter().find(|c| Some(offset) == file_offset(c.address())) {
+            memory.push(area(segment_of(code.bank), code.address(), code.size));
+            offset += code.size;
             continue;
         }
         if offset == 0x018000 {
