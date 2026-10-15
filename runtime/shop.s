@@ -88,6 +88,15 @@ from_sale:
     rts
 .endproc
 
+; `ti_item` and `eq_read` for the shop's party, which lives in `FAR3`, out
+; of `jsr`'s reach: see shop_party.s.
+ti_item_far:
+    jsr ti_item
+    rtl
+eq_read_far:
+    jsr eq_read
+    rtl
+
 ; The price of X's `k`, in `ti_num`, halved if selling.
 .proc ti_price
 .a8
@@ -391,7 +400,7 @@ sale:
 .proc ti_compose
 .a8
 .i16
-    jsr ti_party_compute
+    jsl f:ti_party_compute
     lda #255
     sta comp_dup + 3
     jsl f:ba_t_clear

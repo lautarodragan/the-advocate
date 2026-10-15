@@ -1,4 +1,4 @@
-.segment "FAR"
+.segment "FAR3"
 
 ; --- the party in the shop -----------------------------------------------------
 ;
@@ -73,6 +73,8 @@ TI_PARTY_LAST_SMALL = 258
 ; reads `comp_char`, `comp_col`, `comp_col + 1` and `comp_mask`, so those go
 ; on the stack and come back. Only when the item or the layer changed: the
 ; quantity's arrows recompose the screen and would pay for it on every key.
+; With `jsl`, and it reaches `ti_item` and `eq_read`, which end in `rts`,
+; through their `_far` doors in bank 1.
 ; Its scratch is `temp`, which none of what it calls touches: `temp` and
 ; `temp + 1` the parameters' sum, `temp + 2` the member —a word, so that
 ; `ldx` takes it—.
@@ -104,7 +106,7 @@ TI_PARTY_LAST_SMALL = 258
     sep #$20
 .a8
 off:
-    rts
+    rtl
 on:
     lda #1
     sta f:$7E0000 + TI_P_ON
@@ -116,7 +118,7 @@ on:
 .a8
     lda comp_mask
     beq with_item
-    jsr ti_item                 ; `eq_id` and X = k
+    jsl f:ti_item_far           ; `eq_id` and X = k
     rep #$20
 .a16
     txa
@@ -131,7 +133,7 @@ with_item:
     bne changed
     sep #$20
 .a8
-    rts
+    rtl
 .a16
 changed:
     sta f:$7E0000 + TI_P_ITEM
@@ -222,7 +224,7 @@ bit_ready:
     ldy #0
 slot:
     tya
-    jsr eq_read
+    jsl f:eq_read_far
     rep #$20
 .a16
     lda comp_or23
@@ -283,7 +285,7 @@ done:
 .a8
     pla
     sta comp_char
-    rts
+    rtl
 
 ; Attack, defense, spirit and agility with the equipment `eq_effective`
 ; says, each clamped, added up in `temp`.
@@ -508,11 +510,6 @@ no:
     rts
 .endproc
 
-; The rest is in `FAR2`, entered with `jsl`: bank 1 had no room for it all,
-; and `FAR2` has less in a game with painted maps —Sunset over Imdahl had 555
-; bytes left there on 2026-10-15—. The data bank is still 0 there, as in the
-; shop. `ti_party_vblank`, above, also returns with `rtl`.
-.segment "FAR2"
 
 ; At opening, with the screen off and after `ti_screen_upload`: the object
 ; base, the arrows' tiles and palette, each member's graphic and the whole OAM.
