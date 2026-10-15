@@ -7,7 +7,7 @@
 
 use crate::fail::{Bad, Result, Step, Stop};
 use rm2k_snes_text::font::{CONSOLE_GLYPHS, WIDTH};
-use rm2k_snes_text::refit::{wait_of, Measure};
+use rm2k_snes_text::refit::{is_backslash_mark, wait_of, Measure, ESCAPE};
 use std::collections::{BTreeMap, HashMap};
 
 /// The first byte value that stands for a pair of letters and not for one.
@@ -248,6 +248,7 @@ impl Window {
         if wait_of(c).is_some() {
             return 0; // a wait draws nothing
         }
+        let c = if is_backslash_mark(c) { ESCAPE } else { c };
         let code = c as u32;
         if (VARIABLE_MARK..VARIABLE_MARK + 0x100).contains(&code) {
             return self.advances[('0' as usize) - 32] as usize;
@@ -329,6 +330,7 @@ fn units(text: &str, window: Window) -> Result<Vec<Unit>> {
         .fit(text)
         .chars()
         .map(|ch| {
+            let ch = if is_backslash_mark(ch) { ESCAPE } else { ch };
             let c = ch as u32;
             if let Some(w) = wait_of(ch) {
                 return Ok(Unit::Wait(wait_byte(w)));

@@ -181,6 +181,23 @@ pub const WAITS: [char; 3] = ['.', '|', '!'];
 /// stops at anything that is not printable ASCII.
 const WAIT_MARK: u32 = 0xF0100;
 
+/// The mark of a literal backslash, RM2k's `\\`: the character right after the
+/// waits'. It is a mark and not a plain backslash so that [`escape_tail`],
+/// which refuses any backslash left in a line, and the reflow, which parses
+/// escapes, never take it for the start of one. It draws the font's `\`
+/// glyph and moves the line by its advance.
+const BACKSLASH_MARK: u32 = WAIT_MARK + WAITS.len() as u32;
+
+/// The mark of a literal backslash.
+pub fn backslash_mark() -> char {
+    char::from_u32(BACKSLASH_MARK).unwrap()
+}
+
+/// Whether `c` is [`backslash_mark`].
+pub fn is_backslash_mark(c: char) -> bool {
+    c as u32 == BACKSLASH_MARK
+}
+
 /// The mark of the wait whose escape letter is `escape`, one of [`WAITS`].
 pub fn wait_mark(escape: char) -> char {
     let i = WAITS.iter().position(|&w| w == escape).expect("a wait's escape");
@@ -204,6 +221,10 @@ pub fn with_wait_escapes(line: &str) -> String {
                 out.push(ESCAPE);
                 out.push(w);
             }
+            None if is_backslash_mark(c) => {
+                out.push(ESCAPE);
+                out.push(ESCAPE);
+            }
             None => out.push(c),
         }
     }
@@ -216,8 +237,8 @@ pub fn with_wait_escapes(line: &str) -> String {
 /// easyrpg's `Window_Message` does: see `runtime/message_waits.s`.
 /// `\c[n]` and `\s[n]`, either case, are dropped: a color and a speed the
 /// console does not have (`tasks/message-colours-and-speed.md`).
-/// A `\\` is skipped as a pair, so the letter after it is not taken as an
-/// escape.
+/// A `\\` is RM2k's literal backslash: it comes out as one [`backslash_mark`],
+/// so the letter after it is not taken as an escape either.
 fn with_wait_marks(line: &str) -> String {
     let mut out = String::with_capacity(line.len());
     let mut chars = line.chars().peekable();
@@ -249,8 +270,8 @@ fn with_wait_marks(line: &str) -> String {
                     }
                 }
                 Some(&ESCAPE) => {
-                    out.push(c);
-                    out.push(chars.next().unwrap());
+                    chars.next();
+                    out.push(backslash_mark());
                     continue;
                 }
                 _ => {}
@@ -313,6 +334,7 @@ impl Measure {
         if wait_of(c).is_some() {
             return 0; // a wait draws nothing
         }
+        let c = if is_backslash_mark(c) { ESCAPE } else { c };
         let code = c as u32;
         let i = (code.wrapping_sub(32)) as usize;
         let i = if code >= 32 && i < self.advances.len() { i } else { 0 };

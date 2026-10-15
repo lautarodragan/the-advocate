@@ -4,6 +4,8 @@
   {"lines": ["\\c[1]Sandra: \\c[0]Hi\\|"], "answer": [["Sandra: Hi"], 1, false]},
   {"lines": ["\\S[3]Slow\\s[12] one"], "answer": [["Slow one"], 0, false]},
   {"lines": ["\\c[x]no"], "answer": null},
+  {"lines": ["HP: 3 \\\\ 9"], "answer": [["HP: 3 \\\\ 9"], 0, false]},
+  {"lines": ["\\\\n and \\\\\\\\"], "answer": [["\\\\n and \\\\\\\\"], 0, false]},
   {"lines": ["HELP!!", "That pirate... has a map...\\|\\^"],
    "answer": [["HELP!!", "That pirate... has a map..."], 1, true]},
   {"lines": ["                  < Wave >\\|\\|\\|\\^"],
