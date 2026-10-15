@@ -1012,8 +1012,15 @@ ready:
 ; `ba_hit_sound`— and `scene_tick` erases it as it erases that one. A hidden
 ; one is changed all the same: `GetEnemy` does not ask. The SP one is `SetSp`,
 ; between zero and the maximum.
-ENEMY_SP     = $01              ; what: the SP and not the HP
-ENEMY_LETHAL = $80              ; and on top, that a loss of HP can kill
+;
+; With `ENEMY_BY_VARIABLE` the amount is a variable's slot, and its value,
+; signed, is what is added —turned around with `ENEMY_SUBTRACTS`—: The Book
+; of Three's Last Stand. A sum past $7FFF overflows as signed, and that is a
+; gain that goes to the maximum, not a loss.
+ENEMY_SP          = $01         ; what: the SP and not the HP
+ENEMY_BY_VARIABLE = $20         ; the amount is a variable's slot
+ENEMY_SUBTRACTS   = $40         ; and its value is taken away
+ENEMY_LETHAL      = $80         ; and on top, that a loss of HP can kill
 .proc ba_enemy_change
 .a8
 .i16
@@ -1033,6 +1040,23 @@ ENEMY_LETHAL = $80              ; and on top, that a loss of HP can kill
     iny
     iny
     sta BA_T1
+    lda BA_T0
+    and #(ENEMY_BY_VARIABLE * 256)
+    beq amount_ready
+    lda BA_T1
+    and #VAR_SLOT
+    asl a                       ; two bytes per variable
+    tax
+    lda f:FAR_LENGTH + FAR_VARIABLES, x
+    sta BA_T1
+    lda BA_T0
+    and #(ENEMY_SUBTRACTS * 256)
+    beq amount_ready
+    lda #0
+    sec
+    sbc BA_T1
+    sta BA_T1
+amount_ready:
     sep #$20
 .a8
     phy
@@ -1051,10 +1075,12 @@ ENEMY_LETHAL = $80              ; and on top, that a loss of HP can kill
     beq ready16                 ; dead: `ChangeHp` does nothing to it
     clc
     adc BA_T1
+    bvs top                     ; a gain past $7FFF
     bmi down
     beq down
     cmp BA_ONE + BA_HPMAX, x
     bcc put
+top:
     lda BA_ONE + BA_HPMAX, x
 put:
     sta BA_ONE + BA_HP, x
@@ -1084,11 +1110,13 @@ sp:
     lda BA_ONE + BA_SP, x
     clc
     adc BA_T1
+    bvs sp_top                  ; a gain past $7FFF
     bpl sp_positive
     lda #0
 sp_positive:
     cmp BA_ONE + BA_SPMAX, x
     bcc sp_put
+sp_top:
     lda BA_ONE + BA_SPMAX, x
 sp_put:
     sta BA_ONE + BA_SP, x

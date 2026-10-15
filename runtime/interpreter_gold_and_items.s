@@ -181,3 +181,10 @@ item_save:
 
 .endproc
 
+; `ChangeItems` with the item or the amount in a variable: only the entry,
+; like `op_enemy`. `item_by_variable`, in items_by_variable.s, reads the
+; operands and leaves Y after them.
+.proc op_item_var
+    jsl f:item_by_variable
+    jmp run_code::other
+.endproc
