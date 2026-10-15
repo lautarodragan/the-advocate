@@ -34,4 +34,5 @@ eleven text colours, like a game's.
 **What is ours**: everything else in `test-game/` —the game written as text
 in `src/`, its tests and their goldens—, like the rest of the repository.
 The font the cartridge draws text with is not in here: it is the tools', in
-`rm2k-snes/text/`, which says where it comes from.
+`rm2k-snes/text/`, which says where it comes from (EasyRPG's rmg2000 font
+by Zikmok, public domain / CC0; see `rm2k-snes/text/fonts/README.md`).
