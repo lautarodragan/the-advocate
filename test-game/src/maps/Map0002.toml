@@ -1,0 +1,70 @@
+# The garden, map 2: the meadow's grass with a path, a fence around a well
+# and, above the hero, two roofs, a dome and a tent. The ChipSet's ★ in
+# `db/chipsets.json` puts those on the layer in front of the hero, which
+# on the console is 4 bits a pixel with a palette per cell, so they are
+# what Adeleine groups and merges: it is the map that loses a reasonable
+# amount —see the book's "The tools", the lossy examples—. `Map0002.json`
+# says the same 20x15, and the case `garden` teleports there.
+
+grid = '''
+####################
+#..T.....AB..CD..T.#
+#..t.....EI..GH..t.#
+#.........::.......#
+#..P......::..JKL..#
+#.........::..MNO..#
+#..ffffff.::.......#
+#..f*..*f.::..F....#
+#..f..W.f.::.......#
+#..ffffff.::..QRS..#
+#..........::.UVX..#
+#..*...o...::..$...#
+#..T.....q..::.T...#
+#..t.....*...::t...#
+####################
+'''
+
+[legend]
+# The grass, as in the meadow: terrain autotile 0 in its plain pattern.
+"." = { lower = 4000 }
+# A bush, a tree's crown and trunk, and flowers, as in the meadow.
+"#" = { lower = 4000, upper = 10007 }
+"T" = { lower = 4000, upper = 10002 }
+"t" = { lower = 4000, upper = 10008 }
+"*" = { lower = 4000, upper = 10018 }
+# A dirt path.
+":" = { lower = 5072 }
+# A fence around the well, and the pieces behind the hero with the most
+# colours: the well and the flower pot, with sixteen each, the fountain,
+# the sign, a stone and a barrel. Behind the hero they go in the 8-bit
+# background, which has no palette per cell.
+"f" = { lower = 4000, upper = 10024 }
+"W" = { lower = 4000, upper = 10055 }
+"P" = { lower = 4000, upper = 10021 }
+"F" = { lower = 4000, upper = 10104 }
+"$" = { lower = 4000, upper = 10020 }
+"o" = { lower = 4000, upper = 10059 }
+"q" = { lower = 4000, upper = 10075 }
+# What is drawn above the hero, by the ChipSet's ★ in `db/chipsets.json`:
+# two roofs —a red one and a blue one, corners over bottoms—, a grey dome
+# and a cream tent, each its top row over its bottom row.
+"A" = { lower = 4000, upper = 10114 }
+"B" = { lower = 4000, upper = 10115 }
+"C" = { lower = 4000, upper = 10116 }
+"D" = { lower = 4000, upper = 10117 }
+"E" = { lower = 4000, upper = 10120 }
+"I" = { lower = 4000, upper = 10121 }
+"G" = { lower = 4000, upper = 10122 }
+"H" = { lower = 4000, upper = 10123 }
+"J" = { lower = 4000, upper = 10126 }
+"K" = { lower = 4000, upper = 10127 }
+"L" = { lower = 4000, upper = 10128 }
+"M" = { lower = 4000, upper = 10138 }
+"N" = { lower = 4000, upper = 10139 }
+"O" = { lower = 4000, upper = 10140 }
+"Q" = { lower = 4000, upper = 10129 }
+"R" = { lower = 4000, upper = 10130 }
+"S" = { lower = 4000, upper = 10131 }
+"U" = { lower = 4000, upper = 10141 }
+"V" = { lower = 4000, upper = 10142 }
+"X" = { lower = 4000, upper = 10143 }

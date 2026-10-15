@@ -1,0 +1,167 @@
+# The showcase, map 3: the Exterior ChipSet's first ninety-six lower tiles,
+# one each, and its forty upper tiles with the most colours, above the hero
+# —its ChipSet entry, 2 in `db/chipsets.json`, has every upper tile ★—,
+# the rest grass. No game draws a map like this; it is as much as the
+# biggest VRAM layout takes —384 tiles behind the hero and 256 in front—
+# and the map where the console loses too much: the background has more
+# colours than its budget, and the layer above is left a single palette of
+# fifteen. The book's "The tools" shows what that looks like. The legend is
+# generated, one character per piece; `Map0003.json` says the same 20x15,
+# and the case `showcase` teleports there.
+
+grid = '''
+!$%&()*+-/0123456789
+:;<>?@ABCDEFGHIJKLMN
+OPQRSTUVWXYZ^_`abcde
+fghijklmnopqrstuvwxy
+z|~ÀÁÂÃÄÅÆÇÈÉÊËÌ....
+ÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞßàá
+âãäåæçèéêëìíîïðñòóôõ
+....................
+....................
+....................
+....................
+....................
+....................
+....................
+....................
+'''
+
+[legend]
+"!" = { lower = 5000 }
+"$" = { lower = 5001 }
+"%" = { lower = 5002 }
+"&" = { lower = 5003 }
+"(" = { lower = 5004 }
+")" = { lower = 5005 }
+"*" = { lower = 5006 }
+"+" = { lower = 5007 }
+"-" = { lower = 5008 }
+"/" = { lower = 5009 }
+"0" = { lower = 5010 }
+"1" = { lower = 5011 }
+"2" = { lower = 5012 }
+"3" = { lower = 5013 }
+"4" = { lower = 5014 }
+"5" = { lower = 5015 }
+"6" = { lower = 5016 }
+"7" = { lower = 5017 }
+"8" = { lower = 5018 }
+"9" = { lower = 5019 }
+":" = { lower = 5020 }
+";" = { lower = 5021 }
+"<" = { lower = 5022 }
+">" = { lower = 5023 }
+"?" = { lower = 5024 }
+"@" = { lower = 5025 }
+"A" = { lower = 5026 }
+"B" = { lower = 5027 }
+"C" = { lower = 5028 }
+"D" = { lower = 5029 }
+"E" = { lower = 5030 }
+"F" = { lower = 5031 }
+"G" = { lower = 5032 }
+"H" = { lower = 5033 }
+"I" = { lower = 5034 }
+"J" = { lower = 5035 }
+"K" = { lower = 5036 }
+"L" = { lower = 5037 }
+"M" = { lower = 5038 }
+"N" = { lower = 5039 }
+"O" = { lower = 5040 }
+"P" = { lower = 5041 }
+"Q" = { lower = 5042 }
+"R" = { lower = 5043 }
+"S" = { lower = 5044 }
+"T" = { lower = 5045 }
+"U" = { lower = 5046 }
+"V" = { lower = 5047 }
+"W" = { lower = 5048 }
+"X" = { lower = 5049 }
+"Y" = { lower = 5050 }
+"Z" = { lower = 5051 }
+"^" = { lower = 5052 }
+"_" = { lower = 5053 }
+"`" = { lower = 5054 }
+"a" = { lower = 5055 }
+"b" = { lower = 5056 }
+"c" = { lower = 5057 }
+"d" = { lower = 5058 }
+"e" = { lower = 5059 }
+"f" = { lower = 5060 }
+"g" = { lower = 5061 }
+"h" = { lower = 5062 }
+"i" = { lower = 5063 }
+"j" = { lower = 5064 }
+"k" = { lower = 5065 }
+"l" = { lower = 5066 }
+"m" = { lower = 5067 }
+"n" = { lower = 5068 }
+"o" = { lower = 5069 }
+"p" = { lower = 5070 }
+"q" = { lower = 5071 }
+"r" = { lower = 5072 }
+"s" = { lower = 5073 }
+"t" = { lower = 5074 }
+"u" = { lower = 5075 }
+"v" = { lower = 5076 }
+"w" = { lower = 5077 }
+"x" = { lower = 5078 }
+"y" = { lower = 5079 }
+"z" = { lower = 5080 }
+"|" = { lower = 5081 }
+"~" = { lower = 5082 }
+"À" = { lower = 5083 }
+"Á" = { lower = 5084 }
+"Â" = { lower = 5085 }
+"Ã" = { lower = 5086 }
+"Ä" = { lower = 5087 }
+"Å" = { lower = 5088 }
+"Æ" = { lower = 5089 }
+"Ç" = { lower = 5090 }
+"È" = { lower = 5091 }
+"É" = { lower = 5092 }
+"Ê" = { lower = 5093 }
+"Ë" = { lower = 5094 }
+"Ì" = { lower = 5095 }
+"Í" = { lower = 4000, upper = 10021 }
+"Î" = { lower = 4000, upper = 10055 }
+"Ï" = { lower = 4000, upper = 10104 }
+"Ð" = { lower = 4000, upper = 10020 }
+"Ñ" = { lower = 4000, upper = 10056 }
+"Ò" = { lower = 4000, upper = 10141 }
+"Ó" = { lower = 4000, upper = 10143 }
+"Ô" = { lower = 4000, upper = 10054 }
+"Õ" = { lower = 4000, upper = 10077 }
+"Ö" = { lower = 4000, upper = 10034 }
+"Ø" = { lower = 4000, upper = 10040 }
+"Ù" = { lower = 4000, upper = 10041 }
+"Ú" = { lower = 4000, upper = 10046 }
+"Û" = { lower = 4000, upper = 10047 }
+"Ü" = { lower = 4000, upper = 10057 }
+"Ý" = { lower = 4000, upper = 10060 }
+"Þ" = { lower = 4000, upper = 10062 }
+"ß" = { lower = 4000, upper = 10073 }
+"à" = { lower = 4000, upper = 10074 }
+"á" = { lower = 4000, upper = 10135 }
+"â" = { lower = 4000, upper = 10137 }
+"ã" = { lower = 4000, upper = 10051 }
+"ä" = { lower = 4000, upper = 10008 }
+"å" = { lower = 4000, upper = 10010 }
+"æ" = { lower = 4000, upper = 10011 }
+"ç" = { lower = 4000, upper = 10012 }
+"è" = { lower = 4000, upper = 10022 }
+"é" = { lower = 4000, upper = 10082 }
+"ê" = { lower = 4000, upper = 10006 }
+"ë" = { lower = 4000, upper = 10017 }
+"ì" = { lower = 4000, upper = 10023 }
+"í" = { lower = 4000, upper = 10027 }
+"î" = { lower = 4000, upper = 10028 }
+"ï" = { lower = 4000, upper = 10029 }
+"ð" = { lower = 4000, upper = 10035 }
+"ñ" = { lower = 4000, upper = 10048 }
+"ò" = { lower = 4000, upper = 10049 }
+"ó" = { lower = 4000, upper = 10066 }
+"ô" = { lower = 4000, upper = 10069 }
+"õ" = { lower = 4000, upper = 10072 }
+"." = { lower = 4000 }
