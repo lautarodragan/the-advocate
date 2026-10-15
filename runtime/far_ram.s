@@ -366,7 +366,8 @@ MED_MATERIAL  = $08             ; a material: it raises parameters, see `FAR_GRO
 ; —`EXP_K` rows—: it cannot be declared here, which comes before the
 ; cartridge's `.inc` says how many slots there are. Until 2026-10-14 it was
 ; placed by hand at $7E7D00 with room up to the panorama's state, 21 slots,
-; and ABL's whole game has 23; $7E7D00 to $7E7DFF has been free since.
+; and ABL's whole game has 23. $7E7D00 to $7E7DFF was free after that, and
+; since 2026-10-15 it is the switch table's: see switches.s.
 GROWTH_BYTES  = 12
 GROWTH_MAX    = 999             ; `MaxHpValue`, `MaxSpValue` and `MaxStatBaseValue` of RM2k
 
