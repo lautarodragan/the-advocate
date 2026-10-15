@@ -80,10 +80,14 @@ fixed_slot:
 queue:
     jsr vram_queue
     bne ready
-    ; The queue was full: it is asked for again next frame.
+    ; The queue was full: it is asked for again next frame. And if it is a
+    ; still one that animates, `animate_still` has to look at it then.
     ldy npc_row
     lda #$FF
     sta npc_buf + 12, y
+    lda npc_buf + 13, y
+    bpl ready
+    jsr still_touched
 ready:
     rts
 .endproc
@@ -101,6 +105,7 @@ ready:
 .proc npc_poses_forget
 .a8
 .i16
+    jsr still_touched           ; and the still ones that animate ask again
     ldy #$0000
 other:
     cpy npc_total               ; comes in bytes, not rows

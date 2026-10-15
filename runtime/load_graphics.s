@@ -183,6 +183,7 @@ mask:
 no_tiles:
     jsl f:share_load + FAST     ; and nobody knows what the shared slots hold
     jsl f:cache_load + FAST     ; nor what the cache's do
+    jsr still_touched           ; nor what the still ones that animate show
 
     ; The palette goes to the upper half of CGRAM, which is the sprites': 8
     ; starts at color 128.

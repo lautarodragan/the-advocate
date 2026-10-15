@@ -698,6 +698,7 @@ with_graphic:
     sta npc_buf + 7, y
     lda #$FF
     sta npc_buf + 12, y         ; the pose in VRAM is no longer its own
+    jsr still_touched           ; nor its column, if it animates standing still
     lda #1
     sta npc_buf + 14, y         ; and it is visible, in case it was hidden
 ready_gfx:

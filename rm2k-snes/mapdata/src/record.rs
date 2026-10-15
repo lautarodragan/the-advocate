@@ -1122,8 +1122,14 @@ pub fn anim_table(maps: &[Map], rows: &[Vec<NpcRow>]) -> Result<String> {
                 "    .word {:<6} ; bytes per drawing",
                 tiles * bytes_per_tile
             ));
-            let padding =
-                u8::from(k == FAMILIES.len() - 1 && rows[number].iter().any(|n| n.animates));
+            // The last family's padding: how many rows animate standing
+            // still and upload their pose, so `animate_still` stops walking
+            // the table after the last one.
+            let padding = if k == FAMILIES.len() - 1 {
+                rows[number].iter().filter(|n| n.animates).count().min(u8::MAX as usize)
+            } else {
+                0
+            };
             out.push(format!(
                 "    .byte {tiles}, {padding}   ; {tiles} tile(s){}",
                 if padding != 0 {
