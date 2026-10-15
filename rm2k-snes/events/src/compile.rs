@@ -1438,7 +1438,7 @@ fn page(
             let p = compile_command(ctx, cmd, &extra, map_events.as_ref())?;
             // A jump to another map: the page keeps running there. See
             // `MapEvents::after_jump`.
-            if cmd.code == TELEPORT {
+            if cmd.code == TELEPORT && (ctx.map_index)(cmd.p(0).unwrap_or(0)).is_some() {
                 if let Some(me) = &map_events {
                     if cmd.p(0) != Some(me.map_id as i64) {
                         map_events = Some(me.after_jump());
@@ -1540,7 +1540,9 @@ fn follow_exit(ctx: &mut Ctx, cmd: &Command, exit: &mut Exit, played_sound: bool
     }
     let Some(pending) = exit.pending else { return };
     if cmd.code == TELEPORT {
-        let is_exit = !here((ctx.map_index)(cmd.p(0).unwrap_or(0)));
+        // A teleport to a map not carried is a message box, not an exit.
+        let dest = (ctx.map_index)(cmd.p(0).unwrap_or(0));
+        let is_exit = dest.is_some() && !here(dest);
         exit.noted.push((pending, is_exit));
         exit.pending = None;
     } else if played_sound
@@ -4381,8 +4383,10 @@ pub fn compile_command(
                 return cannot();
             }
             let Some(dest) = (ctx.map_index)(q(0)) else {
-                // The map did not get into the ROM.
-                return cannot();
+                // The map did not get into the ROM: a box says so instead of
+                // jumping anywhere, and the page goes on on this map. The
+                // converter warns about it per map.
+                return compile_missing_teleport(ctx, q(0));
             };
             if let Some(songs) = ctx.songs.as_deref_mut() {
                 songs.dest(dest);
@@ -5121,6 +5125,19 @@ pub fn compile_command(
         }
         _ => cannot(),
     }
+}
+
+/// A `Teleport` to a map the cartridge does not carry, as a message box
+/// `Teleport to missing map N` (N is RM2k's id) so a player sees where the
+/// hole is. Without a text block it still leaves the page out.
+fn compile_missing_teleport(ctx: &mut Ctx, map: i64) -> Step<Vec<u8>> {
+    let Some(messages) = ctx.messages.as_deref_mut() else {
+        return cannot();
+    };
+    let at = messages.add_waiting(&[format!("Teleport to missing map {map}")])?;
+    let mut out = vec![OP_MESSAGE];
+    out.extend(usize_word(at)?);
+    Ok(out)
 }
 
 /// A forced `MoveEvent` route: whom, the frequency, and the commands the
@@ -6344,6 +6361,38 @@ mod tests {
         assert!(victory < defeat && defeat < escape);
         // A `TerminateBattle` picks no handler and does not end the page.
         assert_eq!(abort, past);
+    }
+
+    #[test]
+    fn a_teleport_to_a_map_not_carried_is_a_message_box() {
+        use crate::messages::{Messages, Window};
+        let game = Game::default();
+        let indices = Indices::default();
+        let sound = SoundSettings::default();
+        let mut songs = Songs::default();
+        let mut messages = Messages::new(1, Window::columns(39, 4));
+        let map = crate::game::Map { id: 5, events: Vec::new() };
+        let page = [cmd(TELEPORT, &[999, 1, 2], ""), cmd(CONTROL_SWITCHES, &[0, 7, 7, 0], "")];
+        let mut ctx = Ctx {
+            game: &game,
+            indices: &indices,
+            sound: &sound,
+            map_index: &|_| None,
+            messages: Some(&mut messages),
+            songs: Some(&mut songs),
+            graphics: None,
+            pictures: None,
+            troops: None,
+            commons: None,
+            shared: None,
+        };
+        let me = MapEvents::new(&map, None);
+        let code = compile_page(&mut ctx, &page, Some(me), 0, 0).unwrap().unwrap();
+        // The box, then the rest of the page: it is not left out.
+        assert_eq!(code[0], OP_MESSAGE);
+        assert_eq!(code[3], OP_SWITCH, "the page goes on");
+        assert!(!code.contains(&OP_TELEPORT));
+        assert_eq!(messages.count(), 1, "one box, which is a single line");
     }
 
     #[test]

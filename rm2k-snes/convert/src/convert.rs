@@ -21,7 +21,7 @@ use crate::stage;
 use crate::text::{hex, repr, unhex};
 use rm2k_project::Project;
 use rm2k_snes_events::codes::{TELEPORT, TIMER_OPERATION};
-use rm2k_snes_bytecode::events::{OP_FLASH, OP_ROUTE};
+use rm2k_snes_bytecode::events::{OP_FLASH, OP_ROUTE, OP_TELEPORT};
 use rm2k_snes_mapdata::{engine, record, vram};
 
 /// What fits in the title's VRAM: the image's 8bpp tiles (32 words each)
@@ -523,32 +523,27 @@ pub fn run(options: Options) -> Result<()> {
             );
         }
         m.pages = pages;
-        // And which maps outside the ROM the ones that don't compile point
-        // to: a `Teleport` to a map that didn't make it cuts the whole page,
-        // and it is the one reason fixed from outside.
+        // And the teleports to a map that didn't make it into the ROM: each is
+        // compiled as a message box saying so (see `TELEPORT` in the events'
+        // compile.rs), so the hole shows when played, and here.
         let mut outside_of = BTreeSet::new();
         let mut how_many = 0;
         for page in &m.pages {
-            if page.has_code || !triggers.contains(&page.trigger) || page.test {
+            if !page.has_code || !triggers.contains(&page.trigger) || page.test {
                 continue;
             }
             let event = &m.map.events[page.event as usize];
-            let missing: BTreeSet<i32> = event.pages[page.page as usize]
-                .commands
-                .iter()
-                .filter(|c| c.code == TELEPORT && !c.parameters.is_empty() && !table_index.contains_key(&c.parameters[0]))
-                .map(|c| c.parameters[0])
-                .collect();
-            if !missing.is_empty() {
-                outside_of.extend(missing);
-                how_many += 1;
+            for c in &event.pages[page.page as usize].commands {
+                if c.code == TELEPORT && !c.parameters.is_empty() && !table_index.contains_key(&c.parameters[0]) {
+                    outside_of.insert(c.parameters[0]);
+                    how_many += 1;
+                }
             }
         }
         if !outside_of.is_empty() {
             println!(
-                "  map {}: {how_many} of those {} because of a teleport to a map that didn't make it into the ROM: {}",
+                "  map {}: WARNING, {how_many} teleport(s) to a map that didn't make it into the ROM, each a message box instead: {}",
                 m.id,
-                if how_many == 1 { "doesn't compile" } else { "don't compile" },
                 join(&outside_of, ", ")
             );
         }
@@ -569,6 +564,9 @@ pub fn run(options: Options) -> Result<()> {
     // The second round: with the pages of all the cases compiled, they are
     // put in the boot map and each map's block is built.
     let boot = order[start_index];
+    // Where the hero is flashed, by the map's index, and the map whose page
+    // does it: checked once every map is known.
+    let mut flashes: BTreeMap<(usize, Option<(String, i64)>, bool), i32> = BTreeMap::new();
     for m in infos.iter_mut() {
         if !cases.is_empty() && m.id == boot {
             // The test pages, only in the map the ROM boots in, at **index
@@ -661,31 +659,40 @@ pub fn run(options: Options) -> Result<()> {
         // two that share a graphic would flash together. This covers what
         // the compiler can't see, which is the hero's: which graphic it has
         // depends on the party.
-        let mut graphics: BTreeMap<(String, i64), usize> = BTreeMap::new();
-        for npc in m.npcs.as_array().cloned().unwrap_or_default() {
-            *graphics.entry((npc["charset"].as_str().unwrap_or("").to_string(), int(&npc["index"]))).or_insert(0) += 1;
-        }
-        for actor in &leaders {
-            let a = game.db.actor(*actor)?;
-            *graphics.entry((a.character_name.clone(), a.character_index as i64)).or_insert(0) += 1;
-        }
+        //
+        // **A flash runs on the map the page is on when it reaches it**: one
+        // after a `Teleport` is the destination's, so it is noted for that
+        // map and checked after the loop against its NPCs (a common event
+        // pasted into a page flashes the hero after teleporting, which is
+        // what the Frozen World's refusal on maps 1 and 3 was). The walk is
+        // in bytecode order and does not follow jumps: a teleport on one
+        // branch counts for what comes after it in the text.
+        //
+        // **And the graphic the hero has then is the last one a route on the
+        // hero gave it**, not the actor's: `OP_ROUTE`'s path carries command
+        // 34 followed by the index in the map's route graphics. Frozen World's
+        // common event 3 teleports, gives the hero `rangedmelee[7]` and flashes.
+        let here = table_index[&m.id];
         for code in &run_here {
+            let mut at = here;
+            let mut teleported = false;
+            let mut hero: Option<(String, i64)> = None;
             for i in bytecode::walk(code)? {
-                if code[i] != OP_FLASH || bytecode::at(code, i + 1) != 0 {
-                    continue;
-                }
-                for actor in &leaders {
-                    let a = game.db.actor(*actor)?;
-                    if graphics.get(&(a.character_name.clone(), a.character_index as i64)).copied().unwrap_or(0) > 1 {
-                        crate::stop!(
-                            "map {}: a page makes the hero flash, and actor {actor} is drawn with {}[{}], \
-                             which an NPC of the map also uses. On the console they share a palette and \
-                             both would flash",
-                            m.id,
-                            a.character_name,
-                            a.character_index
-                        );
+                if code[i] == OP_TELEPORT {
+                    teleported = true;
+                    at = bytecode::at(code, i + 1) as usize | (bytecode::at(code, i + 2) as usize) << 8;
+                } else if code[i] == OP_ROUTE && bytecode::at(code, i + 1) == 0 {
+                    let path = &code[i + 4..i + 4 + bytecode::at(code, i + 3) as usize];
+                    let mut k = 0;
+                    while k < path.len() {
+                        if path[k] == 34 {
+                            k += 1;
+                            hero = path.get(k).and_then(|&g| m.route_graphics.get(g as usize)).cloned();
+                        }
+                        k += 1;
                     }
+                } else if code[i] == OP_FLASH && bytecode::at(code, i + 1) == 0 {
+                    flashes.entry((at, hero.clone(), teleported)).or_insert(m.id);
                 }
             }
         }
@@ -706,6 +713,51 @@ pub fn run(options: Options) -> Result<()> {
         if !m.pages.is_empty() {
             println!("  map {}: {} automatic event page(s), {} runnable", m.id, m.pages.len(), runnable);
         }
+    }
+
+    let mut shared_flashes: Vec<String> = Vec::new();
+    for ((index, given, away), &from) in &flashes {
+        let m = &infos[*index];
+        let mut graphics: BTreeMap<(String, i64), usize> = BTreeMap::new();
+        for npc in m.npcs.as_array().cloned().unwrap_or_default() {
+            *graphics.entry((npc["charset"].as_str().unwrap_or("").to_string(), int(&npc["index"]))).or_insert(0) += 1;
+        }
+        // The graphic a route gave the hero, or each leader's own: the flash
+        // is on its palette, which an NPC drawn with the same one shares.
+        let mut heroes: Vec<(String, i64, String)> = Vec::new();
+        match given {
+            Some((name, i)) => heroes.push((name.clone(), *i, "the hero".to_string())),
+            None => {
+                for actor in &leaders {
+                    let a = game.db.actor(*actor)?;
+                    heroes.push((a.character_name.clone(), a.character_index as i64, format!("actor {actor}")));
+                }
+            }
+        }
+        for (name, i, who) in heroes {
+            if graphics.get(&(name.clone(), i)).copied().unwrap_or(0) > 0 {
+                // A flash on the map the page is on stops the build, as it
+                // always did. One after a `Teleport` is the destination's: it
+                // is warned about and not refused, since checking it stopped
+                // ABL (map 32's pages flashing the hero on 33) and Frozen
+                // World, whose pages now compile. It is a cosmetic double
+                // flash, not a broken page.
+                let line = format!(
+                    "map {}: a page (of map {from}) makes the hero flash there, and {who} is drawn with {name}[{i}], \
+                     which an NPC of the map also uses. On the console they share a palette and \
+                     both would flash",
+                    m.id
+                );
+                if *away {
+                    println!("  WARNING, {line}");
+                } else {
+                    shared_flashes.push(line);
+                }
+            }
+        }
+    }
+    if !shared_flashes.is_empty() {
+        crate::stop!("{}", shared_flashes.join("\n"));
     }
 
     // The screens, all at once. And the items that can be in the

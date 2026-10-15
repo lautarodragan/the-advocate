@@ -47,7 +47,9 @@ pub const LZ2_CAP_GRID: usize = 0x10000;
 /// console carries it when a page goes on running on another map —see
 /// `CODE_CARRY` in the runtime's `far_ram.s`—, which is what of
 /// `LZ2_BUFFER` the battle animation's frames leave below the ChipSet
-/// animation's drawings.
+/// animation's drawings. A map over it is not refused: it keeps its
+/// bytecode in the cartridge —see `code_in_rom` in record.rs—, so
+/// [`check_streams`] only sees an empty stream.
 pub const LZ2_CAP_CODE: usize = 0x4E00;
 
 /// The grid goes to the upper half of the two WRAM banks —see `lz2_grid`—,
