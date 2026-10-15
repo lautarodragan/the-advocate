@@ -79,11 +79,18 @@ other:
 ;
 ; A number that is not an opcode comes to `page_ends` and not here: broken
 ; bytecode ends the page, it does not return into a caller.
+;
+; The depth is looked at here and not in `call_leave`: every page's end
+; comes through, a parallel's once a frame, and with the `jsl` to bank 1
+; on every one the race's lap of map 49 lost fifty frames in a thousand
+; —`test_the_whole_race` caps the extra at five per hundred—. Seven cycles
+; for the page that returns to nobody, which is almost all of them.
 .proc op_done
 .a8
 .i16
+    lda f:call_depth
+    beq page_ends
     jsl f:call_leave + FAST
-    bcs page_ends
     jmp run_code::other
 .endproc
 
