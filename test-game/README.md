@@ -8,8 +8,9 @@ the research "The test game" and the page on the test game under "Project
 progress".
 
 Today it is a skeleton: one map, the meadow —the Exterior ChipSet, the hero
-and an elder with People1's CharSet—, and one test that boots the cartridge,
-walks up to the elder and reads what he says.
+and an elder with People1's CharSet—, a test that boots the cartridge,
+walks up to the elder and reads what he says, and the first engine test
+brought back from A Blurred Line: switches past 1023.
 
     src/                the game, as text: what to edit
       ditto.json, maps.json, db/, maps/MapNNNN.json
@@ -30,8 +31,9 @@ walks up to the elder and reads what he says.
     LICENSE-CC-BY-4.0.txt
                         the license most of them are under
     rm2k-snes.toml      its cartridge, like a port's
-    cases/              the test pages the cartridge carries: none but
-                        the empty one yet
+    cases/              the test pages the cartridge carries, one JSON
+                        each, like a port's; a test chooses one with
+                        `Session(core, case=...)`
     justfile            making it, building it, testing it
     tests/              its tests, in pytest, and their goldens
     build/              what is made: not versioned
@@ -72,6 +74,9 @@ research brings the generic part of that game's harness here, and then both
 go.
 
     test_meadow.py      the meadow as it is reached, and the elder's message
+    test_switches_past_1023.py
+                        a switch past 1023 set, branched on and asked for
+                        by a page —the meadow's invisible event at (1,1)—
 
 A capture with no golden is left in `tests/snapshots/golden/` and the test
 fails: it is looked at and, if it is right, copied to `tests/golden/` in a

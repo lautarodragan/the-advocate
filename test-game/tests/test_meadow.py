@@ -12,24 +12,13 @@ with WRAM full of garbage: both have to draw the same at 15 bits, so a red
 only in bsnes is memory nobody initialised.
 """
 
-import os
-
-import pytest
-
-from game import BSNES, MESSAGE_SHOWN, SNES9X, Session, golden
+from game import MESSAGE_SHOWN, Session, golden
 
 # Where `src/maps.json` starts the party, and where `src/maps/Map0001.json`
 # puts the elder, straight up from it: walking up, the hero stops in the
 # cell below him.
 START = (10, 10)
 ELDER = (10, 6)
-
-
-@pytest.fixture(params=[SNES9X, BSNES], ids=["snes9x", "bsnes"])
-def core(request):
-    if not os.path.exists(request.param):
-        pytest.skip("no libretro core at %s" % request.param)
-    return request.param
 
 
 def test_the_elder_talks_to_whoever_talks_to_him(core):

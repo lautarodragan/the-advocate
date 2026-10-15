@@ -21,6 +21,26 @@
           ]
         }
       ]
+    },
+    {
+      "id": 2,
+      "name": "Past 1023",
+      "x": 1,
+      "y": 1,
+      "pages": [
+        {
+          "id": 1,
+          "condition": {
+            "flags": {"switch_a": true, "switch_b": false, "variable": false,
+                      "item": false, "actor": false, "timer": false},
+            "switch_a_id": 1100
+          },
+          "trigger": "parallel",
+          "event_commands": [
+            {"code": "ControlSwitches", "parameters": [0, 1101, 1101, 0]}
+          ]
+        }
+      ]
     }
   ]
 }
