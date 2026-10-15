@@ -37,11 +37,17 @@ has:
 other:
     cpy npc_total
     beq ready
+    lda npc_buf + 13, y
+    bpl next                    ; bit 7 is "still and animating"
+    ; Bit 6: its twins animate in its slot and upload nothing —`moves` in
+    ; Wally—, so it uploads even hidden, or erasing it would freeze them.
+    bit #$40
+    bne shown
     lda npc_buf + 14, y
     beq next                    ; hidden: not drawn
     lda npc_buf + 13, y
-    bpl next                    ; bit 7 is "still and animating"
-    and #$7F
+shown:
+    and #$3F
     dec a                       ; the speed, 0 to 5
     phy
     rep #$20

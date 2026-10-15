@@ -71,6 +71,11 @@ pub struct Map {
     pub npcs: Vec<Npc>,
     pub movable: Vec<i64>,
     pub animates_still: Vec<i64>,
+    /// The still ones that animate in another one's slot, as `[event,
+    /// whose]`: drawn with that slot, which the other keeps up to date.
+    /// Missing, none.
+    #[serde(default)]
+    pub animates_with: Vec<[i64; 2]>,
     /// Every event's starting cell, in the map's order, drawn or not.
     pub events: Vec<[i64; 2]>,
     /// The cells of the events that share another's row, as `[x, y, the

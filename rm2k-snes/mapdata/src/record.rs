@@ -18,7 +18,7 @@ use crate::request::{Map, Page, Slot};
 use crate::snes::{cgram_word, BYTES_PER_TILE, COLORS_PER_PALETTE};
 use crate::text::quoted;
 use crate::vram::{self, Layout};
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt::Write;
 
 /// A map's record in the table. The stride is a power of two so that going
@@ -224,6 +224,8 @@ pub struct NpcRow {
     pub poses: Option<usize>,
     pub speed: i64,
     pub animates: bool,
+    /// Whether others animate in its slot: it uploads its pose even hidden.
+    pub leads: bool,
     pub visible: bool,
     pub tile_pass: Option<i64>,
 }
@@ -240,6 +242,8 @@ pub fn npc_table(map: &Map) -> Result<Vec<NpcRow>> {
     let sprite = map.sprite.as_ref();
     let movable: BTreeSet<i64> = map.movable.iter().copied().collect();
     let still: BTreeSet<i64> = map.animates_still.iter().copied().collect();
+    let with: BTreeMap<i64, i64> = map.animates_with.iter().map(|&[e, whose]| (e, whose)).collect();
+    let leaders: BTreeSet<i64> = with.values().copied().collect();
     let mut order: Vec<&crate::request::Npc> = map.npcs.iter().collect();
     // `GetScreenZ`: the layer on top, then Y, X and the id. The table index
     // stands for the id: the events come sorted by id.
@@ -255,6 +259,10 @@ pub fn npc_table(map: &Map) -> Result<Vec<NpcRow>> {
             Slot::Shared { shared: slot as i64 }
         } else if walks {
             Slot::Event { event: npc.event }
+        } else if let Some(&whose) = with.get(&npc.event) {
+            // A still one that animates in its twin's slot: it shows the
+            // pose the other uploads, and uploads nothing.
+            Slot::Event { event: whose }
         } else {
             Slot::Still {
                 charset: npc.charset.clone(),
@@ -317,6 +325,7 @@ pub fn npc_table(map: &Map) -> Result<Vec<NpcRow>> {
             // from the game clock. The walking ones carry it in their route
             // slot.
             animates: still.contains(&npc.event),
+            leads: leaders.contains(&npc.event),
             visible: npc.visible,
             tile_pass: npc.tile_pass,
         });
@@ -363,9 +372,10 @@ pub fn npc_bytes(rows: &[NpcRow]) -> Vec<u8> {
         out.push(0);
         // +12: the pose in VRAM, which on loading is its page's.
         out.push(npc.pose as u8);
-        // +13: its page's speed, and in bit 7 whether it is a still one with
-        // continuous animation.
-        out.push((npc.speed | if npc.animates { 0x80 } else { 0 }) as u8);
+        // +13: its page's speed, in bit 7 whether it is a still one with
+        // continuous animation, and in bit 6 whether others animate in its
+        // slot —`animate_still` uploads its pose even when it is hidden—.
+        out.push((npc.speed | if npc.animates { 0x80 } else { 0 } | if npc.leads { 0x40 } else { 0 }) as u8);
         // +14: whether it is drawn; +15: the passage bits its tile imposes.
         out.push(u8::from(npc.visible));
         out.push(npc.tile_pass.map_or(0xFF, |t| t as u8));
