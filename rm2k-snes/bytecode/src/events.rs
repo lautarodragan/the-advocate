@@ -386,6 +386,14 @@ bytecode! {
     OP_RESERVED_51 = 0x51 ();
     OP_RESERVED_52 = 0x52 ();
     OP_RESERVED_53 = 0x53 ();
+
+    /// `ChangeHeroName`: the actor at `place` among the ones some
+    /// `ChangeHeroName` of the game renames carries rename `name` of the
+    /// game's from here on, counted from one; zero would be the database's
+    /// name. It lasts, and travels in the save. Every screen that draws an
+    /// actor's name, and the `\N[n]` of a message, asks `actor_name_txt`. See
+    /// `op_change_name` in the runtime's `actor_names.s`.
+    OP_CHANGE_NAME = 0x54 (place: byte, name: byte);
 }
 
 /// How deep the interpreter's call stack is: how many `OP_CALL` and

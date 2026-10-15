@@ -59,6 +59,13 @@ gfx_no_leads:
 
 .endproc
 
+; `ChangeHeroName`: which of the game's names an actor carries. The body is
+; `change_name`, outside bank 0, which reads the operands.
+.proc op_change_name
+    jsl f:change_name
+    jmp run_code::other
+.endproc
+
 ; `FullHeal`, and `ChangeHP` when it adds. Only the entry is here: the body is
 ; `heal`, outside bank 0, and it reads its operands and advances the cursor
 ; itself, with Y in hand.

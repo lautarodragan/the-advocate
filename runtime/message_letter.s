@@ -29,6 +29,10 @@
 .i16
     lda f:MSG_DIGITS_N
     beq no_digit
+    bpl a_digit
+    ; A letter of a name, with bit 7: see `msg_name_mark` in actor_names.s.
+    jml f:msg_name_letter
+a_digit:
     ; A digit of a variable's value still waiting: see `variable`.
     dec a
     sta f:MSG_DIGITS_N
@@ -70,6 +74,8 @@ same_bank:
     beq variable
     cmp #MESSAGE_WAIT
     beq wait
+    cmp #MESSAGE_NAME
+    beq name
     cmp #MESSAGE_PAIR_FIRST
     bcc letter
     ; A pair: two bytes, the first letter and then the second, which a
@@ -94,6 +100,10 @@ letter:
     ; A wait in the middle of the box: see message_waits.s.
 wait:
     jml f:msg_wait_mark
+
+    ; `\N[0]` or the `\N[n]` of a renamed actor: see actor_names.s.
+name:
+    jml f:msg_name_mark
 
     ; `\V[n]`: the value of the variable whose slot is the next byte, in
     ; decimal, with a minus sign if it is negative and no padding, which is
@@ -183,11 +193,17 @@ MESSAGE_VARIABLE = $FF
 ; `WAIT` in the event compiler's `messages.rs`, the one before `VARIABLE`.
 MESSAGE_WAIT = $FE
 
+; The byte that stands for an actor's name, written when the box opens:
+; `NAME` in the event compiler's `messages.rs`, the one before `WAIT`.
+MESSAGE_NAME = $FD
+
 ; The characters of the variable's value being written, and how many are
 ; still to hand out: at most a sign and five digits, sixteen bits. $6120 to
 ; $6127, behind the call stack. **They do not travel in the save**, and
 ; `message_tick` clears the count at each line's start, like the second
-; letter of a pair.
+; letter of a pair. A name's letters are counted here too, with bit 7 set,
+; and the first three bytes keep where the line goes on: see `msg_name_mark`
+; in actor_names.s.
 MSG_DIGITS_N = $7E6120
 MSG_DIGITS   = $7E6121
 .assert MSG_DIGITS + 6 <= $7E6128, error, "the digits of a variable overflow their RAM"

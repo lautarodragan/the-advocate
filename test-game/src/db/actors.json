@@ -1,3 +1,4 @@
 [
-  {"id": 1, "name": "Hero", "character_name": "People1", "character_index": 2}
+  {"id": 1, "name": "Hero", "character_name": "People1", "character_index": 2},
+  {"id": 2, "name": "Alda", "character_name": "People1", "character_index": 0}
 ]

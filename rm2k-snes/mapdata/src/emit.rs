@@ -1783,13 +1783,20 @@ impl Rest<'_> {
             .map(|t| Ok(texts.add(text(t)?)))
             .collect::<Result<_>>()?;
         let mut actor_text: HashMap<i64, i64> = HashMap::new();
-        for &a in &r.actors {
+        // The renamed actors too, who may never join: a message's `\N[n]`
+        // writes the name from here. See the runtime's `actor_names.s`.
+        for &a in r.actors.iter().chain(r.names.iter().map(|(a, _)| a)) {
+            if actor_text.contains_key(&a) {
+                continue;
+            }
             let name = &db
                 .actor(a as i32)
                 .map_err(|b| Bad::answer(b.message().to_string()))?
                 .name;
             actor_text.insert(a, texts.add(name));
         }
+        // And each rename's, in the order `OP_CHANGE_NAME` counts them.
+        let name_text: Vec<i64> = r.names.iter().map(|(_, name)| texts.add(name)).collect();
         let mut shop_text = None;
         for messages in list_at(textos, "shop")? {
             for lines in list(messages)? {
@@ -1988,10 +1995,13 @@ impl Rest<'_> {
             "slot_name_vram:\n        .word {}\n",
             decimal(name_vram).join(", ")
         ));
+        // A renamed actor that never joins has its row too: a message's
+        // `\N[n]` and the slot screen look its name up there.
         let n_actors_slots = face_block
             .keys()
             .copied()
             .chain(r.actors.iter().copied())
+            .chain(r.names.iter().map(|(a, _)| *a))
             .max()
             .unwrap_or(-1)
             .max(-1)
@@ -2273,6 +2283,47 @@ impl Rest<'_> {
             );
             strip.extend(format!("{row:<w$}", w = SLOT_TEXT_WIDTH as usize).bytes());
         }
+        // And after the actors' rows, one per rename, with its name alone:
+        // the menu and the slot screen take it instead of the actor's own
+        // when the actor carries it. See the runtime's `actor_names.s`.
+        // Absent in a screens' answer from before 2026-10-15: none.
+        let none = Vec::new();
+        let renamed = match textos.get("renamed") {
+            Some(v) => list(v)?,
+            None => &none,
+        };
+        if renamed.len() != r.names.len() {
+            return Err(Bad::answer(format!(
+                "the screens wrote {} renamed names and the request has {}",
+                renamed.len(),
+                r.names.len()
+            )));
+        }
+        for pair in renamed {
+            let row = format!("{:<w$}", text(&list(pair)?[1])?, w = SLOT_TEXT_WIDTH as usize);
+            strip.extend(row.bytes());
+        }
+        if n_actors_slots as usize + r.names.len() > 256 {
+            return Err(Bad::answer(format!(
+                "{} actors' rows and {} renames don't fit in the byte the runtime counts rows with",
+                n_actors_slots,
+                r.names.len()
+            )));
+        }
+        let mut renamed_actors: Vec<i64> = Vec::new();
+        for (a, _) in &r.names {
+            if !renamed_actors.contains(a) {
+                renamed_actors.push(*a);
+            }
+        }
+        out.push_str(&format!(
+            "; The actors some ChangeHeroName renames, in the order of their\n\
+             ; first rename: each one's place is its byte of ACTOR_NAME. And the\n\
+             ; row of slot_actor_text the first rename's name is in.\n\
+             NAME_SLOTS = {}\nSLOT_TEXT_ROWS = {n_actors_slots}\n",
+            renamed_actors.len()
+        ));
+        words_asm(out, "name_actor", &decimal(renamed_actors.iter().copied()), true);
         out.push_str(&format!(
             ".block {}\nslot_actor_text:\n        .byte {}\n",
             strip.len().max(1),
@@ -2290,6 +2341,7 @@ impl Rest<'_> {
                 param_text,
                 slot_text,
                 actor_text,
+                name_text,
                 shop_text: shop_text.unwrap_or(0),
                 owned_text,
                 carried_text,
@@ -2324,6 +2376,8 @@ struct ItemTexts<'a> {
     param_text: Vec<i64>,
     slot_text: Vec<i64>,
     actor_text: HashMap<i64, i64>,
+    /// Each rename's text, in the order `OP_CHANGE_NAME` counts them.
+    name_text: Vec<i64>,
     shop_text: i64,
     owned_text: i64,
     carried_text: i64,
@@ -2734,6 +2788,9 @@ impl Rest<'_> {
             &hex4((0..n_actors).map(|a| x.actor_text.get(&a).copied().unwrap_or(0xFFFF))),
             false,
         );
+        // And each rename's, which `actor_name_txt` takes instead when the
+        // actor carries it: see the runtime's `actor_names.s`.
+        words_asm(out, "name_txt", &hex4(x.name_text.iter().copied()), false);
         let eq_params: Vec<i64> = list(t.v("EQ_PARAMS"))?
             .iter()
             .map(|p| {

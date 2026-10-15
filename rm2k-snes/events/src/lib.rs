@@ -522,6 +522,13 @@ fn indices_json(indices: &Indices, associations: &[(String, i32)]) -> JsonMap<St
     );
     // The highest switch the game names: the cartridge's table holds it.
     out.insert("switch_top".into(), json!(indices.switch_top));
+    // The names `ChangeHeroName` gives, in the order `OP_CHANGE_NAME` counts
+    // them: the converter writes their texts and the table of the renamed
+    // actors from this.
+    out.insert(
+        "names".into(),
+        json!(indices.renames.iter().map(|(a, n)| json!([a, n])).collect::<Vec<_>>()),
+    );
     out.insert("associations".into(), json!(associations));
     out
 }
@@ -536,7 +543,15 @@ pub(crate) fn prepare(game: &Game, request: &Request) -> Result<Prepared> {
     let mut extra_switches = request.extra_switches.clone();
     extra_switches.extend(indices::command_switches(&request.test_commands));
     let extra_pairs = indices::command_skill_pairs(&request.test_commands);
-    let indices = indices::build(game, &every, &extra_variables, &extra_pairs, &extra_switches)?;
+    let mut indices = indices::build(game, &every, &extra_variables, &extra_pairs, &extra_switches)?;
+    // And the names the test pages give, after the game's: a renamed actor's
+    // name is not baked into any text.
+    for pair in indices::command_renames(&request.test_commands) {
+        indices.hero_names.remove(&pair.0);
+        if !indices.renames.contains(&pair) {
+            indices.renames.push(pair);
+        }
+    }
     let by_id: HashMap<i32, &Map> = every.iter().map(|m| (m.id, m)).collect();
     let maps = request
         .maps

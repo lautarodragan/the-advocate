@@ -78,6 +78,9 @@ go.
     test_switches_past_1023.py
                         a switch past 1023 set, branched on and asked for
                         by a page —the meadow's invisible event at (1,1)—
+    test_leader_name.py `\N[0]` before and after the party is reordered, a
+                        renamed actor's `\N[n]` and the menu with its new
+                        name, and the rename through a save and a reset
     test_nested_calls.py
                         a chain of six CallEvents —the invisible events at
                         column 18, and common event 1— that returns to each
