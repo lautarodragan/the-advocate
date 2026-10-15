@@ -58,6 +58,9 @@ FAR_VARIABLES  = $2600
 ; —0 is unused— and capped at ITEM_MAX, like `Game_Party::AddItem`. It
 ; travels in the save and is cleared with the variables.
 FAR_ITEMS      = $2800
+; And the list of the items screen —and of the equipment's, the shop's selling
+; one and the battle's—, one `k` per word: see items.s.
+FAR_ITEM_LIST  = $2A00
 ; And the equipment of each LDB actor, by actor number: five words —weapon,
 ; shield, armor, helmet, accessory— with the item number or 0. It starts with
 ; the database's initial equipment, which `initial_equipment_set` copies on
@@ -449,15 +452,22 @@ BA_ITEM_ARR  = FAR_BATTLE + 578    ; the first one visible
 BA_ITEM_TGT  = FAR_BATTLE + 579    ; which actor it is given to; since 2026-09-13
                                    ; also the target of a healing skill,
                                    ; which picks with the same mode
-BA_MITEM     = FAR_BATTLE + 580    ; the `k` of the current message's item
+; +580 was the `k` of the current message's item, a byte, until 2026-10-15.
 BA_ACTOR2    = FAR_BATTLE + 581    ; an actor counter `BA_S0` cannot be
 BA_MHEAL     = FAR_BATTLE + 582    ; word: how much it healed
-BA_ACC_ITEM  = FAR_BATTLE + 584    ; the `k` each actor chose, one per byte
-BA_ITEM_LIST = FAR_BATTLE + 592    ; the list, one `k` per byte
+; +584 to +591 were the `k` each actor chose, one per byte, until 2026-10-15,
+; when a `k` became a word: ABL's whole game carries 264 items. The list
+; then left for `FAR_ITEM_LIST`, which is the items screen's and nobody uses
+; in a battle —the battle cannot be entered from the menu or a shop—, and the
+; two words went into the 64 bytes it left.
+BA_ITEM_LIST = FAR_ITEM_LIST       ; the list, one `k` per word
 BA_ITEM_MAX = 64
+.assert BA_ITEM_MAX <= ITEM_LIST_MAX, error, "the battle's item list overflows the items screen's"
+BA_MITEM     = FAR_BATTLE + 592    ; word: the `k` of the current message's item
+BA_ACC_ITEM  = FAR_BATTLE + 594    ; the `k` each actor chose, one per word
 ; --- skills, since 2026-09-13 ---------------------------------------------
 ;
-; After `BA_ITEM_LIST`, which ends at +656.
+; After `BA_ACC_ITEM`, which ends at +610; +610 to +655 are free.
 BA_SKILL_N   = FAR_BATTLE + 656    ; how many the one giving commands knows
 BA_SKILL_SEL = FAR_BATTLE + 657    ; which one the cursor marks, in the whole list
 BA_MSKILL    = FAR_BATTLE + 658    ; the `k` of the current message's one
@@ -1149,9 +1159,10 @@ BA_VIC_END    = BA_VIC + 8
 ; `ba_vic_drop` writes them on winning before anyone reads them.
 BA_DROP       = $79E0
 BA_DROP_N     = BA_DROP + 0     ; how many
-BA_DROP_K     = BA_DROP + 1     ; the `k` of each one, in troop order:
-                                ; its name is text `3k`
-BA_DROP_END   = BA_DROP_K + BA_ENEMIES_MAX
+BA_DROP_K     = BA_DROP + 1     ; the `k` of each one, a word since
+                                ; 2026-10-15, in troop order: its name is
+                                ; text `3k`
+BA_DROP_END   = BA_DROP_K + 2 * BA_ENEMIES_MAX
 .assert BA_DROP_END <= $7A00, error, "what the enemies dropped overflows its range"
 
 ; --- experience in the menu --------------------------------------------------

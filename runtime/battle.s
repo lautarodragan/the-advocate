@@ -295,20 +295,20 @@ no:
     beq nothing
     cmp #ITEMS_N
     bcs nothing
+    asl a
     tax
+    lda f:item_k, x
+    tax
+    inc a
+    beq nothing                ; an item the cartridge does not carry
     sep #$20
 .a8
-    lda f:item_k, x
-    cmp #$FF
-    beq nothing8                ; an item the cartridge does not carry
-    jsr ba_ax
     lda f:item_sp, x
     rts
 .a16
 nothing:
     sep #$20
 .a8
-nothing8:
     lda #0
     rts
 .endproc
@@ -376,20 +376,20 @@ column:
     beq none
     cmp #ITEMS_N
     bcs none
+    asl a
     tax
+    lda f:item_k, x
+    tax
+    inc a
+    beq none                   ; an item the cartridge does not carry
     sep #$20
 .a8
-    lda f:item_k, x
-    cmp #$FF
-    beq none8                   ; an item the cartridge does not carry
-    jsr ba_ax
     lda f:item_crit_k, x
     rts
 .a16
 none:
     sep #$20
 .a8
-none8:
     lda #0
     rts
 .endproc
@@ -1819,7 +1819,6 @@ item:
     rep #$20
 .a16
     lda BA_MITEM
-    and #$00FF
     sta BA_T0
     asl a
     clc

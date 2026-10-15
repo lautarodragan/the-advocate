@@ -411,11 +411,18 @@ a_is_item:
     ; handed out to two actors in the same turn.
     lda BA_ITEM_SEL
     jsr ba_item_from_list
-    pha
+    phx
     lda BA_ACTOR
-    jsr ba_ax
+    rep #$20
+.a16
+    and #$00FF
+    asl a
+    tax
     pla
     sta BA_ACC_ITEM, x
+    tax
+    sep #$20
+.a8
     jsr ba_item_consume
     lda BA_ITEM_TGT
     sta BA_T0
@@ -775,11 +782,12 @@ other:
     cmp #BA_ITEM
     bne next
     lda BA_S1
-    jsr ba_ax
-    lda BA_ACC_ITEM, x
     rep #$20
 .a16
     and #$00FF
+    asl a
+    tax
+    lda BA_ACC_ITEM, x
     asl a
     tax
     lda f:item_id, x

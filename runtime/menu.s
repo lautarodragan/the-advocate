@@ -832,7 +832,7 @@ move:
 ;
 ; `Scene_ActorTarget`, over the menu's bank: the party panel, and the System
 ; windows and bar on BG1, which belong to `actor_choice.s`. It is for the
-; medicine `k` in `pick_edges` —or, since 2026-10-13, for the skill the
+; medicine `k` in `item_sel` —or, since 2026-10-13, for the skill the
 ; skills screen says, `sk_heal`—: A uses it on the row —`target_use`— and
 ; **stays**, with that row's HP repainted, which is what `UpdateItem` does.
 ; B returns. The screens stage's `render` is the reference. Whom to equip

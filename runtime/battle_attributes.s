@@ -136,22 +136,15 @@ none:
     beq none
     cmp #ITEMS_N
     bcs none
+    asl a
     tax
-    sep #$20
-.a8
     lda f:item_k, x
-    cmp #$FF
-    beq none8
-    rep #$20
-.a16
-    and #$00FF
     tax
+    inc a
+    beq none                    ; $FFFF: the cartridge does not carry it
     clc
     rts
-none8:
-    rep #$20
 none:
-.a16
     sec
     rts
 .endproc

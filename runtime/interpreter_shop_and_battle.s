@@ -39,27 +39,24 @@ op_shop_other:
     lda [code_ptr], y           ; the item
     iny
     iny
+    asl a
     tax
-    sep #$20
-.a8
     lda f:item_k, x
-    cmp #$FF
-    beq op_shop_next         ; one this ROM does not know
+    cmp #$FFFF
+    beq op_shop_next            ; one this ROM does not know
     pha
-    rep #$20
-.a16
     lda comp_mask + 1
     and #$00FF
-    clc
-    adc #FAR_SHOP
-    sta WMADDL
+    asl a
+    tax
+    pla
+    sta f:$7E0000 + FAR_SHOP, x
     sep #$20
 .a8
-    stz WMADDH
-    pla
-    sta WMDATA
     inc comp_mask + 1
 op_shop_next:
+    sep #$20
+.a8
     dec pick_cancel
     bra op_shop_other
 op_shop_done:
