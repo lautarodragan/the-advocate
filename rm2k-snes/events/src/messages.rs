@@ -485,11 +485,6 @@ pub struct Messages {
     /// Whether a block past what the operand reaches stops the compilation.
     /// Only `measuring` turns it off: see there.
     capped: bool,
-    /// Whether the battle draws these boxes —the troops' block—: it writes
-    /// each byte as a letter, and knows neither a variable's digits nor a
-    /// name, so a box that needs one does not compile. See
-    /// `ba_page_message` in the runtime's `battle_troop.s`.
-    pub drawn_by_battle: bool,
     where_: HashMap<Key, usize>,
     texts: BTreeMap<usize, Vec<String>>,
 }
@@ -502,7 +497,6 @@ impl Messages {
             data: Vec::new(),
             pairs: Pairs::default(),
             capped: true,
-            drawn_by_battle: false,
             where_: HashMap::new(),
             texts: BTreeMap::new(),
         }
@@ -591,11 +585,6 @@ impl Messages {
         // A letter the console's font does not have stops this page and not
         // the game: RM2k's font has Latin-1 and the console's only ASCII.
         if lines.iter().any(|t| units(t, self.window).is_err()) {
-            return Err(Stop::Cannot);
-        }
-        if self.drawn_by_battle
-            && lines.iter().flat_map(|t| units(t, self.window).unwrap_or_default()).any(|u| matches!(u, Unit::Variable(_) | Unit::Name(_)))
-        {
             return Err(Stop::Cannot);
         }
         let key = (lines, pauses, auto_close);
@@ -806,17 +795,6 @@ mod tests {
         assert_eq!(m.data[at..], [1, 5, PAIR_FIRST, NAME, 0, PAIR_FIRST]);
         let at = m.add(&[format!("{}!", name_mark(7))]).ok().unwrap();
         assert_eq!(m.data[at..], [1, 2, NAME, 7, 1]);
-    }
-
-    /// The battle writes a troop page's box byte by byte: it has no way to
-    /// write a name or a variable's digits, so that box stops its page.
-    #[test]
-    fn the_battle_takes_no_name_nor_variable() {
-        let mut m = Messages::new(1, WINDOW);
-        m.drawn_by_battle = true;
-        assert!(matches!(m.add(&[format!("Hi {}", name_mark(0))]), Err(Stop::Cannot)));
-        assert!(matches!(m.add(&[format!("Hi {}", variable_mark(0))]), Err(Stop::Cannot)));
-        assert!(m.add(&s(&["Hi"])).is_ok());
     }
 
     #[test]

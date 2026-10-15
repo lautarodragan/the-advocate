@@ -378,7 +378,6 @@ fn chase_troop_page(
     let (from, commands): (Vec<usize>, Vec<Command>) = reflowed.into_iter().unzip();
     let rest = chase(commands, |commands| {
         let mut messages = Messages::new(1, window);
-        messages.drawn_by_battle = true; // as `TroopPages::new`
         let mut songs = Songs::default();
         let mut ctx = Ctx {
             game,
