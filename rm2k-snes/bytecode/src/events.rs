@@ -259,7 +259,10 @@ bytecode! {
     OP_CALL = 0x3F (body: byte);
 
     /// The end of a shared body: back to whoever called it or, if nobody did
-    /// —an automatic common event—, the same as `OP_DONE`.
+    /// —an automatic common event—, the end of the page. Since 2026-10-15
+    /// `OP_DONE` does the same, because a called page ends in it: the two are
+    /// one handler in the runtime, and this one stays for the bodies that
+    /// end in it.
     OP_RETURN = 0x40 ();
 
     /// `MessageOptions`: how and where the message window is drawn from now

@@ -9,8 +9,9 @@ progress".
 
 Today it is a skeleton: one map, the meadow —the Exterior ChipSet, the hero
 and an elder with People1's CharSet—, a test that boots the cartridge,
-walks up to the elder and reads what he says, and the first engine test
-brought back from A Blurred Line: switches past 1023.
+walks up to the elder and reads what he says, the first engine test
+brought back from A Blurred Line —switches past 1023— and the first born
+here: a chain of nested calls that returns.
 
     src/                the game, as text: what to edit
       ditto.json, maps.json, db/, maps/MapNNNN.json
@@ -77,6 +78,10 @@ go.
     test_switches_past_1023.py
                         a switch past 1023 set, branched on and asked for
                         by a page —the meadow's invisible event at (1,1)—
+    test_nested_calls.py
+                        a chain of six CallEvents —the invisible events at
+                        column 18, and common event 1— that returns to each
+                        caller and goes on, with a parallel page running
 
 A capture with no golden is left in `tests/snapshots/golden/` and the test
 fails: it is looked at and, if it is right, copied to `tests/golden/` in a
