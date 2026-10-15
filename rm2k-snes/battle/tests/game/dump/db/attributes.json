@@ -1,0 +1,22 @@
+[
+  {
+    "a_rate": 150,
+    "b_rate": 125,
+    "c_rate": 100,
+    "d_rate": 75,
+    "e_rate": 50,
+    "id": 1,
+    "name": "Sword",
+    "type": 0
+  },
+  {
+    "a_rate": 200,
+    "b_rate": 150,
+    "c_rate": 100,
+    "d_rate": 50,
+    "e_rate": 0,
+    "id": 2,
+    "name": "Flame",
+    "type": 1
+  }
+]

@@ -316,6 +316,9 @@ no_remain:
     bpl no_negative
     lda #0                      ; `max(0, effect)`
 no_negative:
+    ; And through the target's ranks in the skill's attributes, before the
+    ; critical, as `CalcSkillEffect`: see battle_attributes.s.
+    jsr ba_attr_skill
     sta BA_MEFFECT
     sep #$20
 .a8
