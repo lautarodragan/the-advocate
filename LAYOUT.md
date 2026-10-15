@@ -44,6 +44,10 @@ have layers of their own, one folder each:
                  game starts on and what it draws, the experience curve,
                  what a map inherits from the tree. Its tests hold it to the
                  answers the converter's Python gave, in `tests/python.json`
+      sketch/    `rm2k-sketch`: a map's tile layers drawn as text —a grid of
+                 characters and a legend of the tiles each one stands for—
+                 made into the `.tiles` of a dump; the test game's maps are
+                 written that way
       rm2k-render/  a map's tile layers, its CharSets, what its battles are
                  drawn with —animation cells, backdrops, enemies—, and the
                  faces, windows and pictures of the screens, as pictures

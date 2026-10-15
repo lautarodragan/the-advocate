@@ -16,6 +16,7 @@ members = [
     "rm2k/ditto",
     "rm2k/ditto/xtask",
     "rm2k/rules",
+    "rm2k/sketch",
     "rm2k/rm2k-render",
     "rm2k-snes/battle",
     "rm2k-snes/bytecode",

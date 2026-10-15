@@ -424,6 +424,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "rm2k-sketch"
+version = "0.1.0"
+dependencies = [
+ "ditto",
+ "rm2k-rules",
+ "serde",
+ "toml",
+]
+
+[[package]]
 name = "rm2k-snes-audio"
 version = "0.1.0"
 dependencies = [

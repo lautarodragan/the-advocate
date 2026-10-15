@@ -31,7 +31,7 @@ export PATH := if path_exists(local_tools / "bin") == "true" { local_tools / "bi
 # and one `target/`, but each is still tested and installed on its own:
 # `crate-test` runs `cargo test` standing in the project, which tests only
 # that one, and `cargo install --locked --path` takes the workspace's lock.
-rust_projects := "gunter goombario ditto rules adeleine voodoo lz2 rm2k-render project bytecode cartridge patches rm2k-snes-audio battle events wally text screens images mapdata convert"
+rust_projects := "gunter goombario ditto rules sketch adeleine voodoo lz2 rm2k-render project bytecode cartridge patches rm2k-snes-audio battle events wally text screens images mapdata convert"
 
 # The directories the projects live in, one per layer: each project is
 # `<layer>/<name>`, and the recipes find it by its name.
