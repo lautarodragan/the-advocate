@@ -318,6 +318,18 @@ pub struct CacheObjects {
     pub stills: Vec<(Graphic, usize, usize)>,
     /// Each slot's block in the sprite bank.
     pub slots: Vec<usize>,
+    /// How many can be on screen at once by where they start: see
+    /// `sprites::cache::peak`.
+    pub peak: usize,
+}
+
+/// How many events can wait for a slot of the cache, by where they start:
+/// what `events-wait-for-a-slot` warns about. None without a cache.
+fn waiting(done: &Whole) -> usize {
+    done.objects
+        .as_ref()
+        .and_then(|o| o.cache.as_ref())
+        .map_or(0, |c| c.peak.saturating_sub(c.slots.len()))
 }
 
 /// The slots still events take turns in, as the console reads them.
@@ -409,7 +421,21 @@ pub fn convert(game: &Game, request: &MapRequest) -> Result<Whole> {
     // `sprites::cache`—, if one fits.
     let cached = convert_with(game, request, Mode::Cache, None)?;
     if cached.objects.as_ref().is_some_and(|o| o.cache.is_some()) && fits(&cached, &layouts_for(&cached.layers.converted, request)) {
-        return Ok(cached);
+        // A cache where events can wait for a slot loses more than a torch
+        // that stands still: in a cache each one that animates wants a slot
+        // of its own while in view. Fewer of them first, and if events wait
+        // even with none, none if that is fewer waiting. Vampires Dawn's
+        // 236 and 240 went from no wait to waiting when they animated.
+        if looks == 0 || waiting(&cached) == 0 {
+            return Ok(cached);
+        }
+        if let Some(done) = fewer_still_animations(game, request, looks)? {
+            return Ok(done);
+        }
+        let none = convert_with(game, request, Mode::Cache, Some(0))?;
+        let fits_none = none.objects.as_ref().is_some_and(|o| o.cache.is_some())
+            && fits(&none, &layouts_for(&none.layers.converted, request));
+        return Ok(if fits_none && waiting(&none) < waiting(&cached) { none } else { cached });
     }
     // Then fewer still events animating, before anything that loses more
     // than looks: see `fewer_still_animations`.
@@ -480,7 +506,8 @@ const FUSE_TRIES: usize = 4;
 
 /// The map with the most looks of its still events animating that fits a
 /// layout the way `convert` would have fitted it with all of them —plain,
-/// or sharing slots or with a cache when it has no pictures—, or `None` if
+/// or sharing slots or with a cache nobody waits for when it has no
+/// pictures—, or `None` if
 /// it does not fit that way even with none: then what goes is something
 /// else, and the animations are kept as long as they can be.
 ///
@@ -512,7 +539,11 @@ fn fewer_still_animations(game: &Game, request: &MapRequest, looks: usize) -> Re
             return Ok(Some(shared));
         }
         let cached = convert_with(game, request, Mode::Cache, Some(k))?;
-        if cached.objects.as_ref().is_some_and(|o| o.cache.is_some()) && fits(&cached, &layouts_for(&cached.layers.converted, request)) {
+        // A cache only if nobody waits for a slot: see `convert`.
+        if cached.objects.as_ref().is_some_and(|o| o.cache.is_some())
+            && waiting(&cached) == 0
+            && fits(&cached, &layouts_for(&cached.layers.converted, request))
+        {
             return Ok(Some(cached));
         }
         Ok(None)
@@ -1463,6 +1494,7 @@ fn convert_with(game: &Game, request: &MapRequest, mode: Mode, looks: Option<usi
                     .map(|g| (g.clone(), animated_index[&(g.0.clone(), g.1)], palette(&g.0, g.1)))
                     .collect(),
                 slots: place.iter().filter(|(s, ..)| matches!(s, Slot::Cache(_))).map(|(_, b, _)| *b).collect(),
+                peak: asked.peak,
             })
         }
         _ => None,
