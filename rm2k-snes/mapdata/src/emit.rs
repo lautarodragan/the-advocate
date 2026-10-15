@@ -1724,6 +1724,104 @@ impl Rest<'_> {
             ti_colors.len(),
             int_at(shop, "top")?
         ));
+        // The shop's party: each possible member's three front frames,
+        // twelve 4bpp tiles each, behind a pointer per member; its palette in
+        // colour and in grey, sixteen colours each with the transparent one
+        // first; which member each actor is; and the System's sixteen arrows
+        // with their palette. See `party.rs` in `rm2k-snes-screens`.
+        out.push_str("\n; --- the shop's party: see shop_party.s ---\n");
+        let party = at(screens, "shop_party")?;
+        let mut party_k = Vec::new();
+        let mut party_pointers = Vec::new();
+        let mut party_cgram = Vec::new();
+        let palette16 = |colors: &[Color]| {
+            let mut sixteen = vec![[0u8; 3]];
+            sixteen.extend_from_slice(colors);
+            sixteen.resize(16, [0, 0, 0]);
+            cgram_bytes(&sixteen)
+        };
+        let mut members: Vec<(i64, i64)> = Vec::new();
+        // Two actors drawn with the same CharSet share it: in A Blurred Line
+        // there are two Kershes and three with the same sheet's index.
+        let mut stored: Vec<(Vec<u8>, Vec<u8>)> = Vec::new();
+        for m in list_at(party, "members")? {
+            let actor = int_at(m, "actor")?;
+            if m.get("frames").is_none() {
+                continue;
+            }
+            let mut frames = Vec::new();
+            for f in list_at(m, "frames")? {
+                frames.extend(tiles(f)?);
+            }
+            let bytes = packed(&frames, 4);
+            let mut cgram = palette16(&colors(at(m, "colors")?)?);
+            cgram.extend(palette16(&colors(at(m, "greys")?)?));
+            if let Some(k) = stored.iter().position(|s| s.0 == bytes && s.1 == cgram) {
+                members.push((actor, k as i64));
+                continue;
+            }
+            let k = stored.len() as i64;
+            let label = format!("ti_party_tiles_{k}");
+            line(out, &block(&label, &bytes));
+            party_pointers.push(format!("    .byte {}", crate::asm::pointer(&label)));
+            party_cgram.extend(&cgram);
+            stored.push((bytes, cgram));
+            members.push((actor, k));
+        }
+        if members.len() > 255 {
+            return Err(Bad::answer(format!("the shop's party has {} members with a CharSet and a byte names 255", members.len())));
+        }
+        let n_party_actors = members.iter().map(|&(a, _)| a + 1).max().unwrap_or(1);
+        for a in 0..n_party_actors {
+            party_k.push(members.iter().find(|&&(b, _)| b == a).map_or(0xFF, |&(_, k)| k as u8));
+        }
+        line(out, &block("ti_party_k", &party_k));
+        line(out, &format!(".block {}\nti_party_ptr:", 3 * party_pointers.len().max(1)));
+        if party_pointers.is_empty() {
+            line(out, "    .byte 0, 0, 0");
+        }
+        for p in &party_pointers {
+            line(out, p);
+        }
+        if party_cgram.is_empty() {
+            party_cgram.push(0);
+        }
+        line(out, &block("ti_party_cgram", &party_cgram));
+        let arrows = tiles(at(party, "arrows")?)?;
+        line(out, &block("ti_arrow_tiles", &packed(&arrows, 4)));
+        line(out, &block("ti_arrow_cgram", &palette16(&colors(at(party, "arrow_colors")?)?)));
+        let party_tile0 = int_at(party, "tile0")?;
+        out.push_str(&pyf!(
+            "TI_PARTY_ACTORS   = %d\nTI_PARTY_TILE0    = %d\nTI_PARTY_VRAM     = $%04X\n\
+             TI_ARROW_TILE0    = %d\nTI_ARROW_VRAM     = $%04X\nTI_PARTY_MEMBERS  = %d\n\
+             TI_PARTY_X0       = %d\nTI_PARTY_Y0       = %d\nTI_PARTY_STEP     = %d\n\
+             TI_ARROW_DX       = %d\nTI_ARROW_DY       = %d\nTI_PARTY_RATE     = %d\n\
+             TI_FRAME_TILES    = %d\nTI_FRAME_COLS     = %d\nTI_ARROW_FRAMES   = %d\n\
+             TI_ARROW_UP       = %d\nTI_ARROW_SAME     = %d\nTI_ARROW_DOWN     = %d\n\
+             TI_ARROW_EQUIPPED = %d\nTI_LAYER_BUY      = %d\nTI_PARTY_ON       = %d\n",
+            n_party_actors,
+            party_tile0,
+            t.n("TI_VRAM") + party_tile0 * 16,
+            party_tile0 + t.n("TI_PARTY_MEMBERS") * 12,
+            t.n("TI_VRAM") + (party_tile0 + t.n("TI_PARTY_MEMBERS") * 12) * 16,
+            t.n("TI_PARTY_MEMBERS"),
+            t.n("TI_PARTY_X0"),
+            t.n("TI_PARTY_Y0"),
+            t.n("TI_PARTY_STEP"),
+            t.n("TI_ARROW_DX"),
+            t.n("TI_ARROW_DY"),
+            t.n("TI_PARTY_RATE"),
+            12,
+            3,
+            t.n("TI_ARROW_FRAMES"),
+            t.n("TI_ARROW_UP"),
+            t.n("TI_ARROW_SAME"),
+            t.n("TI_ARROW_DOWN"),
+            t.n("TI_ARROW_EQUIPPED"),
+            t.n("TI_LAYER_BUY"),
+            party.get("on").and_then(|v| v.as_bool()).unwrap_or(true) as i64
+        ));
+        out.push_str("; --- the shop's party ends ---\n");
         // The End Game screen, whole: the "Yes" palette first.
         let end = at(screens, "end_game")?;
         let end_tiles = tiles(at(end, "tiles")?)?;

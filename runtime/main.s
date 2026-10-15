@@ -202,6 +202,7 @@ TEXT_BUF_BYTES = WINDOW_TEXT_COLS * 2 * 32
 .include "equipment_screen.s"
 .include "actor_choice.s"
 .include "shop.s"
+.include "shop_party.s"
 .include "msu_effects.s"
 .include "remembered_place_and_song.s"
 .include "bgm_level.s"

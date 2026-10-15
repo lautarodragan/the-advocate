@@ -387,9 +387,11 @@ sale:
 
 ; The whole screen, in the buffer: the stage's `shop_screen`. The windows and
 ; the bar are not: they go on BG1, and `ti_windows` puts them there every frame.
+; Nor is the party, which goes in objects: what it shows is decided first.
 .proc ti_compose
 .a8
 .i16
+    jsr ti_party_compute
     lda #255
     sta comp_dup + 3
     jsl f:ba_t_clear
@@ -1355,11 +1357,16 @@ begins:
     stz TM
     jsl f:items_bank_upload
     jsr ti_screen_upload
+    jsl f:ti_party_open
     jsr ti_compose
     jsl f:ba_t_upload
     jsr ti_windows
+    lda #1
+    jsl f:ti_party_vblank       ; the screen is off: all of it
     lda #(SLOT_VRAM / 4096 * 16 + TI_BORDER_VRAM / 4096)
     jsl f:screen_ppu_on         ; BG2 and BG1, the windows with their base
+    lda #0
+    jsl f:ti_party_vblank       ; and the objects, if the layer shows them
     lda #1
     sta menu_open
 wait:
@@ -1371,7 +1378,14 @@ wait:
     ; 2026-10-03, the windows end around line 244 and the tilemap at 254, of
     ; the 261 of the vblank.
     jsr ti_windows
-    jsl f:ba_t_upload
+    ; `scr_upload`, in its three steps, with the party between the text's
+    ; uploads and its typesetting: the last two run into the frame.
+    jsl f:tl_map + FAST
+    jsl f:tl_vblank + FAST
+    lda #0
+    jsl f:ti_party_vblank
+    jsl f:tl_work + FAST
+    jsl f:ti_party_tick
     lda pad
     eor pad_prev
     and pad
@@ -1596,6 +1610,7 @@ recompose:
     jmp wait
 
 leave:
+    jsl f:ti_party_close
     rtl
 
 ; Z=0 if A was just pressed.

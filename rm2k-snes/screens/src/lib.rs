@@ -30,6 +30,7 @@ pub mod game;
 pub mod items;
 pub mod layout;
 pub mod message_window;
+pub mod party;
 pub mod render;
 pub mod request;
 pub mod skills;
