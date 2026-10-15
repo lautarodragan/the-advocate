@@ -43,10 +43,23 @@ pub fn page_record(page: &PageRecord) -> Value {
     })
 }
 
-/// A map as the emission takes it: see `Map` in its `request.rs`.
-pub fn map_record(m: &MapInfo) -> Value {
+/// What a map forbids, as the "forbidden" bits of the ROM's `FAR_ACCESS`:
+/// save $01 and escape $04, the ones `ChangeSaveAccess` and
+/// `ChangeEscapeAccess` set —`ACCESS_BIT` in the event compiler—, and
+/// teleport $08, which no command sets yet. $02, the menu, is not the
+/// map's.
+pub fn access_bits(access: rm2k_rules::tree::Access) -> u8 {
+    (if access.save { 0 } else { 0x01 })
+        | (if access.escape { 0 } else { 0x04 })
+        | (if access.teleport { 0 } else { 0x08 })
+}
+
+/// A map as the emission takes it: see `Map` in its `request.rs`. `access`
+/// is what it forbids, from [`access_bits`].
+pub fn map_record(m: &MapInfo, access: u8) -> Value {
     json!({
         "id": m.id, "name": m.name,
+        "access": access,
         "tilemap": [m.tilemap.0, m.tilemap.1],
         "size": [m.map.width, m.map.height], "start": [m.start.0, m.start.1],
         "layout": m.layout_name,

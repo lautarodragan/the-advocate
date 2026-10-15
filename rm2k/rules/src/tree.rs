@@ -5,7 +5,9 @@
 //! no map of its own that hangs from a map and covers a rectangle of it,
 //! with encounters of its own.
 
-use ditto::schema::{MapInfo, MapInfoBGMType, MapInfoMusicType, Music, TreeMap, TreeMapMapType};
+use ditto::schema::{
+    MapInfo, MapInfoBGMType, MapInfoMusicType, MapInfoTriState, Music, TreeMap, TreeMapMapType,
+};
 use std::collections::BTreeMap;
 
 /// The tree's nodes by number, and whatever a caller put over them.
@@ -32,6 +34,22 @@ pub struct Zone {
     pub rect: [i64; 4],
     /// The troops, by number, in the order of their encounter ids.
     pub troops: Vec<i64>,
+}
+
+/// What a map lets the player do, once its "the parent's" are resolved:
+/// RM2k writes these over `Game_System`'s permissions when the map is
+/// entered, the same ones `ChangeSaveAccess`, `ChangeEscapeAccess` and
+/// `ChangeTeleportAccess` set.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Access {
+    /// The pause menu's Save.
+    pub save: bool,
+    /// The Escape skill, the one that takes the party to the escape
+    /// point. **Not the battle's Escape command**, which only the battle
+    /// decides —`EnemyEncounter`'s option, and always for a random one—.
+    pub escape: bool,
+    /// The Teleport skill.
+    pub teleport: bool,
 }
 
 /// A node's troops, in the order of their encounter ids.
@@ -132,5 +150,31 @@ impl Tree {
             }
         }
         None
+    }
+
+    /// What a map allows, inherited from its parents.
+    ///
+    /// easyrpg's `Game_Map::Setup`: each of the three climbs while it says
+    /// "the parent's", and reaching the root —a parent 0, whose own values
+    /// are never read— leaves it allowed; only a "forbid" forbids. A map
+    /// the tree does not have allows everything.
+    pub fn access(&self, map: i32) -> Access {
+        let resolve = |pick: fn(&MapInfo) -> MapInfoTriState| {
+            let mut seen = std::collections::BTreeSet::new();
+            let mut id = map;
+            while id != 0 && seen.insert(id) {
+                let Some(node) = self.get(id) else { return true };
+                match pick(node) {
+                    MapInfoTriState::Parent => id = node.parent_map,
+                    state => return state != MapInfoTriState::Forbid,
+                }
+            }
+            true
+        };
+        Access {
+            save: resolve(|n| n.save),
+            escape: resolve(|n| n.escape),
+            teleport: resolve(|n| n.teleport),
+        }
     }
 }

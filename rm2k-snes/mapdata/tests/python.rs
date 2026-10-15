@@ -734,10 +734,22 @@ fn without_attributes(text: &str) -> String {
     lines.join("\n")
 }
 
+/// The text without what each map forbids, which came on 2026-10-15: the
+/// `map_access` table, three lines. The test maps carry no `access`, so
+/// every byte is zero —checked here—.
+fn without_map_access(text: &str) -> String {
+    let mut lines: Vec<String> = text.split('\n').map(String::from).collect();
+    let at = lines.iter().position(|l| l == "map_access:").unwrap();
+    let values = lines[at + 1].trim_start_matches("    .byte ");
+    assert!(values.split(", ").all(|v| v == "$00"), "map_access");
+    lines.drain(at - 1..=at + 1);
+    lines.join("\n")
+}
+
 #[test]
 fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("bare"), &db()).unwrap();
-    let text = with_the_switch_comment_as_before(&without_attributes(&emitted.text));
+    let text = with_the_switch_comment_as_before(&without_map_access(&without_attributes(&emitted.text)));
     let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_whole_poses_as_before(&without_pose_masks(&with_frequency_one_as_before(&with_the_actor_questions_as_before(&text)))))))))))))))))));
     assert_eq!(text.lines().count(), 3777);
     assert_eq!(
@@ -749,7 +761,7 @@ fn a_bare_cartridge_comes_out_as_the_python_wrote_it() {
 #[test]
 fn a_whole_cartridge_comes_out_as_the_python_wrote_it() {
     let emitted = rm2k_snes_mapdata::emit::emit(&emit_request("whole"), &db()).unwrap();
-    let text = with_the_switch_comment_as_before(&without_attributes(&emitted.text));
+    let text = with_the_switch_comment_as_before(&without_map_access(&without_attributes(&emitted.text)));
     let text = without_collision(&without_title_bpp(&with_the_title_menu_comment_as_before(&without_backdrop_lines(&without_hero_colors(&with_the_turn_as_before(&without_item_up(&without_bare_window(&without_menu_tiles(&without_commons(&with_the_equipment_commons_as_before(&without_pairs(&without_custom_menus(&without_states(&without_skills_screen(&with_whole_poses_as_before(&without_pose_masks(&with_frequency_one_as_before(&with_the_actor_questions_as_before(&text)))))))))))))))))));
     assert_eq!(text.lines().count(), 3896);
     assert_eq!(
@@ -1081,4 +1093,19 @@ fn a_second_system_s_window_takes_the_largest_frame_s_tile_numbers() {
     }
     assert!(frame > 0);
     assert!(text.contains("WINDOW_BACKDROP_LINES = 1\n"));
+}
+
+#[test]
+fn each_map_carries_what_it_forbids_in_its_order() {
+    let mut request = emit_request("whole");
+    let n = request.maps.len();
+    assert!(n >= 2, "the test needs two maps");
+    request.maps[0].access = 0x05;
+    request.maps[n - 1].access = 0x08;
+    let text = rm2k_snes_mapdata::emit::emit(&request, &db()).unwrap().text;
+    let mut want = vec!["$00"; n];
+    want[0] = "$05";
+    want[n - 1] = "$08";
+    let table = format!(".block {n}\nmap_access:\n    .byte {}\n", want.join(", "));
+    assert!(text.contains(&table), "{table}");
 }

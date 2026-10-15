@@ -94,6 +94,11 @@ pub struct Map {
     /// The panorama, if the cartridge shows it: see [`Panorama`].
     #[serde(default)]
     pub panorama: Option<Panorama>,
+    /// What the map forbids once the tree's "the parent's" are resolved,
+    /// as the bits of the ROM's `FAR_ACCESS`: see `map_access_enter` in
+    /// runtime/enter_map.s. Missing, nothing.
+    #[serde(default)]
+    pub access: u8,
 }
 
 fn eight() -> usize {

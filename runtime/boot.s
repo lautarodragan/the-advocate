@@ -302,6 +302,8 @@ party_ready:
     bra load
 .a8
 fresh:
+    ldx #MAP_INITIAL            ; a new game enters the first map: its permissions
+    jsl f:map_access_enter
     rep #$20
 .a16
     lda #MAP_INITIAL

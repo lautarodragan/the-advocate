@@ -58,3 +58,34 @@ fn a_map_meets_its_own_troops_and_those_of_its_areas() {
     tree.insert(MapInfo { id: 1, ..Default::default() });
     assert!(tree.encounter_zones(1, 20, 15).len() == 1, "a node inserted replaces the old one");
 }
+
+/// `Game_Map::Setup`: "the parent's" climbs, each of the three on its own,
+/// and reaching the root leaves it allowed, whatever the root says.
+#[test]
+fn a_map_inherits_what_it_allows_from_its_parents() {
+    use ditto::schema::MapInfoTriState::{Allow, Forbid, Parent};
+    use rm2k_rules::tree::Access;
+    let mut tree = Tree::default();
+    let with = |id, parent, save, escape, teleport| MapInfo {
+        id,
+        parent_map: parent,
+        save,
+        escape,
+        teleport,
+        ..Default::default()
+    };
+    tree.insert(with(0, 0, Forbid, Forbid, Forbid));
+    tree.insert(with(1, 0, Forbid, Parent, Allow));
+    tree.insert(with(2, 1, Parent, Forbid, Parent));
+    tree.insert(with(3, 2, Parent, Allow, Forbid));
+    tree.insert(with(4, 0, Parent, Parent, Parent));
+    let all = |save, escape, teleport| Access { save, escape, teleport };
+    assert_eq!(tree.access(1), all(false, true, true), "the root's own are not read");
+    assert_eq!(tree.access(2), all(false, false, true));
+    assert_eq!(tree.access(3), all(false, true, false), "each one stops on its own");
+    assert_eq!(tree.access(4), all(true, true, true));
+    assert_eq!(tree.access(9), all(true, true, true), "a map the tree does not have");
+    tree.insert(with(5, 6, Parent, Parent, Parent));
+    tree.insert(with(6, 5, Parent, Parent, Parent));
+    assert_eq!(tree.access(5), all(true, true, true), "a loop in the tree ends");
+}
