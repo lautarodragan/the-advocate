@@ -37,8 +37,8 @@ pub const SCOPE_ALLY: i32 = 3;
 pub const SCOPE_PARTY: i32 = 4;
 
 /// How many enemies a battle holds, which is also how many of a troop's
-/// members count: a troop with more is cut. It is the console's, and the
-/// converter's `ENEMIES_MAX`.
+/// members count: a troop with more is fit to it by [`crate::fit`]. It is
+/// the console's, and the converter's `ENEMIES_MAX`.
 pub const ENEMIES_MAX: usize = 8;
 
 /// What the battle reads of a game.
@@ -78,8 +78,8 @@ impl Db {
         let troops: Vec<Troop> = if with_troops {
             let mut troops: Vec<Troop> = dump.section("troops").map_err(answer)?;
             for t in &mut troops {
-                t.members.sort_by_key(|m| m.id);
-                t.pages.sort_by_key(|p| p.id);
+                // Sorted, and cut to what a battle holds: see `fit`.
+                crate::fit::fit(t);
             }
             troops
         } else {

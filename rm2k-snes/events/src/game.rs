@@ -349,16 +349,17 @@ impl Game {
             })
             .collect();
 
-        let raw: Vec<schema::Troop> = dump.section("troops").map_err(answer)?;
+        let mut raw: Vec<schema::Troop> = dump.section("troops").map_err(answer)?;
         let troops = raw
-            .iter()
+            .iter_mut()
             .map(|t| {
-                let mut pages: Vec<&schema::TroopPage> = t.pages.iter().collect();
-                pages.sort_by_key(|p| p.id);
+                // Its pages renumbered to the members the battle carries,
+                // as the battle's tables read them: see the battle's `fit`.
+                rm2k_snes_battle::fit::fit(t);
                 (
                     t.id,
-                    pages
-                        .into_iter()
+                    t.pages
+                        .iter()
                         .map(|p| TroopPage {
                             condition: p.condition.clone(),
                             commands: commands(&p.event_commands, None),

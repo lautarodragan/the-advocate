@@ -60,6 +60,11 @@ impl Degradations {
         }));
     }
 
+    /// A loss of a whole troop, not of one of its pages.
+    pub fn troop(&mut self, troop: i64, kind: &str, text: &str) {
+        self.losses.push(json!({"troop": troop, "page": null, "kind": kind, "text": text.trim()}));
+    }
+
     /// A loss of the whole cartridge: a screen, the window, the battle.
     pub fn cartridge(&mut self, kind: &str, text: &str) {
         self.losses.push(json!({"kind": kind, "text": text.trim()}));
