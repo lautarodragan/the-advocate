@@ -14,7 +14,8 @@ from A Blurred Line —switches past 1023— and the first born here: a chain
 of nested calls that returns. And two more maps with the same ChipSet,
 the garden and the showcase, where the console loses colours: a little,
 and too much. They are the book's examples of the lossy optimizations,
-next to RM2k's drawing of the same.
+next to RM2k's drawing of the same. And a fourth, the clearing, with no
+events at all.
 
     src/                the game, as text: what to edit
       ditto.json, maps.json, db/, maps/MapNNNN.json
@@ -92,6 +93,8 @@ go.
                         the garden and the showcase as they are reached:
                         what the console draws where it merges colours a
                         little and where it merges too much
+    test_empty_map.py   the clearing, a map with no events, reached by a
+                        Teleport: it arrives and draws
 
 A capture with no golden is left in `tests/snapshots/golden/` and the test
 fails: it is looked at and, if it is right, copied to `tests/golden/` in a

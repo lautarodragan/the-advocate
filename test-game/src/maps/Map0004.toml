@@ -1,0 +1,34 @@
+# The clearing's two tile layers, sketched like the meadow's —see
+# `Map0001.toml`—. The map is `Map0004.json`, and what makes it worth a map
+# is there and not here: it has no events at all, so `ev_total` is zero when
+# it is entered. `tests/test_empty_map.py` says why that is tested.
+
+grid = '''
+####################
+#..................#
+#..*...........*...#
+#.......T..........#
+#.......t..........#
+#..................#
+#..................#
+#..................#
+#..................#
+#..............T...#
+#.....*........t...#
+#..................#
+#..*...........*...#
+#..................#
+####################
+'''
+
+[legend]
+# The field: terrain autotile 0, the light grass, in its plain middle
+# pattern. Every cell has it below.
+"." = { lower = 4000 }
+# A green bush, which does not let the hero through.
+"#" = { lower = 4000, upper = 10007 }
+# A tree: its crown, drawn above the hero, and its trunk, which blocks.
+"T" = { lower = 4000, upper = 10002 }
+"t" = { lower = 4000, upper = 10008 }
+# Flowers, walked over.
+"*" = { lower = 4000, upper = 10018 }
