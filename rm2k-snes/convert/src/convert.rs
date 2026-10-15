@@ -1197,7 +1197,8 @@ pub fn run(options: Options) -> Result<()> {
         let map = loss["map"].as_i64().unwrap_or(-1);
         degradations.map(map, loss["kind"].as_str().unwrap_or(""), loss["text"].as_str().unwrap_or(""), &[]);
     }
-    degradations.write(&directory)?;
+    // `degradations.json` is written after the music, below: the audio
+    // stage is the last to decide what is lost.
     // What Adeleine decided, as images: to look at which colours were lost
     // and which palette each cell ended up in without building or running
     // the ROM.
@@ -1297,6 +1298,23 @@ pub fn run(options: Options) -> Result<()> {
         &flags,
         Some("cartridge"),
     )?;
+    // And what the music lost to fit in the ARAM —a package's songs that
+    // its `PlayBGM` uploads, its sound effects left out—, which the stage
+    // leaves in its `audio.json` because it runs after everything else: the
+    // one piece of its output the conversion reads. With it, the list is
+    // complete, and it is written.
+    let audio_path = directory.join("audio.json");
+    let audio: Value = std::fs::read_to_string(&audio_path)
+        .map_err(|e| crate::fail::io(&audio_path, e))
+        .and_then(|text| serde_json::from_str(&text).map_err(|e| Stop::new(format!("{}: {e}", audio_path.display()))))?;
+    for loss in audio["losses"].as_array().into_iter().flatten() {
+        let (kind, text) = (loss["kind"].as_str().unwrap_or(""), loss["text"].as_str().unwrap_or(""));
+        match loss["map"].as_i64() {
+            Some(map) => degradations.map(map, kind, text, &[]),
+            None => degradations.cartridge(kind, text),
+        }
+    }
+    degradations.write(&directory)?;
     // The bank packing is not decided here: both files send everything to
     // RODATA, and `rm2k-snes-assemble` spreads it into banks.
     Ok(())
