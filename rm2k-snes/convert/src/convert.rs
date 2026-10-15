@@ -21,7 +21,7 @@ use crate::stage;
 use crate::text::{hex, repr, unhex};
 use rm2k_project::Project;
 use rm2k_snes_events::codes::{TELEPORT, TIMER_OPERATION};
-use rm2k_snes_bytecode::events::{OP_FLASH, OP_ROUTE};
+use rm2k_snes_bytecode::events::{OP_FLASH, OP_ROUTE, OP_TELEPORT};
 use rm2k_snes_mapdata::{engine, record, vram};
 
 /// What fits in the title's VRAM: the image's 8bpp tiles (32 words each)
@@ -564,6 +564,9 @@ pub fn run(options: Options) -> Result<()> {
     // The second round: with the pages of all the cases compiled, they are
     // put in the boot map and each map's block is built.
     let boot = order[start_index];
+    // Where the hero is flashed, by the map's index, and the map whose page
+    // does it: checked once every map is known.
+    let mut flashes: BTreeMap<usize, i32> = BTreeMap::new();
     for m in infos.iter_mut() {
         if !cases.is_empty() && m.id == boot {
             // The test pages, only in the map the ROM boots in, at **index
@@ -668,31 +671,22 @@ pub fn run(options: Options) -> Result<()> {
         // two that share a graphic would flash together. This covers what
         // the compiler can't see, which is the hero's: which graphic it has
         // depends on the party.
-        let mut graphics: BTreeMap<(String, i64), usize> = BTreeMap::new();
-        for npc in m.npcs.as_array().cloned().unwrap_or_default() {
-            *graphics.entry((npc["charset"].as_str().unwrap_or("").to_string(), int(&npc["index"]))).or_insert(0) += 1;
-        }
-        for actor in &leaders {
-            let a = game.db.actor(*actor)?;
-            *graphics.entry((a.character_name.clone(), a.character_index as i64)).or_insert(0) += 1;
-        }
+        //
+        // **A flash runs on the map the page is on when it reaches it**: one
+        // after a `Teleport` is the destination's, so it is noted for that
+        // map and checked after the loop against its NPCs (a common event
+        // pasted into a page flashes the hero after teleporting, which is
+        // what the Frozen World's refusal on maps 1 and 3 was). The walk is
+        // in bytecode order and does not follow jumps: a teleport on one
+        // branch counts for what comes after it in the text.
+        let here = table_index[&m.id];
         for code in &run_here {
+            let mut at = here;
             for i in bytecode::walk(code)? {
-                if code[i] != OP_FLASH || bytecode::at(code, i + 1) != 0 {
-                    continue;
-                }
-                for actor in &leaders {
-                    let a = game.db.actor(*actor)?;
-                    if graphics.get(&(a.character_name.clone(), a.character_index as i64)).copied().unwrap_or(0) > 1 {
-                        crate::stop!(
-                            "map {}: a page makes the hero flash, and actor {actor} is drawn with {}[{}], \
-                             which an NPC of the map also uses. On the console they share a palette and \
-                             both would flash",
-                            m.id,
-                            a.character_name,
-                            a.character_index
-                        );
-                    }
+                if code[i] == OP_TELEPORT {
+                    at = bytecode::at(code, i + 1) as usize | (bytecode::at(code, i + 2) as usize) << 8;
+                } else if code[i] == OP_FLASH && bytecode::at(code, i + 1) == 0 {
+                    flashes.entry(at).or_insert(m.id);
                 }
             }
         }
@@ -712,6 +706,31 @@ pub fn run(options: Options) -> Result<()> {
         let runnable = m.pages.iter().filter(|p| p.has_code).count();
         if !m.pages.is_empty() {
             println!("  map {}: {} automatic event page(s), {} runnable", m.id, m.pages.len(), runnable);
+        }
+    }
+
+    for (&index, &from) in &flashes {
+        let m = &infos[index];
+        let mut graphics: BTreeMap<(String, i64), usize> = BTreeMap::new();
+        for npc in m.npcs.as_array().cloned().unwrap_or_default() {
+            *graphics.entry((npc["charset"].as_str().unwrap_or("").to_string(), int(&npc["index"]))).or_insert(0) += 1;
+        }
+        for actor in &leaders {
+            let a = game.db.actor(*actor)?;
+            *graphics.entry((a.character_name.clone(), a.character_index as i64)).or_insert(0) += 1;
+        }
+        for actor in &leaders {
+            let a = game.db.actor(*actor)?;
+            if graphics.get(&(a.character_name.clone(), a.character_index as i64)).copied().unwrap_or(0) > 1 {
+                crate::stop!(
+                    "map {}: a page (of map {from}) makes the hero flash there, and actor {actor} is drawn with {}[{}], \
+                     which an NPC of the map also uses. On the console they share a palette and \
+                     both would flash",
+                    m.id,
+                    a.character_name,
+                    a.character_index
+                );
+            }
         }
     }
 
