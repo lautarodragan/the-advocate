@@ -3,6 +3,7 @@
 
 use crate::codes::*;
 use crate::compile::{compile_page, instructions, Ctx, Indices, ROUTE_HERO, ROUTE_THIS_EVENT};
+use crate::losses::Origin;
 use crate::fail::{Bad, Result, Step, Stop};
 use crate::game::{Command, Map, Page, CONDITION_OPERATOR};
 use rm2k_snes_bytecode::events::{OP_DONE, OP_ROUTE};
@@ -330,12 +331,26 @@ fn turns(page: &Page) -> bool {
 /// ChipSet and what it drew.
 pub fn map_pages(ctx: &mut Ctx, map: &Map, map_events: &MapEvents) -> Result<Vec<Value>> {
     let mut out = Vec::new();
+    let place = |event: &crate::game::Event, page: Option<i32>| Origin::Page {
+        map: map.id,
+        event: event.id,
+        page,
+        x: event.x,
+        y: event.y,
+    };
+    // An event left out whole: none of its pages runs, blocks or is drawn.
+    let left_out = |ctx: &mut Ctx, event: &crate::game::Event, why: String| {
+        ctx.losses.enter(place(event, None));
+        ctx.losses.lose(None, "event-left-out", why);
+        ctx.losses.leave();
+    };
     for (number, event) in map.events.iter().enumerate() {
         if event
             .pages
             .iter()
             .any(|p| p.condition.timer.is_some() && p.condition.variable.is_some())
         {
+            left_out(ctx, event, "the event is left out: a page's condition asks for the timer and a variable".into());
             continue;
         }
         // An event with a page whose condition names a variable that has no
@@ -354,6 +369,7 @@ pub fn map_pages(ctx: &mut Ctx, map: &Map, map_events: &MapEvents) -> Result<Vec
                 "  map {}: WARNING, event {} is left out: a page condition names variable {v}, which has no slot in far RAM",
                 map.id, event.id
             );
+            left_out(ctx, event, format!("the event is left out: a page's condition names variable {v}, which has no slot in far RAM"));
             continue;
         }
         // And the same with a switch past the ROM's table, which the console
@@ -372,9 +388,12 @@ pub fn map_pages(ctx: &mut Ctx, map: &Map, map_events: &MapEvents) -> Result<Vec
                 "  map {}: WARNING, event {} is left out: a page condition names switch {s}, past the ROM's table",
                 map.id, event.id
             );
+            left_out(ctx, event, format!("the event is left out: a page's condition names switch {s}, past the ROM's table"));
             continue;
         }
         for (page_number, page) in event.pages.iter().enumerate() {
+            ctx.losses.enter(place(event, Some(page.id)));
+            page_losses(ctx, page);
             let c = &page.condition;
             let mut code = None;
             // **An automatic or parallel page without a single command starts
@@ -459,9 +478,41 @@ pub fn map_pages(ctx: &mut Ctx, map: &Map, map_events: &MapEvents) -> Result<Vec
                 "own_route": route::own(page),
                 "turns": turns(page),
             }));
+            ctx.losses.leave();
         }
     }
     Ok(out)
+}
+
+/// What a map's page loses whatever its commands: the fields nothing
+/// compiles, and its own route, walked without some commands or not at
+/// all —see `route::own`—.
+fn page_losses(ctx: &mut Ctx, page: &Page) {
+    let mut lose = |kind, text: &str| ctx.losses.lose(None, kind, text);
+    if page.translucent && !page.character_name.is_empty() {
+        lose("translucent-drawn-opaque", "the event is drawn opaque instead of half transparent");
+    }
+    if page.overlap_forbidden && page.move_type != MOVE_STATIONARY {
+        lose("overlap-not-forbidden", "\"forbid overlap\" is not kept: it collides only with events on its layer");
+    }
+    let walks = (MOVE_RANDOM..=MOVE_AWAY).contains(&page.move_type)
+        || (page.move_type == MOVE_CUSTOM && !page.route.is_empty());
+    if !walks {
+        return;
+    }
+    if route::own(page).is_none() {
+        lose("own-route-not-walked", "the page's own route is not walked: the event stands still");
+        return;
+    }
+    if page.move_type != MOVE_CUSTOM {
+        return;
+    }
+    if page.route.contains(&ROUTE_SOUND) {
+        lose("sound-not-played", "the sound in the page's own route does not play");
+    }
+    if page.route.iter().any(|c| ROUTE_TRANSPARENCY.contains(c)) {
+        lose("route-transparency-dropped", "the page's own route's steps of transparency are not done");
+    }
 }
 
 /// The events a compiled page sends a route to, by index in the map's

@@ -13,6 +13,7 @@
 
 use crate::codes::*;
 use crate::compile::{compile_page, Ctx, ACCEPTED_UNDONE};
+use crate::losses::Origin;
 use crate::fail::Result;
 use crate::game::{Command, TroopPage};
 use crate::indices::battle_branch;
@@ -267,6 +268,7 @@ pub(crate) fn trigger(ctx: &Ctx, page: &TroopPage) -> Option<Trigger> {
 /// other. It is the same reflow the map's boxes go through, for another
 /// width: before, the battle cut every line at its edge, and "The Captain
 /// has taken off in the ship!" came out "...taken off in th".
+#[cfg(test)]
 fn reflow(raw: Vec<Command>, measure: &rm2k_snes_text::refit::Measure, rows: usize) -> Vec<Command> {
     reflow_from(raw, measure, rows).into_iter().map(|(_, c)| c).collect()
 }
@@ -402,10 +404,14 @@ impl TroopPages {
             self.pages += 1;
             let t = trigger(ctx, page);
             let window = self.messages.window;
+            // The rebuilt boxes move the indices: each command keeps the one
+            // it comes from, to say where a loss is.
             let cmds = t
                 .as_ref()
                 .and_then(|_| commands(&page.commands))
-                .map(|cmds| reflow(cmds, &window.measure(), window.lines));
+                .map(|cmds| reflow_from(cmds, &window.measure(), window.lines));
+            let from: Vec<usize> = cmds.iter().flatten().map(|(i, _)| *i).collect();
+            let cmds = cmds.map(|c| c.into_iter().map(|(_, c)| c).collect::<Vec<_>>());
             let code = match cmds {
                 None => None,
                 Some(cmds) => {
@@ -421,8 +427,15 @@ impl TroopPages {
                         troops: None,
                         commons: None,
                         shared: None,
+                        losses: std::mem::take(&mut ctx.losses),
                     };
-                    compile_page(&mut inner, &cmds, None, 0, 0)?
+                    let mark = inner.losses.mark();
+                    inner.losses.enter(Origin::Troop { troop: number, page: k as i32 + 1 });
+                    let code = compile_page(&mut inner, &cmds, None, 0, 0);
+                    inner.losses.leave();
+                    inner.losses.reindex_from(mark, |i| from.get(i).copied().unwrap_or(i));
+                    ctx.losses = std::mem::take(&mut inner.losses);
+                    code?
                 }
             };
             let (Some(t), Some(code)) = (t, code) else {
@@ -488,6 +501,7 @@ impl TroopPages {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::losses::Losses;
     use crate::compile::{Indices, SoundSettings};
     use crate::game::Game;
     use crate::messages::Window;
@@ -543,6 +557,7 @@ mod tests {
             troops: None,
             commons: None,
             shared: None,
+            losses: Losses::default(),
         };
         let mut condition = ditto::schema::TroopPageCondition::default();
         condition.flags.turn = true;

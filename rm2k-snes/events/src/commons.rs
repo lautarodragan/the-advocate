@@ -35,6 +35,7 @@ use crate::compile::{
 };
 use crate::fail::{Bad, Result};
 use crate::game::{Command, Game};
+use crate::losses::{Losses, Origin};
 use crate::messages::Messages;
 use crate::registry::{Songs, Troops};
 use serde_json::{json, Value};
@@ -180,11 +181,14 @@ fn body(
     messages: &mut Messages,
     songs: &mut Songs,
     troops: &mut Troops,
+    losses: &mut Losses,
 ) -> Result<Option<Vec<u8>>> {
-    body_of(s, number, commons, messages, songs, troops, false)
+    body_of(s, number, commons, messages, songs, troops, false, losses)
 }
 
 /// [`body`], or with `before` the one a custom menu runs before a page.
+/// What it loses goes to `losses`, under the common event.
+#[allow(clippy::too_many_arguments)]
 fn body_of(
     s: &Setting,
     number: i32,
@@ -193,6 +197,7 @@ fn body_of(
     songs: &mut Songs,
     troops: &mut Troops,
     before: bool,
+    losses: &mut Losses,
 ) -> Result<Option<Vec<u8>>> {
     if !before && s.game.patches.menus.replaced.contains_key(&number) {
         let mut code = menu_open(s.game, number);
@@ -218,8 +223,13 @@ fn body_of(
         troops: Some(troops),
         commons: Some(commons),
         shared: None,
+        losses: std::mem::take(losses),
     };
-    compile_page(&mut ctx, commands, None, 0, 0)
+    ctx.losses.enter(Origin::Common(number));
+    let code = compile_page(&mut ctx, commands, None, 0, 0);
+    ctx.losses.leave();
+    *losses = ctx.losses;
+    code
 }
 
 /// Which bodies there are and their indices, decided before compiling any
@@ -283,7 +293,7 @@ pub fn plan(
         let mut m = Messages::measuring(messages.step, messages.window);
         let mut so = songs.clone();
         let mut t = Troops::default();
-        if body(s, n, &every, &mut m, &mut so, &mut t)?.is_some() {
+        if body(s, n, &every, &mut m, &mut so, &mut t, &mut Losses::default())?.is_some() {
             compiles.insert(n);
         }
     }
@@ -327,10 +337,11 @@ pub fn compile(
     messages: &mut Messages,
     songs: &mut Songs,
     troops: &mut Troops,
+    losses: &mut Losses,
 ) -> Result<Shared> {
     let mut shared = Shared::default();
     for &n in plan.index.keys() {
-        let Some(code) = body(s, n, &plan.index, messages, songs, troops)? else {
+        let Some(code) = body(s, n, &plan.index, messages, songs, troops, losses)? else {
             return Err(Bad::answer(format!(
                 "common event {n} compiled on its own and not with the cartridge's registries"
             )));
@@ -343,7 +354,7 @@ pub fn compile(
         .filter_map(|&(n, switch)| plan.index.get(&n).map(|&i| (switch, i)))
         .collect();
     for (&n, &index) in &plan.before {
-        let Some(code) = body_of(s, n, &plan.index, messages, songs, troops, true)? else {
+        let Some(code) = body_of(s, n, &plan.index, messages, songs, troops, true, losses)? else {
             return Err(Bad::answer(format!(
                 "common event {n}, which a custom menu runs before a page, does not compile"
             )));
@@ -452,6 +463,7 @@ pub fn parallel_commons(
     messages: &mut Messages,
     songs: &mut Songs,
     troops: &mut Troops,
+    losses: &mut Losses,
 ) -> Result<Vec<Value>> {
     let mut out = Vec::new();
     for (&number, c) in &s.game.common_events {
@@ -479,8 +491,13 @@ pub fn parallel_commons(
                 troops: Some(&mut *troops),
                 commons: None,
                 shared: None,
+                losses: std::mem::take(losses),
             };
-            compile_page(&mut ctx, &c.commands, None, 0, 0)?
+            ctx.losses.enter(Origin::Common(number));
+            let code = compile_page(&mut ctx, &c.commands, None, 0, 0);
+            ctx.losses.leave();
+            *losses = std::mem::take(&mut ctx.losses);
+            code?
         };
         let switch = if c.switch_flag { c.switch_id } else { 0 };
         out.push(json!([

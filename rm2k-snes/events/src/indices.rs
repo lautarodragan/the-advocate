@@ -530,11 +530,14 @@ mod tests {
             route_repeat: false,
             route_skippable: false,
             condition: crate::game::Condition { switch_a, ..Default::default() },
+            id: 1,
+            translucent: false,
+            overlap_forbidden: false,
         }
     }
 
     fn on_a_map(pages: Vec<crate::game::Page>) -> Map {
-        Map { id: 1, events: vec![crate::game::Event { id: 1, pages, starting: None }] }
+        Map { id: 1, events: vec![crate::game::Event { id: 1, x: 0, y: 0, pages, starting: None }] }
     }
 
     /// Each place a switch can be named raises the table: a page's

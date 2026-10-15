@@ -26,6 +26,7 @@ pub mod culprits;
 pub mod fail;
 pub mod game;
 pub mod indices;
+pub mod losses;
 pub mod messages;
 pub mod pages;
 pub mod registry;
@@ -40,6 +41,7 @@ use crate::compile::{
     compile_page, encounter_backdrop, encounter_troop, Ctx, Indices, SoundSettings,
 };
 use crate::fail::Stop;
+use crate::losses::{Losses, Origin};
 use crate::game::{Command, Event, Map, Patches};
 use crate::messages::{Messages, Window};
 use crate::pages::{hex, map_pages, MapEvents, SubstitutionTable, Substitutions};
@@ -489,6 +491,8 @@ fn with_test_event(mut map: Map, request: &Request) -> Map {
             0,
             Event {
                 id: 0,
+                x: 0,
+                y: 0,
                 pages: vec![],
                 starting: None,
             },
@@ -583,6 +587,7 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
                     troops: None,
                     commons: None,
                     shared: None,
+                    losses: Losses::default(),
                 };
                 if let Some(code) =
                     compile_page(&mut ctx, &page.commands, Some(me.for_event(event.id)), 0, 0)?
@@ -609,6 +614,7 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
             troops: None,
             commons: None,
             shared: None,
+            losses: Losses::default(),
         };
         let pages = map_pages(&mut ctx, &map, &me)?;
         // And the pictures the map can show, gathered apart: its pages' first
@@ -646,6 +652,7 @@ pub fn scan(game: &Game, request: &Request) -> Result<Value> {
                 troops: None,
                 commons: None,
                 shared: None,
+                losses: Losses::default(),
             };
             compile_page(&mut ctx, commands, Some(me.for_event(event)), 0, 0)?;
             on_events.extend(graphics.on_events);
@@ -722,6 +729,10 @@ fn compile_pass(
     let window = request.window();
     let mut songs = Songs::default();
     let mut troops = Troops::default();
+    // What the cartridge's pages do with less than RM2k: the maps', the
+    // shared bodies', the parallel common events' and the troops'. Not the
+    // test pages': they are the harness's.
+    let mut losses = Losses::default();
 
     // The test pages' texts go first, so their offsets depend on nothing.
     let tc = &request.test_commands;
@@ -768,6 +779,7 @@ fn compile_pass(
         .flat_map(|commands| commons::callees(game, commands))
         .collect();
     let plan = commons::plan(&setting, from_pages, &messages, &songs)?;
+    let callers = callers(game, &maps);
 
     let mut maps_out = Vec::new();
     let mut cases_out: Vec<Option<String>> = vec![None; request.cases.len()];
@@ -798,8 +810,11 @@ fn compile_pass(
                 troops: Some(&mut troops),
                 commons: None,
                 shared: Some(&plan.index),
+                losses: std::mem::take(&mut losses),
             };
-            map_pages(&mut ctx, &map, &me)?
+            let pages = map_pages(&mut ctx, &map, &me);
+            losses = ctx.losses;
+            pages?
         };
         songs.current = None;
         for (charset, index) in request.test_graphics.get(&map.id).into_iter().flatten() {
@@ -827,6 +842,7 @@ fn compile_pass(
                 troops: None,
                 commons: None,
                 shared: Some(&plan.index),
+                losses: Losses::default(),
             };
             let code = compile_page(
                 &mut ctx,
@@ -859,6 +875,7 @@ fn compile_pass(
                     troops: None,
                     commons: None,
                     shared: None,
+                    losses: Losses::default(),
                 };
                 if compile_page(&mut ctx, &page.commands, None, 0, 0)?.is_none() {
                     continue;
@@ -902,11 +919,11 @@ fn compile_pass(
     // The shared common event bodies themselves. After everything else, so
     // what they number goes at the end of each registry and moves nobody's
     // index.
-    let commons = commons::compile(&setting, &plan, &mut messages, &mut songs, &mut troops)?;
+    let commons = commons::compile(&setting, &plan, &mut messages, &mut songs, &mut troops, &mut losses)?;
     // The parallel common events, each compiled once without a map, after
     // the shared bodies so what they number moves nobody's index. See
     // [`commons::parallel_commons`].
-    let parallel = commons::parallel_commons(&setting, &mut messages, &mut songs, &mut troops)?;
+    let parallel = commons::parallel_commons(&setting, &mut messages, &mut songs, &mut troops, &mut losses)?;
     let mut ctx = Ctx {
         game,
         indices: &indices,
@@ -919,6 +936,7 @@ fn compile_pass(
         troops: None,
         commons: None,
         shared: None,
+        losses: std::mem::take(&mut losses),
     };
     let battle_audio = if troops.ids.is_empty() {
         None
@@ -940,7 +958,9 @@ fn compile_pass(
             troop_pages.compile(&mut ctx, number, pages)?;
         }
     }
+    let losses = ctx.losses.take();
     let mut answer = indices_json(&indices, &associations);
+    answer.insert("degradations".into(), degradations(game, &losses, &callers));
     answer.insert("maps".into(), json!(maps_out));
     answer.insert("cases".into(), json!(cases_out));
     answer.insert(
@@ -978,6 +998,71 @@ fn compile_pass(
         answer.insert("commons".into(), commons.to_json());
     }
     Ok((Value::Object(answer), messages))
+}
+
+/// Who calls each common event by number: the cartridge's maps' pages,
+/// with their cell, and the other common events. It is what says where a
+/// loss in a common event's shared body is met while playing.
+fn callers(game: &Game, maps: &[Map]) -> BTreeMap<i32, Vec<Value>> {
+    let mut out: BTreeMap<i32, Vec<Value>> = BTreeMap::new();
+    let called = |commands: &[Command]| -> BTreeSet<i32> {
+        commands
+            .iter()
+            .filter(|c| c.code == CALL_EVENT && c.p(0) == Some(0))
+            .filter_map(|c| c.p(1).map(|n| n as i32))
+            .collect()
+    };
+    for map in maps {
+        for event in &map.events {
+            for page in &event.pages {
+                for n in called(&page.commands) {
+                    out.entry(n).or_default().push(json!({
+                        "map": map.id, "event": event.id, "page": page.id, "x": event.x, "y": event.y,
+                    }));
+                }
+            }
+        }
+    }
+    for (&number, common) in &game.common_events {
+        for n in called(&common.commands) {
+            out.entry(n).or_default().push(json!({"common": number}));
+        }
+    }
+    out
+}
+
+/// The answer's `degradations`: every loss, in the order the compiler met
+/// them, and for each common event a loss is placed in, how it runs —its
+/// trigger and switch— and who calls it. The caller sorts and writes them.
+fn degradations(game: &Game, losses: &[losses::Loss], callers: &BTreeMap<i32, Vec<Value>>) -> Value {
+    let commons: BTreeSet<i32> = losses
+        .iter()
+        .filter_map(|l| match l.path.first() {
+            Some((Origin::Common(n), _)) => Some(*n),
+            _ => None,
+        })
+        .collect();
+    json!({
+        "losses": losses.iter().map(losses::Loss::to_json).collect::<Vec<_>>(),
+        "commons": commons
+            .iter()
+            .map(|n| {
+                let c = game.common_events.get(n);
+                let trigger = match c.map(|c| c.trigger) {
+                    Some(TRIGGER_AUTOSTART) => "automatic",
+                    Some(TRIGGER_PARALLEL) => "parallel",
+                    _ => "called",
+                };
+                let switch = c.filter(|c| c.switch_flag).map(|c| c.switch_id);
+                let entry = json!({
+                    "trigger": trigger,
+                    "switch": switch,
+                    "called_from": callers.get(n).cloned().unwrap_or_default(),
+                });
+                (n.to_string(), entry)
+            })
+            .collect::<JsonMap<String, Value>>(),
+    })
 }
 
 /// Writes the answer into `dir`, which is created if it is not there.

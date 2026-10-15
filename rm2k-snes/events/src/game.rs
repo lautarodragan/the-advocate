@@ -83,11 +83,21 @@ pub struct Page {
     pub route_repeat: bool,
     pub route_skippable: bool,
     pub condition: Condition,
+    /// RM2k's number for the page, from 1: only to say where something is.
+    pub id: i32,
+    /// Two fields nothing compiles, kept to say they are lost: the page
+    /// drawn half transparent, and RM2k 2003's "forbid overlap" —see
+    /// [`crate::losses`]—.
+    pub translucent: bool,
+    pub overlap_forbidden: bool,
 }
 
 #[derive(Debug, Clone)]
 pub struct Event {
     pub id: i32,
+    /// Its cell, only to say where something is.
+    pub x: i32,
+    pub y: i32,
     /// In the order of their ids.
     pub pages: Vec<Page>,
     /// Which of them the engine shows in a freshly started game, if any:
@@ -488,6 +498,18 @@ impl Game {
         Ok(out)
     }
 
+    /// The panorama map `id` names, if it can be read: only to tell whether
+    /// a `ChangePBG` asks for another picture —see its arm—, which is rare
+    /// enough to read the map again for it.
+    pub fn panorama(&self, id: i32) -> Option<String> {
+        let raw = match self.patches.map_files.get(&id) {
+            Some(p) => read_map(p),
+            None => Dump::open(&self.dump).and_then(|d| d.map(id as u32)),
+        }
+        .ok()?;
+        Some(raw.parallax_name.clone())
+    }
+
     /// Map `id`: the project's file if it has one, the dump's otherwise.
     pub fn map(&self, id: i32) -> Result<Map> {
         let raw = match self.patches.map_files.get(&id) {
@@ -554,9 +576,14 @@ impl Game {
                                     actor: f.actor.then_some(c.actor_id),
                                     timer: f.timer.then_some(c.timer_sec),
                                 },
+                                id: p.id,
+                                translucent: p.translucent,
+                                overlap_forbidden: p.overlap_forbidden,
                             }
                         })
                         .collect(),
+                    x: e.x,
+                    y: e.y,
                 }
             })
             .collect();

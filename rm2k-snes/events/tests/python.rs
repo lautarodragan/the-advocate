@@ -89,7 +89,7 @@
 //! old one.
 
 use rm2k_snes_events::{compile, compile_without_pairs, scan, Game, Request};
-use serde_json::Value;
+use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::path::PathBuf;
 
@@ -194,6 +194,10 @@ fn without_pairs(answer: &mut Value) {
         // And the highest switch the game names, which came on 2026-10-15:
         // see `the_scan_says_the_highest_switch`.
         m.remove("switch_top");
+        // And what the cartridge does with less than RM2k, which came on
+        // 2026-10-15 and is no byte of a cartridge: see
+        // `the_compilation_says_what_it_degrades`.
+        m.remove("degradations");
     }
     if let Some(m) = answer.get_mut("messages").and_then(Value::as_object_mut) {
         m.remove("pairs");
@@ -399,4 +403,24 @@ fn the_pairs_write_the_same_boxes() {
     let size = |v: &Value| v["messages"]["data"].as_str().unwrap().len();
     assert!(size(&paired) < size(&plain));
     assert_eq!(paired["messages"]["count"], plain["messages"]["count"]);
+}
+
+/// What the cartridge does with less than RM2k, each where it is: a map's
+/// page with its event's cell, a whole event left out, and a troop's page.
+/// The test game has one of each of these.
+#[test]
+fn the_compilation_says_what_it_degrades() {
+    let request = Request::from_json(&read("compile.json"), "compile.json").unwrap();
+    let answer = compile(&game(&request), &request).unwrap();
+    let losses = answer["degradations"]["losses"].as_array().unwrap();
+    let find = |kind: &str| losses.iter().find(|l| l["kind"] == kind).unwrap_or_else(|| panic!("no {kind}"));
+    let teleport = find("teleport-to-missing-map");
+    assert_eq!(
+        [&teleport["map"], &teleport["event"], &teleport["page"], &teleport["command"], &teleport["name"]],
+        [&json!(2), &json!(1), &json!(2), &json!(1), &json!("Teleport")]
+    );
+    let left_out = find("event-left-out");
+    assert_eq!([&left_out["map"], &left_out["event"], &left_out["page"]], [&json!(1), &json!(8), &Value::Null]);
+    let troop = losses.iter().find(|l| l.get("troop").is_some()).expect("a troop page's loss");
+    assert_eq!([&troop["page"], &troop["command"], &troop["name"]], [&json!(1), &json!(2), &json!("PlaySound")]);
 }
