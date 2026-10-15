@@ -105,7 +105,8 @@ impl PanoramaPieces {
 }
 
 impl Layout {
-    /// The pieces by the names the converter's Python knew them by.
+    /// The pieces by their names, as the keys of each layout in the JSON that
+    /// `rm2k-snes-mapdata vram` prints.
     pub fn pieces(&self) -> [(&'static str, Piece); 6] {
         [
             ("sprites", self.sprites),
@@ -189,12 +190,16 @@ pub const LAYOUT_WINDOW_SPRITE: Layout = Layout {
     panorama: None,
 };
 
-/// The only one that **moves the background's tilemap**, down to the 2 KB
-/// left between the sprites and the background. The tilemap moving is paid
-/// for by `build_column` and `build_row`, which add `FAR_VRAM_MAP`, and by
-/// `push_strips`, which masks eleven bits to step to the upper layer: that
-/// is why both tilemap bases are multiples of 2048 words, and the map's
-/// cannot be zero —`col_addr` at zero means "no column"—.
+/// **Moves the background's tilemap** from $5800 to $1800, the 2 KB left
+/// between the sprites and the background, with the usual BG2 base. It is
+/// not the only one with the tilemap elsewhere: [`LAYOUT_WINDOW_ABOVE`]
+/// has it at $1800 too, and the panorama layouts and [`LAYOUT_PAINTED`]
+/// have it at their own places; the other four of the first six keep it at
+/// $5800. The tilemap moving is paid for by `build_column` and `build_row`,
+/// which add `FAR_VRAM_MAP`, and by `push_strips`, which masks eleven bits
+/// to step to the upper layer: that is why both tilemap bases are multiples
+/// of 2048 words, and the map's cannot be zero —`col_addr` at zero means
+/// "no column"—.
 pub const LAYOUT_WINDOW_BOTH: Layout = Layout {
     name: "VENTANA_AMBOS",
     sprites: piece(0x0000, 384),

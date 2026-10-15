@@ -16,6 +16,8 @@ rm2k-project = { path = "../project" }
 rm2k-rules = { path = "../../rm2k/rules" }
 # The opcodes and their sizes, to walk a compiled page.
 rm2k-snes-bytecode = { path = "../bytecode" }
+# Which members of a troop the battle carries: its `fit`.
+rm2k-snes-battle = { path = "../battle" }
 # The command codes; and how the compiler reads a map, which this reads the
 # same way.
 rm2k-snes-events = { path = "../events" }

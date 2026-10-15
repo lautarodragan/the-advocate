@@ -25,8 +25,13 @@
 ; **Where it lives is the same in every VRAM layout**: its tiles from word
 ; 0 to $3FFF —the 1024 a tilemap entry names—, over the sprites and the
 ; map's tiles, and its tilemap at $4000. The window's tilemap is in that
-; range in one layout, so it moves to $4800 meanwhile; BG2's tiles and the
-; window's are above $5000 in all of them. The layer above the map is BG2
+; range in four layouts —"window", at $1C00, and three of the panorama
+; ones, at $1800—, so it moves to $4800 meanwhile, in all of them. The
+; window's tiles are at $5000 or above in every layout, and so are BG2's
+; base and tiles but in "panorama", whose BG2 base is at $4000 —where the
+; picture's tilemap goes—: see the draft
+; `big-picture-over-a-mode-3-panorama-may-show-its-tilemap-in-bg2` in the
+; work repo. The layer above the map is BG2
 ; too, and in mode 1 it would draw over the picture: its tilemap is
 ; emptied. The sprites are off: RM2k draws pictures over the characters,
 ; and the picture covers the screen.
@@ -46,7 +51,9 @@ BIG_VRAM_WINDOW = $4800
 ; BG1SC carries the tilemap's address in its six high bits; the size bits
 ; come with each picture.
 BIG_BG1SC       = >BIG_VRAM_MAP
-; Its palettes: the seven above the window's. `BIG_PALETTES` in picture.py.
+; Its palettes: the seven above the window's. `BIG_PALETTES` in
+; rm2k-snes/convert/src/pictures.rs, which the emission in rm2k-snes-mapdata
+; checks against.
 BIG_PALETTES    = 7
 BIG_CGRAM       = 16
 ; The wave's HDMA table: two stretches of half the screen's lines, each a

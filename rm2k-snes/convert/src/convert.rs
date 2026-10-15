@@ -451,6 +451,14 @@ pub fn run(options: Options) -> Result<()> {
             })
             .unwrap_or_default(),
     };
+    // A troop of the cartridge's with more members than a battle holds:
+    // which ones it left out, see `rm2k_snes_battle::fit`.
+    for (n, cut) in &game.db.troop_cuts {
+        if troops.ids.contains(n) {
+            println!("{}", cut.text());
+            degradations.troop(*n as i64, "troop-members-left-out", &cut.text());
+        }
+    }
     if let Some(commons) = compiled.get("commons").filter(|c| !c.is_null() && c.as_object().is_some_and(|o| !o.is_empty())) {
         let bodies = commons["bodies"].as_array().cloned().unwrap_or_default();
         println!(
