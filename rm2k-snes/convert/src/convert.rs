@@ -566,7 +566,7 @@ pub fn run(options: Options) -> Result<()> {
     let boot = order[start_index];
     // Where the hero is flashed, by the map's index, and the map whose page
     // does it: checked once every map is known.
-    let mut flashes: BTreeMap<(usize, Option<(String, i64)>), i32> = BTreeMap::new();
+    let mut flashes: BTreeMap<(usize, Option<(String, i64)>, bool), i32> = BTreeMap::new();
     for m in infos.iter_mut() {
         if !cases.is_empty() && m.id == boot {
             // The test pages, only in the map the ROM boots in, at **index
@@ -687,9 +687,11 @@ pub fn run(options: Options) -> Result<()> {
         let here = table_index[&m.id];
         for code in &run_here {
             let mut at = here;
+            let mut teleported = false;
             let mut hero: Option<(String, i64)> = None;
             for i in bytecode::walk(code)? {
                 if code[i] == OP_TELEPORT {
+                    teleported = true;
                     at = bytecode::at(code, i + 1) as usize | (bytecode::at(code, i + 2) as usize) << 8;
                 } else if code[i] == OP_ROUTE && bytecode::at(code, i + 1) == 0 {
                     let path = &code[i + 4..i + 4 + bytecode::at(code, i + 3) as usize];
@@ -702,7 +704,7 @@ pub fn run(options: Options) -> Result<()> {
                         k += 1;
                     }
                 } else if code[i] == OP_FLASH && bytecode::at(code, i + 1) == 0 {
-                    flashes.entry((at, hero.clone())).or_insert(m.id);
+                    flashes.entry((at, hero.clone(), teleported)).or_insert(m.id);
                 }
             }
         }
@@ -726,7 +728,7 @@ pub fn run(options: Options) -> Result<()> {
     }
 
     let mut shared_flashes: Vec<String> = Vec::new();
-    for ((index, given), &from) in &flashes {
+    for ((index, given, away), &from) in &flashes {
         let m = &infos[*index];
         let mut graphics: BTreeMap<(String, i64), usize> = BTreeMap::new();
         for npc in m.npcs.as_array().cloned().unwrap_or_default() {
@@ -746,12 +748,23 @@ pub fn run(options: Options) -> Result<()> {
         }
         for (name, i, who) in heroes {
             if graphics.get(&(name.clone(), i)).copied().unwrap_or(0) > 0 {
-                shared_flashes.push(format!(
+                // A flash on the map the page is on stops the build, as it
+                // always did. One after a `Teleport` is the destination's: it
+                // is warned about and not refused, since checking it stopped
+                // ABL (map 32's pages flashing the hero on 33) and Frozen
+                // World, whose pages now compile. It is a cosmetic double
+                // flash, not a broken page.
+                let line = format!(
                     "map {}: a page (of map {from}) makes the hero flash there, and {who} is drawn with {name}[{i}], \
                      which an NPC of the map also uses. On the console they share a palette and \
                      both would flash",
                     m.id
-                ));
+                );
+                if *away {
+                    println!("  WARNING, {line}");
+                } else {
+                    shared_flashes.push(line);
+                }
             }
         }
     }
