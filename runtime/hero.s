@@ -176,11 +176,16 @@ no_right:
 ; had if `hero_lock` is on. What RM2k's `direction` keeps after that, for the
 ; action key, goes to `hero_heading`.
 ;
-; Anything that is not up, right or down goes left, by elimination: it is
-; why diagonals do not reach the hero —see `step_route`—.
+; Anything that is not up, right or down goes left, by elimination, so the
+; diagonals, 4 to 7, go first to their own routine: only a forced move route
+; gives them, the pad has none.
 .proc try_toward
 .a8
 .i16
+    cmp #4
+    bcc straight
+    jmp try_diagonal
+straight:
     xba                         ; the direction waits in B
     lda hero_dir
     pha                         ; the facing it had
@@ -210,6 +215,95 @@ tried:
     sta hero_dir
     rts
 free:
+    pla
+    rts
+.endproc
+
+; A diagonal step of the hero, A from 4 to 7, which only a forced move route
+; asks for: Sunset over Imdahl and Vampires Dawn walk him so in hundreds of
+; pages, The Book of Three in one, ABL in none. It is `Game_Character::Move`
+; with both `dx` and `dy`: the step goes if one of the two L-shaped paths is
+; free whole, the vertical leg and then the horizontal, or the other way
+; round, and nobody looks at the diagonal cell itself. That is the events'
+; `cell_allowed_diag`, and the hero asks it the same, as the walker on his
+; layer: each leg is `cell_allowed`, the two faces, what a tile event imposes
+; and who stands on the cell, the same as `try_up` asks of his own step.
+;
+; The facing is `UpdateFacing`'s and not "toward the diagonal", because the
+; CharSet has no pose for a corner: he keeps the one he had if it is one of
+; the step's two components, and turns half round if not; locked, it stays.
+; It turns before asking, blocked or not, as the straight ones do here.
+; RM2k's `direction` becomes the diagonal, and that goes to `hero_heading`:
+; a `move_forward` after it goes diagonally again, and the action key looks
+; at his own cell, as `XwithDirection` does with a diagonal.
+;
+; The step itself is the straight one's: `begin_step` and `advance_step`
+; already move `hero_x` and `hero_y` by `step_dx` and `step_dy` at once, and
+; the camera follows the hero's pixels, a row and a column per tick.
+.proc try_diagonal
+.a8
+.i16
+    sta hero_heading
+    pha
+    and #$03                    ; 4 to 7 minus four: its entry in `diag_vert`
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    lda tile_x
+    sta cell_x
+    lda tile_y
+    sta cell_y
+    sep #$20
+.a8
+    lda hero_lock
+    bne facing_ready
+    lda hero_dir
+    cmp f:diag_vert, x
+    beq facing_ready
+    cmp f:diag_horiz, x
+    beq facing_ready
+    eor #$02                    ; neither component: half round
+    sta hero_dir
+facing_ready:
+    lda #HERO_WALKER
+    sta walker
+    lda #HERO_LAYER_INDEX
+    sta walker_layer
+    lda 1, s
+    jsr cell_allowed_diag       ; leaves cell_x, cell_y on the hero's cell
+    cmp #0
+    beq blocked
+    pla
+    rep #$20
+.a16
+    and #$00FF
+    tax
+    sep #$20
+.a8
+    lda f:step_dx_table, x
+    jsr with_sign_16
+.a16
+    sta step_dx
+    clc
+    adc tile_x
+    sta tile_x
+    sta cell_x
+    sep #$20
+.a8
+    lda f:step_dy_table, x
+    jsr with_sign_16
+.a16
+    sta step_dy
+    clc
+    adc tile_y
+    sta tile_y
+    sta cell_y
+    sep #$20
+.a8
+    jsr cell_ptr                ; the destination, which `begin_step` gives the hero
+    jmp begin_step
+blocked:
     pla
     rts
 .endproc

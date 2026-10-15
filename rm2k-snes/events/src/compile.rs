@@ -5006,11 +5006,14 @@ fn compile_route(ctx: &mut Ctx, cmd: &Command, map_events: Option<&MapEvents>) -
     // no test exercises.
     let mut in_jump = false;
     for (command, extras) in commands {
+        // On the hero, the ones that look at the hero look at himself: see
+        // `route::on_hero`.
+        let command = if target == 0 { route::on_hero(command) } else { command };
         if command == ROUTE_JUMP_START {
             in_jump = true;
         } else if command == ROUTE_JUMP_END {
             in_jump = false;
-        } else if [ROUTE_TOWARD_HERO, ROUTE_RANDOM, ROUTE_AWAY_HERO].contains(&command) && in_jump {
+        } else if route::moves_by_looking(command) && in_jump {
             return cannot();
         }
         if command == ROUTE_SOUND {
@@ -5057,18 +5060,10 @@ fn compile_route(ctx: &mut Ctx, cmd: &Command, map_events: Option<&MapEvents>) -
         // and they are looked at *during* the walk and not only at the end:
         // `path` tests it, comparing four frames of a twelve-cell route with
         // waits in the middle. What goes in from `rpg::MoveCommand::Code` is
-        // `route::known`, and moving toward the hero is in since 2026-09-12 and
-        // moving away from him and the random step since 2026-10-06; turning
-        // in place and the switches are still out.
+        // `route::known`: since 2026-10-14 every command but the switches,
+        // on events and on the hero —the hero's diagonals, forward and the
+        // relative turns came in that day—.
         if !route::known(command) {
-            return cannot();
-        }
-        if [ROUTE_FACE_HERO, ROUTE_TOWARD_HERO, ROUTE_RANDOM, ROUTE_AWAY_HERO, ROUTE_FACE_AWAY]
-            .contains(&command)
-            && target == 0
-        {
-            // The hero facing or moving toward itself, or at random: the
-            // hero's walk is `hero_route.s`, which has none of these.
             return cannot();
         }
         // Locking and unlocking the facing —26 and 27— go to the hero too since
@@ -5076,13 +5071,6 @@ fn compile_route(ctx: &mut Ctx, cmd: &Command, map_events: Option<&MapEvents>) -
         // the race car of maps 49 to 54 is the hero with a CharSet whose rows
         // are other cars, locked with a 26 that only map 64 releases. Until
         // then they were dropped on the hero, and each arrow drew another car.
-        if route::diagonal(command) && target == 0 {
-            // And the hero diagonally: the ROM does not know how to do it and
-            // none of the game's 26 routes with diagonals is the hero's.
-            // Without this cut the ROM would go left —the mover of
-            // `try_toward` falls into `try_left` by elimination—.
-            return cannot();
-        }
         if command == ROUTE_CHANGE_GRAPHIC {
             // The only command with an operand: after 34 goes the graphic's
             // index in `Graphics`, which the converter resolves to the map's
@@ -5747,7 +5735,7 @@ mod tests {
     }
 
     #[test]
-    fn a_route_walks_at_random_and_away_from_the_hero_on_events_only() {
+    fn a_route_walks_every_move_on_events_and_on_the_hero() {
         // MoveEvent: (target, frequency, repeat, skippable, commands...). The
         // map's only event is 1, and its route target is 1: index plus one.
         let map = watching(5, 1);
@@ -5756,20 +5744,39 @@ mod tests {
             p.extend(commands);
             on_this_map(&Game::default(), &Indices::default(), &map, &[cmd(MOVE_EVENT, &p, "")])
         };
-        // 8 walks at random, 10 away from the hero and 22 turns away.
+        // 8 walks at random, 10 away from the hero and 22 turns away; 11
+        // goes forward and 16 to 20 turn relative to the facing.
+        let all = [8, 10, 22, 11, 16, 17, 18, 19, 20];
+        let mut expected = vec![OP_ROUTE, 1, 8, all.len() as u8];
+        expected.extend(all.map(|c| c as u8));
+        expected.push(OP_DONE);
+        assert_eq!(route(1, &all).unwrap(), expected);
+        // On the hero the same, and the diagonals: The Book of Three's map
+        // 22 walks Taran up and to the right four times.
+        let hero = [4, 5, 6, 7, 8, 11, 16, 17, 18, 19, 20];
+        let mut expected = vec![OP_ROUTE, 0, 8, hero.len() as u8];
+        expected.extend(hero.map(|c| c as u8));
+        expected.push(OP_DONE);
+        assert_eq!(route(10001, &hero).unwrap(), expected);
+        // What looks at the hero, on the hero, looks at himself: toward is
+        // down and away is up. Hen Wen's second page turns him with a 22.
         assert_eq!(
-            route(1, &[8, 10, 22]).unwrap(),
-            [OP_ROUTE, 1, 8, 3, 8, 10, 22, OP_DONE]
+            route(10001, &[9, 10, 21, 22]).unwrap(),
+            [OP_ROUTE, 0, 8, 4, 2, 0, 14, 12, OP_DONE]
         );
-        // The hero has no random walk, and no "away from himself".
-        for command in [8, 10, 22] {
-            assert_eq!(route(10001, &[command]), None, "{command} on the hero");
-        }
         // Inside a jump the commands only add up, and these would have to
-        // ask the hero or the dice halfway through the sum.
-        for command in [8, 10] {
+        // ask the hero, the dice or the facing halfway through the sum. On
+        // the hero, 9 and 10 are a direction, and add up.
+        for command in [8, 9, 10, 11] {
             assert_eq!(route(1, &[24, command, 25]), None, "{command} in a jump");
         }
+        assert_eq!(route(10001, &[24, 8, 25]), None, "8 in the hero's jump");
+        assert_eq!(
+            route(10001, &[24, 9, 4, 25]).unwrap(),
+            [OP_ROUTE, 0, 8, 4, 24, 2, 4, 25, OP_DONE]
+        );
+        // The switches are still out.
+        assert_eq!(route(1, &[32, 1]), None);
     }
 
     #[test]

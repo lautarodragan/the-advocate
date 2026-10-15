@@ -67,17 +67,15 @@ has_command:
     sta route_wait
     jmp ready
 not_wait:
-    cmp #12
-    bcs not_move
-    jmp move                    ; 0..3 are the move_*
-not_move:
     cmp #16
-    bcc face                    ; 12..15 are the face_*
-    ; Turning without moving is not compiled, and facing the hero —21— and
-    ; going toward him —9— are not compiled **on the hero**: see
-    ; `compile_route` in the compiler. They do not get here. 9 would also fall
-    ; into `move` above, which with a direction that is not 0..3 sends the
-    ; hero left by elimination, which is the same trap as the diagonals.
+    bcs not_move
+    jmp moves_and_faces         ; 0..15; it is far
+not_move:
+    cmp #21
+    bcs not_relative
+    jmp relative                ; 16..20; it is far
+not_relative:
+    ; 21 and 22 do not get here: see `moves_and_faces`.
     cmp #24
     bne not_jump
     jsr build_hero_jump
@@ -94,7 +92,7 @@ not_end:
     cmp #28
     bcs not_lock
     cmp #26
-    bcc other_command           ; 16 to 22 are not compiled on the hero
+    bcc other_command           ; 21 and 22 do not get here
     jmp lock_hero               ; 26 and 27; it is far
 not_lock:
     cmp #30
@@ -158,6 +156,7 @@ freq_ready:
 face:
     sec
     sbc #12
+face_dir:
     ; Also over `hero_lock`: `UpdateMoveRoute` does `SetFacing` straight
     ; for the `face_*`, without `UpdateFacing`, after their `SetDirection`.
     sta hero_heading
@@ -243,12 +242,86 @@ sound_hero:
     jmp other_command
 
 
+; The moves, 0 to 11, and the face_*, 12 to 15. 9 and 10 do not get here:
+; toward and away from the hero, on the hero, are toward and away from
+; himself, and the compiler writes them as the move down or up they are
+; —see `route::on_hero`—, as it does 21 and 22 with the face_*.
+moves_and_faces:
+    cmp #8
+    bcc move                    ; 0..3 are the move_*, 4..7 the diagonals
+    beq random
+    cmp #12
+    bcc forward                 ; 11
+    jmp face                    ; 12..15
+random:
+    jsr random_direction        ; `move_random`: `TurnRandom` and a step
+    bra move
+
+; The relative turns, 16 to 20: from where he faces, which is where
+; `UpdateMoveRoute` starts them —`SetDirection(GetFacing())`—.
+relative:
+    pha
+    lda hero_dir
+    sta diag_facing
+    pla
+    jsr turn_relative
+    jmp face_dir
+
+; `move_forward`, 11: a step toward RM2k's `direction`, which is
+; `hero_heading` —a diagonal's, if the last step was one—, and the facing
+; left as it was: `UpdateMoveRoute` gives back `prev_facing` after it.
+; Sunset over Imdahl steps the hero back so, locked and between two turns of
+; 180 degrees.
+forward:
+    lda hero_dir
+    pha
+    lda hero_heading
+    jsr route_step_toward
+    pla
+    sta hero_dir
+    bra moved
+
 move:
-    ; Diagonals do not get here: the converter rejects the page that gives one
-    ; to the hero —see MOVE_EVENT in `events.traducir`— because the ROM only
-    ; walks them on events, and none of the game's 26 move routes that use
-    ; them is the hero's. Without that cut, the elimination in
-    ; `try_toward` would send the hero to the left.
+    ; The diagonals, 4 to 7, go to `try_diagonal` from `try_toward`.
+    jsr route_step_toward
+moved:
+    lda step_left
+    bne started                 ; blocked: skipped and the next one is tried
+    jmp other_command
+started:
+    ; The step started, and `route_step`, set by `route_step_toward`, says
+    ; the move route started it: `any_routes` needs this to know the last
+    ; step of a move route still counts.
+ready:
+    rts
+speed:
+    ; `increase_movement_speed` and `decrease_movement_speed`, capped at 6 and
+    ; 1 like `MoveRouteSpeedUp`. On the hero the ROM used to ignore them; now
+    ; they change the pace, and change it for good: RM2k restores the
+    ; frequency when the move route ends and not the speed.
+    cmp #29
+    beq speed_minus
+    jsr hero_speed_read
+    cmp #6
+    bcs speed_save
+    inc a
+    bra speed_save
+speed_minus:
+    jsr hero_speed_read
+    cmp #2
+    bcc speed_save
+    dec a
+speed_save:
+    jsr hero_speed_write
+    jmp other_command
+.endproc
+
+; One step of the hero's move route toward A, 0 to 7, with the route's
+; through-walls: what `move` and `forward` share. The step started if
+; `step_left` is not zero.
+.proc route_step_toward
+.a8
+.i16
     pha                         ; move_* faces where it goes: `try_toward`
     ; The step is noted as the move route's **before** trying it, and not
     ; once it started: `begin_step` already advances the first frame, and
@@ -273,35 +346,7 @@ no_cross:
     jsr try_toward
     stz crossing
     stz crossing + 1
-    lda step_left
-    bne started                 ; blocked: skipped and the next one is tried
-    jmp other_command
-started:
-    ; The step started, and `route_step`, set above, says the move route
-    ; started it: `any_routes` needs this to know the last step of a move
-    ; route still counts.
-ready:
     rts
-speed:
-    ; `increase_movement_speed` and `decrease_movement_speed`, capped at 6 and
-    ; 1 like `MoveRouteSpeedUp`. On the hero the ROM used to ignore them; now
-    ; they change the pace, and change it for good: RM2k restores the
-    ; frequency when the move route ends and not the speed.
-    cmp #29
-    beq speed_minus
-    jsr hero_speed_read
-    cmp #6
-    bcs speed_save
-    inc a
-    bra speed_save
-speed_minus:
-    jsr hero_speed_read
-    cmp #2
-    bcc speed_save
-    dec a
-speed_save:
-    jsr hero_speed_write
-    jmp other_command
 .endproc
 
 ; Whether any forced move route is left unfinished, the hero's included.
