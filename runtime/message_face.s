@@ -43,11 +43,19 @@
 ; do not travel in the save (the divergence says so).
 MSG_FACE:       .res 2
 MSG_FACE_RIGHT: .res 1
+; What the HDMA writes, four bytes a line —CGADD twice, then the colour—:
+; the face's fifteen colours, then the map's fifteen back. The tables that
+; point here are in ROM, one per window position: see `face_table`.
+MSG_FACE_DATA: .res 2 * 15 * 4
+.popseg
+.pushseg
+.segment "BSS"
 ; What the box being composed draws, decided when it opens: 0 none, 1 a face
 ; on the left, 2 on the right. `MSG_FACE_SHOWN` is what the tilemap's cells
 ; say now, the same three values, so the cells are rewritten only when the
 ; side changes; `MSG_FACE_PENDING` asks the vblank for that and for the HDMA
-; table.
+; data, counting down. In bank 0, which is what `message_tick` and the
+; vblank read; what has to outlive a battle is above, in far RAM.
 MSG_FACE_DRAW:    .res 1
 MSG_FACE_SHOWN:   .res 1
 MSG_FACE_PENDING: .res 1
@@ -65,10 +73,6 @@ MSG_CELLS_PTR: .res 3
 MSG_FACE_BITS: .res 2
 MSG_FACE_CELL: .res 2
 MSG_FACE_STEP: .res 1
-; The HDMA table of channel 5: see `face_table`. At most two entries to wait
-; for the window, fifteen of one line, one that holds, fifteen more, and the
-; end; five bytes each.
-MSG_FACE_TABLE: .res (2 + 15 + 1 + 15) * 5 + 1
 .popseg
 
 ; The bytes one face takes in ROM —its tiles, then its palette— and a row
@@ -87,11 +91,10 @@ FACE_END_LINE = FACE_FIRST_LINE + 48
 FACE_HOLD_LINES = FACE_END_LINE - 15
 .assert FACE_FIRST_LINE >= 15, error, "fifteen lines before the face are needed for its palette"
 .assert FACE_END_LINE + 15 <= TEXT_WINDOW_ROWS * 8, error, "fifteen lines after the face are needed to restore the map's"
-; Palette 1's first colour, its place in `cgram_shadow`, the last one's, and
-; the palette bits of a tilemap word.
+; Palette 1's first colour, its place in `cgram_shadow`, and the palette
+; bits of a tilemap word.
 FACE_CGADD = 16 + 1
 FACE_SHADOW = FACE_CGADD * 2
-FACE_SHADOW_LAST = (FACE_CGADD + 14) * 2
 FACE_PALETTE_BIT = $0400
 ; The vblanks a box asks for before it shows: see `msg_face_vblank`.
 FACE_STEPS = 3
@@ -506,14 +509,18 @@ same_plane:
     rts
 .endproc
 
-; The HDMA table of the face's palette, for the window where `MSG_PLACE`
-; put it, and channel 5 pointed at it. Each entry is a line count and what
-; one line writes, four bytes in mode 3 —CGADD twice, CGDATA twice—: one
+; The HDMA of the face's palette: channel 5 in indirect mode, the table in
+; ROM —one per window position, below— and the colours it points at in
+; `MSG_FACE_DATA`, filled here for the face and the map as they are now.
+; Each line writes four bytes, mode 3 —CGADD twice, CGDATA twice—: one
 ; colour. The lines before the window write the map's own entry 31, which
-; changes nothing; the window's first fifteen write the face's fifteen; one
-; entry holds through the face writing its last colour again; the fifteen
-; after the face put the map's back, from `cgram_shadow`, tinted as they
-; are on screen; and then nothing.
+; changes nothing; the window's first fifteen write the face's fifteen, one
+; a line; one entry holds through the face writing its last colour again;
+; the fifteen after the face put the map's back, from `cgram_shadow`,
+; tinted as they are on screen; and then nothing. The table is in ROM and
+; not built in RAM because the RAM is what there was not: A Blurred Line's
+; release cartridge had 12 bytes of far RAM to spare, and a table with its
+; colours inline is 166.
 .proc face_table
 .a8
 .i16
@@ -524,48 +531,24 @@ same_plane:
     clc
     adc #FACE_TILES_BYTES
     sta temp                    ; the face's palette
-    ; The window's first line: `place_rows`, as `msg_hdma_build` reads it.
-    lda f:MSG_PLACE
-    and #MSG_WHERE
-    asl a
-    asl a
-    asl a
-    tax
     sep #$20
 .a8
-    lda f:place_rows + 4, x
-    ldx #0                      ; the table, in bytes
-    cmp #0
-    beq in_window
-    cmp #128
-    bcc one_wait
-    pha
-    lda #127                    ; an entry's count is seven bits
-    jsr emit_wait
-    pla
-    sec
-    sbc #127
-one_wait:
-    jsr emit_wait
-in_window:
+    ldx #0                      ; the data, in bytes
     ldy #0                      ; the face's colours, two bytes each
     lda #FACE_CGADD
     sta f:MSG_FACE_STEP
 face_each:
-    lda #1
-    sta f:MSG_FACE_TABLE, x
-    inx
     lda f:MSG_FACE_STEP
-    sta f:MSG_FACE_TABLE, x
+    sta f:MSG_FACE_DATA, x
     inx
-    sta f:MSG_FACE_TABLE, x
+    sta f:MSG_FACE_DATA, x
     inx
     lda [temp], y
-    sta f:MSG_FACE_TABLE, x
+    sta f:MSG_FACE_DATA, x
     inx
     iny
     lda [temp], y
-    sta f:MSG_FACE_TABLE, x
+    sta f:MSG_FACE_DATA, x
     inx
     iny
     lda f:MSG_FACE_STEP
@@ -573,42 +556,22 @@ face_each:
     sta f:MSG_FACE_STEP
     cpy #30
     bcc face_each
-    ; Holding through the face: its last colour again, on its entry.
-    lda #FACE_HOLD_LINES
-    sta f:MSG_FACE_TABLE, x
-    inx
-    lda #FACE_CGADD + 14
-    sta f:MSG_FACE_TABLE, x
-    inx
-    sta f:MSG_FACE_TABLE, x
-    inx
-    ldy #28
-    lda [temp], y
-    sta f:MSG_FACE_TABLE, x
-    inx
-    iny
-    lda [temp], y
-    sta f:MSG_FACE_TABLE, x
-    inx
     ; The map's back, from the shadow.
     ldy #FACE_SHADOW
     lda #FACE_CGADD
     sta f:MSG_FACE_STEP
 map_each:
-    lda #1
-    sta f:MSG_FACE_TABLE, x
-    inx
     lda f:MSG_FACE_STEP
-    sta f:MSG_FACE_TABLE, x
+    sta f:MSG_FACE_DATA, x
     inx
-    sta f:MSG_FACE_TABLE, x
+    sta f:MSG_FACE_DATA, x
     inx
     lda cgram_shadow, y
-    sta f:MSG_FACE_TABLE, x
+    sta f:MSG_FACE_DATA, x
     inx
     iny
     lda cgram_shadow, y
-    sta f:MSG_FACE_TABLE, x
+    sta f:MSG_FACE_DATA, x
     inx
     iny
     lda f:MSG_FACE_STEP
@@ -616,36 +579,62 @@ map_each:
     sta f:MSG_FACE_STEP
     cpy #FACE_SHADOW + 30
     bcc map_each
-    lda #0
-    sta f:MSG_FACE_TABLE, x     ; the end
-    ; Channel 5 at the table. The HDMA reads its address at the top of each
-    ; frame; `flush_video` turns the channel on with the window's.
-    lda #$03                    ; two registers, two writes each
+    ; Channel 5 at the position's table. The HDMA reads its address at the
+    ; top of each frame; `flush_video` turns the channel on with the
+    ; window's.
+    rep #$20
+.a16
+    lda f:MSG_PLACE
+    and #MSG_WHERE
+    asl a
+    tax
+    lda f:face_tables, x
+    sta A1T5L
+    sep #$20
+.a8
+    lda #^face_tables
+    sta A1B5
+    lda #^MSG_FACE_DATA
+    sta DASB5
+    lda #$43                    ; indirect; two registers, two writes each
     sta DMAP5
     lda #<CGADD
     sta BBAD5
-    ldx #.loword(MSG_FACE_TABLE)
-    stx A1T5L
-    lda #^MSG_FACE_TABLE
-    sta A1B5
-    rts
-
-; An entry of A lines that writes the map's own entry 31 —the last of the
-; face's palette— and so changes nothing: the lines before the window.
-emit_wait:
-    sta f:MSG_FACE_TABLE, x
-    inx
-    lda #FACE_CGADD + 14
-    sta f:MSG_FACE_TABLE, x
-    inx
-    sta f:MSG_FACE_TABLE, x
-    inx
-    lda cgram_shadow + FACE_SHADOW_LAST
-    sta f:MSG_FACE_TABLE, x
-    inx
-    lda cgram_shadow + FACE_SHADOW_LAST + 1
-    sta f:MSG_FACE_TABLE, x
-    inx
     rts
 .endproc
+
+; The tables, one per window position —top, middle, bottom, as `MSG_WHERE`
+; counts them—: a line count, with the repeat bit for the entries that
+; write a colour on every line, and where in `MSG_FACE_DATA` the four bytes
+; of a line are. An entry's count is seven bits, so the 144 lines above
+; the bottom window are two entries, as in `place_rows`.
+.macro face_entry count, data
+    .byte count
+    .word data
+.endmacro
+FACE_DATA_FACE = .loword(MSG_FACE_DATA)
+FACE_DATA_MAP = FACE_DATA_FACE + 15 * 4
+FACE_DATA_FACE_LAST = FACE_DATA_FACE + 14 * 4
+FACE_DATA_MAP_LAST = FACE_DATA_MAP + 14 * 4
+face_table_top:
+    face_entry $80 | 15, FACE_DATA_FACE
+    face_entry FACE_HOLD_LINES, FACE_DATA_FACE_LAST
+    face_entry $80 | 15, FACE_DATA_MAP
+    .byte 0
+face_table_middle:
+    face_entry PLACE_MIDDLE, FACE_DATA_MAP_LAST
+    face_entry $80 | 15, FACE_DATA_FACE
+    face_entry FACE_HOLD_LINES, FACE_DATA_FACE_LAST
+    face_entry $80 | 15, FACE_DATA_MAP
+    .byte 0
+face_table_bottom:
+    face_entry 127, FACE_DATA_MAP_LAST
+    face_entry PLACE_BOTTOM - 127, FACE_DATA_MAP_LAST
+    face_entry $80 | 15, FACE_DATA_FACE
+    face_entry FACE_HOLD_LINES, FACE_DATA_FACE_LAST
+    face_entry $80 | 15, FACE_DATA_MAP
+    .byte 0
+face_tables:
+    .word .loword(face_table_top), .loword(face_table_middle), .loword(face_table_bottom)
+.assert PLACE_TOP = 0 && PLACE_MIDDLE < 128 && PLACE_BOTTOM - 127 > 0 && PLACE_BOTTOM - 127 < 128, error, "the face's tables do not match the window's positions"
 .popseg
